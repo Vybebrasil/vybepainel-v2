@@ -6902,7 +6902,7 @@ function renderWorkspaceDrawer(detail, item) {
     <section class="workspace-section workspace-direction"><div class="workspace-section-head">Ação de direção</div><div class="workspace-section-body"><p class="workspace-note">Registre uma orientação objetiva sem redigir uma atualização do zero. O sinal entra na timeline como decisão de D.A.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceDirectionAction('Briefing confirmado')">✓ Briefing confirmado</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Direcionamento enviado')">↗ Direcionamento enviado</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Aguardando retorno')">◌ Aguardando retorno</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Proteger prazo')">⚑ Proteger prazo</button></div></div></section>
     <section class="workspace-section workspace-checkin"><div class="workspace-section-head">Check-in de execução</div><div class="workspace-section-body"><p class="workspace-note">Registre o início ou o encerramento de um bloco de trabalho sem sair do Vybe OS. O sinal entra na linha do tempo da atividade.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceCheckin('início')">▶ Iniciar bloco</button><button type="button" class="workspace-action" onclick="registerWorkspaceCheckin('fechamento')">■ Encerrar bloco</button></div></div></section>
     ${workspaceExecutiveHistoryHtml(updates)}
-    <section class="workspace-section"><div class="workspace-section-head">Timeline operacional</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></section>`;
+    <section class="workspace-section"><div class="workspace-section-head">Timeline operacional</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></section><div style="height: 120px; width: 100%; flex-shrink: 0; pointer-events: none;"></div>`;
 }
 async function openItemWorkspace(itemId) {
   closeItemWorkspace();
@@ -11322,33 +11322,88 @@ function openMeetingMode() {
 })();
 </script></body></html>
 
-<script>  function openVybeLightbox(src, name) {
+<script>
+  function openVybeLightbox(src, name) {
     const existing = document.getElementById('vybe-lightbox');
     if (existing) existing.remove();
+    
+    // Find all images in activeWorkspaceAssets
+    let images = [];
+    if (typeof activeWorkspaceAssets !== 'undefined') {
+       images = activeWorkspaceAssets.filter(a => {
+         const h = a.public_url || a.url || '';
+         return Boolean(a.url_thumbnail || /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(a.name || h));
+       }).map(a => ({ src: (a.public_url || a.url || ''), name: a.name }));
+    }
+    
+    // If current image is not in the list, add it
+    let currentIndex = images.findIndex(img => img.src === src);
+    if (currentIndex === -1) {
+       images = [{src, name}];
+       currentIndex = 0;
+    }
+    
     const overlay = document.createElement('div');
     overlay.id = 'vybe-lightbox';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:15000;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(10px);cursor:zoom-out;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:15000;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(10px);cursor:zoom-out;user-select:none;';
     overlay.onclick = () => overlay.remove();
     
     const img = document.createElement('img');
-    img.src = src;
-    img.style.cssText = 'max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
+    img.src = images[currentIndex].src;
+    img.style.cssText = 'max-width:85vw;max-height:80vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
     img.onclick = e => e.stopPropagation();
     
     const label = document.createElement('div');
-    label.textContent = name || 'Prévia';
-    label.style.cssText = 'color:#eef8fc;font:600 13px/1.5 monospace;margin-top:16px;text-align:center;padding:8px 16px;background:rgba(255,255,255,0.1);border-radius:8px;';
+    label.style.cssText = 'color:#eef8fc;font:600 13px/1.5 monospace;margin-top:16px;text-align:center;padding:8px 16px;background:rgba(255,255,255,0.1);border-radius:8px;max-width:80vw;word-wrap:break-word;';
+    
+    const updateLabel = () => {
+      label.textContent = (images.length > 1 ? `(${currentIndex + 1}/${images.length}) ` : '') + (images[currentIndex].name || 'Prévia');
+    };
+    updateLabel();
     
     const close = document.createElement('button');
     close.textContent = 'FECHAR [ESC]';
-    close.style.cssText = 'position:absolute;top:20px;right:20px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);color:#fff;padding:8px 12px;font:800 10px monospace;border-radius:8px;cursor:pointer;';
+    close.style.cssText = 'position:absolute;top:20px;right:20px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);color:#fff;padding:8px 12px;font:800 10px monospace;border-radius:8px;cursor:pointer;z-index:15001;';
     close.onclick = () => overlay.remove();
-    
     overlay.appendChild(close);
+    
+    if (images.length > 1) {
+      const prevBtn = document.createElement('button');
+      prevBtn.innerHTML = '&#10094;';
+      prevBtn.style.cssText = 'position:absolute;left:2vw;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);color:#fff;border:none;width:50px;height:50px;border-radius:50%;font-size:24px;cursor:pointer;z-index:15001;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+      prevBtn.onclick = (e) => {
+        e.stopPropagation();
+        currentIndex = (currentIndex - 1 + images.length) % images.length;
+        img.src = images[currentIndex].src;
+        updateLabel();
+      };
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.innerHTML = '&#10095;';
+      nextBtn.style.cssText = 'position:absolute;right:2vw;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);color:#fff;border:none;width:50px;height:50px;border-radius:50%;font-size:24px;cursor:pointer;z-index:15001;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+      nextBtn.onclick = (e) => {
+        e.stopPropagation();
+        currentIndex = (currentIndex + 1) % images.length;
+        img.src = images[currentIndex].src;
+        updateLabel();
+      };
+      
+      overlay.appendChild(prevBtn);
+      overlay.appendChild(nextBtn);
+      
+      const keyListener = e => {
+        if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', keyListener); }
+        else if (e.key === 'ArrowLeft') prevBtn.click();
+        else if (e.key === 'ArrowRight') nextBtn.click();
+      };
+      document.addEventListener('keydown', keyListener);
+    } else {
+      const escListener = e => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escListener); } };
+      document.addEventListener('keydown', escListener);
+    }
+    
     overlay.appendChild(img);
     overlay.appendChild(label);
     document.body.appendChild(overlay);
-    
-    const escListener = e => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escListener); } };
-    document.addEventListener('keydown', escListener);
-  }</script>
+  }
+</script>
