@@ -17,7 +17,9 @@
       .prod-v2-layout { display:flex; flex-direction:column; gap:24px; padding:24px 32px; max-width:1400px; margin:0 auto; animation:fadeIn 0.3s ease; height: 100%; }
       @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
       
-      .prod-v2-head { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px; }
+      .prod-v2-head { display:flex; flex-direction:row; justify-content:space-between; align-items:flex-end; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px; width: 100%; text-align: left; }
+        .prod-v2-head > * { text-align: left; }
+        .p-head-title { flex: 1; display: flex; flex-direction: column; align-items: flex-start; }
       .p-head-title h3 { margin:0; font:800 28px/1.2 var(--mac-ui, sans-serif); color:#fff; letter-spacing:-0.5px; }
       .p-head-title p { margin:6px 0 0; color:#9cafba; font:500 13px var(--mac-ui, sans-serif); }
       
@@ -261,6 +263,8 @@
   window.renderProductionCommand = function() {
     ensureProductionV2Styles();
     const root = document.getElementById('production-command-dashboard');
+    const banner = document.getElementById('production-command-banner');
+    if (banner) banner.style.display = 'none';
     if(!root) return;
 
     const all = typeof productionCommandItems === 'function' ? productionCommandItems() : [];
