@@ -31,7 +31,7 @@
       .fc-title-input { background:transparent; border:none; color:#fff; font:800 32px/1.2 var(--mac-ui, sans-serif); width:100%; outline:none; letter-spacing:-0.5px; }
       .fc-title-input::placeholder { color:rgba(255,255,255,0.2); }
 
-      .fc-body { padding:24px 32px; display:flex; flex-direction:column; gap:20px; overflow-y:auto; scrollbar-width:thin; flex:1; }
+      .fc-body { padding:24px 32px; display:flex; flex-direction:column; gap:20px; overflow-y:auto;  flex:1; }
       .fc-body::-webkit-scrollbar { width: 6px; }
       .fc-body::-webkit-scrollbar-track { background: transparent; }
       .fc-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
@@ -290,7 +290,7 @@
         await mondayQuery(`mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, {item:String(itemId), body:update});
 
         if(typeof showToast === 'function') showToast('Conteúdo criado com sucesso!', 'ok');
-        closeCadastrosGoverned();
+        fcCloseModal();
         if(typeof refreshData === 'function') await refreshData();
      } catch (e) {
         btn.disabled = false;
@@ -313,7 +313,7 @@
     const overlay = document.createElement('div');
     overlay.id = 'fc-overlay';
     overlay.className = 'fc-overlay';
-    overlay.onclick = e => { if(e.target === overlay) closeCadastrosGoverned(); };
+    overlay.onclick = e => { if(e.target === overlay) fcCloseModal(); };
 
     overlay.innerHTML = `
       <div class="fc-modal">
@@ -417,14 +417,14 @@
              </div>
              
              <div class="fc-footer">
-                <button class="fc-btn-cancel" onclick="window.closeCadastrosGoverned()">CANCELAR</button>
+                <button class="fc-btn-cancel" onclick="fcCloseModal()">CANCELAR</button>
                 <button class="fc-btn-create" id="fc-submit-btn" onclick="fcSubmit()">CRIAR CONTEÚDO</button>
              </div>
          </div>
          
          <!-- RIGHT COLUMN: LIVE PREVIEW -->
          <div class="fc-side-col">
-             <button class="fc-close" onclick="window.closeCadastrosGoverned()">×</button>
+             <button class="fc-close" onclick="fcCloseModal()">×</button>
              
              <div class="fc-side-title">PRÉVIA DE DESTINO</div>
              
@@ -489,7 +489,7 @@
     });
   };
 
-  window.closeCadastrosGoverned = function() {
+  window.fcCloseModal = function() {
     const existing = document.getElementById('fc-overlay');
     if(existing) {
        existing.classList.remove('open');
