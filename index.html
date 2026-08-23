@@ -6623,6 +6623,7 @@ function openManualHandoff(itemId) { const item=DADOS.find(d=>String(d.id)===Str
 const outboundItemPatchQueue = new Map();
 function outboundPatchFields(patch={}) { return Object.entries(patch).filter(([,value])=>value!==undefined && value!==null); }
 function applyOutboundItemPatch(itemId, patch={}, label='alteração') {
+  if (patch.status && !patch.status_updated_at) patch.status_updated_at = new Date().toISOString();
   const key=String(itemId); const now=new Date().toISOString(); const fields=outboundPatchFields(patch);
   [DADOS,DADOS_ALL].forEach(list=>(list||[]).forEach(item=>{
     if(String(item.id)!==key) return;
