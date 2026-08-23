@@ -5071,7 +5071,7 @@ function processItems(rawItems, meta) {
     (item.column_values || []).forEach(c => {
       colMap[c.id] = c.text || '';
       colValueMap[c.id] = c.value || '';
-      colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index };
+      colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index, updated_at: c.updated_at };
     });
 
     // Suporte a múltiplos clientes na mesma coluna (ex: "Daiana Miron, Larissa Fernanda")
@@ -5134,7 +5134,7 @@ function processItems(rawItems, meta) {
       cliente,
       status: colMap['status'] || '—',
       status_color: colStyleMap['status']?.color || '',
-      status_updated_at: colStyleMap['status_updated_at'] || '',
+      status_updated_at: colStyleMap['status']?.updated_at || '',
       status_border: colStyleMap['status']?.border || '',
       status_index: colStyleMap['status']?.index ?? null,
       formato: colMap['lista_suspensa0__1'] || '—',
@@ -5172,7 +5172,7 @@ function processItemsAll(rawItems, meta) {
     (item.column_values || []).forEach(c => {
       colMap[c.id] = c.text || '';
       colValueMap[c.id] = c.value || '';
-      colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index };
+      colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index, updated_at: c.updated_at };
     });
     const clienteRaw = colMap['lista_suspensa_mkmqnjbv'] || '';
     const clientesAtivos = clienteRaw.split(',').map(s=>s.trim()).filter(c => c && !CLIENTES_INATIVOS.has(c.toLowerCase()));
@@ -5204,7 +5204,7 @@ function processItemsAll(rawItems, meta) {
       id, nome: item.name || '', cliente,
       status: colMap['status'] || '—',
       status_color: colStyleMap['status']?.color || '',
-      status_updated_at: colStyleMap['status_updated_at'] || '',
+      status_updated_at: colStyleMap['status']?.updated_at || '',
       status_border: colStyleMap['status']?.border || '',
       status_index: colStyleMap['status']?.index ?? null,
       formato: colMap['lista_suspensa0__1'] || '—',
@@ -9096,7 +9096,7 @@ function processDemandas(rawItems) {
     (item.column_values||[]).forEach(c => {
       colMap[c.id] = c.text || '';
       colValueMap[c.id] = c.value || '';
-      colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index };
+      colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index, updated_at: c.updated_at };
     });
     const cliente    = normalizarCliente(colMap['lista_suspensa_mkmet5gs']) || '—';
     const status     = colMap['status'] || '—';
@@ -9123,7 +9123,7 @@ function processDemandas(rawItems) {
       nome: item.name || '',
       cliente, status, prioridade, tipo,
       status_color: colStyleMap['status']?.color || '',
-      status_updated_at: colStyleMap['status_updated_at'] || '',
+      status_updated_at: colStyleMap['status']?.updated_at || '',
       status_border: colStyleMap['status']?.border || '',
       status_index: colStyleMap['status']?.index ?? null,
       prazo: fmtDate(prazoIso),       prazo_iso: prazoIso,       prazo_atrasado: prazoAtrasado,
