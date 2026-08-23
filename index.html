@@ -4914,9 +4914,9 @@ async function fetchAllItems(options={}) {
               group { id title }
               updates(limit: 3) { id body created_at creator { name } }
               column_values(ids: ["lista_suspensa_mkmqnjbv","status","lista_suspensa0__1","person","data__1","data"]) {
-                id text value
-                ... on StatusValue { index label_style { color border } }
-              }
+                  id text value
+                  ... on StatusValue { index label_style { color border } updated_at }
+                }
             }
           }
         }`
@@ -4930,7 +4930,7 @@ async function fetchAllItems(options={}) {
                 updates(limit: 3) { id body created_at creator { name } }
                 column_values(ids: ["lista_suspensa_mkmqnjbv","status","lista_suspensa0__1","person","data__1","data"]) {
                   id text value
-                  ... on StatusValue { index label_style { color border } }
+                  ... on StatusValue { index label_style { color border } updated_at }
                 }
               }
             }
@@ -5134,6 +5134,7 @@ function processItems(rawItems, meta) {
       cliente,
       status: colMap['status'] || '—',
       status_color: colStyleMap['status']?.color || '',
+      status_updated_at: colStyleMap['status_updated_at'] || '',
       status_border: colStyleMap['status']?.border || '',
       status_index: colStyleMap['status']?.index ?? null,
       formato: colMap['lista_suspensa0__1'] || '—',
@@ -5203,6 +5204,7 @@ function processItemsAll(rawItems, meta) {
       id, nome: item.name || '', cliente,
       status: colMap['status'] || '—',
       status_color: colStyleMap['status']?.color || '',
+      status_updated_at: colStyleMap['status_updated_at'] || '',
       status_border: colStyleMap['status']?.border || '',
       status_index: colStyleMap['status']?.index ?? null,
       formato: colMap['lista_suspensa0__1'] || '—',
@@ -5396,7 +5398,7 @@ async function fetchItemsByIds(ids=[]) {
   const chunks=[];
   for (let index=0; index<ids.length; index+=100) chunks.push(ids.slice(index,index+100));
   const results = await Promise.all(chunks.map(async chunk => {
-    const query = `query($ids:[ID!]) { items(ids:$ids) { id name updated_at group { id title } updates(limit:3) { id body created_at creator { name } } column_values(ids:["lista_suspensa_mkmqnjbv","status","lista_suspensa0__1","person","data__1","data"]) { id text value ... on StatusValue { index label_style { color border } } } } }`;
+    const query = `query($ids:[ID!]) { items(ids:$ids) { id name updated_at group { id title } updates(limit:3) { id body created_at creator { name } } column_values(ids:["lista_suspensa_mkmqnjbv","status","lista_suspensa0__1","person","data__1","data"]) { id text value ... on StatusValue { index label_style { color border } updated_at } } } }`;
     const data=await mondayQuery(query,{ids:chunk});
     return data?.items || [];
   }));
@@ -9050,9 +9052,9 @@ async function fetchAllDemandas() {
               id name
               group { id title }
               column_values(ids: ["lista_suspensa_mkmet5gs","status","color_mkwtgakv","data","data_mkky6jx","person","dropdown_mkv8d52z"]) {
-                id text value
-                ... on StatusValue { index label_style { color border } }
-              }
+                  id text value
+                  ... on StatusValue { index label_style { color border } updated_at }
+                }
             }
           }
         }`
@@ -9065,7 +9067,7 @@ async function fetchAllDemandas() {
                 group { id title }
                 column_values(ids: ["lista_suspensa_mkmet5gs","status","color_mkwtgakv","data","data_mkky6jx","person","dropdown_mkv8d52z"]) {
                   id text value
-                  ... on StatusValue { index label_style { color border } }
+                  ... on StatusValue { index label_style { color border } updated_at }
                 }
               }
             }
@@ -9121,6 +9123,7 @@ function processDemandas(rawItems) {
       nome: item.name || '',
       cliente, status, prioridade, tipo,
       status_color: colStyleMap['status']?.color || '',
+      status_updated_at: colStyleMap['status_updated_at'] || '',
       status_border: colStyleMap['status']?.border || '',
       status_index: colStyleMap['status']?.index ?? null,
       prazo: fmtDate(prazoIso),       prazo_iso: prazoIso,       prazo_atrasado: prazoAtrasado,
@@ -11321,7 +11324,20 @@ function openMeetingMode() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',clearInitialWorkspace,{once:true});
   else clearInitialWorkspace();
 })();
-</script></body></html>
+
+  setInterval(() => {
+    document.querySelectorAll('.live-timer').forEach(el => {
+      const start = new Date(el.dataset.start).getTime();
+      if (!start || isNaN(start)) return;
+      const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
+      const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+      const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+      const s = (diff % 60).toString().padStart(2, '0');
+      el.textContent = `⏱ ${h}:${m}:${s}`;
+    });
+  }, 1000);
+</script>
+</body></html>
 
 <script>
   function openVybeLightbox(src, name) {
