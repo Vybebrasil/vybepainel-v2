@@ -157,10 +157,16 @@
      if(state.manualStatus === undefined) {
          const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
          const getCol = (s) => {
-             if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
-             if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
-             return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
-         };
+         // Custom overrides matching the exact Monday board screenshot
+         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
+         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
+         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
+         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
+         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
+         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
+         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+     };
          const col = getCol(dest.status).color;
          fcSelectDropdown('manualStatus', dest.status, dest.status, {color: col}, false);
      }
@@ -170,10 +176,16 @@
          const capText = capVal || '- Nenhuma -';
          const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
          const getCol = (s) => {
-             if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
-             if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
-             return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
-         };
+         // Custom overrides matching the exact Monday board screenshot
+         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
+         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
+         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
+         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
+         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
+         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
+         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+     };
          const col = capVal ? getCol(capVal).color : null;
          fcSelectDropdown('manualCap', capVal, capText, col ? {color: col} : null, false);
      }
@@ -206,8 +218,14 @@
      
      const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
      const getCol = (s) => {
-         if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
-         if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
+         // Custom overrides matching the exact Monday board screenshot
+         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
+         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
+         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
+         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
+         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
+         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
          return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
      };
      const stObj = getCol(finalStatus);
@@ -380,8 +398,14 @@
     function renderCustomDropdowns() {
         const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
         const getCol = (s) => {
-         if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
-         if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
+         // Custom overrides matching the exact Monday board screenshot
+         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
+         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
+         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
+         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
+         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
+         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
          return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
      };
         
@@ -392,11 +416,11 @@
         ];
         
         const statuses = [
-        'A Fazer', 'Pode Fazer', 'Falta D.A', 'Em andamento', 'Aguardo', 
+        'A Fazer', 'Aguardo Redação', 'Pode Fazer', 'Falta D.A', 'Em andamento', 'Aguardo', 
         'Ag. Aprovação Cliente', 'Ag. Info Cliente', 'Falta Info', 
         'Segurar Post', 'Agendado', 'Finalizado', 'Feito'
     ];
-        const caps = ['', 'Agendando Cap.', 'Cap. Agendada', 'A Fazer', 'Pode Fazer', 'Feito', 'Finalizado'];
+        const caps = ['', 'Captação Agendada', 'Captação Feita', 'Agendar Captação', 'Editado', 'A fazer', 'Captação em Andamento'];
         
         const html = `
            <div class="fc-auto-col" id="col-manualGroup">
