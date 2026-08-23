@@ -6828,7 +6828,7 @@ function workspaceAssetPreviewFailed(image) {
 function workspaceAssetPreview(asset) {
   const href = asset.public_url || asset.url || '';
   const thumbnail = asset.url_thumbnail || '';
-  const isImage = Boolean(thumbnail || /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(asset.name || href)));
+  const isImage = Boolean(thumbnail || /\.(png|jpe?g|webp|gif|avif|mp4|mov|webm)(?:$|[?#])/i.test(String(asset.name || href)));
   if (!isImage) return `<div class="workspace-asset-preview workspace-asset-file">${safeText((asset.file_extension || 'ARQ').toUpperCase())}</div>`;
   const src = thumbnail || href;
   if (!src) return `<div class="workspace-asset-preview workspace-asset-file">IMG</div>`;
@@ -6842,7 +6842,7 @@ function workspaceAssetCard(asset) {
       ? `<button type="button" class="workspace-asset-remove" onclick="requestWorkspaceFileRemoval('${safeText(asset.id)}')">REMOVER</button>`
       : `<span class="workspace-asset-locked" title="O Monday só permite limpar todos os arquivos desta coluna de uma vez.">ARQUIVO DE COLUNA</span>`)
     : `<span class="workspace-asset-locked">${safeText(asset.source || 'ARQUIVO')}</span>`;
-  const isImage = Boolean(asset.url_thumbnail || /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(asset.name || href)));
+  const isImage = Boolean(asset.url_thumbnail || /\\.(png|jpe?g|webp|gif|avif|mp4|mov|webm)(?:$|[?#])/i.test(String(asset.name || href)));
     const openAction = isImage 
       ? `<a class="workspace-asset-open" href="${safeText(href)}" onclick="event.preventDefault(); event.stopPropagation(); openVybeLightbox('${safeText(href)}', '${safeText(asset.name)}')">ABRIR ↗</a>` 
       : `<a class="workspace-asset-open" href="${safeText(href)}" target="_blank" rel="noopener">ABRIR ↗</a>`;
@@ -11327,19 +11327,22 @@ function openMeetingMode() {
     const existing = document.getElementById('vybe-lightbox');
     if (existing) existing.remove();
     
-    // Find all images in activeWorkspaceAssets
     let images = [];
     if (typeof activeWorkspaceAssets !== 'undefined') {
        images = activeWorkspaceAssets.filter(a => {
          const h = a.public_url || a.url || '';
-         return Boolean(a.url_thumbnail || /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(a.name || h));
-       }).map(a => ({ src: (a.public_url || a.url || ''), name: a.name }));
+         return Boolean(a.url_thumbnail || /\.(png|jpe?g|webp|gif|avif|mp4|mov|webm)(?:$|[?#])/i.test(a.name || h));
+       }).map(a => {
+         const h = a.public_url || a.url || '';
+         const isVid = /\.(mp4|mov|webm)(?:$|[?#])/i.test(a.name || h);
+         return { src: h, name: a.name, type: isVid ? 'video' : 'image' };
+       });
     }
     
-    // If current image is not in the list, add it
     let currentIndex = images.findIndex(img => img.src === src);
     if (currentIndex === -1) {
-       images = [{src, name}];
+       const isVid = /\.(mp4|mov|webm)(?:$|[?#])/i.test(name || src);
+       images = [{src, name, type: isVid ? 'video' : 'image'}];
        currentIndex = 0;
     }
     
@@ -11348,10 +11351,27 @@ function openMeetingMode() {
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:15000;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(10px);cursor:zoom-out;user-select:none;';
     overlay.onclick = () => overlay.remove();
     
-    const img = document.createElement('img');
-    img.src = images[currentIndex].src;
-    img.style.cssText = 'max-width:85vw;max-height:80vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
-    img.onclick = e => e.stopPropagation();
+    let mediaContainer = document.createElement('div');
+    mediaContainer.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:80vh;';
+    mediaContainer.onclick = e => e.stopPropagation();
+    
+    let currentMedia = null;
+    
+    const renderMedia = () => {
+      mediaContainer.innerHTML = '';
+      const item = images[currentIndex];
+      if (item.type === 'video') {
+        currentMedia = document.createElement('video');
+        currentMedia.controls = true;
+        currentMedia.autoplay = true;
+      } else {
+        currentMedia = document.createElement('img');
+      }
+      currentMedia.src = item.src;
+      currentMedia.style.cssText = 'max-width:85vw;max-height:80vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
+      currentMedia.onclick = e => e.stopPropagation();
+      mediaContainer.appendChild(currentMedia);
+    };
     
     const label = document.createElement('div');
     label.style.cssText = 'color:#eef8fc;font:600 13px/1.5 monospace;margin-top:16px;text-align:center;padding:8px 16px;background:rgba(255,255,255,0.1);border-radius:8px;max-width:80vw;word-wrap:break-word;';
@@ -11359,6 +11379,8 @@ function openMeetingMode() {
     const updateLabel = () => {
       label.textContent = (images.length > 1 ? `(${currentIndex + 1}/${images.length}) ` : '') + (images[currentIndex].name || 'Prévia');
     };
+    
+    renderMedia();
     updateLabel();
     
     const close = document.createElement('button');
@@ -11374,7 +11396,7 @@ function openMeetingMode() {
       prevBtn.onclick = (e) => {
         e.stopPropagation();
         currentIndex = (currentIndex - 1 + images.length) % images.length;
-        img.src = images[currentIndex].src;
+        renderMedia();
         updateLabel();
       };
       
@@ -11384,7 +11406,7 @@ function openMeetingMode() {
       nextBtn.onclick = (e) => {
         e.stopPropagation();
         currentIndex = (currentIndex + 1) % images.length;
-        img.src = images[currentIndex].src;
+        renderMedia();
         updateLabel();
       };
       
@@ -11402,7 +11424,7 @@ function openMeetingMode() {
       document.addEventListener('keydown', escListener);
     }
     
-    overlay.appendChild(img);
+    overlay.appendChild(mediaContainer);
     overlay.appendChild(label);
     document.body.appendChild(overlay);
   }
