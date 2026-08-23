@@ -4669,7 +4669,7 @@ async function mondayQuery(query, variables={}) {
           await new Promise(resolve => setTimeout(resolve, 650 * (attempt + 1)));
           continue;
         }
-        throw new Error(`HTTP ${res.status}`);
+        const errorTxt = await res.text(); throw new Error(`HTTP ${res.status}: ${errorTxt}`);
       }
       const json = await res.json();
       if (json.errors) throw new Error(json.errors[0].message);
