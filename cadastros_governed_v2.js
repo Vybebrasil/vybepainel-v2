@@ -71,7 +71,7 @@
       .fc-auto-col label { font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
 
       .fc-side-col { width:340px; padding:32px 24px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; position:relative; }
-      .fc-close { position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#849aa6; font-size:20px; cursor:pointer; line-height:1; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; transition:all 0.2s; }
+      .fc-close { z-index:50; position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#849aa6; font-size:20px; cursor:pointer; line-height:1; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; transition:all 0.2s; }
       .fc-close:hover { background:rgba(255,255,255,0.1); color:#fff; transform:scale(1.05); }
       
       .fc-side-title { font:800 11px monospace; color:#849aa6; letter-spacing:1px; margin-bottom:24px; }
@@ -392,14 +392,14 @@
              </div>
              
              <div class="fc-footer">
-                <button class="fc-btn-cancel" onclick="closeCadastrosGoverned()">CANCELAR</button>
+                <button class="fc-btn-cancel" onclick="window.closeCadastrosGoverned()">CANCELAR</button>
                 <button class="fc-btn-create" id="fc-submit-btn" onclick="fcSubmit()">CRIAR CONTEÚDO</button>
              </div>
          </div>
          
          <!-- RIGHT COLUMN: LIVE PREVIEW -->
          <div class="fc-side-col">
-             <button class="fc-close" onclick="closeCadastrosGoverned()">×</button>
+             <button class="fc-close" onclick="window.closeCadastrosGoverned()">×</button>
              
              <div class="fc-side-title">PRÉVIA DE DESTINO</div>
              
