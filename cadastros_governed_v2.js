@@ -78,6 +78,17 @@
       .fc-checkbox-row input { accent-color:#00f0ff; width:18px; height:18px; cursor:pointer; }
       .fc-checkbox-row span { color:#d9e2e5; font-size:13px; font-weight:500; }
       
+      .fc-custom-dropdown { position:relative; width:100%; font-family:var(--mac-ui, sans-serif); }
+      .fc-dropdown-value { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:13px; font-weight:700; padding:10px 16px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s; }
+      .fc-dropdown-value:hover { background:rgba(0,0,0,0.5); }
+      .fc-dropdown-value::after { content:'▼'; font-size:9px; color:#849aa6; }
+      .fc-dropdown-list { position:absolute; top:calc(100% + 4px); left:0; width:100%; background:#1a2026; border:1px solid rgba(255,255,255,0.1); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.5); z-index:100; display:none; flex-direction:column; padding:6px; max-height:200px; overflow-y:auto; }
+      .fc-dropdown-list.open { display:flex; }
+      .fc-dropdown-list::-webkit-scrollbar { width:4px; }
+      .fc-dropdown-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:4px; }
+      .fc-dropdown-item { padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; transition:background 0.2s; }
+      .fc-dropdown-item:hover { filter:brightness(1.2); }
+      
       .fc-auto-group { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; background:rgba(255,255,255,0.02); padding:16px; border-radius:16px; border:1px dashed rgba(255,255,255,0.1); }
       .fc-auto-col { display:flex; flex-direction:column; gap:8px; }
       .fc-auto-col label { font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
@@ -139,18 +150,22 @@
      const dest = cadastrosDestiny(formatName, state.briefReady, state.materialReady, state.assignees);
      
      if(state.manualGroup === undefined) {
-         const elGroup = document.getElementById('fc-group-select');
-         if(elGroup) elGroup.value = dest.group;
+         const groups = { 'group_title': 'Redação', 'novo_grupo__1': 'Design & Edição', 'novo_grupo57911__1': 'Produção (Foto e Vídeo)' };
+         fcSelectDropdown('manualGroup', dest.group, groups[dest.group] || dest.group, null, false);
      }
      
      if(state.manualStatus === undefined) {
-         const elStatus = document.getElementById('fc-status-select');
-         if(elStatus) elStatus.value = dest.status;
+         const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
+         const col = c[dest.status] ? c[dest.status].color : '#8888a8';
+         fcSelectDropdown('manualStatus', dest.status, dest.status, {color: col}, false);
      }
      
      if(state.manualCap === undefined) {
-         const elCap = document.getElementById('fc-cap-select');
-         if(elCap) elCap.value = dest.capture ? 'Agendar Captação' : '';
+         const capVal = dest.capture ? 'Agendar Captação' : '';
+         const capText = capVal || '- Nenhuma -';
+         const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
+         const col = capVal && c[capVal] ? c[capVal].color : null;
+         fcSelectDropdown('manualCap', capVal, capText, col ? {color: col} : null, false);
      }
      
      updateLivePreview(dest);
@@ -171,15 +186,25 @@
      titleEl.textContent = `${formatText} - ${titleText}`;
      clientEl.textContent = state.client || 'Cliente não selecionado';
      
-     const finalGroupLabel = document.getElementById('fc-group-select').options[document.getElementById('fc-group-select').selectedIndex].text;
-     const finalStatus = document.getElementById('fc-status-select').value;
-     const finalCap = document.getElementById('fc-cap-select').value;
+     const groups = { 'group_title': 'Redação', 'novo_grupo__1': 'Design & Edição', 'novo_grupo57911__1': 'Produção (Foto e Vídeo)' };
+     const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
+     const finalGroupLabel = groups[finalGroup] || 'Redação';
+     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
+     const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
      
      groupEl.textContent = finalGroupLabel;
      
-     let statusesHtml = `<span class="fc-prev-tag" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">${esc(finalStatus)}</span>`;
+     const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
+     const bgStatus = c[finalStatus] ? c[finalStatus].bg : 'rgba(255,255,255,0.1)';
+     const txtStatus = c[finalStatus] ? c[finalStatus].color : '#fff';
+     const brdStatus = c[finalStatus] ? c[finalStatus].border : 'rgba(255,255,255,0.2)';
+     let statusesHtml = `<span class="fc-prev-tag" style="background:${bgStatus}; color:${txtStatus}; border-color:${brdStatus};">${esc(finalStatus)}</span>`;
+     
      if (finalCap) {
-         statusesHtml += `<span class="fc-prev-tag" style="background:rgba(246,191,58,0.1); color:#f6bf3a; border-color:rgba(246,191,58,0.2);">CAPTAÇÃO: ${esc(finalCap)}</span>`;
+         const bgCap = c[finalCap] ? c[finalCap].bg : 'rgba(246,191,58,0.1)';
+         const txtCap = c[finalCap] ? c[finalCap].color : '#f6bf3a';
+         const brdCap = c[finalCap] ? c[finalCap].border : 'rgba(246,191,58,0.2)';
+         statusesHtml += `<span class="fc-prev-tag" style="background:${bgCap}; color:${txtCap}; border-color:${brdCap};">CAPTAÇÃO: ${esc(finalCap)}</span>`;
      }
      statusEl.innerHTML = statusesHtml;
      
@@ -199,7 +224,7 @@
   }
 
   window.fcHandleInput = function(key, val) {
-     state[key] = val;
+     if(isManual) state[key] = val;
      
      if(key === 'veic' && val) {
         state.prazo = getOffsetDate(val, -7);
@@ -255,9 +280,9 @@
         return typeof showToast === 'function' ? showToast('Preencha os campos obrigatórios destacados em vermelho.', 'info') : alert('Preencha os campos obrigatórios.');
      }
      
-     const finalGroup = document.getElementById('fc-group-select').value;
-     const finalStatus = document.getElementById('fc-status-select').value;
-     const finalCap = document.getElementById('fc-cap-select').value;
+     const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
+     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
+     const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
      
      const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
      const normalized = `${state.format} - ${title}`;
@@ -299,13 +324,105 @@
      }
   };
 
-  window.openCadastrosGoverned = function() {
+  window.fcToggleDropdown = function(id) {
+       const list = document.getElementById(id);
+       const isOpen = list.classList.contains('open');
+       document.querySelectorAll('.fc-dropdown-list').forEach(el => el.classList.remove('open'));
+       if(!isOpen) list.classList.add('open');
+    };
+    
+    window.fcSelectDropdown = function(key, val, text, colorObj, isManual = true) {
+       state[key] = val;
+       document.querySelectorAll('.fc-dropdown-list').forEach(el => el.classList.remove('open'));
+       
+       const valEl = document.getElementById('fc-val-' + key);
+       if(valEl) {
+           valEl.textContent = text;
+           if(colorObj) {
+               valEl.style.background = colorObj.color;
+               valEl.style.color = '#fff';
+               if(colorObj.color === '#c4c4c4' || colorObj.color === '#ffcb00') valEl.style.color = '#000';
+               valEl.style.border = 'none';
+           } else {
+               valEl.style.background = 'rgba(0,0,0,0.3)';
+               valEl.style.color = '#fff';
+               valEl.style.border = '1px solid rgba(255,255,255,0.1)';
+           }
+       }
+       updateDestinyUI();
+    };
+
+    window.openCadastrosGoverned = function() {
     ensureFastCadastrosStyles();
     
     const existing = document.getElementById('fc-overlay');
     if(existing) existing.remove();
 
     state = { title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined };
+    
+    function renderCustomDropdowns() {
+        const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
+        const getCol = (s) => c[s] || { color:'#8888a8' };
+        
+        const groups = [
+           { val: 'group_title', label: 'Redação' },
+           { val: 'novo_grupo__1', label: 'Design & Edição' },
+           { val: 'novo_grupo57911__1', label: 'Produção (Foto e Vídeo)' }
+        ];
+        
+        const statuses = ['A Fazer', 'Pode Fazer', 'Falta D.A', 'Ag. Aprovação Cliente', 'Agendado'];
+        const caps = ['', 'Agendar Captação', 'A Fazer'];
+        
+        const html = `
+           <div class="fc-auto-col" id="col-manualGroup">
+              <label>Grupo / Destino</label>
+              <div class="fc-custom-dropdown">
+                 <div class="fc-dropdown-value" id="fc-val-manualGroup" onclick="fcToggleDropdown('fc-list-group')">Redação</div>
+                 <div class="fc-dropdown-list" id="fc-list-group">
+                    ${groups.map(g => `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualGroup', '${g.val}', '${g.label}')" style="color:#fff">${g.label}</div>`).join('')}
+                 </div>
+              </div>
+           </div>
+           
+           <div class="fc-auto-col" id="col-manualStatus">
+              <label>Status Inicial</label>
+              <div class="fc-custom-dropdown">
+                 <div class="fc-dropdown-value" id="fc-val-manualStatus" onclick="fcToggleDropdown('fc-list-status')" style="background:#c4c4c4; color:#000; border:none;">A Fazer</div>
+                 <div class="fc-dropdown-list" id="fc-list-status">
+                    ${statuses.map(s => {
+                        const col = getCol(s).color;
+                        const txt = (col === '#c4c4c4' || col === '#ffcb00') ? '#000' : '#fff';
+                        return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualStatus', '${s}', '${s}', {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${s}</div>`;
+                    }).join('')}
+                 </div>
+              </div>
+           </div>
+           
+           <div class="fc-auto-col" id="col-manualCap">
+              <label>Captação Externa</label>
+              <div class="fc-custom-dropdown">
+                 <div class="fc-dropdown-value" id="fc-val-manualCap" onclick="fcToggleDropdown('fc-list-cap')">- Nenhuma -</div>
+                 <div class="fc-dropdown-list" id="fc-list-cap">
+                    ${caps.map(s => {
+                        if(!s) return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualCap', '', '- Nenhuma -')" style="color:#849aa6; margin-bottom:4px;">- Nenhuma -</div>`;
+                        const col = getCol(s).color;
+                        const txt = (col === '#c4c4c4' || col === '#ffcb00') ? '#000' : '#fff';
+                        return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualCap', '${s}', '${s}', {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${s}</div>`;
+                    }).join('')}
+                 </div>
+              </div>
+           </div>
+        `;
+        
+        document.getElementById('fc-auto-group-container').innerHTML = html;
+        
+        // global click to close
+        document.getElementById('fc-overlay').addEventListener('click', (e) => {
+            if(!e.target.closest('.fc-custom-dropdown')) {
+                document.querySelectorAll('.fc-dropdown-list').forEach(el => el.classList.remove('open'));
+            }
+        });
+    }
     
     const clients = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
     const formats = typeof CADASTROS_FORMATS !== 'undefined' ? CADASTROS_FORMATS : ['Reels','Vídeo','Fotografia','Carrossel','Post Único','Motion','Stories'];
@@ -353,48 +470,9 @@
                    </div>
                 </div>
                 
-                <div class="fc-auto-group">
-                   <div class="fc-auto-col">
-                      <label>Grupo / Destino</label>
-                      <select class="fc-input" id="fc-group-select" onchange="fcHandleInput('manualGroup', this.value)">
-                         <option value="group_title">Redação</option>
-                         <option value="novo_grupo__1">Design & Edição</option>
-                         <option value="novo_grupo57911__1">Produção (Foto e Vídeo)</option>
-                      </select>
-                   </div>
-                   <div class="fc-auto-col">
-                      <label>Status Inicial</label>
-                      <select class="fc-input" id="fc-status-select" onchange="fcHandleInput('manualStatus', this.value)">
-                         <option value="A Fazer">A Fazer</option>
-                         <option value="Pode Fazer">Pode Fazer</option>
-                         <option value="Falta D.A">Falta D.A</option>
-                         <option value="Ag. Aprovação Cliente">Ag. Aprovação Cliente</option>
-                         <option value="Agendado">Agendado</option>
-                      </select>
-                   </div>
-                   <div class="fc-auto-col">
-                      <label>Captação Externa</label>
-                      <select class="fc-input" id="fc-cap-select" onchange="fcHandleInput('manualCap', this.value)">
-                         <option value="">- Nenhuma -</option>
-                         <option value="Agendar Captação">Agendar Captação</option>
-                         <option value="A Fazer">A Fazer</option>
-                      </select>
-                   </div>
-                </div>
-
-                <div class="fc-row">
-                   <div class="fc-label">Prazos</div>
-                   <div class="fc-input-wrap" style="display:flex; gap:16px;">
-                      <div style="flex:1">
-                         <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Veiculação</label>
-                         <input type="date" class="fc-input" id="fc-veic-input" min="${todayIso()}" onchange="fcHandleInput(\'veic\', this.value)">
-                      </div>
-                      <div style="flex:1">
-                         <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Prazo Interno</label>
-                         <input type="date" id="fc-prazo" class="fc-input" min="${todayIso()}" onchange="fcHandleInput('prazo', this.value)">
-                      </div>
-                   </div>
-                </div>
+                <div class="fc-auto-group" id="fc-auto-group-container">
+       <!-- Populated by JS -->
+    </div>
 
                 <div class="fc-row">
                    <div class="fc-label">Instruções</div>
@@ -472,6 +550,7 @@
     document.body.appendChild(overlay);
     requestAnimationFrame(() => {
        overlay.classList.add('open');
+       renderCustomDropdowns();
        renderPersons();
        updateDestinyUI();
        
