@@ -20,6 +20,14 @@ export default async function handler(req, res) {
   // Evento esperado: change_column_value
   const event = req.body?.event;
   if (!event || event.type !== 'update_column_value') {
+    return res.status(200).json({ status: 'ignored' });
+  }
+
+  if (event.columnId !== 'status') {
+    return res.status(200).json({ status: 'ignored', message: 'Not the main status column' });
+  }
+
+  if (!event) {
     return res.status(200).json({ status: 'ignored', message: 'Not an update_column_value event' });
   }
 
