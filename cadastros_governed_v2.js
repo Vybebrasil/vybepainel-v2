@@ -511,15 +511,15 @@
         
         <footer class="cad-foot">
           <div style="display:flex;gap:12px;">
-            ${currentStep>1 ? \`<button class="cad-btn cad-btn-ghost" onclick="cadWizardPrev()">← VOLTAR</button>\` : \`<button class="cad-btn cad-btn-ghost" style="visibility:hidden">← VOLTAR</button>\`}
+            ${currentStep>1 ? `<button class="cad-btn cad-btn-ghost" onclick="cadWizardPrev()">← VOLTAR</button>` : `<button class="cad-btn cad-btn-ghost" style="visibility:hidden">← VOLTAR</button>`}
           </div>
           <div style="display:flex;gap:12px;">
             <button class="cad-btn cad-btn-secondary" onclick="cadWizardSave()">SALVAR RASCUNHO</button>
-            ${currentStep<3 ? \`<button class="cad-btn cad-btn-primary" onclick="cadWizardNext()">AVANÇAR →</button>\` : \`<button id="cw-submit-btn" class="cad-btn cad-btn-primary" onclick="cadWizardSubmit()">VALIDAR E CRIAR</button>\`}
+            ${currentStep<3 ? `<button class="cad-btn cad-btn-primary" onclick="cadWizardNext()">AVANÇAR →</button>` : `<button id="cw-submit-btn" class="cad-btn cad-btn-primary" onclick="cadWizardSubmit()">VALIDAR E CRIAR</button>`}
           </div>
         </footer>
       </section>
-    \`;
+    `;
     
     document.body.appendChild(overlay);
     requestAnimationFrame(() => {
