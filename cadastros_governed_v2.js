@@ -156,7 +156,12 @@
      
      if(state.manualStatus === undefined) {
          const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-         const col = c[dest.status] ? c[dest.status].color : '#8888a8';
+         const getCol = (s) => {
+             if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
+             if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
+             return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+         };
+         const col = getCol(dest.status).color;
          fcSelectDropdown('manualStatus', dest.status, dest.status, {color: col}, false);
      }
      
@@ -164,7 +169,12 @@
          const capVal = dest.capture ? 'Agendar Captação' : '';
          const capText = capVal || '- Nenhuma -';
          const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-         const col = capVal && c[capVal] ? c[capVal].color : null;
+         const getCol = (s) => {
+             if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
+             if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
+             return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+         };
+         const col = capVal ? getCol(capVal).color : null;
          fcSelectDropdown('manualCap', capVal, capText, col ? {color: col} : null, false);
      }
      
@@ -195,15 +205,22 @@
      groupEl.textContent = finalGroupLabel;
      
      const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-     const bgStatus = c[finalStatus] ? c[finalStatus].bg : 'rgba(255,255,255,0.1)';
-     const txtStatus = c[finalStatus] ? c[finalStatus].color : '#fff';
-     const brdStatus = c[finalStatus] ? c[finalStatus].border : 'rgba(255,255,255,0.2)';
+     const getCol = (s) => {
+         if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
+         if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
+         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+     };
+     const stObj = getCol(finalStatus);
+     const bgStatus = stObj.bg;
+     const txtStatus = stObj.color;
+     const brdStatus = stObj.border;
      let statusesHtml = `<span class="fc-prev-tag" style="background:${bgStatus}; color:${txtStatus}; border-color:${brdStatus};">${esc(finalStatus)}</span>`;
      
      if (finalCap) {
-         const bgCap = c[finalCap] ? c[finalCap].bg : 'rgba(246,191,58,0.1)';
-         const txtCap = c[finalCap] ? c[finalCap].color : '#f6bf3a';
-         const brdCap = c[finalCap] ? c[finalCap].border : 'rgba(246,191,58,0.2)';
+         const capObj = getCol(finalCap);
+         const bgCap = capObj.bg;
+         const txtCap = capObj.color;
+         const brdCap = capObj.border;
          statusesHtml += `<span class="fc-prev-tag" style="background:${bgCap}; color:${txtCap}; border-color:${brdCap};">CAPTAÇÃO: ${esc(finalCap)}</span>`;
      }
      statusEl.innerHTML = statusesHtml;
@@ -362,7 +379,11 @@
     
     function renderCustomDropdowns() {
         const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-        const getCol = (s) => c[s] || { color:'#8888a8' };
+        const getCol = (s) => {
+         if (s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' };
+         if (s === 'Agendar Captação' || s === 'Agendando Cap.') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' };
+         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+     };
         
         const groups = [
            { val: 'group_title', label: 'Redação' },
@@ -370,8 +391,12 @@
            { val: 'novo_grupo57911__1', label: 'Produção (Foto e Vídeo)' }
         ];
         
-        const statuses = ['A Fazer', 'Pode Fazer', 'Falta D.A', 'Ag. Aprovação Cliente', 'Agendado'];
-        const caps = ['', 'Agendar Captação', 'A Fazer'];
+        const statuses = [
+        'A Fazer', 'Pode Fazer', 'Falta D.A', 'Em andamento', 'Aguardo', 
+        'Ag. Aprovação Cliente', 'Ag. Info Cliente', 'Falta Info', 
+        'Segurar Post', 'Agendado', 'Finalizado', 'Feito'
+    ];
+        const caps = ['', 'Agendando Cap.', 'Cap. Agendada', 'A Fazer', 'Pode Fazer', 'Feito', 'Finalizado'];
         
         const html = `
            <div class="fc-auto-col" id="col-manualGroup">
