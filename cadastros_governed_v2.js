@@ -1,14 +1,12 @@
-﻿/* Vybe OS — CADASTROS Governado v2 */
+/* Vybe OS — CADASTROS Governado v2 (Glassmorphism Wizard) */
 (function () {
   const STORE_KEY = 'vybe_os_cadastros_queue_v2';
   let activeDraftId = null;
+  let currentStep = 1;
 
   const esc = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
   const todayIso = () => (typeof HOJE_ISO !== 'undefined' && HOJE_ISO) || new Date().toISOString().slice(0, 10);
-  const readQueue = () => {
-    try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); return Array.isArray(raw) ? raw : []; }
-    catch { return []; }
-  };
+  const readQueue = () => { try { const raw = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); return Array.isArray(raw) ? raw : []; } catch { return []; } };
   const writeQueue = queue => localStorage.setItem(STORE_KEY, JSON.stringify(queue.slice(0, 80)));
   const isoOffset = (base, amount) => { const date = new Date(`${base}T12:00:00`); date.setDate(date.getDate() + amount); return date.toISOString().slice(0, 10); };
   const queueStatus = status => ({draft:{label:'RASCUNHO',color:'#7c8a9d'},review:{label:'EM REVISÃO',color:'#f6bf3a'},created:{label:'CRIADO',color:'#00d184'}}[status] || {label:'RASCUNHO',color:'#7c8a9d'});
@@ -23,10 +21,98 @@
   };
 
   function ensureStyles(){
-    if(document.getElementById('cadastros-v2-style')) return;
-    const style=document.createElement('style'); style.id='cadastros-v2-style'; style.textContent=`
-      .cad-v2-modal{width:min(1180px,calc(100vw - 32px));max-height:min(820px,calc(100vh - 32px));background:#090d12;border:1px solid #08d9ef;box-shadow:0 30px 100px rgba(0,0,0,.75),0 0 50px rgba(8,217,239,.12);color:#eef8fc;overflow:auto;position:relative}
-      .cad-v2-head{padding:22px 26px 18px;background:linear-gradient(110deg,rgba(8,217,239,.14),rgba(12,18,25,.98) 55%);border-bottom:1px solid rgba(8,217,239,.28);display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.cad-v2-kicker{font:800 11px/1.2 monospace;letter-spacing:1.5px;color:#06dff5}.cad-v2-head h3{font-size:30px;line-height:1;margin:8px 0 7px}.cad-v2-head p{color:#9cafba;max-width:680px;margin:0;font-size:13px;line-height:1.45}.cad-v2-close{border:1px solid #325366;background:#121c23;color:#dffaff;width:34px;height:34px;font-size:22px;cursor:pointer}.cad-v2-metrics{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cad-v2-metric{min-width:80px;padding:8px 10px;border:1px solid #273946;background:#0d141b}.cad-v2-metric b{display:block;font:900 20px/1 monospace}.cad-v2-metric span{display:block;margin-top:4px;font:700 9px/1.1 monospace;color:#9cafba;letter-spacing:.7px}.cad-v2-shell{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:540px}.cad-v2-queue{background:#080c10;border-right:1px solid #273946;padding:16px;display:flex;flex-direction:column;gap:12px}.cad-v2-queue-head{display:flex;justify-content:space-between;align-items:center}.cad-v2-queue-head b{font:800 11px monospace;letter-spacing:.7px;color:#b8d7df}.cad-v2-new{background:#05cfe8;border:0;color:#031015;font:900 10px monospace;padding:9px 11px;cursor:pointer}.cad-v2-list{display:flex;flex-direction:column;gap:7px;max-height:410px;overflow:auto}.cad-v2-row{width:100%;background:#0d141a;border:1px solid #24343e;color:#ddecf0;text-align:left;padding:10px;cursor:pointer}.cad-v2-row.active{border-color:#04d9ef;box-shadow:inset 3px 0 #04d9ef}.cad-v2-row-top{display:flex;justify-content:space-between;gap:7px;align-items:center}.cad-v2-row b{font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cad-v2-row small{display:block;color:#849aa6;font:10px/1.35 monospace;margin-top:5px}.cad-v2-state{font:800 8px monospace;letter-spacing:.6px;padding:3px 5px;border:1px solid currentColor;white-space:nowrap}.cad-v2-queue-note{margin-top:auto;padding:12px;border:1px solid #263843;background:#0d141a;color:#90a7b2;font:10px/1.5 monospace}.cad-v2-main{padding:20px 24px 25px;overflow:auto}.cad-v2-progress{display:flex;gap:0;margin-bottom:20px}.cad-v2-progress span{flex:1;border-top:2px solid #334650;padding:8px 8px 0;color:#71838d;font:800 9px monospace;letter-spacing:.5px}.cad-v2-progress span.active{border-color:#06dff5;color:#dcfbff}.cad-v2-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(310px,.92fr);gap:18px}.cad-v2-form{display:grid;grid-template-columns:1fr 1fr;gap:11px;align-content:start}.cad-v2-form label{display:flex;flex-direction:column;gap:6px;color:#a4bcc5;font:800 10px monospace;letter-spacing:.3px}.cad-v2-form .full{grid-column:1/-1}.cad-v2-form input,.cad-v2-form select,.cad-v2-form textarea{background:#081117;border:1px solid #304650;color:#eefcff;padding:10px;font:13px monospace;outline:none}.cad-v2-form input:focus,.cad-v2-form select:focus,.cad-v2-form textarea:focus{border-color:#06dff5;box-shadow:0 0 0 2px rgba(6,223,245,.09)}.cad-v2-toggle{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #29404b;background:#0c151b;cursor:pointer}.cad-v2-toggle input{width:auto;margin:1px 0 0}.cad-v2-review{border:1px solid #2c4650;background:linear-gradient(145deg,#0c151b,#080d11);padding:15px;display:flex;flex-direction:column;gap:13px}.cad-v2-review-head{border-bottom:1px solid #29404b;padding-bottom:10px}.cad-v2-review-head b{display:block;font:900 11px monospace;letter-spacing:.8px;color:#06dff5}.cad-v2-name{font:900 19px/1.2 monospace;color:#f1fcff}.cad-v2-route{padding:11px;border-left:3px solid #f6bf3a;background:#15130d}.cad-v2-route b{font:900 11px monospace;color:#ffcf4a}.cad-v2-route span{display:block;margin-top:5px;color:#b9c7ca;font:11px/1.45 monospace}.cad-v2-checklist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}.cad-v2-checklist li{font:11px/1.35 monospace;color:#92a6ae;display:flex;gap:7px;align-items:flex-start}.cad-v2-checklist li.pass{color:#baf5db}.cad-v2-checklist li.fail{color:#ff9aa7}.cad-v2-checklist input{accent-color:#00d184;margin:1px 0 0}.cad-v2-lead{border:1px solid #29404b;background:#0b151a;padding:10px 12px;display:flex;flex-direction:column;gap:5px}.cad-v2-lead b{font:900 10px monospace;letter-spacing:.5px;color:#ffcf4a}.cad-v2-lead.protected{border-color:#137457;background:#081a14}.cad-v2-lead.protected b{color:#7df2bc}.cad-v2-lead span{font:10px/1.4 monospace;color:#9eb5bd}.cad-v2-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:18px;margin-top:20px;border-top:1px solid #29404b}.cad-v2-actions-left,.cad-v2-actions-right{display:flex;gap:8px;flex-wrap:wrap}.cad-v2-btn{border:1px solid #3a5662;background:#101b22;color:#d9f7fc;padding:10px 12px;font:900 10px monospace;letter-spacing:.4px;cursor:pointer}.cad-v2-btn.primary{background:#05d5ec;color:#031014;border-color:#05d5ec}.cad-v2-btn.review{border-color:#f6bf3a;color:#ffcf4a}.cad-v2-btn.create{background:#00b478;color:#04150f;border-color:#00d184}.cad-v2-btn:disabled{opacity:.45;cursor:not-allowed}.cad-v2-warning{padding:9px 10px;border:1px solid #795e22;background:#1b1507;color:#ffd66a;font:10px/1.4 monospace}.cad-v2-history{border-top:1px solid #29404b;padding-top:10px}.cad-v2-history b{font:800 10px monospace;color:#9eb9c2}.cad-v2-history span{display:block;color:#758c95;font:10px/1.4 monospace;margin-top:5px}@media(max-width:780px){.cad-v2-shell{grid-template-columns:1fr}.cad-v2-queue{border-right:0;border-bottom:1px solid #273946}.cad-v2-list{max-height:155px}.cad-v2-grid{grid-template-columns:1fr}.cad-v2-head{padding:18px}.cad-v2-head h3{font-size:25px}.cad-v2-main{padding:16px}.cad-v2-metrics{display:none}.cad-v2-progress span{font-size:8px;padding-left:3px}.cad-v2-form{grid-template-columns:1fr}.cad-v2-form .full{grid-column:auto}}
+    if(document.getElementById('cadastros-wizard-style')) return;
+    const style=document.createElement('style'); style.id='cadastros-wizard-style'; style.textContent=`
+      .cad-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:15000; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s; }
+      .cad-overlay.open { opacity:1; }
+      .cad-modal { width:min(860px, calc(100vw - 32px)); max-height:calc(100vh - 40px); display:flex; flex-direction:column; background:radial-gradient(circle at top right, rgba(0, 240, 255, 0.05), transparent 50%), radial-gradient(circle at bottom left, rgba(0, 209, 180, 0.05), transparent 50%), rgba(10, 15, 20, 0.85); backdrop-filter:blur(24px) saturate(1.2); border:1px solid rgba(255, 255, 255, 0.08); border-radius:16px; box-shadow:0 40px 100px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0, 240, 255, 0.05); color:#eef8fc; position:relative; overflow:hidden; transform:translateY(20px) scale(0.98); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+      .cad-overlay.open .cad-modal { transform:translateY(0) scale(1); }
+      
+      .cad-head { padding:24px 32px 20px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; flex-direction:column; gap:12px; }
+      .cad-head-top { display:flex; justify-content:space-between; align-items:flex-start; }
+      .cad-title-block h3 { margin:0; font:800 24px/1.1 var(--mac-ui, sans-serif); letter-spacing:-0.5px; }
+      .cad-title-block p { margin:6px 0 0; color:#9cafba; font-size:13px; max-width:500px; line-height:1.4; }
+      .cad-controls { display:flex; gap:12px; align-items:center; }
+      .cad-drafts-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#b8d7df; padding:8px 14px; border-radius:8px; font:700 11px monospace; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+      .cad-drafts-btn:hover { background:rgba(255,255,255,0.1); color:#fff; }
+      .cad-drafts-btn b { background:rgba(0,240,255,0.2); color:#00f0ff; padding:2px 6px; border-radius:10px; font-size:10px; }
+      .cad-close { background:transparent; border:none; color:#71838d; font-size:24px; cursor:pointer; padding:4px; line-height:1; transition:color 0.2s; }
+      .cad-close:hover { color:#fff; }
+      
+      .cad-stepper { display:flex; gap:6px; margin-top:8px; }
+      .cad-step { flex:1; display:flex; flex-direction:column; gap:6px; }
+      .cad-step-bar { height:4px; border-radius:2px; background:rgba(255,255,255,0.08); transition:all 0.3s; }
+      .cad-step-label { font:800 9px monospace; color:#627885; letter-spacing:0.5px; text-transform:uppercase; transition:color 0.3s; }
+      .cad-step.active .cad-step-bar { background:#00f0ff; box-shadow:0 0 10px rgba(0,240,255,0.4); }
+      .cad-step.active .cad-step-label { color:#00f0ff; }
+      .cad-step.done .cad-step-bar { background:rgba(0,240,255,0.3); }
+      
+      .cad-body { flex:1; overflow-y:auto; position:relative; min-height:400px; }
+      .cad-step-content { display:none; padding:24px 32px; animation:fadeSlide 0.3s ease; }
+      .cad-step-content.active { display:block; }
+      @keyframes fadeSlide { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
+      
+      .cad-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px 20px; }
+      .cad-full { grid-column:1/-1; }
+      .cad-field { display:flex; flex-direction:column; gap:6px; }
+      .cad-field label { font:700 11px var(--mac-ui, sans-serif); color:#b8d7df; }
+      .cad-field small { font:500 11px var(--mac-ui, sans-serif); color:#627885; line-height:1.3; margin-top:-2px; }
+      .cad-field input, .cad-field select, .cad-field textarea { background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; padding:10px 14px; font:14px var(--mac-ui, sans-serif); outline:none; transition:all 0.2s; box-shadow:inset 0 2px 4px rgba(0,0,0,0.2); }
+      .cad-field input:focus, .cad-field select:focus, .cad-field textarea:focus { border-color:#00f0ff; background:rgba(0,240,255,0.02); box-shadow:0 0 0 3px rgba(0,240,255,0.1), inset 0 2px 4px rgba(0,0,0,0.2); }
+      
+      .cad-toggle { display:flex; gap:12px; align-items:flex-start; padding:14px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02); cursor:pointer; transition:all 0.2s; }
+      .cad-toggle:hover { background:rgba(255,255,255,0.04); }
+      .cad-toggle input { margin-top:2px; accent-color:#00f0ff; width:16px; height:16px; cursor:pointer; }
+      .cad-toggle div { display:flex; flex-direction:column; gap:4px; }
+      .cad-toggle b { font:700 12px var(--mac-ui, sans-serif); color:#eef8fc; }
+      .cad-toggle span { font:500 11px var(--mac-ui, sans-serif); color:#849aa6; line-height:1.4; }
+      
+      .cad-review-box { background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:16px; }
+      .cad-review-hero { border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:16px; }
+      .cad-review-hero h4 { margin:0 0 8px; font:800 20px var(--mac-ui, sans-serif); color:#fff; }
+      .cad-review-hero p { margin:0; color:#b8d7df; font:500 13px var(--mac-ui, sans-serif); }
+      
+      .cad-route-card { display:flex; align-items:center; gap:16px; background:linear-gradient(90deg, rgba(246,191,58,0.1), transparent); border:1px solid rgba(246,191,58,0.2); border-left:4px solid #f6bf3a; padding:16px; border-radius:8px; }
+      .cad-route-card i { font-size:24px; font-style:normal; }
+      .cad-route-card div { display:flex; flex-direction:column; gap:4px; }
+      .cad-route-card b { color:#f6bf3a; font:800 12px monospace; }
+      .cad-route-card span { color:#d9e2e5; font:500 12px var(--mac-ui, sans-serif); line-height:1.4; }
+      
+      .cad-checklist { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+      .cad-checklist li { display:flex; gap:10px; align-items:flex-start; font:500 13px var(--mac-ui, sans-serif); color:#9cafba; }
+      .cad-checklist li.pass { color:#00d184; }
+      .cad-checklist li.fail { color:#ff637a; }
+      
+      .cad-foot { padding:20px 32px; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); }
+      .cad-btn { border:none; border-radius:8px; padding:12px 24px; font:800 12px var(--mac-ui, sans-serif); cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+      .cad-btn-ghost { background:transparent; color:#9cafba; }
+      .cad-btn-ghost:hover { color:#fff; background:rgba(255,255,255,0.05); }
+      .cad-btn-secondary { background:rgba(255,255,255,0.1); color:#fff; }
+      .cad-btn-secondary:hover { background:rgba(255,255,255,0.15); }
+      .cad-btn-primary { background:#00f0ff; color:#000; box-shadow:0 0 15px rgba(0,240,255,0.3); }
+      .cad-btn-primary:hover { background:#33f3ff; box-shadow:0 0 20px rgba(0,240,255,0.5); transform:translateY(-1px); }
+      .cad-btn-primary:disabled { background:rgba(0,240,255,0.2); color:rgba(255,255,255,0.4); box-shadow:none; cursor:not-allowed; transform:none; }
+      
+      /* Drafts Drawer */
+      .cad-drawer { position:absolute; top:0; right:0; width:320px; height:100%; background:rgba(15,20,25,0.95); backdrop-filter:blur(20px); border-left:1px solid rgba(255,255,255,0.08); transform:translateX(100%); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); z-index:10; display:flex; flex-direction:column; }
+      .cad-drawer.open { transform:translateX(0); box-shadow:-10px 0 30px rgba(0,0,0,0.5); }
+      .cad-drawer-head { padding:20px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; }
+      .cad-drawer-head b { font:800 12px var(--mac-ui, sans-serif); color:#fff; }
+      .cad-drawer-list { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+      .cad-draft-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:12px; cursor:pointer; transition:all 0.2s; text-align:left; display:flex; flex-direction:column; gap:6px; }
+      .cad-draft-card:hover { background:rgba(255,255,255,0.06); border-color:rgba(0,240,255,0.3); }
+      .cad-draft-card.active { border-color:#00f0ff; background:rgba(0,240,255,0.05); }
+      .cad-draft-card b { color:#fff; font:700 12px var(--mac-ui, sans-serif); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .cad-draft-card small { color:#849aa6; font:500 11px var(--mac-ui, sans-serif); }
+      .cad-draft-badge { display:inline-block; padding:2px 6px; border-radius:4px; font:800 9px monospace; margin-top:4px; }
+      
+      @media(max-width:780px){
+        .cad-grid { grid-template-columns:1fr; }
+        .cad-head { padding:20px; }
+        .cad-body { padding:0; }
+        .cad-step-content { padding:20px; }
+        .cad-foot { padding:16px 20px; }
+      }
     `; document.head.appendChild(style);
   }
 
@@ -34,21 +120,402 @@
   function activeSavedDraft(){ return readQueue().find(item => item.id === activeDraftId) || null; }
   function initialDraft(){ const saved=activeSavedDraft(); return saved ? {...saved,advanceException:Boolean(saved.advanceException),exceptionReason:String(saved.exceptionReason||'')} : {id:null,status:'draft',client:'',format:'',title:'',veic:'',prazo:'',captureDate:'',brief:'',copy:'',briefingReady:false,seasonalConfirmed:false,advanceException:false,exceptionReason:'',checks:{},createdAt:null,updatedAt:null}; }
   function getEl(id){ return document.getElementById(id); }
-  function readDraft(){ const old=initialDraft(); const format=String(getEl('cad2-format')?.value||'').trim(); const veic=String(getEl('cad2-veic')?.value||'').trim(); const prazo=String(getEl('cad2-prazo')?.value||'').trim() || (veic ? isoOffset(veic,-CREATIVE_LEAD_DAYS) : ''); const briefReady=Boolean(getEl('cad2-brief-ready')?.checked); const destiny=cadastrosDestiny(format, briefReady); const title=String(getEl('cad2-title')?.value||'').trim(); const cleanTitle=title.replace(new RegExp(`^${format}\\s*-\\s*`,'i'),'').trim(); const checks={}; document.querySelectorAll('[data-cad-check]').forEach(input=>checks[input.dataset.cadCheck]=Boolean(input.checked)); return {...old,client:String(getEl('cad2-client')?.value||'').trim(),format,title,normalized:title?`${format} - ${cleanTitle}`:'',veic,prazo,captureDate:String(getEl('cad2-capture')?.value||'').trim(),brief:String(getEl('cad2-brief')?.value||'').trim(),copy:String(getEl('cad2-copy')?.value||'').trim(),briefingReady:briefReady,seasonalConfirmed:Boolean(getEl('cad2-seasonal')?.checked),advanceException:Boolean(getEl('cad2-exception')?.checked),exceptionReason:String(getEl('cad2-exception-reason')?.value||'').trim(),checks,destiny}; }
-  function checklistFor(d){ const capture=['Reels','Vídeo','Fotografia'].includes(d.format); const base=[{key:'name',text:'Nomenclatura começa pelo formato',ok:Boolean(d.normalized && d.normalized.startsWith(`${d.format} - `))},{key:'dates',text:'Prazo e veiculação respeitam a sequência operacional',ok:Boolean(d.prazo && d.veic && d.prazo<=d.veic && d.veic>=todayIso())},{key:'brief',text:'Briefing descreve a intenção e o objetivo do conteúdo',ok:Boolean(d.brief)}]; if(d.briefingReady) base.push({key:'copy',text:'Legenda ou roteiro pronto para produção',ok:Boolean(d.copy)}); if(capture) base.push({key:'capture',text:'Captação prevista antes do prazo de produção',ok:Boolean(d.captureDate && d.prazo && d.captureDate<=d.prazo)}); if(d.format==='Motion') base.push({key:'motion',text:'Direção de arte foi considerada no fluxo Motion',ok:true}); const lead=advancePlan(d.veic); base.push({key:'lead',text:lead.ok?`Veiculação protegida com ${lead.days} dias de antecedência`:d.advanceException&&d.exceptionReason?`Exceção de antecedência registrada para veiculação em ${lead.days} dias`:`Planeje a veiculação com ao menos ${CREATIVE_LEAD_DAYS} dias de antecedência`,ok:lead.ok||Boolean(d.advanceException&&d.exceptionReason)}); base.push({key:'review',text:'Responsável revisou este pré-cadastro antes da criação',ok:Boolean(d.checks.review)}); return base; }
-  function validation(d, strict=false){ const errors=[]; if(!d.client)errors.push('Selecione o cliente.'); if(!d.format)errors.push('Selecione o formato.'); if(!d.title)errors.push('Informe o título do conteúdo.'); if(!d.veic)errors.push('Informe a veiculação.'); if(!d.prazo)errors.push('Informe o prazo.'); if(d.veic && d.veic<todayIso())errors.push('A veiculação não pode estar no passado.'); const lead=advancePlan(d.veic); if(d.veic&&!lead.ok&&!(d.advanceException&&d.exceptionReason))errors.push(`A produção criativa precisa operar com ${CREATIVE_LEAD_DAYS} dias de antecedência. Esta veiculação está em ${lead.days} dias; registre uma exceção justificada ou reprograme a data.`); if(d.prazo && d.veic && d.prazo>d.veic)errors.push('O prazo deve ser anterior ou igual à veiculação.'); if(d.prazo && d.veic && d.prazo!==isoOffset(d.veic,-CREATIVE_LEAD_DAYS))errors.push(`O Prazo de Ouro deve ficar ${CREATIVE_LEAD_DAYS} dias antes da veiculação.`); if(!d.brief)errors.push('Descreva o briefing ou a intenção.'); if(d.briefingReady&&!d.copy)errors.push('Com briefing pronto, informe legenda ou roteiro.'); if(['Reels','Vídeo','Fotografia'].includes(d.format)&&d.briefingReady&&!d.captureDate)errors.push('Defina a data prevista de captação.'); if(d.captureDate&&d.prazo&&d.captureDate>d.prazo)errors.push('A captação precisa acontecer antes do prazo de produção.'); if(strict) checklistFor(d).filter(item=>!item.ok).forEach(item=>errors.push(`Checklist pendente: ${item.text}.`)); return errors; }
-  function saveDraft(status='draft'){ const draft=readDraft(); const errors=validation(draft,status==='review'); if(errors.length){ showToast(errors[0],'info',5000); return null; } const queue=readQueue(); const now=new Date().toISOString(); const item={...draft,id:draft.id||`cad-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,status,createdAt:draft.createdAt||now,updatedAt:now}; const index=queue.findIndex(entry=>entry.id===item.id); if(index>=0)queue[index]=item; else queue.unshift(item); writeQueue(queue); activeDraftId=item.id; return item; }
-  function renderQueue(queue){ if(!queue.length)return '<div class="cad-v2-queue-note">Nenhum pré-cadastro salvo ainda. Comece uma entrada e salve antes de encaminhar para revisão.</div>'; return queue.map(item=>{const state=queueStatus(item.status);return `<button type="button" class="cad-v2-row ${item.id===activeDraftId?'active':''}" onclick="cadQueueLoad('${item.id}')"><div class="cad-v2-row-top"><b>${esc(item.normalized||'Rascunho sem título')}</b><span class="cad-v2-state" style="color:${state.color}">${state.label}</span></div><small>${esc(item.client||'Cliente pendente')} · ${esc(item.veic||'Sem veiculação')}<br>Atualizado ${new Date(item.updatedAt||item.createdAt||Date.now()).toLocaleString('pt-BR')}</small></button>`;}).join(''); }
-  function renderChecklist(d){ return checklistFor(d).map(item=>`<li class="${item.ok?'pass':'fail'}">${item.key==='review'?`<input type="checkbox" data-cad-check="review" ${d.checks.review?'checked':''} onchange="cadQueueRefresh()">`:item.ok?'✓':'○'}<span>${esc(item.text)}</span></li>`).join(''); }
-  function render(){ ensureStyles(); const old=document.getElementById('cadastros-preview-overlay'); if(old)old.remove(); const draft=initialDraft(); const queue=readQueue(); const state=queueStatus(draft.status); const advance=advancePlan(draft.veic); const capture=['Reels','Vídeo','Fotografia'].includes(draft.format); const route=draft.format?draft.destiny:cadastrosDestiny('',false); const checks=checklistFor(draft); const errors=validation(draft,draft.status==='review'); const canCreate=draft.status==='review'&&!errors.length; const overlay=document.createElement('div'); overlay.id='cadastros-preview-overlay'; overlay.className='cadastros-preview-overlay cadastros-governed-overlay'; overlay.onclick=event=>{if(event.target===overlay)window.closeCadastrosGoverned();}; overlay.innerHTML=`<section class="cad-v2-modal" role="dialog" aria-modal="true" aria-label="CADASTROS governado"><header class="cad-v2-head"><div><div class="cad-v2-kicker">04 / GOVERNANÇA OPERACIONAL · CADASTROS</div><h3>ENTRADA CONTROLADA</h3><p>Crie a demanda certa antes de ela chegar à produção. O módulo valida nomenclatura, logística, rota, responsáveis e checklist; a criação no Monday permanece como comando final explícito.</p></div><div class="cad-v2-metrics"><div class="cad-v2-metric"><b>${queue.filter(item=>item.status==='draft').length}</b><span>RASCUNHOS</span></div><div class="cad-v2-metric"><b>${queue.filter(item=>item.status==='review').length}</b><span>EM REVISÃO</span></div><div class="cad-v2-metric"><b>${queue.filter(item=>item.status==='created').length}</b><span>CRIADOS</span></div></div><button class="cad-v2-close" type="button" onclick="closeCadastrosGoverned()" aria-label="Fechar CADASTROS">×</button></header><div class="cad-v2-shell"><aside class="cad-v2-queue"><div class="cad-v2-queue-head"><b>FILA DE PRÉ-CADASTROS</b><button class="cad-v2-new" type="button" onclick="cadQueueNew()">+ NOVO</button></div><div class="cad-v2-list">${renderQueue(queue)}</div><div class="cad-v2-queue-note">A fila fica salva neste navegador até a criação final. Itens criados permanecem no histórico como comprovante do encaminhamento.</div></aside><main class="cad-v2-main"><div class="cad-v2-progress"><span class="active">01 · INTENÇÃO</span><span class="${draft.status!=='draft'?'active':''}">02 · REVISÃO</span><span class="${draft.status==='created'?'active':''}">03 · MONDAY</span></div><div class="cad-v2-grid"><form class="cad-v2-form" oninput="cadQueueRefresh()" onchange="cadQueueRefresh()"><label><span>Cliente *</span><select id="cad2-client"><option value="">Selecione o cliente</option>${clients().map(client=>`<option value="${esc(client)}" ${draft.client===client?'selected':''}>${esc(client)}</option>`).join('')}</select></label><label><span>Formato *</span><select id="cad2-format"><option value="">Selecione o formato</option>${CADASTROS_FORMATS.map(format=>`<option value="${esc(format)}" ${draft.format===format?'selected':''}>${esc(format)}</option>`).join('')}</select></label><label class="full"><span>Título do conteúdo *</span><input id="cad2-title" value="${esc(draft.title)}" placeholder="Ex.: Bastidores da nova coleção"></label><label><span>Veiculação * · ideal a partir de ${new Date(`${earliestCreativeVeic()}T12:00:00`).toLocaleDateString('pt-BR')}</span><input id="cad2-veic" type="date" min="${todayIso()}" value="${esc(draft.veic)}"></label><label><span>Prazo de Ouro * · ${CREATIVE_LEAD_DAYS} dias antes</span><input id="cad2-prazo" type="date" min="${todayIso()}" value="${esc(draft.prazo)}"></label><div class="full cad-v2-lead ${advance.ok?'protected':''}"><b>${advance.days===null?'PLANEJE 7 DIAS À FRENTE':advance.ok?`JANELA PROTEGIDA · ${advance.days} DIAS À FRENTE`:`FORA DA JANELA · ${advance.days} DIAS À FRENTE`}</b><span>O fluxo regular protege o time criativo: Prazo de Ouro a ${CREATIVE_LEAD_DAYS} dias antes da veiculação.</span></div>${capture?`<label class="full"><span>Data prevista da captação *</span><input id="cad2-capture" type="date" min="${todayIso()}" value="${esc(draft.captureDate)}"><small>Para foto e vídeo, a captação deve acontecer antes do prazo de produção.</small></label>`:'<input id="cad2-capture" type="hidden" value="">'}<label class="full"><span>Briefing / intenção *</span><textarea id="cad2-brief" rows="4" placeholder="Objetivo, mensagem, referência, CTA ou orientação criativa.">${esc(draft.brief)}</textarea></label><label class="full"><span>Legenda / roteiro ${draft.briefingReady?'*':''}</span><textarea id="cad2-copy" rows="3" placeholder="Texto-base da legenda ou roteiro. Obrigatório quando o briefing está pronto para produção.">${esc(draft.copy)}</textarea></label><label class="full cad-v2-toggle"><input id="cad2-brief-ready" type="checkbox" ${draft.briefingReady?'checked':''}><span><b>Briefing pronto para produção</b><br>Se não estiver marcado, a demanda entra em Redação com status A Fazer. Quando marcado, a triagem aplica Design, Motion ou Captação.</span></label><label class="full cad-v2-toggle"><input id="cad2-seasonal" type="checkbox" ${draft.seasonalConfirmed?'checked':''}><span><b>Tema sazonal confirmado</b><br>Marque somente se a data, campanha ou tema sazonal foi solicitado explicitamente. O módulo não assume sazonalidade.</span></label><label class="full cad-v2-toggle"><input id="cad2-exception" type="checkbox" ${draft.advanceException?'checked':''}><span><b>Exceção de antecedência</b><br>Use apenas para uma urgência real que precise veicular dentro dos próximos sete dias. A justificativa será registrada no checklist do Monday.</span></label><label class="full"><span>Justificativa da exceção ${draft.advanceException?'*':'(somente se marcada acima)'}</span><textarea id="cad2-exception-reason" rows="2" placeholder="Explique a urgência, o impacto e quem alinhou a exceção.">${esc(draft.exceptionReason)}</textarea></label></form><aside class="cad-v2-review"><div class="cad-v2-review-head"><b>PRÉ-VALIDAÇÃO</b><div class="cad-v2-name">${esc(draft.normalized||'Formato - Título do conteúdo')}</div><small>${esc(draft.client||'Cliente pendente')} · ${esc(draft.format||'Formato pendente')} · ${esc(draft.veic||'Veiculação pendente')}</small></div><div class="cad-v2-route"><b>DESTINO: ${esc(route.groupLabel)}</b><span>Status inicial: ${esc(route.status)} · Responsáveis: ${esc(cadastrosAssigneeNames(route.assignees))}<br>${esc(route.why)}</span></div>${errors.length?`<div class="cad-v2-warning">${esc(errors[0])}${errors.length>1?` +${errors.length-1} ponto${errors.length-1===1?'':'s'} pendente${errors.length-1===1?'':'s'}`:''}</div>`:''}<ul class="cad-v2-checklist">${renderChecklist(draft)}</ul><div class="cad-v2-history"><b>TRILHA LOCAL</b><span>${draft.createdAt?`Criado como pré-cadastro em ${new Date(draft.createdAt).toLocaleString('pt-BR')} · status atual: ${state.label}`:'Ainda não salvo na fila.'}</span></div></aside></div><footer class="cad-v2-actions"><div class="cad-v2-actions-left"><button type="button" class="cad-v2-btn" onclick="cadQueueSave()">SALVAR RASCUNHO</button><button type="button" class="cad-v2-btn review" onclick="cadQueueReview()">ENVIAR PARA REVISÃO</button></div><div class="cad-v2-actions-right"><button type="button" class="cad-v2-btn create" ${canCreate?'':'disabled'} onclick="cadQueueCreate()">VALIDAR E CRIAR NO MONDAY →</button></div></footer></main></div></section>`; document.body.appendChild(overlay); requestAnimationFrame(()=>overlay.classList.add('open')); }
+  
+  function readDraft(){
+    const old=initialDraft();
+    const format=String(getEl('cw-format')?.value||'').trim();
+    const veic=String(getEl('cw-veic')?.value||'').trim();
+    const prazo=String(getEl('cw-prazo')?.value||'').trim() || (veic ? isoOffset(veic,-CREATIVE_LEAD_DAYS) : '');
+    const briefReady=Boolean(getEl('cw-brief-ready')?.checked);
+    const destiny=cadastrosDestiny(format, briefReady);
+    const title=String(getEl('cw-title')?.value||'').trim();
+    const cleanTitle=title.replace(new RegExp(`^${format}\\s*-\\s*`,'i'),'').trim();
+    const checks={};
+    if(getEl('cw-check-review')) checks.review = getEl('cw-check-review').checked;
+    
+    return {...old,
+      client:String(getEl('cw-client')?.value||'').trim(),
+      format,title,normalized:title?`${format} - ${cleanTitle}`:'',
+      veic,prazo,captureDate:String(getEl('cw-capture')?.value||'').trim(),
+      brief:String(getEl('cw-brief')?.value||'').trim(),
+      copy:String(getEl('cw-copy')?.value||'').trim(),
+      briefingReady:briefReady, seasonalConfirmed:Boolean(getEl('cw-seasonal')?.checked),
+      advanceException:Boolean(getEl('cw-exception')?.checked),
+      exceptionReason:String(getEl('cw-exception-reason')?.value||'').trim(),
+      checks,destiny
+    };
+  }
+  
+  function checklistFor(d){
+    const capture=['Reels','Vídeo','Fotografia'].includes(d.format);
+    const base=[
+      {key:'name',text:'Nomenclatura padronizada e formato definido',ok:Boolean(d.normalized && d.format)},
+      {key:'dates',text:'Prazos consistentes e no futuro',ok:Boolean(d.prazo && d.veic && d.prazo<=d.veic && d.veic>=todayIso())},
+      {key:'brief',text:'Briefing/Intenção preenchido',ok:Boolean(d.brief)}
+    ];
+    if(d.briefingReady) base.push({key:'copy',text:'Legenda/Roteiro fornecidos',ok:Boolean(d.copy)});
+    if(capture) base.push({key:'capture',text:'Captação acontece antes do prazo de edição',ok:Boolean(d.captureDate && d.prazo && d.captureDate<=d.prazo)});
+    const lead=advancePlan(d.veic);
+    base.push({key:'lead',text:lead.ok?`Prazo de Ouro validado (${lead.days} dias de frente)`:d.advanceException&&d.exceptionReason?`Exceção de prazo justificada`:`Prazo de Ouro comprometido (faltam ${CREATIVE_LEAD_DAYS} dias)`,ok:lead.ok||Boolean(d.advanceException&&d.exceptionReason)});
+    base.push({key:'review',text:'Declaro ter revisado as informações.',ok:Boolean(d.checks.review)});
+    return base;
+  }
+  
+  function validation(d){
+    const errors=[];
+    if(!d.client)errors.push('Selecione o cliente.');
+    if(!d.format)errors.push('Selecione o formato.');
+    if(!d.title)errors.push('Informe o título.');
+    if(!d.brief)errors.push('Preencha o briefing.');
+    if(d.briefingReady&&!d.copy)errors.push('Legenda obrigatória para briefing pronto.');
+    if(!d.veic)errors.push('Informe a veiculação.');
+    if(!d.prazo)errors.push('Informe o prazo.');
+    if(d.veic && d.veic<todayIso())errors.push('Veiculação não pode ser no passado.');
+    const lead=advancePlan(d.veic);
+    if(d.veic&&!lead.ok&&!(d.advanceException&&d.exceptionReason))errors.push(`A produção criativa exige ${CREATIVE_LEAD_DAYS} dias de antecedência. Utilize uma exceção justificada se for urgente.`);
+    if(d.prazo && d.veic && d.prazo>d.veic)errors.push('O prazo deve ser anterior ou igual à veiculação.');
+    if(d.prazo && d.veic && d.prazo!==isoOffset(d.veic,-CREATIVE_LEAD_DAYS))errors.push(`O Prazo de Ouro deve ser ${CREATIVE_LEAD_DAYS} dias antes da veiculação.`);
+    if(['Reels','Vídeo','Fotografia'].includes(d.format)&&d.briefingReady&&!d.captureDate)errors.push('Data de captação é obrigatória.');
+    if(d.captureDate&&d.prazo&&d.captureDate>d.prazo)errors.push('Captação deve ocorrer antes do prazo final.');
+    return errors;
+  }
+  
+  function saveDraft(status='draft'){
+    const draft=readDraft();
+    const queue=readQueue();
+    const now=new Date().toISOString();
+    const item={...draft,id:draft.id||`cad-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,status,createdAt:draft.createdAt||now,updatedAt:now};
+    const index=queue.findIndex(entry=>entry.id===item.id);
+    if(index>=0)queue[index]=item; else queue.unshift(item);
+    writeQueue(queue);
+    activeDraftId=item.id;
+    return item;
+  }
 
-  window.cadQueueRefresh = () => { const oldDraft=readDraft(); const prazo=getEl('cad2-prazo'); if(oldDraft.veic && prazo && !prazo.value) prazo.value=isoOffset(oldDraft.veic,-CREATIVE_LEAD_DAYS); const snapshot={...oldDraft,checks:oldDraft.checks}; const review=document.querySelector('.cad-v2-review'); if(!review)return; const errors=validation(snapshot,snapshot.status==='review'); const route=snapshot.format?snapshot.destiny:cadastrosDestiny('',false); const lead=advancePlan(snapshot.veic); const leadBox=document.querySelector('.cad-v2-lead'); if(leadBox){leadBox.classList.toggle('protected',lead.ok); leadBox.innerHTML=`<b>${lead.days===null?'PLANEJE 7 DIAS À FRENTE':lead.ok?`JANELA PROTEGIDA · ${lead.days} DIAS À FRENTE`:`FORA DA JANELA · ${lead.days} DIAS À FRENTE`}</b><span>O fluxo regular protege o time criativo: Prazo de Ouro a ${CREATIVE_LEAD_DAYS} dias antes da veiculação.</span>`;} review.innerHTML=`<div class="cad-v2-review-head"><b>PRÉ-VALIDAÇÃO</b><div class="cad-v2-name">${esc(snapshot.normalized||'Formato - Título do conteúdo')}</div><small>${esc(snapshot.client||'Cliente pendente')} · ${esc(snapshot.format||'Formato pendente')} · ${esc(snapshot.veic||'Veiculação pendente')}</small></div><div class="cad-v2-route"><b>DESTINO: ${esc(route.groupLabel)}</b><span>Status inicial: ${esc(route.status)} · Responsáveis: ${esc(cadastrosAssigneeNames(route.assignees))}<br>${esc(route.why)}</span></div>${errors.length?`<div class="cad-v2-warning">${esc(errors[0])}${errors.length>1?` +${errors.length-1} ponto${errors.length-1===1?'':'s'} pendente${errors.length-1===1?'':'s'}`:''}</div>`:''}<ul class="cad-v2-checklist">${renderChecklist(snapshot)}</ul><div class="cad-v2-history"><b>TRILHA LOCAL</b><span>${snapshot.createdAt?`Criado como pré-cadastro em ${new Date(snapshot.createdAt).toLocaleString('pt-BR')}`:'Ainda não salvo na fila.'}</span></div>`; const create=document.querySelector('.cad-v2-btn.create'); if(create)create.disabled=!(snapshot.status==='review'&&!errors.length); };
-  window.cadQueueNew = () => { activeDraftId=null; render(); };
-  window.cadQueueLoad = id => { activeDraftId=id; render(); };
-  window.cadQueueSave = () => { const item=saveDraft('draft'); if(item){render();showToast('✓ Rascunho salvo na fila local.','ok',4000);} };
-  window.cadQueueReview = () => { const item=saveDraft('review'); if(item){render();showToast('✓ Pré-cadastro enviado para revisão.','ok',4000);} };
-  window.cadQueueCreate = async () => { const draft=readDraft(); const errors=validation(draft,true); if(draft.status!=='review'){showToast('Envie o pré-cadastro para revisão antes de criar no Monday.','info',5000);return;} if(errors.length){showToast(errors[0],'info',5000);return;} const button=document.querySelector('.cad-v2-btn.create'); if(button){button.disabled=true;button.textContent='CRIANDO...';} const values={lista_suspensa_mkmqnjbv:{labels:[draft.client]},lista_suspensa0__1:{labels:[draft.format]},lista_suspensa__1:{index:3},data__1:{date:draft.veic},data:{date:draft.prazo},status:{label:draft.destiny.status},person:{personsAndTeams:draft.destiny.assignees.map(id=>({id:Number(id),kind:'person'}))}}; if(draft.destiny.capture) values.status_1__1={label:'Agendar Captação'}; try { const create=`mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`; const response=await mondayQuery(create,{board:String(BOARD_ID),group:draft.destiny.group,name:draft.normalized,values:JSON.stringify(values)}); const itemId=response?.create_item?.id; if(!itemId)throw new Error('Monday não retornou o identificador do item.'); const captureLine=draft.destiny.capture?`<li>☐ Confirmar captação prevista para ${esc(draft.captureDate)}</li>`:''; const motionLine=draft.format==='Motion'?'<li>☐ Validar direção de arte antes da execução</li>':''; const exceptionLine=draft.advanceException?`<li><strong>⚠ EXCEÇÃO DE ANTECEDÊNCIA:</strong> ${esc(draft.exceptionReason)}</li>`:''; const hellen=draft.client.toLowerCase().includes('hellen rocha')?'<li>☐ Validar informações jurídicas com a Hellen antes de publicar</li>':''; const update=`<p><strong>✅ CHECKLIST DE PRÉ-PRODUÇÃO</strong></p><p><strong>Briefing:</strong> ${esc(draft.brief)}</p><p><strong>Legenda/Roteiro:</strong> ${esc(draft.copy || 'A construir em Redação')}</p><ul><li>☐ Revisar copy e adaptar ao tom da marca</li><li>☐ Selecionar referências visuais / banco de imagens</li><li>☐ Montar layout no padrão do cliente</li>${captureLine}${motionLine}${exceptionLine}<li>☐ Enviar para aprovação antes de publicar</li>${hellen}</ul>`; await mondayQuery(`mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`,{item:String(itemId),body:update}); const queue=readQueue(); const index=queue.findIndex(item=>item.id===draft.id); if(index>=0){queue[index]={...queue[index],status:'created',mondayItemId:String(itemId),updatedAt:new Date().toISOString()};writeQueue(queue);} render(); showToast('✓ Cadastro criado no Monday com checklist e triagem aplicada.','ok',6500); refreshData?.(); } catch(error){ if(button){button.disabled=false;button.textContent='VALIDAR E CRIAR NO MONDAY →';}showToast(`Não foi possível criar o cadastro: ${error.message}`,'err',8000); } };
-  window.closeCadastrosGoverned = () => document.getElementById('cadastros-preview-overlay')?.remove();
-  window.openCadastrosGoverned = () => { activeDraftId=null; render(); };
+  function renderDrawer(queue) {
+    if(!queue.length) return `<div style="padding:20px;text-align:center;color:#627885;font-size:12px;">Nenhum rascunho salvo.</div>`;
+    return queue.map(item => {
+      const state = queueStatus(item.status);
+      return `<div class="cad-draft-card ${item.id===activeDraftId?'active':''}" onclick="cadWizardLoad('${item.id}')">
+        <b>${esc(item.normalized||'Sem título')}</b>
+        <small>${esc(item.client||'Cliente pendente')}</small>
+        <div><span class="cad-draft-badge" style="background:${state.color}20; color:${state.color}">${state.label}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderReviewChecklist(d) {
+    return checklistFor(d).map(c => `
+      <li class="${c.ok?'pass':'fail'}">
+        ${c.key==='review' ? `<input type="checkbox" id="cw-check-review" style="accent-color:#00f0ff;width:14px;height:14px;margin-top:2px;" ${c.ok?'checked':''} onchange="cadWizardRefresh()">` : (c.ok?'✓':'○')}
+        <span>${esc(c.text)}</span>
+      </li>
+    `).join('');
+  }
+
+  window.cadWizardRefresh = () => {
+    if(!document.getElementById('cad-wizard-overlay')) return;
+    const d = readDraft();
+    const prazo = getEl('cw-prazo');
+    if(d.veic && prazo && !prazo.value) prazo.value = isoOffset(d.veic, -CREATIVE_LEAD_DAYS);
+    
+    // Update Lead Time Hint
+    const lead = advancePlan(d.veic);
+    const hint = getEl('cw-lead-hint');
+    if(hint) {
+      if(!d.veic) hint.innerHTML = `<span style="color:#627885">Selecione a veiculação para calcular.</span>`;
+      else if(lead.ok) hint.innerHTML = `<span style="color:#00d184">✓ Janela protegida (${lead.days} dias de margem)</span>`;
+      else hint.innerHTML = `<span style="color:#f6bf3a">⚠ Alerta: Faltam ${CREATIVE_LEAD_DAYS} dias. Requer justificativa de urgência.</span>`;
+    }
+
+    // Capture Date Visibility
+    const captureBlock = getEl('cw-capture-block');
+    if(captureBlock) {
+      const isCapture = ['Reels','Vídeo','Fotografia'].includes(d.format);
+      captureBlock.style.display = isCapture ? 'flex' : 'none';
+    }
+
+    // Exceptions Box
+    const excBlock = getEl('cw-exception-block');
+    if(excBlock) excBlock.style.display = d.advanceException ? 'flex' : 'none';
+
+    // Copy Box
+    const copyLabel = getEl('cw-copy-label');
+    if(copyLabel) copyLabel.textContent = d.briefingReady ? 'Legenda / Roteiro *' : 'Legenda / Roteiro (Opcional)';
+
+    // Update Review Tab if we are on it
+    if(currentStep === 3) {
+      const revHero = getEl('cw-rev-hero');
+      if(revHero) revHero.innerHTML = `<h4>${esc(d.normalized||'Formato e Título pendentes')}</h4><p>${esc(d.client||'Cliente')} · Veiculação: ${esc(d.veic?new Date(d.veic+'T12:00:00').toLocaleDateString('pt-BR'):'Pendente')}</p>`;
+      
+      const revRoute = getEl('cw-rev-route');
+      const route = d.format ? d.destiny : cadastrosDestiny('', false);
+      if(revRoute) revRoute.innerHTML = `<i>${route.groupLabel.includes('PRODUÇÃO')?'🎬':route.groupLabel.includes('REDAÇÃO')?'📝':'⚡'}</i><div><b>DESTINO: ${esc(route.groupLabel)}</b><span>Status inicial: ${esc(route.status)} · Responsáveis: ${esc(cadastrosAssigneeNames(route.assignees))}<br>${esc(route.why)}</span></div>`;
+      
+      const revChecklist = getEl('cw-rev-checklist');
+      if(revChecklist) revChecklist.innerHTML = renderReviewChecklist(d);
+
+      const errs = validation(d);
+      const errBox = getEl('cw-rev-errors');
+      if(errBox) {
+        if(errs.length) errBox.innerHTML = `<div style="background:rgba(255,99,122,0.1); border:1px solid rgba(255,99,122,0.3); padding:12px; border-radius:8px; color:#ff637a; font-size:12px; font-weight:600;">⚠ ${esc(errs[0])}</div>`;
+        else errBox.innerHTML = '';
+      }
+
+      const btnSubmit = getEl('cw-submit-btn');
+      if(btnSubmit) btnSubmit.disabled = errs.length > 0 || !d.checks.review;
+    }
+  };
+
+  window.cadWizardNext = () => {
+    if(currentStep < 3) { currentStep++; render(); }
+  };
+  window.cadWizardPrev = () => {
+    if(currentStep > 1) { currentStep--; render(); }
+  };
+  window.cadWizardToggleDrawer = () => {
+    const d = getEl('cw-drawer');
+    if(d) d.classList.toggle('open');
+  };
+  window.cadWizardNew = () => { activeDraftId = null; currentStep = 1; render(); };
+  window.cadWizardLoad = (id) => { activeDraftId = id; currentStep = 1; render(); };
+  window.cadWizardSave = () => { saveDraft('draft'); showToast('✓ Rascunho salvo localmente.','ok',3000); render(); };
+
+  window.cadWizardSubmit = async () => {
+    const draft = readDraft();
+    const errors = validation(draft);
+    if(errors.length) return showToast(errors[0], 'err', 5000);
+    if(!draft.checks.review) return showToast('Confirme a revisão no final do checklist.', 'err', 5000);
+    
+    const btn = getEl('cw-submit-btn');
+    if(btn) { btn.disabled = true; btn.innerHTML = 'CRIANDO NO MONDAY...'; }
+
+    const values = {
+      lista_suspensa_mkmqnjbv: {labels:[draft.client]},
+      lista_suspensa0__1: {labels:[draft.format]},
+      lista_suspensa__1: {index:3},
+      data__1: {date:draft.veic},
+      data: {date:draft.prazo},
+      status: {label:draft.destiny.status},
+      person: {personsAndTeams:draft.destiny.assignees.map(id=>({id:Number(id),kind:'person'}))}
+    };
+    if(draft.destiny.capture) values.status_1__1 = {label:'Agendar Captação'};
+
+    try {
+      const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
+      const response = await mondayQuery(create, {board:String(BOARD_ID), group:draft.destiny.group, name:draft.normalized, values:JSON.stringify(values)});
+      const itemId = response?.create_item?.id;
+      if(!itemId) throw new Error('Monday não retornou ID do item.');
+
+      const captureLine = draft.destiny.capture ? `<li>☐ Confirmar captação prevista para ${esc(draft.captureDate)}</li>` : '';
+      const motionLine = draft.format === 'Motion' ? '<li>☐ Validar direção de arte antes da execução</li>' : '';
+      const exceptionLine = draft.advanceException ? `<li><strong>⚠ EXCEÇÃO DE PRAZO:</strong> ${esc(draft.exceptionReason)}</li>` : '';
+      const hellen = draft.client.toLowerCase().includes('hellen rocha') ? '<li>☐ Validar informações jurídicas com a Hellen antes de publicar</li>' : '';
+      
+      const update = `<p><strong>✅ CHECKLIST DE PRÉ-PRODUÇÃO</strong></p><p><strong>Briefing:</strong> ${esc(draft.brief)}</p><p><strong>Legenda/Roteiro:</strong> ${esc(draft.copy || 'A construir em Redação')}</p><ul><li>☐ Revisar copy e adaptar ao tom da marca</li><li>☐ Selecionar referências visuais / banco de imagens</li><li>☐ Montar layout no padrão do cliente</li>${captureLine}${motionLine}${exceptionLine}<li>☐ Enviar para aprovação antes de publicar</li>${hellen}</ul>`;
+      await mondayQuery(`mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, {item:String(itemId), body:update});
+
+      const queue = readQueue();
+      const index = queue.findIndex(item => item.id === draft.id);
+      if(index >= 0) { queue[index] = {...queue[index], status:'created', mondayItemId:String(itemId), updatedAt:new Date().toISOString()}; writeQueue(queue); }
+      
+      closeCadastrosGoverned();
+      showToast('✓ Demanda criada com sucesso no Monday!', 'ok', 6000);
+      if(typeof refreshData === 'function') await refreshData();
+    } catch(err) {
+      if(btn) { btn.disabled = false; btn.innerHTML = 'VALIDAR E CRIAR NO MONDAY'; }
+      showToast(`Erro ao criar: ${err.message}`, 'err', 8000);
+    }
+  };
+
+  function render(){
+    ensureStyles();
+    const old = document.getElementById('cad-wizard-overlay');
+    if(old) {
+      const temp = readDraft();
+      activeDraftId = temp.id;
+    } else {
+      currentStep = 1;
+    }
+    
+    if(old) old.remove();
+
+    const draft = initialDraft();
+    const queue = readQueue();
+    const draftsCount = queue.filter(q => q.status === 'draft').length;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'cad-wizard-overlay';
+    overlay.className = 'cad-overlay';
+    overlay.onclick = e => { if(e.target === overlay) closeCadastrosGoverned(); };
+
+    overlay.innerHTML = `
+      <section class="cad-modal" role="dialog">
+        <header class="cad-head">
+          <div class="cad-head-top">
+            <div class="cad-title-block">
+              <h3>Cadastros</h3>
+              <p>Entrada controlada no Monday. Preencha as informações para a triagem inteligente.</p>
+            </div>
+            <div class="cad-controls">
+              <button class="cad-drafts-btn" onclick="cadWizardToggleDrawer()">
+                RASCUNHOS <b>${draftsCount}</b>
+              </button>
+              <button class="cad-close" onclick="closeCadastrosGoverned()">×</button>
+            </div>
+          </div>
+          <div class="cad-stepper">
+            <div class="cad-step ${currentStep>=1?'active':''} ${currentStep>1?'done':''}">
+              <div class="cad-step-bar"></div>
+              <span class="cad-step-label">1. Intenção</span>
+            </div>
+            <div class="cad-step ${currentStep>=2?'active':''} ${currentStep>2?'done':''}">
+              <div class="cad-step-bar"></div>
+              <span class="cad-step-label">2. Planejamento</span>
+            </div>
+            <div class="cad-step ${currentStep>=3?'active':''}">
+              <div class="cad-step-bar"></div>
+              <span class="cad-step-label">3. Validação</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- DRAWER -->
+        <aside id="cw-drawer" class="cad-drawer">
+          <div class="cad-drawer-head">
+            <b>Seus Pré-cadastros</b>
+            <button class="cad-close" style="font-size:18px" onclick="cadWizardToggleDrawer()">×</button>
+          </div>
+          <div style="padding:12px;">
+            <button class="cad-btn cad-btn-secondary" style="width:100%;justify-content:center;" onclick="cadWizardNew()">+ NOVO CADASTRO</button>
+          </div>
+          <div class="cad-drawer-list">
+            ${renderDrawer(queue)}
+          </div>
+        </aside>
+
+        <main class="cad-body" oninput="cadWizardRefresh()" onchange="cadWizardRefresh()">
+          
+          <!-- STEP 1: INTENÇÃO -->
+          <div class="cad-step-content ${currentStep===1?'active':''}">
+            <div class="cad-grid">
+              <div class="cad-field">
+                <label>Cliente *</label>
+                <select id="cw-client">
+                  <option value="">Selecione o cliente</option>
+                  ${clients().map(c => `<option value="${esc(c)}" ${draft.client===c?'selected':''}>${esc(c)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="cad-field">
+                <label>Formato *</label>
+                <select id="cw-format">
+                  <option value="">Selecione o formato</option>
+                  ${CADASTROS_FORMATS.map(f => `<option value="${esc(f)}" ${draft.format===f?'selected':''}>${esc(f)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="cad-field cad-full">
+                <label>Título do conteúdo *</label>
+                <input id="cw-title" value="${esc(draft.title)}" placeholder="Ex.: Bastidores da nova coleção">
+              </div>
+              <div class="cad-field cad-full">
+                <label>Briefing ou Intenção *</label>
+                <textarea id="cw-brief" rows="3" placeholder="Objetivo, mensagem central, referências ou CTA.">${esc(draft.brief)}</textarea>
+              </div>
+              <div class="cad-field cad-full">
+                <label id="cw-copy-label">Legenda ou Roteiro ${draft.briefingReady?'*':'(Opcional)'}</label>
+                <textarea id="cw-copy" rows="3" placeholder="Texto base, narração ou legenda final.">${esc(draft.copy)}</textarea>
+              </div>
+              
+              <label class="cad-toggle cad-full">
+                <input type="checkbox" id="cw-brief-ready" ${draft.briefingReady?'checked':''}>
+                <div>
+                  <b>O briefing está pronto para a produção.</b>
+                  <span>Se desmarcado, a demanda entrará em "A Fazer" na Redação para ser construída. Se marcado, pula direto para Design, Captação ou Motion.</span>
+                </div>
+              </label>
+              <label class="cad-toggle cad-full">
+                <input type="checkbox" id="cw-seasonal" ${draft.seasonalConfirmed?'checked':''}>
+                <div>
+                  <b>Tema Sazonal Confirmado</b>
+                  <span>Marque apenas se o cliente validou este tema sazonal explicitamente.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- STEP 2: PLANEJAMENTO -->
+          <div class="cad-step-content ${currentStep===2?'active':''}">
+            <div class="cad-grid">
+              <div class="cad-field">
+                <label>Data de Veiculação *</label>
+                <input type="date" id="cw-veic" min="${todayIso()}" value="${esc(draft.veic)}">
+                <small id="cw-lead-hint"></small>
+              </div>
+              <div class="cad-field">
+                <label>Prazo de Ouro *</label>
+                <input type="date" id="cw-prazo" min="${todayIso()}" value="${esc(draft.prazo)}">
+                <small>Automaticamente 7 dias antes da veiculação.</small>
+              </div>
+              
+              <div id="cw-capture-block" class="cad-field cad-full" style="display:none;">
+                <label>Data Prevista de Captação *</label>
+                <input type="date" id="cw-capture" min="${todayIso()}" value="${esc(draft.captureDate)}">
+                <small>Para vídeo ou foto, a captação precisa ocorrer antes da edição.</small>
+              </div>
+
+              <label class="cad-toggle cad-full">
+                <input type="checkbox" id="cw-exception" ${draft.advanceException?'checked':''}>
+                <div>
+                  <b>Exceção de Urgência (Pular Prazo de Ouro)</b>
+                  <span>O sistema bloqueará datas muito próximas. Use isto para forçar a criação urgente.</span>
+                </div>
+              </label>
+
+              <div id="cw-exception-block" class="cad-field cad-full" style="display:none;">
+                <label>Justificativa da Exceção *</label>
+                <textarea id="cw-exception-reason" rows="2" placeholder="Explique por que precisamos quebrar o prazo de segurança...">${esc(draft.exceptionReason)}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3: VALIDAÇÃO -->
+          <div class="cad-step-content ${currentStep===3?'active':''}">
+            <div class="cad-review-box">
+              <div class="cad-review-hero" id="cw-rev-hero"></div>
+              <div class="cad-route-card" id="cw-rev-route"></div>
+              <ul class="cad-checklist" id="cw-rev-checklist"></ul>
+              <div id="cw-rev-errors"></div>
+            </div>
+          </div>
+          
+        </main>
+        
+        <footer class="cad-foot">
+          <div style="display:flex;gap:12px;">
+            ${currentStep>1 ? \`<button class="cad-btn cad-btn-ghost" onclick="cadWizardPrev()">← VOLTAR</button>\` : \`<button class="cad-btn cad-btn-ghost" style="visibility:hidden">← VOLTAR</button>\`}
+          </div>
+          <div style="display:flex;gap:12px;">
+            <button class="cad-btn cad-btn-secondary" onclick="cadWizardSave()">SALVAR RASCUNHO</button>
+            ${currentStep<3 ? \`<button class="cad-btn cad-btn-primary" onclick="cadWizardNext()">AVANÇAR →</button>\` : \`<button id="cw-submit-btn" class="cad-btn cad-btn-primary" onclick="cadWizardSubmit()">VALIDAR E CRIAR</button>\`}
+          </div>
+        </footer>
+      </section>
+    \`;
+    
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+      overlay.classList.add('open');
+      cadWizardRefresh(); // Initial UI sync
+    });
+  }
+
+  window.closeCadastrosGoverned = () => {
+    const el = document.getElementById('cad-wizard-overlay');
+    if(el) {
+      el.classList.remove('open');
+      setTimeout(() => el.remove(), 300);
+    }
+  };
+  window.openCadastrosGoverned = () => { activeDraftId = null; render(); };
   window.showCadastrosPreview = () => window.openCadastrosGoverned();
 })();
