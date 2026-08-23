@@ -6532,11 +6532,15 @@ function focusTaskHtml(d, contextText='') {
   const color = focusTaskTone(d.status);
   const late = deadline && deadline < (HOJE_ISO || '');
   const risk = d.operational_risk || getOperationalRisk(d);
-  const meta = [contextText || focusStatusExplanation(d.status), late ? '⚠ Atrasado' : '', risk.sla_label || '', dateLabel].filter(Boolean).join(' · ');
+  const isRunning = d.status === 'Em andamento';
+    const timerHtml = isRunning && d.status_updated_at ? `<span class="live-timer" data-start="${d.status_updated_at}" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.06);color:#a6f8ff;font:700 11px var(--mac-mono, monospace);letter-spacing:1px;border:1px solid rgba(0,240,255,0.2);display:inline-block;vertical-align:middle;">00:00:00</span>` : '';
+    const baseMeta = [contextText || focusStatusExplanation(d.status), late ? '⚠️ Atrasado' : '', risk.sla_label || '', dateLabel].filter(Boolean).join(' • ');
+    const meta = baseMeta;
+    const finalMetaHtml = safeText(meta) + timerHtml;
   return `<div class="focus-task" style="--priority-color:${color}">
     <span class="focus-task-priority"></span>
     <div class="focus-task-title"><div class="focus-task-client">${safeText(d.cliente)}</div><div class="focus-task-name"><button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : ''}</div></div>
-    <div class="focus-task-meta">${safeText(meta)}</div>
+    <div class="focus-task-meta">${finalMetaHtml}</div>
     <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${quickDateTrigger(d,'focus-date-trigger')}${ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
