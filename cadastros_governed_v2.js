@@ -25,7 +25,7 @@
     const style=document.createElement('style'); style.id='cadastros-wizard-style'; style.textContent=`
       .cad-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:15000; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s; }
       .cad-overlay.open { opacity:1; }
-      .cad-modal { width:min(860px, calc(100vw - 32px)); max-height:calc(100vh - 40px); display:flex; flex-direction:column; background:radial-gradient(circle at top right, rgba(0, 240, 255, 0.05), transparent 50%), radial-gradient(circle at bottom left, rgba(0, 209, 180, 0.05), transparent 50%), rgba(10, 15, 20, 0.85); backdrop-filter:blur(24px) saturate(1.2); border:1px solid rgba(255, 255, 255, 0.08); border-radius:16px; box-shadow:0 40px 100px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0, 240, 255, 0.05); color:#eef8fc; position:relative; overflow:hidden; transform:translateY(20px) scale(0.98); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+      .cad-modal { width:min(1080px, calc(100vw - 32px)); flex-direction:row; padding:0; max-height:calc(100vh - 40px); display:flex; flex-direction:column; background:radial-gradient(circle at top right, rgba(0, 240, 255, 0.05), transparent 50%), radial-gradient(circle at bottom left, rgba(0, 209, 180, 0.05), transparent 50%), rgba(10, 15, 20, 0.85); backdrop-filter:blur(24px) saturate(1.2); border:1px solid rgba(255, 255, 255, 0.08); border-radius:16px; box-shadow:0 40px 100px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0, 240, 255, 0.05); color:#eef8fc; position:relative; overflow:hidden; transform:translateY(20px) scale(0.98); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
       .cad-overlay.open .cad-modal { transform:translateY(0) scale(1); }
       
       .cad-head { padding:24px 32px 20px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; flex-direction:column; gap:12px; }
@@ -47,7 +47,16 @@
       .cad-step.active .cad-step-label { color:#00f0ff; }
       .cad-step.done .cad-step-bar { background:rgba(0,240,255,0.3); }
       
-      .cad-body { flex:1; overflow-y:auto; position:relative; min-height:400px; }
+      .cad-body { flex:1; display:flex; position:relative; min-height:400px; overflow:hidden; }
+      .cad-steps-wrapper { flex:1; overflow-y:auto; padding-right:12px; }
+      .cad-live-sidebar { width:320px; background:rgba(0,0,0,0.3); border-left:1px solid rgba(255,255,255,0.06); padding:24px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; }
+      .cad-live-sidebar h5 { margin:0 0 4px; font:800 12px var(--mac-ui, sans-serif); color:#00f0ff; letter-spacing:1px; }
+      .cad-preview-card { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+      .cad-preview-card b { color:#fff; font:800 14px var(--mac-ui, sans-serif); line-height:1.2; }
+      .cad-preview-card span { color:#b8d7df; font:600 12px var(--mac-ui, sans-serif); }
+      .cad-preview-meta { display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(255,255,255,0.06); padding-top:12px; }
+      .cad-preview-meta small { color:#849aa6; font:500 11px var(--mac-ui, sans-serif); line-height:1.4; display:flex; gap:6px; }
+      .cad-preview-meta i { font-style:normal; color:#f6bf3a; }
       .cad-step-content { display:none; padding:24px 32px; animation:fadeSlide 0.3s ease; }
       .cad-step-content.active { display:block; }
       @keyframes fadeSlide { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
@@ -116,7 +125,8 @@
       @media(max-width:780px){
         .cad-grid { grid-template-columns:1fr; }
         .cad-head { padding:20px; }
-        .cad-body { padding:0; }
+        .cad-body { padding:0; flex-direction:column; }
+        .cad-live-sidebar { width:100%; border-left:none; border-top:1px solid rgba(255,255,255,0.06); }
         .cad-step-content { padding:20px; }
         .cad-foot { padding:16px 20px; }
       }
@@ -274,6 +284,25 @@
       }
 
       const btnSubmit = getEl('cw-submit-btn');
+    }
+    
+    // Update live preview sidebar globally on any change
+    const prevTitle = getEl('cw-prev-title');
+    if(prevTitle) {
+      prevTitle.textContent = d.normalized || 'Formato - Título pendente';
+      getEl('cw-prev-client').textContent = (d.client||'Cliente pendente') + ' · ' + (d.format||'Formato pendente');
+      const route = d.format ? d.destiny : (typeof cadastrosDestiny === 'function' ? cadastrosDestiny('', false) : {groupLabel:'-',status:'-',assignees:[]});
+      getEl('cw-prev-dest').textContent = route.groupLabel + ' · ' + route.status;
+      
+      const uNames = route.assignees.map(id=> {
+         const found = (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).find(u=>String(u.id)===String(id));
+         return found ? found.name.split(' ')[0] : id;
+      });
+      getEl('cw-prev-users').textContent = uNames.length ? uNames.join(', ') : 'Definido na triagem';
+      
+      const autoDeadline = d.veic && !d.prazo ? isoOffset(d.veic, -CREATIVE_LEAD_DAYS) : d.prazo;
+      const fmtDate = iso => iso ? iso.split('-').reverse().join('/') : 'Pendente';
+      getEl('cw-prev-dates').textContent = 'Prazo: ' + fmtDate(autoDeadline) + ' · Veic: ' + fmtDate(d.veic);
       if(btnSubmit) btnSubmit.disabled = errs.length > 0 || !d.checks.review;
     }
   };
@@ -406,6 +435,8 @@
         </aside>
 
         <main class="cad-body" oninput="cadWizardRefresh()" onchange="cadWizardRefresh()">
+          <div class="cad-steps-wrapper">
+
           
           <!-- STEP 1: INTENÇÃO -->
           <div class="cad-step-content ${currentStep===1?'active':''}">
@@ -516,6 +547,21 @@
             </div>
           </div>
           
+        
+          </div>
+          <aside class="cad-live-sidebar" id="cw-live-sidebar">
+             <h5>PRÉ-VIA AO VIVO</h5>
+             <div class="cad-preview-card" id="cw-live-card">
+               <b id="cw-prev-title">Formato - Título pendente</b>
+               <span id="cw-prev-client">Cliente pendente</span>
+               <div class="cad-preview-meta">
+                 <small><i>🎯</i> <div id="cw-prev-dest">Destino pendente</div></small>
+                 <small><i>👥</i> <div id="cw-prev-users">Responsáveis...</div></small>
+                 <small><i>📅</i> <div id="cw-prev-dates">Prazos...</div></small>
+               </div>
+             </div>
+             <p style="font-size:11px; color:#627885; line-height:1.4;">Este é um rascunho. Ele só será enviado ao Monday no passo final.</p>
+          </aside>
         </main>
         
         <footer class="cad-foot">
