@@ -32,7 +32,8 @@
 
       .fc-body { padding:16px 32px; display:flex; flex-direction:column; gap:12px; max-height:70vh; overflow-y:auto; scrollbar-width:thin; }
       
-      .fc-row { display:flex; align-items:center; min-height:40px; }
+      .fc-row { display:flex; align-items:flex-start; min-height:40px; padding: 4px 0; }
+      .fc-label { margin-top: 10px; }
       .fc-label { width:160px; display:flex; align-items:center; gap:8px; color:#c3c6d4; font-size:13px; font-weight:500; flex-shrink:0; }
       .fc-label .fc-icon { width:20px; height:20px; border-radius:4px; display:flex; justify-content:center; align-items:center; font-size:12px; }
       
@@ -86,14 +87,20 @@
      const formatName = state.format || 'Formato Padrão';
      const dest = cadastrosDestiny(formatName, state.briefReady, state.materialReady, state.assignees);
      
-     const elGroup = document.getElementById('fc-group-val');
-     if(elGroup) elGroup.innerHTML = `<div class="fc-dot" style="background:#ff9d00"></div> ${dest.groupLabel}`;
+     if(state.manualGroup === undefined) {
+         const elGroup = document.getElementById('fc-group-select');
+         if(elGroup) elGroup.value = dest.group;
+     }
      
-     const elStatus = document.getElementById('fc-status-val');
-     if(elStatus) elStatus.textContent = dest.status;
+     if(state.manualStatus === undefined) {
+         const elStatus = document.getElementById('fc-status-select');
+         if(elStatus) elStatus.value = dest.status;
+     }
      
-     const elCap = document.getElementById('fc-cap-val');
-     if(elCap) elCap.textContent = dest.capture ? 'A Fazer' : '-';
+     if(state.manualCap === undefined) {
+         const elCap = document.getElementById('fc-cap-select');
+         if(elCap) elCap.value = dest.capture ? 'Agendar Captação' : '';
+     }
   }
 
   window.fcHandleInput = function(key, val) {
@@ -142,6 +149,9 @@
      }
      
      const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
+     const finalGroup = document.getElementById('fc-group-select').value;
+     const finalStatus = document.getElementById('fc-status-select').value;
+     const finalCap = document.getElementById('fc-cap-select').value;
      const normalized = `${state.format} - ${title}`;
      
      const btn = document.getElementById('fc-submit-btn');
@@ -154,14 +164,14 @@
         lista_suspensa__1: {index:3}, // Some priority or step field? from old logic
         data__1: {date:state.veic},
         data: {date:state.prazo},
-        status: {label:dest.status},
+        status: {label:finalStatus},
         person: {personsAndTeams:dest.assignees.map(id=>({id:Number(id),kind:'person'}))}
      };
-     if(dest.capture) values.status_1__1 = {label:'Agendar Captação'};
+     if(finalCap) values.status_1__1 = {label:finalCap};
 
      try {
         const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
-        const response = await mondayQuery(create, {board:String(BOARD_ID), group:dest.group, name:normalized, values:JSON.stringify(values)});
+        const response = await mondayQuery(create, {board:String(BOARD_ID), group:finalGroup, name:normalized, values:JSON.stringify(values)});
         const itemId = response?.create_item?.id;
         if(!itemId) throw new Error('Falha ao obter ID');
 
@@ -208,7 +218,11 @@
             
             <div class="fc-row">
                <div class="fc-label"><div class="fc-icon" style="background:#ff9d0033; color:#ff9d00;">🗂️</div> Grupo</div>
-               <div class="fc-input-wrap"><div class="fc-read-only" id="fc-group-val"><div class="fc-dot" style="background:#ff9d00"></div> Design & Edição</div></div>
+               <div class="fc-input-wrap"><select class="fc-input" id="fc-group-select" onchange="fcHandleInput('manualGroup', this.value)">
+       <option value="group_title">Redação</option>
+       <option value="novo_grupo__1" selected>Design & Edição</option>
+       <option value="novo_grupo57911__1">Produção (Foto e Vídeo)</option>
+    </select> Design & Edição</div></div>
             </div>
 
             <div class="fc-row">
@@ -240,12 +254,22 @@
 
             <div class="fc-row">
                <div class="fc-label"><div class="fc-icon" style="background:#e4e6f133; color:#e4e6f1;">📊</div> Status</div>
-               <div class="fc-input-wrap"><div class="fc-read-only" id="fc-status-val">A Fazer</div></div>
+               <div class="fc-input-wrap"><select class="fc-input" id="fc-status-select" onchange="fcHandleInput('manualStatus', this.value)">
+       <option value="A Fazer">A Fazer</option>
+       <option value="Pode Fazer">Pode Fazer</option>
+       <option value="Falta D.A">Falta D.A</option>
+       <option value="Ag. Aprovação Cliente">Ag. Aprovação Cliente</option>
+       <option value="Agendado">Agendado</option>
+    </select></div>
             </div>
 
             <div class="fc-row">
                <div class="fc-label"><div class="fc-icon" style="background:#00d18433; color:#00d184;">🎥</div> Captação</div>
-               <div class="fc-input-wrap"><div class="fc-read-only" id="fc-cap-val">-</div></div>
+               <div class="fc-input-wrap"><select class="fc-input" id="fc-cap-select" onchange="fcHandleInput('manualCap', this.value)">
+       <option value="">-</option>
+       <option value="Agendar Captação">Agendar Captação</option>
+       <option value="A Fazer">A Fazer (Captação)</option>
+    </select></div>
             </div>
 
             <div class="fc-row">
