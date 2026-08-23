@@ -58,6 +58,7 @@
       .cad-field label { font:700 11px var(--mac-ui, sans-serif); color:#b8d7df; }
       .cad-field small { font:500 11px var(--mac-ui, sans-serif); color:#627885; line-height:1.3; margin-top:-2px; }
       .cad-field input, .cad-field select, .cad-field textarea { background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; padding:10px 14px; font:14px var(--mac-ui, sans-serif); outline:none; transition:all 0.2s; box-shadow:inset 0 2px 4px rgba(0,0,0,0.2); }
+      .cad-field select option { background:#0f1419; color:#fff; }
       .cad-field input:focus, .cad-field select:focus, .cad-field textarea:focus { border-color:#00f0ff; background:rgba(0,240,255,0.02); box-shadow:0 0 0 3px rgba(0,240,255,0.1), inset 0 2px 4px rgba(0,0,0,0.2); }
       
       .cad-toggle { display:flex; gap:12px; align-items:flex-start; padding:14px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02); cursor:pointer; transition:all 0.2s; }
