@@ -32,6 +32,18 @@
       .fc-title-input::placeholder { color:rgba(255,255,255,0.2); }
 
       .fc-body { padding:24px 32px; display:flex; flex-direction:column; gap:20px; overflow-y:auto; scrollbar-width:thin; flex:1; }
+      .fc-body::-webkit-scrollbar { width: 6px; }
+      .fc-body::-webkit-scrollbar-track { background: transparent; }
+      .fc-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+      .fc-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+      
+      @keyframes fcErrorPulse {
+         0% { box-shadow: 0 0 0 0 rgba(255, 99, 122, 0.4); border-color: #ff637a; }
+         70% { box-shadow: 0 0 0 8px rgba(255, 99, 122, 0); border-color: #ff637a; }
+         100% { box-shadow: 0 0 0 0 rgba(255, 99, 122, 0); border-color: rgba(255,255,255,0.1); }
+      }
+      .fc-error-pulse { animation: fcErrorPulse 1.5s ease; border-color: #ff637a !important; }
+      .fc-title-input.fc-error-pulse { border-bottom: 1px solid #ff637a !important; }
       
       .fc-row { display:flex; align-items:flex-start; gap:20px; }
       .fc-label { width:120px; color:#9cafba; font-size:13px; font-weight:600; flex-shrink:0; margin-top:12px; letter-spacing:0.3px; }
@@ -226,8 +238,21 @@
 
   window.fcSubmit = async function() {
      const title = document.getElementById('fc-title').value.trim();
-     if(!title || !state.client || !state.format || !state.veic || !state.prazo || !state.brief) {
-        return typeof showToast === 'function' ? showToast('Preencha título, cliente, formato, datas e briefing.', 'info') : alert('Faltam campos essenciais.');
+     state.title = title; // ensure sync
+     
+     // Visual validation
+     document.querySelectorAll('.fc-error-pulse').forEach(el => el.classList.remove('fc-error-pulse'));
+     let hasError = false;
+     
+     if(!title) { document.getElementById('fc-title').classList.add('fc-error-pulse'); hasError = true; }
+     if(!state.client) { document.getElementById('fc-client-input').classList.add('fc-error-pulse'); hasError = true; }
+     if(!state.format) { document.getElementById('fc-format-input').classList.add('fc-error-pulse'); hasError = true; }
+     if(!state.veic) { document.getElementById('fc-veic-input').classList.add('fc-error-pulse'); hasError = true; }
+     if(!state.prazo) { document.getElementById('fc-prazo').classList.add('fc-error-pulse'); hasError = true; }
+     if(!state.brief) { document.getElementById('fc-brief-input').classList.add('fc-error-pulse'); hasError = true; }
+     
+     if(hasError) {
+        return typeof showToast === 'function' ? showToast('Preencha os campos obrigatórios destacados em vermelho.', 'info') : alert('Preencha os campos obrigatórios.');
      }
      
      const finalGroup = document.getElementById('fc-group-select').value;
@@ -304,7 +329,7 @@
                 <div class="fc-row">
                    <div class="fc-label">Cliente</div>
                    <div class="fc-input-wrap">
-                      <select class="fc-input" onchange="fcHandleInput('client', this.value)">
+                      <select class="fc-input" id="fc-client-input" onchange="fcHandleInput(\'client\', this.value)">
                          <option value="">Selecionar cliente...</option>
                          ${clients.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}
                       </select>
@@ -314,7 +339,7 @@
                 <div class="fc-row">
                    <div class="fc-label">Formato</div>
                    <div class="fc-input-wrap">
-                      <select class="fc-input" onchange="fcHandleInput('format', this.value)">
+                      <select class="fc-input" id="fc-format-input" onchange="fcHandleInput(\'format\', this.value)">
                          <option value="">Selecionar formato...</option>
                          ${formats.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}
                       </select>
@@ -362,7 +387,7 @@
                    <div class="fc-input-wrap" style="display:flex; gap:16px;">
                       <div style="flex:1">
                          <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Veiculação</label>
-                         <input type="date" class="fc-input" min="${todayIso()}" onchange="fcHandleInput('veic', this.value)">
+                         <input type="date" class="fc-input" id="fc-veic-input" min="${todayIso()}" onchange="fcHandleInput(\'veic\', this.value)">
                       </div>
                       <div style="flex:1">
                          <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Prazo Interno</label>
@@ -374,7 +399,7 @@
                 <div class="fc-row">
                    <div class="fc-label">Instruções</div>
                    <div class="fc-input-wrap">
-                      <textarea class="fc-input" placeholder="Objetivo, referência ou contexto do conteúdo..." onchange="fcHandleInput('brief', this.value)"></textarea>
+                      <textarea class="fc-input" id="fc-brief-input" placeholder="Objetivo, referência ou contexto do conteúdo..." onchange="fcHandleInput(\'brief\', this.value)"></textarea>
                       
                       <div class="fc-checkbox-group">
                          <label class="fc-checkbox-row">
@@ -451,6 +476,13 @@
        updateDestinyUI();
        
        // Bind title input live update safely
+       overlay.addEventListener('keydown', function(e) {
+           if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+               e.preventDefault();
+               fcSubmit();
+           }
+       });
+       
        document.getElementById('fc-title').addEventListener('input', function(e) {
            fcHandleInput('title', e.target.value);
        });
