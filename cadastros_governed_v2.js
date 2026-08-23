@@ -104,6 +104,12 @@
       .cad-draft-card.active { border-color:#00f0ff; background:rgba(0,240,255,0.05); }
       .cad-draft-card b { color:#fff; font:700 12px var(--mac-ui, sans-serif); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .cad-draft-card small { color:#849aa6; font:500 11px var(--mac-ui, sans-serif); }
+      .cad-person-picker { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; max-height: 120px; overflow-y: auto; padding-right: 8px; }
+      .cad-person-btn { background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:30px; padding:4px 12px 4px 4px; display:flex; align-items:center; gap:8px; cursor:pointer; transition:all 0.2s; color:#9cafba; font:700 11px var(--mac-ui, sans-serif); }
+      .cad-person-btn:hover { background:rgba(255,255,255,0.05); }
+      .cad-person-btn.selected { background:rgba(255,255,255,0.1); border-color:var(--pcolor, #00f0ff); color:#fff; box-shadow:inset 0 0 10px rgba(0,0,0,0.5); }
+      .cad-person-avatar { width:24px; height:24px; border-radius:50%; overflow:hidden; display:flex; justify-content:center; align-items:center; color:#fff; font-weight:800; font-size:11px; }
+      .cad-person-avatar img { width:100%; height:100%; object-fit:cover; }
       .cad-draft-badge { display:inline-block; padding:2px 6px; border-radius:4px; font:800 9px monospace; margin-top:4px; }
       
       @media(max-width:780px){
@@ -128,8 +134,7 @@
     const prazo=String(getEl('cw-prazo')?.value||'').trim() || (veic ? isoOffset(veic,-CREATIVE_LEAD_DAYS) : '');
     const briefReady=Boolean(getEl('cw-brief-ready')?.checked);
     const materialReady=Boolean(getEl('cw-material-ready')?.checked);
-    const extraSel=getEl('cw-extra-assignees');
-    const extraAssignees=extraSel?Array.from(extraSel.selectedOptions).map(o=>o.value):[];
+    const extraAssignees=Array.from(document.querySelectorAll('.cad-person-btn.selected')).map(b=>b.dataset.pid);
     const destiny=typeof cadastrosDestiny==='function'?cadastrosDestiny(format, briefReady, materialReady, extraAssignees):{group:'novo_grupo__1',groupLabel:'Design & Edição',status:'Pode Fazer',assignees:['71130408'],capture:false,why:'Fallback'};
     const title=String(getEl('cw-title')?.value||'').trim();
     const cleanTitle=title.replace(new RegExp(`^${format}\\s*-\\s*`,'i'),'').trim();
@@ -447,10 +452,13 @@
               </label>
               <div class="cad-field cad-full">
                 <label>Adicionar Responsáveis (Opcional)</label>
-                <select id="cw-extra-assignees" multiple size="3" style="height:75px; padding:6px 14px;">
-                  ${(typeof TEAM_USERS!=='undefined'?TEAM_USERS:[]).map(u => `<option value="${u.id}" ${(draft.extraAssignees||[]).includes(u.id)?'selected':''}>${esc(u.name)}</option>`).join('')}
-                </select>
-                <small>Segure CTRL/CMD para selecionar vários. Eles serão somados aos responsáveis da triagem.</small>
+                <div class="cad-person-picker">
+                  ${(typeof TEAM_USERS!=='undefined'?TEAM_USERS:[]).map(u => `<button type="button" class="cad-person-btn ${(draft.extraAssignees||[]).includes(u.id)?'selected':''}" data-pid="${u.id}" style="--pcolor:${u.color}" onclick="this.classList.toggle('selected'); cadWizardRefresh();">
+                    <div class="cad-person-avatar" style="background:${u.color}">${u.photo ? `<img src="${u.photo}">` : `<span>${esc(u.name[0])}</span>`}</div>
+                    <span>${esc(u.name.split(' ')[0])}</span>
+                  </button>`).join('')}
+                </div>
+                <small>Clique para adicionar responsáveis. Eles atuarão junto com os líderes definidos pela triagem.</small>
               </div>
               <label class="cad-toggle cad-full">
                 <input type="checkbox" id="cw-seasonal" ${draft.seasonalConfirmed?'checked':''}>
