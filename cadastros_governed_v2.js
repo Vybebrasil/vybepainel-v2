@@ -118,7 +118,7 @@
 
   function clients(){ const source=(typeof DADOS_ALL !== 'undefined' && DADOS_ALL?.length) ? DADOS_ALL : ((typeof DADOS !== 'undefined' && DADOS) || []); return [...new Set(source.map(item => item.cliente).filter(client => client && client !== 'Sem cliente'))].sort((a,b)=>a.localeCompare(b,'pt-BR')); }
   function activeSavedDraft(){ return readQueue().find(item => item.id === activeDraftId) || null; }
-  function initialDraft(){ const saved=activeSavedDraft(); return saved ? {...saved,advanceException:Boolean(saved.advanceException),exceptionReason:String(saved.exceptionReason||'')} : {id:null,status:'draft',client:'',format:'',title:'',veic:'',prazo:'',captureDate:'',brief:'',copy:'',briefingReady:false,seasonalConfirmed:false,advanceException:false,exceptionReason:'',checks:{},createdAt:null,updatedAt:null}; }
+  function initialDraft(){ const saved=activeSavedDraft(); return saved ? {...saved,advanceException:Boolean(saved.advanceException),exceptionReason:String(saved.exceptionReason||'')} : {id:null,status:'draft',client:'',format:'',title:'',veic:'',prazo:'',captureDate:'',brief:'',copy:'',briefingReady:false,materialReady:false,extraAssignees:[],seasonalConfirmed:false,advanceException:false,exceptionReason:'',checks:{},createdAt:null,updatedAt:null}; }
   function getEl(id){ return document.getElementById(id); }
   
   function readDraft(){
@@ -127,7 +127,10 @@
     const veic=String(getEl('cw-veic')?.value||'').trim();
     const prazo=String(getEl('cw-prazo')?.value||'').trim() || (veic ? isoOffset(veic,-CREATIVE_LEAD_DAYS) : '');
     const briefReady=Boolean(getEl('cw-brief-ready')?.checked);
-    const destiny=cadastrosDestiny(format, briefReady);
+    const materialReady=Boolean(getEl('cw-material-ready')?.checked);
+    const extraSel=getEl('cw-extra-assignees');
+    const extraAssignees=extraSel?Array.from(extraSel.selectedOptions).map(o=>o.value):[];
+    const destiny=typeof cadastrosDestiny==='function'?cadastrosDestiny(format, briefReady, materialReady, extraAssignees):{group:'novo_grupo__1',groupLabel:'Design & Edição',status:'Pode Fazer',assignees:['71130408'],capture:false,why:'Fallback'};
     const title=String(getEl('cw-title')?.value||'').trim();
     const cleanTitle=title.replace(new RegExp(`^${format}\\s*-\\s*`,'i'),'').trim();
     const checks={};
@@ -139,7 +142,7 @@
       veic,prazo,captureDate:String(getEl('cw-capture')?.value||'').trim(),
       brief:String(getEl('cw-brief')?.value||'').trim(),
       copy:String(getEl('cw-copy')?.value||'').trim(),
-      briefingReady:briefReady, seasonalConfirmed:Boolean(getEl('cw-seasonal')?.checked),
+      briefingReady:briefReady, materialReady, extraAssignees, seasonalConfirmed:Boolean(getEl('cw-seasonal')?.checked),
       advanceException:Boolean(getEl('cw-exception')?.checked),
       exceptionReason:String(getEl('cw-exception-reason')?.value||'').trim(),
       checks,destiny
@@ -231,7 +234,9 @@
     // Capture Date Visibility
     const captureBlock = getEl('cw-capture-block');
     if(captureBlock) {
-      const isCapture = ['Reels','Vídeo','Fotografia'].includes(d.format);
+      const isCapture = ['Reels','Vídeo','Fotografia'].includes(d.format) && !d.materialReady;
+      const matBlock = getEl('cw-material-block');
+      if(matBlock) matBlock.style.display = ['Reels','Vídeo','Fotografia'].includes(d.format) ? 'flex' : 'none';
       captureBlock.style.display = isCapture ? 'flex' : 'none';
     }
 
@@ -433,6 +438,20 @@
                   <span>Se desmarcado, a demanda entrará em "A Fazer" na Redação para ser construída. Se marcado, pula direto para Design, Captação ou Motion.</span>
                 </div>
               </label>
+              <label class="cad-toggle cad-full" id="cw-material-block" style="display:none;">
+                <input type="checkbox" id="cw-material-ready" ${draft.materialReady?'checked':''}>
+                <div>
+                  <b>Material de captação já fornecido</b>
+                  <span>O cliente já enviou os arquivos brutos. Não precisa agendar captação, vai direto para edição com o Reriston.</span>
+                </div>
+              </label>
+              <div class="cad-field cad-full">
+                <label>Adicionar Responsáveis (Opcional)</label>
+                <select id="cw-extra-assignees" multiple size="3" style="height:75px; padding:6px 14px;">
+                  ${(typeof TEAM_USERS!=='undefined'?TEAM_USERS:[]).map(u => `<option value="${u.id}" ${(draft.extraAssignees||[]).includes(u.id)?'selected':''}>${esc(u.name)}</option>`).join('')}
+                </select>
+                <small>Segure CTRL/CMD para selecionar vários. Eles serão somados aos responsáveis da triagem.</small>
+              </div>
               <label class="cad-toggle cad-full">
                 <input type="checkbox" id="cw-seasonal" ${draft.seasonalConfirmed?'checked':''}>
                 <div>
