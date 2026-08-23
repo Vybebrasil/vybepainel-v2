@@ -282,20 +282,32 @@
         if(typeof productionCommandFocusDate !== 'undefined') productionCommandFocusDate = focus;
         const focused = all.filter(item => productionCommandReference(item) === focus);
 
-        const dateRail = dates.map(iso => {
-           const list = all.filter(item => productionCommandReference(item) === iso);
-           const capture = list.filter(item => ['📸','🎥'].includes(productionCommandKind(item).icon)).length;
-           const active = iso === focus;
-           const isToday = typeof HOJE_ISO !== 'undefined' && iso === HOJE_ISO;
-           return `
-             <button class="prod-v2-date-btn ${active?'active':''} ${isToday?'today':''}" onclick="productionCommandSetDate('${iso}')">
-               <span class="p-day">${new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR',{weekday:'short'}).toUpperCase()}</span>
-               <span class="p-date">${iso.split('-').slice(1).reverse().join('/')}</span>
-               ${capture ? `<span class="p-badge-cap">${capture} GRAVAÇÃO${capture>1?'ES':''}</span>` : ''}
-               <span class="p-count">${list.length}</span>
-             </button>
-           `;
-        }).join('');
+        
+          const dateRail = dates.map(iso => {
+             const list = all.filter(item => productionCommandReference(item) === iso);
+             // Count items that are captacao
+             const capture = list.filter(item => {
+                 const ic = productionCommandKind(item).icon;
+                 return ic === '📸' || ic === '🎥' || ic === '?' || ic === '?';
+             }).length;
+             const active = iso === focus;
+             const isToday = typeof HOJE_ISO !== 'undefined' && iso === HOJE_ISO;
+             
+             // Safely generate day of week
+             const d = new Date(iso + 'T12:00:00');
+             const days = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+             const dayStr = days[d.getDay()];
+             
+             return `
+               <button class="prod-v2-date-btn ${active?'active':''} ${isToday?'today':''}" onclick="productionCommandSetDate('${iso}')">
+                 <span class="p-day">${dayStr}</span>
+                 <span class="p-date">${iso.split('-').slice(1).reverse().join('/')}</span>
+                 ${capture ? `<span class="p-badge-cap">${capture} CAPTAÇÃO</span>` : ''}
+                 <span class="p-count">${list.length}</span>
+               </button>
+             `;
+          }).join('');
+
 
         const feed = focused.map(item => {
            const readiness = productionCommandReadiness(item);
