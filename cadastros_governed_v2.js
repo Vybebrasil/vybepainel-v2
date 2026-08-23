@@ -1,4 +1,4 @@
-/* Vybe OS — Cadastro Rápido (Estilo Apple Glassmorphism) */
+/* Vybe OS — Cadastro Rápido + Prévia Ao Vivo */
 (function() {
   const esc = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
@@ -21,20 +21,20 @@
       .fc-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:20000; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s ease; }
       .fc-overlay.open { opacity:1; }
       
-      .fc-modal { background:radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent 70%), rgba(15,20,25,0.85); backdrop-filter:blur(30px) saturate(1.2); width:100%; max-width:600px; border:1px solid rgba(255,255,255,0.1); border-radius:24px; display:flex; flex-direction:column; box-shadow:0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); font-family:var(--mac-ui, sans-serif); transform:scale(0.95) translateY(20px); transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); margin: 20px; max-height: calc(100vh - 40px); }
+      .fc-modal { background:radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent 70%), rgba(15,20,25,0.85); backdrop-filter:blur(30px) saturate(1.2); width:100%; max-width:960px; border:1px solid rgba(255,255,255,0.1); border-radius:24px; display:flex; flex-direction:row; box-shadow:0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); font-family:var(--mac-ui, sans-serif); transform:scale(0.95) translateY(20px); transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); margin: 20px; max-height: calc(100vh - 40px); }
       .fc-overlay.open .fc-modal { transform:scale(1) translateY(0); }
 
-      .fc-header { padding:28px 32px 20px; display:flex; flex-direction:column; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); position:relative; flex-shrink:0; }
+      .fc-main-col { flex:1; display:flex; flex-direction:column; min-width:0; border-right:1px solid rgba(255,255,255,0.06); }
+      
+      .fc-header { padding:28px 32px 20px; display:flex; flex-direction:column; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
       .fc-kicker { font:800 11px monospace; color:#00f0ff; letter-spacing:1px; text-transform:uppercase; }
       .fc-title-input { background:transparent; border:none; color:#fff; font:800 32px/1.2 var(--mac-ui, sans-serif); width:100%; outline:none; letter-spacing:-0.5px; }
       .fc-title-input::placeholder { color:rgba(255,255,255,0.2); }
-      .fc-close { position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#849aa6; font-size:20px; cursor:pointer; line-height:1; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; transition:all 0.2s; }
-      .fc-close:hover { background:rgba(255,255,255,0.1); color:#fff; transform:scale(1.05); }
 
       .fc-body { padding:24px 32px; display:flex; flex-direction:column; gap:20px; overflow-y:auto; scrollbar-width:thin; flex:1; }
       
       .fc-row { display:flex; align-items:flex-start; gap:20px; }
-      .fc-label { width:140px; color:#9cafba; font-size:13px; font-weight:600; flex-shrink:0; margin-top:12px; letter-spacing:0.3px; }
+      .fc-label { width:120px; color:#9cafba; font-size:13px; font-weight:600; flex-shrink:0; margin-top:12px; letter-spacing:0.3px; }
       
       .fc-input-wrap { flex:1; min-width:0; }
       .fc-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:14px; font-weight:500; padding:12px 16px; border-radius:12px; outline:none; transition:all 0.2s; font-family:var(--mac-ui, sans-serif); }
@@ -69,7 +69,33 @@
       .fc-auto-group { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; background:rgba(255,255,255,0.02); padding:16px; border-radius:16px; border:1px dashed rgba(255,255,255,0.1); }
       .fc-auto-col { display:flex; flex-direction:column; gap:8px; }
       .fc-auto-col label { font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+
+      .fc-side-col { width:340px; padding:32px 24px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; position:relative; }
+      .fc-close { position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#849aa6; font-size:20px; cursor:pointer; line-height:1; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; transition:all 0.2s; }
+      .fc-close:hover { background:rgba(255,255,255,0.1); color:#fff; transform:scale(1.05); }
       
+      .fc-side-title { font:800 11px monospace; color:#849aa6; letter-spacing:1px; margin-bottom:24px; }
+      .fc-preview-card { background:radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent), rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:16px; box-shadow:0 10px 30px rgba(0,0,0,0.3); }
+      .fc-prev-head { display:flex; flex-direction:column; gap:4px; }
+      .fc-prev-head b { color:#fff; font:800 18px/1.2 var(--mac-ui, sans-serif); word-break:break-word; }
+      .fc-prev-head span { color:#b8d7df; font:600 13px var(--mac-ui, sans-serif); }
+      
+      .fc-prev-body { display:flex; flex-direction:column; gap:12px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06); }
+      .fc-prev-item { display:flex; flex-direction:column; gap:4px; }
+      .fc-prev-item small { font:800 10px monospace; color:#627885; text-transform:uppercase; letter-spacing:0.5px; }
+      .fc-prev-item div { color:#eef8fc; font:500 13px var(--mac-ui, sans-serif); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+      .fc-prev-tag { background:rgba(0,240,255,0.1); color:#00f0ff; border:1px solid rgba(0,240,255,0.2); font:800 10px monospace; padding:2px 8px; border-radius:4px; text-transform:uppercase; }
+      
+      .fc-prev-users { display:flex; gap:6px; flex-wrap:wrap; }
+      .fc-prev-users .fc-avatar { width:20px; height:20px; border:1px solid rgba(255,255,255,0.1); }
+      
+      .fc-helper-text { margin-top:24px; font-size:12px; color:#627885; line-height:1.5; font-family:var(--mac-ui, sans-serif); }
+      
+      @media(max-width: 900px) {
+        .fc-modal { flex-direction:column; }
+        .fc-main-col { border-right:none; border-bottom:1px solid rgba(255,255,255,0.06); }
+        .fc-side-col { width:100%; border-radius:0 0 24px 24px; }
+      }
       @media(max-width: 600px) {
         .fc-row { flex-direction:column; gap:8px; }
         .fc-label { margin-top:0; width:100%; }
@@ -113,6 +139,50 @@
      if(state.manualCap === undefined) {
          const elCap = document.getElementById('fc-cap-select');
          if(elCap) elCap.value = dest.capture ? 'Agendar Captação' : '';
+     }
+     
+     updateLivePreview(dest);
+  }
+  
+  function updateLivePreview(dest) {
+     const titleEl = document.getElementById('fc-prev-title');
+     const clientEl = document.getElementById('fc-prev-client');
+     const groupEl = document.getElementById('fc-prev-group');
+     const statusEl = document.getElementById('fc-prev-status');
+     const datesEl = document.getElementById('fc-prev-dates');
+     const usersEl = document.getElementById('fc-prev-users');
+     
+     if(!titleEl) return;
+     
+     const formatText = state.format || 'Formato';
+     const titleText = state.title || 'Título pendente';
+     titleEl.textContent = `${formatText} - ${titleText}`;
+     clientEl.textContent = state.client || 'Cliente não selecionado';
+     
+     const finalGroupLabel = document.getElementById('fc-group-select').options[document.getElementById('fc-group-select').selectedIndex].text;
+     const finalStatus = document.getElementById('fc-status-select').value;
+     const finalCap = document.getElementById('fc-cap-select').value;
+     
+     groupEl.textContent = finalGroupLabel;
+     
+     let statusesHtml = `<span class="fc-prev-tag" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">${esc(finalStatus)}</span>`;
+     if (finalCap) {
+         statusesHtml += `<span class="fc-prev-tag" style="background:rgba(246,191,58,0.1); color:#f6bf3a; border-color:rgba(246,191,58,0.2);">CAPTAÇÃO: ${esc(finalCap)}</span>`;
+     }
+     statusEl.innerHTML = statusesHtml;
+     
+     datesEl.innerHTML = state.veic ? `Veiculação: ${state.veic.split('-').reverse().join('/')}` : 'Prazos pendentes';
+     
+     const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+     const assignedUsers = dest.assignees.map(id => users.find(u => String(u.id) === String(id))).filter(Boolean);
+     
+     if (assignedUsers.length) {
+         usersEl.innerHTML = assignedUsers.map(u => {
+             const avatar = u.photo ? `<img src="${u.photo}">` : `<span>${u.name[0]}</span>`;
+             return `<div class="fc-avatar" style="background:${u.color}" title="${esc(u.name)}">${avatar}</div>`;
+         }).join('');
+     } else {
+         usersEl.textContent = 'Definido na Triagem';
      }
   }
 
@@ -222,106 +292,155 @@
 
     overlay.innerHTML = `
       <div class="fc-modal">
-         <div class="fc-header">
-            <div class="fc-kicker">CADASTRO RÁPIDO</div>
-            <input type="text" id="fc-title" class="fc-title-input" placeholder="Título do Conteúdo..." autofocus>
-            <button class="fc-close" onclick="closeCadastrosGoverned()">×</button>
+         
+         <!-- LEFT COLUMN: FORM -->
+         <div class="fc-main-col">
+             <div class="fc-header">
+                <div class="fc-kicker">CADASTRO RÁPIDO</div>
+                <input type="text" id="fc-title" class="fc-title-input" placeholder="Título do Conteúdo..." autofocus oninput="fcHandleInput('title', this.value)">
+             </div>
+             
+             <div class="fc-body">
+                <div class="fc-row">
+                   <div class="fc-label">Cliente</div>
+                   <div class="fc-input-wrap">
+                      <select class="fc-input" onchange="fcHandleInput('client', this.value)">
+                         <option value="">Selecionar cliente...</option>
+                         ${clients.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}
+                      </select>
+                   </div>
+                </div>
+
+                <div class="fc-row">
+                   <div class="fc-label">Formato</div>
+                   <div class="fc-input-wrap">
+                      <select class="fc-input" onchange="fcHandleInput('format', this.value)">
+                         <option value="">Selecionar formato...</option>
+                         ${formats.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}
+                      </select>
+                   </div>
+                </div>
+
+                <div class="fc-row">
+                   <div class="fc-label">Equipe Extra</div>
+                   <div class="fc-input-wrap">
+                      <div class="fc-persons" id="fc-persons-container"></div>
+                   </div>
+                </div>
+                
+                <div class="fc-auto-group">
+                   <div class="fc-auto-col">
+                      <label>Grupo / Destino</label>
+                      <select class="fc-input" id="fc-group-select" onchange="fcHandleInput('manualGroup', this.value)">
+                         <option value="group_title">Redação</option>
+                         <option value="novo_grupo__1">Design & Edição</option>
+                         <option value="novo_grupo57911__1">Produção (Foto e Vídeo)</option>
+                      </select>
+                   </div>
+                   <div class="fc-auto-col">
+                      <label>Status Inicial</label>
+                      <select class="fc-input" id="fc-status-select" onchange="fcHandleInput('manualStatus', this.value)">
+                         <option value="A Fazer">A Fazer</option>
+                         <option value="Pode Fazer">Pode Fazer</option>
+                         <option value="Falta D.A">Falta D.A</option>
+                         <option value="Ag. Aprovação Cliente">Ag. Aprovação Cliente</option>
+                         <option value="Agendado">Agendado</option>
+                      </select>
+                   </div>
+                   <div class="fc-auto-col">
+                      <label>Captação Externa</label>
+                      <select class="fc-input" id="fc-cap-select" onchange="fcHandleInput('manualCap', this.value)">
+                         <option value="">- Nenhuma -</option>
+                         <option value="Agendar Captação">Agendar Captação</option>
+                         <option value="A Fazer">A Fazer</option>
+                      </select>
+                   </div>
+                </div>
+
+                <div class="fc-row">
+                   <div class="fc-label">Prazos</div>
+                   <div class="fc-input-wrap" style="display:flex; gap:16px;">
+                      <div style="flex:1">
+                         <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Veiculação</label>
+                         <input type="date" class="fc-input" min="${todayIso()}" onchange="fcHandleInput('veic', this.value)">
+                      </div>
+                      <div style="flex:1">
+                         <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Prazo Interno</label>
+                         <input type="date" id="fc-prazo" class="fc-input" min="${todayIso()}" onchange="fcHandleInput('prazo', this.value)">
+                      </div>
+                   </div>
+                </div>
+
+                <div class="fc-row">
+                   <div class="fc-label">Instruções</div>
+                   <div class="fc-input-wrap">
+                      <textarea class="fc-input" placeholder="Objetivo, referência ou contexto do conteúdo..." onchange="fcHandleInput('brief', this.value)"></textarea>
+                      
+                      <div class="fc-checkbox-group">
+                         <label class="fc-checkbox-row">
+                            <input type="checkbox" onchange="fcHandleInput('briefReady', this.checked)">
+                            <span>O briefing está 100% pronto (pular Redação)</span>
+                         </label>
+                         <label class="fc-checkbox-row">
+                            <input type="checkbox" onchange="fcHandleInput('materialReady', this.checked)">
+                            <span>O material bruto já foi fornecido (ignorar Captação)</span>
+                         </label>
+                      </div>
+                   </div>
+                </div>
+
+             </div>
+             
+             <div class="fc-footer">
+                <button class="fc-btn-cancel" onclick="closeCadastrosGoverned()">CANCELAR</button>
+                <button class="fc-btn-create" id="fc-submit-btn" onclick="fcSubmit()">CRIAR CONTEÚDO</button>
+             </div>
          </div>
-         <div class="fc-body">
-            
-            <div class="fc-row">
-               <div class="fc-label">Cliente</div>
-               <div class="fc-input-wrap">
-                  <select class="fc-input" onchange="fcHandleInput('client', this.value)">
-                     <option value="">Selecionar cliente...</option>
-                     ${clients.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}
-                  </select>
-               </div>
-            </div>
-
-            <div class="fc-row">
-               <div class="fc-label">Formato</div>
-               <div class="fc-input-wrap">
-                  <select class="fc-input" onchange="fcHandleInput('format', this.value)">
-                     <option value="">Selecionar formato...</option>
-                     ${formats.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}
-                  </select>
-               </div>
-            </div>
-
-            <div class="fc-row">
-               <div class="fc-label">Equipe Extra</div>
-               <div class="fc-input-wrap">
-                  <div class="fc-persons" id="fc-persons-container"></div>
-               </div>
-            </div>
-            
-            <div class="fc-auto-group">
-               <div class="fc-auto-col">
-                  <label>Mover para Grupo</label>
-                  <select class="fc-input" id="fc-group-select" onchange="fcHandleInput('manualGroup', this.value)">
-                     <option value="group_title">Redação</option>
-                     <option value="novo_grupo__1">Design & Edição</option>
-                     <option value="novo_grupo57911__1">Produção (Foto e Vídeo)</option>
-                  </select>
-               </div>
-               <div class="fc-auto-col">
-                  <label>Status Inicial</label>
-                  <select class="fc-input" id="fc-status-select" onchange="fcHandleInput('manualStatus', this.value)">
-                     <option value="A Fazer">A Fazer</option>
-                     <option value="Pode Fazer">Pode Fazer</option>
-                     <option value="Falta D.A">Falta D.A</option>
-                     <option value="Ag. Aprovação Cliente">Ag. Aprovação Cliente</option>
-                     <option value="Agendado">Agendado</option>
-                  </select>
-               </div>
-               <div class="fc-auto-col">
-                  <label>Status Captação</label>
-                  <select class="fc-input" id="fc-cap-select" onchange="fcHandleInput('manualCap', this.value)">
-                     <option value="">- Nenhuma -</option>
-                     <option value="Agendar Captação">Agendar Captação</option>
-                     <option value="A Fazer">A Fazer</option>
-                  </select>
-               </div>
-            </div>
-
-            <div class="fc-row">
-               <div class="fc-label">Prazos</div>
-               <div class="fc-input-wrap" style="display:flex; gap:16px;">
-                  <div style="flex:1">
-                     <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Veiculação</label>
-                     <input type="date" class="fc-input" min="${todayIso()}" onchange="fcHandleInput('veic', this.value)">
-                  </div>
-                  <div style="flex:1">
-                     <label style="display:block; font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Prazo Interno</label>
-                     <input type="date" id="fc-prazo" class="fc-input" min="${todayIso()}" onchange="fcHandleInput('prazo', this.value)">
-                  </div>
-               </div>
-            </div>
-
-            <div class="fc-row">
-               <div class="fc-label">Instruções</div>
-               <div class="fc-input-wrap">
-                  <textarea class="fc-input" placeholder="Objetivo, referência ou contexto do conteúdo..." onchange="fcHandleInput('brief', this.value)"></textarea>
-                  
-                  <div class="fc-checkbox-group">
-                     <label class="fc-checkbox-row">
-                        <input type="checkbox" onchange="fcHandleInput('briefReady', this.checked)">
-                        <span>O briefing está 100% pronto (pular Redação)</span>
-                     </label>
-                     <label class="fc-checkbox-row">
-                        <input type="checkbox" onchange="fcHandleInput('materialReady', this.checked)">
-                        <span>O material bruto já foi fornecido (ignorar Captação)</span>
-                     </label>
-                  </div>
-               </div>
-            </div>
-
+         
+         <!-- RIGHT COLUMN: LIVE PREVIEW -->
+         <div class="fc-side-col">
+             <button class="fc-close" onclick="closeCadastrosGoverned()">×</button>
+             
+             <div class="fc-side-title">PRÉVIA DE DESTINO</div>
+             
+             <div class="fc-preview-card">
+                 <div class="fc-prev-head">
+                    <b id="fc-prev-title">Formato - Título pendente</b>
+                    <span id="fc-prev-client">Cliente não selecionado</span>
+                 </div>
+                 
+                 <div class="fc-prev-body">
+                    <div class="fc-prev-item">
+                       <small>Alojamento Operacional</small>
+                       <div id="fc-prev-group">Redação</div>
+                    </div>
+                    
+                    <div class="fc-prev-item">
+                       <small>Prazos</small>
+                       <div id="fc-prev-dates">Prazos pendentes</div>
+                    </div>
+                    
+                    <div class="fc-prev-item">
+                       <small>Equipe Atribuída</small>
+                       <div class="fc-prev-users" id="fc-prev-users">
+                          Definido na Triagem
+                       </div>
+                    </div>
+                    
+                    <div class="fc-prev-item">
+                       <small>Sinalização Visual</small>
+                       <div id="fc-prev-status">
+                          <span class="fc-prev-tag" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">A FAZER</span>
+                       </div>
+                    </div>
+                 </div>
+             </div>
+             
+             <div class="fc-helper-text">
+                O cartão acima reflete como a demanda chegará na visão da equipe, considerando o formato escolhido e as regras de entrada (automações).
+             </div>
          </div>
-         <div class="fc-footer">
-            <button class="fc-btn-cancel" onclick="closeCadastrosGoverned()">CANCELAR</button>
-            <button class="fc-btn-create" id="fc-submit-btn" onclick="fcSubmit()">CRIAR CONTEÚDO</button>
-         </div>
+         
       </div>
     `;
 
@@ -330,6 +449,11 @@
        overlay.classList.add('open');
        renderPersons();
        updateDestinyUI();
+       
+       // Bind title input live update safely
+       document.getElementById('fc-title').addEventListener('input', function(e) {
+           fcHandleInput('title', e.target.value);
+       });
     });
   };
 
