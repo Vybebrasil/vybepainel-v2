@@ -1,33 +1,28 @@
-﻿export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') return res.status(200).end();
+﻿// api/monday.js — Proxy relay para a API do Monday.com (v2 cyberpunk)
+// Token embutido para uso interno da equipe Vybe
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
-    const token = process.env.MONDAY_TOKEN;
-    if (!token) {
-      return res.status(500).json({ error: "O MONDAY_TOKEN sumiu das Variaveis de Ambiente do Vercel!" });
-    }
-
-    const payload = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-
-    const mondayResponse = await fetch('https://api.monday.com/v2', {
-      method: req.method || 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token,
-        'API-Version': '2024-01'
-      },
-      body: req.method === 'POST' ? payload : undefined
+    // Relay server-side para o proxy original (evita CORS)
+    const response = await fetch('https://vybepainel.vercel.app/api/monday', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body)
     });
-
-    const data = await mondayResponse.json();
-    
-    // Se o Monday recusar, a gente repassa o erro deles pra frente
-    if (data.errors) {
-      return res.status(400).json({ error: "O Monday recusou: " + JSON.stringify(data.errors) });
-    }
-
-    return res.status(mondayResponse.status).json(data);
+    const data = await response.json();
+    return res.status(response.status).json(data);
   } catch (error) {
-    return res.status(500).json({ error: "O servidor ponte engasgou: " + error.message });
+    return res.status(500).json({ error: error.message });
   }
 }

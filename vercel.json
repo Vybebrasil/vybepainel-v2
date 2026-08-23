@@ -1,0 +1,8 @@
+﻿{
+  "crons": [
+    {
+      "path": "/api/mirror-reconcile",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
