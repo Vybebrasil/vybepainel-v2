@@ -29,7 +29,7 @@
       .p-segment button:hover { color:#fff; background:rgba(255,255,255,0.05); }
       .p-segment button.active { background:rgba(255,255,255,0.15); color:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
       
-      /≡ Feed View */
+      /* Feed View */
       .prod-v2-dates { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; }
       .prod-v2-date-btn { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px 20px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:6px; min-width:160px; height:80px; cursor:pointer; position:relative; overflow:hidden; transition:all 0.2s; flex-shrink: 0; box-sizing: border-box; }
       .prod-v2-date-btn:hover { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.2); transform:translateY(-2px); }
@@ -339,7 +339,7 @@
               ${dateRail}
            </nav>
            <main class="prod-v2-feed">
-              ${feed || `<div class="p-empty">Nada agendado para esta data. Use a Visão d📅 Calendário para criar novos agendamentos ou arrastar cards para cá.</div>`}
+              ${feed || `<div class="p-empty">Nada agendado para esta data. Use a Visão de Calendário para criar novos agendamentos ou arrastar cards para cá.</div>`}
            </main>
         `;
     } 
