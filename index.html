@@ -5767,9 +5767,22 @@ function pillHtml(s, color='', border='') {
   return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(color, border)}><span class="pill-dot"${statusDotInlineStyle(color)}></span>${s}</span>`;
 }
 function managerStatusControl(item) {
-  const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Monday`;
-  return `<button type="button" class="manager-status-control" onclick="openStatusEditor(event,'${item.id}')" title="${label}" aria-label="${label}">${pillHtml(item.status, item.status_color, item.status_border)}</button>`;
-}
+    const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Monday`;
+    const pill = `<button type="button" class="manager-status-control" onclick="openStatusEditor(event,'${item.id}')" title="${label}" aria-label="${label}">${pillHtml(item.status, item.status_color, item.status_border)}</button>`;
+    
+    if (!item.status_updated_at || ['Finalizado', 'Agendado', 'Para agendar'].includes(item.status)) {
+        return pill;
+    }
+    
+    const isRunning = item.status === 'Em andamento';
+    const color = isRunning ? '#00f0ff' : '#9cafba';
+    const border = isRunning ? 'rgba(0,240,255,0.2)' : 'rgba(255,255,255,0.08)';
+    const bg = isRunning ? 'rgba(0,240,255,0.05)' : 'rgba(255,255,255,0.02)';
+    
+    const timerHtml = `<span class="live-timer" data-start="${item.status_updated_at}" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:${bg};color:${color};font:600 11px var(--mac-mono, monospace);letter-spacing:1px;border:1px solid ${border};display:inline-flex;align-items:center;vertical-align:middle;cursor:default;box-shadow:${isRunning?'0 0 10px rgba(0,240,255,0.1)':'none'};" onclick="event.stopPropagation()">00:00:00</span>`;
+    
+    return `<div style="display:inline-flex;align-items:center;">${pill}${timerHtml}</div>`;
+  }
 function syncStatusLegendColors(rootSelector, items) {
   const colors = new Map();
   items.forEach(item => {
