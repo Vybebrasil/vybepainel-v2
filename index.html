@@ -6809,10 +6809,14 @@ function closeItemWorkspace() {
   activeWorkspaceAssets = [];
 }
 async function fetchWorkspaceItem(itemId) {
-  const query = `query($item: [ID!]!) { items(ids: $item) { id name assets { id name url url_thumbnail public_url file_extension file_size created_at } column_values(ids:["file_mkwtx2j4"]) { id value } updates(limit: 12) { id body created_at creator { name } assets { id name url url_thumbnail public_url file_extension file_size } } } }`;
-  const data = await mondayQuery(query, { item: [String(itemId)] });
-  return data?.items?.[0] || null;
-}
+    const query = `query($board: [ID!]!, $item: [ID!]!) { items(ids: $item) { id name created_at assets { id name url url_thumbnail public_url file_extension file_size created_at } column_values(ids:["file_mkwtx2j4"]) { id value } updates(limit: 12) { id body created_at creator { name } assets { id name url url_thumbnail public_url file_extension file_size } } } boards(ids: $board) { activity_logs(item_ids: $item, column_ids: ["status"], limit: 50) { id event data created_at } } }`;
+    const data = await mondayQuery(query, { board: [String(BOARD_ID)], item: [String(itemId)] });
+    const itemData = data?.items?.[0];
+    if (itemData) {
+      itemData.activity_logs = data?.boards?.[0]?.activity_logs || [];
+    }
+    return itemData || null;
+  }
 function workspaceFileColumnAssetIds(detail) {
   const column = (detail?.column_values || []).find(entry => String(entry?.id || '') === 'file_mkwtx2j4');
   if (!column?.value) return new Set();
@@ -6898,7 +6902,67 @@ function workspaceExecutiveHistoryHtml(updates=[]) {
   if(!decisive.length) return '<section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><div class="workspace-empty">Ainda não há decisão estruturada registrada nesta demanda.</div></div></section>';
   return `<section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><p class="workspace-note">Somente decisões que mudam a próxima etapa, o responsável, o prazo ou a direção entram nesta leitura.</p>${decisive.map(update=>{const text=workspacePlainText(update?.body||''); const type=workspaceTimelineType(text); return `<div class="workspace-decision-memory"><span>${safeText(type)}</span><div><b>${safeText((update?.created_at||'').replace('T',' ').slice(0,16))}</b><p>${safeText(text)}</p></div></div>`;}).join('')}</div></section>`;
 }
-function renderWorkspaceDrawer(detail, item) {
+
+  function formatDuration(ms) {
+    if (!ms || ms < 0) return 'agora';
+    const totalMins = Math.floor(ms / 60000);
+    if (totalMins < 60) return `${totalMins}m`;
+    const hours = Math.floor(totalMins / 60);
+    const days = Math.floor(hours / 24);
+    if (days > 0) {
+        const remH = hours % 24;
+        return remH > 0 ? `${days}d ${remH}h` : `${days}d`;
+    }
+    const remM = totalMins % 60;
+    return remM > 0 ? `${hours}h ${remM}m` : `${hours}h`;
+  }
+  
+  function workspaceHistoryHtml(detail, item) {
+    if (!detail.activity_logs) return '';
+    const logs = [...detail.activity_logs].sort((a,b) => Number(b.created_at) - Number(a.created_at));
+    const history = [];
+    let endTime = Date.now();
+    let expectedTo = item.status;
+    
+    for (const entry of logs) {
+        if (entry.event !== 'update_column_value') continue;
+        try {
+            const data = JSON.parse(entry.data);
+            const fromStatus = data.previous_value?.label?.text || '-';
+            const toStatus = data.value?.label?.text || '-';
+            const timestamp = Math.floor(Number(entry.created_at) / 10000);
+            
+            history.push({ status: toStatus, durationMs: endTime - timestamp });
+            endTime = timestamp;
+            expectedTo = fromStatus;
+        } catch(e) {}
+    }
+    
+    const createdTime = detail.created_at ? new Date(detail.created_at).getTime() : null;
+    if (createdTime) {
+        history.push({ status: expectedTo, durationMs: endTime - createdTime });
+    }
+    
+    const totals = {};
+    for (const h of history) {
+        if (h.status === '-' || !h.status) continue;
+        if (h.durationMs) {
+            totals[h.status] = (totals[h.status] || 0) + h.durationMs;
+        }
+    }
+    
+    const lines = Object.entries(totals)
+        .sort((a,b) => b[1] - a[1])
+        .map(([st, ms]) => `<div style="display:flex;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:6px;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">${pillHtml(st)}</div>
+          <strong style="color:#b8d7df;font:700 12px var(--mac-mono, monospace);letter-spacing:0.5px;">${formatDuration(ms)}</strong>
+        </div>`);
+        
+    if (lines.length === 0) return '';
+    return `<section class="workspace-section"><div class="workspace-section-head">Tempo em cada etapa</div><div class="workspace-section-body">${lines.join('')}</div></section>`;
+  }
+
+  function renderWorkspaceDrawer(detail, item) {
   const drawer = document.getElementById('workspace-drawer');
   if (!drawer || !detail) return;
   const assets = workspaceAssetsForDetail(detail);
@@ -6923,6 +6987,7 @@ function renderWorkspaceDrawer(detail, item) {
     <section class="workspace-section workspace-direction"><div class="workspace-section-head">Ação de direção</div><div class="workspace-section-body"><p class="workspace-note">Registre uma orientação objetiva sem redigir uma atualização do zero. O sinal entra na timeline como decisão de D.A.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceDirectionAction('Briefing confirmado')">✓ Briefing confirmado</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Direcionamento enviado')">↗ Direcionamento enviado</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Aguardando retorno')">◌ Aguardando retorno</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Proteger prazo')">⚑ Proteger prazo</button></div></div></section>
     <section class="workspace-section workspace-checkin"><div class="workspace-section-head">Check-in de execução</div><div class="workspace-section-body"><p class="workspace-note">Registre o início ou o encerramento de um bloco de trabalho sem sair do Vybe OS. O sinal entra na linha do tempo da atividade.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceCheckin('início')">▶ Iniciar bloco</button><button type="button" class="workspace-action" onclick="registerWorkspaceCheckin('fechamento')">■ Encerrar bloco</button></div></div></section>
     ${workspaceExecutiveHistoryHtml(updates)}
+      ${workspaceHistoryHtml(detail, item)}
     <section class="workspace-section"><div class="workspace-section-head">Timeline operacional</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></section></div>`;
 }
 async function openItemWorkspace(itemId) {
