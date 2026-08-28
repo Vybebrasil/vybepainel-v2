@@ -473,3 +473,48 @@ export async function sincronizarHistorico(cursor = null, paginas = 1) {
     ...totais,
   };
 }
+
+// Onde os 6,65 GB estão: separar arquivo de trabalho ativo de arquivo de coisa
+// já entregue muda o tamanho da migração de storage.
+export async function perfilArquivos() {
+  const sql = database();
+  const [geral] = await sql`SELECT
+      COUNT(*)                                    AS arquivos,
+      COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
+    FROM vybe_conteudo_arquivos a`;
+
+  const porFinal = await sql`SELECT
+      COALESCE(s.final, false)                    AS finalizado,
+      COUNT(*)                                    AS arquivos,
+      COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
+    FROM vybe_conteudo_arquivos a
+    JOIN vybe_conteudos c ON c.id = a.conteudo_id
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave
+    GROUP BY 1 ORDER BY 3 DESC`;
+
+  const porAno = await sql`SELECT
+      COALESCE(EXTRACT(YEAR FROM c.veiculacao)::int, 0) AS ano,
+      COUNT(*)                                    AS arquivos,
+      COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
+    FROM vybe_conteudo_arquivos a
+    JOIN vybe_conteudos c ON c.id = a.conteudo_id
+    GROUP BY 1 ORDER BY 1`;
+
+  const porStatus = await sql`SELECT
+      COALESCE(s.rotulo,'(sem status)')           AS status,
+      COUNT(*)                                    AS arquivos,
+      COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
+    FROM vybe_conteudo_arquivos a
+    JOIN vybe_conteudos c ON c.id = a.conteudo_id
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave
+    GROUP BY 1 ORDER BY 3 DESC LIMIT 8`;
+
+  const porExtensao = await sql`SELECT
+      COALESCE(NULLIF(a.extensao,''),'(sem)')     AS extensao,
+      COUNT(*)                                    AS arquivos,
+      COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
+    FROM vybe_conteudo_arquivos a
+    GROUP BY 1 ORDER BY 3 DESC LIMIT 8`;
+
+  return { geral, por_final: porFinal, por_ano: porAno, por_status: porStatus, por_extensao: porExtensao };
+}
