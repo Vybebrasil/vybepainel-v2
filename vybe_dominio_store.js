@@ -60,6 +60,14 @@ function dataOuNulo(valor) {
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
 }
 
+// O momento da última troca de status vem dentro do JSON da coluna, não como
+// campo próprio. É o que alimenta o cronômetro de tempo em cada etapa.
+function statusEm(item) {
+  const c = coluna(item, 'status');
+  if (c?.updated_at) return c.updated_at;
+  try { return JSON.parse(c?.value || 'null')?.changed_at || null; } catch { return null; }
+}
+
 function pessoasDoItem(item) {
   const bruto = coluna(item, 'person')?.value;
   if (!bruto || bruto === 'null') return [];
@@ -121,11 +129,16 @@ export async function criarSchema() {
     prazo                DATE,
     veiculacao           DATE,
     briefing             TEXT,
+    grupo_id             TEXT,
+    status_em            TIMESTAMPTZ,
     monday_item_id       TEXT UNIQUE,
     monday_atualizado_em TIMESTAMPTZ,
     criado_em            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS grupo_id TEXT`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS status_em TIMESTAMPTZ`;
 
   await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_clientes (
     conteudo_id BIGINT NOT NULL REFERENCES vybe_conteudos(id) ON DELETE CASCADE,
@@ -253,6 +266,8 @@ export async function popularDoEspelho() {
     clientes_texto: texto(item, 'lista_suspensa_mkmqnjbv') || null,
     status_chave: texto(item, 'status') ? chaveStatus(texto(item, 'status')) : null,
     etapa: item.group?.title || null,
+    grupo_id: item.group?.id || null,
+    status_em: statusEm(item),
     prazo: dataOuNulo(texto(item, 'data')),
     veiculacao: dataOuNulo(texto(item, 'data__1')),
     monday_item_id: String(item.id),
@@ -260,16 +275,18 @@ export async function popularDoEspelho() {
   }));
 
   await sql`INSERT INTO vybe_conteudos
-    (titulo, formato, clientes_texto, status_chave, etapa, prazo, veiculacao,
-     monday_item_id, monday_atualizado_em, atualizado_em)
-    SELECT r.titulo, r.formato, r.clientes_texto, r.status_chave, r.etapa, r.prazo,
-           r.veiculacao, r.monday_item_id, r.monday_atualizado_em, NOW()
+    (titulo, formato, clientes_texto, status_chave, etapa, grupo_id, status_em,
+     prazo, veiculacao, monday_item_id, monday_atualizado_em, atualizado_em)
+    SELECT r.titulo, r.formato, r.clientes_texto, r.status_chave, r.etapa, r.grupo_id,
+           r.status_em, r.prazo, r.veiculacao, r.monday_item_id, r.monday_atualizado_em, NOW()
     FROM jsonb_to_recordset(${JSON.stringify(registros)}::jsonb) AS r(
       titulo text, formato text, clientes_texto text, status_chave text, etapa text,
-      prazo date, veiculacao date, monday_item_id text, monday_atualizado_em timestamptz)
+      grupo_id text, status_em timestamptz, prazo date, veiculacao date,
+      monday_item_id text, monday_atualizado_em timestamptz)
     ON CONFLICT (monday_item_id) DO UPDATE SET
       titulo=EXCLUDED.titulo, formato=EXCLUDED.formato, clientes_texto=EXCLUDED.clientes_texto,
-      status_chave=EXCLUDED.status_chave, etapa=EXCLUDED.etapa, prazo=EXCLUDED.prazo,
+      status_chave=EXCLUDED.status_chave, etapa=EXCLUDED.etapa, grupo_id=EXCLUDED.grupo_id,
+      status_em=EXCLUDED.status_em, prazo=EXCLUDED.prazo,
       veiculacao=EXCLUDED.veiculacao, monday_atualizado_em=EXCLUDED.monday_atualizado_em,
       atualizado_em=NOW()`;
 
@@ -349,6 +366,8 @@ export async function listarConteudos() {
       c.titulo                                  AS nome,
       c.formato,
       c.etapa                                   AS grupo,
+      c.grupo_id,
+      c.status_em                               AS status_updated_at,
       TO_CHAR(c.prazo, 'YYYY-MM-DD')            AS prazo_iso,
       TO_CHAR(c.veiculacao, 'YYYY-MM-DD')       AS veiculacao_iso,
       c.monday_atualizado_em                    AS updated_at,
@@ -361,6 +380,11 @@ export async function listarConteudos() {
            FROM vybe_conteudo_clientes vcc
            JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
           WHERE vcc.conteudo_id = c.id AND cl.ativo), '{}') AS clientes,
+      COALESCE(
+        (SELECT ARRAY_AGG(p.nome ORDER BY p.nome)
+           FROM vybe_conteudo_responsaveis vcr
+           JOIN vybe_pessoas p ON p.id = vcr.pessoa_id
+          WHERE vcr.conteudo_id = c.id), '{}') AS responsaveis_nomes,
       COALESCE(
         (SELECT ARRAY_AGG(p.monday_user_id ORDER BY p.nome)
            FROM vybe_conteudo_responsaveis vcr
@@ -378,6 +402,9 @@ export async function listarConteudos() {
   return linhas.map((l) => ({
     ...l,
     cliente: (l.clientes || [])[0] || '',   // o painel usa o primeiro cliente ativo
+    responsavel: (l.responsaveis_nomes || []).join(', '),
+    responsavel_id: (l.responsavel_ids || [])[0] || '',
+    url: `https://gestaovybes-team.monday.com/boards/${BOARD_PRODUCAO}/pulses/${l.id}`,
   }));
 }
 
