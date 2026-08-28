@@ -8,6 +8,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (await garantirSessao()) iniciarPainel();
 });
 
+// Escolhe a fonte de leitura. O banco próprio só entra quando alguém liga a
+// chave; qualquer falha nele cai no espelho, para a troca não poder derrubar.
+async function carregarOperacao() {
+  if (fonteDeLeitura() === 'dominio') {
+    try { if (await puxarDominio()) return true; }
+    catch (erro) { console.warn('Leitura do banco falhou; usando o espelho.', erro); }
+  }
+  return pullOperationalMirror();
+}
+
 function iniciarPainel() {
   const legacyKpi = document.getElementById('kpi-grid');
   if (legacyKpi) legacyKpi.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px 0;">Carregando dados do Monday.com...</div>';
@@ -16,7 +26,7 @@ function iniciarPainel() {
     setSyncHealth('checking', 'Cache operacional carregado · aguardando confirmação do Monday…');
     // A tela entra com o último estado válido; primeiro tenta o espelho central e usa o Monday direto como fallback.
     setTimeout(async () => {
-      const mirrored = await pullOperationalMirror();
+      const mirrored = await carregarOperacao();
       if (!mirrored) reconcileProductionCache();
       startOperationalMirrorFeed();
     }, 80);
@@ -24,7 +34,7 @@ function iniciarPainel() {
     setSyncHealth('checking', 'Sem cache local · buscando uma base operacional confirmada…');
     // Em um novo navegador, o espelho central evita que toda a equipe repita a mesma carga do Monday.
     setTimeout(async () => {
-      const mirrored = await pullOperationalMirror();
+      const mirrored = await carregarOperacao();
       if (!mirrored) await refreshProducao();
       startOperationalMirrorFeed();
     }, 0);
