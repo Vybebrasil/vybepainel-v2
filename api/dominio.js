@@ -19,37 +19,22 @@ function cors(res) {
   res.setHeader('Cache-Control', 'no-store');
 }
 
+// Apara espaço e quebra de linha dos dois lados: colar valor no painel da Vercel
+// costuma trazer um \n junto, e a chave passa a nunca bater.
 function autorizado(req) {
-  const segredo = process.env.MIRROR_ADMIN_KEY;
+  const segredo = String(process.env.MIRROR_ADMIN_KEY || '').trim();
   if (!segredo) return false;
-  const enviado =
+  const enviado = (
     String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '') ||
-    String(req.query?.key || req.body?.key || '');
-  return enviado === segredo;
+    String(req.query?.key || req.body?.key || '')
+  ).trim();
+  return enviado.length > 0 && enviado === segredo;
 }
 
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!autorizado(req)) {
-    // Diagnóstico temporário: só tamanhos, nunca o valor. Remover quando a chave
-    // estiver acertada — serve para distinguir "variável ausente no ambiente" de
-    // "variável presente mas diferente da enviada".
-    const segredo = process.env.MIRROR_ADMIN_KEY || '';
-    const enviado =
-      String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '') ||
-      String(req.query?.key || req.body?.key || '');
-    return res.status(401).json({
-      error: 'Não autorizado.',
-      diagnostico: {
-        variavel_existe_no_ambiente: Boolean(process.env.MIRROR_ADMIN_KEY),
-        tamanho_da_variavel: segredo.length,
-        tamanho_do_enviado: enviado.length,
-        primeiros_iguais: segredo.slice(0, 4) === enviado.slice(0, 4),
-        ultimos_iguais: segredo.slice(-4) === enviado.slice(-4),
-      },
-    });
-  }
+  if (!autorizado(req)) return res.status(401).json({ error: 'Não autorizado.' });
 
   const action = String(req.query?.action || req.body?.action || 'resumo');
 
