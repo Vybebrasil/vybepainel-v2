@@ -10,7 +10,7 @@
 //   curl -X POST ".../api/dominio?action=popular" -H "Authorization: Bearer $CHAVE"
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
-import { criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos } from '../vybe_dominio_store.js';
+import { criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso } from '../vybe_dominio_store.js';
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -51,6 +51,15 @@ export default async function handler(req, res) {
     if (action === 'schema') {
       await criarSchema();
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
+    }
+    if (action === 'equipe') {
+      return res.status(200).json({ ok: true, action, ...(await sincronizarEquipe()) });
+    }
+    if (action === 'acesso') {
+      const email = req.query?.email || req.body?.email;
+      const pode = String(req.query?.pode ?? req.body?.pode ?? 'true') !== 'false';
+      if (!email) return res.status(400).json({ error: 'Informe o e-mail.' });
+      return res.status(200).json({ ok: true, action, pessoa: await definirAcesso(email, pode) });
     }
     if (action === 'historico') {
       // Paginado: passe o proximo_cursor da resposta anterior para continuar.

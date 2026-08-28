@@ -88,8 +88,16 @@ export async function criarSchema() {
     disciplina     TEXT,
     ativo          BOOLEAN NOT NULL DEFAULT TRUE,
     monday_user_id TEXT UNIQUE,
+    email          TEXT UNIQUE,
+    pode_entrar    BOOLEAN NOT NULL DEFAULT FALSE,
+    ultimo_acesso  TIMESTAMPTZ,
     criado_em      TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+  // Colunas novas em bases que já existiam antes desta versão.
+  await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS email TEXT`;
+  await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS pode_entrar BOOLEAN NOT NULL DEFAULT FALSE`;
+  await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS ultimo_acesso TIMESTAMPTZ`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS vybe_pessoas_email_idx ON vybe_pessoas (LOWER(email)) WHERE email IS NOT NULL`;
 
   // As cores hoje vêm coladas em cada um dos 1.969 itens, porque acompanham a
   // resposta do Monday. Aqui viram 18 linhas.
@@ -532,4 +540,40 @@ export async function perfilArquivos() {
 
   return { geral, por_final: porFinal, por_ano: porAno, por_status: porStatus,
            por_extensao: porExtensao, em_andamento: emAndamento };
+}
+
+// Traz a equipe do Monday com e-mail. É a lista de quem pode entrar: como são
+// Gmail pessoais e não um domínio próprio, não dá para liberar por domínio —
+// precisa ser nominal.
+//
+// pode_entrar entra como FALSE de propósito. Importar 14 pessoas e liberar todas
+// de uma vez seria decidir por quem não sou eu; quem administra marca quem entra.
+export async function sincronizarEquipe() {
+  await criarSchema();
+  const sql = database();
+  const dados = await mondayQuery('{ users(limit:100) { id name email enabled is_guest } }');
+  const usuarios = (dados?.users || []).filter((u) => u.enabled && u.email);
+
+  await sql`INSERT INTO vybe_pessoas (nome, email, monday_user_id, ativo)
+    SELECT u.nome, LOWER(u.email), u.monday_user_id, TRUE
+    FROM jsonb_to_recordset(${JSON.stringify(
+      usuarios.map((u) => ({ nome: u.name, email: u.email, monday_user_id: String(u.id) }))
+    )}::jsonb) AS u(nome text, email text, monday_user_id text)
+    ON CONFLICT (monday_user_id) DO UPDATE SET
+      nome = EXCLUDED.nome,
+      email = COALESCE(EXCLUDED.email, vybe_pessoas.email),
+      ativo = TRUE`;
+
+  const linhas = await sql`SELECT nome, email, pode_entrar FROM vybe_pessoas
+    WHERE email IS NOT NULL ORDER BY pode_entrar DESC, nome`;
+  return { no_monday: usuarios.length, no_banco: linhas.length, pessoas: linhas };
+}
+
+// Liberar ou revogar acesso, por e-mail.
+export async function definirAcesso(email, pode) {
+  const sql = database();
+  const linhas = await sql`UPDATE vybe_pessoas SET pode_entrar = ${Boolean(pode)}
+    WHERE LOWER(email) = LOWER(${String(email)}) RETURNING nome, email, pode_entrar`;
+  if (!linhas.length) throw new Error(`Ninguém cadastrado com o e-mail ${email}.`);
+  return linhas[0];
 }
