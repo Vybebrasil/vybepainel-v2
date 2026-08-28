@@ -52,8 +52,12 @@ const coluna = (item, id) => (item.column_values || []).find((c) => c.id === id)
 const texto = (item, id) => String(coluna(item, id)?.text || '').trim();
 const lista = (item, id) => texto(item, id).split(',').map((s) => s.trim()).filter(Boolean);
 
+// O Monday entrega data ora como '2026-07-25', ora com hora junto:
+// '2026-07-25 00:00' ou '2026-01-28 18:30'. O processItems do painel resolve com
+// slice(0,10); exigir a string inteira no formato ISO descartava esses itens.
 function dataOuNulo(valor) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(valor) ? valor : null;
+  const iso = String(valor || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
 }
 
 function pessoasDoItem(item) {
