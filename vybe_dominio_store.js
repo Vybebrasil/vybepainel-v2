@@ -29,6 +29,11 @@ const PAPEIS = {
   '68036697': { papel: 'Edição & Motion', disciplina: 'audiovisual' },
 };
 
+// Clientes fora de operação. Hoje esta lista vive em CLIENTES_INATIVOS no
+// vybe-config.js, do lado do navegador, e some 107 conteúdos da tela por regra
+// de código. Isso é cadastro, não código: passa a viver em vybe_clientes.ativo.
+const CLIENTES_INATIVOS = new Set(["acquaville","blog ace","camarote sertão","camarote sertao","cavaco de pau","comunidade facilite entre mães","comunidade facilite entre maes","comunidade fora da curva","daniela filgueira","dialab","dogrun","facilite aprender","feijão panela de ouro","feijao panela de ouro","gyn protect","igor r. lopes","igor r lopes","lucas deotti","vila real","vybe","armazém container","armazem container","fa","psi - jaine","psi jaine"]);
+
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
   return neon(process.env.DATABASE_URL);
@@ -169,6 +174,8 @@ export async function popularDoEspelho() {
   for (const nome of nomesClientes) {
     await sql`INSERT INTO vybe_clientes (nome) VALUES (${nome}) ON CONFLICT (nome) DO NOTHING`;
   }
+  await sql`UPDATE vybe_clientes SET ativo = NOT (LOWER(nome) = ANY(${Array.from(CLIENTES_INATIVOS)}))`;
+
   const clientePorNome = new Map(
     (await sql`SELECT id, nome FROM vybe_clientes`).map((r) => [r.nome, Number(r.id)])
   );
@@ -289,4 +296,47 @@ export async function resumo() {
        SELECT conteudo_id FROM vybe_conteudo_clientes
        GROUP BY conteudo_id HAVING COUNT(*) > 1) AS m)                 AS conteudos_multi_cliente`;
   return linhas[0] || {};
+}
+
+// Leitura para o painel: mesma regra de recorte que o processItems aplica hoje no
+// navegador — precisa de pelo menos um cliente ativo e de pelo menos uma das duas
+// datas. A diferença é que agora a regra mora no banco, não em JavaScript.
+export async function listarConteudos() {
+  const sql = database();
+  const linhas = await sql`
+    SELECT
+      c.monday_item_id                          AS id,
+      c.titulo                                  AS nome,
+      c.formato,
+      c.etapa                                   AS grupo,
+      TO_CHAR(c.prazo, 'YYYY-MM-DD')            AS prazo_iso,
+      TO_CHAR(c.veiculacao, 'YYYY-MM-DD')       AS veiculacao_iso,
+      c.monday_atualizado_em                    AS updated_at,
+      s.rotulo                                  AS status,
+      s.cor                                     AS status_color,
+      s.borda                                   AS status_border,
+      s.monday_index                            AS status_index,
+      COALESCE(
+        (SELECT ARRAY_AGG(cl.nome ORDER BY cl.nome)
+           FROM vybe_conteudo_clientes vcc
+           JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+          WHERE vcc.conteudo_id = c.id AND cl.ativo), '{}') AS clientes,
+      COALESCE(
+        (SELECT ARRAY_AGG(p.monday_user_id ORDER BY p.nome)
+           FROM vybe_conteudo_responsaveis vcr
+           JOIN vybe_pessoas p ON p.id = vcr.pessoa_id
+          WHERE vcr.conteudo_id = c.id), '{}') AS responsavel_ids
+    FROM vybe_conteudos c
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave
+    WHERE (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
+      AND EXISTS (
+        SELECT 1 FROM vybe_conteudo_clientes vcc
+          JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+         WHERE vcc.conteudo_id = c.id AND cl.ativo)
+    ORDER BY c.veiculacao NULLS LAST, c.id`;
+
+  return linhas.map((l) => ({
+    ...l,
+    cliente: (l.clientes || [])[0] || '',   // o painel usa o primeiro cliente ativo
+  }));
 }
