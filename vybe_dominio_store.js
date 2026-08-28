@@ -16,7 +16,7 @@
 // `clientes_texto` guarda a string original para o painel seguir idêntico até a troca.
 
 import { neon } from '@neondatabase/serverless';
-import { getMirrorSnapshot } from './operational_mirror_store.js';
+import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 
@@ -145,6 +145,34 @@ export async function criarSchema() {
     em          TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
 
+  // O espelho traz updates(limit: 3), então 539 itens estão com histórico
+  // truncado. Aqui cabe o histórico inteiro.
+  await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_updates (
+    id               BIGSERIAL PRIMARY KEY,
+    conteudo_id      BIGINT NOT NULL REFERENCES vybe_conteudos(id) ON DELETE CASCADE,
+    monday_update_id TEXT UNIQUE,
+    corpo            TEXT,
+    autor            TEXT,
+    criado_em        TIMESTAMPTZ
+  )`;
+
+  // Só metadados. O binário continua hospedado no Monday: são ~1.800 arquivos e
+  // ~7 GB, e movê-los é migração de storage, não de schema. Guardar nome, tamanho
+  // e URL já permite listar anexos sem consultar o Monday.
+  await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_arquivos (
+    id              BIGSERIAL PRIMARY KEY,
+    conteudo_id     BIGINT NOT NULL REFERENCES vybe_conteudos(id) ON DELETE CASCADE,
+    monday_asset_id TEXT UNIQUE,
+    nome            TEXT,
+    extensao        TEXT,
+    tamanho_bytes   BIGINT,
+    url_monday      TEXT,
+    url_publica     TEXT,
+    criado_em       TIMESTAMPTZ
+  )`;
+
+  await sql`CREATE INDEX IF NOT EXISTS vybe_conteudo_updates_idx ON vybe_conteudo_updates (conteudo_id, criado_em DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS vybe_conteudo_arquivos_idx ON vybe_conteudo_arquivos (conteudo_id)`;
   await sql`CREATE INDEX IF NOT EXISTS vybe_conteudos_veiculacao_idx ON vybe_conteudos (veiculacao)`;
   await sql`CREATE INDEX IF NOT EXISTS vybe_conteudos_prazo_idx ON vybe_conteudos (prazo)`;
   await sql`CREATE INDEX IF NOT EXISTS vybe_conteudos_status_idx ON vybe_conteudos (status_chave)`;
@@ -343,4 +371,105 @@ export async function listarConteudos() {
     ...l,
     cliente: (l.clientes || [])[0] || '',   // o painel usa o primeiro cliente ativo
   }));
+}
+
+// Sincroniza histórico e anexos a partir do Monday, em páginas.
+// O espelho traz updates(limit: 3); aqui buscamos até 100 por item, junto dos
+// metadados de anexo. É paginado e retoma pelo cursor porque o board tem quase
+// 2.000 itens e uma função serverless não aguenta tudo numa tanacada.
+export async function sincronizarHistorico(cursor = null, paginas = 1) {
+  await criarSchema();
+  const sql = database();
+
+  const conteudoPorMonday = new Map(
+    (await sql`SELECT id, monday_item_id FROM vybe_conteudos WHERE monday_item_id IS NOT NULL`)
+      .map((r) => [r.monday_item_id, Number(r.id)])
+  );
+
+  const campos = `id updates(limit: 100) { id body created_at creator { name } }
+    assets { id name url public_url file_extension file_size created_at }`;
+
+  let proximo = cursor;
+  let itensVistos = 0;
+  let updatesGravados = 0;
+  let arquivosGravados = 0;
+
+  for (let p = 0; p < paginas; p++) {
+    const query = proximo
+      ? `query($cursor: String!) { next_items_page(limit: 100, cursor: $cursor) { cursor items { ${campos} } } }`
+      : `{ boards(ids:[${BOARD_PRODUCAO}]) { items_page(limit: 100) { cursor items { ${campos} } } } }`;
+    const dados = await mondayQuery(query, proximo ? { cursor: proximo } : {});
+    const pagina = proximo ? dados?.next_items_page : dados?.boards?.[0]?.items_page;
+    const itens = pagina?.items || [];
+    if (!itens.length) { proximo = null; break; }
+    itensVistos += itens.length;
+
+    const updates = [];
+    const arquivos = [];
+    for (const item of itens) {
+      const conteudoId = conteudoPorMonday.get(String(item.id));
+      if (!conteudoId) continue;
+      for (const u of item.updates || []) {
+        updates.push({
+          conteudo_id: conteudoId,
+          monday_update_id: String(u.id),
+          corpo: u.body || '',
+          autor: u.creator?.name || null,
+          criado_em: u.created_at || null,
+        });
+      }
+      for (const a of item.assets || []) {
+        arquivos.push({
+          conteudo_id: conteudoId,
+          monday_asset_id: String(a.id),
+          nome: a.name || null,
+          extensao: a.file_extension || null,
+          tamanho_bytes: Number(a.file_size || 0) || null,
+          url_monday: a.url || null,
+          url_publica: a.public_url || null,
+          criado_em: a.created_at || null,
+        });
+      }
+    }
+
+    if (updates.length) {
+      await sql`INSERT INTO vybe_conteudo_updates (conteudo_id, monday_update_id, corpo, autor, criado_em)
+        SELECT u.conteudo_id, u.monday_update_id, u.corpo, u.autor, u.criado_em
+        FROM jsonb_to_recordset(${JSON.stringify(updates)}::jsonb)
+          AS u(conteudo_id bigint, monday_update_id text, corpo text, autor text, criado_em timestamptz)
+        ON CONFLICT (monday_update_id) DO UPDATE SET
+          corpo=EXCLUDED.corpo, autor=EXCLUDED.autor, criado_em=EXCLUDED.criado_em`;
+      updatesGravados += updates.length;
+    }
+    if (arquivos.length) {
+      await sql`INSERT INTO vybe_conteudo_arquivos
+        (conteudo_id, monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica, criado_em)
+        SELECT a.conteudo_id, a.monday_asset_id, a.nome, a.extensao, a.tamanho_bytes,
+               a.url_monday, a.url_publica, a.criado_em
+        FROM jsonb_to_recordset(${JSON.stringify(arquivos)}::jsonb)
+          AS a(conteudo_id bigint, monday_asset_id text, nome text, extensao text,
+               tamanho_bytes bigint, url_monday text, url_publica text, criado_em timestamptz)
+        ON CONFLICT (monday_asset_id) DO UPDATE SET
+          nome=EXCLUDED.nome, tamanho_bytes=EXCLUDED.tamanho_bytes,
+          url_monday=EXCLUDED.url_monday, url_publica=EXCLUDED.url_publica`;
+      arquivosGravados += arquivos.length;
+    }
+
+    proximo = pagina?.cursor || null;
+    if (!proximo) break;
+  }
+
+  const [totais] = await sql`SELECT
+    (SELECT COUNT(*) FROM vybe_conteudo_updates)  AS updates_no_banco,
+    (SELECT COUNT(*) FROM vybe_conteudo_arquivos) AS arquivos_no_banco,
+    (SELECT COALESCE(SUM(tamanho_bytes),0) FROM vybe_conteudo_arquivos) AS bytes_no_monday`;
+
+  return {
+    itens_vistos: itensVistos,
+    updates_gravados: updatesGravados,
+    arquivos_gravados: arquivosGravados,
+    proximo_cursor: proximo,
+    concluido: !proximo,
+    ...totais,
+  };
 }

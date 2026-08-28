@@ -10,7 +10,7 @@
 //   curl -X POST ".../api/dominio?action=popular" -H "Authorization: Bearer $CHAVE"
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
-import { criarSchema, popularDoEspelho, resumo } from '../vybe_dominio_store.js';
+import { criarSchema, popularDoEspelho, resumo, sincronizarHistorico } from '../vybe_dominio_store.js';
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,6 +48,12 @@ export default async function handler(req, res) {
     if (action === 'schema') {
       await criarSchema();
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
+    }
+    if (action === 'historico') {
+      // Paginado: passe o proximo_cursor da resposta anterior para continuar.
+      const cursor = req.query?.cursor || req.body?.cursor || null;
+      const paginas = Number(req.query?.paginas || req.body?.paginas || 3);
+      return res.status(200).json({ ok: true, action, ...(await sincronizarHistorico(cursor, paginas)) });
     }
     if (action === 'popular') {
       const resultado = await popularDoEspelho();
