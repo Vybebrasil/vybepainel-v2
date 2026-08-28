@@ -1,7 +1,8 @@
-﻿import { bootstrapMirror, getMirrorDelta, getMirrorHealth, getMirrorSnapshot, reconcileMirror } from '../operational_mirror_store.js';
+﻿import { bloqueou } from '../vybe_acesso.js';
+import { bootstrapMirror, getMirrorDelta, getMirrorHealth, getMirrorSnapshot, reconcileMirror } from '../operational_mirror_store.js';
 
 function cors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'null');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store');
@@ -16,6 +17,7 @@ function isAdmin(req) {
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (bloqueou(req, res)) return;
   try {
     if (req.method === 'GET') {
       const action = String(req.query?.action || 'snapshot');

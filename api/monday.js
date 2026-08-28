@@ -14,18 +14,21 @@
 //
 // Quando a rota for "direto" de forma estável, o v1 pode ser desligado.
 
+import { bloqueou } from '../vybe_acesso.js';
+
 const MONDAY_GRAPHQL = 'https://api.monday.com/v2';
 const MONDAY_ARQUIVOS = 'https://api.monday.com/v2/file';
 const RELAY_V1 = 'https://vybepainel.vercel.app/api/monday';
 const VERSAO_API = '2024-01';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'null');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
+  if (bloqueou(req, res)) return;
 
   const token = process.env.MONDAY_TOKEN;
   const corpo = req.body || {};

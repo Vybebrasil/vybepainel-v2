@@ -10,20 +10,21 @@
 // diferença é onde ela mora: em vybe_clientes.ativo em vez de uma constante no
 // vybe-config.js.
 //
-// Leitura pública, igual ao /api/operational-mirror que já serve estes mesmos
-// dados sem autenticação. Não amplia exposição; quando a autenticação entrar
-// (passo 5), os dois passam a exigir sessão juntos.
+// Exige sessão do painel ou a chave de serviço. Era leitura pública, como o
+// /api/operational-mirror ainda era — a operação inteira saía por uma URL.
 
 import { listarConteudos } from '../vybe_dominio_store.js';
+import { bloqueou } from '../vybe_acesso.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'null');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  if (bloqueou(req, res)) return;
 
   try {
     const inicio = Date.now();
