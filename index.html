@@ -1070,6 +1070,41 @@ header,.topbar{
   border-radius: inherit;
 }
 
+
+/* ═══════ portão de entrada ═══════ */
+#login-gate{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(circle at 50% 38%,rgba(255,107,0,.14),transparent 42%),#060401;
+  background-image:radial-gradient(circle at 50% 38%,rgba(255,107,0,.14),transparent 42%),
+    linear-gradient(rgba(255,107,0,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,107,0,.035) 1px,transparent 1px);
+  background-size:auto,40px 40px,40px 40px;overflow-y:auto}
+.login-caixa{width:min(380px,100%);display:flex;flex-direction:column;gap:14px;padding:32px 30px;
+  border:1px solid rgba(255,135,21,.24);background:linear-gradient(140deg,rgba(31,12,2,.78),rgba(6,4,2,.62));
+  box-shadow:0 26px 80px rgba(0,0,0,.5),0 0 58px rgba(255,90,0,.08);
+  clip-path:polygon(0 22px,22px 0,calc(100% - 22px) 0,100% 22px,100% calc(100% - 22px),calc(100% - 22px) 100%,22px 100%,0 calc(100% - 22px))}
+.login-marca{display:flex;align-items:center;gap:11px}
+.login-logo{width:38px;height:38px;flex:none;border-radius:10px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#ff6b00,#ffb000);color:#fff;font:900 17px Inter,sans-serif;
+  box-shadow:0 0 14px rgba(255,107,0,.42)}
+.login-marca b{display:block;color:#fff8f2;font:700 14px 'JetBrains Mono',monospace;letter-spacing:.5px}
+.login-marca small{display:block;color:#a58c79;font-size:10.5px;margin-top:1px}
+#login-gate h1{margin:8px 0 0;color:#fff;font:800 27px 'JetBrains Mono',monospace;letter-spacing:1px}
+.login-ajuda{margin:0;color:#a58c79;font-size:12px;line-height:1.5}
+.login-campo{display:flex;flex-direction:column;gap:5px}
+.login-campo span{color:#ffbf64;font:800 9px 'JetBrains Mono',monospace;letter-spacing:1.4px;text-transform:uppercase}
+.login-campo input{width:100%;padding:11px 13px;border:1px solid rgba(255,135,21,.26);border-radius:8px;
+  background:rgba(8,5,3,.72);color:#fff4e8;font:400 14px 'JetBrains Mono',monospace}
+.login-campo input::placeholder{color:#6b5a4b}
+.login-campo input:focus{outline:none;border-color:#ff9d00;box-shadow:0 0 0 3px rgba(255,107,0,.16)}
+.login-erro{padding:9px 12px;border-left:3px solid #ff4d4d;border-radius:0 6px 6px 0;
+  background:rgba(255,77,77,.1);color:#ffb3b3;font-size:12.5px;line-height:1.45}
+.login-entrar{margin-top:4px;padding:12px;border:none;border-radius:8px;cursor:pointer;
+  background:linear-gradient(135deg,#ff6b00,#ffad00);color:#160700;
+  font:800 12px 'JetBrains Mono',monospace;letter-spacing:1.4px;
+  transition:opacity .2s,transform .15s,box-shadow .2s;box-shadow:0 0 18px rgba(255,107,0,.3)}
+.login-entrar:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 0 28px rgba(255,107,0,.48)}
+.login-entrar:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.login-entrar:focus-visible,.login-campo input:focus-visible{outline:2px solid #ffb000;outline-offset:2px}
+@media(max-width:420px){.login-caixa{padding:26px 20px}#login-gate h1{font-size:23px}}
 </style></head>
 <body>
 
@@ -1574,6 +1609,7 @@ header,.topbar{
   <script src="/vybe-demandas.js"></script>
   <script src="/vybe-clientes.js"></script>
   <script src="/vybe-relatorios.js"></script>
+  <script src="/vybe-login.js"></script>
   <script src="/vybe-init.js"></script>
 <script src="/cadastros_governed_v2.js"></script>
   <script src="/production_governed_v2.js"></script>

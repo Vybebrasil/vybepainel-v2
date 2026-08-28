@@ -1,7 +1,14 @@
 // vybe-init.js — inicialização
 // Extraído do <script> inline do index.html; carregado em ordem, escopo global preservado.
 // ─── Init ──────────────────────────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
+// A inicialização não começa sem sessão: o painel não pode aparecer para quem
+// não entrou. iniciarPainel() é chamado aqui, ou pelo vybe-login.js logo depois
+// de um login bem-sucedido.
+window.addEventListener('DOMContentLoaded', async () => {
+  if (await garantirSessao()) iniciarPainel();
+});
+
+function iniciarPainel() {
   const legacyKpi = document.getElementById('kpi-grid');
   if (legacyKpi) legacyKpi.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px 0;">Carregando dados do Monday.com...</div>';
   initPanelMode();
@@ -22,7 +29,7 @@ window.addEventListener('DOMContentLoaded', () => {
       startOperationalMirrorFeed();
     }, 0);
   }
-});
+}
 // ─── Modo Reunião: leitura executiva sem os controles operacionais do Gestor ───
 function meetingScopeItems() { return selectedPersonIds.size ? DADOS.filter(itemMatchesSelectedPeople) : DADOS; }
 function closeMeetingMode() { document.getElementById('meeting-mode-overlay')?.remove(); }
