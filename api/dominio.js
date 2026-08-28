@@ -10,6 +10,7 @@
 //   curl -X POST ".../api/dominio?action=popular" -H "Authorization: Bearer $CHAVE"
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
+import { definirSenha, listarPessoas } from '../vybe_sessao.js';
 import { criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso } from '../vybe_dominio_store.js';
 
 function cors(res) {
@@ -51,6 +52,21 @@ export default async function handler(req, res) {
     if (action === 'schema') {
       await criarSchema();
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
+    }
+    if (action === 'pessoas') {
+      return res.status(200).json({ ok: true, action, pessoas: await listarPessoas() });
+    }
+    if (action === 'senha') {
+      // Definir/redefinir senha. É o caminho do administrador, e também o que
+      // cria a primeira senha — sem ele não haveria como o primeiro entrar.
+      const email = req.query?.email || req.body?.email;
+      const senha = req.query?.senha || req.body?.senha;
+      const admin = (req.query?.admin ?? req.body?.admin);
+      if (!email || !senha) return res.status(400).json({ error: 'Informe e-mail e senha.' });
+      const pessoa = await definirSenha(email, senha, {
+        admin: admin === undefined ? null : String(admin) !== 'false',
+      });
+      return res.status(200).json({ ok: true, action, pessoa });
     }
     if (action === 'equipe') {
       return res.status(200).json({ ok: true, action, ...(await sincronizarEquipe()) });
