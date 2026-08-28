@@ -34,7 +34,33 @@ function autorizado(req) {
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!autorizado(req)) return res.status(401).json({ error: 'Não autorizado.' });
+  if (!autorizado(req)) {
+    // Diagnóstico temporário v2: posições e códigos de caractere, nunca o valor.
+    const bruto = String(process.env.MIRROR_ADMIN_KEY || '');
+    const segredo = bruto.trim();
+    const enviado = (
+      String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '') ||
+      String(req.query?.key || req.body?.key || '')
+    ).trim();
+    let divergeEm = -1;
+    for (let i = 0; i < Math.max(segredo.length, enviado.length); i++) {
+      if (segredo[i] !== enviado[i]) { divergeEm = i; break; }
+    }
+    return res.status(401).json({
+      error: 'Não autorizado.',
+      diagnostico: {
+        versao: 'v2',
+        bruto_len: bruto.length,
+        segredo_len: segredo.length,
+        enviado_len: enviado.length,
+        diverge_no_indice: divergeEm,
+        // códigos dos caracteres em volta da divergência, para identificar invisíveis
+        segredo_codigos: [...segredo.slice(Math.max(0, divergeEm - 1), divergeEm + 2)].map((c) => c.charCodeAt(0)),
+        enviado_codigos: [...enviado.slice(Math.max(0, divergeEm - 1), divergeEm + 2)].map((c) => c.charCodeAt(0)),
+        bruto_ultimos_codigos: [...bruto.slice(-3)].map((c) => c.charCodeAt(0)),
+      },
+    });
+  }
 
   const action = String(req.query?.action || req.body?.action || 'resumo');
 
