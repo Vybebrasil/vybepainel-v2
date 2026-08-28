@@ -1,12 +1,18 @@
-// api/monday.js — fala direto com a API do Monday.
+// api/monday.js — fala direto com a API do Monday, com ponte para o painel v1.
 //
-// Antes este arquivo repassava tudo para vybepainel.vercel.app/api/monday (o painel v1),
-// que era o único lugar onde o token existia. Isso colocava um segundo deployment no
-// caminho crítico: se o v1 caísse, o v2 parava junto.
+// Antes este arquivo só repassava o corpo para vybepainel.vercel.app/api/monday (o
+// painel v1), que era o único lugar onde o token existia. Isso mantinha um segundo
+// deployment no caminho crítico: v1 fora do ar derrubava o v2 junto.
 //
-// Agora: se MONDAY_TOKEN estiver definido nas variáveis do projeto, chamamos o Monday
-// direto. Se não estiver, continuamos repassando para o v1 — a ponte some sozinha no
-// momento em que a variável for criada, sem precisar de deploy novo.
+// Agora tentamos o Monday direto. Se o token estiver ausente OU inválido, caímos na
+// ponte para o v1 em vez de devolver erro — assim a migração não pode causar queda.
+// O header X-Vybe-Monday-Rota diz qual caminho atendeu, para dar para diagnosticar
+// sem abrir o código:
+//
+//   direto    → MONDAY_TOKEN válido, o v1 já não é necessário
+//   ponte-v1  → token ausente ou recusado; ainda dependemos do v1
+//
+// Quando a rota for "direto" de forma estável, o v1 pode ser desligado.
 
 const MONDAY_GRAPHQL = 'https://api.monday.com/v2';
 const MONDAY_ARQUIVOS = 'https://api.monday.com/v2/file';
@@ -25,27 +31,46 @@ export default async function handler(req, res) {
   const corpo = req.body || {};
 
   try {
-    if (!token) return await repassarParaV1(corpo, res);
-    if (corpo.action === 'upload_file_to_column') return await anexarArquivo(corpo, token, res);
-    return await consultarGraphQL(corpo, token, res);
+    if (token) {
+      const direto =
+        corpo.action === 'upload_file_to_column'
+          ? await anexarArquivo(corpo, token)
+          : await consultarGraphQL(corpo, token);
+
+      // 400 nosso (corpo malformado) não é problema de token: devolve como está.
+      if (direto.local) return responder(res, 'direto', direto);
+      if (!recusouToken(direto)) return responder(res, 'direto', direto);
+    }
+
+    return responder(res, 'ponte-v1', await repassarParaV1(corpo));
   } catch (erro) {
     return res.status(500).json({ error: erro.message });
   }
 }
 
-// Ponte temporária: vale só enquanto MONDAY_TOKEN não existir neste projeto.
-async function repassarParaV1(corpo, res) {
+function responder(res, rota, { status, dados }) {
+  res.setHeader('X-Vybe-Monday-Rota', rota);
+  return res.status(status).json(dados);
+}
+
+// O Monday devolve 401 com {"errors":["Not Authenticated"]} quando o token não presta.
+function recusouToken({ status, dados }) {
+  if (status === 401 || status === 403) return true;
+  const erros = Array.isArray(dados?.errors) ? dados.errors : [];
+  return erros.some((e) => /not authenticated|unauthorized/i.test(typeof e === 'string' ? e : e?.message || ''));
+}
+
+async function repassarParaV1(corpo) {
   const resposta = await fetch(RELAY_V1, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(corpo),
   });
-  const dados = await resposta.json();
-  return res.status(resposta.status).json(dados);
+  return { status: resposta.status, dados: await resposta.json() };
 }
 
-async function consultarGraphQL({ query, variables }, token, res) {
-  if (!query) return res.status(400).json({ error: 'Nenhuma consulta foi enviada.' });
+async function consultarGraphQL({ query, variables }, token) {
+  if (!query) return { local: true, status: 400, dados: { error: 'Nenhuma consulta foi enviada.' } };
   const resposta = await fetch(MONDAY_GRAPHQL, {
     method: 'POST',
     headers: {
@@ -55,14 +80,13 @@ async function consultarGraphQL({ query, variables }, token, res) {
     },
     body: JSON.stringify({ query, variables: variables || {} }),
   });
-  const dados = await resposta.json();
-  return res.status(resposta.status).json(dados);
+  return { status: resposta.status, dados: await resposta.json() };
 }
 
-// O Monday recebe arquivo por multipart, não por JSON — por isso este caminho é separado.
-async function anexarArquivo({ itemId, columnId, fileName, mimeType, fileBase64 }, token, res) {
+// O Monday recebe arquivo por multipart, não por JSON — por isso o caminho separado.
+async function anexarArquivo({ itemId, columnId, fileName, mimeType, fileBase64 }, token) {
   if (!itemId || !columnId || !fileBase64) {
-    return res.status(400).json({ error: 'Faltam item, coluna ou conteúdo do arquivo.' });
+    return { local: true, status: 400, dados: { error: 'Faltam item, coluna ou conteúdo do arquivo.' } };
   }
 
   const mutation =
@@ -85,6 +109,5 @@ async function anexarArquivo({ itemId, columnId, fileName, mimeType, fileBase64 
     headers: { Authorization: token, 'API-Version': VERSAO_API },
     body: form,
   });
-  const dados = await resposta.json();
-  return res.status(resposta.status).json(dados);
+  return { status: resposta.status, dados: await resposta.json() };
 }
