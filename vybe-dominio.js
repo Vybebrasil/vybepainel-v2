@@ -119,3 +119,51 @@ async function compararFontes() {
     identico: !soEspelho.length && !soDominio.length && !divergentes.length,
   };
 }
+
+// ── escrita ───────────────────────────────────────────────────────────────────
+// Grava pelo /api/conteudo, que escreve no banco e replica no Monday. Só vale
+// para o board de Produção: itens do board de Demandas não estão no domínio e
+// continuam pelo caminho antigo.
+//
+// Desligar sem deploy, no console:
+//   localStorage.setItem('vybe_escrita','monday')  → volta a gravar só no Monday
+//   localStorage.removeItem('vybe_escrita')        → volta à escrita dupla
+function escritaDupla() {
+  try { return localStorage.getItem('vybe_escrita') !== 'monday'; } catch { return true; }
+}
+
+// Mesma regra do servidor, para o rótulo virar chave.
+function chaveDeStatus(rotulo) {
+  return String(rotulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+async function gravarNoDominio(corpo) {
+  const resposta = await fetch('/api/conteudo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(corpo),
+  });
+  const dados = await resposta.json();
+  if (!resposta.ok) throw new Error(dados?.error || `Falha ao gravar (${resposta.status})`);
+  return dados;
+}
+
+// true quando a escrita dupla atendeu; false quando o chamador deve seguir pelo
+// caminho antigo (item de Demandas, chave desligada, ou falha na gravação).
+async function tentarEscritaDupla(item, corpo) {
+  if (!escritaDupla()) return false;
+  if (typeof isRequestItem === 'function' && isRequestItem(item)) return false;
+  try {
+    const r = await gravarNoDominio(corpo);
+    if (String(r.replica_monday || '').startsWith('falhou')) {
+      console.warn('Gravado no banco, mas o Monday não recebeu:', r.replica_monday);
+      showToast('✓ Salvo no Vybe · réplica no Monday falhou, será reconciliada', 'info', 6000);
+    }
+    return true;
+  } catch (erro) {
+    console.warn('Escrita dupla falhou; usando o caminho antigo.', erro);
+    return false;
+  }
+}
