@@ -39,6 +39,9 @@ export default async function handler(req, res) {
   const action = String(req.query?.action || req.body?.action || 'resumo');
 
   try {
+    if (action === 'arquivos') {
+      return res.status(200).json({ ok: true, action, ...(await perfilArquivos()) });
+    }
     if (action === 'resumo') {
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
     }
@@ -48,9 +51,6 @@ export default async function handler(req, res) {
     if (action === 'schema') {
       await criarSchema();
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
-    }
-    if (action === 'arquivos') {
-      return res.status(200).json({ ok: true, action, ...(await perfilArquivos()) });
     }
     if (action === 'historico') {
       // Paginado: passe o proximo_cursor da resposta anterior para continuar.

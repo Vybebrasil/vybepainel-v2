@@ -516,5 +516,20 @@ export async function perfilArquivos() {
     FROM vybe_conteudo_arquivos a
     GROUP BY 1 ORDER BY 3 DESC LIMIT 8`;
 
-  return { geral, por_final: porFinal, por_ano: porAno, por_status: porStatus, por_extensao: porExtensao };
+  // Os arquivos que realmente precisam mudar de casa: os de conteúdo ainda em
+  // andamento. O acervo de finalizado fica onde está.
+  const emAndamento = await sql`SELECT
+      a.nome, a.extensao, a.tamanho_bytes, c.titulo, s.rotulo AS status,
+      (SELECT cl.nome FROM vybe_conteudo_clientes vcc
+         JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+        WHERE vcc.conteudo_id = c.id LIMIT 1) AS cliente,
+      TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao
+    FROM vybe_conteudo_arquivos a
+    JOIN vybe_conteudos c ON c.id = a.conteudo_id
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave
+    WHERE COALESCE(s.final,false) = false
+    ORDER BY a.tamanho_bytes DESC`;
+
+  return { geral, por_final: porFinal, por_ano: porAno, por_status: porStatus,
+           por_extensao: porExtensao, em_andamento: emAndamento };
 }
