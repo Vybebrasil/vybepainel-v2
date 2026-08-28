@@ -31,7 +31,25 @@ function autorizado(req) {
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!autorizado(req)) return res.status(401).json({ error: 'Não autorizado.' });
+  if (!autorizado(req)) {
+    // Diagnóstico temporário: só tamanhos, nunca o valor. Remover quando a chave
+    // estiver acertada — serve para distinguir "variável ausente no ambiente" de
+    // "variável presente mas diferente da enviada".
+    const segredo = process.env.MIRROR_ADMIN_KEY || '';
+    const enviado =
+      String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '') ||
+      String(req.query?.key || req.body?.key || '');
+    return res.status(401).json({
+      error: 'Não autorizado.',
+      diagnostico: {
+        variavel_existe_no_ambiente: Boolean(process.env.MIRROR_ADMIN_KEY),
+        tamanho_da_variavel: segredo.length,
+        tamanho_do_enviado: enviado.length,
+        primeiros_iguais: segredo.slice(0, 4) === enviado.slice(0, 4),
+        ultimos_iguais: segredo.slice(-4) === enviado.slice(-4),
+      },
+    });
+  }
 
   const action = String(req.query?.action || req.body?.action || 'resumo');
 
