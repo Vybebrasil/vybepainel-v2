@@ -360,52 +360,67 @@ export async function resumo() {
 // datas. A diferença é que agora a regra mora no banco, não em JavaScript.
 export async function listarConteudos() {
   const sql = database();
-  const linhas = await sql`
-    SELECT
-      c.monday_item_id                          AS id,
-      c.titulo                                  AS nome,
-      c.formato,
-      c.etapa                                   AS grupo,
-      c.grupo_id,
-      c.status_em                               AS status_updated_at,
-      TO_CHAR(c.prazo, 'YYYY-MM-DD')            AS prazo_iso,
-      TO_CHAR(c.veiculacao, 'YYYY-MM-DD')       AS veiculacao_iso,
-      c.monday_atualizado_em                    AS updated_at,
-      s.rotulo                                  AS status,
-      s.cor                                     AS status_color,
-      s.borda                                   AS status_border,
-      s.monday_index                            AS status_index,
-      COALESCE(
-        (SELECT ARRAY_AGG(cl.nome ORDER BY cl.nome)
-           FROM vybe_conteudo_clientes vcc
-           JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
-          WHERE vcc.conteudo_id = c.id AND cl.ativo), '{}') AS clientes,
-      COALESCE(
-        (SELECT ARRAY_AGG(p.nome ORDER BY p.nome)
-           FROM vybe_conteudo_responsaveis vcr
-           JOIN vybe_pessoas p ON p.id = vcr.pessoa_id
-          WHERE vcr.conteudo_id = c.id), '{}') AS responsaveis_nomes,
-      COALESCE(
-        (SELECT ARRAY_AGG(p.monday_user_id ORDER BY p.nome)
-           FROM vybe_conteudo_responsaveis vcr
-           JOIN vybe_pessoas p ON p.id = vcr.pessoa_id
-          WHERE vcr.conteudo_id = c.id), '{}') AS responsavel_ids
-    FROM vybe_conteudos c
-    LEFT JOIN vybe_status s ON s.chave = c.status_chave
-    WHERE (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
-      AND EXISTS (
-        SELECT 1 FROM vybe_conteudo_clientes vcc
-          JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
-         WHERE vcc.conteudo_id = c.id AND cl.ativo)
-    ORDER BY c.veiculacao NULLS LAST, c.id`;
 
-  return linhas.map((l) => ({
-    ...l,
-    cliente: (l.clientes || [])[0] || '',   // o painel usa o primeiro cliente ativo
-    responsavel: (l.responsaveis_nomes || []).join(', '),
-    responsavel_id: (l.responsavel_ids || [])[0] || '',
-    url: `https://gestaovybes-team.monday.com/boards/${BOARD_PRODUCAO}/pulses/${l.id}`,
-  }));
+  // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
+  // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
+  // desperdício que a resposta crua do Monday impunha e o domínio deixa resolver.
+  const [status, pessoas, linhas] = await Promise.all([
+    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, final
+          FROM vybe_status ORDER BY ordem`,
+    sql`SELECT monday_user_id AS id, nome, papel, disciplina
+          FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
+    sql`
+      SELECT
+        c.monday_item_id                        AS id,
+        c.titulo                                AS nome,
+        c.formato,
+        c.etapa                                 AS grupo,
+        c.grupo_id,
+        c.status_chave,
+        c.status_em                             AS status_updated_at,
+        TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
+        TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
+        c.monday_atualizado_em                  AS updated_at,
+        COALESCE(
+          (SELECT ARRAY_AGG(cl.nome ORDER BY cl.nome)
+             FROM vybe_conteudo_clientes vcc
+             JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+            WHERE vcc.conteudo_id = c.id AND cl.ativo), '{}') AS clientes,
+        COALESCE(
+          (SELECT ARRAY_AGG(p.monday_user_id ORDER BY p.nome)
+             FROM vybe_conteudo_responsaveis vcr
+             JOIN vybe_pessoas p ON p.id = vcr.pessoa_id
+            WHERE vcr.conteudo_id = c.id), '{}') AS responsavel_ids
+      FROM vybe_conteudos c
+      WHERE (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
+        AND EXISTS (
+          SELECT 1 FROM vybe_conteudo_clientes vcc
+            JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+           WHERE vcc.conteudo_id = c.id AND cl.ativo)
+      ORDER BY c.veiculacao NULLS LAST, c.id`,
+  ]);
+
+  const itens = linhas.map((l) => {
+    const item = {
+      id: l.id,
+      nome: l.nome,
+      cliente: (l.clientes || [])[0] || '',   // o painel usa o primeiro cliente ativo
+      formato: l.formato,
+      grupo: l.grupo,
+      grupo_id: l.grupo_id,
+      status_chave: l.status_chave,
+      status_updated_at: l.status_updated_at,
+      prazo_iso: l.prazo_iso,
+      veiculacao_iso: l.veiculacao_iso,
+      updated_at: l.updated_at,
+    };
+    // Só viaja quando há mais de um: são 3 itens em 1.853.
+    if ((l.clientes || []).length > 1) item.clientes = l.clientes;
+    if ((l.responsavel_ids || []).length) item.responsavel_ids = l.responsavel_ids;
+    return item;
+  });
+
+  return { board_id: BOARD_PRODUCAO, status, pessoas, itens };
 }
 
 // Sincroniza histórico e anexos a partir do Monday, em páginas.

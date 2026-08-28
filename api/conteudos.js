@@ -28,12 +28,15 @@ export default async function handler(req, res) {
 
   try {
     const inicio = Date.now();
-    const itens = await listarConteudos();
+    const { board_id, status, pessoas, itens } = await listarConteudos();
     return res.status(200).json({
       ok: true,
+      board_id,
       total: itens.length,
       gerado_em: new Date().toISOString(),
       ms: Date.now() - inicio,
+      status,
+      pessoas,
       itens,
     });
   } catch (erro) {
