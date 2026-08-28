@@ -11,7 +11,7 @@
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
-import { criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso } from '../vybe_dominio_store.js';
+import { criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -42,6 +42,9 @@ export default async function handler(req, res) {
   try {
     if (action === 'arquivos') {
       return res.status(200).json({ ok: true, action, ...(await perfilArquivos()) });
+    }
+    if (action === 'eventos') {
+      return res.status(200).json({ ok: true, action, eventos: await eventos(req.query?.limite) });
     }
     if (action === 'resumo') {
       return res.status(200).json({ ok: true, action, ...(await resumo()) });

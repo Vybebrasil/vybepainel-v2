@@ -622,3 +622,16 @@ export async function definirAcesso(email, pode) {
   if (!linhas.length) throw new Error(`Ninguém cadastrado com o e-mail ${email}.`);
   return linhas[0];
 }
+
+// Histórico de quem mexeu no quê. Hoje isso só existia como prosa dentro de um
+// update do Monday, sem autor confiável — o token gravava tudo como a mesma
+// pessoa. Com sessão, passa a saber quem foi.
+export async function eventos(limite = 20) {
+  const sql = database();
+  return sql`SELECT e.tipo, e.de, e.para, e.em, c.titulo,
+      COALESCE(p.nome, '(sem autor)') AS autor
+    FROM vybe_conteudo_eventos e
+    JOIN vybe_conteudos c ON c.id = e.conteudo_id
+    LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
+    ORDER BY e.em DESC LIMIT ${Number(limite) || 20}`;
+}
