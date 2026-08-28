@@ -381,8 +381,11 @@ export async function listarConteudos() {
         TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
         c.monday_atualizado_em                  AS updated_at,
+        -- Ordem original do Monday, não alfabética: o painel usa o primeiro
+        -- cliente da lista, e ordenar por nome trocaria "VOA, Antonov" por
+        -- "Antonov, VOA" — o card mudaria de cliente na tela.
         COALESCE(
-          (SELECT ARRAY_AGG(cl.nome ORDER BY cl.nome)
+          (SELECT ARRAY_AGG(cl.nome ORDER BY POSITION(cl.nome IN c.clientes_texto))
              FROM vybe_conteudo_clientes vcc
              JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
             WHERE vcc.conteudo_id = c.id AND cl.ativo), '{}') AS clientes,
