@@ -293,7 +293,7 @@ async function moverBoard(sql, quem, { item, destino }) {
   const grupo = alvo === BOARD_DEMANDAS ? 'group_mm187437' : 'group_title';
 
   const dados = await mondayQuery(
-    `mutation($item: ID!, $board: ID!, $grupo: String!) {
+    `mutation($item: ID!, $board: ID!, $grupo: ID!) {
        move_item_to_board(item_id: $item, board_id: $board, group_id: $grupo) { id board { id name } } }`,
     { item: String(item), board: String(alvo), grupo }
   );
