@@ -204,6 +204,23 @@ function renderManagerIntelligence() {
 }
 
 // ─── GESTOR · Agenda Mensal unificada por cliente, origem e data ─────────────
+// A agenda ocupa a tela inteira e nem todo dia se planeja o mês. Ela nasce
+// fechada e abre pelo botão CALENDÁRIO, ao lado dos outros da mesma barra. A
+// escolha fica no navegador: quem trabalha com ela aberta não reabre todo dia.
+const AGENDA_ABERTA = 'vybe_agenda_aberta';
+let agendaMensalAberta = (() => {
+  try { return localStorage.getItem(AGENDA_ABERTA) === '1'; } catch { return false; }
+})();
+function toggleAgendaMensal() {
+  agendaMensalAberta = !agendaMensalAberta;
+  try { localStorage.setItem(AGENDA_ABERTA, agendaMensalAberta ? '1' : '0'); } catch { /* sem storage */ }
+  renderManagerCalendar();
+  if (agendaMensalAberta) {
+    const wrap = document.getElementById('manager-calendar');
+    setTimeout(() => wrap?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  }
+}
+
 let managerCalendarClientFilter = 'all';
 let managerCalendarSourceFilter = 'all';
 let managerCalendarDragPayload = null;
@@ -433,8 +450,24 @@ async function saveDemandaCalendarDate(itemId, mode) {
 }
 function renderManagerCalendar() {
   const wrap = document.getElementById('manager-calendar');
+  const botao = document.getElementById('ops-agenda-btn');
   if (!wrap) return;
-  if (panelMode !== 'gestor') { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
+  if (panelMode !== 'gestor') {
+    wrap.innerHTML = ''; wrap.classList.add('focus-hidden');
+    if (botao) botao.classList.add('focus-hidden');
+    return;
+  }
+  if (botao) {
+    botao.classList.remove('focus-hidden');
+    botao.classList.toggle('active', agendaMensalAberta);
+    botao.setAttribute('aria-expanded', String(agendaMensalAberta));
+    const noMes = managerCalendarMonthMeta();
+    const total = managerCalendarItems({ ignorarCliente: true })
+      .filter(item => noMes.cells.some(cell => cell.iso === item.calendarDateIso)).length;
+    const contador = document.getElementById('ops-agenda-count');
+    if (contador) contador.textContent = total;
+  }
+  if (!agendaMensalAberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
   const meta = managerCalendarMonthMeta();
   const semRecorte = managerCalendarItems({ ignorarCliente: true });

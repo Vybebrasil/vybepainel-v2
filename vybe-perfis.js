@@ -687,6 +687,8 @@ function applyPanelMode() {
   document.getElementById('ops-action-panel')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('manager-intelligence')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('manager-calendar')?.classList.toggle('focus-hidden', isDedicatedMode || panelMode !== 'gestor');
+  // o botão que abre a agenda segue a agenda: fora do Gestor não há o que abrir
+  document.getElementById('ops-agenda-btn')?.classList.toggle('focus-hidden', isDedicatedMode || panelMode !== 'gestor');
   document.getElementById('sidebar')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('sidebar-toggle')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('sidebar-overlay')?.classList.remove('show');
