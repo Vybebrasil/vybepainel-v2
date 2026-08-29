@@ -211,6 +211,10 @@ function atende(condicao, item) {
 
 function casaGatilho(gatilho, evento) {
   if (gatilho.tipo !== evento.tipo) return false;
+  // Evento de data casa por campo e defasagem, não por 'de'/'para' de estado.
+  if (gatilho.tipo === 'data') {
+    return gatilho.campo === evento.campo && Number(gatilho.dias || 0) === Number(evento.dias || 0);
+  }
   if (gatilho.para && gatilho.para !== evento.para) return false;
   if (gatilho.de && gatilho.de !== evento.de) return false;
   return true;
@@ -332,4 +336,56 @@ export async function ensaio(sql, evento, { formato = 'Reels' } = {}) {
   } finally {
     await sql`DELETE FROM vybe_conteudos WHERE id=${criado.id}`;
   }
+}
+
+// ── regras por data ───────────────────────────────────────────────────────────
+
+// As três regras de aviso não dependem de ninguém mexer em nada: elas olham o
+// calendário. Rodam pela tarefa diária, não pela troca de status.
+//
+// Sobre o horário: as regras guardam 10:45 e 11:00, herdados do Monday, mas o
+// plano da Vercel dispara tarefa agendada uma vez por dia. O horário fica
+// gravado e passa a valer quando houver disparo por hora — ou quando a
+// notificação sair para o WhatsApp, onde a hora importa de verdade. No sino
+// dentro do painel, a pessoa vê quando abre.
+export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}) {
+  const dia = hoje.toISOString().slice(0, 10);
+  const regras = await sql`SELECT * FROM vybe_automacoes
+    WHERE ativa AND gatilho->>'tipo' = 'data' ORDER BY ordem, id`;
+
+  const resumo = [];
+  for (const regra of regras) {
+    const campo = regra.gatilho.campo === 'prazo' ? 'prazo' : 'veiculacao';
+    const dias = Number(regra.gatilho.dias || 0);
+    const excluir = regra.condicao?.status_nao_em || [];
+
+    // dias:-1 em prazo é "um dia antes", ou seja prazo = hoje + 1.
+    const alvos = campo === 'prazo'
+      ? await sql`SELECT id, titulo, formato, status_chave FROM vybe_conteudos
+          WHERE prazo = (${dia}::date - ${dias}::int)
+            AND (${excluir}::text[] = '{}' OR NOT (status_chave = ANY(${excluir})))`
+      : await sql`SELECT id, titulo, formato, status_chave FROM vybe_conteudos
+          WHERE veiculacao = (${dia}::date - ${dias}::int)
+            AND (${excluir}::text[] = '{}' OR NOT (status_chave = ANY(${excluir})))`;
+
+    let avisados = 0;
+    for (const item of alvos) {
+      if (!atende(regra.condicao, item)) continue;
+
+      // Cobrança repetida vira ruído e a pessoa para de ler o sino. Uma por
+      // regra, por item, por dia.
+      const jaHoje = await sql`SELECT 1 FROM vybe_automacao_execucoes
+        WHERE automacao_id=${regra.id} AND conteudo_id=${item.id}
+          AND em >= ${dia}::date LIMIT 1`;
+      if (jaHoje.length) continue;
+
+      if (seco) { avisados += 1; continue; }
+      const { aplicadas } = await aplicar(sql, item.id, {
+        tipo: 'data', campo, dias, para: regra.gatilho.para ?? null,
+      });
+      if (aplicadas.length) avisados += 1;
+    }
+    resumo.push({ regra: regra.nome, candidatos: alvos.length, avisados });
+  }
+  return { dia, seco, regras: resumo };
 }

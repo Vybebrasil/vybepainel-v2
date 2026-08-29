@@ -9,7 +9,7 @@
 //   /api/painel?area=notificacoes o que o sistema tem a dizer para quem entrou
 
 import { neon } from '@neondatabase/serverless';
-import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio } from '../vybe_automacoes.js';
+import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
@@ -32,6 +32,13 @@ async function areaAutomacoes(req, res, quem) {
     if (acao === 'simular') {
       const { conteudo_id: cid, evento } = req.body || {};
       return res.status(200).json({ ok: true, acao, ...(await simular(sql(), Number(cid), evento || {})) });
+    }
+    if (acao === 'agenda') {
+      // seco=true conta quem seria avisado sem avisar ninguém. Antes da primeira
+      // varredura isso importa: se houver muito item atrasado, o time recebe uma
+      // enxurrada de uma vez e para de ler o sino.
+      const seco = req.query?.seco === '1' || req.body?.seco === true;
+      return res.status(200).json({ ok: true, acao, ...(await varrerAgenda(sql(), new Date(), { seco })) });
     }
     if (acao === 'ensaio') {
       const { evento, formato } = req.body || {};
