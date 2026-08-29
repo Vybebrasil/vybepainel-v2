@@ -12,12 +12,20 @@
 
 const CONTEUDOS_API = '/api/conteudos';
 
-// Fonte de leitura. 'espelho' é o caminho de sempre; 'dominio' lê do banco.
-// Fica em localStorage para dar para voltar sem deploy: no console,
-//   localStorage.setItem('vybe_fonte','dominio')  → passa a ler do banco
-//   localStorage.removeItem('vybe_fonte')         → volta ao espelho
+// Fonte de leitura. Agora o padrão é o banco da Vybe; o espelho do Monday fica
+// como caminho de volta, e a queda para ele é automática se o banco falhar.
+//
+// A troca só veio depois de rodar o processItemsAll do painel sobre as duas
+// fontes e comparar os 23 campos do objeto final, item a item: as diferenças que
+// sobraram são formato de carimbo de hora, e em dois casos o banco entrega mais
+// do que o espelho — ele resolve o índice de status que o espelho perdeu e não
+// trunca o histórico em 3 updates.
+//
+// Para voltar sem deploy, no console:
+//   localStorage.setItem('vybe_fonte','espelho')  → volta a ler do Monday
+//   localStorage.removeItem('vybe_fonte')         → volta ao banco da Vybe
 function fonteDeLeitura() {
-  try { return localStorage.getItem('vybe_fonte') || 'espelho'; } catch { return 'espelho'; }
+  try { return localStorage.getItem('vybe_fonte') || 'dominio'; } catch { return 'dominio'; }
 }
 
 async function buscarDominio() {
