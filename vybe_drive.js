@@ -115,6 +115,16 @@ async function pasta(nome, paiId) {
 const MESES = ['janeiro','fevereiro','março','abril','maio','junho',
                'julho','agosto','setembro','outubro','novembro','dezembro'];
 
+// Um caminho qualquer dentro do drive, criando o que faltar. Foto de equipe não
+// tem cliente nem data, então não cabe na estrutura de conteúdo.
+export async function pastaSimples(caminho = []) {
+  const raiz = process.env.DRIVE_PASTA_RAIZ;
+  if (!raiz) throw new Error('DRIVE_PASTA_RAIZ não configurada.');
+  let id = raiz;
+  for (const parte of caminho) id = await pasta(String(parte), id);
+  return id;
+}
+
 export async function pastaDoConteudo({ cliente, data }) {
   const raiz = process.env.DRIVE_PASTA_RAIZ;
   if (!raiz) throw new Error('DRIVE_PASTA_RAIZ não configurada.');

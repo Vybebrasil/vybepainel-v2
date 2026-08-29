@@ -11,7 +11,7 @@
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
-import { importarCadastroClientes, importarAcessos, popularDemandas, desfazerMigracaoDrive, migrarArquivosParaDrive, importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
+import { importarFotosDaEquipe, importarCadastroClientes, importarAcessos, popularDemandas, desfazerMigracaoDrive, migrarArquivosParaDrive, importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -67,6 +67,11 @@ export default async function handler(req, res) {
       const q = { ...(req.query || {}), ...(req.body || {}) };
       return res.status(200).json({ ok: true, action,
         ...(await migrarArquivosParaDrive({ limite: Number(q.limite) || 8 })) });
+    }
+    if (action === 'fotos_equipe') {
+      const q = { ...(req.query || {}), ...(req.body || {}) };
+      return res.status(200).json({ ok: true, action,
+        ...(await importarFotosDaEquipe({ refazer: q.refazer === '1' || q.refazer === true })) });
     }
     if (action === 'cadastro_clientes') {
       return res.status(200).json({ ok: true, action, ...(await importarCadastroClientes()) });

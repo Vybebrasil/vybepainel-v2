@@ -17,7 +17,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
-import { pastaDoConteudo, enviarParaDrive } from './vybe_drive.js';
+import { pastaDoConteudo, pastaSimples, enviarParaDrive } from './vybe_drive.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 export const BOARD_DEMANDAS = 8385559107;
@@ -1697,4 +1697,44 @@ export async function importarAcessos() {
   // Devolve só contagens: conteúdo de acesso não aparece em resposta de API nem
   // em log.
   return { itens: itens.length, com_documento: comDoc, sem_documento: semDoc };
+}
+
+// ── fotos da equipe ──────────────────────────────────────────────────────────
+//
+// As 14 fotos eram URLs fixas em files.monday.com, escritas dentro do
+// vybe-agenda.js. Desligar o Monday quebraria todo avatar do painel de uma vez,
+// e ninguém percebe isso antes de acontecer.
+export async function importarFotosDaEquipe({ refazer = false } = {}) {
+  await criarSchema();
+  const sql = database();
+
+  const pessoas = await sql`SELECT id, nome, monday_user_id, foto_url FROM vybe_pessoas
+    WHERE monday_user_id IS NOT NULL ORDER BY nome`;
+  const alvo = refazer ? pessoas : pessoas.filter((p) => !p.foto_url);
+  if (!alvo.length) return { pessoas: pessoas.length, migradas: 0, ja_tinham: pessoas.length };
+
+  const dados = await mondayQuery(
+    `query($ids: [ID!]) { users(ids: $ids) { id name photo_original photo_thumb } }`,
+    { ids: alvo.map((p) => String(p.monday_user_id)) }
+  );
+  const fotos = new Map((dados?.users || []).map((u) => [String(u.id), u.photo_original || u.photo_thumb]));
+
+  const pastaId = await pastaSimples(['Vybe', 'Equipe']);
+  let migradas = 0;
+  const falhas = [];
+  for (const p of alvo) {
+    const url = fotos.get(String(p.monday_user_id));
+    if (!url) { falhas.push({ nome: p.nome, erro: 'Monday não devolveu foto' }); continue; }
+    try {
+      const ext = (String(url).split('?')[0].match(/\.(png|jpe?g|webp)$/i) || [, 'png'])[1];
+      const enviado = await enviarParaDrive({
+        url, nome: `${p.nome.replace(/[^\w\s-]/g, '').trim()}.${ext}`, mime: null, pastaId,
+      });
+      await sql`UPDATE vybe_pessoas
+        SET foto_url=${`https://drive.google.com/thumbnail?id=${enviado.id}&sz=w200`}
+        WHERE id=${p.id}`;
+      migradas += 1;
+    } catch (erro) { falhas.push({ nome: p.nome, erro: erro.message }); }
+  }
+  return { pessoas: pessoas.length, migradas, falhas };
 }
