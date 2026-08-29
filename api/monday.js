@@ -1,24 +1,20 @@
-// api/monday.js — fala direto com a API do Monday, com ponte para o painel v1.
+// api/monday.js — fala direto com a API do Monday.
 //
-// Antes este arquivo só repassava o corpo para vybepainel.vercel.app/api/monday (o
-// painel v1), que era o único lugar onde o token existia. Isso mantinha um segundo
-// deployment no caminho crítico: v1 fora do ar derrubava o v2 junto.
+// Este arquivo já repassou tudo para o painel v1, que era o único lugar onde o
+// token existia — o que mantinha um segundo deployment no caminho crítico. Depois
+// passou a falar direto, com o v1 como ponte de emergência.
 //
-// Agora tentamos o Monday direto. Se o token estiver ausente OU inválido, caímos na
-// ponte para o v1 em vez de devolver erro — assim a migração não pode causar queda.
-// O header X-Vybe-Monday-Rota diz qual caminho atendeu, para dar para diagnosticar
-// sem abrir o código:
+// A ponte saiu junto com o desligamento do v1: um caminho de emergência que aponta
+// para um projeto pausado não é rede, é armadilha — falharia devagar e com erro
+// confuso em vez de dizer o que aconteceu.
 //
-//   direto    → MONDAY_TOKEN válido, o v1 já não é necessário
-//   ponte-v1  → token ausente ou recusado; ainda dependemos do v1
-//
-// Quando a rota for "direto" de forma estável, o v1 pode ser desligado.
+// Sem token, o painel não para: ele lê do banco da Vybe e grava lá primeiro. O que
+// deixa de funcionar é a réplica no Monday, que fica para trás e reconcilia.
 
 import { bloqueou } from '../vybe_acesso.js';
 
 const MONDAY_GRAPHQL = 'https://api.monday.com/v2';
 const MONDAY_ARQUIVOS = 'https://api.monday.com/v2/file';
-const RELAY_V1 = 'https://vybepainel.vercel.app/api/monday';
 const VERSAO_API = '2024-01';
 
 export default async function handler(req, res) {
@@ -33,19 +29,19 @@ export default async function handler(req, res) {
   const token = process.env.MONDAY_TOKEN;
   const corpo = req.body || {};
 
+  if (!token) {
+    return res.status(503).json({
+      error: 'MONDAY_TOKEN não configurado. O painel segue funcionando pelo banco da Vybe; '
+           + 'só a réplica no Monday está fora.',
+    });
+  }
+
   try {
-    if (token) {
-      const direto =
-        corpo.action === 'upload_file_to_column'
-          ? await anexarArquivo(corpo, token)
-          : await consultarGraphQL(corpo, token);
-
-      // 400 nosso (corpo malformado) não é problema de token: devolve como está.
-      if (direto.local) return responder(res, 'direto', direto);
-      if (!recusouToken(direto)) return responder(res, 'direto', direto);
-    }
-
-    return responder(res, 'ponte-v1', await repassarParaV1(corpo));
+    const direto =
+      corpo.action === 'upload_file_to_column'
+        ? await anexarArquivo(corpo, token)
+        : await consultarGraphQL(corpo, token);
+    return responder(res, 'direto', direto);
   } catch (erro) {
     return res.status(500).json({ error: erro.message });
   }
@@ -54,22 +50,6 @@ export default async function handler(req, res) {
 function responder(res, rota, { status, dados }) {
   res.setHeader('X-Vybe-Monday-Rota', rota);
   return res.status(status).json(dados);
-}
-
-// O Monday devolve 401 com {"errors":["Not Authenticated"]} quando o token não presta.
-function recusouToken({ status, dados }) {
-  if (status === 401 || status === 403) return true;
-  const erros = Array.isArray(dados?.errors) ? dados.errors : [];
-  return erros.some((e) => /not authenticated|unauthorized/i.test(typeof e === 'string' ? e : e?.message || ''));
-}
-
-async function repassarParaV1(corpo) {
-  const resposta = await fetch(RELAY_V1, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo),
-  });
-  return { status: resposta.status, dados: await resposta.json() };
 }
 
 async function consultarGraphQL({ query, variables }, token) {
