@@ -533,11 +533,16 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
       FROM vybe_conteudos c
       WHERE c.board_id = ${boardId}
         AND c.removido_em IS NULL
-        AND (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
-        AND EXISTS (
-          SELECT 1 FROM vybe_conteudo_clientes vcc
-            JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
-           WHERE vcc.conteudo_id = c.id AND cl.ativo)
+        -- O recorte é de Produção, que é um calendário: peça sem data não tem
+        -- onde aparecer, e cliente inativo saiu da operação. Demanda é pedido,
+        -- não peça agendada — 36 delas não têm data e 6 não têm cliente, e todas
+        -- são legítimas. Aplicar a mesma regra some com elas.
+        AND (${boardId}::bigint <> ${BOARD_PRODUCAO}::bigint OR (
+              (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
+              AND EXISTS (
+                SELECT 1 FROM vybe_conteudo_clientes vcc
+                  JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+                 WHERE vcc.conteudo_id = c.id AND cl.ativo)))
       ORDER BY c.veiculacao NULLS LAST, c.id`,
   ]);
 
