@@ -10,6 +10,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { mondayQuery } from '../operational_mirror_store.js';
+import { pastaDoConteudo, enviarParaDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
@@ -175,7 +176,8 @@ async function areaPessoas(req, res, quem) {
 // num lugar só. Traduzir aqui é mais barato que ter duas contas divergindo.
 const COLUNA_ARQUIVOS = 'file_mkwtx2j4';
 
-async function areaPeca(req, res) {
+async function areaPeca(req, res, quem) {
+  if (req.method === 'POST') return anexarNaPeca(req, res, quem);
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   const item = String(req.query?.item || '');
   if (!item) return res.status(400).json({ error: 'Informe o item.' });
@@ -312,6 +314,38 @@ async function areaPeca(req, res) {
       data: JSON.stringify({ previous_value: { label: { text: e.de } }, value: { label: { text: e.para } } }),
     })),
   });
+}
+
+// Anexo novo vai para o Drive, não para o Monday. Enviar para lá seria refazer o
+// acervo que acabamos de tirar de dentro dele — em duas semanas estaríamos com o
+// mesmo problema, só que menor.
+async function anexarNaPeca(req, res, quem) {
+  const { item, nome, mime, conteudo } = req.body || {};
+  if (!item || !nome || !conteudo) {
+    return res.status(400).json({ error: 'Informe item, nome e conteúdo do arquivo.' });
+  }
+  const db = sql();
+  const c = (await db`SELECT c.id, c.veiculacao, c.prazo,
+      (SELECT cl.nome FROM vybe_conteudo_clientes vc JOIN vybe_clientes cl ON cl.id=vc.cliente_id
+        WHERE vc.conteudo_id=c.id LIMIT 1) AS cliente
+    FROM vybe_conteudos c WHERE c.monday_item_id = ${String(item)}`)[0];
+  if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
+
+  const pastaId = await pastaDoConteudo({ cliente: c.cliente, data: c.veiculacao || c.prazo });
+  const enviado = await enviarParaDrive({ conteudo, nome: String(nome), mime, pastaId });
+
+  const ext = String(nome).includes('.') ? `.${String(nome).split('.').pop().toLowerCase()}` : null;
+  const linha = (await db`INSERT INTO vybe_conteudo_arquivos
+      (conteudo_id, nome, extensao, tamanho_bytes, url_drive, drive_file_id, criado_em, migrado_em)
+    VALUES (${c.id}, ${String(nome)}, ${ext}, ${enviado.bytes}, ${enviado.link}, ${enviado.id}, NOW(), NOW())
+    RETURNING id`)[0];
+
+  await db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, para, autor_id, em)
+    VALUES (${c.id}, 'anexo', ${String(nome)},
+            ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, NOW())`;
+
+  return res.status(200).json({ ok: true, arquivo_id: linha.id, drive_file_id: enviado.id,
+                                link: enviado.link, bytes: enviado.bytes });
 }
 
 const AREAS = { automacoes: areaAutomacoes, notificacoes: areaNotificacoes,

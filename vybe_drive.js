@@ -134,10 +134,17 @@ export async function pastaDoConteudo({ cliente, data }) {
 }
 
 // Copia um arquivo da URL assinada do Monday direto para o Drive.
-export async function enviarParaDrive({ url, nome, mime, pastaId }) {
-  const origem = await fetch(url);
-  if (!origem.ok) throw new Error(`Monday recusou o arquivo (${origem.status}).`);
-  const bytes = Buffer.from(await origem.arrayBuffer());
+export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {
+  // Ou copia de uma URL (migração do Monday) ou recebe o arquivo direto (upload
+  // pelo painel). O resto do caminho é o mesmo.
+  let bytes;
+  if (conteudo) {
+    bytes = Buffer.isBuffer(conteudo) ? conteudo : Buffer.from(String(conteudo), 'base64');
+  } else {
+    const origem = await fetch(url);
+    if (!origem.ok) throw new Error(`Não foi possível ler o arquivo de origem (${origem.status}).`);
+    bytes = Buffer.from(await origem.arrayBuffer());
+  }
 
   const limite = '-----vybe' + Date.now();
   const meta = JSON.stringify({ name: nome, parents: [pastaId] });
