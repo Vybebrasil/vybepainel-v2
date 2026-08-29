@@ -162,7 +162,8 @@ function switchBoard(board, btn) {
     clientes:    'Visão unificada por cliente',
     diario:      'Diário de Produção — snapshots do estado dos conteúdos',
     performance: 'Médias e desempenho individual da equipe',
-    'ai-usage':  'Uso, custos estimados e limites do Jarvis'
+    'ai-usage':  'Uso, custos estimados e limites do Jarvis',
+    automacoes:  'Regras que movem, atribuem e avisam sozinhas'
   };
   document.getElementById('header-sub').textContent = subs[board] || '';
   document.querySelector('.container').style.display        = board==='producao' ? '' : 'none';
@@ -171,6 +172,7 @@ function switchBoard(board, btn) {
   document.getElementById('painel-diario').style.display       = board==='diario'      ? 'block' : 'none';
   document.getElementById('painel-performance').style.display  = board==='performance' ? 'block' : 'none';
   document.getElementById('painel-ai-usage').style.display     = board==='ai-usage' ? 'block' : 'none';
+  document.getElementById('painel-automacoes').style.display   = board==='automacoes' ? 'block' : 'none';
   if (board === 'demandas') {
     if (DADOS_DEMANDAS.length === 0) refreshDemandas();
     else renderDemandas();
@@ -179,6 +181,7 @@ function switchBoard(board, btn) {
   if (board === 'diario') renderDiarioLista();
   if (board === 'performance') renderPerformance();
   if (board === 'ai-usage') loadAiUsage();
+  if (board === 'automacoes') carregarAutomacoes();
 }
 
 // Helper: data ISO conforme modo ativo

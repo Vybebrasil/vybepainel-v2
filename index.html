@@ -1121,6 +1121,39 @@ header,.topbar{
 .notif-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px;color:#7d8798;font-size:10px}
 .notif-vazio{padding:26px 16px;color:#7d8798;font-size:11px;line-height:1.55;text-align:center}
 @media(max-width:600px){.notif-caixa{position:fixed;left:16px;right:16px;width:auto}}
+
+.auto-shell{padding:26px 0 34px}
+.auto-cabeca{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:20px;flex-wrap:wrap}
+.auto-kicker{color:var(--accent,#ff6b00);font:800 10px 'JetBrains Mono',monospace;letter-spacing:1.3px}
+.auto-titulo{margin:5px 0 0;color:#fff2dd;font:800 22px 'JetBrains Mono',monospace;letter-spacing:-.8px}
+.auto-sub{max-width:640px;margin:7px 0 0;color:#a8896c;font-size:11px;line-height:1.55}
+.auto-novo{border:1px solid rgba(255,163,21,.65);background:rgba(255,107,0,.19);color:#ffe0a6;padding:9px 14px;font:800 10px 'JetBrains Mono',monospace;letter-spacing:.55px;cursor:pointer}
+.auto-lista{display:flex;flex-direction:column;gap:8px}
+.auto-regra{border:1px solid rgba(255,161,29,.16);background:linear-gradient(145deg,rgba(255,107,0,.06),rgba(11,6,2,.72));padding:14px 15px}
+.auto-regra.desligada{opacity:.5}
+.auto-regra-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.auto-ordem{min-width:26px;padding:2px 6px;background:rgba(255,255,255,.07);color:#c69d6a;font:800 10px 'JetBrains Mono',monospace;text-align:center}
+.auto-nome{flex:1;min-width:200px;color:#ffe4b7;font-size:12.5px}
+.auto-estado{color:#8b6b52;font:800 10px 'JetBrains Mono',monospace}
+.auto-botoes{display:flex;gap:5px;flex-wrap:wrap}
+.auto-botoes button{border:1px solid rgba(255,177,67,.23);background:rgba(0,0,0,.3);color:#d8ab77;padding:5px 9px;font:700 10px 'JetBrains Mono',monospace;cursor:pointer}
+.auto-botoes button:hover{background:rgba(255,107,0,.16);color:#ffe0a6}
+.auto-botoes button.perigo:hover{background:rgba(240,71,86,.18);border-color:rgba(240,71,86,.5);color:#ffb9c0}
+.auto-frase{margin-top:9px;color:#c2a184;font-size:11.5px;line-height:1.5}
+.auto-frase i{color:#8b6b52;font-style:normal;font-weight:700}
+.auto-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.auto-acoes span{border:1px solid rgba(255,186,91,.18);background:rgba(255,107,0,.07);color:#e0b784;padding:4px 8px;font-size:10.5px}
+.auto-carregando{padding:48px 0;color:#b3885d;text-align:center;font:800 10px 'JetBrains Mono',monospace;letter-spacing:1px}
+.auto-editor-caixa{margin-top:14px;border:1px solid rgba(255,161,29,.28);background:rgba(10,6,2,.85);padding:16px}
+.auto-editor-titulo{margin-bottom:13px;color:#ffe4b7;font:800 11px 'JetBrains Mono',monospace;letter-spacing:.6px;text-transform:uppercase}
+.auto-editor-caixa label{display:block;margin-bottom:11px;color:#a88a6c;font:800 10px 'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase}
+.auto-editor-caixa input,.auto-editor-caixa select,.auto-editor-caixa textarea{width:100%;box-sizing:border-box;margin-top:5px;border:1px solid rgba(255,177,67,.23);background:#120902;color:#ffe0aa;padding:8px;font:600 11px 'JetBrains Mono',monospace;text-transform:none;letter-spacing:0;outline:none;resize:vertical}
+.auto-editor-linha{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.auto-ajuda{margin:2px 0 13px;color:#80644e;font-size:10.5px;line-height:1.55}
+.auto-editor-botoes{display:flex;gap:8px}
+.auto-editor-botoes button{border:1px solid rgba(255,177,67,.23);background:rgba(0,0,0,.3);color:#d8ab77;padding:9px 14px;font:800 10px 'JetBrains Mono',monospace;cursor:pointer}
+.auto-editor-botoes button.auto-salvar{border-color:rgba(255,163,21,.65);background:rgba(255,107,0,.19);color:#ffe0a6}
+@media(max-width:600px){.auto-cabeca{display:block}.auto-novo{margin-top:14px}.auto-editor-linha{grid-template-columns:1fr}}
 </style></head>
 <body>
 
@@ -1199,6 +1232,7 @@ header,.topbar{
       <button class="board-switch-btn" id="btn-board-diario" onclick="switchBoard('diario',this)">📸 Diário</button>
       <button class="board-switch-btn" id="btn-board-performance" onclick="switchBoard('performance',this)">📊 Performance</button>
       <button class="board-switch-btn" id="btn-board-ai-usage" onclick="switchBoard('ai-usage',this)">◈ IA &amp; Custos</button>
+      <button class="board-switch-btn" id="btn-board-automacoes" onclick="switchBoard('automacoes',this)">⚙ Automações</button>
     </div>
   </div>
   <div class="header-row2">
@@ -1595,6 +1629,9 @@ header,.topbar{
 </div>
 
 <!-- ===== PAINEL DE USO DE IA ===== -->
+<div id="painel-automacoes" style="display:none;">
+  <div class="container auto-shell" id="automacoes-root"></div>
+</div>
 <div id="painel-ai-usage" style="display:none;">
   <div class="container ai-usage-shell" id="ai-usage-root"></div>
 </div>
@@ -1636,6 +1673,7 @@ header,.topbar{
   <script src="/vybe-relatorios.js"></script>
   <script src="/vybe-dominio.js"></script>
   <script src="/vybe-notificacoes.js"></script>
+  <script src="/vybe-automacoes-ui.js"></script>
   <script src="/vybe-login.js"></script>
   <script src="/vybe-init.js"></script>
 <script src="/cadastros_governed_v2.js"></script>
