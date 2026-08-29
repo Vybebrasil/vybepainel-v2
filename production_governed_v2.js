@@ -217,8 +217,8 @@
                  <option value="Vídeo">Vídeo</option>
                  <option value="Reels">Reels</option>
              </select>
-             <button class="p-btn-create" onclick="pCalCreateItem('${iso}')">AGENDAR NO MONDAY</button>
-             <button class="p-btn-cancel" onclick="document.getElementById('prod-v2-overlay-create').remove()">CANCELAR</button>
+             <button class="p-btn-create" onclick="pCalCreateItem('${iso}')">Agendar no Monday</button>
+             <button class="p-btn-cancel" onclick="document.getElementById('prod-v2-overlay-create').remove()">Cancelar</button>
          </div>
       `;
       document.body.appendChild(overlay);
@@ -424,7 +424,7 @@
      overlay.className = 'prod-v2-overlay';
      overlay.onclick = e => { if(e.target === overlay) closeProductionSheet(); };
      
-     overlay.innerHTML = `<aside class="prod-v2-drawer"><div style="padding:40px;color:#fff;">CARREGANDO ROTEIRO...</div></aside>`;
+     overlay.innerHTML = `<aside class="prod-v2-drawer"><div style="padding:40px;color:#fff;">Carregando roteiro...</div></aside>`;
      document.body.appendChild(overlay);
      requestAnimationFrame(() => overlay.classList.add('open'));
 
@@ -439,7 +439,7 @@
              <header class="p-draw-head">
                 <button class="p-draw-close" onclick="closeProductionSheet()">×</button>
                 <div class="p-draw-title">
-                   <span>ROTEIRO E FICHA TÉCNICA</span>
+                   <span>Roteiro e ficha técnica</span>
                    <b>${esc(item.nome)}</b>
                 </div>
                 <div class="p-draw-meta">
@@ -462,7 +462,7 @@
                 </div>
                 
                 <div class="p-draw-section">
-                   <b>CHECKLIST DE PRONTIDÃO</b>
+                   <b>Checklist de prontidão</b>
                    ${productionChecklistHtml(item, packet)}
                 </div>
              </div>

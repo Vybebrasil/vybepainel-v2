@@ -60,7 +60,7 @@ async function loadAiUsage(force=false) {
   if (aiUsageLoading || (!force && aiUsageData?.period_days === aiUsageDays)) { renderAiUsageBoard(aiUsageData); return; }
   aiUsageLoading = true;
   const root = document.getElementById('ai-usage-root');
-  if (root) root.innerHTML = '<div class="ai-usage-loading">CONSULTANDO USO E CUSTOS...</div>';
+  if (root) root.innerHTML = '<div class="ai-usage-loading">Consultando uso e custos...</div>';
   try {
     const response = await fetch(`${AI_USAGE_API}&days=${aiUsageDays}`);
     const data = await response.json();
@@ -68,7 +68,7 @@ async function loadAiUsage(force=false) {
     aiUsageData = data;
     renderAiUsageBoard(data);
   } catch (error) {
-    if (root) root.innerHTML = `<div class="ai-usage-loading">MONITOR INDISPONÍVEL<br><small style="display:block;margin-top:8px;color:#8b6b52;font-family:Arial;font-weight:400;letter-spacing:0">${safeText(error.message || 'Tente atualizar.')}</small></div>`;
+    if (root) root.innerHTML = `<div class="ai-usage-loading">Monitor indisponível<br><small style="display:block;margin-top:8px;color:#8b6b52;font-family:Arial;font-weight:400;letter-spacing:0">${safeText(error.message || 'Tente atualizar.')}</small></div>`;
   } finally {
     aiUsageLoading = false;
   }
@@ -119,7 +119,7 @@ function renderAiUsageBoard(data) {
   const geminiNote = settings.gemini_billing === 'paid' ? 'Pago — custo por token ativo' : 'Gratuito — custo estimado em R$ 0,00';
   root.innerHTML = `
     <div class="ai-usage-head">
-      <div><div class="ai-usage-kicker">VYBE INTELLIGENCE · FINOPS</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do Jarvis por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
+      <div><div class="ai-usage-kicker">Vybe intelligence · Finops</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do Jarvis por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
       <div class="ai-usage-periods"><button class="ai-usage-period ${aiUsageDays===7?'active':''}" data-days="7" onclick="setAiUsageDays(7,this)">7 DIAS</button><button class="ai-usage-period ${aiUsageDays===30?'active':''}" data-days="30" onclick="setAiUsageDays(30,this)">30 DIAS</button><button class="ai-usage-period ${aiUsageDays===90?'active':''}" data-days="90" onclick="setAiUsageDays(90,this)">90 DIAS</button><button class="ai-usage-period" onclick="loadAiUsage(true)">↻ ATUALIZAR</button></div>
     </div>
     <div class="ai-usage-grid">
@@ -130,16 +130,16 @@ function renderAiUsageBoard(data) {
     </div>
     <div class="ai-usage-main-grid">
       <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Uso por provedor</span><small>${aiUsageDays} DIAS</small></div>${providerRows}</div>
-      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Equipe</span><small>CUSTO ESTIMADO</small></div>${personRows}</div>
+      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Equipe</span><small>Custo estimado</small></div>${personRows}</div>
       <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Trajetória diária</span><small>R$ POR DIA</small></div><div class="ai-trend">${trend}</div></div>
-      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Orçamento do mês</span><small>ALERTA VISUAL</small></div><div class="ai-budget-wrap"><div class="ai-budget-line"><span>${safeText(budget.label)}</span><span>${budget.value}</span></div><div class="ai-budget-track"><div class="ai-budget-fill ${budget.state}" style="width:${budget.percentage}%"></div></div><div class="ai-usage-note">Quando o teto é definido, a barra sinaliza em amarelo a partir de 80% e em vermelho ao atingir 100%.</div></div></div>
+      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Orçamento do mês</span><small>Alerta visual</small></div><div class="ai-budget-wrap"><div class="ai-budget-line"><span>${safeText(budget.label)}</span><span>${budget.value}</span></div><div class="ai-budget-track"><div class="ai-budget-fill ${budget.state}" style="width:${budget.percentage}%"></div></div><div class="ai-usage-note">Quando o teto é definido, a barra sinaliza em amarelo a partir de 80% e em vermelho ao atingir 100%.</div></div></div>
     </div>
     <div class="ai-usage-settings">
       <div class="ai-setting-copy"><b>Parâmetros de estimativa</b>Use o teto para receber alertas visuais. O Gemini está configurado como <strong>${safeText(geminiNote)}</strong>.</div>
       <div class="ai-setting-field"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
       <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd)||5.5}"></div>
       <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing==='free'?'selected':''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing==='paid'?'selected':''}>API paga</option></select></div>
-      <button class="ai-setting-save" type="button" onclick="saveAiUsageSettings()">SALVAR</button>
+      <button class="ai-setting-save" type="button" onclick="saveAiUsageSettings()">Salvar</button>
     </div>
     <div class="ai-usage-note">Os valores são estimativas calculadas por tokens. Eles não substituem os consoles de cobrança do OpenAI, Google e Anthropic e podem variar conforme plano, créditos, descontos, cache ou cobrança intermediada.</div>`;
 }

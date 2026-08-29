@@ -164,7 +164,7 @@ function montarTelaDeLogin() {
       </label>
       <button type="button" class="login-voltar" onclick="voltarParaAsContas()">← Não sou eu</button>
       <div class="login-erro" id="login-erro" role="alert" hidden></div>
-      <button type="submit" class="login-entrar" id="login-entrar">ENTRAR</button>
+      <button type="submit" class="login-entrar" id="login-entrar">Entrar</button>
     </form>`;
   document.body.appendChild(gate);
   pintarRostos();

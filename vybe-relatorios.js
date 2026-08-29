@@ -173,7 +173,7 @@ function renderDiarioDetalhe(snap) {
       const statusMudou = statusNow && statusNow !== d.status;
       const respMudou   = respNow   && respNow   !== d.responsavel;
       const statusHtml = statusMudou
-        ? `<span style="text-decoration:line-through;opacity:.5;">${pillHtml(d.status)}</span> <span style="color:#4ade80;">→</span> ${pillHtml(statusNow)} <span style="background:#4ade80;color:#000;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;">MUDOU</span>`
+        ? `<span style="text-decoration:line-through;opacity:.5;">${pillHtml(d.status)}</span> <span style="color:#4ade80;">→</span> ${pillHtml(statusNow)} <span style="background:#4ade80;color:#000;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;">Mudou</span>`
         : pillHtml(d.status);
       const respHtml = respMudou
         ? `<span style="text-decoration:line-through;opacity:.5;">${firstName(d.responsavel)}</span> <span style="color:#fbbf24;">→ ${firstName(respNow)}</span>`

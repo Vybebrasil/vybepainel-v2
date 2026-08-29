@@ -29,7 +29,7 @@ function ensureSyncHealthIndicator() {
   el = document.createElement('button');
   el.type = 'button'; el.id = 'sync-health-indicator'; el.className = 'sync-health-indicator checking';
   el.setAttribute('aria-live','polite');
-  el.innerHTML = `<i class="sync-health-dot"></i><span class="sync-health-copy"><b>CONFERINDO DADOS</b><span>Verificando a operação…</span></span><span class="sync-health-action">↻ TENTAR</span>`;
+  el.innerHTML = `<i class="sync-health-dot"></i><span class="sync-health-copy"><b>Conferindo dados</b><span>Verificando a operação…</span></span><span class="sync-health-action">↻ TENTAR</span>`;
   el.addEventListener('click', () => refreshProducao());
   document.body.appendChild(el);
   return el;

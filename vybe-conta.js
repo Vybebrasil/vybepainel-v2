@@ -84,7 +84,7 @@ function pintarConta() {
   raiz.innerHTML = `
     <div class="auto-cabeca">
       <div>
-        <div class="auto-kicker">VYBE OS · SUA CONTA</div>
+        <div class="auto-kicker">Vybe OS · Sua conta</div>
         <h2 class="auto-titulo">${safeText(eu.nome)}</h2>
         <p class="auto-sub">${safeText(eu.email)}${eu.admin ? ' · administra o painel' : ''}</p>
       </div>
@@ -118,7 +118,7 @@ function pintarConta() {
     ${eu.admin ? `
     <div class="auto-cabeca" style="margin-top:26px">
       <div>
-        <div class="auto-kicker">VYBE OS · EQUIPE</div>
+        <div class="auto-kicker">Vybe OS · Equipe</div>
         <h2 class="auto-titulo">Quem entra no painel</h2>
         <p class="auto-sub">Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora.</p>
       </div>
@@ -146,7 +146,7 @@ function blocoClientes() {
   return `
     <div class="auto-cabeca" style="margin-top:26px">
       <div>
-        <div class="auto-kicker">VYBE OS · CLIENTES</div>
+        <div class="auto-kicker">Vybe OS · Clientes</div>
         <h2 class="auto-titulo">Quem aparece no painel</h2>
         <p class="auto-sub">Cliente não se apaga, se desativa: apagar arrastaria junto o vínculo de todo conteúdo histórico dele. Desativado some das telas e continua no histórico.</p>
       </div>
@@ -195,7 +195,7 @@ function blocoOpcoes() {
   return `
     <div class="auto-cabeca" style="margin-top:26px">
       <div>
-        <div class="auto-kicker">VYBE OS · OPÇÕES DAS COLUNAS</div>
+        <div class="auto-kicker">Vybe OS · Opções das colunas</div>
         <h2 class="auto-titulo">O que a ficha oferece</h2>
         <p class="auto-sub">Desligar uma opção tira ela dos seletores sem apagar nada: peças que já a usam continuam mostrando. Opção criada aqui vale só na Vybe — enquanto o Monday existir, a cópia daquele campo é pulada.</p>
       </div>
@@ -318,7 +318,7 @@ function blocoAcessos() {
   return `
     <div class="auto-cabeca" style="margin-top:26px">
       <div>
-        <div class="auto-kicker">VYBE OS · ACESSOS</div>
+        <div class="auto-kicker">Vybe OS · Acessos</div>
         <h2 class="auto-titulo">Credenciais dos clientes</h2>
         <p class="auto-sub">Vieram dos documentos do Monday.${semDoc ? ` ${semDoc} clientes estão sem documento — a lacuna é do cadastro, não da migração.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.</p>
       </div>
@@ -350,7 +350,7 @@ async function verAcesso(id) {
         <pre id="ac-doc-texto">${safeText(a.doc_conteudo || '')}</pre>
       </div>`;
   } catch (erro) {
-    caixa.innerHTML = `<div class="auto-carregando">NÃO FOI POSSÍVEL ABRIR<br><small>${safeText(erro.message)}</small></div>`;
+    caixa.innerHTML = `<div class="auto-carregando">Não foi possível abrir<br><small>${safeText(erro.message)}</small></div>`;
   }
 }
 

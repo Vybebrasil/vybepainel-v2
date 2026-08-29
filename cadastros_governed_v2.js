@@ -511,7 +511,7 @@
          <!-- LEFT COLUMN: FORM -->
          <div class="fc-main-col">
              <div class="fc-header">
-                <div class="fc-kicker">CADASTRO RÁPIDO</div>
+                <div class="fc-kicker">Cadastro rápido</div>
                 <input type="text" id="fc-title" class="fc-title-input" placeholder="Título do Conteúdo..." autofocus oninput="fcHandleInput('title', this.value)">
              </div>
              
@@ -568,8 +568,8 @@
              </div>
              
              <div class="fc-footer">
-                <button class="fc-btn-cancel" onclick="fcCloseModal()">CANCELAR</button>
-                <button class="fc-btn-create" id="fc-submit-btn" onclick="fcSubmit()">CRIAR CONTEÚDO</button>
+                <button class="fc-btn-cancel" onclick="fcCloseModal()">Cancelar</button>
+                <button class="fc-btn-create" id="fc-submit-btn" onclick="fcSubmit()">Criar conteúdo</button>
              </div>
          </div>
          
@@ -577,7 +577,7 @@
          <div class="fc-side-col">
              <button class="fc-close" onclick="fcCloseModal()">×</button>
              
-             <div class="fc-side-title">PRÉVIA DE DESTINO</div>
+             <div class="fc-side-title">Prévia de destino</div>
              
              <div class="fc-preview-card">
                  <div class="fc-prev-head">
@@ -606,7 +606,7 @@
                     <div class="fc-prev-item">
                        <small>Sinalização Visual</small>
                        <div id="fc-prev-status">
-                          <span class="fc-prev-tag" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">A FAZER</span>
+                          <span class="fc-prev-tag" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">A fazer</span>
                        </div>
                     </div>
                  </div>

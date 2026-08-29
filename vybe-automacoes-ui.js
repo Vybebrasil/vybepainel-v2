@@ -36,7 +36,7 @@ async function carregarAutomacoes() {
     pintarAutomacoes();
     carregarHistorico();
   } catch (erro) {
-    if (raiz) raiz.innerHTML = `<div class="auto-carregando">NÃO FOI POSSÍVEL CARREGAR<br><small>${safeText(erro.message)}</small></div>`;
+    if (raiz) raiz.innerHTML = `<div class="auto-carregando">Não foi possível carregar<br><small>${safeText(erro.message)}</small></div>`;
   }
 }
 
@@ -112,7 +112,7 @@ function pintarAutomacoes() {
   raiz.innerHTML = `
     <div class="auto-cabeca">
       <div>
-        <div class="auto-kicker">VYBE OS · OPERAÇÃO</div>
+        <div class="auto-kicker">Vybe OS · Operação</div>
         <h2 class="auto-titulo">Automações</h2>
         <p class="auto-sub">As regras que movem, atribuem e avisam sozinhas. ${admin
           ? 'Alterar aqui vale na hora, sem publicar nada.'
@@ -124,7 +124,7 @@ function pintarAutomacoes() {
     <div id="auto-editor"></div>
     <div class="auto-cabeca" style="margin-top:28px">
       <div>
-        <div class="auto-kicker">VYBE OS · REGISTRO</div>
+        <div class="auto-kicker">Vybe OS · Registro</div>
         <h2 class="auto-titulo">O que as regras fizeram</h2>
         <p class="auto-sub">Enquanto o Monday rodava, dava para culpar ele quando uma peça se movia sozinha. Agora as regras são nossas — aqui está o que cada uma fez.</p>
       </div>
