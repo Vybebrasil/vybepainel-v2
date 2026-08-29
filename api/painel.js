@@ -69,7 +69,7 @@ async function areaNotificacoes(req, res, quem) {
   if (req.method === 'GET') {
     const linhas = await db`
       SELECT n.id, n.texto, n.canal, n.conteudo_id, n.lida_em, n.criada_em,
-             c.nome AS conteudo_nome
+             c.titulo AS conteudo_nome, c.monday_item_id
         FROM vybe_notificacoes n
         LEFT JOIN vybe_conteudos c ON c.id = n.conteudo_id
        WHERE n.pessoa_id = ${pessoaId}
