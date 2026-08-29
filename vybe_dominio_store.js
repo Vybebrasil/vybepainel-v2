@@ -155,6 +155,10 @@ export async function criarSchema() {
     pessoa_id   BIGINT NOT NULL REFERENCES vybe_pessoas(id),
     PRIMARY KEY (conteudo_id, pessoa_id)
   )`;
+  // A ordem importa: o painel trata o PRIMEIRO responsável como o principal.
+  // Ordenar por nome trocaria o dono da peça na tela — mesmo erro que a ordem
+  // dos clientes já tinha causado.
+  await sql`ALTER TABLE vybe_conteudo_responsaveis ADD COLUMN IF NOT EXISTS ordem INT NOT NULL DEFAULT 0`;
 
   // Hoje cada mudança vira prosa dentro de um update do Monday
   // ("[Vybe OS · Responsáveis atualizados] Anterior: X Novo: Y"). Aqui vira registro
@@ -309,9 +313,10 @@ export async function popularDoEspelho() {
       const clienteId = clientePorNome.get(nome);
       if (clienteId) vinculosCliente.push({ conteudo_id: conteudoId, cliente_id: clienteId });
     }
+    let ordemResp = 0;
     for (const mondayId of pessoasDoItem(item)) {
       const pessoaId = pessoaPorMonday.get(mondayId);
-      if (pessoaId) vinculosResponsavel.push({ conteudo_id: conteudoId, pessoa_id: pessoaId });
+      if (pessoaId) vinculosResponsavel.push({ conteudo_id: conteudoId, pessoa_id: pessoaId, ordem: ordemResp++ });
     }
   }
 
@@ -326,10 +331,10 @@ export async function popularDoEspelho() {
 
   await sql`TRUNCATE vybe_conteudo_responsaveis`;
   if (vinculosResponsavel.length) {
-    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
-      SELECT v.conteudo_id, v.pessoa_id
+    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
+      SELECT v.conteudo_id, v.pessoa_id, v.ordem
       FROM jsonb_to_recordset(${JSON.stringify(vinculosResponsavel)}::jsonb)
-        AS v(conteudo_id bigint, pessoa_id bigint)
+        AS v(conteudo_id bigint, pessoa_id bigint, ordem int)
       ON CONFLICT DO NOTHING`;
   }
 
@@ -398,7 +403,15 @@ export async function listarConteudos() {
           (SELECT ARRAY_AGG(p.monday_user_id ORDER BY p.nome)
              FROM vybe_conteudo_responsaveis vcr
              JOIN vybe_pessoas p ON p.id = vcr.pessoa_id
-            WHERE vcr.conteudo_id = c.id), '{}') AS responsavel_ids
+            WHERE vcr.conteudo_id = c.id), '{}') AS responsavel_ids,
+        -- O painel deriva o "contexto de status" de um update marcado. Mandar
+        -- todos os updates devolveria a resposta ao tamanho do espelho; mandar
+        -- só o marcado custa quase nada e preserva o recurso.
+        (SELECT JSONB_BUILD_OBJECT('body', u.corpo, 'created_at', u.criado_em,
+                                   'creator', JSONB_BUILD_OBJECT('name', u.autor))
+           FROM vybe_conteudo_updates u
+          WHERE u.conteudo_id = c.id AND u.corpo LIKE '%Contexto de status%'
+          ORDER BY u.criado_em DESC NULLS LAST LIMIT 1) AS contexto_status
       FROM vybe_conteudos c
       WHERE (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
         AND EXISTS (
@@ -424,6 +437,7 @@ export async function listarConteudos() {
     };
     // A tela lê captação na mesa do DA e no gestor; sem ela a coluna some.
     if (l.captacao) item.captacao = l.captacao;
+    if (l.contexto_status) item.contexto_status = l.contexto_status;
     // Só viaja quando há mais de um: são 3 itens em 1.853.
     if ((l.clientes || []).length > 1) item.clientes = l.clientes;
     if ((l.responsavel_ids || []).length) item.responsavel_ids = l.responsavel_ids;
@@ -708,8 +722,10 @@ export async function sincronizarDoEvento(sql, evento) {
     const ids = (evento.value?.personsAndTeams || []).map((p) => String(p.id));
     await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${id}`;
     if (ids.length) {
-      await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
-        SELECT ${id}, p.id FROM vybe_pessoas p WHERE p.monday_user_id = ANY(${ids})
+      await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
+        SELECT ${id}, p.id, o.ord - 1
+          FROM UNNEST(${ids}::text[]) WITH ORDINALITY AS o(uid, ord)
+          JOIN vybe_pessoas p ON p.monday_user_id = o.uid
         ON CONFLICT DO NOTHING`;
     }
     return { campo: 'responsaveis' };

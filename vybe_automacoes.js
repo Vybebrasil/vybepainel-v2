@@ -296,12 +296,20 @@ export async function aplicar(sql, conteudoId, evento) {
         feitas.push(`status → ${acao.para}`);
       } else if (acao.tipo === 'responsaveis') {
         if (acao.modo === 'replace') await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${item.id}`;
-        await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
-          SELECT ${item.id}, id FROM vybe_pessoas WHERE monday_user_id = ANY(${acao.pessoas})
+        // 'add' entra depois de quem já está: a ordem define o responsável
+        // principal, e quem foi chamado para ajudar não vira dono da peça.
+        const base = acao.modo === 'replace' ? 0
+          : Number((await sql`SELECT COALESCE(MAX(ordem), -1) + 1 AS n
+              FROM vybe_conteudo_responsaveis WHERE conteudo_id=${item.id}`)[0].n);
+        await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
+          SELECT ${item.id}, p.id, ${base} + o.ord - 1
+            FROM UNNEST(${acao.pessoas}::text[]) WITH ORDINALITY AS o(uid, ord)
+            JOIN vybe_pessoas p ON p.monday_user_id = o.uid
           ON CONFLICT DO NOTHING`;
         // Manda a lista final, não o delta: 'add' no Monday sobrescreveria.
         const atuais = await sql`SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
-          JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${item.id}`;
+          JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${item.id}
+          ORDER BY r.ordem, p.nome`;
         paraOMonday.colunas.person = {
           personsAndTeams: atuais.map((a) => ({ id: Number(a.monday_user_id), kind: 'person' })),
         };

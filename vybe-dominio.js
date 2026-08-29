@@ -44,7 +44,7 @@ function dominioComoItensDoMonday(dados) {
       name: item.nome || '',
       updated_at: item.updated_at || '',
       group: { id: item.grupo_id || '', title: item.grupo || '' },
-      updates: [],
+      updates: item.contexto_status ? [item.contexto_status] : [],
       column_values: [
         { id: C.cliente, text: clientes.join(', '), value: null },
         { id: C.formato, text: item.formato || '', value: null },

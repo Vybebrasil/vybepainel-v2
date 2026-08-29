@@ -179,17 +179,19 @@ async function trocarResponsaveis(sql, quem, { item, pessoas }) {
   const c = linhas[0];
 
   const antes = (await sql`SELECT p.nome FROM vybe_conteudo_responsaveis r
-      JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${c.id} ORDER BY p.nome`)
+      JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${c.id} ORDER BY r.ordem, p.nome`)
     .map((l) => l.nome).join(', ');
 
   await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${c.id}`;
   if (ids.length) {
-    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
-      SELECT ${c.id}, id FROM vybe_pessoas WHERE monday_user_id = ANY(${ids})
+    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
+      SELECT ${c.id}, p.id, o.ord - 1
+        FROM UNNEST(${ids}::text[]) WITH ORDINALITY AS o(uid, ord)
+        JOIN vybe_pessoas p ON p.monday_user_id = o.uid
       ON CONFLICT DO NOTHING`;
   }
   const depois = (await sql`SELECT p.nome FROM vybe_conteudo_responsaveis r
-      JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${c.id} ORDER BY p.nome`)
+      JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${c.id} ORDER BY r.ordem, p.nome`)
     .map((l) => l.nome).join(', ');
 
   await registrarEvento(sql, c.id, {
@@ -285,8 +287,10 @@ async function criarConteudo(sql, quem, dados) {
   if (captacao) await sql`UPDATE vybe_conteudos SET captacao=${String(captacao)} WHERE id=${novo.id}`;
   // Conteúdo que nasce sem dono some da fila de todo mundo.
   if (responsaveis.length) {
-    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
-      SELECT ${novo.id}, id FROM vybe_pessoas WHERE monday_user_id = ANY(${responsaveis.map(String)})
+    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
+      SELECT ${novo.id}, p.id, o.ord - 1
+        FROM UNNEST(${responsaveis.map(String)}::text[]) WITH ORDINALITY AS o(uid, ord)
+        JOIN vybe_pessoas p ON p.monday_user_id = o.uid
       ON CONFLICT DO NOTHING`;
   }
   await registrarEvento(sql, novo.id, {
