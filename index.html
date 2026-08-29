@@ -1258,6 +1258,22 @@ header,.topbar{
 .ac-doc-topo b{color:#ffe4b7;font:800 11px 'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase}
 .ac-doc-topo button{margin-left:6px;border:1px solid rgba(255,177,67,.23);background:rgba(0,0,0,.3);color:#d8ab77;padding:5px 10px;font:700 10px 'JetBrains Mono',monospace;cursor:pointer}
 .ac-doc pre{margin:0;max-height:min(420px,52vh);overflow:auto;white-space:pre-wrap;word-break:break-word;color:#dfe5ef;font:500 12px/1.6 'JetBrains Mono',monospace}
+
+.quem-sou{position:relative;display:inline-flex}
+.quem-sou-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:6px;padding:3px 9px 3px 4px;cursor:pointer;font:inherit}
+.quem-sou-btn:hover{background:rgba(255,255,255,.14)}
+.quem-sou-inicial{display:grid;place-items:center;width:21px;height:21px;border-radius:5px;background:var(--accent,#ff6b00);color:#12080200;color:#160c02;font:800 10px 'JetBrains Mono',monospace}
+.quem-sou-nome{font-size:12px;font-weight:600;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quem-sou-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:900;width:min(268px,calc(100vw - 32px));background:#0d0f14;border:1px solid rgba(255,255,255,.16);border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.6);overflow:hidden}
+.quem-sou-cabeca{padding:12px;border-bottom:1px solid rgba(255,255,255,.1)}
+.quem-sou-cabeca b{display:block;color:#f0f4fa;font-size:13px}
+.quem-sou-cabeca span{display:block;margin-top:3px;color:#7d8798;font:600 10px 'JetBrains Mono',monospace;word-break:break-all}
+.quem-sou-papel{margin-top:7px!important;color:var(--accent,#ff6b00)!important;letter-spacing:.5px;text-transform:uppercase}
+.quem-sou-menu>button{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid rgba(255,255,255,.06);color:#dfe5ef;padding:10px 12px;font:600 12px inherit;cursor:pointer}
+.quem-sou-menu>button:hover{background:rgba(255,255,255,.06)}
+.quem-sou-menu>button.quem-sou-sair{color:#ff9aa4}
+.quem-sou-menu>button.quem-sou-sair:hover{background:rgba(240,71,86,.14)}
+@media(max-width:600px){.quem-sou-nome{display:none}.quem-sou-menu{position:fixed;left:16px;right:16px;width:auto}}
 </style></head>
 <body>
 
@@ -1312,7 +1328,7 @@ header,.topbar{
         <span class="station-top"><span>06 / NÚCLEO DE CLIENTES</span><span class="station-ready"><i></i>ONLINE</span></span><span class="station-icon">◉</span><span class="station-name">CLIENTES</span><span class="station-description">O cadastro mestre que conecta relacionamento, heads, acessos e toda a operação de cada conta.</span><span class="station-tags"><span>HEADS</span><span>ACESSOS</span><span>OPERAÇÃO</span></span><span class="station-action"><em>ABRIR NÚCLEO</em><b>↗</b></span>
       </button>
     </div>
-    <div class="identity-footer"><span>SELECIONE UMA ESTAÇÃO PARA INICIAR</span><span>VYBE OS / CENTRAL OPERACIONAL</span></div>
+    <div class="identity-footer"><span>SELECIONE UMA ESTAÇÃO PARA INICIAR</span><span id="identity-quem">VYBE OS / CENTRAL OPERACIONAL</span></div>
     <div id="focus-picker" class="focus-picker identity-focus-picker">
       <div class="focus-picker-head"><span>IDENTIFIQUE O OPERADOR PARA ARMAR O CONSOLE PESSOAL</span><button class="search-result-action" onclick="closeFocusPicker()">← Voltar às estações</button></div>
       <div id="focus-user-grid" class="focus-user-grid"></div>
@@ -1349,6 +1365,21 @@ header,.topbar{
     <span class="badge badge-week1" id="badge-s1">S4 · 17/08–23/08</span>
     <span class="badge badge-week2" id="badge-s2">S5 · 24/08–30/08</span>
     <span class="badge badge-date" id="badge-hoje">Hoje: 22/08/2026</span>
+    <div class="quem-sou" id="quem-sou" style="display:none">
+      <button type="button" class="quem-sou-btn" onclick="alternarMenuDaConta()" aria-label="Sua conta">
+        <span class="quem-sou-inicial" id="quem-sou-inicial"></span>
+        <span class="quem-sou-nome" id="quem-sou-nome"></span>
+      </button>
+      <div class="quem-sou-menu" id="quem-sou-menu" style="display:none">
+        <div class="quem-sou-cabeca">
+          <b id="quem-sou-completo"></b>
+          <span id="quem-sou-email"></span>
+          <span class="quem-sou-papel" id="quem-sou-papel"></span>
+        </div>
+        <button type="button" onclick="irParaMinhaConta()">Minha conta e equipe</button>
+        <button type="button" class="quem-sou-sair" onclick="sairDaSessao()">Sair desta conta</button>
+      </div>
+    </div>
     <div class="notif-wrap">
       <button type="button" id="notif-sino" class="notif-sino" onclick="alternarNotificacoes()" aria-label="Avisos">
         🔔<span id="notif-contador" class="notif-contador" style="display:none">0</span>

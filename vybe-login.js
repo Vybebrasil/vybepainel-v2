@@ -98,3 +98,45 @@ async function sairDaSessao() {
   } catch { /* mesmo falhando, recarregar leva de volta ao login */ }
   location.reload();
 }
+
+// ── quem está logado ─────────────────────────────────────────────────────────
+//
+// O painel tinha login e não mostrava em que conta você estava, nem como sair —
+// a função de sair existia e nenhum botão chamava ela. Com o time todo entrando
+// com contas diferentes, isso deixa de ser detalhe.
+
+function pintarQuemSou() {
+  const eu = sessaoAtual();
+  const caixa = document.getElementById('quem-sou');
+  if (!caixa || !eu) return;
+  const primeiro = String(eu.nome || '').trim().split(/\s+/)[0] || 'Você';
+  const iniciais = String(eu.nome || '?').trim().split(/\s+/).slice(0, 2)
+    .map((p) => p[0]).join('').toUpperCase();
+
+  caixa.style.display = '';
+  document.getElementById('quem-sou-inicial').textContent = iniciais;
+  document.getElementById('quem-sou-nome').textContent = primeiro;
+  document.getElementById('quem-sou-completo').textContent = eu.nome || '';
+  document.getElementById('quem-sou-email').textContent = eu.email || '';
+  document.getElementById('quem-sou-papel').textContent = eu.admin
+    ? 'Administra o painel' : 'Acesso da equipe';
+}
+
+function alternarMenuDaConta() {
+  const menu = document.getElementById('quem-sou-menu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function irParaMinhaConta() {
+  alternarMenuDaConta();
+  const btn = document.getElementById('btn-board-conta');
+  if (btn && typeof switchBoard === 'function') switchBoard('conta', btn);
+}
+
+document.addEventListener('click', (evento) => {
+  const menu = document.getElementById('quem-sou-menu');
+  if (!menu || menu.style.display === 'none') return;
+  if (evento.target.closest('#quem-sou')) return;
+  menu.style.display = 'none';
+});

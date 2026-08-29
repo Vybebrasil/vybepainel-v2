@@ -630,6 +630,13 @@ function setupIdentityInteractions() {
 }
 
 function openModeGate() {
+  // O portão perguntava "qual estação você vai operar?" sem dizer quem estava
+  // perguntando. Quem acabou de fazer login precisa ver em qual conta está.
+  const eu = pessoaLogada();
+  const rodape = document.getElementById('identity-quem');
+  if (rodape && eu) {
+    rodape.textContent = `${eu.nome}${eu.admin ? ' · administra o painel' : ''}`;
+  }
   renderIdentityOperationalPulse();
   renderFocusUserPicker();
   setupIdentityInteractions();
