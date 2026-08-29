@@ -188,7 +188,9 @@ async function areaPeca(req, res) {
   const [arquivos, updates, eventos] = await Promise.all([
     db`SELECT monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica,
               url_drive, drive_file_id, criado_em
-         FROM vybe_conteudo_arquivos WHERE conteudo_id = ${c.id} ORDER BY criado_em DESC NULLS LAST`,
+         FROM vybe_conteudo_arquivos
+         WHERE conteudo_id = ${c.id} AND ausente_em IS NULL
+         ORDER BY criado_em DESC NULLS LAST`,
     db`SELECT monday_update_id, corpo, autor, criado_em
          FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id}
         ORDER BY criado_em DESC NULLS LAST LIMIT 12`,

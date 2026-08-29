@@ -215,6 +215,10 @@ export async function criarSchema() {
   await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS drive_file_id TEXT`;
   await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS url_drive TEXT`;
   await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS migrado_em TIMESTAMPTZ`;
+  // Anexo apagado no Monday depois da nossa sincronização. O registro fica — é
+  // história de que o arquivo existiu — mas sai da fila de migração e da tela,
+  // senão a migração tenta para sempre e o painel mostra anexo quebrado.
+  await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS ausente_em TIMESTAMPTZ`;
 
   // Hoje cada mudança vira prosa dentro de um update do Monday
   // ("[Vybe OS · Responsáveis atualizados] Anterior: X Novo: Y"). Aqui vira registro
@@ -1200,7 +1204,8 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
       FROM vybe_conteudo_arquivos a
       JOIN vybe_conteudos c ON c.id = a.conteudo_id
       JOIN vybe_status s ON s.chave = c.status_chave
-     WHERE a.url_drive IS NULL AND NOT s.final AND a.monday_asset_id IS NOT NULL
+     WHERE a.url_drive IS NULL AND a.ausente_em IS NULL
+       AND NOT s.final AND a.monday_asset_id IS NOT NULL
      ORDER BY c.veiculacao NULLS LAST, a.id
      LIMIT ${limite}`;
   if (!pendentes.length) return { pendentes: 0, enviados: 0, falhas: [] };
@@ -1215,7 +1220,13 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
   const falhas = [];
   for (const arq of pendentes) {
     const url = frescas.get(String(arq.monday_asset_id));
-    if (!url) { falhas.push({ nome: arq.nome, erro: 'Monday não devolveu a URL.' }); continue; }
+    if (!url) {
+      // O Monday não conhece mais este anexo: foi apagado lá depois da nossa
+      // sincronização. Marcar encerra o assunto; insistir só repetiria o erro.
+      await sql`UPDATE vybe_conteudo_arquivos SET ausente_em=NOW() WHERE id=${arq.id}`;
+      falhas.push({ nome: arq.nome, erro: 'apagado no Monday — marcado como ausente' });
+      continue;
+    }
     try {
       const pastaId = await pastaDoConteudo({ cliente: arq.cliente, data: arq.veiculacao || arq.prazo });
       const enviado = await enviarParaDrive({ url, nome: arq.nome, mime: null, pastaId });
@@ -1232,6 +1243,7 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
       FROM vybe_conteudo_arquivos a
       JOIN vybe_conteudos c ON c.id = a.conteudo_id
       JOIN vybe_status s ON s.chave = c.status_chave
-     WHERE a.url_drive IS NULL AND NOT s.final AND a.monday_asset_id IS NOT NULL`)[0].n;
+     WHERE a.url_drive IS NULL AND a.ausente_em IS NULL
+       AND NOT s.final AND a.monday_asset_id IS NOT NULL`)[0].n;
   return { enviados, bytes, falhas, restam };
 }
