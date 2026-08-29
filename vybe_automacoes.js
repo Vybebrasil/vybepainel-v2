@@ -75,7 +75,7 @@ const SEMENTE = [
   { nome: 'Aprovado para agendar vai para publicações com a Tainara', ordem: 10,
     gatilho: { tipo: 'status', para: 'para_agendar' }, condicao: null,
     acoes: [
-      { tipo: 'captacao', para: 'agendado' },
+      { tipo: 'captacao', para: 'Editado' },
       { tipo: 'grupo', para: GRUPOS.publicacoes },
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['80146924'] },
       { tipo: 'update', texto: 'Encaminhado para agendamento.' },
@@ -119,15 +119,15 @@ const SEMENTE = [
     condicao: { formato_em: DESIGN },
     acoes: [{ tipo: 'responsaveis', modo: 'add', pessoas: ['68997024'] }] },
 
-  { nome: 'Captação a agendar fica com o Ademir', ordem: 40,
-    gatilho: { tipo: 'captacao', para: 'agendar_captacao' }, condicao: null,
+  { nome: 'Captação agendada fica com o Ademir', ordem: 40,
+    gatilho: { tipo: 'captacao', para: 'Captação Agendada' }, condicao: null,
     acoes: [
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['78158742'] },
       { tipo: 'status', para: 'cap_agendada' },
     ] },
 
-  { nome: 'Captação agendada passa para o Reriston', ordem: 41,
-    gatilho: { tipo: 'captacao', de: 'agendar_captacao', para: 'cap_agendada' }, condicao: null,
+  { nome: 'Captação feita passa para o Reriston', ordem: 41,
+    gatilho: { tipo: 'captacao', de: 'Captação Agendada', para: 'Captação Feita' }, condicao: null,
     acoes: [
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['68036697'] },
       { tipo: 'grupo', para: GRUPOS.design },
