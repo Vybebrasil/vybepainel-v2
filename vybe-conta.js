@@ -7,10 +7,12 @@ const CONTA_API = '/api/painel?area=conta';
 const PESSOAS_API = '/api/painel?area=pessoas';
 const CLIENTES_API = '/api/painel?area=clientes';
 const OPCOES_API = '/api/painel?area=opcoes';
+const ACESSOS_API = '/api/painel?area=acessos';
 
 let EQUIPE = [];
 let CLIENTES = [];
 let OPCOES = null;
+let ACESSOS = [];
 
 function ehAdmin() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
@@ -20,7 +22,7 @@ async function carregarConta() {
   const raiz = document.getElementById('conta-root');
   if (!raiz) return;
   raiz.innerHTML = '<div class="auto-carregando">CARREGANDO…</div>';
-  EQUIPE = []; CLIENTES = []; OPCOES = null;
+  EQUIPE = []; CLIENTES = []; OPCOES = null; ACESSOS = [];
   if (ehAdmin()) {
     // Cada bloco falha por conta própria: a área da conta não pode sumir porque
     // a lista de clientes não carregou.
@@ -28,6 +30,7 @@ async function carregarConta() {
       (async () => { try { const r = await fetch(PESSOAS_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) EQUIPE = d.pessoas || []; } catch {} })(),
       (async () => { try { const r = await fetch(CLIENTES_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) CLIENTES = d.clientes || []; } catch {} })(),
       (async () => { try { const r = await fetch(OPCOES_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) OPCOES = d; } catch {} })(),
+      (async () => { try { const r = await fetch(ACESSOS_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) ACESSOS = d.acessos || []; } catch {} })(),
     ]);
   }
   pintarConta();
@@ -103,7 +106,8 @@ function pintarConta() {
     </div>
     <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhuma pessoa cadastrada.</div>'}</div>
     ${blocoClientes()}
-    ${blocoOpcoes()}` : ''}`;
+    ${blocoOpcoes()}
+    ${blocoAcessos()}` : ''}`;
 }
 
 // ── clientes ──────────────────────────────────────────────────────────────────
@@ -260,4 +264,82 @@ async function redefinirSenhaDe(email, nome) {
     showToast(`Senha definida para ${nome}. Passe para a pessoa por um canal privado.`, 'success', 7000);
     carregarConta();
   } catch (erro) { showToast(erro.message, 'error', 6000); }
+}
+
+// ── acessos ───────────────────────────────────────────────────────────────────
+//
+// As credenciais de cada cliente viviam num documento dentro do Monday — a coisa
+// mais presa lá de todas, porque documento não sai por exportação de item.
+//
+// A lista mostra só metadado. O conteúdo vem numa segunda chamada, um de cada
+// vez, e não fica na tela: abrir esta aba não pode deixar 43 senhas paradas na
+// memória do navegador de quem só queria conferir a equipe.
+function blocoAcessos() {
+  const linhas = ACESSOS.map((a) => {
+    const nome = String(a.nome || '').replace(/^Dados\s*&\s*Acessos\s*[-–—]\s*/i, '');
+    return `
+    <div class="eq-linha ${a.grupo === 'Inativos' ? 'fora' : ''}">
+      <div class="eq-quem">
+        <b>${safeText(nome)}</b>
+        <span class="eq-email">${a.cliente ? safeText(a.cliente) : 'sem cliente vinculado'}</span>
+      </div>
+      <div class="eq-estado">
+        ${a.tem_documento ? `documento com ${a.tamanho} caracteres` : '<b class="eq-travado">sem documento</b>'}
+        ${a.pasta_drive ? ' · tem pasta no Drive' : ''}
+      </div>
+      <div class="eq-acoes">
+        ${a.tem_documento ? `<button onclick="verAcesso(${a.id})">ver credenciais</button>` : ''}
+        ${a.pasta_drive ? `<a class="ac-link" href="${safeText(a.pasta_drive)}" target="_blank" rel="noopener">drive ↗</a>` : ''}
+        ${a.link ? `<a class="ac-link" href="${safeText(a.link)}" target="_blank" rel="noopener">link ↗</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const semDoc = ACESSOS.filter((a) => !a.tem_documento).length;
+  return `
+    <div class="auto-cabeca" style="margin-top:26px">
+      <div>
+        <div class="auto-kicker">VYBE OS · ACESSOS</div>
+        <h2 class="auto-titulo">Credenciais dos clientes</h2>
+        <p class="auto-sub">Vieram dos documentos do Monday.${semDoc ? ` ${semDoc} clientes estão sem documento — a lacuna é do cadastro, não da migração.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.</p>
+      </div>
+    </div>
+    <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum acesso cadastrado.</div>'}</div>
+    <div id="acesso-aberto"></div>`;
+}
+
+async function verAcesso(id) {
+  const caixa = document.getElementById('acesso-aberto');
+  if (!caixa) return;
+  caixa.innerHTML = '<div class="auto-carregando">BUSCANDO…</div>';
+  caixa.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  try {
+    const r = await fetch(`${ACESSOS_API}&id=${encodeURIComponent(id)}`, { credentials: 'same-origin' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível abrir.');
+    const a = d.acesso;
+    const nome = String(a.nome || '').replace(/^Dados\s*&\s*Acessos\s*[-–—]\s*/i, '');
+    caixa.innerHTML = `
+      <div class="ac-doc">
+        <div class="ac-doc-topo">
+          <b>${safeText(nome)}</b>
+          <div>
+            <button onclick="copiarAcesso(${a.id})">copiar</button>
+            <button onclick="document.getElementById('acesso-aberto').innerHTML=''">fechar</button>
+          </div>
+        </div>
+        <pre id="ac-doc-texto">${safeText(a.doc_conteudo || '')}</pre>
+      </div>`;
+  } catch (erro) {
+    caixa.innerHTML = `<div class="auto-carregando">NÃO FOI POSSÍVEL ABRIR<br><small>${safeText(erro.message)}</small></div>`;
+  }
+}
+
+async function copiarAcesso() {
+  const el = document.getElementById('ac-doc-texto');
+  if (!el) return;
+  try {
+    await navigator.clipboard.writeText(el.textContent || '');
+    showToast('Credenciais copiadas.', 'success', 3000);
+  } catch { showToast('Não consegui copiar; selecione o texto na tela.', 'info', 5000); }
 }

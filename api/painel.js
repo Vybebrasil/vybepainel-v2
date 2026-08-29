@@ -368,8 +368,13 @@ async function areaClientes(req, res, quem) {
 
   if (req.method === 'GET') {
     const linhas = await db`
-      SELECT c.id, c.nome, c.ativo,
-             (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos
+      SELECT c.id, c.nome, c.ativo, c.email, c.telefone, c.endereco, c.cnpj,
+             c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
+             c.dashboard, c.valor, c.proxima_reuniao, c.criado_no_monday,
+             (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
+             (SELECT STRING_AGG(p.nome, ', ' ORDER BY cp.ordem, p.nome)
+                FROM vybe_cliente_pessoas cp JOIN vybe_pessoas p ON p.id = cp.pessoa_id
+               WHERE cp.cliente_id = c.id) AS heads
         FROM vybe_clientes c ORDER BY c.ativo DESC, c.nome`;
     return res.status(200).json({ ok: true, clientes: linhas });
   }
@@ -388,6 +393,25 @@ async function areaClientes(req, res, quem) {
         return res.status(200).json({ ok: true, reativado: true, cliente: r[0] });
       }
       const r = await db`INSERT INTO vybe_clientes (nome) VALUES (${limpo}) RETURNING id, nome, ativo`;
+      return res.status(200).json({ ok: true, cliente: r[0] });
+    }
+    if (acao === 'ficha') {
+      // Cadastro veio do Monday; a partir daqui ele se corrige aqui.
+      const { campos } = req.body || {};
+      if (!id || !campos) return res.status(400).json({ error: 'Informe o cliente e os campos.' });
+      const r = await db`UPDATE vybe_clientes SET
+          email=COALESCE(${campos.email ?? null}, email),
+          telefone=COALESCE(${campos.telefone ?? null}, telefone),
+          endereco=COALESCE(${campos.endereco ?? null}, endereco),
+          cnpj=COALESCE(${campos.cnpj ?? null}, cnpj),
+          plano=COALESCE(${campos.plano ?? null}, plano),
+          segmento=COALESCE(${campos.segmento ?? null}, segmento),
+          responsavel=COALESCE(${campos.responsavel ?? null}, responsavel),
+          planejamento_url=COALESCE(${campos.planejamento_url ?? null}, planejamento_url),
+          valor=COALESCE(${campos.valor ?? null}::numeric, valor),
+          proxima_reuniao=COALESCE(${campos.proxima_reuniao ?? null}::date, proxima_reuniao)
+        WHERE id=${Number(id)} RETURNING id, nome`;
+      if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
     }
     if (acao === 'renomear') {

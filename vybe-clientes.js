@@ -121,6 +121,44 @@ function renderClientMasterDetail(cli) {
   const sourceNote=CLIENT_MASTER_ERROR?'A fonte mestre não respondeu; os dados operacionais continuam disponíveis.':CLIENT_MASTER_LOADED?'Dados conectados aos boards oficiais do Monday.':'Carregando as fontes oficiais de Heads e Acessos...';
   node.innerHTML=`<div class="client-master-detail-card"><h3>${safeText(record.name)}</h3><p>Ficha mestre da conta · ${sourceNote}</p><div class="client-master-detail-grid"><div class="client-master-detail-field"><small>Status da conta</small><b>${clientMasterValue(meta.status || (record.activeCount ? 'Ativa na operação' : 'Sem itens ativos'))}</b></div><div class="client-master-detail-field"><small>Head / responsável</small><b>${clientMasterValue(meta.head)}</b></div><div class="client-master-detail-field"><small>Segmento</small><b>${clientMasterValue(meta.segment)}</b></div><div class="client-master-detail-field"><small>Plano</small><b>${clientMasterValue(meta.plan)}</b></div></div></div><div class="client-master-detail-card"><h3>Dados da conta</h3><p>Referências operacionais vinculadas ao cliente, sem expor credenciais diretamente na interface.</p><div class="client-master-detail-grid"><div class="client-master-detail-field"><small>Dashboard</small><b>${clientMasterValue(meta.dashboard)}</b></div><div class="client-master-detail-field"><small>Próxima reunião</small><b>${clientMasterValue(meta.nextMeeting)}</b></div><div class="client-master-detail-field"><small>Drive / documentos</small><b>${clientMasterValue(meta.drive || meta.doc)}</b></div><div class="client-master-detail-field"><small>Manus / link operacional</small><b>${clientMasterValue(meta.link || (meta.manus ? 'Disponível' : ''))}</b></div></div></div>`;
 }
+// ── ficha do cliente ─────────────────────────────────────────────────────────
+//
+// Contato, CNPJ, plano, segmento, valor e head vinham do board "Gestão de
+// Clientes" e só existiam no Monday. Agora estão no nosso banco, e a tela que já
+// mostrava a operação de cada cliente passa a mostrar quem ele é.
+let CADASTRO_CLIENTES = [];
+
+async function carregarCadastroClientes() {
+  try {
+    const r = await fetch('/api/painel?area=clientes', { credentials: 'same-origin' });
+    if (!r.ok) return;
+    CADASTRO_CLIENTES = (await r.json()).clientes || [];
+  } catch { /* a tela funciona sem a ficha */ }
+}
+
+function fichaDoCliente(nome) {
+  const alvo = String(nome || '').toLowerCase();
+  return CADASTRO_CLIENTES.find((c) => String(c.nome).toLowerCase() === alvo) || null;
+}
+
+function fichaClienteHtml(nome) {
+  const f = fichaDoCliente(nome);
+  if (!f) return '';
+  const brl = (v) => (v === null || v === undefined ? null
+    : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v)));
+  const dataBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : null; };
+  const linhas = [
+    ['Plano', f.plano], ['Segmento', f.segmento], ['Head', f.heads],
+    ['Responsável', f.responsavel], ['Valor', brl(f.valor)],
+    ['Próx. reunião', dataBr(f.proxima_reuniao)],
+    ['E-mail', f.email], ['Telefone', f.telefone], ['CNPJ', f.cnpj], ['Endereço', f.endereco],
+  ].filter(([, v]) => v);
+  if (!linhas.length && !f.planejamento_url) return '';
+  return `<div class="cliente-ficha">${
+    linhas.map(([r, v]) => `<div><span>${safeText(r)}</span><b>${safeText(v)}</b></div>`).join('')
+  }${f.planejamento_url ? `<div><span>Planejamento</span><b><a href="${safeText(f.planejamento_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir ↗</a></b></div>` : ''}</div>`;
+}
+
 function renderClientesBoard() {
   // Garantir que ambos os dados estejam carregados
   if (DADOS_DEMANDAS.length === 0) {
@@ -130,6 +168,7 @@ function renderClientesBoard() {
   // O cadastro mestre é derivado das duas fontes operacionais e mantém cada origem explícita.
   renderClientMasterOverview();
   void ensureClientMasterSources();
+  if (!CADASTRO_CLIENTES.length) { carregarCadastroClientes().then(() => renderClientesLista(clientMasterRecords().map((r) => r.name))); }
   const todosClientes = clientMasterRecords().map(record=>record.name);
   // KPIs
   document.getElementById('kpi-grid-clientes').innerHTML = [
@@ -160,6 +199,7 @@ function renderClientesLista(clientes) {
           <span class="posts-count ${atrasadas>0?'empty':'ok'}" title="Demandas">📋 ${nDem}</span>
         </div>
       </div>
+      ${fichaClienteHtml(cli)}
     </div>`;
   }).join('');
 }
