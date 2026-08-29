@@ -229,8 +229,8 @@ async function areaPeca(req, res) {
         WHERE conteudo_id = ${c.id} AND tipo = 'status' ORDER BY em DESC LIMIT 50`,
     // Os catálogos viajam junto: sem eles a tela não tem como oferecer as opções
     // de captação, tipo, prioridade e OFF sem uma segunda ida ao servidor.
-    db`SELECT chave, rotulo FROM vybe_captacao ORDER BY monday_index`,
-    db`SELECT coluna_id, chave, rotulo FROM vybe_opcoes ORDER BY coluna_id, indice`,
+    db`SELECT chave, rotulo, ativa FROM vybe_captacao ORDER BY monday_index`,
+    db`SELECT coluna_id, chave, rotulo, ativa FROM vybe_opcoes ORDER BY coluna_id, indice`,
   ]);
 
   // O Monday assina as URLs dos arquivos com UMA HORA de validade. Guardar o

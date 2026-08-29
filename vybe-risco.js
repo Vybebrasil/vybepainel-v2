@@ -715,11 +715,18 @@ const GRUPOS_DA_PRODUCAO = [
 
 let FICHA_ITEM = null;
 
+// Só oferece opção ativa no Monday. Opção desativada continua no catálogo dele e
+// gravaria aqui, mas a réplica é recusada com "label has been deactivated" — a
+// tela ofereceria uma escolha que não chega ao outro lado.
+//
+// A opção atual entra mesmo desativada: esconder o valor que a peça já tem faria
+// o seletor mostrar "—" para um campo preenchido, e salvar sem querer o apagaria.
 function fichaSelect(campo, opcoes, atual, itemId) {
   const escolhida = String(atual || '');
+  const oferecidas = opcoes.filter(([v, , ativa]) => ativa !== false || String(v) === escolhida);
   return `<select class="workspace-ficha-select" onchange="salvarCampoDaFicha('${itemId}','${campo}',this.value,this)">
     <option value=""${escolhida ? '' : ' selected'}>—</option>
-    ${opcoes.map(([v, r]) => `<option value="${safeText(v)}"${String(v) === escolhida ? ' selected' : ''}>${safeText(r)}</option>`).join('')}
+    ${oferecidas.map(([v, r, ativa]) => `<option value="${safeText(v)}"${String(v) === escolhida ? ' selected' : ''}>${safeText(r)}${ativa === false ? ' (desativada)' : ''}</option>`).join('')}
   </select>`;
 }
 
@@ -728,7 +735,7 @@ function workspaceFichaHtml(detail, itemId) {
   if (!f) return '';
   FICHA_ITEM = itemId;
   const cat = detail.catalogos || { captacao: [], opcoes: [] };
-  const por = (coluna) => (cat.opcoes || []).filter((o) => o.coluna_id === coluna).map((o) => [o.chave, o.rotulo]);
+  const por = (coluna) => (cat.opcoes || []).filter((o) => o.coluna_id === coluna).map((o) => [o.chave, o.rotulo, o.ativa]);
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
   const texto = (v) => `<b class="${v ? '' : 'vazio'}">${safeText(v || '—')}</b>`;
 
@@ -736,7 +743,7 @@ function workspaceFichaHtml(detail, itemId) {
     ['Grupo', fichaSelect('grupo', GRUPOS_DA_PRODUCAO, f.grupo_id, itemId)],
     ['Cliente', texto(f.cliente)],
     ['Status', texto(f.status)],
-    ['Captação', fichaSelect('captacao', (cat.captacao || []).map((o) => [o.chave, o.rotulo]), f.captacao_chave, itemId)],
+    ['Captação', fichaSelect('captacao', (cat.captacao || []).map((o) => [o.chave, o.rotulo, o.ativa]), f.captacao_chave, itemId)],
     ['🎙️ OFF', fichaSelect('off_audio', por('color_mkynd7j8'), f.off_audio_chave, itemId)],
     ['Tipo de conteúdo', fichaSelect('tipo_conteudo', por('lista_suspensa__1'), (f.tipo_conteudo_chaves || [])[0], itemId)],
     ['Formato', fichaSelect('formato', por('lista_suspensa0__1'), (f.formato_chaves || [])[0], itemId)],

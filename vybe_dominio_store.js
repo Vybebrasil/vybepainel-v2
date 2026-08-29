@@ -172,8 +172,11 @@ export async function criarSchema() {
     cor       TEXT,
     borda     TEXT,
     indice    INT,
+    ativa     BOOLEAN NOT NULL DEFAULT TRUE,
     PRIMARY KEY (coluna_id, chave)
   )`;
+  await sql`ALTER TABLE vybe_opcoes ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
+  await sql`ALTER TABLE vybe_captacao ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS formato_chaves TEXT[]`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS tipo_conteudo_chaves TEXT[]`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS prioridade_chave TEXT`;
@@ -1054,15 +1057,17 @@ export async function importarCatalogoCaptacao() {
   const cfg = JSON.parse(bruto);
   const rotulos = cfg.labels || {};
   const cores = cfg.labels_colors || {};
+  const desativadas = new Set((cfg.deactivated_labels || []).map(Number));
 
   let gravados = 0;
   for (const [indice, rotulo] of Object.entries(rotulos)) {
     if (!rotulo) continue;
-    await sql`INSERT INTO vybe_captacao (chave, rotulo, cor, borda, monday_index)
+    await sql`INSERT INTO vybe_captacao (chave, rotulo, cor, borda, monday_index, ativa)
       VALUES (${chaveStatus(rotulo)}, ${rotulo}, ${cores[indice]?.color || null},
-              ${cores[indice]?.border || cores[indice]?.color || null}, ${Number(indice)})
+              ${cores[indice]?.border || cores[indice]?.color || null}, ${Number(indice)},
+              ${!desativadas.has(Number(indice))})
       ON CONFLICT (chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
-        borda=EXCLUDED.borda, monday_index=EXCLUDED.monday_index`;
+        borda=EXCLUDED.borda, monday_index=EXCLUDED.monday_index, ativa=EXCLUDED.ativa`;
     gravados += 1;
   }
 
@@ -1095,6 +1100,10 @@ export async function importarCatalogoOpcoes() {
   for (const col of dados?.boards?.[0]?.columns || []) {
     const cfg = JSON.parse(col.settings_str || '{}');
     const cores = cfg.labels_colors || {};
+    // O Monday não apaga opção: marca como desativada e ela continua no settings.
+    // Oferecer uma dessas faz a gravação local passar e a réplica ser recusada
+    // com "label has been deactivated" — divergência silenciosa.
+    const desativadas = new Set((cfg.deactivated_labels || []).map(Number));
     // Coluna de status devolve {índice: rótulo}; dropdown devolve [{id, name}].
     const opcoes = Array.isArray(cfg.labels)
       ? cfg.labels.filter((l) => l?.name).map((l) => ({ indice: Number(l.id), rotulo: l.name }))
@@ -1102,12 +1111,13 @@ export async function importarCatalogoOpcoes() {
           .map(([i, r]) => ({ indice: Number(i), rotulo: r }));
 
     for (const o of opcoes) {
-      await sql`INSERT INTO vybe_opcoes (coluna_id, chave, rotulo, cor, borda, indice)
+      await sql`INSERT INTO vybe_opcoes (coluna_id, chave, rotulo, cor, borda, indice, ativa)
         VALUES (${col.id}, ${chaveStatus(o.rotulo)}, ${o.rotulo},
                 ${cores[o.indice]?.color || null},
-                ${cores[o.indice]?.border || cores[o.indice]?.color || null}, ${o.indice})
+                ${cores[o.indice]?.border || cores[o.indice]?.color || null}, ${o.indice},
+                ${!desativadas.has(Number(o.indice))})
         ON CONFLICT (coluna_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo,
-          cor=EXCLUDED.cor, borda=EXCLUDED.borda, indice=EXCLUDED.indice`;
+          cor=EXCLUDED.cor, borda=EXCLUDED.borda, indice=EXCLUDED.indice, ativa=EXCLUDED.ativa`;
       gravadas += 1;
     }
   }
