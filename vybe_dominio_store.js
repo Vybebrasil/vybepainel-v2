@@ -645,6 +645,16 @@ export async function perfilArquivos() {
       COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
     FROM vybe_conteudo_arquivos a`;
 
+  // Quanto já saiu do Monday. Enquanto houver arquivo só de lá, desligar a conta
+  // apaga o anexo do painel junto.
+  const onde = await sql`SELECT
+      CASE WHEN a.ausente_em IS NOT NULL THEN 'apagado no Monday'
+           WHEN a.url_drive IS NOT NULL  THEN 'no Drive da Vybe'
+           ELSE 'só no Monday' END                 AS onde,
+      COUNT(*)                                     AS arquivos,
+      COALESCE(SUM(a.tamanho_bytes),0)             AS bytes
+    FROM vybe_conteudo_arquivos a GROUP BY 1 ORDER BY 2 DESC`;
+
   const porFinal = await sql`SELECT
       COALESCE(s.final, false)                    AS finalizado,
       COUNT(*)                                    AS arquivos,
@@ -692,7 +702,7 @@ export async function perfilArquivos() {
     WHERE COALESCE(s.final,false) = false
     ORDER BY a.tamanho_bytes DESC`;
 
-  return { geral, por_final: porFinal, por_ano: porAno, por_status: porStatus,
+  return { onde, geral, por_final: porFinal, por_ano: porAno, por_status: porStatus,
            por_extensao: porExtensao, em_andamento: emAndamento };
 }
 
