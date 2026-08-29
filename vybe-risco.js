@@ -700,6 +700,35 @@ function workspaceExecutiveHistoryHtml(updates=[]) {
     return `<section class="workspace-section"><div class="workspace-section-head">Tempo em cada etapa</div><div class="workspace-section-body">${lines.join('')}</div></section>`;
   }
 
+// A ficha da peça, com os mesmos campos que o Monday mostra ao abrir um item.
+// Antes o drawer trazia formato, prazo e status; para ver captação, OFF, tipo de
+// conteúdo ou em que grupo a peça está era preciso abrir o Monday — que é
+// justamente o que estamos deixando de fazer.
+function workspaceFichaHtml(detail) {
+  const f = detail?.ficha;
+  if (!f) return '';
+  const dataBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const linhas = [
+    ['Grupo', f.grupo],
+    ['Cliente', f.cliente],
+    ['Status', f.status],
+    ['Captação', f.captacao],
+    ['🎙️ OFF', f.off_audio],
+    ['Tipo de conteúdo', f.tipo_conteudo],
+    ['Formato', f.formato],
+    ['Priority', f.prioridade],
+    ['Prazo', dataBr(f.prazo)],
+    ['Veiculação', dataBr(f.veiculacao)],
+    ['Responsável', f.responsaveis],
+    ['Editor/Designer', f.editores],
+  ];
+  // Campo vazio aparece como "—" em vez de sumir: saber que a captação está em
+  // branco é informação, e some-la esconde o que falta preencher.
+  return `<section class="workspace-section"><div class="workspace-section-head">Ficha da peça</div><div class="workspace-section-body"><div class="workspace-ficha">${
+    linhas.map(([r, v]) => `<div class="workspace-ficha-linha"><span>${safeText(r)}</span><b class="${v ? '' : 'vazio'}">${safeText(v || '—')}</b></div>`).join('')
+  }</div></div></section>`;
+}
+
   function renderWorkspaceDrawer(detail, item) {
   const drawer = document.getElementById('workspace-drawer');
   if (!drawer || !detail) return;
@@ -714,6 +743,7 @@ function workspaceExecutiveHistoryHtml(updates=[]) {
     <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div>
     <h2 class="workspace-title">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
+    ${workspaceFichaHtml(detail)}
     ${workspaceDeliveryDock(detail,item)}
     <div class="workspace-actions"><button type="button" class="workspace-action primary" onclick="openPlanningEditor('${item.id}')">Editar datas rápidas</button><button type="button" class="workspace-action" onclick="openOwnerEditor(event,'${item.id}')">Gerenciar responsáveis</button><button type="button" class="workspace-action" onclick="openDaDirectionModal('${item.id}')">Direcionar D.A.</button><button type="button" class="workspace-action" onclick="openStatusEditor({preventDefault(){},stopPropagation(){},currentTarget:this},'${item.id}')">Atualizar status</button><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Entregar e passar bastão</button><a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a></div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}

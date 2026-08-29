@@ -181,8 +181,37 @@ async function areaPeca(req, res) {
   if (!item) return res.status(400).json({ error: 'Informe o item.' });
 
   const db = sql();
-  const c = (await db`SELECT id, titulo, criado_em FROM vybe_conteudos
-    WHERE monday_item_id = ${item}`)[0];
+  // A ficha completa da peça. O drawer mostrava formato, prazo e status; o resto
+  // só dava para ver abrindo o Monday — que é justamente o que estamos deixando
+  // de fazer.
+  const c = (await db`
+    SELECT c.id, c.titulo, c.criado_em, c.etapa AS grupo, c.grupo_id,
+           c.prazo, c.veiculacao,
+           s.rotulo  AS status,
+           k.rotulo  AS captacao,
+           (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY x.ord)
+              FROM UNNEST(c.formato_chaves) WITH ORDINALITY AS x(chave, ord)
+              JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa0__1' AND o.chave=x.chave) AS formato,
+           (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY x.ord)
+              FROM UNNEST(c.tipo_conteudo_chaves) WITH ORDINALITY AS x(chave, ord)
+              JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa__1' AND o.chave=x.chave) AS tipo_conteudo,
+           (SELECT o.rotulo FROM vybe_opcoes o
+             WHERE o.coluna_id='color_mm164yv8' AND o.chave=c.prioridade_chave) AS prioridade,
+           (SELECT o.rotulo FROM vybe_opcoes o
+             WHERE o.coluna_id='color_mkynd7j8' AND o.chave=c.off_audio_chave) AS off_audio,
+           (SELECT STRING_AGG(p.nome, ', ' ORDER BY r.ordem, p.nome)
+              FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id=r.pessoa_id
+             WHERE r.conteudo_id=c.id) AS responsaveis,
+           (SELECT STRING_AGG(p.nome, ', ' ORDER BY e.ordem, p.nome)
+              FROM vybe_conteudo_editores e JOIN vybe_pessoas p ON p.id=e.pessoa_id
+             WHERE e.conteudo_id=c.id) AS editores,
+           (SELECT STRING_AGG(cl.nome, ', ')
+              FROM vybe_conteudo_clientes vc JOIN vybe_clientes cl ON cl.id=vc.cliente_id
+             WHERE vc.conteudo_id=c.id) AS clientes
+      FROM vybe_conteudos c
+      LEFT JOIN vybe_status   s ON s.chave = c.status_chave
+      LEFT JOIN vybe_captacao k ON k.chave = c.captacao_chave
+     WHERE c.monday_item_id = ${item}`)[0];
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
   const [arquivos, updates, eventos] = await Promise.all([
@@ -250,6 +279,13 @@ async function areaPeca(req, res) {
     id: item,
     name: c.titulo,
     created_at: c.criado_em,
+    ficha: {
+      cliente: c.clientes, grupo: c.grupo, grupo_id: c.grupo_id, status: c.status,
+      captacao: c.captacao, off_audio: c.off_audio, tipo_conteudo: c.tipo_conteudo,
+      formato: c.formato, prioridade: c.prioridade,
+      prazo: c.prazo, veiculacao: c.veiculacao,
+      responsaveis: c.responsaveis, editores: c.editores,
+    },
     assets,
     column_values: [{
       id: COLUNA_ARQUIVOS,
