@@ -65,20 +65,40 @@ async function drive(caminho, opcoes = {}) {
   return d;
 }
 
+// O drive da agência já tem as pastas de cliente, com nomes que nem sempre são
+// os do Monday. Criar por nome exato encheria o drive de pastas duplicadas ao
+// lado das que já existem.
+function semSinais(v) {
+  return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Onde o nome no Monday e o nome no Drive divergem de verdade — não é diferença
+// de acento ou espaço, é outro nome para o mesmo cliente.
+const ALIAS_CLIENTE = {
+  'serragrandebebidas': 'Grupo Serra Grande',
+  'hellenrocha': 'Hellen Rocha - Advogada',
+  'academialions': 'Academia LionsTop',
+};
+
 // Cria a pasta se não existir. O caminho é a estrutura que a Vybe já usa:
 // Cliente / Social Media / ano / mês / dia.
 const pastaCache = new Map();
 
 async function pasta(nome, paiId) {
-  const chave = `${paiId}/${nome}`;
+  const chave = `${paiId}/${semSinais(nome)}`;
   if (pastaCache.has(chave)) return pastaCache.get(chave);
 
+  // Lista e compara ignorando acento, espaço e maiúscula: 'DiaCenter' no Monday
+  // é a pasta 'Dia Center' no Drive, e busca por nome exato não acharia.
   const q = encodeURIComponent(
-    `name = '${String(nome).replace(/'/g, "\\'")}' and '${paiId}' in parents ` +
-    `and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+    `'${paiId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
   );
-  const achado = await drive(`files?q=${q}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`);
-  let id = achado.files?.[0]?.id;
+  const filhas = await drive(
+    `files?q=${q}&fields=files(id,name)&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true`
+  );
+  const alvo = semSinais(nome);
+  let id = (filhas.files || []).find((f) => semSinais(f.name) === alvo)?.id;
 
   if (!id) {
     const nova = await drive('files?supportsAllDrives=true&fields=id', {
@@ -99,7 +119,8 @@ export async function pastaDoConteudo({ cliente, data }) {
   const raiz = process.env.DRIVE_PASTA_RAIZ;
   if (!raiz) throw new Error('DRIVE_PASTA_RAIZ não configurada.');
   const d = data ? new Date(`${String(data).slice(0, 10)}T12:00:00Z`) : new Date();
-  let id = await pasta(cliente || 'Sem cliente', raiz);
+  const nomeCliente = ALIAS_CLIENTE[semSinais(cliente)] || cliente || 'Sem cliente';
+  let id = await pasta(nomeCliente, raiz);
   id = await pasta('Social Media', id);
   id = await pasta(String(d.getUTCFullYear()), id);
   id = await pasta(`${String(d.getUTCMonth() + 1).padStart(2, '0')} · ${MESES[d.getUTCMonth()]}`, id);
