@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
   try {
     const inicio = Date.now();
-    const { board_id, status, captacao, pessoas, itens } = await listarConteudos();
+    const { board_id, status, captacao, opcoes, pessoas, itens } = await listarConteudos();
     return res.status(200).json({
       ok: true,
       board_id,
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
       ms: Date.now() - inicio,
       status,
       captacao,
+      opcoes,
       pessoas,
       itens,
     });
