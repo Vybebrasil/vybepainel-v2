@@ -109,6 +109,9 @@ export async function criarSchema() {
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS email TEXT`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS pode_entrar BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS ultimo_acesso TIMESTAMPTZ`;
+  // As fotos do time eram URLs fixas em files.monday.com, escritas no código. No
+  // dia em que o Monday sair, todo avatar do painel quebra junto.
+  await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS vybe_pessoas_email_idx ON vybe_pessoas (LOWER(email)) WHERE email IS NOT NULL`;
 
   // As cores hoje vêm coladas em cada um dos 1.969 itens, porque acompanham a
@@ -537,7 +540,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
           FROM vybe_captacao ORDER BY monday_index`,
     sql`SELECT coluna_id, chave, rotulo, cor, borda, indice
           FROM vybe_opcoes ORDER BY coluna_id, indice`,
-    sql`SELECT monday_user_id AS id, nome, papel, disciplina
+    sql`SELECT monday_user_id AS id, nome, papel, disciplina, foto_url
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     sql`
       SELECT

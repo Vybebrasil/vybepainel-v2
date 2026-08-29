@@ -115,7 +115,26 @@ async function areaNotificacoes(req, res, quem) {
 async function areaConta(req, res, quem) {
   if (quem.tipo !== 'sessao') return res.status(403).json({ error: 'Conta é de pessoa, não de serviço.' });
 
-  if (req.method === 'GET') return res.status(200).json({ ok: true, pessoa: quem.pessoa });
+  if (req.method === 'GET') {
+    // A sessão carrega id, nome, e-mail e papel; a foto vive no banco e muda sem
+    // que o cookie mude.
+    const foto = (await sql()`SELECT foto_url FROM vybe_pessoas WHERE id=${quem.pessoa.id}`)[0];
+    return res.status(200).json({ ok: true, pessoa: { ...quem.pessoa, foto_url: foto?.foto_url || null } });
+  }
+
+  if (req.method === 'POST' && req.body?.foto) {
+    // A foto vai para o Drive, como qualquer arquivo nosso. Guardar imagem no
+    // banco encheria a linha da pessoa de binário sem motivo.
+    const { foto, nome } = req.body;
+    const pastaId = await pastaDoConteudo({ cliente: 'Vybe', data: null });
+    const enviado = await enviarParaDrive({
+      conteudo: foto, nome: `foto-${quem.pessoa.id}-${String(nome || 'perfil')}`.slice(0, 80),
+      mime: null, pastaId,
+    });
+    const url = `https://drive.google.com/thumbnail?id=${enviado.id}&sz=w200`;
+    await sql()`UPDATE vybe_pessoas SET foto_url=${url} WHERE id=${quem.pessoa.id}`;
+    return res.status(200).json({ ok: true, foto_url: url });
+  }
 
   if (req.method === 'POST') {
     const { senha_atual: atual, senha_nova: nova } = req.body || {};

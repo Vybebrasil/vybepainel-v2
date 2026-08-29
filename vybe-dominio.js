@@ -40,6 +40,7 @@ async function buscarDominio() {
 function dominioComoItensDoMonday(dados) {
   const status = new Map((dados.status || []).map((s) => [s.chave, s]));
   const pessoas = new Map((dados.pessoas || []).map((p) => [String(p.id), p.nome]));
+  aplicarFotosDoBanco(dados.pessoas);
   const captacao = new Map((dados.captacao || []).map((c) => [c.chave, c.rotulo]));
   const C = COLUNAS.producao;
 
@@ -238,4 +239,15 @@ function demandasComoItensDoMonday(dados) {
       ],
     };
   });
+}
+
+// As fotos do time estavam escritas no código, apontando para files.monday.com —
+// no dia em que o Monday sair, todo avatar quebra. Quem já trocou a própria foto
+// passa a ser servido pelo Drive da Vybe; quem não trocou continua com a antiga
+// até trocar.
+function aplicarFotosDoBanco(pessoas) {
+  if (!Array.isArray(pessoas) || typeof TEAM_USERS === 'undefined') return;
+  const porId = new Map(pessoas.filter((p) => p.foto_url).map((p) => [String(p.id), p.foto_url]));
+  if (!porId.size) return;
+  TEAM_USERS.forEach((u) => { const nova = porId.get(String(u.id)); if (nova) u.photo = nova; });
 }

@@ -13,6 +13,7 @@ let EQUIPE = [];
 let CLIENTES = [];
 let OPCOES = null;
 let ACESSOS = [];
+let MINHA_CONTA = null;
 
 function ehAdmin() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
@@ -23,6 +24,10 @@ async function carregarConta() {
   if (!raiz) return;
   raiz.innerHTML = '<div class="auto-carregando">CARREGANDO…</div>';
   EQUIPE = []; CLIENTES = []; OPCOES = null; ACESSOS = [];
+  try {
+    const r = await fetch(CONTA_API, { credentials: 'same-origin' });
+    if (r.ok) MINHA_CONTA = (await r.json()).pessoa || null;
+  } catch { MINHA_CONTA = null; }
   if (ehAdmin()) {
     // Cada bloco falha por conta própria: a área da conta não pode sumir porque
     // a lista de clientes não carregou.
@@ -46,7 +51,7 @@ function quandoAcessou(iso) {
 
 function pintarConta() {
   const raiz = document.getElementById('conta-root');
-  const eu = typeof sessaoAtual === 'function' ? sessaoAtual() : null;
+  const eu = MINHA_CONTA || (typeof sessaoAtual === 'function' ? sessaoAtual() : null);
   if (!raiz || !eu) return;
 
   const linhas = EQUIPE.map((p) => {
@@ -86,6 +91,20 @@ function pintarConta() {
     </div>
 
     <div class="conta-caixa">
+      <div class="conta-titulo">Minha foto</div>
+      <div class="conta-foto">
+        <div class="conta-foto-atual" id="conta-foto-atual">${eu.foto_url
+          ? `<img src="${safeText(eu.foto_url)}" alt="Sua foto">`
+          : `<span>${safeText(String(eu.nome || '?').trim().split(/\s+/).slice(0,2).map((p) => p[0]).join('').toUpperCase())}</span>`}</div>
+        <div>
+          <input type="file" id="conta-foto-arquivo" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="enviarMinhaFoto(this)">
+          <button class="auto-novo" onclick="document.getElementById('conta-foto-arquivo').click()">Escolher imagem</button>
+          <p class="auto-ajuda" style="margin:8px 0 0">PNG, JPG ou WEBP, até 2 MB. Ela vai para o Drive da Vybe — as fotos antigas do time apontam para o Monday e somem quando ele for desligado.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="conta-caixa" style="margin-top:12px">
       <div class="conta-titulo">Trocar minha senha</div>
       <div class="conta-linha">
         <label>Senha atual<input id="conta-atual" type="password" autocomplete="current-password"></label>
@@ -342,4 +361,35 @@ async function copiarAcesso() {
     await navigator.clipboard.writeText(el.textContent || '');
     showToast('Credenciais copiadas.', 'success', 3000);
   } catch { showToast('Não consegui copiar; selecione o texto na tela.', 'info', 5000); }
+}
+
+// Troca da própria foto. Vai para o Drive, como qualquer arquivo nosso.
+async function enviarMinhaFoto(input) {
+  const arquivo = input?.files?.[0];
+  if (!arquivo) return;
+  if (arquivo.size > 2 * 1024 * 1024) {
+    showToast('Imagem grande demais; até 2 MB.', 'error', 5000);
+    input.value = ''; return;
+  }
+  showToast('Enviando sua foto...', 'info', 5000);
+  try {
+    const base64 = await new Promise((ok, erro) => {
+      const leitor = new FileReader();
+      leitor.onload = () => ok(String(leitor.result).split(',')[1]);
+      leitor.onerror = erro;
+      leitor.readAsDataURL(arquivo);
+    });
+    const r = await fetch(CONTA_API, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ foto: base64, nome: arquivo.name }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível enviar.');
+    const alvo = document.getElementById('conta-foto-atual');
+    if (alvo) alvo.innerHTML = `<img src="${d.foto_url}" alt="Sua foto">`;
+    showToast('✓ Foto atualizada. Ela aparece para o time no próximo carregamento.', 'ok', 6000);
+  } catch (erro) {
+    showToast(`Não foi possível enviar: ${erro.message}`, 'error', 7000);
+  } finally { input.value = ''; }
 }
