@@ -639,3 +639,90 @@ export async function eventos(limite = 20) {
     LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
     ORDER BY e.em DESC LIMIT ${Number(limite) || 20}`;
 }
+
+// ── mudança feita direto no Monday ───────────────────────────────────────────
+//
+// O webhook alimentava só o espelho. As tabelas de domínio ficavam com o estado
+// da migração mais o que o próprio painel gravou — então quem abrisse o Monday e
+// mexesse num card criava divergência que só crescia. Foi assim que cinco datas
+// de veiculação ficaram diferentes entre as duas fontes.
+
+const GRUPO_TITULO_DOM = {
+  novo_grupo31348__1: 'Finalizados',
+  novo_grupo57911__1: 'Produção ( Foto e Vídeo, à Captar )',
+  novo_grupo__1: 'Design & Edição',
+  group_title: 'Redação',
+  novo_grupo22352__1: 'Gestão de publicações',
+};
+
+export async function sincronizarDoEvento(sql, evento) {
+  const mondayId = String(evento?.pulseId || evento?.itemId || '');
+  if (!mondayId) return null;
+  const item = (await sql`SELECT id FROM vybe_conteudos WHERE monday_item_id=${mondayId}`)[0];
+  if (!item) return null;
+  const id = item.id;
+  const tipo = evento.type;
+
+  if (tipo === 'update_name') {
+    const nome = evento.value?.name ?? evento.value;
+    if (!nome) return null;
+    await sql`UPDATE vybe_conteudos SET titulo=${String(nome)}, atualizado_em=NOW() WHERE id=${id}`;
+    return { campo: 'titulo' };
+  }
+
+  if (tipo === 'move_pulse_into_group') {
+    const grupo = evento.destGroup?.id;
+    if (!grupo) return null;
+    await sql`UPDATE vybe_conteudos SET grupo_id=${grupo},
+        etapa=${GRUPO_TITULO_DOM[grupo] || evento.destGroup?.title || null}, atualizado_em=NOW()
+      WHERE id=${id}`;
+    return { campo: 'grupo' };
+  }
+
+  if (tipo !== 'update_column_value' && tipo !== 'change_column_value') return null;
+  const col = evento.columnId;
+
+  if (col === 'status') {
+    const chave = (await sql`SELECT chave FROM vybe_status
+      WHERE monday_index=${Number(evento.value?.label?.index)}`)[0]?.chave;
+    if (!chave) return null;
+    await sql`UPDATE vybe_conteudos SET status_chave=${chave}, status_em=NOW(), atualizado_em=NOW()
+      WHERE id=${id}`;
+    return { campo: 'status' };
+  }
+
+  if (col === 'data' || col === 'data__1') {
+    // O Monday manda '2026-07-25' ou '2026-07-25 00:00'; e null quando limpam.
+    const bruto = evento.value?.date ?? null;
+    const iso = bruto ? String(bruto).slice(0, 10) : null;
+    const data = iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
+    if (col === 'data') await sql`UPDATE vybe_conteudos SET prazo=${data}, atualizado_em=NOW() WHERE id=${id}`;
+    else await sql`UPDATE vybe_conteudos SET veiculacao=${data}, atualizado_em=NOW() WHERE id=${id}`;
+    return { campo: col === 'data' ? 'prazo' : 'veiculacao' };
+  }
+
+  if (col === 'person') {
+    const ids = (evento.value?.personsAndTeams || []).map((p) => String(p.id));
+    await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${id}`;
+    if (ids.length) {
+      await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
+        SELECT ${id}, p.id FROM vybe_pessoas p WHERE p.monday_user_id = ANY(${ids})
+        ON CONFLICT DO NOTHING`;
+    }
+    return { campo: 'responsaveis' };
+  }
+
+  if (col === 'lista_suspensa0__1') {
+    const nomes = (evento.value?.chosenValues || []).map((v) => v.name).filter(Boolean);
+    await sql`UPDATE vybe_conteudos SET formato=${nomes.join(', ') || null}, atualizado_em=NOW() WHERE id=${id}`;
+    return { campo: 'formato' };
+  }
+
+  if (col === 'status_1__1') {
+    await sql`UPDATE vybe_conteudos SET captacao=${evento.value?.label?.text || null}, atualizado_em=NOW()
+      WHERE id=${id}`;
+    return { campo: 'captacao' };
+  }
+
+  return null;
+}

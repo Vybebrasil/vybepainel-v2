@@ -262,6 +262,10 @@ export async function aplicar(sql, conteudoId, evento) {
 
   const regras = await sql`SELECT * FROM vybe_automacoes WHERE ativa ORDER BY ordem, id`;
   const aplicadas = [];
+  // O que a regra mudou aqui e precisa aparecer lá. Enquanto o Monday tinha
+  // regras próprias isso convergia sozinho; desligadas, ele fica para trás — e
+  // o painel, que ainda lê do espelho, mostraria o estado velho.
+  const paraOMonday = { grupo: null, colunas: {} };
 
   const assinatura = JSON.stringify(evento);
   for (const regra of regras) {
@@ -281,16 +285,26 @@ export async function aplicar(sql, conteudoId, evento) {
     for (const acao of regra.acoes || []) {
       if (acao.tipo === 'grupo') {
         await sql`UPDATE vybe_conteudos SET grupo_id=${acao.para}, atualizado_em=NOW() WHERE id=${item.id}`;
+        item.grupo_id = acao.para;
+        paraOMonday.grupo = acao.para;
         feitas.push(`grupo → ${acao.para}`);
       } else if (acao.tipo === 'status') {
         await sql`UPDATE vybe_conteudos SET status_chave=${acao.para}, status_em=NOW(), atualizado_em=NOW() WHERE id=${item.id}`;
         item.status_chave = acao.para;
+        const indice = (await sql`SELECT monday_index FROM vybe_status WHERE chave=${acao.para}`)[0];
+        if (indice) paraOMonday.colunas.status = { index: Number(indice.monday_index) };
         feitas.push(`status → ${acao.para}`);
       } else if (acao.tipo === 'responsaveis') {
         if (acao.modo === 'replace') await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${item.id}`;
         await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
           SELECT ${item.id}, id FROM vybe_pessoas WHERE monday_user_id = ANY(${acao.pessoas})
           ON CONFLICT DO NOTHING`;
+        // Manda a lista final, não o delta: 'add' no Monday sobrescreveria.
+        const atuais = await sql`SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
+          JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${item.id}`;
+        paraOMonday.colunas.person = {
+          personsAndTeams: atuais.map((a) => ({ id: Number(a.monday_user_id), kind: 'person' })),
+        };
         feitas.push(`responsáveis ${acao.modo}`);
       } else if (acao.tipo === 'update') {
         await sql`INSERT INTO vybe_conteudo_updates (conteudo_id, corpo, autor, criado_em)
@@ -304,6 +318,7 @@ export async function aplicar(sql, conteudoId, evento) {
         feitas.push('notificação');
       } else if (acao.tipo === 'captacao') {
         await sql`UPDATE vybe_conteudos SET captacao=${acao.para}, atualizado_em=NOW() WHERE id=${item.id}`;
+        paraOMonday.colunas.status_1__1 = { label: String(acao.para) };
         feitas.push(`captação → ${acao.para}`);
       }
     }
@@ -316,7 +331,7 @@ export async function aplicar(sql, conteudoId, evento) {
     // isto, a regra genérica de ordem 90 desfaria o roteamento por formato.
     if (evento.tipo === 'status' && feitas.some((f) => f.startsWith('grupo'))) break;
   }
-  return { aplicadas };
+  return { aplicadas, paraOMonday };
 }
 
 // ── conferência ───────────────────────────────────────────────────────────────

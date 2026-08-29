@@ -88,9 +88,11 @@ async function trocarStatus(sql, quem, { item, para }) {
   // únicas, e a operação não muda de comportamento.
   let automacoes = [];
   try {
-    ({ aplicadas: automacoes } = await aplicar(sql, conteudo.id, {
+    const r = await aplicar(sql, conteudo.id, {
       tipo: 'status', de: conteudo.status_chave, para: alvo.chave,
-    }));
+    });
+    automacoes = r.aplicadas;
+    await replicarNoMonday(item, r.paraOMonday);
   } catch (erro) {
     console.error('Automações falharam após troca de status:', erro.message);
   }
@@ -99,6 +101,29 @@ async function trocarStatus(sql, quem, { item, para }) {
            para: alvo.rotulo, replica_monday: replica, automacoes };
 }
 
+
+// O que a automação mudou aqui precisa aparecer lá. Falha na réplica não desfaz
+// nada: a gravação local é a verdade, a cópia reconcilia depois.
+async function replicarNoMonday(item, para) {
+  if (!para) return;
+  try {
+    if (Object.keys(para.colunas || {}).length) {
+      await mondayQuery(
+        `mutation($board: ID!, $item: ID!, $values: JSON!) {
+           change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
+        { board: String(BOARD_PRODUCAO), item: String(item), values: JSON.stringify(para.colunas) }
+      );
+    }
+    if (para.grupo) {
+      await mondayQuery(
+        `mutation($item: ID!, $grupo: String!) { move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
+        { item: String(item), grupo: String(para.grupo) }
+      );
+    }
+  } catch (erro) {
+    console.error('Réplica das automações no Monday falhou:', erro.message);
+  }
+}
 
 // ── datas ─────────────────────────────────────────────────────────────────────
 const COLUNA_DATA = { prazo: 'data', veiculacao: 'data__1' };
