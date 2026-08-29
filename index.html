@@ -1154,6 +1154,26 @@ header,.topbar{
 .auto-editor-botoes button{border:1px solid rgba(255,177,67,.23);background:rgba(0,0,0,.3);color:#d8ab77;padding:9px 14px;font:800 10px 'JetBrains Mono',monospace;cursor:pointer}
 .auto-editor-botoes button.auto-salvar{border-color:rgba(255,163,21,.65);background:rgba(255,107,0,.19);color:#ffe0a6}
 @media(max-width:600px){.auto-cabeca{display:block}.auto-novo{margin-top:14px}.auto-editor-linha{grid-template-columns:1fr}}
+
+.conta-caixa{border:1px solid rgba(255,161,29,.16);background:linear-gradient(145deg,rgba(255,107,0,.06),rgba(11,6,2,.72));padding:16px}
+.conta-titulo{margin-bottom:13px;color:#ffe4b7;font:800 11px 'JetBrains Mono',monospace;letter-spacing:.6px;text-transform:uppercase}
+.conta-linha{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+.conta-linha label{display:block;color:#a88a6c;font:800 10px 'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase}
+.conta-linha input{width:100%;box-sizing:border-box;margin-top:5px;border:1px solid rgba(255,177,67,.23);background:#120902;color:#ffe0aa;padding:8px;font:600 11px 'JetBrains Mono',monospace;letter-spacing:0;outline:none}
+.eq-lista{display:flex;flex-direction:column;gap:7px}
+.eq-linha{display:grid;grid-template-columns:minmax(180px,1.1fr) minmax(150px,1fr) auto;gap:12px;align-items:center;border:1px solid rgba(255,161,29,.14);background:rgba(10,6,2,.68);padding:11px 14px}
+.eq-linha.fora{opacity:.55}
+.eq-quem b{color:#ffe4b7;font-size:12.5px}
+.eq-tag{margin-left:7px;padding:2px 6px;background:rgba(255,107,0,.18);color:#ffca7d;font:800 9px 'JetBrains Mono',monospace;text-transform:uppercase}
+.eq-tag.eu{background:rgba(255,255,255,.1);color:#cfd6e3}
+.eq-email{display:block;margin-top:3px;color:#8b6b52;font:600 10px 'JetBrains Mono',monospace}
+.eq-estado{color:#a8896c;font-size:10.5px;line-height:1.5}
+.eq-travado{color:#ff8b95}
+.eq-acoes{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.eq-acoes button{border:1px solid rgba(255,177,67,.23);background:rgba(0,0,0,.3);color:#d8ab77;padding:5px 9px;font:700 10px 'JetBrains Mono',monospace;cursor:pointer}
+.eq-acoes button:hover{background:rgba(255,107,0,.16);color:#ffe0a6}
+@media(max-width:900px){.conta-linha{grid-template-columns:1fr 1fr}.eq-linha{grid-template-columns:1fr}.eq-acoes{justify-content:flex-start}}
+@media(max-width:600px){.conta-linha{grid-template-columns:1fr}}
 </style></head>
 <body>
 
@@ -1233,6 +1253,7 @@ header,.topbar{
       <button class="board-switch-btn" id="btn-board-performance" onclick="switchBoard('performance',this)">📊 Performance</button>
       <button class="board-switch-btn" id="btn-board-ai-usage" onclick="switchBoard('ai-usage',this)">◈ IA &amp; Custos</button>
       <button class="board-switch-btn" id="btn-board-automacoes" onclick="switchBoard('automacoes',this)">⚙ Automações</button>
+      <button class="board-switch-btn" id="btn-board-conta" onclick="switchBoard('conta',this)">👥 Conta &amp; Equipe</button>
     </div>
   </div>
   <div class="header-row2">
@@ -1629,6 +1650,9 @@ header,.topbar{
 </div>
 
 <!-- ===== PAINEL DE USO DE IA ===== -->
+<div id="painel-conta" style="display:none;">
+  <div class="container auto-shell" id="conta-root"></div>
+</div>
 <div id="painel-automacoes" style="display:none;">
   <div class="container auto-shell" id="automacoes-root"></div>
 </div>
@@ -1674,6 +1698,7 @@ header,.topbar{
   <script src="/vybe-dominio.js"></script>
   <script src="/vybe-notificacoes.js"></script>
   <script src="/vybe-automacoes-ui.js"></script>
+  <script src="/vybe-conta.js"></script>
   <script src="/vybe-login.js"></script>
   <script src="/vybe-init.js"></script>
 <script src="/cadastros_governed_v2.js"></script>
