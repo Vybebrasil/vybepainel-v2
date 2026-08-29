@@ -227,9 +227,13 @@ async function areaPeca(req, res) {
     url: a.drive_file_id
       ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
       : frescas.get(String(a.monday_asset_id))?.url || a.url_monday,
+    // A miniatura do Monday é uma URL "protected_static": exige sessão do Monday
+    // no navegador e devolve 406 sem ela. Ninguém do time está logado lá — esse
+    // era o motivo de a prévia aparecer indisponível. A assinada abre para
+    // qualquer um, então é ela que vai.
     url_thumbnail: a.drive_file_id
       ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w400`
-      : frescas.get(String(a.monday_asset_id))?.url_thumbnail || null,
+      : frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica || null,
     public_url: a.drive_file_id
       ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
       : frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica,

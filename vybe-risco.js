@@ -260,6 +260,7 @@ async function loadMaterialReviewPreview(itemId){
     const delivery=workspaceDeliveryInfo(detail);
     const open=delivery?.url?`<a class="material-review-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a>`:'';
     PREVIA_MATERIAL=assets;
+    PREVIA_GRANDE_INDICE=0;
     if(!assets.length){
       holder.innerHTML=`<div class="status-context-preview-empty"><b>SEM PRÉVIA VISUAL</b>${delivery?.url?'Há um material vinculado. Abra-o antes de confirmar a conferência.':'Nenhum arquivo ou link final foi localizado nesta demanda.'}${open}</div>`;
       return;
@@ -275,7 +276,7 @@ async function loadMaterialReviewPreview(itemId){
     const tira=assets.length>1
       ? `<div id="material-review-strip" class="material-review-strip">${assets.map((a,i)=>`<button type="button" class="${i===0?'ativa':''}" title="${safeText(a.name||'')}" onclick="trocarPreviaMaterial(${i})"><img src="${safeText(a.url_thumbnail||a.public_url||a.url||'')}" alt=""></button>`).join('')}</div>`
       : '';
-    holder.innerHTML=`<img id="material-review-img" src="${safeText(fonte)}" alt="Prévia de ${safeText(primeira.name||'material')}" loading="eager" onerror="materialReviewPreviewFailed(this)"><small id="material-review-caption" class="status-context-preview-caption">${assets.length>1?`(1/${assets.length}) `:''}${safeText(primeira.name||'Prévia vinculada ao item')}</small>${tira}${open}`;
+    holder.innerHTML=`<img id="material-review-img" src="${safeText(fonte)}" alt="Prévia de ${safeText(primeira.name||'material')}" loading="eager" title="Clique para ver em tamanho grande" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)" onerror="materialReviewPreviewFailed(this)"><small id="material-review-caption" class="status-context-preview-caption">${assets.length>1?`(1/${assets.length}) `:''}${safeText(primeira.name||'Prévia vinculada ao item')}</small>${tira}<button type="button" class="previa-grande-abrir" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)">VER EM TAMANHO GRANDE ⤢</button>${open}`;
   } catch(error){
     holder.innerHTML='<div class="status-context-preview-empty"><b>PRÉVIA INDISPONÍVEL</b>Não foi possível carregar os arquivos da demanda agora. Feche e tente novamente antes de confirmar.</div>';
   }
@@ -425,7 +426,75 @@ function statusContextResponsibleOptions(item){ const rule=ownerEligibility(item
 function statusContextPreviewAssets(detail){ const updates=(detail?.updates||[]).flatMap(update=>update?.assets||[]); const assets=[...(detail?.assets||[]),...updates]; return assets.filter(asset=>asset?.url_thumbnail || /^\.?(png|jpe?g|webp|gif|avif)$/i.test(String(asset?.file_extension||''))); }
 function statusContextPreviewAsset(detail){ return statusContextPreviewAssets(detail)[0] || null; }
 let PREVIA_MATERIAL=[];
-function trocarPreviaMaterial(indice){ const asset=PREVIA_MATERIAL[indice]; if(!asset) return; const img=document.getElementById('material-review-img'); const legenda=document.getElementById('material-review-caption'); if(img){ img.src=asset.url_thumbnail||asset.public_url||asset.url||''; img.alt=`Prévia de ${asset.name||'material'}`; } if(legenda) legenda.textContent=`(${indice+1}/${PREVIA_MATERIAL.length}) ${asset.name||''}`; document.querySelectorAll('#material-review-strip button').forEach((b,i)=>b.classList.toggle('ativa',i===indice)); }
+// Painel flutuante para conferir a arte em tamanho de verdade. Dentro do modal a
+// imagem cabe em 38% da altura da tela, o que serve para reconhecer a peça mas
+// não para conferir texto pequeno — e conferir é justamente o que se pede ali.
+let PREVIA_GRANDE_INDICE = 0;
+
+function abrirPreviaGrande(indice = 0) {
+  if (!PREVIA_MATERIAL.length) return;
+  PREVIA_GRANDE_INDICE = Math.max(0, Math.min(indice, PREVIA_MATERIAL.length - 1));
+  let caixa = document.getElementById('previa-grande');
+  if (!caixa) {
+    caixa = document.createElement('div');
+    caixa.id = 'previa-grande';
+    caixa.className = 'previa-grande';
+    caixa.innerHTML = `
+      <div class="previa-grande-vidro">
+        <div class="previa-grande-topo">
+          <span id="previa-grande-nome"></span>
+          <button type="button" onclick="fecharPreviaGrande()" aria-label="Fechar">✕</button>
+        </div>
+        <div class="previa-grande-palco">
+          <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(-1)" aria-label="Anterior">❮</button>
+          <img id="previa-grande-img" alt="">
+          <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(1)" aria-label="Próxima">❯</button>
+        </div>
+      </div>`;
+    document.body.appendChild(caixa);
+    // Clicar fora fecha; dentro, não — senão fecha ao tentar arrastar a imagem.
+    caixa.addEventListener('click', (e) => { if (e.target === caixa) fecharPreviaGrande(); });
+    document.addEventListener('keydown', teclaPreviaGrande);
+  }
+  caixa.style.display = 'flex';
+  pintarPreviaGrande();
+}
+
+function pintarPreviaGrande() {
+  const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
+  if (!a) return;
+  const img = document.getElementById('previa-grande-img');
+  const nome = document.getElementById('previa-grande-nome');
+  if (img) { img.src = a.url_thumbnail || a.public_url || a.url || ''; img.alt = a.name || ''; }
+  if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.name || ''}`;
+  document.querySelectorAll('.previa-grande-seta').forEach((b) => {
+    b.style.visibility = PREVIA_MATERIAL.length > 1 ? 'visible' : 'hidden';
+  });
+}
+
+function passarPreviaGrande(passo) {
+  if (!PREVIA_MATERIAL.length) return;
+  PREVIA_GRANDE_INDICE = (PREVIA_GRANDE_INDICE + passo + PREVIA_MATERIAL.length) % PREVIA_MATERIAL.length;
+  pintarPreviaGrande();
+  trocarPreviaMaterial(PREVIA_GRANDE_INDICE);
+}
+
+function fecharPreviaGrande() {
+  const caixa = document.getElementById('previa-grande');
+  if (caixa) caixa.style.display = 'none';
+}
+
+// Só responde às teclas com o painel aberto: ESC dentro do modal de checklist
+// continua fechando o checklist, não a imagem.
+function teclaPreviaGrande(e) {
+  const caixa = document.getElementById('previa-grande');
+  if (!caixa || caixa.style.display === 'none') return;
+  if (e.key === 'Escape') { e.stopPropagation(); fecharPreviaGrande(); }
+  if (e.key === 'ArrowLeft') passarPreviaGrande(-1);
+  if (e.key === 'ArrowRight') passarPreviaGrande(1);
+}
+
+function trocarPreviaMaterial(indice){ const asset=PREVIA_MATERIAL[indice]; if(!asset) return; PREVIA_GRANDE_INDICE=indice; const img=document.getElementById('material-review-img'); const legenda=document.getElementById('material-review-caption'); if(img){ img.src=asset.url_thumbnail||asset.public_url||asset.url||''; img.alt=`Prévia de ${asset.name||'material'}`; } if(legenda) legenda.textContent=`(${indice+1}/${PREVIA_MATERIAL.length}) ${asset.name||''}`; document.querySelectorAll('#material-review-strip button').forEach((b,i)=>b.classList.toggle('ativa',i===indice)); }
 async function loadStatusContextCardPreview(itemId){ const holder=document.getElementById('status-context-card-preview'); if(!holder) return; try{ const detail=await fetchWorkspaceItem(itemId); const asset=statusContextPreviewAsset(detail); if(!asset){ holder.innerHTML='<div class="status-context-preview-empty"><b>SEM ARTE DISPONÍVEL</b>Não há imagem anexada à demanda ou às atualizações carregadas. O briefing continua sendo a fonte de orientação até que uma prévia seja vinculada.</div>'; return; } const source=asset.public_url||asset.url_thumbnail||asset.url||''; if(!source){ holder.innerHTML='<div class="status-context-preview-empty"><b>ARQUIVO SEM PRÉVIA</b>O item possui um arquivo, mas ele não disponibiliza imagem de visualização.</div>'; return; } holder.innerHTML=`<img src="${safeText(source)}" alt="Prévia de ${safeText(asset.name||'Card')}"><small class="status-context-preview-caption">${safeText(asset.name||'Prévia vinculada ao item')}</small>`; }catch(error){ holder.innerHTML='<div class="status-context-preview-empty"><b>PRÉVIA INDISPONÍVEL</b>Não foi possível carregar os arquivos da demanda agora. O restante do fluxo permanece disponível.</div>'; } }
 function openStatusContextGate(item, option) {
   const rule=contextRuleFor(option); const requiresQuality=statusNeedsQuality(option); const requiresHandoff=statusNeedsHandoff(item,option); const checks=requiresQuality ? qualityChecklistFor(item) : []; const isCard=statusContextIsCard(item);
