@@ -264,6 +264,96 @@ async function moverGrupo(sql, quem, { item, grupo_id }) {
   return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de, para: titulo, replica_monday: replica };
 }
 
+// Troca de campo de escolha: captação, tipo de conteúdo, prioridade, OFF e
+// formato. Guarda a chave, manda o índice ou o id para o Monday, e registra quem
+// mudou — o Monday não sabia dizer isso, porque tudo ia com o mesmo token.
+//
+// As cinco consultas estão escritas uma a uma, e não montadas por concatenação:
+// o driver não injeta nome de coluna, e SQL montado com texto para poupar linhas
+// não vale o risco.
+const ESCOLHAS = {
+  captacao:      { coluna: 'status_1__1',        catalogo: 'vybe_captacao', gatilho: 'captacao' },
+  tipo_conteudo: { coluna: 'lista_suspensa__1',  catalogo: 'vybe_opcoes',   multi: true },
+  prioridade:    { coluna: 'color_mm164yv8',     catalogo: 'vybe_opcoes' },
+  off_audio:     { coluna: 'color_mkynd7j8',     catalogo: 'vybe_opcoes' },
+  formato:       { coluna: 'lista_suspensa0__1', catalogo: 'vybe_opcoes',   multi: true },
+};
+
+async function trocarEscolha(sql, quem, { item, campo, para }) {
+  const cfg = ESCOLHAS[campo];
+  if (!cfg) throw new Error(`Campo desconhecido: ${campo}`);
+
+  const linhas = await sql`SELECT id, titulo, captacao_chave, prioridade_chave, off_audio_chave,
+      formato_chaves, tipo_conteudo_chaves
+    FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
+  if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
+  const c = linhas[0];
+
+  const chaves = (Array.isArray(para) ? para : [para]).map(String).filter(Boolean);
+  const opcoes = cfg.catalogo === 'vybe_captacao'
+    ? await sql`SELECT chave, rotulo, monday_index AS indice FROM vybe_captacao WHERE chave = ANY(${chaves})`
+    : await sql`SELECT chave, rotulo, indice FROM vybe_opcoes
+        WHERE coluna_id = ${cfg.coluna} AND chave = ANY(${chaves})`;
+  if (chaves.length && opcoes.length !== chaves.length) {
+    throw new Error(`Opção desconhecida para ${campo}: ${chaves.join(', ')}`);
+  }
+
+  let de = null;
+  if (campo === 'captacao') {
+    de = c.captacao_chave;
+    await sql`UPDATE vybe_conteudos SET captacao_chave=${chaves[0] || null},
+        captacao=${opcoes[0]?.rotulo || null}, atualizado_em=NOW() WHERE id=${c.id}`;
+  } else if (campo === 'prioridade') {
+    de = c.prioridade_chave;
+    await sql`UPDATE vybe_conteudos SET prioridade_chave=${chaves[0] || null},
+        prioridade=${opcoes[0]?.rotulo || null}, atualizado_em=NOW() WHERE id=${c.id}`;
+  } else if (campo === 'off_audio') {
+    de = c.off_audio_chave;
+    await sql`UPDATE vybe_conteudos SET off_audio_chave=${chaves[0] || null},
+        off_audio=${opcoes[0]?.rotulo || null}, atualizado_em=NOW() WHERE id=${c.id}`;
+  } else if (campo === 'formato') {
+    de = (c.formato_chaves || []).join(', ');
+    await sql`UPDATE vybe_conteudos SET formato_chaves=${chaves},
+        formato=${opcoes.map((o) => o.rotulo).join(', ') || null}, atualizado_em=NOW() WHERE id=${c.id}`;
+  } else {
+    de = (c.tipo_conteudo_chaves || []).join(', ');
+    await sql`UPDATE vybe_conteudos SET tipo_conteudo_chaves=${chaves},
+        tipo_conteudo=${opcoes.map((o) => o.rotulo).join(', ') || null}, atualizado_em=NOW() WHERE id=${c.id}`;
+  }
+
+  await registrarEvento(sql, c.id, {
+    tipo: campo, de, para: opcoes.map((o) => o.rotulo).join(', ') || null,
+    autorId: await pessoaDaSessao(sql, quem),
+  });
+
+  let replica = 'ok';
+  try {
+    // Coluna de status vai por índice; dropdown vai por id da opção.
+    const valor = cfg.multi
+      ? { ids: opcoes.map((o) => Number(o.indice)) }
+      : (opcoes[0] ? { index: Number(opcoes[0].indice) } : { index: null });
+    await mondayQuery(
+      `mutation($board: ID!, $item: ID!, $values: JSON!) {
+         change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
+      { board: String(BOARD_PRODUCAO), item: String(item),
+        values: JSON.stringify({ [cfg.coluna]: valor }) }
+    );
+  } catch (erro) { replica = `falhou: ${erro.message}`; }
+
+  // Captação é gatilho de automação, como o status.
+  let automacoes = [];
+  if (cfg.gatilho) {
+    try {
+      const r = await aplicar(sql, c.id, { tipo: cfg.gatilho, de, para: chaves[0] || null });
+      automacoes = r.aplicadas;
+      await replicarNoMonday(item, r.paraOMonday);
+    } catch (erro) { console.error('Automações falharam após troca de escolha:', erro.message); }
+  }
+
+  return { conteudo_id: c.id, titulo: c.titulo, campo, de,
+           para: opcoes.map((o) => o.rotulo).join(', ') || null, replica_monday: replica, automacoes };
+}
+
 async function criarConteudo(sql, quem, dados) {
   const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing,
           tipo_conteudo = null, captacao = null, responsaveis = [] } = dados;
@@ -377,6 +467,10 @@ export default async function handler(req, res) {
     }
     if (acao === 'comentario') {
       return res.status(200).json({ ok: true, acao, ...(await comentar(sql, quem, { item, texto: corpo.texto })) });
+    }
+    if (ESCOLHAS[acao]) {
+      return res.status(200).json({ ok: true, acao,
+        ...(await trocarEscolha(sql, quem, { item, campo: acao, para: corpo.para })) });
     }
     if (acao === 'grupo') {
       if (!corpo.grupo_id) return res.status(400).json({ error: 'Informe o grupo de destino.' });

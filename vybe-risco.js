@@ -700,33 +700,90 @@ function workspaceExecutiveHistoryHtml(updates=[]) {
     return `<section class="workspace-section"><div class="workspace-section-head">Tempo em cada etapa</div><div class="workspace-section-body">${lines.join('')}</div></section>`;
   }
 
-// A ficha da peça, com os mesmos campos que o Monday mostra ao abrir um item.
-// Antes o drawer trazia formato, prazo e status; para ver captação, OFF, tipo de
-// conteúdo ou em que grupo a peça está era preciso abrir o Monday — que é
-// justamente o que estamos deixando de fazer.
-function workspaceFichaHtml(detail) {
+// A ficha da peça, com os mesmos campos que o Monday mostra ao abrir um item —
+// e editáveis no mesmo lugar, como lá. Antes o drawer trazia formato, prazo e
+// status; para ver ou mudar captação, OFF, tipo de conteúdo ou o grupo era
+// preciso abrir o Monday, que é justamente o que estamos deixando de fazer.
+
+const GRUPOS_DA_PRODUCAO = [
+  ['novo_grupo57911__1', 'Produção ( Foto e Vídeo, à Captar )'],
+  ['novo_grupo__1', 'Design & Edição'],
+  ['group_title', 'Redação'],
+  ['novo_grupo22352__1', 'Gestão de publicações'],
+  ['novo_grupo31348__1', 'Finalizados'],
+];
+
+let FICHA_ITEM = null;
+
+function fichaSelect(campo, opcoes, atual, itemId) {
+  const escolhida = String(atual || '');
+  return `<select class="workspace-ficha-select" onchange="salvarCampoDaFicha('${itemId}','${campo}',this.value,this)">
+    <option value=""${escolhida ? '' : ' selected'}>—</option>
+    ${opcoes.map(([v, r]) => `<option value="${safeText(v)}"${String(v) === escolhida ? ' selected' : ''}>${safeText(r)}</option>`).join('')}
+  </select>`;
+}
+
+function workspaceFichaHtml(detail, itemId) {
   const f = detail?.ficha;
   if (!f) return '';
+  FICHA_ITEM = itemId;
+  const cat = detail.catalogos || { captacao: [], opcoes: [] };
+  const por = (coluna) => (cat.opcoes || []).filter((o) => o.coluna_id === coluna).map((o) => [o.chave, o.rotulo]);
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const texto = (v) => `<b class="${v ? '' : 'vazio'}">${safeText(v || '—')}</b>`;
+
   const linhas = [
-    ['Grupo', f.grupo],
-    ['Cliente', f.cliente],
-    ['Status', f.status],
-    ['Captação', f.captacao],
-    ['🎙️ OFF', f.off_audio],
-    ['Tipo de conteúdo', f.tipo_conteudo],
-    ['Formato', f.formato],
-    ['Priority', f.prioridade],
-    ['Prazo', dataBr(f.prazo)],
-    ['Veiculação', dataBr(f.veiculacao)],
-    ['Responsável', f.responsaveis],
-    ['Editor/Designer', f.editores],
+    ['Grupo', fichaSelect('grupo', GRUPOS_DA_PRODUCAO, f.grupo_id, itemId)],
+    ['Cliente', texto(f.cliente)],
+    ['Status', texto(f.status)],
+    ['Captação', fichaSelect('captacao', (cat.captacao || []).map((o) => [o.chave, o.rotulo]), f.captacao_chave, itemId)],
+    ['🎙️ OFF', fichaSelect('off_audio', por('color_mkynd7j8'), f.off_audio_chave, itemId)],
+    ['Tipo de conteúdo', fichaSelect('tipo_conteudo', por('lista_suspensa__1'), (f.tipo_conteudo_chaves || [])[0], itemId)],
+    ['Formato', fichaSelect('formato', por('lista_suspensa0__1'), (f.formato_chaves || [])[0], itemId)],
+    ['Priority', fichaSelect('prioridade', por('color_mm164yv8'), f.prioridade_chave, itemId)],
+    ['Prazo', texto(dataBr(f.prazo))],
+    ['Veiculação', texto(dataBr(f.veiculacao))],
+    ['Responsável', texto(f.responsaveis)],
+    ['Editor/Designer', texto(f.editores)],
   ];
+
   // Campo vazio aparece como "—" em vez de sumir: saber que a captação está em
-  // branco é informação, e some-la esconde o que falta preencher.
+  // branco é informação, e sumir com a linha esconde o que falta preencher.
   return `<section class="workspace-section"><div class="workspace-section-head">Ficha da peça</div><div class="workspace-section-body"><div class="workspace-ficha">${
-    linhas.map(([r, v]) => `<div class="workspace-ficha-linha"><span>${safeText(r)}</span><b class="${v ? '' : 'vazio'}">${safeText(v || '—')}</b></div>`).join('')
-  }</div></div></section>`;
+    linhas.map(([r, v]) => `<div class="workspace-ficha-linha"><span>${safeText(r)}</span>${v}</div>`).join('')
+  }</div><p class="workspace-note">Status, datas e responsáveis se mudam pelos botões acima, que têm as conferências do fluxo.</p></div></section>`;
+}
+
+// Grava e recarrega a peça. Status e datas continuam pelos botões próprios, que
+// passam pelas conferências — mudar status por um seletor solto pularia o
+// checklist de qualidade.
+async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
+  const anterior = alvo ? alvo.value : null;
+  if (alvo) alvo.disabled = true;
+  try {
+    const corpo = campo === 'grupo'
+      ? { acao: 'grupo', item: String(itemId), grupo_id: valor }
+      : { acao: campo, item: String(itemId), para: valor ? [valor] : [] };
+    const r = await fetch('/api/conteudo', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível salvar.');
+    if (String(d.replica_monday || '').startsWith('falhou')) {
+      showToast('✓ Salvo no Vybe · o Monday não recebeu a cópia, será reconciliada', 'info', 6000);
+    } else {
+      showToast(`✓ ${campo.replace('_', ' ')} atualizado`, 'ok', 3500);
+    }
+    if ((d.automacoes || []).length) {
+      showToast(`Automação: ${d.automacoes.map((a) => a.nome).join(' · ')}`, 'info', 7000);
+    }
+    const item = findOperationalItem(itemId);
+    if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), item);
+  } catch (erro) {
+    if (alvo) { alvo.disabled = false; alvo.value = anterior; }
+    showToast(`Não foi possível salvar: ${erro.message}`, 'err', 7000);
+  }
 }
 
   function renderWorkspaceDrawer(detail, item) {
@@ -743,7 +800,7 @@ function workspaceFichaHtml(detail) {
     <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div>
     <h2 class="workspace-title">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
-    ${workspaceFichaHtml(detail)}
+    ${workspaceFichaHtml(detail, item.id)}
     ${workspaceDeliveryDock(detail,item)}
     <div class="workspace-actions"><button type="button" class="workspace-action primary" onclick="openPlanningEditor('${item.id}')">Editar datas rápidas</button><button type="button" class="workspace-action" onclick="openOwnerEditor(event,'${item.id}')">Gerenciar responsáveis</button><button type="button" class="workspace-action" onclick="openDaDirectionModal('${item.id}')">Direcionar D.A.</button><button type="button" class="workspace-action" onclick="openStatusEditor({preventDefault(){},stopPropagation(){},currentTarget:this},'${item.id}')">Atualizar status</button><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Entregar e passar bastão</button><a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a></div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}

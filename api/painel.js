@@ -187,6 +187,8 @@ async function areaPeca(req, res) {
   const c = (await db`
     SELECT c.id, c.titulo, c.criado_em, c.etapa AS grupo, c.grupo_id,
            c.prazo, c.veiculacao,
+           c.captacao_chave, c.prioridade_chave, c.off_audio_chave,
+           c.tipo_conteudo_chaves, c.formato_chaves,
            s.rotulo  AS status,
            k.rotulo  AS captacao,
            (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY x.ord)
@@ -214,7 +216,7 @@ async function areaPeca(req, res) {
      WHERE c.monday_item_id = ${item}`)[0];
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
-  const [arquivos, updates, eventos] = await Promise.all([
+  const [arquivos, updates, eventos, catCaptacao, catOpcoes] = await Promise.all([
     db`SELECT monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica,
               url_drive, drive_file_id, criado_em
          FROM vybe_conteudo_arquivos
@@ -225,6 +227,10 @@ async function areaPeca(req, res) {
         ORDER BY criado_em DESC NULLS LAST LIMIT 12`,
     db`SELECT tipo, de, para, em FROM vybe_conteudo_eventos
         WHERE conteudo_id = ${c.id} AND tipo = 'status' ORDER BY em DESC LIMIT 50`,
+    // Os catálogos viajam junto: sem eles a tela não tem como oferecer as opções
+    // de captação, tipo, prioridade e OFF sem uma segunda ida ao servidor.
+    db`SELECT chave, rotulo FROM vybe_captacao ORDER BY monday_index`,
+    db`SELECT coluna_id, chave, rotulo FROM vybe_opcoes ORDER BY coluna_id, indice`,
   ]);
 
   // O Monday assina as URLs dos arquivos com UMA HORA de validade. Guardar o
@@ -279,12 +285,16 @@ async function areaPeca(req, res) {
     id: item,
     name: c.titulo,
     created_at: c.criado_em,
+    catalogos: { captacao: catCaptacao, opcoes: catOpcoes },
     ficha: {
       cliente: c.clientes, grupo: c.grupo, grupo_id: c.grupo_id, status: c.status,
       captacao: c.captacao, off_audio: c.off_audio, tipo_conteudo: c.tipo_conteudo,
       formato: c.formato, prioridade: c.prioridade,
       prazo: c.prazo, veiculacao: c.veiculacao,
       responsaveis: c.responsaveis, editores: c.editores,
+      captacao_chave: c.captacao_chave, prioridade_chave: c.prioridade_chave,
+      off_audio_chave: c.off_audio_chave, tipo_conteudo_chaves: c.tipo_conteudo_chaves,
+      formato_chaves: c.formato_chaves,
     },
     assets,
     column_values: [{
