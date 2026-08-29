@@ -143,6 +143,14 @@ export async function criarSchema() {
   // perderia esse campo, e a ação de captação das automações não tinha onde
   // gravar — ficava anotada como "só no Monday por enquanto".
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS captacao TEXT`;
+  // As outras colunas do board que ninguém tinha trazido. O espelho carregava
+  // seis; o board tem quinze. Captação está em 100% dos itens e Tipo de conteúdo
+  // em 86% — as outras três são pouco usadas, mas dado perdido é dado perdido.
+  // Tempo Gasto e Subelementos ficam de fora: nunca foram preenchidas.
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS tipo_conteudo TEXT`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS prioridade TEXT`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS off_audio TEXT`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS editores TEXT[]`;
 
   await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_clientes (
     conteudo_id BIGINT NOT NULL REFERENCES vybe_conteudos(id) ON DELETE CASCADE,
@@ -393,6 +401,10 @@ export async function listarConteudos() {
         c.status_chave,
         c.status_em                             AS status_updated_at,
         c.captacao,
+        c.tipo_conteudo,
+        c.prioridade,
+        c.off_audio,
+        c.editores,
         TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
         c.monday_atualizado_em                  AS updated_at,
@@ -442,6 +454,10 @@ export async function listarConteudos() {
     };
     // A tela lê captação na mesa do DA e no gestor; sem ela a coluna some.
     if (l.captacao) item.captacao = l.captacao;
+    if (l.tipo_conteudo) item.tipo_conteudo = l.tipo_conteudo;
+    if (l.prioridade) item.prioridade = l.prioridade;
+    if (l.off_audio) item.off_audio = l.off_audio;
+    if ((l.editores || []).length) item.editores = l.editores;
     if (l.contexto_status) item.contexto_status = l.contexto_status;
     // Só viaja quando há mais de um: são 3 itens em 1.853.
     if ((l.clientes || []).length > 1) item.clientes = l.clientes;
@@ -736,6 +752,25 @@ export async function sincronizarDoEvento(sql, evento) {
     return { campo: 'responsaveis' };
   }
 
+  // As colunas extras: mesma tradução, um campo cada.
+  if (col === 'lista_suspensa__1') {
+    const nomes = (evento.value?.chosenValues || []).map((v) => v.name).filter(Boolean);
+    await sql`UPDATE vybe_conteudos SET tipo_conteudo=${nomes.join(', ') || null}, atualizado_em=NOW() WHERE id=${id}`;
+    return { campo: 'tipo_conteudo' };
+  }
+  if (col === 'color_mm164yv8' || col === 'color_mkynd7j8') {
+    const campo = col === 'color_mm164yv8' ? 'prioridade' : 'off_audio';
+    const texto = evento.value?.label?.text || null;
+    if (campo === 'prioridade') await sql`UPDATE vybe_conteudos SET prioridade=${texto}, atualizado_em=NOW() WHERE id=${id}`;
+    else await sql`UPDATE vybe_conteudos SET off_audio=${texto}, atualizado_em=NOW() WHERE id=${id}`;
+    return { campo };
+  }
+  if (col === 'multiple_person_mm18b2p0') {
+    const eds = (evento.value?.personsAndTeams || []).map((p) => String(p.id));
+    await sql`UPDATE vybe_conteudos SET editores=${eds}, atualizado_em=NOW() WHERE id=${id}`;
+    return { campo: 'editores' };
+  }
+
   if (col === 'lista_suspensa0__1') {
     const nomes = (evento.value?.chosenValues || []).map((v) => v.name).filter(Boolean);
     await sql`UPDATE vybe_conteudos SET formato=${nomes.join(', ') || null}, atualizado_em=NOW() WHERE id=${id}`;
@@ -810,4 +845,68 @@ export async function importarHistoricoStatus({ de, ate, pagina = 1, paginas = 8
     if (logs.length < porPagina) break;
   }
   return { de, ate, ate_pagina: ultima, lidos, gravados, sem_conteudo: semConteudo };
+}
+
+// ── as colunas que o espelho nunca carregou ──────────────────────────────────
+//
+// O espelho busca seis colunas; o board tem quinze. Captação, Tipo de conteúdo,
+// Priority, 🎙️OFF e Editor/Designer nunca chegaram ao painel nem ao banco.
+export const COLUNAS_EXTRA = {
+  status_1__1: 'captacao',
+  lista_suspensa__1: 'tipo_conteudo',
+  color_mm164yv8: 'prioridade',
+  color_mkynd7j8: 'off_audio',
+  multiple_person_mm18b2p0: 'editores',
+};
+
+export async function importarColunasExtra({ cursor = null, paginas = 4, porPagina = 300 } = {}) {
+  await criarSchema();
+  const sql = database();
+  const ids = Object.keys(COLUNAS_EXTRA).map((c) => `"${c}"`).join(', ');
+  const campos = `id column_values(ids: [${ids}]) { id text value }`;
+
+  let proximo = cursor, lidos = 0, gravados = 0;
+  for (let n = 0; n < paginas; n += 1) {
+    const dados = proximo
+      ? await mondayQuery(`query($cursor: String!) { next_items_page(limit: ${porPagina}, cursor: $cursor)
+          { cursor items { ${campos} } } }`, { cursor: proximo })
+      : await mondayQuery(`{ boards(ids:[${BOARD_PRODUCAO}]) { items_page(limit: ${porPagina})
+          { cursor items { ${campos} } } } }`);
+    const pagina = proximo ? dados?.next_items_page : dados?.boards?.[0]?.items_page;
+    const itens = pagina?.items || [];
+    if (!itens.length) { proximo = null; break; }
+    lidos += itens.length;
+
+    const linhas = itens.map((it) => {
+      const linha = { monday_item_id: String(it.id), captacao: null, tipo_conteudo: null,
+                      prioridade: null, off_audio: null, editores: [] };
+      for (const cv of it.column_values || []) {
+        const campo = COLUNAS_EXTRA[cv.id];
+        if (!campo) continue;
+        if (campo === 'editores') {
+          try {
+            const v = JSON.parse(cv.value || 'null');
+            linha.editores = (v?.personsAndTeams || []).map((p) => String(p.id));
+          } catch { linha.editores = []; }
+        } else {
+          linha[campo] = (cv.text || '').trim() || null;
+        }
+      }
+      return linha;
+    });
+
+    const r = await sql`UPDATE vybe_conteudos c
+        SET captacao = v.captacao, tipo_conteudo = v.tipo_conteudo,
+            prioridade = v.prioridade, off_audio = v.off_audio, editores = v.editores
+      FROM jsonb_to_recordset(${JSON.stringify(linhas)}::jsonb)
+        AS v(monday_item_id text, captacao text, tipo_conteudo text,
+             prioridade text, off_audio text, editores text[])
+      WHERE c.monday_item_id = v.monday_item_id
+      RETURNING c.id`;
+    gravados += r.length;
+
+    proximo = pagina?.cursor || null;
+    if (!proximo) break;
+  }
+  return { lidos, gravados, proximo_cursor: proximo };
 }
