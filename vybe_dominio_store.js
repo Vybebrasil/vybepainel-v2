@@ -17,7 +17,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
-import { pastaDoConteudo, pastaSimples, enviarParaDrive } from './vybe_drive.js';
+import { pastaDoConteudo, pastaSimples, enviarParaDrive, tornarPublico } from './vybe_drive.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 export const BOARD_DEMANDAS = 8385559107;
@@ -1710,8 +1710,17 @@ export async function importarFotosDaEquipe({ refazer = false } = {}) {
 
   const pessoas = await sql`SELECT id, nome, monday_user_id, foto_url FROM vybe_pessoas
     WHERE monday_user_id IS NOT NULL ORDER BY nome`;
+  // Quem já está no Drive só precisa da permissão de leitura por link — reenviar
+  // deixaria uma cópia órfã para cada pessoa.
+  let liberadas = 0;
+  for (const p of pessoas.filter((x) => /drive\.google\.com/.test(String(x.foto_url || '')))) {
+    const id = String(p.foto_url).match(/id=([^&]+)/)?.[1];
+    if (!id) continue;
+    try { await tornarPublico(id); liberadas += 1; } catch { /* já era pública */ }
+  }
+
   const alvo = refazer ? pessoas : pessoas.filter((p) => !p.foto_url);
-  if (!alvo.length) return { pessoas: pessoas.length, migradas: 0, ja_tinham: pessoas.length };
+  if (!alvo.length) return { pessoas: pessoas.length, migradas: 0, liberadas };
 
   const dados = await mondayQuery(
     `query($ids: [ID!]) { users(ids: $ids) { id name photo_original photo_thumb } }`,
@@ -1730,11 +1739,12 @@ export async function importarFotosDaEquipe({ refazer = false } = {}) {
       const enviado = await enviarParaDrive({
         url, nome: `${p.nome.replace(/[^\w\s-]/g, '').trim()}.${ext}`, mime: null, pastaId,
       });
+      await tornarPublico(enviado.id);
       await sql`UPDATE vybe_pessoas
         SET foto_url=${`https://drive.google.com/thumbnail?id=${enviado.id}&sz=w200`}
         WHERE id=${p.id}`;
       migradas += 1;
     } catch (erro) { falhas.push({ nome: p.nome, erro: erro.message }); }
   }
-  return { pessoas: pessoas.length, migradas, falhas };
+  return { pessoas: pessoas.length, migradas, liberadas, falhas };
 }

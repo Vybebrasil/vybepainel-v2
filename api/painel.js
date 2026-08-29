@@ -10,7 +10,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { mondayQuery } from '../operational_mirror_store.js';
-import { pastaDoConteudo, enviarParaDrive } from '../vybe_drive.js';
+import { pastaDoConteudo, enviarParaDrive, tornarPublico } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
@@ -131,6 +131,7 @@ async function areaConta(req, res, quem) {
       conteudo: foto, nome: `foto-${quem.pessoa.id}-${String(nome || 'perfil')}`.slice(0, 80),
       mime: null, pastaId,
     });
+    await tornarPublico(enviado.id);
     const url = `https://drive.google.com/thumbnail?id=${enviado.id}&sz=w200`;
     await sql()`UPDATE vybe_pessoas SET foto_url=${url} WHERE id=${quem.pessoa.id}`;
     return res.status(200).json({ ok: true, foto_url: url });

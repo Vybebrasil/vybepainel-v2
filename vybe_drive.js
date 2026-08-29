@@ -176,6 +176,21 @@ export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {
   return { id: d.id, link: d.webViewLink, bytes: bytes.length };
 }
 
+// Deixa o arquivo legível por quem tiver o link. Serve para foto de perfil: o
+// navegador de quem abre o painel não está logado no Drive, e sem isso o Google
+// devolve uma página de permissão no lugar da imagem.
+//
+// As fotos de hoje já são públicas — moram em files.monday.com e abrem sem login.
+// Isso não amplia exposição, só troca de casa.
+export async function tornarPublico(fileId) {
+  await drive(`files/${fileId}/permissions?supportsAllDrives=true`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+  });
+  return true;
+}
+
 // Confere a credencial sem enviar nada — para saber se está tudo no lugar antes
 // de mexer em arquivo de verdade.
 export async function conferirDrive() {
