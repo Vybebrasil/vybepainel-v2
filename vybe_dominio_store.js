@@ -173,6 +173,11 @@ export async function criarSchema() {
     texto       TEXT,
     em          TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+  // Guarda o id do registro de atividade do Monday para a importação do
+  // histórico poder rodar de novo sem duplicar nada.
+  await sql`ALTER TABLE vybe_conteudo_eventos ADD COLUMN IF NOT EXISTS monday_log_id TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS vybe_conteudo_eventos_log
+    ON vybe_conteudo_eventos (monday_log_id) WHERE monday_log_id IS NOT NULL`;
 
   // O espelho traz updates(limit: 3), então 539 itens estão com histórico
   // truncado. Aqui cabe o histórico inteiro.
@@ -744,4 +749,65 @@ export async function sincronizarDoEvento(sql, evento) {
   }
 
   return null;
+}
+
+// ── histórico de status que só existia no Monday ─────────────────────────────
+//
+// O drawer mostra quanto tempo a peça ficou em cada etapa, e tirava isso do
+// activity_log do Monday a cada abertura. Nosso registro de eventos só começou
+// quando o painel passou a gravar, então sem esta importação o drawer mostraria
+// duas mudanças onde existem oito.
+//
+// Vem do board inteiro por faixa de data, não item a item: quase 2.000 itens não
+// caberiam no tempo de uma função serverless.
+export async function importarHistoricoStatus({ de, ate, pagina = 1, paginas = 8, porPagina = 200 } = {}) {
+  const sql = database();
+  const conteudos = new Map((await sql`SELECT id, monday_item_id FROM vybe_conteudos
+    WHERE monday_item_id IS NOT NULL`).map((c) => [String(c.monday_item_id), c.id]));
+  const pessoas = new Map((await sql`SELECT id, monday_user_id FROM vybe_pessoas
+    WHERE monday_user_id IS NOT NULL`).map((p) => [String(p.monday_user_id), p.id]));
+
+  let lidos = 0, gravados = 0, semConteudo = 0, ultima = pagina;
+  for (let n = 0; n < paginas; n += 1) {
+    const p = pagina + n;
+    ultima = p;
+    const dados = await mondayQuery(`{ boards(ids:[${BOARD_PRODUCAO}]) {
+      activity_logs(column_ids:["status"], limit:${porPagina}, page:${p},
+                    from:"${de}", to:"${ate}") { id data created_at user_id } } }`);
+    const logs = dados?.boards?.[0]?.activity_logs || [];
+    if (!logs.length) break;
+    lidos += logs.length;
+
+    const linhas = [];
+    for (const log of logs) {
+      let d;
+      try { d = JSON.parse(log.data); } catch { continue; }
+      const conteudoId = conteudos.get(String(d.pulse_id));
+      if (!conteudoId) { semConteudo += 1; continue; }
+      // created_at vem em microssegundos de 100ns; o painel divide por 10.000.
+      const ms = Math.floor(Number(log.created_at) / 10000);
+      if (!Number.isFinite(ms)) continue;
+      linhas.push({
+        conteudo_id: conteudoId,
+        de: d.previous_value?.label?.text ?? null,
+        para: d.value?.label?.text ?? null,
+        autor_id: pessoas.get(String(log.user_id)) ?? null,
+        em: new Date(ms).toISOString(),
+        monday_log_id: String(log.id),
+      });
+    }
+    if (linhas.length) {
+      const r = await sql`INSERT INTO vybe_conteudo_eventos
+          (conteudo_id, tipo, de, para, autor_id, em, monday_log_id)
+        SELECT v.conteudo_id, 'status', v.de, v.para, v.autor_id, v.em, v.monday_log_id
+        FROM jsonb_to_recordset(${JSON.stringify(linhas)}::jsonb)
+          AS v(conteudo_id bigint, de text, para text, autor_id bigint,
+               em timestamptz, monday_log_id text)
+        ON CONFLICT (monday_log_id) WHERE monday_log_id IS NOT NULL DO NOTHING
+        RETURNING id`;
+      gravados += r.length;
+    }
+    if (logs.length < porPagina) break;
+  }
+  return { de, ate, ate_pagina: ultima, lidos, gravados, sem_conteudo: semConteudo };
 }

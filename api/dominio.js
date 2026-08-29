@@ -11,7 +11,7 @@
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
-import { criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
+import { importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -55,6 +55,14 @@ export default async function handler(req, res) {
     if (action === 'schema') {
       await criarSchema();
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
+    }
+    if (action === 'historico_status') {
+      const q = { ...(req.query || {}), ...(req.body || {}) };
+      if (!q.de || !q.ate) return res.status(400).json({ error: 'Informe de e ate (ISO).' });
+      return res.status(200).json({ ok: true, action, ...(await importarHistoricoStatus({
+        de: String(q.de), ate: String(q.ate),
+        pagina: Number(q.pagina) || 1, paginas: Number(q.paginas) || 8,
+      })) });
     }
     if (action === 'pessoas') {
       return res.status(200).json({ ok: true, action, pessoas: await listarPessoas() });
