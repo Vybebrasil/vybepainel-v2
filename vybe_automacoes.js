@@ -75,7 +75,7 @@ const SEMENTE = [
   { nome: 'Aprovado para agendar vai para publicações com a Tainara', ordem: 10,
     gatilho: { tipo: 'status', para: 'para_agendar' }, condicao: null,
     acoes: [
-      { tipo: 'captacao', para: 'Editado' },
+      { tipo: 'captacao', para: 'editado' },
       { tipo: 'grupo', para: GRUPOS.publicacoes },
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['80146924'] },
       { tipo: 'update', texto: 'Encaminhado para agendamento.' },
@@ -120,14 +120,14 @@ const SEMENTE = [
     acoes: [{ tipo: 'responsaveis', modo: 'add', pessoas: ['68997024'] }] },
 
   { nome: 'Captação agendada fica com o Ademir', ordem: 40,
-    gatilho: { tipo: 'captacao', para: 'Captação Agendada' }, condicao: null,
+    gatilho: { tipo: 'captacao', para: 'captacao_agendada' }, condicao: null,
     acoes: [
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['78158742'] },
       { tipo: 'status', para: 'cap_agendada' },
     ] },
 
   { nome: 'Captação feita passa para o Reriston', ordem: 41,
-    gatilho: { tipo: 'captacao', de: 'Captação Agendada', para: 'Captação Feita' }, condicao: null,
+    gatilho: { tipo: 'captacao', de: 'captacao_agendada', para: 'captacao_feita' }, condicao: null,
     acoes: [
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['68036697'] },
       { tipo: 'grupo', para: GRUPOS.design },
@@ -325,9 +325,11 @@ export async function aplicar(sql, conteudoId, evento) {
           SELECT r.pessoa_id, ${item.id}, ${texto} FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=${item.id}`;
         feitas.push('notificação');
       } else if (acao.tipo === 'captacao') {
-        await sql`UPDATE vybe_conteudos SET captacao=${acao.para}, atualizado_em=NOW() WHERE id=${item.id}`;
-        paraOMonday.colunas.status_1__1 = { label: String(acao.para) };
-        feitas.push(`captação → ${acao.para}`);
+        const cap = (await sql`SELECT rotulo, monday_index FROM vybe_captacao WHERE chave=${acao.para}`)[0];
+        await sql`UPDATE vybe_conteudos SET captacao_chave=${acao.para},
+            captacao=${cap?.rotulo || null}, atualizado_em=NOW() WHERE id=${item.id}`;
+        if (cap) paraOMonday.colunas.status_1__1 = { index: Number(cap.monday_index) };
+        feitas.push(`captação → ${cap?.rotulo || acao.para}`);
       }
     }
 
@@ -382,6 +384,9 @@ export async function ensaio(sql, evento, { formato = 'Reels', grupo = 'ensaio' 
     // O motor roda DEPOIS da gravação: quem chama já escreveu o status novo.
     // Sem imitar isso, o ensaio mostraria o status antigo e mentiria sobre o
     // estado final.
+    if (evento.tipo === 'captacao' && evento.de) {
+      await sql`UPDATE vybe_conteudos SET captacao_chave=${String(evento.de)} WHERE id=${criado.id}`;
+    }
     if (evento.tipo === 'status' && evento.para) {
       await sql`UPDATE vybe_conteudos SET status_chave=${String(evento.para)} WHERE id=${criado.id}`;
     }
@@ -473,10 +478,15 @@ export async function aplicarDeEvento(sql, evento) {
     const r = await sql`SELECT chave FROM vybe_status WHERE monday_index=${Number(indice)}`;
     return r[0]?.chave || null;
   };
+  // Captação também fala por chave, agora que tem catálogo: o evento traz o
+  // rótulo e a comparação com a regra precisa ser na mesma moeda.
+  const capPorRotulo = async (rotulo) => rotulo
+    ? (await sql`SELECT chave FROM vybe_captacao WHERE LOWER(rotulo)=LOWER(${rotulo})`)[0]?.chave || null
+    : null;
   const para = tipo === 'status' ? await porIndice(evento.value?.label?.index)
-                                 : evento.value?.label?.text || null;
+                                 : await capPorRotulo(evento.value?.label?.text);
   const de = tipo === 'status' ? await porIndice(evento.previousValue?.label?.index)
-                               : evento.previousValue?.label?.text || null;
+                               : await capPorRotulo(evento.previousValue?.label?.text);
   if (!para) return null;
 
   return aplicar(sql, item.id, { tipo, de, para });

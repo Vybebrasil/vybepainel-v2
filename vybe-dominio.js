@@ -40,6 +40,7 @@ async function buscarDominio() {
 function dominioComoItensDoMonday(dados) {
   const status = new Map((dados.status || []).map((s) => [s.chave, s]));
   const pessoas = new Map((dados.pessoas || []).map((p) => [String(p.id), p.nome]));
+  const captacao = new Map((dados.captacao || []).map((c) => [c.chave, c.rotulo]));
   const C = COLUNAS.producao;
 
   return (dados.itens || []).map((item) => {
@@ -64,7 +65,7 @@ function dominioComoItensDoMonday(dados) {
           updated_at: item.status_updated_at || '',
           value: null,
         },
-        { id: C.captacao, text: item.captacao || '', value: null },
+        { id: C.captacao, text: captacao.get(item.captacao_chave) || '', value: null },
         { id: C.prazo, text: item.prazo_iso || '', value: null },
         { id: C.veiculacao, text: item.veiculacao_iso || '', value: null },
         {

@@ -147,6 +147,17 @@ export async function criarSchema() {
   // seis; o board tem quinze. Captação está em 100% dos itens e Tipo de conteúdo
   // em 86% — as outras três são pouco usadas, mas dado perdido é dado perdido.
   // Tempo Gasto e Subelementos ficam de fora: nunca foram preenchidas.
+  // Captação é coluna de status como qualquer outra, e merecia o mesmo catálogo
+  // que 'status' sempre teve. Sem ele, o resto do sistema falava dela por rótulo
+  // enquanto falava de status por chave — duas convenções para a mesma coisa.
+  await sql`CREATE TABLE IF NOT EXISTS vybe_captacao (
+    chave        TEXT PRIMARY KEY,
+    rotulo       TEXT NOT NULL,
+    cor          TEXT,
+    borda        TEXT,
+    monday_index INT UNIQUE
+  )`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS captacao_chave TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS tipo_conteudo TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS prioridade TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS off_audio TEXT`;
@@ -386,9 +397,11 @@ export async function listarConteudos() {
   // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
   // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
   // desperdício que a resposta crua do Monday impunha e o domínio deixa resolver.
-  const [status, pessoas, linhas] = await Promise.all([
+  const [status, captacao, pessoas, linhas] = await Promise.all([
     sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, final
           FROM vybe_status ORDER BY ordem`,
+    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice
+          FROM vybe_captacao ORDER BY monday_index`,
     sql`SELECT monday_user_id AS id, nome, papel, disciplina
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     sql`
@@ -400,7 +413,7 @@ export async function listarConteudos() {
         c.grupo_id,
         c.status_chave,
         c.status_em                             AS status_updated_at,
-        c.captacao,
+        c.captacao_chave,
         c.tipo_conteudo,
         c.prioridade,
         c.off_audio,
@@ -453,7 +466,7 @@ export async function listarConteudos() {
       updated_at: l.updated_at,
     };
     // A tela lê captação na mesa do DA e no gestor; sem ela a coluna some.
-    if (l.captacao) item.captacao = l.captacao;
+    if (l.captacao_chave) item.captacao_chave = l.captacao_chave;
     if (l.tipo_conteudo) item.tipo_conteudo = l.tipo_conteudo;
     if (l.prioridade) item.prioridade = l.prioridade;
     if (l.off_audio) item.off_audio = l.off_audio;
@@ -465,7 +478,7 @@ export async function listarConteudos() {
     return item;
   });
 
-  return { board_id: BOARD_PRODUCAO, status, pessoas, itens };
+  return { board_id: BOARD_PRODUCAO, status, captacao, pessoas, itens };
 }
 
 // Sincroniza histórico e anexos a partir do Monday, em páginas.
@@ -778,7 +791,12 @@ export async function sincronizarDoEvento(sql, evento) {
   }
 
   if (col === 'status_1__1') {
-    await sql`UPDATE vybe_conteudos SET captacao=${evento.value?.label?.text || null}, atualizado_em=NOW()
+    // O evento traz o rótulo; guardamos a chave, como em status.
+    const rotulo = evento.value?.label?.text || null;
+    const chave = rotulo
+      ? (await sql`SELECT chave FROM vybe_captacao WHERE LOWER(rotulo)=LOWER(${rotulo})`)[0]?.chave || null
+      : null;
+    await sql`UPDATE vybe_conteudos SET captacao=${rotulo}, captacao_chave=${chave}, atualizado_em=NOW()
       WHERE id=${id}`;
     return { campo: 'captacao' };
   }
@@ -896,7 +914,10 @@ export async function importarColunasExtra({ cursor = null, paginas = 4, porPagi
     });
 
     const r = await sql`UPDATE vybe_conteudos c
-        SET captacao = v.captacao, tipo_conteudo = v.tipo_conteudo,
+        SET captacao = v.captacao,
+            captacao_chave = (SELECT k.chave FROM vybe_captacao k
+                               WHERE LOWER(k.rotulo) = LOWER(v.captacao)),
+            tipo_conteudo = v.tipo_conteudo,
             prioridade = v.prioridade, off_audio = v.off_audio, editores = v.editores
       FROM jsonb_to_recordset(${JSON.stringify(linhas)}::jsonb)
         AS v(monday_item_id text, captacao text, tipo_conteudo text,
@@ -909,4 +930,38 @@ export async function importarColunasExtra({ cursor = null, paginas = 4, porPagi
     if (!proximo) break;
   }
   return { lidos, gravados, proximo_cursor: proximo };
+}
+
+// Lê as opções da coluna Captação no Monday e grava o catálogo, do mesmo jeito
+// que o de status. Depois converte a coluna de rótulo para chave nos conteúdos
+// já importados.
+export async function importarCatalogoCaptacao() {
+  await criarSchema();
+  const sql = database();
+  const dados = await mondayQuery(`{ boards(ids:[${BOARD_PRODUCAO}]) {
+    columns(ids:["status_1__1"]) { settings_str } } }`);
+  const bruto = dados?.boards?.[0]?.columns?.[0]?.settings_str || '{}';
+  const cfg = JSON.parse(bruto);
+  const rotulos = cfg.labels || {};
+  const cores = cfg.labels_colors || {};
+
+  let gravados = 0;
+  for (const [indice, rotulo] of Object.entries(rotulos)) {
+    if (!rotulo) continue;
+    await sql`INSERT INTO vybe_captacao (chave, rotulo, cor, borda, monday_index)
+      VALUES (${chaveStatus(rotulo)}, ${rotulo}, ${cores[indice]?.color || null},
+              ${cores[indice]?.border || cores[indice]?.color || null}, ${Number(indice)})
+      ON CONFLICT (chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
+        borda=EXCLUDED.borda, monday_index=EXCLUDED.monday_index`;
+    gravados += 1;
+  }
+
+  // A coluna guardava o rótulo; passa a guardar a chave, como status.
+  const convertidos = await sql`UPDATE vybe_conteudos c
+      SET captacao_chave = k.chave
+    FROM vybe_captacao k
+    WHERE c.captacao IS NOT NULL AND LOWER(c.captacao) = LOWER(k.rotulo)
+      AND (c.captacao_chave IS DISTINCT FROM k.chave)
+    RETURNING c.id`;
+  return { catalogo: gravados, conteudos_convertidos: convertidos.length };
 }
