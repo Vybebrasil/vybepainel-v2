@@ -5,8 +5,12 @@
 
 const CONTA_API = '/api/painel?area=conta';
 const PESSOAS_API = '/api/painel?area=pessoas';
+const CLIENTES_API = '/api/painel?area=clientes';
+const OPCOES_API = '/api/painel?area=opcoes';
 
 let EQUIPE = [];
+let CLIENTES = [];
+let OPCOES = null;
 
 function ehAdmin() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
@@ -16,13 +20,15 @@ async function carregarConta() {
   const raiz = document.getElementById('conta-root');
   if (!raiz) return;
   raiz.innerHTML = '<div class="auto-carregando">CARREGANDO…</div>';
-  EQUIPE = [];
+  EQUIPE = []; CLIENTES = []; OPCOES = null;
   if (ehAdmin()) {
-    try {
-      const r = await fetch(PESSOAS_API, { credentials: 'same-origin' });
-      const d = await r.json();
-      if (r.ok) EQUIPE = d.pessoas || [];
-    } catch { /* a área da conta funciona sem a lista da equipe */ }
+    // Cada bloco falha por conta própria: a área da conta não pode sumir porque
+    // a lista de clientes não carregou.
+    await Promise.all([
+      (async () => { try { const r = await fetch(PESSOAS_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) EQUIPE = d.pessoas || []; } catch {} })(),
+      (async () => { try { const r = await fetch(CLIENTES_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) CLIENTES = d.clientes || []; } catch {} })(),
+      (async () => { try { const r = await fetch(OPCOES_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) OPCOES = d; } catch {} })(),
+    ]);
   }
   pintarConta();
 }
@@ -95,7 +101,112 @@ function pintarConta() {
         <p class="auto-sub">Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora.</p>
       </div>
     </div>
-    <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhuma pessoa cadastrada.</div>'}</div>` : ''}`;
+    <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhuma pessoa cadastrada.</div>'}</div>
+    ${blocoClientes()}
+    ${blocoOpcoes()}` : ''}`;
+}
+
+// ── clientes ──────────────────────────────────────────────────────────────────
+// Sem isto, cliente novo exigia cadastrar antes no Monday — e com o time fora de
+// lá, viraria um pedido ao Paulo toda vez.
+function blocoClientes() {
+  const linhas = CLIENTES.map((c) => `
+    <div class="eq-linha ${c.ativo ? '' : 'fora'}">
+      <div class="eq-quem"><b>${safeText(c.nome)}</b><span class="eq-email">${c.conteudos} conteúdo${c.conteudos === 1 ? '' : 's'}</span></div>
+      <div class="eq-estado">${c.ativo ? 'aparece no painel' : 'fora do painel'}</div>
+      <div class="eq-acoes">
+        <button onclick="renomearCliente(${c.id},'${safeText(c.nome).replace(/'/g, "\\'")}')">renomear</button>
+        <button onclick="acaoCliente(${c.id},'${c.ativo ? 'desativar' : 'ativar'}')">${c.ativo ? 'tirar do painel' : 'trazer de volta'}</button>
+      </div>
+    </div>`).join('');
+
+  return `
+    <div class="auto-cabeca" style="margin-top:26px">
+      <div>
+        <div class="auto-kicker">VYBE OS · CLIENTES</div>
+        <h2 class="auto-titulo">Quem aparece no painel</h2>
+        <p class="auto-sub">Cliente não se apaga, se desativa: apagar arrastaria junto o vínculo de todo conteúdo histórico dele. Desativado some das telas e continua no histórico.</p>
+      </div>
+      <button class="auto-novo" onclick="criarCliente()">+ Novo cliente</button>
+    </div>
+    <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum cliente cadastrado.</div>'}</div>`;
+}
+
+async function chamarClientes(corpo, feito) {
+  try {
+    const r = await fetch(CLIENTES_API, { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Falhou.');
+    showToast(d.reativado ? 'Cliente já existia e voltou para o painel.' : feito, 'success', 4500);
+    carregarConta();
+  } catch (erro) { showToast(erro.message, 'error', 6000); }
+}
+
+function criarCliente() {
+  const nome = prompt('Nome do novo cliente, exatamente como deve aparecer no painel:');
+  if (nome === null || !String(nome).trim()) return;
+  chamarClientes({ acao:'criar', nome }, 'Cliente criado.');
+}
+
+function renomearCliente(id, atual) {
+  const nome = prompt('Novo nome do cliente:', atual);
+  if (nome === null || !String(nome).trim() || nome === atual) return;
+  chamarClientes({ acao:'renomear', id, nome }, 'Cliente renomeado.');
+}
+
+function acaoCliente(id, acao) {
+  if (acao === 'desativar' && !confirm('Tirar este cliente do painel?\n\nO histórico dele continua; ele só deixa de aparecer nas telas e não pode receber conteúdo novo.')) return;
+  chamarClientes({ acao, id }, acao === 'ativar' ? 'Cliente de volta ao painel.' : 'Cliente fora do painel.');
+}
+
+// ── opções das colunas ────────────────────────────────────────────────────────
+function blocoOpcoes() {
+  if (!OPCOES) return '';
+  const grupos = Object.entries(OPCOES.colunas || {}).map(([coluna, titulo]) => {
+    const itens = (OPCOES.opcoes || []).filter((o) => o.coluna_id === coluna);
+    return [coluna, titulo, itens];
+  });
+  grupos.push(['status_1__1', 'Captação', (OPCOES.captacao || []).map((o) => ({ ...o, coluna_id: 'status_1__1' }))]);
+
+  return `
+    <div class="auto-cabeca" style="margin-top:26px">
+      <div>
+        <div class="auto-kicker">VYBE OS · OPÇÕES DAS COLUNAS</div>
+        <h2 class="auto-titulo">O que a ficha oferece</h2>
+        <p class="auto-sub">Desligar uma opção tira ela dos seletores sem apagar nada: peças que já a usam continuam mostrando. Opção criada aqui vale só na Vybe — enquanto o Monday existir, a cópia daquele campo é pulada.</p>
+      </div>
+    </div>
+    ${grupos.map(([coluna, titulo, itens]) => `
+      <div class="op-grupo">
+        <div class="op-grupo-topo">
+          <b>${safeText(titulo)}</b>
+          ${OPCOES.colunas?.[coluna] ? `<button onclick="criarOpcao('${coluna}','${safeText(titulo)}')">+ nova opção</button>` : '<small>vem do Monday</small>'}
+        </div>
+        <div class="op-lista">${itens.map((o) => `
+          <button class="op-chip ${o.ativa ? 'ativa' : ''}" onclick="alternarOpcao('${coluna}','${safeText(o.chave)}')" title="${o.ativa ? 'Clique para desligar' : 'Clique para ligar'}">
+            ${safeText(o.rotulo)}${o.so_vybe ? ' <i>só Vybe</i>' : ''}
+          </button>`).join('')}</div>
+      </div>`).join('')}`;
+}
+
+async function chamarOpcoes(corpo) {
+  try {
+    const r = await fetch(OPCOES_API, { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Falhou.');
+    showToast(d.aviso || `“${d.opcao.rotulo}” ${d.opcao.ativa ? 'ligada' : 'desligada'}.`, 'success', d.aviso ? 8000 : 4000);
+    carregarConta();
+  } catch (erro) { showToast(erro.message, 'error', 6000); }
+}
+
+function alternarOpcao(coluna, chave) { chamarOpcoes({ acao:'alternar', coluna, chave }); }
+
+function criarOpcao(coluna, titulo) {
+  const rotulo = prompt(`Nova opção para “${titulo}”:`);
+  if (rotulo === null || !String(rotulo).trim()) return;
+  chamarOpcoes({ acao:'criar', coluna, rotulo });
 }
 
 async function trocarMinhaSenha() {

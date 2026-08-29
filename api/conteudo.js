@@ -236,6 +236,35 @@ async function comentar(sql, quem, { item, texto }) {
 // ── criar conteúdo ────────────────────────────────────────────────────────────
 // O id do Monday só existe depois de criar lá. Para o banco continuar mandando,
 // gravamos primeiro sem o id e ligamos os dois em seguida.
+// Renomear a peça. Não existia no painel: dava para criar, nunca para corrigir um
+// título. Com o time fora do Monday, um erro de digitação viraria permanente.
+async function trocarTitulo(sql, quem, { item, titulo }) {
+  const novo = String(titulo || '').trim();
+  if (!novo) throw new Error('O título não pode ficar vazio.');
+  if (novo.length > 255) throw new Error('Título muito longo.');
+
+  const linhas = await sql`SELECT id, titulo FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
+  if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
+  const c = linhas[0];
+  if (c.titulo === novo) return { conteudo_id: c.id, de: c.titulo, para: novo, replica_monday: 'sem mudança' };
+
+  await sql`UPDATE vybe_conteudos SET titulo=${novo}, atualizado_em=NOW() WHERE id=${c.id}`;
+  await registrarEvento(sql, c.id, {
+    tipo: 'titulo', de: c.titulo, para: novo, autorId: await pessoaDaSessao(sql, quem),
+  });
+
+  let replica = 'ok';
+  try {
+    await mondayQuery(
+      `mutation($board: ID!, $item: ID!, $values: JSON!) {
+         change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
+      { board: String(BOARD_PRODUCAO), item: String(item), values: JSON.stringify({ name: novo }) }
+    );
+  } catch (erro) { replica = `falhou: ${erro.message}`; }
+
+  return { conteudo_id: c.id, de: c.titulo, para: novo, replica_monday: replica };
+}
+
 // Mover de grupo só existia dentro das automações. Nenhuma tela oferecia, então
 // um conteúdo no grupo errado não tinha conserto pelo painel.
 async function moverGrupo(sql, quem, { item, grupo_id }) {
@@ -292,7 +321,7 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
   const chaves = (Array.isArray(para) ? para : [para]).map(String).filter(Boolean);
   const opcoes = cfg.catalogo === 'vybe_captacao'
     ? await sql`SELECT chave, rotulo, monday_index AS indice FROM vybe_captacao WHERE chave = ANY(${chaves})`
-    : await sql`SELECT chave, rotulo, indice FROM vybe_opcoes
+    : await sql`SELECT chave, rotulo, indice, so_vybe FROM vybe_opcoes
         WHERE coluna_id = ${cfg.coluna} AND chave = ANY(${chaves})`;
   if (chaves.length && opcoes.length !== chaves.length) {
     throw new Error(`Opção desconhecida para ${campo}: ${chaves.join(', ')}`);
@@ -326,8 +355,12 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
     autorId: await pessoaDaSessao(sql, quem),
   });
 
-  let replica = 'ok';
+  // Opção criada só aqui não existe no Monday: mandar faria ele recusar com
+  // "label doesn't exist". Pular e dizer é melhor que tentar e falhar.
+  const soVybe = opcoes.some((o) => o.so_vybe);
+  let replica = soVybe ? 'pulada: opção só existe na Vybe' : 'ok';
   try {
+    if (soVybe) throw { pular: true };
     // Coluna de status vai por índice; dropdown vai por id da opção.
     const valor = cfg.multi
       ? { ids: opcoes.map((o) => Number(o.indice)) }
@@ -338,7 +371,7 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
       { board: String(BOARD_PRODUCAO), item: String(item),
         values: JSON.stringify({ [cfg.coluna]: valor }) }
     );
-  } catch (erro) { replica = `falhou: ${erro.message}`; }
+  } catch (erro) { if (!erro?.pular) replica = `falhou: ${erro.message}`; }
 
   // Captação é gatilho de automação, como o status.
   let automacoes = [];
@@ -467,6 +500,10 @@ export default async function handler(req, res) {
     }
     if (acao === 'comentario') {
       return res.status(200).json({ ok: true, acao, ...(await comentar(sql, quem, { item, texto: corpo.texto })) });
+    }
+    if (acao === 'titulo') {
+      return res.status(200).json({ ok: true, acao,
+        ...(await trocarTitulo(sql, quem, { item, titulo: corpo.titulo })) });
     }
     if (ESCOLHAS[acao]) {
       return res.status(200).json({ ok: true, acao,

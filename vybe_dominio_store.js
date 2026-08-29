@@ -176,6 +176,9 @@ export async function criarSchema() {
     PRIMARY KEY (coluna_id, chave)
   )`;
   await sql`ALTER TABLE vybe_opcoes ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
+  // Opção criada aqui, que o Monday não conhece. Enquanto ele existir, a réplica
+  // do campo é pulada quando o valor for uma dessas.
+  await sql`ALTER TABLE vybe_opcoes ADD COLUMN IF NOT EXISTS so_vybe BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE vybe_captacao ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS formato_chaves TEXT[]`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS tipo_conteudo_chaves TEXT[]`;

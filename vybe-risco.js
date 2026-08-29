@@ -732,6 +732,37 @@ function fichaSelect(campo, opcoes, atual, itemId) {
 
 // O Monday deixa de ser lugar para o time entrar: quem não administra não vê o
 // atalho, senão ele abre uma tela de "sem acesso" e parece defeito do painel.
+// Renomear a peça. Não existia: dava para criar, nunca para corrigir um título.
+// Com o time fora do Monday, um erro de digitação viraria permanente.
+async function renomearPeca(itemId) {
+  const item = findOperationalItem(itemId);
+  if (!item) return;
+  const novo = prompt('Novo título da peça:', item.nome || '');
+  if (novo === null) return;
+  const limpo = String(novo).trim();
+  if (!limpo || limpo === item.nome) return;
+  try {
+    const r = await fetch('/api/conteudo', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: 'titulo', item: String(itemId), titulo: limpo }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível renomear.');
+    // Atualiza as listas em memória para o card não voltar com o nome antigo.
+    [DADOS, DADOS_ALL].forEach((lista) => (lista || []).forEach((x) => {
+      if (String(x.id) === String(itemId)) x.nome = limpo;
+    }));
+    saveProductionCache();
+    showToast(String(d.replica_monday || '').startsWith('falhou')
+      ? '✓ Renomeado no Vybe · o Monday não recebeu a cópia' : '✓ Renomeado', 'ok', 4000);
+    renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), findOperationalItem(itemId) || item);
+    if (typeof renderAll === 'function') renderAll();
+  } catch (erro) {
+    showToast(`Não foi possível renomear: ${erro.message}`, 'err', 7000);
+  }
+}
+
 function podeVerMonday() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
 }
@@ -811,7 +842,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
       <div style="flex:1;overflow-y:auto;padding:22px 24px 120px;box-sizing:border-box;width:100%;height:100%;">
       <div class="workspace-kicker"><span>VYBE OS · WORKSPACE DA DEMANDA</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div>
     <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div>
-    <h2 class="workspace-title">${safeText(item.nome)}</h2>
+    <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}')">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
     ${workspaceFichaHtml(detail, item.id)}
     ${workspaceDeliveryDock(detail,item)}

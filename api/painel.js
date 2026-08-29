@@ -355,7 +355,119 @@ async function anexarNaPeca(req, res, quem) {
                                 link: enviado.link, bytes: enviado.bytes });
 }
 
-const AREAS = { automacoes: areaAutomacoes, notificacoes: areaNotificacoes,
+// ── clientes ──────────────────────────────────────────────────────────────────
+//
+// Sem isto, criar conteúdo para um cliente novo exigia cadastrá-lo antes no
+// Monday — e com o time fora de lá, viraria um pedido para o Paulo toda vez.
+//
+// Cliente não se apaga: desativa. A lista de conteúdos filtra por ativo, e apagar
+// arrastaria junto o vínculo de todo conteúdo histórico dele.
+async function areaClientes(req, res, quem) {
+  const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
+  const db = sql();
+
+  if (req.method === 'GET') {
+    const linhas = await db`
+      SELECT c.id, c.nome, c.ativo,
+             (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos
+        FROM vybe_clientes c ORDER BY c.ativo DESC, c.nome`;
+    return res.status(200).json({ ok: true, clientes: linhas });
+  }
+  if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra altera clientes.' });
+
+  if (req.method === 'POST') {
+    const { acao = 'criar', id, nome } = req.body || {};
+    if (acao === 'criar') {
+      const limpo = String(nome || '').trim();
+      if (!limpo) return res.status(400).json({ error: 'Informe o nome do cliente.' });
+      const existe = await db`SELECT id, nome, ativo FROM vybe_clientes WHERE LOWER(nome)=LOWER(${limpo})`;
+      if (existe.length) {
+        // Reativa em vez de recusar: cliente que voltou é o caso comum, e criar
+        // um segundo com o mesmo nome partiria o histórico em dois.
+        const r = await db`UPDATE vybe_clientes SET ativo=TRUE WHERE id=${existe[0].id} RETURNING id, nome, ativo`;
+        return res.status(200).json({ ok: true, reativado: true, cliente: r[0] });
+      }
+      const r = await db`INSERT INTO vybe_clientes (nome) VALUES (${limpo}) RETURNING id, nome, ativo`;
+      return res.status(200).json({ ok: true, cliente: r[0] });
+    }
+    if (acao === 'renomear') {
+      const limpo = String(nome || '').trim();
+      if (!id || !limpo) return res.status(400).json({ error: 'Informe o cliente e o novo nome.' });
+      const r = await db`UPDATE vybe_clientes SET nome=${limpo} WHERE id=${Number(id)} RETURNING id, nome, ativo`;
+      if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
+      return res.status(200).json({ ok: true, cliente: r[0] });
+    }
+    if (acao === 'ativar' || acao === 'desativar') {
+      if (!id) return res.status(400).json({ error: 'Informe o cliente.' });
+      const r = await db`UPDATE vybe_clientes SET ativo=${acao === 'ativar'} WHERE id=${Number(id)}
+        RETURNING id, nome, ativo`;
+      if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
+      return res.status(200).json({ ok: true, cliente: r[0] });
+    }
+    return res.status(400).json({ error: `Ação desconhecida: ${acao}` });
+  }
+  return res.status(405).json({ error: 'Método não permitido.' });
+}
+
+// ── opções das colunas ────────────────────────────────────────────────────────
+//
+// Formato, Tipo de conteúdo, Priority, OFF e Captação. Dá para ligar e desligar
+// o que a tela oferece. Criar opção nova fica marcada como só da Vybe: enquanto
+// o Monday existir, ele recusa rótulo que não conhece, então a réplica daquele
+// campo é pulada — dito na hora, não descoberto depois.
+const COLUNAS_EDITAVEIS = {
+  lista_suspensa0__1: 'Formato do conteúdo',
+  lista_suspensa__1: 'Tipo de conteúdo',
+  color_mm164yv8: 'Priority',
+  color_mkynd7j8: '🎙️ OFF',
+};
+
+async function areaOpcoes(req, res, quem) {
+  const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
+  const db = sql();
+
+  if (req.method === 'GET') {
+    const [opcoes, captacao] = await Promise.all([
+      db`SELECT coluna_id, chave, rotulo, indice, ativa, so_vybe FROM vybe_opcoes
+          ORDER BY coluna_id, indice`,
+      db`SELECT chave, rotulo, monday_index AS indice, ativa FROM vybe_captacao ORDER BY monday_index`,
+    ]);
+    return res.status(200).json({ ok: true, colunas: COLUNAS_EDITAVEIS, opcoes, captacao });
+  }
+  if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra altera as opções.' });
+
+  if (req.method === 'POST') {
+    const { acao = 'alternar', coluna, chave, rotulo } = req.body || {};
+
+    if (acao === 'alternar') {
+      if (!coluna || !chave) return res.status(400).json({ error: 'Informe a coluna e a opção.' });
+      const r = coluna === 'status_1__1'
+        ? await db`UPDATE vybe_captacao SET ativa = NOT ativa WHERE chave=${chave} RETURNING chave, rotulo, ativa`
+        : await db`UPDATE vybe_opcoes SET ativa = NOT ativa WHERE coluna_id=${coluna} AND chave=${chave}
+             RETURNING chave, rotulo, ativa`;
+      if (!r.length) return res.status(404).json({ error: 'Opção não encontrada.' });
+      return res.status(200).json({ ok: true, opcao: r[0] });
+    }
+
+    if (acao === 'criar') {
+      const limpo = String(rotulo || '').trim();
+      if (!coluna || !limpo) return res.status(400).json({ error: 'Informe a coluna e o rótulo.' });
+      if (!COLUNAS_EDITAVEIS[coluna]) return res.status(400).json({ error: 'Coluna não editável.' });
+      const nova = String(limpo).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      const r = await db`INSERT INTO vybe_opcoes (coluna_id, chave, rotulo, indice, ativa, so_vybe)
+        VALUES (${coluna}, ${nova}, ${limpo}, NULL, TRUE, TRUE)
+        ON CONFLICT (coluna_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, ativa=TRUE
+        RETURNING coluna_id, chave, rotulo, ativa, so_vybe`;
+      return res.status(200).json({ ok: true, opcao: r[0],
+        aviso: 'Opção criada só na Vybe. Enquanto o Monday existir, a cópia deste campo é pulada quando ela for usada.' });
+    }
+    return res.status(400).json({ error: `Ação desconhecida: ${acao}` });
+  }
+  return res.status(405).json({ error: 'Método não permitido.' });
+}
+
+const AREAS = { automacoes: areaAutomacoes, clientes: areaClientes, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca };
 
 export default async function handler(req, res) {
