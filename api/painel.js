@@ -467,7 +467,39 @@ async function areaOpcoes(req, res, quem) {
   return res.status(405).json({ error: 'Método não permitido.' });
 }
 
-const AREAS = { automacoes: areaAutomacoes, clientes: areaClientes, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// ── acessos ───────────────────────────────────────────────────────────────────
+//
+// Credenciais dos clientes, que no Monday viviam dentro de um documento. Só
+// administrador, e o conteúdo só sai quando é pedido explicitamente por id — a
+// listagem devolve metadado, para abrir a tela não derramar 43 senhas de uma vez
+// em cache de navegador.
+async function areaAcessos(req, res, quem) {
+  if (!(quem.tipo === 'servico' || quem.pessoa?.admin)) {
+    return res.status(403).json({ error: 'Só quem administra vê os acessos.' });
+  }
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  const db = sql();
+
+  const id = req.query?.id;
+  if (id) {
+    const linha = (await db`SELECT a.id, a.nome, a.doc_conteudo, a.pasta_drive, a.link,
+        a.doc_atualizado_em, c.nome AS cliente
+      FROM vybe_acessos a LEFT JOIN vybe_clientes c ON c.id = a.cliente_id
+      WHERE a.id = ${Number(id)}`)[0];
+    if (!linha) return res.status(404).json({ error: 'Acesso não encontrado.' });
+    return res.status(200).json({ ok: true, acesso: linha });
+  }
+
+  const linhas = await db`SELECT a.id, a.nome, a.grupo, a.pasta_drive, a.link, a.manus,
+      a.doc_id, a.doc_atualizado_em, c.nome AS cliente,
+      (a.doc_conteudo IS NOT NULL AND LENGTH(a.doc_conteudo) > 0) AS tem_documento,
+      COALESCE(LENGTH(a.doc_conteudo), 0) AS tamanho
+    FROM vybe_acessos a LEFT JOIN vybe_clientes c ON c.id = a.cliente_id
+    ORDER BY (a.grupo = 'Inativos'), a.nome`;
+  return res.status(200).json({ ok: true, acessos: linhas });
+}
+
+const AREAS = { automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca };
 
 export default async function handler(req, res) {
