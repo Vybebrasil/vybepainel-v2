@@ -1374,13 +1374,15 @@ header,.topbar{
 .grupo-bloco{border-bottom:1px solid rgba(255,255,255,.07)}
 .grupo-bloco:last-child{border-bottom:0}
 .grupo-cabeca{display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;
-  border:0;border-left:3px solid var(--accent,#ff6b00);background:rgba(255,255,255,.02);
-  color:inherit;text-align:left;cursor:pointer;font:inherit}
-.grupo-cabeca:hover{background:rgba(255,122,26,.09)}
-.grupo-seta{color:#ff9a4c;font-size:13px;width:12px;flex:none}
-.grupo-titulo b{display:block;color:#ffb268;font:800 14px Inter,system-ui,sans-serif;letter-spacing:-.02em}
+  border:0;border-left:4px solid var(--cor-grupo,#7c8797);
+  background:linear-gradient(96deg,color-mix(in srgb,var(--cor-grupo,#7c8797) 15%,transparent),transparent 62%);
+  color:inherit;text-align:left;cursor:pointer;font:inherit;transition:background .14s}
+.grupo-cabeca:hover{background:linear-gradient(96deg,color-mix(in srgb,var(--cor-grupo,#7c8797) 28%,transparent),transparent 72%)}
+.grupo-seta{color:var(--cor-grupo,#7c8797);font-size:13px;width:12px;flex:none}
+.grupo-titulo b{display:block;color:var(--cor-grupo,#e7ecf5);font:800 14px Inter,system-ui,sans-serif;letter-spacing:-.02em}
 .grupo-titulo small{display:block;margin-top:1px;color:#8f98a9;font:700 10px 'JetBrains Mono',monospace}
-.grupo-bloco.recolhido .grupo-cabeca{background:transparent}
+.grupo-bloco.recolhido .grupo-cabeca{background:linear-gradient(96deg,color-mix(in srgb,var(--cor-grupo,#7c8797) 9%,transparent),transparent 55%)}
+.grupo-tabela tbody tr{border-left:4px solid color-mix(in srgb,var(--cor-grupo,#7c8797) 36%,transparent)}
 
 .grupo-tabela-rolagem{overflow-x:auto}
 .grupo-tabela{width:100%;border-collapse:collapse;font:500 11px Inter,system-ui,sans-serif}
@@ -1399,6 +1401,25 @@ header,.topbar{
   letter-spacing:.05em;cursor:pointer}
 .grupo-ver-mais:hover{background:rgba(255,122,26,.11)}
 @media(max-width:780px){.grupos-head{flex-direction:column;gap:8px}.grupo-nome{max-width:200px}}
+
+/* Os campos da linha se comportam como texto até a pessoa mexer neles: uma
+   tabela cheia de caixas de formulário vira ruído e some com o conteúdo. */
+.grupo-tabela td{padding:4px 10px}
+.grupo-dono{width:96px}
+.grupo-status{border:0;background:none;padding:0;cursor:pointer;font:inherit}
+.grupo-status:hover{filter:brightness(1.22)}
+.grupo-select,.grupo-data-campo{max-width:150px;padding:3px 6px;border:1px solid transparent;border-radius:6px;
+  background:transparent;color:#a9b1bf;font:700 10px 'JetBrains Mono',monospace;cursor:pointer;
+  transition:border-color .12s,background .12s,color .12s}
+.grupo-select:hover,.grupo-data-campo:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:#e7ecf5}
+.grupo-select:focus,.grupo-data-campo:focus{outline:none;border-color:rgba(255,157,79,.7);
+  background:rgba(255,122,26,.10);color:#fff}
+.grupo-select:disabled,.grupo-data-campo:disabled{opacity:.5;cursor:progress}
+.grupo-select option{background:#11141c;color:#e7ecf5}
+.grupo-data-campo{width:120px}
+.grupo-data-campo.is-late{color:#ff8b9a}
+.grupo-data-campo::-webkit-calendar-picker-indicator{filter:invert(.62);cursor:pointer}
+.grupo-tabela .owner-editor-trigger{border:0;background:none;padding:0;cursor:pointer}
 </style></head>
 <body>
 

@@ -876,10 +876,17 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
       showToast(`Automação: ${d.automacoes.map((a) => a.nome).join(' · ')}`, 'info', 7000);
     }
     const item = findOperationalItem(itemId);
-    if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), item);
+    // Só redesenha a gaveta se for esta peça que está aberta. Chamado pela
+    // tabela por grupo, um refetch por campo salvo seria ida à rede à toa.
+    if (item && String(activeWorkspaceItemId) === String(itemId)) {
+      renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), item);
+    }
+    if (alvo) alvo.disabled = false;
+    return true;
   } catch (erro) {
     if (alvo) { alvo.disabled = false; alvo.value = anterior; }
     showToast(`Não foi possível salvar: ${erro.message}`, 'err', 7000);
+    return false;
   }
 }
 

@@ -11,6 +11,7 @@
 // assim a regra continua num lugar só.
 
 const CONTEUDOS_API = '/api/conteudos';
+let CATALOGO_CAPTACAO = [];
 
 // Fonte de leitura. Agora o padrão é o banco da Vybe; o espelho do Monday fica
 // como caminho de volta, e a queda para ele é automática se o banco falhar.
@@ -42,6 +43,9 @@ function dominioComoItensDoMonday(dados) {
   const pessoas = new Map((dados.pessoas || []).map((p) => [String(p.id), p.nome]));
   aplicarFotosDoBanco(dados.pessoas);
   const captacao = new Map((dados.captacao || []).map((c) => [c.chave, c.rotulo]));
+  // O catálogo era lido e jogado fora. A tabela por grupo precisa dele para
+  // oferecer as opções de captação sem uma segunda ida ao servidor.
+  CATALOGO_CAPTACAO = (dados.captacao || []).map((c) => [c.chave, c.rotulo, c.ativa !== false]);
   const C = COLUNAS.producao;
 
   return (dados.itens || []).map((item) => {

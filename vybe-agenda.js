@@ -352,57 +352,67 @@ async function managerCalendarDrop(dateIso, event, cell) {
   if (!item) return showToast('Atividade não encontrada.', 'err');
 
   const campo = dateMode === 'prazo' ? 'prazo' : 'veiculacao';
-  const anterior = campo === 'prazo'
-    ? String(item.prazo_iso || '')
-    : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
-  if (anterior === dateIso) return;
-
   cell.classList.add('is-saving');
-  armOutboundMutationGuard(campo === 'prazo' ? 'prazo' : 'veiculação');
   try {
-    const pelaEscritaDupla = await tentarEscritaDupla(item, { acao: campo, item: String(item.id), data: dateIso });
-    if (!pelaEscritaDupla) {
-      const colunas = request ? COLUNAS.demandas : COLUNAS.producao;
-      const mutation = `mutation($board:ID!,$item:ID!,$column:String!,$value:JSON!){ change_column_value(board_id:$board,item_id:$item,column_id:$column,value:$value){ id } }`;
-      await mondayQuery(mutation, {
-        board: String(item.board_id || (request ? BOARD_DEMANDAS_ID : BOARD_ID)),
-        item: String(item.id), column: colunas[campo], value: JSON.stringify({ date: dateIso }),
-      });
-      // Sem escrita dupla não existe histórico nosso; o registro vai para o Monday.
-      try {
-        await postItemUpdate(item.id, `[Vybe OS · Data movida na agenda]\n${campo === 'prazo' ? 'Prazo' : 'Veiculação'}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);
-      } catch (falhaLog) { console.warn('Data movida, mas o log não foi registrado.', falhaLog); }
-    }
-
-    const curto = (iso) => planningDateBr(iso).slice(0, 5);
-    if (request) {
-      if (campo === 'prazo') { item.prazo_iso = dateIso; item.prazo = curto(dateIso); }
-      else { item.conclusao_iso = dateIso; item.conclusao = curto(dateIso);
-             item.veiculacao_iso = dateIso; item.veiculacao = curto(dateIso); }
-      outboundMutationGuardUntil = 0;
-      renderIntegratedOperationalViews();
-    } else {
-      applyOutboundItemPatch(item.id,
-        campo === 'prazo' ? { prazo_iso: dateIso } : { veiculacao_iso: dateIso }, 'planejamento');
-    }
-    renderManagerCalendar();
-
-    // O Prazo de Ouro deixa de barrar e passa a avisar: quem arrasta está
-    // replanejando, e travar o gesto no meio só devolveria o formulário.
-    const prazo = campo === 'prazo' ? dateIso : String(item.prazo_iso || '');
-    const veic = campo === 'veiculacao' ? dateIso : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
-    const folga = (prazo && veic) ? goldenDeadlineGap(prazo, veic) : null;
-    const alerta = (folga !== null && folga < PRAZO_OURO_DIAS)
-      ? ` · atenção: ${folga} dia${folga === 1 ? '' : 's'} de antecedência, abaixo do Prazo de Ouro`
-      : '';
-    showToast(`✓ ${campo === 'prazo' ? 'Prazo' : 'Veiculação'} de ${safeText(item.nome || 'a peça')}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}${alerta}`,
-      alerta ? 'info' : 'ok', alerta ? 7000 : 4200);
+    await moverDataDoItem(item, campo, dateIso, { request });
   } catch (erro) {
     showToast(`Não foi possível mover a data: ${erro.message}`, 'err', 7000);
   } finally {
     cell.classList.remove('is-saving');
   }
 }
+
+// Um caminho só para mudar data, venha do arrasto na agenda ou do campo na
+// tabela por grupo. Duas implementações da mesma gravação viram duas verdades.
+// Devolve false quando a data já era aquela — não é erro, é nada a fazer.
+async function moverDataDoItem(item, campo, dateIso, { request = false } = {}) {
+  const anterior = campo === 'prazo'
+    ? String(item.prazo_iso || '')
+    : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
+  if (anterior === dateIso) return false;
+
+  armOutboundMutationGuard(campo === 'prazo' ? 'prazo' : 'veiculação');
+  const pelaEscritaDupla = await tentarEscritaDupla(item, { acao: campo, item: String(item.id), data: dateIso });
+  if (!pelaEscritaDupla) {
+    const colunas = request ? COLUNAS.demandas : COLUNAS.producao;
+    const mutation = `mutation($board:ID!,$item:ID!,$column:String!,$value:JSON!){ change_column_value(board_id:$board,item_id:$item,column_id:$column,value:$value){ id } }`;
+    await mondayQuery(mutation, {
+      board: String(item.board_id || (request ? BOARD_DEMANDAS_ID : BOARD_ID)),
+      item: String(item.id), column: colunas[campo], value: JSON.stringify({ date: dateIso }),
+    });
+    // Sem escrita dupla não existe histórico nosso; o registro vai para o Monday.
+    try {
+      await postItemUpdate(item.id, `[Vybe OS · Data alterada]\n${campo === 'prazo' ? 'Prazo' : 'Veiculação'}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);
+    } catch (falhaLog) { console.warn('Data alterada, mas o log não foi registrado.', falhaLog); }
+  }
+
+  const curto = (iso) => planningDateBr(iso).slice(0, 5);
+  if (request) {
+    if (campo === 'prazo') { item.prazo_iso = dateIso; item.prazo = curto(dateIso); }
+    else { item.conclusao_iso = dateIso; item.conclusao = curto(dateIso);
+           item.veiculacao_iso = dateIso; item.veiculacao = curto(dateIso); }
+    outboundMutationGuardUntil = 0;
+    renderIntegratedOperationalViews();
+  } else {
+    applyOutboundItemPatch(item.id,
+      campo === 'prazo' ? { prazo_iso: dateIso } : { veiculacao_iso: dateIso }, 'planejamento');
+  }
+  renderManagerCalendar();
+  renderVisaoDeGrupos();
+
+  // O Prazo de Ouro deixa de barrar e passa a avisar: quem move a data está
+  // replanejando, e travar no meio só devolveria o formulário.
+  const prazo = campo === 'prazo' ? dateIso : String(item.prazo_iso || '');
+  const veic = campo === 'veiculacao' ? dateIso : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
+  const folga = (prazo && veic) ? goldenDeadlineGap(prazo, veic) : null;
+  const alerta = (folga !== null && folga < PRAZO_OURO_DIAS)
+    ? ` · atenção: ${folga} dia${folga === 1 ? '' : 's'} de antecedência, abaixo do Prazo de Ouro`
+    : '';
+  showToast(`✓ ${campo === 'prazo' ? 'Prazo' : 'Veiculação'} de ${safeText(item.nome || 'a peça')}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}${alerta}`,
+    alerta ? 'info' : 'ok', alerta ? 7000 : 4200);
+  return true;
+}
+
 function managerCalendarLoadDemandas(button) {
   if (managerCalendarDemandasLoading) return;
   managerCalendarDemandasLoading = true;
@@ -677,6 +687,16 @@ const GRUPOS_VISAO = 'vybe_visao_grupos';
 const ORDEM_DOS_GRUPOS = ['group_title', 'novo_grupo57911__1', 'novo_grupo__1',
                           'novo_grupo22352__1', 'novo_grupo31348__1'];
 const LINHAS_POR_GRUPO = 50;
+// Uma cor por etapa. O board sempre teve isso e era metade de como o time
+// reconhecia onde a peça está sem ler nada.
+const CORES_DOS_GRUPOS = {
+  group_title:        '#579bfc',  // Redação
+  novo_grupo57911__1: '#ff642e',  // Produção (Foto e Vídeo)
+  novo_grupo__1:      '#a25ddc',  // Design & Edição
+  novo_grupo22352__1: '#fdab3d',  // Gestão de publicações
+  novo_grupo31348__1: '#00c875',  // Finalizados
+};
+const corDoGrupo = (id) => CORES_DOS_GRUPOS[id] || '#7c8797';
 
 let visaoDeGruposAberta = (() => {
   try { return localStorage.getItem(GRUPOS_VISAO) === '1'; } catch { return false; }
@@ -738,17 +758,52 @@ function itensPorGrupo() {
 }
 
 function linhaDeGrupoHtml(item) {
-  const dataCurta = (iso, texto) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : (texto || '—');
-  const atrasado = item.prazo_atrasado ? ' is-late' : '';
+  const parar = 'event.stopPropagation()';
+  const captacao = CATALOGO_CAPTACAO.length
+    ? `<select class="grupo-select" onclick="${parar}" onchange="${parar};salvarCaptacaoNaLinha('${item.id}',this)">
+        <option value=""${item.captacao ? '' : ' selected'}>—</option>
+        ${CATALOGO_CAPTACAO
+          .filter(([, rotulo, ativa]) => ativa !== false || rotulo === item.captacao)
+          .map(([chave, rotulo, ativa]) => `<option value="${safeText(chave)}"${rotulo === item.captacao ? ' selected' : ''}>${safeText(rotulo)}${ativa === false ? ' (desativada)' : ''}</option>`).join('')}
+      </select>`
+    : `<span class="grupo-captacao">${safeText(item.captacao || '—')}</span>`;
+  const data = (campo, iso, atrasado) =>
+    `<input type="date" class="grupo-data-campo${atrasado ? ' is-late' : ''}" value="${safeText(iso || '')}"
+       onclick="${parar}" onchange="${parar};salvarDataNaLinha('${item.id}','${campo}',this)"
+       title="${campo === 'prazo' ? 'Prazo de produção' : 'Data de veiculação'}">`;
   return `<tr onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
     <td>${safeText(item.cliente || '—')}</td>
-    <td>${safeText(item.responsavel ? firstName(item.responsavel) : '—')}</td>
-    <td>${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</td>
-    <td class="grupo-captacao">${safeText(item.captacao || '—')}</td>
-    <td class="grupo-data${atrasado}">${dataCurta(item.prazo_iso, item.prazo)}</td>
-    <td class="grupo-data">${dataCurta(item.veiculacao_iso, item.veiculacao)}</td>
+    <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
+    <td onclick="${parar}"><button type="button" class="grupo-status" onclick="openStatusEditor(event,'${item.id}')"
+      title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
+    <td>${captacao}</td>
+    <td>${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
+    <td>${data('veiculacao', item.veiculacao_iso, false)}</td>
   </tr>`;
+}
+
+// Captação e datas gravam pelo mesmo caminho do resto do painel; aqui só se
+// escolhe o campo e se devolve o valor antigo quando a gravação não passa.
+async function salvarCaptacaoNaLinha(itemId, select) {
+  const rotulo = select.options[select.selectedIndex]?.textContent || '';
+  const deuCerto = await salvarCampoDaFicha(itemId, 'captacao', select.value, select);
+  if (deuCerto) applyOutboundItemPatch(itemId, { captacao: rotulo === '—' ? '' : rotulo }, 'captação');
+}
+
+async function salvarDataNaLinha(itemId, campo, input) {
+  const item = findOperationalItem(itemId);
+  const valor = String(input.value || '');
+  if (!item || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return;
+  input.disabled = true;
+  try {
+    await moverDataDoItem(item, campo, valor, { request: isRequestItem(item) });
+  } catch (erro) {
+    input.value = (campo === 'prazo' ? item.prazo_iso : item.veiculacao_iso) || '';
+    showToast(`Não foi possível salvar a data: ${erro.message}`, 'err', 7000);
+  } finally {
+    input.disabled = false;
+  }
 }
 
 function renderVisaoDeGrupos() {
@@ -780,7 +835,7 @@ function renderVisaoDeGrupos() {
         </table>
       </div>
       ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${restam === 1 ? 'conteúdo' : 'conteúdos'}</button>` : ''}`;
-    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}">
+    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDoGrupo(grupo.id)}">
       <button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta">${recolhido ? '›' : '⌄'}</span>
         <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small>${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</small></span>
