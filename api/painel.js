@@ -28,7 +28,10 @@ async function areaAutomacoes(req, res, quem) {
   if (req.method === 'POST') {
     const acao = String(req.query?.acao || req.body?.acao || 'salvar');
     if (acao === 'schema') { await criarSchemaAutomacoes(); return res.status(200).json({ ok: true, acao }); }
-    if (acao === 'semear') return res.status(200).json({ ok: true, acao, ...(await semear()) });
+    if (acao === 'semear') {
+      const refazer = req.query?.refazer === '1' || req.body?.refazer === true;
+      return res.status(200).json({ ok: true, acao, ...(await semear({ refazer })) });
+    }
     if (acao === 'simular') {
       const { conteudo_id: cid, evento } = req.body || {};
       return res.status(200).json({ ok: true, acao, ...(await simular(sql(), Number(cid), evento || {})) });

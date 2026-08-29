@@ -81,29 +81,32 @@ const SEMENTE = [
       { tipo: 'update', texto: 'Encaminhado para agendamento.' },
     ] },
 
-  { nome: 'Audiovisual finalizado volta para edição com o Reriston', ordem: 20,
-    gatilho: { tipo: 'status', para: 'finalizado' }, condicao: { formato_em: AUDIOVISUAL },
+  { nome: 'Audiovisual finalizado em Produção volta para edição com o Reriston', ordem: 20,
+    gatilho: { tipo: 'status', para: 'finalizado' },
+    condicao: { formato_em: AUDIOVISUAL, grupo_em: [GRUPOS.producao] },
     acoes: [
       { tipo: 'grupo', para: GRUPOS.design },
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['68036697'] },
       { tipo: 'status', para: 'pode_fazer' },
     ] },
 
-  { nome: 'Design finalizado volta para edição com Deivid e Beatriz', ordem: 21,
-    gatilho: { tipo: 'status', para: 'finalizado' }, condicao: { formato_em: DESIGN },
+  { nome: 'Design finalizado em Produção volta para edição com Deivid e Beatriz', ordem: 21,
+    gatilho: { tipo: 'status', para: 'finalizado' },
+    condicao: { formato_em: DESIGN, grupo_em: [GRUPOS.producao] },
     acoes: [
       { tipo: 'grupo', para: GRUPOS.design },
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['68997024', '71130408'] },
       { tipo: 'status', para: 'pode_fazer' },
     ] },
 
-  { nome: 'Finalizado sem regra de formato vai para Finalizados', ordem: 90,
-    gatilho: { tipo: 'status', para: 'finalizado' }, condicao: null,
+  { nome: 'Finalizado em Gestão de publicações vai para Finalizados', ordem: 22,
+    gatilho: { tipo: 'status', para: 'finalizado' },
+    condicao: { grupo_em: [GRUPOS.publicacoes] },
     acoes: [{ tipo: 'grupo', para: GRUPOS.finalizados }] },
 
   { nome: 'Aprovação de audiovisual chama Vinícius, Ewerton e Paulo', ordem: 30,
     gatilho: { tipo: 'status', de: 'em_andamento', para: 'para_aprovacao' },
-    condicao: { formato_em: AUDIOVISUAL },
+    condicao: { formato_apenas: AUDIOVISUAL },
     acoes: [{ tipo: 'responsaveis', modo: 'add', pessoas: ['68035653', '68036687', '68035537'] }] },
 
   { nome: 'Aprovação de design chama Deivid e Beatriz', ordem: 31,
@@ -120,7 +123,7 @@ const SEMENTE = [
     gatilho: { tipo: 'captacao', para: 'agendar_captacao' }, condicao: null,
     acoes: [
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['78158742'] },
-      { tipo: 'captacao', para: 'cap_agendada' },
+      { tipo: 'status', para: 'cap_agendada' },
     ] },
 
   { nome: 'Captação agendada passa para o Reriston', ordem: 41,
@@ -147,18 +150,36 @@ const SEMENTE = [
     acoes: [{ tipo: 'notificar', texto: 'Veiculou ontem e continua em aberto: {titulo} ({cliente}).' }] },
 ];
 
-export async function semear() {
+// Semeia as regras importadas. Com refazer=true, corrige as que já existem em vez
+// de não fazer nada: a conferência contra o Monday achou divergências depois da
+// primeira semeadura, e sem isto só daria para arrumar uma por uma na mão.
+// Regra criada no painel nunca é tocada.
+export async function semear({ refazer = false } = {}) {
   await criarSchemaAutomacoes();
   const sql = database();
   const existentes = Number((await sql`SELECT COUNT(*)::int AS n FROM vybe_automacoes`)[0].n);
-  if (existentes) return { ja_existiam: existentes, criadas: 0 };
+  if (existentes && !refazer) return { ja_existiam: existentes, criadas: 0, atualizadas: 0 };
+
+  let criadas = 0, atualizadas = 0;
+  const nomes = [];
   for (const r of SEMENTE) {
+    nomes.push(r.nome);
+    const g = JSON.stringify(r.gatilho);
+    const c = r.condicao ? JSON.stringify(r.condicao) : null;
+    const a = JSON.stringify(r.acoes);
+    const mexida = await sql`UPDATE vybe_automacoes
+        SET ordem=${r.ordem}, gatilho=${g}::jsonb, condicao=${c}::jsonb, acoes=${a}::jsonb,
+            alterada_em=NOW()
+      WHERE nome=${r.nome} AND origem='importada do Monday' RETURNING id`;
+    if (mexida.length) { atualizadas += 1; continue; }
     await sql`INSERT INTO vybe_automacoes (nome, ordem, gatilho, condicao, acoes, origem)
-      VALUES (${r.nome}, ${r.ordem}, ${JSON.stringify(r.gatilho)}::jsonb,
-              ${r.condicao ? JSON.stringify(r.condicao) : null}::jsonb,
-              ${JSON.stringify(r.acoes)}::jsonb, 'importada do Monday')`;
+      VALUES (${r.nome}, ${r.ordem}, ${g}::jsonb, ${c}::jsonb, ${a}::jsonb, 'importada do Monday')`;
+    criadas += 1;
   }
-  return { ja_existiam: 0, criadas: SEMENTE.length };
+  // Semente que deixou de existir — a regra genérica que eu tinha inventado — sai.
+  const orfas = await sql`DELETE FROM vybe_automacoes
+    WHERE origem='importada do Monday' AND NOT (nome = ANY(${nomes})) RETURNING nome`;
+  return { ja_existiam: existentes, criadas, atualizadas, removidas: orfas.map((o) => o.nome) };
 }
 
 export async function listar() {
@@ -198,12 +219,22 @@ export async function remover(id) {
 // ── execução ──────────────────────────────────────────────────────────────────
 function atende(condicao, item) {
   if (!condicao) return true;
+  const formatos = () => String(item.formato || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+  // Formato é multi-seleção: "Carrossel, Fotografia" atende regra de qualquer um.
   if (condicao.formato_em) {
-    const f = String(item.formato || '');
-    // Formato é multi-seleção: "Carrossel, Fotografia" atende regra de qualquer um.
-    const partes = f.split(',').map((s) => s.trim()).filter(Boolean);
-    if (!partes.some((p) => condicao.formato_em.includes(p))) return false;
+    if (!formatos().some((p) => condicao.formato_em.includes(p))) return false;
   }
+  // "apenas" é mais estrito: TODOS os formatos do item precisam estar na lista.
+  // O Monday distingue as duas coisas e a diferença muda o resultado num item
+  // com dois formatos.
+  if (condicao.formato_apenas) {
+    const fs = formatos();
+    if (!fs.length || !fs.every((p) => condicao.formato_apenas.includes(p))) return false;
+  }
+  // De qual grupo o item está saindo. Sem isto, "finalizado" tem um destino só,
+  // e no Monday ele tem três, dependendo de onde a peça está.
+  if (condicao.grupo_em && !condicao.grupo_em.includes(item.grupo_id)) return false;
   if (condicao.status_nao_em && condicao.status_nao_em.includes(item.status_chave)) return false;
   if (condicao.status_em && !condicao.status_em.includes(item.status_chave)) return false;
   return true;
