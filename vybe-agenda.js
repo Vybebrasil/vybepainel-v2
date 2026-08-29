@@ -315,7 +315,11 @@ function managerCalendarDragStart(source, itemId, event) {
 function managerCalendarDragEnd() { managerCalendarDragPayload = null; document.querySelectorAll('.manager-calendar-day').forEach(node => node.classList.remove('is-drop-target')); }
 function managerCalendarDragOver(event, cell) { event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; cell.classList.add('is-drop-target'); }
 function managerCalendarDragLeave(cell) { cell.classList.remove('is-drop-target'); }
-function managerCalendarDrop(dateIso, event, cell) {
+// Arrastar JÁ é a decisão: quem soltou a peça no dia escolheu a data. Abrir o
+// editor de datas depois disso fazia a pessoa repetir o que acabou de dizer.
+// O editor continua no clique, para quem precisa mexer nas duas datas ou
+// registrar exceção ao Prazo de Ouro.
+async function managerCalendarDrop(dateIso, event, cell) {
   event.preventDefault();
   cell.classList.remove('is-drop-target');
   const payload = managerCalendarDragPayload || String(event.dataTransfer?.getData('text/plain') || '').split(':');
@@ -323,14 +327,64 @@ function managerCalendarDrop(dateIso, event, cell) {
   const source = payload?.source || payload?.[0];
   const itemId = payload?.itemId || payload?.[1];
   if (!source || !itemId) return;
-  if (source === 'request') return openDemandaPlanningEditor(itemId, dateIso);
-  openPlanningEditor(itemId);
-  setTimeout(() => {
-    const field = document.getElementById(dateMode === 'prazo' ? 'planning-prazo' : 'planning-veiculacao');
-    if (field) field.value = dateIso;
-    if (typeof updateGoldenDeadlineState === 'function') updateGoldenDeadlineState();
-    showToast(`Data alvo ${planningDateBr(dateIso)} pré-preenchida. Revise e confirme para salvar.`, 'info', 5200);
-  }, 80);
+
+  const request = source === 'request';
+  const item = request
+    ? (DADOS_DEMANDAS || []).find(row => String(row.id) === String(itemId))
+    : findOperationalItem(itemId);
+  if (!item) return showToast('Atividade não encontrada.', 'err');
+
+  const campo = dateMode === 'prazo' ? 'prazo' : 'veiculacao';
+  const anterior = campo === 'prazo'
+    ? String(item.prazo_iso || '')
+    : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
+  if (anterior === dateIso) return;
+
+  cell.classList.add('is-saving');
+  armOutboundMutationGuard(campo === 'prazo' ? 'prazo' : 'veiculação');
+  try {
+    const pelaEscritaDupla = await tentarEscritaDupla(item, { acao: campo, item: String(item.id), data: dateIso });
+    if (!pelaEscritaDupla) {
+      const colunas = request ? COLUNAS.demandas : COLUNAS.producao;
+      const mutation = `mutation($board:ID!,$item:ID!,$column:String!,$value:JSON!){ change_column_value(board_id:$board,item_id:$item,column_id:$column,value:$value){ id } }`;
+      await mondayQuery(mutation, {
+        board: String(item.board_id || (request ? BOARD_DEMANDAS_ID : BOARD_ID)),
+        item: String(item.id), column: colunas[campo], value: JSON.stringify({ date: dateIso }),
+      });
+      // Sem escrita dupla não existe histórico nosso; o registro vai para o Monday.
+      try {
+        await postItemUpdate(item.id, `[Vybe OS · Data movida na agenda]\n${campo === 'prazo' ? 'Prazo' : 'Veiculação'}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);
+      } catch (falhaLog) { console.warn('Data movida, mas o log não foi registrado.', falhaLog); }
+    }
+
+    const curto = (iso) => planningDateBr(iso).slice(0, 5);
+    if (request) {
+      if (campo === 'prazo') { item.prazo_iso = dateIso; item.prazo = curto(dateIso); }
+      else { item.conclusao_iso = dateIso; item.conclusao = curto(dateIso);
+             item.veiculacao_iso = dateIso; item.veiculacao = curto(dateIso); }
+      outboundMutationGuardUntil = 0;
+      renderIntegratedOperationalViews();
+    } else {
+      applyOutboundItemPatch(item.id,
+        campo === 'prazo' ? { prazo_iso: dateIso } : { veiculacao_iso: dateIso }, 'planejamento');
+    }
+    renderManagerCalendar();
+
+    // O Prazo de Ouro deixa de barrar e passa a avisar: quem arrasta está
+    // replanejando, e travar o gesto no meio só devolveria o formulário.
+    const prazo = campo === 'prazo' ? dateIso : String(item.prazo_iso || '');
+    const veic = campo === 'veiculacao' ? dateIso : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
+    const folga = (prazo && veic) ? goldenDeadlineGap(prazo, veic) : null;
+    const alerta = (folga !== null && folga < PRAZO_OURO_DIAS)
+      ? ` · atenção: ${folga} dia${folga === 1 ? '' : 's'} de antecedência, abaixo do Prazo de Ouro`
+      : '';
+    showToast(`✓ ${campo === 'prazo' ? 'Prazo' : 'Veiculação'} de ${safeText(item.nome || 'a peça')}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}${alerta}`,
+      alerta ? 'info' : 'ok', alerta ? 7000 : 4200);
+  } catch (erro) {
+    showToast(`Não foi possível mover a data: ${erro.message}`, 'err', 7000);
+  } finally {
+    cell.classList.remove('is-saving');
+  }
 }
 function managerCalendarLoadDemandas(button) {
   if (managerCalendarDemandasLoading) return;
