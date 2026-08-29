@@ -42,20 +42,24 @@ async function carregarAutomacoes() {
 function frasearGatilho(g) {
   if (!g) return '—';
   if (g.tipo === 'data') {
-    const quando = Number(g.dias) < 0 ? `${Math.abs(g.dias)} dia(s) antes d`
-      : Number(g.dias) > 0 ? `${g.dias} dia(s) depois d` : 'no dia d';
-    return `${quando}${g.campo === 'prazo' ? 'o prazo' : 'a veiculação'}, às ${g.hora || '—'}`;
+    const n = Math.abs(Number(g.dias) || 0);
+    const dias = `${n} ${n === 1 ? 'dia' : 'dias'}`;
+    const campo = g.campo === 'prazo' ? 'o prazo' : 'a veiculação';
+    const quando = Number(g.dias) < 0 ? `faltar ${dias} para ${campo}`
+      : Number(g.dias) > 0 ? `${campo} tiver passado há ${dias}`
+      : `for o dia d${campo === 'o prazo' ? 'o prazo' : 'a veiculação'}`;
+    return `${quando}, às ${g.hora || '—'}`;
   }
   const campo = g.tipo === 'captacao' ? 'a captação' : 'o status';
-  return g.de ? `quando ${campo} vai de “${g.de}” para “${g.para}”`
-              : `quando ${campo} vira “${g.para}”`;
+  return g.de ? `${campo} passar de “${g.de}” para “${g.para}”`
+              : `${campo} virar “${g.para}”`;
 }
 
 function frasearCondicao(c) {
   if (!c) return 'qualquer conteúdo';
-  if (c.formato_em) return `só formato ${c.formato_em.join(', ')}`;
-  if (c.status_nao_em) return `só se o status não for ${c.status_nao_em.join(', ')}`;
-  if (c.status_em) return `só se o status for ${c.status_em.join(', ')}`;
+  if (c.formato_em) return `formato ${c.formato_em.join(', ')}`;
+  if (c.status_nao_em) return `status diferente de ${c.status_nao_em.join(', ')}`;
+  if (c.status_em) return `status ${c.status_em.join(', ')}`;
   return 'qualquer conteúdo';
 }
 
@@ -95,7 +99,7 @@ function pintarAutomacoes() {
           <button class="perigo" onclick="excluirAutomacao(${a.id})">excluir</button>
         </div>` : `<span class="auto-estado">${a.ativa ? 'ativa' : 'desligada'}</span>`}
       </div>
-      <div class="auto-frase"><i>Quando</i> ${safeText(frasearGatilho(a.gatilho))} · <i>em</i> ${safeText(frasearCondicao(a.condicao))}</div>
+      <div class="auto-frase"><i>Quando</i> ${safeText(frasearGatilho(a.gatilho))}${a.condicao ? ` · <i>só em</i> ${safeText(frasearCondicao(a.condicao))}` : ''}</div>
       <div class="auto-acoes">${(a.acoes || []).map((x) => `<span>${safeText(frasearAcao(x))}</span>`).join('')}</div>
     </div>`).join('');
 
