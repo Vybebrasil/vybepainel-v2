@@ -45,7 +45,9 @@ function dominioComoItensDoMonday(dados) {
   const captacao = new Map((dados.captacao || []).map((c) => [c.chave, c.rotulo]));
   // O catálogo era lido e jogado fora. A tabela por grupo precisa dele para
   // oferecer as opções de captação sem uma segunda ida ao servidor.
-  CATALOGO_CAPTACAO = (dados.captacao || []).map((c) => [c.chave, c.rotulo, c.ativa !== false]);
+  CATALOGO_CAPTACAO = (dados.captacao || []).map((c) => ({
+    chave: c.chave, rotulo: c.rotulo, cor: c.cor || '', borda: c.borda || '', ativa: c.ativa !== false,
+  }));
   const C = COLUNAS.producao;
 
   return (dados.itens || []).map((item) => {

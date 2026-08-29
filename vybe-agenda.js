@@ -757,16 +757,22 @@ function itensPorGrupo() {
   }));
 }
 
+function captacaoDoCatalogo(rotulo) {
+  return CATALOGO_CAPTACAO.find((c) => c.rotulo === rotulo) || null;
+}
+
 function linhaDeGrupoHtml(item) {
   const parar = 'event.stopPropagation()';
-  const captacao = CATALOGO_CAPTACAO.length
-    ? `<select class="grupo-select" onclick="${parar}" onchange="${parar};salvarCaptacaoNaLinha('${item.id}',this)">
-        <option value=""${item.captacao ? '' : ' selected'}>—</option>
-        ${CATALOGO_CAPTACAO
-          .filter(([, rotulo, ativa]) => ativa !== false || rotulo === item.captacao)
-          .map(([chave, rotulo, ativa]) => `<option value="${safeText(chave)}"${rotulo === item.captacao ? ' selected' : ''}>${safeText(rotulo)}${ativa === false ? ' (desativada)' : ''}</option>`).join('')}
-      </select>`
-    : `<span class="grupo-captacao">${safeText(item.captacao || '—')}</span>`;
+  const atual = captacaoDoCatalogo(item.captacao);
+  // Captação usa a mesma pílula do status. Um <select> nativo é desenhado pelo
+  // sistema: no macOS ele vira cinza e engole a cor, que é justamente o que o
+  // Monday usava para dizer o estágio sem ninguém ler nada.
+  const captacao = `<button type="button" class="grupo-pill-btn"
+      onclick="abrirEditorDeCaptacao(event,'${item.id}')" title="Trocar captação">
+      ${item.captacao
+        ? pillHtml(item.captacao, atual?.cor || '', atual?.borda || '')
+        : '<span class="grupo-vazio">—</span>'}
+    </button>`;
   const data = (campo, iso, atrasado) =>
     `<input type="date" class="grupo-data-campo${atrasado ? ' is-late' : ''}" value="${safeText(iso || '')}"
        onclick="${parar}" onchange="${parar};salvarDataNaLinha('${item.id}','${campo}',this)"
@@ -775,20 +781,58 @@ function linhaDeGrupoHtml(item) {
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
     <td>${safeText(item.cliente || '—')}</td>
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
-    <td onclick="${parar}"><button type="button" class="grupo-status" onclick="openStatusEditor(event,'${item.id}')"
+    <td onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
       title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
-    <td>${captacao}</td>
+    <td onclick="${parar}">${captacao}</td>
     <td>${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
     <td>${data('veiculacao', item.veiculacao_iso, false)}</td>
   </tr>`;
 }
 
-// Captação e datas gravam pelo mesmo caminho do resto do painel; aqui só se
-// escolhe o campo e se devolve o valor antigo quando a gravação não passa.
-async function salvarCaptacaoNaLinha(itemId, select) {
-  const rotulo = select.options[select.selectedIndex]?.textContent || '';
-  const deuCerto = await salvarCampoDaFicha(itemId, 'captacao', select.value, select);
-  if (deuCerto) applyOutboundItemPatch(itemId, { captacao: rotulo === '—' ? '' : rotulo }, 'captação');
+// Mesmo desenho e mesmo comportamento do seletor de status: quem já sabe trocar
+// um não precisa aprender o outro.
+function abrirEditorDeCaptacao(event, itemId) {
+  event.preventDefault();
+  event.stopPropagation();
+  fecharEditorDeCaptacao();
+  const item = findOperationalItem(itemId);
+  if (!item) return showToast('Item não encontrado.', 'err');
+  if (!CATALOGO_CAPTACAO.length) return showToast('As opções de captação ainda estão carregando.', 'info');
+
+  const atual = String(item.captacao || '');
+  const oferecidas = CATALOGO_CAPTACAO.filter((c) => c.ativa || c.rotulo === atual);
+  const rect = event.currentTarget.getBoundingClientRect();
+  const fundo = document.createElement('div');
+  fundo.id = 'captacao-editor-backdrop';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharEditorDeCaptacao;
+  const menu = document.createElement('div');
+  menu.id = 'captacao-editor';
+  menu.className = 'status-editor';
+  menu.style.top = `${Math.min(window.innerHeight - 320, Math.max(14, rect.bottom + 8))}px`;
+  menu.style.left = `${Math.min(window.innerWidth - 324, Math.max(14, rect.right - 310))}px`;
+  menu.innerHTML = `<div class="status-editor-head"><span>Atualizar captação</span>
+      <button class="status-editor-close" type="button" onclick="fecharEditorDeCaptacao()">×</button></div>
+    ${oferecidas.map((c) => `<button type="button" class="status-editor-option ${c.rotulo === atual ? 'current' : ''}"
+        onclick="escolherCaptacao('${item.id}','${safeText(c.chave)}')">
+        <span class="status-editor-dot" style="background:${c.cor || '#7c8797'};color:${c.cor || '#7c8797'}"></span>
+        <span>${safeText(c.rotulo)}${c.ativa ? '' : ' (desativada)'}</span>
+        ${c.rotulo === atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}
+    <button type="button" class="status-editor-option" onclick="escolherCaptacao('${item.id}','')">
+      <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Sem captação</span></button>`;
+  document.body.append(fundo, menu);
+}
+
+function fecharEditorDeCaptacao() {
+  document.getElementById('captacao-editor-backdrop')?.remove();
+  document.getElementById('captacao-editor')?.remove();
+}
+
+async function escolherCaptacao(itemId, chave) {
+  fecharEditorDeCaptacao();
+  const escolhida = CATALOGO_CAPTACAO.find((c) => c.chave === chave);
+  const deuCerto = await salvarCampoDaFicha(itemId, 'captacao', chave, null);
+  if (deuCerto) applyOutboundItemPatch(itemId, { captacao: escolhida?.rotulo || '' }, 'captação');
 }
 
 async function salvarDataNaLinha(itemId, campo, input) {

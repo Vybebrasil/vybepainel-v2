@@ -536,7 +536,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
   const [status, captacao, opcoes, pessoas, linhas] = await Promise.all([
     sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, final
           FROM vybe_status WHERE board_id = ${boardId} ORDER BY ordem`,
-    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice
+    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, ativa
           FROM vybe_captacao ORDER BY monday_index`,
     sql`SELECT coluna_id, chave, rotulo, cor, borda, indice
           FROM vybe_opcoes ORDER BY coluna_id, indice`,
