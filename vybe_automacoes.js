@@ -479,6 +479,12 @@ export async function execucoes({ limite = 60, conteudoId = null } = {}) {
     id: l.id, em: l.em, automacao: l.automacao || '(regra excluída)',
     titulo: l.titulo, monday_item_id: l.monday_item_id,
     feitas: l.resultado?.feitas || [],
-    evento: (() => { try { return JSON.parse(l.resultado?.evento || 'null'); } catch { return null; } })(),
+    // As primeiras execuções guardaram o evento como objeto; depois passou a ser
+    // texto, para dar para comparar contra disparo duplo. Aceita os dois.
+    evento: (() => {
+      const e = l.resultado?.evento;
+      if (e && typeof e === 'object') return e;
+      try { return JSON.parse(e || 'null'); } catch { return null; }
+    })(),
   }));
 }
