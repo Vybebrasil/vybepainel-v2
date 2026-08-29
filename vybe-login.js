@@ -19,18 +19,93 @@ async function consultarSessao() {
   }
 }
 
+// ── contas conhecidas neste navegador ────────────────────────────────────────
+//
+// Mostrar as fotos de todo mundo na tela de login publicaria a equipe inteira:
+// quem abrisse a URL veria nomes, rostos e, na prática, metade de cada
+// credencial. Aqui só aparece quem já entrou NESTE navegador — na máquina da
+// pessoa ela clica na própria cara; numa máquina desconhecida, a tela continua
+// sem revelar nada.
+//
+// Fica em localStorage e some ao limpar o navegador, que é o comportamento certo
+// para uma máquina compartilhada.
+const CONTAS_CONHECIDAS = 'vybe_contas_deste_navegador';
+
+function contasConhecidas() {
+  try { return JSON.parse(localStorage.getItem(CONTAS_CONHECIDAS) || '[]'); }
+  catch { return []; }
+}
+
+function lembrarConta(pessoa, foto) {
+  if (!pessoa?.email) return;
+  try {
+    const outras = contasConhecidas().filter((c) => c.email !== pessoa.email);
+    const lista = [{ nome: pessoa.nome, email: pessoa.email, foto: foto || null }, ...outras].slice(0, 6);
+    localStorage.setItem(CONTAS_CONHECIDAS, JSON.stringify(lista));
+  } catch { /* navegador sem storage: só não lembra */ }
+}
+
+function esquecerConta(email) {
+  try {
+    localStorage.setItem(CONTAS_CONHECIDAS,
+      JSON.stringify(contasConhecidas().filter((c) => c.email !== email)));
+  } catch { /* nada a fazer */ }
+  const gate = document.getElementById('login-gate');
+  if (gate) { gate.remove(); montarTelaDeLogin(); }
+}
+
+function escolherConta(email) {
+  const campo = document.getElementById('login-email');
+  if (campo) campo.value = email;
+  document.querySelector('#login-gate .login-caixa')?.classList.add('com-email');
+  document.getElementById('login-senha')?.focus();
+}
+
+function usarOutroEmail() {
+  document.querySelector('#login-gate .login-caixa')?.classList.add('com-email');
+  const campo = document.getElementById('login-email');
+  if (campo) { campo.value = ''; campo.focus(); }
+}
+
+function contasHtml() {
+  const contas = contasConhecidas();
+  if (!contas.length) return '';
+  const inicial = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2)
+    .map((p) => p[0]).join('').toUpperCase();
+  return `
+    <div class="login-contas">
+      <p class="login-ajuda">Quem já entrou neste computador:</p>
+      <div class="login-contas-lista">
+        ${contas.map((c) => `
+          <div class="login-conta">
+            <button type="button" onclick="escolherConta('${c.email.replace(/'/g, "\\'")}')" title="${c.email}">
+              <span class="login-conta-foto">${c.foto
+                ? `<img src="${c.foto}" alt="">` : `<i>${inicial(c.nome)}</i>`}</span>
+              <b>${String(c.nome || c.email).split(' ')[0]}</b>
+            </button>
+            <button type="button" class="login-conta-tirar"
+                    onclick="esquecerConta('${c.email.replace(/'/g, "\\'")}')"
+                    title="Esquecer esta conta neste computador">×</button>
+          </div>`).join('')}
+      </div>
+      <button type="button" class="login-outro" onclick="usarOutroEmail()">Entrar com outro e-mail</button>
+    </div>`;
+}
+
 function montarTelaDeLogin() {
   if (document.getElementById('login-gate')) return;
   const gate = document.createElement('div');
   gate.id = 'login-gate';
+  const temContas = contasConhecidas().length > 0;
   gate.innerHTML = `
-    <form class="login-caixa" id="login-form" autocomplete="on">
+    <form class="login-caixa ${temContas ? 'tem-contas' : ''}" id="login-form" autocomplete="on">
       <div class="login-marca"><span class="login-logo">V</span>
         <div><b>Vybe OS</b><small>Painel de Produção</small></div>
       </div>
       <h1>Entrar</h1>
-      <p class="login-ajuda">Use o e-mail cadastrado na operação. Se não lembrar a senha, peça ao Paulo.</p>
-      <label class="login-campo">
+      <p class="login-ajuda login-so-sem-contas">Use o e-mail cadastrado na operação. Se não lembrar a senha, peça ao Paulo.</p>
+      ${contasHtml()}
+      <label class="login-campo login-campo-email">
         <span>E-mail</span>
         <input type="email" id="login-email" name="email" autocomplete="username"
                inputmode="email" required placeholder="voce@gmail.com">
@@ -67,6 +142,12 @@ function montarTelaDeLogin() {
       const dados = await resposta.json();
       if (!resposta.ok) throw new Error(dados?.error || 'Não foi possível entrar.');
       SESSAO_ATUAL = dados.pessoa;
+      // A foto vem numa segunda chamada: o cookie de sessão não carrega imagem.
+      try {
+        const r = await fetch('/api/painel?area=conta', { credentials: 'same-origin' });
+        const d = r.ok ? await r.json() : null;
+        lembrarConta(dados.pessoa, d?.pessoa?.foto_url || null);
+      } catch { lembrarConta(dados.pessoa, null); }
       gate.remove();
       iniciarPainel();
     } catch (falha) {
@@ -78,7 +159,9 @@ function montarTelaDeLogin() {
     }
   });
 
-  document.getElementById('login-email').focus();
+  // Com contas lembradas, o cursor vai para a senha depois do clique na foto —
+  // focar o e-mail escondido roubaria o foco.
+  if (!temContas) document.getElementById('login-email').focus();
 }
 
 // Chamado pelo vybe-init.js: devolve a sessão, ou mostra o login e devolve null.
