@@ -19,6 +19,15 @@ async function consultarSessao() {
   }
 }
 
+// Saudação pela hora do dia. O painel abre dizendo bom dia antes de pedir
+// qualquer coisa — quem senta na máquina é gente, não usuário.
+function saudacao() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
 // ── contas conhecidas neste navegador ────────────────────────────────────────
 //
 // Mostrar as fotos de todo mundo na tela de login publicaria a equipe inteira:
@@ -57,11 +66,30 @@ function esquecerConta(email) {
 function escolherConta(email) {
   const campo = document.getElementById('login-email');
   if (campo) campo.value = email;
+  const conta = contasConhecidas().find((c) => c.email === email);
+  const titulo = document.getElementById('login-titulo');
+  if (titulo && conta) titulo.textContent = String(conta.nome || '').split(' ')[0];
   document.querySelector('#login-gate .login-caixa')?.classList.add('com-email');
   document.getElementById('login-senha')?.focus();
 }
 
+// Clicou na cara errada. Sem isto, a saída era recarregar a página.
+function voltarParaAsContas() {
+  const caixa = document.querySelector('#login-gate .login-caixa');
+  if (caixa) caixa.classList.remove('com-email');
+  const titulo = document.getElementById('login-titulo');
+  if (titulo) titulo.textContent = 'Quem está operando?';
+  const email = document.getElementById('login-email');
+  const senha = document.getElementById('login-senha');
+  if (email) email.value = '';
+  if (senha) senha.value = '';
+  const erro = document.getElementById('login-erro');
+  if (erro) erro.hidden = true;
+}
+
 function usarOutroEmail() {
+  const titulo = document.getElementById('login-titulo');
+  if (titulo) titulo.textContent = 'Entrar';
   document.querySelector('#login-gate .login-caixa')?.classList.add('com-email');
   const campo = document.getElementById('login-email');
   if (campo) { campo.value = ''; campo.focus(); }
@@ -74,7 +102,7 @@ function contasHtml() {
     .map((p) => p[0]).join('').toUpperCase();
   return `
     <div class="login-contas">
-      <p class="login-ajuda">Quem já entrou neste computador:</p>
+      <p class="login-ajuda">Toque na sua foto e informe sua senha.</p>
       <div class="login-contas-lista">
         ${contas.map((c) => `
           <div class="login-conta">
@@ -102,7 +130,8 @@ function montarTelaDeLogin() {
       <div class="login-marca"><span class="login-logo">V</span>
         <div><b>Vybe OS</b><small>Painel de Produção</small></div>
       </div>
-      <h1>Entrar</h1>
+      <p class="login-saudacao">${saudacao()}.</p>
+      <h1 id="login-titulo">${temContas ? 'Quem está operando?' : 'Entrar'}</h1>
       <p class="login-ajuda login-so-sem-contas">Use o e-mail cadastrado na operação. Se não lembrar a senha, peça ao Paulo.</p>
       ${contasHtml()}
       <label class="login-campo login-campo-email">
@@ -115,6 +144,7 @@ function montarTelaDeLogin() {
         <input type="password" id="login-senha" name="senha" autocomplete="current-password"
                required placeholder="••••••••">
       </label>
+      <button type="button" class="login-voltar" onclick="voltarParaAsContas()">← Não sou eu</button>
       <div class="login-erro" id="login-erro" role="alert" hidden></div>
       <button type="submit" class="login-entrar" id="login-entrar">ENTRAR</button>
     </form>`;
