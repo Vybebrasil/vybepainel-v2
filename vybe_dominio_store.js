@@ -21,6 +21,8 @@ import { pastaDoConteudo, enviarParaDrive } from './vybe_drive.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 export const BOARD_DEMANDAS = 8385559107;
+export const BOARD_CLIENTES = 7758256536;
+export const BOARD_ACESSOS = 7758163799;
 
 // Papel e disciplina não existem no Monday: são regra de negócio de vocês, hoje
 // espalhada no vybe-config.js do cliente. Aqui vira semente do cadastro de pessoas.
@@ -169,6 +171,61 @@ export async function criarSchema() {
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS vybe_status_board_indice
     ON vybe_status (board_id, monday_index)`;
   await sql`CREATE INDEX IF NOT EXISTS vybe_conteudos_board ON vybe_conteudos (board_id)`;
+
+  // ── cadastro de cliente ───────────────────────────────────────────────────
+  //
+  // O board "Gestão de Clientes (Heads)" é o cadastro-mestre: contato, CNPJ,
+  // plano, segmento, valor, quem responde. Aqui ele enriquece a tabela que já
+  // existe, em vez de virar mais uma lista de conteúdo.
+  //
+  // Os grupos Ativos/Inativos passam a mandar em vybe_clientes.ativo, que hoje
+  // vem de uma lista escrita no código.
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS monday_item_id TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS vybe_clientes_monday
+    ON vybe_clientes (monday_item_id) WHERE monday_item_id IS NOT NULL`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS email TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS telefone TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS endereco TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS cnpj TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS plano TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS segmento TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS responsavel TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS status TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS planejamento_url TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS dashboard TEXT`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS valor NUMERIC`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS proxima_reuniao DATE`;
+  await sql`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS criado_no_monday DATE`;
+
+  await sql`CREATE TABLE IF NOT EXISTS vybe_cliente_pessoas (
+    cliente_id BIGINT NOT NULL REFERENCES vybe_clientes(id) ON DELETE CASCADE,
+    pessoa_id  BIGINT NOT NULL REFERENCES vybe_pessoas(id),
+    ordem      INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (cliente_id, pessoa_id)
+  )`;
+
+  // ── acessos ───────────────────────────────────────────────────────────────
+  //
+  // O board "Dados & Acessos" guarda as credenciais de cada cliente dentro de um
+  // documento do Monday — a coisa mais presa lá de todas, porque documento não
+  // sai por exportação de item.
+  //
+  // Conteúdo sensível: o endpoint que serve isto exige administrador, e nenhuma
+  // parte dele passa por log.
+  await sql`CREATE TABLE IF NOT EXISTS vybe_acessos (
+    id                BIGSERIAL PRIMARY KEY,
+    monday_item_id    TEXT UNIQUE,
+    nome              TEXT NOT NULL,
+    cliente_id        BIGINT REFERENCES vybe_clientes(id),
+    grupo             TEXT,
+    pasta_drive       TEXT,
+    link              TEXT,
+    manus             BOOLEAN NOT NULL DEFAULT FALSE,
+    doc_id            TEXT,
+    doc_conteudo      TEXT,
+    doc_atualizado_em TIMESTAMPTZ,
+    atualizado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
 
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS removido_em TIMESTAMPTZ`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS removido_por BIGINT REFERENCES vybe_pessoas(id)`;
@@ -1487,4 +1544,154 @@ export async function popularDemandas() {
 
   return { itens: itens.length, gravados: linhas.length,
            vinculos_cliente: vinculosCliente.length, vinculos_responsavel: vinculosResp.length };
+}
+
+// ── cadastro-mestre de clientes ──────────────────────────────────────────────
+//
+// Enriquece vybe_clientes com o board "Gestão de Clientes (Heads)". Não vira
+// conteúdo: é cadastro, e já existe uma tabela para isso.
+//
+// Os grupos Ativos/Inativos passam a decidir quem aparece no painel. Hoje isso
+// vem de CLIENTES_INATIVOS, uma lista escrita no vybe-config.js — cadastro em
+// código é o tipo de coisa que envelhece sem ninguém perceber.
+export async function importarCadastroClientes() {
+  await criarSchema();
+  const sql = database();
+
+  const C = {
+    pessoas: 'multiple_person_mm35kefy', status: 'status', planejamento: 'link_mkzdvjjs',
+    reuniao: 'date_mm35wp7q', dashboard: 'color_mkzkgn5c', plano: 'lista_suspensa9__1',
+    segmento: 'dropdown_mkw9njy6', email: 'texto_1__1', responsavel: 'text_mkyczy04',
+    telefone: 'telefone__1', endereco: 'texto5__1', cnpj: 'n_meros9__1',
+    criado: 'data', valor: 'numeric_mkyc26n8',
+  };
+  const ids = Object.values(C).map((c) => `"${c}"`).join(', ');
+  const dados = await mondayQuery(`{ boards(ids:[${BOARD_CLIENTES}]) {
+    items_page(limit: 200) { items { id name group { title }
+      column_values(ids: [${ids}]) { id text value } } } } }`);
+  const itens = dados?.boards?.[0]?.items_page?.items || [];
+
+  const txt = (it, id) => ((it.column_values || []).find((c) => c.id === id)?.text || '').trim() || null;
+  const url = (it, id) => {
+    try { return JSON.parse((it.column_values || []).find((c) => c.id === id)?.value || 'null')?.url || null; }
+    catch { return null; }
+  };
+
+  let vinculados = 0, criados = 0;
+  const pessoasPorCliente = [];
+  for (const it of itens) {
+    const nome = (it.name || '').trim();
+    if (!nome) continue;
+    const ativo = !/inativ/i.test(it.group?.title || '');
+    const valorTexto = txt(it, C.valor);
+
+    // Casa pelo nome com o cliente que já existe; se não existir, cria. O nome é
+    // o que liga este board ao de conteúdo — não há id em comum entre eles.
+    const linha = (await sql`
+      INSERT INTO vybe_clientes (nome, ativo, monday_item_id, email, telefone, endereco, cnpj,
+                                 plano, segmento, responsavel, status, planejamento_url, dashboard,
+                                 valor, proxima_reuniao, criado_no_monday)
+      VALUES (${nome}, ${ativo}, ${String(it.id)}, ${txt(it, C.email)}, ${txt(it, C.telefone)},
+              ${txt(it, C.endereco)}, ${txt(it, C.cnpj)}, ${txt(it, C.plano)}, ${txt(it, C.segmento)},
+              ${txt(it, C.responsavel)}, ${txt(it, C.status)}, ${url(it, C.planejamento)},
+              ${txt(it, C.dashboard)}, ${valorTexto ? Number(String(valorTexto).replace(',', '.')) : null},
+              ${dataOuNulo(txt(it, C.reuniao))}, ${dataOuNulo(txt(it, C.criado))})
+      ON CONFLICT (nome) DO UPDATE SET
+        ativo=EXCLUDED.ativo, monday_item_id=EXCLUDED.monday_item_id, email=EXCLUDED.email,
+        telefone=EXCLUDED.telefone, endereco=EXCLUDED.endereco, cnpj=EXCLUDED.cnpj,
+        plano=EXCLUDED.plano, segmento=EXCLUDED.segmento, responsavel=EXCLUDED.responsavel,
+        status=EXCLUDED.status, planejamento_url=EXCLUDED.planejamento_url,
+        dashboard=EXCLUDED.dashboard, valor=EXCLUDED.valor,
+        proxima_reuniao=EXCLUDED.proxima_reuniao, criado_no_monday=EXCLUDED.criado_no_monday
+      RETURNING id, (xmax = 0) AS nasceu`)[0];
+    if (linha.nasceu) criados += 1; else vinculados += 1;
+
+    pessoasDoItem({ column_values: (it.column_values || []).map((c) => (c.id === C.pessoas ? { ...c, id: 'person' } : c)) })
+      .forEach((uid, i) => pessoasPorCliente.push({ cliente_id: linha.id, monday_user_id: uid, ordem: i }));
+  }
+
+  if (pessoasPorCliente.length) {
+    await sql`DELETE FROM vybe_cliente_pessoas WHERE cliente_id = ANY(${[...new Set(pessoasPorCliente.map((p) => p.cliente_id))]})`;
+    await sql`INSERT INTO vybe_cliente_pessoas (cliente_id, pessoa_id, ordem)
+      SELECT v.cliente_id, p.id, v.ordem
+        FROM jsonb_to_recordset(${JSON.stringify(pessoasPorCliente)}::jsonb)
+          AS v(cliente_id bigint, monday_user_id text, ordem int)
+        JOIN vybe_pessoas p ON p.monday_user_id = v.monday_user_id
+      ON CONFLICT DO NOTHING`;
+  }
+
+  return { itens: itens.length, criados, atualizados: vinculados, heads: pessoasPorCliente.length };
+}
+
+// ── acessos ──────────────────────────────────────────────────────────────────
+//
+// O board "Dados & Acessos" guarda as credenciais de cada cliente dentro de um
+// documento do Monday. Documento não sai por exportação de item: é a coisa mais
+// presa lá de todas, e a que mais dói perder.
+//
+// O conteúdo vai do Monday direto para o banco. Nada dele é registrado em log.
+export async function importarAcessos() {
+  await criarSchema();
+  const sql = database();
+
+  const dados = await mondayQuery(`{ boards(ids:[${BOARD_ACESSOS}]) {
+    items_page(limit: 200) { items { id name group { title }
+      column_values(ids:["monday_doc__1","link6__1","link_mm3fwkja","boolean_mm3248x2"]) { id text value } } } } }`);
+  const itens = dados?.boards?.[0]?.items_page?.items || [];
+
+  const valor = (it, id) => {
+    try { return JSON.parse((it.column_values || []).find((c) => c.id === id)?.value || 'null'); }
+    catch { return null; }
+  };
+
+  const clientes = await sql`SELECT id, nome FROM vybe_clientes`;
+  const acharCliente = (nome) => {
+    const limpo = String(nome || '').replace(/^Dados\s*&\s*Acessos\s*[-–—]\s*/i, '').trim().toLowerCase();
+    return clientes.find((c) => String(c.nome).toLowerCase() === limpo)?.id
+        || clientes.find((c) => limpo.includes(String(c.nome).toLowerCase()))?.id
+        || null;
+  };
+
+  let comDoc = 0, semDoc = 0;
+  for (const it of itens) {
+    const doc = valor(it, 'monday_doc__1');
+    const docId = doc?.files?.[0]?.objectId ? String(doc.files[0].objectId) : null;
+
+    let conteudo = null;
+    if (docId) {
+      try {
+        const d = await mondayQuery(`query($ids: [ID!]) { docs(object_ids: $ids)
+          { id name blocks { id type content } } }`, { ids: [docId] });
+        const blocos = d?.docs?.[0]?.blocks || [];
+        // Guarda o documento inteiro como texto: o formato de bloco é do Monday,
+        // e reproduzir a estrutura dele aqui seria manter a dependência de pé.
+        conteudo = blocos.map((b) => {
+          try {
+            const c = JSON.parse(b.content || '{}');
+            return (c.deltaFormat || []).map((x) => x.insert).join('') || '';
+          } catch { return ''; }
+        }).filter(Boolean).join('\n');
+        if (conteudo) comDoc += 1; else semDoc += 1;
+      } catch { semDoc += 1; }
+    } else semDoc += 1;
+
+    await sql`INSERT INTO vybe_acessos
+        (monday_item_id, nome, cliente_id, grupo, pasta_drive, link, manus, doc_id,
+         doc_conteudo, doc_atualizado_em, atualizado_em)
+      VALUES (${String(it.id)}, ${it.name || ''}, ${acharCliente(it.name)}, ${it.group?.title || null},
+              ${valor(it, 'link6__1')?.url || null}, ${valor(it, 'link_mm3fwkja')?.url || null},
+              ${Boolean(valor(it, 'boolean_mm3248x2')?.checked)}, ${docId},
+              ${conteudo}, ${conteudo ? new Date().toISOString() : null}, NOW())
+      ON CONFLICT (monday_item_id) DO UPDATE SET
+        nome=EXCLUDED.nome, cliente_id=EXCLUDED.cliente_id, grupo=EXCLUDED.grupo,
+        pasta_drive=EXCLUDED.pasta_drive, link=EXCLUDED.link, manus=EXCLUDED.manus,
+        doc_id=EXCLUDED.doc_id,
+        doc_conteudo=COALESCE(EXCLUDED.doc_conteudo, vybe_acessos.doc_conteudo),
+        doc_atualizado_em=COALESCE(EXCLUDED.doc_atualizado_em, vybe_acessos.doc_atualizado_em),
+        atualizado_em=NOW()`;
+  }
+
+  // Devolve só contagens: conteúdo de acesso não aparece em resposta de API nem
+  // em log.
+  return { itens: itens.length, com_documento: comDoc, sem_documento: semDoc };
 }
