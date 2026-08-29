@@ -178,6 +178,24 @@ function closeStatusEditor() {
   document.getElementById('status-editor')?.remove();
   statusEditorItemId = '';
 }
+// Popover ancorado no controle que o abriu. O cálculo antigo alinhava a BORDA
+// DIREITA do painel com a borda direita da pílula, então um painel de 310px
+// pendurava 300px para a esquerda de um controle de 90px e parecia solto na
+// tela. Alinha pela esquerda, sobe quando não cabe embaixo e nunca vaza da
+// janela — e mede depois de entrar no DOM, senão a altura é um chute.
+function ancorarPopover(menu, rect) {
+  const margem = 10;
+  menu.style.visibility = 'hidden';
+  menu.style.top = '0px';
+  menu.style.left = '0px';
+  const { width, height } = menu.getBoundingClientRect();
+  const cabeAbaixo = rect.bottom + 6 + height <= window.innerHeight - margem;
+  const top = cabeAbaixo ? rect.bottom + 6 : Math.max(margem, rect.top - 6 - height);
+  menu.style.top = `${Math.round(top)}px`;
+  menu.style.left = `${Math.round(Math.min(Math.max(margem, rect.left), window.innerWidth - width - margem))}px`;
+  menu.style.visibility = '';
+}
+
 function openStatusEditor(event, itemId) {
   event.preventDefault();
   event.stopPropagation();
@@ -195,12 +213,9 @@ function openStatusEditor(event, itemId) {
   const menu = document.createElement('div');
   menu.id = 'status-editor';
   menu.className = 'status-editor';
-  const top = Math.min(window.innerHeight - 460, Math.max(14, rect.bottom + 8));
-  const left = Math.min(window.innerWidth - 324, Math.max(14, rect.right - 310));
-  menu.style.top = `${top}px`;
-  menu.style.left = `${left}px`;
-  menu.innerHTML = `<div class="status-editor-head"><span>Atualizar status · ${isRequestItem(item)?'Solicitação':'Conteúdo'}</span><button class="status-editor-close" type="button" onclick="closeStatusEditor()">×</button></div>${statusOptions.map(o => `<button type="button" class="status-editor-option ${o.index === item.status_index ? 'current' : ''}" onclick="updateFocusStatus('${item.id}',${o.index})"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}</span>${o.index === item.status_index ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}`;
+  menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => `<button type="button" class="status-editor-option ${o.index === item.status_index ? 'current' : ''}" onclick="updateFocusStatus('${item.id}',${o.index})"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}</span>${o.index === item.status_index ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}`;
   document.body.append(backdrop, menu);
+  ancorarPopover(menu, rect);
 }
 function updateLocalStatus(itemId, option) {
   const logs = window.ACTIVITY_LOGS || (window.ACTIVITY_LOGS = {moveEvents:{}, prazoEvents:{}, statusEvents:{}});

@@ -809,10 +809,7 @@ function abrirEditorDeCaptacao(event, itemId) {
   const menu = document.createElement('div');
   menu.id = 'captacao-editor';
   menu.className = 'status-editor';
-  menu.style.top = `${Math.min(window.innerHeight - 320, Math.max(14, rect.bottom + 8))}px`;
-  menu.style.left = `${Math.min(window.innerWidth - 324, Math.max(14, rect.right - 310))}px`;
-  menu.innerHTML = `<div class="status-editor-head"><span>Atualizar captação</span>
-      <button class="status-editor-close" type="button" onclick="fecharEditorDeCaptacao()">×</button></div>
+  menu.innerHTML = `<div class="status-editor-head">Captação</div>
     ${oferecidas.map((c) => `<button type="button" class="status-editor-option ${c.rotulo === atual ? 'current' : ''}"
         onclick="escolherCaptacao('${item.id}','${safeText(c.chave)}')">
         <span class="status-editor-dot" style="background:${c.cor || '#7c8797'};color:${c.cor || '#7c8797'}"></span>
@@ -821,6 +818,7 @@ function abrirEditorDeCaptacao(event, itemId) {
     <button type="button" class="status-editor-option" onclick="escolherCaptacao('${item.id}','')">
       <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Sem captação</span></button>`;
   document.body.append(fundo, menu);
+  ancorarPopover(menu, rect);
 }
 
 function fecharEditorDeCaptacao() {

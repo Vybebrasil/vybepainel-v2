@@ -548,15 +548,29 @@
     .owner-editor-person-copy small { color:var(--text-muted);font-size:10px; }
     .owner-editor-person-check { margin-left:auto;color:#8ff8ff;font-weight:900; }
     .owner-editor-empty { display:flex;gap:8px;align-items:flex-start;color:#ffcf7a;font-size:11px;margin:8px 0 0; }
-    .status-editor-backdrop { position:fixed;inset:0;z-index:9995;background:rgba(0,0,0,.48);backdrop-filter:blur(2px); }
-    .status-editor { position:fixed;z-index:9996;width:min(310px,calc(100vw - 28px));max-height:min(460px,calc(100vh - 28px));overflow:auto;background:#120b05;border:1px solid rgba(255,107,0,.35);box-shadow:0 18px 50px rgba(0,0,0,.56),0 0 28px rgba(255,107,0,.12);border-radius:12px;padding:8px; }
-    .status-editor-head { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 8px 10px;color:#fff4e8;font-weight:800;font-size:11px;border-bottom:1px solid rgba(255,107,0,.16);margin-bottom:5px; }
-    .status-editor-close { border:0;background:transparent;color:#a58c79;font:inherit;cursor:pointer;padding:3px 5px;font-size:14px; }
-    .status-editor-option { width:100%;display:flex;align-items:center;gap:8px;text-align:left;border:1px solid transparent;background:transparent;color:#fff4e8;padding:8px;border-radius:7px;cursor:pointer;font:inherit;font-size:12px; }
-    .status-editor-option:hover { background:rgba(255,107,0,.1);border-color:rgba(255,107,0,.2); }
-    .status-editor-option.current { background:rgba(255,107,0,.07); }
-    .status-editor-dot { width:9px;height:9px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 7px currentColor; }
-    .status-editor-option .status-editor-check { margin-left:auto;color:#ffb000;font-weight:800; }
+    /* Menu, não caixa de diálogo. Um seletor de seis itens não precisa de meia
+       tela, de escurecer o fundo atrás nem de um botão de fechar: ele encosta
+       no controle que o abriu, encolhe até o tamanho do conteúdo e some quando
+       se clica fora. O fundo continua existindo — só para capturar o clique. */
+    .status-editor-backdrop { position:fixed;inset:0;z-index:9995;background:transparent; }
+    .status-editor { position:fixed;z-index:9996;min-width:170px;width:max-content;
+      max-width:min(300px,calc(100vw - 20px));max-height:min(50vh,340px);overflow:auto;
+      background:rgba(28,28,30,.92);-webkit-backdrop-filter:blur(28px) saturate(1.7);
+      backdrop-filter:blur(28px) saturate(1.7);
+      border:.5px solid rgba(255,255,255,.16);border-radius:10px;padding:4px;
+      box-shadow:0 10px 34px rgba(0,0,0,.46),0 1px 2px rgba(0,0,0,.3);
+      animation:popover-entra .11s ease-out}
+    @keyframes popover-entra{from{opacity:0;transform:translateY(-3px) scale(.985)}to{opacity:1;transform:none}}
+    .status-editor-head { padding:5px 10px 6px;color:#8b8b90;font:600 10px/1 Inter,system-ui,sans-serif;
+      letter-spacing:.03em;text-transform:uppercase }
+    .status-editor-option { width:100%;display:flex;align-items:center;gap:8px;text-align:left;border:0;
+      background:transparent;color:#f2f2f5;padding:5px 10px;border-radius:6px;cursor:pointer;
+      font:500 12.5px/1.35 Inter,system-ui,sans-serif;white-space:nowrap }
+    .status-editor-option:hover { background:var(--accent,#ff6b00);color:#fff }
+    .status-editor-option.current { background:rgba(255,255,255,.07) }
+    .status-editor-option.current:hover { background:var(--accent,#ff6b00) }
+    .status-editor-dot { width:8px;height:8px;border-radius:50%;flex:0 0 auto }
+    .status-editor-option .status-editor-check { margin-left:auto;padding-left:14px;color:inherit;font-weight:700 }
     .status-editor-busy { opacity:.55;pointer-events:none; }
   
     /* Jarvis V1 — comando por voz no Modo Foco */
