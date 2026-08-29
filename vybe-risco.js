@@ -435,6 +435,16 @@ function closeItemWorkspace() {
 async function fetchWorkspaceItem(itemId) {
     const sourceItem=findOperationalItem(itemId);
     const boardId=sourceItem?.board_id || (isRequestItem(sourceItem)?BOARD_DEMANDAS_ID:BOARD_ID);
+    // Anexos, comentários e histórico saem do banco da Vybe. Era o último lugar
+    // do dia a dia que buscava no Monday a cada abertura de peça. Item de
+    // Demandas não está no domínio e segue pelo caminho antigo; qualquer falha
+    // cai no Monday também, para abrir a peça nunca depender disto.
+    if (!isRequestItem(sourceItem)) {
+      try {
+        const r = await fetch(`/api/painel?area=peca&item=${encodeURIComponent(itemId)}`, { credentials:'same-origin' });
+        if (r.ok) { const d = await r.json(); if (d?.ok) return d; }
+      } catch (erro) { console.warn('Detalhe da peça pelo banco falhou; usando o Monday.', erro); }
+    }
     const query = `query($board: [ID!]!, $item: [ID!]!) { items(ids: $item) { id name created_at assets { id name url url_thumbnail public_url file_extension file_size created_at } column_values(ids:["file_mkwtx2j4"]) { id value } updates(limit: 12) { id body created_at creator { name } assets { id name url url_thumbnail public_url file_extension file_size } } } boards(ids: $board) { activity_logs(item_ids: $item, column_ids: ["status"], limit: 50) { id event data created_at } } }`;
     const data = await mondayQuery(query, { board: [String(boardId)], item: [String(itemId)] });
     const itemData = data?.items?.[0];

@@ -164,8 +164,72 @@ async function areaPessoas(req, res, quem) {
   return res.status(405).json({ error: 'Método não permitido.' });
 }
 
+// ── a peça aberta no drawer ───────────────────────────────────────────────────
+//
+// O drawer buscava anexos, comentários e histórico de status direto do Monday, a
+// cada abertura. Era o último lugar do dia a dia que ainda dependia dele.
+//
+// A resposta sai no formato que o Monday devolvia, de propósito: o painel já
+// sabe montar a tela a partir dele, e a conta de tempo em cada etapa continua
+// num lugar só. Traduzir aqui é mais barato que ter duas contas divergindo.
+const COLUNA_ARQUIVOS = 'file_mkwtx2j4';
+
+async function areaPeca(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  const item = String(req.query?.item || '');
+  if (!item) return res.status(400).json({ error: 'Informe o item.' });
+
+  const db = sql();
+  const c = (await db`SELECT id, titulo, criado_em FROM vybe_conteudos
+    WHERE monday_item_id = ${item}`)[0];
+  if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
+
+  const [arquivos, updates, eventos] = await Promise.all([
+    db`SELECT monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica, criado_em
+         FROM vybe_conteudo_arquivos WHERE conteudo_id = ${c.id} ORDER BY criado_em DESC NULLS LAST`,
+    db`SELECT monday_update_id, corpo, autor, criado_em
+         FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id}
+        ORDER BY criado_em DESC NULLS LAST LIMIT 12`,
+    db`SELECT tipo, de, para, em FROM vybe_conteudo_eventos
+        WHERE conteudo_id = ${c.id} AND tipo = 'status' ORDER BY em DESC LIMIT 50`,
+  ]);
+
+  const assets = arquivos.map((a) => ({
+    id: a.monday_asset_id, name: a.nome,
+    url: a.url_publica || a.url_monday,
+    // Não guardamos miniatura; o painel já cai para a imagem inteira quando ela
+    // falta, então a peça aparece do mesmo jeito.
+    url_thumbnail: null,
+    public_url: a.url_publica, file_extension: a.extensao,
+    file_size: a.tamanho_bytes === null ? null : Number(a.tamanho_bytes),
+    created_at: a.criado_em,
+  }));
+
+  return res.status(200).json({
+    ok: true,
+    id: item,
+    name: c.titulo,
+    created_at: c.criado_em,
+    assets,
+    column_values: [{
+      id: COLUNA_ARQUIVOS,
+      value: JSON.stringify({ files: assets.map((a) => ({ assetId: a.id })) }),
+    }],
+    updates: updates.map((u) => ({
+      id: u.monday_update_id, body: u.corpo,
+      created_at: u.criado_em, creator: { name: u.autor || '' }, assets: [],
+    })),
+    // O Monday carimba atividade em microssegundos e o painel divide por 10.000.
+    activity_logs: eventos.map((e) => ({
+      id: null, event: 'update_column_value',
+      created_at: String(new Date(e.em).getTime() * 10000),
+      data: JSON.stringify({ previous_value: { label: { text: e.de } }, value: { label: { text: e.para } } }),
+    })),
+  });
+}
+
 const AREAS = { automacoes: areaAutomacoes, notificacoes: areaNotificacoes,
-                conta: areaConta, pessoas: areaPessoas };
+                conta: areaConta, pessoas: areaPessoas, peca: areaPeca };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');
