@@ -315,11 +315,15 @@ async function moverBoard(sql, quem, { item, destino }) {
 
   // Voltando para Produção: a peça precisa existir nas nossas tabelas de novo.
   if (linhas.length) {
-    await sql`UPDATE vybe_conteudos SET removido_em=NULL, atualizado_em=NOW() WHERE id=${linhas[0].id}`;
+    // O Monday coloca a peça no grupo de entrada do board. Sem gravar isso aqui,
+    // a ficha continuaria mostrando o grupo de onde ela saiu — divergência que a
+    // conferência pegou logo no primeiro teste.
+    await sql`UPDATE vybe_conteudos SET removido_em=NULL, grupo_id=${grupo},
+        etapa=${GRUPO_TITULO[grupo] || null}, atualizado_em=NOW() WHERE id=${linhas[0].id}`;
     await registrarEvento(sql, linhas[0].id, {
       tipo: 'board', de: 'Demandas', para: 'Produção', autorId: await pessoaDaSessao(sql, quem),
     });
-    return { para: 'Produção', board_id: alvo, reaproveitado: true };
+    return { para: 'Produção', board_id: alvo, grupo: GRUPO_TITULO[grupo], reaproveitado: true };
   }
   return { para: 'Produção', board_id: alvo, novo: true,
            aviso: 'A peça entrou em Produção no Monday. Ela aparece no painel na próxima sincronização.' };
