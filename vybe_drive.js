@@ -138,6 +138,34 @@ export async function conferirDrive() {
   const c = credenciais();
   const raiz = process.env.DRIVE_PASTA_RAIZ;
   if (!raiz) throw new Error('DRIVE_PASTA_RAIZ não configurada.');
-  const info = await drive(`files/${raiz}?fields=id,name,mimeType,driveId&supportsAllDrives=true`);
-  return { conta: c.client_email, pasta: info.name, pasta_id: info.id, drive_id: info.driveId || null };
+
+  // O Google responde 404 tanto para "não existe" quanto para "você não pode
+  // ver" — então checar só um caminho não diz qual dos dois é. Id começando com
+  // 0A é drive compartilhado inteiro, que se consulta por outro endereço.
+  const tentativas = [];
+
+  try {
+    const info = await drive(`files/${raiz}?fields=id,name,mimeType,driveId&supportsAllDrives=true`);
+    return { conta: c.client_email, tipo: 'pasta', nome: info.name, id: info.id, drive_id: info.driveId || null };
+  } catch (erro) { tentativas.push(`como pasta: ${erro.message}`); }
+
+  try {
+    const d = await drive(`drives/${raiz}?fields=id,name`);
+    return { conta: c.client_email, tipo: 'drive compartilhado', nome: d.name, id: d.id, drive_id: d.id };
+  } catch (erro) { tentativas.push(`como drive compartilhado: ${erro.message}`); }
+
+  // Se a conta enxerga algum drive, o problema é o id. Se não enxerga nenhum,
+  // ela não foi adicionada como membro em lugar nenhum.
+  let visiveis = [];
+  try {
+    const lista = await drive('drives?pageSize=10&fields=drives(id,name)');
+    visiveis = (lista.drives || []).map((d) => ({ id: d.id, nome: d.name }));
+  } catch { /* sem permissão nem para listar */ }
+
+  const dica = visiveis.length
+    ? `A conta enxerga ${visiveis.length} drive(s), então o id está errado. Use um destes.`
+    : 'A conta não enxerga nenhum drive: ela ainda não foi adicionada como membro. '
+      + 'Abra o drive compartilhado, "Gerenciar membros", e adicione o e-mail como Colaborador/Editor.';
+
+  throw new Error(`${dica} | conta: ${c.client_email} | ${tentativas.join(' | ')} | visíveis: ${JSON.stringify(visiveis)}`);
 }
