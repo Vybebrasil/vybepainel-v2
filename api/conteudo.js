@@ -209,6 +209,34 @@ async function comentar(sql, quem, { item, texto }) {
 // ── criar conteúdo ────────────────────────────────────────────────────────────
 // O id do Monday só existe depois de criar lá. Para o banco continuar mandando,
 // gravamos primeiro sem o id e ligamos os dois em seguida.
+// Mover de grupo só existia dentro das automações. Nenhuma tela oferecia, então
+// um conteúdo no grupo errado não tinha conserto pelo painel.
+async function moverGrupo(sql, quem, { item, grupo_id }) {
+  const titulo = GRUPO_TITULO[grupo_id];
+  if (!titulo) throw new Error(`Grupo desconhecido: ${grupo_id}`);
+
+  const linhas = await sql`SELECT id, titulo, etapa AS de FROM vybe_conteudos
+    WHERE monday_item_id = ${String(item)}`;
+  if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
+  const conteudo = linhas[0];
+
+  await sql`UPDATE vybe_conteudos SET grupo_id=${grupo_id}, etapa=${titulo}, atualizado_em=NOW()
+    WHERE id=${conteudo.id}`;
+  await registrarEvento(sql, conteudo.id, {
+    tipo: 'grupo', de: conteudo.de, para: titulo, autorId: await pessoaDaSessao(sql, quem),
+  });
+
+  let replica = 'ok';
+  try {
+    await mondayQuery(
+      `mutation ($item: ID!, $grupo: String!) {
+         move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
+      { item: String(item), grupo: String(grupo_id) }
+    );
+  } catch (erro) { replica = `falhou: ${erro.message}`; }
+  return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de, para: titulo, replica_monday: replica };
+}
+
 async function criarConteudo(sql, quem, dados) {
   const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing,
           tipo_conteudo = null, captacao = null, responsaveis = [] } = dados;
@@ -305,6 +333,11 @@ export default async function handler(req, res) {
     }
     if (acao === 'comentario') {
       return res.status(200).json({ ok: true, acao, ...(await comentar(sql, quem, { item, texto: corpo.texto })) });
+    }
+    if (acao === 'grupo') {
+      if (!corpo.grupo_id) return res.status(400).json({ error: 'Informe o grupo de destino.' });
+      return res.status(200).json({ ok: true, acao,
+        ...(await moverGrupo(sql, quem, { item, grupo_id: corpo.grupo_id })) });
     }
     if (acao === 'criar') {
       return res.status(200).json({ ok: true, acao, ...(await criarConteudo(sql, quem, corpo)) });
