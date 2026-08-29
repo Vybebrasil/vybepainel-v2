@@ -338,9 +338,24 @@
      if(finalCap) values.status_1__1 = {label:finalCap};
 
      try {
-        const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
-        const response = await mondayQuery(create, {board:String(BOARD_ID), group:finalGroup, name:normalized, values:JSON.stringify(values)});
-        const itemId = response?.create_item?.id;
+        // Grava no banco da Vybe e replica no Monday. O id do Monday só existe
+        // depois de criar lá, então o servidor grava aqui primeiro, sem id, e
+        // liga os dois em seguida — criar no Monday primeiro para ter o id seria
+        // devolver a ele o papel de fonte da verdade.
+        let itemId = null;
+        const pelaEscritaDupla = await tentarEscritaDupla({ id: '' }, {
+           acao: 'criar', titulo: normalized, cliente: state.client, formato: state.format,
+           prazo: state.prazo, veiculacao: state.veic, status: chaveDeStatus(finalStatus),
+           grupo_id: finalGroup, etapa: 3, briefing: state.brief,
+           captacao: finalCap || null, responsaveis: dest.assignees.map(String),
+           _devolve: true,
+        });
+        if (pelaEscritaDupla?.monday_item_id) itemId = String(pelaEscritaDupla.monday_item_id);
+        if (!itemId) {
+          const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
+          const response = await mondayQuery(create, {board:String(BOARD_ID), group:finalGroup, name:normalized, values:JSON.stringify(values)});
+          itemId = response?.create_item?.id;
+        }
         if(!itemId) throw new Error('Falha ao obter ID');
 
         const hellen = state.client.toLowerCase().includes('hellen rocha') ? '<li>✅ Validar informações jurídicas com a Hellen antes de publicar</li>' : '';

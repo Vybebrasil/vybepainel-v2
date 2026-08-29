@@ -179,8 +179,12 @@
       if(typeof renderProductionCommand === 'function') renderProductionCommand();
 
       try {
-          const mutation = `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`;
-          await mondayQuery(mutation, { board: String(BOARD_ID), item: String(itemId), values: JSON.stringify({ [col]: {date: iso} }) });
+          const alvo = (typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null) || { id: itemId };
+          const pelaEscritaDupla = await tentarEscritaDupla(alvo, { acao: col === 'data' ? 'prazo' : 'veiculacao', item: String(itemId), data: iso });
+          if (!pelaEscritaDupla) {
+            const mutation = `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`;
+            await mondayQuery(mutation, { board: String(BOARD_ID), item: String(itemId), values: JSON.stringify({ [col]: {date: iso} }) });
+          }
           if(typeof showToast === 'function') showToast(`Data atualizada para ${iso.split('-').reverse().join('/')}`, 'ok');
       } catch (e) {
           if(typeof showToast === 'function') showToast(`Erro ao atualizar data: ${e.message}`, 'err');

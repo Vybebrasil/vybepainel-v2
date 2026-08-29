@@ -139,6 +139,10 @@ export async function criarSchema() {
 
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS grupo_id TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS status_em TIMESTAMPTZ`;
+  // A captação só existia no Monday. Sem ela aqui, criar um conteúdo pelo painel
+  // perderia esse campo, e a ação de captação das automações não tinha onde
+  // gravar — ficava anotada como "só no Monday por enquanto".
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS captacao TEXT`;
 
   await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_clientes (
     conteudo_id BIGINT NOT NULL REFERENCES vybe_conteudos(id) ON DELETE CASCADE,

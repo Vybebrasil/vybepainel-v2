@@ -303,7 +303,8 @@ export async function aplicar(sql, conteudoId, evento) {
           SELECT r.pessoa_id, ${item.id}, ${texto} FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=${item.id}`;
         feitas.push('notificação');
       } else if (acao.tipo === 'captacao') {
-        feitas.push(`captação → ${acao.para} (só no Monday por enquanto)`);
+        await sql`UPDATE vybe_conteudos SET captacao=${acao.para}, atualizado_em=NOW() WHERE id=${item.id}`;
+        feitas.push(`captação → ${acao.para}`);
       }
     }
 

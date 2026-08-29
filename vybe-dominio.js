@@ -151,17 +151,20 @@ async function gravarNoDominio(corpo) {
 }
 
 // true quando a escrita dupla atendeu; false quando o chamador deve seguir pelo
-// caminho antigo (item de Demandas, chave desligada, ou falha na gravação).
+// caminho antigo. Com _devolve, entrega a resposta inteira: quem cria precisa do
+// id que o Monday acabou de dar.
 async function tentarEscritaDupla(item, corpo) {
   if (!escritaDupla()) return false;
   if (typeof isRequestItem === 'function' && isRequestItem(item)) return false;
+  const devolve = corpo?._devolve;
+  if (devolve) { corpo = { ...corpo }; delete corpo._devolve; }
   try {
     const r = await gravarNoDominio(corpo);
     if (String(r.replica_monday || '').startsWith('falhou')) {
       console.warn('Gravado no banco, mas o Monday não recebeu:', r.replica_monday);
       showToast('✓ Salvo no Vybe · réplica no Monday falhou, será reconciliada', 'info', 6000);
     }
-    return true;
+    return devolve ? r : true;
   } catch (erro) {
     console.warn('Escrita dupla falhou; usando o caminho antigo.', erro);
     return false;

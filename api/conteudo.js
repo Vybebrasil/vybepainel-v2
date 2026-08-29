@@ -200,7 +200,8 @@ async function comentar(sql, quem, { item, texto }) {
 // O id do Monday só existe depois de criar lá. Para o banco continuar mandando,
 // gravamos primeiro sem o id e ligamos os dois em seguida.
 async function criarConteudo(sql, quem, dados) {
-  const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing } = dados;
+  const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing,
+          etapa = null, captacao = null, responsaveis = [] } = dados;
   if (!titulo || !cliente) throw new Error('Informe ao menos título e cliente.');
 
   const cli = (await sql`SELECT id, nome FROM vybe_clientes WHERE LOWER(nome)=LOWER(${String(cliente)})`)[0];
@@ -210,10 +211,17 @@ async function criarConteudo(sql, quem, dados) {
 
   const novo = (await sql`INSERT INTO vybe_conteudos
       (titulo, formato, clientes_texto, status_chave, etapa, grupo_id, prazo, veiculacao, briefing, status_em)
-    VALUES (${titulo}, ${formato || null}, ${cli.nome}, ${st.chave}, NULL, ${grupo_id || null},
+    VALUES (${titulo}, ${formato || null}, ${cli.nome}, ${st.chave}, ${etapa}, ${grupo_id || null},
             ${prazo || null}, ${veiculacao || null}, ${briefing || null}, NOW())
     RETURNING id`)[0];
   await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id) VALUES (${novo.id}, ${cli.id})`;
+  if (captacao) await sql`UPDATE vybe_conteudos SET captacao=${String(captacao)} WHERE id=${novo.id}`;
+  // Conteúdo que nasce sem dono some da fila de todo mundo.
+  if (responsaveis.length) {
+    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id)
+      SELECT ${novo.id}, id FROM vybe_pessoas WHERE monday_user_id = ANY(${responsaveis.map(String)})
+      ON CONFLICT DO NOTHING`;
+  }
   await registrarEvento(sql, novo.id, {
     tipo: 'criacao', para: titulo, autorId: await pessoaDaSessao(sql, quem),
   });
@@ -228,6 +236,11 @@ async function criarConteudo(sql, quem, dados) {
     if (formato) valores.lista_suspensa0__1 = { labels: [formato] };
     if (prazo) valores.data = { date: prazo };
     if (veiculacao) valores.data__1 = { date: veiculacao };
+    if (etapa !== null && etapa !== undefined && etapa !== '') valores.lista_suspensa__1 = { index: Number(etapa) };
+    if (captacao) valores.status_1__1 = { label: String(captacao) };
+    if (responsaveis.length) {
+      valores.person = { personsAndTeams: responsaveis.map((id) => ({ id: Number(id), kind: 'person' })) };
+    }
     const r = await mondayQuery(
       `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) {
          create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`,
