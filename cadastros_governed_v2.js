@@ -351,18 +351,27 @@
            _devolve: true,
         });
         if (pelaEscritaDupla?.monday_item_id) itemId = String(pelaEscritaDupla.monday_item_id);
-        if (!itemId) {
+        // Gravou no banco mas o Monday recusou: NÃO criar de novo pelo caminho
+        // antigo, senão nasce um segundo card lá, solto do registro daqui.
+        else if (pelaEscritaDupla?.conteudo_id) {
+          showToast('✓ Criado no Vybe · o Monday não recebeu a cópia, será reconciliada', 'info', 7000);
+          itemId = '';
+        }
+        if (!itemId && !pelaEscritaDupla?.conteudo_id) {
           const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
           const response = await mondayQuery(create, {board:String(BOARD_ID), group:finalGroup, name:normalized, values:JSON.stringify(values)});
           itemId = response?.create_item?.id;
         }
-        if(!itemId) throw new Error('Falha ao obter ID');
+        if(!itemId && !pelaEscritaDupla?.conteudo_id) throw new Error('Falha ao obter ID');
 
         const hellen = state.client.toLowerCase().includes('hellen rocha') ? '<li>✅ Validar informações jurídicas com a Hellen antes de publicar</li>' : '';
         const captureLine = finalCap ? `<li>📸 Agendar e confirmar captação externa</li>` : '';
         const update = `<p><strong>🚀 CHECKLIST DE PRÉ-PRODUÇÃO</strong></p><p><strong>Briefing:</strong> ${esc(state.brief)}</p><ul><li>✅ Revisar copy e adaptar ao tom da marca</li><li>✅ Selecionar referências visuais / banco de imagens</li><li>✅ Montar layout no padrão do cliente</li>${captureLine}<li>✅ Enviar para aprovação antes de publicar</li>${hellen}</ul>`;
         
-        await mondayQuery(`mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, {item:String(itemId), body:update});
+        // O checklist vai pelo postItemUpdate, que já passa pela escrita dupla.
+        // Sem id do Monday não há a quem enviar lá — o briefing já foi gravado
+        // no banco junto com o conteúdo, então nada se perde.
+        if (itemId) { try { await postItemUpdate(itemId, update); } catch (erro) { console.warn('Conteúdo criado, mas o checklist não foi registrado.', erro); } }
 
         if(typeof showToast === 'function') showToast('Conteúdo criado com sucesso!', 'ok');
         fcCloseModal();
