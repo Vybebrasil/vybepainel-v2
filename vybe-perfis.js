@@ -66,11 +66,12 @@ function renderIdentityOperationalPulse() {
 function renderFocusUserPicker() {
   const grid = document.getElementById('focus-user-grid');
   if (!grid) return;
-  // Quem administra vê a equipe toda; quem não administra vê a si mesmo. A fila
-  // de outra pessoa não é decisão de quem está executando a própria.
+  // Todo mundo vê a equipe toda: as estações são abertas por decisão da Vybe.
+  // A pessoa logada vem primeiro, para quem entrou achar a própria fila sem
+  // procurar — conveniência, não restrição.
   const eu = meuFoco();
   const users = TEAM_USERS.filter((u) => FOCUS_ACTIVE_IDS.has(u.id))
-    .filter((u) => souAdmin() || !eu || u.id === eu);
+    .sort((a, b) => (a.id === eu ? -1 : 0) - (b.id === eu ? -1 : 0));
   grid.innerHTML = users.map(user => {
     const signal = operatorOperationalSignal(user.id);
     const avatar = user.photo
@@ -743,14 +744,7 @@ function initPanelMode() {
   const savedMode = getStorage('vybePanelMode');
   const savedUser = getStorage('vybePanelFocusUser');
 
-  // Quem não administra abre no próprio foco, sem passar pelo portão de escolha.
-  // Perguntar "quem é você?" a quem acabou de digitar e-mail e senha é perguntar
-  // duas vezes — e deixava qualquer pessoa abrir o painel como outra.
-  const eu = meuFoco();
-  if (eu && !souAdmin()) {
-    panelMode = 'foco'; focusUserId = eu; applyPanelMode();
-    return;
-  }
+
   if (savedMode === 'foco' && TEAM_USERS.some(u => u.id === savedUser) && FOCUS_ACTIVE_IDS.has(savedUser)) {
     panelMode='foco'; focusUserId=savedUser; applyPanelMode();
   } else if (savedMode === 'controler') {
