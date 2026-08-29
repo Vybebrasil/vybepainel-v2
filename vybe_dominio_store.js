@@ -17,6 +17,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
+import { pastaDoConteudo, enviarParaDrive } from './vybe_drive.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 
@@ -208,6 +209,12 @@ export async function criarSchema() {
   // Ordenar por nome trocaria o dono da peça na tela — mesmo erro que a ordem
   // dos clientes já tinha causado.
   await sql`ALTER TABLE vybe_conteudo_responsaveis ADD COLUMN IF NOT EXISTS ordem INT NOT NULL DEFAULT 0`;
+
+  // Onde o arquivo passa a morar de verdade. Enquanto for só o Monday, a URL
+  // vale uma hora e desligar a conta apaga o anexo do painel junto.
+  await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS drive_file_id TEXT`;
+  await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS url_drive TEXT`;
+  await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS migrado_em TIMESTAMPTZ`;
 
   // Hoje cada mudança vira prosa dentro de um update do Monday
   // ("[Vybe OS · Responsáveis atualizados] Anterior: X Novo: Y"). Aqui vira registro
@@ -1152,4 +1159,59 @@ export async function importarCatalogoOpcoes() {
     RETURNING conteudo_id`).length;
 
   return { opcoes: gravadas, convertidos };
+}
+
+// ── migração dos arquivos de trabalho para o Drive ───────────────────────────
+//
+// Só o que ainda está em produção. O acervo finalizado (2.709 arquivos, 7 GB)
+// fica onde está por decisão da Vybe — e some junto se a conta do Monday for
+// cancelada, o que é uma escolha, não um descuido.
+//
+// A URL do Monday vale uma hora, então é buscada na hora de copiar, nunca a que
+// estava guardada.
+export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
+  const sql = database();
+  const pendentes = await sql`
+    SELECT a.id, a.monday_asset_id, a.nome, a.extensao,
+           c.veiculacao, c.prazo,
+           (SELECT cl.nome FROM vybe_conteudo_clientes vcc
+              JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+             WHERE vcc.conteudo_id = c.id LIMIT 1) AS cliente
+      FROM vybe_conteudo_arquivos a
+      JOIN vybe_conteudos c ON c.id = a.conteudo_id
+      JOIN vybe_status s ON s.chave = c.status_chave
+     WHERE a.url_drive IS NULL AND NOT s.final AND a.monday_asset_id IS NOT NULL
+     ORDER BY c.veiculacao NULLS LAST, a.id
+     LIMIT ${limite}`;
+  if (!pendentes.length) return { pendentes: 0, enviados: 0, falhas: [] };
+
+  // A URL guardada já expirou; pede as de agora.
+  const ids = pendentes.map((p) => String(p.monday_asset_id));
+  const frescas = new Map();
+  const r = await mondayQuery(`query($ids: [ID!]!) { assets(ids: $ids) { id url public_url } }`, { ids });
+  for (const a of r?.assets || []) frescas.set(String(a.id), a.public_url || a.url);
+
+  let enviados = 0, bytes = 0;
+  const falhas = [];
+  for (const arq of pendentes) {
+    const url = frescas.get(String(arq.monday_asset_id));
+    if (!url) { falhas.push({ nome: arq.nome, erro: 'Monday não devolveu a URL.' }); continue; }
+    try {
+      const pastaId = await pastaDoConteudo({ cliente: arq.cliente, data: arq.veiculacao || arq.prazo });
+      const enviado = await enviarParaDrive({ url, nome: arq.nome, mime: null, pastaId });
+      await sql`UPDATE vybe_conteudo_arquivos
+        SET drive_file_id=${enviado.id}, url_drive=${enviado.link}, migrado_em=NOW()
+        WHERE id=${arq.id}`;
+      enviados += 1; bytes += enviado.bytes;
+    } catch (erro) {
+      falhas.push({ nome: arq.nome, erro: erro.message });
+    }
+  }
+
+  const restam = (await sql`SELECT COUNT(*)::int AS n
+      FROM vybe_conteudo_arquivos a
+      JOIN vybe_conteudos c ON c.id = a.conteudo_id
+      JOIN vybe_status s ON s.chave = c.status_chave
+     WHERE a.url_drive IS NULL AND NOT s.final AND a.monday_asset_id IS NOT NULL`)[0].n;
+  return { enviados, bytes, falhas, restam };
 }

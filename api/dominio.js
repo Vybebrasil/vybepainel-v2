@@ -11,7 +11,7 @@
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
-import { importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
+import { migrarArquivosParaDrive, importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -55,6 +55,15 @@ export default async function handler(req, res) {
     if (action === 'schema') {
       await criarSchema();
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
+    }
+    if (action === 'drive_conferir') {
+      const { conferirDrive } = await import('../vybe_drive.js');
+      return res.status(200).json({ ok: true, action, ...(await conferirDrive()) });
+    }
+    if (action === 'drive_migrar') {
+      const q = { ...(req.query || {}), ...(req.body || {}) };
+      return res.status(200).json({ ok: true, action,
+        ...(await migrarArquivosParaDrive({ limite: Number(q.limite) || 8 })) });
     }
     if (action === 'catalogo_opcoes') {
       return res.status(200).json({ ok: true, action, ...(await importarCatalogoOpcoes()) });

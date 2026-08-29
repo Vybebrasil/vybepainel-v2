@@ -186,7 +186,8 @@ async function areaPeca(req, res) {
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
   const [arquivos, updates, eventos] = await Promise.all([
-    db`SELECT monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica, criado_em
+    db`SELECT monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica,
+              url_drive, drive_file_id, criado_em
          FROM vybe_conteudo_arquivos WHERE conteudo_id = ${c.id} ORDER BY criado_em DESC NULLS LAST`,
     db`SELECT monday_update_id, corpo, autor, criado_em
          FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id}
@@ -202,7 +203,8 @@ async function areaPeca(req, res) {
   // É a última dependência real do Monday no dia a dia, e ela só sai quando os
   // arquivos saírem de lá — não é problema de código, é migração de storage.
   const frescas = new Map();
-  const ids = arquivos.map((a) => a.monday_asset_id).filter(Boolean);
+  // Arquivo já no Drive não precisa de URL renovada — o link de lá é estável.
+  const ids = arquivos.filter((a) => !a.url_drive).map((a) => a.monday_asset_id).filter(Boolean);
   if (ids.length) {
     try {
       const r = await mondayQuery(
@@ -217,9 +219,12 @@ async function areaPeca(req, res) {
 
   const assets = arquivos.map((a) => ({
     id: a.monday_asset_id, name: a.nome,
-    url: frescas.get(String(a.monday_asset_id))?.url || a.url_monday,
-    url_thumbnail: frescas.get(String(a.monday_asset_id))?.url_thumbnail || null,
-    public_url: frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica,
+    url: a.url_drive || frescas.get(String(a.monday_asset_id))?.url || a.url_monday,
+    url_thumbnail: a.url_drive
+      ? (a.drive_file_id ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w400` : null)
+      : frescas.get(String(a.monday_asset_id))?.url_thumbnail || null,
+    public_url: a.url_drive || frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica,
+    onde: a.url_drive ? 'drive' : 'monday',
     file_extension: a.extensao,
     file_size: a.tamanho_bytes === null ? null : Number(a.tamanho_bytes),
     created_at: a.criado_em,
