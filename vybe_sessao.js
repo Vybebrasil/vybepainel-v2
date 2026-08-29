@@ -145,8 +145,34 @@ export function cabecalhoDeCookie(token) {
 export async function listarPessoas() {
   await garantirSchemaSessao();
   const sql = database();
-  return sql`SELECT nome, email, admin, pode_entrar,
+  return sql`SELECT id, nome, email, admin, pode_entrar, tentativas, bloqueado_ate,
       (senha_hash IS NOT NULL) AS tem_senha, ultimo_acesso
     FROM vybe_pessoas WHERE email IS NOT NULL
     ORDER BY pode_entrar DESC, admin DESC, nome`;
+}
+
+// Quem administra decide quem entra. pode_entrar nasce FALSE de propósito, então
+// liberar é sempre um ato explícito de alguém.
+export async function definirAcesso(email, { pode_entrar = null, admin = null, destravar = false } = {}) {
+  await garantirSchemaSessao();
+  const sql = database();
+  const linhas = await sql`UPDATE vybe_pessoas
+    SET pode_entrar = COALESCE(${pode_entrar}::boolean, pode_entrar),
+        admin       = COALESCE(${admin}::boolean, admin),
+        tentativas    = CASE WHEN ${destravar}::boolean THEN 0 ELSE tentativas END,
+        bloqueado_ate = CASE WHEN ${destravar}::boolean THEN NULL ELSE bloqueado_ate END
+    WHERE LOWER(email) = LOWER(${String(email)})
+    RETURNING id, nome, email, admin, pode_entrar`;
+  if (!linhas.length) throw new Error(`Ninguém cadastrado com o e-mail ${email}.`);
+  return linhas[0];
+}
+
+// Troca da própria senha. Exige a senha atual: sessão sequestrada não pode virar
+// conta sequestrada. A conferência reusa o autenticar, para não existir uma
+// segunda implementação da checagem que ninguém testa.
+export async function trocarPropriaSenha(email, senhaAtual, senhaNova) {
+  if (String(senhaNova || '').length < 8) throw new Error('A nova senha precisa de pelo menos 8 caracteres.');
+  if (senhaAtual === senhaNova) throw new Error('A nova senha é igual à atual.');
+  await autenticar(email, senhaAtual);
+  return definirSenha(email, senhaNova);
 }

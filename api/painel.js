@@ -11,6 +11,7 @@
 import { neon } from '@neondatabase/serverless';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
+import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
 
@@ -102,7 +103,63 @@ async function areaNotificacoes(req, res, quem) {
   return res.status(405).json({ error: 'Método não permitido.' });
 }
 
-const AREAS = { automacoes: areaAutomacoes, notificacoes: areaNotificacoes };
+// ── a própria conta ───────────────────────────────────────────────────────────
+async function areaConta(req, res, quem) {
+  if (quem.tipo !== 'sessao') return res.status(403).json({ error: 'Conta é de pessoa, não de serviço.' });
+
+  if (req.method === 'GET') return res.status(200).json({ ok: true, pessoa: quem.pessoa });
+
+  if (req.method === 'POST') {
+    const { senha_atual: atual, senha_nova: nova } = req.body || {};
+    if (!atual || !nova) return res.status(400).json({ error: 'Informe a senha atual e a nova.' });
+    try {
+      await trocarPropriaSenha(quem.pessoa.email, atual, nova);
+      return res.status(200).json({ ok: true, trocada: true });
+    } catch (erro) {
+      // Mensagem do autenticar já é genérica de propósito; não detalhar mais.
+      return res.status(400).json({ error: erro.message });
+    }
+  }
+  return res.status(405).json({ error: 'Método não permitido.' });
+}
+
+// ── equipe (administração) ────────────────────────────────────────────────────
+async function areaPessoas(req, res, quem) {
+  const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
+  if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra vê e altera a equipe.' });
+
+  if (req.method === 'GET') return res.status(200).json({ ok: true, pessoas: await listarPessoas() });
+
+  if (req.method === 'POST') {
+    const { email, acao, senha } = req.body || {};
+    if (!email || !acao) return res.status(400).json({ error: 'Informe o e-mail e a ação.' });
+
+    // Tirar de si mesmo o poder de administrar deixaria a operação sem ninguém
+    // que possa devolver — e sem serviço de e-mail para recuperar.
+    const proprio = quem.tipo === 'sessao' && String(quem.pessoa.email).toLowerCase() === String(email).toLowerCase();
+    if (proprio && (acao === 'tirar_admin' || acao === 'bloquear')) {
+      return res.status(400).json({ error: 'Peça a outro administrador — você não pode remover o próprio acesso.' });
+    }
+
+    if (acao === 'senha') {
+      if (!senha) return res.status(400).json({ error: 'Informe a nova senha.' });
+      return res.status(200).json({ ok: true, pessoa: await definirSenha(email, senha) });
+    }
+    const mapa = {
+      liberar:     { pode_entrar: true },
+      bloquear:    { pode_entrar: false },
+      tornar_admin:{ admin: true },
+      tirar_admin: { admin: false },
+      destravar:   { destravar: true },
+    };
+    if (!mapa[acao]) return res.status(400).json({ error: `Ação desconhecida: ${acao}` });
+    return res.status(200).json({ ok: true, pessoa: await definirAcesso(email, mapa[acao]) });
+  }
+  return res.status(405).json({ error: 'Método não permitido.' });
+}
+
+const AREAS = { automacoes: areaAutomacoes, notificacoes: areaNotificacoes,
+                conta: areaConta, pessoas: areaPessoas };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');
