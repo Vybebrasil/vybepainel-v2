@@ -64,12 +64,44 @@ export async function definirSenha(email, senha, { admin = null } = {}) {
   return linhas[0];
 }
 
-export async function autenticar(email, senha) {
+// Os rostos que aparecem na porta. Só quem pode entrar e já tem senha, e sem
+// e-mail nenhum: a tela é pública, então ela mostra rosto e primeiro nome, e o
+// endereço fica no servidor. Por isso o login também aceita id em vez de e-mail.
+export async function listarRostos() {
   await garantirSchemaSessao();
   const sql = database();
-  const linhas = await sql`SELECT id, nome, email, admin, pode_entrar, senha_hash, senha_sal,
-      tentativas, bloqueado_ate
-    FROM vybe_pessoas WHERE LOWER(email) = LOWER(${String(email || '')})`;
+  const linhas = await sql`SELECT id, nome, foto_url FROM vybe_pessoas
+    WHERE pode_entrar AND senha_hash IS NOT NULL AND ativo
+    ORDER BY nome`;
+  const partes = (n) => String(n || '?').trim().split(/\s+/).filter(Boolean);
+  return linhas.map((p) => ({
+    id: Number(p.id),
+    nome: partes(p.nome)[0] || '?',
+    foto: p.foto_url || null,
+    iniciais: partes(p.nome).slice(0, 2).map((x) => x[0]).join('').toUpperCase(),
+  }));
+}
+
+export async function autenticar(email, senha) {
+  return entrar({ email }, senha);
+}
+
+// Clicou na própria cara: o navegador manda o id que a porta devolveu, nunca um
+// e-mail. A senha continua sendo a única coisa que prova quem é.
+export async function autenticarPorId(id, senha) {
+  return entrar({ id }, senha);
+}
+
+async function entrar(quem, senha) {
+  await garantirSchemaSessao();
+  const sql = database();
+  const linhas = quem.id
+    ? await sql`SELECT id, nome, email, admin, pode_entrar, senha_hash, senha_sal,
+          tentativas, bloqueado_ate
+        FROM vybe_pessoas WHERE id = ${Number(quem.id)}`
+    : await sql`SELECT id, nome, email, admin, pode_entrar, senha_hash, senha_sal,
+          tentativas, bloqueado_ate
+        FROM vybe_pessoas WHERE LOWER(email) = LOWER(${String(quem.email || '')})`;
   const pessoa = linhas[0];
 
   // Mensagem única para e-mail inexistente e senha errada: dizer qual dos dois
