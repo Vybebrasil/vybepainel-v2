@@ -57,7 +57,11 @@ function frasearGatilho(g) {
 
 function frasearCondicao(c) {
   if (!c) return 'qualquer conteúdo';
-  if (c.formato_em) return `formato ${c.formato_em.join(', ')}`;
+  const partes = [];
+  if (c.formato_em) partes.push(`formato ${c.formato_em.join(', ')}`);
+  if (c.formato_apenas) partes.push(`formato apenas ${c.formato_apenas.join(', ')}`);
+  if (c.grupo_em) partes.push(`peças em ${c.grupo_em.map((g) => GRUPOS_NOME[g] || g).join(', ')}`);
+  if (partes.length) return partes.join(' e ');
   if (c.status_nao_em) return `status diferente de ${c.status_nao_em.join(', ')}`;
   if (c.status_em) return `status ${c.status_em.join(', ')}`;
   return 'qualquer conteúdo';
@@ -127,12 +131,13 @@ async function ensaiarAutomacao(id) {
     showToast('Regra por data: roda na varredura diária, não dá para ensaiar por evento.', 'info', 5000);
     return;
   }
-  const formato = (regra.condicao?.formato_em || ['Reels'])[0];
+  const formato = (regra.condicao?.formato_em || regra.condicao?.formato_apenas || ['Reels'])[0];
+  const grupo = (regra.condicao?.grupo_em || [])[0] || 'ensaio';
   try {
     const resposta = await fetch(`${AUTOMACOES_API}&acao=ensaio`, {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formato, evento: { tipo: g.tipo, de: g.de || null, para: g.para } }),
+      body: JSON.stringify({ formato, grupo, evento: { tipo: g.tipo, de: g.de || null, para: g.para } }),
     });
     const d = await resposta.json();
     if (!resposta.ok) throw new Error(d?.error || 'Ensaio falhou.');

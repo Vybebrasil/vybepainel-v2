@@ -336,13 +336,13 @@ export async function simular(sql, conteudoId, evento) {
 // Sem isto, a única forma de saber se as ações gravam certo seria mexer num
 // card real do time — e um erro de SQL só apareceria no trabalho de alguém.
 // As chaves estrangeiras apagam em cascata, então não sobra rastro.
-export async function ensaio(sql, evento, { formato = 'Reels' } = {}) {
+export async function ensaio(sql, evento, { formato = 'Reels', grupo = 'ensaio' } = {}) {
   const marca = `[ensaio] ${new Date().toISOString()}`;
   // Só evento de status carrega chave de status em 'de' — num evento de captação
   // o 'de' é 'agendar_captacao', que não existe em vybe_status.
   const partida = evento.tipo === 'status' ? (evento.de || 'em_andamento') : 'em_andamento';
   const criado = (await sql`INSERT INTO vybe_conteudos (titulo, formato, status_chave, grupo_id)
-    VALUES (${marca}, ${formato}, ${String(partida)}, 'ensaio')
+    VALUES (${marca}, ${formato}, ${String(partida)}, ${String(grupo)})
     RETURNING id`)[0];
   try {
     // O motor roda DEPOIS da gravação: quem chama já escreveu o status novo.
@@ -357,7 +357,7 @@ export async function ensaio(sql, evento, { formato = 'Reels' } = {}) {
       JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${criado.id} ORDER BY p.nome`;
     const notificacoes = await sql`SELECT COUNT(*)::int AS n FROM vybe_notificacoes WHERE conteudo_id=${criado.id}`;
     return {
-      formato, evento, aplicadas,
+      formato, grupo_inicial: grupo, evento, aplicadas,
       resultado: {
         status: depois?.status_chave, grupo: depois?.grupo_id,
         responsaveis: responsaveis.map((r) => r.nome),
