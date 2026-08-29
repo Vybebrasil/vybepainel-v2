@@ -20,6 +20,7 @@ import { aplicar } from '../vybe_automacoes.js';
 
 const MONDAY = process.env.MONDAY_RELAY_URL || 'https://vybepainel-v2.vercel.app/api/monday';
 const BOARD_PRODUCAO = 7829537690;
+const BOARD_DEMANDAS_ID = 8385559107;
 
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
@@ -55,14 +56,16 @@ async function pessoaDaSessao(sql, quem) {
 
 // ── status ────────────────────────────────────────────────────────────────────
 async function trocarStatus(sql, quem, { item, para }) {
-  const linhas = await sql`SELECT c.id, c.status_chave, c.titulo, s.rotulo AS de
-    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.chave = c.status_chave
+  const linhas = await sql`SELECT c.id, c.board_id, c.status_chave, c.titulo, s.rotulo AS de
+    FROM vybe_conteudos c
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
     WHERE c.monday_item_id = ${String(item)}`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const conteudo = linhas[0];
 
-  const alvo = (await sql`SELECT chave, rotulo, monday_index FROM vybe_status WHERE chave=${String(para)}`)[0];
-  if (!alvo) throw new Error(`Status desconhecido: ${para}`);
+  const alvo = (await sql`SELECT chave, rotulo, monday_index FROM vybe_status
+    WHERE chave=${String(para)} AND board_id=${conteudo.board_id}`)[0];
+  if (!alvo) throw new Error(`Status desconhecido neste board: ${para}`);
 
   await sql`UPDATE vybe_conteudos SET status_chave=${alvo.chave}, status_em=NOW(), atualizado_em=NOW()
     WHERE id=${conteudo.id}`;
@@ -76,7 +79,8 @@ async function trocarStatus(sql, quem, { item, para }) {
     await mondayQuery(
       `mutation ($board: ID!, $item: ID!, $value: JSON!) {
          change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`,
-      { board: String(BOARD_PRODUCAO), item: String(item), value: JSON.stringify({ index: Number(alvo.monday_index) }) }
+      { board: String(conteudo.board_id), item: String(item),
+        value: JSON.stringify({ index: Number(alvo.monday_index) }) }
     );
   } catch (erro) {
     replica = `falhou: ${erro.message}`;
@@ -86,15 +90,19 @@ async function trocarStatus(sql, quem, { item, para }) {
   // regras dele disparam com a mesma mudança e chegam ao mesmo estado — as duas
   // convergem em vez de brigar. No dia em que ele sair, estas aqui já são as
   // únicas, e a operação não muda de comportamento.
+  // As regras que importamos são de Produção: os grupos e as chaves de status são
+  // de lá. Rodá-las numa demanda moveria a peça para um grupo que não existe no
+  // board dela.
   let automacoes = [];
   try {
+    if (Number(conteudo.board_id) !== BOARD_PRODUCAO) throw { pular: true };
     const r = await aplicar(sql, conteudo.id, {
       tipo: 'status', de: conteudo.status_chave, para: alvo.chave,
     });
     automacoes = r.aplicadas;
-    await replicarNoMonday(item, r.paraOMonday);
+    await replicarNoMonday(item, r.paraOMonday, conteudo.board_id);
   } catch (erro) {
-    console.error('Automações falharam após troca de status:', erro.message);
+    if (!erro?.pular) console.error('Automações falharam após troca de status:', erro.message);
   }
 
   return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de,
@@ -104,14 +112,14 @@ async function trocarStatus(sql, quem, { item, para }) {
 
 // O que a automação mudou aqui precisa aparecer lá. Falha na réplica não desfaz
 // nada: a gravação local é a verdade, a cópia reconcilia depois.
-async function replicarNoMonday(item, para) {
+async function replicarNoMonday(item, para, boardId = BOARD_PRODUCAO) {
   if (!para) return;
   try {
     if (Object.keys(para.colunas || {}).length) {
       await mondayQuery(
         `mutation($board: ID!, $item: ID!, $values: JSON!) {
            change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
-        { board: String(BOARD_PRODUCAO), item: String(item), values: JSON.stringify(para.colunas) }
+        { board: String(boardId), item: String(item), values: JSON.stringify(para.colunas) }
       );
     }
     if (para.grupo) {
@@ -126,6 +134,14 @@ async function replicarNoMonday(item, para) {
 }
 
 // ── datas ─────────────────────────────────────────────────────────────────────
+// As colunas não têm os mesmos ids nos dois boards: a data de veiculação em
+// Produção é 'data__1' e em Demandas é 'data_mkky6jx'. Escrever com o id do
+// board errado grava em coluna nenhuma e o Monday aceita calado.
+const COLUNAS_POR_BOARD = {
+  [BOARD_PRODUCAO]: { prazo: 'data', veiculacao: 'data__1', status: 'status', pessoas: 'person' },
+  [BOARD_DEMANDAS_ID]: { prazo: 'data', veiculacao: 'data_mkky6jx', status: 'status', pessoas: 'person' },
+};
+const colunasDe = (boardId) => COLUNAS_POR_BOARD[Number(boardId)] || COLUNAS_POR_BOARD[BOARD_PRODUCAO];
 const COLUNA_DATA = { prazo: 'data', veiculacao: 'data__1' };
 
 // A coluna 'etapa' do nosso banco guarda o título do grupo: é assim em todas as
@@ -143,17 +159,21 @@ async function trocarData(sql, quem, { item, campo, data }) {
   const iso = String(data || '').slice(0, 10);
   if (data && !/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('Data inválida; use AAAA-MM-DD.');
 
-  const linhas = await sql`SELECT id, titulo,
+  const linhas = await sql`SELECT id, board_id, titulo,
       TO_CHAR(prazo,'YYYY-MM-DD') AS prazo, TO_CHAR(veiculacao,'YYYY-MM-DD') AS veiculacao
     FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const c = linhas[0];
   const de = campo === 'prazo' ? c.prazo : c.veiculacao;
 
-  // A mesma regra que o painel aplica: prazo não passa da veiculação.
-  const prazo = campo === 'prazo' ? iso : c.prazo;
-  const veic = campo === 'veiculacao' ? iso : c.veiculacao;
-  if (prazo && veic && prazo > veic) throw new Error('O prazo não pode ficar depois da veiculação.');
+  // A mesma regra que o painel aplica: prazo não passa da veiculação. Vale só em
+  // Produção — em Demandas a segunda data é "Data de Conclusão", que por
+  // definição vem depois e não é um prazo a proteger.
+  if (Number(c.board_id) === BOARD_PRODUCAO) {
+    const prazo = campo === 'prazo' ? iso : c.prazo;
+    const veic = campo === 'veiculacao' ? iso : c.veiculacao;
+    if (prazo && veic && prazo > veic) throw new Error('O prazo não pode ficar depois da veiculação.');
+  }
 
   if (campo === 'prazo') await sql`UPDATE vybe_conteudos SET prazo=${iso || null}, atualizado_em=NOW() WHERE id=${c.id}`;
   else await sql`UPDATE vybe_conteudos SET veiculacao=${iso || null}, atualizado_em=NOW() WHERE id=${c.id}`;
@@ -164,8 +184,8 @@ async function trocarData(sql, quem, { item, campo, data }) {
   try {
     await mondayQuery(
       `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`,
-      { board: String(BOARD_PRODUCAO), item: String(item),
-        values: JSON.stringify({ [COLUNA_DATA[campo]]: { date: iso } }) }
+      { board: String(c.board_id), item: String(item),
+        values: JSON.stringify({ [colunasDe(c.board_id)[campo]]: { date: iso } }) }
     );
   } catch (erro) { replica = `falhou: ${erro.message}`; }
   return { conteudo_id: c.id, titulo: c.titulo, campo, de, para: iso, replica_monday: replica };
@@ -203,8 +223,9 @@ async function trocarResponsaveis(sql, quem, { item, pessoas }) {
   try {
     await mondayQuery(
       `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`,
-      { board: String(BOARD_PRODUCAO), item: String(item),
-        values: JSON.stringify({ person: { personsAndTeams: ids.map((id) => ({ id: Number(id), kind: 'person' })) } }) }
+      { board: String(c.board_id), item: String(item),
+        values: JSON.stringify({ [colunasDe(c.board_id).pessoas]: {
+          personsAndTeams: ids.map((id) => ({ id: Number(id), kind: 'person' })) } }) }
     );
   } catch (erro) { replica = `falhou: ${erro.message}`; }
   return { conteudo_id: c.id, titulo: c.titulo, de: antes, para: depois, replica_monday: replica };
@@ -236,7 +257,6 @@ async function comentar(sql, quem, { item, texto }) {
 // ── criar conteúdo ────────────────────────────────────────────────────────────
 // O id do Monday só existe depois de criar lá. Para o banco continuar mandando,
 // gravamos primeiro sem o id e ligamos os dois em seguida.
-const BOARD_DEMANDAS = 8385559107;
 
 // Remover a peça. Sai das telas, não sai do banco: o histórico dela — comentários,
 // mudanças de status, quem fez o quê — some junto se a linha for apagada, e quem
@@ -287,10 +307,10 @@ async function restaurarConteudo(sql, quem, { item }) {
 // esta é uma das poucas operações que ainda depende dele de verdade, e sair de
 // Produção significa sair das nossas tabelas também.
 async function moverBoard(sql, quem, { item, destino }) {
-  const alvo = String(destino) === String(BOARD_DEMANDAS) ? BOARD_DEMANDAS : BOARD_PRODUCAO;
+  const alvo = String(destino) === String(BOARD_DEMANDAS_ID) ? BOARD_DEMANDAS_ID : BOARD_PRODUCAO;
   // Grupos de entrada de cada board, conferidos no próprio Monday: 'topics' é o
   // padrão de board novo e não existe em nenhum dos dois.
-  const grupo = alvo === BOARD_DEMANDAS ? 'group_mm187437' : 'group_title';
+  const grupo = alvo === BOARD_DEMANDAS_ID ? 'group_mm187437' : 'group_title';
 
   const dados = await mondayQuery(
     `mutation($item: ID!, $board: ID!, $grupo: ID!) {
@@ -302,7 +322,7 @@ async function moverBoard(sql, quem, { item, destino }) {
 
   const linhas = await sql`SELECT id, titulo FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
 
-  if (alvo === BOARD_DEMANDAS) {
+  if (alvo === BOARD_DEMANDAS_ID) {
     if (linhas.length) {
       await sql`UPDATE vybe_conteudos SET removido_em=NOW(), atualizado_em=NOW() WHERE id=${linhas[0].id}`;
       await registrarEvento(sql, linhas[0].id, {
@@ -336,7 +356,8 @@ async function trocarTitulo(sql, quem, { item, titulo }) {
   if (!novo) throw new Error('O título não pode ficar vazio.');
   if (novo.length > 255) throw new Error('Título muito longo.');
 
-  const linhas = await sql`SELECT id, titulo FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
+  const linhas = await sql`SELECT id, board_id, titulo FROM vybe_conteudos
+    WHERE monday_item_id = ${String(item)}`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const c = linhas[0];
   if (c.titulo === novo) return { conteudo_id: c.id, de: c.titulo, para: novo, replica_monday: 'sem mudança' };
@@ -351,7 +372,7 @@ async function trocarTitulo(sql, quem, { item, titulo }) {
     await mondayQuery(
       `mutation($board: ID!, $item: ID!, $values: JSON!) {
          change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
-      { board: String(BOARD_PRODUCAO), item: String(item), values: JSON.stringify({ name: novo }) }
+      { board: String(c.board_id), item: String(item), values: JSON.stringify({ name: novo }) }
     );
   } catch (erro) { replica = `falhou: ${erro.message}`; }
 
@@ -405,8 +426,8 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
   const cfg = ESCOLHAS[campo];
   if (!cfg) throw new Error(`Campo desconhecido: ${campo}`);
 
-  const linhas = await sql`SELECT id, titulo, captacao_chave, prioridade_chave, off_audio_chave,
-      formato_chaves, tipo_conteudo_chaves
+  const linhas = await sql`SELECT id, board_id, titulo, captacao_chave, prioridade_chave,
+      off_audio_chave, formato_chaves, tipo_conteudo_chaves
     FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const c = linhas[0];
@@ -461,7 +482,7 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
     await mondayQuery(
       `mutation($board: ID!, $item: ID!, $values: JSON!) {
          change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
-      { board: String(BOARD_PRODUCAO), item: String(item),
+      { board: String(c.board_id), item: String(item),
         values: JSON.stringify({ [cfg.coluna]: valor }) }
     );
   } catch (erro) { if (!erro?.pular) replica = `falhou: ${erro.message}`; }

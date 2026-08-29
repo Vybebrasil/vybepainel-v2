@@ -169,7 +169,9 @@ async function gravarNoDominio(corpo) {
 // id que o Monday acabou de dar.
 async function tentarEscritaDupla(item, corpo) {
   if (!escritaDupla()) return false;
-  if (typeof isRequestItem === 'function' && isRequestItem(item)) return false;
+  // Item de Demandas costumava cair fora daqui porque aquele board não existia no
+  // nosso banco. Existe agora, com as mesmas tabelas — e o servidor sabe qual
+  // coluna usar em cada um.
   const devolve = corpo?._devolve;
   if (devolve) { corpo = { ...corpo }; delete corpo._devolve; }
   try {
