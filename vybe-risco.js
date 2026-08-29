@@ -763,6 +763,59 @@ async function renomearPeca(itemId) {
   }
 }
 
+// Remover a peça. Sai das telas e vai para a lixeira do Monday; aqui a linha
+// fica, com quem removeu e quando — histórico apagado não volta, e remover por
+// engano é o motivo de a operação existir.
+async function removerPeca(itemId) {
+  const item = findOperationalItem(itemId);
+  if (!item) return;
+  if (!confirm(`Remover “${item.nome}”?\n\nEla some do painel e vai para a lixeira do Monday. O histórico fica guardado e um administrador consegue trazer de volta.`)) return;
+  const motivo = prompt('Por que está removendo? (opcional, fica no histórico)') || '';
+  try {
+    const r = await fetch('/api/conteudo', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: 'remover', item: String(itemId), motivo }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível remover.');
+    [DADOS, DADOS_ALL].forEach((l, i) => {
+      const lista = i === 0 ? DADOS : DADOS_ALL;
+      const pos = (lista || []).findIndex((x) => String(x.id) === String(itemId));
+      if (pos >= 0) lista.splice(pos, 1);
+    });
+    saveProductionCache();
+    closeItemWorkspace();
+    if (typeof renderAll === 'function') renderAll();
+    showToast(String(d.replica_monday || '').startsWith('falhou')
+      ? '✓ Removida do painel · o Monday não recebeu' : '✓ Peça removida', 'ok', 5000);
+  } catch (erro) { showToast(`Não foi possível remover: ${erro.message}`, 'err', 7000); }
+}
+
+// Mover entre Produção e Demandas. Demandas nunca entrou no nosso banco — é lido
+// direto do Monday — então esta é uma das poucas operações que ainda depende
+// dele de verdade, e a peça sai das nossas telas ao ir para lá.
+async function moverPecaDeBoard(itemId) {
+  const item = findOperationalItem(itemId);
+  if (!item) return;
+  if (!confirm(`Mover “${item.nome}” para o board de Demandas?\n\nEla sai do painel de Produção. Demandas ainda é lido do Monday, então a peça passa a viver lá.`)) return;
+  try {
+    const r = await fetch('/api/conteudo', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: 'mover_board', item: String(itemId), destino: '8385559107' }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível mover.');
+    [DADOS, DADOS_ALL].forEach((lista) => {
+      const pos = (lista || []).findIndex((x) => String(x.id) === String(itemId));
+      if (pos >= 0) lista.splice(pos, 1);
+    });
+    saveProductionCache();
+    closeItemWorkspace();
+    if (typeof renderAll === 'function') renderAll();
+    showToast(`✓ Movida para ${d.para}. ${d.aviso || ''}`, 'ok', 7000);
+  } catch (erro) { showToast(`Não foi possível mover: ${erro.message}`, 'err', 7000); }
+}
+
 function podeVerMonday() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
 }
@@ -846,7 +899,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
     ${workspaceFichaHtml(detail, item.id)}
     ${workspaceDeliveryDock(detail,item)}
-    <div class="workspace-actions"><button type="button" class="workspace-action primary" onclick="openPlanningEditor('${item.id}')">Editar datas rápidas</button><button type="button" class="workspace-action" onclick="openOwnerEditor(event,'${item.id}')">Gerenciar responsáveis</button><button type="button" class="workspace-action" onclick="openDaDirectionModal('${item.id}')">Direcionar D.A.</button><button type="button" class="workspace-action" onclick="openStatusEditor({preventDefault(){},stopPropagation(){},currentTarget:this},'${item.id}')">Atualizar status</button><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Entregar e passar bastão</button>${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
+    <div class="workspace-actions"><button type="button" class="workspace-action primary" onclick="openPlanningEditor('${item.id}')">Editar datas rápidas</button><button type="button" class="workspace-action" onclick="openOwnerEditor(event,'${item.id}')">Gerenciar responsáveis</button><button type="button" class="workspace-action" onclick="openDaDirectionModal('${item.id}')">Direcionar D.A.</button><button type="button" class="workspace-action" onclick="openStatusEditor({preventDefault(){},stopPropagation(){},currentTarget:this},'${item.id}')">Atualizar status</button><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Entregar e passar bastão</button>${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button><button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Remover peça</button>` : ''}${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
     <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section>
     <section class="workspace-section"><div class="workspace-section-head">Anexar entrega</div><div class="workspace-section-body"><input id="workspace-file-input" type="file" hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)"><div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Enviar card ou arte</strong>Arraste aqui ou clique para selecionar</div></div><p class="workspace-note">PNG, JPG, WEBP ou PDF · até 3 MB. Para vídeos, registre o link do Drive abaixo.</p></div></section>

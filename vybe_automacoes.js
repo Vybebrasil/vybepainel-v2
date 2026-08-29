@@ -446,10 +446,10 @@ export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}
     // dias:-1 em prazo é "um dia antes", ou seja prazo = hoje + 1.
     const alvos = campo === 'prazo'
       ? await sql`SELECT id, titulo, formato_chaves, status_chave FROM vybe_conteudos
-          WHERE prazo = (${dia}::date - ${dias}::int)
+          WHERE removido_em IS NULL AND prazo = (${dia}::date - ${dias}::int)
             AND (${excluir}::text[] = '{}' OR NOT (status_chave = ANY(${excluir})))`
       : await sql`SELECT id, titulo, formato_chaves, status_chave FROM vybe_conteudos
-          WHERE veiculacao = (${dia}::date - ${dias}::int)
+          WHERE removido_em IS NULL AND veiculacao = (${dia}::date - ${dias}::int)
             AND (${excluir}::text[] = '{}' OR NOT (status_chave = ANY(${excluir})))`;
 
     let avisados = 0;

@@ -144,6 +144,12 @@ export async function criarSchema() {
   // perderia esse campo, e a ação de captação das automações não tinha onde
   // gravar — ficava anotada como "só no Monday por enquanto".
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS captacao TEXT`;
+  // Peça removida sai das telas mas não sai do banco. O histórico dela —
+  // comentários, mudanças de status, quem fez o quê — some junto se a linha for
+  // apagada, e quem remove por engano fica sem volta. No Monday o item vai para
+  // a lixeira, que também guarda por 30 dias.
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS removido_em TIMESTAMPTZ`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS removido_por BIGINT REFERENCES vybe_pessoas(id)`;
   // As outras colunas do board que ninguém tinha trazido. O espelho carregava
   // seis; o board tem quinze. Captação está em 100% dos itens e Tipo de conteúdo
   // em 86% — as outras três são pouco usadas, mas dado perdido é dado perdido.
@@ -502,7 +508,8 @@ export async function listarConteudos() {
           WHERE u.conteudo_id = c.id AND u.corpo LIKE '%Contexto de status%'
           ORDER BY u.criado_em DESC NULLS LAST LIMIT 1) AS contexto_status
       FROM vybe_conteudos c
-      WHERE (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
+      WHERE c.removido_em IS NULL
+        AND (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
         AND EXISTS (
           SELECT 1 FROM vybe_conteudo_clientes vcc
             JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
@@ -1227,7 +1234,7 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
       FROM vybe_conteudo_arquivos a
       JOIN vybe_conteudos c ON c.id = a.conteudo_id
       JOIN vybe_status s ON s.chave = c.status_chave
-     WHERE a.url_drive IS NULL AND a.ausente_em IS NULL
+     WHERE a.url_drive IS NULL AND a.ausente_em IS NULL AND c.removido_em IS NULL
        AND NOT s.final AND a.monday_asset_id IS NOT NULL
      ORDER BY c.veiculacao NULLS LAST, a.id
      LIMIT ${limite}`;

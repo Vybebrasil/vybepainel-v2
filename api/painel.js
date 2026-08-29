@@ -215,7 +215,7 @@ async function areaPeca(req, res, quem) {
       FROM vybe_conteudos c
       LEFT JOIN vybe_status   s ON s.chave = c.status_chave
       LEFT JOIN vybe_captacao k ON k.chave = c.captacao_chave
-     WHERE c.monday_item_id = ${item}`)[0];
+     WHERE c.monday_item_id = ${item} AND c.removido_em IS NULL`)[0];
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
   const [arquivos, updates, eventos, catCaptacao, catOpcoes] = await Promise.all([

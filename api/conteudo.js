@@ -236,6 +236,93 @@ async function comentar(sql, quem, { item, texto }) {
 // ── criar conteúdo ────────────────────────────────────────────────────────────
 // O id do Monday só existe depois de criar lá. Para o banco continuar mandando,
 // gravamos primeiro sem o id e ligamos os dois em seguida.
+const BOARD_DEMANDAS = 8385559107;
+
+// Remover a peça. Sai das telas, não sai do banco: o histórico dela — comentários,
+// mudanças de status, quem fez o quê — some junto se a linha for apagada, e quem
+// remove por engano fica sem volta. No Monday o item vai para a lixeira, que
+// também guarda por 30 dias.
+async function removerConteudo(sql, quem, { item, motivo }) {
+  const linhas = await sql`SELECT id, titulo, removido_em FROM vybe_conteudos
+    WHERE monday_item_id = ${String(item)}`;
+  if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
+  const c = linhas[0];
+  if (c.removido_em) return { conteudo_id: c.id, titulo: c.titulo, ja_removido: true };
+
+  const autor = await pessoaDaSessao(sql, quem);
+  await sql`UPDATE vybe_conteudos SET removido_em=NOW(), removido_por=${autor}, atualizado_em=NOW()
+    WHERE id=${c.id}`;
+  await registrarEvento(sql, c.id, {
+    tipo: 'remocao', de: c.titulo, para: String(motivo || '').trim() || null, autorId: autor,
+  });
+
+  let replica = 'ok';
+  try {
+    await mondayQuery(`mutation($item: ID!) { delete_item(item_id: $item) { id } }`, { item: String(item) });
+  } catch (erro) { replica = `falhou: ${erro.message}`; }
+
+  return { conteudo_id: c.id, titulo: c.titulo, replica_monday: replica };
+}
+
+// Devolve uma peça removida. Existe porque remover por engano é o motivo de a
+// remoção ser reversível — sem o caminho de volta, a rede não serve para nada.
+async function restaurarConteudo(sql, quem, { item }) {
+  const linhas = await sql`UPDATE vybe_conteudos SET removido_em=NULL, removido_por=NULL,
+      atualizado_em=NOW()
+    WHERE monday_item_id = ${String(item)} AND removido_em IS NOT NULL
+    RETURNING id, titulo`;
+  if (!linhas.length) throw new Error('Esta peça não está removida.');
+  await registrarEvento(sql, linhas[0].id, {
+    tipo: 'restauracao', para: linhas[0].titulo, autorId: await pessoaDaSessao(sql, quem),
+  });
+  // O item no Monday está na lixeira dele e precisa ser restaurado por lá: a API
+  // não desfaz delete_item. Dito aqui para ninguém achar que voltou nos dois.
+  return { conteudo_id: linhas[0].id, titulo: linhas[0].titulo,
+           aviso: 'No Monday o item continua na lixeira e precisa ser restaurado por lá.' };
+}
+
+// Mover entre os boards de Produção e Demandas.
+//
+// Demandas nunca entrou no nosso domínio — ele é lido direto do Monday. Então
+// esta é uma das poucas operações que ainda depende dele de verdade, e sair de
+// Produção significa sair das nossas tabelas também.
+async function moverBoard(sql, quem, { item, destino }) {
+  const alvo = String(destino) === String(BOARD_DEMANDAS) ? BOARD_DEMANDAS : BOARD_PRODUCAO;
+  const grupo = alvo === BOARD_DEMANDAS ? 'topics' : 'group_title';
+
+  const dados = await mondayQuery(
+    `mutation($item: ID!, $board: ID!, $grupo: String!) {
+       move_item_to_board(item_id: $item, board_id: $board, group_id: $grupo) { id board { id name } } }`,
+    { item: String(item), board: String(alvo), grupo }
+  );
+  const movido = dados?.move_item_to_board;
+  if (!movido?.id) throw new Error('O Monday não confirmou a mudança de board.');
+
+  const linhas = await sql`SELECT id, titulo FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
+
+  if (alvo === BOARD_DEMANDAS) {
+    if (linhas.length) {
+      await sql`UPDATE vybe_conteudos SET removido_em=NOW(), atualizado_em=NOW() WHERE id=${linhas[0].id}`;
+      await registrarEvento(sql, linhas[0].id, {
+        tipo: 'board', de: 'Produção', para: 'Demandas', autorId: await pessoaDaSessao(sql, quem),
+      });
+    }
+    return { para: 'Demandas', board_id: alvo,
+             aviso: 'A peça sai do painel de Produção. Demandas ainda é lido do Monday.' };
+  }
+
+  // Voltando para Produção: a peça precisa existir nas nossas tabelas de novo.
+  if (linhas.length) {
+    await sql`UPDATE vybe_conteudos SET removido_em=NULL, atualizado_em=NOW() WHERE id=${linhas[0].id}`;
+    await registrarEvento(sql, linhas[0].id, {
+      tipo: 'board', de: 'Demandas', para: 'Produção', autorId: await pessoaDaSessao(sql, quem),
+    });
+    return { para: 'Produção', board_id: alvo, reaproveitado: true };
+  }
+  return { para: 'Produção', board_id: alvo, novo: true,
+           aviso: 'A peça entrou em Produção no Monday. Ela aparece no painel na próxima sincronização.' };
+}
+
 // Renomear a peça. Não existia no painel: dava para criar, nunca para corrigir um
 // título. Com o time fora do Monday, um erro de digitação viraria permanente.
 async function trocarTitulo(sql, quem, { item, titulo }) {
@@ -500,6 +587,22 @@ export default async function handler(req, res) {
     }
     if (acao === 'comentario') {
       return res.status(200).json({ ok: true, acao, ...(await comentar(sql, quem, { item, texto: corpo.texto })) });
+    }
+    // Remover e mover entre boards são de quem administra: as duas tiram a peça
+    // da vista de todo mundo, e por engano não têm desfazer imediato.
+    if (acao === 'remover' || acao === 'restaurar' || acao === 'mover_board') {
+      if (!(quem.tipo === 'servico' || quem.pessoa?.admin)) {
+        return res.status(403).json({ error: 'Só quem administra remove ou move peças entre boards.' });
+      }
+      if (acao === 'remover') {
+        return res.status(200).json({ ok: true, acao,
+          ...(await removerConteudo(sql, quem, { item, motivo: corpo.motivo })) });
+      }
+      if (acao === 'restaurar') {
+        return res.status(200).json({ ok: true, acao, ...(await restaurarConteudo(sql, quem, { item })) });
+      }
+      return res.status(200).json({ ok: true, acao,
+        ...(await moverBoard(sql, quem, { item, destino: corpo.destino })) });
     }
     if (acao === 'titulo') {
       return res.status(200).json({ ok: true, acao,
