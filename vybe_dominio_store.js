@@ -400,7 +400,7 @@ export async function listarConteudos() {
              JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
             WHERE vcc.conteudo_id = c.id AND cl.ativo), '{}') AS clientes,
         COALESCE(
-          (SELECT ARRAY_AGG(p.monday_user_id ORDER BY p.nome)
+          (SELECT ARRAY_AGG(p.monday_user_id ORDER BY vcr.ordem, p.nome)
              FROM vybe_conteudo_responsaveis vcr
              JOIN vybe_pessoas p ON p.id = vcr.pessoa_id
             WHERE vcr.conteudo_id = c.id), '{}') AS responsavel_ids,
