@@ -16,6 +16,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { quemChama } from '../vybe_acesso.js';
+import { aplicar } from '../vybe_automacoes.js';
 
 const MONDAY = process.env.MONDAY_RELAY_URL || 'https://vybepainel-v2.vercel.app/api/monday';
 const BOARD_PRODUCAO = 7829537690;
@@ -80,7 +81,22 @@ async function trocarStatus(sql, quem, { item, para }) {
   } catch (erro) {
     replica = `falhou: ${erro.message}`;
   }
-  return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de, para: alvo.rotulo, replica_monday: replica };
+  // As automações rodam depois da gravação, nunca antes: regra que falha não
+  // pode impedir a pessoa de mudar o status. Enquanto o Monday existir, as
+  // regras dele disparam com a mesma mudança e chegam ao mesmo estado — as duas
+  // convergem em vez de brigar. No dia em que ele sair, estas aqui já são as
+  // únicas, e a operação não muda de comportamento.
+  let automacoes = [];
+  try {
+    ({ aplicadas: automacoes } = await aplicar(sql, conteudo.id, {
+      tipo: 'status', de: conteudo.status_chave, para: alvo.chave,
+    }));
+  } catch (erro) {
+    console.error('Automações falharam após troca de status:', erro.message);
+  }
+
+  return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de,
+           para: alvo.rotulo, replica_monday: replica, automacoes };
 }
 
 

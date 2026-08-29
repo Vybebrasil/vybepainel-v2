@@ -32,7 +32,7 @@ let currentDemandaDayFilter = '';        // ISO date string para filtro de dia
 let activeBoard = 'producao';
 
 // ─── Monitoramento de uso e custo de IA ─────────────────────────────────────
-const AI_USAGE_API = '/api/ai-usage';
+const AI_USAGE_API = '/api/jarvis?acao=uso';
 let aiUsageDays = 30;
 let aiUsageData = null;
 let aiUsageLoading = false;
@@ -49,7 +49,7 @@ async function loadAiUsage(force=false) {
   const root = document.getElementById('ai-usage-root');
   if (root) root.innerHTML = '<div class="ai-usage-loading">CONSULTANDO USO E CUSTOS...</div>';
   try {
-    const response = await fetch(`${AI_USAGE_API}?days=${aiUsageDays}`);
+    const response = await fetch(`${AI_USAGE_API}&days=${aiUsageDays}`);
     const data = await response.json();
     if (!response.ok) throw new Error(data?.error || 'Falha ao carregar monitoramento.');
     aiUsageData = data;
