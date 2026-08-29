@@ -1174,10 +1174,18 @@ export async function importarCatalogoOpcoes() {
 // parte — o banco esquecer não apaga arquivo.
 export async function desfazerMigracaoDrive() {
   const sql = database();
-  const linhas = await sql`UPDATE vybe_conteudo_arquivos
-      SET drive_file_id=NULL, url_drive=NULL, migrado_em=NULL
-    WHERE url_drive IS NOT NULL
-    RETURNING drive_file_id, nome`;
+  // RETURNING devolve o valor DEPOIS do UPDATE, então ler o id ali entrega
+  // sempre NULL. Guarda antes de zerar.
+  const linhas = await sql`
+    WITH antes AS (
+      SELECT id, drive_file_id, nome FROM vybe_conteudo_arquivos WHERE url_drive IS NOT NULL
+    ), zerado AS (
+      UPDATE vybe_conteudo_arquivos a
+         SET drive_file_id=NULL, url_drive=NULL, migrado_em=NULL
+        FROM antes WHERE a.id = antes.id
+      RETURNING a.id
+    )
+    SELECT drive_file_id, nome FROM antes`;
   return { revertidos: linhas.length, no_drive: linhas.map((l) => ({ id: l.drive_file_id, nome: l.nome })) };
 }
 
