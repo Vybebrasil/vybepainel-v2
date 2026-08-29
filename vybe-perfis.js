@@ -66,7 +66,11 @@ function renderIdentityOperationalPulse() {
 function renderFocusUserPicker() {
   const grid = document.getElementById('focus-user-grid');
   if (!grid) return;
-  const users = TEAM_USERS.filter(u => FOCUS_ACTIVE_IDS.has(u.id));
+  // Quem administra vê a equipe toda; quem não administra vê a si mesmo. A fila
+  // de outra pessoa não é decisão de quem está executando a própria.
+  const eu = meuFoco();
+  const users = TEAM_USERS.filter((u) => FOCUS_ACTIVE_IDS.has(u.id))
+    .filter((u) => souAdmin() || !eu || u.id === eu);
   grid.innerHTML = users.map(user => {
     const signal = operatorOperationalSignal(user.id);
     const avatar = user.photo
@@ -713,9 +717,33 @@ function applyPanelMode() {
   if (panelMode === 'gestor' || isFocus || isDaController || isClientMode) void ensureDemandasForOperationalViews();
 }
 
+// Quem entrou. O painel foi construído antes do login existir, então ele
+// perguntava quem você era; agora ele já sabe.
+function pessoaLogada() {
+  return (typeof sessaoAtual === 'function' && sessaoAtual()) || null;
+}
+function souAdmin() { return Boolean(pessoaLogada()?.admin); }
+
+// A pessoa logada, quando ela é alguém que executa trabalho. Quem administra não
+// entra nessa lista e continua escolhendo o foco.
+function meuFoco() {
+  const eu = pessoaLogada();
+  const id = eu ? String(eu.id) : '';
+  return id && FOCUS_ACTIVE_IDS.has(id) && TEAM_USERS.some((u) => u.id === id) ? id : '';
+}
+
 function initPanelMode() {
   const savedMode = getStorage('vybePanelMode');
   const savedUser = getStorage('vybePanelFocusUser');
+
+  // Quem não administra abre no próprio foco, sem passar pelo portão de escolha.
+  // Perguntar "quem é você?" a quem acabou de digitar e-mail e senha é perguntar
+  // duas vezes — e deixava qualquer pessoa abrir o painel como outra.
+  const eu = meuFoco();
+  if (eu && !souAdmin()) {
+    panelMode = 'foco'; focusUserId = eu; applyPanelMode();
+    return;
+  }
   if (savedMode === 'foco' && TEAM_USERS.some(u => u.id === savedUser) && FOCUS_ACTIVE_IDS.has(savedUser)) {
     panelMode='foco'; focusUserId=savedUser; applyPanelMode();
   } else if (savedMode === 'controler') {

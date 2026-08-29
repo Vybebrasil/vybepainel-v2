@@ -21,6 +21,7 @@ async function carregarOperacao() {
 function iniciarPainel() {
   // Depois de garantirSessao(), então já se sabe de quem são os avisos.
   if (typeof iniciarNotificacoes === 'function') iniciarNotificacoes();
+  if (typeof ajustarAbasPorPapel === 'function') ajustarAbasPorPapel();
   const legacyKpi = document.getElementById('kpi-grid');
   if (legacyKpi) legacyKpi.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px 0;">Carregando dados do Monday.com...</div>';
   initPanelMode();

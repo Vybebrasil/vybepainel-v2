@@ -31,6 +31,19 @@ let currentDemandaDateMode = 'conclusao'; // 'conclusao' | 'prazo'
 let currentDemandaDayFilter = '';        // ISO date string para filtro de dia
 let activeBoard = 'producao';
 
+// Abas que só quem administra abre.
+const ABAS_DE_GESTAO = new Set(['ai-usage', 'performance']);
+
+// Esconde os botões dessas abas para quem não administra. Botão que existe e
+// recusa é pior que botão que não existe.
+function ajustarAbasPorPapel() {
+  const admin = typeof souAdmin === 'function' && souAdmin();
+  ABAS_DE_GESTAO.forEach((aba) => {
+    const btn = document.getElementById(`btn-board-${aba}`);
+    if (btn) btn.style.display = admin ? '' : 'none';
+  });
+}
+
 // ─── Monitoramento de uso e custo de IA ─────────────────────────────────────
 const AI_USAGE_API = '/api/jarvis?acao=uso';
 let aiUsageDays = 30;
@@ -152,6 +165,12 @@ async function saveAiUsageSettings() {
 }
 
 function switchBoard(board, btn) {
+  // Custo de IA e desempenho individual são leitura de quem gere, não do dia a
+  // dia de quem executa. Antes as oito abas apareciam para todo mundo.
+  if (!souAdmin() && ABAS_DE_GESTAO.has(board)) {
+    showToast('Esta área é de quem administra o painel.', 'info', 4000);
+    return;
+  }
   if (activeBoard === board) return;
   activeBoard = board;
   document.querySelectorAll('.board-switch-btn').forEach(b => b.classList.remove('active'));
