@@ -69,14 +69,16 @@ function escolherConta(email) {
   const conta = contasConhecidas().find((c) => c.email === email);
   const titulo = document.getElementById('login-titulo');
   if (titulo && conta) titulo.textContent = String(conta.nome || '').split(' ')[0];
-  document.querySelector('#login-gate .login-caixa')?.classList.add('com-email');
+  // 'escolhida' esconde a lista e o campo de e-mail: quem clicou na própria cara
+  // não precisa ver nem editar o próprio endereço, só a senha.
+  document.querySelector('#login-gate .login-caixa')?.classList.add('escolhida');
   document.getElementById('login-senha')?.focus();
 }
 
 // Clicou na cara errada. Sem isto, a saída era recarregar a página.
 function voltarParaAsContas() {
   const caixa = document.querySelector('#login-gate .login-caixa');
-  if (caixa) caixa.classList.remove('com-email');
+  if (caixa) caixa.classList.remove('com-email', 'escolhida');
   const titulo = document.getElementById('login-titulo');
   if (titulo) titulo.textContent = 'Quem está operando?';
   const email = document.getElementById('login-email');
