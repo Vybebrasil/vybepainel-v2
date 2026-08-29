@@ -303,10 +303,19 @@ export async function simular(sql, conteudoId, evento) {
 // As chaves estrangeiras apagam em cascata, então não sobra rastro.
 export async function ensaio(sql, evento, { formato = 'Reels' } = {}) {
   const marca = `[ensaio] ${new Date().toISOString()}`;
+  // Só evento de status carrega chave de status em 'de' — num evento de captação
+  // o 'de' é 'agendar_captacao', que não existe em vybe_status.
+  const partida = evento.tipo === 'status' ? (evento.de || 'em_andamento') : 'em_andamento';
   const criado = (await sql`INSERT INTO vybe_conteudos (titulo, formato, status_chave, grupo_id)
-    VALUES (${marca}, ${formato}, ${String(evento.de || 'em_andamento')}, 'ensaio')
+    VALUES (${marca}, ${formato}, ${String(partida)}, 'ensaio')
     RETURNING id`)[0];
   try {
+    // O motor roda DEPOIS da gravação: quem chama já escreveu o status novo.
+    // Sem imitar isso, o ensaio mostraria o status antigo e mentiria sobre o
+    // estado final.
+    if (evento.tipo === 'status' && evento.para) {
+      await sql`UPDATE vybe_conteudos SET status_chave=${String(evento.para)} WHERE id=${criado.id}`;
+    }
     const { aplicadas } = await aplicar(sql, criado.id, evento);
     const depois = (await sql`SELECT status_chave, grupo_id FROM vybe_conteudos WHERE id=${criado.id}`)[0];
     const responsaveis = await sql`SELECT p.nome FROM vybe_conteudo_responsaveis r
