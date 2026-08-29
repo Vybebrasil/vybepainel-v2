@@ -382,6 +382,7 @@ export async function listarConteudos() {
         c.grupo_id,
         c.status_chave,
         c.status_em                             AS status_updated_at,
+        c.captacao,
         TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
         c.monday_atualizado_em                  AS updated_at,
@@ -421,6 +422,8 @@ export async function listarConteudos() {
       veiculacao_iso: l.veiculacao_iso,
       updated_at: l.updated_at,
     };
+    // A tela lê captação na mesa do DA e no gestor; sem ela a coluna some.
+    if (l.captacao) item.captacao = l.captacao;
     // Só viaja quando há mais de um: são 3 itens em 1.853.
     if ((l.clientes || []).length > 1) item.clientes = l.clientes;
     if ((l.responsavel_ids || []).length) item.responsavel_ids = l.responsavel_ids;

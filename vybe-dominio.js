@@ -31,6 +31,7 @@ async function buscarDominio() {
 // Devolve os itens ao formato que o processItemsAll espera.
 function dominioComoItensDoMonday(dados) {
   const status = new Map((dados.status || []).map((s) => [s.chave, s]));
+  const pessoas = new Map((dados.pessoas || []).map((p) => [String(p.id), p.nome]));
   const C = COLUNAS.producao;
 
   return (dados.itens || []).map((item) => {
@@ -55,11 +56,15 @@ function dominioComoItensDoMonday(dados) {
           updated_at: item.status_updated_at || '',
           value: null,
         },
+        { id: C.captacao, text: item.captacao || '', value: null },
         { id: C.prazo, text: item.prazo_iso || '', value: null },
         { id: C.veiculacao, text: item.veiculacao_iso || '', value: null },
         {
           id: C.responsavel,
-          text: '',
+          // O processItems monta o campo 'responsavel' a partir do TEXTO desta
+          // coluna, não do value. Mandar vazio apagaria o nome de quem responde
+          // pela peça na tela inteira.
+          text: ids.map((i) => pessoas.get(String(i))).filter(Boolean).join(', '),
           value: ids.length
             ? JSON.stringify({ personsAndTeams: ids.map((id) => ({ id: Number(id), kind: 'person' })) })
             : null,
