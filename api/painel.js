@@ -9,6 +9,7 @@
 //   /api/painel?area=notificacoes o que o sistema tem a dizer para quem entrou
 
 import { neon } from '@neondatabase/serverless';
+import { mondayQuery } from '../operational_mirror_store.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
@@ -194,13 +195,32 @@ async function areaPeca(req, res) {
         WHERE conteudo_id = ${c.id} AND tipo = 'status' ORDER BY em DESC LIMIT 50`,
   ]);
 
+  // O Monday assina as URLs dos arquivos com UMA HORA de validade. Guardar o
+  // link no banco é inútil: uma hora depois o anexo aparece quebrado. Os
+  // metadados são nossos; a URL é pedida na hora.
+  //
+  // É a última dependência real do Monday no dia a dia, e ela só sai quando os
+  // arquivos saírem de lá — não é problema de código, é migração de storage.
+  const frescas = new Map();
+  const ids = arquivos.map((a) => a.monday_asset_id).filter(Boolean);
+  if (ids.length) {
+    try {
+      const r = await mondayQuery(
+        `query($ids: [ID!]!) { assets(ids: $ids) { id url public_url url_thumbnail } }`,
+        { ids: ids.map(String) }
+      );
+      for (const a of r?.assets || []) frescas.set(String(a.id), a);
+    } catch (erro) {
+      console.error('URLs de anexo não renovadas; usando as guardadas:', erro.message);
+    }
+  }
+
   const assets = arquivos.map((a) => ({
     id: a.monday_asset_id, name: a.nome,
-    url: a.url_publica || a.url_monday,
-    // Não guardamos miniatura; o painel já cai para a imagem inteira quando ela
-    // falta, então a peça aparece do mesmo jeito.
-    url_thumbnail: null,
-    public_url: a.url_publica, file_extension: a.extensao,
+    url: frescas.get(String(a.monday_asset_id))?.url || a.url_monday,
+    url_thumbnail: frescas.get(String(a.monday_asset_id))?.url_thumbnail || null,
+    public_url: frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica,
+    file_extension: a.extensao,
     file_size: a.tamanho_bytes === null ? null : Number(a.tamanho_bytes),
     created_at: a.criado_em,
   }));
