@@ -20,6 +20,7 @@ import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
 import { pastaDoConteudo, enviarParaDrive } from './vybe_drive.js';
 
 export const BOARD_PRODUCAO = 7829537690;
+export const BOARD_DEMANDAS = 8385559107;
 
 // Papel e disciplina não existem no Monday: são regra de negócio de vocês, hoje
 // espalhada no vybe-config.js do cliente. Aqui vira semente do cadastro de pessoas.
@@ -148,6 +149,25 @@ export async function criarSchema() {
   // comentários, mudanças de status, quem fez o quê — some junto se a linha for
   // apagada, e quem remove por engano fica sem volta. No Monday o item vai para
   // a lixeira, que também guarda por 30 dias.
+  // ── os dois boards no mesmo lugar ────────────────────────────────────────
+  //
+  // O domínio nasceu só com Produção, e Demandas continuou sendo lido direto do
+  // Monday. Isso era um recorte herdado, não uma decisão: se a ideia é sair de
+  // lá, os dois precisam morar aqui.
+  //
+  // Status ganha board porque os dois têm rótulos próprios que se repetem —
+  // "Alteração" e "Feito" existem nos dois, com índices diferentes. Sem o board
+  // na chave, um sobrescreveria o outro.
+  await sql`ALTER TABLE vybe_status ADD COLUMN IF NOT EXISTS board_id BIGINT NOT NULL DEFAULT ${BOARD_PRODUCAO}`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS board_id BIGINT NOT NULL DEFAULT ${BOARD_PRODUCAO}`;
+  await sql`ALTER TABLE vybe_conteudos DROP CONSTRAINT IF EXISTS vybe_conteudos_status_chave_fkey`;
+  await sql`ALTER TABLE vybe_status DROP CONSTRAINT IF EXISTS vybe_status_pkey`;
+  await sql`ALTER TABLE vybe_status ADD CONSTRAINT vybe_status_pkey PRIMARY KEY (board_id, chave)`;
+  await sql`ALTER TABLE vybe_status DROP CONSTRAINT IF EXISTS vybe_status_monday_index_key`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS vybe_status_board_indice
+    ON vybe_status (board_id, monday_index)`;
+  await sql`CREATE INDEX IF NOT EXISTS vybe_conteudos_board ON vybe_conteudos (board_id)`;
+
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS removido_em TIMESTAMPTZ`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS removido_por BIGINT REFERENCES vybe_pessoas(id)`;
   // As outras colunas do board que ninguém tinha trazido. O espelho carregava
@@ -298,10 +318,11 @@ export async function popularDoEspelho() {
   // ── status ────────────────────────────────────────────────────────────────
   const finais = new Set(['Finalizado', 'Feito', 'Concluído', 'Concluido']);
   for (const opcao of espelho.status_options || []) {
-    await sql`INSERT INTO vybe_status (chave, rotulo, cor, borda, ordem, monday_index, final)
-      VALUES (${chaveStatus(opcao.label)}, ${opcao.label}, ${opcao.color}, ${opcao.border || opcao.color},
+    await sql`INSERT INTO vybe_status (board_id, chave, rotulo, cor, borda, ordem, monday_index, final)
+      VALUES (${BOARD_PRODUCAO}, ${chaveStatus(opcao.label)}, ${opcao.label}, ${opcao.color},
+              ${opcao.border || opcao.color},
               ${opcao.index}, ${opcao.index}, ${finais.has(opcao.label)})
-      ON CONFLICT (chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
+      ON CONFLICT (board_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
         borda=EXCLUDED.borda, ordem=EXCLUDED.ordem, monday_index=EXCLUDED.monday_index,
         final=EXCLUDED.final`;
   }
@@ -444,7 +465,7 @@ export async function resumo() {
 // Leitura para o painel: mesma regra de recorte que o processItems aplica hoje no
 // navegador — precisa de pelo menos um cliente ativo e de pelo menos uma das duas
 // datas. A diferença é que agora a regra mora no banco, não em JavaScript.
-export async function listarConteudos() {
+export async function listarConteudos(boardId = BOARD_PRODUCAO) {
   const sql = database();
 
   // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
@@ -452,7 +473,7 @@ export async function listarConteudos() {
   // desperdício que a resposta crua do Monday impunha e o domínio deixa resolver.
   const [status, captacao, opcoes, pessoas, linhas] = await Promise.all([
     sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, final
-          FROM vybe_status ORDER BY ordem`,
+          FROM vybe_status WHERE board_id = ${boardId} ORDER BY ordem`,
     sql`SELECT chave, rotulo, cor, borda, monday_index AS indice
           FROM vybe_captacao ORDER BY monday_index`,
     sql`SELECT coluna_id, chave, rotulo, cor, borda, indice
@@ -508,7 +529,8 @@ export async function listarConteudos() {
           WHERE u.conteudo_id = c.id AND u.corpo LIKE '%Contexto de status%'
           ORDER BY u.criado_em DESC NULLS LAST LIMIT 1) AS contexto_status
       FROM vybe_conteudos c
-      WHERE c.removido_em IS NULL
+      WHERE c.board_id = ${boardId}
+        AND c.removido_em IS NULL
         AND (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
         AND EXISTS (
           SELECT 1 FROM vybe_conteudo_clientes vcc
@@ -545,7 +567,7 @@ export async function listarConteudos() {
     return item;
   });
 
-  return { board_id: BOARD_PRODUCAO, status, captacao, opcoes, pessoas, itens };
+  return { board_id: boardId, status, captacao, opcoes, pessoas, itens };
 }
 
 // Sincroniza histórico e anexos a partir do Monday, em páginas.
@@ -1276,4 +1298,186 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
      WHERE a.url_drive IS NULL AND a.ausente_em IS NULL
        AND NOT s.final AND a.monday_asset_id IS NOT NULL`)[0].n;
   return { enviados, bytes, falhas, restam };
+}
+
+// ── o board de Demandas ──────────────────────────────────────────────────────
+//
+// Nasceu de fora do domínio e continuou sendo lido direto do Monday. Era recorte
+// herdado da primeira migração, não decisão: se a ideia é sair de lá, os dois
+// boards moram aqui.
+//
+// Vem direto do Monday, paginado, e não do espelho — o espelho só carrega
+// Produção, com seis colunas.
+
+const COLUNAS_DEMANDAS = {
+  cliente: 'lista_suspensa_mkmet5gs',
+  tipo: 'dropdown_mkv8d52z',
+  prioridade: 'color_mkwtgakv',
+  prazo: 'data',
+  conclusao: 'data_mkky6jx',
+  status: 'status',
+  pessoas: 'person',
+  arquivos: 'file_mkwt1t89',
+};
+
+export async function popularDemandas() {
+  await criarSchema();
+  const sql = database();
+
+  // ── catálogos do board ────────────────────────────────────────────────────
+  const meta = await mondayQuery(`{ boards(ids:[${BOARD_DEMANDAS}]) {
+    groups { id title }
+    columns(ids:["status","color_mkwtgakv","dropdown_mkv8d52z"]) { id settings_str } } }`);
+  const grupos = new Map((meta?.boards?.[0]?.groups || []).map((g) => [g.id, g.title]));
+
+  for (const col of meta?.boards?.[0]?.columns || []) {
+    const cfg = JSON.parse(col.settings_str || '{}');
+    const cores = cfg.labels_colors || {};
+    const desativadas = new Set((cfg.deactivated_labels || []).map(Number));
+    const opcoes = Array.isArray(cfg.labels)
+      ? cfg.labels.filter((l) => l?.name).map((l) => ({ indice: Number(l.id), rotulo: l.name }))
+      : Object.entries(cfg.labels || {}).filter(([, r]) => r).map(([i, r]) => ({ indice: Number(i), rotulo: r }));
+
+    for (const o of opcoes) {
+      if (col.id === 'status') {
+        // Status do board de Demandas vai para vybe_status, com o board na chave:
+        // "Alteração" e "Feito" existem nos dois com índices diferentes.
+        await sql`INSERT INTO vybe_status (board_id, chave, rotulo, cor, borda, ordem, monday_index, final)
+          VALUES (${BOARD_DEMANDAS}, ${chaveStatus(o.rotulo)}, ${o.rotulo},
+                  ${cores[o.indice]?.color || null},
+                  ${cores[o.indice]?.border || cores[o.indice]?.color || null},
+                  ${o.indice}, ${o.indice}, ${/^(feito|conclu)/i.test(o.rotulo)})
+          ON CONFLICT (board_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
+            borda=EXCLUDED.borda, ordem=EXCLUDED.ordem, monday_index=EXCLUDED.monday_index,
+            final=EXCLUDED.final`;
+      } else {
+        await sql`INSERT INTO vybe_opcoes (coluna_id, chave, rotulo, cor, borda, indice, ativa)
+          VALUES (${col.id}, ${chaveStatus(o.rotulo)}, ${o.rotulo},
+                  ${cores[o.indice]?.color || null},
+                  ${cores[o.indice]?.border || cores[o.indice]?.color || null}, ${o.indice},
+                  ${!desativadas.has(Number(o.indice))})
+          ON CONFLICT (coluna_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
+            borda=EXCLUDED.borda, indice=EXCLUDED.indice, ativa=EXCLUDED.ativa`;
+      }
+    }
+  }
+
+  // ── itens ─────────────────────────────────────────────────────────────────
+  const ids = Object.values(COLUNAS_DEMANDAS).map((c) => `"${c}"`).join(', ');
+  const campos = `id name updated_at group { id }
+    column_values(ids: [${ids}]) { id text value }`;
+
+  const itens = [];
+  let cursor = null;
+  do {
+    const dados = cursor
+      ? await mondayQuery(`query($cursor: String!) { next_items_page(limit: 200, cursor: $cursor)
+          { cursor items { ${campos} } } }`, { cursor })
+      : await mondayQuery(`{ boards(ids:[${BOARD_DEMANDAS}]) { items_page(limit: 200)
+          { cursor items { ${campos} } } } }`);
+    const pagina = cursor ? dados?.next_items_page : dados?.boards?.[0]?.items_page;
+    itens.push(...(pagina?.items || []));
+    cursor = pagina?.cursor || null;
+  } while (cursor);
+
+  const statusPorIndice = new Map(
+    (await sql`SELECT chave, monday_index FROM vybe_status WHERE board_id=${BOARD_DEMANDAS}`)
+      .map((r) => [Number(r.monday_index), r.chave])
+  );
+  const opcoesPorRotulo = new Map(
+    (await sql`SELECT coluna_id, chave, rotulo FROM vybe_opcoes
+       WHERE coluna_id = ANY(${[COLUNAS_DEMANDAS.tipo, COLUNAS_DEMANDAS.prioridade]})`)
+      .map((r) => [`${r.coluna_id}|${String(r.rotulo).toLowerCase()}`, r.chave])
+  );
+
+  const coluna = (item, id) => (item.column_values || []).find((c) => c.id === id) || {};
+  const linhas = itens.map((it) => {
+    const cli = (coluna(it, COLUNAS_DEMANDAS.cliente).text || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const tipos = (coluna(it, COLUNAS_DEMANDAS.tipo).text || '').split(',').map((x) => x.trim()).filter(Boolean);
+    let indice = null;
+    try { indice = JSON.parse(coluna(it, COLUNAS_DEMANDAS.status).value || 'null')?.index ?? null; } catch { /* sem status */ }
+    const prio = (coluna(it, COLUNAS_DEMANDAS.prioridade).text || '').trim();
+    return {
+      monday_item_id: String(it.id),
+      titulo: it.name || '',
+      clientes_texto: cli.join(', ') || null,
+      status_chave: indice === null ? null : statusPorIndice.get(Number(indice)) || null,
+      grupo_id: it.group?.id || null,
+      etapa: grupos.get(it.group?.id) || null,
+      prazo: dataOuNulo(coluna(it, COLUNAS_DEMANDAS.prazo).text),
+      veiculacao: dataOuNulo(coluna(it, COLUNAS_DEMANDAS.conclusao).text),
+      formato: tipos.join(', ') || null,
+      formato_chaves: tipos.map((t) => opcoesPorRotulo.get(`${COLUNAS_DEMANDAS.tipo}|${t.toLowerCase()}`)).filter(Boolean),
+      prioridade: prio || null,
+      prioridade_chave: prio ? opcoesPorRotulo.get(`${COLUNAS_DEMANDAS.prioridade}|${prio.toLowerCase()}`) || null : null,
+      monday_atualizado_em: it.updated_at || null,
+      pessoas: pessoasDoItem(it),
+    };
+  });
+
+  await sql`INSERT INTO vybe_conteudos
+      (board_id, monday_item_id, titulo, clientes_texto, status_chave, grupo_id, etapa,
+       prazo, veiculacao, formato, formato_chaves, prioridade, prioridade_chave, monday_atualizado_em)
+    SELECT ${BOARD_DEMANDAS}, v.monday_item_id, v.titulo, v.clientes_texto, v.status_chave,
+           v.grupo_id, v.etapa, v.prazo, v.veiculacao, v.formato, v.formato_chaves,
+           v.prioridade, v.prioridade_chave, v.monday_atualizado_em
+    FROM jsonb_to_recordset(${JSON.stringify(linhas)}::jsonb)
+      AS v(monday_item_id text, titulo text, clientes_texto text, status_chave text,
+           grupo_id text, etapa text, prazo date, veiculacao date, formato text,
+           formato_chaves text[], prioridade text, prioridade_chave text,
+           monday_atualizado_em timestamptz)
+    ON CONFLICT (monday_item_id) DO UPDATE SET
+      board_id=EXCLUDED.board_id, titulo=EXCLUDED.titulo, clientes_texto=EXCLUDED.clientes_texto,
+      status_chave=EXCLUDED.status_chave, grupo_id=EXCLUDED.grupo_id, etapa=EXCLUDED.etapa,
+      prazo=EXCLUDED.prazo, veiculacao=EXCLUDED.veiculacao, formato=EXCLUDED.formato,
+      formato_chaves=EXCLUDED.formato_chaves, prioridade=EXCLUDED.prioridade,
+      prioridade_chave=EXCLUDED.prioridade_chave,
+      monday_atualizado_em=EXCLUDED.monday_atualizado_em, atualizado_em=NOW()`;
+
+  // ── clientes e responsáveis ───────────────────────────────────────────────
+  const nomes = [...new Set(linhas.flatMap((l) => (l.clientes_texto || '').split(',').map((x) => x.trim()).filter(Boolean)))];
+  if (nomes.length) {
+    await sql`INSERT INTO vybe_clientes (nome) SELECT UNNEST(${nomes}::text[])
+      ON CONFLICT (nome) DO NOTHING`;
+  }
+
+  const idPorMonday = new Map(
+    (await sql`SELECT id, monday_item_id FROM vybe_conteudos WHERE board_id=${BOARD_DEMANDAS}`)
+      .map((r) => [String(r.monday_item_id), r.id])
+  );
+  const vinculosCliente = [], vinculosResp = [];
+  const clientePorNome = new Map(
+    (await sql`SELECT id, nome FROM vybe_clientes`).map((c) => [String(c.nome).toLowerCase(), c.id])
+  );
+  for (const l of linhas) {
+    const cid = idPorMonday.get(l.monday_item_id);
+    if (!cid) continue;
+    for (const nome of (l.clientes_texto || '').split(',').map((x) => x.trim()).filter(Boolean)) {
+      const cl = clientePorNome.get(nome.toLowerCase());
+      if (cl) vinculosCliente.push({ conteudo_id: cid, cliente_id: cl });
+    }
+    l.pessoas.forEach((uid, i) => vinculosResp.push({ conteudo_id: cid, monday_user_id: uid, ordem: i }));
+  }
+
+  const alvos = [...idPorMonday.values()];
+  if (alvos.length) {
+    await sql`DELETE FROM vybe_conteudo_clientes WHERE conteudo_id = ANY(${alvos})`;
+    await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id = ANY(${alvos})`;
+  }
+  if (vinculosCliente.length) {
+    await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id)
+      SELECT v.conteudo_id, v.cliente_id FROM jsonb_to_recordset(${JSON.stringify(vinculosCliente)}::jsonb)
+        AS v(conteudo_id bigint, cliente_id bigint) ON CONFLICT DO NOTHING`;
+  }
+  if (vinculosResp.length) {
+    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
+      SELECT v.conteudo_id, p.id, v.ordem
+        FROM jsonb_to_recordset(${JSON.stringify(vinculosResp)}::jsonb)
+          AS v(conteudo_id bigint, monday_user_id text, ordem int)
+        JOIN vybe_pessoas p ON p.monday_user_id = v.monday_user_id
+      ON CONFLICT DO NOTHING`;
+  }
+
+  return { itens: itens.length, gravados: linhas.length,
+           vinculos_cliente: vinculosCliente.length, vinculos_responsavel: vinculosResp.length };
 }

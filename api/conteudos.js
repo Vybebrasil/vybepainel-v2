@@ -13,7 +13,7 @@
 // Exige sessão do painel ou a chave de serviço. Era leitura pública, como o
 // /api/operational-mirror ainda era — a operação inteira saía por uma URL.
 
-import { listarConteudos } from '../vybe_dominio_store.js';
+import { listarConteudos, BOARD_PRODUCAO, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
 import { bloqueou } from '../vybe_acesso.js';
 
 export default async function handler(req, res) {
@@ -28,7 +28,9 @@ export default async function handler(req, res) {
 
   try {
     const inicio = Date.now();
-    const { board_id, status, captacao, opcoes, pessoas, itens } = await listarConteudos();
+    // Sem parâmetro, Produção — é o que todo mundo já chama.
+    const alvo = String(req.query?.board || '') === 'demandas' ? BOARD_DEMANDAS : BOARD_PRODUCAO;
+    const { board_id, status, captacao, opcoes, pessoas, itens } = await listarConteudos(alvo);
     return res.status(200).json({
       ok: true,
       board_id,
