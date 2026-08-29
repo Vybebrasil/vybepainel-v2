@@ -68,8 +68,8 @@ export async function criarSchemaAutomacoes() {
 }
 
 // ── as regras que estavam no Monday ───────────────────────────────────────────
-const AUDIOVISUAL = ['Reels', 'Vídeo', 'Motion'];
-const DESIGN = ['Card', 'Carrossel', 'Feed', 'Story', 'Fotografia', 'Feed/Story'];
+const AUDIOVISUAL = ['reels', 'video', 'motion'];
+const DESIGN = ['card', 'carrossel', 'feed', 'story', 'fotografia', 'feed_story'];
 
 const SEMENTE = [
   { nome: 'Aprovado para agendar vai para publicações com a Tainara', ordem: 10,
@@ -217,20 +217,32 @@ export async function remover(id) {
 }
 
 // ── execução ──────────────────────────────────────────────────────────────────
+// Mesma normalização que gera a chave no catálogo. Comparar os dois lados por
+// aqui deixa a regra funcionar tanto com 'reels' quanto com 'Reels', sem voltar
+// a depender do texto exato do rótulo.
+function normaliza(v) {
+  return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
 function atende(condicao, item) {
   if (!condicao) return true;
-  const formatos = () => String(item.formato || '').split(',').map((s) => s.trim()).filter(Boolean);
+  // Formato é comparado por chave do catálogo, não pelo rótulo: renomear
+  // "Vídeo" no Monday não pode parar o roteamento de audiovisual.
+  const formatos = () => (item.formato_chaves || []).map(normaliza);
 
   // Formato é multi-seleção: "Carrossel, Fotografia" atende regra de qualquer um.
   if (condicao.formato_em) {
-    if (!formatos().some((p) => condicao.formato_em.includes(p))) return false;
+    const alvo = condicao.formato_em.map(normaliza);
+    if (!formatos().some((p) => alvo.includes(p))) return false;
   }
   // "apenas" é mais estrito: TODOS os formatos do item precisam estar na lista.
   // O Monday distingue as duas coisas e a diferença muda o resultado num item
   // com dois formatos.
   if (condicao.formato_apenas) {
     const fs = formatos();
-    if (!fs.length || !fs.every((p) => condicao.formato_apenas.includes(p))) return false;
+    const alvo = condicao.formato_apenas.map(normaliza);
+    if (!fs.length || !fs.every((p) => alvo.includes(p))) return false;
   }
   // De qual grupo o item está saindo. Sem isto, "finalizado" tem um destino só,
   // e no Monday ele tem três, dependendo de onde a peça está.
@@ -254,7 +266,7 @@ function casaGatilho(gatilho, evento) {
 // Aplica as regras que casam com o evento. Devolve o que mudou, para o chamador
 // replicar no Monday enquanto ele ainda existir.
 export async function aplicar(sql, conteudoId, evento) {
-  const item = (await sql`SELECT c.id, c.titulo, c.formato, c.status_chave, c.grupo_id,
+  const item = (await sql`SELECT c.id, c.titulo, c.formato_chaves, c.status_chave, c.grupo_id,
       (SELECT cl.nome FROM vybe_conteudo_clientes vcc JOIN vybe_clientes cl ON cl.id=vcc.cliente_id
         WHERE vcc.conteudo_id=c.id LIMIT 1) AS cliente
     FROM vybe_conteudos c WHERE c.id=${conteudoId}`)[0];
@@ -353,7 +365,7 @@ export async function aplicar(sql, conteudoId, evento) {
 // É o que o Monday nunca ofereceu: lá só dava para descobrir o que uma regra
 // faz mudando um item de verdade e vendo o que acontecia depois.
 export async function simular(sql, conteudoId, evento) {
-  const item = (await sql`SELECT id, titulo, formato, status_chave, grupo_id
+  const item = (await sql`SELECT id, titulo, formato_chaves, status_chave, grupo_id
     FROM vybe_conteudos WHERE id=${conteudoId}`)[0];
   if (!item) throw new Error(`Conteúdo ${conteudoId} não existe.`);
 
@@ -373,12 +385,14 @@ export async function simular(sql, conteudoId, evento) {
 // card real do time — e um erro de SQL só apareceria no trabalho de alguém.
 // As chaves estrangeiras apagam em cascata, então não sobra rastro.
 export async function ensaio(sql, evento, { formato = 'Reels', grupo = 'ensaio' } = {}) {
+  // Aceita rótulo ou chave: quem ensaia digita 'Reels', o banco guarda 'reels'.
+  const chaves = String(formato).split(',').map((f) => normaliza(f)).filter(Boolean);
   const marca = `[ensaio] ${new Date().toISOString()}`;
   // Só evento de status carrega chave de status em 'de' — num evento de captação
   // o 'de' é 'agendar_captacao', que não existe em vybe_status.
   const partida = evento.tipo === 'status' ? (evento.de || 'em_andamento') : 'em_andamento';
-  const criado = (await sql`INSERT INTO vybe_conteudos (titulo, formato, status_chave, grupo_id)
-    VALUES (${marca}, ${formato}, ${String(partida)}, ${String(grupo)})
+  const criado = (await sql`INSERT INTO vybe_conteudos (titulo, formato_chaves, status_chave, grupo_id)
+    VALUES (${marca}, ${chaves}, ${String(partida)}, ${String(grupo)})
     RETURNING id`)[0];
   try {
     // O motor roda DEPOIS da gravação: quem chama já escreveu o status novo.
@@ -431,10 +445,10 @@ export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}
 
     // dias:-1 em prazo é "um dia antes", ou seja prazo = hoje + 1.
     const alvos = campo === 'prazo'
-      ? await sql`SELECT id, titulo, formato, status_chave FROM vybe_conteudos
+      ? await sql`SELECT id, titulo, formato_chaves, status_chave FROM vybe_conteudos
           WHERE prazo = (${dia}::date - ${dias}::int)
             AND (${excluir}::text[] = '{}' OR NOT (status_chave = ANY(${excluir})))`
-      : await sql`SELECT id, titulo, formato, status_chave FROM vybe_conteudos
+      : await sql`SELECT id, titulo, formato_chaves, status_chave FROM vybe_conteudos
           WHERE veiculacao = (${dia}::date - ${dias}::int)
             AND (${excluir}::text[] = '{}' OR NOT (status_chave = ANY(${excluir})))`;
 

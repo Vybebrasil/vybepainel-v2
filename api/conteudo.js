@@ -284,6 +284,21 @@ async function criarConteudo(sql, quem, dados) {
             ${prazo || null}, ${veiculacao || null}, ${briefing || null}, NOW())
     RETURNING id`)[0];
   await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id) VALUES (${novo.id}, ${cli.id})`;
+  // Formato e tipo passam a viver como chave do catálogo; o rótulo sai dele.
+  if (formato) {
+    await sql`UPDATE vybe_conteudos c SET formato_chaves = (
+        SELECT ARRAY_AGG(o.chave ORDER BY t.ord)
+          FROM UNNEST(STRING_TO_ARRAY(${String(formato)}, ',')) WITH ORDINALITY AS t(parte, ord)
+          JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa0__1' AND LOWER(o.rotulo)=LOWER(TRIM(t.parte)))
+      WHERE c.id = ${novo.id}`;
+  }
+  if (tipo_conteudo) {
+    await sql`UPDATE vybe_conteudos c SET tipo_conteudo_chaves = (
+        SELECT ARRAY_AGG(o.chave) FROM vybe_opcoes o
+         WHERE o.coluna_id='lista_suspensa__1'
+           AND (o.indice::text = ${String(tipo_conteudo)} OR LOWER(o.rotulo)=LOWER(${String(tipo_conteudo)})))
+      WHERE c.id = ${novo.id}`;
+  }
   if (captacao) await sql`UPDATE vybe_conteudos SET captacao=${String(captacao)} WHERE id=${novo.id}`;
   // Conteúdo que nasce sem dono some da fila de todo mundo.
   if (responsaveis.length) {

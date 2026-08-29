@@ -158,6 +158,36 @@ export async function criarSchema() {
     monday_index INT UNIQUE
   )`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS captacao_chave TEXT`;
+  // Um catálogo para as demais colunas de escolha. Quatro tabelas separadas
+  // diriam a mesma coisa quatro vezes; o que muda entre elas é só qual coluna.
+  //
+  // Sem isto, as regras comparam texto: renomear "Vídeo" para "Video" no Monday
+  // faz o roteamento de audiovisual parar de disparar, em silêncio. Com chave, o
+  // rótulo muda e a regra continua valendo.
+  await sql`CREATE TABLE IF NOT EXISTS vybe_opcoes (
+    coluna_id TEXT NOT NULL,
+    chave     TEXT NOT NULL,
+    rotulo    TEXT NOT NULL,
+    cor       TEXT,
+    borda     TEXT,
+    indice    INT,
+    PRIMARY KEY (coluna_id, chave)
+  )`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS formato_chaves TEXT[]`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS tipo_conteudo_chaves TEXT[]`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS prioridade_chave TEXT`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS off_audio_chave TEXT`;
+
+  // Editor/Designer é coluna de pessoas, como Responsável — e merecia a mesma
+  // tabela. Guardado como lista de ids soltos, quem sai da equipe deixa um id
+  // órfão apontando para ninguém.
+  await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_editores (
+    conteudo_id BIGINT NOT NULL REFERENCES vybe_conteudos(id) ON DELETE CASCADE,
+    pessoa_id   BIGINT NOT NULL REFERENCES vybe_pessoas(id),
+    ordem       INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (conteudo_id, pessoa_id)
+  )`;
+
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS tipo_conteudo TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS prioridade TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS off_audio TEXT`;
@@ -397,27 +427,39 @@ export async function listarConteudos() {
   // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
   // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
   // desperdício que a resposta crua do Monday impunha e o domínio deixa resolver.
-  const [status, captacao, pessoas, linhas] = await Promise.all([
+  const [status, captacao, opcoes, pessoas, linhas] = await Promise.all([
     sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, final
           FROM vybe_status ORDER BY ordem`,
     sql`SELECT chave, rotulo, cor, borda, monday_index AS indice
           FROM vybe_captacao ORDER BY monday_index`,
+    sql`SELECT coluna_id, chave, rotulo, cor, borda, indice
+          FROM vybe_opcoes ORDER BY coluna_id, indice`,
     sql`SELECT monday_user_id AS id, nome, papel, disciplina
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     sql`
       SELECT
         c.monday_item_id                        AS id,
         c.titulo                                AS nome,
-        c.formato,
+        -- O rótulo sai do catálogo, não de uma cópia em texto: assim renomear
+        -- no Monday muda o que aparece sem mexer em regra nenhuma.
+        (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY k.ord)
+           FROM UNNEST(c.formato_chaves) WITH ORDINALITY AS k(chave, ord)
+           JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa0__1' AND o.chave=k.chave) AS formato,
+        c.formato_chaves,
+        (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY k.ord)
+           FROM UNNEST(c.tipo_conteudo_chaves) WITH ORDINALITY AS k(chave, ord)
+           JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa__1' AND o.chave=k.chave) AS tipo_conteudo,
+        c.tipo_conteudo_chaves,
+        c.prioridade_chave,
+        c.off_audio_chave,
+        COALESCE((SELECT ARRAY_AGG(p.monday_user_id ORDER BY e.ordem, p.nome)
+             FROM vybe_conteudo_editores e JOIN vybe_pessoas p ON p.id = e.pessoa_id
+            WHERE e.conteudo_id = c.id), '{}') AS editores,
         c.etapa                                 AS grupo,
         c.grupo_id,
         c.status_chave,
         c.status_em                             AS status_updated_at,
         c.captacao_chave,
-        c.tipo_conteudo,
-        c.prioridade,
-        c.off_audio,
-        c.editores,
         TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
         c.monday_atualizado_em                  AS updated_at,
@@ -467,9 +509,10 @@ export async function listarConteudos() {
     };
     // A tela lê captação na mesa do DA e no gestor; sem ela a coluna some.
     if (l.captacao_chave) item.captacao_chave = l.captacao_chave;
+    if ((l.formato_chaves || []).length) item.formato_chaves = l.formato_chaves;
     if (l.tipo_conteudo) item.tipo_conteudo = l.tipo_conteudo;
-    if (l.prioridade) item.prioridade = l.prioridade;
-    if (l.off_audio) item.off_audio = l.off_audio;
+    if (l.prioridade_chave) item.prioridade_chave = l.prioridade_chave;
+    if (l.off_audio_chave) item.off_audio_chave = l.off_audio_chave;
     if ((l.editores || []).length) item.editores = l.editores;
     if (l.contexto_status) item.contexto_status = l.contexto_status;
     // Só viaja quando há mais de um: são 3 itens em 1.853.
@@ -478,7 +521,7 @@ export async function listarConteudos() {
     return item;
   });
 
-  return { board_id: BOARD_PRODUCAO, status, captacao, pessoas, itens };
+  return { board_id: BOARD_PRODUCAO, status, captacao, opcoes, pessoas, itens };
 }
 
 // Sincroniza histórico e anexos a partir do Monday, em páginas.
@@ -766,27 +809,41 @@ export async function sincronizarDoEvento(sql, evento) {
   }
 
   // As colunas extras: mesma tradução, um campo cada.
+  // Chaves pelo catálogo, nunca o texto que veio no evento.
+  const chavesDe = async (colunaId, rotulos) => {
+    if (!rotulos.length) return [];
+    const r = await sql`SELECT chave, rotulo FROM vybe_opcoes WHERE coluna_id=${colunaId}`;
+    const mapa = new Map(r.map((o) => [String(o.rotulo).toLowerCase(), o.chave]));
+    return rotulos.map((n) => mapa.get(String(n).toLowerCase())).filter(Boolean);
+  };
+
   if (col === 'lista_suspensa__1') {
-    const nomes = (evento.value?.chosenValues || []).map((v) => v.name).filter(Boolean);
-    await sql`UPDATE vybe_conteudos SET tipo_conteudo=${nomes.join(', ') || null}, atualizado_em=NOW() WHERE id=${id}`;
+    const ks = await chavesDe(col, (evento.value?.chosenValues || []).map((v) => v.name).filter(Boolean));
+    await sql`UPDATE vybe_conteudos SET tipo_conteudo_chaves=${ks}, atualizado_em=NOW() WHERE id=${id}`;
     return { campo: 'tipo_conteudo' };
   }
   if (col === 'color_mm164yv8' || col === 'color_mkynd7j8') {
-    const campo = col === 'color_mm164yv8' ? 'prioridade' : 'off_audio';
-    const texto = evento.value?.label?.text || null;
-    if (campo === 'prioridade') await sql`UPDATE vybe_conteudos SET prioridade=${texto}, atualizado_em=NOW() WHERE id=${id}`;
-    else await sql`UPDATE vybe_conteudos SET off_audio=${texto}, atualizado_em=NOW() WHERE id=${id}`;
-    return { campo };
+    const [k] = await chavesDe(col, [evento.value?.label?.text].filter(Boolean));
+    if (col === 'color_mm164yv8') await sql`UPDATE vybe_conteudos SET prioridade_chave=${k || null}, atualizado_em=NOW() WHERE id=${id}`;
+    else await sql`UPDATE vybe_conteudos SET off_audio_chave=${k || null}, atualizado_em=NOW() WHERE id=${id}`;
+    return { campo: col === 'color_mm164yv8' ? 'prioridade' : 'off_audio' };
   }
   if (col === 'multiple_person_mm18b2p0') {
     const eds = (evento.value?.personsAndTeams || []).map((p) => String(p.id));
-    await sql`UPDATE vybe_conteudos SET editores=${eds}, atualizado_em=NOW() WHERE id=${id}`;
+    await sql`DELETE FROM vybe_conteudo_editores WHERE conteudo_id=${id}`;
+    if (eds.length) {
+      await sql`INSERT INTO vybe_conteudo_editores (conteudo_id, pessoa_id, ordem)
+        SELECT ${id}, p.id, o.ord - 1
+          FROM UNNEST(${eds}::text[]) WITH ORDINALITY AS o(uid, ord)
+          JOIN vybe_pessoas p ON p.monday_user_id = o.uid
+        ON CONFLICT DO NOTHING`;
+    }
     return { campo: 'editores' };
   }
 
   if (col === 'lista_suspensa0__1') {
-    const nomes = (evento.value?.chosenValues || []).map((v) => v.name).filter(Boolean);
-    await sql`UPDATE vybe_conteudos SET formato=${nomes.join(', ') || null}, atualizado_em=NOW() WHERE id=${id}`;
+    const ks = await chavesDe(col, (evento.value?.chosenValues || []).map((v) => v.name).filter(Boolean));
+    await sql`UPDATE vybe_conteudos SET formato_chaves=${ks}, atualizado_em=NOW() WHERE id=${id}`;
     return { campo: 'formato' };
   }
 
@@ -918,13 +975,45 @@ export async function importarColunasExtra({ cursor = null, paginas = 4, porPagi
             captacao_chave = (SELECT k.chave FROM vybe_captacao k
                                WHERE LOWER(k.rotulo) = LOWER(v.captacao)),
             tipo_conteudo = v.tipo_conteudo,
-            prioridade = v.prioridade, off_audio = v.off_audio, editores = v.editores
+            prioridade = v.prioridade, off_audio = v.off_audio, editores = v.editores,
+            prioridade_chave = (SELECT o.chave FROM vybe_opcoes o
+                                 WHERE o.coluna_id='color_mm164yv8' AND LOWER(o.rotulo)=LOWER(v.prioridade)),
+            off_audio_chave  = (SELECT o.chave FROM vybe_opcoes o
+                                 WHERE o.coluna_id='color_mkynd7j8' AND LOWER(o.rotulo)=LOWER(v.off_audio)),
+            tipo_conteudo_chaves = (SELECT ARRAY_AGG(o.chave ORDER BY t.ord)
+                FROM UNNEST(STRING_TO_ARRAY(v.tipo_conteudo, ',')) WITH ORDINALITY AS t(parte, ord)
+                JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa__1'
+                                  AND LOWER(o.rotulo)=LOWER(TRIM(t.parte)))
       FROM jsonb_to_recordset(${JSON.stringify(linhas)}::jsonb)
         AS v(monday_item_id text, captacao text, tipo_conteudo text,
              prioridade text, off_audio text, editores text[])
       WHERE c.monday_item_id = v.monday_item_id
-      RETURNING c.id`;
+      RETURNING c.id, c.monday_item_id`;
     gravados += r.length;
+
+    // Editor/Designer vira vínculo com pessoa, como Responsável.
+    const comEditores = linhas.filter((l) => l.editores.length);
+    if (comEditores.length) {
+      const alvos = r.filter((x) => comEditores.some((l) => l.monday_item_id === x.monday_item_id));
+      if (alvos.length) {
+        await sql`DELETE FROM vybe_conteudo_editores WHERE conteudo_id = ANY(${alvos.map((a) => a.id)})`;
+      }
+      const pares = [];
+      const idPorMonday = new Map(r.map((x) => [String(x.monday_item_id), x.id]));
+      for (const l of comEditores) {
+        const cid = idPorMonday.get(l.monday_item_id);
+        if (!cid) continue;
+        l.editores.forEach((uid, i) => pares.push({ conteudo_id: cid, monday_user_id: uid, ordem: i }));
+      }
+      if (pares.length) {
+        await sql`INSERT INTO vybe_conteudo_editores (conteudo_id, pessoa_id, ordem)
+          SELECT v.conteudo_id, p.id, v.ordem
+          FROM jsonb_to_recordset(${JSON.stringify(pares)}::jsonb)
+            AS v(conteudo_id bigint, monday_user_id text, ordem int)
+          JOIN vybe_pessoas p ON p.monday_user_id = v.monday_user_id
+          ON CONFLICT DO NOTHING`;
+      }
+    }
 
     proximo = pagina?.cursor || null;
     if (!proximo) break;
@@ -964,4 +1053,80 @@ export async function importarCatalogoCaptacao() {
       AND (c.captacao_chave IS DISTINCT FROM k.chave)
     RETURNING c.id`;
   return { catalogo: gravados, conteudos_convertidos: convertidos.length };
+}
+
+// ── catálogo das demais colunas de escolha ───────────────────────────────────
+export const COLUNAS_OPCOES = {
+  lista_suspensa0__1: { campo: 'formato', chaves: 'formato_chaves', multi: true },
+  lista_suspensa__1:  { campo: 'tipo_conteudo', chaves: 'tipo_conteudo_chaves', multi: true },
+  color_mm164yv8:     { campo: 'prioridade', chaves: 'prioridade_chave', multi: false },
+  color_mkynd7j8:     { campo: 'off_audio', chaves: 'off_audio_chave', multi: false },
+};
+
+export async function importarCatalogoOpcoes() {
+  await criarSchema();
+  const sql = database();
+  const ids = Object.keys(COLUNAS_OPCOES).map((c) => `"${c}"`).join(', ');
+  const dados = await mondayQuery(`{ boards(ids:[${BOARD_PRODUCAO}]) {
+    columns(ids: [${ids}]) { id title settings_str } } }`);
+
+  let gravadas = 0;
+  for (const col of dados?.boards?.[0]?.columns || []) {
+    const cfg = JSON.parse(col.settings_str || '{}');
+    const cores = cfg.labels_colors || {};
+    // Coluna de status devolve {índice: rótulo}; dropdown devolve [{id, name}].
+    const opcoes = Array.isArray(cfg.labels)
+      ? cfg.labels.filter((l) => l?.name).map((l) => ({ indice: Number(l.id), rotulo: l.name }))
+      : Object.entries(cfg.labels || {}).filter(([, r]) => r)
+          .map(([i, r]) => ({ indice: Number(i), rotulo: r }));
+
+    for (const o of opcoes) {
+      await sql`INSERT INTO vybe_opcoes (coluna_id, chave, rotulo, cor, borda, indice)
+        VALUES (${col.id}, ${chaveStatus(o.rotulo)}, ${o.rotulo},
+                ${cores[o.indice]?.color || null},
+                ${cores[o.indice]?.border || cores[o.indice]?.color || null}, ${o.indice})
+        ON CONFLICT (coluna_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo,
+          cor=EXCLUDED.cor, borda=EXCLUDED.borda, indice=EXCLUDED.indice`;
+      gravadas += 1;
+    }
+  }
+
+  // Converte o que já está gravado: rótulo (às vezes vários, separados por
+  // vírgula) vira lista de chaves. Quatro consultas escritas à mão em vez de uma
+  // genérica: o driver do Neon não injeta nome de coluna, e montar SQL por
+  // concatenação para economizar três linhas não vale o risco.
+  const multi = async (colunaId, campo) => sql`
+    SELECT c.id, ARRAY_AGG(o.chave ORDER BY t.ord) AS ks
+      FROM vybe_conteudos c
+      CROSS JOIN LATERAL UNNEST(STRING_TO_ARRAY(
+        CASE ${campo}::text WHEN 'formato' THEN c.formato ELSE c.tipo_conteudo END, ',')
+      ) WITH ORDINALITY AS t(parte, ord)
+      JOIN vybe_opcoes o ON o.coluna_id = ${colunaId} AND LOWER(o.rotulo) = LOWER(TRIM(t.parte))
+     GROUP BY c.id`;
+
+  const convertidos = {};
+
+  const fmt = await multi('lista_suspensa0__1', 'formato');
+  for (const l of fmt) await sql`UPDATE vybe_conteudos SET formato_chaves=${l.ks} WHERE id=${l.id}`;
+  convertidos.formato = fmt.length;
+
+  const tipo = await multi('lista_suspensa__1', 'tipo_conteudo');
+  for (const l of tipo) await sql`UPDATE vybe_conteudos SET tipo_conteudo_chaves=${l.ks} WHERE id=${l.id}`;
+  convertidos.tipo_conteudo = tipo.length;
+
+  const prio = await sql`UPDATE vybe_conteudos c SET prioridade_chave = o.chave
+    FROM vybe_opcoes o
+    WHERE o.coluna_id = 'color_mm164yv8' AND c.prioridade IS NOT NULL
+      AND LOWER(o.rotulo) = LOWER(TRIM(c.prioridade))
+      AND c.prioridade_chave IS DISTINCT FROM o.chave RETURNING c.id`;
+  convertidos.prioridade = prio.length;
+
+  const off = await sql`UPDATE vybe_conteudos c SET off_audio_chave = o.chave
+    FROM vybe_opcoes o
+    WHERE o.coluna_id = 'color_mkynd7j8' AND c.off_audio IS NOT NULL
+      AND LOWER(o.rotulo) = LOWER(TRIM(c.off_audio))
+      AND c.off_audio_chave IS DISTINCT FROM o.chave RETURNING c.id`;
+  convertidos.off_audio = off.length;
+
+  return { opcoes: gravadas, convertidos };
 }
