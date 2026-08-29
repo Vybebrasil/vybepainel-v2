@@ -288,7 +288,9 @@ async function restaurarConteudo(sql, quem, { item }) {
 // Produção significa sair das nossas tabelas também.
 async function moverBoard(sql, quem, { item, destino }) {
   const alvo = String(destino) === String(BOARD_DEMANDAS) ? BOARD_DEMANDAS : BOARD_PRODUCAO;
-  const grupo = alvo === BOARD_DEMANDAS ? 'topics' : 'group_title';
+  // Grupos de entrada de cada board, conferidos no próprio Monday: 'topics' é o
+  // padrão de board novo e não existe em nenhum dos dois.
+  const grupo = alvo === BOARD_DEMANDAS ? 'group_mm187437' : 'group_title';
 
   const dados = await mondayQuery(
     `mutation($item: ID!, $board: ID!, $grupo: String!) {
