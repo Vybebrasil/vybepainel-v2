@@ -457,3 +457,28 @@ export async function aplicarDeEvento(sql, evento) {
 
   return aplicar(sql, item.id, { tipo, de, para });
 }
+
+// O que as regras andaram fazendo. No Monday isto não existia de forma legível:
+// a peça se movia e ninguém sabia dizer qual regra tinha feito aquilo.
+export async function execucoes({ limite = 60, conteudoId = null } = {}) {
+  await criarSchemaAutomacoes();
+  const sql = database();
+  const linhas = conteudoId
+    ? await sql`SELECT e.id, e.em, e.resultado, a.nome AS automacao, c.titulo, c.monday_item_id
+         FROM vybe_automacao_execucoes e
+         LEFT JOIN vybe_automacoes a ON a.id = e.automacao_id
+         LEFT JOIN vybe_conteudos  c ON c.id = e.conteudo_id
+        WHERE e.conteudo_id = ${conteudoId}
+        ORDER BY e.em DESC LIMIT ${limite}`
+    : await sql`SELECT e.id, e.em, e.resultado, a.nome AS automacao, c.titulo, c.monday_item_id
+         FROM vybe_automacao_execucoes e
+         LEFT JOIN vybe_automacoes a ON a.id = e.automacao_id
+         LEFT JOIN vybe_conteudos  c ON c.id = e.conteudo_id
+        ORDER BY e.em DESC LIMIT ${limite}`;
+  return linhas.map((l) => ({
+    id: l.id, em: l.em, automacao: l.automacao || '(regra excluída)',
+    titulo: l.titulo, monday_item_id: l.monday_item_id,
+    feitas: l.resultado?.feitas || [],
+    evento: (() => { try { return JSON.parse(l.resultado?.evento || 'null'); } catch { return null; } })(),
+  }));
+}

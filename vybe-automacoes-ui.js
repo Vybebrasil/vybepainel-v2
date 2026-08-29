@@ -18,6 +18,7 @@ const GRUPOS_NOME = {
 };
 
 let AUTOMACOES = [];
+let EXECUCOES = [];
 let automacaoEmEdicao = null;
 
 function podeEditarAutomacoes() {
@@ -33,6 +34,7 @@ async function carregarAutomacoes() {
     if (!resposta.ok) throw new Error(dados?.error || 'Falha ao carregar automações.');
     AUTOMACOES = dados.automacoes || [];
     pintarAutomacoes();
+    carregarHistorico();
   } catch (erro) {
     if (raiz) raiz.innerHTML = `<div class="auto-carregando">NÃO FOI POSSÍVEL CARREGAR<br><small>${safeText(erro.message)}</small></div>`;
   }
@@ -119,7 +121,47 @@ function pintarAutomacoes() {
       ${admin ? '<button class="auto-novo" onclick="editarAutomacao(null)">+ Nova regra</button>' : ''}
     </div>
     <div class="auto-lista">${linhas || '<div class="auto-carregando">Nenhuma regra cadastrada.</div>'}</div>
-    <div id="auto-editor"></div>`;
+    <div id="auto-editor"></div>
+    <div class="auto-cabeca" style="margin-top:28px">
+      <div>
+        <div class="auto-kicker">VYBE OS · REGISTRO</div>
+        <h2 class="auto-titulo">O que as regras fizeram</h2>
+        <p class="auto-sub">Enquanto o Monday rodava, dava para culpar ele quando uma peça se movia sozinha. Agora as regras são nossas — aqui está o que cada uma fez.</p>
+      </div>
+    </div>
+    <div id="auto-historico" class="auto-hist"><div class="auto-carregando">CARREGANDO…</div></div>`;
+}
+
+// ── histórico ─────────────────────────────────────────────────────────────────
+// Enquanto o Monday rodava, dava para culpar ele quando uma peça se movia
+// sozinha. Agora as regras são nossas, então precisa dar para ver o que fizeram.
+async function carregarHistorico() {
+  try {
+    const r = await fetch(`${AUTOMACOES_API}&historico=1&limite=40`, { credentials: 'same-origin' });
+    const d = await r.json();
+    if (!r.ok) return;
+    EXECUCOES = d.execucoes || [];
+    pintarHistorico();
+  } catch { /* a lista de regras não depende do histórico */ }
+}
+
+function pintarHistorico() {
+  const caixa = document.getElementById('auto-historico');
+  if (!caixa) return;
+  if (!EXECUCOES.length) {
+    caixa.innerHTML = '<div class="auto-carregando">Nenhuma regra disparou ainda.</div>';
+    return;
+  }
+  caixa.innerHTML = EXECUCOES.map((e) => {
+    const ev = e.evento || {};
+    const gatilho = ev.tipo === 'data' ? `${ev.campo}` : `${ev.de || '—'} → ${ev.para || ''}`;
+    return `<div class="auto-hist-linha">
+      <span class="auto-hist-quando">${new Date(e.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+      <span class="auto-hist-peca">${safeText(e.titulo || '(conteúdo removido)')}<small>${safeText(gatilho)}</small></span>
+      <span class="auto-hist-regra">${safeText(e.automacao)}</span>
+      <span class="auto-hist-feitas">${e.feitas.map((f) => safeText(f)).join(' · ') || '—'}</span>
+    </div>`;
+  }).join('');
 }
 
 // ── ensaio ────────────────────────────────────────────────────────────────────

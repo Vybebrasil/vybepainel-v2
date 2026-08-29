@@ -1174,6 +1174,15 @@ header,.topbar{
 .eq-acoes button:hover{background:rgba(255,107,0,.16);color:#ffe0a6}
 @media(max-width:900px){.conta-linha{grid-template-columns:1fr 1fr}.eq-linha{grid-template-columns:1fr}.eq-acoes{justify-content:flex-start}}
 @media(max-width:600px){.conta-linha{grid-template-columns:1fr}}
+
+.auto-hist{display:flex;flex-direction:column;gap:4px}
+.auto-hist-linha{display:grid;grid-template-columns:96px minmax(150px,1.2fr) minmax(150px,1.3fr) minmax(140px,1.2fr);gap:12px;align-items:center;border:1px solid rgba(255,161,29,.1);background:rgba(10,6,2,.55);padding:9px 12px}
+.auto-hist-quando{color:#8b6b52;font:700 10px 'JetBrains Mono',monospace}
+.auto-hist-peca{color:#e0b784;font-size:11px}
+.auto-hist-peca small{display:block;margin-top:3px;color:#8b6b52;font:700 9.5px 'JetBrains Mono',monospace}
+.auto-hist-regra{color:#c2a184;font-size:10.5px;line-height:1.4}
+.auto-hist-feitas{color:#a8896c;font:600 10px 'JetBrains Mono',monospace;line-height:1.5}
+@media(max-width:900px){.auto-hist-linha{grid-template-columns:1fr;gap:5px}.auto-hist-quando{font-size:9.5px}}
 </style></head>
 <body>
 

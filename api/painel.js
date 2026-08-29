@@ -9,7 +9,7 @@
 //   /api/painel?area=notificacoes o que o sistema tem a dizer para quem entrou
 
 import { neon } from '@neondatabase/serverless';
-import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda } from '../vybe_automacoes.js';
+import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
 
@@ -18,6 +18,12 @@ const sql = () => neon(process.env.DATABASE_URL);
 // ── automações ────────────────────────────────────────────────────────────────
 async function areaAutomacoes(req, res, quem) {
   if (req.method === 'GET') {
+    if (req.query?.historico === '1') {
+      return res.status(200).json({ ok: true, execucoes: await execucoes({
+        limite: Math.min(Number(req.query?.limite) || 60, 200),
+        conteudoId: req.query?.conteudo_id ? Number(req.query.conteudo_id) : null,
+      }) });
+    }
     return res.status(200).json({ ok: true, automacoes: await listar() });
   }
 
