@@ -1283,6 +1283,15 @@ header,.topbar{
 /* O rótulo do núcleo e o "LIVE TELEMETRY" dividiam a mesma faixa em telas
    largas, e o segundo entrava por cima do primeiro. */
 .identity-pulse{margin-top:20px}
+
+.identity-footer{position:relative}
+.identity-quem{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:6px;color:inherit;font:inherit;padding:5px 11px;cursor:pointer}
+.identity-quem:hover{background:rgba(255,255,255,.12)}
+.identity-conta-menu{position:absolute;right:0;bottom:calc(100% + 10px);z-index:60;width:min(272px,calc(100vw - 32px));background:#0d0f14;border:1px solid rgba(255,255,255,.16);border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.65);overflow:hidden;text-align:left}
+.identity-conta-menu>button{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid rgba(255,255,255,.06);color:#dfe5ef;padding:10px 12px;font:600 12px 'JetBrains Mono',monospace;cursor:pointer}
+.identity-conta-menu>button:hover{background:rgba(255,255,255,.06)}
+.identity-conta-menu>button.quem-sou-sair{color:#ff9aa4}
+.identity-conta-menu>button.quem-sou-sair:hover{background:rgba(240,71,86,.14)}
 </style></head>
 <body>
 
@@ -1337,7 +1346,16 @@ header,.topbar{
         <span class="station-top"><span>06 / NÚCLEO DE CLIENTES</span><span class="station-ready"><i></i>ONLINE</span></span><span class="station-icon">◉</span><span class="station-name">CLIENTES</span><span class="station-description">O cadastro mestre que conecta relacionamento, heads, acessos e toda a operação de cada conta.</span><span class="station-tags"><span>HEADS</span><span>ACESSOS</span><span>OPERAÇÃO</span></span><span class="station-action"><em>ABRIR NÚCLEO</em><b>↗</b></span>
       </button>
     </div>
-    <div class="identity-footer"><span>SELECIONE UMA ESTAÇÃO PARA INICIAR</span><span id="identity-quem">VYBE OS / CENTRAL OPERACIONAL</span></div>
+    <div class="identity-footer"><span>SELECIONE UMA ESTAÇÃO PARA INICIAR</span><button type="button" id="identity-quem" class="identity-quem" onclick="alternarContaNoPortao()">VYBE OS / CENTRAL OPERACIONAL</button>
+      <div class="identity-conta-menu" id="identity-conta-menu" style="display:none">
+        <div class="quem-sou-cabeca">
+          <b id="identity-conta-nome"></b>
+          <span id="identity-conta-email"></span>
+          <span class="quem-sou-papel" id="identity-conta-papel"></span>
+        </div>
+        <button type="button" onclick="irParaMinhaConta()">Minha conta e equipe</button>
+        <button type="button" class="quem-sou-sair" onclick="sairDaSessao()">Sair desta conta</button>
+      </div></div>
     <div id="focus-picker" class="focus-picker identity-focus-picker">
       <div class="focus-picker-head"><span>IDENTIFIQUE O OPERADOR PARA ARMAR O CONSOLE PESSOAL</span><button class="search-result-action" onclick="closeFocusPicker()">← Voltar às estações</button></div>
       <div id="focus-user-grid" class="focus-user-grid"></div>

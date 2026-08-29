@@ -637,6 +637,12 @@ function openModeGate() {
   const rodape = document.getElementById('identity-quem');
   if (rodape && eu) {
     rodape.textContent = `${eu.nome}${eu.admin ? ' · administra o painel' : ''}`;
+    // O crachá do cabeçalho existe, mas o portão cobre o cabeçalho inteiro — daqui
+    // não havia como sair nem chegar na própria conta.
+    const cx = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
+    cx('identity-conta-nome', eu.nome || '');
+    cx('identity-conta-email', eu.email || '');
+    cx('identity-conta-papel', eu.admin ? 'Administra o painel' : 'Acesso da equipe');
   }
   renderIdentityOperationalPulse();
   renderFocusUserPicker();
