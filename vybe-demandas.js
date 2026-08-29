@@ -258,6 +258,15 @@ function filterDemandaByDay(sel) {
 
 // ─── Buscar itens do board Demandas ────────────────────────────────────────────────────────────────────
 async function fetchAllDemandas() {
+  // O board de Demandas passou a viver no banco da Vybe. O caminho do Monday
+  // fica como queda: se o banco falhar, a aba não pode sumir.
+  if (fonteDeLeitura() === 'dominio') {
+    try {
+      const dados = await buscarDemandas();
+      const itens = demandasComoItensDoMonday(dados);
+      if (itens.length) return itens;
+    } catch (erro) { console.warn('Demandas pelo banco falharam; usando o Monday.', erro); }
+  }
   const allItems = [];
   let cursor = null;
   let page = 0;

@@ -184,3 +184,56 @@ async function tentarEscritaDupla(item, corpo) {
     return false;
   }
 }
+
+// ── demandas ──────────────────────────────────────────────────────────────────
+//
+// Mesma ideia da produção: converte a resposta do banco de volta ao formato do
+// Monday e entrega ao processDemandas que já existe. Reimplementar a derivação
+// criaria duas verdades sobre os mesmos números.
+
+async function buscarDemandas() {
+  const resposta = await fetch(`${CONTEUDOS_API}?board=demandas`, { credentials: 'same-origin' });
+  if (!resposta.ok) throw new Error(`Demandas indisponíveis (${resposta.status})`);
+  const dados = await resposta.json();
+  if (!dados?.itens) throw new Error('Resposta de demandas sem itens.');
+  return dados;
+}
+
+function demandasComoItensDoMonday(dados) {
+  const status = new Map((dados.status || []).map((s) => [s.chave, s]));
+  const pessoas = new Map((dados.pessoas || []).map((p) => [String(p.id), p.nome]));
+  const prioridades = new Map((dados.opcoes || [])
+    .filter((o) => o.coluna_id === 'color_mkwtgakv').map((o) => [o.chave, o]));
+  const C = COLUNAS.demandas;
+
+  return (dados.itens || []).map((item) => {
+    const st = status.get(item.status_chave) || {};
+    const pr = prioridades.get(item.prioridade_chave) || {};
+    const clientes = item.clientes && item.clientes.length ? item.clientes : [item.cliente].filter(Boolean);
+    const ids = item.responsavel_ids || [];
+
+    return {
+      id: item.id,
+      name: item.nome || '',
+      updated_at: item.updated_at || '',
+      group: { id: item.grupo_id || '', title: item.grupo || '' },
+      updates: [],
+      column_values: [
+        { id: C.cliente, text: clientes.join(', '), value: null },
+        { id: C.formato, text: item.formato || '', value: null },
+        { id: C.prioridade, text: pr.rotulo || '',
+          label_style: { color: pr.cor || '', border: pr.borda || '' }, value: null },
+        { id: C.prazo, text: item.prazo_iso || '', value: null },
+        { id: C.veiculacao, text: item.veiculacao_iso || '', value: null },
+        { id: C.status, text: st.rotulo || '', index: st.indice ?? null,
+          label_style: { color: st.cor || '', border: st.borda || '' },
+          updated_at: item.status_updated_at || '', value: null },
+        { id: C.responsavel,
+          text: ids.map((i) => pessoas.get(String(i))).filter(Boolean).join(', '),
+          value: ids.length
+            ? JSON.stringify({ personsAndTeams: ids.map((id) => ({ id: Number(id), kind: 'person' })) })
+            : null },
+      ],
+    };
+  });
+}
