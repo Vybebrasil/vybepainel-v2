@@ -118,7 +118,13 @@ const MESES = ['janeiro','fevereiro','março','abril','maio','junho',
 export async function pastaDoConteudo({ cliente, data }) {
   const raiz = process.env.DRIVE_PASTA_RAIZ;
   if (!raiz) throw new Error('DRIVE_PASTA_RAIZ não configurada.');
-  const d = data ? new Date(`${String(data).slice(0, 10)}T12:00:00Z`) : new Date();
+  // O banco devolve DATE como objeto de data, não como texto: String() nele dá
+  // "Fri Aug 29 2026 ..." e o slice(0,10) virava lixo. Aceita os dois.
+  const iso = data instanceof Date
+    ? data.toISOString().slice(0, 10)
+    : String(data || '').slice(0, 10);
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T12:00:00Z`) : new Date();
+  if (Number.isNaN(d.getTime())) throw new Error(`Data inválida para montar a pasta: ${data}`);
   const nomeCliente = ALIAS_CLIENTE[semSinais(cliente)] || cliente || 'Sem cliente';
   let id = await pasta(nomeCliente, raiz);
   id = await pasta('Social Media', id);

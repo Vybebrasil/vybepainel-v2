@@ -11,7 +11,7 @@
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
-import { migrarArquivosParaDrive, importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
+import { desfazerMigracaoDrive, migrarArquivosParaDrive, importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos } from '../vybe_dominio_store.js';
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -59,6 +59,9 @@ export default async function handler(req, res) {
     if (action === 'drive_conferir') {
       const { conferirDrive } = await import('../vybe_drive.js');
       return res.status(200).json({ ok: true, action, ...(await conferirDrive()) });
+    }
+    if (action === 'drive_desfazer') {
+      return res.status(200).json({ ok: true, action, ...(await desfazerMigracaoDrive()) });
     }
     if (action === 'drive_migrar') {
       const q = { ...(req.query || {}), ...(req.body || {}) };

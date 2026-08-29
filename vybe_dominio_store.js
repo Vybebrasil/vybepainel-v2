@@ -1169,6 +1169,18 @@ export async function importarCatalogoOpcoes() {
 //
 // A URL do Monday vale uma hora, então é buscada na hora de copiar, nunca a que
 // estava guardada.
+// Desfaz a marca de migrado para que os arquivos entrem na fila de novo. Devolve
+// os ids no Drive, porque a cópia lá continua existindo e precisa ser removida à
+// parte — o banco esquecer não apaga arquivo.
+export async function desfazerMigracaoDrive() {
+  const sql = database();
+  const linhas = await sql`UPDATE vybe_conteudo_arquivos
+      SET drive_file_id=NULL, url_drive=NULL, migrado_em=NULL
+    WHERE url_drive IS NOT NULL
+    RETURNING drive_file_id, nome`;
+  return { revertidos: linhas.length, no_drive: linhas.map((l) => ({ id: l.drive_file_id, nome: l.nome })) };
+}
+
 export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
   const sql = database();
   const pendentes = await sql`
