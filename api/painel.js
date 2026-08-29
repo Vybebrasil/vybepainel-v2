@@ -221,11 +221,20 @@ async function areaPeca(req, res) {
 
   const assets = arquivos.map((a) => ({
     id: a.monday_asset_id, name: a.nome,
-    url: a.url_drive || frescas.get(String(a.monday_asset_id))?.url || a.url_monday,
-    url_thumbnail: a.url_drive
-      ? (a.drive_file_id ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w400` : null)
+    // O link que o Drive devolve ao enviar é a PÁGINA de visualização
+    // (/file/d/.../view). Num <img> isso dá imagem quebrada — foi o que
+    // aconteceu. Para exibir é preciso o endereço de conteúdo.
+    url: a.drive_file_id
+      ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
+      : frescas.get(String(a.monday_asset_id))?.url || a.url_monday,
+    url_thumbnail: a.drive_file_id
+      ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w400`
       : frescas.get(String(a.monday_asset_id))?.url_thumbnail || null,
-    public_url: a.url_drive || frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica,
+    public_url: a.drive_file_id
+      ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
+      : frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica,
+    // A página de visualização continua útil para abrir e baixar no Drive.
+    link_drive: a.url_drive || null,
     onde: a.url_drive ? 'drive' : 'monday',
     file_extension: a.extensao,
     file_size: a.tamanho_bytes === null ? null : Number(a.tamanho_bytes),
