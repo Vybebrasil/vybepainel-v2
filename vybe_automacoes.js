@@ -263,9 +263,19 @@ export async function aplicar(sql, conteudoId, evento) {
   const regras = await sql`SELECT * FROM vybe_automacoes WHERE ativa ORDER BY ordem, id`;
   const aplicadas = [];
 
+  const assinatura = JSON.stringify(evento);
   for (const regra of regras) {
     if (!casaGatilho(regra.gatilho, evento)) continue;
     if (!atende(regra.condicao, item)) continue;
+
+    // A mesma mudança chega por dois caminhos: o painel grava e replica no
+    // Monday, e o Monday devolve um webhook contando o que acabou de acontecer.
+    // Mover de grupo duas vezes não faz mal, mas notificar e comentar sim.
+    const repetida = await sql`SELECT 1 FROM vybe_automacao_execucoes
+      WHERE automacao_id=${regra.id} AND conteudo_id=${item.id}
+        AND em > NOW() - INTERVAL '2 minutes'
+        AND resultado->>'evento' = ${assinatura} LIMIT 1`;
+    if (repetida.length) continue;
 
     const feitas = [];
     for (const acao of regra.acoes || []) {
@@ -298,7 +308,7 @@ export async function aplicar(sql, conteudoId, evento) {
     }
 
     await sql`INSERT INTO vybe_automacao_execucoes (automacao_id, conteudo_id, resultado)
-      VALUES (${regra.id}, ${item.id}, ${JSON.stringify({ evento, feitas })}::jsonb)`;
+      VALUES (${regra.id}, ${item.id}, ${JSON.stringify({ evento: assinatura, feitas })}::jsonb)`;
     aplicadas.push({ id: regra.id, nome: regra.nome, feitas });
 
     // A primeira regra que casar por status "finalizado" define o destino: sem
@@ -419,4 +429,31 @@ export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}
     resumo.push({ regra: regra.nome, candidatos: alvos.length, avisados });
   }
   return { dia, seco, regras: resumo };
+}
+
+// Mudança feita direto no Monday chega por webhook. Sem isto, desligar as regras
+// de lá deixaria essa mudança sem automação nenhuma — nem a deles, nem a nossa.
+export async function aplicarDeEvento(sql, evento) {
+  if (evento?.type !== 'update_column_value' && evento?.type !== 'change_column_value') return null;
+  const coluna = evento.columnId;
+  const tipo = coluna === 'status' ? 'status' : coluna === 'status_1__1' ? 'captacao' : null;
+  if (!tipo) return null;
+
+  const item = (await sql`SELECT id FROM vybe_conteudos
+    WHERE monday_item_id = ${String(evento.pulseId || evento.itemId || '')}`)[0];
+  if (!item) return null;
+
+  // O webhook traz o índice da coluna; as regras falam por chave.
+  const porIndice = async (indice) => {
+    if (indice === null || indice === undefined) return null;
+    const r = await sql`SELECT chave FROM vybe_status WHERE monday_index=${Number(indice)}`;
+    return r[0]?.chave || null;
+  };
+  const para = tipo === 'status' ? await porIndice(evento.value?.label?.index)
+                                 : evento.value?.label?.text || null;
+  const de = tipo === 'status' ? await porIndice(evento.previousValue?.label?.index)
+                               : evento.previousValue?.label?.text || null;
+  if (!para) return null;
+
+  return aplicar(sql, item.id, { tipo, de, para });
 }
