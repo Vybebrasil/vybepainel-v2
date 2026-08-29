@@ -613,6 +613,7 @@ function renderOperationalTools() {
   renderActionQueue();
   renderTodayQueue();
   renderDailyClose();
+  renderVisaoDeGrupos();
 }
 
 function renderTeamLoad() {

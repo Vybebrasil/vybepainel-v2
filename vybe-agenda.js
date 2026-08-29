@@ -661,3 +661,137 @@ const TEAM_USERS = [
   {id:PESSOAS.JADY,name:'Jady',        color:'#00c875', photo:'https://files.monday.com/use1/photos/100482777/thumb_small/100482777-user_photo_2026_03_02_17_19_22.png?1772471962'},
 ];
 
+
+// ─── Visão por grupo · a mesma divisão que o board tem ────────────────────────
+//
+// Redação, Produção, Design & Edição, Gestão de publicações, Finalizados. É como
+// o time sempre leu a operação; o painel mostrava tudo misturado por semana e
+// obrigava a abrir o Monday só para responder "em que etapa isso está?".
+//
+// Fica atrás de um botão, como a agenda: são 1900 itens, e nem todo dia se olha
+// o board inteiro.
+
+const GRUPOS_ABERTOS = 'vybe_grupos_abertos';
+const GRUPOS_VISAO = 'vybe_visao_grupos';
+// A ordem é a do board, não a do objeto GROUP_MAP: o time lê nesta sequência.
+const ORDEM_DOS_GRUPOS = ['group_title', 'novo_grupo57911__1', 'novo_grupo__1',
+                          'novo_grupo22352__1', 'novo_grupo31348__1'];
+const LINHAS_POR_GRUPO = 50;
+
+let visaoDeGruposAberta = (() => {
+  try { return localStorage.getItem(GRUPOS_VISAO) === '1'; } catch { return false; }
+})();
+// Finalizados nasce fechado: são 1733 itens que ninguém abre para trabalhar.
+let gruposRecolhidos = (() => {
+  try {
+    const salvo = localStorage.getItem(GRUPOS_ABERTOS);
+    return new Set(salvo ? JSON.parse(salvo) : ['novo_grupo31348__1']);
+  } catch { return new Set(['novo_grupo31348__1']); }
+})();
+let gruposExpandidos = new Set();
+
+function guardarGruposRecolhidos() {
+  try { localStorage.setItem(GRUPOS_ABERTOS, JSON.stringify([...gruposRecolhidos])); }
+  catch { /* navegador sem storage */ }
+}
+
+function toggleVisaoDeGrupos() {
+  visaoDeGruposAberta = !visaoDeGruposAberta;
+  try { localStorage.setItem(GRUPOS_VISAO, visaoDeGruposAberta ? '1' : '0'); } catch { /* sem storage */ }
+  renderVisaoDeGrupos();
+  if (visaoDeGruposAberta) {
+    const alvo = document.getElementById('grupos-board');
+    setTimeout(() => alvo?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  }
+}
+
+function toggleGrupo(groupId) {
+  if (gruposRecolhidos.has(groupId)) gruposRecolhidos.delete(groupId);
+  else gruposRecolhidos.add(groupId);
+  guardarGruposRecolhidos();
+  renderVisaoDeGrupos();
+}
+
+function verGrupoInteiro(groupId) {
+  gruposExpandidos.add(groupId);
+  renderVisaoDeGrupos();
+}
+
+function itensPorGrupo() {
+  const base = (DADOS_ALL?.length ? DADOS_ALL : DADOS || [])
+    .filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item));
+  const mapa = new Map();
+  base.forEach(item => {
+    const id = String(item.group_id || '');
+    if (!mapa.has(id)) mapa.set(id, []);
+    mapa.get(id).push(item);
+  });
+  // Grupos na ordem do board; qualquer grupo novo que apareça no Monday entra
+  // no fim em vez de sumir da tela.
+  const conhecidos = ORDEM_DOS_GRUPOS.filter(id => mapa.has(id));
+  const novos = [...mapa.keys()].filter(id => !ORDEM_DOS_GRUPOS.includes(id)).sort();
+  return [...conhecidos, ...novos].map(id => ({
+    id,
+    nome: GROUP_MAP[id] || id || 'Sem grupo',
+    itens: mapa.get(id).sort((a, b) => String(a.veiculacao_iso || '9999').localeCompare(String(b.veiculacao_iso || '9999'))),
+  }));
+}
+
+function linhaDeGrupoHtml(item) {
+  const dataCurta = (iso, texto) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : (texto || '—');
+  const atrasado = item.prazo_atrasado ? ' is-late' : '';
+  return `<tr onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
+    <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
+    <td>${safeText(item.cliente || '—')}</td>
+    <td>${safeText(item.responsavel ? firstName(item.responsavel) : '—')}</td>
+    <td>${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</td>
+    <td class="grupo-captacao">${safeText(item.captacao || '—')}</td>
+    <td class="grupo-data${atrasado}">${dataCurta(item.prazo_iso, item.prazo)}</td>
+    <td class="grupo-data">${dataCurta(item.veiculacao_iso, item.veiculacao)}</td>
+  </tr>`;
+}
+
+function renderVisaoDeGrupos() {
+  const wrap = document.getElementById('grupos-board');
+  const botao = document.getElementById('ops-grupos-btn');
+  if (!wrap) return;
+  const grupos = itensPorGrupo();
+  if (botao) {
+    botao.classList.toggle('active', visaoDeGruposAberta);
+    botao.setAttribute('aria-expanded', String(visaoDeGruposAberta));
+    const contador = document.getElementById('ops-grupos-count');
+    if (contador) contador.textContent = grupos.length;
+  }
+  if (!visaoDeGruposAberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
+  wrap.classList.remove('focus-hidden');
+
+  const blocos = grupos.map(grupo => {
+    const recolhido = gruposRecolhidos.has(grupo.id);
+    const total = grupo.itens.length;
+    const mostrarTodos = gruposExpandidos.has(grupo.id);
+    const visiveis = mostrarTodos ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
+    const restam = total - visiveis.length;
+    const corpo = recolhido ? '' : `
+      <div class="grupo-tabela-rolagem">
+        <table class="grupo-tabela">
+          <thead><tr><th>Conteúdo</th><th>Cliente</th><th>Responsável</th><th>Status</th>
+            <th>Captação</th><th>Prazo</th><th>Veiculação</th></tr></thead>
+          <tbody>${visiveis.map(linhaDeGrupoHtml).join('')}</tbody>
+        </table>
+      </div>
+      ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${restam === 1 ? 'conteúdo' : 'conteúdos'}</button>` : ''}`;
+    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}">
+      <button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
+        <span class="grupo-seta">${recolhido ? '›' : '⌄'}</span>
+        <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small>${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</small></span>
+      </button>${corpo}</section>`;
+  }).join('');
+
+  const totalGeral = grupos.reduce((soma, g) => soma + g.itens.length, 0);
+  wrap.innerHTML = `<div class="grupos-head">
+      <div><div class="grupos-kicker">OPERAÇÃO · POR ETAPA</div>
+        <div class="grupos-titulo">Conteúdos por grupo</div>
+        <div class="grupos-sub">A mesma divisão do board: clique num grupo para recolher, clique numa linha para abrir a atividade.</div></div>
+      <div class="grupos-total"><b>${totalGeral}</b><span>conteúdos${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
+    </div>${blocos || '<div class="grupos-vazio">Nenhum conteúdo carregado ainda.</div>'}`;
+}

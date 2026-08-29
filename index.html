@@ -1355,6 +1355,50 @@ header,.topbar{
   .login-rosto-foto{width:48px;height:48px}
   .login-rosto-vazio{height:80px}
 }
+
+/* Conteúdos por grupo · a mesma divisão que o board tem */
+.grupos-board{margin:0 0 18px;border:1px solid rgba(255,255,255,.11);border-radius:14px;
+  background:linear-gradient(135deg,rgba(18,21,29,.92),rgba(8,10,15,.92));
+  box-shadow:0 12px 32px rgba(0,0,0,.22);overflow:clip}
+.grupos-board.focus-hidden{display:none!important}
+.grupos-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;
+  padding:16px 18px 13px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.022)}
+.grupos-kicker{color:#ff9a4c;font:800 10px 'JetBrains Mono',monospace;letter-spacing:.12em}
+.grupos-titulo{margin-top:4px;color:#f7f8fb;font:800 19px Inter,system-ui,sans-serif;letter-spacing:-.035em}
+.grupos-sub{margin-top:4px;color:#9da4b4;font:500 10px/1.45 Inter,system-ui,sans-serif}
+.grupos-total{text-align:right;white-space:nowrap}
+.grupos-total b{display:block;color:#fff;font:900 22px 'JetBrains Mono',monospace}
+.grupos-total span{color:#8f98a9;font:700 10px 'JetBrains Mono',monospace}
+.grupos-vazio{padding:22px 18px;color:#8f98a9;font:700 11px 'JetBrains Mono',monospace}
+
+.grupo-bloco{border-bottom:1px solid rgba(255,255,255,.07)}
+.grupo-bloco:last-child{border-bottom:0}
+.grupo-cabeca{display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;
+  border:0;border-left:3px solid var(--accent,#ff6b00);background:rgba(255,255,255,.02);
+  color:inherit;text-align:left;cursor:pointer;font:inherit}
+.grupo-cabeca:hover{background:rgba(255,122,26,.09)}
+.grupo-seta{color:#ff9a4c;font-size:13px;width:12px;flex:none}
+.grupo-titulo b{display:block;color:#ffb268;font:800 14px Inter,system-ui,sans-serif;letter-spacing:-.02em}
+.grupo-titulo small{display:block;margin-top:1px;color:#8f98a9;font:700 10px 'JetBrains Mono',monospace}
+.grupo-bloco.recolhido .grupo-cabeca{background:transparent}
+
+.grupo-tabela-rolagem{overflow-x:auto}
+.grupo-tabela{width:100%;border-collapse:collapse;font:500 11px Inter,system-ui,sans-serif}
+.grupo-tabela th{position:sticky;top:0;padding:7px 10px;background:#11141c;color:#8e98aa;
+  font:800 10px 'JetBrains Mono',monospace;letter-spacing:.06em;text-align:left;white-space:nowrap}
+.grupo-tabela td{padding:7px 10px;border-top:1px solid rgba(255,255,255,.05);color:#cfd6e2;
+  white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.grupo-tabela tr{cursor:pointer}
+.grupo-tabela tbody tr:hover td{background:rgba(255,122,26,.08)}
+.grupo-nome{color:#f2f5fa;font-weight:600;max-width:360px}
+.grupo-captacao{color:#a9b1bf;font:700 10px 'JetBrains Mono',monospace}
+.grupo-data{color:#a9b1bf;font:700 10px 'JetBrains Mono',monospace}
+.grupo-data.is-late{color:#ff8b9a}
+.grupo-ver-mais{display:block;width:100%;padding:9px;border:0;border-top:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.02);color:var(--accent,#ff6b00);font:700 10px 'JetBrains Mono',monospace;
+  letter-spacing:.05em;cursor:pointer}
+.grupo-ver-mais:hover{background:rgba(255,122,26,.11)}
+@media(max-width:780px){.grupos-head{flex-direction:column;gap:8px}.grupo-nome{max-width:200px}}
 </style></head>
 <body>
 
@@ -1523,6 +1567,7 @@ header,.topbar{
     <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">☀ O que vence hoje <span id="ops-today-count" class="ops-action-count">4</span></button>
     <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">◷ Fechamento do dia</button>
     <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">▣ Modo Reunião</button>
+    <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">▤ Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
     <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">▦ Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
     <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">◈ MESA DE COMANDO <span id="manager-command-count" class="ops-action-count">0</span></button>
     <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
@@ -1564,6 +1609,7 @@ header,.topbar{
   <div id="ops-today-panel" class="ops-panel ops-today-panel"><div class="ops-panel-title"><span>☀ O que vence hoje · 22/08/2026</span><span>4 items</span></div><div class="ops-today-group"><div class="ops-today-group-head"><img src="https://files.monday.com/use1/photos/68035537/thumb_small/68035537-user_photo_2024_11_12_01_18_55.png?1731374335" alt="Paulo" onerror="this.remove()"><b>Paulo</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12624439217')"><b title="Divulgação do canal youtube">Divulgação do canal youtube</b><small>João Bacelar</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><img src="https://files.monday.com/use1/photos/80146924/thumb_small/80146924-user_photo_2026_01_22_18_56_43.png?1769108203" alt="Tainara" onerror="this.remove()"><b>Tainara</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12604444644')"><b title="Fotografia - Produtor">Fotografia - Produtor</b><small>Copirecê</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><img src="https://files.monday.com/use1/photos/68036697/thumb_small/68036697-user_photo_initials_2024_11_12_03_28_40.png?1731382120" alt="Reriston" onerror="this.remove()"><b>Reriston</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829030274')"><b title="Carrossel + Video - Look 03">Carrossel + Video - Look 03</b><small>Irecê Modas</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><img src="https://files.monday.com/use1/photos/71130408/thumb_small/71130408-user_photo_2026_01_30_13_49_45.png?1769780986" alt="Beatriz" onerror="this.remove()"><b>Beatriz</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12869263002')"><b title="Fotografia - Pet Bento">Fotografia - Pet Bento</b><small>Hebravet</small><span class="ops-today-due">HOJE · 22/08</span></div></div></div>
   <div id="ops-daily-panel" class="ops-panel ops-daily-panel"><div class="ops-panel-title"><span>◷ Fechamento do dia · 22/08/2026</span><span>leitura do contexto atual</span></div><div class="ops-daily-kpis"><div class="ops-daily-kpi"><b>0</b><span>finalizadas e atualizadas hoje</span></div><div class="ops-daily-kpi"><b>2</b><span>permanecem em execução</span></div><div class="ops-daily-kpi"><b>47</b><span>riscos ou bloqueios atravessam</span></div></div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Em execução ao encerrar</span><small>clique para abrir</small></div><div class="ops-today-line" onclick="openItemWorkspace('12499473559')"><b title="Reels - Colab Sávio: A Fibra Óptica Chegou nas Cidades Vizinhas!">Reels - Colab Sávio: A Fibra Óptica Chegou nas Cidades Vizinhas!</b><small>Paulo · Conectasim</small><span class="ops-daily-tag">Em andamento</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829019406')"><b title="02 · 19/08 · Card Fixo 2 — Trabalho que chega">02 · 19/08 · Card Fixo 2 — Trabalho que chega</b><small>Deivid · João Bacelar</small><span class="ops-daily-tag">Em andamento</span></div></div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Riscos que atravessam</span><small>atraso ou bloqueio</small></div><div class="ops-today-line" onclick="openItemWorkspace('12604444644')"><b title="Fotografia - Produtor">Fotografia - Produtor</b><small>Tainara · Copirecê</small><span class="ops-daily-tag">Alteração</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829018751')"><b title="04 · 21/08 · Reels — O número do trabalho">04 · 21/08 · Reels — O número do trabalho</b><small>Sem · João Bacelar</small><span class="ops-daily-tag">Aguardo</span></div><div class="ops-today-line" onclick="openItemWorkspace('12636375899')"><b title="Reels - Pec">Reels - Pec</b><small>Reriston · Hellen Rocha</small><span class="ops-daily-tag">Falta Info</span></div><div class="ops-today-line" onclick="openItemWorkspace('12673526166')"><b title="Reels - VÖA">Reels - VÖA</b><small>Paulo · Antonov</small><span class="ops-daily-tag">Aguardo</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829019404')"><b title="09 · 26/08 · Reels — A Bahia que produz">09 · 26/08 · Reels — A Bahia que produz</b><small>Sem · João Bacelar</small><span class="ops-daily-tag">Aguardo</span></div></div></div>
   <section id="manager-intelligence" class="manager-intelligence focus-hidden"></section>
+  <section id="grupos-board" class="grupos-board focus-hidden" aria-label="Conteúdos por grupo"></section>
   <section id="manager-calendar" class="manager-calendar focus-hidden" aria-label="Agenda mensal do GESTOR"></section>
 
 <!-- Sidebar Toggle -->
