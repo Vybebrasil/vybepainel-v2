@@ -9,7 +9,7 @@
 //   /api/painel?area=notificacoes o que o sistema tem a dizer para quem entrou
 
 import { neon } from '@neondatabase/serverless';
-import { listar, salvar, remover, semear, criarSchemaAutomacoes } from '../vybe_automacoes.js';
+import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
@@ -29,6 +29,14 @@ async function areaAutomacoes(req, res, quem) {
     const acao = String(req.query?.acao || req.body?.acao || 'salvar');
     if (acao === 'schema') { await criarSchemaAutomacoes(); return res.status(200).json({ ok: true, acao }); }
     if (acao === 'semear') return res.status(200).json({ ok: true, acao, ...(await semear()) });
+    if (acao === 'simular') {
+      const { conteudo_id: cid, evento } = req.body || {};
+      return res.status(200).json({ ok: true, acao, ...(await simular(sql(), Number(cid), evento || {})) });
+    }
+    if (acao === 'ensaio') {
+      const { evento, formato } = req.body || {};
+      return res.status(200).json({ ok: true, acao, ...(await ensaio(sql(), evento || {}, { formato })) });
+    }
     return res.status(200).json({ ok: true, acao: 'salvar', automacao: await salvar(req.body || {}) });
   }
 

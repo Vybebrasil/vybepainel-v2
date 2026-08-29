@@ -272,3 +272,55 @@ export async function aplicar(sql, conteudoId, evento) {
   }
   return { aplicadas };
 }
+
+// ── conferência ───────────────────────────────────────────────────────────────
+
+// Diz quais regras dispariam, sem executar nenhuma. Usa exatamente os mesmos
+// casaGatilho e atende que a execução usa — reimplementar a comparação aqui
+// criaria duas verdades, e a que ninguém testa é a que fica errada.
+//
+// É o que o Monday nunca ofereceu: lá só dava para descobrir o que uma regra
+// faz mudando um item de verdade e vendo o que acontecia depois.
+export async function simular(sql, conteudoId, evento) {
+  const item = (await sql`SELECT id, titulo, formato, status_chave, grupo_id
+    FROM vybe_conteudos WHERE id=${conteudoId}`)[0];
+  if (!item) throw new Error(`Conteúdo ${conteudoId} não existe.`);
+
+  const regras = await sql`SELECT * FROM vybe_automacoes WHERE ativa ORDER BY ordem, id`;
+  const dispararia = [];
+  for (const regra of regras) {
+    if (!casaGatilho(regra.gatilho, evento)) continue;
+    if (!atende(regra.condicao, item)) continue;
+    dispararia.push({ id: regra.id, nome: regra.nome, ordem: regra.ordem, acoes: regra.acoes });
+    if (evento.tipo === 'status' && (regra.acoes || []).some((a) => a.tipo === 'grupo')) break;
+  }
+  return { item, dispararia };
+}
+
+// Roda o motor de verdade contra um conteúdo descartável e apaga tudo depois.
+// Sem isto, a única forma de saber se as ações gravam certo seria mexer num
+// card real do time — e um erro de SQL só apareceria no trabalho de alguém.
+// As chaves estrangeiras apagam em cascata, então não sobra rastro.
+export async function ensaio(sql, evento, { formato = 'Reels' } = {}) {
+  const marca = `[ensaio] ${new Date().toISOString()}`;
+  const criado = (await sql`INSERT INTO vybe_conteudos (titulo, formato, status_chave, grupo_id)
+    VALUES (${marca}, ${formato}, ${String(evento.de || 'em_andamento')}, 'ensaio')
+    RETURNING id`)[0];
+  try {
+    const { aplicadas } = await aplicar(sql, criado.id, evento);
+    const depois = (await sql`SELECT status_chave, grupo_id FROM vybe_conteudos WHERE id=${criado.id}`)[0];
+    const responsaveis = await sql`SELECT p.nome FROM vybe_conteudo_responsaveis r
+      JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${criado.id} ORDER BY p.nome`;
+    const notificacoes = await sql`SELECT COUNT(*)::int AS n FROM vybe_notificacoes WHERE conteudo_id=${criado.id}`;
+    return {
+      formato, evento, aplicadas,
+      resultado: {
+        status: depois?.status_chave, grupo: depois?.grupo_id,
+        responsaveis: responsaveis.map((r) => r.nome),
+        notificacoes: notificacoes[0]?.n || 0,
+      },
+    };
+  } finally {
+    await sql`DELETE FROM vybe_conteudos WHERE id=${criado.id}`;
+  }
+}
