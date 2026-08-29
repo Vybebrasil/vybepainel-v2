@@ -329,7 +329,7 @@
      const values = {
         lista_suspensa_mkmqnjbv: {labels:[state.client]},
         lista_suspensa0__1: {labels:[state.format]},
-        lista_suspensa__1: {index:3},
+        lista_suspensa__1: {ids:[3]},
         data__1: {date:state.veic},
         data: {date:state.prazo},
         status: {label:finalStatus},
@@ -346,7 +346,7 @@
         const pelaEscritaDupla = await tentarEscritaDupla({ id: '' }, {
            acao: 'criar', titulo: normalized, cliente: state.client, formato: state.format,
            prazo: state.prazo, veiculacao: state.veic, status: chaveDeStatus(finalStatus),
-           grupo_id: finalGroup, etapa: 3, briefing: state.brief,
+           grupo_id: finalGroup, tipo_conteudo: 3, briefing: state.brief,
            captacao: finalCap || null, responsaveis: dest.assignees.map(String),
            _devolve: true,
         });

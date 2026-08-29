@@ -103,6 +103,16 @@ async function trocarStatus(sql, quem, { item, para }) {
 // ── datas ─────────────────────────────────────────────────────────────────────
 const COLUNA_DATA = { prazo: 'data', veiculacao: 'data__1' };
 
+// A coluna 'etapa' do nosso banco guarda o título do grupo: é assim em todas as
+// 1.853 linhas vindas da migração, e é dela que sai o campo 'grupo' da listagem.
+const GRUPO_TITULO = {
+  novo_grupo31348__1: 'Finalizados',
+  novo_grupo57911__1: 'Produção ( Foto e Vídeo, à Captar )',
+  novo_grupo__1: 'Design & Edição',
+  group_title: 'Redação',
+  novo_grupo22352__1: 'Gestão de publicações',
+};
+
 async function trocarData(sql, quem, { item, campo, data }) {
   if (!COLUNA_DATA[campo]) throw new Error(`Campo de data desconhecido: ${campo}`);
   const iso = String(data || '').slice(0, 10);
@@ -201,7 +211,11 @@ async function comentar(sql, quem, { item, texto }) {
 // gravamos primeiro sem o id e ligamos os dois em seguida.
 async function criarConteudo(sql, quem, dados) {
   const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing,
-          etapa = null, captacao = null, responsaveis = [] } = dados;
+          tipo_conteudo = null, captacao = null, responsaveis = [] } = dados;
+  // Nossa coluna 'etapa' guarda o TÍTULO do grupo — é dela que a listagem tira o
+  // campo 'grupo'. Não é a coluna "Tipo de conteúdo" do Monday, que é outra
+  // coisa e é dropdown.
+  const etapa = GRUPO_TITULO[grupo_id] || null;
   if (!titulo || !cliente) throw new Error('Informe ao menos título e cliente.');
 
   const cli = (await sql`SELECT id, nome FROM vybe_clientes WHERE LOWER(nome)=LOWER(${String(cliente)})`)[0];
@@ -236,7 +250,13 @@ async function criarConteudo(sql, quem, dados) {
     if (formato) valores.lista_suspensa0__1 = { labels: [formato] };
     if (prazo) valores.data = { date: prazo };
     if (veiculacao) valores.data__1 = { date: veiculacao };
-    if (etapa !== null && etapa !== undefined && etapa !== '') valores.lista_suspensa__1 = { index: Number(etapa) };
+    // "Tipo de conteúdo" é dropdown: aceita ids ou labels, nunca index. Mandar
+    // {index} faz o Monday aceitar a chamada e deixar a coluna vazia.
+    if (tipo_conteudo) {
+      valores.lista_suspensa__1 = Number.isFinite(Number(tipo_conteudo))
+        ? { ids: [Number(tipo_conteudo)] }
+        : { labels: [String(tipo_conteudo)] };
+    }
     if (captacao) valores.status_1__1 = { label: String(captacao) };
     if (responsaveis.length) {
       valores.person = { personsAndTeams: responsaveis.map((id) => ({ id: Number(id), kind: 'person' })) };
