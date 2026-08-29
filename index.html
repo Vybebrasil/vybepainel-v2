@@ -1344,6 +1344,15 @@ header,.topbar{
 .login-caixa.com-email .login-rostos{display:none}
 .login-caixa.com-email .login-campo-email{display:block}
 .login-caixa.com-email .login-voltar{display:block}
+
+/* No celular a lista inteira precisa caber junto com a senha e o ENTRAR: com o
+   time todo na tela, 58px de foto empurravam o botão para fora. */
+@media(max-width:480px){
+  .login-rostos-lista{grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px}
+  .login-rosto{padding:9px 3px 8px;gap:6px}
+  .login-rosto-foto{width:48px;height:48px}
+  .login-rosto-vazio{height:80px}
+}
 </style></head>
 <body>
 
