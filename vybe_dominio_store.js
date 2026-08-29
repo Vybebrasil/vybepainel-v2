@@ -158,8 +158,10 @@ export async function criarSchema() {
   // Status ganha board porque os dois têm rótulos próprios que se repetem —
   // "Alteração" e "Feito" existem nos dois, com índices diferentes. Sem o board
   // na chave, um sobrescreveria o outro.
-  await sql`ALTER TABLE vybe_status ADD COLUMN IF NOT EXISTS board_id BIGINT NOT NULL DEFAULT ${BOARD_PRODUCAO}`;
-  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS board_id BIGINT NOT NULL DEFAULT ${BOARD_PRODUCAO}`;
+  // O número vai literal: DDL do Postgres não aceita parâmetro, e DEFAULT $1 é
+  // recusado antes de executar. É o mesmo 7829537690 de BOARD_PRODUCAO.
+  await sql`ALTER TABLE vybe_status ADD COLUMN IF NOT EXISTS board_id BIGINT NOT NULL DEFAULT 7829537690`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS board_id BIGINT NOT NULL DEFAULT 7829537690`;
   await sql`ALTER TABLE vybe_conteudos DROP CONSTRAINT IF EXISTS vybe_conteudos_status_chave_fkey`;
   await sql`ALTER TABLE vybe_status DROP CONSTRAINT IF EXISTS vybe_status_pkey`;
   await sql`ALTER TABLE vybe_status ADD CONSTRAINT vybe_status_pkey PRIMARY KEY (board_id, chave)`;
