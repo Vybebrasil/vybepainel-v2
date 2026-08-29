@@ -1274,6 +1274,15 @@ header,.topbar{
 .quem-sou-menu>button.quem-sou-sair{color:#ff9aa4}
 .quem-sou-menu>button.quem-sou-sair:hover{background:rgba(240,71,86,.14)}
 @media(max-width:600px){.quem-sou-nome{display:none}.quem-sou-menu{position:fixed;left:16px;right:16px;width:auto}}
+
+/* A ação do card de Clientes era posicionada de forma absoluta e não reservava
+   espaço, então "ABRIR NÚCLEO" caía por cima da última tag. Em fluxo normal ela
+   não pode colidir, em largura nenhuma. */
+.identity-station.station-clientes .station-action{position:static;align-self:flex-end;margin-top:12px}
+.identity-station.station-clientes .station-tags{margin-bottom:2px}
+/* O rótulo do núcleo e o "LIVE TELEMETRY" dividiam a mesma faixa em telas
+   largas, e o segundo entrava por cima do primeiro. */
+.identity-pulse{margin-top:20px}
 </style></head>
 <body>
 
