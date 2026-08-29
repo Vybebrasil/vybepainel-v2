@@ -257,7 +257,9 @@ async function areaPeca(req, res, quem) {
   }
 
   const assets = arquivos.map((a) => ({
-    id: a.monday_asset_id, name: a.nome,
+    // Arquivo que nasceu no Drive não tem id do Monday; usa o do Drive para a
+    // tela ter uma identidade estável para ele.
+    id: a.monday_asset_id || a.drive_file_id, name: a.nome,
     // O link que o Drive devolve ao enviar é a PÁGINA de visualização
     // (/file/d/.../view). Num <img> isso dá imagem quebrada — foi o que
     // aconteceu. Para exibir é preciso o endereço de conteúdo.
@@ -299,9 +301,14 @@ async function areaPeca(req, res, quem) {
       formato_chaves: c.formato_chaves,
     },
     assets,
+    // Só o que realmente está na coluna de arquivos do Monday: é dela que a tela
+    // decide se pode remover pelo painel, e oferecer isso para arquivo do Drive
+    // mostraria um botão que falha.
     column_values: [{
       id: COLUNA_ARQUIVOS,
-      value: JSON.stringify({ files: assets.map((a) => ({ assetId: a.id })) }),
+      value: JSON.stringify({
+        files: arquivos.filter((a) => a.monday_asset_id).map((a) => ({ assetId: a.monday_asset_id })),
+      }),
     }],
     updates: updates.map((u) => ({
       id: u.monday_update_id, body: u.corpo,
