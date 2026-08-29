@@ -1092,41 +1092,64 @@ export async function importarCatalogoOpcoes() {
   }
 
   // Converte o que já está gravado: rótulo (às vezes vários, separados por
-  // vírgula) vira lista de chaves. Quatro consultas escritas à mão em vez de uma
-  // genérica: o driver do Neon não injeta nome de coluna, e montar SQL por
-  // concatenação para economizar três linhas não vale o risco.
-  const multi = async (colunaId, campo) => sql`
-    SELECT c.id, ARRAY_AGG(o.chave ORDER BY t.ord) AS ks
-      FROM vybe_conteudos c
-      CROSS JOIN LATERAL UNNEST(STRING_TO_ARRAY(
-        CASE ${campo}::text WHEN 'formato' THEN c.formato ELSE c.tipo_conteudo END, ',')
-      ) WITH ORDINALITY AS t(parte, ord)
-      JOIN vybe_opcoes o ON o.coluna_id = ${colunaId} AND LOWER(o.rotulo) = LOWER(TRIM(t.parte))
-     GROUP BY c.id`;
-
+  // vírgula) vira lista de chaves. Tudo em quatro comandos, não um por linha:
+  // 1.965 UPDATEs individuais não cabem no tempo de uma função serverless.
   const convertidos = {};
 
-  const fmt = await multi('lista_suspensa0__1', 'formato');
-  for (const l of fmt) await sql`UPDATE vybe_conteudos SET formato_chaves=${l.ks} WHERE id=${l.id}`;
-  convertidos.formato = fmt.length;
+  convertidos.formato = (await sql`
+    UPDATE vybe_conteudos c SET formato_chaves = sub.ks
+      FROM (
+        SELECT c2.id, ARRAY_AGG(o.chave ORDER BY t.ord) AS ks
+          FROM vybe_conteudos c2
+          CROSS JOIN LATERAL UNNEST(STRING_TO_ARRAY(c2.formato, ',')) WITH ORDINALITY AS t(parte, ord)
+          JOIN vybe_opcoes o ON o.coluna_id = 'lista_suspensa0__1'
+                            AND LOWER(o.rotulo) = LOWER(TRIM(t.parte))
+         WHERE c2.formato IS NOT NULL
+         GROUP BY c2.id
+      ) sub
+     WHERE c.id = sub.id AND c.formato_chaves IS DISTINCT FROM sub.ks
+     RETURNING c.id`).length;
 
-  const tipo = await multi('lista_suspensa__1', 'tipo_conteudo');
-  for (const l of tipo) await sql`UPDATE vybe_conteudos SET tipo_conteudo_chaves=${l.ks} WHERE id=${l.id}`;
-  convertidos.tipo_conteudo = tipo.length;
+  convertidos.tipo_conteudo = (await sql`
+    UPDATE vybe_conteudos c SET tipo_conteudo_chaves = sub.ks
+      FROM (
+        SELECT c2.id, ARRAY_AGG(o.chave ORDER BY t.ord) AS ks
+          FROM vybe_conteudos c2
+          CROSS JOIN LATERAL UNNEST(STRING_TO_ARRAY(c2.tipo_conteudo, ',')) WITH ORDINALITY AS t(parte, ord)
+          JOIN vybe_opcoes o ON o.coluna_id = 'lista_suspensa__1'
+                            AND LOWER(o.rotulo) = LOWER(TRIM(t.parte))
+         WHERE c2.tipo_conteudo IS NOT NULL
+         GROUP BY c2.id
+      ) sub
+     WHERE c.id = sub.id AND c.tipo_conteudo_chaves IS DISTINCT FROM sub.ks
+     RETURNING c.id`).length;
 
-  const prio = await sql`UPDATE vybe_conteudos c SET prioridade_chave = o.chave
-    FROM vybe_opcoes o
-    WHERE o.coluna_id = 'color_mm164yv8' AND c.prioridade IS NOT NULL
-      AND LOWER(o.rotulo) = LOWER(TRIM(c.prioridade))
-      AND c.prioridade_chave IS DISTINCT FROM o.chave RETURNING c.id`;
-  convertidos.prioridade = prio.length;
+  convertidos.prioridade = (await sql`
+    UPDATE vybe_conteudos c SET prioridade_chave = o.chave
+      FROM vybe_opcoes o
+     WHERE o.coluna_id = 'color_mm164yv8' AND c.prioridade IS NOT NULL
+       AND LOWER(o.rotulo) = LOWER(TRIM(c.prioridade))
+       AND c.prioridade_chave IS DISTINCT FROM o.chave
+     RETURNING c.id`).length;
 
-  const off = await sql`UPDATE vybe_conteudos c SET off_audio_chave = o.chave
-    FROM vybe_opcoes o
-    WHERE o.coluna_id = 'color_mkynd7j8' AND c.off_audio IS NOT NULL
-      AND LOWER(o.rotulo) = LOWER(TRIM(c.off_audio))
-      AND c.off_audio_chave IS DISTINCT FROM o.chave RETURNING c.id`;
-  convertidos.off_audio = off.length;
+  convertidos.off_audio = (await sql`
+    UPDATE vybe_conteudos c SET off_audio_chave = o.chave
+      FROM vybe_opcoes o
+     WHERE o.coluna_id = 'color_mkynd7j8' AND c.off_audio IS NOT NULL
+       AND LOWER(o.rotulo) = LOWER(TRIM(c.off_audio))
+       AND c.off_audio_chave IS DISTINCT FROM o.chave
+     RETURNING c.id`).length;
+
+  // Editor/Designer sai da lista de ids solta para o vínculo com pessoa.
+  convertidos.editores = (await sql`
+    INSERT INTO vybe_conteudo_editores (conteudo_id, pessoa_id, ordem)
+    SELECT c.id, p.id, e.ord - 1
+      FROM vybe_conteudos c
+      CROSS JOIN LATERAL UNNEST(c.editores) WITH ORDINALITY AS e(uid, ord)
+      JOIN vybe_pessoas p ON p.monday_user_id = e.uid
+     WHERE c.editores IS NOT NULL AND ARRAY_LENGTH(c.editores, 1) > 0
+    ON CONFLICT DO NOTHING
+    RETURNING conteudo_id`).length;
 
   return { opcoes: gravadas, convertidos };
 }
