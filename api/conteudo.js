@@ -727,7 +727,8 @@ async function mexerNoSubitem(sql, quem, corpo) {
   const linhas = await sql`SELECT s.id, s.monday_item_id, s.titulo, s.status_chave, s.pai_id,
       c.monday_item_id AS pai_monday
     FROM vybe_subitens s JOIN vybe_conteudos c ON c.id = s.pai_id
-   WHERE s.monday_item_id = ${String(corpo.subitem || '')}`;
+   WHERE s.monday_item_id = ${String(corpo.subitem || '')}
+      OR s.id::text = ${String(corpo.subitem || '')}`;
   if (!linhas.length) throw new Error('Tarefa não encontrada.');
   const s = linhas[0];
 

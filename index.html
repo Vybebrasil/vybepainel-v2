@@ -1488,8 +1488,18 @@ header,.topbar{
 .subitem-contagem{margin-left:auto;color:var(--vybe-muted,#9da4b4);
   font-family:var(--mac-mono);font-size:11px;font-variant-numeric:tabular-nums}
 .subitem-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
-.subitem{display:flex;align-items:center;gap:10px;padding:8px 2px;
+.subitem{display:flex;align-items:center;gap:10px;padding:7px 2px;
   border-bottom:1px solid rgba(255,255,255,.055)}
+.subitem:hover .subitem-tirar{opacity:1}
+button.subitem-marca{border:0;padding:0;cursor:pointer;transition:transform .12s}
+button.subitem-marca:hover{transform:scale(1.35)}
+.subitem-corpo b{cursor:text}
+.subitem-corpo b:hover{text-decoration:underline;text-underline-offset:3px}
+.subitem-tirar{flex:none;width:20px;height:20px;border-radius:50%;border:0;background:transparent;
+  color:#8f98a9;font-size:14px;line-height:1;cursor:pointer;opacity:0;transition:opacity .14s,background .14s}
+.subitem-tirar:hover{background:rgba(240,71,86,.22);color:#ffb9c0}
+.subitem-nova{display:flex;gap:8px;margin-top:12px}
+.subitem-nova .workspace-input{flex:1;margin:0}
 .subitem:last-child{border-bottom:0}
 .subitem-marca{flex:none;width:8px;height:8px;border-radius:50%;background:var(--cor,#7c8797)}
 .subitem-corpo{min-width:0;flex:1}

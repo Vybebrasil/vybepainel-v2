@@ -308,7 +308,7 @@ async function areaPeca(req, res, quem) {
   // board de Demandas; em Produção a consulta volta vazia e a tela não mostra
   // seção nenhuma.
   const subitens = (await db`
-    SELECT s.id, s.titulo, s.prazo, s.conclusao, s.tipo, s.prioridade, s.ordem,
+    SELECT s.id, s.monday_item_id, s.titulo, s.prazo, s.conclusao, s.tipo, s.prioridade, s.ordem,
            st.rotulo AS status, st.cor AS status_cor, st.borda AS status_borda,
            (SELECT STRING_AGG(p.nome, ', ' ORDER BY r.ordem, p.nome)
               FROM vybe_subitem_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
@@ -317,7 +317,11 @@ async function areaPeca(req, res, quem) {
       LEFT JOIN vybe_status st ON st.chave = s.status_chave AND st.board_id = 8385559107
      WHERE s.pai_id = ${c.id}
      ORDER BY s.ordem, s.id`).map((r) => ({
-    id: String(r.id), titulo: r.titulo, status: r.status || null,
+    // 'ref' é o que a tela usa para escrever. Tarefa criada aqui com o Monday
+    // fora do ar não tem id de lá — e ainda assim precisa ser editável.
+    id: String(r.id), monday_item_id: r.monday_item_id || null,
+    ref: String(r.monday_item_id || r.id),
+    titulo: r.titulo, status: r.status || null,
     status_cor: r.status_cor || null, status_borda: r.status_borda || null,
     prazo: r.prazo, conclusao: r.conclusao, tipo: r.tipo, prioridade: r.prioridade,
     responsaveis: r.responsaveis || null,
