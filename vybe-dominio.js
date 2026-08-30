@@ -12,6 +12,7 @@
 
 const CONTEUDOS_API = '/api/conteudos';
 let CATALOGO_CAPTACAO = [];
+let CATALOGO_OPCOES = [];
 
 // Fonte de leitura. Agora o padrão é o banco da Vybe; o espelho do Monday fica
 // como caminho de volta, e a queda para ele é automática se o banco falhar.
@@ -43,8 +44,17 @@ function dominioComoItensDoMonday(dados) {
   const pessoas = new Map((dados.pessoas || []).map((p) => [String(p.id), p.nome]));
   aplicarFotosDoBanco(dados.pessoas);
   const captacao = new Map((dados.captacao || []).map((c) => [c.chave, c.rotulo]));
+  // Tipo de conteúdo, OFF/áudio e prioridade existiam no banco e paravam aqui:
+  // a ponte emitia sete colunas e essas três não estavam entre elas, então
+  // nenhuma tela tinha como mostrar.
+  const porColuna = (colunaId) => new Map((dados.opcoes || [])
+    .filter((o) => o.coluna_id === colunaId).map((o) => [o.chave, o]));
+  const catTipo = porColuna('lista_suspensa__1');
+  const catOff = porColuna('color_mkynd7j8');
+  const catPrio = porColuna('color_mm164yv8');
   // O catálogo era lido e jogado fora. A tabela por grupo precisa dele para
   // oferecer as opções de captação sem uma segunda ida ao servidor.
+  CATALOGO_OPCOES = dados.opcoes || [];
   CATALOGO_CAPTACAO = (dados.captacao || []).map((c) => ({
     chave: c.chave, rotulo: c.rotulo, cor: c.cor || '', borda: c.borda || '', ativa: c.ativa !== false,
   }));
@@ -73,6 +83,15 @@ function dominioComoItensDoMonday(dados) {
           value: null,
         },
         { id: C.captacao, text: captacao.get(item.captacao_chave) || '', value: null },
+        { id: C.etapa, text: item.tipo_conteudo
+            || (item.tipo_conteudo_chaves || []).map((k) => catTipo.get(k)?.rotulo).filter(Boolean).join(', '),
+          value: null },
+        { id: 'color_mkynd7j8', text: catOff.get(item.off_audio_chave)?.rotulo || '',
+          label_style: { color: catOff.get(item.off_audio_chave)?.cor || '',
+                         border: catOff.get(item.off_audio_chave)?.borda || '' }, value: null },
+        { id: 'color_mm164yv8', text: catPrio.get(item.prioridade_chave)?.rotulo || '',
+          label_style: { color: catPrio.get(item.prioridade_chave)?.cor || '',
+                         border: catPrio.get(item.prioridade_chave)?.borda || '' }, value: null },
         { id: C.prazo, text: item.prazo_iso || '', value: null },
         { id: C.veiculacao, text: item.veiculacao_iso || '', value: null },
         {

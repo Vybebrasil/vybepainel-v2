@@ -761,12 +761,26 @@ function captacaoDoCatalogo(rotulo) {
   return CATALOGO_CAPTACAO.find((c) => c.rotulo === rotulo) || null;
 }
 
+// Seleção múltipla: sem ela, mudar o prazo de dez peças era abrir dez peças.
+const SELECIONADAS = new Set();
+
+function opcoesDaColuna(colunaId) {
+  return (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
+    .filter((o) => o.coluna_id === colunaId);
+}
+
+// Formato, tipo, OFF e prioridade já vinham do banco com cor. Mostrar como
+// texto cru perderia a informação que a cor carrega.
+function pillDeOpcao(rotulo, colunaId) {
+  if (!rotulo) return '<span class="grupo-vazio">—</span>';
+  const o = opcoesDaColuna(colunaId).find((x) => x.rotulo === rotulo);
+  return pillHtml(rotulo, o?.cor || '', o?.borda || '');
+}
+
 function linhaDeGrupoHtml(item) {
   const parar = 'event.stopPropagation()';
   const atual = captacaoDoCatalogo(item.captacao);
-  // Captação usa a mesma pílula do status. Um <select> nativo é desenhado pelo
-  // sistema: no macOS ele vira cinza e engole a cor, que é justamente o que o
-  // Monday usava para dizer o estágio sem ninguém ler nada.
+  const marcada = SELECIONADAS.has(String(item.id));
   const captacao = `<button type="button" class="grupo-pill-btn"
       onclick="abrirEditorDeCaptacao(event,'${item.id}')" title="Trocar captação">
       ${item.captacao
@@ -777,17 +791,39 @@ function linhaDeGrupoHtml(item) {
     `<input type="date" class="grupo-data-campo${atrasado ? ' is-late' : ''}" value="${safeText(iso || '')}"
        onclick="${parar}" onchange="${parar};salvarDataNaLinha('${item.id}','${campo}',this)"
        title="${campo === 'prazo' ? 'Prazo de produção' : 'Data de veiculação'}">`;
-  return `<tr onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
+  return `<tr class="${marcada ? 'marcada' : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
+    <td class="grupo-marcar" onclick="${parar}">
+      <input type="checkbox" ${marcada ? 'checked' : ''} aria-label="Selecionar ${safeText(item.nome || '')}"
+             onchange="alternarSelecao('${safeText(item.id)}',this.checked)"></td>
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
     <td>${safeText(item.cliente || '—')}</td>
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
     <td onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
       title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
     <td onclick="${parar}">${captacao}</td>
+    <td>${pillDeOpcao(item.formato, 'lista_suspensa0__1')}</td>
+    <td class="grupo-texto">${safeText(item.tipo_conteudo || '—')}</td>
+    <td>${pillDeOpcao(item.off_audio, 'color_mkynd7j8')}</td>
+    <td>${pillDeOpcao(item.prioridade, 'color_mm164yv8')}</td>
     <td>${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
     <td>${data('veiculacao', item.veiculacao_iso, false)}</td>
   </tr>`;
 }
+
+function alternarSelecao(id, marcada) {
+  if (marcada) SELECIONADAS.add(String(id)); else SELECIONADAS.delete(String(id));
+  renderVisaoDeGrupos();
+}
+
+function selecionarGrupo(groupId, marcar) {
+  const grupo = itensPorGrupo().find((g) => g.id === groupId);
+  if (!grupo) return;
+  const visiveis = gruposExpandidos.has(groupId) ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
+  visiveis.forEach((i) => (marcar ? SELECIONADAS.add(String(i.id)) : SELECIONADAS.delete(String(i.id))));
+  renderVisaoDeGrupos();
+}
+
+function limparSelecao() { SELECIONADAS.clear(); renderVisaoDeGrupos(); }
 
 // Mesmo desenho e mesmo comportamento do seletor de status: quem já sabe trocar
 // um não precisa aprender o outro.
@@ -868,11 +904,17 @@ function renderVisaoDeGrupos() {
     const mostrarTodos = gruposExpandidos.has(grupo.id);
     const visiveis = mostrarTodos ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
     const restam = total - visiveis.length;
+    const todasMarcadas = visiveis.length > 0 && visiveis.every((i) => SELECIONADAS.has(String(i.id)));
     const corpo = recolhido ? '' : `
       <div class="grupo-tabela-rolagem">
         <table class="grupo-tabela">
-          <thead><tr><th>Conteúdo</th><th>Cliente</th><th>Responsável</th><th>Status</th>
-            <th>Captação</th><th>Prazo</th><th>Veiculação</th></tr></thead>
+          <thead><tr>
+            <th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''}
+              aria-label="Selecionar tudo em ${safeText(grupo.nome)}"
+              onchange="selecionarGrupo('${grupo.id}',this.checked)"></th>
+            <th>Conteúdo</th><th>Cliente</th><th>Responsável</th><th>Status</th>
+            <th>Captação</th><th>Formato</th><th>Tipo</th><th>OFF</th><th>Prioridade</th>
+            <th>Prazo</th><th>Veiculação</th></tr></thead>
           <tbody>${visiveis.map(linhaDeGrupoHtml).join('')}</tbody>
         </table>
       </div>
@@ -885,10 +927,111 @@ function renderVisaoDeGrupos() {
   }).join('');
 
   const totalGeral = grupos.reduce((soma, g) => soma + g.itens.length, 0);
-  wrap.innerHTML = `<div class="grupos-head">
+  // Some quando não há nada marcado: barra de ação vazia é ruído permanente.
+  const barra = SELECIONADAS.size ? `<div class="grupos-lote">
+      <b>${SELECIONADAS.size} selecionada${SELECIONADAS.size === 1 ? '' : 's'}</b>
+      <button type="button" onclick="loteStatus(event)">Status…</button>
+      <button type="button" onclick="loteCaptacao(event)">Captação…</button>
+      <button type="button" onclick="lotePrazo('prazo')">Prazo…</button>
+      <button type="button" onclick="lotePrazo('veiculacao')">Veiculação…</button>
+      <button type="button" class="quieto" onclick="limparSelecao()">Limpar</button>
+    </div>` : '';
+  wrap.innerHTML = `${barra}<div class="grupos-head">
       <div><div class="grupos-kicker">Operação · Por etapa</div>
         <div class="grupos-titulo">Conteúdos por grupo</div>
         <div class="grupos-sub">A mesma divisão do board: clique num grupo para recolher, clique numa linha para abrir a atividade.</div></div>
       <div class="grupos-total"><b>${totalGeral}</b><span>conteúdos${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
     </div>${blocos || '<div class="grupos-vazio">Nenhum conteúdo carregado ainda.</div>'}`;
+}
+
+// ── ações em lote ────────────────────────────────────────────────────────────
+//
+// Cada peça é gravada por uma chamada, não por uma "mutation em massa": o
+// servidor já sabe fazer uma, e o histórico de cada peça continua registrando o
+// que aconteceu com ela. Se uma falhar, as outras seguem — e a conta no fim diz
+// quantas passaram e quantas não.
+
+async function aplicarEmLote(rotulo, executar) {
+  const ids = [...SELECIONADAS];
+  if (!ids.length) return;
+  if (!window.confirm(`Aplicar ${rotulo} em ${ids.length} peça${ids.length === 1 ? '' : 's'}?`)) return;
+  showToast(`Aplicando ${rotulo} em ${ids.length}…`, 'info', 4000);
+  let ok = 0;
+  const falhas = [];
+  for (const id of ids) {
+    const item = findOperationalItem(id);
+    if (!item) { falhas.push(id); continue; }
+    try { await executar(item); ok += 1; }
+    catch (erro) { falhas.push(item.nome || id); console.warn('lote falhou em', id, erro); }
+  }
+  SELECIONADAS.clear();
+  renderVisaoDeGrupos();
+  if (!falhas.length) showToast(`✓ ${rotulo} aplicado em ${ok} peça${ok === 1 ? '' : 's'}`, 'ok', 5000);
+  else showToast(`${ok} atualizada${ok === 1 ? '' : 's'} · ${falhas.length} falhou: ${falhas.slice(0, 3).join(', ')}`, 'info', 8000);
+}
+
+function loteStatus(event) {
+  const opcoes = (typeof STATUS_OPTIONS !== 'undefined' ? STATUS_OPTIONS : []) || [];
+  if (!opcoes.length) return showToast('As opções de status ainda estão carregando.', 'info');
+  abrirMenuDeLote(event, 'Status para todas', opcoes.map((o) => ({
+    rotulo: o.label, cor: o.color,
+    aplicar: (item) => tentarEscritaDupla(item, { acao: 'status', item: String(item.id), para: chaveDeStatus(o.label) })
+      .then((feito) => { if (!feito) throw new Error('gravação recusada'); applyOutboundItemPatch(item.id,
+        { status: o.label, status_color: o.color, status_border: o.border, status_index: o.index }, 'status em lote'); }),
+  })), 'status');
+}
+
+function loteCaptacao(event) {
+  if (!CATALOGO_CAPTACAO.length) return showToast('As opções de captação ainda estão carregando.', 'info');
+  abrirMenuDeLote(event, 'Captação para todas', CATALOGO_CAPTACAO.filter((c) => c.ativa).map((c) => ({
+    rotulo: c.rotulo, cor: c.cor,
+    aplicar: async (item) => {
+      const deu = await salvarCampoDaFicha(item.id, 'captacao', c.chave, null);
+      if (!deu) throw new Error('gravação recusada');
+      applyOutboundItemPatch(item.id, { captacao: c.rotulo }, 'captação em lote');
+    },
+  })), 'captação');
+}
+
+function lotePrazo(campo) {
+  const rotulo = campo === 'prazo' ? 'prazo' : 'veiculação';
+  const hoje = new Date().toISOString().slice(0, 10);
+  const data = window.prompt(`Nova ${rotulo} para as ${SELECIONADAS.size} selecionadas (AAAA-MM-DD):`, hoje);
+  if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data.trim())) {
+    if (data !== null) showToast('Data inválida; use AAAA-MM-DD.', 'info');
+    return;
+  }
+  aplicarEmLote(rotulo, (item) => moverDataDoItem(item, campo, data.trim(), { request: isRequestItem(item) }));
+}
+
+// Mesmo popover do resto do painel, com a lista que a ação pediu.
+function abrirMenuDeLote(event, titulo, opcoes, rotuloAcao) {
+  event.preventDefault();
+  event.stopPropagation();
+  document.getElementById('lote-editor-backdrop')?.remove();
+  document.getElementById('lote-editor')?.remove();
+  const rect = event.currentTarget.getBoundingClientRect();
+  const fundo = document.createElement('div');
+  fundo.id = 'lote-editor-backdrop';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharMenuDeLote;
+  const menu = document.createElement('div');
+  menu.id = 'lote-editor';
+  menu.className = 'status-editor';
+  menu.innerHTML = `<div class="status-editor-head">${safeText(titulo)}</div>`;
+  opcoes.forEach((o, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'status-editor-option';
+    b.innerHTML = `<span class="status-editor-dot" style="background:${o.cor || '#7c8797'};color:${o.cor || '#7c8797'}"></span><span>${safeText(o.rotulo)}</span>`;
+    b.onclick = () => { fecharMenuDeLote(); aplicarEmLote(`${rotuloAcao} "${o.rotulo}"`, o.aplicar); };
+    menu.appendChild(b);
+  });
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, rect);
+}
+
+function fecharMenuDeLote() {
+  document.getElementById('lote-editor-backdrop')?.remove();
+  document.getElementById('lote-editor')?.remove();
 }
