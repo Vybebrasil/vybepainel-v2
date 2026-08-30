@@ -334,7 +334,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   const rect = (event.currentTarget || event.target).getBoundingClientRect();
   const fundo = document.createElement('div');
   fundo.id = 'cartao-rapido-fundo';
-  fundo.className = 'status-editor-backdrop';
+  fundo.className = 'cartao-rapido-fundo';
   fundo.onclick = fecharCartaoRapido;
 
   const cartao = document.createElement('div');
