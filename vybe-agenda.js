@@ -517,7 +517,7 @@ function handleGlobalSearch(query) {
     return;
   }
   resultBox.innerHTML = `<div class="ops-panel-title"><span>Resultados da busca</span>${totalMatches > 5 ? `<span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">5 de ${totalMatches}</span>` : ''}</div><div class="ops-list">${matches.map(d => `<button class="ops-item" style="text-align:left;cursor:pointer;" onclick="openSearchItem('${safeText(d.id)}')">
-    <span class="ops-item-client">${safeText(d.cliente)}</span><span class="ops-item-name">${safeText(d.nome)}</span>${pillHtml(d.status,d.status_color,d.status_border)}<span class="ops-item-date">S${d.semana} · ${safeText(getDateFmt(d))}</span>
+    ${vybeChipId(d)}<span class="ops-item-client">${safeText(d.cliente)}</span><span class="ops-item-name">${safeText(d.nome)}</span>${pillHtml(d.status,d.status_color,d.status_border)}<span class="ops-item-date">S${d.semana} · ${safeText(getDateFmt(d))}</span>
   </button>`).join('')}</div>`;
   resultBox.classList.add('open');
 }

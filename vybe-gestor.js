@@ -51,6 +51,56 @@ function statusDotInlineStyle(color) {
   const hex = validStatusColor(color);
   return hex ? ` style="background:${hex};"` : '';
 }
+// ── as peças de uma atividade, uma implementação de cada ─────────────────────
+//
+// Cada aba montava a sua própria linha, e por isso a mesma informação aparecia
+// de jeitos diferentes — ou não aparecia. Na fila da semana o responsável era
+// uma bolinha com foto; na fila de demandas, o primeiro nome em texto. O status
+// era clicável num lugar e só enfeite no outro. O ID não aparecia em lugar
+// nenhum.
+//
+// Aqui mora UMA implementação de cada peça. As telas continuam livres para
+// arrumá-las como couber no espaço delas — uma tabela larga e uma coluna
+// estreita não têm por que ter o mesmo formato —, mas a peça é a mesma.
+
+function vybeChipId(item) {
+  if (!item?.id) return '';
+  return `<button type="button" class="vybe-id" onclick="event.stopPropagation();copiarId('${safeText(item.id)}')"
+    title="ID da atividade · clique para copiar">#${safeText(item.id)}</button>`;
+}
+
+function vybeTagCliente(item) {
+  const nome = item?.cliente;
+  if (!nome || nome === '—') return '';
+  return `<span class="vybe-cliente" title="${safeText(nome)}">${safeText(nome)}</span>`;
+}
+
+// Status sempre clicável: era pílula morta na fila de demandas e no modo
+// reunião, e trocar exigia abrir a peça.
+function vybeStatus(item) {
+  const rotulo = item?.status || 'Sem status';
+  const pill = pillHtml(rotulo, item?.status_color, item?.status_border);
+  return `<button type="button" class="vybe-status-btn"
+    onclick="openStatusEditor(event,'${safeText(item.id)}')"
+    title="Trocar status de ${safeText(item.nome || 'atividade')}">${pill}</button>`;
+}
+
+function vybeDono(item, className = '') {
+  return ownerEditorTrigger(item, className);
+}
+
+function vybeData(item) {
+  const iso = typeof getDateIso === 'function' ? getDateIso(item) : (item?.veiculacao_iso || item?.prazo_iso || '');
+  const curta = /^\d{4}-\d{2}-\d{2}$/.test(String(iso)) ? `${iso.slice(8,10)}/${iso.slice(5,7)}` : '—';
+  const atrasado = item?.prazo_atrasado && dateMode === 'prazo';
+  return `<span class="vybe-data${atrasado ? ' atrasado' : ''}">${curta}</span>`;
+}
+
+function vybeNome(item) {
+  return `<button type="button" class="vybe-nome" onclick="openItemWorkspace('${safeText(item.id)}')"
+    title="${safeText(item.nome || '')}">${safeText(item.nome || 'Sem título')}</button>`;
+}
+
 // ── uma cor por rótulo, para o painel inteiro ────────────────────────────────
 //
 // A mesma etiqueta saía de cores diferentes dependendo da tela: quem chamava
@@ -215,14 +265,18 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
     const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
     const diaSem = dateMode === 'prazo' ? (d.prazo_iso ? ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(d.prazo_iso+'T12:00:00').getDay()] : '') : d.dia_semana;
     const isUrgent = !['Finalizado','Agendado','Para agendar'].includes(d.status) && isDateTodayOrTomorrow(getDateIso(d));
+    // Mesmas peças da fila de demandas e da visão por grupo, arrumadas para a
+    // largura desta coluna. O ID e a captação entram aqui: faltavam.
     return `
     <div class="item-row${isUrgent?' urgent':''}">
       <span class="item-date">${diaSem} ${getDateFmt(d)}${prazoAtrasadoBadge}</span>
+      ${vybeChipId(d)}
       ${fmtHtml(d.formato)}
-      <span class="item-name"><button type="button" class="item-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}</button></span>
+      <span class="item-name">${vybeNome(d)}</span>
+      ${d.captacao ? pillHtml(d.captacao) : ''}
       ${managerStatusControl(d)}
       ${quickDateTrigger(d,'manager-date-trigger')}
-      ${ownerEditorTrigger(d,'manager-owner-trigger')}
+      ${vybeDono(d,'manager-owner-trigger')}
     </div>`;
   }).join("");
   // Barra de progresso
@@ -633,7 +687,7 @@ function renderTodayQueue(){
   const existing=document.getElementById('ops-today-panel'); if(!existing) return;
   const items=opsTodayItems(); const count=document.getElementById('ops-today-count'); if(count) count.textContent=items.length;
   const groups=new Map(); items.forEach(d=>opsOwners(d).forEach(owner=>{ const key=String(owner.id); if(!groups.has(key)) groups.set(key,{owner,items:[]}); groups.get(key).items.push(d); }));
-  const content=groups.size?[...groups.values()].map(({owner,items})=>{ const avatar=owner.photo?`<img src="${owner.photo}" alt="${safeText(owner.name)}" onerror="this.remove()">`:'<span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">?</span>'; return `<div class="ops-today-group"><div class="ops-today-group-head">${avatar}<b>${safeText(firstName(owner.name))}</b><span>${items.length} entrega${items.length===1?'':'s'}</span></div>${items.map(d=>{const date=getDateIso(d);const overdue=date<opsTodayIso();return `<div class="ops-today-line" onclick="openItemWorkspace('${d.id}')"><b title="${safeText(d.nome)}">${safeText(d.nome)}</b><small>${safeText(d.cliente)}</small><span class="${overdue?'ops-today-alert':'ops-today-due'}">${overdue?'ATRASADA':`HOJE · ${safeText(getDateFmt(d))}`}</span></div>`;}).join('')}</div>`;}).join(''):'<div class="ops-empty">✓ Nenhuma entrega aberta vence hoje ou está atrasada neste contexto.</div>';
+  const content=groups.size?[...groups.values()].map(({owner,items})=>{ const avatar=owner.photo?`<img src="${owner.photo}" alt="${safeText(owner.name)}" onerror="this.remove()">`:'<span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">?</span>'; return `<div class="ops-today-group"><div class="ops-today-group-head">${avatar}<b>${safeText(firstName(owner.name))}</b><span>${items.length} entrega${items.length===1?'':'s'}</span></div>${items.map(d=>{const date=getDateIso(d);const overdue=date<opsTodayIso();return `<div class="ops-today-line" onclick="openItemWorkspace('${d.id}')">${vybeChipId(d)}<b title="${safeText(d.nome)}">${safeText(d.nome)}</b>${vybeTagCliente(d)}<span class="${overdue?'ops-today-alert':'ops-today-due'}">${overdue?'ATRASADA':`HOJE · ${safeText(getDateFmt(d))}`}</span></div>`;}).join('')}</div>`;}).join(''):'<div class="ops-empty">✓ Nenhuma entrega aberta vence hoje ou está atrasada neste contexto.</div>';
   existing.innerHTML=`<div class="ops-panel-title"><span>O que vence hoje · ${safeText(opsTodayIso().split('-').reverse().join('/'))}</span><span>${items.length} item${items.length===1?'':'s'}</span></div>${content}`;
 }
 let showDailyClose=false;
@@ -700,9 +754,10 @@ function renderActionQueue() {
   countEl.textContent = items.length;
   const visibleItems = showAllActionItems ? items : items.slice(0,5);
   const list = visibleItems.length ? visibleItems.map(d => `<div class="ops-item">
-    <span class="ops-item-client">${safeText(d.cliente)}</span>
-    <span class="ops-item-name" title="${safeText(d.nome)}">${safeText(d.nome)}</span>
-    ${pillHtml(d.status, d.status_color, d.status_border)}
+    ${vybeChipId(d)}
+    ${vybeTagCliente(d)}
+    <span class="ops-item-name" title="${safeText(d.nome)}">${vybeNome(d)}</span>
+    ${vybeStatus(d)}
     ${riskBadgeHtml(d,true)}
     <span class="ops-item-date">${safeText(getDateFmt(d))}</span>
   </div>`).join('') : '<div class="ops-empty">✓ Nenhum item requer ação nesta semana.</div>';

@@ -543,34 +543,28 @@ function renderDemandaKPIs() {
 
 // Helper: linha de item de demanda
 function demandaItemRow(d, showCliente=true) {
-  const atrasadoBadge = d.prazo_atrasado ? '<span class="prazo-badge">⚠</span>' : '';
-  // Montar bloco de datas: mostrar prazo e conclusão quando disponíveis
-  let dateBlock = '';
-  if (d.prazo && d.conclusao) {
-    dateBlock = `<span class="item-date" style="min-width:80px;display:flex;gap:4px;align-items:center;">
-      <span title="Prazo" style="color:#f59e0b;">⏰${d.prazo}${atrasadoBadge}</span>
-      <span style="color:var(--border);">|</span>
-      <span title="Conclusão" style="color:#34d399;">✔${d.conclusao}</span>
-    </span>`;
-  } else if (d.prazo) {
-    dateBlock = `<span class="item-date" style="min-width:44px;color:#f59e0b;" title="Prazo">⏰${d.prazo}${atrasadoBadge}</span>`;
-  } else if (d.conclusao) {
-    dateBlock = `<span class="item-date" style="min-width:44px;color:#34d399;" title="Conclusão">✔${d.conclusao}</span>`;
-  } else {
-    dateBlock = `<span class="item-date" style="min-width:44px;color:var(--border)">—</span>`;
-  }
-  const clienteTag = showCliente
-    ? `<span style="background:rgba(168,85,247,.18);color:#c084fc;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${d.cliente}</span>`
-    : '';
+  // Mesmas peças da fila de produção. Antes esta linha tinha implementação
+  // própria de tudo: cliente numa cápsula roxa escrita à mão, responsável em
+  // texto onde a outra fila usa a foto, status que não abria, e nenhum ID.
+  const atrasadoBadge = d.prazo_atrasado ? '<span class="prazo-badge">Atrasado</span>' : '';
+  const data = (rotulo, valor, cor) => valor
+    ? `<span class="vybe-data" style="color:${cor}" title="${rotulo}">${valor}</span>` : '';
+  const dateBlock = (d.prazo || d.conclusao)
+    ? `<span class="item-date vybe-datas">
+        ${data('Prazo', d.prazo, '#f59e0b')}${atrasadoBadge}
+        ${d.prazo && d.conclusao ? '<i class="vybe-datas-sep"></i>' : ''}
+        ${data('Conclusão', d.conclusao, '#34d399')}
+      </span>`
+    : '<span class="item-date vybe-data">—</span>';
   return `<div class="item-row">
-    ${clienteTag}
+    ${showCliente ? vybeTagCliente(d) : ''}
+    ${vybeChipId(d)}
     ${fmtHtml(d.tipo)}
-    <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openDemandaWorkspace('${d.id}')" title="Abrir contexto da solicitação">${safeText(d.nome)}</button>
+    <span class="item-name">${vybeNome(d)}</span>
     ${dateBlock}
-    ${tarefasHtml(d)}
     ${prioHtml(d.prioridade)}
-    ${pillHtmlDemanda(d.status, d.status_color, d.status_border)}
-    <span class="item-resp" style="flex-shrink:0;">${firstName(d.responsavel)}</span>
+    ${vybeStatus(d)}
+    ${vybeDono(d)}
   </div>`;
 }
 
