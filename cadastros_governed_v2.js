@@ -133,7 +133,60 @@
         .fc-auto-group { grid-template-columns:1fr; }
         .fc-modal { margin:0; height:100vh; max-height:100vh; border-radius:0; border:none; }
       }
-    `;
+    
+      /* ─── Fluxo guiado ──────────────────────────────────────────────────── */
+      .fc-trilha { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:26px; }
+      .fc-trilha-passo { border:0; border-radius:999px; padding:4px 11px; cursor:pointer;
+        background:rgba(255,255,255,.05); color:#7d8b96; font:600 10.5px var(--mac-ui,system-ui);
+        transition:background-color .14s var(--curva), color .14s var(--curva); }
+      .fc-trilha-passo:disabled { opacity:.4; cursor:default; }
+      .fc-trilha-passo.feito { background:rgba(0,240,255,.10); color:#7fd8e8; }
+      .fc-trilha-passo.agora { background:#00f0ff; color:#061016; }
+      .fc-pergunta { margin:0 0 5px; color:#fff; font:700 27px/1.15 var(--mac-ui,system-ui); letter-spacing:-.02em; }
+      .fc-sub { margin:0 0 22px; color:#7d8b96; font:500 13px/1.45 var(--mac-ui,system-ui); }
+      .fc-resposta { min-height:230px; }
+      .fc-guia-rodape { display:flex; justify-content:flex-end; gap:10px; margin-top:26px;
+        padding-top:18px; border-top:1px solid rgba(255,255,255,.07); }
+
+      .fc-escolhas { display:flex; flex-wrap:wrap; gap:7px; max-height:320px; overflow-y:auto; padding:2px; }
+      .fc-escolha { border:1px solid rgba(255,255,255,.11); border-radius:10px; padding:9px 14px;
+        background:rgba(255,255,255,.03); color:#dfe6ec; cursor:pointer;
+        font:600 13px var(--mac-ui,system-ui); text-align:left;
+        transition:border-color .14s var(--curva), background-color .14s var(--curva); }
+      .fc-escolha:hover { border-color:rgba(0,240,255,.5); background:rgba(0,240,255,.07); }
+      .fc-escolha.marcada { border-color:#00f0ff; background:rgba(0,240,255,.13); color:#fff; }
+      .fc-escolha.grande { display:block; width:100%; padding:16px 18px; margin-bottom:9px; }
+      .fc-escolha.grande b { display:block; font:700 16px var(--mac-ui,system-ui); }
+      .fc-escolha.grande small { display:block; margin-top:3px; color:#7d8b96; font:500 12px var(--mac-ui,system-ui); }
+
+      .fc-busca, .fc-campo, .fc-campo-grande, .fc-campo-texto { width:100%; box-sizing:border-box;
+        border:1px solid rgba(255,255,255,.12); border-radius:10px; background:rgba(0,0,0,.28);
+        color:#fff; font:600 14px var(--mac-ui,system-ui); padding:11px 13px;
+        transition:border-color .14s var(--curva); }
+      .fc-busca { margin-bottom:11px; }
+      .fc-campo-grande { font:700 22px var(--mac-ui,system-ui); padding:14px; }
+      .fc-campo-texto { min-height:130px; resize:vertical; font:500 14px/1.5 var(--mac-ui,system-ui); }
+      .fc-busca:focus, .fc-campo:focus, .fc-campo-grande:focus, .fc-campo-texto:focus {
+        border-color:#00f0ff; outline:none; }
+      .fc-dica { margin:11px 0 0; color:#7d8b96; font:500 12px var(--mac-ui,system-ui); }
+      .fc-dica b { color:#bfe9f2; }
+
+      .fc-datas { display:flex; gap:12px; flex-wrap:wrap; }
+      .fc-datas label { flex:1 1 180px; display:block; }
+      .fc-datas span { display:block; margin-bottom:6px; color:#7d8b96;
+        font:600 10.5px var(--mac-ui,system-ui); text-transform:uppercase; letter-spacing:.05em; }
+
+      .fc-atalhos { display:grid; gap:8px; margin-top:14px; }
+      .fc-atalho { display:flex; align-items:flex-start; gap:10px; padding:11px 13px;
+        border:1px solid rgba(255,255,255,.10); border-radius:10px; cursor:pointer;
+        color:#dfe6ec; font:600 13px var(--mac-ui,system-ui);
+        transition:border-color .14s var(--curva), background-color .14s var(--curva); }
+      .fc-atalho:hover { border-color:rgba(0,240,255,.4); background:rgba(0,240,255,.05); }
+      .fc-atalho input { margin-top:2px; accent-color:#00f0ff; }
+      .fc-atalho small { display:block; color:#7d8b96; font:500 11.5px var(--mac-ui,system-ui); }
+      .fc-bloco-equipe { margin-top:20px; }
+      .fc-bloco-equipe .fc-dica { margin:0 0 10px; }
+`;
     document.head.appendChild(style);
   }
 
@@ -383,28 +436,18 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
   }
 
   window.fcSubmit = async function() {
-     const title = document.getElementById('fc-title').value.trim();
-     state.title = title; // ensure sync
-     
-     // Visual validation
-     document.querySelectorAll('.fc-error-pulse').forEach(el => el.classList.remove('fc-error-pulse'));
-     let hasError = false;
-     
-     if(!title) { document.getElementById('fc-title').classList.add('fc-error-pulse'); hasError = true; }
-     if(!state.client) { document.getElementById('fc-client-input').classList.add('fc-error-pulse'); hasError = true; }
-     if(!state.format) { document.getElementById('fc-format-input').classList.add('fc-error-pulse'); hasError = true; }
-     if(!state.veic) { document.getElementById('fc-veic-input').classList.add('fc-error-pulse'); hasError = true; }
-     if(!state.prazo) { document.getElementById('fc-prazo').classList.add('fc-error-pulse'); hasError = true; }
-     if(!state.brief) { document.getElementById('fc-brief-input').classList.add('fc-error-pulse'); hasError = true; }
-     
-     if(hasError) {
-        return typeof showToast === 'function' ? showToast('Preencha os campos obrigatórios destacados em vermelho.', 'info') : alert('Preencha os campos obrigatórios.');
+     // Antes isto lia o DOM e pintava de vermelho o campo faltante. Num fluxo
+     // por etapas o campo faltante costuma nem estar na tela — entao a validacao
+     // le o state e leva a pessoa ate a pergunta que ficou sem resposta.
+     const faltando = FC_PASSOS.find((q) => !fcRespondido(q));
+     if (faltando) {
+        fcPasso = FC_PASSOS.indexOf(faltando);
+        fcDesenharPasso();
+        return typeof showToast === 'function'
+          ? showToast('Falta responder esta.', 'info') : null;
      }
-     
-     // dest era declarado DEPOIS destas tres linhas. Como e const, ler antes e
-     // ReferenceError — e o painel so escapava quando as tres escolhas estavam
-     // no manual, porque ai o ternario nem chegava a olhar dest. No caminho
-     // padrao, com tudo no automatico, criar conteudo sempre quebrava.
+     const title = String(state.title || '').trim();
+
      const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
      const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
      const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
@@ -412,8 +455,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      const normalized = `${state.format} - ${title}`;
      
      const btn = document.getElementById('fc-submit-btn');
-     btn.disabled = true;
-     btn.textContent = 'Criando...';
+     if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
 
      const values = {
         lista_suspensa_mkmqnjbv: {labels:[state.client]},
@@ -472,8 +514,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         fcCloseModal();
         if(typeof refreshData === 'function') await refreshData();
      } catch (e) {
-        btn.disabled = false;
-        btn.textContent = 'Criar conteúdo';
+        if (btn) { btn.disabled = false; btn.textContent = 'Criar conteúdo'; }
         if(typeof showToast === 'function') showToast(`Erro: ${e.message}`, 'err');
      }
   };
@@ -508,8 +549,177 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
                valEl.style.border = '1px solid rgba(255,255,255,0.1)';
            }
        }
-       updateDestinyUI();
+       // Estava fora do if e chamava de volta o caminho automatico:
+       // updateDestinyUI -> fcSelectDropdown(false) -> updateDestinyUI, sem fim.
+       // Antes parava porque o automatico gravava no state e a condicao de la
+       // deixava de valer — parava por causa do bug. Redesenhar so faz sentido
+       // quando foi a pessoa que escolheu.
+       if (isManual) updateDestinyUI();
     };
+
+
+  // ─── Fluxo guiado ───────────────────────────────────────────────────────────
+  // A tela pedia as onze informacoes de uma vez, num formulario que so dizia se
+  // estava certo depois de clicar em Criar. Agora e uma pergunta por vez, e a
+  // previa da direita vai se montando conforme cada resposta entra — quem
+  // cadastra ve para onde a peca esta indo antes de terminar.
+  const FC_PASSOS = ['board', 'client', 'format', 'title', 'datas', 'brief', 'destino'];
+  let fcPasso = 0;
+
+  const FC_ROTULO = { board:'Onde', client:'Cliente', title:'Título',
+                      datas:'Datas', brief:'Briefing', destino:'Destino' };
+  function fcRotulo(p) { return p === 'format' ? fcQuadro().rotuloFormato : FC_ROTULO[p]; }
+
+  function fcPergunta(p) {
+    if (p === 'board')   return ['O que você vai cadastrar?', 'Os dois quadros têm etapas e status diferentes.'];
+    if (p === 'client')  return ['Para qual cliente?', ''];
+    if (p === 'format')  return [`Qual ${fcQuadro().rotuloFormato.toLowerCase()}?`,
+                                 'É isto que decide para qual etapa a peça vai.'];
+    if (p === 'title')   return ['Qual o título?', 'O formato entra na frente sozinho.'];
+    if (p === 'datas')   return ['Quando vai ao ar?', 'O prazo de ouro cai sete dias antes, e dá para mudar.'];
+    if (p === 'brief')   return ['O que a equipe precisa saber?', ''];
+    return ['Confira antes de criar', 'Tudo aqui veio das regras de entrada. Mude o que quiser.'];
+  }
+
+  function fcRespondido(p) {
+    if (p === 'board')  return true;
+    if (p === 'client') return !!state.client;
+    if (p === 'format') return !!state.format;
+    if (p === 'title')  return !!String(state.title || '').trim();
+    if (p === 'datas')  return !!state.veic && !!state.prazo;
+    if (p === 'brief')  return !!String(state.brief || '').trim();
+    return true;
+  }
+
+  function fcCorpo(p) {
+    const esc2 = (t) => esc(String(t == null ? '' : t));
+    if (p === 'board') {
+      return ['producao', 'demandas'].map((q) => `
+        <button type="button" class="fc-escolha grande ${state.board === q ? 'marcada' : ''}"
+          onclick="fcEscolherQuadro('${q}')">
+          <b>${esc2(FC_QUADROS[q].nome)}</b>
+          <small>${q === 'producao' ? 'Conteúdo que a Vybe produz e publica'
+                                    : 'Pedido que chega e precisa de triagem'}</small></button>`).join('');
+    }
+    if (p === 'client') {
+      const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
+      return `<input type="text" class="fc-busca" id="fc-busca-cliente" placeholder="Buscar cliente..."
+          oninput="fcFiltrar('fc-lista-cliente', this.value)">
+        <div class="fc-escolhas" id="fc-lista-cliente">${clientes.map((c) => `
+          <button type="button" class="fc-escolha ${state.client === c ? 'marcada' : ''}"
+            data-busca="${esc2(String(c).toLowerCase())}"
+            onclick="fcResponder('client', '${esc2(c).replace(/'/g, "\\'")}')">${esc2(c)}</button>`).join('')}</div>`;
+    }
+    if (p === 'format') {
+      const lista = fcQuadro().formatos
+        || (typeof CADASTROS_FORMATS !== 'undefined' ? CADASTROS_FORMATS
+            : ['Reels','Vídeo','Fotografia','Carrossel','Post Único','Motion','Stories']);
+      return `<div class="fc-escolhas">${lista.map((f) => `
+        <button type="button" class="fc-escolha ${state.format === f ? 'marcada' : ''}"
+          onclick="fcResponder('format', '${esc2(f).replace(/'/g, "\\'")}')">${esc2(f)}</button>`).join('')}</div>`;
+    }
+    if (p === 'title') {
+      return `<input type="text" id="fc-title" class="fc-campo-grande" value="${esc2(state.title)}"
+        placeholder="Dia do Nutricionista" oninput="fcHandleInput('title', this.value)">
+        <p class="fc-dica">Vai entrar como <b id="fc-previa-nome">${esc2(state.format || 'Formato')} - ${esc2(state.title || 'título')}</b></p>`;
+    }
+    if (p === 'datas') {
+      // Estes dois campos eram lidos na validacao e nunca existiram no HTML:
+      // nao havia onde digitar veiculacao, entao criar nunca passava daqui.
+      return `<div class="fc-datas">
+        <label><span>Veiculação</span>
+          <input type="date" id="fc-veic-input" class="fc-campo" value="${esc2(state.veic)}"
+            onchange="fcHandleInput('veic', this.value);fcDesenharPasso()"></label>
+        <label><span>Prazo de ouro</span>
+          <input type="date" id="fc-prazo" class="fc-campo" value="${esc2(state.prazo)}"
+            onchange="fcHandleInput('prazo', this.value)"></label>
+      </div>`;
+    }
+    if (p === 'brief') {
+      return `<textarea id="fc-brief-input" class="fc-campo-texto" placeholder="Objetivo, referência ou contexto..."
+          oninput="fcHandleInput('brief', this.value)">${esc2(state.brief)}</textarea>
+        <div class="fc-atalhos">
+          <label class="fc-atalho"><input type="checkbox" ${state.briefReady ? 'checked' : ''}
+            onchange="fcHandleInput('briefReady', this.checked);updateDestinyUI()">
+            <span>O briefing já está pronto <small>pula a Redação</small></span></label>
+          <label class="fc-atalho"><input type="checkbox" ${state.materialReady ? 'checked' : ''}
+            onchange="fcHandleInput('materialReady', this.checked);updateDestinyUI()">
+            <span>O material bruto já foi fornecido <small>ignora a Captação</small></span></label>
+        </div>`;
+    }
+    return `<div class="fc-auto-group" id="fc-auto-group-container"></div>
+      <div class="fc-bloco-equipe">
+        <span class="fc-dica">Equipe extra — as regras já escolhem quem entra; some aqui quem mais precisa.</span>
+        <div class="fc-persons" id="fc-persons-container"></div>
+      </div>`;
+  }
+
+  window.fcFiltrar = function(listaId, termo) {
+    const t = String(termo || '').toLowerCase().trim();
+    document.querySelectorAll('#' + listaId + ' .fc-escolha').forEach((b) => {
+      b.style.display = !t || (b.dataset.busca || '').includes(t) ? '' : 'none';
+    });
+  };
+
+  window.fcResponder = function(chave, valor) {
+    fcHandleInput(chave, valor);
+    fcAvancar();
+  };
+
+  window.fcEscolherQuadro = function(qual) {
+    if (state.board !== qual) {
+      state.board = qual;
+      // Grupo e status do quadro anterior nao existem no novo.
+      state.manualGroup = state.manualStatus = state.manualCap = undefined;
+      state.prioridade = ''; state.format = '';
+    }
+    fcAvancar();
+  };
+
+  window.fcIrPara = function(n) {
+    if (n < 0 || n >= FC_PASSOS.length) return;
+    // So deixa pular para frente ate onde ja foi respondido.
+    for (let i = 0; i < n; i++) if (!fcRespondido(FC_PASSOS[i])) return;
+    fcPasso = n;
+    fcDesenharPasso();
+  };
+
+  window.fcAvancar = function() {
+    const p = FC_PASSOS[fcPasso];
+    if (!fcRespondido(p)) return typeof showToast === 'function'
+      ? showToast('Responda esta pergunta para continuar.', 'info') : null;
+    if (fcPasso >= FC_PASSOS.length - 1) return fcSubmit();
+    fcPasso++;
+    fcDesenharPasso();
+  };
+
+  window.fcVoltar = function() { if (fcPasso > 0) { fcPasso--; fcDesenharPasso(); } };
+
+  window.fcDesenharPasso = function() {
+    const caixa = document.getElementById('fc-guia');
+    if (!caixa) return;
+    const p = FC_PASSOS[fcPasso];
+    const [titulo, sub] = fcPergunta(p);
+    const ultimo = fcPasso === FC_PASSOS.length - 1;
+
+    caixa.innerHTML = `
+      <div class="fc-trilha">${FC_PASSOS.map((q, i) => `
+        <button type="button" class="fc-trilha-passo ${i === fcPasso ? 'agora' : ''} ${i < fcPasso ? 'feito' : ''}"
+          onclick="fcIrPara(${i})" ${i > fcPasso ? 'disabled' : ''}>${esc(fcRotulo(q))}</button>`).join('')}</div>
+      <h2 class="fc-pergunta">${esc(titulo)}</h2>
+      ${sub ? `<p class="fc-sub">${esc(sub)}</p>` : ''}
+      <div class="fc-resposta">${fcCorpo(p)}</div>
+      <div class="fc-guia-rodape">
+        ${fcPasso > 0 ? '<button type="button" class="fc-btn-cancel" onclick="fcVoltar()">Voltar</button>' : ''}
+        <button type="button" class="fc-btn-create" id="fc-submit-btn" onclick="fcAvancar()">${
+          ultimo ? 'Criar conteúdo' : 'Continuar'}</button>
+      </div>`;
+
+    if (ultimo) { renderPersons(); renderCustomDropdownsGlobal(); }
+    updateDestinyUI();
+    const foco = caixa.querySelector('#fc-busca-cliente, #fc-title, #fc-veic-input, #fc-brief-input');
+    if (foco) foco.focus();
+  };
 
     window.openCadastrosGoverned = function() {
     ensureFastCadastrosStyles();
@@ -598,14 +808,22 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
            </div>`}
         `;
 
-        document.getElementById('fc-auto-group-container').innerHTML = html;
-        
-        // global click to close
-        document.getElementById('fc-overlay').addEventListener('click', (e) => {
-            if(!e.target.closest('.fc-custom-dropdown')) {
-                document.querySelectorAll('.fc-dropdown-list').forEach(el => el.classList.remove('open'));
-            }
-        });
+        // Guarda: no fluxo por etapas este bloco so existe no ultimo passo.
+        const caixa = document.getElementById('fc-auto-group-container');
+        if (!caixa) return;
+        caixa.innerHTML = html;
+
+        // Era registrado toda vez que a lista era redesenhada — um ouvinte novo
+        // por redesenho, todos vivos ao mesmo tempo.
+        const capa = document.getElementById('fc-overlay');
+        if (capa && !capa.dataset.fechaDropdown) {
+            capa.dataset.fechaDropdown = '1';
+            capa.addEventListener('click', (e) => {
+                if(!e.target.closest('.fc-custom-dropdown')) {
+                    document.querySelectorAll('.fc-dropdown-list').forEach(el => el.classList.remove('open'));
+                }
+            });
+        }
     }
     
     const clients = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
@@ -619,77 +837,13 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     overlay.innerHTML = `
       <div class="fc-modal">
          
-         <!-- LEFT COLUMN: FORM -->
          <div class="fc-main-col">
              <div class="fc-header">
                 <div class="fc-kicker">Cadastro rápido</div>
-                <div class="fc-destino" role="group" aria-label="Onde cadastrar">
-                   <button type="button" id="fc-destino-producao" class="fc-destino-btn ativo"
-                           onclick="fcTrocarQuadro('producao')">Produção de conteúdo</button>
-                   <button type="button" id="fc-destino-demandas" class="fc-destino-btn"
-                           onclick="fcTrocarQuadro('demandas')">Solicitação de demanda</button>
-                </div>
-                <input type="text" id="fc-title" class="fc-title-input" placeholder="Título do Conteúdo..." autofocus oninput="fcHandleInput('title', this.value)">
              </div>
-             
-             <div class="fc-body">
-                <div class="fc-row">
-                   <div class="fc-label">Cliente</div>
-                   <div class="fc-input-wrap">
-                      <select class="fc-input" id="fc-client-input" onchange="fcHandleInput(\'client\', this.value)">
-                         <option value="">Selecionar cliente...</option>
-                         ${clients.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}
-                      </select>
-                   </div>
-                </div>
-
-                <div class="fc-row">
-                   <div class="fc-label" id="fc-label-formato">Formato</div>
-                   <div class="fc-input-wrap">
-                      <select class="fc-input" id="fc-format-input" onchange="fcHandleInput(\'format\', this.value)">
-                         <option value="">Selecionar formato...</option>
-                         ${formats.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}
-                      </select>
-                   </div>
-                </div>
-
-                <div class="fc-row">
-                   <div class="fc-label">Equipe Extra</div>
-                   <div class="fc-input-wrap">
-                      <div class="fc-persons" id="fc-persons-container"></div>
-                   </div>
-                </div>
-                
-                <div class="fc-auto-group" id="fc-auto-group-container">
-       <!-- Populated by JS -->
-    </div>
-
-                <div class="fc-row">
-                   <div class="fc-label">Instruções</div>
-                   <div class="fc-input-wrap">
-                      <textarea class="fc-input" id="fc-brief-input" placeholder="Objetivo, referência ou contexto do conteúdo..." onchange="fcHandleInput(\'brief\', this.value)"></textarea>
-                      
-                      <div class="fc-checkbox-group">
-                         <label class="fc-checkbox-row">
-                            <input type="checkbox" onchange="fcHandleInput('briefReady', this.checked)">
-                            <span>O briefing está 100% pronto (pular Redação)</span>
-                         </label>
-                         <label class="fc-checkbox-row">
-                            <input type="checkbox" onchange="fcHandleInput('materialReady', this.checked)">
-                            <span>O material bruto já foi fornecido (ignorar Captação)</span>
-                         </label>
-                      </div>
-                   </div>
-                </div>
-
-             </div>
-             
-             <div class="fc-footer">
-                <button class="fc-btn-cancel" onclick="fcCloseModal()">Cancelar</button>
-                <button class="fc-btn-create" id="fc-submit-btn" onclick="fcSubmit()">Criar conteúdo</button>
-             </div>
+             <div class="fc-body"><div id="fc-guia"></div></div>
          </div>
-         
+
          <!-- RIGHT COLUMN: LIVE PREVIEW -->
          <div class="fc-side-col">
              <button class="fc-close" onclick="fcCloseModal()">×</button>
@@ -740,9 +894,8 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     document.body.appendChild(overlay);
     requestAnimationFrame(() => {
        overlay.classList.add('open');
-       renderCustomDropdowns();
-       renderPersons();
-       updateDestinyUI();
+       fcPasso = 0;
+       fcDesenharPasso();
        
        // Bind title input live update safely
        overlay.addEventListener('keydown', function(e) {
@@ -752,8 +905,12 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
            }
        });
        
-       document.getElementById('fc-title').addEventListener('input', function(e) {
-           fcHandleInput('title', e.target.value);
+       // Enter avanca; dentro do briefing ele quebra linha, como se espera.
+       overlay.addEventListener('keydown', function(e) {
+           if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
+               e.preventDefault();
+               fcAvancar();
+           }
        });
     });
   };
