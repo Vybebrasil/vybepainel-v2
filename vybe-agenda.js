@@ -941,11 +941,18 @@ function abrirEscolha(event, itemId, campo) {
   menu.id = 'escolha-editor';
   menu.className = 'status-editor';
   const gerindo = podeGerirEtiquetas();
+  // Ligada/desligada era ◉ contra ○: dois glifos quase iguais de 22px, sem cor,
+  // e ainda escondidos até passar o mouse. Estado não se esconde — a chave fica
+  // sempre à vista; renomear, cor e apagar são ações e continuam aparecendo no
+  // hover.
+  const chave = (o) => gerindo ? `<button type="button" class="vybe-chave ${o.ativa ? 'ligada' : ''}"
+      role="switch" aria-checked="${o.ativa ? 'true' : 'false'}"
+      title="${o.ativa ? 'Ligada — aparece nas escolhas. Clique para desligar.' : 'Desligada — não aparece nas escolhas novas. Clique para ligar.'}"
+      onclick="event.stopPropagation();alternarEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}',${o.ativa})"><span></span></button>` : '';
   const ferramentas = (o) => gerindo ? `<span class="etiqueta-ferramentas">
-      <button type="button" title="Renomear" onclick="event.stopPropagation();renomearEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">✎</button>
-      <button type="button" title="Trocar a cor" onclick="event.stopPropagation();recolorirEtiqueta('${campo}','${safeText(o.chave)}','${o.cor || ''}')">◐</button>
-      <button type="button" title="${o.ativa ? 'Desligar: some das escolhas novas' : 'Ligar de novo'}" onclick="event.stopPropagation();alternarEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}',${o.ativa})">${o.ativa ? '◉' : '○'}</button>
-      <button type="button" title="Apagar" class="perigo" onclick="event.stopPropagation();removerEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">×</button>
+      <button type="button" class="icone-btn" title="Renomear" aria-label="Renomear" onclick="event.stopPropagation();renomearEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lapis}</button>
+      <button type="button" class="icone-btn" title="Trocar a cor" aria-label="Trocar a cor" onclick="event.stopPropagation();recolorirEtiqueta('${campo}','${safeText(o.chave)}','${o.cor || ''}')">${ICONE.gota}</button>
+      <button type="button" class="icone-btn perigo" title="Apagar" aria-label="Apagar" onclick="event.stopPropagation();removerEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lixo}</button>
     </span>` : '';
   menu.innerHTML = `<div class="status-editor-head">${safeText(cfg?.rotulo || campo)}</div>
     ${opcoes.map((o) => `<div class="etiqueta-linha ${o.ativa ? '' : 'desligada'}">
@@ -954,7 +961,7 @@ function abrirEscolha(event, itemId, campo) {
           <span class="status-editor-dot" style="background:${o.cor || '#7c8797'};color:${o.cor || '#7c8797'}"></span>
           <span>${safeText(o.rotulo)}${o.ativa ? '' : ' (desligada)'}</span>
           ${o.rotulo === atual ? '<span class="status-editor-check">✓</span>' : ''}</button>
-        ${ferramentas(o)}
+        ${ferramentas(o)}${chave(o)}
       </div>`).join('')}
     <div class="etiqueta-linha">
       <button type="button" class="status-editor-option" onclick="escolherValor('${safeText(item.id)}','${campo}','')">

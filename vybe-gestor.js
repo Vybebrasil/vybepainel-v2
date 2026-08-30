@@ -85,6 +85,17 @@ function vybeStatus(item) {
     title="Trocar status de ${safeText(item.nome || 'atividade')}">${pill}</button>`;
 }
 
+// ─── Ícones ───────────────────────────────────────────────────────────────────
+// O painel desenhava ferramenta com caractere de texto: ✎ para renomear, ◐ para
+// cor, ◉/○ para ligado. Glifo de texto muda de forma conforme a fonte instalada
+// e não tem peso constante — é metade do ar de sistema antigo. Traço de 1.6 e
+// ponta arredondada, o mesmo em todos.
+const ICONE = Object.freeze({
+  lapis: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.2 2.6a1.4 1.4 0 0 1 2 2L6 11.8l-2.7.9.9-2.7z"/></svg>',
+  gota:  '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2s3.6 3.9 3.6 6.3a3.6 3.6 0 0 1-7.2 0C4.4 6.1 8 2.2 8 2.2z"/></svg>',
+  lixo:  '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 4.3h10.4M6.4 4.3V3.1h3.2v1.2M4.3 4.3l.6 8.2h6.2l.6-8.2M6.7 6.7v3.6M9.3 6.7v3.6"/></svg>',
+});
+
 function vybeDono(item, className = '') {
   return ownerEditorTrigger(item, className);
 }
