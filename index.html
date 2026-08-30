@@ -2216,6 +2216,51 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 #planning-golden-state.golden-ok b{color:#00c875}
 #planning-golden-state.golden-risk{border-left-color:#fdab3d}
 #planning-golden-state.golden-risk b{color:#fdab3d}
+
+/* ─── Barra do DA Controler ──────────────────────────────────────────────────
+   Eram duas: uma MOSTRAVA periodo e referencia, a outra DEFINIA os mesmos dois.
+   E dentro da segunda havia 'Periodo ativo: Esta semana', que dizia pela
+   terceira vez a mesma coisa. Agora e uma so, e o que esta marcado E o estado —
+   nao existe um lugar separado so para repetir o que ja se ve.
+
+   Sem !important: a folha do DA tinha 1157 deles porque cada correcao precisou
+   gritar mais alto que a anterior. Aqui o seletor e proprio e ninguem disputa. */
+.da-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 24px;
+  margin:0 0 14px;padding:12px 16px;border:1px solid rgba(255,255,255,.09);
+  border-radius:14px;background:rgba(255,255,255,.025)}
+.da-barra-grupo{display:flex;align-items:center;gap:8px;min-width:0}
+.da-barra-pessoa{flex:1;justify-content:flex-end}
+.da-barra-rotulo{color:#8b8b90;font:600 10px var(--mac-ui);
+  text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+
+/* Segmentado: a opcao marcada e o estado. */
+.da-segmento{display:inline-flex;padding:2px;border-radius:9px;background:rgba(0,0,0,.32)}
+.da-segmento button{border:0;border-radius:7px;padding:5px 12px;background:transparent;
+  color:#9a9aa0;cursor:pointer;font:600 12px var(--mac-ui);white-space:nowrap;
+  transition:background-color .14s var(--curva),color .14s var(--curva)}
+.da-segmento button:hover{color:#f2f2f5}
+.da-segmento button.marcado{background:var(--accent,#ff6b00);color:#fff}
+.da-barra-periodo{color:#c5a889;font:600 11.5px var(--mac-mono);white-space:nowrap}
+
+.da-barra-quem{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;
+  border:1px solid color-mix(in srgb,var(--cor-pessoa,#8b8b90) 45%,transparent);
+  border-radius:999px;background:color-mix(in srgb,var(--cor-pessoa,#8b8b90) 12%,transparent)}
+.da-barra-quem.vazia{padding:5px 12px;border-color:rgba(255,255,255,.12);background:transparent}
+.da-barra-quem b{color:#f2f2f5;font:600 12.5px var(--mac-ui);white-space:nowrap}
+.da-barra-quem small{color:#9a9aa0;font:600 10.5px var(--mac-ui);white-space:nowrap}
+.da-barra-quem img,.da-barra-quem .da-tactical-person{width:22px;height:22px;border-radius:50%;flex:none}
+.da-barra-dica{color:#8b8b90;font:500 11.5px var(--mac-ui)}
+.da-barra-acao,.da-barra-limpar{border:1px solid rgba(255,255,255,.14);border-radius:8px;
+  padding:6px 12px;background:transparent;color:#f2f2f5;cursor:pointer;
+  font:600 11.5px var(--mac-ui);white-space:nowrap;
+  transition:border-color .14s var(--curva),background-color .14s var(--curva)}
+.da-barra-acao{border-color:color-mix(in srgb,var(--accent,#ff6b00) 55%,transparent);color:#ffbd61}
+.da-barra-acao:hover{background:color-mix(in srgb,var(--accent,#ff6b00) 14%,transparent)}
+.da-barra-limpar:hover{background:rgba(255,255,255,.07)}
+@media(max-width:900px){
+  .da-barra{gap:10px 14px}
+  .da-barra-pessoa{flex:1 1 100%;justify-content:flex-start}
+}
 </style></head>
 <body>
 
