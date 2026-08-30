@@ -27,6 +27,11 @@ export const BOARD_ACESSOS = 7758163799;
 // aparece na lista de áreas de trabalho do Monday — por isso passou batido
 // quando copiamos "as 4 áreas".
 export const BOARD_SUBITENS = 8385841526;
+// O grupo "Finalizados" é o arquivo morto da Produção: 1.733 peças cujos
+// arquivos ficam no Monday por decisão da Vybe. É por ele que a migração se
+// orienta, e não pelo 'final' do status — o Monday marca "Para agendar" e
+// "Agendado" como concluídos, e essas peças estão vivas.
+const GRUPO_ARQUIVO_MORTO = 'novo_grupo31348__1';
 
 // Papel e disciplina não existem no Monday: são regra de negócio de vocês, hoje
 // espalhada no vybe-config.js do cliente. Aqui vira semente do cadastro de pessoas.
@@ -409,12 +414,15 @@ export async function popularDoEspelho() {
   if (!itens.length) throw new Error('O espelho está vazio; rode a reconciliação antes.');
 
   // ── status ────────────────────────────────────────────────────────────────
-  const finais = new Set(['Finalizado', 'Feito', 'Concluído', 'Concluido']);
+  // Quem decide o que é "concluído" é o Monday, não um palpite sobre o nome.
+  // A lista de nomes fixa quebrava em silêncio no dia em que alguém renomeasse
+  // uma etiqueta — e já discordava do board em "Para agendar" e "Agendado".
+  const finais = await etiquetasConcluidas(BOARD_PRODUCAO);
   for (const opcao of espelho.status_options || []) {
     await sql`INSERT INTO vybe_status (board_id, chave, rotulo, cor, borda, ordem, monday_index, final)
       VALUES (${BOARD_PRODUCAO}, ${chaveStatus(opcao.label)}, ${opcao.label}, ${opcao.color},
               ${opcao.border || opcao.color},
-              ${opcao.index}, ${opcao.index}, ${finais.has(opcao.label)})
+              ${opcao.index}, ${opcao.index}, ${finais.has(String(opcao.label))})
       ON CONFLICT (board_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
         borda=EXCLUDED.borda, ordem=EXCLUDED.ordem, monday_index=EXCLUDED.monday_index,
         final=EXCLUDED.final`;
@@ -804,7 +812,7 @@ export async function perfilArquivos() {
       COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
     FROM vybe_conteudo_arquivos a
     JOIN vybe_conteudos c ON c.id = a.conteudo_id
-    LEFT JOIN vybe_status s ON s.chave = c.status_chave
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
     GROUP BY 1 ORDER BY 3 DESC`;
 
   const porAno = await sql`SELECT
@@ -821,7 +829,7 @@ export async function perfilArquivos() {
       COALESCE(SUM(a.tamanho_bytes),0)            AS bytes
     FROM vybe_conteudo_arquivos a
     JOIN vybe_conteudos c ON c.id = a.conteudo_id
-    LEFT JOIN vybe_status s ON s.chave = c.status_chave
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
     GROUP BY 1 ORDER BY 3 DESC LIMIT 8`;
 
   const porExtensao = await sql`SELECT
@@ -841,7 +849,7 @@ export async function perfilArquivos() {
       TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao
     FROM vybe_conteudo_arquivos a
     JOIN vybe_conteudos c ON c.id = a.conteudo_id
-    LEFT JOIN vybe_status s ON s.chave = c.status_chave
+    LEFT JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
     WHERE COALESCE(s.final,false) = false
     ORDER BY a.tamanho_bytes DESC`;
 
@@ -1363,9 +1371,10 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
              WHERE vcc.conteudo_id = c.id LIMIT 1) AS cliente
       FROM vybe_conteudo_arquivos a
       JOIN vybe_conteudos c ON c.id = a.conteudo_id
-      JOIN vybe_status s ON s.chave = c.status_chave
+      JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
      WHERE a.url_drive IS NULL AND a.ausente_em IS NULL AND c.removido_em IS NULL
-       AND NOT s.final AND a.monday_asset_id IS NOT NULL
+       AND c.grupo_id IS DISTINCT FROM ${GRUPO_ARQUIVO_MORTO}
+       AND a.monday_asset_id IS NOT NULL
      ORDER BY c.veiculacao NULLS LAST, a.id
      LIMIT ${limite}`;
   if (!pendentes.length) return { pendentes: 0, enviados: 0, falhas: [] };
@@ -1402,9 +1411,10 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
   const restam = (await sql`SELECT COUNT(*)::int AS n
       FROM vybe_conteudo_arquivos a
       JOIN vybe_conteudos c ON c.id = a.conteudo_id
-      JOIN vybe_status s ON s.chave = c.status_chave
+      JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
      WHERE a.url_drive IS NULL AND a.ausente_em IS NULL
-       AND NOT s.final AND a.monday_asset_id IS NOT NULL`)[0].n;
+       AND c.grupo_id IS DISTINCT FROM ${GRUPO_ARQUIVO_MORTO}
+       AND a.monday_asset_id IS NOT NULL`)[0].n;
   return { enviados, bytes, falhas, restam };
 }
 
@@ -1428,6 +1438,24 @@ const COLUNAS_DEMANDAS = {
   arquivos: 'file_mkwt1t89',
 };
 
+// O Monday guarda em done_colors os IDS das etiquetas que contam como
+// concluídas naquele board. É a fonte certa: se alguém renomear "Finalizado",
+// a marcação continua valendo; um teste pelo nome viraria falso em silêncio.
+async function etiquetasConcluidas(boardId) {
+  try {
+    const meta = await mondayQuery(`{ boards(ids:[${boardId}]) {
+      columns(ids:["status"]) { settings_str } } }`);
+    const cfg = JSON.parse(meta?.boards?.[0]?.columns?.[0]?.settings_str || '{}');
+    const rotulos = Array.isArray(cfg.labels)
+      ? new Map(cfg.labels.map((l) => [String(l.id), l.name]))
+      : new Map(Object.entries(cfg.labels || {}));
+    return new Set((cfg.done_colors || []).map((id) => rotulos.get(String(id))).filter(Boolean));
+  } catch (erro) {
+    console.warn('Não consegui ler as etiquetas concluídas do board; nada será marcado.', erro);
+    return new Set();
+  }
+}
+
 export async function popularDemandas() {
   await criarSchema();
   const sql = database();
@@ -1437,6 +1465,7 @@ export async function popularDemandas() {
     groups { id title }
     columns(ids:["status","color_mkwtgakv","dropdown_mkv8d52z"]) { id settings_str } } }`);
   const grupos = new Map((meta?.boards?.[0]?.groups || []).map((g) => [g.id, g.title]));
+  const concluidasDemandas = await etiquetasConcluidas(BOARD_DEMANDAS);
 
   for (const col of meta?.boards?.[0]?.columns || []) {
     const cfg = JSON.parse(col.settings_str || '{}');
@@ -1454,7 +1483,7 @@ export async function popularDemandas() {
           VALUES (${BOARD_DEMANDAS}, ${chaveStatus(o.rotulo)}, ${o.rotulo},
                   ${cores[o.indice]?.color || null},
                   ${cores[o.indice]?.border || cores[o.indice]?.color || null},
-                  ${o.indice}, ${o.indice}, ${/^(feito|conclu)/i.test(o.rotulo)})
+                  ${o.indice}, ${o.indice}, ${concluidasDemandas.has(String(o.rotulo))})
           ON CONFLICT (board_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, cor=EXCLUDED.cor,
             borda=EXCLUDED.borda, ordem=EXCLUDED.ordem, monday_index=EXCLUDED.monday_index,
             final=EXCLUDED.final`;
