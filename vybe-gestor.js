@@ -825,8 +825,12 @@ function pintarBarraDeComando() {
     const b = document.getElementById(p.botao);
     if (!b) return;
     const aberto = p.aberto();
-    b.classList.toggle('active', aberto);
-    b.setAttribute('aria-expanded', String(aberto));
+    // Só mexe quando muda de verdade. Esta função roda a cada ciclo de desenho;
+    // reescrever a classe com o mesmo valor reinicia a transição do botão, e ele
+    // pisca sem nada ter mudado.
+    if (b.classList.contains('active') !== aberto) b.classList.toggle('active', aberto);
+    const dito = b.getAttribute('aria-expanded') === 'true';
+    if (dito !== aberto) b.setAttribute('aria-expanded', String(aberto));
   });
 }
 
