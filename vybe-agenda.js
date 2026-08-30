@@ -757,40 +757,100 @@ function itensPorGrupo() {
   }));
 }
 
-function captacaoDoCatalogo(rotulo) {
-  return CATALOGO_CAPTACAO.find((c) => c.rotulo === rotulo) || null;
-}
+// ── campos de escolha, uma regra só ──────────────────────────────────────────
+//
+// Captação virou editável e as outras quatro nasceram só de leitura — um caso
+// especial por coluna. Agora é uma regra: todo campo que vem de catálogo se
+// desenha como pílula com a cor do catálogo e abre o mesmo seletor. Acrescentar
+// uma coluna nova é acrescentar uma linha aqui.
+//
+// O servidor já aceitava os cinco desde sempre; faltava a tela pedir.
+const CAMPOS_DE_ESCOLHA = {
+  captacao:      { coluna: 'status_1__1',        rotulo: 'Captação' },
+  formato:       { coluna: 'lista_suspensa0__1', rotulo: 'Formato' },
+  tipo_conteudo: { coluna: 'lista_suspensa__1',  rotulo: 'Tipo de conteúdo' },
+  off_audio:     { coluna: 'color_mkynd7j8',     rotulo: 'OFF / áudio' },
+  prioridade:    { coluna: 'color_mm164yv8',     rotulo: 'Prioridade' },
+};
 
-// Seleção múltipla: sem ela, mudar o prazo de dez peças era abrir dez peças.
-const SELECIONADAS = new Set();
+// O processItems escreve '—' quando a coluna vem vazia. Sem isto, o traço virava
+// uma pílula com um traço dentro, como se fosse um valor.
+const vazio = (v) => !v || String(v).trim() === '' || String(v).trim() === '—';
 
-function opcoesDaColuna(colunaId) {
+function catalogoDoCampo(campo) {
+  if (campo === 'captacao') {
+    return (typeof CATALOGO_CAPTACAO === 'undefined' ? [] : CATALOGO_CAPTACAO)
+      .map((c) => ({ chave: c.chave, rotulo: c.rotulo, cor: c.cor, borda: c.borda, ativa: c.ativa !== false }));
+  }
+  const coluna = CAMPOS_DE_ESCOLHA[campo]?.coluna;
   return (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
-    .filter((o) => o.coluna_id === colunaId);
+    .filter((o) => o.coluna_id === coluna)
+    .map((o) => ({ chave: o.chave, rotulo: o.rotulo, cor: o.cor, borda: o.borda, ativa: o.ativa !== false }));
 }
 
-// Formato, tipo, OFF e prioridade já vinham do banco com cor. Mostrar como
-// texto cru perderia a informação que a cor carrega.
-function pillDeOpcao(rotulo, colunaId) {
-  if (!rotulo) return '<span class="grupo-vazio">—</span>';
-  const o = opcoesDaColuna(colunaId).find((x) => x.rotulo === rotulo);
-  return pillHtml(rotulo, o?.cor || '', o?.borda || '');
+function pillEditavel(item, campo) {
+  const valor = item[campo];
+  const escolha = catalogoDoCampo(campo).find((o) => o.rotulo === valor);
+  const dentro = vazio(valor)
+    ? '<span class="grupo-vazio">—</span>'
+    : pillHtml(valor, escolha?.cor || '', escolha?.borda || '');
+  return `<button type="button" class="grupo-pill-btn"
+    onclick="abrirEscolha(event,'${safeText(item.id)}','${campo}')"
+    title="Trocar ${safeText(CAMPOS_DE_ESCOLHA[campo]?.rotulo || campo)}">${dentro}</button>`;
+}
+
+function abrirEscolha(event, itemId, campo) {
+  event.preventDefault();
+  event.stopPropagation();
+  fecharEscolha();
+  const item = findOperationalItem(itemId);
+  if (!item) return showToast('Item não encontrado.', 'err');
+  const cfg = CAMPOS_DE_ESCOLHA[campo];
+  const atual = String(item[campo] || '');
+  // Opção desativada no Monday só aparece se a peça ainda estiver nela.
+  const opcoes = catalogoDoCampo(campo).filter((o) => o.ativa || o.rotulo === atual);
+  if (!opcoes.length) return showToast(`As opções de ${cfg?.rotulo || campo} ainda estão carregando.`, 'info');
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  const fundo = document.createElement('div');
+  fundo.id = 'escolha-backdrop';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharEscolha;
+  const menu = document.createElement('div');
+  menu.id = 'escolha-editor';
+  menu.className = 'status-editor';
+  menu.innerHTML = `<div class="status-editor-head">${safeText(cfg?.rotulo || campo)}</div>
+    ${opcoes.map((o) => `<button type="button" class="status-editor-option ${o.rotulo === atual ? 'current' : ''}"
+        onclick="escolherValor('${safeText(item.id)}','${campo}','${safeText(o.chave)}')">
+        <span class="status-editor-dot" style="background:${o.cor || '#7c8797'};color:${o.cor || '#7c8797'}"></span>
+        <span>${safeText(o.rotulo)}${o.ativa ? '' : ' (desativada)'}</span>
+        ${o.rotulo === atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}
+    <button type="button" class="status-editor-option" onclick="escolherValor('${safeText(item.id)}','${campo}','')">
+      <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Deixar em branco</span></button>`;
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, rect);
+}
+
+function fecharEscolha() {
+  document.getElementById('escolha-backdrop')?.remove();
+  document.getElementById('escolha-editor')?.remove();
+}
+
+async function escolherValor(itemId, campo, chave) {
+  fecharEscolha();
+  const escolhida = catalogoDoCampo(campo).find((o) => o.chave === chave);
+  const deuCerto = await salvarCampoDaFicha(itemId, campo, chave, null);
+  if (deuCerto) applyOutboundItemPatch(itemId, { [campo]: escolhida?.rotulo || '' }, campo);
 }
 
 function linhaDeGrupoHtml(item) {
   const parar = 'event.stopPropagation()';
-  const atual = captacaoDoCatalogo(item.captacao);
   const marcada = SELECIONADAS.has(String(item.id));
-  const captacao = `<button type="button" class="grupo-pill-btn"
-      onclick="abrirEditorDeCaptacao(event,'${item.id}')" title="Trocar captação">
-      ${item.captacao
-        ? pillHtml(item.captacao, atual?.cor || '', atual?.borda || '')
-        : '<span class="grupo-vazio">—</span>'}
-    </button>`;
   const data = (campo, iso, atrasado) =>
     `<input type="date" class="grupo-data-campo${atrasado ? ' is-late' : ''}" value="${safeText(iso || '')}"
        onclick="${parar}" onchange="${parar};salvarDataNaLinha('${item.id}','${campo}',this)"
        title="${campo === 'prazo' ? 'Prazo de produção' : 'Data de veiculação'}">`;
+  const escolha = (campo) => `<td onclick="${parar}">${pillEditavel(item, campo)}</td>`;
   return `<tr class="${marcada ? 'marcada' : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
     <td class="grupo-marcar" onclick="${parar}">
       <input type="checkbox" ${marcada ? 'checked' : ''} aria-label="Selecionar ${safeText(item.nome || '')}"
@@ -800,11 +860,7 @@ function linhaDeGrupoHtml(item) {
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
     <td onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
       title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
-    <td onclick="${parar}">${captacao}</td>
-    <td>${pillDeOpcao(item.formato, 'lista_suspensa0__1')}</td>
-    <td class="grupo-texto">${safeText(item.tipo_conteudo || '—')}</td>
-    <td>${pillDeOpcao(item.off_audio, 'color_mkynd7j8')}</td>
-    <td>${pillDeOpcao(item.prioridade, 'color_mm164yv8')}</td>
+    ${escolha('captacao')}${escolha('formato')}${escolha('tipo_conteudo')}${escolha('off_audio')}${escolha('prioridade')}
     <td>${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
     <td>${data('veiculacao', item.veiculacao_iso, false)}</td>
   </tr>`;
@@ -824,50 +880,6 @@ function selecionarGrupo(groupId, marcar) {
 }
 
 function limparSelecao() { SELECIONADAS.clear(); renderVisaoDeGrupos(); }
-
-// Mesmo desenho e mesmo comportamento do seletor de status: quem já sabe trocar
-// um não precisa aprender o outro.
-function abrirEditorDeCaptacao(event, itemId) {
-  event.preventDefault();
-  event.stopPropagation();
-  fecharEditorDeCaptacao();
-  const item = findOperationalItem(itemId);
-  if (!item) return showToast('Item não encontrado.', 'err');
-  if (!CATALOGO_CAPTACAO.length) return showToast('As opções de captação ainda estão carregando.', 'info');
-
-  const atual = String(item.captacao || '');
-  const oferecidas = CATALOGO_CAPTACAO.filter((c) => c.ativa || c.rotulo === atual);
-  const rect = event.currentTarget.getBoundingClientRect();
-  const fundo = document.createElement('div');
-  fundo.id = 'captacao-editor-backdrop';
-  fundo.className = 'status-editor-backdrop';
-  fundo.onclick = fecharEditorDeCaptacao;
-  const menu = document.createElement('div');
-  menu.id = 'captacao-editor';
-  menu.className = 'status-editor';
-  menu.innerHTML = `<div class="status-editor-head">Captação</div>
-    ${oferecidas.map((c) => `<button type="button" class="status-editor-option ${c.rotulo === atual ? 'current' : ''}"
-        onclick="escolherCaptacao('${item.id}','${safeText(c.chave)}')">
-        <span class="status-editor-dot" style="background:${c.cor || '#7c8797'};color:${c.cor || '#7c8797'}"></span>
-        <span>${safeText(c.rotulo)}${c.ativa ? '' : ' (desativada)'}</span>
-        ${c.rotulo === atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}
-    <button type="button" class="status-editor-option" onclick="escolherCaptacao('${item.id}','')">
-      <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Sem captação</span></button>`;
-  document.body.append(fundo, menu);
-  ancorarPopover(menu, rect);
-}
-
-function fecharEditorDeCaptacao() {
-  document.getElementById('captacao-editor-backdrop')?.remove();
-  document.getElementById('captacao-editor')?.remove();
-}
-
-async function escolherCaptacao(itemId, chave) {
-  fecharEditorDeCaptacao();
-  const escolhida = CATALOGO_CAPTACAO.find((c) => c.chave === chave);
-  const deuCerto = await salvarCampoDaFicha(itemId, 'captacao', chave, null);
-  if (deuCerto) applyOutboundItemPatch(itemId, { captacao: escolhida?.rotulo || '' }, 'captação');
-}
 
 async function salvarDataNaLinha(itemId, campo, input) {
   const item = findOperationalItem(itemId);

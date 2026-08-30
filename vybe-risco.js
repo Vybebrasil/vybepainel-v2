@@ -930,7 +930,7 @@ async function removerTarefa(subitemId, itemId, titulo) {
 function abrirStatusDaTarefa(event, subitemId, itemId) {
   event.preventDefault();
   event.stopPropagation();
-  fecharEditorDeCaptacao();
+  if (typeof fecharEscolha === 'function') fecharEscolha();
   document.getElementById('tarefa-editor-backdrop')?.remove();
   document.getElementById('tarefa-editor')?.remove();
   const opcoes = (typeof requestStatusOptions === 'function' ? requestStatusOptions({}) : []) || [];
