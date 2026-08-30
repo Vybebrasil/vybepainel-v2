@@ -439,12 +439,13 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      // Antes isto lia o DOM e pintava de vermelho o campo faltante. Num fluxo
      // por etapas o campo faltante costuma nem estar na tela — entao a validacao
      // le o state e leva a pessoa ate a pergunta que ficou sem resposta.
+     fcSincronizarDaTela();
      const faltando = FC_PASSOS.find((q) => !fcRespondido(q));
      if (faltando) {
         fcPasso = FC_PASSOS.indexOf(faltando);
         fcDesenharPasso();
         return typeof showToast === 'function'
-          ? showToast('Falta responder esta.', 'info') : null;
+          ? showToast(FC_FALTA[faltando] || 'Falta responder esta.', 'info') : null;
      }
      const title = String(state.title || '').trim();
 
@@ -626,14 +627,18 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     if (p === 'datas') {
       // Estes dois campos eram lidos na validacao e nunca existiram no HTML:
       // nao havia onde digitar veiculacao, entao criar nunca passava daqui.
+      // oninput, nao onchange: em campo de data o change so dispara ao SAIR do
+      // campo. Quem preenchia e clicava direto em Continuar via o valor na tela
+      // e o estado vazio — o botao barrava sem dizer por que.
       return `<div class="fc-datas">
         <label><span>Veiculação</span>
           <input type="date" id="fc-veic-input" class="fc-campo" value="${esc2(state.veic)}"
-            onchange="fcHandleInput('veic', this.value);fcDesenharPasso()"></label>
+            oninput="fcDataDigitada('veic', this.value)"></label>
         <label><span>Prazo de ouro</span>
           <input type="date" id="fc-prazo" class="fc-campo" value="${esc2(state.prazo)}"
-            onchange="fcHandleInput('prazo', this.value)"></label>
-      </div>`;
+            oninput="fcDataDigitada('prazo', this.value)"></label>
+      </div>
+      <p class="fc-dica" id="fc-dica-datas"></p>`;
     }
     if (p === 'brief') {
       return `<textarea id="fc-brief-input" class="fc-campo-texto" placeholder="Objetivo, referência ou contexto..."
@@ -653,6 +658,43 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         <div class="fc-persons" id="fc-persons-container"></div>
       </div>`;
   }
+
+
+  // Redesenhar o passo a cada tecla arrancaria o campo debaixo do dedo. Aqui so
+  // guarda, preenche o prazo e atualiza a previa e o aviso.
+  window.fcDataDigitada = function(campo, valor) {
+    fcHandleInput(campo, valor);
+    if (campo === 'veic') {
+      const p = document.getElementById('fc-prazo');
+      if (p && state.prazo) p.value = state.prazo;
+    }
+    const dica = document.getElementById('fc-dica-datas');
+    if (dica) {
+      dica.textContent = state.veic && state.prazo
+        ? `Prazo de ouro em ${state.prazo.split('-').reverse().join('/')} — sete dias antes da veiculação.`
+        : 'Informe a veiculação; o prazo de ouro se preenche sozinho.';
+    }
+  };
+
+  // O que a pessoa ve na tela e o campo, nao o state. Se um evento se perdeu, o
+  // botao barrava com a tela cheia. Antes de julgar, le o que esta escrito.
+  function fcSincronizarDaTela() {
+    const campos = { 'fc-title': 'title', 'fc-veic-input': 'veic',
+                     'fc-prazo': 'prazo', 'fc-brief-input': 'brief' };
+    for (const [id, chave] of Object.entries(campos)) {
+      const el = document.getElementById(id);
+      if (el && el.value !== undefined && el.value !== state[chave]) fcHandleInput(chave, el.value);
+    }
+  }
+
+  const FC_FALTA = {
+    board: 'Escolha onde cadastrar.',
+    client: 'Escolha o cliente.',
+    format: 'Escolha o formato.',
+    title: 'Escreva o título.',
+    datas: 'Informe a data de veiculação.',
+    brief: 'Escreva o briefing.',
+  };
 
   window.fcFiltrar = function(listaId, termo) {
     const t = String(termo || '').toLowerCase().trim();
@@ -685,9 +727,10 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
   };
 
   window.fcAvancar = function() {
+    fcSincronizarDaTela();
     const p = FC_PASSOS[fcPasso];
     if (!fcRespondido(p)) return typeof showToast === 'function'
-      ? showToast('Responda esta pergunta para continuar.', 'info') : null;
+      ? showToast(FC_FALTA[p] || 'Responda esta pergunta para continuar.', 'info') : null;
     if (fcPasso >= FC_PASSOS.length - 1) return fcSubmit();
     fcPasso++;
     fcDesenharPasso();
@@ -715,6 +758,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
           ultimo ? 'Criar conteúdo' : 'Continuar'}</button>
       </div>`;
 
+    if (p === 'datas') fcDataDigitada('veic', state.veic);
     if (ultimo) { renderPersons(); renderCustomDropdownsGlobal(); }
     updateDestinyUI();
     const foco = caixa.querySelector('#fc-busca-cliente, #fc-title, #fc-veic-input, #fc-brief-input');
@@ -892,10 +936,13 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     `;
 
     document.body.appendChild(overlay);
+    // Desenhar o primeiro passo NAO espera quadro de animacao: em aba fora de
+    // foco o requestAnimationFrame nao dispara, e o cadastro abria vazio. Quem
+    // precisa do quadro e so a transicao de entrada.
+    fcPasso = 0;
+    fcDesenharPasso();
     requestAnimationFrame(() => {
        overlay.classList.add('open');
-       fcPasso = 0;
-       fcDesenharPasso();
        
        // Bind title input live update safely
        overlay.addEventListener('keydown', function(e) {
