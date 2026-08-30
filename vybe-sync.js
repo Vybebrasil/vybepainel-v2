@@ -49,19 +49,19 @@ function setSyncHealth(state='checking', detail='') {
     localStorage.setItem(SYNC_HEALTH_STORAGE_KEY, String(syncHealthLastConfirmedAt));
     title.textContent = 'Dados confirmados';
     message.textContent = detail || `Última confirmação às ${syncHealthClock(syncHealthLastConfirmedAt)}`;
-    action.textContent = '↻ ATUALIZAR';
+    action.textContent = '↻ Atualizar';
   } else if (state === 'stale') {
     title.textContent = 'Atenção · Dados desatualizados';
     message.textContent = detail || `Sem confirmação desde ${syncHealthClock(syncHealthLastConfirmedAt)}. Não tome decisões sem atualizar.`;
-    action.textContent = '↻ ATUALIZAR AGORA';
+    action.textContent = '↻ Atualizar agora';
   } else if (state === 'error') {
     title.textContent = 'Erro de sincronização';
     message.textContent = detail || `Última confirmação: ${syncHealthClock(syncHealthLastConfirmedAt)}. A operação pode estar desatualizada.`;
-    action.textContent = '↻ TENTAR AGORA';
+    action.textContent = '↻ Tentar agora';
   } else {
     title.textContent = 'Conferindo dados';
     message.textContent = detail || `Última confirmação: ${syncHealthClock(syncHealthLastConfirmedAt)}`;
-    action.textContent = '↻ ATUALIZAR';
+    action.textContent = '↻ Atualizar';
   }
 }
 function refreshSyncHealthAge() {

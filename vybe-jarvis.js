@@ -69,7 +69,7 @@ function jarvisFinishProcessing(success=true) {
   const el = jarvisElements();
   if (el.panel) el.panel.classList.remove('processing');
   if (el.orb) el.orb.classList.remove('processing');
-  if (el.record) { el.record.disabled = false; el.record.textContent = '◉ FALAR COM JARVIS'; }
+  if (el.record) { el.record.disabled = false; el.record.textContent = '◉ Falar com Jarvis'; }
   if (success) {
     [1,2,3].forEach(step => jarvisSetStage(step, 'done'));
     jarvisPlayReadyChime();
@@ -144,7 +144,7 @@ function jarvisSetStatus(text, type='') {
   if (el.record) {
     el.record.classList.toggle('recording', listening);
     el.record.disabled = processing;
-    el.record.textContent = listening ? '◉ OUVINDO... CLIQUE PARA ENCERRAR' : (processing ? '◌ JARVIS ANALISANDO...' : '◉ FALAR COM JARVIS');
+    el.record.textContent = listening ? '◉ OUVINDO... CLIQUE PARA ENCERRAR' : (processing ? '◌ JARVIS ANALISANDO...' : '◉ Falar com Jarvis');
   }
 }
 function jarvisShowTranscript(text, label='ENTENDI') {
