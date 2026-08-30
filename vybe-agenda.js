@@ -354,6 +354,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       title="Clique para renomear">${safeText(item.nome || 'Sem título')}</button>
     <div class="cr-campos">
       ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
+      ${linha('Grupo', botaoDeGrupo(item))}
       ${linha('Responsável', vybeDono(item))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
       ${linha(ehDemanda ? 'Tipo' : 'Formato', pillEditavel(item, ehDemanda ? 'tipo_conteudo' : 'formato'))}
@@ -1303,4 +1304,109 @@ function fecharMenuDeLote() {
 async function copiarId(id) {
   try { await navigator.clipboard.writeText(String(id)); showToast(`ID ${id} copiado`, 'ok', 2500); }
   catch { showToast(`ID da atividade: ${id}`, 'info', 5000); }
+}
+
+// ─── Trocar de grupo ──────────────────────────────────────────────────────────
+// Mover uma peça de etapa (voltar para Redação, mandar para Design) só existia
+// dentro das automações. Pelo painel não tinha conserto: peça no grupo errado
+// ficava no grupo errado. O servidor já sabia fazer (acao 'grupo'); faltava a
+// porta.
+
+// Produção lê na ordem do board. Demandas tem grupos próprios — o mesmo item
+// nunca vê as duas listas, então cada board mostra só a sua.
+const GRUPOS_DE_DEMANDAS = ['group_mm187437', 'novo_grupo_mkmkjdqd',
+                            'novo_grupo_mkkyfhtw', 'novo_grupo_mkkyx8pv'];
+const TITULO_DOS_GRUPOS = {
+  ...(typeof GROUP_MAP === 'object' ? GROUP_MAP : {}),
+  group_mm187437:      'Novas Demandas/Ideias',
+  novo_grupo_mkmkjdqd: 'A Fazer',
+  novo_grupo_mkkyfhtw: 'Em Execução',
+  novo_grupo_mkkyx8pv: 'Concluídas',
+};
+const CORES_GRUPOS_DEMANDAS = {
+  group_mm187437:      '#a25ddc',
+  novo_grupo_mkmkjdqd: '#579bfc',
+  novo_grupo_mkkyfhtw: '#fdab3d',
+  novo_grupo_mkkyx8pv: '#00c875',
+};
+const ehItemDeDemanda = (item) => String(item?.board_id || '') === String(
+  typeof BOARD_DEMANDAS_ID !== 'undefined' ? BOARD_DEMANDAS_ID : '');
+const gruposDoItem = (item) => (ehItemDeDemanda(item) ? GRUPOS_DE_DEMANDAS : ORDEM_DOS_GRUPOS);
+const tituloDoGrupo = (id) => TITULO_DOS_GRUPOS[id] || 'Sem grupo';
+const corDeQualquerGrupo = (id) => CORES_GRUPOS_DEMANDAS[id] || corDoGrupo(id);
+
+function botaoDeGrupo(item) {
+  const id = String(item.group_id || '');
+  const cor = corDeQualquerGrupo(id);
+  return `<button type="button" class="cr-grupo-pill" onclick="abrirSeletorDeGrupo(event,'${safeText(item.id)}')"
+    style="--g:${cor}" title="Mover de grupo"><span class="status-editor-dot" style="background:${cor}"></span>${
+    safeText(tituloDoGrupo(id))}</button>`;
+}
+
+function fecharSeletorDeGrupo() {
+  document.getElementById('grupo-editor-fundo')?.remove();
+  document.getElementById('grupo-editor')?.remove();
+}
+
+function abrirSeletorDeGrupo(event, itemId) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  fecharSeletorDeGrupo();
+  const item = findOperationalItem(itemId)
+    || (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId));
+  if (!item) return showToast('Atividade não encontrada.', 'err');
+  const atual = String(item.group_id || '');
+  const rect = (event.currentTarget || event.target).getBoundingClientRect();
+
+  const fundo = document.createElement('div');
+  fundo.id = 'grupo-editor-fundo';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharSeletorDeGrupo;
+
+  const menu = document.createElement('div');
+  menu.id = 'grupo-editor';
+  menu.className = 'status-editor';
+  menu.innerHTML = '<div class="status-editor-head">Mover para</div>'
+    + gruposDoItem(item).map((id) => {
+        const cor = corDeQualquerGrupo(id);
+        return `<button type="button" class="status-editor-option ${id === atual ? 'current' : ''}"
+          onclick="moverPecaDeGrupo('${safeText(item.id)}','${id}')">
+          <span class="status-editor-dot" style="background:${cor}"></span>${safeText(tituloDoGrupo(id))}
+          <span class="status-editor-check">${id === atual ? '✓' : ''}</span></button>`;
+      }).join('');
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, rect);
+}
+
+async function moverPecaDeGrupo(itemId, grupoId) {
+  const item = findOperationalItem(itemId)
+    || (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId));
+  if (!item) return showToast('Atividade não encontrada.', 'err');
+  if (String(item.group_id || '') === String(grupoId)) return fecharSeletorDeGrupo();
+  const de = tituloDoGrupo(String(item.group_id || ''));
+  const para = tituloDoGrupo(grupoId);
+  fecharSeletorDeGrupo();
+
+  const gravou = await tentarEscritaDupla(item, {
+    acao: 'grupo', item: String(item.id), grupo_id: String(grupoId),
+  });
+  if (!gravou) {
+    try {
+      await mondayQuery(
+        `mutation($item: ID!, $grupo: String!) { move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
+        { item: String(item.id), grupo: String(grupoId) }
+      );
+    } catch (erro) {
+      return showToast(`Não foi possível mover de grupo: ${erro.message}`, 'err', 7000);
+    }
+  }
+  // O grupo vive em dois campos (id e título) e a visão de grupos lê os dois.
+  [DADOS, DADOS_ALL, DADOS_DEMANDAS].forEach((lista) => (lista || []).forEach((d) => {
+    if (String(d.id) !== String(item.id)) return;
+    d.group_id = String(grupoId);
+    d.grupo = para;
+  }));
+  showToast(`✓ ${de} → ${para}`, 'ok');
+  if (typeof renderIntegratedOperationalViews === 'function') renderIntegratedOperationalViews();
+  if (document.getElementById('cartao-rapido')) fecharCartaoRapido();
 }

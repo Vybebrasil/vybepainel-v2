@@ -1958,10 +1958,10 @@ html{scrollbar-gutter:stable}
 .dono-editor{min-width:250px;max-width:300px;padding:5px;
   /* O cartao inteiro rolava (.status-editor tem overflow:auto), o que empurrava
      o Salvar para fora da vista quando a lista era longa. Aqui so a lista rola. */
-  display:flex;flex-direction:column;max-height:min(58vh,380px);overflow:hidden}
+  display:flex;flex-direction:column;max-height:min(72vh,430px);overflow:hidden}
 .dono-editor > .status-editor-head,.dono-regra,.dono-sem,.dono-rodape{flex:none}
 .dono-regra{margin:0 10px 7px;color:#8b8b90;font:500 11px/1.45 var(--mac-ui)}
-.dono-lista{display:grid;gap:2px;flex:1 1 auto;min-height:104px;overflow-y:auto}
+.dono-lista{display:grid;gap:2px;flex:1 1 auto;min-height:0;overflow-y:auto}
 .dono-pessoa{display:flex;align-items:center;gap:9px;width:100%;padding:6px 9px;border:0;border-radius:7px;
   background:transparent;color:#f2f2f5;cursor:pointer;font:inherit;text-align:left}
 .dono-pessoa:hover{background:rgba(255,255,255,.07)}
@@ -1974,6 +1974,15 @@ html{scrollbar-gutter:stable}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dono-pessoa .owner-editor-person-check{margin-left:auto;color:var(--accent,#ff6b00);font-weight:700}
 .dono-vazio{padding:12px 10px;color:#8b8b90;font:500 11.5px var(--mac-ui)}
+.dono-ver-todos{margin:6px 10px 0;padding:0;border:0;background:none;text-align:left;
+  color:var(--accent,#ff6b00);font:600 11px var(--mac-ui);cursor:pointer;flex:none}
+.dono-ver-todos:hover{text-decoration:underline}
+/* Linha Grupo do cartao rapido: a pilula leva a cor da etapa, igual a visao de grupos. */
+.cr-grupo-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;
+  border:1px solid color-mix(in srgb, var(--g) 45%, transparent);border-radius:999px;
+  background:color-mix(in srgb, var(--g) 17%, transparent);color:#f2f2f5;
+  font:600 11.5px var(--mac-ui);cursor:pointer}
+.cr-grupo-pill:hover{background:color-mix(in srgb, var(--g) 28%, transparent)}
 .dono-sem{display:flex;align-items:center;gap:7px;margin:7px 10px 4px;color:#8b8b90;font:500 11px var(--mac-ui);cursor:pointer}
 .dono-sem input{accent-color:var(--accent,#ff6b00)}
 .dono-rodape{display:flex;justify-content:flex-end;padding:6px 5px 2px;
