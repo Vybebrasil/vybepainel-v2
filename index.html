@@ -2379,6 +2379,57 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-execution-row:hover .da-apoio,.da-day-focus-row:hover .da-apoio{opacity:1}
 .da-apoio .da-risk-mini{border:0;background:transparent;padding:0}
 .da-apoio .da-status-age{border:0;background:transparent;padding:0}
+
+/* ─── Hierarquia ─────────────────────────────────────────────────────────────
+   Eu tinha juntado 200 superficies numa so. Consertou "varios sistemas colados"
+   e criou "tudo igual" — material unico nao e a mesma coisa que hierarquia
+   unica. A medida dizia: 90 blocos na mesma superficie, box-shadow:none em 31
+   lugares e 86 titulos no mesmo 10px.
+
+   Sistema serio tem UM material em VARIOS niveis. Tres aqui: a pagina, a
+   secao, e o cartao dentro dela. E uma peca manda em cada tela. */
+
+/* Nivel 1 — a secao. Encosta na pagina, quase sem elevacao. */
+.da-controller-dashboard > section{
+  background:var(--sup-0);
+  border:1px solid rgba(255,255,255,.055);
+  box-shadow:none}
+
+/* Nivel 2 — o cartao dentro da secao. Sobe um degrau e ganha sombra: e a
+   sombra que diz "isto esta em cima daquilo". */
+.da-capacity-card,.da-command-daily-card,.da-commitment-person,
+.da-week-rail-day,.da-backlog-row,.da-execution-row{
+  background:var(--sup-1);
+  box-shadow:0 1px 2px rgba(0,0,0,.28)}
+
+/* Nivel 3 — a decisao do dia. E a unica peca primaria da tela e precisa
+   parecer. Mais respiro, mais elevacao, e o titulo em tamanho de manchete. */
+.da-controller-dashboard > .da-day-direction{
+  background:var(--sup-1);
+  border-color:rgba(255,255,255,.12);
+  box-shadow:0 10px 30px rgba(0,0,0,.36)}
+.da-decision-card{padding:22px 24px}
+.da-decision-title{font:700 27px/1.16 var(--mac-ui);letter-spacing:-.022em}
+.da-decision-kicker{margin-bottom:10px}
+
+/* ─── Escala de titulo ───────────────────────────────────────────────────────
+   O cabecalho de uma secao e o rotulo de um campo estavam no mesmo 10px. Um
+   anuncia um assunto, o outro nomeia um dado — nao podem pesar igual. */
+.da-structure-heading b,.da-command-daily-head b,.da-cell-filter-zone .da-cell-header b,
+.da-prova-topo b,.da-commitment-head b,.da-week-agenda-head b,
+.da-execution-board-head b,.da-command-zone-head b{
+  font:600 19px/1.25 var(--mac-ui);letter-spacing:-.015em;color:#f2f2f5}
+.da-structure-heading small,.da-command-daily-head small,.da-cell-header span,
+.da-prova-topo small,.da-commitment-head small{
+  font:500 12.5px/1.45 var(--mac-ui);color:#8b8b90}
+/* O rotulo continua pequeno de proposito: ele nomeia, nao anuncia. */
+.da-structure-heading>span:first-child{
+  font:600 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+
+/* Respiro: o que manda recebe mais espaco em volta, e isso tambem e hierarquia. */
+.da-controller-dashboard > section{padding:18px}
+.da-controller-dashboard > .da-day-direction{padding:8px}
+.da-controller-dashboard > section + section{margin-top:14px}
 </style></head>
 <body>
 
