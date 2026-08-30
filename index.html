@@ -2160,6 +2160,56 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 @media (prefers-reduced-motion:reduce) {
   button:active,[role="button"]:active { transform:none }
 }
+
+/* ─── Leitura proativa ───────────────────────────────────────────────────────
+   Este painel ficou sem estilo nenhum quando removi o Jarvis: apaguei as regras
+   .jarvis-* antes de renomear as classes, entao a renomeacao nao achou mais
+   nada para renomear. Recuperado do commit anterior, ja na escala nova de peso,
+   espacamento e raio. */
+.leitura-proativa{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;
+  margin:0 12px 12px;padding:10px 12px;border:1px solid rgba(255,127,31,.2);border-radius:10px;
+  background:linear-gradient(90deg,rgba(255,107,0,.075),rgba(10,15,25,.78))}
+.manager-command-content .leitura-proativa{margin:0 0 12px}
+.leitura-proativa-topo{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.leitura-proativa-topo strong{color:#ffbd61;font:700 10px var(--mac-ui)}
+.leitura-proativa-topo span{color:#8995a7;font-size:10px}
+.leitura-proativa-alerta{min-width:0;padding:8px;border:1px solid rgba(255,255,255,.075);
+  border-radius:8px;background:rgba(3,7,13,.48);text-align:left;cursor:pointer;
+  transition:border-color .14s var(--curva),background-color .14s var(--curva)}
+.leitura-proativa-alerta:hover,.leitura-proativa-alerta.active{
+  border-color:var(--cor-alerta,#ff9d00);
+  background:color-mix(in srgb,var(--cor-alerta,#ff9d00) 11%,transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cor-alerta,#ff9d00) 20%,transparent)}
+.leitura-proativa-alerta b{display:block;color:var(--cor-alerta,#ffbd61);font:700 14px var(--mac-ui)}
+.leitura-proativa-alerta span{display:block;margin-top:2px;color:#c3ccd9;font:600 10px var(--mac-ui);letter-spacing:.35px}
+.leitura-proativa-alerta small{display:block;margin-top:4px;color:#8c98aa;font-size:10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.leitura-proativa-empty{grid-column:1/-1;color:#80cfa5;font-size:10px}
+@media(max-width:900px){.leitura-proativa{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.leitura-proativa{grid-template-columns:1fr}}
+
+/* ─── Estados que o codigo marcava e o CSS ignorava ──────────────────────────
+
+   Arrastar: o dia sob o cursor recebe .is-drop-target desde sempre e nada
+   acontecia. Quem arrasta uma peca para outra data nao via onde ela ia cair —
+   soltava no escuro e conferia depois. */
+.manager-calendar-day.is-drop-target{
+  background:color-mix(in srgb,var(--accent,#ff6b00) 14%,rgba(10,12,18,.90));
+  box-shadow:inset 0 0 0 2px var(--accent,#ff6b00)}
+.manager-calendar-day.is-drop-target::after{
+  content:'soltar aqui';position:absolute;left:6px;bottom:6px;
+  color:var(--accent,#ff6b00);font:600 9px var(--mac-ui);letter-spacing:.04em;
+  text-transform:lowercase;pointer-events:none}
+
+/* Prazo de ouro: updateGoldenDeadlineState alterna .golden-ok e .golden-risk
+   desde sempre e as duas eram a mesma coisa na tela. O texto ja dizia
+   "PROTEGIDO" ou a data alvo; faltava a cor dizer junto. */
+#planning-golden-state{border-left:3px solid transparent;padding-left:8px;
+  transition:border-color .14s var(--curva),color .14s var(--curva)}
+#planning-golden-state.golden-ok{border-left-color:#00c875}
+#planning-golden-state.golden-ok b{color:#00c875}
+#planning-golden-state.golden-risk{border-left-color:#fdab3d}
+#planning-golden-state.golden-risk b{color:#fdab3d}
 </style></head>
 <body>
 
