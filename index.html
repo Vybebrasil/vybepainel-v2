@@ -2338,6 +2338,47 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   background:var(--sup-1);
   -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5)}
 .da-controller-dashboard section{border:1px solid var(--linha);border-radius:14px}
+
+/* ─── A decisao primeiro, a prova depois ─────────────────────────────────────
+   A pagina dava quatro telas de evidencia e a conclusao no fim — o contrario de
+   como se conta uma coisa. Agora a decisao do dia abre o painel; o resto e o
+   porque dela, e diz isso com todas as letras. */
+.da-prova{margin-top:6px}
+.da-prova-topo{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:14px 16px 0}
+.da-prova-topo b{color:#f2f2f5;font:600 15px var(--mac-ui)}
+.da-prova-topo small{color:#8b8b90;font:500 12px var(--mac-ui)}
+
+/* O placar mostrava 16 numeros de uma vez, e no dia normal 12 sao zero. A frase
+   diz o que aconteceu; quem precisa conferir abre. */
+.da-commitment-frase{margin:0 16px 10px;color:#f2f2f5;font:600 15px/1.4 var(--mac-ui)}
+.da-commitment-detalhe{margin:0 16px 12px}
+.da-commitment-detalhe>summary{display:inline-flex;align-items:center;gap:6px;
+  padding:5px 11px;border:1px solid var(--linha);border-radius:8px;cursor:pointer;
+  color:#9a9aa0;font:600 11.5px var(--mac-ui);list-style:none;
+  transition:background-color .14s var(--curva),color .14s var(--curva)}
+.da-commitment-detalhe>summary::-webkit-details-marker{display:none}
+.da-commitment-detalhe>summary::after{content:'';width:10px;height:10px;
+  background:currentColor;-webkit-mask:var(--seta-baixo) center/contain no-repeat;
+  mask:var(--seta-baixo) center/contain no-repeat;
+  transition:transform .2s var(--curva)}
+.da-commitment-detalhe[open]>summary::after{transform:rotate(180deg)}
+.da-commitment-detalhe>summary:hover{background:var(--sup-2);color:#f2f2f5}
+.da-commitment-detalhe .da-commitment-groups{margin-top:10px}
+
+/* ─── Uma etiqueta manda, o resto apoia ──────────────────────────────────────
+   A linha terminava com seis coisas do mesmo tamanho e peso: formato, origem,
+   status, risco, tempo parado e acao. Seis gritos e nenhum aviso.
+
+   O STATUS manda — e a cor dele nao se toca, e o vocabulario que vem do Monday.
+   Risco e tempo parado viram apoio: menores, sem moldura, e so ganham forca
+   quando a linha esta sob o mouse. */
+.da-apoio{display:inline-flex;align-items:center;gap:5px;margin-left:6px;
+  opacity:.62;transition:opacity .14s var(--curva)}
+.da-action-row:hover .da-apoio,.da-delivery-risk-row:hover .da-apoio,
+.da-execution-row:hover .da-apoio,.da-day-focus-row:hover .da-apoio{opacity:1}
+.da-apoio .da-risk-mini{border:0;background:transparent;padding:0}
+.da-apoio .da-status-age{border:0;background:transparent;padding:0}
 </style></head>
 <body>
 
