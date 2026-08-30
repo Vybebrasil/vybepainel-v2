@@ -648,7 +648,7 @@ export default async function handler(req, res) {
   const corpo = req.body || {};
   const { acao, item } = corpo;
   if (!acao) return res.status(400).json({ error: 'Informe a ação.' });
-  if (acao !== 'criar' && !item) return res.status(400).json({ error: 'Informe o item.' });
+  if (acao !== 'criar' && acao !== 'subitem' && !item) return res.status(400).json({ error: 'Informe o item.' });
 
   try {
     const sql = database();
@@ -696,6 +696,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, acao,
         ...(await moverGrupo(sql, quem, { item, grupo_id: corpo.grupo_id })) });
     }
+    if (acao === 'subitem') {
+      return res.status(200).json({ ok: true, acao, ...(await mexerNoSubitem(sql, quem, corpo)) });
+    }
     if (acao === 'criar') {
       return res.status(200).json({ ok: true, acao, ...(await criarConteudo(sql, quem, corpo)) });
     }
@@ -703,4 +706,119 @@ export default async function handler(req, res) {
   } catch (erro) {
     return res.status(500).json({ error: erro.message });
   }
+}
+
+// ── subitens da solicitação ──────────────────────────────────────────────────
+//
+// Tarefas de dentro de uma demanda. Eram só de leitura: dava para ver a lista e
+// não para mexer nela, então marcar uma como feita ainda obrigava a abrir o
+// Monday — que é justamente o que estamos deixando de fazer.
+//
+// Grava no nosso banco primeiro e replica no board de subitens. O id do Monday
+// só existe depois de criar lá, então a criação liga os dois em seguida.
+
+const BOARD_SUBITENS_ID = 8385841526;
+const COL_SUBITEM_STATUS = 'color_mm2ww3xs';
+
+async function mexerNoSubitem(sql, quem, corpo) {
+  const { operacao } = corpo;
+  if (operacao === 'criar') return criarSubitem(sql, quem, corpo);
+
+  const linhas = await sql`SELECT s.id, s.monday_item_id, s.titulo, s.status_chave, s.pai_id,
+      c.monday_item_id AS pai_monday
+    FROM vybe_subitens s JOIN vybe_conteudos c ON c.id = s.pai_id
+   WHERE s.monday_item_id = ${String(corpo.subitem || '')}`;
+  if (!linhas.length) throw new Error('Tarefa não encontrada.');
+  const s = linhas[0];
+
+  if (operacao === 'status') {
+    const st = (await sql`SELECT chave, rotulo, monday_index FROM vybe_status
+      WHERE chave=${String(corpo.para || '')} AND board_id=${BOARD_DEMANDAS_ID}`)[0];
+    if (!st) throw new Error(`Status "${corpo.para}" não existe nas solicitações.`);
+    if (s.status_chave === st.chave) return { subitem_id: s.id, replica_monday: 'sem mudança' };
+    await sql`UPDATE vybe_subitens SET status_chave=${st.chave}, atualizado_em=NOW() WHERE id=${s.id}`;
+    await registrarEvento(sql, s.pai_id, {
+      tipo: 'subitem_status', de: s.status_chave, para: st.chave,
+      autorId: await pessoaDaSessao(sql, quem), texto: s.titulo,
+    });
+    return { subitem_id: s.id, de: s.status_chave, para: st.chave, rotulo: st.rotulo,
+      replica_monday: await replicarSubitem(s.monday_item_id,
+        { [COL_SUBITEM_STATUS]: { index: Number(st.monday_index) } }) };
+  }
+
+  if (operacao === 'titulo') {
+    const novo = String(corpo.titulo || '').trim();
+    if (!novo) throw new Error('O nome da tarefa não pode ficar vazio.');
+    if (novo.length > 255) throw new Error('Nome muito longo.');
+    if (novo === s.titulo) return { subitem_id: s.id, replica_monday: 'sem mudança' };
+    await sql`UPDATE vybe_subitens SET titulo=${novo}, atualizado_em=NOW() WHERE id=${s.id}`;
+    return { subitem_id: s.id, de: s.titulo, para: novo,
+      replica_monday: await replicarSubitem(s.monday_item_id, { name: novo }) };
+  }
+
+  if (operacao === 'remover') {
+    await sql`DELETE FROM vybe_subitens WHERE id=${s.id}`;
+    await registrarEvento(sql, s.pai_id, {
+      tipo: 'subitem_removido', de: s.titulo, autorId: await pessoaDaSessao(sql, quem),
+    });
+    let replica = 'ok';
+    try {
+      await mondayQuery(`mutation($item: ID!) { delete_item(item_id: $item) { id } }`,
+        { item: String(s.monday_item_id) });
+    } catch (erro) { replica = `falhou: ${erro.message}`; }
+    return { subitem_id: s.id, removida: s.titulo, replica_monday: replica };
+  }
+
+  throw new Error(`Operação desconhecida na tarefa: ${operacao}`);
+}
+
+async function criarSubitem(sql, quem, { item, titulo, status = 'nova_demanda' }) {
+  const nome = String(titulo || '').trim();
+  if (!nome) throw new Error('Informe o nome da tarefa.');
+
+  const pai = (await sql`SELECT id, board_id, monday_item_id, titulo FROM vybe_conteudos
+    WHERE monday_item_id = ${String(item || '')}`)[0];
+  if (!pai) throw new Error('Solicitação não encontrada.');
+  // Subitem é coisa do board de Demandas. Em Produção não existe onde pendurar.
+  if (Number(pai.board_id) !== BOARD_DEMANDAS_ID) {
+    throw new Error('Tarefas só existem dentro de uma solicitação de demanda.');
+  }
+  const st = (await sql`SELECT chave, monday_index FROM vybe_status
+    WHERE chave=${String(status)} AND board_id=${BOARD_DEMANDAS_ID}`)[0];
+
+  const ordem = Number((await sql`SELECT COALESCE(MAX(ordem), -1) + 1 AS n
+    FROM vybe_subitens WHERE pai_id=${pai.id}`)[0].n);
+  const novo = (await sql`INSERT INTO vybe_subitens (pai_id, titulo, status_chave, ordem)
+    VALUES (${pai.id}, ${nome}, ${st?.chave || null}, ${ordem}) RETURNING id`)[0];
+  await registrarEvento(sql, pai.id, {
+    tipo: 'subitem_criado', para: nome, autorId: await pessoaDaSessao(sql, quem),
+  });
+
+  let replica = 'ok';
+  let mondayId = null;
+  try {
+    const valores = st ? { [COL_SUBITEM_STATUS]: { index: Number(st.monday_index) } } : {};
+    const r = await mondayQuery(
+      `mutation($pai: ID!, $nome: String!, $values: JSON!) {
+         create_subitem(parent_item_id: $pai, item_name: $nome, column_values: $values) { id } }`,
+      { pai: String(pai.monday_item_id), nome, values: JSON.stringify(valores) }
+    );
+    mondayId = r?.create_subitem?.id || null;
+    if (mondayId) {
+      await sql`UPDATE vybe_subitens SET monday_item_id=${String(mondayId)} WHERE id=${novo.id}`;
+    }
+  } catch (erro) { replica = `falhou: ${erro.message}`; }
+  return { subitem_id: novo.id, titulo: nome, monday_item_id: mondayId, replica_monday: replica };
+}
+
+async function replicarSubitem(mondayId, valores) {
+  if (!mondayId) return 'sem cópia no Monday';
+  try {
+    await mondayQuery(
+      `mutation($board: ID!, $item: ID!, $values: JSON!) {
+         change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
+      { board: String(BOARD_SUBITENS_ID), item: String(mondayId), values: JSON.stringify(valores) }
+    );
+    return 'ok';
+  } catch (erro) { return `falhou: ${erro.message}`; }
 }
