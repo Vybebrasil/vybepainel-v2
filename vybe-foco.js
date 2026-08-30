@@ -122,8 +122,12 @@ function renderFocusDashboard() {
     if (!items.length) return '';
     const displayed = focusShowAll ? items : items.slice(0,5);
     const more = items.length > 5 ? `<button class="search-result-action" onclick="toggleFocusShowAll()">${focusShowAll?'Mostrar menos':`Ver mais (${items.length-5})`}</button>` : '';
-    return `<section class="focus-section" style="--focus-group-color:${tone}"><div class="focus-section-head"><span>${icon ? `${icon} ` : ''}${label} <b>${items.length}</b></span><span><small>${subtitle}</small> ${more}</span></div><div class="focus-list">${(() => {
-        const origens = new Set(displayed.map(d => String(operationalOriginTag(d) || '')));
+    return `<section class="focus-section" style="--focus-group-color:${tone}"><div class="focus-section-head"><span>${icon ? `${icon} ` : ''}${label} <b>${items.length}</b>${(() => {
+        const origens = new Set(displayed.map(d => isRequestItem(d) ? 'req' : 'con'));
+        // Uma origem so no grupo: diz aqui, uma vez, em vez de repetir em cada linha.
+        return origens.size === 1 ? ` ${operationalOriginTag(displayed[0])}` : '';
+      })()}</span><span><small>${subtitle}</small> ${more}</span></div><div class="focus-list">${(() => {
+        const origens = new Set(displayed.map(d => isRequestItem(d) ? 'req' : 'con'));
         const donos = new Set(displayed.map(d => (d.responsavel_ids || [d.responsavel_id]).join(',')));
         const riscos = new Set(displayed.map(d => String(riskBadgeHtml(d, true) || '')));
         return displayed.map((d, n) => focusTaskHtml(d, contextText, {
