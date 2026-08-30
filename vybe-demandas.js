@@ -149,7 +149,7 @@ async function saveAiUsageSettings() {
   const usd = document.getElementById('ai-usd-input');
   const gemini = document.getElementById('ai-gemini-billing');
   const button = document.querySelector('.ai-setting-save');
-  if (button) { button.disabled = true; button.textContent = 'SALVANDO...'; }
+  if (button) { button.disabled = true; button.textContent = 'Salvando...'; }
   try {
     const response = await fetch(AI_USAGE_API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ days:aiUsageDays, monthly_budget_brl:aiNumber(budget?.value), brl_per_usd:aiNumber(usd?.value)||5.5, gemini_billing:gemini?.value }) });
     const result = await response.json();
@@ -160,7 +160,7 @@ async function saveAiUsageSettings() {
   } catch (error) {
     if (typeof showToast === 'function') showToast(error.message || 'Falha ao salvar parâmetros.');
   } finally {
-    if (button) { button.disabled = false; button.textContent = 'SALVAR'; }
+    if (button) { button.disabled = false; button.textContent = 'Salvar'; }
   }
 }
 

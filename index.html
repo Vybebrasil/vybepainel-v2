@@ -599,7 +599,7 @@
     .identity-shell::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.52;background-image:radial-gradient(circle at 18% 27%,rgba(255,132,0,.56) 0 1px,transparent 2px),radial-gradient(circle at 76% 68%,rgba(255,207,87,.43) 0 1px,transparent 2px),radial-gradient(circle at 61% 15%,rgba(255,132,0,.34) 0 1px,transparent 2px),radial-gradient(circle at 37% 83%,rgba(255,207,87,.34) 0 1px,transparent 2px);background-size:170px 170px,230px 230px,290px 290px,330px 330px;animation:identity-data-dust 18s linear infinite}
     .identity-topline,.identity-hero,.identity-command-grid,.identity-footer,.identity-focus-picker{position:relative;z-index:1}
     .identity-hero h2{position:relative;text-shadow:none}
-    .identity-hero h2::after{content:'// LINK ESTÁVEL';display:block;margin-top:9px;color:rgba(255,188,89,.64);font:700 10px var(--mac-ui);text-shadow:none}
+    
     .identity-command-grid{isolation:isolate}
     .identity-command-grid::after{content:'';position:absolute;z-index:0;left:12%;right:12%;top:50%;height:2px;pointer-events:none;opacity:.86;background:linear-gradient(90deg,transparent 0%,transparent 12%,rgba(255,128,0,.05) 18%,rgba(255,211,115,.96) 36%,rgba(255,115,0,.95) 48%,rgba(255,211,115,.96) 60%,rgba(255,128,0,.05) 78%,transparent 88%);background-size:240px 100%;animation:identity-energy-flow 2.8s linear infinite;filter:drop-shadow(0 0 8px rgba(255,119,0,.72))}
     .identity-station,.identity-core-zone{position:relative;z-index:1}
@@ -620,7 +620,7 @@
     @keyframes identity-core-float{0%,100%{translate:0 0}50%{translate:0 -5px}}
     @keyframes identity-core-field{0%,100%{opacity:.38;transform:scale(.93)}50%{opacity:.88;transform:scale(1.08)}}
     @media(prefers-reduced-motion:reduce){.identity-shell::after,.identity-command-grid::after,.identity-station.station-hovered::after,.identity-core,.identity-core-wrap::before{animation:none!important}.identity-station{transition:none}}
-    @media(max-width:820px){.identity-shell::after{opacity:.28}.identity-hero h2::after{margin-top:6px}.identity-command-grid::after{display:none}.identity-pulse::before{display:none}}
+    @media(max-width:820px){.identity-shell::after{opacity:.28}.identity-command-grid::after{display:none}.identity-pulse::before{display:none}}
 
     /* Otimização de movimento: composição em GPU, sem animação pesada de sombras ou layout. */
     .identity-shell::after{animation:none;opacity:.32}

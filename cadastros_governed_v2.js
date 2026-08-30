@@ -324,7 +324,7 @@
      
      const btn = document.getElementById('fc-submit-btn');
      btn.disabled = true;
-     btn.textContent = 'CRIANDO...';
+     btn.textContent = 'Criando...';
 
      const values = {
         lista_suspensa_mkmqnjbv: {labels:[state.client]},
@@ -378,7 +378,7 @@
         if(typeof refreshData === 'function') await refreshData();
      } catch (e) {
         btn.disabled = false;
-        btn.textContent = 'CRIAR CONTEÚDO';
+        btn.textContent = 'Criar conteúdo';
         if(typeof showToast === 'function') showToast(`Erro: ${e.message}`, 'err');
      }
   };

@@ -184,7 +184,7 @@ function montarTelaDeLogin() {
     }
     erro.hidden = true;
     botao.disabled = true;
-    botao.textContent = 'ENTRANDO…';
+    botao.textContent = 'Entrando…';
     try {
       const resposta = await fetch('/api/sessao', {
         method: 'POST',
@@ -202,7 +202,7 @@ function montarTelaDeLogin() {
       erro.textContent = falha.message;
       erro.hidden = false;
       botao.disabled = false;
-      botao.textContent = 'ENTRAR';
+      botao.textContent = 'Entrar';
       document.getElementById('login-senha').select();
     }
   });

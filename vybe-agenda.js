@@ -416,7 +416,7 @@ async function moverDataDoItem(item, campo, dateIso, { request = false } = {}) {
 function managerCalendarLoadDemandas(button) {
   if (managerCalendarDemandasLoading) return;
   managerCalendarDemandasLoading = true;
-  if (button) { button.disabled = true; button.textContent = 'CARREGANDO…'; }
+  if (button) { button.disabled = true; button.textContent = 'Carregando…'; }
   refreshDemandas().finally(() => { managerCalendarDemandasLoading = false; renderManagerCalendar(); });
 }
 function managerCalendarEventHtml(item) {
@@ -442,7 +442,7 @@ async function saveDemandaCalendarDate(itemId, mode) {
   const previous = mode === 'prazo' ? item.prazo_iso : item.conclusao_iso;
   if (date === previous) return closeWorkflowModal();
   const button = document.querySelector('.workflow-primary');
-  if (button) { button.disabled = true; button.textContent = 'SALVANDO…'; }
+  if (button) { button.disabled = true; button.textContent = 'Salvando…'; }
   armOutboundMutationGuard('data da solicitação');
   try {
     const mutation = `mutation($board:ID!,$item:ID!,$column:String!,$value:JSON!){ change_column_value(board_id:$board,item_id:$item,column_id:$column,value:$value){ id } }`;

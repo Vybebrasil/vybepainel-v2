@@ -233,7 +233,7 @@
       if(!title) return alert('Dê um nome para a gravação!');
       
       const btn = document.querySelector('.p-btn-create');
-      btn.textContent = 'CRIANDO...';
+      btn.textContent = 'Criando...';
       btn.disabled = true;
 
       const normalized = `${format} - ${title}`;
@@ -257,7 +257,7 @@
           if(typeof refreshData === 'function') await refreshData();
           if(typeof renderProductionCommand === 'function') renderProductionCommand();
       } catch (error) {
-          btn.textContent = 'TENTAR NOVAMENTE';
+          btn.textContent = 'Tentar novamente';
           btn.disabled = false;
           if(typeof showToast === 'function') showToast(`Erro ao criar: ${error.message}`, 'err');
       }
