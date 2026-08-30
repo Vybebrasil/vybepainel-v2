@@ -454,7 +454,7 @@ async function saveDemandaCalendarDate(itemId, mode) {
     if (activeBoard === 'demandas') renderDemandas();
     showToast('✓ Data da solicitação atualizada no board de Demandas.', 'ok');
   } catch (error) {
-    if (button) { button.disabled = false; button.textContent = 'SALVAR DATA →'; }
+    if (button) { button.disabled = false; button.textContent = 'Salvar data →'; }
     showToast(`Não foi possível atualizar a solicitação: ${error.message}`, 'err', 7000);
   }
 }
