@@ -186,11 +186,36 @@
       .fc-atalho small { display:block; color:#7d8b96; font:500 11.5px var(--mac-ui,system-ui); }
       .fc-bloco-equipe { margin-top:20px; }
       .fc-bloco-equipe .fc-dica { margin:0 0 10px; }
+
+      .fc-itens { display:grid; gap:10px; max-height:min(46vh,380px); overflow-y:auto; padding:2px; }
+      .fc-item { display:grid; gap:8px; padding:12px; border:1px solid rgba(255,255,255,.10);
+        border-radius:12px; background:rgba(255,255,255,.02); }
+      .fc-item:focus-within { border-color:rgba(0,240,255,.42); }
+      .fc-item-topo { display:flex; align-items:center; gap:10px; }
+      .fc-item-topo b { display:grid; place-items:center; width:20px; height:20px; flex:none;
+        border-radius:50%; background:rgba(0,240,255,.14); color:#7fd8e8;
+        font:700 10px var(--mac-ui,system-ui); }
+      .fc-item-topo span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        color:#7d8b96; font:600 11.5px var(--mac-ui,system-ui); }
+      .fc-item-datas { display:flex; gap:10px; flex-wrap:wrap; }
+      .fc-item-datas label { flex:1 1 150px; }
+      .fc-item-datas span { display:block; margin-bottom:4px; color:#7d8b96;
+        font:600 10px var(--mac-ui,system-ui); text-transform:uppercase; letter-spacing:.05em; }
+      .fc-item .fc-campo-texto { min-height:70px; }
+      .fc-itens-acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+      .fc-mais { border:1px dashed rgba(0,240,255,.34); border-radius:10px; padding:8px 12px;
+        background:transparent; color:#7fd8e8; cursor:pointer; font:600 12px var(--mac-ui,system-ui);
+        transition:background-color .14s var(--curva), border-color .14s var(--curva); }
+      .fc-mais:hover { background:rgba(0,240,255,.08); border-color:#00f0ff; }
 `;
     document.head.appendChild(style);
   }
 
   let state = {
+    // Cinco cards com briefings e veiculacoes diferentes: o que se repete e
+    // cliente, formato e destino; o que muda e titulo, data e briefing. Entao a
+    // lista guarda so o que muda, e o resto continua valendo para o lote todo.
+    itens: [{ titulo: '', veic: '', prazo: '', brief: '' }],
     title: '',
     client: '',
     format: '',
@@ -340,7 +365,12 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      
      const formatText = state.format || 'Formato';
      const titleText = state.title || 'Título pendente';
-     titleEl.textContent = `${formatText} - ${titleText}`;
+     const n = (state.itens || []).length;
+     // Em lote a previa mostra o primeiro e diz quantos vem atras — o destino e
+     // a equipe sao os mesmos para todos, entao um cartao ja representa o lote.
+     titleEl.textContent = n > 1
+       ? `${formatText} - ${titleText}  +${n - 1}`
+       : `${formatText} - ${titleText}`;
      clientEl.textContent = state.client || 'Cliente não selecionado';
      
      const groups = { 'group_title': 'Redação', 'novo_grupo__1': 'Design & Edição', 'novo_grupo57911__1': 'Produção (Foto e Vídeo)' };
@@ -435,35 +465,15 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      }).join('');
   }
 
-  window.fcSubmit = async function() {
-     // Antes isto lia o DOM e pintava de vermelho o campo faltante. Num fluxo
-     // por etapas o campo faltante costuma nem estar na tela — entao a validacao
-     // le o state e leva a pessoa ate a pergunta que ficou sem resposta.
-     fcSincronizarDaTela();
-     const faltando = FC_PASSOS.find((q) => !fcRespondido(q));
-     if (faltando) {
-        fcPasso = FC_PASSOS.indexOf(faltando);
-        fcDesenharPasso();
-        return typeof showToast === 'function'
-          ? showToast(FC_FALTA[faltando] || 'Falta responder esta.', 'info') : null;
-     }
-     const title = String(state.title || '').trim();
-
-     const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
-     const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
-     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
-     const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
-     const normalized = `${state.format} - ${title}`;
-     
-     const btn = document.getElementById('fc-submit-btn');
-     if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
-
+  // Cria UM conteudo. O laco de fora repete isto para cada cartao da lista.
+  async function fcCriarUm(item, dest, finalGroup, finalStatus, finalCap) {
+     const normalized = `${state.format} - ${String(item.titulo).trim()}`;
      const values = {
         lista_suspensa_mkmqnjbv: {labels:[state.client]},
         lista_suspensa0__1: {labels:[state.format]},
         lista_suspensa__1: {ids:[3]},
-        data__1: {date:state.veic},
-        data: {date:state.prazo},
+        data__1: {date:item.veic},
+        data: {date:item.prazo},
         status: {label:finalStatus},
         person: {personsAndTeams:dest.assignees.map(id=>({id:Number(id),kind:'person'}))}
      };
@@ -478,8 +488,8 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         const pelaEscritaDupla = await tentarEscritaDupla({ id: '' }, {
            acao: 'criar', board: fcQuadro().id,
            titulo: normalized, cliente: state.client, formato: state.format,
-           prazo: state.prazo, veiculacao: state.veic, status: chaveDeStatus(finalStatus),
-           grupo_id: finalGroup, briefing: state.brief,
+           prazo: item.prazo, veiculacao: item.veic, status: chaveDeStatus(finalStatus),
+           grupo_id: finalGroup, briefing: item.brief,
            // "Tipo de conteúdo" só existe em Produção, e lá "Post" (3) é o único
            // rótulo que não está desativado no board.
            tipo_conteudo: state.board === 'demandas' ? null : 3,
@@ -504,20 +514,69 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
 
         const hellen = state.client.toLowerCase().includes('hellen rocha') ? '<li>✅ Validar informações jurídicas com a Hellen antes de publicar</li>' : '';
         const captureLine = finalCap ? `<li>📸 Agendar e confirmar captação externa</li>` : '';
-        const update = `<p><strong>🚀 CHECKLIST DE PRÉ-PRODUÇÃO</strong></p><p><strong>Briefing:</strong> ${esc(state.brief)}</p><ul><li>✅ Revisar copy e adaptar ao tom da marca</li><li>✅ Selecionar referências visuais / banco de imagens</li><li>✅ Montar layout no padrão do cliente</li>${captureLine}<li>✅ Enviar para aprovação antes de publicar</li>${hellen}</ul>`;
+        const update = `<p><strong>🚀 CHECKLIST DE PRÉ-PRODUÇÃO</strong></p><p><strong>Briefing:</strong> ${esc(item.brief)}</p><ul><li>✅ Revisar copy e adaptar ao tom da marca</li><li>✅ Selecionar referências visuais / banco de imagens</li><li>✅ Montar layout no padrão do cliente</li>${captureLine}<li>✅ Enviar para aprovação antes de publicar</li>${hellen}</ul>`;
         
         // O checklist vai pelo postItemUpdate, que já passa pela escrita dupla.
         // Sem id do Monday não há a quem enviar lá — o briefing já foi gravado
         // no banco junto com o conteúdo, então nada se perde.
         if (itemId) { try { await postItemUpdate(itemId, update); } catch (erro) { console.warn('Conteúdo criado, mas o checklist não foi registrado.', erro); } }
 
-        if(typeof showToast === 'function') showToast('Conteúdo criado com sucesso!', 'ok');
-        fcCloseModal();
-        if(typeof refreshData === 'function') await refreshData();
+        return { ok: true, id: itemId, nome: normalized };
      } catch (e) {
-        if (btn) { btn.disabled = false; btn.textContent = 'Criar conteúdo'; }
-        if(typeof showToast === 'function') showToast(`Erro: ${e.message}`, 'err');
+        return { ok: false, nome: normalized, erro: e.message };
      }
+  }
+
+  window.fcSubmit = async function() {
+     fcSincronizarDaTela();
+     const faltando = FC_PASSOS.find((q) => !fcRespondido(q));
+     if (faltando) {
+        fcPasso = FC_PASSOS.indexOf(faltando);
+        fcDesenharPasso();
+        return typeof showToast === 'function'
+          ? showToast(FC_FALTA[faltando] || 'Falta responder esta.', 'info') : null;
+     }
+
+     const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
+     const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
+     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
+     const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
+
+     const btn = document.getElementById('fc-submit-btn');
+     const total = state.itens.length;
+     const feitos = [];
+     const falhas = [];
+
+     // Um de cada vez, e nao todos de uma vez: o Monday limita chamadas por
+     // minuto, e em lote um erro de rede levaria os cinco junto.
+     for (let n = 0; n < total; n++) {
+        if (btn) { btn.disabled = true; btn.textContent = total > 1 ? `Criando ${n + 1} de ${total}...` : 'Criando...'; }
+        const r = await fcCriarUm(state.itens[n], dest, finalGroup, finalStatus, finalCap);
+        (r.ok ? feitos : falhas).push(r);
+     }
+
+     if (btn) { btn.disabled = false; btn.textContent = total > 1 ? `Criar ${total} conteúdos` : 'Criar conteúdo'; }
+
+     if (!falhas.length) {
+        if (typeof showToast === 'function') {
+          showToast(total > 1 ? `✓ ${total} conteúdos criados` : '✓ Conteúdo criado', 'ok');
+        }
+        fcCloseModal();
+        if (typeof refreshData === 'function') await refreshData();
+        return;
+     }
+
+     // Parcial: os que entraram ficam, e a lista guarda so os que faltaram —
+     // assim da para corrigir e tentar de novo sem duplicar o que ja existe.
+     const nomesFalhos = new Set(falhas.map((f) => f.nome));
+     state.itens = state.itens.filter((it) => nomesFalhos.has(`${state.format} - ${String(it.titulo).trim()}`));
+     fcEspelharPrimeiro();
+     fcPasso = FC_PASSOS.indexOf('itens');
+     fcDesenharPasso();
+     if (typeof showToast === 'function') {
+        showToast(`${feitos.length} de ${total} criados. Ficaram na lista os ${falhas.length} que falharam: ${falhas[0].erro}`, 'err', 10000);
+     }
+     if (feitos.length && typeof refreshData === 'function') await refreshData();
   };
 
   window.fcToggleDropdown = function(id) {
@@ -564,11 +623,10 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
   // estava certo depois de clicar em Criar. Agora e uma pergunta por vez, e a
   // previa da direita vai se montando conforme cada resposta entra — quem
   // cadastra ve para onde a peca esta indo antes de terminar.
-  const FC_PASSOS = ['board', 'client', 'format', 'title', 'datas', 'brief', 'destino'];
+  const FC_PASSOS = ['board', 'client', 'format', 'itens', 'destino'];
   let fcPasso = 0;
 
-  const FC_ROTULO = { board:'Onde', client:'Cliente', title:'Título',
-                      datas:'Datas', brief:'Briefing', destino:'Destino' };
+  const FC_ROTULO = { board:'Onde', client:'Cliente', itens:'Conteúdos', destino:'Destino' };
   function fcRotulo(p) { return p === 'format' ? fcQuadro().rotuloFormato : FC_ROTULO[p]; }
 
   function fcPergunta(p) {
@@ -576,9 +634,11 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     if (p === 'client')  return ['Para qual cliente?', ''];
     if (p === 'format')  return [`Qual ${fcQuadro().rotuloFormato.toLowerCase()}?`,
                                  'É isto que decide para qual etapa a peça vai.'];
-    if (p === 'title')   return ['Qual o título?', 'O formato entra na frente sozinho.'];
-    if (p === 'datas')   return ['Quando vai ao ar?', 'O prazo de ouro cai sete dias antes, e dá para mudar.'];
-    if (p === 'brief')   return ['O que a equipe precisa saber?', ''];
+    if (p === 'itens') {
+      const n = state.itens.length;
+      return [n === 1 ? 'O que vai ser cadastrado?' : `Os ${n} conteúdos`,
+        `Cliente e ${fcQuadro().rotuloFormato.toLowerCase()} valem para todos. Título, data e briefing são de cada um.`];
+    }
     return ['Confira antes de criar', 'Tudo aqui veio das regras de entrada. Mude o que quiser.'];
   }
 
@@ -586,9 +646,8 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     if (p === 'board')  return true;
     if (p === 'client') return !!state.client;
     if (p === 'format') return !!state.format;
-    if (p === 'title')  return !!String(state.title || '').trim();
-    if (p === 'datas')  return !!state.veic && !!state.prazo;
-    if (p === 'brief')  return !!String(state.brief || '').trim();
+    if (p === 'itens')  return state.itens.length > 0 && state.itens.every(
+      (i) => String(i.titulo || '').trim() && i.veic && i.prazo && String(i.brief || '').trim());
     return true;
   }
 
@@ -619,34 +678,43 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         <button type="button" class="fc-escolha ${state.format === f ? 'marcada' : ''}"
           onclick="fcResponder('format', '${esc2(f).replace(/'/g, "\\'")}')">${esc2(f)}</button>`).join('')}</div>`;
     }
-    if (p === 'title') {
-      return `<input type="text" id="fc-title" class="fc-campo-grande" value="${esc2(state.title)}"
-        placeholder="Dia do Nutricionista" oninput="fcHandleInput('title', this.value)">
-        <p class="fc-dica">Vai entrar como <b id="fc-previa-nome">${esc2(state.format || 'Formato')} - ${esc2(state.title || 'título')}</b></p>`;
-    }
-    if (p === 'datas') {
-      // Estes dois campos eram lidos na validacao e nunca existiram no HTML:
-      // nao havia onde digitar veiculacao, entao criar nunca passava daqui.
-      // oninput, nao onchange: em campo de data o change so dispara ao SAIR do
-      // campo. Quem preenchia e clicava direto em Continuar via o valor na tela
-      // e o estado vazio — o botao barrava sem dizer por que.
-      return `<div class="fc-datas">
-        <label><span>Veiculação</span>
-          <input type="date" id="fc-veic-input" class="fc-campo" value="${esc2(state.veic)}"
-            oninput="fcDataDigitada('veic', this.value)"></label>
-        <label><span>Prazo de ouro</span>
-          <input type="date" id="fc-prazo" class="fc-campo" value="${esc2(state.prazo)}"
-            oninput="fcDataDigitada('prazo', this.value)"></label>
-      </div>
-      <p class="fc-dica" id="fc-dica-datas"></p>`;
-    }
-    if (p === 'brief') {
-      return `<textarea id="fc-brief-input" class="fc-campo-texto" placeholder="Objetivo, referência ou contexto..."
-          oninput="fcHandleInput('brief', this.value)">${esc2(state.brief)}</textarea>
+    if (p === 'itens') {
+      const cartoes = state.itens.map((it, n) => `
+        <div class="fc-item">
+          <div class="fc-item-topo">
+            <b>${n + 1}</b>
+            <span>${esc2(state.format || 'Formato')} - ${esc2(it.titulo || 'sem título')}</span>
+            ${state.itens.length > 1
+              ? `<button type="button" class="icone-btn perigo" title="Tirar da lista"
+                   onclick="fcTirarItem(${n})">${typeof ICONE !== 'undefined' ? ICONE.lixo : '×'}</button>`
+              : ''}
+          </div>
+          <input type="text" class="fc-campo" data-item="${n}" data-campo="titulo"
+            placeholder="Título" value="${esc2(it.titulo)}"
+            oninput="fcItemCampo(${n},'titulo',this.value)">
+          <div class="fc-item-datas">
+            <label><span>Veiculação</span>
+              <input type="date" class="fc-campo" data-item="${n}" data-campo="veic" value="${esc2(it.veic)}"
+                oninput="fcItemCampo(${n},'veic',this.value)"></label>
+            <label><span>Prazo de ouro</span>
+              <input type="date" class="fc-campo" data-item="${n}" data-campo="prazo" value="${esc2(it.prazo)}"
+                oninput="fcItemCampo(${n},'prazo',this.value)"></label>
+          </div>
+          <textarea class="fc-campo-texto" data-item="${n}" data-campo="brief"
+            placeholder="Briefing: objetivo, referência, contexto..."
+            oninput="fcItemCampo(${n},'brief',this.value)">${esc2(it.brief)}</textarea>
+        </div>`).join('');
+      return `<div class="fc-itens">${cartoes}</div>
+        <div class="fc-itens-acoes">
+          <button type="button" class="fc-mais" onclick="fcAdicionarItem()">+ adicionar outro conteúdo</button>
+          ${state.itens.length > 1
+            ? '<button type="button" class="fc-mais" onclick="fcEscalonarDatas()">datas de sete em sete dias</button>'
+            : ''}
+        </div>
         <div class="fc-atalhos">
           <label class="fc-atalho"><input type="checkbox" ${state.briefReady ? 'checked' : ''}
             onchange="fcHandleInput('briefReady', this.checked);updateDestinyUI()">
-            <span>O briefing já está pronto <small>pula a Redação</small></span></label>
+            <span>Os briefings já estão prontos <small>pula a Redação</small></span></label>
           <label class="fc-atalho"><input type="checkbox" ${state.materialReady ? 'checked' : ''}
             onchange="fcHandleInput('materialReady', this.checked);updateDestinyUI()">
             <span>O material bruto já foi fornecido <small>ignora a Captação</small></span></label>
@@ -679,21 +747,85 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
   // O que a pessoa ve na tela e o campo, nao o state. Se um evento se perdeu, o
   // botao barrava com a tela cheia. Antes de julgar, le o que esta escrito.
   function fcSincronizarDaTela() {
-    const campos = { 'fc-title': 'title', 'fc-veic-input': 'veic',
-                     'fc-prazo': 'prazo', 'fc-brief-input': 'brief' };
-    for (const [id, chave] of Object.entries(campos)) {
-      const el = document.getElementById(id);
-      if (el && el.value !== undefined && el.value !== state[chave]) fcHandleInput(chave, el.value);
-    }
+    document.querySelectorAll('[data-item][data-campo]').forEach((el) => {
+      const it = state.itens[Number(el.dataset.item)];
+      if (it && el.value !== undefined && it[el.dataset.campo] !== el.value) {
+        it[el.dataset.campo] = el.value;
+      }
+    });
+    fcEspelharPrimeiro();
   }
 
   const FC_FALTA = {
     board: 'Escolha onde cadastrar.',
     client: 'Escolha o cliente.',
     format: 'Escolha o formato.',
-    title: 'Escreva o título.',
-    datas: 'Informe a data de veiculação.',
-    brief: 'Escreva o briefing.',
+    itens: 'Cada conteúdo precisa de título, data de veiculação e briefing.',
+  };
+
+
+  // Espelha o primeiro item nos campos antigos: a previa e as regras de entrada
+  // foram escritas para um conteudo so e continuam funcionando.
+  function fcEspelharPrimeiro() {
+    const um = state.itens[0] || {};
+    state.title = um.titulo || '';
+    state.veic = um.veic || '';
+    state.prazo = um.prazo || '';
+    state.brief = um.brief || '';
+  }
+
+  // Nao redesenha o passo: redesenhar a cada tecla arrancaria o campo debaixo
+  // do dedo e perderia o cursor. So o topo do cartao e a previa acompanham.
+  window.fcItemCampo = function(n, campo, valor) {
+    const it = state.itens[n];
+    if (!it) return;
+    it[campo] = valor;
+    if (campo === 'veic' && valor) {
+      it.prazo = getOffsetDate(valor, -7);
+      const p = document.querySelector(`[data-item="${n}"][data-campo="prazo"]`);
+      if (p) p.value = it.prazo;
+    }
+    if (campo === 'titulo') {
+      const topo = document.querySelectorAll('.fc-item-topo span')[n];
+      if (topo) topo.textContent = `${state.format || 'Formato'} - ${valor || 'sem título'}`;
+    }
+    fcEspelharPrimeiro();
+    updateDestinyUI();
+  };
+
+  window.fcAdicionarItem = function() {
+    // A data segue a cadencia do que ja existe: sete dias depois da ultima.
+    const ultima = [...state.itens].reverse().find((i) => i.veic)?.veic || '';
+    state.itens.push({ titulo: '', veic: ultima ? getOffsetDate(ultima, 7) : '',
+                       prazo: ultima ? getOffsetDate(ultima, 0) : '', brief: '' });
+    fcEspelharPrimeiro();
+    fcDesenharPasso();
+    // O titulo do novo cartao e onde a pessoa vai escrever agora.
+    const campos = document.querySelectorAll('[data-campo="titulo"]');
+    campos[campos.length - 1]?.focus();
+  };
+
+  window.fcTirarItem = function(n) {
+    if (state.itens.length <= 1) return;
+    state.itens.splice(n, 1);
+    fcEspelharPrimeiro();
+    fcDesenharPasso();
+  };
+
+  // Cinco cards costumam sair um por semana. Isto preenche a partir da primeira
+  // data ja informada, e nao toca em quem ja tem data escolhida a mao.
+  window.fcEscalonarDatas = function() {
+    const base = state.itens.find((i) => i.veic)?.veic;
+    if (!base) return typeof showToast === 'function'
+      ? showToast('Informe a veiculação do primeiro para escalonar os outros.', 'info') : null;
+    const inicio = state.itens.findIndex((i) => i.veic);
+    state.itens.forEach((it, n) => {
+      if (n <= inicio) return;
+      it.veic = getOffsetDate(base, 7 * (n - inicio));
+      it.prazo = getOffsetDate(it.veic, -7);
+    });
+    fcEspelharPrimeiro();
+    fcDesenharPasso();
   };
 
   window.fcFiltrar = function(listaId, termo) {
@@ -755,13 +887,13 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
       <div class="fc-guia-rodape">
         ${fcPasso > 0 ? '<button type="button" class="fc-btn-cancel" onclick="fcVoltar()">Voltar</button>' : ''}
         <button type="button" class="fc-btn-create" id="fc-submit-btn" onclick="fcAvancar()">${
-          ultimo ? 'Criar conteúdo' : 'Continuar'}</button>
+          ultimo ? (state.itens.length > 1 ? `Criar ${state.itens.length} conteúdos` : 'Criar conteúdo') : 'Continuar'}</button>
       </div>`;
 
-    if (p === 'datas') fcDataDigitada('veic', state.veic);
+
     if (ultimo) { renderPersons(); renderCustomDropdownsGlobal(); }
     updateDestinyUI();
-    const foco = caixa.querySelector('#fc-busca-cliente, #fc-title, #fc-veic-input, #fc-brief-input');
+    const foco = caixa.querySelector('#fc-busca-cliente, [data-campo="titulo"]');
     if (foco) foco.focus();
   };
 
@@ -771,7 +903,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     const existing = document.getElementById('fc-overlay');
     if(existing) existing.remove();
 
-    state = { title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
+    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
     
     // Exposta porque a troca de quadro precisa redesenhar grupo, status e a
     // terceira coluna — e ela mora dentro desta função.
