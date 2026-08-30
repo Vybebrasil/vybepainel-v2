@@ -85,11 +85,48 @@ let falhaGeral = null;
 try { vm.runInContext(fonte + '\n;\n' + chamadas, ctx, { filename: 'painel-inteiro.js', timeout: 60000 }); }
 catch (e) { falhaGeral = e; }
 
+// ─── Botao morto ─────────────────────────────────────────────────────────────
+// A checagem de cima chama cada funcao e escuta ReferenceError. Ela nao alcanca
+// o que mora DENTRO de um onclick, porque aquilo e texto ate alguem clicar —
+// foi assim que sobrou um "Perguntar ao Jarvis" chamando uma funcao que eu
+// tinha acabado de apagar. Aqui os onclick sao lidos como codigo.
+const nativos = new Set(['event','this','window','document','alert','confirm','prompt','setTimeout',
+  'setInterval','console','Number','String','JSON','Math','Object','Array','Date','Boolean',
+  'parseInt','parseFloat','if','for','while','return','typeof','new','function']);
+
+const declarados = new Set(nomes);
+for (const arquivo of [...ordem, 'index.html']) {
+  const t = fs.readFileSync(arquivo, 'utf8');
+  for (const m of t.matchAll(/^\s*(?:async )?function ([A-Za-z_$][\w$]*)/gm)) declarados.add(m[1]);
+  for (const m of t.matchAll(/window\.([A-Za-z_$][\w$]*)\s*=/g)) declarados.add(m[1]);
+  for (const m of t.matchAll(/^\s*(?:const|let|var) ([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?[(\w]/gm)) declarados.add(m[1]);
+}
+
+const semAspas = (c) => c.replace(/'[^']*'|"[^"]*"|`[^`]*`/g, "''");
+const botoesMortos = new Map();
+for (const arquivo of [...ordem, 'index.html']) {
+  const t = fs.readFileSync(arquivo, 'utf8');
+  for (const m of t.matchAll(/on(?:click|change|input|keydown|submit)="([^"]*)"/g)) {
+    const codigo = semAspas(m[1].replace(/&quot;/g, '"'));
+    for (const c of codigo.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*(.?)/g)) {
+      const nome = c[2];
+      if (nativos.has(nome) || declarados.has(nome)) continue;
+      // nome(){ dentro de um objeto e DEFINICAO de metodo, nao chamada
+      if (c[4] === '{') continue;
+      if (!botoesMortos.has(nome)) botoesMortos.set(nome, `${arquivo}: ${m[1].slice(0, 56)}`);
+    }
+  }
+}
+
 if (falhaGeral) console.log('  ✗ o conjunto não carrega →', falhaGeral.constructor.name + ':', String(falhaGeral.message).slice(0, 110));
+if (botoesMortos.size) {
+  console.log(`  ${botoesMortos.size} botao(oes) chamando funcao que nao existe:`);
+  for (const [nome, onde] of botoesMortos) console.log(`    ${nome}()  em  ${onde}`);
+}
 if (quebrados.size) {
   console.log(`  ${quebrados.size} nome(s) usados e nunca declarados:`);
   for (const [alvo, onde] of quebrados) console.log(`    ${alvo}  — visto ao chamar ${onde}()`);
 } else if (!falhaGeral) {
-  console.log(`  ok · ${ordem.length} arquivos, ${nomes.length} funcoes chamadas, todo nome resolve`);
+  console.log(`  ok · ${ordem.length} arquivos, ${nomes.length} funcoes chamadas, todo nome resolve, nenhum botao morto`);
 }
-process.exit((falhaGeral || quebrados.size) ? 1 : 0);
+process.exit((falhaGeral || quebrados.size || botoesMortos.size) ? 1 : 0);
