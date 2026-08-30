@@ -241,12 +241,38 @@ function pintarQuemSou() {
     .map((p) => p[0]).join('').toUpperCase();
 
   caixa.style.display = '';
-  document.getElementById('quem-sou-inicial').textContent = iniciais;
+  const marca = document.getElementById('quem-sou-inicial');
+  marca.textContent = iniciais;
+  // A foto existe no banco desde a migração para o Drive, e esta era a única
+  // marca do painel que ainda mostrava as duas letras. As iniciais ficam como
+  // alternativa: enquanto a foto não chega, e para quem não tem foto.
+  vestirFotoDeQuemSou(marca);
   document.getElementById('quem-sou-nome').textContent = primeiro;
   document.getElementById('quem-sou-completo').textContent = eu.nome || '';
   document.getElementById('quem-sou-email').textContent = eu.email || '';
   document.getElementById('quem-sou-papel').textContent = eu.admin
     ? 'Administra o painel' : 'Acesso da equipe';
+}
+
+// A sessão não carrega imagem — o cookie guarda nome, e-mail e permissão. A foto
+// vem numa consulta só, guardada para não repetir a cada desenho.
+let FOTO_DE_QUEM_SOU;
+async function vestirFotoDeQuemSou(marca) {
+  if (!marca) return;
+  const pintar = (url) => {
+    if (!url || marca.querySelector('img')) return;
+    const img = new Image();
+    img.onload = () => { marca.textContent = ''; marca.appendChild(img); marca.classList.add('com-foto'); };
+    img.alt = '';
+    img.src = url;
+  };
+  if (FOTO_DE_QUEM_SOU !== undefined) return pintar(FOTO_DE_QUEM_SOU);
+  try {
+    const r = await fetch('/api/painel?area=conta', { credentials: 'same-origin' });
+    const d = r.ok ? await r.json() : null;
+    FOTO_DE_QUEM_SOU = d?.pessoa?.foto_url || null;
+  } catch { FOTO_DE_QUEM_SOU = null; }
+  pintar(FOTO_DE_QUEM_SOU);
 }
 
 function alternarMenuDaConta() {

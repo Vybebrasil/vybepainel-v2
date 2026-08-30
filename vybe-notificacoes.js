@@ -44,6 +44,7 @@ function pintarListaNotificacoes() {
   if (!lista) return;
   if (!notificacoes.length) {
     lista.innerHTML = '<div class="notif-vazio">Nada por aqui. Quando uma entrega sua estiver perto do prazo, o aviso aparece neste sino.</div>';
+    document.getElementById('notif-caixa')?.classList.remove('tem-mais');
     return;
   }
   lista.innerHTML = notificacoes.map((n) => `
@@ -51,6 +52,19 @@ function pintarListaNotificacoes() {
       <div class="notif-texto">${safeText(n.texto)}</div>
       <div class="notif-meta">${safeText(n.conteudo_nome || '')}<span>${quandoFoi(n.criada_em)}</span></div>
     </div>`).join('');
+  marcarSeTemMais(lista);
+}
+
+// O véu no pé só faz sentido quando existe algo abaixo dele. Sem esta checagem
+// ele escurecia o último aviso mesmo com a lista inteira à vista, o que é
+// justamente o efeito de "cortado" que a gente estava tentando tirar.
+function marcarSeTemMais(lista) {
+  const caixa = document.getElementById('notif-caixa');
+  if (!caixa || !lista) return;
+  const conferir = () => caixa.classList.toggle(
+    'tem-mais', lista.scrollHeight - lista.clientHeight - lista.scrollTop > 4);
+  requestAnimationFrame(conferir);
+  lista.onscroll = conferir;
 }
 
 function alternarNotificacoes() {
