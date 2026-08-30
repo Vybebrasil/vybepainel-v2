@@ -2546,6 +2546,30 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .focus-task:not(.primeira) .focus-task-open{font:500 13.5px var(--mac-ui);color:#dfe6ec}
 .focus-task:not(.primeira) .focus-task-client{opacity:.72}
 .focus-task:not(.primeira) .focus-task-meta{opacity:.68}
+
+/* ─── O controle nao grita mais que o dado ───────────────────────────────────
+   O relogio de trocar data repetia em toda linha com borda laranja, e na
+   variante gold-risk com borda ROSA e fundo rosa. Um controle secundario
+   desenhado mais alto que o titulo da peca — e como a fila inteira costuma
+   estar fora do prazo de ouro, o rosa aparecia em todas e virava ruido
+   uniforme em vez de aviso.
+
+   O sinal continua: some a moldura, fica a cor do icone. Quem esta fora do
+   padrao segue vermelho, so que sem caixa em volta. A moldura volta no hover,
+   quando a pessoa mira nele. */
+.focus-task .quick-date-trigger,
+.focus-list .quick-date-trigger{
+  border-color:transparent;background:transparent;color:#8b8b90;
+  transition:border-color .14s var(--curva),background-color .14s var(--curva),color .14s var(--curva)}
+.focus-task .quick-date-trigger.gold-risk,
+.focus-list .quick-date-trigger.gold-risk{
+  border-color:transparent;background:transparent;color:#ff8b96}
+.focus-task .quick-date-trigger:hover,
+.focus-list .quick-date-trigger:hover{
+  border-color:rgba(255,255,255,.20);background:var(--sup-2);color:#f2f2f5}
+.focus-task .quick-date-trigger.gold-risk:hover,
+.focus-list .quick-date-trigger.gold-risk:hover{
+  border-color:#ff637a;background:rgba(255,99,122,.12);color:#ff9aa4}
 </style></head>
 <body>
 
