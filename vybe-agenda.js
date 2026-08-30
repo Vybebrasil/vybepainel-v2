@@ -657,18 +657,18 @@ function populateDaySelect() {
 
 // ─── Filtro por pessoa ───────────────────────────────────────────────────────
 const TEAM_USERS = [
-  {id:PESSOAS.PAULO, name:'Paulo',       color:'#0073ea', photo:'https://files.monday.com/use1/photos/68035537/thumb_small/68035537-user_photo_2024_11_12_01_18_55.png?1731374335'},
-  {id:PESSOAS.VINICIUS, name:'Vinícius',    color:'#037f4c', photo:'https://files.monday.com/use1/photos/68035653/thumb_small/68035653-user_photo_2024_11_24_05_50_54.png?1732427454'},
-  {id:PESSOAS.EWERTON_L, name:'Ewerton L.',  color:'#e2445c', photo:'https://files.monday.com/use1/photos/68036687/thumb_small/68036687-user_photo_2025_03_17_14_41_06.png?1742222466'},
-  {id:PESSOAS.RERISTON, name:'Reriston',    color:'#ff642e', photo:'https://files.monday.com/use1/photos/68036697/thumb_small/68036697-user_photo_initials_2024_11_12_03_28_40.png?1731382120'},
-  {id:PESSOAS.DEIVID, name:'Deivid',      color:'#fdab3d', photo:'https://files.monday.com/use1/photos/68997024/thumb_small/68997024-user_photo_2026_01_28_14_44_09.png?1769611450'},
-  {id:PESSOAS.BEATRIZ, name:'Beatriz',     color:'#df2f4a', photo:'https://files.monday.com/use1/photos/71130408/thumb_small/71130408-user_photo_2026_01_30_13_49_45.png?1769780986'},
-  {id:PESSOAS.ADEMIR, name:'Ademir',      color:'#4eccc6', photo:'https://files.monday.com/use1/photos/78158742/thumb_small/78158742-user_photo_2025_07_09_01_44_21.png?1752025461'},
-  {id:PESSOAS.TAINARA, name:'Tainara',     color:'#579bfc', photo:'https://files.monday.com/use1/photos/80146924/thumb_small/80146924-user_photo_2026_01_22_18_56_43.png?1769108203'},
-  {id:PESSOAS.EWERTON_S, name:'Ewerton S.',  color:'#ff5ac4', photo:'https://files.monday.com/use1/photos/98079733/thumb_small/98079733-user_photo_initials_2026_01_08_20_21_57.png?1767903717'},
-  {id:PESSOAS.BRENO, name:'Breno',       color:'#66ccff', photo:'https://files.monday.com/use1/photos/99331644/thumb_small/99331644-user_photo_initials_2026_02_05_16_31_55.png?1770309115'},
-  {id:PESSOAS.EDUARDO, name:'Eduardo',     color:'#7e3b8a', photo:'https://files.monday.com/use1/photos/99331648/thumb_small/99331648-user_photo_initials_2026_02_05_14_46_07.png?1770302767'},
-  {id:PESSOAS.JADY,name:'Jady',        color:'#00c875', photo:'https://files.monday.com/use1/photos/100482777/thumb_small/100482777-user_photo_2026_03_02_17_19_22.png?1772471962'},
+  {id:PESSOAS.PAULO, name:'Paulo',       color:'#0073ea', photo:null},
+  {id:PESSOAS.VINICIUS, name:'Vinícius',    color:'#037f4c', photo:null},
+  {id:PESSOAS.EWERTON_L, name:'Ewerton L.',  color:'#e2445c', photo:null},
+  {id:PESSOAS.RERISTON, name:'Reriston',    color:'#ff642e', photo:null},
+  {id:PESSOAS.DEIVID, name:'Deivid',      color:'#fdab3d', photo:null},
+  {id:PESSOAS.BEATRIZ, name:'Beatriz',     color:'#df2f4a', photo:null},
+  {id:PESSOAS.ADEMIR, name:'Ademir',      color:'#4eccc6', photo:null},
+  {id:PESSOAS.TAINARA, name:'Tainara',     color:'#579bfc', photo:null},
+  {id:PESSOAS.EWERTON_S, name:'Ewerton S.',  color:'#ff5ac4', photo:null},
+  {id:PESSOAS.BRENO, name:'Breno',       color:'#66ccff', photo:null},
+  {id:PESSOAS.EDUARDO, name:'Eduardo',     color:'#7e3b8a', photo:null},
+  {id:PESSOAS.JADY,name:'Jady',        color:'#00c875', photo:null},
 ];
 
 

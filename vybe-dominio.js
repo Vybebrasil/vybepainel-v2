@@ -227,6 +227,10 @@ function demandasComoItensDoMonday(dados) {
       updated_at: item.updated_at || '',
       group: { id: item.grupo_id || '', title: item.grupo || '' },
       updates: [],
+      // Andamento das tarefas: viaja fora das colunas porque não é coluna do
+      // Monday — é contagem nossa, para a fila mostrar 3/12 sem abrir a peça.
+      tarefas: item.tarefas || 0,
+      tarefas_feitas: item.tarefas_feitas || 0,
       column_values: [
         { id: C.cliente, text: clientes.join(', '), value: null },
         { id: C.formato, text: item.formato || '', value: null },

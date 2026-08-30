@@ -592,6 +592,10 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
         COALESCE((SELECT ARRAY_AGG(p.monday_user_id ORDER BY e.ordem, p.nome)
              FROM vybe_conteudo_editores e JOIN vybe_pessoas p ON p.id = e.pessoa_id
             WHERE e.conteudo_id = c.id), '{}') AS editores,
+        (SELECT COUNT(*)::int FROM vybe_subitens sb WHERE sb.pai_id = c.id) AS tarefas,
+        (SELECT COUNT(*)::int FROM vybe_subitens sb
+           JOIN vybe_status ss ON ss.chave = sb.status_chave AND ss.board_id = c.board_id
+          WHERE sb.pai_id = c.id AND ss.final) AS tarefas_feitas,
         c.etapa                                 AS grupo,
         c.grupo_id,
         c.status_chave,
@@ -656,6 +660,12 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
     if ((l.formato_chaves || []).length) item.formato_chaves = l.formato_chaves;
     if (l.tipo_conteudo) item.tipo_conteudo = l.tipo_conteudo;
     if (l.prioridade_chave) item.prioridade_chave = l.prioridade_chave;
+    // Só viaja quando existe: 8 das 364 solicitações têm tarefas, e nenhum
+    // conteúdo de Produção tem.
+    if (Number(l.tarefas) > 0) {
+      item.tarefas = Number(l.tarefas);
+      item.tarefas_feitas = Number(l.tarefas_feitas || 0);
+    }
     if (l.off_audio_chave) item.off_audio_chave = l.off_audio_chave;
     if ((l.editores || []).length) item.editores = l.editores;
     if (l.contexto_status) item.contexto_status = l.contexto_status;

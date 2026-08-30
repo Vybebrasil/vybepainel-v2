@@ -369,6 +369,8 @@ function processDemandas(rawItems) {
     const hoje = META.today_iso || '';
     const prazoAtrasado = !!(prazoIso && prazoIso < hoje && !['Feito','Aprovado','Concluído','Concluido','Finalizado'].includes(status));
     return {
+      // contagem de tarefas da solicitação, para a fila mostrar o andamento
+      tarefas: item.tarefas || 0, tarefas_feitas: item.tarefas_feitas || 0,
       id: String(item.id),
       nome: item.name || '',
       cliente, status, prioridade, tipo,
@@ -561,10 +563,23 @@ function demandaItemRow(d, showCliente=true) {
     ${fmtHtml(d.tipo)}
     <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openDemandaWorkspace('${d.id}')" title="Abrir contexto da solicitação">${safeText(d.nome)}</button>
     ${dateBlock}
+    ${tarefasHtml(d)}
     ${prioHtml(d.prioridade)}
     ${pillHtmlDemanda(d.status, d.status_color, d.status_border)}
     <span class="item-resp" style="flex-shrink:0;">${firstName(d.responsavel)}</span>
   </div>`;
+}
+
+// Andamento das tarefas de dentro da solicitação. Sem isto, saber que 3 de 12
+// já estão feitas exigia abrir a peça — e é a pergunta que se faz olhando a fila.
+function tarefasHtml(d) {
+  const total = Number(d?.tarefas || 0);
+  if (!total) return '';
+  const feitas = Number(d?.tarefas_feitas || 0);
+  const completa = feitas === total;
+  return `<span class="item-tarefas ${completa ? 'completa' : ''}"
+    title="${feitas} de ${total} tarefa${total === 1 ? '' : 's'} concluída${feitas === 1 ? '' : 's'}">
+    <i style="--feito:${Math.round((feitas / total) * 100)}%"></i>${feitas}/${total}</span>`;
 }
 
 // Ordenar por data mais recente primeiro (prazo ou conclusão, decrescente)
