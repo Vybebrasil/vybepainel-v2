@@ -160,8 +160,8 @@ let managerCommandDrawerOpen=false;
 let managerCommandTab='critical';
 let managerCommandInsight=null;
 function managerCommandContextLabel(){ const selected=[...selectedPersonIds].map(id=>TEAM_USERS.find(user=>String(user.id)===String(id))).filter(Boolean).map(user=>firstName(user.name)); return selected.length?selected.join(' + '):'Toda a operação'; }
-function updateManagerCommandToggle(total){ const button=document.getElementById('manager-command-toggle'); const count=document.getElementById('manager-command-count'); if(!button||!count)return; const available=panelMode==='gestor'; button.classList.toggle('visible',available); button.classList.toggle('active',managerCommandDrawerOpen&&available); button.setAttribute('aria-expanded',String(managerCommandDrawerOpen&&available)); count.textContent=total; button.title=`Mesa de Comando · ${managerCommandContextLabel()} · ${total} alerta${total===1?'':'s'}`; }
-function toggleManagerCommandDrawer(){ managerCommandDrawerOpen=!managerCommandDrawerOpen; if(!managerCommandDrawerOpen) managerCommandInsight=null; renderManagerIntelligence(); }
+function updateManagerCommandToggle(total){ const button=document.getElementById('manager-command-toggle'); const count=document.getElementById('manager-command-count'); if(!button||!count)return; const available=panelMode==='gestor'; button.classList.toggle('visible',available); if(typeof pintarBarraDeComando==='function') pintarBarraDeComando(); button.setAttribute('aria-expanded',String(managerCommandDrawerOpen&&available)); count.textContent=total; button.title=`Mesa de Comando · ${managerCommandContextLabel()} · ${total} alerta${total===1?'':'s'}`; }
+function toggleManagerCommandDrawer(){ alternarPainelDaBarra('comando'); }
 function closeManagerCommandDrawer(){ if(!managerCommandDrawerOpen)return; managerCommandDrawerOpen=false; managerCommandInsight=null; renderManagerIntelligence(); }
 function setManagerCommandTab(tab){ managerCommandTab=tab; managerCommandInsight=null; renderManagerIntelligence(); }
 function openManagerCommandInsight(key){ managerCommandDrawerOpen=true; managerCommandInsight=key; managerCommandTab=key==='external'?'external':key==='owner'?'internal':'critical'; renderManagerIntelligence(); }
@@ -211,15 +211,8 @@ const AGENDA_ABERTA = 'vybe_agenda_aberta';
 let agendaMensalAberta = (() => {
   try { return localStorage.getItem(AGENDA_ABERTA) === '1'; } catch { return false; }
 })();
-function toggleAgendaMensal() {
-  agendaMensalAberta = !agendaMensalAberta;
-  try { localStorage.setItem(AGENDA_ABERTA, agendaMensalAberta ? '1' : '0'); } catch { /* sem storage */ }
-  renderManagerCalendar();
-  if (agendaMensalAberta) {
-    const wrap = document.getElementById('manager-calendar');
-    setTimeout(() => wrap?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  }
-}
+function toggleAgendaMensal() { alternarPainelDaBarra('calendario'); }
+
 
 let managerCalendarClientFilter = 'all';
 let managerCalendarSourceFilter = 'all';
@@ -469,8 +462,6 @@ function renderManagerCalendar() {
   }
   if (botao) {
     botao.classList.remove('focus-hidden');
-    botao.classList.toggle('active', agendaMensalAberta);
-    botao.setAttribute('aria-expanded', String(agendaMensalAberta));
     const noMes = managerCalendarMonthMeta();
     const total = managerCalendarItems({ ignorarCliente: true })
       .filter(item => noMes.cells.some(cell => cell.iso === item.calendarDateIso)).length;
@@ -715,15 +706,8 @@ function guardarGruposRecolhidos() {
   catch { /* navegador sem storage */ }
 }
 
-function toggleVisaoDeGrupos() {
-  visaoDeGruposAberta = !visaoDeGruposAberta;
-  try { localStorage.setItem(GRUPOS_VISAO, visaoDeGruposAberta ? '1' : '0'); } catch { /* sem storage */ }
-  renderVisaoDeGrupos();
-  if (visaoDeGruposAberta) {
-    const alvo = document.getElementById('grupos-board');
-    setTimeout(() => alvo?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  }
-}
+function toggleVisaoDeGrupos() { alternarPainelDaBarra('grupos'); }
+
 
 function toggleGrupo(groupId) {
   if (gruposRecolhidos.has(groupId)) gruposRecolhidos.delete(groupId);
@@ -1002,8 +986,6 @@ function renderVisaoDeGrupos() {
   if (!wrap) return;
   const grupos = itensPorGrupo();
   if (botao) {
-    botao.classList.toggle('active', visaoDeGruposAberta);
-    botao.setAttribute('aria-expanded', String(visaoDeGruposAberta));
     const contador = document.getElementById('ops-grupos-count');
     if (contador) contador.textContent = grupos.length;
   }

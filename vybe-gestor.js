@@ -691,10 +691,7 @@ function opsTodayItems(){
   const today=opsTodayIso();
   return opsSelectedScope().filter(d=>opsOpenItem(d) && getDateIso(d)<=today).sort((a,b)=>{ const ad=getDateIso(a),bd=getDateIso(b); return ad.localeCompare(bd)||Number(a.operational_risk?.score??99)-Number(b.operational_risk?.score??99)||a.nome.localeCompare(b.nome); });
 }
-function toggleTodayQueue(){
-  const panel=document.getElementById('ops-today-panel'); const btn=document.getElementById('ops-today-btn'); if(!panel||!btn) return;
-  showTodayQueue=!showTodayQueue; panel.classList.toggle('open',showTodayQueue); btn.classList.toggle('active',showTodayQueue);
-}
+function toggleTodayQueue(){ alternarPainelDaBarra('hoje'); }
 function renderTodayQueue(){
   const existing=document.getElementById('ops-today-panel'); if(!existing) return;
   const items=opsTodayItems(); const count=document.getElementById('ops-today-count'); if(count) count.textContent=items.length;
@@ -705,7 +702,7 @@ function renderTodayQueue(){
 let showDailyClose=false;
 function opsOwnerLabel(d){ return opsOwners(d).map(owner=>firstName(owner.name)).join(', '); }
 function opsUpdatedToday(d){ return String(d?.updated_at||'').slice(0,10)===opsTodayIso(); }
-function toggleDailyClose(){ const panel=document.getElementById('ops-daily-panel'); const btn=document.getElementById('ops-daily-close-btn'); if(!panel||!btn)return; showDailyClose=!showDailyClose; panel.classList.toggle('open',showDailyClose); btn.classList.toggle('active',showDailyClose); }
+function toggleDailyClose(){ alternarPainelDaBarra('fechamento'); }
 function renderDailyClose(){
   const panel=document.getElementById('ops-daily-panel'); if(!panel)return; const today=opsTodayIso(); const scope=opsSelectedScope();
   const finalizedToday=scope.filter(d=>['Finalizado','Feito'].includes(d.status)&&opsUpdatedToday(d));
@@ -722,6 +719,7 @@ function renderOperationalTools() {
   renderTodayQueue();
   renderDailyClose();
   renderVisaoDeGrupos();
+  pintarBarraDeComando();
 }
 
 function renderTeamLoad() {
@@ -744,13 +742,96 @@ function renderTeamLoad() {
   }).join('')}`;
 }
 
-function toggleActionQueue() {
-  const panel = document.getElementById('ops-action-panel');
-  const btn = document.getElementById('ops-action-btn');
-  const willOpen = !panel.classList.contains('open');
-  panel.classList.toggle('open', willOpen);
-  btn.classList.toggle('active', willOpen);
+// ── os botões da barra de comando, uma lógica só ─────────────────────────────
+//
+// Eram seis interruptores independentes: cada um com a sua variável de estado,
+// o seu jeito de marcar o botão e a sua decisão sobre lembrar ou não entre
+// visitas — dois lembravam, quatro esqueciam. E nenhum fechava os outros, então
+// dava para deixar os seis painéis abertos ao mesmo tempo, empilhados.
+//
+// Aqui eles viram um registro só, em dois grupos que se excluem por dentro:
+//
+//   consulta — painéis que abrem logo abaixo da barra. Dois abertos ao mesmo
+//              tempo empurram um ao outro; só um por vez.
+//   visão    — blocos grandes de conteúdo. Também um por vez: são duas
+//              maneiras de olhar a mesma operação, não duas coisas para ver
+//              juntas.
+//
+// 'Modo Reunião' e 'Sem filtros' ficam de fora de propósito: um abre uma tela
+// por cima, o outro é uma ação que acontece e acaba. Não são estado, e não
+// devem parecer estado.
+const PAINEIS_DA_BARRA = {
+  acao: {
+    grupo: 'consulta', botao: 'ops-action-btn',
+    aberto: () => document.getElementById('ops-action-panel')?.classList.contains('open') || false,
+    definir: (v) => document.getElementById('ops-action-panel')?.classList.toggle('open', v),
+  },
+  hoje: {
+    grupo: 'consulta', botao: 'ops-today-btn',
+    aberto: () => showTodayQueue,
+    definir: (v) => { showTodayQueue = v; document.getElementById('ops-today-panel')?.classList.toggle('open', v); },
+  },
+  fechamento: {
+    grupo: 'consulta', botao: 'ops-daily-close-btn',
+    aberto: () => showDailyClose,
+    definir: (v) => { showDailyClose = v; document.getElementById('ops-daily-panel')?.classList.toggle('open', v); },
+  },
+  comando: {
+    grupo: 'consulta', botao: 'manager-command-toggle',
+    aberto: () => managerCommandDrawerOpen,
+    definir: (v) => { managerCommandDrawerOpen = v; if (!v) managerCommandInsight = null; renderManagerIntelligence(); },
+  },
+  grupos: {
+    grupo: 'visao', botao: 'ops-grupos-btn', lembra: () => GRUPOS_VISAO, alvo: 'grupos-board',
+    aberto: () => visaoDeGruposAberta,
+    definir: (v) => { visaoDeGruposAberta = v; renderVisaoDeGrupos(); },
+  },
+  calendario: {
+    grupo: 'visao', botao: 'ops-agenda-btn', lembra: () => AGENDA_ABERTA, alvo: 'manager-calendar',
+    aberto: () => agendaMensalAberta,
+    definir: (v) => { agendaMensalAberta = v; renderManagerCalendar(); },
+  },
+};
+
+function definirPainel(nome, valor) {
+  const p = PAINEIS_DA_BARRA[nome];
+  if (!p) return;
+  p.definir(valor);
+  if (p.lembra) { try { localStorage.setItem(p.lembra(), valor ? '1' : '0'); } catch { /* sem storage */ } }
 }
+
+function alternarPainelDaBarra(nome) {
+  const p = PAINEIS_DA_BARRA[nome];
+  if (!p) return;
+  const abrindo = !p.aberto();
+  // Fecha os irmãos do mesmo grupo: é o que faltava, e o que fazia a tela
+  // acumular painel sobre painel.
+  if (abrindo) {
+    Object.entries(PAINEIS_DA_BARRA)
+      .filter(([outro, o]) => outro !== nome && o.grupo === p.grupo && o.aberto())
+      .forEach(([outro]) => definirPainel(outro, false));
+  }
+  definirPainel(nome, abrindo);
+  pintarBarraDeComando();
+  if (abrindo && p.alvo) {
+    setTimeout(() => document.getElementById(p.alvo)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  }
+}
+
+// Um lugar só decide como o botão aparece. Antes cinco trechos diferentes
+// mexiam na classe 'active', e por isso um deles podia ficar para trás.
+function pintarBarraDeComando() {
+  Object.values(PAINEIS_DA_BARRA).forEach((p) => {
+    const b = document.getElementById(p.botao);
+    if (!b) return;
+    const aberto = p.aberto();
+    b.classList.toggle('active', aberto);
+    b.setAttribute('aria-expanded', String(aberto));
+  });
+}
+
+function toggleActionQueue() { alternarPainelDaBarra('acao'); }
+
 
 function renderActionQueue() {
   const panel = document.getElementById('ops-action-panel');

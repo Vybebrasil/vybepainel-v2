@@ -1832,6 +1832,19 @@ button.subitem-marca:hover{transform:scale(1.35)}
   .resumo-hoje{padding-left:0;border-left:0}
   .resumo-detalhes{margin-left:0}
 }
+
+/* Botão que GUARDA ESTADO e botão que é AÇÃO não devem se parecer.
+
+   'Requer ação', 'O que vence hoje', 'Fechamento do dia', 'Grupos',
+   'Calendário' e 'Mesa de comando' abrem algo que fica aberto — têm estado, e
+   por isso acendem. 'Modo Reunião' abre uma tela por cima e 'Sem filtros'
+   acontece e acaba: não têm nada para acender, e antes eram idênticos aos
+   outros, o que fazia parecer que um deles tinha ficado ligado. */
+#ops-meeting-btn,.ops-clear-btn{border-style:dashed;color:var(--vybe-muted)}
+#ops-meeting-btn:hover,.ops-clear-btn:hover{border-style:solid;color:var(--vybe-text)}
+#ops-meeting-btn::after,.ops-clear-btn::after{content:none!important}
+.ops-clear-btn.is-idle{opacity:.55}
+.ops-clear-btn:not(.is-idle){border-style:solid;border-color:rgba(255,139,154,.45);color:#ff8b9a}
 </style></head>
 <body>
 
