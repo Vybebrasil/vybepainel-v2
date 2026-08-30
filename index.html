@@ -149,15 +149,15 @@
     .global-search-clear { position:absolute;right:8px;top:5px;display:none;background:none;border:0;color:var(--text-muted);font-size:16px;cursor:pointer}
     .global-search-clear.visible { display:block}
     .ops-action-btn { border:1px solid rgba(255,214,10,.32);background:rgba(255,214,10,.07);border-radius:8px;color:#ffe600;padding:8px 11px;cursor:pointer;font:700 11px var(--mac-ui);white-space:nowrap}
-    .ops-action-btn:hover,.ops-action-btn.active { background:rgba(255,214,10,.15);box-shadow:none}
+    .ops-action-btn:hover,
     .ops-clear-btn { border:1px solid rgba(226,68,92,.32);background:rgba(226,68,92,.06);border-radius:8px;color:#ff6b81;padding:8px 11px;cursor:pointer;font:700 11px var(--mac-ui);white-space:nowrap;transition:all .18s}
     .ops-clear-btn:hover { background:rgba(226,68,92,.14);box-shadow:none}
     .ops-clear-btn.is-idle { color:var(--text-muted);border-color:rgba(255,255,255,.09);background:rgba(255,255,255,.025)}
     .ops-action-count { display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;border-radius:10px;background:#ffe600;color:#07101b;font-size:10px;margin-left:5px}
     .ops-today-btn { border:1px solid rgba(0,240,255,.30);background:rgba(0,240,255,.055);border-radius:8px;color:var(--cyan);padding:8px 11px;cursor:pointer;font:700 11px var(--mac-ui);white-space:nowrap;transition:all .18s}
-    .ops-today-btn:hover,.ops-today-btn.active { background:rgba(0,240,255,.14);box-shadow:none}
-    .ops-close-btn { border:1px solid rgba(192,132,252,.30);background:rgba(192,132,252,.055);border-radius:8px;color:#d8b4fe;padding:8px 11px;cursor:pointer;font:700 11px var(--mac-ui);white-space:nowrap;transition:all .18s}.ops-close-btn:hover,.ops-close-btn.active{background:rgba(192,132,252,.15);box-shadow:none}
-    .ops-command-toggle{display:none;border:1px solid rgba(255,157,0,.34);background:rgba(255,107,0,.055);border-radius:8px;color:#ffca78;padding:8px 11px;cursor:pointer;font:800 10px var(--mac-ui);letter-spacing:.3px;white-space:nowrap;transition:all .18s}.ops-command-toggle.visible{display:inline-flex;align-items:center}.ops-command-toggle:hover,.ops-command-toggle.active{background:rgba(255,107,0,.15);box-shadow:none}.ops-command-toggle .ops-action-count{background:#ff9d00;color:#130800}
+    .ops-today-btn:hover,
+    .ops-close-btn { border:1px solid rgba(192,132,252,.30);background:rgba(192,132,252,.055);border-radius:8px;color:#d8b4fe;padding:8px 11px;cursor:pointer;font:700 11px var(--mac-ui);white-space:nowrap;transition:all .18s}.ops-close-btn:hover,
+    .ops-command-toggle{display:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:8px;color:#e6eaf1;padding:8px 11px;cursor:pointer;font:800 10px var(--mac-ui);letter-spacing:.3px;white-space:nowrap;transition:all .18s}.ops-command-toggle.visible{display:inline-flex;align-items:center}.ops-command-toggle:hover,.ops-command-toggle .ops-action-count{background:#ff9d00;color:#130800}
     .ops-selection-summary { display:none;align-items:center;gap:7px;min-height:29px;padding:4px 8px;border:1px solid rgba(0,240,255,.18);border-radius:8px;background:rgba(0,240,255,.035);color:#9beef6;font:700 10px var(--mac-ui);white-space:nowrap}
     .ops-selection-summary.open { display:inline-flex}.ops-selection-summary b{color:#fff}.ops-selection-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:none}
     .ops-today-panel { border-color:rgba(0,240,255,.22)}.ops-today-panel .ops-panel-title{color:var(--cyan)}.ops-today-group{padding:8px 0;border-top:1px solid rgba(255,255,255,.07)}.ops-today-group:first-of-type{border-top:0;padding-top:0}.ops-today-group-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#d8faff;font:800 10px var(--mac-ui)}.ops-today-group-head img{width:17px;height:17px;border-radius:50%;object-fit:cover;border:1px solid var(--cyan)}.ops-today-group-head span{color:var(--text-muted);font-weight:600}.ops-today-line{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;padding:5px 7px;border-radius:5px;cursor:pointer}.ops-today-line:hover{background:rgba(0,240,255,.06)}.ops-today-line b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:10px}.ops-today-line small{color:var(--text-muted);font-size:10px}.ops-today-alert{color:#ff7b8e;font:800 10px var(--mac-ui)}.ops-today-due{color:#80f7ff;font:800 10px var(--mac-ui)}
@@ -1610,6 +1610,29 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .vybe-data.atrasado{color:#ff8b9a}
 .vybe-datas{display:inline-flex;align-items:center;gap:5px}
 .vybe-datas-sep{width:1px;height:9px;background:rgba(255,255,255,.18)}
+
+/* Qual painel está aberto — uma marca só, para todos os botões da barra.
+   Cada um tinha a sua: amarelo, ciano, roxo, laranja, todos com 14% de fundo e
+   nada mais. Era pouco desde sempre, e ficou invisível quando tirei o brilho:
+   o brilho era a única pista que sobrava. Agora quem está aberto tem contorno,
+   texto e preenchimento na cor de destaque, e um traço embaixo — em pé, ao
+   lado dos fechados, dá para ver de longe qual é. */
+.ops-action-btn.active,.ops-today-btn.active,.ops-close-btn.active,
+.ops-command-toggle.active,.ops-clear-btn.active{
+  position:relative;
+  border-color:var(--accent,#ff6b00);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 20%,transparent);
+  color:#fff
+}
+.ops-action-btn.active::after,.ops-today-btn.active::after,.ops-close-btn.active::after,
+.ops-command-toggle.active::after{
+  content:'';position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px;
+  background:var(--accent,#ff6b00)
+}
+.ops-action-btn.active .ops-action-count,.ops-today-btn.active .ops-action-count,
+.ops-close-btn.active .ops-action-count,.ops-command-toggle.active .ops-action-count{
+  background:var(--accent,#ff6b00)!important;color:#1a0d02!important
+}
 </style></head>
 <body>
 
