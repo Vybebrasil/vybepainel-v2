@@ -1933,6 +1933,24 @@ html{scrollbar-gutter:stable}
 .cr-abrir{width:100%;text-align:left;border:0;background:transparent;color:var(--accent,#ff6b00);
   padding:5px 2px;border-radius:6px;cursor:pointer;font:600 12px var(--mac-ui)}
 .cr-abrir:hover{background:rgba(255,122,26,.12)}
+
+/* Seção recolhida: o que quase ninguém usa deixa de ocupar a tela, sem sumir.
+   Contei no histórico do Monday, em 200 peças: passagem de bastão 0 usos,
+   direcionamento de D.A. 0, check-in de bloco 2. Apagar seria decidir por
+   você; deixar aberto era fazer todo mundo rolar por cima disso todo dia. */
+.workspace-recolhida{border:1px solid var(--vybe-line-quiet);border-radius:10px;
+  background:rgba(255,255,255,.014);margin:10px 0}
+.workspace-recolhida > summary{display:flex;align-items:center;gap:10px;min-height:40px;
+  padding:0 14px;cursor:pointer;list-style:none;color:#a9b1bf;font:600 12px var(--mac-ui)}
+.workspace-recolhida > summary::-webkit-details-marker{display:none}
+.workspace-recolhida > summary::after{content:"+";margin-left:auto;color:#7b8494;font-size:15px}
+.workspace-recolhida[open] > summary::after{content:"–"}
+.workspace-recolhida > summary:hover{color:var(--vybe-text)}
+.workspace-recolhida > summary small{color:#6f7887;font:500 11px var(--mac-ui)}
+.workspace-recolhida > .workspace-section-body{padding-top:0}
+.ficha-dono{border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:right}
+.ficha-dono:hover{color:var(--accent,#ff6b00);text-decoration:underline;text-underline-offset:3px}
+.workspace-ficha-linha .grupo-data-campo{max-width:130px}
 </style></head>
 <body>
 
