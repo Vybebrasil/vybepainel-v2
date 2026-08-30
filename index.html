@@ -157,7 +157,7 @@
     .ops-today-btn { border:1px solid rgba(0,240,255,.30);background:rgba(0,240,255,.055);border-radius:8px;color:var(--cyan);padding:8px 11px;cursor:pointer;font:700 11px var(--mac-ui);white-space:nowrap;transition:all .18s}
     .ops-today-btn:hover,
     .ops-close-btn { border:1px solid rgba(192,132,252,.30);background:rgba(192,132,252,.055);border-radius:8px;color:#d8b4fe;padding:8px 11px;cursor:pointer;font:700 11px var(--mac-ui);white-space:nowrap;transition:all .18s}.ops-close-btn:hover,
-    .ops-command-toggle{display:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:8px;color:#e6eaf1;padding:8px 11px;cursor:pointer;font:800 10px var(--mac-ui);letter-spacing:.3px;white-space:nowrap;transition:all .18s}.ops-command-toggle.visible{display:inline-flex;align-items:center}.ops-command-toggle:hover,.ops-command-toggle .ops-action-count{background:#ff9d00;color:#130800}
+    .ops-command-toggle{display:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:8px;color:#e6eaf1;padding:8px 11px;cursor:pointer;font:800 10px var(--mac-ui);letter-spacing:.3px;white-space:nowrap;transition:all .18s}.ops-command-toggle.visible{display:inline-flex;align-items:center}.ops-command-toggle:hover{background:rgba(255,122,26,.14)}
     .ops-selection-summary { display:none;align-items:center;gap:7px;min-height:29px;padding:4px 8px;border:1px solid rgba(0,240,255,.18);border-radius:8px;background:rgba(0,240,255,.035);color:#9beef6;font:700 10px var(--mac-ui);white-space:nowrap}
     .ops-selection-summary.open { display:inline-flex}.ops-selection-summary b{color:#fff}.ops-selection-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:none}
     .ops-today-panel { border-color:rgba(0,240,255,.22)}.ops-today-panel .ops-panel-title{color:var(--cyan)}.ops-today-group{padding:8px 0;border-top:1px solid rgba(255,255,255,.07)}.ops-today-group:first-of-type{border-top:0;padding-top:0}.ops-today-group-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#d8faff;font:800 10px var(--mac-ui)}.ops-today-group-head img{width:17px;height:17px;border-radius:50%;object-fit:cover;border:1px solid var(--cyan)}.ops-today-group-head span{color:var(--text-muted);font-weight:600}.ops-today-line{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;padding:5px 7px;border-radius:5px;cursor:pointer}.ops-today-line:hover{background:rgba(0,240,255,.06)}.ops-today-line b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:10px}.ops-today-line small{color:var(--text-muted);font-size:10px}.ops-today-alert{color:#ff7b8e;font:800 10px var(--mac-ui)}.ops-today-due{color:#80f7ff;font:800 10px var(--mac-ui)}
@@ -1467,7 +1467,7 @@ header,.topbar{
 
 /* Altura de controle: os botões iam de 24px a 38px sem critério. Um controle
    pequeno tem 28px, o normal 32px — é a escala que o macOS usa. */
-.ops-action-btn,.ops-today-btn,.ops-close-btn,.ops-command-toggle,.ops-clear-btn,
+.ops-action-btn,.ops-today-btn,.ops-close-btn,.ops-clear-btn,
 .manager-calendar-actions button,.manager-calendar-month button,.manager-calendar-client{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   min-height:28px;padding:0 10px;border-radius:7px;
@@ -1643,6 +1643,14 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .grupo-th:hover .grupo-seta{opacity:.75}
 .grupo-th.ordenando .grupo-seta{opacity:1}
 .grupo-tabela th:has(.grupo-th.ordenando){background:rgba(255,122,26,.07)}
+
+/* O contador mudava de largura conforme o número (8 → 13 → 129). Numa barra que
+   quebra em linhas, isso empurra o último botão para a linha de baixo e ele
+   some da vista — o "sumindo e aparecendo". Dígito de largura fixa e um piso de
+   largura deixam o botão do mesmo tamanho, mude o número que mudar. */
+.ops-action-count{min-width:26px;text-align:center;font-variant-numeric:tabular-nums;
+  font-family:var(--mac-mono);padding:1px 5px}
+.ops-command-bar button{flex:0 0 auto}
 </style></head>
 <body>
 
