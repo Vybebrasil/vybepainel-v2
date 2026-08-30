@@ -1467,11 +1467,20 @@ header,.topbar{
 
 /* Altura de controle: os botões iam de 24px a 38px sem critério. Um controle
    pequeno tem 28px, o normal 32px — é a escala que o macOS usa. */
+/* Tamanho para todos os controles da barra, inclusive o 'Mesa de comando'.
+   O display fica de fora dele de proposito: esse botao nasce display:none e o
+   JavaScript o mostra so no Modo Gestor. Quando eu o tirei da regra inteira
+   para consertar isso, ele perdeu junto a altura e ficou 34px no meio de
+   vizinhos de 28px. */
+.ops-action-btn,.ops-today-btn,.ops-close-btn,.ops-clear-btn,.ops-command-toggle,
+.manager-calendar-actions button,.manager-calendar-month button,.manager-calendar-client{
+  align-items:center;justify-content:center;gap:6px;
+  min-height:28px;height:28px;padding:0 10px;border-radius:7px;
+  font:600 11.5px/1 var(--mac-ui);letter-spacing:0;box-sizing:border-box
+}
 .ops-action-btn,.ops-today-btn,.ops-close-btn,.ops-clear-btn,
 .manager-calendar-actions button,.manager-calendar-month button,.manager-calendar-client{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  min-height:28px;padding:0 10px;border-radius:7px;
-  font:600 11.5px/1 var(--mac-ui);letter-spacing:0
+  display:inline-flex
 }
 .manager-calendar-month button{min-width:28px;padding:0 7px}
 .manager-calendar-client{font-size:11px}
@@ -1688,6 +1697,22 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .notif-item{padding:12px 14px}
 .notif-texto{line-height:1.45}
 .notif-meta{margin-top:5px;color:#8f98a9;font-size:10.5px;line-height:1.4}
+
+/* Os botões viram uma faixa só, que não quebra em linha.
+
+   Antes eles eram filhos diretos da barra, que tem flex-wrap: qualquer mudança
+   de largura — um contador indo de 5 para 367, a busca crescendo, a janela
+   mudando — reposicionava tudo, e um botão inteiro podia trocar de linha e
+   sumir de vista. Não deu para reproduzir o gatilho exato pelos recortes, mas
+   a faixa remove a possibilidade: eles ficam sempre na mesma ordem e na mesma
+   linha. Se não couberem, a faixa rola, o que é visível e previsível. */
+.ops-botoes{display:flex;align-items:center;gap:8px;flex:1 1 100%;min-width:0;
+  flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.18) transparent;padding-bottom:2px}
+.ops-botoes::-webkit-scrollbar{height:7px}
+.ops-botoes::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:99px}
+.ops-botoes::-webkit-scrollbar-track{background:transparent}
+.ops-botoes > button{flex:0 0 auto}
 </style></head>
 <body>
 
@@ -1851,6 +1876,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
       <input id="global-search" class="global-search" type="search" autocomplete="off" placeholder="Buscar cliente, conteúdo ou responsável..." oninput="handleGlobalSearch(this.value)">
       <button id="global-search-clear" class="global-search-clear" type="button" onclick="clearGlobalSearch()" title="Limpar busca">×</button>
     </div>
+    <div class="ops-botoes">
     <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">Requer ação <span id="ops-action-count" class="ops-action-count">8</span></button>
     <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">O que vence hoje <span id="ops-today-count" class="ops-action-count">4</span></button>
     <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
@@ -1859,6 +1885,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
     <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
     <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
     <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
+    </div>
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
     <div id="team-load-strip" class="team-load-strip"></div>
   </div>
