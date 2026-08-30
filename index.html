@@ -301,9 +301,28 @@
     .clients-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:18px;margin-bottom:32px}
     .client-card { background:rgba(10,10,26,.7);border:1px solid rgba(0,240,255,.1);border-radius:12px;overflow:hidden;transition:border-color .34s,box-shadow .34s;backdrop-filter:blur(8px)}
     .client-card:hover { border-color:rgba(0,240,255,.4);box-shadow:none}
-    .client-card.alert-low   {}
-    .client-card.alert-ok    {}
-    .client-card.alert-empty {}
+    /* O codigo marca cinco estados no cartao de cliente — atrasada, em producao,
+   vazia, com pendencia, tudo pronto — e quatro nao pintavam nada: as regras
+   existiam vazias. Cliente com entrega atrasada ficava identico a cliente em
+   dia. Estado que ninguem le e estado que nao existe.
+
+   A faixa fica na borda esquerda, nao no fundo: da para ler a coluna inteira
+   de relance sem que a cor brigue com o conteudo do cartao. */
+.client-card.alert-low,.client-card.alert-ok,.client-card.alert-empty{
+  position:relative}
+.client-card.alert-low::before,.client-card.alert-ok::before,.client-card.alert-empty::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px}
+.client-card.alert-low::before{background:#ff4d6d}
+.client-card.alert-ok::before{background:#00c875}
+.client-card.alert-empty::before{background:rgba(255,255,255,.14)}
+.client-card.alert-low{border-color:rgba(255,77,109,.34)}
+.client-card.alert-low:hover{border-color:rgba(255,77,109,.62)}
+.client-card.alert-empty{opacity:.72}
+.client-card.alert-empty:hover{opacity:1}
+/* Pendencia e outra dimensao: nao e a cor da faixa, e um ponto no canto. */
+.client-card.has-pending::after{
+  content:'';position:absolute;right:10px;top:10px;width:6px;height:6px;border-radius:50%;
+  background:#fdab3d;box-shadow:0 0 0 3px rgba(253,171,61,.18)}
     .client-header { padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,240,255,.1);background:rgba(15,15,37,.6)}
     .client-name { font-weight:700;font-size:13px;color:var(--text)}
     .client-meta { display:flex;align-items:center;gap:6px}
