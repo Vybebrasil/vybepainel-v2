@@ -341,7 +341,11 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
   }
 
   window.fcHandleInput = function(key, val) {
-     if(isManual) state[key] = val;
+     // Era `if(isManual)`, e isManual nao existe aqui: e parametro de
+     // fcSelectDropdown, outra funcao. Toda tecla no titulo, toda troca de
+     // cliente e todo checkbox estouravam ReferenceError e nada chegava no
+     // state — por isso a previa nunca saia de "Cliente nao selecionado".
+     state[key] = val;
      
      if(key === 'veic' && val) {
         state.prazo = getOffsetDate(val, -7);
