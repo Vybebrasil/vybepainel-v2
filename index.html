@@ -2530,6 +2530,22 @@ button:not(:disabled):not([aria-disabled="true"]):active,
    lido em sequencia. */
 .focus-metrics{gap:26px}
 .focus-metric{border:0;background:transparent;padding:0}
+
+/* ─── A fila mostra que e uma fila ───────────────────────────────────────────
+   Cinco linhas, sete elementos cada, todos identicos: a mesma barrinha, o mesmo
+   CONTEUDO, o mesmo '! hoje', o mesmo 'Pronto para voce executar', o mesmo
+   relogio, o mesmo avatar, o mesmo Pode Fazer. A lista esta ORDENADA POR
+   PRIORIDADE e nao parecia — a quinta pesava igual a primeira.
+
+   Repeticao nao informa. O que se repete em todas as linhas do grupo pertence
+   ao grupo, nao a linha. */
+.focus-task.primeira{background:var(--sup-1);border-radius:10px}
+.focus-task.primeira .focus-task-open{font:600 15px var(--mac-ui);color:#fff}
+.focus-task.primeira .focus-task-priority{width:3px}
+/* As seguintes recuam um passo: nao somem, mas nao disputam. */
+.focus-task:not(.primeira) .focus-task-open{font:500 13.5px var(--mac-ui);color:#dfe6ec}
+.focus-task:not(.primeira) .focus-task-client{opacity:.72}
+.focus-task:not(.primeira) .focus-task-meta{opacity:.68}
 </style></head>
 <body>
 

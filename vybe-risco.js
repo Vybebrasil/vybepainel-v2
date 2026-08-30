@@ -151,7 +151,7 @@ function focusStatusButtonHtml(d) {
   return `<button type="button" class="focus-status-btn" onclick="openStatusEditor(event,'${d.id}')" title="Atualizar status no Monday">${pillHtml(d.status,d.status_color,d.status_border)}</button>`;
 }
 function operationalOriginTag(item={}) { const request=isRequestItem(item); return `<span class="operational-origin-tag ${request?'request':'content'}" title="Origem operacional: ${request?'Solicitação de Demandas':'Produção de Conteúdo'}">${request?'SOLICITAÇÃO':'CONTEÚDO'}</span>`; }
-function focusTaskHtml(d, contextText='') {
+function focusTaskHtml(d, contextText='', opcoes={}) {
   const user = focusUser();
   const deadline = focusReferenceDate(d, user);
   const dateLabel = focusReferenceLabel(d, user);
@@ -161,14 +161,18 @@ function focusTaskHtml(d, contextText='') {
   const risk = d.operational_risk || getOperationalRisk(d);
   const isRunning = flowStatus === 'Em andamento';
     const timerHtml = isRunning && d.status_updated_at ? `<span class="live-timer" data-start="${d.status_updated_at}" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.06);color:#a6f8ff;font:700 11px var(--mac-mono, monospace);letter-spacing:1px;border:1px solid rgba(0,240,255,0.2);display:inline-block;vertical-align:middle;">00:00:00</span>` : '';
-    const baseMeta = [contextText || focusStatusExplanation(flowStatus) || d.status, late ? '⚠️ Atrasado' : '', risk.sla_label || '', dateLabel].filter(Boolean).join(' • ');
+    // O texto de contexto e do GRUPO — 'Pronto para voce executar' aparecia
+    // igual nas cinco linhas. Fica so na primeira, como quem diz a regra uma
+    // vez; nas outras sobra o que de fato muda.
+    const contexto = opcoes.primeira ? (contextText || focusStatusExplanation(flowStatus) || d.status) : '';
+    const baseMeta = [contexto, late ? '⚠️ Atrasado' : '', risk.sla_label || '', dateLabel].filter(Boolean).join(' • ');
     const meta = baseMeta;
     const finalMetaHtml = safeText(meta) + timerHtml;
-  return `<div class="focus-task" style="--priority-color:${color}">
+  return `<div class="focus-task ${opcoes.primeira ? 'primeira' : ''}" style="--priority-color:${color}">
     <span class="focus-task-priority"></span>
-    <div class="focus-task-title"><div class="focus-task-client">${safeText(d.cliente)}</div><div class="focus-task-name"><button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${operationalOriginTag(d)}${riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : ''}</div></div>
+    <div class="focus-task-title"><div class="focus-task-client">${safeText(d.cliente)}</div><div class="focus-task-name"><button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : ''}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${quickDateTrigger(d,'focus-date-trigger')}${ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${quickDateTrigger(d,'focus-date-trigger')}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
 

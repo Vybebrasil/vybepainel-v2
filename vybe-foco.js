@@ -122,7 +122,13 @@ function renderFocusDashboard() {
     if (!items.length) return '';
     const displayed = focusShowAll ? items : items.slice(0,5);
     const more = items.length > 5 ? `<button class="search-result-action" onclick="toggleFocusShowAll()">${focusShowAll?'Mostrar menos':`Ver mais (${items.length-5})`}</button>` : '';
-    return `<section class="focus-section" style="--focus-group-color:${tone}"><div class="focus-section-head"><span>${icon ? `${icon} ` : ''}${label} <b>${items.length}</b></span><span><small>${subtitle}</small> ${more}</span></div><div class="focus-list">${displayed.map(d => focusTaskHtml(d, contextText)).join('')}</div></section>`;
+    return `<section class="focus-section" style="--focus-group-color:${tone}"><div class="focus-section-head"><span>${icon ? `${icon} ` : ''}${label} <b>${items.length}</b></span><span><small>${subtitle}</small> ${more}</span></div><div class="focus-list">${(() => {
+        const origens = new Set(displayed.map(d => String(operationalOriginTag(d) || '')));
+        const donos = new Set(displayed.map(d => (d.responsavel_ids || [d.responsavel_id]).join(',')));
+        return displayed.map((d, n) => focusTaskHtml(d, contextText, {
+          primeira: n === 0, origemVaria: origens.size > 1, donoVaria: donos.size > 1,
+        })).join('');
+      })()}</div></section>`;
   };
   const nextAction=getFocusNextAction(mine,user);
   const primaryId=String(nextAction?.item?.id || '');
