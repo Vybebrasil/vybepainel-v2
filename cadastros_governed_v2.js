@@ -46,6 +46,13 @@
       .fc-title-input.fc-error-pulse { border-bottom: 1px solid #ff637a !important; }
       
       .fc-row { display:flex; align-items:flex-start; gap:20px; }
+      .fc-destino { display:inline-flex; gap:2px; padding:2px; margin:0 0 14px;
+        background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); border-radius:8px; }
+      .fc-destino-btn { border:0; background:transparent; color:#9cafba; cursor:pointer;
+        padding:6px 13px; border-radius:6px; font:600 12px var(--mac-ui); letter-spacing:0;
+        transition:background .14s, color .14s; }
+      .fc-destino-btn:hover { color:#e7ecf5; }
+      .fc-destino-btn.ativo { background:var(--accent,#ff6b00); color:#fff; }
       .fc-label { width:120px; color:#9cafba; font-size:13px; font-weight:600; flex-shrink:0; margin-top:12px; letter-spacing:0.3px; }
       
       .fc-input-wrap { flex:1; min-width:0; }
@@ -141,7 +148,81 @@
     briefReady: false,
     manualGroup: undefined,
     manualStatus: undefined,
-    manualCap: undefined
+    manualCap: undefined,
+    // 'producao' ou 'demandas'. Antes não existia: tudo ia para Produção, e
+    // Solicitações só recebia item criado dentro do Monday.
+    board: 'producao',
+    prioridade: ''
+  };
+
+// O que muda entre os dois quadros. Grupos, status e o terceiro campo não são
+// os mesmos — em Produção é Captação, em Demandas é Prioridade.
+const FC_QUADROS = {
+  producao: {
+    id: 7829537690,
+    nome: 'Produção de conteúdo',
+    grupos: [
+      { val: 'group_title', label: 'Redação' },
+      { val: 'novo_grupo__1', label: 'Design & Edição' },
+      { val: 'novo_grupo57911__1', label: 'Produção (Foto e Vídeo)' },
+      { val: 'novo_grupo22352__1', label: 'Gestão de publicações' }
+    ],
+    status: ['A Fazer','Aguardo Redação','Pode Fazer','Falta D.A','Em andamento','Aguardo',
+             'Ag. Aprovação Cliente','Ag. Info Cliente','Falta Info','Segurar Post','Agendado',
+             'Finalizado','Feito'],
+    formatos: null,
+    rotuloFormato: 'Formato'
+  },
+  demandas: {
+    id: 8385559107,
+    nome: 'Solicitação de demanda',
+    grupos: [
+      { val: 'group_mm187437', label: 'Novas Demandas/Ideias' },
+      { val: 'novo_grupo_mkmkjdqd', label: 'A Fazer' },
+      { val: 'novo_grupo_mkkyfhtw', label: 'Em Execução' },
+      { val: 'novo_grupo_mkkyx8pv', label: 'Concluídas' }
+    ],
+    status: ['Nova Demanda','Aguardando Info.','Para Orçar','Em Orçamento','Pode Fazer',
+             'Em execução','Em impressão','Em aprovação','Alteração','Aprovado','Feito'],
+    formatos: ['Impresso','Fotografia','Card','Digital','Texto','Vídeo','Design','Avulso',
+               'Post','Implementação','Planejamento','Reunião'],
+    rotuloFormato: 'Tipo de demanda'
+  }
+};
+const FC_PRIORIDADES = ['', 'Crítica', 'Alta', 'Média', 'Baixa', 'Preventiva'];
+function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
+
+  window.fcTrocarQuadro = function(qual) {
+    if (state.board === qual) return;
+    state.board = qual;
+    // Grupo e status do quadro anterior não existem no novo — deixar para trás
+    // faria o servidor recusar a criação com "status não existe neste board".
+    state.manualGroup = undefined;
+    state.manualStatus = undefined;
+    state.manualCap = undefined;
+    state.prioridade = '';
+    state.format = '';
+    document.querySelectorAll('.fc-destino-btn').forEach((b) => b.classList.remove('ativo'));
+    document.getElementById(`fc-destino-${qual}`)?.classList.add('ativo');
+    const rotulo = document.getElementById('fc-label-formato');
+    if (rotulo) rotulo.textContent = fcQuadro().rotuloFormato;
+    fcMontarFormatos();
+    if (typeof renderCustomDropdownsGlobal === 'function') renderCustomDropdownsGlobal();
+    updateDestinyUI();
+  };
+
+  // A lista de formato muda de quadro: Produção usa os formatos de conteúdo,
+  // Demandas usa "Tipo de demanda", que é outra coluna e outra lista.
+  window.fcMontarFormatos = function() {
+    const campo = document.getElementById('fc-format-input');
+    if (!campo) return;
+    const quadro = fcQuadro();
+    const lista = quadro.formatos
+      || (typeof CADASTROS_FORMATS !== 'undefined' ? CADASTROS_FORMATS
+          : ['Reels','Vídeo','Fotografia','Carrossel','Post Único','Motion','Stories']);
+    campo.innerHTML = `<option value="">Selecionar ${quadro.rotuloFormato.toLowerCase()}...</option>`
+      + lista.map((f) => `<option value="${String(f).replace(/"/g,'&quot;')}">${f}</option>`).join('');
+    campo.value = state.format || '';
   };
 
   function updateDestinyUI() {
@@ -344,10 +425,16 @@
         // devolver a ele o papel de fonte da verdade.
         let itemId = null;
         const pelaEscritaDupla = await tentarEscritaDupla({ id: '' }, {
-           acao: 'criar', titulo: normalized, cliente: state.client, formato: state.format,
+           acao: 'criar', board: fcQuadro().id,
+           titulo: normalized, cliente: state.client, formato: state.format,
            prazo: state.prazo, veiculacao: state.veic, status: chaveDeStatus(finalStatus),
-           grupo_id: finalGroup, tipo_conteudo: 3, briefing: state.brief,
-           captacao: finalCap || null, responsaveis: dest.assignees.map(String),
+           grupo_id: finalGroup, briefing: state.brief,
+           // "Tipo de conteúdo" só existe em Produção, e lá "Post" (3) é o único
+           // rótulo que não está desativado no board.
+           tipo_conteudo: state.board === 'demandas' ? null : 3,
+           captacao: state.board === 'demandas' ? null : (finalCap || null),
+           prioridade: state.board === 'demandas' ? (state.prioridade || null) : null,
+           responsaveis: dest.assignees.map(String),
            _devolve: true,
         });
         if (pelaEscritaDupla?.monday_item_id) itemId = String(pelaEscritaDupla.monday_item_id);
@@ -359,7 +446,7 @@
         }
         if (!itemId && !pelaEscritaDupla?.conteudo_id) {
           const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
-          const response = await mondayQuery(create, {board:String(BOARD_ID), group:finalGroup, name:normalized, values:JSON.stringify(values)});
+          const response = await mondayQuery(create, {board:String(fcQuadro().id), group:finalGroup, name:normalized, values:JSON.stringify(values)});
           itemId = response?.create_item?.id;
         }
         if(!itemId && !pelaEscritaDupla?.conteudo_id) throw new Error('Falha ao obter ID');
@@ -417,8 +504,11 @@
     const existing = document.getElementById('fc-overlay');
     if(existing) existing.remove();
 
-    state = { title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined };
+    state = { title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
     
+    // Exposta porque a troca de quadro precisa redesenhar grupo, status e a
+    // terceira coluna — e ela mora dentro desta função.
+    window.renderCustomDropdownsGlobal = () => renderCustomDropdowns();
     function renderCustomDropdowns() {
         const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
         const getCol = (s) => {
@@ -433,18 +523,11 @@
          return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
      };
         
-        const groups = [
-           { val: 'group_title', label: 'Redação' },
-           { val: 'novo_grupo__1', label: 'Design & Edição' },
-           { val: 'novo_grupo57911__1', label: 'Produção (Foto e Vídeo)' }
-        ];
-        
-        const statuses = [
-        'A Fazer', 'Aguardo Redação', 'Pode Fazer', 'Falta D.A', 'Em andamento', 'Aguardo', 
-        'Ag. Aprovação Cliente', 'Ag. Info Cliente', 'Falta Info', 
-        'Segurar Post', 'Agendado', 'Finalizado', 'Feito'
-    ];
+        const quadro = fcQuadro();
+        const groups = quadro.grupos;
+        const statuses = quadro.status;
         const caps = ['', 'Captação Agendada', 'Captação Feita', 'Agendar Captação', 'Editado', 'A fazer', 'Captação em Andamento'];
+        const ehDemanda = state.board === 'demandas';
         
         const html = `
            <div class="fc-auto-col" id="col-manualGroup">
@@ -471,6 +554,21 @@
               </div>
            </div>
            
+           ${ehDemanda ? `
+           <div class="fc-auto-col" id="col-prioridade">
+              <label>Prioridade</label>
+              <div class="fc-custom-dropdown">
+                 <div class="fc-dropdown-value" id="fc-val-prioridade" onclick="fcToggleDropdown('fc-list-prio')">${state.prioridade || '- Nenhuma -'}</div>
+                 <div class="fc-dropdown-list" id="fc-list-prio">
+                    ${FC_PRIORIDADES.map(pr => {
+                        const col = getCol(pr).color;
+                        const txt = (col === '#c4c4c4' || col === '#ffcb00') ? '#000' : '#fff';
+                        if(!pr) return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('prioridade', '', '- Nenhuma -')" style="color:#849aa6; margin-bottom:4px;">- Nenhuma -</div>`;
+                        return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('prioridade', '${pr}', '${pr}', {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${pr}</div>`;
+                    }).join('')}
+                 </div>
+              </div>
+           </div>` : `
            <div class="fc-auto-col" id="col-manualCap">
               <label>Captação Externa</label>
               <div class="fc-custom-dropdown">
@@ -484,9 +582,9 @@
                     }).join('')}
                  </div>
               </div>
-           </div>
+           </div>`}
         `;
-        
+
         document.getElementById('fc-auto-group-container').innerHTML = html;
         
         // global click to close
@@ -512,6 +610,12 @@
          <div class="fc-main-col">
              <div class="fc-header">
                 <div class="fc-kicker">Cadastro rápido</div>
+                <div class="fc-destino" role="group" aria-label="Onde cadastrar">
+                   <button type="button" id="fc-destino-producao" class="fc-destino-btn ativo"
+                           onclick="fcTrocarQuadro('producao')">Produção de conteúdo</button>
+                   <button type="button" id="fc-destino-demandas" class="fc-destino-btn"
+                           onclick="fcTrocarQuadro('demandas')">Solicitação de demanda</button>
+                </div>
                 <input type="text" id="fc-title" class="fc-title-input" placeholder="Título do Conteúdo..." autofocus oninput="fcHandleInput('title', this.value)">
              </div>
              
@@ -527,7 +631,7 @@
                 </div>
 
                 <div class="fc-row">
-                   <div class="fc-label">Formato</div>
+                   <div class="fc-label" id="fc-label-formato">Formato</div>
                    <div class="fc-input-wrap">
                       <select class="fc-input" id="fc-format-input" onchange="fcHandleInput(\'format\', this.value)">
                          <option value="">Selecionar formato...</option>

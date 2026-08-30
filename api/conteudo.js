@@ -152,6 +152,30 @@ const GRUPO_TITULO = {
   novo_grupo__1: 'Design & Edição',
   group_title: 'Redação',
   novo_grupo22352__1: 'Gestão de publicações',
+  // Demandas tem grupos próprios; o cadastro só conhecia os de Produção.
+  group_mm187437: 'Novas Demandas/Ideias',
+  novo_grupo_mkmkjdqd: 'A Fazer',
+  novo_grupo_mkkyfhtw: 'Em Execução',
+  novo_grupo_mkkyx8pv: 'Concluídas',
+};
+
+// Cada board escreve nas suas colunas. Antes o cadastro só sabia as de Produção
+// e mandava tudo para lá, então Solicitações só recebia item criado no Monday.
+const CRIACAO_POR_BOARD = {
+  [BOARD_PRODUCAO]: {
+    grupoPadrao: 'group_title',
+    cliente: 'lista_suspensa_mkmqnjbv',
+    status: 'status', prazo: 'data', segundaData: 'data__1',
+    formato: 'lista_suspensa0__1', tipo: 'lista_suspensa__1',
+    captacao: 'status_1__1', pessoas: 'person',
+  },
+  [BOARD_DEMANDAS_ID]: {
+    grupoPadrao: 'group_mm187437',
+    cliente: 'lista_suspensa_mkmet5gs',
+    status: 'status', prazo: 'data', segundaData: 'data_mkky6jx',
+    formato: 'dropdown_mkv8d52z', prioridade: 'color_mkwtgakv',
+    pessoas: 'person',
+  },
 };
 
 async function trocarData(sql, quem, { item, campo, data }) {
@@ -503,40 +527,59 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
 
 async function criarConteudo(sql, quem, dados) {
   const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing,
-          tipo_conteudo = null, captacao = null, responsaveis = [] } = dados;
+          tipo_conteudo = null, captacao = null, prioridade = null, responsaveis = [] } = dados;
+  // O destino passa a ser escolhido por quem cadastra. Sem isto, tudo caía em
+  // Produção — e Solicitações só recebia item criado dentro do Monday, o que
+  // vira um beco sem saída no dia em que o Monday sair.
+  const board = Number(dados.board) === BOARD_DEMANDAS_ID ? BOARD_DEMANDAS_ID : BOARD_PRODUCAO;
+  const C = CRIACAO_POR_BOARD[board];
+  const demanda = board === BOARD_DEMANDAS_ID;
+
   // Nossa coluna 'etapa' guarda o TÍTULO do grupo — é dela que a listagem tira o
   // campo 'grupo'. Não é a coluna "Tipo de conteúdo" do Monday, que é outra
   // coisa e é dropdown.
-  const etapa = GRUPO_TITULO[grupo_id] || null;
+  const grupo = grupo_id || C.grupoPadrao;
+  const etapa = GRUPO_TITULO[grupo] || null;
   if (!titulo || !cliente) throw new Error('Informe ao menos título e cliente.');
 
   const cli = (await sql`SELECT id, nome FROM vybe_clientes WHERE LOWER(nome)=LOWER(${String(cliente)})`)[0];
   if (!cli) throw new Error(`Cliente não cadastrado: ${cliente}`);
-  const st = (await sql`SELECT chave, rotulo, monday_index FROM vybe_status WHERE chave=${String(status)}`)[0];
-  if (!st) throw new Error(`Status desconhecido: ${status}`);
+  // O status é procurado DENTRO do board: a chave é única por board, e 'feito'
+  // existe nos dois com índices diferentes no Monday.
+  const st = (await sql`SELECT chave, rotulo, monday_index FROM vybe_status
+    WHERE chave=${String(status)} AND board_id=${board}`)[0];
+  if (!st) throw new Error(`Status "${status}" não existe no board escolhido.`);
 
   const novo = (await sql`INSERT INTO vybe_conteudos
-      (titulo, formato, clientes_texto, status_chave, etapa, grupo_id, prazo, veiculacao, briefing, status_em)
-    VALUES (${titulo}, ${formato || null}, ${cli.nome}, ${st.chave}, ${etapa}, ${grupo_id || null},
-            ${prazo || null}, ${veiculacao || null}, ${briefing || null}, NOW())
+      (board_id, titulo, formato, clientes_texto, status_chave, etapa, grupo_id,
+       prazo, veiculacao, briefing, prioridade, status_em)
+    VALUES (${board}, ${titulo}, ${formato || null}, ${cli.nome}, ${st.chave}, ${etapa}, ${grupo},
+            ${prazo || null}, ${veiculacao || null}, ${briefing || null}, ${prioridade || null}, NOW())
     RETURNING id`)[0];
   await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id) VALUES (${novo.id}, ${cli.id})`;
+
   // Formato e tipo passam a viver como chave do catálogo; o rótulo sai dele.
   if (formato) {
     await sql`UPDATE vybe_conteudos c SET formato_chaves = (
         SELECT ARRAY_AGG(o.chave ORDER BY t.ord)
           FROM UNNEST(STRING_TO_ARRAY(${String(formato)}, ',')) WITH ORDINALITY AS t(parte, ord)
-          JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa0__1' AND LOWER(o.rotulo)=LOWER(TRIM(t.parte)))
+          JOIN vybe_opcoes o ON o.coluna_id=${C.formato} AND LOWER(o.rotulo)=LOWER(TRIM(t.parte)))
       WHERE c.id = ${novo.id}`;
   }
-  if (tipo_conteudo) {
+  if (prioridade && C.prioridade) {
+    await sql`UPDATE vybe_conteudos c SET prioridade_chave = (
+        SELECT o.chave FROM vybe_opcoes o
+         WHERE o.coluna_id=${C.prioridade} AND LOWER(o.rotulo)=LOWER(${String(prioridade)}) LIMIT 1)
+      WHERE c.id = ${novo.id}`;
+  }
+  if (tipo_conteudo && C.tipo) {
     await sql`UPDATE vybe_conteudos c SET tipo_conteudo_chaves = (
         SELECT ARRAY_AGG(o.chave) FROM vybe_opcoes o
-         WHERE o.coluna_id='lista_suspensa__1'
+         WHERE o.coluna_id=${C.tipo}
            AND (o.indice::text = ${String(tipo_conteudo)} OR LOWER(o.rotulo)=LOWER(${String(tipo_conteudo)})))
       WHERE c.id = ${novo.id}`;
   }
-  if (captacao) await sql`UPDATE vybe_conteudos SET captacao=${String(captacao)} WHERE id=${novo.id}`;
+  if (captacao && C.captacao) await sql`UPDATE vybe_conteudos SET captacao=${String(captacao)} WHERE id=${novo.id}`;
   // Conteúdo que nasce sem dono some da fila de todo mundo.
   if (responsaveis.length) {
     await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
@@ -553,32 +596,41 @@ async function criarConteudo(sql, quem, dados) {
   let mondayId = null;
   try {
     const valores = {
-      lista_suspensa_mkmqnjbv: { labels: [cli.nome] },
-      status: { index: Number(st.monday_index) },
+      [C.cliente]: { labels: [cli.nome] },
+      [C.status]: { index: Number(st.monday_index) },
     };
-    if (formato) valores.lista_suspensa0__1 = { labels: [formato] };
-    if (prazo) valores.data = { date: prazo };
-    if (veiculacao) valores.data__1 = { date: veiculacao };
+    if (formato) valores[C.formato] = { labels: String(formato).split(',').map((f) => f.trim()).filter(Boolean) };
+    if (prazo) valores[C.prazo] = { date: prazo };
+    if (veiculacao) valores[C.segundaData] = { date: veiculacao };
+    if (prioridade && C.prioridade) valores[C.prioridade] = { label: String(prioridade) };
     // "Tipo de conteúdo" é dropdown: aceita ids ou labels, nunca index. Mandar
     // {index} faz o Monday aceitar a chamada e deixar a coluna vazia.
-    if (tipo_conteudo) {
-      valores.lista_suspensa__1 = Number.isFinite(Number(tipo_conteudo))
+    if (tipo_conteudo && C.tipo) {
+      valores[C.tipo] = Number.isFinite(Number(tipo_conteudo))
         ? { ids: [Number(tipo_conteudo)] }
         : { labels: [String(tipo_conteudo)] };
     }
-    if (captacao) valores.status_1__1 = { label: String(captacao) };
+    if (captacao && C.captacao) valores[C.captacao] = { label: String(captacao) };
     if (responsaveis.length) {
-      valores.person = { personsAndTeams: responsaveis.map((id) => ({ id: Number(id), kind: 'person' })) };
+      valores[C.pessoas] = { personsAndTeams: responsaveis.map((id) => ({ id: Number(id), kind: 'person' })) };
     }
+    // create_labels_if_missing porque os dois boards têm listas de cliente
+    // diferentes — "Serra Grande" num, "Serra Grande Bebidas" no outro. Sem
+    // isto, cadastrar em Demandas falharia a réplica em metade dos clientes.
     const r = await mondayQuery(
       `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) {
-         create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`,
-      { board: String(BOARD_PRODUCAO), group: grupo_id || 'group_title', name: titulo, values: JSON.stringify(valores) }
+         create_item(board_id: $board, group_id: $group, item_name: $name,
+                     column_values: $values, create_labels_if_missing: true) { id } }`,
+      { board: String(board), group: grupo, name: titulo, values: JSON.stringify(valores) }
     );
     mondayId = r?.create_item?.id || null;
     if (mondayId) await sql`UPDATE vybe_conteudos SET monday_item_id=${String(mondayId)} WHERE id=${novo.id}`;
   } catch (erro) { replica = `falhou: ${erro.message}`; }
-  return { conteudo_id: novo.id, titulo, cliente: cli.nome, monday_item_id: mondayId, replica_monday: replica };
+  return {
+    conteudo_id: novo.id, titulo, cliente: cli.nome, board,
+    destino: demanda ? 'Solicitações de Demandas' : 'Produção de Conteúdo',
+    monday_item_id: mondayId, replica_monday: replica,
+  };
 }
 
 export default async function handler(req, res) {
