@@ -1783,6 +1783,55 @@ button.subitem-marca:hover{transform:scale(1.35)}
 #btn-mode-gestor:hover,.mode-switch-btn:hover,[onclick*="openModeGate"]:hover{
   background:rgba(255,255,255,.07);color:var(--vybe-text)
 }
+
+/* ── Resumo e barra de comando: uma faixa, não duas ───────────────────────────
+
+   Eram duas caixas empilhadas, cada uma com sua borda, somando quatro caixas de
+   enfeite antes de qualquer conteúdo. Agora é uma só: o resumo em cima, os
+   comandos embaixo, dentro da mesma moldura.
+
+   E os oito números viraram um. Antes cada um tinha o mesmo tamanho e uma cor
+   diferente — roxo, verde, ciano, amarelo, laranja, vermelho — o que é o mesmo
+   que não destacar nada. Agora um número lidera (quanto da semana está fechada),
+   o dia vem em seguida, e o resto é detalhe quieto. Cor só onde quer dizer
+   risco: pendências e cliente com menos de três posts. */
+.resumo{display:flex;align-items:center;gap:26px;flex-wrap:wrap;
+  padding:14px 16px;border:1px solid var(--vybe-line);border-bottom:0;
+  border-radius:var(--vybe-radius-card) var(--vybe-radius-card) 0 0;
+  background:rgba(255,255,255,.018)}
+
+.resumo-principal{display:flex;align-items:center;gap:12px}
+.resumo-numero{color:var(--vybe-text);font:650 30px var(--mac-ui);letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1}
+.resumo-numero i{font-style:normal;font-size:16px;color:var(--vybe-muted);margin-left:1px}
+.resumo-legenda{display:grid;gap:5px}
+.resumo-legenda>span{color:var(--vybe-text);font:600 12px var(--mac-ui)}
+.resumo-legenda small{color:var(--vybe-muted);font:500 11px var(--mac-mono);font-variant-numeric:tabular-nums}
+.resumo-barra{width:132px;height:4px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+.resumo-barra i{display:block;height:100%;border-radius:99px;background:var(--accent,#ff6b00)}
+
+.resumo-hoje{display:grid;gap:3px;padding-left:26px;border-left:1px solid var(--vybe-line-quiet)}
+.resumo-hoje b{color:var(--vybe-text);font:600 13px var(--mac-ui)}
+.resumo-hoje span{font:600 11px var(--mac-ui)}
+.resumo-alerta{color:#ff8b9a}
+.resumo-ok{color:#6fdc9c}
+
+.resumo-detalhes{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-left:auto}
+.resumo-item{display:inline-flex;align-items:baseline;gap:5px;color:var(--vybe-muted);
+  font:500 11.5px var(--mac-ui)}
+.resumo-item b{color:var(--vybe-text);font:600 14px var(--mac-mono);font-variant-numeric:tabular-nums}
+.resumo-item.risco b{color:#ff8b9a}
+
+/* a barra de comando fecha a mesma moldura */
+.ops-command-bar{border-radius:0 0 var(--vybe-radius-card) var(--vybe-radius-card)!important;
+  margin-top:0!important;border-top:0!important}
+.resumo.focus-hidden + .ops-command-bar{border-top:1px solid var(--vybe-line)!important;
+  border-radius:var(--vybe-radius-card)!important}
+@media(max-width:900px){
+  .resumo{gap:16px}
+  .resumo-hoje{padding-left:0;border-left:0}
+  .resumo-detalhes{margin-left:0}
+}
 </style></head>
 <body>
 
@@ -1922,7 +1971,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
   <section id="production-command-dashboard" class="production-command-dashboard"></section>
 
   <!-- Barra de resumo compacta -->
-  <div id="compact-summary" style="display:flex;align-items:center;gap:16px;padding:10px 16px;margin-bottom:12px;background:rgba(0,240,255,.03);border:1px solid rgba(0,240,255,.08);border-radius:10px;font-size:12px;color:var(--text-muted);flex-wrap:wrap;" class="focus-hidden">
+  <div id="compact-summary" class="resumo focus-hidden">
     <span style="font-weight:800;font-size:15px;color:#ff6b00;">63%</span>
     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid #a78bfa22;"><strong style="color:#a78bfa;font-size:13px;">420</strong><span style="font-size:10px;">posts</span></span>
     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid #34d39922;"><strong style="color:#34d399;font-size:13px;">18</strong><span style="font-size:10px;">clientes</span></span>

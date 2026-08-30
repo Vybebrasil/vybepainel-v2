@@ -595,7 +595,7 @@ function renderKPIs() { /* integrado no compact summary */ }
 function renderCompactSummary() {
   const all = DADOS;
   const total = all.length;
-  const clientes = [...new Set(all.map(d=>d.cliente))];
+  const clientes = [...new Set(all.map(d => d.cliente))];
   const numWeeks = META.weeks ? META.weeks.length : 4;
   const done = all.filter(d => ['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
   const podeFazer = all.filter(d => d.status === 'Pode Fazer').length;
@@ -603,74 +603,42 @@ function renderCompactSummary() {
   const captacao = all.filter(d => d.status === 'Aguardo').length;
   const pct = total > 0 ? Math.round(done / total * 100) : 0;
   let clientesLow = 0;
-  clientes.forEach(c => { for (let w=1;w<=numWeeks;w++) { if((groupByCliente(getItemsBySemana(w))[c]||[]).length<3){clientesLow++;break;} } });
+  clientes.forEach(c => { for (let w = 1; w <= numWeeks; w++) { if ((groupByCliente(getItemsBySemana(w))[c] || []).length < 3) { clientesLow++; break; } } });
   // Hoje: usar a mesma fonte temporal devolvida pela sincronização do Monday.
-  const todayIso = HOJE_ISO || new Date().toISOString().slice(0,10);
+  const todayIso = HOJE_ISO || new Date().toISOString().slice(0, 10);
   const todayItems = DADOS.filter(d => d.veiculacao_iso === todayIso);
   const todayPending = todayItems.filter(d => !['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
-  const todayText = todayItems.length === 0 ? 'Nenhum post hoje' : `${todayItems.length} posts hoje${todayPending > 0 ? ` (${todayPending} pend.)` : ''}`;
-  const pctColor = pct >= 80 ? '#00ff88' : pct >= 50 ? '#ff6b00' : '#ffbd2e';
-  const chip = (val, label, color) => `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid ${color}22;"><strong style="color:${color};font-size:13px;">${val}</strong><span style="font-size:10px;">${label}</span></span>`;
+
+  // Eram oito números do mesmo tamanho, cada um com uma cor. Oito destaques é
+  // nenhum destaque: o olho não sabia por onde começar. Agora um número lidera
+  // — quanto da semana está fechado —, o dia vem em seguida, e o resto é
+  // detalhe em texto quieto. Cor só onde ela quer dizer risco.
+  const detalhe = (valor, rotulo, risco = false) => `
+    <span class="resumo-item${risco && valor > 0 ? ' risco' : ''}">
+      <b>${valor}</b><span>${rotulo}</span></span>`;
+
   document.getElementById('compact-summary').innerHTML = `
-    <span style="font-weight:800;font-size:15px;color:${pctColor};">${pct}%</span>
-    ${chip(total, 'posts', '#a78bfa')}
-    ${chip(clientes.length, 'clientes', '#34d399')}
-    ${chip(done, 'agendados', '#00ff88')}
-    ${chip(podeFazer, 'pode fazer', '#00f0ff')}
-    ${chip(pendentes, 'pendentes', '#ffe600')}
-    ${chip(captacao, 'captação', '#ff6b00')}
-    ${chip(clientesLow, '< 3 posts', '#ef4444')}
-    <span style="color:rgba(255,255,255,.12);">|</span>
-    <span style="font-size:11px;">${todayText}</span>
-  `;
-  return;
-  // --- Funções legadas abaixo (não executam) ---
-  // Donut SVG
-  const radius = 36, circ = 2 * Math.PI * radius;
-  const doneFrac = total > 0 ? done / total : 0;
-  const pendFrac = total > 0 ? pending / total : 0;
-  const otherFrac = total > 0 ? other / total : 0;
-  const doneLen = doneFrac * circ;
-  const pendLen = pendFrac * circ;
-  const otherLen = otherFrac * circ;
-  const donutSvg = `<svg width="90" height="90" viewBox="0 0 90 90">
-    <circle cx="45" cy="45" r="${radius}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
-    <circle cx="45" cy="45" r="${radius}" fill="none" stroke="#00ff88" stroke-width="8" stroke-dasharray="${doneLen} ${circ}" stroke-dashoffset="0" transform="rotate(-90 45 45)" stroke-linecap="round"/>
-    <circle cx="45" cy="45" r="${radius}" fill="none" stroke="#ffe600" stroke-width="8" stroke-dasharray="${pendLen} ${circ}" stroke-dashoffset="${-doneLen}" transform="rotate(-90 45 45)" stroke-linecap="round"/>
-    <circle cx="45" cy="45" r="${radius}" fill="none" stroke="#6a7a9a" stroke-width="8" stroke-dasharray="${otherLen} ${circ}" stroke-dashoffset="${-(doneLen+pendLen)}" transform="rotate(-90 45 45)" stroke-linecap="round"/>
-  </svg>`;
-  // Barras por semana (max 5)
-  const weeks = (META.weeks || []).slice(0, 5);
-  const currentWeekIdx = weeks.findIndex(w => w.current);
-  const weekBars = weeks.map((w, i) => {
-    const wItems = getItemsBySemana(i + 1);
-    const wTotal = wItems.length;
-    const wDone = wItems.filter(d => ['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
-    const wPct = wTotal > 0 ? Math.round(wDone / wTotal * 100) : 0;
-    const isCurrent = i === currentWeekIdx;
-    const color = wPct === 100 ? '#00ff88' : wPct >= 50 ? '#ff6b00' : '#ffbd2e';
-    return `<div class="progress-week-row ${isCurrent ? 'current' : ''}">
-      <span class="progress-week-label">S${i+1}</span>
-      <div class="progress-week-bar"><div class="progress-week-fill" style="width:${wPct}%;background:${color}"></div></div>
-      <span class="progress-week-pct">${wPct}%</span>
-    </div>`;
-  }).join('');
-  document.getElementById('progress-overview').innerHTML = `
-    <div class="progress-donut-wrap">
-      ${donutSvg}
-      <div class="progress-donut-label">
-        <span class="progress-donut-pct">${pct}%</span>
-        <span class="progress-donut-sub">concluído</span>
+    <div class="resumo-principal">
+      <div class="resumo-numero">${pct}<i>%</i></div>
+      <div class="resumo-legenda">
+        <span>da semana fechada</span>
+        <div class="resumo-barra"><i style="width:${pct}%"></i></div>
+        <small>${done} de ${total} conteúdos</small>
       </div>
     </div>
-    <div class="progress-weeks">${weekBars}</div>
-    <div class="progress-stats">
-      <div class="progress-stat"><span class="progress-stat-dot" style="background:#00ff88"></span><strong>${done}</strong> Prontos</div>
-      <div class="progress-stat"><span class="progress-stat-dot" style="background:#ffe600"></span><strong>${pending}</strong> Em produção</div>
-      <div class="progress-stat"><span class="progress-stat-dot" style="background:#6a7a9a"></span><strong>${other}</strong> Outros</div>
-      <div class="progress-stat" style="margin-top:4px;font-size:10px;">Total: <strong>${total}</strong> itens</div>
+    <div class="resumo-hoje">
+      ${todayItems.length === 0
+        ? '<b>Nada publica hoje</b>'
+        : `<b>${todayItems.length} ${todayItems.length === 1 ? 'publica' : 'publicam'} hoje</b>
+           ${todayPending > 0 ? `<span class="resumo-alerta">${todayPending} sem estar pronto</span>` : '<span class="resumo-ok">tudo pronto</span>'}`}
     </div>
-  `;
+    <div class="resumo-detalhes">
+      ${detalhe(clientes.length, 'clientes')}
+      ${detalhe(podeFazer, 'pode fazer')}
+      ${detalhe(captacao, 'captação')}
+      ${detalhe(pendentes, 'pendentes', true)}
+      ${detalhe(clientesLow, 'clientes com menos de 3', true)}
+    </div>`;
 }
 
 // ─── Resumo do Dia ──────────────────────────────────────────────────────────
