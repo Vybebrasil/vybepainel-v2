@@ -23,6 +23,10 @@ export const BOARD_PRODUCAO = 7829537690;
 export const BOARD_DEMANDAS = 8385559107;
 export const BOARD_CLIENTES = 7758256536;
 export const BOARD_ACESSOS = 7758163799;
+// Os subitens das Demandas vivem num board próprio, filho de uma coluna. Ele não
+// aparece na lista de áreas de trabalho do Monday — por isso passou batido
+// quando copiamos "as 4 áreas".
+export const BOARD_SUBITENS = 8385841526;
 
 // Papel e disciplina não existem no Monday: são regra de negócio de vocês, hoje
 // espalhada no vybe-config.js do cliente. Aqui vira semente do cadastro de pessoas.
@@ -287,6 +291,33 @@ export async function criarSchema() {
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS prioridade TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS off_audio TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS editores TEXT[]`;
+
+  // Subitem de demanda é a lista de tarefas dentro de uma solicitação. Tem tabela
+  // própria em vez de virar linha em vybe_conteudos: se entrasse lá, cada subitem
+  // contaria como um conteúdo na agenda, nos totais e na fila de todo mundo.
+  await sql`CREATE TABLE IF NOT EXISTS vybe_subitens (
+    id                   BIGSERIAL PRIMARY KEY,
+    monday_item_id       TEXT UNIQUE,
+    pai_id               BIGINT REFERENCES vybe_conteudos(id) ON DELETE CASCADE,
+    titulo               TEXT NOT NULL,
+    status_chave         TEXT,
+    prazo                DATE,
+    conclusao            DATE,
+    tipo                 TEXT,
+    prioridade           TEXT,
+    clientes_texto       TEXT,
+    ordem                INT NOT NULL DEFAULT 0,
+    monday_atualizado_em TIMESTAMPTZ,
+    criado_em            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS vybe_subitens_pai_idx ON vybe_subitens (pai_id)`;
+  await sql`CREATE TABLE IF NOT EXISTS vybe_subitem_responsaveis (
+    subitem_id BIGINT NOT NULL REFERENCES vybe_subitens(id) ON DELETE CASCADE,
+    pessoa_id  BIGINT NOT NULL REFERENCES vybe_pessoas(id),
+    ordem      INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (subitem_id, pessoa_id)
+  )`;
 
   await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_clientes (
     conteudo_id BIGINT NOT NULL REFERENCES vybe_conteudos(id) ON DELETE CASCADE,
@@ -1747,4 +1778,145 @@ export async function importarFotosDaEquipe({ refazer = false } = {}) {
     } catch (erro) { falhas.push({ nome: p.nome, erro: erro.message }); }
   }
   return { pessoas: pessoas.length, migradas, liberadas, falhas };
+}
+
+// ── subitens das Demandas ────────────────────────────────────────────────────
+//
+// Cada solicitação tem uma lista de tarefas dentro dela. Elas moram num board
+// separado, filho de uma coluna do board de Demandas — não aparecem na lista de
+// áreas de trabalho, e foi por isso que a cópia das "4 áreas" deixou este de
+// fora.
+//
+// Os rótulos de status do subitem são os mesmos do board pai, então eles reusam
+// o vybe_status de Demandas em vez de ganhar catálogo próprio: um catálogo
+// duplicado é um lugar a mais para as duas verdades divergirem.
+
+const COLUNAS_SUBITEM = {
+  status:     'color_mm2ww3xs',
+  prazo:      'date0',
+  conclusao:  'date_mm2wdrqq',
+  tipo:       'dropdown_mm2wm7kn',
+  cliente:    'dropdown_mm2wd0vn',
+  prioridade: 'color_mm2wpqtq',
+  pessoas:    'person',
+};
+
+export async function importarSubitens() {
+  await criarSchema();
+  const sql = database();
+
+  const ids = Object.values(COLUNAS_SUBITEM).map((c) => `"${c}"`).join(', ');
+  const campos = `id name updated_at parent_item { id }
+    column_values(ids: [${ids}]) { id text value }`;
+
+  const itens = [];
+  let cursor = null;
+  do {
+    const dados = cursor
+      ? await mondayQuery(`query($cursor: String!) { next_items_page(limit: 200, cursor: $cursor)
+          { cursor items { ${campos} } } }`, { cursor })
+      : await mondayQuery(`{ boards(ids:[${BOARD_SUBITENS}]) { items_page(limit: 200)
+          { cursor items { ${campos} } } } }`);
+    const pagina = cursor ? dados?.next_items_page : dados?.boards?.[0]?.items_page;
+    itens.push(...(pagina?.items || []));
+    cursor = pagina?.cursor || null;
+  } while (cursor);
+
+  const statusPorIndice = new Map(
+    (await sql`SELECT chave, monday_index FROM vybe_status WHERE board_id=${BOARD_DEMANDAS}`)
+      .map((r) => [Number(r.monday_index), r.chave])
+  );
+  // A demanda-mãe precisa já existir aqui: subitem órfão não tem onde aparecer.
+  const paiPorMonday = new Map(
+    (await sql`SELECT id, monday_item_id FROM vybe_conteudos
+       WHERE board_id=${BOARD_DEMANDAS} AND monday_item_id IS NOT NULL`)
+      .map((r) => [String(r.monday_item_id), Number(r.id)])
+  );
+
+  const coluna = (item, id) => (item.column_values || []).find((c) => c.id === id) || {};
+  const ordemPorPai = new Map();
+  const linhas = [];
+  let semPai = 0;
+
+  for (const it of itens) {
+    const paiMonday = String(it.parent_item?.id || '');
+    const paiId = paiPorMonday.get(paiMonday) || null;
+    if (!paiId) { semPai += 1; continue; }
+    const ordem = (ordemPorPai.get(paiId) || 0);
+    ordemPorPai.set(paiId, ordem + 1);
+    let indice = null;
+    try { indice = JSON.parse(coluna(it, COLUNAS_SUBITEM.status).value || 'null')?.index ?? null; }
+    catch { /* subitem sem status */ }
+    linhas.push({
+      monday_item_id: String(it.id),
+      pai_id: paiId,
+      titulo: it.name || 'Sem título',
+      status_chave: indice === null ? null : statusPorIndice.get(Number(indice)) || null,
+      prazo: dataOuNulo(coluna(it, COLUNAS_SUBITEM.prazo).text),
+      conclusao: dataOuNulo(coluna(it, COLUNAS_SUBITEM.conclusao).text),
+      tipo: (coluna(it, COLUNAS_SUBITEM.tipo).text || '').trim() || null,
+      prioridade: (coluna(it, COLUNAS_SUBITEM.prioridade).text || '').trim() || null,
+      clientes_texto: (coluna(it, COLUNAS_SUBITEM.cliente).text || '').trim() || null,
+      ordem,
+      monday_atualizado_em: it.updated_at || null,
+      pessoas: pessoasDoItem(it),
+    });
+  }
+
+  if (linhas.length) {
+    await sql`INSERT INTO vybe_subitens
+        (monday_item_id, pai_id, titulo, status_chave, prazo, conclusao, tipo, prioridade,
+         clientes_texto, ordem, monday_atualizado_em)
+      SELECT v.monday_item_id, v.pai_id, v.titulo, v.status_chave, v.prazo, v.conclusao,
+             v.tipo, v.prioridade, v.clientes_texto, v.ordem, v.monday_atualizado_em
+      FROM jsonb_to_recordset(${JSON.stringify(linhas)}::jsonb)
+        AS v(monday_item_id text, pai_id bigint, titulo text, status_chave text, prazo date,
+             conclusao date, tipo text, prioridade text, clientes_texto text, ordem int,
+             monday_atualizado_em timestamptz)
+      ON CONFLICT (monday_item_id) DO UPDATE SET
+        pai_id=EXCLUDED.pai_id, titulo=EXCLUDED.titulo, status_chave=EXCLUDED.status_chave,
+        prazo=EXCLUDED.prazo, conclusao=EXCLUDED.conclusao, tipo=EXCLUDED.tipo,
+        prioridade=EXCLUDED.prioridade, clientes_texto=EXCLUDED.clientes_texto,
+        ordem=EXCLUDED.ordem, monday_atualizado_em=EXCLUDED.monday_atualizado_em,
+        atualizado_em=NOW()`;
+  }
+
+  // Responsáveis: refaz o vínculo inteiro em vez de somar. Quem foi tirado do
+  // subitem no Monday tem que sair daqui também.
+  const idPorMonday = new Map(
+    (await sql`SELECT id, monday_item_id FROM vybe_subitens WHERE monday_item_id IS NOT NULL`)
+      .map((r) => [String(r.monday_item_id), Number(r.id)])
+  );
+  const pessoaPorMonday = new Map(
+    (await sql`SELECT id, monday_user_id FROM vybe_pessoas WHERE monday_user_id IS NOT NULL`)
+      .map((r) => [String(r.monday_user_id), Number(r.id)])
+  );
+  const vinculos = [];
+  for (const linha of linhas) {
+    const subitemId = idPorMonday.get(linha.monday_item_id);
+    if (!subitemId) continue;
+    (linha.pessoas || []).forEach((uid, i) => {
+      const pessoaId = pessoaPorMonday.get(String(uid));
+      if (pessoaId) vinculos.push({ subitem_id: subitemId, pessoa_id: pessoaId, ordem: i });
+    });
+  }
+  await sql`TRUNCATE vybe_subitem_responsaveis`;
+  if (vinculos.length) {
+    await sql`INSERT INTO vybe_subitem_responsaveis (subitem_id, pessoa_id, ordem)
+      SELECT v.subitem_id, v.pessoa_id, v.ordem
+      FROM jsonb_to_recordset(${JSON.stringify(vinculos)}::jsonb)
+        AS v(subitem_id bigint, pessoa_id bigint, ordem int)
+      ON CONFLICT DO NOTHING`;
+  }
+
+  const total = Number((await sql`SELECT COUNT(*)::int AS n FROM vybe_subitens`)[0].n);
+  const comPai = Number((await sql`SELECT COUNT(DISTINCT pai_id)::int AS n FROM vybe_subitens`)[0].n);
+  return {
+    lidos_no_monday: itens.length,
+    gravados: linhas.length,
+    sem_pai_no_banco: semPai,
+    responsaveis: vinculos.length,
+    total_no_banco: total,
+    demandas_com_subitens: comPai,
+  };
 }
