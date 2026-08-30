@@ -486,7 +486,12 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     };
     
     window.fcSelectDropdown = function(key, val, text, colorObj, isManual = true) {
-       state[key] = val;
+       // Gravava sempre, ignorando isManual. Quem chama com isManual=false e o
+       // calculo automatico, so para MOSTRAR o destino sugerido — ao gravar, o
+       // sugerido virava escolha manual na primeira vez que a tela desenhava, e
+       // dali em diante o grupo nunca mais seguia o formato: escolher Reels ou
+       // Card continuava caindo em Redacao.
+       if (isManual) state[key] = val;
        document.querySelectorAll('.fc-dropdown-list').forEach(el => el.classList.remove('open'));
        
        const valEl = document.getElementById('fc-val-' + key);
