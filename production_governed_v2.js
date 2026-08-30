@@ -88,7 +88,7 @@
       .p-cal-card .p-tag-status { margin-top:8px; display:inline-block; font-size:9px; padding:4px 8px; border-radius:4px; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; }
 
       /* Drawer */
-      .prod-v2-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:15000; opacity:0; transition:opacity 0.3s; }
+      .prod-v2-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:665; opacity:0; transition:opacity 0.3s; }
       .prod-v2-overlay.open { opacity:1; }
       .prod-v2-drawer { position:absolute; top:0; right:0; width:min(500px, 90vw); height:100%; background:rgba(15,20,25,0.95); backdrop-filter:blur(24px) saturate(1.2); border-left:1px solid rgba(255,255,255,0.08); box-shadow:-20px 0 50px rgba(0,0,0,0.8); transform:translateX(100%); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); display:flex; flex-direction:column; }
       .prod-v2-overlay.open .prod-v2-drawer { transform:translateX(0); }

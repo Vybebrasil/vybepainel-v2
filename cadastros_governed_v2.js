@@ -18,7 +18,7 @@
     const style = document.createElement('style');
     style.id = 'fast-cad-styles';
     style.textContent = `
-      .fc-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:20000; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s ease; }
+      .fc-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:670; display:flex; justify-content:center; align-items:center; opacity:0; transition:opacity 0.3s ease; }
       .fc-overlay.open { opacity:1; }
       
       .fc-modal { background:radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent 70%), rgba(15,20,25,0.85); backdrop-filter:blur(30px) saturate(1.2); width:100%; max-width:960px; border:1px solid rgba(255,255,255,0.1); border-radius:24px; display:flex; flex-direction:row; box-shadow:0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); font-family:var(--mac-ui, sans-serif); transform:scale(0.95) translateY(20px); transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); margin: 20px; max-height: calc(100vh - 40px); }
