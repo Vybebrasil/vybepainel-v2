@@ -1822,10 +1822,13 @@ export async function importarSubitens() {
     cursor = pagina?.cursor || null;
   } while (cursor);
 
-  const statusPorIndice = new Map(
-    (await sql`SELECT chave, monday_index FROM vybe_status WHERE board_id=${BOARD_DEMANDAS}`)
-      .map((r) => [Number(r.monday_index), r.chave])
-  );
+  const catalogo = await sql`SELECT chave, rotulo, monday_index FROM vybe_status
+    WHERE board_id=${BOARD_DEMANDAS}`;
+  const statusPorIndice = new Map(catalogo.map((r) => [Number(r.monday_index), r.chave]));
+  // Quando o status é o padrão do board e ninguém encostou nele, o Monday manda
+  // o TEXTO da etiqueta e deixa o value nulo. Lendo só o value, esses subitens
+  // chegavam aqui sem status nenhum — e a maioria está exatamente assim.
+  const statusPorRotulo = new Map(catalogo.map((r) => [String(r.rotulo).toLowerCase(), r.chave]));
   // A demanda-mãe precisa já existir aqui: subitem órfão não tem onde aparecer.
   const paiPorMonday = new Map(
     (await sql`SELECT id, monday_item_id FROM vybe_conteudos
@@ -1844,14 +1847,18 @@ export async function importarSubitens() {
     if (!paiId) { semPai += 1; continue; }
     const ordem = (ordemPorPai.get(paiId) || 0);
     ordemPorPai.set(paiId, ordem + 1);
+    const colStatus = coluna(it, COLUNAS_SUBITEM.status);
     let indice = null;
-    try { indice = JSON.parse(coluna(it, COLUNAS_SUBITEM.status).value || 'null')?.index ?? null; }
-    catch { /* subitem sem status */ }
+    try { indice = JSON.parse(colStatus.value || 'null')?.index ?? null; }
+    catch { /* subitem sem status gravado */ }
+    const chaveStatusSub = indice !== null
+      ? statusPorIndice.get(Number(indice)) || null
+      : statusPorRotulo.get(String(colStatus.text || '').trim().toLowerCase()) || null;
     linhas.push({
       monday_item_id: String(it.id),
       pai_id: paiId,
       titulo: it.name || 'Sem título',
-      status_chave: indice === null ? null : statusPorIndice.get(Number(indice)) || null,
+      status_chave: chaveStatusSub,
       prazo: dataOuNulo(coluna(it, COLUNAS_SUBITEM.prazo).text),
       conclusao: dataOuNulo(coluna(it, COLUNAS_SUBITEM.conclusao).text),
       tipo: (coluna(it, COLUNAS_SUBITEM.tipo).text || '').trim() || null,
