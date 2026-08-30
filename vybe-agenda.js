@@ -757,6 +757,9 @@ function itensPorGrupo() {
   }));
 }
 
+// Seleção múltipla: sem ela, mudar o prazo de dez peças era abrir dez peças.
+const SELECIONADAS = new Set();
+
 // ── campos de escolha, uma regra só ──────────────────────────────────────────
 //
 // Captação virou editável e as outras quatro nasceram só de leitura — um caso
