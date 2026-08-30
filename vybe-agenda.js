@@ -753,8 +753,65 @@ function itensPorGrupo() {
   return [...conhecidos, ...novos].map(id => ({
     id,
     nome: GROUP_MAP[id] || id || 'Sem grupo',
-    itens: mapa.get(id).sort((a, b) => String(a.veiculacao_iso || '9999').localeCompare(String(b.veiculacao_iso || '9999'))),
+    itens: ordenarItens(mapa.get(id)),
   }));
+}
+
+// ── ordenação por coluna ─────────────────────────────────────────────────────
+//
+// A ordem era fixa por veiculação. Ordenar por prazo, por cliente ou por quem
+// responde exigia ler a lista inteira com o olho.
+//
+// A ordenação vale dentro de cada grupo, não entre eles: os grupos são etapas
+// da produção e a sequência deles não é uma opinião — misturar Redação com
+// Finalizados numa lista só desfaria a divisão que a tela existe para mostrar.
+let ORDEM = { campo: 'veiculacao_iso', desc: false };
+
+const CAMPOS_ORDENAVEIS = {
+  id:            { rotulo: 'ID',          valor: (i) => Number(i.id) || 0 },
+  nome:          { rotulo: 'Conteúdo',    valor: (i) => String(i.nome || '') },
+  cliente:       { rotulo: 'Cliente',     valor: (i) => String(i.cliente || '') },
+  responsavel:   { rotulo: 'Responsável', valor: (i) => String(i.responsavel || '') },
+  status:        { rotulo: 'Status',      valor: (i) => String(i.status || '') },
+  captacao:      { rotulo: 'Captação',    valor: (i) => String(i.captacao || '') },
+  formato:       { rotulo: 'Formato',     valor: (i) => String(i.formato || '') },
+  tipo_conteudo: { rotulo: 'Tipo',        valor: (i) => String(i.tipo_conteudo || '') },
+  off_audio:     { rotulo: 'OFF',         valor: (i) => String(i.off_audio || '') },
+  prioridade:    { rotulo: 'Prioridade',  valor: (i) => String(i.prioridade || '') },
+  prazo_iso:     { rotulo: 'Prazo',       valor: (i) => String(i.prazo_iso || '') },
+  veiculacao_iso:{ rotulo: 'Veiculação',  valor: (i) => String(i.veiculacao_iso || '') },
+};
+
+function ordenarItens(itens) {
+  const cfg = CAMPOS_ORDENAVEIS[ORDEM.campo] || CAMPOS_ORDENAVEIS.veiculacao_iso;
+  const sinal = ORDEM.desc ? -1 : 1;
+  return [...itens].sort((a, b) => {
+    const x = cfg.valor(a);
+    const y = cfg.valor(b);
+    // Vazio vai sempre para o fim, subindo ou descendo: uma peça sem prazo não
+    // é "a mais antiga", é uma peça sem prazo.
+    const xVazio = x === '' || x === '—';
+    const yVazio = y === '' || y === '—';
+    if (xVazio !== yVazio) return xVazio ? 1 : -1;
+    if (typeof x === 'number') return (x - y) * sinal;
+    return x.localeCompare(y, 'pt-BR', { numeric: true }) * sinal;
+  });
+}
+
+function ordenarPor(campo) {
+  if (!CAMPOS_ORDENAVEIS[campo]) return;
+  ORDEM = ORDEM.campo === campo ? { campo, desc: !ORDEM.desc } : { campo, desc: false };
+  renderVisaoDeGrupos();
+}
+
+function cabecalhoOrdenavel(campo) {
+  const cfg = CAMPOS_ORDENAVEIS[campo];
+  const ativa = ORDEM.campo === campo;
+  const seta = ativa ? (ORDEM.desc ? '↓' : '↑') : '↕';
+  return `<th><button type="button" class="grupo-th ${ativa ? 'ordenando' : ''}"
+    onclick="ordenarPor('${campo}')"
+    title="Ordenar por ${cfg.rotulo}${ativa ? (ORDEM.desc ? ' — hoje: maior para menor' : ' — hoje: menor para maior') : ''}"
+    >${cfg.rotulo}<i class="grupo-seta">${seta}</i></button></th>`;
 }
 
 // Seleção múltipla: sem ela, mudar o prazo de dez peças era abrir dez peças.
@@ -863,7 +920,7 @@ function linhaDeGrupoHtml(item) {
   return `<tr class="${marcada ? 'marcada' : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
     <td class="grupo-marcar" onclick="${parar}">
       <input type="checkbox" ${marcada ? 'checked' : ''} aria-label="Selecionar ${safeText(item.nome || '')}"
-             onchange="alternarSelecao('${safeText(item.id)}',this.checked)"></td>
+             onclick="${parar};alternarSelecao('${safeText(item.id)}',this.checked,event)"></td>
     <td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
         title="ID da atividade · clique para copiar">${safeText(item.id)}</td>
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
@@ -877,8 +934,40 @@ function linhaDeGrupoHtml(item) {
   </tr>`;
 }
 
-function alternarSelecao(id, marcada) {
-  if (marcada) SELECIONADAS.add(String(id)); else SELECIONADAS.delete(String(id));
+// Shift marca o intervalo, como no Finder e no Monday: clica na primeira, segura
+// shift e clica na última. Sem isso, marcar quarenta peças era quarenta cliques.
+//
+// Usa 'click' e não 'change' de propósito: o evento change não carrega a tecla
+// pressionada, então não há como saber que o shift estava segurado.
+let ULTIMA_MARCADA = null;
+
+function alternarSelecao(id, marcada, event) {
+  const alvo = String(id);
+  const lista = itensPorGrupo().flatMap((g) => {
+    const visiveis = gruposExpandidos.has(g.id) ? g.itens : g.itens.slice(0, LINHAS_POR_GRUPO);
+    return visiveis.map((i) => String(i.id));
+  });
+
+  if (event?.shiftKey && ULTIMA_MARCADA && ULTIMA_MARCADA !== alvo) {
+    const de = lista.indexOf(ULTIMA_MARCADA);
+    const ate = lista.indexOf(alvo);
+    if (de >= 0 && ate >= 0) {
+      const [ini, fim] = de < ate ? [de, ate] : [ate, de];
+      // O intervalo assume o estado do clique: shift-clicando numa marcada,
+      // desmarca o trecho inteiro. É o que o Finder faz.
+      for (let k = ini; k <= fim; k++) {
+        if (marcada) SELECIONADAS.add(lista[k]); else SELECIONADAS.delete(lista[k]);
+      }
+      ULTIMA_MARCADA = alvo;
+      renderVisaoDeGrupos();
+      const n = fim - ini + 1;
+      showToast(`${marcada ? 'Marcadas' : 'Desmarcadas'} ${n} peças`, 'info', 2500);
+      return;
+    }
+  }
+
+  if (marcada) SELECIONADAS.add(alvo); else SELECIONADAS.delete(alvo);
+  ULTIMA_MARCADA = alvo;
   renderVisaoDeGrupos();
 }
 
@@ -935,9 +1024,9 @@ function renderVisaoDeGrupos() {
             <th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''}
               aria-label="Selecionar tudo em ${safeText(grupo.nome)}"
               onchange="selecionarGrupo('${grupo.id}',this.checked)"></th>
-            <th>ID</th><th>Conteúdo</th><th>Cliente</th><th>Responsável</th><th>Status</th>
-            <th>Captação</th><th>Formato</th><th>Tipo</th><th>OFF</th><th>Prioridade</th>
-            <th>Prazo</th><th>Veiculação</th></tr></thead>
+            ${['id','nome','cliente','responsavel','status','captacao','formato',
+               'tipo_conteudo','off_audio','prioridade','prazo_iso','veiculacao_iso']
+              .map(cabecalhoOrdenavel).join('')}</tr></thead>
           <tbody>${visiveis.map(linhaDeGrupoHtml).join('')}</tbody>
         </table>
       </div>

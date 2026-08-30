@@ -1633,6 +1633,16 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .ops-close-btn.active .ops-action-count,.ops-command-toggle.active .ops-action-count{
   background:var(--accent,#ff6b00)!important;color:#1a0d02!important
 }
+
+/* Cabeçalho que ordena */
+.grupo-th{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:0;
+  color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap}
+.grupo-th:hover{color:#e7ecf5}
+.grupo-th.ordenando{color:var(--accent,#ff6b00)}
+.grupo-seta{font-style:normal;font-size:9px;opacity:.35;transition:opacity .12s}
+.grupo-th:hover .grupo-seta{opacity:.75}
+.grupo-th.ordenando .grupo-seta{opacity:1}
+.grupo-tabela th:has(.grupo-th.ordenando){background:rgba(255,122,26,.07)}
 </style></head>
 <body>
 
