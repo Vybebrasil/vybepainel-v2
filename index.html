@@ -2261,6 +2261,44 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   .da-barra{gap:10px 14px}
   .da-barra-pessoa{flex:1 1 100%;justify-content:flex-start}
 }
+
+/* ─── Mesa de comando ────────────────────────────────────────────────────────
+   'Abrir fila →' aparecia igual nos quatro cartoes, inclusive nos que estao em
+   zero — e clicar abria um modal vazio. Zero e boa noticia, nao convite: o
+   cartao fica quieto e para de se oferecer.
+
+   O 'Abrir fila' tambem era um botao de borda no primeiro e texto solto nos
+   outros tres. Mesma coisa, mesma forma. */
+.da-command-daily-card .da-command-daily-go{display:inline-flex;align-items:center;gap:5px;
+  align-self:flex-start;margin-top:10px;padding:5px 11px;border-radius:8px;
+  border:1px solid color-mix(in srgb,var(--command-color,#ff9d00) 45%,transparent);
+  color:var(--command-color,#ff9d00);font:600 11.5px var(--mac-ui);
+  transition:background-color .14s var(--curva)}
+.da-command-daily-card:not(.vazia):hover .da-command-daily-go{
+  background:color-mix(in srgb,var(--command-color,#ff9d00) 14%,transparent)}
+.da-command-daily-card.vazia{opacity:.5;cursor:default}
+.da-command-daily-card.vazia .da-command-daily-count{color:#8b8b90}
+.da-command-daily-card.vazia .da-command-daily-go{border-color:transparent;padding-left:0;
+  color:#8b8b90;font-weight:500}
+
+/* ─── Planejado x Realizado ──────────────────────────────────────────────────
+   Os quatro numeros tinham o mesmo peso visual, e a maioria e zero. Zero
+   gritando do mesmo tamanho que um alerta de verdade cansa a leitura e esconde
+   o que importa. Agora zero fica quieto e o que avancou ganha uma barra.
+
+   A linha da disciplina tambem quebrava em duas e empurrava o cartao: agora
+   corta com reticencias. */
+.da-commitment-person-head small{display:block;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;max-width:100%}
+.da-commitment-person-head>span{min-width:0}
+.da-commitment-progresso{display:block;height:3px;margin:8px 0 6px;border-radius:99px;
+  background:rgba(255,255,255,.09);overflow:hidden}
+.da-commitment-progresso i{display:block;height:100%;border-radius:99px;
+  background:var(--commitment-color,#ff9d00);transition:width .34s var(--curva)}
+.da-commitment-metrics>span.zero{opacity:.34}
+.da-commitment-metrics>span.zero b{color:#8b8b90}
+.da-commitment-metrics>span.attention:not(.zero) b{color:#ffbf64}
+.da-commitment-metrics>span.late:not(.zero) b{color:#ff6b81}
 </style></head>
 <body>
 
