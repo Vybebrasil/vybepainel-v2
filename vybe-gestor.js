@@ -129,10 +129,54 @@ function corDeStatus(rotulo) {
 // também eram pintados por classe de CSS escrita à mão.
 function corDeOpcao(rotulo, colunaId) {
   const alvo = String(rotulo || '').trim().toLowerCase();
-  if (!alvo || typeof CATALOGO_OPCOES === 'undefined') return null;
-  const achou = CATALOGO_OPCOES.find((o) => o.coluna_id === colunaId
-    && String(o.rotulo || '').trim().toLowerCase() === alvo);
-  return achou?.cor ? { cor: achou.cor, borda: achou.borda || achou.cor } : null;
+  if (!alvo) return null;
+  const doCatalogo = (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
+    .find((o) => o.coluna_id === colunaId && String(o.rotulo || '').trim().toLowerCase() === alvo);
+  if (doCatalogo?.cor) return { cor: doCatalogo.cor, borda: doCatalogo.borda || doCatalogo.cor };
+
+  // Coluna de STATUS no Monday tem cor por etiqueta; coluna DROPDOWN não tem
+  // nenhuma — e Formato, Tipo de conteúdo e Tipo de demanda são dropdown. Eram
+  // as 29 opções que o painel pintava por uma tabela escrita à mão no CSS, e é
+  // por isso que a mesma etiqueta mudava de cor entre telas.
+  //
+  // Sem cor de origem, ela sai da POSIÇÃO da etiqueta no catálogo da coluna:
+  // as opções se espalham pelo círculo de cor, então nove formatos ficam a 40°
+  // um do outro em vez de amontoados. Determinístico e sem lista para manter.
+  // Mais dessaturado que status de propósito: status é a informação, formato é
+  // o contexto, e não devem disputar o olho.
+  return corPorPosicao(alvo, colunaId);
+}
+
+function corPorPosicao(alvo, colunaId) {
+  const lista = (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
+    .filter((o) => o.coluna_id === colunaId)
+    .sort((a, b) => Number(a.indice ?? 0) - Number(b.indice ?? 0));
+  const i = lista.findIndex((o) => String(o.rotulo || '').trim().toLowerCase() === alvo);
+  if (i < 0 || !lista.length) return corDoRotulo(alvo);
+  // Cada coluna começa num ponto diferente do círculo, senão Formato e Tipo de
+  // conteúdo sairiam com a mesma paleta e pareceriam a mesma informação.
+  const fase = (colunaId || '').split('').reduce((a, c) => (a + c.charCodeAt(0)) % 360, 0);
+  const h = Math.round((fase + (i * 360) / lista.length) % 360);
+  return { cor: hslParaHex(h, 44, 66), borda: hslParaHex(h, 44, 50) };
+}
+
+function corDoRotulo(texto) {
+  const t = String(texto || '').trim().toLowerCase();
+  if (!t) return null;
+  let h = 2166136261;
+  for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+  h = Math.abs(Math.imul(h, 2654435761)) % 360;
+  return { cor: hslParaHex(h, 44, 66), borda: hslParaHex(h, 44, 50) };
+}
+
+function hslParaHex(h, s, l) {
+  const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+  const canal = (n) => {
+    const k = (n + h / 30) % 12;
+    const v = l / 100 - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+    return Math.round(255 * v).toString(16).padStart(2, '0');
+  };
+  return `#${canal(0)}${canal(8)}${canal(4)}`;
 }
 
 function pillHtml(s, color='', border='') {

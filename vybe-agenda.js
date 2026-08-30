@@ -788,7 +788,13 @@ function catalogoDoCampo(campo) {
   const coluna = CAMPOS_DE_ESCOLHA[campo]?.coluna;
   return (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
     .filter((o) => o.coluna_id === coluna)
-    .map((o) => ({ chave: o.chave, rotulo: o.rotulo, cor: o.cor, borda: o.borda, ativa: o.ativa !== false }));
+    .map((o) => {
+      // A bolinha do seletor tem que ser a MESMA cor da etiqueta na linha. Em
+      // coluna dropdown o Monday não manda cor, e sem isto o seletor mostrava
+      // nove bolinhas cinzas iguais enquanto as etiquetas eram coloridas.
+      const c = o.cor ? { cor: o.cor, borda: o.borda || o.cor } : corDeOpcao(o.rotulo, coluna);
+      return { chave: o.chave, rotulo: o.rotulo, cor: c?.cor, borda: c?.borda, ativa: o.ativa !== false };
+    });
 }
 
 function pillEditavel(item, campo) {
