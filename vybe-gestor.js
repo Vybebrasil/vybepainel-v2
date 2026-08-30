@@ -247,9 +247,60 @@ function ownerEligibility(item={}) { const status=String(item.status||'').trim()
 function ownerAvatarHtml(user) { const name=safeText(firstName(user?.name||'Sem responsável')); const initial=safeText(name.slice(0,2).toUpperCase()); return user?.photo?`<img src="${user.photo}" alt="${name}" style="border-color:${user.color||'#6b7280'}" onerror="this.outerHTML='<span class=owner-avatar-fallback style=background:${user.color||'#6b7280'}>${initial}</span>'">`:`<span class="owner-avatar-fallback" style="background:${user?.color||'#6b7280'}">${initial}</span>`; }
 function ownerEditorTrigger(item, className='') { const owners=ownerUsersFor(item); const title=owners.length?`Gerenciar responsáveis: ${owners.map(user=>user.name).join(', ')}`:'Adicionar responsável'; const visual=owners.length?owners.slice(0,3).map(ownerAvatarHtml).join('')+(owners.length>3?`<span class="owner-avatar-fallback" style="background:#465363">+${owners.length-3}</span>`:''):`<span class="owner-avatar-add">+</span>`; return `<button type="button" class="owner-editor-trigger ${className}" onclick="openOwnerEditor(event,'${item.id}')" title="${safeText(title)}" aria-label="${safeText(title)}"><span class="owner-avatar-stack">${visual}</span></button>`; }
 let pendingOwnerEditorItemId='';
-function openOwnerEditor(event,itemId) { event?.preventDefault?.(); event?.stopPropagation?.(); const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada para editar responsáveis.','err'); const rule=ownerEligibility(item); const current=ownerUsersFor(item); const candidateMap=new Map([...rule.users,...current].map(user=>[String(user.id),user])); const candidates=[...candidateMap.values()]; pendingOwnerEditorItemId=String(item.id); const initial=new Set(ownerAssignedIds(item)); const options=candidates.length?candidates.map(user=>{const selected=initial.has(String(user.id)); const eligible=rule.users.some(candidate=>String(candidate.id)===String(user.id)); const role=eligible?rule.label:'Responsável atual fora da regra'; return `<button type="button" class="owner-editor-person ${selected?'selected':''} ${eligible?'':'outside'}" data-owner-id="${user.id}" data-eligible="${eligible?'1':'0'}" style="--owner-color:${user.color}" onclick="toggleOwnerEditorPerson('${user.id}')">${ownerAvatarHtml(user)}<span class="owner-editor-person-copy"><b>${safeText(user.name)}</b><small>${safeText(role)}</small></span><span class="owner-editor-person-check">${selected?'✓':''}</span></button>`;}).join(''):'<div class="workspace-empty">Nenhuma pessoa elegível até que o formato seja classificado.</div>'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Responsáveis da demanda</span><button class="workflow-close" type="button" onclick="closeOwnerEditor()">×</button></div><h2 class="workflow-title">Gerenciar responsáveis</h2><p class="workflow-copy">Adicione, substitua ou remova pessoas elegíveis sem sair do painel. A alteração fica registrada no histórico da peça.</p>${workflowItemHtml(item,item.status)}<div class="owner-editor-summary"><b>${safeText(rule.label)}</b><br>${safeText(rule.rule)}</div><div id="owner-editor-options" class="owner-editor-options">${options}</div><label class="owner-editor-empty"><input id="owner-editor-empty" type="checkbox"> Confirmo que esta atividade pode ficar temporariamente sem responsável.</label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeOwnerEditor()">Cancelar</button><button id="owner-editor-save" type="button" class="workflow-primary" onclick="saveOwnerAssignments()">Salvar responsáveis →</button></div>`); }
+function openOwnerEditor(event, itemId) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  fecharSeletorDeDono();
+  const item = findOperationalItem(itemId);
+  if (!item) return showToast('Demanda não encontrada.', 'err');
+  const rule = ownerEligibility(item);
+  const atual = ownerUsersFor(item);
+  const candidatos = [...new Map([...rule.users, ...atual].map((u) => [String(u.id), u])).values()];
+  pendingOwnerEditorItemId = String(item.id);
+  const marcados = new Set(ownerAssignedIds(item));
+
+  // Era uma caixa no meio da tela, cobrindo tudo, para escolher uma pessoa. Vira
+  // o mesmo popover ancorado dos outros seletores: as bolinhas ficam ao lado do
+  // campo que se está mudando, e o resto da tela continua visível.
+  const rect = (event?.currentTarget || event?.target)?.getBoundingClientRect()
+    || { top: 120, bottom: 140, left: 120, right: 300 };
+  const fundo = document.createElement('div');
+  fundo.id = 'dono-editor-fundo';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharSeletorDeDono;
+
+  const menu = document.createElement('div');
+  menu.id = 'dono-editor';
+  menu.className = 'status-editor dono-editor';
+  menu.innerHTML = `<div class="status-editor-head">${safeText(rule.label || 'Responsáveis')}</div>
+    <p class="dono-regra">${safeText(rule.rule || '')}</p>
+    <div id="owner-editor-options" class="dono-lista">${
+      candidatos.length ? candidatos.map((u) => {
+        const sel = marcados.has(String(u.id));
+        const elegivel = rule.users.some((c) => String(c.id) === String(u.id));
+        return `<button type="button" class="dono-pessoa owner-editor-person ${sel ? 'selected' : ''} ${elegivel ? '' : 'fora'}"
+          data-owner-id="${u.id}" onclick="toggleOwnerEditorPerson('${u.id}')">
+          ${ownerAvatarHtml(u)}<span class="dono-nome"><b>${safeText(firstName(u.name))}</b>
+          <small>${safeText(elegivel ? (rule.label || '') : 'fora da regra')}</small></span>
+          <span class="owner-editor-person-check">${sel ? '✓' : ''}</span></button>`;
+      }).join('')
+      : '<div class="dono-vazio">Ninguém elegível até o formato ser classificado.</div>'
+    }</div>
+    <label class="dono-sem"><input id="owner-editor-empty" type="checkbox"> Pode ficar sem responsável</label>
+    <div class="dono-rodape">
+      <button type="button" id="owner-editor-save" class="dono-salvar" onclick="saveOwnerAssignments()">Salvar</button>
+    </div>`;
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, rect);
+}
+
+function fecharSeletorDeDono() {
+  document.getElementById('dono-editor-fundo')?.remove();
+  document.getElementById('dono-editor')?.remove();
+}
+
 function toggleOwnerEditorPerson(userId) { const button=document.querySelector(`#owner-editor-options [data-owner-id="${String(userId)}"]`); if(!button) return; button.classList.toggle('selected'); const check=button.querySelector('.owner-editor-person-check'); if(check) check.textContent=button.classList.contains('selected')?'✓':''; }
-function closeOwnerEditor() { pendingOwnerEditorItemId=''; closeWorkflowModal(); }
+function closeOwnerEditor() { pendingOwnerEditorItemId=''; fecharSeletorDeDono(); }
 function updateLocalOwners(itemId, userIds=[]) { const users=TEAM_USERS.filter(user=>userIds.includes(String(user.id))); const names=users.map(user=>user.name).join(', ') || '—'; [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(item=>{if(String(item.id)!==String(itemId)) return; item.responsavel_ids=[...userIds]; item.responsavel_id=userIds[0]||''; item.responsavel=names;})); }
 async function saveOwnerAssignments() { const item=findOperationalItem(pendingOwnerEditorItemId); if(!item) return showToast('Demanda não encontrada.','err'); const rule=ownerEligibility(item); const selected=[...document.querySelectorAll('#owner-editor-options .owner-editor-person.selected')].map(button=>String(button.dataset.ownerId)); const allowed=new Set(rule.users.map(user=>String(user.id))); if(selected.some(id=>!allowed.has(id))) return showToast('Remova responsáveis fora da disciplina antes de salvar.','info'); if(rule.kind==='motion' && (!selected.includes(PESSOAS.RERISTON) || !selected.includes(PESSOAS.DEIVID) || !selected.includes(PESSOAS.BEATRIZ))) return showToast('Motion exige Reriston, Deivid e Bia para preservar audiovisual e direção de arte.','info'); if(!selected.length && !document.getElementById('owner-editor-empty')?.checked) return showToast('Escolha um responsável ou confirme que a atividade ficará sem responsável.','info'); const before=ownerUsersFor(item).map(user=>user.name).join(', ') || 'Sem responsável'; const after=TEAM_USERS.filter(user=>selected.includes(String(user.id))).map(user=>user.name).join(', ') || 'Sem responsável'; const button=document.getElementById('owner-editor-save'); if(button) button.disabled=true; armOutboundMutationGuard('responsáveis'); try { const pelaEscritaDupla=await tentarEscritaDupla(item,{acao:'responsaveis',item:String(item.id),pessoas:selected}); if(!pelaEscritaDupla){ const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; const values={person:{personsAndTeams:selected.map(id=>({id:Number(id),kind:'person'}))}}; await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify(values)}); } try { await postItemUpdate(item.id,`[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule.label}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); } catch(logError) { console.warn('Responsáveis atualizados, mas o log não foi registrado.',logError); } updateLocalOwners(item.id,selected); if(isRequestItem(item)){ outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{responsavel_ids:selected,responsavel_id:selected[0]||''},'responsáveis'); closeOwnerEditor(); if(String(activeWorkspaceItemId)===String(item.id)) { const current=findOperationalItem(item.id)||item; renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),current); } showToast('✓ Responsáveis atualizados · painel mantido no contexto atual','ok'); } catch(error) { if(button) button.disabled=false; showToast(`Não foi possível atualizar responsáveis: ${error.message}`,'err',7000); } }
 

@@ -1951,6 +1951,36 @@ html{scrollbar-gutter:stable}
 .ficha-dono{border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:right}
 .ficha-dono:hover{color:var(--accent,#ff6b00);text-decoration:underline;text-underline-offset:3px}
 .workspace-ficha-linha .grupo-data-campo{max-width:130px}
+
+/* Seletor de responsável: o mesmo popover dos outros, não uma caixa no meio
+   da tela. Era a única escolha do painel que ainda cobria tudo para trocar
+   uma pessoa. */
+.dono-editor{min-width:250px;max-width:300px;padding:5px;
+  /* O cartao inteiro rolava (.status-editor tem overflow:auto), o que empurrava
+     o Salvar para fora da vista quando a lista era longa. Aqui so a lista rola. */
+  display:flex;flex-direction:column;max-height:min(58vh,380px);overflow:hidden}
+.dono-editor > .status-editor-head,.dono-regra,.dono-sem,.dono-rodape{flex:none}
+.dono-regra{margin:0 10px 7px;color:#8b8b90;font:500 11px/1.45 var(--mac-ui)}
+.dono-lista{display:grid;gap:2px;flex:1 1 auto;min-height:104px;overflow-y:auto}
+.dono-pessoa{display:flex;align-items:center;gap:9px;width:100%;padding:6px 9px;border:0;border-radius:7px;
+  background:transparent;color:#f2f2f5;cursor:pointer;font:inherit;text-align:left}
+.dono-pessoa:hover{background:rgba(255,255,255,.07)}
+.dono-pessoa.selected{background:rgba(255,122,26,.16)}
+.dono-pessoa.fora{opacity:.62}
+.dono-pessoa img,.dono-pessoa .owner-avatar-fallback{width:26px;height:26px;border-radius:50%;object-fit:cover;flex:none}
+.dono-nome{min-width:0;flex:1}
+.dono-nome b{display:block;font:600 12.5px var(--mac-ui)}
+.dono-nome small{display:block;color:#8b8b90;font:500 10.5px var(--mac-ui);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dono-pessoa .owner-editor-person-check{margin-left:auto;color:var(--accent,#ff6b00);font-weight:700}
+.dono-vazio{padding:12px 10px;color:#8b8b90;font:500 11.5px var(--mac-ui)}
+.dono-sem{display:flex;align-items:center;gap:7px;margin:7px 10px 4px;color:#8b8b90;font:500 11px var(--mac-ui);cursor:pointer}
+.dono-sem input{accent-color:var(--accent,#ff6b00)}
+.dono-rodape{display:flex;justify-content:flex-end;padding:6px 5px 2px;
+  border-top:1px solid rgba(255,255,255,.10);margin-top:5px}
+.dono-salvar{height:26px;padding:0 14px;border:0;border-radius:6px;background:var(--accent,#ff6b00);
+  color:#fff;font:600 11.5px var(--mac-ui);cursor:pointer}
+.dono-salvar:hover{filter:brightness(1.08)}
 </style></head>
 <body>
 
