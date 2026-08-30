@@ -577,7 +577,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
           FROM vybe_status WHERE board_id = ${boardId} ORDER BY ordem`,
     sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, ativa
           FROM vybe_captacao ORDER BY monday_index`,
-    sql`SELECT coluna_id, chave, rotulo, cor, borda, indice
+    sql`SELECT coluna_id, chave, rotulo, cor, borda, indice, ativa
           FROM vybe_opcoes ORDER BY coluna_id, indice`,
     sql`SELECT monday_user_id AS id, nome, papel, disciplina, foto_url
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,

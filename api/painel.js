@@ -530,6 +530,61 @@ async function areaOpcoes(req, res, quem) {
       return res.status(200).json({ ok: true, opcao: r[0],
         aviso: 'Opção criada só na Vybe. Enquanto o Monday existir, a cópia deste campo é pulada quando ela for usada.' });
     }
+
+    // Renomear, recolorir e remover: o painel só sabia criar e ligar/desligar,
+    // então mudar o nome de uma etiqueta exigia abrir o Monday.
+    if (acao === 'renomear') {
+      const novo = String(rotulo || '').trim();
+      if (!novo) return res.status(400).json({ error: 'Informe o novo nome.' });
+      const r = coluna === 'status_1__1'
+        ? await db`UPDATE vybe_captacao SET rotulo=${novo} WHERE chave=${chave} RETURNING chave, rotulo`
+        : await db`UPDATE vybe_opcoes SET rotulo=${novo} WHERE coluna_id=${coluna} AND chave=${chave}
+             RETURNING chave, rotulo`;
+      if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
+      return res.status(200).json({ ok: true, acao, etiqueta: r[0] });
+    }
+
+    if (acao === 'cor') {
+      const cor = String(req.body?.cor || '').trim();
+      if (!/^#[0-9a-fA-F]{6}$/.test(cor)) return res.status(400).json({ error: 'Cor inválida; use #RRGGBB.' });
+      const r = coluna === 'status_1__1'
+        ? await db`UPDATE vybe_captacao SET cor=${cor}, borda=${cor} WHERE chave=${chave} RETURNING chave, cor`
+        : await db`UPDATE vybe_opcoes SET cor=${cor}, borda=${cor} WHERE coluna_id=${coluna} AND chave=${chave}
+             RETURNING chave, cor`;
+      if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
+      return res.status(200).json({ ok: true, acao, etiqueta: r[0] });
+    }
+
+    if (acao === 'remover') {
+      // Apagar uma etiqueta em uso deixaria as peças apontando para nada. O
+      // painel recusa e oferece o caminho reversível: desligar.
+      const coluna_bd = { 'lista_suspensa0__1': 'formato_chaves', 'lista_suspensa__1': 'tipo_conteudo_chaves' }[coluna];
+      let emUso = 0;
+      if (coluna === 'status_1__1') {
+        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE captacao_chave=${chave}`)[0].n);
+      } else if (coluna_bd === 'formato_chaves') {
+        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(formato_chaves)`)[0].n);
+      } else if (coluna_bd === 'tipo_conteudo_chaves') {
+        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(tipo_conteudo_chaves)`)[0].n);
+      } else if (coluna === 'color_mm164yv8') {
+        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE prioridade_chave=${chave}`)[0].n);
+      } else if (coluna === 'color_mkynd7j8') {
+        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE off_audio_chave=${chave}`)[0].n);
+      }
+      if (emUso > 0) {
+        return res.status(409).json({
+          error: `Esta etiqueta está em ${emUso} ${emUso === 1 ? 'peça' : 'peças'}. `
+               + 'Desligue em vez de apagar: ela some das escolhas novas e as peças que já a usam continuam certas.',
+          em_uso: emUso,
+        });
+      }
+      const r = coluna === 'status_1__1'
+        ? await db`DELETE FROM vybe_captacao WHERE chave=${chave} RETURNING chave, rotulo`
+        : await db`DELETE FROM vybe_opcoes WHERE coluna_id=${coluna} AND chave=${chave} RETURNING chave, rotulo`;
+      if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
+      return res.status(200).json({ ok: true, acao, removida: r[0] });
+    }
+
     return res.status(400).json({ error: `Ação desconhecida: ${acao}` });
   }
   return res.status(405).json({ error: 'Método não permitido.' });

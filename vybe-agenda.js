@@ -858,7 +858,10 @@ function abrirEscolha(event, itemId, campo) {
   const cfg = CAMPOS_DE_ESCOLHA[campo];
   const atual = String(item[campo] || '');
   // Opção desativada no Monday só aparece se a peça ainda estiver nela.
-  const opcoes = catalogoDoCampo(campo).filter((o) => o.ativa || o.rotulo === atual);
+  // Quem administra vê também as desligadas, para poder religar; quem opera vê
+  // só o que dá para escolher.
+  const opcoes = catalogoDoCampo(campo)
+    .filter((o) => o.ativa || o.rotulo === atual || podeGerirEtiquetas());
   if (!opcoes.length) return showToast(`As opções de ${cfg?.rotulo || campo} ainda estão carregando.`, 'info');
 
   const rect = event.currentTarget.getBoundingClientRect();
@@ -869,16 +872,114 @@ function abrirEscolha(event, itemId, campo) {
   const menu = document.createElement('div');
   menu.id = 'escolha-editor';
   menu.className = 'status-editor';
+  const gerindo = podeGerirEtiquetas();
+  const ferramentas = (o) => gerindo ? `<span class="etiqueta-ferramentas">
+      <button type="button" title="Renomear" onclick="event.stopPropagation();renomearEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">✎</button>
+      <button type="button" title="Trocar a cor" onclick="event.stopPropagation();recolorirEtiqueta('${campo}','${safeText(o.chave)}','${o.cor || ''}')">◐</button>
+      <button type="button" title="${o.ativa ? 'Desligar: some das escolhas novas' : 'Ligar de novo'}" onclick="event.stopPropagation();alternarEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}',${o.ativa})">${o.ativa ? '◉' : '○'}</button>
+      <button type="button" title="Apagar" class="perigo" onclick="event.stopPropagation();removerEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">×</button>
+    </span>` : '';
   menu.innerHTML = `<div class="status-editor-head">${safeText(cfg?.rotulo || campo)}</div>
-    ${opcoes.map((o) => `<button type="button" class="status-editor-option ${o.rotulo === atual ? 'current' : ''}"
-        onclick="escolherValor('${safeText(item.id)}','${campo}','${safeText(o.chave)}')">
-        <span class="status-editor-dot" style="background:${o.cor || '#7c8797'};color:${o.cor || '#7c8797'}"></span>
-        <span>${safeText(o.rotulo)}${o.ativa ? '' : ' (desativada)'}</span>
-        ${o.rotulo === atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}
-    <button type="button" class="status-editor-option" onclick="escolherValor('${safeText(item.id)}','${campo}','')">
-      <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Deixar em branco</span></button>`;
+    ${opcoes.map((o) => `<div class="etiqueta-linha ${o.ativa ? '' : 'desligada'}">
+        <button type="button" class="status-editor-option ${o.rotulo === atual ? 'current' : ''}"
+          onclick="escolherValor('${safeText(item.id)}','${campo}','${safeText(o.chave)}')">
+          <span class="status-editor-dot" style="background:${o.cor || '#7c8797'};color:${o.cor || '#7c8797'}"></span>
+          <span>${safeText(o.rotulo)}${o.ativa ? '' : ' (desligada)'}</span>
+          ${o.rotulo === atual ? '<span class="status-editor-check">✓</span>' : ''}</button>
+        ${ferramentas(o)}
+      </div>`).join('')}
+    <div class="etiqueta-linha">
+      <button type="button" class="status-editor-option" onclick="escolherValor('${safeText(item.id)}','${campo}','')">
+        <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Deixar em branco</span></button>
+    </div>
+    ${gerindo ? `<div class="etiqueta-rodape">
+      <button type="button" onclick="event.stopPropagation();criarEtiqueta('${campo}')">+ Nova etiqueta</button>
+    </div>` : ''}`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, rect);
+}
+
+// ── gerir as etiquetas de dentro do próprio menu ─────────────────────────────
+//
+// Mudar o nome ou a cor de uma etiqueta exigia abrir o Monday. Agora acontece
+// onde a etiqueta é usada. Vale para todo campo de catálogo, não para um.
+//
+// Só administrador vê as ferramentas: quem escolhe uma etiqueta é o time
+// inteiro, quem muda o vocabulário da operação é quem administra.
+function podeGerirEtiquetas() { return Boolean(sessaoAtual()?.admin); }
+
+async function chamarEtiqueta(corpo) {
+  const r = await fetch('/api/painel?area=opcoes', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d?.error || 'Não foi possível salvar.');
+  return d;
+}
+
+// Depois de mexer no catálogo, ele precisa ser relido: a tela inteira desenha a
+// partir dele, e continuar com a cópia antiga mostraria o nome velho.
+async function recarregarCatalogos() {
+  try {
+    const r = await fetch('/api/conteudos', { credentials: 'same-origin' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (Array.isArray(d.opcoes)) CATALOGO_OPCOES = d.opcoes;
+    if (Array.isArray(d.captacao)) {
+      CATALOGO_CAPTACAO = d.captacao.map((c) => ({
+        chave: c.chave, rotulo: c.rotulo, cor: c.cor || '', borda: c.borda || '', ativa: c.ativa !== false,
+      }));
+    }
+  } catch { /* segue com o catálogo que já tem */ }
+  renderVisaoDeGrupos();
+}
+
+async function renomearEtiqueta(campo, chave, atual) {
+  const novo = window.prompt('Nome da etiqueta:', atual);
+  if (novo === null || novo.trim() === atual) return;
+  try {
+    await chamarEtiqueta({ acao: 'renomear', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave, rotulo: novo.trim() });
+    await recarregarCatalogos();
+    showToast(`✓ Agora é "${novo.trim()}"`, 'ok');
+  } catch (e) { showToast(e.message, 'err', 7000); }
+}
+
+async function recolorirEtiqueta(campo, chave, corAtual) {
+  const nova = window.prompt('Cor da etiqueta em hexadecimal (ex.: #ff6b00):', corAtual || '#7c8797');
+  if (nova === null) return;
+  try {
+    await chamarEtiqueta({ acao: 'cor', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave, cor: nova.trim() });
+    await recarregarCatalogos();
+    showToast('✓ Cor trocada', 'ok');
+  } catch (e) { showToast(e.message, 'err', 7000); }
+}
+
+async function alternarEtiqueta(campo, chave, rotulo, ativa) {
+  try {
+    await chamarEtiqueta({ acao: 'alternar', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave });
+    await recarregarCatalogos();
+    showToast(ativa ? `"${rotulo}" desligada — some das escolhas novas` : `✓ "${rotulo}" ligada`, 'ok', 5000);
+  } catch (e) { showToast(e.message, 'err', 7000); }
+}
+
+async function removerEtiqueta(campo, chave, rotulo) {
+  if (!window.confirm(`Apagar a etiqueta "${rotulo}"? Isto não dá para desfazer.`)) return;
+  try {
+    await chamarEtiqueta({ acao: 'remover', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave });
+    await recarregarCatalogos();
+    showToast(`✓ "${rotulo}" apagada`, 'ok');
+  } catch (e) { showToast(e.message, 'info', 9000); }
+}
+
+async function criarEtiqueta(campo) {
+  const rotulo = window.prompt(`Nova etiqueta em ${CAMPOS_DE_ESCOLHA[campo].rotulo}:`, '');
+  if (!rotulo || !rotulo.trim()) return;
+  try {
+    await chamarEtiqueta({ acao: 'criar', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, rotulo: rotulo.trim() });
+    await recarregarCatalogos();
+    showToast(`✓ "${rotulo.trim()}" criada`, 'ok');
+  } catch (e) { showToast(e.message, 'err', 7000); }
 }
 
 function fecharEscolha() {
