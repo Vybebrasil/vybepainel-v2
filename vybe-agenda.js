@@ -357,7 +357,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha('Grupo', botaoDeGrupo(item))}
       ${linha('Responsável', vybeDono(item))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
-      ${linha(ehDemanda ? 'Tipo' : 'Formato', pillEditavel(item, ehDemanda ? 'tipo_conteudo' : 'formato'))}
+      ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}
       ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
       ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
@@ -877,24 +877,41 @@ const SELECIONADAS = new Set();
 // uma coluna nova é acrescentar uma linha aqui.
 //
 // O servidor já aceitava os cinco desde sempre; faltava a tela pedir.
+// A coluna nao e a mesma nos dois quadros: Formato em Producao e
+// lista_suspensa0__1 e em Solicitacoes e dropdown_mkv8d52z; Prioridade e
+// color_mm164yv8 num e color_mkwtgakv no outro. Havia um id so por campo, entao
+// a tela oferecia o catalogo de Producao numa Solicitacao e mandava gravar la.
+//
+// Captacao, Tipo de conteudo e OFF nao existem em Solicitacoes — para um item
+// de la o campo simplesmente nao aparece.
 const CAMPOS_DE_ESCOLHA = {
-  captacao:      { coluna: 'status_1__1',        rotulo: 'Captação' },
-  formato:       { coluna: 'lista_suspensa0__1', rotulo: 'Formato' },
-  tipo_conteudo: { coluna: 'lista_suspensa__1',  rotulo: 'Tipo de conteúdo' },
-  off_audio:     { coluna: 'color_mkynd7j8',     rotulo: 'OFF / áudio' },
-  prioridade:    { coluna: 'color_mm164yv8',     rotulo: 'Prioridade' },
+  captacao:      { rotulo: 'Captação',
+                   colunas: { producao: 'status_1__1' } },
+  formato:       { rotulo: 'Formato',
+                   colunas: { producao: 'lista_suspensa0__1', demandas: 'dropdown_mkv8d52z' } },
+  tipo_conteudo: { rotulo: 'Tipo de conteúdo',
+                   colunas: { producao: 'lista_suspensa__1' } },
+  off_audio:     { rotulo: 'OFF / áudio',
+                   colunas: { producao: 'color_mkynd7j8' } },
+  prioridade:    { rotulo: 'Prioridade',
+                   colunas: { producao: 'color_mm164yv8', demandas: 'color_mkwtgakv' } },
 };
+
+const quadroDoItem = (item) => (String(item?.board_id || '') === String(
+  typeof BOARD_DEMANDAS_ID !== 'undefined' ? BOARD_DEMANDAS_ID : '') ? 'demandas' : 'producao');
+const colunaDoCampo = (campo, item) => CAMPOS_DE_ESCOLHA[campo]?.colunas?.[quadroDoItem(item)] || '';
+const campoExisteNoQuadro = (campo, item) => Boolean(colunaDoCampo(campo, item));
 
 // O processItems escreve '—' quando a coluna vem vazia. Sem isto, o traço virava
 // uma pílula com um traço dentro, como se fosse um valor.
 const vazio = (v) => !v || String(v).trim() === '' || String(v).trim() === '—';
 
-function catalogoDoCampo(campo) {
+function catalogoDoCampo(campo, item) {
   if (campo === 'captacao') {
     return (typeof CATALOGO_CAPTACAO === 'undefined' ? [] : CATALOGO_CAPTACAO)
       .map((c) => ({ chave: c.chave, rotulo: c.rotulo, cor: c.cor, borda: c.borda, ativa: c.ativa !== false }));
   }
-  const coluna = CAMPOS_DE_ESCOLHA[campo]?.coluna;
+  const coluna = colunaDoCampo(campo, item);
   return (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
     .filter((o) => o.coluna_id === coluna)
     .map((o) => {
@@ -907,8 +924,11 @@ function catalogoDoCampo(campo) {
 }
 
 function pillEditavel(item, campo) {
+  // Campo que nao existe no quadro deste item nao vira botao: clicar nele
+  // gravaria numa coluna do outro quadro.
+  if (!campoExisteNoQuadro(campo, item)) return '<span class="grupo-vazio">—</span>';
   const valor = item[campo];
-  const escolha = catalogoDoCampo(campo).find((o) => o.rotulo === valor);
+  const escolha = catalogoDoCampo(campo, item).find((o) => o.rotulo === valor);
   const dentro = vazio(valor)
     ? '<span class="grupo-vazio">—</span>'
     : pillHtml(valor, escolha?.cor || '', escolha?.borda || '');
@@ -928,7 +948,11 @@ function abrirEscolha(event, itemId, campo) {
   // Opção desativada no Monday só aparece se a peça ainda estiver nela.
   // Quem administra vê também as desligadas, para poder religar; quem opera vê
   // só o que dá para escolher.
-  const opcoes = catalogoDoCampo(campo)
+  if (!campoExisteNoQuadro(campo, item)) {
+    return showToast(`${cfg?.rotulo || campo} não existe no quadro desta atividade.`, 'info');
+  }
+  const coluna = colunaDoCampo(campo, item);
+  const opcoes = catalogoDoCampo(campo, item)
     .filter((o) => o.ativa || o.rotulo === atual || podeGerirEtiquetas());
   if (!opcoes.length) return showToast(`As opções de ${cfg?.rotulo || campo} ainda estão carregando.`, 'info');
 
@@ -948,11 +972,11 @@ function abrirEscolha(event, itemId, campo) {
   const chave = (o) => gerindo ? `<button type="button" class="vybe-chave ${o.ativa ? 'ligada' : ''}"
       role="switch" aria-checked="${o.ativa ? 'true' : 'false'}"
       title="${o.ativa ? 'Ligada — aparece nas escolhas. Clique para desligar.' : 'Desligada — não aparece nas escolhas novas. Clique para ligar.'}"
-      onclick="event.stopPropagation();alternarEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}',${o.ativa})"><span></span></button>` : '';
+      onclick="event.stopPropagation();alternarEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}',${o.ativa})"><span></span></button>` : '';
   const ferramentas = (o) => gerindo ? `<span class="etiqueta-ferramentas">
-      <button type="button" class="icone-btn" title="Renomear" aria-label="Renomear" onclick="event.stopPropagation();renomearEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lapis}</button>
-      <button type="button" class="icone-btn" title="Trocar a cor" aria-label="Trocar a cor" onclick="event.stopPropagation();recolorirEtiqueta('${campo}','${safeText(o.chave)}','${o.cor || ''}')">${ICONE.gota}</button>
-      <button type="button" class="icone-btn perigo" title="Apagar" aria-label="Apagar" onclick="event.stopPropagation();removerEtiqueta('${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lixo}</button>
+      <button type="button" class="icone-btn" title="Renomear" aria-label="Renomear" onclick="event.stopPropagation();renomearEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lapis}</button>
+      <button type="button" class="icone-btn" title="Trocar a cor" aria-label="Trocar a cor" onclick="event.stopPropagation();recolorirEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${o.cor || ''}')">${ICONE.gota}</button>
+      <button type="button" class="icone-btn perigo" title="Apagar" aria-label="Apagar" onclick="event.stopPropagation();removerEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lixo}</button>
     </span>` : '';
   menu.innerHTML = `<div class="status-editor-head">${safeText(cfg?.rotulo || campo)}</div>
     ${opcoes.map((o) => `<div class="etiqueta-linha ${o.ativa ? '' : 'desligada'}">
@@ -968,7 +992,7 @@ function abrirEscolha(event, itemId, campo) {
         <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Deixar em branco</span></button>
     </div>
     ${gerindo ? `<div class="etiqueta-rodape">
-      <button type="button" onclick="event.stopPropagation();criarEtiqueta('${campo}')">+ Nova etiqueta</button>
+      <button type="button" onclick="event.stopPropagation();criarEtiqueta('${coluna}','${campo}')">+ Nova etiqueta</button>
     </div>` : ''}`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, rect);
@@ -1010,48 +1034,48 @@ async function recarregarCatalogos() {
   renderVisaoDeGrupos();
 }
 
-async function renomearEtiqueta(campo, chave, atual) {
+async function renomearEtiqueta(coluna, campo, chave, atual) {
   const novo = window.prompt('Nome da etiqueta:', atual);
   if (novo === null || novo.trim() === atual) return;
   try {
-    await chamarEtiqueta({ acao: 'renomear', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave, rotulo: novo.trim() });
+    await chamarEtiqueta({ acao: 'renomear', coluna, chave, rotulo: novo.trim() });
     await recarregarCatalogos();
     showToast(`✓ Agora é "${novo.trim()}"`, 'ok');
   } catch (e) { showToast(e.message, 'err', 7000); }
 }
 
-async function recolorirEtiqueta(campo, chave, corAtual) {
+async function recolorirEtiqueta(coluna, campo, chave, corAtual) {
   const nova = window.prompt('Cor da etiqueta em hexadecimal (ex.: #ff6b00):', corAtual || '#7c8797');
   if (nova === null) return;
   try {
-    await chamarEtiqueta({ acao: 'cor', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave, cor: nova.trim() });
+    await chamarEtiqueta({ acao: 'cor', coluna, chave, cor: nova.trim() });
     await recarregarCatalogos();
     showToast('✓ Cor trocada', 'ok');
   } catch (e) { showToast(e.message, 'err', 7000); }
 }
 
-async function alternarEtiqueta(campo, chave, rotulo, ativa) {
+async function alternarEtiqueta(coluna, campo, chave, rotulo, ativa) {
   try {
-    await chamarEtiqueta({ acao: 'alternar', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave });
+    await chamarEtiqueta({ acao: 'alternar', coluna, chave });
     await recarregarCatalogos();
     showToast(ativa ? `"${rotulo}" desligada — some das escolhas novas` : `✓ "${rotulo}" ligada`, 'ok', 5000);
   } catch (e) { showToast(e.message, 'err', 7000); }
 }
 
-async function removerEtiqueta(campo, chave, rotulo) {
+async function removerEtiqueta(coluna, campo, chave, rotulo) {
   if (!window.confirm(`Apagar a etiqueta "${rotulo}"? Isto não dá para desfazer.`)) return;
   try {
-    await chamarEtiqueta({ acao: 'remover', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, chave });
+    await chamarEtiqueta({ acao: 'remover', coluna, chave });
     await recarregarCatalogos();
     showToast(`✓ "${rotulo}" apagada`, 'ok');
   } catch (e) { showToast(e.message, 'info', 9000); }
 }
 
-async function criarEtiqueta(campo) {
+async function criarEtiqueta(coluna, campo) {
   const rotulo = window.prompt(`Nova etiqueta em ${CAMPOS_DE_ESCOLHA[campo].rotulo}:`, '');
   if (!rotulo || !rotulo.trim()) return;
   try {
-    await chamarEtiqueta({ acao: 'criar', coluna: CAMPOS_DE_ESCOLHA[campo].coluna, rotulo: rotulo.trim() });
+    await chamarEtiqueta({ acao: 'criar', coluna, rotulo: rotulo.trim() });
     await recarregarCatalogos();
     showToast(`✓ "${rotulo.trim()}" criada`, 'ok');
   } catch (e) { showToast(e.message, 'err', 7000); }
@@ -1064,7 +1088,8 @@ function fecharEscolha() {
 
 async function escolherValor(itemId, campo, chave) {
   fecharEscolha();
-  const escolhida = catalogoDoCampo(campo).find((o) => o.chave === chave);
+  const alvo = findOperationalItem(itemId);
+  const escolhida = catalogoDoCampo(campo, alvo).find((o) => o.chave === chave);
   const deuCerto = await salvarCampoDaFicha(itemId, campo, chave, null);
   if (deuCerto) applyOutboundItemPatch(itemId, { [campo]: escolhida?.rotulo || '' }, campo);
 }

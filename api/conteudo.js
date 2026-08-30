@@ -438,13 +438,35 @@ async function moverGrupo(sql, quem, { item, grupo_id }) {
 // As cinco consultas estão escritas uma a uma, e não montadas por concatenação:
 // o driver não injeta nome de coluna, e SQL montado com texto para poupar linhas
 // não vale o risco.
+// A coluna nao e a mesma nos dois quadros. Formato em Producao e
+// lista_suspensa0__1 e em Demandas e dropdown_mkv8d52z; prioridade e
+// color_mm164yv8 num e color_mkwtgakv no outro. Isto aqui tinha um id so por
+// campo: mudar a prioridade de uma Solicitacao procurava a opcao na coluna de
+// Producao e mandava para la. O banco daqui aceitava — e o Monday recusava a
+// replica em silencio, entao os dois iam se afastando a cada edicao.
+//
+// Captacao, tipo de conteudo e OFF nao existem em Demandas: ali o campo nao e
+// oferecido, e se chegar mesmo assim, recusa dizendo qual e o motivo.
 const ESCOLHAS = {
-  captacao:      { coluna: 'status_1__1',        catalogo: 'vybe_captacao', gatilho: 'captacao' },
-  tipo_conteudo: { coluna: 'lista_suspensa__1',  catalogo: 'vybe_opcoes',   multi: true },
-  prioridade:    { coluna: 'color_mm164yv8',     catalogo: 'vybe_opcoes' },
-  off_audio:     { coluna: 'color_mkynd7j8',     catalogo: 'vybe_opcoes' },
-  formato:       { coluna: 'lista_suspensa0__1', catalogo: 'vybe_opcoes',   multi: true },
+  captacao:      { catalogo: 'vybe_captacao', gatilho: 'captacao',
+                   colunas: { [BOARD_PRODUCAO]: 'status_1__1' } },
+  tipo_conteudo: { catalogo: 'vybe_opcoes', multi: true,
+                   colunas: { [BOARD_PRODUCAO]: 'lista_suspensa__1' } },
+  off_audio:     { catalogo: 'vybe_opcoes',
+                   colunas: { [BOARD_PRODUCAO]: 'color_mkynd7j8' } },
+  prioridade:    { catalogo: 'vybe_opcoes',
+                   colunas: { [BOARD_PRODUCAO]: 'color_mm164yv8',
+                              [BOARD_DEMANDAS_ID]: 'color_mkwtgakv' } },
+  formato:       { catalogo: 'vybe_opcoes', multi: true,
+                   colunas: { [BOARD_PRODUCAO]: 'lista_suspensa0__1',
+                              [BOARD_DEMANDAS_ID]: 'dropdown_mkv8d52z' } },
 };
+
+function colunaDaEscolha(cfg, campo, boardId) {
+  const coluna = cfg.colunas[String(boardId)] || cfg.colunas[Number(boardId)];
+  if (!coluna) throw new Error(`O campo ${campo} não existe no quadro ${boardId}.`);
+  return coluna;
+}
 
 async function trocarEscolha(sql, quem, { item, campo, para }) {
   const cfg = ESCOLHAS[campo];
@@ -455,12 +477,14 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
     FROM vybe_conteudos WHERE monday_item_id = ${String(item)}`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const c = linhas[0];
+  // Só agora se sabe o quadro do item — e é o quadro que decide a coluna.
+  const colunaDoCampo = colunaDaEscolha(cfg, campo, c.board_id);
 
   const chaves = (Array.isArray(para) ? para : [para]).map(String).filter(Boolean);
   const opcoes = cfg.catalogo === 'vybe_captacao'
     ? await sql`SELECT chave, rotulo, monday_index AS indice FROM vybe_captacao WHERE chave = ANY(${chaves})`
     : await sql`SELECT chave, rotulo, indice, so_vybe FROM vybe_opcoes
-        WHERE coluna_id = ${cfg.coluna} AND chave = ANY(${chaves})`;
+        WHERE coluna_id = ${colunaDoCampo} AND chave = ANY(${chaves})`;
   if (chaves.length && opcoes.length !== chaves.length) {
     throw new Error(`Opção desconhecida para ${campo}: ${chaves.join(', ')}`);
   }
@@ -507,7 +531,7 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
       `mutation($board: ID!, $item: ID!, $values: JSON!) {
          change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`,
       { board: String(c.board_id), item: String(item),
-        values: JSON.stringify({ [cfg.coluna]: valor }) }
+        values: JSON.stringify({ [colunaDoCampo]: valor }) }
     );
   } catch (erro) { if (!erro?.pular) replica = `falhou: ${erro.message}`; }
 
