@@ -698,8 +698,6 @@ function applyPanelMode() {
   document.getElementById('focus-dashboard')?.classList.toggle('active', isFocus);
   document.getElementById('da-controller-dashboard')?.classList.toggle('active', isDaController);
   document.getElementById('production-command-dashboard')?.classList.toggle('active', isProductionCommand);
-  document.getElementById('jarvis-shell')?.classList.toggle('active', isFocus);
-  if (!isFocus) toggleJarvis(false);
   document.getElementById('focus-mode-banner')?.classList.toggle('active', isFocus);
   document.getElementById('da-controller-banner')?.classList.toggle('active', isDaController);
   document.getElementById('production-command-banner')?.classList.toggle('active', isProductionCommand);
