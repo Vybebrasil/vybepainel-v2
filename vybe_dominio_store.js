@@ -1966,3 +1966,32 @@ export async function importarSubitens() {
     demandas_com_subitens: comPai,
   };
 }
+
+// Só a marcação de "concluído", sem tocar em conteúdo. Rodar o popular inteiro
+// para corrigir uma coluna reescreveria 2.330 linhas a partir do espelho — e
+// levaria junto qualquer edição feita pelo painel desde a última reconciliação.
+export async function corrigirEtiquetasConcluidas() {
+  await criarSchema();
+  const sql = database();
+  const saida = [];
+  for (const board of [BOARD_PRODUCAO, BOARD_DEMANDAS]) {
+    const concluidas = await etiquetasConcluidas(board);
+    const antes = (await sql`SELECT rotulo, final FROM vybe_status WHERE board_id=${board} ORDER BY ordem`);
+    for (const s of antes) {
+      const deve = concluidas.has(String(s.rotulo));
+      if (Boolean(s.final) !== deve) {
+        await sql`UPDATE vybe_status SET final=${deve}
+          WHERE board_id=${board} AND rotulo=${s.rotulo}`;
+      }
+    }
+    const depois = (await sql`SELECT rotulo FROM vybe_status
+      WHERE board_id=${board} AND final ORDER BY ordem`).map((r) => r.rotulo);
+    saida.push({
+      board,
+      o_monday_diz: [...concluidas],
+      diziamos: antes.filter((s) => s.final).map((s) => s.rotulo),
+      agora: depois,
+    });
+  }
+  return { boards: saida };
+}

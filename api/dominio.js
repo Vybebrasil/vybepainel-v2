@@ -13,6 +13,7 @@
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
 import { importarFotosDaEquipe, importarCadastroClientes, importarAcessos, popularDemandas, desfazerMigracaoDrive, migrarArquivosParaDrive, importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos,
   importarSubitens,
+  corrigirEtiquetasConcluidas,
 } from '../vybe_dominio_store.js';
 
 function cors(res) {
@@ -83,6 +84,9 @@ export default async function handler(req, res) {
     }
     if (action === 'subitens') {
       return res.status(200).json({ ok: true, action, ...(await importarSubitens()) });
+    }
+    if (action === 'etiquetas_concluidas') {
+      return res.status(200).json({ ok: true, action, ...(await corrigirEtiquetasConcluidas()) });
     }
     if (action === 'popular_demandas') {
       return res.status(200).json({ ok: true, action, ...(await popularDemandas()) });
