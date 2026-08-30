@@ -458,7 +458,7 @@ function abrirPreviaGrande(indice = 0) {
       <div class="previa-grande-vidro">
         <div class="previa-grande-topo">
           <span id="previa-grande-nome"></span>
-          <button type="button" onclick="fecharPreviaGrande()" aria-label="Fechar">✕</button>
+          <button class="x-fechar" type="button" onclick="fecharPreviaGrande()" aria-label="Fechar">✕</button>
         </div>
         <div class="previa-grande-palco">
           <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(-1)" aria-label="Anterior">❮</button>

@@ -88,7 +88,8 @@
       .fc-custom-dropdown { position:relative; width:100%; font-family:var(--mac-ui, sans-serif); }
       .fc-dropdown-value { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:13px; font-weight:700; padding:10px 16px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s; }
       .fc-dropdown-value:hover { background:rgba(0,0,0,0.5); }
-      .fc-dropdown-value::after { content:'▼'; font-size:9px; color:#849aa6; }
+      .fc-dropdown-value::after { content:''; width:10px; height:10px; display:inline-block; background:#849aa6;
+        -webkit-mask:var(--seta-baixo) center/contain no-repeat; mask:var(--seta-baixo) center/contain no-repeat; }
       .fc-dropdown-list { position:absolute; top:calc(100% + 4px); left:0; width:100%; background:#1a2026; border:1px solid rgba(255,255,255,0.1); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.5); z-index:100; display:none; flex-direction:column; padding:6px; max-height:200px; overflow-y:auto; }
       .fc-dropdown-list.open { display:flex; }
       .fc-dropdown-list::-webkit-scrollbar { width:4px; }

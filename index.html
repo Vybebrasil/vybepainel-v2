@@ -502,10 +502,15 @@
     .focus-status-btn { appearance:none;cursor:pointer;font:inherit;padding:0;border:0;background:none}
     .focus-status-btn .pill { transition:transform .15s,filter .15s}
     .focus-status-btn:hover .pill { transform:translateY(-1px);filter:brightness(1.13)}
-    .focus-status-btn .pill::after { content:'⌄';font-size:10px;margin-left:4px;opacity:.75}
+    .focus-status-btn .pill::after { content:'';width:10px;height:10px;margin-left:4px;opacity:.75;
+      display:inline-block;background:currentColor;
+      -webkit-mask:var(--seta-baixo) center/contain no-repeat;mask:var(--seta-baixo) center/contain no-repeat}
     .manager-status-control { display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;padding:0;cursor:pointer;font:inherit;line-height:1;flex-shrink:0;border-radius:999px}
     .manager-status-control .pill { pointer-events:none}
-    .manager-status-control::after { content:'⌄';font-size:11px;color:var(--text-muted);opacity:.78;transition:transform .15s ease,color .15s ease}
+    .manager-status-control::after { content:'';width:11px;height:11px;color:var(--text-muted);opacity:.78;
+      display:inline-block;background:currentColor;
+      -webkit-mask:var(--seta-baixo) center/contain no-repeat;mask:var(--seta-baixo) center/contain no-repeat;
+      transition:transform .15s ease,color .15s ease}
     .manager-status-control:hover .pill { filter:brightness(1.15);box-shadow:none}
     .manager-status-control:hover::after { color:var(--accent2);transform:translateY(1px)}
     .manager-status-control:focus-visible { outline:2px solid var(--accent2);outline-offset:3px}
@@ -1383,7 +1388,7 @@ header,.topbar{
   background:linear-gradient(96deg,color-mix(in srgb,var(--cor-grupo,#7c8797) 15%,transparent),transparent 62%);
   color:inherit;text-align:left;cursor:pointer;font:inherit;transition:background .14s}
 .grupo-cabeca:hover{background:linear-gradient(96deg,color-mix(in srgb,var(--cor-grupo,#7c8797) 28%,transparent),transparent 72%)}
-.grupo-seta{color:var(--cor-grupo,#7c8797);font-size:13px;width:12px;flex:none}
+.grupo-seta{color:var(--cor-grupo,#7c8797);width:12px;flex:none}
 .grupo-titulo b{display:block;color:var(--cor-grupo,#e7ecf5);font:800 14px var(--mac-ui);letter-spacing:-.02em}
 .grupo-titulo small{display:block;margin-top:1px;color:#8f98a9;font:700 10px var(--mac-ui)}
 .grupo-bloco.recolhido .grupo-cabeca{background:linear-gradient(96deg,color-mix(in srgb,var(--cor-grupo,#7c8797) 9%,transparent),transparent 55%)}
@@ -1644,9 +1649,9 @@ button.subitem-marca:hover{transform:scale(1.35)}
   color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap}
 .grupo-th:hover{color:#e7ecf5}
 .grupo-th.ordenando{color:var(--accent,#ff6b00)}
-.grupo-seta{font-style:normal;font-size:9px;opacity:.35;transition:opacity .12s}
-.grupo-th:hover .grupo-seta{opacity:.75}
-.grupo-th.ordenando .grupo-seta{opacity:1}
+.grupo-ordem{display:inline-flex;margin-left:4px;opacity:.32;transition:opacity .14s ease}
+.grupo-th:hover .grupo-ordem{opacity:.75}
+.grupo-th.ordenando .grupo-ordem{opacity:1}
 .grupo-tabela th:has(.grupo-th.ordenando){background:rgba(255,122,26,.07)}
 
 /* O contador mudava de largura conforme o número (8 → 13 → 129). Numa barra que
@@ -2003,6 +2008,146 @@ html{scrollbar-gutter:stable}
 .dono-salvar{height:26px;padding:0 14px;border:0;border-radius:6px;background:var(--accent,#ff6b00);
   color:#fff;font:600 11.5px var(--mac-ui);cursor:pointer}
 .dono-salvar:hover{filter:brightness(1.08)}
+
+/* ─── Setas ──────────────────────────────────────────────────────────────────
+   Toda seta do painel era caractere de texto: content:'▼', '⌄', '›'. Abrir e
+   fechar trocava um glifo por outro — o pulo que parece sistema antigo. Agora
+   e um so desenho que GIRA, e a mesma seta serve em todo lugar porque toma a
+   cor de quem a contem. */
+:root{--seta-baixo:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M4 6.5 8 10.5 12 6.5'/%3E%3C/svg%3E")}
+.chevron{display:inline-block;width:11px;height:11px;flex:none;background:currentColor;
+  -webkit-mask:var(--seta-baixo) center/contain no-repeat;mask:var(--seta-baixo) center/contain no-repeat;
+  transition:transform .2s cubic-bezier(.4,0,.2,1)}
+.chevron.fechado{transform:rotate(-90deg)}
+@media (prefers-reduced-motion:reduce){.chevron{transition:none}}
+
+/* ─── Fechar ─────────────────────────────────────────────────────────────────
+   Vinte botoes de fechar, cada um com um × de tamanho diferente: 14px aqui,
+   28px ali, ora ×, ora ✕. Caractere de texto nao tem peso constante entre
+   fontes — por isso nenhum parecia irmao do outro. Uma regra so apaga o glifo
+   e desenha o mesmo X em todos, no tamanho de cada botao. */
+:root{--x-fechar:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' d='M4.3 4.3 11.7 11.7M11.7 4.3 4.3 11.7'/%3E%3C/svg%3E")}
+.workspace-close,.workflow-close,.cr-fechar,.jarvis-close,.global-search-clear,
+.manager-command-close,.fc-close,.p-draw-close,.subitem-tirar,.cadastros-preview-close,
+.da-approval-radar-close,.da-member-workload-close,.da-planning-close,
+.production-sheet-close,.x-fechar{font-size:0!important;display:inline-grid;place-items:center;line-height:0}
+.workspace-close::before,.workflow-close::before,.cr-fechar::before,.jarvis-close::before,.global-search-clear::before,.manager-command-close::before,.fc-close::before,.p-draw-close::before,.subitem-tirar::before,.cadastros-preview-close::before,.da-approval-radar-close::before,.da-member-workload-close::before,.da-planning-close::before,.production-sheet-close::before,.x-fechar::before{
+  content:'';width:15px;height:15px;background:currentColor;
+  -webkit-mask:var(--x-fechar) center/contain no-repeat;mask:var(--x-fechar) center/contain no-repeat}
+button:not(:disabled):not([aria-disabled="true"]):active,
+[role="button"]:not([aria-disabled="true"]):active { transform:scale(.977) }
+
+/* Sem fundo proprio: reage clareando o texto. Com fundo: clareia a superficie. */
+.ac-doc-topo,
+.ai-setting-save,
+.ai-usage-period,
+.auto-editor-botoes,
+.auto-novo,
+.cadastros-submit,
+.client-module-actions,
+.command-item,
+.command-more,
+.da-action-name,
+.da-activity-history-current,
+.da-activity-history-head,
+.da-alert-name,
+.da-backlog-name,
+.da-context-clear,
+.da-control-focus,
+.da-debt-panel,
+.da-execution-details,
+.da-member-workload-open,
+.da-metric-detail-head,
+.da-metric-detail-select,
+.da-planning-select,
+.da-queue-name,
+.da-secondary-panel,
+.da-today-production-modal-head,
+.dono-sem,
+.grupo-marcar,
+.jarvis-answer-actions,
+.jarvis-confirm-actions,
+.jarvis-fallback,
+.jarvis-orb,
+.jarvis-provider,
+.jarvis-repeat,
+.jarvis-voice-toggle,
+.login-outro,
+.login-voltar,
+.manager-calendar-more,
+.manager-command-tab,
+.meeting-head,
+.meeting-priority,
+.notif-cabeca,
+.op-grupo-topo,
+.pending-expand,
+.pending-name,
+.production-sheet-action,
+.pulse-detail-open,
+.search-result-action,
+.workflow-check,
+.workflow-primary,
+.workspace-delivery-copy-sheet { transition:color .14s ease,background-color .14s ease,border-color .14s ease,filter .14s ease,opacity .14s ease }
+.ai-setting-save:hover,
+.auto-novo:hover,
+.command-more:hover,
+.da-action-name:hover,
+.da-alert-name:hover,
+.da-backlog-name:hover,
+.da-debt-panel:hover,
+.da-execution-details:hover,
+.da-metric-detail-head:hover,
+.da-queue-name:hover,
+.da-secondary-panel:hover,
+.dono-sem:hover,
+.grupo-marcar:hover,
+.jarvis-provider:hover,
+.login-outro:hover,
+.login-voltar:hover,
+.manager-calendar-more:hover,
+.pending-name:hover,
+.production-sheet-action:hover,
+.pulse-detail-open:hover,
+.workflow-check:hover { color:#fff;opacity:1 }
+.ac-doc-topo:hover,
+.ai-usage-period:hover,
+.auto-editor-botoes:hover,
+.cadastros-submit:hover,
+.client-module-actions:hover,
+.command-item:hover,
+.da-activity-history-current:hover,
+.da-activity-history-head:hover,
+.da-context-clear:hover,
+.da-control-focus:hover,
+.da-member-workload-open:hover,
+.da-metric-detail-select:hover,
+.da-planning-select:hover,
+.da-today-production-modal-head:hover,
+.jarvis-answer-actions:hover,
+.jarvis-confirm-actions:hover,
+.jarvis-fallback:hover,
+.jarvis-orb:hover,
+.jarvis-repeat:hover,
+.jarvis-voice-toggle:hover,
+.manager-command-tab:hover,
+.meeting-head:hover,
+.meeting-priority:hover,
+.notif-cabeca:hover,
+.op-grupo-topo:hover,
+.pending-expand:hover,
+.person-wrap:hover,
+.search-result-action:hover,
+.vybe-chave:hover,
+.workflow-primary:hover,
+.workspace-delivery-copy-sheet:hover { filter:brightness(1.14) }
+
+/* Anel de foco unico. Havia 18 outline:none e 21 focus-visible espalhados, cada
+   um com uma cor. Quem navega por teclado nao sabia onde estava. */
+:focus-visible { outline:2px solid var(--accent,#ff6b00);outline-offset:2px }
+
+@media (prefers-reduced-motion:reduce) {
+  button:active,[role="button"]:active { transform:none }
+}
 </style></head>
 <body>
 

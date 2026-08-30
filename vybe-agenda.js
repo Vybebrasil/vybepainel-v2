@@ -632,11 +632,11 @@ function toggleLegend() {
   if (legend.classList.contains('expanded')) {
     legend.classList.remove('expanded');
     legend.classList.add('collapsed');
-    btn.textContent = '▶ Mostrar';
+    btn.innerHTML = '<span class="chevron fechado"></span> Mostrar';
   } else {
     legend.classList.remove('collapsed');
     legend.classList.add('expanded');
-    btn.textContent = '▼ Ocultar';
+    btn.innerHTML = '<span class="chevron"></span> Ocultar';
   }
 }
 
@@ -859,11 +859,11 @@ function ordenarPor(campo) {
 function cabecalhoOrdenavel(campo) {
   const cfg = CAMPOS_ORDENAVEIS[campo];
   const ativa = ORDEM.campo === campo;
-  const seta = ativa ? (ORDEM.desc ? '↓' : '↑') : '↕';
+  const seta = ativa ? (ORDEM.desc ? ICONE.desce : ICONE.sobe) : ICONE.ordenar;
   return `<th><button type="button" class="grupo-th ${ativa ? 'ordenando' : ''}"
     onclick="ordenarPor('${campo}')"
     title="Ordenar por ${cfg.rotulo}${ativa ? (ORDEM.desc ? ' — hoje: maior para menor' : ' — hoje: menor para maior') : ''}"
-    >${cfg.rotulo}<i class="grupo-seta">${seta}</i></button></th>`;
+    >${cfg.rotulo}<i class="grupo-ordem">${seta}</i></button></th>`;
 }
 
 // Seleção múltipla: sem ela, mudar o prazo de dez peças era abrir dez peças.
@@ -1191,7 +1191,7 @@ function renderVisaoDeGrupos() {
       ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${restam === 1 ? 'conteúdo' : 'conteúdos'}</button>` : ''}`;
     return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDoGrupo(grupo.id)}">
       <button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
-        <span class="grupo-seta">${recolhido ? '›' : '⌄'}</span>
+        <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
         <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small>${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</small></span>
       </button>${corpo}</section>`;
   }).join('');
