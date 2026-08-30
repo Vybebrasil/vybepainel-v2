@@ -365,10 +365,6 @@
     .week-panel { display:none}
     .week-panel.active { display:block}
     /* Botões de alternância de board (header) */
-    .board-switch-bar { display:flex;gap:0;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
-    .board-switch-btn { background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.55);padding:7px 18px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px}
-    .board-switch-btn:hover { color:#fff;background:rgba(255,255,255,.12)}
-    .board-switch-btn.active { background:linear-gradient(135deg,#00f0ff,#0066ff);color:#000;font-weight:800;box-shadow:none}
     /* Painel de demandas */
     .demandas-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:14px;margin-bottom:28px}
     .demanda-group-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
@@ -495,7 +491,6 @@
     .sidebar { background:rgba(12,7,3,.98);border-right-color:rgba(255,107,0,.15)}
     .sidebar-toggle { background:rgba(255,107,0,.1);border-color:rgba(255,107,0,.24);color:#ff9d00}
     .sidebar-toggle:hover { background:rgba(255,107,0,.16);box-shadow:none}
-    .board-switch-btn.active,.date-mode-btn.active { background:linear-gradient(135deg,#ff6b00,#ffb000);color:#160700;box-shadow:none}
     .client-card,.kpi-card { border-color:rgba(255,107,0,.15);background:rgba(15,9,4,.76)}
     .client-card:hover,.kpi-card:hover { border-color:rgba(255,107,0,.44);box-shadow:none}
     .client-header { border-bottom-color:rgba(255,107,0,.1);background:rgba(23,14,6,.72)}
@@ -879,7 +874,7 @@ header,.topbar{
 .header-title h1,.command-title,.focus-hero-title,.production-command-head h2{font-family:var(--mac-ui)!important;letter-spacing:-.035em!important}
 .header-title p,.mode-gate-text,.focus-hero-text,.command-subtitle{color:var(--vybe-muted)!important}
 .badge,.status-pill,.da-context-chip,.station-tags span{border-radius:999px!important;backdrop-filter:blur(10px)}
-.btn-refresh,.workflow-primary,.cadastros-submit,.meeting-priority button{
+.workflow-primary,.cadastros-submit,.meeting-priority button{
   border:1px solid rgba(255,194,142,.35)!important;border-radius:var(--vybe-radius-control)!important;
   background:linear-gradient(135deg,#ff953f,#ff6814)!important;color:#170a03!important;box-shadow:0 8px 22px rgba(255,103,20,.20)!important}
 .mode-switch-btn,.ops-action-btn,.ops-today-btn,.ops-close-btn,.ops-clear-btn,.production-control-btn,.da-context-workload,.da-context-clear,.workspace-action,.workflow-secondary{
@@ -926,7 +921,7 @@ header,.topbar{
 @media(max-width:900px){.container{padding:16px 14px 28px!important}.da-command-daily-card{min-height:138px!important}.da-command-daily-card:nth-child(2){border-right:0!important}.da-command-daily-card:nth-child(-n+2){border-bottom:1px solid var(--vybe-line-quiet)!important}.identity-shell{border-radius:18px!important}}
 @media(max-width:620px){.da-command-daily-card{border-right:0!important;border-bottom:1px solid var(--vybe-line-quiet)!important}.da-command-daily-card:last-child{border-bottom:0!important}.da-command-daily-head{align-items:flex-start!important;flex-direction:column!important;gap:7px!important}.workspace-drawer,.workflow-modal{border-radius:16px!important}}
 /* Estrutura global: contexto de operação compacto e legível. */
-.header-row1{gap:18px!important}.header-row2{gap:8px!important;padding-top:2px!important}.board-switch-bar{display:flex!important;align-items:center!important;gap:4px!important;padding:4px!important;border:1px solid var(--vybe-line)!important;border-radius:12px!important;background:rgba(2,3,6,.28)!important;backdrop-filter:blur(14px)!important;overflow:auto!important;max-width:100%!important}.board-switch-btn{border:0!important;border-radius:8px!important;background:transparent!important;color:var(--vybe-muted)!important;padding:6px 9px!important;font:700 10px var(--mac-ui)!important;white-space:nowrap!important;cursor:pointer!important;transition:background .18s,color .18s,box-shadow .18s!important}.board-switch-btn:hover{background:rgba(255,255,255,.055)!important;color:#fff!important}.board-switch-btn.active{background:rgba(255,122,26,.16)!important;color:#ffd3ad!important;box-shadow:inset 0 0 0 1px rgba(255,147,77,.22)!important}
+.header-row1{gap:18px!important}.header-row2{gap:8px!important;padding-top:2px!important}
 #month-nav{padding:3px!important;border:1px solid var(--vybe-line)!important;border-radius:10px!important;background:rgba(255,255,255,.028)!important}#month-nav button{border:0!important;border-radius:7px!important;background:rgba(255,255,255,.045)!important;color:#e9edf5!important;transition:background .16s!important}#month-nav button:hover{background:rgba(255,122,26,.12)!important}#month-nav-label{font-family:var(--mac-ui)!important;color:#e7ebf4!important;font-size:12px!important}
 #compact-summary{border-color:var(--vybe-line)!important;border-radius:var(--vybe-radius-card)!important;background:rgba(255,255,255,.026)!important;box-shadow:var(--vybe-shadow-1)!important;color:var(--vybe-muted)!important}.ops-command-bar{position:relative;gap:8px!important;padding:9px!important;margin:0 0 14px!important;border:1px solid var(--vybe-line)!important;border-radius:var(--vybe-radius-card)!important;background:rgba(15,17,24,.66)!important;box-shadow:var(--vybe-shadow-1)!important;backdrop-filter:blur(18px)!important}.global-search-wrap{max-width:390px!important}.ops-action-count{border-radius:999px!important;background:rgba(255,255,255,.13)!important;color:#fff!important;font-family:var(--mac-mono)!important}.sidebar-toggle{border-radius:12px!important;border-color:var(--vybe-line)!important;background:rgba(16,18,25,.78)!important;color:#eef1f7!important;box-shadow:var(--vybe-shadow-1)!important;backdrop-filter:blur(16px)!important}.sidebar{border-right-color:var(--vybe-line)!important;background:rgba(13,15,21,.93)!important;backdrop-filter:blur(24px)!important}.sidebar-section-label{border-bottom-color:var(--vybe-line-quiet)!important;color:var(--vybe-muted)!important}
 /* Workspace e formulários: hierarquia de leitura e ação fixa. */
@@ -936,7 +931,7 @@ header,.topbar{
 /* Estações e módulos complementares: mesma linguagem, cores por contexto. */
 .identity-network{opacity:.42!important;filter:saturate(.72)!important}.identity-core-wrap{filter:drop-shadow(0 14px 28px rgba(0,0,0,.34))!important}.identity-core{box-shadow:0 14px 32px rgba(0,0,0,.36)!important}.identity-orbit{opacity:.52!important}.identity-pulse{font-family:var(--mac-ui)!important;color:var(--vybe-muted)!important}.station-top,.station-action,.station-tags{font-family:var(--mac-ui)!important}
 .focus-dashboard,.manager-intelligence,.production-command-dashboard{isolation:isolate}.focus-metric,.command-summary-item,.ops-daily-kpi,.meeting-metrics span,.production-command-meta span{border-radius:11px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.028)!important}.focus-metric strong,.command-summary-item b,.production-command-meta b{font-family:var(--mac-ui)!important;letter-spacing:-.05em!important}.focus-task-priority{border-radius:999px!important;box-shadow:none!important}.manager-card-head,.focus-section-head,.production-section-head{font-family:var(--mac-ui)!important;color:#dce2ed!important}.manager-client,.pending-client,.command-client{color:#c5adff!important}.risk-level{border-radius:999px!important;background:rgba(255,255,255,.035)!important}.production-command-ident i,.production-item-icon{border-radius:12px!important}.production-item-copy b,.production-ready-row b,.production-command-head h2{font-family:var(--mac-ui)!important}.production-control-note,.production-item-copy small,.production-ready-row small{font-family:var(--mac-ui)!important;color:var(--vybe-muted)!important}.cadastros-preview-modal,.cad-v2-modal{border-radius:var(--vybe-radius-overlay)!important}.cadastros-preview-grid div{border-radius:12px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.026)!important}.cad-preview{border-radius:14px!important}.cad-preview b{font-family:var(--mac-ui)!important}
-@media(max-width:800px){.identity-network{display:none!important}.identity-core-wrap{transform:scale(.88)!important}.board-switch-bar{width:100%!important}.header-row1{align-items:flex-start!important}.header-left{min-width:0!important}.header-title h1{font-size:15px!important}}
+@media(max-width:800px){.identity-network{display:none!important}.identity-core-wrap{transform:scale(.88)!important}.header-row1{align-items:flex-start!important}.header-left{min-width:0!important}.header-title h1{font-size:15px!important}}
 
 /* DA CONTROLER · sequência de decisão: contexto → cockpit → direção → agenda → memória */
 .da-global-context{margin:10px 0 12px!important}.da-cell-filter-zone,.da-day-direction,.da-operational-agenda,.da-secondary-zone{margin:14px 0!important;border:1px solid var(--vybe-line)!important;border-radius:var(--vybe-radius-card)!important;background:rgba(255,255,255,.018)!important;box-shadow:var(--vybe-shadow-1)!important;overflow:hidden!important}.da-cell-filter-zone{padding:12px!important}.da-day-direction{padding:0!important;background:linear-gradient(145deg,rgba(0,209,132,.055),rgba(255,255,255,.015))!important}.da-operational-agenda{padding:0!important}.da-secondary-zone{padding:0!important;background:rgba(255,255,255,.011)!important}.da-structure-heading{display:grid!important;gap:4px!important;padding:14px 16px!important;border-bottom:1px solid var(--vybe-line-quiet)!important;background:rgba(255,255,255,.018)!important}.da-structure-heading span{font-family:var(--mac-mono)!important;font-size:10px!important;font-weight:800!important;color:#aeb6c6!important}.da-structure-heading b{font-family:var(--mac-ui)!important;font-size:17px!important;font-weight:720!important;letter-spacing:-.035em!important;color:#f4f6fa!important}.da-structure-heading small{font-family:var(--mac-ui)!important;font-size:11px!important;color:var(--vybe-muted)!important}.da-cell-filter-zone .da-cell-header{margin:0 0 9px!important;padding:0!important;border:0!important}.da-cell-filter-zone .da-cell-header b{font-size:11px!important}.da-cell-filter-grid{margin:0!important}.da-cell-filter-grid .da-capacity-card{cursor:pointer!important;min-height:84px!important;padding:10px 12px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;gap:6px 10px!important;align-content:center!important}.da-cell-filter-grid .da-capacity-top{grid-column:1!important;grid-row:1!important;min-width:0!important}.da-cell-filter-grid .da-capacity-volume{grid-column:2!important;grid-row:1 / span 2!important;align-self:center!important;text-align:right!important}.da-cell-filter-grid .da-capacity-load,.da-cell-filter-grid .da-capacity-hover,.da-cell-filter-grid .da-capacity-detail-cta{display:none!important}.da-cell-filter-grid .da-capacity-signal{grid-column:1!important;grid-row:2!important;display:block!important;min-width:0!important}.da-cell-filter-grid .da-capacity-signal span{font-size:10px!important}.da-cell-filter-grid .da-capacity-signal strong{display:none!important}.da-day-direction .da-commitment-scoreboard{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}.da-day-direction .da-decision-card{margin:10px 12px!important}.da-day-direction .da-command-zone{margin:0!important;border:0!important;border-top:1px solid var(--vybe-line-quiet)!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}.da-operational-agenda .da-week-agenda{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}.da-operational-agenda .da-day-focus-panel{margin:0 12px 12px!important}.da-execution-details{margin:0!important;border-top:1px solid var(--vybe-line-quiet)!important}.da-execution-details summary,.da-secondary-panel>summary{display:flex!important;align-items:center!important;min-height:46px!important;padding:0 16px!important;cursor:pointer!important;color:#cbd3df!important;font-family:var(--mac-mono)!important;font-size:10px!important;font-weight:800!important;list-style:none!important}.da-execution-details summary::-webkit-details-marker,.da-secondary-panel>summary::-webkit-details-marker{display:none!important}.da-execution-details summary:after,.da-secondary-panel>summary:after{content:'+'!important;margin-left:auto!important;color:#9da6b5!important;font-size:16px!important}.da-execution-details[open] summary:after,.da-secondary-panel[open]>summary:after{content:'–'!important}.da-execution-details .da-execution-board{margin:0 12px 12px!important}.da-secondary-panel{border-top:1px solid var(--vybe-line-quiet)!important}.da-secondary-panel:first-of-type{border-top:0!important}.da-secondary-panel .da-discipline-summary,.da-secondary-panel .da-today-pulse{margin:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important}.da-secondary-panel .da-discipline-summary{padding:0 12px 12px!important}.da-secondary-panel .da-today-pulse{margin:0 12px 12px!important}.da-secondary-panel:not([open])>*:not(summary){display:none!important}@media(max-width:780px){.da-structure-heading{padding:12px!important}.da-day-direction .da-decision-card,.da-operational-agenda .da-day-focus-panel,.da-execution-details .da-execution-board{margin-left:8px!important;margin-right:8px!important}.da-cell-filter-zone{padding:10px!important}}
@@ -1713,6 +1708,81 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .ops-botoes::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:99px}
 .ops-botoes::-webkit-scrollbar-track{background:transparent}
 .ops-botoes > button{flex:0 0 auto}
+
+/* ── O topo ───────────────────────────────────────────────────────────────────
+
+   Refeito inteiro. O que havia antes eram seis gerações de regra empilhadas
+   sobre o mesmo botão de aba, estilo escrito dentro da marcação no seletor de
+   mês, e um destaque para cada coisa.
+
+   A decisão que resolve o piscar: SELECIONADO e PASSAR O MOUSE deixam de ser
+   parecidos. Antes os dois eram um fundo claro, então varrer a navegação com o
+   mouse fazia a seleção parecer pular de aba. Agora selecionado é uma pastilha
+   preenchida com a cor de destaque; o mouse só clareia o texto, sem fundo
+   nenhum. São coisas de tipo diferente, não de intensidade diferente. */
+
+/* navegação */
+.board-switch-bar{display:flex;align-items:center;gap:2px;padding:3px;
+  border:1px solid var(--vybe-line);border-radius:10px;background:rgba(255,255,255,.03)}
+.board-switch-btn{border:0;border-radius:7px;background:transparent;color:var(--vybe-muted);
+  padding:0 11px;height:28px;display:inline-flex;align-items:center;white-space:nowrap;cursor:pointer;
+  font:600 12px var(--mac-ui);letter-spacing:0;transition:color .14s,background .14s}
+.board-switch-btn:hover{color:var(--vybe-text);background:transparent}
+.board-switch-btn.active{background:var(--accent,#ff6b00);color:#fff;font-weight:650}
+.board-switch-btn.active:hover{color:#fff}
+.board-switch-btn:focus-visible{outline:2px solid var(--accent,#ff6b00);outline-offset:2px}
+
+/* marca */
+.header-row1{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.header-title b,.header-title>b{font:650 15px var(--mac-ui);letter-spacing:-.01em;color:var(--vybe-text)}
+.header-title small{display:block;margin-top:1px;color:var(--vybe-muted);font:400 11.5px var(--mac-ui)}
+
+/* linha de contexto: mês, semanas, hoje, conta, avisos, ações */
+.header-row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.mes-nav{display:inline-flex;align-items:center;gap:1px;height:28px;padding:0 2px;box-sizing:border-box;
+  border:1px solid var(--vybe-line);border-radius:8px;background:rgba(255,255,255,.03)}
+.mes-passo{width:22px;height:22px;display:grid;place-items:center;border:0;border-radius:5px;
+  background:transparent;color:var(--vybe-muted);font-size:14px;line-height:1;cursor:pointer}
+.mes-passo:hover{background:rgba(255,255,255,.07);color:var(--vybe-text)}
+.mes-rotulo{min-width:104px;text-align:center;color:var(--vybe-text);
+  font:600 12px var(--mac-ui);letter-spacing:0}
+
+.header-row2 .badge{display:inline-flex;align-items:center;height:28px;padding:0 10px;box-sizing:border-box;
+  border:1px solid var(--vybe-line);border-radius:8px;background:transparent;
+  color:var(--vybe-muted);font:600 11px var(--mac-mono);font-variant-numeric:tabular-nums;
+  letter-spacing:0;box-shadow:none}
+.header-row2 .badge-date{border-color:transparent;background:transparent;padding-left:2px}
+
+.quem-sou-btn{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 10px 0 3px;box-sizing:border-box;
+  border:1px solid var(--vybe-line);border-radius:999px;background:rgba(255,255,255,.03);
+  color:var(--vybe-text);font:600 12px var(--mac-ui);cursor:pointer}
+.quem-sou-btn:hover{background:rgba(255,255,255,.07)}
+
+.notif-sino{display:inline-grid;place-items:center;width:28px;height:28px;padding:0;
+  border:1px solid var(--vybe-line);border-radius:8px;background:rgba(255,255,255,.03);color:var(--vybe-muted)}
+.notif-sino:hover{background:rgba(255,255,255,.07);color:var(--vybe-text)}
+
+/* Atualizar e Modo Gestor: eram um botão laranja em degradê e outro cinza, do
+   mesmo tamanho do nome do produto. São ações de manutenção, não o assunto da
+   tela — ficam do tamanho dos vizinhos, com a cor só no texto. */
+.btn-refresh{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;box-sizing:border-box;
+  border:1px solid color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);border-radius:8px;
+  background:color-mix(in srgb,var(--accent,#ff6b00) 12%,transparent);
+  color:var(--accent,#ff6b00);font:600 12px var(--mac-ui);letter-spacing:0;cursor:pointer;
+  box-shadow:none;transition:background .14s}
+.btn-refresh:hover{background:color-mix(in srgb,var(--accent,#ff6b00) 22%,transparent);
+  opacity:1;transform:none;box-shadow:none}
+.btn-refresh:disabled{opacity:.45;cursor:not-allowed}
+
+/* O botão de modo era o único fora da escala: 24px entre vizinhos de 28. */
+#btn-mode-gestor,.mode-switch-btn,[onclick*="openModeGate"]{
+  display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;box-sizing:border-box;
+  border:1px solid var(--vybe-line);border-radius:8px;background:rgba(255,255,255,.03);
+  color:var(--vybe-muted);font:600 12px var(--mac-ui);letter-spacing:0;cursor:pointer
+}
+#btn-mode-gestor:hover,.mode-switch-btn:hover,[onclick*="openModeGate"]:hover{
+  background:rgba(255,255,255,.07);color:var(--vybe-text)
+}
 </style></head>
 <body>
 
@@ -1805,11 +1875,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
     </div>
   </div>
   <div class="header-row2">
-    <div id="month-nav" style="display:inline-flex;align-items:center;gap:4px;">
-      <button onclick="changeMonth(-1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:13px;">◀</button>
-      <span id="month-nav-label" style="font-size:13px;font-weight:600;color:var(--cyan);min-width:110px;text-align:center;">Agosto 2026</span>
-      <button onclick="changeMonth(1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:13px;">▶</button>
-    </div>
+    <div id="month-nav" class="mes-nav"><button type="button" class="mes-passo" onclick="changeMonth(-1)" aria-label="Mês anterior">‹</button><span id="month-nav-label" class="mes-rotulo">Agosto 2026</span><button type="button" class="mes-passo" onclick="changeMonth(1)" aria-label="Próximo mês">›</button></div>
     <span class="badge badge-week1" id="badge-s1">S4 · 17/08–23/08</span>
     <span class="badge badge-week2" id="badge-s2">S5 · 24/08–30/08</span>
     <span class="badge badge-date" id="badge-hoje">Hoje: 22/08/2026</span>
