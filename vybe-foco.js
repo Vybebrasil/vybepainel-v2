@@ -44,7 +44,7 @@ function focusNextActionHtml(data) {
   const reason=mode==='next' ? `${risk.reason || 'Esta é a próxima atividade ainda não iniciada com maior prioridade'} · ${date}` : `${focusStatusExplanation(operationalFlowStatus(item)) || 'Esta atividade depende de uma ação para avançar'} · ${risk.reason || date}`;
   const primary=mode==='next' ? 'Abrir e produzir' : 'VER BLOQUEIO';
   const primaryAction=mode==='next' ? `openFocusPriorityWorkspace('${item.id}')` : `openItemWorkspace('${item.id}')`;
-  const statusControl=mode==='next' ? `<button type="button" class="focus-next-btn status" style="border-color:${item.status_color||'#00f0ff'} !important; background:color-mix(in srgb, ${item.status_color||'#00f0ff'} 12%, transparent) !important; color:${item.status_color||'#a6f8ff'} !important;" onclick="openStatusEditor(event,'${item.id}')">STATUS: ${safeText(item.status).toUpperCase()} ▼</button>` : '';
+  const statusControl=mode==='next' ? `<button type="button" class="focus-next-btn status" style="border-color:${item.status_color||'#00f0ff'} !important; background:color-mix(in srgb, ${item.status_color||'#00f0ff'} 12%, transparent) !important; color:${item.status_color||'#a6f8ff'} !important;" onclick="openStatusEditor(event,'${item.id}')">Status: ${safeText(item.status)}</button>` : '';
   const checkinControl=mode==='next' ? `<button type="button" class="focus-next-btn checkin" onclick="openFocusPriorityCheckin('${item.id}')">Iniciar bloco</button>` : '';
   const secondary=mode==='next' ? `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button>` : `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Registrar contexto</button>`;
   const controlNote=mode==='next' ? `<div class="focus-priority-control-note"><i></i>PRÓXIMA A INICIAR · ao mudar para Em andamento, esta demanda entra na fila de execução</div>` : '';
@@ -125,8 +125,10 @@ function renderFocusDashboard() {
     return `<section class="focus-section" style="--focus-group-color:${tone}"><div class="focus-section-head"><span>${icon ? `${icon} ` : ''}${label} <b>${items.length}</b></span><span><small>${subtitle}</small> ${more}</span></div><div class="focus-list">${(() => {
         const origens = new Set(displayed.map(d => String(operationalOriginTag(d) || '')));
         const donos = new Set(displayed.map(d => (d.responsavel_ids || [d.responsavel_id]).join(',')));
+        const riscos = new Set(displayed.map(d => String(riskBadgeHtml(d, true) || '')));
         return displayed.map((d, n) => focusTaskHtml(d, contextText, {
           primeira: n === 0, origemVaria: origens.size > 1, donoVaria: donos.size > 1,
+          riscoVaria: riscos.size > 1,
         })).join('');
       })()}</div></section>`;
   };
