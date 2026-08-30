@@ -78,7 +78,7 @@ function renderDiarioLista() {
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <span class="posts-count ok">${s.total} itens</span>
-          <button class="sort-btn" style="border-color:#e2445c;color:#e2445c;" onclick="event.stopPropagation();excluirSnapshot(${s.id})">✕</button>
+          <button class="sort-btn" style="border-color:#df2f4a;color:#df2f4a;" onclick="event.stopPropagation();excluirSnapshot(${s.id})">✕</button>
         </div>
       </div>
     </div>`).join('');

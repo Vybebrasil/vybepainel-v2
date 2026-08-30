@@ -241,7 +241,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
          // Custom overrides matching the exact Monday board screenshot
          if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
          if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
          if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
          if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
          if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
@@ -260,7 +260,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
          // Custom overrides matching the exact Monday board screenshot
          if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
          if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
          if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
          if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
          if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
@@ -302,7 +302,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
          // Custom overrides matching the exact Monday board screenshot
          if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
          if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
          if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
          if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
          if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
@@ -515,7 +515,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
          // Custom overrides matching the exact Monday board screenshot
          if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
          if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#e2445c', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
+         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
          if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
          if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
          if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue

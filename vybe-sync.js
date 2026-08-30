@@ -47,8 +47,8 @@ function setSyncHealth(state='checking', detail='') {
   if (state === 'healthy') {
     syncHealthLastConfirmedAt = Date.now();
     localStorage.setItem(SYNC_HEALTH_STORAGE_KEY, String(syncHealthLastConfirmedAt));
-    title.textContent = 'Dados confirmados';
-    message.textContent = detail || `Última confirmação às ${syncHealthClock(syncHealthLastConfirmedAt)}`;
+    title.textContent = syncHealthClock(syncHealthLastConfirmedAt);
+    message.textContent = detail || 'Dados confirmados · clique para atualizar';
     action.textContent = '↻ Atualizar';
   } else if (state === 'stale') {
     title.textContent = 'Atenção · Dados desatualizados';

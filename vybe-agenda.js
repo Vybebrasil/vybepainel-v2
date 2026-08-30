@@ -659,7 +659,7 @@ function populateDaySelect() {
 const TEAM_USERS = [
   {id:PESSOAS.PAULO, name:'Paulo',       color:'#0073ea', photo:null},
   {id:PESSOAS.VINICIUS, name:'Vinícius',    color:'#037f4c', photo:null},
-  {id:PESSOAS.EWERTON_L, name:'Ewerton L.',  color:'#e2445c', photo:null},
+  {id:PESSOAS.EWERTON_L, name:'Ewerton L.',  color:'#df2f4a', photo:null},
   {id:PESSOAS.RERISTON, name:'Reriston',    color:'#ff642e', photo:null},
   {id:PESSOAS.DEIVID, name:'Deivid',      color:'#fdab3d', photo:null},
   {id:PESSOAS.BEATRIZ, name:'Beatriz',     color:'#df2f4a', photo:null},
@@ -692,7 +692,7 @@ const LINHAS_POR_GRUPO = 50;
 const CORES_DOS_GRUPOS = {
   group_title:        '#579bfc',  // Redação
   novo_grupo57911__1: '#ff642e',  // Produção (Foto e Vídeo)
-  novo_grupo__1:      '#a25ddc',  // Design & Edição
+  novo_grupo__1:      '#9d50dd',  // Design & Edição
   novo_grupo22352__1: '#fdab3d',  // Gestão de publicações
   novo_grupo31348__1: '#00c875',  // Finalizados
 };
