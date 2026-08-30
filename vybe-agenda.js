@@ -300,10 +300,77 @@ function managerCalendarSetDateMode(mode) {
   setDateMode(mode, button);
   renderManagerCalendar();
 }
-function managerCalendarOpen(source, itemId) {
+// ── cartão rápido ────────────────────────────────────────────────────────────
+//
+// Clicar numa peça abria a gaveta lateral inteira — doze seções e vinte botões —
+// mesmo quando a intenção era só trocar o status ou puxar a data. Agora o clique
+// abre um cartão do tamanho da tarefa, ancorado na peça, onde tudo que se muda
+// no dia a dia está à mão. A gaveta continua a um clique, para quando a pergunta
+// é outra: histórico, arquivos, passagem de bastão.
+//
+// Ele é feito das mesmas peças da tabela e da fila — mesmo seletor de status,
+// mesmas pílulas de catálogo, mesmos campos de data. Não é uma terceira
+// implementação das mesmas coisas.
+function managerCalendarOpen(source, itemId, event) {
+  if (event) return abrirCartaoRapido(itemId, event, source);
   if (source === 'request') return openDemandaWorkspace(itemId);
   return openItemWorkspace(itemId);
 }
+
+function fecharCartaoRapido() {
+  document.getElementById('cartao-rapido-fundo')?.remove();
+  document.getElementById('cartao-rapido')?.remove();
+}
+
+function abrirCartaoRapido(itemId, event, source = 'content') {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  fecharCartaoRapido();
+  const item = source === 'request'
+    ? (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId))
+    : findOperationalItem(itemId);
+  if (!item) return showToast('Atividade não encontrada.', 'err');
+
+  const rect = (event.currentTarget || event.target).getBoundingClientRect();
+  const fundo = document.createElement('div');
+  fundo.id = 'cartao-rapido-fundo';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharCartaoRapido;
+
+  const cartao = document.createElement('div');
+  cartao.id = 'cartao-rapido';
+  cartao.className = 'cartao-rapido';
+  const linha = (rotulo, conteudo) => `<div class="cr-linha"><span>${rotulo}</span><div>${conteudo}</div></div>`;
+  const data = (campo, iso) => `<input type="date" class="grupo-data-campo" value="${safeText(iso || '')}"
+      onchange="event.stopPropagation();salvarDataNaLinha('${safeText(item.id)}','${campo}',this)">`;
+  const ehDemanda = source === 'request';
+
+  cartao.innerHTML = `
+    <div class="cr-topo">
+      <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}</div>
+      <button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button>
+    </div>
+    <button type="button" class="cr-titulo" onclick="renomearPeca('${safeText(item.id)}')"
+      title="Clique para renomear">${safeText(item.nome || 'Sem título')}</button>
+    <div class="cr-campos">
+      ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
+      ${linha('Responsável', vybeDono(item))}
+      ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
+      ${linha(ehDemanda ? 'Tipo' : 'Formato', pillEditavel(item, ehDemanda ? 'tipo_conteudo' : 'formato'))}
+      ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}
+      ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
+      ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
+      ${linha('Prazo', data('prazo', item.prazo_iso))}
+      ${linha('Veiculação', data('veiculacao', ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
+    </div>
+    <div class="cr-rodape">
+      <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}">
+        Abrir tudo — arquivos, histórico e entrega →</button>
+    </div>`;
+  document.body.append(fundo, cartao);
+  ancorarPopover(cartao, rect);
+}
+
 function managerCalendarAdd(dateIso) {
   if (typeof openCadastrosGovernedLegacy !== 'function') return showToast('CADASTROS ainda não está disponível neste contexto.', 'info');
   openCadastrosGovernedLegacy();
@@ -418,7 +485,7 @@ function managerCalendarEventHtml(item) {
   const color = managerCalendarStatusColor(item, item.calendarSource === 'request' ? '#c084fc' : '#ff8b38');
   const status = item.status || 'Sem status';
   const owner = item.responsavel ? firstName(item.responsavel) : 'Sem responsável';
-  return `<button type="button" draggable="true" class="manager-calendar-event" style="--event-color:${color}" title="${safeText(`${item.nome} · ${item.cliente} · ${status} · arraste para mover a data`)}" onclick="managerCalendarOpen('${item.calendarSource}','${item.id}')" ondragstart="managerCalendarDragStart('${item.calendarSource}','${item.id}',event)" ondragend="managerCalendarDragEnd()"><span class="manager-calendar-event-bar"></span><span class="manager-calendar-event-copy"><b>${safeText(item.nome || 'Sem título')}</b><small>${safeText(item.cliente || '—')} · ${safeText(owner)} · <span class="manager-calendar-event-status">${safeText(status)}</span></small></span><span class="manager-calendar-event-meta"><i class="${sourceClass}"></i><em class="manager-calendar-event-age">${sourceLabel}</em></span></button>`;
+  return `<button type="button" draggable="true" class="manager-calendar-event" style="--event-color:${color}" title="${safeText(`${item.nome} · ${item.cliente} · ${status} · arraste para mover a data`)}" onclick="managerCalendarOpen('${item.calendarSource}','${item.id}',event)" ondragstart="managerCalendarDragStart('${item.calendarSource}','${item.id}',event)" ondragend="managerCalendarDragEnd()"><span class="manager-calendar-event-bar"></span><span class="manager-calendar-event-copy"><b>${safeText(item.nome || 'Sem título')}</b><small>${safeText(item.cliente || '—')} · ${safeText(owner)} · <span class="manager-calendar-event-status">${safeText(status)}</span></small></span><span class="manager-calendar-event-meta"><i class="${sourceClass}"></i><em class="manager-calendar-event-age">${sourceLabel}</em></span></button>`;
 }
 function openDemandaPlanningEditor(itemId, targetDate='') {
   const item = (DADOS_DEMANDAS || []).find(entry => String(entry.id) === String(itemId));

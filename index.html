@@ -1906,6 +1906,33 @@ html{scrollbar-gutter:stable}
 .etiqueta-rodape button{width:100%;text-align:left;border:0;background:transparent;color:var(--accent,#ff6b00);
   padding:5px 10px;border-radius:6px;cursor:pointer;font:600 12px var(--mac-ui)}
 .etiqueta-rodape button:hover{background:rgba(255,122,26,.12)}
+
+/* ── Cartão rápido ───────────────────────────────────────────────────────────
+   Do tamanho da tarefa. Clicar numa peça no calendário abria a gaveta inteira
+   -- doze secoes e vinte botoes -- mesmo quando a intencao era so trocar o
+   status. Aqui esta o que se muda todo dia; a gaveta fica a um clique, para
+   quando a pergunta e outra. */
+.cartao-rapido{position:fixed;z-index:9996;width:min(330px,calc(100vw - 20px));
+  background:rgba(28,28,30,.96);-webkit-backdrop-filter:blur(28px) saturate(1.7);
+  backdrop-filter:blur(28px) saturate(1.7);
+  border:.5px solid rgba(255,255,255,.16);border-radius:12px;padding:12px 13px 10px;
+  box-shadow:0 14px 40px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.3);
+  animation:popover-entra .11s ease-out}
+.cr-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.cr-cliente{display:flex;align-items:center;gap:7px;color:#9aa3b2;font:600 11px var(--mac-ui)}
+.cr-fechar{border:0;background:transparent;color:#8b8b90;font-size:17px;line-height:1;cursor:pointer;padding:0 2px}
+.cr-fechar:hover{color:#fff}
+.cr-titulo{display:block;width:100%;margin:6px 0 12px;border:0;background:none;padding:0;
+  color:#f2f5fa;font:650 15px/1.3 var(--mac-ui);letter-spacing:-.01em;text-align:left;cursor:text}
+.cr-titulo:hover{text-decoration:underline;text-underline-offset:3px}
+.cr-campos{display:grid;gap:1px}
+.cr-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:30px}
+.cr-linha>span{flex:none;color:#8b8b90;font:500 11.5px var(--mac-ui)}
+.cr-linha>div{min-width:0;display:flex;justify-content:flex-end;align-items:center}
+.cr-rodape{margin-top:11px;padding-top:9px;border-top:1px solid rgba(255,255,255,.10)}
+.cr-abrir{width:100%;text-align:left;border:0;background:transparent;color:var(--accent,#ff6b00);
+  padding:5px 2px;border-radius:6px;cursor:pointer;font:600 12px var(--mac-ui)}
+.cr-abrir:hover{background:rgba(255,122,26,.12)}
 </style></head>
 <body>
 
