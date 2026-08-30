@@ -2570,6 +2570,17 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .focus-task .quick-date-trigger.gold-risk:hover,
 .focus-list .quick-date-trigger.gold-risk:hover{
   border-color:#ff637a;background:rgba(255,99,122,.12);color:#ff9aa4}
+
+/* ─── A barra de acoes parou de cobrir o conteudo ────────────────────────────
+   Ela e sticky no rodape da gaveta, entao ficava permanentemente sobre os
+   ultimos ~90px — e nos prints da para ver ela cortando ao meio o cartao de
+   'Entrega para postagem', que tem uma acao dentro. Um controle que tapa outro
+   controle nao e barra fixa, e obstaculo.
+
+   A gaveta ganha um respiro no fim do mesmo tamanho da barra: o conteudo passa
+   por baixo enquanto rola e sempre termina acima dela. */
+.workspace-drawer{scroll-padding-bottom:96px}
+.workspace-drawer::after{content:'';display:block;height:88px;flex:none}
 </style></head>
 <body>
 
