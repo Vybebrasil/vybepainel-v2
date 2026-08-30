@@ -397,11 +397,14 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         return typeof showToast === 'function' ? showToast('Preencha os campos obrigatórios destacados em vermelho.', 'info') : alert('Preencha os campos obrigatórios.');
      }
      
+     // dest era declarado DEPOIS destas tres linhas. Como e const, ler antes e
+     // ReferenceError — e o painel so escapava quando as tres escolhas estavam
+     // no manual, porque ai o ternario nem chegava a olhar dest. No caminho
+     // padrao, com tudo no automatico, criar conteudo sempre quebrava.
+     const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
      const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
      const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
      const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
-     
-     const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
      const normalized = `${state.format} - ${title}`;
      
      const btn = document.getElementById('fc-submit-btn');
