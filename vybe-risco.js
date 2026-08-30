@@ -1040,7 +1040,9 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
   drawer.innerHTML = `
       <div style="flex:1;overflow-y:auto;padding:22px 24px 120px;box-sizing:border-box;width:100%;height:100%;">
       <div class="workspace-kicker"><span>Vybe OS · Workspace da demanda</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div>
-    <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div>
+    <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}
+      <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
+              title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}')">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
     ${workspaceFichaHtml(detail, item.id)}

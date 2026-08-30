@@ -858,6 +858,8 @@ function linhaDeGrupoHtml(item) {
     <td class="grupo-marcar" onclick="${parar}">
       <input type="checkbox" ${marcada ? 'checked' : ''} aria-label="Selecionar ${safeText(item.nome || '')}"
              onchange="alternarSelecao('${safeText(item.id)}',this.checked)"></td>
+    <td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
+        title="ID da atividade · clique para copiar">${safeText(item.id)}</td>
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
     <td>${safeText(item.cliente || '—')}</td>
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
@@ -927,7 +929,7 @@ function renderVisaoDeGrupos() {
             <th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''}
               aria-label="Selecionar tudo em ${safeText(grupo.nome)}"
               onchange="selecionarGrupo('${grupo.id}',this.checked)"></th>
-            <th>Conteúdo</th><th>Cliente</th><th>Responsável</th><th>Status</th>
+            <th>ID</th><th>Conteúdo</th><th>Cliente</th><th>Responsável</th><th>Status</th>
             <th>Captação</th><th>Formato</th><th>Tipo</th><th>OFF</th><th>Prioridade</th>
             <th>Prazo</th><th>Veiculação</th></tr></thead>
           <tbody>${visiveis.map(linhaDeGrupoHtml).join('')}</tbody>
@@ -1049,4 +1051,11 @@ function abrirMenuDeLote(event, titulo, opcoes, rotuloAcao) {
 function fecharMenuDeLote() {
   document.getElementById('lote-editor-backdrop')?.remove();
   document.getElementById('lote-editor')?.remove();
+}
+
+// O ID é o que identifica a peça em qualquer lugar — no Monday, no banco, numa
+// conversa no WhatsApp. Não aparecia em canto nenhum da tela.
+async function copiarId(id) {
+  try { await navigator.clipboard.writeText(String(id)); showToast(`ID ${id} copiado`, 'ok', 2500); }
+  catch { showToast(`ID da atividade: ${id}`, 'info', 5000); }
 }

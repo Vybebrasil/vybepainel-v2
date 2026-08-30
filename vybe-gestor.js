@@ -51,8 +51,45 @@ function statusDotInlineStyle(color) {
   const hex = validStatusColor(color);
   return hex ? ` style="background:${hex};"` : '';
 }
+// ── uma cor por rótulo, para o painel inteiro ────────────────────────────────
+//
+// A mesma etiqueta saía de cores diferentes dependendo da tela: quem chamava
+// pillHtml sem cor caía numa classe de CSS com a cor escrita à mão, e quem
+// chamava com cor usava a do catálogo. 'Alteração' era roxo num painel e
+// vermelho no outro, e ninguém tinha combinado nenhum dos dois.
+//
+// Agora a cor vem sempre do catálogo — o mesmo que o Monday devolve e que
+// alimenta o banco. Quem passar cor explícita continua mandando; quem não
+// passar, recebe a do catálogo em vez da inventada no CSS.
+function corDeStatus(rotulo) {
+  const alvo = String(rotulo || '').trim().toLowerCase();
+  if (!alvo) return null;
+  const listas = [
+    typeof STATUS_OPTIONS !== 'undefined' ? STATUS_OPTIONS : [],
+    typeof requestStatusOptions === 'function' ? requestStatusOptions({}) : [],
+  ];
+  for (const lista of listas) {
+    const achou = (lista || []).find((o) => String(o.label || '').trim().toLowerCase() === alvo);
+    if (achou?.color) return { cor: achou.color, borda: achou.border || achou.color };
+  }
+  return null;
+}
+
+// Formato, tipo de conteúdo, OFF e prioridade também têm cor no catálogo, e
+// também eram pintados por classe de CSS escrita à mão.
+function corDeOpcao(rotulo, colunaId) {
+  const alvo = String(rotulo || '').trim().toLowerCase();
+  if (!alvo || typeof CATALOGO_OPCOES === 'undefined') return null;
+  const achou = CATALOGO_OPCOES.find((o) => o.coluna_id === colunaId
+    && String(o.rotulo || '').trim().toLowerCase() === alvo);
+  return achou?.cor ? { cor: achou.cor, borda: achou.borda || achou.cor } : null;
+}
+
 function pillHtml(s, color='', border='') {
-  return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(color, border)}><span class="pill-dot"${statusDotInlineStyle(color)}></span>${s}</span>`;
+  const doCatalogo = color ? null : corDeStatus(s);
+  const cor = color || doCatalogo?.cor || '';
+  const bordaFinal = border || doCatalogo?.borda || '';
+  return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(cor, bordaFinal)}><span class="pill-dot"${statusDotInlineStyle(cor)}></span>${s}</span>`;
 }
 function managerStatusControl(item) {
     const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Monday`;
@@ -93,7 +130,12 @@ function syncStatusLegendColors(rootSelector, items) {
   });
 }
 const FMT_ICONS = {};
-function fmtHtml(f) { const icon = FMT_ICONS[(f||'').toLowerCase()] || ''; return `<span class="fmt fmt-${fmtCls(f)}">${icon?`<span class="fmt-icon">${icon}</span>`:''}${f}</span>`; }
+function fmtHtml(f) {
+  // Sem formato não existe etiqueta: '—' dentro de uma cápsula parece um valor.
+  if (!f || String(f).trim() === '' || String(f).trim() === '—') return '<span class="fmt-vazio">—</span>';
+  const c = corDeOpcao(f, 'lista_suspensa0__1') || corDeOpcao(f, 'dropdown_mkv8d52z');
+  return `<span class="fmt fmt-${fmtCls(f)}"${statusInlineStyle(c?.cor || '', c?.borda || '')}>${f}</span>`;
+}
 function firstName(n) { if(!n||n==="—") return "—"; return n.split(",")[0].trim().split(" ")[0]; }
 function respBadgeHtml(name) {
   if (!name || name === '—') return '<span class="item-resp">—</span>';

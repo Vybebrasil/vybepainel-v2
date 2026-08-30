@@ -508,7 +508,13 @@ const STATUS_CLS_DEMANDAS = {
   'A Fazer':          'a-fazer',
 };
 function statusClsDemanda(s) { return STATUS_CLS_DEMANDAS[s] || 'default'; }
+// Mesma regra da produção: sem cor explícita, a cor vem do catálogo — não de
+// uma classe de CSS com a cor escrita à mão.
 function pillHtmlDemanda(s, color='', border='') {
+  if (!color) {
+    const c = typeof corDeStatus === 'function' ? corDeStatus(s) : null;
+    if (c) { color = c.cor; border = border || c.borda; }
+  }
   return `<span class="pill pill-${statusClsDemanda(s)}"${statusInlineStyle(color, border)}><span class="pill-dot"${statusDotInlineStyle(color)}></span>${s}</span>`;
 }
 
