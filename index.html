@@ -1845,6 +1845,46 @@ button.subitem-marca:hover{transform:scale(1.35)}
 #ops-meeting-btn::after,.ops-clear-btn::after{content:none!important}
 .ops-clear-btn.is-idle{opacity:.55}
 .ops-clear-btn:not(.is-idle){border-style:solid;border-color:rgba(255,139,154,.45);color:#ff8b9a}
+
+/* ── A barra de rolagem da página ────────────────────────────────────────────
+   A página não reservava espaço para ela. Toda vez que o conteúdo passava a
+   altura da janela — um painel abrindo, os dados chegando, um aviso surgindo —
+   a barra aparecia e a COLUNA INTEIRA deslizava uns quinze pixels para a
+   esquerda. Com o mouse parado, o botão embaixo do cursor virava o vizinho: era
+   o "modo reunião mudando pra botão grupos". Reservado, nada mais desliza. */
+html{scrollbar-gutter:stable}
+
+/* ── Os botões, em três grupos que dizem o que são ───────────────────────────
+   Eram oito cápsulas iguais em fila, e nada na aparência dizia que quatro delas
+   se excluem entre si, duas se excluem entre si, e duas nem guardam estado.
+   Agora a forma mostra a regra: cada grupo é um controle segmentado — uma
+   moldura, divisórias finas, e no máximo um aceso dentro dela. As ações ficam
+   separadas, com contorno tracejado, porque não são alternativas de nada. */
+.ops-botoes{display:flex;align-items:center;gap:12px;flex:1 1 100%;min-width:0;
+  flex-wrap:wrap;overflow:visible;padding-bottom:0}
+.ops-segmentos{display:flex;align-items:center;flex:0 0 auto;
+  border:1px solid var(--vybe-line);border-radius:9px;background:rgba(255,255,255,.03);
+  padding:3px;gap:2px}
+.ops-acoes{display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:auto}
+
+.ops-segmentos > button{
+  border:0!important;border-radius:6px!important;background:transparent!important;
+  color:var(--vybe-muted)!important;height:26px!important;padding:0 11px!important;
+  display:inline-flex!important;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
+  font:600 11.5px var(--mac-ui)!important;letter-spacing:0!important;
+  transition:background-color .14s,color .14s}
+.ops-segmentos > button:hover{color:var(--vybe-text)!important;background:rgba(255,255,255,.05)!important}
+.ops-segmentos > button.active{background:var(--accent,#ff6b00)!important;color:#fff!important}
+.ops-segmentos > button.active::after{content:none!important}
+.ops-segmentos > button.active .ops-action-count{background:rgba(0,0,0,.28)!important;color:#fff!important}
+.ops-segmentos > button:focus-visible{outline:2px solid var(--accent,#ff6b00);outline-offset:2px}
+
+/* divisória fina entre segmentos vizinhos que não estão acesos */
+.ops-segmentos > button + button{position:relative}
+.ops-segmentos > button + button::before{content:'';position:absolute;left:-2px;top:6px;bottom:6px;
+  width:1px;background:var(--vybe-line-quiet)}
+.ops-segmentos > button.active + button::before,
+.ops-segmentos > button + button.active::before{background:transparent}
 </style></head>
 <body>
 
@@ -1994,14 +2034,20 @@ button.subitem-marca:hover{transform:scale(1.35)}
       <button id="global-search-clear" class="global-search-clear" type="button" onclick="clearGlobalSearch()" title="Limpar busca">×</button>
     </div>
     <div class="ops-botoes">
-    <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">Requer ação <span id="ops-action-count" class="ops-action-count">8</span></button>
-    <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">O que vence hoje <span id="ops-today-count" class="ops-action-count">4</span></button>
-    <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
-    <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
-    <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
-    <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
-    <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
-    <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
+      <div class="ops-segmentos" role="group" aria-label="Consultas rápidas">
+        <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">Requer ação <span id="ops-action-count" class="ops-action-count">8</span></button>
+        <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">O que vence hoje <span id="ops-today-count" class="ops-action-count">4</span></button>
+        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
+        <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
+      </div>
+      <div class="ops-segmentos" role="group" aria-label="Visões da operação">
+        <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
+        <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
+      </div>
+      <div class="ops-acoes">
+        <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
+        <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
+      </div>
     </div>
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
     <div id="team-load-strip" class="team-load-strip"></div>
