@@ -195,8 +195,8 @@ function renderClientesLista(clientes) {
       <div class="client-header">
         <div class="client-name">${cli}</div>
         <div class="client-meta">
-          <span class="posts-count ok" title="Conteúdos de produção">📸 ${nProd}</span>
-          <span class="posts-count ${atrasadas>0?'empty':'ok'}" title="Demandas">📋 ${nDem}</span>
+          <span class="posts-count ok" title="Conteúdos de produção">${nProd}</span>
+          <span class="posts-count ${atrasadas>0?'empty':'ok'}" title="Demandas">${nDem}</span>
         </div>
       </div>
       ${fichaClienteHtml(cli)}
@@ -244,7 +244,7 @@ function abrirClienteDetalhe(cli) {
     if (semData.length > 0) allGroups.push({ label: 'Sem data de veiculação', items: semData });
     gridProd.innerHTML = allGroups.map(g => `
       <div class="demanda-group-card">
-        <div class="demanda-group-header"><div class="demanda-group-title">📅 ${g.label}</div><span class="posts-count ok">${g.items.length}</span></div>
+        <div class="demanda-group-header"><div class="demanda-group-title">${g.label}</div><span class="posts-count ok">${g.items.length}</span></div>
         <div class="item-list">${g.items.map(d => `
           <div class="item-row">
             ${fmtHtml(d.formato)}

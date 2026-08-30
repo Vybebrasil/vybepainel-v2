@@ -1,4 +1,4 @@
-/* Vybe OS — Produção Governada v2 (Apple Glassmorphism 📅 Calendário) */
+/* Vybe OS — Produção Governada v2 (Apple Glassmorphism Calendário) */
 (function() {
   const esc = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
@@ -400,7 +400,7 @@
             <div class="p-controls-row">
                <div class="p-segment">
                   <button class="${window.productionV2View==='feed'?'active':''}" onclick="setProdV2View('feed')">≡ Feed</button>
-                  <button class="${window.productionV2View==='calendar'?'active':''}" onclick="setProdV2View('calendar')">📅 Calendário</button>
+                  <button class="${window.productionV2View==='calendar'?'active':''}" onclick="setProdV2View('calendar')">Calendário</button>
                </div>
                <div class="p-segment">
                   <button class="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode==='prazo'?'active':''}" onclick="productionCommandSetDateMode('prazo')" title="Agrupar pelo Prazo de Entrega">Prazo Base</button>

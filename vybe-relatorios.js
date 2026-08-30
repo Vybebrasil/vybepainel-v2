@@ -63,9 +63,9 @@ function renderDiarioLista() {
   document.getElementById('diario-detalhe').style.display = 'none';
   if (lista.length === 0) {
     el.innerHTML = `<div style="color:var(--text-muted);padding:40px 0;text-align:center;">
-      <div style="font-size:32px;margin-bottom:12px;">📸</div>
+      
       <div>Nenhum snapshot salvo ainda.</div>
-      <div style="font-size:11px;margin-top:8px;">Clique em <strong>📸 Salvar Snapshot Agora</strong> para registrar o estado atual.</div>
+      <div style="font-size:11px;margin-top:8px;">Clique em <strong>Salvar Snapshot Agora</strong> para registrar o estado atual.</div>
     </div>`;
     return;
   }
@@ -73,7 +73,7 @@ function renderDiarioLista() {
     <div class="client-card alert-ok" style="cursor:pointer;margin-bottom:10px;" onclick="abrirSnapshot(${s.id})">
       <div class="client-header">
         <div>
-          <div class="client-name">📸 ${s.dataHora}</div>
+          <div class="client-name">${s.dataHora}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${s.total} itens capturados</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -92,7 +92,7 @@ function abrirSnapshot(id) {
   diarioPersonFilter = 'all';
   document.getElementById('diario-lista').style.display = 'none';
   document.getElementById('diario-detalhe').style.display = 'block';
-  document.getElementById('diario-detalhe-titulo').textContent = `📸 ${snap.dataHora} — ${snap.total} itens`;
+  document.getElementById('diario-detalhe-titulo').textContent = `${snap.dataHora} — ${snap.total} itens`;
   renderDiarioPersonFilter(snap);
   renderDiarioDetalhe(snap);
 }
@@ -180,8 +180,8 @@ function renderDiarioDetalhe(snap) {
         : `<span>${firstName(d.responsavel)}</span>`;
       const dataExib = diarioDateMode === 'prazo' ? (d.prazo || d.veiculacao || '—') : (d.veiculacao || d.prazo || '—');
       const dataLabel = diarioDateMode === 'prazo'
-        ? (d.prazo ? `⏰ ${d.prazo}` : (d.veiculacao ? `📅 ${d.veiculacao}` : '—'))
-        : (d.veiculacao ? `📅 ${d.veiculacao}` : (d.prazo ? `⏰ ${d.prazo}` : '—'));
+        ? (d.prazo ? `${d.prazo}` : (d.veiculacao ? `${d.veiculacao}` : '—'))
+        : (d.veiculacao ? `${d.veiculacao}` : (d.prazo ? `${d.prazo}` : '—'));
       return `<div class="item-row">
         <span class="item-date">${dataLabel}</span>
         ${fmtHtml(d.formato)}
@@ -192,7 +192,7 @@ function renderDiarioDetalhe(snap) {
     }).join('');
     return `<div class="client-card alert-ok" style="margin-bottom:12px;">
       <div class="client-header">
-        <div class="client-name">👤 ${resp}</div>
+        <div class="client-name">${resp}</div>
         <span class="posts-count ok">${items.length} item${items.length!==1?'s':''}</span>
       </div>
       <div class="item-list">${rows}</div>
@@ -389,7 +389,7 @@ const DEPT_CONFIG = [
   },
   {
     id: 'producao',
-    label: '🎬 Produção',
+    label: 'Produção',
     cor: '#f97316',
     desc: 'Captadores de foto e vídeo',
     groupIds: ['novo_grupo57911__1'], // Grupo "Produção (Foto e Vídeo)" no Monday
@@ -399,7 +399,7 @@ const DEPT_CONFIG = [
   },
   {
     id: 'criacao',
-    label: '🎨 Criação',
+    label: 'Criação',
     cor: '#a855f7',
     desc: 'Designers, editores de foto e vídeo',
     groupIds: ['novo_grupo__1'], // Grupo "Design & Edição" no Monday
@@ -409,7 +409,7 @@ const DEPT_CONFIG = [
   },
   {
     id: 'saidas',
-    label: '📤 Saídas',
+    label: 'Saídas',
     cor: '#22c55e',
     desc: 'Agendamento e publicação',
     groupIds: ['novo_grupo22352__1'], // Grupo "Gestão de publicações" no Monday
@@ -680,7 +680,7 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
         </button>
         <button ${BTN_HOVER} onclick="showDeptFiltro('${dept.label} — Veiculação em Atraso', window.deptFiltroCache['${cid}'].atrasadosVeic)" style="${BTN_STYLE}background:${atrasadosVeic.length > 0 ? 'rgba(239,68,68,.12)' : 'var(--surface2)'};border:1px solid ${atrasadosVeic.length > 0 ? 'rgba(239,68,68,.3)' : 'transparent'};border-radius:8px;padding:7px 4px;">
           <div style="font-size:15px;font-weight:900;color:${atrasadosVeic.length > 0 ? '#ef4444' : '#22c55e'};line-height:1;">${atrasadosVeic.length}</div>
-          <div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">📅 Veic. Atraso${pctVeic > 0 ? ` (${pctVeic}%)` : ''}</div>
+          <div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">Veic. Atraso${pctVeic > 0 ? ` (${pctVeic}%)` : ''}</div>
         </button>
       </div>
       ${atrasados.length > 0 ? `<div style="font-size:10px;color:#ef4444;margin-bottom:10px;">Média de atraso: <strong>${mediaAtraso} dias</strong></div>` : ''}
@@ -696,7 +696,7 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
       ${itensCadastroErrado.length > 0 ? `
       <div style="margin-top:12px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.4);border-radius:8px;padding:8px 10px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <span style="font-size:10px;font-weight:900;color:#f97316;">⚠️ CADASTRO INCORRETO</span>
+          <span style="font-size:10px;font-weight:900;color:#f97316;">CADASTRO INCORRETO</span>
           <button ${BTN_HOVER} onclick="showDeptFiltro('${dept.label} — Cadastro Incorreto (${itensCadastroErrado.length} itens)', window.deptFiltroCache['${cid}'].cadastroErrado)" style="${BTN_STYLE}font-size:9px;color:#f97316;font-weight:700;width:auto;text-decoration:underline;">ver todos</button>
         </div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;">Itens neste grupo com responsável fora do time esperado:</div>
@@ -1045,7 +1045,7 @@ function renderPerformance() {
                   const idx = items[0].dataIndex;
                   const iso = todosDiasPrazo[idx];
                   const label = iso ? iso.split('-').reverse().join('/') : items[0].label;
-                  return iso >= hoje ? `📅 ${label} (futuro)` : `⏳ ${label} (passado)`;
+                  return iso >= hoje ? `${label} (futuro)` : `${label} (passado)`;
                 }
               }
             }
@@ -1164,7 +1164,7 @@ function renderPerformance() {
                   const idx = items[0].dataIndex;
                   const iso = todosDiasVeic[idx];
                   const label = iso ? iso.split('-').reverse().join('/') : items[0].label;
-                  return iso >= hoje ? `📅 ${label} (futuro)` : `⏳ ${label} (passado)`;
+                  return iso >= hoje ? `${label} (futuro)` : `${label} (passado)`;
                 }
               }
             }
@@ -1542,7 +1542,7 @@ function renderPerformance() {
       <td style="padding:8px 12px;min-width:110px;">
         <div onclick="handleTabelaFiltro(event,'veic_atraso','${encodeURIComponent(nome)}')" title="Ver ${atrasadosVeicPessoa.length} itens com veiculação em atraso" style="cursor:pointer;padding:4px 8px;border-radius:6px;background:${corVeic}18;border:1px solid ${corVeic}44;text-align:center;transition:background .15s;" onmouseenter="this.style.background='${corVeic}33'" onmouseleave="this.style.background='${corVeic}18'">
           <div style="font-size:14px;font-weight:800;color:${corVeic};">${atrasadosVeicPessoa.length}</div>
-          <div style="font-size:9px;color:${corVeic};opacity:.8;">📅 ${pctVeic}% do total</div>
+          <div style="font-size:9px;color:${corVeic};opacity:.8;">${pctVeic}% do total</div>
         </div>
       </td>
     </tr>`;
@@ -1555,7 +1555,7 @@ function renderPerformance() {
           <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">Total</th>
           <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-weight:700;font-size:11px;">Status</th>
           <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">⏰ Prazo em Atraso</th>
-          <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">📅 Veiculação em Atraso</th>
+          <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">Veiculação em Atraso</th>
         </tr>
       </thead>
       <tbody>${tabelaRows}</tbody>

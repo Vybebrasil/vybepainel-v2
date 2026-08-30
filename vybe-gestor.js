@@ -92,7 +92,7 @@ function syncStatusLegendColors(rootSelector, items) {
     if (dot) dot.style.background = style.color;
   });
 }
-const FMT_ICONS = {fotografia:'📷',reels:'🎬',card:'🎨',carrossel:'📚',story:'📱',motion:'🎬',stories:'📱',feed:'📷',video:'🎬'};
+const FMT_ICONS = {};
 function fmtHtml(f) { const icon = FMT_ICONS[(f||'').toLowerCase()] || ''; return `<span class="fmt fmt-${fmtCls(f)}">${icon?`<span class="fmt-icon">${icon}</span>`:''}${f}</span>`; }
 function firstName(n) { if(!n||n==="—") return "—"; return n.split(",")[0].trim().split(" ")[0]; }
 function respBadgeHtml(name) {
@@ -170,7 +170,7 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
   const calHtml  = renderCal(fi, dias);
   const modeLabel = dateMode === 'prazo' ? 'Prazo' : 'Veiculação';
   const rows = [...fi].sort((a,b)=>getDateIso(a).localeCompare(getDateIso(b))).map(d=>{
-    const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">⚠ Atrasado</span>' : '';
+    const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
     const diaSem = dateMode === 'prazo' ? (d.prazo_iso ? ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(d.prazo_iso+'T12:00:00').getDay()] : '') : d.dia_semana;
     const isUrgent = !['Finalizado','Agendado','Para agendar'].includes(d.status) && isDateTodayOrTomorrow(getDateIso(d));
     return `
@@ -196,7 +196,7 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
       <span class="client-name">${cliente}</span>
       <div class="client-meta">
         <span class="posts-count ${countCls}">${qtd} post${qtd!==1?'s':''}</span>
-        ${isLow?'<span style="color:#fbbf24;font-size:10px;">⚠ Abaixo do mínimo</span>':''}
+        ${isLow?'<span style="color:#fbbf24;font-size:10px;">Abaixo do mínimo</span>':''}
       </div>
     </div>
     ${progressHtml}
@@ -209,7 +209,7 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
 let viewMode = 'day'; // 'client' ou 'day'
 function toggleViewMode(btn) {
   viewMode = viewMode === 'client' ? 'day' : 'client';
-  btn.textContent = viewMode === 'day' ? '👤 Ver por Cliente' : '📅 Ver por Dia';
+  btn.textContent = viewMode === 'day' ? 'Ver por cliente' : 'Ver por dia';
   btn.classList.toggle('active', viewMode === 'day');
   for (let s = 1; s <= (META.weeks?.length || 4); s++) renderWeek(s, currentFilter, currentDayFilter);
 }
@@ -227,7 +227,7 @@ let pendingOnlyActive = false;
 function togglePendingOnly(btn) {
   pendingOnlyActive = !pendingOnlyActive;
   btn.classList.toggle('pending-active', pendingOnlyActive);
-  btn.textContent = pendingOnlyActive ? '🔥 Mostrando Pendentes' : '🔥 Só Pendentes';
+  btn.textContent = pendingOnlyActive ? 'Mostrando pendentes' : 'Só pendentes';
   if (pendingOnlyActive) {
     currentFilter = 'status:pending_all';
   } else {
@@ -251,7 +251,7 @@ function updateClearFiltersState() {
 function clearAllFilters(preserveDateMode = false) {
   pendingOnlyActive = false;
   const pendBtn = document.getElementById('btn-pending-only');
-  if(pendBtn) { pendBtn.classList.remove('pending-active'); pendBtn.textContent = '🔥 Só Pendentes'; }
+  if(pendBtn) { pendBtn.classList.remove('pending-active'); pendBtn.textContent = 'Só pendentes'; }
   currentFilter = 'all';
   currentDayFilter = '';
   currentPersonFilter = 'all';
@@ -323,7 +323,7 @@ function renderByDay(sem, filter, dayFilter) {
     const dayDone = dayItems.filter(d=>['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
     const dayPct = Math.round(dayDone / dayItems.length * 100);
     const rows = dayItems.map(d=>{
-      const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">⚠ Atrasado</span>' : '';
+      const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
       const isPending = !['Finalizado','Agendado','Para agendar'].includes(d.status);
       return `<div class="item-row${isPending?' urgent':''}">
         <span class="item-cliente-tag" style="background:rgba(168,85,247,.18);color:#c084fc;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${d.cliente}</span>
@@ -334,7 +334,7 @@ function renderByDay(sem, filter, dayFilter) {
         ${ownerEditorTrigger(d,'manager-owner-trigger')}
       </div>`;
     }).join('');
-    const modeIcon = dateMode === 'prazo' ? '⏰' : '📅';
+    const modeIcon = '';
     const progressColor = dayPct === 100 ? '#00ff88' : dayPct >= 50 ? '#ff6b00' : '#ffbd2e';
     return `<div class="client-card" style="margin-bottom:12px;">
       <div class="client-header">
@@ -352,9 +352,9 @@ function renderByDay(sem, filter, dayFilter) {
 }
 const DAILY_SUMMARY_CLOSED_STATUSES = new Set(['finalizado','feito','concluído','concluido']);
 const DAILY_SUMMARY_DISCIPLINES = {
-  audiovisual:{ icon:'🎬', label:'AUDIOVISUAL' },
-  design:{ icon:'🎨', label:'DESIGN' },
-  publicacao:{ icon:'📅', label:'PUBLICAÇÃO / AGENDAMENTO' },
+  audiovisual:{ icon:'', label:'AUDIOVISUAL' },
+  design:{ icon:'', label:'DESIGN' },
+  publicacao:{ icon:'', label:'PUBLICAÇÃO / AGENDAMENTO' },
   'sem-responsavel':{ icon:'⚑', label:'SEM RESPONSÁVEL DEFINIDO' }
 };
 function dailySummaryPlain(value='') { return String(value || '').replace(/\s+/g,' ').trim(); }
@@ -481,7 +481,7 @@ function renderCompactSummary() {
     ${chip(captacao, 'captação', '#ff6b00')}
     ${chip(clientesLow, '< 3 posts', '#ef4444')}
     <span style="color:rgba(255,255,255,.12);">|</span>
-    <span style="font-size:11px;">📅 ${todayText}</span>
+    <span style="font-size:11px;">${todayText}</span>
   `;
   return;
   // --- Funções legadas abaixo (não executam) ---
@@ -542,9 +542,9 @@ function renderDaySummary() {
   const done = todayItems.filter(d => d.status === 'Finalizado');
   const scheduled = todayItems.filter(d => d.status === 'Agendado');
   const el = document.getElementById('day-summary');
-  if (todayItems.length === 0) { el.innerHTML = `<span class="day-summary-label">📅 Hoje (${todayStr})</span><span class="day-summary-item">Nenhum conteúdo agendado para hoje</span>`; return; }
+  if (todayItems.length === 0) { el.innerHTML = `<span class="day-summary-label">Hoje (${todayStr})</span><span class="day-summary-item">Nenhum conteúdo agendado para hoje</span>`; return; }
   el.innerHTML = `
-    <span class="day-summary-label">📅 Hoje (${todayStr})</span>
+    <span class="day-summary-label">Hoje (${todayStr})</span>
     <span class="day-summary-item"><strong>${todayItems.length}</strong> posts hoje</span>
     <span class="day-summary-item" style="color:#00ff88"><strong>${done.length + scheduled.length}</strong> prontos</span>
     ${pending.length > 0 ? `<span class="day-summary-item critical"><strong>${pending.length}</strong> pendentes</span>` : ''}
@@ -592,7 +592,7 @@ function renderTodayQueue(){
   const items=opsTodayItems(); const count=document.getElementById('ops-today-count'); if(count) count.textContent=items.length;
   const groups=new Map(); items.forEach(d=>opsOwners(d).forEach(owner=>{ const key=String(owner.id); if(!groups.has(key)) groups.set(key,{owner,items:[]}); groups.get(key).items.push(d); }));
   const content=groups.size?[...groups.values()].map(({owner,items})=>{ const avatar=owner.photo?`<img src="${owner.photo}" alt="${safeText(owner.name)}" onerror="this.remove()">`:'<span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">?</span>'; return `<div class="ops-today-group"><div class="ops-today-group-head">${avatar}<b>${safeText(firstName(owner.name))}</b><span>${items.length} entrega${items.length===1?'':'s'}</span></div>${items.map(d=>{const date=getDateIso(d);const overdue=date<opsTodayIso();return `<div class="ops-today-line" onclick="openItemWorkspace('${d.id}')"><b title="${safeText(d.nome)}">${safeText(d.nome)}</b><small>${safeText(d.cliente)}</small><span class="${overdue?'ops-today-alert':'ops-today-due'}">${overdue?'ATRASADA':`HOJE · ${safeText(getDateFmt(d))}`}</span></div>`;}).join('')}</div>`;}).join(''):'<div class="ops-empty">✓ Nenhuma entrega aberta vence hoje ou está atrasada neste contexto.</div>';
-  existing.innerHTML=`<div class="ops-panel-title"><span>☀ O que vence hoje · ${safeText(opsTodayIso().split('-').reverse().join('/'))}</span><span>${items.length} item${items.length===1?'':'s'}</span></div>${content}`;
+  existing.innerHTML=`<div class="ops-panel-title"><span>O que vence hoje · ${safeText(opsTodayIso().split('-').reverse().join('/'))}</span><span>${items.length} item${items.length===1?'':'s'}</span></div>${content}`;
 }
 let showDailyClose=false;
 function opsOwnerLabel(d){ return opsOwners(d).map(owner=>firstName(owner.name)).join(', '); }
@@ -666,7 +666,7 @@ function renderActionQueue() {
   </div>`).join('') : '<div class="ops-empty">✓ Nenhum item requer ação nesta semana.</div>';
   const toggle = items.length > 5 ? `<button class="search-result-action" onclick="toggleAllActionItems()">${showAllActionItems ? 'Mostrar menos' : `Ver mais (${items.length - 5})`}</button>` : '';
   const weekLabel = META.weeks && META.weeks[currentWeek-1] ? META.weeks[currentWeek-1].label : `Semana ${currentWeek}`;
-  panel.innerHTML = `<div class="ops-panel-title"><span>⚠ Requer ação — ${safeText(weekLabel)}</span>${toggle}</div><div class="ops-list">${list}</div>`;
+  panel.innerHTML = `<div class="ops-panel-title"><span>Requer ação — ${safeText(weekLabel)}</span>${toggle}</div><div class="ops-list">${list}</div>`;
 }
 
 function toggleAllActionItems() {

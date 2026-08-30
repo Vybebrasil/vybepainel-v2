@@ -973,7 +973,7 @@ function workspaceFichaHtml(detail, itemId) {
     ['Cliente', texto(f.cliente)],
     ['Status', texto(f.status)],
     ['Captação', fichaSelect('captacao', (cat.captacao || []).map((o) => [o.chave, o.rotulo, o.ativa]), f.captacao_chave, itemId)],
-    ['🎙️ OFF', fichaSelect('off_audio', por('color_mkynd7j8'), f.off_audio_chave, itemId)],
+    ['OFF / áudio', fichaSelect('off_audio', por('color_mkynd7j8'), f.off_audio_chave, itemId)],
     ['Tipo de conteúdo', fichaSelect('tipo_conteudo', por('lista_suspensa__1'), (f.tipo_conteudo_chaves || [])[0], itemId)],
     ['Formato', fichaSelect('formato', por('lista_suspensa0__1'), (f.formato_chaves || [])[0], itemId)],
     ['Priority', fichaSelect('prioridade', por('color_mm164yv8'), f.prioridade_chave, itemId)],

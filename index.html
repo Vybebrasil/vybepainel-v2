@@ -1518,6 +1518,17 @@ button.subitem-marca:hover{transform:scale(1.35)}
   background:linear-gradient(90deg,var(--accent,#ff6b00) var(--feito,0%),rgba(255,255,255,.14) var(--feito,0%))}
 .item-tarefas.completa{color:#8ee8ae;border-color:rgba(0,200,117,.34);background:rgba(0,200,117,.10)}
 .item-tarefas.completa i{background:#00c875}
+
+/* A palavra "Semana" é dita uma vez, à esquerda das abas, em vez de seis vezes
+   dentro delas. A semana corrente se marca por um ponto, não por uma estrela. */
+.tabs-rotulo{align-self:center;margin-right:10px;color:var(--vybe-muted,#9da4b4);
+  font:600 11px var(--mac-ui)}
+#week-tabs-container .tab-btn{font-family:var(--mac-mono);font-variant-numeric:tabular-nums}
+#week-tabs-container .tab-btn.e-hoje::after{content:'';display:inline-block;width:5px;height:5px;
+  margin-left:7px;border-radius:50%;background:var(--accent,#ff6b00);vertical-align:middle}
+
+.icone{flex:none;vertical-align:-2px}
+.notif-sino{display:inline-flex;align-items:center;justify-content:center;gap:0}
 </style></head>
 <body>
 
@@ -1599,14 +1610,14 @@ button.subitem-marca:hover{transform:scale(1.35)}
       </div>
     </div>
     <div class="board-switch-bar focus-hidden">
-      <button class="board-switch-btn active" id="btn-board-producao" onclick="switchBoard('producao',this)">🟢 Produção</button>
-      <button class="board-switch-btn" id="btn-board-demandas" onclick="switchBoard('demandas',this)">🟠 Demandas</button>
-      <button class="board-switch-btn" id="btn-board-clientes" onclick="switchBoard('clientes',this)">👤 Clientes</button>
-      <button class="board-switch-btn" id="btn-board-diario" onclick="switchBoard('diario',this)">📸 Diário</button>
-      <button class="board-switch-btn" id="btn-board-performance" onclick="switchBoard('performance',this)">📊 Performance</button>
-      <button class="board-switch-btn" id="btn-board-ai-usage" onclick="switchBoard('ai-usage',this)">◈ IA &amp; Custos</button>
-      <button class="board-switch-btn" id="btn-board-automacoes" onclick="switchBoard('automacoes',this)">⚙ Automações</button>
-      <button class="board-switch-btn" id="btn-board-conta" onclick="switchBoard('conta',this)">👥 Conta &amp; Equipe</button>
+      <button class="board-switch-btn active" id="btn-board-producao" onclick="switchBoard('producao',this)">Produção</button>
+      <button class="board-switch-btn" id="btn-board-demandas" onclick="switchBoard('demandas',this)">Demandas</button>
+      <button class="board-switch-btn" id="btn-board-clientes" onclick="switchBoard('clientes',this)">Clientes</button>
+      <button class="board-switch-btn" id="btn-board-diario" onclick="switchBoard('diario',this)">Diário</button>
+      <button class="board-switch-btn" id="btn-board-performance" onclick="switchBoard('performance',this)">Performance</button>
+      <button class="board-switch-btn" id="btn-board-ai-usage" onclick="switchBoard('ai-usage',this)">IA &amp; Custos</button>
+      <button class="board-switch-btn" id="btn-board-automacoes" onclick="switchBoard('automacoes',this)">Automações</button>
+      <button class="board-switch-btn" id="btn-board-conta" onclick="switchBoard('conta',this)">Conta &amp; Equipe</button>
     </div>
   </div>
   <div class="header-row2">
@@ -1634,8 +1645,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
       </div>
     </div>
     <div class="notif-wrap">
-      <button type="button" id="notif-sino" class="notif-sino" onclick="alternarNotificacoes()" aria-label="Avisos">
-        🔔<span id="notif-contador" class="notif-contador" style="display:none">0</span>
+      <button type="button" id="notif-sino" class="notif-sino" onclick="alternarNotificacoes()" aria-label="Avisos"><svg class="icone" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2a4 4 0 0 0-4 4c0 2.5-.6 3.9-1.2 4.6-.3.3-.1.9.4.9h9.6c.5 0 .7-.6.4-.9C12.6 9.9 12 8.5 12 6a4 4 0 0 0-4-4Z"/><path d="M6.6 13.5a1.6 1.6 0 0 0 2.8 0"/></svg><span id="notif-contador" class="notif-contador" style="display:none">0</span>
       </button>
       <div id="notif-caixa" class="notif-caixa" style="display:none">
         <div class="notif-cabeca"><span>Avisos</span><button type="button" onclick="marcarNotificacoesLidas()">marcar todos como lidos</button></div>
@@ -1672,7 +1682,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid #ff6b0022;"><strong style="color:#ff6b00;font-size:13px;">42</strong><span style="font-size:10px;">captação</span></span>
     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid #ef444422;"><strong style="color:#ef4444;font-size:13px;">13</strong><span style="font-size:10px;">&lt; 3 posts</span></span>
     <span style="color:rgba(255,255,255,.12);">|</span>
-    <span style="font-size:11px;">📅 13 posts hoje (4 pend.)</span>
+    <span style="font-size:11px;">13 posts hoje (4 pend.)</span>
   </div>
 
   <!-- Central operacional -->
@@ -1682,19 +1692,19 @@ button.subitem-marca:hover{transform:scale(1.35)}
       <input id="global-search" class="global-search" type="search" autocomplete="off" placeholder="Buscar cliente, conteúdo ou responsável..." oninput="handleGlobalSearch(this.value)">
       <button id="global-search-clear" class="global-search-clear" type="button" onclick="clearGlobalSearch()" title="Limpar busca">×</button>
     </div>
-    <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">⚠ Requer ação <span id="ops-action-count" class="ops-action-count">8</span></button>
-    <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">☀ O que vence hoje <span id="ops-today-count" class="ops-action-count">4</span></button>
-    <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">◷ Fechamento do dia</button>
-    <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">▣ Modo Reunião</button>
-    <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">▤ Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
-    <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">▦ Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
-    <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">◈ MESA DE COMANDO <span id="manager-command-count" class="ops-action-count">0</span></button>
+    <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">Requer ação <span id="ops-action-count" class="ops-action-count">8</span></button>
+    <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">O que vence hoje <span id="ops-today-count" class="ops-action-count">4</span></button>
+    <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
+    <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
+    <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
+    <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
+    <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
     <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
     <div id="team-load-strip" class="team-load-strip"></div>
   </div>
   <div id="search-results" class="search-results focus-hidden"></div>
-  <div id="ops-action-panel" class="ops-panel focus-hidden"><div class="ops-panel-title"><span>⚠ Requer ação — </span><button class="search-result-action" onclick="toggleAllActionItems()">Ver mais (3)</button></div><div class="ops-list"><div class="ops-item">
+  <div id="ops-action-panel" class="ops-panel focus-hidden"><div class="ops-panel-title"><span>Requer ação — </span><button class="search-result-action" onclick="toggleAllActionItems()">Ver mais (3)</button></div><div class="ops-list"><div class="ops-item">
     <span class="ops-item-client">Copirecê</span>
     <span class="ops-item-name" title="Fotografia - Produtor">Fotografia - Produtor</span>
     <span class="pill pill-alteracao" style="background:rgba(223,47,74,.15);color:#df2f4a;border-color:#ce3048;"><span class="pill-dot" style="background:#df2f4a;"></span>Alteração</span>
@@ -1725,7 +1735,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
     <span class="risk-level high" title="Precisa avançar hoje">! hoje</span>
     <span class="ops-item-date">22/08</span>
   </div></div></div>
-  <div id="ops-today-panel" class="ops-panel ops-today-panel"><div class="ops-panel-title"><span>☀ O que vence hoje · 22/08/2026</span><span>4 items</span></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Paulo</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12624439217')"><b title="Divulgação do canal youtube">Divulgação do canal youtube</b><small>João Bacelar</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Tainara</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12604444644')"><b title="Fotografia - Produtor">Fotografia - Produtor</b><small>Copirecê</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Reriston</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829030274')"><b title="Carrossel + Video - Look 03">Carrossel + Video - Look 03</b><small>Irecê Modas</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Beatriz</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12869263002')"><b title="Fotografia - Pet Bento">Fotografia - Pet Bento</b><small>Hebravet</small><span class="ops-today-due">HOJE · 22/08</span></div></div></div>
+  <div id="ops-today-panel" class="ops-panel ops-today-panel"><div class="ops-panel-title"><span>O que vence hoje · 22/08/2026</span><span>4 items</span></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Paulo</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12624439217')"><b title="Divulgação do canal youtube">Divulgação do canal youtube</b><small>João Bacelar</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Tainara</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12604444644')"><b title="Fotografia - Produtor">Fotografia - Produtor</b><small>Copirecê</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Reriston</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829030274')"><b title="Carrossel + Video - Look 03">Carrossel + Video - Look 03</b><small>Irecê Modas</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Beatriz</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12869263002')"><b title="Fotografia - Pet Bento">Fotografia - Pet Bento</b><small>Hebravet</small><span class="ops-today-due">HOJE · 22/08</span></div></div></div>
   <div id="ops-daily-panel" class="ops-panel ops-daily-panel"><div class="ops-panel-title"><span>◷ Fechamento do dia · 22/08/2026</span><span>leitura do contexto atual</span></div><div class="ops-daily-kpis"><div class="ops-daily-kpi"><b>0</b><span>finalizadas e atualizadas hoje</span></div><div class="ops-daily-kpi"><b>2</b><span>permanecem em execução</span></div><div class="ops-daily-kpi"><b>47</b><span>riscos ou bloqueios atravessam</span></div></div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Em execução ao encerrar</span><small>clique para abrir</small></div><div class="ops-today-line" onclick="openItemWorkspace('12499473559')"><b title="Reels - Colab Sávio: A Fibra Óptica Chegou nas Cidades Vizinhas!">Reels - Colab Sávio: A Fibra Óptica Chegou nas Cidades Vizinhas!</b><small>Paulo · Conectasim</small><span class="ops-daily-tag">Em andamento</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829019406')"><b title="02 · 19/08 · Card Fixo 2 — Trabalho que chega">02 · 19/08 · Card Fixo 2 — Trabalho que chega</b><small>Deivid · João Bacelar</small><span class="ops-daily-tag">Em andamento</span></div></div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Riscos que atravessam</span><small>atraso ou bloqueio</small></div><div class="ops-today-line" onclick="openItemWorkspace('12604444644')"><b title="Fotografia - Produtor">Fotografia - Produtor</b><small>Tainara · Copirecê</small><span class="ops-daily-tag">Alteração</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829018751')"><b title="04 · 21/08 · Reels — O número do trabalho">04 · 21/08 · Reels — O número do trabalho</b><small>Sem · João Bacelar</small><span class="ops-daily-tag">Aguardo</span></div><div class="ops-today-line" onclick="openItemWorkspace('12636375899')"><b title="Reels - Pec">Reels - Pec</b><small>Reriston · Hellen Rocha</small><span class="ops-daily-tag">Falta Info</span></div><div class="ops-today-line" onclick="openItemWorkspace('12673526166')"><b title="Reels - VÖA">Reels - VÖA</b><small>Paulo · Antonov</small><span class="ops-daily-tag">Aguardo</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829019404')"><b title="09 · 26/08 · Reels — A Bahia que produz">09 · 26/08 · Reels — A Bahia que produz</b><small>Sem · João Bacelar</small><span class="ops-daily-tag">Aguardo</span></div></div></div>
   <section id="manager-intelligence" class="manager-intelligence focus-hidden"></section>
   <section id="grupos-board" class="grupos-board focus-hidden" aria-label="Conteúdos por grupo"></section>
@@ -1757,7 +1767,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
     <div class="sidebar-section-label">Modo de Data</div>
     <div class="date-mode-bar" id="date-mode-bar">
-      <button class="date-mode-btn active" id="btn-mode-veiculacao" onclick="setDateMode('veiculacao',this)">📅 Veiculação</button>
+      <button class="date-mode-btn active" id="btn-mode-veiculacao" onclick="setDateMode('veiculacao',this)">Veiculação</button>
       <button class="date-mode-btn" id="btn-mode-prazo" onclick="setDateMode('prazo',this)">⏰ Prazo</button>
     </div>
 
@@ -1773,9 +1783,9 @@ button.subitem-marca:hover{transform:scale(1.35)}
     <div class="sidebar-section-label">Filtros</div>
     <div id="filter-bar" class="filter-bar">
       <select id="day-select" onchange="filterByDay(this)" aria-label="Filtrar por dia" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;border-radius:20px;font-size:11px;cursor:pointer;width:100%;"><option value="">Todos os dias</option><option value="2026-07-27">Seg 27/07</option><option value="2026-07-28">Ter 28/07</option><option value="2026-07-29">Qua 29/07</option><option value="2026-07-30">Qui 30/07</option><option value="2026-07-31">Sex 31/07</option><option value="2026-08-01">Sáb 01/08</option><option value="2026-08-02">Dom 02/08</option><option value="2026-08-03">Seg 03/08</option><option value="2026-08-04">Ter 04/08</option><option value="2026-08-05">Qua 05/08</option><option value="2026-08-06">Qui 06/08</option><option value="2026-08-07">Sex 07/08</option><option value="2026-08-08">Sáb 08/08</option><option value="2026-08-09">Dom 09/08</option><option value="2026-08-10">Seg 10/08</option><option value="2026-08-11">Ter 11/08</option><option value="2026-08-12">Qua 12/08</option><option value="2026-08-13">Qui 13/08</option><option value="2026-08-14">Sex 14/08</option><option value="2026-08-15">Sáb 15/08</option><option value="2026-08-16">Dom 16/08</option><option value="2026-08-17">Seg 17/08</option><option value="2026-08-18">Ter 18/08</option><option value="2026-08-19">Qua 19/08</option><option value="2026-08-20">Qui 20/08</option><option value="2026-08-21">Sex 21/08</option><option value="2026-08-22">Sáb 22/08</option><option value="2026-08-23">Dom 23/08</option><option value="2026-08-24">Seg 24/08</option><option value="2026-08-25">Ter 25/08</option><option value="2026-08-26">Qua 26/08</option><option value="2026-08-27">Qui 27/08</option><option value="2026-08-28">Sex 28/08</option><option value="2026-08-29">Sáb 29/08</option><option value="2026-08-30">Dom 30/08</option><option value="2026-08-31">Seg 31/08</option><option value="2026-09-01">Ter 01/09</option><option value="2026-09-02">Qua 02/09</option><option value="2026-09-03">Qui 03/09</option><option value="2026-09-04">Sex 04/09</option><option value="2026-09-05">Sáb 05/09</option><option value="2026-09-06">Dom 06/09</option></select>
-      <button class="sort-btn" id="sort-critico-btn" onclick="toggleSortCritico(this)" title="Ordenar por criticidade">🚨 Crítico primeiro</button>
+      <button class="sort-btn" id="sort-critico-btn" onclick="toggleSortCritico(this)" title="Ordenar por criticidade">Crítico primeiro</button>
 
-      <button class="sort-btn" id="btn-pending-only" onclick="togglePendingOnly(this)" title="Só pendentes">🔥 Só Pendentes</button>
+      <button class="sort-btn" id="btn-pending-only" onclick="togglePendingOnly(this)" title="Só pendentes">Só Pendentes</button>
       <button class="sort-btn" id="btn-clear-filters" onclick="clearAllFilters()" title="Limpar filtros" style="border-color:#e2445c;color:#e2445c;">✕ Limpar Filtros</button>
     </div>
   </aside>
@@ -1783,15 +1793,16 @@ button.subitem-marca:hover{transform:scale(1.35)}
   <!-- Tabs de semana + Toggle View fixo -->
   <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <div class="tabs focus-hidden" id="week-tabs-container" style="margin-bottom:0;border-bottom:none;">
-      <button class="tab-btn" id="tab-s1-label" onclick="showWeek(1,this)" style="">📅 Semana 01 — 27/07 a 02/08</button>
-      <button class="tab-btn" id="tab-s2-label" onclick="showWeek(2,this)" style="">📅 Semana 02 — 03/08 a 09/08</button>
-      <button class="tab-btn" id="tab-s3-label" onclick="showWeek(3,this)" style="">📅 Semana 03 — 10/08 a 16/08</button>
-      <button class="tab-btn active" id="tab-s4-label" onclick="showWeek(4,this)" style="">📅 Semana 04 — 17/08 a 23/08 ★</button>
-      <button class="tab-btn" id="tab-s5-label" onclick="showWeek(5,this)" style="">📅 Semana 05 — 24/08 a 30/08</button>
-      <button class="tab-btn" id="tab-s6-label" onclick="showWeek(6,this)" style="">📅 Semana 06 — 31/08 a 06/09</button>
-      <button class="tab-btn" onclick="showWeek(0,this)">👥 Equipe</button>
+      <span class="tabs-rotulo">Semana</span>
+      <button class="tab-btn" id="tab-s1-label" onclick="showWeek(1,this)" style="">01 · 27/07–02/08</button>
+      <button class="tab-btn" id="tab-s2-label" onclick="showWeek(2,this)" style="">02 · 03/08–09/08</button>
+      <button class="tab-btn" id="tab-s3-label" onclick="showWeek(3,this)" style="">03 · 10/08–16/08</button>
+      <button class="tab-btn active" id="tab-s4-label" onclick="showWeek(4,this)" style="" class="tab-btn e-hoje">04 · 17/08–23/08</button>
+      <button class="tab-btn" id="tab-s5-label" onclick="showWeek(5,this)" style="">05 · 24/08–30/08</button>
+      <button class="tab-btn" id="tab-s6-label" onclick="showWeek(6,this)" style="">06 · 31/08–06/09</button>
+      <button class="tab-btn" onclick="showWeek(0,this)">Equipe</button>
     </div>
-    <button class="sort-btn active focus-hidden" id="btn-view-day" onclick="toggleViewMode(this)" title="Alternar visualização" style="font-size:12px;padding:8px 14px;border:1px solid rgba(0,240,255,.3);margin-left:auto;">👤 Ver por Cliente</button>
+    <button class="sort-btn active focus-hidden" id="btn-view-day" onclick="toggleViewMode(this)" title="Alternar visualização" style="font-size:12px;padding:8px 14px;border:1px solid rgba(0,240,255,.3);margin-left:auto;">Ver por Cliente</button>
   </div>
 
   <!-- Semanas 1-4 -->
@@ -1834,15 +1845,15 @@ button.subitem-marca:hover{transform:scale(1.35)}
   <div class="container">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
-        <h2 style="color:var(--accent);margin:0;font-size:16px;">📸 Diário de Produção</h2>
+        <h2 style="color:var(--accent);margin:0;font-size:16px;">Diário de Produção</h2>
         <p style="color:var(--text-muted);font-size:11px;margin:4px 0 0;">Snapshots do estado dos conteúdos em momentos específicos do dia</p>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <div id="date-mode-bar-diario" class="date-mode-bar">
-          <button class="date-mode-btn active" id="diario-mode-veiculacao" onclick="setDiarioDateMode('veiculacao',this)">📅 VEICULAÇÃO</button>
+          <button class="date-mode-btn active" id="diario-mode-veiculacao" onclick="setDiarioDateMode('veiculacao',this)">VEICULAÇÃO</button>
           <button class="date-mode-btn" id="diario-mode-prazo" onclick="setDiarioDateMode('prazo',this)">⏰ PRAZO</button>
         </div>
-        <button class="btn-refresh" onclick="salvarSnapshot()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">📸 Salvar Snapshot Agora</button>
+        <button class="btn-refresh" onclick="salvarSnapshot()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">Salvar Snapshot Agora</button>
       </div>
     </div>
     <div id="diario-lista" style="display:block;">
@@ -1872,7 +1883,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
     <!-- Toggle Conclusão / Prazo -->
     <div class="date-mode-bar" id="date-mode-bar-demandas">
-      <button class="date-mode-btn active" id="btn-dmode-conclusao" onclick="setDemandaDateMode('conclusao',this)">📅 Conclusão</button>
+      <button class="date-mode-btn active" id="btn-dmode-conclusao" onclick="setDemandaDateMode('conclusao',this)">Conclusão</button>
       <button class="date-mode-btn" id="btn-dmode-prazo" onclick="setDemandaDateMode('prazo',this)">⏰ Prazo</button>
     </div>
 
@@ -1880,7 +1891,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
     <div class="tabs" id="demanda-week-tabs">
       <button class="tab-btn" id="tab-dw1" onclick="showDemandaWeek(1,this)">Semana 1</button>
       <button class="tab-btn" id="tab-dw2" onclick="showDemandaWeek(2,this)">Semana 2</button>
-      <button class="tab-btn" id="tab-dw0" onclick="showDemandaWeek(0,this)">📋 Por Esteira</button>
+      <button class="tab-btn" id="tab-dw0" onclick="showDemandaWeek(0,this)">Por esteira</button>
     </div>
 
     <!-- Filtro por pessoa (demandas) -->
@@ -1898,7 +1909,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
       <select id="day-select-demandas" onchange="filterDemandaByDay(this)" aria-label="Filtrar demandas por dia" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;border-radius:20px;font-size:11px;cursor:pointer;">
         <option value="">Todos os dias</option>
       </select>
-      <button class="sort-btn" id="btn-dview-day" onclick="toggleDemandaViewDay(this)">📅 Ver por Dia</button>
+      <button class="sort-btn" id="btn-dview-day" onclick="toggleDemandaViewDay(this)">Ver por Dia</button>
       <button class="sort-btn" onclick="clearDemandaFilters()" style="border-color:#e2445c;color:#e2445c;">✕ Limpar Filtros</button>
     </div>
 
@@ -1958,7 +1969,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
   <div class="container">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
-        <h2 style="color:var(--accent);margin:0;font-size:16px;">📊 Performance de Produção</h2>
+        <h2 style="color:var(--accent);margin:0;font-size:16px;">Performance de Produção</h2>
         <p style="color:var(--text-muted);font-size:11px;margin:4px 0 0;">Prazos, veiculação e produtividade da equipe</p>
       </div>
     </div>
@@ -1975,14 +1986,14 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
     <!-- SEÇÃO 5: Performance por Departamento -->
     <div class="perf-section" id="perf-sec-departamentos">
-      <div class="perf-section-title"><span></span> 🏢 Performance por Departamento</div>
+      <div class="perf-section-title"><span></span> Performance por Departamento</div>
       <p style="font-size:11px;color:var(--text-muted);margin:0 0 16px;">Métricas separadas por equipe — evita que um departamento distorça a média do outro.</p>
       <div id="perf-departamentos-grid"></div>
     </div>
 
     <!-- SEÇÃO 4: Gráficos e Tabela -->
     <div class="perf-section">
-      <div class="perf-section-title"><span></span> 📈 Análise Visual por Colaborador</div>
+      <div class="perf-section-title"><span></span> Análise Visual por Colaborador</div>
       <!-- Gráfico de linha: histórico de publicações dia a dia -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
         <div style="font-size:11px;color:var(--text-muted);font-weight:700;margin-bottom:4px;letter-spacing:.4px;">Histórico de Publicações por Dia (Veiculação)</div>
@@ -2037,7 +2048,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
 <div id="jarvis-shell" class="jarvis-shell" aria-live="polite">
   <div id="jarvis-panel" class="jarvis-panel">
-    <div class="jarvis-head"><span>Vybe OS · Jarvis v2</span><div class="jarvis-head-actions"><select id="jarvis-provider" class="jarvis-provider" onchange="setJarvisProvider(this.value)" title="Selecionar inteligência" aria-label="Selecionar inteligência"><option value="auto">AUTO</option><option value="claude">Claude</option><option value="gpt">GPT</option><option value="gemini">Gemini</option></select><button id="jarvis-voice-toggle" class="jarvis-voice-toggle on" type="button" onclick="toggleJarvisVoice()">🔊 VOZ</button><button id="jarvis-repeat" class="jarvis-repeat" type="button" onclick="repeatJarvisVoice()" disabled="">Repetir</button><button class="jarvis-close" type="button" onclick="toggleJarvis(false)">×</button></div></div>
+    <div class="jarvis-head"><span>Vybe OS · Jarvis v2</span><div class="jarvis-head-actions"><select id="jarvis-provider" class="jarvis-provider" onchange="setJarvisProvider(this.value)" title="Selecionar inteligência" aria-label="Selecionar inteligência"><option value="auto">AUTO</option><option value="claude">Claude</option><option value="gpt">GPT</option><option value="gemini">Gemini</option></select><button id="jarvis-voice-toggle" class="jarvis-voice-toggle on" type="button" onclick="toggleJarvisVoice()">VOZ</button><button id="jarvis-repeat" class="jarvis-repeat" type="button" onclick="repeatJarvisVoice()" disabled="">Repetir</button><button class="jarvis-close" type="button" onclick="toggleJarvis(false)">×</button></div></div>
     <div id="jarvis-status" class="jarvis-status">Aguardando seu comando.</div>
     <div id="jarvis-process" class="jarvis-process" aria-live="polite">
       <div class="jarvis-step" data-jarvis-step="1">01<b>Comando</b></div>
@@ -2142,7 +2153,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
     <section class="workspace-section workspace-direction"><div class="workspace-section-head">Ação de direção</div><div class="workspace-section-body"><p class="workspace-note">Registre uma orientação objetiva sem redigir uma atualização do zero. O sinal entra na timeline como decisão de D.A.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceDirectionAction('Briefing confirmado')">✓ Briefing confirmado</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Direcionamento enviado')">↗ Direcionamento enviado</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Aguardando retorno')">◌ Aguardando retorno</button><button type="button" class="workspace-action" onclick="registerWorkspaceDirectionAction('Proteger prazo')">⚑ Proteger prazo</button></div></div></section>
     <section class="workspace-section workspace-checkin"><div class="workspace-section-head">Check-in de execução</div><div class="workspace-section-body"><p class="workspace-note">Registre o início ou o encerramento de um bloco de trabalho sem sair do Vybe OS. O sinal entra na linha do tempo da atividade.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceCheckin('início')">▶ Iniciar bloco</button><button type="button" class="workspace-action" onclick="registerWorkspaceCheckin('fechamento')">■ Encerrar bloco</button></div></div></section>
     <section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><div class="workspace-empty">Ainda não há decisão estruturada registrada nesta demanda.</div></div></section>
-    <section class="workspace-section"><div class="workspace-section-head">Timeline operacional</div><div class="workspace-section-body"><div class="workspace-update workspace-timeline-event"><div class="workspace-update-meta"><span class="workspace-timeline-type">Atualização</span>Paulo Martins · 2026-08-21 16:29</div><div class="workspace-update-body">CARD 3: Posicionamento (O que é a Hebravet) NOME DA TAREFA: Hebravet | Card | Posicionamento: Mais que uma clínica🎯 1. O CORAÇÃO DO PEDIDOObjetivo: Reforçar o posicionamento da marca como "A evolução do cuidado animal".Público-Alvo: Novos seguidores e potenciais clientes da região de Irecê.Oferta/Diferencial: A junção de clínica completa, especialidades e pet shop em um só lugar.CTA: Compartilhar o post com outros tutores.✍️ 2. A MENSAGEM / COPYHook (Primeiros 3s ou Título): Muito mais do que uma clínica veterinária.Roteiro/Texto da Arte:[Título Forte]Muito mais do que uma clínica veterinária. 🏥💚[Lista Visual]🩺 Consultas e Especialidades🔬 Centro Cirúrgico Moderno🕒 Internação 24h🛁 Banho e Tosa Transparente[ Rodapé]Tudo o que seu pet precisa, em um só lugar.Legenda do Post:A evolução do cuidado animal chegou a Irecê. E ela é completa. 🚀🐾Quando idealizamos a Hebravet, não queríamos ser apenas mais uma opção. Queríamos ser o porto seguro da sua família. Por isso, reunimos em um só lugar uma infraestrutura de excelência e uma equipe movida pelo amor aos animais.De uma consulta de rotina a uma emergência na madrugada. De um banho relaxante a um procedimento cirúrgico complexo. A Hebravet está pronta para acolher, diagnosticar e tratar com o máximo de precisão e carinho.Tudo o que o membro mais especial da sua família precisa, agora está aqui. 💚Conhece alguém que trata o pet como filho e precisa conhecer nossa estrutura? Compartilhe esse post com ele!3. DIREÇÃO DE ARTE E AUDIOVISUAL (Instruções para a Fábrica)Formato: 1080x1350 (Card Retrato)Observações Visuais:•Design: Institucional, forte e que transmita autoridade.•Imagem: Uma foto da fachada da clínica (se já estiver pronta e bonita) ou uma montagem elegante (grid) mostrando 3 ou 4 ambientes diferentes da clínica (consultório, recepção, banho e tosa).•Tipografia: Sólida e de fácil leitura, destacando a variedade de serviços.</div></div></div></section></aside><script id="workspace-startup-guard">
+    <section class="workspace-section"><div class="workspace-section-head">Timeline operacional</div><div class="workspace-section-body"><div class="workspace-update workspace-timeline-event"><div class="workspace-update-meta"><span class="workspace-timeline-type">Atualização</span>Paulo Martins · 2026-08-21 16:29</div><div class="workspace-update-body">CARD 3: Posicionamento (O que é a Hebravet) NOME DA TAREFA: Hebravet | Card | Posicionamento: Mais que uma clínica🎯 1. O CORAÇÃO DO PEDIDOObjetivo: Reforçar o posicionamento da marca como "A evolução do cuidado animal".Público-Alvo: Novos seguidores e potenciais clientes da região de Irecê.Oferta/Diferencial: A junção de clínica completa, especialidades e pet shop em um só lugar.CTA: Compartilhar o post com outros tutores.✍️ 2. A MENSAGEM / COPYHook (Primeiros 3s ou Título): Muito mais do que uma clínica veterinária.Roteiro/Texto da Arte:[Título Forte]Muito mais do que uma clínica veterinária. 🏥💚[Lista Visual]🩺 Consultas e Especialidades🔬 Centro Cirúrgico Moderno🕒 Internação 24h🛁 Banho e Tosa Transparente[ Rodapé]Tudo o que seu pet precisa, em um só lugar.Legenda do Post:A evolução do cuidado animal chegou a Irecê. E ela é completa. 🚀🐾Quando idealizamos a Hebravet, não queríamos ser apenas mais uma opção. Queríamos ser o porto seguro da sua família. Por isso, reunimos em um só lugar uma infraestrutura de excelência e uma equipe movida pelo amor aos animais.De uma consulta de rotina a uma emergência na madrugada. De um banho relaxante a um procedimento cirúrgico complexo. A Hebravet está pronta para acolher, diagnosticar e tratar com o máximo de precisão e carinho.Tudo o que o membro mais especial da sua família precisa, agora está aqui. Conhece alguém que trata o pet como filho e precisa conhecer nossa estrutura? Compartilhe esse post com ele!3. DIREÇÃO DE ARTE E AUDIOVISUAL (Instruções para a Fábrica)Formato: 1080x1350 (Card Retrato)Observações Visuais:•Design: Institucional, forte e que transmita autoridade.•Imagem: Uma foto da fachada da clínica (se já estiver pronta e bonita) ou uma montagem elegante (grid) mostrando 3 ou 4 ambientes diferentes da clínica (consultório, recepção, banho e tosa).•Tipografia: Sólida e de fácil leitura, destacando a variedade de serviços.</div></div></div></section></aside><script id="workspace-startup-guard">
 (function(){
   function clearInitialWorkspace(){
     const drawer=document.getElementById('workspace-drawer');

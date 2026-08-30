@@ -82,7 +82,7 @@ function updateJarvisVoiceControls() {
   const toggle = document.getElementById('jarvis-voice-toggle');
   const repeat = document.getElementById('jarvis-repeat');
   const supported = jarvisVoiceSupported();
-  if (toggle) { toggle.disabled = !supported; toggle.classList.toggle('on', supported && jarvisVoiceEnabled); toggle.textContent = !supported ? 'SEM VOZ' : (jarvisVoiceEnabled ? '🔊 VOZ' : '🔈 VOZ OFF'); }
+  if (toggle) { toggle.disabled = !supported; toggle.classList.toggle('on', supported && jarvisVoiceEnabled); toggle.textContent = !supported ? 'SEM VOZ' : (jarvisVoiceEnabled ? 'Voz ligada' : 'Voz desligada'); }
   if (repeat) repeat.disabled = !supported || !jarvisLastSpeech;
 }
 function toggleJarvisVoice() {

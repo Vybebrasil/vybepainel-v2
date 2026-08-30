@@ -1097,7 +1097,7 @@ export async function importarHistoricoStatus({ de, ate, pagina = 1, paginas = 8
 // ── as colunas que o espelho nunca carregou ──────────────────────────────────
 //
 // O espelho busca seis colunas; o board tem quinze. Captação, Tipo de conteúdo,
-// Priority, 🎙️OFF e Editor/Designer nunca chegaram ao painel nem ao banco.
+// Priority, OFF e Editor/Designer nunca chegaram ao painel nem ao banco.
 export const COLUNAS_EXTRA = {
   status_1__1: 'captacao',
   lista_suspensa__1: 'tipo_conteudo',

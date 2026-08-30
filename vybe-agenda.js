@@ -534,7 +534,7 @@ function openSearchItem(itemId) {
   if (!item) return;
   viewMode = 'day';
   const viewBtn = document.getElementById('btn-view-day');
-  if (viewBtn) { viewBtn.textContent = '👤 Ver por Cliente'; viewBtn.classList.add('active'); }
+  if (viewBtn) { viewBtn.textContent = 'Ver por cliente'; viewBtn.classList.add('active'); }
   currentFilter = 'all';
   currentDayFilter = getDateIso(item) || '';
   currentWeek = item.semana || 1;

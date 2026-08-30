@@ -132,7 +132,8 @@ function applyCachedProductionDataset(items, statusOptions=[]) {
   for (let t=1; t<=6; t++) { const tab=document.getElementById(`tab-s${t}-label`); if (tab) tab.style.display='none'; }
   META.weeks.forEach((week,index) => {
     const n=index+1, tab=document.getElementById(`tab-s${n}-label`), title=document.getElementById(`title-s${n}`);
-    if (tab) { tab.textContent=`📅 Semana ${numLabels[index]} — ${week.startFmt} a ${week.endFmt}${index===META.currentWeekIdx?' ★':''}`; tab.style.display=''; }
+    if (tab) { tab.textContent=`${numLabels[index]} · ${week.startFmt}–${week.endFmt}`;
+      tab.classList.toggle('e-hoje', index===META.currentWeekIdx); tab.style.display=''; }
     if (title) title.textContent=`Clientes — Semana ${numLabels[index]} (${week.startFmt}–${week.endFmt})`;
   });
   const activeTabN = META.currentWeekIdx + 1;
@@ -428,7 +429,8 @@ async function refreshProducao(options={}) {
       const tabEl = document.getElementById(`tab-s${n}-label`);
       if (tabEl) {
         const isCurrent = i === META.currentWeekIdx;
-        tabEl.textContent = `📅 Semana ${numLabels[i]} — ${w.startFmt} a ${w.endFmt}${isCurrent ? ' ★' : ''}`;
+        tabEl.textContent = `${numLabels[i]} · ${w.startFmt}–${w.endFmt}`;
+        tabEl.classList.toggle('e-hoje', Boolean(isCurrent));
         tabEl.style.display = '';
       }
       const titleEl = document.getElementById(`title-s${n}`);

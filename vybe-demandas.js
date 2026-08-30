@@ -13,9 +13,7 @@ const DEMANDAS_GROUP_MAP = {
   'novo_grupo_mkkyx8pv':   'Concluídas'
 };
 const DEMANDAS_GROUP_ORDER = ['Novas Demandas/Ideias','A Fazer','Em Execução','Concluídas'];
-const DEMANDAS_GROUP_ICON  = {
-  'Novas Demandas/Ideias':'💡','A Fazer':'⏳','Em Execução':'⚡','Concluídas':'✅'
-};
+const DEMANDAS_GROUP_ICON  = {};
 
 let DADOS_DEMANDAS = [];
 let CLIENT_MASTER_HEADS = [];
@@ -657,7 +655,7 @@ function renderDemandasSemana(fi) {
     const alertCls = atrasadas > 0 ? 'alert-low' : 'alert-ok';
     return `<div class="demanda-group-card ${alertCls}">
       <div class="demanda-group-header">
-        <div class="demanda-group-title">👤 ${cli}</div>
+        <div class="demanda-group-title">${cli}</div>
         <span class="posts-count ok">${items.length} demanda${items.length!==1?'s':''}</span>
       </div>
       <div class="item-list">${items.map(d => demandaItemRow(d, false)).join('')}</div>
@@ -702,7 +700,7 @@ function renderDemandasEsteira(fi) {
   grid.innerHTML = DEMANDAS_GROUP_ORDER.map(grupo => {
     const items = sortDemandas(fi.filter(d => d.grupo === grupo));
     if (items.length === 0) return '';
-    const icon = DEMANDAS_GROUP_ICON[grupo] || '📦';
+    const icon = DEMANDAS_GROUP_ICON[grupo] || '';
     return `<div class="demanda-group-card">
       <div class="demanda-group-header">
         <div class="demanda-group-title">${icon} ${grupo}</div>
