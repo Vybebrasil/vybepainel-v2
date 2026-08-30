@@ -304,6 +304,25 @@ async function areaPeca(req, res, quem) {
     created_at: a.criado_em,
   }));
 
+  // Subitens são a lista de tarefas dentro de uma solicitação. Só existem no
+  // board de Demandas; em Produção a consulta volta vazia e a tela não mostra
+  // seção nenhuma.
+  const subitens = (await db`
+    SELECT s.id, s.titulo, s.prazo, s.conclusao, s.tipo, s.prioridade, s.ordem,
+           st.rotulo AS status, st.cor AS status_cor, st.borda AS status_borda,
+           (SELECT STRING_AGG(p.nome, ', ' ORDER BY r.ordem, p.nome)
+              FROM vybe_subitem_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
+             WHERE r.subitem_id = s.id) AS responsaveis
+      FROM vybe_subitens s
+      LEFT JOIN vybe_status st ON st.chave = s.status_chave AND st.board_id = 8385559107
+     WHERE s.pai_id = ${c.id}
+     ORDER BY s.ordem, s.id`).map((r) => ({
+    id: String(r.id), titulo: r.titulo, status: r.status || null,
+    status_cor: r.status_cor || null, status_borda: r.status_borda || null,
+    prazo: r.prazo, conclusao: r.conclusao, tipo: r.tipo, prioridade: r.prioridade,
+    responsaveis: r.responsaveis || null,
+  }));
+
   return res.status(200).json({
     ok: true,
     id: item,
@@ -320,6 +339,7 @@ async function areaPeca(req, res, quem) {
       off_audio_chave: c.off_audio_chave, tipo_conteudo_chaves: c.tipo_conteudo_chaves,
       formato_chaves: c.formato_chaves,
     },
+    subitens,
     assets,
     // Só o que realmente está na coluna de arquivos do Monday: é dela que a tela
     // decide se pode remover pelo painel, e oferecer isso para arquivo do Drive

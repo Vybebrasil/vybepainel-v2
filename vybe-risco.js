@@ -835,6 +835,35 @@ function podeVerMonday() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
 }
 
+// A lista de tarefas de dentro de uma solicitação. Existe só no board de
+// Demandas — em Produção a consulta volta vazia e a seção não aparece.
+function subitensHtml(detail) {
+  const itens = detail?.subitens || [];
+  if (!itens.length) return '';
+  const feitos = itens.filter((s) => /^(feito|conclu|aprovado)/i.test(String(s.status || ''))).length;
+  const dataCurta = (v) => {
+    const iso = String(v || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8,10)}/${iso.slice(5,7)}` : '';
+  };
+  return `<section class="workspace-section">
+    <div class="workspace-section-head">Tarefas da solicitação
+      <span class="subitem-contagem">${feitos} de ${itens.length}</span></div>
+    <div class="workspace-section-body">
+      <ul class="subitem-lista">${itens.map((s) => `
+        <li class="subitem">
+          <span class="subitem-marca" style="--cor:${s.status_cor || '#7c8797'}"></span>
+          <span class="subitem-corpo">
+            <b>${safeText(s.titulo)}</b>
+            <small>${[s.status, s.tipo, s.prioridade, s.responsaveis]
+                      .filter(Boolean).map(safeText).join(' · ') || 'sem detalhe'}</small>
+          </span>
+          ${dataCurta(s.conclusao || s.prazo)
+            ? `<span class="subitem-data">${dataCurta(s.conclusao || s.prazo)}</span>` : ''}
+        </li>`).join('')}</ul>
+    </div>
+  </section>`;
+}
+
 function workspaceFichaHtml(detail, itemId) {
   const f = detail?.ficha;
   if (!f) return '';
@@ -920,6 +949,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}')">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
     ${workspaceFichaHtml(detail, item.id)}
+    ${subitensHtml(detail)}
     ${workspaceDeliveryDock(detail,item)}
     <div class="workspace-actions"><button type="button" class="workspace-action primary" onclick="openPlanningEditor('${item.id}')">Editar datas rápidas</button><button type="button" class="workspace-action" onclick="openOwnerEditor(event,'${item.id}')">Gerenciar responsáveis</button><button type="button" class="workspace-action" onclick="openDaDirectionModal('${item.id}')">Direcionar D.A.</button><button type="button" class="workspace-action" onclick="openStatusEditor({preventDefault(){},stopPropagation(){},currentTarget:this},'${item.id}')">Atualizar status</button><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Entregar e passar bastão</button>${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button><button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Remover peça</button>` : ''}${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
