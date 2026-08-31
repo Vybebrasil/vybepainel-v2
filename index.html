@@ -1686,6 +1686,20 @@ button.subitem-marca:hover{transform:scale(1.35)}
   font:600 13px var(--mac-ui);cursor:pointer;
   transition:background .12s var(--curva,ease),color .12s var(--curva,ease)}
 .grupos-lote .lote-limpar:hover{background:rgba(255,255,255,.08);color:#fff}
+/* Escolher data em lote: o mesmo popover das outras acoes, com o campo de data
+   do painel dentro. Antes era a caixa do navegador pedindo AAAA-MM-DD. */
+.status-editor.lote-data{padding:10px;min-width:230px}
+.lote-data .grupo-data-campo{width:100%;box-sizing:border-box;margin:8px 0 10px;
+  min-height:34px;padding:0 10px;font:700 12px var(--mac-ui)}
+.lote-data-acoes{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.lote-data-acoes button{min-height:30px;padding:0 14px;border-radius:9px;cursor:pointer;
+  font:600 11.5px var(--mac-ui);border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.045);color:#dfe4ee}
+.lote-data-acoes button.quieto{border-color:transparent;background:transparent;color:#8f98a9}
+.lote-data-acoes button.quieto:hover{background:rgba(255,255,255,.07);color:#fff}
+.lote-data-acoes button.primario{border-color:rgba(255,157,79,.5);
+  background:rgba(255,122,26,.18);color:#ffd0a3}
+.lote-data-acoes button.primario:hover{background:rgba(255,122,26,.3);color:#fff}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);

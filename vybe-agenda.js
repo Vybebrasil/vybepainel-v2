@@ -1402,8 +1402,8 @@ function renderVisaoDeGrupos(quadro) {
       ${acao('Status', 'loteStatus(event)')}
       ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
       ${quadro === 'demandas' ? '' : acao('Captação', 'loteCaptacao(event)')}
-      ${acao('Prazo', "lotePrazo('prazo')", false)}
-      ${acao('Veiculação', "lotePrazo('veiculacao')", false)}
+      ${acao('Prazo', "lotePrazo(event,'prazo')")}
+      ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
       <span class="lote-risco" aria-hidden="true"></span>
       <button type="button" class="lote-limpar" onclick="limparSelecao()"
         title="Desmarcar todas" aria-label="Desmarcar todas">✕</button>
@@ -1465,15 +1465,49 @@ function loteCaptacao(event) {
   })), 'captação');
 }
 
-function lotePrazo(campo) {
-  const rotulo = campo === 'prazo' ? 'prazo' : 'veiculação';
-  const hoje = new Date().toISOString().slice(0, 10);
-  const data = window.prompt(`Nova ${rotulo} para as ${SELECIONADAS.size} selecionadas (AAAA-MM-DD):`, hoje);
-  if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data.trim())) {
-    if (data !== null) showToast('Data inválida; use AAAA-MM-DD.', 'info');
-    return;
-  }
-  aplicarDataSelecionadaEmLote(campo, data.trim(), { confirmar: true });
+// Data em lote pelo calendario, e nao por uma caixa do navegador pedindo
+// "AAAA-MM-DD". Ninguem deveria ter de saber a ordem em que o computador quer a
+// data — o resto do painel ja usa campo de data em toda linha; aqui era o unico
+// lugar que ainda pedia digitacao cega.
+function lotePrazo(event, campo) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  if (!SELECIONADAS.size) return;
+  fecharMenuDeLote();
+  const rotulo = campo === 'prazo' ? 'Novo prazo' : 'Nova veiculação';
+  const quantas = `${SELECIONADAS.size} ${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}`;
+  const hoje = String(META?.today_iso || HOJE_ISO || new Date().toISOString().slice(0, 10));
+
+  const fundo = document.createElement('div');
+  fundo.id = 'lote-editor-backdrop';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharMenuDeLote;
+
+  const menu = document.createElement('div');
+  menu.id = 'lote-editor';
+  menu.className = 'status-editor lote-data';
+  menu.innerHTML = `<div class="status-editor-head">${safeText(rotulo)} · ${safeText(quantas)}</div>
+    <input type="date" id="lote-data-campo" class="grupo-data-campo" value="${safeText(hoje)}">
+    <div class="lote-data-acoes">
+      <button type="button" class="quieto" onclick="fecharMenuDeLote()">Cancelar</button>
+      <button type="button" class="primario" onclick="aplicarLoteDeData('${campo}')">Aplicar</button>
+    </div>`;
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, event.currentTarget.getBoundingClientRect());
+
+  const campoData = document.getElementById('lote-data-campo');
+  campoData?.focus();
+  // Abre o calendario sozinho onde o navegador deixa; onde nao deixa, o campo
+  // continua ali, focado, e o iconezinho abre.
+  try { campoData?.showPicker?.(); } catch { /* navegador sem showPicker */ }
+  campoData?.addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarLoteDeData(campo); });
+}
+
+function aplicarLoteDeData(campo) {
+  const valor = String(document.getElementById('lote-data-campo')?.value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return showToast('Escolha uma data no calendário.', 'info');
+  fecharMenuDeLote();
+  aplicarDataSelecionadaEmLote(campo, valor, { confirmar: true });
 }
 
 // Mesmo popover do resto do painel, com a lista que a ação pediu.
