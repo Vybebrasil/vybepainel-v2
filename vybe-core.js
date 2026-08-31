@@ -438,10 +438,24 @@ function calcWeeks() {
     today_iso: todayIso,
     generated_at: `${todayFmt.slice(0,10)} às ${String(today.getHours()).padStart(2,'0')}:${String(today.getMinutes()).padStart(2,'0')}`,
     // Compat: manter week1/week2 apontando para semana atual e próxima
-    week1_start: weeks[currentWeekIdx].startFmt, week1_end: weeks[currentWeekIdx].endFmt,
-    week2_start: weeks[Math.min(currentWeekIdx+1, weeks.length-1)].startFmt, week2_end: weeks[Math.min(currentWeekIdx+1, weeks.length-1)].endFmt,
-    week1_start_iso: weeks[currentWeekIdx].startIso, week1_end_iso: weeks[currentWeekIdx].endIso,
-    week2_start_iso: weeks[Math.min(currentWeekIdx+1, weeks.length-1)].startIso, week2_end_iso: weeks[Math.min(currentWeekIdx+1, weeks.length-1)].endIso,
+    ...(() => {
+      const seguinte = weeks[currentWeekIdx + 1] || (() => {
+        const seteDiasDepois = (isoStr) => {
+          const d = new Date(`${isoStr}T12:00:00`);
+          d.setDate(d.getDate() + 7);
+          return d;
+        };
+        const ini = seteDiasDepois(weeks[currentWeekIdx].startIso);
+        const fim = seteDiasDepois(weeks[currentWeekIdx].endIso);
+        return { startIso: iso(ini), endIso: iso(fim), startFmt: fmt(ini), endFmt: fmt(fim) };
+      })();
+      return {
+        week1_start: weeks[currentWeekIdx].startFmt, week1_end: weeks[currentWeekIdx].endFmt,
+        week2_start: seguinte.startFmt, week2_end: seguinte.endFmt,
+        week1_start_iso: weeks[currentWeekIdx].startIso, week1_end_iso: weeks[currentWeekIdx].endIso,
+        week2_start_iso: seguinte.startIso, week2_end_iso: seguinte.endIso,
+      };
+    })(),
   };
   return result;
 }
