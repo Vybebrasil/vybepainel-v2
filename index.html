@@ -1736,6 +1736,10 @@ button.subitem-marca:hover{transform:scale(1.35)}
    toda — no popover nao ha coluna estreita para disputar. */
 .dia-do-calendario-lista{display:grid;gap:6px;max-height:min(60vh,440px);overflow:auto;padding:10px 12px 12px}
 .dia-do-calendario-lista .manager-calendar-event{width:100%}
+/* Secao levantada enquanto a Mesa de Comando esta aberta. O isolation:isolate
+   dela transformava o z-index 205 da Mesa num numero valido so entre irmaos;
+   fora dali, quem viesse depois no documento passava por cima. */
+.manager-intelligence.com-mesa-de-comando{position:relative;z-index:700}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);
