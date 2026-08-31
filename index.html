@@ -2645,6 +2645,16 @@ button:not(:disabled):not([aria-disabled="true"]):active,
    colunas, cada um diz explicitamente onde fica. */
 .da-planning-file{grid-column:7!important}
 .da-planning-row .da-planning-open{grid-column:8!important}
+/* Cabecalho clicavel, igual ao da tabela por grupos: o titulo E o botao, e a
+   seta so aparece colorida no criterio ativo. Sem isso, ordenar era um botao
+   longe da coluna que ele ordena. */
+.da-planning-th{display:inline-flex;align-items:center;gap:5px;padding:0;border:0;background:none;
+  color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;text-align:left}
+.da-planning-th i{display:inline-flex;opacity:.35;transition:opacity .12s var(--curva,ease)}
+.da-planning-th:hover{color:#e7ecf5}
+.da-planning-th:hover i{opacity:.8}
+.da-planning-th.ordenando{color:var(--da-plan-color,#ff9d00)}
+.da-planning-th.ordenando i{opacity:1}
 @media(max-width:760px){.da-planning-overlay{padding:0!important}.da-planning-modal{width:100vw!important;height:100vh!important;max-height:100vh!important;border-radius:0!important}.da-planning-head{min-height:50px!important;padding:7px 10px!important}.da-planning-head-main>div>small{display:none!important}.da-planning-switcher{padding:5px 8px!important}.da-planning-switcher>span{display:none!important}.da-planning-controls{padding:5px 8px!important}.da-planning-summary{padding:0 8px!important}.da-planning-summary>span{min-height:34px!important;padding:4px!important;gap:4px!important}.da-planning-summary>span b{font-size:14px!important}.da-planning-summary>span small{font-size:8px!important;white-space:normal!important}.da-planning-note{display:none!important}.da-planning-health{grid-template-columns:96px minmax(140px,1fr)!important;padding:5px 8px!important}.da-planning-health-legend{display:none!important}.da-planning-bulkbar{padding:6px 8px!important}.da-planning-bulkbar small{display:none!important}.da-planning-direct-hint{display:none!important}.da-planning-list{margin:0!important}.da-planning-row{min-width:1054px!important}}
 </style></head>
 <body>
