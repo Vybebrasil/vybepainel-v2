@@ -124,7 +124,7 @@ function applyCachedProductionDataset(items, statusOptions=[]) {
   const badgeS2 = document.getElementById('badge-s2');
   const badgeHoje = document.getElementById('badge-hoje');
   if (badgeS1) badgeS1.textContent = `S${META.currentWeekIdx+1} · ${META.weeks[META.currentWeekIdx].startFmt}–${META.weeks[META.currentWeekIdx].endFmt}`;
-  if (badgeS2) badgeS2.textContent = `S${META.currentWeekIdx+2} · ${META.weeks[Math.min(META.currentWeekIdx+1, META.weeks.length-1)].startFmt}–${META.weeks[Math.min(META.currentWeekIdx+1, META.weeks.length-1)].endFmt}`;
+  if (badgeS2) badgeS2.textContent = `S${META.currentWeekIdx+2} · ${META.week2_start}–${META.week2_end}`;
   if (badgeHoje) badgeHoje.textContent = `Hoje: ${META.today}`;
   const footer = document.getElementById('footer-update');
   if (footer) footer.textContent = `Cache operacional: ${META.generated_at}`;
@@ -412,7 +412,7 @@ async function refreshProducao(options={}) {
     DIAS_S2 = DIAS_SEMANAS[1] || [];
 
     document.getElementById('badge-s1').textContent = `S${META.currentWeekIdx+1} · ${META.weeks[META.currentWeekIdx].startFmt}–${META.weeks[META.currentWeekIdx].endFmt}`;
-    document.getElementById('badge-s2').textContent = `S${META.currentWeekIdx+2} · ${META.weeks[Math.min(META.currentWeekIdx+1, META.weeks.length-1)].startFmt}–${META.weeks[Math.min(META.currentWeekIdx+1, META.weeks.length-1)].endFmt}`;
+    document.getElementById('badge-s2').textContent = `S${META.currentWeekIdx+2} · ${META.week2_start}–${META.week2_end}`;
     document.getElementById('badge-hoje').textContent = `Hoje: ${META.today}`;
     document.getElementById('footer-update').textContent = `Última atualização: ${META.generated_at}`;
     setSyncHealth('healthy', `Monday confirmado às ${syncHealthClock(Date.now())} · ${DADOS_ALL.length} itens verificados`);

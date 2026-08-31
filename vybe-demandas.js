@@ -215,8 +215,11 @@ function getDemandaDateFmt(d) {
 // Toggle modo de data
 function setDemandaDateMode(mode, btn) {
   currentDemandaDateMode = mode;
-  document.querySelectorAll('#date-mode-bar-demandas .date-mode-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  const botoes = [...document.querySelectorAll('#date-mode-bar-demandas .date-mode-btn')];
+  botoes.forEach(b => b.classList.remove('active'));
+  // Sem botao clicado (veio de um atalho na tela vazia): acha o que corresponde.
+  const alvo = btn || botoes.find(b => (b.getAttribute('onclick') || '').includes(`'${mode}'`));
+  alvo?.classList.add('active');
   populateDemandaDaySelect();
   renderDemandas();
 }
@@ -646,7 +649,24 @@ function renderDemandasSemana(fi) {
   const clientes = [...new Set(fi.map(d=>d.cliente))].sort();
   const grid = document.getElementById('grid-demandas-semana');
   if (clientes.length === 0) {
-    grid.innerHTML = '<div style="color:var(--text-muted);padding:20px 0;">Nenhuma demanda nesta semana.</div>';
+    const porConclusao = currentDemandaDateMode !== 'prazo';
+    const outroModo = porConclusao ? 'prazo' : 'conclusao';
+    const quantasNoOutro = DADOS_DEMANDAS.filter(d => {
+      const iso = outroModo === 'prazo' ? (d.prazo_iso || '') : (d.conclusao_iso || '');
+      const ini = currentDemandaWeek === 2 ? META.week2_start_iso : META.week1_start_iso;
+      const fim = currentDemandaWeek === 2 ? META.week2_end_iso : META.week1_end_iso;
+      return iso >= ini && iso <= fim;
+    }).length;
+    const semData = DADOS_DEMANDAS.filter(d => !getDemandaDateIso(d)).length;
+    grid.innerHTML = `<div class="demandas-vazio">
+      <b>Nenhuma demanda ${porConclusao ? 'concluída' : 'com prazo'} nesta semana.</b>
+      <span>São ${DADOS_DEMANDAS.length} no quadro; a semana filtra pela data de
+        ${porConclusao ? 'conclusão' : 'prazo'}${semData ? `, e ${semData} ainda não têm essa data` : ''}.</span>
+      ${quantasNoOutro
+        ? `<button type="button" class="sort-btn" onclick="setDemandaDateMode('${outroModo}')">
+             Ver por ${porConclusao ? 'prazo' : 'conclusão'} — ${quantasNoOutro} nesta semana</button>`
+        : `<button type="button" class="sort-btn" onclick="showDemandaWeek(3)">Ver todas por esteira</button>`}
+    </div>`;
     return;
   }
   grid.innerHTML = clientes.map(cli => {
