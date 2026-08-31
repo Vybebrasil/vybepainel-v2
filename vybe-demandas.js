@@ -662,10 +662,15 @@ function renderDemandasSemana(fi) {
       <b>Nenhuma demanda ${porConclusao ? 'concluída' : 'com prazo'} nesta semana.</b>
       <span>São ${DADOS_DEMANDAS.length} no quadro; a semana filtra pela data de
         ${porConclusao ? 'conclusão' : 'prazo'}${semData ? `, e ${semData} ainda não têm essa data` : ''}.</span>
-      ${quantasNoOutro
-        ? `<button type="button" class="sort-btn" onclick="setDemandaDateMode('${outroModo}')">
-             Ver por ${porConclusao ? 'prazo' : 'conclusão'} — ${quantasNoOutro} nesta semana</button>`
-        : `<button type="button" class="sort-btn" onclick="showDemandaWeek(3)">Ver todas por esteira</button>`}
+      <div class="demandas-vazio-acoes">
+        ${quantasNoOutro
+          ? `<button type="button" class="sort-btn" onclick="setDemandaDateMode('${outroModo}')">
+               Ver por ${porConclusao ? 'prazo' : 'conclusão'} — ${quantasNoOutro} nesta semana</button>`
+          : ''}
+        <button type="button" class="sort-btn" onclick="if(!gruposDeDemandasAberto) alternarGruposDeDemandas()">
+          Ver as ${DADOS_DEMANDAS.length} por grupo</button>
+        <button type="button" class="sort-btn" onclick="showDemandaWeek(3)">Ver todas por esteira</button>
+      </div>
     </div>`;
     return;
   }

@@ -253,11 +253,16 @@ function managerCalendarStatusColor(item, fallback='#ff8b38') {
 // inteiro, senão some todo mundo assim que alguém é escolhido — e a única saída
 // vira voltar em 'Todos' para depois escolher outro.
 function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
+  // A aba Solicitacoes tem o proprio botao Conclusao/Prazo; quando o recorte e
+  // dela, e ele que manda.
+  const porPrazo = apenas === 'request'
+    ? (typeof currentDemandaDateMode !== 'undefined' && currentDemandaDateMode === 'prazo')
+    : dateMode === 'prazo';
   const production = (DADOS_ALL?.length ? DADOS_ALL : DADOS || []).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item)).map(item => ({
-    ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'content', calendarDateIso: dateMode === 'prazo' ? (item.prazo_iso || '') : (item.veiculacao_iso || ''), calendarType: item.formato || 'Conteúdo'
+    ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'content', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.veiculacao_iso || ''), calendarType: item.formato || 'Conteúdo'
   }));
   const requests = (DADOS_DEMANDAS || []).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item)).map(item => ({
-    ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'request', calendarDateIso: dateMode === 'prazo' ? (item.prazo_iso || '') : (item.conclusao_iso || ''), calendarType: item.tipo || 'Solicitação'
+    ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'request', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.conclusao_iso || ''), calendarType: item.tipo || 'Solicitação'
   }));
   return [...production, ...requests].filter(item => {
     // 'apenas' e o recorte fixo de quem chama (a aba Solicitacoes pede so as
