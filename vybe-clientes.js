@@ -177,14 +177,17 @@ function fichaClienteHtml(nome) {
   // olhando a lista, e que so tinham resposta abrindo o cliente ou o Monday.
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
   const selos = [
-    ['Painel', ligado.dashboard],
     ['Drive', ligado.drive],
     ['Acessos', ligado.link],
     ['Planejamento', planejamentoUrl || ligado.planning],
   ].map(([rotulo, valor]) => [rotulo, linkDeCliente(valor)]).filter(([, url]) => url);
+  // O painel do cliente e estado, nao endereco: "Atualizado" ou "Desatualizado".
+  const painel = String(f.dashboard || ligado.dashboard || '').trim();
   const situacao = String(ligado.status || '').trim();
-  const cabecaDeSelos = (situacao || selos.length || ligado.doc) ? `<div class="cliente-selos">${
+  const cabecaDeSelos = (situacao || painel || selos.length || ligado.doc) ? `<div class="cliente-selos">${
       situacao ? `<span class="cliente-situacao ${/inativ/i.test(situacao) ? 'inativo' : 'ativo'}">${safeText(situacao)}</span>` : ''
+    }${painel ? `<span class="cli-painel ${/desatualiz/i.test(painel) ? 'velho' : 'novo'}"
+        title="Estado do painel do cliente">Painel: ${safeText(painel)}</span>` : ''
     }${selos.map(([rotulo, url]) => `<a class="cliente-selo" href="${safeText(url)}" target="_blank"
         rel="noopener" onclick="event.stopPropagation()" title="Abrir ${safeText(rotulo)} deste cliente">${safeText(rotulo)} ↗</a>`).join('')
     }${ligado.doc ? `<span class="cliente-selo quieto" title="Documento de acessos migrado para o Vybe">Documento</span>` : ''}</div>` : '';
@@ -230,8 +233,99 @@ function renderClientesBoard() {
   renderClientesLista(todosClientes);
 }
 
+// A tabela de clientes, como no Monday que o time conhece: Ativos e Inativos
+// separados, e numa linha so o que se pergunta olhando a lista — head, status,
+// se o painel esta atualizado, planejamento, proxima reuniao, plano, segmento e
+// as portas do Dados & Acessos.
+//
+// O cartao continua para quem prefere; a escolha fica guardada no navegador.
+function visaoDeClientes() {
+  try { return localStorage.getItem('vybe_clientes_visao') === 'fichas' ? 'fichas' : 'tabela'; }
+  catch { return 'tabela'; }
+}
+function trocarVisaoDeClientes(qual) {
+  try { localStorage.setItem('vybe_clientes_visao', qual); } catch { /* sem armazenamento */ }
+  renderClientesBoard();
+}
+
+function selosDeVisaoDeClientes() {
+  const alvo = document.getElementById('clientes-visao');
+  if (!alvo) return;
+  const atual = visaoDeClientes();
+  alvo.innerHTML = [['tabela', 'Tabela'], ['fichas', 'Fichas']].map(([id, rotulo]) =>
+    `<button type="button" class="clientes-visao-btn ${atual === id ? 'ativo' : ''}"
+      onclick="trocarVisaoDeClientes('${id}')">${rotulo}</button>`).join('');
+}
+
+// "Dashboard" no cadastro NAO e endereco: e o estado do painel do cliente,
+// "Atualizado" ou "Desatualizado", igual ao Monday. Eu tinha tratado como link
+// no cartao — ficava invisivel, porque texto nunca vira URL valida.
+function paineldoClienteHtml(valor) {
+  const texto = String(valor || '').trim();
+  if (!texto) return '<span class="cli-vazio">—</span>';
+  const desatualizado = /desatualiz/i.test(texto);
+  return `<span class="cli-painel ${desatualizado ? 'velho' : 'novo'}">${safeText(texto)}</span>`;
+}
+
+function linhaDeClienteHtml(nome) {
+  const f = fichaDoCliente(nome) || {};
+  const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
+  const registros = clientMasterRecords();
+  const record = registros.find((item) => item.name === nome) || { content: [], requests: [] };
+  const CONCLUIDO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas'];
+  const abertos = record.content.filter((d) => !CONCLUIDO.includes(d.status)).length;
+  const demandas = record.requests.filter((d) => !CONCLUIDO.includes(d.status)).length;
+  const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const porta = (rotulo, valor) => { const url = linkDeCliente(valor);
+    return url ? `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener"
+      onclick="event.stopPropagation()" title="Abrir ${safeText(rotulo)}">${safeText(rotulo)} ↗</a>` : ''; };
+  const portas = [porta('Drive', ligado.drive), porta('Acessos', ligado.link),
+                  porta('Planejamento', f.planejamento_url || ligado.planning)]
+                 .filter(Boolean).join('') || '<span class="cli-vazio">—</span>';
+  return `<tr onclick="abrirClienteDetalhe('${String(nome).replace(/'/g, "\\'")}')" title="Abrir ${safeText(nome)}">
+    <td class="cli-nome">${safeText(nome)}</td>
+    <td>${safeText(f.heads || ligado.head || '') || '<span class="cli-vazio">—</span>'}</td>
+    <td>${paineldoClienteHtml(f.dashboard || ligado.dashboard)}</td>
+    <td>${dataBr(f.proxima_reuniao || ligado.nextMeeting) || '<span class="cli-vazio">—</span>'}</td>
+    <td>${safeText(f.plano || ligado.plan || '') || '<span class="cli-vazio">—</span>'}</td>
+    <td>${safeText(f.segmento || ligado.segment || '') || '<span class="cli-vazio">—</span>'}</td>
+    <td class="cli-portas">${portas}${ligado.doc ? '<span class="cli-porta quieto" title="Documento de acessos guardado no Vybe">Documento</span>' : ''}</td>
+    <td class="cli-numeros"><span title="Conteúdos em aberto">${abertos}</span><span title="Solicitações em aberto" class="${demandas ? 'atencao' : ''}">${demandas}</span></td>
+  </tr>`;
+}
+
+function tabelaDeClientesHtml(clientes) {
+  const ativo = (nome) => {
+    const f = fichaDoCliente(nome) || {};
+    const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
+    const texto = String(f.status || ligado.status || '').trim();
+    if (texto) return !/inativ/i.test(texto);
+    return f.ativo !== false;
+  };
+  const ativos = clientes.filter(ativo);
+  const inativos = clientes.filter((c) => !ativo(c));
+  const bloco = (titulo, lista, classe) => !lista.length ? '' : `
+    <section class="cli-bloco ${classe}">
+      <div class="cli-bloco-cabeca"><b>${titulo}</b><small>${lista.length} ${lista.length === 1 ? 'cliente' : 'clientes'}</small></div>
+      <div class="grupo-tabela-rolagem"><table class="grupo-tabela cli-tabela"><thead><tr>
+        <th>Cliente</th><th>Head</th><th>Dashboard</th><th>Próx. reunião</th>
+        <th>Plano</th><th>Segmento</th><th>Dados &amp; acessos</th><th>Aberto</th>
+      </tr></thead><tbody>${lista.map(linhaDeClienteHtml).join('')}</tbody></table></div>
+    </section>`;
+  return bloco('Ativos', ativos, 'ativos') + bloco('Inativos', inativos, 'inativos')
+    || '<div class="grupos-vazio">Nenhum cliente encontrado.</div>';
+}
+
 function renderClientesLista(clientes) {
   const grid = document.getElementById('grid-clientes-lista');
+  selosDeVisaoDeClientes();
+  if (visaoDeClientes() === 'tabela') {
+    grid.classList.add('em-tabela');
+    grid.innerHTML = tabelaDeClientesHtml(clientes);
+    return;
+  }
+  grid.classList.remove('em-tabela');
   const registros = clientMasterRecords();
   grid.innerHTML = clientes.map(cli => {
     const record=registros.find(item=>item.name===cli) || {content:[],requests:[]};
