@@ -1879,6 +1879,17 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .dono-ficha.marcada{border-color:var(--accent,#ff6b00);background:color-mix(in srgb,var(--accent,#ff6b00) 15%,transparent)}
 .dono-ficha.marcada b{color:#fff}
 .dono-ficha.marcada small{color:#ffd0a3}
+/* Responsavel em lote: primeiro o verbo, depois a pessoa. */
+.status-editor.lote-dono{min-width:min(330px,calc(100vw - 24px));padding:10px}
+.lote-dono-modos{display:flex;gap:6px;margin:9px 0 10px}
+.lote-dono-modo{flex:1;min-height:32px;padding:0 8px;border:1px solid rgba(255,255,255,.11);
+  border-radius:9px;background:rgba(255,255,255,.03);color:#9da4b4;
+  font:700 11px var(--mac-ui);cursor:pointer;white-space:nowrap}
+.lote-dono-modo:hover{color:#e7ecf5;border-color:rgba(255,255,255,.2)}
+.lote-dono-modo.ativo{border-color:var(--accent,#ff6b00);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
+.lote-dono .dono-fichas{max-height:280px;overflow:auto;margin:0}
+.lote-dono-nota{margin:10px 0 0;color:#6f7887;font:500 10.5px/1.45 var(--mac-ui)}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);

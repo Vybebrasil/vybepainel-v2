@@ -364,6 +364,35 @@ function toggleOwnerEditorPerson(userId) {
 
 function closeOwnerEditor() { pendingOwnerEditorItemId=''; fecharSeletorDeDono(); }
 function updateLocalOwners(itemId, userIds=[]) { const users=TEAM_USERS.filter(user=>userIds.includes(String(user.id))); const names=users.map(user=>user.name).join(', ') || '—'; [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(item=>{if(String(item.id)!==String(itemId)) return; item.responsavel_ids=[...userIds]; item.responsavel_id=userIds[0]||''; item.responsavel=names;})); }
+// Gravar os responsaveis de UMA peca, sem mexer na tela.
+//
+// O editor de uma peca fecha o popover e redesenha; o lote faz isso uma vez no
+// fim, para as dez. Sem separar, ou o lote redesenhava dez vezes ou eu teria uma
+// segunda copia da mesma gravacao — e no dia em que o registro no historico
+// mudasse, so uma das duas saberia.
+async function gravarResponsaveisDaPeca(item, ids) {
+  const selected = ids.map(String);
+  const rule = ownerEligibility(item);
+  const allowed = new Set((rule?.users || []).map((u) => String(u.id)));
+  const foraDaRegra = TEAM_USERS.filter((u) => selected.includes(String(u.id)) && !allowed.has(String(u.id)))
+    .map((u) => firstName(u.name));
+  const before = ownerUsersFor(item).map((u) => u.name).join(', ') || 'Sem responsável';
+  const after = TEAM_USERS.filter((u) => selected.includes(String(u.id))).map((u) => u.name).join(', ') || 'Sem responsável';
+
+  const pelaEscritaDupla = await tentarEscritaDupla(item, { acao: 'responsaveis', item: String(item.id), pessoas: selected });
+  if (!pelaEscritaDupla) {
+    const mutation = `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`;
+    const values = { person: { personsAndTeams: selected.map((id) => ({ id: Number(id), kind: 'person' })) } };
+    await mondayQuery(mutation, { board: String(item.board_id || (isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID)),
+      item: String(item.id), values: JSON.stringify(values) });
+  }
+  try {
+    await postItemUpdate(item.id, `[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule?.label || '—'}${foraDaRegra.length ? `\nFora da disciplina: ${foraDaRegra.join(', ')}` : ''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);
+  } catch (erro) { console.warn('Responsáveis atualizados, mas o log não foi registrado.', erro); }
+  updateLocalOwners(item.id, selected);
+  return { antes: before, depois: after };
+}
+
 async function saveOwnerAssignments() { const item=findOperationalItem(pendingOwnerEditorItemId); if(!item) return showToast('Demanda não encontrada.','err'); const rule=ownerEligibility(item); const selected=[...donoSelecionados]; const allowed=new Set(rule.users.map(user=>String(user.id))); const foraDaRegra=TEAM_USERS.filter(user=>selected.includes(String(user.id)) && !allowed.has(String(user.id))).map(user=>firstName(user.name)); if(rule.kind==='motion' && (!selected.includes(PESSOAS.RERISTON) || !selected.includes(PESSOAS.DEIVID) || !selected.includes(PESSOAS.BEATRIZ))) return showToast('Motion exige Reriston, Deivid e Bia para preservar audiovisual e direção de arte.','info'); if(!selected.length && !document.getElementById('owner-editor-empty')?.checked) return showToast('Escolha um responsável ou confirme que a atividade ficará sem responsável.','info'); const before=ownerUsersFor(item).map(user=>user.name).join(', ') || 'Sem responsável'; const after=TEAM_USERS.filter(user=>selected.includes(String(user.id))).map(user=>user.name).join(', ') || 'Sem responsável'; const button=document.getElementById('owner-editor-save'); if(button) button.disabled=true; armOutboundMutationGuard('responsáveis'); try { const pelaEscritaDupla=await tentarEscritaDupla(item,{acao:'responsaveis',item:String(item.id),pessoas:selected}); if(!pelaEscritaDupla){ const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; const values={person:{personsAndTeams:selected.map(id=>({id:Number(id),kind:'person'}))}}; await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify(values)}); } try { await postItemUpdate(item.id,`[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule.label}${foraDaRegra.length?`\nFora da disciplina: ${foraDaRegra.join(', ')}`:''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); } catch(logError) { console.warn('Responsáveis atualizados, mas o log não foi registrado.',logError); } updateLocalOwners(item.id,selected); if(isRequestItem(item)){ outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{responsavel_ids:selected,responsavel_id:selected[0]||''},'responsáveis'); closeOwnerEditor(); if(String(activeWorkspaceItemId)===String(item.id)) { const current=findOperationalItem(item.id)||item; renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),current); } showToast(foraDaRegra.length?`✓ Responsáveis atualizados · ${foraDaRegra.join(', ')} fora da disciplina ${rule.label}, registrado no histórico`:'✓ Responsáveis atualizados · painel mantido no contexto atual', foraDaRegra.length?'info':'ok', foraDaRegra.length?7000:undefined); } catch(error) { if(button) button.disabled=false; showToast(`Não foi possível atualizar responsáveis: ${error.message}`,'err',7000); } }
 
 const DESIGN_TEAM   = ['deivid','beatriz','jady','victória','victoria'];

@@ -1536,6 +1536,7 @@ function renderVisaoDeGrupos(quadro) {
       <span class="lote-risco" aria-hidden="true"></span>
       ${acao('Status', 'loteStatus(event)')}
       ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
+      ${acao('Responsável', 'loteResponsavel(event)')}
       ${quadro === 'demandas' ? '' : acao('Captação', 'loteCaptacao(event)')}
       ${acao('Prazo', "lotePrazo(event,'prazo')")}
       ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
@@ -1780,6 +1781,72 @@ async function gravarGrupoDaPeca(item, grupoId) {
 
 // Mover de grupo em lote — o pedido mais comum depois de marcar meia duzia de
 // pecas: elas avancaram de etapa juntas e a etapa e o grupo.
+// Responsavel em lote: adicionar, tirar ou deixar so uma pessoa.
+//
+// Sao tres verbos porque marcar dez pecas e escolher uma pessoa e ambiguo — quem
+// marcou pode querer somar essa pessoa ao time que ja esta na peca, tirar quem
+// saiu de ferias, ou zerar e deixar so ela. Um botao "definir" faria as tres
+// coisas parecerem uma, e a errada apagaria responsavel sem avisar.
+let LOTE_MODO_DE_RESPONSAVEL = 'somar';
+
+function loteResponsavel(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (!SELECIONADAS.size) return;
+  fecharMenuDeLote();
+  const equipe = (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).filter((u) => u?.id);
+  if (!equipe.length) return showToast('A equipe ainda está carregando.', 'info');
+
+  const fundo = document.createElement('div');
+  fundo.id = 'lote-editor-backdrop';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharMenuDeLote;
+  const menu = document.createElement('div');
+  menu.id = 'lote-editor';
+  menu.className = 'status-editor lote-dono';
+  const modos = [['somar', 'Adicionar'], ['tirar', 'Remover'], ['trocar', 'Deixar só']];
+  menu.innerHTML = `<div class="status-editor-head">Responsável · ${SELECIONADAS.size} ${
+      SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}</div>
+    <div class="lote-dono-modos">${modos.map(([id, rotulo]) => `<button type="button"
+      class="lote-dono-modo ${LOTE_MODO_DE_RESPONSAVEL === id ? 'ativo' : ''}" data-modo="${id}"
+      onclick="trocarModoDeResponsavel('${id}')">${rotulo}</button>`).join('')}</div>
+    <div class="dono-fichas">${equipe.map((u) => `<button type="button" class="dono-ficha"
+      onclick="aplicarResponsavelEmLote('${safeText(String(u.id))}')" title="${safeText(u.name)}">
+      ${ownerAvatarHtml(u)}<span><b>${safeText(firstName(u.name))}</b></span></button>`).join('')}</div>
+    <p class="lote-dono-nota">A disciplina de cada peça continua valendo: quem ficar fora dela entra
+      marcado no histórico da peça, como no editor de uma só.</p>`;
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, event.currentTarget.getBoundingClientRect());
+}
+
+function trocarModoDeResponsavel(modo) {
+  LOTE_MODO_DE_RESPONSAVEL = modo;
+  document.querySelectorAll('#lote-editor .lote-dono-modo').forEach((b) => {
+    b.classList.toggle('ativo', b.dataset.modo === modo);
+  });
+}
+
+function aplicarResponsavelEmLote(id) {
+  const alvo = String(id);
+  const pessoa = (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).find((u) => String(u.id) === alvo);
+  const nome = pessoa ? firstName(pessoa.name) : 'a pessoa';
+  const modo = LOTE_MODO_DE_RESPONSAVEL;
+  const rotulo = modo === 'somar' ? `${nome} como responsável`
+    : modo === 'tirar' ? `a saída de ${nome}` : `só ${nome} como responsável`;
+  fecharMenuDeLote();
+  aplicarEmLote(rotulo, async (item) => {
+    const atuais = (typeof assignedIds === 'function' ? assignedIds(item) : []).map(String);
+    let novos;
+    if (modo === 'trocar') novos = [alvo];
+    else if (modo === 'somar') novos = atuais.includes(alvo) ? atuais : [...atuais, alvo];
+    else novos = atuais.filter((x) => x !== alvo);
+    // Nada a fazer nesta peca nao e erro: tirar quem nunca esteve nela e somar
+    // quem ja estava sao os dois casos normais de um lote de dez.
+    if (novos.length === atuais.length && novos.every((x) => atuais.includes(x))) return;
+    await gravarResponsaveisDaPeca(item, novos);
+  });
+}
+
 function loteGrupo(event, quadro) {
   const lista = quadro === 'demandas' ? GRUPOS_DE_DEMANDAS : ORDEM_DOS_GRUPOS;
   if (!lista?.length) return showToast('Os grupos ainda estão carregando.', 'info');
