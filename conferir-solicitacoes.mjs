@@ -16,6 +16,20 @@
 //   node conferir-solicitacoes.mjs --corrigir   → manda os valores da Vybe
 
 import { neon } from '@neondatabase/serverless';
+import fs from 'node:fs';
+
+// As chaves podem vir de um arquivo .env ao lado deste script, para nao
+// precisarem ser digitadas numa linha de comando — la elas ficariam no
+// historico do terminal. O .env esta no .gitignore e nunca vai para o git.
+try {
+  for (const linha of fs.readFileSync(new URL('.env', import.meta.url), 'utf8').split('\n')) {
+    const corte = linha.indexOf('=');
+    if (corte < 1 || linha.trim().startsWith('#')) continue;
+    const chave = linha.slice(0, corte).trim();
+    const valor = linha.slice(corte + 1).trim().replace(/^["']|["']$/g, '');
+    if (chave && valor && !process.env[chave]) process.env[chave] = valor;
+  }
+} catch { /* sem .env: as chaves vem do ambiente */ }
 
 const BOARD_DEMANDAS = 8385559107;
 // As colunas certas do quadro de Solicitações. As de Produção, que o bug usava
@@ -27,8 +41,10 @@ const CORRIGIR = process.argv.includes('--corrigir');
 
 function faltando(nome, ondeAchar) {
   console.error(`\n  Falta a variável ${nome}.\n  ${ondeAchar}\n`);
-  console.error('  Como passar, numa linha só:');
-  console.error(`     ${nome}="valor" node conferir-solicitacoes.mjs\n`);
+  console.error('  Crie um arquivo chamado .env na pasta do painel com as duas linhas:');
+  console.error('     DATABASE_URL=cole aqui');
+  console.error('     MONDAY_TOKEN=cole aqui');
+  console.error('  Depois rode:  node conferir-solicitacoes.mjs\n');
   process.exit(1);
 }
 
@@ -43,7 +59,14 @@ if (!process.env.MONDAY_TOKEN) {
   + '  vybe-painel-v2 → Settings → Environment Variables → MONDAY_TOKEN.');
 }
 
-const sql = neon(process.env.DATABASE_URL);
+let sql;
+try { sql = neon(process.env.DATABASE_URL); }
+catch {
+  console.error('\n  O DATABASE_URL não parece um endereço de banco válido.');
+  console.error('  Ele começa com  postgres://  ou  postgresql://  e é uma linha longa.');
+  console.error('  Confira se copiou a linha inteira da Vercel, sem espaço no fim.\n');
+  process.exit(1);
+}
 
 async function monday(query, variables = {}) {
   const r = await fetch('https://api.monday.com/v2', {
@@ -223,4 +246,14 @@ async function main() {
   console.log(`\n  ${ok} corrigidas, ${erro} com erro.\n`);
 }
 
-main().catch((e) => { console.error('\n  Parou:', e.message, '\n'); process.exit(1); });
+main().catch((e) => {
+  const m = String(e.message || e);
+  if (/unauthor|forbidden|token/i.test(m)) {
+    console.error('\n  O Monday recusou a chave. Confira se o MONDAY_TOKEN foi copiado inteiro.\n');
+  } else if (/connect|ENOTFOUND|password|authentication/i.test(m)) {
+    console.error('\n  Não consegui falar com o banco. Confira o DATABASE_URL.\n');
+  } else {
+    console.error('\n  Parou:', m, '\n');
+  }
+  process.exit(1);
+});

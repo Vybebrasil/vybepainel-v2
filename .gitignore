@@ -2,3 +2,4 @@ node_modules/
 dev-server.mjs
 css-fingerprint.js
 .claude/
+.env
