@@ -912,8 +912,21 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;
     // So aceita cliente que exista na lista do passo: guardar um nome que a tela
     // nao mostra deixaria o resumo falando de um cliente que ninguem escolheu.
+    //
+    // A comparacao ignora caixa e acento porque o mesmo cliente chega escrito de
+    // dois jeitos vindo do Monday — 'ConectaSim' no filtro do calendario e
+    // 'Conectasim' na lista daqui, e o cadastro perguntava de novo um cliente
+    // que ja estava escolhido. O que NAO se faz e aproximar por pedaco do nome:
+    // 'Gonzalez' e 'Gonzalez Advocacia' sao dois clientes de verdade, e chutar
+    // entre eles cadastraria a peca no cliente errado.
     const listaDeClientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
-    if (inicio.client && listaDeClientes.includes(inicio.client)) state.client = inicio.client;
+    const chaveCliente = (nome) => String(nome || '').normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (inicio.client) {
+      const alvo = chaveCliente(inicio.client);
+      const achado = alvo && listaDeClientes.find((c) => chaveCliente(c) === alvo);
+      if (achado) state.client = achado;
+    }
     if (inicio.veic) {
       state.itens[0].veic = inicio.veic;
       state.itens[0].prazo = inicio.prazo || getOffsetDate(inicio.veic, -7);
