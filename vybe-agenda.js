@@ -915,7 +915,7 @@ const SELECIONADAS = new Set();
 const CAMPOS_DE_ESCOLHA = {
   captacao:      { rotulo: 'Captação',
                    colunas: { producao: 'status_1__1' } },
-  formato:       { rotulo: 'Formato',
+  formato:       { rotulo: 'Formato', rotuloDemandas: 'Tipo de demanda',
                    colunas: { producao: 'lista_suspensa0__1', demandas: 'dropdown_mkv8d52z' } },
   tipo_conteudo: { rotulo: 'Tipo de conteúdo',
                    colunas: { producao: 'lista_suspensa__1' } },
@@ -925,10 +925,21 @@ const CAMPOS_DE_ESCOLHA = {
                    colunas: { producao: 'color_mm164yv8', demandas: 'color_mkwtgakv' } },
 };
 
-const quadroDoItem = (item) => (String(item?.board_id || '') === String(
-  typeof BOARD_DEMANDAS_ID !== 'undefined' ? BOARD_DEMANDAS_ID : '') ? 'demandas' : 'producao');
+// Quem decide se a atividade e uma solicitacao e o isRequestItem, que ja
+// existia: ele olha a origem E o board_id. Olhar so o board_id me traiu — a
+// lista crua de Solicitacoes nao carrega esse campo, entao toda linha se dizia
+// de Producao e a tabela desenhava as colunas do quadro errado.
+const quadroDoItem = (item) => (typeof isRequestItem === 'function' && isRequestItem(item))
+  ? 'demandas' : 'producao';
 const colunaDoCampo = (campo, item) => CAMPOS_DE_ESCOLHA[campo]?.colunas?.[quadroDoItem(item)] || '';
 const campoExisteNoQuadro = (campo, item) => Boolean(colunaDoCampo(campo, item));
+// A mesma coluna tem nome diferente nos dois quadros. O que em Producao e
+// 'Formato' e em Solicitacoes 'Tipo de demanda' — e e assim que o time chama.
+const rotuloDoCampo = (campo, item) => {
+  const cfg = CAMPOS_DE_ESCOLHA[campo];
+  if (!cfg) return campo;
+  return quadroDoItem(item) === 'demandas' && cfg.rotuloDemandas ? cfg.rotuloDemandas : cfg.rotulo;
+};
 
 // O processItems escreve '—' quando a coluna vem vazia. Sem isto, o traço virava
 // uma pílula com um traço dentro, como se fosse um valor.
@@ -962,7 +973,7 @@ function pillEditavel(item, campo) {
     : pillHtml(valor, escolha?.cor || '', escolha?.borda || '');
   return `<button type="button" class="grupo-pill-btn"
     onclick="abrirEscolha(event,'${safeText(item.id)}','${campo}')"
-    title="Trocar ${safeText(CAMPOS_DE_ESCOLHA[campo]?.rotulo || campo)}">${dentro}</button>`;
+    title="Trocar ${safeText(rotuloDoCampo(campo, item))}">${dentro}</button>`;
 }
 
 function abrirEscolha(event, itemId, campo) {
@@ -971,18 +982,17 @@ function abrirEscolha(event, itemId, campo) {
   fecharEscolha();
   const item = findOperationalItem(itemId);
   if (!item) return showToast('Item não encontrado.', 'err');
-  const cfg = CAMPOS_DE_ESCOLHA[campo];
   const atual = String(item[campo] || '');
   // Opção desativada no Monday só aparece se a peça ainda estiver nela.
   // Quem administra vê também as desligadas, para poder religar; quem opera vê
   // só o que dá para escolher.
   if (!campoExisteNoQuadro(campo, item)) {
-    return showToast(`${cfg?.rotulo || campo} não existe no quadro desta atividade.`, 'info');
+    return showToast(`${rotuloDoCampo(campo, item)} não existe no quadro desta atividade.`, 'info');
   }
   const coluna = colunaDoCampo(campo, item);
   const opcoes = catalogoDoCampo(campo, item)
     .filter((o) => o.ativa || o.rotulo === atual || podeGerirEtiquetas());
-  if (!opcoes.length) return showToast(`As opções de ${cfg?.rotulo || campo} ainda estão carregando.`, 'info');
+  if (!opcoes.length) return showToast(`As opções de ${rotuloDoCampo(campo, item)} ainda estão carregando.`, 'info');
 
   const rect = event.currentTarget.getBoundingClientRect();
   const fundo = document.createElement('div');
@@ -1006,7 +1016,7 @@ function abrirEscolha(event, itemId, campo) {
       <button type="button" class="icone-btn" title="Trocar a cor" aria-label="Trocar a cor" onclick="event.stopPropagation();recolorirEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${o.cor || ''}')">${ICONE.gota}</button>
       <button type="button" class="icone-btn perigo" title="Apagar" aria-label="Apagar" onclick="event.stopPropagation();removerEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lixo}</button>
     </span>` : '';
-  menu.innerHTML = `<div class="status-editor-head">${safeText(cfg?.rotulo || campo)}</div>
+  menu.innerHTML = `<div class="status-editor-head">${safeText(rotuloDoCampo(campo, item))}</div>
     ${opcoes.map((o) => `<div class="etiqueta-linha ${o.ativa ? '' : 'desligada'}">
         <button type="button" class="status-editor-option ${o.rotulo === atual ? 'current' : ''}"
           onclick="escolherValor('${safeText(item.id)}','${campo}','${safeText(o.chave)}')">
@@ -1220,7 +1230,12 @@ const VISAO_DE_GRUPOS = {
   producao: { alvo: 'grupos-board', botao: 'ops-grupos-btn', contador: 'ops-grupos-count',
               fonte: () => (DADOS_ALL?.length ? DADOS_ALL : DADOS || []), ordem: () => ORDEM_DOS_GRUPOS },
   demandas: { alvo: 'grupos-board-demandas', botao: 'demandas-grupos-btn', contador: 'demandas-grupos-count',
-              fonte: () => (DADOS_DEMANDAS || []), ordem: () => GRUPOS_DE_DEMANDAS },
+              // A lista crua de Solicitacoes fala outro idioma: 'tipo' em vez de
+              // 'formato', 'conclusao_iso' em vez de 'veiculacao_iso', e sem
+              // board_id. O normalizador que Meu Dia e Modo Foco ja usam faz a
+              // traducao — sem ele a tabela lia campos que nao existem.
+              fonte: () => (DADOS_DEMANDAS || []).map(normalizeRequestForOperational),
+              ordem: () => GRUPOS_DE_DEMANDAS },
 };
 
 function renderVisaoDeGrupos(quadro) {
@@ -1238,6 +1253,10 @@ function renderVisaoDeGrupos(quadro) {
   if (botao) botao.setAttribute('aria-expanded', String(aberta));
   if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
+
+  const peca = (n) => quadro === 'demandas'
+    ? (n === 1 ? 'solicitação' : 'solicitações')
+    : (n === 1 ? 'conteúdo' : 'conteúdos');
 
   const blocos = grupos.map(grupo => {
     const recolhido = gruposRecolhidos.has(grupo.id);
@@ -1257,11 +1276,11 @@ function renderVisaoDeGrupos(quadro) {
           <tbody>${visiveis.map(linhaDeGrupoHtml).join('')}</tbody>
         </table>
       </div>
-      ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${restam === 1 ? 'conteúdo' : 'conteúdos'}</button>` : ''}`;
+      ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${peca(restam)}</button>` : ''}`;
     return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
       <button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
-        <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small>${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</small></span>
+        <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small>${total} ${peca(total)}</small></span>
       </button>${corpo}</section>`;
   }).join('');
 
@@ -1270,7 +1289,7 @@ function renderVisaoDeGrupos(quadro) {
   const barra = SELECIONADAS.size ? `<div class="grupos-lote">
       <b>${SELECIONADAS.size} selecionada${SELECIONADAS.size === 1 ? '' : 's'}</b>
       <button type="button" onclick="loteStatus(event)">Status…</button>
-      <button type="button" onclick="loteCaptacao(event)">Captação…</button>
+      ${quadro === 'demandas' ? '' : '<button type="button" onclick="loteCaptacao(event)">Captação…</button>'}
       <button type="button" onclick="lotePrazo('prazo')">Prazo…</button>
       <button type="button" onclick="lotePrazo('veiculacao')">Veiculação…</button>
       <button type="button" class="quieto" onclick="limparSelecao()">Limpar</button>
