@@ -252,7 +252,7 @@ function managerCalendarStatusColor(item, fallback='#ff8b38') {
 // 'ignorarCliente' existe para a régua de clientes: ela precisa enxergar o mês
 // inteiro, senão some todo mundo assim que alguém é escolhido — e a única saída
 // vira voltar em 'Todos' para depois escolher outro.
-function managerCalendarItems({ ignorarCliente = false } = {}) {
+function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
   const production = (DADOS_ALL?.length ? DADOS_ALL : DADOS || []).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item)).map(item => ({
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'content', calendarDateIso: dateMode === 'prazo' ? (item.prazo_iso || '') : (item.veiculacao_iso || ''), calendarType: item.formato || 'Conteúdo'
   }));
@@ -260,6 +260,9 @@ function managerCalendarItems({ ignorarCliente = false } = {}) {
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'request', calendarDateIso: dateMode === 'prazo' ? (item.prazo_iso || '') : (item.conclusao_iso || ''), calendarType: item.tipo || 'Solicitação'
   }));
   return [...production, ...requests].filter(item => {
+    // 'apenas' e o recorte fixo de quem chama (a aba Solicitacoes pede so as
+    // dela); managerCalendarSourceFilter continua sendo a escolha da pessoa.
+    if (apenas && item.calendarSource !== apenas) return false;
     if (managerCalendarSourceFilter !== 'all' && item.calendarSource !== managerCalendarSourceFilter) return false;
     if (!ignorarCliente && managerCalendarClientFilter !== 'all' && item.cliente !== managerCalendarClientFilter) return false;
     return Boolean(item.calendarDateIso);
@@ -789,8 +792,8 @@ function verGrupoInteiro(groupId) {
   renderVisaoDeGrupos();
 }
 
-function itensPorGrupo() {
-  const base = (DADOS_ALL?.length ? DADOS_ALL : DADOS || [])
+function itensPorGrupo(fonte = null, ordem = null) {
+  const base = (fonte || (DADOS_ALL?.length ? DADOS_ALL : DADOS || []))
     .filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item));
   const mapa = new Map();
   base.forEach(item => {
@@ -800,11 +803,12 @@ function itensPorGrupo() {
   });
   // Grupos na ordem do board; qualquer grupo novo que apareça no Monday entra
   // no fim em vez de sumir da tela.
-  const conhecidos = ORDEM_DOS_GRUPOS.filter(id => mapa.has(id));
-  const novos = [...mapa.keys()].filter(id => !ORDEM_DOS_GRUPOS.includes(id)).sort();
+  const sequencia = ordem || ORDEM_DOS_GRUPOS;
+  const conhecidos = sequencia.filter(id => mapa.has(id));
+  const novos = [...mapa.keys()].filter(id => !sequencia.includes(id)).sort();
   return [...conhecidos, ...novos].map(id => ({
     id,
-    nome: GROUP_MAP[id] || id || 'Sem grupo',
+    nome: TITULO_DOS_GRUPOS[id] || GROUP_MAP[id] || id || 'Sem grupo',
     itens: ordenarItens(mapa.get(id)),
   }));
 }
@@ -1181,16 +1185,29 @@ async function salvarDataNaLinha(itemId, campo, input) {
   }
 }
 
-function renderVisaoDeGrupos() {
-  const wrap = document.getElementById('grupos-board');
-  const botao = document.getElementById('ops-grupos-btn');
+// A mesma visao serve os dois quadros: muda a fonte, o destino e a ordem dos
+// grupos. Solicitacoes tem grupos proprios (Novas Demandas, A Fazer, Em
+// Execucao, Concluidas) e nunca vao aparecer na ordem de Producao.
+const VISAO_DE_GRUPOS = {
+  producao: { alvo: 'grupos-board', botao: 'ops-grupos-btn', contador: 'ops-grupos-count',
+              fonte: () => (DADOS_ALL?.length ? DADOS_ALL : DADOS || []), ordem: () => ORDEM_DOS_GRUPOS },
+  demandas: { alvo: 'grupos-board-demandas', botao: 'demandas-grupos-btn', contador: 'demandas-grupos-count',
+              fonte: () => (DADOS_DEMANDAS || []), ordem: () => GRUPOS_DE_DEMANDAS },
+};
+
+function renderVisaoDeGrupos(quadro = 'producao') {
+  const cfg = VISAO_DE_GRUPOS[quadro] || VISAO_DE_GRUPOS.producao;
+  const wrap = document.getElementById(cfg.alvo);
+  const botao = document.getElementById(cfg.botao);
   if (!wrap) return;
-  const grupos = itensPorGrupo();
+  const grupos = itensPorGrupo(cfg.fonte(), cfg.ordem());
   if (botao) {
-    const contador = document.getElementById('ops-grupos-count');
+    const contador = document.getElementById(cfg.contador);
     if (contador) contador.textContent = grupos.length;
   }
-  if (!visaoDeGruposAberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
+  const aberta = quadro === 'demandas' ? gruposDeDemandasAberto : visaoDeGruposAberta;
+  if (botao) botao.setAttribute('aria-expanded', String(aberta));
+  if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
 
   const blocos = grupos.map(grupo => {
@@ -1441,4 +1458,66 @@ async function moverPecaDeGrupo(itemId, grupoId) {
   showToast(`✓ ${de} → ${para}`, 'ok');
   if (typeof renderIntegratedOperationalViews === 'function') renderIntegratedOperationalViews();
   if (document.getElementById('cartao-rapido')) fecharCartaoRapido();
+}
+
+// ─── Grupos e calendário na aba Solicitações ─────────────────────────────────
+// A aba so tinha semana, dia e esteira: para ver tudo dividido por etapa do
+// quadro, ou espalhado num mes, era preciso ir ao Monday. A visao de grupos ja
+// existia para Producao e passou a aceitar o quadro como parametro; o
+// calendario ja somava os dois quadros e passou a aceitar um recorte.
+let gruposDeDemandasAberto = false;
+let agendaDeDemandasAberta = false;
+
+function alternarGruposDeDemandas() {
+  gruposDeDemandasAberto = !gruposDeDemandasAberto;
+  if (gruposDeDemandasAberto) { agendaDeDemandasAberta = false; renderAgendaDeDemandas(); }
+  renderVisaoDeGrupos('demandas');
+}
+
+function alternarAgendaDeDemandas() {
+  agendaDeDemandasAberta = !agendaDeDemandasAberta;
+  if (agendaDeDemandasAberta) { gruposDeDemandasAberto = false; renderVisaoDeGrupos('demandas'); }
+  renderAgendaDeDemandas();
+}
+
+function renderAgendaDeDemandas() {
+  const wrap = document.getElementById('agenda-board-demandas');
+  const botao = document.getElementById('demandas-agenda-btn');
+  if (!wrap) return;
+  const meta = managerCalendarMonthMeta();
+  const itens = managerCalendarItems({ ignorarCliente: true, apenas: 'request' });
+  const contador = document.getElementById('demandas-agenda-count');
+  if (contador) contador.textContent = itens.filter(i => meta.cells.some(c => c.iso === i.calendarDateIso)).length;
+  if (botao) botao.setAttribute('aria-expanded', String(agendaDeDemandasAberta));
+  if (!agendaDeDemandasAberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
+  wrap.classList.remove('focus-hidden');
+
+  const porDia = new Map();
+  itens.forEach(i => {
+    if (!porDia.has(i.calendarDateIso)) porDia.set(i.calendarDateIso, []);
+    porDia.get(i.calendarDateIso).push(i);
+  });
+  const dias = ['seg','ter','qua','qui','sex','sáb','dom'];
+  wrap.innerHTML = `<section class="manager-calendar-shell">
+    <div class="manager-calendar-toolbar">
+      <span class="manager-calendar-month-label">${safeText(meta.label || '')}</span>
+      <span class="manager-calendar-status">${itens.length} solicitaç${itens.length === 1 ? 'ão' : 'ões'} com data</span>
+    </div>
+    <div class="manager-calendar-grid">
+      ${dias.map(d => `<div class="manager-calendar-weekday">${d}</div>`).join('')}
+      ${meta.cells.map(cell => {
+        const doDia = porDia.get(cell.iso) || [];
+        return `<div class="manager-calendar-day ${cell.outside ? 'outside' : ''} ${cell.iso === (HOJE_ISO || '') ? 'today' : ''}">
+          <div class="manager-calendar-day-head"><b>${cell.day}</b>${doDia.length ? `<small>${doDia.length}</small>` : ''}</div>
+          ${doDia.slice(0, 4).map(i => `<button type="button" class="manager-calendar-item"
+              style="--cor-item:${corDeStatus(i.status)?.cor || '#7c8797'}"
+              onclick="abrirCartaoRapido('${safeText(i.id)}',event,'request')"
+              title="${safeText(i.cliente || '')} · ${safeText(i.nome || '')}">
+              <span class="manager-calendar-client">${safeText(i.cliente || 'Sem cliente')}</span>
+              <span class="manager-calendar-name">${safeText(i.nome || 'Sem título')}</span></button>`).join('')}
+          ${doDia.length > 4 ? `<span class="manager-calendar-more">+${doDia.length - 4}</span>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  </section>`;
 }

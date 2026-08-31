@@ -620,6 +620,8 @@ function filtrarDemandasBase() {
 }
 
 function renderDemandas() {
+  if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos('demandas');
+  if (typeof renderAgendaDeDemandas === 'function') renderAgendaDeDemandas();
   const fi = filtrarDemandasBase();
   // Atualizar título da semana
   const titleEl = document.getElementById('title-demanda-semana');

@@ -2581,6 +2581,15 @@ button:not(:disabled):not([aria-disabled="true"]):active,
    por baixo enquanto rola e sempre termina acima dela. */
 .workspace-drawer{scroll-padding-bottom:96px}
 .workspace-drawer::after{content:'';display:block;height:88px;flex:none}
+
+/* Botoes de Grupos e Calendario na aba Solicitacoes: mesma forma dos de
+   Producao, com o contador ao lado como na barra de comando. */
+.demandas-sep{display:inline-block;width:1px;height:20px;margin:0 4px;
+  background:rgba(255,255,255,.12);vertical-align:middle}
+#demandas-grupos-btn b,#demandas-agenda-btn b{margin-left:6px;padding:1px 6px;border-radius:999px;
+  background:rgba(255,255,255,.10);color:#f2f2f5;font:700 10.5px var(--mac-mono)}
+#demandas-grupos-btn[aria-expanded="true"],#demandas-agenda-btn[aria-expanded="true"]{
+  border-color:var(--accent,#ff6b00);color:#ffbd61}
 </style></head>
 <body>
 
@@ -2957,7 +2966,18 @@ button:not(:disabled):not([aria-disabled="true"]):active,
       </select>
       <button class="sort-btn" id="btn-dview-day" onclick="toggleDemandaViewDay(this)">Ver por Dia</button>
       <button class="sort-btn" onclick="clearDemandaFilters()" style="border-color:#df2f4a;color:#df2f4a;">✕ Limpar Filtros</button>
+      <span class="demandas-sep"></span>
+      <button class="sort-btn" id="demandas-grupos-btn" onclick="alternarGruposDeDemandas()"
+        aria-expanded="false" title="Solicitações divididas pelos grupos do quadro">Grupos
+        <b id="demandas-grupos-count"></b></button>
+      <button class="sort-btn" id="demandas-agenda-btn" onclick="alternarAgendaDeDemandas()"
+        aria-expanded="false" title="Agenda mensal das solicitações">Calendário
+        <b id="demandas-agenda-count"></b></button>
     </div>
+
+    <!-- Grupos e calendário das solicitações -->
+    <div id="grupos-board-demandas" class="focus-hidden"></div>
+    <div id="agenda-board-demandas" class="focus-hidden"></div>
 
     <!-- View: Por Semana (cards de cliente) -->
     <div id="panel-demandas-semana">
