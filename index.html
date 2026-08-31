@@ -2667,6 +2667,12 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   background:color-mix(in srgb,var(--da-plan-color,#ff9d00) 14%,transparent);color:#f2f2f5}
 /* Com varias pessoas, as fotos empilham um pouco em vez de esticar o topo. */
 .da-planning-head-main .da-planning-avatar+.da-planning-avatar{margin-left:-10px}
+/* Botao de agenda liga e desliga: sem uma marca de "ligado" alem da cor, quem
+   olha nao sabe se clicar vai somar ou trocar. O visto resolve isso. */
+.da-planning-switcher>span{display:flex!important;flex-direction:column;line-height:1.25}
+.da-planning-switcher>span small{color:#6f7887;font:600 9px var(--mac-ui);letter-spacing:.02em;text-transform:none}
+.da-planning-switcher button.active::after{content:'✓';margin-left:1px;color:var(--da-plan-color,#ff9d00);
+  font:700 10px var(--mac-ui)}
 @media(max-width:760px){.da-planning-overlay{padding:0!important}.da-planning-modal{width:100vw!important;height:100vh!important;max-height:100vh!important;border-radius:0!important}.da-planning-head{min-height:50px!important;padding:7px 10px!important}.da-planning-head-main>div>small{display:none!important}.da-planning-switcher{padding:5px 8px!important}.da-planning-switcher>span{display:none!important}.da-planning-controls{padding:5px 8px!important}.da-planning-summary{padding:0 8px!important}.da-planning-summary>span{min-height:34px!important;padding:4px!important;gap:4px!important}.da-planning-summary>span b{font-size:14px!important}.da-planning-summary>span small{font-size:8px!important;white-space:normal!important}.da-planning-note{display:none!important}.da-planning-health{grid-template-columns:96px minmax(140px,1fr)!important;padding:5px 8px!important}.da-planning-health-legend{display:none!important}.da-planning-bulkbar{padding:6px 8px!important}.da-planning-bulkbar small{display:none!important}.da-planning-direct-hint{display:none!important}.da-planning-list{margin:0!important}.da-planning-row{min-width:1054px!important}}
 </style></head>
 <body>
