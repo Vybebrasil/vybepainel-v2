@@ -2669,10 +2669,33 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-planning-head-main .da-planning-avatar+.da-planning-avatar{margin-left:-10px}
 /* Botao de agenda liga e desliga: sem uma marca de "ligado" alem da cor, quem
    olha nao sabe se clicar vai somar ou trocar. O visto resolve isso. */
-.da-planning-switcher>span{display:flex!important;flex-direction:column;line-height:1.25}
-.da-planning-switcher>span small{color:#6f7887;font:600 9px var(--mac-ui);letter-spacing:.02em;text-transform:none}
+/* O rotulo da faixa em duas linhas escorregava por cima do primeiro botao: a
+   faixa e uma fila horizontal, e o texto crescia para baixo sem reservar largura.
+   Uma linha so, sem quebrar, e sem encolher. */
+.da-planning-switcher>span{flex:0 0 auto!important;white-space:nowrap!important;max-width:none!important;
+  width:auto!important;min-width:max-content!important}
+/* A dica fica depois dos botoes, onde sobra espaco: no comeco ela empurrava a
+   fila inteira e escorregava por cima do primeiro nome. */
+.da-planning-dica{flex:0 0 auto;margin-left:8px;color:#6f7887;font:600 10px var(--mac-ui);white-space:nowrap}
 .da-planning-switcher button.active::after{content:'✓';margin-left:1px;color:var(--da-plan-color,#ff9d00);
   font:700 10px var(--mac-ui)}
+/* Donos da peca: quem esta na mesa acende, quem nao esta fica apagado mas visivel. */
+.da-planning-donos{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.da-planning-dono{padding:1px 7px;border:1px solid rgba(255,255,255,.12);border-radius:999px;
+  background:rgba(255,255,255,.03);color:#7c8797;font:700 9.5px var(--mac-ui);letter-spacing:.02em}
+.da-planning-dono.na-mesa{border-color:color-mix(in srgb,var(--da-plan-color,#ff9d00) 45%,transparent);
+  background:color-mix(in srgb,var(--da-plan-color,#ff9d00) 13%,transparent);color:#f2f2f5}
+.da-planning-dono.vazio{border-style:dashed;color:#6f7887}
+/* Cabeca de bloco por pessoa. Fica grudada no topo ao rolar, como na visao por
+   grupos: numa lista de cem, saber de quem e o trecho so vale se a resposta
+   continuar a vista enquanto se rola. */
+.da-planning-grupo{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-bottom:1px solid var(--linha);
+  background:linear-gradient(180deg,#141821,#10131a);
+  box-shadow:inset 3px 0 0 color-mix(in srgb,var(--da-plan-color,#ff9d00) 70%,transparent)}
+.da-planning-grupo b{color:#f2f2f5;font:700 11.5px var(--mac-ui);letter-spacing:.02em;text-transform:uppercase}
+.da-planning-grupo small{color:#8f98a9;font:700 10px var(--mac-ui)}
+.da-planning-grupo-nota{margin-left:auto;color:#6f7887;font:600 10px var(--mac-ui)}
 @media(max-width:760px){.da-planning-overlay{padding:0!important}.da-planning-modal{width:100vw!important;height:100vh!important;max-height:100vh!important;border-radius:0!important}.da-planning-head{min-height:50px!important;padding:7px 10px!important}.da-planning-head-main>div>small{display:none!important}.da-planning-switcher{padding:5px 8px!important}.da-planning-switcher>span{display:none!important}.da-planning-controls{padding:5px 8px!important}.da-planning-summary{padding:0 8px!important}.da-planning-summary>span{min-height:34px!important;padding:4px!important;gap:4px!important}.da-planning-summary>span b{font-size:14px!important}.da-planning-summary>span small{font-size:8px!important;white-space:normal!important}.da-planning-note{display:none!important}.da-planning-health{grid-template-columns:96px minmax(140px,1fr)!important;padding:5px 8px!important}.da-planning-health-legend{display:none!important}.da-planning-bulkbar{padding:6px 8px!important}.da-planning-bulkbar small{display:none!important}.da-planning-direct-hint{display:none!important}.da-planning-list{margin:0!important}.da-planning-row{min-width:1054px!important}}
 </style></head>
 <body>
