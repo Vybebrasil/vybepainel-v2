@@ -737,6 +737,23 @@ function daPlanningControlsHtml(userId,visible,total){ const filters=[['all','TO
 
 function daIndividualPlanningGoldenState(item){ const veic=String(item?.veiculacao_iso||''); const prazo=String(item?.prazo_iso||''); const golden=goldenDeadlineIso(veic); const gap=goldenDeadlineGap(prazo,veic); if(!veic) return {kind:'pending',label:'SEM VEICULAÇÃO',copy:'Defina a veiculação para validar a margem.'}; if(!prazo) return {kind:'pending',label:'SEM PRAZO',copy:`Padrão sugerido: ${planningDateBr(golden)}.`}; if(gap===PRAZO_OURO_DIAS) return {kind:'ok',label:'✓ 7 DIAS',copy:'Prazo de Ouro protegido.'}; if(gap>PRAZO_OURO_DIAS){ const extra=gap-PRAZO_OURO_DIAS; return {kind:'slack',label:`✓ +${extra}D DE FOLGA`,copy:`Antecedência de ${gap} dias até a veiculação.`}; } const missing=PRAZO_OURO_DIAS-gap; return {kind:'risk',label:`⚠ ${missing}D ABAIXO`,copy:`Antecedência de ${Math.max(0,gap)} dias · ideal ${planningDateBr(golden)}.`}; }
 function daIndividualPlanningAvatar(user){ return user?.photo?`<img class="da-planning-avatar" src="${user.photo}" alt="${safeText(user.name)}">`:`<span class="da-planning-avatar" style="background:${user?.color||'#ff9d00'}">${safeText(firstName(user?.name||'DA').slice(0,2).toUpperCase())}</span>`; }
+// Clicar na linha abre a atividade, como na tabela por grupos. So o botao
+// "Contexto" abria, e ele e o menor alvo da linha — a peca inteira parecia
+// clicavel e nao era.
+//
+// Em vez de espalhar stopPropagation por cada celula que faz outra coisa, o
+// guarda e um so: clique que nasceu dentro de um controle (marcar, data, enviar
+// arquivo, o proprio Contexto) nao abre nada. Um lugar para conferir, e nao
+// cinco espalhados que alguem esquece ao acrescentar a sexta coluna.
+function daPlanningAbrirPeca(itemId, event) {
+  if (event?.target?.closest?.('input, button, a, label, select, textarea')) return;
+  const selecao = window.getSelection?.();
+  // Quem arrastou para copiar o nome nao quis abrir a peca.
+  if (selecao && String(selecao).trim().length > 2) return;
+  closeDaIndividualPlanningDesk();
+  openItemWorkspace(String(itemId));
+}
+
 function daIndividualPlanningRow(item,index,userId){
   const state=daIndividualPlanningGoldenState(item);
   const veic=item.veiculacao_iso?planningDateBr(item.veiculacao_iso):'Não definida';
@@ -746,7 +763,7 @@ function daIndividualPlanningRow(item,index,userId){
   const allowedUntil=batchLimit||String(item.veiculacao_iso||'');
   const maxAttr=allowedUntil?` max="${safeText(allowedUntil)}"`:'';
   const directTitle=batchLimit?` title="Prazo coletivo: a data será aplicada a todas as demandas marcadas. Limite do lote: ${planningDateBr(batchLimit)}."`:'';
-  return `<article class="da-planning-row ${selected?'is-selected':''}"><label class="da-planning-select" title="Selecionar para ajuste de prazo em lote"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||daControllerPersonId}','${item.id}',this.checked,event)"><span></span></label><span class="da-planning-seq">${String(index+1).padStart(2,'0')}</span><span class="da-planning-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}</small><span class="da-planning-donos">${daPlanningDonosHtml(item)}</span></span><span class="da-planning-airdate"><b>${safeText(veic)}</b><small>Veiculação</small></span><span class="da-planning-tags">${daTacticalFormatTag(item)}${daTacticalStatusTag(item,true)}${daPlanningPrioridadeTag(item)}</span><label class="da-planning-deadline"><input type="date" value="${safeText(deadline)}" data-item-id="${item.id}"${maxAttr}${directTitle} onchange="saveDaPlanningGridDeadline('${userId||daControllerPersonId}','${item.id}',this.value,this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="gold-${state.kind}">${safeText(state.label)} · ${safeText(state.copy)}</small></label><div class="da-planning-file" id="arq-${safeText(String(item.id))}" data-item="${safeText(String(item.id))}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div><button type="button" class="da-planning-open" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${item.id}')">Contexto →</button></article>`;
+  return `<article class="da-planning-row ${selected?'is-selected':''}" onclick="daPlanningAbrirPeca('${safeText(String(item.id))}',event)" title="Abrir ${safeText(item.nome||'a atividade')}"><label class="da-planning-select" title="Selecionar para ajuste de prazo em lote"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||daControllerPersonId}','${item.id}',this.checked,event)"><span></span></label><span class="da-planning-seq">${String(index+1).padStart(2,'0')}</span><span class="da-planning-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}</small><span class="da-planning-donos">${daPlanningDonosHtml(item)}</span></span><span class="da-planning-airdate"><b>${safeText(veic)}</b><small>Veiculação</small></span><span class="da-planning-tags">${daTacticalFormatTag(item)}${daTacticalStatusTag(item,true)}${daPlanningPrioridadeTag(item)}</span><label class="da-planning-deadline"><input type="date" value="${safeText(deadline)}" data-item-id="${item.id}"${maxAttr}${directTitle} onchange="saveDaPlanningGridDeadline('${userId||daControllerPersonId}','${item.id}',this.value,this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="gold-${state.kind}">${safeText(state.label)} · ${safeText(state.copy)}</small></label><div class="da-planning-file" id="arq-${safeText(String(item.id))}" data-item="${safeText(String(item.id))}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div><button type="button" class="da-planning-open" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${item.id}')">Contexto →</button></article>`;
 }
 function daPlanningToggleItem(userId,itemId,checked,event){
   const id=String(itemId);
