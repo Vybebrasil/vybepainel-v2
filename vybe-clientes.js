@@ -254,17 +254,64 @@ function selosDeVisaoDeClientes() {
   const atual = visaoDeClientes();
   alvo.innerHTML = [['tabela', 'Tabela'], ['fichas', 'Fichas']].map(([id, rotulo]) =>
     `<button type="button" class="clientes-visao-btn ${atual === id ? 'ativo' : ''}"
-      onclick="trocarVisaoDeClientes('${id}')">${rotulo}</button>`).join('');
+      onclick="trocarVisaoDeClientes('${id}')">${rotulo}</button>`).join('')
+    + (podeEditarClientes() ? `<button type="button" class="clientes-visao-btn novo"
+        title="Cadastrar um cliente novo" onclick="novoClienteNoPainel()">+ Cliente</button>` : '');
 }
 
 // "Dashboard" no cadastro NAO e endereco: e o estado do painel do cliente,
 // "Atualizado" ou "Desatualizado", igual ao Monday. Eu tinha tratado como link
 // no cartao — ficava invisivel, porque texto nunca vira URL valida.
+//
+// A segunda armadilha foi escrita: metade dos cadastros veio do Monday com
+// "Dasatualizado", com A. Procurar por "desatualiz" nao achava, e esses
+// clientes apareciam VERDES — o oposto do que dizia o cadastro. Aqui o verde
+// so acontece quando o texto realmente comeca por "atualizado".
+function painelEstaEmDia(valor) {
+  const limpo = String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  return /^atualizad/.test(limpo) || /(em dia|ok)$/.test(limpo);
+}
 function paineldoClienteHtml(valor) {
   const texto = String(valor || '').trim();
   if (!texto) return '<span class="cli-vazio">—</span>';
-  const desatualizado = /desatualiz/i.test(texto);
-  return `<span class="cli-painel ${desatualizado ? 'velho' : 'novo'}">${safeText(texto)}</span>`;
+  return `<span class="cli-painel ${painelEstaEmDia(texto) ? 'novo' : 'velho'}">${safeText(texto)}</span>`;
+}
+
+// ── Minimizar os blocos ───────────────────────────────────────────────────────
+// Sao 47 ativos e 24 inativos: aberto de uma vez, para chegar aos inativos era
+// preciso rolar a lista inteira. Agora cada bloco fecha, e o painel lembra como
+// estava — os inativos ja nascem fechados, porque quase nunca sao o que se
+// procura.
+function blocosFechadosDeClientes() {
+  try { return new Set(JSON.parse(localStorage.getItem('vybe_clientes_blocos') || '["inativos"]')); }
+  catch { return new Set(['inativos']); }
+}
+function alternarBlocoDeClientes(id, botao) {
+  const bloco = botao?.closest('.cli-bloco');
+  if (!bloco) return;
+  const fechado = bloco.classList.toggle('fechado');
+  botao.setAttribute('aria-expanded', fechado ? 'false' : 'true');
+  const guardados = blocosFechadosDeClientes();
+  if (fechado) guardados.add(id); else guardados.delete(id);
+  try { localStorage.setItem('vybe_clientes_blocos', JSON.stringify([...guardados])); }
+  catch { /* sem armazenamento */ }
+}
+
+// Quem edita cliente e quem administra — o servidor recusa o resto de qualquer
+// forma, entao o botao nem aparece para os outros.
+function podeEditarClientes() {
+  return typeof podeAdministrar === 'function' ? podeAdministrar() : false;
+}
+
+// O cadastro e a tabela nem sempre chamam o cliente pelo mesmo nome (a tabela
+// usa o nome canonico). Sem achar o id nao ha o que salvar.
+function idDoCliente(nome) {
+  const f = fichaDoCliente(nome);
+  if (f?.id) return String(f.id);
+  const chave = typeof normalizeClientKey === 'function' ? normalizeClientKey(nome) : String(nome || '').toLowerCase();
+  const achado = CADASTRO_CLIENTES.find((c) =>
+    (typeof normalizeClientKey === 'function' ? normalizeClientKey(c.nome) : String(c.nome || '').toLowerCase()) === chave);
+  return achado ? String(achado.id) : '';
 }
 
 function linhaDeClienteHtml(nome) {
@@ -283,15 +330,21 @@ function linhaDeClienteHtml(nome) {
   const portas = [porta('Drive', ligado.drive), porta('Acessos', ligado.link),
                   porta('Planejamento', f.planejamento_url || ligado.planning)]
                  .filter(Boolean).join('') || '<span class="cli-vazio">—</span>';
-  return `<tr onclick="abrirClienteDetalhe('${String(nome).replace(/'/g, "\\'")}')" title="Abrir ${safeText(nome)}">
+  const aspas = String(nome).replace(/'/g, "\\'");
+  const lapis = podeEditarClientes()
+    ? `<button type="button" class="cli-lapis" title="Editar o cadastro de ${safeText(nome)}"
+        onclick="event.stopPropagation();abrirFichaDeCliente('${aspas}')">Editar</button>`
+    : '';
+  return `<tr onclick="abrirClienteDetalhe('${aspas}')" title="Abrir ${safeText(nome)}">
     <td class="cli-nome">${safeText(nome)}</td>
     <td>${safeText(f.heads || ligado.head || '') || '<span class="cli-vazio">—</span>'}</td>
     <td>${paineldoClienteHtml(f.dashboard || ligado.dashboard)}</td>
     <td>${dataBr(f.proxima_reuniao || ligado.nextMeeting) || '<span class="cli-vazio">—</span>'}</td>
     <td>${safeText(f.plano || ligado.plan || '') || '<span class="cli-vazio">—</span>'}</td>
     <td>${safeText(f.segmento || ligado.segment || '') || '<span class="cli-vazio">—</span>'}</td>
-    <td class="cli-portas">${portas}${ligado.doc ? '<span class="cli-porta quieto" title="Documento de acessos guardado no Vybe">Documento</span>' : ''}</td>
-    <td class="cli-numeros"><span title="Conteúdos em aberto">${abertos}</span><span title="Solicitações em aberto" class="${demandas ? 'atencao' : ''}">${demandas}</span></td>
+    <td><div class="cli-portas">${portas}${ligado.doc ? '<span class="cli-porta quieto" title="Documento de acessos guardado no Vybe">Documento</span>' : ''}</div></td>
+    <td><div class="cli-numeros"><span title="Conteúdos em aberto">${abertos}</span><span title="Solicitações em aberto" class="${demandas ? 'atencao' : ''}">${demandas}</span></div></td>
+    <td class="cli-acoes">${lapis}</td>
   </tr>`;
 }
 
@@ -305,16 +358,133 @@ function tabelaDeClientesHtml(clientes) {
   };
   const ativos = clientes.filter(ativo);
   const inativos = clientes.filter((c) => !ativo(c));
+  const fechados = blocosFechadosDeClientes();
   const bloco = (titulo, lista, classe) => !lista.length ? '' : `
-    <section class="cli-bloco ${classe}">
-      <div class="cli-bloco-cabeca"><b>${titulo}</b><small>${lista.length} ${lista.length === 1 ? 'cliente' : 'clientes'}</small></div>
-      <div class="grupo-tabela-rolagem"><table class="grupo-tabela cli-tabela"><thead><tr>
+    <section class="cli-bloco ${classe}${fechados.has(classe) ? ' fechado' : ''}">
+      <button type="button" class="cli-bloco-cabeca" aria-expanded="${fechados.has(classe) ? 'false' : 'true'}"
+        onclick="alternarBlocoDeClientes('${classe}', this)"
+        title="${fechados.has(classe) ? 'Abrir' : 'Minimizar'} a lista de ${titulo.toLowerCase()}">
+        <span class="cli-seta" aria-hidden="true">▾</span>
+        <b>${titulo}</b><small>${lista.length} ${lista.length === 1 ? 'cliente' : 'clientes'}</small>
+      </button>
+      <div class="cli-bloco-corpo"><div class="grupo-tabela-rolagem"><table class="grupo-tabela cli-tabela"><thead><tr>
         <th>Cliente</th><th>Head</th><th>Dashboard</th><th>Próx. reunião</th>
-        <th>Plano</th><th>Segmento</th><th>Dados &amp; acessos</th><th>Aberto</th>
-      </tr></thead><tbody>${lista.map(linhaDeClienteHtml).join('')}</tbody></table></div>
+        <th>Plano</th><th>Segmento</th><th>Dados &amp; acessos</th><th>Aberto</th><th></th>
+      </tr></thead><tbody>${lista.map(linhaDeClienteHtml).join('')}</tbody></table></div></div>
     </section>`;
   return bloco('Ativos', ativos, 'ativos') + bloco('Inativos', inativos, 'inativos')
     || '<div class="grupos-vazio">Nenhum cliente encontrado.</div>';
+}
+
+// ── Editar e adicionar cliente ────────────────────────────────────────────────
+// O servidor ja aceitava "criar" e "ficha" desde a saida do Monday; faltava a
+// tela. Ate aqui o cadastro so podia ser corrigido no Monday — exatamente o que
+// queriamos deixar de fazer.
+async function gravarCadastroDeCliente(corpo, feito) {
+  const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d?.error || 'Não foi possível salvar.');
+  showToast(feito, 'success', 4000);
+  await ensureClientMasterSources(true);
+  return d;
+}
+
+function novoClienteNoPainel() {
+  if (!podeEditarClientes()) return showToast('Só quem administra cria cliente.', 'warning', 4000);
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Cadastro de clientes</span>
+      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">Novo cliente</h2>
+    <p class="workflow-copy">O nome é o que aparece no painel inteiro — calendário, produção e solicitações.
+      Escreva exatamente como o time chama o cliente.</p>
+    <div class="cli-form"><label class="cli-campo largo"><span>Nome do cliente</span>
+      <input id="cli-novo-nome" type="text" autocomplete="off" placeholder="Ex.: Padaria do Zé"></label></div>
+    <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
+      <button type="button" class="workflow-primary" onclick="salvarNovoCliente()">Criar cliente →</button></div>`);
+  setTimeout(() => document.getElementById('cli-novo-nome')?.focus(), 30);
+}
+
+async function salvarNovoCliente() {
+  const nome = String(document.getElementById('cli-novo-nome')?.value || '').trim();
+  if (!nome) return showToast('Escreva o nome do cliente.', 'warning', 3500);
+  try {
+    const d = await gravarCadastroDeCliente({ acao:'criar', nome },
+      'Cliente criado. Ele já aparece nas telas.');
+    closeWorkflowModal();
+    if (d?.reativado) showToast('Esse cliente já existia e voltou para o painel.', 'success', 4500);
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+
+const CAMPOS_DA_FICHA = [
+  ['plano', 'Plano', 'text'], ['segmento', 'Segmento', 'text'],
+  ['responsavel', 'Responsável', 'text'], ['proxima_reuniao', 'Próxima reunião', 'date'],
+  ['planejamento_url', 'Link do planejamento', 'url'], ['valor', 'Valor do contrato (R$)', 'number'],
+  ['email', 'E-mail', 'text'], ['telefone', 'Telefone', 'text'],
+  ['cnpj', 'CNPJ', 'text'], ['endereco', 'Endereço', 'text'],
+];
+
+function abrirFichaDeCliente(nome) {
+  if (!podeEditarClientes()) return showToast('Só quem administra edita cliente.', 'warning', 4000);
+  const id = idDoCliente(nome);
+  if (!id) return showToast('Este cliente ainda não tem cadastro próprio para editar.', 'warning', 5000);
+  const f = fichaDoCliente(nome) || CADASTRO_CLIENTES.find((c) => String(c.id) === id) || {};
+  const painel = String(f.dashboard || '').trim();
+  const campo = ([chave, rotulo, tipo]) => {
+    const bruto = f[chave];
+    const valor = tipo === 'date' ? String(bruto || '').slice(0, 10) : (bruto ?? '');
+    return `<label class="cli-campo${chave === 'planejamento_url' || chave === 'endereco' ? ' largo' : ''}">
+      <span>${rotulo}</span>
+      <input id="cli-f-${chave}" type="${tipo === 'number' ? 'number' : tipo === 'date' ? 'date' : 'text'}"
+        ${tipo === 'number' ? 'step="0.01"' : ''} value="${safeText(String(valor))}"></label>`;
+  };
+  const ativoAgora = f.ativo !== false && !/inativ/i.test(String(f.status || ''));
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Cadastro de clientes</span>
+      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">${safeText(nome)}</h2>
+    <p class="workflow-copy">O que estiver em branco fica como está. Head é definido pelas pessoas ligadas ao
+      cliente, em Conta &amp; Equipe.</p>
+    <input type="hidden" id="cli-f-id" value="${safeText(id)}">
+    <input type="hidden" id="cli-f-nome" value="${safeText(nome)}">
+    <div class="cli-form">
+      <label class="cli-campo"><span>Painel do cliente</span>
+        <select id="cli-f-dashboard">
+          <option value=""${painel ? '' : ' selected'}>— sem informação —</option>
+          <option value="Atualizado"${painelEstaEmDia(painel) ? ' selected' : ''}>Atualizado</option>
+          <option value="Desatualizado"${painel && !painelEstaEmDia(painel) ? ' selected' : ''}>Desatualizado</option>
+        </select></label>
+      ${CAMPOS_DA_FICHA.map(campo).join('')}
+    </div>
+    <div class="workflow-actions cli-acoes-modal">
+      <button type="button" class="workflow-secondary quieto"
+        onclick="alternarAtivoDoCliente('${safeText(id)}', ${ativoAgora})">${ativoAgora ? 'Tirar do painel' : 'Voltar ao painel'}</button>
+      <span class="cli-espaco"></span>
+      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
+      <button type="button" class="workflow-primary" onclick="salvarFichaDeCliente()">Salvar cadastro →</button>
+    </div>`);
+}
+
+async function salvarFichaDeCliente() {
+  const id = String(document.getElementById('cli-f-id')?.value || '');
+  if (!id) return;
+  const campos = {};
+  const pegar = (chave) => String(document.getElementById(`cli-f-${chave}`)?.value ?? '').trim();
+  CAMPOS_DA_FICHA.forEach(([chave]) => { const v = pegar(chave); if (v) campos[chave] = v; });
+  const painel = pegar('dashboard');
+  if (painel) campos.dashboard = painel;
+  if (!Object.keys(campos).length) { closeWorkflowModal(); return; }
+  try {
+    await gravarCadastroDeCliente({ acao:'ficha', id, campos }, 'Cadastro do cliente salvo.');
+    closeWorkflowModal();
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+
+async function alternarAtivoDoCliente(id, estaAtivo) {
+  if (estaAtivo && !confirm('Tirar este cliente do painel?\n\nO histórico dele continua guardado; ele só deixa de aparecer nas telas e não pode receber conteúdo novo.')) return;
+  try {
+    await gravarCadastroDeCliente({ acao: estaAtivo ? 'desativar' : 'ativar', id },
+      estaAtivo ? 'Cliente fora do painel.' : 'Cliente de volta ao painel.');
+    closeWorkflowModal();
+  } catch (e) { showToast(e.message, 'error', 5000); }
 }
 
 function renderClientesLista(clientes) {

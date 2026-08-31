@@ -1917,10 +1917,21 @@ button.subitem-marca:hover{transform:scale(1.35)}
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
 /* Em tabela a lista deixa de ser grade de cartoes. */
 .clients-grid.em-tabela{display:block!important;grid-template-columns:none!important}
+/* overflow:clip no lugar de hidden: recorta igual, mas nao impede que o
+   cabecalho grude no topo enquanto se rola uma lista de 47 clientes. */
 .cli-bloco{margin-bottom:16px;border:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));
-  border-radius:12px;overflow:hidden;background:rgba(255,255,255,.015)}
-.cli-bloco-cabeca{display:flex;align-items:baseline;gap:9px;padding:10px 14px;
-  border-bottom:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));background:rgba(255,255,255,.028)}
+  border-radius:12px;overflow:clip;background:rgba(255,255,255,.015)}
+.cli-bloco-cabeca{display:flex;align-items:baseline;gap:9px;padding:10px 14px;width:100%;text-align:left;
+  position:sticky;top:0;z-index:3;
+  border:0;border-bottom:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));
+  background:color-mix(in srgb,var(--surface,#120902) 92%,#fff 5%);
+  cursor:pointer;font:inherit}
+.cli-bloco-cabeca:hover{background:rgba(255,255,255,.05)}
+/* A seta diz o que o clique faz, e some junto com a lista. */
+.cli-seta{color:#8f98a9;font-size:10px;line-height:1;transition:transform .16s ease;align-self:center}
+.cli-bloco.fechado .cli-seta{transform:rotate(-90deg)}
+.cli-bloco.fechado .cli-bloco-cabeca{border-bottom:0}
+.cli-bloco.fechado .cli-bloco-corpo{display:none}
 .cli-bloco-cabeca b{color:#f2f2f5;font:700 12px var(--mac-ui);letter-spacing:.02em;text-transform:uppercase}
 .cli-bloco-cabeca small{color:#8f98a9;font:600 10.5px var(--mac-ui)}
 .cli-bloco.ativos .cli-bloco-cabeca{box-shadow:inset 3px 0 0 #00c875}
@@ -1937,16 +1948,45 @@ button.subitem-marca:hover{transform:scale(1.35)}
   font:700 9.5px var(--mac-ui);letter-spacing:.03em;white-space:nowrap}
 .cli-painel.novo{border:1px solid rgba(0,200,117,.42);background:rgba(0,200,117,.14);color:#7ef0b6}
 .cli-painel.velho{border:1px solid rgba(255,77,109,.42);background:rgba(255,77,109,.14);color:#ff9db1}
-.cli-portas{display:flex;flex-wrap:wrap;gap:5px}
+.cli-portas{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
 .cli-porta{display:inline-flex;padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);
   background:rgba(255,255,255,.04);color:#cbd3df;font:700 9.5px var(--mac-ui);text-decoration:none;white-space:nowrap}
 .cli-porta:hover{border-color:color-mix(in srgb,var(--accent,#ff6b00) 60%,transparent);
   background:color-mix(in srgb,var(--accent,#ff6b00) 14%,transparent);color:#fff}
 .cli-porta.quieto{color:#8f98a9;cursor:default}
-.cli-numeros{display:flex;gap:6px}
+.cli-numeros{display:flex;gap:6px;align-items:center}
 .cli-numeros span{min-width:26px;padding:2px 7px;border-radius:7px;text-align:center;
   background:rgba(255,255,255,.05);color:#cbd3df;font:700 10.5px var(--mac-ui)}
 .cli-numeros span.atencao{background:rgba(255,77,109,.16);color:#ff9db1}
+/* O lapis so aparece na linha sob o cursor: a coluna existe sempre, para a
+   tabela nao dancar, mas nao pesa a leitura. */
+.cli-acoes{width:1%;white-space:nowrap;text-align:right}
+.cli-lapis{opacity:0;padding:3px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.05);color:#cbd3df;font:700 9.5px var(--mac-ui);letter-spacing:.03em;cursor:pointer;
+  transition:opacity .12s ease}
+.cli-tabela tbody tr:hover .cli-lapis,.cli-lapis:focus-visible{opacity:1}
+.cli-lapis:hover{border-color:var(--accent,#ff6b00);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
+.clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
+.clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
+/* Formulario do cadastro, na mesma lingua visual dos paineis de CADASTROS. */
+.cli-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0 4px}
+.cli-campo{display:flex;flex-direction:column;gap:5px}
+.cli-campo.largo{grid-column:1/-1}
+.cli-campo>span{color:#8f98a9;font:700 9.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.cli-campo input,.cli-campo select{min-height:34px;padding:0 11px;border-radius:9px;
+  border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.04);color:#eef1f6;
+  font:600 12px var(--mac-ui);outline:none;appearance:none}
+.cli-campo select{background-image:linear-gradient(45deg,transparent 50%,#8f98a9 50%),linear-gradient(135deg,#8f98a9 50%,transparent 50%);
+  background-position:calc(100% - 15px) 15px,calc(100% - 10px) 15px;background-size:5px 5px;background-repeat:no-repeat;
+  padding-right:30px;cursor:pointer}
+.cli-campo select option{background:#14161c;color:#eef1f6}
+.cli-campo input:focus,.cli-campo select:focus{border-color:var(--accent,#ff6b00);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#ff6b00) 18%,transparent)}
+.cli-acoes-modal .cli-espaco{flex:1}
+.cli-acoes-modal .workflow-secondary.quieto{color:#8f98a9}
+.cli-acoes-modal .workflow-secondary.quieto:hover{color:#ff9db1;border-color:rgba(255,77,109,.45)}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);

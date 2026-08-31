@@ -525,7 +525,10 @@ async function areaClientes(req, res, quem) {
           responsavel=COALESCE(${campos.responsavel ?? null}, responsavel),
           planejamento_url=COALESCE(${campos.planejamento_url ?? null}, planejamento_url),
           valor=COALESCE(${campos.valor ?? null}::numeric, valor),
-          proxima_reuniao=COALESCE(${campos.proxima_reuniao ?? null}::date, proxima_reuniao)
+          proxima_reuniao=COALESCE(${campos.proxima_reuniao ?? null}::date, proxima_reuniao),
+          -- O estado do painel do cliente e um campo do cadastro como os outros;
+          -- faltava so poder edita-lo daqui, em vez de voltar ao Monday para isso.
+          dashboard=COALESCE(${campos.dashboard ?? null}, dashboard)
         WHERE id=${Number(id)} RETURNING id, nome`;
       if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
