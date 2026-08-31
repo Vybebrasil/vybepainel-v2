@@ -785,16 +785,23 @@ function guardarGruposRecolhidos() {
 function toggleVisaoDeGrupos() { alternarPainelDaBarra('grupos'); }
 
 
+// Recolher e expandir redesenhavam SEMPRE a visao de Producao. Na aba
+// Solicitacoes o clique gravava o estado e redesenhava a outra tela — dava a
+// impressao de que nada acontecia.
+function quadroDoGrupo(groupId) {
+  return GRUPOS_DE_DEMANDAS.includes(String(groupId)) ? 'demandas' : 'producao';
+}
+
 function toggleGrupo(groupId) {
   if (gruposRecolhidos.has(groupId)) gruposRecolhidos.delete(groupId);
   else gruposRecolhidos.add(groupId);
   guardarGruposRecolhidos();
-  renderVisaoDeGrupos();
+  renderVisaoDeGrupos(quadroDoGrupo(groupId));
 }
 
 function verGrupoInteiro(groupId) {
   gruposExpandidos.add(groupId);
-  renderVisaoDeGrupos();
+  renderVisaoDeGrupos(quadroDoGrupo(groupId));
 }
 
 function itensPorGrupo(fonte = null, ordem = null) {
@@ -828,14 +835,24 @@ function itensPorGrupo(fonte = null, ordem = null) {
 // Finalizados numa lista só desfaria a divisão que a tela existe para mostrar.
 let ORDEM = { campo: 'veiculacao_iso', desc: false };
 
+// Producao e Solicitacoes nao tem as mesmas colunas. Captacao, Tipo de conteudo
+// e OFF so existem em Producao; mostra-las do outro lado enchia a tabela de
+// travessao e prometia uma edicao que o servidor recusa.
+const COLUNAS_DA_TABELA = {
+  producao: ['id','nome','cliente','responsavel','status','captacao','formato',
+             'tipo_conteudo','off_audio','prioridade','prazo_iso','veiculacao_iso'],
+  demandas: ['id','nome','cliente','responsavel','status','formato',
+             'prioridade','prazo_iso','veiculacao_iso'],
+};
+
 const CAMPOS_ORDENAVEIS = {
   id:            { rotulo: 'ID',          valor: (i) => Number(i.id) || 0 },
-  nome:          { rotulo: 'Conteúdo',    valor: (i) => String(i.nome || '') },
+  nome:          { rotulo: 'Conteúdo',    rotuloDemandas: 'Demanda', valor: (i) => String(i.nome || '') },
   cliente:       { rotulo: 'Cliente',     valor: (i) => String(i.cliente || '') },
   responsavel:   { rotulo: 'Responsável', valor: (i) => String(i.responsavel || '') },
   status:        { rotulo: 'Status',      valor: (i) => String(i.status || '') },
   captacao:      { rotulo: 'Captação',    valor: (i) => String(i.captacao || '') },
-  formato:       { rotulo: 'Formato',     valor: (i) => String(i.formato || '') },
+  formato:       { rotulo: 'Formato',     rotuloDemandas: 'Tipo de demanda', valor: (i) => String(i.formato || '') },
   tipo_conteudo: { rotulo: 'Tipo',        valor: (i) => String(i.tipo_conteudo || '') },
   off_audio:     { rotulo: 'OFF',         valor: (i) => String(i.off_audio || '') },
   prioridade:    { rotulo: 'Prioridade',  valor: (i) => String(i.prioridade || '') },
@@ -865,8 +882,10 @@ function ordenarPor(campo) {
   renderVisaoDeGrupos();
 }
 
-function cabecalhoOrdenavel(campo) {
-  const cfg = CAMPOS_ORDENAVEIS[campo];
+function cabecalhoOrdenavel(campo, quadro = 'producao') {
+  const base = CAMPOS_ORDENAVEIS[campo];
+  const cfg = quadro === 'demandas' && base?.rotuloDemandas
+    ? { ...base, rotulo: base.rotuloDemandas } : base;
   const ativa = ORDEM.campo === campo;
   const seta = ativa ? (ORDEM.desc ? ICONE.desce : ICONE.sobe) : ICONE.ordenar;
   return `<th><button type="button" class="grupo-th ${ativa ? 'ordenando' : ''}"
@@ -1122,7 +1141,9 @@ function linhaDeGrupoHtml(item) {
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
     <td onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
       title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
-    ${escolha('captacao')}${escolha('formato')}${escolha('tipo_conteudo')}${escolha('off_audio')}${escolha('prioridade')}
+    ${COLUNAS_DA_TABELA[quadroDoItem(item)]
+        .filter((c) => ['captacao','formato','tipo_conteudo','off_audio','prioridade'].includes(c))
+        .map(escolha).join('')}
     <td>${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
     <td>${data('veiculacao', item.veiculacao_iso, false)}</td>
   </tr>`;
@@ -1166,11 +1187,13 @@ function alternarSelecao(id, marcada, event) {
 }
 
 function selecionarGrupo(groupId, marcar) {
-  const grupo = itensPorGrupo().find((g) => g.id === groupId);
+  const quadro = quadroDoGrupo(groupId);
+  const cfg = VISAO_DE_GRUPOS[quadro];
+  const grupo = itensPorGrupo(cfg.fonte(), cfg.ordem()).find((g) => g.id === groupId);
   if (!grupo) return;
   const visiveis = gruposExpandidos.has(groupId) ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
   visiveis.forEach((i) => (marcar ? SELECIONADAS.add(String(i.id)) : SELECIONADAS.delete(String(i.id))));
-  renderVisaoDeGrupos();
+  renderVisaoDeGrupos(quadro);
 }
 
 function limparSelecao() { SELECIONADAS.clear(); renderVisaoDeGrupos(); }
@@ -1200,7 +1223,8 @@ const VISAO_DE_GRUPOS = {
               fonte: () => (DADOS_DEMANDAS || []), ordem: () => GRUPOS_DE_DEMANDAS },
 };
 
-function renderVisaoDeGrupos(quadro = 'producao') {
+function renderVisaoDeGrupos(quadro) {
+  if (!quadro) { renderVisaoDeGrupos('producao'); renderVisaoDeGrupos('demandas'); return; }
   const cfg = VISAO_DE_GRUPOS[quadro] || VISAO_DE_GRUPOS.producao;
   const wrap = document.getElementById(cfg.alvo);
   const botao = document.getElementById(cfg.botao);
@@ -1229,14 +1253,12 @@ function renderVisaoDeGrupos(quadro = 'producao') {
             <th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''}
               aria-label="Selecionar tudo em ${safeText(grupo.nome)}"
               onchange="selecionarGrupo('${grupo.id}',this.checked)"></th>
-            ${['id','nome','cliente','responsavel','status','captacao','formato',
-               'tipo_conteudo','off_audio','prioridade','prazo_iso','veiculacao_iso']
-              .map(cabecalhoOrdenavel).join('')}</tr></thead>
+            ${COLUNAS_DA_TABELA[quadro].map((c) => cabecalhoOrdenavel(c, quadro)).join('')}</tr></thead>
           <tbody>${visiveis.map(linhaDeGrupoHtml).join('')}</tbody>
         </table>
       </div>
       ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${restam === 1 ? 'conteúdo' : 'conteúdos'}</button>` : ''}`;
-    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDoGrupo(grupo.id)}">
+    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
       <button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
         <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small>${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</small></span>
@@ -1255,10 +1277,10 @@ function renderVisaoDeGrupos(quadro = 'producao') {
     </div>` : '';
   wrap.innerHTML = `${barra}<div class="grupos-head">
       <div><div class="grupos-kicker">Operação · Por etapa</div>
-        <div class="grupos-titulo">Conteúdos por grupo</div>
+        <div class="grupos-titulo">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div>
         <div class="grupos-sub">A mesma divisão do board: clique num grupo para recolher, clique numa linha para abrir a atividade.</div></div>
-      <div class="grupos-total"><b>${totalGeral}</b><span>conteúdos${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
-    </div>${blocos || '<div class="grupos-vazio">Nenhum conteúdo carregado ainda.</div>'}`;
+      <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'conteúdos'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
+    </div>${blocos || `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
 }
 
 // ── ações em lote ────────────────────────────────────────────────────────────
