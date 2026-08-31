@@ -144,6 +144,37 @@ export async function pastaDoConteudo({ cliente, data }) {
 }
 
 // Copia um arquivo da URL assinada do Monday direto para o Drive.
+// Abre uma sessão de envio direto no Drive e devolve o endereço dela.
+//
+// O caminho normal manda o arquivo em base64 dentro do JSON para a nossa função,
+// que repassa ao Drive. Isso funciona para arquivo pequeno e esbarra num teto que
+// não é do Drive nem nosso: a função serverless aceita cerca de 4,5 MB por
+// chamada, e base64 engorda o arquivo em um terço. Dava três megas de teto para
+// um destino que aceita gigabytes.
+//
+// Com a sessão, o navegador envia os bytes DIRETO para o Google. A credencial
+// continua só aqui no servidor — o que vai para a tela é um endereço de sessão,
+// que serve para um envio só e caduca sozinho.
+export async function iniciarUploadNoDrive({ nome, mime, pastaId }) {
+  const r = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,webViewLink',
+    { method: 'POST',
+      headers: {
+        Authorization: `Bearer ${await token()}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': mime || 'application/octet-stream',
+      },
+      body: JSON.stringify({ name: nome, parents: [pastaId] }) }
+  );
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    throw new Error(`Drive recusou abrir o envio: ${d?.error?.message || r.status}`);
+  }
+  const sessao = r.headers.get('location');
+  if (!sessao) throw new Error('Drive não devolveu o endereço da sessão de envio.');
+  return sessao;
+}
+
 export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {
   // Ou copia de uma URL (migração do Monday) ou recebe o arquivo direto (upload
   // pelo painel). O resto do caminho é o mesmo.

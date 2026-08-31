@@ -10,7 +10,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { mondayQuery } from '../operational_mirror_store.js';
-import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive } from '../vybe_drive.js';
+import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
@@ -394,35 +394,64 @@ async function removerArquivoDaPeca(req, res, quem) {
   return res.status(200).json({ ok: true, arquivo_id: linha.id, removido: linha.nome, reversivel: true });
 }
 
-async function anexarNaPeca(req, res, quem) {
-  const { item, nome, mime, conteudo } = req.body || {};
-  if (!item || !nome || !conteudo) {
-    return res.status(400).json({ error: 'Informe item, nome e conteúdo do arquivo.' });
-  }
+// A peca no banco, com o que a pasta do Drive precisa saber. Os dois caminhos de
+// envio — o pequeno e o grande — perguntam a mesma coisa; perguntar de dois
+// jeitos daria duas respostas no dia em que um deles mudasse.
+async function pecaDoBanco(item) {
   const db = sql();
   const itemLocalId = String(item).startsWith('vybe:') ? Number(String(item).slice(5)) : null;
-  const c = (await db`SELECT c.id, c.veiculacao, c.prazo,
+  return (await db`SELECT c.id, c.veiculacao, c.prazo,
       (SELECT cl.nome FROM vybe_conteudo_clientes vc JOIN vybe_clientes cl ON cl.id=vc.cliente_id
         WHERE vc.conteudo_id=c.id LIMIT 1) AS cliente
     FROM vybe_conteudos c
     WHERE (c.monday_item_id = ${String(item)} OR c.id = ${itemLocalId})`)[0];
+}
+
+// Guardar a linha do arquivo e o evento no historico. Igual para quem subiu por
+// aqui e para quem subiu direto no Drive.
+async function registrarArquivoDaPeca(c, quem, { nome, driveId, bytes, link }) {
+  const db = sql();
+  const ext = String(nome).includes('.') ? `.${String(nome).split('.').pop().toLowerCase()}` : null;
+  const linha = (await db`INSERT INTO vybe_conteudo_arquivos
+      (conteudo_id, nome, extensao, tamanho_bytes, url_drive, drive_file_id, criado_em, migrado_em)
+    VALUES (${c.id}, ${String(nome)}, ${ext}, ${Number(bytes) || null},
+            ${link || `https://drive.google.com/file/d/${driveId}/view`}, ${String(driveId)}, NOW(), NOW())
+    RETURNING id`)[0];
+  await db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, para, autor_id, em)
+    VALUES (${c.id}, 'anexo', ${String(nome)},
+            ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, NOW())`;
+  return { arquivo_id: linha.id, drive_file_id: String(driveId), bytes: Number(bytes) || null };
+}
+
+async function anexarNaPeca(req, res, quem) {
+  const { item, nome, mime, conteudo, etapa, drive_file_id: driveId, bytes } = req.body || {};
+  if (!item || !nome) return res.status(400).json({ error: 'Informe item e nome do arquivo.' });
+  // Arquivo grande nao passa por aqui: a funcao aceita cerca de 4,5 MB por
+  // chamada e o base64 engorda o arquivo em um terco. Nessas, o servidor so abre
+  // a sessao e registra depois; os bytes vao do navegador direto para o Drive.
+  if (etapa === 'abrir' || etapa === 'registrar') {
+    const conteudoDaPeca = await pecaDoBanco(item);
+    if (!conteudoDaPeca) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
+    if (etapa === 'abrir') {
+      const pastaId = await pastaDoConteudo({ cliente: conteudoDaPeca.cliente,
+        data: conteudoDaPeca.veiculacao || conteudoDaPeca.prazo });
+      const sessao = await iniciarUploadNoDrive({ nome: String(nome), mime, pastaId });
+      return res.status(200).json({ ok: true, sessao });
+    }
+    if (!driveId) return res.status(400).json({ error: 'Informe o arquivo criado no Drive.' });
+    return res.status(200).json({ ok: true,
+      ...(await registrarArquivoDaPeca(conteudoDaPeca, quem, { nome, driveId, bytes })) });
+  }
+  if (!conteudo) return res.status(400).json({ error: 'Informe o conteúdo do arquivo.' });
+  const c = await pecaDoBanco(item);
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
   const pastaId = await pastaDoConteudo({ cliente: c.cliente, data: c.veiculacao || c.prazo });
   const enviado = await enviarParaDrive({ conteudo, nome: String(nome), mime, pastaId });
-
-  const ext = String(nome).includes('.') ? `.${String(nome).split('.').pop().toLowerCase()}` : null;
-  const linha = (await db`INSERT INTO vybe_conteudo_arquivos
-      (conteudo_id, nome, extensao, tamanho_bytes, url_drive, drive_file_id, criado_em, migrado_em)
-    VALUES (${c.id}, ${String(nome)}, ${ext}, ${enviado.bytes}, ${enviado.link}, ${enviado.id}, NOW(), NOW())
-    RETURNING id`)[0];
-
-  await db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, para, autor_id, em)
-    VALUES (${c.id}, 'anexo', ${String(nome)},
-            ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, NOW())`;
-
-  return res.status(200).json({ ok: true, arquivo_id: linha.id, drive_file_id: enviado.id,
-                                link: enviado.link, bytes: enviado.bytes });
+  const registro = await registrarArquivoDaPeca(c, quem, {
+    nome, driveId: enviado.id, bytes: enviado.bytes, link: enviado.link,
+  });
+  return res.status(200).json({ ok: true, ...registro, link: enviado.link });
 }
 
 // ── clientes ──────────────────────────────────────────────────────────────────

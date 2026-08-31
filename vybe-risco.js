@@ -1123,7 +1123,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
         <div class="entrega-caminho">
           <div class="entrega-caminho-topo"><b>Arquivo pronto</b><small>card, arte ou PDF</small></div>
           <input id="workspace-file-input" type="file" hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
-          <div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste aqui ou clique</strong>PNG, JPG, WEBP ou PDF · até 3 MB</div></div>
+          <div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste aqui ou clique</strong>PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
           <p class="workspace-note">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos da demanda”.</p>
         </div>
         <div class="entrega-caminho">
@@ -1253,12 +1253,23 @@ function handleWorkspaceDrop(event) {
 // Devolve a resposta do servidor porque quem chama da mesa precisa do id do
 // arquivo no Drive para desenhar a miniatura sem ir buscar de novo.
 const ARQUIVO_TIPOS = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
-const ARQUIVO_LIMITE = 3 * 1024 * 1024;
+// Ate aqui o arquivo cabe dentro de uma chamada nossa; acima disso ele vai
+// direto para o Drive. O teto de 3 MB nunca foi do Drive — era o tamanho maximo
+// que a nossa funcao aceita por chamada, e o base64 engorda o arquivo em um
+// terco no caminho. O destino sempre aceitou muito mais.
+const ARQUIVO_PELO_SERVIDOR = 3 * 1024 * 1024;
+const ARQUIVO_LIMITE = 200 * 1024 * 1024;
 
 async function enviarArquivoDaPeca(itemId, file) {
   if (!itemId || !file) throw new Error('Informe a peça e o arquivo.');
   if (!ARQUIVO_TIPOS.includes(file.type)) throw new Error('Envie PNG, JPG, WEBP ou PDF.');
-  if (file.size > ARQUIVO_LIMITE) throw new Error('Arquivo acima de 3 MB. Para vídeo, use o link do Drive.');
+  if (file.size > ARQUIVO_LIMITE) {
+    throw new Error('Arquivo acima de 200 MB. Suba no Drive e registre o link aqui.');
+  }
+  const corpo = { item: String(itemId), nome: file.name, mime: file.type };
+
+  if (file.size > ARQUIVO_PELO_SERVIDOR) return enviarArquivoGrande(corpo, file);
+
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(',')[1]);
@@ -1267,10 +1278,43 @@ async function enviarArquivoDaPeca(itemId, file) {
   });
   const res = await fetch('/api/painel?area=peca', {
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ item: String(itemId), nome: file.name, mime: file.type, conteudo: base64 }),
+    body: JSON.stringify({ ...corpo, conteudo: base64 }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.errors) throw new Error(json.error || json.errors?.[0]?.message || `HTTP ${res.status}`);
+  return json;
+}
+
+// Arquivo grande em tres passos: o servidor abre a sessao no Drive, o navegador
+// manda os bytes direto para o Google, e o servidor registra o que chegou.
+//
+// A credencial do Drive nao sai do servidor em nenhum momento — o que a tela
+// recebe e um endereco de sessao, que serve para um envio so e caduca sozinho.
+async function enviarArquivoGrande(corpo, file) {
+  const abertura = await fetch('/api/painel?area=peca', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...corpo, etapa: 'abrir' }),
+  });
+  const dadosDaAbertura = await abertura.json().catch(() => ({}));
+  if (!abertura.ok || !dadosDaAbertura?.sessao) {
+    throw new Error(dadosDaAbertura?.error || `Não foi possível abrir o envio (${abertura.status}).`);
+  }
+
+  const envio = await fetch(dadosDaAbertura.sessao, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    body: file,
+  });
+  if (!envio.ok) throw new Error(`O Drive recusou o arquivo (${envio.status}).`);
+  const arquivoNoDrive = await envio.json().catch(() => ({}));
+  if (!arquivoNoDrive?.id) throw new Error('O Drive não devolveu o identificador do arquivo.');
+
+  const registro = await fetch('/api/painel?area=peca', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...corpo, etapa: 'registrar', drive_file_id: arquivoNoDrive.id, bytes: file.size }),
+  });
+  const json = await registro.json().catch(() => ({}));
+  if (!registro.ok) throw new Error(json?.error || `Arquivo no Drive, mas não registrado (${registro.status}).`);
   return json;
 }
 
