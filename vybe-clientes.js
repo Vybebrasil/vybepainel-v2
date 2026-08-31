@@ -41,12 +41,26 @@ function clientMasterRowMap(row) {
   return cols;
 }
 function clientMasterClientNameFromAccess(name='') { return String(name).replace(/^dados\s*&\s*acessos\s*[-–—:]?\s*/i,'').trim(); }
+// Aproximacao entre nomes so vale quando OS DOIS lados sao longos.
+//
+// A regra antiga exigia 6 letras so do candidato. Com isso "ACE" caia dentro de
+// "diACEnter" e herdava a ficha inteira da DiaCenter — head, segmento, painel —
+// como se fosse a mesma conta. "CMO" fazia o mesmo com qualquer nome que
+// tivesse "cmo" no meio. Nome curto agora so casa exato; "Brussolo" dentro de
+// "Restaurante Brussolo", que e o caso que a aproximacao existe para resolver,
+// continua casando.
+const LETRAS_PARA_APROXIMAR = 6;
+function nomesSeAproximam(chaveA, chaveB) {
+  if(!chaveA || !chaveB) return false;
+  if(chaveA.length < LETRAS_PARA_APROXIMAR || chaveB.length < LETRAS_PARA_APROXIMAR) return false;
+  return chaveA.includes(chaveB) || chaveB.includes(chaveA);
+}
 function clientMasterFind(rows, clientName, mapper=x=>x) {
   const key=normalizeClientKey(clientName);
   if(!key) return null;
   const exact=rows.find(row=>normalizeClientKey(mapper(row))===key);
   if(exact) return exact;
-  return rows.find(row=>{ const candidate=normalizeClientKey(mapper(row)); return candidate.length>=6 && (candidate.includes(key) || key.includes(candidate)); }) || null;
+  return rows.find(row=>nomesSeAproximam(normalizeClientKey(mapper(row)), key)) || null;
 }
 async function ensureClientMasterSources(force=false) {
   if(CLIENT_MASTER_LOADING || (CLIENT_MASTER_LOADED && !force)) return;
@@ -95,7 +109,7 @@ function clientMasterResolveName(value='') {
   const sources=[...CLIENT_MASTER_HEADS,...CLIENT_MASTER_ACESSOS];
   const exact=sources.find(row=>normalizeClientKey(row.name)===key);
   if(exact) return exact.name;
-  const fuzzy=sources.find(row=>{ const candidate=normalizeClientKey(row.name); return candidate.length>=6 && (candidate.includes(key) || key.includes(candidate)); });
+  const fuzzy=sources.find(row=>nomesSeAproximam(normalizeClientKey(row.name), key));
   return fuzzy?.name || canonical;
 }
 function clientMasterRecords() {
@@ -224,8 +238,11 @@ function renderClientesBoard() {
   if (!CADASTRO_CLIENTES.length) { carregarCadastroClientes().then(() => renderClientesLista(clientMasterRecords().map((r) => r.name))); }
   const todosClientes = clientMasterRecords().map(record=>record.name);
   // KPIs
+  // "Ativos" e o que o cadastro diz, nao a soma de todo nome que ja apareceu.
+  const ativosNoCadastro = CADASTRO_CLIENTES.filter((c) =>
+    (String(c.status || '').trim() ? !/inativ/i.test(c.status) : c.ativo !== false)).length;
   document.getElementById('kpi-grid-clientes').innerHTML = [
-    {label:'Clientes Ativos', value:todosClientes.length, sub:'com dados', cls:'purple'},
+    {label:'Clientes Ativos', value:ativosNoCadastro || todosClientes.length, sub:'no cadastro', cls:'purple'},
     {label:'Produção', value:DADOS.length, sub:'conteúdos', cls:'green'},
     {label:'Demandas', value:DADOS_DEMANDAS.length, sub:'solicitações', cls:'blue'},
   ].map(k=>`<div class="kpi-card ${k.cls}"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
@@ -303,19 +320,26 @@ function podeEditarClientes() {
   return typeof podeAdministrar === 'function' ? podeAdministrar() : false;
 }
 
-// O cadastro e a tabela nem sempre chamam o cliente pelo mesmo nome (a tabela
-// usa o nome canonico). Sem achar o id nao ha o que salvar.
+// O cadastro e a tabela nem sempre chamam o cliente pelo mesmo nome: a tabela
+// mostra o nome canonico, e o cadastro guarda como foi digitado. Comparar as
+// duas pontas pela mesma regra e o que faz a linha achar a ficha dela.
+function chaveDeCliente(nome) {
+  const canonico = typeof clientMasterResolveName === 'function' ? clientMasterResolveName(nome) : nome;
+  return typeof normalizeClientKey === 'function' ? normalizeClientKey(canonico) : String(canonico || '').toLowerCase();
+}
+function cadastroDoCliente(nome) {
+  const exato = fichaDoCliente(nome);
+  if (exato) return exato;
+  const chave = chaveDeCliente(nome);
+  return chave ? CADASTRO_CLIENTES.find((c) => chaveDeCliente(c.nome) === chave) || null : null;
+}
 function idDoCliente(nome) {
-  const f = fichaDoCliente(nome);
-  if (f?.id) return String(f.id);
-  const chave = typeof normalizeClientKey === 'function' ? normalizeClientKey(nome) : String(nome || '').toLowerCase();
-  const achado = CADASTRO_CLIENTES.find((c) =>
-    (typeof normalizeClientKey === 'function' ? normalizeClientKey(c.nome) : String(c.nome || '').toLowerCase()) === chave);
-  return achado ? String(achado.id) : '';
+  const c = cadastroDoCliente(nome);
+  return c?.id ? String(c.id) : '';
 }
 
-function linhaDeClienteHtml(nome) {
-  const f = fichaDoCliente(nome) || {};
+function linhaDeClienteHtml(nome, semCadastro) {
+  const f = cadastroDoCliente(nome) || {};
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
   const registros = clientMasterRecords();
   const record = registros.find((item) => item.name === nome) || { content: [], requests: [] };
@@ -331,10 +355,12 @@ function linhaDeClienteHtml(nome) {
                   porta('Planejamento', f.planejamento_url || ligado.planning)]
                  .filter(Boolean).join('') || '<span class="cli-vazio">—</span>';
   const aspas = String(nome).replace(/'/g, "\\'");
-  const lapis = podeEditarClientes()
-    ? `<button type="button" class="cli-lapis" title="Editar o cadastro de ${safeText(nome)}"
-        onclick="event.stopPropagation();abrirFichaDeCliente('${aspas}')">Editar</button>`
-    : '';
+  const lapis = !podeEditarClientes() ? ''
+    : semCadastro
+      ? `<button type="button" class="cli-lapis criar" title="Criar a ficha de ${safeText(nome)} no cadastro"
+          onclick="event.stopPropagation();cadastrarClienteDaOperacao('${aspas}')">Cadastrar</button>`
+      : `<button type="button" class="cli-lapis" title="Editar o cadastro de ${safeText(nome)}"
+          onclick="event.stopPropagation();abrirFichaDeCliente('${aspas}')">Editar</button>`;
   return `<tr onclick="abrirClienteDetalhe('${aspas}')" title="Abrir ${safeText(nome)}">
     <td class="cli-nome">${safeText(nome)}</td>
     <td>${safeText(f.heads || ligado.head || '') || '<span class="cli-vazio">—</span>'}</td>
@@ -348,31 +374,45 @@ function linhaDeClienteHtml(nome) {
   </tr>`;
 }
 
+// Ativo e inativo sao o que o CADASTRO diz — nada mais.
+//
+// Eu tinha deixado a tabela contar como ativo todo nome que aparecesse em
+// qualquer lugar: conteudo, solicitacao, pasta do Drive. Como quem nunca foi
+// cadastrado nao tem status, caia no "ativo" por falta de resposta, e a lista
+// dizia 47 ativos onde o cadastro tem uns poucos. Nome sem ficha agora fica num
+// bloco proprio, "So na operacao", que e exatamente a lista do que falta
+// cadastrar — e da para cadastrar dali mesmo.
 function tabelaDeClientesHtml(clientes) {
-  const ativo = (nome) => {
-    const f = fichaDoCliente(nome) || {};
-    const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
-    const texto = String(f.status || ligado.status || '').trim();
-    if (texto) return !/inativ/i.test(texto);
-    return f.ativo !== false;
+  const nomeVale = (nome) => /[a-z0-9]/i.test(String(nome || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+  const situacao = (nome) => {
+    const f = cadastroDoCliente(nome);
+    if (!f) return 'sem';
+    const texto = String(f.status || '').trim();
+    if (texto) return /inativ/i.test(texto) ? 'inativos' : 'ativos';
+    return f.ativo === false ? 'inativos' : 'ativos';
   };
-  const ativos = clientes.filter(ativo);
-  const inativos = clientes.filter((c) => !ativo(c));
+  const caixas = { ativos: [], inativos: [], sem: [] };
+  clientes.filter(nomeVale).forEach((nome) => caixas[situacao(nome)].push(nome));
   const fechados = blocosFechadosDeClientes();
-  const bloco = (titulo, lista, classe) => !lista.length ? '' : `
+  const bloco = (titulo, lista, classe, recado) => !lista.length ? '' : `
     <section class="cli-bloco ${classe}${fechados.has(classe) ? ' fechado' : ''}">
       <button type="button" class="cli-bloco-cabeca" aria-expanded="${fechados.has(classe) ? 'false' : 'true'}"
         onclick="alternarBlocoDeClientes('${classe}', this)"
         title="${fechados.has(classe) ? 'Abrir' : 'Minimizar'} a lista de ${titulo.toLowerCase()}">
         <span class="cli-seta" aria-hidden="true">▾</span>
         <b>${titulo}</b><small>${lista.length} ${lista.length === 1 ? 'cliente' : 'clientes'}</small>
+        ${recado ? `<em class="cli-recado">${recado}</em>` : ''}
       </button>
       <div class="cli-bloco-corpo"><div class="grupo-tabela-rolagem"><table class="grupo-tabela cli-tabela"><thead><tr>
         <th>Cliente</th><th>Head</th><th>Dashboard</th><th>Próx. reunião</th>
         <th>Plano</th><th>Segmento</th><th>Dados &amp; acessos</th><th>Aberto</th><th></th>
-      </tr></thead><tbody>${lista.map(linhaDeClienteHtml).join('')}</tbody></table></div></div>
+      </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem')).join('')}</tbody></table></div></div>
     </section>`;
-  return bloco('Ativos', ativos, 'ativos') + bloco('Inativos', inativos, 'inativos')
+  return bloco('Ativos', caixas.ativos, 'ativos')
+    + bloco('Inativos', caixas.inativos, 'inativos')
+    + bloco('Só na operação', caixas.sem, 'sem',
+        'aparecem em conteúdos, solicitações ou no Drive, mas não têm ficha no cadastro')
     || '<div class="grupos-vazio">Nenhum cliente encontrado.</div>';
 }
 
@@ -412,6 +452,15 @@ async function salvarNovoCliente() {
       'Cliente criado. Ele já aparece nas telas.');
     closeWorkflowModal();
     if (d?.reativado) showToast('Esse cliente já existia e voltou para o painel.', 'success', 4500);
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+
+// Cadastrar quem ja esta na operacao: o nome ja existe, so falta a ficha.
+async function cadastrarClienteDaOperacao(nome) {
+  if (!podeEditarClientes()) return showToast('Só quem administra cria cliente.', 'warning', 4000);
+  if (!confirm(`Criar a ficha de "${nome}" no cadastro?\n\nEle sai de "Só na operação" e passa a contar como cliente ativo.`)) return;
+  try {
+    await gravarCadastroDeCliente({ acao:'criar', nome }, `${nome} entrou no cadastro.`);
   } catch (e) { showToast(e.message, 'error', 5000); }
 }
 

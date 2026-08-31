@@ -1936,6 +1936,10 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-bloco-cabeca small{color:#8f98a9;font:600 10.5px var(--mac-ui)}
 .cli-bloco.ativos .cli-bloco-cabeca{box-shadow:inset 3px 0 0 #00c875}
 .cli-bloco.inativos .cli-bloco-cabeca{box-shadow:inset 3px 0 0 rgba(255,255,255,.2)}
+.cli-bloco.sem .cli-bloco-cabeca{box-shadow:inset 3px 0 0 #ffb000}
+/* O bloco de quem nao tem ficha explica, no proprio cabecalho, por que esta ali. */
+.cli-recado{color:#8f98a9;font:600 10.5px var(--mac-ui);font-style:normal;margin-left:2px}
+@media(max-width:760px){.cli-recado{display:none}}
 .cli-bloco.inativos .cli-tabela tbody tr{opacity:.72}
 .cli-bloco.inativos .cli-tabela tbody tr:hover{opacity:1}
 .cli-tabela{width:100%}
@@ -1967,6 +1971,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-tabela tbody tr:hover .cli-lapis,.cli-lapis:focus-visible{opacity:1}
 .cli-lapis:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
+.cli-lapis.criar{border-color:rgba(255,176,0,.4);color:#ffc79a}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
