@@ -1390,14 +1390,23 @@ function renderVisaoDeGrupos(quadro) {
   // Barra de lote flutuante, ancorada embaixo. Antes ela vivia no topo da lista:
   // marcar uma peca no fim de mil linhas mostrava as acoes fora da tela, e a
   // pessoa marcava sem ver que havia o que fazer com aquilo.
-  const barra = SELECIONADAS.size ? `<div class="grupos-lote">
-      <b>${SELECIONADAS.size} selecionada${SELECIONADAS.size === 1 ? '' : 's'}</b>
-      <button type="button" onclick="loteStatus(event)">Status…</button>
-      <button type="button" onclick="loteGrupo(event,'${quadro}')">Grupo…</button>
-      ${quadro === 'demandas' ? '' : '<button type="button" onclick="loteCaptacao(event)">Captação…</button>'}
-      <button type="button" onclick="lotePrazo('prazo')">Prazo…</button>
-      <button type="button" onclick="lotePrazo('veiculacao')">Veiculação…</button>
-      <button type="button" class="quieto" onclick="limparSelecao()">Limpar</button>
+  // A seta para baixo diz que o botao ABRE UMA LISTA; o de data abre um campo de
+  // digitar, e por isso nao tem seta. Reticencias em todos dizia so "tem mais
+  // coisa", sem distinguir os dois.
+  const abre = '<svg viewBox="0 0 16 16" width="9" height="9" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
+    safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
+  const barra = SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as demandas marcadas">
+      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}</small></span>
+      <span class="lote-risco" aria-hidden="true"></span>
+      ${acao('Status', 'loteStatus(event)')}
+      ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
+      ${quadro === 'demandas' ? '' : acao('Captação', 'loteCaptacao(event)')}
+      ${acao('Prazo', "lotePrazo('prazo')", false)}
+      ${acao('Veiculação', "lotePrazo('veiculacao')", false)}
+      <span class="lote-risco" aria-hidden="true"></span>
+      <button type="button" class="lote-limpar" onclick="limparSelecao()"
+        title="Desmarcar todas" aria-label="Desmarcar todas">✕</button>
     </div>` : '';
   wrap.innerHTML = `${barra}<div class="grupos-head">
       <div><div class="grupos-kicker">Operação · Por etapa</div>
