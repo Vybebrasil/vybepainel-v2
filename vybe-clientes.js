@@ -338,6 +338,79 @@ function idDoCliente(nome) {
   return c?.id ? String(c.id) : '';
 }
 
+// Head e pessoa, e pessoa no painel inteiro aparece como bolinha com foto.
+// Estava escrito por extenso so aqui — "Ewerton Luis Souza da Silva" ocupando
+// meia tabela — porque veio do banco como texto e eu o repassei como texto.
+function pessoaPeloNome(nome) {
+  const primeiro = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim().toLowerCase().split(/\s+/)[0];
+  const alvo = primeiro(nome);
+  const time = typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS;
+  return time.find((u) => primeiro(u.name) === alvo) || { name: nome, photo: null, color: '#6b7280' };
+}
+function headsDoClienteHtml(texto) {
+  const nomes = String(texto || '').split(',').map((n) => n.trim()).filter(Boolean);
+  if (!nomes.length) return '<span class="cli-vazio">—</span>';
+  return `<div class="owner-avatar-stack cli-heads" title="${safeText(nomes.join(', '))}">${
+    nomes.map((n) => ownerAvatarHtml(pessoaPeloNome(n))).join('')}</div>`;
+}
+
+// ── Editar na propria celula ──────────────────────────────────────────────────
+// No Monday se clica no campo e se digita. Aqui so dava para abrir a ficha
+// inteira por um botao — pesado para trocar um segmento. Agora a celula vira
+// campo no lugar: Enter grava, Esc desiste, sair do campo grava.
+const CELULAS_EDITAVEIS = {
+  dashboard: { tipo:'lista', opcoes:['', 'Atualizado', 'Desatualizado'] },
+  proxima_reuniao: { tipo:'data' },
+  plano: { tipo:'texto' },
+  segmento: { tipo:'texto' },
+};
+function editarCelulaDoCliente(event, nome, campo) {
+  event.stopPropagation();
+  const celula = event.currentTarget;
+  if (celula.querySelector('input, select')) return;
+  if (!podeEditarClientes()) return showToast('Só quem administra edita cliente.', 'warning', 3500);
+  const id = idDoCliente(nome);
+  if (!id) return showToast('Este cliente ainda não tem cadastro próprio para editar.', 'warning', 5000);
+  const regra = CELULAS_EDITAVEIS[campo];
+  const f = cadastroDoCliente(nome) || {};
+  const bruto = f[campo];
+  const valor = regra.tipo === 'data' ? String(bruto || '').slice(0, 10) : String(bruto ?? '');
+  const antes = celula.innerHTML;
+  celula.classList.add('em-edicao');
+  // "Dasatualizado" (o erro que veio do Monday) nao casa com nenhuma opcao pela
+  // letra, mas e um painel desatualizado — a lista tem que abrir marcando isso,
+  // senao um clique distraido apagaria o campo.
+  const marcada = (o) => !valor ? !o : o === 'Atualizado' ? painelEstaEmDia(valor)
+    : o === 'Desatualizado' ? !painelEstaEmDia(valor) : false;
+  celula.innerHTML = regra.tipo === 'lista'
+    ? `<select class="cli-celula">${regra.opcoes.map((o) => `<option value="${safeText(o)}"${
+        marcada(o) ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
+    : `<input class="cli-celula" type="${regra.tipo === 'data' ? 'date' : 'text'}" value="${safeText(valor)}">`;
+  const campoEl = celula.firstElementChild;
+  let encerrado = false;
+  const encerrar = async (gravar) => {
+    if (encerrado) return;
+    encerrado = true;
+    const novo = String(campoEl.value ?? '').trim();
+    celula.classList.remove('em-edicao');
+    if (!gravar || novo === valor) { celula.innerHTML = antes; return; }
+    // Campo de data e de numero nao aceitam vazio no banco; texto aceita, e e
+    // assim que se apaga um segmento errado.
+    if (!novo && regra.tipo !== 'texto') { celula.innerHTML = antes; return; }
+    celula.innerHTML = '<span class="cli-vazio">salvando…</span>';
+    try { await gravarCadastroDeCliente({ acao:'ficha', id, campos:{ [campo]: novo } }, 'Cliente atualizado.'); }
+    catch (e) { showToast(e.message, 'error', 5000); celula.innerHTML = antes; }
+  };
+  campoEl.focus();
+  if (campoEl.select) try { campoEl.select(); } catch { /* select nao aceita */ }
+  campoEl.onkeydown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); encerrar(true); }
+    if (e.key === 'Escape') { e.preventDefault(); encerrar(false); }
+  };
+  campoEl.onblur = () => encerrar(true);
+  if (regra.tipo === 'lista') campoEl.onchange = () => encerrar(true);
+}
 function linhaDeClienteHtml(nome, semCadastro) {
   const f = cadastroDoCliente(nome) || {};
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
@@ -361,13 +434,19 @@ function linhaDeClienteHtml(nome, semCadastro) {
           onclick="event.stopPropagation();cadastrarClienteDaOperacao('${aspas}')">Cadastrar</button>`
       : `<button type="button" class="cli-lapis" title="Editar o cadastro de ${safeText(nome)}"
           onclick="event.stopPropagation();abrirFichaDeCliente('${aspas}')">Editar</button>`;
+  // Celula que edita no lugar. Sem cadastro nao ha o que gravar, entao la a
+  // celula continua so mostrando.
+  const editavel = (campo, dentro) => semCadastro || !podeEditarClientes()
+    ? `<td>${dentro}</td>`
+    : `<td class="cli-editavel" title="Clique para editar"
+        onclick="editarCelulaDoCliente(event, '${aspas}', '${campo}')">${dentro}</td>`;
   return `<tr onclick="abrirClienteDetalhe('${aspas}')" title="Abrir ${safeText(nome)}">
     <td class="cli-nome">${safeText(nome)}</td>
-    <td>${safeText(f.heads || ligado.head || '') || '<span class="cli-vazio">—</span>'}</td>
-    <td>${paineldoClienteHtml(f.dashboard || ligado.dashboard)}</td>
-    <td>${dataBr(f.proxima_reuniao || ligado.nextMeeting) || '<span class="cli-vazio">—</span>'}</td>
-    <td>${safeText(f.plano || ligado.plan || '') || '<span class="cli-vazio">—</span>'}</td>
-    <td>${safeText(f.segmento || ligado.segment || '') || '<span class="cli-vazio">—</span>'}</td>
+    <td>${headsDoClienteHtml(f.heads || ligado.head || '')}</td>
+    ${editavel('dashboard', paineldoClienteHtml(f.dashboard || ligado.dashboard))}
+    ${editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || '<span class="cli-vazio">—</span>')}
+    ${editavel('plano', safeText(f.plano || ligado.plan || '') || '<span class="cli-vazio">—</span>')}
+    ${editavel('segmento', safeText(f.segmento || ligado.segment || '') || '<span class="cli-vazio">—</span>')}
     <td><div class="cli-portas">${portas}${ligado.doc ? '<span class="cli-porta quieto" title="Documento de acessos guardado no Vybe">Documento</span>' : ''}</div></td>
     <td><div class="cli-numeros"><span title="Conteúdos em aberto">${abertos}</span><span title="Solicitações em aberto" class="${demandas ? 'atencao' : ''}">${demandas}</span></div></td>
     <td class="cli-acoes">${lapis}</td>

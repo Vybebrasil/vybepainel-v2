@@ -1972,6 +1972,19 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-lapis:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
 .cli-lapis.criar{border-color:rgba(255,176,0,.4);color:#ffc79a}
+/* Head e pessoa: bolinha com foto, como no resto do painel. */
+.cli-heads{display:inline-flex;align-items:center}
+.cli-heads img,.cli-heads .owner-avatar-fallback{width:22px;height:22px;border-width:2px}
+/* Celula que edita no lugar: so se anuncia quando o cursor chega nela. */
+.cli-editavel{cursor:text}
+.cli-tabela tbody tr:hover .cli-editavel{box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);border-radius:6px}
+.cli-editavel:hover{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent)!important;
+  border-radius:6px}
+.cli-editavel.em-edicao{box-shadow:none!important}
+.cli-celula{width:100%;min-width:96px;min-height:26px;padding:0 7px;border-radius:6px;
+  border:1px solid var(--accent,#ff6b00);background:#120902;color:#eef1f6;
+  font:600 11.5px var(--mac-ui);outline:none;appearance:none}
+.cli-celula option{background:#14161c;color:#eef1f6}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
