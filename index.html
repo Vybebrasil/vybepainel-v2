@@ -1985,6 +1985,15 @@ button.subitem-marca:hover{transform:scale(1.35)}
   border:1px solid var(--accent,#ff6b00);background:#120902;color:#eef1f6;
   font:600 11.5px var(--mac-ui);outline:none;appearance:none}
 .cli-celula option{background:#14161c;color:#eef1f6}
+/* O documento de acessos, aberto de dentro da lista. */
+.cli-porta.doc{cursor:pointer;font-family:inherit}
+.cli-doc{margin:16px 0 4px}
+.cli-doc-topo{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.cli-doc-topo small{color:#8f98a9;font:600 10.5px var(--mac-ui);margin-right:auto}
+.cli-doc-topo button.cli-porta{cursor:pointer;font-family:inherit}
+.cli-doc pre{max-height:52vh;overflow:auto;margin:0;padding:14px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.32);color:#dfe5ee;
+  font:500 12px/1.6 var(--mac-mono);white-space:pre-wrap;word-break:break-word;user-select:text}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}

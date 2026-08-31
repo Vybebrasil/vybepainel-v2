@@ -80,7 +80,10 @@ async function ensureClientMasterSources(force=false) {
     CLIENT_MASTER_ACESSOS=(corpo.acessos||[]).map(row=>({
       id:String(row.id),name:String(row.cliente||clientMasterClientNameFromAccess(row.nome||'')).trim(),
       url:'',updated_at:row.atualizado_em||'',doc:row.documento?'Documento migrado':'',
-      drive:row.drive||'',manus:row.manus?'Disponível':'',link:row.link||''
+      drive:row.drive||'',manus:row.manus?'Disponível':'',link:row.link||'',
+      // O id e o que abre o documento de senhas; sem ele a etiqueta "Documento"
+      // so anuncia que existe um documento e nao leva a lugar nenhum.
+      temManus:Boolean(row.manus)
     }));
     CLIENT_MASTER_LOADED=true;
   } catch(error) {
@@ -98,7 +101,7 @@ async function ensureClientMasterSources(force=false) {
 function clientMasterLinkedData(clientName) {
   const head=clientMasterFind(CLIENT_MASTER_HEADS,clientName,row=>row.name);
   const access=clientMasterFind(CLIENT_MASTER_ACESSOS,clientName,row=>row.name);
-  return {head:head?.people||'',status:head?.status||'',segment:head?.segment||'',plan:head?.plan||'',dashboard:head?.dashboard||'',nextMeeting:head?.nextMeeting||'',planning:head?.planning||'',headUrl:head?.url||'',doc:access?.doc||'',drive:access?.drive||'',manus:access?.manus||'',link:access?.link||'',accessUrl:access?.url||''};
+  return {head:head?.people||'',status:head?.status||'',segment:head?.segment||'',plan:head?.plan||'',dashboard:head?.dashboard||'',nextMeeting:head?.nextMeeting||'',planning:head?.planning||'',headUrl:head?.url||'',doc:access?.doc||'',drive:access?.drive||'',manus:access?.manus||'',link:access?.link||'',accessUrl:access?.url||'',acessoId:access?.id||'',temManus:Boolean(access?.temManus)};
 }
 function clientMasterResolveName(value='') {
   const original=String(value||'').trim();
@@ -421,13 +424,30 @@ function linhaDeClienteHtml(nome, semCadastro) {
   const demandas = record.requests.filter((d) => !CONCLUIDO.includes(d.status)).length;
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
     return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const aspas = String(nome).replace(/'/g, "\\'");
   const porta = (rotulo, valor) => { const url = linkDeCliente(valor);
     return url ? `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener"
       onclick="event.stopPropagation()" title="Abrir ${safeText(rotulo)}">${safeText(rotulo)} ↗</a>` : ''; };
-  const portas = [porta('Drive', ligado.drive), porta('Acessos', ligado.link),
-                  porta('Planejamento', f.planejamento_url || ligado.planning)]
-                 .filter(Boolean).join('') || '<span class="cli-vazio">—</span>';
-  const aspas = String(nome).replace(/'/g, "\\'");
+  // A coluna "Link" do quadro de Dados & Acessos quase sempre guarda o projeto
+  // no Manus. Chamar tudo de "Acessos" escondia isso; agora a etiqueta diz o
+  // que o endereco e de verdade.
+  const outroLink = linkDeCliente(ligado.link);
+  const ehManus = /(^|\.)manus\.im$/i.test((() => { try { return new URL(outroLink).hostname; } catch { return ''; } })());
+  // So vira botao quando ha documento guardado; ter ficha de acessos nao quer
+  // dizer ter o documento dentro dela.
+  const documento = (ligado.doc && ligado.acessoId)
+    ? `<button type="button" class="cli-porta doc" title="Abrir o documento de acessos deste cliente"
+        onclick="event.stopPropagation();abrirDocumentoDoCliente('${safeText(String(ligado.acessoId))}', '${aspas}')">Documento ↗</button>`
+    : ligado.doc ? '<span class="cli-porta quieto" title="Documento de acessos guardado no Vybe">Documento</span>' : '';
+  const portas = [
+    porta('Drive', ligado.drive),
+    porta(ehManus ? 'Manus' : 'Link', outroLink),
+    porta('Planejamento', f.planejamento_url || ligado.planning),
+    documento,
+    // Marcado como "tem Manus" no cadastro, mas sem endereco guardado: dizer que
+    // existe e melhor do que silencio, e explica por que nao ha link.
+    (!ehManus && ligado.temManus) ? '<span class="cli-porta quieto" title="Marcado como tendo projeto no Manus, mas sem endereço guardado no cadastro">Manus</span>' : '',
+  ].filter(Boolean).join('') || '<span class="cli-vazio">—</span>';
   const lapis = !podeEditarClientes() ? ''
     : semCadastro
       ? `<button type="button" class="cli-lapis criar" title="Criar a ficha de ${safeText(nome)} no cadastro"
@@ -447,7 +467,7 @@ function linhaDeClienteHtml(nome, semCadastro) {
     ${editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || '<span class="cli-vazio">—</span>')}
     ${editavel('plano', safeText(f.plano || ligado.plan || '') || '<span class="cli-vazio">—</span>')}
     ${editavel('segmento', safeText(f.segmento || ligado.segment || '') || '<span class="cli-vazio">—</span>')}
-    <td><div class="cli-portas">${portas}${ligado.doc ? '<span class="cli-porta quieto" title="Documento de acessos guardado no Vybe">Documento</span>' : ''}</div></td>
+    <td><div class="cli-portas">${portas}</div></td>
     <td><div class="cli-numeros"><span title="Conteúdos em aberto">${abertos}</span><span title="Solicitações em aberto" class="${demandas ? 'atencao' : ''}">${demandas}</span></div></td>
     <td class="cli-acoes">${lapis}</td>
   </tr>`;
@@ -500,6 +520,52 @@ function tabelaDeClientesHtml(clientes) {
     + bloco('Só na operação', caixas.sem, 'sem',
         'aparecem em conteúdos, solicitações ou no Drive, mas não têm ficha no cadastro')
     || '<div class="grupos-vazio">Nenhum cliente encontrado.</div>';
+}
+
+// ── O documento de acessos do cliente ─────────────────────────────────────────
+// O documento com as senhas ja estava guardado no banco desde a saida do Monday,
+// e ja havia endereco para busca-lo — mas so a tela de Conta & Equipe chamava.
+// Na lista de clientes ele era uma etiqueta cinza que nao abria nada, e era isso
+// que faltava para nao precisar mais do quadro Dados & Acessos.
+//
+// O conteudo so sai do servidor quando e pedido por id, e so para quem
+// administra: a listagem nunca traz as senhas junto.
+async function abrirDocumentoDoCliente(acessoId, nome) {
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Dados &amp; acessos</span>
+      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">${safeText(nome)}</h2>
+    <div class="cli-doc"><div class="auto-carregando">Buscando o documento…</div></div>`);
+  try {
+    const r = await fetch(`/api/painel?area=acessos&id=${encodeURIComponent(acessoId)}`,
+      { credentials:'same-origin', cache:'no-store' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível abrir.');
+    const a = d.acesso || {};
+    const texto = String(a.doc_conteudo || '').trim();
+    const quando = String(a.doc_atualizado_em || '').slice(0, 10).split('-').reverse().join('/');
+    const caixa = document.querySelector('#workflow-modal .cli-doc');
+    if (!caixa) return;
+    const atalho = (rotulo, valor) => { const url = linkDeCliente(valor);
+      return url ? `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener">${safeText(rotulo)} ↗</a>` : ''; };
+    caixa.innerHTML = `<div class="cli-doc-topo">
+        <div class="cli-portas">${atalho('Drive', a.pasta_drive)}${atalho('Link', a.link)}</div>
+        ${quando ? `<small>documento de ${quando}</small>` : ''}
+        ${texto ? '<button type="button" class="cli-porta" onclick="copiarDocumentoDoCliente()">Copiar tudo</button>' : ''}
+      </div>
+      ${texto ? `<pre id="cli-doc-texto">${safeText(texto)}</pre>`
+              : '<div class="auto-carregando">Este cliente não tem documento de acessos guardado.</div>'}`;
+  } catch (erro) {
+    const caixa = document.querySelector('#workflow-modal .cli-doc');
+    if (caixa) caixa.innerHTML = `<div class="auto-carregando">Não foi possível abrir<br>
+      <small>${safeText(erro.message)}</small></div>`;
+  }
+}
+async function copiarDocumentoDoCliente() {
+  const el = document.getElementById('cli-doc-texto');
+  if (!el) return;
+  try { await navigator.clipboard.writeText(el.textContent || '');
+    showToast('Acessos copiados.', 'success', 3000); }
+  catch { showToast('Não consegui copiar; selecione o texto na tela.', 'info', 5000); }
 }
 
 // ── Editar e adicionar cliente ────────────────────────────────────────────────
