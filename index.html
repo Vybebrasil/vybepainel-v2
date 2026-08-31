@@ -1890,6 +1890,22 @@ button.subitem-marca:hover{transform:scale(1.35)}
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
 .lote-dono .dono-fichas{max-height:280px;overflow:auto;margin:0}
 .lote-dono-nota{margin:10px 0 0;color:#6f7887;font:500 10.5px/1.45 var(--mac-ui)}
+/* Cartao de cliente: a ficha nascia colada na borda esquerda, por baixo da faixa
+   colorida — "Segmento" saia cortado. O cabecalho tinha recuo e a ficha nao. */
+.cliente-ficha{padding:0 14px 12px!important;margin-top:0!important;border-top:0!important}
+.cliente-selos{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 14px 0}
+.cliente-situacao{padding:2px 9px;border-radius:999px;font:700 9.5px var(--mac-ui);letter-spacing:.04em;
+  text-transform:uppercase}
+.cliente-situacao.ativo{border:1px solid rgba(0,200,117,.42);background:rgba(0,200,117,.14);color:#7ef0b6}
+.cliente-situacao.inativo{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#8f98a9}
+/* Cada selo e uma porta: leva ao painel, ao Drive ou aos acessos do cliente. */
+.cliente-selo{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#cbd3df;
+  font:700 9.5px var(--mac-ui);letter-spacing:.03em;text-decoration:none;white-space:nowrap}
+.cliente-selo:hover{border-color:color-mix(in srgb,var(--accent,#ff6b00) 60%,transparent);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 14%,transparent);color:#fff}
+.cliente-selo.quieto{color:#8f98a9;cursor:default}
+.cliente-selo.quieto:hover{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#8f98a9}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);

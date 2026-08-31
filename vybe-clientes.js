@@ -173,10 +173,40 @@ function fichaClienteHtml(nome) {
       planejamentoUrl = analisada.href;
     }
   } catch (_) {}
-  if (!linhas.length && !planejamentoUrl) return '';
-  return `<div class="cliente-ficha">${
+  // Ativo/inativo, painel e onde estao os acessos — as tres perguntas que se faz
+  // olhando a lista, e que so tinham resposta abrindo o cliente ou o Monday.
+  const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
+  const selos = [
+    ['Painel', ligado.dashboard],
+    ['Drive', ligado.drive],
+    ['Acessos', ligado.link],
+    ['Planejamento', planejamentoUrl || ligado.planning],
+  ].map(([rotulo, valor]) => [rotulo, linkDeCliente(valor)]).filter(([, url]) => url);
+  const situacao = String(ligado.status || '').trim();
+  const cabecaDeSelos = (situacao || selos.length || ligado.doc) ? `<div class="cliente-selos">${
+      situacao ? `<span class="cliente-situacao ${/inativ/i.test(situacao) ? 'inativo' : 'ativo'}">${safeText(situacao)}</span>` : ''
+    }${selos.map(([rotulo, url]) => `<a class="cliente-selo" href="${safeText(url)}" target="_blank"
+        rel="noopener" onclick="event.stopPropagation()" title="Abrir ${safeText(rotulo)} deste cliente">${safeText(rotulo)} ↗</a>`).join('')
+    }${ligado.doc ? `<span class="cliente-selo quieto" title="Documento de acessos migrado para o Vybe">Documento</span>` : ''}</div>` : '';
+
+  if (!linhas.length && !cabecaDeSelos) return '';
+  return `${cabecaDeSelos}<div class="cliente-ficha">${
     linhas.map(([r, v]) => `<div><span>${safeText(r)}</span><b>${safeText(v)}</b></div>`).join('')
-  }${planejamentoUrl ? `<div><span>Planejamento</span><b><a href="${safeText(planejamentoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir ↗</a></b></div>` : ''}</div>`;
+  }</div>`;
+}
+
+// So vira link o que e endereco de verdade. Campo com "sim", "ok" ou o nome de
+// uma pasta viraria um link quebrado, e link quebrado e pior que campo vazio:
+// promete uma resposta e devolve erro.
+function linkDeCliente(valor) {
+  const bruto = String(valor || '').trim();
+  if (!bruto) return '';
+  try {
+    const url = new URL(bruto);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    if (!url.hostname || !url.hostname.includes('.')) return '';
+    return url.href;
+  } catch { return ''; }
 }
 
 function renderClientesBoard() {
