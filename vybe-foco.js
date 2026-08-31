@@ -45,7 +45,10 @@ function focusNextActionHtml(data) {
   const primary=mode==='next' ? 'Abrir e produzir' : 'VER BLOQUEIO';
   const primaryAction=mode==='next' ? `openFocusPriorityWorkspace('${item.id}')` : `openItemWorkspace('${item.id}')`;
   const statusControl=mode==='next' ? `<button type="button" class="focus-next-btn status" style="border-color:${item.status_color||'#00f0ff'} !important; background:color-mix(in srgb, ${item.status_color||'#00f0ff'} 12%, transparent) !important; color:${item.status_color||'#a6f8ff'} !important;" onclick="openStatusEditor(event,'${item.id}')">Status: ${safeText(item.status)}</button>` : '';
-  const checkinControl=mode==='next' ? `<button type="button" class="focus-next-btn checkin" onclick="openFocusPriorityCheckin('${item.id}')">Iniciar bloco</button>` : '';
+  // "Iniciar bloco" existia so para rolar ate o Check-in de execucao da gaveta, e
+  // esse bloco saiu — dois usos em duzentas pecas. Sem ele, o botao levaria a
+  // uma secao que nao existe mais.
+  const checkinControl='';
   const secondary=mode==='next' ? `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button>` : `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Registrar contexto</button>`;
   const controlNote=mode==='next' ? `<div class="focus-priority-control-note"><i></i>PRÓXIMA A INICIAR · ao mudar para Em andamento, esta demanda entra na fila de execução</div>` : '';
   return `<section class="focus-next-action"><div class="focus-next-kicker">${title} · PRIORIDADE CALCULADA</div><div class="focus-next-main"><div><div class="focus-next-client">${safeText(item.cliente || 'Cliente não informado')}</div><div class="focus-next-name">${safeText(item.nome)}</div><div class="focus-next-reason">${safeText(reason)}</div>${focusTrailHtml(item)}${controlNote}</div><div class="focus-next-tools"><button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>${statusControl}${checkinControl}${secondary}</div></div></section>`;
@@ -62,7 +65,6 @@ async function submitFocusBlocker(itemId) {
   try { const body=`[Vybe OS · Contexto de status]\nEtapa: ${item.status} → ${option.label}\nMotivo: ${reason}\nSolicitante/Dependência: ${owner}\nOrigem: Modo Foco · Bloqueio inteligente\nPróximo passo: ${next}`; await postItemUpdate(item.id,body); [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(d=>{if(String(d.id)===String(item.id)) d.status_context={target:option.label,reason,next,requester:owner,source:'Modo Foco · Bloqueio inteligente',created_at:new Date().toISOString()};})); closeWorkflowModal(); await commitStatusChange(item,option); } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível registrar o bloqueio: ${e.message}`,'err',7000); }
 }
 function openFocusPriorityWorkspace(itemId) { openItemWorkspace(itemId); }
-function openFocusPriorityCheckin(itemId) { openItemWorkspace(itemId); setTimeout(()=>{ document.querySelector('.workspace-checkin')?.scrollIntoView({behavior:'smooth',block:'center'}); },340); }
 function openFocusDelivery(itemId) { openItemWorkspace(itemId); setTimeout(()=>{ document.getElementById('workspace-link-input')?.scrollIntoView({behavior:'smooth',block:'center'}); },320); }
 function focusContinuityHtml(items,user) {
   const today=HOJE_ISO || new Date().toISOString().slice(0,10); const next=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && !['Agendado','Finalizado'].includes(d.status);}),user).slice(0,3); const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)).length;

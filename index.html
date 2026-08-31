@@ -1740,6 +1740,23 @@ button.subitem-marca:hover{transform:scale(1.35)}
    dela transformava o z-index 205 da Mesa num numero valido so entre irmaos;
    fora dali, quem viesse depois no documento passava por cima. */
 .manager-intelligence.com-mesa-de-comando{position:relative;z-index:700}
+/* Entregar: os dois caminhos lado a lado, cada um dizendo para que serve.
+   Eram duas secoes — "Anexar entrega" e "Entrega guiada", uma aberta e a outra
+   escondida atras de um "passo a passo, se preferir" — e ninguem sabia qual
+   usar para que. Sao a mesma tarefa com dois materiais diferentes. */
+.entrega-caminhos{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:10px}
+.entrega-caminho{display:flex;flex-direction:column;gap:8px;padding:12px;
+  border:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));border-radius:12px;
+  background:rgba(255,255,255,.018)}
+.entrega-caminho-topo b{display:block;color:#f2f2f5;font:700 12px var(--mac-ui)}
+.entrega-caminho-topo small{display:block;margin-top:2px;color:#8f98a9;font:600 10.5px var(--mac-ui)}
+.entrega-caminho .workspace-note{margin:0}
+.entrega-caminho .workspace-dropzone{margin:0;min-height:96px}
+/* A passagem de bastao e o passo seguinte, nao um terceiro caminho: fica
+   embaixo, separada por uma linha. */
+.entrega-depois{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin-top:12px;padding-top:11px;border-top:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09))}
+.entrega-depois span{color:#8f98a9;font:600 11px var(--mac-ui)}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);
@@ -3458,7 +3475,6 @@ button:not(:disabled):not([aria-disabled="true"]):active,
     
     <section class="workspace-section"><div class="workspace-section-head">Atualização rápida</div><div class="workspace-section-body"><textarea id="workspace-comment-input" class="workspace-textarea" placeholder="Ex.: Card finalizado e enviado para aprovação."></textarea><div class="workspace-form-row"><button type="button" class="workspace-action" onclick="saveWorkspaceComment()">Registrar atualização</button></div></div></section>
     
-    <section class="workspace-section workspace-checkin"><div class="workspace-section-head">Check-in de execução</div><div class="workspace-section-body"><p class="workspace-note">Registre o início ou o encerramento de um bloco de trabalho sem sair do Vybe OS. O sinal entra na linha do tempo da atividade.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceCheckin('início')">▶ Iniciar bloco</button><button type="button" class="workspace-action" onclick="registerWorkspaceCheckin('fechamento')">■ Encerrar bloco</button></div></div></section>
     <section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><div class="workspace-empty">Ainda não há decisão estruturada registrada nesta demanda.</div></div></section>
     <section class="workspace-section"><div class="workspace-section-head">Timeline operacional</div><div class="workspace-section-body"><div class="workspace-update workspace-timeline-event"><div class="workspace-update-meta"><span class="workspace-timeline-type">Atualização</span>Paulo Martins · 2026-08-21 16:29</div><div class="workspace-update-body">CARD 3: Posicionamento (O que é a Hebravet) NOME DA TAREFA: Hebravet | Card | Posicionamento: Mais que uma clínica🎯 1. O CORAÇÃO DO PEDIDOObjetivo: Reforçar o posicionamento da marca como "A evolução do cuidado animal".Público-Alvo: Novos seguidores e potenciais clientes da região de Irecê.Oferta/Diferencial: A junção de clínica completa, especialidades e pet shop em um só lugar.CTA: Compartilhar o post com outros tutores.✍️ 2. A MENSAGEM / COPYHook (Primeiros 3s ou Título): Muito mais do que uma clínica veterinária.Roteiro/Texto da Arte:[Título Forte]Muito mais do que uma clínica veterinária. 🏥💚[Lista Visual]🩺 Consultas e Especialidades🔬 Centro Cirúrgico Moderno🕒 Internação 24h🛁 Banho e Tosa Transparente[ Rodapé]Tudo o que seu pet precisa, em um só lugar.Legenda do Post:A evolução do cuidado animal chegou a Irecê. E ela é completa. 🚀🐾Quando idealizamos a Hebravet, não queríamos ser apenas mais uma opção. Queríamos ser o porto seguro da sua família. Por isso, reunimos em um só lugar uma infraestrutura de excelência e uma equipe movida pelo amor aos animais.De uma consulta de rotina a uma emergência na madrugada. De um banho relaxante a um procedimento cirúrgico complexo. A Hebravet está pronta para acolher, diagnosticar e tratar com o máximo de precisão e carinho.Tudo o que o membro mais especial da sua família precisa, agora está aqui. Conhece alguém que trata o pet como filho e precisa conhecer nossa estrutura? Compartilhe esse post com ele!3. DIREÇÃO DE ARTE E AUDIOVISUAL (Instruções para a Fábrica)Formato: 1080x1350 (Card Retrato)Observações Visuais:•Design: Institucional, forte e que transmita autoridade.•Imagem: Uma foto da fachada da clínica (se já estiver pronta e bonita) ou uma montagem elegante (grid) mostrando 3 ou 4 ambientes diferentes da clínica (consultório, recepção, banho e tosa).•Tipografia: Sólida e de fácil leitura, destacando a variedade de serviços.</div></div></div></section></aside><script id="workspace-startup-guard">
 (function(){

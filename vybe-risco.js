@@ -1114,15 +1114,31 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
     ${workspaceDeliveryDock(detail,item)}
-    <div class="workspace-actions"><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button>${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}${podeAdministrar() ? `<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Excluir atividade</button>` : ''}${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
+    <div class="workspace-actions">${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}${podeAdministrar() ? `<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Excluir atividade</button>` : ''}${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
     <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section>
-    <section class="workspace-section"><div class="workspace-section-head">Anexar entrega</div><div class="workspace-section-body"><input id="workspace-file-input" type="file" hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)"><div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Enviar card ou arte</strong>Arraste aqui ou clique para selecionar</div></div><p class="workspace-note">PNG, JPG, WEBP ou PDF · até 3 MB. Para vídeos, registre o link do Drive abaixo.</p></div></section>
-    <details class="workspace-section workspace-recolhida"><summary>Entrega guiada<small>passo a passo, se preferir</small></summary><div class="workspace-section-head-oculta"><div class="workspace-section-body"><p class="workspace-note">Para concluir com continuidade: anexe ou registre o link final, atualize o status e deixe a passagem de bastão para a próxima etapa.</p><input id="workspace-link-input" class="workspace-input" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva"><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="saveWorkspaceLink()">1. Registrar link da entrega</button><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">2. Passar bastão</button></div></div></details>
+    <section class="workspace-section"><div class="workspace-section-head">Entregar</div><div class="workspace-section-body">
+      <p class="workspace-note">Duas formas, conforme o que você tem em mãos. Qualquer uma das duas registra a entrega na atividade.</p>
+      <div class="entrega-caminhos">
+        <div class="entrega-caminho">
+          <div class="entrega-caminho-topo"><b>Arquivo pronto</b><small>card, arte ou PDF</small></div>
+          <input id="workspace-file-input" type="file" hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
+          <div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste aqui ou clique</strong>PNG, JPG, WEBP ou PDF · até 3 MB</div></div>
+          <p class="workspace-note">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos da demanda”.</p>
+        </div>
+        <div class="entrega-caminho">
+          <div class="entrega-caminho-topo"><b>Link do material</b><small>vídeo, ou arquivo grande demais</small></div>
+          <input id="workspace-link-input" class="workspace-input" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva">
+          <button type="button" class="workspace-action primary" onclick="saveWorkspaceLink()">Registrar link da entrega</button>
+          <p class="workspace-note">Fica no histórico da atividade, com quem registrou e quando.</p>
+        </div>
+      </div>
+      <div class="entrega-depois"><span>Entregou? A próxima etapa precisa saber.</span><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Passar bastão →</button></div>
+    </div></section>
     
     <section class="workspace-section"><div class="workspace-section-head">Atualização rápida</div><div class="workspace-section-body"><textarea id="workspace-comment-input" class="workspace-textarea" placeholder="Ex.: Card finalizado e enviado para aprovação."></textarea><div class="workspace-form-row"><button type="button" class="workspace-action" onclick="saveWorkspaceComment()">Registrar atualização</button></div></div></section>
     
-    <details class="workspace-section workspace-recolhida workspace-checkin"><summary>Check-in de execução</summary><div class="workspace-section-body"><p class="workspace-note">Registre o início ou o encerramento de um bloco de trabalho sem sair do Vybe OS. O sinal entra na linha do tempo da atividade.</p><div class="workspace-form-row"><button type="button" class="workspace-action primary" onclick="registerWorkspaceCheckin('início')">▶ Iniciar bloco</button><button type="button" class="workspace-action" onclick="registerWorkspaceCheckin('fechamento')">■ Encerrar bloco</button></div></div></details>
+
     ${workspaceExecutiveHistoryHtml(updates)}
       ${workspaceHistoryHtml(detail, item)}
     <details class="workspace-section workspace-recolhida"><summary>Todo o histórico<small>${updates.length} registro${updates.length===1?'':'s'}</small></summary><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></details></div>`;
@@ -1207,7 +1223,6 @@ async function postWorkspaceUpdate(body, successMessage) {
   const atualizado = findOperationalItem(activeWorkspaceItemId);
   if (atualizado) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), atualizado);
 }
-async function registerWorkspaceCheckin(stage) { const label=stage==='início'?'INÍCIO DE EXECUÇÃO CONFIRMADO':'FECHAMENTO DE BLOCO CONFIRMADO'; try { await postWorkspaceUpdate(`[Vybe OS · Check-in] ${label}`, `✓ ${stage==='início'?'Bloco iniciado':'Bloco encerrado'} e registrado no Vybe OS`); } catch (e) { showToast(`Não foi possível registrar o check-in: ${e.message}`, 'err', 7000); } }
 async function saveWorkspaceComment() {
   const input = document.getElementById('workspace-comment-input');
   try { await postWorkspaceUpdate(`[Vybe OS] ${input?.value || ''}`, '✓ Atualização registrada no Vybe OS'); }
