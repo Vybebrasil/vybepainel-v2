@@ -750,6 +750,15 @@ function daPlanningAbrirPeca(itemId, event) {
   const selecao = window.getSelection?.();
   // Quem arrastou para copiar o nome nao quis abrir a peca.
   if (selecao && String(selecao).trim().length > 2) return;
+  // Abre o cartao rapido, o mesmo do calendario: status, grupo, responsavel,
+  // captacao, formato, tipo, OFF, prioridade e as duas datas, tudo a mao e sem
+  // sair da mesa. A gaveta inteira continua a um clique, no rodape do cartao.
+  //
+  // A mesa fica aberta atras: quem esta ajustando prazos vai mexer em varias
+  // seguidas, e fechar tudo a cada clique jogaria a pessoa de volta ao comeco.
+  const peca = typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null;
+  const origem = (typeof isRequestItem === 'function' && peca && isRequestItem(peca)) ? 'request' : 'content';
+  if (typeof abrirCartaoRapido === 'function') return abrirCartaoRapido(String(itemId), event, origem);
   closeDaIndividualPlanningDesk();
   openItemWorkspace(String(itemId));
 }

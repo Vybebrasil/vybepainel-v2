@@ -1106,6 +1106,11 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
 }
 async function openItemWorkspace(itemId) {
   closeItemWorkspace();
+  // A gaveta e a mesa de planejamento nao convivem: a mesa cobre a tela inteira
+  // e a gaveta abriria atras dela, invisivel. Quem pede o contexto completo esta
+  // saindo da mesa — entao a mesa sai junto, venha o pedido de onde vier.
+  if (typeof closeDaIndividualPlanningDesk === 'function'
+      && document.getElementById('da-individual-planning-overlay')) closeDaIndividualPlanningDesk();
   let item = findOperationalItem(itemId);
   activeWorkspaceItemId = String(itemId);
   const backdrop = document.createElement('div');

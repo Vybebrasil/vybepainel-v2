@@ -573,7 +573,7 @@
        no controle que o abriu, encolhe até o tamanho do conteúdo e some quando
        se clica fora. O fundo continua existindo — só para capturar o clique. */
     .status-editor-backdrop { position:fixed;inset:0;z-index:700;background:transparent}
-    .cartao-rapido-fundo { position:fixed;inset:0;z-index:440;background:transparent}
+    .cartao-rapido-fundo { position:fixed;inset:0;z-index:668;background:transparent}
     .status-editor { position:fixed;z-index:701;min-width:170px;width:max-content;
       max-width:min(300px,calc(100vw - 20px));max-height:min(50vh,340px);overflow:auto;
       background:rgba(28,28,30,.92);-webkit-backdrop-filter:blur(28px) saturate(1.7);
@@ -1969,7 +1969,7 @@ html{scrollbar-gutter:stable}
    -- doze secoes e vinte botoes -- mesmo quando a intencao era so trocar o
    status. Aqui esta o que se muda todo dia; a gaveta fica a um clique, para
    quando a pergunta e outra. */
-.cartao-rapido{position:fixed;z-index:441;width:min(330px,calc(100vw - 20px));
+.cartao-rapido{position:fixed;z-index:669;width:min(330px,calc(100vw - 20px));
   background:rgba(28,28,30,.96);-webkit-backdrop-filter:blur(28px) saturate(1.7);
   backdrop-filter:blur(28px) saturate(1.7);
   border:.5px solid rgba(255,255,255,.16);border-radius:12px;padding:12px 12px 10px;
@@ -2708,7 +2708,14 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-planning-switcher button.active::after{content:'✓';margin-left:1px;color:var(--da-plan-color,#ff9d00);
   font:700 10px var(--mac-ui)}
 /* Donos da peca: quem esta na mesa acende, quem nao esta fica apagado mas visivel. */
-.da-planning-donos{display:flex;align-items:center;margin-top:5px}
+/* As fotos vao na MESMA linha do cliente. Em linha propria, o texto passava a
+   pedir 53px numa linha travada em 50px e as bolinhas invadiam a linha de baixo.
+   Na altura do cliente, o cartao volta a duas linhas e nada estoura. */
+.da-planning-copy small{display:inline-block!important;vertical-align:middle}
+.da-planning-donos{display:inline-flex;align-items:center;vertical-align:middle;margin:0 0 0 8px}
+/* E a linha deixa de ter altura fixa: quem manda e o conteudo, com um minimo
+   para as linhas curtas nao ficarem magras demais. */
+.da-planning-row:not(.da-planning-row-head){height:auto!important;min-height:50px!important}
 /* Bolinha com foto, a mesma do resto do painel. Quem divide a peca mas nao esta
    na mesa fica apagado: continua responsavel, so nao e o assunto agora. */
 .da-planning-dono{display:inline-flex}
