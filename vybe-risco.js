@@ -456,7 +456,46 @@ const STATUS_CONTEXT_RULES = Object.freeze({
 function contextRuleFor(option) { return STATUS_CONTEXT_RULES[normalizedWorkflowStatus(option?.label)] || { question:`Por que esta demanda entra em ${option?.label || 'esta etapa'}?`, helper:'Registre o motivo da mudança e o próximo passo necessário.' }; }
 function updateStatusContextState() { const form=document.getElementById('status-context-form'); const button=document.getElementById('status-context-submit'); if(!form || !button) return; const checks=[...form.querySelectorAll('input[data-quality-check]')]; button.disabled=checks.some(check=>!check.checked); }
 function statusContextIsCard(item){ return /card/i.test(String(daTacticalFormat(item)||item?.formato||'')) || /(^|\W)card\b/i.test(String(item?.nome||'')); }
-function statusContextResponsibleOptions(item){ const rule=ownerEligibility(item); const current=new Set(assignedIds(item)); const eligible=(rule?.users||[]).filter(user=>user?.id); const currentUsers=(TEAM_USERS||[]).filter(user=>current.has(String(user.id))); const users=[...new Map([...eligible,...currentUsers].map(user=>[String(user.id),user])).values()]; return users.map(user=>{const isEligible=eligible.some(candidate=>String(candidate.id)===String(user.id)); return `<option value="${safeText(user.id)}" ${current.has(String(user.id))?'selected':''}>${safeText(user.name)} · ${safeText(isEligible?rule?.label||'Equipe':'Responsável atual')}</option>`;}).join(''); }
+// Escolher responsavel e sempre pela bolinha com foto, como no resto do painel.
+// Antes era um <select> de texto: a lista abria com a fonte do sistema, sem
+// rosto nenhum, e a pessoa lia "Deivid · Design" onde em toda outra tela ela
+// reconhece a foto antes do nome.
+//
+// Um <select> nao aceita imagem — entao deixa de ser select. Vira uma fileira de
+// fichas, e um campo escondido guarda o escolhido para quem le o formulario nao
+// precisar saber que a tela mudou.
+function statusContextResponsibleOptions(item){
+  const rule=ownerEligibility(item);
+  const current=new Set(assignedIds(item));
+  const eligible=(rule?.users||[]).filter(user=>user?.id);
+  const currentUsers=(TEAM_USERS||[]).filter(user=>current.has(String(user.id)));
+  const users=[...new Map([...eligible,...currentUsers].map(user=>[String(user.id),user])).values()];
+  const escolhido=users.find(u=>current.has(String(u.id)));
+  const fichas=users.map(user=>{
+    const id=String(user.id);
+    const naRegra=eligible.some(c=>String(c.id)===id);
+    const papel=naRegra?(rule?.label||'Equipe'):'Responsável atual';
+    return `<button type="button" class="dono-ficha ${current.has(id)?'marcada':''}" data-dono="${safeText(id)}"
+      onclick="escolherResponsavelDoStatus('${safeText(id)}')" title="${safeText(user.name)} · ${safeText(papel)}">
+      ${ownerAvatarHtml(user)}<span><b>${safeText(firstName(user.name))}</b><small>${safeText(papel)}</small></span></button>`;
+  }).join('');
+  return `<input type="hidden" id="status-context-next-owner" value="${safeText(escolhido?String(escolhido.id):'')}">
+    <div class="dono-fichas" id="status-context-donos">${fichas
+      || '<span class="workflow-hint">Nenhuma pessoa elegível para esta etapa.</span>'}</div>`;
+}
+
+// Uma pessoa por vez: clicar em outra troca. Clicar na marcada desmarca, porque
+// nem toda passagem de status tem um dono definido do outro lado.
+function escolherResponsavelDoStatus(id){
+  const campo=document.getElementById('status-context-next-owner');
+  if(!campo) return;
+  const alvo=String(id);
+  const jaEra=String(campo.value||'')===alvo;
+  campo.value=jaEra?'':alvo;
+  document.querySelectorAll('#status-context-donos .dono-ficha').forEach(b=>{
+    b.classList.toggle('marcada', !jaEra && b.dataset.dono===alvo);
+  });
+}
 // Todas as imagens da peça, não só a primeira: uma demanda com cinco artes
 // mostrava uma e escondia quatro, sem dizer que existiam.
 function statusContextPreviewAssets(detail){ const updates=(detail?.updates||[]).flatMap(update=>update?.assets||[]); const assets=[...(detail?.assets||[]),...updates]; return assets.filter(asset=>asset?.url_thumbnail || /^\.?(png|jpe?g|webp|gif|avif)$/i.test(String(asset?.file_extension||''))); }
@@ -538,7 +577,7 @@ function openStatusContextGate(item, option) {
   const sourceFields = rule.source ? `<label class="workflow-field"><span>Onde está a referência?</span><select id="status-context-source"><option value="WhatsApp">WhatsApp</option><option value="Monday">Monday.com</option><option value="Reunião">Reunião</option><option value="E-mail">E-mail</option><option value="Outro">Outro</option></select></label>` : '';
   const completedField = (rule.completed || requiresHandoff) ? `<label class="workflow-field"><span>O que foi concluído antes desta etapa?</span><textarea id="status-context-completed" rows="3" placeholder="Ex.: Versão final revisada, arquivo anexado e copy conferida."></textarea></label>` : '';
   const checklist = requiresQuality ? `<div class="workflow-checks"><span class="workflow-field"><span>Checklist de qualidade</span></span>${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" data-quality-check name="quality-${index}"><span>${safeText(check)}</span></label>`).join('')}</div>` : '';
-  const responsible=`<div class="status-context-responsible"><label class="workflow-field"><span>Quem executará a próxima ação?</span><select id="status-context-next-owner"><option value="">Selecione o responsável</option>${statusContextResponsibleOptions(item)}</select></label><small class="status-context-responsible-hint"><b>Responsável da próxima ação:</b> a seleção é limitada à disciplina elegível e fica registrada junto com esta passagem de status.</small></div>`;
+  const responsible=`<div class="status-context-responsible"><div class="workflow-field"><span>Quem executará a próxima ação?</span>${statusContextResponsibleOptions(item)}</div><small class="status-context-responsible-hint"><b>Responsável da próxima ação:</b> a seleção é limitada à disciplina elegível e fica registrada junto com esta passagem de status.</small></div>`;
   const form=`<form id="status-context-form" onchange="updateStatusContextState()"><label class="workflow-field"><span>${safeText(rule.question)}</span><textarea id="status-context-reason" rows="3" placeholder="Descreva o motivo desta mudança de status."></textarea></label>${completedField}${requesterFields}${sourceFields}${responsible}<label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="status-context-link" type="url" placeholder="https://drive.google.com/... ou link da referência"></label>${checklist}</form>`;
   const preview=isCard?`<aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia do card</b><small>arquivo vinculado</small></div><div id="status-context-card-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside>`:'';
   pendingWorkflowChange={item,option,manual:false};

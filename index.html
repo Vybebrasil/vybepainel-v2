@@ -1862,6 +1862,23 @@ button.subitem-marca:hover{transform:scale(1.35)}
    do lado. Com auto-fit, a coluna que ninguem ocupa simplesmente nao existe. */
 .status-context-layout{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))!important;
   gap:18px!important;align-items:start!important}
+/* Escolher responsavel pela foto, e nao por uma lista de texto do sistema.
+   A ficha e um alvo grande: foto, primeiro nome e a disciplina embaixo. */
+.dono-fichas{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.dono-ficha{display:inline-flex;align-items:center;gap:9px;padding:7px 13px 7px 8px;
+  border:1px solid rgba(255,255,255,.11);border-radius:999px;background:rgba(255,255,255,.03);
+  color:#dfe4ee;cursor:pointer;text-align:left;
+  transition:border-color .12s var(--curva,ease),background .12s var(--curva,ease)}
+.dono-ficha span{display:block;min-width:0}
+.dono-ficha b{display:block;color:#f2f2f5;font:700 12.5px var(--mac-ui);letter-spacing:-.01em}
+.dono-ficha small{display:block;margin-top:1px;color:#8f98a9;font:600 10px var(--mac-ui)}
+.dono-ficha img,.dono-ficha .owner-avatar-fallback{width:30px;height:30px;border-radius:50%;
+  object-fit:cover;border:2px solid rgba(0,0,0,.5);flex:0 0 30px}
+.dono-ficha:hover{border-color:rgba(255,157,79,.5);background:rgba(255,122,26,.10)}
+/* Marcada nao depende so da cor: o contorno engrossa e o nome fica branco. */
+.dono-ficha.marcada{border-color:var(--accent,#ff6b00);background:color-mix(in srgb,var(--accent,#ff6b00) 15%,transparent)}
+.dono-ficha.marcada b{color:#fff}
+.dono-ficha.marcada small{color:#ffd0a3}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);
