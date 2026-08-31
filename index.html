@@ -1782,6 +1782,87 @@ button.subitem-marca:hover{transform:scale(1.35)}
   .focus-next-tools{min-width:0;flex-direction:row!important;flex-wrap:wrap}
 }
 
+/* ─── Janelas de mudanca de status, na lingua do CADASTROS ──────────────────────
+   Elas ficaram na estetica antiga: campo apertado, rotulo do mesmo tamanho da
+   resposta, caixa verde gritando no meio e — o mais datado — o <select> com a
+   moldura nativa do macOS, que nao se parece com nada no resto do painel.
+   A pergunta passa a ser o assunto, como no CADASTROS; o resto e apoio. */
+.workflow-modal{border-radius:18px!important;
+  background:linear-gradient(180deg,rgba(20,23,31,.99),rgba(13,16,23,.99))!important;
+  box-shadow:0 34px 90px rgba(0,0,0,.66),inset 0 1px 0 rgba(255,255,255,.06)!important}
+.workflow-kicker{color:var(--accent,#ff6b00)!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.08em}
+.workflow-title{margin:12px 0 6px!important;font:700 clamp(24px,2.6vw,32px)/1.12 var(--mac-ui)!important;
+  letter-spacing:-.025em;color:#fff!important;text-wrap:balance}
+.workflow-copy{color:#8f98a9!important;font:500 13px/1.5 var(--mac-ui)!important}
+
+/* Rotulo pequeno em cima, resposta grande embaixo — nunca do mesmo tamanho. */
+.workflow-field{display:block;margin-top:16px}
+.workflow-field>span{display:block;margin-bottom:6px;color:#8f98a9!important;
+  font:700 11px var(--mac-ui)!important;letter-spacing:.02em}
+.workflow-field input,.workflow-field select,.workflow-field textarea{
+  width:100%;box-sizing:border-box;min-height:44px;padding:11px 13px!important;
+  border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;
+  background:rgba(0,0,0,.3)!important;color:#f2f2f5!important;
+  font:600 13.5px var(--mac-ui)!important;
+  transition:border-color .14s var(--curva,ease),box-shadow .14s var(--curva,ease)}
+.workflow-field textarea{min-height:104px;line-height:1.5;font-weight:500!important;resize:vertical}
+.workflow-field input:focus,.workflow-field select:focus,.workflow-field textarea:focus{
+  outline:none!important;border-color:color-mix(in srgb,var(--accent,#ff6b00) 62%,transparent)!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#ff6b00) 14%,transparent)!important}
+/* A moldura nativa do <select> some; a seta e desenhada por nos. */
+.workflow-field select{-webkit-appearance:none!important;appearance:none!important;
+  padding-right:38px!important;cursor:pointer;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238f98a9' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;background-position:right 14px center!important}
+
+/* A caixa do responsavel deixa de gritar em verde: vira apoio, com um risco. */
+.status-context-responsible{margin-top:16px!important;padding:13px 14px!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  border-left:3px solid color-mix(in srgb,var(--accent,#ff6b00) 70%,transparent)!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.028)!important;background-image:none!important}
+.status-context-responsible .workflow-field{margin-top:0!important}
+.status-context-responsible-hint{margin-top:8px!important;color:#8f98a9!important;
+  font:500 11.5px/1.5 var(--mac-ui)!important}
+.status-context-responsible-hint b{color:#cbd3df!important}
+.workflow-hint{color:#8f98a9!important;font:500 11.5px/1.5 var(--mac-ui)!important}
+.workflow-hint b{color:#cbd3df!important}
+
+/* A barra de acoes fica grudada no rodape da janela enquanto o resto rola. Sem
+   fundo, as linhas do checklist passavam por baixo dela e ficavam legiveis
+   atraves dos botoes. Fundo solido, e nao so desfoque. */
+.workflow-actions{margin:22px -22px -22px!important;padding:16px 22px!important;
+  border-top:1px solid rgba(255,255,255,.08)!important;
+  background:rgba(13,16,23,.96)!important;border-radius:0 0 18px 18px!important;
+  display:flex;justify-content:flex-end;gap:10px}
+.workflow-primary{min-height:44px;padding:0 22px!important;border:0!important;border-radius:12px!important;
+  background:linear-gradient(135deg,#ff8a2b,#ff6b00)!important;color:#1a0f04!important;
+  font:800 13.5px var(--mac-ui)!important;cursor:pointer;
+  transition:transform .12s var(--curva,ease),box-shadow .12s var(--curva,ease)}
+.workflow-primary:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(255,107,0,.28)!important}
+.workflow-primary:disabled{opacity:.5;transform:none;box-shadow:none!important;cursor:not-allowed}
+.workflow-secondary{min-height:44px;padding:0 18px!important;border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:12px!important;background:rgba(255,255,255,.04)!important;color:#dfe4ee!important;
+  font:600 13px var(--mac-ui)!important;cursor:pointer}
+.workflow-secondary:hover{background:rgba(255,255,255,.08)!important;color:#fff!important}
+
+/* Checklist: cada linha e um alvo grande, e marcar muda a linha inteira. */
+.workflow-check{display:flex!important;align-items:center;gap:11px;min-height:48px;
+  margin-top:8px!important;padding:0 14px!important;
+  border:1px solid rgba(255,255,255,.10)!important;border-radius:12px!important;
+  background:rgba(255,255,255,.025)!important;color:#dfe4ee!important;
+  font:600 13px var(--mac-ui)!important;cursor:pointer;
+  transition:border-color .12s var(--curva,ease),background .12s var(--curva,ease)}
+.workflow-check:hover{border-color:rgba(255,255,255,.2)!important;background:rgba(255,255,255,.05)!important}
+.workflow-check:has(input:checked){border-color:color-mix(in srgb,var(--accent,#ff6b00) 55%,transparent)!important;
+  background:color-mix(in srgb,var(--accent,#ff6b00) 11%,transparent)!important;color:#fff!important}
+.workflow-check input{width:18px;height:18px;accent-color:var(--accent,#ff6b00);cursor:pointer}
+/* A janela reservava sempre uma segunda coluna para a previa. So o checklist tem
+   previa; nas outras o formulario ficava espremido em dois tercos com um vazio
+   do lado. Com auto-fit, a coluna que ninguem ocupa simplesmente nao existe. */
+.status-context-layout{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))!important;
+  gap:18px!important;align-items:start!important}
+
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);
     overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
