@@ -92,7 +92,10 @@ catch (e) { falhaGeral = e; }
 // tinha acabado de apagar. Aqui os onclick sao lidos como codigo.
 const nativos = new Set(['event','this','window','document','alert','confirm','prompt','setTimeout',
   'setInterval','console','Number','String','JSON','Math','Object','Array','Date','Boolean',
-  'parseInt','parseFloat','if','for','while','return','typeof','new','function']);
+  'parseInt','parseFloat','if','for','while','return','typeof','new','function',
+  // Nativas do navegador que aparecem dentro de onclick. Faltavam aqui e o
+  // verificador acusava 'botao morto' para uma funcao que existe em todo lugar.
+  'encodeURIComponent','decodeURIComponent','isNaN','isFinite']);
 
 const declarados = new Set(nomes);
 for (const arquivo of [...ordem, 'index.html']) {

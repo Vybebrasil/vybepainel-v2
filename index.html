@@ -1700,6 +1700,28 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .lote-data-acoes button.primario{border-color:rgba(255,157,79,.5);
   background:rgba(255,122,26,.18);color:#ffd0a3}
 .lote-data-acoes button.primario:hover{background:rgba(255,122,26,.3);color:#fff}
+/* Cliente sem nada no mes fica apagado, mas continua clicavel: some do caminho
+   do olho sem sumir do alcance do dedo. Antes ele desaparecia da lista, e nao
+   havia como abrir o mes seguinte de um cliente parado neste. */
+.manager-calendar-client.vazio{opacity:.42}
+.manager-calendar-client.vazio:hover{opacity:.85}
+.manager-calendar-client.escolha{display:inline-flex;align-items:center;gap:7px}
+.manager-calendar-client.escolha .cliente-seta{color:#8f98a9;font-style:normal;font-size:10px}
+/* O botao que troca fichas por busca fica na ponta da faixa, discreto. */
+.manager-calendar-modo{flex:0 0 auto;width:28px;height:28px;margin-left:6px;padding:0;
+  display:inline-grid;place-items:center;border:1px solid rgba(255,255,255,.12);border-radius:9px;
+  background:rgba(255,255,255,.04);color:#9da4b4;font:600 13px var(--mac-ui);cursor:pointer}
+.manager-calendar-modo:hover{border-color:rgba(255,157,79,.5);background:rgba(255,122,26,.14);color:#fff}
+/* Busca de cliente: lista rolavel com a contagem do mes a direita. */
+.status-editor.cliente-busca{min-width:270px;padding:10px}
+.cliente-busca .fc-busca{width:100%;box-sizing:border-box;margin:8px 0;min-height:32px;padding:0 10px;
+  border:1px solid rgba(255,255,255,.12);border-radius:9px;background:rgba(255,255,255,.04);
+  color:#e7ecf5;font:600 12px var(--mac-ui);outline:none}
+.cliente-busca .fc-busca:focus{border-color:rgba(255,157,79,.55)}
+.cliente-busca-lista{max-height:320px;overflow:auto}
+.cliente-busca-lista .status-editor-option{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cliente-busca-lista .status-editor-option.vazio{opacity:.5}
+.cliente-busca-conta{color:#8f98a9;font:700 10.5px var(--mac-ui)}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);
