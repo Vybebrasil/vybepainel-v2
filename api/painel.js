@@ -505,10 +505,14 @@ async function areaClientes(req, res, quem) {
       if (existe.length) {
         // Reativa em vez de recusar: cliente que voltou é o caso comum, e criar
         // um segundo com o mesmo nome partiria o histórico em dois.
-        const r = await db`UPDATE vybe_clientes SET ativo=TRUE WHERE id=${existe[0].id} RETURNING id, nome, ativo`;
+        const r = await db`UPDATE vybe_clientes SET ativo=TRUE, status='Ativo'
+          WHERE id=${existe[0].id} RETURNING id, nome, ativo`;
         return res.status(200).json({ ok: true, reativado: true, cliente: r[0] });
       }
-      const r = await db`INSERT INTO vybe_clientes (nome) VALUES (${limpo}) RETURNING id, nome, ativo`;
+      // O status preenchido e o que separa um cadastro de verdade de uma linha
+      // que a importacao criou sozinha so porque o nome apareceu num conteudo.
+      const r = await db`INSERT INTO vybe_clientes (nome, status) VALUES (${limpo}, 'Ativo')
+        RETURNING id, nome, ativo`;
       return res.status(200).json({ ok: true, cliente: r[0] });
     }
     if (acao === 'ficha') {
@@ -542,8 +546,9 @@ async function areaClientes(req, res, quem) {
     }
     if (acao === 'ativar' || acao === 'desativar') {
       if (!id) return res.status(400).json({ error: 'Informe o cliente.' });
-      const r = await db`UPDATE vybe_clientes SET ativo=${acao === 'ativar'} WHERE id=${Number(id)}
-        RETURNING id, nome, ativo`;
+      const r = await db`UPDATE vybe_clientes
+          SET ativo=${acao === 'ativar'}, status=${acao === 'ativar' ? 'Ativo' : 'Inativo'}
+        WHERE id=${Number(id)} RETURNING id, nome, ativo`;
       if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
     }

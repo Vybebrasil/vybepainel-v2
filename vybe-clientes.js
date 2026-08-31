@@ -240,7 +240,7 @@ function renderClientesBoard() {
   // KPIs
   // "Ativos" e o que o cadastro diz, nao a soma de todo nome que ja apareceu.
   const ativosNoCadastro = CADASTRO_CLIENTES.filter((c) =>
-    (String(c.status || '').trim() ? !/inativ/i.test(c.status) : c.ativo !== false)).length;
+    String(c.status || '').trim() && !/inativ/i.test(c.status)).length;
   document.getElementById('kpi-grid-clientes').innerHTML = [
     {label:'Clientes Ativos', value:ativosNoCadastro || todosClientes.length, sub:'no cadastro', cls:'purple'},
     {label:'Produção', value:DADOS.length, sub:'conteúdos', cls:'green'},
@@ -376,12 +376,17 @@ function linhaDeClienteHtml(nome, semCadastro) {
 
 // Ativo e inativo sao o que o CADASTRO diz — nada mais.
 //
-// Eu tinha deixado a tabela contar como ativo todo nome que aparecesse em
-// qualquer lugar: conteudo, solicitacao, pasta do Drive. Como quem nunca foi
-// cadastrado nao tem status, caia no "ativo" por falta de resposta, e a lista
-// dizia 47 ativos onde o cadastro tem uns poucos. Nome sem ficha agora fica num
-// bloco proprio, "So na operacao", que e exatamente a lista do que falta
-// cadastrar — e da para cadastrar dali mesmo.
+// Ter uma linha em vybe_clientes nao quer dizer estar cadastrado: a importacao
+// dos quadros de conteudo cria uma linha para todo nome que aparece numa peca,
+// so com o nome (`INSERT INTO vybe_clientes (nome)`). Essas linhas nascem com
+// ativo=true e status vazio, e era por isso que a lista dizia 36 ativos onde o
+// quadro de Heads tem 17: ACE, CMO, Freela, feijao panela de ouro — nomes que a
+// operacao criou sozinha, nunca cadastrados por ninguem.
+//
+// O que separa os dois e o STATUS preenchido: quem veio do quadro de Heads tem
+// "Ativo" ou "Inativo" escrito, e a partir de agora quem for cadastrado aqui
+// tambem. Linha sem status e so um nome — vai para "So na operacao", que e
+// exatamente a lista do que falta cadastrar, com um botao para fazer isso.
 function tabelaDeClientesHtml(clientes) {
   const nomeVale = (nome) => /[a-z0-9]/i.test(String(nome || '')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
@@ -390,7 +395,9 @@ function tabelaDeClientesHtml(clientes) {
     if (!f) return 'sem';
     const texto = String(f.status || '').trim();
     if (texto) return /inativ/i.test(texto) ? 'inativos' : 'ativos';
-    return f.ativo === false ? 'inativos' : 'ativos';
+    // Sem status: linha criada pela importacao. So conta como inativo se alguem
+    // tirou do painel de proposito; fora isso, nunca foi cadastrada.
+    return f.ativo === false ? 'inativos' : 'sem';
   };
   const caixas = { ativos: [], inativos: [], sem: [] };
   clientes.filter(nomeVale).forEach((nome) => caixas[situacao(nome)].push(nome));
