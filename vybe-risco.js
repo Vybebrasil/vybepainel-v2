@@ -1145,7 +1145,13 @@ async function openItemWorkspace(itemId) {
 // Workspace interno de Solicitações: leitura e contexto sem aplicar as automações do board de Produção.
 async function openDemandaWorkspace(itemId) {
   closeItemWorkspace();
-  const item = DADOS_DEMANDAS.find(d => String(d.id) === String(itemId));
+  // A gaveta da solicitacao esquecia de fechar a mesa. Ela abria — e abria ATRAS
+  // da mesa, que cobre a tela inteira: clicar em "Abrir tudo" numa SOLICITACAO
+  // parecia nao fazer nada. O conteudo fechava a mesa e a solicitacao nao; duas
+  // portas para a mesma sala, so uma sabia disso.
+  if (typeof closeDaIndividualPlanningDesk === 'function'
+      && document.getElementById('da-individual-planning-overlay')) closeDaIndividualPlanningDesk();
+  const item = (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []).find(d => String(d.id) === String(itemId));
   if (!item) return showToast('Solicitação não encontrada no contexto atual.', 'err');
   activeWorkspaceItemId = '';
   const backdrop = document.createElement('div');
