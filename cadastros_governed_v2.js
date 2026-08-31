@@ -897,7 +897,11 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     if (foco) foco.focus();
   };
 
-    window.openCadastrosGoverned = function() {
+    // Aceita o que quem chama ja sabe: {client, veic, prazo, board}. Quem abre
+    // pelo calendario ja escolheu o dia e, se o calendario estiver num cliente
+    // so, ja escolheu o cliente — perguntar de novo seria pedir para digitar o
+    // que a tela ja tem na mao.
+    window.openCadastrosGoverned = function(inicial) {
     ensureFastCadastrosStyles();
     
     const existing = document.getElementById('fc-overlay');
@@ -905,6 +909,18 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
 
     state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
     
+    const inicio = (inicial && typeof inicial === 'object') ? inicial : {};
+    if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;
+    // So aceita cliente que exista na lista do passo: guardar um nome que a tela
+    // nao mostra deixaria o resumo falando de um cliente que ninguem escolheu.
+    const listaDeClientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
+    if (inicio.client && listaDeClientes.includes(inicio.client)) state.client = inicio.client;
+    if (inicio.veic) {
+      state.itens[0].veic = inicio.veic;
+      state.itens[0].prazo = inicio.prazo || getOffsetDate(inicio.veic, -7);
+      fcEspelharPrimeiro();
+    }
+
     // Exposta porque a troca de quadro precisa redesenhar grupo, status e a
     // terceira coluna — e ela mora dentro desta função.
     window.renderCustomDropdownsGlobal = () => renderCustomDropdowns();
@@ -1071,7 +1087,14 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     // Desenhar o primeiro passo NAO espera quadro de animacao: em aba fora de
     // foco o requestAnimationFrame nao dispara, e o cadastro abria vazio. Quem
     // precisa do quadro e so a transicao de entrada.
+    // Sem nada pronto, comeca do comeco. Com o calendario tendo respondido
+    // cliente e data, abre direto na primeira pergunta que falta — o passo
+    // pulado continua no trilho do topo, a um clique de distancia.
     fcPasso = 0;
+    if (inicio.client || inicio.veic || inicio.board) {
+      const pendente = FC_PASSOS.findIndex((q) => !fcRespondido(q));
+      fcPasso = pendente < 0 ? FC_PASSOS.length - 1 : pendente;
+    }
     fcDesenharPasso();
     requestAnimationFrame(() => {
        overlay.classList.add('open');

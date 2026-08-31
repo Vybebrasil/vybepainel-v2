@@ -385,14 +385,33 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   ancorarPopover(cartao, rect);
 }
 
+// O + do dia abria o formulario antigo — o de onze campos de uma vez, que so
+// sobrou como socorro para quando o CADASTROS de verdade nao carrega. Agora
+// abre o mesmo CADASTROS do painel, ja com o que o calendario sabe: o dia
+// clicado e, se a visao estiver num cliente so, o cliente.
 function managerCalendarAdd(dateIso) {
+  // O dia clicado e uma veiculacao ou um prazo, conforme a referencia ativa do
+  // calendario. Sem olhar para isso, clicar num dia no modo Prazo criaria a
+  // peca para veicular naquele dia — uma semana adiantada.
+  const veic = dateMode === 'prazo' ? cadastrosIsoOffset(dateIso, PRAZO_OURO_DIAS) : dateIso;
+  const prazo = dateMode === 'prazo' ? dateIso : goldenDeadlineIso(dateIso);
+  const cliente = managerCalendarClientFilter !== 'all' ? managerCalendarClientFilter : '';
+
+  if (typeof openCadastrosGoverned === 'function') {
+    return openCadastrosGoverned({ client: cliente, veic, prazo });
+  }
   if (typeof openCadastrosGovernedLegacy !== 'function') return showToast('CADASTROS ainda não está disponível neste contexto.', 'info');
   openCadastrosGovernedLegacy();
   setTimeout(() => {
-    const veic = document.getElementById('cad-veic');
-    const prazo = document.getElementById('cad-prazo');
-    if (veic) veic.value = dateIso;
-    if (prazo) prazo.value = goldenDeadlineIso(dateIso);
+    const campoVeic = document.getElementById('cad-veic');
+    const campoPrazo = document.getElementById('cad-prazo');
+    const campoCliente = document.getElementById('cad-client');
+    if (campoVeic) campoVeic.value = veic;
+    if (campoPrazo) campoPrazo.value = prazo;
+    // O socorro tambem aproveita o cliente da visao, e so se ele estiver na lista.
+    if (campoCliente && cliente && [...campoCliente.options].some((o) => o.value === cliente)) {
+      campoCliente.value = cliente;
+    }
     if (typeof updateCadastrosPreview === 'function') updateCadastrosPreview();
   }, 70);
 }
