@@ -1260,7 +1260,7 @@ const ARQUIVO_TIPOS = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf
 const ARQUIVO_PELO_SERVIDOR = 3 * 1024 * 1024;
 const ARQUIVO_LIMITE = 200 * 1024 * 1024;
 
-async function enviarArquivoDaPeca(itemId, file) {
+async function enviarArquivoDaPeca(itemId, file, aoAndar) {
   if (!itemId || !file) throw new Error('Informe a peça e o arquivo.');
   if (!ARQUIVO_TIPOS.includes(file.type)) throw new Error('Envie PNG, JPG, WEBP ou PDF.');
   if (file.size > ARQUIVO_LIMITE) {
@@ -1268,7 +1268,7 @@ async function enviarArquivoDaPeca(itemId, file) {
   }
   const corpo = { item: String(itemId), nome: file.name, mime: file.type };
 
-  if (file.size > ARQUIVO_PELO_SERVIDOR) return enviarArquivoGrande(corpo, file);
+  if (file.size > ARQUIVO_PELO_SERVIDOR) return enviarArquivoGrande(corpo, file, aoAndar);
 
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1285,12 +1285,19 @@ async function enviarArquivoDaPeca(itemId, file) {
   return json;
 }
 
-// Arquivo grande em tres passos: o servidor abre a sessao no Drive, o navegador
-// manda os bytes direto para o Google, e o servidor registra o que chegou.
+// Arquivo grande vai em pedacos, todos pela nossa API.
 //
-// A credencial do Drive nao sai do servidor em nenhum momento — o que a tela
-// recebe e um endereco de sessao, que serve para um envio so e caduca sozinho.
-async function enviarArquivoGrande(corpo, file) {
+// A primeira tentativa mandava os bytes do navegador direto para o Google, o que
+// seria o caminho mais curto. Nao funciona: a sessao e aberta pelo servidor, sem
+// cabecalho de origem, e o Google recusa um envio que venha de outra origem —
+// "Failed to fetch", sem explicacao nenhuma na tela.
+//
+// Entao os bytes voltam a passar por nos, fatiados. Cada pedaco cabe folgado no
+// limite da funcao e o arquivo inteiro deixa de ter teto. O preco e uma ida por
+// pedaco; por isso a barra de progresso, para a espera ter rosto.
+const PEDACO_DO_ENVIO = 2 * 1024 * 1024; // multiplo de 256 KB, como o Drive exige
+
+async function enviarArquivoGrande(corpo, file, aoAndar) {
   const abertura = await fetch('/api/painel?area=peca', {
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...corpo, etapa: 'abrir' }),
@@ -1300,18 +1307,33 @@ async function enviarArquivoGrande(corpo, file) {
     throw new Error(dadosDaAbertura?.error || `Não foi possível abrir o envio (${abertura.status}).`);
   }
 
-  const envio = await fetch(dadosDaAbertura.sessao, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-    body: file,
-  });
-  if (!envio.ok) throw new Error(`O Drive recusou o arquivo (${envio.status}).`);
-  const arquivoNoDrive = await envio.json().catch(() => ({}));
-  if (!arquivoNoDrive?.id) throw new Error('O Drive não devolveu o identificador do arquivo.');
+  const total = file.size;
+  let enviado = 0;
+  let arquivo = null;
+  while (enviado < total) {
+    const pedaco = file.slice(enviado, Math.min(enviado + PEDACO_DO_ENVIO, total));
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(pedaco);
+    });
+    const parte = await fetch('/api/painel?area=peca', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...corpo, etapa: 'parte', sessao: dadosDaAbertura.sessao,
+                             inicio: enviado, total, conteudo: base64 }),
+    });
+    const d = await parte.json().catch(() => ({}));
+    if (!parte.ok) throw new Error(d?.error || `Envio interrompido em ${Math.round(enviado / 1048576)} MB.`);
+    enviado = d.concluido ? total : (Number(d.recebido) || enviado + pedaco.size);
+    if (typeof aoAndar === 'function') aoAndar(Math.min(100, Math.round((enviado / total) * 100)));
+    if (d.concluido) { arquivo = d; break; }
+  }
+  if (!arquivo?.id) throw new Error('O Drive não confirmou o arquivo no fim do envio.');
 
   const registro = await fetch('/api/painel?area=peca', {
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...corpo, etapa: 'registrar', drive_file_id: arquivoNoDrive.id, bytes: file.size }),
+    body: JSON.stringify({ ...corpo, etapa: 'registrar', drive_file_id: arquivo.id, bytes: total }),
   });
   const json = await registro.json().catch(() => ({}));
   if (!registro.ok) throw new Error(json?.error || `Arquivo no Drive, mas não registrado (${registro.status}).`);
@@ -1323,8 +1345,13 @@ async function uploadWorkspaceFile(input) {
   if (!file || !activeWorkspaceItemId) return;
   const item = findOperationalItem(activeWorkspaceItemId);
   try {
-    showToast('Enviando arquivo para o Drive da Vybe...', 'info', 6000);
-    await enviarArquivoDaPeca(activeWorkspaceItemId, file);
+    const mega = (file.size / 1048576).toFixed(1).replace('.', ',');
+    showToast(`Enviando ${file.name} (${mega} MB) para o Drive da Vybe…`, 'info', 60000);
+    // Arquivo de 40 MB leva vinte idas ao servidor. Sem contar em voz alta, a
+    // tela parece travada e a pessoa fecha no meio.
+    await enviarArquivoDaPeca(activeWorkspaceItemId, file, (pct) => {
+      if (pct < 100) showToast(`Enviando ${file.name} · ${pct}%`, 'info', 60000);
+    });
     showToast('\u2713 Arquivo anexado no Drive da Vybe', 'ok');
     if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), item);
   } catch (e) { showToast(`N\u00e3o foi poss\u00edvel anexar: ${e.message}`, 'err', 7000); }

@@ -10,7 +10,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { mondayQuery } from '../operational_mirror_store.js';
-import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive } from '../vybe_drive.js';
+import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
@@ -429,6 +429,16 @@ async function anexarNaPeca(req, res, quem) {
   // Arquivo grande nao passa por aqui: a funcao aceita cerca de 4,5 MB por
   // chamada e o base64 engorda o arquivo em um terco. Nessas, o servidor so abre
   // a sessao e registra depois; os bytes vao do navegador direto para o Drive.
+  // Um pedaco de arquivo grande. Nao toca no banco: so repassa ao Drive e diz
+  // quanto ja entrou. O registro vem depois, na etapa 'registrar'.
+  if (etapa === 'parte') {
+    const { sessao, inicio, total } = req.body || {};
+    if (!sessao || !conteudo || typeof inicio !== 'number' || !total) {
+      return res.status(400).json({ error: 'Informe sessão, conteúdo, início e total.' });
+    }
+    return res.status(200).json({ ok: true,
+      ...(await enviarParteNoDrive({ sessao, conteudo, inicio: Number(inicio), total: Number(total) })) });
+  }
   if (etapa === 'abrir' || etapa === 'registrar') {
     const conteudoDaPeca = await pecaDoBanco(item);
     if (!conteudoDaPeca) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });

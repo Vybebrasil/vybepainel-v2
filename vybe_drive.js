@@ -175,6 +175,33 @@ export async function iniciarUploadNoDrive({ nome, mime, pastaId }) {
   return sessao;
 }
 
+// Um pedaco do arquivo dentro de uma sessao ja aberta.
+//
+// O navegador nao consegue falar direto com o endereco da sessao: ela e criada
+// aqui, sem cabecalho de origem, e o Google entao recusa o envio vindo de outra
+// origem — "Failed to fetch" na tela. Entao os bytes voltam a passar por nos, so
+// que fatiados: cada pedaco cabe folgado no limite da funcao, e o arquivo
+// inteiro deixa de ter teto.
+//
+// O Content-Range diz ao Google onde aquele pedaco entra. Ele responde 308
+// enquanto falta coisa e 200 quando o arquivo fecha — so no fim vem o id.
+export async function enviarParteNoDrive({ sessao, conteudo, inicio, total }) {
+  const bytes = Buffer.isBuffer(conteudo) ? conteudo : Buffer.from(String(conteudo), 'base64');
+  const fim = inicio + bytes.length - 1;
+  const r = await fetch(sessao, {
+    method: 'PUT',
+    headers: { 'Content-Length': String(bytes.length), 'Content-Range': `bytes ${inicio}-${fim}/${total}` },
+    body: bytes,
+  });
+  if (r.status === 308) return { concluido: false, recebido: fim + 1 };
+  if (!r.ok) {
+    const d = await r.text().catch(() => '');
+    throw new Error(`Drive recusou o pedaço (${r.status}) ${String(d).slice(0, 120)}`);
+  }
+  const d = await r.json().catch(() => ({}));
+  return { concluido: true, id: d.id, link: d.webViewLink, bytes: total };
+}
+
 export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {
   // Ou copia de uma URL (migração do Monday) ou recebe o arquivo direto (upload
   // pelo painel). O resto do caminho é o mesmo.
