@@ -194,9 +194,16 @@ function ancorarPopover(menu, rect) {
   menu.style.left = '0px';
   const { width, height } = menu.getBoundingClientRect();
   const cabeAbaixo = rect.bottom + 6 + height <= window.innerHeight - margem;
-  const top = cabeAbaixo ? rect.bottom + 6 : Math.max(margem, rect.top - 6 - height);
+  const desejado = cabeAbaixo ? rect.bottom + 6 : rect.top - 6 - height;
+  // O popover nunca sai da tela, mesmo quando o que o ancora esta fora dela.
+  // Acontecia ao abrir o cartao de uma peca listada dentro de outro popover: a
+  // ficha clicada ficava abaixo da dobra, e o cartao nascia com metade cortada.
+  // Sem teto, so o topo era protegido; agora o rodape tambem.
+  const limite = window.innerHeight - height - margem;
+  const top = height + margem * 2 >= window.innerHeight ? margem
+    : Math.min(Math.max(margem, desejado), Math.max(margem, limite));
   menu.style.top = `${Math.round(top)}px`;
-  menu.style.left = `${Math.round(Math.min(Math.max(margem, rect.left), window.innerWidth - width - margem))}px`;
+  menu.style.left = `${Math.round(Math.min(Math.max(margem, rect.left), Math.max(margem, window.innerWidth - width - margem)))}px`;
   menu.style.visibility = '';
 }
 

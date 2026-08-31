@@ -405,6 +405,10 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   if (!item) return showToast('Atividade não encontrada.', 'err');
 
   const rect = (event.currentTarget || event.target).getBoundingClientRect();
+  // A lista do dia sai da frente quando o cartao abre — duas janelas empilhadas
+  // sobre o calendario nao ajudam ninguem. Depois de medir a ficha, e nao antes:
+  // fechar primeiro tiraria a ficha da tela e o cartao nasceria no canto.
+  if (typeof fecharDiaDoCalendario === 'function') fecharDiaDoCalendario();
   const fundo = document.createElement('div');
   fundo.id = 'cartao-rapido-fundo';
   fundo.className = 'cartao-rapido-fundo';
@@ -583,6 +587,53 @@ function managerCalendarLoadDemandas(button) {
   if (button) { button.disabled = true; button.textContent = 'Carregando…'; }
   refreshDemandas().finally(() => { managerCalendarDemandasLoading = false; renderManagerCalendar(); });
 }
+// O dia inteiro num popover.
+//
+// "+ 8 itens neste dia" nao abria nada: chamava o filtro de cliente com o
+// cliente que ja estava escolhido, ou seja, redesenhava a mesma tela. A celula
+// do calendario cabe cinco; nos dias cheios os outros oito nao tinham por onde
+// aparecer.
+//
+// As pecas sao as MESMAS fichas do calendario, com o mesmo clique e o mesmo
+// arraste. Uma segunda maneira de desenhar a peca do dia viraria uma segunda
+// verdade sobre cor, rotulo e o que acontece ao clicar.
+function fecharDiaDoCalendario() {
+  document.getElementById('dia-do-calendario-fundo')?.remove();
+  document.getElementById('dia-do-calendario')?.remove();
+}
+
+function abrirDiaDoCalendario(event, iso) {
+  event.preventDefault();
+  event.stopPropagation();
+  fecharDiaDoCalendario();
+  const doDia = managerCalendarItems().filter((item) => item.calendarDateIso === String(iso));
+  if (!doDia.length) return;
+  const data = new Date(`${iso}T12:00:00`);
+  const diaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(data);
+  const titulo = `${diaSemana.charAt(0).toUpperCase()}${diaSemana.slice(1)}, ${planningDateBr(iso)}`;
+  const conteudos = doDia.filter((i) => i.calendarSource !== 'request').length;
+  const solicitacoes = doDia.length - conteudos;
+  const resumo = [conteudos ? `${conteudos} conteúdo${conteudos === 1 ? '' : 's'}` : '',
+                  solicitacoes ? `${solicitacoes} solicitaç${solicitacoes === 1 ? 'ão' : 'ões'}` : '']
+                 .filter(Boolean).join(' · ');
+
+  const fundo = document.createElement('div');
+  fundo.id = 'dia-do-calendario-fundo';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharDiaDoCalendario;
+  const menu = document.createElement('div');
+  menu.id = 'dia-do-calendario';
+  menu.className = 'status-editor dia-do-calendario';
+  menu.innerHTML = `<div class="dia-do-calendario-topo">
+      <div><b>${safeText(titulo)}</b><small>${safeText(resumo)}</small></div>
+      <button type="button" class="dia-do-calendario-fechar" onclick="fecharDiaDoCalendario()"
+        aria-label="Fechar">✕</button>
+    </div>
+    <div class="dia-do-calendario-lista">${doDia.map(managerCalendarEventHtml).join('')}</div>`;
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, event.currentTarget.getBoundingClientRect());
+}
+
 function managerCalendarEventHtml(item) {
   const sourceLabel = item.calendarSource === 'request' ? 'SOLICITAÇÃO' : 'CONTEÚDO';
   const sourceClass = item.calendarSource === 'request' ? 'request' : '';
@@ -656,7 +707,7 @@ function renderManagerCalendar() {
     const total = (grouped.get(cell.iso) || []).length;
     const isToday = cell.iso === (HOJE_ISO || META.today_iso);
     const events = dayItems.map(managerCalendarEventHtml).join('');
-    const more = total > 5 ? `<button type="button" class="manager-calendar-more" onclick="managerCalendarSetClient('${safeText(managerCalendarClientFilter)}')">+ ${total-5} itens neste dia</button>` : '';
+    const more = total > 5 ? `<button type="button" class="manager-calendar-more" onclick="abrirDiaDoCalendario(event,'${cell.iso}')" title="Ver os ${total} itens deste dia">+ ${total-5} itens neste dia</button>` : '';
     return `<div class="manager-calendar-day ${cell.inMonth?'':'is-other'} ${isToday?'is-today':''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)"><div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b><small>${new Intl.DateTimeFormat('pt-BR',{weekday:'short'}).format(cell.date).replace('.','')}</small></span><button type="button" class="manager-calendar-add" onclick="managerCalendarAdd('${cell.iso}')" title="Adicionar pelo CADASTROS neste dia">+</button></div><div class="manager-calendar-events">${events || '<span class="manager-calendar-empty">—</span>'}${more}</div></div>`;
   }).join('');
   CLIENTES_DO_CALENDARIO = clients;
