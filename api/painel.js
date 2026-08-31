@@ -684,8 +684,54 @@ async function areaDiario(req, res, quem) {
   return res.status(405).json({ error: 'Método não permitido.' });
 }
 
+// ── miniaturas de várias peças de uma vez ─────────────────────────────────────
+//
+// A mesa individual mostra 65 linhas. Perguntar por uma peça de cada vez seriam
+// 65 idas ao servidor só para saber se existe arquivo — a tela abriria antes das
+// respostas e a coluna piscaria por meio minuto. Aqui vai tudo numa pergunta só.
+//
+// Devolve apenas o arquivo mais recente de cada peça, e só o que a coluna
+// precisa. Quem quiser a lista inteira abre a peça, que é onde ela mora.
+//
+// Miniatura sai só para arquivo que já está no Drive: o link de lá é estável. O
+// do Monday é assinado e vale uma hora — renovar 65 assinaturas para desenhar
+// uma coluna custaria mais do que a coluna vale. Nesses casos a tela diz que há
+// arquivo, sem prévia.
+async function areaArquivos(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+
+  const itens = String(req.query?.itens || '').split(',').map((s) => s.trim()).filter(Boolean);
+  // O teto existe para uma URL não virar uma consulta sem fim; a mesa manda no
+  // máximo o que uma pessoa tem em aberto, bem abaixo disso.
+  if (!itens.length) return res.status(200).json({ ok: true, itens: {} });
+  const ids = [...new Set(itens)].slice(0, 300);
+
+  const linhas = await sql()`
+    SELECT DISTINCT ON (c.monday_item_id)
+           c.monday_item_id AS item, a.nome, a.extensao, a.drive_file_id,
+           COUNT(*) OVER (PARTITION BY c.monday_item_id)::int AS total
+      FROM vybe_conteudos c
+      JOIN vybe_conteudo_arquivos a ON a.conteudo_id = c.id AND a.ausente_em IS NULL
+     WHERE c.monday_item_id = ANY(${ids}) AND c.removido_em IS NULL
+     ORDER BY c.monday_item_id, a.criado_em DESC NULLS LAST`;
+
+  const mapa = {};
+  for (const l of linhas) {
+    mapa[String(l.item)] = {
+      total: Number(l.total) || 1,
+      nome: l.nome || '',
+      extensao: l.extensao || '',
+      // sz=w160 porque a célula tem 56px: pedir a imagem inteira para desenhar
+      // um selo seria baixar megabytes por linha.
+      thumb: l.drive_file_id ? `https://drive.google.com/thumbnail?id=${l.drive_file_id}&sz=w160` : null,
+      abrir: l.drive_file_id ? `https://drive.google.com/file/d/${l.drive_file_id}/view` : null,
+    };
+  }
+  return res.status(200).json({ ok: true, itens: mapa });
+}
+
 const AREAS = { automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
-                conta: areaConta, pessoas: areaPessoas, peca: areaPeca };
+                conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');

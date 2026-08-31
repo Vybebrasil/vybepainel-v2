@@ -1186,21 +1186,46 @@ function handleWorkspaceDrop(event) {
   const transfer = new DataTransfer(); transfer.items.add(event.dataTransfer.files[0]); input.files = transfer.files;
   uploadWorkspaceFile(input);
 }
+// Enviar arquivo de uma peça, num lugar só.
+//
+// A gaveta lateral já fazia isso; a coluna ARQUIVO da mesa individual precisa do
+// mesmo envio. Duas implementações da mesma gravação viram duas verdades — uma
+// aceitando tamanho que a outra recusa, uma criando pasta no Drive que a outra
+// não cria.
+//
+// Devolve a resposta do servidor porque quem chama da mesa precisa do id do
+// arquivo no Drive para desenhar a miniatura sem ir buscar de novo.
+const ARQUIVO_TIPOS = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
+const ARQUIVO_LIMITE = 3 * 1024 * 1024;
+
+async function enviarArquivoDaPeca(itemId, file) {
+  if (!itemId || !file) throw new Error('Informe a peça e o arquivo.');
+  if (!ARQUIVO_TIPOS.includes(file.type)) throw new Error('Envie PNG, JPG, WEBP ou PDF.');
+  if (file.size > ARQUIVO_LIMITE) throw new Error('Arquivo acima de 3 MB. Para vídeo, use o link do Drive.');
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const res = await fetch('/api/painel?area=peca', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item: String(itemId), nome: file.name, mime: file.type, conteudo: base64 }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.errors) throw new Error(json.error || json.errors?.[0]?.message || `HTTP ${res.status}`);
+  return json;
+}
+
 async function uploadWorkspaceFile(input) {
   const file = input?.files?.[0];
   if (!file || !activeWorkspaceItemId) return;
-  const allowed = ['image/png','image/jpeg','image/webp','application/pdf'];
-  if (!allowed.includes(file.type)) return showToast('Envie PNG, JPG, WEBP ou PDF.', 'info');
-  if (file.size > 3 * 1024 * 1024) return showToast('Arquivo acima de 3 MB. Para vídeo, use o link do Drive.', 'info');
   const item = findOperationalItem(activeWorkspaceItemId);
   try {
     showToast('Enviando arquivo para o Drive da Vybe...', 'info', 6000);
-    const base64 = await new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); });
-    const res = await fetch('/api/painel?area=peca', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ item:String(activeWorkspaceItemId), nome:file.name, mime:file.type, conteudo:base64 }) });
-    const json = await res.json();
-    if (!res.ok || json.errors) throw new Error(json.error || json.errors?.[0]?.message || `HTTP ${res.status}`);
-    showToast('✓ Arquivo anexado no Drive da Vybe', 'ok');
+    await enviarArquivoDaPeca(activeWorkspaceItemId, file);
+    showToast('\u2713 Arquivo anexado no Drive da Vybe', 'ok');
     if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), item);
-  } catch (e) { showToast(`Não foi possível anexar: ${e.message}`, 'err', 7000); }
+  } catch (e) { showToast(`N\u00e3o foi poss\u00edvel anexar: ${e.message}`, 'err', 7000); }
   finally { if (input) input.value = ''; }
 }
