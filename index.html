@@ -264,7 +264,8 @@
     .tab-btn:hover { color:var(--text)}
     .tab-btn.active { color:var(--cyan);border-bottom-color:var(--cyan);text-shadow:none}
     .section-title { font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
-    .section-title span { width:4px;height:16px;background:linear-gradient(180deg,#00f0ff,#ff00ff);border-radius:2px;display:inline-block;box-shadow:none}
+    .section-title > span:first-child { width:4px;height:16px;flex:none;background:linear-gradient(180deg,#00f0ff,#ff00ff);border-radius:2px;display:inline-block;box-shadow:none}
+.section-title > span:not(:first-child) { min-width:0;flex:1 }
     .pill { display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
     .pill-dot { width:5px;height:5px;border-radius:50%}
     .pill-agendado     { background:rgba(161,227,246,.15);color:#a1e3f6;border:1px solid rgba(161,227,246,.3)} .pill-agendado .pill-dot     { background:#a1e3f6}
@@ -519,7 +520,7 @@
     .client-header { border-bottom-color:rgba(255,107,0,.1);background:rgba(23,14,6,.72)}
     .item-row:hover { background:rgba(255,107,0,.055)}
     .item-name a:hover { color:#ff9d00;text-shadow:none}
-    .section-title span,.stat-bar { background:linear-gradient(90deg,#ff6b00,#ffb000);box-shadow:none}
+    .section-title > span:first-child,.stat-bar { background:linear-gradient(90deg,#ff6b00,#ffb000);box-shadow:none}
     .filter-btn:hover,.filter-btn.active { background:rgba(255,107,0,.1);border-color:rgba(255,107,0,.42);color:#ff9d00;box-shadow:none}
     footer strong { color:#ff9d00;text-shadow:none}
     .focus-status-btn { appearance:none;cursor:pointer;font:inherit;padding:0;border:0;background:none}
@@ -2954,7 +2955,6 @@ button:not(:disabled):not([aria-disabled="true"]):active,
       <span class="filter-label">Equipe:</span>
       <div class="person-wrap" onclick="filterDemandaByPerson('all',this)" id="person-all-demandas">
         <span class="person-chip active" style="background:#6b7280;">Todos</span>
-        <span>Todos</span>
       </div>
     </div>
 
