@@ -2655,6 +2655,18 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-planning-th:hover i{opacity:.8}
 .da-planning-th.ordenando{color:var(--da-plan-color,#ff9d00)}
 .da-planning-th.ordenando i{opacity:1}
+/* "Toda a celula" fecha a faixa de pessoas: mesma altura dos outros, sem foto,
+   para nao competir com quem tem rosto. */
+.da-planning-todos{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding:5px 11px;
+  border:1px dashed var(--linha);border-radius:999px;background:transparent;color:#9da4b4;
+  font:700 11px var(--mac-ui);cursor:pointer;white-space:nowrap}
+.da-planning-todos small{color:#6f7887;font:700 10px var(--mac-ui)}
+.da-planning-todos:hover{border-style:solid;border-color:color-mix(in srgb,var(--da-plan-color,#ff9d00) 55%,transparent);color:#e7ecf5}
+.da-planning-todos.active{border-style:solid;
+  border-color:color-mix(in srgb,var(--da-plan-color,#ff9d00) 60%,transparent);
+  background:color-mix(in srgb,var(--da-plan-color,#ff9d00) 14%,transparent);color:#f2f2f5}
+/* Com varias pessoas, as fotos empilham um pouco em vez de esticar o topo. */
+.da-planning-head-main .da-planning-avatar+.da-planning-avatar{margin-left:-10px}
 @media(max-width:760px){.da-planning-overlay{padding:0!important}.da-planning-modal{width:100vw!important;height:100vh!important;max-height:100vh!important;border-radius:0!important}.da-planning-head{min-height:50px!important;padding:7px 10px!important}.da-planning-head-main>div>small{display:none!important}.da-planning-switcher{padding:5px 8px!important}.da-planning-switcher>span{display:none!important}.da-planning-controls{padding:5px 8px!important}.da-planning-summary{padding:0 8px!important}.da-planning-summary>span{min-height:34px!important;padding:4px!important;gap:4px!important}.da-planning-summary>span b{font-size:14px!important}.da-planning-summary>span small{font-size:8px!important;white-space:normal!important}.da-planning-note{display:none!important}.da-planning-health{grid-template-columns:96px minmax(140px,1fr)!important;padding:5px 8px!important}.da-planning-health-legend{display:none!important}.da-planning-bulkbar{padding:6px 8px!important}.da-planning-bulkbar small{display:none!important}.da-planning-direct-hint{display:none!important}.da-planning-list{margin:0!important}.da-planning-row{min-width:1054px!important}}
 </style></head>
 <body>

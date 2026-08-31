@@ -497,16 +497,65 @@ function openDaMemberWorkload(){ const range=daControllerPeriodRange(); const us
 function closeDaIndividualPlanningDesk(){ const overlay=document.getElementById('da-individual-planning-overlay'); if(!overlay) return; overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),180); }
 let DA_PLANNING_SELECTED_IDS=new Set(); let DA_PLANNING_SELECTION_ANCHOR_ID=''; let DA_PLANNING_ACTIVE_USER='';
 let DA_PLANNING_FILTER='all'; let DA_PLANNING_SORT='veiculacao'; let DA_PLANNING_SORT_DESC=false;
+// Quem a mesa esta mostrando. Era sempre uma pessoa; agora e um conjunto, porque
+// duas pessoas da mesma celula dividem entregas e planejar uma sem ver a outra
+// e planejar no escuro.
+let DA_PLANNING_PESSOAS = new Set();
 function daPlanningTodayIso(){ return String(HOJE_ISO||new Date().toISOString().slice(0,10)); }
 function daPlanningAddDays(iso,days){ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||''))) return ''; const date=new Date(iso+'T12:00:00'); date.setDate(date.getDate()+Number(days||0)); return date.toISOString().slice(0,10); }
-function daIndividualPlanningAllItems(userId){ return daControllerItemsFor(userId).filter(item=>!isFinishedItem(item)); }
+// Aceita uma pessoa ou uma lista. Com varias, a peca de dois donos selecionados
+// aparece UMA vez: a mesa mostra entregas, nao atribuicoes.
+function daIndividualPlanningAllItems(userId){
+  const ids = Array.isArray(userId) ? userId.map(String).filter(Boolean) : [String(userId || '')].filter(Boolean);
+  if (ids.length <= 1) return daControllerItemsFor(ids[0] || 'all').filter(item=>!isFinishedItem(item));
+  const vistos = new Set(); const juntos = [];
+  for (const id of ids) {
+    for (const item of daControllerItemsFor(id)) {
+      if (isFinishedItem(item)) continue;
+      const chave = String(item.id);
+      if (vistos.has(chave)) continue;
+      vistos.add(chave); juntos.push(item);
+    }
+  }
+  return juntos;
+}
+
+// Quem esta na mesa agora. O conjunto manda; o argumento so serve quando alguem
+// abre a mesa de fora, apontando uma pessoa.
+function daPlanningPessoasDaMesa(userIdPadrao) {
+  if (DA_PLANNING_PESSOAS.size) return [...DA_PLANNING_PESSOAS];
+  const um = String(userIdPadrao || daControllerPersonId || '');
+  return um ? [um] : [];
+}
+
+// Clique troca de pessoa. Shift, Command ou Control soma e tira — a mesma tecla
+// que ja soma linhas na tabela logo abaixo, para nao inventar um segundo gesto.
+function daPlanningEscolherPessoa(id, event) {
+  const alvo = String(id);
+  const somando = Boolean(event && (event.shiftKey || event.metaKey || event.ctrlKey));
+  if (!somando) DA_PLANNING_PESSOAS = new Set([alvo]);
+  else if (DA_PLANNING_PESSOAS.has(alvo)) {
+    // Tirar a ultima deixaria a mesa sem ninguem e sem o que mostrar.
+    if (DA_PLANNING_PESSOAS.size > 1) DA_PLANNING_PESSOAS.delete(alvo);
+  } else DA_PLANNING_PESSOAS.add(alvo);
+  // Redesenhar apontando quem ACABOU DE SAIR trazia essa pessoa de volta: a mesa
+  // recomeca em quem e apontado de fora do conjunto, e quem saiu esta fora dele.
+  // Ao tirar alguem, o desenho aponta quem ficou.
+  const aindaNaMesa = DA_PLANNING_PESSOAS.has(alvo) ? alvo : ([...DA_PLANNING_PESSOAS][0] || alvo);
+  openDaIndividualPlanningDesk(aindaNaMesa);
+}
+
+function daPlanningTodasAsPessoas() {
+  DA_PLANNING_PESSOAS = new Set(daControllerTeam().map((p) => String(p.id)));
+  openDaIndividualPlanningDesk([...DA_PLANNING_PESSOAS][0]);
+}
 function daPlanningItemMatchesFilter(item,filter){ const today=daPlanningTodayIso(); const veic=String(item.veiculacao_iso||''); const prazo=String(item.prazo_iso||''); if(filter==='atrasados') return Boolean(prazo&&prazo<today); if(filter==='fora7') return daIndividualPlanningGoldenState(item).kind==='risk'; if(filter==='proximos7') return Boolean(veic&&veic>=today&&veic<=daPlanningAddDays(today,7)); if(filter==='semveic') return !veic; return true; }
 function daPlanningSortItems(items,sort){ const copy=[...items];
   // A direcao se aplica ao criterio inteiro, desempates inclusive: inverter so o
   // primeiro campo deixaria blocos internos fora de ordem.
   const sentido = DA_PLANNING_SORT_DESC ? -1 : 1; const byIso=value=>String(value||'9999-12-31'); return copy.sort((a,b)=>sentido*(((a2,b2)=>{ if(sort==='prazo') return byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso))||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso)); if(sort==='margem'){ const margin=item=>{ const gap=goldenDeadlineGap(item.prazo_iso,item.veiculacao_iso); return gap===null?999999:Number(gap); }; const av=margin(a); const bv=margin(b); return av-bv||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso))||byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso)); } if(sort==='cliente') return String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR')||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso)); const av=byIso(a.veiculacao_iso); const bv=byIso(b.veiculacao_iso); return av.localeCompare(bv)||byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso))||daTacticalScore(a)-daTacticalScore(b); })(a,b))); }
 function daIndividualPlanningItems(userId){ return daPlanningSortItems(daIndividualPlanningAllItems(userId).filter(item=>daPlanningItemMatchesFilter(item,DA_PLANNING_FILTER)),DA_PLANNING_SORT); }
-function daPlanningSelection(userId){ return daIndividualPlanningAllItems(userId).filter(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id))); }
+function daPlanningSelection(userId){ return daIndividualPlanningAllItems(daPlanningPessoasDaMesa(userId)).filter(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id))); }
 function daPlanningBatchDeadlineLimit(userId){
   return daPlanningSelection(userId).map(item=>String(item.veiculacao_iso||'')).filter(Boolean).sort()[0]||'';
 }
@@ -679,7 +728,7 @@ function daPlanningToggleItem(userId,itemId,checked,event){
   if(!DA_PLANNING_SELECTION_ANCHOR_ID) DA_PLANNING_SELECTION_ANCHOR_ID=id;
   openDaIndividualPlanningDesk(userId);
 }
-function daPlanningToggleAll(userId){ const items=daIndividualPlanningItems(userId); const all=items.length>0&&items.every(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id))); items.forEach(item=>all?DA_PLANNING_SELECTED_IDS.delete(String(item.id)):DA_PLANNING_SELECTED_IDS.add(String(item.id))); DA_PLANNING_SELECTION_ANCHOR_ID=items[0]?String(items[0].id):''; openDaIndividualPlanningDesk(userId); }
+function daPlanningToggleAll(userId){ const items=daIndividualPlanningItems(daPlanningPessoasDaMesa(userId)); const all=items.length>0&&items.every(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id))); items.forEach(item=>all?DA_PLANNING_SELECTED_IDS.delete(String(item.id)):DA_PLANNING_SELECTED_IDS.add(String(item.id))); DA_PLANNING_SELECTION_ANCHOR_ID=items[0]?String(items[0].id):''; openDaIndividualPlanningDesk(userId); }
 function daPlanningBulkToolbarHtml(items,userId){
   const selected=daPlanningSelection(userId);
   const all=items.length>0&&items.every(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id)));
@@ -696,7 +745,17 @@ function daPlanningDeadlineHealthBar(exact,slack,risk,pending,total){
   const segments=[['ok',exact,'No padrão · 7 dias'],['slack',slack,'Com folga'],['risk',risk,'Abaixo do padrão'],['pending',pending,'A validar']].filter(([,count])=>count>0).map(([kind,count,label])=>({kind,count,label,pct:Math.round((count/base)*100)}));
   return `<div class="da-planning-health" aria-label="Saúde dos prazos"><div class="da-planning-health-head"><b>Saúde dos prazos</b><small>margem até a veiculação · ${total} entregas</small></div><div class="da-planning-health-track">${segments.map(segment=>`<span class="health-${segment.kind}" style="width:${segment.pct}%" title="${segment.label}: ${segment.count} de ${total} (${segment.pct}%)"></span>`).join('')}</div><div class="da-planning-health-legend">${segments.map(segment=>`<span class="health-${segment.kind}"><i></i><strong>${segment.label}</strong><b>${segment.count}</b><em>${segment.pct}%</em></span>`).join('')}</div></div>`;
 }
-function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=daControllerTeam().find(entry=>String(entry.id)===String(userId)); if(!user) return showToast('Selecione uma pessoa da célula para abrir o planejamento individual.','info'); const items=daIndividualPlanningItems(user.id); if(String(DA_PLANNING_ACTIVE_USER)!==String(user.id)){ DA_PLANNING_SELECTED_IDS.clear(); DA_PLANNING_SELECTION_ANCHOR_ID=''; DA_PLANNING_ACTIVE_USER=String(user.id); } const goldenStates=items.map(item=>daIndividualPlanningGoldenState(item)); const exactCount=goldenStates.filter(state=>state.kind==='ok').length; const riskCount=goldenStates.filter(state=>state.kind==='risk').length; const slackCount=goldenStates.filter(state=>state.kind==='slack').length; const pendingCount=goldenStates.filter(state=>state.kind==='pending').length; const previousPlanning=document.getElementById('da-individual-planning-overlay'); if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const healthBar=daPlanningDeadlineHealthBar(exactCount,slackCount,riskCount,pendingCount,items.length); const rows=items.length?items.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):'<div class="da-planning-empty">Nenhuma demanda nesta visão. Ajuste os filtros para revisar as demais.</div>'; const controls=daPlanningControlsHtml(user.id,items.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="da-planning-switcher" aria-label="Troca rápida de agenda"><span>Alternar agenda</span>${daControllerTeam().map(entry=>{const active=String(entry.id)===String(user.id); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'active':''}" onclick="openDaIndividualPlanningDesk('${entry.id}')" aria-pressed="${active}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}</nav>`; overlay.innerHTML=`<section class="da-planning-modal" role="dialog" aria-modal="true" aria-label="Planejamento individual de ${safeText(user.name)}"><div class="da-planning-head"><div class="da-planning-head-main">${daIndividualPlanningAvatar(user)}<div><span>Mesa individual de planejamento</span><b>${safeText(user.name).toUpperCase()}</b><small>${safeText(DA_CONTROLLER_ROLES[user.id]||'Criação')} · todas as entregas ativas ordenadas pela data de veiculação</small></div></div><button type="button" class="da-planning-close" onclick="closeDaIndividualPlanningDesk()" aria-label="Fechar planejamento">×</button></div>${quickSwitch}${controls}<div class="da-planning-summary"><span><b>${items.length}</b><small>Entregas ativas</small></span><span class="gold-ok-metric"><b>${exactCount}</b><small>No padrão · 7D</small></span><span class="gold-slack-metric"><b>${slackCount}</b><small>Com folga</small></span><span class="gold-risk-metric"><b>${riskCount}</b><small>Abaixo do padrão</small></span></div><div class="da-planning-note"><b>Prazo de Ouro · ${PRAZO_OURO_DIAS} dias.</b> Ajuste livre; fora do padrão, o sistema apenas sinaliza.</div>${healthBar}<div class="da-planning-select-instruction"><b><i>1</i> MARQUE AS DEMANDAS NOS QUADRADOS À ESQUERDA</b><span><i>2</i> MUDE A DATA EM UMA LINHA MARCADA PARA APLICAR NO LOTE</span></div>${bulk}<div class="da-planning-list"><div class="da-planning-row da-planning-row-head"><span class="da-planning-select-head">Selec.</span><span>#</span>${daPlanningCabecalho("DEMANDA / CLIENTE","cliente",userId)}${daPlanningCabecalho("Veiculação","veiculacao",userId)}<span>FORMATO / STATUS</span>${daPlanningCabecalho("Prazo editável","prazo",userId)}<span>ARQUIVO</span><span>AÇÃO</span></div>${rows}</div></section>`; document.body.appendChild(overlay); daPlanningCarregarArquivos(); requestAnimationFrame(()=>overlay.classList.add('open')); }
+function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=daControllerTeam().find(entry=>String(entry.id)===String(userId)); if(!user) return showToast('Selecione uma pessoa da célula para abrir o planejamento individual.','info');
+  // Abrir apontando alguem de fora do conjunto recomeca a mesa nessa pessoa. Os
+  // redesenhos (filtro, ordem, selecao) apontam alguem que ja esta dentro, e por
+  // isso nao desfazem uma mesa de duas ou tres pessoas.
+  if (!DA_PLANNING_PESSOAS.has(String(user.id))) DA_PLANNING_PESSOAS = new Set([String(user.id)]);
+  const pessoasDaMesa = daPlanningPessoasDaMesa(user.id);
+  const items=daIndividualPlanningItems(pessoasDaMesa);
+  // A marcacao em lote e por mesa: mudar quem esta na mesa muda o que esta a
+  // vista, e uma marca herdada aplicaria prazo numa peca que sumiu da tela.
+  const assinatura = pessoasDaMesa.slice().sort().join('+');
+  if(String(DA_PLANNING_ACTIVE_USER)!==assinatura){ DA_PLANNING_SELECTED_IDS.clear(); DA_PLANNING_SELECTION_ANCHOR_ID=''; DA_PLANNING_ACTIVE_USER=assinatura; } const goldenStates=items.map(item=>daIndividualPlanningGoldenState(item)); const exactCount=goldenStates.filter(state=>state.kind==='ok').length; const riskCount=goldenStates.filter(state=>state.kind==='risk').length; const slackCount=goldenStates.filter(state=>state.kind==='slack').length; const pendingCount=goldenStates.filter(state=>state.kind==='pending').length; const previousPlanning=document.getElementById('da-individual-planning-overlay'); if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const healthBar=daPlanningDeadlineHealthBar(exactCount,slackCount,riskCount,pendingCount,items.length); const rows=items.length?items.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):'<div class="da-planning-empty">Nenhuma demanda nesta visão. Ajuste os filtros para revisar as demais.</div>'; const controls=daPlanningControlsHtml(user.id,items.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="da-planning-switcher" aria-label="Troca rápida de agenda"><span>Alternar agenda</span>${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'active':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active&&pessoasDaMesa.length>1?'Shift + clique para tirar da mesa':'Clique para ver só esta pessoa · shift + clique para somar à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="da-planning-todos ${pessoasDaMesa.length===daControllerTeam().length?'active':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula<small>${daControllerTeam().length}</small></button></nav>`; overlay.innerHTML=`<section class="da-planning-modal" role="dialog" aria-modal="true" aria-label="Planejamento individual de ${safeText(user.name)}"><div class="da-planning-head"><div class="da-planning-head-main">${pessoasDaMesa.slice(0,3).map(id=>daIndividualPlanningAvatar(daControllerTeam().find(p=>String(p.id)===String(id))||user)).join('')}<div><span>${pessoasDaMesa.length>1?'Mesa de planejamento · '+pessoasDaMesa.length+' pessoas':'Mesa individual de planejamento'}</span><b>${safeText(pessoasDaMesa.length>1?daControllerTeam().filter(p=>pessoasDaMesa.includes(String(p.id))).map(p=>firstName(p.name)).join(' + '):user.name).toUpperCase()}</b><small>${pessoasDaMesa.length>1?'entregas das agendas somadas, sem repetir a peça de dono compartilhado':safeText(DA_CONTROLLER_ROLES[user.id]||'Criação')+' · todas as entregas ativas ordenadas pela data de veiculação'}</small></div></div><button type="button" class="da-planning-close" onclick="closeDaIndividualPlanningDesk()" aria-label="Fechar planejamento">×</button></div>${quickSwitch}${controls}<div class="da-planning-summary"><span><b>${items.length}</b><small>Entregas ativas</small></span><span class="gold-ok-metric"><b>${exactCount}</b><small>No padrão · 7D</small></span><span class="gold-slack-metric"><b>${slackCount}</b><small>Com folga</small></span><span class="gold-risk-metric"><b>${riskCount}</b><small>Abaixo do padrão</small></span></div><div class="da-planning-note"><b>Prazo de Ouro · ${PRAZO_OURO_DIAS} dias.</b> Ajuste livre; fora do padrão, o sistema apenas sinaliza.</div>${healthBar}<div class="da-planning-select-instruction"><b><i>1</i> MARQUE AS DEMANDAS NOS QUADRADOS À ESQUERDA</b><span><i>2</i> MUDE A DATA EM UMA LINHA MARCADA PARA APLICAR NO LOTE</span></div>${bulk}<div class="da-planning-list"><div class="da-planning-row da-planning-row-head"><span class="da-planning-select-head">Selec.</span><span>#</span>${daPlanningCabecalho("DEMANDA / CLIENTE","cliente",userId)}${daPlanningCabecalho("Veiculação","veiculacao",userId)}<span>FORMATO / STATUS</span>${daPlanningCabecalho("Prazo editável","prazo",userId)}<span>ARQUIVO</span><span>AÇÃO</span></div>${rows}</div></section>`; document.body.appendChild(overlay); daPlanningCarregarArquivos(); requestAnimationFrame(()=>overlay.classList.add('open')); }
 function saveDaPlanningGridDeadline(userId,itemId,prazo,input){
   const selected=daPlanningSelection(userId);
   const inSelection=selected.some(item=>String(item.id)===String(itemId));
