@@ -1640,6 +1640,21 @@ button.subitem-marca:hover{transform:scale(1.35)}
   font:600 11px var(--mac-ui)}
 .grupos-lote button:hover{border-color:rgba(255,157,79,.6);background:rgba(255,122,26,.2)}
 .grupos-lote button.quieto{margin-left:auto;border-color:transparent;background:transparent;color:#a9b1bf}
+/* Deck flutuante de acao em lote, ancorado embaixo e no centro.
+   Grudado no topo da lista, ele so aparecia quando a rolagem estava no topo:
+   marcar uma peca no fim de mil linhas deixava as acoes fora da tela, e a marca
+   parecia nao servir para nada. Flutuando, ele acompanha a leitura. */
+.grupos-lote{position:fixed!important;top:auto!important;left:50%!important;
+  bottom:22px!important;transform:translateX(-50%);z-index:660!important;
+  width:auto!important;max-width:min(940px,calc(100vw - 32px));
+  justify-content:center;padding:10px 14px!important;
+  border:1px solid rgba(255,157,79,.34)!important;border-radius:14px!important;
+  background:linear-gradient(96deg,rgba(255,122,26,.20),rgba(16,19,26,.98))!important;
+  box-shadow:0 18px 46px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.07)}
+/* "Limpar" nao pode ser empurrado para a outra ponta num deck estreito. */
+.grupos-lote button.quieto{margin-left:4px!important}
+@media(max-width:640px){.grupos-lote{bottom:10px!important;
+  max-width:calc(100vw - 16px);justify-content:flex-start}}
 .grupos-lote button.quieto:hover{color:#fff;background:rgba(255,255,255,.07)}
 
 /* O ID da atividade, onde ele faltava */

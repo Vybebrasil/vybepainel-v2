@@ -1387,9 +1387,13 @@ function renderVisaoDeGrupos(quadro) {
 
   const totalGeral = grupos.reduce((soma, g) => soma + g.itens.length, 0);
   // Some quando não há nada marcado: barra de ação vazia é ruído permanente.
+  // Barra de lote flutuante, ancorada embaixo. Antes ela vivia no topo da lista:
+  // marcar uma peca no fim de mil linhas mostrava as acoes fora da tela, e a
+  // pessoa marcava sem ver que havia o que fazer com aquilo.
   const barra = SELECIONADAS.size ? `<div class="grupos-lote">
       <b>${SELECIONADAS.size} selecionada${SELECIONADAS.size === 1 ? '' : 's'}</b>
       <button type="button" onclick="loteStatus(event)">Status…</button>
+      <button type="button" onclick="loteGrupo(event,'${quadro}')">Grupo…</button>
       ${quadro === 'demandas' ? '' : '<button type="button" onclick="loteCaptacao(event)">Captação…</button>'}
       <button type="button" onclick="lotePrazo('prazo')">Prazo…</button>
       <button type="button" onclick="lotePrazo('veiculacao')">Veiculação…</button>
@@ -1574,6 +1578,39 @@ function abrirSeletorDeGrupo(event, itemId) {
   ancorarPopover(menu, rect);
 }
 
+// O miolo da troca de grupo, sem aviso na tela nem redesenho: o de uma peca so
+// avisa e redesenha; o de lote faz isso uma vez no fim, para dez pecas.
+async function gravarGrupoDaPeca(item, grupoId) {
+  const gravou = await tentarEscritaDupla(item, {
+    acao: 'grupo', item: String(item.id), grupo_id: String(grupoId),
+  });
+  if (!gravou) {
+    await mondayQuery(
+      `mutation($item: ID!, $grupo: String!) { move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
+      { item: String(item.id), grupo: String(grupoId) }
+    );
+  }
+  // O grupo vive em dois campos (id e título) e a visão de grupos lê os dois.
+  const titulo = tituloDoGrupo(grupoId);
+  [DADOS, DADOS_ALL, DADOS_DEMANDAS].forEach((lista) => (lista || []).forEach((d) => {
+    if (String(d.id) !== String(item.id)) return;
+    d.group_id = String(grupoId);
+    d.grupo = titulo;
+  }));
+  return titulo;
+}
+
+// Mover de grupo em lote — o pedido mais comum depois de marcar meia duzia de
+// pecas: elas avancaram de etapa juntas e a etapa e o grupo.
+function loteGrupo(event, quadro) {
+  const lista = quadro === 'demandas' ? GRUPOS_DE_DEMANDAS : ORDEM_DOS_GRUPOS;
+  if (!lista?.length) return showToast('Os grupos ainda estão carregando.', 'info');
+  abrirMenuDeLote(event, 'Mover todas para', lista.map((id) => ({
+    rotulo: tituloDoGrupo(id), cor: corDeQualquerGrupo(id),
+    aplicar: (item) => gravarGrupoDaPeca(item, id),
+  })), 'grupo');
+}
+
 async function moverPecaDeGrupo(itemId, grupoId) {
   const item = findOperationalItem(itemId)
     || (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId));
@@ -1583,25 +1620,8 @@ async function moverPecaDeGrupo(itemId, grupoId) {
   const para = tituloDoGrupo(grupoId);
   fecharSeletorDeGrupo();
 
-  const gravou = await tentarEscritaDupla(item, {
-    acao: 'grupo', item: String(item.id), grupo_id: String(grupoId),
-  });
-  if (!gravou) {
-    try {
-      await mondayQuery(
-        `mutation($item: ID!, $grupo: String!) { move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
-        { item: String(item.id), grupo: String(grupoId) }
-      );
-    } catch (erro) {
-      return showToast(`Não foi possível mover de grupo: ${erro.message}`, 'err', 7000);
-    }
-  }
-  // O grupo vive em dois campos (id e título) e a visão de grupos lê os dois.
-  [DADOS, DADOS_ALL, DADOS_DEMANDAS].forEach((lista) => (lista || []).forEach((d) => {
-    if (String(d.id) !== String(item.id)) return;
-    d.group_id = String(grupoId);
-    d.grupo = para;
-  }));
+  try { await gravarGrupoDaPeca(item, grupoId); }
+  catch (erro) { return showToast(`Não foi possível mover de grupo: ${erro.message}`, 'err', 7000); }
   showToast(`✓ ${de} → ${para}`, 'ok');
   if (typeof renderIntegratedOperationalViews === 'function') renderIntegratedOperationalViews();
   if (document.getElementById('cartao-rapido')) fecharCartaoRapido();
