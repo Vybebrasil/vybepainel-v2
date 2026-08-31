@@ -8,14 +8,18 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (await garantirSessao()) iniciarPainel();
 });
 
-// Escolhe a fonte de leitura. O banco próprio só entra quando alguém liga a
-// chave; qualquer falha nele cai no espelho, para a troca não poder derrubar.
+// O banco próprio é a autoridade. Uma falha preserva o cache e gera alerta;
+// o espelho só assume dados se um administrador ativar a contingência explícita.
 async function carregarOperacao() {
   if (fonteDeLeitura() === 'dominio') {
-    try { if (await puxarDominio()) return true; }
-    catch (erro) { console.warn('Leitura do banco falhou; usando o espelho.', erro); }
+    try { return !!(await puxarDominio()); }
+    catch (erro) {
+      console.error('Leitura do banco Vybe falhou; o Monday não assumirá automaticamente.', erro);
+      setSyncHealth('error', `Banco Vybe indisponível; última base segura preservada. ${erro.message}`);
+      return false;
+    }
   }
-  return pullOperationalMirror();
+  return pullOperationalMirror({ force: true });
 }
 
 function iniciarPainel() {
@@ -24,19 +28,19 @@ function iniciarPainel() {
   if (typeof ajustarAbasPorPapel === 'function') ajustarAbasPorPapel();
   if (typeof pintarQuemSou === 'function') pintarQuemSou();
   const legacyKpi = document.getElementById('kpi-grid');
-  if (legacyKpi) legacyKpi.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px 0;">Carregando dados do Monday.com...</div>';
+  if (legacyKpi) legacyKpi.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px 0;">Carregando dados do banco Vybe...</div>';
   initPanelMode();
   if (hydrateProductionCache()) {
-    setSyncHealth('checking', 'Cache operacional carregado · aguardando confirmação do Monday…');
-    // A tela entra com o último estado válido; primeiro tenta o espelho central e usa o Monday direto como fallback.
+    setSyncHealth('checking', 'Cache operacional carregado · aguardando confirmação do banco Vybe…');
+    // A tela entra com o último estado válido e confirma o domínio próprio; o espelho apenas observa a contingência.
     setTimeout(async () => {
       const mirrored = await carregarOperacao();
       if (!mirrored) reconcileProductionCache();
       startOperationalMirrorFeed();
     }, 80);
   } else {
-    setSyncHealth('checking', 'Sem cache local · buscando uma base operacional confirmada…');
-    // Em um novo navegador, o espelho central evita que toda a equipe repita a mesma carga do Monday.
+    setSyncHealth('checking', 'Sem cache local · buscando a base operacional no banco Vybe…');
+    // Em um novo navegador, a base vem do domínio próprio. O espelho não substitui a autoridade.
     setTimeout(async () => {
       const mirrored = await carregarOperacao();
       if (!mirrored) await refreshProducao();

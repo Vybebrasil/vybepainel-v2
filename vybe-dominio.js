@@ -11,30 +11,31 @@
 // assim a regra continua num lugar só.
 
 const CONTEUDOS_API = '/api/conteudos';
+const VYBE_EMERGENCY_SOURCE_KEY = 'vybe_emergency_source_v1';
+const VYBE_EMERGENCY_WRITE_KEY = 'vybe_emergency_write_v1';
 let CATALOGO_CAPTACAO = [];
 let CATALOGO_OPCOES = [];
+let DOMINIO_ULTIMA_RESPOSTA = null;
 
-// Fonte de leitura. Agora o padrão é o banco da Vybe; o espelho do Monday fica
-// como caminho de volta, e a queda para ele é automática se o banco falhar.
-//
-// A troca só veio depois de rodar o processItemsAll do painel sobre as duas
-// fontes e comparar os 23 campos do objeto final, item a item: as diferenças que
-// sobraram são formato de carimbo de hora, e em dois casos o banco entrega mais
-// do que o espelho — ele resolve o índice de status que o espelho perdeu e não
-// trunca o histórico em 3 updates.
-//
-// Para voltar sem deploy, no console:
-//   localStorage.setItem('vybe_fonte','espelho')  → volta a ler do Monday
-//   localStorage.removeItem('vybe_fonte')         → volta ao banco da Vybe
+// O banco da Vybe é a autoridade de leitura. O espelho do Monday permanece
+// disponível somente como contingência administrativa explícita durante o corte.
+// Uma preferência antiga do navegador nunca pode devolver autoridade ao Monday.
+// Emergência documentada (somente administradores):
+//   localStorage.setItem('vybe_emergency_source_v1','espelho')
+// Para voltar ao modo normal:
+//   localStorage.removeItem('vybe_emergency_source_v1')
 function fonteDeLeitura() {
-  try { return localStorage.getItem('vybe_fonte') || 'dominio'; } catch { return 'dominio'; }
+  try { return localStorage.getItem(VYBE_EMERGENCY_SOURCE_KEY) === 'espelho' ? 'espelho' : 'dominio'; }
+  catch { return 'dominio'; }
 }
+function espelhoSomenteObservador() { return fonteDeLeitura() === 'dominio'; }
 
 async function buscarDominio() {
-  const resposta = await fetch(CONTEUDOS_API, { credentials: 'same-origin' });
+  const resposta = await fetch(CONTEUDOS_API, { credentials: 'same-origin', cache: 'no-store' });
   if (!resposta.ok) throw new Error(`Domínio indisponível (${resposta.status})`);
   const dados = await resposta.json();
   if (!dados?.itens) throw new Error('Resposta do domínio sem itens.');
+  DOMINIO_ULTIMA_RESPOSTA = dados;
   return dados;
 }
 
@@ -165,11 +166,14 @@ async function compararFontes() {
 // para o board de Produção: itens do board de Demandas não estão no domínio e
 // continuam pelo caminho antigo.
 //
-// Desligar sem deploy, no console:
-//   localStorage.setItem('vybe_escrita','monday')  → volta a gravar só no Monday
-//   localStorage.removeItem('vybe_escrita')        → volta à escrita dupla
+// A gravação própria é obrigatória. A contingência de escrita direta no Monday
+// só pode ser ativada conscientemente por um administrador durante incidente:
+//   localStorage.setItem('vybe_emergency_write_v1','monday')
+// Para voltar ao modo normal:
+//   localStorage.removeItem('vybe_emergency_write_v1')
 function escritaDupla() {
-  try { return localStorage.getItem('vybe_escrita') !== 'monday'; } catch { return true; }
+  try { return localStorage.getItem(VYBE_EMERGENCY_WRITE_KEY) !== 'monday'; }
+  catch { return true; }
 }
 
 // Mesma regra do servidor, para o rótulo virar chave.
@@ -202,14 +206,15 @@ async function tentarEscritaDupla(item, corpo) {
   if (devolve) { corpo = { ...corpo }; delete corpo._devolve; }
   try {
     const r = await gravarNoDominio(corpo);
-    if (String(r.replica_monday || '').startsWith('falhou')) {
-      console.warn('Gravado no banco, mas o Monday não recebeu:', r.replica_monday);
-      showToast('✓ Salvo no Vybe · réplica no Monday falhou, será reconciliada', 'info', 6000);
+    if (String(r.replica_monday || '').startsWith('pendente')) {
+      console.warn('Gravado no banco; réplica do Monday entrou na fila:', r.replica_monday);
+      showToast('✓ Salvo no Vybe · cópia de contingência enfileirada', 'info', 6000);
     }
     return devolve ? r : true;
   } catch (erro) {
-    console.warn('Escrita dupla falhou; usando o caminho antigo.', erro);
-    return false;
+    console.error('Escrita no banco Vybe falhou; o Monday não receberá uma gravação paralela.', erro);
+    showToast(`Não foi possível salvar no banco Vybe: ${erro.message}`, 'error', 7000);
+    throw erro;
   }
 }
 

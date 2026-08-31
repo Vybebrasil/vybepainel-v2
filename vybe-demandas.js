@@ -163,6 +163,7 @@ async function saveAiUsageSettings() {
 }
 
 function switchBoard(board, btn) {
+  if (activeBoard !== board && typeof closeTransientOverlaysForNavigation === 'function') closeTransientOverlaysForNavigation();
   // Custo de IA e desempenho individual são leitura de quem gere, não do dia a
   // dia de quem executa. Antes as oito abas apareciam para todo mundo.
   if (!souAdmin() && ABAS_DE_GESTAO.has(board)) {
@@ -278,14 +279,13 @@ function filterDemandaByDay(sel) {
 
 // ─── Buscar itens do board Demandas ────────────────────────────────────────────────────────────────────
 async function fetchAllDemandas() {
-  // O board de Demandas passou a viver no banco da Vybe. O caminho do Monday
-  // fica como queda: se o banco falhar, a aba não pode sumir.
+  // Solicitações vivem no banco da Vybe. Em modo normal, uma falha precisa ficar
+  // visível e preservar o cache; nunca pode devolver autoridade ao Monday.
+  // O caminho legado abaixo só é alcançado quando a contingência administrativa
+  // explícita muda fonteDeLeitura() para "espelho".
   if (fonteDeLeitura() === 'dominio') {
-    try {
-      const dados = await buscarDemandas();
-      const itens = demandasComoItensDoMonday(dados);
-      if (itens.length) return itens;
-    } catch (erro) { console.warn('Demandas pelo banco falharam; usando o Monday.', erro); }
+    const dados = await buscarDemandas();
+    return demandasComoItensDoMonday(dados);
   }
   const allItems = [];
   let cursor = null;

@@ -152,8 +152,8 @@ function hydrateProductionCache() {
   applyCachedProductionDataset(payload.items, payload.status_options || []);
   productionCacheHydrated = true;
   const time = cacheClock(payload.saved_at);
-  cacheSyncLabel(`Cache operacional de ${time || 'agora'} · verificando mudanças no Monday...`);
-  showToast('⚡ Cache operacional carregado · verificando mudanças em segundo plano.', 'info', 3200);
+  cacheSyncLabel(`Cache operacional de ${time || 'agora'} · confirmando o banco Vybe...`);
+  showToast('⚡ Cache operacional carregado · confirmando a base própria em segundo plano.', 'info', 3200);
   return true;
 }
 async function fetchAllItemVersions() {
@@ -182,6 +182,13 @@ async function fetchItemsByIds(ids=[]) {
 function applyMirrorSnapshot(snapshot) {
   const rawItems = Array.isArray(snapshot?.items) ? snapshot.items : [];
   if (!rawItems.length) return false;
+  if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) {
+    operationalMirrorVersion = Number(snapshot.version || operationalMirrorVersion || 0);
+    localStorage.setItem(OPERATIONAL_MIRROR_VERSION_KEY, String(operationalMirrorVersion));
+    cacheSyncLabel(`Banco Vybe ativo · réplica Monday observada na versão ${operationalMirrorVersion}`);
+    setSyncHealth('healthy', `Banco Vybe é a fonte de verdade · réplica Monday observada às ${syncHealthClock(Date.now())}`);
+    return true;
+  }
   const meta = calcWeeks();
   const all = processItemsAll(rawItems, meta);
   if (!all.length) return false;
@@ -195,6 +202,13 @@ function applyMirrorSnapshot(snapshot) {
 }
 function applyMirrorChanges(changes = [], version = 0) {
   if (!changes.length) return false;
+  if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) {
+    operationalMirrorVersion = Number(version || operationalMirrorVersion || 0);
+    localStorage.setItem(OPERATIONAL_MIRROR_VERSION_KEY, String(operationalMirrorVersion));
+    cacheSyncLabel(`Banco Vybe ativo · ${changes.length} mudança${changes.length===1?'':'s'} observada${changes.length===1?'':'s'} na réplica`);
+    setSyncHealth('healthy', `Banco Vybe confirmado · réplica Monday observada às ${syncHealthClock(Date.now())}`);
+    return true;
+  }
   const current = new Map(DADOS_ALL.map(item => [String(item.id), item]));
   changes.forEach(change => {
     const itemId = String(change.item_id || '');
@@ -259,6 +273,7 @@ async function pullOperationalMirror(options = {}) {
       const snapshot = await mirrorRequest();
       if (!snapshot?.ready) throw new Error('Espelho operacional ainda não possui uma base confirmada.');
       const applied = applyMirrorSnapshot(snapshot);
+      if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) await puxarDominio();
       operationalMirrorFailures = 0;
       operationalMirrorUnavailable = false;
       operationalMirrorNextAttemptAt = 0;
@@ -269,6 +284,7 @@ async function pullOperationalMirror(options = {}) {
       const snapshot = await mirrorRequest();
       if (!snapshot?.ready) throw new Error('O espelho solicitou uma base completa, mas ainda não está pronto.');
       const applied = applyMirrorSnapshot(snapshot);
+      if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) await puxarDominio();
       operationalMirrorFailures = 0;
       operationalMirrorUnavailable = false;
       operationalMirrorNextAttemptAt = 0;
@@ -276,6 +292,7 @@ async function pullOperationalMirror(options = {}) {
     }
     if (Number(delta.version || 0) > operationalMirrorVersion && Array.isArray(delta.changes) && delta.changes.length) {
       const applied = applyMirrorChanges(delta.changes, delta.version);
+      if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) await puxarDominio();
       operationalMirrorFailures = 0;
       operationalMirrorUnavailable = false;
       operationalMirrorNextAttemptAt = 0;
@@ -288,7 +305,9 @@ async function pullOperationalMirror(options = {}) {
     operationalMirrorFailures = 0;
     operationalMirrorUnavailable = false;
     operationalMirrorNextAttemptAt = 0;
-    setSyncHealth('healthy', `Espelho central confirmado às ${syncHealthClock(Date.now())} · sem novas mudanças`);
+    setSyncHealth('healthy', typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()
+      ? `Banco Vybe confirmado · réplica Monday observada às ${syncHealthClock(Date.now())}`
+      : `Espelho central confirmado às ${syncHealthClock(Date.now())} · sem novas mudanças`);
     return true;
   } catch(error) {
     operationalMirrorFailures += 1;
@@ -297,8 +316,13 @@ async function pullOperationalMirror(options = {}) {
     operationalMirrorNextAttemptAt = Date.now() + retryIn;
     const retrySeconds = Math.max(1, Math.ceil(retryIn / 1000));
     console.warn('Espelho operacional indisponível; mantendo a última base segura.', error.message);
-    setSyncHealth('error', `Não foi possível confirmar o espelho agora. Última base segura: ${syncHealthClock(syncHealthLastConfirmedAt)} · nova tentativa em ${retrySeconds}s.`);
-    cacheSyncLabel(`Espelho indisponível · última base segura mantida · tentativa automática em ${retrySeconds}s`);
+    if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) {
+      setSyncHealth('stale', `Banco Vybe permanece ativo; a réplica de contingência do Monday não respondeu. Nova tentativa em ${retrySeconds}s.`);
+      cacheSyncLabel(`Banco Vybe ativo · réplica Monday indisponível · nova tentativa em ${retrySeconds}s`);
+    } else {
+      setSyncHealth('error', `Não foi possível confirmar o espelho agora. Última base segura: ${syncHealthClock(syncHealthLastConfirmedAt)} · nova tentativa em ${retrySeconds}s.`);
+      cacheSyncLabel(`Espelho indisponível · última base segura mantida · tentativa automática em ${retrySeconds}s`);
+    }
     return false;
   } finally {
     operationalMirrorRequestRunning = false;
@@ -323,6 +347,11 @@ function startOperationalMirrorFeed() {
 }
 async function reconcileProductionCache() {
   if (!productionCacheHydrated || productionCacheSyncing || producaoRefreshRunning) return;
+  if (typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio') {
+    try { await puxarDominio(); }
+    catch (error) { setSyncHealth('error', `Banco Vybe indisponível; cache local preservado. ${error.message}`); }
+    return;
+  }
   productionCacheSyncing=true;
   try {
     setSyncHealth('checking', 'Cache ativo · conferindo alterações do Monday em segundo plano…');
@@ -376,14 +405,16 @@ async function refreshProducao(options={}) {
   if (!silent) { btn.disabled = true; icon.textContent = '↻'; icon.className = 'spin'; }
   setSyncHealth('checking', silent ? 'Reconciliação de segurança em andamento…' : 'Atualização manual em andamento…');
   const loadingCycle = silent ? null : beginLoadingCycle();
-  if (!silent) showToast('Buscando dados do Monday.com...', 'info', 60000);
+  if (!silent) showToast(fonteDeLeitura() === 'dominio' ? 'Buscando dados do banco Vybe...' : 'Buscando dados do espelho Monday...', 'info', 60000);
 
   try {
     META = calcWeeks();
     updateMonthNav();
     // O histórico não depende da lista: iniciar em paralelo reduz o tempo percebido de sincronização.
     ACTIVITY_LOGS_CACHE = null;
-    const activityLogsPromise = fetchActivityLogs().catch(error => { console.warn('Histórico operacional indisponível nesta sincronização:', error); return null; });
+    const activityLogsPromise = fonteDeLeitura() === 'dominio'
+      ? Promise.resolve(window.ACTIVITY_LOGS || null)
+      : fetchActivityLogs().catch(error => { console.warn('Histórico operacional indisponível nesta sincronização:', error); return null; });
     // A lista de itens é essencial. A legenda de status é complementar: se o relay
     // oscilar nela, preservamos as cores já conhecidas e seguimos com a atualização.
     const [rawItems] = await Promise.all([
@@ -415,7 +446,9 @@ async function refreshProducao(options={}) {
     document.getElementById('badge-s2').textContent = `S${META.currentWeekIdx+2} · ${META.week2_start}–${META.week2_end}`;
     document.getElementById('badge-hoje').textContent = `Hoje: ${META.today}`;
     document.getElementById('footer-update').textContent = `Última atualização: ${META.generated_at}`;
-    setSyncHealth('healthy', `Monday confirmado às ${syncHealthClock(Date.now())} · ${DADOS_ALL.length} itens verificados`);
+    setSyncHealth('healthy', fonteDeLeitura() === 'dominio'
+      ? `Banco Vybe confirmado às ${syncHealthClock(Date.now())} · ${DADOS_ALL.length} itens ativos verificados`
+      : `Monday confirmado às ${syncHealthClock(Date.now())} · ${DADOS_ALL.length} itens verificados`);
 
     // Gerar abas e painéis para todas as semanas do mês (4, 5 ou 6).
     const numLabels = ['01','02','03','04','05','06'];

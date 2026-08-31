@@ -148,7 +148,7 @@ function focusTaskTone(status) {
   return '#a58c79';
 }
 function focusStatusButtonHtml(d) {
-  return `<button type="button" class="focus-status-btn" onclick="openStatusEditor(event,'${d.id}')" title="Atualizar status no Monday">${pillHtml(d.status,d.status_color,d.status_border)}</button>`;
+  return `<button type="button" class="focus-status-btn" onclick="openStatusEditor(event,'${d.id}')" title="Atualizar status no Vybe OS">${pillHtml(d.status,d.status_color,d.status_border)}</button>`;
 }
 function operationalOriginTag(item={}) { const request=isRequestItem(item); return `<span class="operational-origin-tag ${request?'request':'content'}" title="Origem operacional: ${request?'Solicitação de Demandas':'Produção de Conteúdo'}">${request?'SOLICITAÇÃO':'CONTEÚDO'}</span>`; }
 function focusTaskHtml(d, contextText='', opcoes={}) {
@@ -307,9 +307,9 @@ function openManualHandoff(itemId) { const item=findOperationalItem(itemId); if 
 
 const outboundItemPatchQueue = new Map();
 function outboundPatchFields(patch={}) { return Object.entries(patch).filter(([,value])=>value!==undefined && value!==null); }
-function applyOutboundItemPatch(itemId, patch={}, label='alteração') {
-  if (patch.status && !patch.status_updated_at) patch.status_updated_at = new Date().toISOString();
-  const key=String(itemId); const now=new Date().toISOString(); const fields=outboundPatchFields(patch);
+function applyOutboundItemPatch(itemId, patch={}, label='alteração', options={}) {
+  const renderizar=options?.render!==false;
+  if (patch.status && !patch.status_updated_at) patch.status_updated_at = new Date().toISOString(); const key=String(itemId); const now=new Date().toISOString(); const fields=outboundPatchFields(patch);
   [DADOS,DADOS_ALL].forEach(list=>(list||[]).forEach(item=>{
     if(String(item.id)!==key) return;
     fields.forEach(([field,value])=>{ item[field]=Array.isArray(value)?[...value]:value; });
@@ -319,7 +319,7 @@ function applyOutboundItemPatch(itemId, patch={}, label='alteração') {
     item.operational_risk=getOperationalRisk(item);
   }));
   saveProductionCache();
-  renderOutboundItemPatch(label);
+  if(renderizar) renderOutboundItemPatch(label);
   queueOutboundItemReconciliation(key,patch,label);
 }
 function renderOutboundItemPatch(label='alteração') {
@@ -329,8 +329,9 @@ function renderOutboundItemPatch(label='alteração') {
   else if(panelMode==='controler') renderDaController();
   else { renderKPIs(); for(let n=1;n<=(META?.weeks?.length||0);n++) renderWeek(n,currentFilter,currentDayFilter); renderManagerIntelligence(); }
   requestAnimationFrame(()=>window.scrollTo({top:previousScroll,behavior:'instant'}));
-  cacheSyncLabel(`Alteração local aplicada · confirmando somente a demanda no Monday…`);
-  setSyncHealth('checking', `Alteração enviada · confirmando somente a demanda alterada…`);
+  const dominioAtivo = typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio';
+  cacheSyncLabel(dominioAtivo ? 'Alteração confirmada no banco Vybe.' : 'Alteração local aplicada · confirmando contingência…');
+  setSyncHealth(dominioAtivo ? 'healthy' : 'checking', dominioAtivo ? 'Banco Vybe confirmou a alteração.' : 'Alteração enviada · confirmando contingência…');
 }
 function outboundPatchMatches(item,patch={}) {
   return outboundPatchFields(patch).every(([field,value])=>{
@@ -340,6 +341,12 @@ function outboundPatchMatches(item,patch={}) {
 }
 function queueOutboundItemReconciliation(itemId, patch={}, label='alteração', attempt=0) {
   const key=String(itemId); const previous=outboundItemPatchQueue.get(key); if(previous?.timer) clearTimeout(previous.timer);
+  if (typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio') {
+    outboundItemPatchQueue.delete(key);
+    cacheSyncLabel('Alteração confirmada no banco Vybe · réplica externa em fila de contingência.');
+    setSyncHealth('healthy', `Banco Vybe confirmou a alteração às ${syncHealthClock(Date.now())}`);
+    return;
+  }
   const timer=setTimeout(async()=>{
     try {
       const raw=(await fetchItemsByIds([key]))[0];
@@ -412,20 +419,23 @@ async function savePlanningDates(itemId) {
   const button=document.getElementById('planning-save'); if(button) button.disabled=true;
   armOutboundMutationGuard(veicChanged?'veiculação':'prazo');
   try {
-    const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`;
-    await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify(values)});
+    const pelaEscritaPropria=await tentarEscritaDupla(item,{ acao:'datas', item:String(item.id), prazo, veiculacao });
+    if(!pelaEscritaPropria){
+      const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`;
+      await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify(values)});
+    }
     const changes=[]; if(prazoChanged) changes.push(`Prazo: ${planningDateBr(item.prazo_iso)} → ${planningDateBr(prazo)}`); if(veicChanged) changes.push(`Veiculação: ${planningDateBr(item.veiculacao_iso)} → ${planningDateBr(veiculacao)}`);
     try { await postItemUpdate(item.id,`[Vybe OS · Planejamento atualizado]\n${changes.join('\n')}\nRegra: ${followsGolden?`Prazo de Ouro respeitado (${PRAZO_OURO_DIAS} dias antes da veiculação)`:`Exceção ao Prazo de Ouro (${(()=>{const d=goldenDeadlineGap(prazo,veiculacao);return d===1?'1 dia':`${d} dias`;})()} de antecedência)`}${reason ? `\nMotivo: ${reason}` : ''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); } catch(logError) { console.warn('Datas atualizadas, mas o log não foi registrado.',logError); }
     if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(row=>String(row.id)===String(item.id)); if(request){ if(prazoChanged){request.prazo_iso=prazo;request.prazo=planningDateBr(prazo).slice(0,5);} if(veicChanged){request.conclusao_iso=veiculacao;request.conclusao=planningDateBr(veiculacao).slice(0,5);request.veiculacao_iso=veiculacao;request.veiculacao=planningDateBr(veiculacao).slice(0,5);} } outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{...(prazoChanged?{prazo_iso:prazo}:{}),...(veicChanged?{veiculacao_iso:veiculacao}:{})},'planejamento');
     closeWorkflowModal();
     if(activeWorkspaceItemId===String(item.id)) { const refreshed=findOperationalItem(item.id)||item; renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),refreshed); }
-    showToast('✓ Planejamento atualizado no Monday · painel mantido no contexto atual','ok');
+    showToast('✓ Planejamento atualizado no Vybe OS · painel mantido no contexto atual','ok');
   } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível atualizar o planejamento: ${e.message}`,'err',7000); }
 }
 function openDaDirectionModal(itemId) { const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada.', 'err'); pendingDaDirectionItemId=String(itemId); const owners=daControllerTeam().map(user=>`<option value="${user.id}">${safeText(firstName(user.name))}</option>`).join(''); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Direcionamento de arte</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Direcionar esta demanda</h2><p class="workflow-copy">Registre a decisão visual no histórico da peça para que o time execute sem depender do WhatsApp.</p>${workflowItemHtml(item,item.status)}<label class="workflow-field"><span>Qual é a direção objetiva?</span><textarea id="da-direction-text" rows="4" placeholder="Ex.: Ajustar a hierarquia do título, trocar a imagem principal e usar a referência enviada pelo cliente."></textarea></label><label class="workflow-field"><span>Quem precisa agir agora?</span><select id="da-direction-owner"><option value="">Manter responsável atual</option>${owners}</select></label><label class="workflow-field"><span>Próximo passo esperado</span><input id="da-direction-next" type="text" placeholder="Ex.: Nova versão para validação interna até amanhã."></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitDaDirection()">Registrar direção →</button></div>`); }
-async function submitDaDirection() { const item=findOperationalItem(pendingDaDirectionItemId); const direction=String(document.getElementById('da-direction-text')?.value||'').trim(); const next=String(document.getElementById('da-direction-next')?.value||'').trim(); const ownerId=String(document.getElementById('da-direction-owner')?.value||''); if(!item || !direction) return showToast('Descreva a direção antes de registrar.', 'info'); const owner=daControllerTeam().find(user=>user.id===ownerId); try { await postItemUpdate(item.id,`[Vybe OS · Direcionamento de D.A.]\nDireção: ${direction}${owner?`\nQuem executa: ${owner.name}`:''}${next?`\nPróximo passo: ${next}`:''}`); item.status_context={reason:direction,next:next||item.status_context?.next||'',created_at:new Date().toISOString()}; closeWorkflowModal(); pendingDaDirectionItemId=''; showToast('✓ Direcionamento registrado no Monday','ok'); renderDaController(); if(activeWorkspaceItemId===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),item); } catch(e) { showToast(`Não foi possível registrar o direcionamento: ${e.message}`,'err',7000); } }
-async function submitHandoff() { const flow=pendingWorkflowChange; const done=String(document.getElementById('handoff-done')?.value||'').trim(); const next=String(document.getElementById('handoff-next')?.value||'').trim(); const link=String(document.getElementById('handoff-link')?.value||'').trim(); if (!flow || !done || !next) return showToast('Preencha o que foi concluído e o próximo passo.','info'); if (link && !/^https?:\/\//i.test(link)) return showToast('Use um link válido começando com https:// ou deixe o campo em branco.','info'); try { await postItemUpdate(flow.item.id, `[Vybe OS · Passagem de bastão]\n${flow.option ? `Etapa: ${flow.item.status} → ${flow.option.label}\n` : ''}Concluído: ${done}\nPróximo passo: ${next}${link ? `\nReferência: ${link}` : ''}`); const {item,option,manual}=flow; closeWorkflowModal(); if (manual) { showToast('✓ Passagem de bastão registrada no Monday','ok'); if (activeWorkspaceItemId) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId),item); } else await commitStatusChange(item,option); } catch(e) { showToast(`Não foi possível registrar a passagem: ${e.message}`,'err',7000); } }
-async function commitStatusChange(item, option) { const mutation=`mutation ($board: ID!, $item: ID!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`; armOutboundMutationGuard('status'); try { const pelaEscritaDupla = await tentarEscritaDupla(item, { acao:'status', item:String(item.id), para:chaveDeStatus(option.label) }); if (!pelaEscritaDupla) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),value:JSON.stringify({index:Number(option.index)})}); updateLocalStatus(item.id,option); if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(d=>String(d.id)===String(item.id)); if(request) { request.status=option.label; request.status_color=option.color; request.status_border=option.border; request.status_index=option.index; request.status_updated_at=new Date().toISOString(); } renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{status:option.label,status_color:option.color,status_border:option.border,status_index:option.index},'status'); closeStatusEditor(); if(String(activeWorkspaceItemId)===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id), findOperationalItem(item.id) || item); renderFocusUserPicker(); showToast(`✓ Status atualizado para ${option.label} · tela mantida no contexto atual`,'ok'); } catch(e) { showToast(`Não foi possível atualizar no Monday: ${e.message}`,'err',7000); } }
+async function submitDaDirection() { const item=findOperationalItem(pendingDaDirectionItemId); const direction=String(document.getElementById('da-direction-text')?.value||'').trim(); const next=String(document.getElementById('da-direction-next')?.value||'').trim(); const ownerId=String(document.getElementById('da-direction-owner')?.value||''); if(!item || !direction) return showToast('Descreva a direção antes de registrar.', 'info'); const owner=daControllerTeam().find(user=>user.id===ownerId); try { await postItemUpdate(item.id,`[Vybe OS · Direcionamento de D.A.]\nDireção: ${direction}${owner?`\nQuem executa: ${owner.name}`:''}${next?`\nPróximo passo: ${next}`:''}`); item.status_context={reason:direction,next:next||item.status_context?.next||'',created_at:new Date().toISOString()}; closeWorkflowModal(); pendingDaDirectionItemId=''; showToast('✓ Direcionamento registrado no Vybe OS','ok'); renderDaController(); if(activeWorkspaceItemId===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),item); } catch(e) { showToast(`Não foi possível registrar o direcionamento: ${e.message}`,'err',7000); } }
+async function submitHandoff() { const flow=pendingWorkflowChange; const done=String(document.getElementById('handoff-done')?.value||'').trim(); const next=String(document.getElementById('handoff-next')?.value||'').trim(); const link=String(document.getElementById('handoff-link')?.value||'').trim(); if (!flow || !done || !next) return showToast('Preencha o que foi concluído e o próximo passo.','info'); if (link && !/^https?:\/\//i.test(link)) return showToast('Use um link válido começando com https:// ou deixe o campo em branco.','info'); try { await postItemUpdate(flow.item.id, `[Vybe OS · Passagem de bastão]\n${flow.option ? `Etapa: ${flow.item.status} → ${flow.option.label}\n` : ''}Concluído: ${done}\nPróximo passo: ${next}${link ? `\nReferência: ${link}` : ''}`); const {item,option,manual}=flow; closeWorkflowModal(); if (manual) { showToast('✓ Passagem de bastão registrada no Vybe OS','ok'); if (activeWorkspaceItemId) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId),item); } else await commitStatusChange(item,option); } catch(e) { showToast(`Não foi possível registrar a passagem: ${e.message}`,'err',7000); } }
+async function commitStatusChange(item, option) { const mutation=`mutation ($board: ID!, $item: ID!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`; armOutboundMutationGuard('status'); try { const pelaEscritaDupla = await tentarEscritaDupla(item, { acao:'status', item:String(item.id), para:chaveDeStatus(option.label) }); if (!pelaEscritaDupla) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),value:JSON.stringify({index:Number(option.index)})}); updateLocalStatus(item.id,option); if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(d=>String(d.id)===String(item.id)); if(request) { request.status=option.label; request.status_color=option.color; request.status_border=option.border; request.status_index=option.index; request.status_updated_at=new Date().toISOString(); } renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{status:option.label,status_color:option.color,status_border:option.border,status_index:option.index},'status'); closeStatusEditor(); if(String(activeWorkspaceItemId)===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id), findOperationalItem(item.id) || item); renderFocusUserPicker(); showToast(`✓ Status atualizado para ${option.label} · tela mantida no contexto atual`,'ok'); } catch(e) { showToast(`Não foi possível atualizar no Vybe OS: ${e.message}`,'err',7000); } }
 const STATUS_CONTEXT_RULES = Object.freeze({
   'alteração': { question:'Qual alteração foi solicitada?', helper:'Descreva o ajuste com objetividade para que a equipe não precise recuperar o contexto no WhatsApp.', requester:true, source:true },
   'falta info': { question:'O que está faltando para avançar?', helper:'Informe qual material, informação ou aprovação é necessária e de quem ela depende.', requester:true, source:true },
@@ -559,26 +569,11 @@ function closeItemWorkspace() {
   activeWorkspaceAssets = [];
 }
 async function fetchWorkspaceItem(itemId) {
-    const sourceItem=findOperationalItem(itemId);
-    const boardId=sourceItem?.board_id || (isRequestItem(sourceItem)?BOARD_DEMANDAS_ID:BOARD_ID);
-    // Anexos, comentários e histórico saem do banco da Vybe. Era o último lugar
-    // do dia a dia que buscava no Monday a cada abertura de peça. Item de
-    // Demandas não está no domínio e segue pelo caminho antigo; qualquer falha
-    // cai no Monday também, para abrir a peça nunca depender disto.
-    if (!isRequestItem(sourceItem)) {
-      try {
-        const r = await fetch(`/api/painel?area=peca&item=${encodeURIComponent(itemId)}`, { credentials:'same-origin' });
-        if (r.ok) { const d = await r.json(); if (d?.ok) return d; }
-      } catch (erro) { console.warn('Detalhe da peça pelo banco falhou; usando o Monday.', erro); }
-    }
-    const query = `query($board: [ID!]!, $item: [ID!]!) { items(ids: $item) { id name created_at assets { id name url url_thumbnail public_url file_extension file_size created_at } column_values(ids:["file_mkwtx2j4"]) { id value } updates(limit: 12) { id body created_at creator { name } assets { id name url url_thumbnail public_url file_extension file_size } } } boards(ids: $board) { activity_logs(item_ids: $item, column_ids: ["status"], limit: 50) { id event data created_at } } }`;
-    const data = await mondayQuery(query, { board: [String(boardId)], item: [String(itemId)] });
-    const itemData = data?.items?.[0];
-    if (itemData) {
-      itemData.activity_logs = data?.boards?.[0]?.activity_logs || [];
-    }
-    return itemData || null;
-  }
+  const r = await fetch(`/api/painel?area=peca&item=${encodeURIComponent(itemId)}`, { credentials:'same-origin', cache:'no-store' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d?.ok) throw new Error(d?.error || `Workspace indisponível (${r.status})`);
+  return d;
+}
 function workspaceFileColumnAssetIds(detail) {
   const column = (detail?.column_values || []).find(entry => String(entry?.id || '') === COLUNAS.producao.arquivos);
   if (!column?.value) return new Set();
@@ -591,7 +586,7 @@ function workspaceAssetsForDetail(detail) {
   const columnAssetIds = workspaceFileColumnAssetIds(detail);
   const columnAssetCount = columnAssetIds.size;
   const collected = [
-    ...(detail?.assets || []).map(asset => ({ ...asset, source: 'Arquivo da demanda', removable: columnAssetIds.has(String(asset?.id || '')), column_asset_count: columnAssetCount })),
+    ...(detail?.assets || []).map(asset => ({ ...asset, source: asset.onde === 'drive' ? 'Drive da Vybe' : 'Arquivo legado', removable: Boolean(asset.removable || columnAssetIds.has(String(asset?.id || ''))), column_asset_count: columnAssetCount })),
     ...(detail?.updates || []).flatMap(update => (update?.assets || []).map(asset => ({ ...asset, source: 'Arquivo do histórico', removable: false, column_asset_count: columnAssetCount })))
   ];
   const used = new Set();
@@ -638,15 +633,18 @@ function workspaceAssetCard(asset) {
 async function requestWorkspaceFileRemoval(assetId) {
   const asset = activeWorkspaceAssets.find(entry => String(entry?.id || '') === String(assetId));
   const item = (DADOS || []).find(entry => String(entry.id) === String(activeWorkspaceItemId)) || (typeof DADOS_ALL !== 'undefined' ? (DADOS_ALL || []).find(entry => String(entry.id) === String(activeWorkspaceItemId)) : null);
-  if (!asset || !item || !asset.removable || asset.column_asset_count !== 1) return showToast('Este arquivo não pode ser removido individualmente pelo painel.', 'info', 7000);
+  if (!asset || !item || !asset.removable || !asset.local_id) return showToast('Migração deste arquivo ainda não foi concluída.', 'info', 7000);
   const client = item.cliente || 'cliente não informado';
-  const confirmed = window.confirm(`Remover definitivamente o arquivo "${asset.name}" da demanda "${item.nome}" do cliente ${client}?\n\nEsta ação remove o único arquivo da coluna de entrega no Monday e não pode ser desfeita.`);
+  const confirmed = window.confirm(`Mover o arquivo "${asset.name}" da demanda "${item.nome}" para a lixeira do Drive da Vybe?\n\nA remoção ficará registrada e poderá ser recuperada por um administrador no Drive.`);
   if (!confirmed) return;
   try {
-    const mutation = `mutation($board: ID!, $item: ID!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: "file_mkwtx2j4", value: $value) { id } }`;
-    await mondayQuery(mutation, { board: String(BOARD_ID), item: String(item.id), value: JSON.stringify({ clear_all: true }) });
-    try { await postItemUpdate(item.id, `[Vybe OS · Arquivo removido]\nCliente: ${client}\nArquivo removido: ${asset.name}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); } catch (historyError) { console.warn('Arquivo removido, mas o histórico não foi registrado.', historyError); }
-    showToast('✓ Arquivo removido do Monday', 'ok');
+    const resposta = await fetch('/api/painel?area=peca', {
+      method:'DELETE', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+      body:JSON.stringify({ item:item.id, arquivo_id:asset.local_id }),
+    });
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) throw new Error(dados?.error || `Falha ao remover (${resposta.status})`);
+    showToast('✓ Arquivo movido para a lixeira do Drive', 'ok');
     renderWorkspaceDrawer(await fetchWorkspaceItem(item.id), item);
   } catch (error) { showToast(`Não foi possível remover o arquivo: ${error.message}`, 'err', 8000); }
 }
@@ -860,7 +858,9 @@ async function moverPecaDeBoard(itemId) {
 }
 
 function podeVerMonday() {
-  return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
+  if (!(typeof sessaoAtual === 'function' && sessaoAtual()?.admin)) return false;
+  try { return localStorage.getItem('vybe_monday_contingency_ui_v1') === 'ativa'; }
+  catch { return false; }
 }
 
 // A lista de tarefas de dentro de uma solicitação. Existe só no board de
@@ -1107,8 +1107,8 @@ async function openItemWorkspace(itemId) {
   document.body.append(backdrop, drawer);
   try {
     const detail = await fetchWorkspaceItem(itemId);
-    if (!detail) throw new Error('A atividade não foi encontrada no Monday.');
-    if (!item) item = { id:String(itemId), nome:detail.name || 'Demanda', cliente:'Cliente não informado', status:'—', status_color:'#8f8f8f', status_border:'#8f8f8f', prazo_iso:'', veiculacao_iso:'', formato:'Conteúdo', url:`https://gestaovybes-team.monday.com/boards/${BOARD_ID}/pulses/${itemId}` };
+    if (!detail) throw new Error('A atividade não foi encontrada no banco Vybe.');
+    if (!item) item = { id:String(itemId), nome:detail.name || 'Demanda', cliente:'Cliente não informado', status:'—', status_color:'#8f8f8f', status_border:'#8f8f8f', prazo_iso:'', veiculacao_iso:'', formato:'Conteúdo', url:'' };
     renderWorkspaceDrawer(detail, item);
   } catch (e) { drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Workspace</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-empty">Não foi possível carregar o contexto da demanda. ${safeText(e.message)}</div>`; }
 }
@@ -1157,25 +1157,25 @@ async function postWorkspaceUpdate(body, successMessage) {
   if (!activeWorkspaceItemId) return;
   const text = String(body || '').trim();
   if (!text) return showToast('Escreva uma atualização antes de enviar.', 'info');
-  const mutation = `mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`;
-  await mondayQuery(mutation, { item: String(activeWorkspaceItemId), body: text });
+  const item = findOperationalItem(activeWorkspaceItemId) || { id:activeWorkspaceItemId };
+  await tentarEscritaDupla(item, { acao:'comentario', item:String(activeWorkspaceItemId), texto:text });
   showToast(successMessage, 'ok');
   const input = document.getElementById('workspace-comment-input'); if (input) input.value = '';
   const link = document.getElementById('workspace-link-input'); if (link) link.value = '';
-  const item = DADOS.find(d => String(d.id) === String(activeWorkspaceItemId));
-  if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), item);
+  const atualizado = findOperationalItem(activeWorkspaceItemId);
+  if (atualizado) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), atualizado);
 }
-async function registerWorkspaceCheckin(stage) { const label=stage==='início'?'INÍCIO DE EXECUÇÃO CONFIRMADO':'FECHAMENTO DE BLOCO CONFIRMADO'; try { await postWorkspaceUpdate(`[Vybe OS · Check-in] ${label}`, `✓ ${stage==='início'?'Bloco iniciado':'Bloco encerrado'} e registrado no Monday`); } catch (e) { showToast(`Não foi possível registrar o check-in: ${e.message}`, 'err', 7000); } }
+async function registerWorkspaceCheckin(stage) { const label=stage==='início'?'INÍCIO DE EXECUÇÃO CONFIRMADO':'FECHAMENTO DE BLOCO CONFIRMADO'; try { await postWorkspaceUpdate(`[Vybe OS · Check-in] ${label}`, `✓ ${stage==='início'?'Bloco iniciado':'Bloco encerrado'} e registrado no Vybe OS`); } catch (e) { showToast(`Não foi possível registrar o check-in: ${e.message}`, 'err', 7000); } }
 async function saveWorkspaceComment() {
   const input = document.getElementById('workspace-comment-input');
-  try { await postWorkspaceUpdate(`[Vybe OS] ${input?.value || ''}`, '✓ Atualização registrada no Monday'); }
+  try { await postWorkspaceUpdate(`[Vybe OS] ${input?.value || ''}`, '✓ Atualização registrada no Vybe OS'); }
   catch (e) { showToast(`Não foi possível registrar: ${e.message}`, 'err', 7000); }
 }
 async function saveWorkspaceLink() {
   const input = document.getElementById('workspace-link-input');
   const url = String(input?.value || '').trim();
   if (!/^https?:\/\//i.test(url)) return showToast('Cole um link válido começando com https://', 'info');
-  try { await postWorkspaceUpdate(`[Vybe OS · Link de entrega] ${url}`, '✓ Link de entrega registrado no Monday'); }
+  try { await postWorkspaceUpdate(`[Vybe OS · Link de entrega] ${url}`, '✓ Link de entrega registrado no Vybe OS'); }
   catch (e) { showToast(`Não foi possível registrar o link: ${e.message}`, 'err', 7000); }
 }
 function handleWorkspaceDrop(event) {
@@ -1192,7 +1192,7 @@ async function uploadWorkspaceFile(input) {
   const allowed = ['image/png','image/jpeg','image/webp','application/pdf'];
   if (!allowed.includes(file.type)) return showToast('Envie PNG, JPG, WEBP ou PDF.', 'info');
   if (file.size > 3 * 1024 * 1024) return showToast('Arquivo acima de 3 MB. Para vídeo, use o link do Drive.', 'info');
-  const item = DADOS.find(d => String(d.id) === String(activeWorkspaceItemId));
+  const item = findOperationalItem(activeWorkspaceItemId);
   try {
     showToast('Enviando arquivo para o Drive da Vybe...', 'info', 6000);
     const base64 = await new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); });

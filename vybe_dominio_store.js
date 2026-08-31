@@ -18,6 +18,7 @@
 import { neon } from '@neondatabase/serverless';
 import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
 import { pastaDoConteudo, pastaSimples, enviarParaDrive, tornarPublico } from './vybe_drive.js';
+import { nomeCanonico } from './vybe_saneamento.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 export const BOARD_DEMANDAS = 8385559107;
@@ -345,6 +346,7 @@ export async function criarSchema() {
   await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS drive_file_id TEXT`;
   await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS url_drive TEXT`;
   await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS migrado_em TIMESTAMPTZ`;
+  await sql`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS migrando_em TIMESTAMPTZ`;
   // Anexo apagado no Monday depois da nossa sincronização. O registro fica — é
   // história de que o arquivo existiu — mas sai da fila de migração e da tela,
   // senão a migração tenta para sempre e o painel mostra anexo quebrado.
@@ -583,7 +585,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     sql`
       SELECT
-        c.monday_item_id                        AS id,
+        COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS id,
         c.titulo                                AS nome,
         -- O rótulo sai do catálogo, não de uma cópia em texto: assim renomear
         -- no Monday muda o que aparece sem mexer em regra nenhuma.
@@ -690,12 +692,15 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
 // O espelho traz updates(limit: 3); aqui buscamos até 100 por item, junto dos
 // metadados de anexo. É paginado e retoma pelo cursor porque o board tem quase
 // 2.000 itens e uma função serverless não aguenta tudo numa tanacada.
-export async function sincronizarHistorico(cursor = null, paginas = 1) {
+export async function sincronizarHistorico(cursor = null, paginas = 1, boardId = BOARD_PRODUCAO, pageSize = 20) {
   await criarSchema();
   const sql = database();
+  const board = Number(boardId) || BOARD_PRODUCAO;
+  const lote = Math.max(5, Math.min(50, Number(pageSize) || 20));
 
   const conteudoPorMonday = new Map(
-    (await sql`SELECT id, monday_item_id FROM vybe_conteudos WHERE monday_item_id IS NOT NULL`)
+    (await sql`SELECT id, monday_item_id FROM vybe_conteudos
+      WHERE board_id=${board} AND monday_item_id IS NOT NULL`)
       .map((r) => [r.monday_item_id, Number(r.id)])
   );
 
@@ -709,8 +714,8 @@ export async function sincronizarHistorico(cursor = null, paginas = 1) {
 
   for (let p = 0; p < paginas; p++) {
     const query = proximo
-      ? `query($cursor: String!) { next_items_page(limit: 100, cursor: $cursor) { cursor items { ${campos} } } }`
-      : `{ boards(ids:[${BOARD_PRODUCAO}]) { items_page(limit: 100) { cursor items { ${campos} } } } }`;
+      ? `query($cursor: String!) { next_items_page(limit: ${lote}, cursor: $cursor) { cursor items { ${campos} } } }`
+      : `{ boards(ids:[${board}]) { items_page(limit: ${lote}) { cursor items { ${campos} } } } }`;
     const dados = await mondayQuery(query, proximo ? { cursor: proximo } : {});
     const pagina = proximo ? dados?.next_items_page : dados?.boards?.[0]?.items_page;
     const itens = pagina?.items || [];
@@ -778,6 +783,7 @@ export async function sincronizarHistorico(cursor = null, paginas = 1) {
     (SELECT COALESCE(SUM(tamanho_bytes),0) FROM vybe_conteudo_arquivos) AS bytes_no_monday`;
 
   return {
+    board_id: board,
     itens_vistos: itensVistos,
     updates_gravados: updatesGravados,
     arquivos_gravados: arquivosGravados,
@@ -1335,9 +1341,8 @@ export async function importarCatalogoOpcoes() {
 
 // ── migração dos arquivos de trabalho para o Drive ───────────────────────────
 //
-// Só o que ainda está em produção. O acervo finalizado (2.709 arquivos, 7 GB)
-// fica onde está por decisão da Vybe — e some junto se a conta do Monday for
-// cancelada, o que é uma escolha, não um descuido.
+// Migra todo o acervo, inclusive finalizados. O objetivo agora é permitir o
+// desligamento do Monday sem perder arquivos históricos ou materiais de consulta.
 //
 // A URL do Monday vale uma hora, então é buscada na hora de copiar, nunca a que
 // estava guardada.
@@ -1363,20 +1368,31 @@ export async function desfazerMigracaoDrive() {
 
 export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
   const sql = database();
+  await sql`UPDATE vybe_conteudo_arquivos SET migrando_em=NULL
+    WHERE migrando_em < NOW() - INTERVAL '20 minutes' AND url_drive IS NULL`;
   const pendentes = await sql`
-    SELECT a.id, a.monday_asset_id, a.nome, a.extensao,
+    WITH candidatos AS (
+      SELECT a.id
+        FROM vybe_conteudo_arquivos a
+        JOIN vybe_conteudos c ON c.id = a.conteudo_id
+        JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
+       WHERE a.url_drive IS NULL AND a.ausente_em IS NULL AND a.migrando_em IS NULL
+         AND c.removido_em IS NULL AND a.monday_asset_id IS NOT NULL
+       ORDER BY c.veiculacao NULLS LAST, a.id
+       LIMIT ${limite}
+       FOR UPDATE OF a SKIP LOCKED
+    ), reservados AS (
+      UPDATE vybe_conteudo_arquivos a SET migrando_em=NOW()
+        FROM candidatos x WHERE a.id=x.id
+      RETURNING a.id, a.monday_asset_id, a.nome, a.extensao, a.conteudo_id
+    )
+    SELECT r.id, r.monday_asset_id, r.nome, r.extensao,
            c.veiculacao, c.prazo,
            (SELECT cl.nome FROM vybe_conteudo_clientes vcc
               JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
              WHERE vcc.conteudo_id = c.id LIMIT 1) AS cliente
-      FROM vybe_conteudo_arquivos a
-      JOIN vybe_conteudos c ON c.id = a.conteudo_id
-      JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
-     WHERE a.url_drive IS NULL AND a.ausente_em IS NULL AND c.removido_em IS NULL
-       AND c.grupo_id IS DISTINCT FROM ${GRUPO_ARQUIVO_MORTO}
-       AND a.monday_asset_id IS NOT NULL
-     ORDER BY c.veiculacao NULLS LAST, a.id
-     LIMIT ${limite}`;
+      FROM reservados r JOIN vybe_conteudos c ON c.id=r.conteudo_id
+     ORDER BY c.veiculacao NULLS LAST, r.id`;
   if (!pendentes.length) return { pendentes: 0, enviados: 0, falhas: [] };
 
   // A URL guardada já expirou; pede as de agora.
@@ -1392,7 +1408,7 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
     if (!url) {
       // O Monday não conhece mais este anexo: foi apagado lá depois da nossa
       // sincronização. Marcar encerra o assunto; insistir só repetiria o erro.
-      await sql`UPDATE vybe_conteudo_arquivos SET ausente_em=NOW() WHERE id=${arq.id}`;
+      await sql`UPDATE vybe_conteudo_arquivos SET ausente_em=NOW(), migrando_em=NULL WHERE id=${arq.id}`;
       falhas.push({ nome: arq.nome, erro: 'apagado no Monday — marcado como ausente' });
       continue;
     }
@@ -1400,10 +1416,11 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
       const pastaId = await pastaDoConteudo({ cliente: arq.cliente, data: arq.veiculacao || arq.prazo });
       const enviado = await enviarParaDrive({ url, nome: arq.nome, mime: null, pastaId });
       await sql`UPDATE vybe_conteudo_arquivos
-        SET drive_file_id=${enviado.id}, url_drive=${enviado.link}, migrado_em=NOW()
+        SET drive_file_id=${enviado.id}, url_drive=${enviado.link}, migrado_em=NOW(), migrando_em=NULL
         WHERE id=${arq.id}`;
       enviados += 1; bytes += enviado.bytes;
     } catch (erro) {
+      await sql`UPDATE vybe_conteudo_arquivos SET migrando_em=NULL WHERE id=${arq.id}`;
       falhas.push({ nome: arq.nome, erro: erro.message });
     }
   }
@@ -1413,7 +1430,6 @@ export async function migrarArquivosParaDrive({ limite = 8 } = {}) {
       JOIN vybe_conteudos c ON c.id = a.conteudo_id
       JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
      WHERE a.url_drive IS NULL AND a.ausente_em IS NULL
-       AND c.grupo_id IS DISTINCT FROM ${GRUPO_ARQUIVO_MORTO}
        AND a.monday_asset_id IS NOT NULL`)[0].n;
   return { enviados, bytes, falhas, restam };
 }
@@ -1653,7 +1669,8 @@ export async function importarCadastroClientes() {
   let vinculados = 0, criados = 0;
   const pessoasPorCliente = [];
   for (const it of itens) {
-    const nome = (it.name || '').trim();
+    const nomeOriginal = (it.name || '').trim();
+    const nome = nomeCanonico(nomeOriginal);
     if (!nome) continue;
     const ativo = !/inativ/i.test(it.group?.title || '');
     const valorTexto = txt(it, C.valor);
@@ -1719,9 +1736,10 @@ export async function importarAcessos() {
 
   const clientes = await sql`SELECT id, nome FROM vybe_clientes`;
   const acharCliente = (nome) => {
-    const limpo = String(nome || '').replace(/^Dados\s*&\s*Acessos\s*[-–—]\s*/i, '').trim().toLowerCase();
-    return clientes.find((c) => String(c.nome).toLowerCase() === limpo)?.id
-        || clientes.find((c) => limpo.includes(String(c.nome).toLowerCase()))?.id
+    const base = String(nome || '').replace(/^Dados\s*&\s*Acessos\s*[-–—]\s*/i, '').trim();
+    const limpo = nomeCanonico(base).toLocaleLowerCase('pt-BR');
+    return clientes.find((c) => nomeCanonico(c.nome).toLocaleLowerCase('pt-BR') === limpo)?.id
+        || clientes.find((c) => limpo.includes(nomeCanonico(c.nome).toLocaleLowerCase('pt-BR')))?.id
         || null;
   };
 

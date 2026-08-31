@@ -1,0 +1,8 @@
+# O que nao sobe para a Vercel.
+#
+# nao-implantado/ guarda codigo escrito mas que nunca entrou no ar — hoje, dois
+# endpoints que nao cabem no teto de 12 funcoes do plano. Precisa ficar fora da
+# implantacao por dois motivos: dentro de api/ estouraria o teto e derrubaria o
+# deploy inteiro; solto na raiz, seria servido como pagina e exporia o codigo do
+# servidor. O LEIA-ME de la explica o resto.
+nao-implantado/

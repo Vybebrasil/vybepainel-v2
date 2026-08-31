@@ -11,6 +11,10 @@
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
+import { quemChama } from '../vybe_acesso.js';
+import { neon } from '@neondatabase/serverless';
+import { indicadoresIndependencia, listarSnapshots, historicoSaude, registrarSnapshotOperacional } from '../vybe_observabilidade.js';
+import { sanearBaseMestre } from '../vybe_saneamento.js';
 import { importarFotosDaEquipe, importarCadastroClientes, importarAcessos, popularDemandas, desfazerMigracaoDrive, migrarArquivosParaDrive, importarCatalogoOpcoes, importarCatalogoCaptacao, importarColunasExtra, importarHistoricoStatus, criarSchema, popularDoEspelho, resumo, sincronizarHistorico, perfilArquivos, sincronizarEquipe, definirAcesso, eventos,
   importarSubitens,
   corrigirEtiquetasConcluidas,
@@ -26,13 +30,13 @@ function cors(res) {
 // Apara espaço e quebra de linha dos dois lados: colar valor no painel da Vercel
 // costuma trazer um \n junto, e a chave passa a nunca bater.
 function autorizado(req) {
+  const origem = quemChama(req);
+  if (origem?.tipo === 'servico' || origem?.pessoa?.admin) return true;
   const segredo = String(process.env.MIRROR_ADMIN_KEY || '').trim();
-  if (!segredo) return false;
-  const enviado = (
-    String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '') ||
-    String(req.query?.key || req.body?.key || '')
-  ).trim();
-  return enviado.length > 0 && enviado === segredo;
+  const manutencao = String(process.env.CUTOVER_MIGRATION_KEY || '').trim();
+  const bearer = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const enviado = String(req.query?.key || req.body?.key || bearer || '').trim();
+  return Boolean((segredo && enviado === segredo) || (manutencao && enviado === manutencao));
 }
 
 export default async function handler(req, res) {
@@ -52,12 +56,32 @@ export default async function handler(req, res) {
     if (action === 'resumo') {
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
     }
+    if (action === 'saude') {
+      const sql = neon(process.env.DATABASE_URL);
+      return res.status(200).json({ ok: true, action, ...(await indicadoresIndependencia(sql)), eventos: await historicoSaude(sql, req.query?.limite) });
+    }
+    if (action === 'snapshots') {
+      const sql = neon(process.env.DATABASE_URL);
+      return res.status(200).json({ ok: true, action, snapshots: await listarSnapshots(sql, req.query?.limite) });
+    }
+    if (action === 'saneamento') {
+      const sql = neon(process.env.DATABASE_URL);
+      return res.status(200).json({ ok: true, action, ...(await sanearBaseMestre(sql, { aplicar: false })) });
+    }
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Use POST para schema e popular.' });
     }
     if (action === 'schema') {
       await criarSchema();
       return res.status(200).json({ ok: true, action, ...(await resumo()) });
+    }
+    if (action === 'snapshot') {
+      const sql = neon(process.env.DATABASE_URL);
+      return res.status(200).json({ ok: true, action, snapshot: await registrarSnapshotOperacional(sql, 'manual_admin') });
+    }
+    if (action === 'sanear') {
+      const sql = neon(process.env.DATABASE_URL);
+      return res.status(200).json({ ok: true, action, ...(await sanearBaseMestre(sql, { aplicar: true })) });
     }
     if (action === 'drive_conferir') {
       const { conferirDrive } = await import('../vybe_drive.js');
@@ -137,9 +161,12 @@ export default async function handler(req, res) {
     }
     if (action === 'historico') {
       // Paginado: passe o proximo_cursor da resposta anterior para continuar.
+      // board permite concluir Produção e Solicitações com a mesma rotina.
       const cursor = req.query?.cursor || req.body?.cursor || null;
       const paginas = Number(req.query?.paginas || req.body?.paginas || 3);
-      return res.status(200).json({ ok: true, action, ...(await sincronizarHistorico(cursor, paginas)) });
+      const board = Number(req.query?.board || req.body?.board || 7829537690);
+      const lote = Number(req.query?.lote || req.body?.lote || 20);
+      return res.status(200).json({ ok: true, action, ...(await sincronizarHistorico(cursor, paginas, board, lote)) });
     }
     if (action === 'popular') {
       const resultado = await popularDoEspelho();

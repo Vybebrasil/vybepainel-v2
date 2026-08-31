@@ -99,7 +99,7 @@ function pintarConta() {
         <div>
           <input type="file" id="conta-foto-arquivo" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="enviarMinhaFoto(this)">
           <button class="auto-novo" onclick="document.getElementById('conta-foto-arquivo').click()">Escolher imagem</button>
-          <p class="auto-ajuda" style="margin:8px 0 0">PNG, JPG ou WEBP, até 2 MB. Ela vai para o Drive da Vybe — as fotos antigas do time apontam para o Monday e somem quando ele for desligado.</p>
+          <p class="auto-ajuda" style="margin:8px 0 0">PNG, JPG ou WEBP, até 2 MB. A imagem fica no Drive próprio da Vybe e permanece disponível no cadastro central da equipe.</p>
         </div>
       </div>
     </div>
@@ -197,14 +197,14 @@ function blocoOpcoes() {
       <div>
         <div class="auto-kicker">Vybe OS · Opções das colunas</div>
         <h2 class="auto-titulo">O que a ficha oferece</h2>
-        <p class="auto-sub">Desligar uma opção tira ela dos seletores sem apagar nada: peças que já a usam continuam mostrando. Opção criada aqui vale só na Vybe — enquanto o Monday existir, a cópia daquele campo é pulada.</p>
+        <p class="auto-sub">Desligar uma opção tira ela dos seletores sem apagar nada: peças que já a usam continuam mostrando. O catálogo do Vybe OS é a referência dos seletores e preserva o histórico existente.</p>
       </div>
     </div>
     ${grupos.map(([coluna, titulo, itens]) => `
       <div class="op-grupo">
         <div class="op-grupo-topo">
           <b>${safeText(titulo)}</b>
-          ${OPCOES.colunas?.[coluna] ? `<button onclick="criarOpcao('${coluna}','${safeText(titulo)}')">+ nova opção</button>` : '<small>vem do Monday</small>'}
+          ${OPCOES.colunas?.[coluna] ? `<button onclick="criarOpcao('${coluna}','${safeText(titulo)}')">+ nova opção</button>` : '<small>catálogo interno</small>'}
         </div>
         <div class="op-lista">${itens.map((o) => `
           <button class="op-chip ${o.ativa ? 'ativa' : ''}" onclick="alternarOpcao('${coluna}','${safeText(o.chave)}')" title="${o.ativa ? 'Clique para desligar' : 'Clique para ligar'}">
@@ -320,7 +320,7 @@ function blocoAcessos() {
       <div>
         <div class="auto-kicker">Vybe OS · Acessos</div>
         <h2 class="auto-titulo">Credenciais dos clientes</h2>
-        <p class="auto-sub">Vieram dos documentos do Monday.${semDoc ? ` ${semDoc} clientes estão sem documento — a lacuna é do cadastro, não da migração.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.</p>
+        <p class="auto-sub">Preservadas no domínio próprio da Vybe.${semDoc ? ` ${semDoc} clientes estão sem documento — a lacuna é do cadastro, não da migração.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.</p>
       </div>
     </div>
     <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum acesso cadastrado.</div>'}</div>

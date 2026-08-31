@@ -2651,7 +2651,7 @@ button:not(:disabled):not([aria-disabled="true"]):active,
         <span class="station-top"><span>04 / GOVERNANÇA OPERACIONAL</span><span class="station-locked-state"><i>✓</i>Ativo · C6</span></span><span class="station-icon">▣</span><span class="station-name">Cadastros</span><span class="station-description">A porta de entrada da criação. Valide formato, briefing, prazo e destino antes de transformar intenção em demanda.</span><span class="station-tags"><span>Ordem</span><span>Briefing</span><span>Fluxo</span></span><span class="station-action"><em>ABRIR PRÉ-CADASTRO</em><b>↗</b></span>
       </button>
       <button id="station-producao-command" class="identity-station" data-station="producao" type="button" style="--station-color:#00d1b4" onclick="chooseProductionMode()">
-        <span class="station-top"><span>05 / ORDEM DE PRODUÇÃO</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◫</span><span class="station-name">Produção</span><span class="station-description">A agenda de pré-produção, captação, fotografia e edição. Uma única ordem de trabalho, sincronizada com o que mudou no Monday.</span><span class="station-tags"><span>Captação</span><span>Roteiro</span><span>Edição</span></span><span class="station-action"><em>Armar operação</em><b>→</b></span>
+        <span class="station-top"><span>05 / ORDEM DE PRODUÇÃO</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◫</span><span class="station-name">Produção</span><span class="station-description">A agenda de pré-produção, captação, fotografia e edição. Uma única ordem de trabalho, atualizada pelo domínio operacional do Vybe OS.</span><span class="station-tags"><span>Captação</span><span>Roteiro</span><span>Edição</span></span><span class="station-action"><em>Armar operação</em><b>→</b></span>
       </button>
       <button id="station-clientes" class="identity-station station-clientes" data-station="clientes" type="button" style="--station-color:#8b7dff" onclick="chooseClientMode()">
         <span class="station-top"><span>06 / NÚCLEO DE CLIENTES</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◉</span><span class="station-name">Clientes</span><span class="station-description">O cadastro mestre que conecta relacionamento, heads, acessos e toda a operação de cada conta.</span><span class="station-tags"><span>Heads</span><span>Acessos</span><span>Operação</span></span><span class="station-action"><em>Abrir núcleo</em><b>↗</b></span>
@@ -2927,7 +2927,15 @@ button:not(:disabled):not([aria-disabled="true"]):active,
     <div id="diario-lista" style="display:block;">
       <div id="diario-snapshots-list"></div>
     </div>
-    <div id="diario-detalhe" style="display:none;"></div>
+    <div id="diario-detalhe" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <button class="sort-btn" onclick="voltarDiarioLista()">← Voltar</button>
+        <h3 id="diario-detalhe-titulo" style="margin:0;color:var(--text);"></h3>
+        <button class="sort-btn" onclick="exportarSnapshot()" style="margin-left:auto;">⬇ Exportar</button>
+      </div>
+      <div id="diario-person-filter" class="person-filter-bar" style="margin-bottom:12px;"></div>
+      <div id="diario-detalhe-content"></div>
+    </div>
   </div>
 </div>
 
@@ -3161,11 +3169,12 @@ button:not(:disabled):not([aria-disabled="true"]):active,
         station?.focus({preventScroll:true})})};
     const originalCloseCadastros = window.closeCadastrosGoverned;
     window.closeCadastrosGoverned = () => {
-      document.getElementById('cadastros-preview-overlay')?.remove();
-      reopenStationGate()};
+      const overlay = document.getElementById('cadastros-preview-overlay');
+      const estavaAberto = Boolean(overlay);
+      overlay?.remove();
+      if (estavaAberto) reopenStationGate()};
     const openCadastrosFallback = () => {
-      if (typeof window.openCadastrosGovernedLegacy === 'function') return window.openCadastrosGovernedLegacy();
-      if (typeof window.showToast === 'function') window.showToast('Não foi possível inicializar CADASTROS. Atualize a página e tente novamente.', 'err', 5000)};
+      if (typeof window.showToast === 'function') window.showToast('Não foi possível inicializar CADASTROS. Nenhuma criação foi enviada; atualize a página e tente novamente.', 'err', 7000)};
     const openCadastrosModule = () => {
       try {
         if (typeof window.openCadastrosGoverned === 'function') { window.openCadastrosGoverned(); return}
@@ -3202,7 +3211,7 @@ button:not(:disabled):not([aria-disabled="true"]):active,
     <h2 class="workspace-title">Card</h2>
     <div class="workspace-meta"><span>Card</span><span>Prazo: 2026-08-22</span><span class="pill pill-pode-fazer" style="background:rgba(255,203,0,.15);color:#ffcb00;border-color:#c0ab1b;"><span class="pill-dot" style="background:#ffcb00;"></span>Pode Fazer</span></div>
     <section class="workspace-delivery-dock missing"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega para postagem</span><b>Material ainda não enviado</b><small>A Tainara não tem um link ou arquivo final disponível nesta demanda. Registre o material antes de mover para publicação.</small></div><div class="workspace-delivery-actions"><button type="button" class="workspace-delivery-focus" onclick="focusWorkspaceDeliveryInput()">REGISTRAR MATERIAL ↓</button></div></section>
-    <div class="workspace-actions"><button type="button" class="workspace-action primary" onclick="openPlanningEditor('12782778232')">Editar datas rápidas</button><button type="button" class="workspace-action" onclick="openOwnerEditor(event,'12782778232')">Gerenciar responsáveis</button><button type="button" class="workspace-action" onclick="openDaDirectionModal('12782778232')">Direcionar D.A.</button><button type="button" class="workspace-action" onclick="openStatusEditor({preventDefault(){},stopPropagation(){},currentTarget:this},'12782778232')">Atualizar status</button><button type="button" class="workspace-action" onclick="openFocusBlocker('12782778232')">Sinalizar bloqueio</button><button type="button" class="workspace-action" onclick="openManualHandoff('12782778232')">Entregar e passar bastão</button><a class="workspace-action" data-external-monday="true" href="https://gestaovybes-team.monday.com/boards/7829537690/pulses/12782778232" target="_blank" rel="noopener">↗ Abrir no Monday</a></div>
+    <div class="workspace-actions"><button type="button" class="workspace-action primary" onclick="openPlanningEditor('12782778232')">Editar datas rápidas</button><button type="button" class="workspace-action" onclick="openOwnerEditor(event,'12782778232')">Gerenciar responsáveis</button><button type="button" class="workspace-action" onclick="openDaDirectionModal('12782778232')">Direcionar D.A.</button><button type="button" class="workspace-action" onclick="openStatusEditor({preventDefault(){},stopPropagation(){},currentTarget:this},'12782778232')">Atualizar status</button><button type="button" class="workspace-action" onclick="openFocusBlocker('12782778232')">Sinalizar bloqueio</button><button type="button" class="workspace-action" onclick="openManualHandoff('12782778232')">Entregar e passar bastão</button></div>
     
     <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets"><div class="workspace-empty">Nenhum arquivo anexado ainda.</div></div></div></section>
     <section class="workspace-section"><div class="workspace-section-head">Anexar entrega</div><div class="workspace-section-body"><input id="workspace-file-input" type="file" hidden="" accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)"><div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Enviar card ou arte</strong>Arraste aqui ou clique para selecionar</div></div><p class="workspace-note">PNG, JPG, WEBP ou PDF · até 3 MB. Para vídeos, registre o link do Drive abaixo.</p></div></section>

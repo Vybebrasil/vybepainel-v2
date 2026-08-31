@@ -432,8 +432,15 @@ export async function ensaio(sql, evento, { formato = 'Reels', grupo = 'ensaio' 
 // gravado e passa a valer quando houver disparo por hora — ou quando a
 // notificação sair para o WhatsApp, onde a hora importa de verdade. No sino
 // dentro do painel, a pessoa vê quando abre.
+function dataOperacionalBahia(valor = new Date()) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(valor).reduce((acc, parte) => { acc[parte.type] = parte.value; return acc; }, {});
+  return `${partes.year}-${partes.month}-${partes.day}`;
+}
+
 export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}) {
-  const dia = hoje.toISOString().slice(0, 10);
+  const dia = dataOperacionalBahia(hoje);
   const regras = await sql`SELECT * FROM vybe_automacoes
     WHERE ativa AND gatilho->>'tipo' = 'data' ORDER BY ordem, id`;
 
@@ -471,7 +478,7 @@ export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}
     }
     resumo.push({ regra: regra.nome, candidatos: alvos.length, avisados });
   }
-  return { dia, seco, regras: resumo };
+  return { dia, fuso: 'America/Bahia', seco, regras: resumo };
 }
 
 // Mudança feita direto no Monday chega por webhook. Sem isto, desligar as regras

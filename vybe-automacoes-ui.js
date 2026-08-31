@@ -126,15 +126,15 @@ function pintarAutomacoes() {
       <div>
         <div class="auto-kicker">Vybe OS · Registro</div>
         <h2 class="auto-titulo">O que as regras fizeram</h2>
-        <p class="auto-sub">Enquanto o Monday rodava, dava para culpar ele quando uma peça se movia sozinha. Agora as regras são nossas — aqui está o que cada uma fez.</p>
+        <p class="auto-sub">Cada movimento automático fica registrado no Vybe OS — aqui está o que cada regra fez, quando executou e qual peça foi afetada.</p>
       </div>
     </div>
     <div id="auto-historico" class="auto-hist"><div class="auto-carregando">CARREGANDO…</div></div>`;
 }
 
 // ── histórico ─────────────────────────────────────────────────────────────────
-// Enquanto o Monday rodava, dava para culpar ele quando uma peça se movia
-// sozinha. Agora as regras são nossas, então precisa dar para ver o que fizeram.
+// As regras são próprias e precisam deixar rastreável o que fizeram, quando
+// executaram e qual peça foi afetada.
 async function carregarHistorico() {
   try {
     const r = await fetch(`${AUTOMACOES_API}&historico=1&limite=40`, { credentials: 'same-origin' });

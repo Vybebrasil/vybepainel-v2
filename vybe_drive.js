@@ -191,6 +191,18 @@ export async function tornarPublico(fileId) {
   return true;
 }
 
+// Move para a lixeira do Drive, em vez de apagar definitivamente. A remoção do
+// painel fica reversível e não depende da coluna de arquivos do Monday.
+export async function arquivarNoDrive(fileId) {
+  if (!fileId) throw new Error('Arquivo do Drive não informado.');
+  await drive(`files/${encodeURIComponent(fileId)}?supportsAllDrives=true`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trashed: true }),
+  });
+  return true;
+}
+
 // Confere a credencial sem enviar nada — para saber se está tudo no lugar antes
 // de mexer em arquivo de verdade.
 export async function conferirDrive() {

@@ -48,22 +48,38 @@ function clientMasterFind(rows, clientName, mapper=x=>x) {
   if(exact) return exact;
   return rows.find(row=>{ const candidate=normalizeClientKey(mapper(row)); return candidate.length>=6 && (candidate.includes(key) || key.includes(candidate)); }) || null;
 }
-async function fetchClientMasterBoard(boardId, columnIds) {
-  const query=`{ boards(ids: [${boardId}]) { items_page(limit: 100) { cursor items { id name url created_at updated_at column_values(ids: [${columnIds.map(id=>`"${id}"`).join(',')}]) { id text value } } } } }`;
-  const data=await mondayQuery(query,{});
-  return data?.boards?.[0]?.items_page?.items || [];
-}
 async function ensureClientMasterSources(force=false) {
   if(CLIENT_MASTER_LOADING || (CLIENT_MASTER_LOADED && !force)) return;
   CLIENT_MASTER_LOADING=true;
   CLIENT_MASTER_ERROR='';
   try {
-    const [heads,accesses]=await Promise.all([fetchClientMasterBoard(BOARD_CLIENTES_ID,CLIENTES_HEADS_COLUMNS),fetchClientMasterBoard(BOARD_ACESSOS_ID,CLIENTES_ACESSOS_COLUMNS)]);
-    CLIENT_MASTER_HEADS=heads.map(row=>{ const c=clientMasterRowMap(row); return {id:String(row.id),name:String(row.name||'').trim(),url:row.url||'',updated_at:row.updated_at||'',people:c.multiple_person_mm35kefy,status:c.status,planning:c.link_mkzdvjjs,nextMeeting:c.date_mm35wp7q,createDashboard:c.boolean_mkzkvh6r,dashboard:c.color_mkzkgn5c,plan:c.lista_suspensa9__1,segment:c.dropdown_mkw9njy6}; });
-    CLIENT_MASTER_ACESSOS=accesses.map(row=>{ const c=clientMasterRowMap(row); return {id:String(row.id),name:clientMasterClientNameFromAccess(row.name||''),url:row.url||'',updated_at:row.updated_at||'',doc:c.monday_doc__1,drive:c.link6__1,manus:c.boolean_mm3248x2,link:c.link_mm3fwkja}; });
+    const resposta=await fetch('/api/painel?area=clientes',{credentials:'same-origin',cache:'no-store'});
+    const corpo=await resposta.json();
+    if(!resposta.ok) throw new Error(corpo?.error || `Cadastro mestre indisponível (${resposta.status})`);
+    CADASTRO_CLIENTES=corpo.clientes || [];
+    CLIENT_MASTER_HEADS=CADASTRO_CLIENTES.map(row=>({
+      id:String(row.id),name:String(row.nome||'').trim(),url:'',updated_at:'',
+      people:row.heads||row.responsavel||'',status:row.status||(row.ativo?'Ativo':'Inativo'),
+      planning:row.planejamento_url||'',nextMeeting:row.proxima_reuniao||'',
+      dashboard:row.dashboard||'',plan:row.plano||'',segment:row.segmento||''
+    }));
+    CLIENT_MASTER_ACESSOS=(corpo.acessos||[]).map(row=>({
+      id:String(row.id),name:String(row.cliente||clientMasterClientNameFromAccess(row.nome||'')).trim(),
+      url:'',updated_at:row.atualizado_em||'',doc:row.documento?'Documento migrado':'',
+      drive:row.drive||'',manus:row.manus?'Disponível':'',link:row.link||''
+    }));
     CLIENT_MASTER_LOADED=true;
-  } catch(error) { CLIENT_MASTER_ERROR=error?.message || 'Não foi possível consultar as fontes mestre.'; CLIENT_MASTER_LOADED=false; console.warn('Fontes mestre de CLIENTES indisponíveis:',error); }
-  finally { CLIENT_MASTER_LOADING=false; renderClientMasterOverview(); if(CLIENT_MASTER_LOADED) renderClientesBoard(); const current=document.getElementById('cliente-detalhe-nome')?.textContent?.trim(); if(current) renderClientMasterDetail(current); }
+  } catch(error) {
+    CLIENT_MASTER_ERROR=error?.message || 'Não foi possível consultar o cadastro mestre Vybe.';
+    CLIENT_MASTER_LOADED=false;
+    console.warn('Cadastro mestre próprio indisponível:',error);
+  } finally {
+    CLIENT_MASTER_LOADING=false;
+    renderClientMasterOverview();
+    if(CLIENT_MASTER_LOADED) renderClientesBoard();
+    const current=document.getElementById('cliente-detalhe-nome')?.textContent?.trim();
+    if(current) renderClientMasterDetail(current);
+  }
 }
 function clientMasterLinkedData(clientName) {
   const head=clientMasterFind(CLIENT_MASTER_HEADS,clientName,row=>row.name);
@@ -105,20 +121,20 @@ function renderClientMasterOverview() {
   const activeRequests=records.reduce((sum,record)=>sum+record.requests.filter(item=>!['Feito','Finalizado','feito','finalizado','Concluídas'].includes(String(item.status||''))).length,0);
   const kpi=document.getElementById('client-master-kpis');
   if(kpi) kpi.innerHTML=[
-    {value:records.length,label:'Clientes encontrados',sub:'derivados das fontes operacionais'},
+    {value:records.length,label:'Clientes encontrados',sub:'cadastro mestre do Vybe OS'},
     {value:active,label:'Contas com operação ativa',sub:'com itens ainda abertos'},
     {value:content,label:'Conteúdos vinculados',sub:'Produção de Conteúdo'},
     {value:requests,label:'Solicitações vinculadas',sub:`${activeRequests} ainda abertas`}
   ].map(item=>`<div class="client-master-kpi"><b>${item.value}</b><span>${item.label}</span><small>${item.sub}</small></div>`).join('');
   const rail=document.getElementById('client-master-source-rail');
-  if(rail) { const headsState=CLIENT_MASTER_ERROR?'ERRO NA FONTE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_HEADS.length} CONTAS SINCRONIZADAS`:'AGUARDANDO CARGA'; const accessState=CLIENT_MASTER_ERROR?'ERRO NA FONTE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_ACESSOS.length} REGISTROS SINCRONIZADOS`:'AGUARDANDO CARGA'; rail.innerHTML=`<div class="client-source-card connected"><div><b>Operação</b><span>Produção + Solicitações integradas</span></div><em>● CONECTADA</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>GESTÃO DE CLIENTES (HEADS)</b><span>Status, heads, plano, segmento e reuniões</span></div><em>${headsState}</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>Dados & acessos</b><span>Drive, documentos e referências operacionais</span></div><em>${accessState}</em></div>`; }
+  if(rail) { const headsState=CLIENT_MASTER_ERROR?'ERRO NA BASE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_HEADS.length} CONTAS NO VYBE`:'AGUARDANDO CARGA'; const accessState=CLIENT_MASTER_ERROR?'ERRO NA BASE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_ACESSOS.length} REGISTROS NO VYBE`:'AGUARDANDO CARGA'; rail.innerHTML=`<div class="client-source-card connected"><div><b>Operação</b><span>Produção + Solicitações integradas</span></div><em>● BANCO VYBE</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>GESTÃO DE CLIENTES (HEADS)</b><span>Status, heads, plano, segmento e reuniões</span></div><em>${headsState}</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>Dados & acessos</b><span>Drive, documentos e referências operacionais</span></div><em>${accessState}</em></div>`; }
 }
 function renderClientMasterDetail(cli) {
   const record=clientMasterRecords().find(item=>item.name===cli || normalizeClientKey(item.name)===normalizeClientKey(cli));
   const node=document.getElementById('client-master-detail');
   if(!node || !record) return;
   const meta=record.meta || {};
-  const sourceNote=CLIENT_MASTER_ERROR?'A fonte mestre não respondeu; os dados operacionais continuam disponíveis.':CLIENT_MASTER_LOADED?'Dados conectados aos boards oficiais do Monday.':'Carregando as fontes oficiais de Heads e Acessos...';
+  const sourceNote=CLIENT_MASTER_ERROR?'O cadastro mestre não respondeu; os dados operacionais continuam disponíveis.':CLIENT_MASTER_LOADED?'Dados servidos pelo cadastro mestre do Vybe OS.':'Carregando Heads e Acessos do banco Vybe...';
   node.innerHTML=`<div class="client-master-detail-card"><h3>${safeText(record.name)}</h3><p>Ficha mestre da conta · ${sourceNote}</p><div class="client-master-detail-grid"><div class="client-master-detail-field"><small>Status da conta</small><b>${clientMasterValue(meta.status || (record.activeCount ? 'Ativa na operação' : 'Sem itens ativos'))}</b></div><div class="client-master-detail-field"><small>Head / responsável</small><b>${clientMasterValue(meta.head)}</b></div><div class="client-master-detail-field"><small>Segmento</small><b>${clientMasterValue(meta.segment)}</b></div><div class="client-master-detail-field"><small>Plano</small><b>${clientMasterValue(meta.plan)}</b></div></div></div><div class="client-master-detail-card"><h3>Dados da conta</h3><p>Referências operacionais vinculadas ao cliente, sem expor credenciais diretamente na interface.</p><div class="client-master-detail-grid"><div class="client-master-detail-field"><small>Dashboard</small><b>${clientMasterValue(meta.dashboard)}</b></div><div class="client-master-detail-field"><small>Próxima reunião</small><b>${clientMasterValue(meta.nextMeeting)}</b></div><div class="client-master-detail-field"><small>Drive / documentos</small><b>${clientMasterValue(meta.drive || meta.doc)}</b></div><div class="client-master-detail-field"><small>Manus / link operacional</small><b>${clientMasterValue(meta.link || (meta.manus ? 'Disponível' : ''))}</b></div></div></div>`;
 }
 // ── ficha do cliente ─────────────────────────────────────────────────────────
@@ -129,11 +145,7 @@ function renderClientMasterDetail(cli) {
 let CADASTRO_CLIENTES = [];
 
 async function carregarCadastroClientes() {
-  try {
-    const r = await fetch('/api/painel?area=clientes', { credentials: 'same-origin' });
-    if (!r.ok) return;
-    CADASTRO_CLIENTES = (await r.json()).clientes || [];
-  } catch { /* a tela funciona sem a ficha */ }
+  await ensureClientMasterSources();
 }
 
 function fichaDoCliente(nome) {
@@ -153,10 +165,18 @@ function fichaClienteHtml(nome) {
     ['Próx. reunião', dataBr(f.proxima_reuniao)],
     ['E-mail', f.email], ['Telefone', f.telefone], ['CNPJ', f.cnpj], ['Endereço', f.endereco],
   ].filter(([, v]) => v);
-  if (!linhas.length && !f.planejamento_url) return '';
+  const planejamentoBruto = String(f.planejamento_url || '').trim();
+  let planejamentoUrl = '';
+  try {
+    const analisada = new URL(planejamentoBruto);
+    if (['http:', 'https:'].includes(analisada.protocol) && analisada.hostname && analisada.hostname.includes('.')) {
+      planejamentoUrl = analisada.href;
+    }
+  } catch (_) {}
+  if (!linhas.length && !planejamentoUrl) return '';
   return `<div class="cliente-ficha">${
     linhas.map(([r, v]) => `<div><span>${safeText(r)}</span><b>${safeText(v)}</b></div>`).join('')
-  }${f.planejamento_url ? `<div><span>Planejamento</span><b><a href="${safeText(f.planejamento_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir ↗</a></b></div>` : ''}</div>`;
+  }${planejamentoUrl ? `<div><span>Planejamento</span><b><a href="${safeText(planejamentoUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir ↗</a></b></div>` : ''}</div>`;
 }
 
 function renderClientesBoard() {

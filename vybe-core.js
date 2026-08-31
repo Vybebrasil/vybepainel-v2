@@ -297,6 +297,10 @@ function finishLoadingCycle(cycleId) {
 // ─── Buscar todos os itens com paginação ──────────────────────────────────────────────────────
 async function fetchAllItems(options={}) {
   const { silent=false } = options;
+  if (typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio') {
+    const dados = await buscarDominio();
+    return dominioComoItensDoMonday(dados);
+  }
   const allItems = [];
   let cursor = null;
   let page = 0;
@@ -362,6 +366,14 @@ async function fetchAllItems(options={}) {
 // ─── Opções oficiais de status ───────────────────────────────────────────────
 let STATUS_OPTIONS = [];
 async function fetchStatusOptions() {
+  if (typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio') {
+    const dados = DOMINIO_ULTIMA_RESPOSTA || await buscarDominio();
+    STATUS_OPTIONS = (dados.status || []).map((s) => ({
+      index: Number(s.indice), label: s.rotulo, color: validStatusColor(s.cor) || '#c4c4c4',
+      border: validStatusColor(s.borda) || validStatusColor(s.cor) || '#c4c4c4'
+    })).sort((a,b) => a.index - b.index);
+    return STATUS_OPTIONS;
+  }
   const q = `{ boards(ids:[${BOARD_ID}]) { columns(ids:["status"]) { settings_str } } }`;
   const data = await mondayQuery(q);
   const raw = data?.boards?.[0]?.columns?.[0]?.settings_str || '{}';

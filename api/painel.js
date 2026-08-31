@@ -10,10 +10,11 @@
 
 import { neon } from '@neondatabase/serverless';
 import { mondayQuery } from '../operational_mirror_store.js';
-import { pastaDoConteudo, enviarParaDrive, tornarPublico } from '../vybe_drive.js';
+import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
+import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
 
@@ -198,9 +199,11 @@ const COLUNA_ARQUIVOS = 'file_mkwtx2j4';
 
 async function areaPeca(req, res, quem) {
   if (req.method === 'POST') return anexarNaPeca(req, res, quem);
+  if (req.method === 'DELETE') return removerArquivoDaPeca(req, res, quem);
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   const item = String(req.query?.item || '');
   if (!item) return res.status(400).json({ error: 'Informe o item.' });
+  const itemLocalId = item.startsWith('vybe:') ? Number(item.slice(5)) : null;
 
   const db = sql();
   // A ficha completa da peça. O drawer mostrava formato, prazo e status; o resto
@@ -235,11 +238,11 @@ async function areaPeca(req, res, quem) {
       FROM vybe_conteudos c
       LEFT JOIN vybe_status   s ON s.chave = c.status_chave
       LEFT JOIN vybe_captacao k ON k.chave = c.captacao_chave
-     WHERE c.monday_item_id = ${item} AND c.removido_em IS NULL`)[0];
+     WHERE (c.monday_item_id = ${item} OR c.id = ${itemLocalId}) AND c.removido_em IS NULL`)[0];
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
   const [arquivos, updates, eventos, catCaptacao, catOpcoes] = await Promise.all([
-    db`SELECT monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica,
+    db`SELECT id, monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica,
               url_drive, drive_file_id, criado_em
          FROM vybe_conteudo_arquivos
          WHERE conteudo_id = ${c.id} AND ausente_em IS NULL
@@ -279,7 +282,7 @@ async function areaPeca(req, res, quem) {
   const assets = arquivos.map((a) => ({
     // Arquivo que nasceu no Drive não tem id do Monday; usa o do Drive para a
     // tela ter uma identidade estável para ele.
-    id: a.monday_asset_id || a.drive_file_id, name: a.nome,
+    id: a.drive_file_id || a.monday_asset_id || String(a.id), local_id: Number(a.id), name: a.nome,
     // O link que o Drive devolve ao enviar é a PÁGINA de visualização
     // (/file/d/.../view). Num <img> isso dá imagem quebrada — foi o que
     // aconteceu. Para exibir é preciso o endereço de conteúdo.
@@ -299,6 +302,7 @@ async function areaPeca(req, res, quem) {
     // A página de visualização continua útil para abrir e baixar no Drive.
     link_drive: a.url_drive || null,
     onde: a.url_drive ? 'drive' : 'monday',
+    removable: Boolean(a.drive_file_id),
     file_extension: a.extensao,
     file_size: a.tamanho_bytes === null ? null : Number(a.tamanho_bytes),
     created_at: a.criado_em,
@@ -320,7 +324,7 @@ async function areaPeca(req, res, quem) {
     // 'ref' é o que a tela usa para escrever. Tarefa criada aqui com o Monday
     // fora do ar não tem id de lá — e ainda assim precisa ser editável.
     id: String(r.id), monday_item_id: r.monday_item_id || null,
-    ref: String(r.monday_item_id || r.id),
+    ref: String(r.monday_item_id || `vybe-subitem:${r.id}`),
     titulo: r.titulo, status: r.status || null,
     status_cor: r.status_cor || null, status_borda: r.status_borda || null,
     prazo: r.prazo, conclusao: r.conclusao, tipo: r.tipo, prioridade: r.prioridade,
@@ -370,16 +374,38 @@ async function areaPeca(req, res, quem) {
 // Anexo novo vai para o Drive, não para o Monday. Enviar para lá seria refazer o
 // acervo que acabamos de tirar de dentro dele — em duas semanas estaríamos com o
 // mesmo problema, só que menor.
+async function removerArquivoDaPeca(req, res, quem) {
+  const { item, arquivo_id: arquivoId } = req.body || {};
+  if (!item || !arquivoId) return res.status(400).json({ error: 'Informe item e arquivo.' });
+  const db = sql();
+  const itemLocalId = String(item).startsWith('vybe:') ? Number(String(item).slice(5)) : null;
+  const linha = (await db`SELECT a.id, a.nome, a.drive_file_id, a.conteudo_id
+      FROM vybe_conteudo_arquivos a JOIN vybe_conteudos c ON c.id=a.conteudo_id
+      WHERE a.id=${Number(arquivoId)}
+        AND (c.monday_item_id=${String(item)} OR c.id=${itemLocalId})
+        AND a.ausente_em IS NULL`)[0];
+  if (!linha) return res.status(404).json({ error: 'Arquivo não encontrado nesta demanda.' });
+  if (!linha.drive_file_id) return res.status(409).json({ error: 'Migração deste arquivo ainda não concluída.' });
+  await arquivarNoDrive(linha.drive_file_id);
+  await db`UPDATE vybe_conteudo_arquivos SET ausente_em=NOW() WHERE id=${linha.id}`;
+  await db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, autor_id, texto, em)
+    VALUES (${linha.conteudo_id}, 'anexo_removido', ${linha.nome},
+            ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, 'Arquivo movido para a lixeira do Drive', NOW())`;
+  return res.status(200).json({ ok: true, arquivo_id: linha.id, removido: linha.nome, reversivel: true });
+}
+
 async function anexarNaPeca(req, res, quem) {
   const { item, nome, mime, conteudo } = req.body || {};
   if (!item || !nome || !conteudo) {
     return res.status(400).json({ error: 'Informe item, nome e conteúdo do arquivo.' });
   }
   const db = sql();
+  const itemLocalId = String(item).startsWith('vybe:') ? Number(String(item).slice(5)) : null;
   const c = (await db`SELECT c.id, c.veiculacao, c.prazo,
       (SELECT cl.nome FROM vybe_conteudo_clientes vc JOIN vybe_clientes cl ON cl.id=vc.cliente_id
         WHERE vc.conteudo_id=c.id LIMIT 1) AS cliente
-    FROM vybe_conteudos c WHERE c.monday_item_id = ${String(item)}`)[0];
+    FROM vybe_conteudos c
+    WHERE (c.monday_item_id = ${String(item)} OR c.id = ${itemLocalId})`)[0];
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
   const pastaId = await pastaDoConteudo({ cliente: c.cliente, data: c.veiculacao || c.prazo });
@@ -411,16 +437,23 @@ async function areaClientes(req, res, quem) {
   const db = sql();
 
   if (req.method === 'GET') {
-    const linhas = await db`
-      SELECT c.id, c.nome, c.ativo, c.email, c.telefone, c.endereco, c.cnpj,
+    const [linhas, acessos] = await Promise.all([
+      db`SELECT c.id, c.nome, c.ativo, c.email, c.telefone, c.endereco, c.cnpj,
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
              c.dashboard, c.valor, c.proxima_reuniao, c.criado_no_monday,
              (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
              (SELECT STRING_AGG(p.nome, ', ' ORDER BY cp.ordem, p.nome)
                 FROM vybe_cliente_pessoas cp JOIN vybe_pessoas p ON p.id = cp.pessoa_id
                WHERE cp.cliente_id = c.id) AS heads
-        FROM vybe_clientes c ORDER BY c.ativo DESC, c.nome`;
-    return res.status(200).json({ ok: true, clientes: linhas });
+        FROM vybe_clientes c ORDER BY c.ativo DESC, c.nome`,
+      db`SELECT a.id, a.nome, a.cliente_id, c.nome AS cliente, a.grupo,
+                a.pasta_drive AS drive, a.link, a.manus,
+                CASE WHEN a.doc_id IS NOT NULL OR a.doc_conteudo IS NOT NULL THEN TRUE ELSE FALSE END AS documento,
+                a.atualizado_em
+           FROM vybe_acessos a LEFT JOIN vybe_clientes c ON c.id=a.cliente_id
+          ORDER BY COALESCE(c.nome,a.nome)`,
+    ]);
+    return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos });
   }
   if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra altera clientes.' });
 
@@ -622,7 +655,36 @@ async function areaAcessos(req, res, quem) {
   return res.status(200).json({ ok: true, acessos: linhas });
 }
 
-const AREAS = { automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// ── diário central ────────────────────────────────────────────────────────────
+async function areaDiario(req, res, quem) {
+  const db = sql();
+  if (req.method === 'GET') {
+    const id = Number(req.query?.id || 0);
+    if (id) {
+      const snapshot = await obterSnapshot(db, id);
+      if (!snapshot) return res.status(404).json({ error: 'Snapshot não encontrado.' });
+      return res.status(200).json({ ok: true, snapshot });
+    }
+    return res.status(200).json({ ok: true, snapshots: await listarSnapshots(db, req.query?.limite) });
+  }
+  if (req.method === 'POST') {
+    const snapshot = await registrarSnapshotOperacional(db, quem.tipo === 'servico' ? 'servico' : 'manual_painel');
+    return res.status(200).json({ ok: true, snapshot });
+  }
+  if (req.method === 'DELETE') {
+    if (!(quem.tipo === 'servico' || quem.pessoa?.admin)) {
+      return res.status(403).json({ error: 'Somente administradores podem excluir snapshots.' });
+    }
+    const id = Number(req.query?.id || req.body?.id || 0);
+    if (!id) return res.status(400).json({ error: 'Informe o snapshot.' });
+    const removido = await excluirSnapshot(db, id);
+    if (!removido) return res.status(404).json({ error: 'Snapshot não encontrado.' });
+    return res.status(200).json({ ok: true, removido });
+  }
+  return res.status(405).json({ error: 'Método não permitido.' });
+}
+
+const AREAS = { automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca };
 
 export default async function handler(req, res) {
@@ -633,7 +695,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const quem = quemChama(req);
+  const enviado = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const manutencao = process.env.CUTOVER_MIGRATION_KEY && enviado && enviado === String(process.env.CUTOVER_MIGRATION_KEY).trim();
+  const quem = quemChama(req) || (manutencao ? { tipo:'servico' } : null);
   if (!quem) return res.status(401).json({ error: 'Entre no painel para acessar.' });
 
   const area = AREAS[String(req.query?.area || '')];

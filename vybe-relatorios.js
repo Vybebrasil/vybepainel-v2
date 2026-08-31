@@ -6,6 +6,19 @@ const DIARIO_MAX = 30;
 let diarioSnapshotAtivo = null;
 let diarioPersonFilter = 'all';
 let diarioDateMode = 'veiculacao'; // 'veiculacao' ou 'prazo'
+let diarioSnapshots = [];
+let diarioSnapshotsCarregados = false;
+
+function normalizarSnapshotDiario(row) {
+  const payload = row?.payload || {};
+  const quando = new Date(row?.atualizado_em || row?.criado_em || `${row?.data_referencia || new Date().toISOString().slice(0,10)}T12:00:00`);
+  const dataHora = quando.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }).replace(',', ' às');
+  return {
+    ...row, id: Number(row?.id), dataHora,
+    total: Number(payload?.conteudos?.ativos ?? payload?.conteudos?.total ?? payload?.itens?.length ?? 0),
+    itens: Array.isArray(payload?.itens) ? payload.itens : [],
+  };
+}
 
 function setDiarioDateMode(mode, btn) {
   diarioDateMode = mode;
@@ -14,49 +27,37 @@ function setDiarioDateMode(mode, btn) {
   if (diarioSnapshotAtivo) renderDiarioDetalhe(diarioSnapshotAtivo);
 }
 
-function salvarSnapshot() {
-  if (DADOS.length === 0) {
-    showToast('Carregue os dados de Produção primeiro!', 'err', 4000);
-    return;
+async function salvarSnapshot() {
+  try {
+    const resposta = await fetch('/api/painel?area=diario', { method:'POST', credentials:'same-origin', headers:{ 'Content-Type':'application/json' }, body:'{}' });
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados?.error || `Falha ao salvar (${resposta.status})`);
+    diarioSnapshotsCarregados = false;
+    showToast(`✓ Snapshot central salvo no Vybe OS`, 'ok');
+    await renderDiarioLista(true);
+  } catch (erro) {
+    showToast(`Não foi possível salvar o snapshot: ${erro.message}`, 'err', 6000);
   }
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const dataHora = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} às ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const snapshot = {
-    id: Date.now(),
-    dataHora,
-    total: DADOS.length,
-    itens: DADOS.map(d => ({
-      id:             d.id,
-      nome:           d.nome,
-      cliente:        d.cliente,
-      formato:        d.formato,
-      status:         d.status,
-      responsavel:    d.responsavel,
-      responsavel_id: d.responsavel_id,
-      responsavel_ids:d.responsavel_ids,
-      veiculacao:     d.veiculacao,
-      veiculacao_iso: d.veiculacao_iso,
-      prazo:          d.prazo,
-      prazo_iso:      d.prazo_iso,
-      semana:         d.semana,
-      url:            d.url
-    }))
-  };
-  const lista = carregarSnapshots();
-  lista.unshift(snapshot);
-  if (lista.length > DIARIO_MAX) lista.splice(DIARIO_MAX);
-  localStorage.setItem(DIARIO_KEY, JSON.stringify(lista));
-  showToast(`✓ Snapshot salvo: ${dataHora} (${DADOS.length} itens)`, 'ok');
-  renderDiarioLista();
 }
 
-function carregarSnapshots() {
-  try { return JSON.parse(localStorage.getItem(DIARIO_KEY) || '[]'); } catch(e) { return []; }
+async function carregarSnapshots(forcar=false) {
+  if (diarioSnapshotsCarregados && !forcar) return diarioSnapshots;
+  const resposta = await fetch(`/api/painel?area=diario&limite=${DIARIO_MAX}`, { credentials:'same-origin', cache:'no-store' });
+  const dados = await resposta.json();
+  if (!resposta.ok) throw new Error(dados?.error || `Falha ao carregar (${resposta.status})`);
+  diarioSnapshots = (dados.snapshots || []).map(normalizarSnapshotDiario);
+  diarioSnapshotsCarregados = true;
+  return diarioSnapshots;
 }
 
-function renderDiarioLista() {
-  const lista = carregarSnapshots();
+async function renderDiarioLista(forcar=false) {
+  let lista = [];
+  try { lista = await carregarSnapshots(forcar); }
+  catch (erro) {
+    const legado = (() => { try { return JSON.parse(localStorage.getItem(DIARIO_KEY) || '[]'); } catch { return []; } })();
+    lista = legado;
+    showToast(`Diário central indisponível: ${erro.message}`, 'err', 5000);
+  }
   const el = document.getElementById('diario-snapshots-list');
   if (!el) return;
   document.getElementById('diario-lista').style.display = 'block';
@@ -84,10 +85,21 @@ function renderDiarioLista() {
     </div>`).join('');
 }
 
-function abrirSnapshot(id) {
-  const lista = carregarSnapshots();
-  const snap = lista.find(s => s.id === id);
+async function abrirSnapshot(id) {
+  let snap = diarioSnapshots.find(s => Number(s.id) === Number(id));
   if (!snap) return;
+  try {
+    if (!snap.itens?.length) {
+      const resposta = await fetch(`/api/painel?area=diario&id=${encodeURIComponent(id)}`, { credentials:'same-origin', cache:'no-store' });
+      const dados = await resposta.json();
+      if (!resposta.ok) throw new Error(dados?.error || `Falha ao abrir (${resposta.status})`);
+      snap = normalizarSnapshotDiario(dados.snapshot);
+      diarioSnapshots = diarioSnapshots.map((s) => Number(s.id) === Number(id) ? snap : s);
+    }
+  } catch (erro) {
+    showToast(`Não foi possível abrir o snapshot: ${erro.message}`, 'err', 6000);
+    return;
+  }
   diarioSnapshotAtivo = snap;
   diarioPersonFilter = 'all';
   document.getElementById('diario-lista').style.display = 'none';
@@ -201,12 +213,19 @@ function renderDiarioDetalhe(snap) {
   el.innerHTML = html || '<div style="color:var(--text-muted);padding:20px 0;">Nenhum item para exibir.</div>';
 }
 
-function excluirSnapshot(id) {
-  const lista = carregarSnapshots().filter(s => s.id !== id);
-  localStorage.setItem(DIARIO_KEY, JSON.stringify(lista));
-  if (diarioSnapshotAtivo && diarioSnapshotAtivo.id === id) voltarDiarioLista();
-  else renderDiarioLista();
-  showToast('Snapshot excluído.', 'ok');
+async function excluirSnapshot(id) {
+  try {
+    const resposta = await fetch(`/api/painel?area=diario&id=${encodeURIComponent(id)}`, { method:'DELETE', credentials:'same-origin' });
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados?.error || `Falha ao excluir (${resposta.status})`);
+    diarioSnapshots = diarioSnapshots.filter((s) => Number(s.id) !== Number(id));
+    diarioSnapshotsCarregados = true;
+    if (diarioSnapshotAtivo && Number(diarioSnapshotAtivo.id) === Number(id)) voltarDiarioLista();
+    else renderDiarioLista();
+    showToast('Snapshot central excluído.', 'ok');
+  } catch (erro) {
+    showToast(`Não foi possível excluir: ${erro.message}`, 'err', 5000);
+  }
 }
 
 function exportarSnapshot() {
@@ -344,21 +363,19 @@ function renderPerfFiltradoLista(itens) {
     const cores = EQUIPE_CORES[resp] || ['#7c3aed','#5b21b6'];
     const dataRef = d.prazo_iso || d.veiculacao_iso || '';
     const dataFmt = dataRef ? dataRef.split('-').reverse().join('/') : '—';
-    // Calcular dias de atraso se aplicável
     let atrasoHtml = '';
     if (dataRef && dataRef < hoje && !STATUS_CONCLUIDO.some(s => d.status && d.status.includes(s))) {
       const dias = Math.floor((new Date(hoje) - new Date(dataRef)) / 86400000);
       atrasoHtml = `<span style="color:#ef4444;font-weight:700;font-size:10px;min-width:30px;">+${dias}d</span>`;
     }
-    const itemUrl = d.url || `https://gestaovybes-team.monday.com/boards/7829537690/pulses/${d.id}`;
-    return `<a href="${itemUrl}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);font-size:11px;text-decoration:none;transition:background .15s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background='transparent'">
+    return `<button type="button" onclick="openItemWorkspace('${d.id}')" style="display:flex;width:100%;align-items:center;gap:8px;padding:6px 12px;border:0;border-bottom:1px solid var(--border);background:transparent;font:inherit;text-align:left;cursor:pointer;font-size:11px;transition:background .15s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background='transparent'">
       ${getStatusBadge(d.status)}
       <span style="color:var(--text-muted);min-width:52px;">${dataFmt}</span>
       ${atrasoHtml}
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);">${d.cliente} — ${d.nome}</span>
       <span style="color:${cores[0]};font-weight:700;min-width:60px;text-align:right;">${resp}</span>
-      <span style="color:var(--text-muted);font-size:10px;margin-left:4px;">↗</span>
-    </a>`;
+      <span style="color:var(--text-muted);font-size:10px;margin-left:4px;">ABRIR</span>
+    </button>`;
   }).join('');
   const titulo = { atrasados:'Itens Atrasados (prazo vencido)', concluidos:'Itens Concluídos', pendentesVeic:'Pendentes Atrasados (veiculação)', publicados:'Publicados' }[perfFiltroAtivo] || 'Itens';
   container.innerHTML = `
@@ -466,15 +483,14 @@ function renderPerfFiltradoListaCustom(titulo, itens) {
       const dias = Math.floor((new Date(hoje) - new Date(dataRef)) / 86400000);
       atrasoHtml = `<span style="color:#ef4444;font-weight:700;font-size:10px;min-width:30px;">+${dias}d</span>`;
     }
-    const itemUrl = d.url || `https://gestaovybes-team.monday.com/boards/7829537690/pulses/${d.id}`;
-    return `<a href="${itemUrl}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);font-size:11px;text-decoration:none;transition:background .15s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background='transparent'">
+    return `<button type="button" onclick="openItemWorkspace('${d.id}')" style="display:flex;width:100%;align-items:center;gap:8px;padding:6px 12px;border:0;border-bottom:1px solid var(--border);background:transparent;font:inherit;text-align:left;cursor:pointer;font-size:11px;transition:background .15s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background='transparent'">
       ${getStatusBadge(d.status)}
       <span style="color:var(--text-muted);min-width:52px;">${dataFmt}</span>
       ${atrasoHtml}
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);">${d.cliente} — ${d.nome}</span>
       <span style="color:${cores[0]};font-weight:700;min-width:60px;text-align:right;">${resp}</span>
-      <span style="color:var(--text-muted);font-size:10px;margin-left:4px;">↗</span>
-    </a>`;
+      <span style="color:var(--text-muted);font-size:10px;margin-left:4px;">ABRIR</span>
+    </button>`;
   }).join('');
   container.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface2);">

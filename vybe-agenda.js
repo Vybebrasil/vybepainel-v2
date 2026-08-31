@@ -458,7 +458,7 @@ async function managerCalendarDrop(dateIso, event, cell) {
 // Um caminho só para mudar data, venha do arrasto na agenda ou do campo na
 // tabela por grupo. Duas implementações da mesma gravação viram duas verdades.
 // Devolve false quando a data já era aquela — não é erro, é nada a fazer.
-async function moverDataDoItem(item, campo, dateIso, { request = false } = {}) {
+async function moverDataDoItem(item, campo, dateIso, { request = false, renderizar = true, avisar = true } = {}) {
   const anterior = campo === 'prazo'
     ? String(item.prazo_iso || '')
     : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
@@ -484,14 +484,23 @@ async function moverDataDoItem(item, campo, dateIso, { request = false } = {}) {
     if (campo === 'prazo') { item.prazo_iso = dateIso; item.prazo = curto(dateIso); }
     else { item.conclusao_iso = dateIso; item.conclusao = curto(dateIso);
            item.veiculacao_iso = dateIso; item.veiculacao = curto(dateIso); }
+    (DADOS_DEMANDAS || []).forEach((registro) => {
+      if (String(registro.id) !== String(item.id)) return;
+      if (campo === 'prazo') { registro.prazo_iso = dateIso; registro.prazo = curto(dateIso); }
+      else { registro.conclusao_iso = dateIso; registro.conclusao = curto(dateIso);
+             registro.veiculacao_iso = dateIso; registro.veiculacao = curto(dateIso); }
+      registro.updated_at = new Date().toISOString();
+    });
     outboundMutationGuardUntil = 0;
-    renderIntegratedOperationalViews();
+    if (renderizar) renderIntegratedOperationalViews();
   } else {
     applyOutboundItemPatch(item.id,
-      campo === 'prazo' ? { prazo_iso: dateIso } : { veiculacao_iso: dateIso }, 'planejamento');
+      campo === 'prazo' ? { prazo_iso: dateIso } : { veiculacao_iso: dateIso }, 'planejamento', { render: renderizar });
   }
-  renderManagerCalendar();
-  renderVisaoDeGrupos();
+  if (renderizar) {
+    renderManagerCalendar();
+    renderVisaoDeGrupos();
+  }
 
   // O Prazo de Ouro deixa de barrar e passa a avisar: quem move a data está
   // replanejando, e travar no meio só devolveria o formulário.
@@ -501,7 +510,7 @@ async function moverDataDoItem(item, campo, dateIso, { request = false } = {}) {
   const alerta = (folga !== null && folga < PRAZO_OURO_DIAS)
     ? ` · atenção: ${folga} dia${folga === 1 ? '' : 's'} de antecedência, abaixo do Prazo de Ouro`
     : '';
-  showToast(`✓ ${campo === 'prazo' ? 'Prazo' : 'Veiculação'} de ${safeText(item.nome || 'a peça')}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}${alerta}`,
+  if (avisar) showToast(`✓ ${campo === 'prazo' ? 'Prazo' : 'Veiculação'} de ${safeText(item.nome || 'a peça')}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}${alerta}`,
     alerta ? 'info' : 'ok', alerta ? 7000 : 4200);
   return true;
 }
@@ -1236,6 +1245,8 @@ async function salvarDataNaLinha(itemId, campo, input) {
   const item = findOperationalItem(itemId);
   const valor = String(input.value || '');
   if (!item || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return;
+  const fazParteDoLote = SELECIONADAS.size >= 2 && SELECIONADAS.has(String(itemId));
+  if (fazParteDoLote) return aplicarDataSelecionadaEmLote(campo, valor, { input, sourceItemId: itemId, confirmar: true });
   input.disabled = true;
   try {
     await moverDataDoItem(item, campo, valor, { request: isRequestItem(item) });
@@ -1245,6 +1256,72 @@ async function salvarDataNaLinha(itemId, campo, input) {
   } finally {
     input.disabled = false;
   }
+}
+
+async function aplicarDataSelecionadaEmLote(campo, dateIso, { input = null, sourceItemId = '', confirmar = true } = {}) {
+  const ids = [...SELECIONADAS];
+  const itens = ids.map(findOperationalItem).filter(Boolean);
+  const rotulo = campo === 'prazo' ? 'prazo' : 'veiculação';
+  const fonte = sourceItemId ? findOperationalItem(sourceItemId) : null;
+  const restaurarFonte = () => {
+    if (!input || !fonte) return;
+    input.value = (campo === 'prazo' ? fonte.prazo_iso : (isRequestItem(fonte) ? fonte.conclusao_iso : fonte.veiculacao_iso)) || '';
+  };
+  if (!itens.length) {
+    restaurarFonte();
+    return showToast('Selecione ao menos uma demanda para alterar a data.', 'info');
+  }
+  if (itens.length !== ids.length) {
+    restaurarFonte();
+    return showToast('A seleção contém uma demanda que não está mais disponível. Atualize os dados e tente novamente.', 'err', 7000);
+  }
+  const invalidos = itens.filter((item) => {
+    if (isRequestItem(item)) return false;
+    const prazo = campo === 'prazo' ? dateIso : String(item.prazo_iso || '');
+    const veiculacao = campo === 'veiculacao' ? dateIso : String(item.veiculacao_iso || '');
+    return Boolean(prazo && veiculacao && prazo > veiculacao);
+  });
+  if (invalidos.length) {
+    restaurarFonte();
+    return showToast(`Lote bloqueado: ${invalidos.length} demanda${invalidos.length === 1 ? ' ficaria' : 's ficariam'} com o prazo depois da veiculação.`, 'err', 8000);
+  }
+  if (confirmar && !window.confirm(`Aplicar ${rotulo} ${planningDateBr(dateIso)} nas ${itens.length} demandas selecionadas?`)) {
+    restaurarFonte();
+    return false;
+  }
+
+  if (input) input.disabled = true;
+  showToast(`Aplicando ${rotulo} em ${itens.length} demandas…`, 'info', 5000);
+  const atualizadas = [];
+  const semMudanca = [];
+  const falhas = [];
+  for (const item of itens) {
+    try {
+      const mudou = await moverDataDoItem(item, campo, dateIso, {
+        request: isRequestItem(item), renderizar: false, avisar: false,
+      });
+      (mudou ? atualizadas : semMudanca).push(item);
+      SELECIONADAS.delete(String(item.id));
+    } catch (erro) {
+      falhas.push({ item, erro });
+      console.warn('Falha ao aplicar data em lote', item.id, erro);
+    }
+  }
+
+  saveProductionCache();
+  renderOutboundItemPatch(`${rotulo} em lote`);
+  renderManagerCalendar();
+  renderVisaoDeGrupos();
+  if (input?.isConnected) input.disabled = false;
+
+  const processadas = atualizadas.length + semMudanca.length;
+  if (!falhas.length) {
+    const complemento = semMudanca.length ? ` · ${semMudanca.length} já tinha${semMudanca.length === 1 ? '' : 'm'} essa data` : '';
+    showToast(`✓ Lote concluído: ${processadas}/${itens.length} demandas processadas${complemento}.`, 'ok', 6000);
+  } else {
+    showToast(`Lote parcial: ${processadas}/${itens.length} processadas · ${falhas.length} falhou${falhas.length === 1 ? '' : 'ram'}. As falhas continuam selecionadas.`, 'err', 9000);
+  }
+  return falhas.length === 0;
 }
 
 // A mesma visao serve os dois quadros: muda a fonte, o destino e a ordem dos
@@ -1383,7 +1460,7 @@ function lotePrazo(campo) {
     if (data !== null) showToast('Data inválida; use AAAA-MM-DD.', 'info');
     return;
   }
-  aplicarEmLote(rotulo, (item) => moverDataDoItem(item, campo, data.trim(), { request: isRequestItem(item) }));
+  aplicarDataSelecionadaEmLote(campo, data.trim(), { confirmar: true });
 }
 
 // Mesmo popover do resto do painel, com a lista que a ação pediu.

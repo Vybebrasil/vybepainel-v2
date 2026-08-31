@@ -203,7 +203,7 @@ function pillHtml(s, color='', border='') {
   return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(cor, bordaFinal)}><span class="pill-dot"${statusDotInlineStyle(cor)}></span>${s}</span>`;
 }
 function managerStatusControl(item) {
-    const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Monday`;
+    const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Vybe OS`;
     const pill = `<button type="button" class="manager-status-control" onclick="openStatusEditor(event,'${item.id}')" title="${label}" aria-label="${label}">${pillHtml(item.status, item.status_color, item.status_border)}</button>`;
     
     if (!item.status_updated_at || ['Finalizado', 'Agendado', 'Para agendar'].includes(item.status)) {
