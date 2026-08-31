@@ -1965,10 +1965,16 @@ html{scrollbar-gutter:stable}
 .cr-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:30px}
 .cr-linha>span{flex:none;color:#8b8b90;font:500 11px var(--mac-ui)}
 .cr-linha>div{min-width:0;display:flex;justify-content:flex-end;align-items:center}
-.cr-rodape{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.10)}
-.cr-abrir{width:100%;text-align:left;border:0;background:transparent;color:var(--accent,#ff6b00);
+.cr-rodape{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.10);
+  display:flex;align-items:center;gap:8px}
+.cr-abrir{flex:1;min-width:0;text-align:left;border:0;background:transparent;color:var(--accent,#ff6b00);
   padding:4px 2px;border-radius:6px;cursor:pointer;font:600 12px var(--mac-ui)}
 .cr-abrir:hover{background:rgba(255,122,26,.12)}
+/* Excluir fica cinza ate a mao chegar nele: a acao precisa estar a mao, nao
+   gritando ao lado de tudo que se faz todo dia. So vira vermelha no hover. */
+.cr-excluir{flex:0 0 auto;border:0;background:transparent;color:#8b8b90;
+  padding:4px 8px;border-radius:6px;cursor:pointer;font:600 12px var(--mac-ui)}
+.cr-excluir:hover{background:rgba(240,71,86,.16);color:#ffb9c0}
 
 /* Seção recolhida: o que quase ninguém usa deixa de ocupar a tela, sem sumir.
    Contei no histórico do Monday, em 200 peças: passagem de bastão 0 usos,

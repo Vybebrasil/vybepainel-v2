@@ -334,8 +334,11 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   event?.preventDefault?.();
   event?.stopPropagation?.();
   fecharCartaoRapido();
+  // A lista crua de Solicitacoes nao tem board_id nem 'formato' — sem traduzir,
+  // as pilhas deste cartao procuravam a coluna do quadro errado.
+  const cru = (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId));
   const item = source === 'request'
-    ? (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId))
+    ? (cru ? normalizeRequestForOperational(cru) : null)
     : findOperationalItem(itemId);
   if (!item) return showToast('Atividade não encontrada.', 'err');
 
@@ -375,6 +378,8 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
     <div class="cr-rodape">
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}">
         Abrir tudo — arquivos, histórico e entrega →</button>
+      ${podeVerMonday() ? `<button type="button" class="cr-excluir" onclick="removerPeca('${safeText(item.id)}')"
+        title="Excluir esta atividade — vai para a lixeira do Monday">Excluir</button>` : ''}
     </div>`;
   document.body.append(fundo, cartao);
   ancorarPopover(cartao, rect);
