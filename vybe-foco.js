@@ -49,7 +49,9 @@ function focusNextActionHtml(data) {
   // esse bloco saiu — dois usos em duzentas pecas. Sem ele, o botao levaria a
   // uma secao que nao existe mais.
   const checkinControl='';
-  const secondary=mode==='next' ? `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button>` : `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Registrar contexto</button>`;
+  // Na proxima demanda o botao de bloqueio saiu: quem ainda nao comecou nao tem
+  // o que destravar. No cartao de bloqueio ele continua, que e o lugar dele.
+  const secondary=mode==='next' ? '' : `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Registrar contexto</button>`
   const controlNote=mode==='next' ? `<div class="focus-priority-control-note"><i></i>PRÓXIMA A INICIAR · ao mudar para Em andamento, esta demanda entra na fila de execução</div>` : '';
   return `<section class="focus-next-action"><div class="focus-next-kicker">${title} · PRIORIDADE CALCULADA</div><div class="focus-next-main"><div><div class="focus-next-client">${safeText(item.cliente || 'Cliente não informado')}</div><div class="focus-next-name">${safeText(item.nome)}</div><div class="focus-next-reason">${safeText(reason)}</div>${focusTrailHtml(item)}${controlNote}</div><div class="focus-next-tools"><button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>${statusControl}${checkinControl}${secondary}</div></div></section>`;
 }
@@ -64,7 +66,27 @@ async function submitFocusBlocker(itemId) {
   const button=document.querySelector('#workflow-modal .workflow-primary'); if(button) button.disabled=true;
   try { const body=`[Vybe OS · Contexto de status]\nEtapa: ${item.status} → ${option.label}\nMotivo: ${reason}\nSolicitante/Dependência: ${owner}\nOrigem: Modo Foco · Bloqueio inteligente\nPróximo passo: ${next}`; await postItemUpdate(item.id,body); [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(d=>{if(String(d.id)===String(item.id)) d.status_context={target:option.label,reason,next,requester:owner,source:'Modo Foco · Bloqueio inteligente',created_at:new Date().toISOString()};})); closeWorkflowModal(); await commitStatusChange(item,option); } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível registrar o bloqueio: ${e.message}`,'err',7000); }
 }
-function openFocusPriorityWorkspace(itemId) { openItemWorkspace(itemId); }
+// "Abrir e produzir" so abria. Quem clica esta comecando a produzir agora — e
+// tinha de trocar o status a mao logo depois, no botao do lado. O botao passa a
+// fazer as duas coisas: poe em execucao e abre.
+//
+// O nome do status depende do quadro: Producao chama "Em andamento", Solicitacoes
+// chamam "Em execucao". Em vez de decidir aqui, procura na lista de status que o
+// proprio quadro oferece — quem responde qual e o nome continua sendo o catalogo.
+async function openFocusPriorityWorkspace(itemId) {
+  const item = findOperationalItem(itemId);
+  if (!item) return openItemWorkspace(itemId);
+  const chave = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  const emExecucao = ['em andamento', 'em execucao'];
+  const opcoes = (typeof operationalStatusOptions === 'function' ? operationalStatusOptions(item) : []) || [];
+  const alvo = opcoes.find((o) => emExecucao.includes(chave(o.label)));
+  // Ja esta em execucao, ou o quadro nao tem esse status: abre e nao inventa nada.
+  if (alvo && !emExecucao.includes(chave(item.status))) {
+    try { await commitStatusChange(item, alvo); }
+    catch (erro) { showToast(`Aberta, mas o status não mudou: ${erro.message}`, 'info', 7000); }
+  }
+  openItemWorkspace(itemId);
+}
 function openFocusDelivery(itemId) { openItemWorkspace(itemId); setTimeout(()=>{ document.getElementById('workspace-link-input')?.scrollIntoView({behavior:'smooth',block:'center'}); },320); }
 function focusContinuityHtml(items,user) {
   const today=HOJE_ISO || new Date().toISOString().slice(0,10); const next=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && !['Agendado','Finalizado'].includes(d.status);}),user).slice(0,3); const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)).length;

@@ -1757,6 +1757,30 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .entrega-depois{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   margin-top:12px;padding-top:11px;border-top:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09))}
 .entrega-depois span{color:#8f98a9;font:600 11px var(--mac-ui)}
+/* Cartao da proxima demanda: o nome e o assunto, a acao vem depois, e o caminho
+   da peca fecha embaixo. Antes os botoes disputavam o topo com o titulo, em tres
+   cores diferentes, e a etapa ficava espremida entre eles. */
+.focus-next-action{padding:16px 18px!important}
+.focus-next-main{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:start!important;gap:18px!important}
+.focus-next-name{font:700 19px/1.25 var(--mac-ui)!important;letter-spacing:-.02em;margin-top:2px}
+.focus-next-client{font:700 11px var(--mac-ui)!important;letter-spacing:.04em}
+.focus-next-reason{margin-top:5px;color:#9da4b4!important;font:500 11.5px/1.5 var(--mac-ui)!important}
+/* As acoes empilham: a principal em cima, sozinha, e o status embaixo dela.
+   Lado a lado com cores diferentes, as duas pareciam ter o mesmo peso. */
+.focus-next-tools{display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  gap:8px!important;min-width:190px}
+.focus-next-btn{justify-content:center;white-space:nowrap}
+.focus-next-btn.primary{min-height:38px;font-weight:700}
+/* O caminho da peca e um caminho, nao uma fileira de botoes desligados. */
+.focus-trail{margin-top:12px!important;padding-top:11px!important;
+  border-top:1px solid var(--vybe-line-quiet,rgba(255,255,255,.08))}
+.focus-priority-control-note{margin-top:10px!important;padding:7px 10px!important;border-radius:9px!important;
+  background:rgba(255,255,255,.03)!important;color:#8f98a9!important;font:600 10.5px var(--mac-ui)!important}
+@media(max-width:820px){
+  .focus-next-main{grid-template-columns:minmax(0,1fr)!important}
+  .focus-next-tools{min-width:0;flex-direction:row!important;flex-wrap:wrap}
+}
 
 @media(max-width:760px){
   .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);
