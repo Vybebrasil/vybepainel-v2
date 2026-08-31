@@ -586,7 +586,10 @@ function workspaceAssetsForDetail(detail) {
   const columnAssetIds = workspaceFileColumnAssetIds(detail);
   const columnAssetCount = columnAssetIds.size;
   const collected = [
-    ...(detail?.assets || []).map(asset => ({ ...asset, source: asset.onde === 'drive' ? 'Drive da Vybe' : 'Arquivo legado', removable: Boolean(asset.removable || columnAssetIds.has(String(asset?.id || ''))), column_asset_count: columnAssetCount })),
+    // 'no_drive' guarda a resposta do servidor ANTES de a linha abaixo misturar
+    // nela os arquivos da coluna do Monday. Sem essa separacao nao havia como
+    // saber se a restricao de apagar um por vez se aplica ao arquivo.
+    ...(detail?.assets || []).map(asset => ({ ...asset, source: asset.onde === 'drive' ? 'Drive da Vybe' : 'Arquivo legado', no_drive: Boolean(asset.removable || asset.onde === 'drive'), removable: Boolean(asset.removable || columnAssetIds.has(String(asset?.id || ''))), column_asset_count: columnAssetCount })),
     ...(detail?.updates || []).flatMap(update => (update?.assets || []).map(asset => ({ ...asset, source: 'Arquivo do histórico', removable: false, column_asset_count: columnAssetCount })))
   ];
   const used = new Set();
@@ -618,11 +621,16 @@ function workspaceAssetPreview(asset) {
 }
 function workspaceAssetCard(asset) {
   const href = asset.public_url || asset.url || '#';
-  const removal = asset.removable
-    ? (asset.column_asset_count === 1
+  // Arquivo no Drive apaga um por um. A trava de "todos de uma vez" era do
+  // Monday, que so deixa limpar a coluna inteira — e ela sobrou aplicada a tudo:
+  // dependia de column_asset_count, contado a partir da coluna do Monday, que
+  // hoje vem vazia. A conta dava 0, nunca 1, e o botao nao aparecia para
+  // arquivo nenhum. Era por isso que nao dava para excluir.
+  const removal = !asset.removable
+    ? `<span class="workspace-asset-locked">${safeText(asset.source || 'ARQUIVO')}</span>`
+    : (asset.no_drive || asset.column_asset_count === 1)
       ? `<button type="button" class="workspace-asset-remove" onclick="requestWorkspaceFileRemoval('${safeText(asset.id)}')">Remover</button>`
-      : `<span class="workspace-asset-locked" title="O Monday só permite limpar todos os arquivos desta coluna de uma vez.">Arquivo de coluna</span>`)
-    : `<span class="workspace-asset-locked">${safeText(asset.source || 'ARQUIVO')}</span>`;
+      : `<span class="workspace-asset-locked" title="Este arquivo ainda mora na coluna do Monday, que só permite limpar todos de uma vez.">Arquivo de coluna</span>`;
   const isImage = Boolean(asset.url_thumbnail || /\\.(png|jpe?g|webp|gif|avif|mp4|mov|webm)(?:$|[?#])/i.test(String(asset.name || href)));
     const openAction = isImage 
       ? `<a class="workspace-asset-open" href="${safeText(href)}" onclick="event.preventDefault(); event.stopPropagation(); openVybeLightbox('${safeText(href)}', '${safeText(asset.name)}')">ABRIR ↗</a>` 
