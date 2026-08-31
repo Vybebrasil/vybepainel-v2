@@ -812,11 +812,14 @@ async function renomearPeca(itemId) {
 // Remover a peça. Sai das telas e vai para a lixeira do Monday; aqui a linha
 // fica, com quem removeu e quando — histórico apagado não volta, e remover por
 // engano é o motivo de a operação existir.
+// Devolve true so quando a peca saiu de verdade. Quem chama da fila precisa
+// saber: fechar a lista sem ter excluido nada seria mentir sobre o que houve.
 async function removerPeca(itemId) {
   const item = findOperationalItem(itemId);
-  if (!item) return;
-  if (!confirm(`Excluir “${item.nome}”?\n\nEla sai do painel e vai para a lixeira do Monday. O histórico fica guardado e um administrador consegue trazer de volta.`)) return;
+  if (!item) return false;
+  if (!confirm(`Excluir “${item.nome}”?\n\nEla sai do painel e vai para a lixeira do Monday. O histórico fica guardado e um administrador consegue trazer de volta.`)) return false;
   const motivo = prompt('Por que está excluindo? (opcional, fica no histórico)') || '';
+
   try {
     const r = await fetch('/api/conteudo', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
@@ -837,7 +840,8 @@ async function removerPeca(itemId) {
     redesenharAposMudanca('exclusão');
     showToast(String(d.replica_monday || '').startsWith('falhou')
       ? '✓ Excluída do painel · o Monday não recebeu' : '✓ Atividade excluída', 'ok', 5000);
-  } catch (erro) { showToast(`Não foi possível remover: ${erro.message}`, 'err', 7000); }
+    return true;
+  } catch (erro) { showToast(`Não foi possível remover: ${erro.message}`, 'err', 7000); return false; }
 }
 
 // Mover entre Produção e Demandas. Demandas nunca entrou no nosso banco — é lido
@@ -863,6 +867,18 @@ async function moverPecaDeBoard(itemId) {
     redesenharAposMudanca('mudança de board');
     showToast(`✓ Movida para ${d.para}. ${d.aviso || ''}`, 'ok', 7000);
   } catch (erro) { showToast(`Não foi possível mover: ${erro.message}`, 'err', 7000); }
+}
+
+// Quem administra. Serve para o que e nosso: excluir uma peca, por exemplo, que
+// hoje grava no banco da Vybe e nao depende de Monday nenhum.
+//
+// Existia so o podeVerMonday, e ele deixou de significar "e administrador":
+// passou a exigir tambem a chave de contingencia do Monday, ligada a mao num
+// incidente. Como os botoes de excluir estavam pendurados nele, sumiram da tela
+// de todo mundo — inclusive de quem administra. Quem e do Monday continua no
+// portao do Monday; o resto vem para ca.
+function podeAdministrar() {
+  return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
 }
 
 function podeVerMonday() {
@@ -1091,7 +1107,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
     ${workspaceDeliveryDock(detail,item)}
-    <div class="workspace-actions"><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button>${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button><button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Excluir atividade</button>` : ''}${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
+    <div class="workspace-actions"><button type="button" class="workspace-action" onclick="openFocusBlocker('${item.id}')">Sinalizar bloqueio</button>${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}${podeAdministrar() ? `<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Excluir atividade</button>` : ''}${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
     <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section>
     <section class="workspace-section"><div class="workspace-section-head">Anexar entrega</div><div class="workspace-section-body"><input id="workspace-file-input" type="file" hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)"><div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Enviar card ou arte</strong>Arraste aqui ou clique para selecionar</div></div><p class="workspace-note">PNG, JPG, WEBP ou PDF · até 3 MB. Para vídeos, registre o link do Drive abaixo.</p></div></section>

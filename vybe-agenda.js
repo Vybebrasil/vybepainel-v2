@@ -378,7 +378,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
     <div class="cr-rodape">
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}">
         Abrir tudo — arquivos, histórico e entrega →</button>
-      ${podeVerMonday() ? `<button type="button" class="cr-excluir" onclick="removerPeca('${safeText(item.id)}')"
+      ${podeAdministrar() ? `<button type="button" class="cr-excluir" onclick="removerPeca('${safeText(item.id)}')"
         title="Excluir esta atividade — vai para a lixeira do Monday">Excluir</button>` : ''}
     </div>`;
   document.body.append(fundo, cartao);
