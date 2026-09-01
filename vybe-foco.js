@@ -7,6 +7,52 @@
 
 function focusOwnItems(user=focusUser()) { const source=unifiedOperationalItems(); return user ? source.filter(d => ((d.responsavel_ids || []).map(String).includes(String(user.id)) || String(d.responsavel_id || '') === String(user.id)) && !isFinishedItem(d)) : []; }
 function focusIsNextReady(d) { return ['Pode Fazer','A Fazer'].includes(operationalFlowStatus(d)); }
+
+// ── a lente da tela: tudo, so conteudo, ou so solicitacao ────────────────────
+//
+// O Modo Foco junta as duas origens numa fila so, o que e certo para "o que eu
+// faco agora" — mas nao para quem senta para dar conta de uma frente inteira.
+// Quem vai fechar as solicitacoes do dia nao quer ler as pecas de conteudo no
+// meio, e vice-versa.
+//
+// A escolha fica guardada no navegador da pessoa: e uma preferencia de trabalho,
+// nao um estado da sessao, e reabrir a tela no recorte errado desfaz a intencao.
+const FOCO_ORIGEM_CHAVE = 'vybe_foco_origem';
+let FOCO_ORIGEM = (() => {
+  try { const g = localStorage.getItem(FOCO_ORIGEM_CHAVE);
+    return ['tudo', 'conteudo', 'solicitacoes'].includes(g) ? g : 'tudo'; }
+  catch (erro) { return 'tudo'; }
+})();
+
+function filtrarPorOrigemDoFoco(itens) {
+  if (FOCO_ORIGEM === 'conteudo') return itens.filter((d) => !isRequestItem(d));
+  if (FOCO_ORIGEM === 'solicitacoes') return itens.filter((d) => isRequestItem(d));
+  return itens;
+}
+
+function escolherOrigemDoFoco(qual) {
+  FOCO_ORIGEM = ['tudo', 'conteudo', 'solicitacoes'].includes(qual) ? qual : 'tudo';
+  try { localStorage.setItem(FOCO_ORIGEM_CHAVE, FOCO_ORIGEM); } catch (erro) { /* modo anonimo */ }
+  renderFocusDashboard();
+}
+
+// As contas vem de TODOS os itens da pessoa, nunca do recorte ativo: um botao
+// que mostra zero e um botao que a pessoa sabe que nao vale a pena clicar.
+function seletorDeOrigemHtml(todos) {
+  const conteudo = todos.filter((d) => !isRequestItem(d)).length;
+  const solicitacoes = todos.filter((d) => isRequestItem(d)).length;
+  // Com uma origem so na fila, o seletor nao decide nada — e vira ruido.
+  if (!conteudo || !solicitacoes) return '';
+  const opcao = (chave, rotulo, quantos) => `<button type="button"
+    class="focus-lente-opcao ${FOCO_ORIGEM === chave ? 'ativa' : ''}"
+    onclick="escolherOrigemDoFoco('${chave}')" aria-pressed="${FOCO_ORIGEM === chave}"
+    >${rotulo}<span>${quantos}</span></button>`;
+  return `<div class="focus-lente" role="group" aria-label="O que aparece na fila">
+      ${opcao('tudo', 'Tudo', todos.length)}
+      ${opcao('conteudo', 'Produção de conteúdo', conteudo)}
+      ${opcao('solicitacoes', 'Solicitações', solicitacoes)}
+    </div>`;
+}
 // A PROXIMA E A QUE VAI AO AR PRIMEIRO.
 //
 // Antes a ordem era: risco, depois estado, depois a data de referencia — que
@@ -191,7 +237,8 @@ function renderFocusDashboard() {
   if (!dash || !user) return;
   const today = HOJE_ISO || new Date().toISOString().slice(0,10);
   const referenceLabel = focusUsesVeiculacao(user) ? 'veiculação' : 'prazo';
-  const mine = focusOwnItems(user);
+  const todosOsMeus = focusOwnItems(user);
+  const mine = filtrarPorOrigemDoFoco(todosOsMeus);
   const inProgress = focusSort(mine.filter(d => operationalFlowStatus(d) === 'Em andamento'), user);
   const toProduceToday = focusSort(mine.filter(d => operationalFlowStatus(d) === 'Pode Fazer' && focusReferenceDate(d,user) && focusReferenceDate(d,user) <= today), user);
   const toStart = focusSort(mine.filter(d => operationalFlowStatus(d) === 'A Fazer'), user);
@@ -254,7 +301,9 @@ function renderFocusDashboard() {
       withoutPrimary(emOutroEstado),'Na sua fila','#8f98a9','•')
   ].join('');
   const commandStrip=`<div class="focus-command-strip"><span class="focus-command-strip-label">Atalhos de execução</span><div class="focus-command-actions"><button type="button" class="focus-command-btn" onclick="document.querySelector('.focus-daily-plan')?.scrollIntoView({behavior:'smooth',block:'center'})">Meu plano</button><button type="button" class="focus-command-btn" onclick="openFocusShiftClose()">Fechar turno</button></div></div>`;
-  dash.innerHTML = `<div class="focus-hero"><div><h2 class="focus-hero-title">Meu Dia, ${safeText(firstName(user.name))}</h2><p class="focus-hero-text">${focusUsesVeiculacao(user) ? 'Sua fila usa a data de veiculação para organizar a publicação.' : 'Sua fila usa o prazo de entrega para organizar o trabalho.'}</p></div><div class="focus-metrics"><div class="focus-metric ${late ? 'is-alerta' : ''}" style="--focus-color:#ff4d6d"><strong>${late}</strong><span>atrasados</span></div><div class="focus-metric" style="--focus-color:#ffe600"><strong>${todayCount}</strong><span>hoje</span></div><div class="focus-metric" style="--focus-color:#ff6b00"><strong>${mine.length}</strong><span>abertos</span></div><div class="focus-metric" style="--focus-color:#00ff88"><strong>${ready}</strong><span>prontos</span></div></div></div>${commandStrip}${focusDailyPlanHtml(mine,user,nextAction)}${focusNextActionHtml(nextAction)}${groups || '<div class="focus-empty">✓ Nenhuma demanda aberta neste momento.</div>'}${focusContinuityHtml(mine,user)}`;
+  dash.innerHTML = `<div class="focus-hero"><div><h2 class="focus-hero-title">Meu Dia, ${safeText(firstName(user.name))}</h2><p class="focus-hero-text">${focusUsesVeiculacao(user) ? 'Sua fila usa a data de veiculação para organizar a publicação.' : 'Sua fila usa o prazo de entrega para organizar o trabalho.'}</p></div><div class="focus-metrics"><div class="focus-metric ${late ? 'is-alerta' : ''}" style="--focus-color:#ff4d6d"><strong>${late}</strong><span>atrasados</span></div><div class="focus-metric" style="--focus-color:#ffe600"><strong>${todayCount}</strong><span>hoje</span></div><div class="focus-metric" style="--focus-color:#ff6b00"><strong>${mine.length}</strong><span>abertos</span></div><div class="focus-metric" style="--focus-color:#00ff88"><strong>${ready}</strong><span>prontos</span></div></div></div>${seletorDeOrigemHtml(todosOsMeus)}${commandStrip}${focusDailyPlanHtml(mine,user,nextAction)}${focusNextActionHtml(nextAction)}${groups || `<div class="focus-empty">✓ ${FOCO_ORIGEM === 'tudo'
+    ? 'Nenhuma demanda aberta neste momento.'
+    : `Nada aberto em ${FOCO_ORIGEM === 'conteudo' ? 'produção de conteúdo' : 'solicitações'}. Veja “Tudo” para a fila inteira.`}</div>`}${focusContinuityHtml(mine,user)}`;
 }
 function toggleFocusShowAll() { focusShowAll = !focusShowAll; renderFocusDashboard(); }
 function managerRow(d, meta) { return `<div class="manager-row"><span class="manager-client">${safeText(d.cliente)}</span><button type="button" class="manager-name manager-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}</button>${pillHtml(d.status,d.status_color,d.status_border)}<span class="manager-meta">${safeText(meta || d.prazo || d.veiculacao || '')}</span></div>`; }
