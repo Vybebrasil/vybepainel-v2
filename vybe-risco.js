@@ -151,6 +151,41 @@ function focusStatusButtonHtml(d) {
   return `<button type="button" class="focus-status-btn" onclick="openStatusEditor(event,'${d.id}')" title="Atualizar status no Vybe OS">${pillHtml(d.status,d.status_color,d.status_border)}</button>`;
 }
 function operationalOriginTag(item={}) { const request=isRequestItem(item); return `<span class="operational-origin-tag ${request?'request':'content'}" title="Origem operacional: ${request?'Solicitação de Demandas':'Produção de Conteúdo'}">${request?'SOLICITAÇÃO':'CONTEÚDO'}</span>`; }
+// AS DUAS DATAS, COM NOME.
+//
+// A linha mostrava uma data so, nua. E nao era sempre a mesma: a fila usa prazo
+// para quase todo mundo e veiculacao para quem trabalha por data de publicacao —
+// entao a mesma tela mostrava coisas diferentes para pessoas diferentes, sem
+// dizer qual. Quem olha nao tem como saber se aquele 31/08 e o dia de entregar
+// ou o dia de ir ao ar.
+//
+// Agora aparecem as duas, cada uma com o proprio nome, e a que MANDA na fila
+// daquela pessoa fica em destaque. Em solicitacao a segunda data chama
+// "Conclusao"; em conteudo, "Veiculacao" — o mesmo vocabulario da tabela.
+function focusDatasHtml(d, user = focusUser()) {
+  const ehPedido = typeof isRequestItem === 'function' && isRequestItem(d);
+  const porVeiculacao = focusUsesVeiculacao(user);
+  const nomeDaSegunda = ehPedido ? 'Conclusão' : 'Veiculação';
+  const dia = (iso, texto) => {
+    const bruto = String(texto || '').trim();
+    if (bruto) return bruto;
+    const limpo = String(iso || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(limpo) ? limpo.split('-').reverse().join('/') : '';
+  };
+  const prazo = dia(d.prazo_iso, d.prazo);
+  const segunda = dia(d.veiculacao_iso, d.veiculacao);
+  const atrasado = d.prazo_iso && d.prazo_iso < (HOJE_ISO || '');
+  const marca = (rotulo, valor, manda, alerta) => valor
+    ? `<span class="focus-data ${manda ? 'manda' : ''} ${alerta ? 'atrasada' : ''}"><b>${rotulo}</b>${safeText(valor)}</span>`
+    : '';
+  const partes = [
+    marca('Prazo', prazo, !porVeiculacao, atrasado),
+    marca(nomeDaSegunda, segunda, porVeiculacao, false),
+  ].filter(Boolean);
+  if (!partes.length) return '<span class="focus-data vazia">sem data</span>';
+  return `<span class="focus-datas">${partes.join('')}</span>`;
+}
+
 function focusTaskHtml(d, contextText='', opcoes={}) {
   const user = focusUser();
   const deadline = focusReferenceDate(d, user);
@@ -165,9 +200,9 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     // igual nas cinco linhas. Fica so na primeira, como quem diz a regra uma
     // vez; nas outras sobra o que de fato muda.
     const contexto = opcoes.primeira ? (contextText || focusStatusExplanation(flowStatus) || d.status) : '';
-    const baseMeta = [contexto, late ? '⚠️ Atrasado' : '', risk.sla_label || '', dateLabel].filter(Boolean).join(' • ');
+    const baseMeta = [contexto, late ? '⚠️ Atrasado' : '', risk.sla_label || ''].filter(Boolean).join(' • ');
     const meta = baseMeta;
-    const finalMetaHtml = safeText(meta) + timerHtml;
+    const finalMetaHtml = safeText(meta) + focusDatasHtml(d, user) + timerHtml;
   return `<div class="focus-task ${opcoes.primeira ? 'primeira' : ''}" style="--priority-color:${color}">
     <span class="focus-task-priority"></span>
     <div class="focus-task-title"><div class="focus-task-client">${safeText(d.cliente)}</div><div class="focus-task-name"><button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>

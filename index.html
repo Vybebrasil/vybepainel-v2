@@ -2205,6 +2205,16 @@ button.cli-situacao:hover{filter:brightness(1.25)}
    compete com o numero, que e o que se le. */
 .vybe-data.com-rotulo{display:inline-flex;align-items:baseline;gap:4px}
 .vybe-data.com-rotulo b{color:#6f7887;font:700 8.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+/* No Meu Dia, as duas datas com nome. A que manda na fila daquela pessoa fica
+   em destaque — as outras telas ja dizem qual e; aqui faltava. */
+.focus-datas{display:inline-flex;align-items:baseline;gap:10px;margin-left:8px;flex-wrap:wrap}
+.focus-data{display:inline-flex;align-items:baseline;gap:4px;color:#8f98a9;
+  font:600 10.5px var(--mac-mono);font-variant-numeric:tabular-nums}
+.focus-data b{color:#6f7887;font:700 8.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.focus-data.manda{color:#e7ecf5}
+.focus-data.manda b{color:var(--accent,#ff6b00)}
+.focus-data.atrasada{color:#ff9db1}
+.focus-data.vazia{color:#5c6478;font-style:normal}
 .vybe-datas{gap:8px;flex-wrap:wrap}
 /* Rotulo de fileira de filtro nao e titulo de pagina. Era do mesmo tamanho e
    peso do "Clientes" e do "Demandas" no topo — tres deles empilhados faziam a
