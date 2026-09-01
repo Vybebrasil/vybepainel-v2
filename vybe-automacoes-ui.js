@@ -4,11 +4,22 @@
 // abria: quem via o card mudar de dono sozinho não tinha como descobrir por quê.
 // Aqui a lista é legível por todo mundo, e só quem administra altera.
 //
-// O "ensaiar" é o que não existia lá: dá para ver o que uma regra faria antes de
-// deixá-la solta em cima do trabalho de alguém.
+// Duas coisas que o Monday não dava:
+//
+// 1. SABER SE A REGRA TRABALHA. Lá, doze regras tinham a mesma aparência,
+//    estivessem elas movendo peças todo dia ou paradas desde a importação. Aqui
+//    cada regra carrega o próprio histórico: quantas vezes rodou, quando foi a
+//    última, e — quando nunca rodou — o motivo provável.
+//
+// 2. ESCREVER A REGRA SEM SABER A SINTAXE. Lá era um monte de menu encaixado;
+//    aqui era pior, três caixas de JSON cru. Agora a regra se monta escolhendo,
+//    e a frase final aparece pronta antes de salvar.
 
 const AUTOMACOES_API = '/api/painel?area=automacoes';
 
+// Os grupos do quadro têm id técnico e nome de gente. O servidor manda os dois,
+// mas este mapa fica como rede: grupo que sumiu do quadro ainda aparece nomeado
+// nas regras antigas em vez de virar "novo_grupo22352__1" na cara da pessoa.
 const GRUPOS_NOME = {
   'novo_grupo31348__1': 'Finalizados',
   'novo_grupo57911__1': 'Produção (Foto e Vídeo, à Captar)',
@@ -19,7 +30,10 @@ const GRUPOS_NOME = {
 
 let AUTOMACOES = [];
 let EXECUCOES = [];
+let CATALOGOS = { status: [], captacao: [], grupos: [], pessoas: [], formatos: [] };
 let automacaoEmEdicao = null;
+let RASCUNHO = null;          // a regra sendo montada no construtor
+let FILTRO_DE_REGRAS = 'todas';
 
 function podeEditarAutomacoes() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
@@ -33,6 +47,7 @@ async function carregarAutomacoes() {
     const dados = await resposta.json();
     if (!resposta.ok) throw new Error(dados?.error || 'Falha ao carregar automações.');
     AUTOMACOES = dados.automacoes || [];
+    if (dados.catalogos) CATALOGOS = { ...CATALOGOS, ...dados.catalogos };
     pintarAutomacoes();
     carregarHistorico();
   } catch (erro) {
@@ -40,74 +55,186 @@ async function carregarAutomacoes() {
   }
 }
 
-// ── tradução para quem não escreve JSON ───────────────────────────────────────
+// ── nomes: chave técnica → o que a pessoa reconhece ───────────────────────────
+function rotuloDoCatalogo(lista, chave, reserva) {
+  const achado = (CATALOGOS[lista] || []).find((x) => String(x.chave) === String(chave));
+  return achado ? achado.rotulo : (reserva || chave);
+}
+function nomeDeGrupo(id) { return GRUPOS_NOME[id] || rotuloDoCatalogo('grupos', id, id); }
+function nomeDeStatus(chave) {
+  return rotuloDoCatalogo('status', chave, String(chave || '').replace(/_/g, ' '));
+}
+function nomeDeCaptacao(chave) {
+  return rotuloDoCatalogo('captacao', chave, String(chave || '').replace(/_/g, ' '));
+}
+function nomeDePessoa(id) {
+  const doBanco = (CATALOGOS.pessoas || []).find((p) => String(p.chave) === String(id));
+  if (doBanco) return doBanco.rotulo;
+  const achado = Object.entries(typeof PESSOAS === 'object' ? PESSOAS : {})
+    .find(([, valor]) => String(valor) === String(id));
+  return achado ? achado[0].replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase()) : id;
+}
+function primeiroNome(texto) { return String(texto || '').trim().split(/\s+/)[0] || texto; }
+
+// ── a regra dita em português ─────────────────────────────────────────────────
 function frasearGatilho(g) {
   if (!g) return '—';
   if (g.tipo === 'data') {
     const n = Math.abs(Number(g.dias) || 0);
     const dias = `${n} ${n === 1 ? 'dia' : 'dias'}`;
     const campo = g.campo === 'prazo' ? 'o prazo' : 'a veiculação';
-    const quando = Number(g.dias) < 0 ? `faltar ${dias} para ${campo}`
-      : Number(g.dias) > 0 ? `${campo} tiver passado há ${dias}`
-      : `for o dia d${campo === 'o prazo' ? 'o prazo' : 'a veiculação'}`;
-    return `${quando}, às ${g.hora || '—'}`;
+    if (Number(g.dias) < 0) return `faltar ${dias} para ${campo}`;
+    if (Number(g.dias) > 0) return `${campo} tiver passado há ${dias}`;
+    return `chegar o dia d${campo === 'o prazo' ? 'o prazo' : 'a veiculação'}`;
   }
   const campo = g.tipo === 'captacao' ? 'a captação' : 'o status';
-  return g.de ? `${campo} passar de “${g.de}” para “${g.para}”`
-              : `${campo} virar “${g.para}”`;
+  const nome = g.tipo === 'captacao' ? nomeDeCaptacao : nomeDeStatus;
+  return g.de ? `${campo} passar de “${nome(g.de)}” para “${nome(g.para)}”`
+              : `${campo} virar “${nome(g.para)}”`;
 }
 
 function frasearCondicao(c) {
-  if (!c) return 'qualquer conteúdo';
+  if (!c) return '';
+  // Estas listas significam "qualquer um destes", entao a juncao e OU. Com "e" a
+  // frase dizia o contrario do que a regra faz — o erro mais caro possivel numa
+  // tela cujo trabalho e explicar a regra.
+  const ou = (lista, nome) => lista.map(nome).join(' ou ');
   const partes = [];
-  if (c.formato_em) partes.push(`formato ${c.formato_em.join(', ')}`);
-  if (c.formato_apenas) partes.push(`formato apenas ${c.formato_apenas.join(', ')}`);
-  if (c.grupo_em) partes.push(`peças em ${c.grupo_em.map((g) => GRUPOS_NOME[g] || g).join(', ')}`);
-  if (partes.length) return partes.join(' e ');
-  if (c.status_nao_em) return `status diferente de ${c.status_nao_em.join(', ')}`;
-  if (c.status_em) return `status ${c.status_em.join(', ')}`;
-  return 'qualquer conteúdo';
+  if (c.formato_em) partes.push(`o formato for ${ou(c.formato_em, nomeDeFormato)}`);
+  if (c.formato_apenas) partes.push(`o formato for só ${ou(c.formato_apenas, nomeDeFormato)}`);
+  if (c.grupo_em) partes.push(`a peça estiver em ${ou(c.grupo_em, nomeDeGrupo)}`);
+  if (c.status_nao_em) partes.push(`o status não for ${ou(c.status_nao_em, nomeDeStatus)}`);
+  if (c.status_em) partes.push(`o status for ${ou(c.status_em, nomeDeStatus)}`);
+  return partes.join(', e ');
 }
-
-function nomeDePessoa(id) {
-  const achado = Object.entries(typeof PESSOAS === 'object' ? PESSOAS : {})
-    .find(([, valor]) => String(valor) === String(id));
-  return achado ? achado[0].replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase()) : id;
+function nomeDeFormato(chave) {
+  return rotuloDoCatalogo('formatos', chave, String(chave || '').replace(/_/g, ' '));
 }
 
 function frasearAcao(a) {
-  if (a.tipo === 'grupo') return `move para ${GRUPOS_NOME[a.para] || a.para}`;
-  if (a.tipo === 'status') return `muda o status para “${a.para}”`;
-  if (a.tipo === 'captacao') return `muda a captação para “${a.para}”`;
-  if (a.tipo === 'update') return `escreve um comentário`;
-  if (a.tipo === 'notificar') return `avisa quem é responsável`;
+  if (a.tipo === 'grupo') return `move para ${nomeDeGrupo(a.para)}`;
+  if (a.tipo === 'status') return `muda o status para “${nomeDeStatus(a.para)}”`;
+  if (a.tipo === 'captacao') return `muda a captação para “${nomeDeCaptacao(a.para)}”`;
+  if (a.tipo === 'update') return 'escreve um comentário na peça';
+  if (a.tipo === 'notificar') return 'avisa quem é responsável';
   if (a.tipo === 'responsaveis') {
-    const quem = (a.pessoas || []).map(nomeDePessoa).join(', ');
+    const quem = (a.pessoas || []).map((id) => primeiroNome(nomeDePessoa(id))).join(' e ');
     return a.modo === 'replace' ? `passa a responsabilidade para ${quem}` : `chama também ${quem}`;
   }
   return a.tipo;
 }
 
+// ── saúde: esta regra trabalha? ───────────────────────────────────────────────
+//
+// Foi a pergunta que ninguém sabia responder olhando a tela antiga. As respostas
+// possíveis são poucas e cada uma leva a uma decisão diferente: desligada é
+// escolha de alguém; nunca rodou pode ser regra nova ou regra morta; parada há
+// muito tempo costuma ser um estado que a operação deixou de usar.
+const DIAS_PARA_CONSIDERAR_PARADA = 30;
+
+function saudeDaRegra(a) {
+  const total = Number(a.execucoes_total || 0);
+  const recentes = Number(a.execucoes_30_dias || 0);
+  const ultima = a.ultima_em ? new Date(a.ultima_em) : null;
+  if (!a.ativa) {
+    return { chave: 'desligada', rotulo: 'desligada', detalhe: total
+      ? `chegou a rodar ${total}×` : 'nunca chegou a rodar' };
+  }
+  if (!total) {
+    return { chave: 'nunca', rotulo: 'nunca rodou', detalhe: motivoDeNuncaTerRodado(a) };
+  }
+  if (recentes) {
+    return { chave: 'trabalhando', rotulo: 'trabalhando',
+      detalhe: `${recentes}× em ${DIAS_PARA_CONSIDERAR_PARADA} dias · última ${quandoFoi(ultima)}` };
+  }
+  return { chave: 'parada', rotulo: 'parada',
+    detalhe: `${total}× no total · última ${quandoFoi(ultima)}` };
+}
+
+// Um palpite honesto, dito como palpite. Vale mais que "nunca rodou" sozinho,
+// que deixa a pessoa sem próximo passo.
+function motivoDeNuncaTerRodado(a) {
+  const g = a.gatilho || {};
+  if (g.tipo === 'data') return 'depende da varredura diária';
+  if (g.tipo === 'captacao') return 'depende de alguém mexer na captação';
+  if (g.de) return 'a passagem exata ainda não aconteceu';
+  const usado = (AUTOMACOES || []).length;
+  return usado ? 'esse status ainda não foi usado' : '';
+}
+
+function quandoFoi(data) {
+  if (!data || Number.isNaN(data.getTime())) return 'sem data';
+  const hoje = new Date();
+  const dias = Math.floor((hoje - data) / 86400000);
+  const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (dias <= 0) return `hoje ${hora}`;
+  if (dias === 1) return `ontem ${hora}`;
+  if (dias < 30) return `há ${dias} dias`;
+  return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+// ── a lista ───────────────────────────────────────────────────────────────────
 function pintarAutomacoes() {
   const raiz = document.getElementById('automacoes-root');
   if (!raiz) return;
   const admin = podeEditarAutomacoes();
+  const comSaude = AUTOMACOES.map((a) => ({ ...a, saude: saudeDaRegra(a) }));
+  const conta = (chave) => comSaude.filter((a) => a.saude.chave === chave).length;
 
-  const linhas = AUTOMACOES.map((a) => `
-    <div class="auto-regra ${a.ativa ? '' : 'desligada'}">
-      <div class="auto-regra-topo">
-        <span class="auto-ordem">${a.ordem}</span>
-        <b class="auto-nome">${safeText(a.nome)}</b>
+  const visiveis = FILTRO_DE_REGRAS === 'todas'
+    ? comSaude : comSaude.filter((a) => a.saude.chave === FILTRO_DE_REGRAS);
+
+  const pastilhas = [
+    ['todas', 'Todas', comSaude.length],
+    ['trabalhando', 'Trabalhando', conta('trabalhando')],
+    ['parada', 'Paradas', conta('parada')],
+    ['nunca', 'Nunca rodaram', conta('nunca')],
+    ['desligada', 'Desligadas', conta('desligada')],
+  ].filter(([chave, , n]) => chave === 'todas' || n)
+   .map(([chave, rotulo, n]) => `<button type="button" class="auto-pastilha ${chave} ${
+      FILTRO_DE_REGRAS === chave ? 'ativa' : ''}" onclick="filtrarRegras('${chave}')"
+      aria-pressed="${FILTRO_DE_REGRAS === chave}">${rotulo}<span>${n}</span></button>`).join('');
+
+  const linhas = visiveis.map((a) => {
+    const s = a.saude;
+    const condicao = frasearCondicao(a.condicao);
+    return `
+    <article class="auto-regra ${a.ativa ? '' : 'desligada'} saude-${s.chave}">
+      <header class="auto-regra-topo">
+        <div class="auto-regra-ident">
+          <span class="auto-selo ${s.chave}" title="${safeText(s.detalhe)}"><i></i>${safeText(s.rotulo)}</span>
+          <h3 class="auto-nome">${safeText(a.nome)}</h3>
+          <small class="auto-regra-detalhe">${safeText(s.detalhe)}</small>
+        </div>
         ${admin ? `<div class="auto-botoes">
-          <button onclick="ensaiarAutomacao(${a.id})">ensaiar</button>
+          <button onclick="ensaiarAutomacao(${a.id})" title="Ver o que ela faria, sem mexer em nada">ensaiar</button>
           <button onclick="editarAutomacao(${a.id})">editar</button>
           <button onclick="alternarAutomacao(${a.id})">${a.ativa ? 'desligar' : 'ligar'}</button>
           <button class="perigo" onclick="excluirAutomacao(${a.id})">excluir</button>
-        </div>` : `<span class="auto-estado">${a.ativa ? 'ativa' : 'desligada'}</span>`}
+        </div>` : ''}
+      </header>
+      <div class="auto-receita">
+        <div class="auto-passo quando">
+          <span class="auto-passo-rotulo">Quando</span>
+          <span class="auto-passo-texto">${safeText(frasearGatilho(a.gatilho))}</span>
+        </div>
+        ${condicao ? `<div class="auto-passo so-se">
+          <span class="auto-passo-rotulo">Só se</span>
+          <span class="auto-passo-texto">${safeText(condicao)}</span>
+        </div>` : ''}
+        <div class="auto-passo entao">
+          <span class="auto-passo-rotulo">Então</span>
+          <ul class="auto-passo-lista">${(a.acoes || [])
+            .map((x) => `<li>${safeText(frasearAcao(x))}</li>`).join('') || '<li>—</li>'}</ul>
+        </div>
       </div>
-      <div class="auto-frase"><i>Quando</i> ${safeText(frasearGatilho(a.gatilho))}${a.condicao ? ` · <i>só em</i> ${safeText(frasearCondicao(a.condicao))}` : ''}</div>
-      <div class="auto-acoes">${(a.acoes || []).map((x) => `<span>${safeText(frasearAcao(x))}</span>`).join('')}</div>
-    </div>`).join('');
+    </article>`;
+  }).join('');
+
+  // A varredura diária tem uma hora só, e as regras por data guardam uma hora
+  // própria que ninguém lê. Dizer isso aqui evita a conclusão errada de que a
+  // regra está quebrada quando o aviso chega em outro horário.
+  const temRegraDeData = AUTOMACOES.some((a) => a.gatilho?.tipo === 'data' && a.ativa);
 
   raiz.innerHTML = `
     <div class="auto-cabeca">
@@ -120,21 +247,28 @@ function pintarAutomacoes() {
       </div>
       ${admin ? '<button class="auto-novo" onclick="editarAutomacao(null)">+ Nova regra</button>' : ''}
     </div>
-    <div class="auto-lista">${linhas || '<div class="auto-carregando">Nenhuma regra cadastrada.</div>'}</div>
+    <div class="auto-pastilhas">${pastilhas}</div>
+    ${temRegraDeData ? `<p class="auto-aviso-varredura">As regras por data rodam numa
+      varredura por dia, de madrugada — não na hora que estiver escrita nelas.</p>` : ''}
     <div id="auto-editor"></div>
+    <div class="auto-lista">${linhas || '<div class="auto-carregando">Nenhuma regra neste recorte.</div>'}</div>
     <div class="auto-cabeca" style="margin-top:28px">
       <div>
         <div class="auto-kicker">Vybe OS · Registro</div>
         <h2 class="auto-titulo">O que as regras fizeram</h2>
-        <p class="auto-sub">Cada movimento automático fica registrado no Vybe OS — aqui está o que cada regra fez, quando executou e qual peça foi afetada.</p>
+        <p class="auto-sub">Cada movimento automático fica registrado — o que cada regra fez, quando executou e qual peça foi afetada.</p>
       </div>
     </div>
     <div id="auto-historico" class="auto-hist"><div class="auto-carregando">CARREGANDO…</div></div>`;
 }
 
+function filtrarRegras(chave) {
+  FILTRO_DE_REGRAS = FILTRO_DE_REGRAS === chave && chave !== 'todas' ? 'todas' : chave;
+  pintarAutomacoes();
+  carregarHistorico();
+}
+
 // ── histórico ─────────────────────────────────────────────────────────────────
-// As regras são próprias e precisam deixar rastreável o que fizeram, quando
-// executaram e qual peça foi afetada.
 async function carregarHistorico() {
   try {
     const r = await fetch(`${AUTOMACOES_API}&historico=1&limite=40`, { credentials: 'same-origin' });
@@ -154,14 +288,32 @@ function pintarHistorico() {
   }
   caixa.innerHTML = EXECUCOES.map((e) => {
     const ev = e.evento || {};
-    const gatilho = ev.tipo === 'data' ? `${ev.campo}` : `${ev.de || '—'} → ${ev.para || ''}`;
+    const gatilho = ev.tipo === 'data' ? `por ${ev.campo || 'data'}`
+      : `${nomeDeStatus(ev.de) || '—'} → ${nomeDeStatus(ev.para) || ''}`;
     return `<div class="auto-hist-linha">
       <span class="auto-hist-quando">${new Date(e.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
       <span class="auto-hist-peca">${safeText(e.titulo || '(conteúdo removido)')}<small>${safeText(gatilho)}</small></span>
       <span class="auto-hist-regra">${safeText(e.automacao)}</span>
-      <span class="auto-hist-feitas">${e.feitas.map((f) => safeText(f)).join(' · ') || '—'}</span>
+      <span class="auto-hist-feitas">${(e.feitas || []).map((f) => safeText(traduzirFeita(f))).join(' · ') || '—'}</span>
     </div>`;
   }).join('');
+}
+
+// O registro guardava "grupo → novo_grupo22352__1". O id é o que ficou gravado
+// e não se reescreve o passado; traduzir na leitura resolve sem tocar no dado.
+function traduzirFeita(texto) {
+  const t = String(texto || '');
+  const grupo = t.match(/^grupo → (.+)$/);
+  if (grupo) return `move para ${nomeDeGrupo(grupo[1].trim())}`;
+  const status = t.match(/^status → (.+)$/);
+  if (status) return `status vira ${nomeDeStatus(status[1].trim())}`;
+  if (t === 'responsáveis replace') return 'troca quem é responsável';
+  if (t === 'responsáveis add') return 'chama mais gente';
+  if (t === 'update') return 'comentário na peça';
+  if (t === 'notificação') return 'aviso enviado';
+  const cap = t.match(/^captação → (.+)$/);
+  if (cap) return `captação vira ${cap[1].trim()}`;
+  return t;
 }
 
 // ── ensaio ────────────────────────────────────────────────────────────────────
@@ -184,52 +336,318 @@ async function ensaiarAutomacao(id) {
     const d = await resposta.json();
     if (!resposta.ok) throw new Error(d?.error || 'Ensaio falhou.');
     const r = d.resultado || {};
-    showToast(`Ensaio (${formato}): status → ${r.status} · grupo → ${GRUPOS_NOME[r.grupo] || r.grupo} · ${r.responsaveis?.join(', ') || 'sem responsável'}`, 'info', 9000);
+    showToast(`Ensaio (${formato}): status → ${nomeDeStatus(r.status)} · grupo → ${nomeDeGrupo(r.grupo)} · ${
+      (r.responsaveis || []).map((p) => primeiroNome(nomeDePessoa(p))).join(', ') || 'sem responsável'}`, 'info', 9000);
   } catch (erro) {
     showToast(`Ensaio falhou: ${erro.message}`, 'error', 6000);
   }
 }
 
-// ── edição ────────────────────────────────────────────────────────────────────
+// ── o construtor ──────────────────────────────────────────────────────────────
+//
+// Três caixas de JSON viraram escolhas. O rascunho vive em RASCUNHO e a tela é
+// redesenhada a cada mudança — é o que permite mostrar a frase final se
+// reescrevendo enquanto a pessoa monta, que é a parte que ensina.
+
+const ACOES_DISPONIVEIS = [
+  { tipo: 'grupo',        rotulo: 'Mover para um grupo' },
+  { tipo: 'responsaveis', rotulo: 'Passar a responsabilidade', modo: 'replace' },
+  { tipo: 'responsaveis', rotulo: 'Chamar mais gente junto',   modo: 'add' },
+  { tipo: 'status',       rotulo: 'Mudar o status' },
+  { tipo: 'captacao',     rotulo: 'Mudar a captação' },
+  { tipo: 'update',       rotulo: 'Escrever um comentário na peça' },
+  { tipo: 'notificar',    rotulo: 'Avisar quem é responsável' },
+];
+
 function editarAutomacao(id) {
   automacaoEmEdicao = id ? AUTOMACOES.find((a) => Number(a.id) === Number(id)) : null;
+  const a = automacaoEmEdicao
+    || { nome: '', ordem: 50, ativa: true, gatilho: { tipo: 'status', para: '' }, condicao: null, acoes: [] };
+  RASCUNHO = {
+    id: id || null,
+    nome: a.nome || '',
+    ordem: Number(a.ordem) || 50,
+    ativa: a.ativa !== false,
+    gatilho: { ...(a.gatilho || { tipo: 'status' }) },
+    condicao: a.condicao ? { ...a.condicao } : null,
+    acoes: JSON.parse(JSON.stringify(a.acoes || [])),
+  };
+  pintarConstrutor();
+}
+
+function fecharConstrutor() {
+  RASCUNHO = null;
+  const caixa = document.getElementById('auto-editor');
+  if (caixa) caixa.innerHTML = '';
+}
+
+// Toda mudança no rascunho passa por aqui: guarda e redesenha, para a frase
+// final e as escolhas dependentes acompanharem sem ninguém precisar salvar.
+function mexerNoRascunho(caminho, valor) {
+  if (!RASCUNHO) return;
+  const partes = caminho.split('.');
+  let alvo = RASCUNHO;
+  for (let i = 0; i < partes.length - 1; i += 1) {
+    if (!alvo[partes[i]] || typeof alvo[partes[i]] !== 'object') alvo[partes[i]] = {};
+    alvo = alvo[partes[i]];
+  }
+  alvo[partes[partes.length - 1]] = valor;
+  pintarConstrutor();
+}
+
+function trocarTipoDeGatilho(tipo) {
+  if (!RASCUNHO) return;
+  // Sem 'hora': o campo existia nas regras importadas e NADA no servidor o le —
+  // a varredura roda uma vez por dia e avisa todo mundo junto. Gravar uma hora
+  // nova seria escrever uma promessa que o sistema nao cumpre.
+  RASCUNHO.gatilho = tipo === 'data'
+    ? { tipo: 'data', campo: 'prazo', dias: -1 }
+    : { tipo, para: '' };
+  pintarConstrutor();
+}
+
+function adicionarAcao(indice) {
+  const modelo = ACOES_DISPONIVEIS[Number(indice)];
+  if (!modelo || !RASCUNHO) return;
+  const nova = { tipo: modelo.tipo };
+  if (modelo.modo) nova.modo = modelo.modo;
+  if (modelo.tipo === 'responsaveis') nova.pessoas = [];
+  if (modelo.tipo === 'update' || modelo.tipo === 'notificar') nova.texto = '';
+  else if (modelo.tipo !== 'responsaveis') nova.para = '';
+  RASCUNHO.acoes.push(nova);
+  pintarConstrutor();
+}
+
+function removerAcao(i) {
+  if (!RASCUNHO) return;
+  RASCUNHO.acoes.splice(Number(i), 1);
+  pintarConstrutor();
+}
+
+function alternarPessoaDaAcao(i, id) {
+  if (!RASCUNHO) return;
+  const acao = RASCUNHO.acoes[Number(i)];
+  if (!acao) return;
+  acao.pessoas = acao.pessoas || [];
+  const chave = String(id);
+  const em = acao.pessoas.findIndex((p) => String(p) === chave);
+  if (em >= 0) acao.pessoas.splice(em, 1); else acao.pessoas.push(chave);
+  pintarConstrutor();
+}
+
+function alternarCondicao(campo, chave) {
+  if (!RASCUNHO) return;
+  const c = RASCUNHO.condicao ? { ...RASCUNHO.condicao } : {};
+  const lista = Array.isArray(c[campo]) ? [...c[campo]] : [];
+  const em = lista.findIndex((x) => String(x) === String(chave));
+  if (em >= 0) lista.splice(em, 1); else lista.push(String(chave));
+  if (lista.length) c[campo] = lista; else delete c[campo];
+  RASCUNHO.condicao = Object.keys(c).length ? c : null;
+  pintarConstrutor();
+}
+
+// O que impede a regra de existir. Devolve a frase do problema, ou vazio quando
+// esta tudo certo — e e isso que trava o botao de salvar. Uma regra impossivel
+// salva sem reclamar seria a pior forma de descobrir o erro: ela entra na lista
+// como "nunca rodou" e ninguem sabe que nasceu morta.
+function problemaDoRascunho() {
+  if (!RASCUNHO) return '';
+  const g = RASCUNHO.gatilho || {};
+  if (g.tipo !== 'data' && !g.para) return 'Falta escolher o que precisa acontecer para a regra disparar.';
+  if (g.tipo !== 'data' && g.de && String(g.de) === String(g.para)) {
+    return 'O “vindo de” e o “virar” estão no mesmo valor — assim nada muda e a regra nunca dispara.';
+  }
+  if (!(RASCUNHO.acoes || []).length) return 'Uma regra sem ação não faz nada. Escolha pelo menos uma.';
+  const vazia = (RASCUNHO.acoes || []).find((a) => (
+    (a.tipo === 'responsaveis' && !(a.pessoas || []).length)
+    || (['grupo', 'status', 'captacao'].includes(a.tipo) && !a.para)));
+  if (vazia) return 'Uma das ações está sem escolha — complete ou tire ela.';
+  if (!String(RASCUNHO.nome || '').trim()) return 'Falta dar um nome à regra — é ele que aparece quando ela dispara.';
+  return '';
+}
+
+// A frase que a regra vira quando salvar. É ela que faz o construtor ensinar em
+// vez de só coletar: quem monta lê o resultado antes de existir.
+function fraseDoRascunho() {
+  if (!RASCUNHO) return '';
+  const quando = frasearGatilho(RASCUNHO.gatilho);
+  const so = frasearCondicao(RASCUNHO.condicao);
+  const acoes = (RASCUNHO.acoes || []).map(frasearAcao).filter(Boolean);
+  if (!RASCUNHO.gatilho?.para && RASCUNHO.gatilho?.tipo !== 'data') return '';
+  if (!acoes.length) return '';
+  const lista = acoes.length === 1 ? acoes[0]
+    : `${acoes.slice(0, -1).join(', ')} e ${acoes[acoes.length - 1]}`;
+  return `Quando ${quando}${so ? `, e ${so}` : ''}, ${lista}.`;
+}
+
+function fichasDeEscolha(lista, atual, aoClicar, vazio = 'nada cadastrado') {
+  const itens = CATALOGOS[lista] || [];
+  if (!itens.length) return `<span class="auto-vazio">${vazio}</span>`;
+  return itens.map((x) => {
+    const marcada = Array.isArray(atual)
+      ? atual.some((v) => String(v) === String(x.chave))
+      : String(atual || '') === String(x.chave);
+    const nome = lista === 'grupos' ? nomeDeGrupo(x.chave) : x.rotulo;
+    return `<button type="button" class="auto-ficha ${marcada ? 'marcada' : ''}"
+      onclick="${aoClicar.replace('{chave}', String(x.chave).replace(/'/g, "\\'"))}"
+      aria-pressed="${marcada}">${x.cor ? `<i style="background:${safeText(x.cor)}"></i>` : ''}${safeText(nome)}</button>`;
+  }).join('');
+}
+
+function pintarConstrutor() {
   const caixa = document.getElementById('auto-editor');
   if (!caixa) return;
-  const a = automacaoEmEdicao || { nome: '', ordem: 50, ativa: true, gatilho: { tipo: 'status', para: '' }, condicao: null, acoes: [] };
+  if (!RASCUNHO) { caixa.innerHTML = ''; return; }
+  const r = RASCUNHO;
+  const g = r.gatilho || {};
+
+  const abas = [['status', 'um status mudar'], ['captacao', 'a captação mudar'], ['data', 'chegar uma data']]
+    .map(([tipo, rotulo]) => `<button type="button" class="auto-aba ${g.tipo === tipo ? 'ativa' : ''}"
+      onclick="trocarTipoDeGatilho('${tipo}')" aria-pressed="${g.tipo === tipo}">${rotulo}</button>`).join('');
+
+  let quandoCorpo = '';
+  if (g.tipo === 'data') {
+    quandoCorpo = `
+      <div class="auto-campo-linha">
+        <label>Qual data<select onchange="mexerNoRascunho('gatilho.campo',this.value)">
+          <option value="prazo" ${g.campo === 'prazo' ? 'selected' : ''}>o prazo de produção</option>
+          <option value="veiculacao" ${g.campo === 'veiculacao' ? 'selected' : ''}>a veiculação</option>
+        </select></label>
+        <label>Momento<select onchange="mexerNoRascunho('gatilho.dias',Number(this.value))">
+          <option value="-1" ${Number(g.dias) === -1 ? 'selected' : ''}>1 dia antes</option>
+          <option value="-2" ${Number(g.dias) === -2 ? 'selected' : ''}>2 dias antes</option>
+          <option value="-3" ${Number(g.dias) === -3 ? 'selected' : ''}>3 dias antes</option>
+          <option value="0" ${Number(g.dias) === 0 ? 'selected' : ''}>no próprio dia</option>
+          <option value="1" ${Number(g.dias) === 1 ? 'selected' : ''}>1 dia depois</option>
+        </select></label>
+      </div>
+      <p class="auto-dica">Regras por data rodam numa varredura por dia, de madrugada.</p>`;
+  } else {
+    const lista = g.tipo === 'captacao' ? 'captacao' : 'status';
+    quandoCorpo = `
+      <div class="auto-campo">
+        <span class="auto-campo-rotulo">Virar qual ${g.tipo === 'captacao' ? 'captação' : 'status'}?</span>
+        <div class="auto-fichas">${fichasDeEscolha(lista, g.para, `mexerNoRascunho('gatilho.para','{chave}')`)}</div>
+      </div>
+      <div class="auto-campo">
+        <span class="auto-campo-rotulo">Vindo de qual? <small>opcional — deixe em branco para valer de qualquer um</small></span>
+        <div class="auto-fichas">
+          <button type="button" class="auto-ficha ${!g.de ? 'marcada' : ''}"
+            onclick="mexerNoRascunho('gatilho.de','')" aria-pressed="${!g.de}">qualquer um</button>
+          ${fichasDeEscolha(lista, g.de, `mexerNoRascunho('gatilho.de','{chave}')`)}
+        </div>
+      </div>`;
+  }
+
+  const acoes = (r.acoes || []).map((a, i) => {
+    let corpo = '';
+    if (a.tipo === 'grupo') {
+      corpo = `<div class="auto-fichas">${fichasDeEscolha('grupos', a.para, `mexerNoRascunho('acoes.${i}.para','{chave}')`)}</div>`;
+    } else if (a.tipo === 'status') {
+      corpo = `<div class="auto-fichas">${fichasDeEscolha('status', a.para, `mexerNoRascunho('acoes.${i}.para','{chave}')`)}</div>`;
+    } else if (a.tipo === 'captacao') {
+      corpo = `<div class="auto-fichas">${fichasDeEscolha('captacao', a.para, `mexerNoRascunho('acoes.${i}.para','{chave}')`)}</div>`;
+    } else if (a.tipo === 'responsaveis') {
+      corpo = `<div class="auto-fichas">${fichasDeEscolha('pessoas', a.pessoas || [], `alternarPessoaDaAcao(${i},'{chave}')`, 'ninguém cadastrado')}</div>`;
+    } else {
+      corpo = `<input type="text" class="auto-texto" value="${safeText(a.texto || '')}"
+        placeholder="${a.tipo === 'notificar' ? 'Sua entrega vence amanhã: {titulo} ({cliente}).' : 'Encaminhado para agendamento.'}"
+        oninput="RASCUNHO.acoes[${i}].texto=this.value">`;
+    }
+    const titulo = ACOES_DISPONIVEIS.find((m) => m.tipo === a.tipo && (!m.modo || m.modo === a.modo))?.rotulo || a.tipo;
+    return `<div class="auto-acao-caixa">
+      <div class="auto-acao-topo"><b>${safeText(titulo)}</b>
+        <button type="button" class="auto-acao-tirar" onclick="removerAcao(${i})" aria-label="Tirar esta ação">×</button></div>
+      ${corpo}</div>`;
+  }).join('');
+
+  const frase = fraseDoRascunho();
+  const problema = problemaDoRascunho();
+
   caixa.innerHTML = `
-    <div class="auto-editor-caixa">
-      <div class="auto-editor-titulo">${id ? 'Editar regra' : 'Nova regra'}</div>
-      <label>Nome<input id="auto-f-nome" value="${safeText(a.nome)}" placeholder="Descreva a regra em uma frase"></label>
-      <div class="auto-editor-linha">
-        <label>Ordem<input id="auto-f-ordem" type="number" value="${a.ordem}"></label>
-        <label>Ativa<select id="auto-f-ativa"><option value="1" ${a.ativa ? 'selected' : ''}>sim</option><option value="0" ${a.ativa ? '' : 'selected'}>não</option></select></label>
+    <section class="auto-construtor" role="dialog" aria-label="${r.id ? 'Editar regra' : 'Nova regra'}">
+      <header class="auto-construtor-topo">
+        <div>
+          <span class="auto-kicker">${r.id ? 'Editando' : 'Montando'}</span>
+          <h3>${r.id ? 'Editar regra' : 'Nova regra'}</h3>
+        </div>
+        <button type="button" class="auto-construtor-fechar" onclick="fecharConstrutor()" aria-label="Fechar">×</button>
+      </header>
+
+      <div class="auto-bloco">
+        <span class="auto-bloco-numero">1</span>
+        <div class="auto-bloco-corpo">
+          <h4>Quando isto acontecer</h4>
+          <div class="auto-abas">${abas}</div>
+          ${quandoCorpo}
+        </div>
       </div>
-      <label>Quando (gatilho)<textarea id="auto-f-gatilho" rows="3">${safeText(JSON.stringify(a.gatilho, null, 1))}</textarea></label>
-      <label>Só em (condição, vazio = qualquer conteúdo)<textarea id="auto-f-condicao" rows="3">${a.condicao ? safeText(JSON.stringify(a.condicao, null, 1)) : ''}</textarea></label>
-      <label>Faça (ações)<textarea id="auto-f-acoes" rows="6">${safeText(JSON.stringify(a.acoes || [], null, 1))}</textarea></label>
-      <p class="auto-ajuda">Ordem menor roda primeiro. Numa mudança de status, a primeira regra que mover de grupo encerra as demais — é o que impede a regra genérica de desfazer o roteamento por formato.</p>
-      <div class="auto-editor-botoes">
-        <button class="auto-salvar" onclick="salvarAutomacao(${id || 'null'})">Salvar</button>
-        <button onclick="document.getElementById('auto-editor').innerHTML=''">Cancelar</button>
+
+      <div class="auto-bloco">
+        <span class="auto-bloco-numero">2</span>
+        <div class="auto-bloco-corpo">
+          <h4>Só se… <small>opcional</small></h4>
+          <div class="auto-campo">
+            <span class="auto-campo-rotulo">O formato for</span>
+            <div class="auto-fichas">${fichasDeEscolha('formatos', r.condicao?.formato_em || [], `alternarCondicao('formato_em','{chave}')`, 'nenhum formato cadastrado')}</div>
+          </div>
+          <div class="auto-campo">
+            <span class="auto-campo-rotulo">A peça estiver em</span>
+            <div class="auto-fichas">${fichasDeEscolha('grupos', r.condicao?.grupo_em || [], `alternarCondicao('grupo_em','{chave}')`, 'nenhum grupo cadastrado')}</div>
+          </div>
+        </div>
       </div>
-    </div>`;
+
+      <div class="auto-bloco">
+        <span class="auto-bloco-numero">3</span>
+        <div class="auto-bloco-corpo">
+          <h4>Faça isto</h4>
+          ${acoes || '<p class="auto-dica">Nenhuma ação ainda — escolha a primeira abaixo.</p>'}
+          <div class="auto-fichas auto-add">${ACOES_DISPONIVEIS.map((m, i) =>
+            `<button type="button" class="auto-ficha somar" onclick="adicionarAcao(${i})">+ ${safeText(m.rotulo)}</button>`).join('')}</div>
+        </div>
+      </div>
+
+      <div class="auto-bloco">
+        <span class="auto-bloco-numero">4</span>
+        <div class="auto-bloco-corpo">
+          <h4>Como ela vai se chamar</h4>
+          <input type="text" class="auto-texto" id="auto-f-nome" value="${safeText(r.nome)}"
+            placeholder="Descreva a regra em uma frase" oninput="RASCUNHO.nome=this.value">
+          <div class="auto-campo-linha">
+            <label>Ordem <small>menor roda primeiro</small>
+              <input type="number" value="${r.ordem}" oninput="RASCUNHO.ordem=Number(this.value)||50"></label>
+            <label>Ligada
+              <select onchange="mexerNoRascunho('ativa',this.value==='1')">
+                <option value="1" ${r.ativa ? 'selected' : ''}>sim</option>
+                <option value="0" ${r.ativa ? '' : 'selected'}>não</option>
+              </select></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="auto-frase-final ${frase ? '' : 'incompleta'}">
+        <span>A regra vai ficar assim</span>
+        <b>${frase ? safeText(frase) : 'Escolha o gatilho e pelo menos uma ação para ver a frase.'}</b>
+        ${problema ? `<em class="auto-problema">${safeText(problema)}</em>` : ''}
+      </div>
+
+      <div class="auto-construtor-botoes">
+        <button type="button" class="auto-cancelar" onclick="fecharConstrutor()">Cancelar</button>
+        <button type="button" class="auto-salvar" onclick="salvarAutomacao()" ${problema ? 'disabled' : ''}>
+          ${r.id ? 'Salvar alterações' : 'Criar regra'}</button>
+      </div>
+    </section>`;
   caixa.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-async function salvarAutomacao(id) {
-  const ler = (campo) => document.getElementById(`auto-f-${campo}`)?.value ?? '';
-  let gatilho, condicao, acoes;
-  try {
-    gatilho = JSON.parse(ler('gatilho') || '{}');
-    condicao = ler('condicao').trim() ? JSON.parse(ler('condicao')) : null;
-    acoes = JSON.parse(ler('acoes') || '[]');
-  } catch (erro) {
-    showToast(`Não entendi o formato: ${erro.message}`, 'error', 6000);
-    return;
-  }
-  const corpo = { id: id || undefined, nome: ler('nome').trim(), ordem: Number(ler('ordem')) || 50,
-                  ativa: ler('ativa') === '1', gatilho, condicao, acoes };
-  if (!corpo.nome) { showToast('Dê um nome à regra — é ele que aparece quando ela dispara.', 'error', 5000); return; }
+async function salvarAutomacao() {
+  if (!RASCUNHO) return;
+  const r = RASCUNHO;
+  const problema = problemaDoRascunho();
+  if (problema) { showToast(problema, 'error', 6000); return; }
+  const corpo = { id: r.id || undefined, nome: r.nome.trim(), ordem: r.ordem, ativa: r.ativa,
+                  gatilho: r.gatilho, condicao: r.condicao, acoes: r.acoes };
   try {
     const resposta = await fetch(AUTOMACOES_API, {
       method: 'POST', credentials: 'same-origin',
@@ -237,7 +655,7 @@ async function salvarAutomacao(id) {
     });
     const d = await resposta.json();
     if (!resposta.ok) throw new Error(d?.error || 'Não foi possível salvar.');
-    document.getElementById('auto-editor').innerHTML = '';
+    fecharConstrutor();
     showToast('Regra salva. Vale a partir da próxima mudança.', 'success', 4000);
     carregarAutomacoes();
   } catch (erro) {
@@ -261,8 +679,14 @@ async function alternarAutomacao(id) {
 
 async function excluirAutomacao(id) {
   const a = AUTOMACOES.find((x) => Number(x.id) === Number(id));
-  // Desligar guarda a regra; excluir apaga a redação dela. Vale perguntar.
-  if (!confirm(`Excluir “${a?.nome || id}” de vez?\n\nSe a ideia é só parar de rodar, use “desligar” — assim a regra continua registrada.`)) return;
+  // Desligar guarda a regra; excluir apaga a redação dela. Vale perguntar — e
+  // perguntar na caixa do painel, não no aviso cinza do navegador.
+  const sim = await perguntarNoPainel({
+    titulo: `Excluir “${a?.nome || id}”?`,
+    texto: 'Se a ideia é só parar de rodar, use “desligar” — assim a regra continua registrada e dá para religar depois.',
+    confirmar: 'Excluir de vez', perigo: true,
+  });
+  if (!sim) return;
   try {
     const resposta = await fetch(`${AUTOMACOES_API}&id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
     if (!resposta.ok) throw new Error((await resposta.json())?.error || 'Falhou.');

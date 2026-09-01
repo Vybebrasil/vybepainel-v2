@@ -1230,32 +1230,152 @@ header,.topbar{
 .auto-titulo{margin:4px 0 0;color:#fff0df;font:700 22px var(--mac-ui);letter-spacing:-.8px}
 .auto-sub{max-width:640px;margin:6px 0 0;color:#a8896c;font-size:11px;line-height:1.55}
 .auto-novo{border:1px solid rgba(255,163,21,.65);background:rgba(255,107,0,.19);color:#ffe0a6;padding:8px 14px;font:700 10px var(--mac-ui);cursor:pointer}
-.auto-lista{display:flex;flex-direction:column;gap:8px}
-.auto-regra{border:1px solid rgba(255,161,29,.16);background:linear-gradient(145deg,rgba(255,107,0,.06),rgba(11,6,2,.72));padding:14px 14px}
-.auto-regra.desligada{opacity:.5}
-.auto-regra-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.auto-ordem{min-width:26px;padding:2px 6px;background:rgba(255,255,255,.07);color:#c69d6a;font:700 10px var(--mac-ui);text-align:center}
-.auto-nome{flex:1;min-width:200px;color:#ffe4b7;font-size:12px}
-.auto-estado{color:#8b6b52;font:700 10px var(--mac-ui)}
-.auto-botoes{display:flex;gap:4px;flex-wrap:wrap}
-.auto-botoes button{border:1px solid rgba(255,177,67,.23);background:rgba(0,0,0,.3);color:#d8ab77;padding:4px 8px;font:700 10px var(--mac-ui);cursor:pointer}
-.auto-botoes button:hover{background:rgba(255,107,0,.16);color:#ffe0a6}
-.auto-botoes button.perigo:hover{background:rgba(240,71,86,.18);border-color:rgba(240,71,86,.5);color:#ffb9c0}
-.auto-frase{margin-top:8px;color:#bca58a;font-size:11px;line-height:1.5}
-.auto-frase i{color:#8b6b52;font-style:normal;font-weight:700}
-.auto-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.auto-acoes span{border:1px solid rgba(255,186,91,.18);background:rgba(255,107,0,.07);color:#e0b784;padding:4px 8px;font-size:10px}
+.auto-lista{display:flex;flex-direction:column;gap:10px}
+
+/* Pastilhas de saude: o recorte que responde "quais regras trabalham?" sem
+   ninguem precisar ler o registro inteiro e cruzar nome por nome. */
+.auto-pastilhas{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+.auto-pastilha{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,177,67,.20);
+  border-radius:999px;background:rgba(0,0,0,.3);color:#c9a37a;padding:5px 12px;
+  font:700 10px var(--mac-ui);cursor:pointer;transition:background .14s,border-color .14s,color .14s}
+.auto-pastilha:hover{background:rgba(255,107,0,.12);color:#ffe0a6}
+.auto-pastilha span{min-width:17px;padding:1px 5px;border-radius:999px;background:rgba(255,255,255,.08);
+  color:#efd9bd;font-size:9.5px;text-align:center}
+.auto-pastilha.ativa{border-color:rgba(255,163,21,.7);background:rgba(255,107,0,.2);color:#ffe9c6}
+.auto-pastilha.trabalhando.ativa{border-color:rgba(59,214,140,.6);background:rgba(59,214,140,.14);color:#a8ecc6}
+.auto-pastilha.nunca.ativa{border-color:rgba(255,177,67,.7);background:rgba(255,177,67,.15);color:#ffdca8}
+.auto-pastilha.parada.ativa,.auto-pastilha.desligada.ativa{border-color:rgba(173,184,202,.5);
+  background:rgba(173,184,202,.13);color:#dbe2ee}
+.auto-aviso-varredura{margin:-6px 0 16px;color:#8b6b52;font-size:10.5px;line-height:1.55}
+
+.auto-regra{border:1px solid rgba(255,161,29,.16);border-radius:12px;
+  background:linear-gradient(145deg,rgba(255,107,0,.05),rgba(11,6,2,.72));padding:14px 16px 15px}
+.auto-regra.desligada{opacity:.52}
+/* flex-direction explicito: existe um `header{flex-direction:column}` global no
+   painel, e sem esta linha ele vencia — os botoes desciam para baixo do titulo
+   com 900px de espaco vazio ao lado. */
+.auto-regra-topo{display:flex;flex-direction:row;align-items:flex-start;
+  justify-content:space-between;gap:12px;flex-wrap:wrap}
+.auto-regra-ident{display:grid;gap:3px;min-width:220px;flex:1}
+.auto-nome{margin:0;color:#ffe9c6;font:700 13.5px var(--mac-ui);letter-spacing:-.2px}
+.auto-regra-detalhe{color:#8b6b52;font:600 10px var(--mac-ui)}
+.auto-botoes{display:flex;gap:5px;flex-wrap:wrap;flex:0 0 auto}
+.auto-botoes button{border:1px solid rgba(255,177,67,.20);border-radius:7px;background:rgba(0,0,0,.3);
+  color:#c9a37a;padding:5px 10px;font:700 10px var(--mac-ui);cursor:pointer;
+  transition:background .13s,border-color .13s,color .13s}
+.auto-botoes button:hover{background:rgba(255,107,0,.15);border-color:rgba(255,163,21,.45);color:#ffe0a6}
+.auto-botoes button.perigo:hover{background:rgba(240,71,86,.17);border-color:rgba(240,71,86,.5);color:#ffb9c0}
+
+/* O selo e a resposta em uma palavra; a bolinha carrega a cor para quem varre a
+   coluna com o olho antes de ler. */
+.auto-selo{display:inline-flex;align-items:center;gap:6px;width:fit-content;
+  border-radius:999px;padding:2px 9px 2px 7px;font:700 9px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.auto-selo i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.auto-selo.trabalhando{background:rgba(59,214,140,.15);color:#6fdfa8}
+.auto-selo.nunca{background:rgba(255,177,67,.14);color:#ffc470}
+.auto-selo.parada{background:rgba(173,184,202,.13);color:#adb8ca}
+.auto-selo.desligada{background:rgba(173,184,202,.10);color:#8d97a8}
+
+/* A receita: Quando / So se / Entao, em tres linhas alinhadas. E o formato que
+   o Monday usava e que a equipe ja le sem legenda. */
+.auto-receita{display:grid;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,161,29,.10)}
+.auto-passo{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:baseline}
+.auto-passo-rotulo{color:#8b6b52;font:700 9px var(--mac-ui);letter-spacing:.1em;text-transform:uppercase;text-align:right}
+.auto-passo-texto{color:#e2c7a6;font-size:11.5px;line-height:1.5}
+.auto-passo.quando .auto-passo-texto{color:#ffe0a6}
+.auto-passo-lista{margin:0;padding:0;list-style:none;display:grid;gap:4px}
+.auto-passo-lista li{position:relative;padding-left:14px;color:#e2c7a6;font-size:11.5px;line-height:1.5}
+.auto-passo-lista li::before{content:'';position:absolute;left:2px;top:.55em;width:4px;height:4px;
+  border-radius:50%;background:rgba(255,163,21,.55)}
 .auto-carregando{padding:48px 0;color:#b3885d;text-align:center;font:700 10px var(--mac-ui)}
-.auto-editor-caixa{margin-top:14px;border:1px solid rgba(255,161,29,.28);background:rgba(10,6,2,.85);padding:16px}
-.auto-editor-titulo{margin-bottom:12px;color:#ffe4b7;font:700 11px var(--mac-ui)}
-.auto-editor-caixa label{display:block;margin-bottom:10px;color:#a8896c;font:700 10px var(--mac-ui);letter-spacing:.5px}
-.auto-editor-caixa input,.auto-editor-caixa select,.auto-editor-caixa textarea{width:100%;box-sizing:border-box;margin-top:4px;border:1px solid rgba(255,177,67,.23);background:#120902;color:#ffe0a6;padding:8px;font:600 11px var(--mac-ui);text-transform:none;letter-spacing:0;outline:none;resize:vertical}
-.auto-editor-linha{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.auto-ajuda{margin:2px 0 12px;color:#80644e;font-size:10px;line-height:1.55}
-.auto-editor-botoes{display:flex;gap:8px}
-.auto-editor-botoes button{border:1px solid rgba(255,177,67,.23);background:rgba(0,0,0,.3);color:#d8ab77;padding:8px 14px;font:700 10px var(--mac-ui);cursor:pointer}
-.auto-editor-botoes button.auto-salvar{border-color:rgba(255,163,21,.65);background:rgba(255,107,0,.19);color:#ffe0a6}
-@media(max-width:600px){.auto-cabeca{display:block}.auto-novo{margin-top:14px}.auto-editor-linha{grid-template-columns:1fr}}
+
+/* ── o construtor ──────────────────────────────────────────────────────────
+   Quatro blocos numerados, na ordem em que a frase se le. A numeracao aqui nao
+   e enfeite: a regra E uma sequencia, e cada bloco so faz sentido depois do
+   anterior. */
+.auto-construtor{margin:0 0 18px;border:1px solid rgba(255,163,21,.34);border-radius:14px;
+  background:rgba(10,6,2,.92);box-shadow:0 22px 60px rgba(0,0,0,.5)}
+.auto-construtor-topo{display:flex;flex-direction:row;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:16px 18px 14px;border-bottom:1px solid rgba(255,161,29,.14)}
+.auto-construtor-topo h3{margin:3px 0 0;color:#ffe9c6;font:700 16px var(--mac-ui);letter-spacing:-.3px}
+.auto-construtor-fechar{border:0;background:transparent;color:#a8896c;font-size:20px;line-height:1;cursor:pointer;padding:0 2px}
+.auto-construtor-fechar:hover{color:#ffe0a6}
+.auto-bloco{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;
+  padding:16px 18px;border-bottom:1px solid rgba(255,161,29,.09)}
+.auto-bloco-numero{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;
+  border:1px solid rgba(255,163,21,.4);color:#ffc470;font:700 11px var(--mac-ui)}
+.auto-bloco-corpo{min-width:0}
+.auto-bloco-corpo h4{margin:2px 0 12px;color:#ffe0a6;font:700 12px var(--mac-ui)}
+.auto-bloco-corpo h4 small{color:#80644e;font-weight:600;text-transform:none;letter-spacing:0}
+
+.auto-abas{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.auto-aba{border:1px solid rgba(255,177,67,.20);border-radius:999px;background:rgba(0,0,0,.3);
+  color:#c9a37a;padding:6px 13px;font:700 10.5px var(--mac-ui);cursor:pointer;text-transform:none;letter-spacing:0}
+.auto-aba:hover{background:rgba(255,107,0,.12);color:#ffe0a6}
+.auto-aba.ativa{border-color:rgba(255,163,21,.72);background:rgba(255,107,0,.2);color:#ffe9c6}
+
+.auto-campo{margin-bottom:14px}
+.auto-campo:last-child{margin-bottom:0}
+.auto-campo-rotulo{display:block;margin-bottom:7px;color:#a8896c;font:700 10px var(--mac-ui);letter-spacing:.04em}
+.auto-campo-rotulo small{color:#7a5f4a;font-weight:600;letter-spacing:0;text-transform:none}
+.auto-campo-linha{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.auto-campo-linha label{display:block;color:#a8896c;font:700 10px var(--mac-ui);letter-spacing:.04em}
+.auto-campo-linha label small{color:#7a5f4a;font-weight:600;letter-spacing:0;text-transform:none}
+.auto-campo-linha select,.auto-campo-linha input{width:100%;box-sizing:border-box;margin-top:5px;
+  border:1px solid rgba(255,177,67,.23);border-radius:8px;background:#120902;color:#ffe0a6;padding:8px 9px;
+  font:600 11px var(--mac-ui);text-transform:none;letter-spacing:0;outline:none}
+.auto-texto{width:100%;box-sizing:border-box;border:1px solid rgba(255,177,67,.23);border-radius:8px;
+  background:#120902;color:#ffe0a6;padding:9px 10px;font:600 11.5px var(--mac-ui);
+  text-transform:none;letter-spacing:0;outline:none}
+.auto-texto:focus,.auto-campo-linha select:focus,.auto-campo-linha input:focus{border-color:rgba(255,163,21,.6)}
+
+/* Escolher e sempre por ficha clicavel, nunca por lista de texto — e o padrao
+   que o resto do painel ja segue. */
+.auto-fichas{display:flex;gap:6px;flex-wrap:wrap}
+.auto-ficha{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,177,67,.18);
+  border-radius:999px;background:rgba(0,0,0,.28);color:#c9a37a;padding:5px 11px;
+  font:600 10.5px var(--mac-ui);text-transform:none;letter-spacing:0;cursor:pointer;
+  transition:background .13s,border-color .13s,color .13s}
+.auto-ficha i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.auto-ficha:hover{background:rgba(255,107,0,.13);color:#ffe0a6}
+.auto-ficha.marcada{border-color:rgba(255,163,21,.7);background:rgba(255,107,0,.2);color:#ffe9c6}
+.auto-ficha.somar{border-style:dashed;color:#a8896c}
+.auto-add{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(255,161,29,.14)}
+.auto-vazio{color:#7a5f4a;font:600 10.5px var(--mac-ui)}
+
+.auto-acao-caixa{margin-bottom:10px;border:1px solid rgba(255,161,29,.15);border-radius:10px;
+  background:rgba(255,107,0,.04);padding:11px 12px}
+.auto-acao-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.auto-acao-topo b{color:#ffd9a1;font:700 10.5px var(--mac-ui)}
+.auto-acao-tirar{border:0;background:transparent;color:#8b6b52;font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
+.auto-acao-tirar:hover{color:#ffb9c0}
+.auto-dica{margin:8px 0 0;color:#80644e;font-size:10.5px;line-height:1.55}
+.auto-dica.alerta{color:#ffc470;padding:0 18px 14px}
+
+/* A frase final e o coracao do construtor: ela mostra o resultado antes de
+   existir, e e por isso que da para montar uma regra sem saber a sintaxe. */
+.auto-frase-final{display:grid;gap:5px;margin:0;padding:16px 18px;
+  background:linear-gradient(120deg,rgba(255,107,0,.10),transparent 70%);
+  border-bottom:1px solid rgba(255,161,29,.12)}
+.auto-frase-final span{color:#8b6b52;font:700 9px var(--mac-ui);letter-spacing:.1em;text-transform:uppercase}
+.auto-frase-final b{color:#ffe9c6;font:600 13px/1.55 var(--mac-ui);text-transform:none;letter-spacing:0}
+.auto-frase-final.incompleta b{color:#80644e;font-weight:600}
+.auto-problema{margin-top:4px;color:#ffc470;font:600 11px/1.5 var(--mac-ui);font-style:normal}
+.auto-construtor-botoes{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px}
+.auto-construtor-botoes button{border:1px solid rgba(255,177,67,.23);border-radius:8px;background:rgba(0,0,0,.3);
+  color:#d8ab77;padding:9px 16px;font:700 10.5px var(--mac-ui);cursor:pointer}
+.auto-construtor-botoes button:hover{background:rgba(255,107,0,.14);color:#ffe0a6}
+.auto-construtor-botoes .auto-salvar{border-color:rgba(255,163,21,.65);background:rgba(255,107,0,.2);color:#ffe9c6}
+.auto-construtor-botoes .auto-salvar:disabled{opacity:.4;cursor:not-allowed;background:rgba(0,0,0,.3);
+  border-color:rgba(255,177,67,.18);color:#80644e}
+
+@media(max-width:700px){
+  .auto-cabeca{display:block}.auto-novo{margin-top:14px}
+  .auto-campo-linha{grid-template-columns:1fr}
+  .auto-passo{grid-template-columns:1fr;gap:3px}
+  .auto-passo-rotulo{text-align:left}
+  .auto-bloco{grid-template-columns:1fr;gap:8px}
+}
 
 .conta-caixa{border:1px solid rgba(255,161,29,.16);background:linear-gradient(145deg,rgba(255,107,0,.06),rgba(11,6,2,.72));padding:16px}
 .conta-titulo{margin-bottom:12px;color:#ffe4b7;font:700 11px var(--mac-ui)}

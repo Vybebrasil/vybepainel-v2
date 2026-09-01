@@ -182,11 +182,25 @@ export async function semear({ refazer = false } = {}) {
   return { ja_existiam: existentes, criadas, atualizadas, removidas: orfas.map((o) => o.nome) };
 }
 
+// Cada regra volta com o proprio historico resumido. Sem isto, a tela mostrava
+// doze regras identicas em aparencia e ninguem sabia dizer quais estavam mesmo
+// trabalhando — a unica forma de descobrir era ler o registro inteiro e cruzar
+// nome por nome na mao.
 export async function listar() {
   await criarSchemaAutomacoes();
   const sql = database();
-  return sql`SELECT id, nome, ativa, ordem, gatilho, condicao, acoes, origem, alterada_em
-    FROM vybe_automacoes ORDER BY ordem, id`;
+  return sql`SELECT a.id, a.nome, a.ativa, a.ordem, a.gatilho, a.condicao, a.acoes,
+      a.origem, a.alterada_em,
+      COALESCE(e.total, 0)::int AS execucoes_total,
+      COALESCE(e.em_30_dias, 0)::int AS execucoes_30_dias,
+      e.ultima_em
+    FROM vybe_automacoes a
+    LEFT JOIN (
+      SELECT automacao_id, COUNT(*) AS total, MAX(em) AS ultima_em,
+             COUNT(*) FILTER (WHERE em > NOW() - INTERVAL '30 days') AS em_30_dias
+        FROM vybe_automacao_execucoes GROUP BY automacao_id
+    ) e ON e.automacao_id = a.id
+    ORDER BY a.ordem, a.id`;
 }
 
 export async function salvar(dados) {

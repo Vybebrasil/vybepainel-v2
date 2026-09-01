@@ -27,7 +27,12 @@ async function areaAutomacoes(req, res, quem) {
         conteudoId: req.query?.conteudo_id ? Number(req.query.conteudo_id) : null,
       }) });
     }
-    return res.status(200).json({ ok: true, automacoes: await listar() });
+    // Os catalogos vao junto porque o construtor de regras precisa oferecer
+    // ESCOLHAS, nao pedir que alguem digite a chave certa de cor. E vao daqui,
+    // e nao de outra tela, para a de Automacoes funcionar sozinha mesmo sendo a
+    // primeira aberta na sessao.
+    return res.status(200).json({ ok: true, automacoes: await listar(),
+      catalogos: await catalogosDeAutomacao() });
   }
 
   // Ler quais regras existem é útil para todo mundo entender por que uma peça
@@ -67,6 +72,28 @@ async function areaAutomacoes(req, res, quem) {
   }
 
   return res.status(405).json({ error: 'Método não permitido.' });
+}
+
+// As listas que o construtor de regras oferece. Cada uma devolve a CHAVE que a
+// regra guarda e o ROTULO que a pessoa le — os dois lados do mesmo item, que
+// antes so existiam na cabeca de quem escrevia o JSON na mao.
+async function catalogosDeAutomacao() {
+  const db = sql();
+  // allSettled e nao all: um catalogo que falhe nao pode derrubar a lista de
+  // regras junto. O construtor perde uma lista de escolhas, a tela continua de pe.
+  const [status, captacao, grupos, pessoas, formatos] = (await Promise.allSettled([
+    db`SELECT chave, rotulo, cor FROM vybe_status
+        WHERE board_id=7829537690 AND ativa IS NOT FALSE ORDER BY monday_index`,
+    db`SELECT chave, rotulo, cor FROM vybe_captacao ORDER BY monday_index`,
+    db`SELECT DISTINCT grupo_id AS chave, etapa AS rotulo FROM vybe_conteudos
+        WHERE grupo_id IS NOT NULL AND etapa IS NOT NULL AND removido_em IS NULL
+        ORDER BY etapa`,
+    db`SELECT monday_user_id AS chave, nome AS rotulo, foto_url AS foto FROM vybe_pessoas
+        WHERE monday_user_id IS NOT NULL ORDER BY nome`,
+    db`SELECT chave, rotulo FROM vybe_opcoes
+        WHERE coluna_id='lista_suspensa0__1' ORDER BY rotulo`,
+  ])).map((r) => (r.status === 'fulfilled' ? r.value : []));
+  return { status, captacao, grupos, pessoas, formatos };
 }
 
 // ── notificações ──────────────────────────────────────────────────────────────
