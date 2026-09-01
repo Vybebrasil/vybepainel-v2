@@ -695,6 +695,35 @@ function sortDemandas(items) {
 // solicitacao aparece sem tipo, e era por isso que o problema nunca virava
 // numero. Aqui 'tipo' manda, e 'formato_original' e a copia fiel dele; so quem
 // nao tem nenhum dos dois cai no formato.
+// A REGRA DO CALENDARIO, dita pelo Paulo em 01/09/2026: uma solicitacao so entra
+// no calendario de conteudo se ela vai pro feed — e quem diz isso e a TAG dela.
+// Card, Carrossel, Fotografia e Reels vao. Relatorio, reuniao, ajuste de site e
+// o que mais aparecer nao vao: sao trabalho, mas nao sao publicacao.
+//
+// PARA MUDAR A REGRA, mexa so nesta lista: cada linha e o comeco do nome da tag,
+// sem acento e em minusculas. Vale o comeco e nao o nome inteiro porque a mesma
+// tag chega escrita de varios jeitos, e o plural do portugues troca a palavra:
+// 'Carrossel' vira 'Carrosseis', 'Foto' vira 'Fotografia'. Comparar pelo comeco
+// pega os dois; comparar pelo nome exato perdia metade.
+const TAGS_DO_FEED = ['card', 'carross', 'foto', 'reel', 'feed'];
+function chaveDeTag(texto) {
+  return String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z]/g, '');
+}
+function tagEhDeFeed(tag) {
+  const chave = chaveDeTag(tag);
+  return Boolean(chave) && TAGS_DO_FEED.some((comeco) => chave.startsWith(comeco));
+}
+// Sem tag nao e "nao vai pro feed" — e "ninguem disse ainda". Some do calendario
+// so quem tem uma tag que diz explicitamente outra coisa; assim uma peca de feed
+// que alguem esqueceu de etiquetar nunca desaparece da agenda em silencio.
+function solicitacaoVaiProFeed(item) {
+  const tag = tipoDaDemanda(item);
+  return !tag || tagEhDeFeed(tag);
+}
+function solicitacaoSemTag(item) {
+  return !tipoDaDemanda(item);
+}
 function tipoDaDemanda(d) {
   if (!d) return '';
   const bruto = String(

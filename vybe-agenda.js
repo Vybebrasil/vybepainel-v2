@@ -222,6 +222,11 @@ function toggleAgendaMensal() { alternarPainelDaBarra('calendario'); }
 
 let managerCalendarClientFilter = 'all';
 let managerCalendarSourceFilter = 'all';
+// Solicitacao que nao vai pro feed nao pertence ao calendario de conteudo, mas
+// tambem nao pode sumir sem aviso: guardamos quantas ficaram de fora para dizer
+// isso na tela, com um botao para mostra-las quando alguem quiser.
+let MOSTRAR_FORA_DO_FEED = false;
+let FORA_DO_FEED_NO_MES = 0;
 let managerCalendarDragPayload = null;
 let managerCalendarDemandasLoading = false;
 
@@ -270,7 +275,14 @@ function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
   const requests = (DADOS_DEMANDAS || []).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item)).map(item => ({
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'request', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.conclusao_iso || ''), calendarType: item.tipo || 'Solicitação'
   }));
+  // Aqui mora a regra: a tag da solicitacao decide se ela e publicacao.
+  const foraDoFeed = typeof solicitacaoVaiProFeed === 'function'
+    ? requests.filter((item) => !solicitacaoVaiProFeed(item) && item.calendarDateIso)
+    : [];
+  FORA_DO_FEED_NO_MES = foraDoFeed.length;
+  const escondidas = MOSTRAR_FORA_DO_FEED ? new Set() : new Set(foraDoFeed.map((i) => String(i.id)));
   return [...production, ...requests].filter(item => {
+    if (item.calendarSource === 'request' && escondidas.has(String(item.id))) return false;
     // 'apenas' e o recorte fixo de quem chama (a aba Solicitacoes pede so as
     // dela); managerCalendarSourceFilter continua sendo a escolha da pessoa.
     if (apenas && item.calendarSource !== apenas) return false;
@@ -370,6 +382,10 @@ function managerCalendarOpenClientMaster() {
   const button=document.getElementById('btn-board-clientes');
   if(typeof switchBoard==='function') switchBoard('clientes',button);
   if(client) setTimeout(()=>{ if(typeof abrirClienteDetalhe==='function') abrirClienteDetalhe(client); },120);
+}
+function alternarForaDoFeed() {
+  MOSTRAR_FORA_DO_FEED = !MOSTRAR_FORA_DO_FEED;
+  renderManagerCalendar();
 }
 function managerCalendarSetSource(source) {
   managerCalendarSourceFilter = source || 'all';
@@ -775,7 +791,21 @@ function renderManagerCalendar() {
     + `<button type="button" class="manager-calendar-vertodos" onclick="verTodosOsClientes(false)">ver menos</button>`;
   const clientButtons = (modoClientes === 'busca' ? busca
     : modoClientes === 'fichas' ? fichasComRecolher : resumo) + alternar;
-  const demandNote = DADOS_DEMANDAS.length ? `<div class="manager-calendar-demand-note"><span><b>${sourceCount.request}</b> solicitações aparecem na agenda. Elas permanecem separadas do conteúdo e podem ser abertas pelo próprio calendário.</span><button type="button" onclick="switchBoard('demandas',document.getElementById('btn-board-demandas'))">Abrir esteira de solicitações →</button></div>` : `<div class="manager-calendar-demand-note"><span><b>Solicitações ainda não carregadas nesta sessão.</b> A agenda já está preparada para cruzar o board de Solicitação de Demandas sem misturar sua origem com conteúdo.</span><button type="button" onclick="managerCalendarLoadDemandas(this)">Carregar solicitações</button></div>`;
+  // O calendario e de conteudo: so entra solicitacao que vira publicacao. Dizer
+  // quantas ficaram de fora, e deixar ver, evita a suspeita de que sumiu.
+  const uma = FORA_DO_FEED_NO_MES === 1;
+  const foraNota = FORA_DO_FEED_NO_MES
+    ? `<span class="manager-calendar-fora"><b>${FORA_DO_FEED_NO_MES}</b> ${
+        uma ? 'solicitação não vai' : 'solicitações não vão'} pro feed${
+        MOSTRAR_FORA_DO_FEED ? (uma ? ' e está aparecendo' : ' e estão aparecendo')
+                             : (uma ? ' e ficou de fora' : ' e ficaram de fora')}.<button type="button" onclick="alternarForaDoFeed()">${
+        MOSTRAR_FORA_DO_FEED ? 'esconder de novo' : 'mostrar mesmo assim'}</button></span>` : '';
+  // Quando as de fora estao a mostra, a conta do inicio da frase deixa de ser
+  // "solicitacoes de feed": dizer isso seria mentira sobre o que esta na tela.
+  const abertura = MOSTRAR_FORA_DO_FEED
+    ? `<b>${sourceCount.request}</b> ${sourceCount.request === 1 ? 'solicitação aparece' : 'solicitações aparecem'} na agenda.`
+    : `<b>${sourceCount.request}</b> ${sourceCount.request === 1 ? 'solicitação de feed aparece' : 'solicitações de feed aparecem'} na agenda — Card, Carrossel, Fotografia e Reels.`;
+  const demandNote = DADOS_DEMANDAS.length ? `<div class="manager-calendar-demand-note"><span>${abertura} ${foraNota}</span><button type="button" onclick="switchBoard('demandas',document.getElementById('btn-board-demandas'))">Abrir esteira de solicitações →</button></div>` : `<div class="manager-calendar-demand-note"><span><b>Solicitações ainda não carregadas nesta sessão.</b> A agenda já está preparada para cruzar o board de Solicitação de Demandas sem misturar sua origem com conteúdo.</span><button type="button" onclick="managerCalendarLoadDemandas(this)">Carregar solicitações</button></div>`;
   wrap.innerHTML = `<div class="manager-calendar-head"><div><div class="manager-calendar-kicker">Gestor · Planejamento visual</div><div class="manager-calendar-title">Agenda mensal por cliente</div><div class="manager-calendar-sub">Troque de cliente, veja veiculações e prazos no mês, abra a atividade no Workspace e arraste um item para preparar uma nova data.</div></div><div class="manager-calendar-actions"><button type="button" class="${dateMode==='veiculacao'?'active':''}" onclick="managerCalendarSetDateMode('veiculacao')">Veiculação</button><button type="button" class="${dateMode==='prazo'?'active':''}" onclick="managerCalendarSetDateMode('prazo')">Prazo</button><button type="button" class="primary" onclick="managerCalendarAdd('${managerCalendarDateIso(new Date())}')">+ CADASTROS</button><button type="button" onclick="managerCalendarOpenClientMaster()">Cliente master</button></div></div><div class="manager-calendar-toolbar"><div class="manager-calendar-month"><button type="button" onclick="managerCalendarGoMonth(-1)" aria-label="Mês anterior">‹</button><span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span><button type="button" onclick="managerCalendarGoMonth(1)" aria-label="Próximo mês">›</button><button type="button" onclick="managerCalendarGoToday()">HOJE</button></div><div class="manager-calendar-clients">${clientButtons}</div><div class="manager-calendar-status"><i class="${DADOS_DEMANDAS.length?'demands':''}"></i>${sourceCount.content} conteúdo · ${sourceCount.request} solicitações</div></div><div class="manager-calendar-legend"><span class="manager-calendar-legend-copy">Referência ativa: <b>${dateMode==='prazo'?'PRAZO DE PRODUÇÃO':'VEICULAÇÃO'}</b> · clique para abrir · arraste para mover</span><span class="manager-calendar-source-legend"><span><i></i> Conteúdo</span><span><i class="request"></i> Solicitação de Demanda</span></span></div>${demandNote}<div class="manager-calendar-grid"><div class="manager-calendar-weekday">SEG</div><div class="manager-calendar-weekday">TER</div><div class="manager-calendar-weekday">QUA</div><div class="manager-calendar-weekday">QUI</div><div class="manager-calendar-weekday">SEX</div><div class="manager-calendar-weekday">SÁB</div><div class="manager-calendar-weekday">DOM</div>${cells}</div><div class="manager-calendar-footer"><span><strong>${monthItems.length}</strong> itens no mês · <strong>${clients.length}</strong> clientes com atividade</span><button type="button" onclick="managerCalendarSetClient('all');managerCalendarSetSource('all')">Limpar visão do calendário</button></div>`;
 }
 
