@@ -928,15 +928,27 @@ async function applyDaPlanningBulkDeadline(userId){ const date=String(document.g
 // ativas isso e uma hora de digitacao para chegar a uma conta que o computador
 // faz em milissegundos.
 //
-// A regra que a operacao ja segue, escrita como codigo:
-//   1. quem vai ao ar primeiro e feito primeiro (ordem pela veiculacao);
-//   2. cerca de cinco entregas por dia por pessoa;
-//   3. prazo nunca depois da veiculacao — isso ja e lei no painel;
-//   4. nada e marcado para ontem: a fila comeca hoje.
-//
 // A proposta NAO GRAVA NADA. Ela devolve a lista do que mudaria, e quem decide
 // e a pessoa olhando a lista. Reescrever 89 prazos em silencio seria trocar um
 // trabalho chato por um susto.
+
+// A proposta de agenda para as pessoas da mesa. Uma fila por pessoa: duas
+// pessoas dividindo a mesa nao somam carga uma da outra.
+//
+// DUAS VERSOES ANTERIORES ERRARAM, e as duas por acreditar demais numa regra so.
+//
+// A primeira enfileirava tudo a partir de hoje, cinco por dia, e ignorava o
+// Prazo de Ouro: onze pecas viravam onze prazos nos tres dias seguintes.
+//
+// A segunda ancorou tudo no Prazo de Ouro — sete dias antes do ar — e caiu no
+// oposto: com o trabalho todo empurrado para a vespera do proprio ar, AMANHA
+// FICAVA VAZIO. Uma agenda que deixa a pessoa sem o que fazer amanha e sem
+// tempo depois nao e uma agenda.
+//
+// A regra que vale e a da operacao: cada pessoa com CINCO ENTREGAS POR DIA UTIL,
+// na ordem de quem vai ao ar primeiro, comecando hoje. O Prazo de Ouro deixa de
+// mandar e vira o que sempre foi bom para ser — um sinal na tela. E o unico
+// limite duro continua sendo a veiculacao: prazo nunca depois do ar.
 const CARGA_IDEAL_POR_DIA = 5;
 
 function proximoDiaUtil(iso) {
@@ -952,19 +964,6 @@ function somarDias(iso, dias) {
   return d.toISOString().slice(0, 10);
 }
 
-// A proposta de agenda para as pessoas da mesa. Uma fila por pessoa: duas
-// pessoas dividindo a mesa nao somam carga uma da outra.
-//
-// A PRIMEIRA VERSAO DESTA CONTA ESTAVA ERRADA e vale registrar por que. Ela
-// enfileirava tudo a partir de HOJE, cinco por dia: onze pecas viravam onze
-// prazos nos tres dias seguintes, para conteudo que ia ao ar ao longo de sete
-// semanas. Cumpria as regras e produzia uma agenda impossivel.
-//
-// O alvo certo ja era lei no painel: o PRAZO DE OURO, sete dias antes do ar.
-// Cada peca comeca ali. A carga de cinco por dia deixa de ser a regra que
-// distribui e passa a ser o limite que corrige — dia cheio empurra a peca para
-// ANTES (protege a veiculacao), e so quando nao ha dia livre antes e que ela
-// anda para depois, nunca passando do ar.
 function proporAgenda(pessoasDaMesa) {
   const hoje = daPlanningTodayIso();
   const propostas = [];
@@ -978,61 +977,36 @@ function proporAgenda(pessoasDaMesa) {
     itens.filter((item) => !String(item.veiculacao_iso || ''))
       .forEach((item) => { if (!semVeiculacao.some((x) => String(x.id) === String(item.id))) semVeiculacao.push(item); });
     // O DESEMPATE PELO ID NAO E DETALHE: duas pecas que vao ao ar no mesmo dia
-    // empatam, e sem um criterio fixo a ordem entre elas mudava a cada leitura.
-    // O resultado era um vaivem — rodar a proposta logo depois de aplicar
-    // sugeria trocar as duas de lugar, e aplicar de novo trocava de volta. Um
-    // botao que promete "arrumar" precisa chegar a um estado e ficar nele.
+    // empatam, e sem criterio fixo a ordem entre elas mudava a cada leitura — a
+    // proposta ficava sugerindo troca-las de lugar para sempre.
     const comData = itens.filter((item) => String(item.veiculacao_iso || ''))
       .sort((a, b) => String(a.veiculacao_iso).localeCompare(String(b.veiculacao_iso))
         || String(a.id).localeCompare(String(b.id)));
 
     const carga = new Map();
-    const cabe = (dia) => (carga.get(dia) || 0) < CARGA_IDEAL_POR_DIA;
-    const ehUtil = (dia) => { const d = new Date(`${dia}T12:00:00`).getDay(); return d !== 0 && d !== 6; };
+    let dia = proximoDiaUtil(hoje);
 
     comData.forEach((item) => {
       const veic = String(item.veiculacao_iso);
-      // Onde a peca DEVERIA cair: sete dias antes do ar, nunca no passado e
-      // nunca depois do proprio ar.
-      let alvo = goldenDeadlineIso(veic) || veic;
-      if (alvo < hoje) alvo = hoje;
-      if (alvo > veic) alvo = veic;
-      if (!ehUtil(alvo)) alvo = proximoDiaUtil(alvo) > veic ? alvo : proximoDiaUtil(alvo);
-
-      let escolhido = alvo;
-      if (!cabe(alvo)) {
-        // Dia cheio: procura ANTES primeiro — adiantar protege a veiculacao,
-        // atrasar a ameaca.
-        let antes = ''; let d = alvo;
-        for (let i = 0; i < 30 && d > hoje; i += 1) {
-          d = somarDias(d, -1);
-          if (d >= hoje && ehUtil(d) && cabe(d)) { antes = d; break; }
-        }
-        if (antes) escolhido = antes;
-        else {
-          let depois = ''; let e = alvo;
-          for (let i = 0; i < 30 && e < veic; i += 1) {
-            e = somarDias(e, 1);
-            if (e <= veic && ehUtil(e) && cabe(e)) { depois = e; break; }
-          }
-          // Sem dia livre dos dois lados, a peca fica no alvo e o dia estoura os
-          // cinco. Preferir a data certa a uma carga bonita: a alternativa seria
-          // mover a peca para depois do ar.
-          escolhido = depois || alvo;
-        }
-      }
+      // Enche o dia ate a meta antes de andar para o proximo: e isso que impede
+      // o dia de amanha de nascer vazio.
+      while ((carga.get(dia) || 0) >= CARGA_IDEAL_POR_DIA) dia = proximoDiaUtil(somarDias(dia, 1));
+      // Unico limite duro: nada depois do ar. Peca que vai ao ar antes da vez
+      // dela na fila e puxada para o proprio dia de veiculacao.
+      const escolhido = dia > veic ? veic : dia;
       carga.set(escolhido, (carga.get(escolhido) || 0) + 1);
 
       const atual = String(item.prazo_iso || '');
       if (atual === escolhido) return;
+      const ouro = goldenDeadlineIso(veic);
       propostas.push({
         id: String(item.id), nome: item.nome || 'Sem título', cliente: item.cliente || '',
         de: atual, para: escolhido, veiculacao: veic,
         motivo: !atual ? 'estava sem prazo'
           : atual < hoje ? 'o prazo já tinha passado'
-          : escolhido !== alvo ? 'o dia ideal estava cheio'
-          : atual > veic ? 'o prazo passava da veiculação'
-          : 'para ficar nos 7 dias antes do ar',
+          : escolhido === veic && dia > veic ? 'vai ao ar antes da vez na fila'
+          : ouro && escolhido > ouro ? 'entrou na fila do dia · fica abaixo dos 7 dias'
+          : 'para encher o dia de trabalho',
       });
     });
   });
@@ -1072,7 +1046,7 @@ function daPlanningPainelDeAcao(itens, pessoasDaMesa) {
       <div class="ag-acao-lado">
         <span class="ag-acao-nota">${proposta
           ? `<b>${proposta}</b> ${proposta === 1 ? 'prazo sairia do lugar' : 'prazos sairiam do lugar'} se a agenda fosse arrumada agora.`
-          : 'A agenda já está nos 7 dias antes do ar e dentro da carga do dia.'}</span>
+          : `A agenda já está cheia na ordem de veiculação, ${CARGA_IDEAL_POR_DIA} por dia útil.`}</span>
         <button type="button" class="ag-arrumar" onclick="arrumarAgenda()" ${proposta ? '' : 'disabled'}>
           Arrumar a agenda</button>
       </div>
@@ -1098,7 +1072,7 @@ function arrumarAgenda() {
     : '';
 
   openWorkflowModal(`<div class="workflow-head"><b>Arrumar a agenda</b>
-      <small>Ordem pela veiculação · até ${r.carga} entregas por dia · prazo nunca depois do ar · nada em fim de semana</small></div>
+      <small>${r.carga} entregas por dia útil, na ordem de quem vai ao ar primeiro · prazo nunca depois do ar · nada em fim de semana</small></div>
     ${r.propostas.length
       ? `<div class="ag-resumo"><b>${r.propostas.length}</b> ${r.propostas.length === 1 ? 'prazo mudaria' : 'prazos mudariam'}. Confira antes de aplicar.</div>
          <div id="ag-lista-ou-progresso"><div class="ag-lista">${linhas}</div></div>`
