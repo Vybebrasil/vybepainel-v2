@@ -424,8 +424,15 @@ async function salvarHeadsDoCliente() {
 function situacaoDoClienteHtml(nome, estado) {
   const rotulo = estado === 'inativos' ? 'Inativo' : estado === 'sem' ? 'Sem cadastro' : 'Ativo';
   const classe = estado === 'inativos' ? 'inativo' : estado === 'sem' ? 'nenhum' : 'ativo';
-  if (estado === 'sem' || !podeEditarClientes()) return `<span class="cli-situacao ${classe}">${rotulo}</span>`;
+  if (!podeEditarClientes()) return `<span class="cli-situacao ${classe}">${rotulo}</span>`;
   const aspas = String(nome).replace(/'/g, "\\'");
+  // "Sem cadastro" nao era clicavel, entao o clique subia para a linha e abria o
+  // cliente — justamente quando a pessoa queria era torna-lo ativo. Agora a
+  // etiqueta faz o que promete: cadastra e ja deixa ativo.
+  if (estado === 'sem') {
+    return `<button type="button" class="cli-situacao ${classe}" title="Clique para cadastrar e deixar ativo"
+      onclick="event.stopPropagation();cadastrarClienteDaOperacao('${aspas}')">${rotulo}</button>`;
+  }
   return `<button type="button" class="cli-situacao ${classe}" title="Clique para trocar"
     onclick="event.stopPropagation();trocarSituacaoDoCliente('${aspas}', ${estado === 'inativos'})">${rotulo}</button>`;
 }
