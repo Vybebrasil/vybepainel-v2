@@ -483,7 +483,11 @@ async function areaClientes(req, res, quem) {
              (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
              (SELECT STRING_AGG(p.nome, ', ' ORDER BY cp.ordem, p.nome)
                 FROM vybe_cliente_pessoas cp JOIN vybe_pessoas p ON p.id = cp.pessoa_id
-               WHERE cp.cliente_id = c.id) AS heads
+               WHERE cp.cliente_id = c.id) AS heads,
+             -- Sem os ids, a tela sabe QUEM e head mas nao consegue trocar: o
+             -- nome sozinho nao volta para o banco.
+             (SELECT ARRAY_AGG(cp.pessoa_id ORDER BY cp.ordem)
+                FROM vybe_cliente_pessoas cp WHERE cp.cliente_id = c.id) AS heads_ids
         FROM vybe_clientes c ORDER BY c.ativo DESC, c.nome`,
       db`SELECT a.id, a.nome, a.cliente_id, c.nome AS cliente, a.grupo,
                 a.pasta_drive AS drive, a.link, a.manus,
@@ -492,7 +496,11 @@ async function areaClientes(req, res, quem) {
            FROM vybe_acessos a LEFT JOIN vybe_clientes c ON c.id=a.cliente_id
           ORDER BY COALESCE(c.nome,a.nome)`,
     ]);
-    return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos });
+    // Quem pode ser head. Vai junto para o seletor nao precisar de outra volta ao
+    // servidor — e porque a tela de clientes nao lista a equipe sozinha.
+    const pessoas = await db`SELECT id, nome, monday_user_id FROM vybe_pessoas
+      WHERE ativo ORDER BY nome`;
+    return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos, pessoas });
   }
   if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra altera clientes.' });
 
@@ -537,6 +545,32 @@ async function areaClientes(req, res, quem) {
       if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
     }
+    // Head e vinculo, nao campo: mudar e trocar a lista inteira de uma vez, na
+    // ordem em que a pessoa escolheu.
+    if (acao === 'heads') {
+      const { pessoas } = req.body || {};
+      if (!id || !Array.isArray(pessoas)) return res.status(400).json({ error: 'Informe o cliente e as pessoas.' });
+      const ids = pessoas.map((p) => Number(p)).filter((n) => Number.isFinite(n) && n > 0);
+      await db`DELETE FROM vybe_cliente_pessoas WHERE cliente_id = ${Number(id)}`;
+      for (let i = 0; i < ids.length; i += 1) {
+        await db`INSERT INTO vybe_cliente_pessoas (cliente_id, pessoa_id, ordem)
+          VALUES (${Number(id)}, ${ids[i]}, ${i}) ON CONFLICT DO NOTHING`;
+      }
+      return res.status(200).json({ ok: true, pessoas: ids });
+    }
+
+    // Segmento e etiqueta compartilhada: renomear em um cliente so criaria um
+    // vocabulario paralelo. Aqui a troca vale para todos que usam a etiqueta.
+    if (acao === 'segmento-renomear' || acao === 'segmento-apagar') {
+      const de = String(req.body?.de || '').trim();
+      if (!de) return res.status(400).json({ error: 'Informe a etiqueta.' });
+      const para = acao === 'segmento-apagar' ? null : String(req.body?.para || '').trim();
+      if (acao === 'segmento-renomear' && !para) return res.status(400).json({ error: 'Informe o novo nome.' });
+      const r = await db`UPDATE vybe_clientes SET segmento = ${para}
+        WHERE LOWER(segmento) = LOWER(${de}) RETURNING id`;
+      return res.status(200).json({ ok: true, clientes: r.length });
+    }
+
     if (acao === 'renomear') {
       const limpo = String(nome || '').trim();
       if (!id || !limpo) return res.status(400).json({ error: 'Informe o cliente e o novo nome.' });

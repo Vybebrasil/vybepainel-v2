@@ -2001,6 +2001,40 @@ button.subitem-marca:hover{transform:scale(1.35)}
   border:1px solid var(--accent,#ff6b00);background:rgba(0,0,0,.32);color:#eef1f6;
   font:500 12px/1.6 var(--mac-mono);outline:none}
 #cli-doc-editor::placeholder{color:#5c6478}
+/* O "+" de quem ainda nao tem: convite discreto, no lugar do travessao. */
+.cli-mais{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;
+  border:1px dashed rgba(255,255,255,.20);color:#6f7887;font:700 12px var(--mac-ui);cursor:pointer}
+.cli-mais:hover{border-color:var(--accent,#ff6b00);border-style:solid;color:#ffc79a;
+  background:color-mix(in srgb,var(--accent,#ff6b00) 12%,transparent)}
+/* Trocar um endereco que ja existe, sem perder o atalho de abrir. */
+.cli-liga{white-space:nowrap}
+.cli-troca{margin-left:5px;color:#5c6478;font-size:10px;cursor:pointer;opacity:0}
+.cli-tabela tbody tr:hover .cli-troca{opacity:1}
+.cli-troca:hover{color:var(--accent,#ff6b00)}
+/* Ativo, inativo e sem cadastro: a resposta que estava escondida na ficha. */
+.cli-situacao{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid transparent;
+  font:700 9.5px var(--mac-ui);letter-spacing:.03em;white-space:nowrap;cursor:pointer}
+button.cli-situacao:hover{filter:brightness(1.25)}
+.cli-situacao.ativo{border-color:rgba(0,200,117,.42);background:rgba(0,200,117,.14);color:#7ef0b6}
+.cli-situacao.inativo{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:#8f98a9}
+.cli-situacao.nenhum{border-color:rgba(255,176,0,.32);background:rgba(255,176,0,.09);color:#e0b878}
+/* Segmento e etiqueta: uma so forma para todas, porque a cor aqui nao e dado. */
+.cli-tag-chip{display:inline-block;padding:2px 9px;border-radius:6px;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#cbd3df;
+  font:600 10.5px var(--mac-ui);white-space:nowrap}
+.cli-tags{display:flex;flex-direction:column;gap:6px;max-height:44vh;overflow:auto;margin:16px 0 4px}
+.cli-tag{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:9px;
+  border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.02)}
+.cli-tag.ativa{border-color:var(--accent,#ff6b00);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 12%,transparent)}
+.cli-tag-nome{flex:1;display:flex;align-items:center;gap:8px;border:0;background:none;text-align:left;
+  padding:3px 6px;color:#eef1f6;font:600 12px var(--mac-ui);cursor:pointer}
+.cli-tag-nome:hover{color:#fff}
+.cli-tag-nome small{color:#6f7887;font:600 10px var(--mac-mono)}
+.cli-tag-acao{border:0;background:none;padding:3px 7px;border-radius:6px;color:#6f7887;
+  font:600 10px var(--mac-ui);cursor:pointer}
+.cli-tag-acao:hover{background:rgba(255,255,255,.07);color:#e7ecf5}
+.cli-tag-acao.apagar:hover{background:rgba(255,77,109,.14);color:#ff9db1}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}

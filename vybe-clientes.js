@@ -71,6 +71,7 @@ async function ensureClientMasterSources(force=false) {
     const corpo=await resposta.json();
     if(!resposta.ok) throw new Error(corpo?.error || `Cadastro mestre indisponível (${resposta.status})`);
     CADASTRO_CLIENTES=corpo.clientes || [];
+    PESSOAS_DO_CADASTRO=corpo.pessoas || [];
     CLIENT_MASTER_HEADS=CADASTRO_CLIENTES.map(row=>({
       id:String(row.id),name:String(row.nome||'').trim(),url:'',updated_at:'',
       people:row.heads||row.responsavel||'',status:row.status||(row.ativo?'Ativo':'Inativo'),
@@ -160,6 +161,9 @@ function renderClientMasterDetail(cli) {
 // Clientes" e só existiam no Monday. Agora estão no nosso banco, e a tela que já
 // mostrava a operação de cada cliente passa a mostrar quem ele é.
 let CADASTRO_CLIENTES = [];
+// Quem pode ser head. Vem junto do cadastro; o seletor precisa do id do banco,
+// e a bolinha com foto vem do time, casada pelo id do Monday.
+let PESSOAS_DO_CADASTRO = [];
 
 async function carregarCadastroClientes() {
   await ensureClientMasterSources();
@@ -353,9 +357,179 @@ function pessoaPeloNome(nome) {
 }
 function headsDoClienteHtml(texto) {
   const nomes = String(texto || '').split(',').map((n) => n.trim()).filter(Boolean);
-  if (!nomes.length) return '<span class="cli-vazio">—</span>';
+  if (!nomes.length) return '<span class="cli-mais" title="Nenhum head — clique para escolher">+</span>';
   return `<div class="owner-avatar-stack cli-heads" title="${safeText(nomes.join(', '))}">${
     nomes.map((n) => ownerAvatarHtml(pessoaPeloNome(n))).join('')}</div>`;
+}
+
+// ── Quem e head deste cliente ─────────────────────────────────────────────────
+// Head e vinculo com a equipe, nao um campo de texto: por isso nao entrava na
+// edicao da celula junto com plano e segmento. Aqui ele ganha o seletor de
+// sempre — bolinha com foto, clique para somar ou tirar.
+let HEADS_ESCOLHIDOS = new Set();
+let HEADS_DO_CLIENTE = null;
+function abrirHeadsDoCliente(event, nome) {
+  event.stopPropagation();
+  if (!podeEditarClientes()) return showToast('Só quem administra muda o head.', 'warning', 3500);
+  const id = idDoCliente(nome);
+  if (!id) return showToast('Este cliente ainda não tem cadastro próprio.', 'warning', 5000);
+  const f = cadastroDoCliente(nome) || {};
+  HEADS_DO_CLIENTE = { id, nome };
+  HEADS_ESCOLHIDOS = new Set((f.heads_ids || []).map(String));
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Cadastro de clientes</span>
+      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">Head de ${safeText(nome)}</h2>
+    <p class="workflow-copy">Clique para somar ou tirar. Vale mais de uma pessoa; a ordem do clique
+      é a ordem que aparece na lista.</p>
+    <div id="cli-heads-lista" class="dono-pessoas"></div>
+    <div class="workflow-actions">
+      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
+      <button type="button" class="workflow-primary" onclick="salvarHeadsDoCliente()">Salvar head →</button>
+    </div>`);
+  pintarHeadsDoCliente();
+}
+function pintarHeadsDoCliente() {
+  const caixa = document.getElementById('cli-heads-lista');
+  if (!caixa) return;
+  if (!PESSOAS_DO_CADASTRO.length) {
+    caixa.innerHTML = '<div class="auto-carregando">A equipe ainda não chegou. Recarregue a página.</div>';
+    return;
+  }
+  caixa.innerHTML = PESSOAS_DO_CADASTRO.map((p) => {
+    const escolhida = HEADS_ESCOLHIDOS.has(String(p.id));
+    const doTime = (typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS)
+      .find((u) => String(u.id) === String(p.monday_user_id)) || pessoaPeloNome(p.nome);
+    return `<button type="button" class="dono-pessoa ${escolhida ? 'ativo' : ''}"
+      onclick="escolherHeadDoCliente('${safeText(String(p.id))}')"
+      title="${safeText(p.nome)}">${ownerAvatarHtml(doTime)}<span>${safeText(firstName(p.nome))}</span></button>`;
+  }).join('');
+}
+function escolherHeadDoCliente(pessoaId) {
+  const chave = String(pessoaId);
+  if (HEADS_ESCOLHIDOS.has(chave)) HEADS_ESCOLHIDOS.delete(chave); else HEADS_ESCOLHIDOS.add(chave);
+  pintarHeadsDoCliente();
+}
+async function salvarHeadsDoCliente() {
+  if (!HEADS_DO_CLIENTE) return;
+  try {
+    await gravarCadastroDeCliente({ acao:'heads', id: HEADS_DO_CLIENTE.id, pessoas:[...HEADS_ESCOLHIDOS] },
+      'Head do cliente salvo.');
+    closeWorkflowModal();
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+
+// ── Ativo ou inativo, de fora da ficha ────────────────────────────────────────
+// Estava so dentro do "Editar", num botao chamado "Tirar do painel". Era a
+// pergunta mais frequente da lista e a resposta mais escondida dela.
+function situacaoDoClienteHtml(nome, estado) {
+  const rotulo = estado === 'inativos' ? 'Inativo' : estado === 'sem' ? 'Sem cadastro' : 'Ativo';
+  const classe = estado === 'inativos' ? 'inativo' : estado === 'sem' ? 'nenhum' : 'ativo';
+  if (estado === 'sem' || !podeEditarClientes()) return `<span class="cli-situacao ${classe}">${rotulo}</span>`;
+  const aspas = String(nome).replace(/'/g, "\\'");
+  return `<button type="button" class="cli-situacao ${classe}" title="Clique para trocar"
+    onclick="event.stopPropagation();trocarSituacaoDoCliente('${aspas}', ${estado === 'inativos'})">${rotulo}</button>`;
+}
+async function trocarSituacaoDoCliente(nome, estaInativo) {
+  const id = idDoCliente(nome);
+  if (!id) return;
+  if (!estaInativo && !confirm(`Tirar "${nome}" do painel?\n\nO histórico continua guardado; ele só deixa de aparecer nas telas e não recebe conteúdo novo.`)) return;
+  try {
+    await gravarCadastroDeCliente({ acao: estaInativo ? 'ativar' : 'desativar', id },
+      estaInativo ? 'Cliente de volta ao painel.' : 'Cliente fora do painel.');
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+
+// ── Segmento como etiqueta, nao como texto solto ──────────────────────────────
+// Digitando, "Varejo" e "varejo " viram duas coisas e o vocabulario se desfaz.
+// O seletor mostra as etiquetas que ja existem; criar e um ato explicito, e
+// renomear ou apagar vale para todos os clientes que usam aquela etiqueta.
+function segmentosExistentes() {
+  const vistos = new Map();
+  CADASTRO_CLIENTES.forEach((c) => {
+    const texto = String(c.segmento || '').trim();
+    if (!texto) return;
+    const chave = texto.toLowerCase();
+    vistos.set(chave, { rotulo: vistos.get(chave)?.rotulo || texto, quantos: (vistos.get(chave)?.quantos || 0) + 1 });
+  });
+  return [...vistos.values()].sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR'));
+}
+let SEGMENTO_DO_CLIENTE = null;
+function abrirSegmentoDoCliente(event, nome) {
+  event.stopPropagation();
+  if (!podeEditarClientes()) return showToast('Só quem administra muda o segmento.', 'warning', 3500);
+  const id = idDoCliente(nome);
+  if (!id) return showToast('Este cliente ainda não tem cadastro próprio.', 'warning', 5000);
+  const f = cadastroDoCliente(nome) || {};
+  SEGMENTO_DO_CLIENTE = { id, nome, atual: String(f.segmento || '').trim() };
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Etiquetas de segmento</span>
+      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">Segmento de ${safeText(nome)}</h2>
+    <p class="workflow-copy">Escolha uma etiqueta que já existe, ou crie a próxima. Renomear e apagar
+      valem para todos os clientes que usam a etiqueta — é um vocabulário só.</p>
+    <div id="cli-seg-lista" class="cli-tags"></div>
+    <div class="cli-form"><label class="cli-campo largo"><span>Criar etiqueta nova</span>
+      <input id="cli-seg-nova" type="text" placeholder="Ex.: Odontologia"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();criarSegmento();}"></label></div>
+    <div class="workflow-actions">
+      <button type="button" class="workflow-secondary quieto" onclick="aplicarSegmento('')">Deixar sem segmento</button>
+      <span class="cli-espaco"></span>
+      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button>
+      <button type="button" class="workflow-primary" onclick="criarSegmento()">Criar e aplicar →</button>
+    </div>`);
+  pintarSegmentos();
+}
+function pintarSegmentos() {
+  const caixa = document.getElementById('cli-seg-lista');
+  if (!caixa) return;
+  const atual = String(SEGMENTO_DO_CLIENTE?.atual || '').toLowerCase();
+  const lista = segmentosExistentes();
+  caixa.innerHTML = !lista.length
+    ? '<div class="auto-carregando">Nenhuma etiqueta ainda. Crie a primeira abaixo.</div>'
+    : lista.map(({ rotulo, quantos }) => `<div class="cli-tag ${rotulo.toLowerCase() === atual ? 'ativa' : ''}">
+        <button type="button" class="cli-tag-nome" title="Aplicar em ${safeText(SEGMENTO_DO_CLIENTE.nome)}"
+          onclick="aplicarSegmento('${safeText(rotulo.replace(/'/g, "\\'"))}')">${safeText(rotulo)}<small>${quantos}</small></button>
+        <button type="button" class="cli-tag-acao" title="Renomear em todos os clientes"
+          onclick="renomearSegmento('${safeText(rotulo.replace(/'/g, "\\'"))}')">renomear</button>
+        <button type="button" class="cli-tag-acao apagar" title="Apagar de todos os clientes"
+          onclick="apagarSegmento('${safeText(rotulo.replace(/'/g, "\\'"))}')">apagar</button>
+      </div>`).join('');
+}
+async function aplicarSegmento(rotulo) {
+  if (!SEGMENTO_DO_CLIENTE) return;
+  try {
+    await gravarCadastroDeCliente({ acao:'ficha', id: SEGMENTO_DO_CLIENTE.id, campos:{ segmento: rotulo } },
+      rotulo ? `Segmento: ${rotulo}.` : 'Segmento removido deste cliente.');
+    closeWorkflowModal();
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+async function criarSegmento() {
+  const novo = String(document.getElementById('cli-seg-nova')?.value || '').trim();
+  if (!novo) return showToast('Escreva o nome da etiqueta.', 'warning', 3500);
+  await aplicarSegmento(novo);
+}
+async function renomearSegmento(de) {
+  const para = prompt(`Renomear "${de}" em todos os clientes que usam esta etiqueta.\n\nNovo nome:`, de);
+  if (para === null || !String(para).trim() || String(para).trim() === de) return;
+  try {
+    const d = await gravarCadastroDeCliente({ acao:'segmento-renomear', de, para: String(para).trim() },
+      'Etiqueta renomeada.');
+    showToast(`${d.clientes} cliente(s) atualizado(s).`, 'info', 4000);
+    if (SEGMENTO_DO_CLIENTE && SEGMENTO_DO_CLIENTE.atual.toLowerCase() === de.toLowerCase()) {
+      SEGMENTO_DO_CLIENTE.atual = String(para).trim();
+    }
+    pintarSegmentos();
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+async function apagarSegmento(de) {
+  if (!confirm(`Apagar a etiqueta "${de}"?\n\nEla sai de todos os clientes que a usam. Os clientes continuam; só ficam sem segmento.`)) return;
+  try {
+    const d = await gravarCadastroDeCliente({ acao:'segmento-apagar', de }, 'Etiqueta apagada.');
+    showToast(`${d.clientes} cliente(s) ficaram sem segmento.`, 'info', 4000);
+    if (SEGMENTO_DO_CLIENTE && SEGMENTO_DO_CLIENTE.atual.toLowerCase() === de.toLowerCase()) {
+      SEGMENTO_DO_CLIENTE.atual = '';
+    }
+    pintarSegmentos();
+  } catch (e) { showToast(e.message, 'error', 5000); }
 }
 
 // ── Editar na propria celula ──────────────────────────────────────────────────
@@ -414,7 +588,7 @@ function editarCelulaDoCliente(event, nome, campo) {
   campoEl.onblur = () => encerrar(true);
   if (regra.tipo === 'lista') campoEl.onchange = () => encerrar(true);
 }
-function linhaDeClienteHtml(nome, semCadastro) {
+function linhaDeClienteHtml(nome, semCadastro, estado) {
   const f = cadastroDoCliente(nome) || {};
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
   const registros = clientMasterRecords();
@@ -425,72 +599,121 @@ function linhaDeClienteHtml(nome, semCadastro) {
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
     return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
   const aspas = String(nome).replace(/'/g, "\\'");
-  const porta = (rotulo, valor) => { const url = linkDeCliente(valor);
-    return url ? `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener"
-      onclick="event.stopPropagation()" title="Abrir ${safeText(rotulo)}">${safeText(rotulo)} ↗</a>` : ''; };
-  // A coluna "Link" do quadro de Dados & Acessos quase sempre guarda o projeto
-  // no Manus. Chamar tudo de "Acessos" escondia isso; agora a etiqueta diz o
-  // que o endereco e de verdade.
+  const idNoCadastro = semCadastro ? '' : idDoCliente(nome);
+  const podeMexer = !semCadastro && podeEditarClientes();
+
+  // Drive, Manus e Documento viram colunas proprias — juntos numa celula so,
+  // ninguem via quem estava sem qual. Cada uma abre o que tem, e quem nao tem
+  // ganha um "+" que cria ali mesmo.
+  const vazio = '<span class="cli-vazio">—</span>';
+  const maisOuNada = (titulo, chamada) => podeMexer
+    ? `<span class="cli-mais" title="${titulo}" onclick="event.stopPropagation();${chamada}">+</span>` : vazio;
+  const linkOuMais = (rotulo, valor, campo) => {
+    const url = linkDeCliente(valor);
+    if (url) return `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener"
+      onclick="event.stopPropagation()" title="${safeText(url)}">${safeText(rotulo)} ↗</a>${
+      podeMexer ? `<span class="cli-troca" title="Trocar o endereço"
+        onclick="event.stopPropagation();editarAcessoDoCliente(event, '${aspas}', '${campo}')">✎</span>` : ''}`;
+    return maisOuNada(`Guardar o endereço do ${rotulo}`,
+      `editarAcessoDoCliente(event, '${aspas}', '${campo}')`);
+  };
+  const celulaDrive = `<td class="cli-liga">${linkOuMais('Drive', ligado.drive, 'pasta_drive')}</td>`;
   const outroLink = linkDeCliente(ligado.link);
   const ehManus = /(^|\.)manus\.im$/i.test((() => { try { return new URL(outroLink).hostname; } catch { return ''; } })());
-  // Abre mesmo quando ainda nao ha documento: e de la que se escreve o primeiro.
-  // Cliente cadastrado que nunca teve ficha de acessos ganha "+ Acessos".
-  const idNoCadastro = semCadastro ? '' : idDoCliente(nome);
-  const documento = ligado.acessoId
-    ? `<button type="button" class="cli-porta doc${ligado.doc ? '' : ' quieto'}"
-        title="${ligado.doc ? 'Abrir o documento de acessos deste cliente' : 'Ainda sem documento — abra para escrever o primeiro'}"
-        onclick="event.stopPropagation();abrirDocumentoDoCliente('${safeText(String(ligado.acessoId))}', '${aspas}', '${safeText(idNoCadastro)}')">Documento ↗</button>`
-    : (idNoCadastro && podeEditarClientes())
-      ? `<button type="button" class="cli-porta doc quieto" title="Criar a ficha de acessos deste cliente"
-          onclick="event.stopPropagation();abrirDocumentoDoCliente('', '${aspas}', '${safeText(idNoCadastro)}')">+ Acessos</button>`
-      : '';
-  const portas = [
-    porta('Drive', ligado.drive),
-    porta(ehManus ? 'Manus' : 'Link', outroLink),
-    porta('Planejamento', f.planejamento_url || ligado.planning),
-    documento,
-    // Marcado como "tem Manus" no cadastro, mas sem endereco guardado: dizer que
-    // existe e melhor do que silencio, e explica por que nao ha link.
-    (!ehManus && ligado.temManus) ? '<span class="cli-porta quieto" title="Marcado como tendo projeto no Manus, mas sem endereço guardado no cadastro">Manus</span>' : '',
-  ].filter(Boolean).join('') || '<span class="cli-vazio">—</span>';
+  const celulaManus = `<td class="cli-liga">${
+    outroLink ? linkOuMais(ehManus ? 'Manus' : 'Link', ligado.link, 'link')
+    : ligado.temManus ? `<span class="cli-porta quieto" title="Marcado como tendo projeto no Manus, mas sem endereço guardado">Manus</span>${
+        podeMexer ? `<span class="cli-troca" title="Guardar o endereço"
+          onclick="event.stopPropagation();editarAcessoDoCliente(event, '${aspas}', 'link')">✎</span>` : ''}`
+    : maisOuNada('Guardar o endereço do Manus', `editarAcessoDoCliente(event, '${aspas}', 'link')`)}</td>`;
+  const celulaDoc = `<td class="cli-liga">${
+    ligado.acessoId
+      ? `<button type="button" class="cli-porta doc${ligado.doc ? '' : ' quieto'}"
+          title="${ligado.doc ? 'Abrir o documento de acessos' : 'Ainda sem documento — abra para escrever o primeiro'}"
+          onclick="event.stopPropagation();abrirDocumentoDoCliente('${safeText(String(ligado.acessoId))}', '${aspas}', '${safeText(idNoCadastro)}')">Documento ↗</button>`
+      : maisOuNada('Criar o documento de acessos deste cliente',
+          `abrirDocumentoDoCliente('', '${aspas}', '${safeText(idNoCadastro)}')`)}</td>`;
+
   const lapis = !podeEditarClientes() ? ''
     : semCadastro
       ? `<button type="button" class="cli-lapis criar" title="Criar a ficha de ${safeText(nome)} no cadastro"
           onclick="event.stopPropagation();cadastrarClienteDaOperacao('${aspas}')">Cadastrar</button>`
       : `<button type="button" class="cli-lapis" title="Editar o cadastro de ${safeText(nome)}"
           onclick="event.stopPropagation();abrirFichaDeCliente('${aspas}')">Editar</button>`;
-  // Celula que edita no lugar. Sem cadastro nao ha o que gravar, entao la a
-  // celula continua so mostrando.
-  const editavel = (campo, dentro) => semCadastro || !podeEditarClientes()
+
+  const editavel = (campo, dentro) => !podeMexer
     ? `<td>${dentro}</td>`
     : `<td class="cli-editavel" title="Clique para editar"
         onclick="editarCelulaDoCliente(event, '${aspas}', '${campo}')">${dentro}</td>`;
+  const clicavel = (dentro, chamada, titulo) => !podeMexer
+    ? `<td>${dentro}</td>`
+    : `<td class="cli-editavel" title="${titulo}" onclick="${chamada}">${dentro}</td>`;
+
+  const segmento = String(f.segmento || ligado.segment || '').trim();
   return `<tr onclick="abrirClienteDetalhe('${aspas}')" title="Abrir ${safeText(nome)}">
     <td class="cli-nome">${safeText(nome)}</td>
-    <td>${headsDoClienteHtml(f.heads || ligado.head || '')}</td>
+    ${clicavel(headsDoClienteHtml(f.heads || ligado.head || ''),
+      `abrirHeadsDoCliente(event, '${aspas}')`, 'Clique para escolher o head')}
+    <td>${situacaoDoClienteHtml(nome, estado)}</td>
     ${editavel('dashboard', paineldoClienteHtml(f.dashboard || ligado.dashboard))}
-    ${editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || '<span class="cli-vazio">—</span>')}
-    ${editavel('plano', safeText(f.plano || ligado.plan || '') || '<span class="cli-vazio">—</span>')}
-    ${editavel('segmento', safeText(f.segmento || ligado.segment || '') || '<span class="cli-vazio">—</span>')}
-    <td><div class="cli-portas">${portas}</div></td>
+    ${editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || vazio)}
+    ${editavel('plano', safeText(f.plano || ligado.plan || '') || vazio)}
+    ${clicavel(segmento ? `<span class="cli-tag-chip">${safeText(segmento)}</span>` : maisOuNada('Escolher o segmento', `abrirSegmentoDoCliente(event, '${aspas}')`),
+      `abrirSegmentoDoCliente(event, '${aspas}')`, 'Clique para escolher a etiqueta')}
+    ${celulaDrive}${celulaManus}${celulaDoc}
     <td><div class="cli-numeros"><span title="Conteúdos em aberto">${abertos}</span><span title="Solicitações em aberto" class="${demandas ? 'atencao' : ''}">${demandas}</span></div></td>
     <td class="cli-acoes">${lapis}</td>
   </tr>`;
 }
 
-// Ativo e inativo sao o que o CADASTRO diz — nada mais.
-//
-// Ter uma linha em vybe_clientes nao quer dizer estar cadastrado: a importacao
-// dos quadros de conteudo cria uma linha para todo nome que aparece numa peca,
-// so com o nome (`INSERT INTO vybe_clientes (nome)`). Essas linhas nascem com
-// ativo=true e status vazio, e era por isso que a lista dizia 36 ativos onde o
-// quadro de Heads tem 17: ACE, CMO, Freela, feijao panela de ouro — nomes que a
-// operacao criou sozinha, nunca cadastrados por ninguem.
-//
-// O que separa os dois e o STATUS preenchido: quem veio do quadro de Heads tem
-// "Ativo" ou "Inativo" escrito, e a partir de agora quem for cadastrado aqui
-// tambem. Linha sem status e so um nome — vai para "So na operacao", que e
-// exatamente a lista do que falta cadastrar, com um botao para fazer isso.
+// Drive e Link moram na ficha de acessos, nao no cadastro do cliente: por isso
+// nao passam pela mesma gravacao das outras celulas.
+function editarAcessoDoCliente(event, nome, campo) {
+  event.stopPropagation();
+  const celula = event.currentTarget.closest('td');
+  if (!celula || celula.querySelector('input')) return;
+  if (!podeEditarClientes()) return showToast('Só quem administra edita acessos.', 'warning', 3500);
+  const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
+  const id = idDoCliente(nome);
+  const acessoId = String(ligado.acessoId || '');
+  if (!acessoId && !id) return showToast('Este cliente ainda não tem cadastro próprio.', 'warning', 5000);
+  const valor = String((campo === 'pasta_drive' ? ligado.drive : ligado.link) || '');
+  const antes = celula.innerHTML;
+  celula.classList.add('em-edicao');
+  celula.innerHTML = `<input class="cli-celula" type="text" value="${safeText(valor)}" placeholder="https://...">`;
+  const campoEl = celula.firstElementChild;
+  let encerrado = false;
+  const encerrar = async (gravar) => {
+    if (encerrado) return;
+    encerrado = true;
+    const novo = String(campoEl.value ?? '').trim();
+    celula.classList.remove('em-edicao');
+    if (!gravar || novo === valor) { celula.innerHTML = antes; return; }
+    if (novo && !linkDeCliente(novo)) {
+      showToast('Endereço inválido — precisa começar com http:// ou https://', 'error', 5000);
+      celula.innerHTML = antes; return;
+    }
+    celula.innerHTML = '<span class="cli-vazio">salvando…</span>';
+    const corpo = { [campo]: novo };
+    if (acessoId) corpo.id = acessoId; else corpo.cliente = id;
+    try {
+      const r = await fetch('/api/painel?area=acessos', { method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || 'Não foi possível salvar.');
+      showToast('Endereço salvo.', 'success', 3500);
+      await ensureClientMasterSources(true);
+    } catch (e) { showToast(e.message, 'error', 5000); celula.innerHTML = antes; }
+  };
+  campoEl.focus();
+  try { campoEl.select(); } catch { /* sem selecao */ }
+  campoEl.onkeydown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); encerrar(true); }
+    if (e.key === 'Escape') { e.preventDefault(); encerrar(false); }
+  };
+  campoEl.onblur = () => encerrar(true);
+}
+
 function tabelaDeClientesHtml(clientes) {
   const nomeVale = (nome) => /[a-z0-9]/i.test(String(nome || '')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
@@ -516,9 +739,9 @@ function tabelaDeClientesHtml(clientes) {
         ${recado ? `<em class="cli-recado">${recado}</em>` : ''}
       </button>
       <div class="cli-bloco-corpo"><div class="grupo-tabela-rolagem"><table class="grupo-tabela cli-tabela"><thead><tr>
-        <th>Cliente</th><th>Head</th><th>Dashboard</th><th>Próx. reunião</th>
-        <th>Plano</th><th>Segmento</th><th>Dados &amp; acessos</th><th>Aberto</th><th></th>
-      </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem')).join('')}</tbody></table></div></div>
+        <th>Cliente</th><th>Head</th><th>Status</th><th>Dashboard</th><th>Próx. reunião</th>
+        <th>Plano</th><th>Segmento</th><th>Drive</th><th>Manus</th><th>Documento</th><th>Aberto</th><th></th>
+      </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem', classe)).join('')}</tbody></table></div></div>
     </section>`;
   return bloco('Ativos', caixas.ativos, 'ativos')
     + bloco('Inativos', caixas.inativos, 'inativos')
