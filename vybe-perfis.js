@@ -969,12 +969,34 @@ function cadastrosIsoOffset(base,delta){const d=new Date(`${base}T12:00:00`);d.s
 function cadastrosDestiny(format, briefingReady, materialReady = false, extraAssignees = []) {
     const baseAssignees = (arr) => [...new Set([...arr, ...extraAssignees])];
     if(!briefingReady) return {group:'group_title',groupLabel:'Redação',status:'A Fazer',assignees:baseAssignees([]),capture:false,why:'Sem briefing confirmado: entra em Redação para construir a base do conteúdo.'};
-    if(['Reels','Vídeo','Fotografia'].includes(format)) {
-        if (materialReady) return {group:'novo_grupo__1',groupLabel:'Design & Edição',status:'Pode Fazer',assignees:baseAssignees(EQUIPES.audiovisual),capture:false,why:'Material de captação já fornecido. Vai direto para edição com o Reriston.'};
+    // FOTOGRAFIA E CAPTADA COMO VIDEO, MAS EDITADA COMO DESIGN.
+    //
+    // Estava na mesma linha que Reels e Video, e por isso caia com o Reriston
+    // quando o material chegava pronto. Reriston e edicao e motion; foto tratada
+    // e do Deivid, da Bia e da Jady — a mesma regra que o resto do painel ja
+    // segue ("Cards, Carrosseis, Feed, Story e Fotografia" sao Design).
+    //
+    // O que os tres formatos DIVIDEM e a captacao: sem material, os tres entram
+    // na fila de Producao Foto e Video. O que muda e para quem vao depois.
+    const PRECISA_CAPTAR = ['Reels', 'Vídeo', 'Fotografia'];
+    if(PRECISA_CAPTAR.includes(format)) {
+        if (materialReady) {
+            const daFoto = format === 'Fotografia';
+            const equipe = daFoto ? EQUIPES.design : EQUIPES.audiovisual;
+            return {group:'novo_grupo__1',groupLabel:'Design & Edição',status:'Pode Fazer',
+              assignees:baseAssignees(equipe),capture:false,
+              why: daFoto
+                ? 'Material já fornecido. Foto tratada é Design & Edição: vai para Deivid, Beatriz e Jady.'
+                : 'Material de captação já fornecido. Vai direto para edição com o Reriston.'};
+        }
         return {group:'novo_grupo57911__1',groupLabel:'Produção (Foto e Vídeo)',status:'A Fazer',assignees:baseAssignees([]),capture:true,why:'Formato exige captação; a demanda entra na fila de Produção Foto e Vídeo.'};
     }
     if(format==='Motion') return {group:'novo_grupo__1',groupLabel:'Design & Edição',status:'Falta D.A',assignees:baseAssignees(EQUIPES.motion),capture:false,why:'Motion entra em Design & Edição aguardando direção de arte.'};
-    return {group:'novo_grupo__1',groupLabel:'Design & Edição',status:'Pode Fazer',assignees:baseAssignees([PESSOAS.DEIVID, PESSOAS.BEATRIZ]),capture:false,why:'Briefing pronto: o conteúdo entra diretamente na produção de Design & Edição.'};
+    // EQUIPES.design e nao a dupla escrita a mao: Card, Carrossel, Story e Feed
+    // caiam so com Deivid e Beatriz, deixando a Jady de fora do proprio time
+    // dela. Mesmo defeito da Fotografia, uma linha acima — e a mesma causa: a
+    // equipe repetida no lugar de ser lida de onde ela e definida.
+    return {group:'novo_grupo__1',groupLabel:'Design & Edição',status:'Pode Fazer',assignees:baseAssignees(EQUIPES.design),capture:false,why:'Briefing pronto: o conteúdo entra diretamente na produção de Design & Edição.'};
   }
 // A lista sai de DADOS_ALL, nao de DADOS: DADOS e o recorte da semana aberta, e
 // um cliente sem peca nesta semana simplesmente nao aparecia para cadastrar.
