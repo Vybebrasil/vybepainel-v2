@@ -116,6 +116,16 @@ function pintarConta() {
     </div>
 
     ${eu.admin ? `
+    <div class="conta-caixa" style="margin-top:12px">
+      <div class="conta-titulo">Prévias dos arquivos</div>
+      <p class="auto-ajuda" style="margin:0 0 10px">Arquivo enviado pelo painel só mostra prévia se
+        estiver liberado para leitura por link no Drive. Os que subiram antes dessa liberação existir
+        aparecem como “Prévia indisponível”. Abrir a peça já conserta os dela; este botão conserta
+        todos de uma vez.</p>
+      <button class="auto-novo" onclick="liberarPreviasDeArquivos(this)">Liberar prévias antigas</button>
+      <p class="auto-ajuda" id="conta-previas-nota" style="margin:8px 0 0"></p>
+    </div>
+
     <div class="auto-cabeca" style="margin-top:26px">
       <div>
         <div class="auto-kicker">Vybe OS · Equipe</div>
@@ -392,4 +402,41 @@ async function enviarMinhaFoto(input) {
   } catch (erro) {
     showToast(`Não foi possível enviar: ${erro.message}`, 'error', 7000);
   } finally { input.value = ''; }
+}
+
+// Conserto dos arquivos que subiram antes de a liberacao existir. Vai em lotes
+// porque cada arquivo e uma ida ao Google e a funcao tem tempo contado; o
+// servidor devolve quantos faltam e o botao repete ate zerar, contando o
+// progresso em voz alta em vez de deixar a pessoa olhando para um botao parado.
+async function liberarPreviasDeArquivos(botao) {
+  const nota = document.getElementById('conta-previas-nota');
+  const dizer = (t) => { if (nota) nota.textContent = t; };
+  botao.disabled = true;
+  let liberados = 0;
+  let falharam = [];
+  try {
+    for (let volta = 0; volta < 40; volta += 1) {
+      botao.textContent = liberados ? `Liberando… ${liberados} prontos` : 'Liberando…';
+      const r = await fetch('/api/painel?area=peca&acao=liberar-previas&limite=40',
+        { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      liberados += Number(d.liberados) || 0;
+      falharam = falharam.concat(d.falharam || []);
+      dizer(`${liberados} liberado${liberados === 1 ? '' : 's'}${d.faltam ? ` · faltam ${d.faltam}` : ''}`);
+      // Sem pendente e sem ninguem liberado nesta volta, nao ha o que repetir.
+      if (!d.faltam || (!d.liberados && !(d.falharam || []).length)) break;
+    }
+    const recado = falharam.length
+      ? `${liberados} prévia${liberados === 1 ? '' : 's'} liberada${liberados === 1 ? '' : 's'} · ${falharam.length} não deu: ${falharam.slice(0, 2).map((f) => f.nome).join(', ')}`
+      : `${liberados} prévia${liberados === 1 ? '' : 's'} liberada${liberados === 1 ? '' : 's'}. Recarregue a peça para ver.`;
+    dizer(recado);
+    showToast(recado, falharam.length ? 'info' : 'ok', 8000);
+  } catch (erro) {
+    dizer(`Não deu: ${erro.message}`);
+    showToast(`Não foi possível liberar as prévias: ${erro.message}`, 'err', 8000);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Liberar prévias antigas';
+  }
 }

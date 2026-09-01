@@ -235,7 +235,21 @@ async function areaPessoas(req, res, quem) {
 // num lugar só. Traduzir aqui é mais barato que ter duas contas divergindo.
 const COLUNA_ARQUIVOS = 'file_mkwtx2j4';
 
+// A coluna que marca "esta previa ja foi liberada". Nasce sozinha, no padrao das
+// automacoes, porque a LEITURA da ficha depende dela: se ela nao existisse, a
+// consulta dos arquivos falharia e o drawer inteiro parava — um preco alto
+// demais por uma coluna de controle.
+let previaProntaNoSchema = false;
+async function garantirColunaDePrevia(db) {
+  if (previaProntaNoSchema) return;
+  await db`ALTER TABLE vybe_conteudo_arquivos ADD COLUMN IF NOT EXISTS previa_liberada_em TIMESTAMPTZ`;
+  previaProntaNoSchema = true;
+}
+
 async function areaPeca(req, res, quem) {
+  if (req.method === 'POST' && String(req.query?.acao || '') === 'liberar-previas') {
+    return liberarPreviasAntigas(req, res, quem);
+  }
   if (req.method === 'POST') return anexarNaPeca(req, res, quem);
   if (req.method === 'DELETE') return removerArquivoDaPeca(req, res, quem);
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
@@ -244,6 +258,7 @@ async function areaPeca(req, res, quem) {
   const itemLocalId = item.startsWith('vybe:') ? Number(item.slice(5)) : null;
 
   const db = sql();
+  await garantirColunaDePrevia(db);
   // A ficha completa da peça. O drawer mostrava formato, prazo e status; o resto
   // só dava para ver abrindo o Monday — que é justamente o que estamos deixando
   // de fazer.
@@ -281,7 +296,7 @@ async function areaPeca(req, res, quem) {
 
   const [arquivos, updates, eventos, catCaptacao, catOpcoes] = await Promise.all([
     db`SELECT id, monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica,
-              url_drive, drive_file_id, criado_em
+              url_drive, drive_file_id, criado_em, previa_liberada_em
          FROM vybe_conteudo_arquivos
          WHERE conteudo_id = ${c.id} AND ausente_em IS NULL
          ORDER BY criado_em DESC NULLS LAST`,
@@ -302,6 +317,19 @@ async function areaPeca(req, res, quem) {
   //
   // É a última dependência real do Monday no dia a dia, e ela só sai quando os
   // arquivos saírem de lá — não é problema de código, é migração de storage.
+  // Arquivo que subiu antes de a permissao existir nao abre por link, e a previa
+  // vem 403. Em vez de exigir que alguem lembre de rodar um conserto, a propria
+  // abertura da peca libera os dela — poucos por vez, uma vez so na vida do
+  // arquivo. Falhar aqui nao pode travar a ficha: no pior caso a previa continua
+  // indisponivel e a proxima abertura tenta de novo.
+  const semPrevia = arquivos.filter((a) => a.drive_file_id && !a.previa_liberada_em).slice(0, 8);
+  for (const a of semPrevia) {
+    try {
+      await tornarPublico(String(a.drive_file_id));
+      await db`UPDATE vybe_conteudo_arquivos SET previa_liberada_em=NOW() WHERE id=${a.id}`;
+    } catch (erro) { console.warn('Previa nao liberada agora:', a.nome, erro.message); }
+  }
+
   const frescas = new Map();
   // Arquivo já no Drive não precisa de URL renovada — o link de lá é estável.
   const ids = arquivos.filter((a) => !a.url_drive).map((a) => a.monday_asset_id).filter(Boolean);
@@ -447,14 +475,55 @@ async function pecaDoBanco(item) {
 
 // Guardar a linha do arquivo e o evento no historico. Igual para quem subiu por
 // aqui e para quem subiu direto no Drive.
+// Conserto dos arquivos que subiram antes da permissao existir. Eles estao
+// inteiros no Drive — so nao abrem por link, e por isso a previa vinha 403.
+//
+// Vai em lotes porque a funcao tem tempo limitado e cada arquivo e uma ida ao
+// Google. Devolve quantos faltam para quem chamou repetir ate zerar. Liberar
+// duas vezes o mesmo arquivo nao faz mal: o Google trata como a mesma permissao.
+async function liberarPreviasAntigas(req, res, quem) {
+  const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
+  if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra libera as prévias.' });
+  const db = sql();
+  await garantirColunaDePrevia(db);
+  const limite = Math.min(Number(req.query?.limite || req.body?.limite) || 40, 100);
+  const pendentes = await db`SELECT id, drive_file_id, nome FROM vybe_conteudo_arquivos
+    WHERE drive_file_id IS NOT NULL AND previa_liberada_em IS NULL
+    ORDER BY id DESC LIMIT ${limite}`;
+  const feitos = []; const falhos = [];
+  for (const a of pendentes) {
+    try {
+      await tornarPublico(String(a.drive_file_id));
+      await db`UPDATE vybe_conteudo_arquivos SET previa_liberada_em=NOW() WHERE id=${a.id}`;
+      feitos.push(a.nome);
+    } catch (erro) { falhos.push({ nome: a.nome, erro: erro.message }); }
+  }
+  const [{ n }] = await db`SELECT COUNT(*)::int AS n FROM vybe_conteudo_arquivos
+    WHERE drive_file_id IS NOT NULL AND previa_liberada_em IS NULL`;
+  return res.status(200).json({ ok: true, liberados: feitos.length, falharam: falhos, faltam: n });
+}
+
 async function registrarArquivoDaPeca(c, quem, { nome, driveId, bytes, link }) {
   const db = sql();
+  // A previa da peca e servida como drive.google.com/thumbnail?id=... — e esse
+  // endereco so responde para arquivo com leitura liberada por link. Sem esta
+  // linha o arquivo subia certo, aparecia com nome e tamanho, e a imagem vinha
+  // 403: "Previa indisponivel" numa peca que estava inteira no Drive.
+  //
+  // Vale para os dois caminhos de envio porque os dois terminam aqui. E falhar
+  // na permissao nao pode perder o arquivo: ele ja esta no Drive e o registro
+  // vale; a previa e que fica para depois.
+  await garantirColunaDePrevia(db);
+  let liberada = false;
+  try { await tornarPublico(String(driveId)); liberada = true; }
+  catch (erro) { console.warn('Arquivo salvo, mas a previa nao ficou publica:', driveId, erro.message); }
   const ext = String(nome).includes('.') ? `.${String(nome).split('.').pop().toLowerCase()}` : null;
   const linha = (await db`INSERT INTO vybe_conteudo_arquivos
       (conteudo_id, nome, extensao, tamanho_bytes, url_drive, drive_file_id, criado_em, migrado_em)
     VALUES (${c.id}, ${String(nome)}, ${ext}, ${Number(bytes) || null},
             ${link || `https://drive.google.com/file/d/${driveId}/view`}, ${String(driveId)}, NOW(), NOW())
     RETURNING id`)[0];
+  if (liberada) await db`UPDATE vybe_conteudo_arquivos SET previa_liberada_em=NOW() WHERE id=${linha.id}`;
   await db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, para, autor_id, em)
     VALUES (${c.id}, 'anexo', ${String(nome)},
             ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, NOW())`;
