@@ -1994,6 +1994,13 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-doc pre{max-height:52vh;overflow:auto;margin:0;padding:14px;border-radius:10px;
   border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.32);color:#dfe5ee;
   font:500 12px/1.6 var(--mac-mono);white-space:pre-wrap;word-break:break-word;user-select:text}
+.cli-porta.editar{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
+.cli-doc-links{margin:0 0 12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+/* Escrever no mesmo lugar em que se le: mesma caixa, mesma fonte, mesma altura. */
+#cli-doc-editor{width:100%;min-height:min(52vh,340px);padding:14px;border-radius:10px;resize:vertical;
+  border:1px solid var(--accent,#ff6b00);background:rgba(0,0,0,.32);color:#eef1f6;
+  font:500 12px/1.6 var(--mac-mono);outline:none}
+#cli-doc-editor::placeholder{color:#5c6478}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}

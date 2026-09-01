@@ -433,12 +433,17 @@ function linhaDeClienteHtml(nome, semCadastro) {
   // que o endereco e de verdade.
   const outroLink = linkDeCliente(ligado.link);
   const ehManus = /(^|\.)manus\.im$/i.test((() => { try { return new URL(outroLink).hostname; } catch { return ''; } })());
-  // So vira botao quando ha documento guardado; ter ficha de acessos nao quer
-  // dizer ter o documento dentro dela.
-  const documento = (ligado.doc && ligado.acessoId)
-    ? `<button type="button" class="cli-porta doc" title="Abrir o documento de acessos deste cliente"
-        onclick="event.stopPropagation();abrirDocumentoDoCliente('${safeText(String(ligado.acessoId))}', '${aspas}')">Documento ↗</button>`
-    : ligado.doc ? '<span class="cli-porta quieto" title="Documento de acessos guardado no Vybe">Documento</span>' : '';
+  // Abre mesmo quando ainda nao ha documento: e de la que se escreve o primeiro.
+  // Cliente cadastrado que nunca teve ficha de acessos ganha "+ Acessos".
+  const idNoCadastro = semCadastro ? '' : idDoCliente(nome);
+  const documento = ligado.acessoId
+    ? `<button type="button" class="cli-porta doc${ligado.doc ? '' : ' quieto'}"
+        title="${ligado.doc ? 'Abrir o documento de acessos deste cliente' : 'Ainda sem documento — abra para escrever o primeiro'}"
+        onclick="event.stopPropagation();abrirDocumentoDoCliente('${safeText(String(ligado.acessoId))}', '${aspas}', '${safeText(idNoCadastro)}')">Documento ↗</button>`
+    : (idNoCadastro && podeEditarClientes())
+      ? `<button type="button" class="cli-porta doc quieto" title="Criar a ficha de acessos deste cliente"
+          onclick="event.stopPropagation();abrirDocumentoDoCliente('', '${aspas}', '${safeText(idNoCadastro)}')">+ Acessos</button>`
+      : '';
   const portas = [
     porta('Drive', ligado.drive),
     porta(ehManus ? 'Manus' : 'Link', outroLink),
@@ -530,35 +535,89 @@ function tabelaDeClientesHtml(clientes) {
 //
 // O conteudo so sai do servidor quando e pedido por id, e so para quem
 // administra: a listagem nunca traz as senhas junto.
-async function abrirDocumentoDoCliente(acessoId, nome) {
+let DOCUMENTO_ABERTO = null;
+async function abrirDocumentoDoCliente(acessoId, nome, clienteId) {
+  DOCUMENTO_ABERTO = { acessoId: String(acessoId || ''), nome, clienteId: String(clienteId || ''), dados: null };
   openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Dados &amp; acessos</span>
       <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
     <h2 class="workflow-title">${safeText(nome)}</h2>
     <div class="cli-doc"><div class="auto-carregando">Buscando o documento…</div></div>`);
+  if (!acessoId) { DOCUMENTO_ABERTO.dados = {}; return pintarDocumentoDoCliente(true); }
   try {
     const r = await fetch(`/api/painel?area=acessos&id=${encodeURIComponent(acessoId)}`,
       { credentials:'same-origin', cache:'no-store' });
     const d = await r.json();
     if (!r.ok) throw new Error(d?.error || 'Não foi possível abrir.');
-    const a = d.acesso || {};
-    const texto = String(a.doc_conteudo || '').trim();
-    const quando = String(a.doc_atualizado_em || '').slice(0, 10).split('-').reverse().join('/');
-    const caixa = document.querySelector('#workflow-modal .cli-doc');
-    if (!caixa) return;
-    const atalho = (rotulo, valor) => { const url = linkDeCliente(valor);
-      return url ? `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener">${safeText(rotulo)} ↗</a>` : ''; };
-    caixa.innerHTML = `<div class="cli-doc-topo">
-        <div class="cli-portas">${atalho('Drive', a.pasta_drive)}${atalho('Link', a.link)}</div>
-        ${quando ? `<small>documento de ${quando}</small>` : ''}
-        ${texto ? '<button type="button" class="cli-porta" onclick="copiarDocumentoDoCliente()">Copiar tudo</button>' : ''}
-      </div>
-      ${texto ? `<pre id="cli-doc-texto">${safeText(texto)}</pre>`
-              : '<div class="auto-carregando">Este cliente não tem documento de acessos guardado.</div>'}`;
+    DOCUMENTO_ABERTO.dados = d.acesso || {};
+    pintarDocumentoDoCliente(false);
   } catch (erro) {
     const caixa = document.querySelector('#workflow-modal .cli-doc');
     if (caixa) caixa.innerHTML = `<div class="auto-carregando">Não foi possível abrir<br>
       <small>${safeText(erro.message)}</small></div>`;
   }
+}
+
+// Ler e escrever no mesmo lugar. O texto e livre de proposito: e assim que ele
+// vivia no documento do Monday, e reproduzir aqui uma estrutura de campos
+// obrigaria a reescrever 43 documentos antes de qualquer um poder ser usado.
+function pintarDocumentoDoCliente(editando) {
+  const caixa = document.querySelector('#workflow-modal .cli-doc');
+  if (!caixa || !DOCUMENTO_ABERTO?.dados) return;
+  const a = DOCUMENTO_ABERTO.dados;
+  const texto = String(a.doc_conteudo || '');
+  const quando = String(a.doc_atualizado_em || '').slice(0, 10).split('-').reverse().join('/');
+  const podeEditar = podeEditarClientes();
+  const atalho = (rotulo, valor) => { const url = linkDeCliente(valor);
+    return url ? `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener">${safeText(rotulo)} ↗</a>` : ''; };
+  if (!editando) {
+    caixa.innerHTML = `<div class="cli-doc-topo">
+        <div class="cli-portas">${atalho('Drive', a.pasta_drive)}${atalho('Link', a.link)}</div>
+        ${quando ? `<small>documento de ${quando}</small>` : ''}
+        ${texto.trim() ? '<button type="button" class="cli-porta" onclick="copiarDocumentoDoCliente()">Copiar tudo</button>' : ''}
+        ${podeEditar ? '<button type="button" class="cli-porta editar" onclick="pintarDocumentoDoCliente(true)">Editar</button>' : ''}
+      </div>
+      ${texto.trim() ? `<pre id="cli-doc-texto">${safeText(texto)}</pre>`
+        : `<div class="auto-carregando">Sem documento guardado.${
+            podeEditar ? '<br><small>Use Editar para escrever o primeiro.</small>' : ''}</div>`}`;
+    return;
+  }
+  caixa.innerHTML = `<div class="cli-form cli-doc-links">
+      <label class="cli-campo"><span>Pasta no Drive</span>
+        <input id="cli-doc-drive" type="text" value="${safeText(String(a.pasta_drive || ''))}" placeholder="https://drive.google.com/..."></label>
+      <label class="cli-campo"><span>Link (Manus, planilha, o que for)</span>
+        <input id="cli-doc-link" type="text" value="${safeText(String(a.link || ''))}" placeholder="https://..."></label>
+    </div>
+    <textarea id="cli-doc-editor" spellcheck="false"
+      placeholder="Logins, senhas, telefones — do jeito que o time escreve.">${safeText(texto)}</textarea>
+    <div class="workflow-actions">
+      <button type="button" class="workflow-secondary" onclick="pintarDocumentoDoCliente(false)">Cancelar</button>
+      <button type="button" class="workflow-primary" onclick="salvarDocumentoDoCliente()">Salvar documento →</button>
+    </div>`;
+  setTimeout(() => document.getElementById('cli-doc-editor')?.focus(), 30);
+}
+
+async function salvarDocumentoDoCliente() {
+  if (!DOCUMENTO_ABERTO) return;
+  const texto = String(document.getElementById('cli-doc-editor')?.value ?? '');
+  const drive = String(document.getElementById('cli-doc-drive')?.value ?? '').trim();
+  const link = String(document.getElementById('cli-doc-link')?.value ?? '').trim();
+  const corpo = { texto, pasta_drive: drive, link };
+  if (DOCUMENTO_ABERTO.acessoId) corpo.id = DOCUMENTO_ABERTO.acessoId;
+  else corpo.cliente = DOCUMENTO_ABERTO.clienteId;
+  try {
+    const r = await fetch('/api/painel?area=acessos', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível salvar.');
+    if (d.id) DOCUMENTO_ABERTO.acessoId = String(d.id);
+    DOCUMENTO_ABERTO.dados = { ...DOCUMENTO_ABERTO.dados, doc_conteudo: texto,
+      pasta_drive: drive || DOCUMENTO_ABERTO.dados.pasta_drive,
+      link: link || DOCUMENTO_ABERTO.dados.link,
+      doc_atualizado_em: new Date().toISOString() };
+    showToast('Acessos salvos.', 'success', 3500);
+    pintarDocumentoDoCliente(false);
+    void ensureClientMasterSources(true);
+  } catch (e) { showToast(e.message, 'error', 5000); }
 }
 async function copiarDocumentoDoCliente() {
   const el = document.getElementById('cli-doc-texto');

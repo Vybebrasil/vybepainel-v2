@@ -680,8 +680,39 @@ async function areaAcessos(req, res, quem) {
   if (!(quem.tipo === 'servico' || quem.pessoa?.admin)) {
     return res.status(403).json({ error: 'Só quem administra vê os acessos.' });
   }
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   const db = sql();
+
+  // Gravar o documento aqui e o ultimo passo para nao precisar mais do quadro
+  // Dados & Acessos: ate agora o texto so podia ser corrigido no Monday, e o
+  // painel era uma janela de leitura sobre uma copia que envelhecia.
+  if (req.method === 'POST') {
+    const { id, cliente, texto, pasta_drive, link } = req.body || {};
+    const conteudo = typeof texto === 'string' ? texto : null;
+    if (id) {
+      const r = await db`UPDATE vybe_acessos SET
+          doc_conteudo = COALESCE(${conteudo}, doc_conteudo),
+          doc_atualizado_em = CASE WHEN ${conteudo}::text IS NULL THEN doc_atualizado_em ELSE NOW() END,
+          pasta_drive = COALESCE(${pasta_drive ?? null}, pasta_drive),
+          link = COALESCE(${link ?? null}, link),
+          atualizado_em = NOW()
+        WHERE id = ${Number(id)} RETURNING id`;
+      if (!r.length) return res.status(404).json({ error: 'Acesso não encontrado.' });
+      return res.status(200).json({ ok: true, id: r[0].id });
+    }
+    // Cliente que nunca teve ficha de acessos ganha a dele agora. Sem
+    // monday_item_id: nasceu aqui, e a coluna aceita vazio.
+    const clienteId = Number(cliente || 0);
+    if (!clienteId) return res.status(400).json({ error: 'Informe o cliente.' });
+    const dono = (await db`SELECT nome FROM vybe_clientes WHERE id = ${clienteId}`)[0];
+    if (!dono) return res.status(404).json({ error: 'Cliente não encontrado.' });
+    const r = await db`INSERT INTO vybe_acessos
+        (nome, cliente_id, pasta_drive, link, doc_conteudo, doc_atualizado_em)
+      VALUES (${`Dados & Acessos - ${dono.nome}`}, ${clienteId}, ${pasta_drive ?? null},
+              ${link ?? null}, ${conteudo}, ${conteudo ? new Date().toISOString() : null})
+      RETURNING id`;
+    return res.status(200).json({ ok: true, id: r[0].id, criado: true });
+  }
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
 
   const id = req.query?.id;
   if (id) {
