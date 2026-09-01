@@ -105,6 +105,11 @@ async function trocarStatus(sql, quem, { item, para }) {
   // de lá. Rodá-las numa demanda moveria a peça para um grupo que não existe no
   // board dela.
   let automacoes = [];
+  // O que a automação mudou precisa voltar para a tela. A regra "Para agendar"
+  // troca o dono da peça e o grupo; sem devolver isso, a pessoa que mudou o
+  // status continuava vendo o próprio rosto na linha e concluía que a regra não
+  // rodou — foi exatamente a queixa que chegou da mesa de planejamento.
+  let depois = null;
   try {
     if (Number(conteudo.board_id) !== BOARD_PRODUCAO) throw { pular: true };
     const r = await aplicar(sql, conteudo.id, {
@@ -112,12 +117,21 @@ async function trocarStatus(sql, quem, { item, para }) {
     });
     automacoes = r.aplicadas;
     await replicarNoMonday(sql, referenciaReplica(conteudo, item), r.paraOMonday, conteudo.board_id, conteudo.id);
+    if (automacoes.length) {
+      const [estado] = await sql`SELECT c.grupo_id, c.etapa AS grupo,
+          COALESCE(ARRAY(SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
+            JOIN vybe_pessoas p ON p.id = r.pessoa_id
+            WHERE r.conteudo_id = c.id ORDER BY r.ordem, p.nome), '{}') AS responsavel_ids
+        FROM vybe_conteudos c WHERE c.id = ${conteudo.id}`;
+      if (estado) depois = { grupo_id: estado.grupo_id || '', grupo: estado.grupo || '',
+                             responsavel_ids: (estado.responsavel_ids || []).map(String) };
+    }
   } catch (erro) {
     if (!erro?.pular) console.error('Automações falharam após troca de status:', erro.message);
   }
 
   return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de,
-           para: alvo.rotulo, replica_monday: replica, automacoes };
+           para: alvo.rotulo, replica_monday: replica, automacoes, depois };
 }
 
 
