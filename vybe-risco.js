@@ -263,12 +263,31 @@ function openWorkflowModal(html) { document.getElementById('workflow-backdrop')?
 // Todo registro de histórico do painel passa por aqui — checklist de qualidade,
 // troca de responsáveis, ajuste de prazo. Ligando esta função, o histórico
 // inteiro passa a nascer no banco da Vybe em vez de nascer no Monday.
+// A NOTA NUNCA SEGURA O TRABALHO.
+//
+// Isto aqui grava a nota no historico da peca — "fulano mudou de X para Y, e o
+// motivo foi este". Toda troca de status passa por ela ANTES de a troca
+// acontecer, e ela estava deixando o erro subir. Resultado: se a nota falhasse
+// por qualquer razao, a troca de status era abortada e a pessoa via so um erro
+// vermelho. Foi o que o time viu tentando mudar para "Agendar".
+//
+// A ordem estava certa (registrar antes de mexer), a consequencia e que estava
+// errada: o que a pessoa PEDIU foi trocar o status; a nota e efeito colateral.
+// Agora, se a nota nao entrar, ela avisa e devolve false — e quem chamou segue
+// em frente. Melhor uma peca certa com o historico incompleto do que uma peca
+// parada com o historico limpo.
 async function postItemUpdate(itemId, body) {
   const item = (typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null) || { id: itemId };
-  const pelaEscritaDupla = await tentarEscritaDupla(item, { acao:'comentario', item:String(itemId), texto:String(body) });
-  if (pelaEscritaDupla) return true;
-  const mutation = `mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`;
-  return mondayQuery(mutation, { item:String(itemId), body:String(body) });
+  try {
+    const pelaEscritaDupla = await tentarEscritaDupla(item, { acao:'comentario', item:String(itemId), texto:String(body) });
+    if (pelaEscritaDupla) return true;
+    const mutation = `mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`;
+    return await mondayQuery(mutation, { item:String(itemId), body:String(body) });
+  } catch (erro) {
+    console.warn('Nota de histórico não gravada:', erro);
+    showToast('A alteração foi feita. A nota no histórico não pôde ser gravada.', 'info', 6000);
+    return false;
+  }
 }
 function qualityChecklistFor(item) { const fmt = String(item.formato || item.tipo || '').toLowerCase(); const common=['Arquivo final correto e sem versão provisória','Copy, legenda e CTA revisados','Cliente e responsável pela publicação confirmados']; if (/reels|vídeo|video|motion|fotografia/.test(fmt)) return [...common,'Capa, áudio e proporção validados','Link de entrega ou arquivo final disponível']; if (/carrossel/.test(fmt)) return [...common,'Sequência das páginas revisada','Capa e última página com CTA confirmadas']; return [...common,'Dimensões e identidade visual conferidas','Link ou arquivo final disponível']; }
 function updateQualityGateState() { const form=document.getElementById('quality-checklist-form'); const button=document.getElementById('quality-submit'); if (!form || !button) return; button.disabled=[...form.querySelectorAll('input[type=checkbox]')].some(input => !input.checked); }
@@ -1324,8 +1343,37 @@ async function enviarArquivoDaPeca(itemId, file, aoAndar) {
     body: JSON.stringify({ ...corpo, conteudo: base64 }),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.errors) throw new Error(json.error || json.errors?.[0]?.message || `HTTP ${res.status}`);
+  if (!res.ok || json.errors) throw new Error(explicarFalhaDeArquivo(json, res.status, file));
   return json;
+}
+
+// Erro de upload que chega como "HTTP 500" ou como a frase crua do Google nao
+// diz a quem esta na frente da tela o que fazer. Estas sao as falhas que
+// aparecem de verdade, traduzidas para a acao correspondente. O texto original
+// vai inteiro para o console: e ele que precisa chegar a quem for consertar.
+function explicarFalhaDeArquivo(json, status, file) {
+  const cru = String(json?.error || json?.errors?.[0]?.message || `HTTP ${status}`);
+  console.error('Falha ao anexar arquivo', { status, resposta: json, arquivo: file && {
+    nome: file.name, tipo: file.type, bytes: file.size } });
+  const tem = (...termos) => termos.some((t) => cru.toLowerCase().includes(t));
+  if (tem('quota', 'storage limit', 'storagequotaexceeded')) {
+    return 'O Drive da Vybe está sem espaço para receber arquivo novo. '
+      + `Avise quem administra — nada do que já subiu se perdeu. (${cru})`;
+  }
+  if (tem('permission', 'forbidden', 'insufficient', '403')) {
+    return `O Vybe não tem permissão de escrita nessa pasta do Drive. (${cru})`;
+  }
+  if (tem('não configurada', 'nao configurada', 'service_account', 'drive_pasta_raiz')) {
+    return `A ligação com o Drive está sem configuração no servidor. (${cru})`;
+  }
+  if (tem('não encontrado', 'nao encontrado', '404')) {
+    return `Esta peça não existe no banco — recarregue a página e tente de novo. (${cru})`;
+  }
+  if (status === 413 || tem('payload', 'too large', 'request entity')) {
+    return 'O arquivo é grande demais para esta via. Tente de novo — acima de 3 MB '
+      + `ele deveria ir direto ao Drive. (${cru})`;
+  }
+  return cru;
 }
 
 // Arquivo grande vai em pedacos, todos pela nossa API.
@@ -1347,7 +1395,8 @@ async function enviarArquivoGrande(corpo, file, aoAndar) {
   });
   const dadosDaAbertura = await abertura.json().catch(() => ({}));
   if (!abertura.ok || !dadosDaAbertura?.sessao) {
-    throw new Error(dadosDaAbertura?.error || `Não foi possível abrir o envio (${abertura.status}).`);
+    // Mesma traducao do envio pequeno: falha do Drive tem de dizer o que fazer.
+    throw new Error(explicarFalhaDeArquivo(dadosDaAbertura, abertura.status, file));
   }
 
   const total = file.size;
