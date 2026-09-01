@@ -1365,6 +1365,10 @@ function clearDemandaFilters() {
   currentDemandaStatusFilter = 'all';
   currentDemandaPersonFilter = 'all';
   currentDemandaDayFilter = '';
+  // Os dois filtros novos entram aqui tambem: "limpar tudo" que deixa dois de
+  // pe e pior que nao existir — a pessoa passa a nao confiar no botao.
+  if (typeof currentDemandaTipoFilter !== 'undefined') currentDemandaTipoFilter = 'all';
+  if (typeof currentDemandaAtrasadas !== 'undefined') currentDemandaAtrasadas = false;
   document.querySelectorAll('#demanda-status-legend .pill').forEach(p => p.classList.remove('active-legend'));
   document.querySelectorAll('#person-filter-bar-demandas .person-chip').forEach(c => c.classList.remove('active'));
   const allChip = document.querySelector('#person-all-demandas .person-chip');

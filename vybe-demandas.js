@@ -29,7 +29,19 @@ let currentDemandaStatusFilter = 'all';
 // ela — por isso "Sem tipo" e um filtro de primeira classe aqui, e nao uma
 // ausencia que se descobre rolando a lista.
 let currentDemandaTipoFilter = 'all';
-let currentDemandaWeek = 1;              // 1 | 2 | 0 (esteira)
+// Atrasada nao e um status, e uma relacao entre o prazo e hoje — por isso
+// precisa de estado proprio. Os outros tres numeros do topo nao precisam: eles
+// acionam os filtros de status e de tipo que ja existem, e e assim que o cartao
+// aceso e a etiqueta acesa contam sempre a mesma historia.
+let currentDemandaAtrasadas = false;
+// A tela abre POR ESTEIRA, nao na Semana 1.
+//
+// Conteudo tem ritmo semanal: ele e feito para veicular num dia. Solicitacao
+// nao — ela chega quando chega e se arrasta ate alguem resolver. Abrindo na
+// Semana 1, uma demanda de 26/06 ainda em execucao simplesmente nao aparece:
+// o padrao escondia justamente as atrasadas, que sao a unica coisa naquela tela
+// que pede acao hoje.
+let currentDemandaWeek = 0;              // 1 | 2 | 0 (esteira)
 let currentDemandaViewDay = false;       // true = ver por dia
 let currentDemandaDateMode = 'conclusao'; // 'conclusao' | 'prazo'
 let currentDemandaDayFilter = '';        // ISO date string para filtro de dia
@@ -528,26 +540,69 @@ function pillHtmlDemanda(s, color='', border='') {
 }
 
 // ─── Renderizar KPIs das demandas ────────────────────────────────────────────────────────────────────
+// Atrasada: prazo vencido e ainda nao concluida. A mesma regra em todo lugar —
+// no numero do topo e no filtro que ele aciona.
+const DEMANDA_CONCLUIDA = ['Feito', 'Aprovado', 'Concluído', 'Concluido', 'Finalizado'];
+function demandaAtrasada(d) {
+  const hoje = META.today_iso || '';
+  return Boolean(d.prazo_iso && hoje && d.prazo_iso < hoje && !DEMANDA_CONCLUIDA.includes(d.status));
+}
+
+// Quatro numeros, e os quatro filtram.
+//
+// Eram sete, e tinham tres problemas. Nao fechavam: 1 + 5 + 34 + 316 dava 356 de
+// 364, porque "Em aprovacao", "Alteracao" e "Aguardando Info." nao entravam em
+// nenhum cartao — oito solicitacoes existiam no quadro e nao existiam no topo.
+// Nao pediam acao: "Total 364" e "Concluidas 316" ocupavam o maior tipo da
+// pagina e nao mudam nada do que se faz hoje. E nao levavam a lugar nenhum:
+// "Atrasadas 12" era a unica coisa urgente ali, e nao dava para clicar nela.
+//
+// Agora sao quatro perguntas do dia, cada uma abrindo a lista dela. E cada
+// cartao le o MESMO estado que a etiqueta de status e a de tipo usam: acender o
+// cartao acende a etiqueta, e vice-versa. Sem dois lugares dizendo coisas
+// diferentes sobre o mesmo filtro.
 function renderDemandaKPIs() {
   const all = DADOS_DEMANDAS;
-  const clientes = [...new Set(all.map(d=>d.cliente))];
-  const hoje = META.today_iso || '';
-  const atrasadas = all.filter(d=>d.prazo_iso && d.prazo_iso < hoje && !['Feito','Aprovado','Concluído','Concluido','Finalizado'].includes(d.status)).length;
+  const porStatus = (nomes) => all.filter((d) => nomes.includes(d.status)).length;
   const kpis = [
-    {label:'Total de Demandas', value:all.length, sub:'no board', cls:'purple'},
-    {label:'Clientes', value:clientes.length, sub:'com demandas', cls:'green'},
-    {label:'Novas / A Fazer', value:all.filter(d=>['Nova Demanda','A Fazer'].includes(d.status)).length, sub:'aguardando início', cls:'blue'},
-    {label:'Em Execução', value:all.filter(d=>['Em andamento','Em Andamento','Em execução'].includes(d.status)).length, sub:'em produção', cls:'cyan'},
-    {label:'Pode Fazer', value:all.filter(d=>d.status==='Pode Fazer').length, sub:'briefing pronto', cls:'yellow'},
-    {label:'Concluídas', value:all.filter(d=>['Feito','Aprovado','Concluído','Concluido','Finalizado'].includes(d.status)).length, sub:'finalizadas', cls:'green'},
-    {label:'Atrasadas', value:atrasadas, sub:'prazo vencido', cls:'red'},
+    { label:'Atrasadas', valor: all.filter(demandaAtrasada).length, sub:'prazo vencido', cls:'red',
+      aceso: currentDemandaAtrasadas, acao: 'focarAtrasadas()' },
+    { label:'Em execução', valor: porStatus(['Em andamento','Em Andamento','Em execução']), sub:'em produção', cls:'cyan',
+      aceso: currentDemandaStatusFilter === 'Em execução', acao: "focarStatus('Em execução')" },
+    { label:'Pode fazer', valor: porStatus(['Pode Fazer']), sub:'briefing pronto', cls:'yellow',
+      aceso: currentDemandaStatusFilter === 'Pode Fazer', acao: "focarStatus('Pode Fazer')" },
+    { label:'Sem tipo', valor: all.filter((d) => !tipoDaDemanda(d)).length, sub:'falta classificar', cls:'orange',
+      aceso: currentDemandaTipoFilter === '__sem__', acao: "filtrarDemandaPorTipo('__sem__')" },
   ];
-  document.getElementById('kpi-grid-demandas').innerHTML = kpis.map(k=>`
-    <div class="kpi-card ${k.cls}">
+  const alvo = document.getElementById('kpi-grid-demandas');
+  if (!alvo) return;
+  alvo.className = 'kpi-grid kpi-grid-quatro';
+  alvo.innerHTML = kpis.map((k) => `
+    <button type="button" class="kpi-card ${k.cls} clicavel ${k.aceso ? 'aceso' : ''}"
+      onclick="${k.acao}" title="${k.aceso ? 'Clique para mostrar todas de novo' : `Ver só as ${k.label.toLowerCase()}`}">
       <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-value">${k.valor}</div>
       <div class="kpi-sub">${k.sub}</div>
-    </div>`).join('');
+    </button>`).join('');
+}
+
+function focarAtrasadas() {
+  currentDemandaAtrasadas = !currentDemandaAtrasadas;
+  // Atrasada e sobre o prazo, entao a coluna de data tem de ser a do prazo:
+  // filtrar por atraso e continuar lendo a data de conclusao esconde o motivo.
+  if (currentDemandaAtrasadas && currentDemandaDateMode !== 'prazo') {
+    const botao = document.getElementById('btn-dmode-prazo');
+    if (botao) return setDemandaDateMode('prazo', botao);
+  }
+  renderDemandas();
+}
+function focarStatus(status) {
+  currentDemandaStatusFilter = currentDemandaStatusFilter === status ? 'all' : status;
+  document.querySelectorAll('#demanda-status-legend .pill').forEach((p) => {
+    p.classList.toggle('active-legend',
+      currentDemandaStatusFilter !== 'all' && p.textContent.trim().toLowerCase() === status.toLowerCase());
+  });
+  renderDemandas();
 }
 
 // Helper: linha de item de demanda
@@ -681,6 +736,7 @@ function filtrarDemandasBase() {
     fi = fi.filter(d => d.status === currentDemandaStatusFilter);
   }
   fi = filtrarPorTipoDeDemanda(fi);
+  if (currentDemandaAtrasadas) fi = fi.filter(demandaAtrasada);
   // Filtrar por semana (exceto na esteira)
   if (currentDemandaWeek === 1) {
     fi = fi.filter(d => { const iso = getDemandaDateIso(d); return iso >= META.week1_start_iso && iso <= META.week1_end_iso; });
@@ -688,6 +744,45 @@ function filtrarDemandasBase() {
     fi = fi.filter(d => { const iso = getDemandaDateIso(d); return iso >= META.week2_start_iso && iso <= META.week2_end_iso; });
   }
   return fi;
+}
+
+// "Mostrando 1 de 364, porque..."
+//
+// Era o que faltava. A tela dizia 364 no topo e uma linha embaixo, e nada ligava
+// os dois numeros. Quem abria nao sabia distinguir "nao ha o que fazer" de "um
+// filtro escondeu tudo" — e sao seis filtros nesta tela (status, tipo, atraso,
+// semana, equipe, dia). Agora ela diz quanto esta mostrando, de quanto, e por
+// que; cada motivo sai com um clique no proprio nome.
+function pintarResumoDeFiltros(quantos) {
+  const alvo = document.getElementById('demanda-resumo');
+  if (!alvo) return;
+  const total = (DADOS_DEMANDAS || []).length;
+  const chip = (rotulo, limpar) => `<button type="button" class="resumo-chip" onclick="${limpar}"
+    title="Tirar este filtro">${safeText(rotulo)}<i aria-hidden="true">✕</i></button>`;
+  const ativos = [];
+  if (currentDemandaAtrasadas) ativos.push(chip('atrasadas', 'focarAtrasadas()'));
+  if (currentDemandaStatusFilter !== 'all') ativos.push(chip(currentDemandaStatusFilter, `focarStatus('${String(currentDemandaStatusFilter).replace(/'/g, "\\'")}')`));
+  if (currentDemandaTipoFilter !== 'all') ativos.push(chip(
+    currentDemandaTipoFilter === '__sem__' ? 'sem tipo' : currentDemandaTipoFilter, 'limparTipoDeDemanda()'));
+  if (currentDemandaWeek === 1) ativos.push(chip('Semana 1', "showDemandaWeek(0,document.getElementById('tab-dw0'))"));
+  if (currentDemandaWeek === 2) ativos.push(chip('Semana 2', "showDemandaWeek(0,document.getElementById('tab-dw0'))"));
+  if (currentDemandaPersonFilter !== 'all') ativos.push(chip('uma pessoa', "filterDemandaByPerson('all',document.getElementById('person-all-demandas'))"));
+  if (currentDemandaDayFilter) ativos.push(chip('um dia', 'limparDiaDaDemanda()'));
+
+  if (!ativos.length) {
+    alvo.innerHTML = `<span class="resumo-conta">${total} solicitaç${total === 1 ? 'ão' : 'ões'}</span>
+      <span class="resumo-nota">nenhum filtro — está tudo à vista</span>`;
+    return;
+  }
+  alvo.innerHTML = `<span class="resumo-conta">${quantos} de ${total}</span>
+    <span class="resumo-nota">filtrando por</span>${ativos.join('')}
+    <button type="button" class="resumo-limpar" onclick="clearDemandaFilters()">limpar tudo</button>`;
+}
+function limparDiaDaDemanda() {
+  currentDemandaDayFilter = '';
+  const sel = document.getElementById('day-select-demandas');
+  if (sel) sel.value = '';
+  renderDemandas();
 }
 
 function renderDemandas() {
@@ -710,6 +805,7 @@ function renderDemandas() {
   if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos('demandas');
   if (typeof renderAgendaDeDemandas === 'function') renderAgendaDeDemandas();
   const fi = filtrarDemandasBase();
+  pintarResumoDeFiltros(fi.length);
   // Atualizar título da semana
   const titleEl = document.getElementById('title-demanda-semana');
   if (titleEl) {
