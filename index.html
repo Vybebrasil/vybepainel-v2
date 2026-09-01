@@ -246,9 +246,25 @@
     /* Tabs simplificadas */
     .tab-btn { background:transparent;border:none;color:var(--text-muted);padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:background-color .14s,border-color .14s,color .14s,opacity .14s;white-space:nowrap}
     .kpi-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:28px}
-    .kpi-card { background:rgba(10,10,26,.8);border:1px solid rgba(0,240,255,.15);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;backdrop-filter:blur(10px);transition:border-color .34s,box-shadow .34s}
-    .kpi-card:hover { border-color:rgba(0,240,255,.4);box-shadow:none}
-    .kpi-card::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+    /* Vidro, como o resto do painel. A borda ciana era da epoca em que esta tela
+       tinha paleta propria; o unico ciano que sobra e o da barra de cor, e ela
+       carrega dado (o estado do numero), nao enfeite. */
+    .kpi-card { background:var(--sup-1,rgba(255,255,255,.042));border:1px solid var(--linha,rgba(255,255,255,.09));
+      border-radius:14px;padding:15px 17px;position:relative;overflow:hidden;
+      -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+      box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 8px 24px rgba(0,0,0,.22);
+      transition:border-color .18s var(--curva),transform .18s var(--curva),box-shadow .18s var(--curva)}
+    .kpi-card.clicavel{cursor:pointer}
+    .kpi-card.clicavel:hover { border-color:rgba(255,255,255,.2);transform:translateY(-1px);
+      box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 14px 34px rgba(0,0,0,.3)}
+    /* Cartao que diz zero continua na tela — "nenhum detrator" e boa noticia —
+       mas para de disputar o olho com os que pedem trabalho. */
+    .kpi-card.calado{opacity:.46;box-shadow:none}
+    .kpi-card.calado .kpi-value{color:#8b8b90}
+    .kpi-card.calado::before{opacity:.35}
+    .kpi-card.aceso{border-color:color-mix(in srgb,var(--accent,#ff6b00) 55%,transparent);
+      background:color-mix(in srgb,var(--accent,#ff6b00) 10%,transparent)}
+    .kpi-card::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
     .kpi-card.purple::before { background:linear-gradient(90deg,#00f0ff,#ff00ff)}
     .kpi-card.green::before  { background:var(--green)}
     .kpi-card.blue::before   { background:var(--blue)}
@@ -256,9 +272,10 @@
     .kpi-card.yellow::before { background:var(--yellow)}
     .kpi-card.orange::before { background:var(--orange)}
     .kpi-card.red::before    { background:var(--red)}
-    .kpi-label { font-size:10px;color:var(--text-muted);letter-spacing:.5px;margin-bottom:4px}
-    .kpi-value { font-size:26px;font-weight:700;color:#fff;line-height:1;text-shadow:none}
-    .kpi-sub   { font-size:10px;color:var(--text-muted);margin-top:2px}
+    .kpi-label { font:600 11.5px var(--mac-ui);color:#8b8b90;letter-spacing:0;margin-bottom:7px}
+    .kpi-value { font:600 30px var(--mac-ui);color:#f7f7fa;line-height:1;letter-spacing:-1px;
+      font-variant-numeric:tabular-nums;text-shadow:none}
+    .kpi-sub   { font:500 11.5px/1.4 var(--mac-ui);color:#75757c;margin-top:5px}
     .tabs { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
     .tab-btn { background:transparent;border:none;color:var(--text-muted);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:background-color .14s,border-color .14s,color .14s,opacity .14s}
     .tab-btn:hover { color:var(--text)}
@@ -621,8 +638,11 @@
     .sidebar { background:rgba(12,7,3,.98);border-right-color:rgba(255,107,0,.15)}
     .sidebar-toggle { background:rgba(255,107,0,.1);border-color:rgba(255,107,0,.24);color:#ff9d00}
     .sidebar-toggle:hover { background:rgba(255,107,0,.16);box-shadow:none}
-    .client-card,.kpi-card { border-color:rgba(255,107,0,.15);background:rgba(15,9,4,.76)}
-    .client-card:hover,.kpi-card:hover { border-color:rgba(255,107,0,.44);box-shadow:none}
+    /* O kpi-card saiu daqui: esta camada e do tema marrom antigo, e era ela que
+       devolvia o fundo #0f0904 e a borda laranja por cima do vidro. O
+       client-card fica, porque ainda nao foi passado a limpo. */
+    .client-card { border-color:rgba(255,107,0,.15);background:rgba(15,9,4,.76)}
+    .client-card:hover { border-color:rgba(255,107,0,.44);box-shadow:none}
     .client-header { border-bottom-color:rgba(255,107,0,.1);background:rgba(23,14,6,.72)}
     .item-row:hover { background:rgba(255,107,0,.055)}
     .item-name a:hover { color:#ff9d00;text-shadow:none}
@@ -2395,21 +2415,24 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .clients-grid.em-tabela{display:block!important;grid-template-columns:none!important}
 /* overflow:clip no lugar de hidden: recorta igual, mas nao impede que o
    cabecalho grude no topo enquanto se rola uma lista de 47 clientes. */
-.cli-bloco{margin-bottom:16px;border:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));
-  border-radius:12px;overflow:clip;background:rgba(255,255,255,.015)}
-.cli-bloco-cabeca{display:flex;align-items:baseline;gap:9px;padding:10px 14px;width:100%;text-align:left;
+.cli-bloco{margin-bottom:14px;border:1px solid var(--linha,rgba(255,255,255,.09));
+  border-radius:16px;overflow:clip;background:var(--sup-1,rgba(255,255,255,.042));
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 8px 24px rgba(0,0,0,.2)}
+.cli-bloco-cabeca{display:flex;align-items:baseline;gap:10px;padding:13px 16px;width:100%;text-align:left;
   position:sticky;top:0;z-index:3;
-  border:0;border-bottom:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));
-  background:color-mix(in srgb,var(--surface,#120902) 92%,#fff 5%);
-  cursor:pointer;font:inherit}
-.cli-bloco-cabeca:hover{background:rgba(255,255,255,.05)}
+  border:0;border-bottom:1px solid rgba(255,255,255,.07);
+  background:rgba(20,22,28,.86);
+  -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  cursor:pointer;font:inherit;transition:background .14s var(--curva)}
+.cli-bloco-cabeca:hover{background:rgba(28,31,39,.9)}
 /* A seta diz o que o clique faz, e some junto com a lista. */
 .cli-seta{color:#8f98a9;font-size:10px;line-height:1;transition:transform .16s ease;align-self:center}
 .cli-bloco.fechado .cli-seta{transform:rotate(-90deg)}
 .cli-bloco.fechado .cli-bloco-cabeca{border-bottom:0}
 .cli-bloco.fechado .cli-bloco-corpo{display:none}
-.cli-bloco-cabeca b{color:#f2f2f5;font:700 12px var(--mac-ui);letter-spacing:.02em;text-transform:uppercase}
-.cli-bloco-cabeca small{color:#8f98a9;font:600 10.5px var(--mac-ui)}
+.cli-bloco-cabeca b{color:#f7f7fa;font:600 14px var(--mac-ui);letter-spacing:-.2px;text-transform:none}
+.cli-bloco-cabeca small{color:#75757c;font:500 12px var(--mac-ui);font-variant-numeric:tabular-nums}
 .cli-bloco.ativos .cli-bloco-cabeca{box-shadow:inset 3px 0 0 #00c875}
 .cli-bloco.inativos .cli-bloco-cabeca{box-shadow:inset 3px 0 0 rgba(255,255,255,.2)}
 .cli-bloco.sem .cli-bloco-cabeca{box-shadow:inset 3px 0 0 #ffb000}

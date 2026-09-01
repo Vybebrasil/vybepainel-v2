@@ -399,9 +399,17 @@ function renderClientesBoard() {
   // tabela logo abaixo — e cada numero e uma pergunta que alguem faz de verdade.
   const numeros = contagemDeClientes(todosClientes);
   const aceso = (k) => (k.acao || '').includes(`'${FOCO_DE_CLIENTES}'`);
-  const cartao = (k) => `<div class="kpi-card ${k.cls}${k.acao ? ' clicavel' : ''}${
-    aceso(k) ? ' aceso' : ''}"${
-    k.acao ? ` onclick="${k.acao}" title="${k.dica}"` : ''}><div class="kpi-label">${k.label}</div>
+  // NUMERO QUE NAO PEDE NADA RECUA.
+  //
+  // Os oito cartoes tinham o mesmo peso. Num dia real, tres deles diziam zero —
+  // "Detratores 0", "Sem contato 0", "NPS médio —" — e disputavam o olho de
+  // igual para igual com "Painel a atualizar 14" e "Só na operação 31", que sao
+  // trabalho de verdade. Zero continua na tela, porque "nenhum detrator" e uma
+  // boa noticia que vale ver; so para de gritar.
+  const calado = (k) => k.value === 0 || k.value === '0' || k.value === '—';
+  const cartao = (k) => `<div class="kpi-card ${k.cls}${k.acao && !calado(k) ? ' clicavel' : ''}${
+    aceso(k) ? ' aceso' : ''}${calado(k) ? ' calado' : ''}"${
+    k.acao && !calado(k) ? ` onclick="${k.acao}" title="${k.dica}"` : ''}><div class="kpi-label">${k.label}</div>
     <div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`;
   // Dois numeros novos, e os dois sao fila de trabalho, nao estatistica: quem
   // esta sem conversa ha tempo demais, e quantos paineis precisam ser
@@ -496,10 +504,23 @@ function painelEstaEmDia(valor) {
   const limpo = String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   return /^atualizad/.test(limpo) || /(em dia|ok)$/.test(limpo);
 }
+// O ROTULO E NOSSO, O DADO E DELES.
+//
+// O valor guardado vem com o erro de digitacao que veio do Monday —
+// "Dasatualizado", com A — e em alguns clientes ele esta certo. Mostrar o texto
+// cru repetia o erro em quinze linhas seguidas e ainda fazia a mesma coisa
+// parecer duas coisas diferentes na mesma coluna.
+//
+// Consertar o dado no banco e outra conversa (e mexe no que o Monday devolve);
+// consertar a LEITURA e aqui, e resolve o que a pessoa ve.
 function paineldoClienteHtml(valor) {
   const texto = String(valor || '').trim();
   if (!texto) return '<span class="cli-vazio">—</span>';
-  return `<span class="cli-painel ${painelEstaEmDia(texto) ? 'novo' : 'velho'}">${safeText(texto)}</span>`;
+  const emDia = painelEstaEmDia(texto);
+  const rotulo = emDia ? 'Atualizado' : 'Desatualizado';
+  return `<span class="cli-painel ${emDia ? 'novo' : 'velho'}"${
+    rotulo === texto ? '' : ` title="No cadastro está escrito “${safeText(texto)}”"`
+  }>${rotulo}</span>`;
 }
 
 // ── Minimizar os blocos ───────────────────────────────────────────────────────
