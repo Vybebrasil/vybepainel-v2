@@ -362,6 +362,48 @@ function headsDoClienteHtml(texto) {
     nomes.map((n) => ownerAvatarHtml(pessoaPeloNome(n))).join('')}</div>`;
 }
 
+// ── Perguntar sem sair do painel ──────────────────────────────────────────────
+// As confirmacoes eram as caixas do proprio navegador — letra do sistema, botao
+// azul, "OK" e "Cancelar". Funcionam, mas sao de outro programa: no meio de uma
+// tela escura elas parecem um aviso de erro. Estas usam a mesma lingua do resto,
+// e ficam por cima do painel de edicao em vez de substitui-lo — cancelar devolve
+// a tela de onde a pessoa veio.
+function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo = false, campo = null }) {
+  return new Promise((resolve) => {
+    document.getElementById('cli-pergunta')?.remove();
+    const fundo = document.createElement('div');
+    fundo.id = 'cli-pergunta';
+    fundo.className = 'cli-pergunta';
+    fundo.innerHTML = `<div class="cli-pergunta-caixa" role="dialog" aria-modal="true">
+        <h3>${safeText(titulo)}</h3>
+        ${texto ? `<p>${safeText(texto)}</p>` : ''}
+        ${campo ? `<input id="cli-pergunta-campo" type="text" value="${safeText(String(campo.valor || ''))}"
+            placeholder="${safeText(String(campo.dica || ''))}">` : ''}
+        <div class="cli-pergunta-acoes">
+          <button type="button" class="workflow-secondary" data-nao>Cancelar</button>
+          <button type="button" class="workflow-primary${perigo ? ' perigo' : ''}" data-sim>${safeText(confirmar)}</button>
+        </div>
+      </div>`;
+    const entrada = () => document.getElementById('cli-pergunta-campo');
+    const fechar = (resposta) => {
+      document.removeEventListener('keydown', tecla, true);
+      fundo.remove();
+      resolve(resposta);
+    };
+    const dizerSim = () => fechar(campo ? String(entrada()?.value ?? '').trim() : true);
+    const tecla = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); fechar(campo ? null : false); }
+      if (e.key === 'Enter') { e.preventDefault(); dizerSim(); }
+    };
+    fundo.querySelector('[data-nao]').onclick = () => fechar(campo ? null : false);
+    fundo.querySelector('[data-sim]').onclick = dizerSim;
+    fundo.onclick = (e) => { if (e.target === fundo) fechar(campo ? null : false); };
+    document.addEventListener('keydown', tecla, true);
+    document.body.append(fundo);
+    setTimeout(() => { const alvo = entrada() || fundo.querySelector('[data-sim]'); alvo?.focus(); entrada()?.select(); }, 30);
+  });
+}
+
 // ── Quem e head deste cliente ─────────────────────────────────────────────────
 // Head e vinculo com a equipe, nao um campo de texto: por isso nao entrava na
 // edicao da celula junto com plano e segmento. Aqui ele ganha o seletor de
@@ -439,7 +481,10 @@ function situacaoDoClienteHtml(nome, estado) {
 async function trocarSituacaoDoCliente(nome, estaInativo) {
   const id = idDoCliente(nome);
   if (!id) return;
-  if (!estaInativo && !confirm(`Tirar "${nome}" do painel?\n\nO histórico continua guardado; ele só deixa de aparecer nas telas e não recebe conteúdo novo.`)) return;
+  if (!estaInativo && !await perguntarNoPainel({
+    titulo: `Tirar "${nome}" do painel?`,
+    texto: 'O histórico continua guardado; ele só deixa de aparecer nas telas e não recebe conteúdo novo.',
+    confirmar: 'Tirar do painel', perigo: true })) return;
   try {
     await gravarCadastroDeCliente({ acao: estaInativo ? 'ativar' : 'desativar', id },
       estaInativo ? 'Cliente de volta ao painel.' : 'Cliente fora do painel.');
@@ -515,7 +560,10 @@ async function criarSegmento() {
   await aplicarSegmento(novo);
 }
 async function renomearSegmento(de) {
-  const para = prompt(`Renomear "${de}" em todos os clientes que usam esta etiqueta.\n\nNovo nome:`, de);
+  const para = await perguntarNoPainel({
+    titulo: `Renomear "${de}"`,
+    texto: 'O novo nome vale para todos os clientes que usam esta etiqueta.',
+    confirmar: 'Renomear', campo: { valor: de, dica: 'Novo nome da etiqueta' } });
   if (para === null || !String(para).trim() || String(para).trim() === de) return;
   try {
     const d = await gravarCadastroDeCliente({ acao:'segmento-renomear', de, para: String(para).trim() },
@@ -528,7 +576,10 @@ async function renomearSegmento(de) {
   } catch (e) { showToast(e.message, 'error', 5000); }
 }
 async function apagarSegmento(de) {
-  if (!confirm(`Apagar a etiqueta "${de}"?\n\nEla sai de todos os clientes que a usam. Os clientes continuam; só ficam sem segmento.`)) return;
+  if (!await perguntarNoPainel({
+    titulo: `Apagar a etiqueta "${de}"?`,
+    texto: 'Ela sai de todos os clientes que a usam. Os clientes continuam; só ficam sem segmento.',
+    confirmar: 'Apagar etiqueta', perigo: true })) return;
   try {
     const d = await gravarCadastroDeCliente({ acao:'segmento-apagar', de }, 'Etiqueta apagada.');
     showToast(`${d.clientes} cliente(s) ficaram sem segmento.`, 'info', 4000);
@@ -899,7 +950,10 @@ async function salvarNovoCliente() {
 // Cadastrar quem ja esta na operacao: o nome ja existe, so falta a ficha.
 async function cadastrarClienteDaOperacao(nome) {
   if (!podeEditarClientes()) return showToast('Só quem administra cria cliente.', 'warning', 4000);
-  if (!confirm(`Criar a ficha de "${nome}" no cadastro?\n\nEle sai de "Só na operação" e passa a contar como cliente ativo.`)) return;
+  if (!await perguntarNoPainel({
+    titulo: `Criar a ficha de "${nome}"?`,
+    texto: 'Ele sai de "Só na operação" e passa a contar como cliente ativo.',
+    confirmar: 'Criar ficha' })) return;
   try {
     await gravarCadastroDeCliente({ acao:'criar', nome }, `${nome} entrou no cadastro.`);
   } catch (e) { showToast(e.message, 'error', 5000); }
@@ -969,7 +1023,10 @@ async function salvarFichaDeCliente() {
 }
 
 async function alternarAtivoDoCliente(id, estaAtivo) {
-  if (estaAtivo && !confirm('Tirar este cliente do painel?\n\nO histórico dele continua guardado; ele só deixa de aparecer nas telas e não pode receber conteúdo novo.')) return;
+  if (estaAtivo && !await perguntarNoPainel({
+    titulo: 'Tirar este cliente do painel?',
+    texto: 'O histórico dele continua guardado; ele só deixa de aparecer nas telas e não pode receber conteúdo novo.',
+    confirmar: 'Tirar do painel', perigo: true })) return;
   try {
     await gravarCadastroDeCliente({ acao: estaAtivo ? 'desativar' : 'ativar', id },
       estaAtivo ? 'Cliente fora do painel.' : 'Cliente de volta ao painel.');

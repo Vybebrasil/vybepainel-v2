@@ -2038,6 +2038,23 @@ button.cli-situacao:hover{filter:brightness(1.25)}
   font:600 10px var(--mac-ui);cursor:pointer}
 .cli-tag-acao:hover{background:rgba(255,255,255,.07);color:#e7ecf5}
 .cli-tag-acao.apagar:hover{background:rgba(255,77,109,.14);color:#ff9db1}
+/* Perguntar sem sair do painel. Acima do modal de edicao (401), para cancelar
+   devolver a tela de onde a pessoa veio em vez de deixar o vazio. */
+.cli-pergunta{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:20px;
+  background:rgba(4,5,9,.72);backdrop-filter:blur(10px) saturate(1.05)}
+.cli-pergunta-caixa{width:min(430px,100%);padding:22px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);background:linear-gradient(160deg,#16110c,#0b0906);
+  box-shadow:0 26px 70px rgba(0,0,0,.6)}
+.cli-pergunta-caixa h3{margin:0;color:#f6f7fa;font:700 17px/1.3 var(--mac-ui);text-wrap:balance}
+.cli-pergunta-caixa p{margin:9px 0 0;color:#9da4b4;font:500 12.5px/1.55 var(--mac-ui)}
+.cli-pergunta-caixa input{width:100%;margin-top:14px;min-height:36px;padding:0 12px;border-radius:9px;
+  border:1px solid var(--accent,#ff6b00);background:rgba(0,0,0,.3);color:#eef1f6;
+  font:600 13px var(--mac-ui);outline:none}
+.cli-pergunta-acoes{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
+.cli-pergunta-acoes button{min-height:34px;padding:0 16px;border-radius:9px;cursor:pointer;
+  font:700 11.5px var(--mac-ui);letter-spacing:.02em}
+.cli-pergunta-acoes .workflow-primary.perigo{border-color:rgba(255,77,109,.55)!important;
+  background:linear-gradient(160deg,#ff4d6d,#c81f42)!important;color:#fff!important}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
