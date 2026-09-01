@@ -2055,6 +2055,19 @@ button.cli-situacao:hover{filter:brightness(1.25)}
   font:700 11.5px var(--mac-ui);letter-spacing:.02em}
 .cli-pergunta-acoes .workflow-primary.perigo{border-color:rgba(255,77,109,.55)!important;
   background:linear-gradient(160deg,#ff4d6d,#c81f42)!important;color:#fff!important}
+/* Escolher estado usa o popover dos GRUPOS, com a etiqueta de verdade dentro —
+   nunca a lista do sistema operacional. */
+.cli-lista{min-width:190px}
+.cli-lista .status-editor-option{display:flex;align-items:center;gap:8px}
+/* Na ficha completa, o mesmo estado vira um par de etiquetas para escolher. */
+.cli-escolha{display:flex;flex-wrap:wrap;gap:6px;min-height:34px;align-items:center}
+.cli-escolha-btn{padding:4px 11px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#8f98a9;
+  font:700 10px var(--mac-ui);letter-spacing:.03em}
+.cli-escolha-btn:hover{color:#e7ecf5;border-color:rgba(255,255,255,.28)}
+.cli-escolha-btn.novo.ativo{border-color:rgba(0,200,117,.42);background:rgba(0,200,117,.14);color:#7ef0b6}
+.cli-escolha-btn.velho.ativo{border-color:rgba(255,77,109,.42);background:rgba(255,77,109,.14);color:#ff9db1}
+.cli-escolha-btn.nenhum.ativo{border-color:rgba(255,255,255,.30);background:rgba(255,255,255,.08);color:#e7ecf5}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}

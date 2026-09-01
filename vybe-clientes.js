@@ -595,15 +595,43 @@ async function apagarSegmento(de) {
 // inteira por um botao — pesado para trocar um segmento. Agora a celula vira
 // campo no lugar: Enter grava, Esc desiste, sair do campo grava.
 const CELULAS_EDITAVEIS = {
-  dashboard: { tipo:'lista', opcoes:['', 'Atualizado', 'Desatualizado'] },
+  dashboard: { tipo:'lista' },
   proxima_reuniao: { tipo:'data' },
   plano: { tipo:'texto' },
   segmento: { tipo:'texto' },
 };
+// A lista do sistema operacional nao pertence a esta tela: letra do sistema,
+// fundo branco, nada da lingua do painel. Onde ha escolha entre estados, o
+// painel ja usa o mesmo popover dos GRUPOS em PRODUCAO, com as etiquetas de
+// verdade dentro. Aqui tambem.
+function fecharListaDoPainel() {
+  document.getElementById('cli-lista')?.remove();
+  document.getElementById('cli-lista-backdrop')?.remove();
+}
+function abrirListaDoPainel(gatilho, { titulo, opcoes, atual, aoEscolher }) {
+  fecharListaDoPainel();
+  const rect = gatilho.getBoundingClientRect();
+  const fundo = document.createElement('div');
+  fundo.id = 'cli-lista-backdrop';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharListaDoPainel;
+  const menu = document.createElement('div');
+  menu.id = 'cli-lista';
+  menu.className = 'status-editor cli-lista';
+  menu.innerHTML = `<div class="status-editor-head">${safeText(titulo)}</div>` + opcoes.map((o, i) =>
+    `<button type="button" class="status-editor-option ${o.valor === atual ? 'current' : ''}"
+      data-i="${i}">${o.html || safeText(o.rotulo)}</button>`).join('');
+  document.body.append(fundo, menu);
+  ancorarPopover(menu, rect);
+  menu.querySelectorAll('button[data-i]').forEach((b) => {
+    b.onclick = () => { const o = opcoes[Number(b.dataset.i)]; fecharListaDoPainel(); aoEscolher(o.valor); };
+  });
+}
+
 function editarCelulaDoCliente(event, nome, campo) {
   event.stopPropagation();
   const celula = event.currentTarget;
-  if (celula.querySelector('input, select')) return;
+  if (celula.querySelector('input')) return;
   if (!podeEditarClientes()) return showToast('Só quem administra edita cliente.', 'warning', 3500);
   const id = idDoCliente(nome);
   if (!id) return showToast('Este cliente ainda não tem cadastro próprio para editar.', 'warning', 5000);
@@ -611,17 +639,32 @@ function editarCelulaDoCliente(event, nome, campo) {
   const f = cadastroDoCliente(nome) || {};
   const bruto = f[campo];
   const valor = regra.tipo === 'data' ? String(bruto || '').slice(0, 10) : String(bruto ?? '');
-  const antes = celula.innerHTML;
-  celula.classList.add('em-edicao');
+
   // "Dasatualizado" (o erro que veio do Monday) nao casa com nenhuma opcao pela
   // letra, mas e um painel desatualizado — a lista tem que abrir marcando isso,
   // senao um clique distraido apagaria o campo.
-  const marcada = (o) => !valor ? !o : o === 'Atualizado' ? painelEstaEmDia(valor)
-    : o === 'Desatualizado' ? !painelEstaEmDia(valor) : false;
-  celula.innerHTML = regra.tipo === 'lista'
-    ? `<select class="cli-celula">${regra.opcoes.map((o) => `<option value="${safeText(o)}"${
-        marcada(o) ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
-    : `<input class="cli-celula" type="${regra.tipo === 'data' ? 'date' : 'text'}" value="${safeText(valor)}">`;
+  if (regra.tipo === 'lista') {
+    const atual = !valor ? '' : painelEstaEmDia(valor) ? 'Atualizado' : 'Desatualizado';
+    return abrirListaDoPainel(celula, {
+      titulo: 'Painel do cliente',
+      atual,
+      opcoes: [
+        { valor:'Atualizado', html:'<span class="cli-painel novo">Atualizado</span>' },
+        { valor:'Desatualizado', html:'<span class="cli-painel velho">Desatualizado</span>' },
+        { valor:'', html:'<span class="cli-vazio">sem informação</span>' },
+      ],
+      aoEscolher: async (escolhido) => {
+        if (escolhido === valor) return;
+        celula.innerHTML = '<span class="cli-vazio">salvando…</span>';
+        try { await gravarCadastroDeCliente({ acao:'ficha', id, campos:{ dashboard: escolhido } }, 'Cliente atualizado.'); }
+        catch (e) { showToast(e.message, 'error', 5000); renderClientesBoard(); }
+      },
+    });
+  }
+
+  const antes = celula.innerHTML;
+  celula.classList.add('em-edicao');
+  celula.innerHTML = `<input class="cli-celula" type="${regra.tipo === 'data' ? 'date' : 'text'}" value="${safeText(valor)}">`;
   const campoEl = celula.firstElementChild;
   let encerrado = false;
   const encerrar = async (gravar) => {
@@ -632,7 +675,7 @@ function editarCelulaDoCliente(event, nome, campo) {
     if (!gravar || novo === valor) { celula.innerHTML = antes; return; }
     // Campo de data e de numero nao aceitam vazio no banco; texto aceita, e e
     // assim que se apaga um segmento errado.
-    if (!novo && regra.tipo !== 'texto') { celula.innerHTML = antes; return; }
+    if (!novo && regra.tipo === 'data') { celula.innerHTML = antes; return; }
     celula.innerHTML = '<span class="cli-vazio">salvando…</span>';
     try { await gravarCadastroDeCliente({ acao:'ficha', id, campos:{ [campo]: novo } }, 'Cliente atualizado.'); }
     catch (e) { showToast(e.message, 'error', 5000); celula.innerHTML = antes; }
@@ -644,7 +687,6 @@ function editarCelulaDoCliente(event, nome, campo) {
     if (e.key === 'Escape') { e.preventDefault(); encerrar(false); }
   };
   campoEl.onblur = () => encerrar(true);
-  if (regra.tipo === 'lista') campoEl.onchange = () => encerrar(true);
 }
 function linhaDeClienteHtml(nome, semCadastro, estado) {
   const f = cadastroDoCliente(nome) || {};
@@ -991,11 +1033,14 @@ function abrirFichaDeCliente(nome) {
     <input type="hidden" id="cli-f-nome" value="${safeText(nome)}">
     <div class="cli-form">
       <label class="cli-campo"><span>Painel do cliente</span>
-        <select id="cli-f-dashboard">
-          <option value=""${painel ? '' : ' selected'}>— sem informação —</option>
-          <option value="Atualizado"${painelEstaEmDia(painel) ? ' selected' : ''}>Atualizado</option>
-          <option value="Desatualizado"${painel && !painelEstaEmDia(painel) ? ' selected' : ''}>Desatualizado</option>
-        </select></label>
+        <div class="cli-escolha" id="cli-f-dashboard-escolha">${
+          [['Atualizado', 'novo'], ['Desatualizado', 'velho'], ['', 'nenhum']].map(([v, cor]) => {
+            const marcado = !painel ? !v : v === 'Atualizado' ? painelEstaEmDia(painel)
+              : v === 'Desatualizado' ? !painelEstaEmDia(painel) : false;
+            return `<button type="button" class="cli-escolha-btn ${cor} ${marcado ? 'ativo' : ''}"
+              data-valor="${safeText(v)}" onclick="marcarPainelDoCliente(this)">${v || 'sem informação'}</button>`;
+          }).join('')}</div>
+        <input type="hidden" id="cli-f-dashboard" value="${safeText(painel && !painelEstaEmDia(painel) ? 'Desatualizado' : painel ? 'Atualizado' : '')}"></label>
       ${CAMPOS_DA_FICHA.map(campo).join('')}
     </div>
     <div class="workflow-actions cli-acoes-modal">
@@ -1007,14 +1052,22 @@ function abrirFichaDeCliente(nome) {
     </div>`);
 }
 
+function marcarPainelDoCliente(botao) {
+  const caixa = document.getElementById('cli-f-dashboard-escolha');
+  caixa?.querySelectorAll('.cli-escolha-btn').forEach((b) => b.classList.toggle('ativo', b === botao));
+  const campo = document.getElementById('cli-f-dashboard');
+  if (campo) campo.value = botao.dataset.valor || '';
+}
+
 async function salvarFichaDeCliente() {
   const id = String(document.getElementById('cli-f-id')?.value || '');
   if (!id) return;
   const campos = {};
   const pegar = (chave) => String(document.getElementById(`cli-f-${chave}`)?.value ?? '').trim();
   CAMPOS_DA_FICHA.forEach(([chave]) => { const v = pegar(chave); if (v) campos[chave] = v; });
-  const painel = pegar('dashboard');
-  if (painel) campos.dashboard = painel;
+  // O painel vai sempre, inclusive vazio: aqui a escolha e explicita — quem
+  // clica em "sem informacao" esta pedindo para limpar, nao deixando em branco.
+  campos.dashboard = pegar('dashboard');
   if (!Object.keys(campos).length) { closeWorkflowModal(); return; }
   try {
     await gravarCadastroDeCliente({ acao:'ficha', id, campos }, 'Cadastro do cliente salvo.');
