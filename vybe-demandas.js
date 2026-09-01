@@ -718,49 +718,63 @@ function limparTipoDeDemanda() { currentDemandaTipoFilter = 'all'; renderDemanda
 // detalhe: quem filtra por um nao ve as do outro, e as duas listas ficam sempre
 // pela metade. O aviso so aparece enquanto os dois existirem — feita a juncao,
 // ele some sozinho, porque a condicao que o mostra deixa de ser verdadeira.
-const APROVACOES_PARA_JUNTAR = ['Aguardando Aprovação', 'Em aprovação', 'Em Aprovação', 'Aguardando aprovação'];
+const APROVACAO_FINAL = 'Para Aprovação';
 function chaveDeStatusDemanda(v) {
   return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
-function aprovacoesDuplicadas() {
-  const usados = new Set((DADOS_DEMANDAS || []).map((d) => String(d.status || '').trim()).filter(Boolean));
-  const alvo = new Set(APROVACOES_PARA_JUNTAR.map(chaveDeStatusDemanda));
-  const achados = [...usados].filter((r) => alvo.has(chaveDeStatusDemanda(r)));
-  return [...new Set(achados)];
+// Qualquer nome que fale de aprovacao e NAO seja o final entra na juncao.
+// Antes eu procurava so os dois nomes que conhecia, e so entre os status USADOS
+// por alguma peca. Duas limitacoes na mesma linha: um nome escrito de outro
+// jeito passava batido, e um status vazio — sem nenhuma peca — continuava na
+// lista sem que houvesse como tira-lo.
+function aprovacoesParaAbsorver() {
+  const item = (DADOS_DEMANDAS || [])[0] || {};
+  const daLista = typeof requestStatusOptions === 'function'
+    ? requestStatusOptions(item).map((o) => String(o.label || '').trim()) : [];
+  const usados = (DADOS_DEMANDAS || []).map((d) => String(d.status || '').trim());
+  const todos = [...new Set([...daLista, ...usados])].filter(Boolean);
+  const final = chaveDeStatusDemanda(APROVACAO_FINAL);
+  return todos.filter((r) => /aprova/i.test(chaveDeStatusDemanda(r)) && chaveDeStatusDemanda(r) !== final);
 }
 function pintarAvisoDeAprovacoes() {
   const caixa = document.getElementById('demanda-tipo-legend');
   if (!caixa) return;
   document.getElementById('juntar-aprovacoes')?.remove();
-  const duplicados = aprovacoesDuplicadas();
+  const sobrando = aprovacoesParaAbsorver();
   const podeMexer = typeof podeAdministrar === 'function' ? podeAdministrar() : false;
-  if (duplicados.length < 2 || !podeMexer) return;
-  const conta = duplicados.map((r) => (DADOS_DEMANDAS || [])
-    .filter((d) => String(d.status || '').trim() === r).length);
+  if (!sobrando.length || !podeMexer) return;
+  const conta = (r) => (DADOS_DEMANDAS || []).filter((d) => String(d.status || '').trim() === r).length;
+  const rotulo = sobrando.length === 1
+    ? `tirar "${sobrando[0]}" — vira "${APROVACAO_FINAL}"`
+    : `${sobrando.length} status de aprovação — juntar em "${APROVACAO_FINAL}"`;
   caixa.insertAdjacentHTML('beforeend', `<button type="button" id="juntar-aprovacoes" class="tipo-chip juntar"
-    title="${safeText(duplicados.map((r, i) => `${r}: ${conta[i]}`).join(' · '))}"
-    onclick="juntarAprovacoes()">${duplicados.length} status de aprovação — juntar em "Para Aprovação"</button>`);
+    title="${safeText(sobrando.map((r) => `${r}: ${conta(r)}`).join(' · '))}"
+    onclick="juntarAprovacoes()">${safeText(rotulo)}</button>`);
 }
 async function juntarAprovacoes() {
-  const duplicados = aprovacoesDuplicadas();
-  if (duplicados.length < 2) return;
-  const total = duplicados.reduce((n, r) => n + (DADOS_DEMANDAS || [])
+  const sobrando = aprovacoesParaAbsorver();
+  if (!sobrando.length) return;
+  const total = sobrando.reduce((n, r) => n + (DADOS_DEMANDAS || [])
     .filter((d) => String(d.status || '').trim() === r).length, 0);
   const ok = await perguntarNoPainel({
-    titulo: 'Juntar os status de aprovação?',
-    texto: `${duplicados.join(' e ')} viram um só, chamado "Para Aprovação". `
-      + `${total} solicitaç${total === 1 ? 'ão passa' : 'ões passam'} a usar o nome novo. `
+    titulo: sobrando.length === 1 ? `Tirar "${sobrando[0]}" da lista?` : 'Juntar os status de aprovação?',
+    texto: `${sobrando.join(' e ')} ${sobrando.length === 1 ? 'vira' : 'viram'} "${APROVACAO_FINAL}". `
+      + (total
+        ? `${total} solicitaç${total === 1 ? 'ão passa' : 'ões passam'} a usar o nome novo. `
+        : 'Nenhuma solicitação está nele hoje; só o nome sai da lista. ')
       + 'Isso vale para todo mundo e não tem desfazer automático.',
-    confirmar: 'Juntar', perigo: true });
+    confirmar: sobrando.length === 1 ? 'Tirar da lista' : 'Juntar', perigo: true });
   if (!ok) return;
   try {
     const r = await fetch('/api/painel?area=opcoes', { method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ acao:'unificar-status', de: duplicados, para: 'Para Aprovação' }) });
+      body: JSON.stringify({ acao:'unificar-status', de: sobrando, para: APROVACAO_FINAL }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d?.error || 'Não foi possível juntar.');
-    showToast(`✓ ${d.pecas_movidas} solicitação(ões) movidas · agora é "Para Aprovação"`, 'ok', 6000);
+    showToast(d.pecas_movidas
+      ? `✓ ${d.pecas_movidas} solicitação(ões) movidas · agora é "${APROVACAO_FINAL}"`
+      : `✓ ${d.nota || 'Lista de status limpa.'}`, 'ok', 6000);
     await refreshDemandas();
   } catch (e) { showToast(e.message, 'err', 7000); }
 }

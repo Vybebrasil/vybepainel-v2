@@ -646,20 +646,37 @@ async function areaOpcoes(req, res, quem) {
       const de = Array.isArray(req.body?.de) ? req.body.de.map((x) => String(x).trim()).filter(Boolean) : [];
       const para = String(req.body?.para || '').trim();
       const board = Number(req.body?.board || 8385559107);
-      if (de.length < 2 || !para) return res.status(400).json({ error: 'Informe ao menos dois status e o nome final.' });
+      if (!de.length || !para) return res.status(400).json({ error: 'Informe o status a absorver e o nome final.' });
 
       const chave = (v) => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       const todos = await db`SELECT chave, rotulo, monday_index, ordem FROM vybe_status WHERE board_id=${board}`;
-      const alvos = todos.filter((st) => de.some((nome) => chave(nome) === chave(st.rotulo)));
-      if (alvos.length < 2) {
-        return res.status(404).json({ error: 'Não encontrei dois status com esses nomes nas solicitações.' });
+      // O destino conta como alvo: "junte X em Y" tanto vale quando Y ja existe
+      // — e recebe as pecas — quanto quando Y ainda nao existe e um dos X vai
+      // ser renomeado para ele. Exigir os dois lados sempre presentes travava
+      // justamente o caso comum: sobrou um nome velho e o novo ainda nao nasceu.
+      const nomes = [...new Set([...de, para])];
+      const alvos = todos.filter((st) => nomes.some((nome) => chave(nome) === chave(st.rotulo)));
+      if (!alvos.length) {
+        return res.status(404).json({ error: 'Nenhum desses status existe nas solicitações.' });
       }
-      // Sobrevive quem tem indice do Monday; entre eles, o de menor ordem.
+      // Sobrevive quem ja tem o nome final; senao, quem tem indice do Monday —
+      // e por ele que a copia de contingencia encontra a coluna certa.
       const ordenados = [...alvos].sort((a, b) =>
-        (b.monday_index === null ? 0 : 1) - (a.monday_index === null ? 0 : 1)
+        (chave(b.rotulo) === chave(para) ? 1 : 0) - (chave(a.rotulo) === chave(para) ? 1 : 0)
+        || (b.monday_index === null ? 0 : 1) - (a.monday_index === null ? 0 : 1)
         || Number(a.ordem || 0) - Number(b.ordem || 0));
       const fica = ordenados[0];
+      if (ordenados.length < 2) {
+        // So um existe: nao ha o que mover, mas pode faltar o nome certo.
+        if (chave(fica.rotulo) === chave(para)) {
+          return res.status(200).json({ ok: true, acao, ficou: { chave: fica.chave, rotulo: para },
+            removidos: [], pecas_movidas: 0, nota: 'Já estava unificado.' });
+        }
+        await db`UPDATE vybe_status SET rotulo=${para} WHERE chave=${fica.chave} AND board_id=${board}`;
+        return res.status(200).json({ ok: true, acao, ficou: { chave: fica.chave, rotulo: para },
+          removidos: [], pecas_movidas: 0, nota: 'Só o nome mudou; não havia outro status para absorver.' });
+      }
       const saem = ordenados.slice(1).map((st) => st.chave);
 
       const movidas = await db`UPDATE vybe_conteudos SET status_chave=${fica.chave}, atualizado_em=NOW()
