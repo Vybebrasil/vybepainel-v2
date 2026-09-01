@@ -753,6 +753,7 @@ async function apagarSegmento(de) {
 const CELULAS_EDITAVEIS = {
   dashboard: { tipo:'lista' },
   proxima_reuniao: { tipo:'data' },
+  ultima_reuniao: { tipo:'data' },
   plano: { tipo:'texto' },
   segmento: { tipo:'texto' },
 };
@@ -913,6 +914,15 @@ function linhaDeClienteHtml(nome, semCadastro, estado) {
     <td>${situacaoDoClienteHtml(nome, estado)}</td>
     ${editavel('dashboard', paineldoClienteHtml(f.dashboard || ligado.dashboard))}
     ${editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || vazio)}
+    <td class="cli-reunioes${podeMexer ? ' cli-editavel' : ''}"${podeMexer
+      ? ` title="Clique na data para editar" onclick="editarCelulaDoCliente(event, '${aspas}', 'ultima_reuniao')"` : ''
+    }>${dataBr(f.ultima_reuniao) || (podeMexer
+      ? `<span class="cli-mais" title="Registrar a data da última reunião"
+          onclick="event.stopPropagation();editarCelulaDoCliente(event, '${aspas}', 'ultima_reuniao')">+</span>`
+      : vazio)}${idNoCadastro ? `<button type="button" class="cli-atas ${Number(f.atas) ? 'tem' : ''}"
+        title="${Number(f.atas) ? `${f.atas} ata(s) de reunião` : 'Nenhuma ata registrada'}"
+        onclick="event.stopPropagation();abrirAtasDoCliente('${aspas}')">${
+        Number(f.atas) ? `${f.atas} ata${Number(f.atas) === 1 ? '' : 's'}` : 'atas'}</button>` : ''}</td>
     ${editavel('plano', safeText(f.plano || ligado.plan || '') || vazio)}
     ${clicavel(segmento ? `<span class="cli-tag-chip">${safeText(segmento)}</span>` : maisOuNada('Escolher o segmento', `abrirSegmentoDoCliente(event, '${aspas}')`),
       `abrirSegmentoDoCliente(event, '${aspas}')`, 'Clique para escolher a etiqueta')}
@@ -998,7 +1008,8 @@ function tabelaDeClientesHtml(clientes) {
       </button>
       <div class="cli-bloco-corpo"><div class="grupo-tabela-rolagem"><table class="grupo-tabela cli-tabela"><thead><tr>
         <th>Cliente</th><th>Head</th><th>Status</th><th>Dashboard</th><th>Próx. reunião</th>
-        <th>Plano</th><th>Segmento</th><th>Drive</th><th>Manus</th><th>Documento</th><th>Aberto</th><th></th>
+        <th>Última reunião</th><th>Plano</th><th>Segmento</th><th>Drive</th><th>Manus</th>
+        <th>Documento</th><th>Aberto</th><th></th>
       </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem', classe)).join('')}</tbody></table></div></div>
     </section>`;
   return bloco('Ativos', caixas.ativos, 'ativos')
@@ -1006,6 +1017,107 @@ function tabelaDeClientesHtml(clientes) {
     + bloco('Só na operação', caixas.sem, 'sem',
         'aparecem em conteúdos, solicitações ou no Drive, mas não têm ficha no cadastro')
     || '<div class="grupos-vazio">Nenhum cliente encontrado.</div>';
+}
+
+// ── Atas de reunião ───────────────────────────────────────────────────────────
+// Gerir cliente e, em boa parte, lembrar do que foi combinado na ultima
+// conversa. Isso morava na cabeca de quem participou, ou num documento solto que
+// ninguem achava depois. Aqui fica ao lado do cliente, com data e autor, e a
+// data da ultima reuniao se atualiza sozinha quando uma ata nova entra —
+// registrar a conversa e depois lembrar de mexer na data seriam dois passos
+// para um fato so.
+let ATAS_DO_CLIENTE = null;
+async function abrirAtasDoCliente(nome) {
+  const id = idDoCliente(nome);
+  if (!id) return showToast('Este cliente ainda não tem cadastro próprio.', 'warning', 5000);
+  ATAS_DO_CLIENTE = { id, nome, lista: [] };
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Reuniões</span>
+      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">Atas de ${safeText(nome)}</h2>
+    <p class="workflow-copy">O que ficou combinado, com data e quem escreveu. A última reunião do
+      cadastro acompanha a ata mais recente.</p>
+    <div id="cli-atas" class="cli-atas-lista"><div class="auto-carregando">Buscando…</div></div>`);
+  await recarregarAtas();
+}
+
+async function recarregarAtas() {
+  if (!ATAS_DO_CLIENTE) return;
+  const caixa = document.getElementById('cli-atas');
+  if (!caixa) return;
+  try {
+    const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ acao:'atas', id: ATAS_DO_CLIENTE.id }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível buscar as atas.');
+    ATAS_DO_CLIENTE.lista = d.atas || [];
+    pintarAtas();
+  } catch (e) {
+    caixa.innerHTML = `<div class="auto-carregando">Não foi possível buscar<br><small>${safeText(e.message)}</small></div>`;
+  }
+}
+
+function pintarAtas() {
+  const caixa = document.getElementById('cli-atas');
+  if (!caixa || !ATAS_DO_CLIENTE) return;
+  const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const podeEscrever = podeEditarClientes();
+  const lista = ATAS_DO_CLIENTE.lista;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const nova = podeEscrever ? `<form class="cli-ata-nova" onsubmit="event.preventDefault();salvarAta()">
+      <div class="cli-form">
+        <label class="cli-campo"><span>Data da reunião</span>
+          <input id="cli-ata-data" type="date" value="${hoje}"></label>
+      </div>
+      <textarea id="cli-ata-texto" rows="4"
+        placeholder="O que foi decidido, o que ficou pendente e com quem."></textarea>
+      <div class="workflow-actions"><button type="submit" class="workflow-primary">Registrar ata →</button></div>
+    </form>` : '';
+  caixa.innerHTML = nova + (lista.length
+    ? `<div class="cli-atas-rolo">${lista.map((a) => `<article class="cli-ata">
+        <header><b>${safeText(dataBr(a.data))}</b><small>${safeText(a.autor || '')}</small>${
+          podeEscrever ? `<button type="button" class="cli-ata-apagar" title="Apagar esta ata"
+            onclick="apagarAta(${Number(a.id)})">apagar</button>` : ''}</header>
+        <p>${safeText(a.resumo)}</p></article>`).join('')}</div>`
+    : '<div class="auto-carregando">Nenhuma ata registrada ainda.</div>');
+}
+
+async function salvarAta() {
+  if (!ATAS_DO_CLIENTE) return;
+  const data = String(document.getElementById('cli-ata-data')?.value || '').slice(0, 10);
+  const resumo = String(document.getElementById('cli-ata-texto')?.value || '').trim();
+  if (!resumo) return showToast('Escreva o que ficou combinado.', 'warning', 3500);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return showToast('Escolha a data da reunião.', 'warning', 3500);
+  try {
+    const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ acao:'ata-criar', id: ATAS_DO_CLIENTE.id, data, resumo }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível registrar.');
+    showToast('Ata registrada.', 'success', 3500);
+    const campo = document.getElementById('cli-ata-texto');
+    if (campo) campo.value = '';
+    await recarregarAtas();
+    void ensureClientMasterSources(true);
+  } catch (e) { showToast(e.message, 'error', 5000); }
+}
+
+async function apagarAta(ataId) {
+  const ok = await perguntarNoPainel({ titulo: 'Apagar esta ata?',
+    texto: 'O registro sai do cliente. Se ela era a mais recente, a data da última reunião volta para a anterior.',
+    confirmar: 'Apagar', perigo: true });
+  if (!ok) return;
+  try {
+    const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ acao:'ata-apagar', ata: ataId }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível apagar.');
+    showToast('Ata apagada.', 'success', 3500);
+    await recarregarAtas();
+    void ensureClientMasterSources(true);
+  } catch (e) { showToast(e.message, 'error', 5000); }
 }
 
 // ── O documento de acessos do cliente ─────────────────────────────────────────

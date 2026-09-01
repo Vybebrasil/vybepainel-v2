@@ -471,15 +471,42 @@ async function anexarNaPeca(req, res, quem) {
 //
 // Cliente não se apaga: desativa. A lista de conteúdos filtra por ativo, e apagar
 // arrastaria junto o vínculo de todo conteúdo histórico dele.
+// As reunioes do cliente: a data da ultima e as atas.
+//
+// Gerir cliente e, em boa parte, lembrar do que foi combinado na ultima conversa
+// — e isso morava na cabeca de quem participou, ou num documento solto que
+// ninguem achava. Aqui fica ao lado do cliente, com data e autor.
+//
+// Idempotente e chamada a cada uso, no mesmo padrao das automacoes: assim a
+// tabela nasce sozinha sem depender de alguem rodar migracao.
+let reunioesProntas = false;
+async function garantirSchemaDeReunioes(db) {
+  if (reunioesProntas) return;
+  await db`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS ultima_reuniao DATE`;
+  await db`CREATE TABLE IF NOT EXISTS vybe_cliente_reunioes (
+    id         BIGSERIAL PRIMARY KEY,
+    cliente_id BIGINT NOT NULL REFERENCES vybe_clientes(id) ON DELETE CASCADE,
+    data       DATE NOT NULL,
+    resumo     TEXT NOT NULL,
+    autor      TEXT,
+    criado_em  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
+  await db`CREATE INDEX IF NOT EXISTS vybe_cliente_reunioes_cliente
+    ON vybe_cliente_reunioes (cliente_id, data DESC)`;
+  reunioesProntas = true;
+}
+
 async function areaClientes(req, res, quem) {
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
   const db = sql();
+  await garantirSchemaDeReunioes(db);
 
   if (req.method === 'GET') {
     const [linhas, acessos] = await Promise.all([
       db`SELECT c.id, c.nome, c.ativo, c.email, c.telefone, c.endereco, c.cnpj,
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
-             c.dashboard, c.valor, c.proxima_reuniao, c.criado_no_monday,
+             c.dashboard, c.valor, c.proxima_reuniao, c.ultima_reuniao, c.criado_no_monday,
+             (SELECT COUNT(*)::int FROM vybe_cliente_reunioes r WHERE r.cliente_id = c.id) AS atas,
              (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
              (SELECT STRING_AGG(p.nome, ', ' ORDER BY cp.ordem, p.nome)
                 FROM vybe_cliente_pessoas cp JOIN vybe_pessoas p ON p.id = cp.pessoa_id
@@ -501,6 +528,20 @@ async function areaClientes(req, res, quem) {
     const pessoas = await db`SELECT id, nome, monday_user_id FROM vybe_pessoas
       WHERE ativo ORDER BY nome`;
     return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos, pessoas });
+  }
+  // LER a ata e de todo mundo; escrever e apagar sao de quem administra.
+  //
+  // O painel e aberto por escolha — o time todo ve o que o time todo faz —, e
+  // uma ata que so o administrador le nao serve para o proposito dela, que e o
+  // resto das pessoas saberem o que foi combinado. Por isso esta leitura passa
+  // antes da tranca; o restante das acoes continua atras dela.
+  if (req.method === 'POST' && req.body?.acao === 'atas') {
+    const idCliente = Number(req.body?.id || 0);
+    if (!idCliente) return res.status(400).json({ error: 'Informe o cliente.' });
+    const atas = await db`SELECT id, data, resumo, autor, criado_em
+      FROM vybe_cliente_reunioes WHERE cliente_id=${idCliente}
+      ORDER BY data DESC, id DESC LIMIT 200`;
+    return res.status(200).json({ ok: true, atas });
   }
   if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra altera clientes.' });
 
@@ -538,6 +579,7 @@ async function areaClientes(req, res, quem) {
           planejamento_url=COALESCE(${campos.planejamento_url ?? null}, planejamento_url),
           valor=COALESCE(${campos.valor ?? null}::numeric, valor),
           proxima_reuniao=COALESCE(${campos.proxima_reuniao ?? null}::date, proxima_reuniao),
+          ultima_reuniao=COALESCE(${campos.ultima_reuniao ?? null}::date, ultima_reuniao),
           -- O estado do painel do cliente e um campo do cadastro como os outros;
           -- faltava so poder edita-lo daqui, em vez de voltar ao Monday para isso.
           dashboard=COALESCE(${campos.dashboard ?? null}, dashboard)
@@ -545,6 +587,38 @@ async function areaClientes(req, res, quem) {
       if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
     }
+    // ── atas de reuniao ────────────────────────────────────────────────────
+    // Listar e de quem opera; escrever e apagar sao de quem administra, pela
+    // mesma razao do resto do cadastro: sao o registro que o time inteiro le.
+    if (acao === 'ata-criar') {
+      const { data, resumo } = req.body || {};
+      const texto = String(resumo || '').trim();
+      const dia = String(data || '').slice(0, 10);
+      if (!id || !texto) return res.status(400).json({ error: 'Informe o cliente e o que ficou combinado.' });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return res.status(400).json({ error: 'Informe a data da reunião.' });
+      const autor = quem?.pessoa?.nome || 'Vybe OS';
+      const r = await db`INSERT INTO vybe_cliente_reunioes (cliente_id, data, resumo, autor)
+        VALUES (${Number(id)}, ${dia}::date, ${texto}, ${autor})
+        RETURNING id, data, resumo, autor, criado_em`;
+      // A ultima reuniao acompanha a ata mais recente: registrar a conversa e
+      // ter de atualizar a data a mao seriam dois passos para um fato so.
+      await db`UPDATE vybe_clientes SET ultima_reuniao = GREATEST(
+          COALESCE(ultima_reuniao, ${dia}::date), ${dia}::date)
+        WHERE id=${Number(id)}`;
+      return res.status(200).json({ ok: true, ata: r[0] });
+    }
+    if (acao === 'ata-apagar') {
+      const ataId = Number(req.body?.ata || 0);
+      if (!ataId) return res.status(400).json({ error: 'Informe a ata.' });
+      const r = await db`DELETE FROM vybe_cliente_reunioes WHERE id=${ataId} RETURNING cliente_id`;
+      if (!r.length) return res.status(404).json({ error: 'Ata não encontrada.' });
+      // Sem a ata que sustentava a data, a data volta a ser a da ata anterior.
+      await db`UPDATE vybe_clientes SET ultima_reuniao =
+          (SELECT MAX(data) FROM vybe_cliente_reunioes WHERE cliente_id=${r[0].cliente_id})
+        WHERE id=${r[0].cliente_id}`;
+      return res.status(200).json({ ok: true, removida: ataId });
+    }
+
     // Head e vinculo, nao campo: mudar e trocar a lista inteira de uma vez, na
     // ordem em que a pessoa escolheu.
     if (acao === 'heads') {

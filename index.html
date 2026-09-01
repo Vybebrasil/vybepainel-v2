@@ -2054,6 +2054,36 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-lapis:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
 .cli-lapis.criar{border-color:rgba(255,176,0,.4);color:#ffc79a}
+/* Reunioes: a data e a porta das atas moram na mesma celula, porque sao o mesmo
+   assunto — quando foi a ultima conversa e o que ficou dela. */
+.cli-reunioes{white-space:nowrap}
+.cli-atas{margin-left:7px;padding:2px 8px;border-radius:999px;cursor:pointer;
+  border:1px dashed rgba(255,255,255,.18);background:none;color:#6f7887;
+  font:700 9.5px var(--mac-ui);letter-spacing:.03em}
+.cli-atas.tem{border-style:solid;border-color:rgba(255,255,255,.18);
+  background:rgba(255,255,255,.05);color:#cbd3df}
+.cli-atas:hover{border-color:var(--accent,#ff6b00);color:#ffc79a}
+.cli-atas-lista{margin:16px 0 4px}
+.cli-ata-nova textarea{width:100%;min-height:88px;padding:11px;border-radius:10px;resize:vertical;
+  border:1px solid rgba(255,255,255,.13);background:rgba(0,0,0,.28);color:#eef1f6;
+  font:500 12.5px/1.5 var(--mac-ui);outline:none}
+.cli-ata-nova textarea:focus{border-color:var(--accent,#ff6b00)}
+.cli-ata-nova textarea::placeholder{color:#5c6478}
+.cli-ata-nova .workflow-actions{margin-top:10px}
+.cli-atas-rolo{display:grid;gap:8px;max-height:44vh;overflow:auto;margin-top:14px;
+  border-top:1px solid rgba(255,255,255,.08);padding-top:14px}
+.cli-ata{padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02)}
+/* Ha uma regra global para <header> que empilha em coluna. Sem dizer a direcao
+   aqui, a data, o autor e o apagar sairam um embaixo do outro. */
+.cli-ata header{display:flex;flex-direction:row;align-items:baseline;gap:9px;margin-bottom:6px}
+.cli-ata header b{color:#eef1f6;font:700 12px var(--mac-mono);font-variant-numeric:tabular-nums}
+.cli-ata header small{color:#8f98a9;font:600 10.5px var(--mac-ui);margin-right:auto}
+.cli-ata-apagar{border:0;background:none;padding:2px 6px;border-radius:6px;cursor:pointer;
+  color:#6f7887;font:600 10px var(--mac-ui)}
+.cli-ata-apagar:hover{background:rgba(255,77,109,.14);color:#ff9db1}
+.cli-ata p{margin:0;color:#cbd3df;font:500 12px/1.55 var(--mac-ui);white-space:pre-wrap;
+  overflow-wrap:anywhere}
 /* Head e pessoa: bolinha com foto, como no resto do painel. */
 .cli-heads{display:inline-flex;align-items:center}
 .cli-heads img,.cli-heads .owner-avatar-fallback{width:22px;height:22px;border-width:2px}
