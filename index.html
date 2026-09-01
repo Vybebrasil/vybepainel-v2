@@ -3248,6 +3248,65 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 
    Repeticao nao informa. O que se repete em todas as linhas do grupo pertence
    ao grupo, nao a linha. */
+/* ── UMA PASSADA DE ACABAMENTO NO MEU DIA ─────────────────────────────────────
+ *
+ * A tela nao estava feia por falta de efeito: estava barulhenta. Cada secao
+ * carregava uma frase de manual que se le uma vez e depois so ocupa espaco;
+ * cada linha misturava tres fontes e quatro cores; e o vidro nao aparecia
+ * porque nao havia luz nenhuma vindo de lugar algum.
+ *
+ * O acabamento aqui e sobre isso: menos texto permanente, uma familia
+ * tipografica por papel, e uma unica fonte de luz — de cima, como em qualquer
+ * material real. */
+
+/* A explicacao da secao virou balao. O titulo e a conta bastam para saber onde
+   se esta; a frase continua para quem passar o mouse. */
+.focus-section-fim{display:flex;align-items:center;gap:8px;color:#6f7887;font:600 10.5px var(--mac-ui)}
+.focus-section-head{padding:11px 16px!important}
+.focus-section-head > span:first-child{display:inline-flex;align-items:center;gap:8px;
+  color:#e7ecf5;font:700 12px var(--mac-ui);letter-spacing:.01em}
+.focus-section-head > span:first-child b{color:#8f98a9;font:700 11px var(--mac-mono);
+  font-variant-numeric:tabular-nums}
+
+/* Uma familia por papel: nome em UI, numero em mono, rotulo em maiuscula
+   pequena. Antes a mesma linha tinha as tres misturadas no mesmo tamanho, e
+   nada parecia mais importante que nada. */
+.focus-task{padding:11px 16px!important;gap:14px!important}
+.focus-task-client{color:#8f98a9!important;font:700 10px var(--mac-ui)!important;letter-spacing:.04em}
+.focus-task-open{font:600 13.5px var(--mac-ui)!important;letter-spacing:-.01em}
+.focus-task-meta{color:#6f7887!important;font:500 11px var(--mac-ui)!important}
+
+/* O vidro so aparece quando ha luz. Uma linha clara na borda de cima em cada
+   superficie, e o cartao passa a ter espessura em vez de ser um retangulo. */
+.focus-hero,.focus-section,.focus-next-action,.manager-card,.command-center{
+  box-shadow:var(--vybe-shadow-1), inset 0 1px 0 rgba(255,255,255,.055)!important}
+
+/* Os quatro numeros do topo eram caixinhas de contorno ao lado de um titulo de
+   40px — pareciam sobra. Agora sao numero grande e rotulo miudo, e so o que
+   pede acao tem cor. */
+.focus-metric strong{font:700 26px/1 var(--mac-ui)!important;letter-spacing:-.02em}
+.focus-metric span{color:#6f7887!important;font:600 10px var(--mac-ui)!important;letter-spacing:.05em;
+  text-transform:uppercase}
+/* Todos os numeros iguais, menos o que pede acao — e ele so grita quando tem
+   motivo. "0 atrasados" em vermelho vibrante nao e boa noticia: e alarme falso,
+   e alarme falso ensina a ignorar o alarme. */
+.focus-metric{opacity:.7}
+.focus-metric.is-alerta{opacity:1}
+.focus-metric.is-alerta strong{color:#ff9db1!important}
+
+/* O plano do dia e um resumo, e resumo nao compete com a acao. Ele estava com o
+   mesmo peso do bloco da proxima demanda logo abaixo — dois blocos grandes
+   seguidos, e o olho sem saber por onde comecar. Fica menor e mais quieto. */
+.focus-daily-plan{margin:10px 0 16px!important}
+.focus-daily-plan-head{padding:9px 14px!important}
+.focus-daily-plan-head span{font:700 10.5px var(--mac-ui)!important;letter-spacing:.06em;
+  text-transform:uppercase;color:#8f98a9!important}
+.focus-daily-plan-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important}
+.focus-daily-plan-row{min-height:auto!important;padding:10px 14px!important;gap:3px!important}
+.focus-daily-plan-row > span{font:700 9px var(--mac-ui)!important;letter-spacing:.08em;color:#6f7887!important}
+.focus-daily-plan-row button{font:600 12px var(--mac-ui)!important}
+.focus-daily-plan-row small,.focus-daily-plan-row em{font-size:10px!important;color:#6f7887!important}
+
 .focus-task.primeira{background:var(--sup-1);border-radius:10px}
 .focus-task.primeira .focus-task-open{font:600 15px var(--mac-ui);color:#fff}
 .focus-task.primeira .focus-task-priority{width:3px}
