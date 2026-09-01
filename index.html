@@ -3881,7 +3881,7 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-planning-row .da-planning-file{cursor:default}
 .da-planning-row .da-planning-deadline input,.da-planning-row .da-planning-file button,
 .da-planning-row .da-planning-select label,.da-planning-row .da-planning-open{cursor:pointer}.da-planning-row.is-selected{background:color-mix(in srgb,var(--da-plan-color,#ff9d00) 8%,#10131a)!important;box-shadow:inset 3px 0 0 color-mix(in srgb,var(--da-plan-color,#ff9d00) 75%,transparent)!important}.da-planning-item-name,.da-planning-copy>b{font-size:11px!important;color:#eef2f8!important}.da-planning-item-client,.da-planning-copy>small{font-size:9.5px!important;color:#8f9bad!important}.da-planning-airdate b{font-size:10.5px!important;color:#c9d8ff!important}.da-planning-airdate small{font-size:9px!important}.da-planning-deadline input[type="date"]{height:28px!important;min-height:28px!important;padding:0 7px!important;border-radius:6px!important;background:rgba(255,255,255,.035)!important;font-size:10px!important}.da-planning-deadline small{font-size:9px!important}.da-planning-open{height:28px!important;min-height:28px!important;border-radius:6px!important}
-@media(max-width:1180px){.da-planning-health{grid-template-columns:112px minmax(180px,1fr)!important}.da-planning-health-legend{grid-column:1/-1!important;justify-content:flex-start!important}.da-planning-row{min-width:1216px!important}.da-planning-controls{align-items:flex-start!important;flex-direction:column!important;gap:5px!important}.da-planning-control-group{max-width:100%!important;overflow-x:auto!important}}
+@media(max-width:1180px){.da-planning-health{grid-template-columns:112px minmax(180px,1fr)!important}.da-planning-health-legend{grid-column:1/-1!important;justify-content:flex-start!important}.da-planning-row{min-width:1308px!important}.da-planning-controls{align-items:flex-start!important;flex-direction:column!important;gap:5px!important}.da-planning-control-group{max-width:100%!important;overflow-x:auto!important}}
 
 /* Coluna ARQUIVO · a entrega aparece na linha, e o vazio e o caminho de enviar */
 .da-planning-file{display:grid!important;place-items:center!important;min-width:0!important}
@@ -3906,13 +3906,34 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 /* Nove colunas: FORMATO e STATUS deixaram de dividir a mesma celula. Status e a
    pergunta que se faz olhando a mesa; dividir espaco com o formato fazia as duas
    competirem, e nenhuma das duas dava para clicar. */
-.da-planning-row{grid-template-columns:32px 38px minmax(250px,1.55fr) minmax(108px,.54fr) minmax(112px,.56fr) minmax(170px,.86fr) minmax(184px,.92fr) 74px 88px!important}
+/* DEZ COLUNAS: RESPONSAVEL virou uma delas.
+   As bolinhas moravam dentro da celula de identidade, so para olhar. Agora sao
+   coluna propria e editavel.
+
+   AS COLUNAS DESTE GRID SAO FIXADAS UMA A UMA, e mudar so o grid-template
+   nao basta: cada celula diz em que coluna fica, e uma que ficasse para tras
+   iria empilhar em cima da vizinha. Inserir no lugar 4 empurra TODAS as
+   seguintes em um. A lista abaixo esta completa de proposito — e a unica forma
+   de conferir que nenhuma sobrou. */
+.da-planning-row{grid-template-columns:32px 38px minmax(230px,1.5fr) 92px minmax(104px,.52fr) minmax(110px,.54fr) minmax(166px,.84fr) minmax(180px,.9fr) 74px 88px!important}
 .da-planning-row-head span{display:block!important;grid-column:auto!important}
-/* O botao de contexto tem coluna fixa numa camada antiga (grid-column:7) e ia
-   parar em cima da celula de arquivo, empilhados no mesmo lugar. Com oito
-   colunas, cada um diz explicitamente onde fica. */
-.da-planning-file{grid-column:8!important}
-.da-planning-row .da-planning-open{grid-column:9!important}
+.da-planning-donos-col{grid-column:4!important;display:flex!important;align-items:center!important;min-width:0!important}
+.da-planning-airdate{grid-column:5!important}
+.da-planning-tags.da-col-formato{grid-column:6!important}
+.da-planning-tags.da-col-status{grid-column:7!important}
+.da-planning-tags{grid-column:6!important}
+.da-planning-deadline{grid-column:8!important}
+.da-planning-file{grid-column:9!important}
+.da-planning-row .da-planning-open{grid-column:10!important}
+/* A celula inteira e o alvo do clique: mirar numa bolinha de 22px para trocar
+   quem faz a peca seria pedir pontaria. */
+.da-planning-donos-col .owner-editor-trigger{width:100%;border:0;background:transparent;padding:4px 2px;
+  border-radius:8px;cursor:pointer;display:flex;align-items:center;
+  transition:background .14s var(--curva)}
+.da-planning-donos-col .owner-editor-trigger:hover{background:rgba(255,255,255,.07)}
+.da-planning-donos-col .owner-avatar-add{display:grid;place-items:center;width:22px;height:22px;
+  border-radius:50%;border:1px dashed rgba(255,255,255,.26);color:#8b8b90;font:600 13px var(--mac-ui)}
+.da-planning-donos-col .owner-editor-trigger:hover .owner-avatar-add{border-color:rgba(255,255,255,.5);color:#f2f2f5}
 /* Cabecalho clicavel, igual ao da tabela por grupos: o titulo E o botao, e a
    seta so aparece colorida no criterio ativo. Sem isso, ordenar era um botao
    longe da coluna que ele ordena. */

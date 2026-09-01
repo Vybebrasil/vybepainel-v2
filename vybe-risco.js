@@ -576,6 +576,7 @@ function renderOutboundItemPatch(label='alteração') {
   // entao chamar sempre custa quase nada e nao deixa mais nenhuma delas para
   // tras. A redesenharAposMudanca passa a delegar para ca: uma verdade so.
   if(typeof repintarCartaoRapido==='function') repintarCartaoRapido();
+  if(typeof repintarMesaDePlanejamento==='function') repintarMesaDePlanejamento();
   if(typeof renderVisaoDeGrupos==='function') renderVisaoDeGrupos();
   if(typeof renderManagerCalendar==='function') renderManagerCalendar();
   if(typeof renderDemandas==='function' && typeof activeBoard!=='undefined' && activeBoard==='demandas') renderDemandas();
