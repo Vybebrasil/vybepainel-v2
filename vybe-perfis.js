@@ -1088,10 +1088,15 @@ function closeTransientOverlaysForNavigation() {
 }
 function activateOperationalBoard() { const btn=document.getElementById('btn-board-producao'); if(btn && activeBoard!=='producao') switchBoard('producao',btn); }
 // Clicar no logo e voltar para casa — a convencao de todo site, e ela nao valia
-// aqui. Leva sempre para a visao com a fileira de modulos inteira; quem ja esta
-// nela nao perde nada, so volta para Producao.
+// aqui.
+//
+// "Casa" e a tela "Qual estacao voce vai operar?", que e onde as estacoes estao
+// TODAS a vista. Na primeira versao isto caia direto no Modo Gestor, que e uma
+// das estacoes e nao a escolha entre elas: quem clicava pedindo o menu ganhava
+// um destino. Fechar o portao continua sendo a saida de quem so passou o olho.
 function voltarAoMenu() {
-  if (typeof chooseManagerMode === 'function') chooseManagerMode();
+  if (typeof closeTransientOverlaysForNavigation === 'function') closeTransientOverlaysForNavigation();
+  if (typeof openModeGate === 'function') openModeGate();
 }
 function chooseManagerMode() { closeTransientOverlaysForNavigation(); panelMode='gestor'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); setStorage('vybePanelMode','gestor'); setStorage('vybePanelFocusUser',''); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
 function chooseFocusUser(userId) { closeTransientOverlaysForNavigation(); panelMode='foco'; focusUserId=userId; selectedPersonIds.clear(); setStorage('vybePanelMode','foco'); setStorage('vybePanelFocusUser',userId); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
