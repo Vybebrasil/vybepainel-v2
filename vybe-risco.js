@@ -307,7 +307,17 @@ function updateLocalStatus(itemId, option) {
 const HANDOFF_TARGET_STATUSES = new Set(['ag. aprovação cliente']);
 const QUALITY_TARGET_STATUSES = new Set(['para agendar','agendado']);
 const MATERIAL_REVIEW_TARGET_STATUSES = new Set(['agendado','finalizado','feito']);
-const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao','finalizado','feito']);
+// Status que nao pedem justificativa escrita para entrar.
+//
+// 'Pode Fazer' e o mais comum de todos: e o que significa "o briefing esta de pe,
+// pode comecar". Nao e uma volta nem um bloqueio — nao ha o que justificar, e
+// obrigar a escrever um motivo em cada peca liberada era um pedagio na parte
+// mais repetida do dia.
+//
+// 'Finalizado' entra pelo mesmo motivo: ali a trava que importa e a conferencia
+// visual do material, nao o texto.
+const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao',
+  'finalizado','feito','pode fazer','a fazer']);
 // Mandar para aprovacao nao e prestar contas — e mostrar o que ficou pronto.
 //
 // O portao antigo pedia motivo escrito, proxima pessoa e link de referencia
