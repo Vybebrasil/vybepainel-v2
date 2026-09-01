@@ -550,7 +550,11 @@ function applyOutboundItemPatch(itemId, patch={}, label='alteração', options={
     item.updated_at=now;
     item.operational_risk=getOperationalRisk(item);
   }));
-  saveProductionCache();
+  // Em lote, guardar o cache a cada peca serializa a base inteira no navegador
+  // uma vez por item — com sessenta prazos isso e sessenta gravacoes de tudo, e
+  // era o que fazia a barra de progresso andar de dois em dois. Quem chama em
+  // lote guarda UMA vez no fim.
+  if(options?.cache!==false) saveProductionCache();
   if(renderizar) renderOutboundItemPatch(label);
   queueOutboundItemReconciliation(key,patch,label);
 }

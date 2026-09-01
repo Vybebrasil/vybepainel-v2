@@ -3976,6 +3976,18 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .ag-mudanca em{color:#6c6c74;font-style:normal}
 .ag-mudanca b{color:#8fe7ba;font:600 12.5px var(--mac-ui)}
 .ag-motivo{color:#75757c;font:500 11px/1.4 var(--mac-ui);text-align:right}
+/* A barra ocupa o mesmo lugar da lista: a pergunta muda de "o que vai mudar?"
+   para "quanto falta?", e as duas nao precisam estar na tela ao mesmo tempo. */
+.ag-progresso{display:grid;gap:9px;padding:26px 18px;border:1px solid var(--linha);border-radius:12px;
+  background:rgba(0,0,0,.2)}
+.ag-progresso-topo{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ag-progresso-topo b{color:#f7f7fa;font:600 17px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ag-progresso-topo span{color:#8fe7ba;font:600 15px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ag-progresso-trilha{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.ag-progresso-trilha i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,#34c77b,#6fdfa8);transition:width .18s var(--curva)}
+.ag-progresso small{color:#75757c;font:500 11.5px var(--mac-ui);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ag-pendencia{margin-top:12px;border:1px solid rgba(255,178,64,.28);border-radius:10px;
   background:rgba(255,178,64,.08);padding:11px 13px;color:#e3cba6;font:500 12px/1.55 var(--mac-ui)}
 .ag-pendencia b{display:block;color:#ffd399;font-weight:600}

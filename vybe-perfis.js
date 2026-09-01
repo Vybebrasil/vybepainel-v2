@@ -977,8 +977,14 @@ function proporAgenda(pessoasDaMesa) {
     // receberem uma data inventada.
     itens.filter((item) => !String(item.veiculacao_iso || ''))
       .forEach((item) => { if (!semVeiculacao.some((x) => String(x.id) === String(item.id))) semVeiculacao.push(item); });
+    // O DESEMPATE PELO ID NAO E DETALHE: duas pecas que vao ao ar no mesmo dia
+    // empatam, e sem um criterio fixo a ordem entre elas mudava a cada leitura.
+    // O resultado era um vaivem — rodar a proposta logo depois de aplicar
+    // sugeria trocar as duas de lugar, e aplicar de novo trocava de volta. Um
+    // botao que promete "arrumar" precisa chegar a um estado e ficar nele.
     const comData = itens.filter((item) => String(item.veiculacao_iso || ''))
-      .sort((a, b) => String(a.veiculacao_iso).localeCompare(String(b.veiculacao_iso)));
+      .sort((a, b) => String(a.veiculacao_iso).localeCompare(String(b.veiculacao_iso))
+        || String(a.id).localeCompare(String(b.id)));
 
     const carga = new Map();
     const cabe = (dia) => (carga.get(dia) || 0) < CARGA_IDEAL_POR_DIA;
@@ -1095,7 +1101,7 @@ function arrumarAgenda() {
       <small>Ordem pela veiculação · até ${r.carga} entregas por dia · prazo nunca depois do ar · nada em fim de semana</small></div>
     ${r.propostas.length
       ? `<div class="ag-resumo"><b>${r.propostas.length}</b> ${r.propostas.length === 1 ? 'prazo mudaria' : 'prazos mudariam'}. Confira antes de aplicar.</div>
-         <div class="ag-lista">${linhas}</div>`
+         <div id="ag-lista-ou-progresso"><div class="ag-lista">${linhas}</div></div>`
       : '<div class="ag-resumo ok">✓ A agenda já está no padrão. Nenhum prazo precisa mudar.</div>'}
     ${pendentes}
     <div class="workflow-actions">
@@ -1112,18 +1118,44 @@ async function aplicarPropostaDeAgenda() {
   if (!lista.length) return closeWorkflowModal();
   const botao = document.getElementById('ag-aplicar');
   if (botao) { botao.disabled = true; botao.textContent = 'Aplicando…'; }
+  // NOVENTA E QUATRO GRAVACOES SAO UMA POR UMA, e cada uma e uma ida ao
+  // servidor. "Aplicando…" num botao nao diz se falta um ou noventa — e a
+  // diferenca entre esperar e achar que travou. A barra conta em voz alta.
+  const painel = document.getElementById('ag-lista-ou-progresso');
+  const pintarProgresso = (feitos, total, nome) => {
+    if (!painel) return;
+    const pct = Math.round((feitos / total) * 100);
+    painel.innerHTML = `<div class="ag-progresso">
+        <div class="ag-progresso-topo"><b>${feitos} de ${total}</b><span>${pct}%</span></div>
+        <div class="ag-progresso-trilha"><i style="width:${pct}%"></i></div>
+        <small>${feitos < total ? `gravando ${safeText(nome || '')}` : 'concluindo…'}</small>
+      </div>`;
+  };
+  const total = lista.length;
+  pintarProgresso(0, total, lista[0]?.nome);
   const feitos = []; const falhas = [];
   for (const p of lista) {
     const item = findOperationalItem(p.id);
-    if (!item) { falhas.push(p.nome); continue; }
+    if (!item) { falhas.push(p.nome); pintarProgresso(feitos.length + falhas.length, total, p.nome); continue; }
     try {
       if (!await tentarEscritaDupla(item, { acao: 'prazo', item: String(item.id), data: p.para })) {
         await mondayQuery(`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`,
           { board: String(item.board_id || BOARD_ID), item: String(item.id), values: JSON.stringify({ data: { date: p.para } }) });
       }
-      applyOutboundItemPatch(item.id, { prazo_iso: p.para }, 'agenda arrumada', { render: false });
+      applyOutboundItemPatch(item.id, { prazo_iso: p.para }, 'agenda arrumada', { render: false, cache: false });
       feitos.push(p);
     } catch (erro) { falhas.push(p.nome); console.warn('agenda: não deu em', p.id, erro); }
+    pintarProgresso(feitos.length + falhas.length, total, p.nome);
+    // Um respiro para o navegador DESENHAR a barra — mas so quando ha alguem
+    // olhando.
+    //
+    // setTimeout em aba fora de foco e estrangulado para UMA VEZ POR SEGUNDO.
+    // Com o respiro incondicional, 94 prazos levavam 94 segundos se a pessoa
+    // trocasse de aba enquanto rodava — medido aqui: um item por segundo. E se
+    // a aba esta escondida ninguem ve a barra, entao o respiro so paga o preco.
+    if (document.visibilityState === 'visible') {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
   PROPOSTA_DE_AGENDA = null;
   saveProductionCache();
