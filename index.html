@@ -1546,6 +1546,16 @@ header,.topbar{
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:background .15s var(--curva),transform .15s var(--curva)}
 .auto-novo:hover{background:color-mix(in srgb,var(--accent,#ff6b00) 28%,transparent);color:#fff}
 .auto-novo:active{transform:scale(.98)}
+.auto-cabeca-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* Sincronizar e manutencao, nao criacao: fica ao lado do botao principal mas
+   sem o acento, para nao competir com "Nova regra". */
+.auto-sincronizar{border:1px solid var(--linha,rgba(255,255,255,.09));border-radius:10px;
+  background:var(--sup-1,rgba(255,255,255,.042));color:#a8a8ae;padding:10px 15px;
+  font:600 12px var(--mac-ui);cursor:pointer;white-space:nowrap;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  transition:background .15s var(--curva),border-color .15s var(--curva),color .15s var(--curva)}
+.auto-sincronizar:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2);color:#f7f7fa}
+.auto-sincronizar:disabled{opacity:.5;cursor:default}
 .auto-lista{display:flex;flex-direction:column;gap:12px}
 
 /* As pastilhas respondem "quais regras trabalham?" antes de a pessoa rolar. */

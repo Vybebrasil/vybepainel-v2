@@ -99,10 +99,29 @@ const SEMENTE = [
       { tipo: 'status', para: 'pode_fazer' },
     ] },
 
-  { nome: 'Finalizado em Gestão de publicações vai para Finalizados', ordem: 22,
+  // PECA EM FINALIZADOS NAO TEM DONO.
+  //
+  // Enquanto o nome de alguem fica na peca entregue, ela continua contando na
+  // fila dessa pessoa e aparecendo na mesa dela — trabalho encerrado ocupando
+  // espaco de trabalho por fazer. 'replace' com a lista vazia limpa: o motor
+  // apaga os responsaveis e nao poe ninguem no lugar.
+  //
+  // Sao DUAS regras porque ha dois caminhos para a peca chegar em Finalizados, e
+  // o motor para na primeira regra que move de grupo — uma regra so nao pegaria
+  // os dois. Esta cuida de quem chega vindo de Publicacoes...
+  { nome: 'Finalizado em Gestão de publicações vai para Finalizados, sem dono', ordem: 22,
     gatilho: { tipo: 'status', para: 'finalizado' },
     condicao: { grupo_em: [GRUPOS.publicacoes] },
-    acoes: [{ tipo: 'grupo', para: GRUPOS.finalizados }] },
+    acoes: [
+      { tipo: 'grupo', para: GRUPOS.finalizados },
+      { tipo: 'responsaveis', modo: 'replace', pessoas: [] },
+    ] },
+
+  // ...e esta, de quem ja estava em Finalizados quando foi marcada.
+  { nome: 'Finalizado em Finalizados libera o responsável', ordem: 23,
+    gatilho: { tipo: 'status', para: 'finalizado' },
+    condicao: { grupo_em: [GRUPOS.finalizados] },
+    acoes: [{ tipo: 'responsaveis', modo: 'replace', pessoas: [] }] },
 
   { nome: 'Aprovação de audiovisual chama Vinícius, Ewerton e Paulo', ordem: 30,
     gatilho: { tipo: 'status', de: 'em_andamento', para: 'para_aprovacao' },

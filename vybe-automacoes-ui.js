@@ -119,6 +119,10 @@ function frasearAcao(a) {
   if (a.tipo === 'notificar') return 'avisa quem é responsável';
   if (a.tipo === 'responsaveis') {
     const quem = (a.pessoas || []).map((id) => primeiroNome(nomeDePessoa(id))).join(' e ');
+    // Lista vazia com 'replace' e uma acao de verdade: limpa os responsaveis.
+    // Sem este caso a frase saia pela metade — "passa a responsabilidade para "
+    // — e a regra parecia quebrada em vez de proposital.
+    if (!quem) return a.modo === 'replace' ? 'tira o responsável da peça' : 'não chama ninguém';
     return a.modo === 'replace' ? `passa a responsabilidade para ${quem}` : `chama também ${quem}`;
   }
   return a.tipo;
@@ -245,7 +249,11 @@ function pintarAutomacoes() {
           ? 'Alterar aqui vale na hora, sem publicar nada.'
           : 'Só quem administra pode alterar — a lista fica visível para todos porque é ela que explica por que um card muda de dono sozinho.'}</p>
       </div>
-      ${admin ? '<button class="auto-novo" onclick="editarAutomacao(null)">+ Nova regra</button>' : ''}
+      ${admin ? `<div class="auto-cabeca-acoes">
+        <button class="auto-sincronizar" onclick="sincronizarRegrasDoSistema(this)"
+          title="Traz para o painel as regras que vieram do Monday, corrigindo as que mudaram. Regra criada aqui não é tocada.">Sincronizar regras do sistema</button>
+        <button class="auto-novo" onclick="editarAutomacao(null)">+ Nova regra</button>
+      </div>` : ''}
     </div>
     <div class="auto-pastilhas">${pastilhas}</div>
     ${temRegraDeData ? `<p class="auto-aviso-varredura">As regras por data rodam numa
@@ -693,4 +701,32 @@ async function excluirAutomacao(id) {
     showToast('Regra excluída.', 'success', 3500);
     carregarAutomacoes();
   } catch (erro) { showToast(`Falhou: ${erro.message}`, 'error', 5000); }
+}
+
+// As regras que vieram do Monday moram no codigo, e mudam quando o codigo muda.
+// Este botao traz essas mudancas para o banco — corrigindo as que ja existem, em
+// vez de duplicar. Regra criada aqui no painel NAO e tocada: quem escreveu uma
+// regra a mao nao pode ve-la reescrita por um deploy.
+async function sincronizarRegrasDoSistema(botao) {
+  const sim = await perguntarNoPainel({
+    titulo: 'Sincronizar as regras do sistema?',
+    texto: 'As regras que vieram do Monday voltam ao que está no código — as que mudaram são corrigidas e as novas entram. Regras criadas aqui no painel não são tocadas.',
+    confirmar: 'Sincronizar',
+  });
+  if (!sim) return;
+  if (botao) { botao.disabled = true; botao.textContent = 'Sincronizando…'; }
+  try {
+    const r = await fetch(`${AUTOMACOES_API}&acao=semear&refazer=1`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+    showToast(`✓ Regras sincronizadas${typeof d.criadas === 'number' ? ` · ${d.criadas} nova(s)` : ''}`, 'ok', 6000);
+    carregarAutomacoes();
+  } catch (erro) {
+    showToast(`Não foi possível sincronizar: ${erro.message}`, 'error', 7000);
+  } finally {
+    if (botao) { botao.disabled = false; botao.textContent = 'Sincronizar regras do sistema'; }
+  }
 }

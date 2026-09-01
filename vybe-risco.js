@@ -784,7 +784,14 @@ function aplicarEfeitoDaAutomacao(item, resposta) {
   const donosAntes = assignedIds(item).map(String).sort().join(',');
   const donosDepois = (depois.responsavel_ids || []).map(String).sort().join(',');
   const remendo = {};
-  if (donosDepois && donosDepois !== donosAntes) remendo.responsavel_ids = depois.responsavel_ids.map(String);
+  // LISTA VAZIA E UMA RESPOSTA, NAO A FALTA DE UMA.
+  //
+  // A condicao era `if (donosDepois && ...)`, e string vazia e falsa: quando a
+  // automacao TIRAVA o responsavel — o que a regra de Finalizados faz — o
+  // remendo nunca era aplicado e a tela continuava mostrando o dono antigo. O
+  // servidor so manda 'depois' quando alguma regra rodou, entao aqui uma lista
+  // vazia significa "ficou sem ninguem", e nao "nao sei".
+  if (donosDepois !== donosAntes) remendo.responsavel_ids = (depois.responsavel_ids || []).map(String);
   if (depois.grupo_id && String(depois.grupo_id) !== String(item.grupo_id || '')) {
     remendo.grupo_id = depois.grupo_id;
     if (depois.grupo) remendo.grupo = depois.grupo;
@@ -793,7 +800,8 @@ function aplicarEfeitoDaAutomacao(item, resposta) {
   applyOutboundItemPatch(item.id, remendo, 'automação após troca de status');
   const nomes = (remendo.responsavel_ids || []).map((id) =>
     firstName((TEAM_USERS || []).find((u) => String(u.id) === String(id))?.name || '')).filter(Boolean);
-  const quem = nomes.length ? ` · agora com ${nomes.join(' e ')}` : '';
+  const quem = nomes.length ? ` · agora com ${nomes.join(' e ')}`
+    : (remendo.responsavel_ids ? ' · e saiu da fila de quem estava com ela' : '');
   const onde = remendo.grupo ? ` em ${remendo.grupo}` : '';
   const regra = regras[0]?.nome ? ` (${regras[0].nome})` : '';
   return `✓ ${item.nome || 'Peça'} seguiu pela automação${quem}${onde}${regra}`;
