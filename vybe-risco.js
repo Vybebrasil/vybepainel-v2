@@ -554,6 +554,20 @@ function renderOutboundItemPatch(label='alteração') {
   if(panelMode==='foco') renderFocusDashboard();
   else if(panelMode==='controler') renderDaController();
   else { renderKPIs(); for(let n=1;n<=(META?.weeks?.length||0);n++) renderWeek(n,currentFilter,currentDayFilter); renderManagerIntelligence(); }
+  // AS OUTRAS TRES TELAS QUE MOSTRAM A MESMA PECA.
+  //
+  // Existiam duas funcoes para repintar depois de uma mudanca: esta, que so
+  // sabia das semanas e dos KPIs, e a redesenharAposMudanca, que sabia de tudo.
+  // Trocar o status passava pela incompleta — entao a fileira de Grupos, o
+  // calendario e a esteira de Solicitacoes continuavam com o valor antigo, e a
+  // pessoa concluia que so recarregando a pagina resolvia. Era exatamente isso.
+  //
+  // As tres tem guarda propria e nao fazem nada quando a tela nao esta aberta,
+  // entao chamar sempre custa quase nada e nao deixa mais nenhuma delas para
+  // tras. A redesenharAposMudanca passa a delegar para ca: uma verdade so.
+  if(typeof renderVisaoDeGrupos==='function') renderVisaoDeGrupos();
+  if(typeof renderManagerCalendar==='function') renderManagerCalendar();
+  if(typeof renderDemandas==='function' && typeof activeBoard!=='undefined' && activeBoard==='demandas') renderDemandas();
   requestAnimationFrame(()=>window.scrollTo({top:previousScroll,behavior:'instant'}));
   const dominioAtivo = typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio';
   cacheSyncLabel(dominioAtivo ? 'Alteração confirmada no banco Vybe.' : 'Alteração local aplicada · confirmando contingência…');
@@ -1097,12 +1111,11 @@ function fichaSelect(campo, opcoes, atual, itemId) {
 // redesenhar tudo e o renderOutboundItemPatch, ja usado em toda alteracao
 // local; a visao de grupos, o calendario e a tabela de Demandas ficam de fora
 // dele e sao chamados aqui.
+// Ficou sendo o mesmo que renderOutboundItemPatch. Continua existindo porque o
+// nome diz a intencao no ponto de uso — mas nao repete a lista de telas, que era
+// justamente o que fazia as duas divergirem.
 function redesenharAposMudanca(motivo = 'alteração') {
   if (typeof renderOutboundItemPatch === 'function') renderOutboundItemPatch(motivo);
-  if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos();
-  if (typeof renderManagerCalendar === 'function') renderManagerCalendar();
-  if (typeof renderDemandas === 'function' && typeof activeBoard !== 'undefined'
-      && activeBoard === 'demandas') renderDemandas();
 }
 
 async function renomearPeca(itemId) {
