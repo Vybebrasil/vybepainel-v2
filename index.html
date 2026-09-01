@@ -490,6 +490,53 @@
       scrollbar-width:thin;scrollbar-color:rgba(173,184,202,.45) transparent}
     .demanda-group-card .item-row { padding:9px 15px;border-bottom:1px solid rgba(255,255,255,.045)}
     .demanda-group-card .item-row:last-child { border-bottom:0}
+    /* ── O cartao ────────────────────────────────────────────────────────────
+       Tres faixas fixas em todo cartao. Dois vizinhos alinham porque a
+       estrutura e a mesma, e nao porque o texto deles tem o mesmo tamanho. */
+    .demanda-group-card .dem-cartao{display:grid;gap:7px;padding:12px 15px;
+      border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;
+      transition:background .13s var(--curva)}
+    .demanda-group-card .dem-cartao:last-child{border-bottom:0}
+    .demanda-group-card .dem-cartao:hover{background:rgba(255,255,255,.03)}
+    /* Estas faixas sao <div>, e nao <header>/<footer>, de proposito. O painel
+       tem regras globais para essas tags — padding, gradiente de fundo e borda
+       do cabecalho da pagina — e um <header> dentro do cartao herdava tudo
+       isso: 32px de altura vazia mais um fundo que nao era dele. Zerar item a
+       item vira uma briga sem fim com a cascata; a tag neutra encerra a briga. */
+    .dem-cartao-topo{display:flex;align-items:center;gap:8px;min-width:0}
+    /* O id de onze digitos ninguem le — so copia. Fica no menor peso do cartao
+       e so acende quando a mao chega perto. */
+    .dem-cartao-topo .vybe-id{border:0;background:transparent;padding:0;color:#5f5f67;
+      font:500 10.5px var(--mac-mono,ui-monospace,monospace);cursor:pointer;
+      opacity:.7;transition:color .13s var(--curva),opacity .13s var(--curva)}
+    .dem-cartao:hover .vybe-id{opacity:1;color:#8b8b90}
+    .dem-cartao-topo .vybe-id:hover{color:#f2f2f5}
+    .dem-cartao-topo .vybe-cliente{max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      border-radius:6px;padding:2px 7px;background:rgba(255,255,255,.07);color:#c9c9d1;
+      font:600 10.5px var(--mac-ui);letter-spacing:0;border:0}
+    /* O NOME e o heroi: e o que se procura passando o olho pela coluna. */
+    .dem-cartao-nome .vybe-nome{display:block;width:100%;border:0;background:transparent;padding:0;
+      color:#f7f7fa;font:600 13.5px/1.35 var(--mac-ui);text-align:left;cursor:pointer;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .dem-cartao:hover .dem-cartao-nome .vybe-nome{color:#fff}
+    .dem-cartao-selos{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+    .dem-selo{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;
+      font:600 10px var(--mac-ui);letter-spacing:.03em}
+    .dem-selo.atrasado{background:rgba(255,69,89,.16);color:#ff9fa9}
+    /* O rodape tem posicoes fixas: estado a esquerda, datas no meio, quem faz a
+       direita. Faltando um, os outros nao andam de lugar. */
+    .dem-cartao-pe{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+    .dem-cartao-estado .vybe-status-btn{border:0;background:transparent;padding:0;cursor:pointer}
+    .dem-cartao-datas{display:flex;gap:10px;flex-wrap:wrap;min-width:0}
+    .dem-data{display:inline-flex;align-items:baseline;gap:5px;color:#8b8b90;
+      font:600 11px var(--mac-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .dem-data i{color:#5f5f67;font:600 9px var(--mac-ui);font-style:normal;
+      letter-spacing:.08em;text-transform:uppercase}
+    .dem-data.vencido{color:#ff9fa9}
+    .dem-data.fim{color:#6fdfa8}
+    .dem-cartao-donos{justify-self:end}
+    .dem-cartao-donos .owner-editor-trigger{border:0;background:transparent;padding:0;cursor:pointer}
+
     .demanda-ver-mais{width:100%;border:0;border-top:1px dashed rgba(255,255,255,.09);
       background:transparent;color:#8b8b90;padding:13px 15px;font:600 12px var(--mac-ui);cursor:pointer;
       transition:background .14s var(--curva),color .14s var(--curva)}

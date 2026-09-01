@@ -619,44 +619,45 @@ function focarStatus(status) {
 }
 
 // Helper: linha de item de demanda
-function demandaItemRow(d, showCliente=true) {
-  // Mesmas peças da fila de produção. Antes esta linha tinha implementação
-  // própria de tudo: cliente numa cápsula roxa escrita à mão, responsável em
-  // texto onde a outra fila usa a foto, status que não abria, e nenhum ID.
-  // Duas datas nuas, uma ao lado da outra, sem dizer qual e qual — e muitas
-  // vezes iguais ("31/08 | 31/08"). O nome de cada uma estava so no title, que
-  // ninguem descobre. Na tabela de grupos da para saber porque a coluna tem
-  // cabecalho; aqui nao havia nada. Agora cada data leva o proprio nome.
-  const atrasadoBadge = d.prazo_atrasado ? '<span class="prazo-badge">Atrasado</span>' : '';
-  const data = (rotulo, valor, cor) => valor
-    ? `<span class="vybe-data com-rotulo" style="color:${cor}" title="${rotulo}"><b>${rotulo}</b>${valor}</span>` : '';
-  // SEM DATA NAO SE DESENHA UM TRACO.
-  //
-  // Um cartao sem tipo, sem prioridade e sem data mostrava TRES tracos — e com
-  // 327 demandas por classificar, era a maior parte do quadro virando ruido.
-  // Traco nao e informacao: e o desenho de uma ausencia. O espaco vazio diz a
-  // mesma coisa e nao disputa a atencao com o que esta preenchido.
-  const dateBlock = (d.prazo || d.conclusao)
-    ? `<span class="item-date vybe-datas">
-        ${data('Prazo', d.prazo, '#f59e0b')}${atrasadoBadge}
-        ${data('Conclusão', d.conclusao, '#34d399')}
-      </span>`
-    : (atrasadoBadge || '');
-  // Clicar na linha abre o RESUMO — o mesmo cartao rapido do calendario. Antes
-  // so o nome era clicavel, e ele abria direto a gaveta inteira: dois
-  // comportamentos diferentes para "abrir" no mesmo painel. O resumo mostra o
-  // essencial e tem o caminho para a gaveta dentro dele, quando for preciso.
-  return `<div class="item-row abre-resumo" onclick="abrirCartaoRapido('${safeText(d.id)}',event,'request')"
+// O CARTAO TINHA OITO PECAS SOLTAS NUMA LINHA QUE QUEBRAVA SOZINHA.
+//
+// Cliente, id, tipo, nome, duas datas, prioridade, status e as bolinhas, tudo
+// em flex-wrap. Cada cartao quebrava num lugar diferente conforme o tamanho do
+// nome, e por isso dois cartoes vizinhos nunca alinhavam nada — era essa a
+// sensacao de bagunca, e nenhuma cor nova ia consertar.
+//
+// Agora a estrutura e FIXA, tres faixas em todo cartao:
+//   1. de quem e (cliente) e o id, miudo e quieto — id de onze digitos ninguem
+//      le, so copia;
+//   2. o NOME, sozinho, no maior peso do cartao: e a unica coisa que se procura
+//      passando o olho por uma coluna;
+//   3. o rodape: status a esquerda, datas no meio, quem faz a direita — sempre
+//      nessas posicoes, mesmo quando algum deles nao existe.
+function demandaItemRow(d, showCliente = true) {
+  const data = (rotulo, valor, classe) => valor
+    ? `<span class="dem-data ${classe}" title="${rotulo}"><i>${rotulo}</i>${safeText(valor)}</span>` : '';
+  const datas = `${data('Prazo', d.prazo, d.prazo_atrasado ? 'vencido' : '')}${data('Conclusão', d.conclusao, 'fim')}`;
+  const selos = [
+    d.prazo_atrasado ? '<span class="dem-selo atrasado">Atrasado</span>' : '',
+    d.prioridade ? prioHtml(d.prioridade) : '',
+    d.tipo && String(d.tipo).trim() !== '—' ? fmtHtml(d.tipo) : '',
+  ].filter(Boolean).join('');
+
+  return `<article class="item-row dem-cartao abre-resumo"
+      onclick="abrirCartaoRapido('${safeText(d.id)}',event,'request')"
       title="Abrir o resumo de ${safeText(d.nome || '')}">
-    ${showCliente ? vybeTagCliente(d) : ''}
-    ${vybeChipId(d)}
-    ${d.tipo && String(d.tipo).trim() !== '—' ? fmtHtml(d.tipo) : ''}
-    <span class="item-name">${vybeNome(d)}</span>
-    ${dateBlock}
-    ${d.prioridade ? prioHtml(d.prioridade) : ''}
-    ${vybeStatus(d)}
-    ${vybeDono(d)}
-  </div>`;
+    <div class="dem-cartao-topo">
+      ${showCliente ? vybeTagCliente(d) : ''}
+      ${vybeChipId(d)}
+    </div>
+    <div class="dem-cartao-nome">${vybeNome(d)}</div>
+    ${selos ? `<div class="dem-cartao-selos">${selos}</div>` : ''}
+    <div class="dem-cartao-pe">
+      <span class="dem-cartao-estado">${vybeStatus(d)}</span>
+      <span class="dem-cartao-datas">${datas}</span>
+      <span class="dem-cartao-donos">${vybeDono(d)}</span>
+    </div>
+  </article>`;
 }
 
 // Andamento das tarefas de dentro da solicitação. Sem isto, saber que 3 de 12
