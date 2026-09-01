@@ -415,6 +415,55 @@
     .week-panel.active { display:block}
     /* Botões de alternância de board (header) */
     /* Painel de demandas */
+    /* ── Uma barra de controles, uma linguagem ─────────────────────────────
+       Cinco faixas soltas viraram uma superficie de vidro com linhas rotuladas
+       a esquerda. O rotulo em coluna fixa alinha tudo verticalmente e dispensa
+       os titulos laranja com instrucao escrita, que ocupavam uma linha cada. */
+    .dem-controles{display:grid;gap:2px;margin:0 0 18px;padding:4px 2px;
+      border:1px solid var(--linha,rgba(255,255,255,.09));border-radius:16px;
+      background:var(--sup-1,rgba(255,255,255,.042));
+      -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+      box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 8px 24px rgba(0,0,0,.2)}
+    .dem-linha{display:grid;grid-template-columns:72px minmax(0,1fr);gap:14px;align-items:center;
+      padding:9px 14px}
+    .dem-linha + .dem-linha{border-top:1px solid rgba(255,255,255,.05)}
+    .dem-rotulo{color:#75757c;font:600 11.5px var(--mac-ui);text-align:right}
+    .dem-linha .legend,.dem-linha .person-filter-bar{display:flex;gap:6px;flex-wrap:wrap;
+      align-items:center;margin:0;padding:0;border:0;background:none}
+    .dem-recorte{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    /* AS FICHAS FALAM A MESMA LINGUA DENTRO DA BARRA.
+       Eram cinco tratamentos para o mesmo gesto: pilula vazada com bolinha,
+       pastel preenchida, controle segmentado, circulo com foto e botao redondo
+       de contorno. Aqui todas viram a mesma ficha — altura, raio, peso e borda
+       iguais — e o que muda entre elas e a COR DO DADO, que e o unico
+       diferencial que carrega informacao. */
+    .dem-controles .pill,
+    .dem-controles .tipo-chip,
+    .dem-controles .sort-btn,
+    .dem-controles .date-mode-btn{
+      min-height:30px;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;
+      padding:0 12px;border-radius:999px;font:600 12px var(--mac-ui);letter-spacing:0;
+      border:1px solid var(--linha,rgba(255,255,255,.09));background:rgba(255,255,255,.035);
+      cursor:pointer;transition:background .14s var(--curva),border-color .14s var(--curva),color .14s var(--curva)}
+    .dem-controles .pill:hover,.dem-controles .tipo-chip:hover,
+    .dem-controles .sort-btn:hover,.dem-controles .date-mode-btn:hover{
+      background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2);filter:none}
+    /* Marcado e a mesma marca em todas: anel claro, sem inventar uma cor nova. */
+    .dem-controles .pill.active,.dem-controles .tipo-chip.ativo,
+    .dem-controles .sort-btn.active,.dem-controles .date-mode-btn.active{
+      border-color:rgba(255,255,255,.34);background:rgba(255,255,255,.12);color:#fff;box-shadow:none}
+    .dem-controles .tipo-chip span,.dem-controles .sort-btn b{
+      min-width:18px;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,.3);
+      font:600 11px var(--mac-ui);font-variant-numeric:tabular-nums;text-align:center}
+    /* O segmentado perde a moldura de barra e vira duas fichas irmas. */
+    .dem-controles .date-mode-bar{display:inline-flex;gap:4px;margin:0;padding:0;border:0;background:none}
+    .dem-controles .person-chip{width:30px;height:30px}
+    .dem-linha .filter-label{display:none}
+    @media(max-width:760px){
+      .dem-linha{grid-template-columns:1fr;gap:6px}
+      .dem-rotulo{text-align:left}
+    }
+
     /* A ESTEIRA É UM QUADRO, NÃO UMA PILHA.
        As colunas cresciam até a altura do próprio conteúdo. Com 36 demandas em
        "A Fazer", a coluna passava de 2.800px e a PÁGINA INTEIRA ficava desse
@@ -441,6 +490,10 @@
       scrollbar-width:thin;scrollbar-color:rgba(173,184,202,.45) transparent}
     .demanda-group-card .item-row { padding:9px 15px;border-bottom:1px solid rgba(255,255,255,.045)}
     .demanda-group-card .item-row:last-child { border-bottom:0}
+    .demanda-ver-mais{width:100%;border:0;border-top:1px dashed rgba(255,255,255,.09);
+      background:transparent;color:#8b8b90;padding:13px 15px;font:600 12px var(--mac-ui);cursor:pointer;
+      transition:background .14s var(--curva),color .14s var(--curva)}
+    .demanda-ver-mais:hover{background:rgba(255,255,255,.045);color:#f2f2f5}
     .demanda-group-vazia { padding:26px 15px;color:#6c6c74;text-align:center;font:500 12px var(--mac-ui)}
     .prio-alta   { display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(239,68,68,.2);color:#f87171;border:1px solid rgba(239,68,68,.3)}
     .prio-media  { display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(245,158,11,.2);color:#fbbf24;border:1px solid rgba(245,158,11,.3)}
@@ -4435,65 +4488,61 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   <div class="container">
     <div id="kpi-grid-demandas" class="kpi-grid"></div>
 
-    <!-- Legenda de status das demandas (clicável) -->
-    <div class="section-title miudo"><span></span>Status <small>— clique para filtrar</small></div>
-    <div class="legend" id="demanda-status-legend">
-      <span class="pill pill-nova-demanda" onclick="filterDemandaByStatusLegend('Nova Demanda',this)"><span class="pill-dot"></span>Nova demanda</span>
-      <span class="pill pill-pode-fazer" onclick="filterDemandaByStatusLegend('Pode Fazer',this)"><span class="pill-dot"></span>Pode Fazer</span>
-      <span class="pill pill-em-execucao" onclick="filterDemandaByStatusLegend('Em execução',this)"><span class="pill-dot"></span>Em Execução</span>
-      <span class="pill pill-em-aprovacao" onclick="filterDemandaByStatusLegend('Em aprovação',this)"><span class="pill-dot"></span>Em Aprovação</span>
-      <span class="pill pill-aprovado" onclick="filterDemandaByStatusLegend('Aprovado',this)"><span class="pill-dot"></span>Aprovado</span>
-      <span class="pill pill-feito" onclick="filterDemandaByStatusLegend('Feito',this)"><span class="pill-dot"></span>Feito</span>
-      <span class="pill pill-alteracao-d" onclick="filterDemandaByStatusLegend('Alteração',this)"><span class="pill-dot"></span>Alteração</span>
-      <span class="pill pill-aguardando-info" onclick="filterDemandaByStatusLegend('Aguardando Info.',this)"><span class="pill-dot"></span>Aguardando Info.</span>
-    </div>
-
-    <!-- Tipo de demanda: e por aqui que se acompanha impresso, video, site — e,
-         principalmente, que se ve o que ainda nao foi classificado. A fileira e
-         montada a partir dos dados; se ninguem usa um tipo, ele nao ocupa espaco. -->
-    <div class="section-title miudo" style="margin-top:12px;"><span></span>Tipo <small>— clique para filtrar; marque várias e use "Tipo" no deck para classificar em lote</small></div>
-    <div class="legend tipo-legend" id="demanda-tipo-legend"></div>
-
-    <!-- Toggle Conclusão / Prazo -->
-    <div class="date-mode-bar" id="date-mode-bar-demandas">
-      <button class="date-mode-btn active" id="btn-dmode-conclusao" onclick="setDemandaDateMode('conclusao',this)">Conclusão</button>
-      <button class="date-mode-btn" id="btn-dmode-prazo" onclick="setDemandaDateMode('prazo',this)">Prazo</button>
-    </div>
-
-    <!-- As abas Semana 1 / Semana 2 sairam daqui.
-         Conteudo tem semana porque e feito para veicular num dia. Solicitacao
-         nao: ela chega quando chega e se arrasta ate alguem resolver. Recortar
-         por semana escondia justamente as antigas — a demanda de 26/06 ainda em
-         execucao nao aparecia em semana nenhuma. Quem precisa de recorte de
-         tempo tem o filtro de Dia, que agora vale em toda a tela, e o
-         Calendario. -->
-
-    <!-- Filtro por pessoa (demandas) -->
-    <div id="person-filter-bar-demandas" class="person-filter-bar">
-      <span class="filter-label">Equipe:</span>
-      <div class="person-wrap" onclick="filterDemandaByPerson('all',this)" id="person-all-demandas" title="Toda a equipe">
-        <span class="person-chip so-foto todos active"><span class="owner-avatar-fallback" style="background:#6b7280">TODOS</span></span>
+    <!-- UMA BARRA, UMA LINGUAGEM.
+         Eram cinco faixas soltas antes de qualquer conteudo — status, tipo,
+         Conclusao/Prazo, equipe, dia/grupos/calendario — cada uma com titulo
+         laranja proprio, instrucao em texto e um estilo de ficha diferente.
+         Cinco tratamentos visuais para o MESMO trabalho, que e filtrar. Agora e
+         uma superficie so, em linhas rotuladas a esquerda, e a instrucao virou
+         o title de quem precisa dela. -->
+    <div class="dem-controles">
+      <div class="dem-linha">
+        <span class="dem-rotulo">Status</span>
+        <div class="legend" id="demanda-status-legend">
+          <span class="pill pill-nova-demanda" onclick="filterDemandaByStatusLegend('Nova Demanda',this)" title="Ver só as de status Nova demanda"><span class="pill-dot"></span>Nova demanda</span>
+          <span class="pill pill-pode-fazer" onclick="filterDemandaByStatusLegend('Pode Fazer',this)" title="Ver só as de status Pode Fazer"><span class="pill-dot"></span>Pode Fazer</span>
+          <span class="pill pill-em-execucao" onclick="filterDemandaByStatusLegend('Em execução',this)" title="Ver só as em execução"><span class="pill-dot"></span>Em Execução</span>
+          <span class="pill pill-em-aprovacao" onclick="filterDemandaByStatusLegend('Em aprovação',this)" title="Ver só as em aprovação"><span class="pill-dot"></span>Em Aprovação</span>
+          <span class="pill pill-aprovado" onclick="filterDemandaByStatusLegend('Aprovado',this)" title="Ver só as aprovadas"><span class="pill-dot"></span>Aprovado</span>
+          <span class="pill pill-feito" onclick="filterDemandaByStatusLegend('Feito',this)" title="Ver só as feitas"><span class="pill-dot"></span>Feito</span>
+          <span class="pill pill-alteracao-d" onclick="filterDemandaByStatusLegend('Alteração',this)" title="Ver só as em alteração"><span class="pill-dot"></span>Alteração</span>
+          <span class="pill pill-aguardando-info" onclick="filterDemandaByStatusLegend('Aguardando Info.',this)" title="Ver só as aguardando informação"><span class="pill-dot"></span>Aguardando Info.</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Barra de filtros (dia + view + limpar) -->
-    <div class="filter-bar" id="filter-bar-demandas-main">
-      <span class="filter-label">Dia:</span>
-      <!-- Era um <select> nativo, e <select> aberto e a lista branca do sistema
-           operacional. Virou o mesmo botao-popover que o resto do painel usa. -->
-      <button type="button" class="sort-btn" id="day-select-demandas"
-        onclick="abrirDiasDaDemanda(this)" title="Filtrar por dia">Todos os dias</button>
-      <!-- "Limpar Filtros" saiu daqui: era vermelho, e vermelho no painel quer dizer
-           perigo — limpar um filtro nao apaga nada. E ele ficava aceso mesmo sem
-           filtro nenhum para limpar. Quem faz esse papel agora e o "limpar tudo"
-           da linha de resumo, que so existe quando ha o que limpar. -->
-      <span class="demandas-sep"></span>
-      <button class="sort-btn" id="demandas-grupos-btn" onclick="alternarGruposDeDemandas()"
-        aria-expanded="false" title="Solicitações divididas pelos grupos do quadro">Grupos
-        <b id="demandas-grupos-count"></b></button>
-      <button class="sort-btn" id="demandas-agenda-btn" onclick="alternarAgendaDeDemandas()"
-        aria-expanded="false" title="Agenda mensal das solicitações">Calendário
-        <b id="demandas-agenda-count"></b></button>
+      <div class="dem-linha">
+        <span class="dem-rotulo">Tipo</span>
+        <div class="legend tipo-legend" id="demanda-tipo-legend"
+          title="Clique para filtrar. Marque várias e use “Tipo” no deck para classificar em lote."></div>
+      </div>
+
+      <div class="dem-linha">
+        <span class="dem-rotulo">Equipe</span>
+        <div id="person-filter-bar-demandas" class="person-filter-bar">
+          <div class="person-wrap" onclick="filterDemandaByPerson('all',this)" id="person-all-demandas" title="Toda a equipe">
+            <span class="person-chip so-foto todos active"><span class="owner-avatar-fallback" style="background:#6b7280">TODOS</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dem-linha">
+        <span class="dem-rotulo">Recorte</span>
+        <div class="dem-recorte">
+          <div class="date-mode-bar" id="date-mode-bar-demandas">
+            <button class="date-mode-btn active" id="btn-dmode-conclusao" onclick="setDemandaDateMode('conclusao',this)">Conclusão</button>
+            <button class="date-mode-btn" id="btn-dmode-prazo" onclick="setDemandaDateMode('prazo',this)">Prazo</button>
+          </div>
+          <button type="button" class="sort-btn" id="day-select-demandas"
+            onclick="abrirDiasDaDemanda(this)" title="Filtrar por dia">Todos os dias</button>
+          <span class="demandas-sep"></span>
+          <button class="sort-btn" id="demandas-grupos-btn" onclick="alternarGruposDeDemandas()"
+            aria-expanded="false" title="Solicitações divididas pelos grupos do quadro">Grupos
+            <b id="demandas-grupos-count"></b></button>
+          <button class="sort-btn" id="demandas-agenda-btn" onclick="alternarAgendaDeDemandas()"
+            aria-expanded="false" title="Agenda mensal das solicitações">Calendário
+            <b id="demandas-agenda-count"></b></button>
+        </div>
+      </div>
     </div>
 
     <!-- Quanto esta sendo mostrado, de quanto, e por que. Fica COLADO na lista,

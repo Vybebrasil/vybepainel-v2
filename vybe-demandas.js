@@ -1036,6 +1036,21 @@ function renderDemandasDia(fi) {
   grid.innerHTML = html || '<div style="color:var(--text-muted);padding:20px 0;">Nenhuma demanda com data neste período.</div>';
 }
 
+// TRECENTOS E TREZE CARTOES NUMA COLUNA SO.
+//
+// "Concluidas" guarda tudo o que ja foi entregue, e a coluna desenhava os 313 de
+// uma vez. Ninguem rola trezentos cartoes de coisa pronta — o que se faz ali e
+// conferir os ultimos e seguir. Cada coluna mostra os primeiros e oferece o
+// resto num clique; o numero no cabecalho continua sendo o total de verdade,
+// entao nada fica escondido sem ser dito.
+const TETO_DA_COLUNA = 25;
+let COLUNAS_ABERTAS = new Set();
+function mostraTudoNaColuna(grupo) { return COLUNAS_ABERTAS.has(String(grupo)); }
+function verTudoNaColuna(grupo) {
+  COLUNAS_ABERTAS.add(String(grupo));
+  renderDemandas();
+}
+
 // View: Por Esteira (tab 0)
 function renderDemandasEsteira(fi) {
   const grid = document.getElementById('grid-demandas-esteira');
@@ -1051,7 +1066,12 @@ function renderDemandasEsteira(fi) {
         <span class="posts-count ${items.length ? 'ok' : ''}">${items.length}</span>
       </div>
       <div class="item-list">${items.length
-        ? items.map(d => demandaItemRow(d, true)).join('')
+        ? items.slice(0, mostraTudoNaColuna(grupo) ? items.length : TETO_DA_COLUNA)
+            .map(d => demandaItemRow(d, true)).join('')
+          + (items.length > TETO_DA_COLUNA && !mostraTudoNaColuna(grupo)
+            ? `<button type="button" class="demanda-ver-mais" onclick="verTudoNaColuna('${
+                String(grupo).replace(/'/g, "\\'")}')">Ver as outras ${items.length - TETO_DA_COLUNA}</button>`
+            : '')
         : '<div class="demanda-group-vazia">Nada nesta etapa agora.</div>'}</div>
     </div>`;
   }).join('');
