@@ -2138,8 +2138,18 @@ button.subitem-marca:hover{transform:scale(1.35)}
   font:500 12px/1.6 var(--mac-mono);outline:none}
 #cli-doc-editor::placeholder{color:#5c6478}
 /* O "+" de quem ainda nao tem: convite discreto, no lugar do travessao. */
+/* O "+" de campo vazio so aparece na linha sob o cursor.
+   Quinze linhas com seis campos vazios davam noventa quadradinhos tracejados na
+   tela ao mesmo tempo — o convite virou textura, e textura ninguem clica. */
 .cli-mais{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;
-  border:1px dashed rgba(255,255,255,.20);color:#6f7887;font:700 12px var(--mac-ui);cursor:pointer}
+  border:1px dashed rgba(255,255,255,.20);color:#6f7887;font:700 12px var(--mac-ui);cursor:pointer;
+  opacity:0;transition:opacity .12s ease}
+.cli-tabela tbody tr:hover .cli-mais,.cli-mais:focus-visible{opacity:1}
+.client-master-detail .cli-mais,.cli-bloco-cabeca .cli-mais{opacity:1}
+/* Ata so se anuncia quando existe; vazia, espera o cursor. */
+.cli-atas{opacity:0;transition:opacity .12s ease}
+.cli-atas.tem{opacity:1}
+.cli-tabela tbody tr:hover .cli-atas{opacity:1}
 .cli-mais:hover{border-color:var(--accent,#ff6b00);border-style:solid;color:#ffc79a;
   background:color-mix(in srgb,var(--accent,#ff6b00) 12%,transparent)}
 /* Trocar um endereco que ja existe, sem perder o atalho de abrir. */

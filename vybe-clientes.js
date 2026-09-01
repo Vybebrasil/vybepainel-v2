@@ -405,21 +405,36 @@ function renderClientesBoard() {
   // Dois numeros novos, e os dois sao fila de trabalho, nao estatistica: quem
   // esta sem conversa ha tempo demais, e quantos paineis precisam ser
   // atualizados. Clicar recorta a lista para eles.
+  // Juntar "faz muito tempo que nao falo com ele" com "nunca registrei nada"
+  // dava 15 de 15 no primeiro dia — um numero que diz que tudo esta errado nao
+  // e sinal, e ruido, e ninguem olha duas vezes. Sao problemas diferentes: um e
+  // de relacionamento, o outro e de preenchimento, e so o primeiro e urgente.
+  const ativoDeVerdade = (c) => !c.nao_e_cliente
+    && String(c.status || '').trim() && !/inativ/i.test(c.status);
   const semContato = CADASTRO_CLIENTES.filter((c) => {
-    if (c.nao_e_cliente || !String(c.status || '').trim() || /inativ/i.test(c.status)) return false;
+    if (!ativoDeVerdade(c)) return false;
     const d = diasSemContato(c);
-    return d === null || d >= SEM_CONTATO_ATENCAO;
+    return d !== null && d >= SEM_CONTATO_ATENCAO;
   }).length;
+  const semRegistro = CADASTRO_CLIENTES.filter((c) =>
+    ativoDeVerdade(c) && diasSemContato(c) === null).length;
   const painelVelho = CADASTRO_CLIENTES.filter((c) => {
-    if (c.nao_e_cliente || !String(c.status || '').trim() || /inativ/i.test(c.status)) return false;
+    if (!ativoDeVerdade(c)) return false;
     const p = String(c.dashboard || '').trim();
     return Boolean(p) && !painelEstaEmDia(p);
   }).length;
+  // Quanto vale a carteira. A coluna de valor existe desde agora; a soma e a
+  // pergunta seguinte, e nao havia onde ler.
+  const carteira = CADASTRO_CLIENTES.filter(ativoDeVerdade)
+    .reduce((soma, c) => soma + (Number(c.valor) || 0), 0);
   document.getElementById('kpi-grid-clientes').innerHTML = [
     {label:'Clientes ativos', value:numeros.ativos, sub:'no cadastro', cls:'green'},
-    {label:'Sem contato', value:semContato, sub:`${SEM_CONTATO_ATENCAO}+ dias ou sem registro`,
+    {label:'Carteira ativa', value:carteira ? brl(carteira) : '—', sub:'soma dos contratos', cls:'purple'},
+    {label:'Sem contato', value:semContato, sub:`${SEM_CONTATO_ATENCAO}+ dias desde a última`,
       cls:semContato ? 'red' : 'green', acao:"focarClientes('sem-contato')",
       dica:'Ver só quem está há muito tempo sem reunião'},
+    {label:'Sem registro', value:semRegistro, sub:'nenhuma reunião anotada', cls:semRegistro ? 'orange' : 'green',
+      acao:"focarClientes('sem-registro')", dica:'Ver quem ainda não tem nenhuma reunião registrada'},
     {label:'Painel a atualizar', value:painelVelho, sub:'dashboard desatualizado',
       cls:painelVelho ? 'yellow' : 'green', acao:"focarClientes('painel-velho')",
       dica:'Ver só quem está com o painel desatualizado'},
@@ -428,10 +443,10 @@ function renderClientesBoard() {
       cls:numeros.sem ? 'yellow' : 'green',
       acao:numeros.sem ? "document.querySelector('.cli-bloco.sem')?.scrollIntoView({behavior:'smooth',block:'start'})" : '',
       dica:'Ver a lista de quem falta cadastrar'},
-    {label:'Conteúdos em aberto', value:numeros.conteudosAbertos, sub:`${numeros.conteudos} no histórico`, cls:'purple'},
-    {label:'Solicitações em aberto', value:numeros.demandasAbertas, sub:`${numeros.demandas} no histórico`,
-      cls:numeros.demandasAbertas ? 'orange' : 'green'},
   ].map(cartao).join('');
+  // "Conteúdos em aberto" e "Solicitações em aberto" sairam daqui: sao numeros
+  // da operacao, e a operacao tem duas telas so dela. Nesta, cada numero tem de
+  // ajudar a cuidar de um cliente.
   // Renderizar lista
   renderClientesLista(todosClientes);
 }
@@ -987,7 +1002,7 @@ function loteNaoEhCliente() {
   });
 }
 
-function linhaDeClienteHtml(nome, semCadastro, estado) {
+function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = { proxima_reuniao:true, plano:true, valor:true }) {
   const f = cadastroDoCliente(nome) || {};
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
   const registros = clientMasterRecords();
@@ -1061,7 +1076,7 @@ function linhaDeClienteHtml(nome, semCadastro, estado) {
       `abrirHeadsDoCliente(event, '${aspas}')`, 'Clique para escolher o head')}
     <td>${situacaoDoClienteHtml(nome, estado)}</td>
     ${editavel('dashboard', paineldoClienteHtml(f.dashboard || ligado.dashboard))}
-    ${editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || vazio)}
+    ${mostrar.proxima_reuniao ? editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || vazio) : ''}
     <td class="cli-reunioes${podeMexer ? ' cli-editavel' : ''}"${podeMexer
       ? ` title="Clique na data para editar" onclick="editarCelulaDoCliente(event, '${aspas}', 'ultima_reuniao')"` : ''
     }>${f.ultima_reuniao ? `${dataBr(f.ultima_reuniao)}<span class="cli-contato ${
@@ -1072,8 +1087,8 @@ function linhaDeClienteHtml(nome, semCadastro, estado) {
         title="${Number(f.atas) ? `${f.atas} ata(s) de reunião` : 'Nenhuma ata registrada'}"
         onclick="event.stopPropagation();abrirAtasDoCliente('${aspas}')">${
         Number(f.atas) ? `${f.atas} ata${Number(f.atas) === 1 ? '' : 's'}` : 'atas'}</button>` : ''}</td>
-    ${editavel('valor', brl(f.valor) ? `<span class="cli-valor">${safeText(brl(f.valor))}</span>` : vazio)}
-    ${editavel('plano', safeText(f.plano || ligado.plan || '') || vazio)}
+    ${mostrar.valor ? editavel('valor', brl(f.valor) ? `<span class="cli-valor">${safeText(brl(f.valor))}</span>` : vazio) : ''}
+    ${mostrar.plano ? editavel('plano', safeText(f.plano || ligado.plan || '') || vazio) : ''}
     ${clicavel(segmento ? `<span class="cli-tag-chip">${safeText(segmento)}</span>` : maisOuNada('Escolher o segmento', `abrirSegmentoDoCliente(event, '${aspas}')`),
       `abrirSegmentoDoCliente(event, '${aspas}')`, 'Clique para escolher a etiqueta')}
     ${celulaDrive}${celulaManus}${celulaDoc}
@@ -1154,7 +1169,8 @@ function tabelaDeClientesHtml(clientes) {
   const passaNoFoco = (nome) => {
     const f = cadastroDoCliente(nome) || {};
     if (FOCO_DE_CLIENTES === 'sem-contato') { const d = diasSemContato(f);
-      return d === null || d >= SEM_CONTATO_ATENCAO; }
+      return d !== null && d >= SEM_CONTATO_ATENCAO; }
+    if (FOCO_DE_CLIENTES === 'sem-registro') return diasSemContato(f) === null;
     if (FOCO_DE_CLIENTES === 'painel-velho') {
       const p = String(f.dashboard || '').trim();
       return Boolean(p) && !painelEstaEmDia(p);
@@ -1165,6 +1181,20 @@ function tabelaDeClientesHtml(clientes) {
     ['ativos', 'inativos', 'sem', 'ignorados'].forEach((k) => { caixas[k] = caixas[k].filter(passaNoFoco); });
   }
   const fechados = blocosFechadosDeClientes();
+  // Coluna que esta vazia em TODAS as linhas nao informa nada e cobra largura de
+  // todas as outras. "Próx. reunião" e "Plano" estavam assim: catorze colunas,
+  // duas delas so com travessao de cima a baixo. Some enquanto ninguem
+  // preencher, e volta sozinha no dia em que a primeira for preenchida.
+  const temAlgum = (ler) => clientes.some((nome) => {
+    const f = cadastroDoCliente(nome) || {};
+    const l = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
+    return String(ler(f, l) ?? '').trim() !== '';
+  });
+  const COLUNAS_QUE_SOMEM = {
+    proxima_reuniao: temAlgum((f, l) => f.proxima_reuniao || l.nextMeeting),
+    plano: temAlgum((f, l) => f.plano || l.plan),
+    valor: temAlgum((f) => f.valor),
+  };
   const bloco = (titulo, lista, classe, recado) => !lista.length ? '' : `
     <section class="cli-bloco ${classe}${fechados.has(classe) ? ' fechado' : ''}">
       <button type="button" class="cli-bloco-cabeca" aria-expanded="${fechados.has(classe) ? 'false' : 'true'}"
@@ -1178,10 +1208,12 @@ function tabelaDeClientesHtml(clientes) {
         <th class="cli-marcar">${podeEditarClientes()
           ? `<input type="checkbox" aria-label="Marcar todos deste bloco"
               onclick="marcarBlocoDeClientes('${classe}', this.checked)">` : ''}</th>
-        <th>Cliente</th><th>Head</th><th>Status</th><th>Dashboard</th><th>Próx. reunião</th>
-        <th>Última reunião</th><th>Valor</th><th>Plano</th><th>Segmento</th><th>Drive</th><th>Manus</th>
+        <th>Cliente</th><th>Head</th><th>Status</th><th>Dashboard</th>
+        ${COLUNAS_QUE_SOMEM.proxima_reuniao ? '<th>Próx. reunião</th>' : ''}
+        <th>Última reunião</th>${COLUNAS_QUE_SOMEM.valor ? '<th>Valor</th>' : ''}${
+        COLUNAS_QUE_SOMEM.plano ? '<th>Plano</th>' : ''}<th>Segmento</th><th>Drive</th><th>Manus</th>
         <th>Documento</th><th>Aberto</th><th></th>
-      </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem', classe)).join('')}</tbody></table></div></div>
+      </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem', classe, COLUNAS_QUE_SOMEM)).join('')}</tbody></table></div></div>
     </section>`;
   return bloco('Ativos', caixas.ativos, 'ativos')
     + bloco('Inativos', caixas.inativos, 'inativos')
