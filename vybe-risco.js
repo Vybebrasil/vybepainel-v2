@@ -446,26 +446,49 @@ async function carregarArteDaConferencia(itemId) {
       ? `<a class="material-review-open" href="${safeText(entrega.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a>`
       : '';
     if (!artes.length) {
-      // Sem arte nao e motivo para travar: a peca pode ser um link, um texto, um
-      // ajuste no site. Diz o que ha e deixa seguir.
       palco.innerHTML = `<div class="status-context-preview-empty"><b>Nenhuma arte anexada</b>
         ${entrega?.url ? 'Há um material vinculado — abra antes de confirmar.'
           : 'Esta peça não tem arquivo para conferir. Você ainda pode mandar para aprovação.'}${abrir}</div>`;
       return;
     }
-    palco.innerHTML = `<figure class="conferencia-arte">
-        <img id="conferencia-img" src="" alt="">
+    // Quantos arquivos existem, dito em voz alta.
+    //
+    // Um carrossel tem varias paginas, e a tela mostrava a primeira sem dizer
+    // que era a primeira DE UMA. Quem conferia nao sabia distinguir "so tem
+    // esta" de "o resto nao aparece" — e as duas coisas se resolvem de jeitos
+    // opostos: uma e anexar o que falta, a outra e um defeito. Agora a conta
+    // aparece sempre, e com um so arquivo ela diz isso com todas as letras.
+    const varias = artes.length > 1;
+    const conta = varias
+      ? `<span class="conferencia-conta"><b id="conferencia-n">1</b> de ${artes.length} arquivos</span>`
+      : '<span class="conferencia-conta unica">1 arquivo anexado nesta peça</span>';
+    const setas = varias ? `
+      <button type="button" class="conferencia-seta" onclick="passarArteDaConferencia(-1)" aria-label="Arte anterior">‹</button>
+      <button type="button" class="conferencia-seta" onclick="passarArteDaConferencia(1)" aria-label="Próxima arte">›</button>` : '';
+    palco.innerHTML = `<figure class="conferencia-arte ${varias ? 'tem-setas' : ''}">
+        ${setas}
+        <img id="conferencia-img" src="" alt="" title="Clique para ver em tamanho grande"
+          onclick="abrirPreviaGrande(CONFERENCIA_INDICE)">
         <figcaption id="conferencia-legenda"></figcaption>
       </figure>
-      ${artes.length > 1 ? `<div class="conferencia-tiras" id="conferencia-tiras">${
-        artes.map((a, i) => `<button type="button" class="${i === 0 ? 'ativa' : ''}"
-          onclick="trocarArteDaConferencia(${i})" title="${safeText(a.name || '')}">${i + 1}</button>`).join('')
-      }</div>` : ''}${abrir}`;
+      ${conta}${abrir}`;
+    // A fileira numerada saiu. Com as setas e o "N de M" sempre a vista, ela era
+    // uma terceira forma de fazer a mesma coisa — e, numa janela mais baixa,
+    // ficava fora do campo de visao, empurrando a conta para a rolagem. Duas
+    // navegacoes, uma delas escondida, e pior que uma que sempre aparece.
     trocarArteDaConferencia(0);
   } catch (erro) {
     palco.innerHTML = `<div class="status-context-preview-empty"><b>Não deu para carregar a arte</b>
       ${safeText(erro.message || '')} — você ainda pode confirmar.</div>`;
   }
+}
+
+// Setas alem dos numeros: numero e preciso, seta e obvio. Quem esta conferindo
+// cinco paginas de um carrossel nao quer mirar em quadradinhos de 26px.
+function passarArteDaConferencia(passo) {
+  if (!PREVIA_MATERIAL.length) return;
+  const total = PREVIA_MATERIAL.length;
+  trocarArteDaConferencia((CONFERENCIA_INDICE + passo + total) % total);
 }
 
 function trocarArteDaConferencia(indice) {
@@ -485,6 +508,8 @@ function trocarArteDaConferencia(indice) {
   }
   document.querySelectorAll('#conferencia-tiras button')
     .forEach((b, i) => b.classList.toggle('ativa', i === indice));
+  const n = document.getElementById('conferencia-n');
+  if (n) n.textContent = String(indice + 1);
 }
 
 async function confirmarConferenciaVisual() {

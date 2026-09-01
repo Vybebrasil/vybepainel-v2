@@ -2141,12 +2141,33 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 .cli-pergunta-previa.sem-previa figcaption{color:#e7ecf5;font:700 12px var(--mac-ui)}
 /* Conferencia visual: a arte no centro, grande, e mais nada disputando com ela. */
 .workflow-modal.conferencia-visual{width:min(760px,94vw)}
-.conferencia-palco{display:grid;justify-items:center;gap:10px;margin:16px 0 4px}
+.conferencia-palco{display:grid;justify-items:center;gap:10px;margin:16px 0 4px;min-height:0}
+.workflow-modal.conferencia-visual{display:flex;flex-direction:column;max-height:88vh}
+.workflow-modal.conferencia-visual .conferencia-palco{overflow:auto}
 .conferencia-arte{margin:0;display:grid;justify-items:center;gap:8px;width:100%}
-.conferencia-arte img{max-width:100%;max-height:min(56vh,460px);border-radius:12px;
+/* A arte ocupa o que sobra da janela, nao um valor fixo: numa tela baixa, 56vh
+   somados ao titulo, a legenda, a conta e os botoes passavam do fim do modal e
+   cortavam a propria legenda. */
+.conferencia-arte img{max-width:100%;max-height:min(48vh,420px);border-radius:12px;
   border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);object-fit:contain}
 .conferencia-arte figcaption{color:#8f98a9;font:600 10.5px var(--mac-mono);text-align:center;
   overflow-wrap:anywhere}
+.conferencia-arte{position:relative}
+.conferencia-arte img{cursor:zoom-in}
+/* Seta e obvia; numero e preciso. Quem confere cinco paginas de um carrossel
+   nao quer mirar em quadradinhos de 26px, entao existem os dois. */
+.conferencia-seta{position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+  width:34px;height:34px;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);background:rgba(10,8,6,.72);color:#e7ecf5;
+  font:700 18px/1 var(--mac-ui);backdrop-filter:blur(6px)}
+.conferencia-seta:first-of-type{left:6px}
+.conferencia-seta:nth-of-type(2){right:6px}
+.conferencia-seta:hover{border-color:var(--accent,#ff6b00);color:#fff;
+  background:color-mix(in srgb,var(--accent,#ff6b00) 30%,rgba(10,8,6,.8))}
+/* A conta de arquivos: e ela que distingue "so tem esta" de "o resto sumiu". */
+.conferencia-conta{color:#8f98a9;font:600 11px var(--mac-ui)}
+.conferencia-conta b{color:#fff;font:700 12px var(--mac-mono);font-variant-numeric:tabular-nums}
+.conferencia-conta.unica{color:#6f7887}
 .conferencia-tiras{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .conferencia-tiras button{min-width:26px;height:26px;border-radius:8px;cursor:pointer;
   border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#8f98a9;
