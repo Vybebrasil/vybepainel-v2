@@ -349,11 +349,19 @@
     .cal-day.hoje .cal-day-num { color:var(--accent2);font-weight:700}
     .cal-day.hoje .cal-day-label { color:var(--accent2)}
     .item-list { padding:6px 0}
-    .item-row { display:flex;align-items:center;gap:6px;padding:4px 14px;border-bottom:1px solid rgba(42,42,56,.5);transition:background .14s}
+    /* A linha da esteira tem oito pecas (cliente, id, tipo, nome, datas, prioridade,
+       status, dono) e vive numa coluna de 400px. Sem poder quebrar, ela nao
+       cabia: o nome era espremido ate ZERO — some de vez, porque e o unico com
+       flex:1 e todo o resto tem largura fixa — e as pecas seguintes eram
+       desenhadas para fora do cartao, por cima da coluna vizinha. Era dai que
+       vinham os "AtrasAdda" e "AtrasadoEm execucao" impressos um sobre o outro.
+       Agora ela quebra para a linha de baixo DENTRO do cartao, e o nome tem um
+       minimo abaixo do qual nao encolhe. */
+    .item-row { display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden;padding:5px 14px;border-bottom:1px solid rgba(42,42,56,.5);transition:background .14s}
     .item-row:last-child { border-bottom:none}
     .item-row:hover { background:rgba(0,240,255,.05)}
     .item-date { font-size:10px;font-weight:700;color:var(--text-muted);min-width:38px}
-    .item-name { flex:1;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item-name { flex:1 1 130px;min-width:110px;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .item-name a { color:var(--text);text-decoration:none;transition:color .14s}
     .item-name a:hover { color:var(--cyan);text-shadow:none}
     .item-workspace-link,.manager-workspace-link{display:block;max-width:100%;border:0;background:transparent;padding:0;color:var(--text);font:inherit;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.item-workspace-link:hover,.manager-workspace-link:hover{color:#ff9d00;text-shadow:none}
@@ -2105,6 +2113,21 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 .tipo-chip.sem{background:transparent;border-style:dashed;border-color:rgba(255,176,0,.45);color:#ffc79a}
 .tipo-chip.limpar{background:transparent;border-color:rgba(255,255,255,.14);color:#8f98a9;font-weight:600}
 .tipo-chip.limpar:hover{color:#e7ecf5}
+/* Filtro de equipe: bolinha com foto, como pessoa aparece em todo o painel.
+   O nome fica no title — uma fileira de nove nomes por extenso ocupava mais
+   largura que a tabela que eles filtram. */
+.person-chip.so-foto{padding:0;background:none!important;border-radius:50%;gap:0}
+.person-chip.so-foto img,.person-chip.so-foto .owner-avatar-fallback{
+  width:32px;height:32px;border-radius:50%;object-fit:cover;margin:0;border:2px solid var(--vybe-line-quiet,rgba(255,255,255,.12))}
+.person-chip.so-foto.todos .owner-avatar-fallback{font-size:7.5px;letter-spacing:.02em}
+.person-wrap:has(.so-foto).filter-active .person-chip::before{content:none}
+.person-wrap:has(.so-foto).filter-active::after{content:none}
+.person-wrap:has(.so-foto).filter-active img,
+.person-wrap:has(.so-foto).filter-active .owner-avatar-fallback,
+.person-chip.so-foto.active img,.person-chip.so-foto.active .owner-avatar-fallback{
+  border-color:var(--person-color,var(--accent,#ff6b00));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--person-color,var(--accent,#ff6b00)) 40%,transparent)}
+.person-chip.so-foto:hover img,.person-chip.so-foto:hover .owner-avatar-fallback{border-color:rgba(255,255,255,.4)}
 .cliente-listas .uma-coluna{grid-template-columns:1fr!important;margin-bottom:0}
 @media(max-width:900px){.cliente-listas{grid-template-columns:1fr}}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
@@ -3469,8 +3492,8 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 
     <div class="sidebar-section-label">Equipe</div>
     <div id="person-filter-bar" class="person-filter-bar">
-      <div class="person-wrap filter-active" onclick="filterByPerson('all',this)" id="person-all">
-        <span class="person-chip active" style="background:#6b7280;" aria-pressed="true">Todos</span>
+      <div class="person-wrap filter-active" onclick="filterByPerson('all',this)" id="person-all" title="Toda a equipe">
+        <span class="person-chip so-foto todos active" aria-pressed="true"><span class="owner-avatar-fallback" style="background:#6b7280">TODOS</span></span>
       </div>
     <div class="person-wrap" data-person-id="68035537" title="Paulo" style="--person-color: #0073ea;"><span class="person-chip" aria-pressed="false" style="background: rgb(0, 115, 234); color: rgb(255, 255, 255);">Paulo</span></div><div class="person-wrap" data-person-id="68035653" title="Vinícius" style="--person-color: #037f4c;"><span class="person-chip" aria-pressed="false" style="background: rgb(3, 127, 76); color: rgb(255, 255, 255);">Vinícius</span></div><div class="person-wrap" data-person-id="68036697" title="Reriston" style="--person-color: #ff642e;"><span class="person-chip" aria-pressed="false" style="background: rgb(255, 100, 46); color: rgb(255, 255, 255);">Reriston</span></div><div class="person-wrap" data-person-id="68997024" title="Deivid" style="--person-color: #fdab3d;"><span class="person-chip" aria-pressed="false" style="background: rgb(253, 171, 61); color: rgb(255, 255, 255);">Deivid</span></div><div class="person-wrap" data-person-id="71130408" title="Beatriz" style="--person-color: #df2f4a;"><span class="person-chip" aria-pressed="false" style="background: rgb(223, 47, 74); color: rgb(255, 255, 255);">Beatriz</span></div><div class="person-wrap" data-person-id="80146924" title="Tainara" style="--person-color: #579bfc;"><span class="person-chip" aria-pressed="false" style="background: rgb(87, 155, 252); color: rgb(255, 255, 255);">Tainara</span></div><div class="person-wrap" data-person-id="100482777" title="Jady" style="--person-color: #00c875;"><span class="person-chip" aria-pressed="false" style="background: rgb(0, 200, 117); color: rgb(255, 255, 255);">Jady</span></div></div>
 
@@ -3605,8 +3628,8 @@ button:not(:disabled):not([aria-disabled="true"]):active,
     <!-- Filtro por pessoa (demandas) -->
     <div id="person-filter-bar-demandas" class="person-filter-bar">
       <span class="filter-label">Equipe:</span>
-      <div class="person-wrap" onclick="filterDemandaByPerson('all',this)" id="person-all-demandas">
-        <span class="person-chip active" style="background:#6b7280;">Todos</span>
+      <div class="person-wrap" onclick="filterDemandaByPerson('all',this)" id="person-all-demandas" title="Toda a equipe">
+        <span class="person-chip so-foto todos active"><span class="owner-avatar-fallback" style="background:#6b7280">TODOS</span></span>
       </div>
     </div>
 

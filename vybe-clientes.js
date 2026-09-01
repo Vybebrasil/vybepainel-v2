@@ -1389,11 +1389,15 @@ function buildDemandaPersonFilter() {
     wrap.className = 'person-wrap';
     wrap.title = u.name;
     wrap.onclick = () => filterDemandaByPerson(u.id, wrap);
+    // Mesma regra da tela de Producao: bolinha com foto, nome no title.
+    wrap.dataset.personId = u.id;
+    wrap.style.setProperty('--person-color', u.color || '#00f0ff');
     const chip = document.createElement('span');
-    chip.className = 'person-chip';
-    chip.style.background = u.color;
-    chip.style.color = '#fff';
-    chip.textContent = u.name;
+    chip.className = 'person-chip so-foto';
+    chip.innerHTML = typeof ownerAvatarHtml === 'function'
+      ? ownerAvatarHtml(u)
+      : `<span class="owner-avatar-fallback" style="background:${u.color}">${
+          String(u.name || '').slice(0, 2).toUpperCase()}</span>`;
     wrap.appendChild(chip);
     bar.appendChild(wrap);
   });
