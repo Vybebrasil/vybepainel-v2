@@ -48,7 +48,7 @@ function focusTrailIndex(item, profile=focusWorkflowProfile(item)) {
 }
 function focusTrailHtml(item) {
   const profile=focusWorkflowProfile(item); const active=focusTrailIndex(item,profile); const current=profile.labels[active];
-  return `<div class="focus-production-trail" aria-label="Trilha operacional · ${safeText(item.status)}"><span class="focus-trail-current">ETAPA: ${safeText(current).toUpperCase()} · ${safeText(item.status).toUpperCase()}</span><div class="focus-trail-steps">${profile.labels.map((label,index)=>`<span class="focus-trail-step ${index<active?'done':index===active?'active':''}">${safeText(label)}</span>${index<profile.labels.length-1?'<span class="focus-trail-arrow">›</span>':''}`).join('')}</div></div>`;
+  return `<div class="focus-production-trail" aria-label="Trilha operacional · ${safeText(item.status)}"><span class="focus-trail-current focus-oculto-visual">ETAPA: ${safeText(current).toUpperCase()} · ${safeText(item.status).toUpperCase()}</span><div class="focus-trail-steps">${profile.labels.map((label,index)=>`<span class="focus-trail-step ${index<active?'done':index===active?'active':''}">${safeText(label)}</span>${index<profile.labels.length-1?'<span class="focus-trail-arrow">›</span>':''}`).join('')}</div></div>`;
 }
 function focusNextActionHtml(data) {
   if(!data) return `<div class="focus-next-action"><div class="focus-next-kicker">Próxima melhor ação</div><div class="focus-next-name">Sua fila está limpa por agora.</div><div class="focus-next-reason">Não há itens de produção ou bloqueios atribuídos a você neste momento.</div></div>`;
@@ -69,7 +69,10 @@ function focusNextActionHtml(data) {
   // Na proxima demanda o botao de bloqueio saiu: quem ainda nao comecou nao tem
   // o que destravar. No cartao de bloqueio ele continua, que e o lugar dele.
   const secondary=mode==='next' ? '' : `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Registrar contexto</button>`
-  const controlNote=mode==='next' ? `<div class="focus-priority-control-note"><i></i>PRÓXIMA A INICIAR · ao mudar para Em andamento, esta demanda entra na fila de execução</div>` : '';
+  // Instrucao que se le uma vez na vida nao merece uma faixa permanente. Vira
+  // uma nota discreta — continua ali para quem precisar, sem ocupar uma linha
+  // inteira do bloco mais importante da tela todo dia.
+  const controlNote=mode==='next' ? `<div class="focus-priority-control-note">ao mudar para <b>Em andamento</b>, esta demanda entra na fila de execução</div>` : '';
   // A data que decide a fila vira o ancoradouro do bloco: numero grande a
   // esquerda, com o nome embaixo. Era uma frase no meio de outras, do mesmo
   // tamanho da explicacao — e e ela que responde "por que esta e a proxima?".
@@ -87,7 +90,7 @@ function focusNextActionHtml(data) {
     : `em ${faltam} dias`;
   // No selo o ano e ruido: quem olha quer o dia, e o ano so muda a conversa em
   // dezembro. Ele continua no balao, para quem precisar conferir.
-  const selo = `<div class="focus-next-quando ${item.veiculacao_iso && item.veiculacao_iso <= hoje ? 'urgente' : ''}"
+  const selo = `<div class="focus-next-quando ${item.veiculacao_iso && item.veiculacao_iso === hoje ? 'urgente' : ''} ${item.veiculacao_iso && item.veiculacao_iso < hoje ? 'vencida' : ''}"
       title="${safeText(noAr || 'sem data')}">
       <b>${safeText(noAr.slice(0, 5) || '—')}</b>
       <span>${ehPedido ? 'conclusão' : 'veiculação'} · ${safeText(quando)}</span>

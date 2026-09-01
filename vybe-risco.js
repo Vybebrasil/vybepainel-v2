@@ -178,10 +178,16 @@ function focusDatasHtml(d, user = focusUser()) {
   const marca = (rotulo, valor, manda, alerta) => valor
     ? `<span class="focus-data ${manda ? 'manda' : ''} ${alerta ? 'atrasada' : ''}"><b>${rotulo}</b>${safeText(valor)}</span>`
     : '';
-  const partes = [
-    marca('Prazo', prazo, !porVeiculacao, atrasado),
-    marca(nomeDaSegunda, segunda, porVeiculacao, false),
-  ].filter(Boolean);
+  // Duas datas iguais nao sao duas informacoes. "PRAZO 01/09 VEICULAÇÃO 01/09"
+  // ocupa o dobro do espaco para dizer uma coisa so — e a linha inteira fica
+  // parecendo cheia de numero. Quando coincidem, aparece uma, com os dois nomes.
+  const mesmaData = prazo && segunda && prazo === segunda;
+  const partes = mesmaData
+    ? [marca(`Prazo e ${nomeDaSegunda.toLowerCase()}`, prazo, true, atrasado)]
+    : [
+        marca('Prazo', prazo, !porVeiculacao, atrasado),
+        marca(nomeDaSegunda, segunda, porVeiculacao, false),
+      ].filter(Boolean);
   if (!partes.length) return '<span class="focus-data vazia">sem data</span>';
   return `<span class="focus-datas">${partes.join('')}</span>`;
 }
