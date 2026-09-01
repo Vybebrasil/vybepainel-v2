@@ -130,7 +130,6 @@ function clientMasterRecords() {
     return {name,items:clientItems,content,requests,active,activeCount:active.length,meta};
   });
 }
-function clientMasterValue(value,fallback='Pendente de sincronização') { return value ? safeText(value) : `<span class="pending">${fallback}</span>`; }
 function renderClientMasterOverview() {
   const records=clientMasterRecords();
   const active=records.filter(record=>record.activeCount>0).length;
