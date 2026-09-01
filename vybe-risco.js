@@ -246,7 +246,7 @@ function updateLocalStatus(itemId, option) {
 const HANDOFF_TARGET_STATUSES = new Set(['ag. aprovação cliente']);
 const QUALITY_TARGET_STATUSES = new Set(['para agendar','agendado']);
 const MATERIAL_REVIEW_TARGET_STATUSES = new Set(['agendado','finalizado','feito']);
-const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao','para aprovação','para aprovacao','finalizado','feito']);
+const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao','finalizado','feito']);
 // Mandar para aprovacao nao e prestar contas — e mostrar o que ficou pronto.
 //
 // O portao antigo pedia motivo escrito, proxima pessoa e link de referencia
@@ -259,6 +259,8 @@ const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execuc
 // Entao estas passam a abrir a arte no centro da tela, com voltar e confirmar —
 // e nada mais.
 const CONFERENCIA_VISUAL_STATUSES = new Set([
+  'para aprovação', 'para aprovacao',
+  // Os dois nomes antigos ficam ate a juncao ser feita em todos os ambientes.
   'aguardando aprovação', 'aguardando aprovacao',
   'em aprovação', 'em aprovacao',
 ]);

@@ -419,7 +419,7 @@ const REQUEST_STATUS_FALLBACK_COLORS = Object.freeze({
   'Em Execução':'#ff6b00', 'Feito':'#00c875', 'Concluídas':'#00c875',
   'Alteração':'#ff637a', 'Aguardando Info.':'#9d50dd', 'Aguardando Aprovação':'#579bfc'
 });
-const REQUEST_STATUS_ORDER = ['Nova Demanda','Pode Fazer','Em execução','Feito','Alteração','Aguardando Info.','Aguardando Aprovação'];
+const REQUEST_STATUS_ORDER = ['Nova Demanda','Pode Fazer','Em execução','Feito','Alteração','Aguardando Info.','Para Aprovação'];
 function operationalFlowStatus(item={}) {
   const status=String(item?.status || '').trim();
   if(!isRequestItem(item)) return status;
@@ -712,6 +712,59 @@ function limparTipoDeDemanda() { currentDemandaTipoFilter = 'all'; renderDemanda
 // A fileira de tipos e desenhada a partir dos dados, nao de uma lista fixa: se
 // alguem criar "Impresso" no cadastro de etiquetas, ele aparece aqui sozinho, e
 // com a conta de quantos ja estao nele.
+// ── dois nomes para o mesmo momento ──────────────────────────────────────────
+// "Aguardando Aprovacao" e "Em aprovacao" convivem nas solicitacoes, herdados da
+// epoca em que cada um escrevia o seu no Monday. Vocabulario dobrado nao e
+// detalhe: quem filtra por um nao ve as do outro, e as duas listas ficam sempre
+// pela metade. O aviso so aparece enquanto os dois existirem — feita a juncao,
+// ele some sozinho, porque a condicao que o mostra deixa de ser verdadeira.
+const APROVACOES_PARA_JUNTAR = ['Aguardando Aprovação', 'Em aprovação', 'Em Aprovação', 'Aguardando aprovação'];
+function chaveDeStatusDemanda(v) {
+  return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function aprovacoesDuplicadas() {
+  const usados = new Set((DADOS_DEMANDAS || []).map((d) => String(d.status || '').trim()).filter(Boolean));
+  const alvo = new Set(APROVACOES_PARA_JUNTAR.map(chaveDeStatusDemanda));
+  const achados = [...usados].filter((r) => alvo.has(chaveDeStatusDemanda(r)));
+  return [...new Set(achados)];
+}
+function pintarAvisoDeAprovacoes() {
+  const caixa = document.getElementById('demanda-tipo-legend');
+  if (!caixa) return;
+  document.getElementById('juntar-aprovacoes')?.remove();
+  const duplicados = aprovacoesDuplicadas();
+  const podeMexer = typeof podeAdministrar === 'function' ? podeAdministrar() : false;
+  if (duplicados.length < 2 || !podeMexer) return;
+  const conta = duplicados.map((r) => (DADOS_DEMANDAS || [])
+    .filter((d) => String(d.status || '').trim() === r).length);
+  caixa.insertAdjacentHTML('beforeend', `<button type="button" id="juntar-aprovacoes" class="tipo-chip juntar"
+    title="${safeText(duplicados.map((r, i) => `${r}: ${conta[i]}`).join(' · '))}"
+    onclick="juntarAprovacoes()">${duplicados.length} status de aprovação — juntar em "Para Aprovação"</button>`);
+}
+async function juntarAprovacoes() {
+  const duplicados = aprovacoesDuplicadas();
+  if (duplicados.length < 2) return;
+  const total = duplicados.reduce((n, r) => n + (DADOS_DEMANDAS || [])
+    .filter((d) => String(d.status || '').trim() === r).length, 0);
+  const ok = await perguntarNoPainel({
+    titulo: 'Juntar os status de aprovação?',
+    texto: `${duplicados.join(' e ')} viram um só, chamado "Para Aprovação". `
+      + `${total} solicitaç${total === 1 ? 'ão passa' : 'ões passam'} a usar o nome novo. `
+      + 'Isso vale para todo mundo e não tem desfazer automático.',
+    confirmar: 'Juntar', perigo: true });
+  if (!ok) return;
+  try {
+    const r = await fetch('/api/painel?area=opcoes', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ acao:'unificar-status', de: duplicados, para: 'Para Aprovação' }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível juntar.');
+    showToast(`✓ ${d.pecas_movidas} solicitação(ões) movidas · agora é "Para Aprovação"`, 'ok', 6000);
+    await refreshDemandas();
+  } catch (e) { showToast(e.message, 'err', 7000); }
+}
+
 function pintarTiposDeDemanda() {
   const caixa = document.getElementById('demanda-tipo-legend');
   if (!caixa) return;
@@ -826,6 +879,7 @@ function renderDemandas() {
   // Todos, exatamente como se estivesse quebrada. Agora a moldura mora aqui,
   // junto do resto do desenho: qualquer caminho que chegue nesta tela a pinta.
   pintarTiposDeDemanda();
+  pintarAvisoDeAprovacoes();
   buildDemandaPersonFilter();
   populateDemandaDaySelect();
   renderDemandaKPIs();

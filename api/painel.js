@@ -631,6 +631,45 @@ async function areaOpcoes(req, res, quem) {
       return res.status(200).json({ ok: true, opcao: r[0] });
     }
 
+    // ── juntar dois status num só ──────────────────────────────────────────
+    //
+    // Solicitacoes tinham "Aguardando Aprovacao" E "Em aprovacao": dois nomes
+    // para o mesmo momento da peca, herdados da epoca em que cada um escrevia o
+    // seu no Monday. Vocabulario dobrado nao e detalhe — quem filtra por um nao
+    // ve as do outro, e as duas listas ficam sempre pela metade.
+    //
+    // Juntar tem tres partes, e as tres precisam acontecer ou nenhuma serve: as
+    // pecas mudam de status, o sobrevivente ganha o nome novo, e os outros somem
+    // da lista. O sobrevivente e o que tem monday_index — e por ele que a copia
+    // de contingencia ainda encontra a coluna certa.
+    if (acao === 'unificar-status') {
+      const de = Array.isArray(req.body?.de) ? req.body.de.map((x) => String(x).trim()).filter(Boolean) : [];
+      const para = String(req.body?.para || '').trim();
+      const board = Number(req.body?.board || 8385559107);
+      if (de.length < 2 || !para) return res.status(400).json({ error: 'Informe ao menos dois status e o nome final.' });
+
+      const chave = (v) => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const todos = await db`SELECT chave, rotulo, monday_index, ordem FROM vybe_status WHERE board_id=${board}`;
+      const alvos = todos.filter((st) => de.some((nome) => chave(nome) === chave(st.rotulo)));
+      if (alvos.length < 2) {
+        return res.status(404).json({ error: 'Não encontrei dois status com esses nomes nas solicitações.' });
+      }
+      // Sobrevive quem tem indice do Monday; entre eles, o de menor ordem.
+      const ordenados = [...alvos].sort((a, b) =>
+        (b.monday_index === null ? 0 : 1) - (a.monday_index === null ? 0 : 1)
+        || Number(a.ordem || 0) - Number(b.ordem || 0));
+      const fica = ordenados[0];
+      const saem = ordenados.slice(1).map((st) => st.chave);
+
+      const movidas = await db`UPDATE vybe_conteudos SET status_chave=${fica.chave}, atualizado_em=NOW()
+        WHERE board_id=${board} AND status_chave = ANY(${saem}) RETURNING id`;
+      await db`UPDATE vybe_status SET rotulo=${para} WHERE chave=${fica.chave} AND board_id=${board}`;
+      await db`DELETE FROM vybe_status WHERE board_id=${board} AND chave = ANY(${saem})`;
+      return res.status(200).json({ ok: true, acao, ficou: { chave: fica.chave, rotulo: para },
+        removidos: saem, pecas_movidas: movidas.length });
+    }
+
     if (acao === 'criar') {
       const limpo = String(rotulo || '').trim();
       if (!coluna || !limpo) return res.status(400).json({ error: 'Informe a coluna e o rótulo.' });
