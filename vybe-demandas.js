@@ -452,6 +452,9 @@ async function ensureDemandasForOperationalViews(force=false) {
     DADOS_DEMANDAS=processDemandas(rawItems);
     syncStatusLegendColors('#demanda-status-legend',DADOS_DEMANDAS);
     renderIntegratedOperationalViews();
+    // Se a tela de Demandas ja estiver aberta, ela tem de acompanhar: era comum
+    // o dado chegar por aqui e a tela continuar vazia ate alguem trocar de aba.
+    if (typeof activeBoard !== 'undefined' && activeBoard === 'demandas') renderDemandas();
   } catch(error) {
     console.warn('Solicitações indisponíveis para os módulos integrados:',error);
   } finally { unifiedDemandasLoading=false; }
@@ -470,9 +473,6 @@ async function refreshDemandas() {
     const rawItems = await fetchAllDemandas();
     DADOS_DEMANDAS = processDemandas(rawItems);
     syncStatusLegendColors('#demanda-status-legend', DADOS_DEMANDAS);
-    buildDemandaPersonFilter();
-    populateDemandaDaySelect();
-    renderDemandaKPIs();
     renderDemandas();
     showToast(`✓ ${DADOS_DEMANDAS.length} demandas carregadas`, 'ok');
   } catch(e) {
@@ -691,7 +691,22 @@ function filtrarDemandasBase() {
 }
 
 function renderDemandas() {
+  // A moldura da tela (numeros do topo, filtro de equipe, lista de dias) era
+  // pintada SO por refreshDemandas. E o switchBoard so chama refreshDemandas
+  // quando ainda nao ha dados:
+  //
+  //     if (DADOS_DEMANDAS.length === 0) refreshDemandas(); else renderDemandas();
+  //
+  // Como o Modo Gestor carrega as solicitacoes por conta propria
+  // (ensureDemandasForOperationalViews), quem passa por ele antes de abrir
+  // Demandas chega com os dados prontos — e cai no ramo que nao pinta a
+  // moldura. Resultado: a tela abria com o topo vazio e "Equipe" so com o botao
+  // Todos, exatamente como se estivesse quebrada. Agora a moldura mora aqui,
+  // junto do resto do desenho: qualquer caminho que chegue nesta tela a pinta.
   pintarTiposDeDemanda();
+  buildDemandaPersonFilter();
+  populateDemandaDaySelect();
+  renderDemandaKPIs();
   if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos('demandas');
   if (typeof renderAgendaDeDemandas === 'function') renderAgendaDeDemandas();
   const fi = filtrarDemandasBase();
