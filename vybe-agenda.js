@@ -1470,7 +1470,11 @@ const VISAO_DE_GRUPOS = {
               // 'formato', 'conclusao_iso' em vez de 'veiculacao_iso', e sem
               // board_id. O normalizador que Meu Dia e Modo Foco ja usam faz a
               // traducao — sem ele a tabela lia campos que nao existem.
-              fonte: () => (DADOS_DEMANDAS || []).map(normalizeRequestForOperational),
+              // O filtro de tipo vale aqui tambem: sem isso, clicar em "Sem tipo"
+              // mudava a lista de baixo e deixava esta tabela — a que a pessoa
+              // esta olhando — exatamente como estava.
+              fonte: () => { const base = (DADOS_DEMANDAS || []).map(normalizeRequestForOperational);
+                return typeof filtrarPorTipoDeDemanda === 'function' ? filtrarPorTipoDeDemanda(base) : base; },
               ordem: () => GRUPOS_DE_DEMANDAS },
 };
 
@@ -1537,6 +1541,7 @@ function renderVisaoDeGrupos(quadro) {
       ${acao('Status', 'loteStatus(event)')}
       ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
       ${acao('Responsável', 'loteResponsavel(event)')}
+      ${acao(quadro === 'demandas' ? 'Tipo' : 'Formato', 'loteFormato(event)')}
       ${quadro === 'demandas' ? '' : acao('Captação', 'loteCaptacao(event)')}
       ${acao('Prazo', "lotePrazo(event,'prazo')")}
       ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
@@ -1587,6 +1592,25 @@ function loteStatus(event) {
       .then((feito) => { if (!feito) throw new Error('gravação recusada'); applyOutboundItemPatch(item.id,
         { status: o.label, status_color: o.color, status_border: o.border, status_index: o.index }, 'status em lote'); }),
   })), 'status');
+}
+
+// Classificar 300 solicitacoes uma a uma nao acontece — e por isso elas seguem
+// sem tipo desde a mudanca de casa. Em lote, marcar as do mes e dizer "isto e
+// impresso" leva um minuto.
+function loteFormato(event) {
+  const alguma = [...SELECIONADAS].map((id) => findOperationalItem(id)).find(Boolean);
+  if (!alguma) return showToast('Marque ao menos uma atividade.', 'info');
+  const opcoes = catalogoDoCampo('formato', alguma).filter((o) => o.ativa);
+  if (!opcoes.length) return showToast('As opções ainda estão carregando.', 'info');
+  abrirMenuDeLote(event, `${rotuloDoCampo('formato', alguma)} para todas`, opcoes.map((o) => ({
+    rotulo: o.rotulo, cor: o.cor,
+    aplicar: async (item) => {
+      if (!campoExisteNoQuadro('formato', item)) throw new Error('campo não existe neste quadro');
+      const deu = await salvarCampoDaFicha(item.id, 'formato', o.chave, null);
+      if (!deu) throw new Error('gravação recusada');
+      applyOutboundItemPatch(item.id, { formato: o.rotulo }, 'tipo em lote');
+    },
+  })), rotuloDoCampo('formato', alguma).toLowerCase());
 }
 
 function loteCaptacao(event) {

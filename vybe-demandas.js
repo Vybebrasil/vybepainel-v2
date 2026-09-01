@@ -23,6 +23,12 @@ let CLIENT_MASTER_LOADED = false;
 let CLIENT_MASTER_ERROR = '';
 let currentDemandaPersonFilter = 'all';
 let currentDemandaStatusFilter = 'all';
+// "Tipo de demanda" veio do Monday quase todo vazio, e sem ele nao da para
+// perguntar coisas simples: quantos impressos estao em pe? o que ainda nao foi
+// classificado? A etiqueta so vira ferramenta quando da para ver quem esta sem
+// ela — por isso "Sem tipo" e um filtro de primeira classe aqui, e nao uma
+// ausencia que se descobre rolando a lista.
+let currentDemandaTipoFilter = 'all';
 let currentDemandaWeek = 1;              // 1 | 2 | 0 (esteira)
 let currentDemandaViewDay = false;       // true = ver por dia
 let currentDemandaDateMode = 'conclusao'; // 'conclusao' | 'prazo'
@@ -604,6 +610,67 @@ function sortDemandas(items) {
   });
 }
 
+// Onde esta o tipo, de verdade.
+//
+// A lista crua de Solicitacoes guarda em 'tipo'. O normalizador que a tabela usa
+// copia para 'formato' — mas, quando esta vazio, escreve "Solicitacao" no lugar
+// (`formato: item.tipo || 'Solicitacao'`). Isso e bom para a linha, que precisa
+// mostrar alguma coisa, e pessimo para contar: lido por 'formato', NENHUMA
+// solicitacao aparece sem tipo, e era por isso que o problema nunca virava
+// numero. Aqui 'tipo' manda, e 'formato_original' e a copia fiel dele; so quem
+// nao tem nenhum dos dois cai no formato.
+function tipoDaDemanda(d) {
+  if (!d) return '';
+  const bruto = String(
+    'tipo' in d ? (d.tipo ?? '')
+    : 'formato_original' in d ? (d.formato_original ?? '')
+    : (d.formato ?? '')).trim();
+  return bruto === '—' ? '' : bruto;
+}
+function filtrarPorTipoDeDemanda(lista) {
+  if (currentDemandaTipoFilter === 'all') return lista;
+  if (currentDemandaTipoFilter === '__sem__') return lista.filter((d) => !tipoDaDemanda(d));
+  return lista.filter((d) => tipoDaDemanda(d) === currentDemandaTipoFilter);
+}
+function filtrarDemandaPorTipo(tipo) {
+  currentDemandaTipoFilter = currentDemandaTipoFilter === tipo ? 'all' : tipo;
+  renderDemandas();
+}
+function limparTipoDeDemanda() { currentDemandaTipoFilter = 'all'; renderDemandas(); }
+
+// A fileira de tipos e desenhada a partir dos dados, nao de uma lista fixa: se
+// alguem criar "Impresso" no cadastro de etiquetas, ele aparece aqui sozinho, e
+// com a conta de quantos ja estao nele.
+function pintarTiposDeDemanda() {
+  const caixa = document.getElementById('demanda-tipo-legend');
+  if (!caixa) return;
+  const base = (DADOS_DEMANDAS || []);
+  if (!base.length) { caixa.innerHTML = ''; return; }
+  const conta = new Map();
+  let sem = 0;
+  base.forEach((d) => { const t = tipoDaDemanda(d);
+    if (!t) { sem += 1; return; }
+    conta.set(t, (conta.get(t) || 0) + 1); });
+  const cor = (rotulo) => {
+    const coluna = 'dropdown_mkv8d52z';
+    const o = (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
+      .find((x) => x.coluna_id === coluna && x.rotulo === rotulo);
+    const c = o?.cor ? { cor:o.cor, borda:o.borda || o.cor }
+      : (typeof corDeOpcao === 'function' ? corDeOpcao(rotulo, coluna) : null);
+    return c ? `style="background:${c.cor};border-color:${c.borda}"` : '';
+  };
+  const chip = (chave, rotulo, quantos, extra = '') => `<button type="button"
+    class="tipo-chip ${currentDemandaTipoFilter === chave ? 'ativo' : ''} ${extra}" ${extra ? '' : cor(rotulo)}
+    onclick="filtrarDemandaPorTipo('${String(chave).replace(/'/g, "\\'")}')"
+    title="${extra ? 'Solicitações que ainda não têm tipo' : `Ver só ${safeText(rotulo)}`}">${
+    safeText(rotulo)}<span>${quantos}</span></button>`;
+  const tipos = [...conta.entries()].sort((a, b) => b[1] - a[1]);
+  caixa.innerHTML = (sem ? chip('__sem__', 'Sem tipo', sem, 'sem') : '')
+    + tipos.map(([rotulo, quantos]) => chip(rotulo, rotulo, quantos)).join('')
+    + (currentDemandaTipoFilter !== 'all'
+      ? '<button type="button" class="tipo-chip limpar" onclick="limparTipoDeDemanda()">mostrar todas</button>' : '');
+}
+
 // ─── Renderizar demandas (dispatcher por view) ────────────────────────────────────────────────────
 function filtrarDemandasBase() {
   let fi = [...DADOS_DEMANDAS];
@@ -613,6 +680,7 @@ function filtrarDemandasBase() {
   if (currentDemandaStatusFilter !== 'all') {
     fi = fi.filter(d => d.status === currentDemandaStatusFilter);
   }
+  fi = filtrarPorTipoDeDemanda(fi);
   // Filtrar por semana (exceto na esteira)
   if (currentDemandaWeek === 1) {
     fi = fi.filter(d => { const iso = getDemandaDateIso(d); return iso >= META.week1_start_iso && iso <= META.week1_end_iso; });
@@ -623,6 +691,7 @@ function filtrarDemandasBase() {
 }
 
 function renderDemandas() {
+  pintarTiposDeDemanda();
   if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos('demandas');
   if (typeof renderAgendaDeDemandas === 'function') renderAgendaDeDemandas();
   const fi = filtrarDemandasBase();
