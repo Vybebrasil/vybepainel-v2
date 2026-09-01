@@ -7,10 +7,23 @@
 
 function focusOwnItems(user=focusUser()) { const source=unifiedOperationalItems(); return user ? source.filter(d => ((d.responsavel_ids || []).map(String).includes(String(user.id)) || String(d.responsavel_id || '') === String(user.id)) && !isFinishedItem(d)) : []; }
 function focusIsNextReady(d) { return ['Pode Fazer','A Fazer'].includes(operationalFlowStatus(d)); }
+// A PROXIMA E A QUE VAI AO AR PRIMEIRO.
+//
+// Antes a ordem era: risco, depois estado, depois a data de referencia — que
+// para quase todo mundo e o PRAZO. Prazo e um combinado interno, e move: se
+// alguem empurra o prazo, a peca desce na fila mesmo que a veiculacao continue
+// amanha. Veiculacao e a data que o cliente ve; ela nao se negocia, e por isso
+// e ela que decide quem vem primeiro.
+//
+// Em solicitacao esse campo carrega a data de CONCLUSAO — o normalizador ja faz
+// essa ponte, entao a mesma regra serve para os dois quadros.
 function focusActionPriority(d,user=focusUser()) {
-  const risk=d.operational_risk || getOperationalRisk(d); const due=focusReferenceDate(d,user) || '9999-12-31';
+  const dia = (v) => String(v || '').slice(0, 10).replace(/-/g, '') || '';
+  // Sem veiculacao, o prazo entra no lugar dela; sem nenhuma das duas, vai para
+  // o fim da fila em vez de fingir urgencia.
+  const quandoVai = dia(d.veiculacao_iso) || dia(d.prazo_iso) || '99991231';
   const state={'Pode Fazer':0,'A Fazer':1}[operationalFlowStatus(d)] ?? 8;
-  return Number(risk.score ?? 99) * 100 + state * 10 + Number(due.replace(/-/g,''));
+  return Number(quandoVai) * 100 + state * 10 + (dia(d.prazo_iso) ? 0 : 1);
 }
 function getFocusNextAction(items=focusOwnItems(),user=focusUser()) {
   const nextReady=items.filter(focusIsNextReady).sort((a,b)=>focusActionPriority(a,user)-focusActionPriority(b,user));
@@ -39,9 +52,13 @@ function focusTrailHtml(item) {
 }
 function focusNextActionHtml(data) {
   if(!data) return `<div class="focus-next-action"><div class="focus-next-kicker">Próxima melhor ação</div><div class="focus-next-name">Sua fila está limpa por agora.</div><div class="focus-next-reason">Não há itens de produção ou bloqueios atribuídos a você neste momento.</div></div>`;
-  const {item,mode}=data; const risk=item.operational_risk || getOperationalRisk(item); const user=focusUser(); const date=focusReferenceLabel(item,user);
+  const {item,mode}=data; const risk=item.operational_risk || getOperationalRisk(item); const user=focusUser();
   const title=mode==='next' ? 'PRÓXIMA DEMANDA' : 'DESTRAVE ESTA DEMANDA';
-  const reason=mode==='next' ? `${risk.reason || 'Esta é a próxima atividade ainda não iniciada com maior prioridade'} · ${date}` : `${focusStatusExplanation(operationalFlowStatus(item)) || 'Esta atividade depende de uma ação para avançar'} · ${risk.reason || date}`;
+  // O motivo agora e a data que decide a fila. Antes vinha a frase de risco e a
+  // data de referencia no fim, sem dizer qual data era.
+  const reason=mode==='next'
+    ? (risk.reason || 'É a próxima da sua fila ainda não iniciada')
+    : (focusStatusExplanation(operationalFlowStatus(item)) || 'Esta atividade depende de outra etapa para seguir');
   const primary=mode==='next' ? 'Abrir e produzir' : 'VER BLOQUEIO';
   const primaryAction=mode==='next' ? `openFocusPriorityWorkspace('${item.id}')` : `openItemWorkspace('${item.id}')`;
   const statusControl=mode==='next' ? `<button type="button" class="focus-next-btn status" style="border-color:${item.status_color||'#00f0ff'} !important; background:color-mix(in srgb, ${item.status_color||'#00f0ff'} 12%, transparent) !important; color:${item.status_color||'#a6f8ff'} !important;" onclick="openStatusEditor(event,'${item.id}')">Status: ${safeText(item.status)}</button>` : '';
@@ -53,7 +70,47 @@ function focusNextActionHtml(data) {
   // o que destravar. No cartao de bloqueio ele continua, que e o lugar dele.
   const secondary=mode==='next' ? '' : `<button type="button" class="focus-next-btn" onclick="openFocusBlocker('${item.id}')">Registrar contexto</button>`
   const controlNote=mode==='next' ? `<div class="focus-priority-control-note"><i></i>PRÓXIMA A INICIAR · ao mudar para Em andamento, esta demanda entra na fila de execução</div>` : '';
-  return `<section class="focus-next-action"><div class="focus-next-kicker">${title} · PRIORIDADE CALCULADA</div><div class="focus-next-main"><div><div class="focus-next-client">${safeText(item.cliente || 'Cliente não informado')}</div><div class="focus-next-name">${safeText(item.nome)}</div><div class="focus-next-reason">${safeText(reason)}</div>${focusTrailHtml(item)}${controlNote}</div><div class="focus-next-tools"><button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>${statusControl}${checkinControl}${secondary}</div></div></section>`;
+  // A data que decide a fila vira o ancoradouro do bloco: numero grande a
+  // esquerda, com o nome embaixo. Era uma frase no meio de outras, do mesmo
+  // tamanho da explicacao — e e ela que responde "por que esta e a proxima?".
+  const ehPedido = typeof isRequestItem === 'function' && isRequestItem(item);
+  const diaBr = (iso) => { const limpo = String(iso || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(limpo) ? limpo.split('-').reverse().join('/') : ''; };
+  const noAr = diaBr(item.veiculacao_iso);
+  const hoje = HOJE_ISO || new Date().toISOString().slice(0, 10);
+  const faltam = item.veiculacao_iso
+    ? Math.round((new Date(`${item.veiculacao_iso}T12:00:00`) - new Date(`${hoje}T12:00:00`)) / 86400000) : null;
+  const quando = !item.veiculacao_iso ? 'sem data'
+    : faltam < 0 ? 'já passou'
+    : faltam === 0 ? 'é hoje'
+    : faltam === 1 ? 'amanhã'
+    : `em ${faltam} dias`;
+  // No selo o ano e ruido: quem olha quer o dia, e o ano so muda a conversa em
+  // dezembro. Ele continua no balao, para quem precisar conferir.
+  const selo = `<div class="focus-next-quando ${item.veiculacao_iso && item.veiculacao_iso <= hoje ? 'urgente' : ''}"
+      title="${safeText(noAr || 'sem data')}">
+      <b>${safeText(noAr.slice(0, 5) || '—')}</b>
+      <span>${ehPedido ? 'conclusão' : 'veiculação'} · ${safeText(quando)}</span>
+    </div>`;
+  const prazoBr = diaBr(item.prazo_iso);
+  const prazoHtml = prazoBr
+    ? `<span class="focus-next-prazo ${item.prazo_iso < hoje ? 'vencido' : ''}"
+        title="Prazo de produção${item.prazo_iso < hoje ? ' — vencido' : ''}"><b>Prazo</b>${prazoBr.slice(0, 5)}</span>` : '';
+  return `<section class="focus-next-action ${mode === 'next' ? 'e-a-proxima' : 'e-bloqueio'}">
+    <div class="focus-next-kicker">${title} · QUEM VAI AO AR PRIMEIRO</div>
+    <div class="focus-next-main">
+      ${selo}
+      <div class="focus-next-corpo">
+        <div class="focus-next-client">${safeText(item.cliente || 'Cliente não informado')}</div>
+        <div class="focus-next-name">${safeText(item.nome)}</div>
+        <div class="focus-next-reason">${safeText(reason)}${prazoHtml}</div>
+        ${focusTrailHtml(item)}${controlNote}
+      </div>
+      <div class="focus-next-tools">
+        <button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>
+        ${statusControl}${checkinControl}${secondary}
+      </div>
+    </div></section>`;
 }
 function openFocusBlocker(itemId) {
   const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada.','err');

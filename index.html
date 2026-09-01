@@ -1802,8 +1802,31 @@ button.subitem-marca:hover{transform:scale(1.35)}
    da peca fecha embaixo. Antes os botoes disputavam o topo com o titulo, em tres
    cores diferentes, e a etapa ficava espremida entre eles. */
 .focus-next-action{padding:16px 18px!important}
-.focus-next-main{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
-  align-items:start!important;gap:18px!important}
+/* Tres colunas: a data que decide, o que e, e o que fazer. Antes era um bloco de
+   texto com um botao ao lado, e a informacao que responde "por que esta?" ficava
+   no meio de uma frase. */
+.focus-next-main{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;
+  align-items:center!important;gap:22px!important}
+.focus-next-corpo{min-width:0}
+/* O ancoradouro do bloco: o dia em que vai ao ar. */
+.focus-next-quando{display:grid;justify-items:center;gap:2px;padding:12px 16px;border-radius:14px;
+  border:1px solid color-mix(in srgb,var(--accent,#ff6b00) 32%,transparent);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 9%,transparent);min-width:118px}
+.focus-next-quando b{color:#fff;font:700 26px/1 var(--mac-ui);letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.focus-next-quando span{color:#ffc79a;font:700 9.5px var(--mac-ui);letter-spacing:.05em;
+  text-transform:uppercase;text-align:center}
+.focus-next-quando.urgente{border-color:rgba(255,77,109,.55);background:rgba(255,77,109,.12)}
+.focus-next-quando.urgente span{color:#ff9db1}
+/* O prazo continua visivel, mas como nota — ele nao decide mais a fila. */
+.focus-next-prazo{display:inline-flex;align-items:baseline;gap:5px;margin-left:10px;
+  color:#8f98a9;font:600 10.5px var(--mac-mono);font-variant-numeric:tabular-nums}
+.focus-next-prazo b{color:#6f7887;font:700 8.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.focus-next-prazo.vencido{color:#ff9db1}
+@media(max-width:900px){
+  .focus-next-main{grid-template-columns:auto minmax(0,1fr)!important}
+  .focus-next-tools{grid-column:1/-1}
+}
 .focus-next-name{font:700 19px/1.25 var(--mac-ui)!important;letter-spacing:-.02em;margin-top:2px}
 .focus-next-client{font:700 11px var(--mac-ui)!important;letter-spacing:.04em}
 .focus-next-reason{margin-top:5px;color:#9da4b4!important;font:500 11.5px/1.5 var(--mac-ui)!important}
@@ -3175,11 +3198,22 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 
 /* A UNICA caixa da tela. Ela pode ser generosa, porque nao disputa com mais
    nenhuma. */
+/* Este bloco e a resposta a "o que eu faco agora?". Ele estava com a mesma
+   presenca de um cartao qualquer da lista: mesma borda fina, mesmo fundo. Agora
+   tem um facho de luz vindo do canto e um traco de acento em cima — o suficiente
+   para o olho pousar nele primeiro, sem virar enfeite. */
 .focus-dashboard > .focus-next-action{
-  border:1px solid rgba(255,157,0,.30);border-radius:18px;
-  background:var(--sup-1);
-  box-shadow:0 14px 40px rgba(0,0,0,.42);
+  position:relative;overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--accent,#ff6b00) 38%,transparent);border-radius:18px;
+  background:
+    radial-gradient(120% 150% at 0% 0%, color-mix(in srgb,var(--accent,#ff6b00) 13%,transparent), transparent 58%),
+    var(--sup-1);
+  box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
   padding:26px 28px;margin-bottom:30px}
+.focus-dashboard > .focus-next-action::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,var(--accent,#ff6b00),color-mix(in srgb,var(--accent,#ff6b00) 20%,transparent))}
+.focus-dashboard > .focus-next-action .focus-next-kicker{color:var(--accent,#ff6b00);letter-spacing:.09em}
+.focus-dashboard > .focus-next-action .focus-next-name{font-size:23px!important}
 
 /* Os quatro numeros do topo nao precisam de quatro molduras: sao um dado so,
    lido em sequencia. */
