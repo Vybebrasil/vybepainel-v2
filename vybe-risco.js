@@ -331,6 +331,10 @@ function applyOutboundItemPatch(itemId, patch={}, label='alteração', options={
 }
 function renderOutboundItemPatch(label='alteração') {
   const previousScroll=window.scrollY;
+  // A ficha do cliente mostra as mesmas atividades, na mesma tabela: mudar o
+  // status de uma peca por la tem de repintar a ficha, senao a linha continua
+  // dizendo o valor antigo ate alguem sair e voltar.
+  if(typeof redesenharListasDoCliente==='function') redesenharListasDoCliente();
   renderCompactSummary(); renderOperationalTools(); renderIdentityOperationalPulse();
   if(panelMode==='foco') renderFocusDashboard();
   else if(panelMode==='controler') renderDaController();

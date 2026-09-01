@@ -1048,6 +1048,9 @@ function ordenarPor(campo) {
   if (!CAMPOS_ORDENAVEIS[campo]) return;
   ORDEM = ORDEM.campo === campo ? { campo, desc: !ORDEM.desc } : { campo, desc: false };
   renderVisaoDeGrupos();
+  // A ficha do cliente usa a mesma tabela; sem isto, clicar no cabecalho la
+  // reordenava a tabela de grupos escondida e deixava a da frente parada.
+  if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
 }
 
 function cabecalhoOrdenavel(campo, quadro = 'producao') {
@@ -1352,7 +1355,7 @@ function alternarSelecao(id, marcada, event) {
         if (marcada) SELECIONADAS.add(lista[k]); else SELECIONADAS.delete(lista[k]);
       }
       ULTIMA_MARCADA = alvo;
-      renderVisaoDeGrupos();
+      repintarOndeHaSelecao();
       const n = fim - ini + 1;
       showToast(`${marcada ? 'Marcadas' : 'Desmarcadas'} ${n} peças`, 'info', 2500);
       return;
@@ -1361,7 +1364,15 @@ function alternarSelecao(id, marcada, event) {
 
   if (marcada) SELECIONADAS.add(alvo); else SELECIONADAS.delete(alvo);
   ULTIMA_MARCADA = alvo;
+  repintarOndeHaSelecao();
+}
+
+// Marcar uma linha muda o deck, e o deck existe em duas telas: a tabela de
+// grupos e a ficha do cliente. Repintar so uma deixava a outra com o deck de
+// antes — dizendo, por exemplo, "3 marcadas" onde ja havia 4.
+function repintarOndeHaSelecao() {
   renderVisaoDeGrupos();
+  if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
 }
 
 function selecionarGrupo(groupId, marcar) {
@@ -1371,10 +1382,10 @@ function selecionarGrupo(groupId, marcar) {
   if (!grupo) return;
   const visiveis = gruposExpandidos.has(groupId) ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
   visiveis.forEach((i) => (marcar ? SELECIONADAS.add(String(i.id)) : SELECIONADAS.delete(String(i.id))));
-  renderVisaoDeGrupos(quadro);
+  repintarOndeHaSelecao();
 }
 
-function limparSelecao() { SELECIONADAS.clear(); renderVisaoDeGrupos(); }
+function limparSelecao() { SELECIONADAS.clear(); repintarOndeHaSelecao(); }
 
 async function salvarDataNaLinha(itemId, campo, input) {
   const item = findOperationalItem(itemId);
@@ -1478,6 +1489,50 @@ const VISAO_DE_GRUPOS = {
               ordem: () => GRUPOS_DE_DEMANDAS },
 };
 
+// O deck de acoes em lote mora aqui, e nao dentro do desenho da tabela de
+// grupos: a ficha do cliente usa a MESMA tabela, e sem isto ela teria caixas de
+// selecao que nao levam a lugar nenhum.
+function deckDeLoteHtml(quadro) {
+  // A seta para baixo diz que o botao ABRE UMA LISTA; o de data abre um campo de
+  // digitar, e por isso nao tem seta. Reticencias em todos dizia so "tem mais
+  // coisa", sem distinguir os dois.
+  const abre = '<svg viewBox="0 0 16 16" width="9" height="9" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
+    safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
+  return SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as atividades marcadas">
+      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}</small></span>
+      <span class="lote-risco" aria-hidden="true"></span>
+      ${acao('Status', 'loteStatus(event)')}
+      ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
+      ${acao('Responsável', 'loteResponsavel(event)')}
+      ${acao(quadro === 'demandas' ? 'Tipo' : 'Formato', 'loteFormato(event)')}
+      ${quadro === 'demandas' ? '' : acao('Captação', 'loteCaptacao(event)')}
+      ${acao('Prazo', "lotePrazo(event,'prazo')")}
+      ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
+      <span class="lote-risco" aria-hidden="true"></span>
+      <button type="button" class="lote-limpar" onclick="limparSelecao()"
+        title="Desmarcar todas" aria-label="Desmarcar todas">✕</button>
+    </div>` : '';
+}
+
+// A MESMA tabela do painel, para quem quiser mostrar uma lista de atividades
+// fora da visao de grupos — hoje, a ficha do cliente.
+//
+// Antes ela desenhava a propria lista, e por isso nada do que ja funciona no
+// resto do painel funcionava la: nao dava para trocar status na linha, nem
+// ordenar, nem ver prazo e veiculacao, e clicar nao abria a atividade. Nao era
+// falta de regra: era outra lista, escrita antes das regras existirem. Passando
+// pelas mesmas funcoes, tudo que valer para a tabela de grupos passa a valer
+// aqui sem ninguem precisar pedir de novo.
+function tabelaOperacionalHtml(itens, quadro) {
+  if (!itens.length) return '';
+  const colunas = COLUNAS_DA_TABELA[quadro] || COLUNAS_DA_TABELA.producao;
+  return `<div class="grupo-tabela-rolagem"><table class="grupo-tabela"><thead><tr>
+      <th class="grupo-marcar"></th>
+      ${colunas.map((c) => cabecalhoOrdenavel(c, quadro)).join('')}</tr></thead>
+    <tbody>${ordenarItens(itens).map(linhaDeGrupoHtml).join('')}</tbody></table></div>`;
+}
+
 function renderVisaoDeGrupos(quadro) {
   if (!quadro) { renderVisaoDeGrupos('producao'); renderVisaoDeGrupos('demandas'); return; }
   const cfg = VISAO_DE_GRUPOS[quadro] || VISAO_DE_GRUPOS.producao;
@@ -1529,26 +1584,7 @@ function renderVisaoDeGrupos(quadro) {
   // Barra de lote flutuante, ancorada embaixo. Antes ela vivia no topo da lista:
   // marcar uma peca no fim de mil linhas mostrava as acoes fora da tela, e a
   // pessoa marcava sem ver que havia o que fazer com aquilo.
-  // A seta para baixo diz que o botao ABRE UMA LISTA; o de data abre um campo de
-  // digitar, e por isso nao tem seta. Reticencias em todos dizia so "tem mais
-  // coisa", sem distinguir os dois.
-  const abre = '<svg viewBox="0 0 16 16" width="9" height="9" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
-    safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
-  const barra = SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as demandas marcadas">
-      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}</small></span>
-      <span class="lote-risco" aria-hidden="true"></span>
-      ${acao('Status', 'loteStatus(event)')}
-      ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
-      ${acao('Responsável', 'loteResponsavel(event)')}
-      ${acao(quadro === 'demandas' ? 'Tipo' : 'Formato', 'loteFormato(event)')}
-      ${quadro === 'demandas' ? '' : acao('Captação', 'loteCaptacao(event)')}
-      ${acao('Prazo', "lotePrazo(event,'prazo')")}
-      ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
-      <span class="lote-risco" aria-hidden="true"></span>
-      <button type="button" class="lote-limpar" onclick="limparSelecao()"
-        title="Desmarcar todas" aria-label="Desmarcar todas">✕</button>
-    </div>` : '';
+  const barra = deckDeLoteHtml(quadro);
   wrap.innerHTML = `${barra}<div class="grupos-head">
       <div><div class="grupos-kicker">Operação · Por etapa</div>
         <div class="grupos-titulo">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div>

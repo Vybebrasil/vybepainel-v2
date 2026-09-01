@@ -1286,62 +1286,51 @@ function numerosDaListaDeClientes(mostrar) {
     .forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = mostrar ? '' : 'none'; });
 }
 
+let CLIENTE_ABERTO = '';
 function abrirClienteDetalhe(cli) {
   document.getElementById('panel-clientes-lista').style.display  = 'none';
   document.getElementById('panel-cliente-detalhe').style.display = '';
   numerosDaListaDeClientes(false);
   document.getElementById('cliente-detalhe-nome').textContent    = cli;
+  CLIENTE_ABERTO = cli;
   renderClientMasterDetail(cli);
-  const registros=clientMasterRecords();
-  const record=registros.find(item=>item.name===cli) || {content:[],requests:[]};
-  // Produção
-  // Usar DADOS_ALL para mostrar todos os conteúdos, não apenas os da semana atual
-  const prodItems = record.content.filter(d => d.status !== 'Finalizado' && d.status !== 'finalizado');
+  redesenharListasDoCliente();
+}
+
+// As duas listas do cliente passam pela MESMA tabela do resto do painel.
+//
+// Antes eram cartoes proprios, escritos antes das regras existirem: nao dava
+// para trocar o status na linha, nem ordenar por coluna, nem ver prazo e
+// veiculacao, e clicar nao abria a atividade. Nao faltava regra — faltava usar
+// as que ja existem. Agora tudo que valer para a tabela de grupos vale aqui
+// sozinho, sem ninguem ter de pedir de novo.
+function redesenharListasDoCliente() {
+  const cli = CLIENTE_ABERTO;
+  if (!cli || document.getElementById('panel-cliente-detalhe')?.style.display === 'none') return;
+  const record = clientMasterRecords().find((item) => item.name === cli) || { content: [], requests: [] };
+  const CONCLUIDO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
+  const emAberto = (lista) => lista.filter((d) => !CONCLUIDO.includes(String(d.status || '')));
+
+  const conteudos = emAberto(record.content);
   const gridProd = document.getElementById('grid-cliente-producao');
-  if (prodItems.length === 0) {
-    gridProd.innerHTML = '<div style="color:var(--text-muted);padding:12px 0;">Nenhum conteúdo de produção.</div>';
-  } else {
-    // Agrupar por mês/ano de veiculacao
-    const byMonth = {};
-    const semData = [];
-    prodItems.forEach(d => {
-      if (!d.veiculacao_iso) { semData.push(d); return; }
-      const key = d.veiculacao_iso.slice(0,7); // YYYY-MM
-      if (!byMonth[key]) byMonth[key] = [];
-      byMonth[key].push(d);
-    });
-    const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    const sortedMonths = Object.keys(byMonth).sort(); // mais antigo primeiro (crescente)
-    const allGroups = sortedMonths.map(k => {
-      const [y,m] = k.split('-');
-      const label = `${MESES[parseInt(m)-1]} ${y}`;
-      const isCurrentWeek = byMonth[k].some(d => d.semana === 1 || d.semana === 2);
-      return { label: isCurrentWeek ? `★ ${label} (Esta semana)` : label, items: byMonth[k].sort((a,b)=>(a.veiculacao_iso||'').localeCompare(b.veiculacao_iso||'')) };
-    });
-    if (semData.length > 0) allGroups.push({ label: 'Sem data de veiculação', items: semData });
-    gridProd.innerHTML = allGroups.map(g => `
-      <div class="demanda-group-card">
-        <div class="demanda-group-header"><div class="demanda-group-title">${g.label}</div><span class="posts-count ok">${g.items.length}</span></div>
-        <div class="item-list">${g.items.map(d => `
-          <div class="item-row">
-            ${fmtHtml(d.formato)}
-            <button type="button" class="item-name item-workspace-link" style="flex:1;" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}</button>
-            <span class="item-date">${d.veiculacao||'—'}</span>
-            ${pillHtml(d.status, d.status_color, d.status_border)}
-            <span class="item-resp">${firstName(d.responsavel)}</span>
-          </div>`).join('')}</div>
-      </div>`).join('');
+  if (gridProd) {
+    gridProd.innerHTML = conteudos.length
+      ? tabelaOperacionalHtml(conteudos, 'producao')
+      : '<div class="grupos-vazio">Nenhum conteúdo em aberto.</div>';
   }
-  // Demandas
-  const STATUS_CONCLUIDO = ['Feito','Finalizado','feito','finalizado'];
-  const demItems = sortDemandas(record.requests.filter(d => !STATUS_CONCLUIDO.includes(d.status)));
+
+  // A lista crua de Solicitacoes fala outro idioma; o normalizador e o mesmo
+  // que a tabela de grupos usa.
+  const solicitacoes = emAberto(record.requests)
+    .map((d) => (typeof normalizeRequestForOperational === 'function' ? normalizeRequestForOperational(d) : d));
   const gridDem = document.getElementById('grid-cliente-demandas');
-  if (demItems.length === 0) {
-    gridDem.innerHTML = '<div style="color:var(--text-muted);padding:12px 0;">Nenhuma demanda.</div>';
-  } else {
-    gridDem.innerHTML = `<div class="demanda-group-card"><div class="item-list">${demItems.map(d=>demandaItemRow(d,false)).join('')}</div></div>`;
+  if (gridDem) {
+    gridDem.innerHTML = solicitacoes.length
+      ? deckDeLoteHtml('demandas') + tabelaOperacionalHtml(solicitacoes, 'demandas')
+      : '<div class="grupos-vazio">Nenhuma solicitação em aberto.</div>';
   }
 }
+
 
 function voltarClientesLista() {
   document.getElementById('panel-clientes-lista').style.display  = '';
