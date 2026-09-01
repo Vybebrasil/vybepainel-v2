@@ -630,12 +630,18 @@ function demandaItemRow(d, showCliente=true) {
   const atrasadoBadge = d.prazo_atrasado ? '<span class="prazo-badge">Atrasado</span>' : '';
   const data = (rotulo, valor, cor) => valor
     ? `<span class="vybe-data com-rotulo" style="color:${cor}" title="${rotulo}"><b>${rotulo}</b>${valor}</span>` : '';
+  // SEM DATA NAO SE DESENHA UM TRACO.
+  //
+  // Um cartao sem tipo, sem prioridade e sem data mostrava TRES tracos — e com
+  // 327 demandas por classificar, era a maior parte do quadro virando ruido.
+  // Traco nao e informacao: e o desenho de uma ausencia. O espaco vazio diz a
+  // mesma coisa e nao disputa a atencao com o que esta preenchido.
   const dateBlock = (d.prazo || d.conclusao)
     ? `<span class="item-date vybe-datas">
         ${data('Prazo', d.prazo, '#f59e0b')}${atrasadoBadge}
         ${data('Conclusão', d.conclusao, '#34d399')}
       </span>`
-    : '<span class="item-date vybe-data">—</span>';
+    : (atrasadoBadge || '');
   // Clicar na linha abre o RESUMO — o mesmo cartao rapido do calendario. Antes
   // so o nome era clicavel, e ele abria direto a gaveta inteira: dois
   // comportamentos diferentes para "abrir" no mesmo painel. O resumo mostra o
@@ -644,10 +650,10 @@ function demandaItemRow(d, showCliente=true) {
       title="Abrir o resumo de ${safeText(d.nome || '')}">
     ${showCliente ? vybeTagCliente(d) : ''}
     ${vybeChipId(d)}
-    ${fmtHtml(d.tipo)}
+    ${d.tipo && String(d.tipo).trim() !== '—' ? fmtHtml(d.tipo) : ''}
     <span class="item-name">${vybeNome(d)}</span>
     ${dateBlock}
-    ${prioHtml(d.prioridade)}
+    ${d.prioridade ? prioHtml(d.prioridade) : ''}
     ${vybeStatus(d)}
     ${vybeDono(d)}
   </div>`;
@@ -1035,14 +1041,18 @@ function renderDemandasEsteira(fi) {
   const grid = document.getElementById('grid-demandas-esteira');
   grid.innerHTML = DEMANDAS_GROUP_ORDER.map(grupo => {
     const items = sortDemandas(fi.filter(d => d.grupo === grupo));
-    if (items.length === 0) return '';
     const icon = DEMANDAS_GROUP_ICON[grupo] || '';
+    // Coluna vazia CONTINUA na tela. Sumir com ela reordena o quadro a cada
+    // filtro, e quem procurava uma etapa fica sem saber se ela nao tem nada ou
+    // se ele e que errou o filtro.
     return `<div class="demanda-group-card">
       <div class="demanda-group-header">
         <div class="demanda-group-title">${icon} ${grupo}</div>
-        <span class="posts-count ok">${items.length} demanda${items.length!==1?'s':''}</span>
+        <span class="posts-count ${items.length ? 'ok' : ''}">${items.length}</span>
       </div>
-      <div class="item-list">${items.map(d => demandaItemRow(d, true)).join('')}</div>
+      <div class="item-list">${items.length
+        ? items.map(d => demandaItemRow(d, true)).join('')
+        : '<div class="demanda-group-vazia">Nada nesta etapa agora.</div>'}</div>
     </div>`;
   }).join('');
 }
