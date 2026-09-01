@@ -527,6 +527,59 @@
        abaixo do titulo porque decide o que TODA a tela mostra — nao e atalho,
        e o recorte. As contas sao da fila inteira, nunca do recorte ativo: assim
        a pessoa ve o que ganha antes de clicar. */
+    /* ── o arquivo e o desfazer ────────────────────────────────────────────
+       Arquivar so vale se der para achar depois. O desfazer imediato mora numa
+       barra flutuante porque o arrependimento chega em segundos e nao pode
+       depender de a pessoa saber que existe uma tela de arquivo. */
+    .desfazer-arquivo{position:fixed;left:50%;bottom:26px;z-index:880;display:flex;align-items:center;gap:14px;
+      transform:translate(-50%,14px);opacity:0;transition:opacity .2s var(--curva),transform .2s var(--curva);
+      border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 14px 12px 18px;
+      background:rgba(20,22,28,.86);-webkit-backdrop-filter:blur(30px) saturate(1.6);backdrop-filter:blur(30px) saturate(1.6);
+      box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 20px 60px rgba(0,0,0,.5);
+      color:#c9c9d1;font:500 13px var(--mac-ui);max-width:min(560px,92vw)}
+    .desfazer-arquivo.aberta{opacity:1;transform:translate(-50%,0)}
+    .desfazer-arquivo b{color:#f7f7fa;font-weight:600}
+    .desfazer-arquivo button{border:1px solid color-mix(in srgb,var(--accent,#ff6b00) 55%,transparent);
+      border-radius:9px;background:color-mix(in srgb,var(--accent,#ff6b00) 20%,transparent);color:#ffd9b8;
+      padding:7px 14px;font:600 12.5px var(--mac-ui);cursor:pointer;white-space:nowrap}
+    .desfazer-arquivo button:hover{background:color-mix(in srgb,var(--accent,#ff6b00) 32%,transparent);color:#fff}
+    .desfazer-arquivo button:disabled{opacity:.5;cursor:default}
+    .desfazer-arquivo button.fechar{border:0;background:transparent;color:#75757c;padding:0 4px;font-size:18px}
+    .desfazer-arquivo button.fechar:hover{color:#f2f2f5;background:transparent}
+
+    .arquivadas-painel{margin:12px 0 16px;border:1px solid var(--linha);border-radius:16px;background:var(--sup-1);
+      -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+      box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 12px 36px rgba(0,0,0,.3);overflow:hidden}
+    .arquivadas-topo{display:flex;flex-direction:row;align-items:flex-start;justify-content:space-between;gap:14px;
+      padding:16px 18px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+    .arquivadas-kicker{color:var(--accent,#ff6b00);font:600 10px var(--mac-ui);letter-spacing:.09em;text-transform:uppercase}
+    .arquivadas-topo h3{margin:5px 0 0;color:#f7f7fa;font:600 17px var(--mac-ui);letter-spacing:-.4px}
+    .arquivadas-topo p{margin:5px 0 0;color:#75757c;font:500 12px/1.55 var(--mac-ui)}
+    .arquivadas-fechar{border:0;background:transparent;color:#8b8b90;font-size:21px;line-height:1;cursor:pointer;padding:0 3px}
+    .arquivadas-fechar:hover{color:#f2f2f5}
+    .arquivadas-lista{display:flex;flex-direction:column;max-height:420px;overflow-y:auto}
+    .arquivada{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;
+      padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.045)}
+    .arquivada:last-child{border-bottom:0}
+    .arquivada:hover{background:rgba(255,255,255,.028)}
+    .arquivada-copy{min-width:0}
+    .arquivada-copy b{display:block;color:#f2f2f5;font:600 13.5px var(--mac-ui);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .arquivada-copy small{display:block;margin-top:3px;color:#75757c;font:500 11.5px var(--mac-ui)}
+    .arquivada-prazo{color:#8b8b90;font:600 11.5px var(--mac-ui);white-space:nowrap;font-variant-numeric:tabular-nums}
+    /* Prazo curto e dado, nao decoracao: quem tem 2 dias decide diferente de
+       quem tem 14, e a cor e o que faz essa linha ser lida antes das outras. */
+    .arquivada.acabando .arquivada-prazo{color:#ffb95c}
+    .arquivada-voltar{border:1px solid var(--linha);border-radius:9px;background:var(--sup-1);color:#c9c9d1;
+      padding:7px 13px;font:600 12px var(--mac-ui);cursor:pointer;white-space:nowrap;
+      transition:background .14s var(--curva),border-color .14s var(--curva),color .14s var(--curva)}
+    .arquivada-voltar:hover{background:var(--sup-2);border-color:rgba(255,255,255,.22);color:#f7f7fa}
+    .arquivada-voltar:disabled{opacity:.5;cursor:default}
+    .arquivadas-vazio{padding:34px 18px;color:#75757c;text-align:center;font:500 12.5px/1.6 var(--mac-ui)}
+    @media(max-width:700px){.arquivada{grid-template-columns:1fr;gap:8px}
+      .desfazer-arquivo{left:12px;right:12px;transform:none;max-width:none;flex-wrap:wrap}
+      .desfazer-arquivo.aberta{transform:none}}
+
     .focus-lente{display:inline-flex;gap:3px;margin:0 0 12px;padding:3px;border-radius:12px;
       border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.042);
       -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5)}
@@ -3910,6 +3963,7 @@ button:not(:disabled):not([aria-disabled="true"]):active,
       <div class="ops-segmentos" role="group" aria-label="Visões da operação">
         <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
         <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
+        <button id="ops-arquivo-btn" class="ops-close-btn" onclick="alternarArquivo()" aria-expanded="false" title="Atividades arquivadas — voltam com um clique por 15 dias">Arquivo <span id="ops-arquivo-count" class="ops-action-count">0</span></button>
       </div>
       <div class="ops-vao"></div>
       <div class="ops-acoes">

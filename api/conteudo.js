@@ -355,6 +355,35 @@ async function removerConteudo(sql, quem, { item, motivo }) {
   return { conteudo_id: c.id, titulo: c.titulo, replica_monday: replica };
 }
 
+// Quantos dias uma peca arquivada continua voltando com um clique. Depois disso
+// ela some da lista — a linha nao e apagada, mas o painel para de oferecer o
+// caminho de volta, e no Monday a lixeira dele tem prazo proprio.
+const DIAS_NO_ARQUIVO = 15;
+
+// A lista do arquivo. Sem ela, 'restaurar' existia no servidor e nao tinha por
+// onde ser chamado: a peca sumia e a unica forma de trazer de volta era pedir
+// para alguem mexer no banco.
+async function listarArquivadas(sql) {
+  const linhas = await sql`SELECT c.id, c.monday_item_id, c.titulo, c.board_id, c.removido_em,
+      c.prazo, c.veiculacao, p.nome AS removido_por,
+      (SELECT e.para FROM vybe_conteudo_eventos e
+        WHERE e.conteudo_id = c.id AND e.tipo = 'remocao'
+        ORDER BY e.em DESC LIMIT 1) AS motivo,
+      (SELECT STRING_AGG(cl.nome, ', ') FROM vybe_conteudo_clientes cc
+         JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id) AS cliente
+    FROM vybe_conteudos c
+    LEFT JOIN vybe_pessoas p ON p.id = c.removido_por
+   WHERE c.removido_em IS NOT NULL
+     AND c.removido_em > NOW() - (${DIAS_NO_ARQUIVO} || ' days')::interval
+   ORDER BY c.removido_em DESC LIMIT 200`;
+  return { dias: DIAS_NO_ARQUIVO, itens: linhas.map((l) => ({
+    id: String(l.monday_item_id || `vybe:${l.id}`),
+    conteudo_id: l.id, titulo: l.titulo, cliente: l.cliente || '', board_id: String(l.board_id || ''),
+    removido_em: l.removido_em, removido_por: l.removido_por || 'Alguém do time',
+    motivo: l.motivo || '', prazo: l.prazo, veiculacao: l.veiculacao,
+  })) };
+}
+
 // Devolve uma peça removida. Existe porque remover por engano é o motivo de a
 // remoção ser reversível — sem o caminho de volta, a rede não serve para nada.
 async function restaurarConteudo(sql, quem, { item }) {
@@ -722,6 +751,11 @@ export default async function handler(req, res) {
     }
     if (acao === 'comentario') {
       return res.status(200).json({ ok: true, acao, ...(await comentar(sql, quem, { item, texto: corpo.texto })) });
+    }
+    // Ler o arquivo e de todo mundo: quem arquivou por engano precisa achar a
+    // peca sem depender de outra pessoa estar por perto.
+    if (acao === 'arquivadas') {
+      return res.status(200).json({ ok: true, acao, ...(await listarArquivadas(sql)) });
     }
     // Apagar e trazer de volta sao de todo mundo do time.
     //

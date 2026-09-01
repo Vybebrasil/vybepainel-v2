@@ -116,15 +116,17 @@ function pintarConta() {
     </div>
 
     ${eu.admin ? `
-    <div class="conta-caixa" style="margin-top:12px">
-      <div class="conta-titulo">Prévias dos arquivos</div>
-      <p class="auto-ajuda" style="margin:0 0 10px">Arquivo enviado pelo painel só mostra prévia se
-        estiver liberado para leitura por link no Drive. Os que subiram antes dessa liberação existir
-        aparecem como “Prévia indisponível”. Abrir a peça já conserta os dela; este botão conserta
-        todos de uma vez.</p>
+    <div class="auto-cabeca" style="margin-top:26px">
+      <div>
+        <div class="auto-kicker">Vybe OS · Manutenção</div>
+        <h2 class="auto-titulo">Prévias dos arquivos</h2>
+        <p class="auto-sub">Arquivo enviado pelo painel só mostra prévia se estiver liberado para
+          leitura por link no Drive. Os que subiram antes dessa liberação existir aparecem como
+          “Prévia indisponível”. Abrir a peça já conserta os dela; o botão conserta todos de uma vez.</p>
+      </div>
       <button class="auto-novo" onclick="liberarPreviasDeArquivos(this)">Liberar prévias antigas</button>
-      <p class="auto-ajuda" id="conta-previas-nota" style="margin:8px 0 0"></p>
     </div>
+    <p class="auto-ajuda" id="conta-previas-nota" style="margin:-8px 0 4px"></p>
 
     <div class="auto-cabeca" style="margin-top:26px">
       <div>

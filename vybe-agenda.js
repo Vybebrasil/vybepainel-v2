@@ -481,7 +481,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}">
         Abrir tudo — arquivos, histórico e entrega →</button>
       <button type="button" class="cr-excluir" onclick="removerPeca('${safeText(item.id)}')"
-        title="Excluir esta atividade — vai para a lixeira do Monday">Excluir</button>
+        title="Arquivar esta atividade — volta com um clique por 15 dias">Arquivar</button>
     </div>`;
   document.body.append(fundo, cartao);
   ancorarPopover(cartao, rect);
@@ -2117,4 +2117,94 @@ function renderAgendaDeDemandas() {
       }).join('')}
     </div>
   </section>`;
+}
+
+// ── o arquivo ────────────────────────────────────────────────────────────────
+//
+// Arquivar so vale a pena se der para achar o que foi arquivado. O servidor ja
+// sabia devolver uma peca (acao 'restaurar'), mas nao havia por onde chamar:
+// a peca sumia e a unica saida era pedir para alguem mexer no banco.
+//
+// A janela e de 15 dias, como no Monday. Depois disso a linha continua no banco,
+// mas o painel para de oferecer o caminho de volta — e a lista diz isso, para
+// ninguem descobrir o prazo no dia em que ele passou.
+let ARQUIVADAS = [];
+let ARQUIVO_DIAS = 15;
+
+function alternarArquivo() {
+  const caixa = document.getElementById('arquivadas-painel');
+  if (caixa) { caixa.remove(); return; }
+  const alvo = document.getElementById('ops-selection-summary') || document.body;
+  alvo.insertAdjacentHTML('afterend', `<section id="arquivadas-painel" class="arquivadas-painel">
+      <header class="arquivadas-topo">
+        <div><span class="arquivadas-kicker">Vybe OS · Arquivo</span>
+          <h3>Atividades arquivadas</h3>
+          <p>Voltam com um clique por ${ARQUIVO_DIAS} dias. Depois disso, só pela lixeira do Monday.</p></div>
+        <button type="button" class="arquivadas-fechar" onclick="alternarArquivo()" aria-label="Fechar">×</button>
+      </header>
+      <div id="arquivadas-lista" class="arquivadas-lista"><div class="arquivadas-vazio">Carregando…</div></div>
+    </section>`);
+  carregarArquivadas();
+}
+
+async function carregarArquivadas() {
+  const lista = document.getElementById('arquivadas-lista');
+  try {
+    const r = await fetch('/api/conteudo', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: 'arquivadas' }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível ler o arquivo.');
+    ARQUIVADAS = d.itens || [];
+    ARQUIVO_DIAS = Number(d.dias) || ARQUIVO_DIAS;
+    pintarArquivadas();
+  } catch (erro) {
+    if (lista) lista.innerHTML = `<div class="arquivadas-vazio">Não deu para ler o arquivo<br><small>${safeText(erro.message)}</small></div>`;
+  }
+  atualizarContadorDoArquivo();
+}
+
+// Quantos dias ainda restam para esta peca voltar com um clique. Dizer "faltam
+// 2 dias" muda a decisao de quem esta olhando; dizer so a data de quando saiu,
+// nao.
+function diasQueRestam(removidoEm) {
+  const saida = new Date(removidoEm);
+  if (Number.isNaN(saida.getTime())) return null;
+  const passados = Math.floor((Date.now() - saida) / 86400000);
+  return Math.max(0, ARQUIVO_DIAS - passados);
+}
+
+function pintarArquivadas() {
+  const lista = document.getElementById('arquivadas-lista');
+  if (!lista) return;
+  if (!ARQUIVADAS.length) {
+    lista.innerHTML = '<div class="arquivadas-vazio">Nada arquivado nos últimos '
+      + ARQUIVO_DIAS + ' dias.</div>';
+    return;
+  }
+  lista.innerHTML = ARQUIVADAS.map((a) => {
+    const restam = diasQueRestam(a.removido_em);
+    const prazo = restam === null ? ''
+      : restam === 0 ? 'último dia para voltar'
+      : `${restam} dia${restam === 1 ? '' : 's'} para voltar`;
+    const quando = new Date(a.removido_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return `<article class="arquivada ${restam !== null && restam <= 3 ? 'acabando' : ''}">
+      <div class="arquivada-copy">
+        <b>${safeText(a.titulo || 'Sem título')}</b>
+        <small>${safeText(a.cliente || 'Sem cliente')} · arquivada em ${quando} por ${safeText(a.removido_por)}${
+          a.motivo ? ` · “${safeText(a.motivo)}”` : ''}</small>
+      </div>
+      <span class="arquivada-prazo">${safeText(prazo)}</span>
+      <button type="button" class="arquivada-voltar"
+        onclick="restaurarPeca('${safeText(String(a.id))}',this)">Trazer de volta</button>
+    </article>`;
+  }).join('');
+}
+
+// O contador no botao existe para o arquivo nao virar uma gaveta esquecida: quem
+// arquivou por engano ve o numero subir e sabe que ha algo la.
+function atualizarContadorDoArquivo() {
+  const marca = document.getElementById('ops-arquivo-count');
+  if (marca) marca.textContent = ARQUIVADAS.length;
 }

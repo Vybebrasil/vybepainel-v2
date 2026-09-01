@@ -1146,10 +1146,10 @@ async function removerPeca(itemId) {
   // sequencia, e a segunda pedindo texto num prompt. Agora que apagar e de todo
   // o time, a pergunta pesa mais — e ela precisa parecer com o resto do painel.
   const motivo = await perguntarNoPainel({
-    titulo: `Excluir “${item.nome}”?`,
-    texto: 'Ela sai do painel e vai para a lixeira do Monday, de onde dá para recuperar. O histórico do que aconteceu com ela fica guardado aqui.',
-    confirmar: 'Excluir', perigo: true,
-    campo: { valor: '', dica: 'Por que está excluindo? (opcional, fica no histórico)' },
+    titulo: `Arquivar “${item.nome}”?`,
+    texto: `Ela sai das listas e fica no arquivo por ${DIAS_NO_ARQUIVO} dias, de onde volta com um clique. Depois disso o caminho de volta é a lixeira do Monday.`,
+    confirmar: 'Arquivar', perigo: true,
+    campo: { valor: '', dica: 'Por que está arquivando? (opcional, fica no histórico)' },
   });
   if (motivo === null) return false;
 
@@ -1171,10 +1171,54 @@ async function removerPeca(itemId) {
     // O botao agora tambem vive no cartao rapido, que fica por cima do calendario.
     if (typeof fecharCartaoRapido === 'function') fecharCartaoRapido();
     redesenharAposMudanca('exclusão');
-    showToast(String(d.replica_monday || '').startsWith('falhou')
-      ? '✓ Excluída do painel · o Monday não recebeu' : '✓ Atividade excluída', 'ok', 5000);
+    // O arrependimento chega em segundos, nao em dias: o desfazer fica no proprio
+    // aviso, sem obrigar ninguem a saber que existe uma tela de arquivo.
+    mostrarDesfazerArquivamento(item);
     return true;
-  } catch (erro) { showToast(`Não foi possível remover: ${erro.message}`, 'err', 7000); return false; }
+  } catch (erro) { showToast(`Não foi possível arquivar: ${erro.message}`, 'err', 7000); return false; }
+}
+
+const DIAS_NO_ARQUIVO = 15;
+
+function mostrarDesfazerArquivamento(item) {
+  document.getElementById('desfazer-arquivo')?.remove();
+  const barra = document.createElement('div');
+  barra.id = 'desfazer-arquivo';
+  barra.className = 'desfazer-arquivo';
+  barra.innerHTML = `<span><b>${safeText(item.nome)}</b> foi para o arquivo.</span>
+    <button type="button" onclick="restaurarPeca('${safeText(String(item.id))}',this)">Desfazer</button>
+    <button type="button" class="fechar" onclick="this.parentElement.remove()" aria-label="Fechar">×</button>`;
+  document.body.append(barra);
+  // setTimeout e nao requestAnimationFrame: rAF nao dispara em aba fora de foco,
+  // e quem arquiva costuma trocar de janela em seguida. A barra ficaria com
+  // opacidade zero, some sozinha em 12s, e o desfazer nunca teria existido.
+  setTimeout(() => barra.classList.add('aberta'), 0);
+  setTimeout(() => barra.remove(), 12000);
+}
+
+// Traz a peca de volta. Serve ao desfazer imediato e a lista do arquivo — os
+// dois caminhos passam por aqui para nao existirem duas verdades sobre o que
+// "restaurar" faz.
+async function restaurarPeca(itemId, botao) {
+  if (botao) { botao.disabled = true; botao.textContent = 'Voltando…'; }
+  try {
+    const r = await fetch('/api/conteudo', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: 'restaurar', item: String(itemId) }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível restaurar.');
+    document.getElementById('desfazer-arquivo')?.remove();
+    // A peca voltou no banco; a tela so sabe disso recarregando os dados.
+    showToast(`✓ “${d.titulo || 'Atividade'}” voltou para as listas`, 'ok', 6000);
+    if (typeof refreshData === 'function') await refreshData();
+    if (document.getElementById('arquivadas-lista')) carregarArquivadas();
+    return true;
+  } catch (erro) {
+    if (botao) { botao.disabled = false; botao.textContent = 'Desfazer'; }
+    showToast(`Não foi possível restaurar: ${erro.message}`, 'err', 7000);
+    return false;
+  }
 }
 
 // Mover entre Produção e Demandas. Demandas nunca entrou no nosso banco — é lido
@@ -1443,7 +1487,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
     ${workspaceDeliveryDock(detail,item)}
-    <div class="workspace-actions">${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Excluir atividade</button>${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
+    <div class="workspace-actions">${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Arquivar atividade</button>${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
     <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section>
     <section class="workspace-section"><div class="workspace-section-head">Entregar</div><div class="workspace-section-body">
