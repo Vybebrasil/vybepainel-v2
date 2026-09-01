@@ -611,13 +611,37 @@ function renderByDay(sem, filter, dayFilter) {
       if(!aOk && bOk) return -1;
       return a.cliente.localeCompare(b.cliente);
     });
-    if(dayItems.length === 0) return '';
+    // DIA VAZIO PASSA A EXISTIR, e por um motivo novo: agora ele e um ALVO.
+    //
+    // Antes sumir fazia sentido — cartao vazio so ocupava espaco. Com o arrasto,
+    // sumir vira defeito: nao havia como levar uma peca para a quarta-feira se a
+    // quarta nao tinha nada. O dia vazio aparece rasteiro, so com a data e o
+    // convite, e some de novo assim que a semana e filtrada por um unico dia.
+    if(dayItems.length === 0) {
+      return `<div class="client-card dia-solta dia-vazio" style="margin-bottom:12px;" data-date="${dia.iso}"
+        ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)"
+        ondrop="soltarNoDia('${dia.iso}',event,this)">
+        <div class="client-header"><div class="client-name">${dia.label} — ${
+          String(new Date(dia.iso+'T12:00:00').getDate()).padStart(2,'0')}/${
+          String(new Date(dia.iso+'T12:00:00').getMonth()+1).padStart(2,'0')}</div>
+        <span class="dia-vazio-recado">arraste uma peça para cá</span></div>
+      </div>`;
+    }
     const dayDone = dayItems.filter(d=>['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
     const dayPct = Math.round(dayDone / dayItems.length * 100);
     const rows = dayItems.map(d=>{
       const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
       const isPending = !['Finalizado','Agendado','Para agendar'].includes(d.status);
-      return `<div class="item-row${isPending?' urgent':''}">
+      // ARRASTAR A PECA DE UM DIA PARA O OUTRO MUDA A VEICULACAO.
+      //
+      // A agenda mensal ja fazia isso; a lista da semana, que e onde o time
+      // passa o dia, nao. Reusa a MESMA maquina do calendario — mesmo
+      // dragstart, mesmo drop, mesma gravacao — em vez de uma segunda
+      // implementacao que amanha divergiria da primeira.
+      return `<div class="item-row${isPending?' urgent':''}" draggable="true"
+        ondragstart="managerCalendarDragStart('content','${safeText(d.id)}',event)"
+        ondragend="managerCalendarDragEnd()"
+        title="Arraste para outro dia para mudar a veiculação">
         <span class="item-cliente-tag" style="background:rgba(168,85,247,.18);color:#c084fc;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${d.cliente}</span>
         ${fmtHtml(d.formato)}
         <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}</button>
@@ -628,7 +652,9 @@ function renderByDay(sem, filter, dayFilter) {
     }).join('');
     const modeIcon = '';
     const progressColor = dayPct === 100 ? '#00ff88' : dayPct >= 50 ? '#ff6b00' : '#ffbd2e';
-    return `<div class="client-card" style="margin-bottom:12px;">
+    return `<div class="client-card dia-solta" style="margin-bottom:12px;" data-date="${dia.iso}"
+      ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)"
+      ondrop="soltarNoDia('${dia.iso}',event,this)">
       <div class="client-header">
         <div class="client-name">${modeIcon} ${dia.label} — ${String(new Date(dia.iso+'T12:00:00').getDate()).padStart(2,'0')}/${String(new Date(dia.iso+'T12:00:00').getMonth()+1).padStart(2,'0')}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
@@ -1024,3 +1050,24 @@ function toggleAllActionItems() {
 let focusShowAll = false;
 function isFinishedItem(d) { return ['Finalizado','Feito','Concluído','Concluido'].includes(operationalFlowStatus(d)); }
 function getReferenceDate(d) { return d.prazo_iso || d.veiculacao_iso || ''; }
+
+// ── Soltar a peça num dia da semana ──────────────────────────────────────────
+//
+// O calendario mensal tem os proprios avisos visuais presos a .manager-calendar-day.
+// Aqui o alvo e o cartao do dia, entao a marca de "pode soltar" e outra — mas a
+// GRAVACAO e a mesma: managerCalendarDrop, que ja sabe qual campo mexer
+// conforme a referencia ativa (veiculacao ou prazo) e ja passa pelo caminho
+// unico de mudanca de data.
+function soltarNoDiaSobre(event, cartao) {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  cartao.classList.add('recebendo');
+}
+function soltarNoDiaSai(cartao) { cartao.classList.remove('recebendo'); }
+async function soltarNoDia(dateIso, event, cartao) {
+  cartao.classList.remove('recebendo');
+  // Soltar a peca no mesmo dia de onde ela saiu nao e engano nem mudanca: o
+  // caminho unico ja devolve "nada a fazer" nesse caso, e por isso nao ha
+  // verificacao repetida aqui.
+  await managerCalendarDrop(dateIso, event, cartao);
+}
