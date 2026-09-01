@@ -67,6 +67,14 @@
       .fc-person-btn { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:30px; padding:6px 14px 6px 6px; display:flex; align-items:center; gap:8px; color:#b8d7df; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
       .fc-person-btn:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.2); }
       .fc-person-btn.active { background:rgba(0,240,255,0.1); border-color:#00f0ff; color:#fff; box-shadow:0 4px 12px rgba(0,240,255,0.2); }
+      /* Quem a regra escolheu ja nasce ligado. O selo explica por que, e deixa
+         claro que tirar dali e uma excecao consciente, nao um descuido. */
+      .fc-person-regra, .fc-person-tirado { font-style:normal; font-size:9.5px; font-weight:700;
+        letter-spacing:0.06em; text-transform:uppercase; padding:2px 6px; border-radius:999px; }
+      .fc-person-regra { background:rgba(0,240,255,0.16); color:#8fe9f5; }
+      .fc-person-tirado { background:rgba(255,159,169,0.14); color:#ff9fa9; }
+      .fc-person-btn.tirado { border-style:dashed; border-color:rgba(255,159,169,0.32); }
+      .fc-person-btn.tirado:hover { border-color:rgba(255,159,169,0.6); }
       .fc-avatar { width:24px; height:24px; border-radius:50%; overflow:hidden; display:flex; justify-content:center; align-items:center; font-size:11px; font-weight:800; color:#fff; }
       .fc-avatar img { width:100%; height:100%; object-fit:cover; }
 
@@ -223,6 +231,9 @@
     prazo: '',
     brief: '',
     assignees: [],
+    // Quem a regra escolheu e a pessoa tirou a mao. Sem guardar, a regra devolvia
+    // o nome no proximo redesenho e o clique parecia nao ter funcionado.
+    removidos: [],
     materialReady: false,
     briefReady: false,
     manualGroup: undefined,
@@ -411,7 +422,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      datesEl.innerHTML = state.veic ? `Veiculação: ${state.veic.split('-').reverse().join('/')}` : 'Prazos pendentes';
      
      const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
-     const assignedUsers = dest.assignees.map(id => users.find(u => String(u.id) === String(id))).filter(Boolean);
+     const assignedUsers = fcEquipeFinal(dest).map(id => users.find(u => String(u.id) === String(id))).filter(Boolean);
      
      if (assignedUsers.length) {
          usersEl.innerHTML = assignedUsers.map(u => {
@@ -439,11 +450,37 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      updateDestinyUI();
   };
   
+  // A EQUIPE QUE VAI DE VERDADE.
+  //
+  // Antes existiam dois conjuntos: o que a regra escolhe (dest.assignees) e os
+  // "extras" que a pessoa soma. Nao havia como TIRAR quem veio da regra — as
+  // fichas de baixo so somavam, e as tres bolinhas da previa eram intocaveis.
+  //
+  // Agora quem manda e esta funcao, e ela e a unica: as fichas, a previa e o que
+  // vai para o servidor leem daqui. Ler de lugares diferentes era o que fazia a
+  // tela e o resultado discordarem.
+  function fcEquipeFinal(dest) {
+     const fora = new Set((state.removidos || []).map(String));
+     return (dest?.assignees || []).map(String).filter((id) => !fora.has(id));
+  }
+
   window.fcTogglePerson = function(id) {
-     if(state.assignees.includes(id)) {
-        state.assignees = state.assignees.filter(x => x !== id);
+     const chave = String(id);
+     const dest = typeof cadastrosDestiny === 'function'
+       ? cadastrosDestiny(state.format || '', state.briefReady, state.materialReady, state.assignees) : { assignees: [] };
+     const daRegra = (dest.assignees || []).map(String).includes(chave)
+       && !(state.assignees || []).map(String).includes(chave);
+     const estaDentro = fcEquipeFinal(dest).includes(chave);
+
+     if (estaDentro) {
+        // Tirar tem dois jeitos, porque a pessoa pode ter entrado por dois
+        // caminhos: se foi somada a mao, some da lista de extras; se veio da
+        // regra, entra na lista de removidos — senao a regra a traria de volta.
+        state.assignees = (state.assignees || []).filter((x) => String(x) !== chave);
+        if (daRegra) state.removidos = [...new Set([...(state.removidos || []).map(String), chave])];
      } else {
-        state.assignees.push(id);
+        state.removidos = (state.removidos || []).filter((x) => String(x) !== chave);
+        if (!(dest.assignees || []).map(String).includes(chave)) state.assignees.push(id);
      }
      renderPersons();
      updateDestinyUI();
@@ -453,13 +490,27 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      const container = document.getElementById('fc-persons-container');
      if(!container) return;
      const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+     const dest = typeof cadastrosDestiny === 'function'
+       ? cadastrosDestiny(state.format || '', state.briefReady, state.materialReady, state.assignees) : { assignees: [] };
+     const dentro = new Set(fcEquipeFinal(dest));
+     const porRegra = new Set((dest.assignees || []).map(String)
+       .filter((id) => !(state.assignees || []).map(String).includes(id)));
+     const fora = new Set((state.removidos || []).map(String));
      container.innerHTML = users.map(u => {
-        const active = state.assignees.includes(u.id);
+        const id = String(u.id);
+        const active = dentro.has(id);
         const avatar = u.photo ? `<img src="${u.photo}">` : `<span>${u.name[0]}</span>`;
+        // Marcar quem veio da regra explica por que a ficha ja nasceu ligada, e
+        // deixa claro que tirar dali e uma excecao consciente, nao um descuido.
+        const selo = active && porRegra.has(id) ? '<i class="fc-person-regra" title="Escolhido pela regra do formato">regra</i>'
+          : (fora.has(id) ? '<i class="fc-person-tirado" title="A regra escolheria, você tirou">tirado</i>' : '');
         return `
-          <div class="fc-person-btn ${active?'active':''}" onclick="fcTogglePerson('${u.id}')">
+          <div class="fc-person-btn ${active?'active':''} ${fora.has(id)?'tirado':''}"
+               onclick="fcTogglePerson('${u.id}')"
+               title="${active ? 'Clique para tirar' : 'Clique para somar'} ${esc(u.name)}"
+               role="button" aria-pressed="${active}">
              <div class="fc-avatar" style="background:${u.color}">${avatar}</div>
-             ${u.name.split(' ')[0]}
+             ${u.name.split(' ')[0]}${selo}
           </div>
         `;
      }).join('');
@@ -475,7 +526,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         data__1: {date:item.veic},
         data: {date:item.prazo},
         status: {label:finalStatus},
-        person: {personsAndTeams:dest.assignees.map(id=>({id:Number(id),kind:'person'}))}
+        person: {personsAndTeams:fcEquipeFinal(dest).map(id=>({id:Number(id),kind:'person'}))}
      };
      if(finalCap) values.status_1__1 = {label:finalCap};
 
@@ -495,7 +546,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
            tipo_conteudo: state.board === 'demandas' ? null : 3,
            captacao: state.board === 'demandas' ? null : (finalCap || null),
            prioridade: state.board === 'demandas' ? (state.prioridade || null) : null,
-           responsaveis: dest.assignees.map(String),
+           responsaveis: fcEquipeFinal(dest),
            _devolve: true,
         });
         if (pelaEscritaDupla?.item_id) itemId = String(pelaEscritaDupla.item_id);
@@ -721,7 +772,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     }
     return `<div class="fc-auto-group" id="fc-auto-group-container"></div>
       <div class="fc-bloco-equipe">
-        <span class="fc-dica">Equipe extra — as regras já escolhem quem entra; some aqui quem mais precisa.</span>
+        <span class="fc-dica">Equipe — as regras já escolhem quem entra. Clique para somar ou tirar qualquer pessoa.</span>
         <div class="fc-persons" id="fc-persons-container"></div>
       </div>`;
   }
@@ -906,7 +957,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     const existing = document.getElementById('fc-overlay');
     if(existing) existing.remove();
 
-    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
+    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], removidos: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
     
     const inicio = (inicial && typeof inicial === 'object') ? inicial : {};
     if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;
