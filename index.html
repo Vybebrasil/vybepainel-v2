@@ -3953,6 +3953,13 @@ button:not(:disabled):not([aria-disabled="true"]):active,
    Na altura do cliente, o cartao volta a duas linhas e nada estoura. */
 .da-planning-copy small{display:inline-block!important;vertical-align:middle}
 .da-planning-donos{display:inline-flex;align-items:center;vertical-align:middle;margin:0 0 0 8px}
+/* A origem vive na linha do cliente, e la ela e identidade — nao um alerta. Fica
+   no peso do texto ao redor, so com a cor separando conteudo de solicitacao. */
+.da-planning-copy small .operational-origin-tag{padding:1px 5px;border-radius:999px;
+  font:600 9px/1.5 var(--mac-ui);letter-spacing:.06em;
+  border-color:transparent;background:rgba(255,255,255,.07);color:#a8a8ae}
+.da-planning-copy small .operational-origin-tag.request{border-color:transparent;
+  background:rgba(192,132,252,.14);color:#d8b4ff}
 /* E a linha deixa de ter altura fixa: quem manda e o conteudo, com um minimo
    para as linhas curtas nao ficarem magras demais. */
 .da-planning-row:not(.da-planning-row-head){height:auto!important;min-height:50px!important}

@@ -825,12 +825,22 @@ function daPlanningAbrirPeca(itemId, event) {
 //
 // Status ganhou coluna propria: e a pergunta que se faz olhando a mesa, e
 // dividir espaco com o formato fazia as duas competirem.
+// FORMATO E FORMATO. So isso.
+//
+// A coluna trazia o formato E a origem colados — "Fotografia CONTEUDO" debaixo
+// de um cabecalho escrito FORMATO. Sao duas perguntas diferentes: uma diz o que
+// a peca E, a outra de qual operacao ela VEIO.
+//
+// A origem foi para junto do cliente, e nao para uma coluna nova: numa tabela
+// que ja tem nove colunas, uma coluna inteira para um valor binario que se
+// repete linha apos linha custa mais espaco do que informa. Ao lado do cliente
+// ela se le como identidade — "Hebravet · SOLICITACAO" — que e o que ela e.
 function daPlanningFormatoEditavel(item) {
   const podeTrocar = typeof pillEditavel === 'function' && typeof campoExisteNoQuadro === 'function'
     && campoExisteNoQuadro('formato', item);
   return `<span class="da-content-tags">${
     podeTrocar ? pillEditavel(item, 'formato') : fmtHtml(daTacticalFormat(item))
-  }${operationalOriginTag(item)}</span>`;
+  }</span>`;
 }
 function daPlanningStatusEditavel(item) {
   const risco = daControllerRisk(item);
@@ -858,7 +868,7 @@ function daIndividualPlanningRow(item,index,userId){
   const allowedUntil=batchLimit||String(item.veiculacao_iso||'');
   const maxAttr=allowedUntil?` max="${safeText(allowedUntil)}"`:'';
   const directTitle=batchLimit?` title="Prazo coletivo: a data será aplicada a todas as demandas marcadas. Limite do lote: ${planningDateBr(batchLimit)}."`:'';
-  return `<article class="da-planning-row ${selected?'is-selected':''}" onclick="daPlanningAbrirPeca('${safeText(String(item.id))}',event)" title="Abrir ${safeText(item.nome||'a atividade')}"><label class="da-planning-select" title="Selecionar para ajuste de prazo em lote"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||daControllerPersonId}','${item.id}',this.checked,event)"><span></span></label><span class="da-planning-seq">${String(index+1).padStart(2,'0')}</span><span class="da-planning-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}</small><span class="da-planning-donos">${daPlanningDonosHtml(item)}</span></span><span class="da-planning-airdate"><b>${safeText(veic)}</b><small>Veiculação</small></span><span class="da-planning-tags da-col-formato" onclick="event.stopPropagation()">${daPlanningFormatoEditavel(item)}</span><span class="da-planning-tags da-col-status" onclick="event.stopPropagation()">${daPlanningStatusEditavel(item)}${daPlanningPrioridadeEditavel(item)}</span><label class="da-planning-deadline"><input type="date" value="${safeText(deadline)}" data-item-id="${item.id}"${maxAttr}${directTitle} onchange="saveDaPlanningGridDeadline('${userId||daControllerPersonId}','${item.id}',this.value,this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="gold-${state.kind}">${safeText(state.label)} · ${safeText(state.copy)}</small></label><div class="da-planning-file" id="arq-${safeText(String(item.id))}" data-item="${safeText(String(item.id))}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div><button type="button" class="da-planning-open" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${item.id}')">Contexto →</button></article>`;
+  return `<article class="da-planning-row ${selected?'is-selected':''}" onclick="daPlanningAbrirPeca('${safeText(String(item.id))}',event)" title="Abrir ${safeText(item.nome||'a atividade')}"><label class="da-planning-select" title="Selecionar para ajuste de prazo em lote"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||daControllerPersonId}','${item.id}',this.checked,event)"><span></span></label><span class="da-planning-seq">${String(index+1).padStart(2,'0')}</span><span class="da-planning-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}${operationalOriginTag(item)}</small><span class="da-planning-donos">${daPlanningDonosHtml(item)}</span></span><span class="da-planning-airdate"><b>${safeText(veic)}</b><small>Veiculação</small></span><span class="da-planning-tags da-col-formato" onclick="event.stopPropagation()">${daPlanningFormatoEditavel(item)}</span><span class="da-planning-tags da-col-status" onclick="event.stopPropagation()">${daPlanningStatusEditavel(item)}${daPlanningPrioridadeEditavel(item)}</span><label class="da-planning-deadline"><input type="date" value="${safeText(deadline)}" data-item-id="${item.id}"${maxAttr}${directTitle} onchange="saveDaPlanningGridDeadline('${userId||daControllerPersonId}','${item.id}',this.value,this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="gold-${state.kind}">${safeText(state.label)} · ${safeText(state.copy)}</small></label><div class="da-planning-file" id="arq-${safeText(String(item.id))}" data-item="${safeText(String(item.id))}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div><button type="button" class="da-planning-open" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${item.id}')">Contexto →</button></article>`;
 }
 function daPlanningToggleItem(userId,itemId,checked,event){
   const id=String(itemId);
