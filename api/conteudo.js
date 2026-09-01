@@ -723,11 +723,21 @@ export default async function handler(req, res) {
     if (acao === 'comentario') {
       return res.status(200).json({ ok: true, acao, ...(await comentar(sql, quem, { item, texto: corpo.texto })) });
     }
-    // Remover e mover entre boards são de quem administra: as duas tiram a peça
-    // da vista de todo mundo, e por engano não têm desfazer imediato.
+    // Apagar e trazer de volta sao de todo mundo do time.
+    //
+    // Eram de quem administra por medo de estrago, mas a conta nao fechava: quem
+    // cria a peca e quem descobre que ela nasceu errada, e ficar esperando um
+    // administrador para limpar a propria bagunca e pior que o risco. Alem
+    // disso, apagar aqui NAO destroi nada — marca removido_em e manda o item
+    // para a lixeira do Monday, e 'restaurar' desfaz. Justamente por isso o
+    // desfazer tambem abriu: deixar a acao destrutiva aberta e o conserto
+    // trancado seria o pior dos dois mundos.
+    //
+    // Mover entre quadros continua de quem administra: nao e limpeza, e mudar
+    // em que operacao a peca vive, e mexe na fila de outras pessoas.
     if (acao === 'remover' || acao === 'restaurar' || acao === 'mover_board') {
-      if (!(quem.tipo === 'servico' || quem.pessoa?.admin)) {
-        return res.status(403).json({ error: 'Só quem administra remove ou move peças entre boards.' });
+      if (acao === 'mover_board' && !(quem.tipo === 'servico' || quem.pessoa?.admin)) {
+        return res.status(403).json({ error: 'Só quem administra move peças entre boards.' });
       }
       if (acao === 'remover') {
         return res.status(200).json({ ok: true, acao,

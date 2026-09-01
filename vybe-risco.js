@@ -1142,8 +1142,16 @@ async function renomearPeca(itemId) {
 async function removerPeca(itemId) {
   const item = findOperationalItem(itemId);
   if (!item) return false;
-  if (!confirm(`Excluir “${item.nome}”?\n\nEla sai do painel e vai para a lixeira do Monday. O histórico fica guardado e um administrador consegue trazer de volta.`)) return false;
-  const motivo = prompt('Por que está excluindo? (opcional, fica no histórico)') || '';
+  // Uma caixa so, com o motivo dentro: eram duas janelas cinzas do navegador em
+  // sequencia, e a segunda pedindo texto num prompt. Agora que apagar e de todo
+  // o time, a pergunta pesa mais — e ela precisa parecer com o resto do painel.
+  const motivo = await perguntarNoPainel({
+    titulo: `Excluir “${item.nome}”?`,
+    texto: 'Ela sai do painel e vai para a lixeira do Monday, de onde dá para recuperar. O histórico do que aconteceu com ela fica guardado aqui.',
+    confirmar: 'Excluir', perigo: true,
+    campo: { valor: '', dica: 'Por que está excluindo? (opcional, fica no histórico)' },
+  });
+  if (motivo === null) return false;
 
   try {
     const r = await fetch('/api/conteudo', {
@@ -1194,8 +1202,11 @@ async function moverPecaDeBoard(itemId) {
   } catch (erro) { showToast(`Não foi possível mover: ${erro.message}`, 'err', 7000); }
 }
 
-// Quem administra. Serve para o que e nosso: excluir uma peca, por exemplo, que
-// hoje grava no banco da Vybe e nao depende de Monday nenhum.
+// Quem administra. Sobrou para o que muda a operacao de outras pessoas — mover
+// uma peca de quadro, mexer no cadastro de clientes, nas etiquetas. Excluir
+// peca SAIU daqui em 01/09/2026: quem cria e quem descobre que nasceu errada, e
+// esperar um administrador para limpar a propria bagunca custava mais que o
+// risco de um engano que a lixeira desfaz.
 //
 // Existia so o podeVerMonday, e ele deixou de significar "e administrador":
 // passou a exigir tambem a chave de contingencia do Monday, ligada a mao num
@@ -1432,7 +1443,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
     ${workspaceDeliveryDock(detail,item)}
-    <div class="workspace-actions">${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}${podeAdministrar() ? `<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Excluir atividade</button>` : ''}${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
+    <div class="workspace-actions">${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Excluir atividade</button>${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
     <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section>
     <section class="workspace-section"><div class="workspace-section-head">Entregar</div><div class="workspace-section-body">
