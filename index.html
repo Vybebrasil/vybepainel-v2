@@ -2088,6 +2088,16 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 .cli-pergunta-caixa input{width:100%;margin-top:14px;min-height:36px;padding:0 12px;border-radius:9px;
   border:1px solid var(--accent,#ff6b00);background:rgba(0,0,0,.3);color:#eef1f6;
   font:600 13px var(--mac-ui);outline:none}
+/* A arte dentro da pergunta: conferir e decidir no mesmo lugar. */
+.cli-pergunta-previa{margin:14px 0 0;padding:0;display:grid;justify-items:center;gap:7px}
+.cli-pergunta-previa img{max-width:100%;max-height:min(38vh,240px);border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);object-fit:contain}
+.cli-pergunta-previa figcaption{color:#8f98a9;font:600 10.5px var(--mac-mono);
+  overflow-wrap:anywhere;text-align:center}
+/* Sem previa (PDF, arquivo do Monday, imagem que nao abre) a caixa nao fica com
+   um buraco: some a imagem e sobra o nome do arquivo. */
+.cli-pergunta-previa.sem-previa img{display:none}
+.cli-pergunta-previa.sem-previa figcaption{color:#e7ecf5;font:700 12px var(--mac-ui)}
 .cli-pergunta-acoes{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
 .cli-pergunta-acoes button{min-height:34px;padding:0 16px;border-radius:9px;cursor:pointer;
   font:700 11.5px var(--mac-ui);letter-spacing:.02em}

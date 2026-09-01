@@ -698,7 +698,8 @@ function workspaceAssetCard(asset) {
   const removal = !asset.removable
     ? `<span class="workspace-asset-locked">${safeText(asset.source || 'ARQUIVO')}</span>`
     : (asset.no_drive || asset.column_asset_count === 1)
-      ? `<button type="button" class="workspace-asset-remove" onclick="requestWorkspaceFileRemoval('${safeText(asset.id)}')">Remover</button>`
+      ? `<button type="button" class="workspace-asset-remove"
+          onclick="event.preventDefault();event.stopPropagation();requestWorkspaceFileRemoval('${safeText(asset.id)}')">Remover</button>`
       : `<span class="workspace-asset-locked" title="Este arquivo ainda mora na coluna do Monday, que só permite limpar todos de uma vez.">Arquivo de coluna</span>`;
   const isImage = Boolean(asset.url_thumbnail || /\\.(png|jpe?g|webp|gif|avif|mp4|mov|webm)(?:$|[?#])/i.test(String(asset.name || href)));
     const openAction = isImage 
@@ -729,10 +730,16 @@ async function requestWorkspaceFileRemoval(assetId) {
     return showToast('Este arquivo veio do Monday e ainda não foi copiado para o Drive da Vybe; '
       + 'por isso não pode ser removido daqui.', 'info', 8000);
   }
+  // A arte aparece DENTRO da pergunta. Antes o clique no Remover subia para o
+  // cartao e abria a arte em tela cheia; so depois de fechar e que vinha a
+  // pergunta — a conferencia acontecia longe da decisao. Agora e uma coisa so:
+  // ve o que vai apagar e decide ali.
+  const previa = asset.url_thumbnail || asset.public_url || asset.url || '';
   const confirmado = typeof perguntarNoPainel === 'function'
     ? await perguntarNoPainel({
-        titulo: `Remover "${asset.name}"?`,
-        texto: `Ele sai desta atividade e vai para a lixeira do Drive da Vybe. A remoção fica registrada no histórico e um administrador consegue recuperar.`,
+        titulo: 'Remover este arquivo?',
+        imagem: previa ? { url: previa, nome: asset.name } : null,
+        texto: 'Ele sai desta atividade e vai para a lixeira do Drive da Vybe. A remoção fica registrada no histórico, e um administrador consegue recuperar.',
         confirmar: 'Mover para a lixeira', perigo: true })
     : window.confirm(`Mover o arquivo "${asset.name}" para a lixeira do Drive da Vybe?`);
   if (!confirmado) return;
