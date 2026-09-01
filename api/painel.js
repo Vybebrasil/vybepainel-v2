@@ -82,12 +82,23 @@ async function catalogosDeAutomacao() {
   // allSettled e nao all: um catalogo que falhe nao pode derrubar a lista de
   // regras junto. O construtor perde uma lista de escolhas, a tela continua de pe.
   const [status, captacao, grupos, pessoas, formatos] = (await Promise.allSettled([
+    // vybe_status nao tem coluna 'ativa' — so 'final'. Pedi-la fazia a consulta
+    // inteira falhar e o construtor abria com "nada cadastrado" no lugar dos
+    // status, que e o campo mais importante dele.
     db`SELECT chave, rotulo, cor FROM vybe_status
-        WHERE board_id=7829537690 AND ativa IS NOT FALSE ORDER BY monday_index`,
+        WHERE board_id=7829537690 ORDER BY ordem, monday_index`,
     db`SELECT chave, rotulo, cor FROM vybe_captacao ORDER BY monday_index`,
-    db`SELECT DISTINCT grupo_id AS chave, etapa AS rotulo FROM vybe_conteudos
-        WHERE grupo_id IS NOT NULL AND etapa IS NOT NULL AND removido_em IS NULL
-        ORDER BY etapa`,
+    // Um mesmo nome de etapa aparece com varios grupo_id (o quadro foi refeito
+    // mais de uma vez). DISTINCT no par devolvia "Finalizados" tres vezes; o
+    // que a pessoa escolhe e o nome, entao a lista e por nome, e fica com o
+    // grupo_id mais usado — que e o que o quadro esta mesmo usando hoje.
+    db`SELECT chave, rotulo FROM (
+         SELECT grupo_id AS chave, etapa AS rotulo, COUNT(*) AS n,
+                ROW_NUMBER() OVER (PARTITION BY etapa ORDER BY COUNT(*) DESC) AS posto
+           FROM vybe_conteudos
+          WHERE grupo_id IS NOT NULL AND etapa IS NOT NULL AND removido_em IS NULL
+          GROUP BY etapa, grupo_id
+       ) t WHERE posto = 1 ORDER BY rotulo`,
     db`SELECT monday_user_id AS chave, nome AS rotulo, foto_url AS foto FROM vybe_pessoas
         WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     db`SELECT chave, rotulo FROM vybe_opcoes
