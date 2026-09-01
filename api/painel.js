@@ -498,6 +498,10 @@ async function garantirSchemaDeReunioes(db) {
   // na lista do que falta cadastrar, e uma lista que nunca zera deixa de ser
   // lida.
   await db`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente BOOLEAN NOT NULL DEFAULT FALSE`;
+  // NPS: a nota de 0 a 10 que o cliente deu, e quando deu. A data importa tanto
+  // quanto a nota — 9 de um ano atras nao diz nada sobre hoje.
+  await db`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nps SMALLINT`;
+  await db`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nps_em DATE`;
   // Quando um cliente saiu, quando voltou, e por que. Isso nao existia: o
   // cadastro guardava o estado de hoje e apagava a historia — e conversa de
   // renovacao vive dessa historia.
@@ -526,7 +530,7 @@ async function areaClientes(req, res, quem) {
       db`SELECT c.id, c.nome, c.ativo, c.email, c.telefone, c.endereco, c.cnpj,
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
              c.dashboard, c.valor, c.proxima_reuniao, c.ultima_reuniao, c.criado_no_monday,
-             c.nao_e_cliente,
+             c.nao_e_cliente, c.nps, c.nps_em,
              (SELECT COUNT(*)::int FROM vybe_cliente_reunioes r WHERE r.cliente_id = c.id) AS atas,
              (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
              (SELECT STRING_AGG(p.nome, ', ' ORDER BY cp.ordem, p.nome)
@@ -609,6 +613,10 @@ async function areaClientes(req, res, quem) {
           valor=COALESCE(${campos.valor ?? null}::numeric, valor),
           proxima_reuniao=COALESCE(${campos.proxima_reuniao ?? null}::date, proxima_reuniao),
           ultima_reuniao=COALESCE(${campos.ultima_reuniao ?? null}::date, ultima_reuniao),
+          -- Nota nova carimba a data sozinha: anotar o NPS e depois lembrar de
+          -- registrar quando foi seriam dois passos para um fato so.
+          nps=COALESCE(${campos.nps ?? null}::smallint, nps),
+          nps_em=CASE WHEN ${campos.nps ?? null}::smallint IS NULL THEN nps_em ELSE CURRENT_DATE END,
           -- O estado do painel do cliente e um campo do cadastro como os outros;
           -- faltava so poder edita-lo daqui, em vez de voltar ao Monday para isso.
           dashboard=COALESCE(${campos.dashboard ?? null}, dashboard)

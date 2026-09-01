@@ -328,7 +328,8 @@ function fichaClienteHtml(nome) {
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : null; };
   const linhas = [
     ['Plano', f.plano], ['Segmento', f.segmento], ['Head', f.heads],
-    ['Responsável', f.responsavel], ['Valor', brl(f.valor)],
+    ['Responsável', f.responsavel],
+    ['NPS', temNota(f.nps) ? `${f.nps}${f.nps_em ? ` · ${String(f.nps_em).slice(0,10).split('-').reverse().join('/')}` : ''}` : null],
     ['Próx. reunião', dataBr(f.proxima_reuniao)],
     ['E-mail', f.email], ['Telefone', f.telefone], ['CNPJ', f.cnpj], ['Endereço', f.endereco],
   ].filter(([, v]) => v);
@@ -423,13 +424,19 @@ function renderClientesBoard() {
     const p = String(c.dashboard || '').trim();
     return Boolean(p) && !painelEstaEmDia(p);
   }).length;
-  // Quanto vale a carteira. A coluna de valor existe desde agora; a soma e a
-  // pergunta seguinte, e nao havia onde ler.
-  const carteira = CADASTRO_CLIENTES.filter(ativoDeVerdade)
-    .reduce((soma, c) => soma + (Number(c.valor) || 0), 0);
+  // NPS medio de quem tem nota, e quantos detratores. Media sozinha esconde o
+  // caso grave: seis notas 9 e uma 3 dao 8,1 — e ha um cliente para ligar hoje.
+  const comNota = CADASTRO_CLIENTES.filter((c) => ativoDeVerdade(c) && temNota(c.nps));
+  const npsMedio = comNota.length
+    ? (comNota.reduce((soma, c) => soma + Number(c.nps), 0) / comNota.length).toFixed(1).replace('.', ',')
+    : '—';
+  const detratores = comNota.filter((c) => Number(c.nps) <= 6).length;
   document.getElementById('kpi-grid-clientes').innerHTML = [
     {label:'Clientes ativos', value:numeros.ativos, sub:'no cadastro', cls:'green'},
-    {label:'Carteira ativa', value:carteira ? brl(carteira) : '—', sub:'soma dos contratos', cls:'purple'},
+    {label:'NPS médio', value:npsMedio, sub:comNota.length ? `${comNota.length} com nota` : 'ninguém avaliado ainda',
+      cls:'purple'},
+    {label:'Detratores', value:detratores, sub:'nota 6 ou menos', cls:detratores ? 'red' : 'green',
+      acao:"focarClientes('detratores')", dica:'Ver só quem deu nota 6 ou menos'},
     {label:'Sem contato', value:semContato, sub:`${SEM_CONTATO_ATENCAO}+ dias desde a última`,
       cls:semContato ? 'red' : 'green', acao:"focarClientes('sem-contato')",
       dica:'Ver só quem está há muito tempo sem reunião'},
@@ -797,7 +804,7 @@ const CELULAS_EDITAVEIS = {
   proxima_reuniao: { tipo:'data' },
   ultima_reuniao: { tipo:'data' },
   plano: { tipo:'texto' },
-  valor: { tipo:'numero' },
+  nps: { tipo:'numero' },
   segmento: { tipo:'texto' },
 };
 // A lista do sistema operacional nao pertence a esta tela: letra do sistema,
@@ -912,8 +919,32 @@ function selosDeContato(cliente) {
   if (dias >= SEM_CONTATO_ATENCAO) return { classe: 'atencao', texto: `há ${dias} dias` };
   return { classe: '', texto: dias <= 0 ? 'hoje' : `há ${dias} dia${dias === 1 ? '' : 's'}` };
 }
-const brl = (v) => (v === null || v === undefined || v === '' ? ''
-  : new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits:0 }).format(Number(v)));
+// VALOR DE CONTRATO NAO MORA AQUI.
+//
+// Eu tinha sugerido e colocado uma coluna de valor e uma soma da carteira. Sao
+// numeros de financeiro, e financeiro tem o VybeFinancas. Esta tela e de CUIDAR
+// do cliente: como ele esta, ha quanto tempo nao se conversa, quanto ele
+// demanda, o que ficou combinado. Misturar receita aqui muda a pergunta que a
+// tela responde — e uma tela que responde duas perguntas nao responde nenhuma
+// direito.
+//
+// No lugar entrou o NPS, que e do assunto: a nota que o cliente deu e quando.
+
+// A leitura padrao de NPS, que e vocabulario e nao enfeite: 0-6 detrator,
+// 7-8 neutro, 9-10 promotor.
+// Number(null) e Number('') dao ZERO, e zero e uma nota valida de NPS — a pior
+// delas. Sem esta guarda, todo cliente sem avaliacao aparecia como detrator nota
+// 0, e a media e a conta de detratores vinham erradas junto.
+function temNota(v) {
+  return v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v));
+}
+function leituraDoNps(nota) {
+  if (!temNota(nota)) return null;
+  const n = Number(nota);
+  if (n >= 9) return { classe:'promotor', texto:'promotor' };
+  if (n >= 7) return { classe:'neutro', texto:'neutro' };
+  return { classe:'detrator', texto:'detrator' };
+}
 
 // ── marcar varios clientes ────────────────────────────────────────────────────
 // Duas listas do modulo so se resolvem em lote: os trinta nomes que a operacao
@@ -1002,7 +1033,7 @@ function loteNaoEhCliente() {
   });
 }
 
-function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = { proxima_reuniao:true, plano:true, valor:true }) {
+function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = { proxima_reuniao:true, plano:true }) {
   const f = cadastroDoCliente(nome) || {};
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
   const registros = clientMasterRecords();
@@ -1087,7 +1118,9 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = { proxima_reuni
         title="${Number(f.atas) ? `${f.atas} ata(s) de reunião` : 'Nenhuma ata registrada'}"
         onclick="event.stopPropagation();abrirAtasDoCliente('${aspas}')">${
         Number(f.atas) ? `${f.atas} ata${Number(f.atas) === 1 ? '' : 's'}` : 'atas'}</button>` : ''}</td>
-    ${mostrar.valor ? editavel('valor', brl(f.valor) ? `<span class="cli-valor">${safeText(brl(f.valor))}</span>` : vazio) : ''}
+    ${editavel('nps', (() => { const l = leituraDoNps(f.nps);
+      return l ? `<span class="cli-nps ${l.classe}" title="${safeText(l.texto)}${
+        f.nps_em ? ` · ${dataBr(f.nps_em)}` : ''}">${Number(f.nps)}</span>` : vazio; })())}
     ${mostrar.plano ? editavel('plano', safeText(f.plano || ligado.plan || '') || vazio) : ''}
     ${clicavel(segmento ? `<span class="cli-tag-chip">${safeText(segmento)}</span>` : maisOuNada('Escolher o segmento', `abrirSegmentoDoCliente(event, '${aspas}')`),
       `abrirSegmentoDoCliente(event, '${aspas}')`, 'Clique para escolher a etiqueta')}
@@ -1171,6 +1204,7 @@ function tabelaDeClientesHtml(clientes) {
     if (FOCO_DE_CLIENTES === 'sem-contato') { const d = diasSemContato(f);
       return d !== null && d >= SEM_CONTATO_ATENCAO; }
     if (FOCO_DE_CLIENTES === 'sem-registro') return diasSemContato(f) === null;
+    if (FOCO_DE_CLIENTES === 'detratores') return temNota(f.nps) && Number(f.nps) <= 6;
     if (FOCO_DE_CLIENTES === 'painel-velho') {
       const p = String(f.dashboard || '').trim();
       return Boolean(p) && !painelEstaEmDia(p);
@@ -1193,7 +1227,6 @@ function tabelaDeClientesHtml(clientes) {
   const COLUNAS_QUE_SOMEM = {
     proxima_reuniao: temAlgum((f, l) => f.proxima_reuniao || l.nextMeeting),
     plano: temAlgum((f, l) => f.plano || l.plan),
-    valor: temAlgum((f) => f.valor),
   };
   const bloco = (titulo, lista, classe, recado) => !lista.length ? '' : `
     <section class="cli-bloco ${classe}${fechados.has(classe) ? ' fechado' : ''}">
@@ -1210,9 +1243,10 @@ function tabelaDeClientesHtml(clientes) {
               onclick="marcarBlocoDeClientes('${classe}', this.checked)">` : ''}</th>
         <th>Cliente</th><th>Head</th><th>Status</th><th>Dashboard</th>
         ${COLUNAS_QUE_SOMEM.proxima_reuniao ? '<th>Próx. reunião</th>' : ''}
-        <th>Última reunião</th>${COLUNAS_QUE_SOMEM.valor ? '<th>Valor</th>' : ''}${
+        <th>Última reunião</th><th title="Nota de 0 a 10 que o cliente deu">NPS</th>${
         COLUNAS_QUE_SOMEM.plano ? '<th>Plano</th>' : ''}<th>Segmento</th><th>Drive</th><th>Manus</th>
-        <th>Documento</th><th>Aberto</th><th></th>
+        <th>Documento</th>
+        <th class="cli-th-volume">Em aberto<small>conteúdo · solicitação</small></th><th></th>
       </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem', classe, COLUNAS_QUE_SOMEM)).join('')}</tbody></table></div></div>
     </section>`;
   return bloco('Ativos', caixas.ativos, 'ativos')
@@ -1493,7 +1527,7 @@ async function cadastrarClienteDaOperacao(nome) {
 const CAMPOS_DA_FICHA = [
   ['plano', 'Plano', 'text'], ['segmento', 'Segmento', 'text'],
   ['responsavel', 'Responsável', 'text'], ['proxima_reuniao', 'Próxima reunião', 'date'],
-  ['planejamento_url', 'Link do planejamento', 'url'], ['valor', 'Valor do contrato (R$)', 'number'],
+  ['planejamento_url', 'Link do planejamento', 'url'], ['nps', 'NPS (0 a 10)', 'number'],
   ['email', 'E-mail', 'text'], ['telefone', 'Telefone', 'text'],
   ['cnpj', 'CNPJ', 'text'], ['endereco', 'Endereço', 'text'],
 ];

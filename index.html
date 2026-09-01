@@ -2040,6 +2040,10 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-porta:hover{border-color:color-mix(in srgb,var(--accent,#ff6b00) 60%,transparent);
   background:color-mix(in srgb,var(--accent,#ff6b00) 14%,transparent);color:#fff}
 .cli-porta.quieto{color:#8f98a9;cursor:default}
+/* As duas contas de volume so eram legiveis passando o mouse. O cabecalho agora
+   diz, na ordem, o que e cada numero. */
+.cli-th-volume small{display:block;margin-top:2px;font:600 9px var(--mac-ui);
+  letter-spacing:.02em;text-transform:none;color:#7f8899}
 .cli-numeros{display:flex;gap:6px;align-items:center}
 .cli-numeros span{min-width:26px;padding:2px 7px;border-radius:7px;text-align:center;
   background:rgba(255,255,255,.05);color:#cbd3df;font:700 10.5px var(--mac-ui)}
@@ -2090,7 +2094,14 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-contato.atencao{border-color:rgba(255,176,0,.42);background:rgba(255,176,0,.12);color:#ffc79a}
 .cli-contato.grave{border-color:rgba(255,77,109,.45);background:rgba(255,77,109,.13);color:#ff9db1}
 .cli-contato.nunca{border-style:dashed;color:#6f7887}
-.cli-valor{color:#e7ecf5;font:700 11.5px var(--mac-mono);font-variant-numeric:tabular-nums}
+/* NPS: a leitura padrao e vocabulario, nao enfeite — 0-6 detrator, 7-8 neutro,
+   9-10 promotor. A nota sozinha obriga quem le a lembrar da regra; a cor diz. */
+.cli-nps{display:inline-grid;place-items:center;min-width:26px;height:22px;padding:0 7px;
+  border-radius:7px;border:1px solid transparent;
+  font:700 12px var(--mac-mono);font-variant-numeric:tabular-nums}
+.cli-nps.promotor{border-color:rgba(0,200,117,.42);background:rgba(0,200,117,.14);color:#7ef0b6}
+.cli-nps.neutro{border-color:rgba(255,176,0,.38);background:rgba(255,176,0,.12);color:#ffc79a}
+.cli-nps.detrator{border-color:rgba(255,77,109,.45);background:rgba(255,77,109,.14);color:#ff9db1}
 /* Marcar clientes para agir em lote. */
 .cli-marcar{width:30px;text-align:center}
 .cli-marcar input{width:14px;height:14px;accent-color:var(--accent,#ff6b00);cursor:pointer}
