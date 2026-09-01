@@ -1041,6 +1041,24 @@ header,.topbar{
   position:relative;background:linear-gradient(115deg,rgba(13,15,22,.94),rgba(10,11,16,.78))!important;
   border-bottom:1px solid var(--vybe-line)!important;box-shadow:0 1px 0 rgba(255,255,255,.035) inset,0 14px 34px rgba(0,0,0,.18)!important;
   backdrop-filter:blur(22px) saturate(1.15)}
+/* O cabecalho vira a porta de casa. Nos quatro modos dedicados a fileira de
+   modulos some, e ate aqui a unica saida era descobrir sozinho que "Trocar modo"
+   servia para isso — o logo, que em todo site leva para o inicio, nao levava a
+   lugar nenhum. */
+.header-left{cursor:pointer;border-radius:12px;padding:4px 8px 4px 4px;margin:-4px -8px -4px -4px;
+  transition:background .15s var(--curva)}
+.header-left:hover{background:rgba(255,255,255,.05)}
+.header-left:focus-visible{outline:2px solid color-mix(in srgb,var(--accent,#ff6b00) 70%,transparent);outline-offset:2px}
+/* E quando a fileira nao esta na tela, a volta se diz com todas as letras. */
+.btn-voltar-menu{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--linha,rgba(255,255,255,.09));
+  border-radius:10px;background:rgba(255,255,255,.045);color:#c9c9d1;padding:8px 14px;
+  font:600 12.5px var(--mac-ui);cursor:pointer;white-space:nowrap;
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+  transition:background .14s var(--curva),border-color .14s var(--curva),color .14s var(--curva)}
+.btn-voltar-menu:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2);color:#f7f7fa}
+.btn-voltar-menu:active{transform:scale(.98)}
+.btn-voltar-menu span{color:#8b8b90;font-size:14px;line-height:1}
+.btn-voltar-menu:hover span{color:#ffbe85}
 .logo{border-radius:12px!important;background:linear-gradient(145deg,#ff9a4c,#ff6814)!important;box-shadow:0 9px 22px rgba(255,103,20,.26)!important;animation:none!important}
 .header-title h1,.command-title,.focus-hero-title,.production-command-head h2{font-family:var(--mac-ui)!important;letter-spacing:-.035em!important}
 .header-title p,.mode-gate-text,.focus-hero-text,.command-subtitle{color:var(--vybe-muted)!important}
@@ -3999,13 +4017,17 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 
 <header>
   <div class="header-row1">
-    <div class="header-left">
+    <div class="header-left" role="button" tabindex="0" onclick="voltarAoMenu()"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();voltarAoMenu();}"
+         title="Voltar para todos os módulos" aria-label="Voltar para todos os módulos">
       <div class="logo">V</div>
       <div class="header-title">
         <h1>Vybe OS — Painel de Produção</h1>
         <p id="header-sub">DA Controler · produtividade da célula criativa</p>
       </div>
     </div>
+    <button type="button" id="btn-voltar-menu" class="btn-voltar-menu focus-hidden" onclick="voltarAoMenu()">
+      <span aria-hidden="true">←</span> Todos os módulos</button>
     <div class="board-switch-bar focus-hidden">
       <button class="board-switch-btn active" id="btn-board-producao" onclick="switchBoard('producao',this)">Produção</button>
       <button class="board-switch-btn" id="btn-board-demandas" onclick="switchBoard('demandas',this)">Demandas</button>

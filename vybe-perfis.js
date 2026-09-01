@@ -1087,6 +1087,12 @@ function closeTransientOverlaysForNavigation() {
     .forEach((id) => document.getElementById(id)?.remove());
 }
 function activateOperationalBoard() { const btn=document.getElementById('btn-board-producao'); if(btn && activeBoard!=='producao') switchBoard('producao',btn); }
+// Clicar no logo e voltar para casa — a convencao de todo site, e ela nao valia
+// aqui. Leva sempre para a visao com a fileira de modulos inteira; quem ja esta
+// nela nao perde nada, so volta para Producao.
+function voltarAoMenu() {
+  if (typeof chooseManagerMode === 'function') chooseManagerMode();
+}
 function chooseManagerMode() { closeTransientOverlaysForNavigation(); panelMode='gestor'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); setStorage('vybePanelMode','gestor'); setStorage('vybePanelFocusUser',''); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
 function chooseFocusUser(userId) { closeTransientOverlaysForNavigation(); panelMode='foco'; focusUserId=userId; selectedPersonIds.clear(); setStorage('vybePanelMode','foco'); setStorage('vybePanelFocusUser',userId); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
 function chooseDaControllerMode() { closeTransientOverlaysForNavigation(); panelMode='controler'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); daControllerPersonId='all'; setStorage('vybePanelMode','controler'); setStorage('vybePanelFocusUser',''); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
@@ -1101,6 +1107,10 @@ function applyPanelMode() {
   const isDedicatedMode = isFocus || isDaController || isProductionCommand || isClientMode;
   const user = focusUser();
   document.querySelector('.board-switch-bar')?.classList.toggle('focus-hidden', isDedicatedMode);
+  // A volta so aparece quando a fileira de modulos NAO esta na tela. Com ela a
+  // vista, um botao "todos os modulos" ao lado da propria lista de modulos seria
+  // dizer duas vezes a mesma coisa.
+  document.getElementById('btn-voltar-menu')?.classList.toggle('focus-hidden', !isDedicatedMode);
   document.getElementById('compact-summary')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.querySelector('.ops-command-bar')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('search-results')?.classList.toggle('focus-hidden', isDedicatedMode);
