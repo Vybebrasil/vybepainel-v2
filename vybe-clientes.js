@@ -147,14 +147,117 @@ function renderClientMasterOverview() {
   const rail=document.getElementById('client-master-source-rail');
   if(rail) { const headsState=CLIENT_MASTER_ERROR?'ERRO NA BASE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_HEADS.length} CONTAS NO VYBE`:'AGUARDANDO CARGA'; const accessState=CLIENT_MASTER_ERROR?'ERRO NA BASE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_ACESSOS.length} REGISTROS NO VYBE`:'AGUARDANDO CARGA'; rail.innerHTML=`<div class="client-source-card connected"><div><b>Operação</b><span>Produção + Solicitações integradas</span></div><em>● BANCO VYBE</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>GESTÃO DE CLIENTES (HEADS)</b><span>Status, heads, plano, segmento e reuniões</span></div><em>${headsState}</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>Dados & acessos</b><span>Drive, documentos e referências operacionais</span></div><em>${accessState}</em></div>`; }
 }
+// A ficha que abre quando se clica no cliente.
+//
+// Ela dizia "Pendente de sincronizacao" em quase todo campo. Era verdade na
+// epoca do Monday — o dado estava la e ainda nao tinha vindo. Hoje e mentira: o
+// cadastro e este, e campo vazio quer dizer que ninguem preencheu. Pior, a
+// frase parecia um aviso de sistema e fazia a pessoa esperar por algo que nunca
+// ia acontecer. Agora campo vazio mostra um "+" e se preenche aqui mesmo, com
+// os mesmos editores da tabela.
+//
+// Os enderecos apareciam como texto cru de 90 caracteres — nem clicaveis eram —
+// e o documento de acessos, que e o que se procura ao abrir um cliente, nao
+// tinha caminho nenhum nesta tela.
 function renderClientMasterDetail(cli) {
   const record=clientMasterRecords().find(item=>item.name===cli || normalizeClientKey(item.name)===normalizeClientKey(cli));
   const node=document.getElementById('client-master-detail');
   if(!node || !record) return;
-  const meta=record.meta || {};
-  const sourceNote=CLIENT_MASTER_ERROR?'O cadastro mestre não respondeu; os dados operacionais continuam disponíveis.':CLIENT_MASTER_LOADED?'Dados servidos pelo cadastro mestre do Vybe OS.':'Carregando Heads e Acessos do banco Vybe...';
-  node.innerHTML=`<div class="client-master-detail-card"><h3>${safeText(record.name)}</h3><p>Ficha mestre da conta · ${sourceNote}</p><div class="client-master-detail-grid"><div class="client-master-detail-field"><small>Status da conta</small><b>${clientMasterValue(meta.status || (record.activeCount ? 'Ativa na operação' : 'Sem itens ativos'))}</b></div><div class="client-master-detail-field"><small>Head / responsável</small><b>${clientMasterValue(meta.head)}</b></div><div class="client-master-detail-field"><small>Segmento</small><b>${clientMasterValue(meta.segment)}</b></div><div class="client-master-detail-field"><small>Plano</small><b>${clientMasterValue(meta.plan)}</b></div></div></div><div class="client-master-detail-card"><h3>Dados da conta</h3><p>Referências operacionais vinculadas ao cliente, sem expor credenciais diretamente na interface.</p><div class="client-master-detail-grid"><div class="client-master-detail-field"><small>Dashboard</small><b>${clientMasterValue(meta.dashboard)}</b></div><div class="client-master-detail-field"><small>Próxima reunião</small><b>${clientMasterValue(meta.nextMeeting)}</b></div><div class="client-master-detail-field"><small>Drive / documentos</small><b>${clientMasterValue(meta.drive || meta.doc)}</b></div><div class="client-master-detail-field"><small>Manus / link operacional</small><b>${clientMasterValue(meta.link || (meta.manus ? 'Disponível' : ''))}</b></div></div></div>`;
+  const nome = record.name;
+  const meta = record.meta || {};
+  const f = cadastroDoCliente(nome) || {};
+  const aspas = String(nome).replace(/'/g, "\\'");
+  const id = idDoCliente(nome);
+  const podeMexer = Boolean(id) && podeEditorClientesNaFicha();
+  const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+
+  const mais = (titulo, chamada) => podeMexer
+    ? `<span class="cli-mais" title="${titulo}" onclick="${chamada}">+</span>`
+    : '<span class="cli-vazio">—</span>';
+  const campo = (rotulo, dentro, chamada, dica) => `<div class="client-master-detail-field${
+    chamada && podeMexer ? ' editavel' : ''}"${chamada && podeMexer ? ` title="${dica}" onclick="${chamada}"` : ''}>
+      <small>${rotulo}</small><b>${dentro}</b></div>`;
+
+  const situacao = String(f.status || '').trim();
+  const estado = !situacao ? (f.ativo === false ? 'inativos' : 'sem')
+    : /inativ/i.test(situacao) ? 'inativos' : 'ativos';
+
+  const painel = String(f.dashboard || meta.dashboard || '').trim();
+  const reuniao = dataBr(f.proxima_reuniao || meta.nextMeeting);
+  const plano = String(f.plano || meta.plan || '').trim();
+  const segmento = String(f.segmento || meta.segment || '').trim();
+
+  const porta = (rotulo, valor) => { const url = linkDeCliente(valor);
+    return url ? `<a class="cli-porta" href="${safeText(url)}" target="_blank" rel="noopener"
+      onclick="event.stopPropagation()" title="${safeText(url)}">${safeText(rotulo)} ↗</a>` : ''; };
+  const driveHtml = porta('Abrir no Drive', meta.drive)
+    || mais('Guardar o endereço do Drive', `editarAcessoDaFicha(event, '${aspas}', 'pasta_drive')`);
+  const outroLink = linkDeCliente(meta.link);
+  const ehManus = /(^|\.)manus\.im$/i.test((() => { try { return new URL(outroLink).hostname; } catch { return ''; } })());
+  const manusHtml = outroLink ? porta(ehManus ? 'Abrir no Manus' : 'Abrir o link', meta.link)
+    : mais('Guardar o endereço do Manus', `editarAcessoDaFicha(event, '${aspas}', 'link')`);
+  const docHtml = meta.acessoId
+    ? `<button type="button" class="cli-porta doc${meta.doc ? '' : ' quieto'}"
+        title="${meta.doc ? 'Abrir o documento de acessos' : 'Ainda sem documento — abra para escrever o primeiro'}"
+        onclick="abrirDocumentoDoCliente('${safeText(String(meta.acessoId))}', '${aspas}', '${safeText(id)}')">${
+        meta.doc ? 'Documento de acessos ↗' : 'Escrever o documento'}</button>`
+    : mais('Criar o documento de acessos deste cliente',
+        `abrirDocumentoDoCliente('', '${aspas}', '${safeText(id)}')`);
+  const planejamento = porta('Planejamento', f.planejamento_url || meta.planning);
+
+  node.innerHTML = `<div class="client-master-detail-card">
+      <div class="cli-ficha-topo"><h3>${safeText(nome)}</h3>${situacaoDoClienteHtml(nome, estado)}
+        ${podeMexer ? `<button type="button" class="cli-lapis" title="Abrir o cadastro completo"
+          onclick="abrirFichaDeCliente('${aspas}')">Editar cadastro</button>` : ''}</div>
+      <p>Ficha mestre da conta · ${record.content.length} conteúdo(s) e ${record.requests.length} solicitação(ões) no histórico.</p>
+      <div class="client-master-detail-grid">
+        ${campo('Head / responsável', headsDoClienteHtml(f.heads || meta.head || ''),
+          `abrirHeadsDoCliente(event, '${aspas}')`, 'Clique para escolher o head')}
+        ${campo('Segmento', segmento ? `<span class="cli-tag-chip">${safeText(segmento)}</span>`
+            : mais('Escolher o segmento', `abrirSegmentoDoCliente(event, '${aspas}')`),
+          `abrirSegmentoDoCliente(event, '${aspas}')`, 'Clique para escolher a etiqueta')}
+        ${campo('Plano', safeText(plano) || mais('Escrever o plano', `editarCampoDaFicha(event, '${aspas}', 'plano')`),
+          `editarCampoDaFicha(event, '${aspas}', 'plano')`, 'Clique para editar')}
+        ${campo('Próxima reunião', safeText(reuniao) || mais('Marcar a próxima reunião', `editarCampoDaFicha(event, '${aspas}', 'proxima_reuniao')`),
+          `editarCampoDaFicha(event, '${aspas}', 'proxima_reuniao')`, 'Clique para editar')}
+      </div>
+    </div>
+    <div class="client-master-detail-card">
+      <div class="cli-ficha-topo"><h3>Dados &amp; acessos</h3>
+        ${paineldoClienteHtml(painel)}</div>
+      <p>Onde ficam as chaves desta conta. O documento só abre para quem administra.</p>
+      <div class="cli-ficha-portas">
+        ${driveHtml}${manusHtml}${planejamento}${docHtml}
+      </div>
+      <div class="client-master-detail-grid">
+        ${campo('Painel do cliente', paineldoClienteHtml(painel),
+          `editarCampoDaFicha(event, '${aspas}', 'dashboard')`, 'Clique para trocar')}
+        ${campo('Solicitações em aberto', String(record.requests.filter((d) =>
+          !['Feito','Finalizado','feito','finalizado','Concluídas'].includes(String(d.status||''))).length))}
+      </div>
+    </div>`;
 }
+// A ficha usa os mesmos editores da tabela; so precisa saber se quem olha pode
+// mexer. Fica numa funcao propria porque a ficha e desenhada antes da tabela
+// existir na tela.
+function podeEditorClientesNaFicha() {
+  return typeof podeEditarClientes === 'function' ? podeEditarClientes() : false;
+}
+// Reaproveita a edicao da celula: o campo da ficha e uma celula com outra
+// moldura. Depois de gravar, a ficha se redesenha sozinha.
+function editarCampoDaFicha(event, nome, campo) {
+  const alvo = event.currentTarget;
+  if (!alvo || alvo.querySelector('input')) return;
+  const falso = { stopPropagation: () => {}, currentTarget: alvo.querySelector('b') || alvo };
+  editarCelulaDoCliente(falso, nome, campo);
+}
+function editarAcessoDaFicha(event, nome, campo) {
+  event.stopPropagation();
+  const alvo = event.currentTarget.closest('.client-master-detail-field') || event.currentTarget.parentElement;
+  editarAcessoDoCliente({ stopPropagation: () => {}, currentTarget: alvo }, nome, campo);
+}
+
 // ── ficha do cliente ─────────────────────────────────────────────────────────
 //
 // Contato, CNPJ, plano, segmento, valor e head vinham do board "Gestão de
@@ -770,7 +873,9 @@ function linhaDeClienteHtml(nome, semCadastro, estado) {
 // nao passam pela mesma gravacao das outras celulas.
 function editarAcessoDoCliente(event, nome, campo) {
   event.stopPropagation();
-  const celula = event.currentTarget.closest('td');
+  // Serve a celula da tabela e o campo da ficha do cliente: sao a mesma edicao
+  // em molduras diferentes.
+  const celula = event.currentTarget.closest?.('td, .client-master-detail-field') || event.currentTarget;
   if (!celula || celula.querySelector('input')) return;
   if (!podeEditarClientes()) return showToast('Só quem administra edita acessos.', 'warning', 3500);
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
@@ -1124,9 +1229,18 @@ function filterClientesList(query) {
   renderClientesLista(clientes);
 }
 
+// Os numeros do topo sao da LISTA — 71 clientes, 1668 conteudos. Com um cliente
+// aberto eles nao respondem nada e ainda empurram a ficha dele para baixo da
+// dobra. Somem enquanto se olha um cliente, e voltam no "Voltar".
+function numerosDaListaDeClientes(mostrar) {
+  ['client-master-kpis', 'client-master-source-rail', 'kpi-grid-clientes']
+    .forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = mostrar ? '' : 'none'; });
+}
+
 function abrirClienteDetalhe(cli) {
   document.getElementById('panel-clientes-lista').style.display  = 'none';
   document.getElementById('panel-cliente-detalhe').style.display = '';
+  numerosDaListaDeClientes(false);
   document.getElementById('cliente-detalhe-nome').textContent    = cli;
   renderClientMasterDetail(cli);
   const registros=clientMasterRecords();
@@ -1183,6 +1297,7 @@ function abrirClienteDetalhe(cli) {
 function voltarClientesLista() {
   document.getElementById('panel-clientes-lista').style.display  = '';
   document.getElementById('panel-cliente-detalhe').style.display = 'none';
+  numerosDaListaDeClientes(true);
 }
 
 // ─── Filtros de demandas ────────────────────────────────────────────────────────────────────
