@@ -2098,6 +2098,20 @@ button.cli-situacao:hover{filter:brightness(1.25)}
    um buraco: some a imagem e sobra o nome do arquivo. */
 .cli-pergunta-previa.sem-previa img{display:none}
 .cli-pergunta-previa.sem-previa figcaption{color:#e7ecf5;font:700 12px var(--mac-ui)}
+/* Conferencia visual: a arte no centro, grande, e mais nada disputando com ela. */
+.workflow-modal.conferencia-visual{width:min(760px,94vw)}
+.conferencia-palco{display:grid;justify-items:center;gap:10px;margin:16px 0 4px}
+.conferencia-arte{margin:0;display:grid;justify-items:center;gap:8px;width:100%}
+.conferencia-arte img{max-width:100%;max-height:min(56vh,460px);border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);object-fit:contain}
+.conferencia-arte figcaption{color:#8f98a9;font:600 10.5px var(--mac-mono);text-align:center;
+  overflow-wrap:anywhere}
+.conferencia-tiras{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.conferencia-tiras button{min-width:26px;height:26px;border-radius:8px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#8f98a9;
+  font:700 10.5px var(--mac-mono)}
+.conferencia-tiras button.ativa{border-color:var(--accent,#ff6b00);
+  background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#ffc79a}
 .cli-pergunta-acoes{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
 .cli-pergunta-acoes button{min-height:34px;padding:0 16px;border-radius:9px;cursor:pointer;
   font:700 11.5px var(--mac-ui);letter-spacing:.02em}

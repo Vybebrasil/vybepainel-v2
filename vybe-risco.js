@@ -247,6 +247,24 @@ const HANDOFF_TARGET_STATUSES = new Set(['ag. aprovação cliente']);
 const QUALITY_TARGET_STATUSES = new Set(['para agendar','agendado']);
 const MATERIAL_REVIEW_TARGET_STATUSES = new Set(['agendado','finalizado','feito']);
 const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao','para aprovação','para aprovacao','finalizado','feito']);
+// Mandar para aprovacao nao e prestar contas — e mostrar o que ficou pronto.
+//
+// O portao antigo pedia motivo escrito, proxima pessoa e link de referencia
+// antes de deixar a peca entrar em "Aguardando Aprovacao". Isso faz sentido
+// quando a mudanca precisa de justificativa (uma volta, um bloqueio); aqui nao:
+// quem terminou quer olhar a arte uma ultima vez e mandar. O texto obrigatorio
+// virava um pedagio, e pedagio na hora de entregar e o jeito mais rapido de o
+// time parar de usar o painel.
+//
+// Entao estas passam a abrir a arte no centro da tela, com voltar e confirmar —
+// e nada mais.
+const CONFERENCIA_VISUAL_STATUSES = new Set([
+  'aguardando aprovação', 'aguardando aprovacao',
+  'em aprovação', 'em aprovacao',
+]);
+function statusNeedsConferenciaVisual(option) {
+  return Boolean(option) && CONFERENCIA_VISUAL_STATUSES.has(normalizedWorkflowStatus(option.label));
+}
 let pendingWorkflowChange = null;
 function normalizedWorkflowStatus(status='') { return String(status).trim().toLowerCase(); }
 function statusNeedsHandoff(item, option) { return item && option && HANDOFF_TARGET_STATUSES.has(normalizedWorkflowStatus(option.label)) && normalizedWorkflowStatus(item.status) !== normalizedWorkflowStatus(option.label); }
@@ -255,7 +273,8 @@ function statusNeedsQuality(option) { return option && QUALITY_TARGET_STATUSES.h
 function statusNeedsContext(option) {
   const status = normalizedWorkflowStatus(option?.label);
   // Finalizado não exige justificativa: a única trava é a conferência visual do material.
-  return Boolean(status) && !CONTEXT_FREE_STATUSES.has(status) && !statusNeedsQuality(option) && !statusNeedsMaterialReview(option);
+  return Boolean(status) && !CONTEXT_FREE_STATUSES.has(status) && !statusNeedsQuality(option)
+    && !statusNeedsMaterialReview(option) && !statusNeedsConferenciaVisual(option);
 }
 function workflowItemHtml(item, target='') { return `<div class="workflow-item"><span class="workflow-item-client">${safeText(item.cliente || 'Cliente não informado')}</span><span class="workflow-item-name">${safeText(item.nome)}${target ? ` <small style="color:#ffb850">→ ${safeText(target)}</small>` : ''}</span></div>`; }
 function closeWorkflowModal() { document.getElementById('workflow-backdrop')?.remove(); document.getElementById('workflow-modal')?.remove(); pendingWorkflowChange = null; }
@@ -328,6 +347,95 @@ async function loadMaterialReviewPreview(itemId){
 }
 function openMaterialReviewGate(item,option){ const target=normalizedWorkflowStatus(option?.label); const scheduled=target==='agendado'; const checks=materialReviewChecklistFor(item,option); pendingWorkflowChange={item,option,manual:false}; const title=scheduled?'Conferir antes de agendar':'Conferir antes de finalizar'; const copy=scheduled?'Antes de liberar o agendamento, confira a prévia e valide que o material, a publicação e o canal correspondem a esta demanda.':'Antes de marcar como finalizado, confira a prévia do material postado ou entregue. Não é necessário explicar o motivo do encerramento.'; const action=scheduled?'CONFIRMAR E AGENDAR →':'CONFIRMAR E FINALIZAR →'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Conferência final</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">${title}</h2><p class="workflow-copy">${copy}</p>${workflowItemHtml(item,option.label)}<div class="status-context-layout material-review-layout"><div class="status-context-main"><form id="material-review-form" class="workflow-checks" onchange="updateMaterialReviewState()">${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" data-material-review-check name="material-review-${index}"><span>${safeText(check)}</span></label>`).join('')}</form><p class="workflow-hint">Esta conferência é registrada no histórico da peça junto com a mudança de status. Nenhuma justificativa é exigida para finalizar.</p></div><aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia para conferência</b><small>arquivo vinculado</small></div><div id="material-review-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside></div><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="material-review-submit" type="button" class="workflow-primary" disabled onclick="submitMaterialReview()">${action}</button></div>`); document.getElementById('workflow-modal')?.classList.add('status-context-split','material-review-modal'); loadMaterialReviewPreview(item.id); updateMaterialReviewState(); }
 async function submitMaterialReview(){ const flow=pendingWorkflowChange; const checks=[...document.querySelectorAll('input[data-material-review-check]')]; if(!flow||!checks.length) return; if(checks.some(check=>!check.checked)) return showToast('Confirme a conferência visual antes de continuar.','info'); const button=document.getElementById('material-review-submit'); if(button){button.disabled=true;button.textContent='Registrando...';} try { const checked=checks.map(check=>check.parentElement.textContent.trim()).filter(Boolean); await postItemUpdate(flow.item.id,`[Vybe OS · Conferência final]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMaterial conferido: ${checked.join(' | ')}`); const {item,option}=flow; closeWorkflowModal(); await commitStatusChange(item,option); } catch(error){ if(button){button.disabled=false;button.textContent=normalizedWorkflowStatus(flow?.option?.label)==='agendado'?'CONFIRMAR E AGENDAR →':'CONFIRMAR E FINALIZAR →';} showToast(`Não foi possível registrar a conferência: ${error.message}`,'err',7000); } }
+// ── conferencia visual ────────────────────────────────────────────────────────
+// A arte no centro, e duas saidas: voltar ou mandar. Sem campo obrigatorio, sem
+// checklist, sem trava. Se a peca tiver mais de um arquivo, da para passar entre
+// eles — quem confere quer ver o que vai ser aprovado, nao so o primeiro.
+let CONFERENCIA_INDICE = 0;
+function abrirConferenciaVisual(item, option) {
+  pendingWorkflowChange = { item, option, manual: false };
+  CONFERENCIA_INDICE = 0;
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Confira antes de mandar</span>
+      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">${safeText(item.nome || 'Esta peça')}</h2>
+    <p class="workflow-copy">${safeText(item.cliente || 'Cliente não informado')} · vai para
+      <b>${safeText(option.label)}</b>.</p>
+    <div class="conferencia-palco" id="conferencia-palco">
+      <div class="status-context-preview-loading">Buscando a arte…</div>
+    </div>
+    <div class="workflow-actions">
+      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">← Voltar</button>
+      <button type="button" class="workflow-primary" onclick="confirmarConferenciaVisual()">Confirmar ✓</button>
+    </div>`);
+  document.getElementById('workflow-modal')?.classList.add('conferencia-visual');
+  carregarArteDaConferencia(item.id);
+}
+
+async function carregarArteDaConferencia(itemId) {
+  const palco = document.getElementById('conferencia-palco');
+  if (!palco) return;
+  try {
+    const detail = await fetchWorkspaceItem(itemId);
+    const artes = statusContextPreviewAssets(detail) || [];
+    const entrega = workspaceDeliveryInfo(detail);
+    PREVIA_MATERIAL = artes;
+    const abrir = entrega?.url
+      ? `<a class="material-review-open" href="${safeText(entrega.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a>`
+      : '';
+    if (!artes.length) {
+      // Sem arte nao e motivo para travar: a peca pode ser um link, um texto, um
+      // ajuste no site. Diz o que ha e deixa seguir.
+      palco.innerHTML = `<div class="status-context-preview-empty"><b>Nenhuma arte anexada</b>
+        ${entrega?.url ? 'Há um material vinculado — abra antes de confirmar.'
+          : 'Esta peça não tem arquivo para conferir. Você ainda pode mandar para aprovação.'}${abrir}</div>`;
+      return;
+    }
+    palco.innerHTML = `<figure class="conferencia-arte">
+        <img id="conferencia-img" src="" alt="">
+        <figcaption id="conferencia-legenda"></figcaption>
+      </figure>
+      ${artes.length > 1 ? `<div class="conferencia-tiras" id="conferencia-tiras">${
+        artes.map((a, i) => `<button type="button" class="${i === 0 ? 'ativa' : ''}"
+          onclick="trocarArteDaConferencia(${i})" title="${safeText(a.name || '')}">${i + 1}</button>`).join('')
+      }</div>` : ''}${abrir}`;
+    trocarArteDaConferencia(0);
+  } catch (erro) {
+    palco.innerHTML = `<div class="status-context-preview-empty"><b>Não deu para carregar a arte</b>
+      ${safeText(erro.message || '')} — você ainda pode confirmar.</div>`;
+  }
+}
+
+function trocarArteDaConferencia(indice) {
+  const arte = PREVIA_MATERIAL[indice];
+  if (!arte) return;
+  CONFERENCIA_INDICE = indice;
+  const img = document.getElementById('conferencia-img');
+  const legenda = document.getElementById('conferencia-legenda');
+  if (img) {
+    img.src = arte.public_url || arte.url_thumbnail || arte.url || '';
+    img.alt = `Prévia de ${arte.name || 'material'}`;
+  }
+  if (legenda) {
+    legenda.textContent = PREVIA_MATERIAL.length > 1
+      ? `(${indice + 1}/${PREVIA_MATERIAL.length}) ${arte.name || ''}`
+      : (arte.name || '');
+  }
+  document.querySelectorAll('#conferencia-tiras button')
+    .forEach((b, i) => b.classList.toggle('ativa', i === indice));
+}
+
+async function confirmarConferenciaVisual() {
+  const fluxo = pendingWorkflowChange;
+  if (!fluxo) return;
+  const botao = document.querySelector('#workflow-modal .workflow-primary');
+  if (botao) { botao.disabled = true; botao.textContent = 'Mandando…'; }
+  const { item, option } = fluxo;
+  // A nota de historico nao segura a troca — a mesma regra de todos os portoes.
+  void postItemUpdate(item.id, `[Vybe OS · Conferência visual]\nEtapa: ${item.status} → ${option.label}`);
+  closeWorkflowModal();
+  await commitStatusChange(item, option);
+}
+
 function openHandoffGate(item, option=null) { pendingWorkflowChange={item,option,manual:!option}; const target=option?.label || 'próxima pessoa ou etapa'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Passagem de bastão</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Deixe a próxima etapa pronta</h2><p class="workflow-copy">Registre o contexto mínimo para que o trabalho siga sem perda de informação.</p>${workflowItemHtml(item,target)}<label class="workflow-field"><span>O que foi concluído?</span><textarea id="handoff-done" rows="3" placeholder="Ex.: Arte revisada, versão final aprovada internamente e arquivo anexado."></textarea></label><label class="workflow-field"><span>O que precisa acontecer agora?</span><textarea id="handoff-next" rows="3" placeholder="Ex.: Tainara deve conferir a legenda e agendar para segunda-feira."></textarea></label><label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="handoff-link" type="url" placeholder="https://drive.google.com/... ou link do arquivo"></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitHandoff()">REGISTRAR E ${option ? 'ATUALIZAR STATUS' : 'SALVAR'} →</button></div>`); }
 function openManualHandoff(itemId) { const item=findOperationalItem(itemId); if (item) openHandoffGate(item,null); }
 
@@ -613,7 +721,7 @@ async function submitStatusContext() {
   if(!reason || !nextOwner) return showToast('Explique o motivo e selecione quem executará a próxima ação.','info'); if((rule.requester && !requester) || (rule.completed && !completed)) return showToast('Preencha os campos de contexto obrigatórios desta etapa.','info'); if(link && !/^https?:\/\//i.test(link)) return showToast('Use um link válido começando com https:// ou deixe o campo em branco.','info'); const quality=[...document.querySelectorAll('input[data-quality-check]')]; if(quality.some(check=>!check.checked)) return showToast('Conclua o checklist de qualidade para continuar.','info'); const button=document.getElementById('status-context-submit'); const idleLabel=button?.textContent||'REGISTRAR E ATUALIZAR →'; if(button){button.disabled=true;button.textContent='Registrando...';}
   try { const qualityText=quality.length ? `\nChecklist de qualidade: ${quality.map(check=>check.parentElement.textContent.trim()).join(' | ')}` : ''; const body=`[Vybe OS · Contexto de status]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMotivo: ${reason}${completed ? `\nConcluído: ${completed}` : ''}${requester ? `\nSolicitante/Dependência: ${requester}` : ''}${source ? `\nOrigem: ${source}` : ''}\nResponsável pela próxima ação: ${nextOwner.name}${link ? `\nReferência: ${link}` : ''}${qualityText}`; await postItemUpdate(flow.item.id,body); [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(d=>{if(String(d.id)===String(flow.item.id)) d.status_context={target:flow.option.label,reason,next,requester,source,completed,link,next_owner_id:nextOwner.id,next_owner_name:nextOwner.name,created_at:new Date().toISOString()};})); const {item,option}=flow; closeWorkflowModal(); await commitStatusChange(item,option); } catch(e) { if(button){button.disabled=false;button.textContent=idleLabel;} showToast(`Não foi possível registrar o contexto: ${e.message}`,'err',7000); }
 }
-async function updateFocusStatus(itemId, statusIndex) { const item=findOperationalItem(itemId); const option=operationalStatusOptions(item).find(o=>Number(o.index)===Number(statusIndex)); if(!item || !option || item.status_index===option.index) return closeStatusEditor(); const needsGate=statusNeedsMaterialReview(option)||statusNeedsQuality(option)||statusNeedsContext(option)||statusNeedsHandoff(item,option); closeStatusEditor(); if(needsGate){ await new Promise(resolve=>requestAnimationFrame(resolve)); if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); if(statusNeedsQuality(option)) return openQualityGate(item,option); if(statusNeedsContext(option)) return openStatusContextGate(item,option); return openHandoffGate(item,option); } return commitStatusChange(item,option); }
+async function updateFocusStatus(itemId, statusIndex) { const item=findOperationalItem(itemId); const option=operationalStatusOptions(item).find(o=>Number(o.index)===Number(statusIndex)); if(!item || !option || item.status_index===option.index) return closeStatusEditor(); const needsGate=statusNeedsConferenciaVisual(option)||statusNeedsMaterialReview(option)||statusNeedsQuality(option)||statusNeedsContext(option)||statusNeedsHandoff(item,option); closeStatusEditor(); if(needsGate){ await new Promise(resolve=>requestAnimationFrame(resolve)); if(statusNeedsConferenciaVisual(option)) return abrirConferenciaVisual(item,option); if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); if(statusNeedsQuality(option)) return openQualityGate(item,option); if(statusNeedsContext(option)) return openStatusContextGate(item,option); return openHandoffGate(item,option); } return commitStatusChange(item,option); }
 let activeWorkspaceItemId = '';
 let activeWorkspaceAssets = [];
 function workspacePlainText(html='') {
