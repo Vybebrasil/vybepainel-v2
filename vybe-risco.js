@@ -645,18 +645,99 @@ function goldenDeadlineIso(veiculacao='') { if(!/^\d{4}-\d{2}-\d{2}$/.test(Strin
 function goldenDeadlineGap(prazo='',veiculacao='') { if(!prazo || !veiculacao) return null; const from=new Date(`${prazo}T12:00:00`); const to=new Date(`${veiculacao}T12:00:00`); return Math.round((to-from)/86400000); }
 function quickDateTrigger(item, className='') { const gap=goldenDeadlineGap(item?.prazo_iso,item?.veiculacao_iso); const risk=gap!==null&&gap<PRAZO_OURO_DIAS; const title=`Editar prazo e veiculação · Prazo de Ouro: ${PRAZO_OURO_DIAS} dias antes da veiculação${gap===null?'':` · atual: ${gap} dias`}`; return `<button type="button" class="quick-date-trigger ${risk?'gold-risk':''} ${className}" onclick="openPlanningEditor('${item.id}')" title="${safeText(title)}" aria-label="${safeText(title)}">◷</button>`; }
 function quickDateDaTrigger(item) { const gap=goldenDeadlineGap(item?.prazo_iso,item?.veiculacao_iso); const risk=gap!==null&&gap<PRAZO_OURO_DIAS; const title=`Editar datas · Prazo de Ouro: ${PRAZO_OURO_DIAS} dias antes da veiculação`; return `<span class="quick-date-da ${risk?'gold-risk':''}" role="button" tabindex="0" onclick="event.preventDefault();event.stopPropagation();openPlanningEditor('${item.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openPlanningEditor('${item.id}')}" title="${safeText(title)}">◷</span>`; }
-function updateGoldenDeadlineState() { const veic=String(document.getElementById('planning-veiculacao')?.value||''); const prazo=String(document.getElementById('planning-prazo')?.value||''); const target=goldenDeadlineIso(veic); const gap=goldenDeadlineGap(prazo,veic); const state=document.getElementById('planning-golden-state'); if(!state) return; const ok=Boolean(target&&prazo===target); state.classList.toggle('golden-ok',ok); state.classList.toggle('golden-risk',!ok); state.innerHTML=`<b>${ok?'✓ PRAZO DE OURO PROTEGIDO':target?`◷ PRAZO DE OURO: ${planningDateBr(target)}`:'◷ INFORME A VEICULAÇÃO'}</b><span>${gap===null?'Defina as duas datas para medir a antecedência.':ok?`${PRAZO_OURO_DIAS} dias completos de antecedência para a criação.`:`A margem atual é de ${gap} dia${gap===1?'':'s'}; use o padrão de ${PRAZO_OURO_DIAS} dias ou registre uma exceção.`}</span><button type="button" class="workflow-secondary" onclick="applyGoldenDeadline()">Aplicar 7 dias</button>`; }
-function applyGoldenDeadline() { const veic=String(document.getElementById('planning-veiculacao')?.value||''); const prazo=document.getElementById('planning-prazo'); const golden=goldenDeadlineIso(veic); if(!golden) return showToast('Informe a veiculação antes de aplicar o Prazo de Ouro.','info'); if(prazo) prazo.value=golden; updateGoldenDeadlineState(); }
-function openPlanningEditor(itemId) {
-  const item=findOperationalItem(itemId);
-  if(!item) return showToast('Demanda não encontrada.', 'err');
-  const prazo=item.prazo_iso || '';
-  const veiculacao=item.veiculacao_iso || '';
-  const golden=goldenDeadlineIso(veiculacao);
-  const gap=goldenDeadlineGap(prazo,veiculacao);
-  const onGolden=Boolean(golden&&prazo===golden);
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Planejamento da demanda</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Datas rápidas</h2><p class="workflow-copy">Altere prazo e veiculação sem sair da atividade. O <b>Prazo de Ouro</b> protege a criação com sete dias completos antes da publicação.</p>${workflowItemHtml(item,item.status)}<div class="planning-date-grid"><label class="planning-date-card"><b>⏰ PRAZO DE OURO</b><small>Produção pronta ${PRAZO_OURO_DIAS} dias antes da veiculação.</small><input id="planning-prazo" type="date" value="${prazo}" onchange="updateGoldenDeadlineState()"></label><label class="planning-date-card"><b>◷ VEICULAÇÃO</b><small>Data prevista para publicação do conteúdo.</small><input id="planning-veiculacao" type="date" value="${veiculacao}" onchange="updateGoldenDeadlineState()"></label></div><div id="planning-golden-state" class="planning-change-note ${onGolden?'golden-ok':'golden-risk'}"><b>${onGolden?'✓ PRAZO DE OURO PROTEGIDO':golden?`◷ PRAZO DE OURO: ${planningDateBr(golden)}`:'◷ INFORME A VEICULAÇÃO'}</b><span>${gap===null?'Defina as duas datas para medir a antecedência.':onGolden?`${PRAZO_OURO_DIAS} dias completos de antecedência para a criação.`:`A margem atual é de ${gap} dia${gap===1?'':'s'}; use o padrão de ${PRAZO_OURO_DIAS} dias ou registre uma exceção.`}</span><button type="button" class="workflow-secondary" onclick="applyGoldenDeadline()">Aplicar 7 dias</button></div><label class="workflow-field"><span>Motivo da exceção <em style="opacity:.55;font-style:normal">(obrigatório se o prazo não seguir 7 dias)</em></span><textarea id="planning-reason" rows="3" placeholder="Ex.: urgência aprovada; cliente alterou a campanha ou a captação."></textarea></label><div class="planning-change-note"><b>Rastreabilidade automática:</b> o Vybe OS registra as datas anterior e nova, o horário, a regra aplicada e o responsável no histórico da peça.</div><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="planning-save" type="button" class="workflow-primary" onclick="savePlanningDates('${item.id}')">Salvar datas →</button></div>`);
+// ── Datas rápidas ────────────────────────────────────────────────────────────
+//
+// A caixa dizia tudo o tempo todo: um paragrafo de explicacao no topo, dois
+// campos com titulo e legenda cada, uma faixa laranja com a conta da margem
+// espremida numa linha, um campo de motivo SEMPRE aberto — mesmo quando o prazo
+// estava no padrao e nao havia excecao nenhuma para justificar — e um rodape
+// explicando que o sistema guarda historico.
+//
+// Aqui a tela responde a uma pergunta so: as duas datas estao certas? Entao ela
+// mostra as duas datas, o que a regra acha delas, e some com o resto. O motivo
+// da excecao nasce fechado e SO APARECE quando o prazo sai do padrao — que e
+// exatamente quando ele passa a ser obrigatorio.
+function leituraDoPrazoDeOuro(prazo, veic) {
+  const alvo = goldenDeadlineIso(veic);
+  const gap = goldenDeadlineGap(prazo, veic);
+  if (!veic) return { estado: 'pendente', titulo: 'Falta a veiculação',
+    texto: 'Sem a data de publicação não dá para medir a antecedência.', alvo: '' };
+  if (!prazo) return { estado: 'pendente', titulo: `Sugerido: ${planningDateBr(alvo)}`,
+    texto: `${PRAZO_OURO_DIAS} dias antes do ar.`, alvo };
+  if (prazo === alvo) return { estado: 'ok', titulo: 'No padrão',
+    texto: `${PRAZO_OURO_DIAS} dias completos de antecedência.`, alvo };
+  if (gap > PRAZO_OURO_DIAS) return { estado: 'folga', titulo: `${gap} dias de antecedência`,
+    texto: `${gap - PRAZO_OURO_DIAS} a mais que o padrão.`, alvo };
+  return { estado: 'risco', titulo: `${Math.max(0, gap)} dia${gap === 1 ? '' : 's'} de antecedência`,
+    texto: `${PRAZO_OURO_DIAS - gap} abaixo do padrão · ideal ${planningDateBr(alvo)}.`, alvo };
 }
+
+function painelDoPrazoDeOuro(prazo, veic) {
+  const l = leituraDoPrazoDeOuro(prazo, veic);
+  const forade = l.estado === 'risco' || l.estado === 'folga';
+  return `<div class="dr-regra dr-${l.estado}">
+      <span class="dr-regra-marca" aria-hidden="true"></span>
+      <span class="dr-regra-copy"><b>${safeText(l.titulo)}</b><small>${safeText(l.texto)}</small></span>
+      ${l.alvo && l.estado !== 'ok'
+        ? `<button type="button" class="dr-aplicar" onclick="applyGoldenDeadline()">Usar ${planningDateBr(l.alvo)}</button>`
+        : ''}
+    </div>
+    <label class="dr-motivo ${forade ? 'aberto' : ''}">
+      <span>Por que fora do padrão? <em>fica no histórico da peça</em></span>
+      <textarea id="planning-reason" rows="2"
+        placeholder="Ex.: urgência aprovada; o cliente mudou a campanha."></textarea>
+    </label>`;
+}
+
+function updateGoldenDeadlineState() {
+  const veic = String(document.getElementById('planning-veiculacao')?.value || '');
+  const prazo = String(document.getElementById('planning-prazo')?.value || '');
+  const caixa = document.getElementById('planning-golden-state');
+  if (!caixa) return;
+  // O motivo ja digitado nao pode se perder quando a pessoa mexe numa data.
+  const escrito = document.getElementById('planning-reason')?.value || '';
+  caixa.innerHTML = painelDoPrazoDeOuro(prazo, veic);
+  const campo = document.getElementById('planning-reason');
+  if (campo && escrito) campo.value = escrito;
+}
+
+function applyGoldenDeadline() {
+  const veic = String(document.getElementById('planning-veiculacao')?.value || '');
+  const prazo = document.getElementById('planning-prazo');
+  const golden = goldenDeadlineIso(veic);
+  if (!golden) return showToast('Informe a veiculação antes de aplicar o Prazo de Ouro.', 'info');
+  if (prazo) prazo.value = golden;
+  updateGoldenDeadlineState();
+}
+
+function openPlanningEditor(itemId) {
+  const item = findOperationalItem(itemId);
+  if (!item) return showToast('Demanda não encontrada.', 'err');
+  const prazo = item.prazo_iso || '';
+  const veiculacao = item.veiculacao_iso || '';
+  openWorkflowModal(`<div class="dr-topo">
+      <div><span class="dr-kicker">${safeText(item.cliente || 'Sem cliente')}</span>
+        <h2 class="dr-titulo">${safeText(item.nome || 'Sem título')}</h2></div>
+      <button class="dr-fechar" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button>
+    </div>
+    <div class="dr-datas">
+      <label class="dr-campo">
+        <span>Prazo de produção</span>
+        <input id="planning-prazo" type="date" value="${prazo}" onchange="updateGoldenDeadlineState()">
+      </label>
+      <span class="dr-seta" aria-hidden="true">→</span>
+      <label class="dr-campo">
+        <span>Veiculação</span>
+        <input id="planning-veiculacao" type="date" value="${veiculacao}" onchange="updateGoldenDeadlineState()">
+      </label>
+    </div>
+    <div id="planning-golden-state">${painelDoPrazoDeOuro(prazo, veiculacao)}</div>
+    <div class="workflow-actions">
+      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
+      <button id="planning-save" type="button" class="workflow-primary" onclick="savePlanningDates('${item.id}')">Salvar</button>
+    </div>`);
+}
+
 async function savePlanningDates(itemId) {
   const item=findOperationalItem(itemId);
   const prazo=String(document.getElementById('planning-prazo')?.value||'');
