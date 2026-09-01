@@ -2120,25 +2120,44 @@ function renderAgendaDeDemandas() {
     if (!porDia.has(i.calendarDateIso)) porDia.set(i.calendarDateIso, []);
     porDia.get(i.calendarDateIso).push(i);
   });
-  const dias = ['seg','ter','qua','qui','sex','sáb','dom'];
+  // ESTE CALENDARIO FOI ESCRITO CONTRA UMA API QUE NAO EXISTE.
+  //
+  // Ele lia cell.day, cell.outside e meta.label — tres campos que o
+  // managerCalendarMonthMeta nunca devolveu. Por isso todo dia do mes aparecia
+  // escrito "undefined", o mes ficava sem nome e os dias de fora nao apagavam.
+  // E desenhava os itens com a classe .manager-calendar-item, que nao existe no
+  // CSS: os cartoes saiam brancos, sem estilo nenhum.
+  //
+  // Agora usa exatamente o que o calendario do Gestor usa — os mesmos campos, o
+  // mesmo montador de item, a mesma classe. Duas telas com o mesmo desenho
+  // passam a ter uma implementacao so.
+  const dias = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+  const hoje = HOJE_ISO || META?.today_iso || '';
   wrap.innerHTML = `<section class="manager-calendar-shell">
     <div class="manager-calendar-toolbar">
-      <span class="manager-calendar-month-label">${safeText(meta.label || '')}</span>
+      <div class="manager-calendar-month">
+        <button type="button" onclick="managerCalendarGoMonth(-1);renderAgendaDeDemandas()" aria-label="Mês anterior">‹</button>
+        <span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span>
+        <button type="button" onclick="managerCalendarGoMonth(1);renderAgendaDeDemandas()" aria-label="Próximo mês">›</button>
+        <button type="button" onclick="managerCalendarGoToday();renderAgendaDeDemandas()">HOJE</button>
+      </div>
       <span class="manager-calendar-status">${itens.length} solicitaç${itens.length === 1 ? 'ão' : 'ões'} com data</span>
     </div>
     <div class="manager-calendar-grid">
       ${dias.map(d => `<div class="manager-calendar-weekday">${d}</div>`).join('')}
       ${meta.cells.map(cell => {
-        const doDia = porDia.get(cell.iso) || [];
-        return `<div class="manager-calendar-day ${cell.outside ? 'outside' : ''} ${cell.iso === (HOJE_ISO || '') ? 'today' : ''}">
-          <div class="manager-calendar-day-head"><b>${cell.day}</b>${doDia.length ? `<small>${doDia.length}</small>` : ''}</div>
-          ${doDia.slice(0, 4).map(i => `<button type="button" class="manager-calendar-item"
-              style="--cor-item:${corDeStatus(i.status)?.cor || '#7c8797'}"
-              onclick="abrirCartaoRapido('${safeText(i.id)}',event,'request')"
-              title="${safeText(i.cliente || '')} · ${safeText(i.nome || '')}">
-              <span class="manager-calendar-client">${safeText(i.cliente || 'Sem cliente')}</span>
-              <span class="manager-calendar-name">${safeText(i.nome || 'Sem título')}</span></button>`).join('')}
-          ${doDia.length > 4 ? `<span class="manager-calendar-more">+${doDia.length - 4}</span>` : ''}
+        const doDia = (porDia.get(cell.iso) || [])
+          .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+        const mostra = doDia.slice(0, 4);
+        return `<div class="manager-calendar-day ${cell.inMonth ? '' : 'is-other'} ${cell.iso === hoje ? 'is-today' : ''}" data-date="${cell.iso}">
+          <div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b><small>${
+            new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(cell.date).replace('.', '')
+          }</small></span></div>
+          <div class="manager-calendar-events">${mostra.map(managerCalendarEventHtml).join('')
+            || '<span class="manager-calendar-empty">—</span>'}${
+            doDia.length > 4 ? `<button type="button" class="manager-calendar-more"
+              onclick="abrirDiaDoCalendario(event,'${cell.iso}')"
+              title="Ver as ${doDia.length} deste dia">+ ${doDia.length - 4} neste dia</button>` : ''}</div>
         </div>`;
       }).join('')}
     </div>
