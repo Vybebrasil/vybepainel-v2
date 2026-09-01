@@ -130,22 +130,60 @@ function clientMasterRecords() {
     return {name,items:clientItems,content,requests,active,activeCount:active.length,meta};
   });
 }
+// Uma conta so, com a mesma regra que separa os blocos da tabela: quem tem
+// status escrito e cliente do cadastro; quem nao tem, so aparece na operacao.
+function contagemDeClientes(nomes) {
+  const conta = { ativos:0, inativos:0, sem:0, conteudos:0, conteudosAbertos:0, demandas:0, demandasAbertas:0 };
+  const CONCLUIDO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
+  const registros = clientMasterRecords();
+  (nomes || []).forEach((nome) => {
+    const f = cadastroDoCliente(nome);
+    const texto = String(f?.status || '').trim();
+    if (!f || (!texto && f.ativo !== false)) conta.sem += 1;
+    else if (texto ? /inativ/i.test(texto) : f.ativo === false) conta.inativos += 1;
+    else conta.ativos += 1;
+    const r = registros.find((item) => item.name === nome);
+    if (!r) return;
+    conta.conteudos += r.content.length;
+    conta.demandas += r.requests.length;
+    conta.conteudosAbertos += r.content.filter((d) => !CONCLUIDO.includes(String(d.status || ''))).length;
+    conta.demandasAbertas += r.requests.filter((d) => !CONCLUIDO.includes(String(d.status || ''))).length;
+  });
+  return conta;
+}
+
 function renderClientMasterOverview() {
   const records=clientMasterRecords();
   const active=records.filter(record=>record.activeCount>0).length;
   const content=records.reduce((sum,record)=>sum+record.content.length,0);
   const requests=records.reduce((sum,record)=>sum+record.requests.length,0);
   const activeRequests=records.reduce((sum,record)=>sum+record.requests.filter(item=>!['Feito','Finalizado','feito','finalizado','Concluídas'].includes(String(item.status||''))).length,0);
+  // O primeiro bloco de numeros dizia as mesmas coisas que o de baixo, com
+  // outros criterios e sem dizer quais. Ficou um so, e este espaco sai da tela.
   const kpi=document.getElementById('client-master-kpis');
-  if(kpi) kpi.innerHTML=[
-    {value:records.length,label:'Clientes encontrados',sub:'cadastro mestre do Vybe OS'},
-    {value:active,label:'Contas com operação ativa',sub:'com itens ainda abertos'},
-    {value:content,label:'Conteúdos vinculados',sub:'Produção de Conteúdo'},
-    {value:requests,label:'Solicitações vinculadas',sub:`${activeRequests} ainda abertas`}
-  ].map(item=>`<div class="client-master-kpi"><b>${item.value}</b><span>${item.label}</span><small>${item.sub}</small></div>`).join('');
+  if(kpi) { kpi.innerHTML=''; kpi.style.display='none'; }
+  // O trilho de fontes era da mudanca de casa: dizia se o Monday ja tinha sido
+  // copiado para o nosso banco. Isso acabou. Ele so aparece agora quando ha
+  // algo a dizer — carregando, ou deu erro —, porque ai a lista pode estar
+  // incompleta e quem olha precisa saber disso antes de decidir qualquer coisa.
   const rail=document.getElementById('client-master-source-rail');
-  if(rail) { const headsState=CLIENT_MASTER_ERROR?'ERRO NA BASE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_HEADS.length} CONTAS NO VYBE`:'AGUARDANDO CARGA'; const accessState=CLIENT_MASTER_ERROR?'ERRO NA BASE':CLIENT_MASTER_LOADING?'CARREGANDO...':CLIENT_MASTER_LOADED?`${CLIENT_MASTER_ACESSOS.length} REGISTROS NO VYBE`:'AGUARDANDO CARGA'; rail.innerHTML=`<div class="client-source-card connected"><div><b>Operação</b><span>Produção + Solicitações integradas</span></div><em>● BANCO VYBE</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>GESTÃO DE CLIENTES (HEADS)</b><span>Status, heads, plano, segmento e reuniões</span></div><em>${headsState}</em></div><div class="client-source-card ${CLIENT_MASTER_LOADED&&!CLIENT_MASTER_ERROR?'connected':''}"><div><b>Dados & acessos</b><span>Drive, documentos e referências operacionais</span></div><em>${accessState}</em></div>`; }
+  if(rail) {
+    if(CLIENT_MASTER_ERROR) {
+      rail.style.display='';
+      rail.innerHTML=`<div class="client-source-card"><div><b>Cadastro indisponível</b>
+        <span>${safeText(CLIENT_MASTER_ERROR)} — a lista abaixo pode estar incompleta.</span></div>
+        <em>SEM RESPOSTA</em></div>`;
+    } else if(CLIENT_MASTER_LOADING || !CLIENT_MASTER_LOADED) {
+      rail.style.display='';
+      rail.innerHTML=`<div class="client-source-card"><div><b>Carregando o cadastro</b>
+        <span>heads, planos, segmentos e acessos</span></div><em>UM INSTANTE...</em></div>`;
+    } else {
+      rail.style.display='none';
+      rail.innerHTML='';
+    }
+  }
 }
+
 // A ficha que abre quando se clica no cliente.
 //
 // Ela dizia "Pendente de sincronizacao" em quase todo campo. Era verdade na
@@ -347,14 +385,26 @@ function renderClientesBoard() {
   if (!CADASTRO_CLIENTES.length) { carregarCadastroClientes().then(() => renderClientesLista(clientMasterRecords().map((r) => r.name))); }
   const todosClientes = clientMasterRecords().map(record=>record.name);
   // KPIs
-  // "Ativos" e o que o cadastro diz, nao a soma de todo nome que ja apareceu.
-  const ativosNoCadastro = CADASTRO_CLIENTES.filter((c) =>
-    String(c.status || '').trim() && !/inativ/i.test(c.status)).length;
+  // A tela respondia "quantos clientes?" tres vezes, com tres numeros
+  // diferentes: 71 encontrados, 61 contas no Vybe, 16 ativos. E "quantos
+  // conteudos?" duas: 1668 e 472. Nenhum dos rotulos dizia qual era qual, entao
+  // nenhum servia para decidir nada. Agora e uma conta so, com a mesma regra da
+  // tabela logo abaixo — e cada numero e uma pergunta que alguem faz de verdade.
+  const numeros = contagemDeClientes(todosClientes);
+  const cartao = (k) => `<div class="kpi-card ${k.cls}${k.acao ? ' clicavel' : ''}"${
+    k.acao ? ` onclick="${k.acao}" title="${k.dica}"` : ''}><div class="kpi-label">${k.label}</div>
+    <div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`;
   document.getElementById('kpi-grid-clientes').innerHTML = [
-    {label:'Clientes Ativos', value:ativosNoCadastro || todosClientes.length, sub:'no cadastro', cls:'purple'},
-    {label:'Produção', value:DADOS.length, sub:'conteúdos', cls:'green'},
-    {label:'Demandas', value:DADOS_DEMANDAS.length, sub:'solicitações', cls:'blue'},
-  ].map(k=>`<div class="kpi-card ${k.cls}"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+    {label:'Clientes ativos', value:numeros.ativos, sub:'no cadastro', cls:'green'},
+    {label:'Inativos', value:numeros.inativos, sub:'fora do painel', cls:'blue'},
+    {label:'Só na operação', value:numeros.sem, sub:numeros.sem ? 'sem ficha — falta cadastrar' : 'todos com ficha',
+      cls:numeros.sem ? 'yellow' : 'green',
+      acao:numeros.sem ? "document.querySelector('.cli-bloco.sem')?.scrollIntoView({behavior:'smooth',block:'start'})" : '',
+      dica:'Ver a lista de quem falta cadastrar'},
+    {label:'Conteúdos em aberto', value:numeros.conteudosAbertos, sub:`${numeros.conteudos} no histórico`, cls:'purple'},
+    {label:'Solicitações em aberto', value:numeros.demandasAbertas, sub:`${numeros.demandas} no histórico`,
+      cls:numeros.demandasAbertas ? 'orange' : 'green'},
+  ].map(cartao).join('');
   // Renderizar lista
   renderClientesLista(todosClientes);
 }

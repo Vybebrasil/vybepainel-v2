@@ -2079,6 +2079,9 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 .client-master-detail-field.editavel:hover{background:rgba(255,255,255,.04);
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent,#ff6b00) 40%,transparent)}
 .client-master-detail-field .cli-celula{margin-top:3px}
+/* Numero que leva a algum lugar diz isso antes de ser clicado. */
+.kpi-card.clicavel{cursor:pointer}
+.kpi-card.clicavel:hover{border-color:color-mix(in srgb,var(--accent,#ff6b00) 50%,transparent)}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
@@ -3620,7 +3623,7 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 <!-- ===== PAINEL CLIENTES ===== -->
 <div id="painel-clientes" style="display:none;">
   <div class="container">
-    <div class="client-module-hero"><div><span class="client-module-kicker">06 / NÚCLEO DE CLIENTES</span><h2>Clientes</h2><p>Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div><div class="client-module-actions"><span class="client-module-source">FONTES: HEADS · DADOS & ACESSOS · OPERAÇÃO</span><button type="button" onclick="openCadastrosStation()">+ CADASTROS</button></div></div>
+    <div class="client-module-hero"><div><span class="client-module-kicker">06 / NÚCLEO DE CLIENTES</span><h2>Clientes</h2><p>Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div><div class="client-module-actions"><span class="client-module-source">CADASTRO · ACESSOS · OPERAÇÃO</span><button type="button" onclick="openCadastrosStation()">+ CADASTROS</button></div></div>
     <div id="client-master-kpis" class="client-master-kpis"></div>
     <div id="client-master-source-rail" class="client-source-rail"></div>
     <div id="kpi-grid-clientes" class="kpi-grid"></div>
