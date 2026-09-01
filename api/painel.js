@@ -493,6 +493,26 @@ async function garantirSchemaDeReunioes(db) {
   )`;
   await db`CREATE INDEX IF NOT EXISTS vybe_cliente_reunioes_cliente
     ON vybe_cliente_reunioes (cliente_id, data DESC)`;
+  // Nome que a operacao criou sozinha e nao e cliente — "Freela", "CMO",
+  // "feijao panela de ouro". Sem um jeito de dizer isso, eles ficam para sempre
+  // na lista do que falta cadastrar, e uma lista que nunca zera deixa de ser
+  // lida.
+  await db`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente BOOLEAN NOT NULL DEFAULT FALSE`;
+  // Quando um cliente saiu, quando voltou, e por que. Isso nao existia: o
+  // cadastro guardava o estado de hoje e apagava a historia — e conversa de
+  // renovacao vive dessa historia.
+  await db`CREATE TABLE IF NOT EXISTS vybe_cliente_eventos (
+    id         BIGSERIAL PRIMARY KEY,
+    cliente_id BIGINT NOT NULL REFERENCES vybe_clientes(id) ON DELETE CASCADE,
+    tipo       TEXT NOT NULL,
+    de         TEXT,
+    para       TEXT,
+    motivo     TEXT,
+    autor      TEXT,
+    em         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
+  await db`CREATE INDEX IF NOT EXISTS vybe_cliente_eventos_cliente
+    ON vybe_cliente_eventos (cliente_id, em DESC)`;
   reunioesProntas = true;
 }
 
@@ -506,6 +526,7 @@ async function areaClientes(req, res, quem) {
       db`SELECT c.id, c.nome, c.ativo, c.email, c.telefone, c.endereco, c.cnpj,
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
              c.dashboard, c.valor, c.proxima_reuniao, c.ultima_reuniao, c.criado_no_monday,
+             c.nao_e_cliente,
              (SELECT COUNT(*)::int FROM vybe_cliente_reunioes r WHERE r.cliente_id = c.id) AS atas,
              (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
              (SELECT STRING_AGG(p.nome, ', ' ORDER BY cp.ordem, p.nome)
@@ -538,10 +559,18 @@ async function areaClientes(req, res, quem) {
   if (req.method === 'POST' && req.body?.acao === 'atas') {
     const idCliente = Number(req.body?.id || 0);
     if (!idCliente) return res.status(400).json({ error: 'Informe o cliente.' });
-    const atas = await db`SELECT id, data, resumo, autor, criado_em
-      FROM vybe_cliente_reunioes WHERE cliente_id=${idCliente}
-      ORDER BY data DESC, id DESC LIMIT 200`;
-    return res.status(200).json({ ok: true, atas });
+    const [atas, eventos] = await Promise.all([
+      db`SELECT id, data, resumo, autor, criado_em
+           FROM vybe_cliente_reunioes WHERE cliente_id=${idCliente}
+          ORDER BY data DESC, id DESC LIMIT 200`,
+      // A historia de entrada e saida vem junto: quem abre as reunioes de um
+      // cliente esta reconstruindo a relacao com ele, e "saiu em marco, voltou
+      // em julho" faz parte dessa reconstrucao.
+      db`SELECT tipo, de, para, motivo, autor, em
+           FROM vybe_cliente_eventos WHERE cliente_id=${idCliente}
+          ORDER BY em DESC LIMIT 50`,
+    ]);
+    return res.status(200).json({ ok: true, atas, eventos });
   }
   if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra altera clientes.' });
 
@@ -590,6 +619,16 @@ async function areaClientes(req, res, quem) {
     // ── atas de reuniao ────────────────────────────────────────────────────
     // Listar e de quem opera; escrever e apagar sao de quem administra, pela
     // mesma razao do resto do cadastro: sao o registro que o time inteiro le.
+    // "Este nome nao e cliente." Um dedo de conversa com a lista do que falta
+    // cadastrar: ela precisa poder chegar a zero, senao ninguem a le.
+    if (acao === 'ignorar' || acao === 'reconhecer') {
+      if (!id) return res.status(400).json({ error: 'Informe o cliente.' });
+      const r = await db`UPDATE vybe_clientes SET nao_e_cliente=${acao === 'ignorar'}
+        WHERE id=${Number(id)} RETURNING id, nome`;
+      if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
+      return res.status(200).json({ ok: true, cliente: r[0] });
+    }
+
     if (acao === 'ata-criar') {
       const { data, resumo } = req.body || {};
       const texto = String(resumo || '').trim();
@@ -654,9 +693,18 @@ async function areaClientes(req, res, quem) {
     }
     if (acao === 'ativar' || acao === 'desativar') {
       if (!id) return res.status(400).json({ error: 'Informe o cliente.' });
+      const antes = (await db`SELECT status, ativo FROM vybe_clientes WHERE id=${Number(id)}`)[0];
       const r = await db`UPDATE vybe_clientes
           SET ativo=${acao === 'ativar'}, status=${acao === 'ativar' ? 'Ativo' : 'Inativo'}
         WHERE id=${Number(id)} RETURNING id, nome, ativo`;
+      if (r.length) {
+        await db`INSERT INTO vybe_cliente_eventos (cliente_id, tipo, de, para, motivo, autor)
+          VALUES (${Number(id)}, 'status',
+                  ${antes?.status || (antes?.ativo === false ? 'Inativo' : 'Ativo')},
+                  ${acao === 'ativar' ? 'Ativo' : 'Inativo'},
+                  ${String(req.body?.motivo || '').trim() || null},
+                  ${quem?.pessoa?.nome || 'Vybe OS'})`;
+      }
       if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
     }

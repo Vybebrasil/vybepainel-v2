@@ -2084,6 +2084,30 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-ata-apagar:hover{background:rgba(255,77,109,.14);color:#ff9db1}
 .cli-ata p{margin:0;color:#cbd3df;font:500 12px/1.55 var(--mac-ui);white-space:pre-wrap;
   overflow-wrap:anywhere}
+/* Ha quanto tempo sem conversa: a conta que cada pessoa fazia de cabeca. */
+.cli-contato{margin-left:7px;padding:1px 7px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);color:#8f98a9;font:700 9px var(--mac-ui);letter-spacing:.03em}
+.cli-contato.atencao{border-color:rgba(255,176,0,.42);background:rgba(255,176,0,.12);color:#ffc79a}
+.cli-contato.grave{border-color:rgba(255,77,109,.45);background:rgba(255,77,109,.13);color:#ff9db1}
+.cli-contato.nunca{border-style:dashed;color:#6f7887}
+.cli-valor{color:#e7ecf5;font:700 11.5px var(--mac-mono);font-variant-numeric:tabular-nums}
+/* Marcar clientes para agir em lote. */
+.cli-marcar{width:30px;text-align:center}
+.cli-marcar input{width:14px;height:14px;accent-color:var(--accent,#ff6b00);cursor:pointer}
+.cli-tabela tbody tr.marcada{background:color-mix(in srgb,var(--accent,#ff6b00) 9%,transparent)}
+.cli-bloco.ignorados .cli-bloco-cabeca{box-shadow:inset 3px 0 0 rgba(255,255,255,.14)}
+.cli-bloco.ignorados .cli-tabela tbody tr{opacity:.55}
+.cli-bloco.ignorados .cli-tabela tbody tr:hover{opacity:1}
+/* A historia de entrada e saida, junto das atas. */
+.cli-historia{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.cli-historia > b{display:block;margin-bottom:7px;color:#8f98a9;font:700 9.5px var(--mac-ui);
+  letter-spacing:.06em;text-transform:uppercase}
+.cli-historia-linha{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;padding:4px 0;
+  color:#8f98a9;font:600 11px var(--mac-ui)}
+.cli-historia-linha span{color:#cbd3df;font:700 10.5px var(--mac-mono);font-variant-numeric:tabular-nums}
+.cli-historia-linha em{font-style:normal;color:#e7ecf5}
+.cli-historia-linha small{color:#8f98a9;font-weight:500}
+.cli-historia-linha i{margin-left:auto;font-style:normal;color:#6f7887;font-size:10px}
 /* Head e pessoa: bolinha com foto, como no resto do painel. */
 .cli-heads{display:inline-flex;align-items:center}
 .cli-heads img,.cli-heads .owner-avatar-fallback{width:22px;height:22px;border-width:2px}

@@ -304,6 +304,12 @@ let CADASTRO_CLIENTES = [];
 // Quem pode ser head. Vem junto do cadastro; o seletor precisa do id do banco,
 // e a bolinha com foto vem do time, casada pelo id do Monday.
 let PESSOAS_DO_CADASTRO = [];
+// Numero do topo que so informa vira decoracao. Estes dois recortam a lista.
+let FOCO_DE_CLIENTES = 'todos';
+function focarClientes(qual) {
+  FOCO_DE_CLIENTES = FOCO_DE_CLIENTES === qual ? 'todos' : qual;
+  renderClientesBoard();
+}
 
 async function carregarCadastroClientes() {
   await ensureClientMasterSources();
@@ -391,11 +397,32 @@ function renderClientesBoard() {
   // nenhum servia para decidir nada. Agora e uma conta so, com a mesma regra da
   // tabela logo abaixo — e cada numero e uma pergunta que alguem faz de verdade.
   const numeros = contagemDeClientes(todosClientes);
-  const cartao = (k) => `<div class="kpi-card ${k.cls}${k.acao ? ' clicavel' : ''}"${
+  const aceso = (k) => (k.acao || '').includes(`'${FOCO_DE_CLIENTES}'`);
+  const cartao = (k) => `<div class="kpi-card ${k.cls}${k.acao ? ' clicavel' : ''}${
+    aceso(k) ? ' aceso' : ''}"${
     k.acao ? ` onclick="${k.acao}" title="${k.dica}"` : ''}><div class="kpi-label">${k.label}</div>
     <div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`;
+  // Dois numeros novos, e os dois sao fila de trabalho, nao estatistica: quem
+  // esta sem conversa ha tempo demais, e quantos paineis precisam ser
+  // atualizados. Clicar recorta a lista para eles.
+  const semContato = CADASTRO_CLIENTES.filter((c) => {
+    if (c.nao_e_cliente || !String(c.status || '').trim() || /inativ/i.test(c.status)) return false;
+    const d = diasSemContato(c);
+    return d === null || d >= SEM_CONTATO_ATENCAO;
+  }).length;
+  const painelVelho = CADASTRO_CLIENTES.filter((c) => {
+    if (c.nao_e_cliente || !String(c.status || '').trim() || /inativ/i.test(c.status)) return false;
+    const p = String(c.dashboard || '').trim();
+    return Boolean(p) && !painelEstaEmDia(p);
+  }).length;
   document.getElementById('kpi-grid-clientes').innerHTML = [
     {label:'Clientes ativos', value:numeros.ativos, sub:'no cadastro', cls:'green'},
+    {label:'Sem contato', value:semContato, sub:`${SEM_CONTATO_ATENCAO}+ dias ou sem registro`,
+      cls:semContato ? 'red' : 'green', acao:"focarClientes('sem-contato')",
+      dica:'Ver só quem está há muito tempo sem reunião'},
+    {label:'Painel a atualizar', value:painelVelho, sub:'dashboard desatualizado',
+      cls:painelVelho ? 'yellow' : 'green', acao:"focarClientes('painel-velho')",
+      dica:'Ver só quem está com o painel desatualizado'},
     {label:'Inativos', value:numeros.inativos, sub:'fora do painel', cls:'blue'},
     {label:'Só na operação', value:numeros.sem, sub:numeros.sem ? 'sem ficha — falta cadastrar' : 'todos com ficha',
       cls:numeros.sem ? 'yellow' : 'green',
@@ -755,6 +782,7 @@ const CELULAS_EDITAVEIS = {
   proxima_reuniao: { tipo:'data' },
   ultima_reuniao: { tipo:'data' },
   plano: { tipo:'texto' },
+  valor: { tipo:'numero' },
   segmento: { tipo:'texto' },
 };
 // A lista do sistema operacional nao pertence a esta tela: letra do sistema,
@@ -821,7 +849,9 @@ function editarCelulaDoCliente(event, nome, campo) {
 
   const antes = celula.innerHTML;
   celula.classList.add('em-edicao');
-  celula.innerHTML = `<input class="cli-celula" type="${regra.tipo === 'data' ? 'date' : 'text'}" value="${safeText(valor)}">`;
+  celula.innerHTML = `<input class="cli-celula" type="${
+    regra.tipo === 'data' ? 'date' : regra.tipo === 'numero' ? 'number' : 'text'}"${
+    regra.tipo === 'numero' ? ' step="0.01" min="0"' : ''} value="${safeText(valor)}">`;
   const campoEl = celula.firstElementChild;
   let encerrado = false;
   const encerrar = async (gravar) => {
@@ -832,7 +862,9 @@ function editarCelulaDoCliente(event, nome, campo) {
     if (!gravar || novo === valor) { celula.innerHTML = antes; return; }
     // Campo de data e de numero nao aceitam vazio no banco; texto aceita, e e
     // assim que se apaga um segmento errado.
-    if (!novo && regra.tipo === 'data') { celula.innerHTML = antes; return; }
+    // Data e numero nao aceitam vazio na coluna; texto aceita, e e assim que se
+    // apaga um valor errado.
+    if (!novo && regra.tipo !== 'texto') { celula.innerHTML = antes; return; }
     celula.innerHTML = '<span class="cli-vazio">salvando…</span>';
     try { await gravarCadastroDeCliente({ acao:'ficha', id, campos:{ [campo]: novo } }, 'Cliente atualizado.'); }
     catch (e) { showToast(e.message, 'error', 5000); celula.innerHTML = antes; }
@@ -845,6 +877,116 @@ function editarCelulaDoCliente(event, nome, campo) {
   };
   campoEl.onblur = () => encerrar(true);
 }
+// Quanto tempo desde a ultima conversa.
+//
+// A data sozinha nao responde a pergunta que se faz olhando a lista — "faz
+// quanto tempo?" — e obriga cada pessoa a fazer a conta de cabeca, todo dia,
+// para trinta clientes. A conta e do painel.
+const SEM_CONTATO_ATENCAO = 30;
+const SEM_CONTATO_GRAVE = 60;
+function diasSemContato(cliente) {
+  const iso = String(cliente?.ultima_reuniao || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const hoje = (typeof HOJE_ISO === 'string' && HOJE_ISO) || new Date().toISOString().slice(0, 10);
+  return Math.round((new Date(`${hoje}T12:00:00`) - new Date(`${iso}T12:00:00`)) / 86400000);
+}
+function selosDeContato(cliente) {
+  const dias = diasSemContato(cliente);
+  if (dias === null) return { classe: 'nunca', texto: 'sem registro' };
+  if (dias >= SEM_CONTATO_GRAVE) return { classe: 'grave', texto: `há ${dias} dias` };
+  if (dias >= SEM_CONTATO_ATENCAO) return { classe: 'atencao', texto: `há ${dias} dias` };
+  return { classe: '', texto: dias <= 0 ? 'hoje' : `há ${dias} dia${dias === 1 ? '' : 's'}` };
+}
+const brl = (v) => (v === null || v === undefined || v === '' ? ''
+  : new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits:0 }).format(Number(v)));
+
+// ── marcar varios clientes ────────────────────────────────────────────────────
+// Duas listas do modulo so se resolvem em lote: os trinta nomes que a operacao
+// criou sozinha e os catorze paineis desatualizados. Uma a uma, elas nunca
+// zeram — e lista que nunca zera para de ser lida.
+let CLIENTES_MARCADOS = new Set();
+function alternarClienteMarcado(nome, marcado) {
+  if (marcado) CLIENTES_MARCADOS.add(nome); else CLIENTES_MARCADOS.delete(nome);
+  pintarDeckDeClientes();
+}
+function limparMarcadosDeClientes() { CLIENTES_MARCADOS.clear(); renderClientesBoard(); }
+function marcarBlocoDeClientes(classe, marcar) {
+  document.querySelectorAll(`.cli-bloco.${classe} tbody tr[data-cliente]`).forEach((tr) => {
+    const nome = tr.dataset.cliente;
+    if (marcar) CLIENTES_MARCADOS.add(nome); else CLIENTES_MARCADOS.delete(nome);
+    const caixa = tr.querySelector('input[type=checkbox]');
+    if (caixa) caixa.checked = marcar;
+    tr.classList.toggle('marcada', marcar);
+  });
+  pintarDeckDeClientes();
+}
+function pintarDeckDeClientes() {
+  document.getElementById('cli-deck')?.remove();
+  if (!CLIENTES_MARCADOS.size || !podeEditarClientes()) return;
+  const nomes = [...CLIENTES_MARCADOS];
+  const semFicha = nomes.filter((n) => { const f = cadastroDoCliente(n);
+    return !f || !String(f.status || '').trim(); }).length;
+  const deck = document.createElement('div');
+  deck.id = 'cli-deck';
+  deck.className = 'grupos-lote';
+  deck.innerHTML = `<span class="lote-conta"><b>${nomes.length}</b><small>${
+      nomes.length === 1 ? 'marcado' : 'marcados'}</small></span>
+    <span class="lote-risco" aria-hidden="true"></span>
+    ${semFicha ? `<button type="button" class="lote-acao" onclick="loteCadastrarClientes()">Cadastrar ${semFicha}</button>` : ''}
+    <button type="button" class="lote-acao" onclick="lotePainelDoCliente('Atualizado')">Painel atualizado</button>
+    <button type="button" class="lote-acao" onclick="lotePainelDoCliente('Desatualizado')">Painel desatualizado</button>
+    <button type="button" class="lote-acao" onclick="loteNaoEhCliente()">Não é cliente</button>
+    <span class="lote-risco" aria-hidden="true"></span>
+    <button type="button" class="lote-limpar" onclick="limparMarcadosDeClientes()"
+      title="Desmarcar todos" aria-label="Desmarcar todos">✕</button>`;
+  document.body.appendChild(deck);
+}
+
+// Cada cliente e uma gravacao, como no resto do painel: se uma falhar, as outras
+// seguem, e a conta no fim diz quantas passaram.
+async function emLoteDeClientes(rotulo, fazer) {
+  const nomes = [...CLIENTES_MARCADOS];
+  if (!nomes.length) return;
+  const ok = await perguntarNoPainel({ titulo: `${rotulo} em ${nomes.length} cliente${nomes.length === 1 ? '' : 's'}?`,
+    texto: 'A alteração vale para todos os marcados.', confirmar: 'Aplicar' });
+  if (!ok) return;
+  let feitas = 0; const falhas = [];
+  for (const nome of nomes) {
+    try { await fazer(nome); feitas += 1; }
+    catch (e) { falhas.push(nome); console.warn('lote de clientes falhou em', nome, e); }
+  }
+  CLIENTES_MARCADOS.clear();
+  showToast(falhas.length ? `${feitas} feito(s) · ${falhas.length} falhou(ram)` : `✓ ${feitas} cliente(s) atualizados`,
+    falhas.length ? 'info' : 'ok', 6000);
+  await ensureClientMasterSources(true);
+}
+function loteCadastrarClientes() {
+  return emLoteDeClientes('Criar ficha', async (nome) => {
+    const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({ acao:'criar', nome }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || 'falhou');
+  });
+}
+function lotePainelDoCliente(valor) {
+  return emLoteDeClientes(`Marcar painel como ${valor}`, async (nome) => {
+    const id = idDoCliente(nome);
+    if (!id) throw new Error('sem cadastro');
+    const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ acao:'ficha', id, campos:{ dashboard: valor } }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || 'falhou');
+  });
+}
+function loteNaoEhCliente() {
+  return emLoteDeClientes('Marcar como "não é cliente"', async (nome) => {
+    const id = idDoCliente(nome);
+    if (!id) throw new Error('sem cadastro');
+    const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({ acao:'ignorar', id }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || 'falhou');
+  });
+}
+
 function linhaDeClienteHtml(nome, semCadastro, estado) {
   const f = cadastroDoCliente(nome) || {};
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
@@ -907,7 +1049,13 @@ function linhaDeClienteHtml(nome, semCadastro, estado) {
     : `<td class="cli-editavel" title="${titulo}" onclick="${chamada}">${dentro}</td>`;
 
   const segmento = String(f.segmento || ligado.segment || '').trim();
-  return `<tr onclick="abrirClienteDetalhe('${aspas}')" title="Abrir ${safeText(nome)}">
+  const marcado = CLIENTES_MARCADOS.has(nome);
+  return `<tr data-cliente="${safeText(nome)}" class="${marcado ? 'marcada' : ''}"
+      onclick="abrirClienteDetalhe('${aspas}')" title="Abrir ${safeText(nome)}">
+    <td class="cli-marcar" onclick="event.stopPropagation()">${podeEditarClientes()
+      ? `<input type="checkbox" ${marcado ? 'checked' : ''} aria-label="Marcar ${safeText(nome)}"
+          onclick="event.stopPropagation();this.closest('tr').classList.toggle('marcada',this.checked);alternarClienteMarcado('${aspas}',this.checked)">`
+      : ''}</td>
     <td class="cli-nome">${safeText(nome)}</td>
     ${clicavel(headsDoClienteHtml(f.heads || ligado.head || ''),
       `abrirHeadsDoCliente(event, '${aspas}')`, 'Clique para escolher o head')}
@@ -916,13 +1064,15 @@ function linhaDeClienteHtml(nome, semCadastro, estado) {
     ${editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || vazio)}
     <td class="cli-reunioes${podeMexer ? ' cli-editavel' : ''}"${podeMexer
       ? ` title="Clique na data para editar" onclick="editarCelulaDoCliente(event, '${aspas}', 'ultima_reuniao')"` : ''
-    }>${dataBr(f.ultima_reuniao) || (podeMexer
+    }>${f.ultima_reuniao ? `${dataBr(f.ultima_reuniao)}<span class="cli-contato ${
+        selosDeContato(f).classe}">${selosDeContato(f).texto}</span>` : (podeMexer
       ? `<span class="cli-mais" title="Registrar a data da última reunião"
           onclick="event.stopPropagation();editarCelulaDoCliente(event, '${aspas}', 'ultima_reuniao')">+</span>`
       : vazio)}${idNoCadastro ? `<button type="button" class="cli-atas ${Number(f.atas) ? 'tem' : ''}"
         title="${Number(f.atas) ? `${f.atas} ata(s) de reunião` : 'Nenhuma ata registrada'}"
         onclick="event.stopPropagation();abrirAtasDoCliente('${aspas}')">${
         Number(f.atas) ? `${f.atas} ata${Number(f.atas) === 1 ? '' : 's'}` : 'atas'}</button>` : ''}</td>
+    ${editavel('valor', brl(f.valor) ? `<span class="cli-valor">${safeText(brl(f.valor))}</span>` : vazio)}
     ${editavel('plano', safeText(f.plano || ligado.plan || '') || vazio)}
     ${clicavel(segmento ? `<span class="cli-tag-chip">${safeText(segmento)}</span>` : maisOuNada('Escolher o segmento', `abrirSegmentoDoCliente(event, '${aspas}')`),
       `abrirSegmentoDoCliente(event, '${aspas}')`, 'Clique para escolher a etiqueta')}
@@ -994,8 +1144,26 @@ function tabelaDeClientesHtml(clientes) {
     // tirou do painel de proposito; fora isso, nunca foi cadastrada.
     return f.ativo === false ? 'inativos' : 'sem';
   };
-  const caixas = { ativos: [], inativos: [], sem: [] };
-  clientes.filter(nomeVale).forEach((nome) => caixas[situacao(nome)].push(nome));
+  const caixas = { ativos: [], inativos: [], sem: [], ignorados: [] };
+  clientes.filter(nomeVale).forEach((nome) => {
+    const f = cadastroDoCliente(nome);
+    if (f?.nao_e_cliente) return caixas.ignorados.push(nome);
+    caixas[situacao(nome)].push(nome);
+  });
+  // O foco escolhido nos numeros do topo recorta a lista inteira.
+  const passaNoFoco = (nome) => {
+    const f = cadastroDoCliente(nome) || {};
+    if (FOCO_DE_CLIENTES === 'sem-contato') { const d = diasSemContato(f);
+      return d === null || d >= SEM_CONTATO_ATENCAO; }
+    if (FOCO_DE_CLIENTES === 'painel-velho') {
+      const p = String(f.dashboard || '').trim();
+      return Boolean(p) && !painelEstaEmDia(p);
+    }
+    return true;
+  };
+  if (FOCO_DE_CLIENTES !== 'todos') {
+    ['ativos', 'inativos', 'sem', 'ignorados'].forEach((k) => { caixas[k] = caixas[k].filter(passaNoFoco); });
+  }
   const fechados = blocosFechadosDeClientes();
   const bloco = (titulo, lista, classe, recado) => !lista.length ? '' : `
     <section class="cli-bloco ${classe}${fechados.has(classe) ? ' fechado' : ''}">
@@ -1007,8 +1175,11 @@ function tabelaDeClientesHtml(clientes) {
         ${recado ? `<em class="cli-recado">${recado}</em>` : ''}
       </button>
       <div class="cli-bloco-corpo"><div class="grupo-tabela-rolagem"><table class="grupo-tabela cli-tabela"><thead><tr>
+        <th class="cli-marcar">${podeEditarClientes()
+          ? `<input type="checkbox" aria-label="Marcar todos deste bloco"
+              onclick="marcarBlocoDeClientes('${classe}', this.checked)">` : ''}</th>
         <th>Cliente</th><th>Head</th><th>Status</th><th>Dashboard</th><th>Próx. reunião</th>
-        <th>Última reunião</th><th>Plano</th><th>Segmento</th><th>Drive</th><th>Manus</th>
+        <th>Última reunião</th><th>Valor</th><th>Plano</th><th>Segmento</th><th>Drive</th><th>Manus</th>
         <th>Documento</th><th>Aberto</th><th></th>
       </tr></thead><tbody>${lista.map((n) => linhaDeClienteHtml(n, classe === 'sem', classe)).join('')}</tbody></table></div></div>
     </section>`;
@@ -1016,6 +1187,8 @@ function tabelaDeClientesHtml(clientes) {
     + bloco('Inativos', caixas.inativos, 'inativos')
     + bloco('Só na operação', caixas.sem, 'sem',
         'aparecem em conteúdos, solicitações ou no Drive, mas não têm ficha no cadastro')
+    + bloco('Não são clientes', caixas.ignorados, 'ignorados',
+        'nomes que a operação criou sozinha e alguém marcou como não sendo cliente')
     || '<div class="grupos-vazio">Nenhum cliente encontrado.</div>';
 }
 
@@ -1051,6 +1224,7 @@ async function recarregarAtas() {
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d?.error || 'Não foi possível buscar as atas.');
     ATAS_DO_CLIENTE.lista = d.atas || [];
+    ATAS_DO_CLIENTE.eventos = d.eventos || [];
     pintarAtas();
   } catch (e) {
     caixa.innerHTML = `<div class="auto-carregando">Não foi possível buscar<br><small>${safeText(e.message)}</small></div>`;
@@ -1074,7 +1248,20 @@ function pintarAtas() {
         placeholder="O que foi decidido, o que ficou pendente e com quem."></textarea>
       <div class="workflow-actions"><button type="submit" class="workflow-primary">Registrar ata →</button></div>
     </form>` : '';
-  caixa.innerHTML = nova + (lista.length
+  // A historia de entrada e saida vem junto das atas: quem abre as reunioes de um
+  // cliente esta reconstruindo a relacao com ele, e "saiu em marco, voltou em
+  // julho" faz parte dessa reconstrucao. Antes isso nao existia em lugar nenhum:
+  // o cadastro guardava o estado de hoje e apagava a historia.
+  const eventos = ATAS_DO_CLIENTE.eventos || [];
+  const quando = (v) => { const iso = String(v || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const historia = eventos.length ? `<div class="cli-historia">
+      <b>Histórico</b>${eventos.map((e) => `<div class="cli-historia-linha">
+        <span>${safeText(quando(e.em))}</span>
+        <em>${safeText(e.de || '—')} → ${safeText(e.para || '—')}</em>
+        ${e.motivo ? `<small>${safeText(e.motivo)}</small>` : ''}
+        <i>${safeText(e.autor || '')}</i></div>`).join('')}</div>` : '';
+  caixa.innerHTML = nova + historia + (lista.length
     ? `<div class="cli-atas-rolo">${lista.map((a) => `<article class="cli-ata">
         <header><b>${safeText(dataBr(a.data))}</b><small>${safeText(a.autor || '')}</small>${
           podeEscrever ? `<button type="button" class="cli-ata-apagar" title="Apagar esta ata"
@@ -1363,6 +1550,7 @@ function renderClientesLista(clientes) {
   if (visaoDeClientes() === 'tabela') {
     grid.classList.add('em-tabela');
     grid.innerHTML = tabelaDeClientesHtml(clientes);
+    pintarDeckDeClientes();
     return;
   }
   grid.classList.remove('em-tabela');
