@@ -800,34 +800,40 @@
     .identity-station.station-clientes .station-description{max-width:470px;margin:2px 0 0}
     .identity-station.station-clientes .station-tags{margin:0 0 0 auto;padding:0;align-self:flex-end}
     .identity-station.station-clientes .station-action{right:19px;bottom:17px}
-    .client-module-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;padding:18px 20px;margin-bottom:14px;border:1px solid rgba(139,125,255,.42);background:radial-gradient(circle at 8% 0,rgba(139,125,255,.16),transparent 38%),linear-gradient(110deg,rgba(139,125,255,.09),rgba(12,10,22,.9));box-shadow:inset 3px 0 0 #8b7dff}
-    .client-module-kicker{display:block;color:#a69bff;font:700 10px var(--mac-ui)}
-    .client-module-hero h2{margin:6px 0 2px;color:#eaf6ff;font:700 26px var(--mac-ui);letter-spacing:.04em}
-    .client-module-hero p{margin:0;max-width:680px;color:#b8b2cc;font-size:11px;line-height:1.45}
+    /* Este modulo nasceu roxo, de um tema que o painel nao usa em lugar nenhum:
+       cada tela ao lado dela e preta com laranja, e so aqui aparecia lilas. Cor
+       no painel e dado — status, atraso, etiqueta. Cor de enfeite compete com
+       ela e cansa a vista. Aqui a cor virou a mesma do resto. */
+    .client-module-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;padding:18px 20px;margin-bottom:14px;border:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));border-radius:14px;background:radial-gradient(circle at 8% 0,color-mix(in srgb,var(--accent,#ff6b00) 10%,transparent),transparent 42%),linear-gradient(110deg,rgba(255,255,255,.02),rgba(10,8,6,.9));box-shadow:inset 3px 0 0 #8b7dff}
+    .client-module-kicker{display:block;color:var(--accent,#ff6b00);font:700 10px var(--mac-ui);letter-spacing:.08em}
+    .client-module-hero h2{margin:6px 0 2px;color:#f6f7fa;font:700 26px var(--mac-ui);letter-spacing:.02em}
+    .client-module-hero p{margin:0;max-width:680px;color:#9da4b4;font-size:11px;line-height:1.45}
     .client-module-actions{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-    .client-module-source{color:#a59bbd;font:700 10px var(--mac-ui);white-space:nowrap}
-    .client-module-actions button{border:1px solid #8b7dff;background:rgba(139,125,255,.12);color:#d9d1ff;padding:8px 10px;font:700 10px var(--mac-ui);cursor:pointer}
+    .client-module-source{color:#6f7887;font:700 10px var(--mac-ui);letter-spacing:.06em;white-space:nowrap}
+    .client-module-actions button{border:1px solid color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);border-radius:999px;background:color-mix(in srgb,var(--accent,#ff6b00) 12%,transparent);color:#ffc79a;padding:8px 14px;font:700 10px var(--mac-ui);letter-spacing:.04em;cursor:pointer}
+    .client-module-actions button:hover{border-color:var(--accent,#ff6b00);background:color-mix(in srgb,var(--accent,#ff6b00) 20%,transparent);color:#fff}
     .client-master-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
-    .client-master-kpi{min-height:76px;padding:12px 12px;border:1px solid rgba(139,125,255,.24);background:rgba(17,14,29,.72)}
-    .client-master-kpi b{display:block;color:#eeeaff;font:700 20px var(--mac-ui)}
+    .client-master-kpi{min-height:76px;padding:12px;border:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));border-radius:12px;background:rgba(255,255,255,.02)}
+    .client-master-kpi b{display:block;color:#f6f7fa;font:700 20px var(--mac-ui)}
     .client-master-kpi span{display:block;margin-top:4px;color:#9e96af;font-size:10px}
-    .client-master-kpi small{display:block;margin-top:4px;color:#a69bff;font-size:10px}
+    .client-master-kpi small{display:block;margin-top:4px;color:var(--accent,#ff6b00);font-size:10px}
     .client-source-rail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:16px}
     .client-source-card{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);background:rgba(10,10,15,.7)}
-    .client-source-card b{display:block;color:#d9d1ff;font:700 10px var(--mac-ui)}
-    .client-source-card span{display:block;margin-top:4px;color:#8e83a5;font-size:10px}
+    .client-source-card{border-radius:12px}
+    .client-source-card b{display:block;color:#eef1f6;font:700 10px var(--mac-ui)}
+    .client-source-card span{display:block;margin-top:4px;color:#8f98a9;font-size:10px}
     .client-source-card em{font-style:normal;color:#ffbd2e;font:700 10px var(--mac-ui);white-space:nowrap}
     .client-source-card.connected em{color:#62e5a9}
     .client-master-detail{display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-bottom:16px}
-    .client-master-detail-card{min-width:0;border:1px solid rgba(139,125,255,.28);background:linear-gradient(120deg,rgba(139,125,255,.08),rgba(10,9,16,.8));padding:12px}
-    .client-master-detail-card h3{margin:0;color:#eeeaff;font:700 14px var(--mac-ui)}
-    .client-master-detail-card p{margin:4px 0 0;color:#9e96af;font-size:10px;line-height:1.4}
+    .client-master-detail-card{min-width:0;border:1px solid var(--vybe-line-quiet,rgba(255,255,255,.09));border-radius:14px;background:rgba(255,255,255,.018);padding:16px 18px}
+    .client-master-detail-card h3{margin:0;color:#f6f7fa;font:700 15px var(--mac-ui)}
+    .client-master-detail-card p{margin:6px 0 0;color:#8f98a9;font-size:11px;line-height:1.45}
     .client-master-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
     .client-master-detail-field{padding:8px;border-top:1px solid rgba(255,255,255,.08);min-width:0}
-    .client-master-detail-field small{display:block;color:#8e83a5;font:700 10px var(--mac-ui)}
+    .client-master-detail-field small{display:block;color:#8f98a9;font:700 9.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
     /* Endereco do Drive e uma linha unica de 90 caracteres: sem quebrar, ele
        passava por cima do campo vizinho e os dois viravam ilegiveis. */
-    .client-master-detail-field b{display:block;margin-top:4px;color:#d7deeb;font-size:10px;
+    .client-master-detail-field b{display:block;margin-top:6px;color:#eef1f6;font:600 12px var(--mac-ui);
       overflow-wrap:anywhere;word-break:break-word}
     .client-master-detail-field b.pending{color:#ffbd2e}
     @media(max-width:900px){.client-module-hero{align-items:flex-start;flex-direction:column}.client-module-actions{justify-content:flex-start}.client-master-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.client-source-rail{grid-template-columns:1fr}.client-master-detail{grid-template-columns:1fr}.identity-station.station-clientes{grid-column:auto;min-height:188px!important;align-items:flex-start;flex-direction:column;gap:0}.identity-station.station-clientes .station-tags{margin-top:auto;align-self:flex-start}.identity-station.station-clientes .station-action{right:15px;bottom:15px}}
@@ -2082,6 +2088,11 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 /* Numero que leva a algum lugar diz isso antes de ser clicado. */
 .kpi-card.clicavel{cursor:pointer}
 .kpi-card.clicavel:hover{border-color:color-mix(in srgb,var(--accent,#ff6b00) 50%,transparent)}
+/* Conteudo e solicitacoes do cliente, lado a lado. */
+.cliente-listas{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px;align-items:start}
+.cliente-listas>section{min-width:0}
+.cliente-listas .uma-coluna{grid-template-columns:1fr!important;margin-bottom:0}
+@media(max-width:900px){.cliente-listas{grid-template-columns:1fr}}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
 .clientes-visao-btn.novo:hover{border-color:var(--accent,#ff6b00);
   background:color-mix(in srgb,var(--accent,#ff6b00) 16%,transparent);color:#fff}
@@ -3644,10 +3655,19 @@ button:not(:disabled):not([aria-disabled="true"]):active,
         <span id="cliente-detalhe-nome" style="font-weight:700;font-size:14px;color:var(--text);margin-left:8px;"></span>
       </div>
       <div id="client-master-detail" class="client-master-detail"></div>
-      <div class="section-title"><span></span>Produção de Conteúdo</div>
-      <div class="clients-grid" id="grid-cliente-producao"></div>
-      <div class="section-title" style="margin-top:16px;"><span></span>Solicitações de Demandas</div>
-      <div class="demandas-grid" id="grid-cliente-demandas"></div>
+      <!-- As duas listas lado a lado. Empilhadas, cada uma ocupava so o terco da
+           esquerda e sobrava meia tela preta a direita: a grade e de encher a
+           largura com varios cartoes, e aqui so ha um de cada. -->
+      <div class="cliente-listas">
+        <section>
+          <div class="section-title"><span></span>Produção de Conteúdo</div>
+          <div class="clients-grid uma-coluna" id="grid-cliente-producao"></div>
+        </section>
+        <section>
+          <div class="section-title"><span></span>Solicitações de Demandas</div>
+          <div class="demandas-grid uma-coluna" id="grid-cliente-demandas"></div>
+        </section>
+      </div>
     </div>
   </div>
 </div>
