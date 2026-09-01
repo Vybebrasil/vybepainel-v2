@@ -298,13 +298,27 @@ function managerCalendarClientList(allItems, meta) {
 // Com trinta clientes as fichas ocupam quatro linhas antes do calendario
 // comecar; quem sabe o nome prefere digitar.
 let CLIENTES_DO_CALENDARIO = [];
+// Trinta e poucos clientes lado a lado ocupavam quatro linhas — mais espaco que
+// o calendario que eles filtram — e a maioria com zero no mes. Ver todos passa a
+// ser ESCOLHA, nao padrao: por padrao aparecem os tres com mais trabalho no mes,
+// e o resto fica atras de um "+N" que abre a mesma lista com busca.
 function modoDaListaDeClientes() {
-  try { return localStorage.getItem('vybe_calendario_clientes') === 'busca' ? 'busca' : 'fichas'; }
-  catch { return 'fichas'; }
+  try {
+    const guardado = localStorage.getItem('vybe_calendario_clientes');
+    return ['busca', 'fichas', 'resumo'].includes(guardado) ? guardado : 'resumo';
+  } catch { return 'resumo'; }
 }
 function trocarModoDaListaDeClientes() {
-  const novo = modoDaListaDeClientes() === 'busca' ? 'fichas' : 'busca';
-  try { localStorage.setItem('vybe_calendario_clientes', novo); } catch { /* navegador sem armazenamento */ }
+  // Gira entre as tres formas, na ordem em que se precisa delas: o resumo do
+  // dia a dia, a lista inteira quando se quer varrer, e a busca quando se sabe
+  // o nome.
+  const proximo = { resumo:'fichas', fichas:'busca', busca:'resumo' }[modoDaListaDeClientes()];
+  try { localStorage.setItem('vybe_calendario_clientes', proximo); } catch { /* navegador sem armazenamento */ }
+  renderManagerCalendar();
+}
+function verTodosOsClientes(sim) {
+  try { localStorage.setItem('vybe_calendario_clientes', sim ? 'fichas' : 'resumo'); }
+  catch { /* navegador sem armazenamento */ }
   renderManagerCalendar();
 }
 
@@ -730,9 +744,37 @@ function renderManagerCalendar() {
       title="Escolher ou buscar cliente"><b>${safeText(escolhido.rotulo)}</b> ${escolhido.total}
       <i class="cliente-seta">▾</i></button>`;
   const alternar = `<button type="button" class="manager-calendar-modo" onclick="trocarModoDaListaDeClientes()"
-      title="${modoClientes==='busca'?'Mostrar todos os clientes lado a lado':'Trocar por uma busca por nome'}"
-      aria-label="Trocar a forma de escolher o cliente">${modoClientes==='busca'?'▤':'⌕'}</button>`;
-  const clientButtons = (modoClientes === 'busca' ? busca : fichas) + alternar;
+      title="${modoClientes==='resumo' ? 'Ver todos os clientes lado a lado'
+        : modoClientes==='fichas' ? 'Trocar por uma busca por nome'
+        : 'Voltar para os principais do mês'}"
+      aria-label="Trocar a forma de escolher o cliente">${
+        modoClientes==='resumo' ? '▤' : modoClientes==='fichas' ? '⌕' : '⋯'}</button>`;
+  // O resumo: os tres com mais trabalho no mes, mais o escolhido se ele nao
+  // estiver entre eles — some o cliente que a pessoa acabou de selecionar seria
+  // o pior tipo de economia de espaco.
+  const ficha = ({ client, count }) => `<button type="button" class="manager-calendar-client ${
+      managerCalendarClientFilter === client ? 'active' : ''} ${count === 0 ? 'vazio' : ''}"
+      onclick="managerCalendarSetClient(decodeURIComponent('${encodeURIComponent(client)}'))"><b>${
+      safeText(client)}</b> ${count}</button>`;
+  const comTrabalho = [...clients].filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
+  const primeiros = comTrabalho.slice(0, 3);
+  const escolhidoDeFora = managerCalendarClientFilter !== 'all'
+    && !primeiros.some((c) => c.client === managerCalendarClientFilter)
+    ? clients.find((c) => c.client === managerCalendarClientFilter) : null;
+  const mostrados = [...primeiros, ...(escolhidoDeFora ? [escolhidoDeFora] : [])];
+  const restantes = clients.length - mostrados.length;
+  const resumo = [
+    `<button type="button" class="manager-calendar-client ${managerCalendarClientFilter === 'all' ? 'active' : ''}"
+      onclick="managerCalendarSetClient('all')"><b>Todos</b> ${totalNoMes}</button>`,
+    ...mostrados.map(ficha),
+    restantes > 0 ? `<button type="button" class="manager-calendar-client escolha" onclick="abrirBuscaDeCliente(event)"
+      title="Ver os outros ${restantes} clientes"><b>+${restantes}</b><i class="cliente-seta">▾</i></button>` : '',
+    `<button type="button" class="manager-calendar-vertodos" onclick="verTodosOsClientes(true)">ver todos</button>`,
+  ].filter(Boolean).join('');
+  const fichasComRecolher = fichas
+    + `<button type="button" class="manager-calendar-vertodos" onclick="verTodosOsClientes(false)">ver menos</button>`;
+  const clientButtons = (modoClientes === 'busca' ? busca
+    : modoClientes === 'fichas' ? fichasComRecolher : resumo) + alternar;
   const demandNote = DADOS_DEMANDAS.length ? `<div class="manager-calendar-demand-note"><span><b>${sourceCount.request}</b> solicitações aparecem na agenda. Elas permanecem separadas do conteúdo e podem ser abertas pelo próprio calendário.</span><button type="button" onclick="switchBoard('demandas',document.getElementById('btn-board-demandas'))">Abrir esteira de solicitações →</button></div>` : `<div class="manager-calendar-demand-note"><span><b>Solicitações ainda não carregadas nesta sessão.</b> A agenda já está preparada para cruzar o board de Solicitação de Demandas sem misturar sua origem com conteúdo.</span><button type="button" onclick="managerCalendarLoadDemandas(this)">Carregar solicitações</button></div>`;
   wrap.innerHTML = `<div class="manager-calendar-head"><div><div class="manager-calendar-kicker">Gestor · Planejamento visual</div><div class="manager-calendar-title">Agenda mensal por cliente</div><div class="manager-calendar-sub">Troque de cliente, veja veiculações e prazos no mês, abra a atividade no Workspace e arraste um item para preparar uma nova data.</div></div><div class="manager-calendar-actions"><button type="button" class="${dateMode==='veiculacao'?'active':''}" onclick="managerCalendarSetDateMode('veiculacao')">Veiculação</button><button type="button" class="${dateMode==='prazo'?'active':''}" onclick="managerCalendarSetDateMode('prazo')">Prazo</button><button type="button" class="primary" onclick="managerCalendarAdd('${managerCalendarDateIso(new Date())}')">+ CADASTROS</button><button type="button" onclick="managerCalendarOpenClientMaster()">Cliente master</button></div></div><div class="manager-calendar-toolbar"><div class="manager-calendar-month"><button type="button" onclick="managerCalendarGoMonth(-1)" aria-label="Mês anterior">‹</button><span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span><button type="button" onclick="managerCalendarGoMonth(1)" aria-label="Próximo mês">›</button><button type="button" onclick="managerCalendarGoToday()">HOJE</button></div><div class="manager-calendar-clients">${clientButtons}</div><div class="manager-calendar-status"><i class="${DADOS_DEMANDAS.length?'demands':''}"></i>${sourceCount.content} conteúdo · ${sourceCount.request} solicitações</div></div><div class="manager-calendar-legend"><span class="manager-calendar-legend-copy">Referência ativa: <b>${dateMode==='prazo'?'PRAZO DE PRODUÇÃO':'VEICULAÇÃO'}</b> · clique para abrir · arraste para mover</span><span class="manager-calendar-source-legend"><span><i></i> Conteúdo</span><span><i class="request"></i> Solicitação de Demanda</span></span></div>${demandNote}<div class="manager-calendar-grid"><div class="manager-calendar-weekday">SEG</div><div class="manager-calendar-weekday">TER</div><div class="manager-calendar-weekday">QUA</div><div class="manager-calendar-weekday">QUI</div><div class="manager-calendar-weekday">SEX</div><div class="manager-calendar-weekday">SÁB</div><div class="manager-calendar-weekday">DOM</div>${cells}</div><div class="manager-calendar-footer"><span><strong>${monthItems.length}</strong> itens no mês · <strong>${clients.length}</strong> clientes com atividade</span><button type="button" onclick="managerCalendarSetClient('all');managerCalendarSetSource('all')">Limpar visão do calendário</button></div>`;
 }
