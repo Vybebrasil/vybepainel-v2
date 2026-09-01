@@ -3927,6 +3927,66 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-planning-row .da-planning-open{grid-column:10!important}
 /* A celula inteira e o alvo do clique: mirar numa bolinha de 22px para trocar
    quem faz a peca seria pedir pontaria. */
+/* ── O topo da mesa: numeros que levam a uma acao ──────────────────────────
+   Cada numero e um botao que filtra a lista por ele. Numero que so informa,
+   numa tela de trabalho, e decoracao — quem le "4 prazos venceram" quer ver
+   quais quatro. */
+.da-planning-acao{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;
+  flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.012)}
+.ag-numeros{display:flex;gap:6px;flex-wrap:wrap}
+.ag-num{display:flex;align-items:baseline;gap:7px;border:1px solid var(--linha);border-radius:10px;
+  background:rgba(255,255,255,.03);padding:7px 12px;cursor:pointer;
+  transition:background .14s var(--curva),border-color .14s var(--curva)}
+.ag-num:hover:not(.quieto){background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+.ag-num.quieto{cursor:default;opacity:.72}
+.ag-num b{color:#f7f7fa;font:600 17px var(--mac-ui);font-variant-numeric:tabular-nums;line-height:1}
+.ag-num span{color:#8b8b90;font:500 11px var(--mac-ui)}
+.ag-num.alerta b{color:#ff8b9a}
+.ag-num.alerta{border-color:rgba(255,77,109,.32);background:rgba(255,77,109,.09)}
+.ag-num.atencao b{color:#ffc470}
+.ag-acao-lado{display:flex;align-items:center;gap:12px;margin-left:auto}
+.ag-acao-nota{max-width:290px;color:#8b8b90;font:500 11.5px/1.45 var(--mac-ui);text-align:right}
+.ag-acao-nota b{color:#f2f2f5;font-weight:600}
+.ag-arrumar{border:1px solid color-mix(in srgb,var(--accent,#ff6b00) 58%,transparent);border-radius:10px;
+  background:color-mix(in srgb,var(--accent,#ff6b00) 20%,transparent);color:#ffd9b8;
+  padding:10px 16px;font:600 12.5px var(--mac-ui);cursor:pointer;white-space:nowrap;
+  transition:background .15s var(--curva),transform .15s var(--curva)}
+.ag-arrumar:hover:not(:disabled){background:color-mix(in srgb,var(--accent,#ff6b00) 32%,transparent);color:#fff}
+.ag-arrumar:active:not(:disabled){transform:scale(.98)}
+.ag-arrumar:disabled{opacity:.4;cursor:default;background:rgba(255,255,255,.04);
+  border-color:var(--linha);color:#75757c}
+
+/* ── A proposta: o que MUDARIA, antes de mudar ────────────────────────────── */
+.ag-resumo{margin:14px 0 10px;color:#c9c9d1;font:500 13px/1.5 var(--mac-ui)}
+.ag-resumo b{color:#f7f7fa;font:600 15px var(--mac-ui)}
+.ag-resumo.ok{color:#6fdfa8}
+.ag-lista{display:flex;flex-direction:column;max-height:min(46vh,380px);overflow-y:auto;
+  border:1px solid var(--linha);border-radius:12px;background:rgba(0,0,0,.2)}
+.ag-linha{display:grid;grid-template-columns:minmax(0,1.5fr) auto minmax(120px,.7fr);gap:14px;
+  align-items:center;padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.045)}
+.ag-linha:last-child{border-bottom:0}
+.ag-copy{min-width:0}
+.ag-copy b{display:block;color:#f2f2f5;font:600 12.5px var(--mac-ui);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-copy small{display:block;margin-top:2px;color:#75757c;font:500 11px var(--mac-ui)}
+/* De → para, lado a lado: a mudanca se le sem precisar comparar duas colunas. */
+.ag-mudanca{display:flex;align-items:center;gap:8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ag-mudanca i{color:#75757c;font-style:normal;font:500 12px var(--mac-ui);text-decoration:line-through}
+.ag-mudanca em{color:#6c6c74;font-style:normal}
+.ag-mudanca b{color:#8fe7ba;font:600 12.5px var(--mac-ui)}
+.ag-motivo{color:#75757c;font:500 11px/1.4 var(--mac-ui);text-align:right}
+.ag-pendencia{margin-top:12px;border:1px solid rgba(255,178,64,.28);border-radius:10px;
+  background:rgba(255,178,64,.08);padding:11px 13px;color:#e3cba6;font:500 12px/1.55 var(--mac-ui)}
+.ag-pendencia b{display:block;color:#ffd399;font-weight:600}
+@media(max-width:760px){
+  .da-planning-acao{align-items:flex-start;flex-direction:column}
+  .ag-acao-lado{margin-left:0;width:100%;justify-content:space-between}
+  .ag-acao-nota{text-align:left}
+  .ag-linha{grid-template-columns:1fr;gap:5px}
+  .ag-motivo{text-align:left}
+}
+
 .da-planning-donos-col .owner-editor-trigger{width:100%;border:0;background:transparent;padding:4px 2px;
   border-radius:8px;cursor:pointer;display:flex;align-items:center;
   transition:background .14s var(--curva)}

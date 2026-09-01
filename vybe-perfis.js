@@ -921,6 +921,220 @@ function daPlanningBulkToolbarHtml(items,userId){
 function daPlanningRefreshBulkPreview(userId){ const note=document.getElementById('da-planning-bulk-preview'); const date=String(document.getElementById('da-planning-bulk-date')?.value||''); const items=daPlanningSelection(userId); if(!note) return; if(!date){note.className='da-bulk-date-preview';note.textContent='Selecione uma nova data para avaliar '+items.length+' demanda'+(items.length===1?'':'s')+'.';return;} const invalid=items.filter(item=>item.veiculacao_iso&&date>item.veiculacao_iso); if(invalid.length){note.className='da-bulk-date-preview err';note.textContent='Não é possível aplicar: '+invalid.length+' demanda'+(invalid.length===1?' ficaria':'s ficariam')+' com o prazo depois da veiculação.';return;} const alerts=items.filter(item=>item.veiculacao_iso&&date!==goldenDeadlineIso(item.veiculacao_iso)).length; note.className='da-bulk-date-preview '+(alerts?'warn':'ok'); const suffix=alerts?' '+alerts+' ficará'+(alerts===1?'':'ão')+' fora do padrão de '+PRAZO_OURO_DIAS+' dias, apenas com alerta visual.':''; note.textContent=items.length+' demanda'+(items.length===1?' receberá':'s receberão')+' o prazo '+planningDateBr(date)+'.'+suffix; }
 function daPlanningOpenBulkEditor(userId){ const selected=daPlanningSelection(userId); return showToast(selected.length>=2?'Altere a data diretamente em qualquer linha marcada para aplicar em '+selected.length+' demandas.':'Marque ao menos 2 demandas para editar o prazo em lote diretamente na tabela.','info',5000); }
 async function applyDaPlanningBulkDeadline(userId){ const date=String(document.getElementById('da-planning-bulk-date')?.value||''); const items=daPlanningSelection(userId); if(!date||!items.length) return showToast('Selecione a data e pelo menos uma demanda.','info'); const invalid=items.filter(item=>item.veiculacao_iso&&date>item.veiculacao_iso); if(invalid.length) return showToast('O prazo não pode ficar depois da veiculação.','err',7000); if(!window.confirm(`Aplicar o prazo ${planningDateBr(date)} em ${items.length} demanda${items.length===1?'':'s'}?`)) return; const button=document.getElementById('da-planning-bulk-save'); if(button){button.disabled=true;button.textContent='Aplicando…';} armOutboundMutationGuard('prazos em lote da mesa individual'); const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; const success=[]; const failed=[]; for(const item of items){ try{ if(!await tentarEscritaDupla(item,{acao:'prazo',item:String(item.id),data:date})) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify({data:{date}})}); const veic=String(item.veiculacao_iso||''); const followsGolden=Boolean(veic&&date===goldenDeadlineIso(veic)); try{await postItemUpdate(item.id,`[Vybe OS · Planejamento em lote do DA]\nPrazo: ${planningDateBr(item.prazo_iso)} → ${planningDateBr(date)}\nVeiculação: ${planningDateBr(veic)}\n${followsGolden?`Prazo de Ouro protegido (${PRAZO_OURO_DIAS} dias antes da veiculação).`:`Ajuste coletivo permitido; alerta visual de margem aplicado quando necessário.`}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);}catch(logError){console.warn('Prazo alterado, mas histórico não foi registrado.',logError);} if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(row=>String(row.id)===String(item.id)); if(request){request.prazo_iso=date;request.prazo=planningDateBr(date).slice(0,5);} outboundMutationGuardUntil=0; } else applyOutboundItemPatch(item.id,{prazo_iso:date},'prazos em lote da mesa individual'); DA_PLANNING_SELECTED_IDS.delete(String(item.id)); success.push(item);}catch(error){failed.push(item);console.warn('Falha ao aplicar prazo em lote',item.id,error);}} saveProductionCache(); renderDaController(); openDaIndividualPlanningDesk(userId); if(!failed.length){closeWorkflowModal();showToast(`✓ ${success.length} prazo${success.length===1?' atualizado':'s atualizados'} em lote.`,'ok');}else{if(button){button.disabled=false;button.textContent=`Tentar novamente em ${failed.length}`;}showToast(`${success.length} prazo${success.length===1?'':'s'} atualizado${success.length===1?'':'s'}; ${failed.length} falhou${failed.length===1?'':'ram'}.`,'info',7000);} }
+// ── ARRUMAR A AGENDA ─────────────────────────────────────────────────────────
+//
+// O trabalho da mesa era todo na mao: abrir todo dia, olhar o que venceu, e
+// reescrever prazo por prazo para caber no dia de cada um. Com 89 entregas
+// ativas isso e uma hora de digitacao para chegar a uma conta que o computador
+// faz em milissegundos.
+//
+// A regra que a operacao ja segue, escrita como codigo:
+//   1. quem vai ao ar primeiro e feito primeiro (ordem pela veiculacao);
+//   2. cerca de cinco entregas por dia por pessoa;
+//   3. prazo nunca depois da veiculacao — isso ja e lei no painel;
+//   4. nada e marcado para ontem: a fila comeca hoje.
+//
+// A proposta NAO GRAVA NADA. Ela devolve a lista do que mudaria, e quem decide
+// e a pessoa olhando a lista. Reescrever 89 prazos em silencio seria trocar um
+// trabalho chato por um susto.
+const CARGA_IDEAL_POR_DIA = 5;
+
+function proximoDiaUtil(iso) {
+  const d = new Date(`${iso}T12:00:00`);
+  // Sabado e domingo nao recebem prazo: marcar entrega para o fim de semana e
+  // combinar um atraso com antecedencia.
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+function somarDias(iso, dias) {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + Number(dias || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+// A proposta de agenda para as pessoas da mesa. Uma fila por pessoa: duas
+// pessoas dividindo a mesa nao somam carga uma da outra.
+//
+// A PRIMEIRA VERSAO DESTA CONTA ESTAVA ERRADA e vale registrar por que. Ela
+// enfileirava tudo a partir de HOJE, cinco por dia: onze pecas viravam onze
+// prazos nos tres dias seguintes, para conteudo que ia ao ar ao longo de sete
+// semanas. Cumpria as regras e produzia uma agenda impossivel.
+//
+// O alvo certo ja era lei no painel: o PRAZO DE OURO, sete dias antes do ar.
+// Cada peca comeca ali. A carga de cinco por dia deixa de ser a regra que
+// distribui e passa a ser o limite que corrige — dia cheio empurra a peca para
+// ANTES (protege a veiculacao), e so quando nao ha dia livre antes e que ela
+// anda para depois, nunca passando do ar.
+function proporAgenda(pessoasDaMesa) {
+  const hoje = daPlanningTodayIso();
+  const propostas = [];
+  const semVeiculacao = [];
+
+  (pessoasDaMesa || []).forEach((pessoaId) => {
+    const itens = daIndividualPlanningItems(pessoaId).filter((item) => !isFinishedItem(item));
+    // Sem veiculacao nao ha o que calcular: a regra inteira parte dela. Estas
+    // saem da conta e sao DEVOLVIDAS a pessoa como pendencia, em vez de
+    // receberem uma data inventada.
+    itens.filter((item) => !String(item.veiculacao_iso || ''))
+      .forEach((item) => { if (!semVeiculacao.some((x) => String(x.id) === String(item.id))) semVeiculacao.push(item); });
+    const comData = itens.filter((item) => String(item.veiculacao_iso || ''))
+      .sort((a, b) => String(a.veiculacao_iso).localeCompare(String(b.veiculacao_iso)));
+
+    const carga = new Map();
+    const cabe = (dia) => (carga.get(dia) || 0) < CARGA_IDEAL_POR_DIA;
+    const ehUtil = (dia) => { const d = new Date(`${dia}T12:00:00`).getDay(); return d !== 0 && d !== 6; };
+
+    comData.forEach((item) => {
+      const veic = String(item.veiculacao_iso);
+      // Onde a peca DEVERIA cair: sete dias antes do ar, nunca no passado e
+      // nunca depois do proprio ar.
+      let alvo = goldenDeadlineIso(veic) || veic;
+      if (alvo < hoje) alvo = hoje;
+      if (alvo > veic) alvo = veic;
+      if (!ehUtil(alvo)) alvo = proximoDiaUtil(alvo) > veic ? alvo : proximoDiaUtil(alvo);
+
+      let escolhido = alvo;
+      if (!cabe(alvo)) {
+        // Dia cheio: procura ANTES primeiro — adiantar protege a veiculacao,
+        // atrasar a ameaca.
+        let antes = ''; let d = alvo;
+        for (let i = 0; i < 30 && d > hoje; i += 1) {
+          d = somarDias(d, -1);
+          if (d >= hoje && ehUtil(d) && cabe(d)) { antes = d; break; }
+        }
+        if (antes) escolhido = antes;
+        else {
+          let depois = ''; let e = alvo;
+          for (let i = 0; i < 30 && e < veic; i += 1) {
+            e = somarDias(e, 1);
+            if (e <= veic && ehUtil(e) && cabe(e)) { depois = e; break; }
+          }
+          // Sem dia livre dos dois lados, a peca fica no alvo e o dia estoura os
+          // cinco. Preferir a data certa a uma carga bonita: a alternativa seria
+          // mover a peca para depois do ar.
+          escolhido = depois || alvo;
+        }
+      }
+      carga.set(escolhido, (carga.get(escolhido) || 0) + 1);
+
+      const atual = String(item.prazo_iso || '');
+      if (atual === escolhido) return;
+      propostas.push({
+        id: String(item.id), nome: item.nome || 'Sem título', cliente: item.cliente || '',
+        de: atual, para: escolhido, veiculacao: veic,
+        motivo: !atual ? 'estava sem prazo'
+          : atual < hoje ? 'o prazo já tinha passado'
+          : escolhido !== alvo ? 'o dia ideal estava cheio'
+          : atual > veic ? 'o prazo passava da veiculação'
+          : 'para ficar nos 7 dias antes do ar',
+      });
+    });
+  });
+  return { propostas, semVeiculacao, carga: CARGA_IDEAL_POR_DIA };
+}
+
+// O TOPO DA MESA PASSA A DIZER O QUE FAZER, E NAO O QUE E.
+//
+// Ali havia a definicao do Prazo de Ouro e um manual de duas linhas ensinando a
+// marcar caixinhas. Nada disso e o motivo de alguem abrir esta tela: quem abre
+// vem consertar prazos que passaram e distribuir a carga. Entao o topo mostra
+// esses numeros — e os que levam a algum lugar sao botoes que filtram a lista.
+function daPlanningPainelDeAcao(itens, pessoasDaMesa) {
+  const hoje = daPlanningTodayIso();
+  const vencidos = itens.filter((d) => String(d.prazo_iso || '') && String(d.prazo_iso) < hoje);
+  const semPrazo = itens.filter((d) => !String(d.prazo_iso || ''));
+  const semVeic = itens.filter((d) => !String(d.veiculacao_iso || ''));
+  // Quantos dias de trabalho a fila representa na carga ideal. E a conta que
+  // decide se da para aceitar mais uma demanda hoje.
+  const dias = Math.max(1, Math.ceil(itens.length / CARGA_IDEAL_POR_DIA));
+  const proposta = proporAgenda(pessoasDaMesa).propostas.length;
+  const quem = pessoasDaMesa[0] || '';
+
+  const numero = (valor, rotulo, tom, acao) => `<button type="button"
+    class="ag-num ${tom} ${acao ? '' : 'quieto'}" ${acao ? `onclick="${acao}"` : 'disabled'}
+    ><b>${valor}</b><span>${rotulo}</span></button>`;
+
+  return `<div class="da-planning-acao">
+      <div class="ag-numeros">
+        ${numero(vencidos.length, vencidos.length === 1 ? 'prazo venceu' : 'prazos venceram',
+          vencidos.length ? 'alerta' : '', vencidos.length ? `daPlanningSetFilter('atrasados','${quem}')` : '')}
+        ${numero(semPrazo.length, 'sem prazo', semPrazo.length ? 'atencao' : '', '')}
+        ${numero(semVeic.length, 'sem veiculação', semVeic.length ? 'atencao' : '',
+          semVeic.length ? `daPlanningSetFilter('semveic','${quem}')` : '')}
+        ${numero(dias, dias === 1 ? 'dia de fila' : 'dias de fila', '', '')}
+      </div>
+      <div class="ag-acao-lado">
+        <span class="ag-acao-nota">${proposta
+          ? `<b>${proposta}</b> ${proposta === 1 ? 'prazo sairia do lugar' : 'prazos sairiam do lugar'} se a agenda fosse arrumada agora.`
+          : 'A agenda já está nos 7 dias antes do ar e dentro da carga do dia.'}</span>
+        <button type="button" class="ag-arrumar" onclick="arrumarAgenda()" ${proposta ? '' : 'disabled'}>
+          Arrumar a agenda</button>
+      </div>
+    </div>`;
+}
+
+let PROPOSTA_DE_AGENDA = null;
+
+// Mostra o que MUDARIA. Só depois de ver é que existe o botão de aplicar.
+function arrumarAgenda() {
+  const pessoas = daPlanningPessoasDaMesa();
+  const r = proporAgenda(pessoas);
+  PROPOSTA_DE_AGENDA = r.propostas;
+  const linhas = r.propostas.map((p) => `<article class="ag-linha">
+      <span class="ag-copy"><b>${safeText(p.nome)}</b><small>${safeText(p.cliente || 'Sem cliente')} · veicula ${planningDateBr(p.veiculacao)}</small></span>
+      <span class="ag-mudanca"><i>${p.de ? safeText(planningDateBr(p.de)) : 'sem prazo'}</i><em>→</em><b>${safeText(planningDateBr(p.para))}</b></span>
+      <span class="ag-motivo">${safeText(p.motivo)}</span>
+    </article>`).join('');
+
+  const pendentes = r.semVeiculacao.length
+    ? `<div class="ag-pendencia"><b>${r.semVeiculacao.length} ${r.semVeiculacao.length === 1 ? 'entrega ficou' : 'entregas ficaram'} de fora</b>
+       Sem data de veiculação não dá para calcular prazo — estas continuam como estão e precisam de uma data primeiro.</div>`
+    : '';
+
+  openWorkflowModal(`<div class="workflow-head"><b>Arrumar a agenda</b>
+      <small>Ordem pela veiculação · até ${r.carga} entregas por dia · prazo nunca depois do ar · nada em fim de semana</small></div>
+    ${r.propostas.length
+      ? `<div class="ag-resumo"><b>${r.propostas.length}</b> ${r.propostas.length === 1 ? 'prazo mudaria' : 'prazos mudariam'}. Confira antes de aplicar.</div>
+         <div class="ag-lista">${linhas}</div>`
+      : '<div class="ag-resumo ok">✓ A agenda já está no padrão. Nenhum prazo precisa mudar.</div>'}
+    ${pendentes}
+    <div class="workflow-actions">
+      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
+      ${r.propostas.length ? `<button type="button" class="workflow-primary" id="ag-aplicar" onclick="aplicarPropostaDeAgenda()">Aplicar ${r.propostas.length} ${r.propostas.length === 1 ? 'prazo' : 'prazos'}</button>` : ''}
+    </div>`);
+}
+
+// Grava a proposta. Passa pelo MESMO caminho de gravacao de prazo que a mao
+// usa — nao uma via propria, que seria uma segunda verdade sobre o que "salvar
+// prazo" faz.
+async function aplicarPropostaDeAgenda() {
+  const lista = PROPOSTA_DE_AGENDA || [];
+  if (!lista.length) return closeWorkflowModal();
+  const botao = document.getElementById('ag-aplicar');
+  if (botao) { botao.disabled = true; botao.textContent = 'Aplicando…'; }
+  const feitos = []; const falhas = [];
+  for (const p of lista) {
+    const item = findOperationalItem(p.id);
+    if (!item) { falhas.push(p.nome); continue; }
+    try {
+      if (!await tentarEscritaDupla(item, { acao: 'prazo', item: String(item.id), data: p.para })) {
+        await mondayQuery(`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`,
+          { board: String(item.board_id || BOARD_ID), item: String(item.id), values: JSON.stringify({ data: { date: p.para } }) });
+      }
+      applyOutboundItemPatch(item.id, { prazo_iso: p.para }, 'agenda arrumada', { render: false });
+      feitos.push(p);
+    } catch (erro) { falhas.push(p.nome); console.warn('agenda: não deu em', p.id, erro); }
+  }
+  PROPOSTA_DE_AGENDA = null;
+  saveProductionCache();
+  closeWorkflowModal();
+  if (typeof redesenharAposMudanca === 'function') redesenharAposMudanca('agenda arrumada');
+  showToast(falhas.length
+    ? `${feitos.length} prazo${feitos.length === 1 ? '' : 's'} ajustado${feitos.length === 1 ? '' : 's'} · ${falhas.length} não deu`
+    : `✓ ${feitos.length} prazo${feitos.length === 1 ? '' : 's'} ajustado${feitos.length === 1 ? '' : 's'} pela ordem de veiculação`,
+    falhas.length ? 'info' : 'ok', 8000);
+}
+
 function daPlanningDeadlineHealthBar(exact,slack,risk,pending,total){
   const base=Math.max(1,Number(total)||0);
   const segments=[['ok',exact,'No padrão · 7 dias'],['slack',slack,'Com folga'],['risk',risk,'Abaixo do padrão'],['pending',pending,'A validar']].filter(([,count])=>count>0).map(([kind,count,label])=>({kind,count,label,pct:Math.round((count/base)*100)}));
@@ -962,7 +1176,7 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
   // parada onde a pessoa estava.
   const rolagemAnterior=previousPlanning?.querySelector('.da-planning-list')?.scrollTop||0;
   const eraRedesenho=Boolean(previousPlanning);
-  if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const healthBar=daPlanningDeadlineHealthBar(exactCount,slackCount,riskCount,pendingCount,items.length); const rows=items.length?items.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):'<div class="da-planning-empty">Nenhuma demanda nesta visão. Ajuste os filtros para revisar as demais.</div>'; const controls=daPlanningControlsHtml(user.id,items.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="da-planning-switcher" aria-label="Troca rápida de agenda"><span>Agendas na mesa</span>${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'active':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active?(pessoasDaMesa.length>1?'Clique para tirar '+safeText(firstName(entry.name))+' da mesa':'Única agenda na mesa — some outra para comparar'):'Clique para somar '+safeText(firstName(entry.name))+' à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="da-planning-todos ${pessoasDaMesa.length===daControllerTeam().length?'active':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula<small>${daControllerTeam().length}</small></button><small class="da-planning-dica">clique para somar ou tirar</small></nav>`; overlay.innerHTML=`<section class="da-planning-modal" role="dialog" aria-modal="true" aria-label="Planejamento individual de ${safeText(user.name)}"><div class="da-planning-head"><div class="da-planning-head-main">${pessoasDaMesa.slice(0,3).map(id=>daIndividualPlanningAvatar(daControllerTeam().find(p=>String(p.id)===String(id))||user)).join('')}<div><span>${pessoasDaMesa.length>1?'Mesa de planejamento · '+pessoasDaMesa.length+' pessoas':'Mesa individual de planejamento'}</span><b>${safeText(pessoasDaMesa.length>1?daControllerTeam().filter(p=>pessoasDaMesa.includes(String(p.id))).map(p=>firstName(p.name)).join(' + '):user.name).toUpperCase()}</b><small>${pessoasDaMesa.length>1?'entregas das agendas somadas, sem repetir a peça de dono compartilhado':safeText(DA_CONTROLLER_ROLES[user.id]||'Criação')+' · todas as entregas ativas ordenadas pela data de veiculação'}</small></div></div><button type="button" class="da-planning-close" onclick="closeDaIndividualPlanningDesk()" aria-label="Fechar planejamento">×</button></div>${quickSwitch}${controls}<div class="da-planning-summary"><span><b>${items.length}</b><small>Entregas ativas</small></span><span class="gold-ok-metric"><b>${exactCount}</b><small>No padrão · 7D</small></span><span class="gold-slack-metric"><b>${slackCount}</b><small>Com folga</small></span><span class="gold-risk-metric"><b>${riskCount}</b><small>Abaixo do padrão</small></span></div><div class="da-planning-note"><b>Prazo de Ouro · ${PRAZO_OURO_DIAS} dias.</b> Ajuste livre; fora do padrão, o sistema apenas sinaliza.</div>${healthBar}<div class="da-planning-select-instruction"><b><i>1</i> MARQUE AS DEMANDAS NOS QUADRADOS À ESQUERDA</b><span><i>2</i> MUDE A DATA EM UMA LINHA MARCADA PARA APLICAR NO LOTE</span></div>${bulk}<div class="da-planning-list"><div class="da-planning-row da-planning-row-head"><span class="da-planning-select-head">Selec.</span><span>#</span>${daPlanningCabecalho("DEMANDA / CLIENTE","cliente",userId)}<span>RESPONSÁVEL</span>${daPlanningCabecalho("Veiculação","veiculacao",userId)}<span>FORMATO</span><span>STATUS</span>${daPlanningCabecalho("Prazo editável","prazo",userId)}<span>ARQUIVO</span><span>AÇÃO</span></div>${rows}</div></section>`; document.body.appendChild(overlay);
+  if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const healthBar=daPlanningDeadlineHealthBar(exactCount,slackCount,riskCount,pendingCount,items.length); const rows=items.length?items.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):'<div class="da-planning-empty">Nenhuma demanda nesta visão. Ajuste os filtros para revisar as demais.</div>'; const controls=daPlanningControlsHtml(user.id,items.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="da-planning-switcher" aria-label="Troca rápida de agenda"><span>Agendas na mesa</span>${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'active':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active?(pessoasDaMesa.length>1?'Clique para tirar '+safeText(firstName(entry.name))+' da mesa':'Única agenda na mesa — some outra para comparar'):'Clique para somar '+safeText(firstName(entry.name))+' à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="da-planning-todos ${pessoasDaMesa.length===daControllerTeam().length?'active':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula<small>${daControllerTeam().length}</small></button><small class="da-planning-dica">clique para somar ou tirar</small></nav>`; overlay.innerHTML=`<section class="da-planning-modal" role="dialog" aria-modal="true" aria-label="Planejamento individual de ${safeText(user.name)}"><div class="da-planning-head"><div class="da-planning-head-main">${pessoasDaMesa.slice(0,3).map(id=>daIndividualPlanningAvatar(daControllerTeam().find(p=>String(p.id)===String(id))||user)).join('')}<div><span>${pessoasDaMesa.length>1?'Mesa de planejamento · '+pessoasDaMesa.length+' pessoas':'Mesa individual de planejamento'}</span><b>${safeText(pessoasDaMesa.length>1?daControllerTeam().filter(p=>pessoasDaMesa.includes(String(p.id))).map(p=>firstName(p.name)).join(' + '):user.name).toUpperCase()}</b><small>${pessoasDaMesa.length>1?'entregas das agendas somadas, sem repetir a peça de dono compartilhado':safeText(DA_CONTROLLER_ROLES[user.id]||'Criação')+' · todas as entregas ativas ordenadas pela data de veiculação'}</small></div></div><button type="button" class="da-planning-close" onclick="closeDaIndividualPlanningDesk()" aria-label="Fechar planejamento">×</button></div>${quickSwitch}${controls}<div class="da-planning-summary"><span><b>${items.length}</b><small>Entregas ativas</small></span><span class="gold-ok-metric"><b>${exactCount}</b><small>No padrão · 7D</small></span><span class="gold-slack-metric"><b>${slackCount}</b><small>Com folga</small></span><span class="gold-risk-metric"><b>${riskCount}</b><small>Abaixo do padrão</small></span></div>${daPlanningPainelDeAcao(items, pessoasDaMesa)}${healthBar}${bulk}<div class="da-planning-list"><div class="da-planning-row da-planning-row-head"><span class="da-planning-select-head">Selec.</span><span>#</span>${daPlanningCabecalho("DEMANDA / CLIENTE","cliente",userId)}<span>RESPONSÁVEL</span>${daPlanningCabecalho("Veiculação","veiculacao",userId)}<span>FORMATO</span><span>STATUS</span>${daPlanningCabecalho("Prazo editável","prazo",userId)}<span>ARQUIVO</span><span>AÇÃO</span></div>${rows}</div></section>`; document.body.appendChild(overlay);
   const lista=overlay.querySelector('.da-planning-list');
   if(lista&&rolagemAnterior) lista.scrollTop=rolagemAnterior;
   daPlanningCarregarArquivos();
