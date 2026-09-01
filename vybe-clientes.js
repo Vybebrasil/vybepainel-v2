@@ -1373,8 +1373,8 @@ function clearDemandaFilters() {
   document.querySelectorAll('#person-filter-bar-demandas .person-chip').forEach(c => c.classList.remove('active'));
   const allChip = document.querySelector('#person-all-demandas .person-chip');
   if (allChip) allChip.classList.add('active');
-  const sel = document.getElementById('day-select-demandas');
-  if (sel) sel.value = '';
+  // O botao de dia se reescreve sozinho no renderDemandas; zerar o estado basta.
+  currentDemandaDayFilter = '';
   renderDemandas();
 }
 

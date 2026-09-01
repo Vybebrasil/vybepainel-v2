@@ -265,6 +265,20 @@ function toggleDemandaViewDay(btn) {
 }
 
 // Popular select de dias da semana ativa
+// Os dias disponiveis viraram uma lista do painel, nao do sistema. A funcao
+// continua com o mesmo nome porque continua fazendo o mesmo: descobrir quais
+// dias existem no recorte atual — so que agora guarda numa lista e escreve no
+// botao o que esta escolhido.
+let DIAS_DA_DEMANDA = [];
+function abrirDiasDaDemanda(gatilho) {
+  if (!DIAS_DA_DEMANDA.length) return showToast('Nenhum dia com solicitação neste recorte.', 'info', 3500);
+  abrirListaDoPainel(gatilho, {
+    titulo: 'Dia',
+    atual: currentDemandaDayFilter || '',
+    opcoes: [{ valor:'', rotulo:'Todos os dias' }, ...DIAS_DA_DEMANDA],
+    aoEscolher: (iso) => { currentDemandaDayFilter = iso; renderDemandas(); },
+  });
+}
 function populateDemandaDaySelect() {
   const sel = document.getElementById('day-select-demandas');
   if (!sel) return;
@@ -281,13 +295,15 @@ function populateDemandaDaySelect() {
   });
   const sorted = [...days].sort();
   const DIAS_LABEL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  sel.innerHTML = '<option value="">Todos os dias</option>' + sorted.map(iso => {
-    const dt = new Date(iso+'T12:00:00');
-    const dow = DIAS_LABEL[dt.getDay()];
-    const fmt = `${iso.slice(8,10)}/${iso.slice(5,7)}`;
-    return `<option value="${iso}">${dow} ${fmt}</option>`;
-  }).join('');
-  if (currentDemandaDayFilter) sel.value = currentDemandaDayFilter;
+  DIAS_DA_DEMANDA = sorted.map((iso) => {
+    const dt = new Date(iso + 'T12:00:00');
+    return { valor: iso, rotulo: `${DIAS_LABEL[dt.getDay()]} ${iso.slice(8,10)}/${iso.slice(5,7)}` };
+  });
+  // Dia que sumiu do recorte nao pode continuar filtrando escondido.
+  if (currentDemandaDayFilter && !sorted.includes(currentDemandaDayFilter)) currentDemandaDayFilter = '';
+  const escolhido = DIAS_DA_DEMANDA.find((d) => d.valor === currentDemandaDayFilter);
+  sel.textContent = escolhido ? escolhido.rotulo : 'Todos os dias';
+  sel.classList.toggle('escolhido', Boolean(escolhido));
 }
 
 function filterDemandaByDay(sel) {
@@ -769,8 +785,18 @@ function pintarResumoDeFiltros(quantos) {
     currentDemandaTipoFilter === '__sem__' ? 'sem tipo' : currentDemandaTipoFilter, 'limparTipoDeDemanda()'));
   if (currentDemandaWeek === 1) ativos.push(chip('Semana 1', "showDemandaWeek(0,document.getElementById('tab-dw0'))"));
   if (currentDemandaWeek === 2) ativos.push(chip('Semana 2', "showDemandaWeek(0,document.getElementById('tab-dw0'))"));
-  if (currentDemandaPersonFilter !== 'all') ativos.push(chip('uma pessoa', "filterDemandaByPerson('all',document.getElementById('person-all-demandas'))"));
-  if (currentDemandaDayFilter) ativos.push(chip('um dia', 'limparDiaDaDemanda()'));
+  if (currentDemandaPersonFilter !== 'all') {
+    const quem = (typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS)
+      .find((u) => String(u.id) === String(currentDemandaPersonFilter));
+    ativos.push(chip(quem ? firstName(quem.name) : 'uma pessoa',
+      "filterDemandaByPerson('all',document.getElementById('person-all-demandas'))"));
+  }
+  // Dizer "um dia" obriga a pessoa a procurar QUAL. O resumo existe para
+  // responder, nao para anunciar que ha uma resposta em outro lugar.
+  if (currentDemandaDayFilter) {
+    const dia = DIAS_DA_DEMANDA.find((d) => d.valor === currentDemandaDayFilter);
+    ativos.push(chip(dia ? dia.rotulo : currentDemandaDayFilter, 'limparDiaDaDemanda()'));
+  }
 
   if (!ativos.length) {
     alvo.innerHTML = `<span class="resumo-conta">${total} solicitaç${total === 1 ? 'ão' : 'ões'}</span>
@@ -783,8 +809,6 @@ function pintarResumoDeFiltros(quantos) {
 }
 function limparDiaDaDemanda() {
   currentDemandaDayFilter = '';
-  const sel = document.getElementById('day-select-demandas');
-  if (sel) sel.value = '';
   renderDemandas();
 }
 
