@@ -417,13 +417,18 @@ function processDemandas(rawItems) {
 const REQUEST_STATUS_FALLBACK_COLORS = Object.freeze({
   'Nova Demanda':'#579bfc', 'Pode Fazer':'#ffbd2e', 'Em execução':'#ff6b00',
   'Em Execução':'#ff6b00', 'Feito':'#00c875', 'Concluídas':'#00c875',
-  'Alteração':'#ff637a', 'Aguardando Info.':'#9d50dd', 'Aguardando Aprovação':'#579bfc'
+  'Alteração':'#ff637a', 'Aguardando Info.':'#9d50dd', 'Aguardando Aprovação':'#579bfc',
+  'Para Aprovação':'#579bfc', 'Em aprovação':'#579bfc'
 });
 const REQUEST_STATUS_ORDER = ['Nova Demanda','Pode Fazer','Em execução','Feito','Alteração','Aguardando Info.','Para Aprovação'];
 function operationalFlowStatus(item={}) {
   const status=String(item?.status || '').trim();
   if(!isRequestItem(item)) return status;
-  return ({'Nova Demanda':'A Fazer','Em execução':'Em andamento','Em Execução':'Em andamento','Feito':'Finalizado','Aguardando Info.':'Falta Info','Aguardando Aprovação':'Para aprovação'})[status] || status;
+  // Todo nome que signifique "esperando aprovacao" precisa cair no MESMO estado
+  // de fluxo. Faltava "Em aprovacao" — e o Modo Foco separa por estado, entao a
+  // peca que a Jady mandou para aprovacao nao pertencia a grupo nenhum e sumia
+  // da tela dela. Um nome fora do mapa nao vira um grupo novo: vira invisivel.
+  return ({'Nova Demanda':'A Fazer','Em execução':'Em andamento','Em Execução':'Em andamento','Feito':'Finalizado','Aguardando Info.':'Falta Info','Aguardando Aprovação':'Para aprovação','Em aprovação':'Para aprovação','Em Aprovação':'Para aprovação','Para Aprovação':'Para aprovação','Aguardando aprovação':'Para aprovação'})[status] || status;
 }
 function isRequestItem(item={}) { return item?.origem === 'solicitacao' || item?.board_id === BOARD_DEMANDAS_ID; }
 function normalizeContentForOperational(item={}) {

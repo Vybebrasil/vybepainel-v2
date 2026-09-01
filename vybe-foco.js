@@ -139,6 +139,22 @@ function renderFocusDashboard() {
   const blocked = focusSort(mine.filter(d => ['Falta D.A','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(operationalFlowStatus(d))), user);
   const classified = new Set([...inProgress,...toProduceToday,...toStart,...awaitingApproval,...inRevision,...awaitingInfo,...blocked].map(d => String(d.id)));
   const nextDeadlines = focusSort(mine.filter(d => !classified.has(String(d.id)) && focusReferenceDate(d,user) > today), user);
+  // NADA DA PESSOA PODE SUMIR DESTA TELA.
+  //
+  // Os grupos acima sao listas por estado, e "Proximos prazos" so recolhe o que
+  // sobrou COM DATA FUTURA. Quem nao caisse em nenhum estado e estivesse com a
+  // data no passado — ou sem data — simplesmente nao aparecia em lugar nenhum:
+  // a peca continuava na fila da pessoa e ela nao tinha como saber. Foi o que
+  // aconteceu com a "Capa destaque paes" da Jady, num status que nao estava
+  // mapeado.
+  //
+  // Consertar o mapa resolve aquele caso. Este grupo resolve a CLASSE do
+  // problema: qualquer estado novo que apareca amanha cai aqui, visivel, em vez
+  // de virar um buraco. O nome diz o que e — nao sei classificar, mas e seu.
+  const finalizados = new Set(['Finalizado', 'Feito', 'Concluídas', 'Publicado']);
+  const emOutroEstado = focusSort(mine.filter((d) => !classified.has(String(d.id))
+    && !finalizados.has(operationalFlowStatus(d))
+    && !(focusReferenceDate(d, user) > today)), user);
   const late = mine.filter(d => { const due=focusReferenceDate(d,user); return due && due < today; }).length;
   const todayCount = mine.filter(d => focusReferenceDate(d,user) === today).length;
   const ready = mine.filter(d => ['Para agendar','Agendado'].includes(operationalFlowStatus(d))).length;
@@ -171,7 +187,9 @@ function renderFocusDashboard() {
     renderGroup('Em alteração','ajustes solicitados que precisam ser resolvidos antes da próxima entrega',withoutPrimary(inRevision),'Ajuste solicitado; abra o contexto para conferir o que mudar','#ff637a','↻'),
     renderGroup('Aguardando informação','não avança sem resposta, material ou contexto',withoutPrimary(awaitingInfo),'Aguardando informação ou material','#9d50dd','?'),
     renderGroup('Bloqueadas por outra etapa','dependem de outra área para seguir',withoutPrimary(blocked),'Dependência de outra etapa','#ff4d6d','⚠'),
-    renderGroup('Próximos prazos',`itens futuros organizados por ${referenceLabel}`,withoutPrimary(nextDeadlines),'Próximo prazo','#a58c79','›')
+    renderGroup('Próximos prazos',`itens futuros organizados por ${referenceLabel}`,withoutPrimary(nextDeadlines),'Próximo prazo','#a58c79','›'),
+    renderGroup('Em outro estado','continuam na sua fila; o status delas não se encaixa nos grupos acima',
+      withoutPrimary(emOutroEstado),'Na sua fila','#8f98a9','•')
   ].join('');
   const commandStrip=`<div class="focus-command-strip"><span class="focus-command-strip-label">Atalhos de execução</span><div class="focus-command-actions"><button type="button" class="focus-command-btn" onclick="document.querySelector('.focus-daily-plan')?.scrollIntoView({behavior:'smooth',block:'center'})">Meu plano</button><button type="button" class="focus-command-btn" onclick="openFocusShiftClose()">Fechar turno</button></div></div>`;
   dash.innerHTML = `<div class="focus-hero"><div><h2 class="focus-hero-title">Meu Dia, ${safeText(firstName(user.name))}</h2><p class="focus-hero-text">${focusUsesVeiculacao(user) ? 'Sua fila usa a data de veiculação para organizar a publicação.' : 'Sua fila usa o prazo de entrega para organizar o trabalho.'}</p></div><div class="focus-metrics"><div class="focus-metric" style="--focus-color:#ff4d6d"><strong>${late}</strong><span>atrasados</span></div><div class="focus-metric" style="--focus-color:#ffe600"><strong>${todayCount}</strong><span>hoje</span></div><div class="focus-metric" style="--focus-color:#ff6b00"><strong>${mine.length}</strong><span>abertos</span></div><div class="focus-metric" style="--focus-color:#00ff88"><strong>${ready}</strong><span>prontos</span></div></div></div>${commandStrip}${focusDailyPlanHtml(mine,user,nextAction)}${focusNextActionHtml(nextAction)}${groups || '<div class="focus-empty">✓ Nenhuma demanda aberta neste momento.</div>'}${focusContinuityHtml(mine,user)}`;
