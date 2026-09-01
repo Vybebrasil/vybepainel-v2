@@ -34,15 +34,20 @@ let currentDemandaTipoFilter = 'all';
 // acionam os filtros de status e de tipo que ja existem, e e assim que o cartao
 // aceso e a etiqueta acesa contam sempre a mesma historia.
 let currentDemandaAtrasadas = false;
-// A tela abre POR ESTEIRA, nao na Semana 1.
+// Solicitacao nao tem semana.
 //
-// Conteudo tem ritmo semanal: ele e feito para veicular num dia. Solicitacao
-// nao — ela chega quando chega e se arrasta ate alguem resolver. Abrindo na
-// Semana 1, uma demanda de 26/06 ainda em execucao simplesmente nao aparece:
-// o padrao escondia justamente as atrasadas, que sao a unica coisa naquela tela
-// que pede acao hoje.
-let currentDemandaWeek = 0;              // 1 | 2 | 0 (esteira)
-let currentDemandaViewDay = false;       // true = ver por dia
+// Conteudo tem: ele e feito para veicular num dia, e a semana e a unidade em que
+// a producao se organiza. Solicitacao chega quando chega e se arrasta ate alguem
+// resolver — a de 26/06 ainda em execucao nao pertence a semana nenhuma. Recortar
+// por semana aqui nao organizava, escondia: eram justamente as antigas, que sao
+// as que pedem acao, que sumiam do recorte.
+//
+// As abas Semana 1 / Semana 2 sairam. Quem precisa de recorte de tempo tem o
+// filtro de Dia, que agora vale em toda a tela, e o Calendario. A constante fica
+// fixa em 0 porque as tres visoes ainda existem no arquivo e o resto do codigo
+// as consulta; o que deixou de existir e o caminho para sair da esteira.
+const currentDemandaWeek = 0;
+const currentDemandaViewDay = false;
 let currentDemandaDateMode = 'conclusao'; // 'conclusao' | 'prazo'
 let currentDemandaDayFilter = '';        // ISO date string para filtro de dia
 let activeBoard = 'producao';
@@ -244,25 +249,8 @@ function setDemandaDateMode(mode, btn) {
 }
 
 // Tabs de semana
-function showDemandaWeek(n, btn) {
-  currentDemandaWeek = n;
-  currentDemandaDayFilter = '';
-  currentDemandaViewDay = false;
-  document.querySelectorAll('#demanda-week-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const btnDay = document.getElementById('btn-dview-day');
-  if (btnDay) btnDay.classList.remove('active');
-  document.getElementById('filter-bar-demandas-main').style.display = n !== 0 ? 'flex' : 'none';
-  populateDemandaDaySelect();
-  renderDemandas();
-}
 
 // Toggle ver por dia
-function toggleDemandaViewDay(btn) {
-  currentDemandaViewDay = !currentDemandaViewDay;
-  btn.classList.toggle('active', currentDemandaViewDay);
-  renderDemandas();
-}
 
 // Popular select de dias da semana ativa
 // Os dias disponiveis viraram uma lista do painel, nao do sistema. A funcao
@@ -445,7 +433,11 @@ function normalizeRequestForOperational(item={}) {
   const completionIso=item.conclusao_iso || item.prazo_iso || '';
   return {...item,
     origem:'solicitacao', origem_label:'SOLICITAÇÃO DE DEMANDA', board_id:BOARD_DEMANDAS_ID,
-    tipo_demanda:item.tipo || '', formato:item.tipo || 'Solicitação', formato_original:item.tipo || '',
+    // "Solicitacao" era um preenchimento para a linha nao ficar vazia, e virou um
+    // tipo falso: aparecia no cartao como se fosse a classificacao da peca, e
+    // escondia que ela esta SEM tipo — logo depois de a tela ganhar um filtro
+    // inteiro para isso. A linha ja sabe desenhar campo vazio.
+    tipo_demanda:item.tipo || '', formato:item.tipo || '', formato_original:item.tipo || '',
     veiculacao_iso:item.veiculacao_iso || completionIso, veiculacao:item.veiculacao || item.conclusao || item.prazo || '',
     updated_at:item.updated_at || item.status_updated_at || '',
     status_context:item.status_context || null
@@ -639,7 +631,12 @@ function demandaItemRow(d, showCliente=true) {
         ${data('Conclusão', d.conclusao, '#34d399')}
       </span>`
     : '<span class="item-date vybe-data">—</span>';
-  return `<div class="item-row">
+  // Clicar na linha abre o RESUMO — o mesmo cartao rapido do calendario. Antes
+  // so o nome era clicavel, e ele abria direto a gaveta inteira: dois
+  // comportamentos diferentes para "abrir" no mesmo painel. O resumo mostra o
+  // essencial e tem o caminho para a gaveta dentro dele, quando for preciso.
+  return `<div class="item-row abre-resumo" onclick="abrirCartaoRapido('${safeText(d.id)}',event,'request')"
+      title="Abrir o resumo de ${safeText(d.nome || '')}">
     ${showCliente ? vybeTagCliente(d) : ''}
     ${vybeChipId(d)}
     ${fmtHtml(d.tipo)}
@@ -756,6 +753,11 @@ function filtrarDemandasBase() {
   }
   fi = filtrarPorTipoDeDemanda(fi);
   if (currentDemandaAtrasadas) fi = fi.filter(demandaAtrasada);
+  // O filtro de dia so era aplicado nas visoes de semana. Na esteira — que e por
+  // onde a tela abre — o botao "Dia" nao fazia nada: escolher um dia mudava o
+  // rotulo do botao e mais nada. Agora ele filtra aqui, junto dos outros, e por
+  // isso vale em toda visao.
+  if (currentDemandaDayFilter) fi = fi.filter((d) => getDemandaDateIso(d) === currentDemandaDayFilter);
   // Filtrar por semana (exceto na esteira)
   if (currentDemandaWeek === 1) {
     fi = fi.filter(d => { const iso = getDemandaDateIso(d); return iso >= META.week1_start_iso && iso <= META.week1_end_iso; });
@@ -783,8 +785,6 @@ function pintarResumoDeFiltros(quantos) {
   if (currentDemandaStatusFilter !== 'all') ativos.push(chip(currentDemandaStatusFilter, `focarStatus('${String(currentDemandaStatusFilter).replace(/'/g, "\\'")}')`));
   if (currentDemandaTipoFilter !== 'all') ativos.push(chip(
     currentDemandaTipoFilter === '__sem__' ? 'sem tipo' : currentDemandaTipoFilter, 'limparTipoDeDemanda()'));
-  if (currentDemandaWeek === 1) ativos.push(chip('Semana 1', "showDemandaWeek(0,document.getElementById('tab-dw0'))"));
-  if (currentDemandaWeek === 2) ativos.push(chip('Semana 2', "showDemandaWeek(0,document.getElementById('tab-dw0'))"));
   if (currentDemandaPersonFilter !== 'all') {
     const quem = (typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS)
       .find((u) => String(u.id) === String(currentDemandaPersonFilter));
@@ -876,7 +876,7 @@ function renderDemandasSemana(fi) {
           : ''}
         <button type="button" class="sort-btn" onclick="if(!gruposDeDemandasAberto) alternarGruposDeDemandas()">
           Ver as ${DADOS_DEMANDAS.length} por grupo</button>
-        <button type="button" class="sort-btn" onclick="showDemandaWeek(3)">Ver todas por esteira</button>
+
       </div>
     </div>`;
     return;

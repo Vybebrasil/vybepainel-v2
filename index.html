@@ -3657,12 +3657,13 @@ button:not(:disabled):not([aria-disabled="true"]):active,
       <button class="date-mode-btn" id="btn-dmode-prazo" onclick="setDemandaDateMode('prazo',this)">Prazo</button>
     </div>
 
-    <!-- Tabs de semana (igual à aba de Produção) -->
-    <div class="tabs" id="demanda-week-tabs">
-      <button class="tab-btn active" id="tab-dw0" onclick="showDemandaWeek(0,this)">Por esteira</button>
-      <button class="tab-btn" id="tab-dw1" onclick="showDemandaWeek(1,this)">Semana 1</button>
-      <button class="tab-btn" id="tab-dw2" onclick="showDemandaWeek(2,this)">Semana 2</button>
-    </div>
+    <!-- As abas Semana 1 / Semana 2 sairam daqui.
+         Conteudo tem semana porque e feito para veicular num dia. Solicitacao
+         nao: ela chega quando chega e se arrasta ate alguem resolver. Recortar
+         por semana escondia justamente as antigas — a demanda de 26/06 ainda em
+         execucao nao aparecia em semana nenhuma. Quem precisa de recorte de
+         tempo tem o filtro de Dia, que agora vale em toda a tela, e o
+         Calendario. -->
 
     <!-- Filtro por pessoa (demandas) -->
     <div id="person-filter-bar-demandas" class="person-filter-bar">
@@ -3679,7 +3680,6 @@ button:not(:disabled):not([aria-disabled="true"]):active,
            operacional. Virou o mesmo botao-popover que o resto do painel usa. -->
       <button type="button" class="sort-btn" id="day-select-demandas"
         onclick="abrirDiasDaDemanda(this)" title="Filtrar por dia">Todos os dias</button>
-      <button class="sort-btn" id="btn-dview-day" onclick="toggleDemandaViewDay(this)">Ver por Dia</button>
       <!-- "Limpar Filtros" saiu daqui: era vermelho, e vermelho no painel quer dizer
            perigo — limpar um filtro nao apaga nada. E ele ficava aceso mesmo sem
            filtro nenhum para limpar. Quem faz esse papel agora e o "limpar tudo"

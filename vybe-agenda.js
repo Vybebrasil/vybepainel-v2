@@ -445,7 +445,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
       ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
       ${linha('Prazo', data('prazo', item.prazo_iso))}
-      ${linha('Veiculação', data('veiculacao', ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
+      ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data('veiculacao', ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
     </div>
     <div class="cr-rodape">
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}">
