@@ -423,9 +423,27 @@ function managerCalendarOpen(source, itemId, event) {
   return openItemWorkspace(itemId);
 }
 
+// De onde o cartao nasceu. Sem guardar isto, ele nao tinha como se redesenhar:
+// mudar um campo dentro dele repintava as listas atras e deixava o proprio
+// cartao com o valor antigo ate alguem fechar e abrir de novo.
+let CARTAO_ABERTO = null;
+
 function fecharCartaoRapido() {
   document.getElementById('cartao-rapido-fundo')?.remove();
   document.getElementById('cartao-rapido')?.remove();
+  CARTAO_ABERTO = null;
+}
+
+// Redesenha o cartao que estiver aberto, no lugar onde ele ja esta.
+//
+// Reabre pela mesma porta (abrirCartaoRapido) em vez de remendar o HTML por
+// dentro: sao doze campos, e remendar um por um garantiria que algum dia um
+// deles ficasse para tras — foi exatamente assim que este defeito nasceu.
+function repintarCartaoRapido() {
+  if (!CARTAO_ABERTO) return;
+  if (!document.getElementById('cartao-rapido')) { CARTAO_ABERTO = null; return; }
+  const { id, source, rect } = CARTAO_ABERTO;
+  abrirCartaoRapido(id, { currentTarget: { getBoundingClientRect: () => rect } }, source);
 }
 
 function abrirCartaoRapido(itemId, event, source = 'content') {
@@ -485,6 +503,11 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
     </div>`;
   document.body.append(fundo, cartao);
   ancorarPopover(cartao, rect);
+  // Guardado como objeto simples: o DOMRect original some quando a linha e
+  // repintada, e o cartao precisa continuar sabendo onde se ancorar.
+  CARTAO_ABERTO = { id: String(itemId), source,
+    rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+            width: rect.width, height: rect.height } };
 }
 
 // O + do dia abria o formulario antigo — o de onze campos de uma vez, que so
