@@ -1652,7 +1652,13 @@ function renderVisaoDeGrupos(quadro) {
 async function aplicarEmLote(rotulo, executar) {
   const ids = [...SELECIONADAS];
   if (!ids.length) return;
-  if (!window.confirm(`Aplicar ${rotulo} em ${ids.length} peça${ids.length === 1 ? '' : 's'}?`)) return;
+  const pergunta = `Aplicar ${rotulo} em ${ids.length} peça${ids.length === 1 ? '' : 's'}?`;
+  const confirmado = typeof perguntarNoPainel === 'function'
+    ? await perguntarNoPainel({ titulo: pergunta,
+        texto: 'A alteração vale para todas as marcadas e cada uma fica registrada no histórico.',
+        confirmar: 'Aplicar' })
+    : window.confirm(pergunta);
+  if (!confirmado) return;
   showToast(`Aplicando ${rotulo} em ${ids.length}…`, 'info', 4000);
   let ok = 0;
   const falhas = [];
@@ -1668,14 +1674,43 @@ async function aplicarEmLote(rotulo, executar) {
   else showToast(`${ok} atualizada${ok === 1 ? '' : 's'} · ${falhas.length} falhou: ${falhas.slice(0, 3).join(', ')}`, 'info', 8000);
 }
 
+// O status em lote NAO passa pelos portoes — nem podia: vinte pecas dariam vinte
+// janelas de conferencia, e ninguem confere vinte artes uma a uma num popover.
+// Mas ha dois cuidados que faltavam.
+//
+// Com UMA peca marcada, "em lote" e so o nome do caminho: e a mesma situacao de
+// clicar na pilula dela. Entao vai pelo caminho normal, com portao e tudo.
+//
+// Com varias, o lote continua direto — e avisa que a conferencia visual nao
+// aconteceu. Pular a conferencia e uma escolha legitima para arrumar o quadro em
+// massa; pular sem saber que pulou, nao.
 function loteStatus(event) {
   const opcoes = (typeof STATUS_OPTIONS !== 'undefined' ? STATUS_OPTIONS : []) || [];
+  // A conferencia de "opcoes carregando" ficava ANTES de tudo e olhava so a
+  // lista de Producao. Com uma solicitacao marcada isso e a lista errada: as
+  // opcoes dela saem dos proprios dados, e estavam ali o tempo todo. Agora cada
+  // caminho confere a lista que vai usar.
+  if (SELECIONADAS.size === 1) {
+    const unico = [...SELECIONADAS][0];
+    const item = findOperationalItem(unico);
+    const daPeca = (typeof operationalStatusOptions === 'function' && item)
+      ? operationalStatusOptions(item) : opcoes;
+    if (!daPeca.length) return showToast('As opções de status ainda estão carregando.', 'info');
+    return abrirMenuDeLote(event, 'Status desta atividade', daPeca.map((o) => ({
+      rotulo: o.label, cor: o.color,
+      direto: true,
+      aplicar: async () => { limparSelecao(); await updateFocusStatus(unico, o.index); },
+    })), 'status');
+  }
   if (!opcoes.length) return showToast('As opções de status ainda estão carregando.', 'info');
   abrirMenuDeLote(event, 'Status para todas', opcoes.map((o) => ({
     rotulo: o.label, cor: o.color,
     aplicar: (item) => tentarEscritaDupla(item, { acao: 'status', item: String(item.id), para: chaveDeStatus(o.label) })
       .then((feito) => { if (!feito) throw new Error('gravação recusada'); applyOutboundItemPatch(item.id,
         { status: o.label, status_color: o.color, status_border: o.border, status_index: o.index }, 'status em lote'); }),
+    aviso: /aprova|agendad|finalizad|feito/i.test(String(o.label))
+      ? `Em lote a conferência da arte não acontece — ${SELECIONADAS.size} peças vão direto para "${o.label}".`
+      : '',
   })), 'status');
 }
 
@@ -1775,7 +1810,18 @@ function abrirMenuDeLote(event, titulo, opcoes, rotuloAcao) {
     b.type = 'button';
     b.className = 'status-editor-option';
     b.innerHTML = `<span class="status-editor-dot" style="background:${o.cor || '#7c8797'};color:${o.cor || '#7c8797'}"></span><span>${safeText(o.rotulo)}</span>`;
-    b.onclick = () => { fecharMenuDeLote(); aplicarEmLote(`${rotuloAcao} "${o.rotulo}"`, o.aplicar); };
+    b.title = o.aviso || '';
+    b.onclick = () => {
+      fecharMenuDeLote();
+      // Pular a conferencia da arte e uma escolha legitima quando se arruma o
+      // quadro em massa. Pular sem saber que pulou, nao — o aviso existe para
+      // isso, e some sozinho.
+      if (o.aviso) showToast(o.aviso, 'info', 6000);
+      // Com uma peca so, o portao que vem a seguir JA e a confirmacao. Perguntar
+      // "aplicar em 1 peca?" antes dele e perguntar duas vezes a mesma coisa.
+      if (o.direto) return void o.aplicar();
+      aplicarEmLote(`${rotuloAcao} "${o.rotulo}"`, o.aplicar);
+    };
     menu.appendChild(b);
   });
   document.body.append(fundo, menu);
