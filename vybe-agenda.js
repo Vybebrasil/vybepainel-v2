@@ -1589,6 +1589,9 @@ function deckDeLoteHtml(quadro) {
       ${acao('Prazo', "lotePrazo(event,'prazo')")}
       ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
       <span class="lote-risco" aria-hidden="true"></span>
+      <button type="button" class="lote-acao perigo" onclick="loteArquivar()"
+        title="Tirar as marcadas das listas — voltam do Arquivo por 15 dias">Arquivar</button>
+      <span class="lote-risco" aria-hidden="true"></span>
       <button type="button" class="lote-limpar" onclick="limparSelecao()"
         title="Desmarcar todas" aria-label="Desmarcar todas">✕</button>
     </div>` : '';
@@ -2207,4 +2210,50 @@ function pintarArquivadas() {
 function atualizarContadorDoArquivo() {
   const marca = document.getElementById('ops-arquivo-count');
   if (marca) marca.textContent = ARQUIVADAS.length;
+}
+
+// Arquivar as marcadas de uma vez.
+//
+// Nao passa por aplicarEmLote de proposito: aquele caminho pergunta "aplicar em
+// N?" e some. Aqui a acao TIRA as pecas da vista, e o valor esta no caminho de
+// volta — entao a barra de desfazer precisa saber de todas, nao da ultima.
+async function loteArquivar() {
+  const ids = [...SELECIONADAS];
+  if (!ids.length) return;
+  const pecas = ids.map((id) => findOperationalItem(id)).filter(Boolean);
+  if (!pecas.length) return showToast('Não achei as marcadas — recarregue a página.', 'err', 6000);
+  const motivo = await perguntarNoPainel({
+    titulo: `Arquivar ${pecas.length} atividade${pecas.length === 1 ? '' : 's'}?`,
+    texto: `${pecas.length === 1 ? 'Ela sai' : 'Elas saem'} das listas e ${
+      pecas.length === 1 ? 'fica' : 'ficam'} no Arquivo por 15 dias, de onde ${
+      pecas.length === 1 ? 'volta' : 'voltam'} com um clique.`,
+    confirmar: `Arquivar ${pecas.length}`, perigo: true,
+    campo: { valor: '', dica: 'Por que está arquivando? (opcional, fica no histórico)' },
+  });
+  if (motivo === null) return;
+  showToast(`Arquivando ${pecas.length}…`, 'info', 4000);
+  const foram = []; const falhas = [];
+  for (const item of pecas) {
+    try {
+      const r = await fetch('/api/conteudo', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao: 'remover', item: String(item.id), motivo }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `HTTP ${r.status}`);
+      [DADOS, DADOS_ALL, DADOS_DEMANDAS].forEach((lista) => {
+        const pos = (lista || []).findIndex((x) => String(x.id) === String(item.id));
+        if (pos >= 0) lista.splice(pos, 1);
+      });
+      foram.push(item);
+    } catch (erro) { falhas.push(item.nome || item.id); console.warn('lote de arquivo falhou em', item.id, erro); }
+  }
+  SELECIONADAS.clear();
+  saveProductionCache();
+  renderVisaoDeGrupos();
+  if (typeof redesenharAposMudanca === 'function') redesenharAposMudanca('arquivamento em lote');
+  if (foram.length) mostrarDesfazerArquivamentoEmLote(foram);
+  if (falhas.length) {
+    showToast(`${foram.length} arquivada${foram.length === 1 ? '' : 's'} · ${falhas.length} não deu: ${
+      falhas.slice(0, 2).join(', ')}`, 'info', 9000);
+  }
 }

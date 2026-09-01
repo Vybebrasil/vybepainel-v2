@@ -1952,6 +1952,12 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .grupos-lote .lote-acao:hover{border-color:rgba(255,157,79,.55);background:rgba(255,122,26,.16);color:#fff}
 .grupos-lote .lote-acao:hover i{color:#ffb072}
 .grupos-lote .lote-acao:active{transform:translateY(1px)}
+/* Arquivar tira as pecas da vista; as outras acoes so mudam um campo. A cor
+   separa as duas naturezas — quieta em repouso, para nao virar isca de clique,
+   e vermelha no hover, quando a mao ja esta em cima. */
+.grupos-lote .lote-acao.perigo{color:#c2b0b4}
+.grupos-lote .lote-acao.perigo:hover{border-color:rgba(255,69,89,.5);
+  background:rgba(255,69,89,.15);color:#ff9fa9}
 
 /* Desmarcar e a saida, nao uma acao: fica na ponta, sem moldura, e so ganha
    contorno quando a mao chega. */

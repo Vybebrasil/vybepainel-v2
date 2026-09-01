@@ -1181,12 +1181,24 @@ async function removerPeca(itemId) {
 const DIAS_NO_ARQUIVO = 15;
 
 function mostrarDesfazerArquivamento(item) {
+  return mostrarDesfazerArquivamentoEmLote([item]);
+}
+
+// Uma barra so, saiba ela de uma peca ou de vinte. Duas implementacoes acabariam
+// divergindo — e a que ninguem testa e a que fica errada.
+function mostrarDesfazerArquivamentoEmLote(pecas) {
+  const lista = (pecas || []).filter(Boolean);
+  if (!lista.length) return;
   document.getElementById('desfazer-arquivo')?.remove();
+  const ids = lista.map((p) => String(p.id)).join(',');
+  const dito = lista.length === 1
+    ? `<b>${safeText(lista[0].nome)}</b> foi para o arquivo.`
+    : `<b>${lista.length} atividades</b> foram para o arquivo.`;
   const barra = document.createElement('div');
   barra.id = 'desfazer-arquivo';
   barra.className = 'desfazer-arquivo';
-  barra.innerHTML = `<span><b>${safeText(item.nome)}</b> foi para o arquivo.</span>
-    <button type="button" onclick="restaurarPeca('${safeText(String(item.id))}',this)">Desfazer</button>
+  barra.innerHTML = `<span>${dito}</span>
+    <button type="button" onclick="restaurarVarias('${safeText(ids)}',this)">Desfazer</button>
     <button type="button" class="fechar" onclick="this.parentElement.remove()" aria-label="Fechar">×</button>`;
   document.body.append(barra);
   // setTimeout e nao requestAnimationFrame: rAF nao dispara em aba fora de foco,
@@ -1196,9 +1208,34 @@ function mostrarDesfazerArquivamento(item) {
   setTimeout(() => barra.remove(), 12000);
 }
 
-// Traz a peca de volta. Serve ao desfazer imediato e a lista do arquivo — os
-// dois caminhos passam por aqui para nao existirem duas verdades sobre o que
-// "restaurar" faz.
+// Desfaz um arquivamento inteiro. Recarrega os dados UMA vez no fim, e nao a
+// cada peca: vinte recargas seguidas travariam a tela justamente quando alguem
+// esta com pressa de consertar.
+async function restaurarVarias(idsJuntos, botao) {
+  const ids = String(idsJuntos || '').split(',').filter(Boolean);
+  if (!ids.length) return;
+  if (botao) { botao.disabled = true; botao.textContent = 'Voltando…'; }
+  let ok = 0; const falhas = [];
+  for (const id of ids) {
+    try {
+      const r = await fetch('/api/conteudo', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao: 'restaurar', item: String(id) }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `HTTP ${r.status}`);
+      ok += 1;
+    } catch (erro) { falhas.push(id); console.warn('não voltou', id, erro); }
+  }
+  document.getElementById('desfazer-arquivo')?.remove();
+  showToast(falhas.length
+    ? `${ok} de volta · ${falhas.length} não deu`
+    : `✓ ${ok === 1 ? 'Voltou' : `${ok} voltaram`} para as listas`, falhas.length ? 'info' : 'ok', 6000);
+  if (typeof refreshData === 'function') await refreshData();
+  if (document.getElementById('arquivadas-lista')) carregarArquivadas();
+}
+
+// Traz UMA peca de volta. Serve a lista do arquivo, onde cada linha tem o
+// proprio botao — os dois caminhos falam com a mesma acao do servidor.
 async function restaurarPeca(itemId, botao) {
   if (botao) { botao.disabled = true; botao.textContent = 'Voltando…'; }
   try {
