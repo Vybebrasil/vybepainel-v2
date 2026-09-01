@@ -49,11 +49,167 @@ function quandoAcessou(iso) {
   return `entrou há ${dias} dias`;
 }
 
+// ── a tela, em seções ────────────────────────────────────────────────────────
+//
+// Era um rolo só: foto, senha, equipe, clientes, opções das colunas e
+// credenciais, um embaixo do outro. Duas coisas quebravam nisso.
+//
+// A primeira é que MISTURAVA o que é de cada um com o que é de quem administra.
+// Quem só queria trocar a própria foto rolava por cima do cadastro de clientes,
+// e quem administra não tinha ideia de como a tela aparece para o time.
+//
+// A segunda é que uma tela de ajustes não se lê de cima a baixo — se navega. O
+// formato certo é o das Ajustes do sistema: uma lista à esquerda, uma coisa por
+// vez à direita, e o que é seu separado do que é da operação.
+let SECAO_ATIVA = 'perfil';
+let VER_COMO_O_TIME = false;
+
+// Um desenho por seção, no lugar de emoji: emoji muda de forma em cada sistema e
+// carrega uma cor que não é nossa.
+const ICONES_DA_CONTA = {
+  perfil: '<circle cx="8" cy="5.6" r="2.9"/><path d="M2.4 14c.6-3 2.9-4.5 5.6-4.5S13 11 13.6 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  senha: '<rect x="3.2" y="7" width="9.6" height="6.6" rx="1.8"/><path d="M5.6 7V5.2a2.4 2.4 0 0 1 4.8 0V7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  equipe: '<circle cx="6" cy="6.2" r="2.4"/><circle cx="11.4" cy="7" r="1.9"/><path d="M1.6 13.4c.5-2.4 2.3-3.6 4.4-3.6s3.9 1.2 4.4 3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M11.4 10.4c1.6 0 2.7.9 3 2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  clientes: '<rect x="2.4" y="5.6" width="11.2" height="8.4" rx="1.6"/><path d="M6 5.6V4.2a1.4 1.4 0 0 1 1.4-1.4h1.2A1.4 1.4 0 0 1 10 4.2v1.4" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+  opcoes: '<path d="M3 4.6h10M3 8h10M3 11.4h10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="6" cy="4.6" r="1.7"/><circle cx="10.4" cy="11.4" r="1.7"/>',
+  acessos: '<circle cx="6.2" cy="8" r="2.9"/><path d="M8.8 8h5.2M12 8v2.4M13.4 8v1.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  manutencao: '<path d="M9.8 3.2a3.4 3.4 0 0 1 3 4.7l3 3-2.1 2.1-3-3a3.4 3.4 0 0 1-4.7-3l1.9 1.9 1.7-1.7-1.8-1.9c.3-.1.6-.1 1-.1Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+};
+
+function secoesDaConta(eu) {
+  const minhas = [
+    { chave: 'perfil', rotulo: 'Perfil', tom: '#ff8a3d' },
+    { chave: 'senha', rotulo: 'Senha', tom: '#5aa9ff' },
+  ];
+  const daOperacao = [
+    { chave: 'equipe', rotulo: 'Equipe', tom: '#34c77b' },
+    { chave: 'clientes', rotulo: 'Clientes', tom: '#c084fc' },
+    { chave: 'opcoes', rotulo: 'Opções das fichas', tom: '#ffb240' },
+    { chave: 'acessos', rotulo: 'Credenciais', tom: '#ff6b81' },
+    { chave: 'manutencao', rotulo: 'Manutenção', tom: '#8f98a9' },
+  ];
+  const mostraOperacao = eu.admin && !VER_COMO_O_TIME;
+  return [
+    { titulo: 'Você', itens: minhas },
+    ...(mostraOperacao ? [{ titulo: 'Operação', itens: daOperacao }] : []),
+  ];
+}
+
+function escolherSecaoDaConta(chave) {
+  SECAO_ATIVA = chave;
+  pintarConta();
+  document.getElementById('conta-conteudo')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// O ensaio existe para responder "como o time vê a própria tela?" sem precisar
+// entrar na conta de outra pessoa. Só esconde o que é de administrador — as
+// permissões do servidor continuam as mesmas, e por isso ele não é um modo de
+// segurança e nem se apresenta como um.
+function alternarVisaoDoTime() {
+  VER_COMO_O_TIME = !VER_COMO_O_TIME;
+  if (VER_COMO_O_TIME && !['perfil', 'senha'].includes(SECAO_ATIVA)) SECAO_ATIVA = 'perfil';
+  pintarConta();
+}
+
 function pintarConta() {
   const raiz = document.getElementById('conta-root');
   const eu = MINHA_CONTA || (typeof sessaoAtual === 'function' ? sessaoAtual() : null);
   if (!raiz || !eu) return;
 
+  const grupos = secoesDaConta(eu);
+  const todas = grupos.flatMap((g) => g.itens);
+  if (!todas.some((i) => i.chave === SECAO_ATIVA)) SECAO_ATIVA = 'perfil';
+  const atual = todas.find((i) => i.chave === SECAO_ATIVA);
+
+  const barra = grupos.map((g) => `
+    <div class="conta-grupo">
+      <span class="conta-grupo-titulo">${safeText(g.titulo)}</span>
+      ${g.itens.map((i) => `<button type="button" class="conta-aba ${i.chave === SECAO_ATIVA ? 'ativa' : ''}"
+        onclick="escolherSecaoDaConta('${i.chave}')" aria-current="${i.chave === SECAO_ATIVA}">
+        <span class="conta-aba-icone" style="--tom:${i.tom}"><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">${ICONES_DA_CONTA[i.chave] || ''}</svg></span>
+        ${safeText(i.rotulo)}</button>`).join('')}
+    </div>`).join('');
+
+  const iniciais = String(eu.nome || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+  const retrato = eu.foto_url
+    ? `<img src="${safeText(eu.foto_url)}" alt="">`
+    : `<span>${safeText(iniciais)}</span>`;
+
+  raiz.innerHTML = `
+    <div class="conta-tela">
+      <aside class="conta-barra">
+        <div class="conta-eu">
+          <div class="conta-eu-retrato">${retrato}</div>
+          <div class="conta-eu-copy">
+            <b>${safeText(eu.nome)}</b>
+            <small>${safeText(eu.email)}</small>
+            ${eu.admin ? '<span class="conta-selo">administra o painel</span>' : ''}
+          </div>
+        </div>
+        ${barra}
+        ${eu.admin ? `<button type="button" class="conta-ensaio ${VER_COMO_O_TIME ? 'ativo' : ''}"
+          onclick="alternarVisaoDoTime()" aria-pressed="${VER_COMO_O_TIME}">
+          ${VER_COMO_O_TIME ? 'Voltar à minha visão' : 'Ver como o time vê'}</button>` : ''}
+      </aside>
+      <section class="conta-conteudo" id="conta-conteudo">
+        ${VER_COMO_O_TIME ? `<div class="conta-ensaio-aviso">
+          <b>Você está vendo o painel como quem não administra.</b>
+          É só um ensaio da tela — suas permissões continuam as mesmas.</div>` : ''}
+        ${corpoDaSecao(SECAO_ATIVA, eu, atual)}
+      </section>
+    </div>`;
+}
+
+function cabecaDaSecao(titulo, texto, acao = '') {
+  return `<header class="conta-secao-topo">
+      <div><h2>${safeText(titulo)}</h2><p>${texto}</p></div>${acao}</header>`;
+}
+
+function corpoDaSecao(chave, eu) {
+  if (chave === 'senha') return blocoSenha();
+  if (chave === 'equipe') return blocoEquipe(eu);
+  if (chave === 'clientes') return blocoClientes();
+  if (chave === 'opcoes') return blocoOpcoes();
+  if (chave === 'acessos') return blocoAcessos();
+  if (chave === 'manutencao') return blocoManutencao();
+  return blocoPerfil(eu);
+}
+
+function blocoPerfil(eu) {
+  const iniciais = String(eu.nome || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+  return cabecaDaSecao('Perfil', 'Sua foto aparece nas bolinhas de responsável em todo o painel — é por ela que o time te reconhece antes de ler o nome.')
+    + `<div class="conta-cartao">
+      <div class="conta-foto">
+        <div class="conta-foto-atual" id="conta-foto-atual">${eu.foto_url
+          ? `<img src="${safeText(eu.foto_url)}" alt="Sua foto">` : `<span>${safeText(iniciais)}</span>`}</div>
+        <div>
+          <input type="file" id="conta-foto-arquivo" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="enviarMinhaFoto(this)">
+          <button class="conta-botao primario" onclick="document.getElementById('conta-foto-arquivo').click()">Escolher imagem</button>
+          <p class="conta-nota">PNG, JPG ou WEBP, até 2 MB. A imagem fica no Drive próprio da Vybe.</p>
+        </div>
+      </div>
+    </div>
+    <div class="conta-cartao">
+      <div class="conta-campo-linha"><span>Nome</span><b>${safeText(eu.nome)}</b></div>
+      <div class="conta-campo-linha"><span>E-mail</span><b>${safeText(eu.email)}</b></div>
+      <div class="conta-campo-linha"><span>Acesso</span><b>${eu.admin ? 'Administra o painel' : 'Time'}</b></div>
+      <p class="conta-nota">Nome e e-mail vêm do cadastro da equipe. Para mudar, fale com quem administra.</p>
+    </div>`;
+}
+
+function blocoSenha() {
+  return cabecaDaSecao('Senha', 'Ninguém, nem quem administra, consegue ler sua senha — o sistema guarda só uma marca dela. Se esquecer, um administrador define uma nova.')
+    + `<div class="conta-cartao">
+      <div class="conta-form">
+        <label>Senha atual<input id="conta-atual" type="password" autocomplete="current-password"></label>
+        <label>Nova senha<input id="conta-nova" type="password" autocomplete="new-password" placeholder="mínimo 8 caracteres"></label>
+        <label>Repita a nova<input id="conta-nova2" type="password" autocomplete="new-password"></label>
+      </div>
+      <div class="conta-form-acoes"><button class="conta-botao primario" onclick="trocarMinhaSenha()">Trocar senha</button></div>
+    </div>`;
+}
+
+function blocoEquipe(eu) {
   const linhas = EQUIPE.map((p) => {
     const travado = p.bloqueado_ate && new Date(p.bloqueado_ate) > new Date();
     const sou = String(p.email).toLowerCase() === String(eu.email).toLowerCase();
@@ -80,65 +236,21 @@ function pintarConta() {
       </div>
     </div>`;
   }).join('');
+  return cabecaDaSecao('Equipe',
+    'Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora.')
+    + `<div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhuma pessoa cadastrada.</div>'}</div>`;
+}
 
-  raiz.innerHTML = `
-    <div class="auto-cabeca">
-      <div>
-        <div class="auto-kicker">Vybe OS · Sua conta</div>
-        <h2 class="auto-titulo">${safeText(eu.nome)}</h2>
-        <p class="auto-sub">${safeText(eu.email)}${eu.admin ? ' · administra o painel' : ''}</p>
+function blocoManutencao() {
+  return cabecaDaSecao('Manutenção',
+    'Arquivo enviado pelo painel só mostra prévia se estiver liberado para leitura por link no Drive. Os que subiram antes dessa liberação existir aparecem como “Prévia indisponível”. Abrir a peça já conserta os dela.')
+    + `<div class="conta-cartao">
+      <div class="conta-acao-linha">
+        <div><b>Prévias dos arquivos</b><small>Conserta o acervo inteiro de uma vez, em lotes.</small></div>
+        <button class="conta-botao" onclick="liberarPreviasDeArquivos(this)">Liberar prévias antigas</button>
       </div>
-    </div>
-
-    <div class="conta-caixa">
-      <div class="conta-titulo">Minha foto</div>
-      <div class="conta-foto">
-        <div class="conta-foto-atual" id="conta-foto-atual">${eu.foto_url
-          ? `<img src="${safeText(eu.foto_url)}" alt="Sua foto">`
-          : `<span>${safeText(String(eu.nome || '?').trim().split(/\s+/).slice(0,2).map((p) => p[0]).join('').toUpperCase())}</span>`}</div>
-        <div>
-          <input type="file" id="conta-foto-arquivo" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="enviarMinhaFoto(this)">
-          <button class="auto-novo" onclick="document.getElementById('conta-foto-arquivo').click()">Escolher imagem</button>
-          <p class="auto-ajuda" style="margin:8px 0 0">PNG, JPG ou WEBP, até 2 MB. A imagem fica no Drive próprio da Vybe e permanece disponível no cadastro central da equipe.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="conta-caixa" style="margin-top:12px">
-      <div class="conta-titulo">Trocar minha senha</div>
-      <div class="conta-linha">
-        <label>Senha atual<input id="conta-atual" type="password" autocomplete="current-password"></label>
-        <label>Nova senha<input id="conta-nova" type="password" autocomplete="new-password" placeholder="mínimo 8 caracteres"></label>
-        <label>Repita a nova<input id="conta-nova2" type="password" autocomplete="new-password"></label>
-        <button class="auto-novo" onclick="trocarMinhaSenha()">Trocar</button>
-      </div>
-      <p class="auto-ajuda">Ninguém, nem quem administra, consegue ler sua senha — o sistema guarda só uma marca dela. Se esquecer, um administrador define uma nova.</p>
-    </div>
-
-    ${eu.admin ? `
-    <div class="auto-cabeca" style="margin-top:26px">
-      <div>
-        <div class="auto-kicker">Vybe OS · Manutenção</div>
-        <h2 class="auto-titulo">Prévias dos arquivos</h2>
-        <p class="auto-sub">Arquivo enviado pelo painel só mostra prévia se estiver liberado para
-          leitura por link no Drive. Os que subiram antes dessa liberação existir aparecem como
-          “Prévia indisponível”. Abrir a peça já conserta os dela; o botão conserta todos de uma vez.</p>
-      </div>
-      <button class="auto-novo" onclick="liberarPreviasDeArquivos(this)">Liberar prévias antigas</button>
-    </div>
-    <p class="auto-ajuda" id="conta-previas-nota" style="margin:-8px 0 4px"></p>
-
-    <div class="auto-cabeca" style="margin-top:26px">
-      <div>
-        <div class="auto-kicker">Vybe OS · Equipe</div>
-        <h2 class="auto-titulo">Quem entra no painel</h2>
-        <p class="auto-sub">Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora.</p>
-      </div>
-    </div>
-    <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhuma pessoa cadastrada.</div>'}</div>
-    ${blocoClientes()}
-    ${blocoOpcoes()}
-    ${blocoAcessos()}` : ''}`;
+      <p class="conta-nota" id="conta-previas-nota"></p>
+    </div>`;
 }
 
 // ── clientes ──────────────────────────────────────────────────────────────────
@@ -155,16 +267,10 @@ function blocoClientes() {
       </div>
     </div>`).join('');
 
-  return `
-    <div class="auto-cabeca" style="margin-top:26px">
-      <div>
-        <div class="auto-kicker">Vybe OS · Clientes</div>
-        <h2 class="auto-titulo">Quem aparece no painel</h2>
-        <p class="auto-sub">Cliente não se apaga, se desativa: apagar arrastaria junto o vínculo de todo conteúdo histórico dele. Desativado some das telas e continua no histórico.</p>
-      </div>
-      <button class="auto-novo" onclick="criarCliente()">+ Novo cliente</button>
-    </div>
-    <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum cliente cadastrado.</div>'}</div>`;
+  return cabecaDaSecao('Clientes',
+    'Cliente não se apaga, se desativa: apagar arrastaria junto o vínculo de todo conteúdo histórico dele. Desativado some das telas e continua no histórico.',
+    '<button class="conta-botao primario" onclick="criarCliente()">+ Novo cliente</button>')
+    + `<div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum cliente cadastrado.</div>'}</div>`;
 }
 
 async function chamarClientes(corpo, feito) {
@@ -204,15 +310,9 @@ function blocoOpcoes() {
   });
   grupos.push(['status_1__1', 'Captação', (OPCOES.captacao || []).map((o) => ({ ...o, coluna_id: 'status_1__1' }))]);
 
-  return `
-    <div class="auto-cabeca" style="margin-top:26px">
-      <div>
-        <div class="auto-kicker">Vybe OS · Opções das colunas</div>
-        <h2 class="auto-titulo">O que a ficha oferece</h2>
-        <p class="auto-sub">Desligar uma opção tira ela dos seletores sem apagar nada: peças que já a usam continuam mostrando. O catálogo do Vybe OS é a referência dos seletores e preserva o histórico existente.</p>
-      </div>
-    </div>
-    ${grupos.map(([coluna, titulo, itens]) => `
+  return cabecaDaSecao('Opções das fichas',
+    'Desligar uma opção tira ela dos seletores sem apagar nada: peças que já a usam continuam mostrando.')
+    + `${grupos.map(([coluna, titulo, itens]) => `
       <div class="op-grupo">
         <div class="op-grupo-topo">
           <b>${safeText(titulo)}</b>
@@ -327,15 +427,9 @@ function blocoAcessos() {
   }).join('');
 
   const semDoc = ACESSOS.filter((a) => !a.tem_documento).length;
-  return `
-    <div class="auto-cabeca" style="margin-top:26px">
-      <div>
-        <div class="auto-kicker">Vybe OS · Acessos</div>
-        <h2 class="auto-titulo">Credenciais dos clientes</h2>
-        <p class="auto-sub">Preservadas no domínio próprio da Vybe.${semDoc ? ` ${semDoc} clientes estão sem documento — a lacuna é do cadastro, não da migração.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.</p>
-      </div>
-    </div>
-    <div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum acesso cadastrado.</div>'}</div>
+  return cabecaDaSecao('Credenciais dos clientes',
+    `Preservadas no domínio próprio da Vybe.${semDoc ? ` ${semDoc} clientes estão sem documento — a lacuna é do cadastro, não da migração.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.`)
+    + `<div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum acesso cadastrado.</div>'}</div>
     <div id="acesso-aberto"></div>`;
 }
 
