@@ -707,13 +707,35 @@ function workspaceAssetCard(asset) {
     const clickPreview = isImage ? `onclick="openVybeLightbox('${safeText(href)}', '${safeText(asset.name)}')"` : "";
     return `<article class="workspace-asset" ${clickPreview} style="${isImage ? 'cursor:pointer;' : ''}">${workspaceAssetPreview(asset)}<div class="workspace-asset-name" title="${safeText(asset.name)}">${safeText(asset.name)}</div><small>${safeText(workspaceBytes(asset.file_size))} · ${safeText(asset.source || 'Arquivo')}</small><div class="workspace-asset-actions">${openAction}${removal}</div></article>`;
 }
+// Remover arquivo estava recusando SOLICITACAO.
+//
+// A peca era procurada so em DADOS e DADOS_ALL — as duas listas de Producao.
+// Solicitacao vive em DADOS_DEMANDAS, entao a busca voltava vazia e a funcao
+// caia no aviso "Migracao deste arquivo ainda nao foi concluida", que nao tem
+// nada a ver: da frente, um botao que nao apaga e uma explicacao errada. Este
+// painel ja tem uma funcao que procura nas tres listas — findOperationalItem —
+// e era so usa-la, como o resto da tela faz.
+//
+// De quebra, a recusa passou a dizer O QUE esta faltando, em vez de repetir a
+// mesma frase para tres motivos diferentes.
 async function requestWorkspaceFileRemoval(assetId) {
-  const asset = activeWorkspaceAssets.find(entry => String(entry?.id || '') === String(assetId));
-  const item = (DADOS || []).find(entry => String(entry.id) === String(activeWorkspaceItemId)) || (typeof DADOS_ALL !== 'undefined' ? (DADOS_ALL || []).find(entry => String(entry.id) === String(activeWorkspaceItemId)) : null);
-  if (!asset || !item || !asset.removable || !asset.local_id) return showToast('Migração deste arquivo ainda não foi concluída.', 'info', 7000);
-  const client = item.cliente || 'cliente não informado';
-  const confirmed = window.confirm(`Mover o arquivo "${asset.name}" da demanda "${item.nome}" para a lixeira do Drive da Vybe?\n\nA remoção ficará registrada e poderá ser recuperada por um administrador no Drive.`);
-  if (!confirmed) return;
+  const asset = activeWorkspaceAssets.find((entry) => String(entry?.id || '') === String(assetId));
+  const item = (typeof findOperationalItem === 'function' ? findOperationalItem(activeWorkspaceItemId) : null)
+    || (DADOS || []).find((entry) => String(entry.id) === String(activeWorkspaceItemId))
+    || (typeof DADOS_ALL !== 'undefined' ? (DADOS_ALL || []).find((entry) => String(entry.id) === String(activeWorkspaceItemId)) : null);
+  if (!asset) return showToast('Arquivo não encontrado nesta atividade — recarregue a página.', 'err', 6000);
+  if (!item) return showToast('Atividade não encontrada — recarregue a página e tente de novo.', 'err', 6000);
+  if (!asset.removable || !asset.local_id) {
+    return showToast('Este arquivo veio do Monday e ainda não foi copiado para o Drive da Vybe; '
+      + 'por isso não pode ser removido daqui.', 'info', 8000);
+  }
+  const confirmado = typeof perguntarNoPainel === 'function'
+    ? await perguntarNoPainel({
+        titulo: `Remover "${asset.name}"?`,
+        texto: `Ele sai desta atividade e vai para a lixeira do Drive da Vybe. A remoção fica registrada no histórico e um administrador consegue recuperar.`,
+        confirmar: 'Mover para a lixeira', perigo: true })
+    : window.confirm(`Mover o arquivo "${asset.name}" para a lixeira do Drive da Vybe?`);
+  if (!confirmado) return;
   try {
     const resposta = await fetch('/api/painel?area=peca', {
       method:'DELETE', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
