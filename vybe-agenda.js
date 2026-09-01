@@ -1025,7 +1025,13 @@ const CAMPOS_ORDENAVEIS = {
   off_audio:     { rotulo: 'OFF',         valor: (i) => String(i.off_audio || '') },
   prioridade:    { rotulo: 'Prioridade',  valor: (i) => String(i.prioridade || '') },
   prazo_iso:     { rotulo: 'Prazo',       valor: (i) => String(i.prazo_iso || '') },
-  veiculacao_iso:{ rotulo: 'Veiculação',  valor: (i) => String(i.veiculacao_iso || '') },
+  // A mesma data tinha dois nomes: "Conclusao" no botao que a escolhe e no
+  // cartao da esteira, "Veiculacao" no cabecalho da tabela. Em Solicitacoes ela
+  // e a data de CONCLUSAO — veiculacao e coisa de conteudo, que vai ao ar.
+  // Dois nomes para o mesmo campo fazem a pessoa procurar a diferenca que nao
+  // existe.
+  veiculacao_iso:{ rotulo: 'Veiculação',  rotuloDemandas: 'Conclusão',
+                   valor: (i) => String(i.veiculacao_iso || '') },
 };
 
 function ordenarItens(itens) {
@@ -1309,7 +1315,8 @@ function linhaDeGrupoHtml(item) {
   const data = (campo, iso, atrasado) =>
     `<input type="date" class="grupo-data-campo${atrasado ? ' is-late' : ''}" value="${safeText(iso || '')}"
        onclick="${parar}" onchange="${parar};salvarDataNaLinha('${item.id}','${campo}',this)"
-       title="${campo === 'prazo' ? 'Prazo de produção' : 'Data de veiculação'}">`;
+       title="${campo === 'prazo' ? 'Prazo de produção'
+         : isRequestItem(item) ? 'Data de conclusão' : 'Data de veiculação'}">`;
   const escolha = (campo) => `<td onclick="${parar}">${pillEditavel(item, campo)}</td>`;
   return `<tr class="${marcada ? 'marcada' : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
     <td class="grupo-marcar" onclick="${parar}">

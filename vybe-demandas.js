@@ -610,13 +610,16 @@ function demandaItemRow(d, showCliente=true) {
   // Mesmas peças da fila de produção. Antes esta linha tinha implementação
   // própria de tudo: cliente numa cápsula roxa escrita à mão, responsável em
   // texto onde a outra fila usa a foto, status que não abria, e nenhum ID.
+  // Duas datas nuas, uma ao lado da outra, sem dizer qual e qual — e muitas
+  // vezes iguais ("31/08 | 31/08"). O nome de cada uma estava so no title, que
+  // ninguem descobre. Na tabela de grupos da para saber porque a coluna tem
+  // cabecalho; aqui nao havia nada. Agora cada data leva o proprio nome.
   const atrasadoBadge = d.prazo_atrasado ? '<span class="prazo-badge">Atrasado</span>' : '';
   const data = (rotulo, valor, cor) => valor
-    ? `<span class="vybe-data" style="color:${cor}" title="${rotulo}">${valor}</span>` : '';
+    ? `<span class="vybe-data com-rotulo" style="color:${cor}" title="${rotulo}"><b>${rotulo}</b>${valor}</span>` : '';
   const dateBlock = (d.prazo || d.conclusao)
     ? `<span class="item-date vybe-datas">
         ${data('Prazo', d.prazo, '#f59e0b')}${atrasadoBadge}
-        ${d.prazo && d.conclusao ? '<i class="vybe-datas-sep"></i>' : ''}
         ${data('Conclusão', d.conclusao, '#34d399')}
       </span>`
     : '<span class="item-date vybe-data">—</span>';

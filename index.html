@@ -2149,6 +2149,11 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 .resumo-limpar{margin-left:2px;border:0;background:none;padding:3px 4px;cursor:pointer;
   color:#8f98a9;font:600 11px var(--mac-ui);text-decoration:underline;text-underline-offset:3px}
 .resumo-limpar:hover{color:#e7ecf5}
+/* Cada data leva o proprio nome. O rotulo em maiuscula pequena e apagado nao
+   compete com o numero, que e o que se le. */
+.vybe-data.com-rotulo{display:inline-flex;align-items:baseline;gap:4px}
+.vybe-data.com-rotulo b{color:#6f7887;font:700 8.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.vybe-datas{gap:8px;flex-wrap:wrap}
 .cliente-listas .uma-coluna{grid-template-columns:1fr!important;margin-bottom:0}
 @media(max-width:900px){.cliente-listas{grid-template-columns:1fr}}
 .clientes-visao-btn.novo{border-color:color-mix(in srgb,var(--accent,#ff6b00) 45%,transparent);color:#ffc79a}
