@@ -4408,8 +4408,12 @@ button:not(:disabled):not([aria-disabled="true"]):active,
    saia em 12px, menor que o cabecalho da secao. O titulo do dia tinha
    entrelinha de 45px para uma fonte de 30 — por isso o topo parecia solto. */
 .focus-dashboard{max-width:1080px}
-.focus-dashboard.active{display:flex!important;flex-direction:column;gap:20px}
-.focus-dashboard.active > *{margin:0!important}
+/* O ritmo vem da margem, nao de virar flex: em coluna flexivel varios destes
+   blocos param de ocupar a largura toda — medi oito larguras diferentes num
+   container so quando tentei o flex no painel do DA. O modelo de layout fica
+   como estava; o que muda e so o intervalo, que passa a ser um. */
+.focus-dashboard.active > *{margin:0 0 20px!important}
+.focus-dashboard.active > *:last-child{margin-bottom:0!important}
 
 .focus-hero{align-items:center!important;gap:24px!important;padding:2px 2px 0!important}
 .focus-hero-title{font:700 clamp(26px,3.4vw,36px)/1.06 var(--mac-ui)!important;letter-spacing:-.028em!important}
@@ -4586,8 +4590,8 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
    Os blocos daqui tambem carregavam cada um a sua margem — 10/14, 0/12, 16/18,
    12/0, 14/0 — e margens que colapsam entre si nao somam: o intervalo real nao
    e o escrito em lugar nenhum. Um 'gap' so, como na fila do dia. */
-.da-controller-dashboard.active{display:flex!important;flex-direction:column;gap:18px}
-.da-controller-dashboard.active > *{margin:0!important}
+.da-controller-dashboard.active > *{margin:0 0 18px!important}
+.da-controller-dashboard.active > *:last-child{margin-bottom:0!important}
 
 .da-tactical-title{font:700 clamp(26px,3.2vw,34px)/1.06 var(--mac-ui)!important;letter-spacing:-.028em!important}
 .da-tactical-subtitle{max-width:62ch}
