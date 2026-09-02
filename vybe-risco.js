@@ -271,7 +271,14 @@ function juntarAprovacaoNoSeletorHtml(item) {
     onclick="closeStatusEditor();criarEtiquetaDeStatus()"
     title="Cria uma etiqueta nova na lista das solicitações, para todo mundo">
     ＋ nova etiqueta</button>` : '';
-  return juntar + criar;
+  // Etiqueta nova entra sempre no fim, e o fim quase nunca e o lugar dela no
+  // fluxo. Reordenar mora ao lado de criar porque e o passo seguinte do mesmo
+  // gesto — e porque a ordem errada so se percebe olhando esta lista.
+  const ordenar = typeof organizarEtiquetas === 'function' ? `<button type="button" class="status-editor-arrumar"
+    onclick="closeStatusEditor();organizarEtiquetas()"
+    title="Muda a ordem em que as etiquetas aparecem neste menu, para todo mundo">
+    ⇅ ordem das etiquetas</button>` : '';
+  return juntar + criar + ordenar;
 }
 
 // O rotulo vai dentro de um onclick, entre aspas simples. Escapar antes do

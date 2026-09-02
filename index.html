@@ -4363,6 +4363,42 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   .brief-par{grid-template-columns:minmax(0,1fr);gap:3px}
 }
 
+/* ─── ORDEM DAS ETIQUETAS ──────────────────────────────────────────────────
+   Uma lista curta que se reorganiza. A linha inteira e a alca: pegar so num
+   pontinho de seis pixels e o tipo de precisao que faz desistir de arrastar. */
+.etq-overlay{position:fixed;inset:0;z-index:740;display:flex;align-items:center;justify-content:center;
+  padding:22px;background:rgba(6,7,10,.6);backdrop-filter:blur(16px) saturate(120%)}
+.etq-folha{width:min(460px,100%);max-height:min(720px,90vh);display:flex;flex-direction:column;
+  border:1px solid var(--linha);border-radius:16px;background:var(--sup-1);
+  box-shadow:0 28px 90px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.07);overflow:hidden}
+.etq-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px 15px;
+  border-bottom:1px solid var(--linha)}
+.etq-topo>div{display:grid;gap:4px;min-width:0}
+.etq-topo span{color:var(--vybe-orange,#ff9d00);font:700 10px var(--mac-ui);letter-spacing:.07em;text-transform:uppercase}
+.etq-topo b{color:#f2f2f5;font:700 17px var(--mac-ui);letter-spacing:-.02em}
+.etq-topo small{color:#9099a9;font:500 11.5px/1.45 var(--mac-ui)}
+.etq-fechar{flex:0 0 auto;width:32px;height:32px;border:1px solid var(--linha);border-radius:9px;
+  background:rgba(255,255,255,.035);color:#d7deeb;font:700 18px/1 var(--mac-ui);cursor:pointer}
+.etq-fechar:hover{background:rgba(255,255,255,.1);color:#fff}
+.etq-lista{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px}
+.etq-linha{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--linha);
+  border-radius:10px;background:rgba(255,255,255,.026);cursor:grab;transition:.12s var(--curva,ease)}
+.etq-linha:hover{background:rgba(255,255,255,.055)}
+.etq-linha:active{cursor:grabbing}
+.etq-linha.sobre{border-color:var(--vybe-orange,#ff9d00);background:rgba(255,157,0,.12)}
+.etq-pega{color:#6e778a;font-size:13px;letter-spacing:-2px}
+.etq-cor{width:9px;height:9px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.05)}
+.etq-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:#e9ecf2;font:600 13px var(--mac-ui)}
+.etq-setas{display:flex;gap:3px;flex:0 0 auto}
+.etq-setas button{width:26px;height:26px;border:1px solid var(--linha);border-radius:7px;
+  background:rgba(255,255,255,.03);color:#c3cbd8;font:700 12px/1 var(--mac-ui);cursor:pointer}
+.etq-setas button:hover:not(:disabled){background:rgba(255,255,255,.11);color:#fff}
+.etq-setas button:disabled{opacity:.28;cursor:default}
+.etq-pe{display:flex;justify-content:flex-end;gap:8px;padding:13px 16px;border-top:1px solid var(--linha);
+  background:rgba(255,255,255,.018)}
+@media(max-width:560px){.etq-overlay{padding:0}.etq-folha{width:100vw;height:100vh;max-height:100vh;border-radius:0}}
+
 </style></head>
 <body>
 

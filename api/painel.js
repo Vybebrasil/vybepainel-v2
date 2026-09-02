@@ -935,6 +935,32 @@ async function areaOpcoes(req, res, quem) {
       return res.status(200).json({ ok: true, status: { chave, rotulo, cor, board_id: board } });
     }
 
+    // ── a ordem da lista ───────────────────────────────────────────────────
+    //
+    // A ordem do menu e a ordem do fluxo: quem abre a lista le de cima para
+    // baixo esperando o caminho da peca. Toda etiqueta nova entrava no fim —
+    // "Em Aprovacao", que e o meio do caminho, nascia depois de "Aprovado".
+    //
+    // A ordem chega inteira, nao em movimentos: assim nao existe estado
+    // intermediario onde duas etiquetas dividem a mesma posicao.
+    if (acao === 'ordenar-status') {
+      const board = Number(req.body?.board || 8385559107);
+      const ordem = Array.isArray(req.body?.ordem) ? req.body.ordem.map(String) : [];
+      if (!ordem.length) return res.status(400).json({ error: 'Informe a ordem das etiquetas.' });
+      const naLista = await db`SELECT chave FROM vybe_status WHERE board_id=${board}`;
+      const conhecidas = new Set(naLista.map((st) => st.chave));
+      const desconhecida = ordem.find((c) => !conhecidas.has(c));
+      if (desconhecida) return res.status(400).json({ error: `"${desconhecida}" não está nesta lista.` });
+      // Etiqueta que a tela nao mandou fica onde estava, depois das ordenadas:
+      // uma lista carregada antes de alguem criar outra nao pode apagar a nova
+      // da ordem so por nao conhece-la.
+      await db`UPDATE vybe_status SET ordem = ordem + ${ordem.length} WHERE board_id=${board}`;
+      for (let i = 0; i < ordem.length; i += 1) {
+        await db`UPDATE vybe_status SET ordem=${i} WHERE board_id=${board} AND chave=${ordem[i]}`;
+      }
+      return res.status(200).json({ ok: true, acao, ordenadas: ordem.length });
+    }
+
     // ── juntar dois status num só ──────────────────────────────────────────
     //
     // Solicitacoes tinham "Aguardando Aprovacao" E "Em aprovacao": dois nomes
