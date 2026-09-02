@@ -1423,6 +1423,9 @@ function chooseProductionMode() { closeTransientOverlaysForNavigation(); panelMo
 function chooseClientMode() { closeTransientOverlaysForNavigation(); panelMode='clientes'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); setStorage('vybePanelMode','clientes'); setStorage('vybePanelFocusUser',''); closeModeGate(); const btn=document.getElementById('btn-board-clientes'); if(btn) switchBoard('clientes',btn); applyPanelMode(); }
 
 function applyPanelMode() {
+  // O modo vira atributo do documento para o CSS poder escondê os controles que
+  // nao pertencem a ele. Aqui, porque este e o unico lugar que aplica o modo.
+  document.body.dataset.modo = panelMode;
   const isFocus = panelMode === 'foco' && !!focusUser();
   const isDaController = panelMode === 'controler';
   const isProductionCommand = panelMode === 'producao';

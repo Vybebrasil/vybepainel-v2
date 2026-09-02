@@ -4524,6 +4524,29 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   color:color-mix(in srgb,var(--cor-grupo,#7c8797) 72%,#e7ecf5)!important;
   font:700 10.5px var(--mac-ui)!important;font-variant-numeric:tabular-nums;letter-spacing:0}
 
+/* ─── MODO FOCO · O QUE NAO PERTENCE A ELE ───────────────────────────────────
+   A identidade de quem esta na tela aparecia TRES vezes seguidas: no subtitulo
+   do cabecalho ("Meu Dia · Beatriz · fila individual de prioridades"), numa
+   faixa propria logo abaixo ("Modo foco / Beatriz · Meu Dia") e no titulo
+   ("Meu Dia, Beatriz"). A faixa do meio nao dizia nada que as outras duas ja
+   nao dissessem — so o botao dela precisava sobreviver, e ele subiu para o
+   cabecalho do dia. */
+body[data-modo="foco"] #focus-mode-banner{display:none!important}
+
+/* E a navegacao de mes e as duas semanas sao do quadro, nao da fila: o Modo
+   Foco nunca as le. Mexer nelas aqui nao mudava nada na tela — tres dos oito
+   controles do topo eram enfeite. */
+body[data-modo="foco"] #month-nav,
+body[data-modo="foco"] #badge-s1,
+body[data-modo="foco"] #badge-s2{display:none!important}
+
+.focus-hero-lado{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.focus-hero-lado .mode-switch-btn{padding:6px 12px!important;font-size:11px!important}
+@media(max-width:820px){
+  .focus-hero-lado{width:100%;align-items:stretch}
+  .focus-hero-lado .mode-switch-btn{align-self:flex-end}
+}
+
 </style></head>
 <body>
 
