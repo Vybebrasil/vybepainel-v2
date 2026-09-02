@@ -344,7 +344,15 @@ function openOwnerEditor(event, itemId) {
   const menu = document.createElement('div');
   menu.id = 'dono-editor';
   menu.className = 'status-editor dono-editor';
-  menu.innerHTML = `<div class="status-editor-head">${safeText(rule.label || 'Responsáveis')}</div>
+  // Quando o clique vai valer para varias, a caixa diz ANTES — descobrir depois
+  // que se mexeu em dez pecas e o tipo de surpresa que ninguem perdoa.
+  const emLote = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.size >= 2
+    && SELECIONADAS.has(String(item.id));
+  menu.innerHTML = `<div class="status-editor-head">${emLote
+      ? `Responsável · <b>${SELECIONADAS.size} marcadas</b>`
+      : safeText(rule.label || 'Responsáveis')}</div>
+    ${emLote ? `<p class="dono-regra dono-lote-aviso">O que você escolher aqui vale para as
+      ${SELECIONADAS.size} atividades marcadas.</p>` : ''}
     <p class="dono-regra">${safeText(rule.rule || '')}</p>
     <div id="owner-editor-options" class="dono-lista">${listaDoSeletorDeDono(item, rule)}</div>
     <button type="button" id="dono-ver-todos" class="dono-ver-todos"
@@ -403,7 +411,22 @@ async function gravarResponsaveisDaPeca(item, ids) {
   return { antes: before, depois: after };
 }
 
-async function saveOwnerAssignments() { const item=findOperationalItem(pendingOwnerEditorItemId); if(!item) return showToast('Demanda não encontrada.','err'); const rule=ownerEligibility(item); const selected=[...donoSelecionados]; const allowed=new Set(rule.users.map(user=>String(user.id))); const foraDaRegra=TEAM_USERS.filter(user=>selected.includes(String(user.id)) && !allowed.has(String(user.id))).map(user=>firstName(user.name)); if(!selected.length && !document.getElementById('owner-editor-empty')?.checked) return showToast('Escolha um responsável ou confirme que a atividade ficará sem responsável.','info'); const before=ownerUsersFor(item).map(user=>user.name).join(', ') || 'Sem responsável'; const after=TEAM_USERS.filter(user=>selected.includes(String(user.id))).map(user=>user.name).join(', ') || 'Sem responsável'; const button=document.getElementById('owner-editor-save'); if(button) button.disabled=true; armOutboundMutationGuard('responsáveis'); try { const pelaEscritaDupla=await tentarEscritaDupla(item,{acao:'responsaveis',item:String(item.id),pessoas:selected}); if(!pelaEscritaDupla){ const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; const values={person:{personsAndTeams:selected.map(id=>({id:Number(id),kind:'person'}))}}; await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify(values)}); } try { await postItemUpdate(item.id,`[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule.label}${foraDaRegra.length?`\nFora da disciplina: ${foraDaRegra.join(', ')}`:''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); } catch(logError) { console.warn('Responsáveis atualizados, mas o log não foi registrado.',logError); } updateLocalOwners(item.id,selected); if(isRequestItem(item)){ outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{responsavel_ids:selected,responsavel_id:selected[0]||''},'responsáveis'); closeOwnerEditor(); if(String(activeWorkspaceItemId)===String(item.id)) { const current=findOperationalItem(item.id)||item; renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),current); } showToast(foraDaRegra.length?`✓ Responsáveis atualizados · ${foraDaRegra.join(', ')} fora da disciplina ${rule.label}, registrado no histórico`:'✓ Responsáveis atualizados · painel mantido no contexto atual', foraDaRegra.length?'info':'ok', foraDaRegra.length?7000:undefined); } catch(error) { if(button) button.disabled=false; showToast(`Não foi possível atualizar responsáveis: ${error.message}`,'err',7000); } }
+// EDITAR UMA LINHA COM VARIAS MARCADAS APLICA NO LOTE.
+//
+// Com duas pecas marcadas, tirar alguem de UMA delas mudava so aquela — e a
+// pessoa concluia que o lote nao funcionou. Ela nao errou: escolheu duas e
+// mexeu numa; o painel e que aplicou pela metade.
+//
+// A regra ja existia para o PRAZO na mesa de planejamento: 2+ marcadas e a
+// linha editada dentro da selecao, entao vale para todas. Aqui era a mesma
+// situacao com outra resposta — duas maneiras de o mesmo gesto se comportar.
+//
+// Editar uma linha FORA da selecao continua valendo so para ela: quem clicou
+// numa peca que nao marcou nao pediu nada em lote.
+async function saveOwnerAssignments() { const item=findOperationalItem(pendingOwnerEditorItemId); if(!item) return showToast('Demanda não encontrada.','err');
+  const emLote = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.size >= 2
+    && SELECIONADAS.has(String(item.id));
+  if (emLote) return salvarResponsaveisDaSelecao(item); const rule=ownerEligibility(item); const selected=[...donoSelecionados]; const allowed=new Set(rule.users.map(user=>String(user.id))); const foraDaRegra=TEAM_USERS.filter(user=>selected.includes(String(user.id)) && !allowed.has(String(user.id))).map(user=>firstName(user.name)); if(!selected.length && !document.getElementById('owner-editor-empty')?.checked) return showToast('Escolha um responsável ou confirme que a atividade ficará sem responsável.','info'); const before=ownerUsersFor(item).map(user=>user.name).join(', ') || 'Sem responsável'; const after=TEAM_USERS.filter(user=>selected.includes(String(user.id))).map(user=>user.name).join(', ') || 'Sem responsável'; const button=document.getElementById('owner-editor-save'); if(button) button.disabled=true; armOutboundMutationGuard('responsáveis'); try { const pelaEscritaDupla=await tentarEscritaDupla(item,{acao:'responsaveis',item:String(item.id),pessoas:selected}); if(!pelaEscritaDupla){ const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; const values={person:{personsAndTeams:selected.map(id=>({id:Number(id),kind:'person'}))}}; await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify(values)}); } try { await postItemUpdate(item.id,`[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule.label}${foraDaRegra.length?`\nFora da disciplina: ${foraDaRegra.join(', ')}`:''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); } catch(logError) { console.warn('Responsáveis atualizados, mas o log não foi registrado.',logError); } updateLocalOwners(item.id,selected); if(isRequestItem(item)){ outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{responsavel_ids:selected,responsavel_id:selected[0]||''},'responsáveis'); closeOwnerEditor(); if(String(activeWorkspaceItemId)===String(item.id)) { const current=findOperationalItem(item.id)||item; renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),current); } showToast(foraDaRegra.length?`✓ Responsáveis atualizados · ${foraDaRegra.join(', ')} fora da disciplina ${rule.label}, registrado no histórico`:'✓ Responsáveis atualizados · painel mantido no contexto atual', foraDaRegra.length?'info':'ok', foraDaRegra.length?7000:undefined); } catch(error) { if(button) button.disabled=false; showToast(`Não foi possível atualizar responsáveis: ${error.message}`,'err',7000); } }
 
 const DESIGN_TEAM   = ['deivid','beatriz','jady','victória','victoria'];
 const TAINARA_NAMES = ['tainara'];
@@ -1088,4 +1111,25 @@ async function soltarNoDia(dateIso, event, cartao) {
   // caminho unico ja devolve "nada a fazer" nesse caso, e por isso nao ha
   // verificacao repetida aqui.
   await managerCalendarDrop(dateIso, event, cartao);
+}
+
+// Aplica a MESMA lista de responsaveis em todas as marcadas.
+//
+// Passa pelo aplicarEmLote, que ja pergunta antes e conta o resultado, e grava
+// por gravarResponsaveisDaPeca — o mesmo gravador do editor de uma so. Uma via
+// propria aqui seria a terceira implementacao de "trocar responsavel".
+async function salvarResponsaveisDaSelecao(item) {
+  const selected = [...donoSelecionados].map(String);
+  if (!selected.length && !document.getElementById('owner-editor-empty')?.checked) {
+    return showToast('Escolha um responsável ou confirme que as atividades ficarão sem responsável.', 'info');
+  }
+  const nomes = TEAM_USERS.filter((u) => selected.includes(String(u.id))).map((u) => firstName(u.name));
+  const rotulo = nomes.length ? `${nomes.join(' e ')} como responsável` : 'a saída de todo mundo';
+  closeOwnerEditor();
+  await aplicarEmLote(rotulo, async (alvo) => {
+    const atuais = (typeof assignedIds === 'function' ? assignedIds(alvo) : []).map(String).sort().join(',');
+    // Peca que ja esta exatamente assim nao precisa de ida ao servidor.
+    if (atuais === selected.slice().sort().join(',')) return;
+    await gravarResponsaveisDaPeca(alvo, selected);
+  });
 }

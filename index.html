@@ -996,6 +996,11 @@
     /* A caixinha so aparece quando a mao chega perto ou quando ja esta marcada:
        uma coluna de quadrados vazios em toda linha pesa mais do que ajuda, e
        quem nunca vai marcar nada nao deveria ver o controle o dia inteiro. */
+    /* O aviso de lote no editor de responsavel: acento, porque muda o alcance
+       do clique — nao e legenda, e a diferenca entre mexer numa peca e em dez. */
+    .dono-lote-aviso{border-left:2px solid var(--accent,#ff6b00);
+      background:color-mix(in srgb,var(--accent,#ff6b00) 10%,transparent);
+      padding:8px 10px;margin:0 0 8px;color:#ffd9b8;font:600 11.5px/1.45 var(--mac-ui)}
     .dia-marcar{display:inline-flex;align-items:center;flex:0 0 auto;padding:0 2px;cursor:pointer;
       opacity:0;transition:opacity .14s var(--curva)}
     .item-row:hover .dia-marcar,.item-row.marcada .dia-marcar{opacity:1}
