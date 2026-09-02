@@ -1275,19 +1275,8 @@ function abrirEscolha(event, itemId, campo) {
   menu.id = 'escolha-editor';
   menu.className = 'status-editor';
   const gerindo = podeGerirEtiquetas();
-  // Ligada/desligada era ◉ contra ○: dois glifos quase iguais de 22px, sem cor,
-  // e ainda escondidos até passar o mouse. Estado não se esconde — a chave fica
-  // sempre à vista; renomear, cor e apagar são ações e continuam aparecendo no
-  // hover.
-  const chave = (o) => gerindo ? `<button type="button" class="vybe-chave ${o.ativa ? 'ligada' : ''}"
-      role="switch" aria-checked="${o.ativa ? 'true' : 'false'}"
-      title="${o.ativa ? 'Ligada — aparece nas escolhas. Clique para desligar.' : 'Desligada — não aparece nas escolhas novas. Clique para ligar.'}"
-      onclick="event.stopPropagation();alternarEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}',${o.ativa})"><span></span></button>` : '';
-  const ferramentas = (o) => gerindo ? `<span class="etiqueta-ferramentas">
-      <button type="button" class="icone-btn" title="Renomear" aria-label="Renomear" onclick="event.stopPropagation();renomearEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lapis}</button>
-      <button type="button" class="icone-btn" title="Trocar a cor" aria-label="Trocar a cor" onclick="event.stopPropagation();recolorirEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${o.cor || ''}')">${ICONE.gota}</button>
-      <button type="button" class="icone-btn perigo" title="Apagar" aria-label="Apagar" onclick="event.stopPropagation();removerEtiqueta('${coluna}','${campo}','${safeText(o.chave)}','${safeText(o.rotulo).replace(/'/g, "\\'")}')">${ICONE.lixo}</button>
-    </span>` : '';
+  const chave = (o) => chaveDaEtiquetaHtml(coluna, campo, o);
+  const ferramentas = (o) => ferramentasDaEtiquetaHtml(coluna, campo, o);
   menu.innerHTML = `<div class="status-editor-head">${safeText(rotuloDoCampo(campo, item))}</div>
     ${opcoes.map((o) => `<div class="etiqueta-linha ${o.ativa ? '' : 'desligada'}">
         <button type="button" class="status-editor-option ${o.rotulo === atual ? 'current' : ''}"
@@ -1301,11 +1290,47 @@ function abrirEscolha(event, itemId, campo) {
       <button type="button" class="status-editor-option" onclick="escolherValor('${safeText(item.id)}','${campo}','')">
         <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Deixar em branco</span></button>
     </div>
-    ${gerindo ? `<div class="etiqueta-rodape">
-      <button type="button" onclick="event.stopPropagation();criarEtiqueta('${coluna}','${campo}')">+ Nova etiqueta</button>
-    </div>` : ''}`;
+    ${rodapeDeEtiquetasHtml(coluna, campo, rotuloDoCampo(campo, item))}`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, rect);
+}
+
+// ── AS FERRAMENTAS DE ETIQUETA, UMA VEZ SO ───────────────────────────────────
+//
+// Renomear, trocar a cor, ligar/desligar, apagar, criar e reordenar. Isto vivia
+// escrito dentro do menu de Formato — e por isso o menu de Status, que e o mesmo
+// tipo de lista, nao tinha nada. Sao funcoes agora, e os dois menus as chamam.
+//
+// Ligada/desligada era ◉ contra ○: dois glifos quase iguais de 22px, sem cor, e
+// ainda escondidos até passar o mouse. Estado não se esconde — a chave fica
+// sempre à vista; renomear, cor e apagar são ações e continuam aparecendo no
+// hover.
+const aspasSeguras = (t) => safeText(String(t ?? '')).replace(/'/g, "\\'");
+function chaveDaEtiquetaHtml(coluna, campo, o) {
+  if (!podeGerirEtiquetas()) return '';
+  return `<button type="button" class="vybe-chave ${o.ativa ? 'ligada' : ''}"
+      role="switch" aria-checked="${o.ativa ? 'true' : 'false'}"
+      title="${o.ativa ? 'Ligada — aparece nas escolhas. Clique para desligar.' : 'Desligada — não aparece nas escolhas novas. Clique para ligar.'}"
+      onclick="event.stopPropagation();alternarEtiqueta('${coluna}','${campo}','${aspasSeguras(o.chave)}','${aspasSeguras(o.rotulo)}',${Boolean(o.ativa)})"><span></span></button>`;
+}
+function ferramentasDaEtiquetaHtml(coluna, campo, o) {
+  if (!podeGerirEtiquetas()) return '';
+  return `<span class="etiqueta-ferramentas">
+      <button type="button" class="icone-btn" title="Renomear" aria-label="Renomear"
+        onclick="event.stopPropagation();renomearEtiqueta('${coluna}','${campo}','${aspasSeguras(o.chave)}','${aspasSeguras(o.rotulo)}')">${ICONE.lapis}</button>
+      <button type="button" class="icone-btn" title="Trocar a cor" aria-label="Trocar a cor"
+        onclick="event.stopPropagation();recolorirEtiqueta('${coluna}','${campo}','${aspasSeguras(o.chave)}','${aspasSeguras(o.cor || '')}')">${ICONE.gota}</button>
+      <button type="button" class="icone-btn perigo" title="Apagar" aria-label="Apagar"
+        onclick="event.stopPropagation();removerEtiqueta('${coluna}','${campo}','${aspasSeguras(o.chave)}','${aspasSeguras(o.rotulo)}')">${ICONE.lixo}</button>
+    </span>`;
+}
+function rodapeDeEtiquetasHtml(coluna, campo, rotuloDoCampoDado) {
+  if (!podeGerirEtiquetas()) return '';
+  const nome = aspasSeguras(rotuloDoCampoDado || '');
+  return `<div class="etiqueta-rodape">
+      <button type="button" onclick="event.stopPropagation();criarEtiqueta('${coluna}','${campo}','${nome}')">+ Nova etiqueta</button>
+      <button type="button" onclick="event.stopPropagation();organizarEtiquetas('${coluna}','${campo}','${nome}')">⇅ Ordem</button>
+    </div>`;
 }
 
 // ── gerir as etiquetas de dentro do próprio menu ─────────────────────────────
@@ -1317,7 +1342,17 @@ function abrirEscolha(event, itemId, campo) {
 // inteiro, quem muda o vocabulário da operação é quem administra.
 function podeGerirEtiquetas() { return Boolean(sessaoAtual()?.admin); }
 
+// Status mora por quadro: a mesma chave existe em Producao e em Solicitacoes.
+// Em vez de passar o quadro por seis funcoes e por umas trinta chamadas escritas
+// no HTML, ele viaja colado na coluna — 'status:8385559107' — e e separado aqui,
+// no unico lugar que fala com o servidor.
+function colunaComQuadro(coluna) {
+  const [nome, board] = String(coluna || '').split(':');
+  return board ? { coluna: nome, board: Number(board) } : { coluna: nome };
+}
 async function chamarEtiqueta(corpo) {
+  const { coluna, board } = colunaComQuadro(corpo?.coluna);
+  corpo = { ...corpo, coluna, ...(board ? { board } : {}) };
   const r = await fetch('/api/painel?area=opcoes', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
@@ -1340,8 +1375,28 @@ async function recarregarCatalogos() {
         chave: c.chave, rotulo: c.rotulo, cor: c.cor || '', borda: c.borda || '', ativa: c.ativa !== false,
       }));
     }
+    // Status entrou para a familia das etiquetas: sem reler aqui, renomear um
+    // status mostraria o nome velho ate alguem atualizar a pagina.
+    if (Array.isArray(d.status) && typeof STATUS_OPTIONS !== 'undefined') {
+      STATUS_OPTIONS = d.status.map((st) => ({
+        chave: st.chave, label: st.rotulo, ativa: st.ativa !== false,
+        index: st.indice === null || st.indice === undefined ? null : Number(st.indice),
+        color: st.cor || '#c4c4c4', border: st.borda || st.cor || '#c4c4c4',
+      }));
+    }
+    const rd = await fetch('/api/conteudos?board=demandas', { credentials: 'same-origin' });
+    if (rd.ok) {
+      const dd = await rd.json();
+      if (Array.isArray(dd.status) && typeof CATALOGO_STATUS_DEMANDAS !== 'undefined') {
+        CATALOGO_STATUS_DEMANDAS = dd.status.map((st) => ({
+          chave: st.chave, rotulo: st.rotulo, indice: st.indice ?? null,
+          cor: st.cor || '', borda: st.borda || st.cor || '', ativa: st.ativa !== false,
+        }));
+      }
+    }
   } catch { /* segue com o catálogo que já tem */ }
   renderVisaoDeGrupos();
+  if (typeof renderIntegratedOperationalViews === 'function') renderIntegratedOperationalViews();
 }
 
 async function renomearEtiqueta(coluna, campo, chave, atual) {
@@ -1381,14 +1436,128 @@ async function removerEtiqueta(coluna, campo, chave, rotulo) {
   } catch (e) { showToast(e.message, 'info', 9000); }
 }
 
-async function criarEtiqueta(coluna, campo) {
-  const rotulo = window.prompt(`Nova etiqueta em ${CAMPOS_DE_ESCOLHA[campo].rotulo}:`, '');
+async function criarEtiqueta(coluna, campo, rotuloDoCampoDado) {
+  const nome = rotuloDoCampoDado || CAMPOS_DE_ESCOLHA[campo]?.rotulo || 'este campo';
+  const rotulo = window.prompt(`Nova etiqueta em ${nome}:`, '');
   if (!rotulo || !rotulo.trim()) return;
   try {
     await chamarEtiqueta({ acao: 'criar', coluna, rotulo: rotulo.trim() });
     await recarregarCatalogos();
     showToast(`✓ "${rotulo.trim()}" criada`, 'ok');
   } catch (e) { showToast(e.message, 'err', 7000); }
+}
+
+// ─── A ORDEM DA LISTA ────────────────────────────────────────────────────────
+//
+// A ordem do menu e a ordem do fluxo: quem abre a lista le de cima para baixo
+// esperando o caminho da peca. Toda etiqueta nova entrava no fim, e o fim quase
+// nunca e o lugar dela.
+//
+// Arrastar e o gesto certo para isto, mas arrastar sozinho nao basta: no celular
+// e no trackpad ele escorrega. As setas fazem o mesmo trabalho e nunca erram,
+// entao as duas convivem — e a linha inteira e a alca, porque pegar num pontinho
+// de seis pixels e o tipo de precisao que faz desistir.
+let ORDEM_DAS_ETIQUETAS = [];
+let ETIQUETA_ARRASTADA = -1;
+let CAMPO_EM_ORDENACAO = null;
+
+// De onde sai a lista de cada catalogo. E o espelho do resolvedor do servidor:
+// os dois precisam concordar sobre onde cada etiqueta mora.
+function etiquetasDoCampo(coluna) {
+  const { coluna: nome, board } = colunaComQuadro(coluna);
+  if (nome === 'status') {
+    const daDemanda = board && String(board) === String(typeof BOARD_DEMANDAS_ID !== 'undefined' ? BOARD_DEMANDAS_ID : '');
+    if (daDemanda) {
+      return (typeof CATALOGO_STATUS_DEMANDAS === 'undefined' ? [] : CATALOGO_STATUS_DEMANDAS)
+        .map((st) => ({ chave: st.chave, rotulo: st.rotulo, cor: st.cor || '#8f8f8f' }));
+    }
+    return (typeof STATUS_OPTIONS === 'undefined' ? [] : STATUS_OPTIONS)
+      .filter((o) => o.chave).map((o) => ({ chave: o.chave, rotulo: o.label, cor: o.color || '#8f8f8f' }));
+  }
+  if (nome === 'status_1__1') {
+    return (typeof CATALOGO_CAPTACAO === 'undefined' ? [] : CATALOGO_CAPTACAO)
+      .map((c) => ({ chave: c.chave, rotulo: c.rotulo, cor: c.cor || '#8f8f8f' }));
+  }
+  return (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
+    .filter((o) => o.coluna_id === nome)
+    .map((o) => ({ chave: o.chave, rotulo: o.rotulo, cor: o.cor || '#8f8f8f' }));
+}
+
+function organizarEtiquetas(coluna, campo, rotuloDoCampoDado) {
+  const lista = etiquetasDoCampo(coluna);
+  if (!lista.length) return showToast('A lista de etiquetas ainda está carregando.', 'info');
+  ORDEM_DAS_ETIQUETAS = lista;
+  CAMPO_EM_ORDENACAO = { coluna, campo, rotulo: rotuloDoCampoDado || campo || 'Etiquetas' };
+  document.getElementById('etq-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'etq-overlay'; overlay.className = 'etq-overlay';
+  overlay.onclick = (event) => { if (event.target === overlay) fecharOrganizador(); };
+  overlay.innerHTML = `<div class="etq-folha" role="dialog" aria-label="Ordem das etiquetas">
+      <div class="etq-topo">
+        <div><span>${safeText(CAMPO_EM_ORDENACAO.rotulo)}</span><b>Ordem das etiquetas</b>
+          <small>Arraste, ou use as setas. É a ordem em que todo mundo vê este menu.</small></div>
+        <button type="button" class="etq-fechar" onclick="fecharOrganizador()" aria-label="Fechar">×</button>
+      </div>
+      <div class="etq-lista" id="etq-lista"></div>
+      <div class="etq-pe">
+        <button type="button" class="workflow-secondary" onclick="fecharOrganizador()">Cancelar</button>
+        <button type="button" class="workflow-primary" id="etq-salvar" onclick="salvarOrdemDasEtiquetas()">Salvar ordem</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  pintarOrdemDasEtiquetas();
+}
+function fecharOrganizador() {
+  document.getElementById('etq-overlay')?.remove();
+  ETIQUETA_ARRASTADA = -1; CAMPO_EM_ORDENACAO = null;
+}
+function pintarOrdemDasEtiquetas() {
+  const caixa = document.getElementById('etq-lista');
+  if (!caixa) return;
+  caixa.innerHTML = ORDEM_DAS_ETIQUETAS.map((st, i) => `<div class="etq-linha" draggable="true"
+      ondragstart="etiquetaArrastar(${i})" ondragover="event.preventDefault();this.classList.add('sobre')"
+      ondragleave="this.classList.remove('sobre')" ondrop="etiquetaSoltar(${i},event)"
+      ondragend="this.classList.remove('sobre')">
+      <span class="etq-pega" aria-hidden="true">⠿</span>
+      <span class="etq-cor" style="background:${safeText(st.cor)}"></span>
+      <span class="etq-nome">${safeText(st.rotulo)}</span>
+      <span class="etq-setas">
+        <button type="button" onclick="moverEtiqueta(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Subir">↑</button>
+        <button type="button" onclick="moverEtiqueta(${i},1)" ${i === ORDEM_DAS_ETIQUETAS.length - 1 ? 'disabled' : ''} aria-label="Descer">↓</button>
+      </span>
+    </div>`).join('');
+}
+function etiquetaArrastar(i) { ETIQUETA_ARRASTADA = i; }
+function etiquetaSoltar(destino, event) {
+  event?.preventDefault();
+  const origem = ETIQUETA_ARRASTADA;
+  ETIQUETA_ARRASTADA = -1;
+  if (origem < 0 || origem === destino) return pintarOrdemDasEtiquetas();
+  const [movida] = ORDEM_DAS_ETIQUETAS.splice(origem, 1);
+  ORDEM_DAS_ETIQUETAS.splice(destino, 0, movida);
+  pintarOrdemDasEtiquetas();
+}
+function moverEtiqueta(i, passo) {
+  const alvo = i + passo;
+  if (alvo < 0 || alvo >= ORDEM_DAS_ETIQUETAS.length) return;
+  const [movida] = ORDEM_DAS_ETIQUETAS.splice(i, 1);
+  ORDEM_DAS_ETIQUETAS.splice(alvo, 0, movida);
+  pintarOrdemDasEtiquetas();
+}
+async function salvarOrdemDasEtiquetas() {
+  if (!CAMPO_EM_ORDENACAO) return;
+  const botao = document.getElementById('etq-salvar');
+  if (botao) { botao.disabled = true; botao.textContent = 'Salvando…'; }
+  try {
+    await chamarEtiqueta({ acao: 'ordenar', coluna: CAMPO_EM_ORDENACAO.coluna,
+      ordem: ORDEM_DAS_ETIQUETAS.map((st) => st.chave) });
+    fecharOrganizador();
+    await recarregarCatalogos();
+    showToast('✓ Ordem salva · vale para todo mundo', 'ok', 4500);
+  } catch (e) {
+    if (botao) { botao.disabled = false; botao.textContent = 'Tentar de novo'; }
+    showToast(e.message, 'err', 7000);
+  }
 }
 
 function fecharEscolha() {

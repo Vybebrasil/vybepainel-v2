@@ -844,6 +844,171 @@ const COLUNAS_EDITAVEIS = {
   color_mkynd7j8: '🎙️ OFF',
 };
 
+// ─── OS CATALOGOS DE ETIQUETA, NUM LUGAR SO ──────────────────────────────────
+//
+// Etiqueta mora em tres tabelas — status, captacao e as opcoes das colunas de
+// escolha — e cada acao daqui repetia o "se for captacao... senao...". Status
+// nao estava em nenhuma delas: dava para criar, renomear, recolorir e apagar
+// uma etiqueta de Formato, e nao de Status, sem que houvesse motivo nenhum.
+//
+// Este resolvedor diz onde a etiqueta mora; as funcoes abaixo sao as unicas que
+// escrevem, e cada acao chama uma delas. Um lugar so para acrescentar a proxima
+// tabela, e nenhum lugar onde uma delas fique de fora por esquecimento.
+const CAPTACAO_COLUNA = 'status_1__1';
+function catalogoDeEtiquetas(coluna, board) {
+  if (coluna === 'status') return { onde: 'status', board: Number(board) || 7829537690 };
+  if (coluna === CAPTACAO_COLUNA) return { onde: 'captacao' };
+  if (COLUNAS_EDITAVEIS[coluna]) return { onde: 'opcoes', coluna };
+  return null;
+}
+
+// A ordem da lista nao existia em duas das tres tabelas: opcoes e captacao se
+// ordenavam pelo indice do Monday, que e o endereco da etiqueta la e nao pode
+// ser mexido para reordenar. Ganham uma coluna propria, comecando pelo indice
+// para nada mudar de lugar no dia em que ela nasce.
+let colunasDeEtiquetaProntas = false;
+async function garantirColunasDeEtiqueta(db) {
+  if (colunasDeEtiquetaProntas) return;
+  await db`ALTER TABLE vybe_status   ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
+  await db`ALTER TABLE vybe_opcoes   ADD COLUMN IF NOT EXISTS ordem INT`;
+  await db`ALTER TABLE vybe_captacao ADD COLUMN IF NOT EXISTS ordem INT`;
+  await db`UPDATE vybe_opcoes   SET ordem = indice       WHERE ordem IS NULL`;
+  await db`UPDATE vybe_captacao SET ordem = monday_index WHERE ordem IS NULL`;
+  colunasDeEtiquetaProntas = true;
+}
+
+async function lerEtiquetas(db, cat) {
+  if (cat.onde === 'status') {
+    return db`SELECT chave, rotulo, cor, ativa FROM vybe_status
+      WHERE board_id=${cat.board} ORDER BY ordem, rotulo`;
+  }
+  if (cat.onde === 'captacao') {
+    return db`SELECT chave, rotulo, cor, ativa FROM vybe_captacao
+      ORDER BY COALESCE(ordem, monday_index), rotulo`;
+  }
+  return db`SELECT chave, rotulo, cor, ativa FROM vybe_opcoes
+    WHERE coluna_id=${cat.coluna} ORDER BY COALESCE(ordem, indice), rotulo`;
+}
+
+async function renomearNoCatalogo(db, cat, chave, rotulo) {
+  if (cat.onde === 'status') {
+    return db`UPDATE vybe_status SET rotulo=${rotulo}
+      WHERE board_id=${cat.board} AND chave=${chave} RETURNING chave, rotulo`;
+  }
+  if (cat.onde === 'captacao') {
+    return db`UPDATE vybe_captacao SET rotulo=${rotulo} WHERE chave=${chave} RETURNING chave, rotulo`;
+  }
+  return db`UPDATE vybe_opcoes SET rotulo=${rotulo}
+    WHERE coluna_id=${cat.coluna} AND chave=${chave} RETURNING chave, rotulo`;
+}
+
+async function recolorirNoCatalogo(db, cat, chave, cor) {
+  if (cat.onde === 'status') {
+    return db`UPDATE vybe_status SET cor=${cor}, borda=${cor}
+      WHERE board_id=${cat.board} AND chave=${chave} RETURNING chave, cor`;
+  }
+  if (cat.onde === 'captacao') {
+    return db`UPDATE vybe_captacao SET cor=${cor}, borda=${cor} WHERE chave=${chave} RETURNING chave, cor`;
+  }
+  return db`UPDATE vybe_opcoes SET cor=${cor}, borda=${cor}
+    WHERE coluna_id=${cat.coluna} AND chave=${chave} RETURNING chave, cor`;
+}
+
+async function alternarNoCatalogo(db, cat, chave) {
+  if (cat.onde === 'status') {
+    return db`UPDATE vybe_status SET ativa = NOT ativa
+      WHERE board_id=${cat.board} AND chave=${chave} RETURNING chave, rotulo, ativa`;
+  }
+  if (cat.onde === 'captacao') {
+    return db`UPDATE vybe_captacao SET ativa = NOT ativa WHERE chave=${chave} RETURNING chave, rotulo, ativa`;
+  }
+  return db`UPDATE vybe_opcoes SET ativa = NOT ativa
+    WHERE coluna_id=${cat.coluna} AND chave=${chave} RETURNING chave, rotulo, ativa`;
+}
+
+// A ordem chega inteira, nao em movimentos: assim nao existe instante em que
+// duas etiquetas dividem a mesma posicao. Quem a tela nao mandou fica depois
+// das ordenadas — uma lista carregada antes de alguem criar outra nao pode
+// apagar a nova so por nao conhece-la.
+async function ordenarNoCatalogo(db, cat, ordem) {
+  if (cat.onde === 'status') {
+    await db`UPDATE vybe_status SET ordem = ordem + ${ordem.length} WHERE board_id=${cat.board}`;
+    for (let i = 0; i < ordem.length; i += 1) {
+      await db`UPDATE vybe_status SET ordem=${i} WHERE board_id=${cat.board} AND chave=${ordem[i]}`;
+    }
+    return;
+  }
+  if (cat.onde === 'captacao') {
+    await db`UPDATE vybe_captacao SET ordem = COALESCE(ordem, monday_index) + ${ordem.length}`;
+    for (let i = 0; i < ordem.length; i += 1) {
+      await db`UPDATE vybe_captacao SET ordem=${i} WHERE chave=${ordem[i]}`;
+    }
+    return;
+  }
+  await db`UPDATE vybe_opcoes SET ordem = COALESCE(ordem, indice) + ${ordem.length}
+    WHERE coluna_id=${cat.coluna}`;
+  for (let i = 0; i < ordem.length; i += 1) {
+    await db`UPDATE vybe_opcoes SET ordem=${i} WHERE coluna_id=${cat.coluna} AND chave=${ordem[i]}`;
+  }
+}
+
+async function contarUsoDaEtiqueta(db, cat, chave) {
+  if (cat.onde === 'status') {
+    return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos
+      WHERE board_id=${cat.board} AND status_chave=${chave}`)[0].n);
+  }
+  if (cat.onde === 'captacao') {
+    return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE captacao_chave=${chave}`)[0].n);
+  }
+  if (cat.coluna === 'lista_suspensa0__1') {
+    return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(formato_chaves)`)[0].n);
+  }
+  if (cat.coluna === 'lista_suspensa__1') {
+    return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(tipo_conteudo_chaves)`)[0].n);
+  }
+  if (cat.coluna === 'color_mm164yv8') {
+    return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE prioridade_chave=${chave}`)[0].n);
+  }
+  if (cat.coluna === 'color_mkynd7j8') {
+    return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE off_audio_chave=${chave}`)[0].n);
+  }
+  return 0;
+}
+
+async function apagarNoCatalogo(db, cat, chave) {
+  if (cat.onde === 'status') {
+    return db`DELETE FROM vybe_status WHERE board_id=${cat.board} AND chave=${chave} RETURNING chave, rotulo`;
+  }
+  if (cat.onde === 'captacao') {
+    return db`DELETE FROM vybe_captacao WHERE chave=${chave} RETURNING chave, rotulo`;
+  }
+  return db`DELETE FROM vybe_opcoes WHERE coluna_id=${cat.coluna} AND chave=${chave} RETURNING chave, rotulo`;
+}
+
+// Etiqueta nova nasce sem indice do Monday: ela nao existe do outro lado, e
+// tentar copia-la para la seria pedir um erro. A gravacao ja sabe disso e pula
+// a copia quando o indice falta.
+async function criarNoCatalogo(db, cat, chave, rotulo, cor) {
+  if (cat.onde === 'status') {
+    const fim = (await db`SELECT COALESCE(MAX(ordem), 0) + 1 AS n FROM vybe_status WHERE board_id=${cat.board}`)[0];
+    return db`INSERT INTO vybe_status (board_id, chave, rotulo, cor, borda, ordem, monday_index, final, ativa)
+      VALUES (${cat.board}, ${chave}, ${rotulo}, ${cor}, ${cor}, ${Number(fim.n)}, NULL, FALSE, TRUE)
+      RETURNING chave, rotulo, cor, ativa`;
+  }
+  if (cat.onde === 'captacao') {
+    const fim = (await db`SELECT COALESCE(MAX(COALESCE(ordem, monday_index)), 0) + 1 AS n FROM vybe_captacao`)[0];
+    return db`INSERT INTO vybe_captacao (chave, rotulo, cor, borda, monday_index, ordem, ativa)
+      VALUES (${chave}, ${rotulo}, ${cor}, ${cor}, NULL, ${Number(fim.n)}, TRUE)
+      RETURNING chave, rotulo, cor, ativa`;
+  }
+  const fim = (await db`SELECT COALESCE(MAX(COALESCE(ordem, indice)), 0) + 1 AS n
+    FROM vybe_opcoes WHERE coluna_id=${cat.coluna}`)[0];
+  return db`INSERT INTO vybe_opcoes (coluna_id, chave, rotulo, cor, borda, indice, ordem, ativa, so_vybe)
+    VALUES (${cat.coluna}, ${chave}, ${rotulo}, ${cor}, ${cor}, NULL, ${Number(fim.n)}, TRUE, TRUE)
+    ON CONFLICT (coluna_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, ativa=TRUE
+    RETURNING chave, rotulo, cor, ativa`;
+}
+
 // A chave de um status e o nome dele sem acento, em minusculas, com underscore
 // — a mesma conta que o painel faz antes de mandar. As duas TEM de bater: e por
 // ela que a gravacao encontra o status, e o painel so conhece o nome.
@@ -886,78 +1051,29 @@ async function areaOpcoes(req, res, quem) {
 
   if (req.method === 'POST') {
     const { acao = 'alternar', coluna, chave, rotulo } = req.body || {};
+    await garantirColunasDeEtiqueta(db);
+    // Toda acao daqui mexe numa etiqueta, e toda etiqueta mora em algum
+    // catalogo. Resolver uma vez, aqui, e o que faz status valer as mesmas
+    // ferramentas que Formato ja tinha.
+    const cat = catalogoDeEtiquetas(coluna, req.body?.board);
+    if (!cat) return res.status(400).json({ error: 'Campo de etiquetas desconhecido.' });
 
     if (acao === 'alternar') {
-      if (!coluna || !chave) return res.status(400).json({ error: 'Informe a coluna e a opção.' });
-      const r = coluna === 'status_1__1'
-        ? await db`UPDATE vybe_captacao SET ativa = NOT ativa WHERE chave=${chave} RETURNING chave, rotulo, ativa`
-        : await db`UPDATE vybe_opcoes SET ativa = NOT ativa WHERE coluna_id=${coluna} AND chave=${chave}
-             RETURNING chave, rotulo, ativa`;
-      if (!r.length) return res.status(404).json({ error: 'Opção não encontrada.' });
+      if (!chave) return res.status(400).json({ error: 'Informe a etiqueta.' });
+      const r = await alternarNoCatalogo(db, cat, chave);
+      if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
       return res.status(200).json({ ok: true, opcao: r[0] });
     }
 
-    // ── criar uma etiqueta de status ───────────────────────────────────────
-    //
-    // Ate aqui o vocabulario so podia encolher: dava para juntar dois nomes e
-    // para desligar uma opcao, nunca para acrescentar. Um nome novo exigia
-    // criar a etiqueta no Monday e rodar uma importacao que nao tem botao —
-    // ou seja, na pratica nao existia caminho.
-    //
-    // A etiqueta nasce sem indice do quadro, e e por isso que a gravacao no
-    // Monday manda o nome em vez do numero quando ele falta.
-    if (acao === 'criar-status') {
-      const rotulo = String(req.body?.rotulo || '').trim();
-      const board = Number(req.body?.board || 8385559107);
-      const cor = String(req.body?.cor || '#579bfc').trim() || '#579bfc';
-      if (!rotulo) return res.status(400).json({ error: 'Escreva o nome da etiqueta.' });
-      if (rotulo.length > 40) return res.status(400).json({ error: 'O nome precisa caber em 40 caracteres.' });
-      const chave = rotulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-      if (!chave) return res.status(400).json({ error: 'Esse nome não vira uma etiqueta válida.' });
-      const naLista = await db`SELECT chave, rotulo FROM vybe_status WHERE board_id=${board}`;
-      const mesmoNome = naLista.find((st) => String(st.rotulo).toLowerCase() === rotulo.toLowerCase());
-      if (mesmoNome) return res.status(409).json({ error: `"${mesmoNome.rotulo}" já está na lista.` });
-      // Chave ocupada por uma etiqueta de OUTRO nome e a heranca da juncao, nao
-      // um nome repetido. Recusar aqui seria culpar o nome novo por um problema
-      // que e do antigo — entao o antigo e consertado e o novo entra.
-      const herdeira = naLista.find((st) => st.chave === chave);
-      if (herdeira) {
-        const nova = await realinharChaveDoStatus(db, board, herdeira);
-        if (nova === chave) {
-          return res.status(409).json({
-            error: `"${herdeira.rotulo}" já ocupa esse nome no banco. Renomeie ou junte essa etiqueta antes.` });
-        }
-      }
-      const fim = (await db`SELECT COALESCE(MAX(ordem), 0) + 1 AS n FROM vybe_status WHERE board_id=${board}`)[0];
-      await db`INSERT INTO vybe_status (board_id, chave, rotulo, cor, borda, ordem, monday_index, final)
-        VALUES (${board}, ${chave}, ${rotulo}, ${cor}, ${cor}, ${Number(fim.n)}, NULL, FALSE)`;
-      return res.status(200).json({ ok: true, status: { chave, rotulo, cor, board_id: board } });
-    }
-
-    // ── a ordem da lista ───────────────────────────────────────────────────
-    //
-    // A ordem do menu e a ordem do fluxo: quem abre a lista le de cima para
-    // baixo esperando o caminho da peca. Toda etiqueta nova entrava no fim —
-    // "Em Aprovacao", que e o meio do caminho, nascia depois de "Aprovado".
-    //
-    // A ordem chega inteira, nao em movimentos: assim nao existe estado
-    // intermediario onde duas etiquetas dividem a mesma posicao.
-    if (acao === 'ordenar-status') {
-      const board = Number(req.body?.board || 8385559107);
+    // A ordem da lista e a ordem do fluxo: quem abre o menu le de cima para
+    // baixo esperando o caminho da peca. Etiqueta nova entrava sempre no fim.
+    if (acao === 'ordenar') {
       const ordem = Array.isArray(req.body?.ordem) ? req.body.ordem.map(String) : [];
       if (!ordem.length) return res.status(400).json({ error: 'Informe a ordem das etiquetas.' });
-      const naLista = await db`SELECT chave FROM vybe_status WHERE board_id=${board}`;
-      const conhecidas = new Set(naLista.map((st) => st.chave));
-      const desconhecida = ordem.find((c) => !conhecidas.has(c));
-      if (desconhecida) return res.status(400).json({ error: `"${desconhecida}" não está nesta lista.` });
-      // Etiqueta que a tela nao mandou fica onde estava, depois das ordenadas:
-      // uma lista carregada antes de alguem criar outra nao pode apagar a nova
-      // da ordem so por nao conhece-la.
-      await db`UPDATE vybe_status SET ordem = ordem + ${ordem.length} WHERE board_id=${board}`;
-      for (let i = 0; i < ordem.length; i += 1) {
-        await db`UPDATE vybe_status SET ordem=${i} WHERE board_id=${board} AND chave=${ordem[i]}`;
-      }
+      const conhecidas = new Set((await lerEtiquetas(db, cat)).map((e) => e.chave));
+      const estranha = ordem.find((c) => !conhecidas.has(c));
+      if (estranha) return res.status(400).json({ error: `"${estranha}" não está nesta lista.` });
+      await ordenarNoCatalogo(db, cat, ordem);
       return res.status(200).json({ ok: true, acao, ordenadas: ordem.length });
     }
 
@@ -1024,38 +1140,49 @@ async function areaOpcoes(req, res, quem) {
 
     if (acao === 'criar') {
       const limpo = String(rotulo || '').trim();
-      if (!coluna || !limpo) return res.status(400).json({ error: 'Informe a coluna e o rótulo.' });
-      if (!COLUNAS_EDITAVEIS[coluna]) return res.status(400).json({ error: 'Coluna não editável.' });
-      const nova = String(limpo).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-      const r = await db`INSERT INTO vybe_opcoes (coluna_id, chave, rotulo, indice, ativa, so_vybe)
-        VALUES (${coluna}, ${nova}, ${limpo}, NULL, TRUE, TRUE)
-        ON CONFLICT (coluna_id, chave) DO UPDATE SET rotulo=EXCLUDED.rotulo, ativa=TRUE
-        RETURNING coluna_id, chave, rotulo, ativa, so_vybe`;
-      return res.status(200).json({ ok: true, opcao: r[0],
-        aviso: 'Opção criada só na Vybe. Enquanto o Monday existir, a cópia deste campo é pulada quando ela for usada.' });
+      if (!limpo) return res.status(400).json({ error: 'Escreva o nome da etiqueta.' });
+      if (limpo.length > 40) return res.status(400).json({ error: 'O nome precisa caber em 40 caracteres.' });
+      const nova = chaveDeStatus(limpo);
+      if (!nova) return res.status(400).json({ error: 'Esse nome não vira uma etiqueta válida.' });
+      const naLista = await lerEtiquetas(db, cat);
+      const mesmoNome = naLista.find((e) => String(e.rotulo).toLowerCase() === limpo.toLowerCase());
+      if (mesmoNome) return res.status(409).json({ error: `"${mesmoNome.rotulo}" já está na lista.` });
+      // Chave ocupada por uma etiqueta de OUTRO nome e heranca da juncao, nao
+      // nome repetido. Culpar o nome novo por um problema do antigo seria
+      // trocar a causa pelo sintoma: o antigo e consertado e o novo entra.
+      const herdeira = naLista.find((e) => e.chave === nova);
+      if (herdeira && cat.onde === 'status') {
+        const depois = await realinharChaveDoStatus(db, cat.board, herdeira);
+        if (depois === nova) {
+          return res.status(409).json({
+            error: `"${herdeira.rotulo}" já ocupa esse nome no banco. Renomeie ou junte essa etiqueta antes.` });
+        }
+      } else if (herdeira) {
+        return res.status(409).json({ error: `"${herdeira.rotulo}" já ocupa esse nome no banco.` });
+      }
+      const cor = String(req.body?.cor || '').trim() || '#579bfc';
+      const r = await criarNoCatalogo(db, cat, nova, limpo, cor);
+      return res.status(200).json({ ok: true, acao, etiqueta: r[0],
+        aviso: 'Etiqueta criada só na Vybe; a cópia deste campo no Monday é pulada quando ela for usada.' });
     }
 
     // Renomear, recolorir e remover: o painel só sabia criar e ligar/desligar,
     // então mudar o nome de uma etiqueta exigia abrir o Monday.
     if (acao === 'renomear') {
       const novo = String(rotulo || '').trim();
-      if (!novo) return res.status(400).json({ error: 'Informe o novo nome.' });
-      const r = coluna === 'status_1__1'
-        ? await db`UPDATE vybe_captacao SET rotulo=${novo} WHERE chave=${chave} RETURNING chave, rotulo`
-        : await db`UPDATE vybe_opcoes SET rotulo=${novo} WHERE coluna_id=${coluna} AND chave=${chave}
-             RETURNING chave, rotulo`;
+      if (!novo || !chave) return res.status(400).json({ error: 'Informe a etiqueta e o novo nome.' });
+      const r = await renomearNoCatalogo(db, cat, chave, novo);
       if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
+      // Renomear um status sem renomear a chave repete o erro que separou
+      // "Para Aprovacao" de 'em_aprovacao': o painel deduz a chave do nome.
+      if (cat.onde === 'status') await realinharChaveDoStatus(db, cat.board, { chave, rotulo: novo });
       return res.status(200).json({ ok: true, acao, etiqueta: r[0] });
     }
 
     if (acao === 'cor') {
       const cor = String(req.body?.cor || '').trim();
       if (!/^#[0-9a-fA-F]{6}$/.test(cor)) return res.status(400).json({ error: 'Cor inválida; use #RRGGBB.' });
-      const r = coluna === 'status_1__1'
-        ? await db`UPDATE vybe_captacao SET cor=${cor}, borda=${cor} WHERE chave=${chave} RETURNING chave, cor`
-        : await db`UPDATE vybe_opcoes SET cor=${cor}, borda=${cor} WHERE coluna_id=${coluna} AND chave=${chave}
-             RETURNING chave, cor`;
+      const r = await recolorirNoCatalogo(db, cat, chave, cor);
       if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
       return res.status(200).json({ ok: true, acao, etiqueta: r[0] });
     }
@@ -1063,19 +1190,7 @@ async function areaOpcoes(req, res, quem) {
     if (acao === 'remover') {
       // Apagar uma etiqueta em uso deixaria as peças apontando para nada. O
       // painel recusa e oferece o caminho reversível: desligar.
-      const coluna_bd = { 'lista_suspensa0__1': 'formato_chaves', 'lista_suspensa__1': 'tipo_conteudo_chaves' }[coluna];
-      let emUso = 0;
-      if (coluna === 'status_1__1') {
-        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE captacao_chave=${chave}`)[0].n);
-      } else if (coluna_bd === 'formato_chaves') {
-        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(formato_chaves)`)[0].n);
-      } else if (coluna_bd === 'tipo_conteudo_chaves') {
-        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(tipo_conteudo_chaves)`)[0].n);
-      } else if (coluna === 'color_mm164yv8') {
-        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE prioridade_chave=${chave}`)[0].n);
-      } else if (coluna === 'color_mkynd7j8') {
-        emUso = Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE off_audio_chave=${chave}`)[0].n);
-      }
+      const emUso = await contarUsoDaEtiqueta(db, cat, chave);
       if (emUso > 0) {
         return res.status(409).json({
           error: `Esta etiqueta está em ${emUso} ${emUso === 1 ? 'peça' : 'peças'}. `
@@ -1083,9 +1198,7 @@ async function areaOpcoes(req, res, quem) {
           em_uso: emUso,
         });
       }
-      const r = coluna === 'status_1__1'
-        ? await db`DELETE FROM vybe_captacao WHERE chave=${chave} RETURNING chave, rotulo`
-        : await db`DELETE FROM vybe_opcoes WHERE coluna_id=${coluna} AND chave=${chave} RETURNING chave, rotulo`;
+      const r = await apagarNoCatalogo(db, cat, chave);
       if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
       return res.status(200).json({ ok: true, acao, removida: r[0] });
     }

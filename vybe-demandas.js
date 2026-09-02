@@ -488,7 +488,8 @@ function requestStatusOptions(item={}) {
       const sample=(DADOS_DEMANDAS||[]).find(row=>row.status===label);
       const cru=st?st.indice:sample?.status_index;
       const indice=(cru===null||cru===undefined||cru==='')?NaN:Number(cru);
-      return {label,index:Number.isFinite(indice)?indice:null,
+      return {label,chave:st?.chave||chaveDeStatus(label),ativa:st?st.ativa!==false:true,
+        index:Number.isFinite(indice)?indice:null,
         color:st?.cor || sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f',
         border:st?.borda || st?.cor || sample?.status_border || sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f'};
     });
@@ -853,119 +854,6 @@ function pintarAvisoDeAprovacoes() {
     title="${safeText(sobrando.map((r) => `${r}: ${conta(r)}`).join(' · '))}"
     onclick="juntarAprovacoes()">${safeText(rotulo)}</button>`);
 }
-// Uma etiqueta a mais na lista das solicitacoes. O caminho contrario — juntar
-// duas — ja existia; acrescentar nao. Fica ao lado dele, no mesmo menu, e so
-// para quem administra: escolher etiqueta e de todo mundo, mudar o vocabulario
-// da operacao e de quem administra.
-async function criarEtiquetaDeStatus() {
-  const nome = await perguntarNoPainel({
-    titulo: 'Nova etiqueta de status',
-    texto: 'Ela entra na lista de todas as solicitações, para todo mundo. '
-      + 'Escreva do jeito que deve aparecer na tela.',
-    campo: { valor: '', dica: 'Ex.: Em Aprovação' },
-    confirmar: 'Criar etiqueta' });
-  const rotulo = String(nome || '').trim();
-  if (!rotulo) return;
-  try {
-    const r = await fetch('/api/painel?area=opcoes', { method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ acao: 'criar-status', rotulo, board: BOARD_DEMANDAS_ID }) });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d?.error || 'Não foi possível criar.');
-    showToast(`✓ "${rotulo}" entrou na lista das solicitações`, 'ok', 5000);
-    await refreshDemandas();
-  } catch (e) { showToast(e.message, 'err', 7000); }
-}
-
-// ─── A ORDEM DAS ETIQUETAS ────────────────────────────────────────────────────
-//
-// A ordem do menu e a ordem do fluxo: quem abre a lista le de cima para baixo
-// esperando o caminho da peca. Toda etiqueta nova entrava no fim — "Em
-// Aprovacao", que e o meio do caminho, nascia depois de "Aprovado".
-//
-// Arrastar e o gesto certo para isto, mas arrastar sozinho nao basta: no
-// celular e no trackpad ele escorrega. As setas fazem o mesmo trabalho e nunca
-// erram, entao as duas convivem.
-let ORDEM_DAS_ETIQUETAS = [];
-let ETIQUETA_ARRASTADA = -1;
-
-function organizarEtiquetas() {
-  const lista = typeof statusDoQuadroDeDemandas === 'function' ? statusDoQuadroDeDemandas() : [];
-  if (!lista.length) return showToast('A lista de etiquetas ainda está carregando.', 'info');
-  ORDEM_DAS_ETIQUETAS = lista.map((st) => ({ chave: st.chave, rotulo: st.rotulo, cor: st.cor || '#8f8f8f' }));
-  document.getElementById('etq-overlay')?.remove();
-  const overlay = document.createElement('div');
-  overlay.id = 'etq-overlay'; overlay.className = 'etq-overlay';
-  overlay.onclick = (event) => { if (event.target === overlay) fecharOrganizador(); };
-  overlay.innerHTML = `<div class="etq-folha" role="dialog" aria-label="Ordem das etiquetas">
-      <div class="etq-topo">
-        <div><span>Solicitações</span><b>Ordem das etiquetas</b>
-          <small>Arraste, ou use as setas. É a ordem em que todo mundo vê o menu de status.</small></div>
-        <button type="button" class="etq-fechar" onclick="fecharOrganizador()" aria-label="Fechar">×</button>
-      </div>
-      <div class="etq-lista" id="etq-lista"></div>
-      <div class="etq-pe">
-        <button type="button" class="workflow-secondary" onclick="fecharOrganizador()">Cancelar</button>
-        <button type="button" class="workflow-primary" id="etq-salvar" onclick="salvarOrdemDasEtiquetas()">Salvar ordem</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  pintarOrdemDasEtiquetas();
-}
-function fecharOrganizador() { document.getElementById('etq-overlay')?.remove(); ETIQUETA_ARRASTADA = -1; }
-
-function pintarOrdemDasEtiquetas() {
-  const caixa = document.getElementById('etq-lista');
-  if (!caixa) return;
-  caixa.innerHTML = ORDEM_DAS_ETIQUETAS.map((st, i) => `<div class="etq-linha" draggable="true"
-      ondragstart="etiquetaArrastar(${i})" ondragover="event.preventDefault();this.classList.add('sobre')"
-      ondragleave="this.classList.remove('sobre')" ondrop="etiquetaSoltar(${i},event)"
-      ondragend="this.classList.remove('sobre')">
-      <span class="etq-pega" aria-hidden="true">⠿</span>
-      <span class="etq-cor" style="background:${safeText(st.cor)}"></span>
-      <span class="etq-nome">${safeText(st.rotulo)}</span>
-      <span class="etq-setas">
-        <button type="button" onclick="moverEtiqueta(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Subir">↑</button>
-        <button type="button" onclick="moverEtiqueta(${i},1)" ${i === ORDEM_DAS_ETIQUETAS.length - 1 ? 'disabled' : ''} aria-label="Descer">↓</button>
-      </span>
-    </div>`).join('');
-}
-function etiquetaArrastar(i) { ETIQUETA_ARRASTADA = i; }
-function etiquetaSoltar(destino, event) {
-  event?.preventDefault();
-  const origem = ETIQUETA_ARRASTADA;
-  ETIQUETA_ARRASTADA = -1;
-  if (origem < 0 || origem === destino) return pintarOrdemDasEtiquetas();
-  const [movida] = ORDEM_DAS_ETIQUETAS.splice(origem, 1);
-  ORDEM_DAS_ETIQUETAS.splice(destino, 0, movida);
-  pintarOrdemDasEtiquetas();
-}
-function moverEtiqueta(i, passo) {
-  const alvo = i + passo;
-  if (alvo < 0 || alvo >= ORDEM_DAS_ETIQUETAS.length) return;
-  const [movida] = ORDEM_DAS_ETIQUETAS.splice(i, 1);
-  ORDEM_DAS_ETIQUETAS.splice(alvo, 0, movida);
-  pintarOrdemDasEtiquetas();
-}
-async function salvarOrdemDasEtiquetas() {
-  const botao = document.getElementById('etq-salvar');
-  if (botao) { botao.disabled = true; botao.textContent = 'Salvando…'; }
-  try {
-    const r = await fetch('/api/painel?area=opcoes', { method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ acao: 'ordenar-status', board: BOARD_DEMANDAS_ID,
-        ordem: ORDEM_DAS_ETIQUETAS.map((st) => st.chave) }) });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d?.error || 'Não foi possível salvar a ordem.');
-    fecharOrganizador();
-    showToast('✓ Ordem salva · vale para todo mundo', 'ok', 4500);
-    await refreshDemandas();
-  } catch (e) {
-    if (botao) { botao.disabled = false; botao.textContent = 'Tentar de novo'; }
-    showToast(e.message, 'err', 7000);
-  }
-}
-
 async function juntarAprovacoes() {
   const sobrando = aprovacoesParaAbsorver();
   if (!sobrando.length) return;

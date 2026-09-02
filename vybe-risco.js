@@ -267,18 +267,9 @@ function juntarAprovacaoNoSeletorHtml(item) {
     juntar “${safeText(sobrando[0])}” em “Para Aprovação”</button>` : '';
   // Acrescentar mora ao lado de juntar: as duas sao a mesma pergunta — "esta
   // lista esta certa?" — e ela nasce aqui, com a lista aberta na frente.
-  const criar = typeof criarEtiquetaDeStatus === 'function' ? `<button type="button" class="status-editor-arrumar"
-    onclick="closeStatusEditor();criarEtiquetaDeStatus()"
-    title="Cria uma etiqueta nova na lista das solicitações, para todo mundo">
-    ＋ nova etiqueta</button>` : '';
-  // Etiqueta nova entra sempre no fim, e o fim quase nunca e o lugar dela no
-  // fluxo. Reordenar mora ao lado de criar porque e o passo seguinte do mesmo
-  // gesto — e porque a ordem errada so se percebe olhando esta lista.
-  const ordenar = typeof organizarEtiquetas === 'function' ? `<button type="button" class="status-editor-arrumar"
-    onclick="closeStatusEditor();organizarEtiquetas()"
-    title="Muda a ordem em que as etiquetas aparecem neste menu, para todo mundo">
-    ⇅ ordem das etiquetas</button>` : '';
-  return juntar + criar + ordenar;
+  // Criar e reordenar saem daqui: viraram o rodape que TODO menu de etiqueta
+  // tem. Sobra o que e so daqui — juntar dois nomes de aprovacao.
+  return juntar;
 }
 
 // O rotulo vai dentro de um onclick, entre aspas simples. Escapar antes do
@@ -307,7 +298,20 @@ function openStatusEditor(event, itemId) {
   const menu = document.createElement('div');
   menu.id = 'status-editor';
   menu.className = 'status-editor';
-  menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => { const atual = mesmoStatus(o.label, item.status); return `<button type="button" class="status-editor-option ${atual ? 'current' : ''}" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}</span>${atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`; }).join('')}${juntarAprovacaoNoSeletorHtml(item)}`;
+  // O menu de status e uma lista de etiquetas como as outras, e por muito tempo
+  // foi a unica sem as ferramentas delas: dava para renomear, recolorir, apagar
+  // e reordenar uma etiqueta de Formato, e nada disso em Status. Agora chama as
+  // mesmas funcoes — nao uma copia parecida.
+  const colunaDoStatus = `status:${isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID}`;
+  const nomeDoCampo = isRequestItem(item) ? 'Status da solicitação' : 'Status do conteúdo';
+  const comFerramentas = typeof ferramentasDaEtiquetaHtml === 'function';
+  menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => {
+    const atual = mesmoStatus(o.label, item.status);
+    const linha = `<button type="button" class="status-editor-option ${atual ? 'current' : ''}" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}${o.ativa === false ? ' (desligada)' : ''}</span>${atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`;
+    if (!comFerramentas || !o.chave) return linha;
+    const etiqueta = { chave: o.chave, rotulo: o.label, cor: o.color, ativa: o.ativa !== false };
+    return `<div class="etiqueta-linha ${o.ativa === false ? 'desligada' : ''}">${linha}${ferramentasDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}${chaveDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}</div>`;
+  }).join('')}${juntarAprovacaoNoSeletorHtml(item)}${comFerramentas ? rodapeDeEtiquetasHtml(colunaDoStatus, 'status', nomeDoCampo) : ''}`;
   document.body.append(backdrop, menu);
   ancorarPopover(menu, rect);
 }
@@ -1979,6 +1983,9 @@ async function openDemandaWorkspace(itemId) {
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   if (document.getElementById('brief-overlay')) { fecharBriefing(); return; }
+  // O organizador abre por cima do menu de etiquetas: o Esc fecha a camada de
+  // cima, nao as duas.
+  if (document.getElementById('etq-overlay')) { fecharOrganizador(); return; }
   if (document.getElementById('workspace-drawer')) closeItemWorkspace();
   if (typeof managerCommandDrawerOpen !== 'undefined' && managerCommandDrawerOpen) closeManagerCommandDrawer();
   document.getElementById('cadastros-preview-overlay')?.remove();

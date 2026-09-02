@@ -575,12 +575,16 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
   // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
   // desperdício que a resposta crua do Monday impunha e o domínio deixa resolver.
   const [status, captacao, opcoes, pessoas, linhas] = await Promise.all([
-    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, final
-          FROM vybe_status WHERE board_id = ${boardId} ORDER BY ordem`,
-    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, ativa
-          FROM vybe_captacao ORDER BY monday_index`,
+    // 'ativa' e 'ordem' passam a valer para status como ja valiam para as outras
+    // etiquetas: desligar uma que nao se usa mais, e por a lista na ordem do
+    // fluxo. COALESCE porque as colunas nascem depois das linhas.
+    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, final,
+               COALESCE(ativa, TRUE) AS ativa
+          FROM vybe_status WHERE board_id = ${boardId} ORDER BY ordem, rotulo`,
+    sql`SELECT chave, rotulo, cor, borda, monday_index AS indice, ativa, ordem
+          FROM vybe_captacao ORDER BY COALESCE(ordem, monday_index), rotulo`,
     sql`SELECT coluna_id, chave, rotulo, cor, borda, indice, ativa
-          FROM vybe_opcoes ORDER BY coluna_id, indice`,
+          FROM vybe_opcoes ORDER BY coluna_id, COALESCE(ordem, indice), rotulo`,
     sql`SELECT monday_user_id AS id, nome, papel, disciplina, foto_url
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     sql`

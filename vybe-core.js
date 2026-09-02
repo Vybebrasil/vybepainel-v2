@@ -368,10 +368,16 @@ let STATUS_OPTIONS = [];
 async function fetchStatusOptions() {
   if (typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio') {
     const dados = DOMINIO_ULTIMA_RESPOSTA || await buscarDominio();
+    // A chave e a identidade da etiqueta; sem ela o menu nao tem como renomear,
+    // recolorir nem apagar. E a ordem e a do catalogo, nao a do indice do
+    // Monday: etiqueta criada aqui nao tem indice, e Number(null) daria 0 —
+    // ela furaria a fila para o primeiro lugar.
     STATUS_OPTIONS = (dados.status || []).map((s) => ({
-      index: Number(s.indice), label: s.rotulo, color: validStatusColor(s.cor) || '#c4c4c4',
+      chave: s.chave, label: s.rotulo, ativa: s.ativa !== false,
+      index: s.indice === null || s.indice === undefined ? null : Number(s.indice),
+      color: validStatusColor(s.cor) || '#c4c4c4',
       border: validStatusColor(s.borda) || validStatusColor(s.cor) || '#c4c4c4'
-    })).sort((a,b) => a.index - b.index);
+    }));
     return STATUS_OPTIONS;
   }
   const q = `{ boards(ids:[${BOARD_ID}]) { columns(ids:["status"]) { settings_str } } }`;
