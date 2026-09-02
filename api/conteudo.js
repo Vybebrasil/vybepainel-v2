@@ -80,8 +80,17 @@ async function trocarStatus(sql, quem, { item, para }) {
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const conteudo = linhas[0];
 
-  const alvo = (await sql`SELECT chave, rotulo, monday_index FROM vybe_status
-    WHERE chave=${String(para)} AND board_id=${conteudo.board_id}`)[0];
+  // O painel so conhece o NOME do status; a chave ele deduz do nome. Quando as
+  // duas se separaram no banco — a juncao renomeava o rotulo e deixava a chave
+  // velha —, a busca por chave nao achava nada e a etiqueta parava de funcionar
+  // sem explicacao. A lista de um quadro tem vinte linhas: vale trazer inteira e
+  // aceitar tambem quem responde pelo nome.
+  const doQuadro = await sql`SELECT chave, rotulo, monday_index FROM vybe_status
+    WHERE board_id=${conteudo.board_id}`;
+  const comoChave = (r) => String(r || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const alvo = doQuadro.find((st) => st.chave === String(para))
+    || doQuadro.find((st) => comoChave(st.rotulo) === String(para));
   if (!alvo) throw new Error(`Status desconhecido neste board: ${para}`);
 
   await sql`UPDATE vybe_conteudos SET status_chave=${alvo.chave}, status_em=NOW(), atualizado_em=NOW()

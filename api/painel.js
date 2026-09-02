@@ -844,6 +844,32 @@ const COLUNAS_EDITAVEIS = {
   color_mkynd7j8: '🎙️ OFF',
 };
 
+// A chave de um status e o nome dele sem acento, em minusculas, com underscore
+// — a mesma conta que o painel faz antes de mandar. As duas TEM de bater: e por
+// ela que a gravacao encontra o status, e o painel so conhece o nome.
+function chaveDeStatus(rotulo) {
+  return String(rotulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+// A juncao renomeava o rotulo e deixava a chave velha para tras: "Para
+// Aprovacao" ficava guardada como 'em_aprovacao'. Dai o painel mandava
+// 'para_aprovacao', o banco nao achava, e a etiqueta simplesmente nao
+// funcionava — sem que nada na tela dissesse por que.
+//
+// Onde a distancia for encontrada, ela e desfeita: a chave passa a ser a do
+// proprio nome, e as pecas que estavam na antiga vao junto.
+async function realinharChaveDoStatus(db, board, linha) {
+  const certa = chaveDeStatus(linha.rotulo);
+  if (!certa || certa === linha.chave) return linha.chave;
+  const ocupada = await db`SELECT 1 FROM vybe_status WHERE board_id=${board} AND chave=${certa}`;
+  if (ocupada.length) return linha.chave;
+  await db`UPDATE vybe_conteudos SET status_chave=${certa}
+    WHERE board_id=${board} AND status_chave=${linha.chave}`;
+  await db`UPDATE vybe_status SET chave=${certa} WHERE board_id=${board} AND chave=${linha.chave}`;
+  return certa;
+}
+
 async function areaOpcoes(req, res, quem) {
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
   const db = sql();
@@ -889,9 +915,20 @@ async function areaOpcoes(req, res, quem) {
       const chave = rotulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
       if (!chave) return res.status(400).json({ error: 'Esse nome não vira uma etiqueta válida.' });
-      const ja = await db`SELECT rotulo FROM vybe_status
-        WHERE board_id=${board} AND (chave=${chave} OR LOWER(rotulo)=LOWER(${rotulo}))`;
-      if (ja.length) return res.status(409).json({ error: `"${ja[0].rotulo}" já existe nesta lista.` });
+      const naLista = await db`SELECT chave, rotulo FROM vybe_status WHERE board_id=${board}`;
+      const mesmoNome = naLista.find((st) => String(st.rotulo).toLowerCase() === rotulo.toLowerCase());
+      if (mesmoNome) return res.status(409).json({ error: `"${mesmoNome.rotulo}" já está na lista.` });
+      // Chave ocupada por uma etiqueta de OUTRO nome e a heranca da juncao, nao
+      // um nome repetido. Recusar aqui seria culpar o nome novo por um problema
+      // que e do antigo — entao o antigo e consertado e o novo entra.
+      const herdeira = naLista.find((st) => st.chave === chave);
+      if (herdeira) {
+        const nova = await realinharChaveDoStatus(db, board, herdeira);
+        if (nova === chave) {
+          return res.status(409).json({
+            error: `"${herdeira.rotulo}" já ocupa esse nome no banco. Renomeie ou junte essa etiqueta antes.` });
+        }
+      }
       const fim = (await db`SELECT COALESCE(MAX(ordem), 0) + 1 AS n FROM vybe_status WHERE board_id=${board}`)[0];
       await db`INSERT INTO vybe_status (board_id, chave, rotulo, cor, borda, ordem, monday_index, final)
         VALUES (${board}, ${chave}, ${rotulo}, ${cor}, ${cor}, ${Number(fim.n)}, NULL, FALSE)`;
@@ -941,7 +978,8 @@ async function areaOpcoes(req, res, quem) {
             removidos: [], pecas_movidas: 0, nota: 'Já estava unificado.' });
         }
         await db`UPDATE vybe_status SET rotulo=${para} WHERE chave=${fica.chave} AND board_id=${board}`;
-        return res.status(200).json({ ok: true, acao, ficou: { chave: fica.chave, rotulo: para },
+        const chaveFinal = await realinharChaveDoStatus(db, board, { chave: fica.chave, rotulo: para });
+        return res.status(200).json({ ok: true, acao, ficou: { chave: chaveFinal, rotulo: para },
           removidos: [], pecas_movidas: 0, nota: 'Só o nome mudou; não havia outro status para absorver.' });
       }
       const saem = ordenados.slice(1).map((st) => st.chave);
@@ -950,7 +988,11 @@ async function areaOpcoes(req, res, quem) {
         WHERE board_id=${board} AND status_chave = ANY(${saem}) RETURNING id`;
       await db`UPDATE vybe_status SET rotulo=${para} WHERE chave=${fica.chave} AND board_id=${board}`;
       await db`DELETE FROM vybe_status WHERE board_id=${board} AND chave = ANY(${saem})`;
-      return res.status(200).json({ ok: true, acao, ficou: { chave: fica.chave, rotulo: para },
+      // O nome mudou; a chave tem de mudar junto, senao a etiqueta sobrevivente
+      // deixa de ser encontrada pelo painel — foi assim que "Para Aprovacao"
+      // acabou guardada sob a chave de "Em aprovacao".
+      const chaveFinal = await realinharChaveDoStatus(db, board, { chave: fica.chave, rotulo: para });
+      return res.status(200).json({ ok: true, acao, ficou: { chave: chaveFinal, rotulo: para },
         removidos: saem, pecas_movidas: movidas.length });
     }
 

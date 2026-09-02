@@ -841,7 +841,7 @@ function recadoDeStatusRecusado(erro, option) {
   const desconhecido = /Status desconhecido|não existe nas solicitações|nao existe nas solicitacoes/i.test(texto);
   if (!desconhecido) return `Não foi possível atualizar no Vybe OS: ${texto}`;
   return `O status "${option?.label || ''}" ainda não existe na lista das solicitações. `
-    + 'Em Demandas, o botão de juntar os status de aprovação cria esse nome — depois disto aqui funciona.';
+    + 'Abra o menu de status de qualquer solicitação e use "＋ nova etiqueta" para criá-lo.';
 }
 const STATUS_CONTEXT_RULES = Object.freeze({
   'alteração': { question:'Qual alteração foi solicitada?', helper:'Descreva o ajuste com objetividade para que a equipe não precise recuperar o contexto no WhatsApp.', requester:true, source:true },
