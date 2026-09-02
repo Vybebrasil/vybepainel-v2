@@ -568,8 +568,31 @@ export async function resumo() {
 // Leitura para o painel: mesma regra de recorte que o processItems aplica hoje no
 // navegador — precisa de pelo menos um cliente ativo e de pelo menos uma das duas
 // datas. A diferença é que agora a regra mora no banco, não em JavaScript.
+// AS COLUNAS PRECISAM EXISTIR ANTES DE ALGUEM AS LER.
+//
+// Eu passei a ordenar as etiquetas por 'ordem' e a ler 'ativa' dos status —
+// colunas novas, criadas so quando alguem editava uma etiqueta. Numa base que
+// nunca passou por ali elas nao existiam, a consulta inteira estourava, o
+// /api/conteudos devolvia erro e o painel caia no cache. Como as FOTOS da
+// equipe vem justamente dessa resposta, elas sumiram de todas as telas de uma
+// vez — o sintoma ficou longe da causa.
+//
+// A leitura mais quente do sistema garante o proprio esquema, uma vez por
+// processo. Os UPDATE so tocam linhas ainda nulas.
+let colunasDeEtiquetaProntas = false;
+async function garantirColunasDeEtiqueta(sql) {
+  if (colunasDeEtiquetaProntas) return;
+  await sql`ALTER TABLE vybe_status   ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
+  await sql`ALTER TABLE vybe_opcoes   ADD COLUMN IF NOT EXISTS ordem INT`;
+  await sql`ALTER TABLE vybe_captacao ADD COLUMN IF NOT EXISTS ordem INT`;
+  await sql`UPDATE vybe_opcoes   SET ordem = indice       WHERE ordem IS NULL`;
+  await sql`UPDATE vybe_captacao SET ordem = monday_index WHERE ordem IS NULL`;
+  colunasDeEtiquetaProntas = true;
+}
+
 export async function listarConteudos(boardId = BOARD_PRODUCAO) {
   const sql = database();
+  await garantirColunasDeEtiqueta(sql);
 
   // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
   // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
