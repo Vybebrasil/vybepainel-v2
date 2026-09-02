@@ -987,8 +987,12 @@ function workspaceBytes(bytes=0) {
 function closeItemWorkspace() {
   document.getElementById('workspace-backdrop')?.remove();
   document.getElementById('workspace-drawer')?.remove();
+  // A leitura do conteudo mora dentro da gaveta: fechada a gaveta, ela ficaria
+  // sozinha na tela, sem nada atras para voltar.
+  if (typeof fecharBriefing === 'function') fecharBriefing();
   activeWorkspaceItemId = '';
   activeWorkspaceAssets = [];
+  if (typeof DETALHE_DA_GAVETA !== 'undefined') DETALHE_DA_GAVETA = null;
 }
 async function fetchWorkspaceItem(itemId) {
   const r = await fetch(`/api/painel?area=peca&item=${encodeURIComponent(itemId)}`, { credentials:'same-origin', cache:'no-store' });
@@ -1630,9 +1634,204 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
   }
 }
 
+
+// ─── O CONTEÚDO DA PEÇA ───────────────────────────────────────────────────────
+//
+// O briefing e a unica coisa que quem produz precisa ler, e era a mais escondida
+// da gaveta: ficava no fim de "Todo o histórico", depois dos arquivos, da
+// entrega, da memoria executiva. Quem ia executar rolava a gaveta inteira ate
+// achar — e achava um paredao de texto corrido, com roteiro, legenda, stories e
+// checklist todos grudados.
+//
+// Agora ele tem um botao no alto da gaveta, com o objetivo ja visivel antes do
+// clique, e uma tela propria que separa o briefing nas partes que ele ja tem.
+// O historico continua onde estava: isto aqui e um atalho, nao uma mudanca de
+// lugar.
+let BRIEFING_ABERTO = null;
+
+// De onde vem o briefing. Sao duas origens reais: a coluna do banco (peca
+// cadastrada pelo painel) e o corpo de um update (peca que veio do Monday, que e
+// o caso da maioria). A busca no update procura o vocabulario do proprio modelo
+// da casa e ignora os updates que o painel mesmo escreve.
+function briefingDaPeca(detail) {
+  const doBanco = String(detail?.briefing || '').trim();
+  if (doBanco) return { texto: doBanco, autor: '', quando: detail?.created_at || '', origem: 'cadastro' };
+  const marcas = /BRIEFING|CORA(Ç|C)(Ã|A)O DO PEDIDO|MENSAGEM ?\/ ?COPY|DIRE(Ç|C)(Ã|A)O DE ARTE|ROTEIRO|LEGENDA DO POST|STORIES DE APOIO|CHECKLIST|NOME DA TAREFA|HOOK/i;
+  const candidatos = (detail?.updates || [])
+    .map(update => ({ update, texto: workspacePlainText(update?.body || '') }))
+    .filter(entrada => entrada.texto.length > 160)
+    .filter(entrada => !/Vybe OS ·/.test(entrada.texto))
+    .filter(entrada => marcas.test(entrada.texto));
+  if (!candidatos.length) return null;
+  // Briefing revisado vira update novo: o mais recente manda, e entre dois do
+  // mesmo dia vale o mais completo.
+  candidatos.sort((a, b) => String(b.update?.created_at || '').localeCompare(String(a.update?.created_at || ''))
+                         || b.texto.length - a.texto.length);
+  const escolhido = candidatos[0];
+  return { texto: escolhido.texto, autor: escolhido.update?.creator?.name || '',
+           quando: escolhido.update?.created_at || '', origem: 'histórico' };
+}
+
+// Titulo de secao no modelo da casa: "🎯 1. O CORAÇÃO DO PEDIDO". O que separa
+// um titulo de uma linha comum e nao ter minuscula — mas "DIREÇÃO DE ARTE E
+// AUDIOVISUAL (Instruções para a Fábrica)" tem, no parenteses de recado. Por
+// isso o parenteses do fim sai antes da conta.
+function briefingEhTitulo(linha) {
+  const limpa = String(linha).replace(/^[\s#>*\-–—]+/, '')
+    .replace(/^[\u{1F000}-\u{1FAFF}←-➿️‍]+\s*/u, '')
+    .replace(/\s*\([^)]*\)\s*$/, '').replace(/[\s:.]+$/, '').trim();
+  if (limpa.length < 4 || limpa.length > 80) return false;
+  if (/[a-zà-ÿ]/.test(limpa.replace(/^\d+\.?\s*/, ''))) return false;
+  return /[A-ZÀ-Þ]{3}/.test(limpa);
+}
+function briefingTituloLimpo(linha) {
+  return String(linha).replace(/^[\s#>*\-–—]+/, '')
+    .replace(/^[\u{1F000}-\u{1FAFF}←-➿️‍]+\s*/u, '')
+    .replace(/^\d+\.?\s*/, '').replace(/[\s:]+$/, '').trim();
+}
+
+// O briefing chega como texto corrido. Aqui ele vira secoes, e dentro de cada
+// uma as linhas ja se dizem o que sao: "Objetivo: ..." e um par rotulo/valor,
+// "- Slide 1: ..." e um item de lista, "Story 1:" sozinho abre um sub-bloco.
+function briefingEmSecoes(texto) {
+  const secoes = []; let atual = null;
+  const abrir = titulo => { atual = { titulo, linhas: [] }; secoes.push(atual); return atual; };
+  // "Veiculação: 09/09 | Prazo: 07/09 | Formato: Carrossel" e uma linha so no
+  // texto e tres informacoes na cabeca de quem le. Separadas, elas viram tres
+  // pares e cabem no resumo do alto.
+  const linhas = String(texto).split('\n').flatMap(bruta => {
+    const limpa = bruta.trim().replace(/^#+\s*/, '');
+    const partes = limpa.split(/\s+\|\s+/);
+    return partes.length > 1 && partes.every(parte => /^[^:]{2,42}:\s*\S/.test(parte)) ? partes : [limpa];
+  });
+  for (const bruta of linhas) {
+    const linha = bruta.trim();
+    if (!linha) continue;
+    if (briefingEhTitulo(linha)) { abrir(briefingTituloLimpo(linha)); continue; }
+    if (!atual) abrir('');
+    const marcador = /^[-–—•*]\s+/.test(linha);
+    const corpo = linha.replace(/^[-–—•*]\s+/, '');
+    const par = corpo.match(/^([^:]{2,42}):\s*(.*)$/);
+    if (par && !par[2]) atual.linhas.push({ tipo: 'subtitulo', rotulo: par[1].trim() });
+    else if (par) atual.linhas.push({ tipo: marcador ? 'item' : 'par', rotulo: par[1].trim(), valor: par[2].trim() });
+    else atual.linhas.push({ tipo: marcador ? 'item' : 'texto', valor: corpo });
+  }
+  return secoes.filter(secao => secao.titulo || secao.linhas.length);
+}
+
+// O que aparece sem precisar abrir: o objetivo, ou o gancho, ou a primeira frase
+// que exista. Antes disso a gaveta nao dizia nada sobre o conteudo da peca.
+function briefingChamada(secoes) {
+  const todas = secoes.flatMap(secao => secao.linhas);
+  const preferido = ['objetivo', 'hook', 'público-alvo', 'publico-alvo', 'oferta/diferencial'];
+  for (const chave of preferido) {
+    const achou = todas.find(l => l.valor && String(l.rotulo || '').toLowerCase().replace(/\s*\(.*\)$/, '').startsWith(chave));
+    if (achou) return `${achou.rotulo}: ${achou.valor}`;
+  }
+  const primeira = todas.find(l => l.valor && l.valor.length > 24);
+  return primeira ? (primeira.rotulo ? `${primeira.rotulo}: ${primeira.valor}` : primeira.valor) : '';
+}
+function briefingResumoRapido(secoes) {
+  const todas = secoes.flatMap(secao => secao.linhas).filter(l => l.valor);
+  const quero = ['CTA', 'Formato', 'Público-Alvo', 'Publico-Alvo', 'Hook'];
+  const vistos = new Set(); const fora = [];
+  for (const alvo of quero) {
+    const achou = todas.find(l => String(l.rotulo || '').toLowerCase().replace(/\s*\(.*\)$/, '').trim() === alvo.toLowerCase());
+    if (!achou || vistos.has(alvo.toLowerCase())) continue;
+    vistos.add(alvo.toLowerCase());
+    fora.push({ rotulo: alvo === 'Hook' ? 'Gancho' : alvo, valor: achou.valor });
+  }
+  return fora.slice(0, 3);
+}
+
+// O botao no alto da gaveta. Sem briefing ele nao aparece: um botao que so sabe
+// dizer "nao tem nada" e ruido em toda peca que ainda nao foi briefada.
+function blocoDoBriefingHtml(detail, item) {
+  const briefing = briefingDaPeca(detail);
+  if (!briefing) return '';
+  const secoes = briefingEmSecoes(briefing.texto);
+  const chamada = briefingChamada(secoes);
+  const partes = secoes.filter(secao => secao.titulo).length;
+  return `<div class="brief-atalho">
+    <button type="button" class="brief-abrir" onclick="abrirBriefing('${safeText(String(item.id))}')">
+      <span class="brief-abrir-icone">📄</span>
+      <span class="brief-abrir-copy"><b>Ver conteúdo</b><small>${partes ? `${partes} parte${partes === 1 ? '' : 's'} · ` : ''}briefing de produção${briefing.origem === 'histórico' ? ' · do histórico' : ''}</small></span>
+      <span class="brief-abrir-seta">→</span>
+    </button>
+    ${chamada ? `<p class="brief-chamada">${safeText(chamada.slice(0, 190))}${chamada.length > 190 ? '…' : ''}</p>` : ''}
+  </div>`;
+}
+
+function briefingLinhaHtml(linha) {
+  if (linha.tipo === 'subtitulo') return `<div class="brief-subtitulo">${safeText(linha.rotulo)}</div>`;
+  if (linha.tipo === 'par') return `<div class="brief-par"><span>${safeText(linha.rotulo)}</span><p>${safeText(linha.valor)}</p></div>`;
+  if (linha.tipo === 'item') return `<div class="brief-item">${linha.rotulo ? `<b>${safeText(linha.rotulo)}</b> ` : ''}${safeText(linha.valor || '')}</div>`;
+  return `<p class="brief-texto">${safeText(linha.valor || '')}</p>`;
+}
+function briefingSecaoTexto(secao) {
+  return [secao.titulo, ...secao.linhas.map(l => l.tipo === 'subtitulo' ? `${l.rotulo}:`
+    : l.rotulo ? `${l.rotulo}: ${l.valor}` : String(l.valor || ''))].filter(Boolean).join('\n');
+}
+function briefingSecaoHtml(secao, indice) {
+  return `<article class="brief-secao">
+    <div class="brief-secao-topo"><h3>${safeText(secao.titulo || 'Abertura')}</h3>
+      <button type="button" class="brief-copiar" onclick="copiarParteDoBriefing(${indice})">Copiar</button></div>
+    <div class="brief-secao-corpo">${secao.linhas.map(briefingLinhaHtml).join('')}</div>
+  </article>`;
+}
+
+function abrirBriefing(itemId) {
+  const detail = DETALHE_DA_GAVETA;
+  const item = findOperationalItem(itemId)
+    || (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []).find(d => String(d.id) === String(itemId))
+    || { id: itemId, nome: detail?.name || 'Atividade', cliente: '' };
+  const briefing = detail ? briefingDaPeca(detail) : null;
+  if (!briefing) return showToast('Esta atividade ainda não tem briefing registrado.', 'info');
+  const secoes = briefingEmSecoes(briefing.texto);
+  BRIEFING_ABERTO = { secoes, texto: briefing.texto, item };
+  const resumo = briefingResumoRapido(secoes);
+  const quando = String(briefing.quando || '').replace('T', ' ').slice(0, 16);
+  document.getElementById('brief-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'brief-overlay'; overlay.className = 'brief-overlay';
+  overlay.onclick = event => { if (event.target === overlay) fecharBriefing(); };
+  overlay.innerHTML = `<div class="brief-folha" role="dialog" aria-label="Conteúdo da atividade">
+    <div class="brief-topo">
+      <div class="brief-topo-copy">
+        <span class="brief-kicker">Conteúdo para produção${briefing.origem === 'histórico' ? ' · registrado no histórico' : ''}${quando ? ` · ${safeText(quando)}` : ''}</span>
+        <h2>${safeText(item.nome || detail?.name || 'Atividade')}</h2>
+        <small>${safeText(item.cliente || 'Cliente não informado')}${item.formato ? ` · ${safeText(item.formato)}` : ''}${item.veiculacao_iso ? ` · veicula ${safeText(typeof planningDateBr === 'function' ? planningDateBr(item.veiculacao_iso) : item.veiculacao_iso)}` : ''}</small>
+      </div>
+      <div class="brief-topo-acoes">
+        <button type="button" class="brief-copiar" onclick="copiarBriefingInteiro()">Copiar tudo</button>
+        <button type="button" class="brief-fechar" onclick="fecharBriefing()" aria-label="Fechar">×</button>
+      </div>
+    </div>
+    ${resumo.length ? `<div class="brief-resumo">${resumo.map(r => `<div><span>${safeText(r.rotulo)}</span><b>${safeText(r.valor)}</b></div>`).join('')}</div>` : ''}
+    <div class="brief-corpo">${secoes.map(briefingSecaoHtml).join('')}</div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+function fecharBriefing() { document.getElementById('brief-overlay')?.remove(); BRIEFING_ABERTO = null; }
+async function copiarBriefingTexto(texto, rotulo) {
+  try { await navigator.clipboard.writeText(String(texto)); showToast(`✓ ${rotulo} copiado`, 'ok', 2500); }
+  catch { showToast('O navegador não deixou copiar. Selecione o texto na tela.', 'info', 5000); }
+}
+function copiarParteDoBriefing(indice) {
+  const secao = BRIEFING_ABERTO?.secoes?.[indice];
+  if (secao) copiarBriefingTexto(briefingSecaoTexto(secao), secao.titulo || 'Trecho');
+}
+function copiarBriefingInteiro() {
+  if (BRIEFING_ABERTO?.texto) copiarBriefingTexto(BRIEFING_ABERTO.texto, 'Briefing');
+}
+
+// A gaveta aberta agora. O botao de conteudo abre a leitura sem ir a rede de
+// novo: o briefing ja veio junto com o resto do contexto.
+let DETALHE_DA_GAVETA = null;
   function renderWorkspaceDrawer(detail, item) {
   const drawer = document.getElementById('workspace-drawer');
   if (!drawer || !detail) return;
+  DETALHE_DA_GAVETA = detail;
   const assets = workspaceAssetsForDetail(detail);
   activeWorkspaceAssets = assets;
   const updates = detail.updates || [];
@@ -1646,6 +1845,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
               title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}')">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
+    ${blocoDoBriefingHtml(detail, item)}
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
     ${workspaceDeliveryDock(detail,item)}
@@ -1720,9 +1920,10 @@ async function openDemandaWorkspace(itemId) {
   document.body.append(backdrop, drawer);
   try {
     const detail = await fetchWorkspaceItem(itemId);
+    DETALHE_DA_GAVETA = detail;
     const assets = detail?.assets || [];
     const updates = detail?.updates || [];
-    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div><section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
+    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
   } catch (e) {
     drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-empty">Não foi possível carregar o contexto. ${safeText(e.message)}</div>`;
   }
@@ -1731,6 +1932,7 @@ async function openDemandaWorkspace(itemId) {
 // Regra Vybe OS: clique em atividade abre contexto interno; Monday é um atalho deliberado dentro do workspace.
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
+  if (document.getElementById('brief-overlay')) { fecharBriefing(); return; }
   if (document.getElementById('workspace-drawer')) closeItemWorkspace();
   if (typeof managerCommandDrawerOpen !== 'undefined' && managerCommandDrawerOpen) closeManagerCommandDrawer();
   document.getElementById('cadastros-preview-overlay')?.remove();

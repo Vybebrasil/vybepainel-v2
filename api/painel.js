@@ -264,7 +264,7 @@ async function areaPeca(req, res, quem) {
   // de fazer.
   const c = (await db`
     SELECT c.id, c.titulo, c.criado_em, c.etapa AS grupo, c.grupo_id,
-           c.prazo, c.veiculacao,
+           c.prazo, c.veiculacao, c.briefing,
            c.captacao_chave, c.prioridade_chave, c.off_audio_chave,
            c.tipo_conteudo_chaves, c.formato_chaves,
            s.rotulo  AS status,
@@ -402,6 +402,9 @@ async function areaPeca(req, res, quem) {
     id: item,
     name: c.titulo,
     created_at: c.criado_em,
+    // O briefing nasce aqui quando a peca e cadastrada pelo painel; quando ela
+    // veio do Monday, ele esta no corpo de um update. A tela procura nos dois.
+    briefing: c.briefing || '',
     catalogos: { captacao: catCaptacao, opcoes: catOpcoes },
     ficha: {
       cliente: c.clientes, grupo: c.grupo, grupo_id: c.grupo_id, status: c.status,
