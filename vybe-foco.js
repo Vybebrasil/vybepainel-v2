@@ -38,13 +38,26 @@ function escolherOrigemDoFoco(qual) {
 
 // As contas vem de TODOS os itens da pessoa, nunca do recorte ativo: um botao
 // que mostra zero e um botao que a pessoa sabe que nao vale a pena clicar.
+// CONTROLE NAO SE TELEPORTA.
+//
+// O seletor sumia quando havia uma origem so na fila, com a ideia de que ali ele
+// nao decidia nada. Na pratica um controle que desaparece nao parece economia:
+// parece defeito — a pessoa procura e nao acha, e foi exatamente o que
+// aconteceu no dia em que a unica solicitacao da fila saiu.
+//
+// E havia um beco sem saida: filtrando por "Solicitacoes", se a ultima delas
+// fosse concluida, a fila ficava vazia, o seletor sumia junto e a mensagem
+// mandava "veja Tudo" — apontando para um botao que nao estava mais na tela. So
+// dava para sair trocando de modo ou recarregando.
+//
+// Agora ele fica, com os numeros de verdade. Zero e uma resposta: "hoje voce
+// nao tem nenhuma". E continua clicavel, entao nao existe beco.
 function seletorDeOrigemHtml(todos) {
   const conteudo = todos.filter((d) => !isRequestItem(d)).length;
   const solicitacoes = todos.filter((d) => isRequestItem(d)).length;
-  // Com uma origem so na fila, o seletor nao decide nada — e vira ruido.
-  if (!conteudo || !solicitacoes) return '';
+  if (!todos.length) return '';
   const opcao = (chave, rotulo, quantos) => `<button type="button"
-    class="focus-lente-opcao ${FOCO_ORIGEM === chave ? 'ativa' : ''}"
+    class="focus-lente-opcao ${FOCO_ORIGEM === chave ? 'ativa' : ''} ${quantos ? '' : 'vazia'}"
     onclick="escolherOrigemDoFoco('${chave}')" aria-pressed="${FOCO_ORIGEM === chave}"
     >${rotulo}<span>${quantos}</span></button>`;
   return `<div class="focus-lente" role="group" aria-label="O que aparece na fila">
