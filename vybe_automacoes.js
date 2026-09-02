@@ -395,10 +395,15 @@ export async function aplicar(sql, conteudoId, evento) {
         // A chave se repete entre os dois quadros ("feito", "alteracao"): sem o
         // board, esta busca devolvia o status do quadro errado. E indice nulo
         // virava 0 pelo Number(), gravando outro status no Monday em silencio.
+        // A chave se repete entre os dois quadros ("feito", "alteracao"): sem o
+        // board, esta busca devolvia o status do quadro errado. E etiqueta que
+        // nasceu no painel nao tem numero do Monday — nao ha o que espelhar, e
+        // Number(null) daria 0, que e o numero de outra etiqueta.
         const alvo = (await sql`SELECT monday_index, rotulo FROM vybe_status
           WHERE chave=${acao.para} AND board_id=${item.board_id}`)[0];
-        if (alvo) paraOMonday.colunas.status = alvo.monday_index === null || alvo.monday_index === undefined
-          ? { label: String(alvo.rotulo) } : { index: Number(alvo.monday_index) };
+        if (alvo && alvo.monday_index !== null && alvo.monday_index !== undefined) {
+          paraOMonday.colunas.status = { index: Number(alvo.monday_index) };
+        }
         feitas.push(`status → ${acao.para}`);
       } else if (acao.tipo === 'responsaveis') {
         // DEVOLVER A PECA A QUEM A MANDOU.

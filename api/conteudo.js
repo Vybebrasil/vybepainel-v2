@@ -91,16 +91,23 @@ async function trocarStatus(sql, quem, { item, para }) {
     autorId: await pessoaDaSessao(sql, quem),
   });
 
-  const replica = await replicar(sql, 'status', `conteudo:${conteudo.id}`,
+  // ETIQUETA QUE NASCEU AQUI NAO TEM O QUE ESPELHAR.
+  //
+  // A copia de contingencia existe para as etiquetas que vieram do Monday: elas
+  // tem um numero de la, e o numero e o que a copia manda. Uma etiqueta criada
+  // no painel nao tem numero e nao existe do outro lado — tentar copia-la e
+  // pedir um erro. Pior: Number(null) e 0, e 0 e o numero de outra etiqueta;
+  // a copia gravaria o status errado no Monday, em silencio.
+  //
+  // Entao ela simplesmente nao vai. O banco da Vybe e a autoridade, e a
+  // resposta diz isso com todas as letras em vez de enfileirar uma tentativa
+  // que nunca vai dar certo.
+  const semEspelho = alvo.monday_index === null || alvo.monday_index === undefined;
+  const replica = semEspelho ? 'só no Vybe' : await replicar(sql, 'status', `conteudo:${conteudo.id}`,
     `mutation ($board: ID!, $item: ID!, $value: JSON!) {
        change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`,
     { board: String(conteudo.board_id), item: referenciaReplica(conteudo, item),
-      // Etiqueta criada aqui no painel nao tem indice do quadro. Number(null) e
-      // 0, e 0 e o indice de alguem: replicar assim gravaria o status errado no
-      // Monday, em silencio. Sem indice, manda o proprio nome — se o nome nao
-      // existir la, a replica falha e fica na fila, visivel.
-      value: JSON.stringify(alvo.monday_index === null || alvo.monday_index === undefined
-        ? { label: String(alvo.rotulo) } : { index: Number(alvo.monday_index) }) });
+      value: JSON.stringify({ index: Number(alvo.monday_index) }) });
   // As automações rodam depois da gravação, nunca antes: regra que falha não
   // pode impedir a pessoa de mudar o status. Enquanto o Monday existir, as
   // regras dele disparam com a mesma mudança e chegam ao mesmo estado — as duas
