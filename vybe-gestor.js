@@ -602,6 +602,9 @@ function renderByDay(sem, filter, dayFilter) {
   else if(filter==='status:pending_all') fi = fi.filter(d=>!['Finalizado','Agendado','Para agendar'].includes(d.status));
   else if(filter&&filter.startsWith('status:')) fi = fi.filter(d=>d.status===filter.replace('status:',''));
   const diasFiltrados = dayFilter ? dias.filter(d=>d.iso===dayFilter) : dias;
+  // A ordem que o olho ve nesta tela, na sequencia em que os dias aparecem: e
+  // ela que o shift+clique usa para marcar um intervalo.
+  const ordemVisivel = [];
   grid.innerHTML = diasFiltrados.map(dia => {
     const dayItems = fi.filter(d=>getDateIso(d)===dia.iso).sort((a,b)=>{
       // Pendentes primeiro, finalizados depois
@@ -629,8 +632,10 @@ function renderByDay(sem, filter, dayFilter) {
     }
     const dayDone = dayItems.filter(d=>['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
     const dayPct = Math.round(dayDone / dayItems.length * 100);
+    dayItems.forEach(d => ordemVisivel.push(String(d.id)));
     const rows = dayItems.map(d=>{
       const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
+      const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
       const isPending = !['Finalizado','Agendado','Para agendar'].includes(d.status);
       // ARRASTAR A PECA DE UM DIA PARA O OUTRO MUDA A VEICULACAO.
       //
@@ -638,10 +643,13 @@ function renderByDay(sem, filter, dayFilter) {
       // passa o dia, nao. Reusa a MESMA maquina do calendario — mesmo
       // dragstart, mesmo drop, mesma gravacao — em vez de uma segunda
       // implementacao que amanha divergiria da primeira.
-      return `<div class="item-row${isPending?' urgent':''}" draggable="true"
+      return `<div class="item-row${isPending?' urgent':''}${marcada?' marcada':''}" draggable="true"
         ondragstart="managerCalendarDragStart('content','${safeText(d.id)}',event)"
         ondragend="managerCalendarDragEnd()"
         title="Arraste para outro dia para mudar a veiculação">
+        <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote">
+          <input type="checkbox" ${marcada?'checked':''} aria-label="Marcar ${safeText(d.nome||'')}"
+            onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
         <span class="item-cliente-tag" style="background:rgba(168,85,247,.18);color:#c084fc;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${d.cliente}</span>
         ${fmtHtml(d.formato)}
         <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}</button>
@@ -667,7 +675,17 @@ function renderByDay(sem, filter, dayFilter) {
       <div class="item-list">${rows}</div>
     </div>`;
   }).join('');
+  // O dock e o MESMO da visao de Grupos: flutua no rodape e some quando nada
+  // esta marcado. Basta existir no DOM — nao precisa de lugar proprio.
+  ORDEM_VISIVEL_DO_DIA = ordemVisivel;
+  if (typeof deckDeLoteHtml === 'function' && typeof SELECIONADAS !== 'undefined' && SELECIONADAS.size) {
+    grid.insertAdjacentHTML('afterbegin', deckDeLoteHtml('producao'));
+  }
 }
+// A ordem em que as pecas aparecem na lista por dia. Guardada porque o
+// shift+clique de uma linha precisa saber o que veio antes e depois DELA nesta
+// tela, e nao na visao de Grupos.
+let ORDEM_VISIVEL_DO_DIA = [];
 const DAILY_SUMMARY_CLOSED_STATUSES = new Set(['finalizado','feito','concluído','concluido']);
 const DAILY_SUMMARY_DISCIPLINES = {
   audiovisual:{ icon:'', label:'AUDIOVISUAL' },

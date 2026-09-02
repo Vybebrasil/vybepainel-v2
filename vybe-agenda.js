@@ -1439,12 +1439,20 @@ function linhaDeGrupoHtml(item) {
 // pressionada, então não há como saber que o shift estava segurado.
 let ULTIMA_MARCADA = null;
 
-function alternarSelecao(id, marcada, event) {
+// O SHIFT PRECISA SABER A ORDEM DA TELA EM QUE SE CLICOU.
+//
+// A lista para o intervalo saia sempre da visao de Grupos. Trazendo a selecao
+// para a lista por dia, o shift ali marcaria um trecho da ORDEM DE OUTRA TELA —
+// pecas que a pessoa nem esta vendo. Quem chama passa a propria ordem; sem
+// passar nada, continua valendo a de Grupos, como antes.
+function alternarSelecao(id, marcada, event, ordemVisivel) {
   const alvo = String(id);
-  const lista = itensPorGrupo().flatMap((g) => {
-    const visiveis = gruposExpandidos.has(g.id) ? g.itens : g.itens.slice(0, LINHAS_POR_GRUPO);
-    return visiveis.map((i) => String(i.id));
-  });
+  const lista = Array.isArray(ordemVisivel) && ordemVisivel.length
+    ? ordemVisivel.map(String)
+    : itensPorGrupo().flatMap((g) => {
+        const visiveis = gruposExpandidos.has(g.id) ? g.itens : g.itens.slice(0, LINHAS_POR_GRUPO);
+        return visiveis.map((i) => String(i.id));
+      });
 
   if (event?.shiftKey && ULTIMA_MARCADA && ULTIMA_MARCADA !== alvo) {
     const de = lista.indexOf(ULTIMA_MARCADA);
@@ -1475,6 +1483,15 @@ function alternarSelecao(id, marcada, event) {
 function repintarOndeHaSelecao() {
   renderVisaoDeGrupos();
   if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
+  // A lista por dia tambem mostra a marcacao e o dock. Sem repintar aqui, marcar
+  // uma peca ali nao acendia nada — o dock so aparecia depois de a tela ser
+  // redesenhada por outro motivo.
+  if (typeof renderWeek === 'function' && typeof META !== 'undefined') {
+    for (let n = 1; n <= (META?.weeks?.length || 0); n += 1) {
+      renderWeek(n, typeof currentFilter !== 'undefined' ? currentFilter : 'all',
+        typeof currentDayFilter !== 'undefined' ? currentDayFilter : '');
+    }
+  }
 }
 
 function selecionarGrupo(groupId, marcar) {

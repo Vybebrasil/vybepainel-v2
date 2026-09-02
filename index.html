@@ -993,6 +993,15 @@
        A linha vira arrastavel e o cartao do dia vira alvo. O alvo precisa se
        anunciar ANTES de soltar: sem a moldura acesa, quem arrasta nao sabe se o
        dia embaixo do cursor aceita a peca ou se vai perder o gesto. */
+    /* A caixinha so aparece quando a mao chega perto ou quando ja esta marcada:
+       uma coluna de quadrados vazios em toda linha pesa mais do que ajuda, e
+       quem nunca vai marcar nada nao deveria ver o controle o dia inteiro. */
+    .dia-marcar{display:inline-flex;align-items:center;flex:0 0 auto;padding:0 2px;cursor:pointer;
+      opacity:0;transition:opacity .14s var(--curva)}
+    .item-row:hover .dia-marcar,.item-row.marcada .dia-marcar{opacity:1}
+    .dia-marcar input{width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--accent,#ff6b00)}
+    .item-row.marcada{background:color-mix(in srgb,var(--accent,#ff6b00) 10%,transparent);
+      box-shadow:inset 2px 0 0 var(--accent,#ff6b00)}
     .item-row[draggable="true"]{cursor:grab}
     .item-row[draggable="true"]:active{cursor:grabbing}
     .dia-solta{transition:border-color .14s var(--curva),background .14s var(--curva),
