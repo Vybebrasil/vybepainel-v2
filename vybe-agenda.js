@@ -1772,7 +1772,7 @@ function loteStatus(event) {
     return abrirMenuDeLote(event, 'Status desta atividade', daPeca.map((o) => ({
       rotulo: o.label, cor: o.color,
       direto: true,
-      aplicar: async () => { limparSelecao(); await updateFocusStatus(unico, o.index); },
+      aplicar: async () => { limparSelecao(); await updateFocusStatus(unico, o.label); },
     })), 'status');
   }
   if (!opcoes.length) return showToast('As opções de status ainda estão carregando.', 'info');

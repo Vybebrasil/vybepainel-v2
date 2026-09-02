@@ -268,6 +268,15 @@ function juntarAprovacaoNoSeletorHtml(item) {
     juntar “${safeText(sobrando[0])}” em “Para Aprovação”</button>`;
 }
 
+// O rotulo vai dentro de um onclick, entre aspas simples. Escapar antes do
+// safeText e a ordem que funciona: a barra sobrevive ao escape de HTML e o
+// navegador devolve a aspa ja neutralizada para o JavaScript.
+function paraAtributo(texto) { return safeText(String(texto ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")); }
+function mesmoStatus(a, b) {
+  return typeof chaveDeStatus === 'function'
+    ? chaveDeStatus(a) === chaveDeStatus(b)
+    : String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+}
 function openStatusEditor(event, itemId) {
   event.preventDefault();
   event.stopPropagation();
@@ -285,7 +294,7 @@ function openStatusEditor(event, itemId) {
   const menu = document.createElement('div');
   menu.id = 'status-editor';
   menu.className = 'status-editor';
-  menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => `<button type="button" class="status-editor-option ${o.index === item.status_index ? 'current' : ''}" onclick="updateFocusStatus('${item.id}',${o.index})"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}</span>${o.index === item.status_index ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}${juntarAprovacaoNoSeletorHtml(item)}`;
+  menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => { const atual = mesmoStatus(o.label, item.status); return `<button type="button" class="status-editor-option ${atual ? 'current' : ''}" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}</span>${atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`; }).join('')}${juntarAprovacaoNoSeletorHtml(item)}`;
   document.body.append(backdrop, menu);
   ancorarPopover(menu, rect);
 }
@@ -814,7 +823,17 @@ function aplicarEfeitoDaAutomacao(item, resposta) {
   return `✓ ${item.nome || 'Peça'} seguiu pela automação${quem}${onde}${regra}`;
 }
 
-async function commitStatusChange(item, option) { const mutation=`mutation ($board: ID!, $item: ID!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`; armOutboundMutationGuard('status'); try { const pelaEscritaDupla = await tentarEscritaDupla(item, { acao:'status', item:String(item.id), para:chaveDeStatus(option.label), _devolve:true }); if (!pelaEscritaDupla) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),value:JSON.stringify({index:Number(option.index)})}); updateLocalStatus(item.id,option); const efeito=aplicarEfeitoDaAutomacao(item, pelaEscritaDupla); if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(d=>String(d.id)===String(item.id)); if(request) { request.status=option.label; request.status_color=option.color; request.status_border=option.border; request.status_index=option.index; request.status_updated_at=new Date().toISOString(); } renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{status:option.label,status_color:option.color,status_border:option.border,status_index:option.index},'status'); closeStatusEditor(); if(String(activeWorkspaceItemId)===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id), findOperationalItem(item.id) || item); renderFocusUserPicker(); showToast(efeito || `✓ Status atualizado para ${option.label} · tela mantida no contexto atual`,'ok', efeito ? 9000 : 4200); } catch(e) { showToast(`Não foi possível atualizar no Vybe OS: ${e.message}`,'err',7000); } }
+async function commitStatusChange(item, option) { const mutation=`mutation ($board: ID!, $item: ID!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`; armOutboundMutationGuard('status'); try { const pelaEscritaDupla = await tentarEscritaDupla(item, { acao:'status', item:String(item.id), para:chaveDeStatus(option.label), _devolve:true }); if (!pelaEscritaDupla) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),value:JSON.stringify(Number.isFinite(Number(option.index))&&option.index!==null?{index:Number(option.index)}:{label:String(option.label)})}); updateLocalStatus(item.id,option); const efeito=aplicarEfeitoDaAutomacao(item, pelaEscritaDupla); if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(d=>String(d.id)===String(item.id)); if(request) { request.status=option.label; request.status_color=option.color; request.status_border=option.border; request.status_index=option.index; request.status_updated_at=new Date().toISOString(); } renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{status:option.label,status_color:option.color,status_border:option.border,status_index:option.index},'status'); closeStatusEditor(); if(String(activeWorkspaceItemId)===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id), findOperationalItem(item.id) || item); renderFocusUserPicker(); showToast(efeito || `✓ Status atualizado para ${option.label} · tela mantida no contexto atual`,'ok', efeito ? 9000 : 4200); } catch(e) { showToast(recadoDeStatusRecusado(e, option),'err',9000); } }
+// O servidor recusa um status que o quadro nao tem, e a mensagem dele e para
+// quem escreveu o banco. Quem esta na tela precisa saber o que FAZER — e a
+// resposta ja existe: e o botao de juntar os nomes de aprovacao, em Demandas.
+function recadoDeStatusRecusado(erro, option) {
+  const texto = String(erro?.message || '');
+  const desconhecido = /Status desconhecido|não existe nas solicitações|nao existe nas solicitacoes/i.test(texto);
+  if (!desconhecido) return `Não foi possível atualizar no Vybe OS: ${texto}`;
+  return `O status "${option?.label || ''}" ainda não existe na lista das solicitações. `
+    + 'Em Demandas, o botão de juntar os status de aprovação cria esse nome — depois disto aqui funciona.';
+}
 const STATUS_CONTEXT_RULES = Object.freeze({
   'alteração': { question:'Qual alteração foi solicitada?', helper:'Descreva o ajuste com objetividade para que a equipe não precise recuperar o contexto no WhatsApp.', requester:true, source:true },
   'falta info': { question:'O que está faltando para avançar?', helper:'Informe qual material, informação ou aprovação é necessária e de quem ela depende.', requester:true, source:true },
@@ -962,7 +981,14 @@ async function submitStatusContext() {
   if(!reason || !nextOwner) return showToast('Explique o motivo e selecione quem executará a próxima ação.','info'); if((rule.requester && !requester) || (rule.completed && !completed)) return showToast('Preencha os campos de contexto obrigatórios desta etapa.','info'); if(link && !/^https?:\/\//i.test(link)) return showToast('Use um link válido começando com https:// ou deixe o campo em branco.','info'); const quality=[...document.querySelectorAll('input[data-quality-check]')]; if(quality.some(check=>!check.checked)) return showToast('Conclua o checklist de qualidade para continuar.','info'); const button=document.getElementById('status-context-submit'); const idleLabel=button?.textContent||'REGISTRAR E ATUALIZAR →'; if(button){button.disabled=true;button.textContent='Registrando...';}
   try { const qualityText=quality.length ? `\nChecklist de qualidade: ${quality.map(check=>check.parentElement.textContent.trim()).join(' | ')}` : ''; const body=`[Vybe OS · Contexto de status]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMotivo: ${reason}${completed ? `\nConcluído: ${completed}` : ''}${requester ? `\nSolicitante/Dependência: ${requester}` : ''}${source ? `\nOrigem: ${source}` : ''}\nResponsável pela próxima ação: ${nextOwner.name}${link ? `\nReferência: ${link}` : ''}${qualityText}`; await postItemUpdate(flow.item.id,body); [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(d=>{if(String(d.id)===String(flow.item.id)) d.status_context={target:flow.option.label,reason,next,requester,source,completed,link,next_owner_id:nextOwner.id,next_owner_name:nextOwner.name,created_at:new Date().toISOString()};})); const {item,option}=flow; closeWorkflowModal(); await commitStatusChange(item,option); } catch(e) { if(button){button.disabled=false;button.textContent=idleLabel;} showToast(`Não foi possível registrar o contexto: ${e.message}`,'err',7000); }
 }
-async function updateFocusStatus(itemId, statusIndex) { const item=findOperationalItem(itemId); const option=operationalStatusOptions(item).find(o=>Number(o.index)===Number(statusIndex)); if(!item || !option || item.status_index===option.index) return closeStatusEditor(); const needsGate=statusNeedsConferenciaVisual(option)||statusNeedsMaterialReview(option)||statusNeedsQuality(option)||statusNeedsContext(option)||statusNeedsHandoff(item,option); closeStatusEditor(); if(needsGate){ /* Um respiro para o seletor sair da tela antes de o portao entrar.
+async function updateFocusStatus(itemId, escolha) { const item=findOperationalItem(itemId); const opcoes=operationalStatusOptions(item);
+  // O rotulo e a identidade do status; o indice e so o numero que o quadro usa
+  // para guarda-lo, e nem todo status tem um. Numero ainda e aceito porque
+  // chamadas antigas mandam indice.
+  const option = typeof escolha === 'number' || /^-?\d+$/.test(String(escolha ?? ''))
+    ? opcoes.find(o=>o.index!==null&&o.index!==undefined&&Number(o.index)===Number(escolha))
+    : opcoes.find(o=>mesmoStatus(o.label, escolha));
+  if(!item || !option || mesmoStatus(option.label, item.status)) return closeStatusEditor(); const needsGate=statusNeedsConferenciaVisual(option)||statusNeedsMaterialReview(option)||statusNeedsQuality(option)||statusNeedsContext(option)||statusNeedsHandoff(item,option); closeStatusEditor(); if(needsGate){ /* Um respiro para o seletor sair da tela antes de o portao entrar.
    Era requestAnimationFrame, que NAO dispara em aba de fundo: se a pessoa
    clicasse e trocasse de aba, a troca de status ficava parada para sempre,
    esperando um quadro que nunca vem. */

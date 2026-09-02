@@ -455,11 +455,30 @@ function unifiedOperationalItems() {
   return [...content,...requests].filter(item=>{ const key=`${item.board_id || ''}:${String(item.id)}`; if(seen.has(key)) return false; seen.add(key); return true; });
 }
 function findOperationalItem(itemId) { return unifiedOperationalItems().find(item=>String(item.id)===String(itemId)); }
+// UM STATUS SEM NINGUEM NAO PODE FINGIR TER INDICE.
+//
+// O indice de um status e do quadro, nao nosso — e so aparece aqui de carona,
+// copiado de alguma solicitacao que ja esta naquele status. Quando NENHUMA esta
+// — o caso de "Para Aprovação" — o codigo antigo caia na posicao da lista e
+// entregava esse numero como se fosse o indice de verdade.
+//
+// Dois status ficavam entao com o mesmo numero, e o numero era a identidade do
+// que a pessoa clicou: escolher "Para Aprovação" resolvia para o outro. Se o
+// outro fosse o status atual da peca, a guarda de "ja esta neste status"
+// entendia que nao havia nada a fazer, fechava o menu e nao dizia nada. Era
+// isso que se via como o botao de aprovar nao funcionando.
+//
+// Sem exemplo, o indice fica nulo e assumido: quem manda e o rotulo.
 function requestStatusOptions(item={}) {
   const labels=[...new Set([...REQUEST_STATUS_ORDER,...(DADOS_DEMANDAS||[]).map(row=>row.status),item.status].filter(Boolean))];
-  return labels.map((label,index)=>{
+  return labels.map((label)=>{
     const sample=(DADOS_DEMANDAS||[]).find(row=>row.status===label);
-    return {label,index:Number(sample?.status_index ?? index),color:sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f',border:sample?.status_border || sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f'};
+    // Number(null) e 0, e 0 e indice de verdade de alguem: a checagem tem de ser
+    // por ausencia, nao por conversao — senao a peca que acabou de entrar num
+    // status sem indice reinventa a colisao com o indice 0.
+    const cru=sample?.status_index;
+    const indice=(cru===null||cru===undefined||cru==='')?NaN:Number(cru);
+    return {label,index:Number.isFinite(indice)?indice:null,color:sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f',border:sample?.status_border || sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f'};
   });
 }
 function operationalStatusOptions(item={}) { return isRequestItem(item) ? requestStatusOptions(item) : (STATUS_OPTIONS || []); }
