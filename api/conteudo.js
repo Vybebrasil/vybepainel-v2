@@ -95,7 +95,12 @@ async function trocarStatus(sql, quem, { item, para }) {
     `mutation ($board: ID!, $item: ID!, $value: JSON!) {
        change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`,
     { board: String(conteudo.board_id), item: referenciaReplica(conteudo, item),
-      value: JSON.stringify({ index: Number(alvo.monday_index) }) });
+      // Etiqueta criada aqui no painel nao tem indice do quadro. Number(null) e
+      // 0, e 0 e o indice de alguem: replicar assim gravaria o status errado no
+      // Monday, em silencio. Sem indice, manda o proprio nome — se o nome nao
+      // existir la, a replica falha e fica na fila, visivel.
+      value: JSON.stringify(alvo.monday_index === null || alvo.monday_index === undefined
+        ? { label: String(alvo.rotulo) } : { index: Number(alvo.monday_index) }) });
   // As automações rodam depois da gravação, nunca antes: regra que falha não
   // pode impedir a pessoa de mudar o status. Enquanto o Monday existir, as
   // regras dele disparam com a mesma mudança e chegam ao mesmo estado — as duas

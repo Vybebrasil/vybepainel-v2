@@ -244,8 +244,13 @@ function renderFocusDashboard() {
   const toStart = focusSort(mine.filter(d => operationalFlowStatus(d) === 'A Fazer'), user);
   const awaitingApproval = focusSort(mine.filter(d => ['Para aprovação','Ag. Aprovação Cliente','Ag. Interno'].includes(operationalFlowStatus(d))), user);
   const inRevision = focusSort(mine.filter(d => operationalFlowStatus(d) === 'Alteração'), user);
-  const awaitingInfo = focusSort(mine.filter(d => ['Falta Info','Ag. Info Cliente','Aguardo'].includes(operationalFlowStatus(d))), user);
-  const blocked = focusSort(mine.filter(d => ['Falta D.A','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(operationalFlowStatus(d))), user);
+  // "Aguardo Redação" e "Falta OFF" moravam em "Bloqueadas por outra etapa".
+  // Paulo em 02/09/2026: elas nao travam a peca — o texto e o audio chegam sem
+  // impedir o resto de andar. Sao espera, como as outras tres: a peca segue
+  // viva, so falta uma peca de material. "Bloqueada" fica para o que realmente
+  // para a fila.
+  const awaitingInfo = focusSort(mine.filter(d => ['Falta Info','Ag. Info Cliente','Aguardo','Aguardo Redação','Falta OFF'].includes(operationalFlowStatus(d))), user);
+  const blocked = focusSort(mine.filter(d => ['Falta D.A','Cap. Agendada','Agendando Cap','Segurar Post'].includes(operationalFlowStatus(d))), user);
   const classified = new Set([...inProgress,...toProduceToday,...toStart,...awaitingApproval,...inRevision,...awaitingInfo,...blocked].map(d => String(d.id)));
   const nextDeadlines = focusSort(mine.filter(d => !classified.has(String(d.id)) && focusReferenceDate(d,user) > today), user);
   // NADA DA PESSOA PODE SUMIR DESTA TELA.

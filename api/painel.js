@@ -871,6 +871,33 @@ async function areaOpcoes(req, res, quem) {
       return res.status(200).json({ ok: true, opcao: r[0] });
     }
 
+    // ── criar uma etiqueta de status ───────────────────────────────────────
+    //
+    // Ate aqui o vocabulario so podia encolher: dava para juntar dois nomes e
+    // para desligar uma opcao, nunca para acrescentar. Um nome novo exigia
+    // criar a etiqueta no Monday e rodar uma importacao que nao tem botao —
+    // ou seja, na pratica nao existia caminho.
+    //
+    // A etiqueta nasce sem indice do quadro, e e por isso que a gravacao no
+    // Monday manda o nome em vez do numero quando ele falta.
+    if (acao === 'criar-status') {
+      const rotulo = String(req.body?.rotulo || '').trim();
+      const board = Number(req.body?.board || 8385559107);
+      const cor = String(req.body?.cor || '#579bfc').trim() || '#579bfc';
+      if (!rotulo) return res.status(400).json({ error: 'Escreva o nome da etiqueta.' });
+      if (rotulo.length > 40) return res.status(400).json({ error: 'O nome precisa caber em 40 caracteres.' });
+      const chave = rotulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      if (!chave) return res.status(400).json({ error: 'Esse nome não vira uma etiqueta válida.' });
+      const ja = await db`SELECT rotulo FROM vybe_status
+        WHERE board_id=${board} AND (chave=${chave} OR LOWER(rotulo)=LOWER(${rotulo}))`;
+      if (ja.length) return res.status(409).json({ error: `"${ja[0].rotulo}" já existe nesta lista.` });
+      const fim = (await db`SELECT COALESCE(MAX(ordem), 0) + 1 AS n FROM vybe_status WHERE board_id=${board}`)[0];
+      await db`INSERT INTO vybe_status (board_id, chave, rotulo, cor, borda, ordem, monday_index, final)
+        VALUES (${board}, ${chave}, ${rotulo}, ${cor}, ${cor}, ${Number(fim.n)}, NULL, FALSE)`;
+      return res.status(200).json({ ok: true, status: { chave, rotulo, cor, board_id: board } });
+    }
+
     // ── juntar dois status num só ──────────────────────────────────────────
     //
     // Solicitacoes tinham "Aguardando Aprovacao" E "Em aprovacao": dois nomes

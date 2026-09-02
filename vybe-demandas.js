@@ -827,9 +827,16 @@ function aprovacoesParaAbsorver() {
   const noQuadro = typeof statusDoQuadroDeDemandas === 'function'
     ? statusDoQuadroDeDemandas().map((st) => String(st.rotulo || '').trim()) : [];
   const todos = [...new Set([...daLista, ...usados, ...noQuadro])].filter(Boolean);
-  const final = chaveDeStatusDemanda(APROVACAO_FINAL);
-  const esperaAprovacao = (r) => /^(?:(?:em|para|aguardando|ag|aguardo)\s+)?aprovacao\b/.test(chaveDeStatusDemanda(r));
-  return todos.filter((r) => esperaAprovacao(r) && chaveDeStatusDemanda(r) !== final);
+  // "Em Aprovacao" deixou de ser nome repetido. Paulo em 02/09/2026: sao dois
+  // momentos, nao dois nomes — "Para Aprovacao" e a peca mandada, "Em
+  // Aprovacao" e ela sendo avaliada, no interno e com o cliente. Junta-las
+  // apagaria a etapa do meio.
+  //
+  // Sobram para absorver so os nomes herdados que nao dizem nada de novo:
+  // "Aguardando Aprovacao" e "Ag. Aprovacao".
+  const PROPRIOS = new Set([chaveDeStatusDemanda(APROVACAO_FINAL), 'em aprovacao']);
+  const esperaAprovacao = (r) => /^(?:(?:aguardando|ag|aguardo)\s+)?aprovacao\b/.test(chaveDeStatusDemanda(r));
+  return todos.filter((r) => esperaAprovacao(r) && !PROPRIOS.has(chaveDeStatusDemanda(r)));
 }
 function pintarAvisoDeAprovacoes() {
   const caixa = document.getElementById('demanda-tipo-legend');
@@ -846,6 +853,30 @@ function pintarAvisoDeAprovacoes() {
     title="${safeText(sobrando.map((r) => `${r}: ${conta(r)}`).join(' · '))}"
     onclick="juntarAprovacoes()">${safeText(rotulo)}</button>`);
 }
+// Uma etiqueta a mais na lista das solicitacoes. O caminho contrario — juntar
+// duas — ja existia; acrescentar nao. Fica ao lado dele, no mesmo menu, e so
+// para quem administra: escolher etiqueta e de todo mundo, mudar o vocabulario
+// da operacao e de quem administra.
+async function criarEtiquetaDeStatus() {
+  const nome = await perguntarNoPainel({
+    titulo: 'Nova etiqueta de status',
+    texto: 'Ela entra na lista de todas as solicitações, para todo mundo. '
+      + 'Escreva do jeito que deve aparecer na tela.',
+    campo: { valor: '', dica: 'Ex.: Em Aprovação' },
+    confirmar: 'Criar etiqueta' });
+  const rotulo = String(nome || '').trim();
+  if (!rotulo) return;
+  try {
+    const r = await fetch('/api/painel?area=opcoes', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: 'criar-status', rotulo, board: BOARD_DEMANDAS_ID }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || 'Não foi possível criar.');
+    showToast(`✓ "${rotulo}" entrou na lista das solicitações`, 'ok', 5000);
+    await refreshDemandas();
+  } catch (e) { showToast(e.message, 'err', 7000); }
+}
+
 async function juntarAprovacoes() {
   const sobrando = aprovacoesParaAbsorver();
   if (!sobrando.length) return;

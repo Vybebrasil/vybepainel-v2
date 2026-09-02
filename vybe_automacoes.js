@@ -26,6 +26,19 @@ export const GRUPOS = {
   publicacoes: 'novo_grupo22352__1',
 };
 
+// Solicitacoes e um quadro proprio, com grupos e vocabulario proprios. Ate aqui
+// nenhuma regra falava dele — e como a mesma chave de status existe nos dois
+// (feito, alteracao, pode_fazer), uma regra escrita para um pegaria o outro sem
+// avisar. Por isso a condicao 'board_em' nasce junto com estas.
+export const BOARD_DEMANDAS = 8385559107;
+export const GRUPOS_DEMANDAS = {
+  ideias: 'group_mm187437',
+  a_fazer: 'novo_grupo_mkmkjdqd',
+  em_execucao: 'novo_grupo_mkkyfhtw',
+  concluidas: 'novo_grupo_mkkyx8pv',
+};
+const PAULO = '68035537';
+
 export async function criarSchemaAutomacoes() {
   const sql = database();
   await sql`CREATE TABLE IF NOT EXISTS vybe_automacoes (
@@ -123,6 +136,14 @@ const SEMENTE = [
     condicao: { grupo_em: [GRUPOS.finalizados] },
     acoes: [{ tipo: 'responsaveis', modo: 'replace', pessoas: [] }] },
 
+  // "Feito" contava como pronta e abria a revisao de material igual a
+  // "Finalizado", mas nenhuma automacao o escutava: a peca parava ali com dono.
+  // Paulo em 02/09/2026: "o feito tambem e finalizado, pode limpar o
+  // responsavel". Vale nos dois quadros — nos dois ele quer dizer a mesma coisa.
+  { nome: 'Feito também é fim: libera o responsável', ordem: 24,
+    gatilho: { tipo: 'status', para: 'feito' }, condicao: null,
+    acoes: [{ tipo: 'responsaveis', modo: 'replace', pessoas: [] }] },
+
   { nome: 'Aprovação de audiovisual chama Vinícius, Ewerton e Paulo', ordem: 30,
     gatilho: { tipo: 'status', de: 'em_andamento', para: 'para_aprovacao' },
     condicao: { formato_apenas: AUDIOVISUAL },
@@ -137,6 +158,37 @@ const SEMENTE = [
     gatilho: { tipo: 'status', de: 'alteracao', para: 'para_aprovacao' },
     condicao: { formato_em: DESIGN },
     acoes: [{ tipo: 'responsaveis', modo: 'add', pessoas: ['68997024'] }] },
+
+  // AS ETAPAS QUE SO EXISTEM NAS SOLICITACOES.
+  //
+  // Orcamento e impressao nao tem equivalente em Producao, e por isso nenhuma
+  // regra falava delas: a peca entrava no status e ficava com o dono anterior,
+  // que nao e quem faz orcamento. As tres sao do Paulo, e a primeira tambem
+  // muda de grupo — orcar ja e execucao.
+  { nome: 'Para Orçar vai para Em Execução com o Paulo', ordem: 42,
+    gatilho: { tipo: 'status', para: 'para_orcar' },
+    condicao: { board_em: [BOARD_DEMANDAS] },
+    acoes: [
+      { tipo: 'grupo', para: GRUPOS_DEMANDAS.em_execucao },
+      { tipo: 'responsaveis', modo: 'replace', pessoas: [PAULO] },
+    ] },
+
+  { nome: 'Em Orçamento continua com o Paulo', ordem: 43,
+    gatilho: { tipo: 'status', para: 'em_orcamento' },
+    condicao: { board_em: [BOARD_DEMANDAS] },
+    acoes: [{ tipo: 'responsaveis', modo: 'replace', pessoas: [PAULO] }] },
+
+  { nome: 'Em impressão continua com o Paulo', ordem: 44,
+    gatilho: { tipo: 'status', para: 'em_impressao' },
+    condicao: { board_em: [BOARD_DEMANDAS] },
+    acoes: [{ tipo: 'responsaveis', modo: 'replace', pessoas: [PAULO] }] },
+
+  // A alteracao chega para quem mandou aprovar, nao para quem estava com a peca
+  // antes. Quem mandou sai do registro de quem trocou o status naquela vez.
+  { nome: 'Alteração volta para quem mandou aprovar', ordem: 45,
+    gatilho: { tipo: 'status', para: 'alteracao' },
+    condicao: { board_em: [BOARD_DEMANDAS] },
+    acoes: [{ tipo: 'responsaveis', modo: 'replace', origem: 'quem_mandou_aprovar', pessoas: [] }] },
 
   { nome: 'Captação agendada fica com o Ademir', ordem: 40,
     gatilho: { tipo: 'captacao', para: 'captacao_agendada' }, condicao: null,
@@ -279,6 +331,10 @@ function atende(condicao, item) {
   }
   // De qual grupo o item está saindo. Sem isto, "finalizado" tem um destino só,
   // e no Monday ele tem três, dependendo de onde a peça está.
+  // Em que quadro a peca esta. As chaves de status se repetem entre Producao e
+  // Solicitacoes: sem isto, "alteracao" numa solicitacao dispararia a regra
+  // escrita para conteudo, e vice-versa.
+  if (condicao.board_em && !condicao.board_em.map(Number).includes(Number(item.board_id))) return false;
   if (condicao.grupo_em && !condicao.grupo_em.includes(item.grupo_id)) return false;
   if (condicao.status_nao_em && condicao.status_nao_em.includes(item.status_chave)) return false;
   if (condicao.status_em && !condicao.status_em.includes(item.status_chave)) return false;
@@ -299,7 +355,7 @@ function casaGatilho(gatilho, evento) {
 // Aplica as regras que casam com o evento. Devolve o que mudou, para o chamador
 // replicar no Monday enquanto ele ainda existir.
 export async function aplicar(sql, conteudoId, evento) {
-  const item = (await sql`SELECT c.id, c.titulo, c.formato_chaves, c.status_chave, c.grupo_id,
+  const item = (await sql`SELECT c.id, c.titulo, c.formato_chaves, c.status_chave, c.grupo_id, c.board_id,
       (SELECT cl.nome FROM vybe_conteudo_clientes vcc JOIN vybe_clientes cl ON cl.id=vcc.cliente_id
         WHERE vcc.conteudo_id=c.id LIMIT 1) AS cliente
     FROM vybe_conteudos c WHERE c.id=${conteudoId}`)[0];
@@ -336,10 +392,39 @@ export async function aplicar(sql, conteudoId, evento) {
       } else if (acao.tipo === 'status') {
         await sql`UPDATE vybe_conteudos SET status_chave=${acao.para}, status_em=NOW(), atualizado_em=NOW() WHERE id=${item.id}`;
         item.status_chave = acao.para;
-        const indice = (await sql`SELECT monday_index FROM vybe_status WHERE chave=${acao.para}`)[0];
-        if (indice) paraOMonday.colunas.status = { index: Number(indice.monday_index) };
+        // A chave se repete entre os dois quadros ("feito", "alteracao"): sem o
+        // board, esta busca devolvia o status do quadro errado. E indice nulo
+        // virava 0 pelo Number(), gravando outro status no Monday em silencio.
+        const alvo = (await sql`SELECT monday_index, rotulo FROM vybe_status
+          WHERE chave=${acao.para} AND board_id=${item.board_id}`)[0];
+        if (alvo) paraOMonday.colunas.status = alvo.monday_index === null || alvo.monday_index === undefined
+          ? { label: String(alvo.rotulo) } : { index: Number(alvo.monday_index) };
         feitas.push(`status → ${acao.para}`);
       } else if (acao.tipo === 'responsaveis') {
+        // DEVOLVER A PECA A QUEM A MANDOU.
+        //
+        // Ate aqui uma acao so sabia nomear gente fixa. "Alteracao volta para
+        // quem mandou aprovar" nao tem nome fixo: depende de quem apertou o
+        // botao daquela vez. A resposta ja esta guardada — cada troca de status
+        // registra quem a fez — e e de la que a pessoa sai.
+        //
+        // So conta a familia da espera ("Para Aprovacao", "Em Aprovacao",
+        // "Aguardando Aprovacao"). "Aprovado" tambem fala de aprovacao e e o
+        // lado oposto: quem aprovou nao e quem mandou.
+        let pessoas = Array.isArray(acao.pessoas) ? acao.pessoas : [];
+        if (acao.origem === 'quem_mandou_aprovar') {
+          const autor = (await sql`SELECT p.monday_user_id
+              FROM vybe_conteudo_eventos e JOIN vybe_pessoas p ON p.id = e.autor_id
+             WHERE e.conteudo_id=${item.id} AND e.tipo='status'
+               AND (e.para ILIKE 'para aprova%' OR e.para ILIKE 'em aprova%'
+                 OR e.para ILIKE 'aguardando aprova%' OR e.para ILIKE 'ag. aprova%')
+             ORDER BY e.em DESC LIMIT 1`)[0];
+          // Sem registro de quem mandou, a acao inteira nao acontece. Um
+          // 'replace' que nao sabe para quem devolver apagaria o responsavel e
+          // deixaria a peca sem dono — pior do que nao fazer nada.
+          if (!autor?.monday_user_id) { feitas.push('sem registro de quem mandou aprovar'); continue; }
+          pessoas = [String(autor.monday_user_id)];
+        }
         if (acao.modo === 'replace') await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${item.id}`;
         // 'add' entra depois de quem já está: a ordem define o responsável
         // principal, e quem foi chamado para ajudar não vira dono da peça.
@@ -348,7 +433,7 @@ export async function aplicar(sql, conteudoId, evento) {
               FROM vybe_conteudo_responsaveis WHERE conteudo_id=${item.id}`)[0].n);
         await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
           SELECT ${item.id}, p.id, ${base} + o.ord - 1
-            FROM UNNEST(${acao.pessoas}::text[]) WITH ORDINALITY AS o(uid, ord)
+            FROM UNNEST(${pessoas}::text[]) WITH ORDINALITY AS o(uid, ord)
             JOIN vybe_pessoas p ON p.monday_user_id = o.uid
           ON CONFLICT DO NOTHING`;
         // Manda a lista final, não o delta: 'add' no Monday sobrescreveria.

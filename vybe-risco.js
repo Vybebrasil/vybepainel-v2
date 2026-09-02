@@ -143,8 +143,8 @@ function focusTaskTone(status) {
   if (status === 'Em andamento' || status === 'Em execução') return '#ff6b00';
   if (['Pode Fazer','A Fazer'].includes(status)) return '#ffbd2e';
   if (['Para aprovação','Ag. Aprovação Cliente','Ag. Interno'].includes(status)) return '#579bfc';
-  if (['Falta Info','Ag. Info Cliente','Aguardo'].includes(status)) return '#9d50dd';
-  if (['Falta D.A','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(status)) return '#ff4d6d';
+  if (['Falta Info','Ag. Info Cliente','Aguardo','Aguardo Redação','Falta OFF'].includes(status)) return '#9d50dd';
+  if (['Falta D.A','Cap. Agendada','Agendando Cap','Segurar Post'].includes(status)) return '#ff4d6d';
   return '#a58c79';
 }
 function focusStatusButtonHtml(d) {
@@ -261,11 +261,17 @@ function juntarAprovacaoNoSeletorHtml(item) {
   if (typeof podeAdministrar !== 'function' || !podeAdministrar()) return '';
   if (typeof aprovacoesParaAbsorver !== 'function') return '';
   const sobrando = aprovacoesParaAbsorver();
-  if (!sobrando.length) return '';
-  return `<button type="button" class="status-editor-arrumar"
+  const juntar = sobrando.length ? `<button type="button" class="status-editor-arrumar"
     onclick="closeStatusEditor();juntarAprovacoes()"
     title="${safeText(sobrando.join(' · '))} deixam de existir; tudo passa a ser Para Aprovação">
-    juntar “${safeText(sobrando[0])}” em “Para Aprovação”</button>`;
+    juntar “${safeText(sobrando[0])}” em “Para Aprovação”</button>` : '';
+  // Acrescentar mora ao lado de juntar: as duas sao a mesma pergunta — "esta
+  // lista esta certa?" — e ela nasce aqui, com a lista aberta na frente.
+  const criar = typeof criarEtiquetaDeStatus === 'function' ? `<button type="button" class="status-editor-arrumar"
+    onclick="closeStatusEditor();criarEtiquetaDeStatus()"
+    title="Cria uma etiqueta nova na lista das solicitações, para todo mundo">
+    ＋ nova etiqueta</button>` : '';
+  return juntar + criar;
 }
 
 // O rotulo vai dentro de um onclick, entre aspas simples. Escapar antes do
@@ -333,7 +339,10 @@ const MATERIAL_REVIEW_TARGET_STATUSES = new Set(['agendado','finalizado','feito'
 // portao nao some — troca de nome: statusNeedsContext e "nao esta livre e nenhum
 // outro portao pegou", entao tirar de um so empurra a peca para o outro.
 const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao',
-  'finalizado','feito','pode fazer','a fazer','para agendar']);
+  'finalizado','feito','pode fazer','a fazer','para agendar',
+  // Esperar o texto ou o audio chegar nao e uma decisao a justificar: nada foi
+  // decidido, so ainda nao chegou. Pedir motivo aqui e pedagio.
+  'aguardo redação','aguardo redacao','falta off']);
 // Mandar para aprovacao nao e prestar contas — e mostrar o que ficou pronto.
 //
 // O portao antigo pedia motivo escrito, proxima pessoa e link de referencia
@@ -842,7 +851,11 @@ const STATUS_CONTEXT_RULES = Object.freeze({
   'ag. aprovação cliente': { question:'Que aprovação ainda falta?', helper:'Registre qual ponto espera validação e de quem precisa vir o retorno.', requester:true, source:true, completed:true },
   'ag. interno': { question:'O que precisa de validação interna?', helper:'Especifique a decisão e a área ou pessoa que precisa validar.', requester:true, source:true },
   'falta d.a': { question:'Que direção de arte ou referência falta?', helper:'Descreva o ponto visual que precisa ser definido antes da produção.', requester:true, source:true },
-  'finalizado': { question:'O que foi concluído e entregue?', helper:'Registre a entrega final, o destino e qualquer pendência residual.', completed:true }
+  'finalizado': { question:'O que foi concluído e entregue?', helper:'Registre a entrega final, o destino e qualquer pendência residual.', completed:true },
+  // Segurar um post e uma decisao, e decisao sem motivo escrito vira peca
+  // parada que ninguem sabe por que parou. Tinha a pergunta generica; ganha a
+  // sua, com o que precisa ser respondido para ela voltar a andar.
+  'segurar post': { question:'Por que a publicação está sendo segurada?', helper:'Diga quem pediu para segurar e o que precisa acontecer para liberar.', requester:true }
 });
 function contextRuleFor(option) { return STATUS_CONTEXT_RULES[normalizedWorkflowStatus(option?.label)] || { question:`Por que esta demanda entra em ${option?.label || 'esta etapa'}?`, helper:'Registre o motivo da mudança e o próximo passo necessário.' }; }
 function updateStatusContextState() { const form=document.getElementById('status-context-form'); const button=document.getElementById('status-context-submit'); if(!form || !button) return; const checks=[...form.querySelectorAll('input[data-quality-check]')]; button.disabled=checks.some(check=>!check.checked); }
