@@ -192,6 +192,20 @@ function focusDatasHtml(d, user = focusUser()) {
   return `<span class="focus-datas">${partes.join('')}</span>`;
 }
 
+// AS DATAS SAO O BOTAO DE EDITAR AS DATAS.
+//
+// Havia um glifo de relogio solto em cada linha, ao lado delas, sem rotulo
+// visivel — nove pontinhos misteriosos numa tela de nove linhas, e o rotulo so
+// aparecia parando o mouse em cima. Ele abria o editor de prazo e veiculacao,
+// que e exatamente o que as datas ao lado dizem. Entao sao elas que abrem.
+function datasEditaveisHtml(d, user) {
+  const gap = goldenDeadlineGap(d?.prazo_iso, d?.veiculacao_iso);
+  const risco = gap !== null && gap < PRAZO_OURO_DIAS;
+  const titulo = `Editar prazo e veiculação · Prazo de Ouro: ${PRAZO_OURO_DIAS} dias antes da veiculação${gap === null ? '' : ` · atual: ${gap} dias`}`;
+  return `<button type="button" class="focus-task-datas ${risco ? 'gold-risk' : ''}"
+    onclick="event.stopPropagation();openPlanningEditor('${d.id}')"
+    title="${safeText(titulo)}" aria-label="${safeText(titulo)}">${focusDatasHtml(d, user)}</button>`;
+}
 function focusTaskHtml(d, contextText='', opcoes={}) {
   const user = focusUser();
   const deadline = focusReferenceDate(d, user);
@@ -205,8 +219,7 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     // O texto de contexto e do GRUPO — 'Pronto para voce executar' aparecia
     // igual nas cinco linhas. Fica so na primeira, como quem diz a regra uma
     // vez; nas outras sobra o que de fato muda.
-    const contexto = opcoes.primeira ? (contextText || focusStatusExplanation(flowStatus) || d.status) : '';
-    const baseMeta = [contexto, late ? '⚠️ Atrasado' : '', risk.sla_label || ''].filter(Boolean).join(' • ');
+    const baseMeta = [late ? '⚠️ Atrasado' : '', risk.sla_label || ''].filter(Boolean).join(' • ');
     // As duas datas saem do meio da frase e viram coluna propria, encostada na
     // direita. Medindo a linha antes: o titulo tinha 379px e esta faixa de apoio
     // 475 — o secundario com mais espaco que o principal, e os numeros mudando
@@ -216,8 +229,8 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <span class="focus-task-priority"></span>
     <div class="focus-task-title"><div class="focus-task-client">${safeText(d.cliente)}</div><div class="focus-task-name"><button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
-    <div class="focus-task-datas">${focusDatasHtml(d, user)}</div>
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${quickDateTrigger(d,'focus-date-trigger')}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
+    ${datasEditaveisHtml(d, user)}
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
 

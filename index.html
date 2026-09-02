@@ -4547,6 +4547,19 @@ body[data-modo="foco"] #badge-s2{display:none!important}
   .focus-hero-lado .mode-switch-btn{align-self:flex-end}
 }
 
+/* As datas agora sao o botao que as edita: sem moldura em repouso, com resposta
+   ao passar o mouse — o alvo e o proprio numero. */
+button.focus-task-datas{border:1px solid transparent;border-radius:10px;background:transparent;
+  padding:5px 9px;margin:-5px -9px;cursor:pointer;text-align:right;transition:.14s var(--curva,ease)}
+button.focus-task-datas:hover{border-color:var(--vybe-line);background:rgba(255,255,255,.05)}
+button.focus-task-datas:focus-visible{outline:2px solid var(--vybe-orange,#ff9d00);outline-offset:2px}
+button.focus-task-datas.gold-risk .focus-data.manda b{color:#ff8a5c}
+
+/* A regra do grupo, no cabecalho do grupo. */
+.focus-section-fim{display:flex;align-items:center;gap:12px}
+.focus-section-dica{color:var(--vybe-muted);font:500 11.5px var(--mac-ui);font-style:normal;letter-spacing:0}
+@media(max-width:900px){.focus-section-dica{display:none}}
+
 </style></head>
 <body>
 
