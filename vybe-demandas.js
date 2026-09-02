@@ -476,8 +476,13 @@ function requestStatusOptions(item={}) {
   // O quadro manda quando ele ja respondeu. A lista escrita a mao continua como
   // rede de seguranca para o primeiro desenho, antes de a leitura chegar.
   const doQuadro = statusDoQuadroDeDemandas();
+  // '—' e o tracinho que o painel poe numa solicitacao SEM status. Ele entrava
+  // na lista junto com os status de verdade e podia ser escolhido; escolher
+  // manda um nome vazio ao servidor, que recusa. Nao ter status nao e um lugar
+  // para onde se mande a peca.
+  const eStatus = (rotulo) => Boolean(rotulo) && !/^[—–-]+$/.test(String(rotulo).trim());
   if (doQuadro.length) {
-    const labels=[...new Set([...doQuadro.map(st=>String(st.rotulo||'').trim()),...(DADOS_DEMANDAS||[]).map(row=>row.status),item.status].filter(Boolean))];
+    const labels=[...new Set([...doQuadro.map(st=>String(st.rotulo||'').trim()),...(DADOS_DEMANDAS||[]).map(row=>row.status),item.status].filter(eStatus))];
     return labels.map((label)=>{
       const st=doQuadro.find(entry=>String(entry.rotulo||'').trim()===label);
       const sample=(DADOS_DEMANDAS||[]).find(row=>row.status===label);
@@ -488,7 +493,7 @@ function requestStatusOptions(item={}) {
         border:st?.borda || st?.cor || sample?.status_border || sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f'};
     });
   }
-  const labels=[...new Set([...REQUEST_STATUS_ORDER,...(DADOS_DEMANDAS||[]).map(row=>row.status),item.status].filter(Boolean))];
+  const labels=[...new Set([...REQUEST_STATUS_ORDER,...(DADOS_DEMANDAS||[]).map(row=>row.status),item.status].filter(eStatus))];
   return labels.map((label)=>{
     const sample=(DADOS_DEMANDAS||[]).find(row=>row.status===label);
     // Number(null) e 0, e 0 e indice de verdade de alguem: a checagem tem de ser
@@ -801,11 +806,17 @@ function chaveDeStatusDemanda(v) {
   return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
-// Qualquer nome que fale de aprovacao e NAO seja o final entra na juncao.
-// Antes eu procurava so os dois nomes que conhecia, e so entre os status USADOS
-// por alguma peca. Duas limitacoes na mesma linha: um nome escrito de outro
-// jeito passava batido, e um status vazio — sem nenhuma peca — continuava na
-// lista sem que houvesse como tira-lo.
+// A JUNCAO E DOS NOMES DE ESPERA, E SO DELES.
+//
+// "Aprovado" tambem fala de aprovacao, e nao e nome repetido de nada: e o outro
+// lado da mesma porta. Uma peca em "Para Aprovação" espera resposta; uma em
+// "Aprovado" ja recebeu. Procurar por /aprova/ colocava as duas no mesmo saco e
+// oferecia juntar uma na outra — apagando a diferenca entre pedir e ter, sem
+// desfazer. Foi o que a lista mostrou assim que ela passou a enxergar o quadro
+// inteiro.
+//
+// Entao o que entra e so a familia da espera: "aprovacao" sozinha, ou precedida
+// de em / para / aguardando / ag. Participio nao entra.
 function aprovacoesParaAbsorver() {
   const item = (DADOS_DEMANDAS || [])[0] || {};
   const daLista = typeof requestStatusOptions === 'function'
@@ -817,7 +828,8 @@ function aprovacoesParaAbsorver() {
     ? statusDoQuadroDeDemandas().map((st) => String(st.rotulo || '').trim()) : [];
   const todos = [...new Set([...daLista, ...usados, ...noQuadro])].filter(Boolean);
   const final = chaveDeStatusDemanda(APROVACAO_FINAL);
-  return todos.filter((r) => /aprova/i.test(chaveDeStatusDemanda(r)) && chaveDeStatusDemanda(r) !== final);
+  const esperaAprovacao = (r) => /^(?:(?:em|para|aguardando|ag|aguardo)\s+)?aprovacao\b/.test(chaveDeStatusDemanda(r));
+  return todos.filter((r) => esperaAprovacao(r) && chaveDeStatusDemanda(r) !== final);
 }
 function pintarAvisoDeAprovacoes() {
   const caixa = document.getElementById('demanda-tipo-legend');
