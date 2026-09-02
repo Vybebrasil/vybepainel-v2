@@ -207,12 +207,16 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     // vez; nas outras sobra o que de fato muda.
     const contexto = opcoes.primeira ? (contextText || focusStatusExplanation(flowStatus) || d.status) : '';
     const baseMeta = [contexto, late ? '⚠️ Atrasado' : '', risk.sla_label || ''].filter(Boolean).join(' • ');
-    const meta = baseMeta;
-    const finalMetaHtml = safeText(meta) + focusDatasHtml(d, user) + timerHtml;
+    // As duas datas saem do meio da frase e viram coluna propria, encostada na
+    // direita. Medindo a linha antes: o titulo tinha 379px e esta faixa de apoio
+    // 475 — o secundario com mais espaco que o principal, e os numeros mudando
+    // de lugar a cada linha conforme o texto ao lado fosse maior ou menor.
+    const finalMetaHtml = safeText(baseMeta) + timerHtml;
   return `<div class="focus-task ${opcoes.primeira ? 'primeira' : ''}" style="--priority-color:${color}">
     <span class="focus-task-priority"></span>
     <div class="focus-task-title"><div class="focus-task-client">${safeText(d.cliente)}</div><div class="focus-task-name"><button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
+    <div class="focus-task-datas">${focusDatasHtml(d, user)}</div>
     <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${quickDateTrigger(d,'focus-date-trigger')}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }

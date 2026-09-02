@@ -4486,6 +4486,44 @@ button:not(:disabled):not([aria-disabled="true"]):active,
    corrige e o peso — ele deixa de ter o mesmo tamanho da acao principal. */
 .focus-next-btn.status{font-weight:600!important;padding:9px 14px!important;font-size:12px!important}
 
+/* A linha em quatro campos com trabalho definido: o marcador, o que se le, o
+   contexto, as datas e os controles. O titulo passa a ficar com a folga; as
+   datas ganham coluna fixa e param de deslizar de uma linha para a outra. */
+.focus-task{grid-template-columns:4px minmax(0,1fr) auto auto auto!important;gap:12px!important;
+  align-items:center!important}
+.focus-task-meta{justify-self:end;text-align:right;max-width:34ch;white-space:normal!important;
+  line-height:1.35}
+.focus-task-datas{justify-self:end}
+.focus-datas{margin-left:0!important;gap:14px!important;flex-wrap:nowrap!important;
+  justify-content:flex-end;min-width:118px}
+.focus-data{flex-direction:column;align-items:flex-end;gap:2px!important;
+  font-variant-numeric:tabular-nums;font:600 12px var(--mac-ui)}
+.focus-data b{font-size:8px!important;letter-spacing:.08em}
+
+@media(max-width:1180px){
+  .focus-task{grid-template-columns:4px minmax(0,1fr) auto auto!important}
+  .focus-task-meta{display:none}
+}
+@media(max-width:760px){
+  .focus-task{grid-template-columns:4px minmax(0,1fr) auto!important;gap:10px!important}
+  .focus-task-datas{grid-column:2;justify-self:start}
+  .focus-datas{justify-content:flex-start;min-width:0}
+  .focus-data{align-items:flex-start}
+}
+
+/* Cada grupo gastava duas linhas para dizer um nome e um numero: 48px de altura
+   por grupo, cinco grupos, so para "Design & Edicao" e "6 conteudos". O numero
+   vira uma ficha ao lado do nome — uma linha, e a contagem passa a ser lida
+   junto com o que ela conta, nao abaixo dele. */
+.grupo-cabeca{padding:9px 16px!important}
+.grupo-titulo{display:flex!important;align-items:center;gap:9px;min-width:0}
+.grupo-titulo b{display:inline!important;font-size:13.5px!important}
+.grupo-titulo small{display:inline-grid!important;place-items:center;margin-top:0!important;
+  min-width:22px;height:19px;padding:0 7px;border-radius:6px;
+  background:color-mix(in srgb,var(--cor-grupo,#7c8797) 20%,rgba(255,255,255,.05));
+  color:color-mix(in srgb,var(--cor-grupo,#7c8797) 72%,#e7ecf5)!important;
+  font:700 10.5px var(--mac-ui)!important;font-variant-numeric:tabular-nums;letter-spacing:0}
+
 </style></head>
 <body>
 

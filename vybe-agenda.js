@@ -1866,7 +1866,7 @@ function renderVisaoDeGrupos(quadro) {
     return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
       <button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
-        <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small>${total} ${peca(total)}</small></span>
+        <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
       </button>${corpo}</section>`;
   }).join('');
 
