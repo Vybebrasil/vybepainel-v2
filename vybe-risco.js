@@ -305,7 +305,11 @@ function updateLocalStatus(itemId, option) {
   }));
 }
 const HANDOFF_TARGET_STATUSES = new Set(['ag. aprovação cliente']);
-const QUALITY_TARGET_STATUSES = new Set(['para agendar','agendado']);
+// 'para agendar' saiu daqui: entrar nesse status e dizer "a peca esta pronta,
+// falta marcar a hora" — nao e a entrega em si, e o checklist de qualidade antes
+// dele virava pedagio. 'agendado' fica, mas na pratica quem manda nele e a
+// revisao de material, que roda antes desta.
+const QUALITY_TARGET_STATUSES = new Set(['agendado']);
 const MATERIAL_REVIEW_TARGET_STATUSES = new Set(['agendado','finalizado','feito']);
 // Status que nao pedem justificativa escrita para entrar.
 //
@@ -316,8 +320,11 @@ const MATERIAL_REVIEW_TARGET_STATUSES = new Set(['agendado','finalizado','feito'
 //
 // 'Finalizado' entra pelo mesmo motivo: ali a trava que importa e a conferencia
 // visual do material, nao o texto.
+// 'para agendar' precisa entrar AQUI junto com a saida do checklist. Sem isso, o
+// portao nao some — troca de nome: statusNeedsContext e "nao esta livre e nenhum
+// outro portao pegou", entao tirar de um so empurra a peca para o outro.
 const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao',
-  'finalizado','feito','pode fazer','a fazer']);
+  'finalizado','feito','pode fazer','a fazer','para agendar']);
 // Mandar para aprovacao nao e prestar contas — e mostrar o que ficou pronto.
 //
 // O portao antigo pedia motivo escrito, proxima pessoa e link de referencia
@@ -1650,7 +1657,7 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
       <div class="entrega-caminhos">
         <div class="entrega-caminho">
           <div class="entrega-caminho-topo"><b>Arquivo pronto</b><small>card, arte ou PDF</small></div>
-          <input id="workspace-file-input" type="file" hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
+          <input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
           <div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste aqui ou clique</strong>PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
           <p class="workspace-note">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos da demanda”.</p>
         </div>
@@ -1898,20 +1905,49 @@ async function enviarArquivoGrande(corpo, file, aoAndar) {
   return json;
 }
 
+// VÁRIOS ARQUIVOS DE UMA VEZ.
+//
+// O campo aceitava um por vez, e um carrossel de dez paginas virava dez idas ao
+// botao — sendo que a pessoa ja tinha as dez selecionadas na pasta.
+//
+// Vao um atras do outro, e nao todos juntos, de proposito: cada arquivo grande
+// e fatiado em pedacos, e disparar dez em paralelo multiplicaria as idas ao
+// servidor sem acelerar nada. Um que falha nao derruba os outros — o aviso do
+// fim diz quantos foram e quais nao deram.
 async function uploadWorkspaceFile(input) {
-  const file = input?.files?.[0];
-  if (!file || !activeWorkspaceItemId) return;
+  const arquivos = [...(input?.files || [])];
+  if (!arquivos.length || !activeWorkspaceItemId) return;
   const item = findOperationalItem(activeWorkspaceItemId);
+  const total = arquivos.length;
+  const foram = []; const falhas = [];
   try {
-    const mega = (file.size / 1048576).toFixed(1).replace('.', ',');
-    showToast(`Enviando ${file.name} (${mega} MB) para o Drive da Vybe…`, 'info', 60000);
-    // Arquivo de 40 MB leva vinte idas ao servidor. Sem contar em voz alta, a
-    // tela parece travada e a pessoa fecha no meio.
-    await enviarArquivoDaPeca(activeWorkspaceItemId, file, (pct) => {
-      if (pct < 100) showToast(`Enviando ${file.name} · ${pct}%`, 'info', 60000);
-    });
-    showToast('\u2713 Arquivo anexado no Drive da Vybe', 'ok');
+    for (let i = 0; i < total; i += 1) {
+      const file = arquivos[i];
+      const deQuantos = total > 1 ? ` (${i + 1} de ${total})` : '';
+      const mega = (file.size / 1048576).toFixed(1).replace('.', ',');
+      showToast(`Enviando ${file.name} (${mega} MB)${deQuantos}…`, 'info', 60000);
+      try {
+        // Arquivo de 40 MB leva vinte idas ao servidor. Sem contar em voz alta,
+        // a tela parece travada e a pessoa fecha no meio.
+        await enviarArquivoDaPeca(activeWorkspaceItemId, file, (pct) => {
+          if (pct < 100) showToast(`Enviando ${file.name}${deQuantos} · ${pct}%`, 'info', 60000);
+        });
+        foram.push(file.name);
+      } catch (erro) { falhas.push({ nome: file.name, motivo: erro.message }); }
+    }
+    if (foram.length) {
+      showToast(foram.length === 1
+        ? '✓ Arquivo anexado no Drive da Vybe'
+        : `✓ ${foram.length} arquivos anexados no Drive da Vybe`, 'ok', 6000);
+    }
+    if (falhas.length) {
+      // Uma caixa por falha viraria uma fila de caixas. Uma so, com a lista.
+      await perguntarNoPainel({
+        titulo: falhas.length === 1 ? 'Um arquivo não subiu' : `${falhas.length} arquivos não subiram`,
+        texto: falhas.map((f) => `${f.nome}: ${f.motivo}`).join('\n'),
+        confirmar: 'Entendi',
+      });
+    }
     if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), item);
-  } catch (e) { showToast(`N\u00e3o foi poss\u00edvel anexar: ${e.message}`, 'err', 7000); }
-  finally { if (input) input.value = ''; }
+  } finally { if (input) input.value = ''; }
 }

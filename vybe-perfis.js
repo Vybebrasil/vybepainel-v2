@@ -748,6 +748,7 @@ function daPlanningEscolherArquivo(itemId) {
   if (!input) {
     input = document.createElement('input');
     input.type = 'file';
+    input.multiple = true;
     input.id = 'da-planning-file-input';
     input.hidden = true;
     input.accept = 'image/png,image/jpeg,image/webp,application/pdf';
@@ -759,27 +760,51 @@ function daPlanningEscolherArquivo(itemId) {
   input.click();
 }
 
+// Varios de uma vez, um atras do outro. Um carrossel de dez paginas era dez idas
+// ao botao, com as dez ja selecionadas na pasta.
 async function daPlanningEnviarArquivo(input) {
   const itemId = input?.dataset?.item || '';
-  const file = input?.files?.[0];
-  if (!itemId || !file) return;
+  const arquivos = [...(input?.files || [])];
+  if (!itemId || !arquivos.length) return;
   const celula = document.getElementById(`arq-${itemId}`);
-  if (celula) celula.innerHTML = '<span class="da-planning-file-carregando">…</span>';
+  const total = arquivos.length;
+  const foram = []; const falhas = [];
+  let ultimo = null;
   try {
-    const r = await enviarArquivoDaPeca(itemId, file);
-    const drive = r?.drive_file_id || '';
-    const info = { total: 1, nome: file.name,
-      thumb: drive ? `https://drive.google.com/thumbnail?id=${drive}&sz=w160` : null,
-      abrir: drive ? `https://drive.google.com/file/d/${drive}/view` : null };
-    // Guardar aqui tambem, senao o proximo redesenho da mesa mostrava a celula
-    // vazia de novo — parecia que o envio nao tinha valido.
-    DA_PLANNING_ARQUIVOS.set(String(itemId), info);
-    if (celula && celula.isConnected) celula.innerHTML = daPlanningArquivoHtml(itemId, info);
-    showToast(`✓ ${file.name} guardado na pasta do cliente no Drive`, 'ok', 5000);
-  } catch (erro) {
-    daPlanningEsquecerArquivo(itemId);
-    if (celula && celula.isConnected) celula.innerHTML = daPlanningArquivoVazioHtml(itemId);
-    daPlanningContarFalhaDeEnvio(file.name, erro.message);
+    for (let i = 0; i < total; i += 1) {
+      const file = arquivos[i];
+      if (celula && celula.isConnected) {
+        celula.innerHTML = `<span class="da-planning-file-carregando" title="${
+          safeText(file.name)}">${total > 1 ? `${i + 1}/${total}` : '…'}</span>`;
+      }
+      try {
+        const r = await enviarArquivoDaPeca(itemId, file);
+        const drive = r?.drive_file_id || '';
+        ultimo = { nome: file.name,
+          thumb: drive ? `https://drive.google.com/thumbnail?id=${drive}&sz=w160` : null,
+          abrir: drive ? `https://drive.google.com/file/d/${drive}/view` : null };
+        foram.push(file.name);
+      } catch (erro) { falhas.push({ nome: file.name, motivo: erro.message }); }
+    }
+    if (foram.length) {
+      // A celula mostra a miniatura do ULTIMO e o total do que a peca tem agora:
+      // e a mesma leitura que o servidor devolve quando a mesa recarrega.
+      const info = { ...ultimo, total: foram.length };
+      DA_PLANNING_ARQUIVOS.set(String(itemId), info);
+      if (celula && celula.isConnected) celula.innerHTML = daPlanningArquivoHtml(itemId, info);
+      showToast(foram.length === 1
+        ? `✓ ${foram[0]} guardado na pasta do cliente no Drive`
+        : `✓ ${foram.length} arquivos guardados na pasta do cliente no Drive`, 'ok', 6000);
+    } else {
+      daPlanningEsquecerArquivo(itemId);
+      if (celula && celula.isConnected) celula.innerHTML = daPlanningArquivoVazioHtml(itemId);
+    }
+    // Uma caixa com a lista, e nao uma caixa por arquivo que falhou.
+    if (falhas.length) {
+      daPlanningContarFalhaDeEnvio(
+        falhas.length === 1 ? falhas[0].nome : `${falhas.length} arquivos`,
+        falhas.map((f) => `${f.nome}: ${f.motivo}`).join('\n'));
+    }
   } finally { if (input) input.value = ''; }
 }
 
