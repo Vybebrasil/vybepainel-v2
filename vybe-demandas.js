@@ -469,7 +469,25 @@ function findOperationalItem(itemId) { return unifiedOperationalItems().find(ite
 // isso que se via como o botao de aprovar nao funcionando.
 //
 // Sem exemplo, o indice fica nulo e assumido: quem manda e o rotulo.
+function statusDoQuadroDeDemandas() {
+  return (typeof CATALOGO_STATUS_DEMANDAS === 'undefined' ? [] : CATALOGO_STATUS_DEMANDAS) || [];
+}
 function requestStatusOptions(item={}) {
+  // O quadro manda quando ele ja respondeu. A lista escrita a mao continua como
+  // rede de seguranca para o primeiro desenho, antes de a leitura chegar.
+  const doQuadro = statusDoQuadroDeDemandas();
+  if (doQuadro.length) {
+    const labels=[...new Set([...doQuadro.map(st=>String(st.rotulo||'').trim()),...(DADOS_DEMANDAS||[]).map(row=>row.status),item.status].filter(Boolean))];
+    return labels.map((label)=>{
+      const st=doQuadro.find(entry=>String(entry.rotulo||'').trim()===label);
+      const sample=(DADOS_DEMANDAS||[]).find(row=>row.status===label);
+      const cru=st?st.indice:sample?.status_index;
+      const indice=(cru===null||cru===undefined||cru==='')?NaN:Number(cru);
+      return {label,index:Number.isFinite(indice)?indice:null,
+        color:st?.cor || sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f',
+        border:st?.borda || st?.cor || sample?.status_border || sample?.status_color || REQUEST_STATUS_FALLBACK_COLORS[label] || '#8f8f8f'};
+    });
+  }
   const labels=[...new Set([...REQUEST_STATUS_ORDER,...(DADOS_DEMANDAS||[]).map(row=>row.status),item.status].filter(Boolean))];
   return labels.map((label)=>{
     const sample=(DADOS_DEMANDAS||[]).find(row=>row.status===label);
@@ -793,7 +811,11 @@ function aprovacoesParaAbsorver() {
   const daLista = typeof requestStatusOptions === 'function'
     ? requestStatusOptions(item).map((o) => String(o.label || '').trim()) : [];
   const usados = (DADOS_DEMANDAS || []).map((d) => String(d.status || '').trim());
-  const todos = [...new Set([...daLista, ...usados])].filter(Boolean);
+  // O que existe no quadro conta mesmo sem ninguem nele: era exatamente o nome
+  // vazio que ficava sem jeito de tirar, porque nao aparecia em lugar nenhum.
+  const noQuadro = typeof statusDoQuadroDeDemandas === 'function'
+    ? statusDoQuadroDeDemandas().map((st) => String(st.rotulo || '').trim()) : [];
+  const todos = [...new Set([...daLista, ...usados, ...noQuadro])].filter(Boolean);
   const final = chaveDeStatusDemanda(APROVACAO_FINAL);
   return todos.filter((r) => /aprova/i.test(chaveDeStatusDemanda(r)) && chaveDeStatusDemanda(r) !== final);
 }

@@ -15,6 +15,14 @@ const VYBE_EMERGENCY_SOURCE_KEY = 'vybe_emergency_source_v1';
 const VYBE_EMERGENCY_WRITE_KEY = 'vybe_emergency_write_v1';
 let CATALOGO_CAPTACAO = [];
 let CATALOGO_OPCOES = [];
+// A LISTA DE STATUS DAS SOLICITACOES, COMO ELA E.
+//
+// Ela ja vinha do servidor em toda leitura de Demandas e era jogada fora. Sem
+// ela, a tela so conhecia os status que alguma solicitacao estava usando naquele
+// momento, mais uma lista escrita a mao no codigo. Duas consequencias: um status
+// existente mas vazio ficava invisivel — nao dava para ver nem para tirar — e um
+// nome da lista escrita a mao era oferecido mesmo quando o quadro nao o tinha.
+let CATALOGO_STATUS_DEMANDAS = [];
 let DOMINIO_ULTIMA_RESPOSTA = null;
 
 // O banco da Vybe é a autoridade de leitura. O espelho do Monday permanece
@@ -234,6 +242,10 @@ async function buscarDemandas() {
 
 function demandasComoItensDoMonday(dados) {
   const status = new Map((dados.status || []).map((s) => [s.chave, s]));
+  CATALOGO_STATUS_DEMANDAS = (dados.status || []).map((s) => ({
+    chave: s.chave, rotulo: s.rotulo, indice: s.indice ?? null,
+    cor: s.cor || '', borda: s.borda || s.cor || '',
+  }));
   const pessoas = new Map((dados.pessoas || []).map((p) => [String(p.id), p.nome]));
   const prioridades = new Map((dados.opcoes || [])
     .filter((o) => o.coluna_id === 'color_mkwtgakv').map((o) => [o.chave, o]));
