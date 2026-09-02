@@ -38,11 +38,28 @@ function fonteDeLeitura() {
 }
 function espelhoSomenteObservador() { return fonteDeLeitura() === 'dominio'; }
 
+// Leitura incompleta nao pode passar por leitura boa: sem o catalogo de status
+// as pecas aparecem sem a cor da etiqueta, e quem olha conclui que o dado e
+// esse. O aviso sai uma vez por tipo de falha — repetir a cada releitura viraria
+// barulho que se aprende a ignorar.
+const FALHAS_JA_AVISADAS = new Set();
+function avisarSeVeioIncompleto(dados) {
+  const faltou = Array.isArray(dados?.degradado) ? dados.degradado : [];
+  if (!faltou.length || typeof showToast !== 'function') return;
+  const chave = faltou.slice().sort().join(',');
+  if (FALHAS_JA_AVISADAS.has(chave)) return;
+  FALHAS_JA_AVISADAS.add(chave);
+  const nomes = { status: 'status', captacao: 'captação', opcoes: 'formatos e etiquetas' };
+  showToast(`As peças carregaram, mas ${faltou.map((f) => nomes[f] || f).join(' e ')} não. `
+    + 'As cores e os nomes desses campos podem aparecer em branco até isso se resolver.', 'info', 10000);
+}
+
 async function buscarDominio() {
   const resposta = await fetch(CONTEUDOS_API, { credentials: 'same-origin', cache: 'no-store' });
   if (!resposta.ok) throw new Error(`Domínio indisponível (${resposta.status})`);
   const dados = await resposta.json();
   if (!dados?.itens) throw new Error('Resposta do domínio sem itens.');
+  avisarSeVeioIncompleto(dados);
   DOMINIO_ULTIMA_RESPOSTA = dados;
   return dados;
 }

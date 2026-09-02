@@ -597,7 +597,21 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
   // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
   // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
   // desperdício que a resposta crua do Monday impunha e o domínio deixa resolver.
-  const [status, captacao, opcoes, pessoas, linhas] = await Promise.all([
+  //
+  // UMA FALHA NUM CATALOGO NAO PODE APAGAR O PAINEL.
+  //
+  // Com Promise.all, qualquer erro numa destas cinco consultas rejeitava as
+  // cinco: uma coluna faltando no catalogo de etiquetas derrubava junto os
+  // ITENS e as PESSOAS, o /api/conteudos devolvia erro e o painel caia no
+  // cache. Foi assim que as fotos da equipe sumiram de todas as telas por
+  // causa de um ORDER BY.
+  //
+  // As pecas e as pessoas sao o painel: sem elas nao ha o que mostrar, e a
+  // falha continua sendo falha. Os catalogos sao enfeite do que ja esta la —
+  // sem eles a peca aparece sem a cor da etiqueta, o que e pior do que o
+  // normal e muito melhor do que a tela vazia. Entao eles caem sozinhos, e a
+  // resposta diz quais cairam para a tela poder avisar em vez de mentir.
+  const respostas = await Promise.allSettled([
     // 'ativa' e 'ordem' passam a valer para status como ja valiam para as outras
     // etiquetas: desligar uma que nao se usa mais, e por a lista na ordem do
     // fluxo. COALESCE porque as colunas nascem depois das linhas.
@@ -678,6 +692,18 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
       ORDER BY c.veiculacao NULLS LAST, c.id`,
   ]);
 
+  const NOMES = ['status', 'captacao', 'opcoes', 'pessoas', 'itens'];
+  const degradado = [];
+  respostas.forEach((r, i) => {
+    if (r.status === 'fulfilled') return;
+    // Peca e pessoa sao o painel; catalogo e o acabamento dele.
+    if (NOMES[i] === 'itens' || NOMES[i] === 'pessoas') throw r.reason;
+    console.error(`Catálogo "${NOMES[i]}" não veio; a leitura segue sem ele:`, r.reason?.message || r.reason);
+    degradado.push(NOMES[i]);
+  });
+  const [status, captacao, opcoes, pessoas, linhas] =
+    respostas.map((r) => (r.status === 'fulfilled' ? r.value : []));
+
   const itens = linhas.map((l) => {
     const item = {
       id: l.id,
@@ -712,7 +738,8 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
     return item;
   });
 
-  return { board_id: boardId, status, captacao, opcoes, pessoas, itens };
+  return { board_id: boardId, status, captacao, opcoes, pessoas, itens,
+           ...(degradado.length ? { degradado } : {}) };
 }
 
 // Sincroniza histórico e anexos a partir do Monday, em páginas.

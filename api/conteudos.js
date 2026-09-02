@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const inicio = Date.now();
     // Sem parâmetro, Produção — é o que todo mundo já chama.
     const alvo = String(req.query?.board || '') === 'demandas' ? BOARD_DEMANDAS : BOARD_PRODUCAO;
-    const { board_id, status, captacao, opcoes, pessoas, itens } = await listarConteudos(alvo);
+    const { board_id, status, captacao, opcoes, pessoas, itens, degradado } = await listarConteudos(alvo);
     return res.status(200).json({
       ok: true,
       board_id,
@@ -42,6 +42,8 @@ export default async function handler(req, res) {
       opcoes,
       pessoas,
       itens,
+      // Diz o que faltou em vez de deixar a tela concluir sozinha que esta certa.
+      ...(degradado?.length ? { degradado } : {}),
     });
   } catch (erro) {
     return res.status(500).json({ error: erro.message });
