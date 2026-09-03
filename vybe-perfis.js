@@ -1420,6 +1420,7 @@ function openModeGate() {
   if (typeof pintarQuemSou === 'function') pintarQuemSou();
   levarCrachaParaOPortao();
   document.getElementById('quem-sou-menu')?.style.setProperty('display', 'none');
+  ligarBarraDoTopo();
   renderIdentityOperationalPulse();
   renderFocusUserPicker();
   setupIdentityInteractions();
@@ -1428,6 +1429,8 @@ function openModeGate() {
   identityDecodeTitle();
 }
 function closeModeGate() {
+  // O relogio nao precisa continuar batendo com o portao fechado.
+  desligarBarraDoTopo();
   devolverCrachaAoCabecalho();
   document.getElementById('focus-picker')?.classList.remove('open');
   document.getElementById('mode-gate')?.classList.remove('focus-selecting');
