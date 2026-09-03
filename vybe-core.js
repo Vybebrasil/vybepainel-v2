@@ -39,11 +39,18 @@ function recalcSemanas() {
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
+// Um aviso so, e cada chamada agendava o proprio sumico sem cancelar o
+// anterior. Dois avisos seguidos e o relogio do PRIMEIRO apagava o SEGUNDO no
+// meio — foi assim que a mensagem de "a referencia nao subiu" desapareceu atras
+// do "✓ conteudo criado", e e o que impedia um aviso de progresso de ficar de
+// pe enquanto o lote roda.
+let TEMPO_DO_AVISO = null;
 function showToast(msg, type='info', duration=3000) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `show ${type}`;
-  setTimeout(() => { t.className = ''; }, duration);
+  if (TEMPO_DO_AVISO) clearTimeout(TEMPO_DO_AVISO);
+  TEMPO_DO_AVISO = setTimeout(() => { t.className = ''; TEMPO_DO_AVISO = null; }, duration);
 }
 
 // ─── GraphQL Query ────────────────────────────────────────────────────────────

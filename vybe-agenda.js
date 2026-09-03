@@ -1813,10 +1813,16 @@ async function aplicarDataSelecionadaEmLote(campo, dateIso, { input = null, sour
   }
 
   if (input) input.disabled = true;
-  showToast(`Aplicando ${rotulo} em ${itens.length} demandas…`, 'info', 5000);
+  // Cada peca e uma ida ao servidor, uma de cada vez: com onze demandas isso
+  // demora, e "aplicando em 11" parado na tela nao diz se anda ou travou. O
+  // aviso passa a contar.
   const atualizadas = [];
   const semMudanca = [];
   const falhas = [];
+  const andamento = (feitas) => showToast(
+    `${rotulo} · ${feitas} de ${itens.length}${feitas < itens.length ? ` · faltam ${itens.length - feitas}` : ''}`,
+    'info', 20000);
+  andamento(0);
   for (const item of itens) {
     try {
       const mudou = await moverDataDoItem(item, campo, dateIso, {
@@ -1827,6 +1833,7 @@ async function aplicarDataSelecionadaEmLote(campo, dateIso, { input = null, sour
       falhas.push({ item, erro });
       console.warn('Falha ao aplicar data em lote', item.id, erro);
     }
+    andamento(atualizadas.length + semMudanca.length + falhas.length);
   }
 
   saveProductionCache();
@@ -1991,14 +1998,18 @@ async function aplicarEmLote(rotulo, executar) {
         confirmar: 'Aplicar' })
     : window.confirm(pergunta);
   if (!confirmado) return;
-  showToast(`Aplicando ${rotulo} em ${ids.length}…`, 'info', 4000);
   let ok = 0;
   const falhas = [];
+  const andamento = (feitas) => showToast(
+    `${rotulo} · ${feitas} de ${ids.length}${feitas < ids.length ? ` · faltam ${ids.length - feitas}` : ''}`,
+    'info', 20000);
+  andamento(0);
   for (const id of ids) {
     const item = findOperationalItem(id);
-    if (!item) { falhas.push(id); continue; }
+    if (!item) { falhas.push(id); andamento(ok + falhas.length); continue; }
     try { await executar(item); ok += 1; }
     catch (erro) { falhas.push(item.nome || id); console.warn('lote falhou em', id, erro); }
+    andamento(ok + falhas.length);
   }
   // Some da selecao so o que sumiu da tela — peca arquivada ou movida para fora
   // do recorte nao tem mais linha para ficar marcada.
@@ -2551,7 +2562,10 @@ async function loteArquivar() {
     campo: { valor: '', dica: 'Por que está arquivando? (opcional, fica no histórico)' },
   });
   if (motivo === null) return;
-  showToast(`Arquivando ${pecas.length}…`, 'info', 4000);
+  const andamentoDoArquivo = (feitas) => showToast(
+    `Arquivando · ${feitas} de ${pecas.length}${feitas < pecas.length ? ` · faltam ${pecas.length - feitas}` : ''}`,
+    'info', 20000);
+  andamentoDoArquivo(0);
   const foram = []; const falhas = [];
   for (const item of pecas) {
     try {
@@ -2566,6 +2580,7 @@ async function loteArquivar() {
       });
       foram.push(item);
     } catch (erro) { falhas.push(item.nome || item.id); console.warn('lote de arquivo falhou em', item.id, erro); }
+    andamentoDoArquivo(foram.length + falhas.length);
   }
   SELECIONADAS.clear();
   saveProductionCache();
