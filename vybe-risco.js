@@ -1421,7 +1421,93 @@ function showWorkspaceDeliveryCopySheet(text){ document.getElementById('workspac
 async function copyWorkspaceDeliveryLink(url){ const text=String(url||'').trim(); if(!text) return showToast('Nenhum material disponível para copiar.','info'); try{ if(navigator.clipboard?.writeText){ await Promise.race([navigator.clipboard.writeText(text),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tempo de cópia excedido')),1200))]); } else workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(error){ try{ workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(fallbackError){ showWorkspaceDeliveryCopySheet(text); showToast('Link aberto para cópia manual.','info',7000); } } }
 function focusWorkspaceDeliveryInput(){ const input=document.getElementById('workspace-link-input'); if(!input) return; input.scrollIntoView({behavior:'smooth',block:'center'}); input.focus(); showToast('Cole aqui o link final para liberar a postagem.','info'); }
 function workspaceDeliveryDock(detail,item){ const delivery=workspaceDeliveryInfo(detail); if(!delivery) return `<section class="workspace-delivery-dock missing"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega para postagem</span><b>Material ainda não enviado</b><small>Quem publica não tem link nem arquivo final nesta demanda. Registre o material antes de mover para publicação.</small></div><div class="workspace-delivery-actions"><button type="button" class="workspace-delivery-focus" onclick="focusWorkspaceDeliveryInput()">REGISTRAR MATERIAL ↓</button></div></section>`; const when=delivery.created_at?new Date(delivery.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'sem horário disponível'; return `<section class="workspace-delivery-dock"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega pronta para postar</span><b>${safeText(delivery.name)}</b><small>${safeText(delivery.source)} · enviado por ${safeText(delivery.creator)} · ${safeText(when)}</small></div><div class="workspace-delivery-actions"><a class="workspace-delivery-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a><button type="button" class="workspace-delivery-copy-btn" onclick="copyWorkspaceDeliveryLink('${safeText(delivery.url)}')">Copiar link</button></div></section>`; }
-function workspaceTimelineEvent(update){ const body=workspacePlainText(update?.body||'') || 'Atualização sem texto.'; const type=workspaceTimelineType(body); return `<div class="workspace-update workspace-timeline-event"><div class="workspace-update-meta"><span class="workspace-timeline-type">${type}</span>${safeText(update?.creator?.name||'Equipe Vybe')} · ${safeText((update?.created_at||'').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(body)}</div></div>`; }
+// Quem escreveu pode corrigir e apagar o que escreveu. O registro do SISTEMA —
+// troca de status, checklist, automacao — nao: ele e a prova do que aconteceu.
+// A diferenca esta no separador, e e assim que o painel sempre escreveu: a nota
+// da pessoa sai como "[Vybe OS] o texto dela"; a do sistema, como
+// "[Vybe OS · Checklist de qualidade]".
+//
+// Esta funcao so decide se o botao APARECE. Quem autoriza de verdade e o
+// servidor, que confere o autor_id de novo antes de gravar.
+function atualizacaoDoSistema(update) {
+  const corpo = String(update?.body || '');
+  if (/^\s*(<p>)?\s*\[Vybe OS\s*[\u00b7\u2022\u30fb-]/i.test(corpo)) return true;
+  return /^(automa|vybe os$|sistema$)/i.test(String(update?.creator?.name || '').trim());
+}
+
+function possoMexerNaAtualizacao(update) {
+  if (!update?.update_id || atualizacaoDoSistema(update)) return false;
+  const eu = typeof pessoaLogada === 'function' ? pessoaLogada() : null;
+  if (!eu) return false;
+  if (eu.admin) return true;
+  const meu = String(eu.nome || '').trim().toLowerCase();
+  return !!meu && meu === String(update?.creator?.name || '').trim().toLowerCase();
+}
+
+function ferramentasDaAtualizacaoHtml(update) {
+  if (!possoMexerNaAtualizacao(update)) return '';
+  const id = safeText(String(update.update_id));
+  return `<span class="workspace-update-tools">
+      <button type="button" onclick="corrigirAtualizacao('${id}')" title="Corrigir este texto">Corrigir</button>
+      <button type="button" class="perigo" onclick="apagarAtualizacao('${id}')" title="Apagar esta atualização">Apagar</button>
+    </span>`;
+}
+
+function workspaceTimelineEvent(update){ const body=workspacePlainText(update?.body||'') || 'Atualização sem texto.'; const type=workspaceTimelineType(body); const editado=update?.editado_em?'<span class="workspace-update-editado">editado</span>':''; return `<div class="workspace-update workspace-timeline-event" data-update="${safeText(String(update?.update_id||''))}"><div class="workspace-update-meta"><span class="workspace-timeline-type">${type}</span>${safeText(update?.creator?.name||'Equipe Vybe')} · ${safeText((update?.created_at||'').replace('T',' ').slice(0,16))}${editado}${ferramentasDaAtualizacaoHtml(update)}</div><div class="workspace-update-body">${safeText(body)}</div></div>`; }
+
+// Guarda o que a gaveta leu, para corrigir e apagar acharem o texto atual sem
+// uma segunda ida ao servidor.
+let ATUALIZACOES_DA_GAVETA = [];
+
+async function corrigirAtualizacao(updateId) {
+  const alvo = ATUALIZACOES_DA_GAVETA.find((u) => String(u.update_id) === String(updateId));
+  if (!alvo) return showToast('Não encontrei esta atualização. Reabra a atividade.', 'info');
+  // O "[Vybe OS] " da frente e carimbo do sistema, nao texto de ninguem: some
+  // para editar e volta na hora de salvar, senao ele sumiria do registro.
+  const bruto = String(alvo.body || '');
+  const carimbo = bruto.match(/^\s*\[Vybe OS\]\s*/i)?.[0] || '';
+  const novo = await perguntarNoPainel({
+    titulo: 'Corrigir atualização',
+    texto: 'O texto corrigido substitui o anterior no histórico, marcado como editado.',
+    confirmar: 'Salvar',
+    campo: { valor: bruto.slice(carimbo.length), dica: 'O que ficou registrado', linhas: 6 },
+  });
+  if (novo === null || !String(novo).trim()) return;
+  await mandarMexerNaAtualizacao('comentario_editar', updateId, { texto: `${carimbo}${novo}` },
+    '✓ Atualização corrigida');
+}
+
+async function apagarAtualizacao(updateId) {
+  const alvo = ATUALIZACOES_DA_GAVETA.find((u) => String(u.update_id) === String(updateId));
+  const trecho = workspacePlainText(String(alvo?.body || '')).slice(0, 120);
+  const sim = await perguntarNoPainel({
+    titulo: 'Apagar esta atualização?',
+    texto: `${trecho}${trecho.length >= 120 ? '…' : ''}\n\nO texto sai do histórico. Fica registrado que existiu e foi apagado, e por quem.`,
+    confirmar: 'Apagar', perigo: true,
+  });
+  if (!sim) return;
+  await mandarMexerNaAtualizacao('comentario_apagar', updateId, {}, '✓ Atualização apagada');
+}
+
+async function mandarMexerNaAtualizacao(acao, updateId, extra, recado) {
+  const alvo = String(activeWorkspaceItemId || '');
+  if (!alvo) return;
+  try {
+    const r = await fetch('/api/conteudo', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao, item: alvo, update: updateId, ...extra }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d?.ok) throw new Error(d?.error || `Não deu certo (${r.status})`);
+    showToast(recado, 'ok');
+    const atual = findOperationalItem(alvo);
+    if (atual && document.getElementById('workspace-drawer')) {
+      renderWorkspaceDrawer(await fetchWorkspaceItem(alvo), atual);
+    }
+  } catch (erro) {
+    showToast(erro.message, 'err', 8000);
+  }
+}
 function workspaceExecutiveHistoryHtml(updates=[]) {
   const decisive=(updates||[]).filter(update=>/Direcionamento D\.A|Contexto de status|Passagem de bastão|Planejamento atualizado|Check-in/i.test(workspacePlainText(update?.body||''))).slice(0,5);
   if(!decisive.length) return '<section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><div class="workspace-empty">Ainda não há decisão estruturada registrada nesta demanda.</div></div></section>';
@@ -2147,6 +2233,7 @@ let DETALHE_DA_GAVETA = null;
   const assets = workspaceAssetsForDetail(detail);
   activeWorkspaceAssets = assets;
   const updates = detail.updates || [];
+  ATUALIZACOES_DA_GAVETA = updates;
   const deadline = focusReferenceDate(item, focusUser());
   const format = item.formato || item.tipo || item.formato_conteudo || 'Conteúdo';
   drawer.innerHTML = `
@@ -2241,6 +2328,7 @@ async function openDemandaWorkspace(itemId) {
     DETALHE_DA_GAVETA = detail;
     const assets = detail?.assets || [];
     const updates = detail?.updates || [];
+    ATUALIZACOES_DA_GAVETA = updates;
     drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}${botaoDeLinkHtml(item)}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
   } catch (e) {
     drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-empty">Não foi possível carregar o contexto. ${safeText(e.message)}</div>`;

@@ -603,8 +603,13 @@ function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo
             onerror="this.closest('figure')?.classList.add('sem-previa')">
           <figcaption>${safeText(imagem.nome || '')}</figcaption></figure>` : ''}
         ${texto ? `<p>${safeText(texto)}</p>` : ''}
-        ${campo ? `<input id="cli-pergunta-campo" type="text" value="${safeText(String(campo.valor || ''))}"
-            placeholder="${safeText(String(campo.dica || ''))}">` : ''}
+        ${campo ? (campo.linhas
+          // Corrigir uma atualizacao de tres linhas dentro de um campo de uma
+          // linha e datilografar as cegas. Mesma caixa de pergunta, so que alta.
+          ? `<textarea id="cli-pergunta-campo" rows="${Number(campo.linhas) || 5}"
+              placeholder="${safeText(String(campo.dica || ''))}">${safeText(String(campo.valor || ''))}</textarea>`
+          : `<input id="cli-pergunta-campo" type="text" value="${safeText(String(campo.valor || ''))}"
+              placeholder="${safeText(String(campo.dica || ''))}">`) : ''}
         <div class="cli-pergunta-acoes">
           <button type="button" class="workflow-secondary" data-nao>Cancelar</button>
           <button type="button" class="workflow-primary${perigo ? ' perigo' : ''}" data-sim>${safeText(confirmar)}</button>
@@ -619,7 +624,8 @@ function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo
     const dizerSim = () => fechar(campo ? String(entrada()?.value ?? '').trim() : true);
     const tecla = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); fechar(campo ? null : false); }
-      if (e.key === 'Enter') { e.preventDefault(); dizerSim(); }
+      // Num campo de varias linhas, Enter quebra linha — confirmar e no botao.
+      if (e.key === 'Enter' && e.target?.tagName !== 'TEXTAREA') { e.preventDefault(); dizerSim(); }
     };
     fundo.querySelector('[data-nao]').onclick = () => fechar(campo ? null : false);
     fundo.querySelector('[data-sim]').onclick = dizerSim;

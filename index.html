@@ -1996,6 +1996,19 @@ header,.topbar{
    inteiro. Em vez de uma segunda copia sem foto no rodape, o proprio cracha
    muda de lugar enquanto o portao esta aberto — mesmo botao, mesma foto, mesmo
    menu. Este e o encaixe dele no topo. */
+/* Corrigir e apagar no historico: aparecem discretos e so ganham cor no hover
+   da propria linha — sao acoes de dono, nao chamada para acao. */
+.workspace-update-tools{margin-left:auto;display:inline-flex;gap:4px;opacity:0;transition:opacity .15s}
+.workspace-timeline-event:hover .workspace-update-tools,
+.workspace-update-tools:focus-within{opacity:1}
+.workspace-update-tools button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);
+  color:#9fb4bf;border-radius:999px;padding:2px 9px;font:600 10px var(--mac-ui);cursor:pointer}
+.workspace-update-tools button:hover{background:rgba(255,255,255,.12);color:#fff}
+.workspace-update-tools button.perigo:hover{background:rgba(255,92,124,.2);
+  border-color:rgba(255,92,124,.45);color:#ffd7de}
+.workspace-update-editado{margin-left:7px;color:#7d8b96;font:600 10px var(--mac-ui);font-style:italic}
+.workspace-update-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+
 .identity-quem-slot{display:inline-flex;align-items:center;margin-left:14px}
 .identity-quem-slot:empty{display:none}
 /* Barra que fica no topo enquanto o portao esta aberto. Duas coisas atrapalham
@@ -2837,7 +2850,9 @@ button.cli-situacao:hover{filter:brightness(1.25)}
   box-shadow:0 26px 70px rgba(0,0,0,.6)}
 .cli-pergunta-caixa h3{margin:0;color:#f6f7fa;font:700 17px/1.3 var(--mac-ui);text-wrap:balance}
 .cli-pergunta-caixa p{margin:9px 0 0;color:#9da4b4;font:500 12.5px/1.55 var(--mac-ui)}
-.cli-pergunta-caixa input{width:100%;margin-top:14px;min-height:36px;padding:0 12px;border-radius:9px;
+.cli-pergunta-caixa textarea{padding:10px 12px!important;min-height:112px!important;resize:vertical;
+  line-height:1.55;font:500 13px var(--mac-ui)}
+.cli-pergunta-caixa input,.cli-pergunta-caixa textarea{width:100%;box-sizing:border-box;margin-top:14px;min-height:36px;padding:0 12px;border-radius:9px;
   border:1px solid var(--accent,#ff6b00);background:rgba(0,0,0,.3);color:#eef1f6;
   font:600 13px var(--mac-ui);outline:none}
 /* A arte dentro da pergunta: conferir e decidir no mesmo lugar. */

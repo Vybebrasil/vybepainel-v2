@@ -328,6 +328,91 @@ async function trocarResponsaveis(sql, quem, { item, pessoas }) {
 }
 
 // ── comentário ────────────────────────────────────────────────────────────────
+
+// Editar e apagar precisam saber QUEM escreveu. A coluna `autor` guarda o nome,
+// e nome nao autoriza nada: dois "Paulo" seriam a mesma pessoa. autor_id resolve.
+// A garantia mora aqui, na hora do uso: uma coluna nova lida onde ela ainda nao
+// existe ja derrubou este painel inteiro uma vez.
+let colunasDeUpdatePronta = false;
+async function garantirColunasDeUpdate(sql) {
+  if (colunasDeUpdatePronta) return;
+  await sql`ALTER TABLE vybe_conteudo_updates ADD COLUMN IF NOT EXISTS autor_id BIGINT`;
+  await sql`ALTER TABLE vybe_conteudo_updates ADD COLUMN IF NOT EXISTS editado_em TIMESTAMPTZ`;
+  colunasDeUpdatePronta = true;
+}
+
+// O que a pessoa escreveu ela pode corrigir e apagar. O que o sistema registrou
+// — troca de status, checklist, automacao — nao e recado: e a prova do que
+// aconteceu, e reescrever isso apagaria a unica resposta que o historico existe
+// para dar.
+//
+// A diferenca esta no separador, e ela e sutil de proposito porque foi assim que
+// o painel sempre escreveu: a nota que a PESSOA digita sai como "[Vybe OS] o
+// texto dela", e o registro do SISTEMA sai como "[Vybe OS · Checklist de
+// qualidade]". Casar so com "[Vybe OS" travaria justamente o que se quer editar.
+function eRegistroDoSistema(corpo, autor) {
+  const t = String(corpo || '');
+  if (/^\s*(<p>)?\s*\[Vybe OS\s*[\u00b7\u2022\u30fb-]/i.test(t)) return true;
+  // Sem prefixo, quem entrega o recado e o autor: automacao nao e gente.
+  return /^(automa|vybe os$|sistema$)/i.test(String(autor || '').trim());
+}
+
+// Dono do texto, ou quem administra o painel. Linhas antigas nao tem autor_id —
+// para elas sobra o nome, que e o que o banco tem.
+function podeMexerNoUpdate(linha, quem, pessoaId) {
+  if (quem?.pessoa?.admin) return true;
+  if (linha.autor_id != null) return Number(linha.autor_id) === Number(pessoaId);
+  const meu = String(quem?.pessoa?.nome || '').trim().toLowerCase();
+  return !!meu && meu === String(linha.autor || '').trim().toLowerCase();
+}
+
+async function acharUpdate(sql, { item, update }) {
+  const linhas = await sql`SELECT id, board_id, monday_item_id, titulo FROM vybe_conteudos
+    WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
+  if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
+  const c = linhas[0];
+  const us = await sql`SELECT id, corpo, autor, autor_id FROM vybe_conteudo_updates
+    WHERE id = ${Number(update)} AND conteudo_id = ${c.id}`;
+  if (!us.length) throw new Error('Esta atualização não existe mais.');
+  return { c, u: us[0] };
+}
+
+async function editarComentario(sql, quem, { item, update, texto }) {
+  if (!String(texto || '').trim()) throw new Error('Escreva algo antes de salvar.');
+  await garantirColunasDeUpdate(sql);
+  const { c, u } = await acharUpdate(sql, { item, update });
+  if (eRegistroDoSistema(u.corpo, u.autor)) {
+    throw new Error('Este é um registro automático do sistema e não pode ser editado.');
+  }
+  const pessoaId = await pessoaDaSessao(sql, quem);
+  if (!podeMexerNoUpdate(u, quem, pessoaId)) {
+    throw new Error('Só quem escreveu esta atualização pode editá-la.');
+  }
+  await sql`UPDATE vybe_conteudo_updates SET corpo = ${String(texto)}, editado_em = NOW()
+    WHERE id = ${Number(update)}`;
+  await registrarEvento(sql, c.id, { tipo: 'comentario_editado',
+    texto: String(texto).slice(0, 400), autorId: pessoaId });
+  return { conteudo_id: c.id, update: Number(update), titulo: c.titulo };
+}
+
+// Apagar apaga o texto, e deixa no histórico de eventos o registro de que ele
+// existiu e foi apagado. Some da leitura sem sumir da trilha.
+async function apagarComentario(sql, quem, { item, update }) {
+  await garantirColunasDeUpdate(sql);
+  const { c, u } = await acharUpdate(sql, { item, update });
+  if (eRegistroDoSistema(u.corpo, u.autor)) {
+    throw new Error('Este é um registro automático do sistema e não pode ser apagado.');
+  }
+  const pessoaId = await pessoaDaSessao(sql, quem);
+  if (!podeMexerNoUpdate(u, quem, pessoaId)) {
+    throw new Error('Só quem escreveu esta atualização pode apagá-la.');
+  }
+  await sql`DELETE FROM vybe_conteudo_updates WHERE id = ${Number(update)}`;
+  await registrarEvento(sql, c.id, { tipo: 'comentario_apagado',
+    texto: String(u.corpo || '').slice(0, 400), autorId: pessoaId });
+  return { conteudo_id: c.id, update: Number(update), titulo: c.titulo };
+}
+
 async function comentar(sql, quem, { item, texto }) {
   if (!String(texto || '').trim()) throw new Error('Escreva algo antes de enviar.');
   const linhas = await sql`SELECT id, board_id, monday_item_id, titulo FROM vybe_conteudos
@@ -337,8 +422,9 @@ async function comentar(sql, quem, { item, texto }) {
   const autorId = await pessoaDaSessao(sql, quem);
   const autor = quem?.pessoa?.nome || 'Vybe OS';
 
-  await sql`INSERT INTO vybe_conteudo_updates (conteudo_id, corpo, autor, criado_em)
-    VALUES (${c.id}, ${String(texto)}, ${autor}, NOW())`;
+  await garantirColunasDeUpdate(sql);
+  await sql`INSERT INTO vybe_conteudo_updates (conteudo_id, corpo, autor, autor_id, criado_em)
+    VALUES (${c.id}, ${String(texto)}, ${autor}, ${autorId}, NOW())`;
   await registrarEvento(sql, c.id, { tipo: 'comentario', texto: String(texto).slice(0, 400), autorId });
 
   const replica = await replicar(sql, 'comentario', `conteudo:${c.id}`,
@@ -772,6 +858,14 @@ export default async function handler(req, res) {
     }
     if (acao === 'comentario') {
       return res.status(200).json({ ok: true, acao, ...(await comentar(sql, quem, { item, texto: corpo.texto })) });
+    }
+    if (acao === 'comentario_editar') {
+      return res.status(200).json({ ok: true, acao,
+        ...(await editarComentario(sql, quem, { item, update: corpo.update, texto: corpo.texto })) });
+    }
+    if (acao === 'comentario_apagar') {
+      return res.status(200).json({ ok: true, acao,
+        ...(await apagarComentario(sql, quem, { item, update: corpo.update })) });
     }
     // Ler o arquivo e de todo mundo: quem arquivou por engano precisa achar a
     // peca sem depender de outra pessoa estar por perto.

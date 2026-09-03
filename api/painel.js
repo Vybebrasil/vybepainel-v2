@@ -294,15 +294,23 @@ async function areaPeca(req, res, quem) {
      WHERE (c.monday_item_id = ${item} OR c.id = ${itemLocalId}) AND c.removido_em IS NULL`)[0];
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
 
+  await garantirColunasDeUpdate(db);
+
   const [arquivos, updates, eventos, catCaptacao, catOpcoes] = await Promise.all([
     db`SELECT id, monday_asset_id, nome, extensao, tamanho_bytes, url_monday, url_publica,
               url_drive, drive_file_id, criado_em, previa_liberada_em
          FROM vybe_conteudo_arquivos
          WHERE conteudo_id = ${c.id} AND ausente_em IS NULL
          ORDER BY criado_em DESC NULLS LAST`,
-    db`SELECT monday_update_id, corpo, autor, criado_em
-         FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id}
-        ORDER BY criado_em DESC NULLS LAST LIMIT 12`,
+    // O id local vai junto: sem ele a tela mostra a atualizacao e nao tem como
+    // dizer QUAL corrigir ou apagar. autor_id e quem escreveu, para a tela so
+    // oferecer o botao a quem pode usar — o servidor confere de novo.
+    db`SELECT u.id, u.monday_update_id, u.corpo, u.autor, u.criado_em, u.editado_em,
+              p.monday_user_id AS autor_ref
+         FROM vybe_conteudo_updates u
+         LEFT JOIN vybe_pessoas p ON p.id = u.autor_id
+        WHERE u.conteudo_id = ${c.id}
+        ORDER BY u.criado_em DESC NULLS LAST LIMIT 12`,
     // QUEM fez a troca vai junto. O banco sempre soube (autor_id), mas a
     // resposta so mandava de/para/quando — entao a tela nao tinha como
     // devolver uma peca a quem a executou, que e a pergunta que ela mais faz.
@@ -433,7 +441,11 @@ async function areaPeca(req, res, quem) {
       }),
     }],
     updates: updates.map((u) => ({
+      // `id` continua sendo o do Monday: e o que o painel ja lia. O id do nosso
+      // banco vem ao lado, como campo proprio, para editar e apagar.
       id: u.monday_update_id, body: u.corpo,
+      update_id: String(u.id), autor_ref: u.autor_ref ? String(u.autor_ref) : '',
+      editado_em: u.editado_em || null,
       created_at: u.criado_em, creator: { name: u.autor || '' }, assets: [],
     })),
     // O Monday carimba atividade em microssegundos e o painel divide por 10.000.
@@ -875,6 +887,18 @@ function catalogoDeEtiquetas(coluna, board) {
 // ser mexido para reordenar. Ganham uma coluna propria, comecando pelo indice
 // para nada mudar de lugar no dia em que ela nasce.
 let colunasDeEtiquetaProntas = false;
+// As mesmas duas colunas garantidas em api/conteudo.js. Nao e duplicacao por
+// esquecimento: sao funcoes serverless separadas, cada uma com o proprio bundle,
+// e a garantia tem que existir em toda porta que le a coluna — foi ler coluna
+// nova onde ela ainda nao existia que derrubou o painel inteiro uma vez.
+let colunasDeUpdateProntas = false;
+async function garantirColunasDeUpdate(db) {
+  if (colunasDeUpdateProntas) return;
+  await db`ALTER TABLE vybe_conteudo_updates ADD COLUMN IF NOT EXISTS autor_id BIGINT`;
+  await db`ALTER TABLE vybe_conteudo_updates ADD COLUMN IF NOT EXISTS editado_em TIMESTAMPTZ`;
+  colunasDeUpdateProntas = true;
+}
+
 async function garantirColunasDeEtiqueta(db) {
   if (colunasDeEtiquetaProntas) return;
   await db`ALTER TABLE vybe_status   ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
