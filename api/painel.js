@@ -303,8 +303,13 @@ async function areaPeca(req, res, quem) {
     db`SELECT monday_update_id, corpo, autor, criado_em
          FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id}
         ORDER BY criado_em DESC NULLS LAST LIMIT 12`,
-    db`SELECT tipo, de, para, em FROM vybe_conteudo_eventos
-        WHERE conteudo_id = ${c.id} AND tipo = 'status' ORDER BY em DESC LIMIT 50`,
+    // QUEM fez a troca vai junto. O banco sempre soube (autor_id), mas a
+    // resposta so mandava de/para/quando — entao a tela nao tinha como
+    // devolver uma peca a quem a executou, que e a pergunta que ela mais faz.
+    db`SELECT e.tipo, e.de, e.para, e.em, p.nome AS autor, p.monday_user_id AS autor_id
+         FROM vybe_conteudo_eventos e
+         LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
+        WHERE e.conteudo_id = ${c.id} AND e.tipo = 'status' ORDER BY e.em DESC LIMIT 50`,
     // Os catálogos viajam junto: sem eles a tela não tem como oferecer as opções
     // de captação, tipo, prioridade e OFF sem uma segunda ida ao servidor.
     db`SELECT chave, rotulo, ativa FROM vybe_captacao ORDER BY monday_index`,
@@ -436,6 +441,9 @@ async function areaPeca(req, res, quem) {
       id: null, event: 'update_column_value',
       created_at: String(new Date(e.em).getTime() * 10000),
       data: JSON.stringify({ previous_value: { label: { text: e.de } }, value: { label: { text: e.para } } }),
+      // Campos proprios, ao lado do formato que imita o Monday: nada que ja
+      // lia esta resposta precisa saber deles para continuar funcionando.
+      autor: e.autor || '', autor_id: e.autor_id ? String(e.autor_id) : '',
     })),
   });
 }

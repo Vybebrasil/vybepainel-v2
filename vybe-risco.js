@@ -987,6 +987,56 @@ function statusContextIsCard(item){ return /card/i.test(String(daTacticalFormat(
 // Um <select> nao aceita imagem — entao deixa de ser select. Vira uma fileira de
 // fichas, e um campo escondido guarda o escolhido para quem le o formulario nao
 // precisar saber que a tela mudou.
+// QUEM EXECUTOU A PECA, SEGUNDO O HISTORICO.
+//
+// Paulo: "nao da pra puxar do historico? quem tinha colocado de pode fazer para
+// em andamento e depois colocou para aprovacao? pra quando voltar para
+// alteracao ja pre atribuir essa pessoa automatico". Da — o banco sempre soube
+// quem fez cada troca de status; a resposta e que nao mandava.
+//
+// Quem trabalhou na peca e quem a colocou EM EXECUCAO, ou quem a mandou para
+// aprovacao. Entre os dois vale o mais recente: e a ultima vez que alguem pos a
+// mao nela. Se ninguem aparecer, fica quem esta com a peca hoje.
+const ENTROU_EM_TRABALHO = /^(em andamento|em execu|para aprova|em aprova|aguardando aprova|ag\. aprova)/i;
+function quemExecutouSegundoOHistorico(detail) {
+  const eventos = Array.isArray(detail?.activity_logs) ? detail.activity_logs : [];
+  const acerto = eventos.find((e) => {
+    if (!e?.autor_id) return false;
+    let para = '';
+    try { para = JSON.parse(e.data || '{}')?.value?.label?.text || ''; } catch { return false; }
+    return ENTROU_EM_TRABALHO.test(String(para).trim());
+  });
+  if (!acerto) return null;
+  return (TEAM_USERS || []).find((u) => String(u.id) === String(acerto.autor_id))
+    || { id: acerto.autor_id, name: acerto.autor || 'Equipe' };
+}
+
+// Marcar depois que a caixa ja esta na tela: o historico chega do servidor e nao
+// pode segurar a abertura do portao.
+async function preAtribuirQuemExecutou(itemId) {
+  const campo = document.getElementById('status-context-next-owner');
+  if (!campo) return;
+  // So substitui enquanto ninguem tiver clicado: o valor ainda e o padrao.
+  const aindaNoPadrao = String(campo.value || '') === String(campo.dataset.padrao || '');
+  if (!aindaNoPadrao) return;
+  let detail = DETALHE_DA_GAVETA;
+  if (!detail || String(detail.id ?? '') !== String(itemId)) {
+    try { detail = await fetchWorkspaceItem(itemId); } catch { return; }
+  }
+  const quem = quemExecutouSegundoOHistorico(detail);
+  const vivo = document.getElementById('status-context-next-owner');
+  if (!quem || !vivo) return;
+  if (String(vivo.value || '') !== String(vivo.dataset.padrao || '')) return;
+  if (String(quem.id) === String(vivo.value || '')) return;
+  vivo.value = '';
+  document.querySelectorAll('#status-context-donos .dono-ficha').forEach(b => b.classList.remove('marcada'));
+  escolherResponsavelDoStatus(String(quem.id));
+  vivo.dataset.padrao = String(quem.id);
+  const ficha = document.querySelector(`#status-context-donos .dono-ficha[data-dono="${CSS.escape(String(quem.id))}"] small`);
+  if (ficha) ficha.textContent = 'Executou esta peça';
+  if (typeof updateStatusContextState === 'function') updateStatusContextState();
+}
+
 // QUEM ESTA EXECUTANDO VEM PRIMEIRO, E QUALQUER UM PODE SER ESCOLHIDO.
 //
 // A lista era filtrada pela disciplina elegivel para o status ATUAL da peca —
@@ -1039,21 +1089,28 @@ function statusContextResponsibleOptions(item){
       onclick="escolherResponsavelDoStatus('${safeText(id)}')" title="${safeText(user.name)} · ${safeText(papel)}">
       ${ownerAvatarHtml(user)}<span><b>${safeText(firstName(user.name))}</b><small>${safeText(papel)}</small></span></button>`;
   }).join('');
-  return `<input type="hidden" id="status-context-next-owner" value="${safeText(escolhido?String(escolhido.id):'')}">
+  // O dono atual entra como PADRAO, nao como escolha: o historico chega logo
+  // depois e pode ter uma resposta melhor — quem de fato executou a peca.
+  return `<input type="hidden" id="status-context-next-owner" value="${safeText(escolhido?String(escolhido.id):'')}" data-padrao="${safeText(escolhido?String(escolhido.id):'')}">
     <div class="dono-fichas" id="status-context-donos">${fichas
       || '<span class="workflow-hint">Nenhuma pessoa elegível para esta etapa.</span>'}</div>`;
 }
 
 // Uma pessoa por vez: clicar em outra troca. Clicar na marcada desmarca, porque
 // nem toda passagem de status tem um dono definido do outro lado.
+// Passar uma peca para DUAS pessoas era impossivel aqui: cada clique
+// substituia o anterior. A peca pode ter mais de um dono no resto do painel;
+// so este campo insistia em um.
 function escolherResponsavelDoStatus(id){
   const campo=document.getElementById('status-context-next-owner');
   if(!campo) return;
   const alvo=String(id);
-  const jaEra=String(campo.value||'')===alvo;
-  campo.value=jaEra?'':alvo;
+  const atuais=String(campo.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const jaEra=atuais.includes(alvo);
+  const depois=jaEra?atuais.filter(x=>x!==alvo):[...atuais,alvo];
+  campo.value=depois.join(',');
   document.querySelectorAll('#status-context-donos .dono-ficha').forEach(b=>{
-    b.classList.toggle('marcada', !jaEra && b.dataset.dono===alvo);
+    b.classList.toggle('marcada', depois.includes(String(b.dataset.dono||'')));
   });
 }
 // Todas as imagens da peça, não só a primeira: uma demanda com cinco artes
@@ -1148,7 +1205,11 @@ function trocarPreviaMaterial(indice){ const asset=PREVIA_MATERIAL[indice]; if(!
 async function loadStatusContextCardPreview(itemId){ const holder=document.getElementById('status-context-card-preview'); if(!holder) return; try{ const detail=await fetchWorkspaceItem(itemId); const asset=statusContextPreviewAsset(detail); if(!asset){ holder.innerHTML='<div class="status-context-preview-empty"><b>Sem arte disponível</b>Não há imagem anexada à demanda ou às atualizações carregadas. O briefing continua sendo a fonte de orientação até que uma prévia seja vinculada.</div>'; return; } const source=asset.public_url||asset.url_thumbnail||asset.url||''; if(!source){ holder.innerHTML='<div class="status-context-preview-empty"><b>Arquivo sem prévia</b>O item possui um arquivo, mas ele não disponibiliza imagem de visualização.</div>'; return; } holder.innerHTML=`<img src="${safeText(source)}" alt="Prévia de ${safeText(asset.name||'Card')}"><small class="status-context-preview-caption">${safeText(asset.name||'Prévia vinculada ao item')}</small>`; }catch(error){ holder.innerHTML='<div class="status-context-preview-empty"><b>Prévia indisponível</b>Não foi possível carregar os arquivos da demanda agora. O restante do fluxo permanece disponível.</div>'; } }
 function openStatusContextGate(item, option) {
   const rule=contextRuleFor(option); const requiresQuality=statusNeedsQuality(option); const requiresHandoff=statusNeedsHandoff(item,option); const checks=requiresQuality ? qualityChecklistFor(item) : []; const isCard=statusContextIsCard(item);
-  const requesterFields = rule.requester ? `<label class="workflow-field"><span>De quem veio ou depende esta decisão?</span><input id="status-context-requester" type="text" placeholder="Ex.: Cliente, Paulo, aprovação interna..."></label>` : '';
+  // Quem esta com o painel aberto e, quase sempre, quem esta pedindo a
+  // mudanca. O campo ja vem com o nome dele — continua editavel, para o caso
+  // de o pedido ter vindo do cliente ou de outra pessoa.
+  const euAgora = (typeof sessaoAtual === 'function' ? sessaoAtual()?.nome : '') || '';
+  const requesterFields = rule.requester ? `<label class="workflow-field"><span>De quem veio ou depende esta decisão?</span><input id="status-context-requester" type="text" value="${safeText(euAgora)}" placeholder="Ex.: Cliente, Paulo, aprovação interna..."></label>` : '';
   const sourceFields = rule.source ? `<label class="workflow-field"><span>Onde está a referência?</span><select id="status-context-source"><option value="WhatsApp">WhatsApp</option><option value="Monday">Monday.com</option><option value="Reunião">Reunião</option><option value="E-mail">E-mail</option><option value="Outro">Outro</option></select></label>` : '';
   const completedField = (rule.completed || requiresHandoff) ? `<label class="workflow-field"><span>O que foi concluído antes desta etapa?</span><textarea id="status-context-completed" rows="3" placeholder="Ex.: Versão final revisada, arquivo anexado e copy conferida."></textarea></label>` : '';
   const checklist = requiresQuality ? `<div class="workflow-checks"><span class="workflow-field"><span>Checklist de qualidade</span></span>${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" data-quality-check name="quality-${index}"><span>${safeText(check)}</span></label>`).join('')}</div>` : '';
@@ -1159,11 +1220,14 @@ function openStatusContextGate(item, option) {
   openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Contexto de status</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Antes de entrar em “${safeText(option.label)}”</h2><p class="workflow-copy">${safeText(rule.helper)}</p>${workflowItemHtml(item,option.label)}<div class="status-context-layout"><div class="status-context-main">${form}</div>${preview}</div><p class="workflow-hint">A Vybe OS registra este contexto e quem executará a próxima ação no histórico da peça, junto com a mudança de etapa.</p><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="status-context-submit" type="button" class="workflow-primary" onclick="submitStatusContext()">Registrar e atualizar →</button></div>`);
   if(isCard){ document.getElementById('workflow-modal')?.classList.add('status-context-split'); loadStatusContextCardPreview(item.id); }
   updateStatusContextState();
+  preAtribuirQuemExecutou(item.id);
 }
 async function submitStatusContext() {
-  const flow=pendingWorkflowChange; if(!flow) { showToast('O contexto desta mudança expirou. Feche e abra a alteração novamente.','err',7000); return; } const reason=String(document.getElementById('status-context-reason')?.value||'').trim(); const nextOwnerId=String(document.getElementById('status-context-next-owner')?.value||'').trim(); const nextOwner=[...(ownerEligibility(flow.item)?.users||[]),...(TEAM_USERS||[])].find(user=>String(user.id)===nextOwnerId)||null; const next=nextOwner?`${nextOwner.name} executará a próxima ação.`:''; const completed=String(document.getElementById('status-context-completed')?.value||'').trim(); const requester=String(document.getElementById('status-context-requester')?.value||'').trim(); const source=String(document.getElementById('status-context-source')?.value||'').trim(); const link=String(document.getElementById('status-context-link')?.value||'').trim(); const rule=contextRuleFor(flow.option);
+  const flow=pendingWorkflowChange; if(!flow) { showToast('O contexto desta mudança expirou. Feche e abra a alteração novamente.','err',7000); return; } const reason=String(document.getElementById('status-context-reason')?.value||'').trim(); const nextOwnerId=String(document.getElementById('status-context-next-owner')?.value||'').trim(); const nextOwners=String(nextOwnerId||'').split(',').map(x=>x.trim()).filter(Boolean)
+    .map(id=>(TEAM_USERS||[]).find(user=>String(user.id)===id)).filter(Boolean);
+  const nextOwner=nextOwners[0]||null; const next=nextOwner?`${nextOwner.name} executará a próxima ação.`:''; const completed=String(document.getElementById('status-context-completed')?.value||'').trim(); const requester=String(document.getElementById('status-context-requester')?.value||'').trim(); const source=String(document.getElementById('status-context-source')?.value||'').trim(); const link=String(document.getElementById('status-context-link')?.value||'').trim(); const rule=contextRuleFor(flow.option);
   if(!reason || !nextOwner) return showToast('Explique o motivo e selecione quem executará a próxima ação.','info'); if((rule.requester && !requester) || (rule.completed && !completed)) return showToast('Preencha os campos de contexto obrigatórios desta etapa.','info'); if(link && !/^https?:\/\//i.test(link)) return showToast('Use um link válido começando com https:// ou deixe o campo em branco.','info'); const quality=[...document.querySelectorAll('input[data-quality-check]')]; if(quality.some(check=>!check.checked)) return showToast('Conclua o checklist de qualidade para continuar.','info'); const button=document.getElementById('status-context-submit'); const idleLabel=button?.textContent||'REGISTRAR E ATUALIZAR →'; if(button){button.disabled=true;button.textContent='Registrando...';}
-  try { const qualityText=quality.length ? `\nChecklist de qualidade: ${quality.map(check=>check.parentElement.textContent.trim()).join(' | ')}` : ''; const body=`[Vybe OS · Contexto de status]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMotivo: ${reason}${completed ? `\nConcluído: ${completed}` : ''}${requester ? `\nSolicitante/Dependência: ${requester}` : ''}${source ? `\nOrigem: ${source}` : ''}\nResponsável pela próxima ação: ${nextOwner.name}${link ? `\nReferência: ${link}` : ''}${qualityText}`; await postItemUpdate(flow.item.id,body); [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(d=>{if(String(d.id)===String(flow.item.id)) d.status_context={target:flow.option.label,reason,next,requester,source,completed,link,next_owner_id:nextOwner.id,next_owner_name:nextOwner.name,created_at:new Date().toISOString()};})); const {item,option}=flow;
+  try { const qualityText=quality.length ? `\nChecklist de qualidade: ${quality.map(check=>check.parentElement.textContent.trim()).join(' | ')}` : ''; const body=`[Vybe OS · Contexto de status]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMotivo: ${reason}${completed ? `\nConcluído: ${completed}` : ''}${requester ? `\nSolicitante/Dependência: ${requester}` : ''}${source ? `\nOrigem: ${source}` : ''}\nResponsável pela próxima ação: ${nextOwners.map(u=>u.name).join(', ')}${link ? `\nReferência: ${link}` : ''}${qualityText}`; await postItemUpdate(flow.item.id,body); [DADOS,DADOS_ALL,DADOS_DEMANDAS].forEach(list=>(list||[]).forEach(d=>{if(String(d.id)===String(flow.item.id)) d.status_context={target:flow.option.label,reason,next,requester,source,completed,link,next_owner_id:nextOwner.id,next_owner_name:nextOwner.name,created_at:new Date().toISOString()};})); const {item,option}=flow;
     // O QUE SE ESCOLHE AQUI PASSA A ACONTECER.
     //
     // Ate aqui o responsavel e o grupo eram so texto no historico: a pessoa
@@ -1178,9 +1242,11 @@ async function submitStatusContext() {
       if (grupoEscolhido && grupoEscolhido !== String(item.group_id||'') && typeof gravarGrupoDaPeca === 'function') {
         await gravarGrupoDaPeca(item, grupoEscolhido);
       }
-      if (nextOwner?.id && !(donoAtual.length===1 && donoAtual[0]===String(nextOwner.id))
-          && typeof gravarResponsaveisDaPeca === 'function') {
-        await gravarResponsaveisDaPeca(item, [String(nextOwner.id)]);
+      const escolhidos=nextOwners.map(u=>String(u.id));
+      const mudouODono=escolhidos.length
+        && (escolhidos.length!==donoAtual.length || escolhidos.some(id=>!donoAtual.includes(id)));
+      if (mudouODono && typeof gravarResponsaveisDaPeca === 'function') {
+        await gravarResponsaveisDaPeca(item, escolhidos);
       }
       if (typeof renderOutboundItemPatch === 'function') renderOutboundItemPatch('contexto de status');
     } catch (erro) {
