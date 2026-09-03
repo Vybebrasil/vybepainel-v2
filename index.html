@@ -4839,10 +4839,30 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
    familia de quem esta aguardando aprovacao. */
 .focus-brief-btn.previa:hover{border-color:#579bfc!important;
   background:rgba(87,155,252,.16)!important;color:#dbe9ff!important}
-.previa-grande-trocar{margin-left:auto;margin-right:10px;padding:6px 12px;border:1px solid var(--vybe-line);
-  border-radius:9px;background:rgba(255,255,255,.06);color:#d5dbe6;font:600 11.5px var(--mac-ui);
-  cursor:pointer;white-space:nowrap}
-.previa-grande-trocar:hover{border-color:#3de8a2;background:rgba(61,232,162,.14);color:#c9ffe6}
+/* O topo da previa tem uma regra que vale para TODO botao dentro dele —
+   width:28px, height:28px, feita para o X de fechar. Meu botao de texto entrou
+   nela e foi espremido a 28px: o rotulo vazou da caixa e foi parar por cima do
+   X. Precisa de seletor mais forte que '.previa-grande-topo button', nao so de
+   uma classe. */
+.previa-grande-topo{gap:10px}
+/* DOIS X EMPILHADOS NO BOTAO DE FECHAR.
+   A familia de botoes de fechar desenha o X num ::before, e o .x-fechar zera a
+   fonte para esconder o caractere "✕" que fica no HTML. So que qualquer regra
+   do tipo '.pai button{font-size:...}' e mais especifica que '.x-fechar' e
+   devolve a fonte — entao aparecem os dois, o desenhado e o escrito.
+   Conferi: acontece em previa-grande-topo, meeting-head, da-approval-actions,
+   da-control-focus e cli-pergunta-acoes. Por isso o conserto e na regra que
+   tem essa unica funcao, e nao em cada pai. */
+.x-fechar{font-size:0!important}
+.previa-grande-topo > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.previa-grande-topo button.previa-grande-trocar{
+  flex:0 0 auto;width:auto!important;height:auto!important;
+  display:inline-flex;align-items:center;gap:7px;padding:7px 13px;
+  border:1px solid var(--vybe-line);border-radius:9px;background:rgba(255,255,255,.06);
+  color:#d5dbe6;font:600 11.5px var(--mac-ui);letter-spacing:0;cursor:pointer;white-space:nowrap}
+.previa-grande-topo button.previa-grande-trocar:hover{
+  border-color:#3de8a2;background:rgba(61,232,162,.14);color:#c9ffe6}
 
 </style></head>
 <body>
