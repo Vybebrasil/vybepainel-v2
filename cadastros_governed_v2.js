@@ -178,7 +178,7 @@
         transition:border-color .14s var(--curva); }
       .fc-busca { margin-bottom:11px; }
       .fc-campo-grande { font:700 22px var(--mac-ui,system-ui); padding:14px; }
-      .fc-campo-texto { min-height:130px; resize:vertical; font:500 14px/1.5 var(--mac-ui,system-ui); }
+      .fc-campo-texto { min-height:130px; resize:vertical; font:500 14px/1.65 var(--mac-ui,system-ui); }
       .fc-busca:focus, .fc-campo:focus, .fc-campo-grande:focus, .fc-campo-texto:focus {
         border-color:#00f0ff; outline:none; }
       .fc-dica { margin:11px 0 0; color:#7d8b96; font:500 12px var(--mac-ui,system-ui); }
@@ -200,7 +200,7 @@
       .fc-bloco-equipe { margin-top:20px; }
       .fc-bloco-equipe .fc-dica { margin:0 0 10px; }
 
-      .fc-itens { display:grid; gap:10px; max-height:min(46vh,380px); overflow-y:auto; padding:2px; }
+      .fc-itens { display:grid; gap:10px; max-height:min(58vh,520px); overflow-y:auto; padding:2px; }
       .fc-item { display:grid; gap:8px; padding:12px; border:1px solid rgba(255,255,255,.10);
         border-radius:12px; background:rgba(255,255,255,.02); }
       .fc-item:focus-within { border-color:rgba(0,240,255,.42); }
@@ -214,7 +214,28 @@
       .fc-item-datas label { flex:1 1 150px; }
       .fc-item-datas span { display:block; margin-bottom:4px; color:#7d8b96;
         font:600 10px var(--mac-ui,system-ui); text-transform:uppercase; letter-spacing:.05em; }
-      .fc-item .fc-campo-texto { min-height:70px; }
+      .fc-item .fc-campo-texto { min-height:132px; max-height:340px; line-height:1.65; padding:12px 13px; }
+
+      /* Arquivos de referencia: a area inteira do cartao aceita o arraste, e a
+         faixa abaixo do briefing e o alvo visivel para quem prefere clicar. */
+      .fc-item.arrastando { border-color:rgba(0,240,255,.6); background:rgba(0,240,255,.06); }
+      .fc-arqs { display:flex; align-items:center; gap:9px; width:100%; box-sizing:border-box;
+        border:1px dashed rgba(255,255,255,.18); border-radius:10px; padding:9px 12px;
+        background:rgba(255,255,255,.02); color:#7d8b96; cursor:pointer;
+        font:500 12px var(--mac-ui,system-ui); text-align:left;
+        transition:border-color .15s, color .15s, background .15s; }
+      .fc-arqs:hover { border-color:rgba(0,240,255,.45); color:#7fe8f5; background:rgba(0,240,255,.05); }
+      .fc-arqs b { font:700 14px var(--mac-ui,system-ui); color:#7fe8f5; }
+      .fc-arqs small { margin-left:auto; color:#5c6b76; font-size:11px; }
+      .fc-arq-lista { display:flex; flex-wrap:wrap; gap:6px; }
+      .fc-arq { display:inline-flex; align-items:center; gap:7px; max-width:100%;
+        background:rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.28); border-radius:999px;
+        padding:4px 5px 4px 11px; color:#cfeef5; font:500 12px var(--mac-ui,system-ui); }
+      .fc-arq span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:210px; }
+      .fc-arq small { color:#6f8590; font-size:10px; font-variant-numeric:tabular-nums; }
+      .fc-arq button { width:18px; height:18px; flex:none; border:0; border-radius:999px;
+        background:rgba(255,255,255,.1); color:#9fb4bf; cursor:pointer; font-size:12px; line-height:1; }
+      .fc-arq button:hover { background:rgba(255,92,124,.25); color:#fff; }
       .fc-itens-acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
       .fc-mais { border:1px dashed rgba(0,240,255,.34); border-radius:10px; padding:8px 12px;
         background:transparent; color:#7fd8e8; cursor:pointer; font:600 12px var(--mac-ui,system-ui);
@@ -601,6 +622,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      const total = state.itens.length;
      const feitos = [];
      const falhas = [];
+     const arquivosQueFalharam = [];
 
      // Um de cada vez, e nao todos de uma vez: o Monday limita chamadas por
      // minuto, e em lote um erro de rede levaria os cinco junto.
@@ -608,15 +630,44 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         if (btn) { btn.disabled = true; btn.textContent = total > 1 ? `Criando ${n + 1} de ${total}...` : 'Criando...'; }
         const r = await fcCriarUm(state.itens[n], dest, finalGroup, finalStatus, finalCap);
         (r.ok ? feitos : falhas).push(r);
+        // Arquivo so tem onde ser pendurado depois que a peca existe. Se o
+        // envio falhar a peca FICA: ela ja esta criada, e refazer o cadastro
+        // duplicaria o conteudo por causa de uma imagem.
+        if (r.ok && r.id) {
+          const refs = state.itens[n].arquivos || [];
+          for (let k = 0; k < refs.length; k += 1) {
+            if (btn) btn.textContent = `Enviando referência ${k + 1} de ${refs.length}...`;
+            try { await enviarArquivoDaPeca(r.id, refs[k]); }
+            catch (erro) { arquivosQueFalharam.push(`${refs[k].name}: ${erro.message}`); }
+          }
+        }
      }
 
      if (btn) { btn.disabled = false; btn.textContent = total > 1 ? `Criar ${total} conteúdos` : 'Criar conteúdo'; }
+
+     // O aviso de referencia que nao subiu NAO pode ser um toast: showToast usa
+     // um elemento so, e o "✓ conteudos criados" logo abaixo apagaria a unica
+     // frase que diz o que deu errado. A mesa de planejamento ja tinha passado
+     // por isto e resolveu com uma caixa que fica na tela e sai copiada.
+     const contarFalhaDeArquivo = () => {
+        if (!arquivosQueFalharam.length) return;
+        const texto = arquivosQueFalharam.join('\n');
+        if (typeof daPlanningContarFalhaDeEnvio === 'function') {
+           daPlanningContarFalhaDeEnvio(arquivosQueFalharam.length === 1
+              ? arquivosQueFalharam[0].split(':')[0]
+              : `${arquivosQueFalharam.length} referências`,
+              `O conteúdo foi criado. As referências abaixo não subiram — dá para anexar de novo pela peça.\n\n${texto}`);
+        } else if (typeof showToast === 'function') {
+           showToast(`Conteúdo criado, mas as referências não subiram: ${texto}`, 'err', 12000);
+        }
+     };
 
      if (!falhas.length) {
         if (typeof showToast === 'function') {
           showToast(total > 1 ? `✓ ${total} conteúdos criados` : '✓ Conteúdo criado', 'ok');
         }
         fcCloseModal();
+        contarFalhaDeArquivo();
         if (typeof refreshData === 'function') await refreshData();
         return;
      }
@@ -631,6 +682,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      if (typeof showToast === 'function') {
         showToast(`${feitos.length} de ${total} criados. Ficaram na lista os ${falhas.length} que falharam: ${falhas[0].erro}`, 'err', 10000);
      }
+     contarFalhaDeArquivo();
      if (feitos.length && typeof refreshData === 'function') await refreshData();
   };
 
@@ -735,7 +787,8 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     }
     if (p === 'itens') {
       const cartoes = state.itens.map((it, n) => `
-        <div class="fc-item">
+        <div class="fc-item" ondragover="fcArrastando(event,this,true)"
+             ondragleave="fcArrastando(event,this,false)" ondrop="fcSoltarArquivos(event,${n},this)">
           <div class="fc-item-topo">
             <b>${n + 1}</b>
             <span>${esc2(state.format || 'Formato')} - ${esc2(it.titulo || 'sem título')}</span>
@@ -757,7 +810,8 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
           </div>
           <textarea class="fc-campo-texto" data-item="${n}" data-campo="brief"
             placeholder="Briefing: objetivo, referência, contexto..."
-            oninput="fcItemCampo(${n},'brief',this.value)">${esc2(it.brief)}</textarea>
+            oninput="fcItemCampo(${n},'brief',this.value);fcCrescerTexto(this)">${esc2(it.brief)}</textarea>
+          ${fcArquivosHtml(n, it)}
         </div>`).join('');
       return `<div class="fc-itens">${cartoes}</div>
         <div class="fc-itens-acoes">
@@ -782,6 +836,99 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
       </div>`;
   }
 
+
+  // Referencias do conteudo. Os arquivos ficam guardados em memoria ate a peca
+  // existir: so depois de criada e que ela tem um id para pendurar arquivo, e o
+  // envio usa enviarArquivoDaPeca, o mesmo caminho da mesa de planejamento e da
+  // entrega rapida — nao ha um segundo jeito de subir arquivo neste painel.
+  function fcArquivosHtml(n, it) {
+    const lista = it.arquivos || [];
+    const chips = lista.map((f, i) => `
+      <span class="fc-arq"><span title="${esc(f.name)}">${esc(f.name)}</span>
+        <small>${fcTamanho(f.size)}</small>
+        <button type="button" title="Tirar este arquivo"
+          onclick="fcTirarArquivo(${n},${i})">×</button></span>`).join('');
+    return `<button type="button" class="fc-arqs" onclick="fcEscolherArquivos(${n})">
+        <b>+</b> ${lista.length ? 'Adicionar mais referências' : 'Arraste referências aqui ou clique para escolher'}
+        <small>PNG, JPG, WEBP ou PDF</small></button>
+      ${chips ? `<div class="fc-arq-lista">${chips}</div>` : ''}`;
+  }
+
+  function fcTamanho(bytes) {
+    const mb = Number(bytes || 0) / (1024 * 1024);
+    return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(Number(bytes || 0) / 1024))} KB`;
+  }
+
+  // As regras de tipo e tamanho sao as do envio (ARQUIVO_TIPOS, ARQUIVO_LIMITE).
+  // Barrar aqui evita descobrir que o PSD nao serve depois de a peca ja existir.
+  function fcArquivosAceitos(n, entrada) {
+    const it = state.itens[n];
+    if (!it) return;
+    const tipos = typeof ARQUIVO_TIPOS !== 'undefined'
+      ? ARQUIVO_TIPOS : ['image/png','image/jpeg','image/webp','application/pdf'];
+    const limite = typeof ARQUIVO_LIMITE !== 'undefined' ? ARQUIVO_LIMITE : 200 * 1024 * 1024;
+    const recusados = [];
+    const aceitos = [...entrada].filter((f) => {
+      if (!tipos.includes(f.type)) { recusados.push(`${f.name}: só PNG, JPG, WEBP ou PDF`); return false; }
+      if (f.size > limite) { recusados.push(`${f.name}: passa de 200 MB`); return false; }
+      return true;
+    });
+    if (!aceitos.length && !recusados.length) return;
+    it.arquivos = (it.arquivos || []).concat(aceitos);
+    fcDesenharPasso();
+    if (recusados.length && typeof showToast === 'function') {
+      showToast(recusados.join(' · '), 'err', 8000);
+    } else if (aceitos.length && typeof showToast === 'function') {
+      showToast(aceitos.length === 1
+        ? `${aceitos[0].name} vai junto com o conteúdo.`
+        : `${aceitos.length} referências vão junto com o conteúdo.`, 'ok');
+    }
+  }
+
+  window.fcEscolherArquivos = function(n) {
+    let input = document.getElementById('fc-arq-input');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'file'; input.multiple = true; input.hidden = true; input.id = 'fc-arq-input';
+      input.accept = 'image/png,image/jpeg,image/webp,application/pdf';
+      input.onchange = () => { fcArquivosAceitos(Number(input.dataset.item), input.files); input.value = ''; };
+      document.body.appendChild(input);
+    }
+    input.dataset.item = String(n);
+    input.value = '';
+    input.click();
+  };
+
+  // Sem o preventDefault no dragover o navegador ABRE o arquivo solto e o
+  // cadastro inteiro vai embora com o que ja estava preenchido.
+  window.fcArrastando = function(evento, caixa, entrando) {
+    evento.preventDefault();
+    if (caixa) caixa.classList.toggle('arrastando', !!entrando);
+  };
+
+  window.fcSoltarArquivos = function(evento, n, caixa) {
+    evento.preventDefault();
+    if (caixa) caixa.classList.remove('arrastando');
+    fcSincronizarDaTela();
+    fcArquivosAceitos(n, evento.dataTransfer?.files || []);
+  };
+
+  window.fcTirarArquivo = function(n, i) {
+    const it = state.itens[n];
+    if (!it || !it.arquivos) return;
+    fcSincronizarDaTela();
+    it.arquivos.splice(i, 1);
+    fcDesenharPasso();
+  };
+
+  // O briefing acompanha o que esta escrito em vez de esconder em tres linhas.
+  // O teto vem do CSS: passando dele o campo rola, e nao empurra o botao de
+  // criar para fora da tela.
+  window.fcCrescerTexto = function(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight + 2}px`;
+  };
 
   // Redesenhar o passo a cada tecla arrancaria o campo debaixo do dedo. Aqui so
   // guarda, preenche o prazo e atualiza a previa e o aviso.
@@ -852,7 +999,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     // A data segue a cadencia do que ja existe: sete dias depois da ultima.
     const ultima = [...state.itens].reverse().find((i) => i.veic)?.veic || '';
     state.itens.push({ titulo: '', veic: ultima ? getOffsetDate(ultima, 7) : '',
-                       prazo: ultima ? getOffsetDate(ultima, 0) : '', brief: '' });
+                       prazo: ultima ? getOffsetDate(ultima, 0) : '', brief: '', arquivos: [] });
     fcEspelharPrimeiro();
     fcDesenharPasso();
     // O titulo do novo cartao e onde a pessoa vai escrever agora.
@@ -947,6 +1094,9 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
 
 
     if (ultimo) { renderPersons(); renderCustomDropdownsGlobal(); }
+    // Briefing vindo do calendario sazonal ou de uma volta ao passo ja chega
+    // escrito: sem isto ele apareceria cortado na altura minima.
+    caixa.querySelectorAll('.fc-campo-texto').forEach((t) => fcCrescerTexto(t));
     updateDestinyUI();
     const foco = caixa.querySelector('#fc-busca-cliente, [data-campo="titulo"]');
     if (foco) foco.focus();
@@ -1100,6 +1250,25 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     overlay.id = 'fc-overlay';
     overlay.className = 'fc-overlay';
     overlay.onclick = e => { if(e.target === overlay) fcCloseModal(); };
+
+    // Errar o alvo por dois centimetros nao pode custar o cadastro inteiro: sem
+    // isto o navegador abre o arquivo solto e a janela vai embora com tudo que
+    // ja foi preenchido. Com um conteudo so na lista, o arquivo ainda vai para
+    // o lugar certo; com varios, avisa em qual cartao soltar.
+    overlay.ondragover = (e) => e.preventDefault();
+    overlay.ondrop = (e) => {
+      e.preventDefault();
+      if (e.target.closest?.('.fc-item')) return;
+      const temArquivo = (e.dataTransfer?.files || []).length > 0;
+      if (!temArquivo) return;
+      if (FC_PASSOS[fcPasso] === 'itens' && state.itens.length === 1) {
+        fcSoltarArquivos(e, 0, null);
+      } else if (typeof showToast === 'function') {
+        showToast(FC_PASSOS[fcPasso] === 'itens'
+          ? 'Solte o arquivo em cima do conteúdo a que ele pertence.'
+          : 'As referências entram no passo Conteúdos.', 'info', 6000);
+      }
+    };
 
     overlay.innerHTML = `
       <div class="fc-modal">
