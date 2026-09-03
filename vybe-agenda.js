@@ -1721,6 +1721,46 @@ function selecionarGrupo(groupId, marcar) {
 
 function limparSelecao() { SELECIONADAS.clear(); repintarOndeHaSelecao(); }
 
+// Esc limpa a selecao — mas so quando nao ha nada mais na frente para fechar.
+// Esc e a tecla de "sai disso": quem apertou com uma gaveta, um calendario ou
+// uma caixa de pergunta aberta quer fechar AQUILO, e nao perder nove marcadas
+// sem perceber.
+//
+// O teste e de VISIBILIDADE, e nao de existencia — metade destes elementos mora
+// no HTML o tempo todo e so fica escondida (a gaveta, a previa grande, que
+// fecha com display:none e nao sai do documento). Procurar so pelo seletor
+// bloquearia o Esc para sempre depois da primeira vez que a previa abrisse.
+const NA_FRENTE_DA_SELECAO = [
+  '#cli-pergunta', '#vybe-cal', '#previa-grande', '#cartao-rapido',
+  '#workspace-drawer', '#fc-overlay', '#sz-overlay', '#mode-gate',
+  '#production-sheet-overlay', '.da-planning-overlay', '.workflow-modal-overlay',
+  '#workflow-modal', '#focus-picker',
+];
+
+function haAlgoNaFrenteDaSelecao() {
+  return NA_FRENTE_DA_SELECAO.some((seletor) => {
+    const el = document.querySelector(seletor);
+    // getClientRects vazio quer dizer "nao esta desenhado" — cobre display:none,
+    // o pai escondido e o elemento de tamanho zero, sem eu ter que adivinhar
+    // qual classe cada tela usa para abrir.
+    return el && el.getClientRects().length > 0;
+  });
+}
+
+document.addEventListener('keydown', (evento) => {
+  if (evento.key !== 'Escape' || !SELECIONADAS.size) return;
+  // Digitando num campo, Esc e do campo: cancelar o que se escreve nao pode
+  // custar a selecao inteira.
+  const alvo = evento.target;
+  if (alvo && (/^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName) || alvo.isContentEditable)) return;
+  if (haAlgoNaFrenteDaSelecao()) return;
+  const quantas = SELECIONADAS.size;
+  limparSelecao();
+  if (typeof showToast === 'function') {
+    showToast(`Seleção limpa · ${quantas} ${quantas === 1 ? 'peça desmarcada' : 'peças desmarcadas'}`, 'info', 3000);
+  }
+});
+
 async function salvarDataNaLinha(itemId, campo, input) {
   const item = findOperationalItem(itemId);
   const valor = String(input.value || '');
