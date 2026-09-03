@@ -2133,26 +2133,55 @@ function briefingTituloLimpo(linha) {
 function briefingEmSecoes(texto) {
   const secoes = []; let atual = null;
   const abrir = titulo => { atual = { titulo, linhas: [] }; secoes.push(atual); return atual; };
-  // "Veiculação: 09/09 | Prazo: 07/09 | Formato: Carrossel" e uma linha so no
-  // texto e tres informacoes na cabeca de quem le. Separadas, elas viram tres
-  // pares e cabem no resumo do alto.
-  const linhas = String(texto).split('\n').flatMap(bruta => {
-    const limpa = bruta.trim().replace(/^#+\s*/, '');
+
+  // O TEXTO DA ARTE vem entre cercas (```), e cerca quer dizer "nao interprete
+  // o que esta aqui dentro". O leitor nao sabia disso: mostrava a cerca como se
+  // fosse conteudo — o time de design via um "```text" solto na tela — e ainda
+  // lia o que estava dentro como se fosse estrutura do briefing. Foi assim que
+  // "CHECKLIST PARA O / DIA DO ATENDIMENTO", que na arte sao duas linhas de um
+  // titulo so, viraram duas secoes, a primeira vazia.
+  //
+  // Dentro da cerca nada e titulo, nada e par rotulo/valor, nada e item de
+  // lista: e o texto que vai para a peca, com as quebras que ele tem.
+  const brutas = String(texto).split('\n');
+  let arte = null;
+  for (const bruta of brutas) {
+    const semEspaco = bruta.trim();
+
+    if (/^`{3,}/.test(semEspaco)) {
+      // Cerca sem par (briefing cortado no meio) fecha no fim do texto, la
+      // embaixo — melhor um bloco a mais do que engolir o resto do briefing.
+      if (arte) { arte = null; } else { if (!atual) abrir(''); arte = { tipo: 'arte', valor: '' }; atual.linhas.push(arte); }
+      continue;
+    }
+    if (arte) { arte.valor += (arte.valor ? '\n' : '') + bruta.replace(/\s+$/, ''); continue; }
+
+    if (!semEspaco) continue;
+    // "Veiculação: 09/09 | Prazo: 07/09 | Formato: Carrossel" e uma linha so no
+    // texto e tres informacoes na cabeca de quem le. Separadas, elas viram tres
+    // pares e cabem no resumo do alto.
+    const limpa = semEspaco.replace(/^#+\s*/, '');
     const partes = limpa.split(/\s+\|\s+/);
-    return partes.length > 1 && partes.every(parte => /^[^:]{2,42}:\s*\S/.test(parte)) ? partes : [limpa];
-  });
-  for (const bruta of linhas) {
-    const linha = bruta.trim();
-    if (!linha) continue;
-    if (briefingEhTitulo(linha)) { abrir(briefingTituloLimpo(linha)); continue; }
-    if (!atual) abrir('');
-    const marcador = /^[-–—•*]\s+/.test(linha);
-    const corpo = linha.replace(/^[-–—•*]\s+/, '');
-    const par = corpo.match(/^([^:]{2,42}):\s*(.*)$/);
-    if (par && !par[2]) atual.linhas.push({ tipo: 'subtitulo', rotulo: par[1].trim() });
-    else if (par) atual.linhas.push({ tipo: marcador ? 'item' : 'par', rotulo: par[1].trim(), valor: par[2].trim() });
-    else atual.linhas.push({ tipo: marcador ? 'item' : 'texto', valor: corpo });
+    const linhas = partes.length > 1 && partes.every(parte => /^[^:]{2,42}:\s*\S/.test(parte))
+      ? partes : [limpa];
+
+    for (const cru of linhas) {
+      const linha = cru.trim();
+      if (!linha) continue;
+      if (briefingEhTitulo(linha)) { abrir(briefingTituloLimpo(linha)); continue; }
+      if (!atual) abrir('');
+      const marcador = /^[-–—•*]\s+/.test(linha);
+      const corpo = linha.replace(/^[-–—•*]\s+/, '');
+      const par = corpo.match(/^([^:]{2,42}):\s*(.*)$/);
+      if (par && !par[2]) atual.linhas.push({ tipo: 'subtitulo', rotulo: par[1].trim() });
+      else if (par) atual.linhas.push({ tipo: marcador ? 'item' : 'par', rotulo: par[1].trim(), valor: par[2].trim() });
+      else atual.linhas.push({ tipo: marcador ? 'item' : 'texto', valor: corpo });
+    }
   }
+
+  // Bloco de arte que ficou vazio (duas cercas seguidas) nao vira caixa vazia.
+  secoes.forEach(secao => { secao.linhas = secao.linhas.filter(l => l.tipo !== 'arte' || String(l.valor).trim()); });
+  secoes.forEach(secao => { secao.linhas.forEach(l => { if (l.tipo === 'arte') l.valor = String(l.valor).replace(/^\n+|\n+$/g, ''); }); });
   return secoes.filter(secao => secao.titulo || secao.linhas.length);
 }
 
@@ -2200,17 +2229,28 @@ function blocoDoBriefingHtml(detail, item) {
 }
 
 function briefingLinhaHtml(linha) {
+  if (linha.tipo === 'arte') {
+    return `<div class="brief-arte"><span class="brief-arte-selo">texto da arte</span>
+      <pre>${safeText(linha.valor)}</pre></div>`;
+  }
   if (linha.tipo === 'subtitulo') return `<div class="brief-subtitulo">${safeText(linha.rotulo)}</div>`;
   if (linha.tipo === 'par') return `<div class="brief-par"><span>${safeText(linha.rotulo)}</span><p>${safeText(linha.valor)}</p></div>`;
   if (linha.tipo === 'item') return `<div class="brief-item">${linha.rotulo ? `<b>${safeText(linha.rotulo)}</b> ` : ''}${safeText(linha.valor || '')}</div>`;
   return `<p class="brief-texto">${safeText(linha.valor || '')}</p>`;
 }
 function briefingSecaoTexto(secao) {
-  return [secao.titulo, ...secao.linhas.map(l => l.tipo === 'subtitulo' ? `${l.rotulo}:`
+  // O texto da arte sai como esta: quem copia vai colar na peca, e a quebra de
+  // linha dele e parte do que foi escrito.
+  return [secao.titulo, ...secao.linhas.map(l => l.tipo === 'arte' ? String(l.valor || '')
+    : l.tipo === 'subtitulo' ? `${l.rotulo}:`
     : l.rotulo ? `${l.rotulo}: ${l.valor}` : String(l.valor || ''))].filter(Boolean).join('\n');
 }
 function briefingSecaoHtml(secao, indice) {
-  return `<article class="brief-secao">
+  // Quando a secao ja se chama "TEXTO DA ARTE", o selo dentro do bloco repete o
+  // titulo logo acima dele. O selo existe para o bloco que aparece no meio de
+  // outra secao, onde ninguem diria de onde ele saiu.
+  const dizSozinha = /\bARTE\b/i.test(String(secao.titulo || ''));
+  return `<article class="brief-secao${dizSozinha ? ' brief-secao-arte' : ''}">
     <div class="brief-secao-topo"><h3>${safeText(secao.titulo || 'Abertura')}</h3>
       <button type="button" class="brief-copiar" onclick="copiarParteDoBriefing(${indice})">Copiar</button></div>
     <div class="brief-secao-corpo">${secao.linhas.map(briefingLinhaHtml).join('')}</div>

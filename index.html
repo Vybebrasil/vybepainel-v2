@@ -2029,6 +2029,18 @@ header,.topbar{
   background:rgba(9,7,5,.94);backdrop-filter:blur(16px) saturate(1.1);
   border-bottom:1px solid rgba(255,190,112,.15)}
 .mode-gate.open{align-items:flex-start}
+/* O TEXTO DA ARTE e literal: e o que vai ser escrito na peca. Por isso ele nao
+   se parece com o resto do briefing — tem selo, moldura e as quebras de linha
+   que quem escreveu decidiu. */
+.brief-arte{position:relative;margin:10px 0;padding:26px 15px 14px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.26)}
+.brief-arte-selo{position:absolute;top:8px;left:14px;color:#7d8b96;
+  font:700 9px var(--mac-mono,monospace);letter-spacing:1.1px;text-transform:uppercase}
+.brief-arte pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;
+  color:#e8f2f6;font:500 13.5px/1.62 var(--mac-ui,system-ui)}
+.brief-secao-arte .brief-arte{padding-top:14px}
+.brief-secao-arte .brief-arte-selo{display:none}
+
 /* ── A BARRA DO PORTAO ─────────────────────────────────────────────────────
    Um ritmo so para a barra inteira: TODO grupo e um bloco de duas linhas — o
    valor em cima, o contexto embaixo. Hora/data, numero/rotulo, grau/cidade. E
