@@ -230,7 +230,7 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <div class="focus-task-title"><div class="focus-task-client">${safeText(d.cliente)}</div><div class="focus-task-name"><button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button>${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
 
@@ -1847,8 +1847,18 @@ function briefingSecaoHtml(secao, indice) {
   </article>`;
 }
 
-function abrirBriefing(itemId) {
-  const detail = DETALHE_DA_GAVETA;
+// Chamado de dois lugares: de dentro da gaveta, que ja tem o contexto na mao, e
+// da linha da fila, que nao tem nada. Quem executa nao devia precisar abrir a
+// peca inteira para ler o briefing dela — entao aqui ele busca quando falta.
+async function abrirBriefing(itemId, gatilho) {
+  let detail = DETALHE_DA_GAVETA;
+  const jaEDesta = detail && String(detail.id ?? '') === String(itemId);
+  if (!jaEDesta) {
+    if (gatilho) { gatilho.disabled = true; gatilho.classList.add('carregando'); }
+    try { detail = await fetchWorkspaceItem(itemId); }
+    catch (erro) { showToast(`Não foi possível abrir o briefing: ${erro.message}`, 'err', 7000); return; }
+    finally { if (gatilho) { gatilho.disabled = false; gatilho.classList.remove('carregando'); } }
+  }
   const item = findOperationalItem(itemId)
     || (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []).find(d => String(d.id) === String(itemId))
     || { id: itemId, nome: detail?.name || 'Atividade', cliente: '' };

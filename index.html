@@ -4605,6 +4605,30 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .da-tactical-meta-item:first-child{border-left:0!important}
 .da-tactical-meta-item b{font-variant-numeric:tabular-nums}
 
+/* ─── O NOME DO CLIENTE ──────────────────────────────────────────────────────
+   Ele saia em quatro regras empilhadas: 10,5px, em CAIXA ALTA, com opacidade
+   .85 — e mais um .72 nas linhas que nao sao a primeira, o que dava uns 61% no
+   fim. Cinza claro sobre fundo escuro, em caixa alta, num nome proprio com
+   acento: "JOÃO BACELAR" e mais dificil de ler do que "João Bacelar", e era a
+   informacao que dizia PARA QUEM a peca e.
+
+   Caixa alta sai, tamanho e contraste sobem, e a opacidade deixa de se
+   multiplicar. Continua secundario ao nome da peca — so que legivel. */
+.focus-task-client{font:600 12px var(--mac-ui)!important;letter-spacing:0!important;
+  text-transform:none!important;opacity:1!important;color:#a9b3c4!important}
+.focus-task:not(.primeira) .focus-task-client{opacity:1!important}
+.focus-task-title{display:grid;gap:3px}
+
+/* Ler o briefing sem abrir a peca: quem executa quer o roteiro, nao a ficha. */
+.focus-brief-btn{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+  padding:6px 10px;border:1px solid var(--vybe-line);border-radius:9px;
+  background:rgba(255,255,255,.04);color:#cdd5e2;font:600 11.5px var(--mac-ui);
+  cursor:pointer;white-space:nowrap;transition:.14s var(--curva,ease)}
+.focus-brief-btn:hover{border-color:var(--vybe-orange,#ff9d00);background:rgba(255,157,0,.12);color:#fff}
+.focus-brief-btn:focus-visible{outline:2px solid var(--vybe-orange,#ff9d00);outline-offset:2px}
+.focus-brief-btn.carregando{opacity:.55;cursor:progress}
+@media(max-width:1180px){.focus-brief-btn span{display:none}.focus-brief-btn{padding:6px 8px}}
+
 </style></head>
 <body>
 
