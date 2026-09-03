@@ -525,6 +525,38 @@ function setDaControllerPeriod(period) { daControllerPeriod=period; daController
 function setDaControllerDateMode(mode) { if(daControllerDateMode===mode) return; daControllerDateMode=mode; daControllerDayFocusIso=''; renderDaController(); }
 function closeDaMemberWorkload(){ const overlay=document.getElementById('da-member-workload-overlay'); if(!overlay) return; overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),180); }
 function openDaMemberWorkload(){ const range=daControllerPeriodRange(); const user=daControllerTeam().find(entry=>entry.id===daControllerPersonId); if(!user) return; const items=daControllerItemsFor(user.id).filter(item=>daControllerInPeriod(item,range)); closeDaMemberWorkload(); const overlay=document.createElement('div'); overlay.id='da-member-workload-overlay'; overlay.className='da-member-workload-overlay'; overlay.onclick=event=>{if(event.target===overlay) closeDaMemberWorkload();}; overlay.innerHTML=`<section class="da-member-workload-modal" role="dialog" aria-modal="true" aria-label="Carga de ${safeText(user.name)}"><div class="da-member-workload-modal-head"><div><b>PRODUÇÃO DE ${safeText(user.name).toUpperCase()} · ${items.filter(item=>!isFinishedItem(item)).length} ENTREGAS</b><small>${safeText(daControllerPeriod==='month'?'Mês completo':daControllerPeriod==='week'?'Semana selecionada':'Dia selecionado')} · clique em uma demanda para abrir o contexto</small></div><button type="button" class="da-member-workload-close" onclick="closeDaMemberWorkload()" aria-label="Fechar carga individual">×</button></div><div class="da-member-workload-scroll">${daMemberProductionHtml(user,items)}</div></section>`; document.body.appendChild(overlay); requestAnimationFrame(()=>overlay.classList.add('open')); }
+// VOLTAR PARA ONDE SE ESTAVA, E NAO PARA O COMECO.
+//
+// Abrir uma demanda fecha a mesa de planejamento — as duas nao convivem, a mesa
+// cobre a tela inteira e a gaveta abriria atras dela. So que fechar a demanda
+// nao devolvia a mesa: a pessoa caia no topo da pagina do DA e tinha de reabrir
+// a mesa e rolar de novo ate onde estava, a cada peca conferida.
+//
+// Guardar quem estava na mesa e a que altura ela estava rolada, e devolver as
+// duas coisas no fechamento. A rolagem interna a mesa ja sabe preservar quando
+// se redesenha; o que faltava era atravessar a ida e volta da gaveta.
+let MESA_A_RETOMAR = null;
+function guardarMesaParaRetomar() {
+  const overlay = document.getElementById('da-individual-planning-overlay');
+  if (!overlay) { MESA_A_RETOMAR = null; return; }
+  MESA_A_RETOMAR = {
+    pessoas: [...DA_PLANNING_PESSOAS],
+    rolagem: overlay.querySelector('.da-planning-list')?.scrollTop || 0,
+  };
+  closeDaIndividualPlanningDesk();
+}
+function retomarMesaSeHavia() {
+  const guardada = MESA_A_RETOMAR;
+  MESA_A_RETOMAR = null;
+  if (!guardada?.pessoas?.length) return;
+  if (typeof openDaIndividualPlanningDesk !== 'function') return;
+  DA_PLANNING_PESSOAS = new Set(guardada.pessoas);
+  openDaIndividualPlanningDesk(guardada.pessoas[0]);
+  const lista = document.getElementById('da-individual-planning-overlay')
+    ?.querySelector('.da-planning-list');
+  if (lista) lista.scrollTop = guardada.rolagem;
+}
+
 function closeDaIndividualPlanningDesk(){ const overlay=document.getElementById('da-individual-planning-overlay'); if(!overlay) return; overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),180); }
 let DA_PLANNING_SELECTED_IDS=new Set(); let DA_PLANNING_SELECTION_ANCHOR_ID=''; let DA_PLANNING_ACTIVE_USER='';
 let DA_PLANNING_FILTER='all'; let DA_PLANNING_SORT='veiculacao'; let DA_PLANNING_SORT_DESC=false;

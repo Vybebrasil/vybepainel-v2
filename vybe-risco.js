@@ -1060,6 +1060,8 @@ function closeItemWorkspace() {
   activeWorkspaceItemId = '';
   activeWorkspaceAssets = [];
   if (typeof DETALHE_DA_GAVETA !== 'undefined') DETALHE_DA_GAVETA = null;
+  // Quem veio da mesa de planejamento volta para ela, onde estava.
+  if (typeof retomarMesaSeHavia === 'function') retomarMesaSeHavia();
 }
 async function fetchWorkspaceItem(itemId) {
   const r = await fetch(`/api/painel?area=peca&item=${encodeURIComponent(itemId)}`, { credentials:'same-origin', cache:'no-store' });
@@ -1960,7 +1962,10 @@ async function openItemWorkspace(itemId) {
   // A gaveta e a mesa de planejamento nao convivem: a mesa cobre a tela inteira
   // e a gaveta abriria atras dela, invisivel. Quem pede o contexto completo esta
   // saindo da mesa — entao a mesa sai junto, venha o pedido de onde vier.
-  if (typeof closeDaIndividualPlanningDesk === 'function'
+  // A mesa sai da frente, mas fica guardada: ao fechar esta gaveta ela volta
+  // com as mesmas pessoas e na mesma altura de rolagem.
+  if (typeof guardarMesaParaRetomar === 'function') guardarMesaParaRetomar();
+  else if (typeof closeDaIndividualPlanningDesk === 'function'
       && document.getElementById('da-individual-planning-overlay')) closeDaIndividualPlanningDesk();
   let item = findOperationalItem(itemId);
   activeWorkspaceItemId = String(itemId);
@@ -1984,7 +1989,10 @@ async function openDemandaWorkspace(itemId) {
   // da mesa, que cobre a tela inteira: clicar em "Abrir tudo" numa SOLICITACAO
   // parecia nao fazer nada. O conteudo fechava a mesa e a solicitacao nao; duas
   // portas para a mesma sala, so uma sabia disso.
-  if (typeof closeDaIndividualPlanningDesk === 'function'
+  // A mesa sai da frente, mas fica guardada: ao fechar esta gaveta ela volta
+  // com as mesmas pessoas e na mesma altura de rolagem.
+  if (typeof guardarMesaParaRetomar === 'function') guardarMesaParaRetomar();
+  else if (typeof closeDaIndividualPlanningDesk === 'function'
       && document.getElementById('da-individual-planning-overlay')) closeDaIndividualPlanningDesk();
   const item = (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []).find(d => String(d.id) === String(itemId));
   if (!item) return showToast('Solicitação não encontrada no contexto atual.', 'err');
