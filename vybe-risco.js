@@ -683,6 +683,34 @@ function openManualHandoff(itemId) { const item=findOperationalItem(itemId); if 
 
 const outboundItemPatchQueue = new Map();
 function outboundPatchFields(patch={}) { return Object.entries(patch).filter(([,value])=>value!==undefined && value!==null); }
+// O vermelho da data sai de item.prazo_atrasado, que era calculado UMA vez, na
+// leitura dos dados, e nunca mais. Mudar o prazo de 31/08 para 06/09 gravava a
+// data nova e deixava o atraso antigo: a peca ficava vermelha com prazo no
+// futuro. Vale para o caminho contrario tambem — finalizar uma peca vencida
+// tinha de tirar o vermelho, e nao tirava.
+//
+// Aqui e o funil por onde toda mudanca de peca passa, entao e aqui que a conta
+// se refaz, e nao em cada tela que mostra data.
+// "Hoje" aqui NAO pode ser o HOJE_ISO: ele vem do META, o META vem do cache, e
+// um painel aberto desde ontem carrega a data de ontem — o cabecalho do Paulo
+// mostrava "Hoje: 22/08" com o relogio em 03/09. Para responder "esse prazo
+// venceu?" a verdade e o relogio.
+//
+// E a data sai dos campos locais, nao de toISOString: em Irece (UTC-3) o
+// toISOString depois das 21h ja devolve o dia seguinte, e uma peca que vence
+// hoje apareceria vencida a noite.
+function hojeDeVerdade() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function recalcularAtrasoDoItem(item) {
+  const hoje = hojeDeVerdade();
+  const prazo = String(item?.prazo_iso || '');
+  const fechada = typeof isFinishedItem === 'function' ? isFinishedItem(item) : false;
+  item.prazo_atrasado = !!(prazo && prazo < hoje && !fechada);
+}
+
 function applyOutboundItemPatch(itemId, patch={}, label='alteração', options={}) {
   const renderizar=options?.render!==false;
   if (patch.status && !patch.status_updated_at) patch.status_updated_at = new Date().toISOString(); const key=String(itemId); const now=new Date().toISOString(); const fields=outboundPatchFields(patch);
@@ -692,6 +720,7 @@ function applyOutboundItemPatch(itemId, patch={}, label='alteração', options={
     if(patch.prazo_iso) item.prazo=planningDateBr(patch.prazo_iso);
     if(patch.veiculacao_iso) item.veiculacao=planningDateBr(patch.veiculacao_iso);
     item.updated_at=now;
+    recalcularAtrasoDoItem(item);
     item.operational_risk=getOperationalRisk(item);
   }));
   // Em lote, guardar o cache a cada peca serializa a base inteira no navegador

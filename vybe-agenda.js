@@ -661,7 +661,9 @@ async function moverDataDoItem(item, campo, dateIso, { request = false, renderiz
       else { registro.conclusao_iso = dateIso; registro.conclusao = curto(dateIso);
              registro.veiculacao_iso = dateIso; registro.veiculacao = curto(dateIso); }
       registro.updated_at = new Date().toISOString();
+      if (typeof recalcularAtrasoDoItem === 'function') recalcularAtrasoDoItem(registro);
     });
+    if (typeof recalcularAtrasoDoItem === 'function') recalcularAtrasoDoItem(item);
     outboundMutationGuardUntil = 0;
     if (renderizar) renderIntegratedOperationalViews();
   } else {
