@@ -2176,49 +2176,45 @@ header,.topbar{
   border-bottom:1px solid rgba(255,190,112,.11)!important;
   box-shadow:inset 0 1px 0 rgba(255,228,196,.1), 0 14px 38px -20px rgba(0,0,0,.95)!important}
 
-/* O relogio e a ancora: o maior, o mais claro, o unico com peso alto. */
-.topo-agora{display:flex;flex-direction:column;align-items:flex-start;gap:4px;flex:0 0 auto}
-.topo-relogio{position:relative;padding-bottom:5px}
+/* O relogio e a ancora da esquerda: o maior, o mais claro, o unico com peso
+   alto. Tinha um fio laranja embaixo marcando os segundos — decoracao se
+   passando por informacao, e que de longe parecia sublinhado defeituoso. */
+.topo-agora{display:flex;flex-direction:column;align-items:flex-start;gap:3px;flex:0 0 auto}
 .topo-agora b{display:block;color:#fff;font:600 22px/1 var(--mac-ui);letter-spacing:-1px;
   font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-/* Os segundos nao viram numero: viram um fio que atravessa o minuto. Um relogio
-   parado e um relogio quebrado; tres digitos piscando sao barulho. */
-.topo-relogio i{position:absolute;left:0;bottom:0;height:2px;width:100%;border-radius:2px;
-  background:linear-gradient(90deg,#ff9d00,rgba(255,205,120,.28));
-  transform-origin:left center;animation:topo-minuto 60s linear infinite}
-@keyframes topo-minuto{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .topo-agora>span{color:#a08a72;font:500 11px var(--mac-ui);letter-spacing:.1px;
   text-transform:none;white-space:nowrap}
 
-/* Um controle so, dividido por fios — nao tres caixas. */
-.topo-kpis{display:flex;align-items:stretch;margin:0 auto;min-width:0;
-  border:1px solid rgba(255,228,196,.1);border-radius:14px;overflow:hidden;
-  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.018));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 22px -14px rgba(0,0,0,.9)}
-.topo-kpi{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  flex:0 0 auto;border:0;border-radius:0;background:none;padding:6px 19px;cursor:pointer;
-  transition:background .2s cubic-bezier(.32,.72,0,1)}
-.topo-kpi+.topo-kpi{box-shadow:inset 1px 0 0 rgba(255,228,196,.09)}
-.topo-kpi:hover{background:rgba(255,255,255,.07)}
-.topo-kpi:active{background:rgba(255,255,255,.11)}
-.topo-kpi b{color:#fff6ec;font:600 18px/1 var(--mac-ui);letter-spacing:-.7px;
+/* A FILA — o centro da barra, e a unica coisa nela que pede acao.
+   Antes eram tres pilulas com tres numeros do mesmo tamanho: "76 na minha
+   fila", "1 para hoje", "67 atrasadas". Tres numeros iguais escondem qual
+   deles importa. Com 67 de 76 vencidas so existe uma frase a dizer — e uma
+   medida embaixo dela, do mesmo tipo que os cartoes de operador usam.
+   Sem caixa em volta: a medida ja e o contorno. */
+.topo-fila{display:flex;flex-direction:column;align-items:center;gap:7px;
+  margin:0 auto;min-width:0;border:0;background:none;cursor:pointer;
+  padding:5px 16px 6px;border-radius:13px;transition:background .2s}
+.topo-fila:hover{background:rgba(255,255,255,.055)}
+.topo-fila:focus-visible{outline:2px solid rgba(255,190,112,.9);outline-offset:2px}
+.topo-fila-frase{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.topo-fila-frase b{color:#fff6ec;font:600 21px/1 var(--mac-ui);letter-spacing:-1px;
   font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-.topo-kpi span{color:#9b8570;font:500 10.5px var(--mac-ui);letter-spacing:.1px;
-  text-transform:none;white-space:nowrap}
-.topo-kpi.atencao b{color:#ffc978}
-/* O UNICO lugar com cor forte. A celula acende por dentro do controle, em vez
-   de virar uma caixa vermelha ao lado dele. */
-.topo-kpi.critico{background:linear-gradient(180deg,rgba(255,86,110,.2),rgba(255,86,110,.09))}
-.topo-kpi.critico:hover{background:linear-gradient(180deg,rgba(255,86,110,.28),rgba(255,86,110,.14))}
-.topo-kpi.critico b{color:#ff8a9e;text-shadow:0 0 18px rgba(255,86,110,.5)}
-.topo-kpi.critico span{color:#d9929d}
-/* O numero que mudou da uma batida — e o que faz alguem olhar de novo para um
-   numero que subiu enquanto a tela estava aberta. */
-.topo-kpi.mudou b{animation:topo-batida .5s cubic-bezier(.32,.72,0,1)}
+.topo-fila-frase>span{color:#9b8570;font:500 11.5px var(--mac-ui);letter-spacing:.1px;
+  text-transform:none}
+/* A medida: trilho inteiro visivel, parte cheia do tamanho do atraso. Sem o
+   trilho seria um toco, e toco parece defeito e nao medida. */
+.topo-fila-medida{width:100%;min-width:190px;height:3px;border-radius:999px;
+  background:rgba(255,255,255,.09);overflow:hidden}
+.topo-fila-medida i{display:block;height:100%;width:0;border-radius:999px;
+  background:linear-gradient(90deg,#ff5c6e,#ff8a9e);box-shadow:0 0 12px -2px #ff5c6e;
+  transition:width .6s cubic-bezier(.32,.72,0,1)}
+/* Cor so quando ha atraso. Fila em dia nao e motivo de alarme. */
+.topo-fila.em-atraso .topo-fila-frase b{color:#ff8a9e;text-shadow:0 0 20px rgba(255,86,110,.45)}
+.topo-fila.mudou .topo-fila-frase b{animation:topo-batida .5s cubic-bezier(.32,.72,0,1)}
 @keyframes topo-batida{0%{transform:translateY(6px) scale(.88);opacity:0}
   60%{transform:translateY(-1px) scale(1.05);opacity:1}100%{transform:none}}
-.topo-kpi-vazio{color:#6f5946;font:500 11px var(--mac-ui);letter-spacing:0;text-transform:none;
-  padding:9px 18px;white-space:nowrap}
+.topo-fila-vazio{color:#6f5946;font:500 11px var(--mac-ui);letter-spacing:0;
+  text-transform:none;white-space:nowrap}
 
 .topo-clima{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;
   align-items:center;column-gap:9px;row-gap:2px;flex:0 0 auto;border:0;background:none;
@@ -2247,13 +2243,16 @@ header,.topbar{
 
 /* Numa tela estreita some primeiro o que e contexto, nunca a fila: a data,
    depois a descricao do tempo, depois o tempo inteiro. Os numeros ficam. */
-@media(max-width:900px){.topo-agora>span{display:none}.topo-relogio{padding-bottom:6px}}
+
 @media(max-width:980px){.topo-clima-onde{display:none}.topo-clima{grid-template-rows:auto}}
-@media(max-width:820px){.topo-clima{display:none}.topo-kpis{margin-left:auto;margin-right:12px}
-  .topo-kpi{padding:6px 13px}}
+@media(max-width:900px){.topo-agora>span{display:none}}
+@media(max-width:820px){.topo-clima{display:none}.topo-fila{margin-left:auto;margin-right:10px;padding:4px 10px}
+  .topo-fila-medida{min-width:130px}}
 @media(prefers-reduced-motion:reduce){
-  .topo-relogio i{animation:none;transform:scaleX(1);opacity:.35}
-  .topo-kpi,.topo-kpi.mudou b{transition:none;animation:none}}
+  .topo-fila,.topo-fila-medida i{transition:none}
+  .topo-fila.mudou .topo-fila-frase b{animation:none}}
+
+
 .identity-topline .quem-sou-nome{max-width:170px}
 .identity-topline .quem-sou-btn{padding:3px 10px 3px 4px}
 .identity-topline .quem-sou-menu{top:calc(100% + 8px);bottom:auto}
@@ -5173,11 +5172,8 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
   <div class="identity-shell">
     <div class="identity-grid" aria-hidden="true"></div>
     <div class="identity-topline">
-      <div class="topo-agora">
-        <div class="topo-relogio"><b id="topo-hora">--:--</b><i id="topo-fio" aria-hidden="true"></i></div>
-        <span id="topo-data">—</span>
-      </div>
-      <div class="topo-kpis" id="topo-kpis"></div>
+      <div class="topo-agora"><b id="topo-hora">--:--</b><span id="topo-data">—</span></div>
+      <button type="button" class="topo-fila" id="topo-fila"></button>
       <button type="button" class="topo-clima" id="topo-clima" onclick="usarMinhaLocalizacaoNoTopo()"></button>
       <span class="identity-quem-slot" id="identity-quem-slot"></span>
     </div>

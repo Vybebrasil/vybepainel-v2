@@ -63,15 +63,6 @@ function pintarRelogioDoTopo() {
     const texto = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     data.textContent = texto.charAt(0).toUpperCase() + texto.slice(1);
   }
-  // Os segundos nao viram numero — viram um fio que atravessa o minuto embaixo
-  // da hora. Quem olha ve que a tela esta viva sem ter tres digitos piscando.
-  // O atraso negativo poe a animacao em fase com o relogio de verdade, entao
-  // ela nunca precisa ser reiniciada.
-  const fio = document.getElementById('topo-fio');
-  if (fio && !fio.dataset.emFase) {
-    fio.style.animationDelay = `-${agora.getSeconds() + agora.getMilliseconds() / 1000}s`;
-    fio.dataset.emFase = '1';
-  }
 }
 
 /* ── os números de quem está logado ───────────────────────────────────────── */
@@ -105,49 +96,57 @@ function kpisDoTopo() {
   };
 }
 
-// Redesenhar os tres botoes a cada trinta segundos jogaria fora qualquer
-// animacao no meio dela e trocaria o elemento debaixo do cursor. Monta uma vez,
-// depois so troca o que mudou — e o que mudou ganha uma batida.
-const TOPO_PILULAS = [
-  { chave: 'abertas',   rotulo: () => 'na minha fila', classe: () => '',
-    dica: 'Abrir o Modo Foco com a sua fila' },
-  { chave: 'hoje',      rotulo: () => 'para hoje',     classe: (v) => (v ? 'atencao' : ''),
-    dica: 'Suas atividades com data de hoje' },
-  { chave: 'atrasadas', rotulo: (v) => `atrasada${v === 1 ? '' : 's'}`,
-    classe: (v) => (v ? 'critico' : ''), dica: 'Suas atividades com prazo vencido' },
-];
-
+// Tres numeros do mesmo tamanho brigando entre si escondiam a historia: com 67
+// atrasadas de 76, o "1 para hoje" nao e uma informacao ao lado — e um detalhe
+// de rodape. A barra passa a dizer UMA coisa, com uma medida embaixo: quanto da
+// fila esta vencido. Os outros numeros ficam, em voz baixa.
+//
+// Trocar o HTML inteiro a cada trinta segundos jogaria fora a animacao no meio
+// dela e trocaria o elemento debaixo do cursor. Monta uma vez, depois so troca
+// o que mudou — e o que mudou ganha uma batida.
 function pintarKpisDoTopo() {
-  const caixa = document.getElementById('topo-kpis');
+  const caixa = document.getElementById('topo-fila');
   if (!caixa) return;
   const k = kpisDoTopo();
   if (!k) {
-    if (!caixa.dataset.montado) caixa.innerHTML = '<span class="topo-kpi-vazio">Carregando sua fila…</span>';
+    if (caixa.dataset.montado !== '1') caixa.innerHTML = '<span class="topo-fila-vazio">Carregando sua fila…</span>';
     return;
   }
 
   if (caixa.dataset.montado !== '1') {
-    caixa.innerHTML = TOPO_PILULAS.map((p) => `
-      <button type="button" class="topo-kpi" data-kpi="${p.chave}" title="${p.dica}">
-        <b>0</b><span></span></button>`).join('');
+    caixa.innerHTML = `<span class="topo-fila-frase">
+        <b id="topo-fila-num">0</b><span id="topo-fila-rotulo"></span></span>
+      <span class="topo-fila-medida"><i id="topo-fila-cheio"></i></span>`;
     caixa.dataset.montado = '1';
   }
-  caixa.querySelectorAll('.topo-kpi').forEach((botao) => {
-    const p = TOPO_PILULAS.find((x) => x.chave === botao.dataset.kpi);
-    const valor = k[p.chave];
-    const numero = botao.querySelector('b');
-    botao.onclick = () => chooseFocusUser(String(k.user.id));
-    botao.querySelector('span').textContent = p.rotulo(valor);
-    botao.classList.toggle('atencao', p.classe(valor) === 'atencao');
-    botao.classList.toggle('critico', p.classe(valor) === 'critico');
-    if (numero.textContent === String(valor)) return;
-    numero.textContent = String(valor);
-    botao.classList.remove('mudou');
-    // Forcar o layout entre tirar e por reinicia a animacao; sem isso, dois
-    // valores seguidos so animariam o primeiro.
-    void botao.offsetWidth;
-    botao.classList.add('mudou');
-  });
+
+  const atrasadas = k.atrasadas;
+  const parte = k.abertas ? Math.round((atrasadas / k.abertas) * 100) : 0;
+  // Sem nada vencido a barra nao tem por que gritar: ela conta a fila, e nao o
+  // atraso, e a medida fica no tom neutro.
+  const rotulo = atrasadas
+    ? ` atrasada${atrasadas === 1 ? '' : 's'} de ${k.abertas}${k.hoje ? ` · ${k.hoje} para hoje` : ''}`
+    : ` na fila${k.hoje ? ` · ${k.hoje} para hoje` : ' · nada vencido'}`;
+
+  caixa.classList.toggle('em-atraso', atrasadas > 0);
+  caixa.title = atrasadas
+    ? `${atrasadas} de ${k.abertas} com prazo vencido — abrir o Modo Foco`
+    : `${k.abertas} na sua fila — abrir o Modo Foco`;
+  caixa.onclick = () => chooseFocusUser(String(k.user.id));
+
+  const cheio = document.getElementById('topo-fila-cheio');
+  if (cheio) cheio.style.width = `${atrasadas ? Math.max(parte, 3) : 0}%`;
+  document.getElementById('topo-fila-rotulo').textContent = rotulo;
+
+  const numero = document.getElementById('topo-fila-num');
+  const valor = String(atrasadas || k.abertas);
+  if (numero.textContent === valor) return;
+  numero.textContent = valor;
+  caixa.classList.remove('mudou');
+  // Forcar o layout entre tirar e por reinicia a animacao; sem isso, dois
+  // valores seguidos so animariam o primeiro.
+  void caixa.offsetWidth;
+  caixa.classList.add('mudou');
 }
 
 /* ── o tempo lá fora ──────────────────────────────────────────────────────── */
