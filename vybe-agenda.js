@@ -467,6 +467,14 @@ document.addEventListener('click', (event) => {
   const gatilho = event.target?.closest?.('[onclick*="openItemWorkspace("]');
   if (!gatilho) return;
   if (gatilho.closest('#cartao-rapido, #workspace-drawer, .cr-rodape')) return;
+  // Este ouvinte roda na CAPTURA, antes de tudo — e por isso ele engolia o
+  // clique do quadradinho de selecionar, que fica DENTRO da linha: o closest
+  // subia ate a linha, o cartao abria e o preventDefault impedia a marcacao.
+  // stopPropagation no proprio quadradinho nao adiantava: a captura vem antes.
+  // Qualquer controle com vida propria dentro da linha — caixa de marcar,
+  // rotulo, campo de data, botao, pilula de status — trata o proprio clique.
+  const proprio = event.target?.closest?.('input,label,select,textarea,button,a,[onclick],[role="button"]');
+  if (proprio && proprio !== gatilho && gatilho.contains(proprio)) return;
   const acao = gatilho.getAttribute('onclick') || '';
   const id = (acao.match(/openItemWorkspace\(\s*['"]([^'"]+)['"]/) || [])[1];
   if (!id) return;
@@ -1773,7 +1781,6 @@ async function aplicarDataSelecionadaEmLote(campo, dateIso, { input = null, sour
         request: isRequestItem(item), renderizar: false, avisar: false,
       });
       (mudou ? atualizadas : semMudanca).push(item);
-      SELECIONADAS.delete(String(item.id));
     } catch (erro) {
       falhas.push({ item, erro });
       console.warn('Falha ao aplicar data em lote', item.id, erro);
@@ -1789,7 +1796,10 @@ async function aplicarDataSelecionadaEmLote(campo, dateIso, { input = null, sour
   const processadas = atualizadas.length + semMudanca.length;
   if (!falhas.length) {
     const complemento = semMudanca.length ? ` · ${semMudanca.length} já tinha${semMudanca.length === 1 ? '' : 'm'} essa data` : '';
-    showToast(`✓ Lote concluído: ${processadas}/${itens.length} demandas processadas${complemento}.`, 'ok', 6000);
+    // A selecao continua de pe: quem acabou de mexer no prazo de seis pecas
+    // normalmente vai mexer em mais alguma coisa nas mesmas seis. Desmarcar
+    // sozinho obrigava a remarcar uma a uma.
+    showToast(`✓ Lote concluído: ${processadas}/${itens.length} demandas processadas${complemento} · seguem marcadas.`, 'ok', 6000);
   } else {
     showToast(`Lote parcial: ${processadas}/${itens.length} processadas · ${falhas.length} falhou${falhas.length === 1 ? '' : 'ram'}. As falhas continuam selecionadas.`, 'err', 9000);
   }
@@ -1948,9 +1958,11 @@ async function aplicarEmLote(rotulo, executar) {
     try { await executar(item); ok += 1; }
     catch (erro) { falhas.push(item.nome || id); console.warn('lote falhou em', id, erro); }
   }
-  SELECIONADAS.clear();
+  // Some da selecao so o que sumiu da tela — peca arquivada ou movida para fora
+  // do recorte nao tem mais linha para ficar marcada.
+  [...SELECIONADAS].forEach((id) => { if (!findOperationalItem(id)) SELECIONADAS.delete(id); });
   renderVisaoDeGrupos();
-  if (!falhas.length) showToast(`✓ ${rotulo} aplicado em ${ok} peça${ok === 1 ? '' : 's'}`, 'ok', 5000);
+  if (!falhas.length) showToast(`✓ ${rotulo} aplicado em ${ok} peça${ok === 1 ? '' : 's'} · seguem marcadas`, 'ok', 5000);
   else showToast(`${ok} atualizada${ok === 1 ? '' : 's'} · ${falhas.length} falhou: ${falhas.slice(0, 3).join(', ')}`, 'info', 8000);
 }
 
