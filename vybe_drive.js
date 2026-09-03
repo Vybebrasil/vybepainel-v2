@@ -240,6 +240,19 @@ export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {
 //
 // As fotos de hoje já são públicas — moram em files.monday.com e abrem sem login.
 // Isso não amplia exposição, só troca de casa.
+// Baixar de verdade, e nao abrir numa aba. O link publico do Drive nao serve:
+// para o navegador salvar em vez de navegar, o arquivo precisa vir do MESMO
+// endereco da pagina e com Content-Disposition: attachment — e cross-origin o
+// atributo `download` de um link e simplesmente ignorado. Por isso o servidor
+// busca os bytes e os devolve.
+export async function baixarDoDrive(fileId) {
+  const r = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${await token()}` } });
+  if (!r.ok) throw new Error(`Drive ${r.status} ao baixar o arquivo.`);
+  return r;
+}
+
 export async function tornarPublico(fileId) {
   await drive(`files/${fileId}/permissions?supportsAllDrives=true`, {
     method: 'POST',

@@ -1144,13 +1144,15 @@ function abrirPreviaGrande(indice = 0) {
       <div class="previa-grande-vidro">
         <div class="previa-grande-topo">
           <span id="previa-grande-nome"></span>
+          <button type="button" id="previa-baixar" class="previa-grande-baixar"
+            onclick="baixarDaPrevia(event)">↓ Baixar</button>
           <button type="button" id="previa-trocar" class="previa-grande-trocar"
             onclick="trocarMaterialDaPrevia(event)">⤓ Trocar material</button>
           <button class="x-fechar" type="button" onclick="fecharPreviaGrande()" aria-label="Fechar">✕</button>
         </div>
         <div class="previa-grande-palco">
           <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(-1)" aria-label="Anterior">❮</button>
-          <img id="previa-grande-img" alt="">
+          <div id="previa-grande-media" class="previa-grande-media"></div>
           <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(1)" aria-label="Próxima">❯</button>
         </div>
       </div>`;
@@ -1163,13 +1165,30 @@ function abrirPreviaGrande(indice = 0) {
   pintarPreviaGrande();
 }
 
+function eVideoDoMaterial(a) {
+  const onde = a?.name || a?.public_url || a?.url || '';
+  return /\.(mp4|mov|webm|m4v)(?:$|[?#])/i.test(String(onde));
+}
+
 function pintarPreviaGrande() {
   const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
   if (!a) return;
-  const img = document.getElementById('previa-grande-img');
+  const palco = document.getElementById('previa-grande-media');
   const nome = document.getElementById('previa-grande-nome');
-  if (img) { img.src = a.url_thumbnail || a.public_url || a.url || ''; img.alt = a.name || ''; }
+  // Video tinha caixa propria antes. Agora e a mesma caixa: quem abre um .mp4
+  // pela lista de arquivos ganha as setas, o nome e o botao de baixar junto.
+  if (palco) {
+    const fonte = safeText(a.public_url || a.url || a.url_thumbnail || '');
+    palco.innerHTML = eVideoDoMaterial(a)
+      ? `<video id="previa-grande-img" src="${fonte}" controls autoplay playsinline></video>`
+      : `<img id="previa-grande-img" src="${fonte}" alt="${safeText(a.name || '')}">`;
+  }
   if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.name || ''}`;
+  // Baixar precisa do id do arquivo no banco: e por ele que o servidor acha os
+  // bytes. Previa de coisa que nao esta na peca (um link colado, por exemplo)
+  // nao tem esse id, e o botao nao aparece em vez de aparecer quebrado.
+  const baixar = document.getElementById('previa-baixar');
+  if (baixar) baixar.style.display = a.local_id ? '' : 'none';
   // "Trocar material" so aparece quando se sabe de qual peca e a previa — ela
   // tambem abre de dentro de portoes, onde trocar o arquivo nao faz sentido.
   const trocar = document.getElementById('previa-trocar');
@@ -1184,6 +1203,36 @@ function passarPreviaGrande(passo) {
   PREVIA_GRANDE_INDICE = (PREVIA_GRANDE_INDICE + passo + PREVIA_MATERIAL.length) % PREVIA_MATERIAL.length;
   pintarPreviaGrande();
   trocarPreviaMaterial(PREVIA_GRANDE_INDICE);
+}
+
+// O navegador ignora o atributo `download` num link de outro dominio: ele abre
+// a imagem em vez de salvar. Por isso o download passa pelo painel, que devolve
+// os bytes com Content-Disposition: attachment — mesma origem, salva de verdade.
+function baixarDaPrevia(evento) {
+  evento?.stopPropagation?.();
+  const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
+  if (!a?.local_id) return showToast('Este arquivo não tem cópia guardada para baixar.', 'info', 6000);
+  const link = document.createElement('a');
+  link.href = `/api/painel?area=baixar&arquivo=${encodeURIComponent(a.local_id)}`;
+  link.download = a.name || '';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+// Havia DUAS caixas de prévia no painel: esta e uma escrita solta no index.html,
+// com outro visual e sem "trocar material". A dos arquivos da gaveta chamava a
+// outra. Agora e uma so, e este e o nome que os arquivos ja chamavam.
+function openVybeLightbox(src, name) {
+  const todos = (typeof activeWorkspaceAssets !== 'undefined' && activeWorkspaceAssets) || [];
+  const mostraveis = todos.filter((a) => a?.url_thumbnail || eVideoDoMaterial(a)
+    || /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(a?.name || a?.public_url || a?.url || '')));
+  const mesmo = (a) => (a.public_url || a.url || '') === src || (a.name && a.name === name);
+  // Sem a lista da peça — ou com um arquivo que não está nela — abre só ele.
+  PREVIA_MATERIAL = mostraveis.some(mesmo) ? mostraveis : [{ name, url: src, public_url: src }];
+  PREVIA_DA_PECA = '';
+  const onde = Math.max(0, PREVIA_MATERIAL.findIndex(mesmo));
+  abrirPreviaGrande(onde);
 }
 
 function fecharPreviaGrande() {

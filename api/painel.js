@@ -10,7 +10,7 @@
 
 import { neon } from '@neondatabase/serverless';
 import { mondayQuery } from '../operational_mirror_store.js';
-import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive } from '../vybe_drive.js';
+import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, baixarDoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
@@ -1378,8 +1378,52 @@ async function areaArquivos(req, res) {
   return res.status(200).json({ ok: true, itens: mapa });
 }
 
+// Baixar um arquivo da peca. Um link cross-origin com `download` nao baixa: o
+// navegador ignora o atributo e navega para a imagem. Os bytes precisam sair do
+// mesmo endereco do painel, com Content-Disposition: attachment — que e o que
+// esta funcao faz. Nao e uma funcao serverless nova: o plano ja esta no teto de
+// doze, entao ela entra como mais uma area de /api/painel.
+const TETO_DO_DOWNLOAD = 60 * 1024 * 1024;
+
+async function areaBaixar(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  const alvo = Number(req.query?.arquivo || 0);
+  if (!alvo) return res.status(400).json({ error: 'Informe arquivo=<id>.' });
+
+  const linhas = await sql()`SELECT nome, extensao, drive_file_id, url_publica, url_monday,
+                                    tamanho_bytes, monday_asset_id
+     FROM vybe_conteudo_arquivos WHERE id = ${alvo} AND ausente_em IS NULL`;
+  if (!linhas.length) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  const a = linhas[0];
+
+  // Arquivo grande vira memoria no servidor. Acima do teto, manda o navegador
+  // direto para a origem: abre em vez de salvar, mas nao derruba a funcao.
+  const direto = a.url_publica || a.url_monday;
+  if (Number(a.tamanho_bytes || 0) > TETO_DO_DOWNLOAD) {
+    if (!direto) return res.status(413).json({ error: 'Arquivo grande demais para baixar por aqui.' });
+    res.setHeader('Location', direto);
+    return res.status(302).end();
+  }
+
+  let resposta;
+  if (a.drive_file_id) resposta = await baixarDoDrive(a.drive_file_id);
+  else if (direto) resposta = await fetch(direto);
+  else return res.status(404).json({ error: 'Este arquivo não tem de onde ser baixado.' });
+  if (!resposta.ok) return res.status(502).json({ error: `A origem recusou (${resposta.status}).` });
+
+  const nome = String(a.nome || `arquivo${a.extensao || ''}`).replace(/["\r\n]/g, '');
+  const bytes = Buffer.from(await resposta.arrayBuffer());
+  res.setHeader('Content-Type', resposta.headers.get('content-type') || 'application/octet-stream');
+  res.setHeader('Content-Length', String(bytes.length));
+  // filename* carrega acento; filename simples fica de reserva para quem nao le.
+  res.setHeader('Content-Disposition',
+    `attachment; filename="${nome.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(nome)}`);
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  return res.status(200).end(bytes);
+}
+
 const AREAS = { automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
-                conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos };
+                conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');

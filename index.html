@@ -1896,12 +1896,14 @@ header,.topbar{
 .previa-grande-topo button:hover{background:rgba(255,255,255,.14)}
 .previa-grande-palco{display:flex;align-items:center;gap:10px;min-height:0}
 .previa-grande-palco img{max-width:100%;max-height:calc(92vh - 90px);object-fit:contain;border-radius:8px;background:#080b10}
+.previa-grande-media{flex:1;min-width:0;display:flex;align-items:center;justify-content:center}
+.previa-grande-palco video{max-width:100%;max-height:calc(92vh - 90px);border-radius:8px;background:#080b10}
 .previa-grande-seta{flex:0 0 auto;width:40px;height:56px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#e7ecf5;border-radius:8px;cursor:pointer;font-size:16px}
 .previa-grande-seta:hover{background:rgba(255,255,255,.15)}
 .previa-grande-abrir{width:100%;margin-top:2px;border:1px solid rgba(255,164,40,.4);background:rgba(255,121,18,.14);color:#ffe0a6;padding:6px;font:700 10px var(--mac-ui);letter-spacing:.5px;cursor:pointer}
 .previa-grande-abrir:hover{background:rgba(255,121,18,.24)}
 #material-review-img{cursor:zoom-in}
-@media(max-width:600px){.previa-grande{padding:12px}.previa-grande-seta{width:34px;height:48px}.previa-grande-palco img{max-height:calc(92vh - 120px)}}
+@media(max-width:600px){.previa-grande{padding:12px}.previa-grande-seta{width:34px;height:48px}.previa-grande-palco img,.previa-grande-palco video{max-height:calc(92vh - 120px)}}
 
 .material-review-strip{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-height:none;justify-content:flex-start;scrollbar-width:thin}
 .material-review-strip button{width:40px;height:40px}
@@ -4893,7 +4895,8 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .x-fechar{font-size:0!important}
 .previa-grande-topo > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
-.previa-grande-topo button.previa-grande-trocar{
+.previa-grande-topo button.previa-grande-trocar,
+.previa-grande-topo button.previa-grande-baixar{
   flex:0 0 auto;width:auto!important;height:auto!important;
   display:inline-flex;align-items:center;gap:7px;padding:7px 13px;
   border:1px solid var(--vybe-line);border-radius:9px;background:rgba(255,255,255,.06);
@@ -5574,97 +5577,5 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 </script>
 </body></html>
 
-<script>
-  function openVybeLightbox(src, name) {
-    const existing = document.getElementById('vybe-lightbox');
-    if (existing) existing.remove();
-    
-    let images = [];
-    if (typeof activeWorkspaceAssets !== 'undefined') {
-       images = activeWorkspaceAssets.filter(a => {
-         const h = a.public_url || a.url || '';
-         return Boolean(a.url_thumbnail || /\.(png|jpe?g|webp|gif|avif|mp4|mov|webm)(?:$|[?#])/i.test(a.name || h))}).map(a => {
-         const h = a.public_url || a.url || '';
-         const isVid = /\.(mp4|mov|webm)(?:$|[?#])/i.test(a.name || h);
-         return { src: h, name: a.name, type: isVid ? 'video' : 'image' }})}
-    
-    let currentIndex = images.findIndex(img => img.src === src);
-    if (currentIndex === -1) {
-       const isVid = /\.(mp4|mov|webm)(?:$|[?#])/i.test(name || src);
-       images = [{src, name, type: isVid ? 'video' : 'image'}];
-       currentIndex = 0}
-    
-    const overlay = document.createElement('div');
-    overlay.id = 'vybe-lightbox';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:15000;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(10px);cursor:zoom-out;user-select:none;';
-    overlay.onclick = () => overlay.remove();
-    
-    let mediaContainer = document.createElement('div');
-    mediaContainer.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:80vh;';
-    mediaContainer.onclick = e => e.stopPropagation();
-    
-    let currentMedia = null;
-    
-    const renderMedia = () => {
-      mediaContainer.innerHTML = '';
-      const item = images[currentIndex];
-      if (item.type === 'video') {
-        currentMedia = document.createElement('video');
-        currentMedia.controls = true;
-        currentMedia.autoplay = true} else {
-        currentMedia = document.createElement('img')}
-      currentMedia.src = item.src;
-      currentMedia.style.cssText = 'max-width:85vw;max-height:80vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
-      currentMedia.onclick = e => e.stopPropagation();
-      mediaContainer.appendChild(currentMedia)};
-    
-    const label = document.createElement('div');
-    label.style.cssText = 'color:#eef8fc;font:600 13px/1.5 monospace;margin-top:16px;text-align:center;padding:8px 16px;background:rgba(255,255,255,0.1);border-radius:8px;max-width:80vw;word-wrap:break-word;';
-    
-    const updateLabel = () => {
-      label.textContent = (images.length > 1 ? `(${currentIndex + 1}/${images.length}) ` : '') + (images[currentIndex].name || 'Prévia')};
-    
-    renderMedia();
-    updateLabel();
-    
-    const close = document.createElement('button');
-    close.textContent = 'FECHAR [ESC]';
-    close.style.cssText = 'position:absolute;top:20px;right:20px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);color:#fff;padding:8px 12px;font:800 10px monospace;border-radius:8px;cursor:pointer;z-index:15001;';
-    close.onclick = () => overlay.remove();
-    overlay.appendChild(close);
-    
-    if (images.length > 1) {
-      const prevBtn = document.createElement('button');
-      prevBtn.innerHTML = '&#10094;';
-      prevBtn.style.cssText = 'position:absolute;left:2vw;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);color:#fff;border:none;width:50px;height:50px;border-radius:50%;font-size:24px;cursor:pointer;z-index:15001;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
-      prevBtn.onclick = (e) => {
-        e.stopPropagation();
-        currentIndex = (currentIndex - 1 + images.length) % images.length;
-        renderMedia();
-        updateLabel()};
-      
-      const nextBtn = document.createElement('button');
-      nextBtn.innerHTML = '&#10095;';
-      nextBtn.style.cssText = 'position:absolute;right:2vw;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);color:#fff;border:none;width:50px;height:50px;border-radius:50%;font-size:24px;cursor:pointer;z-index:15001;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
-      nextBtn.onclick = (e) => {
-        e.stopPropagation();
-        currentIndex = (currentIndex + 1) % images.length;
-        renderMedia();
-        updateLabel()};
-      
-      overlay.appendChild(prevBtn);
-      overlay.appendChild(nextBtn);
-      
-      const keyListener = e => {
-        if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', keyListener)}
-        else if (e.key === 'ArrowLeft') prevBtn.click();
-        else if (e.key === 'ArrowRight') nextBtn.click()};
-      document.addEventListener('keydown', keyListener)} else {
-      const escListener = e => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escListener)} };
-      document.addEventListener('keydown', escListener)}
-    
-    overlay.appendChild(mediaContainer);
-    overlay.appendChild(label);
-    document.body.appendChild(overlay)}
-</script>
+
 <script async data-explicit-opt-in="true" data-deployment-id="dpl_7xy5i5M3B8qzWmWMrFuuK186SZ8c" src="https://vercel.live/_next-live/feedback/feedback.js"></script>
