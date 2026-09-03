@@ -95,7 +95,6 @@ const SAZONAL_FIXAS = [
   ['05-22', 'Dia Internacional da Biodiversidade', 'i', 0, 0],
   ['05-25', 'Dia do Orgulho Nerd', 'i', 1, 0],
   ['05-28', 'Dia Internacional de Luta pela Saúde da Mulher', 'i', 0, 0],
-  ['05-31', 'Emancipação Política de Irecê (1933) — aniversário da cidade', 'm', 1, 1],
   ['05-31', 'Dia Mundial sem Tabaco', 'i', 0, 0],
 
   // ---- JUNHO ----
@@ -128,7 +127,6 @@ const SAZONAL_FIXAS = [
   // ---- AGOSTO ----
   ['08-01', 'Agosto Dourado — Aleitamento Materno', 'n', 1, 0],
   ['08-01', 'Agosto Lilás — Enfrentamento à Violência contra a Mulher', 'n', 1, 0],
-  ['08-04', 'São Domingos de Gusmão — padroeiro de Irecê', 'm', 1, 1],
   ['08-05', 'Dia Nacional da Saúde', 'n', 0, 0],
   ['08-07', 'Dia da Lei Maria da Penha', 'n', 0, 0],
   ['08-08', 'Dia Mundial do Gato', 'i', 1, 0],
@@ -197,11 +195,406 @@ const SAZONAL_FIXAS = [
   ['12-31', 'Réveillon — Véspera de Ano Novo', 'n', 1, 0]
 ];
 
+// As 20 cidades do Territorio de Identidade Irece. Todos sao feriados
+// municipais, conferidos um a um em iferiados.com.br em 03/09/2026.
+const SAZONAL_CIDADES = [
+  ['01-20', 'São Sebastião — Mulungu do Morro', 'm', 0, 1, ''],
+  ['01-31', 'Senhor do Bonfim — Ibititá', 'm', 0, 1, ''],
+  ['02-24', 'Aniversário de Itaguaçu da Bahia', 'm', 1, 1, ''],
+  ['02-25', 'Aniversário de América Dourada', 'm', 1, 1, ''],
+  ['02-25', 'Aniversário de São Gabriel', 'm', 1, 1, ''],
+  ['03-19', 'São José — João Dourado', 'm', 0, 1, ''],
+  ['04-07', 'Aniversário de Cafarnaum', 'm', 1, 1, ''],
+  ['04-12', 'Aniversário de Presidente Dutra', 'm', 1, 1, ''],
+  ['05-09', 'Aniversário de Barro Alto', 'm', 1, 1, ''],
+  ['05-09', 'Aniversário de Lapão', 'm', 1, 1, ''],
+  ['05-09', 'Emancipação de João Dourado', 'm', 1, 1, ''],
+  ['05-31', 'Emancipação Política de Irecê (1933) — aniversário da cidade', 'm', 1, 1, ''],
+  ['06-13', 'Aniversário de Mulungu do Morro', 'm', 1, 1, ''],
+  ['06-13', 'Aniversário de Xique-Xique', 'm', 1, 1, ''],
+  ['06-24', 'São João Batista — Cafarnaum', 'm', 0, 1, ''],
+  ['06-24', 'São João Batista — Gentio do Ouro', 'm', 0, 1, ''],
+  ['06-24', 'São João Batista — Ibititá', 'm', 0, 1, ''],
+  ['06-24', 'São João Batista — Uibaí', 'm', 0, 1, ''],
+  ['06-24', 'São João Batista — Xique-Xique', 'm', 0, 1, ''],
+  ['06-29', 'São Pedro — Mulungu do Morro', 'm', 0, 1, ''],
+  ['07-09', 'Aniversário de Gentio do Ouro', 'm', 1, 1, ''],
+  ['07-16', 'Aniversário de Canarana', 'm', 1, 1, ''],
+  ['07-27', 'Aniversário de Jussara', 'm', 1, 1, ''],
+  ['08-04', 'São Domingos de Gusmão — padroeiro de Irecê', 'm', 1, 1, ''],
+  ['08-09', 'Aniversário de Ipupiara', 'm', 1, 1, ''],
+  ['08-12', 'Emancipação de Central', 'm', 1, 1, ''],
+  ['08-14', 'Aniversário de Barra do Mendes', 'm', 1, 1, ''],
+  ['09-08', 'Nossa Senhora do Perpétuo Socorro — Presidente Dutra', 'm', 0, 1, ''],
+  ['09-17', 'Homenagem a Lamarca e Zequinha — Ipupiara', 'm', 0, 1, ''],
+  ['09-19', 'Aniversário de Ibipeba', 'm', 1, 1, ''],
+  ['09-22', 'Aniversário de Uibaí', 'm', 1, 1, ''],
+  ['10-17', 'Aniversário de Ibititá', 'm', 1, 1, ''],
+  ['10-31', 'Dia do Evangélico — João Dourado', 'm', 0, 1, ''],
+  ['12-08', 'Imaculada Conceição — Mulungu do Morro', 'm', 0, 1, ''],
+];
+
+// Datas de profissao. Sao muitas de proposito: o filtro "Profissoes" isola
+// elas, e "So as principais" tira as que quase nunca viram post.
+const SAZONAL_PROFISSOES = [
+  ['01-02', 'Dia do Sanitarista', 'n', 0, 0, 'profissao'],
+  ['01-03', 'Dia do Juiz de Menores', 'n', 0, 0, 'profissao'],
+  ['01-08', 'Dia Nacional do Fotógrafo', 'n', 1, 0, 'profissao'],
+  ['01-09', 'Dia do Astronauta', 'n', 0, 0, 'profissao'],
+  ['01-14', 'Dia do Treinador de Futebol', 'n', 0, 0, 'profissao'],
+  ['01-15', 'Dia do Cobrador de Ônibus', 'n', 0, 0, 'profissao'],
+  ['01-15', 'Dia do Compositor', 'n', 0, 0, 'profissao'],
+  ['01-18', 'Dia da Manicure', 'n', 1, 0, 'profissao'],
+  ['01-18', 'Dia do Esteticista', 'n', 1, 0, 'profissao'],
+  ['01-19', 'Dia do Cabeleireiro', 'n', 1, 0, 'profissao'],
+  ['01-20', 'Dia Nacional da Parteira Tradicional', 'n', 0, 0, 'profissao'],
+  ['01-20', 'Dia do Farmacêutico e do Bioquímico', 'n', 0, 0, 'profissao'],
+  ['01-25', 'Dia do Carteiro', 'n', 0, 0, 'profissao'],
+  ['01-27', 'Dia do Orador', 'n', 0, 0, 'profissao'],
+  ['01-28', 'Dia Nacional do Auditor Fiscal do Trabalho', 'n', 0, 0, 'profissao'],
+  ['01-28', 'Dia do Portuário', 'n', 0, 0, 'profissao'],
+  ['01-31', 'Dia do Engenheiro Ambiental', 'n', 0, 0, 'profissao'],
+  ['01-31', 'Dia do Mágico', 'n', 0, 0, 'profissao'],
+  ['02-01', 'Dia do Publicitário', 'n', 1, 0, 'profissao'],
+  ['02-02', 'Dia do Agente Fiscal', 'n', 0, 0, 'profissao'],
+  ['02-05', 'Dia do Datiloscopista', 'n', 0, 0, 'profissao'],
+  ['02-05', 'Dia do Dermatologista', 'n', 0, 0, 'profissao'],
+  ['02-06', 'Dia do Agente de Defesa Ambiental', 'n', 0, 0, 'profissao'],
+  ['02-07', 'Dia do Gráfico', 'n', 0, 0, 'profissao'],
+  ['02-10', 'Dia do Atleta Profissional', 'n', 0, 0, 'profissao'],
+  ['02-11', 'Dia do Zelador', 'n', 0, 0, 'profissao'],
+  ['02-16', 'Dia do Repórter', 'n', 0, 0, 'profissao'],
+  ['02-26', 'Dia do Comediante', 'n', 0, 0, 'profissao'],
+  ['02-27', 'Dia do Agente Fiscal da Receita Federal', 'n', 0, 0, 'profissao'],
+  ['03-03', 'Dia do Seringueiro', 'n', 0, 0, 'profissao'],
+  ['03-07', 'Dia do Fuzileiro Naval', 'n', 0, 0, 'profissao'],
+  ['03-07', 'Dia do Paleontólogo', 'n', 0, 0, 'profissao'],
+  ['03-09', 'Dia Mundial do DJ', 'i', 0, 0, 'profissao'],
+  ['03-12', 'Dia do Bibliotecário', 'n', 0, 0, 'profissao'],
+  ['03-14', 'Dia do Vendedor de Livros', 'n', 0, 0, 'profissao'],
+  ['03-16', 'Dia Nacional do Ouvidor', 'n', 0, 0, 'profissao'],
+  ['03-16', 'Dia do Agente Penitenciário Federal', 'n', 0, 0, 'profissao'],
+  ['03-19', 'Dia Nacional do Artesão', 'n', 0, 0, 'profissao'],
+  ['03-19', 'Dia do Carpinteiro e do Marceneiro', 'n', 0, 0, 'profissao'],
+  ['03-19', 'Dia do Consertador', 'n', 0, 0, 'profissao'],
+  ['03-19', 'Dia do Funcionário Público Municipal', 'n', 0, 0, 'profissao'],
+  ['03-23', 'Dia do Meteorologista', 'n', 0, 0, 'profissao'],
+  ['03-23', 'Dia do Optometrista', 'n', 0, 0, 'profissao'],
+  ['03-25', 'Dia do Especialista de Aeronáutica', 'n', 0, 0, 'profissao'],
+  ['03-27', 'Dia do Artista Circense', 'n', 0, 0, 'profissao'],
+  ['03-28', 'Dia do Diagramador', 'n', 0, 0, 'profissao'],
+  ['03-28', 'Dia do Revisor', 'n', 0, 0, 'profissao'],
+  ['04-05', 'Dia do Propagandista Farmacêutico', 'n', 0, 0, 'profissao'],
+  ['04-07', 'Dia do Corretor', 'n', 0, 0, 'profissao'],
+  ['04-07', 'Dia do Jornalista', 'n', 1, 0, 'profissao'],
+  ['04-07', 'Dia do Médico Legista', 'n', 0, 0, 'profissao'],
+  ['04-10', 'Dia do Engenheiro Metalurgista', 'n', 0, 0, 'profissao'],
+  ['04-11', 'Dia do Infectologista', 'n', 0, 0, 'profissao'],
+  ['04-12', 'Dia do Humorista', 'n', 0, 0, 'profissao'],
+  ['04-12', 'Dia do Médico Obstetra', 'n', 0, 0, 'profissao'],
+  ['04-13', 'Dia do Office Boy', 'n', 0, 0, 'profissao'],
+  ['04-14', 'Dia do Neurocirurgião', 'n', 0, 0, 'profissao'],
+  ['04-14', 'Dia do Técnico em Serviço de Saúde', 'n', 0, 0, 'profissao'],
+  ['04-18', 'Dia Mundial do Radioamador', 'i', 0, 0, 'profissao'],
+  ['04-20', 'Dia do Diplomata', 'n', 0, 0, 'profissao'],
+  ['04-21', 'Dia do Metalúrgico', 'n', 0, 0, 'profissao'],
+  ['04-21', 'Dia do Policial Civil e Militar', 'n', 0, 0, 'profissao'],
+  ['04-21', 'Dia do Têxtil', 'n', 0, 0, 'profissao'],
+  ['04-22', 'Dia do Agente de Viagem', 'n', 0, 0, 'profissao'],
+  ['04-23', 'Dia do Serralheiro', 'n', 0, 0, 'profissao'],
+  ['04-25', 'Dia do Despachante Aduaneiro', 'n', 0, 0, 'profissao'],
+  ['04-25', 'Dia do Profissional da Contabilidade', 'n', 0, 0, 'profissao'],
+  ['04-26', 'Dia do Engraxate', 'n', 0, 0, 'profissao'],
+  ['04-26', 'Dia do Goleiro', 'n', 0, 0, 'profissao'],
+  ['04-26', 'Dia do Juiz da Justiça do Trabalho', 'n', 0, 0, 'profissao'],
+  ['04-27', 'Dia da Empregada Doméstica', 'n', 0, 0, 'profissao'],
+  ['04-30', 'Dia do Ferroviário', 'n', 0, 0, 'profissao'],
+  ['05-03', 'Dia do Taquígrafo', 'n', 0, 0, 'profissao'],
+  ['05-05', 'Dia Internacional da Parteira', 'i', 0, 0, 'profissao'],
+  ['05-06', 'Dia do Cartógrafo', 'n', 0, 0, 'profissao'],
+  ['05-06', 'Dia do Psicanalista', 'n', 0, 0, 'profissao'],
+  ['05-07', 'Dia do Oftalmologista', 'n', 0, 0, 'profissao'],
+  ['05-08', 'Dia do Artista Plástico', 'n', 0, 0, 'profissao'],
+  ['05-08', 'Dia do Profissional de Marketing', 'n', 1, 0, 'profissao'],
+  ['05-10', 'Dia da Cozinheira', 'n', 0, 0, 'profissao'],
+  ['05-10', 'Dia do Guia de Turismo', 'n', 0, 0, 'profissao'],
+  ['05-12', 'Dia do Engenheiro Militar', 'n', 0, 0, 'profissao'],
+  ['05-13', 'Dia Nacional do Chefe de Cozinha', 'n', 1, 0, 'profissao'],
+  ['05-13', 'Dia do Zootecnista', 'n', 0, 0, 'profissao'],
+  ['05-15', 'Dia do Assistente Social', 'n', 0, 0, 'profissao'],
+  ['05-15', 'Dia do Gerente Bancário', 'n', 0, 0, 'profissao'],
+  ['05-16', 'Dia do Gari', 'n', 0, 0, 'profissao'],
+  ['05-18', 'Dia dos Vidraceiros', 'n', 0, 0, 'profissao'],
+  ['05-19', 'Dia do Defensor Público', 'n', 0, 0, 'profissao'],
+  ['05-19', 'Dia do Físico', 'n', 0, 0, 'profissao'],
+  ['05-20', 'Dia Internacional dos Recursos Humanos', 'i', 0, 0, 'profissao'],
+  ['05-20', 'Dia Nacional do Técnico e Auxiliar de Enfermagem', 'n', 0, 0, 'profissao'],
+  ['05-20', 'Dia do Pedagogo', 'n', 0, 0, 'profissao'],
+  ['05-22', 'Dia do Apicultor', 'n', 0, 0, 'profissao'],
+  ['05-24', 'Dia do Digitador', 'n', 0, 0, 'profissao'],
+  ['05-25', 'Dia da Costureira', 'n', 1, 0, 'profissao'],
+  ['05-25', 'Dia do Massagista', 'n', 0, 0, 'profissao'],
+  ['05-25', 'Dia do Trabalhador Rural', 'n', 0, 0, 'profissao'],
+  ['05-26', 'Dia do Revendedor Lotérico', 'n', 0, 0, 'profissao'],
+  ['05-27', 'Dia do Profissional Liberal', 'n', 0, 0, 'profissao'],
+  ['05-28', 'Dia do Ceramista', 'n', 0, 0, 'profissao'],
+  ['05-29', 'Dia do Estatístico', 'n', 0, 0, 'profissao'],
+  ['05-29', 'Dia do Geógrafo', 'n', 0, 0, 'profissao'],
+  ['05-30', 'Dia do Decorador', 'n', 0, 0, 'profissao'],
+  ['05-30', 'Dia do Geólogo', 'n', 0, 0, 'profissao'],
+  ['05-31', 'Dia do Comissário de Bordo', 'n', 0, 0, 'profissao'],
+  ['06-03', 'Dia do Profissional de Recursos Humanos', 'n', 0, 0, 'profissao'],
+  ['06-04', 'Dia do Engenheiro Agrimensor', 'n', 0, 0, 'profissao'],
+  ['06-08', 'Dia do Citricultor', 'n', 0, 0, 'profissao'],
+  ['06-08', 'Dia do Oceanógrafo', 'n', 0, 0, 'profissao'],
+  ['06-09', 'Dia do Porteiro', 'n', 0, 0, 'profissao'],
+  ['06-11', 'Dia do Educador Sanitário', 'n', 0, 0, 'profissao'],
+  ['06-17', 'Dia do Servidor Público Aposentado', 'n', 0, 0, 'profissao'],
+  ['06-18', 'Dia do Químico', 'n', 0, 0, 'profissao'],
+  ['06-20', 'Dia do Advogado Trabalhista', 'n', 0, 0, 'profissao'],
+  ['06-20', 'Dia do Vigilante', 'n', 0, 0, 'profissao'],
+  ['06-21', 'Dia do Profissional de Mídia', 'n', 0, 0, 'profissao'],
+  ['06-22', 'Dia do Aeroviário', 'n', 0, 0, 'profissao'],
+  ['06-23', 'Dia Internacional das Mulheres na Engenharia', 'i', 0, 0, 'profissao'],
+  ['06-23', 'Dia Nacional do Agente Marítimo', 'n', 0, 0, 'profissao'],
+  ['06-23', 'Dia do Lavrador', 'n', 0, 0, 'profissao'],
+  ['06-24', 'Dia Nacional do Policial e do Bombeiro Militares', 'n', 0, 0, 'profissao'],
+  ['06-27', 'Dia Nacional do Quadrilheiro Junino', 'n', 0, 0, 'profissao'],
+  ['06-29', 'Dia do Dublador', 'n', 0, 0, 'profissao'],
+  ['06-29', 'Dia do Engenheiro de Petróleo', 'n', 0, 0, 'profissao'],
+  ['06-29', 'Dia do Pescador', 'n', 0, 0, 'profissao'],
+  ['06-29', 'Dia do Telefonista', 'n', 0, 0, 'profissao'],
+  ['06-30', 'Dia Nacional do Fiscal Federal Agropecuário', 'n', 0, 0, 'profissao'],
+  ['07-02', 'Dia do Bombeiro Brasileiro', 'n', 0, 0, 'profissao'],
+  ['07-04', 'Dia do Operador de Telemarketing', 'n', 0, 0, 'profissao'],
+  ['07-08', 'Dia Nacional do Pesquisador Científico', 'n', 0, 0, 'profissao'],
+  ['07-08', 'Dia do Panificador', 'n', 0, 0, 'profissao'],
+  ['07-10', 'Dia do Engenheiro de Minas', 'n', 0, 0, 'profissao'],
+  ['07-12', 'Dia do Engenheiro Florestal', 'n', 0, 0, 'profissao'],
+  ['07-13', 'Dia do Cantor', 'n', 0, 0, 'profissao'],
+  ['07-13', 'Dia do Engenheiro de Saneamento', 'n', 0, 0, 'profissao'],
+  ['07-13', 'Dia dos Compositores e Cantores Sertanejos', 'n', 0, 0, 'profissao'],
+  ['07-14', 'Dia do Propagandista de Laboratório', 'n', 0, 0, 'profissao'],
+  ['07-15', 'Dia Nacional do Pecuarista', 'n', 0, 0, 'profissao'],
+  ['07-16', 'Dia do Comerciante', 'n', 1, 0, 'profissao'],
+  ['07-20', 'Dia Pan-americano do Engenheiro', 'i', 0, 0, 'profissao'],
+  ['07-21', 'Dia Nacional do Garimpeiro', 'n', 0, 0, 'profissao'],
+  ['07-23', 'Dia do Guarda Rodoviário', 'n', 0, 0, 'profissao'],
+  ['07-24', 'Dia Nacional do Suinocultor', 'n', 0, 0, 'profissao'],
+  ['07-25', 'Dia do Motorista', 'n', 1, 0, 'profissao'],
+  ['07-26', 'Dia Nacional do Arqueólogo', 'n', 0, 0, 'profissao'],
+  ['07-27', 'Dia do Motociclista', 'n', 0, 0, 'profissao'],
+  ['07-27', 'Dia do Médico Pediatra', 'n', 0, 0, 'profissao'],
+  ['07-31', 'Dia Mundial do Guarda Florestal', 'i', 0, 0, 'profissao'],
+  ['08-01', 'Dia do Cerealista', 'n', 0, 0, 'profissao'],
+  ['08-03', 'Dia do Tintureiro', 'n', 0, 0, 'profissao'],
+  ['08-06', 'Dia Nacional dos Profissionais da Educação', 'n', 0, 0, 'profissao'],
+  ['08-11', 'Dia do Advogado', 'n', 1, 0, 'profissao'],
+  ['08-11', 'Dia do Garçom e da Garçonete', 'n', 1, 0, 'profissao'],
+  ['08-11', 'Dia do Magistrado', 'n', 0, 0, 'profissao'],
+  ['08-13', 'Dia do Economista', 'n', 0, 0, 'profissao'],
+  ['08-14', 'Dia do Cardiologista', 'n', 0, 0, 'profissao'],
+  ['08-15', 'Dia do Analista de Sistemas', 'n', 0, 0, 'profissao'],
+  ['08-16', 'Dia do Filósofo', 'n', 0, 0, 'profissao'],
+  ['08-19', 'Dia do Artista de Teatro', 'n', 0, 0, 'profissao'],
+  ['08-19', 'Dia do Historiador', 'n', 0, 0, 'profissao'],
+  ['08-22', 'Dia do Supervisor Escolar', 'n', 0, 0, 'profissao'],
+  ['08-24', 'Dia do Artista', 'n', 0, 0, 'profissao'],
+  ['08-25', 'Dia do Feirante', 'n', 1, 0, 'profissao'],
+  ['08-27', 'Dia do Corretor de Imóveis', 'n', 1, 0, 'profissao'],
+  ['08-28', 'Dia dos Bancários', 'n', 0, 0, 'profissao'],
+  ['08-30', 'Dia do Vendedor Lojista', 'n', 0, 0, 'profissao'],
+  ['09-01', 'Dia do Profissional de Educação Física', 'n', 0, 0, 'profissao'],
+  ['09-02', 'Dia do Florista', 'n', 0, 0, 'profissao'],
+  ['09-02', 'Dia do Repórter Fotográfico', 'n', 0, 0, 'profissao'],
+  ['09-03', 'Dia do Biólogo', 'n', 0, 0, 'profissao'],
+  ['09-03', 'Dia do Guarda Civil', 'n', 0, 0, 'profissao'],
+  ['09-06', 'Dia do Alfaiate', 'n', 0, 0, 'profissao'],
+  ['09-08', 'Dia Internacional do Jornalista', 'i', 0, 0, 'profissao'],
+  ['09-09', 'Dia do Administrador', 'n', 1, 0, 'profissao'],
+  ['09-09', 'Dia do Médico Veterinário', 'n', 1, 0, 'profissao'],
+  ['09-11', 'Dia do Árbitro Esportivo', 'n', 0, 0, 'profissao'],
+  ['09-13', 'Dia do Agrônomo', 'n', 0, 0, 'profissao'],
+  ['09-16', 'Dia do Caminhoneiro', 'n', 1, 0, 'profissao'],
+  ['09-19', 'Dia Nacional do Educador Social', 'n', 0, 0, 'profissao'],
+  ['09-19', 'Dia do Ortopedista', 'n', 0, 0, 'profissao'],
+  ['09-20', 'Dia do Engenheiro Químico', 'n', 0, 0, 'profissao'],
+  ['09-20', 'Dia do Funcionário Municipal', 'n', 0, 0, 'profissao'],
+  ['09-21', 'Dia Internacional do Freelancer', 'i', 0, 0, 'profissao'],
+  ['09-21', 'Dia do Fazendeiro', 'n', 0, 0, 'profissao'],
+  ['09-22', 'Dia do Contador', 'n', 1, 0, 'profissao'],
+  ['09-23', 'Dia Nacional dos Profissionais de Nível Técnico', 'n', 0, 0, 'profissao'],
+  ['09-23', 'Dia do Fiscal de Trânsito', 'n', 0, 0, 'profissao'],
+  ['09-23', 'Dia do Soldador', 'n', 0, 0, 'profissao'],
+  ['09-23', 'Dia do Técnico em Edificações', 'n', 0, 0, 'profissao'],
+  ['09-25', 'Dia Internacional do Farmacêutico', 'i', 0, 0, 'profissao'],
+  ['09-27', 'Dia Nacional do Turismólogo', 'n', 0, 0, 'profissao'],
+  ['09-27', 'Dia do Encanador', 'n', 0, 0, 'profissao'],
+  ['09-30', 'Dia Mundial do Tradutor', 'i', 0, 0, 'profissao'],
+  ['09-30', 'Dia Nacional do Jornaleiro', 'n', 0, 0, 'profissao'],
+  ['09-30', 'Dia dos Profissionais Administrativos', 'n', 0, 0, 'profissao'],
+  ['10-01', 'Dia do Representante Comercial', 'n', 0, 0, 'profissao'],
+  ['10-01', 'Dia do Vendedor', 'n', 0, 0, 'profissao'],
+  ['10-01', 'Dia do Vereador', 'n', 0, 0, 'profissao'],
+  ['10-04', 'Dia do Agente Comunitário de Saúde', 'n', 0, 0, 'profissao'],
+  ['10-04', 'Dia do Barman', 'n', 0, 0, 'profissao'],
+  ['10-04', 'Dia do Médico do Trabalho', 'n', 0, 0, 'profissao'],
+  ['10-05', 'Dia do Empreendedor', 'n', 1, 0, 'profissao'],
+  ['10-07', 'Dia do Compositor Brasileiro', 'n', 0, 0, 'profissao'],
+  ['10-10', 'Dia do Empresário Brasileiro', 'n', 1, 0, 'profissao'],
+  ['10-12', 'Dia do Corretor de Seguros', 'n', 0, 0, 'profissao'],
+  ['10-12', 'Dia do Engenheiro Agrônomo', 'n', 0, 0, 'profissao'],
+  ['10-13', 'Dia Nacional do Fisioterapeuta e do Terapeuta Ocupacional', 'n', 0, 0, 'profissao'],
+  ['10-15', 'Dia do Auxiliar Administrativo', 'n', 0, 0, 'profissao'],
+  ['10-15', 'Dia do Educador Ambiental', 'n', 0, 0, 'profissao'],
+  ['10-16', 'Dia do Anestesiologista', 'n', 0, 0, 'profissao'],
+  ['10-16', 'Dia do Chefe', 'n', 0, 0, 'profissao'],
+  ['10-16', 'Dia do Engenheiro de Alimentos', 'n', 0, 0, 'profissao'],
+  ['10-17', 'Dia do Eletricista e do Eletrotécnico', 'n', 0, 0, 'profissao'],
+  ['10-17', 'Dia do Profissional da Propaganda', 'n', 0, 0, 'profissao'],
+  ['10-18', 'Dia do Estivador', 'n', 0, 0, 'profissao'],
+  ['10-18', 'Dia do Pintor', 'n', 0, 0, 'profissao'],
+  ['10-18', 'Dia do Securitário', 'n', 0, 0, 'profissao'],
+  ['10-19', 'Dia do Profissional de Tecnologia da Informação', 'n', 0, 0, 'profissao'],
+  ['10-20', 'Dia do Arquivista', 'n', 0, 0, 'profissao'],
+  ['10-20', 'Dia do Maquinista', 'n', 0, 0, 'profissao'],
+  ['10-20', 'Dia do Poeta', 'n', 0, 0, 'profissao'],
+  ['10-21', 'Dia do Coletor de Lixo', 'n', 0, 0, 'profissao'],
+  ['10-22', 'Dia do Enólogo', 'n', 0, 0, 'profissao'],
+  ['10-22', 'Dia do Paraquedista', 'n', 0, 0, 'profissao'],
+  ['10-23', 'Dia do Aviador', 'n', 0, 0, 'profissao'],
+  ['10-25', 'Dia do Dentista', 'n', 1, 0, 'profissao'],
+  ['10-25', 'Dia do Engenheiro Civil', 'n', 0, 0, 'profissao'],
+  ['10-25', 'Dia do Sapateiro', 'n', 0, 0, 'profissao'],
+  ['10-26', 'Dia do Trabalhador da Construção Civil', 'n', 0, 0, 'profissao'],
+  ['10-27', 'Dia do Engenheiro Agrícola', 'n', 0, 0, 'profissao'],
+  ['10-30', 'Dia da Merendeira Escolar', 'n', 0, 0, 'profissao'],
+  ['10-30', 'Dia do Balconista', 'n', 0, 0, 'profissao'],
+  ['10-30', 'Dia do Comerciário', 'n', 0, 0, 'profissao'],
+  ['10-30', 'Dia do Ginecologista', 'n', 0, 0, 'profissao'],
+  ['10-31', 'Dia da Dona de Casa', 'n', 0, 0, 'profissao'],
+  ['11-05', 'Dia do Designer Gráfico', 'n', 1, 0, 'profissao'],
+  ['11-05', 'Dia do Protético', 'n', 0, 0, 'profissao'],
+  ['11-05', 'Dia do Técnico Agrícola', 'n', 0, 0, 'profissao'],
+  ['11-05', 'Dia do Técnico em Eletrônica', 'n', 0, 0, 'profissao'],
+  ['11-07', 'Dia do Radialista', 'n', 0, 0, 'profissao'],
+  ['11-08', 'Dia do Radiologista', 'n', 0, 0, 'profissao'],
+  ['11-09', 'Dia do Hoteleiro', 'n', 0, 0, 'profissao'],
+  ['11-12', 'Dia Nacional do Inventor', 'n', 0, 0, 'profissao'],
+  ['11-12', 'Dia do Diretor de Escola', 'n', 0, 0, 'profissao'],
+  ['11-12', 'Dia do Psicopedagogo', 'n', 0, 0, 'profissao'],
+  ['11-14', 'Dia do Vendedor Ambulante', 'n', 0, 0, 'profissao'],
+  ['11-15', 'Dia do Joalheiro', 'n', 0, 0, 'profissao'],
+  ['11-18', 'Dia Nacional do Notário e do Registrador', 'n', 0, 0, 'profissao'],
+  ['11-18', 'Dia do Conselheiro Tutelar', 'n', 0, 0, 'profissao'],
+  ['11-20', 'Dia do Auditor Interno', 'n', 0, 0, 'profissao'],
+  ['11-20', 'Dia do Biomédico', 'n', 0, 0, 'profissao'],
+  ['11-20', 'Dia do Técnico em Contabilidade', 'n', 0, 0, 'profissao'],
+  ['11-22', 'Dia do Músico', 'n', 0, 0, 'profissao'],
+  ['11-23', 'Dia do Engenheiro Eletricista', 'n', 0, 0, 'profissao'],
+  ['11-25', 'Dia da Baiana de Acarajé', 'n', 0, 0, 'profissao'],
+  ['11-27', 'Dia do Técnico de Segurança no Trabalho', 'n', 0, 0, 'profissao'],
+  ['12-02', 'Dia Nacional das Relações Públicas', 'n', 0, 0, 'profissao'],
+  ['12-03', 'Dia do Delegado de Polícia', 'n', 0, 0, 'profissao'],
+  ['12-04', 'Dia do Orientador Profissional', 'n', 0, 0, 'profissao'],
+  ['12-04', 'Dia do Perito Criminal Oficial', 'n', 0, 0, 'profissao'],
+  ['12-05', 'Dia do Médico de Família e Comunidade', 'n', 0, 0, 'profissao'],
+  ['12-08', 'Dia do Colunista Social', 'n', 0, 0, 'profissao'],
+  ['12-09', 'Dia do Fonoaudiólogo', 'n', 0, 0, 'profissao'],
+  ['12-10', 'Dia Universal do Palhaço', 'i', 0, 0, 'profissao'],
+  ['12-11', 'Dia do Engenheiro', 'n', 1, 0, 'profissao'],
+  ['12-13', 'Dia do Marinheiro', 'n', 0, 0, 'profissao'],
+  ['12-13', 'Dia do Pedreiro', 'n', 1, 0, 'profissao'],
+  ['12-13', 'Dia do Ótico', 'n', 0, 0, 'profissao'],
+  ['12-14', 'Dia do Engenheiro de Pesca', 'n', 0, 0, 'profissao'],
+  ['12-15', 'Dia do Arquiteto e Urbanista', 'n', 1, 0, 'profissao'],
+  ['12-15', 'Dia do Jardineiro', 'n', 0, 0, 'profissao'],
+  ['12-17', 'Dia do Engenheiro de Produção', 'n', 0, 0, 'profissao'],
+  ['12-18', 'Dia do Museólogo', 'n', 0, 0, 'profissao'],
+  ['12-20', 'Dia do Mecânico', 'n', 0, 0, 'profissao'],
+  ['12-28', 'Dia do Salva-vidas', 'n', 0, 0, 'profissao'],
+];
+
+const SAZONAL_SABORES = [
+  ['01-02', 'Dia do Confeiteiro', 'n', 1, 0, 'sabor'],
+  ['01-16', 'Dia Internacional da Comida Picante', 'i', 0, 0, 'sabor'],
+  ['01-20', 'Dia Mundial do Queijo', 'i', 1, 0, 'sabor'],
+  ['01-26', 'Dia da Gula', 'n', 0, 0, 'sabor'],
+  ['01-27', 'Dia Mundial do Bolo de Chocolate', 'i', 0, 0, 'sabor'],
+  ['01-30', 'Dia Mundial do Croissant', 'i', 0, 0, 'sabor'],
+  ['02-01', 'Dia do Tomate', 'n', 0, 0, 'sabor'],
+  ['02-07', 'Dia do Fettuccine Alfredo', 'n', 0, 0, 'sabor'],
+  ['02-10', 'Dia Mundial das Leguminosas', 'i', 0, 0, 'sabor'],
+  ['02-18', 'Dia Mundial do Vinho', 'i', 1, 0, 'sabor'],
+  ['02-20', 'Dia do Muffin', 'n', 0, 0, 'sabor'],
+  ['03-11', 'Dia da Pipoca', 'n', 1, 0, 'sabor'],
+  ['03-20', 'Dia Mundial sem Carne', 'i', 0, 0, 'sabor'],
+  ['03-21', 'Dia do Pão Francês', 'n', 0, 0, 'sabor'],
+  ['03-21', 'Dia do Tiramisù', 'n', 0, 0, 'sabor'],
+  ['03-25', 'Dia do Waffle', 'n', 0, 0, 'sabor'],
+  ['03-26', 'Dia do Chocolate', 'n', 1, 0, 'sabor'],
+  ['04-11', 'Dia do Fondue de Queijo', 'n', 0, 0, 'sabor'],
+  ['04-14', 'Dia Mundial do Café', 'i', 1, 0, 'sabor'],
+  ['04-22', 'Dia da Mandioca', 'n', 0, 0, 'sabor'],
+  ['04-24', 'Dia Internacional do Milho', 'i', 0, 0, 'sabor'],
+  ['04-24', 'Dia do Chimarrão', 'n', 0, 0, 'sabor'],
+  ['04-24', 'Dia do Churrasco', 'n', 1, 0, 'sabor'],
+  ['05-02', 'Dia Mundial do Atum', 'i', 0, 0, 'sabor'],
+  ['05-13', 'Dia Mundial do Coquetel', 'i', 0, 0, 'sabor'],
+  ['05-17', 'Dia Mundial da Pastelaria', 'i', 0, 0, 'sabor'],
+  ['05-18', 'Dia Nacional do Coquetel', 'n', 0, 0, 'sabor'],
+  ['05-21', 'Dia Internacional do Chá', 'i', 0, 0, 'sabor'],
+  ['05-24', 'Dia Nacional do Café', 'n', 1, 0, 'sabor'],
+  ['05-24', 'Dia Nacional do Milho', 'n', 0, 0, 'sabor'],
+  ['05-28', 'Dia Internacional do Hambúrguer', 'i', 1, 0, 'sabor'],
+  ['05-30', 'Dia Mundial da Batata Frita', 'i', 1, 0, 'sabor'],
+  ['06-01', 'Dia Mundial do Leite', 'i', 0, 0, 'sabor'],
+  ['06-18', 'Dia da Gastronomia Sustentável', 'n', 0, 0, 'sabor'],
+  ['06-28', 'Dia do Ceviche', 'n', 0, 0, 'sabor'],
+  ['07-06', 'Dia da Gastronomia Mineira', 'n', 0, 0, 'sabor'],
+  ['07-07', 'Dia Mundial do Chocolate', 'i', 1, 0, 'sabor'],
+  ['07-07', 'Dia do Milk Shake Brasileiro', 'n', 0, 0, 'sabor'],
+  ['07-14', 'Dia do Macarrão com Queijo', 'n', 0, 0, 'sabor'],
+  ['07-20', 'Dia Nacional do Biscoito', 'n', 0, 0, 'sabor'],
+  ['07-24', 'Dia Internacional da Tequila', 'i', 0, 0, 'sabor'],
+  ['07-29', 'Dia da Lasanha', 'n', 0, 0, 'sabor'],
+  ['08-05', 'Dia Mundial da Ostra', 'i', 0, 0, 'sabor'],
+  ['08-17', 'Dia do Pão de Queijo', 'n', 1, 0, 'sabor'],
+  ['08-26', 'Dia Mundial do Cachorro', 'i', 1, 0, 'sabor'],
+  ['08-29', 'Dia da Pimenta-do-Reino', 'n', 0, 0, 'sabor'],
+  ['08-31', 'Dia do Bacon', 'n', 1, 0, 'sabor'],
+  ['09-09', 'Dia Nacional da Esfirra', 'n', 0, 0, 'sabor'],
+  ['09-09', 'Dia do Cachorro-Quente', 'n', 1, 0, 'sabor'],
+  ['09-10', 'Dia do Milk Shake', 'n', 0, 0, 'sabor'],
+  ['09-13', 'Dia Nacional da Cachaça', 'n', 1, 0, 'sabor'],
+  ['09-22', 'Dia da Banana', 'n', 0, 0, 'sabor'],
+  ['09-23', 'Dia do Sorvete', 'n', 1, 0, 'sabor'],
+  ['09-29', 'Dia Internacional de Conscientização sobre Perda e Desperdício de Alimentos', 'i', 0, 0, 'sabor'],
+  ['10-01', 'Dia Mundial do Vegetarianismo', 'i', 0, 0, 'sabor'],
+  ['10-09', 'Dia da Sobremesa', 'n', 0, 0, 'sabor'],
+  ['10-16', 'Dia Mundial do Pão', 'i', 0, 0, 'sabor'],
+  ['10-20', 'Dia Internacional do Chef de Cozinha', 'i', 0, 0, 'sabor'],
+  ['10-21', 'Dia Internacional da Maçã', 'i', 0, 0, 'sabor'],
+  ['10-21', 'Dia Internacional do Nacho', 'i', 0, 0, 'sabor'],
+  ['10-21', 'Dia Nacional da Alimentação na Escola', 'n', 0, 0, 'sabor'],
+  ['10-25', 'Dia Mundial do Cheesecake', 'i', 0, 0, 'sabor'],
+  ['10-25', 'Dia Mundial do Macarrão', 'i', 0, 0, 'sabor'],
+  ['11-01', 'Dia do Sushi', 'n', 1, 0, 'sabor'],
+  ['11-03', 'Dia do Sanduíche', 'n', 0, 0, 'sabor'],
+  ['11-10', 'Dia do Trigo', 'n', 0, 0, 'sabor'],
+  ['12-09', 'Dia do Profissional de Culinária', 'n', 0, 0, 'sabor'],
+];
+
 const SAZONAL_ESCOPOS = {
   n: { nome: 'Nacional',      cor: '#00c875' },
   i: { nome: 'Internacional', cor: '#579bfc' },
   e: { nome: 'Bahia',         cor: '#a25ddc' },
   m: { nome: 'Municipal',     cor: '#ff9f43' }
+};
+
+const SAZONAL_TEMAS = {
+  profissao: { nome: 'Profissão',       cor: '#00d2b8' },
+  sabor:     { nome: 'Comida e bebida', cor: '#ff7a9c' }
 };
 
 const SAZONAL_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -259,17 +652,53 @@ function sazonalMoveis(ano) {
     { iso: sazonalIso(nasMaes),                       nome: 'Dia das Mães',               escopo: 'n', destaque: 1, feriado: 0 },
     { iso: sazonalIso(nosPais),                       nome: 'Dia dos Pais',               escopo: 'n', destaque: 1, feriado: 0 },
     { iso: sazonalIso(blackFriday),                   nome: 'Black Friday',               escopo: 'i', destaque: 1, feriado: 0 },
-    { iso: sazonalIso(sazonalSomarDias(blackFriday, 3)), nome: 'Cyber Monday',            escopo: 'i', destaque: 1, feriado: 0 }
+    { iso: sazonalIso(sazonalSomarDias(blackFriday, 3)), nome: 'Cyber Monday',            escopo: 'i', destaque: 1, feriado: 0 },
+
+    // Datas de comida que tambem andam. Ficaram de fora da lista escrita pelo
+    // mesmo motivo do Carnaval: sao regra de dia da semana, nao dia do mes.
+    { iso: sazonalIso(sazonalEnesimoDiaDaSemana(ano, 7, 5, 1)), nome: 'Dia Internacional da Cerveja',
+      escopo: 'i', destaque: 1, feriado: 0, tema: 'sabor' },   // 1a sexta de agosto
+    { iso: sazonalIso(sazonalEnesimoDiaDaSemana(ano, 4, 6, 3)), nome: 'Dia Mundial do Whisky',
+      escopo: 'i', destaque: 0, feriado: 0, tema: 'sabor' },   // 3o sabado de maio
+    { iso: sazonalIso(sazonalEnesimoDiaDaSemana(ano, 5, 0, 1)), nome: 'Dia Nacional do Vinho',
+      escopo: 'n', destaque: 1, feriado: 0, tema: 'sabor' },   // 1o domingo de junho
+    { iso: sazonalIso(sazonalEnesimoDiaDaSemana(ano, 9, 5, 2)), nome: 'Dia Mundial do Ovo',
+      escopo: 'i', destaque: 0, feriado: 0, tema: 'sabor' }    // 2a sexta de outubro
   ];
+}
+
+// Duas listas escritas por fontes diferentes chamam a mesma data de "Dia do
+// Fotografo" e "Dia Nacional do Fotografo". Sem isto o calendario mostraria as
+// duas, uma embaixo da outra, e pareceria erro de quem montou.
+function sazonalChave(iso, nome) {
+  const vazias = new Set(['dia','do','da','de','dos','das','e','o','a','nacional','mundial','internacional']);
+  const limpo = String(nome).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((t) => t && !vazias.has(t)).sort().join('-');
+  return `${iso}|${limpo}`;
 }
 
 // Todas as datas de um ano, ja ordenadas por dia.
 function datasSazonaisDoAno(ano) {
-  const fixas = SAZONAL_FIXAS.map(([dia, nome, escopo, destaque, feriado]) => ({
-    iso: `${ano}-${dia}`, nome, escopo, destaque, feriado, movel: 0
+  const daLista = (lista) => lista.map(([dia, nome, escopo, destaque, feriado, tema]) => ({
+    iso: `${ano}-${dia}`, nome, escopo, destaque, feriado, tema: tema || '', movel: 0
   }));
-  const moveis = sazonalMoveis(ano).map((d) => ({ ...d, movel: 1 }));
-  return fixas.concat(moveis).sort((a, b) => a.iso.localeCompare(b.iso) || a.nome.localeCompare(b.nome));
+  const tudo = daLista(SAZONAL_FIXAS)
+    .concat(daLista(SAZONAL_CIDADES))
+    .concat(daLista(SAZONAL_PROFISSOES))
+    .concat(daLista(SAZONAL_SABORES))
+    .concat(sazonalMoveis(ano).map((d) => ({ ...d, tema: d.tema || '', movel: 1 })));
+
+  // A primeira ganha: a lista curada vem antes das importadas, entao o nome que
+  // fica e o que foi escrito pensando em quem le.
+  const vistas = new Set();
+  const unicas = tudo.filter((d) => {
+    const chave = sazonalChave(d.iso, d.nome);
+    if (vistas.has(chave)) return false;
+    vistas.add(chave);
+    return true;
+  });
+  return unicas.sort((a, b) => a.iso.localeCompare(b.iso)
+    || (b.destaque - a.destaque) || a.nome.localeCompare(b.nome));
 }
 
 /* ---------------------------------------------------------------------------
@@ -386,7 +815,8 @@ function sazonalFiltrar(lista) {
   const f = SAZONAL_FILTRO;
   const busca = f.busca.trim().toLowerCase();
   return lista.filter((d) => {
-    if (f.escopo !== 'todos' && d.escopo !== f.escopo) return false;
+    if (f.escopo === 'profissao' || f.escopo === 'sabor') { if (d.tema !== f.escopo) return false; }
+    else if (f.escopo !== 'todos' && d.escopo !== f.escopo) return false;
     if (f.soFortes && !d.destaque) return false;
     if (busca && !d.nome.toLowerCase().includes(busca)) return false;
     if (f.mes && Number(d.iso.slice(5, 7)) !== f.mes) return false;
@@ -397,8 +827,8 @@ function sazonalFiltrar(lista) {
 function sazonalLinhaHtml(d, hoje) {
   const dia = d.iso.slice(8, 10);
   const semana = ['dom','seg','ter','qua','qui','sex','sáb'][new Date(d.iso + 'T12:00:00').getDay()];
-  const escopo = SAZONAL_ESCOPOS[d.escopo] || SAZONAL_ESCOPOS.n;
-  const marcas = [`<span class="sz-marca" style="color:${escopo.cor};border-color:${escopo.cor}55;background:${escopo.cor}18">${escopo.nome}</span>`];
+  const grupo = SAZONAL_TEMAS[d.tema] || SAZONAL_ESCOPOS[d.escopo] || SAZONAL_ESCOPOS.n;
+  const marcas = [`<span class="sz-marca" style="color:${grupo.cor};border-color:${grupo.cor}55;background:${grupo.cor}18">${grupo.nome}</span>`];
   if (d.feriado) marcas.push('<span class="sz-marca" style="color:#ff5c7c;border-color:#ff5c7c55;background:#ff5c7c18">Feriado</span>');
   if (d.movel)   marcas.push('<span class="sz-marca" style="color:#849aa6;border-color:#849aa655;background:#849aa618">Muda todo ano</span>');
   const nome = typeof esc === 'function' ? esc(d.nome) : d.nome;
@@ -458,7 +888,19 @@ window.sazonalEscopo = function(e)   { SAZONAL_FILTRO.escopo = e;
   sazonalDesenhar(); };
 window.sazonalFortes = function(btn) { SAZONAL_FILTRO.soFortes = !SAZONAL_FILTRO.soFortes;
   btn.classList.toggle('ativo', SAZONAL_FILTRO.soFortes); sazonalDesenhar(); };
-window.sazonalBuscar = function(v)   { SAZONAL_FILTRO.busca = v || ''; sazonalDesenhar(); };
+// Quem digita "Lapao" quer achar a data, nao achar a data dentro de outubro. O
+// mes selecionado sai de cena enquanto ha busca, e volta quando ela esvazia.
+window.sazonalBuscar = function(v) {
+  const tinha = !!SAZONAL_FILTRO.busca;
+  SAZONAL_FILTRO.busca = v || '';
+  if (SAZONAL_FILTRO.busca) {
+    if (!tinha) SAZONAL_FILTRO.mesGuardado = SAZONAL_FILTRO.mes;
+    SAZONAL_FILTRO.mes = 0;
+  } else if (tinha) {
+    SAZONAL_FILTRO.mes = SAZONAL_FILTRO.mesGuardado || 0;
+  }
+  sazonalDesenhar();
+};
 window.sazonalAno    = function(d)   { SAZONAL_FILTRO.ano += d;
   const alvo = document.getElementById('sz-ano-valor');
   if (alvo) alvo.textContent = SAZONAL_FILTRO.ano;
@@ -509,6 +951,8 @@ window.abrirCalendarioSazonal = function() {
           <button type="button" class="sz-chip" data-escopo="i" onclick="sazonalEscopo('i')">Internacionais</button>
           <button type="button" class="sz-chip" data-escopo="e" onclick="sazonalEscopo('e')">Bahia</button>
           <button type="button" class="sz-chip" data-escopo="m" onclick="sazonalEscopo('m')">Municipais</button>
+          <button type="button" class="sz-chip" data-escopo="profissao" onclick="sazonalEscopo('profissao')">Profissões</button>
+          <button type="button" class="sz-chip" data-escopo="sabor" onclick="sazonalEscopo('sabor')">Comida e bebida</button>
           <button type="button" class="sz-chip" onclick="sazonalFortes(this)">Só as principais</button>
           <input type="text" class="sz-busca" placeholder="Buscar data..." oninput="sazonalBuscar(this.value)">
         </div>
