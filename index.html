@@ -4807,6 +4807,34 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
   font:500 10.5px var(--mac-ui)}
 #entrega-rapida .status-editor-dot{margin-top:4px}
 
+/* ─── A LINHA PERTENCE AO GRUPO DELA ─────────────────────────────────────────
+   Paulo: "e se tudo que tiver dentro de entregue por mim ficar azulzinho? em
+   execucao tudo laranjinha?". O cabecalho ja tinha ganhado a cor do estagio,
+   mas as linhas continuavam num cinza igual para todos — o bloco dizia uma
+   coisa e o conteudo dele nao acompanhava.
+
+   A cor entra na SUPERFICIE da linha, em lavagem fraca que se dissolve para a
+   direita. O que NAO muda: a pilula de status e a barrinha de prioridade, que
+   sao dados do quadro. Se as duas coisas usassem a mesma cor pelo mesmo motivo,
+   uma passaria a mentir sobre a outra — uma peca "Pode Fazer" dentro de
+   "Proximos prazos" ficaria amarela por dois motivos diferentes. */
+.focus-dashboard .focus-section .focus-task{
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--focus-group-color,#8f98a9) 14%,transparent),
+    color-mix(in srgb,var(--focus-group-color,#8f98a9) 7%,transparent) 52%,
+    color-mix(in srgb,var(--focus-group-color,#8f98a9) 3%,transparent) 100%)!important;
+  border-bottom-color:color-mix(in srgb,var(--focus-group-color,#8f98a9) 14%,transparent)!important}
+.focus-dashboard .focus-section .focus-task:last-child{border-bottom:0!important}
+.focus-dashboard .focus-section .focus-task:hover{
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--focus-group-color,#8f98a9) 17%,transparent),
+    color-mix(in srgb,var(--focus-group-color,#8f98a9) 8%,transparent) 46%,
+    rgba(255,255,255,.03) 88%)!important}
+/* A ficha do cliente encosta na familia da cor, sem virar mais uma etiqueta. */
+.focus-dashboard .focus-section .focus-task-client{
+  border-color:color-mix(in srgb,var(--focus-group-color,#8f98a9) 26%,transparent)!important;
+  background:color-mix(in srgb,var(--focus-group-color,#8f98a9) 12%,transparent)!important}
+
 </style></head>
 <body>
 
