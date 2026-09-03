@@ -16,7 +16,7 @@
    ========================================================================== */
 
 // [dia, nome, escopo, destaque, feriado]
-//   escopo:   'n' nacional · 'i' internacional · 'm' municipal
+//   escopo:   'n' nacional · 'i' internacional · 'e' Bahia e regiao · 'm' municipal
 //   destaque: 1 quando a data costuma virar post de verdade
 //   feriado:  1 quando o pais para (importa para agendar publicacao)
 const SAZONAL_FIXAS = [
@@ -39,6 +39,7 @@ const SAZONAL_FIXAS = [
 
   // ---- FEVEREIRO ----
   ['02-01', 'Fevereiro Roxo e Laranja — Lúpus, Alzheimer e Leucemia', 'n', 0, 0],
+  ['02-02', 'Dia de Iemanjá', 'e', 1, 0],
   ['02-04', 'Dia Mundial do Câncer', 'i', 1, 0],
   ['02-05', 'Dia Nacional da Mamografia', 'n', 0, 0],
   ['02-11', 'Dia Internacional das Mulheres e Meninas na Ciência', 'i', 0, 0],
@@ -94,6 +95,7 @@ const SAZONAL_FIXAS = [
   ['05-22', 'Dia Internacional da Biodiversidade', 'i', 0, 0],
   ['05-25', 'Dia do Orgulho Nerd', 'i', 1, 0],
   ['05-28', 'Dia Internacional de Luta pela Saúde da Mulher', 'i', 0, 0],
+  ['05-31', 'Emancipação Política de Irecê (1933) — aniversário da cidade', 'm', 1, 1],
   ['05-31', 'Dia Mundial sem Tabaco', 'i', 0, 0],
 
   // ---- JUNHO ----
@@ -105,11 +107,12 @@ const SAZONAL_FIXAS = [
   ['06-14', 'Dia Mundial do Doador de Sangue', 'i', 0, 0],
   ['06-24', 'São João — Festa Junina', 'n', 1, 0],
   ['06-26', 'Dia Internacional de Combate às Drogas', 'i', 0, 0],
+  ['06-29', 'São Pedro — encerramento dos festejos juninos', 'n', 1, 0],
   ['06-28', 'Dia Internacional do Orgulho LGBTQIA+', 'i', 1, 0],
 
   // ---- JULHO ----
   ['07-01', 'Julho Amarelo — Hepatites Virais', 'n', 0, 0],
-  ['07-02', 'Independência da Bahia (BA)', 'm', 0, 0],
+  ['07-02', 'Independência da Bahia — feriado estadual', 'e', 1, 1],
   ['07-09', 'Revolução Constitucionalista — feriado em São Paulo (SP)', 'm', 0, 0],
   ['07-10', 'Dia da Pizza', 'n', 1, 0],
   ['07-13', 'Dia Mundial do Rock', 'i', 1, 0],
@@ -118,12 +121,14 @@ const SAZONAL_FIXAS = [
   ['07-25', 'Dia do Escritor', 'n', 0, 0],
   ['07-26', 'Dia dos Avós', 'n', 1, 0],
   ['07-27', 'Dia Nacional de Prevenção de Acidentes de Trabalho', 'n', 0, 0],
+  ['07-28', 'Dia do Agricultor', 'n', 1, 0],
   ['07-28', 'Dia Mundial de Combate às Hepatites Virais', 'i', 0, 0],
   ['07-30', 'Dia Internacional da Amizade', 'i', 1, 0],
 
   // ---- AGOSTO ----
   ['08-01', 'Agosto Dourado — Aleitamento Materno', 'n', 1, 0],
   ['08-01', 'Agosto Lilás — Enfrentamento à Violência contra a Mulher', 'n', 1, 0],
+  ['08-04', 'São Domingos de Gusmão — padroeiro de Irecê', 'm', 1, 1],
   ['08-05', 'Dia Nacional da Saúde', 'n', 0, 0],
   ['08-07', 'Dia da Lei Maria da Penha', 'n', 0, 0],
   ['08-08', 'Dia Mundial do Gato', 'i', 1, 0],
@@ -155,6 +160,7 @@ const SAZONAL_FIXAS = [
   ['10-01', 'Dia Internacional do Idoso', 'i', 0, 0],
   ['10-04', 'Dia Mundial dos Animais', 'i', 1, 0],
   ['10-05', 'Dia Mundial do Professor', 'i', 0, 0],
+  ['10-08', 'Dia do Nordestino', 'e', 1, 0],
   ['10-10', 'Dia Mundial da Saúde Mental', 'i', 1, 0],
   ['10-12', 'Dia das Crianças', 'n', 1, 1],
   ['10-12', 'Nossa Senhora Aparecida', 'n', 1, 1],
@@ -194,6 +200,7 @@ const SAZONAL_FIXAS = [
 const SAZONAL_ESCOPOS = {
   n: { nome: 'Nacional',      cor: '#00c875' },
   i: { nome: 'Internacional', cor: '#579bfc' },
+  e: { nome: 'Bahia',         cor: '#a25ddc' },
   m: { nome: 'Municipal',     cor: '#ff9f43' }
 };
 
@@ -500,6 +507,7 @@ window.abrirCalendarioSazonal = function() {
           <button type="button" class="sz-chip ativo" data-escopo="todos" onclick="sazonalEscopo('todos')">Todas</button>
           <button type="button" class="sz-chip" data-escopo="n" onclick="sazonalEscopo('n')">Nacionais</button>
           <button type="button" class="sz-chip" data-escopo="i" onclick="sazonalEscopo('i')">Internacionais</button>
+          <button type="button" class="sz-chip" data-escopo="e" onclick="sazonalEscopo('e')">Bahia</button>
           <button type="button" class="sz-chip" data-escopo="m" onclick="sazonalEscopo('m')">Municipais</button>
           <button type="button" class="sz-chip" onclick="sazonalFortes(this)">Só as principais</button>
           <input type="text" class="sz-busca" placeholder="Buscar data..." oninput="sazonalBuscar(this.value)">
