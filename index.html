@@ -4760,6 +4760,44 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
   .focus-dashboard > .focus-next-action{padding:20px 18px 18px 22px!important}
 }
 
+/* ─── CADA ETAPA COM CARA DE ETAPA ───────────────────────────────────────────
+   "Em execucao hoje", "Conteudos a iniciar", "Entregue por mim", "Proximos
+   prazos" sairam todos com o mesmo cartao, o mesmo cabecalho e o mesmo cinza —
+   quatro estagios diferentes da vida de uma peca parecendo um bloco so.
+
+   A cor de cada grupo ja existia no codigo (--focus-group-color): laranja para
+   o que esta em execucao, amarelo para o que pode comecar, azul para o que
+   espera aprovacao, cinza para o que ainda vai vencer. Ela tinha sido achatada
+   pela camada de modernizacao. Volta — e volta so no CABECALHO, que e onde se
+   olha para saber em que estagio se esta. As linhas continuam neutras: a cor
+   delas e a do status, e sao duas coisas diferentes.
+
+   E os blocos ganham mais ar entre si do que dentro de si, que e o que faz o
+   olho separar objetos. */
+.focus-dashboard.active > .focus-section{margin-bottom:28px!important}
+
+.focus-dashboard .focus-section-head{
+  padding:13px 16px!important;
+  border-bottom:1px solid color-mix(in srgb,var(--focus-group-color,#8f98a9) 26%,transparent)!important;
+  background:linear-gradient(96deg,
+    color-mix(in srgb,var(--focus-group-color,#8f98a9) 15%,transparent),
+    color-mix(in srgb,var(--focus-group-color,#8f98a9) 4%,transparent) 38%,
+    transparent 68%)!important}
+.focus-dashboard .focus-section-head > span:first-child{
+  color:color-mix(in srgb,var(--focus-group-color,#8f98a9) 62%,#f4f6fa)!important;
+  font-size:11.5px!important;letter-spacing:.01em}
+
+/* O glifo da etapa (◉ ＋ ✓ ›) vira marcador: circulo na cor do grupo. */
+.focus-section-icone{display:inline-grid;place-items:center;width:20px;height:20px;
+  border-radius:50%;font-style:normal;font-size:10.5px;line-height:1;
+  color:color-mix(in srgb,var(--focus-group-color,#8f98a9) 82%,#ffffff);
+  background:color-mix(in srgb,var(--focus-group-color,#8f98a9) 22%,transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--focus-group-color,#8f98a9) 34%,transparent)}
+
+.focus-dashboard .focus-section-head b{
+  background:color-mix(in srgb,var(--focus-group-color,#8f98a9) 20%,transparent)!important;
+  color:color-mix(in srgb,var(--focus-group-color,#8f98a9) 55%,#ffffff)!important}
+
 </style></head>
 <body>
 

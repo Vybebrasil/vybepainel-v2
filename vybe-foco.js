@@ -325,7 +325,7 @@ function renderFocusDashboard() {
     // saia impresso na primeira linha, flutuando no meio dela sem nada em volta;
     // aqui ele fica onde a regra vale, e vale para todas.
     const dica = contextText || '';
-    return `<section class="focus-section" style="--focus-group-color:${tone}"><div class="focus-section-head"><span>${icon ? `${icon} ` : ''}${label} <b>${items.length}</b>${selo}</span><span class="focus-section-fim" title="${safeText(subtitle)}">${dica ? `<em class="focus-section-dica">${safeText(dica)}</em>` : ''}${more}</span></div><div class="focus-list">${(() => {
+    return `<section class="focus-section" style="--focus-group-color:${tone}"><div class="focus-section-head"><span>${icon ? `<i class="focus-section-icone" aria-hidden="true">${icon}</i>` : ''}${label} <b>${items.length}</b>${selo}</span><span class="focus-section-fim" title="${safeText(subtitle)}">${dica ? `<em class="focus-section-dica">${safeText(dica)}</em>` : ''}${more}</span></div><div class="focus-list">${(() => {
         const origens = new Set(displayed.map(d => isRequestItem(d) ? 'req' : 'con'));
         const donos = new Set(displayed.map(d => (d.responsavel_ids || [d.responsavel_id]).join(',')));
         const riscos = new Set(displayed.map(d => String(riskBadgeHtml(d, true) || '')));
