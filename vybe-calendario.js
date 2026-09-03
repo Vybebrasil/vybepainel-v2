@@ -213,7 +213,14 @@ function abrirCalendarioNoCampo(campo) {
 
   pintarCalendario();
   posicionarCalendario(campo, caixa);
-  requestAnimationFrame(() => { if (CAL_CAMPO === campo) posicionarCalendario(campo, caixa); });
+  requestAnimationFrame(() => {
+    if (CAL_CAMPO !== campo) return;
+    posicionarCalendario(campo, caixa);
+    // O foco entra no calendario, e nao volta para o campo: no campo ele
+    // acordaria o painel do navegador de novo.
+    (caixa.querySelector('.vcal-dia.escolhido')
+      || caixa.querySelector('.vcal-dia:not(.fora):not(:disabled)'))?.focus({ preventScroll: true });
+  });
   requestAnimationFrame(() => caixa.classList.add('aberto'));
   setTimeout(() => caixa.classList.add('aberto'), 40);
 }
@@ -246,16 +253,29 @@ document.addEventListener('mousedown', (evento) => {
   if (!campo || campo.disabled || campo.readOnly) return;
   // Uma tela que queira o calendário do navegador é só marcar o campo.
   if (campo.hasAttribute('data-calendario-nativo')) return;
-  // Segurar o gesto e o que impede o calendario do navegador de aparecer junto.
-  // Mas segurar o gesto tambem tira o foco do campo — e sem foco ninguem digita
-  // a data, que continua sendo o caminho mais rapido para quem sabe o dia. Por
-  // isso o foco e devolvido na mao: campo focado nao abre o painel do
-  // navegador, so posiciona o cursor nos numeros.
+  // NAO devolver o foco ao campo. No Safari e o FOCO que abre o painel de data
+  // dele — eu tinha devolvido o foco para nao perder a digitacao, e foi
+  // exatamente isso que fez os dois calendarios aparecerem juntos. Segurar o
+  // gesto sem focar e o que garante um calendario so.
+  //
+  // Digitar continua possivel: chegando ao campo pelo Tab, o Safari da o foco
+  // sem abrir painel nenhum, e ali se digita a data normalmente. Do teclado, a
+  // seta para baixo ou o espaco abrem este calendario, como num seletor.
   evento.preventDefault();
   evento.stopPropagation();
-  campo.focus({ preventScroll: true });
+  if (document.activeElement === campo) campo.blur();
   if (CAL_CAMPO === campo) return fecharCalendario();
   abrirCalendarioNoCampo(campo);
+}, true);
+
+// O mousedown ja foi segurado, mas o clique ainda acontece — e nao esta claro em
+// qual dos dois o Safari decide abrir o painel dele. Segurar os dois custa uma
+// linha e fecha a duvida.
+document.addEventListener('click', (evento) => {
+  const campo = evento.target?.closest?.('input[type="date"]');
+  if (!campo || campo.disabled || campo.readOnly) return;
+  if (campo.hasAttribute('data-calendario-nativo')) return;
+  evento.preventDefault();
 }, true);
 
 // Digitou a data com o calendario aberto? O dia marcado acompanha, senao a tela
