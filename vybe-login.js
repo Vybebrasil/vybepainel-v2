@@ -242,7 +242,10 @@ function pintarQuemSou() {
 
   caixa.style.display = '';
   const marca = document.getElementById('quem-sou-inicial');
-  marca.textContent = iniciais;
+  // Escrever as iniciais por cima apagaria a foto que ja carregou — e esta
+  // funcao agora e chamada de novo toda vez que o portao abre. As iniciais so
+  // entram enquanto nao ha foto.
+  if (!marca.querySelector('img')) marca.textContent = iniciais;
   // A foto existe no banco desde a migração para o Drive, e esta era a única
   // marca do painel que ainda mostrava as duas letras. As iniciais ficam como
   // alternativa: enquanto a foto não chega, e para quem não tem foto.
@@ -281,15 +284,7 @@ function alternarMenuDaConta() {
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 
-function alternarContaNoPortao() {
-  const menu = document.getElementById('identity-conta-menu');
-  if (!menu) return;
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-}
-
 function irParaMinhaConta() {
-  const noPortao = document.getElementById('identity-conta-menu');
-  if (noPortao) noPortao.style.display = 'none';
   // Vindo do portão, é preciso entrar em alguma estação antes de mostrar uma aba;
   // sem isso a tela fica no portão e o clique parece não fazer nada.
   const gate = document.getElementById('mode-gate');
@@ -300,8 +295,6 @@ function irParaMinhaConta() {
     }
     if (typeof closeModeGate === 'function') closeModeGate();
   }
-  // Fecha o menu do cabeçalho em vez de alternar: vindo do portão ele está
-  // fechado, e alternar o abriria sozinho.
   const doCabecalho = document.getElementById('quem-sou-menu');
   if (doCabecalho) doCabecalho.style.display = 'none';
   const btn = document.getElementById('btn-board-conta');
@@ -312,11 +305,5 @@ document.addEventListener('click', (evento) => {
   const menu = document.getElementById('quem-sou-menu');
   if (menu && menu.style.display !== 'none' && !evento.target.closest('#quem-sou')) {
     menu.style.display = 'none';
-  }
-  const noPortao = document.getElementById('identity-conta-menu');
-  if (noPortao && noPortao.style.display !== 'none'
-      && !evento.target.closest('#identity-conta-menu')
-      && !evento.target.closest('#identity-quem')) {
-    noPortao.style.display = 'none';
   }
 });

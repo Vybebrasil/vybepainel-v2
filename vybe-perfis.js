@@ -1391,20 +1391,35 @@ function setupIdentityInteractions() {
   });
 }
 
+// O crachá da conta — foto, nome, e-mail, "minha conta", "sair" — mora no
+// cabeçalho do painel. O portão cobre o cabeçalho inteiro, e por isso existia um
+// segundo crachá só dele, no rodapé, sem foto e com o mesmo menu escrito de
+// novo. Duas telas para a mesma coisa é como o painel junta bug: agora o crachá
+// é um só e muda de lugar. Estas duas funções são a mudança de lugar.
+let CASA_DO_CRACHA = null;
+function levarCrachaParaOPortao() {
+  const cracha = document.getElementById('quem-sou');
+  const encaixe = document.getElementById('identity-quem-slot');
+  if (!cracha || !encaixe || cracha.parentElement === encaixe) return;
+  CASA_DO_CRACHA = CASA_DO_CRACHA || cracha.parentElement;
+  encaixe.appendChild(cracha);
+}
+function devolverCrachaAoCabecalho() {
+  const cracha = document.getElementById('quem-sou');
+  if (!cracha || !CASA_DO_CRACHA || cracha.parentElement === CASA_DO_CRACHA) return;
+  // Volta para onde estava, e não para o fim da linha: o sino de avisos e o
+  // menu ficam depois dele.
+  const sino = CASA_DO_CRACHA.querySelector('.notif-wrap');
+  if (sino) CASA_DO_CRACHA.insertBefore(cracha, sino);
+  else CASA_DO_CRACHA.appendChild(cracha);
+}
+
 function openModeGate() {
   // O portão perguntava "qual estação você vai operar?" sem dizer quem estava
   // perguntando. Quem acabou de fazer login precisa ver em qual conta está.
-  const eu = pessoaLogada();
-  const rodape = document.getElementById('identity-quem');
-  if (rodape && eu) {
-    rodape.textContent = `${eu.nome}${eu.admin ? ' · administra o painel' : ''}`;
-    // O crachá do cabeçalho existe, mas o portão cobre o cabeçalho inteiro — daqui
-    // não havia como sair nem chegar na própria conta.
-    const cx = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
-    cx('identity-conta-nome', eu.nome || '');
-    cx('identity-conta-email', eu.email || '');
-    cx('identity-conta-papel', eu.admin ? 'Administra o painel' : 'Acesso da equipe');
-  }
+  if (typeof pintarQuemSou === 'function') pintarQuemSou();
+  levarCrachaParaOPortao();
+  document.getElementById('quem-sou-menu')?.style.setProperty('display', 'none');
   renderIdentityOperationalPulse();
   renderFocusUserPicker();
   setupIdentityInteractions();
@@ -1413,6 +1428,7 @@ function openModeGate() {
   identityDecodeTitle();
 }
 function closeModeGate() {
+  devolverCrachaAoCabecalho();
   document.getElementById('focus-picker')?.classList.remove('open');
   document.getElementById('mode-gate')?.classList.remove('focus-selecting');
   document.getElementById('mode-gate')?.classList.remove('open');

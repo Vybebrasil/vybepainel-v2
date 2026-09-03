@@ -1992,13 +1992,35 @@ header,.topbar{
 .identity-pulse{margin-top:20px}
 
 .identity-footer{position:relative}
-.identity-quem{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:6px;color:inherit;font:inherit;padding:4px 10px;cursor:pointer}
-.identity-quem:hover{background:rgba(255,255,255,.12)}
-.identity-conta-menu{position:absolute;right:0;bottom:calc(100% + 10px);z-index:60;width:min(272px,calc(100vw - 32px));background:#07101b;border:1px solid rgba(255,255,255,.16);border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.65);overflow:hidden;text-align:left}
-.identity-conta-menu>button{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid rgba(255,255,255,.06);color:#e7ecf5;padding:10px 12px;font:600 12px var(--mac-ui);cursor:pointer}
-.identity-conta-menu>button:hover{background:rgba(255,255,255,.06)}
-.identity-conta-menu>button.quem-sou-sair{color:#ff9aa4}
-.identity-conta-menu>button.quem-sou-sair:hover{background:rgba(240,71,86,.14)}
+/* O cracha da conta vive no cabecalho do painel, mas o portao cobre o cabecalho
+   inteiro. Em vez de uma segunda copia sem foto no rodape, o proprio cracha
+   muda de lugar enquanto o portao esta aberto — mesmo botao, mesma foto, mesmo
+   menu. Este e o encaixe dele no topo. */
+.identity-quem-slot{display:inline-flex;align-items:center;margin-left:14px}
+.identity-quem-slot:empty{display:none}
+/* Barra que fica no topo enquanto o portao esta aberto. Duas coisas atrapalham
+   e explicam o formato desta regra:
+   - position:fixed nao serve. O portao tem backdrop-filter, o que faz dele o
+     quadro de referencia de qualquer filho fixo — e o portao e justamente quem
+     rola. A barra "fixa" rolava junto.
+   - sticky sozinho tambem nao servia: a moldura (.identity-shell) tem
+     overflow:hidden, que a torna um contêiner de rolagem que nunca rola, e a
+     barra grudava nela em vez de grudar no portao. overflow:clip recorta igual
+     e nao cria contêiner de rolagem — e ai o grude passa a valer. */
+.mode-gate.open .identity-shell{overflow:clip}
+.mode-gate.open .identity-topline{position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:12px;
+  margin:-34px -44px 0;padding:15px 44px;
+  background:rgba(9,7,5,.94);backdrop-filter:blur(16px) saturate(1.1);
+  border-bottom:1px solid rgba(255,190,112,.15)}
+.mode-gate.open{align-items:flex-start}
+.identity-topline>span:nth-of-type(3){margin-left:auto}
+.identity-topline .quem-sou-nome{max-width:170px}
+.identity-topline .quem-sou-btn{padding:3px 10px 3px 4px}
+.identity-topline .quem-sou-menu{top:calc(100% + 8px);bottom:auto}
+@media(max-width:820px){.mode-gate.open .identity-topline{margin:-25px -20px 0;padding:12px 20px}
+  .identity-quem-slot{margin-left:8px}
+  .identity-topline>span:nth-of-type(2){margin-right:auto}}
 
 .conta-foto{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .conta-foto-atual{flex:0 0 auto;width:66px;height:66px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:rgba(255,107,0,.16);border:1px solid rgba(255,164,40,.35)}
@@ -4908,7 +4930,7 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 <div id="mode-gate" class="mode-gate" aria-modal="true" role="dialog">
   <div class="identity-shell">
     <div class="identity-grid" aria-hidden="true"></div>
-    <div class="identity-topline"><span class="ai-system-dot"></span><span>VYBE INTELLIGENCE / IDENTIFICAÇÃO DE ESTAÇÃO</span><span>CENTRAL OPERACIONAL // PRONTA</span></div>
+    <div class="identity-topline"><span class="ai-system-dot"></span><span>VYBE INTELLIGENCE / IDENTIFICAÇÃO DE ESTAÇÃO</span><span>CENTRAL OPERACIONAL // PRONTA</span><span class="identity-quem-slot" id="identity-quem-slot"></span></div>
     <div class="identity-hero"><div class="identity-overline">Vybe OS</div><h2>Qual estação você vai operar?</h2><p>Seu contexto ajusta a fila, os comandos e a inteligência que entra em cena.</p></div>
     <div class="identity-command-grid">
       <div class="identity-network" aria-hidden="true"><i class="identity-link gestor"></i><i class="identity-link foco"></i><i class="identity-link controler"></i><i class="identity-link cadastros"></i><i class="identity-link producao"></i><i class="identity-link clientes"></i></div>
@@ -4932,16 +4954,7 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
         <span class="station-top"><span>06 / NÚCLEO DE CLIENTES</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◉</span><span class="station-name">Clientes</span><span class="station-description">O cadastro mestre que conecta relacionamento, heads, acessos e toda a operação de cada conta.</span><span class="station-tags"><span>Heads</span><span>Acessos</span><span>Operação</span></span><span class="station-action"><em>Abrir núcleo</em><b>↗</b></span>
       </button>
     </div>
-    <div class="identity-footer"><span>Selecione uma estação para iniciar</span><button type="button" id="identity-quem" class="identity-quem" onclick="alternarContaNoPortao()">VYBE OS / CENTRAL OPERACIONAL</button>
-      <div class="identity-conta-menu" id="identity-conta-menu" style="display:none">
-        <div class="quem-sou-cabeca">
-          <b id="identity-conta-nome"></b>
-          <span id="identity-conta-email"></span>
-          <span class="quem-sou-papel" id="identity-conta-papel"></span>
-        </div>
-        <button type="button" onclick="irParaMinhaConta()">Minha conta e equipe</button>
-        <button type="button" class="quem-sou-sair" onclick="sairDaSessao()">Sair desta conta</button>
-      </div></div>
+    <div class="identity-footer"><span>Selecione uma estação para iniciar</span><span>VYBE OS / CENTRAL OPERACIONAL</span></div>
     <div id="focus-picker" class="focus-picker identity-focus-picker">
       <div class="focus-picker-head"><span>Identifique o operador para armar o console pessoal</span><button class="search-result-action" onclick="closeFocusPicker()">← Voltar às estações</button></div>
       <div id="focus-user-grid" class="focus-user-grid"></div>
