@@ -511,7 +511,10 @@ function processItems(rawItems, meta) {
     // Suporte a múltiplos clientes na mesma coluna (ex: "Daiana Miron, Larissa Fernanda")
     const clienteRaw = colMap[COLUNAS.producao.cliente] || '';
     if (!clienteRaw) continue;
-    const clientesList = clienteRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    // Os dois quadros precisam chamar o cliente pelo mesmo nome. So Solicitacoes
+    // passava por normalizarCliente; Producao lia o nome cru — e o mesmo cliente
+    // aparecia em duas fichas, uma com o apelido e outra sem.
+    const clientesList = clienteRaw.split(',').map(s=>normalizarCliente(s.trim())).filter(Boolean);
     // Filtrar clientes inativos — se TODOS forem inativos, pular o item
     const clientesAtivos = clientesList.filter(c => !CLIENTES_INATIVOS.has(c.toLowerCase()));
     if (clientesAtivos.length === 0) continue;
@@ -615,7 +618,7 @@ function processItemsAll(rawItems, meta) {
       colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index, updated_at: c.updated_at };
     });
     const clienteRaw = colMap[COLUNAS.producao.cliente] || '';
-    const clientesAtivos = clienteRaw.split(',').map(s=>s.trim()).filter(c => c && !CLIENTES_INATIVOS.has(c.toLowerCase()));
+    const clientesAtivos = clienteRaw.split(',').map(s=>normalizarCliente(s.trim())).filter(c => c && !CLIENTES_INATIVOS.has(c.toLowerCase()));
     // Itens sem cliente não desaparecem: entram como exceção visível para correção de cadastro.
     const cliente = clientesAtivos[0] || 'Sem cliente';
     const veiculacaoStr = colMap[COLUNAS.producao.veiculacao] || '';

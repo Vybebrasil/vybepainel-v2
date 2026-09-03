@@ -968,8 +968,10 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     // dois jeitos vindo do Monday — 'ConectaSim' no filtro do calendario e
     // 'Conectasim' na lista daqui, e o cadastro perguntava de novo um cliente
     // que ja estava escolhido. O que NAO se faz e aproximar por pedaco do nome:
-    // 'Gonzalez' e 'Gonzalez Advocacia' sao dois clientes de verdade, e chutar
-    // entre eles cadastraria a peca no cliente errado.
+    // dois clientes podem comecar igual, e chutar entre eles cadastraria a peca
+    // no cliente errado. (Este comentario citava 'Gonzalez' e 'Gonzalez
+    // Advocacia' como exemplo de dois clientes de verdade — nao sao: o cliente e
+    // Gonzalez Gastronomia, e o segundo nome nunca existiu.)
     const listaDeClientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
     const chaveCliente = (nome) => String(nome || '').normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');

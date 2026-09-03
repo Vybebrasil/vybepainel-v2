@@ -69,7 +69,16 @@ const CLIENTES_ALIAS = {
   'eskinão':               'Eskinao',
   'experimente papelaria':  'Experimente Papelaria',
   'experimente':             'Experimente Papelaria',
-  'gonzalez':               'Gonzalez Advocacia',
+  // Paulo em 03/09/2026: nao existe "Gonzalez Advocacia". O cliente e Gonzalez
+  // Gastronomia, e o time o chama de Gonzalez. O apelido estava ao contrario —
+  // renomeava o cliente de verdade para um que nao existe, e as pecas escritas
+  // com o nome errado ficavam numa ficha separada, como se fossem outra conta.
+  'gonzalez advocacia':     'Gonzalez',
+  // A tabela tambem padroniza a grafia: sem esta linha, uma peca escrita
+  // "GONZALEZ" viraria uma terceira ficha, do mesmo jeito que a errada virou a
+  // segunda.
+  'gonzalez':               'Gonzalez',
+  'gonzalez gastronomia':   'Gonzalez',
   'hellen rocha':           'Hellen',
   'igor lopes':             'Igor R. Lopes',
   'menina dos óculos':      'Menina dos Oculos',
