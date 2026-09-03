@@ -4835,6 +4835,15 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
   border-color:color-mix(in srgb,var(--focus-group-color,#8f98a9) 26%,transparent)!important;
   background:color-mix(in srgb,var(--focus-group-color,#8f98a9) 12%,transparent)!important}
 
+/* Peca ja entregue mostra "Prévia" no lugar de "Entregar"; o azul acompanha a
+   familia de quem esta aguardando aprovacao. */
+.focus-brief-btn.previa:hover{border-color:#579bfc!important;
+  background:rgba(87,155,252,.16)!important;color:#dbe9ff!important}
+.previa-grande-trocar{margin-left:auto;margin-right:10px;padding:6px 12px;border:1px solid var(--vybe-line);
+  border-radius:9px;background:rgba(255,255,255,.06);color:#d5dbe6;font:600 11.5px var(--mac-ui);
+  cursor:pointer;white-space:nowrap}
+.previa-grande-trocar:hover{border-color:#3de8a2;background:rgba(61,232,162,.14);color:#c9ffe6}
+
 </style></head>
 <body>
 

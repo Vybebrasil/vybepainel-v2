@@ -207,6 +207,45 @@ function focusDatasHtml(d, user = focusUser()) {
 // O botao na linha abre as MESMAS duas saidas da gaveta — arquivo pronto ou
 // link do material — chamando as mesmas funcoes de entrega, agora que elas
 // sabem de qual peca se trata.
+// PECA JA ENTREGUE NAO PEDE ENTREGA, PEDE CONFERENCIA.
+//
+// Paulo: "o que ja ta no azul, para aprovacao, no lugar do botao de entrega,
+// nao devia aparecer um ver previa? pq ja tem material". Exato — oferecer
+// "Entregar" a quem ja entregou convida a mandar de novo por engano.
+//
+// Nestes estados o material ja saiu da mao de quem produz: a linha mostra
+// "Previa", e trocar o arquivo continua possivel de dentro dela.
+const STATUS_JA_ENTREGUE = new Set(['para aprovação','para aprovacao','em aprovação','em aprovacao',
+  'aguardando aprovação','aguardando aprovacao','ag. aprovação cliente','ag. interno','aprovado',
+  'para agendar','agendado','finalizado','feito']);
+function jaTemMaterial(item) {
+  return STATUS_JA_ENTREGUE.has(normalizedWorkflowStatus(operationalFlowStatus(item)));
+}
+async function abrirPreviaDaEntrega(itemId, gatilho) {
+  if (gatilho) { gatilho.disabled = true; gatilho.classList.add('carregando'); }
+  let detail = null;
+  try { detail = await fetchWorkspaceItem(itemId); }
+  catch (erro) { showToast(`Não foi possível abrir a prévia: ${erro.message}`, 'err', 7000); return; }
+  finally { if (gatilho) { gatilho.disabled = false; gatilho.classList.remove('carregando'); } }
+  const artes = statusContextPreviewAssets(detail) || [];
+  if (artes.length) {
+    PREVIA_MATERIAL = artes;
+    PREVIA_DA_PECA = String(itemId);
+    return abrirPreviaGrande(0);
+  }
+  // Sem imagem, pode haver link — e o link e material tanto quanto o arquivo.
+  const entrega = typeof workspaceDeliveryInfo === 'function' ? workspaceDeliveryInfo(detail) : null;
+  if (entrega?.url) {
+    showToast('O material desta atividade é um link. Abrindo…', 'info', 4000);
+    window.open(entrega.url, '_blank', 'noopener');
+    return;
+  }
+  // O status diz que foi entregue e nao ha material: isso e um aviso, nao um
+  // beco — a entrega abre logo em seguida.
+  showToast('Esta atividade está marcada como entregue, mas não há arquivo nem link registrado.', 'info', 7000);
+  abrirEntregaRapida(itemId, { currentTarget: gatilho, stopPropagation() {} });
+}
+
 function fecharEntregaRapida() {
   document.getElementById('entrega-rapida-backdrop')?.remove();
   document.getElementById('entrega-rapida')?.remove();
@@ -280,7 +319,9 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <div class="focus-task-title"><div class="focus-task-name">${d.cliente ? `<span class="focus-task-client" title="Cliente: ${safeText(d.cliente)}">${safeText(d.cliente)}</span>` : ''}<button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button><button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">⤓<span>Entregar</span></button>${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button>${jaTemMaterial(d)
+      ? `<button type="button" class="focus-brief-btn previa" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">👁<span>Prévia</span></button>`
+      : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">⤓<span>Entregar</span></button>`}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
 
@@ -499,7 +540,7 @@ async function loadMaterialReviewPreview(itemId){
     const assets=statusContextPreviewAssets(detail);
     const delivery=workspaceDeliveryInfo(detail);
     const open=delivery?.url?`<a class="material-review-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a>`:'';
-    PREVIA_MATERIAL=assets;
+    PREVIA_MATERIAL=assets; PREVIA_DA_PECA='';
     PREVIA_GRANDE_INDICE=0;
     if(!assets.length){
       holder.innerHTML=`<div class="status-context-preview-empty"><b>Sem prévia visual</b>${delivery?.url?'Há um material vinculado. Abra-o antes de confirmar a conferência.':'Nenhum arquivo ou link final foi localizado nesta demanda.'}${open}</div>`;
@@ -554,7 +595,7 @@ async function carregarArteDaConferencia(itemId) {
     const detail = await fetchWorkspaceItem(itemId);
     const artes = statusContextPreviewAssets(detail) || [];
     const entrega = workspaceDeliveryInfo(detail);
-    PREVIA_MATERIAL = artes;
+    PREVIA_MATERIAL = artes; PREVIA_DA_PECA = '';
     const abrir = entrega?.url
       ? `<a class="material-review-open" href="${safeText(entrega.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a>`
       : '';
@@ -987,6 +1028,15 @@ let PREVIA_MATERIAL=[];
 // imagem cabe em 38% da altura da tela, o que serve para reconhecer a peça mas
 // não para conferir texto pequeno — e conferir é justamente o que se pede ali.
 let PREVIA_GRANDE_INDICE = 0;
+// De qual peca e a previa aberta. Vazio quando ela vem de um portao, onde a
+// pergunta e "esta certo?" e nao "quero trocar isto".
+let PREVIA_DA_PECA = '';
+function trocarMaterialDaPrevia(event) {
+  const id = PREVIA_DA_PECA;
+  if (!id) return;
+  fecharPreviaGrande();
+  abrirEntregaRapida(id, event);
+}
 
 function abrirPreviaGrande(indice = 0) {
   if (!PREVIA_MATERIAL.length) return;
@@ -1000,6 +1050,8 @@ function abrirPreviaGrande(indice = 0) {
       <div class="previa-grande-vidro">
         <div class="previa-grande-topo">
           <span id="previa-grande-nome"></span>
+          <button type="button" id="previa-trocar" class="previa-grande-trocar"
+            onclick="trocarMaterialDaPrevia(event)">⤓ Trocar material</button>
           <button class="x-fechar" type="button" onclick="fecharPreviaGrande()" aria-label="Fechar">✕</button>
         </div>
         <div class="previa-grande-palco">
@@ -1024,6 +1076,10 @@ function pintarPreviaGrande() {
   const nome = document.getElementById('previa-grande-nome');
   if (img) { img.src = a.url_thumbnail || a.public_url || a.url || ''; img.alt = a.name || ''; }
   if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.name || ''}`;
+  // "Trocar material" so aparece quando se sabe de qual peca e a previa — ela
+  // tambem abre de dentro de portoes, onde trocar o arquivo nao faz sentido.
+  const trocar = document.getElementById('previa-trocar');
+  if (trocar) trocar.style.display = PREVIA_DA_PECA ? '' : 'none';
   document.querySelectorAll('.previa-grande-seta').forEach((b) => {
     b.style.visibility = PREVIA_MATERIAL.length > 1 ? 'visible' : 'hidden';
   });
