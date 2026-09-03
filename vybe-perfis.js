@@ -26,11 +26,11 @@ function operatorOperationalSignal(userId) {
   const inProgress = items.filter(d => String(d.status || '').toLowerCase() === 'em andamento');
   const waiting = items.filter(d => SLA_STATUS_HOURS[d.status]);
   const lead = critical[0] || inProgress[0] || waiting[0] || items[0] || null;
-  if (!lead) return { total:0, critical:0, waiting:0, status:'SEM FILA', detail:'Nenhuma tarefa ativa', color:'#80654d', kind:'idle' };
-  if (critical.length) return { total:items.length, critical:critical.length, waiting:waiting.length, status:'ATENÇÃO', detail:`${critical.length} prazo${critical.length > 1 ? 's' : ''} crítico${critical.length > 1 ? 's' : ''}`, color:'#ff637a', kind:'critical' };
-  if (inProgress.length) return { total:items.length, critical:0, waiting:waiting.length, status:'EM EXECUÇÃO', detail:`${items.length} tarefa${items.length > 1 ? 's' : ''} ativa${items.length > 1 ? 's' : ''}`, color:lead.status_color || '#ff9d00', kind:'working' };
-  if (waiting.length) return { total:items.length, critical:0, waiting:waiting.length, status:safeText(lead.status || 'AGUARDANDO').toUpperCase(), detail:`${waiting.length} dependência${waiting.length > 1 ? 's' : ''} em espera`, color:lead.status_color || '#9d50dd', kind:'waiting' };
-  return { total:items.length, critical:0, waiting:0, status:safeText(lead.status || 'ATIVO').toUpperCase(), detail:`${items.length} tarefa${items.length > 1 ? 's' : ''} na fila`, color:lead.status_color || '#ff9d00', kind:'queued' };
+  if (!lead) return { total:0, critical:0, waiting:0, status:'SEM FILA', detail:'Sem fila', color:'#80654d', kind:'idle' };
+  if (critical.length) return { total:items.length, critical:critical.length, waiting:waiting.length, status:'ATENÇÃO', detail:`${critical.length} crítico${critical.length > 1 ? 's' : ''}`, color:'#ff637a', kind:'critical' };
+  if (inProgress.length) return { total:items.length, critical:0, waiting:waiting.length, status:'EM EXECUÇÃO', detail:`${items.length} ativa${items.length > 1 ? 's' : ''}`, color:lead.status_color || '#ff9d00', kind:'working' };
+  if (waiting.length) return { total:items.length, critical:0, waiting:waiting.length, status:safeText(lead.status || 'AGUARDANDO').toUpperCase(), detail:`${waiting.length} em espera`, color:lead.status_color || '#9d50dd', kind:'waiting' };
+  return { total:items.length, critical:0, waiting:0, status:safeText(lead.status || 'ATIVO').toUpperCase(), detail:`${items.length} na fila`, color:lead.status_color || '#ff9d00', kind:'queued' };
 }
 function pulseItemsFor(userId, kind) {
   const items = operatorAssignedItems(userId);
@@ -93,7 +93,13 @@ function renderFocusUserPicker() {
       <span class="op-retrato">${retrato}</span>
       <span class="op-copy">
         <b>${safeText(firstName(user.name))}</b>
-        <small>${safeText(sinal.detail)}</small>
+        <small>${sinal.total
+          // O numero sai do meio da frase e vira numero: com o rotulo em cinza,
+          // o que o olho pega e a quantidade, nao a palavra "criticos" repetida
+          // em oito dos dez cartoes.
+          ? `<em>${safeText(String(sinal.detail).match(/^\d+/)?.[0] || sinal.total)}</em> ${
+              safeText(String(sinal.detail).replace(/^\d+\s*/, ''))}`
+          : safeText(sinal.detail)}</small>
       </span>
       <span class="op-carga" aria-hidden="true"><i style="width:${carga}%"></i></span>
       ${souEu ? '<span class="op-voce">você</span>' : ''}

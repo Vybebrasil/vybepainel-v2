@@ -893,18 +893,31 @@
       left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;
       width:min(1150px,calc(100vw - 56px))!important;max-height:calc(100vh - 56px)!important;
       z-index:12!important;overflow:auto!important;padding:26px 28px 28px!important;
-      border-radius:24px!important;clip-path:none!important;
-      background:linear-gradient(165deg,rgba(26,19,12,.97),rgba(10,8,6,.985))!important;
-      border:1px solid rgba(255,255,255,.09)!important;
-      box-shadow:0 50px 110px -34px rgba(0,0,0,.96), inset 0 1px 0 rgba(255,228,196,.08)!important}
+      border-radius:26px!important;clip-path:none!important;
+      /* Estava 97% opaco: uma caixa escura com desenho de vidro. Vidro deixa o
+         fundo passar. Agora passa — e o desfoque forte e a saturacao alta e que
+         fazem o material, nao a cor. */
+      background:linear-gradient(165deg,rgba(30,27,24,.62),rgba(12,11,11,.74))!important;
+      backdrop-filter:blur(44px) saturate(190%)!important;
+      -webkit-backdrop-filter:blur(44px) saturate(190%)!important;
+      border:1px solid rgba(255,255,255,.11)!important;
+      box-shadow:0 60px 130px -38px rgba(0,0,0,.92), inset 0 1px 0 rgba(255,255,255,.11)!important}
     #focus-picker.identity-focus-picker.open{display:block!important;
       animation:identity-picker-in .34s cubic-bezier(.2,.86,.23,1) both}
     #focus-picker.identity-focus-picker .focus-picker-head{margin:0!important;padding:0 0 17px!important;
       border-bottom:1px solid rgba(255,255,255,.07)!important;color:#f2e5d5!important;
       font:600 14px var(--mac-ui)!important;letter-spacing:-.1px!important}
+    /* auto-fit deixava a ultima fileira coxa — dez cartoes em quatro colunas
+       sao duas cheias e uma com dois. Cinco colunas fecham exatamente. */
     #focus-picker.identity-focus-picker .op-grid{display:grid!important;
-      grid-template-columns:repeat(auto-fit,minmax(248px,1fr))!important;
-      gap:13px!important;padding:22px 0 0!important;align-content:start}
+      grid-template-columns:repeat(5,minmax(0,1fr))!important;
+      gap:12px!important;padding:22px 0 0!important;align-content:start}
+    @media(max-width:1080px){#focus-picker.identity-focus-picker .op-grid{
+      grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+    @media(max-width:880px){#focus-picker.identity-focus-picker .op-grid{
+      grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+    @media(max-width:620px){#focus-picker.identity-focus-picker .op-grid{
+      grid-template-columns:repeat(2,minmax(0,1fr))!important}}
     .mode-gate.focus-selecting .identity-topline,.mode-gate.focus-selecting .identity-hero,.mode-gate.focus-selecting .identity-command-grid,.mode-gate.focus-selecting .identity-footer{opacity:0;pointer-events:none}
     /* O translate agora tambem centra o painel: a animacao precisa carregar os
        dois, senao ela joga a caixa para o canto durante a entrada. */
@@ -913,7 +926,7 @@
     #focus-picker.identity-focus-picker{transform:translate(-50%,-50%)}
     @media(max-width:820px){#focus-picker.identity-focus-picker{padding:20px 16px 22px!important;
       width:calc(100vw - 24px)!important;max-height:calc(100vh - 24px)!important}
-      #focus-picker.identity-focus-picker .op-grid{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))!important;gap:9px!important;padding-top:16px!important}}
+      #focus-picker.identity-focus-picker .op-grid{gap:9px!important;padding-top:16px!important}}
 
     /* Boot V4 — atos reais da sincronização e desbloqueio da central. */
     .boot-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
@@ -2074,54 +2087,64 @@ header,.topbar{
 .mode-gate.focus-selecting .identity-shell{perspective:none!important}
 
 .op-card{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);
-  align-items:center;gap:14px;padding:15px 16px;cursor:pointer;text-align:left;
-  border:1px solid rgba(255,255,255,.085);border-radius:17px;clip-path:none;overflow:hidden;
-  background:linear-gradient(158deg,rgba(255,255,255,.062),rgba(255,255,255,.016));
-  backdrop-filter:blur(18px) saturate(150%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  align-items:center;gap:13px;padding:14px 15px 17px;cursor:pointer;text-align:left;
+  border:1px solid rgba(255,255,255,.1);border-radius:18px;clip-path:none;overflow:hidden;
+  background:linear-gradient(158deg,rgba(255,255,255,.075),rgba(255,255,255,.022));
+  backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
   transition:transform .26s cubic-bezier(.32,.72,0,1),border-color .26s,box-shadow .26s,background .26s}
 .op-card:hover{transform:translateY(-3px);
-  border-color:color-mix(in srgb,var(--op-cor) 55%,transparent);
-  background:linear-gradient(158deg,color-mix(in srgb,var(--op-cor) 15%,rgba(255,255,255,.05)),rgba(255,255,255,.02));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 18px 34px -16px rgba(0,0,0,.9)}
+  border-color:color-mix(in srgb,var(--op-cor) 50%,rgba(255,255,255,.2));
+  background:linear-gradient(158deg,color-mix(in srgb,var(--op-cor) 13%,rgba(255,255,255,.06)),rgba(255,255,255,.025));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 20px 38px -16px rgba(0,0,0,.9)}
 .op-card:active{transform:translateY(-1px) scale(.99)}
+/* Quem anda de teclado precisa ver onde esta. */
+.op-card:focus-visible{outline:2px solid rgba(255,190,112,.9);outline-offset:2px}
 
-/* O anel e a cor da pessoa — a unica coisa no cartao que e so identidade. */
-.op-retrato{position:relative;width:54px;height:54px;flex:none;border-radius:999px;
+/* O anel e so identidade: fino, para nao competir com o retrato. */
+.op-retrato{position:relative;width:52px;height:52px;flex:none;border-radius:999px;
   display:grid;place-items:center;
-  box-shadow:0 0 0 2px color-mix(in srgb,var(--op-cor) 85%,transparent),0 4px 14px -4px rgba(0,0,0,.9)}
-.op-retrato img,.op-iniciais{width:54px;height:54px;border-radius:999px;object-fit:cover;display:block}
+  box-shadow:0 0 0 1.5px color-mix(in srgb,var(--op-cor) 78%,transparent),
+             0 4px 14px -4px rgba(0,0,0,.9)}
+.op-retrato img,.op-iniciais{width:52px;height:52px;border-radius:999px;object-fit:cover;display:block}
 .op-iniciais{display:grid;place-items:center;background:var(--op-cor);color:#100a04;
-  font:700 17px var(--mac-ui);letter-spacing:-.5px}
+  font:700 16px var(--mac-ui);letter-spacing:-.5px}
 
-.op-copy{min-width:0;display:flex;flex-direction:column;gap:3px}
-.op-copy b{color:#fff6ec;font:600 16px/1.15 var(--mac-ui);letter-spacing:-.3px;
+.op-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+.op-copy b{color:#fff;font:600 16px/1.15 var(--mac-ui);letter-spacing:-.35px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.op-copy small{color:#9b8570;font:500 11.5px/1.35 var(--mac-ui);
+/* "prazos criticos" em vermelho aparecia em oito dos dez cartoes — era o
+   "ATENCAO" de volta, de outra roupa. A palavra fica cinza em todo mundo; quem
+   carrega a comparacao e o NUMERO e a barra. */
+.op-copy small{color:#9a9086;font:500 11.5px/1.3 var(--mac-ui);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.op-copy small em{font-style:normal;color:#fff;font:600 14px var(--mac-ui);
+  letter-spacing:-.3px;font-variant-numeric:tabular-nums;margin-right:1px}
 
-/* A carga: um fio no rodape do cartao, do tamanho da fila comparada com a
-   maior da equipe. E a informacao que a tela nao dava. */
-.op-carga{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.05)}
-.op-carga i{display:block;height:100%;background:var(--op-sinal);
-  box-shadow:0 0 12px -1px var(--op-sinal);transition:width .5s cubic-bezier(.32,.72,0,1)}
+/* A carga: trilho visivel de ponta a ponta, com a parte preenchida do tamanho
+   da fila comparada com a maior da equipe. Sem o trilho ficava um toco no
+   canto, que parece defeito e nao medida. */
+.op-carga{position:absolute;left:15px;right:15px;bottom:11px;height:3px;border-radius:999px;
+  background:rgba(255,255,255,.09);overflow:hidden}
+.op-carga i{display:block;height:100%;border-radius:999px;background:var(--op-sinal);
+  box-shadow:0 0 10px -1px var(--op-sinal);transition:width .55s cubic-bezier(.32,.72,0,1)}
 
-/* Cor so onde ha risco. Quem esta sem fila fica quieto, nao alarmado. */
-.op-critical .op-copy small{color:#ff8a9e}
-.op-idle{opacity:.62}
+/* Quem esta sem fila fica quieto, nao alarmado. */
+.op-idle{opacity:.55}
 .op-idle:hover{opacity:1}
-.op-idle .op-carga i{background:rgba(255,255,255,.14);box-shadow:none}
+.op-idle .op-carga i{background:rgba(255,255,255,.16);box-shadow:none}
 
-.op-voce{position:absolute;top:11px;right:12px;padding:2px 8px;border-radius:999px;
-  background:rgba(255,157,0,.16);border:1px solid rgba(255,157,0,.4);color:#ffc978;
-  font:600 9.5px var(--mac-ui);letter-spacing:.6px;text-transform:uppercase}
-.op-eu{border-color:rgba(255,157,0,.4);
-  background:linear-gradient(158deg,rgba(255,157,0,.13),rgba(255,255,255,.02))}
+.op-voce{position:absolute;top:10px;right:11px;padding:2px 8px;border-radius:999px;
+  background:rgba(255,157,0,.18);border:1px solid rgba(255,157,0,.42);color:#ffce8c;
+  font:600 9px var(--mac-ui);letter-spacing:.7px;text-transform:uppercase}
+.op-eu{border-color:rgba(255,157,0,.42);
+  background:linear-gradient(158deg,rgba(255,157,0,.14),rgba(255,255,255,.03))}
 
 @media(max-width:820px){
-  .op-card{gap:11px;padding:12px}
+  .op-card{gap:11px;padding:11px 12px 15px}
   .op-retrato,.op-retrato img,.op-iniciais{width:42px;height:42px}
-  .op-copy b{font-size:14px}}
+  .op-copy b{font-size:14px}
+  .op-carga{left:12px;right:12px;bottom:9px}}
 @media(prefers-reduced-motion:reduce){.op-card,.op-carga i{transition:none}}
 
 /* O TEXTO DA ARTE e literal: e o que vai ser escrito na peca. Por isso ele nao
