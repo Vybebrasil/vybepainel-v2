@@ -63,6 +63,32 @@ function statusDotInlineStyle(color) {
 // arrumá-las como couber no espaço delas — uma tabela larga e uma coluna
 // estreita não têm por que ter o mesmo formato —, mas a peça é a mesma.
 
+// ─── O LINK DA ATIVIDADE ─────────────────────────────────────────────────────
+//
+// Mandar uma peca no grupo do WhatsApp so dava para fazer por descricao — "a do
+// DiaCenter, aquele card da familia" — ou copiando o numero do id, que nao abre
+// nada sozinho. O link abre a peca direto, em qualquer maquina que tenha sessao.
+//
+// Uma implementacao so, usada pelo cartao rapido e pela gaveta: eram justamente
+// esses dois lugares que ja tinham cada um a sua copia do botao de copiar id.
+function linkDaAtividade(id) {
+  return `${location.origin}${location.pathname}?atividade=${encodeURIComponent(String(id))}`;
+}
+async function copiarLinkDaAtividade(id, botao) {
+  const link = linkDaAtividade(id);
+  try {
+    await navigator.clipboard.writeText(link);
+    if (botao) { const antes = botao.innerHTML; botao.innerHTML = '✓ copiado';
+      setTimeout(() => { botao.innerHTML = antes; }, 1600); }
+    showToast('✓ Link copiado · quem abrir cai direto nesta atividade', 'ok', 4000);
+  } catch { showToast(link, 'info', 12000); }
+}
+function botaoDeLinkHtml(item) {
+  if (!item?.id) return '';
+  return `<button type="button" class="vybe-link" onclick="event.stopPropagation();copiarLinkDaAtividade('${safeText(item.id)}',this)"
+    title="Copiar o link desta atividade para mandar no grupo">🔗 Copiar link</button>`;
+}
+
 function vybeChipId(item) {
   if (!item?.id) return '';
   return `<button type="button" class="vybe-id" onclick="event.stopPropagation();copiarId('${safeText(item.id)}')"

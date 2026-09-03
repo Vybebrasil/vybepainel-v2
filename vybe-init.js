@@ -22,6 +22,27 @@ async function carregarOperacao() {
   return pullOperationalMirror({ force: true });
 }
 
+// QUEM CHEGA POR UM LINK CAI NA PECA.
+//
+// O botao de copiar link nao serve de nada se abrir o endereco nao levar a lugar
+// nenhum. Aqui a peca e aberta assim que os dados chegam — na gaveta, e nao no
+// cartao rapido, porque o cartao se ancora numa linha da tela que ainda pode nao
+// existir para quem acabou de entrar.
+//
+// O endereco e limpo depois: recarregar a pagina uma hora depois nao deve
+// reabrir a peca de novo, e o painel volta a ser o painel.
+function abrirAtividadeDoLink() {
+  let id = '';
+  try { id = new URLSearchParams(location.search).get('atividade') || ''; } catch { return; }
+  if (!id) return;
+  try { history.replaceState(null, '', location.origin + location.pathname); } catch { /* segue */ }
+  const ehPedido = (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : [])
+    .some((d) => String(d.id) === String(id));
+  const abrir = ehPedido ? window.openDemandaWorkspace : window.openItemWorkspace;
+  if (typeof abrir !== 'function') return;
+  setTimeout(() => abrir(String(id)), 120);
+}
+
 function iniciarPainel() {
   // Depois de garantirSessao(), então já se sabe de quem são os avisos.
   if (typeof iniciarNotificacoes === 'function') iniciarNotificacoes();
@@ -37,6 +58,7 @@ function iniciarPainel() {
       const mirrored = await carregarOperacao();
       if (!mirrored) reconcileProductionCache();
       startOperationalMirrorFeed();
+      abrirAtividadeDoLink();
     }, 80);
   } else {
     setSyncHealth('checking', 'Sem cache local · buscando a base operacional no banco Vybe…');
@@ -45,6 +67,7 @@ function iniciarPainel() {
       const mirrored = await carregarOperacao();
       if (!mirrored) await refreshProducao();
       startOperationalMirrorFeed();
+      abrirAtividadeDoLink();
     }, 0);
   }
 }

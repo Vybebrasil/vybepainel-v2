@@ -446,6 +446,44 @@ function repintarCartaoRapido() {
   abrirCartaoRapido(id, { currentTarget: { getBoundingClientRect: () => rect } }, source);
 }
 
+// ─── CLICAR NUMA DEMANDA ABRE O RESUMO, EM QUALQUER TELA ─────────────────────
+//
+// O cartao rapido so nascia em tres lugares — calendario do gestor, lista de
+// solicitacoes e mesa do DA. Nos outros vinte e dois o clique ia direto para a
+// gaveta inteira: doze secoes e vinte botoes para quem so queria ver do que se
+// tratava. Paulo: "o resumo so abre no painel de direcao de arte, nao devia
+// abrir em qualquer lugar que eu clico numa demanda?".
+//
+// Vinte e duas edicoes espalhadas por seis arquivos seria muita chance de
+// esquecer uma. Em vez disso, uma interceptacao: o clique e pego na descida,
+// antes de chegar ao onclick da linha, e vira o cartao ancorado nela.
+//
+// Duas saidas ficam abertas de proposito: dentro do proprio cartao ("Abrir tudo")
+// e dentro da gaveta, onde openItemWorkspace continua significando o que diz —
+// sem isso o "Abrir tudo" reabriria o cartao para sempre. E a chamada
+// programatica (o link compartilhado, a busca) tambem segue direto, porque nao
+// passa por clique nenhum.
+document.addEventListener('click', (event) => {
+  const gatilho = event.target?.closest?.('[onclick*="openItemWorkspace("]');
+  if (!gatilho) return;
+  if (gatilho.closest('#cartao-rapido, #workspace-drawer, .cr-rodape')) return;
+  const acao = gatilho.getAttribute('onclick') || '';
+  const id = (acao.match(/openItemWorkspace\(\s*['"]([^'"]+)['"]/) || [])[1];
+  if (!id) return;
+  if (typeof abrirCartaoRapido !== 'function') return;
+  // Peca que nao esta na lista carregada — arquivada, de um relatorio, de outro
+  // recorte — nao tem cartao para mostrar. Nesses casos o clique segue o
+  // caminho de sempre e abre a gaveta, que busca o contexto no servidor.
+  const ehPedido = (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : [])
+    .some((d) => String(d.id) === String(id));
+  const achou = ehPedido || (typeof findOperationalItem === 'function' && findOperationalItem(id));
+  if (!achou) return;
+  event.preventDefault();
+  event.stopPropagation();
+  abrirCartaoRapido(id, { currentTarget: gatilho, preventDefault() {}, stopPropagation() {} },
+    ehPedido ? 'request' : 'content');
+}, true);
+
 function abrirCartaoRapido(itemId, event, source = 'content') {
   event?.preventDefault?.();
   event?.stopPropagation?.();
@@ -478,7 +516,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
 
   cartao.innerHTML = `
     <div class="cr-topo">
-      <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}</div>
+      <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}${botaoDeLinkHtml(item)}</div>
       <button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button>
     </div>
     <button type="button" class="cr-titulo" onclick="renomearPeca('${safeText(item.id)}')"
