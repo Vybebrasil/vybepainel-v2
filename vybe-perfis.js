@@ -72,12 +72,32 @@ function renderFocusUserPicker() {
   const eu = meuFoco();
   const users = TEAM_USERS.filter((u) => FOCUS_ACTIVE_IDS.has(u.id))
     .sort((a, b) => (a.id === eu ? -1 : 0) - (b.id === eu ? -1 : 0));
-  grid.innerHTML = users.map(user => {
-    const signal = operatorOperationalSignal(user.id);
-    const avatar = user.photo
-      ? `<img class="focus-user-avatar" src="${user.photo}" alt="${safeText(user.name)}" onerror="this.outerHTML='<span class=focus-user-avatar-fallback style=background:${user.color}>${user.name.slice(0,2).toUpperCase()}</span>'">`
-      : `<span class="focus-user-avatar-fallback" style="background:${user.color}">${user.name.slice(0,2).toUpperCase()}</span>`;
-    return `<button class="focus-user-card" style="--user-color:${user.color};--operator-signal:${signal.color}" onclick="chooseFocusUser('${user.id}')">${avatar}<span>${safeText(firstName(user.name))}</span><small class="operator-work-status">${safeText(signal.status)}</small><small class="operator-work-signal">${safeText(signal.detail)}</small></button>`;
+  grid.classList.add('op-grid');
+
+  // Um numero sozinho nao diz tamanho: 68 e 2 na mesma fonte e na mesma cor
+  // parecem a mesma coisa. A barra compara cada fila com a maior da equipe —
+  // e ai da para ver de longe quem esta afogado.
+  const sinais = users.map((user) => ({ user, sinal: operatorOperationalSignal(user.id) }));
+  const maior = Math.max(1, ...sinais.map((s) => s.sinal.total || 0));
+
+  grid.innerHTML = sinais.map(({ user, sinal }) => {
+    const iniciais = user.name.slice(0, 2).toUpperCase();
+    const retrato = user.photo
+      ? `<img src="${user.photo}" alt="" onerror="this.outerHTML='<span class=op-iniciais>${iniciais}</span>'">`
+      : `<span class="op-iniciais">${iniciais}</span>`;
+    const carga = Math.round(((sinal.total || 0) / maior) * 100);
+    const souEu = String(user.id) === String(eu);
+    return `<button type="button" class="op-card op-${sinal.kind}${souEu ? ' op-eu' : ''}"
+        style="--op-cor:${user.color};--op-sinal:${sinal.color}"
+        onclick="chooseFocusUser('${user.id}')" title="Abrir o Modo Foco de ${safeText(user.name)}">
+      <span class="op-retrato">${retrato}</span>
+      <span class="op-copy">
+        <b>${safeText(firstName(user.name))}</b>
+        <small>${safeText(sinal.detail)}</small>
+      </span>
+      <span class="op-carga" aria-hidden="true"><i style="width:${carga}%"></i></span>
+      ${souEu ? '<span class="op-voce">você</span>' : ''}
+    </button>`;
   }).join('');
 }
 
@@ -1548,9 +1568,15 @@ function souAdmin() { return Boolean(pessoaLogada()?.admin); }
 // A pessoa logada, quando ela é alguém que executa trabalho. Quem administra não
 // entra nessa lista e continua escolhendo o foco.
 function meuFoco() {
+  // A sessao guarda o id de vybe_pessoas; a fila e indexada pelo id do Monday.
+  // Comparar os dois direto nunca dava certo — esta funcao devolvia vazio em
+  // todo login, e o "a pessoa logada vem primeiro" nunca aconteceu. Quem faz a
+  // ponte e o pessoaPeloNome, o mesmo que a barra do topo usa.
   const eu = pessoaLogada();
-  const id = eu ? String(eu.id) : '';
-  return id && FOCUS_ACTIVE_IDS.has(id) && TEAM_USERS.some((u) => u.id === id) ? id : '';
+  if (!eu?.nome || typeof pessoaPeloNome !== 'function') return '';
+  const achado = pessoaPeloNome(eu.nome);
+  const id = achado?.id ? String(achado.id) : '';
+  return id && FOCUS_ACTIVE_IDS.has(id) ? id : '';
 }
 
 function initPanelMode() {
