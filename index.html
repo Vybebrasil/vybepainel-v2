@@ -4864,6 +4864,20 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .previa-grande-topo button.previa-grande-trocar:hover{
   border-color:#3de8a2;background:rgba(61,232,162,.14);color:#c9ffe6}
 
+/* ─── A CAIXA DE CONTEXTO PRECISA ROLAR ──────────────────────────────────────
+   Ela limita a altura em 88vh e nao rolava: numa tela mais baixa, 276px de
+   conteudo ficavam inalcancaveis — os cartoes de "quem executa" cortados no
+   meio e o campo de referencia vazando por baixo da barra de acoes, que fica
+   colada no rodape e passava a cobrir o que sobrava. Medi: caixa de 546px,
+   conteudo de 820px, overflow-y hidden.
+
+   A caixa rola por dentro, e a barra de acoes continua colada — que e o motivo
+   de ela existir. O que vinha DEPOIS dela some para tras quando ela gruda,
+   entao a linha de aviso sobe para antes. */
+.workflow-modal{overflow-y:auto!important;overscroll-behavior:contain}
+.workflow-modal .workflow-actions{background:var(--sup-1,#12151d)!important}
+.workflow-modal > .workflow-hint{margin-top:12px}
+
 </style></head>
 <body>
 
