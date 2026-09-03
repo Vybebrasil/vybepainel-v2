@@ -147,29 +147,54 @@ function focusNextActionHtml(data) {
     : faltam === 0 ? 'é hoje'
     : faltam === 1 ? 'amanhã'
     : `em ${faltam} dias`;
+  // O NUMERO GRANDE TEM DE SER A DATA QUE COBRA HOJE.
+  //
+  // O selo mostrava sempre a veiculacao. Numa peca que veicula em nove dias mas
+  // tem prazo para hoje, o cartao dizia "EM 9 DIAS" em corpo 36 ao lado da
+  // frase "Precisa avancar hoje" — o maior numero da tela contradizendo o
+  // motivo pelo qual ela esta ali. Quem bate o olho le o numero, nao a frase.
+  //
+  // Entao quem manda no selo e a data que cobra primeiro: o prazo, quando ele e
+  // hoje ou ja venceu; a veiculacao, no resto do tempo. A outra fica logo
+  // abaixo, no mesmo bloco — as duas continuam a vista, sem competir.
+  const prazoBr = diaBr(item.prazo_iso);
+  const prazoVencido = Boolean(item.prazo_iso && item.prazo_iso < hoje);
+  const prazoHoje = Boolean(item.prazo_iso && item.prazo_iso === hoje);
+  // Sem veiculacao nao ha o que por no lugar grande: o prazo assume, mesmo
+  // tranquilo. Melhor a data que existe do que um traco.
+  const mandaOPrazo = prazoVencido || prazoHoje || (!item.veiculacao_iso && Boolean(item.prazo_iso));
+  const rotuloDaVeic = ehPedido ? 'conclusão' : 'veiculação';
+  const principal = mandaOPrazo
+    ? { dia: prazoBr, rotulo: `prazo · ${prazoVencido ? 'venceu' : prazoHoje ? 'é hoje' : 'de entrega'}`,
+        classe: prazoVencido ? 'vencida' : prazoHoje ? 'urgente' : '',
+        outra: noAr ? `${rotuloDaVeic} ${noAr.slice(0, 5)} · ${quando}` : `sem ${rotuloDaVeic}`,
+        titulo: `Prazo de produção ${prazoBr}${prazoVencido ? ' — vencido' : ''}` }
+    : { dia: noAr, rotulo: `${rotuloDaVeic} · ${quando}`,
+        classe: item.veiculacao_iso === hoje ? 'urgente' : '',
+        outra: prazoBr ? `prazo ${prazoBr.slice(0, 5)}` : '',
+        titulo: noAr || 'sem data' };
   // No selo o ano e ruido: quem olha quer o dia, e o ano so muda a conversa em
   // dezembro. Ele continua no balao, para quem precisar conferir.
-  const selo = `<div class="focus-next-quando ${item.veiculacao_iso && item.veiculacao_iso === hoje ? 'urgente' : ''} ${item.veiculacao_iso && item.veiculacao_iso < hoje ? 'vencida' : ''}"
-      title="${safeText(noAr || 'sem data')}">
-      <b>${safeText(noAr.slice(0, 5) || '—')}</b>
-      <span>${ehPedido ? 'conclusão' : 'veiculação'} · ${safeText(quando)}</span>
+  const selo = `<div class="focus-next-quando ${principal.classe}" title="${safeText(principal.titulo)}">
+      <b>${safeText((principal.dia || '').slice(0, 5) || '—')}</b>
+      <span>${safeText(principal.rotulo)}</span>
+      ${principal.outra ? `<em class="focus-next-outra">${safeText(principal.outra)}</em>` : ''}
     </div>`;
-  const prazoBr = diaBr(item.prazo_iso);
-  const prazoHtml = prazoBr
-    ? `<span class="focus-next-prazo ${item.prazo_iso < hoje ? 'vencido' : ''}"
-        title="Prazo de produção${item.prazo_iso < hoje ? ' — vencido' : ''}"><b>Prazo</b>${prazoBr.slice(0, 5)}</span>` : '';
+  const prazoHtml = '';
   return `<section class="focus-next-action ${mode === 'next' ? 'e-a-proxima' : 'e-bloqueio'}">
-    <div class="focus-next-kicker">${title} · QUEM VAI AO AR PRIMEIRO</div>
+    <div class="focus-next-kicker" title="A ordem da fila é pela data de veiculação: quem vai ao ar primeiro vem primeiro.">${title}</div>
     <div class="focus-next-main">
       ${selo}
       <div class="focus-next-corpo">
-        <div class="focus-next-client">${safeText(item.cliente || 'Cliente não informado')}</div>
+        ${item.cliente ? `<span class="focus-next-client" title="Cliente: ${safeText(item.cliente)}">${safeText(item.cliente)}</span>` : ''}
         <div class="focus-next-name">${safeText(item.nome)}</div>
         <div class="focus-next-reason">${safeText(reason)}${prazoHtml}</div>
         ${focusTrailHtml(item)}${controlNote}
       </div>
       <div class="focus-next-tools">
         <button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>
+        <button type="button" class="focus-next-btn brief" onclick="abrirBriefing('${safeText(String(item.id))}',this)"
+          title="Ler o briefing sem abrir a peça">📄 Ver briefing</button>
         ${statusControl}${checkinControl}${secondary}
       </div>
     </div></section>`;
