@@ -28,6 +28,11 @@
       
       .fc-header { padding:28px 32px 20px; display:flex; flex-direction:column; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
       .fc-kicker { font:800 11px monospace; color:#00f0ff; letter-spacing:1px; text-transform:uppercase; }
+      .fc-sazonal-btn { align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
+        background:rgba(0,240,255,.1); border:1px solid rgba(0,240,255,.32); color:#7fe8f5;
+        border-radius:999px; padding:6px 14px; font:600 12px var(--mac-ui, sans-serif); cursor:pointer;
+        transition:background .15s, color .15s; }
+      .fc-sazonal-btn:hover { background:rgba(0,240,255,.2); color:#fff; }
       .fc-title-input { background:transparent; border:none; color:#fff; font:800 32px/1.2 var(--mac-ui, sans-serif); width:100%; outline:none; letter-spacing:-0.5px; }
       .fc-title-input::placeholder { color:rgba(255,255,255,0.2); }
 
@@ -983,8 +988,13 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     if (inicio.veic) {
       state.itens[0].veic = inicio.veic;
       state.itens[0].prazo = inicio.prazo || getOffsetDate(inicio.veic, -7);
-      fcEspelharPrimeiro();
     }
+    // O calendario sazonal manda tambem o nome da data e um comeco de briefing:
+    // sem isso quem escolheu "Dia do Cliente" teria que redigitar "Dia do
+    // Cliente" na linha seguinte.
+    if (inicio.titulo) state.itens[0].titulo = inicio.titulo;
+    if (inicio.brief)  state.itens[0].brief  = inicio.brief;
+    if (inicio.veic || inicio.titulo || inicio.brief) fcEspelharPrimeiro();
 
     // Exposta porque a troca de quadro precisa redesenhar grupo, status e a
     // terceira coluna — e ela mora dentro desta função.
@@ -1097,6 +1107,8 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
          <div class="fc-main-col">
              <div class="fc-header">
                 <div class="fc-kicker">Cadastro rápido</div>
+                <button type="button" class="fc-sazonal-btn" onclick="abrirCalendarioSazonal()">
+                   📅 Calendário sazonal</button>
              </div>
              <div class="fc-body"><div id="fc-guia"></div></div>
          </div>
@@ -1156,7 +1168,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     // cliente e data, abre direto na primeira pergunta que falta — o passo
     // pulado continua no trilho do topo, a um clique de distancia.
     fcPasso = 0;
-    if (inicio.client || inicio.veic || inicio.board) {
+    if (inicio.client || inicio.veic || inicio.board || inicio.titulo) {
       const pendente = FC_PASSOS.findIndex((q) => !fcRespondido(q));
       fcPasso = pendente < 0 ? FC_PASSOS.length - 1 : pendente;
     }
@@ -1180,6 +1192,30 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
            }
        });
     });
+  };
+
+  // Chamada pelo calendario sazonal com o cadastro JA aberto. Reabrir do zero
+  // jogaria fora o cliente e o formato que a pessoa acabou de escolher, entao
+  // aqui a data so entra na lista: ocupa o conteudo em branco se houver um, e
+  // senao vira mais um conteudo — escolher tres datas cadastra as tres juntas.
+  window.fcPreencherDoCalendario = function(dados) {
+    if (!dados || !dados.veic) return;
+    fcSincronizarDaTela();
+    const vazio = state.itens.findIndex(
+      (i) => !String(i.titulo || '').trim() && !i.veic && !String(i.brief || '').trim());
+    const item = { titulo: dados.titulo || '', veic: dados.veic,
+                   prazo: dados.prazo || getOffsetDate(dados.veic, -7), brief: dados.brief || '' };
+    if (vazio >= 0) state.itens[vazio] = item; else state.itens.push(item);
+    fcEspelharPrimeiro();
+
+    // Vai para a primeira pergunta que ainda falta. Com cliente e formato ja
+    // respondidos isso cai na lista de conteudos, que e onde a data aparece.
+    const pendente = FC_PASSOS.findIndex((q) => !fcRespondido(q));
+    fcPasso = pendente < 0 ? FC_PASSOS.indexOf('itens') : pendente;
+    fcDesenharPasso();
+    if (typeof showToast === 'function') {
+      showToast(`${dados.titulo || 'Data'} entrou no cadastro — veiculação em ${dados.veic.split('-').reverse().join('/')}.`, 'ok');
+    }
   };
 
   window.fcCloseModal = function() {
