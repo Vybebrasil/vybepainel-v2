@@ -198,6 +198,56 @@ function focusDatasHtml(d, user = focusUser()) {
 // visivel — nove pontinhos misteriosos numa tela de nove linhas, e o rotulo so
 // aparecia parando o mouse em cima. Ele abria o editor de prazo e veiculacao,
 // que e exatamente o que as datas ao lado dizem. Entao sao elas que abrem.
+// ─── ENTREGAR DA PRÓPRIA LINHA ───────────────────────────────────────────────
+//
+// Entregar exigia abrir a peca inteira, rolar ate "Entregar" e so entao
+// escolher entre arquivo e link. Para quem acabou de exportar um card, isso e
+// tres passos antes do primeiro passo.
+//
+// O botao na linha abre as MESMAS duas saidas da gaveta — arquivo pronto ou
+// link do material — chamando as mesmas funcoes de entrega, agora que elas
+// sabem de qual peca se trata.
+function fecharEntregaRapida() {
+  document.getElementById('entrega-rapida-backdrop')?.remove();
+  document.getElementById('entrega-rapida')?.remove();
+}
+function abrirEntregaRapida(itemId, event) {
+  event?.stopPropagation?.();
+  fecharEntregaRapida();
+  const rect = (event?.currentTarget || event?.target)?.getBoundingClientRect();
+  const fundo = document.createElement('div');
+  fundo.id = 'entrega-rapida-backdrop'; fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharEntregaRapida;
+  const menu = document.createElement('div');
+  menu.id = 'entrega-rapida'; menu.className = 'status-editor';
+  menu.innerHTML = `<div class="status-editor-head">Entregar</div>
+    <button type="button" class="status-editor-option" onclick="escolherArquivoDaEntrega('${safeText(String(itemId))}')">
+      <span class="status-editor-dot" style="background:#3de8a2;color:#3de8a2"></span>
+      <span>Enviar arquivo <small>card, arte ou PDF</small></span></button>
+    <button type="button" class="status-editor-option" onclick="colarLinkDaEntrega('${safeText(String(itemId))}')">
+      <span class="status-editor-dot" style="background:#579bfc;color:#579bfc"></span>
+      <span>Colar link <small>vídeo, ou arquivo grande demais</small></span></button>`;
+  document.body.append(fundo, menu);
+  if (rect) ancorarPopover(menu, rect);
+}
+function escolherArquivoDaEntrega(itemId) {
+  fecharEntregaRapida();
+  const input = document.createElement('input');
+  input.type = 'file'; input.multiple = true;
+  input.accept = 'image/png,image/jpeg,image/webp,application/pdf';
+  input.onchange = () => uploadWorkspaceFile(input, itemId);
+  input.click();
+}
+async function colarLinkDaEntrega(itemId) {
+  fecharEntregaRapida();
+  const url = await perguntarNoPainel({
+    titulo: 'Link do material',
+    texto: 'Cole o link do Drive, Frame.io ou Canva. Ele fica no histórico da atividade, com quem registrou e quando.',
+    campo: { valor: '', dica: 'https://…' },
+    confirmar: 'Registrar link' });
+  if (url) await registrarLinkDeEntrega(url, itemId);
+}
+
 function datasEditaveisHtml(d, user) {
   const gap = goldenDeadlineGap(d?.prazo_iso, d?.veiculacao_iso);
   const risco = gap !== null && gap < PRAZO_OURO_DIAS;
@@ -230,7 +280,7 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <div class="focus-task-title"><div class="focus-task-name">${d.cliente ? `<span class="focus-task-client" title="Cliente: ${safeText(d.cliente)}">${safeText(d.cliente)}</span>` : ''}<button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button>${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button><button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">⤓<span>Entregar</span></button>${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
 
@@ -2036,29 +2086,38 @@ document.addEventListener('click', event => {
   event.stopPropagation();
   openItemWorkspace(match[1]);
 }, true);
-async function postWorkspaceUpdate(body, successMessage) {
-  if (!activeWorkspaceItemId) return;
+async function postWorkspaceUpdate(body, successMessage, itemId) {
+  const alvo = String(itemId || activeWorkspaceItemId || '');
+  if (!alvo) return;
   const text = String(body || '').trim();
   if (!text) return showToast('Escreva uma atualização antes de enviar.', 'info');
-  const item = findOperationalItem(activeWorkspaceItemId) || { id:activeWorkspaceItemId };
-  await tentarEscritaDupla(item, { acao:'comentario', item:String(activeWorkspaceItemId), texto:text });
+  const item = findOperationalItem(alvo) || { id: alvo };
+  await tentarEscritaDupla(item, { acao:'comentario', item:alvo, texto:text });
   showToast(successMessage, 'ok');
   const input = document.getElementById('workspace-comment-input'); if (input) input.value = '';
   const link = document.getElementById('workspace-link-input'); if (link) link.value = '';
-  const atualizado = findOperationalItem(activeWorkspaceItemId);
-  if (atualizado) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), atualizado);
+  const atualizado = findOperationalItem(alvo);
+  if (atualizado && String(activeWorkspaceItemId) === alvo && document.getElementById('workspace-drawer')) {
+    renderWorkspaceDrawer(await fetchWorkspaceItem(alvo), atualizado);
+  }
 }
 async function saveWorkspaceComment() {
   const input = document.getElementById('workspace-comment-input');
   try { await postWorkspaceUpdate(`[Vybe OS] ${input?.value || ''}`, '✓ Atualização registrada no Vybe OS'); }
   catch (e) { showToast(`Não foi possível registrar: ${e.message}`, 'err', 7000); }
 }
+// O registro do link vira uma funcao que recebe o endereco e a peca; a caixa da
+// gaveta so entrega o que digitaram nela.
+async function registrarLinkDeEntrega(url, itemId) {
+  const limpo = String(url || '').trim();
+  if (!/^https?:\/\//i.test(limpo)) return showToast('Cole um link válido começando com https://', 'info');
+  try {
+    await postWorkspaceUpdate(`[Vybe OS · Link de entrega] ${limpo}`,
+      '✓ Link de entrega registrado no Vybe OS', itemId);
+  } catch (e) { showToast(`Não foi possível registrar o link: ${e.message}`, 'err', 7000); }
+}
 async function saveWorkspaceLink() {
-  const input = document.getElementById('workspace-link-input');
-  const url = String(input?.value || '').trim();
-  if (!/^https?:\/\//i.test(url)) return showToast('Cole um link válido começando com https://', 'info');
-  try { await postWorkspaceUpdate(`[Vybe OS · Link de entrega] ${url}`, '✓ Link de entrega registrado no Vybe OS'); }
-  catch (e) { showToast(`Não foi possível registrar o link: ${e.message}`, 'err', 7000); }
+  return registrarLinkDeEntrega(document.getElementById('workspace-link-input')?.value);
 }
 function handleWorkspaceDrop(event) {
   event.preventDefault();
@@ -2204,10 +2263,15 @@ async function enviarArquivoGrande(corpo, file, aoAndar) {
 // e fatiado em pedacos, e disparar dez em paralelo multiplicaria as idas ao
 // servidor sem acelerar nada. Um que falha nao derruba os outros — o aviso do
 // fim diz quantos foram e quais nao deram.
-async function uploadWorkspaceFile(input) {
+// Entregar deixou de exigir a gaveta aberta: as duas funcoes de entrega —
+// arquivo e link — passam a receber de QUAL peca se trata, em vez de deduzir
+// da gaveta. A gaveta continua chamando sem informar nada e continua valendo o
+// que ela tem aberto; a linha da fila informa e nao precisa abrir nada.
+async function uploadWorkspaceFile(input, itemId) {
+  const alvo = String(itemId || activeWorkspaceItemId || '');
   const arquivos = [...(input?.files || [])];
-  if (!arquivos.length || !activeWorkspaceItemId) return;
-  const item = findOperationalItem(activeWorkspaceItemId);
+  if (!arquivos.length || !alvo) return;
+  const item = findOperationalItem(alvo);
   const total = arquivos.length;
   const foram = []; const falhas = [];
   try {
@@ -2219,7 +2283,7 @@ async function uploadWorkspaceFile(input) {
       try {
         // Arquivo de 40 MB leva vinte idas ao servidor. Sem contar em voz alta,
         // a tela parece travada e a pessoa fecha no meio.
-        await enviarArquivoDaPeca(activeWorkspaceItemId, file, (pct) => {
+        await enviarArquivoDaPeca(alvo, file, (pct) => {
           if (pct < 100) showToast(`Enviando ${file.name}${deQuantos} · ${pct}%`, 'info', 60000);
         });
         foram.push(file.name);
@@ -2238,6 +2302,11 @@ async function uploadWorkspaceFile(input) {
         confirmar: 'Entendi',
       });
     }
-    if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId), item);
+    // A gaveta so se redesenha se for a desta peca que esta aberta.
+    if (item && String(activeWorkspaceItemId) === alvo && document.getElementById('workspace-drawer')) {
+      renderWorkspaceDrawer(await fetchWorkspaceItem(alvo), item);
+    } else if (foram.length && typeof renderOutboundItemPatch === 'function') {
+      renderOutboundItemPatch('entrega pela linha');
+    }
   } finally { if (input) input.value = ''; }
 }
