@@ -568,7 +568,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
     </div>
     <div class="cr-titulo" role="button" tabindex="0"
       onclick="event.stopPropagation();renomearPeca('${safeText(item.id)}',event)"
-      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();renomearPeca('${safeText(item.id)}',event)}"
+      onkeydown="if(this.dataset.editando!=='1'&&(event.key==='Enter'||event.key===' ')){event.preventDefault();renomearPeca('${safeText(item.id)}',event)}"
       title="Clique para renomear aqui mesmo">${safeText(item.nome || 'Sem título')}</div>
     <div class="cr-campos">
       ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
