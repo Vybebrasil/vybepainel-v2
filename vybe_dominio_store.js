@@ -43,6 +43,9 @@ const PAPEIS = {
   '68036697': { papel: 'Edição & Motion', disciplina: 'audiovisual' },
 };
 
+// Palpite inicial para cliente NOVO — não é quem decide. Quem decide se um
+// cliente está ativo é a tela de Clientes; esta lista só dá o valor de partida
+// de um nome que aparece pela primeira vez.
 // Clientes fora de operação. Hoje esta lista vive em CLIENTES_INATIVOS no
 // vybe-config.js, do lado do navegador, e some 107 conteúdos da tela por regra
 // de código. Isso é cadastro, não código: passa a viver em vybe_clientes.ativo.
@@ -433,10 +436,18 @@ export async function popularDoEspelho() {
   // ── clientes ──────────────────────────────────────────────────────────────
   const nomesClientes = new Set();
   for (const item of itens) lista(item, 'lista_suspensa_mkmqnjbv').forEach((n) => nomesClientes.add(n));
+  // Esta linha reescrevia o `ativo` de TODOS os clientes a partir da lista fixa,
+  // toda vez que rodava. Quem marcasse um cliente como ativo na tela de Clientes
+  // via a escolha ser desfeita na proxima carga — e ninguem ligaria uma coisa a
+  // outra. Quem decide se um cliente esta ativo e a TELA, e nao esta lista.
+  //
+  // A lista sobrevive so como palpite inicial de cliente NOVO: nasce desativado
+  // se estiver nela. Cliente que ja existe fica com o que foi decidido na tela.
   for (const nome of nomesClientes) {
-    await sql`INSERT INTO vybe_clientes (nome) VALUES (${nome}) ON CONFLICT (nome) DO NOTHING`;
+    const nasceAtivo = !CLIENTES_INATIVOS.has(String(nome).trim().toLowerCase());
+    await sql`INSERT INTO vybe_clientes (nome, ativo) VALUES (${nome}, ${nasceAtivo})
+      ON CONFLICT (nome) DO NOTHING`;
   }
-  await sql`UPDATE vybe_clientes SET ativo = NOT (LOWER(nome) = ANY(${Array.from(CLIENTES_INATIVOS)}))`;
 
   const clientePorNome = new Map(
     (await sql`SELECT id, nome FROM vybe_clientes`).map((r) => [r.nome, Number(r.id)])

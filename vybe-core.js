@@ -523,7 +523,7 @@ function processItems(rawItems, meta) {
     // aparecia em duas fichas, uma com o apelido e outra sem.
     const clientesList = clienteRaw.split(',').map(s=>normalizarCliente(s.trim())).filter(Boolean);
     // Filtrar clientes inativos — se TODOS forem inativos, pular o item
-    const clientesAtivos = clientesList.filter(c => !CLIENTES_INATIVOS.has(c.toLowerCase()));
+    const clientesAtivos = clientesList.filter(c => !clienteDesativado(c));
     if (clientesAtivos.length === 0) continue;
     // Usar apenas o primeiro cliente ativo (evita card duplo)
     const cliente = clientesAtivos[0];
@@ -625,7 +625,7 @@ function processItemsAll(rawItems, meta) {
       colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index, updated_at: c.updated_at };
     });
     const clienteRaw = colMap[COLUNAS.producao.cliente] || '';
-    const clientesAtivos = clienteRaw.split(',').map(s=>normalizarCliente(s.trim())).filter(c => c && !CLIENTES_INATIVOS.has(c.toLowerCase()));
+    const clientesAtivos = clienteRaw.split(',').map(s=>normalizarCliente(s.trim())).filter(c => c && !clienteDesativado(c));
     // Itens sem cliente não desaparecem: entram como exceção visível para correção de cadastro.
     const cliente = clientesAtivos[0] || 'Sem cliente';
     const veiculacaoStr = colMap[COLUNAS.producao.veiculacao] || '';

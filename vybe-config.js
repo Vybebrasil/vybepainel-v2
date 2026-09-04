@@ -102,6 +102,26 @@ function normalizarCliente(nome) {
   return CLIENTES_ALIAS[key] || nome.trim();
 }
 
+// QUEM DECIDE SE UM CLIENTE ESTA ATIVO E A TELA DE CLIENTES, e mais ninguem.
+//
+// Havia duas decisoes rodando ao mesmo tempo: o interruptor "Ativo" do cadastro
+// (que o servidor aplica — peca de cliente inativo nem sai do banco) e esta
+// lista escrita aqui dentro. A lista nao vinha da tela nenhuma: marcar um
+// destes nomes como Ativo no cadastro NAO o trazia de volta, porque ela
+// continuava barrando. E ela so valia para Producao — em Solicitacoes o mesmo
+// cliente passava.
+//
+// Agora ela vale so no modo de emergencia, quando o painel le o espelho do
+// Monday direto e nao ha cadastro nenhum filtrando antes. No dia a dia — que e
+// a leitura pelo banco — quem manda e o cadastro.
+function clienteDesativado(nome) {
+  const lendoDoBanco = typeof fonteDeLeitura === 'function' ? fonteDeLeitura() === 'dominio' : true;
+  if (lendoDoBanco) return false;
+  return CLIENTES_INATIVOS.has(String(nome || '').trim().toLowerCase());
+}
+
+// Ultimo recurso do modo de emergencia. Nao editar por aqui para desativar um
+// cliente: use a tela de Clientes.
 const CLIENTES_INATIVOS = new Set([
   'acquaville','blog ace','camarote sertão','camarote sertao','cavaco de pau',
   'comunidade facilite entre mães','comunidade facilite entre maes',
