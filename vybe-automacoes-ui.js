@@ -250,6 +250,8 @@ function pintarAutomacoes() {
           : 'Só quem administra pode alterar — a lista fica visível para todos porque é ela que explica por que um card muda de dono sozinho.'}</p>
       </div>
       ${admin ? `<div class="auto-cabeca-acoes">
+        <button class="auto-sincronizar" onclick="recalcularPrioridadesAgora(this)"
+          title="Refaz a coluna Prioridade de todas as peças a partir da veiculação. Roda sozinho toda madrugada; isto aqui é para não esperar.">Recalcular prioridades</button>
         <button class="auto-sincronizar" onclick="sincronizarRegrasDoSistema(this)"
           title="Traz para o painel as regras que vieram do Monday, corrigindo as que mudaram. Regra criada aqui não é tocada.">Sincronizar regras do sistema</button>
         <button class="auto-novo" onclick="editarAutomacao(null)">+ Nova regra</button>
@@ -258,6 +260,10 @@ function pintarAutomacoes() {
     <div class="auto-pastilhas">${pastilhas}</div>
     ${temRegraDeData ? `<p class="auto-aviso-varredura">As regras por data rodam numa
       varredura por dia, de madrugada — não na hora que estiver escrita nelas.</p>` : ''}
+    <p class="auto-aviso-varredura">A coluna <b>Prioridade</b> não é escrita à mão: ela é o
+      espelho da veiculação. Atrasado, hoje ou amanhã é <b>Crítica</b>; 2 a 3 dias, <b>Alta</b>;
+      4 a 7 dias, <b>Média</b>; 8 dias ou mais, <b>Baixa</b>. Sobe e desce sozinha na mesma
+      varredura da madrugada, e peça finalizada ou sem data de veiculação não é tocada.</p>
     <div id="auto-editor"></div>
     <div class="auto-lista">${linhas || '<div class="auto-carregando">Nenhuma regra neste recorte.</div>'}</div>
     <div class="auto-cabeca" style="margin-top:28px">
@@ -708,6 +714,52 @@ async function excluirAutomacao(id) {
     showToast('Regra excluída.', 'success', 3500);
     carregarAutomacoes();
   } catch (erro) { showToast(`Falhou: ${erro.message}`, 'error', 5000); }
+}
+
+// A COLUNA PRIORIDADE, REFEITA NA HORA.
+//
+// Ela se refaz sozinha de madrugada. Este botao existe para os dias em que se
+// acabou de mexer em muita data e nao da para esperar ate as 3h para ver o
+// quadro ordenado direito.
+//
+// Pergunta com o numero na mao: roda primeiro em seco, que conta o que MUDARIA
+// sem mudar nada, e so entao pede confirmacao. "Aplicar em 41 peças" e uma
+// decisao; "aplicar" sozinho e um pulo no escuro.
+async function recalcularPrioridadesAgora(botao) {
+  const chamar = async (seco) => {
+    const r = await fetch(`${AUTOMACOES_API}&acao=prioridades${seco ? '&seco=1' : ''}`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+    return d;
+  };
+  if (botao) { botao.disabled = true; botao.textContent = 'Conferindo…'; }
+  try {
+    const previa = await chamar(true);
+    if (!previa.mudancas) {
+      showToast(`✓ Nada a mudar · ${previa.consideradas} peças já estão com a prioridade que a veiculação pede`, 'ok', 6000);
+      return;
+    }
+    const faixas = Object.entries(previa.distribuicao || {})
+      .map(([rotulo, quantas]) => `${quantas} ${rotulo}`).join(' · ');
+    const sim = await perguntarNoPainel({
+      titulo: `Recalcular a prioridade de ${previa.mudancas} peça${previa.mudancas === 1 ? '' : 's'}?`,
+      texto: `De ${previa.consideradas} peças abertas com data de veiculação, ${previa.ja_certas} já estão certas. Como fica o quadro depois: ${faixas}. O Monday recebe a cópia pela fila.`,
+      confirmar: 'Recalcular',
+    });
+    if (!sim) return;
+    if (botao) botao.textContent = 'Recalculando…';
+    const feito = await chamar(false);
+    showToast(`✓ ${feito.aplicadas} prioridade${feito.aplicadas === 1 ? '' : 's'} refeita${feito.aplicadas === 1 ? '' : 's'} · ${feito.na_fila_do_monday} na fila do Monday`, 'ok', 7000);
+    // A tela de automacoes nao mostra a coluna; quem precisa reler e o painel.
+    if (typeof carregarOperacao === 'function') await carregarOperacao();
+  } catch (erro) {
+    showToast(`Não foi possível recalcular: ${erro.message}`, 'error', 7000);
+  } finally {
+    if (botao) { botao.disabled = false; botao.textContent = 'Recalcular prioridades'; }
+  }
 }
 
 // As regras que vieram do Monday moram no codigo, e mudam quando o codigo muda.

@@ -12,6 +12,7 @@
 // dá para criar, editar e desativar sem deploy.
 
 import { neon } from '@neondatabase/serverless';
+import { enfileirarReplicaEmLote } from './vybe_replica_queue.js';
 
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
@@ -655,6 +656,154 @@ export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}
     resumo.push({ regra: regra.nome, candidatos: alvos.length, avisados });
   }
   return { dia, fuso: 'America/Bahia', seco, regras: resumo };
+}
+
+// ── A PRIORIDADE DEIXA DE SER PALPITE ────────────────────────────────────────
+//
+// A coluna Prioridade era preenchida a mao, quando alguem lembrava. O resultado
+// aparece em qualquer print do quadro: no MESMO dia de veiculacao ha peca
+// "Alta", peca "Baixa" e peca sem nada. Uma coluna que diz tres coisas sobre o
+// mesmo dia nao ordena, nao filtra e nao avisa — so ocupa espaco.
+//
+// Ela passa a ser o espelho da veiculacao: quantos dias faltam, e nada mais.
+// Sobe sozinha conforme a data se aproxima e DESCE quando a data e adiada. A
+// segunda metade e a que importa: foi exatamente a que faltava no prazo, que
+// continuava vermelho depois de mudado para a semana seguinte.
+//
+// O motor de risco (getOperationalRisk, no navegador) ja calculava urgencia
+// assim ha tempo, e e dele que sai o vermelho das linhas e o "requer acao". O
+// que faltava era essa conta chegar na COLUNA, onde o time ordena e o Monday le.
+// Por isso a escada bate com os degraus de la, e nao com uma regra nova.
+//
+// Peca sem veiculacao nao e tocada — nao ha o que calcular. Peca finalizada
+// tambem nao: prioridade em coisa entregue e ruido.
+const BOARD_PRODUCAO = 7829537690;
+const COLUNA_DA_PRIORIDADE = {
+  [BOARD_PRODUCAO]: 'color_mm164yv8',
+  [BOARD_DEMANDAS]: 'color_mkwtgakv',
+};
+
+// Status que encerram a peca para a operacao. 'final' no banco cobre a maior
+// parte; os rotulos vao junto porque "Agendado" e "Para agendar" sao fim de
+// trabalho sem serem fim de fluxo, e e assim que o painel ja os trata.
+const STATUS_PRONTOS = ['finalizado', 'feito', 'para agendar', 'agendado'];
+
+// Dias corridos ate a veiculacao. 'ate' e o ultimo dia que ainda cai no degrau —
+// 1 e "amanha", 0 e hoje, negativo e atrasado.
+export const ESCADA_DE_PRIORIDADE = [
+  { nivel: 'critica', rotulo: 'Crítica', ate: 1 },
+  { nivel: 'alta',    rotulo: 'Alta',    ate: 3 },
+  { nivel: 'media',   rotulo: 'Média',   ate: 7 },
+  { nivel: 'baixa',   rotulo: 'Baixa',   ate: Infinity },
+];
+
+const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .trim().toLowerCase();
+
+// Os dois quadros tem catalogos separados e nao ha promessa de que os cinco
+// degraus existam nos dois — o de Producao pode ter so Alta e Baixa. Em vez de
+// gravar uma etiqueta que nao existe (o Monday recusa, e o painel mostraria uma
+// pilula fantasma), cada degrau cai no vizinho MENOS urgente que exista. Errar
+// para menos e honesto; gritar "Crítica" onde a operacao nunca escreveu isso,
+// nao. So quando nao ha nada abaixo e que ele sobe.
+function escadaDoQuadro(opcoes) {
+  const porNome = new Map(opcoes.map((o) => [semAcento(o.rotulo), o]));
+  return ESCADA_DE_PRIORIDADE.map((degrau, i) => {
+    let opcao = porNome.get(semAcento(degrau.rotulo));
+    for (let j = i + 1; !opcao && j < ESCADA_DE_PRIORIDADE.length; j += 1) {
+      opcao = porNome.get(semAcento(ESCADA_DE_PRIORIDADE[j].rotulo));
+    }
+    for (let j = i - 1; !opcao && j >= 0; j -= 1) {
+      opcao = porNome.get(semAcento(ESCADA_DE_PRIORIDADE[j].rotulo));
+    }
+    return { ...degrau, opcao: opcao || null };
+  });
+}
+
+export function degrauDaPrioridade(dias, escada = ESCADA_DE_PRIORIDADE) {
+  const n = Number(dias);
+  if (!Number.isFinite(n)) return null;
+  return escada.find((d) => n <= d.ate) || escada[escada.length - 1];
+}
+
+const MUTACAO_DE_COLUNA = `mutation($board: ID!, $item: ID!, $values: JSON!) {
+  change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id } }`;
+
+export async function recalcularPrioridades(sql, hoje = new Date(), { seco = false, limite = 600 } = {}) {
+  const dia = dataOperacionalBahia(hoje);
+
+  const prontos = (await sql`SELECT chave FROM vybe_status
+      WHERE final = TRUE OR LOWER(rotulo) = ANY(${STATUS_PRONTOS}::text[])`).map((l) => l.chave);
+
+  const colunas = Object.values(COLUNA_DA_PRIORIDADE);
+  const opcoes = await sql`SELECT coluna_id, chave, rotulo, indice, so_vybe
+      FROM vybe_opcoes WHERE coluna_id = ANY(${colunas}::text[])`;
+  const escadas = new Map(colunas.map((col) =>
+    [col, escadaDoQuadro(opcoes.filter((o) => o.coluna_id === col))]));
+
+  const alvos = await sql`SELECT id, board_id, prioridade_chave,
+      (veiculacao - ${dia}::date) AS dias
+    FROM vybe_conteudos
+    WHERE removido_em IS NULL AND veiculacao IS NOT NULL
+      AND (${prontos}::text[] = '{}' OR status_chave IS NULL
+           OR NOT (status_chave = ANY(${prontos}::text[])))
+    ORDER BY veiculacao`;
+
+  const mudancas = [];
+  let jaCertas = 0;
+  let semEtiqueta = 0;
+  const porDegrau = {};
+  for (const item of alvos) {
+    const coluna = COLUNA_DA_PRIORIDADE[String(item.board_id)];
+    const escada = coluna ? escadas.get(coluna) : null;
+    if (!escada) { semEtiqueta += 1; continue; }
+    const degrau = degrauDaPrioridade(item.dias, escada);
+    if (!degrau?.opcao) { semEtiqueta += 1; continue; }
+    porDegrau[degrau.opcao.rotulo] = (porDegrau[degrau.opcao.rotulo] || 0) + 1;
+    if (String(item.prioridade_chave || '') === String(degrau.opcao.chave)) { jaCertas += 1; continue; }
+    mudancas.push({ id: item.id, board_id: item.board_id, coluna, opcao: degrau.opcao });
+  }
+
+  const resumo = {
+    dia, fuso: 'America/Bahia', seco,
+    consideradas: alvos.length, ja_certas: jaCertas, sem_etiqueta: semEtiqueta,
+    mudancas: mudancas.length, distribuicao: porDegrau,
+    escada: ESCADA_DE_PRIORIDADE.map((d) => ({ ...d, ate: d.ate === Infinity ? null : d.ate })),
+  };
+  if (seco || !mudancas.length) return { ...resumo, aplicadas: 0, na_fila_do_monday: 0 };
+
+  // Uma gravacao por ETIQUETA, nao uma por peca: sao quatro degraus e dois
+  // quadros, entao no maximo oito idas ao banco para duzentas e cinquenta pecas.
+  const aplicar = mudancas.slice(0, limite);
+  const lotes = new Map();
+  for (const m of aplicar) {
+    const chave = `${m.coluna}|${m.opcao.chave}`;
+    if (!lotes.has(chave)) lotes.set(chave, { opcao: m.opcao, ids: [] });
+    lotes.get(chave).ids.push(String(m.id));
+  }
+  for (const { opcao, ids } of lotes.values()) {
+    await sql`UPDATE vybe_conteudos
+        SET prioridade_chave=${opcao.chave}, prioridade=${opcao.rotulo}, atualizado_em=NOW()
+      WHERE id = ANY(${ids}::bigint[])`;
+  }
+
+  // O Monday continua sendo copia, e uma copia com a prioridade velha e pior do
+  // que nenhuma: quem abre o board le o numero errado. Vai pela fila, com chave
+  // por peca E por etiqueta — a mesma peca reenfileirada no mesmo degrau nao
+  // duplica, e num degrau novo entra como um envio novo, depois do anterior.
+  const naFila = aplicar
+    .filter((m) => m.opcao.indice !== null && m.opcao.indice !== undefined && !m.opcao.so_vybe)
+    .map((m) => ({
+      operacao: 'prioridade_automatica',
+      referencia: `conteudo:${m.id}`,
+      operationKey: `prioridade:${m.id}:${m.opcao.chave}`,
+      query: MUTACAO_DE_COLUNA,
+      variables: { board: String(m.board_id), item: `vybe:${m.id}`,
+        values: JSON.stringify({ [m.coluna]: { index: Number(m.opcao.indice) } }) },
+    }));
+  const enfileiradas = await enfileirarReplicaEmLote(sql, naFila);
+
+  return { ...resumo, aplicadas: aplicar.length, na_fila_do_monday: enfileiradas };
 }
 
 // Mudança feita direto no Monday chega por webhook. Sem isto, desligar as regras

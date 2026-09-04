@@ -11,7 +11,8 @@
 import { neon } from '@neondatabase/serverless';
 import { mondayQuery } from '../operational_mirror_store.js';
 import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, baixarDoDrive } from '../vybe_drive.js';
-import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda, execucoes } from '../vybe_automacoes.js';
+import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
+  recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
@@ -57,6 +58,13 @@ async function areaAutomacoes(req, res, quem) {
       // enxurrada de uma vez e para de ler o sino.
       const seco = req.query?.seco === '1' || req.body?.seco === true;
       return res.status(200).json({ ok: true, acao, ...(await varrerAgenda(sql(), new Date(), { seco })) });
+    }
+    // Esperar as 3h da manha para ver a coluna certa e esperar demais quando se
+    // acabou de mudar uma data. seco=1 responde "o que mudaria" sem mudar.
+    if (acao === 'prioridades') {
+      const seco = req.query?.seco === '1' || req.body?.seco === true;
+      return res.status(200).json({ ok: true, acao,
+        ...(await recalcularPrioridades(sql(), new Date(), { seco })) });
     }
     if (acao === 'ensaio') {
       const { evento, formato, grupo, captacao, status } = req.body || {};

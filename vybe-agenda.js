@@ -1335,9 +1335,15 @@ function pillEditavel(item, campo) {
   const dentro = vazio(valor)
     ? '<span class="grupo-vazio">—</span>'
     : pillHtml(valor, escolha?.cor || '', escolha?.borda || '');
+  // A prioridade nao e mais uma opiniao que alguem digita: ela e a distancia ate
+  // a veiculacao. Quem passa o mouse precisa saber disso ANTES de mudar a mao e
+  // ver a mudanca desaparecer na varredura da madrugada.
+  const dica = campo === 'prioridade'
+    ? 'Prioridade calculada pela veiculação · muda sozinha quando a data muda'
+    : `Trocar ${rotuloDoCampo(campo, item)}`;
   return `<button type="button" class="grupo-pill-btn"
     onclick="abrirEscolha(event,'${safeText(item.id)}','${campo}')"
-    title="Trocar ${safeText(rotuloDoCampo(campo, item))}">${dentro}</button>`;
+    title="${safeText(dica)}">${dentro}</button>`;
 }
 
 function abrirEscolha(event, itemId, campo) {
@@ -1385,6 +1391,8 @@ function abrirEscolha(event, itemId, campo) {
       <button type="button" class="status-editor-option" onclick="escolherValor('${safeText(item.id)}','${campo}','')">
         <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Deixar em branco</span></button>
     </div>
+    ${campo === 'prioridade' ? `<div class="escolha-nota">Esta coluna se refaz sozinha
+      pela data de veiculação, de madrugada. O que for escolhido aqui vale até lá.</div>` : ''}
     ${rodapeDeEtiquetasHtml(coluna, campo, rotuloDoCampo(campo, item))}`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, rect);

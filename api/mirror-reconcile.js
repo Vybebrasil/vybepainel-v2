@@ -1,6 +1,6 @@
 ﻿import { getMirrorHealth, reconcileMirror, mondayQuery } from '../operational_mirror_store.js';
 import { neon } from '@neondatabase/serverless';
-import { varrerAgenda } from '../vybe_automacoes.js';
+import { varrerAgenda, recalcularPrioridades } from '../vybe_automacoes.js';
 import { processarFilaReplica, saudeFilaReplica } from '../vybe_replica_queue.js';
 import { registrarSnapshotOperacional, registrarSaude } from '../vybe_observabilidade.js';
 
@@ -39,10 +39,18 @@ export default async function handler(req, res) {
     try { agenda = await varrerAgenda(sql); }
     catch (erro) { console.error('Varredura de automações por data falhou:', erro.message); agenda = { erro: erro.message }; }
 
+    // A prioridade e o espelho da veiculacao, e espelho que so se atualiza
+    // quando alguem mexe na peca nao e espelho: o dia passa sozinho. Roda depois
+    // da varredura de agenda, com o mesmo relogio da Bahia.
+    let prioridades = null;
+    try { prioridades = await recalcularPrioridades(sql); }
+    catch (erro) { console.error('Recalculo de prioridades falhou:', erro.message); prioridades = { erro: erro.message }; }
+
     const replicaHealth = await saudeFilaReplica(sql);
     const estadoReplica = replica?.erro || Number(replicaHealth.falhas || 0) > 0 ? 'atencao' : 'ok';
     await registrarSaude(sql, 'replica_monday', estadoReplica, { execucao: replica, fila: replicaHealth });
     await registrarSaude(sql, 'automacoes', agenda?.erro ? 'erro' : 'ok', agenda || {});
+    await registrarSaude(sql, 'prioridades', prioridades?.erro ? 'erro' : 'ok', prioridades || {});
     const snapshot = await registrarSnapshotOperacional(sql, 'cron_integridade');
 
     return res.status(200).json({
@@ -50,6 +58,7 @@ export default async function handler(req, res) {
       result,
       health,
       agenda,
+      prioridades,
       replica,
       replica_health: replicaHealth,
       snapshot: { id: snapshot.id, data_referencia: snapshot.data_referencia, atualizado_em: snapshot.atualizado_em },

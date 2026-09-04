@@ -44,6 +44,40 @@ export async function enfileirarReplica(sql, { operacao, referencia, query, vari
   return key;
 }
 
+// A MESMA FILA, MAS PARA MUITAS PECAS DE UMA VEZ.
+//
+// enfileirarReplica faz tres idas ao banco por chamada (as duas do
+// garantirFilaReplica mais a propria). Enfileirar 250 mudancas assim seriam 750
+// idas — a recalculagem diaria de prioridade estouraria o tempo da funcao antes
+// de terminar. E a mesma linha, a mesma chave e o mesmo conflito; muda so que
+// vao todas num INSERT.
+export async function enfileirarReplicaEmLote(sql, itens = []) {
+  const lista = (itens || []).filter(Boolean);
+  if (!lista.length) return 0;
+  await garantirFilaReplica(sql);
+  const linhas = lista.map((d) => ({
+    operation_key: d.operationKey || randomUUID(),
+    operacao: String(d.operacao || 'replica'),
+    referencia: d.referencia || null,
+    query: d.query,
+    variables: d.variables || {},
+    ultimo_erro: d.erro ? mensagemErro(d.erro) : null,
+  }));
+  await sql`INSERT INTO vybe_replica_queue
+      (operation_key, operacao, referencia, query, variables, estado, tentativas,
+       proxima_tentativa, ultimo_erro)
+    SELECT f.operation_key, f.operacao, f.referencia, f.query, f.variables,
+           'pendente', 0, NOW(), f.ultimo_erro
+      FROM jsonb_to_recordset(${JSON.stringify(linhas)}::jsonb)
+        AS f(operation_key TEXT, operacao TEXT, referencia TEXT, query TEXT,
+             variables JSONB, ultimo_erro TEXT)
+    ON CONFLICT (operation_key) DO UPDATE SET
+      estado=CASE WHEN vybe_replica_queue.estado='concluida' THEN 'concluida' ELSE 'pendente' END,
+      ultimo_erro=EXCLUDED.ultimo_erro,
+      atualizado_em=NOW()`;
+  return linhas.length;
+}
+
 export async function replicarOuEnfileirar(sql, executar, dados) {
   try {
     const resposta = await executar(dados.query, dados.variables);
