@@ -63,6 +63,57 @@ function renderIdentityOperationalPulse() {
   const item = (label, rows, extra='') => `<div class="identity-pulse-item ${extra}" title="${safeText(label)}: ${rows.length} operadores"><b>${rows.length}</b><span>${label}</span></div>`;
   target.innerHTML = `${item('com fila',activeRows)}${item('em atenção',attentionRows,'critical')}${item('em espera',waitingRows,'waiting')}<div class="identity-pulse-caption">PULSO OPERACIONAL / DADOS AO VIVO</div>`;
 }
+// O portao perguntava "onde voce vai trabalhar" e nao dizia o que estava
+// pegando em cada lugar — obrigava a entrar nas seis para descobrir. Cada
+// estacao passa a mostrar o proprio estado.
+//
+// NENHUM numero e calculado aqui. Risco vem do getOperationalRisk, a fila de
+// quem esta logado vem do kpisDoTopo (o mesmo da barra), a celula criativa vem
+// do pulseRows — as mesmas funcoes que as telas de dentro usam. Escrever a
+// conta de novo daria dois numeros para a mesma pergunta.
+function estadoDasEstacoes() {
+  const itens = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : [];
+  const abertos = itens.filter((d) => !isFinishedItem(d));
+  const risco = abertos.filter((d) => ['critical', 'high']
+    .includes((d.operational_risk || getOperationalRisk(d)).level)).length;
+
+  const minha = typeof kpisDoTopo === 'function' ? kpisDoTopo() : null;
+  const emAtencao = typeof pulseRows === 'function' ? pulseRows('attention').length : 0;
+  const comFila = typeof pulseRows === 'function' ? pulseRows('active').length : 0;
+
+  const novas = (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : [] || [])
+    .filter((d) => /nova demanda/i.test(String(d.status || ''))).length;
+  const aCaptar = abertos.filter((d) => /agendar/i.test(String(d.captacao || ''))).length;
+  const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions().length : 0;
+
+  return {
+    gestor:    { n: risco, rot: risco === 1 ? 'peça em risco' : 'peças em risco', alerta: risco > 0 },
+    foco:      minha
+      ? { n: minha.abertas, rot: minha.atrasadas ? `na fila · ${minha.atrasadas} atrasadas` : 'na sua fila',
+          alerta: minha.atrasadas > 0 }
+      : null,
+    controler: { n: emAtencao, rot: emAtencao === 1 ? 'pessoa em atenção' : `de ${comFila} em atenção`,
+                 alerta: emAtencao > 0 },
+    cadastros: { n: novas, rot: novas === 1 ? 'solicitação nova' : 'solicitações novas', alerta: false },
+    producao:  { n: aCaptar, rot: aCaptar === 1 ? 'captação a agendar' : 'captações a agendar', alerta: false },
+    clientes:  { n: clientes, rot: clientes === 1 ? 'cliente ativo' : 'clientes ativos', alerta: false },
+  };
+}
+
+function renderEstacoesAoVivo() {
+  const estado = estadoDasEstacoes();
+  Object.entries(estado).forEach(([chave, dado]) => {
+    const alvo = document.getElementById(`metrica-${chave}`);
+    if (!alvo) return;
+    // Sem dado ainda (fila nao carregou, pessoa nao reconhecida) a linha fica
+    // vazia em vez de mostrar zero: zero e uma afirmacao, e nao se afirma o que
+    // ainda nao se sabe.
+    if (!dado) { alvo.textContent = ''; alvo.className = 'station-metrica'; return; }
+    alvo.className = `station-metrica${dado.alerta ? ' alerta' : dado.n === 0 ? ' calmo' : ''}`;
+    alvo.innerHTML = `<b>${dado.n}</b><span>${safeText(dado.rot)}</span>`;
+  });
+}
+
 function renderFocusUserPicker() {
   const grid = document.getElementById('focus-user-grid');
   if (!grid) return;
@@ -1447,6 +1498,7 @@ function openModeGate() {
   levarCrachaParaOPortao();
   document.getElementById('quem-sou-menu')?.style.setProperty('display', 'none');
   ligarBarraDoTopo();
+  renderEstacoesAoVivo();
   renderIdentityOperationalPulse();
   renderFocusUserPicker();
   setupIdentityInteractions();

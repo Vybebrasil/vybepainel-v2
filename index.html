@@ -2064,6 +2064,125 @@ header,.topbar{
   background:rgba(9,7,5,.94);backdrop-filter:blur(16px) saturate(1.1);
   border-bottom:1px solid rgba(255,190,112,.15)}
 .mode-gate.open{align-items:flex-start}
+/* ── AS SEIS ESTACOES ──────────────────────────────────────────────────────
+   Esta e a SEXTA camada de CSS a mexer nesta grade, e a primeira a assumir
+   isso: as cinco anteriores se contradizem (duas colunas, tres colunas com um
+   nucleo no meio, areas nomeadas diferentes). Por isso o seletor daqui e mais
+   forte e o !important e proposital — sem ele nada muda, como ja aconteceu
+   duas vezes hoje.
+
+   O que sai:
+   - O orbe "V" com "JARVIS / Linkando estacoes" e "LIVE TELEMETRY / PULSO
+     OPERACIONAL / DADOS AO VIVO". Ocupava a coluna do meio inteira e nao dizia
+     nada — texto tecnico de enfeite. Sem ele cabem as SEIS estacoes na tela,
+     em vez de quatro com duas escondidas embaixo.
+   - As etiquetas Risco/Capacidade/Decisao. Nao filtram, nao levam a lugar
+     nenhum, e sao tres por cartao — dezoito palavras de enfeite na tela.
+   - O selo "Online / Pronto / Ao vivo" que esta sempre aceso. Um estado que
+     nunca muda nao e estado.
+
+   O que entra no lugar: o ESTADO de cada estacao, ao vivo. Um portao que
+   pergunta "onde voce vai trabalhar" e nao diz o que esta pegando em cada
+   lugar obriga a entrar em todos para descobrir. */
+.identity-command-grid{display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-areas:none!important;grid-template-rows:none!important;
+  gap:13px!important;max-width:1180px!important;margin:0 auto!important;
+  padding:6px 0 10px!important}
+.identity-command-grid::before,.identity-command-grid::after{display:none!important}
+.identity-command-grid .identity-core-zone,.identity-network,#identity-pulse{display:none!important}
+.identity-station[data-station]{grid-area:auto!important;grid-column:auto!important;grid-row:auto!important;width:auto!important;justify-self:stretch!important}
+
+.identity-station{position:relative;display:flex!important;flex-direction:column;
+  min-height:0!important;padding:16px 17px 15px!important;text-align:left;cursor:pointer;
+  border:1px solid color-mix(in srgb,var(--station-color) 30%,rgba(255,255,255,.1))!important;
+  border-radius:18px!important;clip-path:none!important;overflow:hidden;
+  background:linear-gradient(158deg,color-mix(in srgb,var(--station-color) 11%,rgba(255,255,255,.05)),rgba(255,255,255,.017))!important;
+  backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important;
+  transition:transform .26s cubic-bezier(.32,.72,0,1),border-color .26s,box-shadow .26s!important}
+.identity-station::before,.identity-station::after{display:none!important}
+.identity-station:hover,.identity-station.station-hovered{
+  transform:translateY(-3px)!important;
+  border-color:color-mix(in srgb,var(--station-color) 62%,transparent)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 20px 40px -18px rgba(0,0,0,.92)!important}
+.identity-station:focus-visible{outline:2px solid var(--station-color);outline-offset:2px}
+.identity-shell[data-station] .identity-station:not(.station-hovered){opacity:1!important;filter:none!important}
+
+/* Um nome por estacao, nao dois. "01 / MATRIZ EXECUTIVA" acima de "Gestor"
+   eram dois nomes para a mesma coisa; fica o numero, pequeno, como indice. */
+.station-top{display:flex!important;align-items:center;gap:8px;
+  color:color-mix(in srgb,var(--station-color) 74%,#fff)!important;
+  font:700 9.5px var(--mac-ui)!important;letter-spacing:.7px}
+.station-ready,.station-locked-state{display:none!important}
+.station-tags{display:none!important}
+
+.station-icon{width:34px!important;height:34px!important;margin:13px 0 10px!important;
+  border-radius:11px!important;border:1px solid color-mix(in srgb,var(--station-color) 45%,transparent)!important;
+  background:color-mix(in srgb,var(--station-color) 13%,transparent)!important;
+  color:var(--station-color)!important;font-size:17px!important;box-shadow:none!important}
+.station-name{font:600 19px/1.1 var(--mac-ui)!important;letter-spacing:-.5px;color:#fff!important}
+.station-description{display:block!important;margin-top:6px!important;max-width:100%!important;
+  color:#9b8570!important;font:500 11px/1.45 var(--mac-ui)!important}
+
+/* O estado ao vivo: numero em destaque, rotulo em voz baixa — o mesmo ritmo da
+   barra do topo e dos cartoes de operador. */
+.station-metrica{display:flex;align-items:baseline;gap:6px;margin-top:auto;padding-top:13px;
+  min-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station-metrica b{color:#fff;font:600 17px/1 var(--mac-ui);letter-spacing:-.6px;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.station-metrica span{color:#9b8570;font:500 11px var(--mac-ui)}
+.station-metrica.alerta b{color:#ff8a9e;text-shadow:0 0 18px rgba(255,86,110,.45)}
+.station-metrica.calmo b{color:#6fd3a8}
+
+.station-action{position:static!important;margin-top:11px!important;
+  display:flex;align-items:center;gap:6px;
+  color:var(--station-color)!important;font:600 11px var(--mac-ui)!important;letter-spacing:0}
+.station-action b{font-size:13px!important;margin:0!important}
+
+.identity-hero{margin:14px 0 12px!important}
+.identity-hero h2{font-size:clamp(26px,3.2vw,40px)!important;margin:6px 0 5px!important}
+.identity-hero p{font-size:11.5px!important;max-width:520px!important}
+
+/* A Producao tinha um layout SO DELA, por seletor de id (que ganha de qualquer
+   classe): atravessava as tres colunas como faixa, com grade interna propria.
+   Era o que jogava Clientes para uma quarta fileira sozinha. Aqui ela volta a
+   ser um cartao como os outros — e precisa de id no seletor para conseguir. */
+#station-producao-command.identity-station{grid-column:auto!important;grid-row:auto!important;
+  display:flex!important;flex-direction:column!important;min-height:0!important;
+  grid-template-columns:none!important;grid-template-rows:none!important;
+  /* A regra antiga centralizava tudo (era uma faixa larga). Em coluna, centrar
+     joga o icone, o texto e a acao para o meio do cartao. */
+  align-items:stretch!important;justify-content:flex-start!important;
+  padding:16px 17px 15px!important}
+#station-producao-command>*{align-self:flex-start!important}
+#station-producao-command .station-top,#station-producao-command .station-description,
+#station-producao-command .station-metrica{align-self:stretch!important}
+#station-producao-command .station-top,#station-producao-command .station-icon,
+#station-producao-command .station-name,#station-producao-command .station-description,
+#station-producao-command .station-action{grid-column:auto!important;grid-row:auto!important}
+#station-producao-command .station-icon{margin:13px 0 10px!important}
+#station-producao-command .station-description{margin:6px 0 0!important;max-width:100%!important}
+#station-producao-command .station-action{bottom:auto!important}
+#station-producao-command,#station-producao-command *{text-align:left!important}
+#station-producao-command .station-icon{justify-self:start!important;place-self:start!important}
+
+/* Clientes tambem tinha layout proprio — deitado, icone ao lado do nome, com um
+   min-height so dele. Seis cartoes iguais leem como um conjunto; cinco iguais e
+   um diferente leem como erro. */
+.identity-station.station-clientes{grid-column:auto!important;grid-row:auto!important;
+  flex-direction:column!important;align-items:stretch!important;gap:0!important;
+  min-height:0!important;padding:16px 17px 15px!important}
+.station-clientes .station-icon{width:34px!important;height:34px!important;margin:13px 0 10px!important}
+.station-clientes .station-name{font-size:19px!important}
+.station-clientes .station-description{max-width:100%!important;margin-top:6px!important}
+.station-clientes .station-action{position:static!important;right:auto!important;bottom:auto!important;
+  align-self:flex-start!important;margin-left:0!important}
+
+@media(max-width:1000px){.identity-command-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:660px){.identity-command-grid{grid-template-columns:1fr!important}}
+@media(prefers-reduced-motion:reduce){.identity-station{transition:none!important}}
+
 /* ── ESCOLHER O OPERADOR ───────────────────────────────────────────────────
    A tela repetia "OPERADOR" em dez cartoes (todo cartao e um operador; a
    palavra nao separava nada), chamava oito de dez de "ATENCAO" (se quase todos
@@ -5178,26 +5297,26 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
       <span class="identity-quem-slot" id="identity-quem-slot"></span>
     </div>
     <div class="identity-hero"><div class="identity-overline">Vybe OS</div><h2>Qual estação você vai operar?</h2><p>Seu contexto ajusta a fila, os comandos e a inteligência que entra em cena.</p></div>
+    <div class="identity-pulse" id="identity-pulse" hidden aria-hidden="true"></div>
     <div class="identity-command-grid">
       <div class="identity-network" aria-hidden="true"><i class="identity-link gestor"></i><i class="identity-link foco"></i><i class="identity-link controler"></i><i class="identity-link cadastros"></i><i class="identity-link producao"></i><i class="identity-link clientes"></i></div>
       <button id="station-gestor" class="identity-station" data-station="gestor" type="button" style="--station-color:#ff6b00" onclick="chooseManagerMode()">
-        <span class="station-top"><span>01 / MATRIZ EXECUTIVA</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">⌘</span><span class="station-name">Gestor</span><span class="station-description">Leitura executiva da operação. Encontre risco, capacidade e a próxima decisão que move a semana.</span><span class="station-tags"><span>Risco</span><span>Capacidade</span><span>Decisão</span></span><span class="station-action"><em>Entrar na matriz</em><b>→</b></span>
+        <span class="station-top"><span>01 / MATRIZ EXECUTIVA</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">⌘</span><span class="station-name">Gestor</span><span class="station-description">Risco, capacidade e a próxima decisão da semana.</span><span class="station-metrica" id="metrica-gestor"></span><span class="station-action"><em>Entrar na matriz</em><b>→</b></span>
       </button>
-      <div class="identity-core-zone"><div class="identity-core-wrap" aria-hidden="true"><span class="identity-orbit a"></span><span class="identity-orbit b"></span><span class="identity-orbit c"></span><div class="identity-core">V</div><span class="identity-core-label">Linkando estações</span></div><div class="identity-pulse" id="identity-pulse" aria-live="polite"><div class="identity-pulse-item " title="com fila: 7 operadores"><b>7</b><span>com fila</span></div><div class="identity-pulse-item critical" title="em atenção: 5 operadores"><b>5</b><span>em atenção</span></div><div class="identity-pulse-item waiting" title="em espera: 3 operadores"><b>3</b><span>em espera</span></div><div class="identity-pulse-caption">PULSO OPERACIONAL / DADOS AO VIVO</div></div></div>
       <button id="station-foco" class="identity-station" data-station="foco" type="button" style="--station-color:#ffbd2e" onclick="openFocusPicker()">
-        <span class="station-top"><span>02 / CONSOLE PESSOAL</span><span class="station-ready"><i></i>Pronto</span></span><span class="station-icon">◎</span><span class="station-name">FOCO</span><span class="station-description">Uma fila limpa para executar. Selecione o operador e veja só o que precisa acontecer agora.</span><span class="station-tags"><span>Meu dia</span><span>Prazos</span><span>Entrega</span></span><span class="station-action"><em>Identificar operador</em><b>→</b></span>
+        <span class="station-top"><span>02 / CONSOLE PESSOAL</span><span class="station-ready"><i></i>Pronto</span></span><span class="station-icon">◎</span><span class="station-name">FOCO</span><span class="station-description">Uma fila limpa: só o que precisa acontecer agora.</span><span class="station-metrica" id="metrica-foco"></span><span class="station-action"><em>Identificar operador</em><b>→</b></span>
       </button>
       <button id="station-da-controler" class="identity-station" data-station="controler" type="button" style="--station-color:#df2f4a">
-        <span class="station-top"><span>03 / DIREÇÃO DE ARTE</span><span class="station-ready"><i></i>Ao vivo</span></span><span class="station-icon">◈</span><span class="station-name">Direção de arte</span><span class="station-description">A célula criativa sob comando. Direcione volume, prazo, veiculação e prioridade de Deivid, Bia, Jady e Reriston.</span><span class="station-tags"><span>Fluxo</span><span>Equipe</span><span>Volume</span></span><span class="station-action"><em>Armar controler</em><b>→</b></span>
+        <span class="station-top"><span>03 / DIREÇÃO DE ARTE</span><span class="station-ready"><i></i>Ao vivo</span></span><span class="station-icon">◈</span><span class="station-name">Direção de arte</span><span class="station-description">Volume, prazo e prioridade da célula criativa.</span><span class="station-metrica" id="metrica-controler"></span><span class="station-action"><em>Armar controler</em><b>→</b></span>
       </button>
       <button id="station-cadastros" class="identity-station" data-station="cadastros" type="button" style="--station-color:#00f0ff" onclick="openCadastrosStation()">
-        <span class="station-top"><span>04 / GOVERNANÇA OPERACIONAL</span><span class="station-locked-state"><i>✓</i>Ativo · C6</span></span><span class="station-icon">▣</span><span class="station-name">Cadastros</span><span class="station-description">A porta de entrada da criação. Valide formato, briefing, prazo e destino antes de transformar intenção em demanda.</span><span class="station-tags"><span>Ordem</span><span>Briefing</span><span>Fluxo</span></span><span class="station-action"><em>ABRIR PRÉ-CADASTRO</em><b>↗</b></span>
+        <span class="station-top"><span>04 / GOVERNANÇA OPERACIONAL</span><span class="station-locked-state"><i>✓</i>Ativo · C6</span></span><span class="station-icon">▣</span><span class="station-name">Cadastros</span><span class="station-description">Formato, briefing e destino antes de virar demanda.</span><span class="station-metrica" id="metrica-cadastros"></span><span class="station-action"><em>ABRIR PRÉ-CADASTRO</em><b>↗</b></span>
       </button>
       <button id="station-producao-command" class="identity-station" data-station="producao" type="button" style="--station-color:#00d1b4" onclick="chooseProductionMode()">
-        <span class="station-top"><span>05 / ORDEM DE PRODUÇÃO</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◫</span><span class="station-name">Produção</span><span class="station-description">A agenda de pré-produção, captação, fotografia e edição. Uma única ordem de trabalho, atualizada pelo domínio operacional do Vybe OS.</span><span class="station-tags"><span>Captação</span><span>Roteiro</span><span>Edição</span></span><span class="station-action"><em>Armar operação</em><b>→</b></span>
+        <span class="station-top"><span>05 / ORDEM DE PRODUÇÃO</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◫</span><span class="station-name">Produção</span><span class="station-description">Captação, fotografia e edição numa ordem só.</span><span class="station-metrica" id="metrica-producao"></span><span class="station-action"><em>Armar operação</em><b>→</b></span>
       </button>
       <button id="station-clientes" class="identity-station station-clientes" data-station="clientes" type="button" style="--station-color:#8b7dff" onclick="chooseClientMode()">
-        <span class="station-top"><span>06 / NÚCLEO DE CLIENTES</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◉</span><span class="station-name">Clientes</span><span class="station-description">O cadastro mestre que conecta relacionamento, heads, acessos e toda a operação de cada conta.</span><span class="station-tags"><span>Heads</span><span>Acessos</span><span>Operação</span></span><span class="station-action"><em>Abrir núcleo</em><b>↗</b></span>
+        <span class="station-top"><span>06 / NÚCLEO DE CLIENTES</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◉</span><span class="station-name">Clientes</span><span class="station-description">Relacionamento, heads e acessos de cada conta.</span><span class="station-metrica" id="metrica-clientes"></span><span class="station-action"><em>Abrir núcleo</em><b>↗</b></span>
       </button>
     </div>
     <div class="identity-footer"><span>Selecione uma estação para iniciar</span><span>VYBE OS / CENTRAL OPERACIONAL</span></div>
