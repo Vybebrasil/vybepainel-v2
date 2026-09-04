@@ -295,7 +295,44 @@ function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
 // lista era montada so com quem tinha peca naquele mes: mudar de mes fazia
 // clientes desaparecerem do filtro, e quem quisesse marcar um conteudo para
 // Setembro num cliente parado em Agosto nao tinha por onde clicar.
+// Quem esta ativo e o cadastro de Clientes que diz — nao a peca. A lista de
+// chips era montada so a partir das pecas carregadas, entao um cliente
+// desativado continuava aparecendo enquanto tivesse UMA peca em qualquer mes:
+// e o caso de ACE, Blindagem, CMO, De Bull, Dogrun, todos com zero na tela.
+//
+// O cadastro chega por uma consulta so, pequena (algumas dezenas de linhas), e
+// uma vez por sessao. Enquanto ela nao volta — ou se falhar — nada e escondido:
+// esconder cliente por engano e pior do que mostrar um a mais.
+let CLIENTES_ATIVOS = null;
+let CLIENTES_ATIVOS_PEDIDO = null;
+
+function garantirClientesAtivos() {
+  if (CLIENTES_ATIVOS || CLIENTES_ATIVOS_PEDIDO) return CLIENTES_ATIVOS_PEDIDO;
+  CLIENTES_ATIVOS_PEDIDO = fetch('/api/painel?area=clientes', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      const linhas = d?.clientes || [];
+      if (!linhas.length) return;
+      CLIENTES_ATIVOS = new Set(linhas.filter((c) => c.ativo)
+        .map((c) => String(c.nome || '').trim().toLowerCase()));
+      // Chegou depois da tela desenhada: redesenha para os inativos sairem.
+      if (typeof renderManagerCalendar === 'function') renderManagerCalendar();
+    })
+    .catch(() => { /* sem cadastro, a lista fica como estava */ });
+  return CLIENTES_ATIVOS_PEDIDO;
+}
+
+function clienteApareceNaLista(nome) {
+  if (!CLIENTES_ATIVOS) return true;
+  const limpo = String(nome || '').trim().toLowerCase();
+  // "Sem cliente" e "—" nao estao no cadastro e nao sao cliente: sao a ausencia
+  // de um. Ficam de fora da lista de escolha.
+  if (!limpo || limpo === '—' || limpo === 'sem cliente') return false;
+  return CLIENTES_ATIVOS.has(limpo);
+}
+
 function managerCalendarClientList(allItems, meta) {
+  garantirClientesAtivos();
   const noMes = new Set(meta.cells.map(cell => cell.iso));
   const counts = new Map();
   allItems.forEach(item => {
@@ -303,7 +340,9 @@ function managerCalendarClientList(allItems, meta) {
     const atual = counts.get(cliente) || 0;
     counts.set(cliente, atual + (noMes.has(item.calendarDateIso) ? 1 : 0));
   });
-  return [...counts.entries()].sort((a,b) => a[0].localeCompare(b[0],'pt-BR')).map(([client,count]) => ({client,count}));
+  return [...counts.entries()]
+    .filter(([client]) => clienteApareceNaLista(client))
+    .sort((a,b) => a[0].localeCompare(b[0],'pt-BR')).map(([client,count]) => ({client,count}));
 }
 
 // Como a lista de clientes aparece: as fichas de sempre, ou uma busca por nome.
