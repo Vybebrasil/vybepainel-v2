@@ -319,7 +319,7 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <div class="focus-task-title"><div class="focus-task-name">${d.cliente ? `<span class="focus-task-client" title="Cliente: ${safeText(d.cliente)}">${safeText(d.cliente)}</span>` : ''}<button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button>${jaTemMaterial(d)
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button>${botaoDeMaterialBrutoHtml(d)}${jaTemMaterial(d)
       ? `<button type="button" class="focus-brief-btn previa" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">👁<span>Prévia</span></button>`
       : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">⤓<span>Entregar</span></button>`}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
@@ -1501,6 +1501,172 @@ async function requestWorkspaceFileRemoval(assetId) {
 function workspaceTimelineType(body){ const text=String(body||''); if(/Check-in/i.test(text)) return 'CHECK-IN'; if(/Planejamento/i.test(text)) return 'PLANEJAMENTO'; if(/Direcionamento D\.A/i.test(text)) return 'DIREÇÃO D.A.'; if(/Passagem de bastão/i.test(text)) return 'PASSAGEM'; if(/Link de entrega/i.test(text)) return 'ENTREGA'; if(/Bloqueio/i.test(text)) return 'BLOQUEIO'; return 'ATUALIZAÇÃO'; }
 function workspaceUrlFromText(value=''){ const match=String(value||'').match(/https?:\/\/[^\s<>"']+/i); return match ? match[0].replace(/[),.;]+$/,'') : ''; }
 function workspaceDeliveryInfo(detail={}){ const updates=detail?.updates||[]; const tagged=updates.map(update=>({update,url:workspaceUrlFromText(workspacePlainText(update?.body||''))})).find(entry=>entry.url && /Link de entrega|Link final|Entrega final/i.test(workspacePlainText(entry.update?.body||''))); if(tagged) return {url:tagged.url,label:'LINK DE ENTREGA REGISTRADO',name:'Material pronto para abrir e postar',creator:tagged.update?.creator?.name||'Equipe Vybe',created_at:tagged.update?.created_at||'',source:'Atualização de entrega'}; const assets=[...(detail?.assets||[]),...updates.flatMap(update=>update?.assets||[])]; const asset=assets.find(entry=>entry?.public_url||entry?.url); if(asset) return {url:asset.public_url||asset.url,label:'ARQUIVO ANEXADO À DEMANDA',name:asset.name||'Material anexado',creator:'Equipe Vybe',created_at:asset.created_at||'',source:'Arquivo do item'}; return null; }
+// ── O MATERIAL BRUTO: O CAMINHO DE ENTRADA ───────────────────────────────────
+//
+// A entrega, logo acima, e o que SAI da peca. Faltava o que ENTRA nela: os
+// videos captados que quem edita precisa baixar antes de comecar.
+//
+// O sintoma foi um Reels com roteiro completo e nenhum arquivo: o link da pasta
+// tinha sido colado numa atualizacao solta, e a tela de briefing — a unica que o
+// editor abre — nao mostra atualizacao nenhuma. O material existia e ele nao
+// achava. Nao era falta de registro, era falta de LUGAR para registrar.
+//
+// Agora tem campo proprio, que viaja na lista. Isso e o que permite o cartao
+// dizer "falta o bruto" antes de alguem abrir a peca.
+const FORMATOS_QUE_PEDEM_BRUTO = /reels|v[ií]deo|video|motion|fotografia|foto|stories|tiktok|audiovisual/i;
+function pedeMaterialBruto(item) {
+  return FORMATOS_QUE_PEDEM_BRUTO.test(String(item?.formato || item?.tipo_conteudo || ''));
+}
+
+// A coluna manda; o historico e resgate. O resgate existe porque as pecas que ja
+// estao no quadro tiveram o link colado a mao numa atualizacao — entregar um
+// campo que so funciona para peca nova seria entregar um campo vazio.
+//
+// O que conta como resgate: atualizacao que e praticamente so um link. Nao vale
+// a da ENTREGA (que ja tem dono, logo acima) nem texto longo com um link no
+// meio, que e recado, nao endereco de pasta. Pasta do Drive vem primeiro: e o
+// formato real do material bruto, uma pasta com os arquivos captados.
+function materialBrutoDaPeca(detail, item) {
+  const doCampo = String(detail?.material_bruto || item?.material_bruto || '').trim();
+  if (doCampo) return { url: doCampo, origem: 'campo', quando: detail?.material_bruto_em || '' };
+
+  const entrega = workspaceDeliveryInfo(detail || {});
+  const candidatos = (detail?.updates || [])
+    .map((update) => {
+      const texto = workspacePlainText(update?.body || '');
+      const url = workspaceUrlFromText(texto);
+      const sobra = texto.replace(url, '').replace(/^\s*\[Vybe OS[^\]]*\]\s*/i, '').trim();
+      return { update, texto, url, sobra };
+    })
+    .filter((e) => e.url && e.url !== entrega?.url)
+    .filter((e) => !/Link de entrega|Link final|Entrega final/i.test(e.texto))
+    .filter((e) => e.sobra.length <= 60 || /material bruto|arquivos brutos|material captado|pasta da capta/i.test(e.texto));
+  if (!candidatos.length) return null;
+  candidatos.sort((a, b) => (/\/folders\//.test(b.url) - /\/folders\//.test(a.url))
+    || String(b.update?.created_at || '').localeCompare(String(a.update?.created_at || '')));
+  const achado = candidatos[0];
+  return { url: achado.url, origem: 'histórico', quando: achado.update?.created_at || '',
+           autor: achado.update?.creator?.name || '' };
+}
+
+async function gravarMaterialBruto(itemId, link) {
+  const resposta = await fetch('/api/conteudo', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ acao: 'material_bruto', item: String(itemId), link: String(link || '') }),
+  });
+  const dados = await resposta.json();
+  if (!resposta.ok) throw new Error(dados?.error || 'Não foi possível salvar.');
+  // A lista e a gaveta leem de lugares diferentes; sem os dois, o cartao continua
+  // dizendo que falta material logo depois de alguem registrar.
+  const naLista = typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null;
+  if (naLista) naLista.material_bruto = dados.para || '';
+  if (DETALHE_DA_GAVETA && String(DETALHE_DA_GAVETA.id ?? '') === String(itemId)) {
+    DETALHE_DA_GAVETA.material_bruto = dados.para || '';
+  }
+  return dados;
+}
+
+// Pedir o link, gravar e redesenhar o que estiver aberto. Um caminho so, chamado
+// do cartao, da gaveta e da tela de briefing.
+async function pedirMaterialBruto(itemId, event) {
+  event?.stopPropagation?.();
+  const item = typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null;
+  const atual = String(item?.material_bruto || '');
+  const url = await perguntarNoPainel({
+    titulo: atual ? 'Trocar o link do material bruto' : 'Link do material bruto',
+    texto: 'A pasta com o que foi captado — os vídeos e fotos que quem edita precisa baixar. '
+      + 'Aparece na tela de briefing, que é onde quem produz vai procurar.',
+    campo: { valor: atual, dica: 'https://drive.google.com/drive/folders/…' },
+    confirmar: atual ? 'Trocar link' : 'Registrar link',
+  });
+  if (url === null || url === undefined) return;
+  try {
+    const feito = await gravarMaterialBruto(itemId, url);
+    showToast(feito.para ? '✓ Material bruto registrado' : '✓ Link do material bruto removido', 'ok', 4000);
+    if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos();
+    if (typeof renderFocusDesk === 'function') renderFocusDesk();
+    if (String(activeWorkspaceItemId) === String(itemId) && document.getElementById('workspace-drawer')) {
+      renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), findOperationalItem(itemId));
+    }
+    if (document.getElementById('brief-overlay') && BRIEFING_ABERTO?.item
+        && String(BRIEFING_ABERTO.item.id) === String(itemId)) {
+      fecharBriefing(); await abrirBriefing(itemId);
+    }
+  } catch (erro) { showToast(`Não foi possível salvar: ${erro.message}`, 'err', 7000); }
+}
+
+// Guardar no campo o link que a tela achou no historico. E a migracao das pecas
+// antigas feita uma peca por vez, por quem esta olhando para ela — e nao uma
+// varredura adivinhando qual link de qual atualizacao era o material bruto.
+async function fixarMaterialBruto(itemId, url, event) {
+  event?.stopPropagation?.();
+  try {
+    await gravarMaterialBruto(itemId, url);
+    showToast('✓ Link fixado no campo · o cartão para de cobrar', 'ok', 4000);
+    if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos();
+    if (typeof renderFocusDesk === 'function') renderFocusDesk();
+    if (String(activeWorkspaceItemId) === String(itemId) && document.getElementById('workspace-drawer')) {
+      renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), findOperationalItem(itemId));
+    }
+    if (document.getElementById('brief-overlay') && BRIEFING_ABERTO?.item
+        && String(BRIEFING_ABERTO.item.id) === String(itemId)) {
+      fecharBriefing(); await abrirBriefing(itemId);
+    }
+  } catch (erro) { showToast(`Não foi possível fixar: ${erro.message}`, 'err', 7000); }
+}
+
+// Clicar no botao do cartao: se tem link, abre; se nao tem, pergunta. Um botao
+// que as vezes abre e as vezes pede e melhor do que dois botoes que se alternam.
+function abrirMaterialBruto(itemId, event) {
+  event?.stopPropagation?.();
+  const item = typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null;
+  const url = String(item?.material_bruto || '');
+  if (!url) return pedirMaterialBruto(itemId, event);
+  window.open(url, '_blank', 'noopener');
+}
+
+function botaoDeMaterialBrutoHtml(item) {
+  if (!pedeMaterialBruto(item)) return '';
+  const tem = Boolean(String(item?.material_bruto || '').trim());
+  return `<button type="button" class="focus-brief-btn bruto${tem ? '' : ' faltando'}"
+    onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
+    title="${tem ? 'Abrir a pasta com o material captado' : 'Nenhum material bruto registrado · clique para colar o link da pasta'}"
+    aria-label="Material bruto">🎬<span>${tem ? 'Bruto' : 'Sem bruto'}</span></button>`;
+}
+
+// A faixa na tela de briefing e na gaveta. E o mesmo desenho nos dois lugares
+// porque e a mesma informacao — e porque quem produz aprende um lugar so.
+function faixaDeMaterialBrutoHtml(detail, item, { compacta = false } = {}) {
+  const bruto = materialBrutoDaPeca(detail, item);
+  if (!bruto) {
+    if (!pedeMaterialBruto(item)) return '';
+    return `<div class="material-bruto faltando">
+      <div class="material-bruto-copy"><span>Material bruto</span>
+        <b>Nenhuma pasta registrada</b>
+        <small>Quem edita não tem o que baixar. Cole aqui o link da pasta com o que foi captado.</small></div>
+      <div class="material-bruto-acoes">
+        <button type="button" class="material-bruto-add" onclick="pedirMaterialBruto('${safeText(String(item.id))}',event)">REGISTRAR LINK</button>
+      </div></div>`;
+  }
+  const quando = String(bruto.quando || '').replace('T', ' ').slice(0, 16);
+  return `<div class="material-bruto">
+    <div class="material-bruto-copy"><span>Material bruto${bruto.origem === 'histórico' ? ' · encontrado no histórico' : ''}</span>
+      <b>Pasta do material captado</b>
+      <small>${safeText(bruto.url.replace(/^https?:\/\//, '').slice(0, 64))}${bruto.url.length > 71 ? '…' : ''}${quando ? ` · ${safeText(quando)}` : ''}</small></div>
+    <div class="material-bruto-acoes">
+      <a class="material-bruto-abrir" href="${safeText(bruto.url)}" target="_blank" rel="noopener">ABRIR PASTA ↗</a>
+      <button type="button" class="material-bruto-copiar" onclick="copiarBriefingTexto('${safeText(bruto.url)}','Link do material bruto')">Copiar</button>
+      ${compacta ? '' : (bruto.origem === 'histórico'
+        // O link resgatado do historico nao esta no CAMPO — e por isso o cartao
+        // ainda diz "sem bruto". Um clique arruma os dois, sem ninguem ter de
+        // copiar e colar de volta o endereco que a tela ja encontrou.
+        ? `<button type="button" class="material-bruto-copiar" onclick="fixarMaterialBruto('${safeText(String(item.id))}','${safeText(bruto.url)}',event)"
+             title="Guardar este link no campo da peça — assim o cartão para de dizer que falta material">Fixar</button>`
+        : `<button type="button" class="material-bruto-copiar" onclick="pedirMaterialBruto('${safeText(String(item.id))}',event)">Trocar</button>`)}
+    </div></div>`;
+}
+
 function workspaceCopyFallback(text){ const input=document.createElement('textarea'); input.value=text; input.setAttribute('readonly',''); input.style.cssText='position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(input); input.select(); const copied=document.execCommand('copy'); input.remove(); if(!copied) throw new Error('Cópia manual indisponível'); }
 function showWorkspaceDeliveryCopySheet(text){ document.getElementById('workspace-delivery-copy-sheet')?.remove(); const sheet=document.createElement('section'); sheet.id='workspace-delivery-copy-sheet'; sheet.className='workspace-delivery-copy-sheet'; sheet.innerHTML=`<b>Link pronto para copiar</b><small>Seu navegador bloqueou a cópia automática. O endereço abaixo já está selecionado: use Ctrl/Cmd + C.</small><input id="workspace-delivery-copy-value" readonly value="${safeText(text)}"><button type="button" onclick="document.getElementById('workspace-delivery-copy-sheet')?.remove()">Fechar</button>`; document.body.appendChild(sheet); const input=sheet.querySelector('input'); input?.focus(); input?.select(); }
 async function copyWorkspaceDeliveryLink(url){ const text=String(url||'').trim(); if(!text) return showToast('Nenhum material disponível para copiar.','info'); try{ if(navigator.clipboard?.writeText){ await Promise.race([navigator.clipboard.writeText(text),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tempo de cópia excedido')),1200))]); } else workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(error){ try{ workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(fallbackError){ showWorkspaceDeliveryCopySheet(text); showToast('Link aberto para cópia manual.','info',7000); } } }
@@ -2395,6 +2561,7 @@ async function abrirBriefing(itemId, gatilho) {
         <button type="button" class="brief-fechar" onclick="fecharBriefing()" aria-label="Fechar">×</button>
       </div>
     </div>
+    ${faixaDeMaterialBrutoHtml(detail, item)}
     ${resumo.length ? `<div class="brief-resumo">${resumo.map(r => `<div><span>${safeText(r.rotulo)}</span><b>${safeText(r.valor)}</b></div>`).join('')}</div>` : ''}
     <div class="brief-corpo">${secoes.map(briefingSecaoHtml).join('')}</div>
   </div>`;
@@ -2435,6 +2602,7 @@ let DETALHE_DA_GAVETA = null;
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
     ${blocoDoBriefingHtml(detail, item)}
+    ${faixaDeMaterialBrutoHtml(detail, item)}
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
     ${workspaceDeliveryDock(detail,item)}

@@ -300,6 +300,19 @@ export async function criarSchema() {
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS prioridade TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS off_audio TEXT`;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS editores TEXT[]`;
+  // O LINK DO MATERIAL BRUTO.
+  //
+  // Quem edita um Reels precisa de duas coisas: o roteiro, que ja estava no
+  // briefing, e os videos captados, que nao estavam em lugar nenhum. O link da
+  // pasta ia parar numa atualizacao solta do historico — e a tela de briefing,
+  // que e a que o editor abre, nao mostra atualizacao nenhuma. O material
+  // existia e ele nao encontrava.
+  //
+  // Coluna, e nao mais um update, porque a diferenca que importa e "tem ou nao
+  // tem": isso precisa viajar na LISTA, para o cartao poder dizer que falta
+  // antes de alguem abrir a peca.
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto TEXT`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto_em TIMESTAMPTZ`;
 
   // Subitem de demanda é a lista de tarefas dentro de uma solicitação. Tem tabela
   // própria em vez de virar linha em vybe_conteudos: se entrasse lá, cada subitem
@@ -591,6 +604,17 @@ export async function resumo() {
 // A leitura mais quente do sistema garante o proprio esquema, uma vez por
 // processo. Os UPDATE so tocam linhas ainda nulas.
 let colunasDeEtiquetaProntas = false;
+// A consulta da lista nomeia material_bruto, e uma coluna que ainda nao existe
+// derruba a consulta inteira — ou seja, o painel todo, nao o campo novo. Ela e
+// garantida na LEITURA por isso, e nao so no schema: quem le e quem paga o preco.
+let materialBrutoPronto = false;
+export async function garantirMaterialBruto(sql) {
+  if (materialBrutoPronto) return;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto TEXT`;
+  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto_em TIMESTAMPTZ`;
+  materialBrutoPronto = true;
+}
+
 async function garantirColunasDeEtiqueta(sql) {
   if (colunasDeEtiquetaProntas) return;
   await sql`ALTER TABLE vybe_status   ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
@@ -604,6 +628,7 @@ async function garantirColunasDeEtiqueta(sql) {
 export async function listarConteudos(boardId = BOARD_PRODUCAO) {
   const sql = database();
   await garantirColunasDeEtiqueta(sql);
+  await garantirMaterialBruto(sql);
 
   // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
   // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
@@ -665,6 +690,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
         c.captacao_chave,
         TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
+        c.material_bruto,
         c.monday_atualizado_em                  AS updated_at,
         -- Ordem original do Monday, não alfabética: o painel usa o primeiro
         -- cliente da lista, e ordenar por nome trocaria "VOA, Antonov" por

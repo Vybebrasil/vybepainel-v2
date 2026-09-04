@@ -18,6 +18,7 @@ import { neon } from '@neondatabase/serverless';
 import { quemChama } from '../vybe_acesso.js';
 import { aplicar } from '../vybe_automacoes.js';
 import { replicarOuEnfileirar } from '../vybe_replica_queue.js';
+import { garantirMaterialBruto } from '../vybe_dominio_store.js';
 
 const MONDAY = process.env.MONDAY_RELAY_URL || 'https://vybepainel-v2.vercel.app/api/monday';
 const BOARD_PRODUCAO = 7829537690;
@@ -556,6 +557,48 @@ async function moverBoard(sql, quem, { item, destino }) {
 
 // Renomear a peça. Não existia no painel: dava para criar, nunca para corrigir um
 // título. Com o time fora do Monday, um erro de digitação viraria permanente.
+// ── O MATERIAL BRUTO ─────────────────────────────────────────────────────────
+//
+// O caminho oposto ao da entrega. A entrega e o que sai da peca pronta para
+// postar; o material bruto e o que ENTRA nela — os videos captados que o editor
+// precisa baixar antes de comecar.
+//
+// Nao vai para o Monday: la nao existe coluna para isto, e inventar uma no
+// quadro deles agora, com o corte em andamento, seria criar dependencia nova
+// justamente onde se esta tirando. Fica no banco da Vybe, que e a autoridade.
+//
+// Link vazio limpa o campo de proposito: material trocado de pasta sem ninguem
+// poder apagar o endereco velho e pior do que campo em branco.
+async function guardarMaterialBruto(sql, quem, { item, link }) {
+  const novo = String(link || '').trim();
+  if (novo && !/^https?:\/\//i.test(novo)) {
+    throw new Error('O link precisa começar com http:// ou https://');
+  }
+  if (novo.length > 2000) throw new Error('Link muito longo.');
+
+  await garantirMaterialBruto(sql);
+  const linhas = await sql`SELECT id, titulo, material_bruto FROM vybe_conteudos
+    WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
+  if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
+  const c = linhas[0];
+  const de = String(c.material_bruto || '');
+  if (de === novo) return { conteudo_id: c.id, titulo: c.titulo, de, para: novo, mudou: false };
+
+  // O CASE evita montar SQL em dois caminhos: fragmento de sql dentro de
+  // interpolacao nao existe neste driver, e um IF em JavaScript daria duas
+  // consultas quase iguais para manter.
+  await sql`UPDATE vybe_conteudos
+      SET material_bruto = ${novo || null},
+          material_bruto_em = CASE WHEN ${novo || null}::text IS NULL THEN NULL ELSE NOW() END,
+          atualizado_em = NOW()
+    WHERE id = ${c.id}`;
+  await registrarEvento(sql, c.id, {
+    tipo: 'material_bruto', de: de || null, para: novo || null,
+    autorId: await pessoaDaSessao(sql, quem),
+  });
+  return { conteudo_id: c.id, titulo: c.titulo, de, para: novo, mudou: true };
+}
+
 async function trocarTitulo(sql, quem, { item, titulo }) {
   const novo = String(titulo || '').trim();
   if (!novo) throw new Error('O título não pode ficar vazio.');
@@ -753,6 +796,16 @@ async function criarConteudo(sql, quem, dados) {
     RETURNING id`)[0];
   await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id) VALUES (${novo.id}, ${cli.id})`;
 
+  // O link do material bruto entra no cadastro porque e ali que ele existe: quem
+  // registra a peca acabou de sair da captacao e tem a pasta aberta. Cobrar isso
+  // depois e cobrar de quem nao tem o endereco.
+  const bruto = String(dados.material_bruto || '').trim();
+  if (bruto && /^https?:\/\//i.test(bruto)) {
+    await garantirMaterialBruto(sql);
+    await sql`UPDATE vybe_conteudos SET material_bruto=${bruto}, material_bruto_em=NOW()
+      WHERE id=${novo.id}`;
+  }
+
   // Formato e tipo passam a viver como chave do catálogo; o rótulo sai dele.
   if (formato) {
     await sql`UPDATE vybe_conteudos c SET formato_chaves = (
@@ -906,6 +959,10 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ ok: true, acao,
         ...(await moverBoard(sql, quem, { item, destino: corpo.destino })) });
+    }
+    if (acao === 'material_bruto') {
+      return res.status(200).json({ ok: true, acao,
+        ...(await guardarMaterialBruto(sql, quem, { item, link: corpo.link })) });
     }
     if (acao === 'titulo') {
       return res.status(200).json({ ok: true, acao,

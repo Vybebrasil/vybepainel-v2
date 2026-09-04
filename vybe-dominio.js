@@ -97,6 +97,10 @@ function dominioComoItensDoMonday(dados) {
       updated_at: item.updated_at || '',
       group: { id: item.grupo_id || '', title: item.grupo || '' },
       updates: item.contexto_status ? [item.contexto_status] : [],
+      // Nao e coluna do Monday: la o campo nao existe. Viaja solto no item e o
+      // processItems o copia — e o unico jeito de o CARTAO saber que a peca ja
+      // tem material sem abrir a peca.
+      material_bruto: item.material_bruto || '',
       column_values: [
         { id: C.cliente, text: clientes.join(', '), value: null },
         { id: C.formato, text: item.formato || '', value: null },

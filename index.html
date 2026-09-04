@@ -5021,6 +5021,53 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .focus-brief-btn:hover{border-color:var(--vybe-orange,#ff9d00);background:rgba(255,157,0,.12);color:#fff}
 .focus-brief-btn:focus-visible{outline:2px solid var(--vybe-orange,#ff9d00);outline-offset:2px}
 .focus-brief-btn.carregando{opacity:.55;cursor:progress}
+/* Falta material bruto e falta de VERDADE: e o que impede a edicao de comecar.
+   Nao e um botao a mais, e um aviso — por isso vermelho, e nao cinza. */
+.focus-brief-btn.faltando,.focus-next-btn.faltando{border-color:rgba(255,107,129,.42);
+  background:rgba(255,107,129,.1);color:#ffb3bd}
+.focus-brief-btn.faltando:hover,.focus-next-btn.faltando:hover{
+  border-color:rgba(255,107,129,.8);background:rgba(255,107,129,.2);color:#fff}
+
+/* ─── A PASTA DO MATERIAL BRUTO ──────────────────────────────────────────────
+   Mesma faixa na tela de briefing e na gaveta: e a mesma informacao, e quem
+   produz so precisa aprender um lugar. Verde de "pode comecar"; vermelho quando
+   nao ha o que baixar. */
+.material-bruto{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;margin:14px 0;padding:13px 16px;border-radius:13px;
+  border:1px solid rgba(61,232,162,.28);background:linear-gradient(180deg,
+    rgba(61,232,162,.10),rgba(61,232,162,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.material-bruto.faltando{border-color:rgba(255,107,129,.3);
+  background:linear-gradient(180deg,rgba(255,107,129,.11),rgba(255,107,129,.04))}
+.material-bruto-copy{display:grid;gap:3px;min-width:0;flex:1 1 260px}
+.material-bruto-copy span{color:#6fe3b0;font:700 9.5px var(--mac-ui);letter-spacing:.08em;
+  text-transform:uppercase}
+.material-bruto.faltando .material-bruto-copy span{color:#ff97a4}
+.material-bruto-copy b{color:#eef0f4;font:650 13.5px var(--mac-ui)}
+.material-bruto-copy small{color:#9aa4b4;font:500 11px/1.45 var(--mac-ui);
+  overflow-wrap:anywhere}
+.material-bruto-acoes{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.material-bruto-abrir,.material-bruto-add{display:inline-flex;align-items:center;
+  padding:8px 13px;border-radius:9px;border:1px solid transparent;cursor:pointer;
+  font:700 11px var(--mac-ui);letter-spacing:.03em;text-decoration:none;
+  background:#3de8a2;color:#08130d;transition:.14s var(--curva,ease)}
+.material-bruto-add{background:#ff6b81;color:#1a0409}
+.material-bruto-abrir:hover{background:#5cf0b4}
+.material-bruto-add:hover{background:#ff8497}
+.material-bruto-copiar{padding:8px 11px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--vybe-line,rgba(255,255,255,.12));background:rgba(255,255,255,.05);
+  color:#cdd5e2;font:600 11px var(--mac-ui);transition:.14s var(--curva,ease)}
+.material-bruto-copiar:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* O campo do link no cadastro, logo abaixo do atalho que o promete. */
+.fc-bruto{display:grid;gap:6px;margin:10px 0 0;padding:12px 14px;border-radius:12px;
+  border:1px solid rgba(61,232,162,.26);background:rgba(61,232,162,.06)}
+.fc-bruto label{color:#6fe3b0;font:700 9.5px var(--mac-ui);letter-spacing:.08em;
+  text-transform:uppercase}
+.fc-bruto input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;
+  border:1px solid var(--vybe-line,rgba(255,255,255,.14));background:rgba(0,0,0,.28);
+  color:#eef0f4;font:500 12.5px var(--mac-ui)}
+.fc-bruto input:focus{outline:none;border-color:#3de8a2}
+.fc-bruto small{color:#9aa4b4;font:500 11px/1.45 var(--mac-ui)}
 @media(max-width:1180px){.focus-brief-btn span{display:none}.focus-brief-btn{padding:6px 8px}}
 
 /* ─── O CLIENTE NA MESMA LINHA DO NOME ───────────────────────────────────────

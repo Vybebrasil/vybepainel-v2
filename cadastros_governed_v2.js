@@ -261,6 +261,7 @@
     // o nome no proximo redesenho e o clique parecia nao ter funcionado.
     removidos: [],
     materialReady: false,
+    materialBruto: '',
     briefReady: false,
     manualGroup: undefined,
     manualStatus: undefined,
@@ -572,6 +573,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
            tipo_conteudo: state.board === 'demandas' ? null : 3,
            captacao: state.board === 'demandas' ? null : (finalCap || null),
            prioridade: state.board === 'demandas' ? (state.prioridade || null) : null,
+           material_bruto: state.materialBruto || null,
            responsaveis: fcEquipeFinal(dest),
            _devolve: true,
         });
@@ -825,9 +827,17 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
             onchange="fcHandleInput('briefReady', this.checked);updateDestinyUI()">
             <span>Os briefings já estão prontos <small>pula a Redação</small></span></label>
           <label class="fc-atalho"><input type="checkbox" ${state.materialReady ? 'checked' : ''}
-            onchange="fcHandleInput('materialReady', this.checked);updateDestinyUI()">
+            onchange="fcHandleInput('materialReady', this.checked);fcDesenharPasso()">
             <span>O material bruto já foi fornecido <small>ignora a Captação</small></span></label>
-        </div>`;
+        </div>
+        ${state.materialReady ? `<div class="fc-bruto">
+          <label for="fc-bruto-link">Link da pasta do material bruto</label>
+          <input id="fc-bruto-link" type="url" value="${(state.materialBruto || '').replace(/"/g, '&quot;')}"
+            placeholder="https://drive.google.com/drive/folders/…"
+            oninput="fcHandleInput('materialBruto', this.value)">
+          <small>"Fornecido" precisa dizer ONDE. Este link aparece na tela de briefing, que é
+            onde quem edita vai procurar os arquivos para baixar.</small>
+        </div>` : ''}`;
     }
     return `<div class="fc-auto-group" id="fc-auto-group-container"></div>
       <div class="fc-bloco-equipe">
@@ -1112,7 +1122,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     const existing = document.getElementById('fc-overlay');
     if(existing) existing.remove();
 
-    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], removidos: [], materialReady: false, briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
+    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], removidos: [], materialReady: false, materialBruto: '', briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
     
     const inicio = (inicial && typeof inicial === 'object') ? inicial : {};
     if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;

@@ -13,6 +13,7 @@ import { mondayQuery } from '../operational_mirror_store.js';
 import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, baixarDoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
+import { garantirMaterialBruto } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
@@ -271,9 +272,10 @@ async function areaPeca(req, res, quem) {
   // A ficha completa da peça. O drawer mostrava formato, prazo e status; o resto
   // só dava para ver abrindo o Monday — que é justamente o que estamos deixando
   // de fazer.
+  await garantirMaterialBruto(db);
   const c = (await db`
     SELECT c.id, c.titulo, c.criado_em, c.etapa AS grupo, c.grupo_id,
-           c.prazo, c.veiculacao, c.briefing,
+           c.prazo, c.veiculacao, c.briefing, c.material_bruto,
            c.captacao_chave, c.prioridade_chave, c.off_audio_chave,
            c.tipo_conteudo_chaves, c.formato_chaves,
            s.rotulo  AS status,

@@ -195,6 +195,10 @@ function focusNextActionHtml(data) {
         <button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>
         <button type="button" class="focus-next-btn brief" onclick="abrirBriefing('${safeText(String(item.id))}',this)"
           title="Ler o briefing sem abrir a peça">📄 Ver briefing</button>
+        ${pedeMaterialBruto(item) ? `<button type="button" class="focus-next-btn brief${String(item.material_bruto || '') ? '' : ' faltando'}"
+          onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
+          title="${String(item.material_bruto || '') ? 'Abrir a pasta com o material captado' : 'Sem material bruto · clique para colar o link da pasta'}"
+          >🎬 ${String(item.material_bruto || '') ? 'Material bruto' : 'Sem material bruto'}</button>` : ''}
         ${statusControl}${checkinControl}${secondary}
       </div>
     </div></section>`;
