@@ -620,6 +620,9 @@ async function managerCalendarDrop(dateIso, event, cell) {
   try {
     await moverDataDoItem(item, campo, dateIso, { request });
   } catch (erro) {
+    // Este era o aviso do arrasto no calendario. A recusa por "prazo depois da
+    // veiculacao" saiu do servidor, entao o que sobra aqui e falha de verdade
+    // (rede, sessao) — que continua devolvendo o cartao, e deve mesmo.
     showToast(`Não foi possível mover a data: ${erro.message}`, 'err', 7000);
   } finally {
     cell.classList.remove('is-saving');

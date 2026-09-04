@@ -918,7 +918,11 @@ async function savePlanningDates(itemId) {
   const reason=String(document.getElementById('planning-reason')?.value||'').trim();
   if(!item) return showToast('Demanda não encontrada.', 'err');
   if(!prazo || !veiculacao) return showToast('Preencha Prazo e Veiculação para manter o planejamento completo.', 'info');
-  if(prazo > veiculacao) return showToast('O prazo não pode ficar depois da veiculação. Ajuste as datas antes de salvar.', 'info');
+  // Deixou de barrar: quem esta replanejando sabe o que quer, e recusar no meio
+  // so devolve o formulario. Avisa e segue — a mesma decisao ja tomada para o
+  // Prazo de Ouro. O aviso e forte porque a combinacao e mesmo estranha:
+  // produzir depois de publicar.
+  const prazoDepois = prazo > veiculacao;
   const golden=goldenDeadlineIso(veiculacao);
   const followsGolden=prazo===golden;
   if(!followsGolden && !reason) return showToast(`O Prazo de Ouro é ${PRAZO_OURO_DIAS} dias antes da veiculação. Aplique o padrão ou registre o motivo da exceção.`, 'info');
@@ -939,7 +943,10 @@ async function savePlanningDates(itemId) {
     if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(row=>String(row.id)===String(item.id)); if(request){ if(prazoChanged){request.prazo_iso=prazo;request.prazo=planningDateBr(prazo).slice(0,5);} if(veicChanged){request.conclusao_iso=veiculacao;request.conclusao=planningDateBr(veiculacao).slice(0,5);request.veiculacao_iso=veiculacao;request.veiculacao=planningDateBr(veiculacao).slice(0,5);} } outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{...(prazoChanged?{prazo_iso:prazo}:{}),...(veicChanged?{veiculacao_iso:veiculacao}:{})},'planejamento');
     closeWorkflowModal();
     if(activeWorkspaceItemId===String(item.id)) { const refreshed=findOperationalItem(item.id)||item; renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),refreshed); }
-    showToast('✓ Planejamento atualizado no Vybe OS · painel mantido no contexto atual','ok');
+    showToast(prazoDepois
+      ? '✓ Planejamento atualizado · atenção: o prazo ficou DEPOIS da veiculação'
+      : '✓ Planejamento atualizado no Vybe OS · painel mantido no contexto atual',
+      prazoDepois ? 'info' : 'ok', prazoDepois ? 8000 : undefined);
   } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível atualizar o planejamento: ${e.message}`,'err',7000); }
 }
 function openDaDirectionModal(itemId) { const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada.', 'err'); pendingDaDirectionItemId=String(itemId); const owners=daControllerTeam().map(user=>`<option value="${user.id}">${safeText(firstName(user.name))}</option>`).join(''); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Direcionamento de arte</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Direcionar esta demanda</h2><p class="workflow-copy">Registre a decisão visual no histórico da peça para que o time execute sem depender do WhatsApp.</p>${workflowItemHtml(item,item.status)}<label class="workflow-field"><span>Qual é a direção objetiva?</span><textarea id="da-direction-text" rows="4" placeholder="Ex.: Ajustar a hierarquia do título, trocar a imagem principal e usar a referência enviada pelo cliente."></textarea></label><label class="workflow-field"><span>Quem precisa agir agora?</span><select id="da-direction-owner"><option value="">Manter responsável atual</option>${owners}</select></label><label class="workflow-field"><span>Próximo passo esperado</span><input id="da-direction-next" type="text" placeholder="Ex.: Nova versão para validação interna até amanhã."></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitDaDirection()">Registrar direção →</button></div>`); }

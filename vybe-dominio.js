@@ -235,6 +235,10 @@ async function tentarEscritaDupla(item, corpo) {
       console.warn('Gravado no banco; réplica do Monday entrou na fila:', r.replica_monday);
       showToast('✓ Salvo no Vybe · cópia de contingência enfileirada', 'info', 6000);
     }
+    // O servidor deixou de RECUSAR combinações estranhas de data e passou a
+    // devolver um aviso. Ele aparece aqui, num lugar só — quem grava não
+    // precisa saber que existe.
+    if (r?.aviso) showToast(`Salvo · atenção: ${r.aviso}`, 'info', 8000);
     return devolve ? r : true;
   } catch (erro) {
     console.error('Escrita no banco Vybe falhou; o Monday não receberá uma gravação paralela.', erro);

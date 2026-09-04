@@ -234,9 +234,13 @@ async function trocarDatas(sql, quem, { item, prazo, veiculacao }) {
     FROM vybe_conteudos WHERE (monday_item_id=${String(item)} OR id=${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const c = linhas[0];
-  if (Number(c.board_id) === BOARD_PRODUCAO && novoPrazo && novaVeiculacao && novoPrazo > novaVeiculacao) {
-    throw new Error('O prazo não pode ficar depois da veiculação.');
-  }
+  // Prazo depois da veiculacao DEIXA de barrar. Quem arrasta uma peca no
+  // calendario esta replanejando, e recusar no meio devolve o cartao para o
+  // lugar de onde saiu sem ter resolvido nada — foi o que aconteceu com o
+  // Paulo. A mesma decisao ja tinha sido tomada para o Prazo de Ouro: avisar,
+  // nao travar. Quem manda na agenda e quem opera, nao a regra.
+  const prazoDepoisDaVeiculacao = Number(c.board_id) === BOARD_PRODUCAO
+    && novoPrazo && novaVeiculacao && novoPrazo > novaVeiculacao;
   const mudouPrazo = String(c.prazo || '') !== novoPrazo;
   const mudouVeiculacao = String(c.veiculacao || '') !== novaVeiculacao;
   if (!mudouPrazo && !mudouVeiculacao) {
@@ -254,7 +258,9 @@ async function trocarDatas(sql, quem, { item, prazo, veiculacao }) {
   const replica = await replicar(sql, 'datas', `conteudo:${c.id}`,
     `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`,
     { board: String(c.board_id), item: referenciaReplica(c, item), values: JSON.stringify(values) });
-  return { conteudo_id: c.id, titulo: c.titulo, prazo: novoPrazo, veiculacao: novaVeiculacao, replica_monday: replica };
+  return { conteudo_id: c.id, titulo: c.titulo, prazo: novoPrazo, veiculacao: novaVeiculacao,
+           replica_monday: replica,
+           aviso: prazoDepoisDaVeiculacao ? 'O prazo ficou depois da veiculação.' : null };
 }
 
 async function trocarData(sql, quem, { item, campo, data }) {
@@ -272,10 +278,13 @@ async function trocarData(sql, quem, { item, campo, data }) {
   // A mesma regra que o painel aplica: prazo não passa da veiculação. Vale só em
   // Produção — em Demandas a segunda data é "Data de Conclusão", que por
   // definição vem depois e não é um prazo a proteger.
+  // Avisa em vez de barrar — ver o comentario em trocarDatas. O painel recebe
+  // `aviso` e mostra; a gravacao acontece de qualquer jeito.
+  let aviso = null;
   if (Number(c.board_id) === BOARD_PRODUCAO) {
     const prazo = campo === 'prazo' ? iso : c.prazo;
     const veic = campo === 'veiculacao' ? iso : c.veiculacao;
-    if (prazo && veic && prazo > veic) throw new Error('O prazo não pode ficar depois da veiculação.');
+    if (prazo && veic && prazo > veic) aviso = 'O prazo ficou depois da veiculação.';
   }
 
   if (campo === 'prazo') await sql`UPDATE vybe_conteudos SET prazo=${iso || null}, atualizado_em=NOW() WHERE id=${c.id}`;
@@ -287,7 +296,7 @@ async function trocarData(sql, quem, { item, campo, data }) {
     `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`,
     { board: String(c.board_id), item: referenciaReplica(c, item),
       values: JSON.stringify({ [colunasDe(c.board_id)[campo]]: { date: iso || null } }) });
-  return { conteudo_id: c.id, titulo: c.titulo, campo, de, para: iso, replica_monday: replica };
+  return { conteudo_id: c.id, titulo: c.titulo, campo, de, para: iso, replica_monday: replica, aviso };
 }
 
 // ── responsáveis ──────────────────────────────────────────────────────────────
