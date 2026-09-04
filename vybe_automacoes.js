@@ -94,39 +94,6 @@ const SEMENTE = [
       { tipo: 'update', texto: 'Encaminhado para agendamento.' },
     ] },
 
-  // FOTOGRAFIA JA CAPTADA SAI DE PRODUCAO PARA A EDICAO.
-  //
-  // Uma foto em Producao com a captacao FEITA nao esta mais esperando ser
-  // tirada: esta esperando ser tratada. Quem trata sao Deivid, Bia e Jady, no
-  // grupo Design & Edicao, com a peca liberada para fazer.
-  //
-  // Sao TRES regras porque ha tres caminhos para a peca chegar nesse estado, e o
-  // motor casa uma regra por tipo de gatilho: o status vira "Pode Fazer", o
-  // status vira "Finalizado", ou a captacao vira "Feita" com o status ja num dos
-  // dois. Uma regra so pegaria um caminho e deixaria os outros parados.
-  //
-  // Vem ANTES das regras 20/21 e 41 de proposito: as tres tambem casariam com
-  // uma fotografia, e a primeira que move de grupo e a que vale.
-  { nome: 'Fotografia captada e liberada em Produção vai para Design com Deivid, Bia e Jady', ordem: 18,
-    gatilho: { tipo: 'status', para: 'pode_fazer' },
-    condicao: { formato_em: ['fotografia'], grupo_em: [GRUPOS.producao],
-                captacao_em: ['captacao_feita'] },
-    acoes: [
-      { tipo: 'grupo', para: GRUPOS.design },
-      { tipo: 'responsaveis', modo: 'replace', pessoas: ['68997024', '71130408', '100482777'] },
-      { tipo: 'status', para: 'pode_fazer' },
-    ] },
-
-  { nome: 'Fotografia captada e finalizada em Produção vai para Design com Deivid, Bia e Jady', ordem: 19,
-    gatilho: { tipo: 'status', para: 'finalizado' },
-    condicao: { formato_em: ['fotografia'], grupo_em: [GRUPOS.producao],
-                captacao_em: ['captacao_feita'] },
-    acoes: [
-      { tipo: 'grupo', para: GRUPOS.design },
-      { tipo: 'responsaveis', modo: 'replace', pessoas: ['68997024', '71130408', '100482777'] },
-      { tipo: 'status', para: 'pode_fazer' },
-    ] },
-
   { nome: 'Audiovisual finalizado em Produção volta para edição com o Reriston', ordem: 20,
     gatilho: { tipo: 'status', para: 'finalizado' },
     condicao: { formato_em: AUDIOVISUAL, grupo_em: [GRUPOS.producao] },
@@ -230,22 +197,39 @@ const SEMENTE = [
       { tipo: 'status', para: 'cap_agendada' },
     ] },
 
-  { nome: 'Fotografia captada em Produção vai para Design com Deivid, Bia e Jady', ordem: 39,
+  // CAPTADO EM PRODUCAO SAI PARA A EDICAO — o gatilho e a CAPTACAO, so ela.
+  //
+  // Peca em Producao com a captacao FEITA nao esta mais esperando ser gravada:
+  // esta esperando ser tratada. Nao importa em que status ela esteja — marcar
+  // "Captacao Feita" ja e a decisao. Quem trata depende do formato: foto e
+  // design (Deivid, Bia e Jady), reels e edicao (Reriston).
+  //
+  // Ordem antes da 41 de proposito: aquela tambem casaria com as duas, e como o
+  // motor NAO para na primeira regra quando o gatilho e captacao — so quando e
+  // status — ela rodaria depois e trocaria os nomes.
+  { nome: 'Fotografia captada em Produção vai para Design com Deivid, Bia e Jady', ordem: 38,
     gatilho: { tipo: 'captacao', para: 'captacao_feita' },
-    condicao: { formato_em: ['fotografia'], grupo_em: [GRUPOS.producao],
-                status_em: ['pode_fazer', 'finalizado'] },
+    condicao: { formato_em: ['fotografia'], grupo_em: [GRUPOS.producao] },
     acoes: [
       { tipo: 'grupo', para: GRUPOS.design },
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['68997024', '71130408', '100482777'] },
       { tipo: 'status', para: 'pode_fazer' },
     ] },
 
-  // O motor NAO para na primeira regra quando o gatilho e captacao — so quando e
-  // status. Entao esta precisa excluir fotografia na mao: sem isso ela rodaria
-  // depois da de cima e trocaria os tres nomes pelo do Reriston.
+  { nome: 'Reels captado em Produção vai para edição com o Reriston', ordem: 39,
+    gatilho: { tipo: 'captacao', para: 'captacao_feita' },
+    condicao: { formato_em: ['reels'], grupo_em: [GRUPOS.producao] },
+    acoes: [
+      { tipo: 'grupo', para: GRUPOS.design },
+      { tipo: 'responsaveis', modo: 'replace', pessoas: ['68036697'] },
+      { tipo: 'status', para: 'pode_fazer' },
+    ] },
+
+  // Continua valendo para os outros formatos. Precisa excluir fotografia e
+  // reels na mao pelo motivo do comentario acima.
   { nome: 'Captação feita passa para o Reriston', ordem: 41,
     gatilho: { tipo: 'captacao', de: 'captacao_agendada', para: 'captacao_feita' },
-    condicao: { formato_nao_em: ['fotografia'] },
+    condicao: { formato_nao_em: ['fotografia', 'reels'] },
     acoes: [
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['68036697'] },
       { tipo: 'grupo', para: GRUPOS.design },
