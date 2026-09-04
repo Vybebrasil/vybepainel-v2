@@ -59,8 +59,9 @@ async function areaAutomacoes(req, res, quem) {
       return res.status(200).json({ ok: true, acao, ...(await varrerAgenda(sql(), new Date(), { seco })) });
     }
     if (acao === 'ensaio') {
-      const { evento, formato, grupo } = req.body || {};
-      return res.status(200).json({ ok: true, acao, ...(await ensaio(sql(), evento || {}, { formato, grupo })) });
+      const { evento, formato, grupo, captacao, status } = req.body || {};
+      return res.status(200).json({ ok: true, acao,
+        ...(await ensaio(sql(), evento || {}, { formato, grupo, captacao, status })) });
     }
     return res.status(200).json({ ok: true, acao: 'salvar', automacao: await salvar(req.body || {}) });
   }

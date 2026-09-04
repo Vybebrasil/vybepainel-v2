@@ -335,11 +335,18 @@ async function ensaiarAutomacao(id) {
   }
   const formato = (regra.condicao?.formato_em || regra.condicao?.formato_apenas || ['Reels'])[0];
   const grupo = (regra.condicao?.grupo_em || [])[0] || 'ensaio';
+  // A peca do ensaio nasce no estado que a PROPRIA regra exige. Sem isto, uma
+  // regra que so vale "com a captacao feita" era ensaiada numa peca sem
+  // captacao nenhuma, e o ensaio respondia "nao dispara" — parecendo
+  // diagnostico, sendo defeito do ensaio.
+  const captacao = (regra.condicao?.captacao_em || [])[0] || null;
+  const status = g.tipo !== 'status' ? (regra.condicao?.status_em || [])[0] || null : null;
   try {
     const resposta = await fetch(`${AUTOMACOES_API}&acao=ensaio`, {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formato, grupo, evento: { tipo: g.tipo, de: g.de || null, para: g.para } }),
+      body: JSON.stringify({ formato, grupo, captacao, status,
+        evento: { tipo: g.tipo, de: g.de || null, para: g.para } }),
     });
     const d = await resposta.json();
     if (!resposta.ok) throw new Error(d?.error || 'Ensaio falhou.');

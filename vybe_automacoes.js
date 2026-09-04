@@ -546,7 +546,11 @@ export async function aplicar(sql, conteudoId, evento) {
 // É o que o Monday nunca ofereceu: lá só dava para descobrir o que uma regra
 // faz mudando um item de verdade e vendo o que acontecia depois.
 export async function simular(sql, conteudoId, evento) {
-  const item = (await sql`SELECT id, titulo, formato_chaves, status_chave, grupo_id
+  // board_id e captacao_chave entram porque ha condicao que olha os dois. Sem
+  // eles o simulador responderia "nao dispara" para regra que dispara — o pior
+  // tipo de resposta, porque parece diagnostico.
+  const item = (await sql`SELECT id, titulo, formato_chaves, status_chave, grupo_id,
+      board_id, captacao_chave
     FROM vybe_conteudos WHERE id=${conteudoId}`)[0];
   if (!item) throw new Error(`Conteúdo ${conteudoId} não existe.`);
 
@@ -565,7 +569,9 @@ export async function simular(sql, conteudoId, evento) {
 // Sem isto, a única forma de saber se as ações gravam certo seria mexer num
 // card real do time — e um erro de SQL só apareceria no trabalho de alguém.
 // As chaves estrangeiras apagam em cascata, então não sobra rastro.
-export async function ensaio(sql, evento, { formato = 'Reels', grupo = 'ensaio' } = {}) {
+// Mesmo cuidado do simular: o item de ensaio precisa carregar os campos que as
+// condicoes leem, senao o ensaio mente.
+export async function ensaio(sql, evento, { formato = 'Reels', grupo = 'ensaio', captacao = null, status = null } = {}) {
   // Aceita rótulo ou chave: quem ensaia digita 'Reels', o banco guarda 'reels'.
   const chaves = String(formato).split(',').map((f) => normaliza(f)).filter(Boolean);
   const marca = `[ensaio] ${new Date().toISOString()}`;
@@ -582,6 +588,11 @@ export async function ensaio(sql, evento, { formato = 'Reels', grupo = 'ensaio' 
     if (evento.tipo === 'captacao' && evento.de) {
       await sql`UPDATE vybe_conteudos SET captacao_chave=${String(evento.de)} WHERE id=${criado.id}`;
     }
+    // Estado de PARTIDA pedido pela regra. Uma regra que exige "captacao feita"
+    // so pode ser ensaiada numa peca que ja tenha a captacao feita — sem isto o
+    // ensaio dizia que a regra nao dispara, e o problema era o ensaio.
+    if (captacao) await sql`UPDATE vybe_conteudos SET captacao_chave=${String(captacao)} WHERE id=${criado.id}`;
+    if (status) await sql`UPDATE vybe_conteudos SET status_chave=${String(status)} WHERE id=${criado.id}`;
     if (evento.tipo === 'status' && evento.para) {
       await sql`UPDATE vybe_conteudos SET status_chave=${String(evento.para)} WHERE id=${criado.id}`;
     }
