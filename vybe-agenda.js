@@ -1366,10 +1366,13 @@ function abrirEscolha(event, itemId, campo) {
   const menu = document.createElement('div');
   menu.id = 'escolha-editor';
   menu.className = 'status-editor';
-  const gerindo = podeGerirEtiquetas();
   const chave = (o) => chaveDaEtiquetaHtml(coluna, campo, o);
   const ferramentas = (o) => ferramentasDaEtiquetaHtml(coluna, campo, o);
-  menu.innerHTML = `<div class="status-editor-head">${safeText(rotuloDoCampo(campo, item))}</div>
+  // Com varias marcadas, escolher aqui vale para todas — e isso precisa estar
+  // escrito ANTES do clique, nao so na confirmacao que vem depois.
+  const emLote = SELECIONADAS.size >= 2 && SELECIONADAS.has(String(item.id));
+  menu.innerHTML = `<div class="status-editor-head">${safeText(rotuloDoCampo(campo, item))}${
+    emLote ? ` · <b>${SELECIONADAS.size} marcadas</b>` : ''}</div>
     ${opcoes.map((o) => `<div class="etiqueta-linha ${o.ativa ? '' : 'desligada'}">
         <button type="button" class="status-editor-option ${o.rotulo === atual ? 'current' : ''}"
           onclick="escolherValor('${safeText(item.id)}','${campo}','${safeText(o.chave)}')">
@@ -1657,12 +1660,33 @@ function fecharEscolha() {
   document.getElementById('escolha-editor')?.remove();
 }
 
+// A chave da etiqueta pertence ao quadro de onde ela foi lida: a mesma
+// Prioridade e color_mm164yv8 em Producao e color_mkwtgakv em Solicitacoes.
+// Por isso o lote viaja pelo ROTULO, e cada peca reencontra a chave no catalogo
+// dela — mandar a chave de um quadro para o outro gravaria em coluna errada.
+async function gravarEscolhaNoItem(item, campo, rotulo) {
+  if (!campoExisteNoQuadro(campo, item)) throw new Error('campo não existe neste quadro');
+  const alvo = rotulo ? catalogoDoCampo(campo, item).find((o) => o.rotulo === rotulo) : null;
+  if (rotulo && !alvo) throw new Error(`sem "${rotulo}" no catálogo desta peça`);
+  const deu = await salvarCampoDaFicha(item.id, campo, alvo ? alvo.chave : '', null);
+  if (!deu) throw new Error('gravação recusada');
+  applyOutboundItemPatch(item.id, { [campo]: rotulo || '' }, `${campo} em lote`);
+}
+
 async function escolherValor(itemId, campo, chave) {
   fecharEscolha();
   const alvo = findOperationalItem(itemId);
   const escolhida = catalogoDoCampo(campo, alvo).find((o) => o.chave === chave);
+  const rotulo = escolhida?.rotulo || '';
+  // A mesma regra da data: com varias marcadas, mexer numa e mexer em todas.
+  // Era so o prazo que olhava a selecao — trocar a prioridade com seis pecas
+  // marcadas mudava uma so e nao dizia nada sobre as outras cinco.
+  if (alvo && SELECIONADAS.size >= 2 && SELECIONADAS.has(String(itemId))) {
+    return aplicarEmLote(`${rotuloDoCampo(campo, alvo)} "${rotulo || 'em branco'}"`,
+      (item) => gravarEscolhaNoItem(item, campo, rotulo));
+  }
   const deuCerto = await salvarCampoDaFicha(itemId, campo, chave, null);
-  if (deuCerto) applyOutboundItemPatch(itemId, { [campo]: escolhida?.rotulo || '' }, campo);
+  if (deuCerto) applyOutboundItemPatch(itemId, { [campo]: rotulo }, campo);
 }
 
 function linhaDeGrupoHtml(item) {
@@ -1947,8 +1971,9 @@ function deckDeLoteHtml(quadro) {
       ${acao('Status', 'loteStatus(event)')}
       ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
       ${acao('Responsável', 'loteResponsavel(event)')}
-      ${acao(quadro === 'demandas' ? 'Tipo' : 'Formato', 'loteFormato(event)')}
-      ${quadro === 'demandas' ? '' : acao('Captação', 'loteCaptacao(event)')}
+      ${acao(quadro === 'demandas' ? 'Tipo' : 'Formato', "loteEscolha(event,'formato')")}
+      ${quadro === 'demandas' ? '' : acao('Captação', "loteEscolha(event,'captacao')")}
+      ${acao('Prioridade', "loteEscolha(event,'prioridade')")}
       ${acao('Prazo', "lotePrazo(event,'prazo')")}
       ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
       <span class="lote-risco" aria-hidden="true"></span>
@@ -2119,32 +2144,24 @@ function loteStatus(event) {
 // Classificar 300 solicitacoes uma a uma nao acontece — e por isso elas seguem
 // sem tipo desde a mudanca de casa. Em lote, marcar as do mes e dizer "isto e
 // impresso" leva um minuto.
-function loteFormato(event) {
+//
+// Formato e Captacao eram duas copias da mesma funcao, e o preco disso apareceu
+// na Prioridade: mudar a prioridade de seis pecas marcadas nao existia em canto
+// nenhum, porque ninguem ia escrever uma terceira copia. E uma so — o catalogo
+// de cada campo ja sabe quais opcoes tem e em que coluna grava.
+function loteEscolha(event, campo) {
   const alguma = [...SELECIONADAS].map((id) => findOperationalItem(id)).find(Boolean);
   if (!alguma) return showToast('Marque ao menos uma atividade.', 'info');
-  const opcoes = catalogoDoCampo('formato', alguma).filter((o) => o.ativa);
-  if (!opcoes.length) return showToast('As opções ainda estão carregando.', 'info');
-  abrirMenuDeLote(event, `${rotuloDoCampo('formato', alguma)} para todas`, opcoes.map((o) => ({
+  const nome = rotuloDoCampo(campo, alguma);
+  if (!campoExisteNoQuadro(campo, alguma)) {
+    return showToast(`${nome} não existe no quadro destas atividades.`, 'info');
+  }
+  const opcoes = catalogoDoCampo(campo, alguma).filter((o) => o.ativa);
+  if (!opcoes.length) return showToast(`As opções de ${nome} ainda estão carregando.`, 'info');
+  abrirMenuDeLote(event, `${nome} para todas`, opcoes.map((o) => ({
     rotulo: o.rotulo, cor: o.cor,
-    aplicar: async (item) => {
-      if (!campoExisteNoQuadro('formato', item)) throw new Error('campo não existe neste quadro');
-      const deu = await salvarCampoDaFicha(item.id, 'formato', o.chave, null);
-      if (!deu) throw new Error('gravação recusada');
-      applyOutboundItemPatch(item.id, { formato: o.rotulo }, 'tipo em lote');
-    },
-  })), rotuloDoCampo('formato', alguma).toLowerCase());
-}
-
-function loteCaptacao(event) {
-  if (!CATALOGO_CAPTACAO.length) return showToast('As opções de captação ainda estão carregando.', 'info');
-  abrirMenuDeLote(event, 'Captação para todas', CATALOGO_CAPTACAO.filter((c) => c.ativa).map((c) => ({
-    rotulo: c.rotulo, cor: c.cor,
-    aplicar: async (item) => {
-      const deu = await salvarCampoDaFicha(item.id, 'captacao', c.chave, null);
-      if (!deu) throw new Error('gravação recusada');
-      applyOutboundItemPatch(item.id, { captacao: c.rotulo }, 'captação em lote');
-    },
-  })), 'captação');
+    aplicar: (item) => gravarEscolhaNoItem(item, campo, o.rotulo),
+  })), nome.toLowerCase());
 }
 
 // Data em lote pelo calendario, e nao por uma caixa do navegador pedindo

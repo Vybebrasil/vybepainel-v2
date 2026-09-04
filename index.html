@@ -2671,8 +2671,12 @@ button.subitem-marca:hover{transform:scale(1.35)}
    parecia nao servir para nada. Flutuando, ele acompanha a leitura. */
 .grupos-lote{position:fixed!important;top:auto!important;left:50%!important;
   bottom:24px!important;transform:translateX(-50%);z-index:660!important;
-  width:auto!important;max-width:min(940px,calc(100vw - 32px));
+  width:auto!important;max-width:min(1040px,calc(100vw - 24px));
   display:flex;align-items:center;gap:6px!important;flex-wrap:nowrap!important;
+  /* Nove acoes nao cabiam em 940px: a barra cortava o Arquivar e o X de
+     desmarcar, sem nada dizendo que havia mais coisa a direita. Cabe ate num
+     ecra de 1024; abaixo disso ela rola em vez de esconder o fim. */
+  overflow-x:auto;scrollbar-width:none;
   padding:7px 8px 7px 14px!important;
   border:1px solid rgba(255,255,255,.13)!important;border-radius:16px!important;
   /* Superficie neutra, nao laranja: o deck acompanha a lista o tempo todo e uma
@@ -2684,6 +2688,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
   box-shadow:0 22px 54px rgba(0,0,0,.66),0 2px 0 rgba(0,0,0,.3),
              inset 0 1px 0 rgba(255,255,255,.08)!important;
   animation:lote-sobe .18s var(--curva,ease) both}
+.grupos-lote::-webkit-scrollbar{height:0}
 @keyframes lote-sobe{from{opacity:0;transform:translateX(-50%) translateY(10px)}
   to{opacity:1;transform:translateX(-50%) translateY(0)}}
 @media(prefers-reduced-motion:reduce){.grupos-lote{animation:none}}
