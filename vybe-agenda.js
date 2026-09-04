@@ -1793,12 +1793,25 @@ function haAlgoNaFrenteDaSelecao() {
   });
 }
 
+// Esc tem UMA fila de prioridade, e ela mora aqui — dois ouvintes disputando a
+// mesma tecla e como o Esc vira loteria: o cartao fecharia e a selecao sumiria
+// junto, na mesma tecla.
 document.addEventListener('keydown', (evento) => {
-  if (evento.key !== 'Escape' || !SELECIONADAS.size) return;
+  if (evento.key !== 'Escape') return;
   // Digitando num campo, Esc e do campo: cancelar o que se escreve nao pode
-  // custar a selecao inteira.
+  // custar nem o cartao aberto nem a selecao inteira.
   const alvo = evento.target;
   if (alvo && (/^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName) || alvo.isContentEditable)) return;
+
+  // 1º: o resumo aberto. E o que esta na frente dos olhos.
+  const cartao = document.getElementById('cartao-rapido');
+  if (cartao && cartao.getClientRects().length) {
+    evento.preventDefault();
+    return fecharCartaoRapido();
+  }
+
+  // 2º: qualquer outra sobreposicao trata a propria tecla.
+  if (!SELECIONADAS.size) return;
   if (haAlgoNaFrenteDaSelecao()) return;
   const quantas = SELECIONADAS.size;
   limparSelecao();
