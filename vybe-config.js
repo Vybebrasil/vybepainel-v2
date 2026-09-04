@@ -78,6 +78,11 @@ const CLIENTES_ALIAS = {
   // "GONZALEZ" viraria uma terceira ficha, do mesmo jeito que a errada virou a
   // segunda.
   'gonzalez':               'Gonzalez',
+  // Paulo em 04/09/2026: "Voa Sportswear" e a VOA, escrita de outro jeito. Duas
+  // fichas para o mesmo cliente e o mesmo caso do Gonzalez — o trabalho fica
+  // dividido em dois nomes e nenhuma das duas contas fecha.
+  'voa sportswear':         'VOA',
+  'voa':                    'VOA',
   'gonzalez gastronomia':   'Gonzalez',
   'hellen rocha':           'Hellen',
   'igor lopes':             'Igor R. Lopes',
