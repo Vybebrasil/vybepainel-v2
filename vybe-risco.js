@@ -1707,13 +1707,75 @@ function redesenharAposMudanca(motivo = 'alteração') {
   if (typeof renderOutboundItemPatch === 'function') renderOutboundItemPatch(motivo);
 }
 
-async function renomearPeca(itemId) {
+// Renomear no proprio titulo, e nao numa caixa por cima dele. A caixa do
+// navegador tapava o cartao — quem estava renomeando perdia de vista a peca
+// que estava renomeando — e ainda era a unica coisa branca num painel escuro.
+//
+// Uma implementacao so: a miniatura e a gaveta chamam a mesma funcao, passando
+// o proprio elemento do titulo. Sem elemento (chamada de outro lugar) ela cai
+// na caixa de pergunta do painel, que ao menos e do painel.
+function renomearPeca(itemId, evento) {
   const item = findOperationalItem(itemId);
   if (!item) return;
-  const novo = prompt('Novo título da peça:', item.nome || '');
+  const alvo = evento?.currentTarget;
+  if (alvo && alvo.isConnected) return editarTituloNoLugar(alvo, itemId, item.nome || '');
+  return renomearPelaCaixa(itemId, item.nome || '');
+}
+
+function editarTituloNoLugar(elemento, itemId, original) {
+  if (elemento.dataset.editando === '1') return;
+  elemento.dataset.editando = '1';
+  elemento.classList.add('editando');
+  // plaintext-only evita colar HTML formatado dentro do titulo; nem todo
+  // navegador aceita, e ai vale o contenteditable comum.
+  try { elemento.contentEditable = 'plaintext-only'; }
+  catch { elemento.contentEditable = 'true'; }
+  if (elemento.contentEditable !== 'plaintext-only') elemento.contentEditable = 'true';
+  elemento.spellcheck = false;
+  elemento.focus();
+  const selecao = window.getSelection();
+  const faixa = document.createRange();
+  faixa.selectNodeContents(elemento);
+  selecao.removeAllRanges();
+  selecao.addRange(faixa);
+
+  const encerrar = (salvar) => {
+    if (elemento.dataset.editando !== '1') return;
+    delete elemento.dataset.editando;
+    elemento.classList.remove('editando');
+    elemento.contentEditable = 'false';
+    elemento.removeEventListener('keydown', tecla);
+    elemento.removeEventListener('blur', aoSair);
+    // Uma linha so: Enter salva, e colar texto com quebra nao pode virar
+    // titulo de duas linhas.
+    const texto = String(elemento.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!salvar || !texto || texto === original) { elemento.textContent = original; return; }
+    elemento.textContent = texto;
+    gravarNovoTitulo(itemId, texto, elemento, original);
+  };
+  const tecla = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); encerrar(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); encerrar(false); }
+  };
+  const aoSair = () => encerrar(true);
+  elemento.addEventListener('keydown', tecla);
+  elemento.addEventListener('blur', aoSair);
+}
+
+async function renomearPelaCaixa(itemId, original) {
+  const novo = typeof perguntarNoPainel === 'function'
+    ? await perguntarNoPainel({ titulo: 'Renomear a peça', confirmar: 'Salvar',
+        campo: { valor: original, dica: 'Título da peça' } })
+    : prompt('Novo título da peça:', original);
   if (novo === null) return;
   const limpo = String(novo).trim();
-  if (!limpo || limpo === item.nome) return;
+  if (!limpo || limpo === original) return;
+  return gravarNovoTitulo(itemId, limpo);
+}
+
+async function gravarNovoTitulo(itemId, limpo, elemento, original) {
+  const item = findOperationalItem(itemId);
+  if (!item) return;
   try {
     const r = await fetch('/api/conteudo', {
       method: 'POST', credentials: 'same-origin',
@@ -1732,6 +1794,9 @@ async function renomearPeca(itemId) {
     renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), findOperationalItem(itemId) || item);
     redesenharAposMudanca('renome');
   } catch (erro) {
+    // Falhou: o titulo volta ao que era na tela, para ninguem sair achando que
+    // renomeou.
+    if (elemento?.isConnected && original !== undefined) elemento.textContent = original;
     showToast(`Não foi possível renomear: ${erro.message}`, 'err', 7000);
   }
 }
@@ -2367,7 +2432,7 @@ let DETALHE_DA_GAVETA = null;
     <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}
       <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
               title="ID da atividade · clique para copiar">#${safeText(item.id)}</button>${botaoDeLinkHtml(item)}</div>
-    <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}')">${safeText(item.nome)}</h2>
+    <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
     ${blocoDoBriefingHtml(detail, item)}
     ${workspaceFichaHtml(detail, item.id)}

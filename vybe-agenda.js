@@ -566,8 +566,10 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}${botaoDeLinkHtml(item)}</div>
       <button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button>
     </div>
-    <button type="button" class="cr-titulo" onclick="renomearPeca('${safeText(item.id)}')"
-      title="Clique para renomear">${safeText(item.nome || 'Sem título')}</button>
+    <div class="cr-titulo" role="button" tabindex="0"
+      onclick="event.stopPropagation();renomearPeca('${safeText(item.id)}',event)"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();renomearPeca('${safeText(item.id)}',event)}"
+      title="Clique para renomear aqui mesmo">${safeText(item.nome || 'Sem título')}</div>
     <div class="cr-campos">
       ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
       ${linha('Grupo', botaoDeGrupo(item))}
