@@ -94,6 +94,39 @@ const SEMENTE = [
       { tipo: 'update', texto: 'Encaminhado para agendamento.' },
     ] },
 
+  // FOTOGRAFIA JA CAPTADA SAI DE PRODUCAO PARA A EDICAO.
+  //
+  // Uma foto em Producao com a captacao FEITA nao esta mais esperando ser
+  // tirada: esta esperando ser tratada. Quem trata sao Deivid, Bia e Jady, no
+  // grupo Design & Edicao, com a peca liberada para fazer.
+  //
+  // Sao TRES regras porque ha tres caminhos para a peca chegar nesse estado, e o
+  // motor casa uma regra por tipo de gatilho: o status vira "Pode Fazer", o
+  // status vira "Finalizado", ou a captacao vira "Feita" com o status ja num dos
+  // dois. Uma regra so pegaria um caminho e deixaria os outros parados.
+  //
+  // Vem ANTES das regras 20/21 e 41 de proposito: as tres tambem casariam com
+  // uma fotografia, e a primeira que move de grupo e a que vale.
+  { nome: 'Fotografia captada e liberada em Produção vai para Design com Deivid, Bia e Jady', ordem: 18,
+    gatilho: { tipo: 'status', para: 'pode_fazer' },
+    condicao: { formato_em: ['fotografia'], grupo_em: [GRUPOS.producao],
+                captacao_em: ['captacao_feita'] },
+    acoes: [
+      { tipo: 'grupo', para: GRUPOS.design },
+      { tipo: 'responsaveis', modo: 'replace', pessoas: ['68997024', '71130408', '100482777'] },
+      { tipo: 'status', para: 'pode_fazer' },
+    ] },
+
+  { nome: 'Fotografia captada e finalizada em Produção vai para Design com Deivid, Bia e Jady', ordem: 19,
+    gatilho: { tipo: 'status', para: 'finalizado' },
+    condicao: { formato_em: ['fotografia'], grupo_em: [GRUPOS.producao],
+                captacao_em: ['captacao_feita'] },
+    acoes: [
+      { tipo: 'grupo', para: GRUPOS.design },
+      { tipo: 'responsaveis', modo: 'replace', pessoas: ['68997024', '71130408', '100482777'] },
+      { tipo: 'status', para: 'pode_fazer' },
+    ] },
+
   { nome: 'Audiovisual finalizado em Produção volta para edição com o Reriston', ordem: 20,
     gatilho: { tipo: 'status', para: 'finalizado' },
     condicao: { formato_em: AUDIOVISUAL, grupo_em: [GRUPOS.producao] },
@@ -197,8 +230,22 @@ const SEMENTE = [
       { tipo: 'status', para: 'cap_agendada' },
     ] },
 
+  { nome: 'Fotografia captada em Produção vai para Design com Deivid, Bia e Jady', ordem: 39,
+    gatilho: { tipo: 'captacao', para: 'captacao_feita' },
+    condicao: { formato_em: ['fotografia'], grupo_em: [GRUPOS.producao],
+                status_em: ['pode_fazer', 'finalizado'] },
+    acoes: [
+      { tipo: 'grupo', para: GRUPOS.design },
+      { tipo: 'responsaveis', modo: 'replace', pessoas: ['68997024', '71130408', '100482777'] },
+      { tipo: 'status', para: 'pode_fazer' },
+    ] },
+
+  // O motor NAO para na primeira regra quando o gatilho e captacao — so quando e
+  // status. Entao esta precisa excluir fotografia na mao: sem isso ela rodaria
+  // depois da de cima e trocaria os tres nomes pelo do Reriston.
   { nome: 'Captação feita passa para o Reriston', ordem: 41,
-    gatilho: { tipo: 'captacao', de: 'captacao_agendada', para: 'captacao_feita' }, condicao: null,
+    gatilho: { tipo: 'captacao', de: 'captacao_agendada', para: 'captacao_feita' },
+    condicao: { formato_nao_em: ['fotografia'] },
     acoes: [
       { tipo: 'responsaveis', modo: 'replace', pessoas: ['68036697'] },
       { tipo: 'grupo', para: GRUPOS.design },
@@ -334,6 +381,16 @@ function atende(condicao, item) {
   // Em que quadro a peca esta. As chaves de status se repetem entre Producao e
   // Solicitacoes: sem isto, "alteracao" numa solicitacao dispararia a regra
   // escrita para conteudo, e vice-versa.
+  // "todos MENOS estes". Sem isto, uma regra geral e uma especifica para o mesmo
+  // gatilho disputam a mesma peca — e a geral, escrita antes, ganha por ordem.
+  if (condicao.formato_nao_em) {
+    const alvo = condicao.formato_nao_em.map(normaliza);
+    if (formatos().some((p) => alvo.includes(p))) return false;
+  }
+  // Em que ponto da captacao a peca esta. Sem isto nao da para escrever "so
+  // depois de captada", que e o que separa foto pronta para editar de foto que
+  // ainda vai ser tirada.
+  if (condicao.captacao_em && !condicao.captacao_em.includes(normaliza(item.captacao_chave))) return false;
   if (condicao.board_em && !condicao.board_em.map(Number).includes(Number(item.board_id))) return false;
   if (condicao.grupo_em && !condicao.grupo_em.includes(item.grupo_id)) return false;
   if (condicao.status_nao_em && condicao.status_nao_em.includes(item.status_chave)) return false;
@@ -356,6 +413,7 @@ function casaGatilho(gatilho, evento) {
 // replicar no Monday enquanto ele ainda existir.
 export async function aplicar(sql, conteudoId, evento) {
   const item = (await sql`SELECT c.id, c.titulo, c.formato_chaves, c.status_chave, c.grupo_id, c.board_id,
+      c.captacao_chave,
       (SELECT cl.nome FROM vybe_conteudo_clientes vcc JOIN vybe_clientes cl ON cl.id=vcc.cliente_id
         WHERE vcc.conteudo_id=c.id LIMIT 1) AS cliente
     FROM vybe_conteudos c WHERE c.id=${conteudoId}`)[0];
