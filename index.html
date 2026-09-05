@@ -4028,6 +4028,56 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   transition:background-color .14s var(--curva),color .14s var(--curva)}
 .da-segmento button:hover{color:#f2f2f5}
 .da-segmento button.marcado{background:var(--accent,#ff6b00);color:#fff}
+
+/* ─── OS CONTROLES DA REGUA ──────────────────────────────────────────────────
+   O mesmo interruptor de "contar por", agora ao lado da regua: quem conduz o
+   dia trabalha aqui embaixo, e a barra do alto fica a duas rolagens de
+   distancia. Menor que a de cima de proposito — a de cima e a principal, esta e
+   o atalho no lugar do uso. */
+.da-week-agenda-head{flex-wrap:wrap}
+.da-week-agenda-dica{padding:6px 12px 0}
+.da-week-agenda-dica span{color:#8e735b;font-size:10px}
+.da-regua-controles{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;
+  margin-left:auto}
+.da-regua-janela{display:inline-flex;align-items:center;gap:4px;padding:2px;
+  border-radius:9px;background:var(--sup-1)}
+.da-regua-seta{display:grid;place-items:center;width:24px;height:24px;padding:0;
+  border:0;border-radius:7px;background:transparent;color:#c5a889;cursor:pointer;
+  font:700 15px var(--mac-ui);line-height:1;
+  transition:background-color .14s var(--curva),color .14s var(--curva)}
+.da-regua-seta:hover{background:rgba(255,255,255,.09);color:#fff}
+.da-regua-periodo{min-width:88px;padding:0 4px;text-align:center;color:#e6d6c2;
+  font:700 11px var(--mac-mono);letter-spacing:.02em;text-transform:uppercase;
+  white-space:nowrap}
+/* A janela de hoje nao se anuncia; as outras sim — e assim que se percebe que
+   a tela saiu do lugar. */
+.da-regua-periodo.agora{color:#a8896c;font-weight:600}
+.da-regua-hoje{margin-left:2px;padding:4px 9px;border:0;border-radius:7px;
+  background:rgba(255,107,0,.18);color:#ffbe86;cursor:pointer;
+  font:700 10px var(--mac-ui);letter-spacing:.05em;text-transform:uppercase}
+.da-regua-hoje:hover{background:rgba(255,107,0,.32);color:#fff}
+.da-regua-modo button{padding:4px 10px;font-size:11px}
+.da-regua-visoes{display:inline-flex;gap:6px}
+.da-regua-visao{padding:5px 11px;border:1px solid var(--linha);border-radius:8px;
+  background:rgba(255,255,255,.03);color:#c5a889;cursor:pointer;
+  font:700 10.5px var(--mac-ui);letter-spacing:.04em;
+  transition:background-color .14s var(--curva),color .14s var(--curva),border-color .14s var(--curva)}
+.da-regua-visao:hover{border-color:rgba(255,157,0,.5);background:rgba(255,122,0,.14);color:#fff0d1}
+.da-regua-visao.marcado{border-color:var(--accent,#ff6b00);
+  background:rgba(255,107,0,.22);color:#fff}
+@media(max-width:900px){.da-regua-controles{width:100%;margin-left:0}}
+
+/* Grupos e Calendario sao secoes do Gestor e tem a largura de la. Abertas dentro
+   do DA Controler, ficavam 25px mais largas de cada lado que o painel tatico — um
+   degrau na borda que nao significa nada. O irmao geral (~) so alcanca as duas
+   quando o painel do DA esta ativo, entao no Gestor nada muda. */
+#da-controller-dashboard.active ~ #grupos-board,
+#da-controller-dashboard.active ~ #manager-calendar{
+  width:min(calc(100vw - 110px),1680px);margin-left:auto;margin-right:auto;
+  box-sizing:border-box}
+@media(max-width:900px){
+  #da-controller-dashboard.active ~ #grupos-board,
+  #da-controller-dashboard.active ~ #manager-calendar{width:calc(100vw - 32px)}}
 .da-barra-periodo{color:#c5a889;font:600 11.5px var(--mac-mono);white-space:nowrap}
 
 .da-barra-quem{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;

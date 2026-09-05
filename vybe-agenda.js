@@ -824,11 +824,20 @@ async function saveDemandaCalendarDate(itemId, mode) {
     showToast(`Não foi possível atualizar a solicitação: ${error.message}`, 'err', 7000);
   }
 }
+// Grupos e Calendario nasceram presos ao Modo Gestor. Sao a MESMA tabela e o
+// MESMO mes que o DA Controler precisa consultar no meio da conducao do dia — e
+// trocar de modo para ver e perder o lugar. Um predicado so decide onde eles
+// existem; espalhar `|| 'controler'` por tres arquivos e como esta lista cresce
+// errado.
+function modoComVisoesDoQuadro() {
+  return panelMode === 'gestor' || panelMode === 'controler';
+}
+
 function renderManagerCalendar() {
   const wrap = document.getElementById('manager-calendar');
   const botao = document.getElementById('ops-agenda-btn');
   if (!wrap) return;
-  if (panelMode !== 'gestor') {
+  if (!modoComVisoesDoQuadro()) {
     wrap.innerHTML = ''; wrap.classList.add('focus-hidden');
     if (botao) botao.classList.add('focus-hidden');
     return;

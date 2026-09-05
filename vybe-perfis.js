@@ -192,11 +192,53 @@ function daControllerDate(item) { return daControllerDateMode === 'veiculacao' ?
 function daControllerDateLabel(item) { return daControllerDateMode === 'veiculacao' ? (item.veiculacao || 'Sem veiculação') : (item.prazo || 'Sem prazo'); }
 function daControllerSource() { const source=unifiedOperationalItems(); return source.filter(item => !isFinishedItem(item) && hasAnyAssignment(item, DA_CONTROLLER_TEAM_IDS)); }
 function daControllerIsoAt(baseIso, delta) { const date=new Date(`${baseIso}T12:00:00`); date.setDate(date.getDate()+delta); return date.toISOString().slice(0,10); }
+// ── A JANELA ANDA ────────────────────────────────────────────────────────────
+//
+// A tela sempre falou do periodo de HOJE e de mais nenhum: nao havia como olhar
+// o mes que vem para planejar, nem o passado para conferir o que ficou. O
+// deslocamento e um numero so — quantos periodos de distancia do atual — e vale
+// para a tela inteira: regua, carga de cada pessoa, atrasos e fila do dia falam
+// todos da mesma janela. Duas janelas na mesma tela seriam duas verdades.
+let daControllerJanela = 0;
+
+// ISO a partir dos componentes locais. toISOString converte para UTC, e no fuso
+// da Bahia isso ja devolveu o dia anterior mais de uma vez neste painel.
+const daIsoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const DA_MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const daDiaBr = (iso) => `${iso.slice(8,10)}/${iso.slice(5,7)}`;
+
 function daControllerPeriodRange() {
   const today=HOJE_ISO || new Date().toISOString().slice(0,10);
-  if (daControllerPeriod === 'day') return {start:today,end:today,label:'Hoje'};
-  if (daControllerPeriod === 'month') { const start=`${today.slice(0,7)}-01`; const end=new Date(`${today.slice(0,7)}-01T12:00:00`); end.setMonth(end.getMonth()+1); end.setDate(0); return {start,end:end.toISOString().slice(0,10),label:'Este mês'}; }
-  const date=new Date(`${today}T12:00:00`); const weekday=date.getDay() || 7; const start=daControllerIsoAt(today,1-weekday); return {start,end:daControllerIsoAt(start,6),label:'Esta semana'};
+  const n=daControllerJanela;
+  if (daControllerPeriod === 'day') {
+    const iso=daControllerIsoAt(today,n);
+    return {start:iso,end:iso,atual:n===0,
+      label:n===0?'Hoje':daDiaBr(iso)};
+  }
+  if (daControllerPeriod === 'month') {
+    const base=new Date(`${today.slice(0,7)}-01T12:00:00`); base.setMonth(base.getMonth()+n);
+    const start=daIsoLocal(base);
+    const fim=new Date(base); fim.setMonth(fim.getMonth()+1); fim.setDate(0);
+    return {start,end:daIsoLocal(fim),atual:n===0,
+      label:`${DA_MESES[base.getMonth()]} ${base.getFullYear()}`};
+  }
+  const date=new Date(`${today}T12:00:00`); const weekday=date.getDay() || 7;
+  const start=daControllerIsoAt(daControllerIsoAt(today,1-weekday),n*7);
+  const end=daControllerIsoAt(start,6);
+  return {start,end,atual:n===0,
+    label:n===0?'Esta semana':`${daDiaBr(start)} a ${daDiaBr(end)}`};
+}
+
+// Andar de periodo apaga o dia em foco: o dia de outra semana nao existe nesta,
+// e a fila continuaria mostrando entregas de fora da janela.
+function andarNaJanelaDoDa(passos) {
+  daControllerJanela += Number(passos) || 0;
+  daControllerDayFocusIso='';
+  renderDaController();
+}
+function voltarJanelaDoDaParaHoje() {
+  if (!daControllerJanela) return;
+  daControllerJanela=0; daControllerDayFocusIso=''; renderDaController();
 }
 function daControllerInPeriod(item, range=daControllerPeriodRange()) { const date=daControllerDate(item); return Boolean(date && date >= range.start && date <= range.end); }
 function daControllerRisk(item) { const today=HOJE_ISO || new Date().toISOString().slice(0,10); const tomorrow=daControllerIsoAt(today,1); const date=daControllerDate(item); const flowStatus=operationalFlowStatus(item); if (!date) return null; if (date < today && !['Para agendar','Agendado'].includes(flowStatus)) return {level:'critical',label:'Atrasado'}; if (date === today && !['Para agendar','Agendado'].includes(flowStatus)) return {level:'high',label:'Hoje'}; if (date === tomorrow && !['Para agendar','Agendado'].includes(flowStatus)) return {level:'attention',label:'Amanhã'}; return null; }
@@ -497,6 +539,44 @@ function daMemberProductionHtml(user,items) {
   const weekHtml=[...groups.entries()].map(([key,group])=>{const start=key==='sem-data'?null:key; const end=start?daControllerIsoAt(start,6):null; const label=start?`SEMANA · ${daAgendaDayInfo(start).date}–${daAgendaDayInfo(end).date}`:'SEM DATA DE REFERÊNCIA'; const rows=group.map(item=>{const date=daControllerDate(item); const dateLabel=date?`${daAgendaDayInfo(date).name} ${daAgendaDayInfo(date).date}`:'SEM DATA'; return `<button type="button" class="da-member-production-row" onclick="openItemWorkspace('${item.id}')" title="Abrir contexto de ${safeText(item.nome)}"><span class="da-member-production-date">${safeText(dateLabel)}</span><span class="da-member-production-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}</small></span><span class="da-member-production-tags">${daTacticalFormatTag(item)}${daTacticalStatusTag(item)}</span></button>`;}).join(''); return `<section class="da-member-production-week"><div class="da-member-production-week-head"><b>${safeText(label)}</b><span>${group.length} entrega${group.length===1?'':'s'}</span></div>${rows}</section>`;}).join('') || '<div class="da-empty-tactical">Nenhuma entrega ativa no período selecionado.</div>';
   return `<section class="da-member-production"><div class="da-member-production-head"><b>PRODUÇÃO DE ${safeText(firstName(user.name).toUpperCase())} NO PERÍODO · ${pending.length} ENTREGA${pending.length===1?'':'S'}</b><small>Toda a carga ativa aparece aqui; riscos continuam separados acima.</small></div><div class="da-member-production-weeks">${weekHtml}</div></section>`;
 }
+// OS CONTROLES ONDE A MAO ESTA.
+//
+// Contar por prazo ou por veiculacao ja existia — na barra do alto da tela, a
+// duas rolagens de distancia da regua. Trocar a referencia enquanto se conduz o
+// dia significava subir, clicar, descer e reencontrar o lugar. E a mesma funcao,
+// o mesmo estado: aqui e so um segundo par de botoes para o mesmo interruptor.
+//
+// Grupos e Calendario sao as secoes do Modo Gestor, e nao copias delas: abrem
+// logo abaixo, na propria tela, com a tabela e o mes que ja existem.
+function daControlesDaRegua(range) {
+  const periodo = daControllerPeriod === 'month' ? 'mês' : daControllerPeriod === 'week' ? 'semana' : 'dia';
+  const seta = (d, rotulo, titulo) => `<button type="button" class="da-regua-seta"
+    onclick="andarNaJanelaDoDa(${d})" title="${titulo}" aria-label="${titulo}">${rotulo}</button>`;
+  const modo = (chave, rotulo) => `<button type="button" class="${daControllerDateMode===chave?'marcado':''}"
+    aria-pressed="${daControllerDateMode===chave}"
+    onclick="setDaControllerDateMode('${chave}')">${rotulo}</button>`;
+  const visao = (rotulo, chamada, aberta, titulo) => `<button type="button"
+    class="da-regua-visao${aberta?' marcado':''}" onclick="${chamada}" title="${titulo}">${rotulo}</button>`;
+  return `<div class="da-regua-controles">
+    <div class="da-regua-janela">
+      ${seta(-1, '‹', `Voltar um ${periodo}`)}
+      <span class="da-regua-periodo${range.atual ? ' agora' : ''}">${safeText(range.label)}</span>
+      ${seta(1, '›', `Avançar um ${periodo}`)}
+      ${range.atual ? '' : `<button type="button" class="da-regua-hoje" onclick="voltarJanelaDoDaParaHoje()"
+        title="Voltar para o ${periodo} de hoje">hoje</button>`}
+    </div>
+    <div class="da-segmento da-regua-modo" role="group" aria-label="Data de referência">
+      ${modo('prazo', 'Prazo')}${modo('veiculacao', 'Veiculação')}
+    </div>
+    <div class="da-regua-visoes">
+      ${visao('Grupos', 'toggleVisaoDeGrupos()', typeof visaoDeGruposAberta !== 'undefined' && visaoDeGruposAberta,
+        'A tabela por grupo do quadro, aberta logo abaixo. Mostra o quadro inteiro, sem o filtro de pessoa e de período desta tela.')}
+      ${visao('Calendário', 'toggleAgendaMensal()', typeof agendaMensalAberta !== 'undefined' && agendaMensalAberta,
+        'A agenda mensal por cliente, aberta logo abaixo. Mostra o quadro inteiro, sem o filtro de pessoa e de período desta tela.')}
+    </div>
+  </div>`;
+}
+
 function daWeekAgendaHtml(items,range,team,today) {
   const dates=[];
   if (daControllerPeriod==='week') {
@@ -511,7 +591,9 @@ function daWeekAgendaHtml(items,range,team,today) {
   const focus=daAgendaDayInfo(daControllerDayFocusIso || range.start);
   const leading=isMonth ? '<span class="da-month-empty"></span>'.repeat(new Date(`${range.start}T12:00:00`).getDay()) : '';
   const rail=dates.map(iso=>{const info=daAgendaDayInfo(iso); const active=daControllerDayFocusIso===iso; const dayItems=items.filter(item=>daControllerDate(item)===iso && !['Para agendar','Agendado'].includes(operationalFlowStatus(item))); const alerts=dayItems.filter(item=>daControllerBlocked(item)||['critical','high'].includes(daControllerRisk(item)?.level)).length; const owners=[...new Map(dayItems.map(item=>{const owner=daTacticalOwner(item,team); return [owner?.id||`none-${item.id}`,owner];})).values()].filter(Boolean).slice(0,4); const extraOwners=Math.max(0,new Set(dayItems.flatMap(item=>assignedIds(item))).size-owners.length); const state=alerts?`${alerts} alerta${alerts===1?'':'s'} para conduzir`:(dayItems.length?'sem alerta imediato':'sem entrega'); return `<button type="button" class="da-week-rail-day ${active?'active':''} ${iso===today?'today':''}" onclick="setDaControllerDayFocus('${iso}')" title="Abrir fila de ${info.name} ${info.date}"><span class="da-week-rail-top"><b>${info.name} <span>${info.date}</span></b><span class="da-week-rail-count">${dayItems.length}</span></span><span class="da-week-rail-avatars">${owners.map(owner=>daTacticalPersonVisual(owner,owner.color)).join('')}${extraOwners?`<span class="da-tactical-person" title="Mais ${extraOwners} pessoa${extraOwners===1?'':'s'}"><span style="background:#5f4939">+${extraOwners}</span></span>`:''}</span><span class="da-week-rail-info"><b>${dayItems.length?`${dayItems.length} entrega${dayItems.length===1?'':'s'}`:'Sem entrega'}</b><small class="${alerts?'risk':''}">${safeText(state)}</small></span></button>`;}).join('');
-  return `<section class="da-week-agenda"><div class="da-week-agenda-head"><b>▦ ${title}</b><span>${isMonth?'O mês inteiro está visível. Escolha um dia para abrir a fila de trabalho.':'Escolha um dia para abrir a fila de trabalho.'} Dia ativo: ${focus.name} ${focus.date}</span></div><div class="da-week-rail ${isMonth?'month':''}">${leading}${rail}</div></section>`;
+  return `<section class="da-week-agenda"><div class="da-week-agenda-head"><b>▦ ${title}</b>${daControlesDaRegua(range)}</div>
+    <div class="da-week-agenda-dica"><span>${isMonth?'O mês inteiro está visível. Escolha um dia para abrir a fila de trabalho.':'Escolha um dia para abrir a fila de trabalho.'} Dia ativo: ${focus.name} ${focus.date}</span></div>
+    <div class="da-week-rail ${isMonth?'month':''}">${leading}${rail}</div></section>`;
 }
 const DA_APPROVAL_RADAR_STATUSES=new Set(['Para aprovação','Ag. Aprovação Cliente','Ag. Interno']);
 function daDailyCommandSource(){ return daControllerItemsFor('all').filter(item=>!isFinishedItem(item)); }
@@ -604,7 +686,7 @@ function abrirAjusteDeDemandas() {
   openDaIndividualPlanningDesk([...DA_PLANNING_PESSOAS][0]);
 }
 
-function setDaControllerPeriod(period) { daControllerPeriod=period; daControllerDayFocusIso=''; renderDaController(); }
+function setDaControllerPeriod(period) { daControllerPeriod=period; daControllerJanela=0; daControllerDayFocusIso=''; renderDaController(); }
 function setDaControllerDateMode(mode) { if(daControllerDateMode===mode) return; daControllerDateMode=mode; daControllerDayFocusIso=''; renderDaController(); }
 function closeDaMemberWorkload(){ const overlay=document.getElementById('da-member-workload-overlay'); if(!overlay) return; overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),180); }
 function openDaMemberWorkload(){ const range=daControllerPeriodRange(); const user=daControllerTeam().find(entry=>entry.id===daControllerPersonId); if(!user) return; const items=daControllerItemsFor(user.id).filter(item=>daControllerInPeriod(item,range)); closeDaMemberWorkload(); const overlay=document.createElement('div'); overlay.id='da-member-workload-overlay'; overlay.className='da-member-workload-overlay'; overlay.onclick=event=>{if(event.target===overlay) closeDaMemberWorkload();}; overlay.innerHTML=`<section class="da-member-workload-modal" role="dialog" aria-modal="true" aria-label="Carga de ${safeText(user.name)}"><div class="da-member-workload-modal-head"><div><b>PRODUÇÃO DE ${safeText(user.name).toUpperCase()} · ${items.filter(item=>!isFinishedItem(item)).length} ENTREGAS</b><small>${safeText(daControllerPeriod==='month'?'Mês completo':daControllerPeriod==='week'?'Semana selecionada':'Dia selecionado')} · clique em uma demanda para abrir o contexto</small></div><button type="button" class="da-member-workload-close" onclick="closeDaMemberWorkload()" aria-label="Fechar carga individual">×</button></div><div class="da-member-workload-scroll">${daMemberProductionHtml(user,items)}</div></section>`; document.body.appendChild(overlay); requestAnimationFrame(()=>overlay.classList.add('open')); }
@@ -1577,9 +1659,12 @@ function applyPanelMode() {
   document.getElementById('search-results')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('ops-action-panel')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('manager-intelligence')?.classList.toggle('focus-hidden', isDedicatedMode);
-  document.getElementById('manager-calendar')?.classList.toggle('focus-hidden', isDedicatedMode || panelMode !== 'gestor');
-  // o botão que abre a agenda segue a agenda: fora do Gestor não há o que abrir
-  document.getElementById('ops-agenda-btn')?.classList.toggle('focus-hidden', isDedicatedMode || panelMode !== 'gestor');
+  // A agenda e a visao de grupos seguem quem as oferece — hoje o Gestor e o DA
+  // Controler. Esconde-las por "modo dedicado" apagava justamente os dois botoes
+  // que o DA acabou de ganhar.
+  const temVisoesDoQuadro = typeof modoComVisoesDoQuadro === 'function' && modoComVisoesDoQuadro();
+  document.getElementById('manager-calendar')?.classList.toggle('focus-hidden', !temVisoesDoQuadro);
+  document.getElementById('ops-agenda-btn')?.classList.toggle('focus-hidden', !temVisoesDoQuadro);
   document.getElementById('sidebar')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('sidebar-toggle')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('sidebar-overlay')?.classList.remove('show');
