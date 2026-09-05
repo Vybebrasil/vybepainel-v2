@@ -1058,12 +1058,6 @@ function alternarPainelDaBarra(nome) {
   }
   definirPainel(nome, abrindo);
   pintarBarraDeComando();
-  // O DA Controler tem os proprios botoes de Grupos e Calendario, na regua. Sem
-  // isto eles abriam a secao mas continuavam apagados: quem pinta esses dois e o
-  // desenho do DA, e ninguem o chamava.
-  if (panelMode === 'controler' && p.grupo === 'visao' && typeof renderDaController === 'function') {
-    renderDaController();
-  }
   if (abrindo && p.alvo) {
     setTimeout(() => document.getElementById(p.alvo)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   }

@@ -833,7 +833,7 @@ function modoComVisoesDoQuadro() {
   return panelMode === 'gestor' || panelMode === 'controler';
 }
 
-function renderManagerCalendar() {
+function renderManagerCalendar(forcar = false) {
   const wrap = document.getElementById('manager-calendar');
   const botao = document.getElementById('ops-agenda-btn');
   if (!wrap) return;
@@ -850,7 +850,8 @@ function renderManagerCalendar() {
     const contador = document.getElementById('ops-agenda-count');
     if (contador) contador.textContent = total;
   }
-  if (!agendaMensalAberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
+  if (!forcar && !emprestadaAoDa('manager-calendar') && !agendaMensalAberta) {
+    wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
   const meta = managerCalendarMonthMeta();
   const semRecorte = managerCalendarItems({ ignorarCliente: true });
@@ -2020,8 +2021,19 @@ function tabelaOperacionalHtml(itens, quadro) {
     <tbody>${ordenarItens(itens).map(linhaDeGrupoHtml).join('')}</tbody></table></div>`;
 }
 
-function renderVisaoDeGrupos(quadro) {
-  if (!quadro) { renderVisaoDeGrupos('producao'); renderVisaoDeGrupos('demandas'); return; }
+// 'forcar' existe para quem EMPRESTA a secao: no DA Controler ela e uma das tres
+// vistas da regua, e quem manda ali e a escolha da regua — nao o botao do Modo
+// Gestor, que continua sendo dono do proprio estado. Sem isto, escolher Grupos
+// no DA teria de ligar o botao do Gestor, e o Gestor abriria sozinho na proxima
+// visita.
+// A secao emprestada ao DA nao obedece ao botao do Gestor. Sem isto, qualquer
+// redesenho disparado por outra acao — uma mudanca em lote, por exemplo — a
+// esvaziava no meio da tela, porque para o Gestor ela esta "fechada".
+const emprestadaAoDa = (alvo) => typeof DA_SECAO_EMPRESTADA !== 'undefined'
+  && DA_SECAO_EMPRESTADA.id === alvo;
+
+function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
+  if (!quadro) { renderVisaoDeGrupos('producao', { forcar }); renderVisaoDeGrupos('demandas', { forcar }); return; }
   const cfg = VISAO_DE_GRUPOS[quadro] || VISAO_DE_GRUPOS.producao;
   const wrap = document.getElementById(cfg.alvo);
   const botao = document.getElementById(cfg.botao);
@@ -2031,7 +2043,8 @@ function renderVisaoDeGrupos(quadro) {
     const contador = document.getElementById(cfg.contador);
     if (contador) contador.textContent = grupos.length;
   }
-  const aberta = quadro === 'demandas' ? gruposDeDemandasAberto : visaoDeGruposAberta;
+  const aberta = forcar || emprestadaAoDa(cfg.alvo)
+    || (quadro === 'demandas' ? gruposDeDemandasAberto : visaoDeGruposAberta);
   if (botao) botao.setAttribute('aria-expanded', String(aberta));
   if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');

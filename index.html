@@ -4057,27 +4057,20 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   font:700 10px var(--mac-ui);letter-spacing:.05em;text-transform:uppercase}
 .da-regua-hoje:hover{background:rgba(255,107,0,.32);color:#fff}
 .da-regua-modo button{padding:4px 10px;font-size:11px}
-.da-regua-visoes{display:inline-flex;gap:6px}
-.da-regua-visao{padding:5px 11px;border:1px solid var(--linha);border-radius:8px;
-  background:rgba(255,255,255,.03);color:#c5a889;cursor:pointer;
-  font:700 10.5px var(--mac-ui);letter-spacing:.04em;
-  transition:background-color .14s var(--curva),color .14s var(--curva),border-color .14s var(--curva)}
-.da-regua-visao:hover{border-color:rgba(255,157,0,.5);background:rgba(255,122,0,.14);color:#fff0d1}
-.da-regua-visao.marcado{border-color:var(--accent,#ff6b00);
-  background:rgba(255,107,0,.22);color:#fff}
+/* Mapa, Grupos e Calendario sao TRES formas de ver a mesma janela, e nao tres
+   coisas que se ligam e desligam: segmentado, como "contar por". Um botao aceso
+   entre dois apagados diz "e esta que voce esta vendo" — dois acesos diriam que
+   ha duas telas abertas, que e o que havia antes. */
+.da-regua-visoes button{padding:4px 10px;font-size:11px}
 @media(max-width:900px){.da-regua-controles{width:100%;margin-left:0}}
 
-/* Grupos e Calendario sao secoes do Gestor e tem a largura de la. Abertas dentro
-   do DA Controler, ficavam 25px mais largas de cada lado que o painel tatico — um
-   degrau na borda que nao significa nada. O irmao geral (~) so alcanca as duas
-   quando o painel do DA esta ativo, entao no Gestor nada muda. */
-#da-controller-dashboard.active ~ #grupos-board,
-#da-controller-dashboard.active ~ #manager-calendar{
-  width:min(calc(100vw - 110px),1680px);margin-left:auto;margin-right:auto;
-  box-sizing:border-box}
-@media(max-width:900px){
-  #da-controller-dashboard.active ~ #grupos-board,
-  #da-controller-dashboard.active ~ #manager-calendar{width:calc(100vw - 32px)}}
+/* Dentro do DA elas nao sao mais irmas do painel: sao emprestadas para dentro da
+   regua e ocupam o lugar do mapa. Largura total do hospedeiro, sem a margem que
+   elas trazem do Gestor — la a margem separa uma secao da outra; aqui nao ha
+   outra secao. */
+#da-visao-host{display:block;width:100%}
+#da-visao-host>#grupos-board,#da-visao-host>#manager-calendar{
+  width:100%;margin:0;box-sizing:border-box}
 .da-barra-periodo{color:#c5a889;font:600 11.5px var(--mac-mono);white-space:nowrap}
 
 .da-barra-quem{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;
@@ -5578,8 +5571,13 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
   <div id="ops-today-panel" class="ops-panel ops-today-panel"><div class="ops-panel-title"><span>O que vence hoje · 22/08/2026</span><span>4 items</span></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Paulo</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12624439217')"><b title="Divulgação do canal youtube">Divulgação do canal youtube</b><small>João Bacelar</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Tainara</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12604444644')"><b title="Fotografia - Produtor">Fotografia - Produtor</b><small>Copirecê</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Reriston</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829030274')"><b title="Carrossel + Video - Look 03">Carrossel + Video - Look 03</b><small>Irecê Modas</small><span class="ops-today-due">HOJE · 22/08</span></div></div><div class="ops-today-group"><div class="ops-today-group-head"><span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">·</span><b>Beatriz</b><span>1 entrega</span></div><div class="ops-today-line" onclick="openItemWorkspace('12869263002')"><b title="Fotografia - Pet Bento">Fotografia - Pet Bento</b><small>Hebravet</small><span class="ops-today-due">HOJE · 22/08</span></div></div></div>
   <div id="ops-daily-panel" class="ops-panel ops-daily-panel"><div class="ops-panel-title"><span>◷ Fechamento do dia · 22/08/2026</span><span>leitura do contexto atual</span></div><div class="ops-daily-kpis"><div class="ops-daily-kpi"><b>0</b><span>finalizadas e atualizadas hoje</span></div><div class="ops-daily-kpi"><b>2</b><span>permanecem em execução</span></div><div class="ops-daily-kpi"><b>47</b><span>riscos ou bloqueios atravessam</span></div></div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Em execução ao encerrar</span><small>clique para abrir</small></div><div class="ops-today-line" onclick="openItemWorkspace('12499473559')"><b title="Reels - Colab Sávio: A Fibra Óptica Chegou nas Cidades Vizinhas!">Reels - Colab Sávio: A Fibra Óptica Chegou nas Cidades Vizinhas!</b><small>Paulo · Conectasim</small><span class="ops-daily-tag">Em andamento</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829019406')"><b title="02 · 19/08 · Card Fixo 2 — Trabalho que chega">02 · 19/08 · Card Fixo 2 — Trabalho que chega</b><small>Deivid · João Bacelar</small><span class="ops-daily-tag">Em andamento</span></div></div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Riscos que atravessam</span><small>atraso ou bloqueio</small></div><div class="ops-today-line" onclick="openItemWorkspace('12604444644')"><b title="Fotografia - Produtor">Fotografia - Produtor</b><small>Tainara · Copirecê</small><span class="ops-daily-tag">Alteração</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829018751')"><b title="04 · 21/08 · Reels — O número do trabalho">04 · 21/08 · Reels — O número do trabalho</b><small>Sem · João Bacelar</small><span class="ops-daily-tag">Aguardo</span></div><div class="ops-today-line" onclick="openItemWorkspace('12636375899')"><b title="Reels - Pec">Reels - Pec</b><small>Reriston · Hellen Rocha</small><span class="ops-daily-tag">Falta Info</span></div><div class="ops-today-line" onclick="openItemWorkspace('12673526166')"><b title="Reels - VÖA">Reels - VÖA</b><small>Paulo · Antonov</small><span class="ops-daily-tag">Aguardo</span></div><div class="ops-today-line" onclick="openItemWorkspace('12829019404')"><b title="09 · 26/08 · Reels — A Bahia que produz">09 · 26/08 · Reels — A Bahia que produz</b><small>Sem · João Bacelar</small><span class="ops-daily-tag">Aguardo</span></div></div></div>
   <section id="manager-intelligence" class="manager-intelligence focus-hidden"></section>
+  <!-- As duas marcas guardam o LUGAR: no DA Controler estas secoes sao emprestadas
+       para dentro da regua, e voltar "para o fim do container" nao seria o mesmo
+       lugar. A marca nao ocupa espaco e nunca sai daqui. -->
   <section id="grupos-board" class="grupos-board focus-hidden" aria-label="Conteúdos por grupo"></section>
+  <span id="grupos-board-lugar" hidden></span>
   <section id="manager-calendar" class="manager-calendar focus-hidden" aria-label="Agenda mensal do GESTOR"></section>
+  <span id="manager-calendar-lugar" hidden></span>
 
 <!-- Sidebar Toggle -->
   <button class="sidebar-toggle focus-hidden" id="sidebar-toggle" onclick="toggleSidebar()" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir filtros"><span class="sidebar-toggle-icon" aria-hidden="true">☰</span><span class="sidebar-toggle-label">Filtros</span></button>

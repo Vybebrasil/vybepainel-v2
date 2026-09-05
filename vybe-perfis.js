@@ -539,6 +539,52 @@ function daMemberProductionHtml(user,items) {
   const weekHtml=[...groups.entries()].map(([key,group])=>{const start=key==='sem-data'?null:key; const end=start?daControllerIsoAt(start,6):null; const label=start?`SEMANA · ${daAgendaDayInfo(start).date}–${daAgendaDayInfo(end).date}`:'SEM DATA DE REFERÊNCIA'; const rows=group.map(item=>{const date=daControllerDate(item); const dateLabel=date?`${daAgendaDayInfo(date).name} ${daAgendaDayInfo(date).date}`:'SEM DATA'; return `<button type="button" class="da-member-production-row" onclick="openItemWorkspace('${item.id}')" title="Abrir contexto de ${safeText(item.nome)}"><span class="da-member-production-date">${safeText(dateLabel)}</span><span class="da-member-production-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}</small></span><span class="da-member-production-tags">${daTacticalFormatTag(item)}${daTacticalStatusTag(item)}</span></button>`;}).join(''); return `<section class="da-member-production-week"><div class="da-member-production-week-head"><b>${safeText(label)}</b><span>${group.length} entrega${group.length===1?'':'s'}</span></div>${rows}</section>`;}).join('') || '<div class="da-empty-tactical">Nenhuma entrega ativa no período selecionado.</div>';
   return `<section class="da-member-production"><div class="da-member-production-head"><b>PRODUÇÃO DE ${safeText(firstName(user.name).toUpperCase())} NO PERÍODO · ${pending.length} ENTREGA${pending.length===1?'':'S'}</b><small>Toda a carga ativa aparece aqui; riscos continuam separados acima.</small></div><div class="da-member-production-weeks">${weekHtml}</div></section>`;
 }
+// ── TRES FORMAS DE OLHAR A MESMA JANELA ──────────────────────────────────────
+//
+// Mapa de entregas, Grupos e Calendario respondem a mesma pergunta — o que tem
+// para entregar — em tres desenhos. Empilhar os tres seria tres respostas na
+// tela ao mesmo tempo; e mandar Grupos abrir no fim da pagina, como estava, era
+// pedir para rolar ate o rodape para ver o que se escolheu aqui em cima.
+//
+// Entao a regua tem UM lugar, e as tres vistas se revezam nele.
+let daVisaoDaRegua = 'mapa';
+function setDaVisaoDaRegua(qual) {
+  daVisaoDaRegua = ['mapa','grupos','calendario'].includes(qual) ? qual : 'mapa';
+  renderDaController();
+}
+
+// Grupos e Calendario continuam sendo as secoes do Modo Gestor, e nao copias:
+// elas sao EMPRESTADAS para dentro da regua e devolvidas ao lugar exato depois.
+// Copiar a tabela de grupos aqui seria a segunda tabela de grupos do painel —
+// e a primeira divergiria da segunda na primeira mudanca.
+const DA_SECAO_EMPRESTADA = { id: null };
+function devolverSecaoDoDa() {
+  const id = DA_SECAO_EMPRESTADA.id;
+  if (!id) return;
+  DA_SECAO_EMPRESTADA.id = null;
+  const secao = document.getElementById(id);
+  const lugar = document.getElementById(`${id}-lugar`);
+  // Sem a marca a secao ficaria orfa dentro de um painel que sera reescrito, e
+  // o Modo Gestor perderia a secao ate a pagina recarregar.
+  if (secao && lugar?.parentElement) lugar.parentElement.insertBefore(secao, lugar);
+  if (secao) { secao.classList.add('focus-hidden'); secao.innerHTML = ''; }
+}
+
+// Chamada depois de escrever o painel: o hospedeiro so existe a partir dai.
+function acomodarVisaoDaRegua() {
+  if (daVisaoDaRegua === 'mapa') return;
+  const host = document.getElementById('da-visao-host');
+  if (!host) return;
+  const id = daVisaoDaRegua === 'grupos' ? 'grupos-board' : 'manager-calendar';
+  const secao = document.getElementById(id);
+  if (!secao) return;
+  host.appendChild(secao);
+  DA_SECAO_EMPRESTADA.id = id;
+  secao.classList.remove('focus-hidden');
+  if (id === 'grupos-board') renderVisaoDeGrupos('producao', { forcar: true });
+  else renderManagerCalendar(true);
+}
+
 // OS CONTROLES ONDE A MAO ESTA.
 //
 // Contar por prazo ou por veiculacao ja existia — na barra do alto da tela, a
@@ -555,8 +601,9 @@ function daControlesDaRegua(range) {
   const modo = (chave, rotulo) => `<button type="button" class="${daControllerDateMode===chave?'marcado':''}"
     aria-pressed="${daControllerDateMode===chave}"
     onclick="setDaControllerDateMode('${chave}')">${rotulo}</button>`;
-  const visao = (rotulo, chamada, aberta, titulo) => `<button type="button"
-    class="da-regua-visao${aberta?' marcado':''}" onclick="${chamada}" title="${titulo}">${rotulo}</button>`;
+  const visao = (chave, rotulo, titulo) => `<button type="button"
+    class="${daVisaoDaRegua===chave?'marcado':''}" aria-pressed="${daVisaoDaRegua===chave}"
+    onclick="setDaVisaoDaRegua('${chave}')" title="${titulo}">${rotulo}</button>`;
   return `<div class="da-regua-controles">
     <div class="da-regua-janela">
       ${seta(-1, '‹', `Voltar um ${periodo}`)}
@@ -568,11 +615,10 @@ function daControlesDaRegua(range) {
     <div class="da-segmento da-regua-modo" role="group" aria-label="Data de referência">
       ${modo('prazo', 'Prazo')}${modo('veiculacao', 'Veiculação')}
     </div>
-    <div class="da-regua-visoes">
-      ${visao('Grupos', 'toggleVisaoDeGrupos()', typeof visaoDeGruposAberta !== 'undefined' && visaoDeGruposAberta,
-        'A tabela por grupo do quadro, aberta logo abaixo. Mostra o quadro inteiro, sem o filtro de pessoa e de período desta tela.')}
-      ${visao('Calendário', 'toggleAgendaMensal()', typeof agendaMensalAberta !== 'undefined' && agendaMensalAberta,
-        'A agenda mensal por cliente, aberta logo abaixo. Mostra o quadro inteiro, sem o filtro de pessoa e de período desta tela.')}
+    <div class="da-segmento da-regua-visoes" role="group" aria-label="Forma de ver">
+      ${visao('mapa', 'Mapa', 'Os dias da janela, com quem entrega em cada um. Respeita a pessoa e o período escolhidos aqui.')}
+      ${visao('grupos', 'Grupos', 'A tabela por grupo do quadro, no lugar do mapa. Mostra o quadro inteiro, sem o filtro de pessoa e de período desta tela.')}
+      ${visao('calendario', 'Calendário', 'A agenda mensal por cliente, no lugar do mapa. Mostra o quadro inteiro, sem o filtro de pessoa e de período desta tela.')}
     </div>
   </div>`;
 }
@@ -591,7 +637,18 @@ function daWeekAgendaHtml(items,range,team,today) {
   const focus=daAgendaDayInfo(daControllerDayFocusIso || range.start);
   const leading=isMonth ? '<span class="da-month-empty"></span>'.repeat(new Date(`${range.start}T12:00:00`).getDay()) : '';
   const rail=dates.map(iso=>{const info=daAgendaDayInfo(iso); const active=daControllerDayFocusIso===iso; const dayItems=items.filter(item=>daControllerDate(item)===iso && !['Para agendar','Agendado'].includes(operationalFlowStatus(item))); const alerts=dayItems.filter(item=>daControllerBlocked(item)||['critical','high'].includes(daControllerRisk(item)?.level)).length; const owners=[...new Map(dayItems.map(item=>{const owner=daTacticalOwner(item,team); return [owner?.id||`none-${item.id}`,owner];})).values()].filter(Boolean).slice(0,4); const extraOwners=Math.max(0,new Set(dayItems.flatMap(item=>assignedIds(item))).size-owners.length); const state=alerts?`${alerts} alerta${alerts===1?'':'s'} para conduzir`:(dayItems.length?'sem alerta imediato':'sem entrega'); return `<button type="button" class="da-week-rail-day ${active?'active':''} ${iso===today?'today':''}" onclick="setDaControllerDayFocus('${iso}')" title="Abrir fila de ${info.name} ${info.date}"><span class="da-week-rail-top"><b>${info.name} <span>${info.date}</span></b><span class="da-week-rail-count">${dayItems.length}</span></span><span class="da-week-rail-avatars">${owners.map(owner=>daTacticalPersonVisual(owner,owner.color)).join('')}${extraOwners?`<span class="da-tactical-person" title="Mais ${extraOwners} pessoa${extraOwners===1?'':'s'}"><span style="background:#5f4939">+${extraOwners}</span></span>`:''}</span><span class="da-week-rail-info"><b>${dayItems.length?`${dayItems.length} entrega${dayItems.length===1?'':'s'}`:'Sem entrega'}</b><small class="${alerts?'risk':''}">${safeText(state)}</small></span></button>`;}).join('');
-  return `<section class="da-week-agenda"><div class="da-week-agenda-head"><b>▦ ${title}</b>${daControlesDaRegua(range)}</div>
+  const titulos = { grupos: 'CONTEÚDOS POR GRUPO', calendario: 'AGENDA MENSAL POR CLIENTE' };
+  const dicas = {
+    grupos: 'A mesma tabela do Modo Gestor, aqui. Ela mostra o quadro inteiro — a pessoa e o período escolhidos acima não a filtram.',
+    calendario: 'A mesma agenda do Modo Gestor, aqui. Ela tem o próprio cliente e o próprio mês, logo abaixo.',
+  };
+  const cabeca = `<div class="da-week-agenda-head"><b>▦ ${daVisaoDaRegua==='mapa'?title:titulos[daVisaoDaRegua]}</b>${daControlesDaRegua(range)}</div>`;
+  if (daVisaoDaRegua !== 'mapa') {
+    return `<section class="da-week-agenda">${cabeca}
+      <div class="da-week-agenda-dica"><span>${dicas[daVisaoDaRegua]}</span></div>
+      <div id="da-visao-host"></div></section>`;
+  }
+  return `<section class="da-week-agenda">${cabeca}
     <div class="da-week-agenda-dica"><span>${isMonth?'O mês inteiro está visível. Escolha um dia para abrir a fila de trabalho.':'Escolha um dia para abrir a fila de trabalho.'} Dia ativo: ${focus.name} ${focus.date}</span></div>
     <div class="da-week-rail ${isMonth?'month':''}">${leading}${rail}</div></section>`;
 }
@@ -629,6 +686,10 @@ function daApprovalReturn(itemId){ const item=(DADOS_ALL||DADOS||[]).find(entry=
 function daTacticalBacklogRow(item,team) { const owner=daTacticalOwner(item,team); const ref=daControllerDate(item)?`${daControllerDateMode==='veiculacao'?'Veiculação':'Prazo'} ${daControllerDateLabel(item)}`:'Sem data'; return `<div class="da-backlog-row" onclick="openItemWorkspace('${item.id}')" title="Clique para abrir contexto">${vybeChipId(item)}${daTacticalListAvatar(owner)}<span class="da-backlog-copy"><button type="button" class="da-backlog-name" onclick="event.stopPropagation();openItemWorkspace('${item.id}')">${safeText(item.nome)}</button><span class="da-backlog-meta">${daTacticalFormatTag(item)} · ${safeText(ref)}</span></span>${daTacticalStatusTag(item,true)}</div>`; }
 function renderDaControllerTactical() {
   const dash=document.getElementById('da-controller-dashboard'); if (!dash) return;
+  // A secao emprestada esta DENTRO do painel que a proxima linha vai reescrever.
+  // Sem devolve-la antes, ela seria destruida junto e o Modo Gestor perderia
+  // Grupos ou Calendario ate a pagina recarregar.
+  devolverSecaoDoDa();
   const today=HOJE_ISO || new Date().toISOString().slice(0,10); const range=daControllerPeriodRange(); const team=daControllerTeam(); const allItems=daControllerItemsFor('all'); const scopedItems=daControllerItemsFor(daControllerPersonId); const selectableDates=[...new Set(scopedItems.filter(item=>daControllerInPeriod(item,range)).map(daControllerDate).filter(Boolean))].sort(); if(!daControllerDayFocusIso || daControllerDayFocusIso<range.start || daControllerDayFocusIso>range.end){ daControllerDayFocusIso=selectableDates.includes(today)?today:(selectableDates.find(iso=>iso>=today)||selectableDates[0]||range.start); } const allPeriod=allItems.filter(item=>daControllerInPeriod(item,range)); const scopedPeriod=scopedItems.filter(item=>daControllerInPeriod(item,range)); const focusedItems=daControllerDayFocusIso ? scopedPeriod.filter(item=>daControllerDate(item)===daControllerDayFocusIso) : scopedPeriod; const isIndividualView=daControllerPersonId!=='all'; const useFocusedScope=daControllerPeriod!=='month' && Boolean(daControllerDayFocusIso); const headlineItems=useFocusedScope ? focusedItems : (isIndividualView ? scopedPeriod : allPeriod); const backlogCritical=scopedItems.filter(item=>{const date=daControllerDate(item); return Boolean(date && date<range.start && (daControllerBlocked(item) || daControllerRisk(item)?.level==='critical'));}).sort((a,b)=>daTacticalScore(a)-daTacticalScore(b)); const lateInWindow=(isIndividualView ? scopedPeriod : allPeriod).filter(item=>daControllerRisk(item)?.level==='critical'); const summaries=team.map(user=>({user,metrics:daControllerPersonMetrics(user)})); const maxLoad=Math.max(1,...summaries.map(entry=>entry.metrics.period.length)); const disciplineSummaryHtml=Object.values(DA_DISCIPLINES).map(discipline=>{const members=summaries.filter(entry=>daDisciplineForUser(entry.user).key===discipline.key); const totalPoints=members.reduce((sum,entry)=>sum+entry.metrics.capacity.workload,0); const late=members.reduce((sum,entry)=>sum+entry.metrics.late.length,0); const blocked=members.reduce((sum,entry)=>sum+entry.metrics.blocked.length,0); const saturated=members.some(entry=>entry.metrics.capacity.state==='saturada'); const action=discipline.key==='audiovisual'?(saturated?'PROTEGER PRAZO · ANTECIPAR BRIEFING':'LINHA DE VÍDEO & MOTION SOB CONTROLE'):(saturated?'EQUILIBRAR DESIGN ENTRE DEIVID, BIA E JADY':'CÉLULA DE DESIGN EQUILIBRADA'); return `<section class="da-discipline-card" style="--discipline-color:${discipline.color}"><b>${discipline.label}</b><span>${totalPoints} pontos de esforço · ${late} atraso${late===1?'':'s'} · ${blocked} bloqueio${blocked===1?'':'s'}</span><small>${action} · estimativa por complexidade</small></section>`;}).join('');
   const extremeEscalations=scopedItems.filter(item=>daCriticalEscalation(item).level==='extreme'); const periodWork=(daControllerPeriod==='month'?scopedPeriod:focusedItems).filter(item=>!['Para agendar','Agendado'].includes(operationalFlowStatus(item))); const primaryPool=extremeEscalations.length?extremeEscalations:(periodWork.length?periodWork:backlogCritical); const priority=[...primaryPool].sort((a,b)=>daTacticalScore(a)-daTacticalScore(b))[0] || null; const priorityInfo=priority?daTacticalActionInfo(priority):{verb:'CÉLULA ESTÁVEL',copy:'Não há intervenção pendente dentro da janela atual.',color:'#00d184'}; const owner=priority?daTacticalOwner(priority,team):null; const selectedUser=daControllerPersonId==='all'?null:team.find(user=>user.id===daControllerPersonId) || null; const selectedName=selectedUser?firstName(selectedUser.name):'Toda a célula criativa'; const memberFocusHtml=daMemberFocusHtml(selectedUser,scopedItems,scopedPeriod,today); const memberProductionHtml=daMemberProductionHtml(selectedUser,scopedPeriod); const selectedDiscipline=selectedUser?daDisciplineForUser(selectedUser):null; daCurrentContextBar=`<section class="da-barra">
     <div class="da-barra-grupo">
@@ -668,6 +729,7 @@ function renderDaControllerTactical() {
   const decisionHtml=priority?`<section class="da-decision-card" style="--da-decision-color:${priorityColor}"><span class="da-decision-rail"></span><div class="da-decision-main"><div class="da-decision-kicker"><i></i>DECISÃO DE DIREÇÃO · ${decisionWindow}</div><h3 class="da-decision-title">${priorityBasis?.escalation?.level==='extreme'?'EXTREMA URGÊNCIA':safeText(priorityInfo.verb)}: ${safeText(priority.nome)}</h3><div class="da-decision-detail"><b>${safeText(priority.cliente||'Sem cliente')}</b><span>·</span><span>${safeText(priorityInfo.copy)}</span></div>${priorityBasisHtml}<div class="da-decision-owner">${daTacticalOwnerEditor(priority,owner,priorityColor)}${quickDateDaTrigger(priority)}${daTacticalFormatTag(priority)}${daTacticalStatusTag(priority,true)}</div></div><div class="da-decision-side"><small>${safeText(daControllerDateMode==='veiculacao'?'Veiculação':'Prazo')}: ${safeText(daControllerDateLabel(priority))}</small><button type="button" class="da-decision-btn" onclick="openItemWorkspace('${priority.id}')">Abrir contexto →</button></div></section>`:`<section class="da-decision-card" style="--da-decision-color:#00d184"><span class="da-decision-rail"></span><div class="da-decision-main"><div class="da-decision-kicker"><i></i>Célula criativa</div><h3 class="da-decision-title">Nenhuma intervenção pendente na janela atual.</h3><div class="da-decision-detail"><span>${safeText(priorityInfo.copy)}</span></div></div></section>`;
   const directionHtml=directionActions.map(item=>daTacticalActionRow(item,team)).join(''); const deliveryHtml=deliveryRisks.map(item=>daTacticalDeliveryRiskRow(item,team)).join(''); const backlogHtml=backlog.length?backlog.map(item=>daTacticalBacklogRow(item,team)).join(''):'<div class="da-backlog-empty">✓ Nenhuma dívida crítica anterior à janela selecionada.</div>'; const commandMode=directionActions.length&&deliveryRisks.length?'split':directionActions.length?'only-direction':deliveryRisks.length?'only-delivery':'stable'; const commandCopy=commandMode==='only-delivery'?'Nenhuma nova decisão de direção pendente. Acompanhe as entregas que precisam de proteção.':commandMode==='only-direction'?'A Direção de Arte é o ponto de destravamento da janela atual.':commandMode==='stable'?'A janela atual não exige uma nova intervenção depois da decisão principal.':'Escolha o próximo comando: resolver uma dependência ou proteger uma entrega.'; const commandPanels=commandMode==='stable'?'<div class="da-command-empty-full">✓ Nenhuma nova intervenção dentro desta janela.</div>':`${directionActions.length?`<section class="da-command-panel"><div class="da-command-panel-head"><b>${selectedUser?'O que '+safeText(firstName(selectedUser.name))+' precisa resolver':'O que a célula precisa resolver'}</b><small>${directionActions.length} ${directionActions.length===1?'ação':'ações'} de direção</small></div>${directionHtml}</section>`:''}${deliveryRisks.length?`<section class="da-command-panel"><div class="da-command-panel-head"><b>Entregas a proteger</b><small>${deliveryRisks.length} risco${deliveryRisks.length===1?'':'s'} ${scopeReference}</small></div>${deliveryHtml}</section>`:''}`; const commandZoneHtml=`<section class="da-command-zone ${commandMode}"><div class="da-command-zone-head"><b>Depois da decisão principal</b><span>${commandCopy}</span></div><div class="da-command-grid">${commandPanels}</div><details class="da-debt-panel"><summary><b>⚑ DÍVIDAS DE CICLOS ANTERIORES · ${backlogCount}</b><small>não muda a prioridade ${scopePossessive} · clique para revisar</small></summary>${backlogHtml}</details></section>`; const periodLabel=daControllerPeriod==='day'?'HOJE':daControllerPeriod==='week'?'ESTA SEMANA':'ESTE MÊS'; const referenceLabel=daControllerDateMode==='veiculacao'?'VEICULAÇÃO':'PRAZO'; const lateWindowLabel=daControllerPeriod==='day'?'atrasos hoje':daControllerPeriod==='week'?'atrasos na semana':'atrasos no mês';
   dash.innerHTML=`<section class="da-tactical-head"><div><div class="da-tactical-kicker">VYBE OS · DIREÇÃO DE ARTE / CENTRAL TÁTICA</div><h2 class="da-tactical-title">Direção de arte</h2><p class="da-tactical-subtitle">Acompanhe o compromisso de entrega de cada dia sem perder de vista onde sua direção destrava valor agora.</p></div><div class="da-tactical-meta"><span class="da-tactical-meta-item"><b>${headlineItems.length}</b><span>${daControllerPeriod==='month'?periodLabel:(focusDayInfo?`${focusDayInfo.name} ${focusDayInfo.date}`:periodLabel)}</span></span><span class="da-tactical-meta-item"><b class="danger">${lateInWindow.length}</b><span>${lateWindowLabel}</span></span><span class="da-tactical-meta-item"><b class="warn">${backlogCount}</b><span>passivo antigo</span></span></div></section>${daCurrentContextBar}<section class="da-cell-filter-zone"><div class="da-cell-header"><div><b>Quem está carregando o quê</b><span>Escolha quem precisa de direção · ${safeText(referenceLabel)} · ${safeText(periodLabel)} · ${safeText(selectedName)}</span></div><button type="button" class="da-cell-acao" onclick="abrirAjusteDeDemandas()" title="Abrir a mesa de planejamento para acertar prazos, arquivos e prioridade">Ajustar demandas →</button></div><div class="da-capacity-grid da-cell-filter-grid">${summaries.map(({user})=>daTacticalCapacityCard(user,maxLoad)).join('')}</div></section><section class="da-day-direction">${decisionHtml}${commandZoneHtml}</section>${daDailyCommandHtml()}<section class="da-prova"><div class="da-prova-topo"><b>A prova</b><small>De onde essa decisão saiu: carga de cada pessoa, compromissos do dia e a semana à frente.</small></div>${daCommitmentScoreboardHtml(team,DA_TODAY_STATUS_LOGS)}</section><section class="da-operational-agenda"><div class="da-structure-heading"><span>A semana</span><b>Semana e próximas decisões</b><small>Escolha um dia e conduza a fila sem repetir a mesma demanda em vários blocos.</small></div>${daWeekAgendaHtml(scopedPeriod,range,team,today)}${daFocusedDayDetailHtml(scopedPeriod,team)}<details class="da-execution-details"><summary>CONTROLE DE EXECUÇÃO · ${focusDayInfo?`${focusDayInfo.name} ${focusDayInfo.date}`:'DIA ATIVO'}</summary>${daCheckinDayBoardHtml(scopedPeriod,team)}</details></section><section class="da-secondary-zone"><div class="da-structure-heading"><span>Saúde e memória</span><b>Capacidade, atividade e exceções</b><small>Indicadores importantes, mas secundários à direção do dia.</small></div><details class="da-secondary-panel" open><summary>Saúde da célula · Capacidade e disciplinas</summary><div class="da-discipline-summary">${disciplineSummaryHtml}</div></details><details class="da-secondary-panel"><summary>Atividade da célula · Movimentações e produtividade</summary>${daTodayPulseHtml(daTodayProductionSnapshot(team,DA_TODAY_STATUS_LOGS))}</details></section>`;
+  acomodarVisaoDaRegua();
   daBindMetricDrilldowns(team);
   if(!DA_TODAY_STATUS_LOGS){ daLoadTodayStatusLogs().then(()=>{if(document.getElementById('da-controller-dashboard')) renderDaControllerTactical();}); }
 }
@@ -1648,6 +1710,9 @@ function applyPanelMode() {
   const isProductionCommand = panelMode === 'producao';
   const isClientMode = panelMode === 'clientes';
   const isDedicatedMode = isFocus || isDaController || isProductionCommand || isClientMode;
+  // Sair do DA devolve a secao emprestada ao lugar dela; sem isto o Modo Gestor
+  // abriria Grupos e nao acharia a secao, que ficou dentro de um painel oculto.
+  if (!isDaController) devolverSecaoDoDa();
   const user = focusUser();
   document.querySelector('.board-switch-bar')?.classList.toggle('focus-hidden', isDedicatedMode);
   // A volta so aparece quando a fileira de modulos NAO esta na tela. Com ela a
