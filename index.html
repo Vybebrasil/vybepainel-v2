@@ -5366,6 +5366,41 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .workflow-modal .workflow-actions{background:var(--sup-1,#12151d)!important}
 .workflow-modal > .workflow-hint{margin-top:12px}
 
+/* Dia sem entrega nao e um dia igual aos outros com a palavra "vazio" escrita:
+   ele recua. O olho precisa cair sozinho nos dias que tem trabalho, e nao ler
+   sete cartoes para descobrir quais sao. */
+.da-week-rail-day.vazio{background:transparent;cursor:default}
+.da-week-rail-day.vazio .da-week-rail-top b,
+.da-week-rail-day.vazio .da-week-rail-info b{color:#5f5a54;font-weight:600}
+.da-week-rail-day.vazio .da-week-rail-count{opacity:.35}
+.da-week-rail-day.vazio:hover{background:rgba(255,255,255,.02)}
+
+/* ─── UMA SUPERFICIE, NAO SEIS CAIXAS ────────────────────────────────────────
+   Cabecalho, barra, equipe, mesa de comando, regua e saude eram seis cartoes
+   com a mesma borda, o mesmo fundo e o mesmo raio. Seis pesos iguais nao fazem
+   hierarquia nenhuma: o olho nao tem para onde ir primeiro.
+
+   A pagina passa a ser uma superficie so. O que continua com caixa e o que se
+   CLICA ou se COMPARA — o cartao de cada pessoa, o cartao de cada dia, a linha
+   de cada peca. A separacao entre secoes vira espaco, que e de graca e nao
+   compete com o conteudo. */
+.da-controller-dashboard.active > .da-tactical-head,
+.da-controller-dashboard.active > .da-cell-filter-zone,
+.da-controller-dashboard.active > .da-command-daily,
+.da-controller-dashboard.active > .da-operational-agenda,
+.da-controller-dashboard.active > .da-secondary-zone{
+  border:0;background:transparent;box-shadow:none;border-radius:0;
+  padding-left:0;padding-right:0}
+.da-controller-dashboard.active > .da-cell-filter-zone,
+.da-controller-dashboard.active > .da-command-daily,
+.da-controller-dashboard.active > .da-operational-agenda,
+.da-controller-dashboard.active > .da-secondary-zone{margin-top:34px;padding-top:0}
+.da-controller-dashboard.active > .da-tactical-head{padding-top:6px;margin-bottom:18px}
+/* A barra de controle guarda a borda: ela e um controle, nao uma secao. */
+/* A dica da barra e a ultima coisa util nela. Abaixo de 1200px ela vira uma
+   coluna de seis linhas espremida no canto — some, e os cartoes logo abaixo
+   continuam obviamente clicaveis sem ela. */
+@media(max-width:1200px){.da-barra-dica{display:none}}
 </style></head>
 <body>
 
