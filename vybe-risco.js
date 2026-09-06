@@ -485,6 +485,33 @@ function statusNeedsConferenciaVisual(option) {
 let pendingWorkflowChange = null;
 function normalizedWorkflowStatus(status='') { return String(status).trim().toLowerCase(); }
 function statusNeedsHandoff(item, option) { return item && option && HANDOFF_TARGET_STATUSES.has(normalizedWorkflowStatus(option.label)) && normalizedWorkflowStatus(item.status) !== normalizedWorkflowStatus(option.label); }
+// FINALIZADO NO MEIO DA ESTEIRA NAO E ENTREGA.
+//
+// A conferencia final pergunta se o material foi entregue ou publicado e se o
+// destino final confere. Em Producao e em Redacao isso nao existe: quem captou a
+// foto nao publicou nada, quem escreveu o roteiro tambem nao. "Finalizado" ali
+// quer dizer "a minha etapa acabou, segue" — e o proprio motor de automacoes ja
+// trata assim, movendo a peca para a etapa seguinte.
+//
+// O portao pedia conferencia de uma entrega que ainda nem existe. Tres caixas
+// que so podem ser marcadas no automatico sao o pior estado possivel para uma
+// trava: ensinam a clicar sem ler, e no dia em que a conferencia importa de
+// verdade — no fim da esteira — ela ja virou reflexo.
+const GRUPOS_SEM_CONFERENCIA_FINAL = new Set(['novo_grupo57911__1', 'group_title']);
+// O id do grupo tem tres nomes diferentes no painel conforme quem montou o item:
+// 'group_id' no processItemsAll, 'grupo_id' na gaveta e no banco. Ate isso ser
+// unificado, ler os dois e a unica leitura que funciona nos dois caminhos.
+const grupoDaPeca = (item) => String(item?.group_id || item?.grupo_id || '');
+function conferenciaFinalDispensada(item, option) {
+  const alvo = normalizedWorkflowStatus(option?.label);
+  if (alvo !== 'finalizado' && alvo !== 'feito') return false;
+  return GRUPOS_SEM_CONFERENCIA_FINAL.has(grupoDaPeca(item));
+}
+// A pergunta que os portoes fazem passa a considerar ONDE a peca esta, e nao so
+// para onde ela vai.
+function precisaDeConferenciaFinal(item, option) {
+  return statusNeedsMaterialReview(option) && !conferenciaFinalDispensada(item, option);
+}
 function statusNeedsMaterialReview(option) { return option && MATERIAL_REVIEW_TARGET_STATUSES.has(normalizedWorkflowStatus(option.label)); }
 function statusNeedsQuality(option) { return option && QUALITY_TARGET_STATUSES.has(normalizedWorkflowStatus(option.label)) && !statusNeedsMaterialReview(option); }
 function statusNeedsContext(option) {
@@ -527,7 +554,7 @@ async function postItemUpdate(itemId, body) {
 }
 function qualityChecklistFor(item) { const fmt = String(item.formato || item.tipo || '').toLowerCase(); const common=['Arquivo final correto e sem versão provisória','Copy, legenda e CTA revisados','Cliente e responsável pela publicação confirmados']; if (/reels|vídeo|video|motion|fotografia/.test(fmt)) return [...common,'Capa, áudio e proporção validados','Link de entrega ou arquivo final disponível']; if (/carrossel/.test(fmt)) return [...common,'Sequência das páginas revisada','Capa e última página com CTA confirmadas']; return [...common,'Dimensões e identidade visual conferidas','Link ou arquivo final disponível']; }
 function updateQualityGateState() { const form=document.getElementById('quality-checklist-form'); const button=document.getElementById('quality-submit'); if (!form || !button) return; button.disabled=[...form.querySelectorAll('input[type=checkbox]')].some(input => !input.checked); }
-function openQualityGate(item, option) { if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); pendingWorkflowChange={item,option,manual:false}; const checks=qualityChecklistFor(item); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Qualidade antes da publicação</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Checklist de qualidade</h2><p class="workflow-copy">Antes de enviar este conteúdo para ${safeText(option.label)}, confira a prévia e confirme os pontos essenciais. O registro fica no histórico da peça.</p>${workflowItemHtml(item,option.label)}<div class="status-context-layout material-review-layout"><div class="status-context-main"><form id="quality-checklist-form" class="workflow-checks" onchange="updateQualityGateState()">${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" name="check-${index}"><span>${safeText(check)}</span></label>`).join('')}</form><p class="workflow-hint">Este controle vale para mudanças feitas dentro da Vybe OS. Alterações diretas no Monday não passam por este fluxo.</p></div><aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia para conferência</b><small>arquivo vinculado</small></div><div id="material-review-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside></div><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="quality-submit" type="button" class="workflow-primary" disabled onclick="submitQualityChecklist()">Validar e continuar →</button></div>`); document.getElementById('workflow-modal')?.classList.add('status-context-split','material-review-modal'); loadMaterialReviewPreview(item.id); }
+function openQualityGate(item, option) { if(precisaDeConferenciaFinal(item,option)) return openMaterialReviewGate(item,option); pendingWorkflowChange={item,option,manual:false}; const checks=qualityChecklistFor(item); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Qualidade antes da publicação</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Checklist de qualidade</h2><p class="workflow-copy">Antes de enviar este conteúdo para ${safeText(option.label)}, confira a prévia e confirme os pontos essenciais. O registro fica no histórico da peça.</p>${workflowItemHtml(item,option.label)}<div class="status-context-layout material-review-layout"><div class="status-context-main"><form id="quality-checklist-form" class="workflow-checks" onchange="updateQualityGateState()">${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" name="check-${index}"><span>${safeText(check)}</span></label>`).join('')}</form><p class="workflow-hint">Este controle vale para mudanças feitas dentro da Vybe OS. Alterações diretas no Monday não passam por este fluxo.</p></div><aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia para conferência</b><small>arquivo vinculado</small></div><div id="material-review-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside></div><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="quality-submit" type="button" class="workflow-primary" disabled onclick="submitQualityChecklist()">Validar e continuar →</button></div>`); document.getElementById('workflow-modal')?.classList.add('status-context-split','material-review-modal'); loadMaterialReviewPreview(item.id); }
 async function submitQualityChecklist() { const flow=pendingWorkflowChange; const form=document.getElementById('quality-checklist-form'); if (!flow || !form) return; const checks=[...form.querySelectorAll('label')].map(label=>label.textContent.trim()).filter(Boolean); const button=document.getElementById('quality-submit'); if (button) button.disabled=true; try { await postItemUpdate(flow.item.id, `[Vybe OS · Checklist de qualidade]\nDestino: ${flow.option.label}\nFormato: ${flow.item.formato || flow.item.tipo || 'Conteúdo'}\nValidado: ${checks.join(' | ')}`); const {item,option}=flow; closeWorkflowModal(); if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); if (statusNeedsHandoff(item,option)) openHandoffGate(item,option); else await commitStatusChange(item,option); } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível registrar o checklist: ${e.message}`,'err',7000); } }
 function materialReviewChecklistFor(item, option) { const target=normalizedWorkflowStatus(option?.label); const scheduled=target==='agendado'; const format=String(item?.formato||item?.tipo||'conteúdo'); return scheduled ? [`Conferi a prévia final de ${format} antes do agendamento`,`Confirmei que legenda, CTA, canal e data de publicação estão corretos`,`O arquivo ou link aberto corresponde a esta demanda`] : [`Conferi a prévia do material entregue ou publicado`,`Confirmei que o destino final corresponde a esta demanda`,`Não há pendência de publicação ou material incorreto antes de finalizar`]; }
 function updateMaterialReviewState(){ const checks=[...document.querySelectorAll('input[data-material-review-check]')]; const button=document.getElementById('material-review-submit'); if(button) button.disabled=!checks.length||checks.some(check=>!check.checked); }
@@ -1347,11 +1374,11 @@ async function updateFocusStatus(itemId, escolha) { const item=findOperationalIt
   const option = typeof escolha === 'number' || /^-?\d+$/.test(String(escolha ?? ''))
     ? opcoes.find(o=>o.index!==null&&o.index!==undefined&&Number(o.index)===Number(escolha))
     : opcoes.find(o=>mesmoStatus(o.label, escolha));
-  if(!item || !option || mesmoStatus(option.label, item.status)) return closeStatusEditor(); const needsGate=statusNeedsConferenciaVisual(option)||statusNeedsMaterialReview(option)||statusNeedsQuality(option)||statusNeedsContext(option)||statusNeedsHandoff(item,option); closeStatusEditor(); if(needsGate){ /* Um respiro para o seletor sair da tela antes de o portao entrar.
+  if(!item || !option || mesmoStatus(option.label, item.status)) return closeStatusEditor(); const needsGate=statusNeedsConferenciaVisual(option)||precisaDeConferenciaFinal(item,option)||statusNeedsQuality(option)||statusNeedsContext(option)||statusNeedsHandoff(item,option); closeStatusEditor(); if(needsGate){ /* Um respiro para o seletor sair da tela antes de o portao entrar.
    Era requestAnimationFrame, que NAO dispara em aba de fundo: se a pessoa
    clicasse e trocasse de aba, a troca de status ficava parada para sempre,
    esperando um quadro que nunca vem. */
-  await new Promise(resolve=>setTimeout(resolve,0)); if(statusNeedsConferenciaVisual(option)) return abrirConferenciaVisual(item,option); if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); if(statusNeedsQuality(option)) return openQualityGate(item,option); if(statusNeedsContext(option)) return openStatusContextGate(item,option); return openHandoffGate(item,option); } return commitStatusChange(item,option); }
+  await new Promise(resolve=>setTimeout(resolve,0)); if(statusNeedsConferenciaVisual(option)) return abrirConferenciaVisual(item,option); if(precisaDeConferenciaFinal(item,option)) return openMaterialReviewGate(item,option); if(statusNeedsQuality(option)) return openQualityGate(item,option); if(statusNeedsContext(option)) return openStatusContextGate(item,option); return openHandoffGate(item,option); } return commitStatusChange(item,option); }
 let activeWorkspaceItemId = '';
 let activeWorkspaceAssets = [];
 function workspacePlainText(html='') {
