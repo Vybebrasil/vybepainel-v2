@@ -3,3 +3,4 @@ dev-server.mjs
 css-fingerprint.js
 .claude/
 .env
+.DS_Store
