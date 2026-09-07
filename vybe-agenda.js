@@ -354,6 +354,36 @@ function garantirClientesAtivos() {
 // Some da lista quem o cadastro conhece E marcou como inativo. Nome que o
 // cadastro nao conhece FICA: ele tem conteudo na tela, e sumir calado e o pior
 // comportamento possivel — ninguem tem como saber que ele existia.
+// TIRAR O CLIENTE DE ONDE ELE ESTA SOBRANDO.
+//
+// Tirar cliente do painel morava so na tela de Clientes: quem via o nome sobrando
+// no calendario tinha que ir ate la e procurar. E a MESMA gravacao — a funcao da
+// tela de Clientes — chamada de outro lugar; nao ha uma segunda regra de o que
+// significa "fora do painel".
+async function tirarClienteDoPainel(nome, evento) {
+  evento?.stopPropagation?.();
+  evento?.preventDefault?.();
+  if (typeof podeEditarClientes === 'function' && !podeEditarClientes()) {
+    return showToast('Só quem administra tira cliente do painel.', 'info', 5000);
+  }
+  // A ficha do cliente so existe depois que o cadastro foi lido, e quem chega
+  // direto no calendario nunca passou por aquela tela. Sem isto o clique nao
+  // fazia nada — e nao dizia por que, que e o pior jeito de falhar.
+  if (typeof ensureClientMasterSources === 'function') {
+    try { await ensureClientMasterSources(); } catch { /* o aviso abaixo cobre */ }
+  }
+  if (typeof idDoCliente === 'function' && !idDoCliente(nome)) {
+    return showToast(`"${nome}" não tem ficha em Clientes — cadastre por lá antes de tirar do painel.`, 'info', 8000);
+  }
+  await trocarSituacaoDoCliente(nome, false);
+  // O cadastro mudou: reler antes de redesenhar, senao o chip continua na tela
+  // ate alguem atualizar a pagina.
+  CADASTRO_DE_CLIENTES = null;
+  CADASTRO_DE_CLIENTES_PEDIDO = null;
+  await garantirClientesAtivos();
+  if (typeof renderManagerCalendar === 'function') renderManagerCalendar();
+}
+
 function clienteApareceNaLista(nome) {
   if (!CADASTRO_DE_CLIENTES) return true;
   const limpo = String(nome || '').trim().toLowerCase();
@@ -911,8 +941,22 @@ function renderManagerCalendar(forcar = false) {
   const modoClientes = modoDaListaDeClientes();
   // Cliente sem nada no mes continua na lista, so que apagado: some do caminho
   // do olho sem sumir do alcance do dedo.
+  // O x sai de dentro do proprio chip: quem ve o cliente que nao deveria estar ali
+  // resolve onde esta vendo, em vez de ir a outra tela procurar o nome. E um
+  // <span> e nao um <button> porque botao dentro de botao e HTML invalido — o
+  // chip inteiro ja e o botao de filtrar.
+  const xis = (client) => (typeof podeEditarClientes === 'function' && podeEditarClientes())
+    ? `<span class="manager-calendar-client-x" role="button" tabindex="0"
+        title="Tirar ${safeText(client)} do painel"
+        onclick="tirarClienteDoPainel(decodeURIComponent('${encodeURIComponent(client)}'),event)"
+        onkeydown="if(event.key==='Enter'||event.key===' ')tirarClienteDoPainel(decodeURIComponent('${encodeURIComponent(client)}'),event)">×</span>`
+    : '';
+  const ficha = ({ client, count }) => `<button type="button" class="manager-calendar-client ${
+      managerCalendarClientFilter === client ? 'active' : ''} ${count === 0 ? 'vazio' : ''}"
+      onclick="managerCalendarSetClient(decodeURIComponent('${encodeURIComponent(client)}'))"><b>${
+      safeText(client)}</b> ${count}${xis(client)}</button>`;
   const fichas = [`<button type="button" class="manager-calendar-client ${managerCalendarClientFilter==='all'?'active':''}" onclick="managerCalendarSetClient('all')"><b>Todos</b> ${totalNoMes}</button>`,
-    ...clients.map(({client,count}) => `<button type="button" class="manager-calendar-client ${managerCalendarClientFilter===client?'active':''} ${count===0?'vazio':''}" onclick="managerCalendarSetClient(decodeURIComponent('${encodeURIComponent(client)}'))"><b>${safeText(client)}</b> ${count}</button>`)].join('');
+    ...clients.map(ficha)].join('');
   const escolhido = managerCalendarClientFilter === 'all'
     ? { rotulo: 'Todos os clientes', total: totalNoMes }
     : { rotulo: managerCalendarClientFilter, total: (clients.find(c => c.client === managerCalendarClientFilter)?.count ?? 0) };
@@ -928,10 +972,6 @@ function renderManagerCalendar(forcar = false) {
   // O resumo: os tres com mais trabalho no mes, mais o escolhido se ele nao
   // estiver entre eles — some o cliente que a pessoa acabou de selecionar seria
   // o pior tipo de economia de espaco.
-  const ficha = ({ client, count }) => `<button type="button" class="manager-calendar-client ${
-      managerCalendarClientFilter === client ? 'active' : ''} ${count === 0 ? 'vazio' : ''}"
-      onclick="managerCalendarSetClient(decodeURIComponent('${encodeURIComponent(client)}'))"><b>${
-      safeText(client)}</b> ${count}</button>`;
   const comTrabalho = [...clients].filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
   const primeiros = comTrabalho.slice(0, 3);
   const escolhidoDeFora = managerCalendarClientFilter !== 'all'

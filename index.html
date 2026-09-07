@@ -5417,6 +5417,21 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .linha-previa{border-color:rgba(61,232,162,.42);background:rgba(61,232,162,.10);
   color:#6fe3b0;font-size:12px}
 .linha-previa:hover{border-color:rgba(61,232,162,.85);background:rgba(61,232,162,.2);color:#fff}
+/* O x de tirar o cliente do painel. Fica escondido ate o mouse chegar no chip:
+   ele e uma acao rara e destrutiva, e um x sempre visivel em vinte chips vira
+   uma fileira de convites para o clique errado. No teclado ele aparece ao
+   receber foco, senao quem navega por Tab nunca o alcanca. */
+.manager-calendar-client{position:relative}
+.manager-calendar-client-x{
+  display:inline-grid;place-items:center;width:15px;height:15px;margin-left:6px;
+  border-radius:50%;background:transparent;color:transparent;
+  font:700 12px/1 var(--mac-ui);cursor:pointer;vertical-align:-2px;
+  transition:background-color .12s var(--curva,ease),color .12s var(--curva,ease)}
+.manager-calendar-client:hover .manager-calendar-client-x{
+  background:rgba(255,255,255,.09);color:#a9b1bf}
+.manager-calendar-client-x:hover{background:rgba(255,69,89,.28);color:#fff}
+.manager-calendar-client-x:focus-visible{
+  background:rgba(255,69,89,.28);color:#fff;outline:2px solid #ff4559;outline-offset:1px}
 </style></head>
 <body>
 
