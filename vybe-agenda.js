@@ -1204,15 +1204,18 @@ let ORDEM = { campo: 'veiculacao_iso', desc: false };
 // e OFF so existem em Producao; mostra-las do outro lado enchia a tabela de
 // travessao e prometia uma edicao que o servidor recusa.
 const COLUNAS_DA_TABELA = {
-  producao: ['id','nome','cliente','responsavel','status','captacao','formato',
+  producao: ['id','nome','previa','cliente','responsavel','status','captacao','formato',
              'tipo_conteudo','off_audio','prioridade','prazo_iso','veiculacao_iso'],
-  demandas: ['id','nome','cliente','responsavel','status','formato',
+  demandas: ['id','nome','previa','cliente','responsavel','status','formato',
              'prioridade','prazo_iso','veiculacao_iso'],
 };
 
 const CAMPOS_ORDENAVEIS = {
   id:            { rotulo: 'ID',          valor: (i) => Number(i.id) || 0 },
   nome:          { rotulo: 'Conteúdo',    rotuloDemandas: 'Demanda', valor: (i) => String(i.nome || '') },
+  // Coluna de acao, e nao de dado — mas ordenar por ela tem um significado util:
+  // traz para cima o que ja tem material para olhar.
+  previa:        { rotulo: 'Prévia',      valor: (i) => (typeof jaTemMaterial === 'function' && jaTemMaterial(i)) ? '0' : '1' },
   cliente:       { rotulo: 'Cliente',     valor: (i) => String(i.cliente || '') },
   responsavel:   { rotulo: 'Responsável', valor: (i) => String(i.responsavel || '') },
   status:        { rotulo: 'Status',      valor: (i) => String(i.status || '') },
@@ -1723,6 +1726,7 @@ function linhaDeGrupoHtml(item) {
     <td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
         title="ID da atividade · clique para copiar">${safeText(item.id)}</td>
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
+    <td class="grupo-previa" onclick="${parar}">${botaoDePreviaNaLinha(item)}</td>
     <td>${safeText(item.cliente || '—')}</td>
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
     <td onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
