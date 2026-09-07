@@ -303,57 +303,48 @@ function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
 // O cadastro chega por uma consulta so, pequena (algumas dezenas de linhas), e
 // uma vez por sessao. Enquanto ela nao volta — ou se falhar — nada e escondido:
 // esconder cliente por engano e pior do que mostrar um a mais.
-let CADASTRO_DE_CLIENTES = null;
-let CADASTRO_DE_CLIENTES_PEDIDO = null;
-
-// UM NOME, DUAS FORMAS — E A COMPARACAO PRECISA CONHECER AS DUAS.
+// QUEM DECIDE SE O CLIENTE APARECE E O MESMO QUE DECIDE QUEM DESATIVAR.
 //
-// O cadastro guarda "Hellen Rocha"; o apelido em vybe-config encurta para
-// "Hellen", e e o apelido que chega nas pecas e na tela. A lista de chips
-// comparava a forma curta contra a forma longa em minusculas exatas — e a
-// cliente sumia da lista com treze conteudos ativos. Sao 21 apelidos que
-// reescrevem nome; todos corriam o mesmo risco, e ninguem tinha como saber
-// quantos ja tinham sumido.
+// Eu tinha montado aqui um segundo conjunto de nomes ativos, com a minha propria
+// comparacao. O resultado foi previsivel: desativar a ACE funcionava — porque a
+// gravacao usa cadastroDoCliente, que compara nome exato E aproximado — e a
+// lista continuava mostrando, porque a minha comparacao so olhava igualdade
+// exata de duas formas do nome. Duas reguas para a mesma pergunta sempre
+// divergem; a unica saida e nao ter a segunda.
 //
-// Agora as duas formas entram no cadastro e as duas sao procuradas, com a mesma
-// regua que o resto do painel usa para comparar nome de cliente.
-// A regua ja existe: chaveDeCliente resolve pelo Cliente master e normaliza
-// acento e caixa. Escrever outra aqui seria criar a terceira forma de comparar
-// nome de cliente no mesmo painel.
-const chaveDoNomeNaLista = (nome) => (typeof chaveDeCliente === 'function'
-  ? chaveDeCliente(nome)
-  : String(nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase());
-function formasDoNomeDeCliente(nome) {
-  const cru = chaveDoNomeNaLista(nome);
-  const apelidado = typeof normalizarCliente === 'function'
-    ? chaveDoNomeNaLista(normalizarCliente(nome)) : cru;
-  return apelidado && apelidado !== cru ? [cru, apelidado] : [cru];
-}
-
+// Agora a lista pergunta ao MESMO cadastro, pela MESMA funcao. "Desativei" e
+// "sumiu" passam a ser o mesmo fato, e nao dois que precisam concordar.
+let CADASTRO_PEDIDO_PELA_LISTA = null;
 function garantirClientesAtivos() {
-  if (CADASTRO_DE_CLIENTES || CADASTRO_DE_CLIENTES_PEDIDO) return CADASTRO_DE_CLIENTES_PEDIDO;
-  CADASTRO_DE_CLIENTES_PEDIDO = fetch('/api/painel?area=clientes', { credentials: 'same-origin' })
-    .then((r) => (r.ok ? r.json() : null))
-    .then((d) => {
-      const linhas = d?.clientes || [];
-      if (!linhas.length) return;
-      const ativos = new Set();
-      const inativos = new Set();
-      linhas.forEach((c) => {
-        const destino = c.ativo ? ativos : inativos;
-        formasDoNomeDeCliente(c.nome).forEach((forma) => { if (forma) destino.add(forma); });
-      });
-      CADASTRO_DE_CLIENTES = { ativos, inativos };
-      // Chegou depois da tela desenhada: redesenha para os inativos sairem.
-      if (typeof renderManagerCalendar === 'function') renderManagerCalendar();
-    })
+  if (typeof ensureClientMasterSources !== 'function') return null;
+  if (CADASTRO_PEDIDO_PELA_LISTA) return CADASTRO_PEDIDO_PELA_LISTA;
+  CADASTRO_PEDIDO_PELA_LISTA = Promise.resolve(ensureClientMasterSources())
+    // Chegou depois da tela desenhada: redesenha para os inativos sairem.
+    .then(() => { if (typeof renderManagerCalendar === 'function') renderManagerCalendar(); })
     .catch(() => { /* sem cadastro, a lista fica como estava */ });
-  return CADASTRO_DE_CLIENTES_PEDIDO;
+  return CADASTRO_PEDIDO_PELA_LISTA;
 }
 
-// Some da lista quem o cadastro conhece E marcou como inativo. Nome que o
-// cadastro nao conhece FICA: ele tem conteudo na tela, e sumir calado e o pior
-// comportamento possivel — ninguem tem como saber que ele existia.
+function clienteApareceNaLista(nome) {
+  const limpo = String(nome || '').trim().toLowerCase();
+  // "Sem cliente" e "—" nao estao no cadastro e nao sao cliente: sao a ausencia
+  // de um. Ficam de fora da lista de escolha.
+  if (!limpo || limpo === '—' || limpo === 'sem cliente') return false;
+  // Cadastro ainda nao chegou: esconder por engano e pior do que mostrar a mais.
+  if (typeof cadastroDoCliente !== 'function'
+    || typeof CADASTRO_CLIENTES === 'undefined' || !CADASTRO_CLIENTES.length) return true;
+  // A busca aproximada exige seis letras dos dois lados, entao um nome curto como
+  // "ACE" nao alcanca "ACE - Associacao Comercial de Irece (ACE)". O apelido do
+  // vybe-config resolve justamente isso — e continua sendo a MESMA busca, so com
+  // o nome por extenso.
+  const ficha = cadastroDoCliente(nome)
+    || (typeof normalizarCliente === 'function' ? cadastroDoCliente(normalizarCliente(nome)) : null);
+  // O cadastro nao conhece este nome: ele tem conteudo na tela, e sumir calado e
+  // o pior comportamento possivel — ninguem tem como saber que existia.
+  if (!ficha) return true;
+  return ficha.ativo !== false;
+}
+
 // TIRAR O CLIENTE DE ONDE ELE ESTA SOBRANDO.
 //
 // Tirar cliente do painel morava so na tela de Clientes: quem via o nome sobrando
@@ -376,24 +367,8 @@ async function tirarClienteDoPainel(nome, evento) {
     return showToast(`"${nome}" não tem ficha em Clientes — cadastre por lá antes de tirar do painel.`, 'info', 8000);
   }
   await trocarSituacaoDoCliente(nome, false);
-  // O cadastro mudou: reler antes de redesenhar, senao o chip continua na tela
-  // ate alguem atualizar a pagina.
-  CADASTRO_DE_CLIENTES = null;
-  CADASTRO_DE_CLIENTES_PEDIDO = null;
-  await garantirClientesAtivos();
+  // gravarCadastroDeCliente ja releu o cadastro; falta a tela saber disso.
   if (typeof renderManagerCalendar === 'function') renderManagerCalendar();
-}
-
-function clienteApareceNaLista(nome) {
-  if (!CADASTRO_DE_CLIENTES) return true;
-  const limpo = String(nome || '').trim().toLowerCase();
-  // "Sem cliente" e "—" nao estao no cadastro e nao sao cliente: sao a ausencia
-  // de um. Ficam de fora da lista de escolha.
-  if (!limpo || limpo === '—' || limpo === 'sem cliente') return false;
-  const formas = formasDoNomeDeCliente(nome);
-  if (formas.some((f) => CADASTRO_DE_CLIENTES.ativos.has(f))) return true;
-  if (formas.some((f) => CADASTRO_DE_CLIENTES.inativos.has(f))) return false;
-  return true;
 }
 
 function managerCalendarClientList(allItems, meta) {
