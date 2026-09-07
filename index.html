@@ -775,7 +775,7 @@
     .owner-editor-trigger { display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;padding:0;border:0;background:transparent;cursor:pointer;border-radius:999px;position:relative}
     .owner-editor-trigger:hover { filter:brightness(1.12);transform:translateY(-1px)}
     .owner-editor-trigger:focus-visible { outline:2px solid #00e5ff;outline-offset:2px}
-    .quick-date-trigger { display:inline-flex;align-items:center;justify-content:center;min-width:25px;min-height:25px;padding:0 6px;border:1px solid rgba(255,184,80,.48);background:rgba(255,140,20,.08);color:#ffbf64;cursor:pointer;border-radius:6px;font:700 12px/1 monospace;transition:transform .14s var(--curva),background .14s var(--curva),border-color .14s var(--curva)}
+    .quick-date-trigger,.linha-previa { display:inline-flex;align-items:center;justify-content:center;min-width:25px;min-height:25px;padding:0 6px;border:1px solid rgba(255,184,80,.48);background:rgba(255,140,20,.08);color:#ffbf64;cursor:pointer;border-radius:6px;font:700 12px/1 monospace;transition:transform .14s var(--curva),background .14s var(--curva),border-color .14s var(--curva)}
     .quick-date-trigger:hover { background:rgba(255,140,20,.2);border-color:#ffb451;transform:translateY(-1px)}
     .quick-date-trigger:focus-visible { outline:2px solid #ffb451;outline-offset:2px}
     .quick-date-trigger.gold-risk { border-color:#ff637a;color:#ff9aa4;background:rgba(255,99,122,.1)}
@@ -5411,6 +5411,12 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
    coluna de seis linhas espremida no canto — some, e os cartoes logo abaixo
    continuam obviamente clicaveis sem ela. */
 @media(max-width:1200px){.da-barra-dica{display:none}}
+/* O olho fica ao lado do botao de data e precisa ter o mesmo corpo — por isso
+   divide a regra de geometria com ele, em vez de copiar as medidas. So a cor e
+   propria: ver o que ficou pronto nao e a mesma acao que remarcar uma data. */
+.linha-previa{border-color:rgba(61,232,162,.42);background:rgba(61,232,162,.10);
+  color:#6fe3b0;font-size:12px}
+.linha-previa:hover{border-color:rgba(61,232,162,.85);background:rgba(61,232,162,.2);color:#fff}
 </style></head>
 <body>
 

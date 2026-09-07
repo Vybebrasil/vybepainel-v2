@@ -703,6 +703,7 @@ function renderByDay(sem, filter, dayFilter) {
         ${fmtHtml(d.formato)}
         <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}</button>
         ${managerStatusControl(d)}
+        ${botaoDePreviaNaLinha(d)}
         ${quickDateTrigger(d,'manager-date-trigger')}
         ${ownerEditorTrigger(d,'manager-owner-trigger')}
       </div>`;

@@ -218,6 +218,23 @@ function focusDatasHtml(d, user = focusUser()) {
 const STATUS_JA_ENTREGUE = new Set(['para aprovação','para aprovacao','em aprovação','em aprovacao',
   'aguardando aprovação','aguardando aprovacao','ag. aprovação cliente','ag. interno','aprovado',
   'para agendar','agendado','finalizado','feito']);
+// O OLHO DA PREVIA NUMA LINHA DE LISTA.
+//
+// O cartao da mesa ja tinha este botao; as listas por dia, nao — e e nelas que
+// se confere o que foi entregue no dia. E o MESMO botao: mesma funcao, mesma
+// previa, mesmo comportamento quando nao ha arquivo. Uma segunda versao
+// divergiria da primeira no primeiro conserto.
+//
+// A linha nao sabe se existe arquivo, so o status. Por isso o destino de quem
+// clica sem material nao e um beco: abre o link se houver, e abre a caixa de
+// entrega se nao houver nada.
+function botaoDePreviaNaLinha(item, classe = 'linha-previa') {
+  if (!item || !jaTemMaterial(item)) return '';
+  return `<button type="button" class="${classe}"
+    onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(item.id))}',this)"
+    title="Ver o material entregue" aria-label="Ver prévia de ${safeText(item.nome || 'atividade')}">👁</button>`;
+}
+
 function jaTemMaterial(item) {
   return STATUS_JA_ENTREGUE.has(normalizedWorkflowStatus(operationalFlowStatus(item)));
 }
