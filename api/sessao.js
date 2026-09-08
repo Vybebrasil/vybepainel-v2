@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const sessao = sessaoDoPedido(req);
+      const sessao = await sessaoDoPedido(req);
       if (!sessao) return res.status(401).json({ error: 'Sem sessão.' });
       return res.status(200).json({
         ok: true,

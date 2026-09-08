@@ -6,3 +6,6 @@
 # deploy inteiro; solto na raiz, seria servido como pagina e exporia o codigo do
 # servidor. O LEIA-ME de la explica o resto.
 nao-implantado/
+
+.claude/
+.env*

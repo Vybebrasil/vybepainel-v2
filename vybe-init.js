@@ -44,6 +44,7 @@ function abrirAtividadeDoLink() {
 }
 
 function iniciarPainel() {
+  document.body.classList.remove('auth-pending');
   // Depois de garantirSessao(), então já se sabe de quem são os avisos.
   if (typeof iniciarNotificacoes === 'function') iniciarNotificacoes();
   if (typeof ajustarAbasPorPapel === 'function') ajustarAbasPorPapel();

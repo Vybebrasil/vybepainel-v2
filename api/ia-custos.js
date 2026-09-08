@@ -9,7 +9,7 @@ import { bloqueou } from '../vybe_acesso.js';
 import { getUsageDashboard, updateUsageSettings } from '../jarvis_usage.js';
 
 export default async function handler(req, res) {
-  if (bloqueou(req, res)) return;
+  if (await bloqueou(req, res)) return;
   try {
     if (req.method === 'GET') return res.status(200).json(await getUsageDashboard(req.query?.days));
     if (req.method === 'POST') {

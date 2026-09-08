@@ -1,3 +1,4 @@
+import { unificarStatus } from '../server/catalogos.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
 // Roteador, e não um arquivo por assunto, por um motivo concreto: o plano da
@@ -15,7 +16,7 @@ import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { garantirMaterialBruto } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
-import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha } from '../vybe_sessao.js';
+import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
@@ -190,7 +191,8 @@ async function areaConta(req, res, quem) {
     const { senha_atual: atual, senha_nova: nova } = req.body || {};
     if (!atual || !nova) return res.status(400).json({ error: 'Informe a senha atual e a nova.' });
     try {
-      await trocarPropriaSenha(quem.pessoa.email, atual, nova);
+      const pessoa = await trocarPropriaSenha(quem.pessoa.email, atual, nova);
+      res.setHeader('Set-Cookie', cabecalhoDeCookie(assinarSessao(pessoa)));
       return res.status(200).json({ ok: true, trocada: true });
     } catch (erro) {
       // Mensagem do autenticar já é genérica de propósito; não detalhar mais.
@@ -1072,9 +1074,7 @@ async function realinharChaveDoStatus(db, board, linha) {
   if (!certa || certa === linha.chave) return linha.chave;
   const ocupada = await db`SELECT 1 FROM vybe_status WHERE board_id=${board} AND chave=${certa}`;
   if (ocupada.length) return linha.chave;
-  await db`UPDATE vybe_conteudos SET status_chave=${certa}
-    WHERE board_id=${board} AND status_chave=${linha.chave}`;
-  await db`UPDATE vybe_status SET chave=${certa} WHERE board_id=${board} AND chave=${linha.chave}`;
+  await unificarStatus(db, { board, origem: linha.chave, destino: certa, rotulo: linha.rotulo });
   return certa;
 }
 
@@ -1156,29 +1156,14 @@ async function areaOpcoes(req, res, quem) {
         || (b.monday_index === null ? 0 : 1) - (a.monday_index === null ? 0 : 1)
         || Number(a.ordem || 0) - Number(b.ordem || 0));
       const fica = ordenados[0];
-      if (ordenados.length < 2) {
-        // So um existe: nao ha o que mover, mas pode faltar o nome certo.
-        if (chave(fica.rotulo) === chave(para)) {
-          return res.status(200).json({ ok: true, acao, ficou: { chave: fica.chave, rotulo: para },
-            removidos: [], pecas_movidas: 0, nota: 'Já estava unificado.' });
-        }
-        await db`UPDATE vybe_status SET rotulo=${para} WHERE chave=${fica.chave} AND board_id=${board}`;
-        const chaveFinal = await realinharChaveDoStatus(db, board, { chave: fica.chave, rotulo: para });
-        return res.status(200).json({ ok: true, acao, ficou: { chave: chaveFinal, rotulo: para },
-          removidos: [], pecas_movidas: 0, nota: 'Só o nome mudou; não havia outro status para absorver.' });
-      }
       const saem = ordenados.slice(1).map((st) => st.chave);
-
-      const movidas = await db`UPDATE vybe_conteudos SET status_chave=${fica.chave}, atualizado_em=NOW()
-        WHERE board_id=${board} AND status_chave = ANY(${saem}) RETURNING id`;
-      await db`UPDATE vybe_status SET rotulo=${para} WHERE chave=${fica.chave} AND board_id=${board}`;
-      await db`DELETE FROM vybe_status WHERE board_id=${board} AND chave = ANY(${saem})`;
-      // O nome mudou; a chave tem de mudar junto, senao a etiqueta sobrevivente
-      // deixa de ser encontrada pelo painel — foi assim que "Para Aprovacao"
-      // acabou guardada sob a chave de "Em aprovacao".
-      const chaveFinal = await realinharChaveDoStatus(db, board, { chave: fica.chave, rotulo: para });
-      return res.status(200).json({ ok: true, acao, ficou: { chave: chaveFinal, rotulo: para },
-        removidos: saem, pecas_movidas: movidas.length });
+      const proposta = chaveDeStatus(para);
+      const ocupada = todos.some((st) => st.chave === proposta && !alvos.includes(st));
+      const destino = proposta && !ocupada ? proposta : fica.chave;
+      const resultado = await unificarStatus(db, { board, origem: fica.chave,
+        absorvidas: saem, destino, rotulo: para });
+      return res.status(200).json({ ok: true, acao, ficou: { chave: resultado.chave, rotulo: para },
+        removidos: saem, pecas_movidas: resultado.movidas });
     }
 
     if (acao === 'criar') {
@@ -1446,7 +1431,7 @@ export default async function handler(req, res) {
 
   const enviado = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
   const manutencao = process.env.CUTOVER_MIGRATION_KEY && enviado && enviado === String(process.env.CUTOVER_MIGRATION_KEY).trim();
-  const quem = quemChama(req) || (manutencao ? { tipo:'servico' } : null);
+  const quem = await quemChama(req) || (manutencao ? { tipo:'servico' } : null);
   if (!quem) return res.status(401).json({ error: 'Entre no painel para acessar.' });
 
   const area = AREAS[String(req.query?.area || '')];

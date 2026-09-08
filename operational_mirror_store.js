@@ -19,7 +19,8 @@ export async function mondayQuery(query, variables = {}) {
   const headers = direto
     ? { 'Content-Type': 'application/json', Authorization: token, 'API-Version': MONDAY_API_VERSION }
     : { 'Content-Type': 'application/json', ...(process.env.MIRROR_ADMIN_KEY ? { Authorization: `Bearer ${String(process.env.MIRROR_ADMIN_KEY).trim()}` } : {}) };
-  const response = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify({ query, variables }) });
+  const response = await fetch(endpoint, { method: 'POST',
+    signal: AbortSignal.timeout(20000), headers, body: JSON.stringify({ query, variables }) });
   const body = await response.json();
   if (!response.ok || body?.errors?.length) throw new Error(body?.errors?.[0]?.message || body?.error || `Falha na contingência Monday (${response.status})`);
   return body.data;

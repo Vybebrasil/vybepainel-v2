@@ -58,7 +58,7 @@ async function buscarDominio() {
   const resposta = await fetch(CONTEUDOS_API, { credentials: 'same-origin', cache: 'no-store' });
   if (!resposta.ok) throw new Error(`Domínio indisponível (${resposta.status})`);
   const dados = await resposta.json();
-  if (!dados?.itens) throw new Error('Resposta do domínio sem itens.');
+  if (!Array.isArray(dados?.itens)) throw new Error('Resposta do domínio sem lista de itens.');
   avisarSeVeioIncompleto(dados);
   DOMINIO_ULTIMA_RESPOSTA = dados;
   return dados;
@@ -145,7 +145,8 @@ async function puxarDominio() {
   const brutos = dominioComoItensDoMonday(dados);
   const meta = calcWeeks();
   const todos = processItemsAll(brutos, meta);
-  if (!todos.length) return false;
+  // Uma lista vazia confirmada é válida; não ressuscitar o cache nem recorrer
+  // ao Monday quando o último conteúdo foi removido ou saiu do recorte.
 
   const opcoes = (dados.status || []).map((s) => ({
     index: s.indice, label: s.rotulo, color: s.cor, border: s.borda,

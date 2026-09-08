@@ -1,3 +1,4 @@
+import { substituirResponsaveis } from '../server/responsaveis.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
 //
 // Hoje o painel grava só no Monday e o banco copia por webhook. Isso mantém o
@@ -32,6 +33,7 @@ function database() {
 async function mondayQuery(query, variables) {
   const resposta = await fetch(MONDAY, {
     method: 'POST',
+    signal: AbortSignal.timeout(20000),
     headers: {
       'Content-Type': 'application/json',
       ...(process.env.MIRROR_ADMIN_KEY ? { Authorization: `Bearer ${process.env.MIRROR_ADMIN_KEY}` } : {}),
@@ -308,25 +310,8 @@ async function trocarResponsaveis(sql, quem, { item, pessoas }) {
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const c = linhas[0];
 
-  const antes = (await sql`SELECT p.nome FROM vybe_conteudo_responsaveis r
-      JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${c.id} ORDER BY r.ordem, p.nome`)
-    .map((l) => l.nome).join(', ');
-
-  await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${c.id}`;
-  if (ids.length) {
-    await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)
-      SELECT ${c.id}, p.id, o.ord - 1
-        FROM UNNEST(${ids}::text[]) WITH ORDINALITY AS o(uid, ord)
-        JOIN vybe_pessoas p ON p.monday_user_id = o.uid
-      ON CONFLICT DO NOTHING`;
-  }
-  const depois = (await sql`SELECT p.nome FROM vybe_conteudo_responsaveis r
-      JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${c.id} ORDER BY r.ordem, p.nome`)
-    .map((l) => l.nome).join(', ');
-
-  await registrarEvento(sql, c.id, {
-    tipo: 'responsavel', de: antes || 'sem responsável', para: depois || 'sem responsável',
-    autorId: await pessoaDaSessao(sql, quem),
+  const { antes, depois } = await substituirResponsaveis(sql, {
+    conteudoId: c.id, pessoas: ids, autorId: await pessoaDaSessao(sql, quem),
   });
 
   const replica = await replicar(sql, 'responsaveis', `conteudo:${c.id}`,
@@ -892,7 +877,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
 
-  const quem = quemChama(req);
+  const quem = await quemChama(req);
   if (!quem) return res.status(401).json({ error: 'Entre no painel para alterar dados.' });
 
   const corpo = req.body || {};

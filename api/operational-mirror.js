@@ -1,4 +1,4 @@
-﻿import { bloqueou } from '../vybe_acesso.js';
+import { bloqueou } from '../vybe_acesso.js';
 import { bootstrapMirror, getMirrorDelta, getMirrorHealth, getMirrorSnapshot, reconcileMirror } from '../operational_mirror_store.js';
 
 function cors(res) {
@@ -17,7 +17,7 @@ function isAdmin(req) {
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (bloqueou(req, res)) return;
+  if (await bloqueou(req, res)) return;
   try {
     if (req.method === 'GET') {
       const action = String(req.query?.action || 'snapshot');

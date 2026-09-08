@@ -158,7 +158,7 @@ function changeMonth(delta) {
 function getMonthName(offset) {
   const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const d = new Date();
-  d.setMonth(d.getMonth() + offset);
+  d.setMonth(d.getMonth() + offset, 1);
   return months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
@@ -166,4 +166,3 @@ function updateMonthNav() {
   const el = document.getElementById('month-nav-label');
   if (el) el.textContent = getMonthName(MONTH_OFFSET);
 }
-

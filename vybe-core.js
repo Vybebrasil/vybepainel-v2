@@ -417,7 +417,7 @@ function calcWeeks() {
   const todayFmt = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
   // Mês-alvo com offset
   const targetDate = new Date(today);
-  targetDate.setMonth(today.getMonth() + MONTH_OFFSET);
+  targetDate.setMonth(today.getMonth() + MONTH_OFFSET, 1);
   const year  = targetDate.getFullYear();
   const month = targetDate.getMonth();
   const firstDay = new Date(year, month, 1, 12, 0, 0);
@@ -683,4 +683,3 @@ function processItemsAll(rawItems, meta) {
 let DADOS_ALL = []; // todos os itens de produção sem filtro de semana
 let DIAS_SEMANAS = [[], [], [], []]; // DIAS para cada semana (1-4)
 let producaoRefreshRunning = false;
-

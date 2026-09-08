@@ -78,7 +78,7 @@ function cacheClock(iso) {
   catch(e) { return ''; }
 }
 function cachePayloadIsValid(payload) {
-  return !!(payload && payload.schema === PRODUCTION_CACHE_SCHEMA && Array.isArray(payload.items) && payload.items.length && payload.saved_at && (Date.now() - new Date(payload.saved_at).getTime()) < PRODUCTION_CACHE_MAX_AGE);
+  return !!(payload && payload.schema === PRODUCTION_CACHE_SCHEMA && Array.isArray(payload.items) && payload.saved_at && (Date.now() - new Date(payload.saved_at).getTime()) < PRODUCTION_CACHE_MAX_AGE);
 }
 function loadProductionCache() {
   try {
@@ -87,7 +87,7 @@ function loadProductionCache() {
   } catch(e) { return null; }
 }
 function saveProductionCache() {
-  if (!Array.isArray(DADOS_ALL) || !DADOS_ALL.length) return;
+  if (!Array.isArray(DADOS_ALL)) return;
   try {
     localStorage.setItem(PRODUCTION_CACHE_KEY, JSON.stringify({
       schema: PRODUCTION_CACHE_SCHEMA,
@@ -269,6 +269,15 @@ async function pullOperationalMirror(options = {}) {
   if (!force && Date.now() < operationalMirrorNextAttemptAt) return false;
   operationalMirrorRequestRunning = true;
   try {
+    if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) {
+      // Atualizações locais não precisam produzir um evento no Monday para
+      // aparecer nas outras telas. Confirma diretamente a fonte de autoridade.
+      await puxarDominio();
+      operationalMirrorFailures = 0;
+      operationalMirrorUnavailable = false;
+      operationalMirrorNextAttemptAt = 0;
+      return true;
+    }
     if (!operationalMirrorVersion) {
       const snapshot = await mirrorRequest();
       if (!snapshot?.ready) throw new Error('Espelho operacional ainda não possui uma base confirmada.');
@@ -317,8 +326,8 @@ async function pullOperationalMirror(options = {}) {
     const retrySeconds = Math.max(1, Math.ceil(retryIn / 1000));
     console.warn('Espelho operacional indisponível; mantendo a última base segura.', error.message);
     if (typeof espelhoSomenteObservador === 'function' && espelhoSomenteObservador()) {
-      setSyncHealth('stale', `Banco Vybe permanece ativo; a réplica de contingência do Monday não respondeu. Nova tentativa em ${retrySeconds}s.`);
-      cacheSyncLabel(`Banco Vybe ativo · réplica Monday indisponível · nova tentativa em ${retrySeconds}s`);
+      setSyncHealth('error', `Não foi possível atualizar o banco Vybe. Última base segura preservada; nova tentativa em ${retrySeconds}s.`);
+      cacheSyncLabel(`Banco Vybe indisponível · última base preservada · nova tentativa em ${retrySeconds}s`);
     } else {
       setSyncHealth('error', `Não foi possível confirmar o espelho agora. Última base segura: ${syncHealthClock(syncHealthLastConfirmedAt)} · nova tentativa em ${retrySeconds}s.`);
       cacheSyncLabel(`Espelho indisponível · última base segura mantida · tentativa automática em ${retrySeconds}s`);
@@ -523,4 +532,3 @@ async function refreshProducao(options={}) {
     }
   }
 }
-

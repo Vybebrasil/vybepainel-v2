@@ -1,4 +1,4 @@
-﻿import { getMirrorHealth, reconcileMirror, mondayQuery } from '../operational_mirror_store.js';
+import { getMirrorHealth, reconcileMirror, mondayQuery } from '../operational_mirror_store.js';
 import { neon } from '@neondatabase/serverless';
 import { varrerAgenda, recalcularPrioridades } from '../vybe_automacoes.js';
 import { processarFilaReplica, saudeFilaReplica } from '../vybe_replica_queue.js';
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     // A fila é processada antes de conferir a réplica: o banco Vybe manda; o
     // Monday apenas recebe a cópia enquanto permanecer como contingência.
     let replica = null;
-    try { replica = await processarFilaReplica(sql, mondayQuery, { limite: 50 }); }
+    try { replica = await processarFilaReplica(sql, mondayQuery, { limite: 100, tempoMaxMs: 40000 }); }
     catch (erro) { console.error('Fila de réplica falhou:', erro.message); replica = { erro: erro.message }; }
 
     let result = null;
