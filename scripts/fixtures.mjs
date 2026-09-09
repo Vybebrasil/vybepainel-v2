@@ -18,7 +18,7 @@ export function demoApi(req,res,url,body) {
   if(url.pathname==='/api/conteudos') {
     const demanda=url.searchParams.get('board')==='demandas';
     const hoje=new Date().toISOString().slice(0,10);
-    const itens=demanda?[]:[{id:'vybe:1',nome:'Peça fictícia para verificar o painel',cliente:'Cliente demonstração',clientes:['Cliente demonstração'],
+    const itens=demanda?[{id:'vybe:2',nome:'Reunião de alinhamento fictícia',cliente:'Cliente demonstração',formato:'Reunião',prazo_iso:hoje,veiculacao_iso:hoje,status_chave:'a_fazer',grupo:'Solicitações',responsavel_ids:['68035537']}]:[{id:'vybe:1',nome:'Peça fictícia para verificar o painel',cliente:'Cliente demonstração',clientes:['Cliente demonstração'],
       formato:'Card',prazo_iso:hoje,veiculacao_iso:hoje,status_chave:'a_fazer',grupo:'Redação',grupo_id:'group_title',
       responsavel_ids:['68035537'],updated_at:new Date().toISOString()}];
     return reply(200,{ok:true,board_id:demanda?8385559107:7829537690,

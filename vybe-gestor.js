@@ -622,8 +622,25 @@ function clearAllFilters(preserveDateMode = false) {
   updateClearFiltersState();
 }
 // ─── Renderizar por dia ────────────────────────────────────────────────────────────
+function itensDaSemanaGestor(sem) {
+  const conteudos = getItemsBySemana(sem);
+  if (panelMode !== 'gestor') return conteudos;
+  const dias = new Set(getDiasSemana(sem).map(d => d.iso));
+  const demandas = (DADOS_DEMANDAS || []).map(normalizeRequestForOperational)
+    .filter(d => dias.has(getDateIso(d)));
+  const vistos = new Set();
+  return [...conteudos, ...demandas].filter(d => {
+    const chave = `${d.board_id || BOARD_ID}:${d.id}`;
+    if (vistos.has(chave)) return false;
+    vistos.add(chave); return true;
+  });
+}
+function atividadeDoDiaConcluida(item) {
+  return isRequestItem(item) ? DEMANDA_CONCLUIDA.includes(item.status)
+    : ['Finalizado','Agendado','Para agendar'].includes(item.status);
+}
 function renderByDay(sem, filter, dayFilter) {
-  const items = getItemsBySemana(sem);
+  const items = itensDaSemanaGestor(sem);
   // No modo PRAZO, construir lista de dias a partir dos prazos dos itens desta semana
   let dias;
   if (dateMode === 'prazo') {
@@ -648,7 +665,7 @@ function renderByDay(sem, filter, dayFilter) {
   else if(filter==='redacao') fi = fi.filter(d=>d.grupo==='Redação' && d.status==='A Fazer');
   else if(filter==='design')  fi = fi.filter(d=>isDesign(d.responsavel));
   else if(filter==='edicao')  fi = fi.filter(d=>isEdicao(d.responsavel));
-  else if(filter==='status:pending_all') fi = fi.filter(d=>!['Finalizado','Agendado','Para agendar'].includes(d.status));
+  else if(filter==='status:pending_all') fi = fi.filter(d=>!atividadeDoDiaConcluida(d));
   else if(filter&&filter.startsWith('status:')) fi = fi.filter(d=>d.status===filter.replace('status:',''));
   const diasFiltrados = dayFilter ? dias.filter(d=>d.iso===dayFilter) : dias;
   // A ordem que o olho ve nesta tela, na sequencia em que os dias aparecem: e
@@ -657,8 +674,8 @@ function renderByDay(sem, filter, dayFilter) {
   grid.innerHTML = diasFiltrados.map(dia => {
     const dayItems = fi.filter(d=>getDateIso(d)===dia.iso).sort((a,b)=>{
       // Pendentes primeiro, finalizados depois
-      const aOk = ['Finalizado','Agendado','Para agendar'].includes(a.status);
-      const bOk = ['Finalizado','Agendado','Para agendar'].includes(b.status);
+      const aOk = atividadeDoDiaConcluida(a);
+      const bOk = atividadeDoDiaConcluida(b);
       if(aOk && !bOk) return 1;
       if(!aOk && bOk) return -1;
       return a.cliente.localeCompare(b.cliente);
@@ -679,13 +696,15 @@ function renderByDay(sem, filter, dayFilter) {
         <span class="dia-vazio-recado">arraste uma peça para cá</span></div>
       </div>`;
     }
-    const dayDone = dayItems.filter(d=>['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
+    const dayDone = dayItems.filter(d=>atividadeDoDiaConcluida(d)).length;
     const dayPct = Math.round(dayDone / dayItems.length * 100);
+    const conteudosDoDia=dayItems.filter(d=>!isRequestItem(d)).length;
+    const demandasDoDia=dayItems.length-conteudosDoDia;
     dayItems.forEach(d => ordemVisivel.push(String(d.id)));
     const rows = dayItems.map(d=>{
       const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
       const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
-      const isPending = !['Finalizado','Agendado','Para agendar'].includes(d.status);
+      const isPending = !atividadeDoDiaConcluida(d);
       // ARRASTAR A PECA DE UM DIA PARA O OUTRO MUDA A VEICULACAO.
       //
       // A agenda mensal ja fazia isso; a lista da semana, que e onde o time
@@ -693,14 +712,14 @@ function renderByDay(sem, filter, dayFilter) {
       // dragstart, mesmo drop, mesma gravacao — em vez de uma segunda
       // implementacao que amanha divergiria da primeira.
       return `<div class="item-row${isPending?' urgent':''}${marcada?' marcada':''}" draggable="true"
-        ondragstart="managerCalendarDragStart('content','${safeText(d.id)}',event)"
+        ondragstart="managerCalendarDragStart('${isRequestItem(d)?'request':'content'}','${safeText(d.id)}',event)"
         ondragend="managerCalendarDragEnd()"
         title="Arraste para outro dia para mudar a veiculação">
         <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote">
           <input type="checkbox" ${marcada?'checked':''} aria-label="Marcar ${safeText(d.nome||'')}"
             onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
         <span class="item-cliente-tag" style="background:rgba(168,85,247,.18);color:#c084fc;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${d.cliente}</span>
-        ${fmtHtml(d.formato)}
+        ${isRequestItem(d)?'<span class="dia-demanda-tag">Demanda</span>':''}${fmtHtml(d.formato)}
         <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}</button>
         ${managerStatusControl(d)}
         ${botaoDePreviaNaLinha(d)}
@@ -717,7 +736,7 @@ function renderByDay(sem, filter, dayFilter) {
         <div class="client-name">${modeIcon} ${dia.label} — ${String(new Date(dia.iso+'T12:00:00').getDate()).padStart(2,'0')}/${String(new Date(dia.iso+'T12:00:00').getMonth()+1).padStart(2,'0')}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
           <button type="button" class="day-summary-btn" onclick="openDailySummary('${dia.iso}')" title="Gerar mensagem copiável para o grupo de Criação">◈ Gerar resumo</button>
-          <span class="count-badge ok">${dayItems.length} post${dayItems.length!==1?'s':''}</span>
+          <span class="count-badge ok">${conteudosDoDia} conteúdo${conteudosDoDia===1?'':'s'} · ${demandasDoDia} demanda${demandasDoDia===1?'':'s'}</span>
           <span style="font-size:10px;color:${progressColor};font-weight:700;">${dayDone}/${dayItems.length}</span>
         </div>
       </div>
@@ -756,7 +775,8 @@ function dailySummaryDiscipline(item) {
 }
 function buildDailySummary(dayIso) {
   const referenceLabel=dateMode==='prazo' ? 'Prazo' : 'Veiculação';
-  const openItems=DADOS.filter(item=>getDateIso(item)===dayIso && !DAILY_SUMMARY_CLOSED_STATUSES.has(normalizedWorkflowStatus(item.status)));
+  const itens=panelMode==='gestor' ? [...DADOS,...(DADOS_DEMANDAS||[]).map(normalizeRequestForOperational)] : DADOS;
+  const openItems=itens.filter(item=>getDateIso(item)===dayIso && !(isRequestItem(item)?atividadeDoDiaConcluida(item):DAILY_SUMMARY_CLOSED_STATUSES.has(normalizedWorkflowStatus(item.status))));
   const lines=[`*VYBE OS · RESUMO DE CRIAÇÃO — ${dailySummaryDateLabel(dayIso)}*`, `_${openItems.length} atividade${openItems.length===1?'':'s'} em aberto · referência: ${referenceLabel}_`];
   if (!openItems.length) return [...lines,'','✅ Nenhuma atividade em aberto para este dia.'].join('\n');
   const groups={audiovisual:[],design:[],publicacao:[],'sem-responsavel':[]};
