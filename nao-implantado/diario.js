@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   const enviado = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
   const manutencao = process.env.CUTOVER_MIGRATION_KEY && enviado && enviado === String(process.env.CUTOVER_MIGRATION_KEY).trim();
-  const quem = quemChama(req) || (manutencao ? { tipo:'servico' } : null);
+  const quem = await quemChama(req) || (manutencao ? { tipo:'servico' } : null);
   if (!quem) return res.status(401).json({ error: 'Entre no painel para acessar o Diário.' });
   const sql = neon(process.env.DATABASE_URL);
 

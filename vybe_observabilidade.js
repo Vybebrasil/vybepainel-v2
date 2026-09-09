@@ -1,7 +1,7 @@
 // vybe_observabilidade.js — snapshots e saúde do domínio próprio.
 // Não armazena credenciais nem corpo de documentos; registra apenas indicadores.
 
-import { saudeFilaReplica } from './vybe_replica_queue.js';
+
 
 export async function garantirObservabilidade(sql) {
   await sql`CREATE TABLE IF NOT EXISTS vybe_operational_snapshots (
@@ -51,7 +51,7 @@ export async function indicadoresIndependencia(sql) {
       (SELECT COUNT(*)::int FROM vybe_conteudo_updates) AS updates,
       (SELECT COUNT(*)::int FROM vybe_subitens) AS subitens`,
   ]);
-  const replica = await saudeFilaReplica(sql);
+  const replica = { ativa: false, estado: 'encerrada' };
   return {
     autoridade: 'vybe',
     gerado_em: new Date().toISOString(),

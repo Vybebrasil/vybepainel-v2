@@ -253,6 +253,36 @@ function blocoManutencao() {
     </div>`;
 }
 
+async function consultarFilaReplica() {
+  const caixa=document.getElementById('conta-replica-nota'); if (!caixa) return;
+  caixa.textContent='Conferindo pendências…';
+  try {
+    const r=await fetch('/api/dominio?action=replica',{credentials:'same-origin',cache:'no-store'});
+    const d=await r.json(); if (!r.ok) throw new Error(d.error || 'Falha ao consultar a fila.');
+    const saude=d.saude || {};
+    caixa.innerHTML=`<p>${Number(saude.pendentes || 0)} pendentes · ${Number(saude.revisao_necessaria || 0)} precisam de conferência no Monday.</p>`
+      +(d.pendencias || []).map((p)=>`<div class="conta-acao-linha"><div><b>#${Number(p.id)} · ${safeText(p.operacao)} · ${safeText(p.referencia || '')}</b><small>${safeText(p.ultimo_erro || p.estado)}</small></div>
+      ${p.revisao_necessaria?`<button class="conta-botao" onclick="retomarCopiaConferida(${Number(p.id)},this)">Autorizar nova tentativa</button>`:''}</div>`).join('');
+  } catch(erro) { caixa.textContent=erro.message; }
+}
+
+async function processarReplicaAgora(botao, retomarId=null) {
+  if(botao)botao.disabled=true;
+  try {
+    const r=await fetch('/api/dominio?action=replica',{method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(retomarId?{retomar_id:retomarId,confirmado:true}:{})});
+    const d=await r.json(); if(!r.ok)throw new Error(d.error || 'Falha ao processar a fila.');
+    showToast(`${Number(d.execucao?.concluidas || 0)} cópias concluídas.`, 'success', 5000);
+    await consultarFilaReplica();
+  } catch(erro) { showToast(erro.message,'error',7000); }
+  finally { if(botao)botao.disabled=false; }
+}
+
+function retomarCopiaConferida(id, botao) {
+  if (!confirm('Confira primeiro no Monday se esta operação NÃO foi aplicada. Repetir uma criação já concluída pode duplicar item ou comentário. Confirmou que ela ainda não existe?')) return;
+  return processarReplicaAgora(botao,id);
+}
+
 // ── clientes ──────────────────────────────────────────────────────────────────
 // Sem isto, cliente novo exigia cadastrar antes no Monday — e com o time fora de
 // lá, viraria um pedido ao Paulo toda vez.

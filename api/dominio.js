@@ -1,3 +1,5 @@
+import { processarFilaReplica, saudeFilaReplica, listarPendenciasReplica, retomarReplica } from '../vybe_replica_queue.js';
+import { mondayQuery } from '../operational_mirror_store.js';
 // api/dominio.js — cria e popula as tabelas de domínio a partir do espelho.
 //
 // Passo 2 da saída do Monday. Este endpoint SÓ LÊ o espelho e SÓ ESCREVE nas tabelas
@@ -29,8 +31,8 @@ function cors(res) {
 
 // Apara espaço e quebra de linha dos dois lados: colar valor no painel da Vercel
 // costuma trazer um \n junto, e a chave passa a nunca bater.
-function autorizado(req) {
-  const origem = quemChama(req);
+async function autorizado(req) {
+  const origem = await quemChama(req);
   if (origem?.tipo === 'servico' || origem?.pessoa?.admin) return true;
   const segredo = String(process.env.MIRROR_ADMIN_KEY || '').trim();
   const manutencao = String(process.env.CUTOVER_MIGRATION_KEY || '').trim();
@@ -42,11 +44,17 @@ function autorizado(req) {
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!autorizado(req)) return res.status(401).json({ error: 'Não autorizado.' });
+  if (!await autorizado(req)) return res.status(401).json({ error: 'Não autorizado.' });
 
   const action = String(req.query?.action || req.body?.action || 'resumo');
+  const encerradas = new Set(['replica','drive_desfazer','drive_migrar','fotos_equipe','cadastro_clientes','acessos','subitens','popular_demandas','catalogo_opcoes','catalogo_captacao','colunas_extra','historico_status','equipe','historico','popular']);
+  if (encerradas.has(action)) return res.status(410).json({ error: 'Importação e réplica Monday encerradas.', autoridade: 'vybe' });
 
   try {
+    if (action === 'replica' && req.method === 'GET') {
+      const db = neon(process.env.DATABASE_URL);
+      return res.status(200).json({ ok: true, saude: await saudeFilaReplica(db), pendencias: await listarPendenciasReplica(db) });
+    }
     if (action === 'arquivos') {
       return res.status(200).json({ ok: true, action, ...(await perfilArquivos()) });
     }
@@ -70,6 +78,12 @@ export default async function handler(req, res) {
     }
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Use POST para schema e popular.' });
+    }
+    if (action === 'replica') {
+      const db = neon(process.env.DATABASE_URL);
+      if (req.body?.retomar_id) await retomarReplica(db, req.body.retomar_id, req.body.confirmado);
+      const execucao = await processarFilaReplica(db, mondayQuery, { limite: 100, tempoMaxMs: 40000 });
+      return res.status(200).json({ ok: true, execucao, saude: await saudeFilaReplica(db) });
     }
     if (action === 'schema') {
       await criarSchema();

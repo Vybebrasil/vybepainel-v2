@@ -728,10 +728,28 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
   container.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">${html}</div>`;
 }
 
+let carregamentoDosGraficos = null;
+function carregarGraficos() {
+  if (window.Chart) return Promise.resolve();
+  if (carregamentoDosGraficos) return carregamentoDosGraficos;
+  carregamentoDosGraficos = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => { script.remove(); carregamentoDosGraficos = null; reject(new Error('Não foi possível carregar os gráficos.')); };
+    document.head.appendChild(script);
+  });
+  return carregamentoDosGraficos;
+}
+
 function renderPerformance() {
   const base = getPerfBase();
   if (base.length === 0) {
     document.getElementById('perf-departamentos-grid').innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Carregue os dados de Produção primeiro (clique em Atualizar Dados).</p>';
+    return;
+  }
+  if (!window.Chart) {
+    carregarGraficos().then(() => renderPerformance()).catch((erro) => showToast(erro.message, 'error', 6000));
     return;
   }
   const hoje = new Date().toISOString().slice(0,10);
@@ -1633,4 +1651,3 @@ function renderPerformance() {
     });
   }
 }
-

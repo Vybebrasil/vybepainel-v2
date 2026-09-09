@@ -54,142 +54,18 @@ function showToast(msg, type='info', duration=3000) {
 }
 
 // ─── GraphQL Query ────────────────────────────────────────────────────────────
-async function mondayQuery(query, variables={}) {
-  // Consultas podem receber 502/503 transitórios do relay ou do Monday.
-  // Mutations não são repetidas automaticamente para evitar gravação duplicada.
-  const isMutation = /^\s*mutation\b/i.test(query);
-  const maxAttempts = isMutation ? 1 : 3;
-  let lastError;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const res = await fetch(MONDAY_API, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': MONDAY_TOKEN,
-          'API-Version': '2024-01'
-        },
-        body: JSON.stringify({ query, variables })
-      });
-      if (!res.ok) {
-        const transient = [429, 500, 502, 503, 504].includes(res.status);
-        if (!isMutation && transient && attempt < maxAttempts - 1) {
-          await new Promise(resolve => setTimeout(resolve, 650 * (attempt + 1)));
-          continue;
-        }
-        const errorTxt = await res.text(); throw new Error(`HTTP ${res.status}: ${errorTxt}`);
-      }
-      const json = await res.json();
-      if (json.errors) throw new Error(json.errors[0].message);
-      return json.data;
-    } catch (error) {
-      lastError = error;
-      const canRetry = !isMutation && attempt < maxAttempts - 1 && (/HTTP (429|500|502|503|504)/.test(error.message || '') || error.name === 'TypeError');
-      if (!canRetry) throw error;
-      await new Promise(resolve => setTimeout(resolve, 650 * (attempt + 1)));
-    }
-  }
-  throw lastError || new Error('Falha ao consultar o Monday');
+async function mondayQuery() {
+  throw new Error('Integração Monday encerrada. Use os dados e ações do Vybe.');
 }
 // ─── Buscar activity logs do board (movimentações de grupo e alterações de prazo) ──────────────────────────────────────────────────────
 let ACTIVITY_LOGS_CACHE = null; // cache para não rebuscar a cada render
 async function fetchActivityLogs() {
   if (ACTIVITY_LOGS_CACHE) return ACTIVITY_LOGS_CACHE;
-  const allLogs = [];
-  let page = 1;
-  let from = null;
-  // Buscar até 5 páginas (5000 logs) para cobrir histórico suficiente
-  while (page <= 5) {
-    const q = from
-      ? `{ boards(ids:[${BOARD_ID}]) { activity_logs(limit:1000, from:"${from}") { id event created_at user_id data } } }`
-      : `{ boards(ids:[${BOARD_ID}]) { activity_logs(limit:1000) { id event created_at user_id data } } }`;
-    const data = await mondayQuery(q);
-    const logs = data.boards[0].activity_logs;
-    if (!logs || logs.length === 0) break;
-    allLogs.push(...logs);
-    if (logs.length < 1000) break;
-    // Usar o created_at do último como cursor para próxima página
-    const lastTs = logs[logs.length - 1].created_at;
-    from = new Date(parseInt(lastTs) / 10000).toISOString(); // Monday usa timestamp em 100-nanoseconds
-    page++;
-  }
-  // Processar: separar eventos de movimentação de grupo e alterações de prazo
-  const moveEvents = {}; // pulseId -> [{sourceGroupId, destGroupId, date}]
-  const prazoEvents = {}; // pulseId -> [{date, prazoDate, previousPrazoDate}]
-  const statusEvents = {}; // pulseId -> [{date, tsMs, status, previousStatus}]
-  const veiculacaoEvents = {}; // pulseId -> [{date, tsMs, veiculacaoDate, previousVeiculacaoDate}]
-  const ownerEvents = {}; // pulseId -> [{date, tsMs, actorId}]
-  for (const log of allLogs) {
-    try {
-      const d = JSON.parse(log.data);
-      // Timestamp do Monday: é um bigint em 100-nanoseconds desde epoch
-      // created_at vem como string numérica
-      const tsMs = Math.floor(parseInt(log.created_at) / 10000);
-      const eventDate = new Date(tsMs).toISOString().slice(0, 10);
-      if (log.event === 'move_pulse_from_group') {
-        const pid = String(d.pulse_id);
-        if (!moveEvents[pid]) moveEvents[pid] = [];
-        moveEvents[pid].push({
-          sourceGroupId: d.source_group?.id,
-          destGroupId: d.dest_group?.id,
-          date: eventDate,
-          tsMs
-        });
-      } else if ((log.event === 'update_column_value' || log.event === 'batch_change_pulses_column_value') &&
-                 d.column_id === 'data') {
-        // Evento de alteração de prazo
-        const pids = d.pulse_id ? [String(d.pulse_id)] : (d.pulse_ids || []).map(String);
-        for (const pid of pids) {
-          if (!prazoEvents[pid]) prazoEvents[pid] = [];
-          prazoEvents[pid].push({
-            date: eventDate,
-            tsMs,
-            prazoDate: d.value?.date || null,
-            previousPrazoDate: d.previous_value?.date || null
-          });
-        }
-      } else if ((log.event === 'update_column_value' || log.event === 'batch_change_pulses_column_value') &&
-                 d.column_id === 'status') {
-        // Evento de entrada em etapa. O rótulo vem na estrutura real do Monday.
-        const pids = d.pulse_id ? [String(d.pulse_id)] : (d.pulse_ids || []).map(String);
-        for (const pid of pids) {
-          if (!statusEvents[pid]) statusEvents[pid] = [];
-          statusEvents[pid].push({
-            date: eventDate,
-            tsMs,
-            status: d.value?.label?.text || '',
-            previousStatus: d.previous_value?.label?.text || '',
-            actorId: d.user_id || d.user?.id || log.user_id || log.user?.id || null
-          });
-        }
-      } else if ((log.event === 'update_column_value' || log.event === 'batch_change_pulses_column_value') &&
-                 d.column_id === COLUNAS.producao.veiculacao) {
-        // Evento de alteração de veiculação.
-        const pids = d.pulse_id ? [String(d.pulse_id)] : (d.pulse_ids || []).map(String);
-        for (const pid of pids) {
-          if (!veiculacaoEvents[pid]) veiculacaoEvents[pid] = [];
-          veiculacaoEvents[pid].push({date:eventDate,tsMs,veiculacaoDate:d.value?.date || null,previousVeiculacaoDate:d.previous_value?.date || null,actorId:d.user_id || d.user?.id || null});
-        }
-      } else if ((log.event === 'update_column_value' || log.event === 'batch_change_pulses_column_value') &&
-                 d.column_id === 'person') {
-        // Evento de mudança de responsáveis; o detalhe de pessoas pode variar por versão da API.
-        const pids = d.pulse_id ? [String(d.pulse_id)] : (d.pulse_ids || []).map(String);
-        for (const pid of pids) {
-          if (!ownerEvents[pid]) ownerEvents[pid] = [];
-          const peopleOf=value => (value?.personsAndTeams || value?.persons_and_teams || []).map(person=>String(person.id));
-          ownerEvents[pid].push({date:eventDate,tsMs,actorId:d.user_id || d.user?.id || log.user_id || null,ownerIds:peopleOf(d.value),previousOwnerIds:peopleOf(d.previous_value)});
-        }
-      }
-    } catch(e) { /* ignorar logs mal-formados */ }
-  }
-  // Ordenar por tsMs crescente (mais antigo primeiro)
-  for (const pid in moveEvents) moveEvents[pid].sort((a,b) => a.tsMs - b.tsMs);
-  for (const pid in prazoEvents) prazoEvents[pid].sort((a,b) => a.tsMs - b.tsMs);
-  for (const pid in statusEvents) statusEvents[pid].sort((a,b) => a.tsMs - b.tsMs);
-  for (const pid in veiculacaoEvents) veiculacaoEvents[pid].sort((a,b) => a.tsMs - b.tsMs);
-  for (const pid in ownerEvents) ownerEvents[pid].sort((a,b) => a.tsMs - b.tsMs);
-  ACTIVITY_LOGS_CACHE = { moveEvents, prazoEvents, statusEvents, veiculacaoEvents, ownerEvents };
+  const r=await fetch('/api/painel?area=historico',{credentials:'same-origin',cache:'no-store'});
+  if(!r.ok) throw new Error(`Histórico Vybe indisponível (${r.status})`);
+  const dados=await r.json();
+  if(!dados.logs) throw new Error('Histórico Vybe sem registros válidos.');
+  ACTIVITY_LOGS_CACHE=dados.logs;
   return ACTIVITY_LOGS_CACHE;
 }
 
@@ -417,7 +293,7 @@ function calcWeeks() {
   const todayFmt = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
   // Mês-alvo com offset
   const targetDate = new Date(today);
-  targetDate.setMonth(today.getMonth() + MONTH_OFFSET);
+  targetDate.setMonth(today.getMonth() + MONTH_OFFSET, 1);
   const year  = targetDate.getFullYear();
   const month = targetDate.getMonth();
   const firstDay = new Date(year, month, 1, 12, 0, 0);
@@ -600,7 +476,7 @@ function processItems(rawItems, meta) {
       prazo_atrasado: prazoAtrasado,
       grupo,
       group_id: groupId,
-      url: `https://gestaovybes-team.monday.com/boards/${BOARD_ID}/pulses/${id}`,
+      url: `/?vybe_item=${id}`,
       status_context: latestStatusContext(item),
       updated_at: item.updated_at || '',
       semana
@@ -671,7 +547,7 @@ function processItemsAll(rawItems, meta) {
       veiculacao: fmtDate(veiculacaoIso), veiculacao_iso: veiculacaoIso,
       prazo: fmtDate(prazoIso), prazo_iso: prazoIso, prazo_atrasado: prazoAtrasado,
       grupo, group_id: groupId,
-      url: `https://gestaovybes-team.monday.com/boards/${BOARD_ID}/pulses/${id}`,
+      url: `/?vybe_item=${id}`,
       status_context: latestStatusContext(item),
       updated_at: item.updated_at || '',
       semana
@@ -683,4 +559,3 @@ function processItemsAll(rawItems, meta) {
 let DADOS_ALL = []; // todos os itens de produção sem filtro de semana
 let DIAS_SEMANAS = [[], [], [], []]; // DIAS para cada semana (1-4)
 let producaoRefreshRunning = false;
-

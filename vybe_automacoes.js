@@ -12,7 +12,7 @@
 // dá para criar, editar e desativar sem deploy.
 
 import { neon } from '@neondatabase/serverless';
-import { enfileirarReplicaEmLote } from './vybe_replica_queue.js';
+
 
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
@@ -787,23 +787,7 @@ export async function recalcularPrioridades(sql, hoje = new Date(), { seco = fal
       WHERE id = ANY(${ids}::bigint[])`;
   }
 
-  // O Monday continua sendo copia, e uma copia com a prioridade velha e pior do
-  // que nenhuma: quem abre o board le o numero errado. Vai pela fila, com chave
-  // por peca E por etiqueta — a mesma peca reenfileirada no mesmo degrau nao
-  // duplica, e num degrau novo entra como um envio novo, depois do anterior.
-  const naFila = aplicar
-    .filter((m) => m.opcao.indice !== null && m.opcao.indice !== undefined && !m.opcao.so_vybe)
-    .map((m) => ({
-      operacao: 'prioridade_automatica',
-      referencia: `conteudo:${m.id}`,
-      operationKey: `prioridade:${m.id}:${m.opcao.chave}`,
-      query: MUTACAO_DE_COLUNA,
-      variables: { board: String(m.board_id), item: `vybe:${m.id}`,
-        values: JSON.stringify({ [m.coluna]: { index: Number(m.opcao.indice) } }) },
-    }));
-  const enfileiradas = await enfileirarReplicaEmLote(sql, naFila);
-
-  return { ...resumo, aplicadas: aplicar.length, na_fila_do_monday: enfileiradas };
+  return { ...resumo, aplicadas: aplicar.length, na_fila_do_monday: 0 };
 }
 
 // Mudança feita direto no Monday chega por webhook. Sem isto, desligar as regras

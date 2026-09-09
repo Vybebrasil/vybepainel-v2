@@ -983,11 +983,8 @@ export async function sincronizarEquipe() {
 
 // Liberar ou revogar acesso, por e-mail.
 export async function definirAcesso(email, pode) {
-  const sql = database();
-  const linhas = await sql`UPDATE vybe_pessoas SET pode_entrar = ${Boolean(pode)}
-    WHERE LOWER(email) = LOWER(${String(email)}) RETURNING nome, email, pode_entrar`;
-  if (!linhas.length) throw new Error(`Ninguém cadastrado com o e-mail ${email}.`);
-  return linhas[0];
+  const { definirAcesso: alterarAcesso } = await import('./vybe_sessao.js');
+  return alterarAcesso(email, { pode_entrar: Boolean(pode) });
 }
 
 // Histórico de quem mexeu no quê. Hoje isso só existia como prosa dentro de um

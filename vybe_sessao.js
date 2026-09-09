@@ -18,6 +18,7 @@ const scryptAsync = promisify(scrypt);
 const DIAS_DE_SESSAO = 30;
 const TENTATIVAS_MAX = 8;
 const JANELA_BLOQUEIO_MIN = 15;
+let schemaSessao;
 
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
@@ -34,12 +35,19 @@ function segredoDeSessao() {
 }
 
 export async function garantirSchemaSessao() {
+  if (schemaSessao) return schemaSessao;
+  schemaSessao = criarSchemaSessao().catch((erro) => { schemaSessao = null; throw erro; });
+  return schemaSessao;
+}
+
+async function criarSchemaSessao() {
   const sql = database();
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS senha_hash TEXT`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS senha_sal TEXT`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS admin BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS tentativas INT NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS bloqueado_ate TIMESTAMPTZ`;
+  await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS sessao_versao INT NOT NULL DEFAULT 0`;
 }
 
 async function derivar(senha, salHex) {
@@ -57,9 +65,9 @@ export async function definirSenha(email, senha, { admin = null } = {}) {
   const linhas = await sql`UPDATE vybe_pessoas
     SET senha_hash = ${hash}, senha_sal = ${sal}, pode_entrar = TRUE,
         tentativas = 0, bloqueado_ate = NULL,
-        admin = COALESCE(${admin}::boolean, admin)
+        admin = COALESCE(${admin}::boolean, admin), sessao_versao = sessao_versao + 1
     WHERE LOWER(email) = LOWER(${String(email)})
-    RETURNING id, nome, email, admin, pode_entrar`;
+    RETURNING id, nome, email, admin, pode_entrar, sessao_versao AS versao`;
   if (!linhas.length) throw new Error(`Ninguém cadastrado com o e-mail ${email}.`);
   return linhas[0];
 }
@@ -97,10 +105,10 @@ async function entrar(quem, senha) {
   const sql = database();
   const linhas = quem.id
     ? await sql`SELECT id, nome, email, admin, pode_entrar, senha_hash, senha_sal,
-          tentativas, bloqueado_ate
+          tentativas, bloqueado_ate, ativo, sessao_versao
         FROM vybe_pessoas WHERE id = ${Number(quem.id)}`
     : await sql`SELECT id, nome, email, admin, pode_entrar, senha_hash, senha_sal,
-          tentativas, bloqueado_ate
+          tentativas, bloqueado_ate, ativo, sessao_versao
         FROM vybe_pessoas WHERE LOWER(email) = LOWER(${String(quem.email || '')})`;
   const pessoa = linhas[0];
 
@@ -108,7 +116,7 @@ async function entrar(quem, senha) {
   // falhou entrega a quem tenta adivinhar quais e-mails existem.
   const recusa = new Error('E-mail ou senha incorretos.');
 
-  if (!pessoa || !pessoa.senha_hash || !pessoa.pode_entrar) throw recusa;
+  if (!pessoa || !pessoa.senha_hash || !pessoa.pode_entrar || !pessoa.ativo) throw recusa;
   if (pessoa.bloqueado_ate && new Date(pessoa.bloqueado_ate) > new Date()) {
     throw new Error('Muitas tentativas. Tente de novo em alguns minutos.');
   }
@@ -128,7 +136,7 @@ async function entrar(quem, senha) {
 
   await sql`UPDATE vybe_pessoas SET tentativas = 0, bloqueado_ate = NULL, ultimo_acesso = NOW()
     WHERE id = ${pessoa.id}`;
-  return { id: Number(pessoa.id), nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin) };
+  return { id: Number(pessoa.id), nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin), versao: Number(pessoa.sessao_versao) };
 }
 
 const b64 = (s) => Buffer.from(s).toString('base64url');
@@ -140,6 +148,7 @@ export function assinarSessao(pessoa) {
     nome: pessoa.nome,
     email: pessoa.email,
     admin: pessoa.admin,
+    versao: Number(pessoa.versao || 0),
     exp: Date.now() + DIAS_DE_SESSAO * 24 * 60 * 60 * 1000,
   }));
   const assinatura = createHmac('sha256', segredoDeSessao()).update(corpo).digest('base64url');
@@ -147,7 +156,7 @@ export function assinarSessao(pessoa) {
 }
 
 export function lerSessao(token) {
-  if (!token || !token.includes('.')) return null;
+  if (typeof token !== 'string' || token.split('.').length !== 2) return null;
   const [corpo, assinatura] = token.split('.');
   const esperada = createHmac('sha256', segredoDeSessao()).update(corpo).digest('base64url');
   const a = Buffer.from(assinatura || '');
@@ -155,17 +164,32 @@ export function lerSessao(token) {
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
     const dados = JSON.parse(deB64(corpo));
-    if (!dados.exp || dados.exp < Date.now()) return null;
+    if (!Number.isFinite(dados.exp) || dados.exp < Date.now()) return null;
     return dados;
   } catch {
     return null;
   }
 }
 
-export function sessaoDoPedido(req) {
+export async function sessaoDoPedido(req, { buscarPessoa = pessoaAtual } = {}) {
   const cookie = String(req.headers?.cookie || '');
   const achado = cookie.split(';').map((p) => p.trim()).find((p) => p.startsWith('vybe_sessao='));
-  return achado ? lerSessao(decodeURIComponent(achado.slice('vybe_sessao='.length))) : null;
+  if (!achado) return null;
+  let token;
+  try { token = decodeURIComponent(achado.slice('vybe_sessao='.length)); } catch { return null; }
+  const sessao = lerSessao(token);
+  if (!sessao || !Number.isSafeInteger(Number(sessao.id))) return null;
+  const pessoa = await buscarPessoa(Number(sessao.id));
+  if (!pessoa?.ativo || !pessoa.pode_entrar || !pessoa.senha_hash
+      || Number(pessoa.sessao_versao || 0) !== Number(sessao.versao || 0)) return null;
+  // Permissão vem do banco em toda requisição, nunca do papel antigo do cookie.
+  return { ...sessao, nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin) };
+}
+
+async function pessoaAtual(id) {
+  await garantirSchemaSessao();
+  return (await database()`SELECT id, nome, email, ativo, pode_entrar, admin, senha_hash, sessao_versao
+    FROM vybe_pessoas WHERE id=${id}`)[0];
 }
 
 export function cabecalhoDeCookie(token) {
@@ -191,6 +215,7 @@ export async function definirAcesso(email, { pode_entrar = null, admin = null, d
   const linhas = await sql`UPDATE vybe_pessoas
     SET pode_entrar = COALESCE(${pode_entrar}::boolean, pode_entrar),
         admin       = COALESCE(${admin}::boolean, admin),
+        sessao_versao = sessao_versao + CASE WHEN ${pode_entrar}::boolean IS NOT NULL OR ${admin}::boolean IS NOT NULL THEN 1 ELSE 0 END,
         tentativas    = CASE WHEN ${destravar}::boolean THEN 0 ELSE tentativas END,
         bloqueado_ate = CASE WHEN ${destravar}::boolean THEN NULL ELSE bloqueado_ate END
     WHERE LOWER(email) = LOWER(${String(email)})

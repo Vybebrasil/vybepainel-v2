@@ -1,109 +1,44 @@
-# Checklist antes de subir
+# Verificação e promoção — operação independente
 
-Rode isto no local antes de qualquer deploy. Leva ~10 minutos.
+## Antes de publicar
 
-```bash
-node dev-server.mjs
-```
+- Executar `npm ci`, `npm run check` e `git diff --check`.
+- Aguardar CI e preview da Vercel no commit exato da revisão.
+- Testes de escrita usam banco Neon isolado e `VYBE_HOMOLOGACAO=1`.
+- Confirmar `DATABASE_URL`, `SESSAO_SECRET` ou `MIRROR_ADMIN_KEY`, credenciais do
+  Drive e `CRON_SECRET` em Production. Não promover os overrides de homologação.
+- Registrar commit e deployment anterior e conferir recuperação do banco.
 
-Abre em `http://localhost:4321`. Serve os arquivos locais e encaminha `/api/*` para
-produção — é o app real, com os dados reais do Monday.
+## Fluxos
 
-> **Atenção:** como a API é a de produção, tudo que você salvar durante o teste
-> **grava no Monday de verdade**. Use um item descartável, ou desfaça depois.
+- Login, logout, bloqueio de pessoa e retirada de administração com cookie existente.
+- Leitura de Produção e Demandas; uma base vazia não recupera dados antigos.
+- Criar conteúdo, alterar título, status, datas e responsáveis e reler do banco.
+- Criar e editar subitem em Demandas com ID `vybe-subitem:`.
+- Novo Agendamento usa `/api/conteudo`; histórico usa `/api/painel?area=historico`.
+- Arquivos disponíveis abrem pelo Drive; registros já ausentes são preservados.
+- Navegação no fim do mês e virada de ano; console e layout desktop/celular.
+- Conferir Performance, Conta & Equipe, Cadastros e as seis estações.
 
----
+## Monday encerrado
 
-## A. Fumaça — toda vez que for subir
+- `/api/monday`, `/api/monday-events`, `/api/webhook-status` e
+  `/api/operational-mirror` retornam HTTP 410, inclusive para challenge.
+- Preferências antigas do navegador não reativam fallback.
+- Gravações nativas não aumentam a fila histórica; reprocessamento retorna 410.
+- Cron mantém `/api/mirror-reconcile`, mas executa apenas automações, prioridades
+  e snapshots no banco Vybe. Não é necessário configurar webhooks no Monday.
+- Nexus permanece fora do escopo.
 
-Marque cada um. Se algum falhar, não suba.
+## Promoção e recuperação
 
-### Abertura
-- [ ] A tela "Qual estação você vai operar?" aparece e as 6 estações estão visíveis
-- [ ] Console do navegador sem erro em vermelho (F12 → Console)
-- [ ] O logo "V · Vybe OS" aparece inteiro no topo, sem nada por cima
-- [ ] O botão "☰ Filtros" está no canto inferior esquerdo **com o rótulo**
+Após promover: conferir commit, HTML, assets, login, recusas sem sessão e HTTP
+410 nos endpoints encerrados. Não executar testes de escrita em produção.
 
-### Leitura — uma passada por estação
-- [ ] **Gestor** — o calendário do mês carrega com conteúdos nos dias
-- [ ] **Foco** — escolher um operador mostra a fila dele
-- [ ] **DA Controler** — os cards da célula criativa mostram pontos e prazos
-- [ ] **Cadastros** — o formulário abre com a lista de clientes preenchida
-- [ ] **Produção** — a agenda de captação carrega
-- [ ] **Clientes** — a lista de clientes carrega
-- [ ] Abas de semana (S1…S6 + **👥 Equipe**) todas visíveis e clicáveis, sem rolar de lado
+`HOMOLOGACAO.md` registra exatamente o que foi verificado. Não tratar itens desta
+lista como aprovados sem evidência. Prazo de Ouro continua sendo aviso, conforme
+regra atual do produto.
 
-### Escrita — o que grava no Monday
-Use **um item descartável**. Cada linha abaixo dispara uma mutação diferente.
-
-- [ ] **Trocar status** de um item → some do lugar antigo e aparece no novo
-- [ ] **Trocar responsável** → salva, e o Monday recebe um update com "anterior → novo"
-- [ ] **Mudar prazo** de um item pela mesa individual do DA
-- [ ] **Arrastar um item** no calendário do Gestor para outro dia
-- [ ] **Criar um conteúdo** pelo Cadastros (rota Produção) → nasce no board certo
-- [ ] **Criar uma solicitação** pelo Cadastros (rota Demanda) → nasce no board de Demandas
-- [ ] **Comentar** no workspace de um item → o comentário chega no Monday
-
-### Regras de negócio que já quebraram antes
-- [ ] Item de **Motion** exige Reriston, Deivid e Beatriz juntos — tentar salvar sem um deles é bloqueado
-- [ ] **Prazo de Ouro**: no Cadastros, prazo que não seja 7 dias antes da veiculação é recusado
-- [ ] Prazo **depois** da veiculação é recusado em qualquer editor de data
-
-### Fechamento
-- [ ] Voltar ao Gestor e apertar "Atualizar Dados" → os números do topo mudam ou confirmam
-- [ ] Console ainda sem erro em vermelho
-
----
-
-## B. Extras — só antes do primeiro deploy desta refatoração
-
-Uma vez só. Depois some daqui.
-
-- [ ] Os 12 `vybe-*.js` carregam com **200** (F12 → Rede, filtrar por "vybe-")
-- [ ] Nenhum `404` na aba Rede
-- [ ] Texto do calendário legível sem forçar a vista (a fonte mínima subiu para 10px)
-- [ ] No **celular**: abrir, escolher uma estação, trocar um status
-- [ ] O botão "☰ Filtros" abre a gaveta e o rótulo continua lá depois de abrir e fechar 3x
-
----
-
-## Onde mexer quando algo quebra
-
-Os 12 módulos carregam **em ordem** e compartilham escopo global.
-Não reordene as tags `<script>` no `index.html`.
-
-| arquivo | o que tem dentro |
-|---|---|
-| `vybe-config.js` | IDs de pessoa, papéis, colunas do Monday, estado global |
-| `vybe-core.js` | toast, GraphQL, carregamento, semanas, parsing dos itens |
-| `vybe-sync.js` | espelho operacional, cache e reconciliação |
-| `vybe-gestor.js` | modo gestor, cards, filtros, KPIs, **trocar responsável** |
-| `vybe-risco.js` | risco e SLA, **status**, **datas**, **workspace** |
-| `vybe-jarvis.js` | comando por voz e texto |
-| `vybe-agenda.js` | aprovações e **calendário mensal** |
-| `vybe-perfis.js` | perfis, **cadastros**, **datas em lote do DA** |
-| `vybe-demandas.js` | board de solicitações e custos de IA |
-| `vybe-clientes.js` | painel de clientes |
-| `vybe-relatorios.js` | diário, performance, departamentos |
-| `vybe-init.js` | inicialização |
-
-**Trocar alguém de time, renomear cliente ou mudar coluna do Monday:**
-só em `vybe-config.js`. Se você precisou editar outro arquivo para isso, é bug —
-algum ID escapou de volta para o meio da lógica.
-
-## Verificar CSS sem quebrar layout
-
-Antes de mexer no CSS, no console:
-
-```
-fingerprint('ref')
-```
-
-Faça a mudança, recarregue, e:
-
-```
-fingerprint('cmp')
-```
-
-Lista exatamente quais estilos mudaram. Compare em janela curta de tempo — os dados
-ao vivo derivam e a assinatura `SPAN.sync-health-copy` muda sozinha, é ruído esperado.
+As colunas novas são compatíveis. Não remover dados históricos nem filas durante
+rollback. Versões antigas podem reativar a integração e falhas de acesso; preferir
+hotfix que mantenha o encerramento e as proteções.

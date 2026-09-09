@@ -85,7 +85,7 @@ async function pintarRostos() {
   // Banco fora do ar, ou ninguém com senha ainda: volta para e-mail e senha, que
   // sempre funciona. Uma porta que não abre é pior que uma porta sem graça.
   if (!ROSTOS.length) {
-    caixa.classList.remove('tem-rostos');
+    caixa.classList.remove('tem-rostos', 'carregando-rostos');
     const titulo = document.getElementById('login-titulo');
     if (titulo) titulo.textContent = 'Entrar';
     document.getElementById('login-email')?.focus();
@@ -133,6 +133,7 @@ function usarOutroEmail() {
 }
 
 function montarTelaDeLogin() {
+  document.body.classList.add('auth-pending');
   if (document.getElementById('login-gate')) return;
   const gate = document.createElement('div');
   gate.id = 'login-gate';
@@ -221,8 +222,12 @@ async function garantirSessao() {
 
 async function sairDaSessao() {
   try {
-    await fetch('/api/sessao', { method: 'DELETE', credentials: 'same-origin' });
-  } catch { /* mesmo falhando, recarregar leva de volta ao login */ }
+    const r = await fetch('/api/sessao', { method: 'DELETE', credentials: 'same-origin' });
+    if (!r.ok) throw new Error('Não foi possível encerrar a sessão.');
+    for (const chave of Object.keys(localStorage)) {
+      if (chave.startsWith('vybe') && chave !== ULTIMO_ROSTO) localStorage.removeItem(chave);
+    }
+  } catch { showToast('Não foi possível sair. Verifique a conexão e tente novamente.', 'error'); return; }
   location.reload();
 }
 

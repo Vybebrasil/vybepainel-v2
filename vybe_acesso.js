@@ -11,21 +11,24 @@
 
 import { sessaoDoPedido } from './vybe_sessao.js';
 
-export function quemChama(req) {
-  const sessao = sessaoDoPedido(req);
-  if (sessao) return { tipo: 'sessao', pessoa: sessao };
-
+export async function quemChama(req) {
   const chave = process.env.MIRROR_ADMIN_KEY;
   if (chave) {
     const enviado = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
     if (enviado && enviado === String(chave).trim()) return { tipo: 'servico' };
   }
+  const sessao = await sessaoDoPedido(req);
+  if (sessao) return { tipo: 'sessao', pessoa: sessao };
   return null;
 }
 
 // Devolve true quando já respondeu 401 — quem chama deve parar.
-export function bloqueou(req, res) {
-  if (quemChama(req)) return false;
+export async function bloqueou(req, res) {
+  try { if (await quemChama(req)) return false; }
+  catch {
+    res.status(503).json({ error: 'Não foi possível verificar o acesso. Tente novamente.' });
+    return true;
+  }
   res.status(401).json({ error: 'Entre no painel para acessar estes dados.' });
   return true;
 }

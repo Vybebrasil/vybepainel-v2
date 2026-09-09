@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
-  if (bloqueou(req, res)) return;
+  if (await bloqueou(req, res)) return;
 
   try {
     const inicio = Date.now();

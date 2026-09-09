@@ -12,6 +12,7 @@
 // serviço não tem espaço próprio: sem isso o upload é recusado por cota.
 
 import { createSign } from 'node:crypto';
+import { exigirIntegracoesAtivas } from './server/homologacao.js';
 
 const ESCOPO = 'https://www.googleapis.com/auth/drive';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -32,6 +33,7 @@ const base64url = (b) => Buffer.from(b).toString('base64')
 let tokenCache = { valor: null, expira: 0 };
 
 async function token() {
+  exigirIntegracoesAtivas();
   if (tokenCache.valor && Date.now() < tokenCache.expira - 60_000) return tokenCache.valor;
   const c = credenciais();
   const agora = Math.floor(Date.now() / 1000);
@@ -186,6 +188,7 @@ export async function iniciarUploadNoDrive({ nome, mime, pastaId }) {
 // O Content-Range diz ao Google onde aquele pedaco entra. Ele responde 308
 // enquanto falta coisa e 200 quando o arquivo fecha — so no fim vem o id.
 export async function enviarParteNoDrive({ sessao, conteudo, inicio, total }) {
+  exigirIntegracoesAtivas();
   const bytes = Buffer.isBuffer(conteudo) ? conteudo : Buffer.from(String(conteudo), 'base64');
   const fim = inicio + bytes.length - 1;
   const r = await fetch(sessao, {
@@ -203,6 +206,7 @@ export async function enviarParteNoDrive({ sessao, conteudo, inicio, total }) {
 }
 
 export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {
+  exigirIntegracoesAtivas();
   // Ou copia de uma URL (migração do Monday) ou recebe o arquivo direto (upload
   // pelo painel). O resto do caminho é o mesmo.
   let bytes;
