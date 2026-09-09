@@ -59,6 +59,9 @@ junto com testes das telas afetadas. Esta revisão não reescreve regras de neg�
 - `MIRROR_WEBHOOK_SECRET`: autenticação dos dois webhooks Monday.
 - `CRON_SECRET`: autorização do ciclo diário.
 - `MONDAY_TOKEN`: integração Monday. Drive mantém suas variáveis existentes.
+- `VYBE_HOMOLOGACAO=1`: bloqueia chamadas externas de Monday e Drive no servidor.
+  Usar somente no preview isolado; pendências de réplica desse banco são de teste
+  e nunca devem ser processadas contra as integrações reais.
 
 Sessões são verificadas contra a pessoa atual em cada requisição. Bloqueio e
 mudança de papel valem no próximo acesso à API. Trocar a própria senha renova o

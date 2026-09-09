@@ -12,6 +12,7 @@
 // deixa de funcionar é a réplica no Monday, que fica para trás e reconcilia.
 
 import { bloqueou } from '../vybe_acesso.js';
+import { exigirIntegracoesAtivas } from '../server/homologacao.js';
 
 const MONDAY_GRAPHQL = 'https://api.monday.com/v2';
 const MONDAY_ARQUIVOS = 'https://api.monday.com/v2/file';
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    exigirIntegracoesAtivas();
     const direto =
       corpo.action === 'upload_file_to_column'
         ? await anexarArquivo(corpo, token)

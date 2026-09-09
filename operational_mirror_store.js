@@ -1,5 +1,6 @@
 ﻿import { neon } from '@neondatabase/serverless';
 export const MIRROR_BOARD_ID = 7829537690;
+import { exigirIntegracoesAtivas } from './server/homologacao.js';
 const MONDAY_RELAY = process.env.MONDAY_RELAY_URL || 'https://vybepainel-v2.vercel.app/api/monday';
 const MONDAY_GRAPHQL = 'https://api.monday.com/v2';
 const MONDAY_API_VERSION = '2024-01';
@@ -13,6 +14,7 @@ function database() { if (!process.env.DATABASE_URL) throw new Error('DATABASE_U
 export async function ensureMirrorSchema() { if (!schemaPromise) { const sql = database(); schemaPromise = (async () => { await sql`CREATE TABLE IF NOT EXISTS vybe_mirror_items ( board_id BIGINT NOT NULL, item_id TEXT NOT NULL, raw JSONB NOT NULL, source_updated_at TEXT, deleted_at TIMESTAMPTZ, mirrored_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (board_id, item_id) )`; await sql`CREATE INDEX IF NOT EXISTS vybe_mirror_items_board_active_idx ON vybe_mirror_items (board_id, mirrored_at DESC) WHERE deleted_at IS NULL`; await sql`CREATE TABLE IF NOT EXISTS vybe_mirror_changes ( change_id BIGSERIAL PRIMARY KEY, board_id BIGINT NOT NULL, item_id TEXT, operation TEXT NOT NULL, raw JSONB, source_updated_at TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )`; await sql`CREATE INDEX IF NOT EXISTS vybe_mirror_changes_board_idx ON vybe_mirror_changes (board_id, change_id DESC)`; await sql`CREATE TABLE IF NOT EXISTS vybe_mirror_events ( trigger_uuid TEXT PRIMARY KEY, board_id BIGINT NOT NULL, event_type TEXT, payload JSONB NOT NULL, received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), processed_at TIMESTAMPTZ, processing_error TEXT )`; await sql`CREATE TABLE IF NOT EXISTS vybe_mirror_meta ( meta_key TEXT PRIMARY KEY, meta_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )`; })().catch(error => { schemaPromise = null; throw error; }); } return schemaPromise; }
 function json(value) { return JSON.stringify(value ?? null); }
 export async function mondayQuery(query, variables = {}) {
+  exigirIntegracoesAtivas();
   const token = String(process.env.MONDAY_TOKEN || '').trim();
   const direto = Boolean(token);
   const endpoint = direto ? MONDAY_GRAPHQL : MONDAY_RELAY;

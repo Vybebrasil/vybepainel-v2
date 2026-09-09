@@ -1,4 +1,5 @@
 import { substituirResponsaveis } from '../server/responsaveis.js';
+import { exigirIntegracoesAtivas } from '../server/homologacao.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
 //
 // Hoje o painel grava só no Monday e o banco copia por webhook. Isso mantém o
@@ -31,6 +32,7 @@ function database() {
 }
 
 async function mondayQuery(query, variables) {
+  exigirIntegracoesAtivas();
   const resposta = await fetch(MONDAY, {
     method: 'POST',
     signal: AbortSignal.timeout(20000),
