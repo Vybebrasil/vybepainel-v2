@@ -5,7 +5,7 @@
 - Executar `npm ci`, `npm run check` e `git diff --check`.
 - Publicar a branch de revisão e aguardar CI e preview da Vercel.
 - Usar banco e credenciais de homologação nos testes de escrita.
-- Confirmar autenticação Bearer no consumidor Nexus e segredo no webhook de status.
+- Confirmar segredo nos webhooks do Monday usados pelo painel. Nexus está fora do escopo.
 - Registrar commit e deployment anterior e confirmar a recuperação do banco.
 
 ## Interface
