@@ -5427,3 +5427,5 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
   background:rgba(255,69,89,.28);color:#fff;outline:2px solid #ff4559;outline-offset:1px}
 
 body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !important; }
+
+.dia-demanda-tag{border:1px solid #38bdf866;background:#0c4a6e55;color:#7dd3fc;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0}

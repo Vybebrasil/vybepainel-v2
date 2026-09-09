@@ -509,7 +509,10 @@ function operationalStatusOptions(item={}) { return isRequestItem(item) ? reques
 function renderIntegratedOperationalViews() {
   if(panelMode==='foco') renderFocusDashboard();
   else if(panelMode==='controler') renderDaController();
-  else if(panelMode==='gestor') { renderManagerIntelligence(); renderManagerCalendar(); }
+  else if(panelMode==='gestor') {
+    renderManagerIntelligence(); renderManagerCalendar();
+    if(viewMode==='day') for(let sem=1;sem<=(META.weeks?.length||0);sem++) renderWeek(sem,currentFilter,currentDayFilter);
+  }
 }
 let unifiedDemandasLoading=false;
 async function ensureDemandasForOperationalViews(force=false) {
@@ -542,6 +545,7 @@ async function refreshDemandas() {
     DADOS_DEMANDAS = processDemandas(rawItems);
     syncStatusLegendColors('#demanda-status-legend', DADOS_DEMANDAS);
     renderDemandas();
+    renderIntegratedOperationalViews();
     showToast(`✓ ${DADOS_DEMANDAS.length} demandas carregadas`, 'ok');
   } catch(e) {
     console.error(e);
