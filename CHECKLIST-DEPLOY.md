@@ -5,7 +5,7 @@
 - Executar `npm ci`, `npm run check` e `git diff --check`.
 - Publicar a branch de revisão e aguardar CI e preview da Vercel.
 - Usar banco e credenciais de homologação nos testes de escrita.
-- Confirmar segredo nos webhooks do Monday usados pelo painel. Nexus está fora do escopo.
+- Confirmar HTTP 410 nos endpoints Monday e ausência de novos registros na fila de réplica. Nexus está fora do escopo.
 - Registrar commit e deployment anterior e confirmar a recuperação do banco.
 
 ## Interface
@@ -61,3 +61,9 @@ assets com hash e saúde da fila. Testes locais não validam credenciais externa
 Rollback: reverter a revisão e publicar novamente, sem remover as colunas novas.
 A versão anterior reintroduz as falhas corrigidas; preferir corrigir a configuração
 ou aplicar um hotfix mantendo as proteções.
+
+## Atualização: encerramento do Monday
+
+Os itens anteriores sobre réplica e autenticação de webhooks são históricos e
+foram substituídos pelo encerramento da integração. Validar criação nativa de
+conteúdo e subitem, histórico local, arquivos no Drive e cron somente no banco.

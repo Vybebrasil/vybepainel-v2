@@ -47,6 +47,8 @@ export default async function handler(req, res) {
   if (!await autorizado(req)) return res.status(401).json({ error: 'Não autorizado.' });
 
   const action = String(req.query?.action || req.body?.action || 'resumo');
+  const encerradas = new Set(['replica','drive_desfazer','drive_migrar','fotos_equipe','cadastro_clientes','acessos','subitens','popular_demandas','catalogo_opcoes','catalogo_captacao','colunas_extra','historico_status','equipe','historico','popular']);
+  if (encerradas.has(action)) return res.status(410).json({ error: 'Importação e réplica Monday encerradas.', autoridade: 'vybe' });
 
   try {
     if (action === 'replica' && req.method === 'GET') {

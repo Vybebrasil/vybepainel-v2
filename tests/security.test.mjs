@@ -36,8 +36,8 @@ test('webhook exige segredo; chave incorreta e segredo ausente são recusados',(
 function resposta(){return {headers:{},setHeader(k,v){this.headers[k]=v;},status(s){this.code=s;return this;},json(v){this.body=v;return this;},end(){}};}
 test('indicadores e webhook negam acesso antes de consultar ou gravar banco',async()=>{
   const a=resposta();await signal({method:'GET',headers:{}},a);assert.equal(a.code,401);assert.equal(a.headers['Cache-Control'],'no-store');
-  const b=resposta();await webhook({method:'POST',headers:{},body:{event:{type:'update_column_value',columnId:'status'}}},b);assert.equal(b.code,401);
-  const c=resposta();await webhook({method:'POST',body:{challenge:'teste'}},c);assert.deepEqual(c.body,{challenge:'teste'});
+  const b=resposta();await webhook({method:'POST',headers:{},body:{event:{type:'update_column_value',columnId:'status'}}},b);assert.equal(b.code,410);
+  const c=resposta();await webhook({method:'POST',body:{challenge:'teste'}},c);assert.equal(c.code,410);
 });
 test('HTML não publica tarefa capturada, indicador falso ou toolbar antiga',async()=>{
   const html=await readFile('index.html','utf8');

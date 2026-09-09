@@ -26,6 +26,7 @@ export function demoApi(req,res,url,body) {
       captacao:[],opcoes:[],pessoas:[{id:'68035537',nome:'Operador de teste'}],itens});
   }
   if(url.pathname==='/api/painel'){
+    if(url.searchParams.get('area')==='historico')return reply(200,{ok:true,logs:{moveEvents:{},prazoEvents:{},statusEvents:{},veiculacaoEvents:{},ownerEvents:{}}});
     const area=url.searchParams.get('area');
     if(area==='conta')return reply(200,{ok:true,pessoa});
     if(area==='notificacoes')return reply(200,{ok:true,notificacoes:[],nao_lidas:0});

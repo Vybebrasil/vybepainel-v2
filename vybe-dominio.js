@@ -32,10 +32,7 @@ let DOMINIO_ULTIMA_RESPOSTA = null;
 //   localStorage.setItem('vybe_emergency_source_v1','espelho')
 // Para voltar ao modo normal:
 //   localStorage.removeItem('vybe_emergency_source_v1')
-function fonteDeLeitura() {
-  try { return localStorage.getItem(VYBE_EMERGENCY_SOURCE_KEY) === 'espelho' ? 'espelho' : 'dominio'; }
-  catch { return 'dominio'; }
-}
+function fonteDeLeitura() { return 'dominio'; }
 function espelhoSomenteObservador() { return fonteDeLeitura() === 'dominio'; }
 
 // Leitura incompleta nao pode passar por leitura boa: sem o catalogo de status
@@ -201,10 +198,7 @@ async function compararFontes() {
 //   localStorage.setItem('vybe_emergency_write_v1','monday')
 // Para voltar ao modo normal:
 //   localStorage.removeItem('vybe_emergency_write_v1')
-function escritaDupla() {
-  try { return localStorage.getItem(VYBE_EMERGENCY_WRITE_KEY) !== 'monday'; }
-  catch { return true; }
-}
+function escritaDupla() { return true; }
 
 // Mesma regra do servidor, para o rótulo virar chave.
 function chaveDeStatus(rotulo) {

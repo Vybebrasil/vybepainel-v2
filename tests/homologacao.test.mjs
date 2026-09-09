@@ -13,7 +13,7 @@ test('homologação bloqueia Monday e Drive antes de qualquer chamada externa', 
     for (const chamada of [() => mondayQuery('mutation { teste }'),
       () => enviarParteNoDrive({sessao:'https://example.test',conteudo:'',inicio:0,total:0}),
       () => enviarParaDrive({url:'https://example.test'})]) {
-      await assert.rejects(chamada, /desativadas neste ambiente/);
+      await assert.rejects(chamada, /desativadas neste ambiente|Monday encerrada/);
     }
     assert.equal(chamadas, 0);
   } finally {

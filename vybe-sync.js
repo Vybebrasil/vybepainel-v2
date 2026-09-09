@@ -421,9 +421,7 @@ async function refreshProducao(options={}) {
     updateMonthNav();
     // O histórico não depende da lista: iniciar em paralelo reduz o tempo percebido de sincronização.
     ACTIVITY_LOGS_CACHE = null;
-    const activityLogsPromise = fonteDeLeitura() === 'dominio'
-      ? Promise.resolve(window.ACTIVITY_LOGS || null)
-      : fetchActivityLogs().catch(error => { console.warn('Histórico operacional indisponível nesta sincronização:', error); return null; });
+    const activityLogsPromise = fetchActivityLogs().catch(error => { console.warn('Histórico Vybe indisponível:',error); return null; });
     // A lista de itens é essencial. A legenda de status é complementar: se o relay
     // oscilar nela, preservamos as cores já conhecidas e seguimos com a atualização.
     const [rawItems] = await Promise.all([

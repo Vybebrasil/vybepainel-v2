@@ -250,11 +250,7 @@ function blocoManutencao() {
         <button class="conta-botao" onclick="liberarPreviasDeArquivos(this)">Liberar prévias antigas</button>
       </div>
       <p class="conta-nota" id="conta-previas-nota"></p>
-    </div><div class="conta-cartao">
-      <div class="conta-acao-linha"><div><b>Cópia de contingência no Monday</b><small>Confira pendências e processe a fila sem aguardar o ciclo diário.</small></div>
-      <button class="conta-botao" onclick="consultarFilaReplica()">Ver pendências</button>
-      <button class="conta-botao" onclick="processarReplicaAgora(this)">Processar fila</button></div>
-      <div id="conta-replica-nota" class="conta-nota" aria-live="polite"></div></div>`;
+    </div>`;
 }
 
 async function consultarFilaReplica() {

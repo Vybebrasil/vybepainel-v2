@@ -217,7 +217,7 @@
                  <option value="Vídeo">Vídeo</option>
                  <option value="Reels">Reels</option>
              </select>
-             <button class="p-btn-create" onclick="pCalCreateItem('${iso}')">Agendar no Monday</button>
+             <button class="p-btn-create" onclick="pCalCreateItem('${iso}')">Agendar no Vybe</button>
              <button class="p-btn-cancel" onclick="document.getElementById('prod-v2-overlay-create').remove()">Cancelar</button>
          </div>
       `;
@@ -249,8 +249,8 @@
       };
 
       try {
-          const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
-          await mondayQuery(create, {board: String(BOARD_ID), group: group, name: normalized, values: JSON.stringify(values)});
+          await gravarNoDominio({acao:'criar',board:BOARD_ID,grupo_id:group,titulo:normalized,
+            cliente:client,formato:format,prazo:iso,veiculacao:iso,status:'a_fazer',captacao:'Agendar Captação'});
           
           if(typeof showToast === 'function') showToast('Compromisso agendado com sucesso!', 'ok');
           document.getElementById('prod-v2-overlay-create').remove();

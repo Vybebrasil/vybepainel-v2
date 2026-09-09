@@ -43,3 +43,11 @@ Testes completos das seis estações, dispositivos móveis, anexos, comentários
 fluxos de recuperação com as integrações reais ainda não estão comprovados por
 este relatório. As operações transacionais e os casos de falha da fila foram
 verificados na suíte PostgreSQL em memória.
+
+## Nova orientação: Monday encerrado
+
+O responsável determinou que o painel não dependa mais do Monday. A exigência
+de conferir webhooks acima deixa de se aplicar: eles serão encerrados com HTTP
+410. Nexus continua fora do escopo. Na cópia isolada foram contados 3.032 arquivos:
+3.031 com URL do Drive e um (`VET.png`, id 2) já marcado como ausente desde
+29/08/2026. Nenhum arquivo disponível foi removido durante este corte.

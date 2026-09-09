@@ -10,12 +10,13 @@ import { unificarStatus } from '../server/catalogos.js';
 //   /api/painel?area=notificacoes o que o sistema tem a dizer para quem entrou
 
 import { neon } from '@neondatabase/serverless';
-import { mondayQuery } from '../operational_mirror_store.js';
+
 import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, baixarDoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { garantirMaterialBruto } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
+import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
 
@@ -356,21 +357,6 @@ async function areaPeca(req, res, quem) {
     } catch (erro) { console.warn('Previa nao liberada agora:', a.nome, erro.message); }
   }
 
-  const frescas = new Map();
-  // Arquivo já no Drive não precisa de URL renovada — o link de lá é estável.
-  const ids = arquivos.filter((a) => !a.url_drive).map((a) => a.monday_asset_id).filter(Boolean);
-  if (ids.length) {
-    try {
-      const r = await mondayQuery(
-        `query($ids: [ID!]!) { assets(ids: $ids) { id url public_url url_thumbnail } }`,
-        { ids: ids.map(String) }
-      );
-      for (const a of r?.assets || []) frescas.set(String(a.id), a);
-    } catch (erro) {
-      console.error('URLs de anexo não renovadas; usando as guardadas:', erro.message);
-    }
-  }
-
   const assets = arquivos.map((a) => ({
     // Arquivo que nasceu no Drive não tem id do Monday; usa o do Drive para a
     // tela ter uma identidade estável para ele.
@@ -380,20 +366,20 @@ async function areaPeca(req, res, quem) {
     // aconteceu. Para exibir é preciso o endereço de conteúdo.
     url: a.drive_file_id
       ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
-      : frescas.get(String(a.monday_asset_id))?.url || a.url_monday,
+      : null,
     // A miniatura do Monday é uma URL "protected_static": exige sessão do Monday
     // no navegador e devolve 406 sem ela. Ninguém do time está logado lá — esse
     // era o motivo de a prévia aparecer indisponível. A assinada abre para
     // qualquer um, então é ela que vai.
     url_thumbnail: a.drive_file_id
       ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w400`
-      : frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica || null,
+      : null || null,
     public_url: a.drive_file_id
       ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
-      : frescas.get(String(a.monday_asset_id))?.public_url || a.url_publica,
+      : null,
     // A página de visualização continua útil para abrir e baixar no Drive.
     link_drive: a.url_drive || null,
-    onde: a.url_drive ? 'drive' : 'monday',
+    onde: a.url_drive ? 'drive' : 'indisponivel',
     removable: Boolean(a.drive_file_id),
     file_extension: a.extensao,
     file_size: a.tamanho_bytes === null ? null : Number(a.tamanho_bytes),
@@ -1394,7 +1380,7 @@ async function areaBaixar(req, res) {
 
   // Arquivo grande vira memoria no servidor. Acima do teto, manda o navegador
   // direto para a origem: abre em vez de salvar, mas nao derruba a funcao.
-  const direto = a.url_publica || a.url_monday;
+  const direto = a.drive_file_id ? `https://drive.google.com/file/d/${encodeURIComponent(a.drive_file_id)}/view` : null;
   if (Number(a.tamanho_bytes || 0) > TETO_DO_DOWNLOAD) {
     if (!direto) return res.status(413).json({ error: 'Arquivo grande demais para baixar por aqui.' });
     res.setHeader('Location', direto);
@@ -1403,7 +1389,6 @@ async function areaBaixar(req, res) {
 
   let resposta;
   if (a.drive_file_id) resposta = await baixarDoDrive(a.drive_file_id);
-  else if (direto) resposta = await fetch(direto);
   else return res.status(404).json({ error: 'Este arquivo não tem de onde ser baixado.' });
   if (!resposta.ok) return res.status(502).json({ error: `A origem recusou (${resposta.status}).` });
 
@@ -1418,7 +1403,16 @@ async function areaBaixar(req, res) {
   return res.status(200).end(bytes);
 }
 
-const AREAS = { automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+async function areaHistorico(req,res) {
+  if(req.method!=='GET') return res.status(405).json({error:'Use GET.'});
+  const eventos=await sql()`SELECT COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS item_id,
+    e.tipo,e.de,e.para,e.em,e.autor_id FROM vybe_conteudo_eventos e
+    JOIN vybe_conteudos c ON c.id=e.conteudo_id ORDER BY e.em DESC LIMIT 10000`;
+  const grupos=await sql()`SELECT DISTINCT etapa,grupo_id FROM vybe_conteudos WHERE etapa IS NOT NULL AND grupo_id IS NOT NULL`;
+  return res.status(200).json({ok:true,logs:agruparHistorico(eventos,Object.fromEntries(grupos.map(g=>[g.etapa,g.grupo_id])))});
+}
+
+const AREAS = { historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar };
 
 export default async function handler(req, res) {

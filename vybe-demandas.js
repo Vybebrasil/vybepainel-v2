@@ -406,7 +406,7 @@ function processDemandas(rawItems) {
       grupo, group_id: groupId,
       responsavel: colMap['person'] || '',
       responsavel_id: responsavelId, responsavel_ids: responsavelIds,
-      url: `https://gestaovybes-team.monday.com/boards/${BOARD_DEMANDAS_ID}/pulses/${item.id}`
+      url: `/?vybe_item=${item.id}`
     };
   });
 }

@@ -1,9 +1,9 @@
 # Vybe OS — Painel de Produção
 
 Sistema interno de produção, demandas, clientes, calendário e equipe. O banco
-PostgreSQL da Vybe (Neon) é a autoridade; Monday recebe uma cópia de contingência,
-e Google Drive armazena arquivos. Atualizações periódicas consultam a Vybe mesmo
-quando o Monday está indisponível.
+PostgreSQL da Vybe (Neon) é a autoridade e Google Drive armazena arquivos.
+Monday está encerrado: não há leitura, réplica, webhook ou fallback ativo.
+IDs e nomes de campos legados são preservados para compatibilidade dos dados.
 
 ## Desenvolvimento
 
@@ -56,9 +56,9 @@ junto com testes das telas afetadas. Esta revisão não reescreve regras de neg�
 - `SESSAO_SECRET`: assinatura da sessão; por compatibilidade, usa
   `MIRROR_ADMIN_KEY` se ausente. Prefira segredo dedicado.
 - `MIRROR_ADMIN_KEY`: chamadas de serviço; nunca publicar no navegador.
-- `MIRROR_WEBHOOK_SECRET`: autenticação dos dois webhooks Monday.
+- `MIRROR_WEBHOOK_SECRET`: legado, não é mais usado pelos endpoints encerrados.
 - `CRON_SECRET`: autorização do ciclo diário.
-- `MONDAY_TOKEN`: integração Monday. Drive mantém suas variáveis existentes.
+- `MONDAY_TOKEN`: legado, não é necessário ao painel. Drive mantém suas variáveis existentes.
 - `VYBE_HOMOLOGACAO=1`: bloqueia chamadas externas de Monday e Drive no servidor.
   Usar somente no preview isolado; pendências de réplica desse banco são de teste
   e nunca devem ser processadas contra as integrações reais.
@@ -67,27 +67,23 @@ Sessões são verificadas contra a pessoa atual em cada requisição. Bloqueio e
 mudança de papel valem no próximo acesso à API. Trocar a própria senha renova o
 cookie atual e invalida cookies anteriores.
 
-O consumidor Nexus deve chamar os indicadores do seu servidor com
-`Authorization: Bearer <MIRROR_ADMIN_KEY>`. Os webhooks `/api/monday-events` e
-`/api/webhook-status` exigem `MIRROR_WEBHOOK_SECRET` no Bearer ou em `?key=...`.
-O challenge permanece público e não grava. Configure os consumidores antes de
-promover: as chamadas antigas sem credencial passarão a retornar 401.
+Os endpoints `/api/monday`, `/api/monday-events`, `/api/webhook-status` e
+`/api/operational-mirror` retornam HTTP 410, inclusive para desafios de webhook.
+Não é necessário configurar consumidores Monday. Nexus está fora do escopo.
 
-## Recuperação da réplica
+## Operação independente
 
-A intenção é persistida antes de chamar Monday. Operações da mesma referência
-mantêm a ordem. O worker recupera posse abandonada após dez minutos. Criações e
-comentários com resultado incerto exigem conferência para evitar duplicações.
+O ciclo diário mantém o endereço `/api/mirror-reconcile` para compatibilidade
+com o agendamento existente, mas executa somente automações, prioridades e
+snapshots no banco Vybe. Novas alterações não alimentam a antiga fila de réplica.
+A fila histórica é preservada, sem processamento ativo.
 
-O ciclo diário mantém o agendamento existente e processa até 100 operações em
-um orçamento de 40 segundos. Administradores também podem consultar e processar
-a fila em **Conta & Equipe → Manutenção** ou em `/api/dominio?action=replica`.
-Só autorize repetir uma criação depois de conferir que ela não existe na origem.
-Se já existir, a vinculação exige manutenção técnica; não crie uma segunda cópia.
+Agendamentos são criados em `/api/conteudo`; o histórico usa
+`/api/painel?area=historico`. Arquivos disponíveis abrem e baixam pelo Drive.
+Um arquivo legado já marcado como ausente (`VET.png`) permanece indisponível;
+o painel não tenta renová-lo no Monday. Ver evidências em HOMOLOGACAO.md.
 
-As novas colunas `sessao_versao` e `claim_token` são adicionadas idempotentemente.
-Rollback de código não exige removê-las; versões anteriores reintroduzem as
-falhas de acesso. Prefira hotfix que preserve as proteções.
-
-Referências: [configuração da Vercel](https://vercel.com/docs/project-configuration)
-e [duração das funções](https://vercel.com/docs/functions/configuring-functions/duration).
+As novas colunas `sessao_versao` e `claim_token` são adições compatíveis.
+Rollback para versões antigas pode reativar webhooks e réplica: prefira hotfix.
+Código de importação e testes da fila histórica permanecem como referência,
+mas os endpoints de importação/reprocessamento estão encerrados.

@@ -1,5 +1,4 @@
 import { substituirResponsaveis } from '../server/responsaveis.js';
-import { exigirIntegracoesAtivas } from '../server/homologacao.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
 //
 // Hoje o painel grava só no Monday e o banco copia por webhook. Isso mantém o
@@ -19,34 +18,15 @@ import { exigirIntegracoesAtivas } from '../server/homologacao.js';
 import { neon } from '@neondatabase/serverless';
 import { quemChama } from '../vybe_acesso.js';
 import { aplicar } from '../vybe_automacoes.js';
-import { replicarOuEnfileirar } from '../vybe_replica_queue.js';
+
 import { garantirMaterialBruto } from '../vybe_dominio_store.js';
 
-const MONDAY = process.env.MONDAY_RELAY_URL || 'https://vybepainel-v2.vercel.app/api/monday';
 const BOARD_PRODUCAO = 7829537690;
 const BOARD_DEMANDAS_ID = 8385559107;
 
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
   return neon(process.env.DATABASE_URL);
-}
-
-async function mondayQuery(query, variables) {
-  exigirIntegracoesAtivas();
-  const resposta = await fetch(MONDAY, {
-    method: 'POST',
-    signal: AbortSignal.timeout(20000),
-    headers: {
-      'Content-Type': 'application/json',
-      ...(process.env.MIRROR_ADMIN_KEY ? { Authorization: `Bearer ${process.env.MIRROR_ADMIN_KEY}` } : {}),
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-  const corpo = await resposta.json();
-  if (!resposta.ok || corpo?.errors?.length) {
-    throw new Error(corpo?.errors?.[0]?.message || corpo?.error || `Monday recusou (${resposta.status})`);
-  }
-  return corpo.data;
 }
 
 function referenciaLocal(item) {
@@ -60,10 +40,7 @@ function referenciaSubitemLocal(item) {
 function referenciaReplica(conteudo, recebida) {
   return String(conteudo?.monday_item_id || recebida || `vybe:${conteudo?.id}`);
 }
-async function replicar(sql, operacao, referencia, query, variables) {
-  const r = await replicarOuEnfileirar(sql, mondayQuery, { operacao, referencia, query, variables });
-  return r.estado === 'ok' ? 'ok' : `pendente: ${r.operation_key}`;
-}
+async function replicar() { return 'desativada'; }
 
 async function registrarEvento(sql, conteudoId, { tipo, de, para, autorId, texto }) {
   await sql`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id, texto)
@@ -827,42 +804,8 @@ async function criarConteudo(sql, quem, dados) {
     tipo: 'criacao', para: titulo, autorId: await pessoaDaSessao(sql, quem),
   });
 
-  let replica = 'ok';
-  let mondayId = null;
-  {
-    const valores = {
-      [C.cliente]: { labels: [cli.nome] },
-      [C.status]: { index: Number(st.monday_index) },
-    };
-    if (formato) valores[C.formato] = { labels: String(formato).split(',').map((f) => f.trim()).filter(Boolean) };
-    if (prazo) valores[C.prazo] = { date: prazo };
-    if (veiculacao) valores[C.segundaData] = { date: veiculacao };
-    if (prioridade && C.prioridade) valores[C.prioridade] = { label: String(prioridade) };
-    // "Tipo de conteúdo" é dropdown: aceita ids ou labels, nunca index. Mandar
-    // {index} faz o Monday aceitar a chamada e deixar a coluna vazia.
-    if (tipo_conteudo && C.tipo) {
-      valores[C.tipo] = Number.isFinite(Number(tipo_conteudo))
-        ? { ids: [Number(tipo_conteudo)] }
-        : { labels: [String(tipo_conteudo)] };
-    }
-    if (captacao && C.captacao) valores[C.captacao] = { label: String(captacao) };
-    if (responsaveis.length) {
-      valores[C.pessoas] = { personsAndTeams: responsaveis.map((id) => ({ id: Number(id), kind: 'person' })) };
-    }
-    // create_labels_if_missing porque os dois boards têm listas de cliente
-    // diferentes — "Serra Grande" num, "Serra Grande Bebidas" no outro. Sem
-    // isto, cadastrar em Demandas falharia a réplica em metade dos clientes.
-    const query = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) {
-      create_item(board_id: $board, group_id: $group, item_name: $name,
-                  column_values: $values, create_labels_if_missing: true) { id } }`;
-    const variables = { board: String(board), group: grupo, name: titulo, values: JSON.stringify(valores) };
-    const r = await replicarOuEnfileirar(sql, mondayQuery, {
-      operacao: 'criar_item', referencia: `conteudo:${novo.id}`, query, variables,
-    });
-    replica = r.estado === 'ok' ? 'ok' : `pendente: ${r.operation_key}`;
-    mondayId = r.resposta?.create_item?.id || null;
-    if (mondayId) await sql`UPDATE vybe_conteudos SET monday_item_id=${String(mondayId)} WHERE id=${novo.id}`;
-  }
+  const replica = 'desativada';
+  const mondayId = null;
   return {
     conteudo_id: novo.id, titulo, cliente: cli.nome, board,
     destino: demanda ? 'Solicitações de Demandas' : 'Produção de Conteúdo',
@@ -1030,16 +973,7 @@ async function mexerNoSubitem(sql, quem, corpo) {
     await registrarEvento(sql, s.pai_id, {
       tipo: 'subitem_removido', de: s.titulo, autorId: await pessoaDaSessao(sql, quem),
     });
-    let replica = 'não necessária: tarefa ainda não existia no Monday';
-    if (s.monday_item_id) {
-      replica = await replicar(sql, 'remover_subitem', `subitem:${s.id}`,
-        `mutation($item: ID!) { delete_item(item_id: $item) { id } }`,
-        { item: String(s.monday_item_id) });
-    } else {
-      await sql`UPDATE vybe_replica_queue SET estado='concluida',
-        ultimo_erro='Cancelada: tarefa removida antes da criação da réplica', concluido_em=NOW(), atualizado_em=NOW()
-        WHERE referencia=${`subitem:${s.id}`} AND operacao='criar_subitem' AND estado <> 'concluida'`;
-    }
+    const replica = 'desativada';
     await sql`DELETE FROM vybe_subitens WHERE id=${s.id}`;
     return { subitem_id: s.id, removida: s.titulo, replica_monday: replica };
   }
@@ -1069,24 +1003,8 @@ async function criarSubitem(sql, quem, { item, titulo, status = 'nova_demanda' }
     tipo: 'subitem_criado', para: nome, autorId: await pessoaDaSessao(sql, quem),
   });
 
-  let replica = 'ok';
-  let mondayId = null;
-  {
-    const valores = st ? { [COL_SUBITEM_STATUS]: { index: Number(st.monday_index) } } : {};
-    const query = `mutation($pai: ID!, $nome: String!, $values: JSON!) {
-      create_subitem(parent_item_id: $pai, item_name: $nome, column_values: $values) { id } }`;
-    const variables = {
-      pai: pai.monday_item_id ? String(pai.monday_item_id) : `vybe:${pai.id}`,
-      nome,
-      values: JSON.stringify(valores),
-    };
-    const r = await replicarOuEnfileirar(sql, mondayQuery, {
-      operacao: 'criar_subitem', referencia: `subitem:${novo.id}`, query, variables,
-    });
-    replica = r.estado === 'ok' ? 'ok' : `pendente: ${r.operation_key}`;
-    mondayId = r.resposta?.create_subitem?.id || null;
-    if (mondayId) await sql`UPDATE vybe_subitens SET monday_item_id=${String(mondayId)} WHERE id=${novo.id}`;
-  }
+  const replica = 'desativada';
+  const mondayId = null;
   return { subitem_id: novo.id, item_id: mondayId || `vybe-subitem:${novo.id}`, titulo: nome,
     monday_item_id: mondayId, replica_monday: replica };
 }
