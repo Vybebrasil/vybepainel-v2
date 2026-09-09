@@ -51,3 +51,15 @@ de conferir webhooks acima deixa de se aplicar: eles serão encerrados com HTTP
 410. Nexus continua fora do escopo. Na cópia isolada foram contados 3.032 arquivos:
 3.031 com URL do Drive e um (`VET.png`, id 2) já marcado como ausente desde
 29/08/2026. Nenhum arquivo disponível foi removido durante este corte.
+
+Validação da operação independente no preview `fa6ddb8`:
+
+- 27 testes locais, CI e deployment aprovados.
+- Os quatro endpoints legados retornaram HTTP 410.
+- Criação de conteúdo com ID `vybe:`, criação de subitem em Demandas com ID
+  `vybe-subitem:`, alteração, releitura e histórico local aprovados.
+- Reprocessamento da fila retornou HTTP 410.
+- Fila histórica manteve 1.099 registros antes e depois das gravações.
+- Interface Gestor renderizada com dados da cópia do banco; Performance aberta
+  sem erros registrados no console.
+- Operador temporário novamente desativado e conteúdos de teste arquivados.
