@@ -131,37 +131,50 @@ function renderFocusUserPicker() {
     .sort((a, b) => (a.id === eu ? -1 : 0) - (b.id === eu ? -1 : 0));
   grid.classList.add('op-grid');
 
-  // Um numero sozinho nao diz tamanho: 68 e 2 na mesma fonte e na mesma cor
-  // parecem a mesma coisa. A barra compara cada fila com a maior da equipe —
-  // e ai da para ver de longe quem esta afogado.
   const sinais = users.map((user) => ({ user, sinal: operatorOperationalSignal(user.id) }));
-  const maior = Math.max(1, ...sinais.map((s) => s.sinal.total || 0));
-
   grid.innerHTML = sinais.map(({ user, sinal }) => {
-    const iniciais = user.name.slice(0, 2).toUpperCase();
+    const iniciais = safeText(user.name.trim().split(/\s+/).map(n => n[0]).slice(0,2).join('').toUpperCase());
     const retrato = user.photo
-      ? `<img src="${user.photo}" alt="" onerror="this.outerHTML='<span class=op-iniciais>${iniciais}</span>'">`
+      ? `<img src="${safeText(user.photo)}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="op-iniciais" hidden>${iniciais}</span>`
       : `<span class="op-iniciais">${iniciais}</span>`;
-    const carga = Math.round(((sinal.total || 0) / maior) * 100);
+    const total = sinal.total || 0;
+    const atencao = sinal.critical || 0;
+    const proporcao = total ? Math.round(atencao / total * 100) : 0;
     const souEu = String(user.id) === String(eu);
     return `<button type="button" class="op-card op-${sinal.kind}${souEu ? ' op-eu' : ''}"
         style="--op-cor:${user.color};--op-sinal:${sinal.color}"
-        onclick="chooseFocusUser('${user.id}')" title="Abrir o Modo Foco de ${safeText(user.name)}">
+        onclick="chooseFocusUser('${user.id}')" title="Ver tarefas de ${safeText(user.name)}">
       <span class="op-retrato">${retrato}</span>
-      <span class="op-copy">
-        <b>${safeText(firstName(user.name))}</b>
-        <small>${sinal.total
-          // O numero sai do meio da frase e vira numero: com o rotulo em cinza,
-          // o que o olho pega e a quantidade, nao a palavra "criticos" repetida
-          // em oito dos dez cartoes.
-          ? `<em>${safeText(String(sinal.detail).match(/^\d+/)?.[0] || sinal.total)}</em> ${
-              safeText(String(sinal.detail).replace(/^\d+\s*/, ''))}`
-          : safeText(sinal.detail)}</small>
-      </span>
-      <span class="op-carga" aria-hidden="true"><i style="width:${carga}%"></i></span>
-      ${souEu ? '<span class="op-voce">você</span>' : ''}
+      <span class="op-copy"><b>${safeText(firstName(user.name))}</b>
+        <small>${total ? `${total} tarefa${total === 1 ? '' : 's'} na fila` : 'Sem tarefas pendentes'}</small></span>
+      <span class="op-attention">${total ? `<b>${atencao}</b> de ${total} em atenção` : 'Tudo em dia'}</span>
+      <span class="op-carga" aria-hidden="true"><i style="width:${proporcao}%"></i></span>
+      <span class="op-action">${souEu ? 'Abrir minhas tarefas' : 'Ver tarefas'} <span aria-hidden="true">→</span></span>
+      ${souEu ? '<span class="op-voce">Você</span>' : ''}
     </button>`;
   }).join('');
+  const ambience = document.querySelector('.identity-ambience');
+  ambience?.querySelectorAll('.profile-light').forEach(e => e.remove());
+  let hovered = null, focused = null;
+  const cards = [...grid.querySelectorAll('.op-card')];
+  const lights = cards.map(card => {
+    const light = document.createElement('span');
+    light.className = 'profile-light';
+    light.style.setProperty('--light-color', card.style.getPropertyValue('--op-cor'));
+    ambience?.append(light);
+    return light;
+  });
+  const update = () => cards.forEach((card, i) => {
+    const active = card === (hovered || focused);
+    card.classList.toggle('op-active', active);
+    lights[i].classList.toggle('is-active', active);
+  });
+  cards.forEach(card => {
+    card.addEventListener('pointerenter', e => { if(e.pointerType !== 'touch') { hovered = card; update(); } });
+    card.addEventListener('pointerleave', () => { if(hovered === card) hovered = null; update(); });
+    card.addEventListener('focus', () => { focused = card; update(); });
+    card.addEventListener('blur', () => { if(focused === card) focused = null; update(); });
+  });
 }
 
 function daControllerTeam() { return TEAM_USERS.filter(user => DA_CONTROLLER_TEAM_IDS.includes(user.id)); }
@@ -1666,10 +1679,15 @@ function openFocusPicker() {
   renderFocusUserPicker();
   document.getElementById('mode-gate')?.classList.add('focus-selecting');
   document.getElementById('focus-picker')?.classList.add('open');
+  document.getElementById('mode-gate')?.setAttribute('aria-labelledby', 'profile-picker-title');
+  document.getElementById('mode-gate')?.scrollTo({top:0});
+  document.querySelector('#focus-user-grid .op-card')?.focus({preventScroll:true});
 }
 function closeFocusPicker() {
+  document.getElementById('mode-gate')?.setAttribute('aria-labelledby', 'workspace-title');
   document.getElementById('focus-picker')?.classList.remove('open');
   document.getElementById('mode-gate')?.classList.remove('focus-selecting');
+  document.getElementById('station-foco')?.focus({preventScroll:true});
 }
 function closeTransientOverlaysForNavigation() {
   try { if (typeof closeDaApprovalRadar === 'function') closeDaApprovalRadar(); } catch {}
