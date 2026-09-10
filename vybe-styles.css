@@ -5472,3 +5472,18 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
   #mode-gate .identity-footer { gap:12px;flex-wrap:wrap }
 }
 @media(prefers-reduced-motion:reduce) { #mode-gate .identity-station[data-station] { transition:none!important } }
+
+/* A cor do módulo em foco ilumina a central sem encobrir os controles. */
+#mode-gate .identity-ambience { position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden;border-radius:inherit }
+#mode-gate .identity-ambience span { position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at 50% 38%,color-mix(in srgb,var(--light-color) 23%,transparent),transparent 72%),linear-gradient(135deg,color-mix(in srgb,var(--light-color) 12%,transparent),transparent 45%);box-shadow:inset 0 0 100px -35px color-mix(in srgb,var(--light-color) 35%,transparent);transition:opacity .65s ease }
+#mode-gate .identity-ambience span.is-active { opacity:1 }
+#mode-gate .identity-station[data-station] { background:linear-gradient(145deg,color-mix(in srgb,var(--station-color) 13%,#202329),#191c22 85%)!important;border-color:color-mix(in srgb,var(--station-color) 33%,#ffffff14)!important;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease!important }
+#mode-gate .identity-station[data-station].station-hovered,#mode-gate .identity-station[data-station]:focus-visible { transform:translateY(-4px)!important;background:linear-gradient(145deg,color-mix(in srgb,var(--station-color) 22%,#202329),#1c2027 90%)!important;border-color:color-mix(in srgb,var(--station-color) 75%,#fff)!important;box-shadow:0 14px 35px -18px color-mix(in srgb,var(--station-color) 65%,transparent),inset 0 1px 0 #ffffff25!important;filter:none!important }
+#mode-gate .identity-station .station-icon { color:color-mix(in srgb,var(--station-color) 80%,#fff)!important;background:color-mix(in srgb,var(--station-color) 18%,#252830)!important;box-shadow:0 0 18px -8px var(--station-color)!important }
+#mode-gate .identity-station .station-action { color:color-mix(in srgb,var(--station-color) 65%,#fff)!important }
+#mode-gate .identity-station.station-hovered .station-name { color:color-mix(in srgb,var(--station-color) 25%,#fff)!important }
+#mode-gate .identity-station.station-hovered .station-icon { box-shadow:0 0 24px -6px var(--station-color)!important }
+@media(prefers-reduced-motion:reduce) {
+  #mode-gate .identity-ambience span,#mode-gate .identity-station[data-station] { transition:none!important }
+  #mode-gate .identity-station[data-station].station-hovered,#mode-gate .identity-station[data-station]:focus-visible { transform:none!important }
+}
