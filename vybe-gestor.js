@@ -639,6 +639,12 @@ function atividadeDoDiaConcluida(item) {
   return isRequestItem(item) ? DEMANDA_CONCLUIDA.includes(item.status)
     : ['Finalizado','Agendado','Para agendar'].includes(item.status);
 }
+function adicionarDemandaNoDia(dateIso) {
+  const veic = dateMode === 'prazo' ? cadastrosIsoOffset(dateIso, PRAZO_OURO_DIAS) : dateIso;
+  const prazo = dateMode === 'prazo' ? dateIso : goldenDeadlineIso(dateIso);
+  openCadastrosGoverned({ veic, prazo, escolherQuadro: true });
+}
+
 function renderByDay(sem, filter, dayFilter) {
   const items = itensDaSemanaGestor(sem);
   // No modo PRAZO, construir lista de dias a partir dos prazos dos itens desta semana
@@ -672,6 +678,9 @@ function renderByDay(sem, filter, dayFilter) {
   // ela que o shift+clique usa para marcar um intervalo.
   const ordemVisivel = [];
   grid.innerHTML = diasFiltrados.map(dia => {
+    const adicionarBtn = panelMode === 'gestor'
+      ? `<button type="button" class="day-summary-btn day-add-btn" onclick="adicionarDemandaNoDia('${dia.iso}')" title="Cadastrar conteúdo ou solicitação neste dia">+ Adicionar demanda</button>`
+      : '';
     const dayItems = fi.filter(d=>getDateIso(d)===dia.iso).sort((a,b)=>{
       // Pendentes primeiro, finalizados depois
       const aOk = atividadeDoDiaConcluida(a);
@@ -693,7 +702,7 @@ function renderByDay(sem, filter, dayFilter) {
         <div class="client-header"><div class="client-name">${dia.label} — ${
           String(new Date(dia.iso+'T12:00:00').getDate()).padStart(2,'0')}/${
           String(new Date(dia.iso+'T12:00:00').getMonth()+1).padStart(2,'0')}</div>
-        <span class="dia-vazio-recado">arraste uma peça para cá</span></div>
+        <div class="day-header-actions">${adicionarBtn}<span class="dia-vazio-recado">arraste uma peça para cá</span></div></div>
       </div>`;
     }
     const dayDone = dayItems.filter(d=>atividadeDoDiaConcluida(d)).length;
@@ -734,7 +743,8 @@ function renderByDay(sem, filter, dayFilter) {
       ondrop="soltarNoDia('${dia.iso}',event,this)">
       <div class="client-header">
         <div class="client-name">${modeIcon} ${dia.label} — ${String(new Date(dia.iso+'T12:00:00').getDate()).padStart(2,'0')}/${String(new Date(dia.iso+'T12:00:00').getMonth()+1).padStart(2,'0')}</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <div class="day-header-actions">
+          ${adicionarBtn}
           <button type="button" class="day-summary-btn" onclick="openDailySummary('${dia.iso}')" title="Gerar mensagem copiável para o grupo de Criação">◈ Gerar resumo</button>
           <span class="count-badge ok">${conteudosDoDia} conteúdo${conteudosDoDia===1?'':'s'} · ${demandasDoDia} demanda${demandasDoDia===1?'':'s'}</span>
           <span style="font-size:10px;color:${progressColor};font-weight:700;">${dayDone}/${dayItems.length}</span>

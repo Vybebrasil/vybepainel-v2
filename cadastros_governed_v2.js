@@ -1347,7 +1347,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     // cliente e data, abre direto na primeira pergunta que falta — o passo
     // pulado continua no trilho do topo, a um clique de distancia.
     fcPasso = 0;
-    if (inicio.client || inicio.veic || inicio.board || inicio.titulo) {
+    if (!inicio.escolherQuadro && (inicio.client || inicio.veic || inicio.board || inicio.titulo)) {
       const pendente = FC_PASSOS.findIndex((q) => !fcRespondido(q));
       fcPasso = pendente < 0 ? FC_PASSOS.length - 1 : pendente;
     }

@@ -763,6 +763,9 @@
     .manager-status-control:focus-visible { outline:2px solid var(--accent2);outline-offset:3px}
     .day-summary-btn { border:1px solid rgba(0,240,255,.42);background:rgba(0,240,255,.08);color:#8ff8ff;border-radius:6px;padding:4px 8px;font:700 10px/1.1 inherit;cursor:pointer;white-space:nowrap}
     .day-summary-btn:hover { background:rgba(0,240,255,.16);box-shadow:none}
+    .day-header-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end }
+    .day-add-btn { border-color:rgba(255,107,0,.42);background:rgba(255,107,0,.08);color:#ffab70 }
+    .day-add-btn:hover { background:rgba(255,107,0,.18) }
     .daily-summary-preview { width:100%;min-height:285px;resize:vertical;background:#080b10;color:#eaf6ff;border:1px solid rgba(0,240,255,.25);border-radius:8px;padding:12px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
     .daily-summary-meta { color:var(--text-muted);font-size:12px;line-height:1.45;margin:-4px 0 14px}
     .owner-editor-trigger { display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;padding:0;border:0;background:transparent;cursor:pointer;border-radius:999px;position:relative}
@@ -1053,6 +1056,7 @@
     /* Dia vazio existe para receber, entao pesa o minimo: sem barra de
        progresso, sem contagem, sem botao de resumo. So a data e o convite. */
     .dia-vazio{opacity:.5;border-style:dashed}
+    .dia-vazio:has(.day-add-btn){opacity:1}
     .dia-vazio:hover,.dia-vazio.recebendo{opacity:1;border-style:solid}
     .dia-vazio .client-header{border-bottom:0}
     .dia-vazio-recado{color:#5f5f67;font:500 11.5px var(--mac-ui)}
