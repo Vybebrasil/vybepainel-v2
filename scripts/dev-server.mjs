@@ -8,7 +8,7 @@ const PROJECT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ROOT = process.env.VYBE_DEV_BUILD === '1' || process.argv.includes('--build') ? resolve(PROJECT, 'dist') : PROJECT;
 const upstream = process.env.VYBE_DEV_UPSTREAM;
 const allowWrites = process.env.VYBE_DEV_ALLOW_WRITES === '1';
-const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8' };
+const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png' };
 
 export function createDevServer() {
   return createServer(async (req, res) => {

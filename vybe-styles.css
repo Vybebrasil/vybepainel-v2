@@ -5487,3 +5487,25 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
   #mode-gate .identity-ambience span,#mode-gate .identity-station[data-station] { transition:none!important }
   #mode-gate .identity-station[data-station].station-hovered,#mode-gate .identity-station[data-station]:focus-visible { transform:none!important }
 }
+
+/* Universo Vybe: camadas leves em movimento, atrás da operação. */
+#mode-gate { isolation:isolate;background:#190c08!important;backdrop-filter:none!important }
+#mode-gate .vybe-universe { position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 5% 20%,#b74412 0,transparent 48%),radial-gradient(ellipse at 100% 85%,#79300f 0,transparent 52%),#160c0b }
+#mode-gate .universe-nebula { position:absolute;inset:-20%;background:radial-gradient(ellipse at 25% 40%,#ff740055,transparent 38%),radial-gradient(ellipse at 70% 65%,#ff3c0038,transparent 45%);filter:blur(24px);animation:vybe-nebula 24s ease-in-out infinite alternate }
+#mode-gate .universe-stars { position:absolute;inset:-15%;opacity:.6;background-image:radial-gradient(circle,#ffdaae 1px,transparent 1.8px),radial-gradient(circle,#ff8709 1px,transparent 2px),radial-gradient(circle,#ffe9d3 1px,transparent 1.5px);background-size:137px 173px,223px 251px,317px 283px;background-position:0 0,70px 90px,130px 40px;animation:vybe-stars 48s linear infinite alternate }
+#mode-gate .universe-orbit { position:absolute;width:115vw;height:70vw;left:-35vw;top:5vh;border:1px solid #ff9a424a;border-radius:50%;box-shadow:0 0 60px #ff6b001c,inset 0 0 60px #ff6b001c;transform:rotate(-28deg);animation:vybe-orbit 32s ease-in-out infinite alternate }
+#mode-gate .universe-orbit::before,#mode-gate .universe-orbit::after { content:'';position:absolute;inset:5%;border:1px dashed #ffb26b2e;border-radius:50% }
+#mode-gate .universe-orbit::after { inset:12%;border-style:solid;border-color:#ff9a421a }
+#mode-gate .identity-shell { background:linear-gradient(135deg,#201712ed,#14161beb)!important;border-color:#ffad6033!important;box-shadow:0 24px 80px #13050070,inset 0 1px 0 #ffd3a91a!important }
+#mode-gate .identity-topline { background:#1b1716d9!important }
+#mode-gate .identity-brand { display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px }
+#mode-gate .identity-brand img { display:block;width:148px;height:85px;object-fit:contain;filter:drop-shadow(0 0 16px #ff8a0033) }
+#mode-gate .universe-toggle { border:1px solid #ffc18a33;border-radius:999px;background:#211b18;color:#dec7b7;padding:8px 12px;font:500 11px/1.4 var(--mac-ui);cursor:pointer }
+#mode-gate .universe-toggle:hover { background:#38271e;color:#fff }
+#mode-gate .universe-toggle:focus-visible { outline:2px solid #ffab70;outline-offset:3px }
+#mode-gate.universe-paused .vybe-universe>* { animation-play-state:paused }
+@keyframes vybe-nebula { to { transform:translate(5%,-4%) scale(1.12);opacity:.7 } }
+@keyframes vybe-stars { to { transform:translate(45px,-60px) } }
+@keyframes vybe-orbit { to { transform:rotate(-16deg) translate(3%,4%) } }
+@media(prefers-reduced-motion:reduce) { #mode-gate .vybe-universe>* { animation:none!important } #mode-gate .universe-toggle { display:none } }
+@media(max-width:660px) { #mode-gate .identity-brand img { width:120px;height:69px } #mode-gate .universe-orbit { width:180vw;height:140vw } }
