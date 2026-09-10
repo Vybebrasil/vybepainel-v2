@@ -29,7 +29,7 @@
 <div id="toast" class="">Aguardando leitura da operação.</div>
 
 <!-- Entrada por perfil: Núcleo inteligente Vybe OS -->
-<div id="mode-gate" class="mode-gate" aria-modal="true" role="dialog">
+<div id="mode-gate" class="mode-gate" aria-modal="true" role="dialog" aria-labelledby="workspace-title">
   <div class="identity-shell">
     <div class="identity-grid" aria-hidden="true"></div>
     <div class="identity-topline">
@@ -38,32 +38,32 @@
       <button type="button" class="topo-clima" id="topo-clima" onclick="usarMinhaLocalizacaoNoTopo()"></button>
       <span class="identity-quem-slot" id="identity-quem-slot"></span>
     </div>
-    <div class="identity-hero"><div class="identity-overline">Vybe OS</div><h2>Qual estação você vai operar?</h2><p>Seu contexto ajusta a fila, os comandos e a inteligência que entra em cena.</p></div>
+    <div class="identity-hero"><div class="identity-overline">Vybe OS</div><h2 id="workspace-title">Seu espaço de trabalho</h2><p>Escolha um módulo para acompanhar a equipe ou continuar seu trabalho.</p></div>
     <div class="identity-pulse" id="identity-pulse" hidden aria-hidden="true"></div>
     <div class="identity-command-grid">
       <div class="identity-network" aria-hidden="true"><i class="identity-link gestor"></i><i class="identity-link foco"></i><i class="identity-link controler"></i><i class="identity-link cadastros"></i><i class="identity-link producao"></i><i class="identity-link clientes"></i></div>
       <button id="station-gestor" class="identity-station" data-station="gestor" type="button" style="--station-color:#ff6b00" onclick="chooseManagerMode()">
-        <span class="station-top"><span>01 / MATRIZ EXECUTIVA</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">⌘</span><span class="station-name">Gestor</span><span class="station-description">Risco, capacidade e a próxima decisão da semana.</span><span class="station-metrica" id="metrica-gestor"></span><span class="station-action"><em>Entrar na matriz</em><b>→</b></span>
+        <span class="station-top"><span>Visão da equipe</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">⌘</span><span class="station-name">Gestor</span><span class="station-description">Prioridades, prazos e capacidade da equipe.</span><span class="station-metrica" id="metrica-gestor"></span><span class="station-action"><em>Abrir Gestor</em><b>→</b></span>
       </button>
       <button id="station-foco" class="identity-station" data-station="foco" type="button" style="--station-color:#ffbd2e" onclick="openFocusPicker()">
-        <span class="station-top"><span>02 / CONSOLE PESSOAL</span><span class="station-ready"><i></i>Pronto</span></span><span class="station-icon">◎</span><span class="station-name">FOCO</span><span class="station-description">Uma fila limpa: só o que precisa acontecer agora.</span><span class="station-metrica" id="metrica-foco"></span><span class="station-action"><em>Identificar operador</em><b>→</b></span>
+        <span class="station-top"><span>Seu trabalho</span><span class="station-ready"><i></i>Pronto</span></span><span class="station-icon">◎</span><span class="station-name">Minhas tarefas</span><span class="station-description">Suas atividades, entregas e próximos passos.</span><span class="station-metrica" id="metrica-foco"></span><span class="station-action"><em>Abrir minhas tarefas</em><b>→</b></span>
       </button>
       <button id="station-da-controler" class="identity-station" data-station="controler" type="button" style="--station-color:#df2f4a">
-        <span class="station-top"><span>03 / DIREÇÃO DE ARTE</span><span class="station-ready"><i></i>Ao vivo</span></span><span class="station-icon">◈</span><span class="station-name">Direção de arte</span><span class="station-description">Volume, prazo e prioridade da célula criativa.</span><span class="station-metrica" id="metrica-controler"></span><span class="station-action"><em>Armar controler</em><b>→</b></span>
+        <span class="station-top"><span>Equipe criativa</span><span class="station-ready"><i></i>Ao vivo</span></span><span class="station-icon">◈</span><span class="station-name">Direção de arte</span><span class="station-description">Distribuição e acompanhamento do trabalho criativo.</span><span class="station-metrica" id="metrica-controler"></span><span class="station-action"><em>Abrir Direção de arte</em><b>→</b></span>
       </button>
       <button id="station-cadastros" class="identity-station" data-station="cadastros" type="button" style="--station-color:#00f0ff" onclick="openCadastrosStation()">
-        <span class="station-top"><span>04 / GOVERNANÇA OPERACIONAL</span><span class="station-locked-state"><i>✓</i>Ativo · C6</span></span><span class="station-icon">▣</span><span class="station-name">Cadastros</span><span class="station-description">Formato, briefing e destino antes de virar demanda.</span><span class="station-metrica" id="metrica-cadastros"></span><span class="station-action"><em>ABRIR PRÉ-CADASTRO</em><b>↗</b></span>
+        <span class="station-top"><span>Novas atividades</span><span class="station-locked-state"><i>✓</i>Ativo · C6</span></span><span class="station-icon">▣</span><span class="station-name">Cadastros</span><span class="station-description">Crie conteúdos e solicitações com briefing e prazo.</span><span class="station-metrica" id="metrica-cadastros"></span><span class="station-action"><em>Criar conteúdo ou demanda</em><b>↗</b></span>
       </button>
       <button id="station-producao-command" class="identity-station" data-station="producao" type="button" style="--station-color:#00d1b4" onclick="chooseProductionMode()">
-        <span class="station-top"><span>05 / ORDEM DE PRODUÇÃO</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◫</span><span class="station-name">Produção</span><span class="station-description">Captação, fotografia e edição numa ordem só.</span><span class="station-metrica" id="metrica-producao"></span><span class="station-action"><em>Armar operação</em><b>→</b></span>
+        <span class="station-top"><span>Audiovisual</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◫</span><span class="station-name">Produção</span><span class="station-description">Organize captações, fotografia e edição.</span><span class="station-metrica" id="metrica-producao"></span><span class="station-action"><em>Abrir Produção</em><b>→</b></span>
       </button>
       <button id="station-clientes" class="identity-station station-clientes" data-station="clientes" type="button" style="--station-color:#8b7dff" onclick="chooseClientMode()">
-        <span class="station-top"><span>06 / NÚCLEO DE CLIENTES</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◉</span><span class="station-name">Clientes</span><span class="station-description">Relacionamento, heads e acessos de cada conta.</span><span class="station-metrica" id="metrica-clientes"></span><span class="station-action"><em>Abrir núcleo</em><b>↗</b></span>
+        <span class="station-top"><span>Relacionamento</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◉</span><span class="station-name">Clientes</span><span class="station-description">Contas, responsáveis e acessos dos clientes.</span><span class="station-metrica" id="metrica-clientes"></span><span class="station-action"><em>Abrir Clientes</em><b>↗</b></span>
       </button>
     </div>
-    <div class="identity-footer"><span>Selecione uma estação para iniciar</span><span>VYBE OS / CENTRAL OPERACIONAL</span></div>
+    <div class="identity-footer"><span>Escolha onde quer trabalhar</span><span>Vybe OS</span></div>
     <div id="focus-picker" class="focus-picker identity-focus-picker">
-      <div class="focus-picker-head"><span>Identifique o operador para armar o console pessoal</span><button class="search-result-action" onclick="closeFocusPicker()">← Voltar às estações</button></div>
+      <div class="focus-picker-head"><span>Escolha de quem você quer ver as tarefas</span><button class="search-result-action" onclick="closeFocusPicker()">← Voltar aos módulos</button></div>
       <div id="focus-user-grid" class="focus-user-grid"></div>
     </div>
   </div>
@@ -405,7 +405,7 @@
 <!-- ===== PAINEL CLIENTES ===== -->
 <div id="painel-clientes" style="display:none;">
   <div class="container">
-    <div class="client-module-hero"><div><span class="client-module-kicker">06 / NÚCLEO DE CLIENTES</span><h2>Clientes</h2><p>Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div><div class="client-module-actions"><span class="client-module-source">CADASTRO · ACESSOS · OPERAÇÃO</span><button type="button" onclick="openCadastrosStation()">+ CADASTROS</button></div></div>
+    <div class="client-module-hero"><div><span class="client-module-kicker">Relacionamento</span><h2>Clientes</h2><p>Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div><div class="client-module-actions"><span class="client-module-source">CADASTRO · ACESSOS · OPERAÇÃO</span><button type="button" onclick="openCadastrosStation()">+ CADASTROS</button></div></div>
     <div id="client-master-kpis" class="client-master-kpis"></div>
     <div id="client-master-source-rail" class="client-source-rail"></div>
     <div id="kpi-grid-clientes" class="kpi-grid"></div>

@@ -87,22 +87,22 @@ function estadoDasEstacoes() {
   const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions().length : 0;
 
   return {
-    gestor:    { n: risco, rot: risco === 1 ? 'peça em risco' : 'peças em risco', alerta: risco > 0 },
+    gestor:    { n: risco, rot: risco === 1 ? 'atividade da equipe em risco' : 'atividades da equipe em risco', alerta: risco > 0 },
     foco:      minha
       ? { n: minha.abertas,
           // "1 atrasadas" estava escrito na tela. O plural nao pode ser fixo:
           // um dia a fila tem uma peca vencida e a frase fica errada em publico.
           rot: minha.atrasadas
-            ? `na fila · ${minha.atrasadas} atrasada${minha.atrasadas === 1 ? '' : 's'}`
+            ? `na sua fila · ${minha.atrasadas} atrasada${minha.atrasadas === 1 ? '' : 's'}`
             : 'na sua fila',
           alerta: minha.atrasadas > 0 }
       : null,
     // Sempre "N de M": com um so, "1 pessoa em atencao" perdia o tamanho da
     // equipe, e as seis linhas deixavam de ter a mesma forma.
-    controler: { n: emAtencao, rot: `de ${comFila} em atenção`, alerta: emAtencao > 0 },
+    controler: { n: emAtencao, rot: `de ${comFila} ${comFila === 1 ? "pessoa" : "pessoas"} com fila em atenção`, alerta: emAtencao > 0 },
     cadastros: { n: novas, rot: novas === 1 ? 'solicitação nova' : 'solicitações novas', alerta: false },
     producao:  { n: aCaptar, rot: aCaptar === 1 ? 'captação a agendar' : 'captações a agendar', alerta: false },
-    clientes:  { n: clientes, rot: clientes === 1 ? 'cliente ativo' : 'clientes ativos', alerta: false },
+    clientes:  { n: clientes, rot: clientes === 1 ? 'cliente cadastrado' : 'clientes cadastrados', alerta: false },
   };
 }
 
