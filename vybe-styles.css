@@ -5491,12 +5491,12 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
 /* Universo Vybe: camadas leves em movimento, atrás da operação. */
 #mode-gate { isolation:isolate;background:#190c08!important;backdrop-filter:none!important }
 #mode-gate .vybe-universe { position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 5% 20%,#b74412 0,transparent 48%),radial-gradient(ellipse at 100% 85%,#79300f 0,transparent 52%),#160c0b }
-#mode-gate .universe-nebula { position:absolute;inset:-20%;background:radial-gradient(ellipse at 25% 40%,#ff740055,transparent 38%),radial-gradient(ellipse at 70% 65%,#ff3c0038,transparent 45%);filter:blur(24px);animation:vybe-nebula 24s ease-in-out infinite alternate }
-#mode-gate .universe-stars { position:absolute;inset:-15%;opacity:.6;background-image:radial-gradient(circle,#ffdaae 1px,transparent 1.8px),radial-gradient(circle,#ff8709 1px,transparent 2px),radial-gradient(circle,#ffe9d3 1px,transparent 1.5px);background-size:137px 173px,223px 251px,317px 283px;background-position:0 0,70px 90px,130px 40px;animation:vybe-stars 48s linear infinite alternate }
-#mode-gate .universe-orbit { position:absolute;width:115vw;height:70vw;left:-35vw;top:5vh;border:1px solid #ff9a424a;border-radius:50%;box-shadow:0 0 60px #ff6b001c,inset 0 0 60px #ff6b001c;transform:rotate(-28deg);animation:vybe-orbit 32s ease-in-out infinite alternate }
+#mode-gate .universe-nebula { position:absolute;inset:-20%;background:radial-gradient(ellipse at 25% 40%,#ff740055,transparent 38%),radial-gradient(ellipse at 70% 65%,#ff3c0038,transparent 45%);filter:blur(24px);animation:vybe-nebula 8s ease-in-out infinite alternate }
+#mode-gate .universe-stars { position:absolute;inset:-15%;opacity:.6;background-image:radial-gradient(circle,#ffdaae 1px,transparent 1.8px),radial-gradient(circle,#ff8709 1px,transparent 2px),radial-gradient(circle,#ffe9d3 1px,transparent 1.5px);background-size:137px 173px,223px 251px,317px 283px;background-position:0 0,70px 90px,130px 40px;animation:vybe-stars 12s linear infinite alternate }
+#mode-gate .universe-orbit { position:absolute;width:115vw;height:70vw;left:-35vw;top:5vh;border:1px solid #ff9a424a;border-radius:50%;box-shadow:0 0 60px #ff6b001c,inset 0 0 60px #ff6b001c;transform:rotate(-28deg);animation:vybe-orbit 10s ease-in-out infinite alternate }
 #mode-gate .universe-orbit::before,#mode-gate .universe-orbit::after { content:'';position:absolute;inset:5%;border:1px dashed #ffb26b2e;border-radius:50% }
 #mode-gate .universe-orbit::after { inset:12%;border-style:solid;border-color:#ff9a421a }
-#mode-gate .identity-shell { background:linear-gradient(135deg,#201712ed,#14161beb)!important;border-color:#ffad6033!important;box-shadow:0 24px 80px #13050070,inset 0 1px 0 #ffd3a91a!important }
+#mode-gate .identity-shell { background:linear-gradient(135deg,#201712b8,#14161bd9)!important;border-color:#ffad6033!important;box-shadow:0 24px 80px #13050070,inset 0 1px 0 #ffd3a91a!important }
 #mode-gate .identity-topline { background:#1b1716d9!important }
 #mode-gate .identity-brand { display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px }
 #mode-gate .identity-brand img { display:block;width:148px;height:85px;object-fit:contain;filter:drop-shadow(0 0 16px #ff8a0033) }
@@ -5504,8 +5504,23 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
 #mode-gate .universe-toggle:hover { background:#38271e;color:#fff }
 #mode-gate .universe-toggle:focus-visible { outline:2px solid #ffab70;outline-offset:3px }
 #mode-gate.universe-paused .vybe-universe>* { animation-play-state:paused }
-@keyframes vybe-nebula { to { transform:translate(5%,-4%) scale(1.12);opacity:.7 } }
-@keyframes vybe-stars { to { transform:translate(45px,-60px) } }
-@keyframes vybe-orbit { to { transform:rotate(-16deg) translate(3%,4%) } }
+@keyframes vybe-nebula { to { transform:translate(15%,-12%) scale(1.25);opacity:.7 } }
+@keyframes vybe-stars { to { transform:translate(240px,-350px) } }
+@keyframes vybe-orbit { to { transform:rotate(12deg) translate(10%,8%) } }
 @media(prefers-reduced-motion:reduce) { #mode-gate .vybe-universe>* { animation:none!important } #mode-gate .universe-toggle { display:none } }
 @media(max-width:660px) { #mode-gate .identity-brand img { width:120px;height:69px } #mode-gate .universe-orbit { width:180vw;height:140vw } }
+
+/* Fluxos contínuos e farol orbital tornam o movimento perceptível de imediato. */
+#mode-gate .universe-streams { position:absolute;inset:0;overflow:hidden }
+#mode-gate .universe-streams i { position:absolute;left:-30%;top:12%;width:240px;height:2px;background:linear-gradient(90deg,transparent,#ff7a16 65%,#ffe8bb);box-shadow:0 0 12px #ff8300;border-radius:50%;animation:vybe-stream 5s linear infinite;opacity:0;transform:rotate(-22deg) }
+#mode-gate .universe-streams i:nth-child(2) { top:30%;animation-delay:-2.5s;animation-duration:6s;width:180px }
+#mode-gate .universe-streams i:nth-child(3) { top:52%;animation-delay:-1s;animation-duration:4.8s }
+#mode-gate .universe-streams i:nth-child(4) { top:72%;animation-delay:-3.8s;animation-duration:6.5s;width:320px }
+#mode-gate .universe-streams i:nth-child(5) { top:94%;animation-delay:-2s;animation-duration:5.5s }
+#mode-gate .universe-streams i:nth-child(6) { top:110%;animation-delay:-4s;animation-duration:7s;width:200px }
+#mode-gate .universe-beacon { position:absolute;right:-32vmin;top:-28vmin;width:100vmin;height:100vmin;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 65%,#ff6b000a 75%,#ff952b70 98%,transparent);mask-image:radial-gradient(circle,transparent 59%,#000 60% 61%,transparent 62%);animation:vybe-beacon 9s linear infinite }
+#mode-gate.universe-paused .vybe-universe *,#mode-gate.universe-paused .vybe-universe *::before,#mode-gate.universe-paused .vybe-universe *::after { animation-play-state:paused!important }
+@keyframes vybe-stream { 0% { transform:translate(0,0) rotate(-22deg);opacity:0 } 10%,80% { opacity:.85 } 100% { transform:translate(155vw,-38vh) rotate(-22deg);opacity:0 } }
+@keyframes vybe-beacon { to { transform:rotate(360deg) } }
+@media(prefers-reduced-motion:reduce) { #mode-gate .vybe-universe * { animation:none!important } #mode-gate .universe-streams { display:none } }
+@media(max-width:660px) { #mode-gate .universe-streams i { width:130px } #mode-gate .universe-streams i:nth-child(n+4) { display:none } }
