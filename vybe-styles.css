@@ -5524,3 +5524,33 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
 @keyframes vybe-beacon { to { transform:rotate(360deg) } }
 @media(prefers-reduced-motion:reduce) { #mode-gate .vybe-universe * { animation:none!important } #mode-gate .universe-streams { display:none } }
 @media(max-width:660px) { #mode-gate .universe-streams i { width:130px } #mode-gate .universe-streams i:nth-child(n+4) { display:none } }
+
+/* Seleção de perfis ocupa seu próprio fluxo, sem reservar a altura dos módulos. */
+#mode-gate.focus-selecting { overflow-y:auto!important }
+#mode-gate.focus-selecting .identity-topline,#mode-gate.focus-selecting .identity-hero,#mode-gate.focus-selecting .identity-command-grid,#mode-gate.focus-selecting .identity-footer { display:none!important }
+#mode-gate.focus-selecting .identity-shell { min-height:0!important }
+#mode-gate #focus-picker.identity-focus-picker { position:relative!important;inset:auto!important;transform:none!important;width:100%!important;max-height:none!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;overflow:visible!important;animation:none!important }
+#mode-gate .focus-picker-head { align-items:flex-start;flex-wrap:wrap }
+#mode-gate .profile-heading img { display:block;object-fit:contain;margin-bottom:20px }
+#mode-gate .profile-heading h2 { font:600 clamp(22px,3vw,30px)/1.25 var(--mac-ui);letter-spacing:-.025em;margin:0 0 10px;color:#fff }
+#mode-gate .profile-heading p { font:400 13px/1.5 var(--mac-ui);margin:0;color:#bcc2cb }
+#mode-gate .op-card { display:grid;grid-template-columns:56px minmax(0,1fr);align-content:start;align-items:center;gap:14px 12px;min-width:0;padding:24px 16px 18px;border-radius:18px;border:1px solid color-mix(in srgb,var(--op-cor) 35%,#ffffff18);background:linear-gradient(145deg,color-mix(in srgb,var(--op-cor) 10%,#242329),#1b1d22);opacity:1!important;filter:none!important;transition:transform .2s,border-color .2s,box-shadow .2s }
+#mode-gate .op-retrato,#mode-gate .op-retrato img,#mode-gate .op-iniciais { width:56px;height:56px }
+#mode-gate .op-retrato { margin:0;box-shadow:0 0 18px -10px var(--op-cor) }
+#mode-gate .op-iniciais { background:color-mix(in srgb,var(--op-cor) 30%,#252830);color:#fff;font:600 18px var(--mac-ui) }
+#mode-gate .op-iniciais[hidden] { display:none }
+#mode-gate .op-copy b { font-size:16px;white-space:normal }
+#mode-gate .op-copy small { color:#bdc3cc;white-space:normal;font:400 12px/1.4 var(--mac-ui) }
+#mode-gate .op-attention { grid-column:1/-1;color:#bdc3cc;font:400 12px/1.4 var(--mac-ui) }
+#mode-gate .op-attention b { color:#ff9eae;font-weight:600 }
+#mode-gate .op-carga { position:static;grid-column:1/-1;width:100%;margin-top:-6px;height:3px }
+#mode-gate .op-action { grid-column:1/-1;color:color-mix(in srgb,var(--op-cor) 55%,#fff);font:500 12px/1.4 var(--mac-ui) }
+#mode-gate .op-voce { top:7px;right:10px;font-size:9px }
+#mode-gate .op-card.op-active { transform:translateY(-4px);border-color:var(--op-cor);box-shadow:0 14px 32px -18px var(--op-cor) }
+#mode-gate .op-active .op-retrato { box-shadow:0 0 22px -5px var(--op-cor) }
+#mode-gate .op-card:focus-visible { outline:2px solid var(--op-cor);outline-offset:4px }
+#mode-gate:not(.focus-selecting) .profile-light,#mode-gate.focus-selecting .identity-ambience>span:not(.profile-light) { opacity:0!important }
+@media(max-width:1100px) { #mode-gate #focus-picker .op-grid { grid-template-columns:repeat(3,minmax(0,1fr))!important } }
+@media(max-width:700px) { #mode-gate #focus-picker .op-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important } }
+@media(max-width:420px) { #mode-gate #focus-picker .op-grid { grid-template-columns:1fr!important } }
+@media(prefers-reduced-motion:reduce) { #mode-gate .op-card { transition:none } #mode-gate .op-card.op-active { transform:none } }
