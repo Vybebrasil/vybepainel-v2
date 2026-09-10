@@ -30,6 +30,7 @@
 
 <!-- Entrada por perfil: Núcleo inteligente Vybe OS -->
 <div id="mode-gate" class="mode-gate" aria-modal="true" role="dialog" aria-labelledby="workspace-title">
+  <div class="vybe-universe" aria-hidden="true"><div class="universe-nebula"></div><div class="universe-stars"></div><div class="universe-orbit"></div></div>
   <div class="identity-shell">
     <div class="identity-grid" aria-hidden="true"></div>
     <div class="identity-topline">
@@ -38,7 +39,7 @@
       <button type="button" class="topo-clima" id="topo-clima" onclick="usarMinhaLocalizacaoNoTopo()"></button>
       <span class="identity-quem-slot" id="identity-quem-slot"></span>
     </div>
-    <div class="identity-hero"><div class="identity-overline">Vybe OS</div><h2 id="workspace-title">Seu espaço de trabalho</h2><p>Escolha um módulo para acompanhar a equipe ou continuar seu trabalho.</p></div>
+    <div class="identity-hero"><div class="identity-brand"><img src="/assets/vybe-branca.png" alt="Vybe" width="148" height="85"><button type="button" class="universe-toggle" aria-pressed="false" onclick="const gate=document.getElementById('mode-gate');const paused=gate.classList.toggle('universe-paused');this.setAttribute('aria-pressed',String(paused));this.textContent=paused?'Retomar animação':'Pausar animação'">Pausar animação</button></div><h2 id="workspace-title">Seu espaço de trabalho</h2><p>Escolha um módulo para acompanhar a equipe ou continuar seu trabalho.</p></div>
     <div class="identity-pulse" id="identity-pulse" hidden aria-hidden="true"></div>
     <div class="identity-command-grid">
       <div class="identity-network" aria-hidden="true"><i class="identity-link gestor"></i><i class="identity-link foco"></i><i class="identity-link controler"></i><i class="identity-link cadastros"></i><i class="identity-link producao"></i><i class="identity-link clientes"></i></div>
