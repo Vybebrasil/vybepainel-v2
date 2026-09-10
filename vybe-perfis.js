@@ -1578,23 +1578,40 @@ function setupIdentityInteractions() {
   const shell = document.querySelector('.identity-shell');
   if (!shell || shell.dataset.fxReady === '1') return;
   shell.dataset.fxReady = '1';
-  shell.querySelectorAll('.identity-station').forEach(station => {
-    station.addEventListener('pointerenter', () => {
-      shell.dataset.station = station.dataset.station || '';
-      station.classList.add('station-hovered');
+  const ambience = document.createElement('div');
+  ambience.className = 'identity-ambience';
+  ambience.setAttribute('aria-hidden', 'true');
+  shell.prepend(ambience);
+  const stations = [...shell.querySelectorAll('.identity-station')];
+  let hovered = null;
+  let focused = null;
+  const lights = stations.map(station => {
+    const light = document.createElement('span');
+    light.style.setProperty('--light-color', station.style.getPropertyValue('--station-color'));
+    ambience.append(light);
+    return light;
+  });
+  const update = () => {
+    const active = hovered || focused;
+    if (active) shell.dataset.station = active.dataset.station;
+    else delete shell.dataset.station;
+    stations.forEach((station, index) => {
+      station.classList.toggle('station-hovered', station === active);
+      lights[index].classList.toggle('is-active', station === active);
+    });
+  };
+  stations.forEach(station => {
+    station.addEventListener('pointerenter', event => {
+      if (event.pointerType === 'touch') return;
+      hovered = station;
+      update();
     });
     station.addEventListener('pointerleave', () => {
-      delete shell.dataset.station;
-      station.classList.remove('station-hovered');
-      station.style.transform = '';
+      if (hovered === station) hovered = null;
+      update();
     });
-    station.addEventListener('pointermove', event => {
-      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-      const rect = station.getBoundingClientRect();
-      const rx = ((event.clientY - rect.top) / rect.height - .5) * -7;
-      const ry = ((event.clientX - rect.left) / rect.width - .5) * 9;
-      station.style.transform = `translateY(-5px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-    });
+    station.addEventListener('focus', () => { focused = station; update(); });
+    station.addEventListener('blur', () => { if (focused === station) focused = null; update(); });
   });
 }
 
