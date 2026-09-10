@@ -5433,3 +5433,42 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !important; }
 
 .dia-demanda-tag{border:1px solid #38bdf866;background:#0c4a6e55;color:#7dd3fc;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0}
+
+/* Entrada: regras compartilhadas pelos seis módulos, isoladas do painel. */
+#mode-gate .identity-shell { width:min(1180px,100%);min-height:0;padding:28px!important;background:#14161b!important;color:#f5f5f7;box-shadow:0 20px 70px #0005!important }
+#mode-gate .identity-grid,#mode-gate .identity-shell::before { display:none!important }
+#mode-gate .identity-topline { position:relative!important;top:auto!important;margin:-28px -28px 0!important;padding:18px 28px!important;gap:20px;flex-wrap:wrap;background:#191c22!important;border-bottom:1px solid #ffffff14!important;box-shadow:none!important;backdrop-filter:none!important }
+#mode-gate .identity-hero { text-align:left;margin:36px 0 28px!important }
+#mode-gate .identity-overline { color:#aeb4bf!important;font-size:12px;letter-spacing:.03em }
+#mode-gate .identity-hero h2 { font-size:clamp(26px,3vw,34px)!important;font-weight:600;line-height:1.2;letter-spacing:-.035em!important;margin:8px 0!important }
+#mode-gate .identity-hero p { margin:0!important;max-width:none!important;font-size:14px!important;line-height:1.5;color:#aeb4bf!important }
+#mode-gate .identity-command-grid { width:100%;gap:16px!important;align-items:stretch!important;grid-auto-rows:1fr;padding:0!important }
+#mode-gate .identity-station[data-station] { height:100%!important;min-height:250px!important;margin:0!important;padding:24px!important;align-self:stretch!important;align-items:stretch!important;gap:0!important;transform:none!important;background:#202329!important;border:1px solid #ffffff16!important;border-radius:18px!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;transition:background .18s,border-color .18s!important }
+#mode-gate .identity-station[data-station]:hover { background:#282c33!important;border-color:#ffffff38!important }
+#mode-gate .identity-station[data-station]:focus-visible { outline:3px solid #ffab70;outline-offset:4px }
+#mode-gate .station-top { color:#aeb4bf!important;font:500 12px/1.4 var(--mac-ui)!important;letter-spacing:0;text-transform:none!important }
+#mode-gate .identity-station .station-icon { display:grid!important;place-items:center!important;align-self:flex-start!important;width:36px!important;height:36px!important;margin:16px 0 12px!important;border:0!important;background:color-mix(in srgb,var(--station-color) 10%,#252830)!important;color:color-mix(in srgb,var(--station-color) 60%,#fff)!important }
+#mode-gate .identity-station .station-name { font:600 21px/1.25 var(--mac-ui)!important;letter-spacing:-.025em!important }
+#mode-gate .identity-station .station-description { margin:8px 0 0!important;min-height:42px;color:#b9bec8!important;font:400 14px/1.5 var(--mac-ui)!important }
+#mode-gate .station-metrica { padding-top:20px;min-height:44px;gap:7px;white-space:normal;overflow:visible;align-items:baseline }
+#mode-gate .station-metrica b { font-size:20px;text-shadow:none!important }
+#mode-gate .station-metrica span { color:#b9bec8;font:400 12px/1.5 var(--mac-ui) }
+#mode-gate .identity-station .station-action { margin-top:18px!important;color:#dce0e7!important;font:500 13px/1.4 var(--mac-ui)!important;text-transform:none!important }
+#mode-gate #station-gestor .station-action { color:#ffab70!important }
+#mode-gate .identity-footer { margin-top:28px;padding-top:18px;border-color:#ffffff14!important;font:400 12px/1.5 var(--mac-ui);color:#aeb4bf!important }
+#mode-gate .identity-footer span { color:inherit!important }
+#mode-gate .topo-agora>span,#mode-gate .topo-fila-frase>span,#mode-gate .topo-clima span { color:#b9bec8!important }
+#mode-gate .topo-fila-frase { white-space:normal;flex-wrap:wrap }
+#mode-gate .topo-fila-frase b { text-shadow:none!important }
+#mode-gate .topo-fila-medida i { box-shadow:none }
+@media(max-width:660px) {
+  #mode-gate .identity-shell { padding:20px!important }
+  #mode-gate .identity-topline { margin:-20px -20px 0!important;padding:16px 20px!important;gap:16px }
+  #mode-gate .topo-fila { order:4;flex:1 0 100%;align-items:flex-start;padding:0 }
+  #mode-gate .topo-clima { margin-left:auto }
+  #mode-gate .identity-hero { margin:26px 0 22px!important }
+  #mode-gate .identity-command-grid { grid-auto-rows:auto }
+  #mode-gate .identity-station[data-station] { min-height:0!important;padding:22px!important }
+  #mode-gate .identity-footer { gap:12px;flex-wrap:wrap }
+}
+@media(prefers-reduced-motion:reduce) { #mode-gate .identity-station[data-station] { transition:none!important } }

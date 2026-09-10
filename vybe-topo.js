@@ -125,8 +125,8 @@ function pintarKpisDoTopo() {
   // Sem nada vencido a barra nao tem por que gritar: ela conta a fila, e nao o
   // atraso, e a medida fica no tom neutro.
   const rotulo = atrasadas
-    ? ` atrasada${atrasadas === 1 ? '' : 's'} de ${k.abertas}${k.hoje ? ` · ${k.hoje} para hoje` : ''}`
-    : ` na fila${k.hoje ? ` · ${k.hoje} para hoje` : ' · nada vencido'}`;
+    ? ` atrasada${atrasadas === 1 ? '' : 's'} de ${k.abertas} na sua fila${k.hoje ? ` · ${k.hoje} para hoje` : ''}`
+    : ` na sua fila${k.hoje ? ` · ${k.hoje} para hoje` : ' · nada vencido'}`;
 
   caixa.classList.toggle('em-atraso', atrasadas > 0);
   caixa.title = atrasadas
