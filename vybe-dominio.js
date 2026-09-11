@@ -61,6 +61,85 @@ async function buscarDominio() {
   return dados;
 }
 
+// ── ler só o que mudou ────────────────────────────────────────────────────────
+//
+// O painel perguntava "mudou alguma coisa?" baixando o quadro inteiro — 604 KB,
+// ~1.850 peças — de quinze em quinze segundos. São 145 MB por hora e por aba, e
+// foi isso que estourou a cota do banco e derrubou o sistema inteiro.
+//
+// Agora a pergunta tem o tamanho de uma pergunta. O servidor devolve as peças
+// carimbadas depois da última leitura e a assinatura do conjunto; quando nada
+// mudou, a resposta são algumas centenas de bytes e a tela nem redesenha.
+//
+// A ASSINATURA É O QUE RESPONDE PELO QUE SUMIU. "Só o que mudou" nunca fala de
+// quem deixou de existir: peça apagada, ou de cliente que foi desativado, não
+// tem estado novo para mandar. Enquanto a assinatura não muda, ninguém entrou
+// nem saiu; quando muda, a lista de ids vem junto e diz quem ficou.
+function ordemDoRecorte(a, b) {
+  // A mesma ordem da leitura inteira — veiculação, nulos no fim, depois o id.
+  // Sem isto, a peça remendada saltaria de lugar na lista a cada alteração.
+  const va = a.veiculacao_iso || '';
+  const vb = b.veiculacao_iso || '';
+  if (va !== vb) { if (!va) return 1; if (!vb) return -1; return va < vb ? -1 : 1; }
+  return String(a.id) < String(b.id) ? -1 : 1;
+}
+
+async function buscarMudancas() {
+  const anterior = DOMINIO_ULTIMA_RESPOSTA;
+  // Sem base anterior não há o que remendar: a primeira leitura é inteira.
+  if (!anterior?.gerado_em || !Array.isArray(anterior.itens)) return { dados: await buscarDominio(), mudou: true };
+
+  const url = `${CONTEUDOS_API}?desde=${encodeURIComponent(anterior.gerado_em)}`
+    + `&assinatura=${encodeURIComponent(anterior.assinatura || '')}`;
+  const resposta = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+  if (!resposta.ok) throw new Error(`Domínio indisponível (${resposta.status})`);
+  const novo = await resposta.json();
+  // Resposta que não é incremental é leitura inteira: vale como base nova.
+  if (!novo?.incremental) {
+    if (!Array.isArray(novo?.itens)) throw new Error('Resposta do domínio sem lista de itens.');
+    avisarSeVeioIncompleto(novo);
+    DOMINIO_ULTIMA_RESPOSTA = novo;
+    return { dados: novo, mudou: true };
+  }
+
+  const mudadas = new Map((novo.itens || []).map((i) => [String(i.id), i]));
+  if (!mudadas.size && !novo.ids && novo.assinatura === anterior.assinatura) {
+    // Nada mudou. Guarda só o relógio, para a próxima pergunta ser sobre o
+    // intervalo certo, e devolve sem mexer em peça nenhuma.
+    DOMINIO_ULTIMA_RESPOSTA = { ...anterior, gerado_em: novo.gerado_em };
+    return { dados: DOMINIO_ULTIMA_RESPOSTA, mudou: false };
+  }
+
+  const porId = new Map(anterior.itens.map((i) => [String(i.id), i]));
+  for (const [id, item] of mudadas) porId.set(id, item);
+  if (Array.isArray(novo.ids)) {
+    const ficaram = new Set(novo.ids.map(String));
+    for (const id of [...porId.keys()]) if (!ficaram.has(id)) porId.delete(id);
+    // REDE DE SEGURANÇA. Se o servidor diz que uma peça está no recorte e a tela
+    // não tem nem recebeu ela, alguma mudança não foi carimbada — e a tela
+    // passaria a mostrar uma lista incompleta sem nenhum sinal. Nesse caso ela
+    // desiste do remendo e lê tudo de novo: custa 604 KB uma vez, e é o que
+    // impede um furo de virar dado errado na tela de todo mundo.
+    if ([...ficaram].some((id) => !porId.has(id))) {
+      console.warn('Leitura incremental incompleta; relendo o quadro inteiro.');
+      return { dados: await buscarDominio(), mudou: true };
+    }
+  }
+
+  const dados = {
+    ...anterior,
+    ...(novo.status ? { status: novo.status, captacao: novo.captacao,
+      opcoes: novo.opcoes, pessoas: novo.pessoas } : {}),
+    itens: [...porId.values()].sort(ordemDoRecorte),
+    gerado_em: novo.gerado_em,
+    assinatura: novo.assinatura,
+    total: novo.total_no_recorte,
+  };
+  if (novo.status) avisarSeVeioIncompleto(novo);
+  DOMINIO_ULTIMA_RESPOSTA = dados;
+  return { dados, mudou: true };
+}
+
 // Devolve os itens ao formato que o processItemsAll espera.
 function dominioComoItensDoMonday(dados) {
   const status = new Map((dados.status || []).map((s) => [s.chave, s]));
@@ -138,7 +217,14 @@ function dominioComoItensDoMonday(dados) {
 
 // Mesmo contrato do applyMirrorSnapshot: monta DADOS e entrega ao painel.
 async function puxarDominio() {
-  const dados = await buscarDominio();
+  const { dados, mudou } = await buscarMudancas();
+  if (!mudou) {
+    // Nada mudou: não redesenha. Além do tráfego, isto tira do caminho uma
+    // reconstrução completa da tela a cada quinze segundos — que era o motivo de
+    // a lista piscar e de um menu aberto se fechar sozinho.
+    setSyncHealth('healthy', `Lendo do banco da Vybe às ${new Date().toLocaleTimeString('pt-BR')}`);
+    return true;
+  }
   const brutos = dominioComoItensDoMonday(dados);
   const meta = calcWeeks();
   const todos = processItemsAll(brutos, meta);

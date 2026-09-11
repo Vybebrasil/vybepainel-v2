@@ -10,6 +10,11 @@ export function conexao() {
     const text=parts.reduce((s,p,i)=>s+(i?'$'+i:'')+p,'');
     return {text,params,then(resolve,reject){return db.query(text,params).then((r)=>r.rows).then(resolve,reject);}};
   };
+  // O driver do Neon exige um template de verdade (ele confere strings.raw), e
+  // DDL nao aceita parametro. sql.query e a porta que ele mesmo oferece para
+  // isso — o dublê precisa ter a mesma porta, senao o teste passa por um caminho
+  // que a producao nao usa.
+  sql.query=(text,params=[])=>db.query(text,params).then((r)=>r.rows);
   sql.transaction=(queries)=>db.transaction(async(tx)=>{
     const out=[];for(const q of queries)out.push((await tx.query(q.text,q.params)).rows);return out;
   });

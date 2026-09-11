@@ -608,6 +608,100 @@ let colunasDeEtiquetaProntas = false;
 // derruba a consulta inteira — ou seja, o painel todo, nao o campo novo. Ela e
 // garantida na LEITURA por isso, e nao so no schema: quem le e quem paga o preco.
 let materialBrutoPronto = false;
+// ── o recorte, escrito uma vez só ─────────────────────────────────────────────
+//
+// QUEM APARECE NO PAINEL É UMA REGRA, E REGRA REPETIDA VIRA DUAS REGRAS.
+//
+// A leitura incremental precisa fazer duas perguntas sobre o mesmo conjunto:
+// "o que mudou desde X?" e "o conjunto ainda é o mesmo?". Escrever o recorte nas
+// duas faria o painel esconder peça que existe — ou pior, mostrar peça de
+// cliente desativado numa consulta e não na outra. Aqui ele mora na visão, e as
+// duas consultas perguntam à visão.
+//
+// A regra é a mesma de sempre: Produção é um calendário, então peça sem data ou
+// sem cliente ativo não tem onde aparecer. Demanda é pedido, não peça agendada —
+// 36 delas não têm data e 6 não têm cliente, e todas são legítimas.
+// O trabalho e o cache ficam separados: o cache é por processo, e um processo
+// que fale com dois bancos — o teste fala — pularia a criação no segundo. Quem
+// precisa garantir chama garantirRecorte; quem precisa FAZER chama esta.
+export async function aplicarRecorteECarimbo(sql) {
+  // DDL não aceita parâmetro: o número do quadro entra no texto. É constante
+  // deste arquivo e é número — o teste confere as duas coisas, porque texto
+  // montado à mão em SQL é onde uma injeção entraria se um dia virar variável.
+  if (!Number.isSafeInteger(BOARD_PRODUCAO)) throw new Error('BOARD_PRODUCAO precisa ser número.');
+  await sql.query(`CREATE OR REPLACE VIEW vybe_conteudos_recorte AS
+    SELECT c.* FROM vybe_conteudos c
+     WHERE c.removido_em IS NULL
+       AND (c.board_id <> ${BOARD_PRODUCAO} OR (
+             (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
+             AND EXISTS (
+               SELECT 1 FROM vybe_conteudo_clientes vcc
+                 JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
+                WHERE vcc.conteudo_id = c.id AND cl.ativo)))`);
+  await garantirCarimboDeMudanca(sql);
+}
+
+let recortePronto = false;
+export async function garantirRecorte(sql) {
+  if (recortePronto) return;
+  await aplicarRecorteECarimbo(sql);
+  recortePronto = true;
+}
+
+// ── o carimbo de "esta peça mudou" ────────────────────────────────────────────
+//
+// O 'atualizado_em' era enfeite: nada dependia dele. Com a leitura incremental
+// ele vira a única coisa que decide se uma mudança chega à tela — e aí um furo
+// nele não é detalhe, é a peça que passou para o Reriston e não apareceu para
+// ninguém.
+//
+// O furo era real: responsável é escrito em CINCO lugares, em quatro arquivos
+// (as automações, a ponte de eventos, o lote, a ficha e o servidor de
+// responsáveis), e nenhum deles tocava no carimbo da peça. O mesmo vale para
+// editores, clientes, tarefas e a nota de contexto — tudo isso aparece na linha
+// da peça, e nada disso mora na tabela dela.
+//
+// Por isso o carimbo é feito por GATILHO, no banco, e não por uma linha a mais
+// em cada escrita: quem escrever o sexto lugar amanhã não tem como esquecer.
+const CARIMBA_POR = (coluna) => `CREATE OR REPLACE FUNCTION vybe_carimba_pela_${coluna}() RETURNS trigger AS $gatilho$
+  BEGIN
+    UPDATE vybe_conteudos SET atualizado_em = NOW()
+     WHERE id = COALESCE(NEW.${coluna}, OLD.${coluna});
+    RETURN NULL;
+  END $gatilho$ LANGUAGE plpgsql`;
+
+const GATILHO_EM = (tabela, funcao, quando = 'INSERT OR UPDATE OR DELETE') => [
+  `DROP TRIGGER IF EXISTS carimbo_de_mudanca ON ${tabela}`,
+  `CREATE TRIGGER carimbo_de_mudanca AFTER ${quando} ON ${tabela}
+     FOR EACH ROW EXECUTE FUNCTION ${funcao}()`,
+];
+
+export async function garantirCarimboDeMudanca(sql) {
+  await sql.query(CARIMBA_POR('conteudo_id'));
+  await sql.query(CARIMBA_POR('pai_id'));
+  // Desativar um cliente tira TODAS as peças dele do recorte de uma vez, sem
+  // encostar em nenhuma delas. Foi assim que a ACE continuou no painel depois de
+  // desativada: nada na peça mudou, então nada avisou a tela.
+  await sql.query(`CREATE OR REPLACE FUNCTION vybe_carimba_pelo_cliente() RETURNS trigger AS $gatilho$
+    BEGIN
+      IF NEW.ativo IS DISTINCT FROM OLD.ativo THEN
+        UPDATE vybe_conteudos SET atualizado_em = NOW()
+         WHERE id IN (SELECT conteudo_id FROM vybe_conteudo_clientes WHERE cliente_id = NEW.id);
+      END IF;
+      RETURN NULL;
+    END $gatilho$ LANGUAGE plpgsql`);
+
+  const gatilhos = [
+    ...GATILHO_EM('vybe_conteudo_responsaveis', 'vybe_carimba_pela_conteudo_id'),
+    ...GATILHO_EM('vybe_conteudo_editores', 'vybe_carimba_pela_conteudo_id'),
+    ...GATILHO_EM('vybe_conteudo_clientes', 'vybe_carimba_pela_conteudo_id'),
+    ...GATILHO_EM('vybe_conteudo_updates', 'vybe_carimba_pela_conteudo_id'),
+    ...GATILHO_EM('vybe_subitens', 'vybe_carimba_pela_pai_id'),
+    ...GATILHO_EM('vybe_clientes', 'vybe_carimba_pelo_cliente', 'UPDATE'),
+  ];
+  for (const comando of gatilhos) await sql.query(comando);
+}
+
 export async function garantirMaterialBruto(sql) {
   if (materialBrutoPronto) return;
   await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto TEXT`;
@@ -625,28 +719,17 @@ async function garantirColunasDeEtiqueta(sql) {
   colunasDeEtiquetaProntas = true;
 }
 
-export async function listarConteudos(boardId = BOARD_PRODUCAO) {
-  const sql = database();
+// ── os catálogos, num lugar só ────────────────────────────────────────────────
+//
+// NA LEITURA DE 15 EM 15 SEGUNDOS, CATALOGO E O QUE SOBRA.
+//
+// Eles são pequenos perto do quadro, mas não perto de nada: uns 15 KB que,
+// repetidos quatro vezes por minuto, dão 3,6 MB por hora e por aba — 4 GB por
+// mês, que é a ordem de grandeza do problema que se está consertando. Por isso a
+// leitura incremental não os pede, e por isso eles moram aqui: quem precisa só
+// deles não tem que passar pela leitura das peças para consegui-los.
+export async function catalogosDoQuadro(boardId = BOARD_PRODUCAO, { sql = database() } = {}) {
   await garantirColunasDeEtiqueta(sql);
-  await garantirMaterialBruto(sql);
-
-  // Catálogos vão uma vez, não por item. A cor do status ia repetida 1.853 vezes
-  // para 18 status distintos; o nome do responsável, para 7 pessoas. É o tipo de
-  // desperdício que a resposta crua do Monday impunha e o domínio deixa resolver.
-  //
-  // UMA FALHA NUM CATALOGO NAO PODE APAGAR O PAINEL.
-  //
-  // Com Promise.all, qualquer erro numa destas cinco consultas rejeitava as
-  // cinco: uma coluna faltando no catalogo de etiquetas derrubava junto os
-  // ITENS e as PESSOAS, o /api/conteudos devolvia erro e o painel caia no
-  // cache. Foi assim que as fotos da equipe sumiram de todas as telas por
-  // causa de um ORDER BY.
-  //
-  // As pecas e as pessoas sao o painel: sem elas nao ha o que mostrar, e a
-  // falha continua sendo falha. Os catalogos sao enfeite do que ja esta la —
-  // sem eles a peca aparece sem a cor da etiqueta, o que e pior do que o
-  // normal e muito melhor do que a tela vazia. Entao eles caem sozinhos, e a
-  // resposta diz quais cairam para a tela poder avisar em vez de mentir.
   const respostas = await Promise.allSettled([
     // 'ativa' e 'ordem' passam a valer para status como ja valiam para as outras
     // etiquetas: desligar uma que nao se usa mais, e por a lista na ordem do
@@ -660,6 +743,58 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
           FROM vybe_opcoes ORDER BY coluna_id, COALESCE(ordem, indice), rotulo`,
     sql`SELECT monday_user_id AS id, nome, papel, disciplina, foto_url
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
+  ]);
+  // UMA FALHA NUM CATALOGO NAO PODE APAGAR O PAINEL.
+  //
+  // Com Promise.all, qualquer erro numa destas consultas rejeitava todas: uma
+  // coluna faltando no catalogo de etiquetas derrubava junto os ITENS e as
+  // PESSOAS, o /api/conteudos devolvia erro e o painel caia no cache. Foi assim
+  // que as fotos da equipe sumiram de todas as telas por causa de um ORDER BY.
+  //
+  // Catalogo e o acabamento do que ja esta la: sem ele a peca aparece sem a cor
+  // da etiqueta, o que e pior do que o normal e muito melhor do que a tela
+  // vazia. Entao ele cai sozinho, e a resposta diz o que caiu para a tela poder
+  // avisar em vez de mentir.
+  const NOMES = ['status', 'captacao', 'opcoes', 'pessoas'];
+  const degradado = [];
+  respostas.forEach((r, i) => {
+    if (r.status === 'fulfilled') return;
+    console.error(`Catálogo "${NOMES[i]}" não veio; a leitura segue sem ele:`, r.reason?.message || r.reason);
+    degradado.push(NOMES[i]);
+  });
+  const [status, captacao, opcoes, pessoas] =
+    respostas.map((r) => (r.status === 'fulfilled' ? r.value : []));
+  return { status, captacao, opcoes, pessoas, degradado };
+}
+
+// A LEITURA QUE NAO BAIXA O QUE NAO MUDOU.
+//
+// Sem 'desde', devolve tudo — e e a leitura de sempre, do primeiro carregamento.
+// Com 'desde', devolve so as pecas carimbadas depois daquele instante, mais a
+// assinatura do conjunto. A assinatura e o que responde a pergunta que "so o que
+// mudou" nunca responde sozinho: o que DEIXOU de existir. Enquanto ela nao muda,
+// nenhuma peca entrou nem saiu, e a tela pode confiar na lista que ja tem.
+//
+// Os cinco minutos de sobreposicao existem porque NOW() e o inicio da transacao:
+// uma escrita confirmada logo depois da consulta carrega um carimbo anterior ao
+// 'gerado_em' que acabamos de devolver, e sem a folga ela cairia no vao entre
+// duas leituras — para sempre. Reler alguns segundos e barato; perder uma
+// mudanca e o tipo de defeito que ninguem consegue reproduzir.
+export async function listarConteudos(boardId = BOARD_PRODUCAO,
+  // A conexão entra por parâmetro para o teste poder rodar esta consulta contra
+  // um Postgres de verdade. Sem isso, a única forma de provar a leitura
+  // incremental seria no banco de produção — que é onde ela não pode falhar.
+  { desde = null, catalogos = true, sql = database() } = {}) {
+  await garantirColunasDeEtiqueta(sql);
+  await garantirMaterialBruto(sql);
+  await garantirRecorte(sql);
+
+  // Catálogos vão uma vez, não por item — e vão em paralelo com as peças, que é
+  // o que eles sempre fizeram. A cor do status ia repetida 1.853 vezes para 18
+  // status distintos; o nome do responsável, para 7 pessoas.
+  const catalogosPedidos = catalogos ? catalogosDoQuadro(boardId, { sql }) : null;
+
+  const respostas = await Promise.allSettled([
     sql`
       SELECT
         COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS id,
@@ -713,33 +848,30 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
            FROM vybe_conteudo_updates u
           WHERE u.conteudo_id = c.id AND u.corpo LIKE '%Contexto de status%'
           ORDER BY u.criado_em DESC NULLS LAST LIMIT 1) AS contexto_status
-      FROM vybe_conteudos c
+      -- O recorte mora na visão: quem aparece no painel é uma regra só, e as
+      -- duas consultas desta leitura perguntam a ela. Ver garantirRecorte.
+      FROM vybe_conteudos_recorte c
       WHERE c.board_id = ${boardId}
-        AND c.removido_em IS NULL
-        -- O recorte é de Produção, que é um calendário: peça sem data não tem
-        -- onde aparecer, e cliente inativo saiu da operação. Demanda é pedido,
-        -- não peça agendada — 36 delas não têm data e 6 não têm cliente, e todas
-        -- são legítimas. Aplicar a mesma regra some com elas.
-        AND (${boardId}::bigint <> ${BOARD_PRODUCAO}::bigint OR (
-              (c.prazo IS NOT NULL OR c.veiculacao IS NOT NULL)
-              AND EXISTS (
-                SELECT 1 FROM vybe_conteudo_clientes vcc
-                  JOIN vybe_clientes cl ON cl.id = vcc.cliente_id
-                 WHERE vcc.conteudo_id = c.id AND cl.ativo)))
+        AND (${desde}::timestamptz IS NULL
+             OR c.atualizado_em > ${desde}::timestamptz - INTERVAL '5 seconds')
       ORDER BY c.veiculacao NULLS LAST, c.id`,
+    // A assinatura do conjunto e o total viajam sempre, e custam 40 bytes: é o
+    // que permite a leitura seguinte não baixar nada.
+    sql`SELECT COUNT(*)::int AS total,
+               MD5(COALESCE(STRING_AGG(x.id, ',' ORDER BY x.id), '')) AS assinatura,
+               NOW() AS agora
+          FROM (SELECT COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS id
+                  FROM vybe_conteudos_recorte c WHERE c.board_id = ${boardId}) x`,
   ]);
 
-  const NOMES = ['status', 'captacao', 'opcoes', 'pessoas', 'itens'];
-  const degradado = [];
-  respostas.forEach((r, i) => {
-    if (r.status === 'fulfilled') return;
-    // Peca e pessoa sao o painel; catalogo e o acabamento dele.
-    if (NOMES[i] === 'itens' || NOMES[i] === 'pessoas') throw r.reason;
-    console.error(`Catálogo "${NOMES[i]}" não veio; a leitura segue sem ele:`, r.reason?.message || r.reason);
-    degradado.push(NOMES[i]);
-  });
-  const [status, captacao, opcoes, pessoas, linhas] =
-    respostas.map((r) => (r.status === 'fulfilled' ? r.value : []));
+  // As PEÇAS e a ASSINATURA são o painel: sem as peças não há o que mostrar, e
+  // sem a assinatura a tela não tem como saber que uma peça saiu do recorte —
+  // e peça que saiu fica na tela para sempre, o que é pior que a tela vazia,
+  // porque parece certa. Falha nas duas continua sendo falha.
+  for (const r of respostas) if (r.status !== 'fulfilled') throw r.reason;
+  const [linhas, resumo] = respostas.map((r) => r.value);
+  const { total = 0, assinatura = '', agora = new Date() } = resumo?.[0] || {};
+  const { status, captacao, opcoes, pessoas, degradado = [] } = (await catalogosPedidos) || {};
 
   const itens = linhas.map((l) => {
     const item = {
@@ -775,8 +907,26 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO) {
     return item;
   });
 
-  return { board_id: boardId, status, captacao, opcoes, pessoas, itens,
+  return { board_id: boardId, itens,
+           ...(catalogos ? { status, captacao, opcoes, pessoas } : {}),
+           // 'gerado_em' é o relógio do BANCO, não o do servidor nem o do
+           // navegador: é ele que volta como 'desde' na leitura seguinte, e
+           // comparar carimbo do banco com relógio de outra máquina é como se
+           // perde mudança sem ninguém notar.
+           gerado_em: new Date(agora).toISOString(),
+           assinatura, total_no_recorte: total,
            ...(degradado.length ? { degradado } : {}) };
+}
+
+// Os ids que estão no recorte agora. Só é pedido quando a assinatura muda — ou
+// seja, quando alguma peça entrou ou saiu — e é o que permite à tela apagar a
+// que saiu. São ~22 KB contra os 604 KB da leitura inteira, e umas poucas vezes
+// por dia em vez de quatro por minuto.
+export async function idsNoRecorte(boardId = BOARD_PRODUCAO, { sql = database() } = {}) {
+  await garantirRecorte(sql);
+  const linhas = await sql`SELECT COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS id
+      FROM vybe_conteudos_recorte c WHERE c.board_id = ${boardId} ORDER BY 1`;
+  return linhas.map((l) => l.id);
 }
 
 // Sincroniza histórico e anexos a partir do Monday, em páginas.
