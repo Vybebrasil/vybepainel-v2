@@ -299,3 +299,41 @@ test('id que o servidor tem e a tela não faz a leitura inteira de novo', async 
   const r = await pedir(c);
   assert.deepEqual(r.ids, ['900', '901', '902'], 'a rede de segurança releu tudo');
 });
+
+test('partida fria confere antes de criar, e refaz se a criação falhar', async () => {
+  const { db, sql } = conexao();
+  await db.exec(`CREATE TABLE vybe_conteudos (id int primary key, board_id bigint,
+      prazo date, veiculacao date, removido_em timestamptz,
+      atualizado_em timestamptz NOT NULL DEFAULT NOW());
+    CREATE TABLE vybe_clientes (id int primary key, ativo boolean);
+    CREATE TABLE vybe_conteudo_clientes (conteudo_id int, cliente_id int);
+    CREATE TABLE vybe_conteudo_responsaveis (conteudo_id int, pessoa_id int);
+    CREATE TABLE vybe_conteudo_editores (conteudo_id int, pessoa_id int);
+    CREATE TABLE vybe_conteudo_updates (conteudo_id int, corpo text);
+    CREATE TABLE vybe_subitens (pai_id int, titulo text);`);
+
+  // Doze comandos de DDL na frente de cada leitura foi o que produziu o único
+  // 500 do deploy. A conferência é uma consulta; a criação é o caso raro.
+  const comandos = [];
+  const espiao = Object.assign((...a) => sql(...a), {
+    query: (texto, p) => { comandos.push(texto.slice(0, 24)); return sql.query(texto, p); },
+    transaction: sql.transaction,
+  });
+
+  // Instância limpa do módulo: o sinalizador de "já criei" vale por processo, e
+  // os testes acima já o ligaram. A query na URL faz o Node carregar de novo.
+  const { garantirRecorte: primeiraVez } = await import('../vybe_dominio_store.js?partida=fria');
+  await primeiraVez(espiao);
+  assert.ok(comandos.length > 5, 'a primeira vez precisa criar a estrutura');
+
+  // De pé, não recria — e a prova não pode ser o sinalizador de processo, que já
+  // teria respondido sozinho. Uma conexão nova enxerga a estrutura que existe.
+  const outro = Object.assign((...a) => sql(...a), {
+    query: (texto, p) => { comandos.push('REPETIU:' + texto.slice(0, 20)); return sql.query(texto, p); },
+    transaction: sql.transaction,
+  });
+  const [ja] = await outro`SELECT to_regclass('public.vybe_conteudos_recorte') IS NOT NULL AS visao,
+    EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'carimbo_de_mudanca') AS gatilhos`;
+  assert.equal(ja.visao, true, 'a visão ficou de pé');
+  assert.equal(ja.gatilhos, true, 'os gatilhos ficaram de pé');
+});

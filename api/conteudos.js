@@ -75,6 +75,10 @@ export default async function handler(req, res) {
       ...(catalogos.degradado?.length ? { degradado: catalogos.degradado } : {}),
       ms: Date.now() - inicio });
   } catch (erro) {
+    // O erro ia inteiro para o navegador e NADA para o registro: quando esta
+    // leitura devolveu 500 em producao, o log tinha o 500 e nenhuma pista do
+    // motivo. Quem investiga depois nao tem o navegador de quem viu.
+    console.error('Leitura de conteúdos falhou:', erro?.stack || erro?.message || erro);
     return res.status(500).json({ error: erro.message });
   }
 }
