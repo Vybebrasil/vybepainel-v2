@@ -641,10 +641,23 @@ export async function aplicarRecorteECarimbo(sql) {
   await garantirCarimboDeMudanca(sql);
 }
 
+// DOZE COMANDOS DE DDL NAO PODEM FICAR NO CAMINHO DE UMA LEITURA.
+//
+// O sinalizador vale por PROCESSO, e cada instancia nova da funcao comeca do
+// zero: sem esta conferencia, toda partida fria mandava doze comandos de criacao
+// antes de responder qualquer coisa. Foi o que produziu o unico 500 do deploy —
+// e uma leitura que so depende de uma consulta nao pode ter doze escritas de
+// esquema na frente dela.
+//
+// Agora a partida fria custa UMA consulta barata. E se a criacao falhar, o
+// sinalizador continua falso: a proxima tentativa refaz, em vez de seguir com
+// meia estrutura de pe.
 let recortePronto = false;
 export async function garantirRecorte(sql) {
   if (recortePronto) return;
-  await aplicarRecorteECarimbo(sql);
+  const [ja] = await sql`SELECT to_regclass('public.vybe_conteudos_recorte') IS NOT NULL AS visao,
+    EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'carimbo_de_mudanca') AS gatilhos`;
+  if (!ja?.visao || !ja?.gatilhos) await aplicarRecorteECarimbo(sql);
   recortePronto = true;
 }
 
