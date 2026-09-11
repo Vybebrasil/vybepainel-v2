@@ -23,6 +23,11 @@ const GRUPOS_DA_PRODUCAO = [
 
 let FICHA_ITEM = null;
 
+// Os campos que o motor de automacoes escuta. Mudar qualquer outro — prioridade,
+// OFF, tipo de conteudo — nao aciona regra nenhuma, e dizer "nenhuma automacao se
+// aplicou" ali seria um aviso sobre algo que ninguem esperava que acontecesse.
+const CAMPOS_QUE_DISPARAM_AUTOMACAO = ['captacao'];
+
 // Só oferece opção ativa no Monday. Opção desativada continua no catálogo dele e
 // gravaria aqui, mas a réplica é recusada com "label has been deactivated" — a
 // tela ofereceria uma escolha que não chega ao outro lado.
@@ -90,7 +95,12 @@ function workspaceFichaHtml(detail, itemId) {
 
   // Campo vazio aparece como "—" em vez de sumir: saber que a captação está em
   // branco é informação, e sumir com a linha esconde o que falta preencher.
-  return `<section class="workspace-section"><div class="workspace-section-head">Ficha da peça</div><div class="workspace-section-body"><div class="workspace-ficha">${
+  // O botao do diagnostico mora aqui porque e aqui que estao os campos que
+  // disparam automacao — captacao e status. Quem acabou de mexer num deles e nao
+  // viu nada acontecer esta com o olho a cinco centimetros dele.
+  return `<section class="workspace-section"><div class="workspace-section-head">Ficha da peça
+      <button type="button" class="auto-porque" title="Conferir o que as automações fizeram ou deixaram de fazer nesta peça"
+        onclick="diagnosticarAutomacao('${itemId}',this)">por que não rodou?</button></div><div class="workspace-section-body"><div class="workspace-ficha">${
     linhas.map(([r, v]) => `<div class="workspace-ficha-linha"><span>${safeText(r)}</span>${v}</div>`).join('')
   }</div></div></section>`;
 }
@@ -116,8 +126,17 @@ async function salvarCampoDaFicha(itemId, campo, valor, alvo) {
     } else {
       showToast(`✓ ${campo.replace('_', ' ')} atualizado`, 'ok', 3500);
     }
+    // SILENCIO NAO E RESPOSTA.
+    //
+    // Quando uma regra rodava, este aviso aparecia; quando nenhuma rodava, nao
+    // aparecia nada — e quem tinha acabado de marcar "Captacao Feita" ficava sem
+    // saber se o painel nao tinha regra, se a regra estava desligada, ou se ela
+    // escutava outra etiqueta. Agora o silencio tem nome e tem onde perguntar.
     if ((d.automacoes || []).length) {
       showToast(`Automação: ${d.automacoes.map((a) => a.nome).join(' · ')}`, 'info', 7000);
+    } else if (CAMPOS_QUE_DISPARAM_AUTOMACAO.includes(campo)) {
+      showToast('Nenhuma automação se aplicou a essa mudança · use "por que não rodou?" na ficha da peça',
+        'info', 7000);
     }
     const item = findOperationalItem(itemId);
     // Só redesenha a gaveta se for esta peça que está aberta. Chamado pela

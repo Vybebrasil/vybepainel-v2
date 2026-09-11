@@ -5554,3 +5554,22 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
 @media(max-width:700px) { #mode-gate #focus-picker .op-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important } }
 @media(max-width:420px) { #mode-gate #focus-picker .op-grid { grid-template-columns:1fr!important } }
 @media(prefers-reduced-motion:reduce) { #mode-gate .op-card { transition:none } #mode-gate .op-card.op-active { transform:none } }
+
+/* ── "por que não rodou?": o diagnóstico das automações ─────────────────────────
+   No fim da folha de propósito. Regra colocada no meio cai dentro de um
+   @media(max-width:760px) sem avisar e simplesmente não vale no desktop — já
+   aconteceu aqui, e o sintoma é uma tela que parece não ter recebido o CSS. */
+.auto-porque { margin-left:auto;border:1px solid rgba(255,176,0,.35);background:transparent;color:#ffb000;
+  border-radius:6px;padding:2px 7px;font:700 9px var(--mac-ui);letter-spacing:.03em;cursor:pointer }
+.auto-porque:hover { background:rgba(255,176,0,.12) }
+.auto-porque[disabled] { opacity:.5;cursor:progress }
+.workspace-section-head:has(.auto-porque) { display:flex;align-items:center;gap:8px }
+.auto-diag-evento { margin:0 0 12px;padding:9px 11px;border-left:2px solid rgba(255,176,0,.5);
+  background:rgba(255,176,0,.05);font:400 12px/1.5 var(--mac-ui);color:#d8d8d8 }
+.auto-diag-lista { list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:7px }
+.auto-diag-lista li { display:flex;gap:8px;align-items:flex-start;font:400 12px/1.45 var(--mac-ui);color:#cfcfcf }
+.auto-diag-lista li b { color:#fff;font-weight:700 }
+.auto-diag-marca { flex:0 0 auto;width:15px;text-align:center;font:700 11px var(--mac-ui) }
+.auto-diag-lista li.roda .auto-diag-marca { color:#4ade80 }
+.auto-diag-lista li.barrada .auto-diag-marca { color:#ffb000 }
+.auto-diag-titulo { margin:16px 0 6px;font:700 10px var(--mac-ui);letter-spacing:.05em;color:#ffb000 }

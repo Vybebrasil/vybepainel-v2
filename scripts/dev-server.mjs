@@ -10,6 +10,19 @@ const upstream = process.env.VYBE_DEV_UPSTREAM;
 const allowWrites = process.env.VYBE_DEV_ALLOW_WRITES === '1';
 const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png' };
 
+// O DIAGNOSTICO DE AUTOMACAO CHEGA POR POST E NAO ESCREVE NADA.
+//
+// Ele le a peca, le as regras e explica por que nenhuma pegou. Sem esta excecao,
+// conferir "por que nao rodou?" antes do deploy exigiria liberar as escritas
+// inteiras contra o banco de producao — o que e o oposto do que este servidor e.
+// Fica como funcao exportada, e nao como condicao solta no meio do fluxo, porque
+// e uma excecao a uma trava: ela precisa ser estreita e precisa ser testavel.
+export function ehLeituraPorPost(url) {
+  return url.pathname === '/api/painel'
+    && url.searchParams.get('area') === 'automacoes'
+    && url.searchParams.get('acao') === 'simular';
+}
+
 export function createDevServer() {
   return createServer(async (req, res) => {
     try {
@@ -26,7 +39,8 @@ export function createDevServer() {
         const body = Buffer.concat(chunks);
         if (!upstream) return demoApi(req, res, url, body);
         // Somente a sessão pode escrever no modo de inspeção. Dados exigem opção explícita.
-        if (!['GET','HEAD','OPTIONS'].includes(req.method) && url.pathname !== '/api/sessao' && !allowWrites) {
+        if (!['GET','HEAD','OPTIONS'].includes(req.method) && url.pathname !== '/api/sessao'
+            && !ehLeituraPorPost(url) && !allowWrites) {
           res.writeHead(403,{'Content-Type':'application/json'}).end(JSON.stringify({ error:'Proxy local em modo somente leitura.' })); return;
         }
         const up = await fetch(new URL(url.pathname + url.search, upstream), {

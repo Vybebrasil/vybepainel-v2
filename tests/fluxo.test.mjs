@@ -168,3 +168,97 @@ test('registro do sistema não se corrige; nota de pessoa sim', () => {
   assert.equal(doSistema({ body: '<p>qualquer coisa</p>', creator: { name: 'Automação' } }), true);
   assert.equal(doSistema({ body: '<p>qualquer coisa</p>', creator: { name: 'Paulo Martins' } }), false);
 });
+
+test('o diagnóstico de automação explica cada recusa em português, com nome de etiqueta', () => {
+  // A redação mora na tela porque é lá que estão os nomes: o servidor devolve
+  // 'captacao_feita' e quem lê reconhece "Captação Feita". Estes testes leem as
+  // frases prontas — é o que separa uma explicação de um despejo de chaves.
+  const c = carregar('vybe-automacoes-ui.js');
+  c.safeText = (v) => String(v ?? '');
+  vm.runInContext(`CATALOGOS = {
+    status: [{chave:'finalizado',rotulo:'Finalizado'},{chave:'pode_fazer',rotulo:'Pode Fazer'}],
+    captacao: [{chave:'captacao_feita',rotulo:'Captação Feita'},
+               {chave:'captacao_agendada',rotulo:'Captação agendada'},
+               {chave:'a_captar',rotulo:'À captar'}],
+    formatos: [{chave:'fotografia',rotulo:'Fotografia'},{chave:'carrossel',rotulo:'Carrossel'}],
+    grupos: [], pessoas: [],
+  };`, c);
+
+  const frase = (d, tipo) => {
+    c.d = d; c.t = tipo;
+    vm.runInContext('f = frasearRecusa(d, t);', c);
+    return c.f;
+  };
+
+  // Gatilho: a regra existe e não é sobre esta mudança.
+  assert.equal(frase({ motivo: 'gatilho', campo: 'para', exigido: 'captacao_agendada', tem: 'captacao_feita' }, 'captacao'),
+    'só roda quando a captação virar “Captação agendada” — e virou “Captação Feita”.');
+  assert.equal(frase({ motivo: 'gatilho', campo: 'de', exigido: 'captacao_agendada', tem: 'a_captar' }, 'captacao'),
+    'só roda saindo de “Captação agendada” — esta peça vinha de “À captar”.');
+  // Sem registro de onde veio, a frase diz isso em vez de inventar uma origem.
+  assert.match(frase({ motivo: 'gatilho', campo: 'de', exigido: 'captacao_agendada', tem: null }, 'captacao'),
+    /não há registro de onde esta peça vinha/);
+
+  // Condição: a regra é sobre esta mudança e a peça não serve.
+  assert.equal(frase({ motivo: 'condição', campo: 'formato', modo: 'um_de',
+    exigido: ['fotografia'], tem: ['carrossel'] }, 'captacao'),
+    'pede que o formato seja Fotografia — esta peça está com Carrossel.');
+  assert.equal(frase({ motivo: 'condição', campo: 'formato', modo: 'nenhum_de',
+    exigido: ['fotografia', 'carrossel'], tem: ['carrossel'] }, 'captacao'),
+    'não vale quando o formato é Fotografia ou Carrossel — e esta peça é Carrossel.');
+  // Campo vazio não vira frase truncada: ele diz "nada".
+  assert.match(frase({ motivo: 'condição', campo: 'status', modo: 'um_de',
+    exigido: ['pode_fazer'], tem: [] }, 'status'), /está com nada\.$/);
+
+  assert.equal(frase({ motivo: 'desligada' }, 'captacao'), 'está desligada.');
+  assert.match(frase({ motivo: 'interrompida', por: 'Foto captada vai para Design' }, 'status'),
+    /moveu a peça de grupo antes dela/);
+});
+
+test('o diagnóstico nunca responde silêncio: as três situações têm texto próprio', () => {
+  const c = carregar('vybe-automacoes-ui.js');
+  c.safeText = (v) => String(v ?? '');
+  vm.runInContext(`CATALOGOS = { status: [], captacao: [{chave:'captacao_feita',rotulo:'Captação Feita'}],
+    formatos: [], grupos: [], pessoas: [] };`, c);
+  const html = (r, tipo) => {
+    c.r = r; c.t = tipo;
+    vm.runInContext('h = blocoDoDiagnostico(r, t);', c);
+    return c.h;
+  };
+
+  // 1. Nenhuma regra foi escrita para essa mudança.
+  const nenhuma = html({ evento: { origem: 'histórico', de: null, para: 'captacao_feita' },
+    dispararia: [], descartadas: [] }, 'captacao');
+  assert.match(nenhuma, /Nenhuma regra foi escrita para essa mudança/);
+
+  // 2. Existem regras e nenhuma pegou — cada uma com o seu motivo.
+  const barradas = html({ evento: { origem: 'histórico', para: 'captacao_feita' }, dispararia: [],
+    descartadas: [{ nome: 'Desligada', motivo: 'desligada' }] }, 'captacao');
+  assert.match(barradas, /NÃO PEGARAM ESTA PEÇA \(1\)/);
+  assert.match(barradas, /Desligada<\/b> — está desligada\./);
+  assert.ok(!/Nenhuma regra foi escrita/.test(barradas));
+
+  // 3. As regras se aplicam — então o problema é a execução, e é outro lugar.
+  const aplicam = html({ evento: { origem: 'histórico', para: 'captacao_feita' },
+    dispararia: [{ nome: 'Vai para Design', acoes: [{ tipo: 'grupo', para: 'novo_grupo__1' }] }],
+    descartadas: [] }, 'captacao');
+  assert.match(aplicam, /SE APLICAM \(1\)/);
+  assert.match(aplicam, /o problema não é a regra: é a execução/);
+
+  // A peça sem a captação preenchida não recebe lista nenhuma: não houve mudança.
+  const semNada = html({ evento: { origem: 'sem histórico' }, dispararia: [], descartadas: [] }, 'captacao');
+  assert.match(semNada, /não houve mudança para nenhuma regra escutar/);
+  assert.ok(!/NÃO PEGARAM/.test(semNada));
+});
+
+test('a hora do diagnóstico é a de Irecê, não a do banco', () => {
+  // O banco grava em UTC. Cortar a letra T do texto mostrava a hora de Londres
+  // com cara de hora daqui — três horas de diferença numa frase cujo trabalho é
+  // dizer quando a pessoa mexeu na peça.
+  const c = carregar('vybe-automacoes-ui.js');
+  c.em = '2026-09-09T14:20:00Z';
+  vm.runInContext('q = quandoNaBahia(em); vazio = quandoNaBahia(null); lixo = quandoNaBahia("ontem");', c);
+  assert.equal(c.q, '09/09 às 11:20');
+  assert.equal(c.vazio, '');
+  assert.equal(c.lixo, '');
+});
