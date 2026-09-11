@@ -39,18 +39,37 @@ function podeEditarAutomacoes() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
 }
 
+// As regras e os catalogos, uma vez por sessao. Separado do carregarAutomacoes
+// porque o diagnostico na peca precisa dos NOMES das etiquetas sem abrir a tela
+// de Automacoes — e sem os nomes ele responderia 'captacao_feita' a quem so
+// reconhece 'Captação Feita'.
+let REGRAS_CARREGADAS = null;
+async function carregarRegrasECatalogos() {
+  const resposta = await fetch(AUTOMACOES_API, { credentials: 'same-origin' });
+  const dados = await resposta.json();
+  if (!resposta.ok) throw new Error(dados?.error || 'Falha ao carregar automações.');
+  AUTOMACOES = dados.automacoes || [];
+  if (dados.catalogos) CATALOGOS = { ...CATALOGOS, ...dados.catalogos };
+  return dados;
+}
+function garantirRegrasECatalogos() {
+  REGRAS_CARREGADAS = REGRAS_CARREGADAS || carregarRegrasECatalogos()
+    .catch((erro) => { REGRAS_CARREGADAS = null; throw erro; });
+  return REGRAS_CARREGADAS;
+}
+
 async function carregarAutomacoes() {
   const raiz = document.getElementById('automacoes-root');
   if (raiz) raiz.innerHTML = '<div class="auto-carregando">CARREGANDO REGRAS…</div>';
   try {
-    const resposta = await fetch(AUTOMACOES_API, { credentials: 'same-origin' });
-    const dados = await resposta.json();
-    if (!resposta.ok) throw new Error(dados?.error || 'Falha ao carregar automações.');
-    AUTOMACOES = dados.automacoes || [];
-    if (dados.catalogos) CATALOGOS = { ...CATALOGOS, ...dados.catalogos };
+    // Abrir a tela recarrega de verdade: quem acabou de salvar uma regra precisa
+    // ver a dela, nao a resposta guardada de antes.
+    REGRAS_CARREGADAS = carregarRegrasECatalogos();
+    await REGRAS_CARREGADAS;
     pintarAutomacoes();
     carregarHistorico();
   } catch (erro) {
+    REGRAS_CARREGADAS = null;
     if (raiz) raiz.innerHTML = `<div class="auto-carregando">Não foi possível carregar<br><small>${safeText(erro.message)}</small></div>`;
   }
 }
@@ -787,5 +806,181 @@ async function sincronizarRegrasDoSistema(botao) {
     showToast(`Não foi possível sincronizar: ${erro.message}`, 'error', 7000);
   } finally {
     if (botao) { botao.disabled = false; botao.textContent = 'Sincronizar regras do sistema'; }
+  }
+}
+
+// ── "POR QUE NÃO RODOU?" ──────────────────────────────────────────────────────
+//
+// A pergunta mais feita da operação era a única que o painel não sabia
+// responder. Quando uma regra rodava, aparecia um aviso; quando nenhuma rodava,
+// aparecia silêncio — e silêncio era a mesma resposta para três coisas bem
+// diferentes: nenhuma regra se aplica, a regra está desligada, e a regra escuta
+// outra etiqueta. Quem marcava "Captação Feita" e não via nada acontecer não
+// tinha como saber qual das três era, nem a quem perguntar.
+//
+// O motor de diagnóstico já existia no servidor e não tinha botão. Isto é o
+// botão — e o servidor devolve fatos, não frases: a redação mora aqui, junto dos
+// nomes das etiquetas, e é a mesma que descreve as regras na tela de Automações.
+
+// Com o artigo junto, e nas duas formas: "de a captação" foi o que apareceu na
+// tela quando a frase montava o "de" por fora. Guardar as duas evita a
+// concordância feita com concatenação, que é onde esse erro nasce.
+const O_CAMPO = { captacao: 'a captação', status: 'o status' };
+const DO_CAMPO = { captacao: 'da captação', status: 'do status' };
+
+function nomeDaEtiqueta(tipo, chave) {
+  if (!chave) return '—';
+  return tipo === 'captacao' ? nomeDeCaptacao(chave) : nomeDeStatus(chave);
+}
+
+// Nome de cada item conforme o campo — é o que separa "novo_grupo__1" de
+// "Design & Edição" na frase que a pessoa lê.
+function nomesDoCampo(campo, lista) {
+  const nome = campo === 'formato' ? nomeDeFormato
+    : campo === 'grupo' ? nomeDeGrupo
+    : campo === 'captacao' ? nomeDeCaptacao
+    : campo === 'status' ? nomeDeStatus
+    : campo === 'quadro' ? ((id) => (String(id) === '8385559107' ? 'Solicitações' : 'Produção'))
+    : ((v) => v);
+  const nomes = (lista || []).map(nome).filter(Boolean);
+  return nomes.length ? nomes.join(' ou ') : 'nada';
+}
+
+const ROTULO_DO_CAMPO = { formato: 'o formato', grupo: 'o grupo', captacao: 'a captação',
+  status: 'o status', quadro: 'o quadro' };
+
+// Uma recusa, em uma frase. Cada motivo leva a uma ação diferente de quem lê:
+// condição é a peça que não serve, gatilho é a regra que não é sobre isto,
+// desligada é escolha de alguém, e interrompida é outra regra que chegou antes.
+function frasearRecusa(d, tipo) {
+  const campo = ROTULO_DO_CAMPO[d.campo] || d.campo;
+  if (d.motivo === 'desligada') return 'está desligada.';
+  if (d.motivo === 'interrompida') {
+    return `não chegou a ser avaliada: “${d.por}” moveu a peça de grupo antes dela.`;
+  }
+  if (d.motivo === 'gatilho') {
+    if (d.campo === 'para') {
+      return `só roda quando ${O_CAMPO[tipo] || 'o campo'} virar “${nomeDaEtiqueta(tipo, d.exigido)}”`
+        + ` — e virou “${nomeDaEtiqueta(tipo, d.tem)}”.`;
+    }
+    if (d.campo === 'de') {
+      return `só roda saindo de “${nomeDaEtiqueta(tipo, d.exigido)}”`
+        + (d.tem ? ` — esta peça vinha de “${nomeDaEtiqueta(tipo, d.tem)}”.`
+                 : ' — e não há registro de onde esta peça vinha.');
+    }
+    return 'escuta outro tipo de mudança.';
+  }
+  // condição
+  if (d.modo === 'nenhum_de') {
+    return `não vale quando ${campo} é ${nomesDoCampo(d.campo, d.exigido)}`
+      + ` — e esta peça é ${nomesDoCampo(d.campo, d.tem)}.`;
+  }
+  if (d.modo === 'todos_de') {
+    return `pede que ${campo} seja só ${nomesDoCampo(d.campo, d.exigido)}`
+      + ` — esta peça tem ${nomesDoCampo(d.campo, d.tem)}.`;
+  }
+  return `pede que ${campo} seja ${nomesDoCampo(d.campo, d.exigido)}`
+    + ` — esta peça está com ${nomesDoCampo(d.campo, d.tem)}.`;
+}
+
+// O que a regra FARIA, para quem vê que ela se aplica e ainda assim nada mudou.
+function frasearOQueFaria(acoes) {
+  const partes = (acoes || []).map(frasearAcao).filter(Boolean);
+  return partes.length ? partes.join(', ') : 'nada (regra sem ação)';
+}
+
+// O banco guarda em UTC e a Vybe trabalha em Irecê. Cortar a letra T do texto
+// mostrava a hora de Londres com cara de hora daqui — três horas de diferença
+// numa frase cujo trabalho é dizer quando a pessoa mexeu na peça.
+function quandoNaBahia(em) {
+  const d = em ? new Date(em) : null;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  const fuso = 'America/Bahia';
+  const dia = d.toLocaleDateString('pt-BR', { timeZone: fuso, day: '2-digit', month: '2-digit' });
+  const hora = d.toLocaleTimeString('pt-BR', { timeZone: fuso, hour: '2-digit', minute: '2-digit' });
+  return `${dia} às ${hora}`;
+}
+
+function blocoDoDiagnostico(r, tipo) {
+  const e = r.evento || {};
+  let contexto;
+  if (e.origem === 'sem histórico') {
+    // Sem particípio no fim: "sem a captação preenchida" vira "sem o status
+    // preenchida" no outro caso, e concordância remendada é o mesmo erro de novo.
+    contexto = `Esta peça está sem ${O_CAMPO[tipo] || 'o campo'},`
+      + ' então não houve mudança para nenhuma regra escutar.';
+  } else if (e.origem === 'estado atual') {
+    contexto = `Não há registro no painel de quem mudou ${O_CAMPO[tipo] || 'o campo'} desta peça — ela`
+      + ` provavelmente veio assim do Monday. Lendo como está hoje: “${nomeDaEtiqueta(tipo, e.para)}”.`;
+  } else {
+    const quando = quandoNaBahia(e.em);
+    contexto = `A última mudança ${DO_CAMPO[tipo] || 'do campo'} nesta peça foi`
+      + (e.de ? ` de “${nomeDaEtiqueta(tipo, e.de)}”` : '')
+      + ` para “${nomeDaEtiqueta(tipo, e.para)}”${quando ? `, em ${safeText(quando)}` : ''}.`;
+  }
+
+  if (e.origem === 'sem histórico') {
+    return `<p class="auto-diag-evento">${safeText(contexto)}</p>`;
+  }
+
+  const rodam = (r.dispararia || []).map((a) => `<li class="roda">
+    <span class="auto-diag-marca">✓</span>
+    <span><b>${safeText(a.nome)}</b> — ${safeText(frasearOQueFaria(a.acoes))}.</span></li>`).join('');
+  const barradas = (r.descartadas || []).map((d) => `<li class="barrada">
+    <span class="auto-diag-marca">·</span>
+    <span><b>${safeText(d.nome)}</b> — ${safeText(frasearRecusa(d, tipo))}</span></li>`).join('');
+
+  // "Se aplica e mesmo assim nada mudou" é outro problema, e a resposta dele está
+  // no histórico de execuções — não em mais uma leitura das regras.
+  const aviso = rodam
+    ? `<p class="workspace-note">Se essas regras se aplicam e ainda assim nada mudou na peça,
+        o problema não é a regra: é a execução. O histórico de cada uma fica na tela de Automações.</p>`
+    : (barradas ? '' : `<p class="workspace-note">Nenhuma regra foi escrita para essa mudança.
+        É isso: não é defeito, é que não existe regra para esse caso.</p>`);
+
+  return `<p class="auto-diag-evento">${safeText(contexto)}</p>
+    ${rodam ? `<p class="auto-diag-titulo">SE APLICAM (${(r.dispararia || []).length})</p>
+      <ul class="auto-diag-lista">${rodam}</ul>` : ''}
+    ${barradas ? `<p class="auto-diag-titulo">NÃO PEGARAM ESTA PEÇA (${(r.descartadas || []).length})</p>
+      <ul class="auto-diag-lista">${barradas}</ul>` : ''}
+    ${aviso}`;
+}
+
+async function diagnosticarAutomacao(itemId, botao) {
+  if (botao) { botao.disabled = true; botao.textContent = 'verificando…'; }
+  try {
+    // Os nomes das etiquetas vêm antes: sem eles a explicação sai em chave de
+    // banco, e "captacao_feita" não é como ninguém aqui chama a etiqueta.
+    await garantirRegrasECatalogos();
+    const pedir = async (tipo) => {
+      const r = await fetch(`${AUTOMACOES_API}&acao=simular`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conteudo_id: String(itemId), evento: { tipo } }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      return d;
+    };
+    // As duas perguntas de uma vez: quem mexeu na captação e quem mexeu no status
+    // fazem a MESMA pergunta, e obrigar a escolher o tipo seria pedir que a
+    // pessoa soubesse de antemão qual das duas a regra escutava.
+    const [captacao, status] = await Promise.all([pedir('captacao'), pedir('status')]);
+    const titulo = captacao.item?.titulo || status.item?.titulo || 'esta peça';
+    openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Automações</span>
+        <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
+      <h2 class="workflow-title">Por que não rodou?</h2>
+      <p class="workflow-copy">${safeText(titulo)}</p>
+      <p class="auto-diag-titulo">PELA CAPTAÇÃO</p>
+      ${blocoDoDiagnostico(captacao, 'captacao')}
+      <p class="auto-diag-titulo">PELO STATUS</p>
+      ${blocoDoDiagnostico(status, 'status')}
+      <div class="workflow-actions">
+        <button type="button" class="workflow-primary" onclick="closeWorkflowModal()">Entendi</button>
+      </div>`);
+  } catch (erro) {
+    showToast(`Não foi possível verificar as automações: ${erro.message}`, 'err', 7000);
+  } finally {
+    if (botao) { botao.disabled = false; botao.textContent = 'por que não rodou?'; }
   }
 }

@@ -1,5 +1,10 @@
 import { PGlite } from '@electric-sql/pglite';
-export async function database() {
+
+// Um banco vazio com a mesma interface do @neondatabase/serverless: quem testa
+// escreve o esquema de que precisa. Separado de database() para que um teste novo
+// nao tenha que carregar as tabelas de outro — nem reescrever a etiqueta de SQL,
+// que e onde duas versoes divergiriam.
+export function conexao() {
   const db=new PGlite();
   const sql=(parts,...params)=>{
     const text=parts.reduce((s,p,i)=>s+(i?'$'+i:'')+p,'');
@@ -8,6 +13,11 @@ export async function database() {
   sql.transaction=(queries)=>db.transaction(async(tx)=>{
     const out=[];for(const q of queries)out.push((await tx.query(q.text,q.params)).rows);return out;
   });
+  return {db,sql};
+}
+
+export async function database() {
+  const {db,sql}=conexao();
   await db.exec(`CREATE TABLE vybe_pessoas (id int primary key, monday_user_id text, nome text, ativo boolean);
     CREATE TABLE vybe_conteudos (id int primary key, monday_item_id text, board_id bigint, status_chave text, atualizado_em timestamptz);
     CREATE TABLE vybe_subitens (id int primary key, pai_id int, monday_item_id text, status_chave text, atualizado_em timestamptz);

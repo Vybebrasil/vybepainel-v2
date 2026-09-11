@@ -342,16 +342,35 @@ function normaliza(v) {
     .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
-function atende(condicao, item) {
-  if (!condicao) return true;
+// POR QUE A REGRA NAO PEGOU ESTA PECA.
+//
+// Antes isto respondia so sim ou nao, e o painel ficava sem ter o que dizer
+// quando "nao aconteceu nada". Silencio e a mesma resposta para "nenhuma regra
+// se aplica", "a regra esta desligada" e "a regra nem existe no banco" — tres
+// problemas diferentes com a mesma cara.
+//
+// Agora a funcao devolve QUAL condicao barrou, e o sim/nao vira uma leitura dela.
+// Uma implementacao so: uma segunda funcao que explicasse divergiria da que
+// decide no primeiro conserto.
+export function condicaoQueBarra(condicao, item) {
+  if (!condicao) return null;
   // Formato é comparado por chave do catálogo, não pelo rótulo: renomear
   // "Vídeo" no Monday não pode parar o roteamento de audiovisual.
   const formatos = () => (item.formato_chaves || []).map(normaliza);
+  // FATOS, NAO FRASE FEITA. Quem escreve portugues e a tela, que ja tem o
+  // frasearCondicao e os nomes das etiquetas. Montar a frase aqui criaria duas
+  // redacoes da mesma explicacao, e a do servidor nao sabe o rotulo de nada.
+  const barra = (campo, modo, exigido, tem) => ({
+    campo, modo, exigido: exigido.map(String), tem: tem.filter((v) => v !== null && v !== undefined && v !== '').map(String),
+  });
+  const so = (v) => (v === null || v === undefined || v === '' ? [] : [v]);
 
   // Formato é multi-seleção: "Carrossel, Fotografia" atende regra de qualquer um.
   if (condicao.formato_em) {
     const alvo = condicao.formato_em.map(normaliza);
-    if (!formatos().some((p) => alvo.includes(p))) return false;
+    if (!formatos().some((p) => alvo.includes(p))) {
+      return barra('formato', 'um_de', condicao.formato_em, formatos());
+    }
   }
   // "apenas" é mais estrito: TODOS os formatos do item precisam estar na lista.
   // O Monday distingue as duas coisas e a diferença muda o resultado num item
@@ -359,40 +378,80 @@ function atende(condicao, item) {
   if (condicao.formato_apenas) {
     const fs = formatos();
     const alvo = condicao.formato_apenas.map(normaliza);
-    if (!fs.length || !fs.every((p) => alvo.includes(p))) return false;
+    if (!fs.length || !fs.every((p) => alvo.includes(p))) {
+      return barra('formato', 'todos_de', condicao.formato_apenas, fs);
+    }
   }
-  // De qual grupo o item está saindo. Sem isto, "finalizado" tem um destino só,
-  // e no Monday ele tem três, dependendo de onde a peça está.
-  // Em que quadro a peca esta. As chaves de status se repetem entre Producao e
-  // Solicitacoes: sem isto, "alteracao" numa solicitacao dispararia a regra
-  // escrita para conteudo, e vice-versa.
   // "todos MENOS estes". Sem isto, uma regra geral e uma especifica para o mesmo
   // gatilho disputam a mesma peca — e a geral, escrita antes, ganha por ordem.
   if (condicao.formato_nao_em) {
     const alvo = condicao.formato_nao_em.map(normaliza);
-    if (formatos().some((p) => alvo.includes(p))) return false;
+    if (formatos().some((p) => alvo.includes(p))) {
+      return barra('formato', 'nenhum_de', condicao.formato_nao_em, formatos());
+    }
   }
   // Em que ponto da captacao a peca esta. Sem isto nao da para escrever "so
   // depois de captada", que e o que separa foto pronta para editar de foto que
   // ainda vai ser tirada.
-  if (condicao.captacao_em && !condicao.captacao_em.includes(normaliza(item.captacao_chave))) return false;
-  if (condicao.board_em && !condicao.board_em.map(Number).includes(Number(item.board_id))) return false;
-  if (condicao.grupo_em && !condicao.grupo_em.includes(item.grupo_id)) return false;
-  if (condicao.status_nao_em && condicao.status_nao_em.includes(item.status_chave)) return false;
-  if (condicao.status_em && !condicao.status_em.includes(item.status_chave)) return false;
-  return true;
+  if (condicao.captacao_em && !condicao.captacao_em.includes(normaliza(item.captacao_chave))) {
+    return barra('captacao', 'um_de', condicao.captacao_em, so(item.captacao_chave));
+  }
+  // Em que quadro a peca esta. As chaves de status se repetem entre Producao e
+  // Solicitacoes: sem isto, "alteracao" numa solicitacao dispararia a regra
+  // escrita para conteudo, e vice-versa.
+  if (condicao.board_em && !condicao.board_em.map(Number).includes(Number(item.board_id))) {
+    return barra('quadro', 'um_de', condicao.board_em, so(item.board_id));
+  }
+  // De qual grupo o item está saindo. Sem isto, "finalizado" tem um destino só,
+  // e no Monday ele tem três, dependendo de onde a peça está.
+  if (condicao.grupo_em && !condicao.grupo_em.includes(item.grupo_id)) {
+    return barra('grupo', 'um_de', condicao.grupo_em, so(item.grupo_id));
+  }
+  if (condicao.status_nao_em && condicao.status_nao_em.includes(item.status_chave)) {
+    return barra('status', 'nenhum_de', condicao.status_nao_em, so(item.status_chave));
+  }
+  if (condicao.status_em && !condicao.status_em.includes(item.status_chave)) {
+    return barra('status', 'um_de', condicao.status_em, so(item.status_chave));
+  }
+  return null;
 }
 
-function casaGatilho(gatilho, evento) {
-  if (gatilho.tipo !== evento.tipo) return false;
+const atende = (condicao, item) => condicaoQueBarra(condicao, item) === null;
+
+// POR QUE A REGRA NAO ESCUTOU ESTA MUDANCA.
+//
+// Mesmo desenho do condicaoQueBarra acima: devolve o que nao bateu, e o sim/nao
+// vira uma leitura disso. A diferenca entre as duas importa para quem pergunta
+// "por que nao rodou?" — condicao barrada quer dizer "a regra e sobre isto, mas
+// esta peca nao serve"; gatilho diferente quer dizer "a regra nem e sobre esta
+// mudanca". Sem separar, o diagnostico jogaria as duas no mesmo monte.
+export function desencontroDoGatilho(gatilho, evento) {
+  if (!gatilho || gatilho.tipo !== evento.tipo) {
+    // outroAssunto separa "nao e sobre isto" de "e sobre isto e nao bateu". Quem
+    // le o diagnostico precisa dos segundos e seria afogado pelos primeiros.
+    return { campo: 'tipo', outroAssunto: true,
+      exigido: gatilho?.tipo || null, tem: evento.tipo || null };
+  }
   // Evento de data casa por campo e defasagem, não por 'de'/'para' de estado.
   if (gatilho.tipo === 'data') {
-    return gatilho.campo === evento.campo && Number(gatilho.dias || 0) === Number(evento.dias || 0);
+    if (gatilho.campo !== evento.campo) {
+      return { campo: 'data', exigido: gatilho.campo || null, tem: evento.campo || null };
+    }
+    if (Number(gatilho.dias || 0) !== Number(evento.dias || 0)) {
+      return { campo: 'dias', exigido: Number(gatilho.dias || 0), tem: Number(evento.dias || 0) };
+    }
+    return null;
   }
-  if (gatilho.para && gatilho.para !== evento.para) return false;
-  if (gatilho.de && gatilho.de !== evento.de) return false;
-  return true;
+  if (gatilho.para && gatilho.para !== evento.para) {
+    return { campo: 'para', exigido: gatilho.para, tem: evento.para || null };
+  }
+  if (gatilho.de && gatilho.de !== evento.de) {
+    return { campo: 'de', exigido: gatilho.de, tem: evento.de || null };
+  }
+  return null;
 }
+
+const casaGatilho = (gatilho, evento) => desencontroDoGatilho(gatilho, evento) === null;
 
 // Aplica as regras que casam com o evento. Devolve o que mudou, para o chamador
 // replicar no Monday enquanto ele ainda existir.
@@ -524,30 +583,105 @@ export async function aplicar(sql, conteudoId, evento) {
 
 // ── conferência ───────────────────────────────────────────────────────────────
 
+// O REGISTRO DE EVENTOS GUARDA O QUE A PESSOA VE, NAO O QUE A REGRA COMPARA.
+//
+// A troca de status grava rotulo nas duas pontas; a troca de captacao grava
+// chave no 'de' e rotulo no 'para'. As regras comparam chave. Reler o historico
+// sem resolver isso faria o diagnostico dizer "essa regra escuta outra etiqueta"
+// a respeito da etiqueta certa — e resposta errada com cara de diagnostico e
+// pior que silencio.
+async function chaveDaEtiqueta(sql, tipo, valor, boardId) {
+  const v = String(valor || '').trim();
+  if (!v) return null;
+  const lista = tipo === 'captacao'
+    ? await sql`SELECT chave, rotulo FROM vybe_captacao`
+    : await sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${boardId}`;
+  const achada = lista.find((o) => o.chave === v)
+    || lista.find((o) => normaliza(o.rotulo) === normaliza(v));
+  // Sem a etiqueta no catalogo sobra a normalizacao, que e como a chave nasceu.
+  return achada ? achada.chave : normaliza(v);
+}
+
+// O QUE ACONTECEU DE VERDADE, quando quem pergunta nao sabe descrever o evento.
+//
+// "Mudei a captacao e nao aconteceu nada" nao chega com 'de' e 'para': chega com
+// uma peca e uma duvida. Reler a ultima mudanca daquele tipo no historico dela
+// faz o diagnostico responder sobre o que a pessoa fez, e nao sobre uma
+// hipotese parecida — que e onde o ensaio por evento inventado erra.
+async function eventoParaDiagnostico(sql, item, pedido) {
+  if (pedido.para || pedido.tipo === 'data') return pedido;
+  const tipo = pedido.tipo === 'captacao' ? 'captacao' : 'status';
+  const ultima = (await sql`SELECT de, para, em FROM vybe_conteudo_eventos
+    WHERE conteudo_id = ${item.id} AND tipo = ${tipo}
+    ORDER BY em DESC LIMIT 1`)[0];
+  if (ultima) {
+    return { ...pedido, tipo,
+      de: await chaveDaEtiqueta(sql, tipo, ultima.de, item.board_id),
+      para: await chaveDaEtiqueta(sql, tipo, ultima.para, item.board_id),
+      em: ultima.em, origem: 'histórico' };
+  }
+  // Peca importada do Monday nao tem evento nosso, e ainda assim esta em algum
+  // ponto. Responder pelo estado atual e util e precisa vir rotulado como tal:
+  // sem 'de', regra que exige passagem exata aparece como nao atendida, e quem
+  // le tem que saber que o 'de' e desconhecido, nao vazio.
+  const atual = tipo === 'captacao' ? item.captacao_chave : item.status_chave;
+  if (atual) return { ...pedido, tipo, de: null, para: atual, origem: 'estado atual' };
+  return { ...pedido, tipo, de: null, para: null, origem: 'sem histórico' };
+}
+
 // Diz quais regras dispariam, sem executar nenhuma. Usa exatamente os mesmos
 // casaGatilho e atende que a execução usa — reimplementar a comparação aqui
 // criaria duas verdades, e a que ninguém testa é a que fica errada.
 //
 // É o que o Monday nunca ofereceu: lá só dava para descobrir o que uma regra
 // faz mudando um item de verdade e vendo o que acontecia depois.
-export async function simular(sql, conteudoId, evento) {
+export async function simular(sql, conteudoId, pedido) {
   // board_id e captacao_chave entram porque ha condicao que olha os dois. Sem
   // eles o simulador responderia "nao dispara" para regra que dispara — o pior
   // tipo de resposta, porque parece diagnostico.
+  // Aceita as duas referencias que o painel tem em maos, como o resto da API ja
+  // faz: o id do Monday que veio na importacao e o id local das pecas nascidas
+  // aqui, escrito 'vybe:123'. Exigir so o id local transformava o diagnostico em
+  // "Conteudo 12863044303 nao existe" — que e verdade e nao ajuda ninguem.
+  // Mesma convencao do referenciaLocal em api/conteudo.js: numero solto e id do
+  // Monday, 'vybe:123' e id daqui. Aceitar numero solto como id local tambem
+  // parecia generoso e estourava o int ao comparar um id do Monday com a chave.
+  const ref = String(conteudoId ?? '');
+  const local = ref.startsWith('vybe:') ? Number(ref.slice(5)) : null;
   const item = (await sql`SELECT id, titulo, formato_chaves, status_chave, grupo_id,
       board_id, captacao_chave
-    FROM vybe_conteudos WHERE id=${conteudoId}`)[0];
+    FROM vybe_conteudos
+    WHERE monday_item_id = ${ref} OR id = ${Number.isSafeInteger(local) ? local : null}`)[0];
   if (!item) throw new Error(`Conteúdo ${conteudoId} não existe.`);
 
-  const regras = await sql`SELECT * FROM vybe_automacoes WHERE ativa ORDER BY ordem, id`;
+  const evento = await eventoParaDiagnostico(sql, item, pedido || {});
+
+  // As desligadas entram na consulta agora: "a regra esta desligada" e uma das
+  // tres respostas possiveis para "nao aconteceu nada", e era a unica que o
+  // simulador nao sabia dar — ele so enxergava as ativas.
+  const regras = await sql`SELECT * FROM vybe_automacoes ORDER BY ordem, id`;
   const dispararia = [];
+  const descartadas = [];
+  let interrompeuEm = null;
   for (const regra of regras) {
-    if (!casaGatilho(regra.gatilho, evento)) continue;
-    if (!atende(regra.condicao, item)) continue;
-    dispararia.push({ id: regra.id, nome: regra.nome, ordem: regra.ordem, acoes: regra.acoes });
-    if (evento.tipo === 'status' && (regra.acoes || []).some((a) => a.tipo === 'grupo')) break;
+    const resumo = { id: regra.id, nome: regra.nome, ordem: regra.ordem };
+    // Gatilho de outro tipo nao e um quase-acerto: listar as quarenta regras que
+    // nao tem nada a ver com este evento afogaria a que importa. Mas regra do
+    // MESMO tipo que escuta outra etiqueta entra na lista — e a resposta mais
+    // comum para "mudei a captacao e nao aconteceu nada".
+    const desencontro = desencontroDoGatilho(regra.gatilho, evento);
+    if (desencontro?.outroAssunto) continue;
+    if (desencontro) { descartadas.push({ ...resumo, motivo: 'gatilho', ...desencontro }); continue; }
+    if (interrompeuEm) { descartadas.push({ ...resumo, motivo: 'interrompida', por: interrompeuEm }); continue; }
+    if (!regra.ativa) { descartadas.push({ ...resumo, motivo: 'desligada' }); continue; }
+    const barrou = condicaoQueBarra(regra.condicao, item);
+    if (barrou) { descartadas.push({ ...resumo, motivo: 'condição', ...barrou }); continue; }
+    dispararia.push({ ...resumo, acoes: regra.acoes });
+    if (evento.tipo === 'status' && (regra.acoes || []).some((a) => a.tipo === 'grupo')) {
+      interrompeuEm = regra.nome;
+    }
   }
-  return { item, dispararia };
+  return { item, evento, dispararia, descartadas };
 }
 
 // Roda o motor de verdade contra um conteúdo descartável e apaga tudo depois.

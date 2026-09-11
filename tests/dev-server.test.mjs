@@ -26,3 +26,20 @@ test('servidor local não publica backend, ambiente, banco ou dependências',asy
   assert.equal((await request('/')).status,200);
   assert.equal((await request('/vybe-config.js')).status,200);
 });
+test('a exceção de leitura por POST é só o diagnóstico de automação',async()=>{
+  // A trava de escrita é o que permite apontar o servidor local para a produção
+  // sem medo. O diagnóstico passa porque só lê; qualquer vizinho dele continua
+  // barrado, inclusive o ensaio, que cria peça.
+  const { ehLeituraPorPost }=await import('../scripts/dev-server.mjs');
+  const u=(s)=>new URL(s,'http://localhost');
+  assert.equal(ehLeituraPorPost(u('/api/painel?area=automacoes&acao=simular')),true);
+  for(const rota of [
+    '/api/painel?area=automacoes&acao=ensaio',    // cria peça de ensaio
+    '/api/painel?area=automacoes&acao=semear',    // reescreve as regras
+    '/api/painel?area=automacoes&acao=salvar',
+    '/api/painel?area=automacoes&acao=prioridades',
+    '/api/painel?area=automacoes',                // salvar é o padrão sem ação
+    '/api/painel?area=clientes&acao=simular',     // outra área, outro assunto
+    '/api/conteudo?acao=simular',                 // a rota que grava de verdade
+  ])assert.equal(ehLeituraPorPost(u(rota)),false,rota);
+});

@@ -39,6 +39,20 @@ async function areaAutomacoes(req, res, quem) {
       catalogos: await catalogosDeAutomacao() });
   }
 
+  // "POR QUE NAO RODOU?" E LEITURA, E E DE TODO MUNDO.
+  //
+  // O simulador nao escreve nada: ele le a peca, le as regras e explica. Chega
+  // por POST so porque carrega o evento no corpo, e ficar do lado de dentro da
+  // trava de administrador fazia a pergunta que mais se faz na operacao — "mudei
+  // e nao aconteceu nada" — ter uma resposta que so eu podia ver.
+  if (req.method === 'POST' && String(req.query?.acao || req.body?.acao || '') === 'simular') {
+    const { conteudo_id: cid, evento } = req.body || {};
+    // Sem Number(): o simulador resolve as duas referencias, e converter aqui
+    // quebrava justamente o id do Monday, que e o que a tela tem em maos.
+    return res.status(200).json({ ok: true, acao: 'simular',
+      ...(await simular(sql(), cid, evento || {})) });
+  }
+
   // Ler quais regras existem é útil para todo mundo entender por que uma peça
   // se moveu sozinha. Alterá-las é decisão de quem administra.
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
@@ -50,10 +64,6 @@ async function areaAutomacoes(req, res, quem) {
     if (acao === 'semear') {
       const refazer = req.query?.refazer === '1' || req.body?.refazer === true;
       return res.status(200).json({ ok: true, acao, ...(await semear({ refazer })) });
-    }
-    if (acao === 'simular') {
-      const { conteudo_id: cid, evento } = req.body || {};
-      return res.status(200).json({ ok: true, acao, ...(await simular(sql(), Number(cid), evento || {})) });
     }
     if (acao === 'agenda') {
       // seco=true conta quem seria avisado sem avisar ninguém. Antes da primeira

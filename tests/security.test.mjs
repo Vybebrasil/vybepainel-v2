@@ -44,3 +44,18 @@ test('HTML não publica tarefa capturada, indicador falso ou toolbar antiga',asy
   assert.doesNotMatch(html,/12782778232|workspace-update-body|ops-today-line|Espelho central confirmado às|vercel\.live/);
   assert.match(html,/auth-pending/);
 });
+test('diagnóstico de automação é leitura de todo mundo; alterar regra continua de administrador',async()=>{
+  // O simulador não grava nada e responde "por que não rodou?". Ele chega por
+  // POST só porque carrega o evento no corpo — e POST, naquele arquivo, é a
+  // porta trancada. Este teste existe porque a trava é uma linha: movê-la para
+  // cima devolve o diagnóstico a uma pessoa só, sem nenhum erro aparecer.
+  const fonte=await readFile(new URL('../api/painel.js',import.meta.url),'utf8');
+  const trava=fonte.indexOf("return res.status(403).json({ error: 'Só quem administra altera automações.' })");
+  const diagnostico=fonte.indexOf("acao: 'simular'");
+  assert.ok(trava>0&&diagnostico>0);
+  assert.ok(diagnostico<trava,'o diagnóstico precisa ser respondido antes da trava de administrador');
+  // E o que escreve continua depois dela.
+  for(const acao of ["acao === 'semear'","acao === 'ensaio'","acao === 'prioridades'","acao === 'agenda'"]){
+    assert.ok(fonte.indexOf(acao)>trava,`${acao} não pode sair de trás da trava`);
+  }
+});
