@@ -1532,7 +1532,9 @@ async function chamarEtiqueta(corpo) {
 // partir dele, e continuar com a cópia antiga mostraria o nome velho.
 async function recarregarCatalogos() {
   try {
-    const r = await fetch('/api/conteudos', { credentials: 'same-origin' });
+    // Só os catálogos: antes isto baixava o quadro inteiro — ~1.850 peças, 604 KB
+    // — para conferir dezoito rótulos de etiqueta, e de novo para as Demandas.
+    const r = await fetch('/api/conteudos?apenas=catalogos', { credentials: 'same-origin' });
     if (!r.ok) return;
     const d = await r.json();
     if (Array.isArray(d.opcoes)) CATALOGO_OPCOES = d.opcoes;
@@ -1550,7 +1552,7 @@ async function recarregarCatalogos() {
         color: st.cor || '#c4c4c4', border: st.borda || st.cor || '#c4c4c4',
       }));
     }
-    const rd = await fetch('/api/conteudos?board=demandas', { credentials: 'same-origin' });
+    const rd = await fetch('/api/conteudos?board=demandas&apenas=catalogos', { credentials: 'same-origin' });
     if (rd.ok) {
       const dd = await rd.json();
       if (Array.isArray(dd.status) && typeof CATALOGO_STATUS_DEMANDAS !== 'undefined') {

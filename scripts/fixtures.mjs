@@ -21,8 +21,20 @@ export function demoApi(req,res,url,body) {
     const itens=demanda?[{id:'vybe:2',nome:'Reunião de alinhamento fictícia',cliente:'Cliente demonstração',formato:'Reunião',prazo_iso:hoje,veiculacao_iso:hoje,status_chave:'a_fazer',grupo:'Solicitações',responsavel_ids:['68035537']}]:[{id:'vybe:1',nome:'Peça fictícia para verificar o painel',cliente:'Cliente demonstração',clientes:['Cliente demonstração'],
       formato:'Card',prazo_iso:hoje,veiculacao_iso:hoje,status_chave:'a_fazer',grupo:'Redação',grupo_id:'group_title',
       responsavel_ids:['68035537'],updated_at:new Date().toISOString()}];
+    // A demonstração responde como o servidor de verdade também na leitura
+    // incremental: sem isto, o ambiente local só exercitaria o plano B — a
+    // releitura inteira — e o caminho que roda quatro vezes por minuto em
+    // produção nunca seria visto antes de chegar lá.
+    const assinatura='demonstracao-conjunto-fixo';
+    if(url.searchParams.get('desde')) {
+      const mesmo=url.searchParams.get('assinatura')===assinatura;
+      return reply(200,{ok:true,incremental:true,board_id:demanda?8385559107:7829537690,
+        gerado_em:new Date().toISOString(),assinatura,total_no_recorte:itens.length,
+        mudou:!mesmo,itens:mesmo?[]:itens,...(mesmo?{}:{ids:itens.map(i=>i.id)})});
+    }
     return reply(200,{ok:true,board_id:demanda?8385559107:7829537690,
-      total:itens.length,gerado_em:new Date().toISOString(),status:[{chave:'a_fazer',rotulo:'A Fazer',cor:'#579bfc',borda:'#579bfc',monday_index:0}],
+      total:itens.length,gerado_em:new Date().toISOString(),assinatura,total_no_recorte:itens.length,
+      status:[{chave:'a_fazer',rotulo:'A Fazer',cor:'#579bfc',borda:'#579bfc',monday_index:0}],
       captacao:[],opcoes:[],pessoas:[{id:'68035537',nome:'Operador de teste'}],itens});
   }
   if(url.pathname==='/api/painel'){
