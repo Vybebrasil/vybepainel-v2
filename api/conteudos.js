@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     }
 
     const desde = validaDesde(req.query?.desde);
-    if (desde === false) return res.status(400).json({ error: 'Parâmetro "desde" precisa ser uma data ISO.' });
+    if (desde === false) return res.status(400).json({ error: 'Parâmetro "desde" precisa ser uma data ISO válida, não futura.' });
 
     // ── leitura inteira: o primeiro carregamento, e o refúgio de qualquer dúvida ──
     if (!desde) {
@@ -85,11 +85,13 @@ export default async function handler(req, res) {
 
 // Data no futuro ou texto sem sentido faria a leitura devolver uma lista vazia e
 // a tela concluir que nada mudou — para sempre. Melhor recusar na porta.
-function validaDesde(bruto) {
+export function validaDesde(bruto, agora = Date.now()) {
   const texto = String(bruto || '').trim();
   if (!texto) return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(texto)) return false;
   const data = new Date(texto);
-  if (Number.isNaN(data.getTime())) return false;
+  if (Number.isNaN(data.getTime()) || data.getTime() > agora) return false;
+  if (data.toISOString().slice(0, 19) !== texto.slice(0, 19)) return false;
   return data.toISOString();
 }
 

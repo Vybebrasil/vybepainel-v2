@@ -51,9 +51,15 @@ const PAPEIS = {
 // de código. Isso é cadastro, não código: passa a viver em vybe_clientes.ativo.
 const CLIENTES_INATIVOS = new Set(["acquaville","blog ace","camarote sertão","camarote sertao","cavaco de pau","comunidade facilite entre mães","comunidade facilite entre maes","comunidade fora da curva","daniela filgueira","dialab","dogrun","facilite aprender","feijão panela de ouro","feijao panela de ouro","gyn protect","igor r. lopes","igor r lopes","lucas deotti","vila real","vybe","armazém container","armazem container","fa","psi - jaine","psi jaine"]);
 
+let conexaoAtual;
+let enderecoAtual;
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
-  return neon(process.env.DATABASE_URL);
+  if (enderecoAtual !== process.env.DATABASE_URL) {
+    enderecoAtual = process.env.DATABASE_URL;
+    conexaoAtual = neon(enderecoAtual);
+  }
+  return conexaoAtual;
 }
 
 function chaveStatus(rotulo) {
@@ -601,13 +607,12 @@ export async function resumo() {
 // equipe vem justamente dessa resposta, elas sumiram de todas as telas de uma
 // vez — o sintoma ficou longe da causa.
 //
-// A leitura mais quente do sistema garante o proprio esquema, uma vez por
-// processo. Os UPDATE so tocam linhas ainda nulas.
-let colunasDeEtiquetaProntas = false;
+// A leitura verifica o esquema por conexão; a migração administrativa prepara as colunas.
+const colunasDeEtiquetaProntas = new WeakSet();
 // A consulta da lista nomeia material_bruto, e uma coluna que ainda nao existe
 // derruba a consulta inteira — ou seja, o painel todo, nao o campo novo. Ela e
-// garantida na LEITURA por isso, e nao so no schema: quem le e quem paga o preco.
-let materialBrutoPronto = false;
+// verificada na leitura para indicar um esquema incompleto antes da consulta.
+const materialBrutoPronto = new WeakSet();
 // ── o recorte, escrito uma vez só ─────────────────────────────────────────────
 //
 // QUEM APARECE NO PAINEL É UMA REGRA, E REGRA REPETIDA VIRA DUAS REGRAS.
@@ -641,24 +646,34 @@ export async function aplicarRecorteECarimbo(sql) {
   await garantirCarimboDeMudanca(sql);
 }
 
-// DOZE COMANDOS DE DDL NAO PODEM FICAR NO CAMINHO DE UMA LEITURA.
-//
-// O sinalizador vale por PROCESSO, e cada instancia nova da funcao comeca do
-// zero: sem esta conferencia, toda partida fria mandava doze comandos de criacao
-// antes de responder qualquer coisa. Foi o que produziu o unico 500 do deploy —
-// e uma leitura que so depende de uma consulta nao pode ter doze escritas de
-// esquema na frente dela.
-//
-// Agora a partida fria custa UMA consulta barata. E se a criacao falhar, o
-// sinalizador continua falso: a proxima tentativa refaz, em vez de seguir com
-// meia estrutura de pe.
-let recortePronto = false;
+// Leituras verificam o esquema; alterações pertencem à migração explícita.
+// Cada conexão tem seu próprio cache, preenchido apenas após a conferência completa.
+const recortesProntos = new WeakSet();
 export async function garantirRecorte(sql) {
-  if (recortePronto) return;
-  const [ja] = await sql`SELECT to_regclass('public.vybe_conteudos_recorte') IS NOT NULL AS visao,
-    EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'carimbo_de_mudanca') AS gatilhos`;
-  if (!ja?.visao || !ja?.gatilhos) await aplicarRecorteECarimbo(sql);
-  recortePronto = true;
+  if (recortesProntos.has(sql)) return;
+  const [estado] = await sql`SELECT
+    to_regclass('public.vybe_conteudos_recorte') IS NOT NULL AS visao,
+    NOT EXISTS (
+      SELECT 1 FROM (VALUES
+        ('vybe_conteudo_responsaveis', 'vybe_carimba_pela_conteudo_id'),
+        ('vybe_conteudo_editores', 'vybe_carimba_pela_conteudo_id'),
+        ('vybe_conteudo_clientes', 'vybe_carimba_pela_conteudo_id'),
+        ('vybe_conteudo_updates', 'vybe_carimba_pela_conteudo_id'),
+        ('vybe_subitens', 'vybe_carimba_pela_pai_id'),
+        ('vybe_clientes', 'vybe_carimba_pelo_cliente')
+      ) AS esperado(tabela, funcao)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE t.tgrelid = to_regclass('public.' || esperado.tabela)
+          AND t.tgname = 'carimbo_de_mudanca' AND NOT t.tgisinternal
+          AND t.tgenabled IN ('O', 'A') AND n.nspname = 'public'
+          AND p.proname = esperado.funcao
+          AND t.tgtype = CASE WHEN esperado.tabela = 'vybe_clientes' THEN 17 ELSE 29 END
+      )
+    ) AS gatilhos`;
+  if (!estado?.visao || !estado?.gatilhos) throw new Error('Esquema de leitura incompleto. Execute npm run db:migrate antes da publicação.');
+  recortesProntos.add(sql);
 }
 
 // ── o carimbo de "esta peça mudou" ────────────────────────────────────────────
@@ -716,20 +731,48 @@ export async function garantirCarimboDeMudanca(sql) {
 }
 
 export async function garantirMaterialBruto(sql) {
-  if (materialBrutoPronto) return;
-  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto TEXT`;
-  await sql`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto_em TIMESTAMPTZ`;
-  materialBrutoPronto = true;
+  if (materialBrutoPronto.has(sql)) return;
+  const [r] = await sql`SELECT COUNT(*)::int AS total FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'vybe_conteudos'
+      AND column_name IN ('material_bruto', 'material_bruto_em')`;
+  if (r?.total !== 2) throw new Error('Colunas de material ausentes. Execute npm run db:migrate.');
+  materialBrutoPronto.add(sql);
 }
 
 async function garantirColunasDeEtiqueta(sql) {
-  if (colunasDeEtiquetaProntas) return;
-  await sql`ALTER TABLE vybe_status   ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
-  await sql`ALTER TABLE vybe_opcoes   ADD COLUMN IF NOT EXISTS ordem INT`;
-  await sql`ALTER TABLE vybe_captacao ADD COLUMN IF NOT EXISTS ordem INT`;
-  await sql`UPDATE vybe_opcoes   SET ordem = indice       WHERE ordem IS NULL`;
-  await sql`UPDATE vybe_captacao SET ordem = monday_index WHERE ordem IS NULL`;
-  colunasDeEtiquetaProntas = true;
+  if (colunasDeEtiquetaProntas.has(sql)) return;
+  const [r] = await sql`SELECT COUNT(*)::int AS total FROM information_schema.columns
+    WHERE table_schema = 'public' AND
+      ((table_name = 'vybe_status' AND column_name = 'ativa') OR
+       (table_name IN ('vybe_opcoes', 'vybe_captacao') AND column_name = 'ordem'))`;
+  if (r?.total !== 3) throw new Error('Colunas de etiquetas ausentes. Execute npm run db:migrate.');
+  colunasDeEtiquetaProntas.add(sql);
+}
+
+// Executado somente pelo comando administrativo db:migrate, nunca por uma leitura.
+export async function migrarEsquemaDeLeitura(sql) {
+  // Reúne o DDL para que a troca dos gatilhos e das colunas seja atômica.
+  const comandos = [];
+  const registrar = (partes, ...params) => {
+    const texto = partes.reduce((s, p, i) => s + (i ? '$' + i : '') + p, '');
+    comandos.push({ texto, params });
+  };
+  registrar.query = (texto, params = []) => { comandos.push({ texto, params }); };
+  await registrar`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto TEXT`;
+  await registrar`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto_em TIMESTAMPTZ`;
+  await registrar`ALTER TABLE vybe_status ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
+  await registrar`ALTER TABLE vybe_opcoes ADD COLUMN IF NOT EXISTS ordem INT`;
+  await registrar`ALTER TABLE vybe_captacao ADD COLUMN IF NOT EXISTS ordem INT`;
+  await registrar`UPDATE vybe_opcoes SET ordem = indice WHERE ordem IS NULL`;
+  await registrar`UPDATE vybe_captacao SET ordem = monday_index WHERE ordem IS NULL`;
+  await aplicarRecorteECarimbo(registrar);
+  await sql.transaction(comandos.map(({ texto, params }) => sql.query(texto, params)));
+  recortesProntos.delete(sql);
+  materialBrutoPronto.delete(sql);
+  colunasDeEtiquetaProntas.delete(sql);
+  await garantirRecorte(sql);
+  await garantirMaterialBruto(sql);
+  await garantirColunasDeEtiqueta(sql);
 }
 
 // ── os catálogos, num lugar só ────────────────────────────────────────────────
@@ -788,7 +831,7 @@ export async function catalogosDoQuadro(boardId = BOARD_PRODUCAO, { sql = databa
 // mudou" nunca responde sozinho: o que DEIXOU de existir. Enquanto ela nao muda,
 // nenhuma peca entrou nem saiu, e a tela pode confiar na lista que ja tem.
 //
-// Os cinco minutos de sobreposicao existem porque NOW() e o inicio da transacao:
+// Os cinco segundos de sobreposicao existem porque NOW() e o inicio da transacao:
 // uma escrita confirmada logo depois da consulta carrega um carimbo anterior ao
 // 'gerado_em' que acabamos de devolver, e sem a folga ela cairia no vao entre
 // duas leituras — para sempre. Reler alguns segundos e barato; perder uma

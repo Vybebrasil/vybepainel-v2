@@ -19,15 +19,17 @@ const asset = async (code, ext, prefixo='painel') => {
   return `/assets/${nome}`;
 };
 const estilo = await asset(css.code, 'css');
+const appearance = await transform(await readFile('vybe-appearance.css','utf8'), { loader: 'css', minify: true });
+const appearancePath = await asset(appearance.code, 'css', 'appearance');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
   [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,''))])));
 html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
   (_,fonte) => `<script defer src="${caminhos.get(fonte)}"></script>`);
-html = html.replace('/vybe-styles.css', estilo);
+html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
 await writeFile('dist/index.html', html);
 // Rota de recuperação já utilizada pelo módulo de cadastros.
 await writeFile('dist/cadastros_governed_v2.js', (await transform(await readFile('cadastros_governed_v2.js','utf8'),
   { minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: false })).code);
-console.log(`Build: HTML ${Buffer.byteLength(html)} B, JS ${modulos.reduce((n,m)=>n+Buffer.byteLength(m.code),0)} B (${modulos.length} módulos), CSS ${Buffer.byteLength(css.code)} B.`);
+console.log(`Build: HTML ${Buffer.byteLength(html)} B, JS ${modulos.reduce((n,m)=>n+Buffer.byteLength(m.code),0)} B (${modulos.length} módulos), CSS ${Buffer.byteLength(css.code) + Buffer.byteLength(appearance.code)} B.`);

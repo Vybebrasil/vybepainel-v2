@@ -1,9 +1,10 @@
-﻿<html lang="pt-BR"><head>
+<html lang="pt-BR"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vybe OS — Painel de Produção v2</title>
-  <link rel="stylesheet" href="/vybe-styles.css"></head>
-<body class="auth-pending">
+  <link rel="stylesheet" href="/vybe-styles.css">
+  <link rel="stylesheet" href="/vybe-appearance.css"></head>
+<body class="auth-pending vybe-desktop">
 
 <div id="loading" aria-live="polite" aria-label="Inicializando Vybe OS">
   <div class="boot-shell">
@@ -39,7 +40,7 @@
       <button type="button" class="topo-clima" id="topo-clima" onclick="usarMinhaLocalizacaoNoTopo()"></button>
       <span class="identity-quem-slot" id="identity-quem-slot"></span>
     </div>
-    <div class="identity-hero"><div class="identity-brand"><img src="/assets/vybe-branca.png" alt="Vybe" width="148" height="85"><button type="button" class="universe-toggle" aria-pressed="false" onclick="const gate=document.getElementById('mode-gate');const paused=gate.classList.toggle('universe-paused');this.setAttribute('aria-pressed',String(paused));this.textContent=paused?'Retomar animação':'Pausar animação'">Pausar animação</button></div><h2 id="workspace-title">Seu espaço de trabalho</h2><p>Escolha um módulo para acompanhar a equipe ou continuar seu trabalho.</p></div>
+    <div class="identity-hero"><div class="identity-brand"><img src="/assets/vybe-branca.png" alt="Vybe" width="148" height="85"><div class="identity-appearance-actions"><button type="button" class="appearance-button" data-open-appearance aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" stroke="none"/></svg>Aparência</button><button type="button" class="universe-toggle" aria-pressed="false" onclick="const gate=document.getElementById('mode-gate');const paused=gate.classList.toggle('universe-paused');this.setAttribute('aria-pressed',String(paused));this.textContent=paused?'Retomar animação':'Pausar animação'">Pausar animação</button></div></div><h2 id="workspace-title">Seu espaço de trabalho</h2><p>Escolha um módulo para acompanhar a equipe ou continuar seu trabalho.</p></div>
     <div class="identity-pulse" id="identity-pulse" hidden aria-hidden="true"></div>
     <div class="identity-command-grid">
       <div class="identity-network" aria-hidden="true"><i class="identity-link gestor"></i><i class="identity-link foco"></i><i class="identity-link controler"></i><i class="identity-link cadastros"></i><i class="identity-link producao"></i><i class="identity-link clientes"></i></div>
@@ -75,7 +76,7 @@
     <div class="header-left" role="button" tabindex="0" onclick="voltarAoMenu()"
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();voltarAoMenu();}"
          title="Voltar para todos os módulos" aria-label="Voltar para todos os módulos">
-      <div class="logo">V</div>
+      <div class="logo"><img src="/assets/vybe-branca.png" alt="Vybe" width="43" height="29"></div>
       <div class="header-title">
         <h1>Vybe OS — Painel de Produção</h1>
         <p id="header-sub">Operação da equipe</p>
@@ -122,6 +123,7 @@
         <div id="notif-lista" class="notif-lista"></div>
       </div>
     </div>
+    <button type="button" class="appearance-button" data-open-appearance aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" stroke="none"/></svg>Aparência</button>
     <button class="btn-refresh" id="btn-refresh" onclick="refreshData()">
       <span id="refresh-icon">↻</span> Atualizar Dados
     </button>
@@ -565,4 +567,5 @@
 
 
 <script src="/vybe-stations.js"></script>
+<script src="/vybe-appearance.js"></script>
 </body></html>
