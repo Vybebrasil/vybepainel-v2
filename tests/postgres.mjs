@@ -14,7 +14,7 @@ export function conexao() {
   // DDL nao aceita parametro. sql.query e a porta que ele mesmo oferece para
   // isso — o dublê precisa ter a mesma porta, senao o teste passa por um caminho
   // que a producao nao usa.
-  sql.query=(text,params=[])=>db.query(text,params).then((r)=>r.rows);
+  sql.query=(text,params=[])=>({text,params,then(resolve,reject){return db.query(text,params).then((r)=>r.rows).then(resolve,reject);}});
   sql.transaction=(queries)=>db.transaction(async(tx)=>{
     const out=[];for(const q of queries)out.push((await tx.query(q.text,q.params)).rows);return out;
   });

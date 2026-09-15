@@ -10,6 +10,7 @@
     "esbuild": "^0.28.2"
   },
   "scripts": {
+    "db:migrate": "node scripts/migrate-read-schema.mjs",
     "dev": "node scripts/dev-server.mjs",
     "test": "node --test tests/*.test.mjs",
     "build": "node scripts/build.mjs",

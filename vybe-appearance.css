@@ -1,0 +1,214 @@
+/* Aparência compartilhada. Estrutura e estados operacionais continuam nos módulos. */
+:root {
+  color-scheme: dark;
+  --mac-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --glass-opacity: .84;
+  --workspace-accent: #ff984f;
+  --bg: #101116;
+  --surface: #1c1e25;
+  --surface2: #262932;
+  --border: #ffffff20;
+  --text: #f5f5f7;
+  --text-muted: #b2b5c0;
+  --glass: rgb(31 33 42 / var(--glass-opacity));
+  --glass-edge: #ffffff24;
+  --glass-highlight: inset 0 1px 0 #ffffff1f;
+  --shadow-window: 0 24px 70px #0006, 0 2px 8px #0003;
+  --radius-control: 10px;
+  --radius-panel: 20px;
+  --curva: cubic-bezier(.22, 1, .36, 1);
+}
+body.vybe-desktop {
+  background: radial-gradient(ellipse at 0 0, #8e401b45, transparent 52%),
+    radial-gradient(ellipse at 100% 60%, #7163b722, transparent 55%), #101116 !important;
+  background-attachment: fixed !important;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  accent-color: var(--workspace-accent);
+}
+.vybe-desktop :is(button, input, select, textarea) { font-family: var(--mac-ui); }
+.vybe-desktop :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #ffb678 !important; outline-offset: 3px;
+}
+.vybe-desktop button { -webkit-tap-highlight-color: transparent; }
+.vybe-desktop button:disabled { cursor: not-allowed; }
+.vybe-desktop ::selection { background: #ff984f55; color: white; }
+.vybe-desktop ::-webkit-scrollbar { width: 8px; height: 8px; }
+.vybe-desktop ::-webkit-scrollbar-thumb { background: #ffffff35; border: 2px solid transparent; background-clip: padding-box; border-radius: 8px; }
+
+/* Barras de ferramentas: vidro em áreas compactas, sem desfocar cada linha. */
+.vybe-desktop > header {
+  background: var(--glass) !important;
+  border: 1px solid var(--glass-edge) !important;
+  border-radius: 0 0 22px 22px;
+  padding: 18px 26px 16px !important;
+  box-shadow: var(--glass-highlight), 0 8px 30px #0002 !important;
+  backdrop-filter: blur(24px) saturate(1.35);
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+}
+.vybe-desktop .header-title h1 { font-size: 17px !important; letter-spacing: -.035em; }
+.vybe-desktop .header-title p { color: var(--text-muted) !important; font-size: 12px !important; }
+.vybe-desktop .header-left { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.vybe-desktop .logo { width: 52px; height: 46px; border-radius: 13px; background: linear-gradient(145deg,#ffab61,#e86a25) !important; animation: none !important; box-shadow: inset 0 1px 0 #ffffff60,0 4px 14px #ff7b2420 !important; }
+.vybe-desktop .logo img { width: 43px; height: 29px; object-fit: contain; }
+.vybe-desktop .board-switch-bar {
+  max-width: 100%; min-width: 0; padding: 4px !important; gap: 3px !important;
+  border-radius: 14px !important; border: 1px solid #ffffff16 !important;
+  background: #0d0e143d !important; overflow-x: auto;
+}
+.vybe-desktop .board-switch-btn {
+  min-height: 36px; border-radius: 10px !important; padding: 8px 12px !important;
+  font-size: 12px !important; font-weight: 500 !important; color: #bec2cd !important;
+  background: transparent !important; border: 0 !important; white-space: nowrap;
+  transition: background .2s, color .2s, box-shadow .2s !important;
+}
+.vybe-desktop .board-switch-btn:hover { background: #ffffff0d !important; color: white !important; }
+.vybe-desktop .board-switch-btn.active {
+  color: #fff !important; background: color-mix(in srgb,var(--workspace-accent) 26%,#30313b) !important;
+  box-shadow: inset 0 1px 0 #ffffff30,0 2px 7px #0003 !important;
+}
+.vybe-desktop :is(.mes-nav,.badge,.quem-sou-btn,.mode-switch-btn,.notif-sino,.btn-refresh,.appearance-button) {
+  border-radius: 11px !important; border: 1px solid #ffffff20 !important;
+  background: #ffffff08 !important; color: #daddE6 !important; box-shadow: var(--glass-highlight) !important;
+}
+.vybe-desktop :is(.mode-switch-btn,.btn-refresh,.appearance-button) { min-height: 34px; padding: 7px 11px; font-size: 12px !important; font-weight: 500 !important; }
+.vybe-desktop .btn-refresh { color: #ffbe8b !important; background: #ff984f13 !important; }
+.appearance-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; white-space: nowrap; }
+.appearance-button svg { width: 16px; height: 16px; }
+
+/* Painéis: uma escala de superfícies para todas as áreas da operação. */
+.vybe-desktop :is(.client-card,.demanda-group-card,.dem-cartao,.auto-regra,.kpi-card,
+  .client-source-card,.client-master-detail-card,.prod-v2-card,.p-cal-card,.fc-preview-card,
+  .conta-secao,.focus-hero,.focus-next,.focus-metric,.da-member-card,
+  .ai-usage-metric,.ai-usage-block,.ai-usage-settings,.perf-kpi,.perf-type-card,.perf-chart-card) {
+  border-radius: var(--radius-panel) !important; border-color: var(--glass-edge) !important;
+  background: linear-gradient(145deg,#ffffff06,transparent 65%),var(--surface) !important;
+  box-shadow: var(--glass-highlight),0 5px 20px #0002 !important;
+}
+.vybe-desktop :is(.client-header,.demanda-group-header,.dem-cartao-topo,.auto-regra-topo,
+  .conta-secao-topo,.cli-bloco-cabeca,.workspace-section-head,.fc-prev-head) {
+  background: #ffffff04 !important; border-color: #ffffff12 !important; color: #e6e8ee !important;
+}
+.vybe-desktop .client-header { padding: 15px 16px !important; gap: 12px; flex-wrap: wrap; }
+.vybe-desktop .client-name { letter-spacing: -.015em; font-weight: 600 !important; }
+.vybe-desktop .day-header-actions { flex-wrap: wrap; gap: 8px; }
+.vybe-desktop .day-summary-btn { border-radius: 9px !important; min-height: 30px; padding: 5px 9px !important; font-weight: 500 !important; }
+.vybe-desktop .day-add-btn { background: #ff984f15 !important; border-color: #ffb57945 !important; color: #ffc798 !important; }
+.vybe-desktop .dia-vazio { background: #ffffff03 !important; border-style: dashed !important; box-shadow: none !important; }
+.vybe-desktop .dia-vazio-recado { color: #a1a6b2 !important; }
+.vybe-desktop :is(.item-row,.dia-item) { border-bottom-color: #ffffff0b !important; transition: background-color .16s !important; }
+.vybe-desktop :is(.item-row,.dia-item):hover { background-color: #ffffff07 !important; }
+.vybe-desktop :is(#compact-summary,.ops-toolbar,.ops-hub) {
+  background: linear-gradient(115deg,#ffffff08,transparent),#1b1d25 !important;
+  border: 1px solid var(--glass-edge) !important; border-radius: 20px !important;
+  box-shadow: var(--glass-highlight) !important;
+}
+.vybe-desktop .tabs { gap: 5px !important; padding: 6px !important; }
+.vybe-desktop .tab-btn { border-radius: 10px !important; border-bottom: 0 !important; padding: 10px 14px !important; }
+.vybe-desktop .tab-btn.active { background: #ff984f1c !important; color: #ffc08d !important; box-shadow: inset 0 0 0 1px #ffb57925; }
+.vybe-desktop :is(.global-search,.fc-campo,.fc-busca,.cadastros-form input,.cadastros-form textarea,
+  .workspace-form-row input,.workspace-form-row select,.workspace-form-row textarea) {
+  background: #0e10188c !important; color: #f5f5f7 !important;
+  border: 1px solid #ffffff26 !important; border-radius: 10px !important;
+  box-shadow: inset 0 1px 3px #0002 !important;
+}
+.vybe-desktop input::placeholder,.vybe-desktop textarea::placeholder { color: #949aa9; opacity: 1; }
+
+/* Janelas, menus e gavetas compartilham profundidade e contraste. */
+.vybe-desktop :is(.workspace-drawer,.workflow-modal,.production-sheet,.meeting-mode-sheet,
+  .cadastros-preview-modal,.da-member-workload-modal,.fc-modal,.p-create-modal,
+  .sidebar,.status-editor,.quem-sou-menu,.notif-caixa,.cli-acoes-modal,.appearance-dialog) {
+  background: var(--glass) !important; color: var(--text) !important;
+  border: 1px solid #ffffff30 !important; border-radius: 22px !important;
+  box-shadow: var(--glass-highlight),var(--shadow-window) !important;
+  backdrop-filter: blur(28px) saturate(1.4); -webkit-backdrop-filter: blur(28px) saturate(1.4);
+}
+.vybe-desktop .workspace-drawer { top: 12px; bottom: 12px; right: 12px; width: min(660px,calc(100vw - 24px)); }
+.vybe-desktop :is(.workspace-backdrop,.workflow-backdrop,.production-sheet-overlay,.cadastros-preview-overlay) {
+  background: #090a104d !important; backdrop-filter: blur(5px) !important;
+}
+.vybe-desktop :is(.workspace-close,.workflow-close,.fc-close,.p-draw-close) {
+  border-radius: 50% !important; min-width: 30px; min-height: 30px; background: #ffffff10 !important; color: #dce0e8 !important;
+}
+.vybe-desktop :is(.workspace-section,.auto-passo,.fc-item) { border-radius: 13px !important; border-color: #ffffff17 !important; }
+.vybe-desktop :is(.workspace-action,.fc-escolha,.auto-sincronizar,.auto-novo,.production-control-btn) { border-radius: 10px !important; }
+.vybe-desktop #toast { background: var(--glass) !important; border-radius: 14px !important; box-shadow: var(--shadow-window) !important; backdrop-filter: blur(20px); }
+
+/* A entrada preserva a cor individual e a iluminação reativa. */
+.vybe-desktop #mode-gate .identity-shell {
+  background: rgb(26 27 36 / var(--glass-opacity)) !important;
+  border-radius: 30px !important; border-color: #ffffff2c !important;
+  backdrop-filter: blur(26px) saturate(1.25); -webkit-backdrop-filter: blur(26px) saturate(1.25);
+  box-shadow: var(--glass-highlight),var(--shadow-window) !important;
+}
+.vybe-desktop #mode-gate .identity-topline { background: #ffffff06 !important; }
+.vybe-desktop #mode-gate .identity-station[data-station] {
+  border-radius: 22px !important;
+  background: linear-gradient(145deg,color-mix(in srgb,var(--station-color) 17%,#292b35),#20222cec) !important;
+  border-color: color-mix(in srgb,var(--station-color) 32%,#ffffff18) !important;
+  box-shadow: inset 0 1px 0 #ffffff16,0 8px 24px #0002 !important;
+  transition: transform .3s var(--curva),box-shadow .3s,border-color .3s !important;
+}
+.vybe-desktop #mode-gate .identity-station[data-station]:is(:hover,:focus-visible) {
+  transform: translateY(-5px) !important; border-color: var(--station-color) !important;
+  box-shadow: inset 0 1px 0 #ffffff30,0 16px 38px #0004,0 0 35px color-mix(in srgb,var(--station-color) 18%,transparent) !important;
+}
+.vybe-desktop #mode-gate .identity-station .station-icon {
+  width: 44px !important; height: 44px !important; border-radius: 13px !important;
+  box-shadow: inset 0 1px 0 #ffffff25,0 4px 12px #0002 !important;
+}
+.vybe-desktop #mode-gate .focus-picker { background: #ffffff03 !important; border-radius: 22px !important; }
+.vybe-desktop #mode-gate .focus-user-card { border-radius: 17px !important; box-shadow: inset 0 1px 0 #ffffff15 !important; }
+.identity-appearance-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+
+/* Preferências locais de vidro e movimento, acessíveis também pelo teclado. */
+.appearance-dialog { padding: 26px; margin: auto; width: min(430px,calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.appearance-dialog::backdrop { background: #07081066; backdrop-filter: blur(6px); }
+.appearance-dialog form { display: grid; gap: 24px; }
+.appearance-dialog header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0; border: 0; background: none; box-shadow: none; }
+.appearance-dialog h2 { font-size: 21px; letter-spacing: -.03em; }
+.appearance-dialog header button { border: 0; border-radius: 50%; width: 30px; height: 30px; background: #ffffff12; color: white; cursor: pointer; }
+.appearance-dialog p { color: var(--text-muted); font-size: 13px; }
+.appearance-field { display: grid; gap: 10px; font-size: 13px; }
+.appearance-range-label { display: flex; justify-content: space-between; align-items: center; }
+.appearance-field input[type=range] { width: 100%; accent-color: #ff984f; }
+.appearance-field small { color: var(--text-muted); font-size: 12px; }
+.appearance-check { display: flex; align-items: center; gap: 10px; }
+.appearance-check input { width: 18px; height: 18px; }
+.appearance-done { min-height: 38px; border: 1px solid #ffc18a66; border-radius: 11px; background: #a74d20; color: white; font: 600 13px var(--mac-ui); cursor: pointer; }
+.vybe-desktop .appearance-dialog > form > header { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head,.conta-tela,.login-caixa) {
+  background: linear-gradient(125deg,#ffffff07,transparent),var(--surface) !important;
+  border: 1px solid var(--glass-edge) !important; border-radius: 22px !important;
+  box-shadow: var(--glass-highlight),0 8px 28px #0002 !important;
+}
+.vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head) { padding: 22px !important; }
+.vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 20px 0 0 20px; }
+.vybe-desktop .conta-aba { border-radius: 10px !important; }
+.vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
+.vybe-desktop :is(.auto-sub,.conta-secao-topo p,.client-module-hero p,.workspace-empty,.workspace-section-body p) { color: var(--text-muted) !important; }
+.vybe-desktop .workspace-actions { background: #ffffff04 !important; border-radius: 13px; }
+.vybe-desktop #login-gate { background: radial-gradient(ellipse at 15% 20%,#a44c283b,transparent 60%),#15161e !important; }
+.vybe-desktop .login-caixa { background: var(--glass) !important; backdrop-filter: blur(24px); }
+.vybe-desktop :is(.workspace-drawer,.appearance-dialog[open],.fc-modal,.p-create-modal) { animation: glass-window-in .28s var(--curva) both; }
+@keyframes glass-window-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-transparency: reduce) { :root { --glass-opacity: 1 !important; } }
+@media (prefers-contrast: more) { :root { --glass-opacity: 1 !important; --glass-edge: #ffffff65; --text-muted: #d4d7df; } }
+@media (prefers-reduced-motion: reduce) {
+  .vybe-desktop *, .vybe-desktop *::before, .vybe-desktop *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+.vybe-desktop[data-motion=reduce] *, .vybe-desktop[data-motion=reduce] *::before,
+.vybe-desktop[data-motion=reduce] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+@media (max-width: 760px) {
+  .vybe-desktop .ops-segmentos { display: flex !important; flex-wrap: wrap !important; width: 100%; min-width: 0 !important; max-width: 100%; }
+  .vybe-desktop .ops-segmentos > button { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important; max-width: 100%; }
+  .vybe-desktop > header { padding: 14px !important; border-radius: 0 0 18px 18px; }
+  .vybe-desktop .header-row1 { min-width: 0; }
+  .vybe-desktop .board-switch-bar { width: 100%; flex-basis: 100%; }
+  .vybe-desktop .header-title h1 { font-size: 15px !important; }
+  .vybe-desktop .container { padding: 16px 12px 70px !important; }
+  .vybe-desktop .workspace-drawer { top: 6px; bottom: 6px; right: 6px; width: calc(100vw - 12px); padding: 18px; }
+  .vybe-desktop .client-header { padding: 12px !important; }
+  .vybe-desktop #mode-gate .identity-shell { border-radius: 22px !important; }
+  .identity-appearance-actions { max-width: 200px; }
+}
