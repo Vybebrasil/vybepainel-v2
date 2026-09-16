@@ -79,7 +79,7 @@ body.vybe-desktop {
 /* Painéis: uma escala de superfícies para todas as áreas da operação. */
 .vybe-desktop :is(.client-card,.demanda-group-card,.dem-cartao,.auto-regra,.kpi-card,
   .client-source-card,.client-master-detail-card,.prod-v2-card,.p-cal-card,.fc-preview-card,
-  .conta-secao,.focus-hero,.focus-next,.focus-metric,.da-member-card,
+  .conta-secao,.focus-next,.da-member-card,
   .ai-usage-metric,.ai-usage-block,.ai-usage-settings,.perf-kpi,.perf-type-card,.perf-chart-card) {
   border-radius: var(--radius-panel) !important; border-color: var(--glass-edge) !important;
   background: linear-gradient(145deg,#ffffff06,transparent 65%),var(--surface) !important;
@@ -160,6 +160,99 @@ body.vybe-desktop {
 .vybe-desktop #mode-gate .focus-picker { background: #ffffff03 !important; border-radius: 22px !important; }
 .vybe-desktop #mode-gate .focus-user-card { border-radius: 17px !important; box-shadow: inset 0 1px 0 #ffffff15 !important; }
 .identity-appearance-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+
+/* Meu Dia: cabeçalho editorial, indicadores agrupados e uma ação principal.
+   Não aplicar a superfície genérica de cartão ao título ou às células métricas. */
+.vybe-desktop .focus-dashboard { max-width: 1120px; min-width: 0; }
+.vybe-desktop .focus-dashboard > .focus-hero {
+  display: flex; flex-wrap: wrap; align-items: center !important;
+  gap: 24px !important; padding: 16px 0 8px !important;
+  border: 0 !important; border-radius: 0 !important;
+  background: transparent !important; box-shadow: none !important;
+}
+.vybe-desktop .focus-hero > div:first-child { flex: 1 1 320px; min-width: 0; }
+.vybe-desktop .focus-hero-title {
+  font: 600 clamp(24px,2.2vw,28px)/1.22 var(--mac-ui) !important;
+  letter-spacing: -.025em !important; overflow-wrap: anywhere;
+}
+.vybe-desktop .focus-hero-text {
+  margin: 8px 0 0 !important; font: 400 13px/1.55 var(--mac-ui) !important;
+  color: var(--text-muted) !important; max-width: 58ch;
+}
+.vybe-desktop .focus-hero-lado { max-width: 100%; }
+.vybe-desktop .focus-metrics {
+  display: grid; grid-template-columns: repeat(4,minmax(0,1fr));
+  width: 352px; max-width: 100%; border: 1px solid var(--glass-edge);
+  background: #ffffff05; border-radius: 12px; box-shadow: none;
+}
+.vybe-desktop .focus-metrics .focus-metric {
+  min-width: 0 !important; padding: 12px 14px !important;
+  background: transparent !important; border-radius: 0 !important; box-shadow: none !important;
+}
+.vybe-desktop .focus-metrics .focus-metric strong { font: 600 22px/1.15 var(--mac-ui) !important; }
+.vybe-desktop .focus-metrics .focus-metric span {
+  font: 500 11px/1.3 var(--mac-ui) !important; letter-spacing: 0 !important;
+  text-transform: none !important; color: var(--text-muted) !important;
+}
+.vybe-desktop .focus-metrics .focus-metric.calado strong { color: #a4aab6 !important; }
+.vybe-desktop .focus-lente {
+  padding: 4px; gap: 4px; max-width: 100%; flex-wrap: wrap;
+  background: #ffffff06; border: 1px solid var(--glass-edge); border-radius: 12px;
+}
+.vybe-desktop .focus-lente-opcao {
+  min-height: 34px; padding: 7px 12px; border-radius: 8px;
+  color: #b9bec9; font: 500 13px/1.3 var(--mac-ui); letter-spacing: 0;
+}
+.vybe-desktop .focus-lente-opcao.ativa {
+  color: #fff; background: #ffffff16; box-shadow: inset 0 1px 0 #ffffff20,0 2px 5px #0003;
+}
+.vybe-desktop .focus-lente-opcao.ativa span { background: #ffffff18; color: #fff; }
+.vybe-desktop .focus-lente-opcao.vazia:not(.ativa) { opacity: 1; color: #a4aab6; }
+.vybe-desktop .focus-dashboard > .focus-next-action {
+  padding: 24px !important; border-radius: 16px !important;
+  border: 1px solid #ffffff24 !important; background: var(--surface) !important;
+  box-shadow: inset 0 1px 0 #ffffff12,0 8px 24px #0002 !important;
+}
+.vybe-desktop .focus-dashboard > .focus-next-action::before { display: none; }
+.vybe-desktop .focus-dashboard > .focus-next-action .focus-next-name {
+  font: 600 20px/1.35 var(--mac-ui) !important; overflow-wrap: anywhere;
+}
+.vybe-desktop .focus-next-quando { background: #ffffff06 !important; border-color: #ffffff18 !important; }
+.vybe-desktop .focus-next-quando.vencida { background: #ff637a0c !important; border-color: #ff637a40 !important; }
+.vybe-desktop .focus-next-btn {
+  min-height: 36px; border-radius: 9px !important; font: 500 13px/1.3 var(--mac-ui) !important;
+  letter-spacing: 0 !important; text-transform: none !important;
+  background: #ffffff09 !important; box-shadow: inset 0 1px 0 #ffffff14 !important; color: #e6e8ee !important;
+}
+.vybe-desktop .focus-next-btn.primary {
+  background: #ff984f !important; color: #281508 !important; border: 1px solid #ffbc88 !important;
+}
+.vybe-desktop .focus-next-btn:hover { filter: brightness(1.1); }
+.vybe-desktop .focus-command-btn {
+  min-height: 34px; padding: 7px 12px !important; border-radius: 9px !important;
+  font: 500 13px/1.3 var(--mac-ui) !important; letter-spacing: 0 !important;
+  background: #ffffff08 !important; border: 1px solid #ffffff20 !important; color: #dce0e8 !important;
+}
+.vybe-desktop .focus-daily-plan-head > div > span { font: 600 14px/1.4 var(--mac-ui) !important; }
+.vybe-desktop .focus-daily-plan-row > span { color: #b2b5c0 !important; }
+.vybe-desktop .focus-priority-control-note {
+  display: block; font: 400 12px/1.5 var(--mac-ui) !important;
+  letter-spacing: 0 !important; color: var(--text-muted) !important;
+}
+.vybe-desktop .focus-dashboard > .focus-section {
+  border: 1px solid #ffffff16 !important; background: var(--surface) !important;
+  box-shadow: none !important;
+}
+.vybe-desktop .focus-section-head { font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important; }
+.vybe-desktop .focus-task-client { text-transform: none !important; letter-spacing: 0 !important; font-weight: 500 !important; font-size: 12px !important; }
+.vybe-desktop .focus-empty { color: var(--text-muted); padding: 32px 20px; font-size: 14px; }
+@media (max-width: 760px) {
+  .vybe-desktop .focus-hero > div:first-child { flex-basis: auto; }
+  .vybe-desktop .focus-hero-lado, .vybe-desktop .focus-metrics { width: 100%; }
+  .vybe-desktop .focus-dashboard > .focus-hero { gap: 18px !important; padding-top: 8px !important; }
+  .vybe-desktop .focus-metrics .focus-metric { padding: 12px 6px !important; }
+  .vybe-desktop .focus-dashboard > .focus-next-action { padding: 18px !important; }
+}
 
 /* Preferências locais de vidro e movimento, acessíveis também pelo teclado. */
 .appearance-dialog { padding: 26px; margin: auto; width: min(430px,calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
