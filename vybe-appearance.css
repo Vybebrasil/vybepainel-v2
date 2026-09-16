@@ -350,6 +350,10 @@ body.vybe-desktop {
 .spotlight-button kbd { margin-left: 2px; padding: 1px 6px; border: 1px solid #ffffff2e; border-radius: 6px; background: #ffffff10; color: var(--text-muted); font: 500 11px var(--mac-ui); }
 .spotlight-dialog { padding: 0; margin: 11vh auto auto; width: min(720px, calc(100vw - 32px)); max-height: min(660px, calc(100dvh - 14vh)); overflow: hidden; color: var(--text); }
 .spotlight-dialog[open] { display: flex; flex-direction: column; }
+/* Só a lista rola e encolhe. Sem isto, uma busca com muitos resultados espremia
+   a faixa dos chips até cortar o texto — com 101 peças do mesmo cliente ela
+   ficava com 32 px para um conteúdo de 50. */
+.spotlight-campo, .spotlight-abas, .spotlight-rodape { flex: 0 0 auto; }
 .spotlight-dialog::backdrop { background: #0708103d; backdrop-filter: blur(3px); }
 .spotlight-campo { display: flex; align-items: center; gap: 12px; padding: 18px 22px 16px; border-bottom: 1px solid var(--glass-edge); }
 .spotlight-campo:focus-within { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--workspace-accent) 75%, transparent); }
