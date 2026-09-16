@@ -1,3 +1,4 @@
+import { substituirClientes } from '../server/clientes-conteudo.js';
 import { substituirResponsaveis } from '../server/responsaveis.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
 //
@@ -832,6 +833,27 @@ export default async function handler(req, res) {
 
   try {
     const sql = database();
+    if (acao === 'clientes_opcoes' || acao === 'clientes') {
+      const c = (await sql`SELECT id FROM vybe_conteudos
+        WHERE monday_item_id=${String(item)} OR id=${referenciaLocal(item)}`)[0];
+      if (!c) return res.status(404).json({ error: 'Atividade não encontrada.' });
+      if (acao === 'clientes_opcoes') {
+        const clientes = await sql`SELECT cl.id::text AS id, cl.nome, cl.ativo,
+          EXISTS(SELECT 1 FROM vybe_conteudo_clientes cc
+            WHERE cc.conteudo_id=${c.id} AND cc.cliente_id=cl.id) AS selecionado
+          FROM vybe_clientes cl WHERE cl.ativo OR EXISTS(SELECT 1 FROM vybe_conteudo_clientes cc
+            WHERE cc.conteudo_id=${c.id} AND cc.cliente_id=cl.id) ORDER BY cl.nome`;
+        return res.status(200).json({ ok: true, clientes });
+      }
+      try {
+        const resultado = await substituirClientes(sql, { conteudoId: c.id,
+          clientes: corpo.clientes, autorId: await pessoaDaSessao(sql, quem) });
+        return res.status(200).json({ ok: true, ...resultado });
+      } catch (erro) {
+        if (/Selecione|inexistentes ou inativos/.test(erro.message)) return res.status(400).json({ error: erro.message });
+        throw erro;
+      }
+    }
     if (acao === 'status') {
       if (!corpo.para) return res.status(400).json({ error: 'Informe o status de destino.' });
       return res.status(200).json({ ok: true, acao, ...(await trocarStatus(sql, quem, { item, para: corpo.para })) });

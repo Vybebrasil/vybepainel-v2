@@ -287,7 +287,7 @@ function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
     // dela); managerCalendarSourceFilter continua sendo a escolha da pessoa.
     if (apenas && item.calendarSource !== apenas) return false;
     if (managerCalendarSourceFilter !== 'all' && item.calendarSource !== managerCalendarSourceFilter) return false;
-    if (!ignorarCliente && managerCalendarClientFilter !== 'all' && item.cliente !== managerCalendarClientFilter) return false;
+    if (!ignorarCliente && managerCalendarClientFilter !== 'all' && !itemTemCliente(item, managerCalendarClientFilter)) return false;
     return Boolean(item.calendarDateIso);
   });
 }
@@ -376,9 +376,10 @@ function managerCalendarClientList(allItems, meta) {
   const noMes = new Set(meta.cells.map(cell => cell.iso));
   const counts = new Map();
   allItems.forEach(item => {
-    const cliente = item.cliente || '—';
-    const atual = counts.get(cliente) || 0;
-    counts.set(cliente, atual + (noMes.has(item.calendarDateIso) ? 1 : 0));
+    clientesDoItem(item).forEach(cliente => {
+      const atual = counts.get(cliente) || 0;
+      counts.set(cliente, atual + (noMes.has(item.calendarDateIso) ? 1 : 0));
+    });
   });
   return [...counts.entries()]
     .filter(([client]) => clienteApareceNaLista(client))
@@ -612,6 +613,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       title="Clique para renomear aqui mesmo">${safeText(item.nome || 'Sem título')}</div>
     <div class="cr-campos">
       ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
+      ${linha('Clientes', botaoClientesDoItem(item))}
       ${linha('Grupo', botaoDeGrupo(item))}
       ${linha('Responsável', vybeDono(item))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
@@ -897,7 +899,7 @@ function renderManagerCalendar(forcar = false) {
   const semRecorte = managerCalendarItems({ ignorarCliente: true });
   const allItems = managerCalendarClientFilter === 'all'
     ? semRecorte
-    : semRecorte.filter(item => item.cliente === managerCalendarClientFilter);
+    : semRecorte.filter(item => itemTemCliente(item, managerCalendarClientFilter));
   const monthItems = allItems.filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso));
   const clients = managerCalendarClientList(semRecorte, meta);
   const grouped = new Map();
@@ -991,8 +993,8 @@ function handleGlobalSearch(query) {
   clear.classList.toggle('visible', normalized.length > 0);
   updateClearFiltersState();
   if (normalized.length < 2) { resultBox.classList.remove('open'); resultBox.innerHTML = ''; return; }
-  const matches = DADOS.filter(d => [d.cliente,d.nome,d.formato,d.responsavel,d.status].some(value => String(value || '').toLowerCase().includes(normalized))).slice(0,5);
-  const totalMatches = DADOS.filter(d => [d.cliente,d.nome,d.formato,d.responsavel,d.status].some(value => String(value || '').toLowerCase().includes(normalized))).length;
+  const matches = DADOS.filter(d => [...clientesDoItem(d),d.nome,d.formato,d.responsavel,d.status].some(value => String(value || '').toLowerCase().includes(normalized))).slice(0,5);
+  const totalMatches = DADOS.filter(d => [...clientesDoItem(d),d.nome,d.formato,d.responsavel,d.status].some(value => String(value || '').toLowerCase().includes(normalized))).length;
   if (!matches.length) {
     resultBox.innerHTML = '<div class="ops-empty">Nenhum conteúdo encontrado.</div>';
     resultBox.classList.add('open');
@@ -1779,7 +1781,7 @@ function linhaDeGrupoHtml(item) {
         title="ID da atividade · clique para copiar">${safeText(item.id)}</td>
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
     <td class="grupo-previa" onclick="${parar}">${botaoDePreviaNaLinha(item)}</td>
-    <td>${safeText(item.cliente || '—')}</td>
+    <td onclick="${parar}">${botaoClientesDoItem(item)}</td>
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
     <td onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
       title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
@@ -2751,4 +2753,72 @@ async function loteArquivar() {
     showToast(`${foram.length} arquivada${foram.length === 1 ? '' : 's'} · ${falhas.length} não deu: ${
       falhas.slice(0, 2).join(', ')}`, 'info', 9000);
   }
+}
+
+// Cliente usa vínculos do banco, não opções de uma coluna externa.
+function botaoClientesDoItem(item) {
+  const nomes = clientesDoItem(item);
+  return `<button type="button" class="clientes-vinculo-btn" onclick="abrirClientesDoItem('${safeText(item.id)}',event)" aria-label="Editar clientes de ${safeText(item.nome || 'atividade')}">${nomes.map(n => `<span>${safeText(n)}</span>`).join('') || '<span>Selecionar cliente</span>'}<i aria-hidden="true">⌄</i></button>`;
+}
+async function abrirClientesDoItem(itemId, event) {
+  event?.stopPropagation();
+  document.querySelector('.clientes-vinculo-dialog')?.remove();
+  const origem = event?.currentTarget;
+  const dialog = document.createElement('dialog');
+  dialog.className = 'clientes-vinculo-dialog';
+  dialog.setAttribute('aria-labelledby', 'clientes-vinculo-titulo');
+  dialog.innerHTML = `<h2 id="clientes-vinculo-titulo">Clientes da atividade</h2>
+    <p>Selecione um ou mais clientes. A atividade continua sendo uma só.</p>
+    <input type="search" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+    <div class="clientes-vinculo-lista">Carregando clientes…</div>
+    <output class="clientes-vinculo-contagem" aria-live="polite"></output>
+    <p class="clientes-vinculo-erro" role="alert"></p>
+    <footer><button type="button" data-cancelar>Cancelar</button><button type="button" data-salvar disabled>Salvar clientes</button></footer>`;
+  document.body.append(dialog); dialog.showModal();
+  const salvar = dialog.querySelector('[data-salvar]');
+  const cancelar = dialog.querySelector('[data-cancelar]');
+  const lista = dialog.querySelector('.clientes-vinculo-lista');
+  const erro = dialog.querySelector('[role=alert]');
+  const busca = dialog.querySelector('input');
+  busca.disabled = true;
+  let gravando = false;
+  const fechar = () => { if (!gravando) { dialog.close(); dialog.remove(); if(origem?.isConnected) origem.focus(); } };
+  cancelar.onclick = fechar;
+  dialog.addEventListener('keydown', e => { if(e.key==='Escape') { e.preventDefault(); e.stopPropagation(); fechar(); } });
+  dialog.addEventListener('cancel', e => { e.preventDefault(); fechar(); });
+  const chamar = async (acao, extra={}) => {
+    const r = await fetch('/api/conteudo', { method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify({acao,item:itemId,...extra}) });
+    const data = await r.json(); if (!r.ok || !data.ok) throw new Error(data.error || 'Não foi possível salvar os clientes.');
+    return data;
+  };
+  try {
+    const data = await chamar('clientes_opcoes');
+    if (!dialog.isConnected) return;
+    lista.textContent = '';
+    for (const c of data.clientes) {
+      const label = document.createElement('label');
+      label.dataset.busca = c.nome.toLocaleLowerCase('pt-BR');
+      const check = document.createElement('input'); check.type='checkbox'; check.value=c.id; check.checked=c.selecionado;
+      label.append(check, document.createTextNode(c.nome + (c.ativo ? '' : ' (inativo)'))); lista.append(label);
+    }
+    const selecionados = () => [...lista.querySelectorAll('input:checked')].map(c => c.value);
+    const atualizar = () => { const n=selecionados().length; salvar.disabled = gravando || !n; dialog.querySelector('output').textContent=`${n} cliente${n===1?'':'s'} selecionado${n===1?'':'s'}`; };
+    lista.addEventListener('change', atualizar); atualizar();
+    busca.disabled = false;
+    busca.oninput = () => { const q=busca.value.trim().toLocaleLowerCase('pt-BR'); lista.querySelectorAll('label').forEach(l=>l.hidden=!l.dataset.busca.includes(q)); };
+    salvar.onclick = async () => {
+      if (gravando) return; gravando=true; atualizar(); cancelar.disabled=true; erro.textContent=''; salvar.textContent='Salvando…';
+      lista.querySelectorAll('input').forEach(i=>i.disabled=true);
+      try {
+        const result=await chamar('clientes', {clientes:selecionados()});
+        const clientes=result.clientes.map(n=>normalizarCliente(n));
+        const patch={clientes,cliente:clientes[0] || 'Sem cliente'};
+        (DADOS_DEMANDAS || []).filter(i=>String(i.id)===String(itemId)).forEach(i=>Object.assign(i,patch));
+        applyOutboundItemPatch(itemId,patch,'clientes');
+        gravando=false; fechar(); showToast('Clientes atualizados.','ok');
+      } catch(e) { erro.textContent=e.message; }
+      finally { gravando=false; cancelar.disabled=false; salvar.textContent='Salvar clientes'; lista.querySelectorAll('input').forEach(i=>i.disabled=false); atualizar(); }
+    };
+  } catch(e) { lista.textContent=''; erro.textContent=e.message; }
 }
