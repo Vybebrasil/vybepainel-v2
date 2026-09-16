@@ -986,24 +986,16 @@ function renderManagerCalendar(forcar = false) {
   wrap.innerHTML = `<div class="manager-calendar-head"><div><div class="manager-calendar-kicker">Gestor · Planejamento visual</div><div class="manager-calendar-title">Agenda mensal por cliente</div><div class="manager-calendar-sub">Troque de cliente, veja veiculações e prazos no mês, abra a atividade no Workspace e arraste um item para preparar uma nova data.</div></div><div class="manager-calendar-actions"><button type="button" class="${dateMode==='veiculacao'?'active':''}" onclick="managerCalendarSetDateMode('veiculacao')">Veiculação</button><button type="button" class="${dateMode==='prazo'?'active':''}" onclick="managerCalendarSetDateMode('prazo')">Prazo</button><button type="button" class="primary" onclick="managerCalendarAdd('${managerCalendarDateIso(new Date())}')">+ CADASTROS</button><button type="button" onclick="managerCalendarOpenClientMaster()">Cliente master</button></div></div><div class="manager-calendar-toolbar"><div class="manager-calendar-month"><button type="button" onclick="managerCalendarGoMonth(-1)" aria-label="Mês anterior">‹</button><span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span><button type="button" onclick="managerCalendarGoMonth(1)" aria-label="Próximo mês">›</button><button type="button" onclick="managerCalendarGoToday()">HOJE</button></div><div class="manager-calendar-clients">${clientButtons}</div><div class="manager-calendar-status"><i class="${DADOS_DEMANDAS.length?'demands':''}"></i>${sourceCount.content} conteúdo · ${sourceCount.request} solicitações</div></div><div class="manager-calendar-legend"><span class="manager-calendar-legend-copy">Referência ativa: <b>${dateMode==='prazo'?'PRAZO DE PRODUÇÃO':'VEICULAÇÃO'}</b> · clique para abrir · arraste para mover</span><span class="manager-calendar-source-legend"><span><i></i> Conteúdo</span><span><i class="request"></i> Solicitação de Demanda</span></span></div>${demandNote}<div class="manager-calendar-grid"><div class="manager-calendar-weekday">SEG</div><div class="manager-calendar-weekday">TER</div><div class="manager-calendar-weekday">QUA</div><div class="manager-calendar-weekday">QUI</div><div class="manager-calendar-weekday">SEX</div><div class="manager-calendar-weekday">SÁB</div><div class="manager-calendar-weekday">DOM</div>${cells}</div><div class="manager-calendar-footer"><span><strong>${monthItems.length}</strong> itens no mês · <strong>${clients.length}</strong> clientes com atividade</span><button type="button" onclick="managerCalendarSetClient('all');managerCalendarSetSource('all')">Limpar visão do calendário</button></div>`;
 }
 
+// A barra de busca da operação passou a ser a porta do Spotlight global.
+// Ela olhava só Produção carregada na semana e mostrava cinco peças; agora o
+// que se digita nela abre a janela que procura em conteúdos, demandas, clientes
+// e pessoas. A caixa se esvazia para não contar como filtro ativo da tela.
 function handleGlobalSearch(query) {
-  const normalized = (query || '').trim().toLowerCase();
-  const resultBox = document.getElementById('search-results');
-  const clear = document.getElementById('global-search-clear');
-  clear.classList.toggle('visible', normalized.length > 0);
+  const texto = String(query || '');
+  const input = document.getElementById('global-search');
+  if (input && input.value) input.value = '';
   updateClearFiltersState();
-  if (normalized.length < 2) { resultBox.classList.remove('open'); resultBox.innerHTML = ''; return; }
-  const matches = DADOS.filter(d => [...clientesDoItem(d),d.nome,d.formato,d.responsavel,d.status].some(value => String(value || '').toLowerCase().includes(normalized))).slice(0,5);
-  const totalMatches = DADOS.filter(d => [...clientesDoItem(d),d.nome,d.formato,d.responsavel,d.status].some(value => String(value || '').toLowerCase().includes(normalized))).length;
-  if (!matches.length) {
-    resultBox.innerHTML = '<div class="ops-empty">Nenhum conteúdo encontrado.</div>';
-    resultBox.classList.add('open');
-    return;
-  }
-  resultBox.innerHTML = `<div class="ops-panel-title"><span>Resultados da busca</span>${totalMatches > 5 ? `<span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">5 de ${totalMatches}</span>` : ''}</div><div class="ops-list">${matches.map(d => `<button class="ops-item" style="text-align:left;cursor:pointer;" onclick="openSearchItem('${safeText(d.id)}')">
-    ${vybeChipId(d)}<span class="ops-item-client">${safeText(d.cliente)}</span><span class="ops-item-name">${safeText(d.nome)}</span>${pillHtml(d.status,d.status_color,d.status_border)}<span class="ops-item-date">S${d.semana} · ${safeText(getDateFmt(d))}</span>
-  </button>`).join('')}</div>`;
-  resultBox.classList.add('open');
+  if (texto.trim() && typeof abrirSpotlight === 'function') abrirSpotlight(texto);
 }
 
 function clearGlobalSearch() {

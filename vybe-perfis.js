@@ -1736,7 +1736,6 @@ function applyPanelMode() {
   document.getElementById('btn-voltar-menu')?.classList.toggle('focus-hidden', !isDedicatedMode);
   document.getElementById('compact-summary')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.querySelector('.ops-command-bar')?.classList.toggle('focus-hidden', isDedicatedMode);
-  document.getElementById('search-results')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('ops-action-panel')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('manager-intelligence')?.classList.toggle('focus-hidden', isDedicatedMode);
   // A agenda e a visao de grupos seguem quem as oferece — hoje o Gestor e o DA
