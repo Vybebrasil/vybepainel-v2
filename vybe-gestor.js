@@ -96,7 +96,7 @@ function vybeChipId(item) {
 }
 
 function vybeTagCliente(item) {
-  const nome = item?.cliente;
+  const nome = clientesDoItem(item).join(' · ');
   if (!nome || nome === '—') return '';
   return `<span class="vybe-cliente" title="${safeText(nome)}">${safeText(nome)}</span>`;
 }
@@ -464,7 +464,7 @@ function getItemsBySemana(sem) { return DADOS.filter(d=>d.semana===sem && getDat
 function getDiasSemana(sem) { return DIAS_SEMANAS[sem-1] || []; }
 function groupByCliente(items) {
   const m={};
-  items.forEach(d=>{ if(!m[d.cliente]) m[d.cliente]=[]; m[d.cliente].push(d); });
+  items.forEach(d=>clientesDoItem(d).forEach(cliente=>{ if(!m[cliente]) m[cliente]=[]; m[cliente].push(d); }));
   return m;
 }
 
@@ -871,7 +871,7 @@ function renderKPIs() { /* integrado no compact summary */ }
 function renderCompactSummary() {
   const all = DADOS;
   const total = all.length;
-  const clientes = [...new Set(all.map(d => d.cliente))];
+  const clientes = [...new Set(all.flatMap(clientesDoItem))];
   const numWeeks = META.weeks ? META.weeks.length : 4;
   const done = all.filter(d => ['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
   const podeFazer = all.filter(d => d.status === 'Pode Fazer').length;

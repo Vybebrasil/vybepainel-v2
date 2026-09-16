@@ -118,11 +118,11 @@ function clientMasterResolveName(value='') {
 }
 function clientMasterRecords() {
   const rawItems=typeof unifiedOperationalItems==='function' ? unifiedOperationalItems() : [...(DADOS_ALL?.length ? DADOS_ALL : DADOS || []), ...(DADOS_DEMANDAS || [])];
-  const items=rawItems.map(item=>({...item,__clientMasterName:clientMasterResolveName(item.cliente)}));
-  const names=[...new Set([...items.map(item=>item.__clientMasterName),...CLIENT_MASTER_HEADS.map(row=>clientMasterResolveName(row.name)),...CLIENT_MASTER_ACESSOS.map(row=>clientMasterResolveName(row.name))].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const items=rawItems.map(item=>({...item,__clientMasterNames:clientesDoItem(item).map(clientMasterResolveName)}));
+  const names=[...new Set([...items.flatMap(item=>item.__clientMasterNames),...CLIENT_MASTER_HEADS.map(row=>clientMasterResolveName(row.name)),...CLIENT_MASTER_ACESSOS.map(row=>clientMasterResolveName(row.name))].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const done=['Feito','Finalizado','feito','finalizado','Concluídas','concluída'];
   return names.map(name=>{
-    const clientItems=items.filter(item=>item.__clientMasterName===name);
+    const clientItems=items.filter(item=>item.__clientMasterNames.includes(name));
     const content=clientItems.filter(item=>!isRequestItem(item));
     const requests=clientItems.filter(item=>isRequestItem(item));
     const active=clientItems.filter(item=>!done.includes(String(item.status||'')));
@@ -136,6 +136,7 @@ function contagemDeClientes(nomes) {
   const conta = { ativos:0, inativos:0, sem:0, conteudos:0, conteudosAbertos:0, demandas:0, demandasAbertas:0 };
   const CONCLUIDO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
   const registros = clientMasterRecords();
+  const vistosConteudos = new Set(), vistasDemandas = new Set();
   (nomes || []).forEach((nome) => {
     const f = cadastroDoCliente(nome);
     const texto = String(f?.status || '').trim();
@@ -144,10 +145,8 @@ function contagemDeClientes(nomes) {
     else conta.ativos += 1;
     const r = registros.find((item) => item.name === nome);
     if (!r) return;
-    conta.conteudos += r.content.length;
-    conta.demandas += r.requests.length;
-    conta.conteudosAbertos += r.content.filter((d) => !CONCLUIDO.includes(String(d.status || ''))).length;
-    conta.demandasAbertas += r.requests.filter((d) => !CONCLUIDO.includes(String(d.status || ''))).length;
+    r.content.forEach(d => { if(vistosConteudos.has(String(d.id))) return; vistosConteudos.add(String(d.id)); conta.conteudos++; if(!CONCLUIDO.includes(String(d.status || ''))) conta.conteudosAbertos++; });
+    r.requests.forEach(d => { if(vistasDemandas.has(String(d.id))) return; vistasDemandas.add(String(d.id)); conta.demandas++; if(!CONCLUIDO.includes(String(d.status || ''))) conta.demandasAbertas++; });
   });
   return conta;
 }
@@ -155,9 +154,9 @@ function contagemDeClientes(nomes) {
 function renderClientMasterOverview() {
   const records=clientMasterRecords();
   const active=records.filter(record=>record.activeCount>0).length;
-  const content=records.reduce((sum,record)=>sum+record.content.length,0);
-  const requests=records.reduce((sum,record)=>sum+record.requests.length,0);
-  const activeRequests=records.reduce((sum,record)=>sum+record.requests.filter(item=>!['Feito','Finalizado','feito','finalizado','Concluídas'].includes(String(item.status||''))).length,0);
+  const content=new Set(records.flatMap(record=>record.content.map(item=>String(item.id)))).size;
+  const requests=new Set(records.flatMap(record=>record.requests.map(item=>String(item.id)))).size;
+  const activeRequests=new Set(records.flatMap(record=>record.requests.filter(item=>!['Feito','Finalizado','feito','finalizado','Concluídas'].includes(String(item.status||''))).map(item=>String(item.id)))).size;
   // O primeiro bloco de numeros dizia as mesmas coisas que o de baixo, com
   // outros criterios e sem dizer quais. Ficou um so, e este espaco sai da tela.
   const kpi=document.getElementById('client-master-kpis');

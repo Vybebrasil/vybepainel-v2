@@ -1,3 +1,10 @@
+// Preserva todos os vínculos sem criar cópias da atividade.
+function clientesDoItem(item) {
+  const nomes = Array.isArray(item?.clientes) ? item.clientes : [item?.cliente];
+  return [...new Set(nomes.filter(Boolean).map(n => normalizarCliente(String(n))))];
+}
+function itemTemCliente(item, nome) { return clientesDoItem(item).includes(normalizarCliente(nome)); }
+
 // vybe-core.js — núcleo: toast, GraphQL, carregamento, semanas e parsing de itens
 // Extraído do <script> inline do index.html; carregado em ordem, escopo global preservado.
 // ─── Modo de data (Veiculação / Prazo) ───────────────────────────────────────
@@ -397,7 +404,7 @@ function processItems(rawItems, meta) {
     // Os dois quadros precisam chamar o cliente pelo mesmo nome. So Solicitacoes
     // passava por normalizarCliente; Producao lia o nome cru — e o mesmo cliente
     // aparecia em duas fichas, uma com o apelido e outra sem.
-    const clientesList = clienteRaw.split(',').map(s=>normalizarCliente(s.trim())).filter(Boolean);
+    const clientesList = (Array.isArray(item.clientes) ? item.clientes : clienteRaw.split(',')).map(s=>normalizarCliente(s.trim())).filter(Boolean);
     // Filtrar clientes inativos — se TODOS forem inativos, pular o item
     const clientesAtivos = clientesList.filter(c => !clienteDesativado(c));
     if (clientesAtivos.length === 0) continue;
@@ -451,7 +458,7 @@ function processItems(rawItems, meta) {
     processed.push({
       id,
       nome: item.name || '',
-      cliente,
+      cliente, clientes: clientesAtivos,
       status: colMap['status'] || '—',
       status_color: colStyleMap['status']?.color || '',
       status_updated_at: colStyleMap['status']?.updated_at || '',
@@ -502,7 +509,7 @@ function processItemsAll(rawItems, meta) {
       colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index, updated_at: c.updated_at };
     });
     const clienteRaw = colMap[COLUNAS.producao.cliente] || '';
-    const clientesAtivos = clienteRaw.split(',').map(s=>normalizarCliente(s.trim())).filter(c => c && !clienteDesativado(c));
+    const clientesAtivos = (Array.isArray(item.clientes) ? item.clientes : clienteRaw.split(',')).map(s=>normalizarCliente(s.trim())).filter(c => c && !clienteDesativado(c));
     // Itens sem cliente não desaparecem: entram como exceção visível para correção de cadastro.
     const cliente = clientesAtivos[0] || 'Sem cliente';
     const veiculacaoStr = colMap[COLUNAS.producao.veiculacao] || '';
@@ -528,7 +535,7 @@ function processItemsAll(rawItems, meta) {
     const weekIndex = weekRanges.findIndex(week => referenceIso && referenceIso >= week.startIso && referenceIso <= week.endIso);
     const semana = weekIndex >= 0 ? weekIndex + 1 : null;
     processed.push({
-      id, nome: item.name || '', cliente,
+      id, nome: item.name || '', cliente, clientes: clientesAtivos,
       status: colMap['status'] || '—',
       status_color: colStyleMap['status']?.color || '',
       status_updated_at: colStyleMap['status']?.updated_at || '',

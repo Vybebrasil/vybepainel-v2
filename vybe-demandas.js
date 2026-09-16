@@ -371,7 +371,8 @@ function processDemandas(rawItems) {
       colValueMap[c.id] = c.value || '';
       colStyleMap[c.id] = { ...(c.label_style || {}), index: c.index, updated_at: c.updated_at };
     });
-    const cliente    = normalizarCliente(colMap[COLUNAS.demandas.cliente]) || '—';
+    const clientes = (item.clientes || (colMap[COLUNAS.demandas.cliente] || '').split(',')).map(n => normalizarCliente(n.trim())).filter(Boolean);
+    const cliente = clientes[0] || '—';
     const status     = colMap['status'] || '—';
     const prioridade = colMap[COLUNAS.demandas.prioridade] || '';
     const prazoIso   = (colMap['data']||'').slice(0,10);
@@ -396,7 +397,7 @@ function processDemandas(rawItems) {
       tarefas: item.tarefas || 0, tarefas_feitas: item.tarefas_feitas || 0,
       id: String(item.id),
       nome: item.name || '',
-      cliente, status, prioridade, tipo,
+      cliente, clientes, status, prioridade, tipo,
       status_color: colStyleMap['status']?.color || '',
       status_updated_at: colStyleMap['status']?.updated_at || '',
       status_border: colStyleMap['status']?.border || '',
@@ -1027,7 +1028,7 @@ function renderDemandas() {
 
 // View: Por Semana (cards de cliente)
 function renderDemandasSemana(fi) {
-  const clientes = [...new Set(fi.map(d=>d.cliente))].sort();
+  const clientes = [...new Set(fi.flatMap(clientesDoItem))].sort();
   const grid = document.getElementById('grid-demandas-semana');
   if (clientes.length === 0) {
     const porConclusao = currentDemandaDateMode !== 'prazo';
@@ -1056,7 +1057,7 @@ function renderDemandasSemana(fi) {
     return;
   }
   grid.innerHTML = clientes.map(cli => {
-    let items = sortDemandas(fi.filter(d => d.cliente === cli));
+    let items = sortDemandas(fi.filter(d => itemTemCliente(d, cli)));
     if (currentDemandaDayFilter) items = items.filter(d => getDemandaDateIso(d) === currentDemandaDayFilter);
     if (items.length === 0) return '';
     const atrasadas = items.filter(d=>d.prazo_atrasado).length;

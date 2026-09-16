@@ -14,6 +14,12 @@ export function demoApi(req,res,url,body) {
     return reply(sessao?200:401,sessao?{ok:true,pessoa}:{error:'Sem sessão.'});
   }
   if(!sessao)return reply(401,{error:'Entre no ambiente de demonstração.'});
+  if(url.pathname==='/api/conteudo' && req.method==='POST') {
+    let data;try {data=JSON.parse(body.toString());}catch{return reply(400,{error:'JSON inválido.'});}
+    if(data.acao==='clientes_opcoes')return reply(200,{ok:true,clientes:[
+      {id:'1',nome:'Cliente demonstração',ativo:true,selecionado:true},
+      {id:'2',nome:'Segundo cliente demonstração',ativo:true,selecionado:false}]});
+  }
   if(req.method!=='GET')return reply(403,{error:'Demonstração de interface somente leitura. As gravações são testadas no PostgreSQL em memória.'});
   if(url.pathname==='/api/conteudos') {
     const demanda=url.searchParams.get('board')==='demandas';

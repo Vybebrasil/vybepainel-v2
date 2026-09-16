@@ -168,7 +168,7 @@ function dominioComoItensDoMonday(dados) {
     const ids = item.responsavel_ids || [];
 
     return {
-      id: item.id,
+      id: item.id, clientes,
       name: item.nome || '',
       updated_at: item.updated_at || '',
       group: { id: item.grupo_id || '', title: item.grupo || '' },
@@ -364,7 +364,7 @@ function demandasComoItensDoMonday(dados) {
     const ids = item.responsavel_ids || [];
 
     return {
-      id: item.id,
+      id: item.id, clientes,
       name: item.nome || '',
       updated_at: item.updated_at || '',
       group: { id: item.grupo_id || '', title: item.grupo || '' },
