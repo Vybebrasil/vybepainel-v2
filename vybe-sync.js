@@ -241,28 +241,6 @@ function operationalMirrorRetryDelay() {
   const base = document.hidden ? OPERATIONAL_MIRROR_HIDDEN_INTERVAL : OPERATIONAL_MIRROR_VISIBLE_INTERVAL;
   return Math.min(base * Math.pow(2, Math.max(0, operationalMirrorFailures - 1)), 5 * 60 * 1000);
 }
-async function reconcileOperationalMirrorFromPanel() {
-  try {
-    const response = await fetch(OPERATIONAL_MIRROR_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ action: 'reconcile' })
-    });
-    const result = await response.json();
-    if (!response.ok || !result?.ok) throw new Error(result?.error || `Reconciliação central indisponível (${response.status})`);
-    if (Number(result.version || 0) > operationalMirrorVersion) {
-      operationalMirrorVersion = Number(result.version);
-      localStorage.setItem(OPERATIONAL_MIRROR_VERSION_KEY, String(operationalMirrorVersion));
-    }
-    const detail = result.skipped ? 'Já havia uma reconciliação central recente.' : `Espelho central reconciliado · versão ${result.version}.`;
-    cacheSyncLabel(detail);
-    return result;
-  } catch(error) {
-    console.warn('Atualização local concluída, mas o espelho central não confirmou a reconciliação:', error.message);
-    setSyncHealth('stale', `Monday confirmado neste painel; o espelho compartilhado ainda não confirmou a reconciliação. ${error.message}`);
-    return null;
-  }
-}
 async function pullOperationalMirror(options = {}) {
   const { force = false } = options;
   if (producaoRefreshRunning || operationalMirrorRequestRunning) return false;
@@ -503,10 +481,11 @@ async function refreshProducao(options={}) {
 
     saveProductionCache();
     startOperationalMirrorFeed();
-    if (!silent && source === 'manual') {
-      void reconcileOperationalMirrorFromPanel();
-      showToast(`✓ ${DADOS.length} itens carregados — conferindo a base compartilhada…`, 'ok');
-    } else if (!silent) {
+    // O Atualizar manual chamava a reconciliação do espelho do Monday, que foi
+    // desligado e responde 410. O erro deixava o indicador de sincronização
+    // "desatualizado" citando o Monday logo depois de uma leitura bem-sucedida.
+    // O banco da Vybe já é a fonte; não há base compartilhada para conferir.
+    if (!silent) {
       showToast(`✓ ${DADOS.length} itens carregados — ${META.generated_at}`, 'ok');
     }
     else cacheSyncLabel(`Dados reconciliados agora · ${DADOS_ALL.length} itens do board verificados`);
