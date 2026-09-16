@@ -1758,6 +1758,8 @@ function filterDemandaByPerson(personId, wrap) {
 }
 
 function clearDemandaFilters() {
+  buscaClienteDemandas='';
+  const busca=document.getElementById('busca-cliente-demandas'); if(busca) busca.value='';
   currentDemandaStatusFilter = 'all';
   currentDemandaPersonFilter = 'all';
   currentDemandaDayFilter = '';

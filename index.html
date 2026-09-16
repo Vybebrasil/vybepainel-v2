@@ -317,6 +317,10 @@
 <!-- ===== PAINEL SOLICITAÇÕES DE DEMANDAS ===== -->
 <div id="painel-demandas" style="display:none;">
   <div class="container">
+    <div class="quadro-toolbar">
+      <label class="quadro-busca">Buscar por cliente<input id="busca-cliente-demandas" type="search" placeholder="Nome do cliente…" oninput="buscarClienteDemandas(this.value)"></label>
+      <button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'demandas'})">+ Nova demanda</button>
+    </div>
     <div id="kpi-grid-demandas" class="kpi-grid"></div>
 
     <!-- UMA BARRA, UMA LINGUAGEM.

@@ -1,3 +1,5 @@
+let buscaClienteDemandas = '';
+function buscarClienteDemandas(valor) { buscaClienteDemandas=valor; renderDemandas(); }
 // vybe-demandas.js — board de solicitações de demandas e custos de IA
 // Extraído do <script> inline do index.html; carregado em ordem, escopo global preservado.
 // ─── Board Solicitações de Demandas ────────────────────────────────────────────────────────────
@@ -195,6 +197,7 @@ function switchBoard(board, btn) {
   }
   if (activeBoard === board) return;
   activeBoard = board;
+  if(board==='demandas') { gruposDeDemandasAberto=true; agendaDeDemandasAberta=false; gruposDemandasRecolhidos.clear(); }
   document.querySelectorAll('.board-switch-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const subs = {
@@ -919,6 +922,8 @@ function pintarTiposDeDemanda() {
 // ─── Renderizar demandas (dispatcher por view) ────────────────────────────────────────────────────
 function filtrarDemandasBase() {
   let fi = [...DADOS_DEMANDAS];
+  const busca=buscaClienteDemandas.trim().toLocaleLowerCase('pt-BR');
+  if(busca) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR').includes(busca)));
   if (currentDemandaPersonFilter !== 'all') {
     fi = fi.filter(d => (d.responsavel_ids && d.responsavel_ids.includes(currentDemandaPersonFilter)) || d.responsavel_id === currentDemandaPersonFilter);
   }
@@ -955,6 +960,7 @@ function pintarResumoDeFiltros(quantos) {
   const chip = (rotulo, limpar) => `<button type="button" class="resumo-chip" onclick="${limpar}"
     title="Tirar este filtro">${safeText(rotulo)}<i aria-hidden="true">✕</i></button>`;
   const ativos = [];
+  if(buscaClienteDemandas.trim()) ativos.push(chip('Cliente: '+buscaClienteDemandas, "document.getElementById('busca-cliente-demandas').value='';buscarClienteDemandas('')"));
   if (currentDemandaAtrasadas) ativos.push(chip('atrasadas', 'focarAtrasadas()'));
   if (currentDemandaStatusFilter !== 'all') ativos.push(chip(currentDemandaStatusFilter, `focarStatus('${String(currentDemandaStatusFilter).replace(/'/g, "\\'")}')`));
   if (currentDemandaTipoFilter !== 'all') ativos.push(chip(
@@ -1015,9 +1021,10 @@ function renderDemandas() {
     else if (currentDemandaWeek === 2) titleEl.textContent = `Semana 2 — ${META.week2_start} a ${META.week2_end}`;
   }
   // Mostrar/ocultar painéis
-  const showEsteira = currentDemandaWeek === 0;
-  const showDia     = !showEsteira && currentDemandaViewDay;
-  const showSemana  = !showEsteira && !currentDemandaViewDay;
+  const tabelaOuAgenda = gruposDeDemandasAberto || agendaDeDemandasAberta;
+  const showEsteira = !tabelaOuAgenda && currentDemandaWeek === 0;
+  const showDia     = !tabelaOuAgenda && !showEsteira && currentDemandaViewDay;
+  const showSemana  = !tabelaOuAgenda && !showEsteira && !currentDemandaViewDay;
   document.getElementById('panel-demandas-semana').style.display  = showSemana  ? '' : 'none';
   document.getElementById('panel-demandas-dia').style.display     = showDia     ? '' : 'none';
   document.getElementById('panel-demandas-esteira').style.display = showEsteira ? '' : 'none';
