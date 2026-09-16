@@ -1193,6 +1193,7 @@ let gruposRecolhidos = (() => {
   } catch { return new Set(['novo_grupo31348__1']); }
 })();
 let gruposExpandidos = new Set();
+let gruposDemandasRecolhidos = new Set();
 
 function guardarGruposRecolhidos() {
   try { localStorage.setItem(GRUPOS_ABERTOS, JSON.stringify([...gruposRecolhidos])); }
@@ -1210,15 +1211,16 @@ function quadroDoGrupo(groupId) {
 }
 
 function toggleGrupo(groupId) {
-  if (gruposRecolhidos.has(groupId)) gruposRecolhidos.delete(groupId);
-  else gruposRecolhidos.add(groupId);
+  const recolhidos = activeBoard==='demandas' ? gruposDemandasRecolhidos : gruposRecolhidos;
+  if (recolhidos.has(groupId)) recolhidos.delete(groupId);
+  else recolhidos.add(groupId);
   guardarGruposRecolhidos();
-  renderVisaoDeGrupos(quadroDoGrupo(groupId));
+  renderVisaoDeGrupos(activeBoard==='demandas' ? 'demandas' : quadroDoGrupo(groupId));
 }
 
 function verGrupoInteiro(groupId) {
   gruposExpandidos.add(groupId);
-  renderVisaoDeGrupos(quadroDoGrupo(groupId));
+  renderVisaoDeGrupos(activeBoard==='demandas' ? 'demandas' : quadroDoGrupo(groupId));
 }
 
 function itensPorGrupo(fonte = null, ordem = null) {
@@ -1233,12 +1235,12 @@ function itensPorGrupo(fonte = null, ordem = null) {
   // Grupos na ordem do board; qualquer grupo novo que apareça no Monday entra
   // no fim em vez de sumir da tela.
   const sequencia = ordem || ORDEM_DOS_GRUPOS;
-  const conhecidos = sequencia.filter(id => mapa.has(id));
+  const conhecidos = sequencia;
   const novos = [...mapa.keys()].filter(id => !sequencia.includes(id)).sort();
   return [...conhecidos, ...novos].map(id => ({
     id,
     nome: TITULO_DOS_GRUPOS[id] || GROUP_MAP[id] || id || 'Sem grupo',
-    itens: ordenarItens(mapa.get(id)),
+    itens: ordenarItens(mapa.get(id) || []),
   }));
 }
 
@@ -2026,8 +2028,7 @@ const VISAO_DE_GRUPOS = {
               // O filtro de tipo vale aqui tambem: sem isso, clicar em "Sem tipo"
               // mudava a lista de baixo e deixava esta tabela — a que a pessoa
               // esta olhando — exatamente como estava.
-              fonte: () => { const base = (DADOS_DEMANDAS || []).map(normalizeRequestForOperational);
-                return typeof filtrarPorTipoDeDemanda === 'function' ? filtrarPorTipoDeDemanda(base) : base; },
+              fonte: () => { return filtrarDemandasBase().map(normalizeRequestForOperational); },
               ordem: () => GRUPOS_DE_DEMANDAS },
 };
 
@@ -2096,7 +2097,8 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   const wrap = document.getElementById(cfg.alvo);
   const botao = document.getElementById(cfg.botao);
   if (!wrap) return;
-  const grupos = itensPorGrupo(cfg.fonte(), cfg.ordem());
+  const fonte=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(buscaClienteConteudos.toLocaleLowerCase('pt-BR'))));
+  const grupos = itensPorGrupo(fonte, cfg.ordem());
   if (botao) {
     const contador = document.getElementById(cfg.contador);
     if (contador) contador.textContent = grupos.length;
@@ -2112,7 +2114,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     : (n === 1 ? 'conteúdo' : 'conteúdos');
 
   const blocos = grupos.map(grupo => {
-    const recolhido = gruposRecolhidos.has(grupo.id);
+    const recolhido = (quadro==='demandas'?gruposDemandasRecolhidos:gruposRecolhidos).has(grupo.id);
     const total = grupo.itens.length;
     const mostrarTodos = gruposExpandidos.has(grupo.id);
     const visiveis = mostrarTodos ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
@@ -2131,10 +2133,10 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
       </div>
       ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${peca(restam)}</button>` : ''}`;
     return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
-      <button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
+      <div class="grupo-cabecalho"><button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
         <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
-      </button>${corpo}</section>`;
+      </button><button type="button" class="grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${safeText(grupo.id)}')" aria-label="Adicionar ${quadro==='demandas'?'demanda':'conteúdo'} em ${safeText(grupo.nome)}">+ ${quadro==='demandas'?'Nova demanda':'Novo conteúdo'}</button></div>${corpo}</section>`;
   }).join('');
 
   const totalGeral = grupos.reduce((soma, g) => soma + g.itens.length, 0);
@@ -2148,7 +2150,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
         <div class="grupos-titulo">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div>
         <div class="grupos-sub">A mesma divisão do board: clique num grupo para recolher, clique numa linha para abrir a atividade.</div></div>
       <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'conteúdos'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
-    </div>${blocos || `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
+    </div>${quadro==='producao' ? `<div class="quadro-toolbar"><label class="quadro-busca">Buscar por cliente<input id="busca-cliente-conteudos" type="search" placeholder="Nome do cliente…" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label><button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'producao'})">+ Novo conteúdo</button></div>` : ''}${blocos || `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
 }
 
 // ── ações em lote ────────────────────────────────────────────────────────────
@@ -2539,19 +2541,19 @@ async function moverPecaDeGrupo(itemId, grupoId) {
 // quadro, ou espalhado num mes, era preciso ir ao Monday. A visao de grupos ja
 // existia para Producao e passou a aceitar o quadro como parametro; o
 // calendario ja somava os dois quadros e passou a aceitar um recorte.
-let gruposDeDemandasAberto = false;
+let gruposDeDemandasAberto = true;
 let agendaDeDemandasAberta = false;
 
 function alternarGruposDeDemandas() {
   gruposDeDemandasAberto = !gruposDeDemandasAberto;
   if (gruposDeDemandasAberto) { agendaDeDemandasAberta = false; renderAgendaDeDemandas(); }
-  renderVisaoDeGrupos('demandas');
+  renderDemandas();
 }
 
 function alternarAgendaDeDemandas() {
   agendaDeDemandasAberta = !agendaDeDemandasAberta;
   if (agendaDeDemandasAberta) { gruposDeDemandasAberto = false; renderVisaoDeGrupos('demandas'); }
-  renderAgendaDeDemandas();
+  renderDemandas();
 }
 
 function renderAgendaDeDemandas() {
@@ -2559,7 +2561,8 @@ function renderAgendaDeDemandas() {
   const botao = document.getElementById('demandas-agenda-btn');
   if (!wrap) return;
   const meta = managerCalendarMonthMeta();
-  const itens = managerCalendarItems({ ignorarCliente: true, apenas: 'request' });
+  const idsVisiveis=new Set(filtrarDemandasBase().map(i=>String(i.id)));
+  const itens = managerCalendarItems({ ignorarCliente: true, apenas: 'request' }).filter(i=>idsVisiveis.has(String(i.id)));
   const contador = document.getElementById('demandas-agenda-count');
   if (contador) contador.textContent = itens.filter(i => meta.cells.some(c => c.iso === i.calendarDateIso)).length;
   if (botao) botao.setAttribute('aria-expanded', String(agendaDeDemandasAberta));
@@ -2821,4 +2824,16 @@ async function abrirClientesDoItem(itemId, event) {
       finally { gravando=false; cancelar.disabled=false; salvar.textContent='Salvar clientes'; lista.querySelectorAll('input').forEach(i=>i.disabled=false); atualizar(); }
     };
   } catch(e) { lista.textContent=''; erro.textContent=e.message; }
+}
+
+let buscaClienteConteudos='';
+function buscarClienteConteudos(valor) {
+  const campo=document.getElementById('busca-cliente-conteudos');
+  const cursor=campo?.selectionStart;
+  buscaClienteConteudos=valor; renderVisaoDeGrupos('producao');
+  const novo=document.getElementById('busca-cliente-conteudos'); novo?.focus();
+  if(novo && cursor!==null) novo.setSelectionRange(cursor,cursor);
+}
+function cadastrarNoGrupo(board, grupo) {
+  openCadastrosGoverned({board,grupo_id:grupo});
 }

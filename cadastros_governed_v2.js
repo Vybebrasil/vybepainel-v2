@@ -282,7 +282,8 @@ const FC_QUADROS = {
       { val: 'group_title', label: 'Redação' },
       { val: 'novo_grupo__1', label: 'Design & Edição' },
       { val: 'novo_grupo57911__1', label: 'Produção (Foto e Vídeo)' },
-      { val: 'novo_grupo22352__1', label: 'Gestão de publicações' }
+      { val: 'novo_grupo22352__1', label: 'Gestão de publicações' },
+      { val: 'novo_grupo31348__1', label: 'Finalizados' }
     ],
     status: ['A Fazer','Aguardo Redação','Pode Fazer','Falta D.A','Em andamento','Aguardo',
              'Ag. Aprovação Cliente','Ag. Info Cliente','Falta Info','Segurar Post','Agendado',
@@ -348,7 +349,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      const dest = cadastrosDestiny(formatName, state.briefReady, state.materialReady, state.assignees);
      
      if(state.manualGroup === undefined) {
-         const groups = { 'group_title': 'Redação', 'novo_grupo__1': 'Design & Edição', 'novo_grupo57911__1': 'Produção (Foto e Vídeo)' };
+         const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
          fcSelectDropdown('manualGroup', dest.group, groups[dest.group] || dest.group, null, false);
      }
      
@@ -411,7 +412,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
        : `${formatText} - ${titleText}`;
      clientEl.textContent = state.client || 'Cliente não selecionado';
      
-     const groups = { 'group_title': 'Redação', 'novo_grupo__1': 'Design & Edição', 'novo_grupo57911__1': 'Produção (Foto e Vídeo)' };
+     const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
      const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
      const finalGroupLabel = groups[finalGroup] || 'Redação';
      const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
@@ -803,10 +804,10 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
             placeholder="Título" value="${esc2(it.titulo)}"
             oninput="fcItemCampo(${n},'titulo',this.value)">
           <div class="fc-item-datas">
-            <label><span>Veiculação</span>
+            <label><span>${state.board==='demandas'?'Conclusão':'Veiculação'}</span>
               <input type="date" class="fc-campo" data-item="${n}" data-campo="veic" value="${esc2(it.veic)}"
                 oninput="fcItemCampo(${n},'veic',this.value)"></label>
-            <label><span>Prazo de ouro</span>
+            <label><span>Prazo de entrega</span>
               <input type="date" class="fc-campo" data-item="${n}" data-campo="prazo" value="${esc2(it.prazo)}"
                 oninput="fcItemCampo(${n},'prazo',this.value)"></label>
           </div>
@@ -817,7 +818,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         </div>`).join('');
       return `<div class="fc-itens">${cartoes}</div>
         <div class="fc-itens-acoes">
-          <button type="button" class="fc-mais" onclick="fcAdicionarItem()">+ adicionar outro conteúdo</button>
+          <button type="button" class="fc-mais" onclick="fcAdicionarItem()">+ adicionar ${state.board==='demandas'?'outra demanda':'outro conteúdo'}</button>
           ${state.itens.length > 1
             ? '<button type="button" class="fc-mais" onclick="fcEscalonarDatas()">datas de sete em sete dias</button>'
             : ''}
@@ -1126,6 +1127,12 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     
     const inicio = (inicial && typeof inicial === 'object') ? inicial : {};
     if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;
+    if(inicio.grupo_id) {
+      const grupo=String(inicio.grupo_id);
+      const existente=(state.board==='demandas'?DADOS_DEMANDAS:DADOS_ALL).find(i=>String(i.group_id)===grupo);
+      if(!fcQuadro().grupos.some(g=>g.val===grupo) && existente) fcQuadro().grupos.push({val:grupo,label:existente.grupo || grupo});
+      if(fcQuadro().grupos.some(g=>g.val===grupo)) state.manualGroup=grupo;
+    }
     // So aceita cliente que exista na lista do passo: guardar um nome que a tela
     // nao mostra deixaria o resumo falando de um cliente que ninguem escolheu.
     //
@@ -1294,7 +1301,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
 
          <!-- RIGHT COLUMN: LIVE PREVIEW -->
          <div class="fc-side-col">
-             <button class="fc-close" onclick="fcCloseModal()">×</button>
+             <button type="button" aria-label="Fechar cadastro" class="fc-close" onclick="fcCloseModal()">×</button>
              
              <div class="fc-side-title">Prévia de destino</div>
              
@@ -1306,7 +1313,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
                  
                  <div class="fc-prev-body">
                     <div class="fc-prev-item">
-                       <small>Alojamento Operacional</small>
+                       <small>Grupo de destino</small>
                        <div id="fc-prev-group">Redação</div>
                     </div>
                     
