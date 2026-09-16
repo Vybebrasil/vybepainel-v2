@@ -123,6 +123,7 @@
         <div id="notif-lista" class="notif-lista"></div>
       </div>
     </div>
+    <button type="button" class="appearance-button spotlight-button" data-open-spotlight aria-haspopup="dialog" aria-keyshortcuts="Meta+K Control+K" title="Buscar em todo o painel (⌘K)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m16.5 16.5-3.6-3.6" stroke-linecap="round"/></svg>Buscar<kbd>⌘K</kbd></button>
     <button type="button" class="appearance-button" data-open-appearance aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" stroke="none"/></svg>Aparência</button>
     <button class="btn-refresh" id="btn-refresh" onclick="refreshData()">
       <span id="refresh-icon">↻</span> Atualizar Dados
@@ -151,8 +152,7 @@
   <div class="ops-command-bar focus-hidden">
     <div class="global-search-wrap">
       <span class="global-search-icon">⌕</span>
-      <input id="global-search" class="global-search" type="search" autocomplete="off" placeholder="Buscar cliente, conteúdo ou responsável..." oninput="handleGlobalSearch(this.value)">
-      <button id="global-search-clear" class="global-search-clear" type="button" onclick="clearGlobalSearch()" title="Limpar busca">×</button>
+      <input id="global-search" class="global-search" type="search" autocomplete="off" placeholder="Buscar em todo o painel  ⌘K" aria-haspopup="dialog" oninput="handleGlobalSearch(this.value)">
     </div>
     <div class="ops-botoes">
       <div class="ops-segmentos" role="group" aria-label="Consultas rápidas">
@@ -175,7 +175,6 @@
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
     <div id="team-load-strip" class="team-load-strip"></div>
   </div>
-  <div id="search-results" class="search-results focus-hidden"></div>
   <div id="ops-action-panel" class="ops-panel focus-hidden"></div>
   <div id="ops-today-panel" class="ops-panel ops-today-panel"></div>
   <div id="ops-daily-panel" class="ops-panel ops-daily-panel"></div>
@@ -572,4 +571,5 @@
 
 <script src="/vybe-stations.js"></script>
 <script src="/vybe-appearance.js"></script>
+<script src="/vybe-spotlight.js"></script>
 </body></html>
