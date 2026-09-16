@@ -5,6 +5,14 @@ PostgreSQL da Vybe (Neon) é a autoridade e Google Drive armazena arquivos.
 Monday está encerrado: não há leitura, réplica, webhook ou fallback ativo.
 IDs e nomes de campos legados são preservados para compatibilidade dos dados.
 
+## Trabalho com agentes de código
+
+As regras compartilhadas estão em [AGENTS.md](AGENTS.md). O Claude Code recebe
+essas mesmas regras por [CLAUDE.md](CLAUDE.md), sem uma cópia divergente.
+Ao trocar de ferramenta, use a versão atual do repositório e peça ao agente para
+ler essas regras antes de editar. Elas definem reutilização, arquitetura, identidade
+visual, proteção dos dados, verificação e publicação.
+
 ## Desenvolvimento
 
 Requer Node.js 22 ou superior. Execute `npm ci` e `npm run dev`; abra
