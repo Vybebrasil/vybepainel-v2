@@ -512,3 +512,24 @@ body.vybe-desktop {
 .workspace-mais-menu .perigo { color: #ff8a9a; }
 .workspace-mais-menu .perigo:is(:hover, :focus-visible) { background: #ff4d6d2e; color: #ffd3da; }
 .workspace-mais-menu hr { margin: 5px 6px; border: 0; border-top: 1px solid var(--glass-edge); }
+
+/* Topo da gaveta: título no tamanho de painel do Mac (era 30 px em negrito e
+   ocupava um terço da tela), status e datas numa linha de resumo. */
+.vybe-desktop .workspace-drawer .workspace-title { font: 600 24px/1.22 var(--mac-ui) !important; letter-spacing: -.02em !important; margin: 4px 0 10px; }
+.vybe-desktop .workspace-drawer .workspace-meta { align-items: center; gap: 10px; }
+.workspace-meta-datas { color: var(--text-muted); font: 500 13px var(--mac-ui); }
+
+/* Ficha da peça no estilo das listas de Ajustes do Sistema: linhas na mesma
+   superfície da seção, separadas por traço fino, rótulo à esquerda em texto
+   normal e valor à direita. As células azul-marinho quebravam o vidro. */
+.vybe-desktop .workspace-drawer .workspace-ficha { gap: 0 20px; background: none; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); }
+.vybe-desktop .workspace-drawer .workspace-ficha-linha { background: transparent; min-height: 46px; padding: 6px 2px; align-items: center; border-bottom: 1px solid var(--glass-edge); }
+.vybe-desktop .workspace-drawer .workspace-ficha-linha > span { color: var(--text-muted); font: 500 13px var(--mac-ui); letter-spacing: 0; }
+.vybe-desktop .workspace-drawer .workspace-ficha-linha b { font: 500 13px var(--mac-ui); color: var(--text); }
+/* Tudo que se edita tem a mesma cara: botão discreto, como os menus do Mac. */
+.vybe-desktop .workspace-drawer :is(.workspace-ficha-select, .ficha-editavel) {
+  max-width: 62%; min-height: 30px; padding: 4px 10px; border: 1px solid #ffffff1f; border-radius: 8px;
+  background-color: #ffffff0a; color: var(--text); font: 500 13px var(--mac-ui); text-align: right; text-decoration: none;
+}
+.vybe-desktop .workspace-drawer .workspace-ficha-select { padding-right: 26px; }
+.vybe-desktop .workspace-drawer :is(.workspace-ficha-select, .ficha-editavel):hover { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); color: var(--text); text-decoration: none; }
