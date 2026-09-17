@@ -255,7 +255,8 @@ function managerCalendarMonthMeta() {
   return {year, month, first, last, cells};
 }
 function managerCalendarLabel(meta) {
-  return new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(meta.first);
+  // Só a primeira letra: o CSS capitalize escrevia "Setembro De 2026".
+  return new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(meta.first).replace(/^./, (c) => c.toUpperCase());
 }
 function managerCalendarStatusColor(item, fallback='#ff8b38') {
   return String(item?.status_color || fallback).match(/^#[0-9a-f]{3,8}$/i)?.[0] || fallback;
@@ -829,12 +830,15 @@ function abrirDiaDoCalendario(event, iso) {
 }
 
 function managerCalendarEventHtml(item) {
-  const sourceLabel = item.calendarSource === 'request' ? 'SOLICITAÇÃO' : 'CONTEÚDO';
+  // A origem é o ponto colorido (laranja conteúdo, lilás solicitação), explicado
+  // na legenda do topo. Escrita em cada peça, "CONTEÚDO" comia metade da largura
+  // e cortava o título.
+  const sourceLabel = item.calendarSource === 'request' ? 'Solicitação' : 'Conteúdo';
   const sourceClass = item.calendarSource === 'request' ? 'request' : '';
   const color = managerCalendarStatusColor(item, item.calendarSource === 'request' ? '#c084fc' : '#ff8b38');
   const status = item.status || 'Sem status';
   const owner = item.responsavel ? firstName(item.responsavel) : 'Sem responsável';
-  return `<button type="button" draggable="true" class="manager-calendar-event" style="--event-color:${color}" title="${safeText(`${item.nome} · ${item.cliente} · ${status} · arraste para mover a data`)}" onclick="managerCalendarOpen('${item.calendarSource}','${item.id}',event)" ondragstart="managerCalendarDragStart('${item.calendarSource}','${item.id}',event)" ondragend="managerCalendarDragEnd()"><span class="manager-calendar-event-bar"></span><span class="manager-calendar-event-copy"><b>${safeText(item.nome || 'Sem título')}</b><small>${safeText(item.cliente || '—')} · ${safeText(owner)} · <span class="manager-calendar-event-status">${safeText(status)}</span></small></span><span class="manager-calendar-event-meta"><i class="${sourceClass}"></i><em class="manager-calendar-event-age">${sourceLabel}</em></span></button>`;
+  return `<button type="button" draggable="true" class="manager-calendar-event" style="--event-color:${color}" title="${safeText(`${item.nome} · ${item.cliente} · ${status} · arraste para mover a data`)}" onclick="managerCalendarOpen('${item.calendarSource}','${item.id}',event)" ondragstart="managerCalendarDragStart('${item.calendarSource}','${item.id}',event)" ondragend="managerCalendarDragEnd()"><span class="manager-calendar-event-bar"></span><span class="manager-calendar-event-copy"><b>${safeText(item.nome || 'Sem título')}</b><small>${safeText(item.cliente || '—')} · ${safeText(owner)} · <span class="manager-calendar-event-status">${safeText(status)}</span></small></span><span class="manager-calendar-event-meta" title="${sourceLabel}"><i class="${sourceClass}"></i></span></button>`;
 }
 function openDemandaPlanningEditor(itemId, targetDate='') {
   const item = (DADOS_DEMANDAS || []).find(entry => String(entry.id) === String(itemId));
@@ -911,8 +915,8 @@ function renderManagerCalendar(forcar = false) {
     const total = (grouped.get(cell.iso) || []).length;
     const isToday = cell.iso === (HOJE_ISO || META.today_iso);
     const events = dayItems.map(managerCalendarEventHtml).join('');
-    const more = total > 5 ? `<button type="button" class="manager-calendar-more" onclick="abrirDiaDoCalendario(event,'${cell.iso}')" title="Ver os ${total} itens deste dia">+ ${total-5} itens neste dia</button>` : '';
-    return `<div class="manager-calendar-day ${cell.inMonth?'':'is-other'} ${isToday?'is-today':''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)"><div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b><small>${new Intl.DateTimeFormat('pt-BR',{weekday:'short'}).format(cell.date).replace('.','')}</small></span><button type="button" class="manager-calendar-add" onclick="managerCalendarAdd('${cell.iso}')" title="Adicionar pelo CADASTROS neste dia">+</button></div><div class="manager-calendar-events">${events || '<span class="manager-calendar-empty">—</span>'}${more}</div></div>`;
+    const more = total > 5 ? `<button type="button" class="manager-calendar-more" onclick="abrirDiaDoCalendario(event,'${cell.iso}')" title="Ver os ${total} itens deste dia">+ ${total-5} ${total-5===1?'item':'itens'} neste dia</button>` : '';
+    return `<div class="manager-calendar-day ${cell.inMonth?'':'is-other'} ${isToday?'is-today':''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)"><div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span><button type="button" class="manager-calendar-add" onclick="managerCalendarAdd('${cell.iso}')" title="Cadastrar neste dia">+</button></div><div class="manager-calendar-events">${events || '<span class="manager-calendar-empty">—</span>'}${more}</div></div>`;
   }).join('');
   CLIENTES_DO_CALENDARIO = clients;
   const totalNoMes = semRecorte.filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso)).length;
@@ -984,7 +988,21 @@ function renderManagerCalendar(forcar = false) {
     ? `<b>${sourceCount.request}</b> ${sourceCount.request === 1 ? 'solicitação aparece' : 'solicitações aparecem'} na agenda.`
     : `<b>${sourceCount.request}</b> ${sourceCount.request === 1 ? 'solicitação de feed aparece' : 'solicitações de feed aparecem'} na agenda — Card, Carrossel, Fotografia e Reels.`;
   const demandNote = DADOS_DEMANDAS.length ? `<div class="manager-calendar-demand-note"><span>${abertura} ${foraNota}</span><button type="button" onclick="switchBoard('demandas',document.getElementById('btn-board-demandas'))">Abrir esteira de solicitações →</button></div>` : `<div class="manager-calendar-demand-note"><span><b>Solicitações ainda não carregadas nesta sessão.</b> A agenda já está preparada para cruzar o board de Solicitação de Demandas sem misturar sua origem com conteúdo.</span><button type="button" onclick="managerCalendarLoadDemandas(this)">Carregar solicitações</button></div>`;
-  wrap.innerHTML = `<div class="manager-calendar-head"><div><div class="manager-calendar-kicker">Gestor · Planejamento visual</div><div class="manager-calendar-title">Agenda mensal por cliente</div><div class="manager-calendar-sub">Troque de cliente, veja veiculações e prazos no mês, abra a atividade no Workspace e arraste um item para preparar uma nova data.</div></div><div class="manager-calendar-actions"><button type="button" class="${dateMode==='veiculacao'?'active':''}" onclick="managerCalendarSetDateMode('veiculacao')">Veiculação</button><button type="button" class="${dateMode==='prazo'?'active':''}" onclick="managerCalendarSetDateMode('prazo')">Prazo</button><button type="button" class="primary" onclick="managerCalendarAdd('${managerCalendarDateIso(new Date())}')">+ CADASTROS</button><button type="button" onclick="managerCalendarOpenClientMaster()">Cliente master</button></div></div><div class="manager-calendar-toolbar"><div class="manager-calendar-month"><button type="button" onclick="managerCalendarGoMonth(-1)" aria-label="Mês anterior">‹</button><span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span><button type="button" onclick="managerCalendarGoMonth(1)" aria-label="Próximo mês">›</button><button type="button" onclick="managerCalendarGoToday()">HOJE</button></div><div class="manager-calendar-clients">${clientButtons}</div><div class="manager-calendar-status"><i class="${DADOS_DEMANDAS.length?'demands':''}"></i>${sourceCount.content} conteúdo · ${sourceCount.request} solicitações</div></div><div class="manager-calendar-legend"><span class="manager-calendar-legend-copy">Referência ativa: <b>${dateMode==='prazo'?'PRAZO DE PRODUÇÃO':'VEICULAÇÃO'}</b> · clique para abrir · arraste para mover</span><span class="manager-calendar-source-legend"><span><i></i> Conteúdo</span><span><i class="request"></i> Solicitação de Demanda</span></span></div>${demandNote}<div class="manager-calendar-grid"><div class="manager-calendar-weekday">SEG</div><div class="manager-calendar-weekday">TER</div><div class="manager-calendar-weekday">QUA</div><div class="manager-calendar-weekday">QUI</div><div class="manager-calendar-weekday">SEX</div><div class="manager-calendar-weekday">SÁB</div><div class="manager-calendar-weekday">DOM</div>${cells}</div><div class="manager-calendar-footer"><span><strong>${monthItems.length}</strong> itens no mês · <strong>${clients.length}</strong> clientes com atividade</span><button type="button" onclick="managerCalendarSetClient('all');managerCalendarSetSource('all')">Limpar visão do calendário</button></div>`;
+  // Emprestada ao DA Controler, a agenda segue o Prazo/Veiculação da barra do DA
+  // (acomodarVisaoDaRegua acerta o dateMode) e não mostra um segundo seletor.
+  const noDa = emprestadaAoDa('manager-calendar');
+  const referencia = noDa ? '' : `<div class="manager-calendar-segmento" role="group" aria-label="Data de referência">
+      <button type="button" class="${dateMode==='veiculacao'?'active':''}" aria-pressed="${dateMode==='veiculacao'}" onclick="managerCalendarSetDateMode('veiculacao')">Veiculação</button><button type="button" class="${dateMode==='prazo'?'active':''}" aria-pressed="${dateMode==='prazo'}" onclick="managerCalendarSetDateMode('prazo')">Prazo</button></div>`;
+  const noMesAtual = !Number(MONTH_OFFSET || 0);
+  wrap.innerHTML = `<div class="manager-calendar-head">
+      ${noDa ? '' : '<div class="manager-calendar-title">Agenda mensal por cliente</div>'}
+      <div class="manager-calendar-actions">${referencia}<button type="button" class="primary" onclick="managerCalendarAdd('${managerCalendarDateIso(new Date())}')">+ Cadastrar</button><button type="button" onclick="managerCalendarOpenClientMaster()">Cliente master</button></div>
+    </div>
+    <div class="manager-calendar-toolbar">
+      <div class="manager-calendar-month"><button type="button" onclick="managerCalendarGoMonth(-1)" aria-label="Mês anterior">‹</button><span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span><button type="button" onclick="managerCalendarGoMonth(1)" aria-label="Próximo mês">›</button>${noMesAtual ? '' : '<button type="button" class="manager-calendar-hoje" onclick="managerCalendarGoToday()">Hoje</button>'}</div>
+      <div class="manager-calendar-status" title="${dateMode==='prazo'?'Pelo prazo de produção':'Pela data de veiculação'} · clique numa peça para abrir, arraste para mudar a data"><span><i></i>${sourceCount.content} ${sourceCount.content===1?'conteúdo':'conteúdos'}</span><span><i class="request"></i>${sourceCount.request} ${sourceCount.request===1?'solicitação':'solicitações'}</span></div>
+      <div class="manager-calendar-clients">${clientButtons}</div>
+    </div>${demandNote}<div class="manager-calendar-grid">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d => `<div class="manager-calendar-weekday">${d}</div>`).join('')}${cells}</div><div class="manager-calendar-footer"><span><strong>${monthItems.length}</strong> itens no mês · <strong>${clients.length}</strong> clientes com atividade</span><button type="button" onclick="managerCalendarSetClient('all');managerCalendarSetSource('all')">Limpar visão do calendário</button></div>`;
 }
 
 // A barra de busca da operação passou a ser a porta do Spotlight global.
@@ -2150,9 +2168,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   // pessoa marcava sem ver que havia o que fazer com aquilo.
   const barra = deckDeLoteHtml(quadro);
   wrap.innerHTML = `${barra}<div class="grupos-head">
-      <div><div class="grupos-kicker">Operação · Por etapa</div>
-        <div class="grupos-titulo">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div>
-        <div class="grupos-sub">A mesma divisão do board: clique num grupo para recolher, clique numa linha para abrir a atividade.</div></div>
+      <div><div class="grupos-titulo" title="Clique num grupo para recolher, numa linha para abrir a atividade">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div></div>
       <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'conteúdos'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
     </div>${quadro==='producao' ? `<div class="quadro-toolbar"><label class="quadro-busca">Buscar por cliente<input id="busca-cliente-conteudos" type="search" placeholder="Nome do cliente…" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label><button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'producao'})">+ Novo conteúdo</button></div>` : ''}${blocos || `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
 }
@@ -2589,7 +2605,7 @@ function renderAgendaDeDemandas() {
   // Agora usa exatamente o que o calendario do Gestor usa — os mesmos campos, o
   // mesmo montador de item, a mesma classe. Duas telas com o mesmo desenho
   // passam a ter uma implementacao so.
-  const dias = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+  const dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
   const hoje = HOJE_ISO || META?.today_iso || '';
   wrap.innerHTML = `<section class="manager-calendar-shell">
     <div class="manager-calendar-toolbar">
@@ -2597,7 +2613,7 @@ function renderAgendaDeDemandas() {
         <button type="button" onclick="managerCalendarGoMonth(-1);renderAgendaDeDemandas()" aria-label="Mês anterior">‹</button>
         <span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span>
         <button type="button" onclick="managerCalendarGoMonth(1);renderAgendaDeDemandas()" aria-label="Próximo mês">›</button>
-        <button type="button" onclick="managerCalendarGoToday();renderAgendaDeDemandas()">HOJE</button>
+        <button type="button" onclick="managerCalendarGoToday();renderAgendaDeDemandas()">Hoje</button>
       </div>
       <span class="manager-calendar-status">${itens.length} solicitaç${itens.length === 1 ? 'ão' : 'ões'} com data</span>
     </div>
@@ -2608,9 +2624,7 @@ function renderAgendaDeDemandas() {
           .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
         const mostra = doDia.slice(0, 4);
         return `<div class="manager-calendar-day ${cell.inMonth ? '' : 'is-other'} ${cell.iso === hoje ? 'is-today' : ''}" data-date="${cell.iso}">
-          <div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b><small>${
-            new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(cell.date).replace('.', '')
-          }</small></span></div>
+          <div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span></div>
           <div class="manager-calendar-events">${mostra.map(managerCalendarEventHtml).join('')
             || '<span class="manager-calendar-empty">—</span>'}${
             doDia.length > 4 ? `<button type="button" class="manager-calendar-more"
