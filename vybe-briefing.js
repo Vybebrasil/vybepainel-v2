@@ -155,13 +155,16 @@ function blocoDoBriefingHtml(detail, item) {
   const secoes = briefingEmSecoes(briefing.texto);
   const chamada = briefingChamada(secoes);
   const partes = secoes.filter(secao => secao.titulo).length;
+  // O trecho do briefing vinha num parágrafo solto embaixo do botão — e o mesmo
+  // texto ainda aparece no histórico. Fica dentro do botão: um item só, que
+  // mostra o começo e abre o resto.
+  const origem = `${partes ? `${partes} parte${partes === 1 ? '' : 's'} · ` : ''}briefing de produção${briefing.origem === 'histórico' ? ' · do histórico' : ''}`;
   return `<div class="brief-atalho">
     <button type="button" class="brief-abrir" onclick="abrirBriefing('${safeText(String(item.id))}')">
-      <span class="brief-abrir-icone">📄</span>
-      <span class="brief-abrir-copy"><b>Ver conteúdo</b><small>${partes ? `${partes} parte${partes === 1 ? '' : 's'} · ` : ''}briefing de produção${briefing.origem === 'histórico' ? ' · do histórico' : ''}</small></span>
+      <span class="brief-abrir-icone">${ICONE_LINHA.briefing}</span>
+      <span class="brief-abrir-copy"><b>Briefing</b><small>${safeText(origem)}</small>${chamada ? `<span class="brief-abrir-trecho">${safeText(chamada.slice(0, 240))}${chamada.length > 240 ? '…' : ''}</span>` : ''}</span>
       <span class="brief-abrir-seta">→</span>
     </button>
-    ${chamada ? `<p class="brief-chamada">${safeText(chamada.slice(0, 190))}${chamada.length > 190 ? '…' : ''}</p>` : ''}
   </div>`;
 }
 
