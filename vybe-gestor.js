@@ -767,64 +767,26 @@ function renderByDay(sem, filter, dayFilter) {
 // shift+clique de uma linha precisa saber o que veio antes e depois DELA nesta
 // tela, e nao na visao de Grupos.
 let ORDEM_VISIVEL_DO_DIA = [];
-const DAILY_SUMMARY_CLOSED_STATUSES = new Set(['finalizado','feito','concluído','concluido']);
-const DAILY_SUMMARY_DISCIPLINES = {
-  audiovisual:{ icon:'', label:'AUDIOVISUAL' },
-  design:{ icon:'', label:'DESIGN' },
-  publicacao:{ icon:'', label:'PUBLICAÇÃO / AGENDAMENTO' },
-  'sem-responsavel':{ icon:'⚑', label:'SEM RESPONSÁVEL DEFINIDO' }
-};
-function dailySummaryPlain(value='') { return String(value || '').replace(/\s+/g,' ').trim(); }
-function dailySummaryDateLabel(iso) { const date=new Date(`${iso}T12:00:00`); return `${['DOM','SEG','TER','QUA','QUI','SEX','SÁB'][date.getDay()]} ${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}`; }
-function dailySummaryDiscipline(item) {
-  const owner=String(item.responsavel || '').toLowerCase();
-  const status=normalizedWorkflowStatus(item.status);
-  const format=String(item.formato || '').toLowerCase();
-  if (/tainara/.test(owner) || ['para agendar','agendado'].includes(status)) return 'publicacao';
-  if (/reriston/.test(owner) || /reels|vídeo|video|fotografia|motion/.test(format)) return 'audiovisual';
-  if (/deivid|beatriz|jady/.test(owner)) return 'design';
-  return owner ? 'design' : 'sem-responsavel';
-}
+// O texto do resumo mora em vybe-resumo.js (resumoDoDiaTexto). Aqui só se
+// escolhe de onde vêm as peças: todo o quadro, não só a semana carregada —
+// as atrasadas de dias anteriores podem ser de outra semana — e, no Gestor,
+// também as solicitações.
 function buildDailySummary(dayIso) {
-  const referenceLabel=dateMode==='prazo' ? 'Prazo' : 'Veiculação';
-  const itens=panelMode==='gestor' ? [...DADOS,...(DADOS_DEMANDAS||[]).map(normalizeRequestForOperational)] : DADOS;
-  const openItems=itens.filter(item=>getDateIso(item)===dayIso && !(isRequestItem(item)?atividadeDoDiaConcluida(item):DAILY_SUMMARY_CLOSED_STATUSES.has(normalizedWorkflowStatus(item.status))));
-  const lines=[`*VYBE OS · RESUMO DE CRIAÇÃO — ${dailySummaryDateLabel(dayIso)}*`, `_${openItems.length} atividade${openItems.length===1?'':'s'} em aberto · referência: ${referenceLabel}_`];
-  if (!openItems.length) return [...lines,'','✅ Nenhuma atividade em aberto para este dia.'].join('\n');
-  const groups={audiovisual:[],design:[],publicacao:[],'sem-responsavel':[]};
-  openItems.forEach(item=>groups[dailySummaryDiscipline(item)].push(item));
-  ['audiovisual','design','publicacao','sem-responsavel'].forEach(key=>{
-    const items=groups[key]; if(!items.length) return;
-    const info=DAILY_SUMMARY_DISCIPLINES[key];
-    lines.push('',`${info.icon} *${info.label}*`);
-    const byOwner={};
-    items.sort((a,b)=>dailySummaryPlain(a.responsavel).localeCompare(dailySummaryPlain(b.responsavel)) || dailySummaryPlain(a.nome).localeCompare(dailySummaryPlain(b.nome))).forEach(item=>{
-      const owner=dailySummaryPlain(item.responsavel) || 'Sem responsável';
-      (byOwner[owner] ||= []).push(item);
-    });
-    Object.entries(byOwner).forEach(([owner,ownerItems])=>{
-      lines.push(`*${owner}*`);
-      ownerItems.forEach(item=>{
-        const format=dailySummaryPlain(item.formato || 'Conteúdo');
-        const client=dailySummaryPlain(item.cliente || 'Cliente não informado');
-        lines.push(`• *${dailySummaryPlain(item.status || 'Sem status')}* — ${dailySummaryPlain(item.nome)} (${format})\n  ${client}`);
-      });
-    });
+  const referencia = dateMode === 'prazo' ? 'Prazo' : 'Veiculação';
+  const conteudos = (typeof DADOS_ALL !== 'undefined' && DADOS_ALL.length ? DADOS_ALL : DADOS) || [];
+  const solicitacoes = panelMode === 'gestor' ? (DADOS_DEMANDAS || []).map(normalizeRequestForOperational) : [];
+  const vistos = new Set();
+  const itens = [...conteudos, ...solicitacoes].filter((item) => {
+    const id = String(item.id);
+    if (vistos.has(id)) return false;
+    vistos.add(id);
+    return true;
   });
-  const late=openItems.filter(item=>item.prazo_atrasado);
-  const blockedStatuses=new Set(['alteração','falta info','falta d.a','aguardo','ag. interno','ag. info cliente','ag. aprovação cliente']);
-  const blocked=openItems.filter(item=>blockedStatuses.has(normalizedWorkflowStatus(item.status)));
-  if(late.length || blocked.length) {
-    lines.push('','⚠ *PONTOS DE ATENÇÃO*');
-    if(late.length) lines.push(`• ${late.length} atividade${late.length===1?'':'s'} com prazo atrasado.`);
-    if(blocked.length) lines.push(`• ${blocked.length} atividade${blocked.length===1?'':'s'} aguardando contexto, informação, direção ou aprovação.`);
-  }
-  lines.push('','_Atualizado via Vybe OS · use o status como referência antes de iniciar a próxima etapa._');
-  return lines.join('\n');
+  return resumoDoDiaTexto(itens, dayIso, { referencia, dataDe: getDateIso, statusDe: operationalFlowStatus });
 }
 function openDailySummary(dayIso) {
   const summary=buildDailySummary(dayIso);
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Comunicação operacional</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Resumo do dia para Criação</h2><p class="daily-summary-meta">A mensagem reúne somente atividades em aberto, com responsável e status atual. Ela não envia nada: revise e copie para o grupo do WhatsApp quando estiver pronto.</p><textarea id="daily-summary-preview" class="daily-summary-preview" readonly aria-label="Mensagem de resumo diário">${safeText(summary)}</textarea><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" class="workflow-primary" onclick="copyDailySummary()">Copiar para WhatsApp →</button></div>`);
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Comunicação operacional</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Resumo do dia para Criação</h2><p class="daily-summary-meta">A mensagem separa as peças do dia por etapa — alterar, travado, executar, aprovação, postar, agendado e já postado — e lista as atrasadas de dias anteriores. Ela não envia nada: revise e copie para o grupo do WhatsApp quando estiver pronto.</p><textarea id="daily-summary-preview" class="daily-summary-preview" readonly aria-label="Mensagem de resumo diário">${safeText(summary)}</textarea><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" class="workflow-primary" onclick="copyDailySummary()">Copiar para WhatsApp →</button></div>`);
 }
 async function copyDailySummary() {
   const area=document.getElementById('daily-summary-preview'); if(!area) return;
