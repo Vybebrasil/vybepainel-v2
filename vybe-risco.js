@@ -71,14 +71,14 @@ function riskActionOwner(d) {
 }
 function riskSeverityLabel(d) {
   const risk = d?.operational_risk || getOperationalRisk(d || {});
-  if (risk.level === 'critical') return 'ESCALAÇÃO';
-  if (risk.level === 'high') return 'AÇÃO HOJE';
-  if (risk.level === 'attention') return 'ATENÇÃO';
-  return 'INFORMATIVO';
+  if (risk.level === 'critical') return 'escalar';
+  if (risk.level === 'high') return 'ação hoje';
+  if (risk.level === 'attention') return 'atenção';
+  return 'informativo';
 }
 function riskActionHtml(d, compact=false) {
   const next = riskActionOwner(d);
-  return `<span class="risk-action-owner ${compact ? 'compact' : ''}" title="Próxima ação: ${safeText(next.action)}"><b>${safeText(riskSeverityLabel(d))}</b><span>→ ${safeText(next.owner)}</span></span>`;
+  return `<span class="risk-action-owner ${compact ? 'compact' : ''}" title="Próxima ação: ${safeText(next.action)}"><b>${safeText(riskSeverityLabel(d))}</b><span>&nbsp;para ${safeText(next.owner)}</span></span>`;
 }
 function riskBadgeHtml(d, compact=false) {
   const risk = d?.operational_risk || getOperationalRisk(d || {});
