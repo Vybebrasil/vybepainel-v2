@@ -287,7 +287,7 @@ async function areaPeca(req, res, quem) {
   // de fazer.
   await garantirMaterialBruto(db);
   const c = (await db`
-    SELECT c.id, c.titulo, c.criado_em, c.etapa AS grupo, c.grupo_id,
+    SELECT c.id, c.titulo, c.criado_em, c.monday_item_id, c.etapa AS grupo, c.grupo_id,
            c.prazo, c.veiculacao, c.briefing, c.material_bruto,
            c.captacao_chave, c.prioridade_chave, c.off_audio_chave,
            c.tipo_conteudo_chaves, c.formato_chaves,
@@ -311,7 +311,10 @@ async function areaPeca(req, res, quem) {
              WHERE e.conteudo_id=c.id) AS editores,
            (SELECT STRING_AGG(cl.nome, ', ')
               FROM vybe_conteudo_clientes vc JOIN vybe_clientes cl ON cl.id=vc.cliente_id
-             WHERE vc.conteudo_id=c.id) AS clientes
+             WHERE vc.conteudo_id=c.id) AS clientes,
+           (SELECT COALESCE(p.nome, e.texto)
+              FROM vybe_conteudo_eventos e LEFT JOIN vybe_pessoas p ON p.id=e.autor_id
+             WHERE e.conteudo_id=c.id AND e.tipo='criacao' ORDER BY e.em LIMIT 1) AS cadastrado_por
       FROM vybe_conteudos c
       LEFT JOIN vybe_status   s ON s.chave = c.status_chave
       LEFT JOIN vybe_captacao k ON k.chave = c.captacao_chave
@@ -437,6 +440,8 @@ async function areaPeca(req, res, quem) {
       captacao_chave: c.captacao_chave, prioridade_chave: c.prioridade_chave,
       off_audio_chave: c.off_audio_chave, tipo_conteudo_chaves: c.tipo_conteudo_chaves,
       formato_chaves: c.formato_chaves,
+      criado_em: c.criado_em, cadastrado_por: c.cadastrado_por,
+      importada: Boolean(c.monday_item_id),
     },
     subitens,
     assets,

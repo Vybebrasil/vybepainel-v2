@@ -410,6 +410,7 @@ function processDemandas(rawItems) {
     return {
       // contagem de tarefas da solicitação, para a fila mostrar o andamento
       tarefas: item.tarefas || 0, tarefas_feitas: item.tarefas_feitas || 0,
+      criado_em: item.criado_em || '', cadastrado_por: item.cadastrado_por || '',
       id: String(item.id),
       nome: item.name || '',
       cliente, clientes, status, prioridade, tipo,

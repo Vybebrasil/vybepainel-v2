@@ -56,3 +56,16 @@ test('a contagem dos botões ignora só o filtro de cliente', () => {
   vm.runInContext("escolherClienteDemandas('VOA'); currentDemandaStatusFilter = 'Feito';", c);
   assert.deepEqual(JSON.parse(vm.runInContext("JSON.stringify(filtrarDemandasBase({semCliente:true}).map(d=>d.id))", c)), ['c']);
 });
+
+// Quem cadastrou e quando: a mesma leitura para tabela, cartão e ficha.
+test('cadastro da peça: autor gravado, importada do Monday e data na hora da Bahia', () => {
+  const c = vm.createContext({ console });
+  vm.runInContext(fs.readFileSync('vybe-core.js', 'utf8').split('// vybe-core.js — núcleo')[0], c);
+  const ler = (x) => JSON.parse(vm.runInContext(`JSON.stringify(cadastroDaPeca(${JSON.stringify(x)}))`, c));
+  assert.deepEqual(ler({ id: 'vybe:12', criado_em: '2026-09-17T10:05', cadastrado_por: 'Deivid' }),
+    { quem: 'Deivid', quando: '17/09/2026 10:05', ordem: '2026-09-17T10:05' });
+  assert.equal(ler({ id: '11623475731', criado_em: '2026-08-02T12:00' }).quem, 'Importado do Monday');
+  // A ficha manda o carimbo do banco (UTC): vira a hora da Bahia.
+  assert.equal(ler({ id: 'vybe:12', criado_em: '2026-09-17T13:05:00.000Z', importada: false }).quando, '17/09/2026 10:05');
+  assert.equal(ler({ id: 'vybe:13' }).quem, 'Sem registro');
+});

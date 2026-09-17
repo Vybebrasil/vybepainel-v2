@@ -97,6 +97,8 @@ function workspaceFichaHtml(detail, itemId) {
     ['Responsável', `<button type="button" class="ficha-dono ficha-editavel" onclick="openOwnerEditor(event,'${itemId}')"
         title="Gerenciar responsáveis">${safeText(f.responsaveis || '—')}</button>`],
     ['Editor/Designer', texto(f.editores)],
+    // Só leitura: quem cadastrou e quando não se editam.
+    ...(() => { const c = cadastroDaPeca({ id: itemId, ...f }); return [['Cadastrado por', texto(c.quem)], ['Criado em', texto(c.quando)]]; })(),
   ];
 
   // Campo vazio aparece como "—" em vez de sumir: saber que a captação está em

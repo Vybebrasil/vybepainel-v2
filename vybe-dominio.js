@@ -177,6 +177,8 @@ function dominioComoItensDoMonday(dados) {
       // processItems o copia — e o unico jeito de o CARTAO saber que a peca ja
       // tem material sem abrir a peca.
       material_bruto: item.material_bruto || '',
+      // Quando e por quem foi cadastrada: também não são colunas do Monday.
+      criado_em: item.criado_em || '', cadastrado_por: item.cadastrado_por || '',
       column_values: [
         { id: C.cliente, text: clientes.join(', '), value: null },
         { id: C.formato, text: item.formato || '', value: null },
@@ -373,6 +375,7 @@ function demandasComoItensDoMonday(dados) {
       // Monday — é contagem nossa, para a fila mostrar 3/12 sem abrir a peça.
       tarefas: item.tarefas || 0,
       tarefas_feitas: item.tarefas_feitas || 0,
+      criado_em: item.criado_em || '', cadastrado_por: item.cadastrado_por || '',
       column_values: [
         { id: C.cliente, text: clientes.join(', '), value: null },
         { id: C.formato, text: item.formato || '', value: null },
