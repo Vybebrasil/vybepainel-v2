@@ -8,7 +8,8 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { listarNotas, salvarNota, apagarNota, notasProntas } from '../server/notas.js';
+import { listarNotas, salvarNota, apagarNota, notasProntas,
+  listarCadernos, renomearCaderno, apagarCaderno } from '../server/notas.js';
 
 async function banco() {
   const { db, sql } = conexao();
@@ -16,7 +17,8 @@ async function banco() {
     CREATE TABLE vybe_pessoas (id int primary key, nome text);
     CREATE TABLE vybe_notas (
       id serial primary key, pessoa_id int NOT NULL, item_ref text, titulo text,
-      corpo text NOT NULL DEFAULT '', criado_em timestamptz NOT NULL DEFAULT NOW(),
+      corpo text NOT NULL DEFAULT '', caderno text NOT NULL DEFAULT 'Notas do dia',
+      criado_em timestamptz NOT NULL DEFAULT NOW(),
       atualizado_em timestamptz NOT NULL DEFAULT NOW());
     INSERT INTO vybe_pessoas VALUES (1,'Paulo'),(2,'Jady');
   `);
@@ -54,7 +56,8 @@ test('nota vazia não é criada, e a leitura diz quando a estrutura não existe'
 });
 
 function tela() {
-  const c = vm.createContext({ console, document: { addEventListener() {} },
+  const c = vm.createContext({ console, document: { addEventListener() {} }, window: { addEventListener() {} },
+    localStorage: { getItem: () => null, setItem() {} },
     safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`) });
   vm.runInContext(fs.readFileSync('vybe-notas.js', 'utf8'), c);
   return (texto) => { c.t = texto; return vm.runInContext('notasMarkdownHtml(t)', c); };
@@ -76,4 +79,42 @@ test('o que a pessoa escreve não vira código', () => {
   const html = md('<img src=x onerror=alert(1)>\n- <b>negrito falso</b>');
   assert.ok(!html.includes('<img'), 'a tag não passa');
   assert.ok(!html.includes('<b>negrito falso</b>'), 'a tag escrita não vira tag');
+});
+
+test('cadernos: lista com a contagem, renomeia todas as notas e apagar move em vez de perder', async () => {
+  const sql = await banco();
+  await salvarNota(sql, 1, { titulo: 'a', corpo: 'x', caderno: 'Clientes' });
+  await salvarNota(sql, 1, { titulo: 'b', corpo: 'y', caderno: 'Clientes' });
+  await salvarNota(sql, 1, { titulo: 'c', corpo: 'z' });
+  await salvarNota(sql, 2, { titulo: 'da Jady', corpo: 'w', caderno: 'Clientes' });
+  assert.deepEqual((await listarCadernos(sql, 1)).map((c) => [c.nome, c.notas]).sort(),
+    [['Clientes', 2], ['Notas do dia', 1]]);
+  assert.equal((await renomearCaderno(sql, 1, 'Clientes', 'Contas')).notas, 2);
+  assert.deepEqual((await listarCadernos(sql, 1)).map((c) => c.nome).sort(), ['Contas', 'Notas do dia']);
+  // O caderno da outra pessoa não é tocado.
+  assert.deepEqual((await listarCadernos(sql, 2)).map((c) => c.nome), ['Clientes']);
+  const r = await apagarCaderno(sql, 1, 'Contas', { mover: 'Notas do dia' });
+  assert.deepEqual([r.movidas, r.para], [2, 'Notas do dia']);
+  assert.equal((await listarNotas(sql, 1)).length, 3);
+  await assert.rejects(() => apagarCaderno(sql, 1, 'Inexistente'), /não encontrado/i);
+  const so = await apagarCaderno(sql, 1, 'Notas do dia', { apagarNotas: true });
+  assert.equal(so.apagadas, 3);
+});
+
+test('a barra de ferramentas escreve a marca no lugar do cursor', () => {
+  const c = vm.createContext({ console, document: { addEventListener() {} }, window: { addEventListener() {} },
+    localStorage: { getItem: () => null, setItem() {} }, safeText: (v) => String(v ?? '') });
+  vm.runInContext(fs.readFileSync('vybe-notas.js', 'utf8'), c);
+  const chama = (texto, i, f, marca) => { c.a = [texto, i, f, marca];
+    return JSON.parse(vm.runInContext('JSON.stringify(notasInserir(a[0],a[1],a[2],a[3]))', c)); };
+  // Checklist entra no começo da linha em que está o cursor.
+  assert.deepEqual(chama('primeira\nsegunda', 10, 10, { linha: '[] ' }),
+    { texto: 'primeira\n[] segunda', cursor: 13 });
+  // Clicar de novo tira a marca.
+  assert.deepEqual(chama('[] fazer', 4, 4, { linha: '[] ' }), { texto: 'fazer', cursor: 1 });
+  // Negrito envolve o que está selecionado e deixa o cursor depois do texto.
+  assert.deepEqual(chama('prazo curto', 0, 5, { antes: '**', depois: '**' }),
+    { texto: '**prazo** curto', cursor: 9 });
+  // Emoji entra onde o cursor está.
+  assert.deepEqual(chama('ok ', 3, 3, { antes: '🔥' }), { texto: 'ok 🔥', cursor: 5 });
 });

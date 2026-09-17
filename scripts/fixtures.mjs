@@ -4,17 +4,33 @@ const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:
 // Monday atrás, e é a única forma de exercitar a tela local de ponta a ponta.
 let NOTAS_DEMO=[{id:1,titulo:'17/09 · notas do dia',
   corpo:'# Prioridades\n[] Falar com o cliente do carrossel\n[x] Mandar o card para aprovação\n- lembrar do **prazo de ouro**\n\nTexto solto de exemplo.',
-  item_ref:'',criado_em:new Date().toISOString(),atualizado_em:new Date().toISOString()}];
+  item_ref:'',caderno:'Notas do dia',criado_em:new Date().toISOString(),atualizado_em:new Date().toISOString()},
+  {id:2,titulo:'Copirecê · pendências',corpo:'[] cobrar impressos\n[x] mandar card do cardápio',item_ref:'',
+   caderno:'Clientes',criado_em:new Date().toISOString(),atualizado_em:new Date(Date.now()-3600000).toISOString()}];
+const cadernosDemo=()=>{const mapa=new Map();NOTAS_DEMO.forEach(n=>{const c=n.caderno||'Notas do dia';
+  const atual=mapa.get(c)||{nome:c,notas:0,mexido_em:n.atualizado_em};atual.notas+=1;mapa.set(c,atual);});
+  return [...mapa.values()];};
 function notasDemo(req,url,body,reply){
   if(req.method==='GET'){
     const termo=String(url.searchParams.get('busca')||'').toLowerCase();
-    return reply(200,{ok:true,notas:NOTAS_DEMO.filter(n=>!termo||`${n.titulo} ${n.corpo}`.toLowerCase().includes(termo))});
+    return reply(200,{ok:true,cadernos:cadernosDemo(),
+      notas:NOTAS_DEMO.filter(n=>!termo||`${n.titulo} ${n.corpo}`.toLowerCase().includes(termo))});
   }
   if(req.method==='POST'){
     let d;try{d=JSON.parse(body.toString());}catch{return reply(400,{error:'JSON inválido.'});}
     const agora=new Date().toISOString();
+    if(d.acao==='caderno_renomear'){
+      NOTAS_DEMO=NOTAS_DEMO.map(n=>(n.caderno||'Notas do dia')===d.de?{...n,caderno:String(d.para)}:n);
+      return reply(200,{ok:true,de:d.de,para:d.para});
+    }
+    if(d.acao==='caderno_apagar'){
+      NOTAS_DEMO=d.apagar_notas
+        ? NOTAS_DEMO.filter(n=>(n.caderno||'Notas do dia')!==d.caderno)
+        : NOTAS_DEMO.map(n=>(n.caderno||'Notas do dia')===d.caderno?{...n,caderno:String(d.mover||'Notas do dia')}:n);
+      return reply(200,{ok:true,caderno:d.caderno});
+    }
     const nota={id:Number(d.id)||Math.floor(Date.now()%100000),titulo:String(d.titulo||''),corpo:String(d.corpo||''),
-      item_ref:d.item_ref||'',criado_em:agora,atualizado_em:agora};
+      item_ref:d.item_ref||'',caderno:String(d.caderno||'Notas do dia'),criado_em:agora,atualizado_em:agora};
     NOTAS_DEMO=[nota,...NOTAS_DEMO.filter(n=>Number(n.id)!==Number(nota.id))];
     return reply(200,{ok:true,nota});
   }

@@ -874,50 +874,87 @@ body.vybe-desktop {
 .vybe-desktop .ops-daily-section > .ops-linha:first-of-type { border-top: 1px solid var(--border); }
 
 /* ─── Notas ──────────────────────────────────────────────────────────────────
-   Painel lateral com o mesmo material das outras janelas: vidro, canto de 16px
-   e a sombra de janela. A nota se lê formatada e se edita no clique. */
-.notas-fundo { position: fixed; inset: 0; z-index: 640; background: #06070bb0; backdrop-filter: blur(3px); }
-.notas-painel { position: fixed; z-index: 641; top: 16px; right: 16px; bottom: 16px; width: min(460px, calc(100vw - 32px));
-  display: flex; flex-direction: column; border: 1px solid var(--glass-edge); border-radius: var(--radius-window);
+   Janela solta, como as do macOS: arrasta pelo topo, redimensiona pelo canto,
+   expande para a tela e encolhe para uma barrinha no canto. O material é o do
+   painel — vidro, canto de 16px e sombra de janela. */
+.notas-janela { position: fixed; z-index: 660; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--glass-edge); border-radius: var(--radius-window);
   background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-window);
   backdrop-filter: blur(24px) saturate(1.35); -webkit-backdrop-filter: blur(24px) saturate(1.35); }
-.notas-topo { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--border); }
-.notas-topo > b { flex: 1; color: var(--text); font: 600 17px var(--mac-ui); letter-spacing: -.015em; }
-.notas-topo-acoes { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.notas-janela.cheia { inset: 16px !important; width: auto !important; height: auto !important; }
+.notas-janela.barra { inset: auto 16px 16px auto !important; width: 240px !important; height: auto !important; }
+.notas-topo { display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: grab;
+  border-bottom: 1px solid var(--border); touch-action: none; }
+.notas-janela.barra .notas-topo { border-bottom: 0; }
+.notas-topo > b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text); font: 600 14px var(--mac-ui); letter-spacing: -.01em; }
+.notas-topo-acoes { display: flex; align-items: center; gap: 4px; }
+.notas-voltar, .notas-icone { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0;
+  border: 1px solid var(--border); border-radius: 8px; background: #ffffff0f; color: var(--text-muted);
+  font: 500 13px var(--mac-ui); cursor: pointer; }
+.notas-voltar:hover, .notas-icone:hover { background: #ffffff1f; color: var(--text); }
+.notas-conteudo { flex: 1; display: grid; grid-template-columns: 148px minmax(0, 1fr); min-height: 0; }
+.notas-conteudo.nota { display: flex; flex-direction: column; gap: 8px; padding: 14px; overflow-y: auto; }
+.notas-cadernos { display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; overflow-y: auto;
+  border-right: 1px solid var(--border); }
+.notas-caderno { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-muted); font: 500 12.5px var(--mac-ui); text-align: left; cursor: pointer; }
+.notas-caderno span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notas-caderno i { color: #7d7f89; font-style: normal; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.notas-caderno:hover { background: #ffffff0f; color: var(--text); }
+.notas-caderno.ativo { background: #ff7a1a24; color: #ffd3ad; }
+.notas-caderno.novo { color: #ffbe86; }
+.notas-caderno-acoes { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+.notas-caderno-acoes button { border: 0; background: transparent; color: #7d7f89; font: 500 11.5px var(--mac-ui); cursor: pointer; }
+.notas-caderno-acoes button:hover { color: var(--text); text-decoration: underline; }
+.notas-lista { display: flex; flex-direction: column; min-height: 0; }
+.notas-barra { display: flex; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.notas-barra input { flex: 1; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--border);
+  border-radius: var(--radius-control); background: #ffffff0a; color: var(--text); font: 500 12.5px var(--mac-ui); }
+.notas-rolagem { flex: 1; overflow-y: auto; padding: 10px 12px 16px; overscroll-behavior: contain; }
 .notas-acao { height: 30px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-control);
-  background: #ffffff0f; color: var(--text); font: 500 12.5px var(--mac-ui); cursor: pointer; }
+  background: #ffffff0f; color: var(--text); font: 500 12.5px var(--mac-ui); white-space: nowrap; cursor: pointer; }
 .notas-acao:hover { background: #ffffff1f; }
 .notas-acao.primaria { border-color: transparent; background: #ff7a1a26; color: #ffbe86; }
 .notas-acao.primaria:hover { background: #ff7a1a3d; color: #fff; }
 .notas-acao.perigo { border-color: #ff53681f; color: #ffb0bc; }
 .notas-acao.perigo:hover { background: #ff53682e; color: #fff; }
-.notas-busca { padding: 12px 18px 0; }
-.notas-busca input { width: 100%; height: 34px; padding: 0 12px; border: 1px solid var(--border);
-  border-radius: var(--radius-control); background: #ffffff0a; color: var(--text); font: 500 13px var(--mac-ui); }
-.notas-corpo { flex: 1; overflow-y: auto; padding: 12px 18px 22px; overscroll-behavior: contain; }
-.notas-item { display: grid; gap: 3px; width: 100%; padding: 12px 14px; margin-bottom: 8px; text-align: left;
+.notas-item { display: grid; gap: 3px; width: 100%; padding: 10px 12px; margin-bottom: 6px; text-align: left;
   border: 1px solid var(--border); border-radius: var(--radius-panel); background: #ffffff08; cursor: pointer; }
 .notas-item:hover { background: #ffffff12; }
-.notas-item b { color: var(--text); font: 600 13.5px var(--mac-ui); letter-spacing: -.01em; }
+.notas-item b { color: var(--text); font: 600 13px var(--mac-ui); letter-spacing: -.01em; }
 .notas-item small { color: var(--text-muted); font: 400 12px/1.45 var(--mac-ui); }
 .notas-item-pe { color: #7d7f89; font: 500 11.5px var(--mac-ui); }
-.notas-titulo { width: 100%; height: 38px; padding: 0 2px; border: 0; border-bottom: 1px solid var(--border);
-  background: transparent; color: var(--text); font: 600 17px var(--mac-ui); letter-spacing: -.02em; }
-.notas-sobre { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 10px 0;
-  color: var(--text-muted); font: 500 12px var(--mac-ui); }
+.notas-titulo { width: 100%; height: 34px; padding: 0 2px; border: 0; border-bottom: 1px solid var(--border);
+  background: transparent; color: var(--text); font: 600 16px var(--mac-ui); letter-spacing: -.02em; }
+.notas-sobre { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--text-muted);
+  font: 500 12px var(--mac-ui); }
 .notas-sobre b { color: var(--text); font-weight: 600; }
 .notas-sobre button { height: 26px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px;
   background: #ffffff0a; color: var(--text-muted); font: 500 12px var(--mac-ui); cursor: pointer; }
 .notas-sobre button:hover { background: #ffffff1f; color: var(--text); }
-.notas-texto { width: 100%; min-height: 46vh; padding: 12px; border: 1px solid var(--border);
+/* Barra de ferramentas: escreve a marca no lugar do cursor. */
+.notas-ferramentas { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.notas-ferramentas > button { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px;
+  background: #ffffff0a; color: var(--text-muted); font: 500 12px var(--mac-ui); cursor: pointer; }
+.notas-ferramentas > button:hover { background: #ffffff1f; color: var(--text); }
+.notas-ferramentas-fim { display: flex; gap: 6px; margin-left: auto; }
+.notas-emojis { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--border);
+  border-radius: var(--radius-panel); background: #ffffff08; max-height: 168px; overflow-y: auto; }
+.notas-emoji-grupo > span { display: block; margin-bottom: 4px; color: #7d7f89; font: 500 11.5px var(--mac-ui); }
+.notas-emoji-grupo > div { display: flex; flex-wrap: wrap; gap: 2px; }
+.notas-emoji-grupo button { width: 30px; height: 28px; border: 0; border-radius: 8px; background: transparent;
+  font-size: 16px; line-height: 1; cursor: pointer; }
+.notas-emoji-grupo button:hover { background: #ffffff1f; }
+.notas-texto { flex: 1; min-height: 180px; padding: 12px; border: 1px solid var(--border);
   border-radius: var(--radius-panel); background: #ffffff08; color: var(--text);
-  font: 400 13.5px/1.6 var(--mac-ui); resize: vertical; }
-.notas-formatada { min-height: 46vh; padding: 12px; border: 1px solid transparent; border-radius: var(--radius-panel);
-  color: var(--text); font: 400 13.5px/1.6 var(--mac-ui); cursor: text; }
+  font: 400 13.5px/1.6 var(--mac-ui); resize: none; }
+.notas-formatada { flex: 1; min-height: 180px; padding: 12px; border: 1px solid transparent;
+  border-radius: var(--radius-panel); color: var(--text); font: 400 13.5px/1.6 var(--mac-ui); cursor: text; }
 .notas-formatada:hover { border-color: var(--border); }
-.notas-formatada h3 { font: 600 16px var(--mac-ui); margin: 12px 0 4px; letter-spacing: -.015em; }
-.notas-formatada h4 { font: 600 14.5px var(--mac-ui); margin: 10px 0 4px; }
-.notas-formatada h5 { font: 600 13.5px var(--mac-ui); margin: 10px 0 4px; color: var(--text-muted); }
+.notas-formatada h3 { font: 600 15.5px var(--mac-ui); margin: 12px 0 4px; letter-spacing: -.015em; }
+.notas-formatada h4 { font: 600 14px var(--mac-ui); margin: 10px 0 4px; }
+.notas-formatada h5 { font: 600 13px var(--mac-ui); margin: 10px 0 4px; color: var(--text-muted); }
 .notas-formatada p { margin: 0 0 6px; }
 .notas-formatada p.nota-vazia { height: 8px; margin: 0; }
 .notas-formatada ul { margin: 0 0 8px; padding-left: 20px; }
@@ -928,8 +965,20 @@ body.vybe-desktop {
 .notas-formatada .nota-check input { margin-top: 3px; accent-color: var(--workspace-accent); }
 .notas-formatada .nota-check.feito span { color: var(--text-muted); text-decoration: line-through; }
 .notas-placeholder { color: #7d7f89; }
-.notas-pe { margin: 10px 0 0; color: #7d7f89; font: 500 11.5px var(--mac-ui); }
+.notas-pe { margin: 0; color: #7d7f89; font: 500 11.5px var(--mac-ui); }
+.notas-canto { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, #ffffff2e 50%); touch-action: none; }
+.notas-janela.cheia .notas-canto, .notas-janela.barra .notas-canto { display: none; }
 @media (max-width: 640px) {
-  .notas-painel { top: 8px; right: 8px; left: 8px; bottom: 8px; width: auto; }
-  .notas-topo, .notas-busca, .notas-corpo { padding-left: 14px; padding-right: 14px; }
+  .notas-janela { inset: 8px !important; width: auto !important; height: auto !important; }
+  .notas-janela.barra { inset: auto 8px 8px auto !important; width: 200px !important; height: auto !important; }
+  /* Duas linhas: a fila de cadernos no tamanho dela, a lista no resto. Sem
+     isto a grade dividia a altura em duas metades iguais. */
+  .notas-conteudo { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  /* No celular os cadernos viram uma fila que rola para o lado, com altura de
+     controle: em coluna esticada, um caderno ocupava meia tela. */
+  .notas-cadernos { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto;
+    padding: 8px 10px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+  .notas-caderno { flex: 0 0 auto; height: 30px; padding: 0 10px; white-space: nowrap; }
+  .notas-caderno-acoes { flex: 0 0 auto; margin: 0; padding: 0; gap: 8px; }
 }
