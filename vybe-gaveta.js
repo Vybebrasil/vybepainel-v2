@@ -49,8 +49,26 @@ function workspaceDeliveryInfo(detail={}){ const updates=detail?.updates||[]; co
 function workspaceCopyFallback(text){ const input=document.createElement('textarea'); input.value=text; input.setAttribute('readonly',''); input.style.cssText='position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(input); input.select(); const copied=document.execCommand('copy'); input.remove(); if(!copied) throw new Error('Cópia manual indisponível'); }
 function showWorkspaceDeliveryCopySheet(text){ document.getElementById('workspace-delivery-copy-sheet')?.remove(); const sheet=document.createElement('section'); sheet.id='workspace-delivery-copy-sheet'; sheet.className='workspace-delivery-copy-sheet'; sheet.innerHTML=`<b>Link pronto para copiar</b><small>Seu navegador bloqueou a cópia automática. O endereço abaixo já está selecionado: use Ctrl/Cmd + C.</small><input id="workspace-delivery-copy-value" readonly value="${safeText(text)}"><button type="button" onclick="document.getElementById('workspace-delivery-copy-sheet')?.remove()">Fechar</button>`; document.body.appendChild(sheet); const input=sheet.querySelector('input'); input?.focus(); input?.select(); }
 async function copyWorkspaceDeliveryLink(url){ const text=String(url||'').trim(); if(!text) return showToast('Nenhum material disponível para copiar.','info'); try{ if(navigator.clipboard?.writeText){ await Promise.race([navigator.clipboard.writeText(text),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tempo de cópia excedido')),1200))]); } else workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(error){ try{ workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(fallbackError){ showWorkspaceDeliveryCopySheet(text); showToast('Link aberto para cópia manual.','info',7000); } } }
-function focusWorkspaceDeliveryInput(){ const input=document.getElementById('workspace-link-input'); if(!input) return; input.scrollIntoView({behavior:'smooth',block:'center'}); input.focus(); showToast('Cole aqui o link final para liberar a postagem.','info'); }
-function workspaceDeliveryDock(detail,item){ const delivery=workspaceDeliveryInfo(detail); if(!delivery) return `<section class="workspace-delivery-dock missing"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega para postagem</span><b>Material ainda não enviado</b><small>Quem publica não tem link nem arquivo final nesta demanda. Registre o material antes de mover para publicação.</small></div><div class="workspace-delivery-actions"><button type="button" class="workspace-delivery-focus" onclick="focusWorkspaceDeliveryInput()">REGISTRAR MATERIAL ↓</button></div></section>`; const when=delivery.created_at?new Date(delivery.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'sem horário disponível'; return `<section class="workspace-delivery-dock"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega pronta para postar</span><b>${safeText(delivery.name)}</b><small>${safeText(delivery.source)} · enviado por ${safeText(delivery.creator)} · ${safeText(when)}</small></div><div class="workspace-delivery-actions"><a class="workspace-delivery-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a><button type="button" class="workspace-delivery-copy-btn" onclick="copyWorkspaceDeliveryLink('${safeText(delivery.url)}')">Copiar link</button></div></section>`; }
+function focusWorkspaceDeliveryInput(){ escolherCaminhoDeEntrega('link'); const input=document.getElementById('workspace-link-input'); if(!input) return; input.scrollIntoView({behavior:'smooth',block:'center'}); input.focus(); showToast('Cole aqui o link final para liberar a postagem.','info'); }
+function workspaceDeliveryDock(detail,item){ const delivery=workspaceDeliveryInfo(detail); // Sem material, a faixa só avisava e levava para a caixa de link logo abaixo.
+  // A entrega passou a ser uma seção só: o estado vira a primeira linha dela.
+  if(!delivery) return `<div class="entrega-estado faltando"><b>Material ainda não enviado</b><small>Quem publica precisa do arquivo final ou do link antes de a peça ir para publicação.</small></div>`; const when=delivery.created_at?new Date(delivery.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'sem horário disponível'; return `<section class="workspace-delivery-dock"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega pronta para postar</span><b>${safeText(delivery.name)}</b><small>${safeText(delivery.source)} · enviado por ${safeText(delivery.creator)} · ${safeText(when)}</small></div><div class="workspace-delivery-actions"><a class="workspace-delivery-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a><button type="button" class="workspace-delivery-copy-btn" onclick="copyWorkspaceDeliveryLink('${safeText(delivery.url)}')">Copiar link</button></div></section>`; }
+
+// ARQUIVO OU LINK: UMA ESCOLHA, NÃO DOIS CARTÕES.
+//
+// Os dois caminhos ficavam lado a lado, cada um com título, instrução e botão, e
+// "Registrar link da entrega" era laranja mesmo para quem ia arrastar um card.
+// Agora a pessoa escolhe o caminho e vê só o dele. Vídeo abre em Link, porque
+// arquivo de vídeo passa do limite do upload; o resto abre em Arquivo.
+function caminhoInicialDeEntrega(item) {
+  return /reels|v[ií]deo|audiovisual|motion/i.test(String(item?.formato || item?.tipo || '')) ? 'link' : 'arquivo';
+}
+function escolherCaminhoDeEntrega(qual) {
+  const caixa = document.querySelector('#workspace-drawer .entrega-caminhos');
+  if (!caixa) return;
+  caixa.querySelectorAll('[data-entrega]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.entrega === qual)));
+  caixa.querySelectorAll('[data-painel]').forEach((p) => { p.hidden = p.dataset.painel !== qual; });
+}
 
 // AÇÃO QUE APAGA NÃO FICA SOLTA NO MEIO DO CONTEÚDO.
 //
@@ -107,33 +125,33 @@ let DETALHE_DA_GAVETA = null;
     ${faixaDeMaterialBrutoHtml(detail, item)}
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
-    ${workspaceDeliveryDock(detail,item)}
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
-    <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section>
-    <section class="workspace-section"><div class="workspace-section-head">Entregar</div><div class="workspace-section-body">
-      <p class="workspace-note">Duas formas, conforme o que você tem em mãos. Qualquer uma das duas registra a entrega na atividade.</p>
+    <section class="workspace-section workspace-entrega"><div class="workspace-section-head">Entrega</div><div class="workspace-section-body">
+      ${workspaceDeliveryDock(detail,item)}
       <div class="entrega-caminhos">
-        <div class="entrega-caminho">
-          <div class="entrega-caminho-topo"><b>Arquivo pronto</b><small>card, arte ou PDF</small></div>
-          <input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
-          <div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste aqui ou clique</strong>PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
-          <p class="workspace-note">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos da demanda”.</p>
+        <div class="entrega-escolha" role="tablist" aria-label="Como entregar">
+          <button type="button" role="tab" data-entrega="arquivo" aria-selected="${caminhoInicialDeEntrega(item) === 'arquivo'}" onclick="escolherCaminhoDeEntrega('arquivo')">Arquivo</button>
+          <button type="button" role="tab" data-entrega="link" aria-selected="${caminhoInicialDeEntrega(item) === 'link'}" onclick="escolherCaminhoDeEntrega('link')">Link</button>
         </div>
-        <div class="entrega-caminho">
-          <div class="entrega-caminho-topo"><b>Link do material</b><small>vídeo, ou arquivo grande demais</small></div>
-          <input id="workspace-link-input" class="workspace-input" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva">
-          <button type="button" class="workspace-action primary" onclick="saveWorkspaceLink()">Registrar link da entrega</button>
-          <p class="workspace-note">Fica no histórico da atividade, com quem registrou e quando.</p>
+        <div class="entrega-caminho" data-painel="arquivo"${caminhoInicialDeEntrega(item) === 'arquivo' ? '' : ' hidden'}>
+          <input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
+          <div class="workspace-dropzone" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste o arquivo aqui ou clique</strong>Card, arte ou PDF · PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
+          <p class="workspace-note">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos”.</p>
+        </div>
+        <div class="entrega-caminho" data-painel="link"${caminhoInicialDeEntrega(item) === 'link' ? '' : ' hidden'}>
+          <div class="entrega-link"><input id="workspace-link-input" class="workspace-input" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva" aria-label="Link do material">
+          <button type="button" class="workspace-action primary" onclick="saveWorkspaceLink()">Registrar link</button></div>
+          <p class="workspace-note">Para vídeo ou arquivo grande. Fica no histórico, com quem registrou e quando.</p>
         </div>
       </div>
       <div class="entrega-depois"><span>Entregou? A próxima etapa precisa saber.</span><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Passar bastão →</button></div>
     </div></section>
-    
+    ${assets.length
+      ? `<section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.map(workspaceAssetCard).join('')}</div></div></section>`
+      : `<details class="workspace-section workspace-recolhida"><summary>Arquivos<small>nenhum</small></summary><div class="workspace-section-body"><div class="workspace-empty">Nenhum arquivo anexado ainda.</div></div></details>`}
     <section class="workspace-section"><div class="workspace-section-head">Atualização rápida</div><div class="workspace-section-body"><textarea id="workspace-comment-input" class="workspace-textarea" placeholder="Ex.: Card finalizado e enviado para aprovação."></textarea><div class="workspace-form-row"><button type="button" class="workspace-action" onclick="saveWorkspaceComment()">Registrar atualização</button></div></div></section>
-    
-
+    ${workspaceHistoryHtml(detail, item)}
     ${workspaceExecutiveHistoryHtml(updates)}
-      ${workspaceHistoryHtml(detail, item)}
     <details class="workspace-section workspace-recolhida"><summary>Todo o histórico<small>${updates.length} registro${updates.length===1?'':'s'}</small></summary><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></details></div>`;
 }
 async function openItemWorkspace(itemId) {

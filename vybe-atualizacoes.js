@@ -103,7 +103,9 @@ async function mandarMexerNaAtualizacao(acao, updateId, extra, recado) {
 }
 function workspaceExecutiveHistoryHtml(updates=[]) {
   const decisive=(updates||[]).filter(update=>/Direcionamento D\.A|Contexto de status|Passagem de bastão|Planejamento atualizado|Check-in/i.test(workspacePlainText(update?.body||''))).slice(0,5);
-  if(!decisive.length) return '<section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><div class="workspace-empty">Ainda não há decisão estruturada registrada nesta demanda.</div></div></section>';
+  // Seção vazia ocupava um cartão inteiro para dizer "nada". Recolhida, fica o
+  // nome e a contagem — como no Mac —, e abre para quem quiser conferir.
+  if(!decisive.length) return '<details class="workspace-section workspace-recolhida workspace-executive-history"><summary>Memória executiva<small>nenhuma decisão</small></summary><div class="workspace-section-body"><div class="workspace-empty">Ainda não há decisão estruturada registrada nesta demanda.</div></div></details>';
   return `<section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><p class="workspace-note">Somente decisões que mudam a próxima etapa, o responsável, o prazo ou a direção entram nesta leitura.</p>${decisive.map(update=>{const text=workspacePlainText(update?.body||''); const type=workspaceTimelineType(text); return `<div class="workspace-decision-memory"><span>${safeText(type)}</span><div><b>${safeText((update?.created_at||'').replace('T',' ').slice(0,16))}</b><p>${safeText(text)}</p></div></div>`;}).join('')}</div></section>`;
 }
 
