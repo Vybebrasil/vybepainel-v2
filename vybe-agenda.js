@@ -598,14 +598,17 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   cartao.id = 'cartao-rapido';
   cartao.className = 'cartao-rapido';
   const linha = (rotulo, conteudo) => `<div class="cr-linha"><span>${rotulo}</span><div>${conteudo}</div></div>`;
-  const data = (campo, iso) => `<input type="date" class="grupo-data-campo" value="${safeText(iso || '')}"
-      onchange="event.stopPropagation();salvarDataNaLinha('${safeText(item.id)}','${campo}',this)">`;
+  // O campo de data nativo aparecia como "17 /09/2026" e salvava uma data de cada
+  // vez, sem conferir o Prazo de Ouro. Vira a data no formato do painel e abre o
+  // editor de planejamento — o mesmo da ficha da gaveta e das linhas do Foco.
+  const data = (iso) => `<button type="button" class="cr-data" onclick="event.stopPropagation();openPlanningEditor('${safeText(item.id)}')"
+      title="Editar prazo e ${source === 'request' ? 'conclusão' : 'veiculação'}">${safeText(planningDateBr(iso) === 'não definido' ? '—' : planningDateBr(iso))}</button>`;
   const ehDemanda = source === 'request';
 
   cartao.innerHTML = `
     <div class="cr-topo">
-      <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}${botaoDeLinkHtml(item)}</div>
-      <button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button>
+      <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}</div>
+      <div class="cr-topo-acoes">${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item, { mover: !ehDemanda })}<button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button></div>
     </div>
     <div class="cr-titulo" role="button" tabindex="0"
       onclick="event.stopPropagation();renomearPeca('${safeText(item.id)}',event)"
@@ -621,14 +624,12 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}
       ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
       ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
-      ${linha('Prazo', data('prazo', item.prazo_iso))}
-      ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data('veiculacao', ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
+      ${linha('Prazo', data(item.prazo_iso))}
+      ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
     </div>
     <div class="cr-rodape">
-      <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}">
-        Abrir tudo — arquivos, histórico e entrega →</button>
-      <button type="button" class="cr-excluir" onclick="removerPeca('${safeText(item.id)}')"
-        title="Arquivar esta atividade — volta com um clique por 15 dias">Arquivar</button>
+      <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}"
+        title="Arquivos, histórico e entrega">Abrir detalhes</button>
     </div>`;
   document.body.append(fundo, cartao);
   ancorarPopover(cartao, rect);
