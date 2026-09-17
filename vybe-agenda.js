@@ -938,7 +938,9 @@ function renderManagerCalendar(forcar = false) {
       onclick="managerCalendarSetClient(decodeURIComponent('${encodeURIComponent(client)}'))"><b>${
       safeText(client)}</b> ${count}${xis(client)}</button>`;
   const fichas = [`<button type="button" class="manager-calendar-client ${managerCalendarClientFilter==='all'?'active':''}" onclick="managerCalendarSetClient('all')"><b>Todos</b> ${totalNoMes}</button>`,
-    ...clients.map(ficha)].join('');
+    // Quem tem peça no mês vem primeiro, em ordem alfabética; os zerados vão
+    // para o fim, apagados. No meio da lista eles empurravam quem tem trabalho.
+    ...[...clients].sort((a, b) => (b.count > 0) - (a.count > 0)).map(ficha)].join('');
   const escolhido = managerCalendarClientFilter === 'all'
     ? { rotulo: 'Todos os clientes', total: totalNoMes }
     : { rotulo: managerCalendarClientFilter, total: (clients.find(c => c.client === managerCalendarClientFilter)?.count ?? 0) };
