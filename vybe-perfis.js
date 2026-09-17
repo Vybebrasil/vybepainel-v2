@@ -1757,7 +1757,12 @@ function applyPanelMode() {
   document.getElementById('da-controller-banner')?.classList.toggle('active', isDaController);
   document.getElementById('production-command-banner')?.classList.toggle('active', isProductionCommand);
   const modeButton = document.getElementById('mode-switch-btn');
-  if (modeButton) modeButton.textContent = isFocus ? '◎ Modo Foco' : isDaController ? '◈ DA Controler' : isProductionCommand ? '◫ Produção' : isClientMode ? '◉ Clientes' : '⌘ Modo Gestor';
+  // "◎ Modo Foco ⇄" não dizia que o botão troca de modo. O texto diz agora.
+  if (modeButton) {
+    const modoAtual = isFocus ? 'Modo Foco' : isDaController ? 'DA Controler' : isProductionCommand ? 'Produção' : isClientMode ? 'Clientes' : 'Modo Gestor';
+    modeButton.textContent = `${modoAtual} · Trocar`;
+    modeButton.setAttribute('aria-label', `Modo atual: ${modoAtual}. Trocar de modo`);
+  }
   const subtitle = document.getElementById('header-sub');
   if (subtitle) subtitle.textContent = isFocus ? `Meu Dia · ${firstName(user.name)} · fila individual de prioridades` : isDaController ? 'DA Controler · produtividade da célula criativa' : isProductionCommand ? 'Produção · ordem operacional de captação, fotografia e edição' : isClientMode ? 'Clientes · cadastro mestre, heads, acessos e operação' : 'Controle semanal de conteúdo por cliente e equipe';
   const personEl = document.getElementById('focus-person');

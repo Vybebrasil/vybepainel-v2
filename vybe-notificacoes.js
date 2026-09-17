@@ -25,10 +25,17 @@ async function carregarNotificacoes() {
   } catch { /* sino ausente não pode atrapalhar o painel */ }
 }
 
+// O número no sino (84) competia com tudo na barra. Aviso novo vira um ponto,
+// como no Mac; a quantidade continua no nome do botão, para quem usa leitor de
+// tela e para quem para o mouse em cima.
 function pintarSino(naoLidas) {
   const marca = document.getElementById('notif-contador');
+  const sino = document.getElementById('notif-sino');
+  const rotulo = naoLidas ? `Avisos · ${naoLidas} não ${naoLidas === 1 ? 'lido' : 'lidos'}` : 'Avisos';
+  if (sino) { sino.setAttribute('aria-label', rotulo); sino.title = rotulo; }
   if (!marca) return;
-  marca.textContent = naoLidas > 99 ? '99+' : String(naoLidas);
+  marca.textContent = '';
+  marca.classList.add('ponto');
   marca.style.display = naoLidas ? 'flex' : 'none';
 }
 
