@@ -1749,7 +1749,9 @@ function applyPanelMode() {
   // Controler. Esconde-las por "modo dedicado" apagava justamente os dois botoes
   // que o DA acabou de ganhar.
   const temVisoesDoQuadro = typeof modoComVisoesDoQuadro === 'function' && modoComVisoesDoQuadro();
-  document.getElementById('manager-calendar')?.classList.toggle('focus-hidden', !temVisoesDoQuadro);
+  // No DA, a agenda só aparece emprestada à régua (acomodarVisaoDaRegua a revela).
+  document.getElementById('manager-calendar')?.classList.toggle('focus-hidden',
+    !temVisoesDoQuadro || (isDaController && !emprestadaAoDa('manager-calendar')));
   document.getElementById('ops-agenda-btn')?.classList.toggle('focus-hidden', !temVisoesDoQuadro);
   document.getElementById('sidebar')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('sidebar-toggle')?.classList.toggle('focus-hidden', isDedicatedMode);
