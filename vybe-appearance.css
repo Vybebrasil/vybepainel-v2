@@ -567,3 +567,13 @@ body.vybe-desktop {
 .etapa-tempo-nome { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
 .etapa-tempo-nome small { color: var(--text-muted); font: 500 12px var(--mac-ui); }
 .etapa-tempo strong { color: var(--text); font: 600 13px var(--mac-ui); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Cartão de resumo com a mesma barra da gaveta: link como ícone, menu "…" (onde
+   mora o Arquivar) e fechar. O texto "Copiar link" continua no botão para leitor
+   de tela; só sai da vista. */
+.cr-topo-acoes { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.vybe-desktop .cartao-rapido .cr-topo-acoes .vybe-link { display: grid; place-items: center; width: 32px; height: 30px; margin: 0; padding: 0; border-radius: 9px; }
+.vybe-desktop .cartao-rapido .cr-topo-acoes .vybe-link span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.vybe-desktop .cartao-rapido .workspace-mais > summary { width: 32px; height: 30px; border-radius: 9px; }
+.vybe-desktop .cartao-rapido .cr-data { border: 1px solid #ffffff1f; border-radius: 8px; background: #ffffff0a; color: var(--text); padding: 3px 10px; font: 500 13px var(--mac-ui); font-variant-numeric: tabular-nums; cursor: pointer; }
+.vybe-desktop .cartao-rapido .cr-data:hover { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); }

@@ -77,13 +77,15 @@ function escolherCaminhoDeEntrega(qual) {
 // seções. Com o fundo dela quase transparente, ela flutuava por cima da ficha e
 // da entrega, com os textos um sobre o outro. No Mac a ação destrutiva fica num
 // menu, ao lado do fechar — e é onde ela está agora.
-function menuDeAcoesDaPecaHtml(item) {
+// O mesmo menu serve à gaveta e ao cartão de resumo: o Arquivar mora num lugar
+// só, do mesmo jeito. 'mover' é falso para solicitação, que não muda de quadro.
+function menuDeAcoesDaPecaHtml(item, { mover = true } = {}) {
   const id = safeText(String(item.id));
   const monday = podeVerMonday();
   return `<details class="workspace-mais">
     <summary aria-label="Mais ações" title="Mais ações">${ICONE_LINHA.mais}</summary>
     <div class="workspace-mais-menu" role="menu">
-      ${monday ? `<button type="button" role="menuitem" onclick="fecharMenusDaGaveta();moverPecaDeBoard('${id}')">Mover para Demandas</button>` : ''}
+      ${monday && mover ? `<button type="button" role="menuitem" onclick="fecharMenusDaGaveta();moverPecaDeBoard('${id}')">Mover para Demandas</button>` : ''}
       ${monday && item.url ? `<a role="menuitem" data-external-monday="true" href="${safeText(item.url)}" target="_blank" rel="noopener" onclick="fecharMenusDaGaveta()">Abrir no Monday ↗</a>` : ''}
       ${monday ? '<hr>' : ''}
       <button type="button" role="menuitem" class="perigo" onclick="fecharMenusDaGaveta();removerPeca('${id}')">Arquivar atividade</button>
@@ -217,7 +219,9 @@ async function openDemandaWorkspace(itemId) {
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   // Esc fecha a camada de cima: com o menu "…" aberto, fecha o menu, não a gaveta.
-  if (fecharMenusDaGaveta()) return;
+  // stopImmediatePropagation porque o cartão de resumo tem o próprio ouvinte de
+  // Esc, registrado depois: sem isto, o mesmo Esc fecharia o menu e o cartão.
+  if (fecharMenusDaGaveta()) { event.preventDefault(); event.stopImmediatePropagation(); return; }
   if (document.getElementById('brief-overlay')) { fecharBriefing(); return; }
   // O organizador abre por cima do menu de etiquetas: o Esc fecha a camada de
   // cima, nao as duas.
