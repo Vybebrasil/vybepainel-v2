@@ -52,6 +52,32 @@ async function copyWorkspaceDeliveryLink(url){ const text=String(url||'').trim()
 function focusWorkspaceDeliveryInput(){ const input=document.getElementById('workspace-link-input'); if(!input) return; input.scrollIntoView({behavior:'smooth',block:'center'}); input.focus(); showToast('Cole aqui o link final para liberar a postagem.','info'); }
 function workspaceDeliveryDock(detail,item){ const delivery=workspaceDeliveryInfo(detail); if(!delivery) return `<section class="workspace-delivery-dock missing"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega para postagem</span><b>Material ainda não enviado</b><small>Quem publica não tem link nem arquivo final nesta demanda. Registre o material antes de mover para publicação.</small></div><div class="workspace-delivery-actions"><button type="button" class="workspace-delivery-focus" onclick="focusWorkspaceDeliveryInput()">REGISTRAR MATERIAL ↓</button></div></section>`; const when=delivery.created_at?new Date(delivery.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'sem horário disponível'; return `<section class="workspace-delivery-dock"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega pronta para postar</span><b>${safeText(delivery.name)}</b><small>${safeText(delivery.source)} · enviado por ${safeText(delivery.creator)} · ${safeText(when)}</small></div><div class="workspace-delivery-actions"><a class="workspace-delivery-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a><button type="button" class="workspace-delivery-copy-btn" onclick="copyWorkspaceDeliveryLink('${safeText(delivery.url)}')">Copiar link</button></div></section>`; }
 
+// AÇÃO QUE APAGA NÃO FICA SOLTA NO MEIO DO CONTEÚDO.
+//
+// "Arquivar atividade" morava numa barra grudada no rodapé da gaveta, no meio das
+// seções. Com o fundo dela quase transparente, ela flutuava por cima da ficha e
+// da entrega, com os textos um sobre o outro. No Mac a ação destrutiva fica num
+// menu, ao lado do fechar — e é onde ela está agora.
+function menuDeAcoesDaPecaHtml(item) {
+  const id = safeText(String(item.id));
+  const monday = podeVerMonday();
+  return `<details class="workspace-mais">
+    <summary aria-label="Mais ações" title="Mais ações">${ICONE_LINHA.mais}</summary>
+    <div class="workspace-mais-menu" role="menu">
+      ${monday ? `<button type="button" role="menuitem" onclick="fecharMenusDaGaveta();moverPecaDeBoard('${id}')">Mover para Demandas</button>` : ''}
+      ${monday && item.url ? `<a role="menuitem" data-external-monday="true" href="${safeText(item.url)}" target="_blank" rel="noopener" onclick="fecharMenusDaGaveta()">Abrir no Monday ↗</a>` : ''}
+      ${monday ? '<hr>' : ''}
+      <button type="button" role="menuitem" class="perigo" onclick="fecharMenusDaGaveta();removerPeca('${id}')">Arquivar atividade</button>
+    </div>
+  </details>`;
+}
+function fecharMenusDaGaveta() {
+  let fechou = false;
+  document.querySelectorAll('details.workspace-mais[open]').forEach((d) => { d.open = false; fechou = true; });
+  return fechou;
+}
+document.addEventListener('click', (e) => { if (!e.target.closest?.('details.workspace-mais')) fecharMenusDaGaveta(); });
+
 // A gaveta aberta agora. O botao de conteudo abre a leitura sem ir a rede de
 // novo: o briefing ja veio junto com o resto do contexto.
 let DETALHE_DA_GAVETA = null;
@@ -67,10 +93,10 @@ let DETALHE_DA_GAVETA = null;
   const format = item.formato || item.tipo || item.formato_conteudo || 'Conteúdo';
   drawer.innerHTML = `
       <div style="flex:1;overflow-y:auto;padding:22px 24px 120px;box-sizing:border-box;width:100%;height:100%;">
-      <div class="workspace-kicker"><span>Vybe OS · Workspace da demanda</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div>
+      <div class="workspace-kicker workspace-barra"><span>Conteúdo</span><div class="workspace-barra-acoes">${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item)}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar">×</button></div></div>
     <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}
       <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
-              title="ID da atividade · clique para copiar">#${safeText(item.id)}</button>${botaoDeLinkHtml(item)}</div>
+              title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
     <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
     ${blocoDoBriefingHtml(detail, item)}
@@ -78,7 +104,6 @@ let DETALHE_DA_GAVETA = null;
     ${workspaceFichaHtml(detail, item.id)}
     ${subitensHtml(detail, item)}
     ${workspaceDeliveryDock(detail,item)}
-    <div class="workspace-actions">${podeVerMonday() ? `<button type="button" class="workspace-action" onclick="moverPecaDeBoard('${item.id}')">Mover para Demandas</button>` : ''}<button type="button" class="workspace-action perigo" onclick="removerPeca('${item.id}')">Arquivar atividade</button>${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div>
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText((latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
     <section class="workspace-section"><div class="workspace-section-head">Arquivos da demanda</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section>
     <section class="workspace-section"><div class="workspace-section-head">Entregar</div><div class="workspace-section-body">
@@ -168,6 +193,8 @@ async function openDemandaWorkspace(itemId) {
 // Regra Vybe OS: clique em atividade abre contexto interno; Monday é um atalho deliberado dentro do workspace.
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
+  // Esc fecha a camada de cima: com o menu "…" aberto, fecha o menu, não a gaveta.
+  if (fecharMenusDaGaveta()) return;
   if (document.getElementById('brief-overlay')) { fecharBriefing(); return; }
   // O organizador abre por cima do menu de etiquetas: o Esc fecha a camada de
   // cima, nao as duas.

@@ -155,6 +155,8 @@ const ICONE_LINHA = {
   entregar: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M8 2.5v7.2M5 6.9l3 2.9 3-2.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 11.2v2.3h10v-2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   previa: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.6 8S4 3.6 8 3.6 14.4 8 14.4 8 12 12.4 8 12.4 1.6 8 1.6 8Z" stroke-linejoin="round"/><circle cx="8" cy="8" r="2"/></svg>',
   bruto: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.8" y="4" width="9" height="8" rx="1.6"/><path d="m10.8 7 3.4-2v6l-3.4-2" stroke-linejoin="round"/></svg>',
+  link: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9" stroke-linecap="round"/><path d="M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9" stroke-linecap="round"/></svg>',
+  mais: '<svg class="icone-linha" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>',
 };
 function focusStatusButtonHtml(d) {
   return `<button type="button" class="focus-status-btn" onclick="openStatusEditor(event,'${d.id}')" title="Atualizar status no Vybe OS">${pillHtml(d.status,d.status_color,d.status_border)}</button>`;
