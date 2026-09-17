@@ -147,6 +147,15 @@ function focusTaskTone(status) {
   if (['Falta D.A','Cap. Agendada','Agendando Cap','Segurar Post'].includes(status)) return '#ff4d6d';
   return '#a58c79';
 }
+// Ícones das ações da fila. Eram emojis (📄 👁 ⤓ 🎬): cada sistema desenha um
+// diferente, eles não seguem a cor do texto e não acompanham o tamanho da fonte.
+// Traço fino na cor atual, como os símbolos do macOS.
+const ICONE_LINHA = {
+  briefing: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M4 1.8h5.2L12.5 5v9.2H4z" stroke-linejoin="round"/><path d="M9 1.8V5.2h3.4M6.2 8.4h3.8M6.2 10.9h3.8" stroke-linecap="round"/></svg>',
+  entregar: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M8 2.5v7.2M5 6.9l3 2.9 3-2.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 11.2v2.3h10v-2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  previa: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.6 8S4 3.6 8 3.6 14.4 8 14.4 8 12 12.4 8 12.4 1.6 8 1.6 8Z" stroke-linejoin="round"/><circle cx="8" cy="8" r="2"/></svg>',
+  bruto: '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.8" y="4" width="9" height="8" rx="1.6"/><path d="m10.8 7 3.4-2v6l-3.4-2" stroke-linejoin="round"/></svg>',
+};
 function focusStatusButtonHtml(d) {
   return `<button type="button" class="focus-status-btn" onclick="openStatusEditor(event,'${d.id}')" title="Atualizar status no Vybe OS">${pillHtml(d.status,d.status_color,d.status_border)}</button>`;
 }
@@ -321,11 +330,16 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
   const late = deadline && deadline < (HOJE_ISO || '');
   const risk = d.operational_risk || getOperationalRisk(d);
   const isRunning = flowStatus === 'Em andamento';
-    const timerHtml = isRunning && d.status_updated_at ? `<span class="live-timer" data-start="${d.status_updated_at}" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.06);color:#a6f8ff;font:700 11px var(--mac-mono, monospace);letter-spacing:1px;border:1px solid rgba(0,240,255,0.2);display:inline-block;vertical-align:middle;">00:00:00</span>` : '';
+    const desde = d.status_updated_at ? new Date(d.status_updated_at) : null;
+    const desdeTexto = desde && !Number.isNaN(desde.getTime())
+      ? desde.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    // O relógio conta desde que a peça ENTROU em execução, não horas trabalhadas.
+    // "26:43:35" lia como um dia inteiro de trabalho; o balão diz o que é.
+    const timerHtml = isRunning && d.status_updated_at ? `<span class="live-timer" data-start="${d.status_updated_at}" title="Em execução desde ${safeText(desdeTexto)}" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.06);color:#a6f8ff;font:700 11px var(--mac-mono, monospace);letter-spacing:1px;border:1px solid rgba(0,240,255,0.2);display:inline-block;vertical-align:middle;">00:00:00</span>` : '';
     // O texto de contexto e do GRUPO — 'Pronto para voce executar' aparecia
     // igual nas cinco linhas. Fica so na primeira, como quem diz a regra uma
     // vez; nas outras sobra o que de fato muda.
-    const baseMeta = [late ? '⚠️ Atrasado' : '', risk.sla_label || ''].filter(Boolean).join(' • ');
+    const baseMeta = [late ? 'Atrasado' : '', risk.sla_label || ''].filter(Boolean).join(' • ');
     // As duas datas saem do meio da frase e viram coluna propria, encostada na
     // direita. Medindo a linha antes: o titulo tinha 379px e esta faixa de apoio
     // 475 — o secundario com mais espaco que o principal, e os numeros mudando
@@ -336,9 +350,9 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <div class="focus-task-title"><div class="focus-task-name">${d.cliente ? `<span class="focus-task-client" title="Cliente: ${safeText(d.cliente)}">${safeText(d.cliente)}</span>` : ''}<button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">📄<span>Briefing</span></button>${botaoDeMaterialBrutoHtml(d)}${jaTemMaterial(d)
-      ? `<button type="button" class="focus-brief-btn previa" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">👁<span>Prévia</span></button>`
-      : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">⤓<span>Entregar</span></button>`}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;"><button type="button" class="focus-brief-btn" onclick="event.stopPropagation();abrirBriefing('${safeText(String(d.id))}',this)" title="Ler o briefing desta atividade sem abrir a peça" aria-label="Ver briefing">${ICONE_LINHA.briefing}<span>Briefing</span></button>${botaoDeMaterialBrutoHtml(d)}${jaTemMaterial(d)
+      ? `<button type="button" class="focus-brief-btn previa" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">${ICONE_LINHA.previa}<span>Prévia</span></button>`
+      : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">${ICONE_LINHA.entregar}<span>Entregar</span></button>`}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
 
