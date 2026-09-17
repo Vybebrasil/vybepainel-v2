@@ -3,7 +3,7 @@
   const root = document.documentElement;
   const body = document.body;
   const key = 'vybe.appearance.v1';
-  let preferences = { glass: 84, reduceMotion: false };
+  let preferences = { glass: 90, reduceMotion: false };
   try {
     const saved = JSON.parse(localStorage.getItem(key));
     if (saved && Number.isFinite(saved.glass)) preferences.glass = Math.max(65, Math.min(100, saved.glass));
