@@ -31,6 +31,9 @@ function logDataBr(valor) {
 // { categoria, frase } — a frase já vem com o HTML escapado; só o <b> é nosso.
 function fraseDoLog(ev = {}, { demanda = false } = {}) {
   const b = (v) => `<b>${safeText(v)}</b>`;
+  // Status aparece como a etiqueta dele, com a cor do catálogo — é assim que o
+  // time reconhece a etapa no resto do painel.
+  const etiqueta = (v) => (demanda && typeof pillHtmlDemanda === 'function' ? pillHtmlDemanda : pillHtml)(safeText(v));
   const troca = (oque, de, para, fmt = (x) => x) => {
     if (de && para) return `mudou ${oque} de ${b(fmt(de))} para ${b(fmt(para))}`;
     if (para) return `definiu ${oque} como ${b(fmt(para))}`;
@@ -40,7 +43,12 @@ function fraseDoLog(ev = {}, { demanda = false } = {}) {
   const { tipo, de, para, texto } = ev;
   switch (tipo) {
     case 'criacao': return { categoria: 'tudo', frase: 'criou a peça' };
-    case 'status': return { categoria: 'status', frase: troca('o status', de, para) };
+    case 'status': {
+      if (typeof pillHtml !== 'function') return { categoria: 'status', frase: troca('o status', de, para) };
+      const frase = de && para ? `mudou o status de ${etiqueta(de)} para ${etiqueta(para)}`
+        : para ? `definiu o status como ${etiqueta(para)}` : de ? `tirou o status (era ${etiqueta(de)})` : 'mudou o status';
+      return { categoria: 'status', frase };
+    }
     case 'prazo': return { categoria: 'datas', frase: troca('o prazo', de, para, logDataBr) };
     case 'veiculacao':
       return { categoria: 'datas', frase: troca(demanda ? 'a conclusão' : 'a veiculação', de, para, logDataBr) };
@@ -78,6 +86,29 @@ function autorDoLog(ev = {}) {
   if (ev.autor) return ev.autor;
   if (ev.tipo === 'criacao' && ev.texto) return ev.texto;
   return ev.do_monday ? 'Monday' : 'Sistema';
+}
+
+// A bolinha de quem fez: a foto da equipe (a mesma do resto do painel), ou as
+// iniciais. Quem não é pessoa — automação, Monday, sistema — ganha um símbolo
+// próprio, para não parecer alguém da equipe sem foto. O nome fica no title e
+// no texto para leitor de tela.
+function rostoDoLogHtml(ev = {}) {
+  const nome = autorDoLog(ev);
+  const pessoa = ev.autor_ref && typeof TEAM_USERS !== 'undefined'
+    ? TEAM_USERS.find((u) => String(u.id) === String(ev.autor_ref)) : null;
+  const titulo = `title="${safeText(nome)}" aria-label="${safeText(nome)}"`;
+  if (!ev.autor && ev.tipo === 'automacao') {
+    return `<span class="log-rosto log-rosto-sistema automacao" ${titulo}><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M9.2 1 3 9h4.3L6.6 15 13 7H8.6z"/></svg></span>`;
+  }
+  if (!ev.autor && !(ev.tipo === 'criacao' && ev.texto)) {
+    return `<span class="log-rosto log-rosto-sistema" ${titulo}>${ev.do_monday ? 'M' : 'S'}</span>`;
+  }
+  const foto = pessoa?.photo || ev.autor_foto || '';
+  const iniciais = safeText(String(nome).trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase() || '?');
+  const cor = pessoa?.color || '#5b5f6b';
+  return foto
+    ? `<span class="log-rosto" ${titulo}><img src="${safeText(foto)}" alt="" onerror="this.parentNode.style.background='${cor}';this.outerHTML='<b>${iniciais}</b>'"></span>`
+    : `<span class="log-rosto" style="background:${cor}" ${titulo}><b>${iniciais}</b></span>`;
 }
 
 function logDiaNaBahia(iso) {
@@ -167,7 +198,7 @@ function pintarLogDaPeca() {
   const blocos = [...porDia.entries()].map(([dia, doDia]) => `<div class="log-dia">
       <div class="log-dia-rotulo">${safeText(logRotuloDoDia(dia))}</div>
       ${doDia.map(({ ev, frase }) => `<div class="log-linha log-${safeText(ev.tipo)}">
-        <span class="log-quem">${safeText(autorDoLog(ev))}</span>
+        ${rostoDoLogHtml(ev)}
         <span class="log-oque">${frase}</span>
         <time class="log-hora" datetime="${safeText(ev.em)}">${hora(ev.em)}</time>
       </div>`).join('')}

@@ -19,7 +19,8 @@ export async function logDaPeca(sql, conteudoId) {
   const id = Number(conteudoId);
   const [eventos, execucoes, comentariosDoMonday] = await Promise.allSettled([
     sql`SELECT e.tipo, e.de, e.para, e.texto, e.em,
-               COALESCE(p.nome, '') AS autor, (e.monday_log_id IS NOT NULL) AS do_monday
+               COALESCE(p.nome, '') AS autor, p.monday_user_id AS autor_ref, p.foto_url AS autor_foto,
+               (e.monday_log_id IS NOT NULL) AS do_monday
           FROM vybe_conteudo_eventos e LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
          WHERE e.conteudo_id = ${id}
          ORDER BY e.em DESC LIMIT ${LIMITE_DO_LOG}`,
@@ -37,6 +38,8 @@ export async function logDaPeca(sql, conteudoId) {
   const itens = eventos.value.map((e) => ({
     tipo: e.tipo, de: texto(e.de), para: texto(e.para), texto: texto(e.texto),
     em: new Date(e.em).toISOString(), autor: e.autor || '', do_monday: Boolean(e.do_monday),
+    ...(e.autor_ref ? { autor_ref: String(e.autor_ref) } : {}),
+    ...(e.autor_foto ? { autor_foto: String(e.autor_foto) } : {}),
   }));
   if (execucoes.status === 'fulfilled') {
     for (const x of execucoes.value) {

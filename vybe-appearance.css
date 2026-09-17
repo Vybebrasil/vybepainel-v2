@@ -658,17 +658,21 @@ body.vybe-desktop {
 .log-corpo { flex: 1; overflow-y: auto; padding: 4px 24px 40px; overscroll-behavior: contain; }
 .log-dia-rotulo { position: sticky; top: 0; z-index: 1; padding: 14px 0 6px; background: #1c1e26;
   color: #8b8b90; font: 600 12px var(--mac-ui); }
-.log-linha { display: grid; grid-template-columns: minmax(0, 132px) minmax(0, 1fr) auto; gap: 4px 14px; align-items: baseline;
+.log-linha { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center;
   padding: 9px 0; border-top: 1px solid rgba(255,255,255,.05); font: 400 13px/1.45 var(--mac-ui); }
-.log-quem { overflow: hidden; color: #e6e6ea; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+/* A bolinha de quem fez, com o nome no title. */
+.log-rosto { display: inline-grid; place-items: center; width: 28px; height: 28px; overflow: hidden; border-radius: 50%;
+  background: #3a3d48; color: #fff; font: 700 10.5px var(--mac-ui); }
+.log-rosto img { width: 100%; height: 100%; object-fit: cover; }
+.log-rosto b { font-weight: 700; }
+.log-rosto-sistema { background: rgba(255,255,255,.08); color: #9a9aa0; }
+.log-rosto-sistema.automacao { background: rgba(167,139,250,.18); color: #c4b5fd; }
+.log-oque .pill { vertical-align: 1px; font-size: 11px; }
 .log-oque { min-width: 0; color: #b4b4ba; overflow-wrap: anywhere; }
 .log-oque b { color: #f2f2f5; font-weight: 600; }
 .log-hora { color: #8b8b90; font-variant-numeric: tabular-nums; }
-.log-automacao .log-quem { color: #c4b5fd; }
 .log-nota { margin: 18px 0 0; color: #8b8b90; font: 400 12px/1.5 var(--mac-ui); }
 @media (max-width: 640px) {
   .log-topo, .log-filtros, .log-corpo { padding-left: 16px; padding-right: 16px; }
-  .log-linha { grid-template-columns: minmax(0, 1fr) auto; }
-  .log-hora { grid-row: 1; grid-column: 2; }
-  .log-oque { grid-column: 1 / -1; }
+  .log-linha { align-items: start; }
 }
