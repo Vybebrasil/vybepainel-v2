@@ -48,9 +48,13 @@ test('falha no histórico desfaz toda a alteração; cliente inativo existente p
 test('leitura preserva todos os clientes sem duplicar a peça e agrupa em ambas as contas',async()=>{
   const {default:vm}=await import('node:vm');const {readFileSync}=await import('node:fs');
   const c=vm.createContext({console,Date,clienteDesativado:()=>false,aplicarFotosDoBanco(){}});
-  for(const file of ['vybe-config.js','vybe-core.js','vybe-dominio.js','vybe-gestor.js']) vm.runInContext(readFileSync(file,'utf8'),c);
+  // vybe-demandas.js entra porque processItemsAll pergunta se uma peça atrasada
+  // está concluída, e essa resposta passa pelo operationalFlowStatus de lá. O prazo
+  // é uma data já passada de propósito: com '2026-09-16' o teste passava até o dia
+  // 16 e quebrava a partir do 17 (UTC), em toda PR, sem ninguém ter mexido em nada.
+  for(const file of ['vybe-config.js','vybe-core.js','vybe-dominio.js','vybe-demandas.js','vybe-gestor.js']) vm.runInContext(readFileSync(file,'utf8'),c);
   const result=vm.runInContext(`(() => {
-    const base={itens:[{id:'vybe:10',nome:'Compartilhado',clientes:['Cliente A','Cliente B'],prazo_iso:'2026-09-16'}],status:[],pessoas:[]};
+    const base={itens:[{id:'vybe:10',nome:'Compartilhado',clientes:['Cliente A','Cliente B'],prazo_iso:'2026-09-01'}],status:[],pessoas:[]};
     const itens=processItemsAll(dominioComoItensDoMonday(base),calcWeeks());
     return {total:itens.length,clientes:itens[0].clientes,segundo:itemTemCliente(itens[0],'Cliente B'),grupos:Object.keys(groupByCliente(itens))};
   })()`,c);
