@@ -161,7 +161,7 @@ const ICONE_LINHA = {
 function focusStatusButtonHtml(d) {
   return `<button type="button" class="focus-status-btn" onclick="openStatusEditor(event,'${d.id}')" title="Atualizar status no Vybe OS">${pillHtml(d.status,d.status_color,d.status_border)}</button>`;
 }
-function operationalOriginTag(item={}) { const request=isRequestItem(item); return `<span class="operational-origin-tag ${request?'request':'content'}" title="Origem operacional: ${request?'Solicitação de Demandas':'Produção de Conteúdo'}">${request?'SOLICITAÇÃO':'CONTEÚDO'}</span>`; }
+function operationalOriginTag(item={}) { const request=isRequestItem(item); return `<span class="operational-origin-tag ${request?'request':'content'}" title="Origem operacional: ${request?'Solicitação de Demandas':'Produção de Conteúdo'}">${request?'Solicitação':'Conteúdo'}</span>`; }
 // AS DUAS DATAS, COM NOME.
 //
 // A linha mostrava uma data so, nua. E nao era sempre a mesma: a fila usa prazo
