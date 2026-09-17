@@ -949,8 +949,35 @@ function renderDailyClose(){
   const ongoing=scope.filter(d=>d.status==='Em andamento');
   const blockerStatuses=new Set(['Falta Info','Falta D.A','Aguardo','Ag. Info Cliente','Ag. Aprovação Cliente','Alteração','Ag. Interno']);
   const carry=scope.filter(d=>opsOpenItem(d)&&(getDateIso(d)<today||blockerStatuses.has(d.status))).sort((a,b)=>getDateIso(a).localeCompare(getDateIso(b))||a.nome.localeCompare(b.nome));
-  const renderList=(items,label,empty)=>items.length?items.slice(0,5).map(d=>`<div class="ops-today-line" onclick="openItemWorkspace('${d.id}')"><b title="${safeText(d.nome)}">${safeText(d.nome)}</b><small>${safeText(opsOwnerLabel(d))} · ${safeText(d.cliente)}</small><span class="ops-daily-tag">${safeText(label(d))}</span></div>`).join(''):`<div class="ops-daily-empty">${empty}</div>`;
-  panel.innerHTML=`<div class="ops-panel-title"><span>◷ Fechamento do dia · ${safeText(today.split('-').reverse().join('/'))}</span><span>leitura do contexto atual</span></div><div class="ops-daily-kpis"><div class="ops-daily-kpi"><b>${finalizedToday.length}</b><span>finalizadas e atualizadas hoje</span></div><div class="ops-daily-kpi"><b>${ongoing.length}</b><span>permanecem em execução</span></div><div class="ops-daily-kpi"><b>${carry.length}</b><span>riscos ou bloqueios atravessam</span></div></div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Em execução ao encerrar</span><small>clique para abrir</small></div>${renderList(ongoing,d=>d.status,'✓ Nenhuma entrega permanece em execução.')}</div><div class="ops-daily-section"><div class="ops-daily-section-head"><span>Riscos que atravessam</span><small>atraso ou bloqueio</small></div>${renderList(carry,d=>d.status,'✓ Nenhum risco ou bloqueio precisa atravessar para o próximo ciclo.')}</div>`;
+  // A MESMA LINHA DA MESA DE COMANDO, AQUI.
+  //
+  // Eram três cartões roxos de KPI e listas com o responsável jogado à direita,
+  // colado na etiqueta. Agora os números são uma leitura em uma linha e as duas
+  // listas usam a linha de duas alturas: peça em cima, cliente e quem responde
+  // embaixo, status à direita.
+  const linha = (d) => `<div class="ops-linha" role="button" tabindex="0" title="Abrir ${safeText(d.nome)}"
+      onclick="openItemWorkspace('${d.id}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openItemWorkspace('${d.id}')}">
+      <div class="ops-linha-corpo"><b>${safeText(d.nome)}</b>
+        <span class="ops-linha-apoio"><span class="ops-linha-cliente">${safeText(d.cliente || 'Sem cliente')}</span>${
+          opsOwnerLabel(d) ? `<span>${safeText(opsOwnerLabel(d))}</span>` : '<span class="ops-linha-sem">sem responsável</span>'}</span>
+      </div>
+      ${pillHtml(d.status, d.status_color, d.status_border)}
+    </div>`;
+  const lista = (items, empty) => items.length
+    ? items.slice(0, 5).map(linha).join('') + (items.length > 5 ? `<div class="ops-linha-mais">+ ${items.length - 5} no painel</div>` : '')
+    : `<div class="ops-daily-empty">${empty}</div>`;
+  const leitura = [
+    [finalizedToday.length, 'finalizadas hoje'],
+    [ongoing.length, 'em execução'],
+    [carry.length, 'riscos ou bloqueios'],
+  ].map(([n, r]) => `<span class="ops-daily-numero"><b>${n}</b>${r}</span>`).join('');
+  panel.innerHTML = `<div class="ops-panel-title"><span>Fechamento do dia · ${safeText(today.split('-').reverse().join('/'))}</span></div>
+    <div class="ops-daily-leitura" title="Leitura do contexto atual">${leitura}</div>
+    <div class="ops-daily-section"><div class="ops-daily-section-head" title="Clique numa peça para abrir"><span>Em execução ao encerrar</span></div>${
+      lista(ongoing, 'Nenhuma entrega permanece em execução.')}</div>
+    <div class="ops-daily-section"><div class="ops-daily-section-head" title="Atraso ou bloqueio"><span>Riscos que atravessam</span></div>${
+      lista(carry, 'Nenhum risco ou bloqueio precisa atravessar para o próximo ciclo.')}</div>`;
 }
 function renderOperationalTools() {
   renderTeamLoad();

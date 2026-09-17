@@ -99,16 +99,42 @@ function commandResponsibleHtml(d) {
   // Mesa é estreita e o nome inteiro empurrava o próximo passo para fora.
   return `<span class="command-owner" title="Responsável(is): ${safeText(names)}"><span class="command-avatar-stack">${avatars}${suffix}</span></span>`;
 }
+// A LINHA DA MESA, EM DUAS ALTURAS.
+//
+// Ela era uma tabela de quatro colunas com a MESMA frase em todas as linhas —
+// "Prazo vencido e dependência sem resolução" repetido quarenta e seis vezes.
+// Essa frase é o critério da aba, não informação da peça: vai uma vez, embaixo
+// das abas, e no title da linha. Fica o que muda de peça para peça: o nome, o
+// cliente, o prazo, quem responde, o motivo registrado e a próxima ação.
 function commandEntryHtml(entry) {
-  const { d, next, copyable, detail } = entry;
-  const context = d.status_context?.reason ? `<small class="command-context">↳ ${safeText(d.status_context.reason)}</small>` : '';
-  return `<div class="command-row"><span class="command-client" title="${safeText(d.cliente)}">${safeText(d.cliente)}</span><div class="command-item"><button type="button" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da atividade">${safeText(d.nome)}</button><div class="command-detail"><span>${safeText(detail)}</span>${commandResponsibleHtml(d)}</div></div><div class="command-next">${safeText(next)}${context}${riskActionHtml(d,true)}</div><div class="command-tools">${riskBadgeHtml(d,true)}${pillHtml(d.status,d.status_color,d.status_border)}${copyable ? `<button type="button" class="command-copy" onclick="copyPendingFollowUp('${d.id}')">Copiar</button>` : ''}<button type="button" class="command-open" onclick="openItemWorkspace('${d.id}')">Abrir</button></div></div>`;
+  const { d, next, copyable } = entry;
+  const abrir = `openItemWorkspace('${d.id}')`;
+  const prazo = typeof planningDateBr === 'function' && getReferenceDate(d)
+    ? planningDateBr(getReferenceDate(d)).slice(0, 5) : '';
+  const motivo = d.status_context?.reason
+    ? `<span class="command-motivo" title="Contexto de status">${safeText(d.status_context.reason)}</span>` : '';
+  return `<div class="command-row" role="button" tabindex="0" title="${safeText(next)}"
+      onclick="if(!event.target.closest('button'))${abrir}"
+      onkeydown="if((event.key==='Enter'||event.key===' ')&&!event.target.closest('button')){event.preventDefault();${abrir}}">
+    <div class="command-corpo">
+      <b class="command-peca">${safeText(d.nome)}</b>
+      <span class="command-apoio">
+        <span class="command-client">${safeText(d.cliente || 'Sem cliente')}</span>
+        ${prazo ? `<span class="command-prazo">Prazo ${safeText(prazo)}</span>` : ''}
+        ${commandResponsibleHtml(d)}${motivo}${riskActionHtml(d, true)}
+      </span>
+    </div>
+    <div class="command-tools">${riskBadgeHtml(d, true)}${pillHtml(d.status, d.status_color, d.status_border)}${
+      copyable ? `<button type="button" class="command-copy" onclick="copyPendingFollowUp('${d.id}')">Copiar</button>` : ''}<button type="button" class="command-open" onclick="${abrir}">Abrir</button></div>
+  </div>`;
 }
 function commandGroupHtml(key, title, note, color, entries, empty, extraClass='') {
   const shown = managerCommandExpanded[key] ? entries : entries.slice(0,4);
   const rows = shown.length ? shown.map(commandEntryHtml).join('') : `<div class="manager-empty">${empty}</div>`;
   const more = entries.length > 4 ? `<button type="button" class="command-more" onclick="toggleManagerCommandGroup('${key}')">${managerCommandExpanded[key] ? 'Mostrar menos' : `Ver mais ${entries.length - 4}`}</button>` : '';
-  return `<section class="command-group ${extraClass}" style="--command-color:${color}"><div class="command-group-head"><span class="command-group-title">${title} · ${entries.length}</span><span class="command-group-note">${note}</span></div>${rows}${more}</section>`;
+  // O título repetia a aba escolhida ("Resolver hoje 46" em cima, "Resolver
+  // hoje · 46" embaixo). Fica só o critério, uma vez.
+  return `<section class="command-group ${extraClass}" style="--command-color:${color}"><div class="command-group-head"><span class="command-group-note" title="${safeText(title)}">${note}</span></div>${rows}${more}</section>`;
 }
 function commandTeamRailHtml() {
   const users = TEAM_USERS.filter(u => FOCUS_ACTIVE_IDS.has(u.id) && (!selectedPersonIds.size || selectedPersonIds.has(String(u.id))));
