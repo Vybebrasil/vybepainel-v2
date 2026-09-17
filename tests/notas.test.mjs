@@ -63,6 +63,22 @@ function contexto() {
   vm.runInContext(fs.readFileSync('vybe-notas.js', 'utf8'), c);
   return c;
 }
+// A busca da demanda usa a mesma função do Spotlight; o teste carrega os dois
+// arquivos na mesma sandbox, como o navegador faz.
+function contextoComSpotlight(itens) {
+  const c = vm.createContext({ console, document: { addEventListener() {} }, window: { addEventListener() {} },
+    localStorage: { getItem: () => null, setItem() {} },
+    safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`) });
+  vm.runInContext(fs.readFileSync('vybe-spotlight.js', 'utf8'), c);
+  vm.runInContext(fs.readFileSync('vybe-notas.js', 'utf8'), c);
+  c.itensDemo = itens;
+  vm.runInContext(`HOJE_ISO = '2026-09-17'; TEAM_USERS = [];
+    unifiedOperationalItems = () => itensDemo;
+    atividadeDoDiaConcluida = (i) => ['Finalizado','Feito'].includes(i.status);
+    isRequestItem = (i) => i.origem === 'solicitacao';`, c);
+  return c;
+}
+
 const chamar = (c, chamada, ...args) => { c.a = args; return JSON.parse(vm.runInContext(`JSON.stringify(${chamada})`, c)); };
 function tela() {
   const c = contexto();
@@ -142,4 +158,23 @@ test('a marca da linha se lê, se monta e se troca', () => {
   // Clicar de novo na mesma marca tira.
   assert.deepEqual(chamar(c, 'notasTrocarMarca(a[0],a[1],a[2])', ['[] texto'], 0, 'check'),
     { linhas: ['texto'], foco: 0 });
+});
+
+test('ligar a nota a uma demanda usa a busca do ⌘K: "ree" acha "Reels - Raira 1"', () => {
+  const itens = [
+    { id: '1', nome: 'Reels - Raira 1', cliente: 'ConectaSim', status: 'Em andamento', veiculacao_iso: '2026-09-18' },
+    { id: '2', nome: 'Card - Cardápio', cliente: 'Gonzalez', status: 'Pode Fazer', veiculacao_iso: '2026-09-19' },
+    { id: '3', nome: 'Reels - Visita Pablo', cliente: 'Copirecê', status: 'Finalizado', veiculacao_iso: '2026-09-10' },
+  ];
+  const c = contextoComSpotlight(itens);
+  const buscar = (texto) => { c.q = texto;
+    return JSON.parse(vm.runInContext(`NOTA_BUSCA_PECA = q; JSON.stringify(notasPecasDaBusca().map((d) => d.id))`, c)); };
+  // Era o caso do print: "ree" não achava nada na busca antiga.
+  assert.deepEqual(buscar('ree'), ['1', '3']);
+  // Duas palavras, em campos diferentes: nome e cliente.
+  assert.deepEqual(buscar('reels copirecê'), ['3']);
+  // Sem acento também acha.
+  assert.deepEqual(buscar('copirece'), ['3']);
+  // Uma letra só não despeja o painel.
+  assert.deepEqual(buscar('r'), []);
 });

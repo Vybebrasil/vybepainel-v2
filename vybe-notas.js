@@ -31,6 +31,7 @@ let NOTAS_EMOJI_ABERTO = false;
 let NOTA_LINHAS = [];       // a nota aberta, linha por linha
 let NOTA_FOCO = null;       // qual linha está sendo escrita
 let NOTA_FIM = null;        // onde o cursor entra na linha ('fim' ou posição)
+let NOTA_BUSCA_PECA = null; // texto digitado na busca de demanda, ou null (fechada)
 
 // Emojis do dia a dia da operação, por grupo. Vêm daqui e não de uma biblioteca:
 // o painel bloqueia conteúdo de fora, e o teclado do sistema continua valendo.
@@ -483,6 +484,7 @@ function pintarNotaAberta() {
       <input class="notas-titulo" value="${safeText(NOTA_ABERTA.titulo)}" placeholder="Título da nota"
         oninput="editarNota('titulo',this.value)" aria-label="Título da nota">
       ${sobre}
+      ${notasBuscaPecaHtml()}
       ${notasFerramentasHtml()}
       <div class="nota-folha" onclick="if(event.target===this)focarLinha(${NOTA_LINHAS.length - 1})">
         ${NOTA_LINHAS.map(notasLinhaHtml).join('')}
@@ -680,23 +682,77 @@ async function apagarNotaAberta() {
   } catch (erro) { showToast(erro.message, 'err', 6000); }
 }
 
-async function escolherPecaDaNota() {
-  const minhas = typeof focusOwnItems === 'function' ? focusOwnItems() : [];
-  const fonte = minhas.length ? minhas : (typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : []);
-  if (!fonte.length) return showToast('Nenhuma demanda carregada para ligar à nota.', 'info', 5000);
-  const nome = await perguntarNoPainel({
-    titulo: 'Ligar a nota a uma demanda',
-    texto: `Escreva parte do nome. Ex.: ${String(fonte[0]?.nome || '').slice(0, 40)}`,
-    confirmar: 'Ligar', campo: { valor: '', dica: 'Parte do nome da demanda' },
+// A BUSCA DA DEMANDA É A MESMA DO ⌘K.
+//
+// Antes era uma caixa de texto que pedia "parte do nome" e comparava com
+// includes: quem digitava "ree" não achava "Reels - Raira 1", porque a busca
+// exigia a sequência exata e só olhava a fila do Foco. Agora chama
+// spotlightResultados — a função que ranqueia o Spotlight — sobre o painel
+// inteiro, com as mesmas regras de acento, várias palavras e cliente.
+function escolherPecaDaNota() {
+  capturarLinhaAberta();
+  NOTA_BUSCA_PECA = '';
+  pintarNotaAberta();
+  setTimeout(() => document.getElementById('nota-busca-peca')?.focus(), 30);
+}
+
+function fecharBuscaDaPeca() {
+  NOTA_BUSCA_PECA = null;
+  pintarNotaAberta();
+}
+
+function buscarPecaDaNota(texto) {
+  NOTA_BUSCA_PECA = String(texto ?? '');
+  const caixa = document.getElementById('nota-busca-lista');
+  if (caixa) caixa.innerHTML = notasResultadosHtml();
+}
+
+function notasPecasDaBusca() {
+  const consulta = String(NOTA_BUSCA_PECA || '');
+  if (typeof spotlightResultados !== 'function') return [];
+  const itens = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems()
+    : (typeof DADOS_ALL !== 'undefined' && DADOS_ALL.length ? DADOS_ALL : (typeof DADOS !== 'undefined' ? DADOS : []));
+  const r = spotlightResultados(consulta, {
+    itens,
+    pessoas: typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS,
+    hojeIso: (typeof HOJE_ISO === 'string' && HOJE_ISO) || new Date().toISOString().slice(0, 10),
+    concluida: typeof atividadeDoDiaConcluida === 'function' ? atividadeDoDiaConcluida : undefined,
+    ehDemanda: typeof isRequestItem === 'function' ? isRequestItem : undefined,
   });
-  if (!nome) return;
-  const alvo = fonte.find((d) => String(d.nome || '').toLocaleLowerCase('pt-BR').includes(String(nome).toLocaleLowerCase('pt-BR')));
-  if (!alvo) return showToast('Não achei essa demanda.', 'info', 5000);
-  ligarNotaAPeca(String(alvo.id));
+  // Em andamento primeiro; o que já encerrou entra depois, porque nota sobre
+  // peça antiga também existe.
+  return [...(r.andamento || []), ...(r.encerradas || [])].slice(0, 8);
+}
+
+function notasResultadosHtml() {
+  const consulta = String(NOTA_BUSCA_PECA || '');
+  if (consulta.trim().length < 2) return '<p class="nota-busca-dica">Digite duas letras para procurar.</p>';
+  const achados = notasPecasDaBusca();
+  if (!achados.length) return '<p class="nota-busca-dica">Nenhuma demanda com essas palavras.</p>';
+  return achados.map((d) => `<button type="button" class="nota-busca-item"
+      onclick="ligarNotaAPeca('${safeText(String(d.id))}')">
+      <b>${safeText(d.nome || 'Sem título')}</b>
+      <small>${safeText(d.cliente || 'Sem cliente')}${d.status ? ` · ${safeText(d.status)}` : ''}</small>
+    </button>`).join('');
+}
+
+function notasBuscaPecaHtml() {
+  if (NOTA_BUSCA_PECA === null) return '';
+  return `<div class="nota-busca">
+      <div class="nota-busca-campo">
+        <input id="nota-busca-peca" type="search" value="${safeText(NOTA_BUSCA_PECA)}"
+          placeholder="Buscar demanda por nome, cliente ou formato…" aria-label="Buscar demanda"
+          oninput="buscarPecaDaNota(this.value)"
+          onkeydown="if(event.key==='Escape'){event.stopPropagation();fecharBuscaDaPeca()}">
+        <button type="button" onclick="fecharBuscaDaPeca()" aria-label="Fechar a busca">×</button>
+      </div>
+      <div id="nota-busca-lista" class="nota-busca-lista">${notasResultadosHtml()}</div>
+    </div>`;
 }
 
 function ligarNotaAPeca(itemRef) {
   if (!NOTA_ABERTA) return;
+  NOTA_BUSCA_PECA = null;
   NOTA_ABERTA.item_ref = String(itemRef || '');
   pintarNotaAberta();
   salvarNotaAberta();
