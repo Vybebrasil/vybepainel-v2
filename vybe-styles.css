@@ -970,7 +970,7 @@
 .da-cell-header>div{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0}
 .da-cell-acao{flex:0 0 auto;padding:8px 16px;border:1px solid color-mix(in srgb,#ffb451 55%,transparent);
   border-radius:10px;background:color-mix(in srgb,#ffb451 15%,transparent);color:#ffd7a1;
-  font:700 11px var(--mac-ui);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;
+  font:600 12px var(--mac-ui);cursor:pointer;
   white-space:nowrap;transition:background .12s var(--curva,ease),border-color .12s var(--curva,ease)}
 .da-cell-acao:hover{background:color-mix(in srgb,#ffb451 26%,transparent);
   border-color:#ffb451;color:#fff4e6}
@@ -1401,7 +1401,15 @@ header,.topbar{
 .da-planning-select-instruction{display:flex;align-items:center;gap:18px;margin:12px 18px 0;padding:10px 14px;border-left:3px solid var(--linha);border-radius:8px;background:rgba(0,209,132,.08);color:#dfe9e6;font-family:var(--mac-mono);font-size:10px;letter-spacing:.04em}.da-planning-select-instruction b,.da-planning-select-instruction span{display:flex;align-items:center;gap:6px}.da-planning-select-instruction i{display:grid;place-items:center;border-radius:50%;background:#00d184;color:#05281e;font-style:normal;font-weight:700}.da-planning-select-head{font-size:10px;color:#00d184;letter-spacing:.04em}.da-planning-bulkbar{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid var(--linha)}.da-planning-bulkbar>div:first-child{display:grid;gap:2px}.da-planning-bulkbar b{font-family:var(--mac-mono);color:#e7ecf5}.da-planning-bulkbar small{color:var(--vybe-muted)}.da-planning-bulkbar>div:last-child{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.da-planning-bulkbar button{border:1px solid var(--vybe-line);color:#d7deeb;font-family:var(--mac-ui);font-weight:700;letter-spacing:.04em}.da-planning-bulkbar button.primary{color:#77f3bd}.da-planning-bulkbar button:disabled{opacity:.38;cursor:not-allowed}.da-planning-row{position:relative}.da-planning-select{top:50%;transform:translateY(-50%);display:grid;place-items:center;cursor:pointer}.da-planning-select input{position:absolute;opacity:0}.da-planning-select span{border:1px solid var(--linha);border-radius:4px;background:rgba(255,255,255,.025)}.da-planning-select input:checked+span{border-color:var(--linha);background:#00d184;box-shadow:none}.da-planning-select input:checked+span:after{content:'✓';display:block;color:#05281e;font-size:11px;font-weight:700;line-height:13px;text-align:center}@media(max-width:820px){.da-planning-switcher{overflow-x:auto;padding:8px 10px}.da-planning-switcher>span{display:none}.da-planning-switcher button{flex:0 0 auto}.da-planning-select-instruction{align-items:flex-start;flex-direction:column;gap:8px;margin:10px 10px 0}.da-planning-bulkbar{align-items:flex-start;flex-direction:column;margin:10px}.da-planning-bulkbar>div:last-child{justify-content:flex-start}.da-planning-row:not(.da-planning-row-head){padding-left:36px}.da-planning-select{left:9px}}
 
 /* ═══════ camada 04 ═══════ (bloco de estilo separado até aqui) */
-.da-context-rail-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.da-context-plan{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 12px;border:1px solid var(--linha);border-radius:8px;background:var(--sup-1);color:#b5ffe0;font-family:var(--mac-ui);font-size:10px;font-weight:700;cursor:pointer;box-shadow:0 7px 18px rgba(0,209,132,.13)}.da-context-plan:hover{background:var(--sup-1);border-color:var(--linha)}.da-cell-filter-grid .da-capacity-card{grid-template-rows:auto auto auto;min-height:111px}.da-capacity-plan-cta{display:none}.da-cell-filter-grid .da-capacity-plan-cta{display:inline-flex;grid-column:1 / -1;grid-row:3;align-items:center;justify-content:center;min-height:24px;margin-top:2px;border:1px solid color-mix(in srgb,var(--da-person-color) 62%,transparent);border-radius:6px;background:color-mix(in srgb,var(--da-person-color) 15%,transparent);color:#f2f2f5;font-family:var(--mac-ui);font-size:10px;font-weight:700;line-height:1;cursor:pointer}.da-cell-filter-grid .da-capacity-plan-cta:hover{background:color-mix(in srgb,var(--da-person-color) 26%,transparent)}@media(max-width:780px){.da-context-rail-actions{justify-content:flex-start}.da-context-plan{width:100%}.da-context-clear{width:100%}}
+.da-context-rail-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.da-context-plan{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 12px;border:1px solid var(--linha);border-radius:8px;background:var(--sup-1);color:#b5ffe0;font-family:var(--mac-ui);font-size:10px;font-weight:700;cursor:pointer;box-shadow:0 7px 18px rgba(0,209,132,.13)}.da-context-plan:hover{background:var(--sup-1);border-color:var(--linha)}.da-cell-filter-grid .da-capacity-card{grid-template-rows:auto auto auto;min-height:111px}.da-capacity-plan-cta{display:none}.da-cell-filter-grid .da-capacity-plan-cta{display:inline-flex;grid-column:1 / -1;grid-row:3;align-items:center;justify-content:center;min-height:24px;margin-top:2px;border:1px solid var(--linha);border-radius:6px;background:transparent;color:#c9c9ce;font-family:var(--mac-ui);font-size:11px;font-weight:600;line-height:1;cursor:pointer;opacity:0;transition:opacity .14s var(--curva,ease),background-color .14s var(--curva,ease)}
+/* Quatro botões coloridos de largura inteira gritavam a mesma ação ao mesmo
+   tempo. O cartão já é o filtro; "Organizar agenda" aparece em quem o ponteiro
+   ou o teclado está, e fica visível na pessoa escolhida. Em tela de toque não
+   há hover: lá ele fica sempre à mostra. */
+.da-cell-filter-grid .da-capacity-card:hover .da-capacity-plan-cta,
+.da-cell-filter-grid .da-capacity-card:focus-within .da-capacity-plan-cta,
+.da-cell-filter-grid .da-capacity-card.active .da-capacity-plan-cta{opacity:1}
+@media (hover:none){.da-cell-filter-grid .da-capacity-plan-cta{opacity:1}}.da-cell-filter-grid .da-capacity-plan-cta:hover{background:rgba(255,255,255,.08);color:#fff}@media(max-width:780px){.da-context-rail-actions{justify-content:flex-start}.da-context-plan{width:100%}.da-context-clear{width:100%}}
 
 /* ═══════ camada 05 ═══════ (bloco de estilo separado até aqui) */
 /* Relação direta: contexto selecionado, escolhas de janela e agenda individual. */
@@ -4097,23 +4105,18 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 }
 
 /* ─── Mesa de comando ────────────────────────────────────────────────────────
-   'Abrir fila →' aparecia igual nos quatro cartoes, inclusive nos que estao em
-   zero — e clicar abria um modal vazio. Zero e boa noticia, nao convite: o
-   cartao fica quieto e para de se oferecer.
+   Zero e boa noticia, nao convite: o cartao vazio fica quieto e nao abre um
+   modal vazio.
 
-   O 'Abrir fila' tambem era um botao de borda no primeiro e texto solto nos
-   outros tres. Mesma coisa, mesma forma. */
-.da-command-daily-card .da-command-daily-go{display:inline-flex;align-items:center;gap:5px;
-  align-self:flex-start;margin-top:10px;padding:5px 11px;border-radius:8px;
-  border:1px solid color-mix(in srgb,var(--command-color,#ff9d00) 45%,transparent);
-  color:var(--command-color,#ff9d00);font:600 11.5px var(--mac-ui);
-  transition:background-color .14s var(--curva)}
-.da-command-daily-card:not(.vazia):hover .da-command-daily-go{
-  background:color-mix(in srgb,var(--command-color,#ff9d00) 14%,transparent)}
+   O cartao inteiro abre a fila. Havia tambem um "Abrir fila →" em cada um,
+   repetindo o que o clique ja faz; saiu, e fica so a seta discreta no canto,
+   que acende no hover. */
 .da-command-daily-card.vazia{opacity:.5;cursor:default}
 .da-command-daily-card.vazia .da-command-daily-count{color:#8b8b90}
-.da-command-daily-card.vazia .da-command-daily-go{border-color:transparent;padding-left:0;
-  color:#8b8b90;font-weight:500}
+.da-command-daily-seta{position:absolute;top:14px;right:14px;color:#6f6f75;
+  font:400 20px/1 var(--mac-ui);transition:color .14s var(--curva),transform .14s var(--curva)}
+.da-command-daily-card:not(.vazia):hover .da-command-daily-seta,
+.da-command-daily-card:focus-visible .da-command-daily-seta{color:var(--command-color,#ff9d00);transform:translateX(2px)}
 
 /* ─── Planejado x Realizado ──────────────────────────────────────────────────
    Os quatro numeros tinham o mesmo peso visual, e a maioria e zero. Zero
