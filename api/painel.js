@@ -20,6 +20,7 @@ import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
 import { logDaPeca, LIMITE_DO_LOG } from '../server/log-de-atividade.js';
+import { listarNotas, salvarNota, apagarNota, notasProntas } from '../server/notas.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
 
@@ -1439,7 +1440,34 @@ async function areaHistorico(req,res) {
   return res.status(200).json({ok:true,logs:agruparHistorico(eventos,Object.fromEntries(grupos.map(g=>[g.etapa,g.grupo_id])))});
 }
 
-const AREAS = { historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// O caderno é de quem está na sessão: sem pessoa identificada não há nota.
+async function areaNotas(req, res, quem) {
+  const pessoaId = quem?.tipo === 'sessao' ? Number(quem?.pessoa?.id || 0) : 0;
+  if (!pessoaId) return res.status(403).json({ error: 'Entre com sua conta para usar as notas.' });
+  const db = sql();
+  if (!await notasProntas(db)) {
+    return res.status(409).json({ error: 'A estrutura das notas ainda não existe no banco. Em Conta & Equipe, clique em "Conferir estrutura do banco".' });
+  }
+  try {
+    if (req.method === 'GET') {
+      return res.status(200).json({ ok: true, notas: await listarNotas(db, pessoaId, { busca: req.query?.busca || '' }) });
+    }
+    if (req.method === 'POST') {
+      const corpo = req.body || {};
+      return res.status(200).json({ ok: true, nota: await salvarNota(db, pessoaId, corpo) });
+    }
+    if (req.method === 'DELETE') {
+      const id = Number(req.query?.id || req.body?.id || 0);
+      if (!id) return res.status(400).json({ error: 'Informe a nota.' });
+      return res.status(200).json({ ok: true, apagada: await apagarNota(db, pessoaId, id) });
+    }
+  } catch (erro) {
+    return res.status(400).json({ error: erro.message });
+  }
+  return res.status(405).json({ error: 'Método não permitido.' });
+}
+
+const AREAS = { notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar };
 
 export default async function handler(req, res) {
