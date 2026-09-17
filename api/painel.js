@@ -19,6 +19,7 @@ import { quemChama } from '../vybe_acesso.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
+import { logDaPeca, LIMITE_DO_LOG } from '../server/log-de-atividade.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
 
@@ -281,6 +282,17 @@ async function areaPeca(req, res, quem) {
   const itemLocalId = item.startsWith('vybe:') ? Number(item.slice(5)) : null;
 
   const db = sql();
+  // O log de atividade é pedido à parte, quando alguém abre: a trajetória
+  // inteira pode ter centenas de linhas, e a gaveta abre muitas vezes por dia
+  // sem ninguém olhar para ela.
+  if (String(req.query?.log || '') === '1') {
+    const peca = (await db`SELECT id, criado_em, monday_item_id FROM vybe_conteudos
+      WHERE (monday_item_id = ${item} OR id = ${itemLocalId})`)[0];
+    if (!peca) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
+    const itens = await logDaPeca(db, peca.id);
+    return res.status(200).json({ ok: true, id: item, itens,
+      importada: Boolean(peca.monday_item_id), criado_em: peca.criado_em, limite: LIMITE_DO_LOG });
+  }
   await garantirColunaDePrevia(db);
   // A ficha completa da peça. O drawer mostrava formato, prazo e status; o resto
   // só dava para ver abrindo o Monday — que é justamente o que estamos deixando

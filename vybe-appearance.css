@@ -637,3 +637,38 @@ body.vybe-desktop {
 .header-row2 .sync-health-indicator.checking:hover .sync-health-copy span { display: none; }
 .header-row2 .sync-health-indicator.healthy:hover .sync-health-action,
 .header-row2 .sync-health-indicator.checking:hover .sync-health-action { opacity: 0; width: 0; }
+
+/* ─── Log de atividade ───────────────────────────────────────────────────────
+   Abre por cima do conteúdo da gaveta, com a mesma largura e o mesmo material:
+   é outra página da mesma peça, não uma janela nova. A linha é "quem · o quê ·
+   hora"; o dia vira um rótulo que gruda no topo enquanto se rola. */
+.log-atividade { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column;
+  background: #1c1e26; border-radius: inherit; }
+.log-topo { display: flex; align-items: center; gap: 12px; padding: 18px 24px 10px; }
+.log-topo b { flex: 1; color: #f2f2f5; font: 600 17px var(--mac-ui); letter-spacing: -.01em; }
+.log-voltar { height: 30px; padding: 0 10px; border: 1px solid var(--vybe-line, rgba(255,255,255,.1)); border-radius: 8px;
+  background: transparent; color: #c9c9ce; font: 500 13px var(--mac-ui); cursor: pointer; }
+.log-voltar:hover, .log-voltar:focus-visible { background: rgba(255,255,255,.07); color: #fff; }
+.log-filtros { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 12px;
+  border-bottom: 1px solid var(--vybe-line, rgba(255,255,255,.08)); }
+.log-filtros button { height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255,255,255,.05);
+  color: #9a9aa0; font: 500 12px var(--mac-ui); cursor: pointer; }
+.log-filtros button:hover { color: #f2f2f5; }
+.log-filtros button.ativo { background: rgba(255,122,26,.2); color: #ffd3ad; }
+.log-corpo { flex: 1; overflow-y: auto; padding: 4px 24px 40px; overscroll-behavior: contain; }
+.log-dia-rotulo { position: sticky; top: 0; z-index: 1; padding: 14px 0 6px; background: #1c1e26;
+  color: #8b8b90; font: 600 12px var(--mac-ui); }
+.log-linha { display: grid; grid-template-columns: minmax(0, 132px) minmax(0, 1fr) auto; gap: 4px 14px; align-items: baseline;
+  padding: 9px 0; border-top: 1px solid rgba(255,255,255,.05); font: 400 13px/1.45 var(--mac-ui); }
+.log-quem { overflow: hidden; color: #e6e6ea; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.log-oque { min-width: 0; color: #b4b4ba; overflow-wrap: anywhere; }
+.log-oque b { color: #f2f2f5; font-weight: 600; }
+.log-hora { color: #8b8b90; font-variant-numeric: tabular-nums; }
+.log-automacao .log-quem { color: #c4b5fd; }
+.log-nota { margin: 18px 0 0; color: #8b8b90; font: 400 12px/1.5 var(--mac-ui); }
+@media (max-width: 640px) {
+  .log-topo, .log-filtros, .log-corpo { padding-left: 16px; padding-right: 16px; }
+  .log-linha { grid-template-columns: minmax(0, 1fr) auto; }
+  .log-hora { grid-row: 1; grid-column: 2; }
+  .log-oque { grid-column: 1 / -1; }
+}
