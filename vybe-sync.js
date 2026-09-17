@@ -31,8 +31,21 @@ function ensureSyncHealthIndicator() {
   el.setAttribute('aria-live','polite');
   el.innerHTML = `<i class="sync-health-dot"></i><span class="sync-health-copy"><b>Conferindo dados</b><span>Verificando a operação…</span></span><span class="sync-health-action">↻ TENTAR</span>`;
   el.addEventListener('click', () => refreshProducao());
-  document.body.appendChild(el);
+  posicionarIndicadorDeSincronia(el, 'checking');
   return el;
+}
+// Com tudo certo ele fica no cabeçalho, ao lado de "Atualizar": no canto da
+// tela cobria o fim das listas. Quando os dados envelhecem ou a sincronia falha
+// ele volta para o canto, porque aí precisa ser visto mesmo rolando a tela.
+// Muda de pai em vez de só de CSS: o cabeçalho tem backdrop-filter, que prende
+// qualquer position:fixed dentro dele.
+function posicionarIndicadorDeSincronia(el, state) {
+  const refresh = document.getElementById('btn-refresh');
+  if (refresh && !['stale', 'error'].includes(state)) {
+    if (el.nextElementSibling !== refresh) refresh.before(el);
+  } else if (el.parentElement !== document.body) {
+    document.body.appendChild(el);
+  }
 }
 function syncHealthClock(timestamp) {
   if (!timestamp) return 'sem confirmação registrada';
@@ -44,6 +57,7 @@ function setSyncHealth(state='checking', detail='') {
   const el = ensureSyncHealthIndicator();
   const title = el.querySelector('b'), message = el.querySelector('.sync-health-copy span'), action = el.querySelector('.sync-health-action');
   el.className = `sync-health-indicator ${state}`;
+  posicionarIndicadorDeSincronia(el, state);
   if (state === 'healthy') {
     syncHealthLastConfirmedAt = Date.now();
     localStorage.setItem(SYNC_HEALTH_STORAGE_KEY, String(syncHealthLastConfirmedAt));
@@ -63,6 +77,7 @@ function setSyncHealth(state='checking', detail='') {
     message.textContent = detail || `Última confirmação: ${syncHealthClock(syncHealthLastConfirmedAt)}`;
     action.textContent = '↻ Atualizar';
   }
+  el.title = message.textContent;
 }
 function refreshSyncHealthAge() {
   if (syncHealthState === 'error' || syncHealthState === 'checking') return;

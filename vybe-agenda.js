@@ -2090,7 +2090,13 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   const wrap = document.getElementById(cfg.alvo);
   const botao = document.getElementById(cfg.botao);
   if (!wrap) return;
-  const fonte=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(buscaClienteConteudos.toLocaleLowerCase('pt-BR'))));
+  // Emprestada ao DA Controler, a tabela obedece à pessoa escolhida lá — pelo
+  // mesmo critério da régua (daControllerItemsFor). Mostrar o quadro inteiro
+  // embaixo de "Pessoa: Jady" era um filtro ativo ignorado em silêncio.
+  const pessoaDoDa = emprestadaAoDa(cfg.alvo) && typeof daControllerPersonId !== 'undefined' && daControllerPersonId !== 'all'
+    ? daControllerPersonId : null;
+  const fonte=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(buscaClienteConteudos.toLocaleLowerCase('pt-BR'))))
+    .filter(i=>!pessoaDoDa || assignedIds(i).includes(pessoaDoDa));
   const grupos = itensPorGrupo(fonte, cfg.ordem());
   if (botao) {
     const contador = document.getElementById(cfg.contador);

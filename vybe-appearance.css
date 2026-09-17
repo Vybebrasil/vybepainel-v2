@@ -613,3 +613,27 @@ body.vybe-desktop {
   border: 1px dashed #ffffff33; border-radius: 999px; color: var(--text-muted); font: 600 11.5px var(--mac-ui);
 }
 .vybe-desktop .cartao-rapido .grupo-pill-btn:hover .grupo-vazio { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); color: var(--text); }
+
+/* Saúde da sincronia dentro do cabeçalho. Enquanto está tudo certo (ou
+   conferindo) é só um ponto com o horário, na mesma altura dos outros
+   controles. "Desatualizado" e "erro" voltam para o canto (vybe-sync.js o
+   devolve ao body; regra base em vybe-styles.css): o cabeçalho sai da tela ao
+   rolar e esse aviso não pode. */
+.header-row2 .sync-health-indicator.healthy,
+.header-row2 .sync-health-indicator.checking {
+  position: static; height: 28px; box-sizing: border-box; padding: 0 10px;
+  border-radius: 8px !important; border-color: var(--vybe-line) !important;
+  background: transparent !important; box-shadow: none !important; backdrop-filter: none;
+  opacity: 1; color: var(--vybe-muted); font: 600 11px var(--mac-ui); letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.header-row2 .sync-health-indicator.healthy .sync-health-copy b,
+.header-row2 .sync-health-indicator.checking .sync-health-copy b { color: var(--vybe-text); font-size: 11px; font-weight: 600; }
+.header-row2 .sync-health-indicator.healthy:hover,
+.header-row2 .sync-health-indicator.checking:hover { background: rgba(255,255,255,.07) !important; }
+/* No cabeçalho a frase de apoio não abre no hover: empurraria os botões. Ela
+   fica no title, e o clique continua atualizando. */
+.header-row2 .sync-health-indicator.healthy:hover .sync-health-copy span,
+.header-row2 .sync-health-indicator.checking:hover .sync-health-copy span { display: none; }
+.header-row2 .sync-health-indicator.healthy:hover .sync-health-action,
+.header-row2 .sync-health-indicator.checking:hover .sync-health-action { opacity: 0; width: 0; }
