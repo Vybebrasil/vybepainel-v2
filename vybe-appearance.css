@@ -429,3 +429,64 @@ body.vybe-desktop {
   .spotlight-icone, .spotlight-avatar { width: 36px; height: 36px; }
   .spotlight-escopo { max-width: 55%; }
 }
+
+/* Modo Foco no padrão do macOS 27: ler antes de enfeitar. No fim da folha e fora
+   de @media, para vencer as camadas antigas de vybe-styles.css sem tocar nelas. */
+.icone-linha { width: 14px; height: 14px; flex: 0 0 auto; }
+.vybe-desktop .focus-next-btn .icone-linha { width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px; }
+
+/* Números: cor só para o que pede atenção (atrasados, hoje). Abertos e prontos
+   são contagem, não alerta. */
+.vybe-desktop .focus-metrics .focus-metric.neutro strong { color: var(--text) !important; }
+
+/* Linhas como a lista do Finder: as ações aparecem na linha em que se está — com
+   o mouse ou com o teclado. Em tela de toque continuam sempre visíveis, e o
+   aviso de "sem bruto" nunca some, porque é informação e não ferramenta. */
+@media (hover: hover) and (pointer: fine) {
+  .vybe-desktop .focus-task .focus-brief-btn { opacity: 0; transition: opacity .15s var(--curva); }
+  .vybe-desktop .focus-task:is(:hover, :focus-within) .focus-brief-btn,
+  .vybe-desktop .focus-task .focus-brief-btn.faltando { opacity: 1; }
+}
+
+/* "PRAZO" e "VEICULAÇÃO" como cabeçalho de coluna: aparecem na primeira linha de
+   cada grupo e ficam só para leitor de tela nas outras, em vez de repetidos. */
+.vybe-desktop .focus-list > .focus-task:not(:first-child) .focus-data b {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* Título sublinhado em toda linha parecia link de site. O sublinhado vem quando
+   se aponta ou navega até ele. */
+.vybe-desktop .focus-dashboard .focus-task-open { text-decoration: none !important; }
+.vybe-desktop .focus-dashboard .focus-task-open:is(:hover, :focus-visible) {
+  text-decoration: underline !important; text-decoration-color: color-mix(in srgb, currentColor 45%, transparent) !important; text-underline-offset: 3px;
+}
+
+/* A cor do grupo nas linhas foi pedido do Paulo e fica — mais leve, para o texto
+   ganhar contraste. */
+.vybe-desktop .focus-dashboard .focus-section .focus-task {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--focus-group-color,#8f98a9) 7%, transparent), transparent 72%) !important;
+}
+.vybe-desktop .focus-dashboard .focus-section .focus-task:hover {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--focus-group-color,#8f98a9) 12%, transparent), rgba(255,255,255,.025) 80%) !important;
+}
+
+/* A origem no cabeçalho do grupo vira legenda, não mais uma caixa. */
+.vybe-desktop .focus-section-head .operational-origin-tag {
+  margin-left: 8px; padding: 0; border: 0 !important; background: none !important;
+  color: var(--text-muted) !important; font: 600 10px var(--mac-ui); letter-spacing: .06em;
+}
+
+/* Status do card "Próxima demanda": etiqueta clicável, como nas linhas. */
+.vybe-desktop .focus-next-status { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; padding: 0 4px; color: var(--text-muted); font-size: 12px; }
+.vybe-desktop .focus-next-status .pill { font-size: 12px; padding: 4px 10px; }
+
+/* No celular a linha da fila empilha: título, datas e, embaixo, as ações. Com
+   três colunas os botões ficavam com uma coluna própria ao lado; o título
+   espremia e a data de veiculação passava por baixo do botão de briefing (já
+   acontecia antes desta revisão, a 375 px). */
+@media (max-width: 760px) {
+  .vybe-desktop .focus-dashboard .focus-task { grid-template-columns: 4px minmax(0,1fr) !important; row-gap: 8px !important; }
+  .vybe-desktop .focus-dashboard .focus-task > .focus-task-priority { grid-row: 1 / span 3; align-self: stretch; }
+  .vybe-desktop .focus-dashboard .focus-task > :is(.focus-task-title, .focus-task-datas, div:last-child) { grid-column: 2; }
+  .vybe-desktop .focus-dashboard .focus-task > div:last-child { justify-content: flex-start !important; flex-wrap: wrap; }
+}

@@ -56,7 +56,15 @@
       const start = new Date(el.dataset.start).getTime();
       if (!start || isNaN(start)) return;
       const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
+      // Passou de um dia, os segundos correndo são ruído: "1 d 2 h" diz o que
+      // importa. O símbolo ⏱ saiu — era emoji, desenhado diferente em cada tela.
+      if (diff >= 86400) {
+        const dias = Math.floor(diff / 86400);
+        const horas = Math.floor((diff % 86400) / 3600);
+        el.textContent = `${dias} d ${horas} h`;
+        return;
+      }
       const h = Math.floor(diff / 3600).toString().padStart(2, '0');
       const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
       const s = (diff % 60).toString().padStart(2, '0');
-      el.innerHTML = `&#9201; ${h}:${m}:${s}`})}, 1000);
+      el.textContent = `${h}:${m}:${s}`})}, 1000);

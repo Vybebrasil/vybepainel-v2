@@ -84,10 +84,20 @@ function focusActionPriority(d,user=focusUser()) {
   const state={'Pode Fazer':0,'A Fazer':1}[operationalFlowStatus(d)] ?? 8;
   return Number(quandoVai) * 100 + state * 10 + (dia(d.prazo_iso) ? 0 : 1);
 }
+// O STATUS DA SOLICITACAO TEM OUTRO NOME PARA A MESMA ETAPA.
+//
+// "Em execução" e "Aguardando Info." sao das solicitacoes; "Em andamento" e
+// "Falta Info" sao do conteudo. Quatro pontos desta tela comparavam o nome cru —
+// e a Brussolo em execucao ficava fora do "AGORA", do fechamento de turno e da
+// continuidade, enquanto a lista logo abaixo, que traduz, mostrava ela rodando.
+// Uma regra so, sempre pelo tradutor.
+const FOCO_STATUS_BLOQUEIO = ['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'];
+function focoEmExecucao(d) { return operationalFlowStatus(d) === 'Em andamento'; }
+function focoBloqueada(d) { return FOCO_STATUS_BLOQUEIO.includes(operationalFlowStatus(d)); }
 function getFocusNextAction(items=focusOwnItems(),user=focusUser()) {
   const nextReady=items.filter(focusIsNextReady).sort((a,b)=>focusActionPriority(a,user)-focusActionPriority(b,user));
   if (nextReady.length) return { item:nextReady[0], mode:'next' };
-  const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(operationalFlowStatus(d))).sort((a,b)=>focusActionPriority(a,user)-focusActionPriority(b,user));
+  const blocked=items.filter(focoBloqueada).sort((a,b)=>focusActionPriority(a,user)-focusActionPriority(b,user));
   return blocked[0] ? { item:blocked[0], mode:'unblock' } : null;
 }
 function focusWorkflowProfile(item,user=focusUser()) {
@@ -120,7 +130,10 @@ function focusNextActionHtml(data) {
     : (focusStatusExplanation(operationalFlowStatus(item)) || 'Esta atividade depende de outra etapa para seguir');
   const primary=mode==='next' ? 'Abrir e produzir' : 'VER BLOQUEIO';
   const primaryAction=mode==='next' ? `openFocusPriorityWorkspace('${item.id}')` : `openItemWorkspace('${item.id}')`;
-  const statusControl=mode==='next' ? `<button type="button" class="focus-next-btn status" style="border-color:${item.status_color||'#00f0ff'} !important; background:color-mix(in srgb, ${item.status_color||'#00f0ff'} 12%, transparent) !important; color:${item.status_color||'#a6f8ff'} !important;" onclick="openStatusEditor(event,'${item.id}')">Status: ${safeText(item.status)}</button>` : '';
+  // O status tinha cara de botão tão forte quanto "Abrir e produzir". Vira a
+  // mesma etiqueta clicável das linhas da fila: continua trocando o status, sem
+  // disputar com a ação principal.
+  const statusControl=mode==='next' ? `<div class="focus-next-status"><span>Status</span>${focusStatusButtonHtml(item)}</div>` : '';
   // "Iniciar bloco" existia so para rolar ate o Check-in de execucao da gaveta, e
   // esse bloco saiu — dois usos em duzentas pecas. Sem ele, o botao levaria a
   // uma secao que nao existe mais.
@@ -194,11 +207,11 @@ function focusNextActionHtml(data) {
       <div class="focus-next-tools">
         <button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>
         <button type="button" class="focus-next-btn brief" onclick="abrirBriefing('${safeText(String(item.id))}',this)"
-          title="Ler o briefing sem abrir a peça">📄 Ver briefing</button>
+          title="Ler o briefing sem abrir a peça">${ICONE_LINHA.briefing} Ver briefing</button>
         ${pedeMaterialBruto(item) ? `<button type="button" class="focus-next-btn brief${String(item.material_bruto || '') ? '' : ' faltando'}"
           onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
           title="${String(item.material_bruto || '') ? 'Abrir a pasta com o material captado' : 'Sem material bruto · clique para colar o link da pasta'}"
-          >🎬 ${String(item.material_bruto || '') ? 'Material bruto' : 'Sem material bruto'}</button>` : ''}
+          >${ICONE_LINHA.bruto} ${String(item.material_bruto || '') ? 'Material bruto' : 'Sem material bruto'}</button>` : ''}
         ${statusControl}${checkinControl}${secondary}
       </div>
     </div></section>`;
@@ -237,28 +250,28 @@ async function openFocusPriorityWorkspace(itemId) {
 }
 function openFocusDelivery(itemId) { openItemWorkspace(itemId); setTimeout(()=>{ document.getElementById('workspace-link-input')?.scrollIntoView({behavior:'smooth',block:'center'}); },320); }
 function focusContinuityHtml(items,user) {
-  const today=HOJE_ISO || new Date().toISOString().slice(0,10); const next=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && !['Agendado','Finalizado'].includes(d.status);}),user).slice(0,3); const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)).length;
+  const today=HOJE_ISO || new Date().toISOString().slice(0,10); const next=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && !['Agendado','Finalizado'].includes(operationalFlowStatus(d));}),user).slice(0,3); const blocked=items.filter(focoBloqueada).length;
   const nextText=next.length ? next.map(d=>`${d.nome} (${focusReferenceLabel(d,user)})`).join(' · ') : 'Nenhuma prioridade futura com prazo informado';
   return `<section class="focus-continuity"><div class="focus-continuity-head"><span>⌁ CONTINUIDADE DE TURNO</span><span>${blocked ? `${blocked} bloqueio${blocked===1?'':'s'} para acompanhar` : 'fila sem bloqueios ativos'}</span></div><div class="focus-continuity-body">Sua próxima linha de continuidade: <b>${safeText(nextText)}</b><div class="focus-continuity-actions"><button type="button" class="focus-command-btn" onclick="copyFocusContinuity()">Copiar resumo</button></div></div></section>`;
 }
-async function copyFocusContinuity() { const user=focusUser(); const items=focusOwnItems(user); const action=getFocusNextAction(items,user); const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)); const text=`[Vybe OS · Continuidade] ${user?.name || 'Operador'}\nPróxima prioridade: ${action?.item ? `${action.item.nome} · ${action.item.cliente}` : 'Sem item prioritário aberto'}\nBloqueios ativos: ${blocked.length}${blocked.length ? ` · ${blocked.slice(0,3).map(d=>d.nome).join(' | ')}` : ''}\nGerado em: ${new Date().toLocaleString('pt-BR')}`; try { await navigator.clipboard.writeText(text); showToast('✓ Resumo de continuidade copiado','ok'); } catch(e) { const area=document.createElement('textarea'); area.value=text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); showToast('✓ Resumo de continuidade copiado','ok'); } }
+async function copyFocusContinuity() { const user=focusUser(); const items=focusOwnItems(user); const action=getFocusNextAction(items,user); const blocked=items.filter(focoBloqueada); const text=`[Vybe OS · Continuidade] ${user?.name || 'Operador'}\nPróxima prioridade: ${action?.item ? `${action.item.nome} · ${action.item.cliente}` : 'Sem item prioritário aberto'}\nBloqueios ativos: ${blocked.length}${blocked.length ? ` · ${blocked.slice(0,3).map(d=>d.nome).join(' | ')}` : ''}\nGerado em: ${new Date().toLocaleString('pt-BR')}`; try { await navigator.clipboard.writeText(text); showToast('✓ Resumo de continuidade copiado','ok'); } catch(e) { const area=document.createElement('textarea'); area.value=text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); showToast('✓ Resumo de continuidade copiado','ok'); } }
 
 function focusDailyPlanHtml(items,user,nextAction) {
   const today=HOJE_ISO || new Date().toISOString().slice(0,10);
-  const inProgress=focusSort(items.filter(d=>d.status==='Em andamento'),user);
-  const blocked=focusSort(items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)),user);
-  const dueByFriday=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>=today && due<=getFridayIso(today) && !isFinishedItem(d);}),user);
+  const inProgress=focusSort(items.filter(focoEmExecucao),user);
+  const blocked=focusSort(items.filter(focoBloqueada),user);
+  const dueByFriday=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && due<=getFridayIso(today) && !isFinishedItem(d);}),user);
   const next=nextAction?.item;
   const row=(label,item,empty)=>item ? `<div class="focus-daily-plan-row"><span>${safeText(label)}</span><button type="button" onclick="openItemWorkspace('${item.id}')">${safeText(item.nome)}</button><small>${safeText(item.status)} · ${safeText(focusReferenceLabel(item,user))}</small></div>` : `<div class="focus-daily-plan-row muted"><span>${safeText(label)}</span><em>${safeText(empty)}</em></div>`;
-  return `<section class="focus-daily-plan"><div class="focus-daily-plan-head"><div><span>Plano do dia</span></div><button type="button" class="focus-command-btn" onclick="openFocusShiftClose()">Fechar turno</button></div><div class="focus-daily-plan-grid">${row('AGORA',inProgress[0] || next,'sem execução registrada')}${''/* "PRÓXIMA" saiu daqui: o bloco grande logo abaixo E a proxima, com o mesmo
+  return `<section class="focus-daily-plan"><div class="focus-daily-plan-head"><div><span>Plano do dia</span></div><button type="button" class="focus-command-btn" onclick="openFocusShiftClose()">Fechar turno</button></div><div class="focus-daily-plan-grid">${row('AGORA',inProgress[0],'nada em execução agora')}${''/* "PRÓXIMA" saiu daqui: o bloco grande logo abaixo E a proxima, com o mesmo
         nome, a dois centimetros. Repetir nao reforca — divide a atencao e faz a
         pessoa conferir se sao a mesma coisa. */}${row('DESTRAVAR',blocked[0], 'sem bloqueio ativo')}${row('ATÉ SEXTA',dueByFriday.filter(d=>String(d.id)!==String(inProgress[0]?.id||'') && String(d.id)!==String(next?.id||''))[0], 'sem outro prazo nesta semana')}</div></section>`;
 }
 function getFridayIso(base) { const d=new Date(`${base}T12:00:00`); const weekday=d.getDay(); d.setDate(d.getDate()+((5-weekday+7)%7)); return d.toISOString().slice(0,10); }
 function focusShiftSummary(user=focusUser()) {
   const items=focusOwnItems(user); const today=HOJE_ISO || new Date().toISOString().slice(0,10);
-  const executed=items.filter(d=>d.status==='Em andamento');
-  const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status));
+  const executed=items.filter(focoEmExecucao);
+  const blocked=items.filter(focoBloqueada);
   const tomorrow=focusSort(items.filter(d=>focusReferenceDate(d,user)>today),user).slice(0,3);
   return {items,executed,blocked,tomorrow};
 }
@@ -349,13 +362,20 @@ function renderFocusDashboard() {
     renderGroup('Entregue por mim — aguardando aprovação','o que já saiu da sua execução',withoutPrimary(awaitingApproval),'Entregue por você; aguardando aprovação','#579bfc','✓'),
     renderGroup('Em alteração','ajustes solicitados que precisam ser resolvidos antes da próxima entrega',withoutPrimary(inRevision),'Ajuste solicitado; abra o contexto para conferir o que mudar','#ff637a','↻'),
     renderGroup('Aguardando informação','não avança sem resposta, material ou contexto',withoutPrimary(awaitingInfo),'Aguardando informação ou material','#9d50dd','?'),
-    renderGroup('Bloqueadas por outra etapa','dependem de outra área para seguir',withoutPrimary(blocked),'Dependência de outra etapa','#ff4d6d','⚠'),
+    renderGroup('Bloqueadas por outra etapa','dependem de outra área para seguir',withoutPrimary(blocked),'Dependência de outra etapa','#ff4d6d','!'),
     renderGroup('Próximos prazos',`itens futuros organizados por ${referenceLabel}`,withoutPrimary(nextDeadlines),'Próximo prazo','#a58c79','›'),
     renderGroup('Em outro estado','continuam na sua fila; o status delas não se encaixa nos grupos acima',
       withoutPrimary(emOutroEstado),'Na sua fila','#8f98a9','•')
   ].join('');
   const commandStrip = '';
-  dash.innerHTML = `<div class="focus-hero"><div><h2 class="focus-hero-title">Meu Dia, ${safeText(firstName(user.name))}</h2><p class="focus-hero-text">${focusUsesVeiculacao(user) ? 'Sua fila usa a data de veiculação para organizar a publicação.' : 'Sua fila usa o prazo de entrega para organizar o trabalho.'}</p></div><div class="focus-hero-lado"><div class="focus-metrics"><div class="focus-metric ${late ? 'is-alerta' : 'calado'}" style="--focus-color:#ff4d6d"><strong>${late}</strong><span>atrasados</span></div><div class="focus-metric ${todayCount ? '' : 'calado'}" style="--focus-color:#ffe600"><strong>${todayCount}</strong><span>hoje</span></div><div class="focus-metric ${mine.length ? '' : 'calado'}" style="--focus-color:#ff6b00"><strong>${mine.length}</strong><span>abertos</span></div><div class="focus-metric ${ready ? '' : 'calado'}" style="--focus-color:#00ff88"><strong>${ready}</strong><span>prontos</span></div></div></div></div>${seletorDeOrigemHtml(todosOsMeus)}${commandStrip}${focusDailyPlanHtml(mine,user,nextAction)}${focusNextActionHtml(nextAction)}${groups || `<div class="focus-empty">✓ ${FOCO_ORIGEM === 'tudo'
+  // "Meu Dia, Jady" com o Paulo logado dizia que a fila era dele. Quem olha a
+  // fila de outra pessoa lê o nome dela no título, e não um "seu" que não é.
+  const nome = firstName(user.name);
+  const souEu = typeof pessoaPeloNome === 'function' && typeof pessoaLogada === 'function'
+    && String(pessoaPeloNome(pessoaLogada()?.nome || '')?.id || '') === String(user.id);
+  const titulo = souEu ? `Meu Dia, ${nome}` : `Dia de ${nome}`;
+  const dona = souEu ? 'Sua fila' : `A fila de ${nome}`;
+  dash.innerHTML = `<div class="focus-hero"><div><h2 class="focus-hero-title">${safeText(titulo)}</h2><p class="focus-hero-text">${safeText(dona)} ${focusUsesVeiculacao(user) ? 'usa a data de veiculação para organizar a publicação.' : 'usa o prazo de entrega para organizar o trabalho.'}</p></div><div class="focus-hero-lado"><div class="focus-metrics"><div class="focus-metric ${late ? 'is-alerta' : 'calado'}" style="--focus-color:#ff4d6d"><strong>${late}</strong><span>atrasados</span></div><div class="focus-metric ${todayCount ? '' : 'calado'}" style="--focus-color:#ffe600"><strong>${todayCount}</strong><span>hoje</span></div><div class="focus-metric neutro"><strong>${mine.length}</strong><span>abertos</span></div><div class="focus-metric neutro"><strong>${ready}</strong><span>prontos</span></div></div></div></div>${seletorDeOrigemHtml(todosOsMeus)}${commandStrip}${focusDailyPlanHtml(mine,user,nextAction)}${focusNextActionHtml(nextAction)}${groups || `<div class="focus-empty">✓ ${FOCO_ORIGEM === 'tudo'
     ? 'Nenhuma demanda aberta neste momento.'
     : `Nada aberto em ${FOCO_ORIGEM === 'conteudo' ? 'produção de conteúdo' : 'solicitações'}. Veja “Tudo” para a fila inteira.`}</div>`}${focusContinuityHtml(mine,user)}`;
 }
