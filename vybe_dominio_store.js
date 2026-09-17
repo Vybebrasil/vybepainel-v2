@@ -388,8 +388,13 @@ export async function criarSchema() {
     criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+  // O caderno é etiqueta da nota: renomear é um UPDATE, e a lista de cadernos
+  // sai das próprias notas. Uma tabela de cadernos vazios não teria uso.
+  await sql`ALTER TABLE vybe_notas ADD COLUMN IF NOT EXISTS caderno TEXT NOT NULL DEFAULT 'Notas do dia'`;
   await sql`CREATE INDEX IF NOT EXISTS vybe_notas_pessoa
     ON vybe_notas (pessoa_id, atualizado_em DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS vybe_notas_caderno
+    ON vybe_notas (pessoa_id, caderno)`;
 
   await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_eventos (
     id          BIGSERIAL PRIMARY KEY,

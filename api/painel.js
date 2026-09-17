@@ -20,7 +20,8 @@ import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
 import { logDaPeca, LIMITE_DO_LOG } from '../server/log-de-atividade.js';
-import { listarNotas, salvarNota, apagarNota, notasProntas } from '../server/notas.js';
+import { listarNotas, salvarNota, apagarNota, notasProntas,
+  listarCadernos, renomearCaderno, apagarCaderno } from '../server/notas.js';
 
 const sql = () => neon(process.env.DATABASE_URL);
 
@@ -1450,10 +1451,19 @@ async function areaNotas(req, res, quem) {
   }
   try {
     if (req.method === 'GET') {
-      return res.status(200).json({ ok: true, notas: await listarNotas(db, pessoaId, { busca: req.query?.busca || '' }) });
+      return res.status(200).json({ ok: true,
+        notas: await listarNotas(db, pessoaId, { busca: req.query?.busca || '' }),
+        cadernos: await listarCadernos(db, pessoaId) });
     }
     if (req.method === 'POST') {
       const corpo = req.body || {};
+      if (corpo.acao === 'caderno_renomear') {
+        return res.status(200).json({ ok: true, ...(await renomearCaderno(db, pessoaId, corpo.de, corpo.para)) });
+      }
+      if (corpo.acao === 'caderno_apagar') {
+        return res.status(200).json({ ok: true,
+          ...(await apagarCaderno(db, pessoaId, corpo.caderno, { mover: corpo.mover, apagarNotas: corpo.apagar_notas === true })) });
+      }
       return res.status(200).json({ ok: true, nota: await salvarNota(db, pessoaId, corpo) });
     }
     if (req.method === 'DELETE') {
