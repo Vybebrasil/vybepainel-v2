@@ -618,7 +618,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
       ${linha('Clientes', botaoClientesDoItem(item))}
       ${linha('Grupo', botaoDeGrupo(item))}
-      ${linha('Responsável', vybeDono(item))}
+      ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
       ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}

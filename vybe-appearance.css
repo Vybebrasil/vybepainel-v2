@@ -577,3 +577,39 @@ body.vybe-desktop {
 .vybe-desktop .cartao-rapido .workspace-mais > summary { width: 32px; height: 30px; border-radius: 9px; }
 .vybe-desktop .cartao-rapido .cr-data { border: 1px solid #ffffff1f; border-radius: 8px; background: #ffffff0a; color: var(--text); padding: 3px 10px; font: 500 13px var(--mac-ui); font-variant-numeric: tabular-nums; cursor: pointer; }
 .vybe-desktop .cartao-rapido .cr-data:hover { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); }
+
+/* Cartão de resumo: todo valor com o mesmo tamanho. Havia três na mesma coluna —
+   etiquetas a 10 px, grupo a 11 px e clientes com a letra herdada, maior e
+   numa caixa cinza com a setinha fora. As CORES não mudam: são as etiquetas do
+   painel inteiro; muda só a medida. */
+.vybe-desktop .cartao-rapido .cr-linha > span { font: 500 12px var(--mac-ui); color: var(--text-muted); }
+/* A linha é item de grade: sem min-width 0 ela cresce até caber o conteúdo — com
+   dois clientes de nome longo, ficava com 353 px num cartão de 305 e empurrava
+   a etiqueta para fora da borda. */
+.vybe-desktop .cartao-rapido .cr-linha { min-height: 34px; min-width: 0; }
+.vybe-desktop .cartao-rapido .cr-campos :is(.pill, .cr-grupo-pill, .clientes-vinculo-btn, .cr-data, .cr-dono) {
+  display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; height: 24px; padding: 0 10px;
+  border-radius: 999px; font: 600 11.5px var(--mac-ui); white-space: nowrap;
+}
+.vybe-desktop .cartao-rapido .cr-campos .cr-data { border-radius: 999px; font-variant-numeric: tabular-nums; }
+/* Clientes: uma etiqueta só, nomes separados por vírgula e a setinha dentro. */
+.vybe-desktop .cartao-rapido .clientes-vinculo-btn { max-width: 100%; border: 1px solid #ffffff24; background: #ffffff0a; color: var(--text); flex-wrap: nowrap; overflow: hidden; }
+/* Nomes longos encolhem com reticências em vez de empurrar a etiqueta para fora
+   do cartão: sem min-width 0, item flexível não encolhe abaixo do texto. */
+/* Sem espaço entre os nomes: a vírgula já separa, e o espaço extra aparecia como
+   "Manga…  , Óticas". A setinha ganha a própria margem. */
+.vybe-desktop .cartao-rapido .cr-campos .clientes-vinculo-btn { min-width: 0; gap: 0; }
+.vybe-desktop .cartao-rapido .clientes-vinculo-btn span { flex: 0 1 auto; min-width: 0; padding: 0; background: none; color: inherit; overflow: hidden; text-overflow: ellipsis; }
+.vybe-desktop .cartao-rapido .cr-campos .clientes-vinculo-btn i { flex: none; margin-left: 6px; color: var(--text-muted); }
+.vybe-desktop .cartao-rapido .clientes-vinculo-btn span + span::before { content: ', '; }
+.vybe-desktop .cartao-rapido .clientes-vinculo-btn:hover { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); }
+/* Responsável: foto e primeiro nome, no mesmo botão. */
+.vybe-desktop .cartao-rapido .cr-dono { padding: 0 10px 0 2px; border: 1px solid #ffffff24; background: #ffffff0a; color: var(--text); }
+.vybe-desktop .cartao-rapido .cr-dono :is(img, .owner-avatar-fallback) { width: 20px; height: 20px; margin: 0; border: 0; font-size: 9px; }
+.vybe-desktop .cartao-rapido .cr-dono .owner-nomes { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+/* Campo vazio ("—") parecia texto parado; é editável como os outros. */
+.vybe-desktop .cartao-rapido .grupo-pill-btn .grupo-vazio {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 24px; min-width: 48px; padding: 0 10px;
+  border: 1px dashed #ffffff33; border-radius: 999px; color: var(--text-muted); font: 600 11.5px var(--mac-ui);
+}
+.vybe-desktop .cartao-rapido .grupo-pill-btn:hover .grupo-vazio { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); color: var(--text); }
