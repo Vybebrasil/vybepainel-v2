@@ -893,7 +893,7 @@ function renderManagerCalendar(forcar = false) {
     const contador = document.getElementById('ops-agenda-count');
     if (contador) contador.textContent = total;
   }
-  if (!forcar && !emprestadaAoDa('manager-calendar') && !agendaMensalAberta) {
+  if (!forcar && !emprestadaAoDa('manager-calendar') && !abertaPeloGestor(agendaMensalAberta)) {
     wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
   const meta = managerCalendarMonthMeta();
@@ -2083,6 +2083,11 @@ function tabelaOperacionalHtml(itens, quadro) {
 // esvaziava no meio da tela, porque para o Gestor ela esta "fechada".
 const emprestadaAoDa = (alvo) => typeof DA_SECAO_EMPRESTADA !== 'undefined'
   && DA_SECAO_EMPRESTADA.id === alvo;
+// "Aberta" é a escolha guardada do Gestor (fica no navegador). No DA Controler
+// ela não vale: lá Grupos e Calendário só aparecem emprestados, no lugar da
+// régua. Sem isto, quem deixou a agenda aberta no Gestor via o calendário
+// inteiro no fim da página do DA, com "Mapa" marcado na barra.
+const abertaPeloGestor = (aberta) => aberta && panelMode !== 'controler';
 
 function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   if (!quadro) { renderVisaoDeGrupos('producao', { forcar }); renderVisaoDeGrupos('demandas', { forcar }); return; }
@@ -2103,7 +2108,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     if (contador) contador.textContent = grupos.length;
   }
   const aberta = forcar || emprestadaAoDa(cfg.alvo)
-    || (quadro === 'demandas' ? gruposDeDemandasAberto : visaoDeGruposAberta);
+    || (quadro === 'demandas' ? gruposDeDemandasAberto : abertaPeloGestor(visaoDeGruposAberta));
   if (botao) botao.setAttribute('aria-expanded', String(aberta));
   if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
