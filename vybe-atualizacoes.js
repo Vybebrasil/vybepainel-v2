@@ -46,7 +46,7 @@ function ferramentasDaAtualizacaoHtml(update) {
     </span>`;
 }
 
-function workspaceTimelineEvent(update){ const body=workspacePlainText(update?.body||'') || 'Atualização sem texto.'; const type=workspaceTimelineType(body); const editado=update?.editado_em?'<span class="workspace-update-editado">editado</span>':''; return `<div class="workspace-update workspace-timeline-event" data-update="${safeText(String(update?.update_id||''))}"><div class="workspace-update-meta"><span class="workspace-timeline-type">${type}</span>${safeText(update?.creator?.name||'Equipe Vybe')} · ${safeText((update?.created_at||'').replace('T',' ').slice(0,16))}${editado}${ferramentasDaAtualizacaoHtml(update)}</div><div class="workspace-update-body">${safeText(body)}</div></div>`; }
+function workspaceTimelineEvent(update){ const body=workspacePlainText(update?.body||'') || 'Atualização sem texto.'; const type=workspaceTimelineType(body); const editado=update?.editado_em?'<span class="workspace-update-editado">editado</span>':''; return `<div class="workspace-update workspace-timeline-event" data-update="${safeText(String(update?.update_id||''))}"><div class="workspace-update-meta"><span class="workspace-timeline-type">${type}</span>${safeText(update?.creator?.name||'Equipe Vybe')} · ${safeText(quandoNaBahia(update?.created_at) || (update?.created_at||'').replace('T',' ').slice(0,16))}${editado}${ferramentasDaAtualizacaoHtml(update)}</div><div class="workspace-update-body">${safeText(body)}</div></div>`; }
 
 // Guarda o que a gaveta leu, para corrigir e apagar acharem o texto atual sem
 // uma segunda ida ao servidor.
@@ -106,11 +106,12 @@ function workspaceExecutiveHistoryHtml(updates=[]) {
   // Seção vazia ocupava um cartão inteiro para dizer "nada". Recolhida, fica o
   // nome e a contagem — como no Mac —, e abre para quem quiser conferir.
   if(!decisive.length) return '<details class="workspace-section workspace-recolhida workspace-executive-history"><summary>Memória executiva<small>nenhuma decisão</small></summary><div class="workspace-section-body"><div class="workspace-empty">Ainda não há decisão estruturada registrada nesta demanda.</div></div></details>';
-  return `<section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><p class="workspace-note">Somente decisões que mudam a próxima etapa, o responsável, o prazo ou a direção entram nesta leitura.</p>${decisive.map(update=>{const text=workspacePlainText(update?.body||''); const type=workspaceTimelineType(text); return `<div class="workspace-decision-memory"><span>${safeText(type)}</span><div><b>${safeText((update?.created_at||'').replace('T',' ').slice(0,16))}</b><p>${safeText(text)}</p></div></div>`;}).join('')}</div></section>`;
+  return `<section class="workspace-section workspace-executive-history"><div class="workspace-section-head">Memória executiva</div><div class="workspace-section-body"><p class="workspace-note">Somente decisões que mudam a próxima etapa, o responsável, o prazo ou a direção entram nesta leitura.</p>${decisive.map(update=>{const text=workspacePlainText(update?.body||''); const type=workspaceTimelineType(text); return `<div class="workspace-decision-memory"><span>${safeText(type)}</span><div><b>${safeText(quandoNaBahia(update?.created_at) || (update?.created_at||'').replace('T',' ').slice(0,16))}</b><p>${safeText(text)}</p></div></div>`;}).join('')}</div></section>`;
 }
 
   function formatDuration(ms) {
-    if (!ms || ms < 0) return 'agora';
+    // "0m" parecia defeito numa etapa que acabou de começar.
+    if (!ms || ms < 60000) return 'menos de 1 min';
     const totalMins = Math.floor(ms / 60000);
     if (totalMins < 60) return `${totalMins}m`;
     const hours = Math.floor(totalMins / 60);
@@ -122,48 +123,58 @@ function workspaceExecutiveHistoryHtml(updates=[]) {
     const remM = totalMins % 60;
     return remM > 0 ? `${hours}h ${remM}m` : `${hours}h`;
   }
-  
+
+  // TEMPO EM CADA ETAPA, NA ORDEM EM QUE ACONTECEU.
+  //
+  // Era ordenado pela duração, e a etapa atual — que começou há pouco — ia para o
+  // fim da lista com "0m", sem dizer que ainda estava correndo nem desde quando.
+  // Quem olhava não tinha como saber se o número estava certo. Agora as etapas
+  // seguem a ordem do tempo, e a atual diz "agora · desde 17/09 às 09:12".
+  function etapasDaPeca(detail, item, agora = Date.now()) {
+    const logs = [...(detail?.activity_logs || [])].sort((a,b) => Number(b.created_at) - Number(a.created_at));
+    const trechos = [];
+    let fim = agora;
+    let anterior = item?.status;
+    let primeiro = true;
+    for (const entry of logs) {
+      if (entry.event !== 'update_column_value') continue;
+      let data;
+      try { data = JSON.parse(entry.data); } catch (e) { continue; }
+      const para = data.value?.label?.text || '-';
+      const inicio = Math.floor(Number(entry.created_at) / 10000);
+      if (!Number.isFinite(inicio)) continue;
+      // Registro com horário no futuro não pode virar duração negativa.
+      trechos.push({ status: para, inicio, ms: Math.max(0, fim - inicio), atual: primeiro });
+      primeiro = false;
+      fim = Math.min(fim, inicio);
+      anterior = data.previous_value?.label?.text || '-';
+    }
+    const criado = detail?.created_at ? new Date(detail.created_at).getTime() : null;
+    if (criado && Number.isFinite(criado)) {
+      trechos.push({ status: anterior, inicio: criado, ms: Math.max(0, fim - criado), atual: primeiro });
+    }
+    // Uma etapa pode se repetir (vai e volta de alteração): soma, e guarda a vez
+    // mais antiga para a ordem e a mais recente para dizer desde quando.
+    const porStatus = new Map();
+    for (const t of trechos) {
+      if (!t.status || t.status === '-') continue;
+      const e = porStatus.get(t.status) || { status: t.status, ms: 0, primeiroInicio: t.inicio, ultimoInicio: t.inicio, atual: false };
+      e.ms += t.ms;
+      e.primeiroInicio = Math.min(e.primeiroInicio, t.inicio);
+      e.ultimoInicio = Math.max(e.ultimoInicio, t.inicio);
+      if (t.atual) e.atual = true;
+      porStatus.set(t.status, e);
+    }
+    return [...porStatus.values()].sort((a, b) => a.primeiroInicio - b.primeiroInicio);
+  }
+
   function workspaceHistoryHtml(detail, item) {
     if (!detail.activity_logs) return '';
-    const logs = [...detail.activity_logs].sort((a,b) => Number(b.created_at) - Number(a.created_at));
-    const history = [];
-    let endTime = Date.now();
-    let expectedTo = item.status;
-    
-    for (const entry of logs) {
-        if (entry.event !== 'update_column_value') continue;
-        try {
-            const data = JSON.parse(entry.data);
-            const fromStatus = data.previous_value?.label?.text || '-';
-            const toStatus = data.value?.label?.text || '-';
-            const timestamp = Math.floor(Number(entry.created_at) / 10000);
-            
-            history.push({ status: toStatus, durationMs: endTime - timestamp });
-            endTime = timestamp;
-            expectedTo = fromStatus;
-        } catch(e) {}
-    }
-    
-    const createdTime = detail.created_at ? new Date(detail.created_at).getTime() : null;
-    if (createdTime) {
-        history.push({ status: expectedTo, durationMs: endTime - createdTime });
-    }
-    
-    const totals = {};
-    for (const h of history) {
-        if (h.status === '-' || !h.status) continue;
-        if (h.durationMs) {
-            totals[h.status] = (totals[h.status] || 0) + h.durationMs;
-        }
-    }
-    
-    const lines = Object.entries(totals)
-        .sort((a,b) => b[1] - a[1])
-        .map(([st, ms]) => `<div style="display:flex;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:6px;align-items:center;">
-          <div style="display:flex;align-items:center;gap:8px;">${pillHtml(st)}</div>
-          <strong style="color:#b8d7df;font:700 12px var(--mac-mono, monospace);letter-spacing:0.5px;">${formatDuration(ms)}</strong>
+    const etapas = etapasDaPeca(detail, item);
+    if (!etapas.length) return '';
+    const linhas = etapas.map((e) => `<div class="etapa-tempo${e.atual ? ' atual' : ''}">
+          <div class="etapa-tempo-nome">${pillHtml(e.status)}${e.atual ? `<small>agora · desde ${safeText(quandoNaBahia(e.ultimoInicio))}</small>` : ''}</div>
+          <strong>${formatDuration(e.ms)}</strong>
         </div>`);
-        
-    if (lines.length === 0) return '';
-    return `<section class="workspace-section"><div class="workspace-section-head">Tempo em cada etapa</div><div class="workspace-section-body">${lines.join('')}</div></section>`;
+    return `<section class="workspace-section"><div class="workspace-section-head">Tempo em cada etapa</div><div class="workspace-section-body">${linhas.join('')}</div></section>`;
   }
