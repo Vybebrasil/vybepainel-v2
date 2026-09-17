@@ -80,6 +80,24 @@ body.vybe-desktop {
 .appearance-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; white-space: nowrap; }
 .appearance-button svg { width: 16px; height: 16px; }
 
+/* Cabeçalho numa barra só, como a barra unificada do macOS 27: marca à esquerda,
+   ferramentas à direita. Onde não cabe — as abas do Gestor ocupam muito — a barra
+   quebra para uma segunda linha em vez de espremer ou cortar. */
+.vybe-desktop > header { flex-direction: row !important; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 10px; }
+.vybe-desktop .header-row1 { width: auto !important; flex: 1 1 auto; justify-content: flex-start !important; }
+.vybe-desktop .header-row2 { margin: 0 0 0 auto !important; padding-top: 0 !important; justify-content: flex-end; }
+/* No celular a barra ocupa várias linhas: alinhadas à direita, a borda esquerda
+   ficava em degraus. Ali as ferramentas começam da esquerda, como antes. */
+@media (max-width: 760px) {
+  .vybe-desktop .header-row2 { margin: 0 !important; width: 100%; justify-content: flex-start; }
+}
+/* "Hoje" é informação, não botão. */
+.vybe-desktop .header-row2 .badge-date { border-color: transparent !important; background: none !important; box-shadow: none !important; color: var(--text-muted) !important; padding: 0 4px !important; }
+/* O botão de modo diz o que faz no próprio texto; o ⇄ solto não dizia. */
+.vybe-desktop #mode-switch-btn::after { content: none !important; }
+/* Aviso novo é um ponto, como no Mac. O número fica no nome do botão. */
+.vybe-desktop .notif-contador.ponto { min-width: 9px; width: 9px; height: 9px; padding: 0; top: 3px; right: 3px; border-radius: 50%; font-size: 0; box-shadow: 0 0 0 2px var(--bg); }
+
 /* Painéis: uma escala de superfícies para todas as áreas da operação. */
 .vybe-desktop :is(.client-card,.demanda-group-card,.dem-cartao,.auto-regra,.kpi-card,
   .client-source-card,.client-master-detail-card,.prod-v2-card,.p-cal-card,.fc-preview-card,
@@ -411,21 +429,3 @@ body.vybe-desktop {
   .spotlight-icone, .spotlight-avatar { width: 36px; height: 36px; }
   .spotlight-escopo { max-width: 55%; }
 }
-
-/* Cabeçalho numa barra só, como a barra unificada do macOS 27: marca à esquerda,
-   ferramentas à direita. Onde não cabe — as abas do Gestor ocupam muito — a barra
-   quebra para uma segunda linha em vez de espremer ou cortar. */
-.vybe-desktop > header { flex-direction: row !important; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 10px; }
-.vybe-desktop .header-row1 { width: auto !important; flex: 1 1 auto; justify-content: flex-start !important; }
-.vybe-desktop .header-row2 { margin: 0 0 0 auto !important; padding-top: 0 !important; justify-content: flex-end; }
-/* No celular a barra ocupa várias linhas: alinhadas à direita, a borda esquerda
-   ficava em degraus. Ali as ferramentas começam da esquerda, como antes. */
-@media (max-width: 760px) {
-  .vybe-desktop .header-row2 { margin: 0 !important; width: 100%; justify-content: flex-start; }
-}
-/* "Hoje" é informação, não botão. */
-.vybe-desktop .header-row2 .badge-date { border-color: transparent !important; background: none !important; box-shadow: none !important; color: var(--text-muted) !important; padding: 0 4px !important; }
-/* O botão de modo diz o que faz no próprio texto; o ⇄ solto não dizia. */
-.vybe-desktop #mode-switch-btn::after { content: none !important; }
-/* Aviso novo é um ponto, como no Mac. O número fica no nome do botão. */
-.vybe-desktop .notif-contador.ponto { min-width: 9px; width: 9px; height: 9px; padding: 0; top: 3px; right: 3px; border-radius: 50%; font-size: 0; box-shadow: 0 0 0 2px var(--bg); }
