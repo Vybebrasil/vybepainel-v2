@@ -216,7 +216,8 @@ test('o diagnóstico de automação explica cada recusa em português, com nome 
 });
 
 test('o diagnóstico nunca responde silêncio: as três situações têm texto próprio', () => {
-  const c = carregar('vybe-automacoes-ui.js');
+  // A data "em 09/09 às 11:20" vem do núcleo, como no painel.
+  const c = carregar('vybe-core.js', 'vybe-automacoes-ui.js');
   c.safeText = (v) => String(v ?? '');
   vm.runInContext(`CATALOGOS = { status: [], captacao: [{chave:'captacao_feita',rotulo:'Captação Feita'}],
     formatos: [], grupos: [], pessoas: [] };`, c);
@@ -255,10 +256,49 @@ test('a hora do diagnóstico é a de Irecê, não a do banco', () => {
   // O banco grava em UTC. Cortar a letra T do texto mostrava a hora de Londres
   // com cara de hora daqui — três horas de diferença numa frase cujo trabalho é
   // dizer quando a pessoa mexeu na peça.
-  const c = carregar('vybe-automacoes-ui.js');
+  // Mora no núcleo desde que o histórico da gaveta passou a usar a mesma resposta.
+  const c = carregar('vybe-core.js');
   c.em = '2026-09-09T14:20:00Z';
-  vm.runInContext('q = quandoNaBahia(em); vazio = quandoNaBahia(null); lixo = quandoNaBahia("ontem");', c);
+  // 'agora' fixo: com o relógio real, a resposta mudaria sozinha na virada do ano.
+  c.agora = Date.parse('2026-09-17T12:00:00Z');
+  vm.runInContext(`q = quandoNaBahia(em, agora); vazio = quandoNaBahia(null, agora);
+    lixo = quandoNaBahia("ontem", agora); outroAno = quandoNaBahia("2025-08-18T09:14:00Z", agora);`, c);
   assert.equal(c.q, '09/09 às 11:20');
   assert.equal(c.vazio, '');
   assert.equal(c.lixo, '');
+  // De outro ano, o ano aparece: "18/08" sozinho diria que foi este mês passado.
+  assert.equal(c.outroAno, '18/08/2025 às 06:14');
+});
+
+test('tempo em cada etapa segue a ordem do tempo e marca a etapa atual', () => {
+  const c = carregar('vybe-atualizacoes.js');
+  // O servidor imita o Monday: created_at em décimos de microssegundo (ms × 10.000).
+  const log = (iso, de, para) => ({ event: 'update_column_value', created_at: String(Date.parse(iso) * 10000),
+    data: JSON.stringify({ previous_value: { label: { text: de } }, value: { label: { text: para } } }) });
+  c.detalhe = { created_at: '2026-08-29T12:00:00Z', activity_logs: [
+    log('2026-09-17T12:00:00Z', 'Pode Fazer', 'Em andamento'),
+    log('2026-09-01T12:00:00Z', 'Alteração', 'Pode Fazer'),
+    log('2026-08-30T12:00:00Z', 'Pode Fazer', 'Alteração'),
+  ] };
+  c.agora = Date.parse('2026-09-17T12:00:30Z');
+  vm.runInContext(`r = etapasDaPeca(detalhe, {status:'Em andamento'}, agora);
+    saida = JSON.stringify(r.map((e) => ({ s: e.status, h: Math.round(e.ms / 3600000), atual: e.atual })));
+    curta = formatDuration(30000);`, c);
+  // Pode Fazer aparece uma vez só, somando as duas passagens (1 d + 16 d).
+  assert.deepEqual(JSON.parse(c.saida), [
+    { s: 'Pode Fazer', h: 24 + 384, atual: false },
+    { s: 'Alteração', h: 48, atual: false },
+    { s: 'Em andamento', h: 0, atual: true },
+  ]);
+  // A etapa que começou há 30 s não mostra "0m", que parecia defeito.
+  assert.equal(c.curta, 'menos de 1 min');
+});
+
+test('registro com horário no futuro não vira duração negativa', () => {
+  const c = carregar('vybe-atualizacoes.js');
+  c.detalhe = { activity_logs: [{ event: 'update_column_value', created_at: String(Date.parse('2026-09-18T12:00:00Z') * 10000),
+    data: JSON.stringify({ previous_value: { label: { text: 'Pode Fazer' } }, value: { label: { text: 'Em andamento' } } }) }] };
+  c.agora = Date.parse('2026-09-17T12:00:00Z');
+  vm.runInContext('r = etapasDaPeca(detalhe, {status:"Em andamento"}, agora); ms = r[0].ms;', c);
+  assert.equal(c.ms, 0);
 });

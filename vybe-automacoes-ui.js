@@ -889,18 +889,6 @@ function frasearOQueFaria(acoes) {
   return partes.length ? partes.join(', ') : 'nada (regra sem ação)';
 }
 
-// O banco guarda em UTC e a Vybe trabalha em Irecê. Cortar a letra T do texto
-// mostrava a hora de Londres com cara de hora daqui — três horas de diferença
-// numa frase cujo trabalho é dizer quando a pessoa mexeu na peça.
-function quandoNaBahia(em) {
-  const d = em ? new Date(em) : null;
-  if (!d || Number.isNaN(d.getTime())) return '';
-  const fuso = 'America/Bahia';
-  const dia = d.toLocaleDateString('pt-BR', { timeZone: fuso, day: '2-digit', month: '2-digit' });
-  const hora = d.toLocaleTimeString('pt-BR', { timeZone: fuso, hour: '2-digit', minute: '2-digit' });
-  return `${dia} às ${hora}`;
-}
-
 function blocoDoDiagnostico(r, tipo) {
   const e = r.evento || {};
   let contexto;

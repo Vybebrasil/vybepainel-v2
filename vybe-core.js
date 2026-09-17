@@ -5,6 +5,28 @@ function clientesDoItem(item) {
 }
 function itemTemCliente(item, nome) { return clientesDoItem(item).includes(normalizarCliente(nome)); }
 
+// QUANDO FOI, NO RELÓGIO DE IRECÊ.
+//
+// O banco guarda em UTC e a Vybe trabalha em Irecê. Cortar a letra T do texto
+// mostrava a hora de Londres com cara de hora daqui — três horas de diferença
+// numa frase cujo trabalho é dizer quando a pessoa mexeu na peça.
+//
+// Morava na tela de Automações; veio para o núcleo quando o histórico da gaveta
+// precisou da mesma resposta, para não nascer uma segunda versão. O ano só
+// aparece quando não é o ano de agora — "18/08 às 06:14", mas "18/08/2025 às
+// 06:14" —, e 'agora' entra por parâmetro para o teste não mudar de resposta
+// quando o calendário virar.
+function quandoNaBahia(em, agora = Date.now()) {
+  const d = em ? new Date(em) : null;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  const fuso = 'America/Bahia';
+  const ano = (x) => new Date(x).toLocaleDateString('pt-BR', { timeZone: fuso, year: 'numeric' });
+  const mesmoAno = ano(d) === ano(agora);
+  const dia = d.toLocaleDateString('pt-BR', { timeZone: fuso, day: '2-digit', month: '2-digit', ...(mesmoAno ? {} : { year: 'numeric' }) });
+  const hora = d.toLocaleTimeString('pt-BR', { timeZone: fuso, hour: '2-digit', minute: '2-digit' });
+  return `${dia} às ${hora}`;
+}
+
 // vybe-core.js — núcleo: toast, GraphQL, carregamento, semanas e parsing de itens
 // Extraído do <script> inline do index.html; carregado em ordem, escopo global preservado.
 // ─── Modo de data (Veiculação / Prazo) ───────────────────────────────────────
