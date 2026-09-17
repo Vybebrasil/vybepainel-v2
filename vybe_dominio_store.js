@@ -772,17 +772,6 @@ export async function migrarEsquemaDeLeitura(sql) {
     comandos.push({ texto, params });
   };
   registrar.query = (texto, params = []) => { comandos.push({ texto, params }); };
-  await registrar.query(`CREATE TABLE IF NOT EXISTS vybe_notas (
-    id            BIGSERIAL PRIMARY KEY,
-    pessoa_id     BIGINT NOT NULL REFERENCES vybe_pessoas(id) ON DELETE CASCADE,
-    item_ref      TEXT,
-    titulo        TEXT,
-    corpo         TEXT NOT NULL DEFAULT '',
-    criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )`);
-  await registrar.query(`CREATE INDEX IF NOT EXISTS vybe_notas_pessoa
-    ON vybe_notas (pessoa_id, atualizado_em DESC)`);
   await registrar`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto TEXT`;
   await registrar`ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS material_bruto_em TIMESTAMPTZ`;
   await registrar`ALTER TABLE vybe_status ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT TRUE`;
