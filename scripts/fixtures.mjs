@@ -52,13 +52,13 @@ export function demoApi(req,res,url,body) {
       const h=(dias,hora)=>{const d=new Date();d.setUTCDate(d.getUTCDate()-dias);d.setUTCHours(hora+3,15,0,0);return d.toISOString();};
       return reply(200,{ok:true,id:url.searchParams.get('item'),importada:false,criado_em:h(6,9),itens:[
         {tipo:'comentario',texto:'Card aprovado pelo cliente, pode agendar.',em:h(0,15),autor:'Operador de teste'},
-        {tipo:'status',de:'Em aprovação',para:'Aprovado',em:h(0,14),autor:'Operador de teste'},
+        {tipo:'status',de:'Em aprovação',para:'Aprovado',em:h(0,14),autor:'Operador de teste',autor_ref:'68035537'},
         {tipo:'automacao',texto:'Aprovado vai para Agendamento',para:'grupo → Agendamento, notificação',em:h(0,14),autor:''},
         {tipo:'anexo',para:'card-final.png',em:h(1,17),autor:'Pessoa fictícia'},
         {tipo:'prazo',de:'2026-09-11',para:'2026-09-15',em:h(1,10),autor:'Operador de teste'},
         {tipo:'responsavel',de:'sem responsável',para:'Pessoa fictícia',em:h(2,11),autor:'Operador de teste'},
         {tipo:'prioridade',de:'Média',para:'Alta',em:h(2,11),autor:'Operador de teste'},
-        {tipo:'status',de:'Pode Fazer',para:'Em andamento',em:h(3,9),autor:'Pessoa fictícia'},
+        {tipo:'status',de:'Pode Fazer',para:'Em andamento',em:h(3,9),autor:'Pessoa fictícia',autor_foto:'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22%3E%3Ccircle cx=%225%22 cy=%225%22 r=%225%22 fill=%22%2300a3a3%22/%3E%3C/svg%3E'},
         {tipo:'material_bruto',para:'https://drive.example.test/pasta',em:h(4,16),autor:'Pessoa fictícia'},
         {tipo:'status',de:null,para:'Pode Fazer',em:h(5,8),autor:'',do_monday:true},
         {tipo:'criacao',para:'Card fictício',em:h(6,9),autor:'Operador de teste'},
