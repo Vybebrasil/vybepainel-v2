@@ -222,6 +222,10 @@ document.addEventListener('keydown', event => {
   // stopImmediatePropagation porque o cartão de resumo tem o próprio ouvinte de
   // Esc, registrado depois: sem isto, o mesmo Esc fecharia o menu e o cartão.
   if (fecharMenusDaGaveta()) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+  // A caixa de fluxo (datas, checklist, troca de status) abre por cima da gaveta
+  // e do cartão de resumo. Esc fecha só ela — o mesmo que Cancelar — e para aqui,
+  // para não levar junto o que está embaixo.
+  if (document.getElementById('workflow-modal')) { event.preventDefault(); event.stopImmediatePropagation(); closeWorkflowModal(); return; }
   if (document.getElementById('brief-overlay')) { fecharBriefing(); return; }
   // O organizador abre por cima do menu de etiquetas: o Esc fecha a camada de
   // cima, nao as duas.
