@@ -3218,6 +3218,17 @@ button.cli-situacao:hover{filter:brightness(1.25)}
    devolver a tela de onde a pessoa veio em vez de deixar o vazio. */
 .cli-pergunta{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:20px;
   background:rgba(4,5,9,.72);backdrop-filter:blur(10px) saturate(1.05)}
+.cli-pergunta-caixa.larga{width:min(760px,100%)}
+/* Peça sem briefing: o mesmo lugar do atalho, sem parecer um botão de abrir. */
+.brief-atalho.brief-vazio{display:flex;flex-direction:row;align-items:center;gap:12px;padding:12px 14px;
+  border:1px dashed rgba(255,255,255,.16);border-radius:14px;background:transparent}
+.brief-vazio .brief-abrir-copy{display:grid;gap:2px;flex:1;min-width:0}
+.brief-vazio .brief-abrir-copy b{color:#e6e6ea;font:600 14px var(--mac-ui)}
+.brief-vazio .brief-abrir-copy small{color:#8b8b90;font:400 12px var(--mac-ui)}
+.brief-vazio .brief-adicionar{flex:none;width:auto;border-color:rgba(255,122,26,.4);background:rgba(255,122,26,.14);color:#ffbe86}
+.brief-vazio .brief-adicionar:hover{background:rgba(255,122,26,.26);color:#fff}
+@media(max-width:560px){.brief-vazio{flex-wrap:wrap}.brief-vazio .workspace-action{width:100%}}
+.cli-pergunta-caixa.larga textarea{min-height:min(52vh,460px)!important;font:400 13px/1.55 var(--mac-ui)}
 .cli-pergunta-caixa{width:min(430px,100%);padding:22px;border-radius:16px;
   border:1px solid rgba(255,255,255,.10);background:linear-gradient(160deg,#16110c,#0b0906);
   box-shadow:0 26px 70px rgba(0,0,0,.6)}

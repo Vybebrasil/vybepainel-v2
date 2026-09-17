@@ -564,6 +564,30 @@ async function guardarMaterialBruto(sql, quem, { item, link }) {
   return { conteudo_id: c.id, titulo: c.titulo, de, para: novo, mudou: true };
 }
 
+// O BRIEFING DEPOIS DO CADASTRO. Ele só era gravado ao cadastrar; peça que
+// nascia sem briefing ficava sem jeito de ganhar um, e o texto acabava num
+// comentário — que a tela só reconhece como briefing se tiver os títulos do
+// modelo da casa. Quem produz ficava sem briefing com o briefing escrito ali.
+//
+// É de todo mundo do time, como comentar: fica no log quem pôs e quando.
+export const BRIEFING_MAX = 20000;
+async function guardarBriefing(sql, quem, { item, texto }) {
+  const novo = String(texto ?? '').replace(/\r\n/g, '\n').trim();
+  if (novo.length > BRIEFING_MAX) throw new Error(`Briefing muito longo (máximo ${BRIEFING_MAX} caracteres).`);
+  const linhas = await sql`SELECT id, titulo, briefing FROM vybe_conteudos
+    WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
+  if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
+  const c = linhas[0];
+  const antes = String(c.briefing || '').trim();
+  if (antes === novo) return { conteudo_id: c.id, titulo: c.titulo, briefing: novo, mudou: false };
+  await sql`UPDATE vybe_conteudos SET briefing = ${novo || null}, atualizado_em = NOW() WHERE id = ${c.id}`;
+  await registrarEvento(sql, c.id, {
+    tipo: 'briefing', de: antes ? 'tinha' : null, para: novo ? 'tem' : null,
+    texto: novo.slice(0, 200) || null, autorId: await pessoaDaSessao(sql, quem),
+  });
+  return { conteudo_id: c.id, titulo: c.titulo, briefing: novo, mudou: true };
+}
+
 async function trocarTitulo(sql, quem, { item, titulo }) {
   const novo = String(titulo || '').trim();
   if (!novo) throw new Error('O título não pode ficar vazio.');
@@ -922,6 +946,10 @@ export default async function handler(req, res) {
     if (acao === 'material_bruto') {
       return res.status(200).json({ ok: true, acao,
         ...(await guardarMaterialBruto(sql, quem, { item, link: corpo.link })) });
+    }
+    if (acao === 'briefing') {
+      return res.status(200).json({ ok: true, acao,
+        ...(await guardarBriefing(sql, quem, { item, texto: corpo.texto })) });
     }
     if (acao === 'titulo') {
       return res.status(200).json({ ok: true, acao,

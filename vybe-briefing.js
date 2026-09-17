@@ -151,7 +151,15 @@ function briefingResumoRapido(secoes) {
 // dizer "nao tem nada" e ruido em toda peca que ainda nao foi briefada.
 function blocoDoBriefingHtml(detail, item) {
   const briefing = briefingDaPeca(detail);
-  if (!briefing) return '';
+  // Sem briefing o bloco sumia, e com ele o único lugar onde se procuraria por
+  // um. Agora ele fica, vazio, com o botão de pôr o briefing.
+  if (!briefing) {
+    return `<div class="brief-atalho brief-vazio">
+      <span class="brief-abrir-icone">${ICONE_LINHA.briefing}</span>
+      <span class="brief-abrir-copy"><b>Sem briefing</b><small>Quem produz precisa dele para começar.</small></span>
+      <button type="button" class="workspace-action brief-adicionar" onclick="editarBriefing('${safeText(String(item.id))}')">+ Adicionar briefing</button>
+    </div>`;
+  }
   const secoes = briefingEmSecoes(briefing.texto);
   const chamada = briefingChamada(secoes);
   const partes = secoes.filter(secao => secao.titulo).length;
@@ -213,7 +221,10 @@ async function abrirBriefing(itemId, gatilho) {
     || (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []).find(d => String(d.id) === String(itemId))
     || { id: itemId, nome: detail?.name || 'Atividade', cliente: '' };
   const briefing = detail ? briefingDaPeca(detail) : null;
-  if (!briefing) return showToast('Esta atividade ainda não tem briefing registrado.', 'info');
+  // Quem abre o briefing de uma peça sem briefing — do Modo Foco, da fila —
+  // estava a um aviso de distância de não conseguir fazer nada. Abre direto a
+  // caixa de pôr o briefing.
+  if (!briefing) return editarBriefing(itemId, { semBriefing: true });
   const secoes = briefingEmSecoes(briefing.texto);
   BRIEFING_ABERTO = { secoes, texto: briefing.texto, item };
   const resumo = briefingResumoRapido(secoes);
@@ -230,6 +241,7 @@ async function abrirBriefing(itemId, gatilho) {
         <small>${safeText(item.cliente || 'Cliente não informado')}${item.formato ? ` · ${safeText(item.formato)}` : ''}${item.veiculacao_iso ? ` · veicula ${safeText(typeof planningDateBr === 'function' ? planningDateBr(item.veiculacao_iso) : item.veiculacao_iso)}` : ''}</small>
       </div>
       <div class="brief-topo-acoes">
+        <button type="button" class="brief-copiar" onclick="editarBriefing('${safeText(String(itemId))}')">Editar</button>
         <button type="button" class="brief-copiar" onclick="copiarBriefingInteiro()">Copiar tudo</button>
         <button type="button" class="brief-fechar" onclick="fecharBriefing()" aria-label="Fechar">×</button>
       </div>
@@ -240,6 +252,72 @@ async function abrirBriefing(itemId, gatilho) {
   </div>`;
   document.body.appendChild(overlay);
 }
+// ── pôr e corrigir o briefing ────────────────────────────────────────────────
+async function gravarBriefing(itemId, texto) {
+  const resposta = await fetch('/api/conteudo', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ acao: 'briefing', item: String(itemId), texto: String(texto ?? '') }),
+  });
+  const dados = await resposta.json().catch(() => ({}));
+  if (!resposta.ok || !dados?.ok) throw new Error(dados?.error || `Não foi possível salvar (${resposta.status}).`);
+  if (DETALHE_DA_GAVETA && String(DETALHE_DA_GAVETA.id ?? '') === String(itemId)) {
+    DETALHE_DA_GAVETA.briefing = dados.briefing || '';
+  }
+  return dados;
+}
+
+// A gaveta aberta desta peça é redesenhada com o briefing novo — seja a de
+// conteúdo, seja a de solicitação.
+async function redesenharGavetaDoBriefing(itemId) {
+  const aberta = document.getElementById('workspace-drawer');
+  if (!aberta || String(DETALHE_DA_GAVETA?.id ?? '') !== String(itemId)) return;
+  if (String(activeWorkspaceItemId || '') === String(itemId)) {
+    const item = findOperationalItem(itemId);
+    if (item) renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), item);
+  } else if (typeof openDemandaWorkspace === 'function') {
+    openDemandaWorkspace(itemId);
+  }
+}
+
+async function editarBriefing(itemId, { valor = null, semBriefing = false, origem = '' } = {}) {
+  // O texto atual vem da gaveta aberta ou da leitura aberta — a leitura pode ter
+  // sido aberta do Modo Foco, sem gaveta nenhuma.
+  const existente = String(DETALHE_DA_GAVETA?.id ?? '') === String(itemId)
+    ? (briefingDaPeca(DETALHE_DA_GAVETA)?.texto || '')
+    : String(BRIEFING_ABERTO?.item?.id ?? '') === String(itemId) ? (BRIEFING_ABERTO.texto || '') : '';
+  const atual = valor ?? existente;
+  const texto = await perguntarNoPainel({
+    titulo: semBriefing ? 'Esta atividade ainda não tem briefing'
+      : valor !== null ? (existente ? 'Trocar o briefing por este comentário' : 'Usar comentário como briefing')
+      : existente ? 'Editar briefing' : 'Adicionar briefing',
+    texto: origem || 'O briefing aparece no botão Briefing da peça e no Modo Foco de quem produz. Fica no log quem salvou e quando.',
+    confirmar: 'Salvar briefing', larga: true,
+    campo: { valor: atual, dica: 'Objetivo, texto da arte, legenda, referências…', linhas: 18 },
+  });
+  if (texto === null || texto === undefined) return;
+  if (!String(texto).trim() && !existente) return;
+  try {
+    const feito = await gravarBriefing(itemId, texto);
+    showToast(feito.briefing ? '✓ Briefing salvo' : '✓ Briefing apagado', 'ok', 4000);
+    const leituraAberta = Boolean(document.getElementById('brief-overlay'));
+    await redesenharGavetaDoBriefing(itemId);
+    if (leituraAberta) { fecharBriefing(); if (feito.briefing) abrirBriefing(itemId); }
+  } catch (erro) {
+    showToast(`Não foi possível salvar o briefing: ${erro.message}`, 'err', 7000);
+  }
+}
+
+function usarComentarioComoBriefing(updateId) {
+  const alvo = (typeof ATUALIZACOES_DA_GAVETA !== 'undefined' ? ATUALIZACOES_DA_GAVETA : [])
+    .find((u) => String(u.update_id) === String(updateId));
+  const itemId = DETALHE_DA_GAVETA?.id;
+  if (!alvo || !itemId) return showToast('Não encontrei este comentário. Reabra a atividade.', 'info');
+  // O "[Vybe OS] " da frente é carimbo do sistema, não parte do briefing.
+  const texto = workspacePlainText(String(alvo.body || '')).replace(/^\s*\[Vybe OS\]\s*/i, '');
+  return editarBriefing(itemId, { valor: texto,
+    origem: 'O texto deste comentário vira o briefing da peça. Confira antes de salvar; o comentário continua no histórico.' });
+}
+
 function fecharBriefing() { document.getElementById('brief-overlay')?.remove(); BRIEFING_ABERTO = null; }
 async function copiarBriefingTexto(texto, rotulo) {
   try { await navigator.clipboard.writeText(String(texto)); showToast(`✓ ${rotulo} copiado`, 'ok', 2500); }

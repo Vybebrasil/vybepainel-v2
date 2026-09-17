@@ -263,10 +263,24 @@ async function postWorkspaceUpdate(body, successMessage, itemId) {
     renderWorkspaceDrawer(await fetchWorkspaceItem(alvo), atualizado);
   }
 }
+// Um clique a mais durante a gravação registrava o mesmo comentário duas vezes
+// — o botão continuava ativo enquanto o servidor respondia. E o "[Vybe OS] " da
+// frente fazia a caixa vazia passar pela conferência de texto em branco.
+let COMENTARIO_ENVIANDO = false;
 async function saveWorkspaceComment() {
   const input = document.getElementById('workspace-comment-input');
+  if (COMENTARIO_ENVIANDO) return;
+  if (!String(input?.value || '').trim()) return showToast('Escreva uma atualização antes de enviar.', 'info');
+  const botao = document.querySelector('[onclick="saveWorkspaceComment()"]');
+  COMENTARIO_ENVIANDO = true;
+  if (botao) botao.disabled = true;
   try { await postWorkspaceUpdate(`[Vybe OS] ${input?.value || ''}`, '✓ Atualização registrada no Vybe OS'); }
   catch (e) { showToast(`Não foi possível registrar: ${e.message}`, 'err', 7000); }
+  finally {
+    COMENTARIO_ENVIANDO = false;
+    const atual = document.querySelector('[onclick="saveWorkspaceComment()"]');
+    if (atual) atual.disabled = false;
+  }
 }
 // O registro do link vira uma funcao que recebe o endereco e a peca; a caixa da
 // gaveta so entrega o que digitaram nela.
