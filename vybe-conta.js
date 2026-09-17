@@ -250,7 +250,33 @@ function blocoManutencao() {
         <button class="conta-botao" onclick="liberarPreviasDeArquivos(this)">Liberar prévias antigas</button>
       </div>
       <p class="conta-nota" id="conta-previas-nota"></p>
+      <div class="conta-acao-linha">
+        <div><b>Estrutura do banco</b><small>Cria o que falta de estrutura nova, como a tabela das Notas. Não apaga nem altera nada do que já existe.</small></div>
+        <button class="conta-botao" onclick="conferirEstruturaDoBanco(this)">Conferir estrutura do banco</button>
+      </div>
+      <p class="conta-nota" id="conta-estrutura-nota"></p>
     </div>`;
+}
+
+// A estrutura nova (tabela das Notas, por exemplo) nasce por um clique de quem
+// administra, não por uma leitura: leitura que cria tabela é o tipo de coisa que
+// derruba o painel numa madrugada. O endpoint é idempotente — CREATE TABLE IF
+// NOT EXISTS — e não altera nem apaga o que já existe.
+async function conferirEstruturaDoBanco(botao) {
+  const caixa = document.getElementById('conta-estrutura-nota');
+  if (botao) botao.disabled = true;
+  if (caixa) caixa.textContent = 'Conferindo a estrutura…';
+  try {
+    const r = await fetch('/api/dominio?action=schema', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d?.ok) throw new Error(d?.error || `Não deu certo (${r.status})`);
+    if (caixa) caixa.textContent = '✓ Estrutura conferida. As Notas já podem ser usadas.';
+    showToast('✓ Estrutura do banco conferida', 'ok', 5000);
+  } catch (erro) {
+    if (caixa) caixa.textContent = `Não foi possível conferir: ${erro.message}`;
+    showToast(erro.message, 'err', 7000);
+  } finally { if (botao) botao.disabled = false; }
 }
 
 async function consultarFilaReplica() {

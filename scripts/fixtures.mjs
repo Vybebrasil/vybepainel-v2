@@ -1,5 +1,30 @@
 // Exclusivo do servidor local. Nenhuma consulta ou gravação externa.
 const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
+// As Notas gravam na demonstração: são um caderno em memória, sem banco nem
+// Monday atrás, e é a única forma de exercitar a tela local de ponta a ponta.
+let NOTAS_DEMO=[{id:1,titulo:'17/09 · notas do dia',
+  corpo:'# Prioridades\n[] Falar com o cliente do carrossel\n[x] Mandar o card para aprovação\n- lembrar do **prazo de ouro**\n\nTexto solto de exemplo.',
+  item_ref:'',criado_em:new Date().toISOString(),atualizado_em:new Date().toISOString()}];
+function notasDemo(req,url,body,reply){
+  if(req.method==='GET'){
+    const termo=String(url.searchParams.get('busca')||'').toLowerCase();
+    return reply(200,{ok:true,notas:NOTAS_DEMO.filter(n=>!termo||`${n.titulo} ${n.corpo}`.toLowerCase().includes(termo))});
+  }
+  if(req.method==='POST'){
+    let d;try{d=JSON.parse(body.toString());}catch{return reply(400,{error:'JSON inválido.'});}
+    const agora=new Date().toISOString();
+    const nota={id:Number(d.id)||Math.floor(Date.now()%100000),titulo:String(d.titulo||''),corpo:String(d.corpo||''),
+      item_ref:d.item_ref||'',criado_em:agora,atualizado_em:agora};
+    NOTAS_DEMO=[nota,...NOTAS_DEMO.filter(n=>Number(n.id)!==Number(nota.id))];
+    return reply(200,{ok:true,nota});
+  }
+  if(req.method==='DELETE'){
+    const id=Number(url.searchParams.get('id')||0);
+    NOTAS_DEMO=NOTAS_DEMO.filter(n=>Number(n.id)!==id);
+    return reply(200,{ok:true,apagada:id});
+  }
+  return reply(405,{error:'Método não permitido.'});
+}
 export function demoApi(req,res,url,body) {
   const reply=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(data));};
   const sessao=String(req.headers.cookie||'').includes('vybe_demo=1');
@@ -20,6 +45,7 @@ export function demoApi(req,res,url,body) {
       {id:'1',nome:'Cliente demonstração',ativo:true,selecionado:true},
       {id:'2',nome:'Segundo cliente demonstração',ativo:true,selecionado:false}]});
   }
+  if(url.pathname==='/api/painel' && url.searchParams.get('area')==='notas') return notasDemo(req,url,body,reply);
   if(req.method!=='GET')return reply(403,{error:'Demonstração de interface somente leitura. As gravações são testadas no PostgreSQL em memória.'});
   if(url.pathname==='/api/conteudos') {
     const demanda=url.searchParams.get('board')==='demandas';
