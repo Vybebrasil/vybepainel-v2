@@ -968,6 +968,24 @@ body.vybe-desktop {
 .nota-linha.m-titulo { font: 600 16px/1.4 var(--mac-ui); letter-spacing: -.015em; margin-top: 6px; }
 .nota-linha.m-titulo2 { font: 600 14.5px/1.4 var(--mac-ui); margin-top: 4px; }
 .nota-linha.m-check-feito .nota-entrada { color: var(--text-muted); }
+
+/* Busca da demanda dentro da nota: é a mesma função que ranqueia o ⌘K, então a
+   lista aqui tem a cara da lista de lá. */
+.nota-busca { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--border);
+  border-radius: var(--radius-panel); background: #ffffff08; }
+.nota-busca-campo { display: flex; gap: 6px; }
+.nota-busca-campo input { flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 1px solid var(--border);
+  border-radius: var(--radius-control); background: #ffffff0a; color: var(--text); font: 500 13px var(--mac-ui); }
+.nota-busca-campo button { width: 32px; border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: #ffffff0a; color: var(--text-muted); cursor: pointer; }
+.nota-busca-campo button:hover { background: #ffffff1f; color: var(--text); }
+.nota-busca-lista { display: grid; gap: 4px; max-height: 190px; overflow-y: auto; }
+.nota-busca-item { display: grid; gap: 2px; padding: 8px 10px; border: 0; border-radius: 10px;
+  background: transparent; text-align: left; cursor: pointer; }
+.nota-busca-item:hover { background: #ffffff12; }
+.nota-busca-item b { color: var(--text); font: 600 13px var(--mac-ui); letter-spacing: -.01em; }
+.nota-busca-item small { color: var(--text-muted); font: 400 12px var(--mac-ui); }
+.nota-busca-dica { margin: 0; padding: 4px 2px; color: #7d7f89; font: 500 12px var(--mac-ui); }
 .notas-placeholder { color: #7d7f89; }
 .notas-pe { margin: 0; color: #7d7f89; font: 500 11.5px var(--mac-ui); }
 .notas-canto { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize;
