@@ -26,6 +26,7 @@ function workspaceBytes(bytes=0) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 function closeItemWorkspace() {
+  if (typeof fecharLogDaPeca === 'function') fecharLogDaPeca();
   document.getElementById('workspace-backdrop')?.remove();
   document.getElementById('workspace-drawer')?.remove();
   // A leitura do conteudo mora dentro da gaveta: fechada a gaveta, ela ficaria
@@ -118,7 +119,7 @@ let DETALHE_DA_GAVETA = null;
     dataDoTopo(item.veiculacao) && `Veiculação ${item.veiculacao}`].filter(Boolean).join(' · ') || 'Sem datas definidas';
   drawer.innerHTML = `
       <div style="flex:1;overflow-y:auto;padding:22px 24px 120px;box-sizing:border-box;width:100%;height:100%;">
-      <div class="workspace-kicker workspace-barra"><span>Conteúdo</span><div class="workspace-barra-acoes">${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item)}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar">×</button></div></div>
+      <div class="workspace-kicker workspace-barra"><span>Conteúdo</span><div class="workspace-barra-acoes">${botaoDoLogHtml(item.id)}${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item)}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar">×</button></div></div>
     <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}
       <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
               title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
@@ -209,7 +210,7 @@ async function openDemandaWorkspace(itemId) {
     const assets = detail?.assets || [];
     const updates = detail?.updates || [];
     ATUALIZACOES_DA_GAVETA = updates;
-    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}${botaoDeLinkHtml(item)}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
+    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><div class="workspace-barra-acoes">${botaoDoLogHtml(item.id, { demanda: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}${botaoDeLinkHtml(item)}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
   } catch (e) {
     drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-empty">Não foi possível carregar o contexto. ${safeText(e.message)}</div>`;
   }
@@ -226,6 +227,8 @@ document.addEventListener('keydown', event => {
   // e do cartão de resumo. Esc fecha só ela — o mesmo que Cancelar — e para aqui,
   // para não levar junto o que está embaixo.
   if (document.getElementById('workflow-modal')) { event.preventDefault(); event.stopImmediatePropagation(); closeWorkflowModal(); return; }
+  // Com o log aberto, Esc volta para a peça — como o "‹ Voltar" dele.
+  if (typeof fecharLogDaPeca === 'function' && fecharLogDaPeca()) { event.preventDefault(); event.stopImmediatePropagation(); return; }
   if (document.getElementById('brief-overlay')) { fecharBriefing(); return; }
   // O organizador abre por cima do menu de etiquetas: o Esc fecha a camada de
   // cima, nao as duas.
