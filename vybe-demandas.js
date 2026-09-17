@@ -1,5 +1,17 @@
 let buscaClienteDemandas = '';
-function buscarClienteDemandas(valor) { buscaClienteDemandas=valor; renderDemandas(); }
+// O botão de cliente escolhe pelo nome exato; a caixa de busca aceita parte do
+// nome. Os dois são o mesmo filtro: digitar na caixa desfaz o "exato", e clicar
+// num cliente escreve o nome na caixa.
+let clienteDemandasExato = '';
+function buscarClienteDemandas(valor) { buscaClienteDemandas=valor; clienteDemandasExato=''; renderDemandas(); }
+function escolherClienteDemandas(nome) {
+  const mesmo = clienteDemandasExato && clienteDemandasExato === nome;
+  clienteDemandasExato = mesmo ? '' : nome;
+  buscaClienteDemandas = mesmo ? '' : nome;
+  const caixa = document.getElementById('busca-cliente-demandas');
+  if (caixa) caixa.value = buscaClienteDemandas;
+  renderDemandas();
+}
 // vybe-demandas.js — board de solicitações de demandas e custos de IA
 // Extraído do <script> inline do index.html; carregado em ordem, escopo global preservado.
 // ─── Board Solicitações de Demandas ────────────────────────────────────────────────────────────
@@ -920,10 +932,14 @@ function pintarTiposDeDemanda() {
 }
 
 // ─── Renderizar demandas (dispatcher por view) ────────────────────────────────────────────────────
-function filtrarDemandasBase() {
+// semCliente: a mesma conta sem o filtro de cliente — é o que cada botão de
+// cliente mostra ("quantas teria se eu escolhesse este").
+function filtrarDemandasBase({ semCliente = false } = {}) {
   let fi = [...DADOS_DEMANDAS];
   const busca=buscaClienteDemandas.trim().toLocaleLowerCase('pt-BR');
-  if(busca) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR').includes(busca)));
+  const exato=clienteDemandasExato.toLocaleLowerCase('pt-BR');
+  if(!semCliente && exato) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR')===exato));
+  else if(!semCliente && busca) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR').includes(busca)));
   if (currentDemandaPersonFilter !== 'all') {
     fi = fi.filter(d => (d.responsavel_ids && d.responsavel_ids.includes(currentDemandaPersonFilter)) || d.responsavel_id === currentDemandaPersonFilter);
   }
@@ -992,6 +1008,32 @@ function limparDiaDaDemanda() {
   renderDemandas();
 }
 
+// Os clientes das solicitações, em botões: escolher um vale para a esteira, os
+// Grupos e o Calendário, porque todos passam por filtrarDemandasBase. O número
+// segue os outros filtros; quem fica com zero vai para o fim, apagado.
+function pintarClientesDeDemandas() {
+  const caixa = document.getElementById('demanda-cliente-legend');
+  if (!caixa) return;
+  const base = DADOS_DEMANDAS || [];
+  if (!base.length) { caixa.innerHTML = ''; return; }
+  const aparece = (n) => typeof clienteApareceNaLista !== 'function' || clienteApareceNaLista(n);
+  const conta = new Map();
+  base.forEach((d) => clientesDoItem(d).forEach((n) => { if (aparece(n)) conta.set(n, 0); }));
+  const filtradas = filtrarDemandasBase({ semCliente: true });
+  filtradas.forEach((d) => clientesDoItem(d).forEach((n) => { if (conta.has(n)) conta.set(n, conta.get(n) + 1); }));
+  const clientes = [...conta.entries()]
+    .sort((a, b) => (b[1] > 0) - (a[1] > 0) || a[0].localeCompare(b[0], 'pt-BR'));
+  const escolhido = clienteDemandasExato;
+  const botao = (nome, quantos) => `<button type="button" class="manager-calendar-client ${
+      escolhido === nome ? 'active' : ''} ${quantos === 0 ? 'vazio' : ''}"
+      aria-pressed="${escolhido === nome}"
+      title="${escolhido === nome ? 'Tirar o filtro de cliente' : `Ver só ${safeText(nome)}`}"
+      onclick="escolherClienteDemandas(decodeURIComponent('${encodeURIComponent(nome)}'))"><b>${safeText(nome)}</b> ${quantos}</button>`;
+  const todos = `<button type="button" class="manager-calendar-client ${buscaClienteDemandas.trim() ? '' : 'active'}"
+      aria-pressed="${!buscaClienteDemandas.trim()}" onclick="buscarClienteDemandas('');document.getElementById('busca-cliente-demandas').value=''"><b>Todos</b> ${filtradas.length}</button>`;
+  caixa.innerHTML = todos + clientes.map(([n, q]) => botao(n, q)).join('');
+}
+
 function renderDemandas() {
   // A moldura da tela (numeros do topo, filtro de equipe, lista de dias) era
   // pintada SO por refreshDemandas. E o switchBoard so chama refreshDemandas
@@ -1006,6 +1048,7 @@ function renderDemandas() {
   // Todos, exatamente como se estivesse quebrada. Agora a moldura mora aqui,
   // junto do resto do desenho: qualquer caminho que chegue nesta tela a pinta.
   pintarTiposDeDemanda();
+  pintarClientesDeDemandas();
   pintarAvisoDeAprovacoes();
   buildDemandaPersonFilter();
   populateDemandaDaySelect();
