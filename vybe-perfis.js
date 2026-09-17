@@ -586,7 +586,12 @@ function acomodarVisaoDaRegua() {
   DA_SECAO_EMPRESTADA.id = id;
   secao.classList.remove('focus-hidden');
   if (id === 'grupos-board') renderVisaoDeGrupos('producao', { forcar: true });
-  else renderManagerCalendar(true);
+  else {
+    // A agenda segue o "Contar por" da barra do DA: um interruptor só na tela.
+    if (dateMode !== daControllerDateMode) setDateMode(daControllerDateMode,
+      document.getElementById(daControllerDateMode === 'prazo' ? 'btn-mode-prazo' : 'btn-mode-veiculacao'));
+    renderManagerCalendar(true);
+  }
 }
 
 // UMA BARRA SÓ, PRESA NO ALTO.
@@ -676,7 +681,7 @@ function daWeekAgendaHtml(items,range,team,today) {
   const titulos = { grupos: 'Conteúdos por grupo', calendario: 'Agenda mensal por cliente' };
   const dicas = {
     grupos: 'A mesma tabela do Modo Gestor, aqui. Ela obedece à pessoa escolhida acima; o período não a filtra — cada grupo tem as próprias datas.',
-    calendario: 'A mesma agenda do Modo Gestor, aqui. Ela tem o próprio cliente e o próprio mês, logo abaixo.',
+    calendario: 'A mesma agenda do Modo Gestor. Segue o Prazo/Veiculação da barra; o mês e o cliente escolhem-se logo abaixo.',
   };
   const cabeca = `<div class="da-week-agenda-head"><b>${daVisaoDaRegua==='mapa'?title:titulos[daVisaoDaRegua]}</b></div>`;
   if (daVisaoDaRegua !== 'mapa') {

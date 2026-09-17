@@ -5614,3 +5614,83 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
 .auto-diag-lista li.roda .auto-diag-marca { color:#4ade80 }
 .auto-diag-lista li.barrada .auto-diag-marca { color:#ffb000 }
 .auto-diag-titulo { margin:16px 0 6px;font:700 10px var(--mac-ui);letter-spacing:.05em;color:#ffb000 }
+
+/* ─── Agenda mensal: cabeçalho e grade no padrão da tela inicial ─────────────
+   Saíram o sobretítulo "Gestor · Planejamento visual", o parágrafo de apoio e a
+   linha "Referência ativa: VEICULAÇÃO", que repetia o seletor logo acima. A
+   legenda de origem virou os dois contadores com ponto colorido. Veiculação e
+   Prazo são um seletor só, como na barra do DA; o mês e "Hoje" formam um bloco.
+   Clientes numa fila que rola para o lado, em vez de três linhas irregulares. */
+.manager-calendar-head{flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px 16px;padding:14px 16px}
+.manager-calendar-head .manager-calendar-title{margin:0;font:600 19px/1.25 var(--mac-ui);letter-spacing:-.015em;color:#f2f2f5}
+.manager-calendar-actions{gap:8px}
+.manager-calendar-actions>button{height:30px;padding:0 12px;border-radius:8px;font:500 12px var(--mac-ui)}
+/* Laranja cheio fica para o que está marcado no seletor; ao lado dele, a ação
+   em laranja cheio virava dois destaques disputando o olho. */
+.manager-calendar-actions .primary{border-color:transparent;background:rgba(255,122,26,.16);color:#ffbe86}
+.manager-calendar-actions .primary:hover{border-color:transparent;background:rgba(255,122,26,.28);color:#fff}
+.manager-calendar-segmento{display:inline-flex;padding:2px;border-radius:9px;background:rgba(255,255,255,.05)}
+.manager-calendar-segmento button{height:26px;padding:0 12px;border:0;border-radius:7px;background:transparent;
+  color:#9a9aa0;font:600 12px var(--mac-ui);cursor:pointer}
+.manager-calendar-segmento button:hover{color:#f2f2f5}
+.manager-calendar-segmento button.active{background:var(--accent,#ff6b00);color:#fff}
+
+.manager-calendar-toolbar{grid-template-columns:auto 1fr;grid-template-areas:'mes status' 'clientes clientes';padding:10px 16px}
+.manager-calendar-month{grid-area:mes;gap:2px;padding:2px;border-radius:9px;background:rgba(255,255,255,.05)}
+.manager-calendar-month button{width:26px;min-width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:#c9c9ce}
+.manager-calendar-month button:hover{background:rgba(255,255,255,.09);border:0;color:#fff}
+.manager-calendar-month .manager-calendar-hoje{width:auto;padding:0 10px;margin-left:2px;background:rgba(255,107,0,.18);color:#ffbe86;font:600 11px var(--mac-ui)}
+.manager-calendar-month-label{min-width:150px;font:600 13px var(--mac-ui);text-transform:none;font-variant-numeric:tabular-nums}
+.manager-calendar-status{grid-area:status;gap:14px;color:#9a9aa0;font:500 12px var(--mac-ui);font-variant-numeric:tabular-nums}
+.manager-calendar-status span{display:inline-flex;align-items:center;gap:6px}
+.manager-calendar-status i{width:7px;height:7px;border-radius:50%;background:#ff8b38}
+.manager-calendar-status i.request{background:#c084fc}
+.manager-calendar-clients{grid-area:clientes;flex-wrap:nowrap;max-height:none;overflow-x:auto;overflow-y:hidden;
+  padding:2px 0 6px;gap:6px;scrollbar-width:thin;overscroll-behavior-x:contain}
+.manager-calendar-client{height:28px;border-radius:999px;padding:0 12px;border-color:transparent;background:rgba(255,255,255,.05);
+  color:#9a9aa0;font:500 12px var(--mac-ui);font-variant-numeric:tabular-nums}
+.manager-calendar-client b{color:#e6e6ea;font-weight:500}
+.manager-calendar-client.active{border-color:transparent;background:rgba(255,122,26,.2);color:#ffd3ad}
+.manager-calendar-client.active b{color:#fff}
+
+/* A faixa das solicitações era uma caixa roxa com borda, do tamanho de um aviso.
+   É uma informação de apoio: vira uma linha discreta. */
+.manager-calendar-demand-note{margin:0;padding:8px 16px;border:0;border-bottom:1px solid rgba(255,255,255,.06);
+  background:transparent;color:#8b8b90;font:500 12px/1.45 var(--mac-ui)}
+.manager-calendar-demand-note b{color:#c9c9ce;font-weight:600}
+.manager-calendar-demand-note button,.manager-calendar-fora button{padding:3px 10px;border-radius:999px;border:0;
+  background:rgba(192,132,252,.12);color:#d8b4fe;font:500 11.5px var(--mac-ui)}
+.manager-calendar-fora{color:#8b8b90}
+
+.manager-calendar-weekday{min-height:30px;background:rgba(16,18,24,.96);color:#8b8b90;font:500 12px var(--mac-ui)}
+.manager-calendar-day-head{margin-bottom:6px}
+.manager-calendar-day-head b{font:600 13px var(--mac-ui);font-variant-numeric:tabular-nums;color:#e6e6ea}
+.manager-calendar-day.is-today .manager-calendar-day-head b{display:inline-grid;place-items:center;min-width:22px;height:22px;
+  border-radius:999px;background:var(--accent,#ff6b00);color:#fff}
+.manager-calendar-event{grid-template-columns:4px minmax(0,1fr) 8px}
+.manager-calendar-event-copy b{font:600 11.5px/1.3 var(--mac-ui)}
+.manager-calendar-event-copy small{font:500 11px/1.3 var(--mac-ui)}
+.manager-calendar-event-meta{justify-content:flex-end;padding-top:4px}
+.manager-calendar-footer{color:#8b8b90;font:500 12px var(--mac-ui)}
+.manager-calendar-footer button{font:500 12px var(--mac-ui)}
+@media(max-width:720px){
+  .manager-calendar-toolbar{grid-template-columns:1fr;grid-template-areas:'mes' 'status' 'clientes'}
+  .manager-calendar-status{justify-content:flex-start}
+  .manager-calendar-demand-note{flex-direction:column;align-items:flex-start}
+  .manager-calendar-demand-note>button{white-space:normal;text-align:left}
+}
+/* O × de tirar o cliente reservava 21px vazios em cada chip mesmo escondido,
+   e o número ficava longe do nome. Agora só ocupa espaço quando aparece. */
+.manager-calendar-client{gap:6px}
+.manager-calendar-client b{margin-right:0}
+.manager-calendar-client-x{width:0;margin-left:-6px;overflow:hidden;transition:width .12s var(--curva,ease),margin .12s var(--curva,ease)}
+.manager-calendar-client:hover .manager-calendar-client-x,
+.manager-calendar-client:focus-within .manager-calendar-client-x,
+.manager-calendar-client-x:focus-visible{width:15px;margin-left:0}
+.manager-calendar-modo{width:28px;height:28px;border:0;border-radius:999px;background:rgba(255,255,255,.05)}
+/* No DA o título vem da própria régua; a agenda mostra só as ações. */
+#da-visao-host .manager-calendar-head{justify-content:flex-end;padding:10px 16px}
+/* Grupos, como a agenda: sem sobretítulo nem parágrafo, e dentro do DA sem o
+   título repetido (a régua já diz "Conteúdos por grupo"). */
+.grupos-titulo{font:600 19px/1.25 var(--mac-ui);letter-spacing:-.015em}
+#da-visao-host .grupos-titulo{display:none}
