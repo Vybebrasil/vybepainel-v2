@@ -676,3 +676,72 @@ body.vybe-desktop {
   .log-topo, .log-filtros, .log-corpo { padding-left: 16px; padding-right: 16px; }
   .log-linha { align-items: start; }
 }
+
+/* ─── Mesa de Comando ────────────────────────────────────────────────────────
+   Os mesmos números apareciam em três lugares: três cartões no topo, as abas e
+   a leitura proativa. Ficaram as abas — um seletor só, com a contagem numa
+   bolinha — e o cartão da decisão prioritária. Saíram o sobretítulo "Vybe OS ·
+   Central de decisão" e a linha de apoio. */
+.manager-command-drawer-title { font: 600 19px/1.25 var(--mac-ui) !important; letter-spacing: -.015em; color: #f2f2f5; }
+.manager-command-drawer-context { margin-top: 2px !important; color: #8b8b90 !important; font: 500 12px var(--mac-ui) !important; }
+.manager-command-tabs { gap: 4px; padding: 10px 16px; }
+.manager-command-tab { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px;
+  border: 0 !important; border-radius: 999px; background: rgba(255,255,255,.05) !important;
+  color: #9a9aa0 !important; font: 500 12.5px var(--mac-ui) !important; letter-spacing: 0 !important; }
+.manager-command-tab:hover { color: #f2f2f5 !important; }
+.manager-command-tab b { min-width: 20px; padding: 0 5px; border-radius: 999px; background: rgba(255,255,255,.08);
+  color: inherit; font: 600 11.5px var(--mac-ui); font-variant-numeric: tabular-nums; }
+.manager-command-tab.active { background: rgba(255,122,26,.2) !important; color: #ffd3ad !important; box-shadow: none !important; }
+.manager-command-tab.active b { background: rgba(255,122,26,.3); color: #fff; }
+
+/* Leitura proativa: uma linha de atalhos, não quatro cartões do tamanho de KPI. */
+.manager-command-content .leitura-proativa { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 0 0 12px; border: 0; background: transparent; }
+.leitura-proativa-topo { flex: 1 1 100%; }
+.leitura-proativa-topo strong { color: #8b8b90 !important; font: 600 12px var(--mac-ui) !important; letter-spacing: 0; }
+.leitura-proativa-topo span { color: #6f6f75; font-size: 11.5px; }
+.manager-command-content .leitura-proativa-alerta { display: inline-flex; align-items: baseline; gap: 6px;
+  min-height: 28px; padding: 4px 11px; border-radius: 999px; border: 0;
+  background: rgba(255,255,255,.05); }
+.manager-command-content .leitura-proativa-alerta b { display: inline; font: 600 12.5px var(--mac-ui);
+  font-variant-numeric: tabular-nums; color: var(--cor-alerta, #ffbd61); }
+.manager-command-content .leitura-proativa-alerta span { display: inline; margin: 0; color: #9a9aa0;
+  font: 500 12.5px var(--mac-ui); letter-spacing: 0; }
+/* O exemplo ("Antonov · Carrossel…") fica no title: na pílula ele cortaria. */
+.manager-command-content .leitura-proativa-alerta small { display: none; }
+.manager-command-content .leitura-proativa-alerta.active { background: color-mix(in srgb, var(--cor-alerta, #ff9d00) 22%, transparent); }
+.manager-command-content .leitura-proativa-alerta.active span { color: #f2f2f5; }
+
+/* A linha: cliente e peça à esquerda, próximo passo no meio, status e Abrir à
+   direita. Sem caixa alta e sem o nome inteiro de quem responde. */
+.manager-command-content .command-row { gap: 12px; padding: 10px 12px; }
+.command-client { color: #c5adff !important; font: 500 12px var(--mac-ui) !important; letter-spacing: 0 !important; }
+.command-item > button { font: 600 13px/1.35 var(--mac-ui); letter-spacing: -.01em; }
+.command-detail { display: flex; align-items: center; gap: 8px; margin-top: 3px; color: #8b8b90; font: 500 11.5px var(--mac-ui); }
+.command-owner { gap: 0; }
+.command-next { color: #b4b4ba !important; font: 400 12px/1.4 var(--mac-ui) !important; }
+.command-context { color: #8b8b90; font: 400 11.5px/1.4 var(--mac-ui); }
+.risk-action-owner { letter-spacing: 0 !important; font-size: 11.5px !important; }
+.risk-action-owner b { color: #ffbd2e; font-size: 11.5px !important; font-weight: 600; text-transform: none; }
+.command-open, .command-copy { height: 28px; padding: 0 12px; border-radius: 8px; font: 500 12px var(--mac-ui) !important; letter-spacing: 0 !important; }
+.command-more { color: #ffbe86 !important; font: 500 12.5px var(--mac-ui) !important; letter-spacing: 0 !important; }
+@media (max-width: 760px) {
+  .manager-command-content .command-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .manager-command-content .command-client { grid-column: 1 / -1; }
+  .command-next { grid-column: 1 / -1; }
+  .manager-command-tab { height: 28px; font-size: 12px !important; }
+}
+/* O cartão da decisão prioritária: mesma família dos outros cartões, sem
+   caixa alta no botão. */
+.command-decision { border-radius: 12px; border: 1px solid rgba(255,107,129,.28); border-left: 3px solid #ff637a; }
+.command-decision-label { font: 600 12px var(--mac-ui) !important; letter-spacing: 0 !important; }
+.command-decision-main { font: 600 13.5px var(--mac-ui) !important; letter-spacing: -.01em; white-space: normal !important; }
+.command-decision-meta { color: #9a9aa0 !important; font: 400 12px/1.45 var(--mac-ui) !important; }
+.command-decision-button { height: 28px; padding: 0 12px !important; border-radius: 8px !important;
+  font: 500 12px var(--mac-ui) !important; letter-spacing: 0 !important; }
+/* "ação hoje para Atendimento" é uma frase: quebrava no meio ("ação / hoje")
+   porque era um flex com gap, e colava no texto anterior por não ter linha
+   própria. */
+.manager-command-content .risk-action-owner { display: block; margin-top: 3px; white-space: normal; }
+.manager-command-content .risk-action-owner b { margin-right: 4px; white-space: nowrap; }
+.manager-command-content .risk-action-owner.compact { max-width: none; }
