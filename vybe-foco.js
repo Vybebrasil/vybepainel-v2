@@ -84,10 +84,20 @@ function focusActionPriority(d,user=focusUser()) {
   const state={'Pode Fazer':0,'A Fazer':1}[operationalFlowStatus(d)] ?? 8;
   return Number(quandoVai) * 100 + state * 10 + (dia(d.prazo_iso) ? 0 : 1);
 }
+// O STATUS DA SOLICITACAO TEM OUTRO NOME PARA A MESMA ETAPA.
+//
+// "Em execução" e "Aguardando Info." sao das solicitacoes; "Em andamento" e
+// "Falta Info" sao do conteudo. Quatro pontos desta tela comparavam o nome cru —
+// e a Brussolo em execucao ficava fora do "AGORA", do fechamento de turno e da
+// continuidade, enquanto a lista logo abaixo, que traduz, mostrava ela rodando.
+// Uma regra so, sempre pelo tradutor.
+const FOCO_STATUS_BLOQUEIO = ['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'];
+function focoEmExecucao(d) { return operationalFlowStatus(d) === 'Em andamento'; }
+function focoBloqueada(d) { return FOCO_STATUS_BLOQUEIO.includes(operationalFlowStatus(d)); }
 function getFocusNextAction(items=focusOwnItems(),user=focusUser()) {
   const nextReady=items.filter(focusIsNextReady).sort((a,b)=>focusActionPriority(a,user)-focusActionPriority(b,user));
   if (nextReady.length) return { item:nextReady[0], mode:'next' };
-  const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(operationalFlowStatus(d))).sort((a,b)=>focusActionPriority(a,user)-focusActionPriority(b,user));
+  const blocked=items.filter(focoBloqueada).sort((a,b)=>focusActionPriority(a,user)-focusActionPriority(b,user));
   return blocked[0] ? { item:blocked[0], mode:'unblock' } : null;
 }
 function focusWorkflowProfile(item,user=focusUser()) {
@@ -237,28 +247,28 @@ async function openFocusPriorityWorkspace(itemId) {
 }
 function openFocusDelivery(itemId) { openItemWorkspace(itemId); setTimeout(()=>{ document.getElementById('workspace-link-input')?.scrollIntoView({behavior:'smooth',block:'center'}); },320); }
 function focusContinuityHtml(items,user) {
-  const today=HOJE_ISO || new Date().toISOString().slice(0,10); const next=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && !['Agendado','Finalizado'].includes(d.status);}),user).slice(0,3); const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)).length;
+  const today=HOJE_ISO || new Date().toISOString().slice(0,10); const next=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && !['Agendado','Finalizado'].includes(operationalFlowStatus(d));}),user).slice(0,3); const blocked=items.filter(focoBloqueada).length;
   const nextText=next.length ? next.map(d=>`${d.nome} (${focusReferenceLabel(d,user)})`).join(' · ') : 'Nenhuma prioridade futura com prazo informado';
   return `<section class="focus-continuity"><div class="focus-continuity-head"><span>⌁ CONTINUIDADE DE TURNO</span><span>${blocked ? `${blocked} bloqueio${blocked===1?'':'s'} para acompanhar` : 'fila sem bloqueios ativos'}</span></div><div class="focus-continuity-body">Sua próxima linha de continuidade: <b>${safeText(nextText)}</b><div class="focus-continuity-actions"><button type="button" class="focus-command-btn" onclick="copyFocusContinuity()">Copiar resumo</button></div></div></section>`;
 }
-async function copyFocusContinuity() { const user=focusUser(); const items=focusOwnItems(user); const action=getFocusNextAction(items,user); const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)); const text=`[Vybe OS · Continuidade] ${user?.name || 'Operador'}\nPróxima prioridade: ${action?.item ? `${action.item.nome} · ${action.item.cliente}` : 'Sem item prioritário aberto'}\nBloqueios ativos: ${blocked.length}${blocked.length ? ` · ${blocked.slice(0,3).map(d=>d.nome).join(' | ')}` : ''}\nGerado em: ${new Date().toLocaleString('pt-BR')}`; try { await navigator.clipboard.writeText(text); showToast('✓ Resumo de continuidade copiado','ok'); } catch(e) { const area=document.createElement('textarea'); area.value=text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); showToast('✓ Resumo de continuidade copiado','ok'); } }
+async function copyFocusContinuity() { const user=focusUser(); const items=focusOwnItems(user); const action=getFocusNextAction(items,user); const blocked=items.filter(focoBloqueada); const text=`[Vybe OS · Continuidade] ${user?.name || 'Operador'}\nPróxima prioridade: ${action?.item ? `${action.item.nome} · ${action.item.cliente}` : 'Sem item prioritário aberto'}\nBloqueios ativos: ${blocked.length}${blocked.length ? ` · ${blocked.slice(0,3).map(d=>d.nome).join(' | ')}` : ''}\nGerado em: ${new Date().toLocaleString('pt-BR')}`; try { await navigator.clipboard.writeText(text); showToast('✓ Resumo de continuidade copiado','ok'); } catch(e) { const area=document.createElement('textarea'); area.value=text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); showToast('✓ Resumo de continuidade copiado','ok'); } }
 
 function focusDailyPlanHtml(items,user,nextAction) {
   const today=HOJE_ISO || new Date().toISOString().slice(0,10);
-  const inProgress=focusSort(items.filter(d=>d.status==='Em andamento'),user);
-  const blocked=focusSort(items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status)),user);
-  const dueByFriday=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>=today && due<=getFridayIso(today) && !isFinishedItem(d);}),user);
+  const inProgress=focusSort(items.filter(focoEmExecucao),user);
+  const blocked=focusSort(items.filter(focoBloqueada),user);
+  const dueByFriday=focusSort(items.filter(d=>{const due=focusReferenceDate(d,user); return due && due>today && due<=getFridayIso(today) && !isFinishedItem(d);}),user);
   const next=nextAction?.item;
   const row=(label,item,empty)=>item ? `<div class="focus-daily-plan-row"><span>${safeText(label)}</span><button type="button" onclick="openItemWorkspace('${item.id}')">${safeText(item.nome)}</button><small>${safeText(item.status)} · ${safeText(focusReferenceLabel(item,user))}</small></div>` : `<div class="focus-daily-plan-row muted"><span>${safeText(label)}</span><em>${safeText(empty)}</em></div>`;
-  return `<section class="focus-daily-plan"><div class="focus-daily-plan-head"><div><span>Plano do dia</span></div><button type="button" class="focus-command-btn" onclick="openFocusShiftClose()">Fechar turno</button></div><div class="focus-daily-plan-grid">${row('AGORA',inProgress[0] || next,'sem execução registrada')}${''/* "PRÓXIMA" saiu daqui: o bloco grande logo abaixo E a proxima, com o mesmo
+  return `<section class="focus-daily-plan"><div class="focus-daily-plan-head"><div><span>Plano do dia</span></div><button type="button" class="focus-command-btn" onclick="openFocusShiftClose()">Fechar turno</button></div><div class="focus-daily-plan-grid">${row('AGORA',inProgress[0],'nada em execução agora')}${''/* "PRÓXIMA" saiu daqui: o bloco grande logo abaixo E a proxima, com o mesmo
         nome, a dois centimetros. Repetir nao reforca — divide a atencao e faz a
         pessoa conferir se sao a mesma coisa. */}${row('DESTRAVAR',blocked[0], 'sem bloqueio ativo')}${row('ATÉ SEXTA',dueByFriday.filter(d=>String(d.id)!==String(inProgress[0]?.id||'') && String(d.id)!==String(next?.id||''))[0], 'sem outro prazo nesta semana')}</div></section>`;
 }
 function getFridayIso(base) { const d=new Date(`${base}T12:00:00`); const weekday=d.getDay(); d.setDate(d.getDate()+((5-weekday+7)%7)); return d.toISOString().slice(0,10); }
 function focusShiftSummary(user=focusUser()) {
   const items=focusOwnItems(user); const today=HOJE_ISO || new Date().toISOString().slice(0,10);
-  const executed=items.filter(d=>d.status==='Em andamento');
-  const blocked=items.filter(d=>['Falta Info','Ag. Info Cliente','Aguardo','Alteração','Falta D.A','Ag. Interno','Cap. Agendada','Agendando Cap','Falta OFF','Aguardo Redação','Segurar Post'].includes(d.status));
+  const executed=items.filter(focoEmExecucao);
+  const blocked=items.filter(focoBloqueada);
   const tomorrow=focusSort(items.filter(d=>focusReferenceDate(d,user)>today),user).slice(0,3);
   return {items,executed,blocked,tomorrow};
 }
