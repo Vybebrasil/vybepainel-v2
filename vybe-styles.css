@@ -5620,7 +5620,7 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
    linha "Referência ativa: VEICULAÇÃO", que repetia o seletor logo acima. A
    legenda de origem virou os dois contadores com ponto colorido. Veiculação e
    Prazo são um seletor só, como na barra do DA; o mês e "Hoje" formam um bloco.
-   Clientes numa fila que rola para o lado, em vez de três linhas irregulares. */
+   Clientes em pílulas que quebram em linhas, com os zerados no fim. */
 .manager-calendar-head{flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px 16px;padding:14px 16px}
 .manager-calendar-head .manager-calendar-title{margin:0;font:600 19px/1.25 var(--mac-ui);letter-spacing:-.015em;color:#f2f2f5}
 .manager-calendar-actions{gap:8px}
@@ -5645,8 +5645,10 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
 .manager-calendar-status span{display:inline-flex;align-items:center;gap:6px}
 .manager-calendar-status i{width:7px;height:7px;border-radius:50%;background:#ff8b38}
 .manager-calendar-status i.request{background:#c084fc}
-.manager-calendar-clients{grid-area:clientes;flex-wrap:nowrap;max-height:none;overflow-x:auto;overflow-y:hidden;
-  padding:2px 0 6px;gap:6px;scrollbar-width:thin;overscroll-behavior-x:contain}
+/* Os clientes quebram em linhas: numa fila que rola para o lado, a maioria
+   ficava escondida e era preciso arrastar a barra para achar alguém. */
+.manager-calendar-clients{grid-area:clientes;flex-wrap:wrap;max-height:none;overflow:visible;
+  padding:2px 0 4px;gap:6px}
 .manager-calendar-client{height:28px;border-radius:999px;padding:0 12px;border-color:transparent;background:rgba(255,255,255,.05);
   color:#9a9aa0;font:500 12px var(--mac-ui);font-variant-numeric:tabular-nums}
 .manager-calendar-client b{color:#e6e6ea;font-weight:500}
