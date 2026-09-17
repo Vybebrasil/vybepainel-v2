@@ -573,42 +573,51 @@ function acomodarVisaoDaRegua() {
   else renderManagerCalendar(true);
 }
 
-// OS CONTROLES ONDE A MAO ESTA.
+// UMA BARRA SÓ, PRESA NO ALTO.
 //
-// Contar por prazo ou por veiculacao ja existia — na barra do alto da tela, a
-// duas rolagens de distancia da regua. Trocar a referencia enquanto se conduz o
-// dia significava subir, clicar, descer e reencontrar o lugar. E a mesma funcao,
-// o mesmo estado: aqui e so um segundo par de botoes para o mesmo interruptor.
+// Eram duas: a do alto (janela, contar por, pessoa) e a da régua (‹ período ›,
+// prazo/veiculação de novo, mapa/grupos/calendário). A segunda existia porque a
+// primeira ficava a duas rolagens da régua — e por isso repetia Prazo e
+// Veiculação. Agora é uma, grudada no topo enquanto se rola: o controle fica
+// onde a mão está sem precisar existir duas vezes.
 //
-// Grupos e Calendario sao as secoes do Modo Gestor, e nao copias delas: abrem
-// logo abaixo, na propria tela, com a tabela e o mes que ja existem.
-function daControlesDaRegua(range) {
+// Grupos e Calendário continuam sendo as seções do Modo Gestor, e não cópias:
+// abrem no lugar do mapa, com a tabela e o mês que já existem.
+function daBarraHtml(range,selectedUser,selectedName) {
   const periodo = daControllerPeriod === 'month' ? 'mês' : daControllerPeriod === 'week' ? 'semana' : 'dia';
   const seta = (d, rotulo, titulo) => `<button type="button" class="da-regua-seta"
     onclick="andarNaJanelaDoDa(${d})" title="${titulo}" aria-label="${titulo}">${rotulo}</button>`;
-  const modo = (chave, rotulo) => `<button type="button" class="${daControllerDateMode===chave?'marcado':''}"
-    aria-pressed="${daControllerDateMode===chave}"
-    onclick="setDaControllerDateMode('${chave}')">${rotulo}</button>`;
-  const visao = (chave, rotulo, titulo) => `<button type="button"
-    class="${daVisaoDaRegua===chave?'marcado':''}" aria-pressed="${daVisaoDaRegua===chave}"
-    onclick="setDaVisaoDaRegua('${chave}')" title="${titulo}">${rotulo}</button>`;
-  return `<div class="da-regua-controles">
-    <div class="da-regua-janela">
-      ${seta(-1, '‹', `Voltar um ${periodo}`)}
-      <span class="da-regua-periodo${range.atual ? ' agora' : ''}">${safeText(range.label)}</span>
-      ${seta(1, '›', `Avançar um ${periodo}`)}
-      ${range.atual ? '' : `<button type="button" class="da-regua-hoje" onclick="voltarJanelaDoDaParaHoje()"
-        title="Voltar para o ${periodo} de hoje">hoje</button>`}
-    </div>
-    <div class="da-segmento da-regua-modo" role="group" aria-label="Data de referência">
-      ${modo('prazo', 'Prazo')}${modo('veiculacao', 'Veiculação')}
-    </div>
-    <div class="da-segmento da-regua-visoes" role="group" aria-label="Forma de ver">
-      ${visao('mapa', 'Mapa', 'Os dias da janela, com quem entrega em cada um. Respeita a pessoa e o período escolhidos aqui.')}
-      ${visao('grupos', 'Grupos', 'A tabela por grupo do quadro, no lugar do mapa. Obedece à pessoa escolhida aqui; o período não a filtra.')}
-      ${visao('calendario', 'Calendário', 'A agenda mensal por cliente, no lugar do mapa. Mostra o quadro inteiro, sem o filtro de pessoa e de período desta tela.')}
-    </div>
+  const segmento = (rotuloDoGrupo, opcoes, atual, acao, classe='') => `<div class="da-segmento ${classe}" role="group" aria-label="${rotuloDoGrupo}">
+    ${opcoes.map(([chave,rotulo,titulo])=>`<button type="button" class="${atual===chave?'marcado':''}"
+      aria-pressed="${atual===chave}" onclick="${acao}('${chave}')"${titulo?` title="${titulo}"`:''}>${rotulo}</button>`).join('')}
   </div>`;
+  const pessoa = selectedUser
+    ? `<span class="da-barra-quem" style="--cor-pessoa:${selectedUser.color}">
+         ${daTacticalPersonVisual(selectedUser,selectedUser.color)}
+         <b>${safeText(selectedName)}</b>
+       </span>
+       <button type="button" class="da-barra-acao" onclick="openDaIndividualPlanningDesk('${selectedUser.id}')">Organizar agenda</button>
+       <button type="button" class="da-barra-limpar" onclick="setDaControllerPerson('all')" aria-label="Ver toda a célula">Toda a célula</button>`
+    : `<span class="da-barra-quem vazia"><b>Toda a célula criativa</b></span>`;
+  return `<section class="da-barra" aria-label="Controles da Direção de arte">
+    <div class="da-barra-grupo">
+      <div class="da-regua-janela">
+        ${seta(-1, '‹', `Voltar um ${periodo}`)}
+        <span class="da-regua-periodo${range.atual ? ' agora' : ''}">${safeText(range.label)}</span>
+        ${seta(1, '›', `Avançar um ${periodo}`)}
+        ${range.atual ? '' : `<button type="button" class="da-regua-hoje" onclick="voltarJanelaDoDaParaHoje()"
+          title="Voltar para o ${periodo} de hoje">Hoje</button>`}
+      </div>
+      ${segmento('Janela de planejamento', [['day','Dia'],['week','Semana'],['month','Mês']], daControllerPeriod, 'setDaControllerPeriod')}
+    </div>
+    ${segmento('Data de referência', [['prazo','Prazo'],['veiculacao','Veiculação']], daControllerDateMode, 'setDaControllerDateMode')}
+    ${segmento('Forma de ver', [
+      ['mapa','Mapa','Os dias da janela, com quem entrega em cada um. Respeita a pessoa e o período escolhidos.'],
+      ['grupos','Grupos','A tabela por grupo do quadro, no lugar do mapa. Obedece à pessoa escolhida; o período não a filtra.'],
+      ['calendario','Calendário','A agenda mensal por cliente, no lugar do mapa. Mostra o quadro inteiro, sem o filtro de pessoa e de período.'],
+    ], daVisaoDaRegua, 'setDaVisaoDaRegua', 'da-regua-visoes')}
+    <div class="da-barra-grupo da-barra-pessoa">${pessoa}</div>
+  </section>`;
 }
 
 // O alerta de cada dia da régua diz o que ele é. Antes contava "risco alto",
@@ -649,7 +658,7 @@ function daWeekAgendaHtml(items,range,team,today) {
     grupos: 'A mesma tabela do Modo Gestor, aqui. Ela obedece à pessoa escolhida acima; o período não a filtra — cada grupo tem as próprias datas.',
     calendario: 'A mesma agenda do Modo Gestor, aqui. Ela tem o próprio cliente e o próprio mês, logo abaixo.',
   };
-  const cabeca = `<div class="da-week-agenda-head"><b>${daVisaoDaRegua==='mapa'?title:titulos[daVisaoDaRegua]}</b>${daControlesDaRegua(range)}</div>`;
+  const cabeca = `<div class="da-week-agenda-head"><b>${daVisaoDaRegua==='mapa'?title:titulos[daVisaoDaRegua]}</b></div>`;
   if (daVisaoDaRegua !== 'mapa') {
     return `<section class="da-week-agenda">${cabeca}
       <div class="da-week-agenda-dica"><span>${dicas[daVisaoDaRegua]}</span></div>
@@ -701,43 +710,10 @@ function renderDaControllerTactical() {
   // serve para o 'withoutPrimary' logo abaixo, que tira a peca principal do
   // passivo antigo. Apagar a cadeia mudaria o numero de "passivo antigo" no
   // cabecalho — que continua na tela — em vez de so apagar codigo.
-  const extremeEscalations=scopedItems.filter(item=>daCriticalEscalation(item).level==='extreme'); const periodWork=(daControllerPeriod==='month'?scopedPeriod:focusedItems).filter(item=>!['Para agendar','Agendado'].includes(operationalFlowStatus(item))); const primaryPool=extremeEscalations.length?extremeEscalations:(periodWork.length?periodWork:backlogCritical); const priority=[...primaryPool].sort((a,b)=>daTacticalScore(a)-daTacticalScore(b))[0] || null; const selectedUser=daControllerPersonId==='all'?null:team.find(user=>user.id===daControllerPersonId) || null; const selectedName=selectedUser?firstName(selectedUser.name):'Toda a célula criativa'; const memberFocusHtml=daMemberFocusHtml(selectedUser,scopedItems,scopedPeriod,today); const memberProductionHtml=daMemberProductionHtml(selectedUser,scopedPeriod); const selectedDiscipline=selectedUser?daDisciplineForUser(selectedUser):null; daCurrentContextBar=`<section class="da-barra">
-    <div class="da-barra-grupo">
-      <span class="da-barra-rotulo">Janela</span>
-      <div class="da-segmento" role="group" aria-label="Janela de planejamento">
-        ${[['day','Dia'],['week','Semana'],['month','Mês']].map(([chave,rotulo])=>
-          `<button type="button" class="${daControllerPeriod===chave?'marcado':''}"
-             aria-pressed="${daControllerPeriod===chave}"
-             onclick="setDaControllerPeriod('${chave}')">${rotulo}</button>`).join('')}
-      </div>
-      <span class="da-barra-periodo">${safeText(range.label)}</span>
-    </div>
-    <div class="da-barra-grupo">
-      <span class="da-barra-rotulo">Contar por</span>
-      <div class="da-segmento" role="group" aria-label="Data de referência">
-        ${[['prazo','Prazo'],['veiculacao','Veiculação']].map(([chave,rotulo])=>
-          `<button type="button" class="${daControllerDateMode===chave?'marcado':''}"
-             aria-pressed="${daControllerDateMode===chave}"
-             onclick="setDaControllerDateMode('${chave}')">${rotulo}</button>`).join('')}
-      </div>
-    </div>
-    <div class="da-barra-grupo da-barra-pessoa">
-      <span class="da-barra-rotulo">Pessoa</span>
-      ${selectedUser
-        ? `<span class="da-barra-quem" style="--cor-pessoa:${selectedUser.color}">
-             ${daTacticalPersonVisual(selectedUser,selectedUser.color)}
-             <b>${safeText(selectedName)}</b>
-             ${selectedDiscipline?`<small>${safeText(selectedDiscipline.label)}</small>`:''}
-           </span>
-           <button type="button" class="da-barra-acao" onclick="openDaIndividualPlanningDesk('${selectedUser.id}')">Organizar agenda →</button>
-           <button type="button" class="da-barra-limpar" onclick="setDaControllerPerson('all')" aria-label="Ver toda a célula">Toda a célula</button>`
-        : `<span class="da-barra-quem vazia"><b>Toda a célula criativa</b></span>
-           <span class="da-barra-dica">Clique em alguém abaixo para ver só a carga dela.</span>`}
-    </div>
-  </section>`; const withoutPrimary=item=>String(item.id)!==String(priority?.id||''); const backlog=backlogCritical.filter(withoutPrimary).slice(0,5); const backlogCount=backlog.length;
+  const extremeEscalations=scopedItems.filter(item=>daCriticalEscalation(item).level==='extreme'); const periodWork=(daControllerPeriod==='month'?scopedPeriod:focusedItems).filter(item=>!['Para agendar','Agendado'].includes(operationalFlowStatus(item))); const primaryPool=extremeEscalations.length?extremeEscalations:(periodWork.length?periodWork:backlogCritical); const priority=[...primaryPool].sort((a,b)=>daTacticalScore(a)-daTacticalScore(b))[0] || null; const selectedUser=daControllerPersonId==='all'?null:team.find(user=>user.id===daControllerPersonId) || null; const selectedName=selectedUser?firstName(selectedUser.name):'Toda a célula criativa'; const memberFocusHtml=daMemberFocusHtml(selectedUser,scopedItems,scopedPeriod,today); const memberProductionHtml=daMemberProductionHtml(selectedUser,scopedPeriod); daCurrentContextBar=daBarraHtml(range,selectedUser,selectedName); const withoutPrimary=item=>String(item.id)!==String(priority?.id||''); const backlog=backlogCritical.filter(withoutPrimary).slice(0,5); const backlogCount=backlog.length;
   const focusDayInfo=daControllerDayFocusIso?daAgendaDayInfo(daControllerDayFocusIso):null; 
   const periodLabel=daControllerPeriod==='day'?'HOJE':daControllerPeriod==='week'?'ESTA SEMANA':'ESTE MÊS'; const referenceLabel=daControllerDateMode==='veiculacao'?'VEICULAÇÃO':'PRAZO'; const lateWindowLabel=daControllerPeriod==='day'?'atrasos hoje':daControllerPeriod==='week'?'atrasos na semana':'atrasos no mês';
-  dash.innerHTML=`<section class="da-tactical-head"><div><div class="da-tactical-kicker">VYBE OS · DIREÇÃO DE ARTE / CENTRAL TÁTICA</div><h2 class="da-tactical-title">Direção de arte</h2><p class="da-tactical-subtitle">Acompanhe o compromisso de entrega de cada dia sem perder de vista onde sua direção destrava valor agora.</p></div><div class="da-tactical-meta"><span class="da-tactical-meta-item"><b>${headlineItems.length}</b><span>${headlineItems.length===1?'entrega':'entregas'} · ${daControllerPeriod==='month'?periodLabel:(focusDayInfo?`${focusDayInfo.name} ${focusDayInfo.date}`:periodLabel)}</span></span><span class="da-tactical-meta-item"><b class="danger">${lateInWindow.length}</b><span>${lateWindowLabel}</span></span><span class="da-tactical-meta-item"><b class="warn">${backlogCount}</b><span>passivo antigo</span></span></div></section>${daCurrentContextBar}<section class="da-cell-filter-zone"><div class="da-cell-header"><div><b>Quem está carregando o quê</b><span>Escolha quem precisa de direção.</span></div><button type="button" class="da-cell-acao" onclick="abrirAjusteDeDemandas()" title="Abrir a mesa de planejamento para acertar prazos, arquivos e prioridade">Ajustar demandas →</button></div><div class="da-capacity-grid da-cell-filter-grid">${summaries.map(({user})=>daTacticalCapacityCard(user,maxLoad)).join('')}</div></section>${daDailyCommandHtml()}<section class="da-operational-agenda">${daWeekAgendaHtml(scopedPeriod,range,team,today)}${daFocusedDayDetailHtml(scopedPeriod,team)}<details class="da-execution-details"><summary>Controle de execução · ${focusDayInfo?`${focusDayInfo.name} ${focusDayInfo.date}`:'dia ativo'}</summary>${daCheckinDayBoardHtml(scopedPeriod,team)}</details></section><section class="da-secondary-zone"><details class="da-secondary-panel" open><summary>Saúde da célula · Capacidade e disciplinas</summary><div class="da-discipline-summary">${disciplineSummaryHtml}</div></details><details class="da-secondary-panel"><summary>Atividade da célula · Movimentações e produtividade</summary>${daTodayPulseHtml(daTodayProductionSnapshot(team,DA_TODAY_STATUS_LOGS))}</details></section>`;
+  dash.innerHTML=`<section class="da-tactical-head"><div><h2 class="da-tactical-title">Direção de arte</h2></div><div class="da-tactical-meta"><span class="da-tactical-meta-item"><b>${headlineItems.length}</b><span>${headlineItems.length===1?'entrega':'entregas'} · ${daControllerPeriod==='month'?periodLabel:(focusDayInfo?`${focusDayInfo.name} ${focusDayInfo.date}`:periodLabel)}</span></span><span class="da-tactical-meta-item"><b class="danger">${lateInWindow.length}</b><span>${lateWindowLabel}</span></span><span class="da-tactical-meta-item"><b class="warn">${backlogCount}</b><span>passivo antigo</span></span></div></section>${daCurrentContextBar}<section class="da-cell-filter-zone"><div class="da-cell-header"><div><b>Quem está carregando o quê</b><span>Escolha quem precisa de direção.</span></div><button type="button" class="da-cell-acao" onclick="abrirAjusteDeDemandas()" title="Abrir a mesa de planejamento para acertar prazos, arquivos e prioridade">Ajustar demandas →</button></div><div class="da-capacity-grid da-cell-filter-grid">${summaries.map(({user})=>daTacticalCapacityCard(user,maxLoad)).join('')}</div></section>${daDailyCommandHtml()}<section class="da-operational-agenda">${daWeekAgendaHtml(scopedPeriod,range,team,today)}${daFocusedDayDetailHtml(scopedPeriod,team)}<details class="da-execution-details"><summary>Controle de execução · ${focusDayInfo?`${focusDayInfo.name} ${focusDayInfo.date}`:'dia ativo'}</summary>${daCheckinDayBoardHtml(scopedPeriod,team)}</details></section><section class="da-secondary-zone"><details class="da-secondary-panel" open><summary>Saúde da célula · Capacidade e disciplinas</summary><div class="da-discipline-summary">${disciplineSummaryHtml}</div></details><details class="da-secondary-panel"><summary>Atividade da célula · Movimentações e produtividade</summary>${daTodayPulseHtml(daTodayProductionSnapshot(team,DA_TODAY_STATUS_LOGS))}</details></section>`;
   acomodarVisaoDaRegua();
   daBindMetricDrilldowns(team);
   if(!DA_TODAY_STATUS_LOGS){ daLoadTodayStatusLogs().then(()=>{if(document.getElementById('da-controller-dashboard')) renderDaControllerTactical();}); }
