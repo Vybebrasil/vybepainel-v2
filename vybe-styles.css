@@ -5696,5 +5696,9 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
    título repetido (a régua já diz "Conteúdos por grupo"). */
 .grupos-titulo{font:600 19px/1.25 var(--mac-ui);letter-spacing:-.015em}
 #da-visao-host .grupos-titulo{display:none}
+/* Quem cadastrou e quando: informação de consulta, em cinza, sem quebrar linha. */
+.grupo-cadastro{color:#9a9aa0;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cr-texto{color:#c9c9ce;font-variant-numeric:tabular-nums}
+
 /* Clientes em Demandas: os mesmos botões da agenda mensal, quebrando em linhas. */
 .dem-clientes{display:flex;flex-wrap:wrap;gap:6px;min-width:0}

@@ -27,6 +27,32 @@ function quandoNaBahia(em, agora = Date.now()) {
   return `${dia} às ${hora}`;
 }
 
+// QUEM CADASTROU E QUANDO. Uma leitura só para tabela, cartão e ficha. Peça que
+// veio do Monday não tem autor gravado — e o Monday está desligado, então não há
+// de onde buscar: ela diz que foi importada, e a data é a do dia da importação.
+function cadastroDaPeca({ id = '', criado_em = '', cadastrado_por = '', importada } = {}) {
+  const veioDoMonday = importada ?? !String(id).startsWith('vybe:');
+  const iso = String(criado_em || '');
+  // A leitura do quadro manda 'YYYY-MM-DDTHH:MM' já na hora da Bahia; a ficha
+  // manda o carimbo do banco, com fuso.
+  const local = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(iso);
+  const quando = !iso ? '' : local
+    ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)}`
+    : (() => {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const fuso = { timeZone: 'America/Bahia' };
+      return `${d.toLocaleDateString('pt-BR', { ...fuso, day: '2-digit', month: '2-digit', year: 'numeric' })} ${
+        d.toLocaleTimeString('pt-BR', { ...fuso, hour: '2-digit', minute: '2-digit' })}`;
+    })();
+  return {
+    quem: cadastrado_por || (veioDoMonday ? 'Importado do Monday' : 'Sem registro'),
+    quando: quando || '—',
+    // Para ordenar: o texto local já ordena; o carimbo com fuso também.
+    ordem: iso,
+  };
+}
+
 // vybe-core.js — núcleo: toast, GraphQL, carregamento, semanas e parsing de itens
 // Extraído do <script> inline do index.html; carregado em ordem, escopo global preservado.
 // ─── Modo de data (Veiculação / Prazo) ───────────────────────────────────────
@@ -494,6 +520,7 @@ function processItems(rawItems, meta) {
       prioridade: colMap['color_mm164yv8'] || '',
       prioridade_color: colStyleMap['color_mm164yv8']?.color || '',
       material_bruto: item.material_bruto || '',
+      criado_em: item.criado_em || '', cadastrado_por: item.cadastrado_por || '',
       responsavel: colMap['person'] || '',
       responsavel_id: responsavelId,
       responsavel_ids: responsavelIds,
@@ -571,6 +598,7 @@ function processItemsAll(rawItems, meta) {
       prioridade: colMap['color_mm164yv8'] || '',
       prioridade_color: colStyleMap['color_mm164yv8']?.color || '',
       material_bruto: item.material_bruto || '',
+      criado_em: item.criado_em || '', cadastrado_por: item.cadastrado_por || '',
       responsavel: colMap['person'] || '',
       responsavel_id: responsavelId, responsavel_ids: responsavelIds,
       veiculacao: fmtDate(veiculacaoIso), veiculacao_iso: veiculacaoIso,

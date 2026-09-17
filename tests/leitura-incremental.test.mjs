@@ -27,7 +27,10 @@ async function banco() {
       prioridade_chave text, off_audio_chave text, status_chave text, status_em timestamptz,
       captacao_chave text, etapa text, grupo_id text, material_bruto text, material_bruto_em timestamptz,
       clientes_texto text, monday_atualizado_em timestamptz,
+      criado_em timestamptz NOT NULL DEFAULT NOW(),
       atualizado_em timestamptz NOT NULL DEFAULT NOW());
+    CREATE TABLE vybe_conteudo_eventos (id serial primary key, conteudo_id int, tipo text, de text,
+      para text, autor_id int, texto text, em timestamptz NOT NULL DEFAULT NOW());
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text, borda text,
       monday_index int, final boolean DEFAULT false, ativa boolean DEFAULT true, ordem int);
     CREATE TABLE vybe_captacao (chave text primary key, rotulo text, cor text, borda text,
@@ -298,4 +301,24 @@ test('id que o servidor tem e a tela não faz a leitura inteira de novo', async 
   await pedir(c);
   const r = await pedir(c);
   assert.deepEqual(r.ids, ['900', '901', '902'], 'a rede de segurança releu tudo');
+});
+
+test('cada peça diz quando foi criada e quem cadastrou', async () => {
+  const sql = await banco();
+  await sql`INSERT INTO vybe_conteudos (id,titulo,board_id,veiculacao,clientes_texto,status_chave,criado_em)
+    VALUES (3,'Hebravet | Reels',${PRODUCAO},'2026-09-22','Hebravet','pode_fazer','2026-09-17T13:05:00Z'),
+           (4,'Hebravet | Card',${PRODUCAO},'2026-09-23','Hebravet','pode_fazer','2026-09-17T14:00:00Z')`;
+  await sql`INSERT INTO vybe_conteudo_clientes VALUES (3,1),(4,1)`;
+  await sql`UPDATE vybe_conteudos SET criado_em='2026-08-02T15:00:00Z' WHERE id=1`;
+  await sql`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para,autor_id) VALUES (3,'criacao','Hebravet | Reels',11)`;
+  await sql`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para,texto) VALUES (4,'criacao','Hebravet | Card','Integração')`;
+  const { itens } = await listarConteudos(PRODUCAO, { sql, catalogos: false });
+  const por = Object.fromEntries(itens.map((i) => [i.id, i]));
+  // Hora da Bahia (UTC-3), sem segundos.
+  assert.equal(por['vybe:3'].criado_em, '2026-09-17T10:05');
+  assert.equal(por['vybe:3'].cadastrado_por, 'Deivid');
+  assert.equal(por['vybe:4'].cadastrado_por, 'Integração');
+  // Veio do Monday: a data é a da importação, e não há autor para inventar.
+  assert.equal(por['900'].criado_em, '2026-08-02T12:00');
+  assert.equal(por['900'].cadastrado_por, undefined);
 });

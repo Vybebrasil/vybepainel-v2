@@ -883,6 +883,14 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
         c.material_bruto,
         c.monday_atualizado_em                  AS updated_at,
+        -- Quando e por quem a peça foi cadastrada. A data é a da linha: nas que
+        -- vieram do Monday, o dia da importação. O autor é o evento de criação
+        -- que o cadastro grava; peça importada não tem, e a tela diz isso.
+        TO_CHAR(c.criado_em AT TIME ZONE 'America/Bahia', 'YYYY-MM-DD"T"HH24:MI') AS criado_em,
+        (SELECT COALESCE(p.nome, e.texto)
+           FROM vybe_conteudo_eventos e LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
+          WHERE e.conteudo_id = c.id AND e.tipo = 'criacao'
+          ORDER BY e.em LIMIT 1)                AS cadastrado_por,
         -- Ordem original do Monday, não alfabética: o painel usa o primeiro
         -- cliente da lista, e ordenar por nome trocaria "VOA, Antonov" por
         -- "Antonov, VOA" — o card mudaria de cliente na tela.
@@ -942,7 +950,9 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
       prazo_iso: l.prazo_iso,
       veiculacao_iso: l.veiculacao_iso,
       updated_at: l.updated_at,
+      criado_em: l.criado_em,
     };
+    if (l.cadastrado_por) item.cadastrado_por = l.cadastrado_por;
     // A tela lê captação na mesa do DA e no gestor; sem ela a coluna some.
     if (l.captacao_chave) item.captacao_chave = l.captacao_chave;
     if ((l.formato_chaves || []).length) item.formato_chaves = l.formato_chaves;

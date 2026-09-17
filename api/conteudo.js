@@ -801,8 +801,15 @@ async function criarConteudo(sql, quem, dados) {
         JOIN vybe_pessoas p ON p.monday_user_id = o.uid
       ON CONFLICT DO NOTHING`;
   }
+  // QUEM CADASTROU. Toda peça nasce com esse registro: a pessoa da sessão, ou —
+  // se a conta não estiver ligada a ninguém da equipe, ou se quem cria é uma
+  // integração — um nome em texto, para a coluna "Cadastrado por" nunca ficar
+  // sem resposta. A data é o criado_em da própria peça.
+  const autorId = await pessoaDaSessao(sql, quem);
+  const autorTexto = autorId ? null
+    : (quem?.pessoa?.nome || quem?.pessoa?.email || (quem?.tipo === 'servico' ? 'Integração' : 'Sem identificação'));
   await registrarEvento(sql, novo.id, {
-    tipo: 'criacao', para: titulo, autorId: await pessoaDaSessao(sql, quem),
+    tipo: 'criacao', para: titulo, autorId, texto: autorTexto,
   });
 
   const replica = 'desativada';

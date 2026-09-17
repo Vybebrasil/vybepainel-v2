@@ -627,6 +627,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
       ${linha('Prazo', data(item.prazo_iso))}
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
+      ${(() => { const c = cadastroDaPeca(item); return linha('Cadastrado por', `<span class="cr-texto">${safeText(c.quem)}</span>`) + linha('Criado em', `<span class="cr-texto">${safeText(c.quando)}</span>`); })()}
     </div>
     <div class="cr-rodape">
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}"
@@ -1272,9 +1273,10 @@ let ORDEM = { campo: 'veiculacao_iso', desc: false };
 // travessao e prometia uma edicao que o servidor recusa.
 const COLUNAS_DA_TABELA = {
   producao: ['id','nome','previa','cliente','responsavel','status','captacao','formato',
-             'tipo_conteudo','off_audio','prioridade','prazo_iso','veiculacao_iso'],
+             'tipo_conteudo','off_audio','prioridade','prazo_iso','veiculacao_iso',
+             'cadastrado_por','criado_em'],
   demandas: ['id','nome','previa','cliente','responsavel','status','formato',
-             'prioridade','prazo_iso','veiculacao_iso'],
+             'prioridade','prazo_iso','veiculacao_iso','cadastrado_por','criado_em'],
 };
 
 const CAMPOS_ORDENAVEIS = {
@@ -1299,6 +1301,8 @@ const CAMPOS_ORDENAVEIS = {
   // existe.
   veiculacao_iso:{ rotulo: 'Veiculação',  rotuloDemandas: 'Conclusão',
                    valor: (i) => String(i.veiculacao_iso || '') },
+  cadastrado_por:{ rotulo: 'Cadastrado por', valor: (i) => cadastroDaPeca(i).quem },
+  criado_em:     { rotulo: 'Criado em',   valor: (i) => cadastroDaPeca(i).ordem },
 };
 
 function ordenarItens(itens) {
@@ -1805,6 +1809,7 @@ function linhaDeGrupoHtml(item) {
         .map(escolha).join('')}
     <td>${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
     <td>${data('veiculacao', item.veiculacao_iso, false)}</td>
+    ${(() => { const c = cadastroDaPeca(item); return `<td class="grupo-cadastro">${safeText(c.quem)}</td><td class="grupo-cadastro grupo-cadastro-data">${safeText(c.quando)}</td>`; })()}
   </tr>`;
 }
 
