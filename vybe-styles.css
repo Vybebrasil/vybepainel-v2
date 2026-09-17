@@ -963,7 +963,7 @@
     @media(max-width:900px){.identity-command-grid{grid-template-columns:1fr 180px 1fr;gap:12px}.identity-station[data-station='controler']{width:min(100%,720px)}.da-person-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.da-controller-layout{grid-template-columns:1fr}.da-load-row{grid-template-columns:88px 1fr 108px}}
     @media(max-width:680px){.identity-command-grid{grid-template-columns:1fr;grid-template-rows:auto}.identity-command-grid::before,.identity-command-grid::after{display:none}.identity-core-zone{grid-column:1;grid-row:auto;height:160px}.identity-station[data-station='controler']{grid-column:1;width:100%;min-height:0}.da-controller-hero{align-items:flex-start;flex-direction:column}.da-controller-stats{justify-content:flex-start}.da-controller-toolbar{align-items:flex-start;flex-direction:column}.da-person-grid{grid-template-columns:1fr}.da-load-row{grid-template-columns:72px 1fr}.da-load-meta{grid-column:2;justify-content:flex-start}.da-queue-row{grid-template-columns:62px minmax(0,1fr) auto}.da-queue-client,.da-queue-date{display:none}}
     /* DA CONTROLER TÁTICO — hierarquia de decisão para a direção de arte */
-    .da-controller-dashboard{max-width:1280px}.da-tactical-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:stretch;margin:10px 0 10px;padding:18px 20px 16px;border:1px solid var(--linha);background:var(--sup-1);}.da-tactical-kicker{color:#ff9d00;font:700 10px var(--mac-ui)}.da-tactical-title{margin:6px 0 4px;color:#fff4e8;font:700 clamp(23px,3vw,36px) var(--mac-ui);letter-spacing:-1.4px}.da-tactical-subtitle{max-width:660px;color:#bca58a;font-size:11px;line-height:1.45}.da-tactical-meta{display:grid;grid-template-columns:repeat(3,minmax(78px,1fr));align-self:center}.da-tactical-meta-item{padding:8px 10px;border-left:1px solid var(--linha);text-align:right}.da-tactical-meta-item b{display:block;color:#fff;font:700 18px var(--mac-ui)}.da-tactical-meta-item b.danger{color:#ff637a}.da-tactical-meta-item b.warn{color:#ffd15a}.da-tactical-meta-item span{display:block;margin-top:2px;color:#a8896c;font:700 10px var(--mac-ui);letter-spacing:.5px}.da-control-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:8px 10px;border:1px solid var(--linha);background:var(--sup-1)}.da-control-label{color:#8b6b52;font:700 10px var(--mac-ui)}.da-control-cluster{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.da-control-sep{width:1px;height:17px;background:rgba(255,255,255,.1)}.da-decision-card{position:relative;display:grid;grid-template-columns:6px minmax(0,1fr) auto;gap:18px;align-items:stretch;margin-bottom:12px;border:1px solid var(--linha);background:var(--sup-1);overflow:hidden}.da-decision-rail{background:var(--da-decision-color,#ff8b2b);box-shadow:none}.da-decision-main{padding:16px 0 16px}.da-decision-kicker{display:flex;align-items:center;gap:8px;color:#ffbf64;font:700 10px var(--mac-ui)}.da-decision-kicker i{width:6px;height:6px;border-radius:50%;background:var(--da-decision-color,#ff8b2b);box-shadow:none}.da-decision-title{margin:8px 0 2px;color:#fff4e8;font:700 clamp(17px,2vw,24px) var(--mac-ui);letter-spacing:-.4px}.da-decision-detail{display:flex;align-items:center;gap:8px;color:#bca58a;font-size:10px;line-height:1.35}.da-decision-detail b{color:#fff0df}.da-decision-owner{margin-top:10px;border-top:1px solid var(--linha);padding-top:8px;color:#d8ba98;font:700 10px var(--mac-ui);letter-spacing:.3px}.da-decision-owner img{width:21px;height:21px;border-radius:50%;object-fit:cover;border:1px solid var(--da-decision-color,#ff8b2b);flex:0 0 21px}.da-decision-owner>span{display:block;width:auto;height:auto;border:0;border-radius:0;line-height:1.45;white-space:normal}.da-decision-side{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:8px;padding:16px 18px 16px 0}.da-decision-side small{max-width:175px;color:#9e8265;font:700 10px var(--mac-ui);text-align:right;line-height:1.35}.da-decision-btn{border:1px solid var(--da-decision-color,#ff8b2b);background:color-mix(in srgb,var(--da-decision-color,#ff8b2b) 14%,transparent);color:#fff0df;padding:8px 10px;cursor:pointer;font:700 10px var(--mac-ui);letter-spacing:.45px}.da-decision-btn:hover{background:color-mix(in srgb,var(--da-decision-color,#ff8b2b) 28%,transparent)}.da-cell-header{display:flex;align-items:baseline;gap:10px;margin:14px 0 8px}.da-cell-header b{color:#ffb451;font:700 10px var(--mac-ui)}.da-cell-header span{color:#8e735b;font-size:10px}
+    .da-controller-dashboard{max-width:1280px}.da-tactical-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:stretch;margin:10px 0 10px;padding:18px 20px 16px;border:1px solid var(--linha);background:var(--sup-1);}.da-tactical-title{margin:6px 0 4px;color:#fff4e8;font:700 clamp(23px,3vw,36px) var(--mac-ui);letter-spacing:-1.4px}.da-tactical-meta{display:grid;grid-template-columns:repeat(3,minmax(78px,1fr));align-self:center}.da-tactical-meta-item{padding:8px 10px;border-left:1px solid var(--linha);text-align:right}.da-tactical-meta-item b{display:block;color:#fff;font:700 18px var(--mac-ui)}.da-tactical-meta-item b.danger{color:#ff637a}.da-tactical-meta-item b.warn{color:#ffd15a}.da-tactical-meta-item span{display:block;margin-top:2px;color:#a8896c;font:700 10px var(--mac-ui);letter-spacing:.5px}.da-control-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:8px 10px;border:1px solid var(--linha);background:var(--sup-1)}.da-control-label{color:#8b6b52;font:700 10px var(--mac-ui)}.da-control-cluster{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.da-control-sep{width:1px;height:17px;background:rgba(255,255,255,.1)}.da-decision-card{position:relative;display:grid;grid-template-columns:6px minmax(0,1fr) auto;gap:18px;align-items:stretch;margin-bottom:12px;border:1px solid var(--linha);background:var(--sup-1);overflow:hidden}.da-decision-rail{background:var(--da-decision-color,#ff8b2b);box-shadow:none}.da-decision-main{padding:16px 0 16px}.da-decision-kicker{display:flex;align-items:center;gap:8px;color:#ffbf64;font:700 10px var(--mac-ui)}.da-decision-kicker i{width:6px;height:6px;border-radius:50%;background:var(--da-decision-color,#ff8b2b);box-shadow:none}.da-decision-title{margin:8px 0 2px;color:#fff4e8;font:700 clamp(17px,2vw,24px) var(--mac-ui);letter-spacing:-.4px}.da-decision-detail{display:flex;align-items:center;gap:8px;color:#bca58a;font-size:10px;line-height:1.35}.da-decision-detail b{color:#fff0df}.da-decision-owner{margin-top:10px;border-top:1px solid var(--linha);padding-top:8px;color:#d8ba98;font:700 10px var(--mac-ui);letter-spacing:.3px}.da-decision-owner img{width:21px;height:21px;border-radius:50%;object-fit:cover;border:1px solid var(--da-decision-color,#ff8b2b);flex:0 0 21px}.da-decision-owner>span{display:block;width:auto;height:auto;border:0;border-radius:0;line-height:1.45;white-space:normal}.da-decision-side{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:8px;padding:16px 18px 16px 0}.da-decision-side small{max-width:175px;color:#9e8265;font:700 10px var(--mac-ui);text-align:right;line-height:1.35}.da-decision-btn{border:1px solid var(--da-decision-color,#ff8b2b);background:color-mix(in srgb,var(--da-decision-color,#ff8b2b) 14%,transparent);color:#fff0df;padding:8px 10px;cursor:pointer;font:700 10px var(--mac-ui);letter-spacing:.45px}.da-decision-btn:hover{background:color-mix(in srgb,var(--da-decision-color,#ff8b2b) 28%,transparent)}.da-cell-header{display:flex;align-items:baseline;gap:10px;margin:14px 0 8px}.da-cell-header b{color:#ffb451;font:700 10px var(--mac-ui)}.da-cell-header span{color:#8e735b;font-size:10px}
 /* O bloco das pessoas subiu para o topo da Central e ganhou a acao principal.
    O cabecalho passa a ter dois lados: o titulo com a explicacao e o botao. */
 .da-cell-header{align-items:center!important;justify-content:space-between!important}
@@ -4020,13 +4020,19 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 
    Sem !important: a folha do DA tinha 1157 deles porque cada correcao precisou
    gritar mais alto que a anterior. Aqui o seletor e proprio e ninguem disputa. */
-.da-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 24px;
-  margin:0 0 14px;padding:12px 16px;border:1px solid var(--linha);
-  border-radius:14px;background:rgba(255,255,255,.025)}
+.da-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  margin:0 0 14px;padding:8px 10px;border:1px solid var(--linha);
+  border-radius:14px;background:rgba(18,14,11,.92);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3)}
+/* Presa no alto enquanto se rola até a régua — é por isso que a régua não
+   precisa mais da própria cópia dos controles. No celular a barra quebra em
+   várias linhas e, grudada, comeria meia tela: lá ela rola junto. */
+@media(min-width:721px){.da-barra{position:sticky;top:8px;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,.28)}}
 .da-barra-grupo{display:flex;align-items:center;gap:8px;min-width:0}
-.da-barra-pessoa{flex:1;justify-content:flex-end}
-.da-barra-rotulo{color:#8b8b90;font:600 10px var(--mac-ui);
-  text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.da-barra-grupo{flex-wrap:wrap}
+/* flex-shrink 0: sem espaço, a pessoa desce para a linha de baixo em vez de
+   encolher por cima dos botões de Mapa/Grupos/Calendário. */
+.da-barra-pessoa{flex:1 0 auto;justify-content:flex-end}
 
 /* Segmentado: a opcao marcada e o estado. */
 .da-segmento{display:inline-flex;padding:2px;border-radius:9px;background:var(--sup-1)}
@@ -4036,16 +4042,12 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-segmento button:hover{color:#f2f2f5}
 .da-segmento button.marcado{background:var(--accent,#ff6b00);color:#fff}
 
-/* ─── OS CONTROLES DA REGUA ──────────────────────────────────────────────────
-   O mesmo interruptor de "contar por", agora ao lado da regua: quem conduz o
-   dia trabalha aqui embaixo, e a barra do alto fica a duas rolagens de
-   distancia. Menor que a de cima de proposito — a de cima e a principal, esta e
-   o atalho no lugar do uso. */
+/* ─── Janela e formas de ver, dentro da barra ────────────────────────────────
+   Moravam numa segunda barra ao lado da régua, que repetia Prazo e Veiculação.
+   Com a barra única presa no alto, a régua só tem o título. */
 .da-week-agenda-head{flex-wrap:wrap}
 .da-week-agenda-dica{padding:6px 12px 0}
 .da-week-agenda-dica span{color:#8e735b;font-size:10px}
-.da-regua-controles{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;
-  margin-left:auto}
 .da-regua-janela{display:inline-flex;align-items:center;gap:4px;padding:2px;
   border-radius:9px;background:var(--sup-1)}
 .da-regua-seta{display:grid;place-items:center;width:24px;height:24px;padding:0;
@@ -4053,23 +4055,19 @@ button:not(:disabled):not([aria-disabled="true"]):active,
   font:700 15px var(--mac-ui);line-height:1;
   transition:background-color .14s var(--curva),color .14s var(--curva)}
 .da-regua-seta:hover{background:rgba(255,255,255,.09);color:#fff}
-.da-regua-periodo{min-width:88px;padding:0 4px;text-align:center;color:#e6d6c2;
-  font:700 11px var(--mac-mono);letter-spacing:.02em;text-transform:uppercase;
-  white-space:nowrap}
+.da-regua-periodo{min-width:92px;padding:0 4px;text-align:center;color:#f2f2f5;
+  font:600 12px var(--mac-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
 /* A janela de hoje nao se anuncia; as outras sim — e assim que se percebe que
    a tela saiu do lugar. */
-.da-regua-periodo.agora{color:#a8896c;font-weight:600}
+.da-regua-periodo.agora{color:#c9c9ce}
 .da-regua-hoje{margin-left:2px;padding:4px 9px;border:0;border-radius:7px;
   background:rgba(255,107,0,.18);color:#ffbe86;cursor:pointer;
-  font:700 10px var(--mac-ui);letter-spacing:.05em;text-transform:uppercase}
+  font:600 11px var(--mac-ui)}
 .da-regua-hoje:hover{background:rgba(255,107,0,.32);color:#fff}
-.da-regua-modo button{padding:4px 10px;font-size:11px}
 /* Mapa, Grupos e Calendario sao TRES formas de ver a mesma janela, e nao tres
    coisas que se ligam e desligam: segmentado, como "contar por". Um botao aceso
    entre dois apagados diz "e esta que voce esta vendo" — dois acesos diriam que
    ha duas telas abertas, que e o que havia antes. */
-.da-regua-visoes button{padding:4px 10px;font-size:11px}
-@media(max-width:900px){.da-regua-controles{width:100%;margin-left:0}}
 
 /* Dentro do DA elas nao sao mais irmas do painel: sao emprestadas para dentro da
    regua e ocupam o lugar do mapa. Largura total do hospedeiro, sem a margem que
@@ -4078,7 +4076,6 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 #da-visao-host{display:block;width:100%}
 #da-visao-host>#grupos-board,#da-visao-host>#manager-calendar{
   width:100%;margin:0;box-sizing:border-box}
-.da-barra-periodo{color:#c5a889;font:600 11.5px var(--mac-mono);white-space:nowrap}
 
 .da-barra-quem{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;
   border:1px solid color-mix(in srgb,var(--cor-pessoa,#8b8b90) 45%,transparent);
@@ -4087,7 +4084,6 @@ button:not(:disabled):not([aria-disabled="true"]):active,
 .da-barra-quem b{color:#f2f2f5;font:600 12.5px var(--mac-ui);white-space:nowrap}
 .da-barra-quem small{color:#9a9aa0;font:600 10.5px var(--mac-ui);white-space:nowrap}
 .da-barra-quem img,.da-barra-quem .da-tactical-person{width:22px;height:22px;border-radius:50%;flex:none}
-.da-barra-dica{color:#8b8b90;font:500 11.5px var(--mac-ui)}
 .da-barra-acao,.da-barra-limpar{border:1px solid var(--linha);border-radius:8px;
   padding:6px 12px;background:transparent;color:#f2f2f5;cursor:pointer;
   font:600 11.5px var(--mac-ui);white-space:nowrap;
@@ -5041,7 +5037,6 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .da-controller-dashboard.active > *:last-child{margin-bottom:0!important}
 
 .da-tactical-title{font:700 clamp(26px,3.2vw,34px)/1.06 var(--mac-ui)!important;letter-spacing:-.028em!important}
-.da-tactical-subtitle{max-width:62ch}
 
 /* Os tres numeros do alto eram numeros soltos separados por fio. Viram uma peca
    so, com a mesma linguagem da faixa do Meu Dia. */
@@ -5407,7 +5402,7 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 /* A dica da barra e a ultima coisa util nela. Abaixo de 1200px ela vira uma
    coluna de seis linhas espremida no canto — some, e os cartoes logo abaixo
    continuam obviamente clicaveis sem ela. */
-@media(max-width:1200px){.da-barra-dica{display:none}}
+
 /* O olho fica ao lado do botao de data e precisa ter o mesmo corpo — por isso
    divide a regra de geometria com ele, em vez de copiar as medidas. So a cor e
    propria: ver o que ficou pronto nao e a mesma acao que remarcar uma data. */
