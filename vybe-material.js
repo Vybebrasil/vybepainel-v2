@@ -275,7 +275,7 @@ function botaoDeMaterialBrutoHtml(item) {
   return `<button type="button" class="focus-brief-btn bruto${tem ? '' : ' faltando'}"
     onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
     title="${tem ? 'Abrir a pasta com o material captado' : 'Nenhum material bruto registrado · clique para colar o link da pasta'}"
-    aria-label="Material bruto">🎬<span>${tem ? 'Bruto' : 'Sem bruto'}</span></button>`;
+    aria-label="Material bruto">${ICONE_LINHA.bruto}<span>${tem ? 'Bruto' : 'Sem bruto'}</span></button>`;
 }
 
 // A faixa na tela de briefing e na gaveta. E o mesmo desenho nos dois lugares

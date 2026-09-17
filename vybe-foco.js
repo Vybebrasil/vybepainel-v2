@@ -130,7 +130,10 @@ function focusNextActionHtml(data) {
     : (focusStatusExplanation(operationalFlowStatus(item)) || 'Esta atividade depende de outra etapa para seguir');
   const primary=mode==='next' ? 'Abrir e produzir' : 'VER BLOQUEIO';
   const primaryAction=mode==='next' ? `openFocusPriorityWorkspace('${item.id}')` : `openItemWorkspace('${item.id}')`;
-  const statusControl=mode==='next' ? `<button type="button" class="focus-next-btn status" style="border-color:${item.status_color||'#00f0ff'} !important; background:color-mix(in srgb, ${item.status_color||'#00f0ff'} 12%, transparent) !important; color:${item.status_color||'#a6f8ff'} !important;" onclick="openStatusEditor(event,'${item.id}')">Status: ${safeText(item.status)}</button>` : '';
+  // O status tinha cara de botão tão forte quanto "Abrir e produzir". Vira a
+  // mesma etiqueta clicável das linhas da fila: continua trocando o status, sem
+  // disputar com a ação principal.
+  const statusControl=mode==='next' ? `<div class="focus-next-status"><span>Status</span>${focusStatusButtonHtml(item)}</div>` : '';
   // "Iniciar bloco" existia so para rolar ate o Check-in de execucao da gaveta, e
   // esse bloco saiu — dois usos em duzentas pecas. Sem ele, o botao levaria a
   // uma secao que nao existe mais.
@@ -204,11 +207,11 @@ function focusNextActionHtml(data) {
       <div class="focus-next-tools">
         <button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>
         <button type="button" class="focus-next-btn brief" onclick="abrirBriefing('${safeText(String(item.id))}',this)"
-          title="Ler o briefing sem abrir a peça">📄 Ver briefing</button>
+          title="Ler o briefing sem abrir a peça">${ICONE_LINHA.briefing} Ver briefing</button>
         ${pedeMaterialBruto(item) ? `<button type="button" class="focus-next-btn brief${String(item.material_bruto || '') ? '' : ' faltando'}"
           onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
           title="${String(item.material_bruto || '') ? 'Abrir a pasta com o material captado' : 'Sem material bruto · clique para colar o link da pasta'}"
-          >🎬 ${String(item.material_bruto || '') ? 'Material bruto' : 'Sem material bruto'}</button>` : ''}
+          >${ICONE_LINHA.bruto} ${String(item.material_bruto || '') ? 'Material bruto' : 'Sem material bruto'}</button>` : ''}
         ${statusControl}${checkinControl}${secondary}
       </div>
     </div></section>`;
@@ -359,13 +362,20 @@ function renderFocusDashboard() {
     renderGroup('Entregue por mim — aguardando aprovação','o que já saiu da sua execução',withoutPrimary(awaitingApproval),'Entregue por você; aguardando aprovação','#579bfc','✓'),
     renderGroup('Em alteração','ajustes solicitados que precisam ser resolvidos antes da próxima entrega',withoutPrimary(inRevision),'Ajuste solicitado; abra o contexto para conferir o que mudar','#ff637a','↻'),
     renderGroup('Aguardando informação','não avança sem resposta, material ou contexto',withoutPrimary(awaitingInfo),'Aguardando informação ou material','#9d50dd','?'),
-    renderGroup('Bloqueadas por outra etapa','dependem de outra área para seguir',withoutPrimary(blocked),'Dependência de outra etapa','#ff4d6d','⚠'),
+    renderGroup('Bloqueadas por outra etapa','dependem de outra área para seguir',withoutPrimary(blocked),'Dependência de outra etapa','#ff4d6d','!'),
     renderGroup('Próximos prazos',`itens futuros organizados por ${referenceLabel}`,withoutPrimary(nextDeadlines),'Próximo prazo','#a58c79','›'),
     renderGroup('Em outro estado','continuam na sua fila; o status delas não se encaixa nos grupos acima',
       withoutPrimary(emOutroEstado),'Na sua fila','#8f98a9','•')
   ].join('');
   const commandStrip = '';
-  dash.innerHTML = `<div class="focus-hero"><div><h2 class="focus-hero-title">Meu Dia, ${safeText(firstName(user.name))}</h2><p class="focus-hero-text">${focusUsesVeiculacao(user) ? 'Sua fila usa a data de veiculação para organizar a publicação.' : 'Sua fila usa o prazo de entrega para organizar o trabalho.'}</p></div><div class="focus-hero-lado"><div class="focus-metrics"><div class="focus-metric ${late ? 'is-alerta' : 'calado'}" style="--focus-color:#ff4d6d"><strong>${late}</strong><span>atrasados</span></div><div class="focus-metric ${todayCount ? '' : 'calado'}" style="--focus-color:#ffe600"><strong>${todayCount}</strong><span>hoje</span></div><div class="focus-metric ${mine.length ? '' : 'calado'}" style="--focus-color:#ff6b00"><strong>${mine.length}</strong><span>abertos</span></div><div class="focus-metric ${ready ? '' : 'calado'}" style="--focus-color:#00ff88"><strong>${ready}</strong><span>prontos</span></div></div></div></div>${seletorDeOrigemHtml(todosOsMeus)}${commandStrip}${focusDailyPlanHtml(mine,user,nextAction)}${focusNextActionHtml(nextAction)}${groups || `<div class="focus-empty">✓ ${FOCO_ORIGEM === 'tudo'
+  // "Meu Dia, Jady" com o Paulo logado dizia que a fila era dele. Quem olha a
+  // fila de outra pessoa lê o nome dela no título, e não um "seu" que não é.
+  const nome = firstName(user.name);
+  const souEu = typeof pessoaPeloNome === 'function' && typeof pessoaLogada === 'function'
+    && String(pessoaPeloNome(pessoaLogada()?.nome || '')?.id || '') === String(user.id);
+  const titulo = souEu ? `Meu Dia, ${nome}` : `Dia de ${nome}`;
+  const dona = souEu ? 'Sua fila' : `A fila de ${nome}`;
+  dash.innerHTML = `<div class="focus-hero"><div><h2 class="focus-hero-title">${safeText(titulo)}</h2><p class="focus-hero-text">${safeText(dona)} ${focusUsesVeiculacao(user) ? 'usa a data de veiculação para organizar a publicação.' : 'usa o prazo de entrega para organizar o trabalho.'}</p></div><div class="focus-hero-lado"><div class="focus-metrics"><div class="focus-metric ${late ? 'is-alerta' : 'calado'}" style="--focus-color:#ff4d6d"><strong>${late}</strong><span>atrasados</span></div><div class="focus-metric ${todayCount ? '' : 'calado'}" style="--focus-color:#ffe600"><strong>${todayCount}</strong><span>hoje</span></div><div class="focus-metric neutro"><strong>${mine.length}</strong><span>abertos</span></div><div class="focus-metric neutro"><strong>${ready}</strong><span>prontos</span></div></div></div></div>${seletorDeOrigemHtml(todosOsMeus)}${commandStrip}${focusDailyPlanHtml(mine,user,nextAction)}${focusNextActionHtml(nextAction)}${groups || `<div class="focus-empty">✓ ${FOCO_ORIGEM === 'tudo'
     ? 'Nenhuma demanda aberta neste momento.'
     : `Nada aberto em ${FOCO_ORIGEM === 'conteudo' ? 'produção de conteúdo' : 'solicitações'}. Veja “Tudo” para a fila inteira.`}</div>`}${focusContinuityHtml(mine,user)}`;
 }
