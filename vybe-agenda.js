@@ -2812,6 +2812,11 @@ async function abrirClientesDoItem(itemId, event) {
         (DADOS_DEMANDAS || []).filter(i=>String(i.id)===String(itemId)).forEach(i=>Object.assign(i,patch));
         applyOutboundItemPatch(itemId,patch,'clientes');
         gravando=false; fechar(); showToast('Clientes atualizados.','ok');
+        // Aberto pela ficha da gaveta, o nome novo precisa aparecer nela — o
+        // editor de datas já fazia isso; o de clientes deixava o nome antigo.
+        if (String(activeWorkspaceItemId) === String(itemId) && document.getElementById('workspace-drawer')) {
+          renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), findOperationalItem(itemId));
+        }
       } catch(e) { erro.textContent=e.message; }
       finally { gravando=false; cancelar.disabled=false; salvar.textContent='Salvar clientes'; lista.querySelectorAll('input').forEach(i=>i.disabled=false); atualizar(); }
     };

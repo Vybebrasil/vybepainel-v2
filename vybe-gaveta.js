@@ -89,8 +89,12 @@ let DETALHE_DA_GAVETA = null;
   activeWorkspaceAssets = assets;
   const updates = detail.updates || [];
   ATUALIZACOES_DA_GAVETA = updates;
-  const deadline = focusReferenceDate(item, focusUser());
-  const format = item.formato || item.tipo || item.formato_conteudo || 'Conteúdo';
+  // O resumo do topo repetia a ficha logo abaixo (formato, prazo e status) e
+  // mostrava o prazo como "2026-09-17". Fica o status e as duas datas, no formato
+  // do resto do painel; o formato já está no nome e na ficha.
+  const dataDoTopo = (v) => (v && v !== '—' ? v : '');
+  const datasDoTopo = [dataDoTopo(item.prazo) && `Prazo ${item.prazo}`,
+    dataDoTopo(item.veiculacao) && `Veiculação ${item.veiculacao}`].filter(Boolean).join(' · ') || 'Sem datas definidas';
   drawer.innerHTML = `
       <div style="flex:1;overflow-y:auto;padding:22px 24px 120px;box-sizing:border-box;width:100%;height:100%;">
       <div class="workspace-kicker workspace-barra"><span>Conteúdo</span><div class="workspace-barra-acoes">${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item)}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar">×</button></div></div>
@@ -98,7 +102,7 @@ let DETALHE_DA_GAVETA = null;
       <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
               title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
-    <div class="workspace-meta"><span>${safeText(format)}</span><span>Prazo: ${safeText(deadline || 'não definido')}</span>${pillHtml(item.status,item.status_color,item.status_border)}</div>
+    <div class="workspace-meta">${pillHtml(item.status,item.status_color,item.status_border)}<small class="workspace-meta-datas">${safeText(datasDoTopo)}</small></div>
     ${blocoDoBriefingHtml(detail, item)}
     ${faixaDeMaterialBrutoHtml(detail, item)}
     ${workspaceFichaHtml(detail, item.id)}

@@ -73,7 +73,10 @@ function workspaceFichaHtml(detail, itemId) {
 
   const linhas = [
     ['Grupo', fichaSelect('grupo', GRUPOS_DA_PRODUCAO, f.grupo_id, itemId)],
-    ['Cliente', texto(f.cliente)],
+    // Cliente parecia texto parado e já dava para trocar pela coluna da tabela.
+    // Na ficha abre o mesmo seletor de vários clientes.
+    ['Cliente', `<button type="button" class="ficha-dono ficha-editavel" onclick="abrirClientesDoItem('${itemId}',event)"
+        title="Trocar os clientes desta atividade">${safeText(f.cliente || '—')}</button>`],
     // Status, datas e responsáveis eram texto morto aqui, com um aviso dizendo
     // para usar os botões acima. Editar onde a informação está é a regra do
     // resto do painel; três botões deixam de ser necessários.
@@ -84,11 +87,14 @@ function workspaceFichaHtml(detail, itemId) {
     ['Tipo de conteúdo', fichaSelect('tipo_conteudo', por('lista_suspensa__1'), (f.tipo_conteudo_chaves || [])[0], itemId)],
     ['Formato', fichaSelect('formato', por('lista_suspensa0__1'), (f.formato_chaves || [])[0], itemId)],
     ['Prioridade', fichaSelect('prioridade', por('color_mm164yv8'), f.prioridade_chave, itemId)],
-    ['Prazo', `<input type="date" class="grupo-data-campo" value="${safeText(String(f.prazo || '').slice(0,10))}"
-        onchange="salvarDataNaLinha('${itemId}','prazo',this)">`],
-    ['Veiculação', `<input type="date" class="grupo-data-campo" value="${safeText(String(f.veiculacao || '').slice(0,10))}"
-        onchange="salvarDataNaLinha('${itemId}','veiculacao',this)">`],
-    ['Responsável', `<button type="button" class="ficha-dono" onclick="openOwnerEditor(event,'${itemId}')"
+    // O campo de data nativo aparecia como "17 /09/2026" no Safari. As datas
+    // viram texto no formato do painel e abrem o editor de planejamento — o
+    // mesmo das linhas do Modo Foco, que confere o Prazo de Ouro.
+    ['Prazo', `<button type="button" class="ficha-dono ficha-editavel" onclick="openPlanningEditor('${itemId}')"
+        title="Editar prazo e veiculação">${safeText(dataBr(f.prazo) || '—')}</button>`],
+    ['Veiculação', `<button type="button" class="ficha-dono ficha-editavel" onclick="openPlanningEditor('${itemId}')"
+        title="Editar prazo e veiculação">${safeText(dataBr(f.veiculacao) || '—')}</button>`],
+    ['Responsável', `<button type="button" class="ficha-dono ficha-editavel" onclick="openOwnerEditor(event,'${itemId}')"
         title="Gerenciar responsáveis">${safeText(f.responsaveis || '—')}</button>`],
     ['Editor/Designer', texto(f.editores)],
   ];
