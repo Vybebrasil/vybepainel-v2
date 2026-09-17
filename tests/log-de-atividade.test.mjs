@@ -83,6 +83,8 @@ test('cada tipo de evento vira uma frase, com o filtro certo', () => {
   assert.equal(f({ tipo: 'automacao', texto: 'Regra X', para: 'grupo → Y' }).autor, 'Automação');
   assert.equal(f({ tipo: 'status', para: 'Pode Fazer', do_monday: true }).autor, 'Monday');
   assert.equal(f({ tipo: 'criacao', texto: 'Integração' }).autor, 'Integração');
+  assert.equal(f({ tipo: 'briefing', para: 'tem' }).frase, 'adicionou o briefing');
+  assert.equal(f({ tipo: 'briefing', de: 'tinha', para: 'tem' }).frase, 'editou o briefing');
 });
 
 test('o texto das pessoas não vira HTML', () => {

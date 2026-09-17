@@ -71,6 +71,8 @@ function fraseDoLog(ev = {}, { demanda = false } = {}) {
     case 'subitem_status': return { categoria: 'status', frase: `mudou a tarefa ${b(texto || '')} de ${b(de || '—')} para ${b(para || '—')}` };
     case 'remocao': return { categoria: 'tudo', frase: `removeu a peça${para ? ` — motivo: “${safeText(para)}”` : ''}` };
     case 'restauracao': return { categoria: 'tudo', frase: 'restaurou a peça' };
+    case 'briefing':
+      return { categoria: 'tudo', frase: para ? (de ? 'editou o briefing' : 'adicionou o briefing') : 'apagou o briefing' };
     case 'automacao':
       return { categoria: 'tudo', frase: `aplicou a regra ${b(texto || '')}${para ? `: ${safeText(para)}` : ''}` };
     default:

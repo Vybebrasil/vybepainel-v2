@@ -589,13 +589,13 @@ function headsDoClienteHtml(texto) {
 // tela escura elas parecem um aviso de erro. Estas usam a mesma lingua do resto,
 // e ficam por cima do painel de edicao em vez de substitui-lo — cancelar devolve
 // a tela de onde a pessoa veio.
-function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo = false, campo = null, imagem = null }) {
+function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo = false, campo = null, imagem = null, larga = false }) {
   return new Promise((resolve) => {
     document.getElementById('cli-pergunta')?.remove();
     const fundo = document.createElement('div');
     fundo.id = 'cli-pergunta';
     fundo.className = 'cli-pergunta';
-    fundo.innerHTML = `<div class="cli-pergunta-caixa" role="dialog" aria-modal="true">
+    fundo.innerHTML = `<div class="cli-pergunta-caixa${larga ? ' larga' : ''}" role="dialog" aria-modal="true">
         <h3>${safeText(titulo)}</h3>
         ${imagem ? `<figure class="cli-pergunta-previa"><img src="${safeText(imagem.url)}"
             alt="${safeText(imagem.nome || '')}"
