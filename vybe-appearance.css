@@ -946,24 +946,28 @@ body.vybe-desktop {
 .notas-emoji-grupo button { width: 30px; height: 28px; border: 0; border-radius: 8px; background: transparent;
   font-size: 16px; line-height: 1; cursor: pointer; }
 .notas-emoji-grupo button:hover { background: #ffffff1f; }
-.notas-texto { flex: 1; min-height: 180px; padding: 12px; border: 1px solid var(--border);
-  border-radius: var(--radius-panel); background: #ffffff08; color: var(--text);
-  font: 400 13.5px/1.6 var(--mac-ui); resize: none; }
-.notas-formatada { flex: 1; min-height: 180px; padding: 12px; border: 1px solid transparent;
-  border-radius: var(--radius-panel); color: var(--text); font: 400 13.5px/1.6 var(--mac-ui); cursor: text; }
-.notas-formatada:hover { border-color: var(--border); }
-.notas-formatada h3 { font: 600 15.5px var(--mac-ui); margin: 12px 0 4px; letter-spacing: -.015em; }
-.notas-formatada h4 { font: 600 14px var(--mac-ui); margin: 10px 0 4px; }
-.notas-formatada h5 { font: 600 13px var(--mac-ui); margin: 10px 0 4px; color: var(--text-muted); }
-.notas-formatada p { margin: 0 0 6px; }
-.notas-formatada p.nota-vazia { height: 8px; margin: 0; }
-.notas-formatada ul { margin: 0 0 8px; padding-left: 20px; }
-.notas-formatada li { margin: 2px 0; }
-.notas-formatada code { padding: 1px 5px; border-radius: 6px; background: #ffffff14; font-size: 12.5px; }
-.notas-formatada .nota-checks { display: grid; gap: 4px; margin: 4px 0 8px; }
-.notas-formatada .nota-check { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
-.notas-formatada .nota-check input { margin-top: 3px; accent-color: var(--workspace-accent); }
-.notas-formatada .nota-check.feito span { color: var(--text-muted); text-decoration: line-through; }
+/* A folha da nota: cada linha é a própria caixinha, e a linha em que se
+   escreve troca o texto por um campo do mesmo tamanho. Sem isso o Enter não
+   continuava a checklist e as caixinhas só apareciam depois de sair do campo. */
+.nota-folha { flex: 1; min-height: 200px; padding: 8px 6px; border: 1px solid var(--border);
+  border-radius: var(--radius-panel); background: #ffffff08; overflow-y: auto; cursor: text; }
+.nota-linha { display: flex; align-items: flex-start; gap: 8px; padding: 3px 8px; border-radius: 8px;
+  color: var(--text); font: 400 13.5px/1.5 var(--mac-ui); }
+.nota-linha:hover { background: #ffffff08; }
+.nota-linha.editando { background: #ffffff0f; }
+.nota-linha input[type=checkbox] { margin-top: 4px; accent-color: var(--workspace-accent); }
+.nota-ponto { color: var(--text-muted); line-height: 1.5; }
+.nota-texto { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.nota-texto.feito { color: var(--text-muted); text-decoration: line-through; }
+.nota-texto b { font-weight: 600; }
+.nota-texto code { padding: 1px 5px; border-radius: 6px; background: #ffffff14; font-size: 12.5px; }
+.nota-linha-vazia { display: block; }
+.nota-entrada { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text);
+  font: inherit; line-height: 1.5; resize: none; overflow: hidden; }
+.nota-entrada:focus { outline: none; }
+.nota-linha.m-titulo { font: 600 16px/1.4 var(--mac-ui); letter-spacing: -.015em; margin-top: 6px; }
+.nota-linha.m-titulo2 { font: 600 14.5px/1.4 var(--mac-ui); margin-top: 4px; }
+.nota-linha.m-check-feito .nota-entrada { color: var(--text-muted); }
 .notas-placeholder { color: #7d7f89; }
 .notas-pe { margin: 0; color: #7d7f89; font: 500 11.5px var(--mac-ui); }
 .notas-canto { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize;

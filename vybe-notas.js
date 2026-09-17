@@ -13,8 +13,9 @@
 // qualquer lugar. A barra de ferramentas e o painel de emoji só escrevem essas
 // marcas no lugar do cursor.
 //
-// notasMarkdownHtml e notasInserir são funções sem tela, e é nelas que os testes
-// entram.
+// A leitura da lista usa notasMarkdownHtml; dentro da nota, cada linha se edita
+// no lugar. As regras de linha (Enter, Backspace, marca) são funções sem tela, e
+// é nelas que os testes entram.
 
 const NOTAS_GEOMETRIA = 'vybe_notas_janela_v1';
 const CADERNO_PADRAO_TELA = 'Notas do dia';
@@ -27,6 +28,9 @@ let NOTAS_BUSCA_TIMER = null;
 let NOTAS_SALVANDO = null;
 let NOTAS_ESTADO = 'lista';   // 'lista' | 'nota'
 let NOTAS_EMOJI_ABERTO = false;
+let NOTA_LINHAS = [];       // a nota aberta, linha por linha
+let NOTA_FOCO = null;       // qual linha está sendo escrita
+let NOTA_FIM = null;        // onde o cursor entra na linha ('fim' ou posição)
 
 // Emojis do dia a dia da operação, por grupo. Vêm daqui e não de uma biblioteca:
 // o painel bloqueia conteúdo de fora, e o teclado do sistema continua valendo.
@@ -72,23 +76,65 @@ function notasMarkdownHtml(texto = '') {
   return html.join('');
 }
 
-// Insere no lugar do cursor: 'linha' põe a marca no começo da linha (título,
-// lista, checklist) e 'volta' diz onde o cursor fica depois — no meio do
-// **negrito**, por exemplo.
-function notasInserir(texto, inicio, fim, { antes = '', depois = '', linha = '' } = {}) {
-  const t = String(texto ?? '');
-  if (linha) {
-    const comeco = t.lastIndexOf('\n', Math.max(0, inicio - 1)) + 1;
-    const jaTem = t.slice(comeco).startsWith(linha);
-    const novo = jaTem
-      ? t.slice(0, comeco) + t.slice(comeco + linha.length)
-      : t.slice(0, comeco) + linha + t.slice(comeco);
-    const passo = jaTem ? -linha.length : linha.length;
-    return { texto: novo, cursor: Math.max(comeco, inicio + passo) };
+// ── linhas ───────────────────────────────────────────────────────────────────
+//
+// A nota é uma lista de LINHAS, e cada linha tem uma marca. Assim a caixinha
+// aparece enquanto se escreve, o Enter continua a lista e o texto guardado
+// continua sendo texto ("[] fazer", "- item", "# título").
+const NOTAS_MARCAS_LINHA = [
+  { marca: 'check', re: /^\s*\[\s?\]\s?/, prefixo: '[] ' },
+  { marca: 'check-feito', re: /^\s*\[[xX]\]\s?/, prefixo: '[x] ' },
+  { marca: 'lista', re: /^\s*[-*]\s+/, prefixo: '- ' },
+  { marca: 'titulo', re: /^\s*#\s+/, prefixo: '# ' },
+  { marca: 'titulo2', re: /^\s*##\s+/, prefixo: '## ' },
+];
+function notasLerLinha(linha = '') {
+  const texto = String(linha ?? '');
+  // Títulos maiores primeiro: '## ' também casa com a regra de '# '.
+  for (const m of [...NOTAS_MARCAS_LINHA].reverse()) {
+    if (m.re.test(texto)) return { marca: m.marca, texto: texto.replace(m.re, '') };
   }
-  const selecionado = t.slice(inicio, fim);
-  const novo = t.slice(0, inicio) + antes + selecionado + depois + t.slice(fim);
-  return { texto: novo, cursor: inicio + antes.length + selecionado.length + (selecionado ? depois.length : 0) };
+  return { marca: '', texto };
+}
+function notasMontarLinha(marca, texto) {
+  const m = NOTAS_MARCAS_LINHA.find((x) => x.marca === marca);
+  return m ? `${m.prefixo}${texto}` : String(texto ?? '');
+}
+// Enter: continua a lista. Numa linha de lista já vazia, o Enter SAI da lista —
+// é como o Notion e as Notas do Mac se comportam, e sem isso a única forma de
+// sair era apagar a marca à mão.
+function notasEnter(linhas, indice, texto = '') {
+  const lista = [...linhas];
+  const { marca } = notasLerLinha(lista[indice] ?? '');
+  const antes = String(texto ?? '');
+  if (marca && !antes.trim()) {
+    lista[indice] = '';
+    return { linhas: lista, foco: indice };
+  }
+  lista[indice] = notasMontarLinha(marca, antes);
+  const seguinte = marca === 'titulo' || marca === 'titulo2' ? '' : notasMontarLinha(marca, '');
+  lista.splice(indice + 1, 0, seguinte);
+  return { linhas: lista, foco: indice + 1 };
+}
+// Backspace no começo da linha: primeiro tira a marca, depois junta com a de
+// cima. Nunca apaga texto de outra linha sem juntar.
+function notasBackspace(linhas, indice, texto = '') {
+  const lista = [...linhas];
+  const { marca } = notasLerLinha(lista[indice] ?? '');
+  if (marca) { lista[indice] = String(texto ?? ''); return { linhas: lista, foco: indice, fim: 0 }; }
+  if (indice === 0) return { linhas: lista, foco: 0, fim: 0 };
+  const anterior = notasLerLinha(lista[indice - 1] ?? '');
+  const juntado = anterior.texto + String(texto ?? '');
+  lista[indice - 1] = notasMontarLinha(anterior.marca, juntado);
+  lista.splice(indice, 1);
+  return { linhas: lista, foco: indice - 1, fim: anterior.texto.length };
+}
+function notasTrocarMarca(linhas, indice, marca) {
+  const lista = [...linhas];
+  const atual = notasLerLinha(lista[indice] ?? '');
+  const nova = atual.marca === marca ? '' : marca;
+  lista[indice] = notasMontarLinha(nova, atual.texto);
+  return { linhas: lista, foco: indice };
 }
 
 function notasResumo(nota) {
@@ -221,6 +267,7 @@ async function recarregarNotas() {
 }
 
 function fecharNotas() {
+  capturarLinhaAberta();
   if (NOTAS_SALVANDO) { clearTimeout(NOTAS_SALVANDO); NOTAS_SALVANDO = null; salvarNotaAberta(); }
   document.getElementById('notas-janela')?.remove();
   NOTA_ABERTA = null; NOTAS_ESTADO = 'lista'; NOTAS_EMOJI_ABERTO = false;
@@ -350,7 +397,8 @@ function buscarNotas(termo) {
 function novaNota() {
   NOTA_ABERTA = { id: null, titulo: notasTituloPadrao(), corpo: '', item_ref: '', caderno: NOTAS_CADERNO };
   NOTAS_ESTADO = 'nota';
-  pintarNotaAberta({ editando: true });
+  NOTA_LINHAS = ['']; NOTA_FOCO = 0; NOTA_FIM = 'fim';
+  pintarNotaAberta();
 }
 
 function abrirNota(id) {
@@ -358,14 +406,18 @@ function abrirNota(id) {
   if (!nota) return;
   NOTA_ABERTA = { ...nota, caderno: nota.caderno || CADERNO_PADRAO_TELA };
   NOTAS_ESTADO = 'nota';
+  NOTA_LINHAS = String(nota.corpo || '').replace(/\r\n/g, '\n').split('\n');
+  if (!NOTA_LINHAS.length) NOTA_LINHAS = [''];
+  NOTA_FOCO = null;
   pintarNotaAberta();
 }
 
 function voltarParaAsNotas() {
+  capturarLinhaAberta();
   if (NOTAS_SALVANDO) { clearTimeout(NOTAS_SALVANDO); NOTAS_SALVANDO = null; }
   NOTAS_EMOJI_ABERTO = false;
   salvarNotaAberta().finally(async () => {
-    NOTA_ABERTA = null; NOTAS_ESTADO = 'lista';
+    NOTA_ABERTA = null; NOTAS_ESTADO = 'lista'; NOTA_LINHAS = []; NOTA_FOCO = null;
     await recarregarNotas();
   });
 }
@@ -391,9 +443,32 @@ function notasEmojisHtml() {
       `<button type="button" onclick="inserirEmoji('${e}')" aria-label="Inserir ${e}">${e}</button>`).join('')}</div></div>`).join('')}</div>`;
 }
 
-function pintarNotaAberta({ editando = false } = {}) {
+function notasLinhaHtml(linha, indice) {
+  const { marca, texto } = notasLerLinha(linha);
+  const editando = NOTA_FOCO === indice;
+  const inline = (t) => safeText(t)
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+  const marcador = marca === 'check' || marca === 'check-feito'
+    ? `<input type="checkbox" ${marca === 'check-feito' ? 'checked' : ''} onclick="event.stopPropagation()"
+        onchange="marcarNaNota(${indice})" aria-label="Marcar item">`
+    : marca === 'lista' ? '<span class="nota-ponto">•</span>' : '';
+  const corpo = editando
+    ? `<textarea class="nota-entrada" rows="1" data-linha="${indice}"
+        oninput="crescerLinha(this)"
+        onkeydown="teclaNaLinha(${indice}, event, this)"
+        onblur="sairDaLinha(${indice}, this.value)">${safeText(texto)}</textarea>`
+    : `<span class="nota-texto ${marca === 'check-feito' ? 'feito' : ''}">${
+        texto.trim() ? inline(texto) : '<i class="nota-linha-vazia">&nbsp;</i>'}</span>`;
+  return `<div class="nota-linha ${marca ? `m-${marca}` : ''} ${editando ? 'editando' : ''}"
+      onclick="focarLinha(${indice}, event)">${marcador}${corpo}</div>`;
+}
+
+function pintarNotaAberta() {
   const janela = document.getElementById('notas-janela');
   if (!janela || !NOTA_ABERTA) return;
+  if (!NOTA_LINHAS.length) NOTA_LINHAS = String(NOTA_ABERTA.corpo || '').replace(/\r\n/g, '\n').split('\n');
+  if (!NOTA_LINHAS.length) NOTA_LINHAS = [''];
   const peca = NOTA_ABERTA.item_ref && typeof findOperationalItem === 'function'
     ? findOperationalItem(NOTA_ABERTA.item_ref) : null;
   const sobre = NOTA_ABERTA.item_ref
@@ -409,56 +484,138 @@ function pintarNotaAberta({ editando = false } = {}) {
         oninput="editarNota('titulo',this.value)" aria-label="Título da nota">
       ${sobre}
       ${notasFerramentasHtml()}
-      ${editando
-        ? `<textarea class="notas-texto" id="notas-texto" placeholder="Escreva aqui."
-            oninput="editarNota('corpo',this.value)" onblur="verNotaFormatada()">${safeText(NOTA_ABERTA.corpo)}</textarea>`
-        : `<div class="notas-formatada" role="button" tabindex="0" title="Clique para editar"
-            onclick="if(!event.target.closest('input,label'))editarNotaAgora()"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();editarNotaAgora()}">${
-              NOTA_ABERTA.corpo.trim() ? notasMarkdownHtml(NOTA_ABERTA.corpo) : '<p class="notas-placeholder">Clique para escrever.</p>'}</div>`}
+      <div class="nota-folha" onclick="if(event.target===this)focarLinha(${NOTA_LINHAS.length - 1})">
+        ${NOTA_LINHAS.map(notasLinhaHtml).join('')}
+      </div>
       <p class="notas-pe" id="notas-pe">${NOTA_ABERTA.id
         ? `Salva ${safeText(quandoNaBahia(NOTA_ABERTA.atualizado_em || new Date().toISOString()))}`
         : 'Salva sozinha enquanto você escreve.'}</p>
     </div>${notasCantoHtml()}`;
-  if (editando) {
-    const campo = document.getElementById('notas-texto');
-    campo?.focus();
-    campo?.setSelectionRange(campo.value.length, campo.value.length);
+  const entrada = janela.querySelector('.nota-entrada');
+  if (entrada) {
+    crescerLinha(entrada);
+    entrada.focus();
+    const pos = NOTA_FIM === 'fim' || NOTA_FIM === null ? entrada.value.length : Number(NOTA_FIM);
+    entrada.setSelectionRange(pos, pos);
   }
+  NOTA_FIM = null;
 }
 
-function editarNotaAgora() { NOTAS_EMOJI_ABERTO = false; pintarNotaAberta({ editando: true }); }
-function verNotaFormatada() { if (NOTAS_ESTADO === 'nota' && !NOTAS_EMOJI_ABERTO) pintarNotaAberta({ editando: false }); }
-function alternarEmojis() { NOTAS_EMOJI_ABERTO = !NOTAS_EMOJI_ABERTO; pintarNotaAberta({ editando: true }); }
+// Qualquer ação de fora (marcar caixinha, barra de ferramentas, emoji, trocar
+// de linha) redesenha a folha — e redesenhar lê NOTA_LINHAS. O que estava
+// digitado e ainda não voltou para lá se perderia. Então primeiro se recolhe o
+// que está no campo aberto.
+function capturarLinhaAberta() {
+  const campo = document.querySelector('.nota-entrada');
+  if (!campo || NOTA_FOCO === null) return;
+  const indice = Number(campo.dataset.linha);
+  if (!Number.isInteger(indice) || !NOTA_LINHAS[indice] === undefined) return;
+  const { marca } = notasLerLinha(NOTA_LINHAS[indice] ?? '');
+  NOTA_LINHAS[indice] = notasMontarLinha(marca, campo.value);
+  if (NOTA_ABERTA) NOTA_ABERTA.corpo = NOTA_LINHAS.join('\n');
+}
 
-// A barra de ferramentas escreve a marca onde o cursor está — o texto continua
-// sendo texto, e quem sabe as marcas pode digitar direto.
-const NOTAS_MARCAS = {
-  titulo: { linha: '# ' }, lista: { linha: '- ' }, check: { linha: '[] ' },
-  negrito: { antes: '**', depois: '**' },
-};
-function aplicarNaNota(qual) {
-  const marca = NOTAS_MARCAS[qual];
-  if (!marca || !NOTA_ABERTA) return;
-  let campo = document.getElementById('notas-texto');
-  if (!campo) { pintarNotaAberta({ editando: true }); campo = document.getElementById('notas-texto'); }
+function crescerLinha(campo) {
   if (!campo) return;
-  const { texto, cursor } = notasInserir(campo.value, campo.selectionStart, campo.selectionEnd, marca);
-  campo.value = texto;
-  campo.focus();
-  campo.setSelectionRange(cursor, cursor);
-  editarNota('corpo', texto);
+  campo.style.height = 'auto';
+  campo.style.height = `${campo.scrollHeight}px`;
+}
+
+function focarLinha(indice, evento) {
+  if (evento?.target?.closest?.('input,button')) return;
+  capturarLinhaAberta();
+  NOTA_FOCO = Math.max(0, Math.min(Number(indice), NOTA_LINHAS.length - 1));
+  NOTA_FIM = 'fim';
+  pintarNotaAberta();
+}
+
+function sairDaLinha(indice, valor) {
+  if (NOTA_FOCO !== indice) return;
+  const { marca } = notasLerLinha(NOTA_LINHAS[indice] ?? '');
+  NOTA_LINHAS[indice] = notasMontarLinha(marca, valor);
+  NOTA_FOCO = null;
+  guardarCorpoDaNota();
+  pintarNotaAberta();
+}
+
+// Enter continua a lista, Backspace no começo tira a marca ou junta com a linha
+// de cima, e as setas andam entre as linhas — é o que se espera de um caderno.
+function teclaNaLinha(indice, evento, campo) {
+  const valor = campo.value;
+  if (evento.key === 'Enter' && !evento.shiftKey) {
+    evento.preventDefault();
+    const { linhas, foco } = notasEnter(NOTA_LINHAS, indice, valor);
+    NOTA_LINHAS = linhas; NOTA_FOCO = foco; NOTA_FIM = 'fim';
+    guardarCorpoDaNota(); pintarNotaAberta();
+    return;
+  }
+  if (evento.key === 'Backspace' && campo.selectionStart === 0 && campo.selectionEnd === 0) {
+    const { marca } = notasLerLinha(NOTA_LINHAS[indice] ?? '');
+    if (marca || indice > 0) {
+      evento.preventDefault();
+      NOTA_LINHAS[indice] = notasMontarLinha(marca, valor);
+      const r = notasBackspace(NOTA_LINHAS, indice, valor);
+      NOTA_LINHAS = r.linhas; NOTA_FOCO = r.foco; NOTA_FIM = r.fim;
+      guardarCorpoDaNota(); pintarNotaAberta();
+    }
+    return;
+  }
+  if ((evento.key === 'ArrowUp' && indice > 0) || (evento.key === 'ArrowDown' && indice < NOTA_LINHAS.length - 1)) {
+    evento.preventDefault();
+    const { marca } = notasLerLinha(NOTA_LINHAS[indice] ?? '');
+    NOTA_LINHAS[indice] = notasMontarLinha(marca, valor);
+    NOTA_FOCO = indice + (evento.key === 'ArrowUp' ? -1 : 1);
+    NOTA_FIM = 'fim';
+    guardarCorpoDaNota(); pintarNotaAberta();
+    return;
+  }
+  if (evento.key === 'Escape') { evento.stopPropagation(); campo.blur(); }
+}
+
+function guardarCorpoDaNota() {
+  if (!NOTA_ABERTA) return;
+  NOTA_ABERTA.corpo = NOTA_LINHAS.join('\n');
+  const pe = document.getElementById('notas-pe');
+  if (pe) pe.textContent = 'Escrevendo…';
+  clearTimeout(NOTAS_SALVANDO);
+  NOTAS_SALVANDO = setTimeout(() => { NOTAS_SALVANDO = null; salvarNotaAberta(); }, 900);
+}
+
+function alternarEmojis() { capturarLinhaAberta(); NOTAS_EMOJI_ABERTO = !NOTAS_EMOJI_ABERTO; pintarNotaAberta(); }
+
+// A barra de ferramentas age na LINHA em que se está escrevendo. Sem linha
+// escolhida, age na última — que é onde o cursor vai parar de qualquer forma.
+function aplicarNaNota(qual) {
+  if (!NOTA_ABERTA) return;
+  capturarLinhaAberta();
+  const indice = NOTA_FOCO ?? Math.max(0, NOTA_LINHAS.length - 1);
+  if (qual === 'negrito') {
+    const { marca, texto } = notasLerLinha(NOTA_LINHAS[indice] ?? '');
+    const campo = document.querySelector('.nota-entrada');
+    const inicio = NOTA_FOCO === indice && campo ? campo.selectionStart : texto.length;
+    const fim = NOTA_FOCO === indice && campo ? campo.selectionEnd : texto.length;
+    const selecionado = texto.slice(inicio, fim);
+    NOTA_LINHAS[indice] = notasMontarLinha(marca, `${texto.slice(0, inicio)}**${selecionado}**${texto.slice(fim)}`);
+    NOTA_FOCO = indice; NOTA_FIM = inicio + 2 + selecionado.length;
+  } else {
+    const { linhas, foco } = notasTrocarMarca(NOTA_LINHAS, indice, qual);
+    NOTA_LINHAS = linhas; NOTA_FOCO = foco; NOTA_FIM = 'fim';
+  }
+  guardarCorpoDaNota();
+  pintarNotaAberta();
 }
 
 function inserirEmoji(emoji) {
-  let campo = document.getElementById('notas-texto');
-  if (!campo) { pintarNotaAberta({ editando: true }); campo = document.getElementById('notas-texto'); }
-  if (!campo) return;
-  const { texto, cursor } = notasInserir(campo.value, campo.selectionStart, campo.selectionEnd, { antes: emoji });
-  campo.value = texto;
-  campo.focus();
-  campo.setSelectionRange(cursor, cursor);
-  editarNota('corpo', texto);
+  if (!NOTA_ABERTA) return;
+  capturarLinhaAberta();
+  const indice = NOTA_FOCO ?? Math.max(0, NOTA_LINHAS.length - 1);
+  const { marca, texto } = notasLerLinha(NOTA_LINHAS[indice] ?? '');
+  const campo = document.querySelector('.nota-entrada');
+  const pos = NOTA_FOCO === indice && campo ? campo.selectionStart : texto.length;
+  NOTA_LINHAS[indice] = notasMontarLinha(marca, `${texto.slice(0, pos)}${emoji}${texto.slice(pos)}`);
+  NOTA_FOCO = indice; NOTA_FIM = pos + emoji.length;
+  guardarCorpoDaNota();
+  pintarNotaAberta();
 }
 
 function editarNota(campo, valor) {
@@ -472,18 +629,17 @@ function editarNota(campo, valor) {
 
 function marcarNaNota(indice) {
   if (!NOTA_ABERTA) return;
-  const linhas = String(NOTA_ABERTA.corpo || '').replace(/\r\n/g, '\n').split('\n');
-  const linha = linhas[indice];
-  if (linha === undefined) return;
-  linhas[indice] = /^\s*\[[xX]\]/.test(linha)
-    ? linha.replace(/^(\s*)\[[xX]\]/, '$1[]')
-    : linha.replace(/^(\s*)\[\s?\]/, '$1[x]');
-  NOTA_ABERTA.corpo = linhas.join('\n');
+  capturarLinhaAberta();
+  const { marca, texto } = notasLerLinha(NOTA_LINHAS[indice] ?? '');
+  if (marca !== 'check' && marca !== 'check-feito') return;
+  NOTA_LINHAS[indice] = notasMontarLinha(marca === 'check' ? 'check-feito' : 'check', texto);
+  guardarCorpoDaNota();
   pintarNotaAberta();
   salvarNotaAberta();
 }
 
 async function salvarNotaAgora() {
+  capturarLinhaAberta();
   clearTimeout(NOTAS_SALVANDO); NOTAS_SALVANDO = null;
   await salvarNotaAberta();
 }
@@ -570,7 +726,7 @@ document.addEventListener('keydown', (event) => {
   if (alvo && /^(INPUT|TEXTAREA)$/.test(alvo.tagName)) { alvo.blur(); return; }
   event.preventDefault();
   event.stopImmediatePropagation();
-  if (NOTAS_EMOJI_ABERTO) { NOTAS_EMOJI_ABERTO = false; return pintarNotaAberta({ editando: true }); }
+  if (NOTAS_EMOJI_ABERTO) { NOTAS_EMOJI_ABERTO = false; return pintarNotaAberta(); }
   fecharNotas();
 });
 

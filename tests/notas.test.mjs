@@ -55,11 +55,17 @@ test('nota vazia não é criada, e a leitura diz quando a estrutura não existe'
   assert.equal(await notasProntas(vazio), false);
 });
 
-function tela() {
+// A tela roda numa sandbox: o arquivo é o mesmo que o navegador carrega.
+function contexto() {
   const c = vm.createContext({ console, document: { addEventListener() {} }, window: { addEventListener() {} },
     localStorage: { getItem: () => null, setItem() {} },
     safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`) });
   vm.runInContext(fs.readFileSync('vybe-notas.js', 'utf8'), c);
+  return c;
+}
+const chamar = (c, chamada, ...args) => { c.a = args; return JSON.parse(vm.runInContext(`JSON.stringify(${chamada})`, c)); };
+function tela() {
+  const c = contexto();
   return (texto) => { c.t = texto; return vm.runInContext('notasMarkdownHtml(t)', c); };
 }
 
@@ -101,20 +107,39 @@ test('cadernos: lista com a contagem, renomeia todas as notas e apagar move em v
   assert.equal(so.apagadas, 3);
 });
 
-test('a barra de ferramentas escreve a marca no lugar do cursor', () => {
-  const c = vm.createContext({ console, document: { addEventListener() {} }, window: { addEventListener() {} },
-    localStorage: { getItem: () => null, setItem() {} }, safeText: (v) => String(v ?? '') });
-  vm.runInContext(fs.readFileSync('vybe-notas.js', 'utf8'), c);
-  const chama = (texto, i, f, marca) => { c.a = [texto, i, f, marca];
-    return JSON.parse(vm.runInContext('JSON.stringify(notasInserir(a[0],a[1],a[2],a[3]))', c)); };
-  // Checklist entra no começo da linha em que está o cursor.
-  assert.deepEqual(chama('primeira\nsegunda', 10, 10, { linha: '[] ' }),
-    { texto: 'primeira\n[] segunda', cursor: 13 });
-  // Clicar de novo tira a marca.
-  assert.deepEqual(chama('[] fazer', 4, 4, { linha: '[] ' }), { texto: 'fazer', cursor: 1 });
-  // Negrito envolve o que está selecionado e deixa o cursor depois do texto.
-  assert.deepEqual(chama('prazo curto', 0, 5, { antes: '**', depois: '**' }),
-    { texto: '**prazo** curto', cursor: 9 });
-  // Emoji entra onde o cursor está.
-  assert.deepEqual(chama('ok ', 3, 3, { antes: '🔥' }), { texto: 'ok 🔥', cursor: 5 });
+test('Enter continua a checklist, e numa linha vazia sai da lista', () => {
+  const c = contexto();
+  const enter = (...args) => chamar(c, 'notasEnter(a[0],a[1],a[2])', ...args);
+  // Era o defeito relatado: Enter numa linha de checklist não abria outra.
+  assert.deepEqual(enter(['[] fazer'], 0, 'fazer'),
+    { linhas: ['[] fazer', '[] '], foco: 1 });
+  assert.deepEqual(enter(['- item'], 0, 'item'), { linhas: ['- item', '- '], foco: 1 });
+  // Linha de lista sem texto: o Enter sai da lista em vez de criar outra vazia.
+  assert.deepEqual(enter(['[] a', '[] '], 1, ''), { linhas: ['[] a', ''], foco: 1 });
+  // Título não continua: depois do título vem texto.
+  assert.deepEqual(enter(['# Prioridades'], 0, 'Prioridades'),
+    { linhas: ['# Prioridades', ''], foco: 1 });
+});
+
+test('Backspace tira a marca e depois junta com a linha de cima', () => {
+  const c = contexto();
+  const back = (...args) => chamar(c, 'notasBackspace(a[0],a[1],a[2])', ...args);
+  assert.deepEqual(back(['[] fazer'], 0, 'fazer'), { linhas: ['fazer'], foco: 0, fim: 0 });
+  assert.deepEqual(back(['primeira', 'segunda'], 1, 'segunda'),
+    { linhas: ['primeirasegunda'], foco: 0, fim: 8 });
+  // A marca da linha de cima é preservada ao juntar.
+  assert.deepEqual(back(['[] a', 'b'], 1, 'b'), { linhas: ['[] ab'], foco: 0, fim: 1 });
+});
+
+test('a marca da linha se lê, se monta e se troca', () => {
+  const c = contexto();
+  const ler = (l) => chamar(c, 'notasLerLinha(a[0])', l);
+  assert.deepEqual(ler('[x] feito'), { marca: 'check-feito', texto: 'feito' });
+  assert.deepEqual(ler('## sub'), { marca: 'titulo2', texto: 'sub' });
+  assert.deepEqual(ler('texto solto'), { marca: '', texto: 'texto solto' });
+  assert.deepEqual(chamar(c, 'notasTrocarMarca(a[0],a[1],a[2])', ['texto'], 0, 'check'),
+    { linhas: ['[] texto'], foco: 0 });
+  // Clicar de novo na mesma marca tira.
+  assert.deepEqual(chamar(c, 'notasTrocarMarca(a[0],a[1],a[2])', ['[] texto'], 0, 'check'),
+    { linhas: ['texto'], foco: 0 });
 });
