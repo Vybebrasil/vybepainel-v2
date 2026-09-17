@@ -302,7 +302,11 @@ body.vybe-desktop {
 .vybe-desktop .conta-aba { border-radius: 10px !important; }
 .vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
 .vybe-desktop :is(.auto-sub,.conta-secao-topo p,.client-module-hero p,.workspace-empty,.workspace-section-body p) { color: var(--text-muted) !important; }
-.vybe-desktop .workspace-actions { background: #ffffff04 !important; border-radius: 13px; }
+/* A barra de ações é grudada no rodapé (position: sticky). Com fundo quase
+   transparente o conteúdo rolava por trás e aparecia através dela, com os textos
+   sobrepostos — o problema que vybe-styles.css já tinha resolvido com fundo
+   sólido. O fundo volta a ser sólido. */
+.vybe-desktop .workspace-actions { background: var(--surface) !important; border-radius: 13px; }
 .vybe-desktop #login-gate { background: radial-gradient(ellipse at 15% 20%,#a44c283b,transparent 60%),#15161e !important; }
 .vybe-desktop .login-caixa { background: var(--glass) !important; backdrop-filter: blur(24px); }
 .vybe-desktop :is(.workspace-drawer,.appearance-dialog[open],.spotlight-dialog[open],.fc-modal,.p-create-modal) { animation: glass-window-in .28s var(--curva) both; }
@@ -490,3 +494,21 @@ body.vybe-desktop {
   .vybe-desktop .focus-dashboard .focus-task > :is(.focus-task-title, .focus-task-datas, div:last-child) { grid-column: 2; }
   .vybe-desktop .focus-dashboard .focus-task > div:last-child { justify-content: flex-start !important; flex-wrap: wrap; }
 }
+
+/* Barra do topo da gaveta: o que a janela é, à esquerda; ações e fechar, à direita.
+   Na ordem do Mac, a ação que apaga mora no menu "…". */
+.vybe-desktop .workspace-barra { position: relative; min-height: 36px; font: 600 12px var(--mac-ui) !important; letter-spacing: 0 !important; color: var(--text-muted) !important; }
+.workspace-barra-acoes { display: flex; align-items: center; gap: 8px; }
+.vybe-desktop .workspace-barra .vybe-link { margin: 0; min-height: 32px; padding: 0 12px; border-radius: 10px; font: 500 13px var(--mac-ui); }
+.vybe-desktop .vybe-link .icone-linha { width: 15px; height: 15px; }
+.workspace-mais { position: relative; }
+.workspace-mais > summary { list-style: none; display: grid; place-items: center; width: 34px; height: 32px; border: 1px solid #ffffff24; border-radius: 10px; background: #ffffff0a; color: var(--text); cursor: pointer; }
+.workspace-mais > summary::-webkit-details-marker { display: none; }
+.workspace-mais > summary:hover, .workspace-mais[open] > summary { background: #ffffff18; }
+.workspace-mais > summary .icone-linha { width: 16px; height: 16px; }
+.workspace-mais-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: grid; min-width: 220px; padding: 6px; border: 1px solid var(--glass-edge); border-radius: 12px; background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-window); backdrop-filter: blur(28px) saturate(1.4); -webkit-backdrop-filter: blur(28px) saturate(1.4); }
+.workspace-mais-menu :is(button, a) { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px; background: none; color: var(--text); font: 500 13px var(--mac-ui); text-align: left; text-decoration: none; cursor: pointer; }
+.workspace-mais-menu :is(button, a):is(:hover, :focus-visible) { background: color-mix(in srgb, var(--workspace-accent) 26%, transparent); }
+.workspace-mais-menu .perigo { color: #ff8a9a; }
+.workspace-mais-menu .perigo:is(:hover, :focus-visible) { background: #ff4d6d2e; color: #ffd3da; }
+.workspace-mais-menu hr { margin: 5px 6px; border: 0; border-top: 1px solid var(--glass-edge); }

@@ -86,7 +86,7 @@ async function copiarLinkDaAtividade(id, botao) {
 function botaoDeLinkHtml(item) {
   if (!item?.id) return '';
   return `<button type="button" class="vybe-link" onclick="event.stopPropagation();copiarLinkDaAtividade('${safeText(item.id)}',this)"
-    title="Copiar o link desta atividade para mandar no grupo">🔗 Copiar link</button>`;
+    title="Copiar o link desta atividade para mandar no grupo">${ICONE_LINHA.link}<span>Copiar link</span></button>`;
 }
 
 function vybeChipId(item) {
