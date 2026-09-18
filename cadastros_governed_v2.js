@@ -30,6 +30,29 @@ function cadastroTitulosColados(texto) {
     .map((l) => l.replace(/^\s*(?:\d+[.)-]\s*|[-*•]\s+)/, '').trim()).filter(Boolean);
 }
 
+// O NOME QUE O BANCO CONHECE.
+//
+// O painel mostra o cliente pelo apelido (normalizarCliente: "Hellen Rocha" vira
+// "Hellen", "Voa Sportswear" vira "VOA"), e a lista de escolha do cadastro nasce
+// desses nomes. O servidor procura pelo nome do cadastro de clientes: mandar o
+// apelido dava "Cliente não cadastrado: Hellen" para um cliente com calendário
+// cheio. Aqui o apelido volta a ser o nome do cadastro — pela MESMA tabela de
+// apelidos, sem adivinhar por pedaço de nome. Sem correspondência única, segue o
+// nome como está e o servidor diz o que faltou.
+function cadastroNomeNoBanco(nome, fichas, normalizar) {
+  const alvo = String(nome || '').trim();
+  if (!alvo) return alvo;
+  const lista = Array.isArray(fichas) ? fichas.filter((c) => c && c.nome) : [];
+  const chave = (t) => String(t || '').trim().toLocaleLowerCase('pt-BR');
+  const exato = lista.find((c) => chave(c.nome) === chave(alvo));
+  if (exato) return exato.nome;
+  if (typeof normalizar !== 'function') return alvo;
+  const pelaTabela = lista.filter((c) => chave(normalizar(c.nome)) === chave(alvo));
+  const ativos = pelaTabela.filter((c) => c.ativo !== false);
+  const unico = ativos.length === 1 ? ativos[0] : (!ativos.length && pelaTabela.length === 1 ? pelaTabela[0] : null);
+  return unico ? unico.nome : alvo;
+}
+
 (function() {
   const esc = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
@@ -649,7 +672,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
         let itemId = null;
         const pelaEscritaDupla = await tentarEscritaDupla({ id: '' }, {
            acao: 'criar', board: fcQuadro().id,
-           titulo: normalized, cliente: state.client, formato: state.format,
+           titulo: normalized, cliente: state.clienteNoBanco || state.client, formato: state.format,
            prazo: item.prazo, veiculacao: item.veic, status: chaveDeStatus(finalStatus),
            grupo_id: finalGroup, briefing: item.brief,
            // "Tipo de conteúdo" só existe em Produção, e lá "Post" (3) é o único
@@ -706,6 +729,15 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
 
      const btn = document.getElementById('fc-submit-btn');
      const total = state.itens.length;
+     // A ficha de clientes e a mesma da tela Clientes; carregada uma vez, serve
+     // para todos os cartoes da lista.
+     if (btn) { btn.disabled = true; btn.textContent = 'Conferindo o cliente...'; }
+     if (typeof ensureClientMasterSources === 'function') {
+       try { await ensureClientMasterSources(); } catch { /* segue com o nome da tela */ }
+     }
+     state.clienteNoBanco = cadastroNomeNoBanco(state.client,
+       typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : [],
+       typeof normalizarCliente === 'function' ? normalizarCliente : null);
      const feitos = [];
      const falhas = [];
      const arquivosQueFalharam = [];
