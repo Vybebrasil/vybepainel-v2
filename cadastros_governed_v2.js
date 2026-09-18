@@ -287,6 +287,43 @@ function cadastroTitulosColados(texto) {
       .fc-item-data { margin-left:auto; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.07);
         color:#e7ecf5; font:600 12px var(--mac-ui, system-ui); font-variant-numeric:tabular-nums; white-space:nowrap; }
       @media (max-width:640px) { .fc-escala-campos { grid-template-columns:1fr; } }
+      /* Preencher em lista: lista curta à esquerda, conteúdo escolhido à direita. */
+      .fc-preencher { display:grid; grid-template-columns:minmax(200px, 260px) minmax(0, 1fr); gap:14px; min-height:0; }
+      .fc-lista { display:flex; flex-direction:column; gap:8px; min-width:0; }
+      .fc-lista-topo { display:grid; gap:2px; }
+      .fc-lista-topo b { color:#e7ecf5; font:600 13px var(--mac-ui, system-ui); }
+      .fc-lista-topo small { color:#ffb0bc; font:500 12px var(--mac-ui, system-ui); }
+      .fc-lista-linhas { display:grid; gap:2px; max-height:min(52vh, 460px); overflow-y:auto; padding:2px; }
+      .fc-lista-linha { display:grid; grid-template-columns:14px auto minmax(0,1fr); align-items:center; gap:8px;
+        padding:8px 10px; border:0; border-radius:9px; background:transparent; color:#c3cad6; text-align:left; cursor:pointer;
+        font:500 12.5px var(--mac-ui, system-ui); }
+      .fc-lista-linha:hover { background:rgba(255,255,255,.06); }
+      .fc-lista-linha.ativa { background:rgba(0,240,255,.12); color:#fff; }
+      .fc-lista-linha i { font-style:normal; font-size:10px; color:#ff9aa8; }
+      .fc-lista-linha.pronta i { color:#6ee7a8; font-size:12px; }
+      .fc-lista-data { color:#9da4b4; font-variant-numeric:tabular-nums; white-space:nowrap; }
+      .fc-lista-linha.ativa .fc-lista-data { color:#a8efff; }
+      .fc-lista-titulo { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .fc-lista-acoes { display:flex; flex-wrap:wrap; gap:6px; }
+      .fc-editor { display:flex; flex-direction:column; gap:10px; min-width:0; padding:14px; border:1px solid rgba(255,255,255,.08);
+        border-radius:14px; background:rgba(255,255,255,.02); }
+      .fc-editor-topo { display:flex; align-items:center; gap:10px; color:#9da4b4; font:500 12.5px var(--mac-ui, system-ui); }
+      .fc-editor-topo b { color:#e7ecf5; font-weight:600; }
+      .fc-editor-topo .icone-btn { margin-left:auto; }
+      .fc-editor-briefing { min-height:min(34vh, 300px) !important; }
+      .fc-editor-nav { display:flex; flex-wrap:wrap; gap:8px; }
+      .fc-editor-nav .primario { margin-left:auto; border-style:solid; background:rgba(0,240,255,.12); color:#e7fdff; }
+      .fc-editor-nav button:disabled { opacity:.4; cursor:default; }
+      .fc-editor-dica { color:#7d8594; font:500 11.5px var(--mac-ui, system-ui); }
+      .fc-lista-select { display:none; }
+      @media (max-width:760px) {
+        .fc-preencher { grid-template-columns:1fr; }
+        .fc-lista-linhas, .fc-lista-topo { display:none; }
+        .fc-lista { order:2; }
+        .fc-lista-select { display:block; width:100%; height:36px; padding:0 10px; border:1px solid rgba(255,255,255,.12);
+          border-radius:10px; background:rgba(255,255,255,.04); color:#e7ecf5; font:500 13px var(--mac-ui, system-ui); }
+        .fc-editor-dica { display:none; }
+      }
 `;
     document.head.appendChild(style);
   }
@@ -835,6 +872,10 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
           onclick="fcResponder('format', '${esc2(f).replace(/'/g, "\\'")}')">${esc2(f)}</button>`).join('')}</div>`;
     }
     if (p === 'itens') {
+      // Mais de três conteúdos: lista curta à esquerda e o conteúdo escolhido à
+      // direita. Vinte cartões empilhados obrigavam a rolar sem fim e a perder
+      // onde se estava.
+      if (state.itens.length > 3) return fcPreencherHtml(esc2);
       const cartoes = state.itens.map((it, n) => `
         <div class="fc-item" ondragover="fcArrastando(event,this,true)"
              ondragleave="fcArrastando(event,this,false)" ondrop="fcSoltarArquivos(event,${n},this)">
@@ -1051,6 +1092,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
       const topo = document.querySelectorAll('.fc-item-topo span')[n];
       if (topo) topo.textContent = `${state.format || 'Formato'} - ${valor || 'sem título'}`;
     }
+    fcAtualizarLista(n);
     fcEspelharPrimeiro();
     updateDestinyUI();
   };
@@ -1060,6 +1102,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     const ultima = [...state.itens].reverse().find((i) => i.veic)?.veic || '';
     state.itens.push({ titulo: '', veic: ultima ? getOffsetDate(ultima, 7) : '',
                        prazo: ultima ? getOffsetDate(ultima, 0) : '', brief: '', arquivos: [] });
+    state.itemAtivo = state.itens.length - 1;
     fcEspelharPrimeiro();
     fcDesenharPasso();
     // O titulo do novo cartao e onde a pessoa vai escrever agora.
@@ -1071,6 +1114,120 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     const d = new Date(`${iso}T12:00:00`);
     if (Number.isNaN(d.getTime())) return '';
     return `${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()]} ${iso.slice(8,10)}/${iso.slice(5,7)}`;
+  }
+
+  // ── PREENCHER EM LISTA ─────────────────────────────────────────────────────
+  const fcItemPronto = (it) => Boolean(String(it.titulo || '').trim() && it.veic && it.prazo && String(it.brief || '').trim());
+  function fcItemAtivo() {
+    const n = Number(state.itemAtivo) || 0;
+    state.itemAtivo = Math.min(Math.max(n, 0), state.itens.length - 1);
+    return state.itemAtivo;
+  }
+  function fcFaltamTexto() {
+    const semTitulo = state.itens.filter((i) => !String(i.titulo || '').trim()).length;
+    const semBriefing = state.itens.filter((i) => !String(i.brief || '').trim()).length;
+    const partes = [];
+    if (semTitulo) partes.push(`${semTitulo} sem título`);
+    if (semBriefing) partes.push(`${semBriefing} sem briefing`);
+    return partes.join(' · ');
+  }
+  function fcLinhaDaListaHtml(it, n, esc2) {
+    const ativo = n === state.itemAtivo;
+    return `<button type="button" class="fc-lista-linha ${ativo ? 'ativa' : ''} ${fcItemPronto(it) ? 'pronta' : ''}"
+        data-lista="${n}" onclick="fcIrParaConteudo(${n})" aria-current="${ativo}">
+        <i aria-hidden="true">${fcItemPronto(it) ? '✓' : '●'}</i>
+        <span class="fc-lista-data">${esc2(it.veic ? fcDiaCurto(it.veic) : 'sem data')}</span>
+        <span class="fc-lista-titulo">${esc2(it.titulo || 'sem título')}</span>
+      </button>`;
+  }
+  function fcPreencherHtml(esc2) {
+    const n = fcItemAtivo();
+    const it = state.itens[n];
+    const prontos = state.itens.filter(fcItemPronto).length;
+    const faltam = fcFaltamTexto();
+    const rotuloData = state.board === 'demandas' ? 'Conclusão' : 'Veiculação';
+    const opcoes = state.itens.map((x, i) => `<option value="${i}" ${i === n ? 'selected' : ''}>${i + 1} de ${state.itens.length} · ${
+      esc2(x.veic ? fcDiaCurto(x.veic) : 'sem data')} · ${esc2(x.titulo || 'sem título')}</option>`).join('');
+    return `${state.escalaAberta ? fcEscalaHtml(esc2) : ''}
+      <div class="fc-preencher">
+        <aside class="fc-lista">
+          <div class="fc-lista-topo"><b id="fc-lista-contador">${prontos} de ${state.itens.length} prontos</b>
+            <small id="fc-lista-faltam">${esc2(faltam)}</small></div>
+          <div class="fc-lista-linhas">${state.itens.map((x, i) => fcLinhaDaListaHtml(x, i, esc2)).join('')}</div>
+          <div class="fc-lista-acoes">
+            <button type="button" class="fc-mais" onclick="fcColarTitulos()">Colar títulos</button>
+            <button type="button" class="fc-mais" onclick="fcAbrirEscala()">Criar em escala</button>
+            <button type="button" class="fc-mais" onclick="fcAdicionarItem()">+ adicionar</button>
+          </div>
+        </aside>
+        <section class="fc-editor" onkeydown="fcTeclaNoEditor(event)">
+          <select class="fc-lista-select" onchange="fcIrParaConteudo(Number(this.value))" aria-label="Escolher conteúdo">${opcoes}</select>
+          <div class="fc-editor-topo">
+            <b>${n + 1} de ${state.itens.length}</b>
+            <span>${esc2(it.veic ? fcDiaCurto(it.veic) : 'sem data')}</span>
+            <button type="button" class="icone-btn perigo" title="Tirar da lista" onclick="fcTirarItem(${n})">${typeof ICONE !== 'undefined' ? ICONE.lixo : '×'}</button>
+          </div>
+          <input type="text" class="fc-campo" data-item="${n}" data-campo="titulo" placeholder="Título"
+            value="${esc2(it.titulo)}" oninput="fcItemCampo(${n},'titulo',this.value)">
+          <div class="fc-item-datas">
+            <label><span>${rotuloData}</span>
+              <input type="date" class="fc-campo" data-item="${n}" data-campo="veic" value="${esc2(it.veic)}"
+                oninput="fcItemCampo(${n},'veic',this.value)"></label>
+            <label><span>Prazo de entrega</span>
+              <input type="date" class="fc-campo" data-item="${n}" data-campo="prazo" value="${esc2(it.prazo)}"
+                oninput="fcItemCampo(${n},'prazo',this.value)"></label>
+          </div>
+          <textarea class="fc-campo-texto fc-editor-briefing" data-item="${n}" data-campo="brief"
+            placeholder="Briefing: objetivo, referência, contexto..."
+            oninput="fcItemCampo(${n},'brief',this.value)">${esc2(it.brief)}</textarea>
+          ${fcArquivosHtml(n, it)}
+          <div class="fc-editor-nav">
+            <button type="button" class="fc-mais" onclick="fcIrParaConteudo(${n - 1})" ${n === 0 ? 'disabled' : ''}>‹ Anterior</button>
+            <button type="button" class="fc-mais" onclick="fcProximoSemBriefing()" ${faltam ? '' : 'disabled'}>Próximo que falta</button>
+            <button type="button" class="fc-mais primario" onclick="fcIrParaConteudo(${n + 1})" ${n >= state.itens.length - 1 ? 'disabled' : ''}>Próximo ›</button>
+          </div>
+          <small class="fc-editor-dica">⌘↓ / Ctrl+↓ vai para o próximo · ⌘↑ / Ctrl+↑ volta</small>
+        </section>
+      </div>`;
+  }
+
+  window.fcIrParaConteudo = function(n) {
+    if (!state.itens.length) return;
+    state.itemAtivo = Math.min(Math.max(Number(n) || 0, 0), state.itens.length - 1);
+    fcDesenharPasso();
+    const titulo = document.querySelector('.fc-editor [data-campo="titulo"]');
+    const alvo = String(state.itens[state.itemAtivo]?.titulo || '').trim()
+      ? document.querySelector('.fc-editor-briefing') : titulo;
+    alvo?.focus();
+    document.querySelector(`.fc-lista-linha[data-lista="${state.itemAtivo}"]`)?.scrollIntoView({ block: 'nearest' });
+  };
+  window.fcProximoSemBriefing = function() {
+    const total = state.itens.length;
+    for (let passo = 1; passo <= total; passo += 1) {
+      const n = (state.itemAtivo + passo) % total;
+      if (!fcItemPronto(state.itens[n])) return fcIrParaConteudo(n);
+    }
+  };
+  window.fcTeclaNoEditor = function(evento) {
+    if (!(evento.metaKey || evento.ctrlKey)) return;
+    if (evento.key === 'ArrowDown') { evento.preventDefault(); fcIrParaConteudo(state.itemAtivo + 1); }
+    if (evento.key === 'ArrowUp') { evento.preventDefault(); fcIrParaConteudo(state.itemAtivo - 1); }
+  };
+  // Escrever no editor atualiza a linha da lista e o contador sem redesenhar a
+  // tela — redesenhar tiraria o cursor do campo a cada letra.
+  function fcAtualizarLista(n) {
+    const linha = document.querySelector(`.fc-lista-linha[data-lista="${n}"]`);
+    if (!linha) return;
+    const it = state.itens[n];
+    const esc2 = (t) => esc(String(t == null ? '' : t));
+    linha.outerHTML = fcLinhaDaListaHtml(it, n, esc2);
+    const prontos = state.itens.filter(fcItemPronto).length;
+    const cont = document.getElementById('fc-lista-contador');
+    if (cont) cont.textContent = `${prontos} de ${state.itens.length} prontos`;
+    const faltam = document.getElementById('fc-lista-faltam');
+    if (faltam) faltam.textContent = fcFaltamTexto();
+    const opcao = document.querySelector(`.fc-lista-select option[value="${n}"]`);
+    if (opcao) opcao.textContent = `${n + 1} de ${state.itens.length} · ${it.veic ? fcDiaCurto(it.veic) : 'sem data'} · ${it.titulo || 'sem título'}`;
   }
 
   function fcEscalaHtml(esc2) {
@@ -1131,6 +1288,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     }
     state.itens = datas.map(({ veic, prazo }) => ({ titulo: '', veic, prazo, brief: '', arquivos: [] }));
     state.escalaAberta = false;
+    state.itemAtivo = 0;
     fcEspelharPrimeiro();
     fcDesenharPasso();
     document.querySelector('[data-campo="titulo"]')?.focus();
