@@ -20,6 +20,7 @@ import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
 import { logDaPeca, LIMITE_DO_LOG } from '../server/log-de-atividade.js';
+import { listarGrupos, gruposProntos, criarGrupo, editarGrupo, moverGrupoNaOrdem, apagarGrupo, CORES_DE_GRUPO } from '../server/grupos.js';
 import { listarNotas, salvarNota, apagarNota, notasProntas,
   listarCadernos, renomearCaderno, apagarCaderno } from '../server/notas.js';
 
@@ -113,17 +114,11 @@ async function catalogosDeAutomacao() {
     db`SELECT chave, rotulo, cor FROM vybe_status
         WHERE board_id=7829537690 ORDER BY ordem, monday_index`,
     db`SELECT chave, rotulo, cor FROM vybe_captacao ORDER BY monday_index`,
-    // Um mesmo nome de etapa aparece com varios grupo_id (o quadro foi refeito
-    // mais de uma vez). DISTINCT no par devolvia "Finalizados" tres vezes; o
-    // que a pessoa escolhe e o nome, entao a lista e por nome, e fica com o
-    // grupo_id mais usado — que e o que o quadro esta mesmo usando hoje.
-    db`SELECT chave, rotulo FROM (
-         SELECT grupo_id AS chave, etapa AS rotulo, COUNT(*) AS n,
-                ROW_NUMBER() OVER (PARTITION BY etapa ORDER BY COUNT(*) DESC) AS posto
-           FROM vybe_conteudos
-          WHERE grupo_id IS NOT NULL AND etapa IS NOT NULL AND removido_em IS NULL
-          GROUP BY etapa, grupo_id
-       ) t WHERE posto = 1 ORDER BY rotulo`,
+    // A mesma lista de grupos que as telas desenham, do quadro de Produção como
+    // os status acima: um grupo recém-criado, ainda vazio, já pode ser destino
+    // de automação. (Antes a lista saía das etapas usadas pelas atividades.)
+    listarGrupos(db).then((lista) => lista.filter((g) => g.board_id === 7829537690)
+      .map((g) => ({ chave: g.grupo_id, rotulo: g.titulo }))),
     db`SELECT monday_user_id AS chave, nome AS rotulo, foto_url AS foto FROM vybe_pessoas
         WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     db`SELECT chave, rotulo FROM vybe_opcoes
@@ -1479,7 +1474,31 @@ async function areaNotas(req, res, quem) {
   return res.status(405).json({ error: 'Método não permitido.' });
 }
 
-const AREAS = { notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// Grupos de cada quadro: ler é para todos (a tela desenha a partir daqui);
+// criar, renomear, trocar cor, reordenar e apagar é de quem administra — é a
+// estrutura que o time inteiro usa.
+async function areaGrupos(req, res, quem) {
+  const db = sql();
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true, pronto: await gruposProntos(db),
+      grupos: await listarGrupos(db), cores: CORES_DE_GRUPO });
+  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
+  const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
+  if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra muda os grupos.' });
+  const corpo = req.body || {};
+  try {
+    const acoes = { criar: criarGrupo, editar: editarGrupo, mover: moverGrupoNaOrdem, apagar: apagarGrupo };
+    const fazer = acoes[corpo.acao];
+    if (!fazer) return res.status(400).json({ error: 'Ação desconhecida.' });
+    const resultado = await fazer(db, corpo);
+    return res.status(200).json({ ok: true, resultado, grupos: await listarGrupos(db) });
+  } catch (erro) {
+    return res.status(400).json({ error: erro.message });
+  }
+}
+
+const AREAS = { grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar };
 
 export default async function handler(req, res) {

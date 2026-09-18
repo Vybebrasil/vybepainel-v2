@@ -19,6 +19,7 @@ import { neon } from '@neondatabase/serverless';
 import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
 import { pastaDoConteudo, pastaSimples, enviarParaDrive, tornarPublico } from './vybe_drive.js';
 import { nomeCanonico } from './vybe_saneamento.js';
+import { criarTabelaDeGrupos } from './server/grupos.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 export const BOARD_DEMANDAS = 8385559107;
@@ -395,6 +396,8 @@ export async function criarSchema() {
     ON vybe_notas (pessoa_id, atualizado_em DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS vybe_notas_caderno
     ON vybe_notas (pessoa_id, caderno)`;
+  // Nome, cor e ordem dos grupos de cada quadro. Ver server/grupos.js.
+  await criarTabelaDeGrupos(sql);
 
   await sql`CREATE TABLE IF NOT EXISTS vybe_conteudo_eventos (
     id          BIGSERIAL PRIMARY KEY,

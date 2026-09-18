@@ -363,12 +363,26 @@ body.vybe-desktop {
 .quadro-novo { background:#ff984f; color:#281508; border-color:#ffbc88; }
 .grupo-cabecalho { display:flex; align-items:center; gap:12px; padding-right:16px; background:linear-gradient(90deg,color-mix(in srgb,var(--cor-grupo) 10%,transparent),transparent 70%); border-bottom:1px solid #ffffff10; }
 .grupo-cabecalho .grupo-cabeca { flex:1; min-width:0; width:auto; background:transparent !important; border-bottom:0 !important; }
+/* Menu do grupo (vybe-grupos.js): só aparece para quem administra. */
+.grupo-menu-btn { display:grid; place-items:center; width:34px; height:34px; flex:0 0 auto; border:1px solid transparent; border-radius:var(--radius-control,10px); background:transparent; color:var(--text-muted); cursor:pointer; }
+.grupo-menu-btn:hover { background:#ffffff10; border-color:#ffffff20; color:var(--text); }
+.grupo-menu-btn:focus-visible, .grupo-menu-cor:focus-visible, .grupo-menu .status-editor-option:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:2px; }
+.grupo-menu { min-width:220px; }
+.grupo-menu .status-editor-option { padding:7px 10px; font-size:13px; }
+.grupo-menu .status-editor-option:disabled { opacity:.4; cursor:default; background:transparent; color:inherit; }
+.grupo-menu .status-editor-option.perigo { color:#ff8a9b; }
+.grupo-menu .status-editor-option.perigo:hover { background:#e2445c; color:#fff; }
+.grupo-menu-cores { display:grid; grid-template-columns:repeat(6, 1fr); gap:6px; padding:8px 10px; margin:2px 0; border-block:1px solid #ffffff12; }
+.grupo-menu-cor { width:24px; height:24px; border-radius:50%; border:2px solid transparent; background:var(--cor); box-shadow:inset 0 0 0 1px #0000003d; cursor:pointer; justify-self:center; }
+.grupo-menu-cor:hover { transform:scale(1.1); }
+.grupo-menu-cor.atual { border-color:#fff; }
+@media (prefers-reduced-motion: reduce) { .grupo-menu-cor:hover { transform:none; } }
 .vybe-desktop .dem-controles { padding:8px 18px; border-radius:16px; background:#20222acc !important; border-color:#ffffff20 !important; }
 .vybe-desktop .dem-linha { padding:10px 0; gap:10px; border-color:#ffffff0d !important; }
 .vybe-desktop .dem-controles .pill { background:#ffffff05 !important; border-color:#ffffff20 !important; border-radius:8px; font-size:12px; padding:6px 9px; }
 .vybe-desktop .dem-controles .tipo-chip { border-radius:8px; background:#ffffff08 !important; color:#dce0e8 !important; border:1px solid #ffffff20; font-size:12px; }
 .vybe-desktop .dem-controles .tipo-chip.ativo { background:#ff984f20 !important; border-color:#ff984f70 !important; }
-@media(max-width:600px) { .quadro-toolbar { align-items:stretch; flex-direction:column; gap:10px; } .quadro-busca { max-width:none; } .grupo-cabecalho { flex-wrap:wrap; gap:0; padding:0 12px 10px; } .grupo-cabecalho .grupo-cabeca { flex-basis:100%; } .grupo-adicionar { margin-left:12px; } }
+@media(max-width:600px) { .quadro-toolbar { align-items:stretch; flex-direction:column; gap:10px; } .quadro-busca { max-width:none; } .grupo-cabecalho { flex-wrap:wrap; gap:0; padding:0 12px 10px; } .grupo-cabecalho .grupo-cabeca { flex-basis:100%; } .grupo-adicionar { margin-left:12px; } .grupo-menu-btn { margin-left:auto; } }
 
 /* Spotlight: a busca global (⌘K). O vidro, a borda e a sombra vêm da regra
    compartilhada de janelas acima; aqui fica só a forma da janela. No fim da folha

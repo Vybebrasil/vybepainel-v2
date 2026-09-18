@@ -165,7 +165,7 @@ function getInternalCommandEntries(claimed, items=DADOS) {
   getIntegrityIssues(items).forEach(issue => push(issue.d, `Corrigir cadastro: ${issue.reason}`, issue.reason));
   items.filter(d => !isFinishedItem(d) && d.status === 'Ag. Interno')
     .forEach(d => push(d, 'Definir quem valida internamente e liberar a próxima etapa'));
-  items.filter(d => !isFinishedItem(d) && d.grupo === 'Produção (Foto e Vídeo)' && !['Para agendar','Agendado'].includes(d.status))
+  items.filter(d => !isFinishedItem(d) && String(d.group_id) === 'novo_grupo57911__1' && !['Para agendar','Agendado'].includes(d.status))
     .forEach(d => push(d, 'Confirmar captação, material ou responsável pela produção'));
   return entries.sort((a,b) => a.score - b.score || getReferenceDate(a.d).localeCompare(getReferenceDate(b.d)));
 }
@@ -2169,6 +2169,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     ? daControllerPersonId : null;
   const fonte=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(buscaClienteConteudos.toLocaleLowerCase('pt-BR'))))
     .filter(i=>!pessoaDoDa || assignedIds(i).includes(pessoaDoDa));
+  if (typeof garantirGruposDoPainel === 'function') garantirGruposDoPainel();
   const grupos = itensPorGrupo(fonte, cfg.ordem());
   if (botao) {
     const contador = document.getElementById(cfg.contador);
@@ -2207,7 +2208,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
       <div class="grupo-cabecalho"><button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
         <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
-      </button><button type="button" class="grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${safeText(grupo.id)}')" aria-label="Adicionar ${quadro==='demandas'?'demanda':'conteúdo'} em ${safeText(grupo.nome)}">+ ${quadro==='demandas'?'Nova demanda':'Novo conteúdo'}</button></div>${corpo}</section>`;
+      </button>${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome) : ''}<button type="button" class="grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${safeText(grupo.id)}')" aria-label="Adicionar ${quadro==='demandas'?'demanda':'conteúdo'} em ${safeText(grupo.nome)}">+ ${quadro==='demandas'?'Nova demanda':'Novo conteúdo'}</button></div>${corpo}</section>`;
   }).join('');
 
   const totalGeral = grupos.reduce((soma, g) => soma + g.itens.length, 0);

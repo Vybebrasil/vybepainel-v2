@@ -491,7 +491,7 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
   }
   if(filter==='pending')      fi = fi.filter(d=>!isTainara(d.responsavel));
   else if(filter==='ready')   fi = fi.filter(d=>isTainara(d.responsavel));
-  else if(filter==='redacao') fi = fi.filter(d=>d.grupo==='Redação' && d.status==='A Fazer');
+  else if(filter==='redacao') fi = fi.filter(d=>String(d.group_id)==='group_title' && d.status==='A Fazer');
   else if(filter==='design')  fi = fi.filter(d=>isDesign(d.responsavel));
   else if(filter==='edicao')  fi = fi.filter(d=>isEdicao(d.responsavel));
   else if(filter==='status:pending_all') fi = fi.filter(d=>!['Finalizado','Agendado','Para agendar'].includes(d.status));
@@ -670,7 +670,7 @@ function renderByDay(sem, filter, dayFilter) {
   }
   if(filter==='pending')      fi = fi.filter(d=>!isTainara(d.responsavel));
   else if(filter==='ready')   fi = fi.filter(d=>isTainara(d.responsavel));
-  else if(filter==='redacao') fi = fi.filter(d=>d.grupo==='Redação' && d.status==='A Fazer');
+  else if(filter==='redacao') fi = fi.filter(d=>String(d.group_id)==='group_title' && d.status==='A Fazer');
   else if(filter==='design')  fi = fi.filter(d=>isDesign(d.responsavel));
   else if(filter==='edicao')  fi = fi.filter(d=>isEdicao(d.responsavel));
   else if(filter==='status:pending_all') fi = fi.filter(d=>!atividadeDoDiaConcluida(d));
