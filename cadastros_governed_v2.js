@@ -415,6 +415,14 @@ const FC_QUADROS = {
 };
 const FC_PRIORIDADES = ['', 'Crítica', 'Alta', 'Média', 'Baixa', 'Preventiva'];
 function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
+// A regra de entrada (cadastrosDestiny) foi escrita para Produção e devolve os
+// grupos de lá. Em Solicitações isso punha Impresso e Design no "Design &
+// Edição" de Produção — um grupo que não existe no quadro. Grupo de outro quadro
+// cai no primeiro grupo deste.
+function fcGrupoDoQuadro(grupo) {
+  const grupos = fcQuadro().grupos;
+  return grupos.some((g) => g.val === grupo) ? grupo : grupos[0].val;
+}
 
   window.fcTrocarQuadro = function(qual) {
     if (state.board === qual) return;
@@ -456,7 +464,8 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      
      if(state.manualGroup === undefined) {
          const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
-         fcSelectDropdown('manualGroup', dest.group, groups[dest.group] || dest.group, null, false);
+         const grupo = fcGrupoDoQuadro(dest.group);
+         fcSelectDropdown('manualGroup', grupo, groups[grupo] || grupo, null, false);
      }
      
      if(state.manualStatus === undefined) {
@@ -519,7 +528,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      clientEl.textContent = state.client || 'Cliente não selecionado';
      
      const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
-     const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
+     const finalGroup = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
      const finalGroupLabel = groups[finalGroup] || 'Redação';
      const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
      const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
@@ -723,7 +732,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
      }
 
      const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
-     const finalGroup = state.manualGroup !== undefined ? state.manualGroup : dest.group;
+     const finalGroup = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
      const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
      const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
 
