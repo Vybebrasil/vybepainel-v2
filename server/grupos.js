@@ -164,6 +164,23 @@ export async function moverGrupoNaOrdem(sql, { board, grupo_id, direcao } = {}) 
   return { board_id: b, grupos: await gruposDoQuadro(sql, b) };
 }
 
+// Arrastar solta o grupo em qualquer posição: a tela manda a ordem inteira.
+// A lista tem de ter exatamente os grupos do quadro — nem um a mais, nem um a
+// menos —, senão uma tela desatualizada apagaria da ordem um grupo que outra
+// pessoa acabou de criar.
+export async function ordenarGrupos(sql, { board, ordem } = {}) {
+  await exigirTabela(sql);
+  const b = quadroValido(board);
+  const ids = Array.isArray(ordem) ? ordem.map(String) : [];
+  const atuais = (await gruposDoQuadro(sql, b)).map((g) => g.grupo_id);
+  const mesmos = ids.length === atuais.length && new Set(ids).size === ids.length
+    && ids.every((id) => atuais.includes(id));
+  if (!mesmos) throw new Error('A lista de grupos mudou enquanto você arrastava. Recarregue a página e tente de novo.');
+  await sql.transaction(ids.map((id, k) =>
+    sql`UPDATE vybe_grupos SET ordem = ${k + 1}, atualizado_em = NOW() WHERE board_id = ${b} AND grupo_id = ${id}`));
+  return { board_id: b, grupos: await gruposDoQuadro(sql, b) };
+}
+
 // Apagar só grupo vazio: grupo com atividade dentro sumiria com elas da tela.
 // Quem quer apagar move as atividades antes — a tela diz isso.
 export async function apagarGrupo(sql, { board, grupo_id } = {}) {

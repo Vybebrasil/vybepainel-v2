@@ -112,6 +112,14 @@ function botaoDoMenuDoGrupo(quadro, grupoId, nome) {
     <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="currentColor"><circle cx="3.5" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="12.5" cy="8" r="1.4"/></svg></button>`;
 }
 
+function paletaDoGrupoHtml(grupo) {
+  const cores = GRUPOS_DO_PAINEL.cores.length ? GRUPOS_DO_PAINEL.cores : Object.keys(NOMES_DAS_CORES);
+  return `<div class="grupo-menu-cores" role="group" aria-label="Cor do grupo">${cores.map((c) => `
+      <button type="button" class="grupo-menu-cor${c === grupo.cor ? ' atual' : ''}" data-cor="${c}"
+        style="--cor:${c}" aria-label="${NOMES_DAS_CORES[c] || c}${c === grupo.cor ? ' (atual)' : ''}"
+        title="${NOMES_DAS_CORES[c] || c}"></button>`).join('')}</div>`;
+}
+
 function fecharMenuDoGrupo() {
   document.getElementById('grupo-menu-fundo')?.remove();
   document.getElementById('grupo-menu')?.remove();
@@ -137,13 +145,9 @@ function abrirMenuDoGrupo(event, quadro, grupoId) {
   menu.setAttribute('role', 'menu');
   const item = (rotulo, acao, { desligado = false, perigo = false } = {}) =>
     `<button type="button" role="menuitem" class="status-editor-option${perigo ? ' perigo' : ''}" data-acao="${acao}" ${desligado ? 'disabled' : ''}>${rotulo}</button>`;
-  const cores = (GRUPOS_DO_PAINEL.cores.length ? GRUPOS_DO_PAINEL.cores : Object.keys(NOMES_DAS_CORES));
   menu.innerHTML = `<div class="status-editor-head">${safeText(grupo.titulo)}</div>
     ${item('Renomear…', 'renomear')}
-    <div class="grupo-menu-cores" role="group" aria-label="Cor do grupo">${cores.map((c) => `
-      <button type="button" class="grupo-menu-cor${c === grupo.cor ? ' atual' : ''}" data-cor="${c}"
-        style="--cor:${c}" aria-label="${NOMES_DAS_CORES[c] || c}${c === grupo.cor ? ' (atual)' : ''}"
-        title="${NOMES_DAS_CORES[c] || c}"></button>`).join('')}</div>
+    ${paletaDoGrupoHtml(grupo)}
     ${item('Mover para cima', 'subir', { desligado: i === 0 })}
     ${item('Mover para baixo', 'descer', { desligado: i === grupos.length - 1 })}
     ${item('Novo grupo abaixo…', 'novo')}
@@ -195,7 +199,7 @@ async function renomearGrupo(quadro, grupo) {
 
 async function novoGrupo(quadro, depoisDe) {
   const nome = await perguntarNoPainel({ titulo: 'Novo grupo', confirmar: 'Criar grupo',
-    texto: `Entra logo abaixo de "${depoisDe.titulo}". A cor dá para trocar depois, no mesmo menu.`,
+    texto: `Entra logo abaixo de "${depoisDe.titulo}". A cor dá para trocar depois, clicando na faixa colorida à esquerda do grupo.`,
     campo: { valor: '', dica: 'Nome do grupo' } });
   if (!nome) return;
   // Uma cor que o quadro ainda não usa, para o grupo novo não se confundir com
@@ -212,3 +216,155 @@ async function apagarGrupoDoQuadro(quadro, grupo) {
   if (!ok) return;
   await mudarGrupo(quadro, { acao: 'apagar', grupo_id: grupo.grupo_id }, `Grupo "${grupo.titulo}" apagado.`);
 }
+
+// ── Direto na lista: faixa de cor, alça de arrastar, novo grupo no fim ──────────
+// O menu ⋯ fazia tudo, mas escondido. Quem arruma o quadro quer mexer onde vê:
+// a faixa colorida troca a cor, a alça muda a ordem, o fim da lista cria grupo.
+function grupoEditavelNaTela(quadro, grupoId) {
+  return podeEditarGrupos() && gruposDoQuadroNaTela(quadro).some((g) => g.grupo_id === grupoId);
+}
+
+function controlesDoGrupo(quadro, grupoId, nome) {
+  if (!grupoEditavelNaTela(quadro, grupoId)) return '';
+  const id = safeText(grupoId);
+  return `<button type="button" class="grupo-cor-btn" onclick="abrirPaletaDoGrupo(event,'${quadro}','${id}')"
+      aria-label="Trocar a cor do grupo ${safeText(nome)}" title="Trocar cor"></button>
+    <button type="button" class="grupo-alca" draggable="true" data-alca-grupo="${id}" data-quadro="${quadro}"
+      onkeydown="teclaNaAlcaDoGrupo(event,'${quadro}','${id}')"
+      aria-label="Mover o grupo ${safeText(nome)}: arraste, ou use as setas para cima e para baixo"
+      title="Arraste para mudar a ordem"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor">
+      <circle cx="5.5" cy="3.5" r="1.3"/><circle cx="10.5" cy="3.5" r="1.3"/><circle cx="5.5" cy="8" r="1.3"/>
+      <circle cx="10.5" cy="8" r="1.3"/><circle cx="5.5" cy="12.5" r="1.3"/><circle cx="10.5" cy="12.5" r="1.3"/></svg></button>`;
+}
+
+function botaoNovoGrupoNoFim(quadro) {
+  if (!podeEditarGrupos() || !gruposDoQuadroNaTela(quadro).length) return '';
+  return `<button type="button" class="grupo-novo-fim" onclick="novoGrupoNoFim('${quadro}')">+ Novo grupo</button>`;
+}
+
+function novoGrupoNoFim(quadro) {
+  const grupos = gruposDoQuadroNaTela(quadro);
+  if (grupos.length) novoGrupo(quadro, grupos[grupos.length - 1]);
+}
+
+function renomearGrupoPeloNome(event, quadro, grupoId) {
+  if (!grupoEditavelNaTela(quadro, grupoId)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const grupo = gruposDoQuadroNaTela(quadro).find((g) => g.grupo_id === grupoId);
+  if (grupo) renomearGrupo(quadro, grupo);
+}
+
+function abrirPaletaDoGrupo(event, quadro, grupoId) {
+  event.preventDefault();
+  event.stopPropagation();
+  fecharMenuDoGrupo();
+  const grupo = gruposDoQuadroNaTela(quadro).find((g) => g.grupo_id === grupoId);
+  if (!grupo) return;
+  const origem = event.currentTarget;
+  const fundo = document.createElement('div');
+  fundo.id = 'grupo-menu-fundo';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = fecharMenuDoGrupo;
+  const menu = document.createElement('div');
+  menu.id = 'grupo-menu';
+  menu.className = 'status-editor grupo-menu';
+  menu.innerHTML = `<div class="status-editor-head">Cor de ${safeText(grupo.titulo)}</div>${paletaDoGrupoHtml(grupo)}`;
+  menu.onclick = (e) => {
+    const cor = e.target.closest('[data-cor]')?.dataset.cor;
+    if (!cor) return;
+    fecharMenuDoGrupo();
+    if (cor !== grupo.cor) mudarGrupo(quadro, { acao: 'editar', grupo_id: grupoId, cor }, null);
+    origem.focus?.();
+  };
+  menu.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); fecharMenuDoGrupo(); origem.focus(); } };
+  document.body.append(fundo, menu);
+  if (typeof ancorarPopover === 'function') ancorarPopover(menu, origem.getBoundingClientRect());
+  menu.querySelector('.grupo-menu-cor.atual, .grupo-menu-cor')?.focus();
+}
+
+async function teclaNaAlcaDoGrupo(event, quadro, grupoId) {
+  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+  event.preventDefault();
+  const ids = gruposDoQuadroNaTela(quadro).map((g) => g.grupo_id);
+  const i = ids.indexOf(grupoId);
+  const j = i + (event.key === 'ArrowUp' ? -1 : 1);
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  await reordenarGrupos(quadro, ids);
+  document.querySelector(`[data-alca-grupo="${grupoId}"]`)?.focus();
+}
+
+// A tela muda na hora (quem arrasta espera ver o grupo onde soltou) e volta se
+// o servidor recusar — nunca fica mostrando uma ordem que não foi gravada.
+async function reordenarGrupos(quadro, ids) {
+  const antes = GRUPOS_DO_PAINEL.lista.map((g) => ({ ...g }));
+  const board = Number(QUADRO_ID()[quadro]);
+  const posicao = new Map(ids.map((id, k) => [id, k + 1]));
+  const nova = antes.map((g) => (Number(g.board_id) === board && posicao.has(g.grupo_id)
+    ? { ...g, ordem: posicao.get(g.grupo_id) } : g))
+    .sort((a, b) => Number(a.board_id) - Number(b.board_id) || a.ordem - b.ordem);
+  aplicarGruposNaTela(nova);
+  redesenharGrupos();
+  const ok = await mudarGrupo(quadro, { acao: 'ordenar', ordem: ids }, null);
+  if (!ok) { aplicarGruposNaTela(antes); redesenharGrupos(); }
+}
+
+const ARRASTO_DE_GRUPO = { quadro: '', id: '' };
+function limparMarcasDeArrasto() {
+  document.querySelectorAll('.grupo-bloco.soltar-antes, .grupo-bloco.soltar-depois, .grupo-bloco.arrastando')
+    .forEach((el) => el.classList.remove('soltar-antes', 'soltar-depois', 'arrastando'));
+}
+function blocoDeDestino(event) {
+  const bloco = event.target.closest?.('.grupo-bloco[data-grupo]');
+  if (!bloco || !ARRASTO_DE_GRUPO.id || bloco.dataset.quadro !== ARRASTO_DE_GRUPO.quadro) return null;
+  if (!gruposDoQuadroNaTela(ARRASTO_DE_GRUPO.quadro).some((g) => g.grupo_id === bloco.dataset.grupo)) return null;
+  const r = bloco.getBoundingClientRect();
+  // Recolhido, o bloco é só o cabeçalho; aberto, a metade de cima do cabeçalho
+  // já conta como "antes" — medir pelo bloco inteiro exigiria arrastar até o
+  // meio de uma tabela de cinquenta linhas.
+  const cabeca = bloco.querySelector('.grupo-cabecalho')?.getBoundingClientRect() || r;
+  const antes = event.clientY < cabeca.top + cabeca.height / 2;
+  return { bloco, antes };
+}
+document.addEventListener('dragstart', (event) => {
+  const alca = event.target.closest?.('.grupo-alca');
+  if (!alca) return;
+  ARRASTO_DE_GRUPO.quadro = alca.dataset.quadro;
+  ARRASTO_DE_GRUPO.id = alca.dataset.alcaGrupo;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', ARRASTO_DE_GRUPO.id);
+  const bloco = alca.closest('.grupo-bloco');
+  const cabecalho = bloco?.querySelector('.grupo-cabecalho');
+  if (cabecalho) event.dataTransfer.setDragImage(cabecalho, 24, 20);
+  requestAnimationFrame(() => bloco?.classList.add('arrastando'));
+});
+document.addEventListener('dragover', (event) => {
+  const alvo = blocoDeDestino(event);
+  if (!alvo) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.grupo-bloco.soltar-antes, .grupo-bloco.soltar-depois').forEach((el) => {
+    if (el !== alvo.bloco) el.classList.remove('soltar-antes', 'soltar-depois');
+  });
+  alvo.bloco.classList.toggle('soltar-antes', alvo.antes);
+  alvo.bloco.classList.toggle('soltar-depois', !alvo.antes);
+});
+document.addEventListener('drop', (event) => {
+  const alvo = blocoDeDestino(event);
+  if (!alvo) return;
+  event.preventDefault();
+  const { quadro, id } = ARRASTO_DE_GRUPO;
+  limparMarcasDeArrasto();
+  const atuais = gruposDoQuadroNaTela(quadro).map((g) => g.grupo_id);
+  const ids = atuais.filter((x) => x !== id);
+  const k = ids.indexOf(alvo.bloco.dataset.grupo);
+  if (k < 0) return;
+  ids.splice(alvo.antes ? k : k + 1, 0, id);
+  if (ids.join('|') !== atuais.join('|')) reordenarGrupos(quadro, ids);
+});
+document.addEventListener('dragend', () => {
+  ARRASTO_DE_GRUPO.quadro = '';
+  ARRASTO_DE_GRUPO.id = '';
+  limparMarcasDeArrasto();
+});

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { conexao } from './postgres.mjs';
 import { grupoDoQuadro } from '../api/conteudo.js';
 import { criarTabelaDeGrupos, listarGrupos, gruposDoQuadro, criarGrupo, editarGrupo,
-  moverGrupoNaOrdem, apagarGrupo, BOARD_PRODUCAO as PRODUCAO, BOARD_DEMANDAS as DEMANDAS } from '../server/grupos.js';
+  moverGrupoNaOrdem, ordenarGrupos, apagarGrupo, BOARD_PRODUCAO as PRODUCAO, BOARD_DEMANDAS as DEMANDAS } from '../server/grupos.js';
 
 async function banco({ comTabela = true } = {}) {
   const { db, sql } = conexao();
@@ -93,4 +93,19 @@ test('atividade só entra em grupo do próprio quadro — inclusive num grupo re
   const novo = await criarGrupo(sql, { board: DEMANDAS, titulo: 'Orçamento' });
   assert.equal(await grupoDoQuadro(sql, novo.grupo_id, DEMANDAS), 'Orçamento');
   assert.equal((await listarGrupos(sql)).length, 10);
+});
+
+test('arrastar grava a ordem inteira, e recusa uma lista desatualizada', async () => {
+  const sql = await banco();
+  await ordenarGrupos(sql, { board: DEMANDAS,
+    ordem: ['novo_grupo_mkkyx8pv', 'group_mm187437', 'novo_grupo_mkmkjdqd', 'novo_grupo_mkkyfhtw'] });
+  assert.deepEqual(nomes(await gruposDoQuadro(sql, DEMANDAS)),
+    ['Concluídas', 'Novas Demandas/Ideias', 'A Fazer', 'Em Execução']);
+  // Falta um grupo (criado por outra pessoa depois que a tela carregou).
+  await criarGrupo(sql, { board: DEMANDAS, titulo: 'Orçamento' });
+  await assert.rejects(ordenarGrupos(sql, { board: DEMANDAS,
+    ordem: ['group_mm187437', 'novo_grupo_mkkyx8pv', 'novo_grupo_mkmkjdqd', 'novo_grupo_mkkyfhtw'] }), /mudou enquanto você arrastava/);
+  // Repetido ou de outro quadro também não passa.
+  await assert.rejects(ordenarGrupos(sql, { board: PRODUCAO,
+    ordem: ['group_title', 'group_title', 'novo_grupo__1', 'novo_grupo22352__1', 'novo_grupo31348__1'] }), /mudou/);
 });

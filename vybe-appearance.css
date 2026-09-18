@@ -377,6 +377,30 @@ body.vybe-desktop {
 .grupo-menu-cor:hover { transform:scale(1.1); }
 .grupo-menu-cor.atual { border-color:#fff; }
 @media (prefers-reduced-motion: reduce) { .grupo-menu-cor:hover { transform:none; } }
+/* Para quem administra, a faixa colorida é o botão de cor e há uma alça de
+   arrastar. A faixa sai da borda do cabeçalho e passa para o botão, para não
+   desenhar duas. */
+.grupo-bloco.editavel .grupo-cabecalho { position:relative; padding-left:14px; }
+.grupo-bloco.editavel .grupo-cabeca { border-left-color:transparent; border-left-width:0; padding-left:6px; }
+.grupo-cor-btn { position:absolute; left:0; top:0; bottom:0; width:14px; padding:0; border:0; background:transparent; cursor:pointer; }
+.grupo-cor-btn::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--cor-grupo,#7c8797); transition:width .12s; }
+.grupo-cor-btn:hover::before, .grupo-cor-btn:focus-visible::before { width:8px; }
+.grupo-cor-btn:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:-2px; }
+.grupo-alca { display:grid; place-items:center; width:26px; height:34px; flex:0 0 auto; margin-left:4px; padding:0; border:0; border-radius:8px; background:transparent; color:var(--text-muted); cursor:grab; opacity:.55; }
+.grupo-bloco.editavel:hover .grupo-alca, .grupo-alca:focus-visible { opacity:1; }
+.grupo-alca:hover { background:#ffffff10; color:var(--text); }
+.grupo-alca:active { cursor:grabbing; }
+.grupo-alca:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:1px; }
+.grupo-bloco.arrastando { opacity:.45; }
+/* Onde o grupo vai cair: uma linha na cor da marca, acima ou abaixo do alvo. */
+.grupo-bloco.soltar-antes { box-shadow:inset 0 3px 0 var(--accent,#ff6b00); }
+.grupo-bloco.soltar-depois { box-shadow:inset 0 -3px 0 var(--accent,#ff6b00); }
+.grupo-novo-fim { display:block; width:calc(100% - 32px); margin:12px 16px 16px; padding:10px 14px; border:1px dashed #ffffff2e; border-radius:var(--radius-control,10px); background:transparent; color:var(--text-muted); font:500 13px var(--mac-ui); text-align:left; cursor:pointer; }
+.grupo-novo-fim:hover { border-color:#ff984f80; color:#ffd0ab; background:#ff984f0d; }
+.grupo-novo-fim:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:2px; }
+@media (prefers-reduced-motion: reduce) { .grupo-cor-btn::before { transition:none; } }
+/* No celular arrastar é impreciso: a ordem fica no menu ⋯ (mover para cima/baixo). */
+@media (max-width:700px) { .grupo-alca { display:none; } }
 .vybe-desktop .dem-controles { padding:8px 18px; border-radius:16px; background:#20222acc !important; border-color:#ffffff20 !important; }
 .vybe-desktop .dem-linha { padding:10px 0; gap:10px; border-color:#ffffff0d !important; }
 .vybe-desktop .dem-controles .pill { background:#ffffff05 !important; border-color:#ffffff20 !important; border-radius:8px; font-size:12px; padding:6px 9px; }

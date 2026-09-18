@@ -2204,10 +2204,11 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
         </table>
       </div>
       ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${peca(restam)}</button>` : ''}`;
-    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
-      <div class="grupo-cabecalho"><button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
+    const controles = typeof controlesDoGrupo === 'function' ? controlesDoGrupo(quadro, grupo.id, grupo.nome) : '';
+    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}${controles ? ' editavel' : ''}" data-grupo="${safeText(grupo.id)}" data-quadro="${quadro}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
+      <div class="grupo-cabecalho">${controles}<button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
-        <span class="grupo-titulo"><b>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
+        <span class="grupo-titulo"><b${controles ? ` ondblclick="renomearGrupoPeloNome(event,'${quadro}','${safeText(grupo.id)}')" title="Clique duplo para renomear"` : ''}>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
       </button>${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome) : ''}<button type="button" class="grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${safeText(grupo.id)}')" aria-label="Adicionar ${quadro==='demandas'?'demanda':'conteúdo'} em ${safeText(grupo.nome)}">+ ${quadro==='demandas'?'Nova demanda':'Novo conteúdo'}</button></div>${corpo}</section>`;
   }).join('');
 
@@ -2220,7 +2221,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   wrap.innerHTML = `${barra}<div class="grupos-head">
       <div><div class="grupos-titulo" title="Clique num grupo para recolher, numa linha para abrir a atividade">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div></div>
       <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'conteúdos'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
-    </div>${quadro==='producao' ? `<div class="quadro-toolbar"><label class="quadro-busca">Buscar por cliente<input id="busca-cliente-conteudos" type="search" placeholder="Nome do cliente…" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label><button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'producao'})">+ Novo conteúdo</button></div>` : ''}${blocos || `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
+    </div>${quadro==='producao' ? `<div class="quadro-toolbar"><label class="quadro-busca">Buscar por cliente<input id="busca-cliente-conteudos" type="search" placeholder="Nome do cliente…" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label><button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'producao'})">+ Novo conteúdo</button></div>` : ''}${blocos ? blocos + (typeof botaoNovoGrupoNoFim === 'function' ? botaoNovoGrupoNoFim(quadro) : '') : `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
 }
 
 // ── ações em lote ────────────────────────────────────────────────────────────
