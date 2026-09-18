@@ -868,6 +868,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
   // o que eles sempre fizeram. A cor do status ia repetida 1.853 vezes para 18
   // status distintos; o nome do responsável, para 7 pessoas.
   const catalogosPedidos = catalogos ? catalogosDoQuadro(boardId, { sql }) : null;
+  const colunaDeFormato = Number(boardId) === BOARD_DEMANDAS ? COLUNAS_DEMANDAS.tipo : 'lista_suspensa0__1';
 
   const respostas = await Promise.allSettled([
     sql`
@@ -875,10 +876,12 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
         COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS id,
         c.titulo                                AS nome,
         -- O rótulo sai do catálogo, não de uma cópia em texto: assim renomear
-        -- no Monday muda o que aparece sem mexer em regra nenhuma.
+        -- no Monday muda o que aparece sem mexer em regra nenhuma. O catálogo
+        -- é o do quadro: em Solicitações o "Tipo de demanda" é outra coluna, e
+        -- procurar na de Produção fazia o tipo escolhido virar "—" na leitura.
         (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY k.ord)
            FROM UNNEST(c.formato_chaves) WITH ORDINALITY AS k(chave, ord)
-           JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa0__1' AND o.chave=k.chave) AS formato,
+           JOIN vybe_opcoes o ON o.coluna_id=${colunaDeFormato} AND o.chave=k.chave) AS formato,
         c.formato_chaves,
         (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY k.ord)
            FROM UNNEST(c.tipo_conteudo_chaves) WITH ORDINALITY AS k(chave, ord)

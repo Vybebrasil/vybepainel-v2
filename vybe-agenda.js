@@ -1785,12 +1785,25 @@ function fecharEscolha() {
 // Prioridade e color_mm164yv8 em Producao e color_mkwtgakv em Solicitacoes.
 // Por isso o lote viaja pelo ROTULO, e cada peca reencontra a chave no catalogo
 // dela — mandar a chave de um quadro para o outro gravaria em coluna errada.
+// A lista de Solicitações é outra (DADOS_DEMANDAS) e chama o formato de 'tipo'.
+// O applyOutboundItemPatch só conhece a de Produção: o tipo escolhido gravava no
+// banco e a linha continuava com o valor antigo, porque é daqui que ela nasce.
+function espelharEscolhaNaDemanda(itemId, campo, rotulo) {
+  const nome = campo === 'formato' ? 'tipo' : campo;
+  (typeof DADOS_DEMANDAS === 'undefined' ? [] : DADOS_DEMANDAS || []).forEach((d) => {
+    if (String(d.id) !== String(itemId)) return;
+    d[nome] = rotulo || '';
+    d.updated_at = new Date().toISOString();
+  });
+}
+
 async function gravarEscolhaNoItem(item, campo, rotulo) {
   if (!campoExisteNoQuadro(campo, item)) throw new Error('campo não existe neste quadro');
   const alvo = rotulo ? catalogoDoCampo(campo, item).find((o) => o.rotulo === rotulo) : null;
   if (rotulo && !alvo) throw new Error(`sem "${rotulo}" no catálogo desta peça`);
   const deu = await salvarCampoDaFicha(item.id, campo, alvo ? alvo.chave : '', null);
   if (!deu) throw new Error('gravação recusada');
+  espelharEscolhaNaDemanda(item.id, campo, rotulo);
   applyOutboundItemPatch(item.id, { [campo]: rotulo || '' }, `${campo} em lote`);
 }
 
@@ -1807,7 +1820,9 @@ async function escolherValor(itemId, campo, chave) {
       (item) => gravarEscolhaNoItem(item, campo, rotulo));
   }
   const deuCerto = await salvarCampoDaFicha(itemId, campo, chave, null);
-  if (deuCerto) applyOutboundItemPatch(itemId, { [campo]: rotulo }, campo);
+  if (!deuCerto) return;
+  espelharEscolhaNaDemanda(itemId, campo, rotulo);
+  applyOutboundItemPatch(itemId, { [campo]: rotulo }, campo);
 }
 
 function linhaDeGrupoHtml(item) {

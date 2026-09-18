@@ -14,7 +14,7 @@ import { neon } from '@neondatabase/serverless';
 import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, baixarDoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
-import { garantirMaterialBruto } from '../vybe_dominio_store.js';
+import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
@@ -309,7 +309,9 @@ async function areaPeca(req, res, quem) {
            k.rotulo  AS captacao,
            (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY x.ord)
               FROM UNNEST(c.formato_chaves) WITH ORDINALITY AS x(chave, ord)
-              JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa0__1' AND o.chave=x.chave) AS formato,
+              -- Em Solicitações o formato é o "Tipo de demanda", outra coluna.
+              JOIN vybe_opcoes o ON o.chave=x.chave AND o.coluna_id=(CASE WHEN c.board_id=${BOARD_DEMANDAS}
+                THEN 'dropdown_mkv8d52z' ELSE 'lista_suspensa0__1' END)) AS formato,
            (SELECT STRING_AGG(o.rotulo, ', ' ORDER BY x.ord)
               FROM UNNEST(c.tipo_conteudo_chaves) WITH ORDINALITY AS x(chave, ord)
               JOIN vybe_opcoes o ON o.coluna_id='lista_suspensa__1' AND o.chave=x.chave) AS tipo_conteudo,

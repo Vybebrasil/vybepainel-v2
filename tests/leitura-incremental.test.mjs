@@ -322,3 +322,25 @@ test('cada peça diz quando foi criada e quem cadastrou', async () => {
   assert.equal(por['900'].criado_em, '2026-08-02T12:00');
   assert.equal(por['900'].cadastrado_por, undefined);
 });
+
+test('o tipo de uma solicitação sai do catálogo de Solicitações, não do de Produção', async () => {
+  const sql = await banco();
+  const DEMANDAS = 8385559107;
+  // "Site" só existe como Tipo de demanda; "Carrossel" tem a mesma chave nos dois
+  // catálogos, com rótulos diferentes — é o caso que mascarava o erro.
+  await sql`INSERT INTO vybe_opcoes VALUES ('dropdown_mkv8d52z','site','Site','#0f0','#0f0',1,true,1),
+    ('dropdown_mkv8d52z','carrossel','Carrossel (demanda)','#0f0','#0f0',2,true,2)`;
+  await sql`INSERT INTO vybe_status VALUES (${DEMANDAS},'pode_fazer','Pode Fazer','#0ff','#0ff',1,false,true,1)`;
+  await sql`INSERT INTO vybe_conteudos (id,titulo,board_id,prazo,formato_chaves,clientes_texto,status_chave)
+    VALUES (5,'Novo site',${DEMANDAS},'2026-09-25',ARRAY['site'],'ACE','pode_fazer'),
+           (6,'Carrossel pedido',${DEMANDAS},'2026-09-25',ARRAY['carrossel'],'ACE','pode_fazer')`;
+  await sql`INSERT INTO vybe_conteudo_clientes VALUES (5,2),(6,2)`;
+  await aplicarRecorteECarimbo(sql);
+  const { itens } = await listarConteudos(DEMANDAS, { sql, catalogos: false });
+  const por = Object.fromEntries(itens.map((i) => [i.id, i]));
+  assert.equal(por['vybe:5'].formato, 'Site');
+  assert.equal(por['vybe:6'].formato, 'Carrossel (demanda)');
+  // Produção continua lendo o catálogo dela.
+  const producao = await listarConteudos(PRODUCAO, { sql, catalogos: false });
+  assert.equal(producao.itens.find((i) => i.id === '900').formato, 'Carrossel');
+});
