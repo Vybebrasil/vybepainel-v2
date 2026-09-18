@@ -293,7 +293,7 @@ function cadastroTitulosColados(texto) {
       .fc-lista-topo { display:grid; gap:2px; }
       .fc-lista-topo b { color:#e7ecf5; font:600 13px var(--mac-ui, system-ui); }
       .fc-lista-topo small { color:#ffb0bc; font:500 12px var(--mac-ui, system-ui); }
-      .fc-lista-linhas { display:grid; gap:2px; max-height:min(52vh, 460px); overflow-y:auto; padding:2px; }
+      .fc-lista-linhas { position:relative; display:grid; gap:2px; max-height:min(52vh, 460px); overflow-y:auto; padding:2px; }
       .fc-lista-linha { display:grid; grid-template-columns:14px auto minmax(0,1fr); align-items:center; gap:8px;
         padding:8px 10px; border:0; border-radius:9px; background:transparent; color:#c3cad6; text-align:left; cursor:pointer;
         font:500 12.5px var(--mac-ui, system-ui); }
@@ -1198,9 +1198,22 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     const titulo = document.querySelector('.fc-editor [data-campo="titulo"]');
     const alvo = String(state.itens[state.itemAtivo]?.titulo || '').trim()
       ? document.querySelector('.fc-editor-briefing') : titulo;
-    alvo?.focus();
-    document.querySelector(`.fc-lista-linha[data-lista="${state.itemAtivo}"]`)?.scrollIntoView({ block: 'nearest' });
+    alvo?.focus({ preventScroll: true });
+    fcMostrarNaLista(state.itemAtivo);
   };
+  // Rola so a lista, e so o necessario: scrollIntoView tambem arrastaria a
+  // janela do cadastro, e uma linha ja visivel nao deve sair do lugar.
+  function fcMostrarNaLista(n) {
+    const lista = document.querySelector('.fc-lista-linhas');
+    const linha = lista?.querySelector(`.fc-lista-linha[data-lista="${n}"]`);
+    if (!lista || !linha || !lista.clientHeight) return;
+    // Medido pelo offset dentro da lista (position:relative): a janela entra
+    // com escala, e medidas de tela sairiam proporcionalmente erradas.
+    const topo = linha.offsetTop;
+    const base = topo + linha.offsetHeight;
+    if (topo < lista.scrollTop) lista.scrollTop = topo;
+    else if (base > lista.scrollTop + lista.clientHeight) lista.scrollTop = base - lista.clientHeight;
+  }
   window.fcProximoSemBriefing = function() {
     const total = state.itens.length;
     for (let passo = 1; passo <= total; passo += 1) {
@@ -1216,11 +1229,19 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
   // Escrever no editor atualiza a linha da lista e o contador sem redesenhar a
   // tela — redesenhar tiraria o cursor do campo a cada letra.
   function fcAtualizarLista(n) {
+    // A linha muda no lugar: trocar o elemento inteiro a cada letra fazia o
+    // Safari devolver a lista para o topo.
     const linha = document.querySelector(`.fc-lista-linha[data-lista="${n}"]`);
     if (!linha) return;
     const it = state.itens[n];
-    const esc2 = (t) => esc(String(t == null ? '' : t));
-    linha.outerHTML = fcLinhaDaListaHtml(it, n, esc2);
+    const pronto = fcItemPronto(it);
+    linha.classList.toggle('pronta', pronto);
+    const icone = linha.querySelector('i');
+    if (icone) icone.textContent = pronto ? '✓' : '●';
+    const data = linha.querySelector('.fc-lista-data');
+    if (data) data.textContent = it.veic ? fcDiaCurto(it.veic) : 'sem data';
+    const titulo = linha.querySelector('.fc-lista-titulo');
+    if (titulo) titulo.textContent = it.titulo || 'sem título';
     const prontos = state.itens.filter(fcItemPronto).length;
     const cont = document.getElementById('fc-lista-contador');
     if (cont) cont.textContent = `${prontos} de ${state.itens.length} prontos`;
@@ -1387,6 +1408,15 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     const p = FC_PASSOS[fcPasso];
     const [titulo, sub] = fcPergunta(p);
     const ultimo = fcPasso === FC_PASSOS.length - 1;
+    // Redesenhar o mesmo passo (trocar de conteudo na lista, gerar a escala)
+    // nao pode devolver a lista nem a janela para o topo: quem esta no 25 de
+    // 40 continua vendo o 25.
+    const mesmoPasso = caixa.dataset.passo === String(fcPasso);
+    const rolagem = mesmoPasso ? {
+      lista: caixa.querySelector('.fc-lista-linhas')?.scrollTop || 0,
+      corpo: caixa.closest('.fc-body')?.scrollTop || 0,
+    } : null;
+    caixa.dataset.passo = String(fcPasso);
 
     caixa.innerHTML = `
       <div class="fc-trilha">${FC_PASSOS.map((q, i) => `
@@ -1407,8 +1437,14 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     // escrito: sem isto ele apareceria cortado na altura minima.
     caixa.querySelectorAll('.fc-campo-texto').forEach((t) => fcCrescerTexto(t));
     updateDestinyUI();
+    if (rolagem) {
+      const lista = caixa.querySelector('.fc-lista-linhas');
+      if (lista) lista.scrollTop = rolagem.lista;
+      const corpo = caixa.closest('.fc-body');
+      if (corpo) corpo.scrollTop = rolagem.corpo;
+    }
     const foco = caixa.querySelector('#fc-busca-cliente, [data-campo="titulo"]');
-    if (foco) foco.focus();
+    if (foco) foco.focus({ preventScroll: Boolean(rolagem) });
   };
 
     // Aceita o que quem chama ja sabe: {client, veic, prazo, board}. Quem abre
