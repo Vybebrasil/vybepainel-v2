@@ -197,6 +197,7 @@ const CRIACAO_POR_BOARD = {
   },
   [BOARD_DEMANDAS_ID]: {
     grupoPadrao: 'group_mm187437',
+    grupos: ['group_mm187437', 'novo_grupo_mkmkjdqd', 'novo_grupo_mkkyfhtw', 'novo_grupo_mkkyx8pv'],
     cliente: 'lista_suspensa_mkmet5gs',
     status: 'status', prazo: 'data', segundaData: 'data_mkky6jx',
     formato: 'dropdown_mkv8d52z', prioridade: 'color_mkwtgakv',
@@ -612,6 +613,18 @@ async function trocarTitulo(sql, quem, { item, titulo }) {
   return { conteudo_id: c.id, de: c.titulo, para: novo, replica_monday: replica };
 }
 
+// Grupo de outro quadro deixava a atividade num grupo que a tela do quadro dela
+// não conhece — cinco solicitações foram parar no "Design & Edição" de Produção
+// assim, pelo cadastro.
+export function exigirGrupoDoQuadro(grupoId, boardId) {
+  const deDemandas = CRIACAO_POR_BOARD[BOARD_DEMANDAS_ID].grupos;
+  const doQuadro = Number(boardId) === BOARD_DEMANDAS_ID ? deDemandas
+    : Object.keys(GRUPO_TITULO).filter((g) => !deDemandas.includes(g));
+  if (!doQuadro.includes(grupoId)) {
+    throw new Error(`O grupo "${GRUPO_TITULO[grupoId] || grupoId}" não pertence a este quadro.`);
+  }
+}
+
 // Mover de grupo só existia dentro das automações. Nenhuma tela oferecia, então
 // um conteúdo no grupo errado não tinha conserto pelo painel.
 async function moverGrupo(sql, quem, { item, grupo_id }) {
@@ -622,6 +635,7 @@ async function moverGrupo(sql, quem, { item, grupo_id }) {
     WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const conteudo = linhas[0];
+  exigirGrupoDoQuadro(grupo_id, conteudo.board_id);
 
   await sql`UPDATE vybe_conteudos SET grupo_id=${grupo_id}, etapa=${titulo}, atualizado_em=NOW()
     WHERE id=${conteudo.id}`;
@@ -766,6 +780,7 @@ async function criarConteudo(sql, quem, dados) {
   // campo 'grupo'. Não é a coluna "Tipo de conteúdo" do Monday, que é outra
   // coisa e é dropdown.
   const grupo = grupo_id || C.grupoPadrao;
+  exigirGrupoDoQuadro(grupo, board);
   const etapa = GRUPO_TITULO[grupo] || null;
   if (!titulo || !cliente) throw new Error('Informe ao menos título e cliente.');
 
