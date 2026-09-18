@@ -62,7 +62,6 @@ async function trocarStatus(sql, quem, { item, para }) {
     WHERE (c.monday_item_id = ${String(item)} OR c.id = ${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const conteudo = linhas[0];
-  exigirGrupoDoQuadro(grupo_id, conteudo.board_id);
 
   // O painel so conhece o NOME do status; a chave ele deduz do nome. Quando as
   // duas se separaram no banco — a juncao renomeava o rotulo e deixava a chave
@@ -636,6 +635,7 @@ async function moverGrupo(sql, quem, { item, grupo_id }) {
     WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const conteudo = linhas[0];
+  exigirGrupoDoQuadro(grupo_id, conteudo.board_id);
 
   await sql`UPDATE vybe_conteudos SET grupo_id=${grupo_id}, etapa=${titulo}, atualizado_em=NOW()
     WHERE id=${conteudo.id}`;
