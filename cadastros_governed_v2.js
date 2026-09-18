@@ -384,7 +384,10 @@ const FC_QUADROS = {
   producao: {
     id: 7829537690,
     nome: 'Produção de conteúdo',
-    grupos: [
+    // Os grupos vêm do banco (vybe-grupos.js); a lista fixa é a rede para
+    // quando a leitura ainda não chegou.
+    get grupos() { return (typeof gruposParaCadastro === 'function' && gruposParaCadastro('producao')) || this.gruposFixos; },
+    gruposFixos: [
       { val: 'group_title', label: 'Redação' },
       { val: 'novo_grupo__1', label: 'Design & Edição' },
       { val: 'novo_grupo57911__1', label: 'Produção (Foto e Vídeo)' },
@@ -400,7 +403,8 @@ const FC_QUADROS = {
   demandas: {
     id: 8385559107,
     nome: 'Solicitação de demanda',
-    grupos: [
+    get grupos() { return (typeof gruposParaCadastro === 'function' && gruposParaCadastro('demandas')) || this.gruposFixos; },
+    gruposFixos: [
       { val: 'group_mm187437', label: 'Novas Demandas/Ideias' },
       { val: 'novo_grupo_mkmkjdqd', label: 'A Fazer' },
       { val: 'novo_grupo_mkkyfhtw', label: 'Em Execução' },
@@ -1503,9 +1507,9 @@ function fcGrupoDoQuadro(grupo) {
     const inicio = (inicial && typeof inicial === 'object') ? inicial : {};
     if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;
     if(inicio.grupo_id) {
+      // Só grupo do quadro: um grupo de fora (sobra de importação) seria
+      // recusado pelo servidor na hora de criar.
       const grupo=String(inicio.grupo_id);
-      const existente=(state.board==='demandas'?DADOS_DEMANDAS:DADOS_ALL).find(i=>String(i.group_id)===grupo);
-      if(!fcQuadro().grupos.some(g=>g.val===grupo) && existente) fcQuadro().grupos.push({val:grupo,label:existente.grupo || grupo});
       if(fcQuadro().grupos.some(g=>g.val===grupo)) state.manualGroup=grupo;
     }
     // So aceita cliente que exista na lista do passo: guardar um nome que a tela
@@ -1567,7 +1571,7 @@ function fcGrupoDoQuadro(grupo) {
               <div class="fc-custom-dropdown">
                  <div class="fc-dropdown-value" id="fc-val-manualGroup" onclick="fcToggleDropdown('fc-list-group')">Redação</div>
                  <div class="fc-dropdown-list" id="fc-list-group">
-                    ${groups.map(g => `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualGroup', '${g.val}', '${g.label}')" style="color:#fff">${g.label}</div>`).join('')}
+                    ${groups.map(g => `<div class="fc-dropdown-item" data-val="${esc(g.val)}" data-label="${esc(g.label)}" onclick="fcSelectDropdown('manualGroup', this.dataset.val, this.dataset.label)" style="color:#fff">${esc(g.label)}</div>`).join('')}
                  </div>
               </div>
            </div>

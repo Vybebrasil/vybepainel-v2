@@ -21,6 +21,7 @@ import { quemChama } from '../vybe_acesso.js';
 import { aplicar } from '../vybe_automacoes.js';
 
 import { garantirMaterialBruto } from '../vybe_dominio_store.js';
+import { listarGrupos, gruposDoQuadro } from '../server/grupos.js';
 
 const BOARD_PRODUCAO = 7829537690;
 const BOARD_DEMANDAS_ID = 8385559107;
@@ -170,21 +171,6 @@ const COLUNAS_POR_BOARD = {
 const colunasDe = (boardId) => COLUNAS_POR_BOARD[Number(boardId)] || COLUNAS_POR_BOARD[BOARD_PRODUCAO];
 const COLUNA_DATA = { prazo: 'data', veiculacao: 'data__1' };
 
-// A coluna 'etapa' do nosso banco guarda o título do grupo: é assim em todas as
-// 1.853 linhas vindas da migração, e é dela que sai o campo 'grupo' da listagem.
-const GRUPO_TITULO = {
-  novo_grupo31348__1: 'Finalizados',
-  novo_grupo57911__1: 'Produção ( Foto e Vídeo, à Captar )',
-  novo_grupo__1: 'Design & Edição',
-  group_title: 'Redação',
-  novo_grupo22352__1: 'Gestão de publicações',
-  // Demandas tem grupos próprios; o cadastro só conhecia os de Produção.
-  group_mm187437: 'Novas Demandas/Ideias',
-  novo_grupo_mkmkjdqd: 'A Fazer',
-  novo_grupo_mkkyfhtw: 'Em Execução',
-  novo_grupo_mkkyx8pv: 'Concluídas',
-};
-
 // Cada board escreve nas suas colunas. Antes o cadastro só sabia as de Produção
 // e mandava tudo para lá, então Solicitações só recebia item criado no Monday.
 const CRIACAO_POR_BOARD = {
@@ -197,7 +183,6 @@ const CRIACAO_POR_BOARD = {
   },
   [BOARD_DEMANDAS_ID]: {
     grupoPadrao: 'group_mm187437',
-    grupos: ['group_mm187437', 'novo_grupo_mkmkjdqd', 'novo_grupo_mkkyfhtw', 'novo_grupo_mkkyx8pv'],
     cliente: 'lista_suspensa_mkmet5gs',
     status: 'status', prazo: 'data', segundaData: 'data_mkky6jx',
     formato: 'dropdown_mkv8d52z', prioridade: 'color_mkwtgakv',
@@ -498,8 +483,9 @@ async function moverBoard(sql, quem, { item, destino }) {
   const statusExiste = (await sql`SELECT chave FROM vybe_status WHERE board_id=${alvo} AND chave=${statusPadrao}`)[0];
   if (!statusExiste) throw new Error(`Status inicial ${statusPadrao} não está configurado no destino.`);
 
+  const etapa = await grupoDoQuadro(sql, grupo, alvo);
   await sql`UPDATE vybe_conteudos SET board_id=${alvo}, grupo_id=${grupo},
-      etapa=${GRUPO_TITULO[grupo] || null}, status_chave=${statusPadrao}, status_em=NOW(),
+      etapa=${etapa}, status_chave=${statusPadrao}, status_em=NOW(),
       removido_em=NULL, atualizado_em=NOW() WHERE id=${c.id}`;
   await registrarEvento(sql, c.id, {
     tipo: 'board', de: Number(c.board_id) === BOARD_DEMANDAS_ID ? 'Demandas' : 'Produção',
@@ -516,7 +502,7 @@ async function moverBoard(sql, quem, { item, destino }) {
     conteudo_id: c.id,
     para: alvo === BOARD_DEMANDAS_ID ? 'Demandas' : 'Produção',
     board_id: alvo,
-    grupo: GRUPO_TITULO[grupo],
+    grupo: etapa,
     replica_monday: replica,
   };
 }
@@ -615,27 +601,23 @@ async function trocarTitulo(sql, quem, { item, titulo }) {
 
 // Grupo de outro quadro deixava a atividade num grupo que a tela do quadro dela
 // não conhece — cinco solicitações foram parar no "Design & Edição" de Produção
-// assim, pelo cadastro.
-export function exigirGrupoDoQuadro(grupoId, boardId) {
-  const deDemandas = CRIACAO_POR_BOARD[BOARD_DEMANDAS_ID].grupos;
-  const doQuadro = Number(boardId) === BOARD_DEMANDAS_ID ? deDemandas
-    : Object.keys(GRUPO_TITULO).filter((g) => !deDemandas.includes(g));
-  if (!doQuadro.includes(grupoId)) {
-    throw new Error(`O grupo "${GRUPO_TITULO[grupoId] || grupoId}" não pertence a este quadro.`);
-  }
+// assim, pelo cadastro. A lista vem de server/grupos.js, a mesma que as telas
+// desenham; devolve o nome, que é o que a coluna 'etapa' guarda.
+export async function grupoDoQuadro(sql, grupoId, boardId) {
+  const doQuadro = (await gruposDoQuadro(sql, boardId)).find((g) => g.grupo_id === String(grupoId));
+  if (doQuadro) return doQuadro.titulo;
+  const deOutro = (await listarGrupos(sql)).find((g) => g.grupo_id === String(grupoId));
+  throw new Error(`O grupo "${deOutro?.titulo || grupoId}" não pertence a este quadro.`);
 }
 
 // Mover de grupo só existia dentro das automações. Nenhuma tela oferecia, então
 // um conteúdo no grupo errado não tinha conserto pelo painel.
 async function moverGrupo(sql, quem, { item, grupo_id }) {
-  const titulo = GRUPO_TITULO[grupo_id];
-  if (!titulo) throw new Error(`Grupo desconhecido: ${grupo_id}`);
-
   const linhas = await sql`SELECT id, board_id, monday_item_id, titulo, etapa AS de FROM vybe_conteudos
     WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const conteudo = linhas[0];
-  exigirGrupoDoQuadro(grupo_id, conteudo.board_id);
+  const titulo = await grupoDoQuadro(sql, grupo_id, conteudo.board_id);
 
   await sql`UPDATE vybe_conteudos SET grupo_id=${grupo_id}, etapa=${titulo}, atualizado_em=NOW()
     WHERE id=${conteudo.id}`;
@@ -780,8 +762,7 @@ async function criarConteudo(sql, quem, dados) {
   // campo 'grupo'. Não é a coluna "Tipo de conteúdo" do Monday, que é outra
   // coisa e é dropdown.
   const grupo = grupo_id || C.grupoPadrao;
-  exigirGrupoDoQuadro(grupo, board);
-  const etapa = GRUPO_TITULO[grupo] || null;
+  const etapa = await grupoDoQuadro(sql, grupo, board);
   if (!titulo || !cliente) throw new Error('Informe ao menos título e cliente.');
 
   const cli = (await sql`SELECT id, nome FROM vybe_clientes WHERE LOWER(nome)=LOWER(${String(cliente)})`)[0];

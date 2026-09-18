@@ -1,4 +1,5 @@
 // Exclusivo do servidor local. Nenhuma consulta ou gravação externa.
+import { GRUPOS_PADRAO, CORES_DE_GRUPO } from '../server/grupos.js';
 const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
 // As Notas gravam na demonstração: são um caderno em memória, sem banco nem
 // Monday atrás, e é a única forma de exercitar a tela local de ponta a ponta.
@@ -62,6 +63,9 @@ export function demoApi(req,res,url,body) {
       {id:'2',nome:'Segundo cliente demonstração',ativo:true,selecionado:false}]});
   }
   if(url.pathname==='/api/painel' && url.searchParams.get('area')==='notas') return notasDemo(req,url,body,reply);
+  // Os grupos de partida, os mesmos que a conferência do banco semeia.
+  if(url.pathname==='/api/painel' && url.searchParams.get('area')==='grupos' && req.method==='GET')
+    return reply(200,{ok:true,pronto:true,grupos:GRUPOS_PADRAO,cores:CORES_DE_GRUPO});
   if(req.method!=='GET')return reply(403,{error:'Demonstração de interface somente leitura. As gravações são testadas no PostgreSQL em memória.'});
   if(url.pathname==='/api/conteudos') {
     const demanda=url.searchParams.get('board')==='demandas';
