@@ -20,7 +20,7 @@ import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
 import { logDaPeca, LIMITE_DO_LOG } from '../server/log-de-atividade.js';
-import { listarGrupos, gruposProntos, criarGrupo, editarGrupo, moverGrupoNaOrdem, apagarGrupo, CORES_DE_GRUPO } from '../server/grupos.js';
+import { listarGrupos, gruposProntos, criarGrupo, editarGrupo, moverGrupoNaOrdem, ordenarGrupos, apagarGrupo, CORES_DE_GRUPO } from '../server/grupos.js';
 import { listarNotas, salvarNota, apagarNota, notasProntas,
   listarCadernos, renomearCaderno, apagarCaderno } from '../server/notas.js';
 
@@ -1488,7 +1488,7 @@ async function areaGrupos(req, res, quem) {
   if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra muda os grupos.' });
   const corpo = req.body || {};
   try {
-    const acoes = { criar: criarGrupo, editar: editarGrupo, mover: moverGrupoNaOrdem, apagar: apagarGrupo };
+    const acoes = { criar: criarGrupo, editar: editarGrupo, mover: moverGrupoNaOrdem, ordenar: ordenarGrupos, apagar: apagarGrupo };
     const fazer = acoes[corpo.acao];
     if (!fazer) return res.status(400).json({ error: 'Ação desconhecida.' });
     const resultado = await fazer(db, corpo);
