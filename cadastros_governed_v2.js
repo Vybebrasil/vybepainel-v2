@@ -1,4 +1,35 @@
 /* Vybe OS — Cadastro Rápido + Prévia Ao Vivo */
+
+// ── CRIAR EM ESCALA ──────────────────────────────────────────────────────────
+//
+// Dez fotografias a cada três dias eram dez cartões criados à mão, com a data
+// digitada em cada um. Aqui se diz quantos, a primeira veiculação e o intervalo,
+// e os cartões nascem com as datas: veiculação no ritmo pedido e prazo sete dias
+// antes (o Prazo de Ouro). Fim de semana não é pulado — a data é a que a conta
+// dá. O limite de 60 é trava contra um zero a mais digitado sem querer.
+const CADASTRO_ESCALA_MAX = 60;
+function cadastroDatasEmEscala(inicio, quantidade, intervalo) {
+  const q = Number(quantidade), passo = Number(intervalo);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(inicio || ''))) throw new Error('Informe a primeira veiculação.');
+  if (!Number.isInteger(q) || q < 1) throw new Error('Informe quantos conteúdos criar.');
+  if (q > CADASTRO_ESCALA_MAX) throw new Error(`No máximo ${CADASTRO_ESCALA_MAX} por vez.`);
+  if (!Number.isInteger(passo) || passo < 1 || passo > 365) throw new Error('O intervalo precisa ser de 1 a 365 dias.');
+  const somar = (iso, dias) => {
+    const [a, m, d] = String(iso).split('-').map(Number);
+    const data = new Date(Date.UTC(a, m - 1, d + dias));
+    return data.toISOString().slice(0, 10);
+  };
+  return Array.from({ length: q }, (_, n) => {
+    const veic = somar(inicio, n * passo);
+    return { veic, prazo: somar(veic, -7) };
+  });
+}
+// Colar a lista de títulos: um por linha; linhas vazias não contam.
+function cadastroTitulosColados(texto) {
+  return String(texto || '').replace(/\r\n/g, '\n').split('\n')
+    .map((l) => l.replace(/^\s*(?:\d+[.)-]\s*|[-*•]\s+)/, '').trim()).filter(Boolean);
+}
+
 (function() {
   const esc = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
@@ -200,7 +231,11 @@
       .fc-bloco-equipe { margin-top:20px; }
       .fc-bloco-equipe .fc-dica { margin:0 0 10px; }
 
-      .fc-itens { display:grid; gap:10px; max-height:min(58vh,520px); overflow-y:auto; padding:2px; }
+      .fc-itens { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; max-height:min(58vh,520px); overflow-y:auto; padding:2px; }
+      /* A coluna automática crescia até o campo de data e o cartão vazava para a
+         direita no celular. minmax(0,1fr) prende o cartão à largura da lista. */
+      .fc-itens > .fc-item { min-width:0; }
+      .fc-item input, .fc-item textarea { min-width:0; max-width:100%; box-sizing:border-box; }
       .fc-item { display:grid; gap:8px; padding:12px; border:1px solid rgba(255,255,255,.10);
         border-radius:12px; background:rgba(255,255,255,.02); }
       .fc-item:focus-within { border-color:rgba(0,240,255,.42); }
@@ -241,6 +276,17 @@
         background:transparent; color:#7fd8e8; cursor:pointer; font:600 12px var(--mac-ui,system-ui);
         transition:background-color .14s var(--curva), border-color .14s var(--curva); }
       .fc-mais:hover { background:rgba(0,240,255,.08); border-color:#00f0ff; }
+      .fc-escala { display:grid; gap:12px; margin:0 0 14px; padding:16px; border:1px solid rgba(0,240,255,.28);
+        border-radius:14px; background:rgba(0,240,255,.05); }
+      .fc-escala b { color:#e7ecf5; font:600 14px var(--mac-ui, system-ui); }
+      .fc-escala small { color:#9da4b4; font:400 12px/1.45 var(--mac-ui, system-ui); }
+      .fc-escala-campos { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+      .fc-escala-campos label { display:grid; gap:6px; color:#9da4b4; font:500 12px var(--mac-ui, system-ui); }
+      .fc-escala-acoes { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+      .fc-escala-previa { color:#a8efff; font:500 12.5px var(--mac-ui, system-ui); }
+      .fc-item-data { margin-left:auto; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.07);
+        color:#e7ecf5; font:600 12px var(--mac-ui, system-ui); font-variant-numeric:tabular-nums; white-space:nowrap; }
+      @media (max-width:640px) { .fc-escala-campos { grid-template-columns:1fr; } }
 `;
     document.head.appendChild(style);
   }
@@ -795,6 +841,7 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
           <div class="fc-item-topo">
             <b>${n + 1}</b>
             <span>${esc2(state.format || 'Formato')} - ${esc2(it.titulo || 'sem título')}</span>
+            ${it.veic ? `<small class="fc-item-data" title="${state.board==='demandas'?'Conclusão':'Veiculação'}">${esc2(fcDiaCurto(it.veic))}</small>` : ''}
             ${state.itens.length > 1
               ? `<button type="button" class="icone-btn perigo" title="Tirar da lista"
                    onclick="fcTirarItem(${n})">${typeof ICONE !== 'undefined' ? ICONE.lixo : '×'}</button>`
@@ -816,9 +863,11 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
             oninput="fcItemCampo(${n},'brief',this.value);fcCrescerTexto(this)">${esc2(it.brief)}</textarea>
           ${fcArquivosHtml(n, it)}
         </div>`).join('');
-      return `<div class="fc-itens">${cartoes}</div>
+      return `${state.escalaAberta ? fcEscalaHtml(esc2) : ''}<div class="fc-itens">${cartoes}</div>
         <div class="fc-itens-acoes">
           <button type="button" class="fc-mais" onclick="fcAdicionarItem()">+ adicionar ${state.board==='demandas'?'outra demanda':'outro conteúdo'}</button>
+          <button type="button" class="fc-mais" onclick="fcAbrirEscala()">Criar em escala</button>
+          ${state.itens.length > 1 ? '<button type="button" class="fc-mais" onclick="fcColarTitulos()">Colar títulos</button>' : ''}
           ${state.itens.length > 1
             ? '<button type="button" class="fc-mais" onclick="fcEscalonarDatas()">datas de sete em sete dias</button>'
             : ''}
@@ -1016,6 +1065,97 @@ function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
     // O titulo do novo cartao e onde a pessoa vai escrever agora.
     const campos = document.querySelectorAll('[data-campo="titulo"]');
     campos[campos.length - 1]?.focus();
+  };
+
+  function fcDiaCurto(iso) {
+    const d = new Date(`${iso}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()]} ${iso.slice(8,10)}/${iso.slice(5,7)}`;
+  }
+
+  function fcEscalaHtml(esc2) {
+    const e = state.escala || {};
+    let previa = '';
+    try {
+      const datas = cadastroDatasEmEscala(e.inicio, Number(e.quantidade), Number(e.intervalo));
+      previa = `${datas.length} ${state.board==='demandas'?'demandas':'conteúdos'} · ${fcDiaCurto(datas[0].veic)} até ${fcDiaCurto(datas[datas.length - 1].veic)}`;
+    } catch (erro) { previa = e.inicio || e.quantidade ? erro.message : ''; }
+    return `<div class="fc-escala">
+        <div><b>Criar em escala</b><br><small>${esc2(state.format || 'O formato')} para ${esc2(state.client || 'o cliente')}. Os cartões nascem com as datas; depois você cola título e briefing em cada um.</small></div>
+        <div class="fc-escala-campos">
+          <label>Quantidade<input type="number" class="fc-campo" min="1" max="${CADASTRO_ESCALA_MAX}" value="${esc2(e.quantidade || '')}"
+            oninput="fcEscalaCampo('quantidade',this.value)" placeholder="Ex.: 10"></label>
+          <label>Primeira ${state.board==='demandas'?'conclusão':'veiculação'}<input type="date" class="fc-campo" value="${esc2(e.inicio || '')}"
+            oninput="fcEscalaCampo('inicio',this.value)"></label>
+          <label>A cada quantos dias<input type="number" class="fc-campo" min="1" max="365" value="${esc2(e.intervalo || '')}"
+            oninput="fcEscalaCampo('intervalo',this.value)" placeholder="Ex.: 3"></label>
+        </div>
+        <div class="fc-escala-acoes">
+          <button type="button" class="fc-mais" onclick="fcGerarEscala()">Gerar cartões</button>
+          <button type="button" class="fc-mais" onclick="fcFecharEscala()">Cancelar</button>
+          <span class="fc-escala-previa" id="fc-escala-previa">${esc2(previa)}</span>
+        </div>
+      </div>`;
+  }
+
+  window.fcAbrirEscala = function() {
+    const primeira = state.itens.find((i) => i.veic)?.veic || '';
+    state.escala = state.escala || { quantidade: '', inicio: primeira, intervalo: '' };
+    state.escalaAberta = true;
+    fcDesenharPasso();
+    document.querySelector('.fc-escala input')?.focus();
+  };
+  window.fcFecharEscala = function() { state.escalaAberta = false; fcDesenharPasso(); };
+  window.fcEscalaCampo = function(campo, valor) {
+    state.escala = { ...(state.escala || {}), [campo]: valor };
+    const alvo = document.getElementById('fc-escala-previa');
+    if (!alvo) return;
+    try {
+      const e = state.escala;
+      const datas = cadastroDatasEmEscala(e.inicio, Number(e.quantidade), Number(e.intervalo));
+      alvo.textContent = `${datas.length} ${state.board==='demandas'?'demandas':'conteúdos'} · ${fcDiaCurto(datas[0].veic)} até ${fcDiaCurto(datas[datas.length - 1].veic)}`;
+    } catch (erro) { alvo.textContent = erro.message; }
+  };
+
+  window.fcGerarEscala = async function() {
+    const e = state.escala || {};
+    let datas;
+    try { datas = cadastroDatasEmEscala(e.inicio, Number(e.quantidade), Number(e.intervalo)); }
+    catch (erro) { return typeof showToast === 'function' ? showToast(erro.message, 'info', 5000) : null; }
+    const preenchidos = state.itens.filter((i) => String(i.titulo || '').trim() || String(i.brief || '').trim());
+    if (preenchidos.length && typeof perguntarNoPainel === 'function') {
+      const sim = await perguntarNoPainel({ titulo: `Trocar os cartões por ${datas.length} novos?`,
+        texto: `${preenchidos.length} cartão${preenchidos.length === 1 ? ' já tem' : 'ões já têm'} título ou briefing e ${preenchidos.length === 1 ? 'será trocado' : 'serão trocados'}.`,
+        confirmar: 'Trocar' });
+      if (!sim) return;
+    }
+    state.itens = datas.map(({ veic, prazo }) => ({ titulo: '', veic, prazo, brief: '', arquivos: [] }));
+    state.escalaAberta = false;
+    fcEspelharPrimeiro();
+    fcDesenharPasso();
+    document.querySelector('[data-campo="titulo"]')?.focus();
+    if (typeof showToast === 'function') showToast(`✓ ${datas.length} cartões com as datas. Agora é colar título e briefing.`, 'ok', 5000);
+  };
+
+  // Uma lista de títulos colada de uma vez: um por linha, na ordem dos cartões.
+  // Numeração ("1.", "2)") e marcadores ("-", "•") de quem copiou de outro lugar
+  // saem sozinhos.
+  window.fcColarTitulos = async function() {
+    if (typeof perguntarNoPainel !== 'function') return;
+    const texto = await perguntarNoPainel({ titulo: 'Colar títulos',
+      texto: `Um título por linha, na ordem dos cartões (${state.itens.length}). Numeração e marcadores saem sozinhos.`,
+      confirmar: 'Preencher', larga: true, campo: { valor: '', dica: 'Um título por linha', linhas: 12 } });
+    if (texto === null || texto === undefined) return;
+    const titulos = cadastroTitulosColados(texto);
+    if (!titulos.length) return;
+    titulos.slice(0, state.itens.length).forEach((t, n) => { state.itens[n].titulo = t; });
+    fcEspelharPrimeiro();
+    fcDesenharPasso();
+    const sobra = titulos.length - state.itens.length;
+    if (typeof showToast === 'function') {
+      showToast(sobra > 0 ? `${state.itens.length} títulos preenchidos · ${sobra} ficaram de fora (há só ${state.itens.length} cartões)`
+        : `✓ ${titulos.length} título${titulos.length === 1 ? '' : 's'} preenchido${titulos.length === 1 ? '' : 's'}`, sobra > 0 ? 'info' : 'ok', 5000);
+    }
   };
 
   window.fcTirarItem = function(n) {
