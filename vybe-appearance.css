@@ -1042,3 +1042,13 @@ body.vybe-desktop {
   .notas-caderno { flex: 0 0 auto; height: 30px; padding: 0 10px; white-space: nowrap; }
   .notas-caderno-acoes { flex: 0 0 auto; margin: 0; padding: 0; gap: 8px; }
 }
+
+/* Mesa de planejamento do DA: a barra de lote é a mesma do gestor. Com a mesa
+   aberta, só a barra de dentro dela aparece — a da tela de trás ficaria por
+   baixo, duplicada. */
+body:has(#da-individual-planning-overlay) .grupos-lote:not(.na-mesa) { display:none !important; }
+/* A veiculação virou campo de data, como o prazo: dá para mudar na linha e,
+   com várias marcadas, em todas. Parece texto até o mouse passar. */
+.da-planning-airdate input[type="date"] { width:100%; max-width:118px; padding:2px 4px; border:1px solid transparent; border-radius:6px; background:transparent; color:#c9d8ff; font:700 11px var(--mac-ui); cursor:pointer; }
+.da-planning-airdate input[type="date"]:hover { border-color:#ffffff26; background:#ffffff08; }
+.da-planning-airdate input[type="date"]:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:1px; }

@@ -784,7 +784,11 @@ function retomarMesaSeHavia() {
 }
 
 function closeDaIndividualPlanningDesk(){ const overlay=document.getElementById('da-individual-planning-overlay'); if(!overlay) return; overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),180); }
-let DA_PLANNING_SELECTED_IDS=new Set(); let DA_PLANNING_SELECTION_ANCHOR_ID=''; let DA_PLANNING_ACTIVE_USER='';
+// A marcação da mesa é a MESMA do resto do painel (SELECIONADAS, em
+// vybe-agenda.js): a mesa tinha uma seleção própria, e por isso o Esc não
+// desmarcava, a veiculação não ia em lote e a barra de lote do gestor não existia
+// aqui. Uma seleção só, as mesmas regras nas duas telas.
+let DA_PLANNING_ACTIVE_USER='';
 let DA_PLANNING_FILTER='all'; let DA_PLANNING_SORT='veiculacao'; let DA_PLANNING_SORT_DESC=false;
 // Quem a mesa esta mostrando. Era sempre uma pessoa; agora e um conjunto, porque
 // duas pessoas da mesma celula dividem entregas e planejar uma sem ver a outra
@@ -844,10 +848,10 @@ function daPlanningSortItems(items,sort){ const copy=[...items];
   // primeiro campo deixaria blocos internos fora de ordem.
   const sentido = DA_PLANNING_SORT_DESC ? -1 : 1; const byIso=value=>String(value||'9999-12-31'); return copy.sort((a,b)=>sentido*(((a2,b2)=>{ if(sort==='prazo') return byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso))||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso)); if(sort==='margem'){ const margin=item=>{ const gap=goldenDeadlineGap(item.prazo_iso,item.veiculacao_iso); return gap===null?999999:Number(gap); }; const av=margin(a); const bv=margin(b); return av-bv||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso))||byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso)); } if(sort==='cliente') return String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR')||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso)); const av=byIso(a.veiculacao_iso); const bv=byIso(b.veiculacao_iso); return av.localeCompare(bv)||byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso))||daTacticalScore(a)-daTacticalScore(b); })(a,b))); }
 function daIndividualPlanningItems(userId){ return daPlanningSortItems(daIndividualPlanningAllItems(userId).filter(item=>daPlanningItemMatchesFilter(item,DA_PLANNING_FILTER)),DA_PLANNING_SORT); }
-function daPlanningSelection(userId){ return daIndividualPlanningAllItems(daPlanningPessoasDaMesa(userId)).filter(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id))); }
-function daPlanningBatchDeadlineLimit(userId){
-  return daPlanningSelection(userId).map(item=>String(item.veiculacao_iso||'')).filter(Boolean).sort()[0]||'';
-}
+function daPlanningSelection(userId){ return daIndividualPlanningAllItems(daPlanningPessoasDaMesa(userId)).filter(item=>SELECIONADAS.has(String(item.id))); }
+// Qual barra de lote mostrar: só solicitações marcadas usam a de Solicitações
+// (grupos e "Tipo" de lá); com qualquer conteúdo no meio, a de Produção.
+function daPlanningQuadroDaSelecao(){ const itens=[...SELECIONADAS].map(findOperationalItem).filter(Boolean); return itens.length&&itens.every(isRequestItem)?'demandas':'producao'; }
 // ── coluna ARQUIVO da mesa individual ────────────────────────────────────────
 //
 // A entrega da demanda era invisível daqui: para saber se já existe arte, a
@@ -1160,50 +1164,26 @@ function daPlanningPrioridadeEditavel(item) {
 
 function daIndividualPlanningRow(item,index,userId){
   const state=daIndividualPlanningGoldenState(item);
-  const veic=item.veiculacao_iso?planningDateBr(item.veiculacao_iso):'Não definida';
   const deadline=item.prazo_iso||'';
-  const selected=DA_PLANNING_SELECTED_IDS.has(String(item.id));
-  const batchLimit=selected&&DA_PLANNING_SELECTED_IDS.size>=2?daPlanningBatchDeadlineLimit(userId):'';
-  const allowedUntil=batchLimit||String(item.veiculacao_iso||'');
-  const maxAttr=allowedUntil?` max="${safeText(allowedUntil)}"`:'';
-  const directTitle=batchLimit?` title="Prazo coletivo: a data será aplicada a todas as demandas marcadas. Limite do lote: ${planningDateBr(batchLimit)}."`:'';
-  return `<article class="da-planning-row ${selected?'is-selected':''}" onclick="daPlanningAbrirPeca('${safeText(String(item.id))}',event)" title="Abrir ${safeText(item.nome||'a atividade')}"><label class="da-planning-select" title="Selecionar para ajuste de prazo em lote"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||''}','${item.id}',this.checked,event)"><span></span></label><span class="da-planning-seq">${String(index+1).padStart(2,'0')}</span><span class="da-planning-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}${operationalOriginTag(item)}</small></span><span class="da-planning-donos-col" onclick="event.stopPropagation()">${daPlanningDonosHtml(item)}</span><span class="da-planning-airdate"><b>${safeText(veic)}</b><small>Veiculação</small></span><span class="da-planning-tags da-col-formato" onclick="event.stopPropagation()">${daPlanningFormatoEditavel(item)}</span><span class="da-planning-tags da-col-status" onclick="event.stopPropagation()">${daPlanningStatusEditavel(item)}${daPlanningPrioridadeEditavel(item)}</span><label class="da-planning-deadline"><input type="date" value="${safeText(deadline)}" data-item-id="${item.id}"${maxAttr}${directTitle} onchange="saveDaPlanningGridDeadline('${userId||''}','${item.id}',this.value,this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="gold-${state.kind}">${safeText(state.label)} · ${safeText(state.copy)}</small></label><div class="da-planning-file" id="arq-${safeText(String(item.id))}" data-item="${safeText(String(item.id))}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div><button type="button" class="da-planning-open" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${item.id}')">Contexto →</button></article>`;
+  const selected=SELECIONADAS.has(String(item.id));
+  const emLote=selected&&SELECIONADAS.size>=2;
+  const maxAttr=item.veiculacao_iso?` max="${safeText(String(item.veiculacao_iso))}"`:'';
+  const directTitle=emLote?` title="A data vale para as ${SELECIONADAS.size} marcadas."`:'';
+  const rotuloVeic=isRequestItem(item)?'Conclusão':'Veiculação';
+  return `<article class="da-planning-row ${selected?'is-selected':''}" onclick="daPlanningAbrirPeca('${safeText(String(item.id))}',event)" title="Abrir ${safeText(item.nome||'a atividade')}"><label class="da-planning-select" title="Selecionar para ajuste de prazo em lote"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||''}','${item.id}',this.checked,event)"><span></span></label><span class="da-planning-seq">${String(index+1).padStart(2,'0')}</span><span class="da-planning-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}${operationalOriginTag(item)}</small></span><span class="da-planning-donos-col" onclick="event.stopPropagation()">${daPlanningDonosHtml(item)}</span><label class="da-planning-airdate" onclick="event.stopPropagation()"><input type="date" value="${safeText(item.veiculacao_iso||'')}"${directTitle} onchange="salvarDataNaLinha('${safeText(String(item.id))}','veiculacao',this)" aria-label="${rotuloVeic} de ${safeText(item.nome)}"><small>${rotuloVeic}</small></label><span class="da-planning-tags da-col-formato" onclick="event.stopPropagation()">${daPlanningFormatoEditavel(item)}</span><span class="da-planning-tags da-col-status" onclick="event.stopPropagation()">${daPlanningStatusEditavel(item)}${daPlanningPrioridadeEditavel(item)}</span><label class="da-planning-deadline"><input type="date" value="${safeText(deadline)}" data-item-id="${item.id}"${maxAttr}${directTitle} onchange="salvarDataNaLinha('${safeText(String(item.id))}','prazo',this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="gold-${state.kind}">${safeText(state.label)} · ${safeText(state.copy)}</small></label><div class="da-planning-file" id="arq-${safeText(String(item.id))}" data-item="${safeText(String(item.id))}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div><button type="button" class="da-planning-open" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${item.id}')">Contexto →</button></article>`;
 }
+// O shift marca o intervalo na ordem da MESA, que é a que a pessoa está vendo.
 function daPlanningToggleItem(userId,itemId,checked,event){
-  const id=String(itemId);
-  const hasShift=Boolean(event&&event.shiftKey);
-  const items=daIndividualPlanningItems(userId);
-  const anchorId=String(DA_PLANNING_SELECTION_ANCHOR_ID||'');
-  const anchorIndex=items.findIndex(item=>String(item.id)===anchorId);
-  const targetIndex=items.findIndex(item=>String(item.id)===id);
-  if(hasShift&&anchorIndex>=0&&targetIndex>=0){
-    const start=Math.min(anchorIndex,targetIndex);
-    const end=Math.max(anchorIndex,targetIndex);
-    items.slice(start,end+1).forEach(item=>{
-      const rangeId=String(item.id);
-      if(checked) DA_PLANNING_SELECTED_IDS.add(rangeId);
-      else DA_PLANNING_SELECTED_IDS.delete(rangeId);
-    });
-  }else{
-    if(checked) DA_PLANNING_SELECTED_IDS.add(id);
-    else DA_PLANNING_SELECTED_IDS.delete(id);
-    DA_PLANNING_SELECTION_ANCHOR_ID=id;
-  }
-  if(!DA_PLANNING_SELECTION_ANCHOR_ID) DA_PLANNING_SELECTION_ANCHOR_ID=id;
-  repintarMesaDePlanejamento();
+  const ordem=daIndividualPlanningItems(daPlanningPessoasDaMesa(userId)).map(item=>String(item.id));
+  alternarSelecao(itemId,checked,event,ordem);
 }
-function daPlanningToggleAll(userId){ const items=daIndividualPlanningItems(daPlanningPessoasDaMesa(userId)); const all=items.length>0&&items.every(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id))); items.forEach(item=>all?DA_PLANNING_SELECTED_IDS.delete(String(item.id)):DA_PLANNING_SELECTED_IDS.add(String(item.id))); DA_PLANNING_SELECTION_ANCHOR_ID=items[0]?String(items[0].id):''; repintarMesaDePlanejamento(); }
+function daPlanningToggleAll(userId){ const items=daIndividualPlanningItems(daPlanningPessoasDaMesa(userId)); const all=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id))); items.forEach(item=>all?SELECIONADAS.delete(String(item.id)):SELECIONADAS.add(String(item.id))); repintarOndeHaSelecao(); }
 function daPlanningBulkToolbarHtml(items,userId){
   const selected=daPlanningSelection(userId);
-  const all=items.length>0&&items.every(item=>DA_PLANNING_SELECTED_IDS.has(String(item.id)));
-  const direct=selected.length>=2;
-  const batchLimit=direct?daPlanningBatchDeadlineLimit(userId):'';
-  const message=direct?`Altere o prazo em qualquer linha marcada: o mesmo prazo será aplicado a toda a seleção.${batchLimit?` Data máxima do lote: ${planningDateBr(batchLimit)}.`:''}`:'Marque 2 ou mais demandas para aplicar um prazo diretamente na tabela.';
-  return `<div class="da-planning-bulkbar ${direct?'direct-mode':''}"><div><b>Seleção em lote · ${selected.length} demanda${selected.length===1?'':'s'}</b><small>${message}</small></div><div><button type="button" onclick="daPlanningToggleAll('${userId}')">${all?'Limpar visíveis':'Marcar visíveis'} (${items.length})</button>${selected.length?`<button type="button" onclick="DA_PLANNING_SELECTED_IDS.clear();DA_PLANNING_SELECTION_ANCHOR_ID='';openDaIndividualPlanningDesk('${userId}')">Limpar seleção</button>`:''}<span class="da-planning-direct-hint ${direct?'':'quiet'}">${direct?(batchLimit?`Prazo ≤ ${planningDateBr(batchLimit)}`:'Edite uma data marcada'):'Selecione 2 ou mais'}</span></div></div>`;
+  const all=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id)));
+  const message=selected.length>=2?'Mude o prazo ou a veiculação de qualquer linha marcada, ou use a barra de baixo: vale para todas as marcadas. Esc desmarca.':'Marque as demandas (Shift marca um intervalo) para mexer em várias de uma vez.';
+  return `<div class="da-planning-bulkbar ${selected.length>=2?'direct-mode':''}"><div><b>Seleção em lote · ${selected.length} demanda${selected.length===1?'':'s'}</b><small>${message}</small></div><div><button type="button" onclick="daPlanningToggleAll('${userId}')">${all?'Limpar visíveis':'Marcar visíveis'} (${items.length})</button>${selected.length?`<button type="button" onclick="limparSelecao()">Limpar seleção</button>`:''}</div></div>${typeof deckDeLoteHtml==='function'?deckDeLoteHtml(daPlanningQuadroDaSelecao(),{classe:'na-mesa'}):''}`;
 }
-function daPlanningRefreshBulkPreview(userId){ const note=document.getElementById('da-planning-bulk-preview'); const date=String(document.getElementById('da-planning-bulk-date')?.value||''); const items=daPlanningSelection(userId); if(!note) return; if(!date){note.className='da-bulk-date-preview';note.textContent='Selecione uma nova data para avaliar '+items.length+' demanda'+(items.length===1?'':'s')+'.';return;} const invalid=items.filter(item=>item.veiculacao_iso&&date>item.veiculacao_iso); if(invalid.length){note.className='da-bulk-date-preview err';note.textContent='Não é possível aplicar: '+invalid.length+' demanda'+(invalid.length===1?' ficaria':'s ficariam')+' com o prazo depois da veiculação.';return;} const alerts=items.filter(item=>item.veiculacao_iso&&date!==goldenDeadlineIso(item.veiculacao_iso)).length; note.className='da-bulk-date-preview '+(alerts?'warn':'ok'); const suffix=alerts?' '+alerts+' ficará'+(alerts===1?'':'ão')+' fora do padrão de '+PRAZO_OURO_DIAS+' dias, apenas com alerta visual.':''; note.textContent=items.length+' demanda'+(items.length===1?' receberá':'s receberão')+' o prazo '+planningDateBr(date)+'.'+suffix; }
-function daPlanningOpenBulkEditor(userId){ const selected=daPlanningSelection(userId); return showToast(selected.length>=2?'Altere a data diretamente em qualquer linha marcada para aplicar em '+selected.length+' demandas.':'Marque ao menos 2 demandas para editar o prazo em lote diretamente na tabela.','info',5000); }
-async function applyDaPlanningBulkDeadline(userId){ const date=String(document.getElementById('da-planning-bulk-date')?.value||''); const items=daPlanningSelection(userId); if(!date||!items.length) return showToast('Selecione a data e pelo menos uma demanda.','info'); const invalid=items.filter(item=>item.veiculacao_iso&&date>item.veiculacao_iso); if(invalid.length) showToast(`Atenção: em ${invalid.length} demanda${invalid.length===1?'':'s'} o prazo ficará DEPOIS da veiculação.`,'info',7000); if(!window.confirm(`Aplicar o prazo ${planningDateBr(date)} em ${items.length} demanda${items.length===1?'':'s'}?`)) return; const button=document.getElementById('da-planning-bulk-save'); if(button){button.disabled=true;button.textContent='Aplicando…';} armOutboundMutationGuard('prazos em lote da mesa individual'); const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; const success=[]; const failed=[]; for(const item of items){ try{ if(!await tentarEscritaDupla(item,{acao:'prazo',item:String(item.id),data:date})) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify({data:{date}})}); const veic=String(item.veiculacao_iso||''); const followsGolden=Boolean(veic&&date===goldenDeadlineIso(veic)); try{await postItemUpdate(item.id,`[Vybe OS · Planejamento em lote do DA]\nPrazo: ${planningDateBr(item.prazo_iso)} → ${planningDateBr(date)}\nVeiculação: ${planningDateBr(veic)}\n${followsGolden?`Prazo de Ouro protegido (${PRAZO_OURO_DIAS} dias antes da veiculação).`:`Ajuste coletivo permitido; alerta visual de margem aplicado quando necessário.`}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);}catch(logError){console.warn('Prazo alterado, mas histórico não foi registrado.',logError);} if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(row=>String(row.id)===String(item.id)); if(request){request.prazo_iso=date;request.prazo=planningDateBr(date).slice(0,5);} outboundMutationGuardUntil=0; } else applyOutboundItemPatch(item.id,{prazo_iso:date},'prazos em lote da mesa individual'); DA_PLANNING_SELECTED_IDS.delete(String(item.id)); success.push(item);}catch(error){failed.push(item);console.warn('Falha ao aplicar prazo em lote',item.id,error);}} saveProductionCache(); renderDaController(); repintarMesaDePlanejamento(); if(!failed.length){closeWorkflowModal();showToast(`✓ ${success.length} prazo${success.length===1?' atualizado':'s atualizados'} em lote.`,'ok');}else{if(button){button.disabled=false;button.textContent=`Tentar novamente em ${failed.length}`;}showToast(`${success.length} prazo${success.length===1?'':'s'} atualizado${success.length===1?'':'s'}; ${failed.length} falhou${failed.length===1?'':'ram'}.`,'info',7000);} }
 // ── ARRUMAR A AGENDA ─────────────────────────────────────────────────────────
 //
 // O trabalho da mesa era todo na mao: abrir todo dia, olhar o que venceu, e
@@ -1464,7 +1444,10 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
   // A marcacao em lote e por mesa: mudar quem esta na mesa muda o que esta a
   // vista, e uma marca herdada aplicaria prazo numa peca que sumiu da tela.
   const assinatura = pessoasDaMesa.slice().sort().join('+');
-  if(String(DA_PLANNING_ACTIVE_USER)!==assinatura){ DA_PLANNING_SELECTED_IDS.clear(); DA_PLANNING_SELECTION_ANCHOR_ID=''; DA_PLANNING_ACTIVE_USER=assinatura; } const goldenStates=items.map(item=>daIndividualPlanningGoldenState(item)); const exactCount=goldenStates.filter(state=>state.kind==='ok').length; const riskCount=goldenStates.filter(state=>state.kind==='risk').length; const slackCount=goldenStates.filter(state=>state.kind==='slack').length; const pendingCount=goldenStates.filter(state=>state.kind==='pending').length; const previousPlanning=document.getElementById('da-individual-planning-overlay');
+  // Abrir a mesa (e não redesenhá-la) também começa sem marcas: a seleção é a do
+  // painel todo, e uma peça marcada no gestor entraria num lote feito aqui sem
+  // estar à vista.
+  if(String(DA_PLANNING_ACTIVE_USER)!==assinatura||!document.getElementById('da-individual-planning-overlay')){ SELECIONADAS.clear(); DA_PLANNING_ACTIVE_USER=assinatura; } const goldenStates=items.map(item=>daIndividualPlanningGoldenState(item)); const exactCount=goldenStates.filter(state=>state.kind==='ok').length; const riskCount=goldenStates.filter(state=>state.kind==='risk').length; const slackCount=goldenStates.filter(state=>state.kind==='slack').length; const pendingCount=goldenStates.filter(state=>state.kind==='pending').length; const previousPlanning=document.getElementById('da-individual-planning-overlay');
   // Toda mudanca aqui (filtro, marcar, salvar prazo) redesenha a mesa inteira, e
   // a mesa nova nascia rolada no topo: quem estava na linha 18 voltava pra 1 a
   // cada clique. Guardar a rolagem e devolver depois e o que faz a tela ficar
@@ -1478,41 +1461,6 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
   // Redesenho nao e abertura: repetir o fade fazia a mesa piscar a cada clique.
   if(eraRedesenho) overlay.classList.add('open');
   else requestAnimationFrame(()=>overlay.classList.add('open')); }
-function saveDaPlanningGridDeadline(userId,itemId,prazo,input){
-  const selected=daPlanningSelection(userId);
-  const inSelection=selected.some(item=>String(item.id)===String(itemId));
-  if(selected.length>=2&&inSelection) return saveDaPlanningSelectedDeadlines(userId,itemId,prazo,input);
-  return saveDaIndividualDeadline(itemId,prazo,input);
-}
-async function saveDaPlanningSelectedDeadlines(userId,sourceItemId,prazo,input){
-  if(input?.dataset?.saving==='1') return;
-  const selected=daPlanningSelection(userId);
-  const date=String(prazo||'');
-  const sourceItem=selected.find(item=>String(item.id)===String(sourceItemId));
-  if(!date||!sourceItem) return showToast('Informe uma data válida para as demandas marcadas.','info');
-  const invalid=selected.filter(item=>item.veiculacao_iso&&date>String(item.veiculacao_iso));
-  if(invalid.length){ const limit=daPlanningBatchDeadlineLimit(userId); const names=invalid.slice(0,2).map(item=>String(item.nome||'Demanda sem título')).join(' · '); const extra=invalid.length>2?' +'+(invalid.length-2)+' outra'+(invalid.length-2===1?'':'s'):''; input.value=sourceItem.prazo_iso||''; input.setAttribute('aria-invalid','true'); input.classList.add('batch-date-invalid'); setTimeout(()=>{input?.removeAttribute('aria-invalid');input?.classList.remove('batch-date-invalid');},4200); return showToast('Prazo não alterado: '+planningDateBr(date)+' ultrapassa a veiculação de '+invalid.length+' demanda'+(invalid.length===1?'':'s')+'. Data máxima do lote: '+(limit?planningDateBr(limit):'não definida')+'. Bloqueiam: '+names+extra+'.','err',9500); }
-  const targets=selected.filter(item=>String(item.prazo_iso||'')!==date);
-  if(!targets.length){ showToast('As demandas marcadas já estão com esse prazo.','info'); return; }
-  const selectedInputs=[...document.querySelectorAll('#da-individual-planning-overlay .da-planning-row input[type="date"]')].filter(field=>field.closest('.da-planning-row')?.querySelector('input[type="checkbox"]')?.checked);
-  selectedInputs.forEach(field=>{field.dataset.saving='1';field.setAttribute('aria-busy','true');field.classList.add('is-saving');field.value=date;});
-  armOutboundMutationGuard('prazo direto em lote da mesa individual');
-  const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`;
-  const success=[]; const failed=[];
-  for(const item of targets){
-    try{
-      if(!await tentarEscritaDupla(item,{acao:'prazo',item:String(item.id),data:date})) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify({data:{date}})});
-      const veic=String(item.veiculacao_iso||''); const followsGolden=Boolean(veic&&date===goldenDeadlineIso(veic));
-      try{await postItemUpdate(item.id,`[Vybe OS · Planejamento direto em lote do DA]\nPrazo: ${planningDateBr(item.prazo_iso)} → ${planningDateBr(date)}\nVeiculação: ${planningDateBr(veic)}\n${followsGolden?`Prazo de Ouro protegido (${PRAZO_OURO_DIAS} dias antes da veiculação).`:`Ajuste coletivo direto permitido; alerta visual de margem aplicado quando necessário.`}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);}catch(logError){console.warn('Prazo alterado, mas histórico não foi registrado.',logError);}
-      if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(row=>String(row.id)===String(item.id)); if(request){request.prazo_iso=date;request.prazo=planningDateBr(date).slice(0,5);} outboundMutationGuardUntil=0; } else applyOutboundItemPatch(item.id,{prazo_iso:date},'prazo direto em lote da mesa individual'); DA_PLANNING_SELECTED_IDS.delete(String(item.id)); success.push(item);
-    }catch(error){failed.push(item);console.warn('Falha no prazo direto em lote',item.id,error);}
-  }
-  failed.forEach(item=>DA_PLANNING_SELECTED_IDS.add(String(item.id)));
-  saveProductionCache(); renderDaController(); repintarMesaDePlanejamento();
-  if(!failed.length) showToast('✓ '+success.length+' prazo'+(success.length===1?' atualizado':'s atualizados')+' diretamente na tabela.','ok');
-  else showToast(success.length+' prazo'+(success.length===1?'':'s')+' atualizado'+(success.length===1?'':'s')+'; '+failed.length+' falhou'+(failed.length===1?'':'ram')+'.','info',7000);
-}
-async function saveDaIndividualDeadline(itemId,prazo,input){ if(input?.dataset?.saving==='1') return; const item=findOperationalItem(itemId); if(!item||!prazo) return showToast('Informe um prazo válido antes de atualizar.','info'); const veic=String(item.veiculacao_iso||''); const prazoDepois=Boolean(veic&&prazo>veic); if(prazoDepois) showToast('Atenção: o prazo ficou DEPOIS da veiculação.','info',7000); if(String(item.prazo_iso||'')===prazo) return; input.dataset.saving='1'; input.setAttribute('aria-busy','true'); input.classList.add('is-saving'); armOutboundMutationGuard('prazo individual do DA'); const golden=goldenDeadlineIso(veic); const followsGolden=Boolean(golden&&prazo===golden); try{ const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; if(!await tentarEscritaDupla(item,{acao:'prazo',item:String(item.id),data:prazo})) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify({data:{date:prazo}})}); const signal=veic?(followsGolden?`Prazo de Ouro protegido (${PRAZO_OURO_DIAS} dias antes da veiculação).`:`Alerta visual: prazo fora do padrão de ${PRAZO_OURO_DIAS} dias; ajuste permitido pela mesa individual do DA.`):'Veiculação ainda não definida; prazo ajustado pela mesa individual do DA.'; try{ await postItemUpdate(item.id,`[Vybe OS · Planejamento individual do DA]\nPrazo: ${planningDateBr(item.prazo_iso)} → ${planningDateBr(prazo)}\nVeiculação: ${planningDateBr(veic)}\n${signal}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); }catch(logError){ console.warn('Prazo ajustado, mas o histórico não foi registrado.',logError); } if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(row=>String(row.id)===String(item.id)); if(request){request.prazo_iso=prazo;request.prazo=planningDateBr(prazo).slice(0,5);} outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{prazo_iso:prazo},'prazo individual do DA'); showToast(followsGolden?'✓ Prazo atualizado · padrão de 7 dias protegido':'⚠ Prazo atualizado · alerta de margem exibido','ok'); repintarMesaDePlanejamento(); renderDaController(); }catch(error){ delete input.dataset.saving; input.removeAttribute('aria-busy'); input.classList.remove('is-saving'); input.value=item.prazo_iso||''; showToast(`Não foi possível atualizar o prazo: ${error.message}`,'err',7000); } }
 function setDaControllerPerson(userId) { const next=daControllerPersonId===userId?'all':userId; daControllerPersonId=next; renderDaController(); }
 function setDaControllerDayFocus(iso) { daControllerDayFocusIso=iso; renderDaController(); }
 function setDaQuickWeekday(iso) { if(daControllerPeriod!=='week') daControllerPeriod='week'; daControllerDayFocusIso=iso; renderDaController(); }
