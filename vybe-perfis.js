@@ -767,7 +767,7 @@ function guardarMesaParaRetomar() {
   if (!overlay) { MESA_A_RETOMAR = null; return; }
   MESA_A_RETOMAR = {
     pessoas: [...DA_PLANNING_PESSOAS],
-    rolagem: overlay.querySelector('.da-planning-list')?.scrollTop || 0,
+    rolagem: overlay.querySelector('.mesa-lista')?.scrollTop || 0,
   };
   closeDaIndividualPlanningDesk();
 }
@@ -779,7 +779,7 @@ function retomarMesaSeHavia() {
   DA_PLANNING_PESSOAS = new Set(guardada.pessoas);
   openDaIndividualPlanningDesk(guardada.pessoas[0]);
   const lista = document.getElementById('da-individual-planning-overlay')
-    ?.querySelector('.da-planning-list');
+    ?.querySelector('.mesa-lista');
   if (lista) lista.scrollTop = guardada.rolagem;
 }
 
@@ -953,7 +953,7 @@ function daPlanningArquivoHtml(itemId, info) {
 const DA_PLANNING_ARQUIVOS = new Map();
 function daPlanningEsquecerArquivo(itemId) { DA_PLANNING_ARQUIVOS.delete(String(itemId)); }
 async function daPlanningCarregarArquivos() {
-  const celulas = [...document.querySelectorAll('#da-individual-planning-overlay .da-planning-file')];
+  const celulas = [...document.querySelectorAll('#da-individual-planning-overlay .mesa-arquivo')];
   if (!celulas.length) return;
   // Primeiro o que ja se sabe, na hora e sem rede: a mesa redesenhada aparece
   // com as miniaturas ja no lugar em vez de piscar vazia.
@@ -1087,14 +1087,19 @@ function daPlanningCabecalho(rotulo, chave, userId) {
   const icones = typeof ICONE !== 'undefined' ? ICONE : {};
   const seta = ativa ? (DA_PLANNING_SORT_DESC ? icones.desce : icones.sobe) : icones.ordenar;
   const comoEsta = ativa ? (DA_PLANNING_SORT_DESC ? ' — hoje: maior para menor' : ' — hoje: menor para maior') : '';
-  return `<span><button type="button" class="da-planning-th ${ativa ? 'ordenando' : ''}"
+  return `<span><button type="button" class="mesa-th ${ativa ? 'ordenando' : ''}"
     onclick="daPlanningSetSort('${chave}','${safeText(String(userId || ''))}')"
     title="Ordenar por ${safeText(rotulo)}${comoEsta}">${safeText(rotulo)}<i>${seta || ''}</i></button></span>`;
 }
-function daPlanningControlsHtml(userId,visible,total){ const filters=[['all','Todos'],['atrasados','Atrasos'],['fora7','Abaixo de 7 dias'],['proximos7','Próximos 7 dias'],['semveic','Sem veiculação']]; const sorts=[['veiculacao','Veiculação'],['prazo','Prazo'],['margem','Menor margem'],['cliente','Cliente']]; return `<div class="da-planning-controls"><div class="da-planning-control-group"><span>Filtrar</span>${filters.map(([id,label])=>`<button type="button" class="${DA_PLANNING_FILTER===id?'active':''}" onclick="daPlanningSetFilter('${id}','${userId}')">${label}</button>`).join('')}<small>${visible}/${total}</small></div><div class="da-planning-control-group"><span>Ordenar</span>${sorts.map(([id,label])=>`<button type="button" class="${DA_PLANNING_SORT===id?'active':''}" onclick="daPlanningSetSort('${id}','${userId}')">${label}</button>`).join('')}</div></div>`; }
+function daPlanningControlsHtml(userId,visible,total){
+  const filters=[['all','Todos'],['atrasados','Atrasos'],['fora7','Abaixo de 7 dias'],['proximos7','Próximos 7 dias'],['semveic','Sem veiculação']];
+  const sorts=[['veiculacao','Veiculação'],['prazo','Prazo'],['margem','Menor margem'],['cliente','Cliente']];
+  const grupo=(rotulo,opcoes,ativo,acao)=>`<div class="mesa-segmento" role="group" aria-label="${rotulo}"><span>${rotulo}</span><div>${opcoes.map(([id,label])=>`<button type="button" class="${ativo===id?'ativo':''}" aria-pressed="${ativo===id}" onclick="${acao}('${id}','${userId}')">${label}</button>`).join('')}</div></div>`;
+  return `${grupo('Filtrar',filters,DA_PLANNING_FILTER,'daPlanningSetFilter')}<small class="mesa-contagem">${visible} de ${total}</small>${grupo('Ordenar',sorts,DA_PLANNING_SORT,'daPlanningSetSort')}`;
+}
 
 function daIndividualPlanningGoldenState(item){ const veic=String(item?.veiculacao_iso||''); const prazo=String(item?.prazo_iso||''); const golden=goldenDeadlineIso(veic); const gap=goldenDeadlineGap(prazo,veic); if(!veic) return {kind:'pending',label:'Sem veiculação',copy:'Defina a veiculação para validar a margem.'}; if(!prazo) return {kind:'pending',label:'SEM PRAZO',copy:`Padrão sugerido: ${planningDateBr(golden)}.`}; if(gap===PRAZO_OURO_DIAS) return {kind:'ok',label:'✓ 7 dias',copy:'Prazo de Ouro protegido.'}; if(gap>PRAZO_OURO_DIAS){ const extra=gap-PRAZO_OURO_DIAS; return {kind:'slack',label:`✓ +${extra} ${extra===1?'dia':'dias'} de folga`,copy:`Antecedência de ${gap} dias até a veiculação.`}; } const missing=PRAZO_OURO_DIAS-gap; return {kind:'risk',label:`⚠ ${missing} ${missing===1?'dia':'dias'} abaixo`,copy:`Antecedência de ${Math.max(0,gap)} dias · ideal ${planningDateBr(golden)}.`}; }
-function daIndividualPlanningAvatar(user){ return user?.photo?`<img class="da-planning-avatar" src="${user.photo}" alt="${safeText(user.name)}">`:`<span class="da-planning-avatar" style="background:${user?.color||'#ff9d00'}">${safeText(firstName(user?.name||'DA').slice(0,2).toUpperCase())}</span>`; }
+function daIndividualPlanningAvatar(user){ return user?.photo?`<img class="mesa-avatar" src="${user.photo}" alt="${safeText(user.name)}">`:`<span class="mesa-avatar" style="background:${user?.color||'#ff9d00'}">${safeText(firstName(user?.name||'DA').slice(0,2).toUpperCase())}</span>`; }
 // Clicar na linha abre a atividade, como na tabela por grupos. So o botao
 // "Contexto" abria, e ele e o menor alvo da linha — a peca inteira parecia
 // clicavel e nao era.
@@ -1170,7 +1175,24 @@ function daIndividualPlanningRow(item,index,userId){
   const maxAttr=item.veiculacao_iso?` max="${safeText(String(item.veiculacao_iso))}"`:'';
   const directTitle=emLote?` title="A data vale para as ${SELECIONADAS.size} marcadas."`:'';
   const rotuloVeic=isRequestItem(item)?'Conclusão':'Veiculação';
-  return `<article class="da-planning-row ${selected?'is-selected':''}" onclick="daPlanningAbrirPeca('${safeText(String(item.id))}',event)" title="Abrir ${safeText(item.nome||'a atividade')}"><label class="da-planning-select" title="Selecionar para ajuste de prazo em lote"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||''}','${item.id}',this.checked,event)"><span></span></label><span class="da-planning-seq">${String(index+1).padStart(2,'0')}</span><span class="da-planning-copy"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}${operationalOriginTag(item)}</small></span><span class="da-planning-donos-col" onclick="event.stopPropagation()">${daPlanningDonosHtml(item)}</span><label class="da-planning-airdate" onclick="event.stopPropagation()"><input type="date" value="${safeText(item.veiculacao_iso||'')}"${directTitle} onchange="salvarDataNaLinha('${safeText(String(item.id))}','veiculacao',this)" aria-label="${rotuloVeic} de ${safeText(item.nome)}"><small>${rotuloVeic}</small></label><span class="da-planning-tags da-col-formato" onclick="event.stopPropagation()">${daPlanningFormatoEditavel(item)}</span><span class="da-planning-tags da-col-status" onclick="event.stopPropagation()">${daPlanningStatusEditavel(item)}${daPlanningPrioridadeEditavel(item)}</span><label class="da-planning-deadline"><input type="date" value="${safeText(deadline)}" data-item-id="${item.id}"${maxAttr}${directTitle} onchange="salvarDataNaLinha('${safeText(String(item.id))}','prazo',this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="gold-${state.kind}">${safeText(state.label)} · ${safeText(state.copy)}</small></label><div class="da-planning-file" id="arq-${safeText(String(item.id))}" data-item="${safeText(String(item.id))}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div><button type="button" class="da-planning-open" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${item.id}')">Contexto →</button></article>`;
+  const id=safeText(String(item.id));
+  // Venceu é o único vermelho da linha: o resto da margem é informação, não alarme.
+  const venceu=Boolean(deadline&&deadline<daPlanningTodayIso()&&!isFinishedItem(item));
+  const margem=venceu?'venceu':state.kind;
+  const rotuloMargem=venceu?'Prazo venceu':String(state.label||'').replace(/^[✓⚠]\s*/,'');
+  return `<article class="mesa-linha${selected?' marcada':''}" onclick="daPlanningAbrirPeca('${id}',event)" title="Abrir ${safeText(item.nome||'a atividade')}">
+    <label class="mesa-marcar"><input type="checkbox" ${selected?'checked':''} onclick="daPlanningToggleItem('${userId||''}','${id}',this.checked,event)" aria-label="Marcar ${safeText(item.nome||'atividade')}"></label>
+    <span class="mesa-seq">${String(index+1).padStart(2,'0')}</span>
+    <span class="mesa-demanda"><b>${safeText(item.nome)}</b><small>${safeText(item.cliente||'Sem cliente')}${operationalOriginTag(item)}</small></span>
+    <span class="mesa-donos" onclick="event.stopPropagation()">${daPlanningDonosHtml(item)}</span>
+    <label class="mesa-data" onclick="event.stopPropagation()"><input type="date" value="${safeText(item.veiculacao_iso||'')}"${directTitle} onchange="salvarDataNaLinha('${id}','veiculacao',this)" aria-label="${rotuloVeic} de ${safeText(item.nome)}"><small>${rotuloVeic}</small></label>
+    <label class="mesa-data mesa-prazo" onclick="event.stopPropagation()"><input type="date" value="${safeText(deadline)}" data-item-id="${id}"${maxAttr}${directTitle} onchange="salvarDataNaLinha('${id}','prazo',this)" aria-label="Prazo de ${safeText(item.nome)}"><small class="mesa-margem m-${margem}" title="${safeText(state.copy||'')}"><i aria-hidden="true"></i>${safeText(rotuloMargem)}</small></label>
+    <span class="mesa-pilula" onclick="event.stopPropagation()">${daPlanningFormatoEditavel(item)}</span>
+    <span class="mesa-pilula" onclick="event.stopPropagation()">${daPlanningStatusEditavel(item)}</span>
+    <span class="mesa-pilula" onclick="event.stopPropagation()">${daPlanningPrioridadeEditavel(item)||'<span class="grupo-vazio">—</span>'}</span>
+    <div class="mesa-arquivo" id="arq-${id}" data-item="${id}"><span class="da-planning-file-carregando" title="Conferindo arquivos…">·</span></div>
+    <button type="button" class="mesa-contexto" onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${id}')">Contexto</button>
+  </article>`;
 }
 // O shift marca o intervalo na ordem da MESA, que é a que a pessoa está vendo.
 function daPlanningToggleItem(userId,itemId,checked,event){
@@ -1179,10 +1201,9 @@ function daPlanningToggleItem(userId,itemId,checked,event){
 }
 function daPlanningToggleAll(userId){ const items=daIndividualPlanningItems(daPlanningPessoasDaMesa(userId)); const all=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id))); items.forEach(item=>all?SELECIONADAS.delete(String(item.id)):SELECIONADAS.add(String(item.id))); repintarOndeHaSelecao(); }
 function daPlanningBulkToolbarHtml(items,userId){
-  const selected=daPlanningSelection(userId);
-  const all=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id)));
-  const message=selected.length>=2?'Mude o prazo ou a veiculação de qualquer linha marcada, ou use a barra de baixo: vale para todas as marcadas. Esc desmarca.':'Marque as demandas (Shift marca um intervalo) para mexer em várias de uma vez.';
-  return `<div class="da-planning-bulkbar ${selected.length>=2?'direct-mode':''}"><div><b>Seleção em lote · ${selected.length} demanda${selected.length===1?'':'s'}</b><small>${message}</small></div><div><button type="button" onclick="daPlanningToggleAll('${userId}')">${all?'Limpar visíveis':'Marcar visíveis'} (${items.length})</button>${selected.length?`<button type="button" onclick="limparSelecao()">Limpar seleção</button>`:''}</div></div>${typeof deckDeLoteHtml==='function'?deckDeLoteHtml(daPlanningQuadroDaSelecao(),{classe:'na-mesa'}):''}`;
+  // A faixa "Seleção em lote" saiu: com algo marcado, a barra de baixo já diz
+  // quantas e o que dá para fazer. Marcar todas fica no cabeçalho da lista.
+  return typeof deckDeLoteHtml==='function'?deckDeLoteHtml(daPlanningQuadroDaSelecao(),{classe:'na-mesa'}):'';
 }
 // ── ARRUMAR A AGENDA ─────────────────────────────────────────────────────────
 //
@@ -1283,36 +1304,34 @@ function proporAgenda(pessoasDaMesa) {
 // vem consertar prazos que passaram e distribuir a carga. Entao o topo mostra
 // esses numeros — e os que levam a algum lugar sao botoes que filtram a lista.
 function daPlanningPainelDeAcao(itens, pessoasDaMesa) {
-  const hoje = daPlanningTodayIso();
-  const vencidos = itens.filter((d) => String(d.prazo_iso || '') && String(d.prazo_iso) < hoje);
-  const semPrazo = itens.filter((d) => !String(d.prazo_iso || ''));
-  const semVeic = itens.filter((d) => !String(d.veiculacao_iso || ''));
-  // Quantos dias de trabalho a fila representa na carga ideal. E a conta que
-  // decide se da para aceitar mais uma demanda hoje.
-  const dias = Math.max(1, Math.ceil(itens.length / CARGA_IDEAL_POR_DIA));
   const proposta = proporAgenda(pessoasDaMesa).propostas.length;
-  const quem = pessoasDaMesa[0] || '';
+  const nota = proposta
+    ? `${proposta} ${proposta === 1 ? 'prazo sairia do lugar' : 'prazos sairiam do lugar'} se a agenda fosse arrumada agora.`
+    : `A agenda já está na ordem de veiculação, ${CARGA_IDEAL_POR_DIA} por dia útil.`;
+  return `<button type="button" class="mesa-arrumar" onclick="arrumarAgenda()" ${proposta ? '' : 'disabled'} title="${safeText(nota)}">Arrumar a agenda${proposta ? `<small>${proposta}</small>` : ''}</button>`;
+}
 
-  const numero = (valor, rotulo, tom, acao) => `<button type="button"
-    class="ag-num ${tom} ${acao ? '' : 'quieto'}" ${acao ? `onclick="${acao}"` : 'disabled'}
-    ><b>${valor}</b><span>${rotulo}</span></button>`;
-
-  return `<div class="da-planning-acao">
-      <div class="ag-numeros">
-        ${numero(vencidos.length, vencidos.length === 1 ? 'prazo venceu' : 'prazos venceram',
-          vencidos.length ? 'alerta' : '', vencidos.length ? `daPlanningSetFilter('atrasados','${quem}')` : '')}
-        ${numero(semPrazo.length, 'sem prazo', semPrazo.length ? 'atencao' : '', '')}
-        ${numero(semVeic.length, 'sem veiculação', semVeic.length ? 'atencao' : '',
-          semVeic.length ? `daPlanningSetFilter('semveic','${quem}')` : '')}
-        ${numero(dias, dias === 1 ? 'dia de fila' : 'dias de fila', '', '')}
-      </div>
-      <div class="ag-acao-lado">
-        <span class="ag-acao-nota">${proposta
-          ? `<b>${proposta}</b> ${proposta === 1 ? 'prazo sairia do lugar' : 'prazos sairiam do lugar'} se a agenda fosse arrumada agora.`
-          : `A agenda já está cheia na ordem de veiculação, ${CARGA_IDEAL_POR_DIA} por dia útil.`}</span>
-        <button type="button" class="ag-arrumar" onclick="arrumarAgenda()" ${proposta ? '' : 'disabled'}>
-          Arrumar a agenda</button>
-      </div>
+// Os números da mesa numa faixa só. Venceu, sem prazo e sem veiculação filtram a
+// lista ao clicar; os de margem são a mesma conta da barra de saúde logo abaixo.
+function daPlanningResumoHtml(itens, contas, quem) {
+  const hoje = daPlanningTodayIso();
+  const vencidos = itens.filter((d) => String(d.prazo_iso || '') && String(d.prazo_iso) < hoje).length;
+  const semPrazo = itens.filter((d) => !String(d.prazo_iso || '')).length;
+  const semVeic = itens.filter((d) => !String(d.veiculacao_iso || '')).length;
+  const dias = Math.max(1, Math.ceil(itens.length / CARGA_IDEAL_POR_DIA));
+  const numero = (valor, rotulo, tom = '', acao = '') => acao && valor
+    ? `<button type="button" class="mesa-numero ${tom}" onclick="${acao}"><b>${valor}</b><span>${rotulo}</span></button>`
+    : `<span class="mesa-numero ${valor ? tom : 'zero'}"><b>${valor}</b><span>${rotulo}</span></span>`;
+  return `<div class="mesa-numeros">
+      ${numero(itens.length, 'entregas ativas')}
+      ${numero(contas.ok, 'no padrão · 7 dias', 'ok')}
+      ${numero(contas.slack, 'com folga', 'folga')}
+      ${numero(contas.risk, 'abaixo do padrão', 'risco', `daPlanningSetFilter('fora7','${quem}')`)}
+      <span class="mesa-divisor" aria-hidden="true"></span>
+      ${numero(vencidos, vencidos === 1 ? 'prazo venceu' : 'prazos venceram', 'alerta', `daPlanningSetFilter('atrasados','${quem}')`)}
+      ${numero(semPrazo, 'sem prazo', 'risco')}
+      ${numero(semVeic, 'sem veiculação', 'risco', `daPlanningSetFilter('semveic','${quem}')`)}
+      ${numero(dias, dias === 1 ? 'dia de fila' : 'dias de fila')}
     </div>`;
 }
 
@@ -1406,8 +1425,8 @@ async function aplicarPropostaDeAgenda() {
 
 function daPlanningDeadlineHealthBar(exact,slack,risk,pending,total){
   const base=Math.max(1,Number(total)||0);
-  const segments=[['ok',exact,'No padrão · 7 dias'],['slack',slack,'Com folga'],['risk',risk,'Abaixo do padrão'],['pending',pending,'A validar']].filter(([,count])=>count>0).map(([kind,count,label])=>({kind,count,label,pct:Math.round((count/base)*100)}));
-  return `<div class="da-planning-health" aria-label="Saúde dos prazos"><div class="da-planning-health-head"><b>Saúde dos prazos</b><small>margem até a veiculação · ${total} entregas</small></div><div class="da-planning-health-track">${segments.map(segment=>`<span class="health-${segment.kind}" style="width:${segment.pct}%" title="${segment.label}: ${segment.count} de ${total} (${segment.pct}%)"></span>`).join('')}</div><div class="da-planning-health-legend">${segments.map(segment=>`<span class="health-${segment.kind}"><i></i><strong>${segment.label}</strong><b>${segment.count}</b><em>${segment.pct}%</em></span>`).join('')}</div></div>`;
+  const segments=[['ok',exact,'No padrão · 7 dias'],['folga',slack,'Com folga'],['risco',risk,'Abaixo do padrão'],['pendente',pending,'A validar']].filter(([,count])=>count>0);
+  return `<div class="mesa-saude" role="img" aria-label="Saúde dos prazos: ${segments.map(([,c,l])=>`${l} ${c}`).join(', ')}">${segments.map(([kind,count,label])=>`<span class="s-${kind}" style="flex:${count}" title="${label}: ${count} de ${total} (${Math.round(count/base*100)}%)"></span>`).join('')}</div>`;
 }
 // Redesenha a mesa SE ela estiver aberta — e so nesse caso.
 //
@@ -1452,10 +1471,28 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
   // a mesa nova nascia rolada no topo: quem estava na linha 18 voltava pra 1 a
   // cada clique. Guardar a rolagem e devolver depois e o que faz a tela ficar
   // parada onde a pessoa estava.
-  const rolagemAnterior=previousPlanning?.querySelector('.da-planning-list')?.scrollTop||0;
+  const rolagemAnterior=previousPlanning?.querySelector('.mesa-lista')?.scrollTop||0;
   const eraRedesenho=Boolean(previousPlanning);
-  if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const healthBar=daPlanningDeadlineHealthBar(exactCount,slackCount,riskCount,pendingCount,items.length); const rows=items.length?items.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):'<div class="da-planning-empty">Nenhuma demanda nesta visão. Ajuste os filtros para revisar as demais.</div>'; const controls=daPlanningControlsHtml(user.id,items.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="da-planning-switcher" aria-label="Troca rápida de agenda"><span>Agendas na mesa</span>${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'active':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active?(pessoasDaMesa.length>1?'Clique para tirar '+safeText(firstName(entry.name))+' da mesa':'Única agenda na mesa — some outra para comparar'):'Clique para somar '+safeText(firstName(entry.name))+' à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="da-planning-todos ${pessoasDaMesa.length===daControllerTeam().length?'active':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula<small>${daControllerTeam().length}</small></button><small class="da-planning-dica">clique para somar ou tirar</small></nav>`; overlay.innerHTML=`<section class="da-planning-modal" role="dialog" aria-modal="true" aria-label="Planejamento individual de ${safeText(user.name)}"><div class="da-planning-head"><div class="da-planning-head-main">${pessoasDaMesa.slice(0,3).map(id=>daIndividualPlanningAvatar(daControllerTeam().find(p=>String(p.id)===String(id))||user)).join('')}<div><span>${pessoasDaMesa.length>1?'Mesa de planejamento · '+pessoasDaMesa.length+' pessoas':'Mesa individual de planejamento'}</span><b>${safeText(pessoasDaMesa.length>1?daControllerTeam().filter(p=>pessoasDaMesa.includes(String(p.id))).map(p=>firstName(p.name)).join(' + '):user.name)}</b><small>${pessoasDaMesa.length>1?'entregas das agendas somadas, sem repetir a peça de dono compartilhado':safeText(DA_CONTROLLER_ROLES[user.id]||'Criação')+' · todas as entregas ativas ordenadas pela data de veiculação'}</small></div></div><button type="button" class="da-planning-close" onclick="closeDaIndividualPlanningDesk()" aria-label="Fechar planejamento">×</button></div>${quickSwitch}${controls}<div class="da-planning-summary"><span><b>${items.length}</b><small>Entregas ativas</small></span><span class="gold-ok-metric"><b>${exactCount}</b><small>No padrão · 7 dias</small></span><span class="gold-slack-metric"><b>${slackCount}</b><small>Com folga</small></span><span class="gold-risk-metric"><b>${riskCount}</b><small>Abaixo do padrão</small></span></div>${daPlanningPainelDeAcao(items, pessoasDaMesa)}${healthBar}${bulk}<div class="da-planning-list"><div class="da-planning-row da-planning-row-head"><span class="da-planning-select-head">Selec.</span><span>#</span>${daPlanningCabecalho("Demanda / cliente","cliente",userId)}<span>Responsável</span>${daPlanningCabecalho("Veiculação","veiculacao",userId)}<span>Formato</span><span>Status</span>${daPlanningCabecalho("Prazo editável","prazo",userId)}<span>Arquivo</span><span>Ação</span></div>${rows}</div></section>`; document.body.appendChild(overlay);
-  const lista=overlay.querySelector('.da-planning-list');
+  if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const healthBar=daPlanningDeadlineHealthBar(exactCount,slackCount,riskCount,pendingCount,items.length); const rows=items.length?items.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):'<div class="mesa-vazio">Nenhuma demanda nesta visão. Ajuste os filtros para ver as demais.</div>'; const controls=daPlanningControlsHtml(user.id,items.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="mesa-agendas" aria-label="Agendas na mesa">${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'ativo':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active?(pessoasDaMesa.length>1?'Clique para tirar '+safeText(firstName(entry.name))+' da mesa':'Única agenda na mesa — some outra para comparar'):'Clique para somar '+safeText(firstName(entry.name))+' à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="mesa-todos ${pessoasDaMesa.length===daControllerTeam().length?'ativo':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula</button></nav>`;
+  const todasVisiveis=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id)));
+  overlay.innerHTML=`<section class="mesa-janela" role="dialog" aria-modal="true" aria-label="Mesa de planejamento de ${safeText(user.name)}">
+    <div class="mesa-topo">
+      <div class="mesa-quem">${pessoasDaMesa.slice(0,3).map(id=>daIndividualPlanningAvatar(daControllerTeam().find(p=>String(p.id)===String(id))||user)).join('')}
+        <div><h2>${safeText(pessoasDaMesa.length>1?daControllerTeam().filter(p=>pessoasDaMesa.includes(String(p.id))).map(p=>firstName(p.name)).join(' + '):user.name)}</h2>
+        <p>${pessoasDaMesa.length>1?'Mesa de planejamento · agendas somadas, sem repetir a peça de dono compartilhado':'Mesa de planejamento · '+safeText(DA_CONTROLLER_ROLES[user.id]||'Criação')}</p></div></div>
+      ${quickSwitch}
+      <button type="button" class="mesa-fechar" onclick="closeDaIndividualPlanningDesk()" aria-label="Fechar a mesa de planejamento">${typeof ICONE!=='undefined'?ICONE.fechar:'×'}</button>
+    </div>
+    <div class="mesa-barra">${controls}${daPlanningPainelDeAcao(items, pessoasDaMesa)}</div>
+    <div class="mesa-resumo">${daPlanningResumoHtml(items,{ok:exactCount,slack:slackCount,risk:riskCount},user.id)}${healthBar}</div>
+    <div class="mesa-lista">
+      <div class="mesa-linha mesa-cabeca" role="row">
+        <label class="mesa-marcar" title="${todasVisiveis?'Desmarcar':'Marcar'} as ${items.length} visíveis"><input type="checkbox" ${todasVisiveis?'checked':''} onclick="daPlanningToggleAll('${user.id}')" aria-label="Marcar as ${items.length} visíveis"></label>
+        <span>#</span>${daPlanningCabecalho("Demanda / cliente","cliente",userId)}<span>Responsável</span>${daPlanningCabecalho("Veiculação","veiculacao",userId)}${daPlanningCabecalho("Prazo","prazo",userId)}<span>Formato</span><span>Status</span><span>Prioridade</span><span>Arquivo</span><span></span>
+      </div>${rows}</div>
+    ${bulk}
+  </section>`; document.body.appendChild(overlay);
+  const lista=overlay.querySelector('.mesa-lista');
   if(lista&&rolagemAnterior) lista.scrollTop=rolagemAnterior;
   daPlanningCarregarArquivos();
   // Redesenho nao e abertura: repetir o fade fazia a mesa piscar a cada clique.
