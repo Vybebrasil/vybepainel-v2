@@ -1905,6 +1905,8 @@ function alternarSelecao(id, marcada, event, ordemVisivel) {
 // antes — dizendo, por exemplo, "3 marcadas" onde ja havia 4.
 function repintarOndeHaSelecao() {
   renderVisaoDeGrupos();
+  // A mesa de planejamento do DA usa a mesma seleção e a mesma barra de lote.
+  if (typeof repintarMesaDePlanejamento === 'function') repintarMesaDePlanejamento();
   if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
   // A lista por dia tambem mostra a marcacao e o dock. Sem repintar aqui, marcar
   // uma peca ali nao acendia nada — o dock so aparecia depois de a tela ser
@@ -1945,8 +1947,8 @@ const NA_FRENTE_DA_SELECAO = [
   '#workflow-modal', '#focus-picker',
 ];
 
-function haAlgoNaFrenteDaSelecao() {
-  return NA_FRENTE_DA_SELECAO.some((seletor) => {
+function haAlgoNaFrenteDaSelecao(exceto = []) {
+  return NA_FRENTE_DA_SELECAO.filter((seletor) => !exceto.includes(seletor)).some((seletor) => {
     const el = document.querySelector(seletor);
     // getClientRects vazio quer dizer "nao esta desenhado" — cobre display:none,
     // o pai escondido e o elemento de tamanho zero, sem eu ter que adivinhar
@@ -1973,6 +1975,16 @@ document.addEventListener('keydown', (evento) => {
   }
 
   // 2º: qualquer outra sobreposicao trata a propria tecla.
+  // Mesa de planejamento do DA aberta e nada na frente dela: o primeiro Esc
+  // desmarca, o seguinte fecha a mesa — o mesmo "sai disso" em dois passos.
+  const mesa = document.getElementById('da-individual-planning-overlay');
+  if (mesa && mesa.getClientRects().length && !haAlgoNaFrenteDaSelecao(['.da-planning-overlay'])) {
+    evento.preventDefault();
+    if (!SELECIONADAS.size) return typeof closeDaIndividualPlanningDesk === 'function' && closeDaIndividualPlanningDesk();
+    const quantas = SELECIONADAS.size;
+    limparSelecao();
+    return showToast(`Seleção limpa · ${quantas} ${quantas === 1 ? 'demanda desmarcada' : 'demandas desmarcadas'}`, 'info', 3000);
+  }
   if (!SELECIONADAS.size) return;
   if (haAlgoNaFrenteDaSelecao()) return;
   const quantas = SELECIONADAS.size;
@@ -2095,14 +2107,14 @@ const VISAO_DE_GRUPOS = {
 // O deck de acoes em lote mora aqui, e nao dentro do desenho da tabela de
 // grupos: a ficha do cliente usa a MESMA tabela, e sem isto ela teria caixas de
 // selecao que nao levam a lugar nenhum.
-function deckDeLoteHtml(quadro) {
+function deckDeLoteHtml(quadro, { classe = '' } = {}) {
   // A seta para baixo diz que o botao ABRE UMA LISTA; o de data abre um campo de
   // digitar, e por isso nao tem seta. Reticencias em todos dizia so "tem mais
   // coisa", sem distinguir os dois.
   const abre = '<svg viewBox="0 0 16 16" width="9" height="9" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
     safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
-  return SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as atividades marcadas">
+  return SELECIONADAS.size ? `<div class="grupos-lote${classe ? ` ${classe}` : ''}" role="toolbar" aria-label="Ações para as atividades marcadas">
       <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}</small></span>
       <span class="lote-risco" aria-hidden="true"></span>
       ${acao('Status', 'loteStatus(event)')}

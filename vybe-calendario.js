@@ -11,7 +11,7 @@
    calendário do navegador e abre este no lugar.
 
    O que ele escreve volta pelo próprio campo, com os eventos `input` e `change`
-   disparados — é assim que os `onchange="saveDaPlanningGridDeadline(...)"` e os
+   disparados — é assim que os `onchange="salvarDataNaLinha(...)"` e os
    `oninput="fcItemCampo(...)"` que já existem continuam funcionando sem saber
    que o calendário mudou.
    ========================================================================== */
