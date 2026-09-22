@@ -1098,20 +1098,6 @@ body:has(#da-individual-planning-overlay) .grupos-lote:not(.na-mesa) { display:n
 .mesa-arrumar small { min-width:20px; padding:1px 6px; border-radius:999px; background:#28150824; font:600 11.5px var(--mac-ui); font-variant-numeric:tabular-nums; }
 .mesa-arrumar:disabled { border-color:var(--border); background:#ffffff0d; color:var(--text-muted); cursor:default; }
 .mesa-resumo { padding:12px 18px; border-bottom:1px solid var(--border); }
-.mesa-numeros { display:flex; align-items:center; flex-wrap:wrap; gap:6px 20px; }
-.mesa-numero { display:inline-flex; align-items:baseline; gap:6px; padding:2px 0; border:0; background:transparent; color:var(--text-muted); font:400 12.5px var(--mac-ui); }
-.mesa-numero b { color:var(--text); font:600 19px/1 var(--mac-ui); font-variant-numeric:tabular-nums; }
-button.mesa-numero { margin:-2px -6px; padding:4px 6px; border-radius:8px; cursor:pointer; }
-button.mesa-numero:hover { background:#ffffff10; }
-button.mesa-numero span { text-decoration:underline; text-decoration-color:#ffffff33; text-underline-offset:3px; }
-.mesa-numero.zero b { color:#7d818d; }
-.mesa-numero.folga b { color:#5fd6a4; }
-.mesa-numero.risco b { color:#ffc46b; }
-.mesa-numero.alerta b { color:#ff7a88; }
-.mesa-divisor { width:1px; height:18px; background:var(--border); }
-.mesa-saude { display:flex; gap:2px; height:4px; margin-top:12px; overflow:hidden; border-radius:999px; background:#ffffff0d; }
-.mesa-saude .s-ok { background:#c9d2e3; } .mesa-saude .s-folga { background:#5fd6a4; }
-.mesa-saude .s-risco { background:#ffc46b; } .mesa-saude .s-pendente { background:#6f7482; }
 .mesa-lista { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding-bottom:88px; }
 .mesa-linha { display:grid; grid-template-columns:30px 30px minmax(240px,1.8fr) 92px 120px 164px 112px minmax(150px,1fr) 104px 56px 88px;
   align-items:center; gap:10px; min-width:1200px; padding:8px 18px; border-bottom:1px solid #ffffff0d; cursor:pointer; }
@@ -1158,6 +1144,66 @@ button.mesa-numero span { text-decoration:underline; text-decoration-color:#ffff
   .mesa-barra::-webkit-scrollbar { display:none; }
   .mesa-arrumar { margin-left:0; }
   .mesa-resumo { padding:10px 12px; }
-  .mesa-numeros { gap:4px 14px; }
   .mesa-linha { padding-inline:12px; }
+}
+
+/* Gráfico da mesa: prazo e veiculação por dia, no lugar da faixa de números.
+   Linhas de 2px, grade recessiva, carga ideal tracejada, hoje marcado. Cada dia
+   é um botão por cima do desenho: o alvo do mouse, o clique que filtra e o
+   texto que o leitor de tela lê. */
+.mesa-grafico { display:grid; gap:8px; }
+.mesa-grafico-topo { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; }
+.mesa-grafico-nav { display:flex; align-items:center; gap:6px; }
+.mesa-grafico-nav b { min-width:124px; text-align:center; font:600 13px var(--mac-ui); font-variant-numeric:tabular-nums; }
+.mesa-grafico-nav button { display:grid; place-items:center; min-width:26px; height:26px; padding:0 8px; border:1px solid var(--border);
+  border-radius:8px; background:#ffffff08; color:var(--text-muted); font:500 13px var(--mac-ui); cursor:pointer; }
+.mesa-grafico-nav button:hover { background:#ffffff17; color:var(--text); }
+.mesa-legenda { display:flex; align-items:center; gap:12px; color:var(--text-muted); font:500 12px var(--mac-ui); }
+.mesa-legenda span { display:inline-flex; align-items:center; gap:6px; }
+.mesa-legenda i { width:14px; height:2px; border-radius:2px; }
+.mesa-legenda i.tracejado { height:0; border-top:1.5px dashed #9aa0ad; background:none; }
+.mesa-etiquetas { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-left:auto; }
+.mesa-etiqueta { display:inline-flex; align-items:center; gap:5px; height:26px; padding:0 10px; border:1px solid var(--border);
+  border-radius:999px; background:#ffffff08; color:var(--text-muted); font:500 12px var(--mac-ui); cursor:pointer; }
+.mesa-etiqueta b { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; }
+.mesa-etiqueta:hover { background:#ffffff14; color:var(--text); }
+.mesa-etiqueta.alerta { border-color:#ff7a8859; } .mesa-etiqueta.alerta b { color:#ff7a88; }
+.mesa-etiqueta.risco { border-color:#ffc46b4d; } .mesa-etiqueta.risco b { color:#ffc46b; }
+.mesa-etiqueta.escolhido { border-color:#ff984f73; background:#ff984f1f; color:var(--text); }
+.mesa-grafico-corpo { display:grid; grid-template-columns:22px minmax(0,1fr); grid-template-rows:auto auto; column-gap:6px; }
+.mesa-grafico-teto { align-self:start; color:#7d818d; font:500 11px var(--mac-ui); font-variant-numeric:tabular-nums; text-align:right; }
+.mesa-grafico-area { position:relative; height:120px; }
+.mesa-grafico-area svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.mesa-grafico-area svg line, .mesa-grafico-area svg path { vector-effect:non-scaling-stroke; fill:none; }
+.mesa-grafico-area .grade { stroke:#ffffff0f; stroke-width:1; }
+.mesa-grafico-area .base { stroke:#ffffff26; stroke-width:1; }
+.mesa-grafico-area .carga { stroke:#9aa0ad; stroke-width:1.5; stroke-dasharray:5 5; opacity:.7; }
+.mesa-grafico-area .hoje { stroke:#ff984f; stroke-width:1; opacity:.55; }
+.mesa-grafico-area .serie { stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+.mesa-grafico-dias { position:absolute; inset:0; display:grid; grid-auto-flow:column; grid-auto-columns:1fr; }
+.mesa-grafico-dia { position:relative; padding:0; border:0; background:transparent; cursor:pointer; }
+.mesa-grafico-dia.fds { background:#ffffff05; }
+.mesa-grafico-dia i { position:absolute; left:50%; width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%;
+  box-shadow:0 0 0 2px var(--glass); opacity:0; transition:opacity .1s; }
+.mesa-grafico-dia i.p { top:var(--yp); background:#d9702a; }
+.mesa-grafico-dia i.v { top:var(--yv); background:#4a86e8; }
+.mesa-grafico-dia::before { content:''; position:absolute; top:0; bottom:0; left:50%; width:1px; background:#ffffff33; opacity:0; }
+.mesa-grafico-dia::after { content:attr(data-resumo); position:absolute; z-index:3; top:2px; left:calc(50% + 10px);
+  padding:6px 9px; border:1px solid var(--glass-edge); border-radius:8px; background:#2a2d38; box-shadow:0 8px 24px #0007;
+  color:var(--text); font:500 12px var(--mac-ui); white-space:nowrap; pointer-events:none; opacity:0; }
+/* Da metade para a direita, o balão abre para a esquerda do dia: nunca sai da área. */
+.mesa-grafico-dia.a-direita::after { left:auto; right:calc(50% + 10px); }
+.mesa-grafico-dia:is(:hover, :focus-visible, .escolhido) i, .mesa-grafico-dia:is(:hover, :focus-visible, .escolhido)::before { opacity:1; }
+.mesa-grafico-dia:is(:hover, :focus-visible)::after { opacity:1; }
+.mesa-grafico-dia.escolhido { background:#ff984f14; }
+.mesa-grafico-dia:focus-visible { outline:2px solid #ffb678; outline-offset:-2px; }
+.mesa-grafico-rotulos { grid-column:2; display:grid; grid-template-columns:repeat(var(--n), 1fr); margin-top:6px;
+  color:#7d818d; font:500 11px var(--mac-ui); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; }
+.mesa-grafico-rotulos .hoje { color:#ffbe86; font-weight:600; }
+.mesa-grafico-corpo { padding-top:4px; }
+@media (prefers-reduced-motion: reduce) { .mesa-grafico-dia i { transition:none; } }
+@media (max-width:760px) {
+  .mesa-legenda { order:3; flex:1 1 100%; }
+  .mesa-etiquetas { margin-left:0; }
+  .mesa-grafico-area { height:96px; }
 }

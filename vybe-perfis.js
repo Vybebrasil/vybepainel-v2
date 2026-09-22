@@ -790,6 +790,9 @@ function closeDaIndividualPlanningDesk(){ const overlay=document.getElementById(
 // aqui. Uma seleção só, as mesmas regras nas duas telas.
 let DA_PLANNING_ACTIVE_USER='';
 let DA_PLANNING_FILTER='all'; let DA_PLANNING_SORT='veiculacao'; let DA_PLANNING_SORT_DESC=false;
+// Gráfico da mesa: semana ou mês, quantos períodos para trás/frente, e o dia
+// clicado (que filtra a lista). O celular abre na semana: o mês não cabe legível.
+const DA_PLANNING_GRAFICO = { periodo: (typeof matchMedia === 'function' && matchMedia('(max-width:760px)').matches) ? 'semana' : 'mes', deslocamento: 0, dia: '' };
 // Quem a mesa esta mostrando. Era sempre uma pessoa; agora e um conjunto, porque
 // duas pessoas da mesma celula dividem entregas e planejar uma sem ver a outra
 // e planejar no escuro.
@@ -848,6 +851,9 @@ function daPlanningSortItems(items,sort){ const copy=[...items];
   // primeiro campo deixaria blocos internos fora de ordem.
   const sentido = DA_PLANNING_SORT_DESC ? -1 : 1; const byIso=value=>String(value||'9999-12-31'); return copy.sort((a,b)=>sentido*(((a2,b2)=>{ if(sort==='prazo') return byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso))||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso)); if(sort==='margem'){ const margin=item=>{ const gap=goldenDeadlineGap(item.prazo_iso,item.veiculacao_iso); return gap===null?999999:Number(gap); }; const av=margin(a); const bv=margin(b); return av-bv||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso))||byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso)); } if(sort==='cliente') return String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR')||byIso(a.veiculacao_iso).localeCompare(byIso(b.veiculacao_iso)); const av=byIso(a.veiculacao_iso); const bv=byIso(b.veiculacao_iso); return av.localeCompare(bv)||byIso(a.prazo_iso).localeCompare(byIso(b.prazo_iso))||daTacticalScore(a)-daTacticalScore(b); })(a,b))); }
 function daIndividualPlanningItems(userId){ return daPlanningSortItems(daIndividualPlanningAllItems(userId).filter(item=>daPlanningItemMatchesFilter(item,DA_PLANNING_FILTER)),DA_PLANNING_SORT); }
+// O que a lista mostra: o filtro da mesa e, se houver, o dia clicado no gráfico
+// (peças com prazo OU veiculação naquele dia — as duas linhas do gráfico).
+function daPlanningItensDaLista(userId){ const dia=DA_PLANNING_GRAFICO.dia; const itens=daIndividualPlanningItems(userId); return dia?itens.filter(item=>String(item.prazo_iso||'')===dia||String(item.veiculacao_iso||'')===dia):itens; }
 function daPlanningSelection(userId){ return daIndividualPlanningAllItems(daPlanningPessoasDaMesa(userId)).filter(item=>SELECIONADAS.has(String(item.id))); }
 // Qual barra de lote mostrar: só solicitações marcadas usam a de Solicitações
 // (grupos e "Tipo" de lá); com qualquer conteúdo no meio, a de Produção.
@@ -1196,10 +1202,10 @@ function daIndividualPlanningRow(item,index,userId){
 }
 // O shift marca o intervalo na ordem da MESA, que é a que a pessoa está vendo.
 function daPlanningToggleItem(userId,itemId,checked,event){
-  const ordem=daIndividualPlanningItems(daPlanningPessoasDaMesa(userId)).map(item=>String(item.id));
+  const ordem=daPlanningItensDaLista(daPlanningPessoasDaMesa(userId)).map(item=>String(item.id));
   alternarSelecao(itemId,checked,event,ordem);
 }
-function daPlanningToggleAll(userId){ const items=daIndividualPlanningItems(daPlanningPessoasDaMesa(userId)); const all=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id))); items.forEach(item=>all?SELECIONADAS.delete(String(item.id)):SELECIONADAS.add(String(item.id))); repintarOndeHaSelecao(); }
+function daPlanningToggleAll(userId){ const items=daPlanningItensDaLista(daPlanningPessoasDaMesa(userId)); const all=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id))); items.forEach(item=>all?SELECIONADAS.delete(String(item.id)):SELECIONADAS.add(String(item.id))); repintarOndeHaSelecao(); }
 function daPlanningBulkToolbarHtml(items,userId){
   // A faixa "Seleção em lote" saiu: com algo marcado, a barra de baixo já diz
   // quantas e o que dá para fazer. Marcar todas fica no cabeçalho da lista.
@@ -1311,28 +1317,109 @@ function daPlanningPainelDeAcao(itens, pessoasDaMesa) {
   return `<button type="button" class="mesa-arrumar" onclick="arrumarAgenda()" ${proposta ? '' : 'disabled'} title="${safeText(nota)}">Arrumar a agenda${proposta ? `<small>${proposta}</small>` : ''}</button>`;
 }
 
-// Os números da mesa numa faixa só. Venceu, sem prazo e sem veiculação filtram a
-// lista ao clicar; os de margem são a mesma conta da barra de saúde logo abaixo.
-function daPlanningResumoHtml(itens, contas, quem) {
+// O GRÁFICO DA MESA — quantas peças caem em cada dia, por prazo e por veiculação.
+//
+// A faixa de números dizia o total; não dizia ONDE a carga estava. Duas linhas no
+// mesmo eixo (as duas contam peças, a mesma unidade), a carga ideal tracejada e o
+// hoje marcado. Cada dia é um botão: passar o mouse mostra os números, clicar
+// filtra a lista para aquele dia. Os três números que pedem ação ficam como
+// etiquetas, e só aparecem quando há o que fazer.
+const DA_PLANNING_CORES = { prazo: '#d9702a', veic: '#4a86e8' };
+function daPlanningDiasDoPeriodo() {
+  const hoje = new Date(`${daPlanningTodayIso()}T12:00:00`);
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const g = DA_PLANNING_GRAFICO;
+  if (g.periodo === 'semana') {
+    const seg = new Date(hoje); seg.setDate(hoje.getDate() - ((hoje.getDay() + 6) % 7) + g.deslocamento * 7);
+    return Array.from({ length: 7 }, (_, k) => { const d = new Date(seg); d.setDate(seg.getDate() + k); return iso(d); });
+  }
+  const inicio = new Date(hoje.getFullYear(), hoje.getMonth() + g.deslocamento, 1, 12);
+  const total = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0, 12).getDate();
+  return Array.from({ length: total }, (_, k) => iso(new Date(inicio.getFullYear(), inicio.getMonth(), k + 1, 12)));
+}
+function daPlanningRotuloDoPeriodo(dias) {
+  const d = (iso) => new Date(`${iso}T12:00:00`);
+  if (DA_PLANNING_GRAFICO.periodo === 'mes') {
+    const m = d(dias[0]).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return m.charAt(0).toUpperCase() + m.slice(1);
+  }
+  return `${planningDateBr(dias[0]).slice(0, 5)} a ${planningDateBr(dias[dias.length - 1]).slice(0, 5)}`;
+}
+function daPlanningGraficoHtml(itens, contas, quem) {
   const hoje = daPlanningTodayIso();
+  const g = DA_PLANNING_GRAFICO;
+  const dias = daPlanningDiasDoPeriodo();
+  const porDia = dias.map((dia) => ({
+    dia,
+    prazo: itens.filter((i) => String(i.prazo_iso || '') === dia).length,
+    veic: itens.filter((i) => String(i.veiculacao_iso || '') === dia).length,
+  }));
+  const maior = Math.max(CARGA_IDEAL_POR_DIA + 1, ...porDia.map((p) => Math.max(p.prazo, p.veic)));
+  const teto = Math.ceil(maior / 2) * 2;
+  const W = 1000, H = 120, n = dias.length;
+  const x = (k) => (n === 1 ? W / 2 : (k + 0.5) * (W / n));
+  const y = (v) => H - (v / teto) * H;
+  const linha = (campo) => porDia.map((p, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)} ${y(p[campo]).toFixed(1)}`).join(' ');
+  const semana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const nomeDia = (iso) => `${semana[new Date(`${iso}T12:00:00`).getDay()]} ${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  const mostraRotulo = (k, iso) => g.periodo === 'semana' || k === 0 || iso === hoje || (k + 1) % 5 === 0;
+  const idxHoje = dias.indexOf(hoje);
   const vencidos = itens.filter((d) => String(d.prazo_iso || '') && String(d.prazo_iso) < hoje).length;
-  const semPrazo = itens.filter((d) => !String(d.prazo_iso || '')).length;
   const semVeic = itens.filter((d) => !String(d.veiculacao_iso || '')).length;
-  const dias = Math.max(1, Math.ceil(itens.length / CARGA_IDEAL_POR_DIA));
-  const numero = (valor, rotulo, tom = '', acao = '') => acao && valor
-    ? `<button type="button" class="mesa-numero ${tom}" onclick="${acao}"><b>${valor}</b><span>${rotulo}</span></button>`
-    : `<span class="mesa-numero ${valor ? tom : 'zero'}"><b>${valor}</b><span>${rotulo}</span></span>`;
-  return `<div class="mesa-numeros">
-      ${numero(itens.length, 'entregas ativas')}
-      ${numero(contas.ok, 'no padrão · 7 dias', 'ok')}
-      ${numero(contas.slack, 'com folga', 'folga')}
-      ${numero(contas.risk, 'abaixo do padrão', 'risco', `daPlanningSetFilter('fora7','${quem}')`)}
-      <span class="mesa-divisor" aria-hidden="true"></span>
-      ${numero(vencidos, vencidos === 1 ? 'prazo venceu' : 'prazos venceram', 'alerta', `daPlanningSetFilter('atrasados','${quem}')`)}
-      ${numero(semPrazo, 'sem prazo', 'risco')}
-      ${numero(semVeic, 'sem veiculação', 'risco', `daPlanningSetFilter('semveic','${quem}')`)}
-      ${numero(dias, dias === 1 ? 'dia de fila' : 'dias de fila')}
-    </div>`;
+  const etiqueta = (valor, rotulo, tom, acao) => valor
+    ? `<button type="button" class="mesa-etiqueta ${tom}" onclick="${acao}"><b>${valor}</b> ${rotulo}</button>` : '';
+  const colunas = porDia.map((p, k) => {
+    const fds = [0, 6].includes(new Date(`${p.dia}T12:00:00`).getDay());
+    const resumo = `${nomeDia(p.dia)} · ${p.prazo} de prazo · ${p.veic} de veiculação`;
+    return `<button type="button" class="mesa-grafico-dia${fds ? ' fds' : ''}${k >= n / 2 ? ' a-direita' : ''}${g.dia === p.dia ? ' escolhido' : ''}${p.dia === hoje ? ' hoje' : ''}"
+      style="--x:${(x(k) / W * 100).toFixed(3)}%;--yp:${(y(p.prazo) / H * 100).toFixed(2)}%;--yv:${(y(p.veic) / H * 100).toFixed(2)}%"
+      data-resumo="${safeText(resumo)}" onclick="daPlanningEscolherDia('${p.dia}')"
+      aria-pressed="${g.dia === p.dia}" aria-label="${safeText(resumo)}. ${g.dia === p.dia ? 'Clique para ver todos os dias' : 'Clique para ver só este dia'}">
+      <i class="p" aria-hidden="true"></i><i class="v" aria-hidden="true"></i></button>`;
+  }).join('');
+  const rotulos = porDia.map((p, k) => `<span class="${p.dia === hoje ? 'hoje' : ''}">${mostraRotulo(k, p.dia) ? (g.periodo === 'semana' ? nomeDia(p.dia) : p.dia.slice(8, 10)) : ''}</span>`).join('');
+  const escolhido = g.dia ? `<button type="button" class="mesa-etiqueta escolhido" onclick="daPlanningEscolherDia('')" aria-label="Voltar a ver todos os dias">Só ${nomeDia(g.dia)} <span aria-hidden="true">×</span></button>` : '';
+  return `<div class="mesa-grafico">
+    <div class="mesa-grafico-topo">
+      <div class="mesa-segmento" role="group" aria-label="Período do gráfico"><div>
+        <button type="button" class="${g.periodo === 'semana' ? 'ativo' : ''}" aria-pressed="${g.periodo === 'semana'}" onclick="daPlanningPeriodoDoGrafico('semana')">Semana</button>
+        <button type="button" class="${g.periodo === 'mes' ? 'ativo' : ''}" aria-pressed="${g.periodo === 'mes'}" onclick="daPlanningPeriodoDoGrafico('mes')">Mês</button></div></div>
+      <div class="mesa-grafico-nav">
+        <button type="button" onclick="daPlanningAndarNoGrafico(-1)" aria-label="${g.periodo === 'semana' ? 'Semana anterior' : 'Mês anterior'}">‹</button>
+        <b>${safeText(daPlanningRotuloDoPeriodo(dias))}</b>
+        <button type="button" onclick="daPlanningAndarNoGrafico(1)" aria-label="${g.periodo === 'semana' ? 'Próxima semana' : 'Próximo mês'}">›</button>
+        ${g.deslocamento ? `<button type="button" class="mesa-grafico-hoje" onclick="daPlanningAndarNoGrafico(0)">Hoje</button>` : ''}
+      </div>
+      <div class="mesa-legenda" aria-hidden="true"><span><i style="background:${DA_PLANNING_CORES.prazo}"></i>Prazo</span><span><i style="background:${DA_PLANNING_CORES.veic}"></i>Veiculação</span><span><i class="tracejado"></i>Carga ideal · ${CARGA_IDEAL_POR_DIA}/dia</span></div>
+      <div class="mesa-etiquetas">${escolhido}
+        ${etiqueta(vencidos, vencidos === 1 ? 'prazo venceu' : 'prazos venceram', 'alerta', `daPlanningSetFilter('atrasados','${quem}')`)}
+        ${etiqueta(contas.risk, 'abaixo do padrão', 'risco', `daPlanningSetFilter('fora7','${quem}')`)}
+        ${etiqueta(semVeic, 'sem veiculação', 'risco', `daPlanningSetFilter('semveic','${quem}')`)}</div>
+    </div>
+    <div class="mesa-grafico-corpo">
+      <span class="mesa-grafico-teto" aria-hidden="true">${teto}</span>
+      <div class="mesa-grafico-area">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+          ${[0.5, 1].map((f) => `<line class="grade" x1="0" x2="${W}" y1="${(H - f * H).toFixed(1)}" y2="${(H - f * H).toFixed(1)}"/>`).join('')}
+          <line class="base" x1="0" x2="${W}" y1="${H}" y2="${H}"/>
+          <line class="carga" x1="0" x2="${W}" y1="${y(CARGA_IDEAL_POR_DIA).toFixed(1)}" y2="${y(CARGA_IDEAL_POR_DIA).toFixed(1)}"/>
+          ${idxHoje >= 0 ? `<line class="hoje" x1="${x(idxHoje).toFixed(1)}" x2="${x(idxHoje).toFixed(1)}" y1="0" y2="${H}"/>` : ''}
+          <path class="serie" d="${linha('veic')}" stroke="${DA_PLANNING_CORES.veic}"/>
+          <path class="serie" d="${linha('prazo')}" stroke="${DA_PLANNING_CORES.prazo}"/>
+        </svg>
+        <div class="mesa-grafico-dias" role="group" aria-label="Demandas por dia: clique num dia para filtrar a lista">${colunas}</div>
+      </div>
+      <div class="mesa-grafico-rotulos" aria-hidden="true" style="--n:${n}">${rotulos}</div>
+    </div>
+  </div>`;
+}
+function daPlanningPeriodoDoGrafico(periodo) { DA_PLANNING_GRAFICO.periodo = periodo; DA_PLANNING_GRAFICO.deslocamento = 0; repintarMesaDePlanejamento(); }
+function daPlanningAndarNoGrafico(passo) { DA_PLANNING_GRAFICO.deslocamento = passo ? DA_PLANNING_GRAFICO.deslocamento + passo : 0; repintarMesaDePlanejamento(); }
+function daPlanningEscolherDia(dia) {
+  DA_PLANNING_GRAFICO.dia = DA_PLANNING_GRAFICO.dia === dia ? '' : dia;
+  // Marca de peça que sumiu da lista entraria num lote sem estar à vista.
+  if (DA_PLANNING_GRAFICO.dia) SELECIONADAS.clear();
+  repintarMesaDePlanejamento();
 }
 
 let PROPOSTA_DE_AGENDA = null;
@@ -1423,11 +1510,6 @@ async function aplicarPropostaDeAgenda() {
     falhas.length ? 'info' : 'ok', 8000);
 }
 
-function daPlanningDeadlineHealthBar(exact,slack,risk,pending,total){
-  const base=Math.max(1,Number(total)||0);
-  const segments=[['ok',exact,'No padrão · 7 dias'],['folga',slack,'Com folga'],['risco',risk,'Abaixo do padrão'],['pendente',pending,'A validar']].filter(([,count])=>count>0);
-  return `<div class="mesa-saude" role="img" aria-label="Saúde dos prazos: ${segments.map(([,c,l])=>`${l} ${c}`).join(', ')}">${segments.map(([kind,count,label])=>`<span class="s-${kind}" style="flex:${count}" title="${label}: ${count} de ${total} (${Math.round(count/base*100)}%)"></span>`).join('')}</div>`;
-}
 // Redesenha a mesa SE ela estiver aberta — e so nesse caso.
 //
 // Sem isto, trocar o responsavel pela coluna nova gravava certo e deixava as
@@ -1466,15 +1548,15 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
   // Abrir a mesa (e não redesenhá-la) também começa sem marcas: a seleção é a do
   // painel todo, e uma peça marcada no gestor entraria num lote feito aqui sem
   // estar à vista.
-  if(String(DA_PLANNING_ACTIVE_USER)!==assinatura||!document.getElementById('da-individual-planning-overlay')){ SELECIONADAS.clear(); DA_PLANNING_ACTIVE_USER=assinatura; } const goldenStates=items.map(item=>daIndividualPlanningGoldenState(item)); const exactCount=goldenStates.filter(state=>state.kind==='ok').length; const riskCount=goldenStates.filter(state=>state.kind==='risk').length; const slackCount=goldenStates.filter(state=>state.kind==='slack').length; const pendingCount=goldenStates.filter(state=>state.kind==='pending').length; const previousPlanning=document.getElementById('da-individual-planning-overlay');
+  if(String(DA_PLANNING_ACTIVE_USER)!==assinatura||!document.getElementById('da-individual-planning-overlay')){ SELECIONADAS.clear(); DA_PLANNING_GRAFICO.dia=''; DA_PLANNING_ACTIVE_USER=assinatura; } const goldenStates=items.map(item=>daIndividualPlanningGoldenState(item)); const exactCount=goldenStates.filter(state=>state.kind==='ok').length; const riskCount=goldenStates.filter(state=>state.kind==='risk').length; const slackCount=goldenStates.filter(state=>state.kind==='slack').length; const pendingCount=goldenStates.filter(state=>state.kind==='pending').length; const previousPlanning=document.getElementById('da-individual-planning-overlay');
   // Toda mudanca aqui (filtro, marcar, salvar prazo) redesenha a mesa inteira, e
   // a mesa nova nascia rolada no topo: quem estava na linha 18 voltava pra 1 a
   // cada clique. Guardar a rolagem e devolver depois e o que faz a tela ficar
   // parada onde a pessoa estava.
   const rolagemAnterior=previousPlanning?.querySelector('.mesa-lista')?.scrollTop||0;
   const eraRedesenho=Boolean(previousPlanning);
-  if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const healthBar=daPlanningDeadlineHealthBar(exactCount,slackCount,riskCount,pendingCount,items.length); const rows=items.length?items.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):'<div class="mesa-vazio">Nenhuma demanda nesta visão. Ajuste os filtros para ver as demais.</div>'; const controls=daPlanningControlsHtml(user.id,items.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="mesa-agendas" aria-label="Agendas na mesa">${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'ativo':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active?(pessoasDaMesa.length>1?'Clique para tirar '+safeText(firstName(entry.name))+' da mesa':'Única agenda na mesa — some outra para comparar'):'Clique para somar '+safeText(firstName(entry.name))+' à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="mesa-todos ${pessoasDaMesa.length===daControllerTeam().length?'ativo':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula</button></nav>`;
-  const todasVisiveis=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id)));
+  if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const naLista=daPlanningItensDaLista(pessoasDaMesa); const rows=naLista.length?naLista.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):`<div class="mesa-vazio">${DA_PLANNING_GRAFICO.dia?'Nenhuma demanda com prazo ou veiculação neste dia.':'Nenhuma demanda nesta visão. Ajuste os filtros para ver as demais.'}</div>`; const controls=daPlanningControlsHtml(user.id,naLista.length,totalItems); const bulk=daPlanningBulkToolbarHtml(items,user.id); const quickSwitch=`<nav class="mesa-agendas" aria-label="Agendas na mesa">${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'ativo':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active?(pessoasDaMesa.length>1?'Clique para tirar '+safeText(firstName(entry.name))+' da mesa':'Única agenda na mesa — some outra para comparar'):'Clique para somar '+safeText(firstName(entry.name))+' à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="mesa-todos ${pessoasDaMesa.length===daControllerTeam().length?'ativo':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula</button></nav>`;
+  const todasVisiveis=naLista.length>0&&naLista.every(item=>SELECIONADAS.has(String(item.id)));
   overlay.innerHTML=`<section class="mesa-janela" role="dialog" aria-modal="true" aria-label="Mesa de planejamento de ${safeText(user.name)}">
     <div class="mesa-topo">
       <div class="mesa-quem">${pessoasDaMesa.slice(0,3).map(id=>daIndividualPlanningAvatar(daControllerTeam().find(p=>String(p.id)===String(id))||user)).join('')}
@@ -1484,10 +1566,10 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
       <button type="button" class="mesa-fechar" onclick="closeDaIndividualPlanningDesk()" aria-label="Fechar a mesa de planejamento">${typeof ICONE!=='undefined'?ICONE.fechar:'×'}</button>
     </div>
     <div class="mesa-barra">${controls}${daPlanningPainelDeAcao(items, pessoasDaMesa)}</div>
-    <div class="mesa-resumo">${daPlanningResumoHtml(items,{ok:exactCount,slack:slackCount,risk:riskCount},user.id)}${healthBar}</div>
+    <div class="mesa-resumo">${daPlanningGraficoHtml(items,{risk:riskCount},user.id)}</div>
     <div class="mesa-lista">
       <div class="mesa-linha mesa-cabeca" role="row">
-        <label class="mesa-marcar" title="${todasVisiveis?'Desmarcar':'Marcar'} as ${items.length} visíveis"><input type="checkbox" ${todasVisiveis?'checked':''} onclick="daPlanningToggleAll('${user.id}')" aria-label="Marcar as ${items.length} visíveis"></label>
+        <label class="mesa-marcar" title="${todasVisiveis?'Desmarcar':'Marcar'} as ${naLista.length} visíveis"><input type="checkbox" ${todasVisiveis?'checked':''} onclick="daPlanningToggleAll('${user.id}')" aria-label="Marcar as ${naLista.length} visíveis"></label>
         <span>#</span>${daPlanningCabecalho("Demanda / cliente","cliente",userId)}<span>Responsável</span>${daPlanningCabecalho("Veiculação","veiculacao",userId)}${daPlanningCabecalho("Prazo","prazo",userId)}<span>Formato</span><span>Status</span><span>Prioridade</span><span>Arquivo</span><span></span>
       </div>${rows}</div>
     ${bulk}
