@@ -1207,3 +1207,104 @@ body:has(#da-individual-planning-overlay) .grupos-lote:not(.na-mesa) { display:n
   .mesa-etiquetas { margin-left:0; }
   .mesa-grafico-area { height:96px; }
 }
+
+/* ─── DA Controler e seus painéis internos no padrão Golden Gate ─────────────
+   A tela acumulou gerações de regras (cantos retos, faixas de 3px, títulos de
+   10px em caixa alta) e boa parte delas usa !important. Este bloco fecha o
+   visual nos tokens do painel; onde repito !important é para vencer a regra
+   antiga equivalente, sempre dentro do escopo do DA — que é o que a torna
+   segura de ler e de apagar depois. */
+#da-controller-dashboard { --da-raio:14px; }
+#da-controller-dashboard :is(b, strong, h2, h3, summary) { letter-spacing:-.01em; }
+#da-controller-dashboard :is(.da-capacity-volume b, .da-command-daily-count, .da-week-rail-info b, .da-today-pulse-metric b) { font-variant-numeric:tabular-nums; }
+
+/* Cartões de pessoa: a cor da pessoa vira uma marca fina e arredondada. */
+#da-controller-dashboard .da-capacity-card { padding:14px 14px 14px 20px !important; border:1px solid var(--border) !important;
+  border-radius:var(--da-raio) !important; background:#ffffff08 !important; box-shadow:none !important; }
+#da-controller-dashboard .da-capacity-card::before { left:9px; top:14px; bottom:14px; width:3px; border-radius:999px; }
+#da-controller-dashboard .da-capacity-card:hover, #da-controller-dashboard .da-capacity-card.active {
+  border-color:color-mix(in srgb, var(--da-person-color) 55%, transparent) !important;
+  background:color-mix(in srgb, var(--da-person-color) 12%, #ffffff08) !important; }
+#da-controller-dashboard .da-capacity-name { font:600 13.5px var(--mac-ui); }
+#da-controller-dashboard .da-capacity-role { color:var(--text-muted); font:500 11.5px var(--mac-ui); letter-spacing:0; }
+#da-controller-dashboard .da-capacity-load { border-radius:999px; overflow:hidden; }
+
+/* Mesa de comando: quatro cartões soltos, sem grade de linhas. */
+#da-controller-dashboard .da-command-daily-grid { display:grid !important; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; padding:0; border:0 !important; }
+#da-controller-dashboard .da-command-daily-card { min-height:0 !important; padding:16px !important;
+  border:1px solid var(--border) !important; border-right:1px solid var(--border) !important; border-bottom:1px solid var(--border) !important;
+  border-radius:var(--da-raio) !important; background:#ffffff08 !important; box-shadow:none !important; }
+#da-controller-dashboard .da-command-daily-card::before { left:16px !important; right:auto !important; top:16px !important; width:22px; height:3px !important; border-radius:999px; }
+#da-controller-dashboard .da-command-daily-card:hover:not(.vazia) { transform:none !important;
+  border-color:color-mix(in srgb, var(--command-color,#ff984f) 55%, transparent) !important;
+  background:color-mix(in srgb, var(--command-color,#ff984f) 12%, #ffffff08) !important; }
+#da-controller-dashboard .da-command-daily-kicker { display:block; margin-top:12px; color:var(--command-color,#ff984f); font:600 12px var(--mac-ui) !important; letter-spacing:0 !important; opacity:1 !important; }
+#da-controller-dashboard .da-command-daily-count { display:block; margin-top:6px; color:var(--text); font:600 34px/1 var(--mac-ui) !important; }
+#da-controller-dashboard .da-command-daily-card.is-primary .da-command-daily-count { font-size:34px !important; }
+#da-controller-dashboard .da-command-daily-label { margin-top:6px !important; color:var(--text) !important; font:500 14px var(--mac-ui) !important; }
+#da-controller-dashboard .da-command-daily-copy { display:block; margin-top:6px; color:var(--text-muted); font:400 12.5px/1.45 var(--mac-ui); }
+#da-controller-dashboard .da-command-daily-head { padding:0 0 12px; border:0 !important; background:transparent !important; }
+#da-controller-dashboard .da-command-daily-head b { font:600 17px var(--mac-ui); }
+#da-controller-dashboard .da-command-daily-head small, #da-controller-dashboard .da-command-daily-rule { color:var(--text-muted); font:400 12.5px var(--mac-ui); letter-spacing:0; }
+
+/* Régua da semana: cada dia é um cartão. */
+#da-controller-dashboard .da-week-rail { gap:8px; border:0 !important; }
+#da-controller-dashboard .da-week-rail-day { border:1px solid var(--border) !important; border-radius:12px !important;
+  background:#ffffff08 !important; box-shadow:none !important; color:var(--text) !important; }
+#da-controller-dashboard .da-week-rail-day:hover { background:#ffffff12 !important; }
+#da-controller-dashboard .da-week-rail-day.active { border-color:#ff984f99 !important; background:#ff984f1f !important; box-shadow:none !important; }
+#da-controller-dashboard .da-week-rail-day.today:not(.active) { border-color:#ffbe8666 !important; box-shadow:none !important; }
+#da-controller-dashboard .da-week-rail-day.vazio { background:#ffffff04 !important; }
+
+/* Blocos que abrem e fecham: o título deixa de ser miúdo em caixa alta. */
+#da-controller-dashboard .da-secondary-panel { border:1px solid var(--border); border-radius:var(--da-raio); background:#ffffff05; margin-bottom:10px; overflow:hidden; }
+#da-controller-dashboard .da-secondary-panel > summary { min-height:48px; padding:0 16px; color:var(--text);
+  font:600 14px var(--mac-ui) !important; letter-spacing:0 !important; }
+#da-controller-dashboard .da-secondary-panel > summary::after { color:var(--text-muted); font-size:18px; }
+#da-controller-dashboard :is(.da-week-agenda-head b, .da-cell-header b) { font:600 17px var(--mac-ui) !important; }
+#da-controller-dashboard .da-week-agenda-dica span, #da-controller-dashboard .da-cell-header span { color:var(--text-muted); font:400 12.5px var(--mac-ui); }
+
+/* ─── Pop-ups da Mesa de comando (Publicar, Produzir, Risco) ─────────────────
+   O cabeçalho e a lista deixam de rolar juntos: o título fica parado e só a
+   fila anda. Linha limpa, apoio em cinza e vermelho só no atraso. */
+.vybe-desktop .workflow-modal.da-command-modal { display:flex; flex-direction:column;
+  width:min(920px, calc(100vw - 32px)) !important; max-height:min(840px, calc(100vh - 40px)) !important;
+  padding:0 !important; overflow:hidden !important; }
+.da-command-modal > :is(.workflow-kicker, .workflow-title, .workflow-copy) { flex:0 0 auto; margin:0; padding:0 20px; }
+.da-command-modal > .workflow-kicker { padding-top:16px; color:#ff984f !important; }
+.da-command-modal > .workflow-title { margin-top:12px; color:var(--text); font:600 24px var(--mac-ui) !important; }
+.da-command-modal > .workflow-copy { margin-top:4px; padding-bottom:14px; color:var(--text-muted) !important; font:400 13px/1.45 var(--mac-ui) !important;
+  border-bottom:1px solid var(--border); }
+.da-command-modal .da-command-modal-list { flex:1; min-height:0; max-height:none !important; margin:0 !important;
+  padding:10px 12px 16px; overflow-y:auto; overscroll-behavior:contain; }
+.da-command-modal .da-command-modal-row { padding:10px 12px !important; border-color:transparent !important;
+  border-radius:12px !important; background:transparent !important; }
+.da-command-modal .da-command-modal-row:hover { border-color:transparent !important; background:#ffffff0f !important; }
+.da-command-modal .da-command-modal-copy b { font:500 13.5px/1.35 var(--mac-ui) !important; }
+.da-command-modal .da-command-modal-copy small { color:var(--text-muted) !important; font:400 12.5px/1.35 var(--mac-ui) !important; }
+@media (max-width:760px) {
+  /* A largura e a altura repetem !important porque as regras antigas da janela
+     compartilhada também usam — aqui só para a janela do DA virar folha. */
+  .vybe-desktop .workflow-modal.da-command-modal { top:0; left:0; transform:none;
+    width:100vw !important; height:100dvh !important; max-height:100dvh !important;
+    border-radius:0 !important; border:0 !important; }
+  #da-controller-dashboard .da-command-daily-grid { grid-template-columns:1fr; }
+}
+
+/* Radar de aprovação: mesma gaveta, tipografia do sistema e cartão arredondado.
+   O fundo era quase transparente e a tela de trás competia com a leitura. */
+.da-approval-radar-overlay { background:#090a1099 !important; backdrop-filter:blur(6px) !important; -webkit-backdrop-filter:blur(6px) !important; }
+.da-approval-radar { border-left:1px solid var(--glass-edge) !important; background:var(--glass) !important;
+  backdrop-filter:blur(24px) saturate(1.35); -webkit-backdrop-filter:blur(24px) saturate(1.35); }
+.da-approval-radar-head { padding:16px 20px !important; border-bottom:1px solid var(--border) !important; }
+.da-approval-radar-head span { color:#ff984f !important; font:600 12px var(--mac-ui) !important; letter-spacing:0 !important; }
+.da-approval-radar-head b { color:var(--text) !important; font:600 24px var(--mac-ui) !important; letter-spacing:-.01em; }
+.da-approval-radar-head small { color:var(--text-muted) !important; font:400 13px/1.45 var(--mac-ui) !important; }
+.da-approval-radar-close { width:30px !important; height:30px !important; border-radius:50% !important;
+  border:1px solid var(--border) !important; background:#ffffff0a !important; color:var(--text-muted) !important; }
+.da-approval-radar-close:hover { background:#ffffff1f !important; color:var(--text) !important; }
+.da-approval-radar-summary { padding:10px 20px !important; border-bottom:1px solid var(--border) !important;
+  color:var(--text-muted) !important; font:500 12.5px var(--mac-ui) !important; letter-spacing:0 !important; }
+.da-approval-radar-summary b { color:var(--text) !important; }
+.da-approval-card { border:1px solid var(--border) !important; border-radius:var(--radius-panel) !important; background:#ffffff08 !important; }
+.da-approval-radar-empty { border-radius:var(--radius-panel); color:var(--text-muted) !important; font:400 13px var(--mac-ui) !important; letter-spacing:0 !important; }
