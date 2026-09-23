@@ -756,12 +756,9 @@ function renderByDay(sem, filter, dayFilter) {
       <div class="item-list">${rows}</div>
     </div>`;
   }).join('');
-  // O dock e o MESMO da visao de Grupos: flutua no rodape e some quando nada
-  // esta marcado. Basta existir no DOM — nao precisa de lugar proprio.
+  // O dock e o MESMO da visao de Grupos e agora mora no corpo da pagina, uma vez
+  // so (montarDeckDeLote). Aqui basta guardar a ordem que o shift usa.
   ORDEM_VISIVEL_DO_DIA = ordemVisivel;
-  if (typeof deckDeLoteHtml === 'function' && typeof SELECIONADAS !== 'undefined' && SELECIONADAS.size) {
-    grid.insertAdjacentHTML('afterbegin', deckDeLoteHtml('producao'));
-  }
 }
 // A ordem em que as pecas aparecem na lista por dia. Guardada porque o
 // shift+clique de uma linha precisa saber o que veio antes e depois DELA nesta
@@ -1104,30 +1101,110 @@ function pintarBarraDeComando() {
 function toggleActionQueue() { alternarPainelDaBarra('acao'); }
 
 
+// A FILA "REQUER AÇÃO" — o motivo primeiro, e o que resolver junto.
+//
+// Era uma fileira de etiquetas: id, cliente, status e data, com o nome da peça
+// espremido e o motivo cortado no meio ("ven…"). E misturava tudo — prazo
+// vencido ao lado de "pode fazer" —, então os 48 itens não diziam por onde
+// começar. Agora cada linha diz POR QUE está aqui, a fila é dividida por motivo
+// na ordem de urgência, e a marcação é a mesma do resto do painel: marcar duas
+// linhas abre a barra de lote de sempre.
+const ACAO_MOTIVOS = [
+  { chave: 'vencido',   rotulo: 'Prazo vencido',         cor: '#ff7a88' },
+  { chave: 'hoje',      rotulo: 'Vence hoje',            cor: '#ffc46b' },
+  { chave: 'alteracao', rotulo: 'Alteração pedida',      cor: '#ff9ac4' },
+  { chave: 'info',      rotulo: 'Falta informação',      cor: '#c79dff' },
+  { chave: 'aprovacao', rotulo: 'Aguardando aprovação',  cor: '#7ab6ff' },
+  { chave: 'semdono',   rotulo: 'Sem responsável',       cor: '#9aa0ad' },
+  { chave: 'andando',   rotulo: 'Em execução',           cor: '#5fd6a4' },
+];
+const ACAO_STATUS_INFO = ['Falta Info', 'Falta D.A', 'Aguardo', 'Ag. Info Cliente', 'Ag. Interno', 'Aguardo Redação'];
+const ACAO_STATUS_APROVACAO = ['Para aprovação', 'Ag. Aprovação Cliente', 'Em aprovação'];
+let acaoFiltroMotivo = '';
+
+function acaoMotivoDoItem(d) {
+  const risco = d?.operational_risk?.level;
+  const data = getDateIso(d);
+  const hoje = opsTodayIso();
+  if (risco === 'critical' || (data && data < hoje)) return 'vencido';
+  if (data && data === hoje) return 'hoje';
+  if (d.status === 'Alteração') return 'alteracao';
+  if (ACAO_STATUS_INFO.includes(d.status)) return 'info';
+  if (ACAO_STATUS_APROVACAO.includes(d.status)) return 'aprovacao';
+  if (!(typeof assignedIds === 'function' ? assignedIds(d) : []).length) return 'semdono';
+  return 'andando';
+}
+
+function acaoLinhaHtml(d, motivo) {
+  const marcada = SELECIONADAS.has(String(d.id));
+  const equipe = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+  const ids = (typeof assignedIds === 'function' ? assignedIds(d) : []).map(String);
+  const nomes = ids.map((id) => equipe.find((u) => String(u.id) === id)).filter(Boolean).map((u) => firstName(u.name));
+  const dono = nomes.join(', ') || String(d.responsavel || '').split(',').map((n) => n.trim().split(' ')[0]).filter(Boolean).join(', ') || 'Sem responsável';
+  const apoio = [clientesDoItem(d).join(' · ') || 'Sem cliente', dono].filter(Boolean).join(' · ');
+  return `<article class="acao-linha${marcada ? ' marcada' : ''}" onclick="acaoAbrirPeca('${safeText(String(d.id))}',event)"
+      title="Abrir ${safeText(d.nome || 'a atividade')}">
+      <label class="acao-marcar" onclick="event.stopPropagation()"><input type="checkbox" ${marcada ? 'checked' : ''}
+        onclick="acaoMarcar('${safeText(String(d.id))}',this.checked,event)" aria-label="Marcar ${safeText(d.nome || 'atividade')}"></label>
+      <span class="acao-marca m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}" aria-label="${safeText(motivo.rotulo)}"></span>
+      <span class="acao-copy"><b>${safeText(d.nome || 'Sem título')}</b><small>${safeText(apoio)}</small></span>
+      <span class="acao-status" onclick="event.stopPropagation()">${vybeStatus(d)}</span>
+      <span class="acao-data">${safeText(planningDateBr(getDateIso(d)).slice(0, 5) || '—')}<small>${dateMode === 'prazo' ? 'Prazo' : 'Veiculação'}</small></span>
+      <button type="button" class="acao-abrir" onclick="event.stopPropagation();openItemWorkspace('${safeText(String(d.id))}')">Contexto</button>
+    </article>`;
+}
+
+// Clicar na linha abre o cartão rápido — o mesmo do calendário e da mesa do DA —,
+// que resolve status, responsável e datas sem sair da fila.
+function acaoAbrirPeca(itemId, event) {
+  if (event?.target?.closest?.('input, button, a, label, select')) return;
+  if (typeof abrirCartaoRapido === 'function') return abrirCartaoRapido(String(itemId), event, 'content');
+  openItemWorkspace(String(itemId));
+}
+function acaoMarcar(itemId, marcada, event) { alternarSelecao(itemId, marcada, event, ACAO_ORDEM_VISIVEL); }
+function acaoFiltrar(motivo) { acaoFiltroMotivo = acaoFiltroMotivo === motivo ? '' : motivo; renderActionQueue(); }
+let ACAO_ORDEM_VISIVEL = [];
+
 function renderActionQueue() {
   const panel = document.getElementById('ops-action-panel');
   const countEl = document.getElementById('ops-action-count');
   if (!panel || !countEl) return;
-  const items = getActionItems(currentWeek).sort((a,b) => {
-    const aRisk = Number(a.operational_risk?.score ?? 99);
-    const bRisk = Number(b.operational_risk?.score ?? 99);
-    const aDate = getDateIso(a) || '9999-12-31';
-    const bDate = getDateIso(b) || '9999-12-31';
-    return aRisk - bRisk || aDate.localeCompare(bDate) || a.cliente.localeCompare(b.cliente);
-  });
+  const items = getActionItems(currentWeek);
   countEl.textContent = items.length;
-  const visibleItems = showAllActionItems ? items : items.slice(0,5);
-  const list = visibleItems.length ? visibleItems.map(d => `<div class="ops-item">
-    ${vybeChipId(d)}
-    ${vybeTagCliente(d)}
-    <span class="ops-item-name" title="${safeText(d.nome)}">${vybeNome(d)}</span>
-    ${vybeStatus(d)}
-    ${riskBadgeHtml(d,true)}
-    <span class="ops-item-date">${safeText(getDateFmt(d))}</span>
-  </div>`).join('') : '<div class="ops-empty">✓ Nenhum item requer ação nesta semana.</div>';
-  const toggle = items.length > 5 ? `<button class="search-result-action" onclick="toggleAllActionItems()">${showAllActionItems ? 'Mostrar menos' : `Ver mais (${items.length - 5})`}</button>` : '';
-  const weekLabel = META.weeks && META.weeks[currentWeek-1] ? META.weeks[currentWeek-1].label : `Semana ${currentWeek}`;
-  panel.innerHTML = `<div class="ops-panel-title"><span>Requer ação — ${safeText(weekLabel)}</span>${toggle}</div><div class="ops-list">${list}</div>`;
+
+  const porMotivo = new Map(ACAO_MOTIVOS.map((m) => [m.chave, []]));
+  items.forEach((d) => porMotivo.get(acaoMotivoDoItem(d)).push(d));
+  const ordenar = (lista) => lista.sort((a, b) => (getDateIso(a) || '9999-12-31').localeCompare(getDateIso(b) || '9999-12-31')
+    || String(a.cliente).localeCompare(String(b.cliente), 'pt-BR'));
+
+  const chips = ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length).map((m) => `
+    <button type="button" class="acao-chip m-${m.chave}${acaoFiltroMotivo === m.chave ? ' ativo' : ''}"
+      aria-pressed="${acaoFiltroMotivo === m.chave}" onclick="acaoFiltrar('${m.chave}')"><i aria-hidden="true"></i><b>${porMotivo.get(m.chave).length}</b> ${m.rotulo}</button>`).join('');
+
+  const mostrados = ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length && (!acaoFiltroMotivo || acaoFiltroMotivo === m.chave));
+  const LIMITE = 10;
+  ACAO_ORDEM_VISIVEL = [];
+  const blocos = mostrados.map((m) => {
+    const lista = ordenar(porMotivo.get(m.chave));
+    const visiveis = showAllActionItems ? lista : lista.slice(0, LIMITE);
+    ACAO_ORDEM_VISIVEL.push(...visiveis.map((d) => String(d.id)));
+    const restam = lista.length - visiveis.length;
+    return `<section class="acao-bloco">
+      <div class="acao-bloco-topo"><span class="acao-motivo m-${m.chave}"><i aria-hidden="true"></i>${m.rotulo}</span><b>${lista.length}</b></div>
+      ${visiveis.map((d) => acaoLinhaHtml(d, m)).join('')}
+      ${restam > 0 ? `<button type="button" class="acao-mais" onclick="toggleAllActionItems()">Mostrar as outras ${restam}</button>` : ''}
+    </section>`;
+  }).join('');
+
+  const semana = META.weeks && META.weeks[currentWeek - 1] ? META.weeks[currentWeek - 1].label : `Semana ${currentWeek}`;
+  const rodape = showAllActionItems && items.length > LIMITE
+    ? `<button type="button" class="acao-mais" onclick="toggleAllActionItems()">Mostrar menos</button>` : '';
+  panel.innerHTML = `<div class="acao-topo">
+      <div><b>Requer ação</b><small>${safeText(semana)} · ${items.length} ${items.length === 1 ? 'atividade' : 'atividades'}${
+        acaoFiltroMotivo ? ' · filtrando por motivo' : ''}</small></div>
+      <div class="acao-chips">${chips}</div>
+    </div>
+    ${blocos || '<div class="acao-vazio">Nada pendente nesta semana.</div>'}${rodape}`;
 }
 
 function toggleAllActionItems() {
