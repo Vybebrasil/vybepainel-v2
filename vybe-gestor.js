@@ -930,11 +930,51 @@ function opsTodayItems(){
 }
 function toggleTodayQueue(){ alternarPainelDaBarra('hoje'); }
 function renderTodayQueue(){
-  const existing=document.getElementById('ops-today-panel'); if(!existing) return;
-  const items=opsTodayItems(); const count=document.getElementById('ops-today-count'); if(count) count.textContent=items.length;
-  const groups=new Map(); items.forEach(d=>opsOwners(d).forEach(owner=>{ const key=String(owner.id); if(!groups.has(key)) groups.set(key,{owner,items:[]}); groups.get(key).items.push(d); }));
-  const content=groups.size?[...groups.values()].map(({owner,items})=>{ const avatar=owner.photo?`<img src="${owner.photo}" alt="${safeText(owner.name)}" onerror="this.remove()">`:'<span style="width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;background:#566070;color:#fff;font-size:7px">?</span>'; return `<div class="ops-today-group"><div class="ops-today-group-head">${avatar}<b>${safeText(firstName(owner.name))}</b><span>${items.length} entrega${items.length===1?'':'s'}</span></div>${items.map(d=>{const date=getDateIso(d);const overdue=date<opsTodayIso();return `<div class="ops-today-line" onclick="openItemWorkspace('${d.id}')">${vybeChipId(d)}<b title="${safeText(d.nome)}">${safeText(d.nome)}</b>${vybeTagCliente(d)}<span class="${overdue?'ops-today-alert':'ops-today-due'}">${overdue?'ATRASADA':`HOJE · ${safeText(getDateFmt(d))}`}</span></div>`;}).join('')}</div>`;}).join(''):'<div class="ops-empty">✓ Nenhuma entrega aberta vence hoje ou está atrasada neste contexto.</div>';
-  existing.innerHTML=`<div class="ops-panel-title"><span>O que vence hoje · ${safeText(opsTodayIso().split('-').reverse().join('/'))}</span><span>${items.length} item${items.length===1?'':'s'}</span></div>${content}`;
+  const painel=document.getElementById('ops-today-panel');
+  if(!painel) return;
+  const hoje=opsTodayIso();
+  const items=opsTodayItems();
+  const count=document.getElementById('ops-today-count');
+  if(count) count.textContent=items.length;
+
+  // Agrupado por pessoa, como já era: a pergunta aqui é "o que cada um tem para
+  // entregar hoje". O que mudou é a linha — e o atraso, que agora tem nome.
+  const grupos=new Map();
+  items.forEach(d=>opsOwners(d).forEach(owner=>{
+    const chave=String(owner.id);
+    if(!grupos.has(chave)) grupos.set(chave,{owner,items:[]});
+    grupos.get(chave).items.push(d);
+  }));
+  const motivoDoDia=(d)=>{
+    const data=getDateIso(d);
+    if(data && data<hoje){
+      const dias=Math.max(1,Math.round((new Date(hoje+'T12:00:00')-new Date(data+'T12:00:00'))/86400000));
+      return { chave:'vencido', rotulo:`Atrasado ${dias} ${dias===1?'dia':'dias'}` };
+    }
+    return { chave:'hoje', rotulo:'Vence hoje' };
+  };
+  const atrasados=items.filter(d=>getDateIso(d)<hoje).length;
+
+  const blocos=[...grupos.values()]
+    .sort((a,b)=>b.items.length-a.items.length||String(a.owner.name).localeCompare(String(b.owner.name),'pt-BR'))
+    .map(({owner,items:doDono})=>{
+      const avatar=typeof ownerAvatarHtml==='function' ? ownerAvatarHtml(owner)
+        : `<span class="acao-avatar">${safeText(firstName(owner.name||'?').slice(0,2).toUpperCase())}</span>`;
+      const linhas=doDono
+        .sort((a,b)=>String(getDateIso(a)).localeCompare(String(getDateIso(b)))||String(a.nome).localeCompare(String(b.nome),'pt-BR'))
+        .map(d=>filaLinhaHtml(d,motivoDoDia(d),{rotulo:true})).join('');
+      return `<section class="acao-bloco">
+        <div class="acao-bloco-topo acao-bloco-pessoa">${avatar}<span>${safeText(firstName(owner.name)||'Sem responsável')}</span>
+          <b>${doDono.length} ${doDono.length===1?'entrega':'entregas'}</b></div>
+        ${linhas}
+      </section>`;
+    }).join('');
+
+  painel.innerHTML=`<div class="acao-topo">
+      <div><b>O que vence hoje</b><small>${safeText(planningDateBr(hoje))} · ${items.length} ${items.length===1?'atividade':'atividades'}${
+        atrasados?` · ${atrasados} ${atrasados===1?'atrasada':'atrasadas'}`:''}</small></div>
+    </div>
+    ${blocos||'<div class="acao-vazio">Nada vence hoje por aqui.</div>'}`;
 }
 let showDailyClose=false;
 function opsOwnerLabel(d){ return opsOwners(d).map(owner=>firstName(owner.name)).join(', '); }
@@ -1135,18 +1175,24 @@ function acaoMotivoDoItem(d) {
   return 'andando';
 }
 
-function acaoLinhaHtml(d, motivo) {
+// A MESMA LINHA serve as duas filas da barra (Requer ação e O que vence hoje):
+// marca do motivo, nome, cliente · responsável, status que troca ali, data e o
+// atalho para o contexto. Duas listas com a mesma função não podem divergir.
+function filaLinhaHtml(d, motivo, { rotulo = false } = {}) {
   const marcada = SELECIONADAS.has(String(d.id));
   const equipe = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
   const ids = (typeof assignedIds === 'function' ? assignedIds(d) : []).map(String);
   const nomes = ids.map((id) => equipe.find((u) => String(u.id) === id)).filter(Boolean).map((u) => firstName(u.name));
   const dono = nomes.join(', ') || String(d.responsavel || '').split(',').map((n) => n.trim().split(' ')[0]).filter(Boolean).join(', ') || 'Sem responsável';
   const apoio = [clientesDoItem(d).join(' · ') || 'Sem cliente', dono].filter(Boolean).join(' · ');
-  return `<article class="acao-linha${marcada ? ' marcada' : ''}" onclick="acaoAbrirPeca('${safeText(String(d.id))}',event)"
-      title="Abrir ${safeText(d.nome || 'a atividade')}">
+  const marca = rotulo
+    ? `<span class="acao-motivo m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}"><i aria-hidden="true"></i>${safeText(motivo.rotulo)}</span>`
+    : `<span class="acao-marca m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}" aria-label="${safeText(motivo.rotulo)}"></span>`;
+  return `<article class="acao-linha${marcada ? ' marcada' : ''}${rotulo ? ' com-rotulo' : ''}" data-id="${safeText(String(d.id))}"
+      onclick="acaoAbrirPeca('${safeText(String(d.id))}',event)" title="Abrir ${safeText(d.nome || 'a atividade')}">
       <label class="acao-marcar" onclick="event.stopPropagation()"><input type="checkbox" ${marcada ? 'checked' : ''}
-        onclick="acaoMarcar('${safeText(String(d.id))}',this.checked,event)" aria-label="Marcar ${safeText(d.nome || 'atividade')}"></label>
-      <span class="acao-marca m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}" aria-label="${safeText(motivo.rotulo)}"></span>
+        data-id="${safeText(String(d.id))}" onclick="filaMarcar(this,event)" aria-label="Marcar ${safeText(d.nome || 'atividade')}"></label>
+      ${marca}
       <span class="acao-copy"><b>${safeText(d.nome || 'Sem título')}</b><small>${safeText(apoio)}</small></span>
       <span class="acao-status" onclick="event.stopPropagation()">${vybeStatus(d)}</span>
       <span class="acao-data">${safeText(planningDateBr(getDateIso(d)).slice(0, 5) || '—')}<small>${dateMode === 'prazo' ? 'Prazo' : 'Veiculação'}</small></span>
@@ -1161,9 +1207,14 @@ function acaoAbrirPeca(itemId, event) {
   if (typeof abrirCartaoRapido === 'function') return abrirCartaoRapido(String(itemId), event, 'content');
   openItemWorkspace(String(itemId));
 }
-function acaoMarcar(itemId, marcada, event) { alternarSelecao(itemId, marcada, event, ACAO_ORDEM_VISIVEL); }
+// A ordem do shift sai do próprio painel, na sequência em que as linhas estão
+// desenhadas — assim as duas filas usam o mesmo caminho sem guardar listas soltas.
+function filaMarcar(campo, event) {
+  const painel = campo.closest('.ops-panel') || document;
+  const ordem = [...painel.querySelectorAll('.acao-linha')].map((linha) => linha.dataset.id);
+  alternarSelecao(campo.dataset.id, campo.checked, event, ordem);
+}
 function acaoFiltrar(motivo) { acaoFiltroMotivo = acaoFiltroMotivo === motivo ? '' : motivo; renderActionQueue(); }
-let ACAO_ORDEM_VISIVEL = [];
 
 function renderActionQueue() {
   const panel = document.getElementById('ops-action-panel');
@@ -1183,15 +1234,13 @@ function renderActionQueue() {
 
   const mostrados = ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length && (!acaoFiltroMotivo || acaoFiltroMotivo === m.chave));
   const LIMITE = 10;
-  ACAO_ORDEM_VISIVEL = [];
   const blocos = mostrados.map((m) => {
     const lista = ordenar(porMotivo.get(m.chave));
     const visiveis = showAllActionItems ? lista : lista.slice(0, LIMITE);
-    ACAO_ORDEM_VISIVEL.push(...visiveis.map((d) => String(d.id)));
     const restam = lista.length - visiveis.length;
     return `<section class="acao-bloco">
       <div class="acao-bloco-topo"><span class="acao-motivo m-${m.chave}"><i aria-hidden="true"></i>${m.rotulo}</span><b>${lista.length}</b></div>
-      ${visiveis.map((d) => acaoLinhaHtml(d, m)).join('')}
+      ${visiveis.map((d) => filaLinhaHtml(d, m)).join('')}
       ${restam > 0 ? `<button type="button" class="acao-mais" onclick="toggleAllActionItems()">Mostrar as outras ${restam}</button>` : ''}
     </section>`;
   }).join('');
