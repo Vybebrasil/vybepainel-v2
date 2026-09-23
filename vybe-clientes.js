@@ -1722,7 +1722,7 @@ function redesenharListasDoCliente() {
   const gridDem = document.getElementById('grid-cliente-demandas');
   if (gridDem) {
     gridDem.innerHTML = solicitacoes.length
-      ? deckDeLoteHtml('demandas') + tabelaOperacionalHtml(solicitacoes, 'demandas')
+      ? tabelaOperacionalHtml(solicitacoes, 'demandas')
       : '<div class="grupos-vazio">Nenhuma solicitação em aberto.</div>';
   }
 }

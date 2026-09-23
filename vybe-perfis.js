@@ -1206,11 +1206,6 @@ function daPlanningToggleItem(userId,itemId,checked,event){
   alternarSelecao(itemId,checked,event,ordem);
 }
 function daPlanningToggleAll(userId){ const items=daPlanningItensDaLista(daPlanningPessoasDaMesa(userId)); const all=items.length>0&&items.every(item=>SELECIONADAS.has(String(item.id))); items.forEach(item=>all?SELECIONADAS.delete(String(item.id)):SELECIONADAS.add(String(item.id))); repintarOndeHaSelecao(); }
-function daPlanningBulkToolbarHtml(items,userId){
-  // A faixa "Seleção em lote" saiu: com algo marcado, a barra de baixo já diz
-  // quantas e o que dá para fazer. Marcar todas fica no cabeçalho da lista.
-  return typeof deckDeLoteHtml==='function'?deckDeLoteHtml(daPlanningQuadroDaSelecao(),{classe:'na-mesa'}):'';
-}
 // ── ARRUMAR A AGENDA ─────────────────────────────────────────────────────────
 //
 // O trabalho da mesa era todo na mao: abrir todo dia, olhar o que venceu, e
@@ -1572,7 +1567,6 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
         <label class="mesa-marcar" title="${todasVisiveis?'Desmarcar':'Marcar'} as ${naLista.length} visíveis"><input type="checkbox" ${todasVisiveis?'checked':''} onclick="daPlanningToggleAll('${user.id}')" aria-label="Marcar as ${naLista.length} visíveis"></label>
         <span>#</span>${daPlanningCabecalho("Demanda / cliente","cliente",userId)}<span>Responsável</span>${daPlanningCabecalho("Veiculação","veiculacao",userId)}${daPlanningCabecalho("Prazo","prazo",userId)}<span>Formato</span><span>Status</span><span>Prioridade</span><span>Arquivo</span><span></span>
       </div>${rows}</div>
-    ${bulk}
   </section>`; document.body.appendChild(overlay);
   const lista=overlay.querySelector('.mesa-lista');
   if(lista&&rolagemAnterior) lista.scrollTop=rolagemAnterior;

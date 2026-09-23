@@ -1904,9 +1904,11 @@ function alternarSelecao(id, marcada, event, ordemVisivel) {
 // grupos e a ficha do cliente. Repintar so uma deixava a outra com o deck de
 // antes — dizendo, por exemplo, "3 marcadas" onde ja havia 4.
 function repintarOndeHaSelecao() {
+  montarDeckDeLote();
   renderVisaoDeGrupos();
-  // A mesa de planejamento do DA usa a mesma seleção e a mesma barra de lote.
+  // A mesa de planejamento do DA e a fila Requer ação usam a mesma seleção.
   if (typeof repintarMesaDePlanejamento === 'function') repintarMesaDePlanejamento();
+  if (typeof renderActionQueue === 'function') renderActionQueue();
   if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
   // A lista por dia tambem mostra a marcacao e o dock. Sem repintar aqui, marcar
   // uma peca ali nao acendia nada — o dock so aparecia depois de a tela ser
@@ -2107,14 +2109,30 @@ const VISAO_DE_GRUPOS = {
 // O deck de acoes em lote mora aqui, e nao dentro do desenho da tabela de
 // grupos: a ficha do cliente usa a MESMA tabela, e sem isto ela teria caixas de
 // selecao que nao levam a lugar nenhum.
-function deckDeLoteHtml(quadro, { classe = '' } = {}) {
+// A BARRA DE LOTE É UMA SÓ.
+//
+// Ela era desenhada dentro de cada tela que tem seleção (grupos, mesa do DA e
+// agora a fila Requer ação). Três cópias da mesma barra no documento é a porta
+// para duas aparecerem ao mesmo tempo, ou para uma sumir junto com a tela que a
+// hospedava. Agora existe UM elemento, preso ao corpo da página, e quem mexe na
+// seleção só manda repintar.
+function montarDeckDeLote() {
+  const atual = document.getElementById('lote-deck');
+  if (!SELECIONADAS.size) { atual?.remove(); return; }
+  const itens = [...SELECIONADAS].map(findOperationalItem).filter(Boolean);
+  const quadro = itens.length && itens.every(isRequestItem) ? 'demandas' : 'producao';
+  const caixa = atual || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'lote-deck' }));
+  caixa.innerHTML = deckDeLoteHtml(quadro);
+}
+
+function deckDeLoteHtml(quadro) {
   // A seta para baixo diz que o botao ABRE UMA LISTA; o de data abre um campo de
   // digitar, e por isso nao tem seta. Reticencias em todos dizia so "tem mais
   // coisa", sem distinguir os dois.
   const abre = '<svg viewBox="0 0 16 16" width="9" height="9" aria-hidden="true"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
     safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
-  return SELECIONADAS.size ? `<div class="grupos-lote${classe ? ` ${classe}` : ''}" role="toolbar" aria-label="Ações para as atividades marcadas">
+  return SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as atividades marcadas">
       <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}</small></span>
       <span class="lote-risco" aria-hidden="true"></span>
       ${acao('Status', 'loteStatus(event)')}
@@ -2229,8 +2247,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   // Barra de lote flutuante, ancorada embaixo. Antes ela vivia no topo da lista:
   // marcar uma peca no fim de mil linhas mostrava as acoes fora da tela, e a
   // pessoa marcava sem ver que havia o que fazer com aquilo.
-  const barra = deckDeLoteHtml(quadro);
-  wrap.innerHTML = `${barra}<div class="grupos-head">
+  wrap.innerHTML = `<div class="grupos-head">
       <div><div class="grupos-titulo" title="Clique num grupo para recolher, numa linha para abrir a atividade">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div></div>
       <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'conteúdos'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
     </div>${quadro==='producao' ? `<div class="quadro-toolbar"><label class="quadro-busca">Buscar por cliente<input id="busca-cliente-conteudos" type="search" placeholder="Nome do cliente…" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label><button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'producao'})">+ Novo conteúdo</button></div>` : ''}${blocos ? blocos + (typeof botaoNovoGrupoNoFim === 'function' ? botaoNovoGrupoNoFim(quadro) : '') : `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
