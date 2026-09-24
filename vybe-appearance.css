@@ -1368,3 +1368,37 @@ body.vybe-desktop {
   .acao-data { grid-area:2 / 4; display:flex; align-items:baseline; gap:6px; justify-self:end; }
   .acao-abrir { display:none; }
 }
+
+/* Subdemandas: a mesma lista na gaveta e no cartão rápido. Prazo e responsáveis
+   por subdemanda — sem eles ela não dizia quem faz nem até quando. */
+.subitem { display:grid; grid-template-columns:14px minmax(0,1fr) auto auto 26px; align-items:center; gap:10px;
+  padding:7px 8px; border-radius:10px; }
+.subitem:hover { background:#ffffff08; }
+.subitem-donos { display:inline-flex; align-items:center; padding:0; border:0; background:transparent; cursor:pointer; }
+.subitem-donos .owner-avatar-add { display:grid; place-items:center; width:22px; height:22px; border:1px dashed var(--border);
+  border-radius:50%; color:var(--text-muted); font:500 13px var(--mac-ui); }
+.subitem-donos:hover .owner-avatar-add { border-color:#ffffff4d; color:var(--text); }
+.subitem-prazo input[type="date"] { width:112px; height:26px; padding:0 6px; border:1px solid transparent; border-radius:7px;
+  background:transparent; color:var(--text); font:500 12.5px var(--mac-ui); font-variant-numeric:tabular-nums; cursor:pointer; }
+.subitem-prazo input[type="date"]:hover { border-color:#ffffff26; background:#ffffff08; }
+#subitem-donos-menu .status-editor-option { gap:8px; }
+#subitem-donos-menu :is(img, .owner-avatar, .owner-avatar-fallback) { width:20px; height:20px; border-radius:50%; object-fit:cover; }
+/* A marca de andamento na linha da demanda: 2/5 feitas. */
+.grupo-subs { display:inline-flex; align-items:center; margin-left:8px; padding:1px 7px; border:1px solid var(--border);
+  border-radius:999px; color:var(--text-muted); font:500 11px var(--mac-ui); font-variant-numeric:tabular-nums; }
+/* No cartão rápido a lista entra com a mesma cara da gaveta, sem a moldura. O
+   cartão alarga um pouco e a linha vira duas alturas: o nome da subdemanda não
+   cabia ao lado das bolinhas e do prazo. */
+.cartao-rapido:has(.cr-subs) { width:min(420px, calc(100vw - 24px)) !important; }
+.cartao-rapido .cr-subs .subitem { grid-template-columns:14px minmax(0,1fr) 26px; row-gap:6px; }
+.cartao-rapido .cr-subs .subitem-donos { grid-area:2 / 2; justify-self:start; }
+.cartao-rapido .cr-subs .subitem-prazo { grid-area:2 / 2; justify-self:end; }
+.cartao-rapido .cr-subs .subitem-tirar { grid-area:1 / 3; }
+.cartao-rapido .cr-subs .workspace-section { margin:0; border:0; background:transparent; }
+.cartao-rapido .cr-subs { max-height:min(42vh, 320px); overflow-y:auto; border-top:1px solid var(--border); }
+.cr-subs-carregando { padding:12px 14px; color:var(--text-muted); font:400 12.5px var(--mac-ui); }
+@media (max-width:760px) {
+  .subitem { grid-template-columns:14px minmax(0,1fr) auto; row-gap:6px; }
+  .subitem-donos { grid-area:2 / 2; justify-self:start; }
+  .subitem-prazo { grid-area:2 / 3; }
+}

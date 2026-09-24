@@ -19,38 +19,91 @@ function subitensHtml(detail, item) {
   const ehDemanda = typeof isRequestItem === 'function' ? isRequestItem(item) : false;
   if (!itens.length && !ehDemanda) return '';
   const feitos = itens.filter((s) => /^(feito|conclu|aprovado)/i.test(String(s.status || ''))).length;
-  const dataCurta = (v) => {
-    const iso = String(v || '').slice(0, 10);
-    return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8,10)}/${iso.slice(5,7)}` : '';
+  const iso = (v) => { const t = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : ''; };
+  const equipe = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+  const donos = (s) => {
+    const ids = (s.responsavel_ids || []).map(String);
+    const pessoas = ids.map((id) => equipe.find((u) => String(u.id) === id)).filter(Boolean);
+    const conteudo = pessoas.length
+      ? `<span class="owner-avatar-stack">${pessoas.slice(0, 3).map((u) => ownerAvatarHtml(u)).join('')}${
+          pessoas.length > 3 ? `<span class="owner-avatar-fallback" style="background:#465363">+${pessoas.length - 3}</span>` : ''}</span>`
+      : '<span class="owner-avatar-add">+</span>';
+    return `<button type="button" class="subitem-donos owner-editor-trigger"
+      title="${pessoas.length ? safeText(pessoas.map((u) => u.name).join(', ')) : 'Sem responsável'} — clique para escolher"
+      aria-label="Responsáveis da subdemanda"
+      onclick="abrirDonosDaSubdemanda(event,'${safeText(s.ref || '')}','${safeText(item.id)}')">${conteudo}</button>`;
   };
   const linhas = itens.map((s) => `
-    <li class="subitem" data-subitem="${safeText(s.ref)}">
+    <li class="subitem" data-subitem="${safeText(s.ref)}" data-donos="${safeText((s.responsavel_ids || []).join(','))}">
       <button type="button" class="subitem-marca" style="--cor:${s.status_cor || '#7c8797'}"
-        title="Trocar status desta tarefa"
+        title="Trocar status desta subdemanda"
         onclick="abrirStatusDaTarefa(event,'${safeText(s.ref || '')}','${safeText(item.id)}')"></button>
       <span class="subitem-corpo">
         <b title="Clique para renomear"
            onclick="renomearTarefa('${safeText(s.ref || '')}','${safeText(item.id)}',this)">${safeText(s.titulo)}</b>
-        <small>${[s.status, s.tipo, s.prioridade, s.responsaveis]
-                  .filter(Boolean).map(safeText).join(' · ') || 'sem detalhe'}</small>
+        <small>${[s.status, s.tipo, s.prioridade].filter(Boolean).map(safeText).join(' · ') || 'sem status'}</small>
       </span>
-      ${dataCurta(s.conclusao || s.prazo) ? `<span class="subitem-data">${dataCurta(s.conclusao || s.prazo)}</span>` : ''}
-      <button type="button" class="subitem-tirar" title="Remover tarefa"
+      ${donos(s)}
+      <label class="subitem-prazo" title="Prazo desta subdemanda">
+        <input type="date" value="${safeText(iso(s.prazo))}"
+          onchange="mudarPrazoDaSubdemanda('${safeText(s.ref || '')}','${safeText(item.id)}',this)"
+          aria-label="Prazo da subdemanda ${safeText(s.titulo)}"></label>
+      <button type="button" class="subitem-tirar" title="Remover subdemanda"
         onclick="removerTarefa('${safeText(s.ref || '')}','${safeText(item.id)}','${safeText(s.titulo).replace(/'/g, "\\'")}')">×</button>
     </li>`).join('');
   return `<section class="workspace-section">
-    <div class="workspace-section-head">Tarefas da solicitação
+    <div class="workspace-section-head">Subdemandas
       ${itens.length ? `<span class="subitem-contagem">${feitos} de ${itens.length}</span>` : ''}</div>
     <div class="workspace-section-body">
-      <ul class="subitem-lista">${linhas || '<li class="workspace-empty">Nenhuma tarefa ainda.</li>'}</ul>
+      <ul class="subitem-lista">${linhas || '<li class="workspace-empty">Nenhuma subdemanda ainda.</li>'}</ul>
       <div class="subitem-nova">
         <input id="subitem-nova-${safeText(item.id)}" class="workspace-input" type="text"
-               placeholder="Nova tarefa…" maxlength="255"
+               placeholder="Nova subdemanda…" maxlength="255"
                onkeydown="if(event.key==='Enter'){event.preventDefault();criarTarefa('${safeText(item.id)}')}">
         <button type="button" class="workspace-action" onclick="criarTarefa('${safeText(item.id)}')">Adicionar</button>
       </div>
     </div>
   </section>`;
+}
+
+// Prazo e responsáveis da subdemanda passam pelo MESMO caminho de gravação das
+// outras mudanças dela (mexerNaTarefa): um lugar para salvar, um para repintar.
+async function mudarPrazoDaSubdemanda(ref, itemId, campo) {
+  const data = String(campo?.value || '');
+  campo.disabled = true;
+  const d = await mexerNaTarefa({ operacao: 'prazo', subitem: ref, data }, itemId);
+  if (campo?.isConnected) campo.disabled = false;
+  if (d) showToast(data ? `✓ Prazo da subdemanda: ${planningDateBr(data)}` : '✓ Subdemanda sem prazo', 'ok', 3000);
+}
+
+function abrirDonosDaSubdemanda(event, ref, itemId) {
+  event.preventDefault();
+  event.stopPropagation();
+  document.getElementById('subitem-donos-menu')?.remove();
+  document.getElementById('subitem-donos-fundo')?.remove();
+  const linha = event.currentTarget.closest('.subitem');
+  const atuais = new Set(String(linha?.dataset.donos || '').split(',').filter(Boolean));
+  const equipe = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+  const fundo = document.createElement('div');
+  fundo.id = 'subitem-donos-fundo';
+  fundo.className = 'status-editor-backdrop';
+  fundo.onclick = () => { fundo.remove(); document.getElementById('subitem-donos-menu')?.remove(); };
+  const menu = document.createElement('div');
+  menu.id = 'subitem-donos-menu';
+  menu.className = 'status-editor';
+  menu.innerHTML = `<div class="status-editor-head">Responsáveis da subdemanda</div>${equipe.map((u) => `
+    <button type="button" class="status-editor-option${atuais.has(String(u.id)) ? ' current' : ''}" data-pessoa="${safeText(String(u.id))}">
+      ${ownerAvatarHtml(u)}<span>${safeText(firstName(u.name))}</span>${atuais.has(String(u.id)) ? '<span class="status-editor-check">✓</span>' : ''}</button>`).join('')}`;
+  menu.onclick = async (e) => {
+    const id = e.target.closest('[data-pessoa]')?.dataset.pessoa;
+    if (!id) return;
+    // Clicar soma ou tira; a lista inteira vai junto, que é como o servidor grava.
+    if (atuais.has(id)) atuais.delete(id); else atuais.add(id);
+    fundo.remove(); menu.remove();
+    await mexerNaTarefa({ operacao: 'responsaveis', subitem: ref, pessoas: [...atuais] }, itemId);
+  };
+  document.body.append(fundo, menu);
+  if (typeof ancorarPopover === 'function') ancorarPopover(menu, event.currentTarget.getBoundingClientRect());
 }
 
 // Todas as escritas de tarefa passam por aqui: um caminho só para gravar, e um
@@ -67,11 +120,19 @@ async function mexerNaTarefa(corpo, itemId) {
     if (String(d.replica_monday || '').startsWith('falhou')) {
       showToast('✓ Salvo no Vybe · o Monday não recebeu a cópia, será reconciliada', 'info', 6000);
     }
-    const atual = findOperationalItem(itemId);
-    if (atual) renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), atual);
+    // A lista de subdemandas vive em dois lugares: na gaveta e no cartão rápido.
+    // Repinta quem estiver aberto — repintar a gaveta fechada não devolve nada.
+    const atual = findOperationalItem(itemId) || (typeof normalizeRequestForOperational === 'function'
+      && (DADOS_DEMANDAS || []).find((x) => String(x.id) === String(itemId))
+      && normalizeRequestForOperational((DADOS_DEMANDAS || []).find((x) => String(x.id) === String(itemId))));
+    const detalhe = await fetchWorkspaceItem(itemId);
+    const noCartao = document.getElementById(`cr-subs-${itemId}`);
+    if (noCartao && atual) noCartao.innerHTML = subitensHtml(detalhe, atual);
+    const gaveta = document.getElementById('workspace-drawer');
+    if (atual && gaveta && gaveta.getClientRects().length) renderWorkspaceDrawer(detalhe, atual);
     return d;
   } catch (erro) {
-    showToast(`Não foi possível salvar a tarefa: ${erro.message}`, 'err', 7000);
+    showToast(`Não foi possível salvar a subdemanda: ${erro.message}`, 'err', 7000);
     return null;
   }
 }
@@ -82,21 +143,21 @@ async function criarTarefa(itemId) {
   if (!titulo) return campo?.focus();
   campo.disabled = true;
   const d = await mexerNaTarefa({ operacao: 'criar', item: String(itemId), titulo }, itemId);
-  if (d) showToast(`✓ Tarefa "${titulo}" adicionada`, 'ok');
+  if (d) showToast(`✓ Subdemanda "${titulo}" adicionada`, 'ok');
   else if (campo) { campo.disabled = false; campo.focus(); }
 }
 
 async function renomearTarefa(subitemId, itemId, alvo) {
   const atual = alvo?.textContent || '';
-  const novo = window.prompt('Nome da tarefa:', atual);
+  const novo = window.prompt('Nome da subdemanda:', atual);
   if (novo === null || novo.trim() === atual.trim()) return;
   await mexerNaTarefa({ operacao: 'titulo', subitem: subitemId, titulo: novo.trim() }, itemId);
 }
 
 async function removerTarefa(subitemId, itemId, titulo) {
-  if (!window.confirm(`Remover a tarefa "${titulo}"? Ela sai daqui e do Monday.`)) return;
+  if (!window.confirm(`Remover a subdemanda "${titulo}"?`)) return;
   const d = await mexerNaTarefa({ operacao: 'remover', subitem: subitemId }, itemId);
-  if (d) showToast('✓ Tarefa removida', 'ok');
+  if (d) showToast('✓ Subdemanda removida', 'ok');
 }
 
 // Mesmo seletor do status da peça: quem já sabe trocar um não aprende outro.

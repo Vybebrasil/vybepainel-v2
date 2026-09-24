@@ -656,12 +656,26 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
       ${(() => { const c = cadastroDaPeca(item); return linha('Cadastrado por', `<span class="cr-texto">${safeText(c.quem)}</span>`) + linha('Criado em', `<span class="cr-texto">${safeText(c.quando)}</span>`); })()}
     </div>
+    ${ehDemanda ? `<div class="cr-subs" id="cr-subs-${safeText(item.id)}"><div class="cr-subs-carregando">Carregando subdemandas…</div></div>` : ''}
     <div class="cr-rodape">
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}"
         title="Arquivos, histórico e entrega">Abrir detalhes</button>
     </div>`;
   document.body.append(fundo, cartao);
   ancorarPopover(cartao, rect);
+  // As subdemandas chegam numa pergunta só, depois que o cartão já está na tela:
+  // esperar por elas atrasaria a abertura por causa de uma seção.
+  if (ehDemanda && typeof subitensHtml === 'function') {
+    fetchWorkspaceItem(item.id).then((detalhe) => {
+      const caixa = document.getElementById(`cr-subs-${item.id}`);
+      if (!caixa) return;
+      caixa.innerHTML = subitensHtml(detalhe, item);
+      ancorarPopover(cartao, rect);
+    }).catch(() => {
+      const caixa = document.getElementById(`cr-subs-${item.id}`);
+      if (caixa) caixa.innerHTML = '<div class="cr-subs-carregando">Não foi possível carregar as subdemandas.</div>';
+    });
+  }
   // Guardado como objeto simples: o DOMRect original some quando a linha e
   // repintada, e o cartao precisa continuar sabendo onde se ancorar.
   CARTAO_ABERTO = { id: String(itemId), source,
@@ -1840,7 +1854,10 @@ function linhaDeGrupoHtml(item) {
              onclick="${parar};alternarSelecao('${safeText(item.id)}',this.checked,event)"></td>
     <td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
         title="ID da atividade · clique para copiar">${safeText(item.id)}</td>
-    <td class="grupo-nome">${safeText(item.nome || 'Sem título')}</td>
+    <td class="grupo-nome">${safeText(item.nome || 'Sem título')}${
+      isRequestItem(item) && Number(item.tarefas) > 0
+        ? `<span class="grupo-subs" title="${Number(item.tarefas_feitas) || 0} de ${Number(item.tarefas)} subdemandas feitas">${
+            Number(item.tarefas_feitas) || 0}/${Number(item.tarefas)}</span>` : ''}</td>
     <td class="grupo-previa" onclick="${parar}">${botaoDePreviaNaLinha(item)}</td>
     <td onclick="${parar}">${botaoClientesDoItem(item)}</td>
     <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
