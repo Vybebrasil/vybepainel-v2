@@ -418,7 +418,12 @@ async function areaPeca(req, res, quem) {
            st.rotulo AS status, st.cor AS status_cor, st.borda AS status_borda,
            (SELECT STRING_AGG(p.nome, ', ' ORDER BY r.ordem, p.nome)
               FROM vybe_subitem_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
-             WHERE r.subitem_id = s.id) AS responsaveis
+             WHERE r.subitem_id = s.id) AS responsaveis,
+           -- Os ids são o que a tela precisa para desenhar as bolinhas e para
+           -- marcar quem já está na subdemanda ao abrir o seletor.
+           (SELECT ARRAY_AGG(p.monday_user_id ORDER BY r.ordem, p.nome)
+              FROM vybe_subitem_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
+             WHERE r.subitem_id = s.id AND p.monday_user_id IS NOT NULL) AS responsavel_ids
       FROM vybe_subitens s
       LEFT JOIN vybe_status st ON st.chave = s.status_chave AND st.board_id = 8385559107
      WHERE s.pai_id = ${c.id}
@@ -430,6 +435,7 @@ async function areaPeca(req, res, quem) {
     titulo: r.titulo, status: r.status || null,
     status_cor: r.status_cor || null, status_borda: r.status_borda || null,
     prazo: r.prazo, conclusao: r.conclusao, tipo: r.tipo, prioridade: r.prioridade,
+    responsavel_ids: (r.responsavel_ids || []).map(String),
     responsaveis: r.responsaveis || null,
   }));
 

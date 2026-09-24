@@ -984,7 +984,7 @@ export default async function handler(req, res) {
 const BOARD_SUBITENS_ID = 8385841526;
 const COL_SUBITEM_STATUS = 'color_mm2ww3xs';
 
-async function mexerNoSubitem(sql, quem, corpo) {
+export async function mexerNoSubitem(sql, quem, corpo) {
   const { operacao } = corpo;
   if (operacao === 'criar') return criarSubitem(sql, quem, corpo);
 
@@ -1029,6 +1029,45 @@ async function mexerNoSubitem(sql, quem, corpo) {
     const replica = 'desativada';
     await sql`DELETE FROM vybe_subitens WHERE id=${s.id}`;
     return { subitem_id: s.id, removida: s.titulo, replica_monday: replica };
+  }
+
+  // Prazo e responsáveis próprios: a subdemanda é trabalho de alguém, num dia.
+  // Sem os dois ela só servia de lembrete dentro da demanda-mãe.
+  if (operacao === 'prazo') {
+    const iso = String(corpo.data || '').slice(0, 10);
+    if (iso && !/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('Prazo inválido; use AAAA-MM-DD.');
+    await sql`UPDATE vybe_subitens SET prazo=${iso || null}, atualizado_em=NOW() WHERE id=${s.id}`;
+    await registrarEvento(sql, s.pai_id, {
+      tipo: 'subitem_prazo', para: iso || null, autorId: await pessoaDaSessao(sql, quem), texto: s.titulo,
+    });
+    return { subitem_id: s.id, prazo: iso || null, replica_monday: 'desativada' };
+  }
+
+  if (operacao === 'responsaveis') {
+    const pedidos = Array.isArray(corpo.pessoas) ? corpo.pessoas.map(String) : [];
+    const pessoas = pedidos.length
+      ? await sql`SELECT id, monday_user_id, nome FROM vybe_pessoas
+           WHERE monday_user_id = ANY(${pedidos}) OR id::text = ANY(${pedidos})`
+      : [];
+    if (pedidos.length && pessoas.length !== new Set(pedidos).size) {
+      throw new Error('Alguém da lista não está no cadastro de pessoas.');
+    }
+    // A ordem é a do clique, não a do banco: é ela que decide quem aparece
+    // primeiro na bolinha da linha.
+    const naOrdem = [...new Set(pedidos)].map((pedido) => pessoas.find(
+      (p) => String(p.monday_user_id) === pedido || String(p.id) === pedido)).filter(Boolean);
+    // Troca inteira numa transação: meia lista gravada é pior que nenhuma.
+    await sql.transaction([
+      sql`DELETE FROM vybe_subitem_responsaveis WHERE subitem_id=${s.id}`,
+      ...naOrdem.map((p, ordem) => sql`INSERT INTO vybe_subitem_responsaveis (subitem_id, pessoa_id, ordem)
+        VALUES (${s.id}, ${p.id}, ${ordem})`),
+      sql`UPDATE vybe_subitens SET atualizado_em=NOW() WHERE id=${s.id}`,
+    ]);
+    await registrarEvento(sql, s.pai_id, {
+      tipo: 'subitem_responsaveis', para: naOrdem.map((p) => p.nome).join(', ') || null,
+      autorId: await pessoaDaSessao(sql, quem), texto: s.titulo,
+    });
+    return { subitem_id: s.id, responsaveis: naOrdem.map((p) => p.nome).join(', '), replica_monday: 'desativada' };
   }
 
   throw new Error(`Operação desconhecida na tarefa: ${operacao}`);
