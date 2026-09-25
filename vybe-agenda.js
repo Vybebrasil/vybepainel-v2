@@ -462,7 +462,7 @@ function abrirBuscaDeCliente(event) {
   const linha = (nome, rotulo, total) => `<button type="button" class="status-editor-option ${
     managerCalendarClientFilter === nome ? 'current' : ''} ${total === 0 ? 'vazio' : ''}"
     data-busca="${safeText(String(rotulo).toLowerCase())}"
-    onclick="fecharBuscaDeCliente();managerCalendarSetClient(decodeURIComponent('${encodeURIComponent(nome)}'))">
+    data-cliente="${safeText(nome)}" onclick="fecharBuscaDeCliente();managerCalendarSetClient(this.dataset.cliente)">
     <span>${safeText(rotulo)}</span><span class="cliente-busca-conta">${total}</span></button>`;
   menu.innerHTML = `<div class="status-editor-head">Cliente</div>
     <input type="text" class="fc-busca" id="cliente-busca-campo" placeholder="Buscar cliente…"
@@ -972,12 +972,12 @@ function renderManagerCalendar(forcar = false) {
   const xis = (client) => (typeof podeEditarClientes === 'function' && podeEditarClientes())
     ? `<span class="manager-calendar-client-x" role="button" tabindex="0"
         title="Tirar ${safeText(client)} do painel"
-        onclick="tirarClienteDoPainel(decodeURIComponent('${encodeURIComponent(client)}'),event)"
-        onkeydown="if(event.key==='Enter'||event.key===' ')tirarClienteDoPainel(decodeURIComponent('${encodeURIComponent(client)}'),event)">×</span>`
+        data-cliente="${safeText(client)}" onclick="tirarClienteDoPainel(this.dataset.cliente,event)"
+        onkeydown="if(event.key==='Enter'||event.key===' ')tirarClienteDoPainel(this.dataset.cliente,event)">×</span>`
     : '';
   const ficha = ({ client, count }) => `<button type="button" class="manager-calendar-client ${
       managerCalendarClientFilter === client ? 'active' : ''} ${count === 0 ? 'vazio' : ''}"
-      onclick="managerCalendarSetClient(decodeURIComponent('${encodeURIComponent(client)}'))"><b>${
+      data-cliente="${safeText(client)}" onclick="managerCalendarSetClient(this.dataset.cliente)"><b>${
       safeText(client)}</b> ${count}${xis(client)}</button>`;
   const fichas = [`<button type="button" class="manager-calendar-client ${managerCalendarClientFilter==='all'?'active':''}" onclick="managerCalendarSetClient('all')"><b>Todos</b> ${totalNoMes}</button>`,
     // Quem tem peça no mês vem primeiro, em ordem alfabética; os zerados vão
@@ -2955,5 +2955,7 @@ function buscarClienteConteudos(valor) {
   if(novo && cursor!==null) novo.setSelectionRange(cursor,cursor);
 }
 function cadastrarNoGrupo(board, grupo) {
-  openCadastrosGoverned({board,grupo_id:grupo});
+  // Só a escolha explícita identifica um cliente; texto parcial não é cadastro.
+  const client=board==='demandas' && typeof clienteDemandasExato!=='undefined' ? clienteDemandasExato : '';
+  openCadastrosGoverned({board,grupo_id:grupo,client});
 }
