@@ -80,7 +80,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
 
       .fc-main-col { flex:1; display:flex; flex-direction:column; min-width:0; border-right:1px solid rgba(255,255,255,0.06); }
       
-      .fc-header { padding:28px 32px 20px; display:flex; flex-direction:column; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
+      .fc-header { position:relative; padding:28px 32px 20px; display:flex; flex-direction:column; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
       .fc-kicker { font:800 11px monospace; color:#00f0ff; letter-spacing:1px; text-transform:uppercase; }
       .fc-sazonal-btn { align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
         background:rgba(0,240,255,.1); border:1px solid rgba(0,240,255,.32); color:#7fe8f5;
@@ -169,7 +169,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-auto-col label { font-size:11px; color:#849aa6; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
 
       .fc-side-col { width:340px; padding:32px 24px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; position:relative; }
-      .fc-close { z-index:50; position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#849aa6; font-size:20px; cursor:pointer; line-height:1; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; transition:all 0.2s; }
+      .fc-close { z-index:50; position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#849aa6; font-size:0; cursor:pointer; line-height:1; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; transition:all 0.2s; }
       .fc-close:hover { background:rgba(255,255,255,0.1); color:#fff; transform:scale(1.05); }
       
       .fc-side-title { font:800 11px monospace; color:#849aa6; letter-spacing:1px; margin-bottom:24px; }
@@ -190,15 +190,18 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-helper-text { margin-top:24px; font-size:12px; color:#627885; line-height:1.5; font-family:var(--mac-ui, sans-serif); }
       
       @media(max-width: 900px) {
-        .fc-modal { flex-direction:column; }
-        .fc-main-col { border-right:none; border-bottom:1px solid rgba(255,255,255,0.06); }
-        .fc-side-col { width:100%; border-radius:0 0 24px 24px; }
+        .fc-modal { flex-direction:column; overflow-y:auto; }
+        .fc-main-col { flex:none; border-right:none; border-bottom:1px solid rgba(255,255,255,0.06); }
+        .fc-side-col { width:100%; box-sizing:border-box; border-radius:0 0 24px 24px; }
+        .fc-body { overflow:visible; }
       }
       @media(max-width: 600px) {
         .fc-row { flex-direction:column; gap:8px; }
         .fc-label { margin-top:0; width:100%; }
         .fc-auto-group { grid-template-columns:1fr; }
-        .fc-modal { margin:0; height:100vh; max-height:100vh; border-radius:0; border:none; }
+        .fc-modal { margin:12px; height:auto; max-height:calc(100dvh - 24px); }
+        .fc-header { padding:20px 24px 16px; }
+        .fc-body { padding:20px 24px; }
       }
     
       /* ─── Fluxo guiado ──────────────────────────────────────────────────── */
@@ -466,13 +469,14 @@ function fcGrupoDoQuadro(grupo) {
      const formatName = state.format || 'Formato Padrão';
      const dest = cadastrosDestiny(formatName, state.briefReady, state.materialReady, state.assignees);
      
-     if(state.manualGroup === undefined) {
+     {
          const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
-         const grupo = fcGrupoDoQuadro(dest.group);
+         const grupo = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
          fcSelectDropdown('manualGroup', grupo, groups[grupo] || grupo, null, false);
      }
      
-     if(state.manualStatus === undefined) {
+     {
+         const statusAtual = state.manualStatus !== undefined ? state.manualStatus : dest.status;
          const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
          const getCol = (s) => {
          // Custom overrides matching the exact Monday board screenshot
@@ -485,12 +489,12 @@ function fcGrupoDoQuadro(grupo) {
          if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
          return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
      };
-         const col = getCol(dest.status).color;
-         fcSelectDropdown('manualStatus', dest.status, dest.status, {color: col}, false);
+         const col = getCol(statusAtual).color;
+         fcSelectDropdown('manualStatus', statusAtual, statusAtual, {color: col}, false);
      }
      
-     if(state.manualCap === undefined) {
-         const capVal = dest.capture ? 'Agendar Captação' : '';
+     {
+         const capVal = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
          const capText = capVal || '- Nenhuma -';
          const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
          const getCol = (s) => {
@@ -566,7 +570,7 @@ function fcGrupoDoQuadro(grupo) {
      }
      statusEl.innerHTML = statusesHtml;
      
-     datesEl.innerHTML = state.veic ? `Veiculação: ${state.veic.split('-').reverse().join('/')}` : 'Prazos pendentes';
+     datesEl.innerHTML = state.veic ? `${state.board === 'demandas' ? 'Conclusão' : 'Veiculação'}: ${state.veic.split('-').reverse().join('/')}` : 'Prazos pendentes';
      
      const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
      const assignedUsers = fcEquipeFinal(dest).map(id => users.find(u => String(u.id) === String(id))).filter(Boolean);
@@ -865,7 +869,8 @@ function fcGrupoDoQuadro(grupo) {
   let fcPasso = 0;
 
   const FC_ROTULO = { board:'Onde', client:'Cliente', itens:'Conteúdos', destino:'Destino' };
-  function fcRotulo(p) { return p === 'format' ? fcQuadro().rotuloFormato : FC_ROTULO[p]; }
+  function fcRotulo(p) { return p === 'format' ? fcQuadro().rotuloFormato
+    : p === 'itens' && state.board === 'demandas' ? 'Demandas' : FC_ROTULO[p]; }
 
   function fcPergunta(p) {
     if (p === 'board')   return ['O que você vai cadastrar?', 'Os dois quadros têm etapas e status diferentes.'];
@@ -1473,7 +1478,7 @@ function fcGrupoDoQuadro(grupo) {
       <div class="fc-guia-rodape">
         ${fcPasso > 0 ? '<button type="button" class="fc-btn-cancel" onclick="fcVoltar()">Voltar</button>' : ''}
         <button type="button" class="fc-btn-create" id="fc-submit-btn" onclick="fcAvancar()">${
-          ultimo ? (state.itens.length > 1 ? `Criar ${state.itens.length} conteúdos` : 'Criar conteúdo') : 'Continuar'}</button>
+          ultimo ? (state.itens.length > 1 ? `Criar ${state.itens.length} ${state.board === 'demandas' ? 'demandas' : 'conteúdos'}` : `Criar ${state.board === 'demandas' ? 'demanda' : 'conteúdo'}`) : 'Continuar'}</button>
       </div>`;
 
 
@@ -1667,10 +1672,11 @@ function fcGrupoDoQuadro(grupo) {
     };
 
     overlay.innerHTML = `
-      <div class="fc-modal">
+      <div class="fc-modal" role="dialog" aria-modal="true" aria-label="Cadastro rápido">
          
          <div class="fc-main-col">
              <div class="fc-header">
+                <button type="button" aria-label="Fechar cadastro" class="fc-close" onclick="fcCloseModal()"></button>
                 <div class="fc-kicker">Cadastro rápido</div>
                 <button type="button" class="fc-sazonal-btn" onclick="abrirCalendarioSazonal()">
                    📅 Calendário sazonal</button>
@@ -1680,7 +1686,6 @@ function fcGrupoDoQuadro(grupo) {
 
          <!-- RIGHT COLUMN: LIVE PREVIEW -->
          <div class="fc-side-col">
-             <button type="button" aria-label="Fechar cadastro" class="fc-close" onclick="fcCloseModal()">×</button>
              
              <div class="fc-side-title">Prévia de destino</div>
              
@@ -1751,7 +1756,9 @@ function fcGrupoDoQuadro(grupo) {
        
        // Enter avanca; dentro do briefing ele quebra linha, como se espera.
        overlay.addEventListener('keydown', function(e) {
-           if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
+           if (e.defaultPrevented || e.ctrlKey || e.metaKey) return;
+           if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fcCloseModal(); return; }
+           if (e.key === 'Enter' && !e.shiftKey && !['TEXTAREA','BUTTON','SELECT','A'].includes(e.target.tagName)) {
                e.preventDefault();
                fcAvancar();
            }

@@ -99,111 +99,133 @@ async function exigirTabela(sql) {
   }
 }
 
-async function exigirNomeLivre(sql, board, titulo, excetoId = null) {
-  const [igual] = await sql`SELECT grupo_id FROM vybe_grupos
-    WHERE board_id = ${board} AND LOWER(titulo) = LOWER(${titulo})
-      AND grupo_id IS DISTINCT FROM ${excetoId}`;
-  if (igual) throw new Error(`Já existe um grupo chamado "${titulo}" neste quadro.`);
-}
+// Alterações estruturais são raras: o lock de tabela serializa administradores
+// sem bloquear leituras. As gravações de atividades usam FOR SHARE no destino.
+const travaEstrutura = (sql) => sql.query('LOCK TABLE vybe_grupos IN EXCLUSIVE MODE');
 
-// O grupo novo entra logo abaixo do grupo em que a pessoa clicou; sem
-// referência, no fim.
 export async function criarGrupo(sql, { board, titulo, cor, depois_de = null } = {}) {
   await exigirTabela(sql);
-  const b = quadroValido(board);
-  const t = tituloLimpo(titulo);
-  const c = corValida(cor || '#7c8797');
-  await exigirNomeLivre(sql, b, t);
-  const grupos = await gruposDoQuadro(sql, b);
-  const ref = grupos.find((g) => g.grupo_id === depois_de);
-  const ordem = ref ? ref.ordem + 1 : (grupos.at(-1)?.ordem || 0) + 1;
-  const id = `vybe_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  await sql.transaction([
-    sql`UPDATE vybe_grupos SET ordem = ordem + 1 WHERE board_id = ${b} AND ordem >= ${ordem}`,
-    sql`INSERT INTO vybe_grupos (board_id, grupo_id, titulo, cor, ordem) VALUES (${b}, ${id}, ${t}, ${c}, ${ordem})`,
+  const b = quadroValido(board), t = tituloLimpo(titulo), c = corValida(cor || '#7c8797');
+  const id = `vybe_${crypto.randomUUID()}`;
+  const [, linhas] = await sql.transaction([
+    travaEstrutura(sql),
+    sql`WITH posicao AS (
+      SELECT COALESCE((SELECT ordem + 1 FROM vybe_grupos WHERE board_id=${b} AND grupo_id=${depois_de}),
+        (SELECT COALESCE(MAX(ordem),0)+1 FROM vybe_grupos WHERE board_id=${b})) AS n
+      WHERE NOT EXISTS (SELECT 1 FROM vybe_grupos WHERE board_id=${b} AND LOWER(titulo)=LOWER(${t}))
+    ), deslocados AS (
+      UPDATE vybe_grupos SET ordem=ordem+1 WHERE board_id=${b} AND ordem >= (SELECT n FROM posicao)
+    ) INSERT INTO vybe_grupos (board_id,grupo_id,titulo,cor,ordem)
+      SELECT ${b},${id},${t},${c},n FROM posicao RETURNING *`,
   ]);
-  return { board_id: b, grupo_id: id, titulo: t, cor: c, ordem };
+  if (!linhas.length) throw new Error(`Já existe um grupo chamado "${t}" neste quadro.`);
+  return formatar(linhas[0]);
 }
 
-// A coluna 'etapa' das atividades guarda o NOME do grupo, e é dela que a
-// listagem tira o campo 'grupo'. Renomear sem ela deixaria as atividades com o
-// nome antigo — por isso as duas mudam juntas.
 export async function editarGrupo(sql, { board, grupo_id, titulo, cor } = {}) {
   await exigirTabela(sql);
-  const b = quadroValido(board);
-  const [atual] = await sql`SELECT titulo, cor FROM vybe_grupos WHERE board_id = ${b} AND grupo_id = ${String(grupo_id)}`;
-  if (!atual) throw new Error('Grupo não encontrado.');
-  const t = titulo === undefined ? atual.titulo : tituloLimpo(titulo);
-  const c = cor === undefined ? atual.cor : corValida(cor);
-  if (t !== atual.titulo) await exigirNomeLivre(sql, b, t, String(grupo_id));
-  await sql.transaction([
-    sql`UPDATE vybe_grupos SET titulo = ${t}, cor = ${c}, atualizado_em = NOW()
-      WHERE board_id = ${b} AND grupo_id = ${String(grupo_id)}`,
-    sql`UPDATE vybe_conteudos SET etapa = ${t}, atualizado_em = NOW()
-      WHERE board_id = ${b} AND grupo_id = ${String(grupo_id)} AND etapa IS DISTINCT FROM ${t}`,
+  const b = quadroValido(board), id = String(grupo_id);
+  const t = titulo === undefined ? null : tituloLimpo(titulo);
+  const c = cor === undefined ? null : corValida(cor);
+  const [, linhas] = await sql.transaction([
+    travaEstrutura(sql),
+    sql`WITH anterior AS (SELECT * FROM vybe_grupos WHERE board_id=${b} AND grupo_id=${id}),
+    editado AS (
+      UPDATE vybe_grupos g SET titulo=COALESCE(${t},g.titulo),cor=COALESCE(${c},g.cor),atualizado_em=NOW()
+      WHERE g.board_id=${b} AND g.grupo_id=${id} AND NOT EXISTS (
+        SELECT 1 FROM vybe_grupos outro WHERE outro.board_id=${b} AND outro.grupo_id<>${id}
+          AND LOWER(outro.titulo)=LOWER(COALESCE(${t},g.titulo))) RETURNING g.*
+    ), atividades AS (
+      UPDATE vybe_conteudos SET etapa=e.titulo,atualizado_em=NOW() FROM editado e
+      WHERE vybe_conteudos.board_id=e.board_id AND vybe_conteudos.grupo_id=e.grupo_id
+        AND etapa IS DISTINCT FROM e.titulo
+    ) SELECT e.*, e.titulo IS DISTINCT FROM a.titulo AS renomeado FROM editado e, anterior a`,
   ]);
-  return { board_id: b, grupo_id: String(grupo_id), titulo: t, cor: c, renomeado: t !== atual.titulo };
+  if (!linhas.length) throw new Error('Grupo não encontrado ou já existe um grupo chamado assim neste quadro.');
+  return { ...formatar(linhas[0]), renomeado: linhas[0].renomeado };
 }
 
-// Sobe ou desce uma posição, trocando de lugar com o vizinho.
 export async function moverGrupoNaOrdem(sql, { board, grupo_id, direcao } = {}) {
   await exigirTabela(sql);
-  const b = quadroValido(board);
-  const passo = Number(direcao) < 0 ? -1 : 1;
-  const grupos = await gruposDoQuadro(sql, b);
-  const i = grupos.findIndex((g) => g.grupo_id === String(grupo_id));
-  if (i < 0) throw new Error('Grupo não encontrado.');
-  const j = i + passo;
-  if (j < 0 || j >= grupos.length) return { board_id: b, grupos, sem_mudanca: true };
-  // Renumera o quadro inteiro: ordens repetidas (de uma edição à mão no banco)
-  // fariam a troca não mudar nada na tela.
-  const nova = grupos.map((g) => g.grupo_id);
-  [nova[i], nova[j]] = [nova[j], nova[i]];
-  await sql.transaction(nova.map((id, k) =>
-    sql`UPDATE vybe_grupos SET ordem = ${k + 1}, atualizado_em = NOW() WHERE board_id = ${b} AND grupo_id = ${id}`));
-  return { board_id: b, grupos: await gruposDoQuadro(sql, b) };
+  const b = quadroValido(board), id = String(grupo_id), passo = Number(direcao)<0 ? -1 : 1;
+  const [, linhas] = await sql.transaction([
+    travaEstrutura(sql),
+    sql`WITH lista AS (SELECT grupo_id, ROW_NUMBER() OVER (ORDER BY ordem,titulo,grupo_id)::int AS n
+      FROM vybe_grupos WHERE board_id=${b}), alvo AS (SELECT n FROM lista WHERE grupo_id=${id}),
+    vizinho AS (SELECT n FROM lista WHERE n=(SELECT n+${passo} FROM alvo)),
+    movidos AS (UPDATE vybe_grupos g SET ordem=CASE
+      WHEN l.n=(SELECT n FROM alvo) THEN (SELECT n FROM vizinho)
+      WHEN l.n=(SELECT n FROM vizinho) THEN (SELECT n FROM alvo) ELSE l.n END, atualizado_em=NOW()
+      FROM lista l WHERE g.board_id=${b} AND g.grupo_id=l.grupo_id AND EXISTS (SELECT 1 FROM vizinho)
+      RETURNING g.grupo_id)
+    SELECT EXISTS(SELECT 1 FROM alvo) AS existe, EXISTS(SELECT 1 FROM movidos) AS mudou`,
+  ]);
+  if (!linhas[0].existe) throw new Error('Grupo não encontrado.');
+  return { board_id:b, grupos:await gruposDoQuadro(sql,b), sem_mudanca:!linhas[0].mudou };
 }
 
-// Arrastar solta o grupo em qualquer posição: a tela manda a ordem inteira.
-// A lista tem de ter exatamente os grupos do quadro — nem um a mais, nem um a
-// menos —, senão uma tela desatualizada apagaria da ordem um grupo que outra
-// pessoa acabou de criar.
 export async function ordenarGrupos(sql, { board, ordem } = {}) {
   await exigirTabela(sql);
-  const b = quadroValido(board);
-  const ids = Array.isArray(ordem) ? ordem.map(String) : [];
-  const atuais = (await gruposDoQuadro(sql, b)).map((g) => g.grupo_id);
-  const mesmos = ids.length === atuais.length && new Set(ids).size === ids.length
-    && ids.every((id) => atuais.includes(id));
-  if (!mesmos) throw new Error('A lista de grupos mudou enquanto você arrastava. Recarregue a página e tente de novo.');
-  await sql.transaction(ids.map((id, k) =>
-    sql`UPDATE vybe_grupos SET ordem = ${k + 1}, atualizado_em = NOW() WHERE board_id = ${b} AND grupo_id = ${id}`));
-  return { board_id: b, grupos: await gruposDoQuadro(sql, b) };
+  const b=quadroValido(board), ids=Array.isArray(ordem)?ordem.map(String):[];
+  if (!ids.length || new Set(ids).size!==ids.length) throw new Error('A lista de grupos mudou. Recarregue a página.');
+  const [, linhas] = await sql.transaction([
+    travaEstrutura(sql),
+    sql`WITH lista AS (SELECT id,n FROM UNNEST(${ids}::text[]) WITH ORDINALITY AS x(id,n)), valido AS (
+      SELECT 1 WHERE (SELECT COUNT(*) FROM vybe_grupos WHERE board_id=${b})=${ids.length}
+        AND NOT EXISTS (SELECT 1 FROM lista l WHERE NOT EXISTS
+          (SELECT 1 FROM vybe_grupos g WHERE g.board_id=${b} AND g.grupo_id=l.id)))
+    UPDATE vybe_grupos g SET ordem=l.n,atualizado_em=NOW() FROM lista l
+      WHERE g.board_id=${b} AND g.grupo_id=l.id AND EXISTS(SELECT 1 FROM valido) RETURNING g.grupo_id`,
+  ]);
+  if (linhas.length!==ids.length) throw new Error('A lista de grupos mudou enquanto você arrastava. Recarregue a página e tente de novo.');
+  return { board_id:b, grupos:await gruposDoQuadro(sql,b) };
 }
 
-// Apagar só grupo vazio: grupo com atividade dentro sumiria com elas da tela.
-// Quem quer apagar move as atividades antes — a tela diz isso.
 export async function apagarGrupo(sql, { board, grupo_id } = {}) {
   await exigirTabela(sql);
-  const b = quadroValido(board);
-  const id = String(grupo_id);
-  if (GRUPO_DE_ENTRADA[b] === id) throw new Error('Este é o grupo de entrada do cadastro e não pode ser apagado.');
-  const grupos = await gruposDoQuadro(sql, b);
-  if (!grupos.some((g) => g.grupo_id === id)) throw new Error('Grupo não encontrado.');
-  if (grupos.length <= 1) throw new Error('O quadro precisa de pelo menos um grupo.');
-  const [{ n }] = await sql`SELECT COUNT(*)::int AS n FROM vybe_conteudos
-    WHERE board_id = ${b} AND grupo_id = ${id} AND removido_em IS NULL`;
-  if (n > 0) throw new Error(`O grupo tem ${n} ${n === 1 ? 'atividade' : 'atividades'}. Mova para outro grupo antes de apagar.`);
-  // Automação que manda para este grupo passaria a mandar para lugar nenhum.
-  // POSITION e não LIKE: o sublinhado dos ids do Monday é curinga no LIKE.
-  const aspas = `"${id}"`;
-  let regra = null;
-  try {
-    [regra] = await sql`SELECT nome FROM vybe_automacoes
-      WHERE POSITION(${aspas} IN acoes::text) > 0 OR POSITION(${aspas} IN COALESCE(condicao::text, '')) > 0
-      LIMIT 1`;
-  } catch { /* sem a tabela de automações, não há regra que dependa do grupo */ }
-  if (regra) throw new Error(`A automação "${regra.nome}" usa este grupo. Ajuste a automação antes de apagar.`);
-  await sql`DELETE FROM vybe_grupos WHERE board_id = ${b} AND grupo_id = ${id}`;
-  return { board_id: b, grupo_id: id, apagado: true };
+  const b=quadroValido(board), id=String(grupo_id);
+  if (GRUPO_DE_ENTRADA[b]===id) throw new Error('Este é o grupo de entrada do cadastro e não pode ser apagado.');
+  // Tabela ausente é diferente de falha: qualquer erro real aborta a exclusão.
+  const [{ existe }] = await sql`SELECT to_regclass('public.vybe_automacoes') IS NOT NULL AS existe`;
+  const aspas=JSON.stringify(id);
+  const regras = existe ? sql`SELECT nome FROM vybe_automacoes
+    WHERE POSITION(${aspas} IN acoes::text)>0 OR POSITION(${aspas} IN COALESCE(condicao::text,''))>0 LIMIT 1`
+    : sql`SELECT NULL::text AS nome WHERE FALSE`;
+  // A condição é repetida no DELETE para que nenhuma dependência seja ignorada.
+  const apagar = existe ? sql`DELETE FROM vybe_grupos g WHERE g.board_id=${b} AND g.grupo_id=${id}
+    AND (SELECT COUNT(*) FROM vybe_grupos WHERE board_id=${b})>1
+    AND NOT EXISTS (SELECT 1 FROM vybe_conteudos WHERE board_id=${b} AND grupo_id=${id})
+    AND NOT EXISTS (SELECT 1 FROM vybe_automacoes WHERE POSITION(${aspas} IN acoes::text)>0
+      OR POSITION(${aspas} IN COALESCE(condicao::text,''))>0) RETURNING grupo_id`
+    : sql`DELETE FROM vybe_grupos WHERE board_id=${b} AND grupo_id=${id}
+      AND (SELECT COUNT(*) FROM vybe_grupos WHERE board_id=${b})>1
+      AND NOT EXISTS (SELECT 1 FROM vybe_conteudos WHERE board_id=${b} AND grupo_id=${id}) RETURNING grupo_id`;
+  const [, grupos, atividades, dependencias, apagados] = await sql.transaction([
+    travaEstrutura(sql),
+    sql`SELECT grupo_id FROM vybe_grupos WHERE board_id=${b}`,
+    sql`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE board_id=${b} AND grupo_id=${id}`,
+    regras, apagar,
+  ]);
+  if (!grupos.some(g=>g.grupo_id===id)) throw new Error('Grupo não encontrado.');
+  if (atividades[0].n>0) throw new Error(`O grupo tem ${atividades[0].n} atividades, incluindo arquivadas ou removidas. Mova ou restaure as atividades antes de apagar.`);
+  if (dependencias.length) throw new Error(`A automação "${dependencias[0].nome}" usa este grupo. Ajuste a automação antes de apagar.`);
+  if (!apagados.length) throw new Error('O quadro precisa de pelo menos um grupo.');
+  return {board_id:b,grupo_id:id,apagado:true};
+}
+
+// O destino é lido e bloqueado na MESMA instrução que grava a atividade.
+// Se a exclusão vencer a corrida, não há destino e a escrita não acontece.
+export async function moverAtividadeParaGrupo(sql, { id, board, grupo }) {
+  if (!await gruposProntos(sql)) {
+    const g=GRUPOS_PADRAO.find(g=>g.board_id===Number(board)&&g.grupo_id===String(grupo));
+    if (!g) throw new Error('Grupo não encontrado neste quadro.');
+    return sql`UPDATE vybe_conteudos SET grupo_id=${grupo},etapa=${g.titulo},atualizado_em=NOW()
+      WHERE id=${id} AND board_id=${board} RETURNING id,etapa`;
+  }
+  const linhas=await sql`WITH destino AS (SELECT titulo FROM vybe_grupos
+      WHERE board_id=${board} AND grupo_id=${grupo} FOR SHARE)
+    UPDATE vybe_conteudos SET grupo_id=${grupo},etapa=destino.titulo,atualizado_em=NOW() FROM destino
+      WHERE id=${id} AND board_id=${board} RETURNING id,etapa`;
+  if (!linhas.length) throw new Error('O grupo ou a atividade mudou. Recarregue e tente novamente.');
+  return linhas;
 }

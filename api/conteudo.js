@@ -21,7 +21,7 @@ import { quemChama } from '../vybe_acesso.js';
 import { aplicar } from '../vybe_automacoes.js';
 
 import { garantirMaterialBruto } from '../vybe_dominio_store.js';
-import { listarGrupos, gruposDoQuadro } from '../server/grupos.js';
+import { listarGrupos, gruposDoQuadro, gruposProntos, moverAtividadeParaGrupo } from '../server/grupos.js';
 
 const BOARD_PRODUCAO = 7829537690;
 const BOARD_DEMANDAS_ID = 8385559107;
@@ -617,19 +617,19 @@ async function moverGrupo(sql, quem, { item, grupo_id }) {
     WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const conteudo = linhas[0];
-  const titulo = await grupoDoQuadro(sql, grupo_id, conteudo.board_id);
+  await grupoDoQuadro(sql, grupo_id, conteudo.board_id);
 
-  await sql`UPDATE vybe_conteudos SET grupo_id=${grupo_id}, etapa=${titulo}, atualizado_em=NOW()
-    WHERE id=${conteudo.id}`;
+  const [movido] = await moverAtividadeParaGrupo(sql, {id:conteudo.id,board:conteudo.board_id,grupo:grupo_id});
+  const tituloAtual = movido.etapa;
   await registrarEvento(sql, conteudo.id, {
-    tipo: 'grupo', de: conteudo.de, para: titulo, autorId: await pessoaDaSessao(sql, quem),
+    tipo: 'grupo', de: conteudo.de, para: tituloAtual, autorId: await pessoaDaSessao(sql, quem),
   });
 
   const replica = await replicar(sql, 'grupo', `conteudo:${conteudo.id}`,
     `mutation ($item: ID!, $grupo: String!) {
        move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
     { item: referenciaReplica(conteudo, item), grupo: String(grupo_id) });
-  return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de, para: titulo, replica_monday: replica };
+  return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de, para: tituloAtual, replica_monday: replica };
 }
 
 // Troca de campo de escolha: captação, tipo de conteúdo, prioridade, OFF e
@@ -773,12 +773,19 @@ async function criarConteudo(sql, quem, dados) {
     WHERE chave=${String(status)} AND board_id=${board}`)[0];
   if (!st) throw new Error(`Status "${status}" não existe no board escolhido.`);
 
-  const novo = (await sql`INSERT INTO vybe_conteudos
-      (board_id, titulo, formato, clientes_texto, status_chave, etapa, grupo_id,
-       prazo, veiculacao, briefing, prioridade, status_em)
-    VALUES (${board}, ${titulo}, ${formato || null}, ${cli.nome}, ${st.chave}, ${etapa}, ${grupo},
-            ${prazo || null}, ${veiculacao || null}, ${briefing || null}, ${prioridade || null}, NOW())
-    RETURNING id`)[0];
+  const catalogo = await gruposProntos(sql);
+  const inserir = catalogo ? sql`WITH destino AS (SELECT titulo FROM vybe_grupos
+      WHERE board_id=${board} AND grupo_id=${grupo} FOR SHARE)
+    INSERT INTO vybe_conteudos
+      (board_id,titulo,formato,clientes_texto,status_chave,etapa,grupo_id,prazo,veiculacao,briefing,prioridade,status_em)
+    SELECT ${board},${titulo},${formato || null},${cli.nome},${st.chave},destino.titulo,${grupo},
+      ${prazo || null},${veiculacao || null},${briefing || null},${prioridade || null},NOW() FROM destino RETURNING id`
+    : sql`INSERT INTO vybe_conteudos
+      (board_id,titulo,formato,clientes_texto,status_chave,etapa,grupo_id,prazo,veiculacao,briefing,prioridade,status_em)
+    VALUES (${board},${titulo},${formato || null},${cli.nome},${st.chave},${etapa},${grupo},
+      ${prazo || null},${veiculacao || null},${briefing || null},${prioridade || null},NOW()) RETURNING id`;
+  const [novo] = await inserir;
+  if (!novo) throw new Error('O grupo foi removido durante o cadastro. Escolha outro grupo.');
   await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id) VALUES (${novo.id}, ${cli.id})`;
 
   // O link do material bruto entra no cadastro porque e ali que ele existe: quem
