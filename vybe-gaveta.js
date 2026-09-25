@@ -177,6 +177,7 @@ async function openItemWorkspace(itemId) {
   document.body.append(backdrop, drawer);
   try {
     const detail = await fetchWorkspaceItem(itemId);
+    if(document.getElementById('workspace-drawer') !== drawer) return;
     if (!detail) throw new Error('A atividade não foi encontrada no banco Vybe.');
     if (!item) item = { id:String(itemId), nome:detail.name || 'Demanda', cliente:'Cliente não informado', status:'—', status_color:'#8f8f8f', status_border:'#8f8f8f', prazo_iso:'', veiculacao_iso:'', formato:'Conteúdo', url:'' };
     renderWorkspaceDrawer(detail, item);
@@ -206,6 +207,7 @@ async function openDemandaWorkspace(itemId) {
   document.body.append(backdrop, drawer);
   try {
     const detail = await fetchWorkspaceItem(itemId);
+    if(document.getElementById('workspace-drawer') !== drawer) return;
     DETALHE_DA_GAVETA = detail;
     const assets = detail?.assets || [];
     const updates = detail?.updates || [];
@@ -248,20 +250,32 @@ document.addEventListener('click', event => {
   event.stopPropagation();
   openItemWorkspace(match[1]);
 }, true);
-async function postWorkspaceUpdate(body, successMessage, itemId) {
+async function postWorkspaceUpdate(body, successMessage, itemId, campoEnviado) {
   const alvo = String(itemId || activeWorkspaceItemId || '');
   if (!alvo) return;
   const text = String(body || '').trim();
   if (!text) return showToast('Escreva uma atualização antes de enviar.', 'info');
+  const drawer=document.getElementById('workspace-drawer');
   const item = findOperationalItem(alvo) || { id: alvo };
   await tentarEscritaDupla(item, { acao:'comentario', item:alvo, texto:text });
   showToast(successMessage, 'ok');
-  const input = document.getElementById('workspace-comment-input'); if (input) input.value = '';
-  const link = document.getElementById('workspace-link-input'); if (link) link.value = '';
+  const continuaAberta=()=>drawer && document.getElementById('workspace-drawer')===drawer && String(activeWorkspaceItemId)===alvo;
+  if(!continuaAberta()) return;
+  const enviado=campoEnviado && document.getElementById(campoEnviado.id);
+  if(enviado && enviado.value===campoEnviado.valor) enviado.value='';
   const atualizado = findOperationalItem(alvo);
-  if (atualizado && String(activeWorkspaceItemId) === alvo && document.getElementById('workspace-drawer')) {
-    renderWorkspaceDrawer(await fetchWorkspaceItem(alvo), atualizado);
+  if(!atualizado) return;
+  let detail;
+  try { detail=await fetchWorkspaceItem(alvo); }
+  catch(e) {
+    // A escrita já foi confirmada: não sugerir um reenvio que duplicaria o registro.
+    if(continuaAberta()) showToast('Registro salvo. Não foi possível atualizar o histórico; reabra a atividade para conferir.', 'info', 7000);
+    return;
   }
+  if(!continuaAberta()) return;
+  const rascunhos=['workspace-comment-input','workspace-link-input'].map(id=>({id,valor:document.getElementById(id)?.value || ''}));
+  renderWorkspaceDrawer(detail, atualizado);
+  rascunhos.forEach(({id,valor})=>{const campo=document.getElementById(id);if(campo) campo.value=valor;});
 }
 // Um clique a mais durante a gravação registrava o mesmo comentário duas vezes
 // — o botão continuava ativo enquanto o servidor respondia. E o "[Vybe OS] " da
@@ -274,7 +288,7 @@ async function saveWorkspaceComment() {
   const botao = document.querySelector('[onclick="saveWorkspaceComment()"]');
   COMENTARIO_ENVIANDO = true;
   if (botao) botao.disabled = true;
-  try { await postWorkspaceUpdate(`[Vybe OS] ${input?.value || ''}`, '✓ Atualização registrada no Vybe OS'); }
+  try { await postWorkspaceUpdate(`[Vybe OS] ${input?.value || ''}`, '✓ Atualização registrada no Vybe OS', activeWorkspaceItemId, {id:'workspace-comment-input',valor:input.value}); }
   catch (e) { showToast(`Não foi possível registrar: ${e.message}`, 'err', 7000); }
   finally {
     COMENTARIO_ENVIANDO = false;
@@ -284,14 +298,24 @@ async function saveWorkspaceComment() {
 }
 // O registro do link vira uma funcao que recebe o endereco e a peca; a caixa da
 // gaveta so entrega o que digitaram nela.
-async function registrarLinkDeEntrega(url, itemId) {
+const LINKS_EM_ENVIO = new Set();
+async function registrarLinkDeEntrega(url, itemId, campoEnviado) {
   const limpo = String(url || '').trim();
   if (!/^https?:\/\//i.test(limpo)) return showToast('Cole um link válido começando com https://', 'info');
+  const alvo=String(itemId || activeWorkspaceItemId || '');
+  if(!alvo || LINKS_EM_ENVIO.has(alvo)) return;
+  LINKS_EM_ENVIO.add(alvo);
   try {
     await postWorkspaceUpdate(`[Vybe OS · Link de entrega] ${limpo}`,
-      '✓ Link de entrega registrado no Vybe OS', itemId);
+      '✓ Link de entrega registrado no Vybe OS', alvo, campoEnviado);
   } catch (e) { showToast(`Não foi possível registrar o link: ${e.message}`, 'err', 7000); }
+  finally { LINKS_EM_ENVIO.delete(alvo); }
 }
 async function saveWorkspaceLink() {
-  return registrarLinkDeEntrega(document.getElementById('workspace-link-input')?.value);
+  const input=document.getElementById('workspace-link-input');
+  const botao=document.querySelector('[onclick="saveWorkspaceLink()"]');
+  if(botao?.disabled) return;
+  if(botao) botao.disabled=true;
+  try { return await registrarLinkDeEntrega(input?.value, activeWorkspaceItemId, {id:'workspace-link-input',valor:input?.value}); }
+  finally { if(botao) botao.disabled=false; }
 }

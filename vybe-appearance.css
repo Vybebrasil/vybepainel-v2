@@ -537,6 +537,12 @@ body.vybe-desktop {
    Na ordem do Mac, a ação que apaga mora no menu "…". */
 .vybe-desktop .workspace-barra { position: relative; min-height: 36px; font: 600 12px var(--mac-ui) !important; letter-spacing: 0 !important; color: var(--text-muted) !important; }
 .workspace-barra-acoes { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 600px) {
+  .workspace-kicker { position:relative; flex-wrap:wrap; padding-right:40px; }
+  .workspace-barra-acoes { flex-wrap:wrap; min-width:0; }
+  .workspace-kicker .workspace-close { position:absolute; top:0; right:0; }
+}
+
 .vybe-desktop .workspace-barra .vybe-link { margin: 0; min-height: 32px; padding: 0 12px; border-radius: 10px; font: 500 13px var(--mac-ui); }
 .vybe-desktop .vybe-link .icone-linha { width: 15px; height: 15px; }
 .workspace-mais { position: relative; }
