@@ -109,3 +109,67 @@ test('arrastar grava a ordem inteira, e recusa uma lista desatualizada', async (
   await assert.rejects(ordenarGrupos(sql, { board: PRODUCAO,
     ordem: ['group_title', 'group_title', 'novo_grupo__1', 'novo_grupo22352__1', 'novo_grupo31348__1'] }), /mudou/);
 });
+
+test('grupo com atividade removida permanece disponível para restauração', async () => {
+  const sql = await banco();
+  await sql`UPDATE vybe_conteudos SET removido_em=NOW() WHERE board_id=${DEMANDAS}`;
+  await assert.rejects(apagarGrupo(sql, {board:DEMANDAS,grupo_id:'novo_grupo_mkmkjdqd'}), /incluindo arquivadas ou removidas/);
+  assert.ok((await gruposDoQuadro(sql,DEMANDAS)).some(g=>g.grupo_id==='novo_grupo_mkmkjdqd'));
+});
+
+test('erro na consulta de automações aborta exclusão; tabela ausente é permitida', async () => {
+  const sql = await banco();
+  await sql`ALTER TABLE vybe_automacoes RENAME COLUMN acoes TO acoes_indisponiveis`;
+  await assert.rejects(apagarGrupo(sql,{board:DEMANDAS,grupo_id:'novo_grupo_mkkyfhtw'}), /acoes/);
+  assert.ok((await gruposDoQuadro(sql,DEMANDAS)).some(g=>g.grupo_id==='novo_grupo_mkkyfhtw'));
+  await sql`DROP TABLE vybe_automacoes`;
+  assert.equal((await apagarGrupo(sql,{board:DEMANDAS,grupo_id:'novo_grupo_mkkyfhtw'})).apagado,true);
+});
+
+test('movimentação recusa destino apagado e usa o nome atual do grupo', async () => {
+  const {moverAtividadeParaGrupo}=await import('../server/grupos.js');
+  const sql=await banco();
+  const novo=await criarGrupo(sql,{board:DEMANDAS,titulo:'Revisão'});
+  await editarGrupo(sql,{board:DEMANDAS,grupo_id:novo.grupo_id,titulo:'Revisão final'});
+  await moverAtividadeParaGrupo(sql,{id:3,board:DEMANDAS,grupo:novo.grupo_id});
+  assert.equal((await sql`SELECT etapa FROM vybe_conteudos WHERE id=3`)[0].etapa,'Revisão final');
+  await moverAtividadeParaGrupo(sql,{id:3,board:DEMANDAS,grupo:'novo_grupo_mkmkjdqd'});
+  await apagarGrupo(sql,{board:DEMANDAS,grupo_id:novo.grupo_id});
+  await assert.rejects(moverAtividadeParaGrupo(sql,{id:3,board:DEMANDAS,grupo:novo.grupo_id}), /mudou/);
+  assert.equal((await sql`SELECT grupo_id FROM vybe_conteudos WHERE id=3`)[0].grupo_id,'novo_grupo_mkmkjdqd');
+});
+
+test('renomear com nome ocupado não altera grupo nem atividades', async () => {
+  const sql=await banco();
+  await assert.rejects(editarGrupo(sql,{board:PRODUCAO,grupo_id:'novo_grupo__1',titulo:'Redação'}),/já existe/);
+  assert.equal((await sql`SELECT etapa FROM vybe_conteudos WHERE id=1`)[0].etapa,'Design & Edição');
+});
+
+test('automação só grava referências existentes e protege o grupo da exclusão', async () => {
+  const {salvarRegra}=await import('../vybe_automacoes.js');
+  const sql=await banco();
+  await sql`ALTER TABLE vybe_automacoes ADD COLUMN ativa boolean, ADD COLUMN ordem int,
+    ADD COLUMN gatilho jsonb, ADD COLUMN origem text, ADD COLUMN alterada_em timestamptz`;
+  const novo=await criarGrupo(sql,{board:DEMANDAS,titulo:'Revisão'});
+  const dados={nome:'Enviar para revisão',gatilho:{campo:'status'},acoes:[{tipo:'grupo',para:novo.grupo_id}]};
+  const regra=await salvarRegra(sql,dados);
+  await assert.rejects(apagarGrupo(sql,{board:DEMANDAS,grupo_id:novo.grupo_id}),/automação/);
+  await sql`DELETE FROM vybe_automacoes WHERE id=${regra.id}`;
+  await apagarGrupo(sql,{board:DEMANDAS,grupo_id:novo.grupo_id});
+  await assert.rejects(salvarRegra(sql,dados),/não existe mais/);
+  await assert.rejects(salvarRegra(sql,{...dados,acoes:[],condicao:{grupo_em:[novo.grupo_id]}}),/não existe mais/);
+  assert.equal((await sql`SELECT COUNT(*)::int AS n FROM vybe_automacoes`)[0].n,0);
+});
+
+test('duas criações concorrentes não duplicam o nome nem a posição', async () => {
+  const sql=await banco();
+  const resultados=await Promise.allSettled([
+    criarGrupo(sql,{board:DEMANDAS,titulo:'Revisão'}),
+    criarGrupo(sql,{board:DEMANDAS,titulo:'Revisão'}),
+  ]);
+  assert.equal(resultados.filter(r=>r.status==='fulfilled').length,1);
+  assert.match(resultados.find(r=>r.status==='rejected').reason.message,/Já existe/);
+  const grupos=await gruposDoQuadro(sql,DEMANDAS);
+  assert.equal(grupos.filter(g=>g.titulo==='Revisão').length,1);
+  assert.equal(new Set(grupos.map(g=>g.ordem)).size,grupos.length);
+});

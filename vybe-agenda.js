@@ -2239,7 +2239,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     const visiveis = mostrarTodos ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
     const restam = total - visiveis.length;
     const todasMarcadas = visiveis.length > 0 && visiveis.every((i) => SELECIONADAS.has(String(i.id)));
-    const corpo = recolhido ? '' : `
+    const corpo = recolhido ? '' : !total ? '<div class="grupos-vazio">Nenhuma atividade neste recorte.</div>' : `
       <div class="grupo-tabela-rolagem">
         <table class="grupo-tabela">
           <thead><tr>

@@ -12,6 +12,7 @@
 // dá para criar, editar e desativar sem deploy.
 
 import { neon } from '@neondatabase/serverless';
+import { gruposProntos, moverAtividadeParaGrupo } from './server/grupos.js';
 
 
 function database() {
@@ -308,12 +309,36 @@ export async function listar() {
 
 export async function salvar(dados) {
   await criarSchemaAutomacoes();
-  const sql = database();
+  return salvarRegra(database(), dados);
+}
+
+export async function salvarRegra(sql, dados) {
   const { id, nome, ativa = true, ordem = 100, gatilho, condicao = null, acoes } = dados;
   if (!nome || !gatilho || !acoes) throw new Error('Informe nome, gatilho e ações.');
   const g = JSON.stringify(gatilho);
   const c = condicao ? JSON.stringify(condicao) : null;
   const a = JSON.stringify(acoes);
+  if (!Array.isArray(acoes) || (condicao?.grupo_em && !Array.isArray(condicao.grupo_em))) {
+    throw new Error('Ações e grupos da condição devem ser listas.');
+  }
+  const refs=[...new Set([...acoes.filter(x=>x.tipo==='grupo').map(x=>String(x.para)),
+    ...(condicao?.grupo_em || []).map(String)])];
+  if (await gruposProntos(sql)) {
+    const gravar=id ? sql`WITH destinos AS (SELECT grupo_id FROM vybe_grupos
+        WHERE grupo_id=ANY(${refs}::text[]) FOR SHARE), valido AS (
+        SELECT 1 WHERE (SELECT COUNT(DISTINCT grupo_id) FROM destinos)=${refs.length})
+      UPDATE vybe_automacoes SET nome=${nome},ativa=${!!ativa},ordem=${ordem},gatilho=${g}::jsonb,
+        condicao=${c}::jsonb,acoes=${a}::jsonb,alterada_em=NOW()
+      WHERE id=${id} AND EXISTS(SELECT 1 FROM valido) RETURNING *`
+      : sql`WITH destinos AS (SELECT grupo_id FROM vybe_grupos WHERE grupo_id=ANY(${refs}::text[]) FOR SHARE),
+      valido AS (SELECT 1 WHERE (SELECT COUNT(DISTINCT grupo_id) FROM destinos)=${refs.length})
+      INSERT INTO vybe_automacoes (nome,ativa,ordem,gatilho,condicao,acoes,origem)
+      SELECT ${nome},${!!ativa},${ordem},${g}::jsonb,${c}::jsonb,${a}::jsonb,'criada no painel'
+        FROM valido RETURNING *`;
+    const [regra]=await gravar;
+    if (!regra) throw new Error('A automação ou um dos grupos não existe mais. Recarregue e revise os destinos.');
+    return regra;
+  }
   if (id) {
     const r = await sql`UPDATE vybe_automacoes SET nome=${nome}, ativa=${!!ativa}, ordem=${ordem},
         gatilho=${g}::jsonb, condicao=${c}::jsonb, acoes=${a}::jsonb, alterada_em=NOW()
@@ -487,7 +512,7 @@ export async function aplicar(sql, conteudoId, evento) {
     const feitas = [];
     for (const acao of regra.acoes || []) {
       if (acao.tipo === 'grupo') {
-        await sql`UPDATE vybe_conteudos SET grupo_id=${acao.para}, atualizado_em=NOW() WHERE id=${item.id}`;
+        await moverAtividadeParaGrupo(sql, {id:item.id,board:item.board_id,grupo:acao.para});
         item.grupo_id = acao.para;
         paraOMonday.grupo = acao.para;
         feitas.push(`grupo → ${acao.para}`);

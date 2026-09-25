@@ -212,7 +212,7 @@ async function novoGrupo(quadro, depoisDe) {
 
 async function apagarGrupoDoQuadro(quadro, grupo) {
   const ok = await perguntarNoPainel({ titulo: `Apagar "${grupo.titulo}"?`, confirmar: 'Apagar grupo', perigo: true,
-    texto: 'Só dá para apagar grupo vazio. Se houver atividades nele, mova-as antes para outro grupo.' });
+    texto: 'Só dá para apagar grupos sem atividades ou automações vinculadas. Atividades arquivadas e removidas também precisam ser resolvidas antes.' });
   if (!ok) return;
   await mudarGrupo(quadro, { acao: 'apagar', grupo_id: grupo.grupo_id }, `Grupo "${grupo.titulo}" apagado.`);
 }
