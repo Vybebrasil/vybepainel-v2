@@ -1029,7 +1029,7 @@ function pintarClientesDeDemandas() {
       escolhido === nome ? 'active' : ''} ${quantos === 0 ? 'vazio' : ''}"
       aria-pressed="${escolhido === nome}"
       title="${escolhido === nome ? 'Tirar o filtro de cliente' : `Ver só ${safeText(nome)}`}"
-      onclick="escolherClienteDemandas(decodeURIComponent('${encodeURIComponent(nome)}'))"><b>${safeText(nome)}</b> ${quantos}</button>`;
+      data-cliente="${safeText(nome)}" onclick="escolherClienteDemandas(this.dataset.cliente)"><b>${safeText(nome)}</b> ${quantos}</button>`;
   const todos = `<button type="button" class="manager-calendar-client ${buscaClienteDemandas.trim() ? '' : 'active'}"
       aria-pressed="${!buscaClienteDemandas.trim()}" onclick="buscarClienteDemandas('');document.getElementById('busca-cliente-demandas').value=''"><b>Todos</b> ${filtradas.length}</button>`;
   caixa.innerHTML = todos + clientes.map(([n, q]) => botao(n, q)).join('');
