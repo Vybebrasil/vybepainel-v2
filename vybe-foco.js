@@ -358,7 +358,7 @@ function renderFocusDashboard() {
   const groups = [
     renderGroup('Em execução hoje','todas as demandas já iniciadas; acompanhe e atualize sem misturar com a próxima a começar',inProgress,'Em execução por você','#ff6b00','◉'),
     renderGroup('Para produzir hoje',`itens com ${referenceLabel} vencido ou para hoje`,withoutPrimary(toProduceToday),'Pronto para você executar','#ffbd2e','→'),
-    renderGroup('Conteúdos a iniciar','ainda não tiveram produção iniciada',withoutPrimary(toStart),'Conteúdo ainda não iniciado','#ffbd2e','＋'),
+    renderGroup('Atividades a iniciar','ainda não tiveram execução iniciada',withoutPrimary(toStart),'Execução ainda não iniciada','#ffbd2e','＋'),
     renderGroup('Entregue por mim — aguardando aprovação','o que já saiu da sua execução',withoutPrimary(awaitingApproval),'Entregue por você; aguardando aprovação','#579bfc','✓'),
     renderGroup('Em alteração','ajustes solicitados que precisam ser resolvidos antes da próxima entrega',withoutPrimary(inRevision),'Ajuste solicitado; abra o contexto para conferir o que mudar','#ff637a','↻'),
     renderGroup('Aguardando informação','não avança sem resposta, material ou contexto',withoutPrimary(awaitingInfo),'Aguardando informação ou material','#9d50dd','?'),

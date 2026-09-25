@@ -49,3 +49,18 @@ test('peça bloqueada conta uma vez só, mesmo atrasada', () => {
   // Hoje, a bloqueada continua pedindo ação; a que anda, não.
   assert.equal(alertas(da(), [peca('Falta Info'), peca('Em andamento')], HOJE).texto, '1 bloqueada');
 });
+
+// A data inicial é a referência da fila, mesmo sem entregas no dia atual.
+test('DA abre em hoje dentro do período, mesmo com fila vazia ou só futura', () => {
+  const c=da();
+  const range={start:'2026-09-14',end:'2026-09-20'};
+  assert.equal(c.daControllerInitialDay(range,[],HOJE),HOJE);
+  assert.equal(c.daControllerInitialDay(range,['2026-09-18'],HOJE),HOJE);
+});
+
+test('DA respeita a janela navegada ao atravessar mês e ano', () => {
+  const c=da();
+  assert.equal(c.daControllerInitialDay({start:'2026-12-28',end:'2027-01-03'},[],'2027-01-01'),'2027-01-01');
+  assert.equal(c.daControllerInitialDay({start:'2027-01-04',end:'2027-01-10'},['2027-01-06'],'2027-01-01'),'2027-01-06');
+  assert.equal(c.daControllerInitialDay({start:'2026-12-21',end:'2026-12-27'},[],'2027-01-01'),'2026-12-21');
+});

@@ -1064,6 +1064,7 @@ body.vybe-desktop {
   color:var(--text); font-family:var(--mac-ui); }
 .mesa-topo { display:flex; align-items:center; gap:16px; padding:14px 18px; border-bottom:1px solid var(--border); }
 .mesa-quem { display:flex; align-items:center; gap:10px; min-width:0; flex:0 1 auto; }
+.mesa-quem > div { min-width:0; }
 .mesa-quem .mesa-avatar { width:38px; height:38px; }
 .mesa-quem .mesa-avatar + .mesa-avatar { margin-left:-16px; }
 .mesa-quem h2 { margin:0; font:600 17px/1.2 var(--mac-ui); letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1138,9 +1139,12 @@ body.vybe-desktop {
   .mesa-janela { width:100vw; height:100dvh; border-radius:0; border:0; }
   .mesa-topo { flex-wrap:wrap; gap:10px; padding:12px; }
   .mesa-quem { flex:1 1 calc(100% - 44px); }
-  .mesa-agendas { order:3; flex:1 1 100%; }
-  .mesa-barra { flex-wrap:nowrap; overflow-x:auto; padding:8px 12px; scrollbar-width:none; }
-  .mesa-barra::-webkit-scrollbar { display:none; }
+  .mesa-agendas { order:3; flex:1 1 100%; flex-wrap:wrap; }
+  .mesa-barra { flex-wrap:wrap; flex-shrink:0; max-height:32dvh; overflow:auto; padding:10px 12px; }
+  .mesa-segmento { align-items:flex-start; width:100%; }
+  .mesa-segmento > span { min-width:48px; padding-top:8px; }
+  .mesa-segmento > div { flex-wrap:wrap; min-width:0; }
+  .mesa-segmento button { min-height:32px; }
   .mesa-arrumar { margin-left:0; }
   .mesa-resumo { padding:10px 12px; }
   .mesa-linha { padding-inline:12px; }

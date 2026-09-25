@@ -284,7 +284,7 @@ function daMetricContext(entry){ const item=entry.item; if(entry.kind==='effort'
 function daMetricSummary(scopeType,scopeId,team=daControllerTeam()){
   const effort=daMetricEntries(scopeType,scopeId,'effort',team); const blocked=daMetricEntries(scopeType,scopeId,'blocked',team); const late=daMetricEntries(scopeType,scopeId,'late',team); return {effort,blocked,late,points:effort.reduce((sum,entry)=>sum+entry.points,0)};
 }
-function closeDaMetricDetail(immediate=false){ const overlay=document.getElementById('da-metric-detail-overlay'); if(!overlay) return; if(immediate){ overlay.remove(); return; } overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),180); }
+function closeDaMetricDetail(immediate=false){ const overlay=document.getElementById('da-metric-detail-overlay'); if(!overlay) return; if(immediate){ overlay.remove(); return; } overlay.classList.remove('open'); if(overlay.contains(document.activeElement)) daPlanningReturnFocus?.focus({preventScroll:true}); setTimeout(()=>overlay.remove(),180); }
 function daBindMetricDrilldowns(team=daControllerTeam()){
   const disciplines=Object.values(DA_DISCIPLINES||{}); document.querySelectorAll('#da-controller-dashboard .da-discipline-card').forEach((card,index)=>{ const discipline=disciplines[index]; if(!discipline) return; card.classList.add('drilldown'); card.setAttribute('role','button'); card.setAttribute('tabindex','0'); card.setAttribute('title',`Abrir composição de esforço, bloqueios e atrasos de ${discipline.label}`); const open=()=>openDaMetricDetail('discipline',discipline.key,'overview'); card.onclick=open; card.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}}; if(!card.querySelector('.da-discipline-detail-cta')){ const cta=document.createElement('span'); cta.className='da-discipline-detail-cta'; cta.textContent='Detalhar →'; cta.onclick=event=>{event.stopPropagation();open();}; card.appendChild(cta); } });
   document.querySelectorAll('#da-controller-dashboard .da-capacity-card').forEach((card,index)=>{ if(card.closest('.da-cell-filter-grid')) return; const user=team[index]; if(!user) return; if(card.querySelector('.da-capacity-detail-cta')) return; const cta=document.createElement('span'); cta.className='da-capacity-detail-cta'; cta.textContent='Detalhar carga ↗'; cta.setAttribute('role','button'); cta.setAttribute('tabindex','0'); const open=()=>openDaMetricDetail('person',user.id,'overview'); cta.onclick=event=>{event.preventDefault();event.stopPropagation();open();}; cta.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();open();}}; card.appendChild(cta); });
@@ -728,13 +728,18 @@ async function openDaApprovalRadar(){ closeDaApprovalRadar(); const items=daDail
 function daApprovalOpenWorkspace(itemId){ closeDaApprovalRadar(); openItemWorkspace(itemId); }
 function daApprovalApprove(itemId){ const item=(DADOS_ALL||DADOS||[]).find(entry=>String(entry.id)===String(itemId)); const option=STATUS_OPTIONS.find(entry=>normalizedWorkflowStatus(entry.label)==='para agendar'); if(!item||!option) return showToast('Não foi possível preparar a aprovação desta demanda.','err'); closeDaApprovalRadar(); openQualityGate(item,option); }
 function daApprovalReturn(itemId){ const item=(DADOS_ALL||DADOS||[]).find(entry=>String(entry.id)===String(itemId)); const option=STATUS_OPTIONS.find(entry=>normalizedWorkflowStatus(entry.label)==='alteração'); if(!item||!option) return showToast('Não foi possível preparar a devolução desta demanda.','err'); closeDaApprovalRadar(); openStatusContextGate(item,option); }
+function daControllerInitialDay(range, dates, today) {
+  if(today >= range.start && today <= range.end) return today;
+  return dates.find(iso=>iso>=today) || dates[0] || range.start;
+}
+
 function renderDaControllerTactical() {
   const dash=document.getElementById('da-controller-dashboard'); if (!dash) return;
   // A secao emprestada esta DENTRO do painel que a proxima linha vai reescrever.
   // Sem devolve-la antes, ela seria destruida junto e o Modo Gestor perderia
   // Grupos ou Calendario ate a pagina recarregar.
   devolverSecaoDoDa();
-  const today=HOJE_ISO || new Date().toISOString().slice(0,10); const range=daControllerPeriodRange(); const team=daControllerTeam(); const allItems=daControllerItemsFor('all'); const scopedItems=daControllerItemsFor(daControllerPersonId); const selectableDates=[...new Set(scopedItems.filter(item=>daControllerInPeriod(item,range)).map(daControllerDate).filter(Boolean))].sort(); if(!daControllerDayFocusIso || daControllerDayFocusIso<range.start || daControllerDayFocusIso>range.end){ daControllerDayFocusIso=selectableDates.includes(today)?today:(selectableDates.find(iso=>iso>=today)||selectableDates[0]||range.start); } const allPeriod=allItems.filter(item=>daControllerInPeriod(item,range)); const scopedPeriod=scopedItems.filter(item=>daControllerInPeriod(item,range)); const focusedItems=daControllerDayFocusIso ? scopedPeriod.filter(item=>daControllerDate(item)===daControllerDayFocusIso) : scopedPeriod; const isIndividualView=daControllerPersonId!=='all'; const useFocusedScope=daControllerPeriod!=='month' && Boolean(daControllerDayFocusIso); const headlineItems=useFocusedScope ? focusedItems : (isIndividualView ? scopedPeriod : allPeriod); const backlogCritical=scopedItems.filter(item=>{const date=daControllerDate(item); return Boolean(date && date<range.start && (daControllerBlocked(item) || daControllerRisk(item)?.level==='critical'));}).sort((a,b)=>daTacticalScore(a)-daTacticalScore(b)); const lateInWindow=(isIndividualView ? scopedPeriod : allPeriod).filter(item=>daControllerRisk(item)?.level==='critical'); const summaries=team.map(user=>({user,metrics:daControllerPersonMetrics(user)})); const maxLoad=Math.max(1,...summaries.map(entry=>entry.metrics.period.length)); const disciplineSummaryHtml=Object.values(DA_DISCIPLINES).map(discipline=>{const members=summaries.filter(entry=>daDisciplineForUser(entry.user).key===discipline.key); const totalPoints=members.reduce((sum,entry)=>sum+entry.metrics.capacity.workload,0); const late=members.reduce((sum,entry)=>sum+entry.metrics.late.length,0); const blocked=members.reduce((sum,entry)=>sum+entry.metrics.blocked.length,0); const saturated=members.some(entry=>entry.metrics.capacity.state==='saturada'); const action=discipline.key==='audiovisual'?(saturated?'Proteger prazo e antecipar briefing':'Vídeo e motion sob controle'):(saturated?'Equilibrar design entre Deivid, Bia e Jady':'Design equilibrado'); return `<section class="da-discipline-card" style="--discipline-color:${discipline.color}"><b>${discipline.label}</b><span>${totalPoints} pontos de esforço · ${late} atraso${late===1?'':'s'} · ${blocked} bloqueio${blocked===1?'':'s'}</span><small>${action} · estimativa por complexidade</small></section>`;}).join('');
+  const today=HOJE_ISO || new Date().toISOString().slice(0,10); const range=daControllerPeriodRange(); const team=daControllerTeam(); const allItems=daControllerItemsFor('all'); const scopedItems=daControllerItemsFor(daControllerPersonId); const selectableDates=[...new Set(scopedItems.filter(item=>daControllerInPeriod(item,range)).map(daControllerDate).filter(Boolean))].sort(); if(!daControllerDayFocusIso || daControllerDayFocusIso<range.start || daControllerDayFocusIso>range.end){ daControllerDayFocusIso=daControllerInitialDay(range, selectableDates, today); } const allPeriod=allItems.filter(item=>daControllerInPeriod(item,range)); const scopedPeriod=scopedItems.filter(item=>daControllerInPeriod(item,range)); const focusedItems=daControllerDayFocusIso ? scopedPeriod.filter(item=>daControllerDate(item)===daControllerDayFocusIso) : scopedPeriod; const isIndividualView=daControllerPersonId!=='all'; const useFocusedScope=daControllerPeriod!=='month' && Boolean(daControllerDayFocusIso); const headlineItems=useFocusedScope ? focusedItems : (isIndividualView ? scopedPeriod : allPeriod); const backlogCritical=scopedItems.filter(item=>{const date=daControllerDate(item); return Boolean(date && date<range.start && (daControllerBlocked(item) || daControllerRisk(item)?.level==='critical'));}).sort((a,b)=>daTacticalScore(a)-daTacticalScore(b)); const lateInWindow=(isIndividualView ? scopedPeriod : allPeriod).filter(item=>daControllerRisk(item)?.level==='critical'); const summaries=team.map(user=>({user,metrics:daControllerPersonMetrics(user)})); const maxLoad=Math.max(1,...summaries.map(entry=>entry.metrics.period.length)); const disciplineSummaryHtml=Object.values(DA_DISCIPLINES).map(discipline=>{const members=summaries.filter(entry=>daDisciplineForUser(entry.user).key===discipline.key); const totalPoints=members.reduce((sum,entry)=>sum+entry.metrics.capacity.workload,0); const late=members.reduce((sum,entry)=>sum+entry.metrics.late.length,0); const blocked=members.reduce((sum,entry)=>sum+entry.metrics.blocked.length,0); const saturated=members.some(entry=>entry.metrics.capacity.state==='saturada'); const action=discipline.key==='audiovisual'?(saturated?'Proteger prazo e antecipar briefing':'Vídeo e motion sob controle'):(saturated?'Equilibrar design entre Deivid, Bia e Jady':'Design equilibrado'); return `<section class="da-discipline-card" style="--discipline-color:${discipline.color}"><b>${discipline.label}</b><span>${totalPoints} pontos de esforço · ${late} atraso${late===1?'':'s'} · ${blocked} bloqueio${blocked===1?'':'s'}</span><small>${action} · estimativa por complexidade</small></section>`;}).join('');
   // A conta de 'priority' sobreviveu ao cartao de decisao que a exibia: ela ainda
   // serve para o 'withoutPrimary' logo abaixo, que tira a peca principal do
   // passivo antigo. Apagar a cadeia mudaria o numero de "passivo antigo" no
@@ -783,7 +788,20 @@ function retomarMesaSeHavia() {
   if (lista) lista.scrollTop = guardada.rolagem;
 }
 
-function closeDaIndividualPlanningDesk(){ const overlay=document.getElementById('da-individual-planning-overlay'); if(!overlay) return; overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),180); }
+let daPlanningReturnFocus = null;
+function closeDaIndividualPlanningDesk(){
+  const overlay=document.getElementById('da-individual-planning-overlay');
+  if(!overlay) return;
+  overlay.classList.remove('open');
+  if(overlay.contains(document.activeElement)) {
+    // A atualização do painel pode ter recriado o cartão que abriu a mesa.
+    const label=daPlanningReturnFocus?.getAttribute('aria-label');
+    const retorno=daPlanningReturnFocus?.isConnected ? daPlanningReturnFocus
+      : [...document.querySelectorAll('#da-controller-dashboard [aria-label]')].find(el=>label && el.getAttribute('aria-label')===label);
+    retorno?.focus({preventScroll:true});
+  }
+  setTimeout(()=>overlay.remove(),180);
+}
 // A marcação da mesa é a MESMA do resto do painel (SELECIONADAS, em
 // vybe-agenda.js): a mesa tinha uma seleção própria, e por isso o Esc não
 // desmarcava, a veiculação não ia em lote e a barra de lote do gestor não existia
@@ -1550,6 +1568,9 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
   // parada onde a pessoa estava.
   const rolagemAnterior=previousPlanning?.querySelector('.mesa-lista')?.scrollTop||0;
   const eraRedesenho=Boolean(previousPlanning);
+  const focoAnterior=previousPlanning?.contains(document.activeElement) ? document.activeElement : null;
+  const acaoAnterior=focoAnterior?.getAttribute('onclick');
+  if(!eraRedesenho) daPlanningReturnFocus=document.activeElement;
   if(previousPlanning) previousPlanning.remove(); const overlay=document.createElement('div'); overlay.id='da-individual-planning-overlay'; overlay.className='da-planning-overlay'; overlay.style.setProperty('--da-plan-color',user.color||'#ff9d00'); overlay.onclick=event=>{if(event.target===overlay) closeDaIndividualPlanningDesk();}; const totalItems=daIndividualPlanningAllItems(user.id).length; const naLista=daPlanningItensDaLista(pessoasDaMesa); const rows=naLista.length?naLista.map((item,index)=>daIndividualPlanningRow(item,index,user.id)).join(''):`<div class="mesa-vazio">${DA_PLANNING_GRAFICO.dia?'Nenhuma demanda com prazo ou veiculação neste dia.':'Nenhuma demanda nesta visão. Ajuste os filtros para ver as demais.'}</div>`; const controls=daPlanningControlsHtml(user.id,naLista.length,totalItems); const quickSwitch=`<nav class="mesa-agendas" aria-label="Agendas na mesa">${daControllerTeam().map(entry=>{const active=pessoasDaMesa.includes(String(entry.id)); const total=daIndividualPlanningItems(entry.id).length; return `<button type="button" class="${active?'ativo':''}" onclick="daPlanningEscolherPessoa('${entry.id}',event)" aria-pressed="${active}" title="${active?(pessoasDaMesa.length>1?'Clique para tirar '+safeText(firstName(entry.name))+' da mesa':'Única agenda na mesa — some outra para comparar'):'Clique para somar '+safeText(firstName(entry.name))+' à mesa'}">${daIndividualPlanningAvatar(entry)}<b>${safeText(firstName(entry.name))}</b><small>${total}</small></button>`;}).join('')}<button type="button" class="mesa-todos ${pessoasDaMesa.length===daControllerTeam().length?'ativo':''}" onclick="daPlanningTodasAsPessoas()" title="Ver a célula inteira numa mesa só">Toda a célula</button></nav>`;
   const todasVisiveis=naLista.length>0&&naLista.every(item=>SELECIONADAS.has(String(item.id)));
   overlay.innerHTML=`<section class="mesa-janela" role="dialog" aria-modal="true" aria-label="Mesa de planejamento de ${safeText(user.name)}">
@@ -1563,11 +1584,22 @@ function openDaIndividualPlanningDesk(userId=daControllerPersonId){ const user=d
     <div class="mesa-barra">${controls}${daPlanningPainelDeAcao(items, pessoasDaMesa)}</div>
     <div class="mesa-resumo">${daPlanningGraficoHtml(items,{risk:riskCount},user.id)}</div>
     <div class="mesa-lista">
-      <div class="mesa-linha mesa-cabeca" role="row">
+      ${naLista.length ? `<div class="mesa-linha mesa-cabeca" role="row">
         <label class="mesa-marcar" title="${todasVisiveis?'Desmarcar':'Marcar'} as ${naLista.length} visíveis"><input type="checkbox" ${todasVisiveis?'checked':''} onclick="daPlanningToggleAll('${user.id}')" aria-label="Marcar as ${naLista.length} visíveis"></label>
         <span>#</span>${daPlanningCabecalho("Demanda / cliente","cliente",userId)}<span>Responsável</span>${daPlanningCabecalho("Veiculação","veiculacao",userId)}${daPlanningCabecalho("Prazo","prazo",userId)}<span>Formato</span><span>Status</span><span>Prioridade</span><span>Arquivo</span><span></span>
-      </div>${rows}</div>
+      </div>` : ''}${rows}</div>
   </section>`; document.body.appendChild(overlay);
+  // O redesenho troca os nós. Reencontre a mesma ação para o teclado não
+  // voltar ao documento; Escape continua na fila compartilhada de overlays.
+  const focoNovo=acaoAnterior ? [...overlay.querySelectorAll('[onclick]')].find(el=>el.getAttribute('onclick')===acaoAnterior) : null;
+  (focoNovo || overlay.querySelector('.mesa-fechar'))?.focus({preventScroll:true});
+  overlay.addEventListener('keydown',event=>{
+    if(event.key!=='Tab') return;
+    const controles=[...overlay.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(el=>el.getClientRects().length);
+    const primeiro=controles[0], ultimo=controles.at(-1);
+    if(event.shiftKey && document.activeElement===primeiro){event.preventDefault();ultimo?.focus();}
+    else if(!event.shiftKey && document.activeElement===ultimo){event.preventDefault();primeiro?.focus();}
+  });
   const lista=overlay.querySelector('.mesa-lista');
   if(lista&&rolagemAnterior) lista.scrollTop=rolagemAnterior;
   daPlanningCarregarArquivos();
