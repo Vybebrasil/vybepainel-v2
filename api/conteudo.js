@@ -232,7 +232,7 @@ async function trocarDatas(sql, quem, { item, prazo, veiculacao }) {
            aviso: prazoDepoisDaVeiculacao ? 'O prazo ficou depois da veiculação.' : null };
 }
 
-async function trocarData(sql, quem, { item, campo, data }) {
+export async function trocarData(sql, quem, { item, campo, data }) {
   if (!COLUNA_DATA[campo]) throw new Error(`Campo de data desconhecido: ${campo}`);
   const iso = String(data || '').slice(0, 10);
   if (data && !/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('Data inválida; use AAAA-MM-DD.');
@@ -256,10 +256,16 @@ async function trocarData(sql, quem, { item, campo, data }) {
     if (prazo && veic && prazo > veic) aviso = 'O prazo ficou depois da veiculação.';
   }
 
-  if (campo === 'prazo') await sql`UPDATE vybe_conteudos SET prazo=${iso || null}, atualizado_em=NOW() WHERE id=${c.id}`;
-  else await sql`UPDATE vybe_conteudos SET veiculacao=${iso || null}, atualizado_em=NOW() WHERE id=${c.id}`;
-
-  await registrarEvento(sql, c.id, { tipo: campo, de, para: iso, autorId: await pessoaDaSessao(sql, quem) });
+  const autorId = await pessoaDaSessao(sql, quem);
+  // A alteração e seu histórico são uma única gravação: falha no evento deve
+  // devolver também a data anterior, sem sucesso parcial invisível à interface.
+  await sql.transaction([
+    campo === 'prazo'
+      ? sql`UPDATE vybe_conteudos SET prazo=${iso || null}, atualizado_em=NOW() WHERE id=${c.id}`
+      : sql`UPDATE vybe_conteudos SET veiculacao=${iso || null}, atualizado_em=NOW() WHERE id=${c.id}`,
+    sql`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id, texto)
+      VALUES (${c.id}, ${campo}, ${de || null}, ${iso || null}, ${autorId || null}, ${null})`
+  ]);
 
   const replica = await replicar(sql, campo, `conteudo:${c.id}`,
     `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`,

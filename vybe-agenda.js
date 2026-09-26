@@ -731,14 +731,17 @@ function managerCalendarDragLeave(cell) { cell.classList.remove('is-drop-target'
 // editor de datas depois disso fazia a pessoa repetir o que acabou de dizer.
 // O editor continua no clique, para quem precisa mexer nas duas datas ou
 // registrar exceção ao Prazo de Ouro.
-async function managerCalendarDrop(dateIso, event, cell) {
+async function managerCalendarDrop(dateIso, event, cell, quadro = '') {
   event.preventDefault();
   cell.classList.remove('is-drop-target');
-  const payload = managerCalendarDragPayload || String(event.dataTransfer?.getData('text/plain') || '').split(':');
+  const transferido = String(event.dataTransfer?.getData('text/plain') || '');
+  const separador = transferido.indexOf(':');
+  const payload = managerCalendarDragPayload || { source: transferido.slice(0, separador), itemId: transferido.slice(separador + 1) };
   managerCalendarDragPayload = null;
   const source = payload?.source || payload?.[0];
   const itemId = payload?.itemId || payload?.[1];
-  if (!source || !itemId) return;
+  if (!['content', 'request'].includes(source) || !itemId) return;
+  if (quadro === 'demandas' && source !== 'request') return;
 
   const request = source === 'request';
   const item = request
@@ -746,7 +749,8 @@ async function managerCalendarDrop(dateIso, event, cell) {
     : findOperationalItem(itemId);
   if (!item) return showToast('Atividade não encontrada.', 'err');
 
-  const campo = dateMode === 'prazo' ? 'prazo' : 'veiculacao';
+  const modo = quadro === 'demandas' ? currentDemandaDateMode : dateMode;
+  const campo = modo === 'prazo' ? 'prazo' : 'veiculacao';
   cell.classList.add('is-saving');
   try {
     await moverDataDoItem(item, campo, dateIso, { request });
@@ -763,26 +767,20 @@ async function managerCalendarDrop(dateIso, event, cell) {
 // Um caminho só para mudar data, venha do arrasto na agenda ou do campo na
 // tabela por grupo. Duas implementações da mesma gravação viram duas verdades.
 // Devolve false quando a data já era aquela — não é erro, é nada a fazer.
+const datasEmGravacao = new Set();
 async function moverDataDoItem(item, campo, dateIso, { request = false, renderizar = true, avisar = true } = {}) {
   const anterior = campo === 'prazo'
     ? String(item.prazo_iso || '')
     : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
   if (anterior === dateIso) return false;
 
-  armOutboundMutationGuard(campo === 'prazo' ? 'prazo' : 'veiculação');
-  const pelaEscritaDupla = await tentarEscritaDupla(item, { acao: campo, item: String(item.id), data: dateIso });
-  if (!pelaEscritaDupla) {
-    const colunas = request ? COLUNAS.demandas : COLUNAS.producao;
-    const mutation = `mutation($board:ID!,$item:ID!,$column:String!,$value:JSON!){ change_column_value(board_id:$board,item_id:$item,column_id:$column,value:$value){ id } }`;
-    await mondayQuery(mutation, {
-      board: String(item.board_id || (request ? BOARD_DEMANDAS_ID : BOARD_ID)),
-      item: String(item.id), column: colunas[campo], value: JSON.stringify({ date: dateIso }),
-    });
-    // Sem escrita dupla não existe histórico nosso; o registro vai para o Monday.
-    try {
-      await postItemUpdate(item.id, `[Vybe OS · Data alterada]\n${campo === 'prazo' ? 'Prazo' : 'Veiculação'}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);
-    } catch (falhaLog) { console.warn('Data alterada, mas o log não foi registrado.', falhaLog); }
-  }
+  const chave = String(item.id);
+  if (datasEmGravacao.has(chave)) throw new Error('Aguarde a alteração de data desta atividade terminar.');
+  datasEmGravacao.add(chave);
+  try {
+  armOutboundMutationGuard(campo === 'prazo' ? 'prazo' : (request ? 'conclusão' : 'veiculação'));
+  const salvo = await tentarEscritaDupla(item, { acao: campo, item: chave, data: dateIso });
+  if (!salvo) throw new Error('A gravação no banco Vybe não foi confirmada.');
 
   const curto = (iso) => planningDateBr(iso).slice(0, 5);
   if (request) {
@@ -807,6 +805,7 @@ async function moverDataDoItem(item, campo, dateIso, { request = false, renderiz
   if (renderizar) {
     renderManagerCalendar();
     renderVisaoDeGrupos();
+    if (request && activeBoard === 'demandas') renderDemandas();
   }
 
   // O Prazo de Ouro deixa de barrar e passa a avisar: quem move a data está
@@ -814,12 +813,15 @@ async function moverDataDoItem(item, campo, dateIso, { request = false, renderiz
   const prazo = campo === 'prazo' ? dateIso : String(item.prazo_iso || '');
   const veic = campo === 'veiculacao' ? dateIso : String((request ? item.conclusao_iso : item.veiculacao_iso) || '');
   const folga = (prazo && veic) ? goldenDeadlineGap(prazo, veic) : null;
-  const alerta = (folga !== null && folga < PRAZO_OURO_DIAS)
+  const alerta = (!request && folga !== null && folga < PRAZO_OURO_DIAS)
     ? ` · atenção: ${folga} dia${folga === 1 ? '' : 's'} de antecedência, abaixo do Prazo de Ouro`
     : '';
-  if (avisar) showToast(`✓ ${campo === 'prazo' ? 'Prazo' : 'Veiculação'} de ${safeText(item.nome || 'a peça')}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}${alerta}`,
+  if (avisar) showToast(`✓ ${campo === 'prazo' ? 'Prazo' : (request ? 'Conclusão' : 'Veiculação')} de ${safeText(item.nome || 'a peça')}: ${planningDateBr(anterior) || '—'} → ${planningDateBr(dateIso)}${alerta}`,
     alerta ? 'info' : 'ok', alerta ? 7000 : 4200);
   return true;
+  } finally {
+    datasEmGravacao.delete(chave);
+  }
 }
 
 function managerCalendarLoadDemandas(button) {
@@ -893,29 +895,22 @@ function managerCalendarEventHtml(item) {
 function openDemandaPlanningEditor(itemId, targetDate='') {
   const item = (DADOS_DEMANDAS || []).find(entry => String(entry.id) === String(itemId));
   if (!item) return showToast('Solicitação não encontrada.', 'err');
-  const initial = targetDate || (dateMode === 'prazo' ? item.prazo_iso : item.conclusao_iso) || '';
-  const fieldLabel = dateMode === 'prazo' ? 'PRAZO DA SOLICITAÇÃO' : 'CONCLUSÃO PREVISTA';
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Solicitação de demanda</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Mover solicitação</h2><p class="workflow-copy">Ajuste a data diretamente na agenda. A solicitação continua identificada como origem própria e não vira conteúdo automaticamente.</p>${workflowItemHtml(item,item.status)}<label class="workflow-field"><span>${fieldLabel}</span><input id="demanda-calendar-date" type="date" value="${safeText(initial)}"></label><div class="planning-change-note"><b>Rastreabilidade:</b> o painel atualiza a coluna correspondente do board Solicitações de Demandas e preserva a origem do item.</div><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="saveDemandaCalendarDate('${item.id}','${dateMode}')">Salvar data →</button></div>`);
+  const modo = activeBoard === 'demandas' ? currentDemandaDateMode : dateMode;
+  const initial = targetDate || (modo === 'prazo' ? item.prazo_iso : item.conclusao_iso) || '';
+  const fieldLabel = modo === 'prazo' ? 'PRAZO DA SOLICITAÇÃO' : 'CONCLUSÃO PREVISTA';
+  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Solicitação de demanda</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Mover solicitação</h2><p class="workflow-copy">Ajuste a data diretamente na agenda. A solicitação continua identificada como origem própria e não vira conteúdo automaticamente.</p>${workflowItemHtml(item,item.status)}<label class="workflow-field"><span>${fieldLabel}</span><input id="demanda-calendar-date" type="date" value="${safeText(initial)}"></label><div class="planning-change-note"><b>Rastreabilidade:</b> o painel atualiza a coluna correspondente do board Solicitações de Demandas e preserva a origem do item.</div><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="saveDemandaCalendarDate('${item.id}','${modo}')">Salvar data →</button></div>`);
 }
 async function saveDemandaCalendarDate(itemId, mode) {
   const item = (DADOS_DEMANDAS || []).find(entry => String(entry.id) === String(itemId));
   const date = String(document.getElementById('demanda-calendar-date')?.value || '');
   if (!item || !date) return showToast('Informe uma data válida.', 'info');
-  const columnId = mode === 'prazo' ? COLUNAS.demandas.prazo : COLUNAS.demandas.veiculacao;
   const previous = mode === 'prazo' ? item.prazo_iso : item.conclusao_iso;
   if (date === previous) return closeWorkflowModal();
   const button = document.querySelector('.workflow-primary');
   if (button) { button.disabled = true; button.textContent = 'Salvando…'; }
-  armOutboundMutationGuard('data da solicitação');
   try {
-    const mutation = `mutation($board:ID!,$item:ID!,$column:String!,$value:JSON!){ change_column_value(board_id:$board,item_id:$item,column_id:$column,value:$value){ id } }`;
-    await mondayQuery(mutation,{board:String(BOARD_DEMANDAS_ID),item:String(item.id),column:columnId,value:JSON.stringify({date})});
-    if (mode === 'prazo') { item.prazo_iso = date; item.prazo = `${date.slice(8,10)}/${date.slice(5,7)}`; item.prazo_atrasado = Boolean(date < (META.today_iso || HOJE_ISO) && !['Feito','Aprovado','Concluído','Concluido','Finalizado'].includes(item.status)); }
-    else { item.conclusao_iso = date; item.conclusao = `${date.slice(8,10)}/${date.slice(5,7)}`; }
+    await moverDataDoItem(item, mode === 'prazo' ? 'prazo' : 'veiculacao', date, { request: true });
     closeWorkflowModal();
-    renderManagerCalendar();
-    if (activeBoard === 'demandas') renderDemandas();
-    showToast('✓ Data da solicitação atualizada no board de Demandas.', 'ok');
   } catch (error) {
     if (button) { button.disabled = false; button.textContent = 'Salvar data →'; }
     showToast(`Não foi possível atualizar a solicitação: ${error.message}`, 'err', 7000);
@@ -2728,7 +2723,7 @@ function renderAgendaDeDemandas() {
         const doDia = (porDia.get(cell.iso) || [])
           .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
         const mostra = doDia.slice(0, 4);
-        return `<div class="manager-calendar-day ${cell.inMonth ? '' : 'is-other'} ${cell.iso === hoje ? 'is-today' : ''}" data-date="${cell.iso}">
+        return `<div class="manager-calendar-day ${cell.inMonth ? '' : 'is-other'} ${cell.iso === hoje ? 'is-today' : ''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this,'demandas')">
           <div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span></div>
           <div class="manager-calendar-events">${mostra.map(managerCalendarEventHtml).join('')
             || '<span class="manager-calendar-empty">—</span>'}${
