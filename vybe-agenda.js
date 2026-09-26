@@ -292,11 +292,15 @@ function managerCalendarStatusColor(item, fallback='#ff8b38') {
 // inteiro, senão some todo mundo assim que alguém é escolhido — e a única saída
 // vira voltar em 'Todos' para depois escolher outro.
 function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
-  // A aba Solicitacoes tem o proprio botao Conclusao/Prazo; quando o recorte e
-  // dela, e ele que manda.
-  const porPrazo = apenas === 'request'
-    ? (typeof currentDemandaDateMode !== 'undefined' && currentDemandaDateMode === 'prazo')
-    : dateMode === 'prazo';
+  // Demandas usa a mesma seleção da tabela, inclusive clientes secundários.
+  // Filtros de equipe, origem e feed do Gestor não pertencem a esta aba.
+  if (apenas === 'request') {
+    return filtrarDemandasBase().map(item => ({
+      ...item, cliente: clientMasterResolveName(item.cliente), calendarSource: 'request',
+      calendarDateIso: getDemandaDateIso(item), calendarType: item.tipo || 'Solicitação'
+    })).filter(item => Boolean(item.calendarDateIso));
+  }
+  const porPrazo = dateMode === 'prazo';
   const production = (DADOS_ALL?.length ? DADOS_ALL : DADOS || []).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item)).map(item => ({
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'content', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.veiculacao_iso || ''), calendarType: item.formato || 'Conteúdo'
   }));
@@ -835,15 +839,17 @@ function managerCalendarLoadDemandas(button) {
 // arraste. Uma segunda maneira de desenhar a peca do dia viraria uma segunda
 // verdade sobre cor, rotulo e o que acontece ao clicar.
 function fecharDiaDoCalendario() {
+  window.removeEventListener('resize', fecharDiaDoCalendario);
   document.getElementById('dia-do-calendario-fundo')?.remove();
   document.getElementById('dia-do-calendario')?.remove();
 }
 
-function abrirDiaDoCalendario(event, iso) {
+function abrirDiaDoCalendario(event, iso, quadro = '') {
   event.preventDefault();
   event.stopPropagation();
   fecharDiaDoCalendario();
-  const doDia = managerCalendarItems().filter((item) => item.calendarDateIso === String(iso));
+  const doDia = managerCalendarItems(quadro === 'demandas' ? { apenas: 'request' } : {})
+    .filter((item) => item.calendarDateIso === String(iso));
   if (!doDia.length) return;
   const data = new Date(`${iso}T12:00:00`);
   const diaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(data);
@@ -869,6 +875,8 @@ function abrirDiaDoCalendario(event, iso) {
     <div class="dia-do-calendario-lista">${doDia.map(managerCalendarEventHtml).join('')}</div>`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, event.currentTarget.getBoundingClientRect());
+  // O ponto de ancoragem muda quando a janela gira ou é redimensionada.
+  window.addEventListener('resize', fecharDiaDoCalendario);
 }
 
 function managerCalendarEventHtml(item) {
@@ -2678,10 +2686,10 @@ function renderAgendaDeDemandas() {
   const botao = document.getElementById('demandas-agenda-btn');
   if (!wrap) return;
   const meta = managerCalendarMonthMeta();
-  const idsVisiveis=new Set(filtrarDemandasBase().map(i=>String(i.id)));
-  const itens = managerCalendarItems({ ignorarCliente: true, apenas: 'request' }).filter(i=>idsVisiveis.has(String(i.id)));
+  const datasVisiveis = new Set(meta.cells.map(cell => cell.iso));
+  const itens = managerCalendarItems({ apenas: 'request' }).filter(item => datasVisiveis.has(item.calendarDateIso));
   const contador = document.getElementById('demandas-agenda-count');
-  if (contador) contador.textContent = itens.filter(i => meta.cells.some(c => c.iso === i.calendarDateIso)).length;
+  if (contador) contador.textContent = itens.length;
   if (botao) botao.setAttribute('aria-expanded', String(agendaDeDemandasAberta));
   if (!agendaDeDemandasAberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
@@ -2725,7 +2733,7 @@ function renderAgendaDeDemandas() {
           <div class="manager-calendar-events">${mostra.map(managerCalendarEventHtml).join('')
             || '<span class="manager-calendar-empty">—</span>'}${
             doDia.length > 4 ? `<button type="button" class="manager-calendar-more"
-              onclick="abrirDiaDoCalendario(event,'${cell.iso}')"
+              onclick="abrirDiaDoCalendario(event,'${cell.iso}','demandas')"
               title="Ver as ${doDia.length} deste dia">+ ${doDia.length - 4} neste dia</button>` : ''}</div>
         </div>`;
       }).join('')}

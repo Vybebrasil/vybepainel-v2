@@ -2776,8 +2776,8 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cliente-busca-lista .status-editor-option.vazio{opacity:.5}
 .cliente-busca-conta{color:#8f98a9;font:700 10.5px var(--mac-ui)}
 /* O dia inteiro num popover, aberto pelo "+ N itens neste dia". */
-.status-editor.dia-do-calendario{min-width:min(340px,calc(100vw - 24px));max-width:380px;padding:0;overflow:hidden}
-.dia-do-calendario-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+.status-editor.dia-do-calendario{display:flex;flex-direction:column;min-width:min(340px,calc(100vw - 24px));max-width:min(380px,calc(100vw - 20px));max-height:calc(100dvh - 20px);padding:0;overflow:hidden}
+.dia-do-calendario-topo{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
   padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.028)}
 .dia-do-calendario-topo b{display:block;color:#f2f2f5;font:700 12.5px var(--mac-ui)}
 .dia-do-calendario-topo small{display:block;margin-top:2px;color:#8f98a9;font:600 10.5px var(--mac-ui)}
@@ -2787,7 +2787,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .dia-do-calendario-fechar:hover{background:rgba(255,255,255,.08);color:#fff}
 /* A lista rola; a ficha e a mesma do calendario, so que sempre com a largura
    toda — no popover nao ha coluna estreita para disputar. */
-.dia-do-calendario-lista{display:grid;gap:6px;max-height:min(60vh,440px);overflow:auto;padding:10px 12px 12px}
+.dia-do-calendario-lista{min-height:0;display:grid;gap:6px;max-height:min(60vh,440px);overflow:auto;padding:10px 12px 12px}
 .dia-do-calendario-lista .manager-calendar-event{width:100%}
 /* Secao levantada enquanto a Mesa de Comando esta aberta. O isolation:isolate
    dela transformava o z-index 205 da Mesa num numero valido so entre irmaos;
