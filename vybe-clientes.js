@@ -1807,19 +1807,15 @@ function buildDemandaPersonFilter() {
 }
 
 // Dispatcher unificado — chamado pelo botão Atualizar Dados
-function refreshData() {
-  if (activeBoard === 'demandas') {
-    // Sempre recarregar Produção também (necessário para o Diário e Clientes)
-    DADOS_DEMANDAS = [];
-    Promise.all([refreshProducao({force:true,source:'manual'}), refreshDemandas()]);
-  } else if (activeBoard === 'clientes') {
-    DADOS = []; DADOS_DEMANDAS = [];
-    Promise.all([refreshProducao({force:true,source:'manual'}), refreshDemandas()]).then(() => renderClientesBoard());
-  } else if (activeBoard === 'diario') {
-    // O Diário precisa de dados de Produção atualizados
-    refreshProducao({force:true,source:'manual'});
-  } else {
-    refreshProducao({force:true,source:'manual'});
+function refreshData({ boardCriado } = {}) {
+  const boardNaAtualizacao = activeBoard;
+  const leituras = [refreshProducao({force:true,source:'manual'})];
+  // Um cadastro pode criar uma demanda a partir do calendário de Produção.
+  // Recarregue o quadro gravado mesmo que outra tela esteja aberta.
+  if (boardNaAtualizacao === 'demandas' || boardNaAtualizacao === 'clientes' || boardCriado === 'demandas') {
+    leituras.push(refreshDemandas());
   }
+  return Promise.all(leituras).then(() => {
+    if (boardNaAtualizacao === 'clientes' && activeBoard === 'clientes') renderClientesBoard();
+  });
 }
-
