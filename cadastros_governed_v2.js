@@ -354,6 +354,8 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
     document.head.appendChild(style);
   }
 
+  let fcEnviando = false;
+
   let state = {
     // Cinco cards com briefings e veiculacoes diferentes: o que se repete e
     // cliente, formato e destino; o que muda e titulo, data e briefing. Entao a
@@ -730,6 +732,7 @@ function fcGrupoDoQuadro(grupo) {
   }
 
   window.fcSubmit = async function() {
+     if (fcEnviando) return;
      fcSincronizarDaTela();
      const faltando = FC_PASSOS.find((q) => !fcRespondido(q));
      if (faltando) {
@@ -745,7 +748,13 @@ function fcGrupoDoQuadro(grupo) {
      const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
 
      const btn = document.getElementById('fc-submit-btn');
+     const rotuloBotao = btn?.textContent;
      const total = state.itens.length;
+     const overlay = document.getElementById('fc-overlay');
+     let fechar = false;
+     fcEnviando = true;
+     if (overlay) { overlay.inert = true; overlay.setAttribute('aria-busy', 'true'); }
+     try {
      // A ficha de clientes e a mesma da tela Clientes; carregada uma vez, serve
      // para todos os cartoes da lista.
      if (btn) { btn.disabled = true; btn.textContent = 'Conferindo o cliente...'; }
@@ -757,14 +766,15 @@ function fcGrupoDoQuadro(grupo) {
        typeof normalizarCliente === 'function' ? normalizarCliente : null);
      const feitos = [];
      const falhas = [];
+     const itensFalhos = [];
      const arquivosQueFalharam = [];
 
-     // Um de cada vez, e nao todos de uma vez: o Monday limita chamadas por
-     // minuto, e em lote um erro de rede levaria os cinco junto.
+     // Cada resultado pertence ao cartão, mesmo quando os títulos são iguais.
      for (let n = 0; n < total; n++) {
         if (btn) { btn.disabled = true; btn.textContent = total > 1 ? `Criando ${n + 1} de ${total}...` : 'Criando...'; }
         const r = await fcCriarUm(state.itens[n], dest, finalGroup, finalStatus, finalCap);
         (r.ok ? feitos : falhas).push(r);
+        if (!r.ok) itensFalhos.push(state.itens[n]);
         // Arquivo so tem onde ser pendurado depois que a peca existe. Se o
         // envio falhar a peca FICA: ela ja esta criada, e refazer o cadastro
         // duplicaria o conteudo por causa de uma imagem.
@@ -777,8 +787,6 @@ function fcGrupoDoQuadro(grupo) {
           }
         }
      }
-
-     if (btn) { btn.disabled = false; btn.textContent = total > 1 ? `Criar ${total} conteúdos` : 'Criar conteúdo'; }
 
      // O aviso de referencia que nao subiu NAO pode ser um toast: showToast usa
      // um elemento so, e o "✓ conteudos criados" logo abaixo apagaria a unica
@@ -801,16 +809,15 @@ function fcGrupoDoQuadro(grupo) {
         if (typeof showToast === 'function') {
           showToast(total > 1 ? `✓ ${total} conteúdos criados` : '✓ Conteúdo criado', 'ok');
         }
-        fcCloseModal();
+        fechar = true;
         contarFalhaDeArquivo();
-        if (typeof refreshData === 'function') await refreshData();
+        if (typeof refreshData === 'function') await refreshData({ boardCriado: state.board });
         return;
      }
 
      // Parcial: os que entraram ficam, e a lista guarda so os que faltaram —
      // assim da para corrigir e tentar de novo sem duplicar o que ja existe.
-     const nomesFalhos = new Set(falhas.map((f) => f.nome));
-     state.itens = state.itens.filter((it) => nomesFalhos.has(`${state.format} - ${String(it.titulo).trim()}`));
+     state.itens = itensFalhos;
      fcEspelharPrimeiro();
      fcPasso = FC_PASSOS.indexOf('itens');
      fcDesenharPasso();
@@ -818,7 +825,14 @@ function fcGrupoDoQuadro(grupo) {
         showToast(`${feitos.length} de ${total} criados. Ficaram na lista os ${falhas.length} que falharam: ${falhas[0].erro}`, 'err', 10000);
      }
      contarFalhaDeArquivo();
-     if (feitos.length && typeof refreshData === 'function') await refreshData();
+     if (feitos.length && typeof refreshData === 'function') await refreshData({ boardCriado: state.board });
+     } finally {
+       fcEnviando = false;
+       if (overlay) { overlay.inert = false; overlay.removeAttribute('aria-busy'); }
+       if (btn) { btn.disabled = false; btn.textContent = rotuloBotao; }
+       if (fechar) fcCloseModal();
+       else document.getElementById('fc-submit-btn')?.focus();
+     }
   };
 
   window.fcToggleDropdown = function(id) {
@@ -1433,6 +1447,7 @@ function fcGrupoDoQuadro(grupo) {
   };
 
   window.fcIrPara = function(n) {
+    if (fcEnviando) return;
     if (n < 0 || n >= FC_PASSOS.length) return;
     // So deixa pular para frente ate onde ja foi respondido.
     for (let i = 0; i < n; i++) if (!fcRespondido(FC_PASSOS[i])) return;
@@ -1441,6 +1456,7 @@ function fcGrupoDoQuadro(grupo) {
   };
 
   window.fcAvancar = function() {
+    if (fcEnviando) return;
     fcSincronizarDaTela();
     const p = FC_PASSOS[fcPasso];
     if (!fcRespondido(p)) return typeof showToast === 'function'
@@ -1450,7 +1466,7 @@ function fcGrupoDoQuadro(grupo) {
     fcDesenharPasso();
   };
 
-  window.fcVoltar = function() { if (fcPasso > 0) { fcPasso--; fcDesenharPasso(); } };
+  window.fcVoltar = function() { if (fcEnviando) return; if (fcPasso > 0) { fcPasso--; fcDesenharPasso(); } };
 
   window.fcDesenharPasso = function() {
     const caixa = document.getElementById('fc-guia');
@@ -1502,6 +1518,7 @@ function fcGrupoDoQuadro(grupo) {
     // so, ja escolheu o cliente — perguntar de novo seria pedir para digitar o
     // que a tela ja tem na mao.
     window.openCadastrosGoverned = function(inicial) {
+    if (fcEnviando) return;
     ensureFastCadastrosStyles();
     
     const existing = document.getElementById('fc-overlay');
@@ -1791,6 +1808,7 @@ function fcGrupoDoQuadro(grupo) {
   };
 
   window.fcCloseModal = function() {
+    if (fcEnviando) return;
     const existing = document.getElementById('fc-overlay');
     if(existing) {
        existing.classList.remove('open');
