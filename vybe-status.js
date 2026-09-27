@@ -167,7 +167,47 @@ function aplicarEfeitoDaAutomacao(item, resposta) {
   return `✓ ${item.nome || 'Peça'} seguiu pela automação${quem}${onde}${regra}`;
 }
 
-async function commitStatusChange(item, option) { const mutation=`mutation ($board: ID!, $item: ID!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`; armOutboundMutationGuard('status'); try { const pelaEscritaDupla = await tentarEscritaDupla(item, { acao:'status', item:String(item.id), para:chaveDeStatus(option.label), _devolve:true }); if (!pelaEscritaDupla) await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),value:JSON.stringify(Number.isFinite(Number(option.index))&&option.index!==null?{index:Number(option.index)}:{label:String(option.label)})}); updateLocalStatus(item.id,option); const efeito=aplicarEfeitoDaAutomacao(item, pelaEscritaDupla); if(isRequestItem(item)){ const request=(DADOS_DEMANDAS||[]).find(d=>String(d.id)===String(item.id)); if(request) { request.status=option.label; request.status_color=option.color; request.status_border=option.border; request.status_index=option.index; request.status_updated_at=new Date().toISOString(); } renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{status:option.label,status_color:option.color,status_border:option.border,status_index:option.index},'status'); closeStatusEditor(); if(String(activeWorkspaceItemId)===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id), findOperationalItem(item.id) || item); renderFocusUserPicker(); showToast(efeito || `✓ Status atualizado para ${option.label} · tela mantida no contexto atual`,'ok', efeito ? 9000 : 4200); } catch(e) { showToast(recadoDeStatusRecusado(e, option),'err',9000); } }
+const statusEmGravacao = new Set();
+async function commitStatusChange(item, option) {
+  const id = String(item.id);
+  if (statusEmGravacao.has(id)) return showToast('Aguarde a alteração de status desta atividade terminar.', 'info');
+  statusEmGravacao.add(id);
+  const drawer = document.getElementById('workspace-drawer');
+  const mesmaJanela = () => drawer && document.getElementById('workspace-drawer') === drawer && String(activeWorkspaceItemId) === id;
+  let confirmado = false;
+  armOutboundMutationGuard('status');
+  try {
+    const resposta = await tentarEscritaDupla(item, { acao:'status', item:id, para:chaveDeStatus(option.label), _devolve:true });
+    if (!resposta) throw new Error('A gravação no banco Vybe não foi confirmada.');
+    confirmado = true;
+    const depois = resposta.depois;
+    const final = depois?.status ? { label:depois.status, color:depois.status_color, border:depois.status_border, index:depois.status_index } : option;
+    updateLocalStatus(item.id, final);
+    const efeito = aplicarEfeitoDaAutomacao(item, resposta);
+    if (isRequestItem(item)) {
+      const request = (DADOS_DEMANDAS || []).find(d => String(d.id) === id);
+      if (request) Object.assign(request, {status:final.label,status_color:final.color,status_border:final.border,status_index:final.index,status_updated_at:new Date().toISOString()});
+      renderIntegratedOperationalViews();
+      if (activeBoard === 'demandas') renderDemandas();
+    } else applyOutboundItemPatch(item.id, {status:final.label,status_color:final.color,status_border:final.border,status_index:final.index}, 'status');
+    closeStatusEditor();
+    renderFocusUserPicker();
+    showToast(efeito || `✓ Status atualizado para ${final.label} · tela mantida no contexto atual`, 'ok', efeito ? 9000 : 4200);
+    if (mesmaJanela()) {
+      const dados = await fetchWorkspaceItem(item.id);
+      if (mesmaJanela()) {
+        const rascunhos = ['workspace-comment-input','workspace-link-input'].map(campo => [campo,document.getElementById(campo)?.value]);
+        renderWorkspaceDrawer(dados, findOperationalItem(item.id) || item);
+        rascunhos.forEach(([campo,valor]) => { const el=document.getElementById(campo); if(el && valor !== undefined) el.value=valor; });
+      }
+    }
+  } catch(e) {
+    if (confirmado) showToast('Status salvo. Não foi possível atualizar todos os detalhes; atualize a tela para conferir.', 'info', 9000);
+    else showToast(recadoDeStatusRecusado(e, option), 'err', 9000);
+  } finally {
+    statusEmGravacao.delete(id);
+  }
+}
 // O servidor recusa um status que o quadro nao tem, e a mensagem dele e para
 // quem escreveu o banco. Quem esta na tela precisa saber o que FAZER — e a
 // resposta ja existe: e o botao de juntar os nomes de aprovacao, em Demandas.

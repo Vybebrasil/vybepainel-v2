@@ -56,7 +56,7 @@ async function pessoaDaSessao(sql, quem) {
 }
 
 // ── status ────────────────────────────────────────────────────────────────────
-async function trocarStatus(sql, quem, { item, para }) {
+export async function trocarStatus(sql, quem, { item, para }) {
   const linhas = await sql`SELECT c.id, c.board_id, c.monday_item_id, c.status_chave, c.titulo, s.rotulo AS de
     FROM vybe_conteudos c
     LEFT JOIN vybe_status s ON s.chave = c.status_chave AND s.board_id = c.board_id
@@ -77,12 +77,13 @@ async function trocarStatus(sql, quem, { item, para }) {
     || doQuadro.find((st) => comoChave(st.rotulo) === String(para));
   if (!alvo) throw new Error(`Status desconhecido neste board: ${para}`);
 
-  await sql`UPDATE vybe_conteudos SET status_chave=${alvo.chave}, status_em=NOW(), atualizado_em=NOW()
-    WHERE id=${conteudo.id}`;
-  await registrarEvento(sql, conteudo.id, {
-    tipo: 'status', de: conteudo.de, para: alvo.rotulo,
-    autorId: await pessoaDaSessao(sql, quem),
-  });
+  const autorId = await pessoaDaSessao(sql, quem);
+  await sql.transaction([
+    sql`UPDATE vybe_conteudos SET status_chave=${alvo.chave}, status_em=NOW(), atualizado_em=NOW()
+      WHERE id=${conteudo.id}`,
+    sql`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id, texto)
+      VALUES (${conteudo.id}, 'status', ${conteudo.de || null}, ${alvo.rotulo}, ${autorId}, ${null})`
+  ]);
 
   // ETIQUETA QUE NASCEU AQUI NAO TEM O QUE ESPELHAR.
   //
@@ -123,12 +124,13 @@ async function trocarStatus(sql, quem, { item, para }) {
     automacoes = r.aplicadas;
     await replicarNoMonday(sql, referenciaReplica(conteudo, item), r.paraOMonday, conteudo.board_id, conteudo.id);
     if (automacoes.length) {
-      const [estado] = await sql`SELECT c.grupo_id, c.etapa AS grupo,
+      const [estado] = await sql`SELECT c.grupo_id, c.etapa AS grupo, s.rotulo AS status, s.cor, s.borda, s.monday_index,
           COALESCE(ARRAY(SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
             JOIN vybe_pessoas p ON p.id = r.pessoa_id
             WHERE r.conteudo_id = c.id ORDER BY r.ordem, p.nome), '{}') AS responsavel_ids
-        FROM vybe_conteudos c WHERE c.id = ${conteudo.id}`;
-      if (estado) depois = { grupo_id: estado.grupo_id || '', grupo: estado.grupo || '',
+        FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
+        WHERE c.id = ${conteudo.id}`;
+      if (estado) depois = { status: estado.status, status_color: estado.cor, status_border: estado.borda, status_index: estado.monday_index, grupo_id: estado.grupo_id || '', grupo: estado.grupo || '',
                              responsavel_ids: (estado.responsavel_ids || []).map(String) };
     }
   } catch (erro) {
