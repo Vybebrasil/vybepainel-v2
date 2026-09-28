@@ -12,6 +12,7 @@ async function banco({ comTabela = true } = {}) {
   await db.exec(`
     CREATE TABLE vybe_conteudos (id int primary key, board_id bigint, grupo_id text, etapa text,
       removido_em timestamptz, atualizado_em timestamptz);
+    CREATE TABLE vybe_conteudo_eventos (conteudo_id int,tipo text,de text,para text,autor_id int);
     CREATE TABLE vybe_automacoes (id serial primary key, nome text, acoes jsonb, condicao jsonb);
     INSERT INTO vybe_conteudos VALUES
       (1, ${PRODUCAO}, 'novo_grupo__1', 'Design & Edição', NULL, NULL),

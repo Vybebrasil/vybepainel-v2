@@ -215,17 +215,23 @@ export async function apagarGrupo(sql, { board, grupo_id } = {}) {
 
 // O destino é lido e bloqueado na MESMA instrução que grava a atividade.
 // Se a exclusão vencer a corrida, não há destino e a escrita não acontece.
-export async function moverAtividadeParaGrupo(sql, { id, board, grupo }) {
-  if (!await gruposProntos(sql)) {
-    const g=GRUPOS_PADRAO.find(g=>g.board_id===Number(board)&&g.grupo_id===String(grupo));
-    if (!g) throw new Error('Grupo não encontrado neste quadro.');
-    return sql`UPDATE vybe_conteudos SET grupo_id=${grupo},etapa=${g.titulo},atualizado_em=NOW()
-      WHERE id=${id} AND board_id=${board} RETURNING id,etapa`;
-  }
-  const linhas=await sql`WITH destino AS (SELECT titulo FROM vybe_grupos
-      WHERE board_id=${board} AND grupo_id=${grupo} FOR SHARE)
-    UPDATE vybe_conteudos SET grupo_id=${grupo},etapa=destino.titulo,atualizado_em=NOW() FROM destino
-      WHERE id=${id} AND board_id=${board} RETURNING id,etapa`;
+export async function moverAtividadeParaGrupo(sql, { id, board, grupo, autorId = null }) {
+  const comTabela = await gruposProntos(sql);
+  const padrao = GRUPOS_PADRAO.find(g => g.board_id === Number(board) && g.grupo_id === String(grupo));
+  if (!comTabela && !padrao) throw new Error('Grupo não encontrado neste quadro.');
+  // Somente o trecho estrutural varia; todos os valores continuam parametrizados.
+  const destino = comTabela
+    ? 'SELECT titulo FROM vybe_grupos WHERE board_id=$2 AND grupo_id=$3 FOR SHARE'
+    : 'SELECT $5::text AS titulo';
+  const linhas = await sql.query(`WITH destino AS (${destino}),
+    anterior AS MATERIALIZED (SELECT id, etapa FROM vybe_conteudos
+      WHERE id=$1 AND board_id=$2 FOR UPDATE),
+    movido AS (UPDATE vybe_conteudos c SET grupo_id=$3, etapa=destino.titulo, atualizado_em=NOW()
+      FROM destino, anterior WHERE c.id=anterior.id
+      RETURNING c.id, c.etapa, anterior.etapa AS de),
+    historico AS (INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,de,para,autor_id)
+      SELECT id,'grupo',de,etapa,$4 FROM movido)
+    SELECT * FROM movido`, comTabela ? [id,board,grupo,autorId] : [id,board,grupo,autorId,padrao.titulo]);
   if (!linhas.length) throw new Error('O grupo ou a atividade mudou. Recarregue e tente novamente.');
   return linhas;
 }

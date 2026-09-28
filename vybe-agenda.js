@@ -2306,7 +2306,11 @@ async function aplicarEmLote(rotulo, executar) {
   // Some da selecao so o que sumiu da tela — peca arquivada ou movida para fora
   // do recorte nao tem mais linha para ficar marcada.
   [...SELECIONADAS].forEach((id) => { if (!findOperationalItem(id)) SELECIONADAS.delete(id); });
-  renderVisaoDeGrupos();
+  try { saveProductionCache(); renderOutboundItemPatch('grupo ou responsáveis'); }
+  catch (erro) {
+    showToast(`${ok} alterações salvas; ${falhas.length} falharam. Atualize a tela para conferir os detalhes.`, 'info', 8000);
+    return;
+  }
   if (!falhas.length) showToast(`✓ ${rotulo} aplicado em ${ok} peça${ok === 1 ? '' : 's'} · seguem marcadas`, 'ok', 5000);
   else showToast(`${ok} atualizada${ok === 1 ? '' : 's'} · ${falhas.length} falhou: ${falhas.slice(0, 3).join(', ')}`, 'info', 8000);
 }
@@ -2543,24 +2547,35 @@ function abrirSeletorDeGrupo(event, itemId) {
 
 // O miolo da troca de grupo, sem aviso na tela nem redesenho: o de uma peca so
 // avisa e redesenha; o de lote faz isso uma vez no fim, para dez pecas.
+const gruposEmGravacao = new Set();
 async function gravarGrupoDaPeca(item, grupoId) {
-  const gravou = await tentarEscritaDupla(item, {
-    acao: 'grupo', item: String(item.id), grupo_id: String(grupoId),
-  });
-  if (!gravou) {
-    await mondayQuery(
-      `mutation($item: ID!, $grupo: String!) { move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
-      { item: String(item.id), grupo: String(grupoId) }
-    );
-  }
-  // O grupo vive em dois campos (id e título) e a visão de grupos lê os dois.
-  const titulo = tituloDoGrupo(grupoId);
-  [DADOS, DADOS_ALL, DADOS_DEMANDAS].forEach((lista) => (lista || []).forEach((d) => {
-    if (String(d.id) !== String(item.id)) return;
-    d.group_id = String(grupoId);
-    d.grupo = titulo;
-  }));
-  return titulo;
+  const id = String(item.id);
+  if (gruposEmGravacao.has(id)) throw new Error('Aguarde a gravação do grupo desta atividade.');
+  gruposEmGravacao.add(id);
+  try {
+    const resposta = await tentarEscritaDupla(item, {
+      acao: 'grupo', item: id, grupo_id: String(grupoId), _devolve: true,
+    });
+    if (!resposta) throw new Error('A gravação no banco Vybe não foi confirmada.');
+    const titulo = resposta.para || tituloDoGrupo(grupoId);
+    [DADOS, DADOS_ALL, DADOS_DEMANDAS].forEach(lista => (lista || []).forEach(d => {
+      if (String(d.id) !== id) return;
+      d.group_id = String(grupoId);
+      d.grupo = titulo;
+    }));
+    return titulo;
+  } finally { gruposEmGravacao.delete(id); }
+}
+
+async function atualizarGavetaDeAtribuicao(item, drawer) {
+  const mesmaJanela = () => drawer && document.getElementById('workspace-drawer') === drawer
+    && String(activeWorkspaceItemId) === String(item.id);
+  if (!mesmaJanela()) return;
+  const detail = await fetchWorkspaceItem(item.id);
+  if (!mesmaJanela()) return;
+  const rascunhos = ['workspace-comment-input', 'workspace-link-input'].map(id => [id, document.getElementById(id)?.value]);
+  renderWorkspaceDrawer(detail, findOperationalItem(item.id) || item);
+  rascunhos.forEach(([id, valor]) => { const campo = document.getElementById(id); if (campo && valor !== undefined) campo.value = valor; });
 }
 
 // Mover de grupo em lote — o pedido mais comum depois de marcar meia duzia de
@@ -2646,14 +2661,22 @@ async function moverPecaDeGrupo(itemId, grupoId) {
   if (!item) return showToast('Atividade não encontrada.', 'err');
   if (String(item.group_id || '') === String(grupoId)) return fecharSeletorDeGrupo();
   const de = tituloDoGrupo(String(item.group_id || ''));
-  const para = tituloDoGrupo(grupoId);
   fecharSeletorDeGrupo();
 
-  try { await gravarGrupoDaPeca(item, grupoId); }
-  catch (erro) { return showToast(`Não foi possível mover de grupo: ${erro.message}`, 'err', 7000); }
-  showToast(`✓ ${de} → ${para}`, 'ok');
-  if (typeof renderIntegratedOperationalViews === 'function') renderIntegratedOperationalViews();
-  if (document.getElementById('cartao-rapido')) fecharCartaoRapido();
+  const drawer = document.getElementById('workspace-drawer');
+  const resumo = document.getElementById('cartao-rapido');
+  let confirmado = false;
+  try {
+    const titulo = await gravarGrupoDaPeca(item, grupoId);
+    confirmado = true;
+    if (resumo && document.getElementById('cartao-rapido') === resumo) fecharCartaoRapido();
+    saveProductionCache(); renderOutboundItemPatch('grupo ou responsáveis');
+    showToast(`${de} → ${titulo}`, 'ok');
+    await atualizarGavetaDeAtribuicao(item, drawer);
+  } catch (erro) {
+    showToast(confirmado ? 'Grupo salvo. Não foi possível atualizar todos os detalhes; atualize a tela para conferir.'
+      : `Não foi possível mover de grupo: ${erro.message}`, confirmado ? 'info' : 'err', 7000);
+  }
 }
 
 // ─── Grupos e calendário na aba Solicitações ─────────────────────────────────

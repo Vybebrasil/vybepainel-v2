@@ -278,7 +278,8 @@ export async function trocarData(sql, quem, { item, campo, data }) {
 
 // ── responsáveis ──────────────────────────────────────────────────────────────
 async function trocarResponsaveis(sql, quem, { item, pessoas }) {
-  const ids = Array.isArray(pessoas) ? pessoas.map(String) : [];
+  if (!Array.isArray(pessoas)) throw new Error('Informe a lista de responsáveis.');
+  const ids = [...new Set(pessoas.map(String))];
   const linhas = await sql`SELECT id, board_id, monday_item_id, titulo FROM vybe_conteudos
     WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
@@ -627,17 +628,17 @@ async function moverGrupo(sql, quem, { item, grupo_id }) {
   const conteudo = linhas[0];
   await grupoDoQuadro(sql, grupo_id, conteudo.board_id);
 
-  const [movido] = await moverAtividadeParaGrupo(sql, {id:conteudo.id,board:conteudo.board_id,grupo:grupo_id});
-  const tituloAtual = movido.etapa;
-  await registrarEvento(sql, conteudo.id, {
-    tipo: 'grupo', de: conteudo.de, para: tituloAtual, autorId: await pessoaDaSessao(sql, quem),
+  const [movido] = await moverAtividadeParaGrupo(sql, {
+    id: conteudo.id, board: conteudo.board_id, grupo: grupo_id,
+    autorId: await pessoaDaSessao(sql, quem),
   });
+  const tituloAtual = movido.etapa;
 
   const replica = await replicar(sql, 'grupo', `conteudo:${conteudo.id}`,
     `mutation ($item: ID!, $grupo: String!) {
        move_item_to_group(item_id: $item, group_id: $grupo) { id } }`,
     { item: referenciaReplica(conteudo, item), grupo: String(grupo_id) });
-  return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de, para: tituloAtual, replica_monday: replica };
+  return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: movido.de, para: tituloAtual, replica_monday: replica };
 }
 
 // Troca de campo de escolha: captação, tipo de conteúdo, prioridade, OFF e
