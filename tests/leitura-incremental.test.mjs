@@ -344,3 +344,39 @@ test('o tipo de uma solicitação sai do catálogo de Solicitações, não do de
   const producao = await listarConteudos(PRODUCAO, { sql, catalogos: false });
   assert.equal(producao.itens.find((i) => i.id === '900').formato, 'Carrossel');
 });
+
+
+test('material bruto persiste na leitura completa e incremental após salvar, trocar e remover', async () => {
+  const { guardarMaterialBruto } = await import('../api/conteudo.js');
+  const sql = await banco();
+  for (const board of [PRODUCAO, 8385559107]) {
+    await sql`UPDATE vybe_conteudos SET board_id=${board} WHERE id=1`;
+    for (const link of ['https://drive.google.com/drive/folders/pasta-a', 'https://drive.google.com/drive/folders/pasta-b', '']) {
+      await assentar(sql);
+      const desde = new Date().toISOString();
+      await guardarMaterialBruto(sql, null, {item:'900',link});
+      for (const opcoes of [{}, {desde,catalogos:false}]) {
+        const resposta = await listarConteudos(board,{sql,...opcoes});
+        const recarregada = resposta.itens.find(i=>i.id==='900');
+        assert.ok(recarregada, 'atividade alterada precisa voltar na resposta');
+        assert.equal(recarregada.material_bruto, link);
+      }
+    }
+  }
+});
+
+test('recarga do navegador e conversão de demandas preservam o material recebido', async () => {
+  const link='https://drive.google.com/drive/folders/material';
+  const resposta={...base,itens:[{...base.itens[0],material_bruto:link}]};
+  const tela=telaComDominio([resposta,{...resposta,incremental:true,itens:[{...resposta.itens[0],material_bruto:''}]}]);
+  assert.equal((await pedir(tela)).dados.itens[0].material_bruto,link);
+  assert.equal((await pedir(tela)).dados.itens[0].material_bruto,'');
+  const novaTela=telaComDominio([resposta]);
+  const lida=(await pedir(novaTela)).dados;
+  novaTela.COLUNAS={demandas:{cliente:'cliente',formato:'formato',status:'status',prioridade:'prioridade',prazo:'data',veiculacao:'conclusao',responsavel:'person'}};
+  novaTela.normalizarCliente=s=>s;novaTela.DEMANDAS_GROUP_MAP={};novaTela.META={today_iso:'2026-09-28'};
+  const fonte=readFileSync('vybe-demandas.js','utf8');
+  vm.runInContext(fonte.slice(fonte.indexOf('function processDemandas('),fonte.indexOf('// ─── Fluxo operacional integrado')),novaTela);
+  const raw=novaTela.demandasComoItensDoMonday(lida);
+  assert.equal(novaTela.processDemandas(raw)[0].material_bruto,link);
+});

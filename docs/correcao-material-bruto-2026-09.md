@@ -21,3 +21,18 @@ escrita na demo. Screenshots inspecionadas. Nenhuma escrita em produção.
 Não foi consultado o registro específico do cliente em produção. Portanto, não
 se afirma que aquele link está persistido; a omissão na leitura e o estado local
 explicam a inconsistência apresentada. Sem migração de schema ou dependência Monday.
+
+## Complemento: perda após recarga
+
+A primeira correção não cobria a resposta de listarConteudos: a consulta SQL
+selecionava material_bruto, mas o mapeamento de linhas para itens o descartava.
+A leitura completa ou incremental apagava, portanto, o estado mostrado no cliente.
+O campo agora viaja explicitamente, inclusive vazio para confirmar remoções.
+Também é preservado nas duas etapas de conversão das solicitações de Demandas.
+
+Validação adicional: gravação real com guardarMaterialBruto e releitura real com
+listarConteudos em PGlite, para os dois quadros, nos modos completo e incremental,
+incluindo troca e remoção. Teste da conversão de Demandas e de nova sessão de leitura.
+Chrome local recebeu a resposta produzida por esse banco isolado; após page.reload,
+DADOS_ALL manteve o endereço salvo, sem erros JavaScript. Não houve escrita em
+produção. npm run check: 195 testes aprovados, sintaxe e build; diff sem erros.
