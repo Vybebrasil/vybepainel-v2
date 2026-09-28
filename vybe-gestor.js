@@ -416,27 +416,29 @@ function updateLocalOwners(itemId, userIds=[]) { const users=TEAM_USERS.filter(u
 // fim, para as dez. Sem separar, ou o lote redesenhava dez vezes ou eu teria uma
 // segunda copia da mesma gravacao — e no dia em que o registro no historico
 // mudasse, so uma das duas saberia.
+const responsaveisEmGravacao = new Set();
 async function gravarResponsaveisDaPeca(item, ids) {
-  const selected = ids.map(String);
-  const rule = ownerEligibility(item);
-  const allowed = new Set((rule?.users || []).map((u) => String(u.id)));
-  const foraDaRegra = TEAM_USERS.filter((u) => selected.includes(String(u.id)) && !allowed.has(String(u.id)))
-    .map((u) => firstName(u.name));
-  const before = ownerUsersFor(item).map((u) => u.name).join(', ') || 'Sem responsável';
-  const after = TEAM_USERS.filter((u) => selected.includes(String(u.id))).map((u) => u.name).join(', ') || 'Sem responsável';
-
-  const pelaEscritaDupla = await tentarEscritaDupla(item, { acao: 'responsaveis', item: String(item.id), pessoas: selected });
-  if (!pelaEscritaDupla) {
-    const mutation = `mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`;
-    const values = { person: { personsAndTeams: selected.map((id) => ({ id: Number(id), kind: 'person' })) } };
-    await mondayQuery(mutation, { board: String(item.board_id || (isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID)),
-      item: String(item.id), values: JSON.stringify(values) });
-  }
+  const id = String(item.id);
+  if (responsaveisEmGravacao.has(id)) throw new Error('Aguarde a gravação dos responsáveis desta atividade.');
+  responsaveisEmGravacao.add(id);
   try {
-    await postItemUpdate(item.id, `[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule?.label || '—'}${foraDaRegra.length ? `\nFora da disciplina: ${foraDaRegra.join(', ')}` : ''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);
-  } catch (erro) { console.warn('Responsáveis atualizados, mas o log não foi registrado.', erro); }
-  updateLocalOwners(item.id, selected);
-  return { antes: before, depois: after };
+    const selected = [...new Set(ids.map(String))];
+    const rule = ownerEligibility(item);
+    const allowed = new Set((rule?.users || []).map((u) => String(u.id)));
+    const foraDaRegra = TEAM_USERS.filter((u) => selected.includes(String(u.id)) && !allowed.has(String(u.id)))
+      .map((u) => firstName(u.name));
+    const before = ownerUsersFor(item).map((u) => u.name).join(', ') || 'Sem responsável';
+    const after = TEAM_USERS.filter((u) => selected.includes(String(u.id))).map((u) => u.name).join(', ') || 'Sem responsável';
+
+    const salvo = await tentarEscritaDupla(item, { acao: 'responsaveis', item: id, pessoas: selected });
+    if (!salvo) throw new Error('A gravação no banco Vybe não foi confirmada.');
+    updateLocalOwners(item.id, selected);
+    let logRegistrado = true;
+    try {
+      await postItemUpdate(item.id, `[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule?.label || '—'}${foraDaRegra.length ? `\nFora da disciplina: ${foraDaRegra.join(', ')}` : ''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`);
+    } catch (erro) { logRegistrado = false; console.warn('Responsáveis atualizados, mas o log não foi registrado.', erro); }
+    return { antes: before, depois: after, foraDaRegra, disciplina: rule?.label || '—', logRegistrado };
+  } finally { responsaveisEmGravacao.delete(id); }
 }
 
 // EDITAR UMA LINHA COM VARIAS MARCADAS APLICA NO LOTE.
@@ -451,10 +453,37 @@ async function gravarResponsaveisDaPeca(item, ids) {
 //
 // Editar uma linha FORA da selecao continua valendo so para ela: quem clicou
 // numa peca que nao marcou nao pediu nada em lote.
-async function saveOwnerAssignments() { const item=findOperationalItem(pendingOwnerEditorItemId); if(!item) return showToast('Demanda não encontrada.','err');
-  const emLote = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.size >= 2
-    && SELECIONADAS.has(String(item.id));
-  if (emLote) return salvarResponsaveisDaSelecao(item); const rule=ownerEligibility(item); const selected=[...donoSelecionados]; const allowed=new Set(rule.users.map(user=>String(user.id))); const foraDaRegra=TEAM_USERS.filter(user=>selected.includes(String(user.id)) && !allowed.has(String(user.id))).map(user=>firstName(user.name)); if(!selected.length && !document.getElementById('owner-editor-empty')?.checked) return showToast('Escolha um responsável ou confirme que a atividade ficará sem responsável.','info'); const before=ownerUsersFor(item).map(user=>user.name).join(', ') || 'Sem responsável'; const after=TEAM_USERS.filter(user=>selected.includes(String(user.id))).map(user=>user.name).join(', ') || 'Sem responsável'; const button=document.getElementById('owner-editor-save'); if(button) button.disabled=true; armOutboundMutationGuard('responsáveis'); try { const pelaEscritaDupla=await tentarEscritaDupla(item,{acao:'responsaveis',item:String(item.id),pessoas:selected}); if(!pelaEscritaDupla){ const mutation=`mutation($board:ID!,$item:ID!,$values:JSON!){ change_multiple_column_values(board_id:$board,item_id:$item,column_values:$values){ id } }`; const values={person:{personsAndTeams:selected.map(id=>({id:Number(id),kind:'person'}))}}; await mondayQuery(mutation,{board:String(item.board_id || (isRequestItem(item)?BOARD_DEMANDAS_ID:BOARD_ID)),item:String(item.id),values:JSON.stringify(values)}); } try { await postItemUpdate(item.id,`[Vybe OS · Responsáveis atualizados]\nAnterior: ${before}\nNovo: ${after}\nDisciplina: ${rule.label}${foraDaRegra.length?`\nFora da disciplina: ${foraDaRegra.join(', ')}`:''}\nRegistrado em: ${new Date().toLocaleString('pt-BR')}`); } catch(logError) { console.warn('Responsáveis atualizados, mas o log não foi registrado.',logError); } updateLocalOwners(item.id,selected); if(isRequestItem(item)){ outboundMutationGuardUntil=0; renderIntegratedOperationalViews(); } else applyOutboundItemPatch(item.id,{responsavel_ids:selected,responsavel_id:selected[0]||''},'responsáveis'); closeOwnerEditor(); if(String(activeWorkspaceItemId)===String(item.id)) { const current=findOperationalItem(item.id)||item; renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),current); } showToast(foraDaRegra.length?`✓ Responsáveis atualizados · ${foraDaRegra.join(', ')} fora da disciplina ${rule.label}, registrado no histórico`:'✓ Responsáveis atualizados · painel mantido no contexto atual', foraDaRegra.length?'info':'ok', foraDaRegra.length?7000:undefined); } catch(error) { if(button) button.disabled=false; showToast(`Não foi possível atualizar responsáveis: ${error.message}`,'err',7000); } }
+async function saveOwnerAssignments() {
+  const item = findOperationalItem(pendingOwnerEditorItemId);
+  if (!item) return showToast('Demanda não encontrada.', 'err');
+  if (responsaveisEmGravacao.has(String(item.id))) return;
+  const emLote = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.size >= 2 && SELECIONADAS.has(String(item.id));
+  if (emLote) return salvarResponsaveisDaSelecao(item);
+  const selected = [...donoSelecionados];
+  if (!selected.length && !document.getElementById('owner-editor-empty')?.checked) {
+    return showToast('Escolha um responsável ou confirme que a atividade ficará sem responsável.', 'info');
+  }
+  const button = document.getElementById('owner-editor-save');
+  const drawer = document.getElementById('workspace-drawer');
+  if (button) button.disabled = true;
+  let confirmado = false;
+  armOutboundMutationGuard('responsáveis');
+  try {
+    const resultado = await gravarResponsaveisDaPeca(item, selected);
+    confirmado = true;
+    // Uma resposta atrasada não fecha o editor que a pessoa abriu depois.
+    if (document.getElementById('owner-editor-save') === button) closeOwnerEditor();
+    saveProductionCache(); renderOutboundItemPatch('responsáveis');
+    const aviso = !resultado.logRegistrado ? 'Responsáveis salvos; o comentário de disciplina não foi registrado.'
+      : resultado.foraDaRegra.length ? `Responsáveis atualizados · ${resultado.foraDaRegra.join(', ')} fora da disciplina ${resultado.disciplina}, registrado no histórico.`
+      : 'Responsáveis atualizados.';
+    showToast(aviso, !resultado.logRegistrado || resultado.foraDaRegra.length ? 'info' : 'ok');
+    await atualizarGavetaDeAtribuicao(item, drawer);
+  } catch (error) {
+    showToast(confirmado ? 'Responsáveis salvos. Não foi possível atualizar todos os detalhes; atualize a tela para conferir.'
+      : `Não foi possível atualizar responsáveis: ${error.message}`, confirmado ? 'info' : 'err', 7000);
+  } finally { if (button) button.disabled = false; }
+}
 
 const DESIGN_TEAM   = ['deivid','beatriz','jady','victória','victoria'];
 const TAINARA_NAMES = ['tainara'];

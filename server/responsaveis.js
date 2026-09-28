@@ -1,6 +1,7 @@
 // Uma única transação: falha na inserção ou no histórico preserva os vínculos.
 export async function substituirResponsaveis(sql, { conteudoId, pessoas, autorId }) {
-  const ids = [...new Set((Array.isArray(pessoas) ? pessoas : []).map(String))];
+  if (!Array.isArray(pessoas)) throw new Error('Informe a lista de responsáveis.');
+  const ids = [...new Set(pessoas.map(String))];
   if (ids.some((id) => !/^\d+$/.test(id))) throw new Error('Responsável inválido.');
   const conhecidos = ids.length ? await sql`SELECT id, monday_user_id, nome FROM vybe_pessoas
     WHERE monday_user_id = ANY(${ids}::text[]) AND ativo` : [];
