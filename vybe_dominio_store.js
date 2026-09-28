@@ -974,6 +974,8 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
       status_updated_at: l.status_updated_at,
       prazo_iso: l.prazo_iso,
       veiculacao_iso: l.veiculacao_iso,
+      // Enviar vazio também permite que a leitura incremental confirme remoções.
+      material_bruto: l.material_bruto || '',
       updated_at: l.updated_at,
       criado_em: l.criado_em,
     };
