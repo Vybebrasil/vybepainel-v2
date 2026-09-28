@@ -297,7 +297,7 @@ async function areaPeca(req, res, quem) {
   await garantirMaterialBruto(db);
   const c = (await db`
     SELECT c.id, c.titulo, c.criado_em, c.monday_item_id, c.etapa AS grupo, c.grupo_id,
-           c.prazo, c.veiculacao, c.briefing, c.material_bruto,
+           c.prazo, c.veiculacao, c.briefing, c.material_bruto, c.material_bruto_em,
            c.captacao_chave, c.prioridade_chave, c.off_audio_chave,
            c.tipo_conteudo_chaves, c.formato_chaves,
            s.rotulo  AS status,
@@ -447,6 +447,8 @@ async function areaPeca(req, res, quem) {
     // O briefing nasce aqui quando a peca e cadastrada pelo painel; quando ela
     // veio do Monday, ele esta no corpo de um update. A tela procura nos dois.
     briefing: c.briefing || '',
+    material_bruto: c.material_bruto || '',
+    material_bruto_em: c.material_bruto_em || null,
     catalogos: { captacao: catCaptacao, opcoes: catOpcoes },
     ficha: {
       cliente: c.clientes, grupo: c.grupo, grupo_id: c.grupo_id, status: c.status,
