@@ -383,7 +383,7 @@ async function apagarComentario(sql, quem, { item, update }) {
   return { conteudo_id: c.id, update: Number(update), titulo: c.titulo };
 }
 
-async function comentar(sql, quem, { item, texto }) {
+export async function comentar(sql, quem, { item, texto }) {
   if (!String(texto || '').trim()) throw new Error('Escreva algo antes de enviar.');
   const linhas = await sql`SELECT id, board_id, monday_item_id, titulo FROM vybe_conteudos
     WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
@@ -393,9 +393,12 @@ async function comentar(sql, quem, { item, texto }) {
   const autor = quem?.pessoa?.nome || 'Vybe OS';
 
   await garantirColunasDeUpdate(sql);
-  await sql`INSERT INTO vybe_conteudo_updates (conteudo_id, corpo, autor, autor_id, criado_em)
-    VALUES (${c.id}, ${String(texto)}, ${autor}, ${autorId}, NOW())`;
-  await registrarEvento(sql, c.id, { tipo: 'comentario', texto: String(texto).slice(0, 400), autorId });
+  await sql.transaction([
+    sql`INSERT INTO vybe_conteudo_updates (conteudo_id, corpo, autor, autor_id, criado_em)
+      VALUES (${c.id}, ${String(texto)}, ${autor}, ${autorId}, NOW())`,
+    sql`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,texto,autor_id)
+      VALUES (${c.id},'comentario',${String(texto).slice(0,400)},${autorId})`,
+  ]);
 
   const replica = await replicar(sql, 'comentario', `conteudo:${c.id}`,
     `mutation($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`,

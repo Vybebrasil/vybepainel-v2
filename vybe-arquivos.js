@@ -277,6 +277,7 @@ async function uploadWorkspaceFile(input, itemId) {
   const arquivos = [...(input?.files || [])];
   if (!arquivos.length || !alvo) return;
   const item = findOperationalItem(alvo);
+  const drawer = document.getElementById('workspace-drawer');
   const total = arquivos.length;
   const foram = []; const falhas = [];
   try {
@@ -307,11 +308,13 @@ async function uploadWorkspaceFile(input, itemId) {
         confirmar: 'Entendi',
       });
     }
-    // A gaveta so se redesenha se for a desta peca que esta aberta.
-    if (item && String(activeWorkspaceItemId) === alvo && document.getElementById('workspace-drawer')) {
-      renderWorkspaceDrawer(await fetchWorkspaceItem(alvo), item);
-    } else if (foram.length && typeof renderOutboundItemPatch === 'function') {
-      renderOutboundItemPatch('entrega pela linha');
+    if (foram.length) {
+      try {
+        if (typeof renderOutboundItemPatch === 'function') renderOutboundItemPatch('entrega pela linha');
+        await atualizarGavetaPreservandoRascunhos(item || {id:alvo}, drawer);
+      } catch (erro) {
+        showToast('Arquivos anexados. Não foi possível atualizar os detalhes; reabra a atividade.', 'info', 8000);
+      }
     }
   } finally { if (input) input.value = ''; }
 }

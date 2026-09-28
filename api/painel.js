@@ -343,12 +343,22 @@ async function areaPeca(req, res, quem) {
     // O id local vai junto: sem ele a tela mostra a atualizacao e nao tem como
     // dizer QUAL corrigir ou apagar. autor_id e quem escreveu, para a tela so
     // oferecer o botao a quem pode usar — o servidor confere de novo.
+    // Mantém também a última entrega e o último bastão fora das 12 notas
+    // recentes: novas conversas não podem esconder o contexto operacional.
     db`SELECT u.id, u.monday_update_id, u.corpo, u.autor, u.criado_em, u.editado_em,
               p.monday_user_id AS autor_ref
          FROM vybe_conteudo_updates u
          LEFT JOIN vybe_pessoas p ON p.id = u.autor_id
-        WHERE u.conteudo_id = ${c.id}
-        ORDER BY u.criado_em DESC NULLS LAST LIMIT 12`,
+        WHERE u.conteudo_id = ${c.id} AND (u.id IN (
+          SELECT id FROM vybe_conteudo_updates WHERE conteudo_id=${c.id}
+          ORDER BY criado_em DESC NULLS LAST,id DESC LIMIT 12)
+          OR u.id=(SELECT id FROM vybe_conteudo_updates WHERE conteudo_id=${c.id}
+            AND corpo LIKE '%[Vybe OS · Link de entrega]%'
+            ORDER BY criado_em DESC NULLS LAST,id DESC LIMIT 1)
+          OR u.id=(SELECT id FROM vybe_conteudo_updates WHERE conteudo_id=${c.id}
+            AND corpo LIKE '%[Vybe OS · Passagem de bastão]%'
+            ORDER BY criado_em DESC NULLS LAST,id DESC LIMIT 1))
+        ORDER BY u.criado_em DESC NULLS LAST,u.id DESC`,
     // QUEM fez a troca vai junto. O banco sempre soube (autor_id), mas a
     // resposta so mandava de/para/quando — entao a tela nao tinha como
     // devolver uma peca a quem a executou, que e a pergunta que ela mais faz.
@@ -574,15 +584,16 @@ async function registrarArquivoDaPeca(c, quem, { nome, driveId, bytes, link }) {
   try { await tornarPublico(String(driveId)); liberada = true; }
   catch (erro) { console.warn('Arquivo salvo, mas a previa nao ficou publica:', driveId, erro.message); }
   const ext = String(nome).includes('.') ? `.${String(nome).split('.').pop().toLowerCase()}` : null;
-  const linha = (await db`INSERT INTO vybe_conteudo_arquivos
-      (conteudo_id, nome, extensao, tamanho_bytes, url_drive, drive_file_id, criado_em, migrado_em)
-    VALUES (${c.id}, ${String(nome)}, ${ext}, ${Number(bytes) || null},
-            ${link || `https://drive.google.com/file/d/${driveId}/view`}, ${String(driveId)}, NOW(), NOW())
-    RETURNING id`)[0];
-  if (liberada) await db`UPDATE vybe_conteudo_arquivos SET previa_liberada_em=NOW() WHERE id=${linha.id}`;
-  await db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, para, autor_id, em)
-    VALUES (${c.id}, 'anexo', ${String(nome)},
-            ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, NOW())`;
+  const [linhas] = await db.transaction([
+    db`INSERT INTO vybe_conteudo_arquivos
+      (conteudo_id,nome,extensao,tamanho_bytes,url_drive,drive_file_id,criado_em,migrado_em,previa_liberada_em)
+      VALUES (${c.id},${String(nome)},${ext},${Number(bytes) || null},
+        ${link || `https://drive.google.com/file/d/${driveId}/view`},${String(driveId)},NOW(),NOW(),
+        CASE WHEN ${liberada} THEN NOW() ELSE NULL END) RETURNING id`,
+    db`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para,autor_id,em)
+      VALUES (${c.id},'anexo',${String(nome)},${quem.tipo === 'sessao' ? quem.pessoa.id : null},NOW())`,
+  ]);
+  const linha = linhas[0];
   return { arquivo_id: linha.id, drive_file_id: String(driveId), bytes: Number(bytes) || null };
 }
 
