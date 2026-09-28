@@ -478,7 +478,7 @@ async function saveOwnerAssignments() {
       : resultado.foraDaRegra.length ? `Responsáveis atualizados · ${resultado.foraDaRegra.join(', ')} fora da disciplina ${resultado.disciplina}, registrado no histórico.`
       : 'Responsáveis atualizados.';
     showToast(aviso, !resultado.logRegistrado || resultado.foraDaRegra.length ? 'info' : 'ok');
-    await atualizarGavetaDeAtribuicao(item, drawer);
+    await atualizarGavetaPreservandoRascunhos(item, drawer);
   } catch (error) {
     showToast(confirmado ? 'Responsáveis salvos. Não foi possível atualizar todos os detalhes; atualize a tela para conferir.'
       : `Não foi possível atualizar responsáveis: ${error.message}`, confirmado ? 'info' : 'err', 7000);

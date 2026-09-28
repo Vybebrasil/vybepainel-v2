@@ -2567,7 +2567,7 @@ async function gravarGrupoDaPeca(item, grupoId) {
   } finally { gruposEmGravacao.delete(id); }
 }
 
-async function atualizarGavetaDeAtribuicao(item, drawer) {
+async function atualizarGavetaPreservandoRascunhos(item, drawer) {
   const mesmaJanela = () => drawer && document.getElementById('workspace-drawer') === drawer
     && String(activeWorkspaceItemId) === String(item.id);
   if (!mesmaJanela()) return;
@@ -2672,7 +2672,7 @@ async function moverPecaDeGrupo(itemId, grupoId) {
     if (resumo && document.getElementById('cartao-rapido') === resumo) fecharCartaoRapido();
     saveProductionCache(); renderOutboundItemPatch('grupo ou responsáveis');
     showToast(`${de} → ${titulo}`, 'ok');
-    await atualizarGavetaDeAtribuicao(item, drawer);
+    await atualizarGavetaPreservandoRascunhos(item, drawer);
   } catch (erro) {
     showToast(confirmado ? 'Grupo salvo. Não foi possível atualizar todos os detalhes; atualize a tela para conferir.'
       : `Não foi possível mover de grupo: ${erro.message}`, confirmado ? 'info' : 'err', 7000);

@@ -199,11 +199,13 @@ async function gravarMaterialBruto(itemId, link) {
     body: JSON.stringify({ acao: 'material_bruto', item: String(itemId), link: String(link || '') }),
   });
   const dados = await resposta.json();
-  if (!resposta.ok) throw new Error(dados?.error || 'Não foi possível salvar.');
+  if (!resposta.ok || !dados.ok) throw new Error(dados?.error || 'Não foi possível salvar.');
   // A lista e a gaveta leem de lugares diferentes; sem os dois, o cartao continua
   // dizendo que falta material logo depois de alguem registrar.
-  const naLista = typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null;
-  if (naLista) naLista.material_bruto = dados.para || '';
+  [DADOS, DADOS_ALL, DADOS_DEMANDAS].forEach(lista => (lista || []).forEach(item => {
+    if (String(item.id) === String(itemId)) item.material_bruto = dados.para || '';
+  }));
+  saveProductionCache();
   if (DETALHE_DA_GAVETA && String(DETALHE_DA_GAVETA.id ?? '') === String(itemId)) {
     DETALHE_DA_GAVETA.material_bruto = dados.para || '';
   }
@@ -224,19 +226,20 @@ async function pedirMaterialBruto(itemId, event) {
     confirmar: atual ? 'Trocar link' : 'Registrar link',
   });
   if (url === null || url === undefined) return;
+  const drawer = document.getElementById('workspace-drawer');
+  let confirmado = false;
   try {
     const feito = await gravarMaterialBruto(itemId, url);
+    confirmado = true;
     showToast(feito.para ? '✓ Material bruto registrado' : '✓ Link do material bruto removido', 'ok', 4000);
-    if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos();
-    if (typeof renderFocusDesk === 'function') renderFocusDesk();
-    if (String(activeWorkspaceItemId) === String(itemId) && document.getElementById('workspace-drawer')) {
-      renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), findOperationalItem(itemId));
-    }
+    renderOutboundItemPatch('material bruto');
+    await atualizarGavetaPreservandoRascunhos(findOperationalItem(itemId) || {id:itemId}, drawer);
+
     if (document.getElementById('brief-overlay') && BRIEFING_ABERTO?.item
         && String(BRIEFING_ABERTO.item.id) === String(itemId)) {
       fecharBriefing(); await abrirBriefing(itemId);
     }
-  } catch (erro) { showToast(`Não foi possível salvar: ${erro.message}`, 'err', 7000); }
+  } catch (erro) { showToast(confirmado ? 'Link salvo. Não foi possível atualizar os detalhes; reabra a atividade.' : `Não foi possível salvar: ${erro.message}`, confirmado ? 'info' : 'err', 7000); }
 }
 
 // Guardar no campo o link que a tela achou no historico. E a migracao das pecas
@@ -244,19 +247,20 @@ async function pedirMaterialBruto(itemId, event) {
 // varredura adivinhando qual link de qual atualizacao era o material bruto.
 async function fixarMaterialBruto(itemId, url, event) {
   event?.stopPropagation?.();
+  const drawer = document.getElementById('workspace-drawer');
+  let confirmado = false;
   try {
     await gravarMaterialBruto(itemId, url);
+    confirmado = true;
     showToast('✓ Link fixado no campo · o cartão para de cobrar', 'ok', 4000);
-    if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos();
-    if (typeof renderFocusDesk === 'function') renderFocusDesk();
-    if (String(activeWorkspaceItemId) === String(itemId) && document.getElementById('workspace-drawer')) {
-      renderWorkspaceDrawer(await fetchWorkspaceItem(itemId), findOperationalItem(itemId));
-    }
+    renderOutboundItemPatch('material bruto');
+    await atualizarGavetaPreservandoRascunhos(findOperationalItem(itemId) || {id:itemId}, drawer);
+
     if (document.getElementById('brief-overlay') && BRIEFING_ABERTO?.item
         && String(BRIEFING_ABERTO.item.id) === String(itemId)) {
       fecharBriefing(); await abrirBriefing(itemId);
     }
-  } catch (erro) { showToast(`Não foi possível fixar: ${erro.message}`, 'err', 7000); }
+  } catch (erro) { showToast(confirmado ? 'Link salvo. Não foi possível atualizar os detalhes; reabra a atividade.' : `Não foi possível fixar: ${erro.message}`, confirmado ? 'info' : 'err', 7000); }
 }
 
 // Clicar no botao do cartao: se tem link, abre; se nao tem, pergunta. Um botao

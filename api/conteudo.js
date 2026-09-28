@@ -530,7 +530,7 @@ async function moverBoard(sql, quem, { item, destino }) {
 //
 // Link vazio limpa o campo de proposito: material trocado de pasta sem ninguem
 // poder apagar o endereco velho e pior do que campo em branco.
-async function guardarMaterialBruto(sql, quem, { item, link }) {
+export async function guardarMaterialBruto(sql, quem, { item, link }) {
   const novo = String(link || '').trim();
   if (novo && !/^https?:\/\//i.test(novo)) {
     throw new Error('O link precisa começar com http:// ou https://');
@@ -548,15 +548,14 @@ async function guardarMaterialBruto(sql, quem, { item, link }) {
   // O CASE evita montar SQL em dois caminhos: fragmento de sql dentro de
   // interpolacao nao existe neste driver, e um IF em JavaScript daria duas
   // consultas quase iguais para manter.
-  await sql`UPDATE vybe_conteudos
-      SET material_bruto = ${novo || null},
-          material_bruto_em = CASE WHEN ${novo || null}::text IS NULL THEN NULL ELSE NOW() END,
-          atualizado_em = NOW()
-    WHERE id = ${c.id}`;
-  await registrarEvento(sql, c.id, {
-    tipo: 'material_bruto', de: de || null, para: novo || null,
-    autorId: await pessoaDaSessao(sql, quem),
-  });
+  const autorId = await pessoaDaSessao(sql, quem);
+  await sql.transaction([
+    sql`UPDATE vybe_conteudos SET material_bruto=${novo || null},
+      material_bruto_em=CASE WHEN ${novo || null}::text IS NULL THEN NULL ELSE NOW() END,
+      atualizado_em=NOW() WHERE id=${c.id}`,
+    sql`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,de,para,autor_id)
+      VALUES (${c.id},'material_bruto',${de || null},${novo || null},${autorId})`,
+  ]);
   return { conteudo_id: c.id, titulo: c.titulo, de, para: novo, mudou: true };
 }
 
