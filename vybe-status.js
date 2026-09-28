@@ -131,7 +131,33 @@ function updateLocalStatus(itemId, option) {
 
 function openDaDirectionModal(itemId) { const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada.', 'err'); pendingDaDirectionItemId=String(itemId); const owners=daControllerTeam().map(user=>`<option value="${user.id}">${safeText(firstName(user.name))}</option>`).join(''); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Direcionamento de arte</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Direcionar esta demanda</h2><p class="workflow-copy">Registre a decisão visual no histórico da peça para que o time execute sem depender do WhatsApp.</p>${workflowItemHtml(item,item.status)}<label class="workflow-field"><span>Qual é a direção objetiva?</span><textarea id="da-direction-text" rows="4" placeholder="Ex.: Ajustar a hierarquia do título, trocar a imagem principal e usar a referência enviada pelo cliente."></textarea></label><label class="workflow-field"><span>Quem precisa agir agora?</span><select id="da-direction-owner"><option value="">Manter responsável atual</option>${owners}</select></label><label class="workflow-field"><span>Próximo passo esperado</span><input id="da-direction-next" type="text" placeholder="Ex.: Nova versão para validação interna até amanhã."></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitDaDirection()">Registrar direção →</button></div>`); }
 async function submitDaDirection() { const item=findOperationalItem(pendingDaDirectionItemId); const direction=String(document.getElementById('da-direction-text')?.value||'').trim(); const next=String(document.getElementById('da-direction-next')?.value||'').trim(); const ownerId=String(document.getElementById('da-direction-owner')?.value||''); if(!item || !direction) return showToast('Descreva a direção antes de registrar.', 'info'); const owner=daControllerTeam().find(user=>user.id===ownerId); try { await postItemUpdate(item.id,`[Vybe OS · Direcionamento de D.A.]\nDireção: ${direction}${owner?`\nQuem executa: ${owner.name}`:''}${next?`\nPróximo passo: ${next}`:''}`); item.status_context={reason:direction,next:next||item.status_context?.next||'',created_at:new Date().toISOString()}; closeWorkflowModal(); pendingDaDirectionItemId=''; showToast('✓ Direcionamento registrado no Vybe OS','ok'); renderDaController(); if(activeWorkspaceItemId===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),item); } catch(e) { showToast(`Não foi possível registrar o direcionamento: ${e.message}`,'err',7000); } }
-async function submitHandoff() { const flow=pendingWorkflowChange; const done=String(document.getElementById('handoff-done')?.value||'').trim(); const next=String(document.getElementById('handoff-next')?.value||'').trim(); const link=String(document.getElementById('handoff-link')?.value||'').trim(); if (!flow || !done || !next) return showToast('Preencha o que foi concluído e o próximo passo.','info'); if (link && !/^https?:\/\//i.test(link)) return showToast('Use um link válido começando com https:// ou deixe o campo em branco.','info'); try { await postItemUpdate(flow.item.id, `[Vybe OS · Passagem de bastão]\n${flow.option ? `Etapa: ${flow.item.status} → ${flow.option.label}\n` : ''}Concluído: ${done}\nPróximo passo: ${next}${link ? `\nReferência: ${link}` : ''}`); const {item,option,manual}=flow; closeWorkflowModal(); if (manual) { showToast('✓ Passagem de bastão registrada no Vybe OS','ok'); if (activeWorkspaceItemId) renderWorkspaceDrawer(await fetchWorkspaceItem(activeWorkspaceItemId),item); } else await commitStatusChange(item,option); } catch(e) { showToast(`Não foi possível registrar a passagem: ${e.message}`,'err',7000); } }
+let handoffEnviando = false;
+async function submitHandoff() {
+  const flow = pendingWorkflowChange;
+  if (!flow || handoffEnviando) return;
+  const done = String(document.getElementById('handoff-done')?.value || '').trim();
+  const next = String(document.getElementById('handoff-next')?.value || '').trim();
+  const link = String(document.getElementById('handoff-link')?.value || '').trim();
+  if (!done || !next) return showToast('Preencha o que foi concluído e o próximo passo.', 'info');
+  if (link && !/^https?:\/\//i.test(link)) return showToast('Use um link válido começando com https:// ou deixe o campo em branco.', 'info');
+  const drawer = document.getElementById('workspace-drawer');
+  const botao = document.querySelector('[onclick="submitHandoff()"]');
+  handoffEnviando = true;
+  if (botao) botao.disabled = true;
+  let salvo = false;
+  try {
+    const texto = `[Vybe OS · Passagem de bastão]\n${flow.option ? `Etapa: ${flow.item.status} → ${flow.option.label}\n` : ''}Concluído: ${done}\nPróximo passo: ${next}${link ? `\nReferência: ${link}` : ''}`;
+    if (!await tentarEscritaDupla(flow.item, {acao:'comentario',item:String(flow.item.id),texto})) throw new Error('O banco não confirmou o registro.');
+    salvo = true;
+    if (pendingWorkflowChange === flow) closeWorkflowModal();
+    if (flow.manual) {
+      showToast('Passagem de bastão registrada no Vybe OS', 'ok');
+      await atualizarGavetaPreservandoRascunhos(flow.item, drawer);
+    } else await commitStatusChange(flow.item, flow.option);
+  } catch (e) {
+    showToast(salvo ? 'Passagem salva. Não foi possível atualizar os detalhes; reabra a atividade.' : `Não foi possível registrar a passagem: ${e.message}`, salvo ? 'info' : 'err', 7000);
+  } finally { handoffEnviando = false; if (botao) botao.disabled = false; }
+}
 // As automações rodam no servidor depois da gravação e podem trocar o dono e o
 // grupo da peça — é o caso de "Para agendar", que passa a peça para a Tainara em
 // Gestão de publicações. A resposta traz o estado final; sem escrevê-lo aqui, a
