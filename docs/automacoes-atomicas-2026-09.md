@@ -48,9 +48,16 @@ As regras e destinatários existentes não são substituídos.
 - Teste de interface cobre duplo envio, preservação de outro modal e distinção
   entre erro de escrita e erro de releitura. Endpoint exige sessão.
 
-Não houve gravação em produção. A conexão WebSocket com Neon real ainda precisa
-de homologação em banco isolado antes de publicação; PGlite não prova conectividade
-de rede. As tentativas paralelas são verificadas no ambiente isolado, cuja fila
-de transações não reproduz toda a concorrência de um servidor Neon real.
+- Neon real: branch temporária `codex-automacoes-atomicas-20260929`
+  (`br-blue-dew-acnvk2xk`), criada somente com schema, sem dados dos clientes,
+  com expiração automática em 30/09/2026 às 18:07 (America/Bahia).
+- A fábrica de produção `bancoComTransacoes` foi executada com WebSocket nativo:
+  commit parametrizado, leitura HTTP em outra conexão, rollback após erro e duas
+  transações concorrentes com `FOR UPDATE` aprovados. O contador final foi 2,
+  sem perda de atualização. A tabela exclusiva do teste foi removida ao terminar.
+
+Não houve gravação em produção. Os cenários completos do motor foram verificados
+em PGlite; a homologação Neon real validou transporte, atomicidade e bloqueio de
+linha do adaptador, sem executar regras sobre registros de clientes.
 O botão de retomada trata status de Produção; não inclui captação, Solicitações
-ou uploads do Drive. Esta etapa não publica o código.
+ou uploads do Drive. A promoção segue o checklist de deploy com PR, checks e preview do commit exato.
