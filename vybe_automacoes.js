@@ -86,7 +86,7 @@ export async function criarSchemaAutomacoes() {
 const AUDIOVISUAL = ['reels', 'video', 'motion'];
 const DESIGN = ['card', 'carrossel', 'feed', 'story', 'fotografia', 'feed_story'];
 
-const SEMENTE = [
+export const SEMENTE = [
   { nome: 'Aprovado para agendar vai para publicações com a Tainara', ordem: 10,
     gatilho: { tipo: 'status', para: 'para_agendar' }, condicao: null,
     acoes: [
@@ -500,9 +500,9 @@ export async function aplicar(sql, conteudoId, evento) {
     if (!casaGatilho(regra.gatilho, evento)) continue;
     if (!atende(regra.condicao, item)) continue;
 
-    // A mesma mudança chega por dois caminhos: o painel grava e replica no
-    // Monday, e o Monday devolve um webhook contando o que acabou de acontecer.
-    // Mover de grupo duas vezes não faz mal, mas notificar e comentar sim.
+    // A ocorrência do histórico distingue ciclos legítimos da mesma etapa.
+    // Reentregar o mesmo evento mantém a proteção contra efeitos repetidos;
+    // uma nova troca nativa carrega outro id, mesmo dentro de dois minutos.
     const repetida = await sql`SELECT 1 FROM vybe_automacao_execucoes
       WHERE automacao_id=${regra.id} AND conteudo_id=${item.id}
         AND em > NOW() - INTERVAL '2 minutes'
