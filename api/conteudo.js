@@ -78,11 +78,11 @@ export async function trocarStatus(sql, quem, { item, para }) {
   if (!alvo) throw new Error(`Status desconhecido neste board: ${para}`);
 
   const autorId = await pessoaDaSessao(sql, quem);
-  await sql.transaction([
+  const [, eventos] = await sql.transaction([
     sql`UPDATE vybe_conteudos SET status_chave=${alvo.chave}, status_em=NOW(), atualizado_em=NOW()
       WHERE id=${conteudo.id}`,
     sql`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id, texto)
-      VALUES (${conteudo.id}, 'status', ${conteudo.de || null}, ${alvo.rotulo}, ${autorId}, ${null})`
+      VALUES (${conteudo.id}, 'status', ${conteudo.de || null}, ${alvo.rotulo}, ${autorId}, ${null}) RETURNING id`
   ]);
 
   // ETIQUETA QUE NASCEU AQUI NAO TEM O QUE ESPELHAR.
@@ -102,28 +102,33 @@ export async function trocarStatus(sql, quem, { item, para }) {
        change_column_value(board_id: $board, item_id: $item, column_id: "status", value: $value) { id } }`,
     { board: String(conteudo.board_id), item: referenciaReplica(conteudo, item),
       value: JSON.stringify({ index: Number(alvo.monday_index) }) });
-  // As automações rodam depois da gravação, nunca antes: regra que falha não
-  // pode impedir a pessoa de mudar o status. Enquanto o Monday existir, as
-  // regras dele disparam com a mesma mudança e chegam ao mesmo estado — as duas
-  // convergem em vez de brigar. No dia em que ele sair, estas aqui já são as
-  // únicas, e a operação não muda de comportamento.
-  // As regras que importamos são de Produção: os grupos e as chaves de status são
-  // de lá. Rodá-las numa demanda moveria a peça para um grupo que não existe no
-  // board dela.
+  // O status já foi confirmado. Falhas posteriores de roteamento precisam
+  // ser visíveis, sem apresentar a troca salva como uma falha de gravação.
   let automacoes = [];
   // O que a automação mudou precisa voltar para a tela. A regra "Para agendar"
   // troca o dono da peça e o grupo; sem devolver isso, a pessoa que mudou o
   // status continuava vendo o próprio rosto na linha e concluía que a regra não
   // rodou — foi exatamente a queixa que chegou da mesa de planejamento.
   let depois = null;
+  let automacao_pendente = false;
   try {
     if (Number(conteudo.board_id) !== BOARD_PRODUCAO) throw { pular: true };
     const r = await aplicar(sql, conteudo.id, {
       tipo: 'status', de: conteudo.status_chave, para: alvo.chave,
+      ocorrencia: String(eventos[0].id),
     });
     automacoes = r.aplicadas;
     await replicarNoMonday(sql, referenciaReplica(conteudo, item), r.paraOMonday, conteudo.board_id, conteudo.id);
-    if (automacoes.length) {
+  } catch (erro) {
+    if (!erro?.pular) {
+      automacao_pendente = true;
+      console.error('Automações falharam após troca de status:', erro.message);
+    }
+  }
+  // Uma regra pode ter mudado grupo/dono antes de falhar. Releia também nesse
+  // caso para a interface não conservar o estado anterior como se fosse atual.
+  try {
+    if (automacoes.length || automacao_pendente) {
       const [estado] = await sql`SELECT c.grupo_id, c.etapa AS grupo, s.rotulo AS status, s.cor, s.borda, s.monday_index,
           COALESCE(ARRAY(SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
             JOIN vybe_pessoas p ON p.id = r.pessoa_id
@@ -134,11 +139,12 @@ export async function trocarStatus(sql, quem, { item, para }) {
                              responsavel_ids: (estado.responsavel_ids || []).map(String) };
     }
   } catch (erro) {
-    if (!erro?.pular) console.error('Automações falharam após troca de status:', erro.message);
+    automacao_pendente = true;
+    console.error('Não foi possível reler o roteamento:', erro.message);
   }
 
   return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de,
-           para: alvo.rotulo, replica_monday: replica, automacoes, depois };
+           para: alvo.rotulo, replica_monday: replica, automacoes, depois, automacao_pendente };
 }
 
 

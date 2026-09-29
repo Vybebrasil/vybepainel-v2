@@ -177,7 +177,11 @@ function aplicarEfeitoDaAutomacao(item, resposta) {
   // remendo nunca era aplicado e a tela continuava mostrando o dono antigo. O
   // servidor so manda 'depois' quando alguma regra rodou, entao aqui uma lista
   // vazia significa "ficou sem ninguem", e nao "nao sei".
-  if (donosDepois !== donosAntes) remendo.responsavel_ids = (depois.responsavel_ids || []).map(String);
+  if (donosDepois !== donosAntes) {
+    remendo.responsavel_ids = (depois.responsavel_ids || []).map(String);
+    // A compatibilidade singular alimenta filtros antigos e o fallback da fila.
+    remendo.responsavel_id = remendo.responsavel_ids[0] || '';
+  }
   if (depois.grupo_id && String(depois.grupo_id) !== String(item.grupo_id || '')) {
     remendo.grupo_id = depois.grupo_id;
     if (depois.grupo) remendo.grupo = depois.grupo;
@@ -218,7 +222,8 @@ async function commitStatusChange(item, option) {
     } else applyOutboundItemPatch(item.id, {status:final.label,status_color:final.color,status_border:final.border,status_index:final.index}, 'status');
     closeStatusEditor();
     renderFocusUserPicker();
-    showToast(efeito || `✓ Status atualizado para ${final.label} · tela mantida no contexto atual`, 'ok', efeito ? 9000 : 4200);
+    if (resposta.automacao_pendente) showToast('Status salvo, mas o encaminhamento automático não foi concluído. Confira responsável e grupo antes de continuar.', 'info', 12000);
+    else showToast(efeito || `✓ Status atualizado para ${final.label} · tela mantida no contexto atual`, 'ok', efeito ? 9000 : 4200);
     if (mesmaJanela()) {
       const dados = await fetchWorkspaceItem(item.id);
       if (mesmaJanela()) {

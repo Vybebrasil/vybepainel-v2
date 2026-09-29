@@ -44,7 +44,7 @@ async function banco(){
  const {db,sql}=conexao();await db.exec(`
  CREATE TABLE vybe_conteudos(id int primary key,monday_item_id text,board_id bigint,titulo text,status_chave text,status_em timestamptz,atualizado_em timestamptz,grupo_id text,etapa text,formato_chaves text[],captacao_chave text);
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int,cor text,borda text);
- CREATE TABLE vybe_conteudo_eventos(conteudo_id int,tipo text,de text,para text,autor_id int,texto text);
+ CREATE TABLE vybe_conteudo_eventos(id serial primary key,conteudo_id int,tipo text,de text,para text,autor_id int,texto text);
  CREATE TABLE vybe_clientes(id int,nome text);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id int,cliente_id int);
  CREATE TABLE vybe_pessoas(id int,monday_user_id text,nome text);
@@ -79,4 +79,64 @@ test('automação devolve status final e metadados do próprio quadro',async()=>
  assert.deepEqual(r.depois.responsavel_ids,['100']);assert.equal(r.automacoes.length,1);
  assert.equal((await sql`SELECT status_chave FROM vybe_conteudos`)[0].status_chave,'final');
  }finally{await db.close();}
+});
+
+import { SEMENTE, GRUPOS, aplicar } from '../vybe_automacoes.js';
+async function prepararPercurso(db,sql,formato){
+ await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN captacao text;
+ ALTER TABLE vybe_conteudo_responsaveis ADD PRIMARY KEY(conteudo_id,pessoa_id);
+ CREATE TABLE vybe_captacao(chave text,rotulo text,monday_index int);
+ INSERT INTO vybe_captacao VALUES('editado','Editado',1);
+ CREATE TABLE vybe_conteudo_updates(conteudo_id int,corpo text,autor text,criado_em timestamptz);
+ INSERT INTO vybe_pessoas VALUES(2,'68036697','Editor'),(3,'68997024','Designer'),(4,'71130408','Design'),
+ (5,'68035653','Aprovador'),(6,'68036687','Revisor'),(7,'68035537','Gestor'),(8,'80146924','Publicação');`);
+ for(const [chave,rotulo] of Object.entries({pode_fazer:'Pode Fazer',em_andamento:'Em andamento',para_aprovacao:'Para aprovação',alteracao:'Alteração',para_agendar:'Para agendar',agendado:'Agendado',finalizado:'Finalizado'}))
+  await sql`INSERT INTO vybe_status(board_id,chave,rotulo) VALUES(7829537690,${chave},${rotulo})`;
+ await sql`UPDATE vybe_conteudos SET grupo_id=${GRUPOS.producao},formato_chaves=${[formato]},status_chave='em_andamento'`;
+ for(const [i,r] of SEMENTE.entries())await sql`INSERT INTO vybe_automacoes VALUES(${i+1},${r.nome},true,${r.ordem},${JSON.stringify(r.gatilho)}::jsonb,${r.condicao?JSON.stringify(r.condicao):null}::jsonb,${JSON.stringify(r.acoes)}::jsonb)`;
+}
+for(const formato of ['reels','card'])test(`percurso ${formato}: produção, aprovação, ajuste, agendamento e finalização`,async()=>{
+ const {db,sql}=await banco();try{
+ await prepararPercurso(db,sql,formato);
+ const mudar=para=>trocarStatus(sql,null,{item:'vybe:1',para});
+ const editores=formato==='reels'?['68036697']:['68997024','71130408'];
+ let r=await mudar('finalizado');assert.equal(r.automacao_pendente,false);
+ assert.equal(r.depois.grupo_id,GRUPOS.design);assert.equal(r.depois.status,'Pode Fazer');assert.deepEqual(r.depois.responsavel_ids,editores);
+ await mudar('em_andamento');r=await mudar('para_aprovacao');assert.ok(r.depois.responsavel_ids.length>=editores.length);
+ await mudar('alteracao');await mudar('em_andamento');
+ // Um novo ciclo igual, dentro de dois minutos, precisa chamar aprovação de novo.
+ await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=1`;
+ r=await mudar('para_aprovacao');assert.equal(r.automacoes.length,1);assert.ok(r.depois.responsavel_ids.length>0);
+ const [execucao]=await sql`SELECT resultado FROM vybe_automacao_execucoes ORDER BY em DESC LIMIT 1`;
+ assert.deepEqual((await aplicar(sql,1,JSON.parse(execucao.resultado.evento))).aplicadas,[]);
+ r=await mudar('para_agendar');assert.equal(r.depois.grupo_id,GRUPOS.publicacoes);assert.deepEqual(r.depois.responsavel_ids,['80146924']);
+ await mudar('agendado');r=await mudar('finalizado');assert.equal(r.depois.grupo_id,GRUPOS.finalizados);assert.deepEqual(r.depois.responsavel_ids,[]);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_responsaveis`).length,0);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_clientes`).length,2);
+ }finally{await db.close();}
+});
+test('falha após mover grupo devolve estado parcial e aviso sem negar status salvo',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararPercurso(db,sql,'reels');
+ await db.exec("ALTER TABLE vybe_conteudo_updates ADD CONSTRAINT falhar CHECK(false)");
+ const r=await trocarStatus(sql,null,{item:'vybe:1',para:'para_agendar'});
+ assert.equal(r.automacao_pendente,true);assert.equal(r.depois.status,'Para agendar');
+ assert.equal(r.depois.grupo_id,GRUPOS.publicacoes);assert.deepEqual(r.depois.responsavel_ids,['80146924']);
+ }finally{await db.close();}
+});
+test('encaminhamento incompleto mostra aviso e mantém status confirmado',async()=>{
+ const {c,item,avisos}=contexto();c.tentarEscritaDupla=async()=>({automacao_pendente:true});
+ await c.commitStatusChange(item,{label:'Para agendar'});
+ assert.equal(item.status,'Para agendar');assert.equal(avisos[0][1],'info');
+ assert.match(avisos[0][0],/encaminhamento automático não foi concluído/);
+ assert.equal(avisos.some(a=>a[1]==='ok'),false);
+});
+test('automação sincroniza dono singular e lista ao trocar ou liberar a fila',()=>{
+ const item={id:'1',responsavel_id:'antigo',responsavel_ids:['antigo']};
+ const c=vm.createContext({TEAM_USERS:[],firstName:s=>s,assignedIds:i=>i.responsavel_ids.length?i.responsavel_ids:[i.responsavel_id],applyOutboundItemPatch:(_id,patch)=>Object.assign(item,patch)});
+ vm.runInContext(fonte.slice(fonte.indexOf('function aplicarEfeitoDaAutomacao'),fonte.indexOf('const statusEmGravacao')),c);
+ c.aplicarEfeitoDaAutomacao(item,{depois:{responsavel_ids:['novo']}});
+ assert.equal(item.responsavel_id,'novo');assert.deepEqual([...item.responsavel_ids],['novo']);
+ c.aplicarEfeitoDaAutomacao(item,{depois:{responsavel_ids:[]}});
+ assert.equal(item.responsavel_id,'');assert.deepEqual([...item.responsavel_ids],[]);
 });
