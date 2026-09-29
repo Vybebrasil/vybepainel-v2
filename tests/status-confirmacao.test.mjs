@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { conexao } from './postgres.mjs';
-import { trocarStatus } from '../api/conteudo.js';
+import { trocarStatus, retomarEncaminhamento } from '../api/conteudo.js';
 const fonte=fs.readFileSync('vybe-status.js','utf8');
 function contexto(){
  const item={id:'vybe:1',status:'Antes',clientes:['A','B']},avisos=[],renders=[];
@@ -42,19 +42,19 @@ test('resposta atrasada não redesenha a atividade aberta depois e envio repetid
 });
 async function banco(){
  const {db,sql}=conexao();await db.exec(`
- CREATE TABLE vybe_conteudos(id int primary key,monday_item_id text,board_id bigint,titulo text,status_chave text,status_em timestamptz,atualizado_em timestamptz,grupo_id text,etapa text,formato_chaves text[],captacao_chave text);
+ CREATE TABLE vybe_conteudos(id int primary key,monday_item_id text,board_id bigint,titulo text,status_chave text,status_em timestamptz,atualizado_em timestamptz,grupo_id text,etapa text,formato_chaves text[],captacao_chave text,removido_em timestamptz);
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int,cor text,borda text);
  CREATE TABLE vybe_conteudo_eventos(id serial primary key,conteudo_id int,tipo text,de text,para text,autor_id int,texto text);
  CREATE TABLE vybe_clientes(id int,nome text);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id int,cliente_id int);
- CREATE TABLE vybe_pessoas(id int,monday_user_id text,nome text);
+ CREATE TABLE vybe_pessoas(id int,monday_user_id text,nome text,ativo boolean DEFAULT true);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id int,pessoa_id int,ordem int);
  CREATE TABLE vybe_automacoes(id int,nome text,ativa boolean,ordem int,gatilho jsonb,condicao jsonb,acoes jsonb);
  CREATE TABLE vybe_automacao_execucoes(automacao_id int,conteudo_id int,resultado jsonb,em timestamptz DEFAULT NOW());
- INSERT INTO vybe_conteudos VALUES(1,NULL,7829537690,'Peça','antes',NOW(),NOW(),'grupo','Grupo',NULL,NULL);
+ INSERT INTO vybe_conteudos VALUES(1,NULL,7829537690,'Peça','antes',NOW(),NOW(),'grupo','Grupo',NULL,NULL,NULL);
  INSERT INTO vybe_status VALUES(7829537690,'antes','Antes',0,'#aaa','#aaa'),(7829537690,'depois','Depois',1,'#bbb','#bbb'),(7829537690,'final','Final',NULL,'#ccc','#ddd');
  INSERT INTO vybe_clientes VALUES(1,'A'),(2,'B');INSERT INTO vybe_conteudo_clientes VALUES(1,1),(1,2);
- INSERT INTO vybe_pessoas VALUES(1,'100','Pessoa');INSERT INTO vybe_conteudo_responsaveis VALUES(1,1,0);`);
+ INSERT INTO vybe_pessoas(id,monday_user_id,nome) VALUES(1,'100','Pessoa');INSERT INTO vybe_conteudo_responsaveis VALUES(1,1,0);`);
  return {db,sql};
 }
 test('status e histórico são atômicos e preservam vínculos',async()=>{
@@ -88,7 +88,7 @@ async function prepararPercurso(db,sql,formato){
  CREATE TABLE vybe_captacao(chave text,rotulo text,monday_index int);
  INSERT INTO vybe_captacao VALUES('editado','Editado',1);
  CREATE TABLE vybe_conteudo_updates(conteudo_id int,corpo text,autor text,criado_em timestamptz);
- INSERT INTO vybe_pessoas VALUES(2,'68036697','Editor'),(3,'68997024','Designer'),(4,'71130408','Design'),
+ INSERT INTO vybe_pessoas(id,monday_user_id,nome) VALUES(2,'68036697','Editor'),(3,'68997024','Designer'),(4,'71130408','Design'),
  (5,'68035653','Aprovador'),(6,'68036687','Revisor'),(7,'68035537','Gestor'),(8,'80146924','Publicação');`);
  for(const [chave,rotulo] of Object.entries({pode_fazer:'Pode Fazer',em_andamento:'Em andamento',para_aprovacao:'Para aprovação',alteracao:'Alteração',para_agendar:'Para agendar',agendado:'Agendado',finalizado:'Finalizado'}))
   await sql`INSERT INTO vybe_status(board_id,chave,rotulo) VALUES(7829537690,${chave},${rotulo})`;
@@ -115,13 +115,14 @@ for(const formato of ['reels','card'])test(`percurso ${formato}: produção, apr
  assert.equal((await sql`SELECT * FROM vybe_conteudo_clientes`).length,2);
  }finally{await db.close();}
 });
-test('falha após mover grupo devolve estado parcial e aviso sem negar status salvo',async()=>{
+test('falha no encaminhamento reverte efeitos e mantém apenas o status solicitado',async()=>{
  const {db,sql}=await banco();try{
  await prepararPercurso(db,sql,'reels');
  await db.exec("ALTER TABLE vybe_conteudo_updates ADD CONSTRAINT falhar CHECK(false)");
  const r=await trocarStatus(sql,null,{item:'vybe:1',para:'para_agendar'});
  assert.equal(r.automacao_pendente,true);assert.equal(r.depois.status,'Para agendar');
- assert.equal(r.depois.grupo_id,GRUPOS.publicacoes);assert.deepEqual(r.depois.responsavel_ids,['80146924']);
+ assert.equal(r.depois.grupo_id,GRUPOS.producao);assert.deepEqual(r.depois.responsavel_ids,['100']);
+ assert.equal((await sql`SELECT * FROM vybe_automacao_execucoes`).length,0);
  }finally{await db.close();}
 });
 test('encaminhamento incompleto mostra aviso e mantém status confirmado',async()=>{
@@ -139,4 +140,57 @@ test('automação sincroniza dono singular e lista ao trocar ou liberar a fila',
  assert.equal(item.responsavel_id,'novo');assert.deepEqual([...item.responsavel_ids],['novo']);
  c.aplicarEfeitoDaAutomacao(item,{depois:{responsavel_ids:[]}});
  assert.equal(item.responsavel_id,'');assert.deepEqual([...item.responsavel_ids],[]);
+});
+
+test('rollback integral, retomada e repetição tardia não duplicam notas ou notificações',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararPercurso(db,sql,'reels');
+ await db.exec(`CREATE TABLE vybe_notificacoes(pessoa_id int,conteudo_id int,texto text);
+ DELETE FROM vybe_automacoes;
+ ALTER TABLE vybe_automacao_execucoes ADD CONSTRAINT falha_final CHECK(false);`);
+ const acoes=[{tipo:'grupo',para:GRUPOS.publicacoes},{tipo:'responsaveis',modo:'replace',pessoas:['80146924']},
+ {tipo:'captacao',para:'editado'},{tipo:'status',para:'agendado'},{tipo:'update',texto:'Pronto'}, {tipo:'notificar',texto:'Agendar'}];
+ await sql`INSERT INTO vybe_automacoes VALUES(1,'Encaminhar',true,1,'{"tipo":"status","para":"para_agendar"}',NULL,${JSON.stringify(acoes)}::jsonb)`;
+ const r=await trocarStatus(sql,null,{item:'vybe:1',para:'para_agendar'});
+ assert.equal(r.automacao_pendente,true);
+ let [c]=await sql`SELECT * FROM vybe_conteudos`;assert.equal(c.grupo_id,GRUPOS.producao);assert.equal(c.status_chave,'para_agendar');assert.equal(c.captacao_chave,null);
+ assert.deepEqual((await sql`SELECT pessoa_id FROM vybe_conteudo_responsaveis`).map(x=>x.pessoa_id),[1]);
+ for(const tabela of ['vybe_conteudo_updates','vybe_notificacoes','vybe_automacao_execucoes'])assert.equal((await sql.query('SELECT * FROM '+tabela)).length,0);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_eventos`).length,1);
+ const [e]=await sql`SELECT id FROM vybe_conteudo_eventos WHERE tipo='status'`;
+ await db.exec('ALTER TABLE vybe_automacao_execucoes DROP CONSTRAINT falha_final');
+ const primeira=await retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:e.id});assert.equal(primeira.depois.status,'Agendado');
+ await db.exec("UPDATE vybe_automacao_execucoes SET em=NOW()-INTERVAL '1 day'");
+ const repetidas=await Promise.all([retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:e.id}),retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:e.id})]);
+ assert.ok(repetidas.every(r=>r.ja_aplicada));
+ for(const tabela of ['vybe_conteudo_updates','vybe_notificacoes','vybe_automacao_execucoes'])assert.equal((await sql.query('SELECT * FROM '+tabela)).length,1);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_eventos WHERE tipo='status'`).length,1);
+ await trocarStatus(sql,null,{item:'vybe:1',para:'alteracao'});
+ await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:e.id}),/mudou de etapa/);
+ await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:2',ocorrencia:e.id}),/apenas para conteúdo/);
+ }finally{await db.close();}
+});
+test('responsável inexistente reverte grupo e preserva dono anterior',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararPercurso(db,sql,'reels');await db.exec("DELETE FROM vybe_pessoas WHERE monday_user_id='80146924'");
+ const r=await trocarStatus(sql,null,{item:'vybe:1',para:'para_agendar'});
+ assert.equal(r.automacao_pendente,true);assert.equal(r.depois.grupo_id,GRUPOS.producao);assert.deepEqual(r.depois.responsavel_ids,['100']);
+ }finally{await db.close();}
+});
+
+test('falha na segunda regra reverte a primeira e tarefa diária não duplica no mesmo dia',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararPercurso(db,sql,'reels');await db.exec(`DELETE FROM vybe_automacoes;
+ CREATE TABLE vybe_notificacoes(pessoa_id int,conteudo_id int,texto text CHECK(false));
+ INSERT INTO vybe_automacoes VALUES(100,'Nota',true,1,'{"tipo":"data","campo":"prazo","dias":0}',NULL,'[{"tipo":"update","texto":"Hoje"}]'),
+ (101,'Aviso',true,2,'{"tipo":"data","campo":"prazo","dias":0}',NULL,'[{"tipo":"notificar","texto":"Vence hoje"}]');`);
+ const evento={tipo:'data',campo:'prazo',dias:0,ocorrencia:'agenda:2026-09-29:prazo:0'};
+ await assert.rejects(aplicar(sql,1,evento));
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_updates`).length,0);assert.equal((await sql`SELECT * FROM vybe_automacao_execucoes`).length,0);
+ await db.exec('ALTER TABLE vybe_notificacoes DROP CONSTRAINT vybe_notificacoes_check');
+ await aplicar(sql,1,evento);await aplicar(sql,1,evento);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_updates`).length,1);assert.equal((await sql`SELECT * FROM vybe_notificacoes`).length,1);
+ await aplicar(sql,1,{...evento,ocorrencia:'agenda:2026-09-30:prazo:0'});
+ assert.equal((await sql`SELECT * FROM vybe_notificacoes`).length,2);
+ }finally{await db.close();}
 });

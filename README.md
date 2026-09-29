@@ -32,6 +32,10 @@ de demonstração não carrega arquivos `.env` automaticamente.
 integração usam PostgreSQL compilado para WASM (PGlite), em memória e sem rede,
 para verificar rollback, vínculos, catálogo e recuperação da fila.
 
+O motor de automações usa transações interativas do mesmo driver Neon, com
+conexão WebSocket limitada à execução (Node 22+). Consultas comuns continuam
+por HTTP. Veja [atomicidade e retomada](docs/automacoes-atomicas-2026-09.md).
+
 `npm run build` produz `dist/`. A Vercel executa `npm run check` antes da publicação.
 Somente `dist/` é servido estaticamente; `api/` mantém as funções de servidor.
 Estilos e scripts têm nomes com hash. O build preserva a ordem e os nomes globais usados

@@ -11,13 +11,13 @@
 // As regras ficam em tabela, não em código, porque quem manda nelas é a operação —
 // dá para criar, editar e desativar sem deploy.
 
-import { neon } from '@neondatabase/serverless';
+import { bancoComTransacoes } from './server/transacao-automacoes.js';
 import { gruposProntos, moverAtividadeParaGrupo } from './server/grupos.js';
 
 
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
-  return neon(process.env.DATABASE_URL);
+  return bancoComTransacoes(process.env.DATABASE_URL);
 }
 
 export const GRUPOS = {
@@ -481,12 +481,32 @@ const casaGatilho = (gatilho, evento) => desencontroDoGatilho(gatilho, evento) =
 // Aplica as regras que casam com o evento. Devolve o que mudou, para o chamador
 // replicar no Monday enquanto ele ainda existir.
 export async function aplicar(sql, conteudoId, evento) {
+  return sql.comTransacao(tx => aplicarNaTransacao(tx, conteudoId, evento));
+}
+
+async function aplicarNaTransacao(sql, conteudoId, evento) {
   const item = (await sql`SELECT c.id, c.titulo, c.formato_chaves, c.status_chave, c.grupo_id, c.board_id,
       c.captacao_chave,
       (SELECT cl.nome FROM vybe_conteudo_clientes vcc JOIN vybe_clientes cl ON cl.id=vcc.cliente_id
         WHERE vcc.conteudo_id=c.id LIMIT 1) AS cliente
-    FROM vybe_conteudos c WHERE c.id=${conteudoId}`)[0];
+    FROM vybe_conteudos c WHERE c.id=${conteudoId} FOR UPDATE OF c`)[0];
   if (!item) return { aplicadas: [] };
+
+  // O bloqueio da atividade serializa tentativas simultâneas. Eventos nativos
+  // têm identidade durável: não reaplicamos depois de mudar o grupo nem após
+  // expirar a antiga janela de dois minutos.
+  if (evento.ocorrencia) {
+    const repetida = await sql`SELECT 1 FROM vybe_automacao_execucoes
+      WHERE conteudo_id=${item.id} AND (resultado->>'evento')::jsonb->>'ocorrencia'=${String(evento.ocorrencia)} LIMIT 1`;
+    if (repetida.length) return { aplicadas: [], paraOMonday: {grupo:null,colunas:{}} };
+  }
+
+  if (evento.tipo === 'status' && /^\d+$/.test(String(evento.ocorrencia || ''))) {
+    const [atual] = await sql`SELECT id FROM vybe_conteudo_eventos
+      WHERE conteudo_id=${item.id} AND tipo='status' ORDER BY id DESC LIMIT 1`;
+    if (String(atual?.id) !== String(evento.ocorrencia) || item.status_chave !== evento.para)
+      throw new Error('A atividade mudou antes do encaminhamento. Confira a etapa atual.');
+  }
 
   const regras = await sql`SELECT * FROM vybe_automacoes WHERE ativa ORDER BY ordem, id`;
   const aplicadas = [];
@@ -528,6 +548,7 @@ export async function aplicar(sql, conteudoId, evento) {
         // Number(null) daria 0, que e o numero de outra etiqueta.
         const alvo = (await sql`SELECT monday_index, rotulo FROM vybe_status
           WHERE chave=${acao.para} AND board_id=${item.board_id}`)[0];
+        if (!alvo) throw new Error('Status da automação não encontrado neste quadro.');
         if (alvo && alvo.monday_index !== null && alvo.monday_index !== undefined) {
           paraOMonday.colunas.status = { index: Number(alvo.monday_index) };
         }
@@ -557,6 +578,9 @@ export async function aplicar(sql, conteudoId, evento) {
           if (!autor?.monday_user_id) { feitas.push('sem registro de quem mandou aprovar'); continue; }
           pessoas = [String(autor.monday_user_id)];
         }
+        pessoas = [...new Set(pessoas.map(String))];
+        const existentes = await sql`SELECT monday_user_id FROM vybe_pessoas WHERE monday_user_id=ANY(${pessoas}::text[]) AND COALESCE(ativo,true)`;
+        if (existentes.length !== pessoas.length) throw new Error('Responsável da automação não encontrado ou inativo. Revise a regra.');
         if (acao.modo === 'replace') await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${item.id}`;
         // 'add' entra depois de quem já está: a ordem define o responsável
         // principal, e quem foi chamado para ajudar não vira dono da peça.
@@ -588,6 +612,7 @@ export async function aplicar(sql, conteudoId, evento) {
         feitas.push('notificação');
       } else if (acao.tipo === 'captacao') {
         const cap = (await sql`SELECT rotulo, monday_index FROM vybe_captacao WHERE chave=${acao.para}`)[0];
+        if (!cap) throw new Error('Captação da automação não encontrada.');
         await sql`UPDATE vybe_conteudos SET captacao_chave=${acao.para},
             captacao=${cap?.rotulo || null}, atualizado_em=NOW() WHERE id=${item.id}`;
         if (cap) paraOMonday.colunas.status_1__1 = { index: Number(cap.monday_index) };
@@ -636,14 +661,14 @@ async function chaveDaEtiqueta(sql, tipo, valor, boardId) {
 async function eventoParaDiagnostico(sql, item, pedido) {
   if (pedido.para || pedido.tipo === 'data') return pedido;
   const tipo = pedido.tipo === 'captacao' ? 'captacao' : 'status';
-  const ultima = (await sql`SELECT de, para, em FROM vybe_conteudo_eventos
+  const ultima = (await sql`SELECT id, de, para, em FROM vybe_conteudo_eventos
     WHERE conteudo_id = ${item.id} AND tipo = ${tipo}
-    ORDER BY em DESC LIMIT 1`)[0];
+    ORDER BY em DESC,id DESC LIMIT 1`)[0];
   if (ultima) {
     return { ...pedido, tipo,
       de: await chaveDaEtiqueta(sql, tipo, ultima.de, item.board_id),
       para: await chaveDaEtiqueta(sql, tipo, ultima.para, item.board_id),
-      em: ultima.em, origem: 'histórico' };
+      em: ultima.em, ocorrencia: String(ultima.id), origem: 'histórico' };
   }
   // Peca importada do Monday nao tem evento nosso, e ainda assim esta em algum
   // ponto. Responder pelo estado atual e util e precisa vir rotulado como tal:
@@ -809,6 +834,7 @@ export async function varrerAgenda(sql, hoje = new Date(), { seco = false } = {}
       if (seco) { avisados += 1; continue; }
       const { aplicadas } = await aplicar(sql, item.id, {
         tipo: 'data', campo, dias, para: regra.gatilho.para ?? null,
+        ocorrencia: `agenda:${dia}:${campo}:${dias}`,
       });
       if (aplicadas.length) avisados += 1;
     }

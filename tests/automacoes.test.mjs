@@ -145,7 +145,7 @@ async function bancoDoDiagnostico() {
       board_id bigint, grupo_id text, status_chave text, captacao_chave text, formato_chaves text[]);
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text);
     CREATE TABLE vybe_captacao (chave text primary key, rotulo text);
-    CREATE TABLE vybe_conteudo_eventos (conteudo_id int, tipo text, de text, para text,
+    CREATE TABLE vybe_conteudo_eventos (id serial primary key,conteudo_id int, tipo text, de text, para text,
       em timestamptz DEFAULT NOW());
     CREATE TABLE vybe_automacoes (id int primary key, nome text, ativa boolean, ordem int,
       gatilho jsonb, condicao jsonb, acoes jsonb);

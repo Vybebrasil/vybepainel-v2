@@ -93,7 +93,7 @@ test('lote mantém falhas explícitas e atualiza também calendário e contadore
 
 test('API exige sessão antes de mudar grupo ou responsáveis',async()=>{
  const {default:handler}=await import('../api/conteudo.js');
- for(const acao of ['grupo','responsaveis']){
+ for(const acao of ['grupo','responsaveis','retomar_encaminhamento']){
   let status,payload;const res={setHeader(){},status(s){status=s;return this;},json(p){payload=p;return this;}};
   await handler({method:'POST',headers:{},body:{acao,item:'vybe:1',grupo_id:'x',pessoas:[]}},res);
   assert.equal(status,401);assert.match(payload.error,/Entre no painel/);
