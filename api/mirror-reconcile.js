@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 import { varrerAgenda, recalcularPrioridades } from '../vybe_automacoes.js';
 import { registrarSnapshotOperacional, registrarSaude } from '../vybe_observabilidade.js';
 
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   if (!isCronAuthorized(req)) return res.status(401).json({ error: 'Reconciliação programada não autorizada.' });
 
-  const sql = neon(process.env.DATABASE_URL);
+  const sql = bancoComTransacoes(process.env.DATABASE_URL);
   try {
     let agenda = null;
     try { agenda = await varrerAgenda(sql); }

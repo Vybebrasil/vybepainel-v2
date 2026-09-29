@@ -16,7 +16,7 @@ import { substituirResponsaveis } from '../server/responsaveis.js';
 // Cada operação registra quem fez em vybe_conteudo_eventos. Até existir sessão,
 // a operação de vocês não tinha rastro de autoria nenhum.
 
-import { neon } from '@neondatabase/serverless';
+import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 import { quemChama } from '../vybe_acesso.js';
 import { aplicar } from '../vybe_automacoes.js';
 
@@ -28,7 +28,7 @@ const BOARD_DEMANDAS_ID = 8385559107;
 
 function database() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
-  return neon(process.env.DATABASE_URL);
+  return bancoComTransacoes(process.env.DATABASE_URL);
 }
 
 function referenciaLocal(item) {
@@ -53,6 +53,17 @@ async function pessoaDaSessao(sql, quem) {
   if (quem?.tipo !== 'sessao' || !quem.pessoa?.email) return null;
   const linhas = await sql`SELECT id FROM vybe_pessoas WHERE LOWER(email)=LOWER(${quem.pessoa.email})`;
   return linhas[0] ? Number(linhas[0].id) : null;
+}
+
+async function lerEstadoDoEncaminhamento(sql, conteudoId) {
+  const [estado] = await sql`SELECT c.grupo_id, c.etapa AS grupo, s.rotulo AS status, s.cor, s.borda, s.monday_index,
+          COALESCE(ARRAY(SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
+            JOIN vybe_pessoas p ON p.id = r.pessoa_id
+            WHERE r.conteudo_id = c.id ORDER BY r.ordem, p.nome), '{}') AS responsavel_ids
+        FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
+        WHERE c.id = ${conteudoId}`;
+  return estado ? { status: estado.status, status_color: estado.cor, status_border: estado.borda, status_index: estado.monday_index, grupo_id: estado.grupo_id || '', grupo: estado.grupo || '',
+                             responsavel_ids: (estado.responsavel_ids || []).map(String) } : null;
 }
 
 // ── status ────────────────────────────────────────────────────────────────────
@@ -125,18 +136,11 @@ export async function trocarStatus(sql, quem, { item, para }) {
       console.error('Automações falharam após troca de status:', erro.message);
     }
   }
-  // Uma regra pode ter mudado grupo/dono antes de falhar. Releia também nesse
-  // caso para a interface não conservar o estado anterior como se fosse atual.
+  // Após rollback, devolva o estado confirmado; a troca de status original
+  // permanece salva, enquanto os efeitos da automação foram revertidos.
   try {
     if (automacoes.length || automacao_pendente) {
-      const [estado] = await sql`SELECT c.grupo_id, c.etapa AS grupo, s.rotulo AS status, s.cor, s.borda, s.monday_index,
-          COALESCE(ARRAY(SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
-            JOIN vybe_pessoas p ON p.id = r.pessoa_id
-            WHERE r.conteudo_id = c.id ORDER BY r.ordem, p.nome), '{}') AS responsavel_ids
-        FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
-        WHERE c.id = ${conteudo.id}`;
-      if (estado) depois = { status: estado.status, status_color: estado.cor, status_border: estado.borda, status_index: estado.monday_index, grupo_id: estado.grupo_id || '', grupo: estado.grupo || '',
-                             responsavel_ids: (estado.responsavel_ids || []).map(String) };
+      depois = await lerEstadoDoEncaminhamento(sql, conteudo.id);
     }
   } catch (erro) {
     automacao_pendente = true;
@@ -147,6 +151,27 @@ export async function trocarStatus(sql, quem, { item, para }) {
            para: alvo.rotulo, replica_monday: replica, automacoes, depois, automacao_pendente };
 }
 
+
+// Retoma o evento existente: não cria outro status nem outro histórico.
+export async function retomarEncaminhamento(sql, { item, ocorrencia }) {
+  if (!/^\d+$/.test(String(ocorrencia || ''))) throw new Error('Informe o evento a retomar.');
+  return sql.comTransacao(async tx => {
+    const [c] = await tx`SELECT id, board_id, status_chave FROM vybe_conteudos
+      WHERE (monday_item_id=${String(item)} OR id=${referenciaLocal(item)}) AND removido_em IS NULL FOR UPDATE`;
+    if (!c || Number(c.board_id) !== BOARD_PRODUCAO) throw new Error('Encaminhamento disponível apenas para conteúdo de Produção.');
+    const [evento] = await tx`SELECT id, de, para FROM vybe_conteudo_eventos
+      WHERE conteudo_id=${c.id} AND tipo='status' ORDER BY id DESC LIMIT 1`;
+    if (!evento || String(evento.id) !== String(ocorrencia)) throw new Error('A atividade mudou de etapa. Reabra o diagnóstico antes de tentar novamente.');
+    const catalogo = await tx`SELECT chave,rotulo FROM vybe_status WHERE board_id=${c.board_id}`;
+    const chave = valor => catalogo.find(s => s.chave===valor || s.rotulo===valor)?.chave;
+    const para = chave(evento.para);
+    const [feita] = await tx`SELECT 1 FROM vybe_automacao_execucoes WHERE conteudo_id=${c.id}
+      AND (resultado->>'evento')::jsonb->>'ocorrencia'=${String(evento.id)} LIMIT 1`;
+    if (!feita && (!para || c.status_chave !== para)) throw new Error('O estado da atividade mudou. Confira a etapa antes de retomar.');
+    const resultado = feita ? {aplicadas:[]} : await aplicar(tx,c.id,{tipo:'status',de:chave(evento.de),para,ocorrencia:String(evento.id)});
+    return { automacoes:resultado.aplicadas, depois:await lerEstadoDoEncaminhamento(tx,c.id), ja_aplicada:!!feita };
+  });
+}
 
 // O que a automação mudou aqui precisa aparecer lá. Falha na réplica não desfaz
 // nada: a gravação local é a verdade, a cópia reconcilia depois.
@@ -905,6 +930,7 @@ export default async function handler(req, res) {
         throw erro;
       }
     }
+    if (acao === 'retomar_encaminhamento') return res.status(200).json({ok:true,acao,...(await retomarEncaminhamento(sql,corpo))});
     if (acao === 'status') {
       if (!corpo.para) return res.status(400).json({ error: 'Informe o status de destino.' });
       return res.status(200).json({ ok: true, acao, ...(await trocarStatus(sql, quem, { item, para: corpo.para })) });

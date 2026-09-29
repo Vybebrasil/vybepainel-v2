@@ -222,7 +222,7 @@ async function commitStatusChange(item, option) {
     } else applyOutboundItemPatch(item.id, {status:final.label,status_color:final.color,status_border:final.border,status_index:final.index}, 'status');
     closeStatusEditor();
     renderFocusUserPicker();
-    if (resposta.automacao_pendente) showToast('Status salvo, mas o encaminhamento automático não foi concluído. Confira responsável e grupo antes de continuar.', 'info', 12000);
+    if (resposta.automacao_pendente) showToast('Status salvo, mas o encaminhamento automático não foi concluído. Abra “por que não rodou?” para tentar o encaminhamento novamente.', 'info', 12000);
     else showToast(efeito || `✓ Status atualizado para ${final.label} · tela mantida no contexto atual`, 'ok', efeito ? 9000 : 4200);
     if (mesmaJanela()) {
       const dados = await fetchWorkspaceItem(item.id);

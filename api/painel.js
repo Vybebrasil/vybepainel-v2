@@ -9,7 +9,7 @@ import { unificarStatus } from '../server/catalogos.js';
 //   /api/painel?area=automacoes   as regras que antes só existiam no Monday
 //   /api/painel?area=notificacoes o que o sistema tem a dizer para quem entrou
 
-import { neon } from '@neondatabase/serverless';
+import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, baixarDoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
@@ -24,7 +24,7 @@ import { listarGrupos, gruposProntos, criarGrupo, editarGrupo, moverGrupoNaOrdem
 import { listarNotas, salvarNota, apagarNota, notasProntas,
   listarCadernos, renomearCaderno, apagarCaderno } from '../server/notas.js';
 
-const sql = () => neon(process.env.DATABASE_URL);
+const sql = () => bancoComTransacoes(process.env.DATABASE_URL);
 
 // ── automações ────────────────────────────────────────────────────────────────
 async function areaAutomacoes(req, res, quem) {

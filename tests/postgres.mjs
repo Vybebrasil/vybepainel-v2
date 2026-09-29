@@ -1,3 +1,4 @@
+import { sqlDaConexao } from '../server/transacao-automacoes.js';
 import { PGlite } from '@electric-sql/pglite';
 
 // Um banco vazio com a mesma interface do @neondatabase/serverless: quem testa
@@ -18,6 +19,7 @@ export function conexao() {
   sql.transaction=(queries)=>db.transaction(async(tx)=>{
     const out=[];for(const q of queries)out.push((await tx.query(q.text,q.params)).rows);return out;
   });
+  sql.comTransacao = executar => db.transaction(tx => executar(sqlDaConexao(tx)));
   return {db,sql};
 }
 

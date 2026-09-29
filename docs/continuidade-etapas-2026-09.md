@@ -1,5 +1,8 @@
 # Continuidade entre etapas — 29/09/2026
 
+Revisão posterior: [automações atômicas e retomada](automacoes-atomicas-2026-09.md)
+substitui a limitação de ações parcialmente gravadas descrita abaixo.
+
 ## Escopo e correções
 
 Revisão do fluxo de status de Produção, reutilizando o motor e as regras

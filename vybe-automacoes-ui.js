@@ -964,6 +964,7 @@ async function diagnosticarAutomacao(itemId, botao) {
       <p class="auto-diag-titulo">PELO STATUS</p>
       ${blocoDoDiagnostico(status, 'status')}
       <div class="workflow-actions">
+        ${Number(status.item?.board_id) === 7829537690 && /^\d+$/.test(status.evento?.ocorrencia || '') ? `<button type="button" class="workflow-secondary" data-item="${safeText(String(itemId))}" data-evento="${safeText(status.evento.ocorrencia)}" onclick="retomarEncaminhamentoDaPeca(this.dataset.item,this.dataset.evento,this)">Tentar encaminhamento novamente</button>` : ''}
         <button type="button" class="workflow-primary" onclick="closeWorkflowModal()">Entendi</button>
       </div>`);
   } catch (erro) {
@@ -971,4 +972,28 @@ async function diagnosticarAutomacao(itemId, botao) {
   } finally {
     if (botao) { botao.disabled = false; botao.textContent = 'por que não rodou?'; }
   }
+}
+
+// Reutiliza o diagnóstico e a escrita nativa; não cria outro evento de status.
+async function retomarEncaminhamentoDaPeca(itemId, ocorrencia, botao) {
+  const item = findOperationalItem(itemId);
+  if (!item || statusEmGravacao.has(String(itemId))) return;
+  statusEmGravacao.add(String(itemId));
+  const drawer = document.getElementById('workspace-drawer');
+  const modal = document.getElementById('workflow-modal');
+  let salvo = false;
+  if (botao) botao.disabled = true;
+  try {
+    const r = await tentarEscritaDupla(item,{acao:'retomar_encaminhamento',item:String(itemId),ocorrencia:String(ocorrencia),_devolve:true});
+    if (!r) throw new Error('O banco não confirmou o encaminhamento.');
+    salvo = true;
+    if (r.depois?.status) updateLocalStatus(itemId,{label:r.depois.status,color:r.depois.status_color,border:r.depois.status_border,index:r.depois.status_index});
+    aplicarEfeitoDaAutomacao(item,r);
+    renderOutboundItemPatch('encaminhamento');
+    if (document.getElementById('workflow-modal') === modal) closeWorkflowModal();
+    showToast(r.ja_aplicada ? 'Este encaminhamento já foi aplicado; nenhuma ação foi duplicada.' : r.automacoes?.length ? 'Encaminhamento concluído.' : 'Nenhuma regra ativa se aplica a esta etapa. Confira o diagnóstico.', r.automacoes?.length ? 'ok' : 'info',8000);
+    await atualizarGavetaPreservandoRascunhos(item,drawer);
+  } catch (erro) {
+    showToast(salvo ? 'Encaminhamento confirmado. Reabra a atividade para atualizar os detalhes.' : `Não foi possível retomar: ${erro.message}`, salvo ? 'info' : 'err',9000);
+  } finally { statusEmGravacao.delete(String(itemId)); if (botao) botao.disabled = false; }
 }
