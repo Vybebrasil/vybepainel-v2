@@ -73,6 +73,8 @@ function fraseDoLog(ev = {}, { demanda = false } = {}) {
     case 'restauracao': return { categoria: 'tudo', frase: 'restaurou a peça' };
     case 'briefing':
       return { categoria: 'tudo', frase: para ? (de ? 'editou o briefing' : 'adicionou o briefing') : 'apagou o briefing' };
+    case 'automacao_falha':
+      return { categoria: 'tudo', frase: `não concluiu o encaminhamento automático: ${safeText(para || '')}` };
     case 'automacao':
       return { categoria: 'tudo', frase: `aplicou a regra ${b(texto || '')}${para ? `: ${safeText(para)}` : ''}` };
     default:

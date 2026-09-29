@@ -1,3 +1,4 @@
+import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
@@ -29,6 +30,7 @@ const sql = () => bancoComTransacoes(process.env.DATABASE_URL);
 // ── automações ────────────────────────────────────────────────────────────────
 async function areaAutomacoes(req, res, quem) {
   if (req.method === 'GET') {
+    if (req.query?.falhas === '1') return res.status(200).json({ok:true,falhas:await listarFalhasDeEncaminhamento(sql())});
     if (req.query?.historico === '1') {
       return res.status(200).json({ ok: true, execucoes: await execucoes({
         limite: Math.min(Number(req.query?.limite) || 60, 200),
