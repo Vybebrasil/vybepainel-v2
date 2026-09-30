@@ -53,7 +53,7 @@ export async function listarFalhasDeEncaminhamento(sql) {
     JOIN vybe_conteudo_eventos e ON e.id::text=f.de AND e.conteudo_id=c.id AND e.tipo='status'
     LEFT JOIN LATERAL (SELECT MIN(x.em) AS em FROM vybe_automacao_execucoes x
       WHERE x.conteudo_id=c.id AND (x.resultado->>'evento')::jsonb->>'ocorrencia'=f.de) resolucao ON true
-    WHERE c.board_id=7829537690
+    WHERE c.board_id IN (7829537690,8385559107)
   ) SELECT *,COUNT(*) OVER()::int AS total FROM fila
     ORDER BY (estado='pendente') DESC,ultima_falha_em DESC,ocorrencia DESC LIMIT 100`;
 }

@@ -125,7 +125,7 @@ export async function trocarStatus(sql, quem, { item, para }) {
   let automacao_pendente = false;
   let automacao_falha_registrada = null;
   try {
-    if (Number(conteudo.board_id) !== BOARD_PRODUCAO) throw { pular: true };
+    if (![BOARD_PRODUCAO, BOARD_DEMANDAS_ID].includes(Number(conteudo.board_id))) throw { pular: true };
     const r = await aplicar(sql, conteudo.id, {
       tipo: 'status', de: conteudo.status_chave, para: alvo.chave,
       ocorrencia: String(eventos[0].id),
@@ -162,7 +162,7 @@ export async function retomarEncaminhamento(sql, { item, ocorrencia }) {
   try { return await sql.comTransacao(async tx => {
     const [c] = await tx`SELECT id, board_id, status_chave FROM vybe_conteudos
       WHERE (monday_item_id=${String(item)} OR id=${referenciaLocal(item)}) AND removido_em IS NULL FOR UPDATE`;
-    if (!c || Number(c.board_id) !== BOARD_PRODUCAO) throw new Error('Encaminhamento disponível apenas para conteúdo de Produção.');
+    if (!c || ![BOARD_PRODUCAO, BOARD_DEMANDAS_ID].includes(Number(c.board_id))) throw new Error('Encaminhamento disponível apenas para Produção e Demandas.');
     const [evento] = await tx`SELECT id, de, para FROM vybe_conteudo_eventos
       WHERE conteudo_id=${c.id} AND tipo='status' ORDER BY id DESC LIMIT 1`;
     if (!evento || String(evento.id) !== String(ocorrencia)) throw new Error('A atividade mudou de etapa. Reabra o diagnóstico antes de tentar novamente.');

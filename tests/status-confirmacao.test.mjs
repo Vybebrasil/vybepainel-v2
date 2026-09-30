@@ -167,7 +167,7 @@ test('rollback integral, retomada e repetição tardia não duplicam notas ou no
  assert.equal((await sql`SELECT * FROM vybe_conteudo_eventos WHERE tipo='status'`).length,1);
  await trocarStatus(sql,null,{item:'vybe:1',para:'alteracao'});
  await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:e.id}),/mudou de etapa/);
- await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:2',ocorrencia:e.id}),/apenas para conteúdo/);
+ await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:2',ocorrencia:e.id}),/apenas para Produção e Demandas/);
  }finally{await db.close();}
 });
 test('responsável inexistente reverte grupo e preserva dono anterior',async()=>{
@@ -237,4 +237,65 @@ test('fila não oferece retomada de evento antigo ou peça removida e distingue 
 test('motivo da fila não guarda mensagens de SQL, URLs ou segredos',()=>{
  assert.doesNotMatch(motivoDaFalha(new Error('postgresql://user:segredo@host select privado')),/segredo|privado|postgresql/);
  assert.match(motivoDaFalha({code:'55P03'}),/concorrência/);
+});
+
+import { BOARD_DEMANDAS, GRUPOS_DEMANDAS } from '../vybe_automacoes.js';
+async function prepararDemandas(db,sql){
+ await prepararPercurso(db,sql,'card');
+ for(const [chave,rotulo] of Object.entries({nova:'Nova demanda',para_orcar:'Para Orçar',em_orcamento:'Em Orçamento',em_impressao:'Em impressão',em_aprovacao:'Em Aprovação',alteracao:'Alteração',feito:'Feito'}))
+  await sql`INSERT INTO vybe_status(board_id,chave,rotulo) VALUES(${BOARD_DEMANDAS},${chave},${rotulo})`;
+ await sql`UPDATE vybe_conteudos SET board_id=${BOARD_DEMANDAS},grupo_id=${GRUPOS_DEMANDAS.a_fazer},etapa='A Fazer',status_chave='nova'`;
+}
+test('Demandas aciona regras reais de orçamento, impressão, alteração e conclusão',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararDemandas(db,sql);
+ let r=await trocarStatus(sql,null,{item:'vybe:1',para:'para_orcar'});
+ assert.equal(r.automacao_pendente,false);assert.equal(r.automacoes.length,1);
+ assert.equal(r.depois.grupo_id,GRUPOS_DEMANDAS.em_execucao);assert.equal(r.depois.grupo,'Em Execução');
+ assert.deepEqual(r.depois.responsavel_ids,['68035537']);
+ for(const para of ['em_orcamento','em_impressao']){
+  await sql`DELETE FROM vybe_conteudo_responsaveis`;
+  r=await trocarStatus(sql,null,{item:'vybe:1',para});
+  assert.equal(r.automacao_pendente,false);assert.deepEqual(r.depois.responsavel_ids,['68035537']);
+ }
+ await sql`INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para,autor_id) VALUES(1,'status','Em Aprovação',2)`;
+ r=await trocarStatus(sql,null,{item:'vybe:1',para:'alteracao'});
+ assert.deepEqual(r.depois.responsavel_ids,['68036697']);
+ r=await trocarStatus(sql,null,{item:'vybe:1',para:'feito'});
+ assert.deepEqual(r.depois.responsavel_ids,[]);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_clientes`).length,2);
+ }finally{await db.close();}
+});
+test('Demandas reverte encaminhamento incompleto, registra falha e retoma sem duplicar',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararDemandas(db,sql);
+ await sql`UPDATE vybe_pessoas SET ativo=false WHERE monday_user_id='68035537'`;
+ const r=await trocarStatus(sql,null,{item:'vybe:1',para:'para_orcar'});
+ assert.equal(r.automacao_pendente,true);assert.equal(r.automacao_falha_registrada,true);
+ assert.equal(r.depois.status,'Para Orçar');assert.equal(r.depois.grupo_id,GRUPOS_DEMANDAS.a_fazer);
+ assert.deepEqual(r.depois.responsavel_ids,['100']);
+ const [f]=await listarFalhasDeEncaminhamento(sql);
+ assert.equal(f.estado,'pendente');assert.equal(f.clientes,'A, B');
+ await sql`UPDATE vybe_pessoas SET ativo=true WHERE monday_user_id='68035537'`;
+ const retomada=await retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:f.ocorrencia});
+ assert.equal(retomada.depois.grupo_id,GRUPOS_DEMANDAS.em_execucao);
+ assert.deepEqual(retomada.depois.responsavel_ids,['68035537']);
+ assert.equal((await listarFalhasDeEncaminhamento(sql))[0].estado,'resolvida');
+ assert.equal((await retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:f.ocorrencia})).ja_aplicada,true);
+ assert.equal((await sql`SELECT * FROM vybe_automacao_execucoes`).length,1);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_eventos WHERE tipo='status'`).length,1);
+ }finally{await db.close();}
+});
+test('Demandas recusa retomada de evento superado ou atividade removida',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararDemandas(db,sql);await sql`UPDATE vybe_pessoas SET ativo=false WHERE monday_user_id='68035537'`;
+ await trocarStatus(sql,null,{item:'vybe:1',para:'para_orcar'});
+ const [f]=await listarFalhasDeEncaminhamento(sql);
+ await trocarStatus(sql,null,{item:'vybe:1',para:'em_orcamento'});
+ await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:f.ocorrencia}),/mudou de etapa/);
+ assert.equal((await listarFalhasDeEncaminhamento(sql)).find(x=>x.ocorrencia===f.ocorrencia).estado,'superada');
+ const [ultimo]=await sql`SELECT id FROM vybe_conteudo_eventos WHERE tipo='status' ORDER BY id DESC LIMIT 1`;
+ await sql`UPDATE vybe_conteudos SET removido_em=NOW()`;
+ await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:String(ultimo.id)}));
+ }finally{await db.close();}
 });
