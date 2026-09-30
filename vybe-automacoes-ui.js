@@ -279,7 +279,7 @@ function pintarAutomacoes() {
     </div>
     <section class="auto-falhas" aria-labelledby="auto-falhas-titulo">
       <div class="auto-cabeca"><div><h2 id="auto-falhas-titulo" class="auto-titulo">Encaminhamentos com falha</h2>
-        <p class="auto-sub">Status de Produção · Falhas registradas a partir desta versão. Resolvidas permanecem no histórico. Até 100 ocorrências, com pendentes primeiro.</p></div>
+        <p class="auto-sub">Status de Produção e Demandas · Falhas registradas a partir desta versão. Resolvidas permanecem no histórico. Até 100 ocorrências, com pendentes primeiro.</p></div>
         <button type="button" class="auto-sincronizar" onclick="carregarFalhasAutomacoes()">Atualizar falhas</button></div>
       <div id="auto-falhas-lista" aria-live="polite"><p class="auto-carregando">Carregando falhas…</p></div>
     </section>
@@ -1007,7 +1007,7 @@ async function diagnosticarAutomacao(itemId, botao) {
       <p class="auto-diag-titulo">PELO STATUS</p>
       ${blocoDoDiagnostico(status, 'status')}
       <div class="workflow-actions">
-        ${Number(status.item?.board_id) === 7829537690 && /^\d+$/.test(status.evento?.ocorrencia || '') ? `<button type="button" class="workflow-secondary" data-item="${safeText(String(itemId))}" data-evento="${safeText(status.evento.ocorrencia)}" onclick="retomarEncaminhamentoDaPeca(this.dataset.item,this.dataset.evento,this)">Tentar encaminhamento novamente</button>` : ''}
+        ${[7829537690,8385559107].includes(Number(status.item?.board_id)) && /^\d+$/.test(status.evento?.ocorrencia || '') ? `<button type="button" class="workflow-secondary" data-item="${safeText(String(itemId))}" data-evento="${safeText(status.evento.ocorrencia)}" onclick="retomarEncaminhamentoDaPeca(this.dataset.item,this.dataset.evento,this)">Tentar encaminhamento novamente</button>` : ''}
         <button type="button" class="workflow-primary" onclick="closeWorkflowModal()">Entendi</button>
       </div>`);
   } catch (erro) {

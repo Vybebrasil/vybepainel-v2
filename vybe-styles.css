@@ -646,7 +646,7 @@
     .focus-task-open { appearance:none;border:0;padding:0;background:transparent;color:#f3d6b9;font:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,107,0,.38);text-underline-offset:3px}
     .focus-task-open:hover { color:#ffb000;text-shadow:none}
     .workspace-backdrop { position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(5px)}
-    .workspace-drawer { position:fixed;z-index:501;right:0;top:0;bottom:0;width:min(640px,100vw);padding:26px;overflow-y:auto;background:linear-gradient(145deg,#150801,#070403 60%);border-left:1px solid rgba(255,107,0,.32);box-shadow:-20px 0 60px rgba(0,0,0,.5);color:#fff4e8}
+    .workspace-drawer { position:fixed;z-index:501;right:0;top:0;bottom:0;width:min(640px,100vw);padding:26px;overflow-y:auto;overscroll-behavior-y:contain;background:linear-gradient(145deg,#150801,#070403 60%);border-left:1px solid rgba(255,107,0,.32);box-shadow:-20px 0 60px rgba(0,0,0,.5);color:#fff4e8}
     .workspace-kicker { display:flex;align-items:center;justify-content:space-between;gap:12px;color:#ffb000;font:700 10px var(--mac-ui)}
     .workspace-close { appearance:none;border:1px solid rgba(255,176,0,.25);background:rgba(255,107,0,.08);color:#ffb000;border-radius:6px;padding:6px 8px;cursor:pointer;font:700 16px var(--mac-ui)}
     .workspace-client { margin-top:20px;color:#ffb000;font:700 11px var(--mac-ui)}.workspace-title{margin:6px 0 14px;color:#fff8f2;font:700 clamp(20px,3vw,28px) var(--mac-ui);line-height:1.15}
@@ -1360,7 +1360,10 @@ header,.topbar{
 /* Workspace e modais: plano de decisão limpo e prévia protagonista. */
 .workspace-backdrop,.workflow-backdrop,.production-sheet-overlay,.meeting-mode-overlay,.cadastros-preview-overlay{background:rgba(4,5,9,.68)!important;backdrop-filter:blur(18px) saturate(1.08)!important}
 .workspace-drawer,.workflow-modal,.production-sheet,.meeting-mode-sheet,.cadastros-preview-modal,.da-member-workload-modal{
-  border:1px solid var(--linha);border-radius:var(--vybe-radius-overlay);background:var(--sup-1);box-shadow:var(--vybe-shadow-2),inset 0 1px 0 rgba(255,255,255,.06);overflow:hidden}
+  border:1px solid var(--linha);border-radius:var(--vybe-radius-overlay);background:var(--sup-1);box-shadow:var(--vybe-shadow-2),inset 0 1px 0 rgba(255,255,255,.06)}
+.workflow-modal,.production-sheet,.meeting-mode-sheet,.cadastros-preview-modal,.da-member-workload-modal{overflow:hidden}
+/* A gaveta tem rolagem própria; o bloqueio acompanha sua presença no DOM. */
+html:has(body>.workspace-drawer),body:has(>.workspace-drawer){overflow:hidden;overscroll-behavior:none}
 .workspace-drawer-head,.workflow-kicker,.production-sheet-head,.meeting-head{border-bottom-color:var(--vybe-line)!important;background:rgba(255,255,255,.018)!important}.workspace-close,.workflow-close,.production-sheet-close,.meeting-head button,.cadastros-preview-close{border-radius:10px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.045)!important;color:#e7ecf5!important}
 .workspace-asset,.workspace-delivery-dock,.workspace-checkin,.workspace-decision-memory{border:1px solid var(--vybe-line)!important;border-radius:12px!important;background:rgba(255,255,255,.026)!important}.workspace-asset-preview{border-radius:10px!important;overflow:hidden!important;background:#080b10!important}.workspace-action,.workspace-asset-open,.workspace-asset-remove,.workspace-delivery-open,.workspace-delivery-copy-btn,.workspace-delivery-focus{border-radius:10px!important}
 .workflow-title,.workspace-title,.production-sheet-head b{font-family:var(--mac-ui)!important;letter-spacing:-.025em!important}.workflow-copy,.workspace-copy{font-family:var(--mac-ui)!important;color:var(--vybe-muted)!important}

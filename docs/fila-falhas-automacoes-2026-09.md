@@ -39,3 +39,21 @@ mostradas, com pendentes primeiro e total explícito.
   validada nos testes PostgreSQL isolados. Sem gravações de teste em produção.
 
 Esta mudança permanece local até publicação solicitada e checklist de deploy.
+
+## Ampliação para Demandas — 30/09/2026 (local)
+
+A troca de status de Demandas passa pelo mesmo motor transacional de Produção.
+Orçamento, impressão, devolução de alterações e conclusão usam as regras existentes.
+Falhas de status de ambos os quadros aparecem na mesma fila; diagnóstico e retomada
+aceitam Demandas e preservam a ocorrência original. Não há migração nem reprocessamento
+retroativo. Captação permanece fora desta ampliação.
+
+Verificação: `npm run check` aprovado com 221 testes, incluindo três regressões de
+Demandas em PGlite (regras reais, rollback, fila, retomada sem duplicação e recusa de
+eventos superados/atividades removidas). Nenhuma escrita de teste em produção.
+
+Na gaveta, a regra compartilhada de materiais deixou de impor `overflow:hidden` à
+lateral. Rolagem vertical e contenção ficam na regra original da gaveta; o documento
+fica bloqueado apenas enquanto ela existir no DOM. Conferidos localmente conteúdo e
+solicitação, desktop e 390 px, rolagem da lateral, fundo estável e liberação ao fechar.
+Build e `git diff --check` aprovados após a correção de CSS; console sem erros.
