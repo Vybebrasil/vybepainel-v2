@@ -1,3 +1,4 @@
+import { registrarFalhaDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { substituirClientes } from '../server/clientes-conteudo.js';
 import { substituirResponsaveis } from '../server/responsaveis.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
@@ -122,6 +123,7 @@ export async function trocarStatus(sql, quem, { item, para }) {
   // rodou — foi exatamente a queixa que chegou da mesa de planejamento.
   let depois = null;
   let automacao_pendente = false;
+  let automacao_falha_registrada = null;
   try {
     if (Number(conteudo.board_id) !== BOARD_PRODUCAO) throw { pular: true };
     const r = await aplicar(sql, conteudo.id, {
@@ -133,7 +135,8 @@ export async function trocarStatus(sql, quem, { item, para }) {
   } catch (erro) {
     if (!erro?.pular) {
       automacao_pendente = true;
-      console.error('Automações falharam após troca de status:', erro.message);
+      automacao_falha_registrada = await registrarFalhaDeEncaminhamento(sql,conteudo.id,eventos[0].id,erro);
+      console.error('Automações falharam após troca de status.');
     }
   }
   // Após rollback, devolva o estado confirmado; a troca de status original
@@ -148,14 +151,15 @@ export async function trocarStatus(sql, quem, { item, para }) {
   }
 
   return { conteudo_id: conteudo.id, titulo: conteudo.titulo, de: conteudo.de,
-           para: alvo.rotulo, replica_monday: replica, automacoes, depois, automacao_pendente };
+           para: alvo.rotulo, replica_monday: replica, automacoes, depois, automacao_pendente, automacao_falha_registrada };
 }
 
 
-// Retoma o evento existente: não cria outro status nem outro histórico.
+// Retoma o evento existente: não cria outra mudança de status.
 export async function retomarEncaminhamento(sql, { item, ocorrencia }) {
   if (!/^\d+$/.test(String(ocorrencia || ''))) throw new Error('Informe o evento a retomar.');
-  return sql.comTransacao(async tx => {
+  let falhaDoMotor = null;
+  try { return await sql.comTransacao(async tx => {
     const [c] = await tx`SELECT id, board_id, status_chave FROM vybe_conteudos
       WHERE (monday_item_id=${String(item)} OR id=${referenciaLocal(item)}) AND removido_em IS NULL FOR UPDATE`;
     if (!c || Number(c.board_id) !== BOARD_PRODUCAO) throw new Error('Encaminhamento disponível apenas para conteúdo de Produção.');
@@ -168,9 +172,14 @@ export async function retomarEncaminhamento(sql, { item, ocorrencia }) {
     const [feita] = await tx`SELECT 1 FROM vybe_automacao_execucoes WHERE conteudo_id=${c.id}
       AND (resultado->>'evento')::jsonb->>'ocorrencia'=${String(evento.id)} LIMIT 1`;
     if (!feita && (!para || c.status_chave !== para)) throw new Error('O estado da atividade mudou. Confira a etapa antes de retomar.');
+    falhaDoMotor = {id:c.id,evento:evento.id};
     const resultado = feita ? {aplicadas:[]} : await aplicar(tx,c.id,{tipo:'status',de:chave(evento.de),para,ocorrencia:String(evento.id)});
     return { automacoes:resultado.aplicadas, depois:await lerEstadoDoEncaminhamento(tx,c.id), ja_aplicada:!!feita };
-  });
+  }); } catch (erro) {
+    // Fora da transação que acabou de reverter: a falha precisa sobreviver.
+    if (falhaDoMotor) await registrarFalhaDeEncaminhamento(sql,falhaDoMotor.id,falhaDoMotor.evento,erro);
+    throw erro;
+  }
 }
 
 // O que a automação mudou aqui precisa aparecer lá. Falha na réplica não desfaz

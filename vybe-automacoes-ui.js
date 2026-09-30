@@ -68,6 +68,7 @@ async function carregarAutomacoes() {
     await REGRAS_CARREGADAS;
     pintarAutomacoes();
     carregarHistorico();
+    carregarFalhasAutomacoes();
   } catch (erro) {
     REGRAS_CARREGADAS = null;
     if (raiz) raiz.innerHTML = `<div class="auto-carregando">Não foi possível carregar<br><small>${safeText(erro.message)}</small></div>`;
@@ -276,6 +277,12 @@ function pintarAutomacoes() {
         <button class="auto-novo" onclick="editarAutomacao(null)">+ Nova regra</button>
       </div>` : ''}
     </div>
+    <section class="auto-falhas" aria-labelledby="auto-falhas-titulo">
+      <div class="auto-cabeca"><div><h2 id="auto-falhas-titulo" class="auto-titulo">Encaminhamentos com falha</h2>
+        <p class="auto-sub">Status de Produção · Falhas registradas a partir desta versão. Resolvidas permanecem no histórico. Até 100 ocorrências, com pendentes primeiro.</p></div>
+        <button type="button" class="auto-sincronizar" onclick="carregarFalhasAutomacoes()">Atualizar falhas</button></div>
+      <div id="auto-falhas-lista" aria-live="polite"><p class="auto-carregando">Carregando falhas…</p></div>
+    </section>
     <div class="auto-pastilhas">${pastilhas}</div>
     ${temRegraDeData ? `<p class="auto-aviso-varredura">As regras por data rodam numa
       varredura por dia, de madrugada — não na hora que estiver escrita nelas.</p>` : ''}
@@ -299,6 +306,41 @@ function filtrarRegras(chave) {
   FILTRO_DE_REGRAS = FILTRO_DE_REGRAS === chave && chave !== 'todas' ? 'todas' : chave;
   pintarAutomacoes();
   carregarHistorico();
+  carregarFalhasAutomacoes();
+}
+
+// A lista pertence à instância da tela: uma resposta antiga não repinta outra abertura.
+async function carregarFalhasAutomacoes() {
+  const caixa = document.getElementById('auto-falhas-lista');
+  if (!caixa) return;
+  const pedido = String(Number(caixa.dataset.pedido || 0) + 1);
+  caixa.dataset.pedido = pedido;
+  caixa.innerHTML = '<p class="auto-carregando">Carregando falhas…</p>';
+  try {
+    const r = await fetch(`${AUTOMACOES_API}&falhas=1`,{credentials:'same-origin'});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d?.error || 'Falha ao consultar encaminhamentos.');
+    if (document.getElementById('auto-falhas-lista') !== caixa || caixa.dataset.pedido !== pedido) return;
+    const falhas = d.falhas || [];
+    if (!falhas.length) { caixa.innerHTML = '<p class="auto-carregando">Nenhuma falha de encaminhamento registrada.</p>'; return; }
+    const data = valor => new Date(valor).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const nomes = {pendente:'Pendente',resolvida:'Resolvida',superada:'Etapa alterada',removida:'Atividade removida'};
+    caixa.innerHTML = `<p class="auto-sub">Exibindo ${falhas.length} de ${Number(falhas[0].total) || falhas.length} ocorrências.</p>` + falhas.map(f => `
+      <article class="auto-falha-linha">
+        <div class="auto-falha-peca">${safeText(f.titulo)}<small>${safeText(f.clientes)}</small>
+          <small>${safeText(f.status_anterior || '—')} → ${safeText(f.status_destino || '—')}</small></div>
+        <div class="auto-falha-motivo"><strong>${safeText(nomes[f.estado] || 'Indisponível')}</strong>
+          <p>${safeText(f.motivo)}</p><small>${Number(f.tentativas)} tentativa(s) com falha · ${safeText(data(f.ultima_falha_em))}</small>
+          ${f.resolvida_em ? `<small>Resolvida em ${safeText(data(f.resolvida_em))}</small>` : f.estado === 'superada' ? '<small>A etapa atual impede retomar este evento antigo.</small>' : ''}</div>
+        <div class="auto-falha-acoes">
+          ${f.estado !== 'removida' ? `<button type="button" class="auto-sincronizar" data-item="${safeText(f.item)}" onclick="diagnosticarAutomacao(this.dataset.item,this)">Ver diagnóstico</button>` : ''}
+          ${f.estado === 'pendente' ? `<button type="button" class="auto-sincronizar" data-item="${safeText(f.item)}" data-evento="${safeText(f.ocorrencia)}" onclick="retomarEncaminhamentoDaPeca(this.dataset.item,this.dataset.evento,this)">Tentar novamente</button>` : ''}
+        </div>
+      </article>`).join('');
+  } catch (erro) {
+    if (document.getElementById('auto-falhas-lista') === caixa && caixa.dataset.pedido === pedido)
+      caixa.innerHTML = `<p class="auto-carregando" role="alert">Não foi possível consultar as falhas. ${safeText(erro.message)}</p>`;
+  }
 }
 
 // ── histórico ─────────────────────────────────────────────────────────────────
@@ -935,6 +977,7 @@ function blocoDoDiagnostico(r, tipo) {
 }
 
 async function diagnosticarAutomacao(itemId, botao) {
+  const rotuloOriginal = botao?.textContent;
   if (botao) { botao.disabled = true; botao.textContent = 'verificando…'; }
   try {
     // Os nomes das etiquetas vêm antes: sem eles a explicação sai em chave de
@@ -970,14 +1013,14 @@ async function diagnosticarAutomacao(itemId, botao) {
   } catch (erro) {
     showToast(`Não foi possível verificar as automações: ${erro.message}`, 'err', 7000);
   } finally {
-    if (botao) { botao.disabled = false; botao.textContent = 'por que não rodou?'; }
+    if (botao) { botao.disabled = false; botao.textContent = rotuloOriginal; }
   }
 }
 
 // Reutiliza o diagnóstico e a escrita nativa; não cria outro evento de status.
 async function retomarEncaminhamentoDaPeca(itemId, ocorrencia, botao) {
   const item = findOperationalItem(itemId);
-  if (!item || statusEmGravacao.has(String(itemId))) return;
+  if (statusEmGravacao.has(String(itemId))) return;
   statusEmGravacao.add(String(itemId));
   const drawer = document.getElementById('workspace-drawer');
   const modal = document.getElementById('workflow-modal');
@@ -987,13 +1030,16 @@ async function retomarEncaminhamentoDaPeca(itemId, ocorrencia, botao) {
     const r = await tentarEscritaDupla(item,{acao:'retomar_encaminhamento',item:String(itemId),ocorrencia:String(ocorrencia),_devolve:true});
     if (!r) throw new Error('O banco não confirmou o encaminhamento.');
     salvo = true;
-    if (r.depois?.status) updateLocalStatus(itemId,{label:r.depois.status,color:r.depois.status_color,border:r.depois.status_border,index:r.depois.status_index});
-    aplicarEfeitoDaAutomacao(item,r);
+    if (item && r.depois?.status) updateLocalStatus(itemId,{label:r.depois.status,color:r.depois.status_color,border:r.depois.status_border,index:r.depois.status_index});
+    if (item) aplicarEfeitoDaAutomacao(item,r);
     renderOutboundItemPatch('encaminhamento');
     if (document.getElementById('workflow-modal') === modal) closeWorkflowModal();
     showToast(r.ja_aplicada ? 'Este encaminhamento já foi aplicado; nenhuma ação foi duplicada.' : r.automacoes?.length ? 'Encaminhamento concluído.' : 'Nenhuma regra ativa se aplica a esta etapa. Confira o diagnóstico.', r.automacoes?.length ? 'ok' : 'info',8000);
-    await atualizarGavetaPreservandoRascunhos(item,drawer);
+    if (item) await atualizarGavetaPreservandoRascunhos(item,drawer);
   } catch (erro) {
     showToast(salvo ? 'Encaminhamento confirmado. Reabra a atividade para atualizar os detalhes.' : `Não foi possível retomar: ${erro.message}`, salvo ? 'info' : 'err',9000);
-  } finally { statusEmGravacao.delete(String(itemId)); if (botao) botao.disabled = false; }
+  } finally {
+    statusEmGravacao.delete(String(itemId)); if (botao) botao.disabled = false;
+    if (document.getElementById('auto-falhas-lista')) await carregarFalhasAutomacoes();
+  }
 }

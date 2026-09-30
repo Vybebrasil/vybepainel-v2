@@ -99,3 +99,11 @@ test('API exige sessão antes de mudar grupo ou responsáveis',async()=>{
   assert.equal(status,401);assert.match(payload.error,/Entre no painel/);
  }
 });
+
+
+test('fila de falhas exige autenticação antes de consultar o banco',async()=>{
+ const {default:handler}=await import('../api/painel.js');
+ let status;const res={setHeader(){},status(s){status=s;return this;},json(){return this;}};
+ await handler({method:'GET',headers:{},query:{area:'automacoes',falhas:'1'}},res);
+ assert.equal(status,401);
+});

@@ -44,7 +44,7 @@ async function banco(){
  const {db,sql}=conexao();await db.exec(`
  CREATE TABLE vybe_conteudos(id int primary key,monday_item_id text,board_id bigint,titulo text,status_chave text,status_em timestamptz,atualizado_em timestamptz,grupo_id text,etapa text,formato_chaves text[],captacao_chave text,removido_em timestamptz);
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int,cor text,borda text);
- CREATE TABLE vybe_conteudo_eventos(id serial primary key,conteudo_id int,tipo text,de text,para text,autor_id int,texto text);
+ CREATE TABLE vybe_conteudo_eventos(id serial primary key,conteudo_id int,tipo text,de text,para text,autor_id int,texto text,em timestamptz DEFAULT NOW());
  CREATE TABLE vybe_clientes(id int,nome text);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id int,cliente_id int);
  CREATE TABLE vybe_pessoas(id int,monday_user_id text,nome text,ativo boolean DEFAULT true);
@@ -156,7 +156,7 @@ test('rollback integral, retomada e repetição tardia não duplicam notas ou no
  let [c]=await sql`SELECT * FROM vybe_conteudos`;assert.equal(c.grupo_id,GRUPOS.producao);assert.equal(c.status_chave,'para_agendar');assert.equal(c.captacao_chave,null);
  assert.deepEqual((await sql`SELECT pessoa_id FROM vybe_conteudo_responsaveis`).map(x=>x.pessoa_id),[1]);
  for(const tabela of ['vybe_conteudo_updates','vybe_notificacoes','vybe_automacao_execucoes'])assert.equal((await sql.query('SELECT * FROM '+tabela)).length,0);
- assert.equal((await sql`SELECT * FROM vybe_conteudo_eventos`).length,1);
+ assert.equal((await sql`SELECT * FROM vybe_conteudo_eventos WHERE tipo='status'`).length,1);
  const [e]=await sql`SELECT id FROM vybe_conteudo_eventos WHERE tipo='status'`;
  await db.exec('ALTER TABLE vybe_automacao_execucoes DROP CONSTRAINT falha_final');
  const primeira=await retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:e.id});assert.equal(primeira.depois.status,'Agendado');
@@ -193,4 +193,48 @@ test('falha na segunda regra reverte a primeira e tarefa diária não duplica no
  await aplicar(sql,1,{...evento,ocorrencia:'agenda:2026-09-30:prazo:0'});
  assert.equal((await sql`SELECT * FROM vybe_notificacoes`).length,2);
  }finally{await db.close();}
+});
+
+
+import { listarFalhasDeEncaminhamento, motivoDaFalha, registrarFalhaDeEncaminhamento } from '../server/falhas-automacoes.js';
+test('fila durável agrupa tentativas, preserva clientes e só resolve com execução confirmada',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararPercurso(db,sql,'reels');
+ await db.exec("ALTER TABLE vybe_conteudo_updates ADD CONSTRAINT falhar CHECK(false)");
+ const r=await trocarStatus(sql,null,{item:'vybe:1',para:'para_agendar'});
+ assert.equal(r.automacao_falha_registrada,true);
+ let fila=await listarFalhasDeEncaminhamento(sql);assert.equal(fila.length,1);
+ const evento=fila[0].ocorrencia;
+ assert.equal(fila[0].estado,'pendente');assert.equal(fila[0].clientes,'A, B');assert.equal(fila[0].tentativas,1);
+ await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:evento}));
+ fila=await listarFalhasDeEncaminhamento(sql);assert.equal(fila.length,1);assert.equal(fila[0].tentativas,2);
+ await sql`UPDATE vybe_automacoes SET ativa=false`;
+ await retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:evento});
+ assert.equal((await listarFalhasDeEncaminhamento(sql))[0].estado,'pendente');
+ await sql`UPDATE vybe_automacoes SET ativa=true`;
+ await db.exec('ALTER TABLE vybe_conteudo_updates DROP CONSTRAINT falhar');
+ await retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:evento});
+ fila=await listarFalhasDeEncaminhamento(sql);assert.equal(fila[0].estado,'resolvida');assert.ok(fila[0].resolvida_em);
+ await retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:evento});
+ assert.equal((await listarFalhasDeEncaminhamento(sql))[0].tentativas,2);
+ }finally{await db.close();}
+});
+test('fila não oferece retomada de evento antigo ou peça removida e distingue banco indisponível',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararPercurso(db,sql,'reels');
+ await db.exec("DELETE FROM vybe_pessoas WHERE monday_user_id='80146924'");
+ await trocarStatus(sql,null,{item:'vybe:1',para:'para_agendar'});
+ const [f]=await listarFalhasDeEncaminhamento(sql);assert.match(f.motivo,/responsável/);
+ await trocarStatus(sql,null,{item:'vybe:1',para:'alteracao'});
+ assert.equal((await listarFalhasDeEncaminhamento(sql))[0].estado,'superada');
+ await sql`UPDATE vybe_conteudos SET removido_em=NOW()`;
+ assert.equal((await listarFalhasDeEncaminhamento(sql))[0].estado,'removida');
+ await db.exec('DROP TABLE vybe_conteudo_eventos');
+ await assert.rejects(listarFalhasDeEncaminhamento(sql));
+ assert.equal(await registrarFalhaDeEncaminhamento(sql,1,f.ocorrencia,new Error('falha')),false);
+ }finally{await db.close();}
+});
+test('motivo da fila não guarda mensagens de SQL, URLs ou segredos',()=>{
+ assert.doesNotMatch(motivoDaFalha(new Error('postgresql://user:segredo@host select privado')),/segredo|privado|postgresql/);
+ assert.match(motivoDaFalha({code:'55P03'}),/concorrência/);
 });

@@ -1768,6 +1768,19 @@ header,.topbar{
 .auto-construtor-botoes .auto-salvar:disabled{opacity:.35;cursor:not-allowed;transform:none;
   background:var(--sup-1);border-color:var(--linha);color:#6c6c74}
 
+/* Pendências reutilizam o painel e os controles de automações. */
+.auto-falhas{margin:24px 0;padding:20px;border:1px solid var(--linha);border-radius:18px;background:var(--sup-1)}
+.auto-falhas .auto-cabeca{gap:16px;margin-bottom:12px}
+.auto-falha-linha{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto;gap:20px;padding:18px 0;border-top:1px solid var(--linha);align-items:start;overflow-wrap:anywhere}
+.auto-falha-peca{font:600 14px/1.45 var(--mac-ui);color:var(--text);min-width:0}
+.auto-falha-peca small{display:block;margin-top:4px;font:500 12px/1.5 var(--mac-ui);color:var(--text-muted)}
+.auto-falha-motivo{font:500 13px/1.5 var(--mac-ui);color:var(--text)}
+.auto-falha-motivo p{margin:5px 0}
+.auto-falha-motivo small{display:block;color:var(--text-muted)}
+.auto-falha-acoes{display:flex;flex-wrap:wrap;gap:8px;max-width:210px}
+.auto-falha-acoes button:disabled{opacity:.5;cursor:wait}
+@media(max-width:820px){.auto-falhas{padding:16px}.auto-falha-linha{grid-template-columns:1fr;gap:12px}.auto-falha-acoes{max-width:none}}
+
 /* ── o registro ──────────────────────────────────────────────────────────── */
 .auto-hist{display:flex;flex-direction:column;gap:2px}
 .auto-hist-linha{display:grid;grid-template-columns:96px minmax(160px,1.4fr) minmax(140px,1.2fr) minmax(140px,1.4fr);
