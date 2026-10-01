@@ -223,7 +223,7 @@ function explicarFalhaDeArquivo(json, status, file) {
 // pedaco; por isso a barra de progresso, para a espera ter rosto.
 const PEDACO_DO_ENVIO = 2 * 1024 * 1024; // multiplo de 256 KB, como o Drive exige
 
-// Só metadados de arquivos já confirmados pelo Drive; nunca bytes ou credenciais.
+// Metadados e contexto criptografado de retomada; nunca bytes ou URL da sessão.
 // A chave inclui a pessoa logada. Sair da conta limpa o armazenamento pelo fluxo existente.
 function chaveRegistrosDeArquivo() {
   const pessoa = typeof sessaoAtual === 'function' ? sessaoAtual()?.id : null;
@@ -236,7 +236,7 @@ function registrosDeArquivoPendentes(chave = chaveRegistrosDeArquivo()) {
   if (REGISTROS_DE_ARQUIVO_EM_MEMORIA.has(chave)) return REGISTROS_DE_ARQUIVO_EM_MEMORIA.get(chave);
   try {
     const lista = JSON.parse(localStorage.getItem(chave) || '[]');
-    const validos = Array.isArray(lista) ? lista.filter(p => p && typeof p.item === 'string' && typeof p.drive_file_id === 'string' && typeof p.nome === 'string') : [];
+    const validos = Array.isArray(lista) ? lista.filter(p => p && typeof p.item === 'string' && (typeof p.drive_file_id === 'string' || typeof p.contexto === 'string') && typeof p.nome === 'string') : [];
     REGISTROS_DE_ARQUIVO_EM_MEMORIA.set(chave, validos);
     return validos;
   } catch { return []; }
@@ -250,8 +250,11 @@ function guardarRegistrosDeArquivo(lista, chave = chaveRegistrosDeArquivo()) {
 function pendenciasDeArquivoHtml(itemId) {
   const pendentes = registrosDeArquivoPendentes().filter(p => p.item === String(itemId));
   if (!pendentes.length) return '';
-  return `<div class="workspace-note" role="status"><b>Arquivos no Drive com registro pendente</b><p>Conclua o registro sem enviar os arquivos novamente.</p>${pendentes.map(p =>
-    `<p>${safeText(p.nome)} <button type="button" class="workspace-action" data-registro-drive="${safeText(p.drive_file_id)}" ${REGISTROS_DE_ARQUIVO_EM_ENVIO.has(`${chaveRegistrosDeArquivo()}:${p.item}:${p.drive_file_id}`) ? 'disabled aria-busy="true"' : ''} onclick="retomarRegistroDeArquivo(this.dataset.registroDrive)">${REGISTROS_DE_ARQUIVO_EM_ENVIO.has(`${chaveRegistrosDeArquivo()}:${p.item}:${p.drive_file_id}`) ? 'Registrando…' : 'Concluir registro'}</button></p>`).join('')}</div>`;
+  return `<div class="workspace-note" role="status"><b>Envios pendentes</b>${pendentes.map(p => {
+    const id = p.drive_file_id || p.contexto;
+    const ocupado = REGISTROS_DE_ARQUIVO_EM_ENVIO.has(`${chaveRegistrosDeArquivo()}:${p.item}:${id}`);
+    return `<p>${safeText(p.nome)} · ${p.drive_file_id ? 'Arquivo no Drive — registro pendente' : p.expirado ? 'Sessão expirada — confira a pasta no Drive' : 'Envio interrompido'} <button type="button" class="workspace-action" data-registro-drive="${safeText(id)}" ${ocupado ? 'disabled aria-busy="true"' : ''} onclick="retomarRegistroDeArquivo(this.dataset.registroDrive)">${ocupado ? 'Aguarde…' : p.drive_file_id ? 'Concluir registro' : p.expirado ? 'Descartar pendência' : p.reselecionar ? 'Selecionar arquivo original' : 'Retomar'}</button></p>`;
+  }).join('')}</div>`;
 }
 function mostrarPendenciasDeArquivo() {
   const area = document.getElementById('workspace-registros-pendentes');
@@ -271,70 +274,127 @@ async function concluirRegistroDeArquivo(pendente, chave) {
 }
 async function retomarRegistroDeArquivo(driveId) {
   const chave = chaveRegistrosDeArquivo();
-  const pendente = registrosDeArquivoPendentes(chave).find(p => p.item === String(activeWorkspaceItemId) && p.drive_file_id === driveId);
+  const pendente = registrosDeArquivoPendentes(chave).find(p => p.item === String(activeWorkspaceItemId) && (p.drive_file_id || p.contexto) === driveId);
   if (!pendente) return;
+  if (pendente.expirado) {
+    const confirmar = await perguntarNoPainel({ titulo: 'Descartar este envio expirado?',
+      texto: 'Confira a pasta no Drive antes de enviar de novo: o arquivo pode ter terminado sem confirmação. Isto remove somente a pendência deste navegador; não apaga arquivos no Drive.', confirmar: 'Descartar pendência' });
+    if (confirmar && chave === chaveRegistrosDeArquivo()) guardarRegistrosDeArquivo(registrosDeArquivoPendentes(chave).filter(p => p !== pendente), chave);
+    mostrarPendenciasDeArquivo();
+    return;
+  }
+  if (pendente.reselecionar && !pendente.drive_file_id) {
+    document.getElementById('workspace-file-input')?.click();
+    return;
+  }
   const trava = `${chave}:${pendente.item}:${driveId}`;
   if (REGISTROS_DE_ARQUIVO_EM_ENVIO.has(trava)) return;
   REGISTROS_DE_ARQUIVO_EM_ENVIO.add(trava);
   mostrarPendenciasDeArquivo();
   const drawer = document.getElementById('workspace-drawer');
   try {
+    if (!pendente.drive_file_id) {
+      const estado = await consultarEnvioDeArquivo(pendente, chave);
+      if (!estado.concluido) {
+        showToast(`Selecione novamente “${pendente.nome}” para retomar do trecho confirmado.`, 'info', 10000);
+        pendente.reselecionar = true;
+        atualizarPendenteDeArquivo(pendente, chave);
+        return;
+      }
+      confirmarArquivoEnviado(pendente, estado, chave);
+    }
     await concluirRegistroDeArquivo(pendente, chave);
     mostrarPendenciasDeArquivo();
     showToast('Arquivo registrado. Não foi necessário reenviar.', 'ok');
     try { await atualizarGavetaPreservandoRascunhos(findOperationalItem(pendente.item) || {id:pendente.item}, drawer); }
     catch { showToast('Registro salvo. Reabra a atividade para atualizar os detalhes.', 'info'); }
-  } catch (erro) { showToast(`Arquivo no Drive; registro ainda pendente. ${erro.message}`, 'err', 10000); }
+  } catch (erro) { showToast(`Não foi possível concluir. ${erro.message}`, 'err', 10000); }
   finally { REGISTROS_DE_ARQUIVO_EM_ENVIO.delete(trava); mostrarPendenciasDeArquivo(); }
 }
 
+function atualizarPendenteDeArquivo(pendente, chave) {
+  const lista = registrosDeArquivoPendentes(chave);
+  guardarRegistrosDeArquivo([...lista.filter(p => p !== pendente && !(pendente.contexto && p.contexto === pendente.contexto)), pendente], chave);
+}
+async function chamarEnvioDeArquivo(pendente, etapa, chave, extras = {}) {
+  if (chave !== chaveRegistrosDeArquivo()) throw new Error('A sessão mudou. Entre na conta que iniciou o envio.');
+  const res = await fetch('/api/painel?area=peca', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item: pendente.item, nome: pendente.nome, mime: pendente.mime,
+      contexto: pendente.contexto, etapa, ...extras }),
+  });
+  const d = await res.json().catch(() => ({}));
+  if (d.expirado) {
+    pendente.expirado = true;
+    atualizarPendenteDeArquivo(pendente, chave);
+    throw new Error('A sessão do Drive expirou. Confira a pasta no Drive; depois descarte a pendência na atividade para enviar novamente.');
+  }
+  if (!res.ok || d.ok === false) throw new Error(d.error || 'Não foi possível confirmar o envio. Tente retomar.');
+  return d;
+}
+async function consultarEnvioDeArquivo(pendente, chave) {
+  return chamarEnvioDeArquivo(pendente, 'consultar', chave);
+}
+function confirmarArquivoEnviado(pendente, estado, chave) {
+  if (!estado.id) throw new Error('O Drive não confirmou o arquivo. Tente retomar.');
+  pendente.drive_file_id = estado.id;
+  atualizarPendenteDeArquivo(pendente, chave);
+}
+async function assinaturaArquivo(file) {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+}
 async function enviarArquivoGrande(corpo, file, aoAndar) {
   const chave = chaveRegistrosDeArquivo();
   if (!chave) throw new Error('Entre novamente no painel antes de enviar arquivos.');
-  const anterior = registrosDeArquivoPendentes(chave).find(p => p.item === corpo.item && p.nome === file.name && p.bytes === file.size && p.modificado === file.lastModified && p.mime === file.type);
-  if (anterior) {
-    try { return await concluirRegistroDeArquivo(anterior, chave); }
-    catch (erro) { throw new Error(`Arquivo já no Drive; conclua o registro na atividade. ${erro.message}`); }
+  const travaSelecao = `${chave}:${corpo.item}:${file.name}:${file.size}:${file.lastModified}`;
+  if (REGISTROS_DE_ARQUIVO_EM_ENVIO.has(travaSelecao)) throw new Error('Este arquivo já está sendo enviado. Aguarde.');
+  REGISTROS_DE_ARQUIVO_EM_ENVIO.add(travaSelecao);
+  let trava;
+  try {
+    let pendente = registrosDeArquivoPendentes(chave).find(p => p.item === corpo.item && p.nome === file.name && p.bytes === file.size && p.modificado === file.lastModified && p.mime === file.type);
+    if (pendente?.drive_file_id) {
+      try { return await concluirRegistroDeArquivo(pendente, chave); }
+      catch (erro) { throw new Error(`Arquivo já no Drive; conclua o registro na atividade. ${erro.message}`); }
+    }
+    const assinatura = await assinaturaArquivo(file);
+    if (pendente && pendente.assinatura !== assinatura) throw new Error('O arquivo selecionado foi alterado. Selecione o original para retomar.');
+    let estado = { recebido: 0 };
+    if (!pendente) {
+      const abertura = await chamarEnvioDeArquivo(corpo, 'abrir', chave, { bytes: file.size });
+      if (!abertura.contexto) throw new Error('O servidor não confirmou a sessão de envio. Atualize a página.');
+      pendente = { ...corpo, contexto: abertura.contexto, bytes: file.size, modificado: file.lastModified, assinatura };
+      atualizarPendenteDeArquivo(pendente, chave);
+    }
+    trava = `${chave}:${pendente.item}:${pendente.contexto}`;
+    if (REGISTROS_DE_ARQUIVO_EM_ENVIO.has(trava)) { trava = null; throw new Error('Este envio está sendo consultado. Aguarde.'); }
+    REGISTROS_DE_ARQUIVO_EM_ENVIO.add(trava);
+    mostrarPendenciasDeArquivo();
+    // O servidor é a autoridade sobre o progresso, inclusive depois de resposta perdida.
+    estado = await consultarEnvioDeArquivo(pendente, chave);
+    let enviado = estado.recebido;
+    while (!estado.concluido) {
+      if (!Number.isSafeInteger(enviado) || enviado < 0 || enviado >= file.size) throw new Error('Progresso não confirmado. Tente retomar.');
+      const pedaco = file.slice(enviado, Math.min(enviado + PEDACO_DO_ENVIO, file.size));
+      const conteudo = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = () => reject(new Error('Não foi possível ler o arquivo local.'));
+        reader.readAsDataURL(pedaco);
+      });
+      estado = await chamarEnvioDeArquivo(pendente, 'parte', chave, { inicio: enviado, total: file.size, conteudo });
+      if (!estado.concluido && (!Number.isSafeInteger(estado.recebido) || estado.recebido <= enviado || estado.recebido > file.size)) throw new Error('O Drive não confirmou avanço. Tente retomar.');
+      enviado = estado.concluido ? file.size : estado.recebido;
+      if (typeof aoAndar === 'function') aoAndar(Math.round(enviado / file.size * 100));
+    }
+    confirmarArquivoEnviado(pendente, estado, chave);
+    try { return await concluirRegistroDeArquivo(pendente, chave); }
+    catch (erro) { throw new Error(`Arquivo no Drive; registro pendente. Use “Concluir registro” na atividade. ${erro.message}`); }
+  } finally {
+    REGISTROS_DE_ARQUIVO_EM_ENVIO.delete(travaSelecao);
+    if (trava) REGISTROS_DE_ARQUIVO_EM_ENVIO.delete(trava);
+    mostrarPendenciasDeArquivo();
   }
-  const abertura = await fetch('/api/painel?area=peca', {
-    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...corpo, etapa: 'abrir' }),
-  });
-  const dadosDaAbertura = await abertura.json().catch(() => ({}));
-  if (!abertura.ok || !dadosDaAbertura?.sessao) {
-    // Mesma traducao do envio pequeno: falha do Drive tem de dizer o que fazer.
-    throw new Error(explicarFalhaDeArquivo(dadosDaAbertura, abertura.status, file));
-  }
-
-  const total = file.size;
-  let enviado = 0;
-  let arquivo = null;
-  while (enviado < total) {
-    const pedaco = file.slice(enviado, Math.min(enviado + PEDACO_DO_ENVIO, total));
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(pedaco);
-    });
-    const parte = await fetch('/api/painel?area=peca', {
-      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...corpo, etapa: 'parte', sessao: dadosDaAbertura.sessao,
-                             inicio: enviado, total, conteudo: base64 }),
-    });
-    const d = await parte.json().catch(() => ({}));
-    if (!parte.ok) throw new Error(d?.error || `Envio interrompido em ${Math.round(enviado / 1048576)} MB.`);
-    enviado = d.concluido ? total : (Number(d.recebido) || enviado + pedaco.size);
-    if (typeof aoAndar === 'function') aoAndar(Math.min(100, Math.round((enviado / total) * 100)));
-    if (d.concluido) { arquivo = d; break; }
-  }
-  if (!arquivo?.id) throw new Error('O Drive não confirmou o arquivo no fim do envio.');
-
-  const pendente = { ...corpo, drive_file_id: arquivo.id, bytes: total, modificado: file.lastModified };
-  guardarRegistrosDeArquivo([...registrosDeArquivoPendentes(chave), pendente], chave);
-  try { return await concluirRegistroDeArquivo(pendente, chave); }
-  catch (erro) { throw new Error(`Arquivo no Drive; registro pendente. Use “Concluir registro” na atividade. ${erro.message}`); }
-  finally { mostrarPendenciasDeArquivo(); }
 }
 
 // VÁRIOS ARQUIVOS DE UMA VEZ.
