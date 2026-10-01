@@ -28,7 +28,7 @@ test('entrega e bastão sobrevivem a mais de 12 notas; falha de histórico rever
 });
 test('anexo e histórico revertem juntos; registro continua disponível sem liberação de prévia',async()=>{
  const {db,sql}=await database();try{
- await db.exec(`CREATE TABLE vybe_conteudo_arquivos(id serial primary key,conteudo_id int,nome text,extensao text,tamanho_bytes bigint,url_drive text,drive_file_id text,criado_em timestamptz,migrado_em timestamptz,previa_liberada_em timestamptz);
+ await db.exec(`CREATE TABLE vybe_conteudo_arquivos(id serial primary key,conteudo_id int,nome text,extensao text,tamanho_bytes bigint,url_drive text,drive_file_id text,criado_em timestamptz,migrado_em timestamptz,previa_liberada_em timestamptz,ausente_em timestamptz);
  ALTER TABLE vybe_conteudo_eventos ADD COLUMN em timestamptz; ALTER TABLE vybe_conteudo_eventos ADD CONSTRAINT falha CHECK(tipo <> 'anexo');`);
  const c=vm.createContext({sql:()=>sql,console:{warn(){}},garantirColunaDePrevia:async()=>{},tornarPublico:async()=>{throw Error('offline');}});
  vm.runInContext(painel.slice(painel.indexOf('async function registrarArquivoDaPeca'),painel.indexOf('async function anexarNaPeca')),c);

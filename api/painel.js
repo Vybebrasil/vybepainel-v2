@@ -588,17 +588,22 @@ async function registrarArquivoDaPeca(c, quem, { nome, driveId, bytes, link }) {
   try { await tornarPublico(String(driveId)); liberada = true; }
   catch (erro) { console.warn('Arquivo salvo, mas a previa nao ficou publica:', driveId, erro.message); }
   const ext = String(nome).includes('.') ? `.${String(nome).split('.').pop().toLowerCase()}` : null;
-  const [linhas] = await db.transaction([
-    db`INSERT INTO vybe_conteudo_arquivos
+  return db.comTransacao(async tx => {
+    // A atividade serializa tentativas simultâneas, inclusive uma resposta perdida.
+    await tx`SELECT id FROM vybe_conteudos WHERE id=${c.id} FOR UPDATE`;
+    const [existente] = await tx`SELECT id, tamanho_bytes, ausente_em FROM vybe_conteudo_arquivos
+      WHERE conteudo_id=${c.id} AND drive_file_id=${String(driveId)} ORDER BY id LIMIT 1`;
+    if (existente?.ausente_em) throw new Error('Este arquivo já foi removido; o registro não será restaurado por uma nova tentativa.');
+    if (existente) return { arquivo_id: existente.id, drive_file_id: String(driveId), bytes: Number(existente.tamanho_bytes) || null };
+    const [linha] = await tx`INSERT INTO vybe_conteudo_arquivos
       (conteudo_id,nome,extensao,tamanho_bytes,url_drive,drive_file_id,criado_em,migrado_em,previa_liberada_em)
       VALUES (${c.id},${String(nome)},${ext},${Number(bytes) || null},
         ${link || `https://drive.google.com/file/d/${driveId}/view`},${String(driveId)},NOW(),NOW(),
-        CASE WHEN ${liberada} THEN NOW() ELSE NULL END) RETURNING id`,
-    db`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para,autor_id,em)
-      VALUES (${c.id},'anexo',${String(nome)},${quem.tipo === 'sessao' ? quem.pessoa.id : null},NOW())`,
-  ]);
-  const linha = linhas[0];
-  return { arquivo_id: linha.id, drive_file_id: String(driveId), bytes: Number(bytes) || null };
+        CASE WHEN ${liberada} THEN NOW() ELSE NULL END) RETURNING id`;
+    await tx`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para,autor_id,em)
+      VALUES (${c.id},'anexo',${String(nome)},${quem.tipo === 'sessao' ? quem.pessoa.id : null},NOW())`;
+    return { arquivo_id: linha.id, drive_file_id: String(driveId), bytes: Number(bytes) || null };
+  });
 }
 
 async function anexarNaPeca(req, res, quem) {
