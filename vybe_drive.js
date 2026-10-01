@@ -187,22 +187,43 @@ export async function iniciarUploadNoDrive({ nome, mime, pastaId }) {
 //
 // O Content-Range diz ao Google onde aquele pedaco entra. Ele responde 308
 // enquanto falta coisa e 200 quando o arquivo fecha — so no fim vem o id.
+function validarSessaoUpload(sessao, total) {
+  const url = new URL(sessao);
+  if (url.protocol !== 'https:' || url.hostname !== 'www.googleapis.com' || url.port || url.username || url.password || url.pathname !== '/upload/drive/v3/files' || !url.searchParams.get('upload_id')) {
+    throw new Error('Endereço de envio inválido.');
+  }
+  if (!Number.isSafeInteger(total) || total <= 0 || total > 200 * 1024 * 1024) throw new Error('Tamanho de envio inválido.');
+}
+async function respostaUpload(r, total) {
+  if (r.status === 404 || r.status === 410) return { expirado: true, concluido: false };
+  if (r.status === 308) {
+    const range = r.headers.get('range');
+    const match = range && /^bytes=0-(\d+)$/.exec(range);
+    const recebido = range ? (match ? Number(match[1]) + 1 : NaN) : 0;
+    if (!Number.isSafeInteger(recebido) || recebido > total) throw new Error('Drive devolveu um progresso inválido.');
+    return { concluido: false, recebido };
+  }
+  if (!r.ok) throw new Error(`Drive recusou o envio (${r.status}). Tente retomar.`);
+  const d = await r.json();
+  if (!d.id) throw new Error('Drive não confirmou o arquivo. Tente retomar.');
+  return { concluido: true, id: d.id, link: d.webViewLink, bytes: total };
+}
+export async function consultarUploadNoDrive({ sessao, total }) {
+  exigirIntegracoesAtivas();
+  validarSessaoUpload(sessao, total);
+  return respostaUpload(await fetch(sessao, { method: 'PUT', redirect: 'manual',
+    headers: { 'Content-Length': '0', 'Content-Range': `bytes */${total}` }, body: Buffer.alloc(0) }), total);
+}
 export async function enviarParteNoDrive({ sessao, conteudo, inicio, total }) {
   exigirIntegracoesAtivas();
+  validarSessaoUpload(sessao, total);
   const bytes = Buffer.isBuffer(conteudo) ? conteudo : Buffer.from(String(conteudo), 'base64');
-  const fim = inicio + bytes.length - 1;
-  const r = await fetch(sessao, {
-    method: 'PUT',
-    headers: { 'Content-Length': String(bytes.length), 'Content-Range': `bytes ${inicio}-${fim}/${total}` },
+  if (!Number.isSafeInteger(inicio) || inicio < 0 || !bytes.length || bytes.length > 2 * 1024 * 1024 || inicio + bytes.length > total) throw new Error('Trecho de envio inválido.');
+  return respostaUpload(await fetch(sessao, {
+    method: 'PUT', redirect: 'manual',
+    headers: { 'Content-Length': String(bytes.length), 'Content-Range': `bytes ${inicio}-${inicio + bytes.length - 1}/${total}` },
     body: bytes,
-  });
-  if (r.status === 308) return { concluido: false, recebido: fim + 1 };
-  if (!r.ok) {
-    const d = await r.text().catch(() => '');
-    throw new Error(`Drive recusou o pedaço (${r.status}) ${String(d).slice(0, 120)}`);
-  }
-  const d = await r.json().catch(() => ({}));
-  return { concluido: true, id: d.id, link: d.webViewLink, bytes: total };
+  }), total);
 }
 
 export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {

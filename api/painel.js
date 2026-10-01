@@ -1,3 +1,4 @@
+import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.js';
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
@@ -12,7 +13,7 @@ import { unificarStatus } from '../server/catalogos.js';
 
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
-import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, baixarDoDrive } from '../vybe_drive.js';
+import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
@@ -609,27 +610,31 @@ async function registrarArquivoDaPeca(c, quem, { nome, driveId, bytes, link }) {
 async function anexarNaPeca(req, res, quem) {
   const { item, nome, mime, conteudo, etapa, drive_file_id: driveId, bytes } = req.body || {};
   if (!item || !nome) return res.status(400).json({ error: 'Informe item e nome do arquivo.' });
-  // Arquivo grande nao passa por aqui: a funcao aceita cerca de 4,5 MB por
-  // chamada e o base64 engorda o arquivo em um terco. Nessas, o servidor so abre
-  // a sessao e registra depois; os bytes vao do navegador direto para o Drive.
-  // Um pedaco de arquivo grande. Nao toca no banco: so repassa ao Drive e diz
-  // quanto ja entrou. O registro vem depois, na etapa 'registrar'.
-  if (etapa === 'parte') {
-    const { sessao, inicio, total } = req.body || {};
-    if (!sessao || !conteudo || typeof inicio !== 'number' || !total) {
-      return res.status(400).json({ error: 'Informe sessão, conteúdo, início e total.' });
-    }
-    return res.status(200).json({ ok: true,
-      ...(await enviarParteNoDrive({ sessao, conteudo, inicio: Number(inicio), total: Number(total) })) });
+  // Os trechos passam pela API; o contexto criptografado vincula a sessão à pessoa e à peça.
+  if (etapa === 'consultar' || etapa === 'parte') {
+    const { contexto, inicio } = req.body || {};
+    let dados;
+    if (contexto) {
+      try { dados = abrirContextoUpload(contexto, quem, item); }
+      catch (erro) { return res.status(400).json({ error: erro.message, ...(erro.code === 'UPLOAD_EXPIRADO' ? { expirado: true } : {}) }); }
+    } else if (etapa === 'parte') {
+      // Compatibilidade com páginas abertas antes desta versão; nunca persistir a URL.
+      dados = { sessao: req.body.sessao, total: req.body.total };
+    } else return res.status(400).json({ error: 'Informe o contexto do envio.' });
+    return res.status(200).json({ ok: true, ...(etapa === 'consultar'
+      ? await consultarUploadNoDrive(dados)
+      : await enviarParteNoDrive({ ...dados, conteudo, inicio })) });
   }
   if (etapa === 'abrir' || etapa === 'registrar') {
     const conteudoDaPeca = await pecaDoBanco(item);
     if (!conteudoDaPeca) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
     if (etapa === 'abrir') {
+      if (bytes != null && (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > 200 * 1024 * 1024)) return res.status(400).json({ error: 'Tamanho inválido.' });
       const pastaId = await pastaDoConteudo({ cliente: conteudoDaPeca.cliente,
         data: conteudoDaPeca.veiculacao || conteudoDaPeca.prazo });
       const sessao = await iniciarUploadNoDrive({ nome: String(nome), mime, pastaId });
-      return res.status(200).json({ ok: true, sessao });
+      return res.status(200).json({ ok: true, ...(bytes != null
+        ? { contexto: protegerUpload({ sessao, total: bytes, item: String(item) }, quem) } : { sessao }) });
     }
     if (!driveId) return res.status(400).json({ error: 'Informe o arquivo criado no Drive.' });
     return res.status(200).json({ ok: true,

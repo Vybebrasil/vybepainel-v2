@@ -83,3 +83,12 @@ do banco não foi revalidada nesta entrega. Variáveis de produção foram confe
 na publicação anterior desta sessão e permanecem inalteradas.
 Versão anterior: `aa63149b944cf2d60fa7d708489b82a0510d54d1`, deployment
 `3FW8w9kE9uhRs9487nSB4nSKCrf1`.
+
+## Retomada de trechos de upload — 01/10/2026
+
+241 testes e build aprovados; diff sem erros. Interface de Demandas conferida
+em desktop e 390 px e gaveta de Conteúdos na demo, sem uploads reais.
+Detalhes em [retomada-registro-arquivos.md](docs/retomada-registro-arquivos.md).
+Sem migração ou mudança de variáveis. Recuperação do banco não foi revalidada.
+Versão anterior: `8fc378f3f96f81ba690dcec05fc3090c4ed9f24d`, deployment
+`9Zr87GJLkruZWaf9uTFBA161dDsH`. CI deve confirmar o commit exato antes da integração.

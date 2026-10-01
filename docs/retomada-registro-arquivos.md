@@ -1,34 +1,46 @@
-# Retomada do registro de arquivos grandes
+# Retomada de arquivos grandes
 
-Depois da confirmação de conclusão do Drive, o navegador guarda os metadados
-necessários para registrar o anexo: atividade, ID do arquivo, nome, tipo, tamanho
-e data de modificação do arquivo local. Não guarda bytes, tokens ou URL da sessão
-de upload. A pendência é separada pela pessoa logada.
+Arquivos acima de 3 MB usam o envio em trechos existente. Antes do primeiro
+trecho, o navegador guarda atividade, nome, tipo, tamanho, data de modificação,
+SHA-256 e um contexto criptografado. Não guarda os bytes nem a URL da sessão.
+O contexto tem validade de sete dias e é vinculado no servidor à pessoa e à
+atividade; a sessão do Drive pode expirar antes disso.
 
-Se o registro falhar ou sua resposta se perder, a gaveta oferece **Concluir
-registro**. Recarregar a página preserva a pendência; selecionar novamente o
-mesmo arquivo tenta apenas o registro. A API existente continua autenticada.
-O servidor bloqueia a atividade durante a transação, reutiliza o registro pelo
-par atividade/ID do Drive e não repete o evento. Arquivo já removido não é
-restaurado. Não há alteração de schema nem limpeza de duplicatas históricas.
+Ao retomar, a API consulta o Drive com `Content-Range: bytes */total`. Só o
+`Range` confirmado pelo Drive determina o próximo trecho; ausência de Range
+significa zero bytes. Uma resposta de conclusão recupera o ID mesmo quando a
+última resposta do envio se perdeu. Não há repetição automática em loop.
 
-## Validação
+A gaveta mostra **Retomar**. Se ainda faltarem bytes, oferece **Selecionar
+arquivo original** usando o campo de upload existente. A assinatura confere
+que os bytes locais são os mesmos, além dos metadados. Selecionar novamente o
+mesmo arquivo também retoma sem abrir outra sessão. O cálculo SHA-256 lê o
+arquivo em memória (limite atual: 200 MB).
 
-Testes de navegador em VM cobrem recarga, nova seleção, falha de registro,
-resposta perdida, clique repetido, outra conta e storage indisponível. PGlite
-cobre repetição concorrente, um único evento e recusa de arquivo removido;
-o teste existente continua cobrindo rollback quando o histórico falha.
-Interface local conferida em Demandas e Conteúdos, incluindo 390 px e aviso
-visível com a aba Link selecionada. A recusa de escrita da demo mantém a
-pendência e permite tentar de novo. Nenhum arquivo real foi enviado ou removido.
+Após confirmação do Drive, **Concluir registro** resolve falhas do banco ou
+respostas perdidas sem reenviar bytes. O servidor bloqueia a atividade na
+transação e reutiliza o registro pelo par atividade/ID do Drive; não duplica o
+evento nem restaura um arquivo removido. Pendências antigas de registro
+continuam válidas. Páginas antigas podem terminar envios já iniciados.
 
-## Limites
+Sessão expirada não reinicia silenciosamente. A interface pede para conferir
+a pasta no Drive e permite descartar somente a pendência local, com confirmação,
+antes de novo envio. Isso não remove nenhum arquivo do Drive.
 
-- Recupera o registro após o navegador receber o ID final confirmado pelo Drive.
-  Não retoma pedaços incompletos nem recupera uma resposta final do Drive que
-  nunca chegou ao navegador.
-- Vale neste navegador. Sair da conta ou limpar os dados do site remove o storage
-  pelo fluxo de privacidade já existente; não há fila sincronizada entre aparelhos.
+## Verificação e limites
+
+Testes isolados cobrem recarga, offset confirmado, última resposta perdida,
+arquivo alterado, progresso parado, contexto adulterado, pessoa/atividade
+incorretas, expiração, endereço externo, registro idempotente e storage bloqueado.
+Não houve upload ou alteração de dados de produção. A interface de Demandas foi conferida em desktop e 390 px na demo local;
+a gaveta de Conteúdos também foi inspecionada. Sem erros de JavaScript
+registrados no navegador. Os testes de rede e persistência foram isolados.
+
+- Vale neste navegador e conta. Sair da conta ou limpar dados do site remove a
+  pendência pelo fluxo de privacidade existente. Não sincroniza entre aparelhos.
 - Sem storage disponível, mantém em memória e avisa para não fechar a aba.
-- O envio pequeno (até 3 MB), realizado integralmente pelo servidor, não usa
-  essa pendência no navegador; o registro no banco também é idempotente por ID.
+- Se a resposta de abertura da sessão se perder antes de receber o contexto,
+  nenhum byte foi enviado e não existe contexto local para retomar.
+- Até 3 MB, o envio integral pelo servidor não usa esta retomada.
+- Não há migração de schema. O endereço da sessão aceita apenas o endpoint
+  HTTPS de upload do Google Drive e não segue redirecionamentos.
