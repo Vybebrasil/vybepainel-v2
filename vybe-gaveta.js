@@ -208,14 +208,22 @@ async function openDemandaWorkspace(itemId) {
   try {
     const detail = await fetchWorkspaceItem(itemId);
     if(document.getElementById('workspace-drawer') !== drawer) return;
-    DETALHE_DA_GAVETA = detail;
-    const assets = detail?.assets || [];
-    const updates = detail?.updates || [];
-    ATUALIZACOES_DA_GAVETA = updates;
-    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><div class="workspace-barra-acoes">${botaoDoLogHtml(item.id, { demanda: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}${botaoDeLinkHtml(item)}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
+    renderDemandaWorkspace(detail, item);
   } catch (e) {
     drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-empty">Não foi possível carregar o contexto. ${safeText(e.message)}</div>`;
   }
+}
+
+function renderDemandaWorkspace(detail, item) {
+  const drawer = document.getElementById('workspace-drawer');
+  if (!drawer || !detail) return;
+    DETALHE_DA_GAVETA = detail;
+    const assets = workspaceAssetsForDetail(detail);
+    activeWorkspaceAssets = assets;
+    activeWorkspaceItemId = String(item.id);
+    const updates = detail?.updates || [];
+    ATUALIZACOES_DA_GAVETA = updates;
+    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><div class="workspace-barra-acoes">${botaoDoLogHtml(item.id, { demanda: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}${botaoDeLinkHtml(item)}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body"><div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
 }
 
 // Regra Vybe OS: clique em atividade abre contexto interno; Monday é um atalho deliberado dentro do workspace.
