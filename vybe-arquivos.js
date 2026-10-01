@@ -223,7 +223,79 @@ function explicarFalhaDeArquivo(json, status, file) {
 // pedaco; por isso a barra de progresso, para a espera ter rosto.
 const PEDACO_DO_ENVIO = 2 * 1024 * 1024; // multiplo de 256 KB, como o Drive exige
 
+// Só metadados de arquivos já confirmados pelo Drive; nunca bytes ou credenciais.
+// A chave inclui a pessoa logada. Sair da conta limpa o armazenamento pelo fluxo existente.
+function chaveRegistrosDeArquivo() {
+  const pessoa = typeof sessaoAtual === 'function' ? sessaoAtual()?.id : null;
+  return pessoa ? `vybe_registros_arquivos_${pessoa}` : null;
+}
+const REGISTROS_DE_ARQUIVO_EM_MEMORIA = new Map();
+const REGISTROS_DE_ARQUIVO_EM_ENVIO = new Set();
+function registrosDeArquivoPendentes(chave = chaveRegistrosDeArquivo()) {
+  if (!chave) return [];
+  if (REGISTROS_DE_ARQUIVO_EM_MEMORIA.has(chave)) return REGISTROS_DE_ARQUIVO_EM_MEMORIA.get(chave);
+  try {
+    const lista = JSON.parse(localStorage.getItem(chave) || '[]');
+    const validos = Array.isArray(lista) ? lista.filter(p => p && typeof p.item === 'string' && typeof p.drive_file_id === 'string' && typeof p.nome === 'string') : [];
+    REGISTROS_DE_ARQUIVO_EM_MEMORIA.set(chave, validos);
+    return validos;
+  } catch { return []; }
+}
+function guardarRegistrosDeArquivo(lista, chave = chaveRegistrosDeArquivo()) {
+  if (!chave) throw new Error('Entre novamente no painel antes de enviar arquivos.');
+  REGISTROS_DE_ARQUIVO_EM_MEMORIA.set(chave, lista);
+  try { localStorage.setItem(chave, JSON.stringify(lista)); }
+  catch { showToast('A pendência só ficará nesta aba. Não feche a página até concluir o registro.', 'info', 10000); }
+}
+function pendenciasDeArquivoHtml(itemId) {
+  const pendentes = registrosDeArquivoPendentes().filter(p => p.item === String(itemId));
+  if (!pendentes.length) return '';
+  return `<div class="workspace-note" role="status"><b>Arquivos no Drive com registro pendente</b><p>Conclua o registro sem enviar os arquivos novamente.</p>${pendentes.map(p =>
+    `<p>${safeText(p.nome)} <button type="button" class="workspace-action" data-registro-drive="${safeText(p.drive_file_id)}" ${REGISTROS_DE_ARQUIVO_EM_ENVIO.has(`${chaveRegistrosDeArquivo()}:${p.item}:${p.drive_file_id}`) ? 'disabled aria-busy="true"' : ''} onclick="retomarRegistroDeArquivo(this.dataset.registroDrive)">${REGISTROS_DE_ARQUIVO_EM_ENVIO.has(`${chaveRegistrosDeArquivo()}:${p.item}:${p.drive_file_id}`) ? 'Registrando…' : 'Concluir registro'}</button></p>`).join('')}</div>`;
+}
+function mostrarPendenciasDeArquivo() {
+  const area = document.getElementById('workspace-registros-pendentes');
+  if (area) area.innerHTML = pendenciasDeArquivoHtml(activeWorkspaceItemId);
+}
+async function concluirRegistroDeArquivo(pendente, chave) {
+  if (chave !== chaveRegistrosDeArquivo()) throw new Error('A sessão mudou. Entre na conta que iniciou o envio.');
+  const registro = await fetch('/api/painel?area=peca', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item: pendente.item, nome: pendente.nome, mime: pendente.mime,
+      etapa: 'registrar', drive_file_id: pendente.drive_file_id, bytes: pendente.bytes }),
+  });
+  const json = await registro.json().catch(() => ({}));
+  if (!registro.ok || !json.ok || !json.arquivo_id) throw new Error(json.error || 'O painel não confirmou o registro.');
+  guardarRegistrosDeArquivo(registrosDeArquivoPendentes(chave).filter(p => !(p.item === pendente.item && p.drive_file_id === pendente.drive_file_id)), chave);
+  return json;
+}
+async function retomarRegistroDeArquivo(driveId) {
+  const chave = chaveRegistrosDeArquivo();
+  const pendente = registrosDeArquivoPendentes(chave).find(p => p.item === String(activeWorkspaceItemId) && p.drive_file_id === driveId);
+  if (!pendente) return;
+  const trava = `${chave}:${pendente.item}:${driveId}`;
+  if (REGISTROS_DE_ARQUIVO_EM_ENVIO.has(trava)) return;
+  REGISTROS_DE_ARQUIVO_EM_ENVIO.add(trava);
+  mostrarPendenciasDeArquivo();
+  const drawer = document.getElementById('workspace-drawer');
+  try {
+    await concluirRegistroDeArquivo(pendente, chave);
+    mostrarPendenciasDeArquivo();
+    showToast('Arquivo registrado. Não foi necessário reenviar.', 'ok');
+    try { await atualizarGavetaPreservandoRascunhos(findOperationalItem(pendente.item) || {id:pendente.item}, drawer); }
+    catch { showToast('Registro salvo. Reabra a atividade para atualizar os detalhes.', 'info'); }
+  } catch (erro) { showToast(`Arquivo no Drive; registro ainda pendente. ${erro.message}`, 'err', 10000); }
+  finally { REGISTROS_DE_ARQUIVO_EM_ENVIO.delete(trava); mostrarPendenciasDeArquivo(); }
+}
+
 async function enviarArquivoGrande(corpo, file, aoAndar) {
+  const chave = chaveRegistrosDeArquivo();
+  if (!chave) throw new Error('Entre novamente no painel antes de enviar arquivos.');
+  const anterior = registrosDeArquivoPendentes(chave).find(p => p.item === corpo.item && p.nome === file.name && p.bytes === file.size && p.modificado === file.lastModified && p.mime === file.type);
+  if (anterior) {
+    try { return await concluirRegistroDeArquivo(anterior, chave); }
+    catch (erro) { throw new Error(`Arquivo já no Drive; conclua o registro na atividade. ${erro.message}`); }
+  }
   const abertura = await fetch('/api/painel?area=peca', {
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...corpo, etapa: 'abrir' }),
@@ -258,13 +330,11 @@ async function enviarArquivoGrande(corpo, file, aoAndar) {
   }
   if (!arquivo?.id) throw new Error('O Drive não confirmou o arquivo no fim do envio.');
 
-  const registro = await fetch('/api/painel?area=peca', {
-    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...corpo, etapa: 'registrar', drive_file_id: arquivo.id, bytes: total }),
-  });
-  const json = await registro.json().catch(() => ({}));
-  if (!registro.ok) throw new Error(json?.error || `Arquivo no Drive, mas não registrado (${registro.status}).`);
-  return json;
+  const pendente = { ...corpo, drive_file_id: arquivo.id, bytes: total, modificado: file.lastModified };
+  guardarRegistrosDeArquivo([...registrosDeArquivoPendentes(chave), pendente], chave);
+  try { return await concluirRegistroDeArquivo(pendente, chave); }
+  catch (erro) { throw new Error(`Arquivo no Drive; registro pendente. Use “Concluir registro” na atividade. ${erro.message}`); }
+  finally { mostrarPendenciasDeArquivo(); }
 }
 
 // VÁRIOS ARQUIVOS DE UMA VEZ.
@@ -313,7 +383,7 @@ async function uploadWorkspaceFile(input, itemId) {
     if (falhas.length) {
       // Uma caixa por falha viraria uma fila de caixas. Uma so, com a lista.
       await perguntarNoPainel({
-        titulo: falhas.length === 1 ? 'Um arquivo não subiu' : `${falhas.length} arquivos não subiram`,
+        titulo: falhas.length === 1 ? 'Um envio precisa de atenção' : `${falhas.length} envios precisam de atenção`,
         texto: falhas.map((f) => `${f.nome}: ${f.motivo}`).join('\n'),
         confirmar: 'Entendi',
       });

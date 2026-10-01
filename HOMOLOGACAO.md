@@ -72,3 +72,14 @@ celular. Não foram apagados ou enviados arquivos reais. Sem migração de schem
 ou mudança de configuração. Recuperação do banco não foi revalidada nesta revisão.
 Versão anterior: `48c4afa00e22bc228f96f81ab2b46dad4fc0f4e7`, deployment
 `H3iFkCU7GLQTN4JwXvyArPWxJgc6`.
+
+## Retomada do registro de arquivos — 01/10/2026
+
+Ver [retomada-registro-arquivos.md](docs/retomada-registro-arquivos.md).
+234 testes, build e interface local aprovados na implementação. A recuperação
+usa metadados no navegador e registro idempotente no PostgreSQL; sem migração,
+sem alteração de credenciais e sem escrita de teste em produção. A recuperação
+do banco não foi revalidada nesta entrega. Variáveis de produção foram conferidas
+na publicação anterior desta sessão e permanecem inalteradas.
+Versão anterior: `aa63149b944cf2d60fa7d708489b82a0510d54d1`, deployment
+`3FW8w9kE9uhRs9487nSB4nSKCrf1`.

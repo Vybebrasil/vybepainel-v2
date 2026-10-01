@@ -65,8 +65,11 @@ function workspaceDeliveryDock(detail,item){ const delivery=workspaceDeliveryInf
 function caminhoInicialDeEntrega(item) {
   return /reels|v[ií]deo|audiovisual|motion/i.test(String(item?.formato || item?.tipo || '')) ? 'link' : 'arquivo';
 }
-function workspaceUploadHtml() {
-  return `<input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
+function workspaceRegistrosPendentesHtml() {
+  return `<div id="workspace-registros-pendentes">${pendenciasDeArquivoHtml(activeWorkspaceItemId)}</div>`;
+}
+function workspaceUploadHtml(mostrarPendencias = true) {
+  return `${mostrarPendencias ? workspaceRegistrosPendentesHtml() : ''}<input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
           <div class="workspace-dropzone" role="button" tabindex="0" aria-label="Adicionar arquivos" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('workspace-file-input').click()}" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste o arquivo aqui ou clique</strong>Card, arte ou PDF · PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
           <p class="workspace-note">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos”.</p>`;
 }
@@ -137,13 +140,14 @@ let DETALHE_DA_GAVETA = null;
     ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText(quandoNaBahia(latestStatusContext({updates}).created_at) || (latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
     <section class="workspace-section workspace-entrega"><div class="workspace-section-head">Entrega</div><div class="workspace-section-body">
       ${workspaceDeliveryDock(detail,item)}
+      ${workspaceRegistrosPendentesHtml()}
       <div class="entrega-caminhos">
         <div class="entrega-escolha" role="tablist" aria-label="Como entregar">
           <button type="button" role="tab" data-entrega="arquivo" aria-selected="${caminhoInicialDeEntrega(item) === 'arquivo'}" onclick="escolherCaminhoDeEntrega('arquivo')">Arquivo</button>
           <button type="button" role="tab" data-entrega="link" aria-selected="${caminhoInicialDeEntrega(item) === 'link'}" onclick="escolherCaminhoDeEntrega('link')">Link</button>
         </div>
         <div class="entrega-caminho" data-painel="arquivo"${caminhoInicialDeEntrega(item) === 'arquivo' ? '' : ' hidden'}>
-          ${workspaceUploadHtml()}
+          ${workspaceUploadHtml(false)}
         </div>
         <div class="entrega-caminho" data-painel="link"${caminhoInicialDeEntrega(item) === 'link' ? '' : ' hidden'}>
           <div class="entrega-link"><input id="workspace-link-input" class="workspace-input" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva" aria-label="Link do material">
