@@ -112,6 +112,8 @@ async function requestWorkspaceFileRemoval(assetId) {
         confirmar: 'Mover para a lixeira', perigo: true })
     : window.confirm(`Mover o arquivo "${asset.name}" para a lixeira do Drive da Vybe?`);
   if (!confirmado) return;
+  const drawer = document.getElementById('workspace-drawer');
+  let removido = false;
   try {
     const resposta = await fetch('/api/painel?area=peca', {
       method:'DELETE', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
@@ -119,9 +121,13 @@ async function requestWorkspaceFileRemoval(assetId) {
     });
     const dados = await resposta.json().catch(() => ({}));
     if (!resposta.ok) throw new Error(dados?.error || `Falha ao remover (${resposta.status})`);
+    removido = true;
     showToast('✓ Arquivo movido para a lixeira do Drive', 'ok');
-    renderWorkspaceDrawer(await fetchWorkspaceItem(item.id), item);
-  } catch (error) { showToast(`Não foi possível remover o arquivo: ${error.message}`, 'err', 8000); }
+    const detail = await fetchWorkspaceItem(item.id);
+    if (document.getElementById('workspace-drawer') !== drawer || String(activeWorkspaceItemId) !== String(item.id)) return;
+    if (typeof isRequestItem === 'function' && isRequestItem(item)) renderDemandaWorkspace(detail, item);
+    else renderWorkspaceDrawer(detail, item);
+  } catch (error) { showToast(removido ? 'Arquivo removido. Reabra a atividade para atualizar a lista.' : `Não foi possível remover o arquivo: ${error.message}`, removido ? 'info' : 'err', 8000); }
 }
 
 function handleWorkspaceDrop(event) {
