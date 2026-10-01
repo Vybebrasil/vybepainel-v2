@@ -58,7 +58,8 @@ function workspaceAssetPreview(asset) {
   return `<div class="workspace-asset-preview"><img src="${safeText(src)}"${fallback} alt="Prévia de ${safeText(asset.name)}" loading="eager" onerror="workspaceAssetPreviewFailed(this)"><div class="workspace-asset-preview-fallback"><b>Prévia indisponível</b><small>Abra o material para conferir o arquivo.</small></div></div>`;
 }
 function workspaceAssetCard(asset) {
-  const href = asset.public_url || asset.url || '#';
+  const isImage = /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(asset.name || asset.file_extension || ''));
+  const href = (isImage ? asset.public_url || asset.url : asset.link_drive || asset.public_url || asset.url) || '#';
   // Arquivo no Drive apaga um por um. A trava de "todos de uma vez" era do
   // Monday, que so deixa limpar a coluna inteira — e ela sobrou aplicada a tudo:
   // dependia de column_asset_count, contado a partir da coluna do Monday, que
@@ -70,11 +71,10 @@ function workspaceAssetCard(asset) {
       ? `<button type="button" class="workspace-asset-remove"
           onclick="event.preventDefault();event.stopPropagation();requestWorkspaceFileRemoval('${safeText(asset.id)}')">Remover</button>`
       : `<span class="workspace-asset-locked" title="Este arquivo ainda mora na coluna do Monday, que só permite limpar todos de uma vez.">Arquivo de coluna</span>`;
-  const isImage = Boolean(asset.url_thumbnail || /\\.(png|jpe?g|webp|gif|avif|mp4|mov|webm)(?:$|[?#])/i.test(String(asset.name || href)));
-    const openAction = isImage 
-      ? `<a class="workspace-asset-open" href="${safeText(href)}" onclick="event.preventDefault(); event.stopPropagation(); openVybeLightbox('${safeText(href)}', '${safeText(asset.name)}')">ABRIR ↗</a>` 
+    const openAction = isImage
+      ? `<a class="workspace-asset-open" href="${safeText(href)}" onclick="event.preventDefault(); event.stopPropagation(); openVybeLightbox(${safeText(JSON.stringify(href))}, ${safeText(JSON.stringify(String(asset.name || '')))})">ABRIR ↗</a>`
       : `<a class="workspace-asset-open" href="${safeText(href)}" target="_blank" rel="noopener">ABRIR ↗</a>`;
-    const clickPreview = isImage ? `onclick="openVybeLightbox('${safeText(href)}', '${safeText(asset.name)}')"` : "";
+    const clickPreview = isImage ? `onclick="openVybeLightbox(${safeText(JSON.stringify(href))}, ${safeText(JSON.stringify(String(asset.name || '')))})"` : "";
     return `<article class="workspace-asset" ${clickPreview} style="${isImage ? 'cursor:pointer;' : ''}">${workspaceAssetPreview(asset)}<div class="workspace-asset-name" title="${safeText(asset.name)}">${safeText(asset.name)}</div><small>${safeText(workspaceBytes(asset.file_size))} · ${safeText(asset.source || 'Arquivo')}</small><div class="workspace-asset-actions">${openAction}${removal}</div></article>`;
 }
 // Remover arquivo estava recusando SOLICITACAO.
@@ -135,7 +135,9 @@ function handleWorkspaceDrop(event) {
   event.currentTarget.classList.remove('dragover');
   const input = document.getElementById('workspace-file-input');
   if (!input || !event.dataTransfer?.files?.[0]) return;
-  const transfer = new DataTransfer(); transfer.items.add(event.dataTransfer.files[0]); input.files = transfer.files;
+  const transfer = new DataTransfer();
+  for (const file of event.dataTransfer.files) transfer.items.add(file);
+  input.files = transfer.files;
   uploadWorkspaceFile(input);
 }
 // Enviar arquivo de uma peça, num lugar só.
@@ -279,9 +281,11 @@ async function enviarArquivoGrande(corpo, file, aoAndar) {
 // da gaveta. A gaveta continua chamando sem informar nada e continua valendo o
 // que ela tem aberto; a linha da fila informa e nao precisa abrir nada.
 async function uploadWorkspaceFile(input, itemId) {
+  if (input?.disabled) return;
   const alvo = String(itemId || activeWorkspaceItemId || '');
   const arquivos = [...(input?.files || [])];
   if (!arquivos.length || !alvo) return;
+  if (input) input.disabled = true;
   const item = findOperationalItem(alvo);
   const drawer = document.getElementById('workspace-drawer');
   const total = arquivos.length;
@@ -322,5 +326,5 @@ async function uploadWorkspaceFile(input, itemId) {
         showToast('Arquivos anexados. Não foi possível atualizar os detalhes; reabra a atividade.', 'info', 8000);
       }
     }
-  } finally { if (input) input.value = ''; }
+  } finally { if (input) { input.value = ''; input.disabled = false; } }
 }

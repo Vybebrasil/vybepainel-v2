@@ -2574,7 +2574,9 @@ async function atualizarGavetaPreservandoRascunhos(item, drawer) {
   const detail = await fetchWorkspaceItem(item.id);
   if (!mesmaJanela()) return;
   const rascunhos = ['workspace-comment-input', 'workspace-link-input'].map(id => [id, document.getElementById(id)?.value]);
-  renderWorkspaceDrawer(detail, findOperationalItem(item.id) || item);
+  const atualizado = findOperationalItem(item.id) || item;
+  if (typeof isRequestItem === 'function' && isRequestItem(atualizado)) renderDemandaWorkspace(detail, atualizado);
+  else renderWorkspaceDrawer(detail, atualizado);
   rascunhos.forEach(([id, valor]) => { const campo = document.getElementById(id); if (campo && valor !== undefined) campo.value = valor; });
 }
 

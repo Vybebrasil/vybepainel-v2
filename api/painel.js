@@ -510,7 +510,7 @@ async function areaPeca(req, res, quem) {
 // mesmo problema, só que menor.
 async function removerArquivoDaPeca(req, res, quem) {
   const { item, arquivo_id: arquivoId } = req.body || {};
-  if (!item || !arquivoId) return res.status(400).json({ error: 'Informe item e arquivo.' });
+  if (!item || !Number.isSafeInteger(Number(arquivoId)) || Number(arquivoId) <= 0) return res.status(400).json({ error: 'Informe item e arquivo válidos.' });
   const db = sql();
   const itemLocalId = String(item).startsWith('vybe:') ? Number(String(item).slice(5)) : null;
   const linha = (await db`SELECT a.id, a.nome, a.drive_file_id, a.conteudo_id
@@ -521,10 +521,12 @@ async function removerArquivoDaPeca(req, res, quem) {
   if (!linha) return res.status(404).json({ error: 'Arquivo não encontrado nesta demanda.' });
   if (!linha.drive_file_id) return res.status(409).json({ error: 'Migração deste arquivo ainda não concluída.' });
   await arquivarNoDrive(linha.drive_file_id);
-  await db`UPDATE vybe_conteudo_arquivos SET ausente_em=NOW() WHERE id=${linha.id}`;
-  await db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, autor_id, texto, em)
-    VALUES (${linha.conteudo_id}, 'anexo_removido', ${linha.nome},
-            ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, 'Arquivo movido para a lixeira do Drive', NOW())`;
+  await db.transaction([
+    db`UPDATE vybe_conteudo_arquivos SET ausente_em=NOW() WHERE id=${linha.id}`,
+    db`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, autor_id, texto, em)
+      VALUES (${linha.conteudo_id}, 'anexo_removido', ${linha.nome},
+              ${quem.tipo === 'sessao' ? quem.pessoa.id : null}, 'Arquivo movido para a lixeira do Drive', NOW())`,
+  ]);
   return res.status(200).json({ ok: true, arquivo_id: linha.id, removido: linha.nome, reversivel: true });
 }
 

@@ -63,3 +63,12 @@ Validação da operação independente no preview `fa6ddb8`:
 - Interface Gestor renderizada com dados da cópia do banco; Performance aberta
   sem erros registrados no console.
 - Operador temporário novamente desativado e conteúdos de teste arquivados.
+
+## Revisão de arquivos — 01/10/2026
+
+Evidências e limites em [revisao-arquivos-2026-10.md](docs/revisao-arquivos-2026-10.md).
+Persistência e rollback verificados em PGlite; interface local em desktop e
+celular. Não foram apagados ou enviados arquivos reais. Sem migração de schema
+ou mudança de configuração. Recuperação do banco não foi revalidada nesta revisão.
+Versão anterior: `48c4afa00e22bc228f96f81ab2b46dad4fc0f4e7`, deployment
+`H3iFkCU7GLQTN4JwXvyArPWxJgc6`.
