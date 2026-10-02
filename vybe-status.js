@@ -266,7 +266,7 @@ const STATUS_CONTEXT_RULES = Object.freeze({
   'segurar post': { question:'Por que a publicação está sendo segurada?', helper:'Diga quem pediu para segurar e o que precisa acontecer para liberar.', requester:true }
 });
 function contextRuleFor(option) { return STATUS_CONTEXT_RULES[normalizedWorkflowStatus(option?.label)] || { question:`Por que esta demanda entra em ${option?.label || 'esta etapa'}?`, helper:'Registre o motivo da mudança e o próximo passo necessário.' }; }
-function updateStatusContextState() { const form=document.getElementById('status-context-form'); const button=document.getElementById('status-context-submit'); if(!form || !button) return; const checks=[...form.querySelectorAll('input[data-quality-check]')]; button.disabled=checks.some(check=>!check.checked); }
+function updateStatusContextState() { const form=document.getElementById('status-context-form'); const button=document.getElementById('status-context-submit'); if(!form || !button) return; const checks=[...form.querySelectorAll('input[data-quality-check]')]; button.disabled=form.dataset.step != null && Number(form.dataset.step)<form.querySelectorAll('[data-context-step]').length-1 ? false : checks.some(check=>!check.checked); }
 function statusContextIsCard(item){ return /card/i.test(String(daTacticalFormat(item)||item?.formato||'')) || /(^|\W)card\b/i.test(String(item?.nome||'')); }
 // Escolher responsavel e sempre pela bolinha com foto, como no resto do painel.
 // Antes era um <select> de texto: a lista abria com a fonte do sistema, sem
@@ -420,17 +420,20 @@ function openStatusContextGate(item, option) {
   const completedField = (rule.completed || requiresHandoff) ? `<label class="workflow-field"><span>O que já foi concluído? ${rule.completed ? '· obrigatório' : '· opcional'}</span><textarea id="status-context-completed" rows="2" placeholder="Ex.: Versão final revisada, arquivo anexado e copy conferida."></textarea></label>` : '';
   const checklist = requiresQuality ? `<div class="workflow-checks"><span class="workflow-field"><span>Checklist de qualidade</span></span>${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" data-quality-check name="quality-${index}"><span>${safeText(check)}</span></label>`).join('')}</div>` : '';
   const responsible=`<div class="workflow-field"><span id="status-context-owners-label">Responsáveis pela próxima ação · obrigatório</span><p class="context-field-help">Selecione uma ou mais pessoas. Elas serão atribuídas à atividade.</p><div role="group" aria-labelledby="status-context-owners-label">${statusContextResponsibleOptions(item)}</div></div>${statusContextGrupoHtml(item, option)}`;
-  const form=`<form id="status-context-form" onchange="updateStatusContextState()" onsubmit="event.preventDefault();submitStatusContext()">
-    <section class="context-section" aria-labelledby="context-reason-heading"><h3 id="context-reason-heading">Contexto</h3>
-      <label class="workflow-field"><span>${safeText(rule.question)} · obrigatório</span><textarea id="status-context-reason" rows="2" placeholder="Descreva o que falta ou o motivo da mudança."></textarea></label>
-      ${completedField}<div class="context-field-grid">${requesterFields}${sourceFields}</div>
-      <details class="context-reference"><summary>Adicionar link de referência <small>opcional</small></summary><label class="workflow-field"><span>Link da referência</span><input id="status-context-link" type="url" placeholder="https://drive.google.com/…"></label></details>
-    </section>
-    <section class="context-section" aria-labelledby="context-next-heading"><h3 id="context-next-heading">Próxima etapa</h3>${responsible}</section>${checklist}</form>`;
+  const etapas = [
+    { nome:'Motivo', campo:'status-context-reason', html:`<label class="workflow-field"><span>${safeText(rule.question)} · obrigatório</span><textarea id="status-context-reason" rows="4" placeholder="Descreva o que falta ou o motivo da mudança."></textarea></label>` },
+    ...(completedField ? [{nome:'Concluído',campo:rule.completed?'status-context-completed':'',html:completedField}] : []),
+    ...(requesterFields || sourceFields ? [{nome:'Origem',campo:rule.requester?'status-context-requester':'',html:requesterFields+sourceFields}] : []),
+    {nome:'Responsáveis',campo:'status-context-next-owner',html:responsible},
+    {nome:'Referência',html:`<label class="workflow-field"><span>Quer incluir um link de referência? · opcional</span><input id="status-context-link" type="url" placeholder="https://drive.google.com/…"></label><p class="context-field-help">Se não precisar, continue sem preencher.</p>`},
+    ...(checklist ? [{nome:'Qualidade',html:checklist}] : []),
+    {nome:'Revisão',html:'<h3 class="context-review-title">Confira antes de salvar</h3><dl id="context-review"></dl>'}
+  ];
+  const form=`<form id="status-context-form" data-step="0" onchange="updateStatusContextState()" onsubmit="event.preventDefault();avancarContextoStatus()">${etapas.map((etapa,i)=>`<section data-context-step="${i}" data-name="${safeText(etapa.nome)}" data-required="${etapa.campo||''}" ${i?'hidden':''}>${etapa.html}</section>`).join('')}<p id="context-step-error" role="alert" hidden></p></form>`;
   const preview=isCard?`<aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia do card</b><small>arquivo vinculado</small></div><div id="status-context-card-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside>`:'';
   const origem = document.activeElement;
   pendingWorkflowChange={item,option,manual:false};
-  openWorkflowModal(`<header class="context-header"><div class="workflow-kicker"><span>Atualizar atividade</span><button class="workflow-close" type="button" aria-label="Fechar alteração de status" onclick="closeWorkflowModal()">×</button></div><h2 class="context-title" id="context-dialog-title">${safeText(option.label)}</h2><p class="workflow-copy">${safeText(rule.helper)}</p><div class="context-item"><span>${safeText(item.cliente || 'Cliente não informado')}</span><strong>${safeText(item.nome)}</strong></div></header><div class="context-scroll"><div class="status-context-layout"><div class="status-context-main">${form}</div>${preview}</div></div><footer class="context-actions"><small>O contexto e as alterações ficam no histórico.</small><div><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="status-context-submit" type="button" class="workflow-primary" onclick="submitStatusContext()">Salvar alteração</button></div></footer>`);
+  openWorkflowModal(`<header class="context-header"><div class="workflow-kicker"><span>Atualizar atividade</span><button class="workflow-close" type="button" aria-label="Fechar alteração de status" onclick="closeWorkflowModal()">×</button></div><h2 class="context-title" id="context-dialog-title">${safeText(option.label)}</h2><p class="workflow-copy">${safeText(rule.helper)}</p><div id="context-progress" class="context-progress" role="status" aria-live="polite"></div><div class="context-item"><span>${safeText(item.cliente || 'Cliente não informado')}</span><strong>${safeText(item.nome)}</strong></div></header><div class="context-scroll"><div class="status-context-layout"><div class="status-context-main">${form}</div>${preview}</div></div><footer class="context-actions"><small>Nada será alterado até você confirmar.</small><div><button id="context-back" type="button" class="workflow-secondary" onclick="voltarContextoStatus()">Cancelar</button><button id="status-context-submit" type="button" class="workflow-primary" onclick="avancarContextoStatus()">Continuar</button></div></footer>`);
   const modal=document.getElementById('workflow-modal');
   modal.classList.add('status-context-dialog');
   modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','context-dialog-title');
@@ -444,9 +447,65 @@ function openStatusContextGate(item, option) {
     else if(!event.shiftKey && document.activeElement===ultimo){event.preventDefault();primeiro?.focus();}
   });
   if(isCard){modal.classList.add('status-context-split');loadStatusContextCardPreview(item.id);}
-  modal.querySelector('.workflow-close')?.focus();
+  mostrarEtapaContexto(0);
   updateStatusContextState();
   preAtribuirQuemExecutou(item.id);
+}
+function mostrarEtapaContexto(indice) {
+  const form=document.getElementById('status-context-form'); if(!form) return;
+  const etapas=[...form.querySelectorAll('[data-context-step]')];
+  const atual=Math.max(0,Math.min(indice,etapas.length-1));
+  form.dataset.step=String(atual);
+  etapas.forEach((etapa,i)=>{etapa.hidden=i!==atual;});
+  const final=atual===etapas.length-1;
+  document.getElementById('context-progress').textContent=`${atual+1} de ${etapas.length} · ${etapas[atual].dataset.name}`;
+  document.getElementById('context-back').textContent=atual?'Voltar':'Cancelar';
+  document.getElementById('status-context-submit').textContent=final?'Confirmar alteração':'Continuar';
+  document.getElementById('context-step-error').hidden=true;
+  const modal=document.getElementById('workflow-modal');
+  const preview=modal.querySelector('.status-context-preview');
+  if(preview) preview.hidden=!final;
+  modal.classList.toggle('status-context-split',Boolean(preview && final));
+  if(final) {
+    const campos=[['Motivo','status-context-reason'],['Concluído','status-context-completed'],['Origem da decisão','status-context-requester'],['Canal','status-context-source'],['Referência','status-context-link']];
+    const rows=campos.map(([nome,id])=>[nome,document.getElementById(id)?.value||'']).filter(([,valor])=>valor.trim());
+    const ids=(document.getElementById('status-context-next-owner')?.value||'').split(',');
+    rows.push(['Responsáveis',(TEAM_USERS||[]).filter(u=>ids.includes(String(u.id))).map(u=>u.name).join(', ')]);
+    const grupo=document.getElementById('status-context-grupo');
+    if(grupo) rows.push(['Grupo de destino',grupo.selectedOptions[0]?.textContent||'']);
+    document.getElementById('context-review').innerHTML=rows.map(([nome,valor])=>`<div><dt>${safeText(nome)}</dt><dd>${safeText(valor)}</dd></div>`).join('');
+  }
+  modal.querySelector('.context-scroll').scrollTop=0;
+  updateStatusContextState();
+  (etapas[atual].querySelector('textarea,input:not([type="hidden"]),select,button') || document.getElementById('status-context-submit'))?.focus();
+}
+function voltarContextoStatus() {
+  const form=document.getElementById('status-context-form');
+  const atual=Number(form?.dataset.step||0);
+  if(atual) mostrarEtapaContexto(atual-1); else closeWorkflowModal();
+}
+function erroEtapaContexto(etapa) {
+  const campo=etapa.dataset.required && document.getElementById(etapa.dataset.required);
+  if(campo && !String(campo.value||'').trim()) return {campo,mensagem:campo.type==='hidden'?'Selecione pelo menos uma pessoa.':'Preencha esta resposta para continuar.'};
+  const link=etapa.querySelector('input[type="url"]');
+  if(link?.value.trim() && (!link.checkValidity() || !/^https?:\/\//i.test(link.value.trim()))) return {campo:link,mensagem:'Informe um link válido começando com https:// ou deixe em branco.'};
+  const check=etapa.querySelector('input[data-quality-check]:not(:checked)');
+  if(check) return {campo:check,mensagem:'Confira todos os itens antes de continuar.'};
+  return null;
+}
+function avancarContextoStatus() {
+  const form=document.getElementById('status-context-form'); if(!form) return;
+  const etapas=[...form.querySelectorAll('[data-context-step]')],atual=Number(form.dataset.step);
+  const revisao=atual===etapas.length-1;
+  for(const etapa of revisao?etapas:[etapas[atual]]) {
+    const erro=erroEtapaContexto(etapa); if(!erro) continue;
+    if(revisao) mostrarEtapaContexto(Number(etapa.dataset.contextStep));
+    const aviso=document.getElementById('context-step-error');aviso.textContent=erro.mensagem;aviso.hidden=false;
+    if(erro.campo.type!=='hidden') erro.campo.focus();
+    return;
+  }
+  if(revisao) return submitStatusContext();
+  mostrarEtapaContexto(atual+1);
 }
 async function submitStatusContext() {
   const flow=pendingWorkflowChange; if(!flow) { showToast('O contexto desta mudança expirou. Feche e abra a alteração novamente.','err',7000); return; } const reason=String(document.getElementById('status-context-reason')?.value||'').trim(); const nextOwnerId=String(document.getElementById('status-context-next-owner')?.value||'').trim(); const nextOwners=String(nextOwnerId||'').split(',').map(x=>x.trim()).filter(Boolean)
