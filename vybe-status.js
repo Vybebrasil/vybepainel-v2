@@ -357,7 +357,7 @@ function statusContextGrupoHtml(item, option) {
   const atual = String(item.group_id || '');
   const sugerido = grupoSugeridoPara(item, option);
   const mudou = sugerido && sugerido !== atual;
-  return `<label class="workflow-field"><span>Em que grupo ela fica depois?</span>
+  return `<label class="workflow-field"><span>Grupo de destino</span>
     <select id="status-context-grupo">${grupos.map((id) => `<option value="${safeText(id)}" ${id === sugerido ? 'selected' : ''}>${safeText(tituloDoGrupo(id))}</option>`).join('')}</select>
     ${mudou ? `<small class="workflow-hint">Estava em <b>${safeText(tituloDoGrupo(atual) || 'sem grupo')}</b>; voltar para alteração devolve a peça ao design.</small>` : ''}</label>`;
 }
@@ -369,18 +369,18 @@ function statusContextResponsibleOptions(item){
   const currentUsers=(TEAM_USERS||[]).filter(user=>current.has(String(user.id)));
   const resto=(TEAM_USERS||[]).filter(user=>user?.id && !current.has(String(user.id)));
   const users=[...new Map([...currentUsers,...eligible,...resto].map(user=>[String(user.id),user])).values()];
-  const escolhido=users.find(u=>current.has(String(u.id)));
+  const escolhidos=users.filter(u=>current.has(String(u.id))).map(u=>String(u.id)).join(',');
   const fichas=users.map(user=>{
     const id=String(user.id);
     const naRegra=eligible.some(c=>String(c.id)===id);
     const papel=current.has(id)?'Está com a peça':naRegra?(rule?.label||'Equipe'):(user.role||'Equipe');
-    return `<button type="button" class="dono-ficha ${current.has(id)?'marcada':''}" data-dono="${safeText(id)}"
+    return `<button type="button" class="dono-ficha ${current.has(id)?'marcada':''}" data-dono="${safeText(id)}" aria-pressed="${current.has(id)}"
       onclick="escolherResponsavelDoStatus('${safeText(id)}')" title="${safeText(user.name)} · ${safeText(papel)}">
-      ${ownerAvatarHtml(user)}<span><b>${safeText(firstName(user.name))}</b><small>${safeText(papel)}</small></span></button>`;
+      ${ownerAvatarHtml(user)}<span><b>${safeText(user.name)}</b><small>${safeText(papel)}</small></span></button>`;
   }).join('');
   // O dono atual entra como PADRAO, nao como escolha: o historico chega logo
   // depois e pode ter uma resposta melhor — quem de fato executou a peca.
-  return `<input type="hidden" id="status-context-next-owner" value="${safeText(escolhido?String(escolhido.id):'')}" data-padrao="${safeText(escolhido?String(escolhido.id):'')}">
+  return `<input type="hidden" id="status-context-next-owner" value="${safeText(escolhidos)}" data-padrao="${safeText(escolhidos)}">
     <div class="dono-fichas" id="status-context-donos">${fichas
       || '<span class="workflow-hint">Nenhuma pessoa elegível para esta etapa.</span>'}</div>`;
 }
@@ -399,7 +399,9 @@ function escolherResponsavelDoStatus(id){
   const depois=jaEra?atuais.filter(x=>x!==alvo):[...atuais,alvo];
   campo.value=depois.join(',');
   document.querySelectorAll('#status-context-donos .dono-ficha').forEach(b=>{
-    b.classList.toggle('marcada', depois.includes(String(b.dataset.dono||'')));
+    const marcado = depois.includes(String(b.dataset.dono||''));
+    b.classList.toggle('marcada', marcado);
+    b.setAttribute('aria-pressed', String(marcado));
   });
 }
 // Todas as imagens da peça, não só a primeira: uma demanda com cinco artes
@@ -413,16 +415,36 @@ function openStatusContextGate(item, option) {
   // mudanca. O campo ja vem com o nome dele — continua editavel, para o caso
   // de o pedido ter vindo do cliente ou de outra pessoa.
   const euAgora = (typeof sessaoAtual === 'function' ? sessaoAtual()?.nome : '') || '';
-  const requesterFields = rule.requester ? `<label class="workflow-field"><span>De quem veio ou depende esta decisão?</span><input id="status-context-requester" type="text" value="${safeText(euAgora)}" placeholder="Ex.: Cliente, Paulo, aprovação interna..."></label>` : '';
-  const sourceFields = rule.source ? `<label class="workflow-field"><span>Onde está a referência?</span><select id="status-context-source"><option value="WhatsApp">WhatsApp</option><option value="Monday">Monday.com</option><option value="Reunião">Reunião</option><option value="E-mail">E-mail</option><option value="Outro">Outro</option></select></label>` : '';
-  const completedField = (rule.completed || requiresHandoff) ? `<label class="workflow-field"><span>O que foi concluído antes desta etapa?</span><textarea id="status-context-completed" rows="3" placeholder="Ex.: Versão final revisada, arquivo anexado e copy conferida."></textarea></label>` : '';
+  const requesterFields = rule.requester ? `<label class="workflow-field"><span>Contato ou origem da decisão · obrigatório</span><input id="status-context-requester" type="text" value="${safeText(euAgora)}" placeholder="Ex.: Cliente, Paulo, aprovação interna..."></label>` : '';
+  const sourceFields = rule.source ? `<label class="workflow-field"><span>Canal da referência</span><select id="status-context-source"><option value="WhatsApp">WhatsApp</option><option value="Reunião">Reunião</option><option value="E-mail">E-mail</option><option value="Outro">Outro</option></select></label>` : '';
+  const completedField = (rule.completed || requiresHandoff) ? `<label class="workflow-field"><span>O que já foi concluído? ${rule.completed ? '· obrigatório' : '· opcional'}</span><textarea id="status-context-completed" rows="2" placeholder="Ex.: Versão final revisada, arquivo anexado e copy conferida."></textarea></label>` : '';
   const checklist = requiresQuality ? `<div class="workflow-checks"><span class="workflow-field"><span>Checklist de qualidade</span></span>${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" data-quality-check name="quality-${index}"><span>${safeText(check)}</span></label>`).join('')}</div>` : '';
-  const responsible=`<div class="status-context-responsible"><div class="workflow-field"><span>Quem executará a próxima ação?</span>${statusContextResponsibleOptions(item)}</div><small class="status-context-responsible-hint"><b>Responsável da próxima ação:</b> quem está com a peça vem marcado; a escolha passa a valer de verdade — a peça é reatribuída ao confirmar.</small></div>${statusContextGrupoHtml(item, option)}`;
-  const form=`<form id="status-context-form" onchange="updateStatusContextState()"><label class="workflow-field"><span>${safeText(rule.question)}</span><textarea id="status-context-reason" rows="3" placeholder="Descreva o motivo desta mudança de status."></textarea></label>${completedField}${requesterFields}${sourceFields}${responsible}<label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="status-context-link" type="url" placeholder="https://drive.google.com/... ou link da referência"></label>${checklist}</form>`;
+  const responsible=`<div class="workflow-field"><span id="status-context-owners-label">Responsáveis pela próxima ação · obrigatório</span><p class="context-field-help">Selecione uma ou mais pessoas. Elas serão atribuídas à atividade.</p><div role="group" aria-labelledby="status-context-owners-label">${statusContextResponsibleOptions(item)}</div></div>${statusContextGrupoHtml(item, option)}`;
+  const form=`<form id="status-context-form" onchange="updateStatusContextState()" onsubmit="event.preventDefault();submitStatusContext()">
+    <section class="context-section" aria-labelledby="context-reason-heading"><h3 id="context-reason-heading">Contexto</h3>
+      <label class="workflow-field"><span>${safeText(rule.question)} · obrigatório</span><textarea id="status-context-reason" rows="2" placeholder="Descreva o que falta ou o motivo da mudança."></textarea></label>
+      ${completedField}<div class="context-field-grid">${requesterFields}${sourceFields}</div>
+      <details class="context-reference"><summary>Adicionar link de referência <small>opcional</small></summary><label class="workflow-field"><span>Link da referência</span><input id="status-context-link" type="url" placeholder="https://drive.google.com/…"></label></details>
+    </section>
+    <section class="context-section" aria-labelledby="context-next-heading"><h3 id="context-next-heading">Próxima etapa</h3>${responsible}</section>${checklist}</form>`;
   const preview=isCard?`<aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia do card</b><small>arquivo vinculado</small></div><div id="status-context-card-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside>`:'';
+  const origem = document.activeElement;
   pendingWorkflowChange={item,option,manual:false};
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Contexto de status</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Antes de entrar em “${safeText(option.label)}”</h2><p class="workflow-copy">${safeText(rule.helper)}</p>${workflowItemHtml(item,option.label)}<div class="status-context-layout"><div class="status-context-main">${form}</div>${preview}</div><p class="workflow-hint">A Vybe OS registra este contexto e quem executará a próxima ação no histórico da peça, junto com a mudança de etapa.</p><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="status-context-submit" type="button" class="workflow-primary" onclick="submitStatusContext()">Registrar e atualizar →</button></div>`);
-  if(isCard){ document.getElementById('workflow-modal')?.classList.add('status-context-split'); loadStatusContextCardPreview(item.id); }
+  openWorkflowModal(`<header class="context-header"><div class="workflow-kicker"><span>Atualizar atividade</span><button class="workflow-close" type="button" aria-label="Fechar alteração de status" onclick="closeWorkflowModal()">×</button></div><h2 class="context-title" id="context-dialog-title">${safeText(option.label)}</h2><p class="workflow-copy">${safeText(rule.helper)}</p><div class="context-item"><span>${safeText(item.cliente || 'Cliente não informado')}</span><strong>${safeText(item.nome)}</strong></div></header><div class="context-scroll"><div class="status-context-layout"><div class="status-context-main">${form}</div>${preview}</div></div><footer class="context-actions"><small>O contexto e as alterações ficam no histórico.</small><div><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button id="status-context-submit" type="button" class="workflow-primary" onclick="submitStatusContext()">Salvar alteração</button></div></footer>`);
+  const modal=document.getElementById('workflow-modal');
+  modal.classList.add('status-context-dialog');
+  modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','context-dialog-title');
+  modal.returnFocus=origem;
+  modal.addEventListener('keydown', event => {
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeWorkflowModal();return;}
+    if(event.key!=='Tab') return;
+    const campos=[...modal.querySelectorAll('button:not([disabled]),input:not([type="hidden"]),select,textarea,summary')].filter(el=>el.getClientRects().length);
+    const primeiro=campos[0], ultimo=campos[campos.length-1];
+    if(event.shiftKey && document.activeElement===primeiro){event.preventDefault();ultimo?.focus();}
+    else if(!event.shiftKey && document.activeElement===ultimo){event.preventDefault();primeiro?.focus();}
+  });
+  if(isCard){modal.classList.add('status-context-split');loadStatusContextCardPreview(item.id);}
+  modal.querySelector('.workflow-close')?.focus();
   updateStatusContextState();
   preAtribuirQuemExecutou(item.id);
 }
