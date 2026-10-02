@@ -92,3 +92,15 @@ Detalhes em [retomada-registro-arquivos.md](docs/retomada-registro-arquivos.md).
 Sem migração ou mudança de variáveis. Recuperação do banco não foi revalidada.
 Versão anterior: `8fc378f3f96f81ba690dcec05fc3090c4ed9f24d`, deployment
 `9Zr87GJLkruZWaf9uTFBA161dDsH`. CI deve confirmar o commit exato antes da integração.
+
+## Clareza do contexto de status — 02/10/2026
+
+Modal organizado em Contexto e Próxima etapa, com cabeçalho/rodapé separados da
+área rolável e seleção múltipla preservada. Checagem local: suíte de 241 testes
+aprovada e regressão adicional do seletor aprovada; build final e diff verificados.
+Demo conferida em 1280 px e 390 px, aprovação de cliente e alteração com prévia,
+sem overflow horizontal, sobreposição do rodapé ou erros de JavaScript.
+Escape fecha e devolve a rolagem à página. Nenhuma escrita de teste em produção.
+Sem migração ou mudança de variáveis; recuperação do banco não revalidada.
+Versão anterior: `f9b3cb56b2652d4235f1a2e2295ea54b2d8c1960`, deployment
+`5fP9ju1S9A3T3VgeSpzDjv4LGrXj`. CI e preview devem validar o commit antes da integração.

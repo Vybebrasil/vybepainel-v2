@@ -95,7 +95,7 @@ function statusNeedsContext(option) {
     && !statusNeedsMaterialReview(option) && !statusNeedsConferenciaVisual(option);
 }
 function workflowItemHtml(item, target='') { return `<div class="workflow-item"><span class="workflow-item-client">${safeText(item.cliente || 'Cliente não informado')}</span><span class="workflow-item-name">${safeText(item.nome)}${target ? ` <small style="color:#ffb850">→ ${safeText(target)}</small>` : ''}</span></div>`; }
-function closeWorkflowModal() { document.getElementById('workflow-backdrop')?.remove(); document.getElementById('workflow-modal')?.remove(); pendingWorkflowChange = null; }
+function closeWorkflowModal() { const origem=document.getElementById('workflow-modal')?.returnFocus; document.getElementById('workflow-backdrop')?.remove(); document.getElementById('workflow-modal')?.remove(); pendingWorkflowChange = null; if(origem?.isConnected) origem.focus(); }
 function openWorkflowModal(html) { document.getElementById('workflow-backdrop')?.remove(); document.getElementById('workflow-modal')?.remove(); const back=document.createElement('div'); back.id='workflow-backdrop'; back.className='workflow-backdrop'; back.onclick=closeWorkflowModal; const modal=document.createElement('section'); modal.id='workflow-modal'; modal.className='workflow-modal'; modal.innerHTML=html; document.body.append(back,modal); }
 // Todo registro de histórico do painel passa por aqui — checklist de qualidade,
 // troca de responsáveis, ajuste de prazo. Ligando esta função, o histórico
