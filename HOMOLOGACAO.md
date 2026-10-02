@@ -104,3 +104,15 @@ Escape fecha e devolve a rolagem à página. Nenhuma escrita de teste em produç
 Sem migração ou mudança de variáveis; recuperação do banco não revalidada.
 Versão anterior: `f9b3cb56b2652d4235f1a2e2295ea54b2d8c1960`, deployment
 `5fP9ju1S9A3T3VgeSpzDjv4LGrXj`. CI e preview devem validar o commit antes da integração.
+
+## Contexto de status por etapas — 02/10/2026
+
+Fluxo guiado no modal existente: respostas preservadas ao voltar, validação por
+etapa e revisão antes da confirmação. Suíte local de 242 testes aprovada, mais
+duas regressões novas aprovadas separadamente (validação e confirmação somente
+na revisão). Build e diff aprovados. Demo desktop e 390 px conferida: campo vazio
+bloqueia avanço, retorno preserva resposta e revisão reúne os campos. Sem erros
+JavaScript observados e sem gravações em produção. Sem migração ou mudança de
+variáveis; recuperação do banco não revalidada.
+Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
+`8BvRtTDTCRQb3WzCfyZ5dDeqqHwK`. CI e preview devem validar o commit antes da integração.
