@@ -917,6 +917,8 @@ async function areaClientes(req, res, quem) {
 // campo é pulada — dito na hora, não descoberto depois.
 const COLUNAS_EDITAVEIS = {
   lista_suspensa0__1: 'Formato do conteúdo',
+  dropdown_mkv8d52z: 'Tipo de demanda',
+  color_mkwtgakv: 'Prioridade da demanda',
   lista_suspensa__1: 'Tipo de conteúdo',
   color_mm164yv8: 'Priority',
   color_mkynd7j8: '🎙️ OFF',
@@ -1050,13 +1052,13 @@ async function contarUsoDaEtiqueta(db, cat, chave) {
   if (cat.onde === 'captacao') {
     return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE captacao_chave=${chave}`)[0].n);
   }
-  if (cat.coluna === 'lista_suspensa0__1') {
+  if (['lista_suspensa0__1', 'dropdown_mkv8d52z'].includes(cat.coluna)) {
     return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(formato_chaves)`)[0].n);
   }
   if (cat.coluna === 'lista_suspensa__1') {
     return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE ${chave} = ANY(tipo_conteudo_chaves)`)[0].n);
   }
-  if (cat.coluna === 'color_mm164yv8') {
+  if (['color_mm164yv8', 'color_mkwtgakv'].includes(cat.coluna)) {
     return Number((await db`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE prioridade_chave=${chave}`)[0].n);
   }
   if (cat.coluna === 'color_mkynd7j8') {
@@ -1236,7 +1238,7 @@ async function areaOpcoes(req, res, quem) {
       const cor = String(req.body?.cor || '').trim() || '#579bfc';
       const r = await criarNoCatalogo(db, cat, nova, limpo, cor);
       return res.status(200).json({ ok: true, acao, etiqueta: r[0],
-        aviso: 'Etiqueta criada só na Vybe; a cópia deste campo no Monday é pulada quando ela for usada.' });
+        aviso: 'Opção criada no catálogo da Vybe.' });
     }
 
     // Renomear, recolorir e remover: o painel só sabia criar e ligar/desligar,

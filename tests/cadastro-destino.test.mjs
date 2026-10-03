@@ -12,7 +12,7 @@ function desenhar(state) {
   const contexto={state,document:{getElementById(id){if(!elementos.has(id))elementos.set(id,{});return elementos.get(id);}},
     cadastrosDestiny:()=>({group:'entrada',status:'A Fazer',capture:false}),
     fcQuadro:()=>({grupos:[{val:'entrada',label:'Entrada'},{val:'execucao',label:'Em Execução'}]}),
-    fcGrupoDoQuadro:g=>g,fcSelectDropdown:(key,value,label)=>{seletores[key]={value,label};},
+    fcStatusSugerido:s=>s,fcGrupoDoQuadro:g=>g,fcSelectDropdown:(key,value,label)=>{seletores[key]={value,label};},
     fcEquipeFinal:()=>[],esc:String};
   vm.runInNewContext(trecho+'\nupdateDestinyUI();',contexto);
   return {seletores,elementos};

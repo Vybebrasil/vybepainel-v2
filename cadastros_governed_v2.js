@@ -302,6 +302,15 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         background:transparent; color:#7fd8e8; cursor:pointer; font:600 12px var(--mac-ui,system-ui);
         transition:background-color .14s var(--curva), border-color .14s var(--curva); }
       .fc-mais:hover { background:rgba(0,240,255,.08); border-color:#00f0ff; }
+      .fc-nova-opcao { display:grid; gap:12px; padding:18px; margin-top:16px;
+        border:1px solid var(--mac-border,rgba(255,255,255,.16)); border-radius:16px;
+        background:var(--mac-surface,rgba(255,255,255,.04)); }
+      .fc-nova-opcao label { font-size:15px; font-weight:600; color:#f5f5f7; }
+      .fc-nova-opcao p { margin:0; font-size:13px; line-height:1.5; color:#afb5c2; }
+      .fc-nova-opcao [role="alert"] { color:#ff9cae; }
+      .fc-nova-opcao input { width:100%; min-width:0; box-sizing:border-box; }
+      .fc-resposta > .fc-mais { margin-top:14px; }
+      .fc-auto-col > .fc-mais { align-self:flex-start; }
       .fc-escala { display:grid; gap:12px; margin:0 0 14px; padding:16px; border:1px solid rgba(0,240,255,.28);
         border-radius:14px; background:rgba(0,240,255,.05); }
       .fc-escala b { color:#e7ecf5; font:600 14px var(--mac-ui, system-ui); }
@@ -424,6 +433,131 @@ const FC_QUADROS = {
 };
 const FC_PRIORIDADES = ['', 'Crítica', 'Alta', 'Média', 'Baixa', 'Preventiva'];
 function fcQuadro() { return FC_QUADROS[state.board] || FC_QUADROS.producao; }
+// O mesmo catálogo usado nas tabelas; listas fixas apenas antes da primeira leitura.
+function fcConfigOpcao(campo) {
+  const cfg = {
+    client: { nome: 'cliente', titulo: 'Novo cliente' },
+    format: { nome: fcQuadro().rotuloFormato.toLowerCase(), titulo: state.board === 'demandas' ? 'Novo tipo de demanda' : 'Novo formato', coluna: state.board === 'demandas' ? 'dropdown_mkv8d52z' : 'lista_suspensa0__1' },
+    manualGroup: { nome: 'grupo', titulo: 'Novo grupo' },
+    manualStatus: { nome: 'status', titulo: 'Novo status', coluna: `status:${fcQuadro().id}` },
+    manualCap: { nome: 'captação', titulo: 'Nova opção de captação', coluna: 'status_1__1' },
+    prioridade: { nome: 'prioridade', titulo: 'Nova prioridade', coluna: 'color_mkwtgakv' }
+  };
+  return cfg[campo];
+}
+function fcListaCatalogo(campo) {
+  if (campo === 'manualGroup') return fcQuadro().grupos.map(g => g.label);
+  let fonte;
+  if (campo === 'manualStatus') fonte = state.board === 'demandas'
+    ? (typeof CATALOGO_STATUS_DEMANDAS === 'undefined' ? [] : CATALOGO_STATUS_DEMANDAS)
+    : (typeof STATUS_OPTIONS === 'undefined' ? [] : STATUS_OPTIONS);
+  else if (campo === 'manualCap') fonte = typeof CATALOGO_CAPTACAO === 'undefined' ? [] : CATALOGO_CAPTACAO;
+  else fonte = (typeof CATALOGO_OPCOES === 'undefined' ? [] : CATALOGO_OPCOES)
+    .filter(o => o.coluna_id === fcConfigOpcao(campo).coluna);
+  if (fonte.length) return fonte.filter(o => o.ativa !== false).map(o => o.rotulo || o.label);
+  if (campo === 'format') return fcQuadro().formatos || CADASTROS_FORMATS;
+  if (campo === 'manualStatus') return fcQuadro().status;
+  if (campo === 'prioridade') return FC_PRIORIDADES.filter(Boolean);
+  return ['Captação Agendada', 'Captação Feita', 'Agendar Captação', 'Editado', 'A fazer', 'Captação em Andamento'];
+}
+function fcStatusSugerido(sugerido) {
+  const opcoes = fcListaCatalogo('manualStatus');
+  // O destino automático foi escrito para Produção. Demandas deve usar um
+  // status do seu próprio catálogo, inclusive quando um tipo acaba de nascer.
+  return opcoes.find(s => chaveDeStatus(s) === chaveDeStatus(sugerido))
+    || opcoes.find(s => chaveDeStatus(s) === (state.board === 'demandas' ? 'nova_demanda' : 'a_fazer'))
+    || opcoes[0] || sugerido;
+}
+function fcPodeAdicionar(campo) {
+  if (!fcConfigOpcao(campo)) return false;
+  if (campo === 'client') return typeof podeEditarClientes === 'function' && podeEditarClientes();
+  if (campo === 'manualGroup') return typeof podeEditarGrupos === 'function' && podeEditarGrupos();
+  return typeof podeGerirEtiquetas === 'function' && podeGerirEtiquetas();
+}
+function fcAdicionarOpcaoHtml(campo) {
+  return fcPodeAdicionar(campo) ? `<button type="button" class="fc-mais" data-adicionar="${campo}"
+    onclick="fcAbrirNovaOpcao('${campo}')">+ ${esc(fcConfigOpcao(campo).titulo)}</button>` : '';
+}
+window.fcAbrirNovaOpcao = function(campo) {
+  if (fcEnviando || !fcPodeAdicionar(campo)) return;
+  fcSincronizarDaTela();
+  document.getElementById('fc-nova-opcao')?.remove();
+  document.querySelectorAll('.fc-dropdown-list').forEach(el => el.classList.remove('open'));
+  const cfg = fcConfigOpcao(campo);
+  const caixa = document.createElement('div');
+  caixa.id = 'fc-nova-opcao'; caixa.className = 'fc-nova-opcao'; caixa.dataset.campo = campo;
+  caixa.innerHTML = `<label for="fc-nova-opcao-nome">${esc(cfg.titulo)}</label>
+    <p>Fica disponível para toda a equipe, mesmo se você cancelar este cadastro.</p>
+    <input id="fc-nova-opcao-nome" class="fc-campo" autocomplete="off" maxlength="${campo === 'client' ? 120 : 40}" placeholder="Nome da opção">
+    <p id="fc-nova-opcao-erro" role="alert" hidden></p>
+    <div class="fc-itens-acoes"><button type="button" class="fc-btn-cancel" onclick="fcCancelarNovaOpcao()">Cancelar</button>
+    <button type="button" class="fc-btn-create" onclick="fcSalvarNovaOpcao()">Salvar e selecionar</button></div>`;
+  document.querySelector('#fc-guia .fc-resposta').appendChild(caixa);
+  caixa.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); e.stopPropagation(); void fcSalvarNovaOpcao(); }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fcCancelarNovaOpcao(); }
+  });
+  document.getElementById('fc-nova-opcao-nome').focus();
+};
+window.fcCancelarNovaOpcao = function() {
+  if (fcEnviando) return;
+  const caixa = document.getElementById('fc-nova-opcao');
+  const campo = caixa?.dataset.campo; caixa?.remove();
+  document.querySelector(`[data-adicionar="${campo}"]`)?.focus();
+};
+window.fcSalvarNovaOpcao = async function() {
+  const caixa = document.getElementById('fc-nova-opcao');
+  if (!caixa || fcEnviando) return;
+  const campo = caixa.dataset.campo, cfg = fcConfigOpcao(campo);
+  const input = document.getElementById('fc-nova-opcao-nome');
+  const aviso = document.getElementById('fc-nova-opcao-erro');
+  const nome = input.value.trim();
+  const erro = texto => { aviso.textContent = texto; aviso.hidden = false; };
+  if (!fcPodeAdicionar(campo)) return erro('Só quem administra pode adicionar opções.');
+  if (!nome) { input.focus(); return erro('Escreva o nome para continuar.'); }
+  if (campo === 'format' && nome.includes(',')) return erro('Cadastre um tipo por vez, sem vírgula no nome.');
+  const lista = campo === 'client' ? cadastrosClientOptions() : fcListaCatalogo(campo);
+  const existente = lista.find(n => n.localeCompare(nome, 'pt-BR', { sensitivity: 'base' }) === 0);
+  if (existente) return erro(`“${existente}” já está na lista. Cancele e selecione essa opção.`);
+  fcEnviando = true;
+  const overlay = document.getElementById('fc-overlay');
+  overlay.inert = true; overlay.setAttribute('aria-busy', 'true');
+  aviso.hidden = false; aviso.textContent = 'Salvando…';
+  let salvo = false;
+  try {
+    let valor;
+    if (campo === 'client') {
+      const d = await gravarCadastroDeCliente({ acao: 'criar', nome }, 'Cliente salvo.');
+      if (!d.cliente?.nome) throw new Error('O servidor não confirmou o cliente.');
+      valor = typeof normalizarCliente === 'function' ? normalizarCliente(d.cliente.nome) : d.cliente.nome;
+      const i = CADASTRO_CLIENTES.findIndex(c => String(c.id) === String(d.cliente.id));
+      if (i < 0) CADASTRO_CLIENTES.push(d.cliente); else CADASTRO_CLIENTES[i] = { ...CADASTRO_CLIENTES[i], ...d.cliente };
+    } else if (campo === 'manualGroup') {
+      const d = await mudarGrupo(state.board, { acao: 'criar', titulo: nome, cor: '#579bfc' });
+      if (!d?.grupo_id) throw new Error('Não foi possível criar o grupo. Confira a mensagem e tente novamente.');
+      valor = d.grupo_id;
+    } else {
+      const d = await chamarEtiqueta({ acao: 'criar', coluna: cfg.coluna, rotulo: nome });
+      if (!d.etiqueta?.chave) throw new Error('O servidor não confirmou a opção.');
+      valor = d.etiqueta.rotulo;
+      // A resposta da gravação é autoritativa; não depende de uma segunda leitura.
+      const o = d.etiqueta;
+      if (campo === 'manualStatus') {
+        if (state.board === 'demandas') CATALOGO_STATUS_DEMANDAS.push(o);
+        else STATUS_OPTIONS.push({ ...o, label: o.rotulo, color: o.cor });
+      } else if (campo === 'manualCap') CATALOGO_CAPTACAO.push(o);
+      else CATALOGO_OPCOES.push({ ...o, coluna_id: cfg.coluna });
+    }
+    state[campo] = valor;
+    salvo = true;
+  } catch (e) { erro(e.message || 'Não foi possível salvar. Tente novamente.'); }
+  finally { fcEnviando = false; overlay.inert = false; overlay.removeAttribute('aria-busy'); }
+  if (salvo) {
+    fcDesenharPasso();
+    document.querySelector(`[data-adicionar="${campo}"]`)?.focus();
+    showToast('Opção salva e selecionada. Você pode continuar.', 'ok');
+  } else input.focus();
+};
 // A regra de entrada (cadastrosDestiny) foi escrita para Produção e devolve os
 // grupos de lá. Em Solicitações isso punha Impresso e Design no "Design &
 // Edição" de Produção — um grupo que não existe no quadro. Grupo de outro quadro
@@ -458,11 +592,9 @@ function fcGrupoDoQuadro(grupo) {
     const campo = document.getElementById('fc-format-input');
     if (!campo) return;
     const quadro = fcQuadro();
-    const lista = quadro.formatos
-      || (typeof CADASTROS_FORMATS !== 'undefined' ? CADASTROS_FORMATS
-          : ['Reels','Vídeo','Fotografia','Carrossel','Post Único','Motion','Stories']);
+    const lista = fcListaCatalogo('format');
     campo.innerHTML = `<option value="">Selecionar ${quadro.rotuloFormato.toLowerCase()}...</option>`
-      + lista.map((f) => `<option value="${String(f).replace(/"/g,'&quot;')}">${f}</option>`).join('');
+      + lista.map((f) => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
     campo.value = state.format || '';
   };
 
@@ -478,7 +610,7 @@ function fcGrupoDoQuadro(grupo) {
      }
      
      {
-         const statusAtual = state.manualStatus !== undefined ? state.manualStatus : dest.status;
+         const statusAtual = state.manualStatus !== undefined ? state.manualStatus : fcStatusSugerido(dest.status);
          const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
          const getCol = (s) => {
          // Custom overrides matching the exact Monday board screenshot
@@ -540,7 +672,7 @@ function fcGrupoDoQuadro(grupo) {
      const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
      const finalGroup = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
      const finalGroupLabel = groups[finalGroup] || 'Redação';
-     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
+     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : fcStatusSugerido(dest.status);
      const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
      
      groupEl.textContent = finalGroupLabel;
@@ -744,7 +876,7 @@ function fcGrupoDoQuadro(grupo) {
 
      const dest = cadastrosDestiny(state.format, state.briefReady, state.materialReady, state.assignees);
      const finalGroup = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
-     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : dest.status;
+     const finalStatus = state.manualStatus !== undefined ? state.manualStatus : fcStatusSugerido(dest.status);
      const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
 
      const btn = document.getElementById('fc-submit-btn');
@@ -925,15 +1057,13 @@ function fcGrupoDoQuadro(grupo) {
         <div class="fc-escolhas" id="fc-lista-cliente">${clientes.map((c) => `
           <button type="button" class="fc-escolha ${state.client === c ? 'marcada' : ''}"
             data-busca="${esc2(String(c).toLowerCase())}"
-            onclick="fcResponder('client', '${esc2(c).replace(/'/g, "\\'")}')">${esc2(c)}</button>`).join('')}</div>`;
+            data-valor="${esc2(c)}" onclick="fcResponder('client', this.dataset.valor)">${esc2(c)}</button>`).join('')}</div>${fcAdicionarOpcaoHtml('client')}`;
     }
     if (p === 'format') {
-      const lista = fcQuadro().formatos
-        || (typeof CADASTROS_FORMATS !== 'undefined' ? CADASTROS_FORMATS
-            : ['Reels','Vídeo','Fotografia','Carrossel','Post Único','Motion','Stories']);
+      const lista = fcListaCatalogo('format');
       return `<div class="fc-escolhas">${lista.map((f) => `
         <button type="button" class="fc-escolha ${state.format === f ? 'marcada' : ''}"
-          onclick="fcResponder('format', '${esc2(f).replace(/'/g, "\\'")}')">${esc2(f)}</button>`).join('')}</div>`;
+          data-valor="${esc2(f)}" onclick="fcResponder('format', this.dataset.valor)">${esc2(f)}</button>`).join('')}</div>${fcAdicionarOpcaoHtml('format')}`;
     }
     if (p === 'itens') {
       // Mais de três conteúdos: lista curta à esquerda e o conteúdo escolhido à
@@ -1583,13 +1713,13 @@ function fcGrupoDoQuadro(grupo) {
         
         const quadro = fcQuadro();
         const groups = quadro.grupos;
-        const statuses = quadro.status;
-        const caps = ['', 'Captação Agendada', 'Captação Feita', 'Agendar Captação', 'Editado', 'A fazer', 'Captação em Andamento'];
+        const statuses = fcListaCatalogo('manualStatus');
+        const caps = ['', ...fcListaCatalogo('manualCap')];
         const ehDemanda = state.board === 'demandas';
         
         const html = `
            <div class="fc-auto-col" id="col-manualGroup">
-              <label>Grupo / Destino</label>
+              <label>Grupo / Destino</label>${fcAdicionarOpcaoHtml('manualGroup')}
               <div class="fc-custom-dropdown">
                  <div class="fc-dropdown-value" id="fc-val-manualGroup" onclick="fcToggleDropdown('fc-list-group')">Redação</div>
                  <div class="fc-dropdown-list" id="fc-list-group">
@@ -1599,14 +1729,14 @@ function fcGrupoDoQuadro(grupo) {
            </div>
            
            <div class="fc-auto-col" id="col-manualStatus">
-              <label>Status Inicial</label>
+              <label>Status Inicial</label>${fcAdicionarOpcaoHtml('manualStatus')}
               <div class="fc-custom-dropdown">
                  <div class="fc-dropdown-value" id="fc-val-manualStatus" onclick="fcToggleDropdown('fc-list-status')" style="background:#c4c4c4; color:#000; border:none;">A Fazer</div>
                  <div class="fc-dropdown-list" id="fc-list-status">
                     ${statuses.map(s => {
                         const col = getCol(s).color;
                         const txt = (col === '#c4c4c4' || col === '#ffcb00') ? '#000' : '#fff';
-                        return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualStatus', '${s}', '${s}', {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${s}</div>`;
+                        return `<div class="fc-dropdown-item" data-valor="${esc(s)}" onclick="fcSelectDropdown('manualStatus', this.dataset.valor, this.dataset.valor, {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${esc(s)}</div>`;
                     }).join('')}
                  </div>
               </div>
@@ -1614,21 +1744,21 @@ function fcGrupoDoQuadro(grupo) {
            
            ${ehDemanda ? `
            <div class="fc-auto-col" id="col-prioridade">
-              <label>Prioridade</label>
+              <label>Prioridade</label>${fcAdicionarOpcaoHtml('prioridade')}
               <div class="fc-custom-dropdown">
-                 <div class="fc-dropdown-value" id="fc-val-prioridade" onclick="fcToggleDropdown('fc-list-prio')">${state.prioridade || '- Nenhuma -'}</div>
+                 <div class="fc-dropdown-value" id="fc-val-prioridade" onclick="fcToggleDropdown('fc-list-prio')">${esc(state.prioridade || '- Nenhuma -')}</div>
                  <div class="fc-dropdown-list" id="fc-list-prio">
-                    ${FC_PRIORIDADES.map(pr => {
+                    ${['', ...fcListaCatalogo('prioridade')].map(pr => {
                         const col = getCol(pr).color;
                         const txt = (col === '#c4c4c4' || col === '#ffcb00') ? '#000' : '#fff';
                         if(!pr) return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('prioridade', '', '- Nenhuma -')" style="color:#849aa6; margin-bottom:4px;">- Nenhuma -</div>`;
-                        return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('prioridade', '${pr}', '${pr}', {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${pr}</div>`;
+                        return `<div class="fc-dropdown-item" data-valor="${esc(pr)}" onclick="fcSelectDropdown('prioridade', this.dataset.valor, this.dataset.valor, {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${esc(pr)}</div>`;
                     }).join('')}
                  </div>
               </div>
            </div>` : `
            <div class="fc-auto-col" id="col-manualCap">
-              <label>Captação Externa</label>
+              <label>Captação Externa</label>${fcAdicionarOpcaoHtml('manualCap')}
               <div class="fc-custom-dropdown">
                  <div class="fc-dropdown-value" id="fc-val-manualCap" onclick="fcToggleDropdown('fc-list-cap')">- Nenhuma -</div>
                  <div class="fc-dropdown-list" id="fc-list-cap">
@@ -1636,7 +1766,7 @@ function fcGrupoDoQuadro(grupo) {
                         if(!s) return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualCap', '', '- Nenhuma -')" style="color:#849aa6; margin-bottom:4px;">- Nenhuma -</div>`;
                         const col = getCol(s).color;
                         const txt = (col === '#c4c4c4' || col === '#ffcb00') ? '#000' : '#fff';
-                        return `<div class="fc-dropdown-item" onclick="fcSelectDropdown('manualCap', '${s}', '${s}', {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${s}</div>`;
+                        return `<div class="fc-dropdown-item" data-valor="${esc(s)}" onclick="fcSelectDropdown('manualCap', this.dataset.valor, this.dataset.valor, {color:'${col}'})" style="background:${col}; color:${txt}; margin-bottom:4px;">${esc(s)}</div>`;
                     }).join('')}
                  </div>
               </div>
@@ -1760,6 +1890,10 @@ function fcGrupoDoQuadro(grupo) {
       fcPasso = pendente < 0 ? FC_PASSOS.length - 1 : pendente;
     }
     fcDesenharPasso();
+    if (typeof ensureClientMasterSources === 'function') void ensureClientMasterSources().then(() => {
+      if (document.getElementById('fc-overlay') === overlay && FC_PASSOS[fcPasso] === 'client'
+          && !document.getElementById('fc-nova-opcao') && !document.getElementById('fc-busca-cliente')?.value) fcDesenharPasso();
+    }).catch(() => {});
     requestAnimationFrame(() => {
        overlay.classList.add('open');
        

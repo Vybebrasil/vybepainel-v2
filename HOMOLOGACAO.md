@@ -116,3 +116,12 @@ JavaScript observados e sem gravações em produção. Sem migração ou mudanç
 variáveis; recuperação do banco não revalidada.
 Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 `8BvRtTDTCRQb3WzCfyZ5dDeqqHwK`. CI e preview devem validar o commit antes da integração.
+
+## 2026-10-03 — Novas opções durante o cadastro (local)
+
+- Cadastro guiado reutiliza os endpoints de clientes, etiquetas e grupos. Administradores podem adicionar cliente, formato/tipo de demanda, grupo, status e captação/prioridade no próprio formulário. A resposta confirmada seleciona a opção; erros mantêm o texto e o rascunho.
+- Clientes ativos sem atividades entram na seleção, preservando a normalização de nomes. Formatos, status, captação e prioridade passam a ler os catálogos ativos. A sugestão automática de status respeita o quadro escolhido.
+- API de etiquetas aceita as colunas já existentes de tipo e prioridade de Demandas; mantém autorização de administrador e proteção contra exclusão de opções em uso. Nenhuma migração ou escrita de teste em produção.
+- `npm run check`: sintaxe, 250 testes e build aprovados. Regressões cobrem seleção após salvar, conservação do rascunho, erro, permissão, envio repetido, separação de quadros e status sugerido. PGlite verifica gravação, duplicidade e uso das novas colunas na API de etiquetas.
+- Navegador na demo local: cliente/formato, tipo de demanda, destino em ambos os quadros, editor de prioridade/captação, Enter e Escape, erro explícito de escrita bloqueada; screenshots desktop e celular inspecionados, sem erros JavaScript no fluxo. A demo não confirma persistência, verificada separadamente nos testes isolados.
+- Ainda não publicado. Não foram repetidos testes operacionais de produção.

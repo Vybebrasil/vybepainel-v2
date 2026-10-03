@@ -1650,8 +1650,9 @@ function cadastrosDestiny(format, briefingReady, materialReady = false, extraAss
 function cadastrosClientOptions(){
   const base=(typeof DADOS_ALL!=='undefined'&&DADOS_ALL?.length)?DADOS_ALL:(DADOS||[]);
   const demandas=typeof DADOS_DEMANDAS!=='undefined'?DADOS_DEMANDAS:[];
-  return [...new Set([...base,...demandas].flatMap(clientesDoItem)
-    .filter(client=>client&&client!=='Sem cliente'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const cadastrados = typeof CADASTRO_CLIENTES === 'undefined' ? [] : CADASTRO_CLIENTES.filter(c => c.ativo !== false).map(c => c.nome);
+  return [...new Set([...cadastrados, ...[...base,...demandas].flatMap(clientesDoItem)]
+    .filter(client=>client&&client!=='Sem cliente').map(client=>typeof normalizarCliente === 'function' ? normalizarCliente(client) : client))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
 }
 function cadastrosAssigneeNames(ids){return ids.map(id=>TEAM_USERS.find(user=>String(user.id)===String(id))?.name).filter(Boolean).join(' + ') || 'definido na triagem';}
 function cadastrosDraftData(){const title=String(document.getElementById('cad-title')?.value||'').trim();const client=String(document.getElementById('cad-client')?.value||'').trim();const route=String(document.getElementById('cad-route')?.value||'producao').trim();const format=String(document.getElementById('cad-format')?.value||'').trim();const veic=String(document.getElementById('cad-veic')?.value||'').trim();const prazo=String(document.getElementById('cad-prazo')?.value||'').trim();const brief=String(document.getElementById('cad-brief')?.value||'').trim();const briefingReady=Boolean(document.getElementById('cad-brief-ready')?.checked);const destiny=cadastrosDestiny(format,briefingReady);const routeMeta=CADASTROS_ROUTES.find(item=>item.id===route)||CADASTROS_ROUTES[0];const normalized=title ? `${format} - ${title.replace(new RegExp(`^${format}\\s*-\\s*`,'i'),'')}` : '';return {title,client,route,routeMeta,format,veic,prazo,brief,briefingReady,destiny,normalized};}
