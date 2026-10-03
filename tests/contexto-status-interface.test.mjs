@@ -31,3 +31,24 @@ test('continuar só grava na revisão e revalida etapas anteriores',()=>{
  invalido=true;c.avancarContextoStatus();assert.equal(form.dataset.step,'0');assert.equal(gravacoes,0);assert.equal(aviso.hidden,false);
  invalido=false;c.avancarContextoStatus();c.avancarContextoStatus();assert.equal(gravacoes,1);
 });
+test('origem por foto preserva contato externo e não altera responsáveis',()=>{
+ const pessoas=[{id:1,name:'Ana Silva'},{id:2,name:'Ana Souza'}];
+ const elementos={'status-context-requester':{value:'Ana Silva'},'context-origin-name':{value:'Cliente externo',focus(){this.focado=true;}},'context-origin-external':{hidden:true},'status-context-next-owner':{value:'1,2'}};
+ const botoes=['1','2',''].map(id=>({dataset:{originId:id},setAttribute(k,v){this[k]=v;}}));
+ const c=vm.createContext({TEAM_USERS:pessoas,safeText:String,ownerAvatarHtml:u=>`<img alt="${u.name}">`,document:{getElementById:id=>elementos[id],querySelectorAll:()=>botoes}});
+ vm.runInContext(fonte.slice(fonte.indexOf('function statusContextOriginHtml'),fonte.indexOf('function openStatusContextGate')),c);
+ assert.match(c.statusContextOriginHtml('Ana Silva'),/data-origin-id="1" aria-pressed="true"/);
+ assert.match(c.statusContextOriginHtml('Contato externo'),/value="Contato externo"/);
+ c.selecionarOrigemContexto('2');assert.equal(elementos['status-context-requester'].value,'Ana Souza');assert.equal(elementos['context-origin-external'].hidden,true);assert.equal(botoes[1]['aria-pressed'],'true');
+ c.selecionarOrigemContexto('');assert.equal(elementos['status-context-requester'].value,'Cliente externo');assert.equal(elementos['context-origin-name'].focado,true);
+ c.selecionarOrigemContexto('1');c.selecionarOrigemContexto('');assert.equal(elementos['context-origin-name'].value,'Cliente externo');
+ assert.equal(elementos['status-context-next-owner'].value,'1,2');
+ c.selecionarOrigemContexto('999');assert.equal(elementos['status-context-requester'].value,'Cliente externo');
+});
+test('origem externa vazia bloqueia etapa e aponta para campo visível',()=>{
+ const requester={id:'status-context-requester',type:'hidden',value:''},externo={type:'text',value:''};
+ const c=vm.createContext({document:{getElementById:id=>id==='status-context-requester'?requester:externo}});
+ vm.runInContext(fonte.slice(fonte.indexOf('function erroEtapaContexto'),fonte.indexOf('function avancarContextoStatus')),c);
+ const erro=c.erroEtapaContexto({dataset:{required:'status-context-requester'}});
+ assert.equal(erro.campo,externo);assert.match(erro.mensagem,/nome do contato/);
+});

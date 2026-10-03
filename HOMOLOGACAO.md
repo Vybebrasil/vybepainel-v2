@@ -125,3 +125,10 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: sintaxe, 250 testes e build aprovados. Regressões cobrem seleção após salvar, conservação do rascunho, erro, permissão, envio repetido, separação de quadros e status sugerido. PGlite verifica gravação, duplicidade e uso das novas colunas na API de etiquetas.
 - Navegador na demo local: cliente/formato, tipo de demanda, destino em ambos os quadros, editor de prioridade/captação, Enter e Escape, erro explícito de escrita bloqueada; screenshots desktop e celular inspecionados, sem erros JavaScript no fluxo. A demo não confirma persistência, verificada separadamente nos testes isolados.
 - Ainda não publicado. Não foram repetidos testes operacionais de produção.
+
+## 2026-10-03 — Origem por avatar no contexto de status
+
+- Modal existente com cabeçalho compacto, progresso segmentado, foco discreto e seleção da origem por avatar da equipe. Contatos externos usam “Outra pessoa”; o nome continua no campo original da API, sem alterar os responsáveis.
+- `npm run check`: 252 testes e build aprovados. Duas regressões verificam seleção da origem, contato externo preservado, IDs inválidos e validação do campo visível. Build repetido após correção cosmética do ícone de fechar; `git diff --check` aprovado.
+- Demo local: screenshots desktop e 390 px inspecionados; contato preservado ao voltar, sem overflow horizontal e sem erros JavaScript observados. A demo usa iniciais no lugar de fotos ausentes e não confirma escrita. Nenhuma alteração de banco, variáveis ou teste de escrita em produção.
+- Base anterior: commit `7837ac9570509505243c2acac7ec8db731fee471`, deployment `5hNLFH97eeRuCp3KK6HiFZqmV4mj`. Recuperação do banco não revalidada; nenhuma migração nesta entrega. CI e preview devem aprovar o commit antes da integração.
