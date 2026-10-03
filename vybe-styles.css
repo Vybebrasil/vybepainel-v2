@@ -5725,12 +5725,14 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
 
 /* Contexto de status: cabeçalho/rodapé fora da área rolável. Os !important
    abaixo neutralizam somente dimensões e campos globais legados deste modal. */
-.workflow-modal.status-context-dialog{display:flex;flex-direction:column;width:min(760px,94vw)!important;max-height:calc(100dvh - 32px)!important;padding:0!important;overflow:hidden!important}
+.workflow-modal.status-context-dialog{display:flex;flex-direction:column;width:min(660px,94vw)!important;max-height:calc(100dvh - 32px)!important;padding:0!important;overflow:hidden!important;background:linear-gradient(145deg,rgba(39,40,48,.96),rgba(22,24,31,.93))!important;backdrop-filter:blur(28px) saturate(130%);-webkit-backdrop-filter:blur(28px) saturate(130%)}
 .status-context-dialog.status-context-split{width:min(1040px,94vw)!important}
-.status-context-dialog .context-header{flex:none;padding:18px 24px 16px;border-bottom:1px solid var(--vybe-line)}
-.status-context-dialog .workflow-kicker{width:100%;padding:0!important;letter-spacing:.02em}
+.status-context-dialog .context-header{flex:none;padding:16px 24px;border-bottom:1px solid var(--vybe-line)}
+.status-context-dialog .workflow-kicker{width:100%;padding:0!important;margin:0!important;background:transparent!important;letter-spacing:.02em}
+.status-context-dialog .workflow-close{width:30px!important;height:30px!important;font-size:0!important}
+.status-context-dialog .context-title{margin:10px 0 0!important;font:600 20px/1.3 var(--mac-ui)!important}
 .context-title{margin:10px 0 6px;font:650 24px/1.2 var(--mac-ui);letter-spacing:-.025em;overflow-wrap:anywhere}
-.context-item{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:12px;font:500 13px/1.4 var(--mac-ui)}
+.context-item{display:flex;flex-direction:column;gap:3px;margin-top:12px;font:500 13px/1.4 var(--mac-ui)}
 .context-item span{color:var(--vybe-orange-soft,#ffb079)}
 .context-item strong{font-weight:550;overflow-wrap:anywhere}
 .context-scroll{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:18px 24px 24px}
@@ -5771,7 +5773,7 @@ body:has(.status-context-dialog){overflow:hidden}
 /* Passos do contexto mantêm os campos montados para preservar as respostas. */
 .status-context-dialog [data-context-step][hidden],.status-context-dialog .status-context-preview[hidden]{display:none}
 .context-progress{margin-top:14px;color:var(--vybe-orange-soft,#ffb079);font:600 12px/1.4 var(--mac-ui)}
-.status-context-dialog [data-context-step]{min-height:170px}
+.status-context-dialog [data-context-step]{min-height:120px;animation:context-step-in .18s ease-out}
 .status-context-dialog [data-context-step]>.workflow-field:first-child{margin-top:0}
 .context-review-title{margin:0 0 16px;font:600 18px/1.3 var(--mac-ui)}
 #context-review{margin:0}
@@ -5779,3 +5781,23 @@ body:has(.status-context-dialog){overflow:hidden}
 #context-review dt{font:500 12px/1.4 var(--mac-ui);color:#aeb5c2}
 #context-review dd{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font:500 14px/1.5 var(--mac-ui)}
 #context-step-error{color:#ffb4be;font:500 13px/1.5 var(--mac-ui);margin:12px 0 0}
+
+/* O foco global usa anel duplo. Aqui um único contorno mantém a indicação
+   de teclado sem disputar atenção com a pergunta. */
+.status-context-dialog :is(input,textarea,select):focus{outline:2px solid var(--vybe-orange-soft,#ffb079)!important;outline-offset:2px!important;box-shadow:none!important}
+.status-context-dialog .workflow-field :is(input,textarea,select){border-radius:12px!important;background:rgba(8,10,16,.38)!important;padding:12px 14px!important;font-size:15px!important}
+.status-context-dialog [hidden]{display:none!important}
+.context-progress-track{display:flex;gap:5px;margin-top:8px}
+.context-progress-track span{height:3px;flex:1;border-radius:4px;background:rgba(255,255,255,.12);transition:background .18s}
+.context-progress-track span.complete{background:var(--vybe-orange-soft,#ffb079)}
+.context-origin-people{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.context-person{display:flex;align-items:center;gap:9px;min-width:0;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.04);color:#e9ebef;text-align:left;cursor:pointer;font:500 12px/1.35 var(--mac-ui)}
+.context-person>span:last-child{overflow-wrap:anywhere}
+.context-person img,.context-person .owner-avatar-fallback,.context-other-icon{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;object-fit:cover}
+.context-other-icon{background:rgba(255,255,255,.08);font-size:22px}
+.context-person:hover{background:rgba(255,255,255,.09)}
+.context-person[aria-pressed="true"]{border-color:var(--vybe-orange-soft,#ffb079);background:rgba(255,135,47,.12)}
+.context-person:focus-visible{outline:2px solid var(--vybe-orange-soft,#ffb079);outline-offset:2px}
+@keyframes context-step-in{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:680px){.context-origin-people{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.status-context-dialog [data-context-step]{animation:none}.context-progress-track span{transition:none}}
