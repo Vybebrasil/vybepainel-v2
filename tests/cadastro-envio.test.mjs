@@ -11,7 +11,7 @@ function cadastro(criar, itens) {
   const state = { board: 'demandas', client: 'Cliente', format: 'Card', itens, assignees: [] };
   const c = vm.createContext({ state, window: {}, fcEnviando: false, fcPasso: 0,
     FC_PASSOS: ['itens'], FC_FALTA: {}, fcRespondido: () => true, fcSincronizarDaTela(){},
-    cadastrosDestiny: () => ({ group:'grupo', status:'Pode Fazer' }), fcGrupoDoQuadro: g => g,
+    cadastrosDestiny: () => ({ group:'grupo', status:'Pode Fazer' }), fcStatusSugerido:s=>s,fcGrupoDoQuadro: g => g,
     document: { getElementById: id => id === 'fc-overlay' ? overlay : btn },
     cadastroNomeNoBanco: n => n, fcCriarUm: criar, fcEspelharPrimeiro(){}, fcDesenharPasso(){},
     showToast: (...args) => chamadas.avisos.push(args),
