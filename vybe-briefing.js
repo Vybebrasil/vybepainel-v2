@@ -28,22 +28,18 @@ let BRIEFING_ABERTO = null;
 // o caso da maioria). A busca no update procura o vocabulario do proprio modelo
 // da casa e ignora os updates que o painel mesmo escreve.
 function briefingDaPeca(detail) {
-  const doBanco = String(detail?.briefing || '').trim();
-  if (doBanco) return { texto: doBanco, autor: '', quando: detail?.created_at || '', origem: 'cadastro' };
-  const marcas = /BRIEFING|CORA(Ç|C)(Ã|A)O DO PEDIDO|MENSAGEM ?\/ ?COPY|DIRE(Ç|C)(Ã|A)O DE ARTE|ROTEIRO|LEGENDA DO POST|STORIES DE APOIO|CHECKLIST|NOME DA TAREFA|HOOK/i;
-  const candidatos = (detail?.updates || [])
-    .map(update => ({ update, texto: workspacePlainText(update?.body || '') }))
-    .filter(entrada => entrada.texto.length > 160)
-    .filter(entrada => !/Vybe OS ·/.test(entrada.texto))
-    .filter(entrada => marcas.test(entrada.texto));
-  if (!candidatos.length) return null;
-  // Briefing revisado vira update novo: o mais recente manda, e entre dois do
-  // mesmo dia vale o mais completo.
-  candidatos.sort((a, b) => String(b.update?.created_at || '').localeCompare(String(a.update?.created_at || ''))
-                         || b.texto.length - a.texto.length);
-  const escolhido = candidatos[0];
-  return { texto: escolhido.texto, autor: escolhido.update?.creator?.name || '',
-           quando: escolhido.update?.created_at || '', origem: 'histórico' };
+  const texto = String(detail?.briefing || '').trim();
+  return texto ? {texto, origem:detail.briefing_origem || 'cadastro', autor:detail.briefing_autor || '', quando:detail.briefing_em || detail.created_at || ''} : null;
+}
+
+// O mesmo indicador atende a próxima atividade e as linhas da fila. Bases
+// antigas sem informação não são tratadas como ausência confirmada.
+function botaoDeBriefingHtml(item, proxima = false) {
+  const falta = item.tem_briefing === false;
+  const rotulo = falta ? 'Sem briefing' : item.tem_briefing === true ? (proxima ? 'Ver briefing' : 'Briefing') : 'Consultar briefing';
+  return `<button type="button" class="${proxima ? 'focus-next-btn brief' : 'focus-brief-btn'}${falta ? ' faltando' : ''}"
+    onclick="event.stopPropagation();abrirBriefing('${safeText(String(item.id))}',this)"
+    title="${falta ? 'Adicionar o briefing desta atividade' : 'Consultar o briefing desta atividade'}" aria-label="${rotulo}">${ICONE_LINHA.briefing}<span>${rotulo}</span></button>`;
 }
 
 // Titulo de secao no modelo da casa: "🎯 1. O CORAÇÃO DO PEDIDO". O que separa
@@ -262,7 +258,12 @@ async function gravarBriefing(itemId, texto) {
   if (!resposta.ok || !dados?.ok) throw new Error(dados?.error || `Não foi possível salvar (${resposta.status}).`);
   if (DETALHE_DA_GAVETA && String(DETALHE_DA_GAVETA.id ?? '') === String(itemId)) {
     DETALHE_DA_GAVETA.briefing = dados.briefing || '';
+    DETALHE_DA_GAVETA.briefing_origem = 'cadastro';
   }
+  [typeof DADOS !== 'undefined' ? DADOS : [], typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : [], typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []].forEach(lista => lista.forEach(item => {
+    if (String(item.id) === String(itemId)) item.tem_briefing = Boolean(String(dados.briefing || '').trim());
+  }));
+  if (typeof saveProductionCache === 'function') saveProductionCache();
   return dados;
 }
 
@@ -296,14 +297,17 @@ async function editarBriefing(itemId, { valor = null, semBriefing = false, orige
   });
   if (texto === null || texto === undefined) return;
   if (!String(texto).trim() && !existente) return;
+  let confirmado = false;
   try {
     const feito = await gravarBriefing(itemId, texto);
+    confirmado = true;
+    if (typeof renderOutboundItemPatch === 'function') renderOutboundItemPatch('briefing');
     showToast(feito.briefing ? '✓ Briefing salvo' : '✓ Briefing apagado', 'ok', 4000);
     const leituraAberta = Boolean(document.getElementById('brief-overlay'));
     await redesenharGavetaDoBriefing(itemId);
     if (leituraAberta) { fecharBriefing(); if (feito.briefing) abrirBriefing(itemId); }
   } catch (erro) {
-    showToast(`Não foi possível salvar o briefing: ${erro.message}`, 'err', 7000);
+    showToast(confirmado ? 'Briefing salvo. Não foi possível atualizar os detalhes; reabra a atividade.' : `Não foi possível salvar o briefing: ${erro.message}`, confirmado ? 'info' : 'err', 7000);
   }
 }
 

@@ -1,3 +1,4 @@
+import {resolverBriefing,MARCAS_BRIEFING} from '../server/briefing.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -34,7 +35,7 @@ test('material e histórico são atômicos; releitura do endpoint inclui link pe
  await guardarMaterialBruto(sql,null,{item:'vybe:1',link});
  // Executa o serializador real do endpoint; consultas não relacionadas à pasta retornam vazias.
  const source=fs.readFileSync('api/painel.js','utf8');
- const c=vm.createContext({resolverMaterialBruto,BOARD_DEMANDAS:8385559107,COLUNA_ARQUIVOS:'files',garantirColunaDePrevia:async()=>{},garantirMaterialBruto:async()=>{},garantirColunasDeUpdate:async()=>{},
+ const c=vm.createContext({resolverBriefing,MARCAS_BRIEFING,resolverMaterialBruto,BOARD_DEMANDAS:8385559107,COLUNA_ARQUIVOS:'files',garantirColunaDePrevia:async()=>{},garantirMaterialBruto:async()=>{},garantirColunasDeUpdate:async()=>{},
  sql:()=>async(parts)=>parts.join('').includes('SELECT c.id, c.titulo')?await sql`SELECT * FROM vybe_conteudos WHERE id=1`:[]});
  vm.runInContext(source.slice(source.indexOf('async function areaPeca'),source.indexOf('async function removerArquivoDaPeca')),c);
  let resposta;const res={status(){return this;},json(d){resposta=d;}};

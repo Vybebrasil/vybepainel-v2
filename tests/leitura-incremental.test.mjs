@@ -26,7 +26,7 @@ async function banco() {
       formato_chaves text[] DEFAULT '{}', tipo_conteudo_chaves text[] DEFAULT '{}',
       prioridade_chave text, off_audio_chave text, status_chave text, status_em timestamptz,
       captacao_chave text, etapa text, grupo_id text, material_bruto text, material_bruto_em timestamptz,
-      clientes_texto text, monday_atualizado_em timestamptz,
+      briefing text, clientes_texto text, monday_atualizado_em timestamptz,
       criado_em timestamptz NOT NULL DEFAULT NOW(),
       atualizado_em timestamptz NOT NULL DEFAULT NOW());
     CREATE TABLE vybe_conteudo_eventos (id serial primary key, conteudo_id int, tipo text, de text,
@@ -390,4 +390,18 @@ test('fila do editor recebe pasta histórica e remoção explícita não ressusc
  await sql`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para) VALUES (1,'material_bruto',NULL)`;
  resposta=await ler(sql,{catalogos:false});
  assert.equal(resposta.itens.find(i=>i.id==='900').material_bruto,'');
+});
+
+test('lista confirma briefing antigo e comunica remoção na leitura incremental',async()=>{
+ const sql=await banco();
+ const texto='BRIEFING: '+ 'Objetivo, roteiro e instruções de produção. '.repeat(8);
+ await sql`INSERT INTO vybe_conteudo_updates VALUES (810,1,${texto},'2026-01-01','Paulo')`;
+ let resposta=await ler(sql,{catalogos:false});
+ assert.equal(resposta.itens.find(i=>i.id==='900').tem_briefing,true);
+ assert.equal(resposta.itens.find(i=>i.id==='901').tem_briefing,false);
+ const desde=await envelhecer(sql);
+ await sql`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para) VALUES (1,'briefing',NULL)`;
+ await sql`UPDATE vybe_conteudos SET atualizado_em=NOW() WHERE id=1`;
+ resposta=await ler(sql,{catalogos:false,desde});
+ assert.equal(resposta.itens.find(i=>i.id==='900').tem_briefing,false);
 });

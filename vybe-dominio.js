@@ -177,6 +177,7 @@ function dominioComoItensDoMonday(dados) {
       // processItems o copia — e o unico jeito de o CARTAO saber que a peca ja
       // tem material sem abrir a peca.
       material_bruto: item.material_bruto || '',
+      tem_briefing: typeof item.tem_briefing === 'boolean' ? item.tem_briefing : null,
       // Quando e por quem foi cadastrada: também não são colunas do Monday.
       criado_em: item.criado_em || '', cadastrado_por: item.cadastrado_por || '',
       column_values: [
@@ -372,6 +373,7 @@ function demandasComoItensDoMonday(dados) {
       group: { id: item.grupo_id || '', title: item.grupo || '' },
       updates: [],
       material_bruto: item.material_bruto || '',
+      tem_briefing: typeof item.tem_briefing === 'boolean' ? item.tem_briefing : null,
       // Andamento das tarefas: viaja fora das colunas porque não é coluna do
       // Monday — é contagem nossa, para a fila mostrar 3/12 sem abrir a peça.
       tarefas: item.tarefas || 0,

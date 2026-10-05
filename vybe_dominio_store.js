@@ -1,3 +1,4 @@
+import { resolverBriefing, MARCAS_BRIEFING } from './server/briefing.js';
 import { resolverMaterialBruto } from './server/material-bruto.js';
 // vybe_dominio_store.js — o modelo de negócio da Vybe, em tabelas próprias.
 //
@@ -908,6 +909,12 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
         TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
         c.material_bruto,
+        c.briefing,
+        EXISTS(SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='briefing') AS briefing_definido,
+        CASE WHEN NULLIF(BTRIM(c.briefing),'') IS NULL THEN
+          (SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT('corpo',u.corpo,'criado_em',u.criado_em,'autor',u.autor)), '[]'::json)
+           FROM vybe_conteudo_updates u WHERE u.conteudo_id=c.id AND u.corpo ~* ${MARCAS_BRIEFING})
+          ELSE '[]'::json END AS historico_briefing,
         EXISTS(SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='material_bruto') AS material_bruto_definido,
         CASE WHEN NULLIF(BTRIM(c.material_bruto),'') IS NULL THEN
           (SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT('id',u.id,'corpo',u.corpo,'criado_em',u.criado_em)), '[]'::json)
@@ -981,6 +988,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
       prazo_iso: l.prazo_iso,
       veiculacao_iso: l.veiculacao_iso,
       // Enviar vazio também permite que a leitura incremental confirme remoções.
+      tem_briefing: Boolean(resolverBriefing(l)),
       material_bruto: resolverMaterialBruto(l)?.url || '',
       updated_at: l.updated_at,
       criado_em: l.criado_em,
