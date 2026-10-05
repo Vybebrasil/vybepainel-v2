@@ -139,3 +139,11 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 254 testes e build aprovados; `git diff --check` aprovado. PGlite verifica a leitura real da lista e remoção explícita; regressões cobrem prioridade do campo, histórico HTML, exclusão de entrega e recados longos.
 - Navegador local com link fictício: componentes existentes mostram “Bruto” e a mesma pasta no detalhe, sem erros JavaScript observados; screenshots desktop e celular. Demonstração não confirma dados ou escrita de produção. Ainda não publicado.
 - Publicação solicitada: base `4e1c4c7d0a08847cb9a66fadecdbf99824847116`, deployment anterior `BjFYMKwhbn6PaVL74CoKk4WhKyVg`. Sem mudança de ambiente; recuperação do banco não revalidada nesta correção de leitura. CI e preview devem aprovar o commit antes da integração.
+
+## 2026-10-05 — Indicador de briefing coerente (local)
+
+- Lista e detalhe usam resolver único para briefing do campo ou histórico, incluindo notas antigas. Campo explícito prevalece; remoção registrada não recupera o texto antigo. Lista transmite somente indicador booleano, sem aumentar o payload com o texto completo.
+- Fila e próxima atividade reutilizam botão que distingue presente, ausente e informação ainda desconhecida. Salvar/apagar atualiza as fontes da tela após confirmação; erros de escrita preservam o indicador e falha de atualização posterior não é apresentada como falha de gravação.
+- `npm run check`: 258 testes e build aprovados, incluindo leitura completa/incremental com PGlite, resgate histórico, remoção, estados do indicador e erro da API. `git diff --check` aprovado.
+- Componentes existentes inspecionados no navegador com dados fictícios: “Sem briefing” coincide com o detalhe; o formulário existente foi aberto sem salvar. Screenshots desktop e celular. Não houve teste de escrita em produção; ainda não publicado.
+- Publicação solicitada: base `41d0b077a2fe4007e6a81c9065f8fe5bf394668b`, deployment anterior `7TY5g3sYkogFyezPwum16sPmXczr`. Sem migração ou mudança de ambiente; recuperação do banco não revalidada. CI e preview devem validar o commit exato antes da integração.

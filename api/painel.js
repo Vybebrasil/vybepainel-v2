@@ -1,3 +1,4 @@
+import { resolverBriefing, MARCAS_BRIEFING } from '../server/briefing.js';
 import { resolverMaterialBruto } from '../server/material-bruto.js';
 import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.js';
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
@@ -302,6 +303,11 @@ async function areaPeca(req, res, quem) {
   const c = (await db`
     SELECT c.id, c.titulo, c.criado_em, c.monday_item_id, c.etapa AS grupo, c.grupo_id,
            c.prazo, c.veiculacao, c.briefing, c.material_bruto, c.material_bruto_em,
+        EXISTS(SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='briefing') AS briefing_definido,
+        CASE WHEN NULLIF(BTRIM(c.briefing),'') IS NULL THEN
+          (SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT('corpo',u.corpo,'criado_em',u.criado_em,'autor',u.autor)), '[]'::json)
+           FROM vybe_conteudo_updates u WHERE u.conteudo_id=c.id AND u.corpo ~* ${MARCAS_BRIEFING})
+          ELSE '[]'::json END AS historico_briefing,
         EXISTS(SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='material_bruto') AS material_bruto_definido,
         CASE WHEN NULLIF(BTRIM(c.material_bruto),'') IS NULL THEN
           (SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT('id',u.id,'corpo',u.corpo,'criado_em',u.criado_em)), '[]'::json)
@@ -459,6 +465,7 @@ async function areaPeca(req, res, quem) {
   }));
 
   const bruto = resolverMaterialBruto(c);
+  const briefing = resolverBriefing(c);
   return res.status(200).json({
     ok: true,
     id: item,
@@ -466,7 +473,11 @@ async function areaPeca(req, res, quem) {
     created_at: c.criado_em,
     // O briefing nasce aqui quando a peca e cadastrada pelo painel; quando ela
     // veio do Monday, ele esta no corpo de um update. A tela procura nos dois.
-    briefing: c.briefing || '',
+    briefing: briefing?.texto || '',
+    briefing_origem: briefing?.origem || '',
+    briefing_autor: briefing?.autor || '',
+    briefing_em: briefing?.quando || '',
+    tem_briefing: Boolean(briefing),
     material_bruto: bruto?.url || '',
     material_bruto_em: bruto?.quando || null,
     material_bruto_origem: bruto?.origem || '',

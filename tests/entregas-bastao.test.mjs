@@ -1,3 +1,4 @@
+import {resolverBriefing,MARCAS_BRIEFING} from '../server/briefing.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -17,7 +18,7 @@ test('entrega e bastão sobrevivem a mais de 12 notas; falha de histórico rever
  await db.exec('ALTER TABLE vybe_conteudo_eventos DROP CONSTRAINT falha');
  for(const texto of ['[Vybe OS · Link de entrega] https://example.test/antigo','[Vybe OS · Link de entrega] https://example.test/final','[Vybe OS · Passagem de bastão]\nConcluído: arte\nPróximo passo: agendar'])await comentar(sql,null,{item:'900',texto});
  for(let i=0;i<15;i++)await comentar(sql,null,{item:'900',texto:'Nota '+i});
- const c=vm.createContext({resolverMaterialBruto,BOARD_DEMANDAS:8385559107,COLUNA_ARQUIVOS:'files',garantirColunaDePrevia:async()=>{},garantirMaterialBruto:async()=>{},garantirColunasDeUpdate:async()=>{},
+ const c=vm.createContext({resolverBriefing,MARCAS_BRIEFING,resolverMaterialBruto,BOARD_DEMANDAS:8385559107,COLUNA_ARQUIVOS:'files',garantirColunaDePrevia:async()=>{},garantirMaterialBruto:async()=>{},garantirColunasDeUpdate:async()=>{},
  sql:()=>async(parts,...params)=>{const q=parts.join('');if(q.includes('SELECT c.id, c.titulo'))return [{id:1}];if(q.includes('FROM vybe_conteudo_updates u'))return await sql(parts,...params);return [];}});
  vm.runInContext(painel.slice(painel.indexOf('async function areaPeca'),painel.indexOf('async function removerArquivoDaPeca')),c);
  let result;await c.areaPeca({method:'GET',query:{item:'900'}},{status(){return this;},json(d){result=d;}},{tipo:'servico'});
