@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {database} from './postgres.mjs';
+import {resolverMaterialBruto} from '../server/material-bruto.js';
 import {guardarMaterialBruto} from '../api/conteudo.js';
 const fonte=fs.readFileSync('vybe-material.js','utf8');
 const link='https://drive.google.com/drive/u/0/folders/pasta-local';
@@ -33,7 +34,7 @@ test('material e histórico são atômicos; releitura do endpoint inclui link pe
  await guardarMaterialBruto(sql,null,{item:'vybe:1',link});
  // Executa o serializador real do endpoint; consultas não relacionadas à pasta retornam vazias.
  const source=fs.readFileSync('api/painel.js','utf8');
- const c=vm.createContext({BOARD_DEMANDAS:8385559107,COLUNA_ARQUIVOS:'files',garantirColunaDePrevia:async()=>{},garantirMaterialBruto:async()=>{},garantirColunasDeUpdate:async()=>{},
+ const c=vm.createContext({resolverMaterialBruto,BOARD_DEMANDAS:8385559107,COLUNA_ARQUIVOS:'files',garantirColunaDePrevia:async()=>{},garantirMaterialBruto:async()=>{},garantirColunasDeUpdate:async()=>{},
  sql:()=>async(parts)=>parts.join('').includes('SELECT c.id, c.titulo')?await sql`SELECT * FROM vybe_conteudos WHERE id=1`:[]});
  vm.runInContext(source.slice(source.indexOf('async function areaPeca'),source.indexOf('async function removerArquivoDaPeca')),c);
  let resposta;const res={status(){return this;},json(d){resposta=d;}};
@@ -43,4 +44,14 @@ test('material e histórico são atômicos; releitura do endpoint inclui link pe
  await c.areaPeca({method:'GET',query:{item:'vybe:1'}},res,{tipo:'servico'});
  assert.equal(resposta.material_bruto,'');assert.equal(resposta.material_bruto_em,null);
  }finally{await db.close();}
+});
+
+test('resgate histórico exclui entrega e respeita campo explícito ou remoção',()=>{
+ const notas=[{id:1,corpo:`<p><a href="${link}">${link}</a></p>`,criado_em:'2026-08-28'},
+ {id:2,corpo:'[Vybe OS · Link de entrega] https://drive.google.com/file/d/final',criado_em:'2026-10-05'}];
+ assert.equal(resolverMaterialBruto({historico_bruto:notas}).url,link);
+ assert.equal(resolverMaterialBruto({material_bruto:'https://example.com/bruto',historico_bruto:notas}).origem,'campo');
+ assert.equal(resolverMaterialBruto({material_bruto_definido:true,historico_bruto:notas}),null);
+ assert.equal(resolverMaterialBruto({historico_bruto:[notas[1]]}),null);
+ assert.equal(resolverMaterialBruto({historico_bruto:[{corpo:`${'recado '.repeat(20)} ${link}`}]}),null);
 });
