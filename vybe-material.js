@@ -161,35 +161,11 @@ function pedeMaterialBruto(item) {
   return FORMATOS_QUE_PEDEM_BRUTO.test(String(item?.formato || item?.tipo_conteudo || ''));
 }
 
-// A coluna manda; o historico e resgate. O resgate existe porque as pecas que ja
-// estao no quadro tiveram o link colado a mao numa atualizacao — entregar um
-// campo que so funciona para peca nova seria entregar um campo vazio.
-//
-// O que conta como resgate: atualizacao que e praticamente so um link. Nao vale
-// a da ENTREGA (que ja tem dono, logo acima) nem texto longo com um link no
-// meio, que e recado, nao endereco de pasta. Pasta do Drive vem primeiro: e o
-// formato real do material bruto, uma pasta com os arquivos captados.
+// Lista e detalhe recebem o mesmo resgate do servidor, sem gravar a coluna.
 function materialBrutoDaPeca(detail, item) {
-  const doCampo = String(detail?.material_bruto || item?.material_bruto || '').trim();
-  if (doCampo) return { url: doCampo, origem: 'campo', quando: detail?.material_bruto_em || '' };
-
-  const entrega = workspaceDeliveryInfo(detail || {});
-  const candidatos = (detail?.updates || [])
-    .map((update) => {
-      const texto = workspacePlainText(update?.body || '');
-      const url = workspaceUrlFromText(texto);
-      const sobra = texto.replace(url, '').replace(/^\s*\[Vybe OS[^\]]*\]\s*/i, '').trim();
-      return { update, texto, url, sobra };
-    })
-    .filter((e) => e.url && e.url !== entrega?.url)
-    .filter((e) => !/Link de entrega|Link final|Entrega final/i.test(e.texto))
-    .filter((e) => e.sobra.length <= 60 || /material bruto|arquivos brutos|material captado|pasta da capta/i.test(e.texto));
-  if (!candidatos.length) return null;
-  candidatos.sort((a, b) => (/\/folders\//.test(b.url) - /\/folders\//.test(a.url))
-    || String(b.update?.created_at || '').localeCompare(String(a.update?.created_at || '')));
-  const achado = candidatos[0];
-  return { url: achado.url, origem: 'histórico', quando: achado.update?.created_at || '',
-           autor: achado.update?.creator?.name || '' };
+  const fonte = detail && Object.prototype.hasOwnProperty.call(detail, 'material_bruto') ? detail : item;
+  const url = String(fonte?.material_bruto || '').trim();
+  return url ? { url, origem: fonte?.material_bruto_origem || 'campo', quando: fonte?.material_bruto_em || '' } : null;
 }
 
 async function gravarMaterialBruto(itemId, link) {
@@ -208,6 +184,7 @@ async function gravarMaterialBruto(itemId, link) {
   saveProductionCache();
   if (DETALHE_DA_GAVETA && String(DETALHE_DA_GAVETA.id ?? '') === String(itemId)) {
     DETALHE_DA_GAVETA.material_bruto = dados.para || '';
+    DETALHE_DA_GAVETA.material_bruto_origem = 'campo';
   }
   return dados;
 }
@@ -305,11 +282,9 @@ function faixaDeMaterialBrutoHtml(detail, item, { compacta = false } = {}) {
       <a class="material-bruto-abrir" href="${safeText(bruto.url)}" target="_blank" rel="noopener">ABRIR PASTA ↗</a>
       <button type="button" class="material-bruto-copiar" onclick="copiarBriefingTexto('${safeText(bruto.url)}','Link do material bruto')">Copiar</button>
       ${compacta ? '' : (bruto.origem === 'histórico'
-        // O link resgatado do historico nao esta no CAMPO — e por isso o cartao
-        // ainda diz "sem bruto". Um clique arruma os dois, sem ninguem ter de
-        // copiar e colar de volta o endereco que a tela ja encontrou.
+        // Fixar promove o resgate histórico ao campo explícito da peça.
         ? `<button type="button" class="material-bruto-copiar" onclick="fixarMaterialBruto('${safeText(String(item.id))}','${safeText(bruto.url)}',event)"
-             title="Guardar este link no campo da peça — assim o cartão para de dizer que falta material">Fixar</button>`
+             title="Guardar este link no campo da peça">Fixar</button>`
         : `<button type="button" class="material-bruto-copiar" onclick="pedirMaterialBruto('${safeText(String(item.id))}',event)">Trocar</button>`)}
     </div></div>`;
 }

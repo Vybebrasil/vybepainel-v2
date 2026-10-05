@@ -1,3 +1,4 @@
+import { resolverMaterialBruto } from '../server/material-bruto.js';
 import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.js';
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
@@ -301,6 +302,11 @@ async function areaPeca(req, res, quem) {
   const c = (await db`
     SELECT c.id, c.titulo, c.criado_em, c.monday_item_id, c.etapa AS grupo, c.grupo_id,
            c.prazo, c.veiculacao, c.briefing, c.material_bruto, c.material_bruto_em,
+        EXISTS(SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='material_bruto') AS material_bruto_definido,
+        CASE WHEN NULLIF(BTRIM(c.material_bruto),'') IS NULL THEN
+          (SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT('id',u.id,'corpo',u.corpo,'criado_em',u.criado_em)), '[]'::json)
+           FROM vybe_conteudo_updates u WHERE u.conteudo_id=c.id AND u.corpo ~* 'https?://')
+          ELSE '[]'::json END AS historico_bruto,
            c.captacao_chave, c.prioridade_chave, c.off_audio_chave,
            c.tipo_conteudo_chaves, c.formato_chaves,
            s.rotulo  AS status,
@@ -452,6 +458,7 @@ async function areaPeca(req, res, quem) {
     responsaveis: r.responsaveis || null,
   }));
 
+  const bruto = resolverMaterialBruto(c);
   return res.status(200).json({
     ok: true,
     id: item,
@@ -460,8 +467,9 @@ async function areaPeca(req, res, quem) {
     // O briefing nasce aqui quando a peca e cadastrada pelo painel; quando ela
     // veio do Monday, ele esta no corpo de um update. A tela procura nos dois.
     briefing: c.briefing || '',
-    material_bruto: c.material_bruto || '',
-    material_bruto_em: c.material_bruto_em || null,
+    material_bruto: bruto?.url || '',
+    material_bruto_em: bruto?.quando || null,
+    material_bruto_origem: bruto?.origem || '',
     catalogos: { captacao: catCaptacao, opcoes: catOpcoes },
     ficha: {
       cliente: c.clientes, grupo: c.grupo, grupo_id: c.grupo_id, status: c.status,

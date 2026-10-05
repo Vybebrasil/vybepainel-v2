@@ -132,3 +132,10 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 252 testes e build aprovados. Duas regressões verificam seleção da origem, contato externo preservado, IDs inválidos e validação do campo visível. Build repetido após correção cosmética do ícone de fechar; `git diff --check` aprovado.
 - Demo local: screenshots desktop e 390 px inspecionados; contato preservado ao voltar, sem overflow horizontal e sem erros JavaScript observados. A demo usa iniciais no lugar de fotos ausentes e não confirma escrita. Nenhuma alteração de banco, variáveis ou teste de escrita em produção.
 - Base anterior: commit `7837ac9570509505243c2acac7ec8db731fee471`, deployment `5hNLFH97eeRuCp3KK6HiFZqmV4mj`. Recuperação do banco não revalidada; nenhuma migração nesta entrega. CI e preview devem aprovar o commit antes da integração.
+
+## 2026-10-05 — Material histórico na fila do editor (local)
+
+- Lista de atividades e detalhe usam o mesmo resolver de material bruto. Links históricos são recuperados em leitura, inclusive notas anteriores às 12 mais recentes; campo explícito prevalece e remoção registrada impede ressuscitar links. Entrega final não é material bruto. Nenhuma migração ou alteração de dados em produção.
+- `npm run check`: 254 testes e build aprovados; `git diff --check` aprovado. PGlite verifica a leitura real da lista e remoção explícita; regressões cobrem prioridade do campo, histórico HTML, exclusão de entrega e recados longos.
+- Navegador local com link fictício: componentes existentes mostram “Bruto” e a mesma pasta no detalhe, sem erros JavaScript observados; screenshots desktop e celular. Demonstração não confirma dados ou escrita de produção. Ainda não publicado.
+- Publicação solicitada: base `4e1c4c7d0a08847cb9a66fadecdbf99824847116`, deployment anterior `BjFYMKwhbn6PaVL74CoKk4WhKyVg`. Sem mudança de ambiente; recuperação do banco não revalidada nesta correção de leitura. CI e preview devem aprovar o commit antes da integração.

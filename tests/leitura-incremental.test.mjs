@@ -380,3 +380,14 @@ test('recarga do navegador e conversão de demandas preservam o material recebid
   const raw=novaTela.demandasComoItensDoMonday(lida);
   assert.equal(novaTela.processDemandas(raw)[0].material_bruto,link);
 });
+
+test('fila do editor recebe pasta histórica e remoção explícita não ressuscita link',async()=>{
+ const sql=await banco();
+ const link='https://drive.google.com/drive/u/0/folders/bruto-historico';
+ await sql`INSERT INTO vybe_conteudo_updates VALUES (800,1,${link},NOW(),'Paulo')`;
+ let resposta=await ler(sql,{catalogos:false});
+ assert.equal(resposta.itens.find(i=>i.id==='900').material_bruto,link);
+ await sql`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para) VALUES (1,'material_bruto',NULL)`;
+ resposta=await ler(sql,{catalogos:false});
+ assert.equal(resposta.itens.find(i=>i.id==='900').material_bruto,'');
+});

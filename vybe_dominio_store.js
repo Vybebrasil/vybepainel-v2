@@ -1,3 +1,4 @@
+import { resolverMaterialBruto } from './server/material-bruto.js';
 // vybe_dominio_store.js — o modelo de negócio da Vybe, em tabelas próprias.
 //
 // O espelho (vybe_mirror_items) guarda a resposta do Monday como veio: JSONB cru,
@@ -907,6 +908,11 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
         TO_CHAR(c.prazo, 'YYYY-MM-DD')          AS prazo_iso,
         TO_CHAR(c.veiculacao, 'YYYY-MM-DD')     AS veiculacao_iso,
         c.material_bruto,
+        EXISTS(SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='material_bruto') AS material_bruto_definido,
+        CASE WHEN NULLIF(BTRIM(c.material_bruto),'') IS NULL THEN
+          (SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT('id',u.id,'corpo',u.corpo,'criado_em',u.criado_em)), '[]'::json)
+           FROM vybe_conteudo_updates u WHERE u.conteudo_id=c.id AND u.corpo ~* 'https?://')
+          ELSE '[]'::json END AS historico_bruto,
         c.monday_atualizado_em                  AS updated_at,
         -- Quando e por quem a peça foi cadastrada. A data é a da linha: nas que
         -- vieram do Monday, o dia da importação. O autor é o evento de criação
@@ -975,7 +981,7 @@ export async function listarConteudos(boardId = BOARD_PRODUCAO,
       prazo_iso: l.prazo_iso,
       veiculacao_iso: l.veiculacao_iso,
       // Enviar vazio também permite que a leitura incremental confirme remoções.
-      material_bruto: l.material_bruto || '',
+      material_bruto: resolverMaterialBruto(l)?.url || '',
       updated_at: l.updated_at,
       criado_em: l.criado_em,
     };
