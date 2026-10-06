@@ -202,15 +202,12 @@ function focusNextActionHtml(data) {
         ${item.cliente ? `<span class="focus-next-client" title="Cliente: ${safeText(item.cliente)}">${safeText(item.cliente)}</span>` : ''}
         <div class="focus-next-name">${safeText(item.nome)}</div>
         <div class="focus-next-reason">${safeText(reason)}${prazoHtml}</div>
-        ${focusTrailHtml(item)}${controlNote}
+        ${prontidaoDaAtividadeHtml(item)}${focusTrailHtml(item)}${controlNote}
       </div>
       <div class="focus-next-tools">
         <button type="button" class="focus-next-btn primary" onclick="${primaryAction}">${primary} →</button>
         ${botaoDeBriefingHtml(item, true)}
-        ${pedeMaterialBruto(item) ? `<button type="button" class="focus-next-btn brief${String(item.material_bruto || '') ? '' : ' faltando'}"
-          onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
-          title="${String(item.material_bruto || '') ? 'Abrir a pasta com o material captado' : 'Sem material bruto · clique para colar o link da pasta'}"
-          >${ICONE_LINHA.bruto} ${String(item.material_bruto || '') ? 'Material bruto' : 'Sem material bruto'}</button>` : ''}
+        ${botaoDeMaterialBrutoHtml(item, true)}
         ${statusControl}${checkinControl}${secondary}
       </div>
     </div></section>`;
@@ -356,7 +353,7 @@ function renderFocusDashboard() {
   const withoutPrimary=(items=[])=>primaryId ? items.filter(d=>String(d.id)!==primaryId) : items;
   const groups = [
     renderGroup('Em execução hoje','todas as demandas já iniciadas; acompanhe e atualize sem misturar com a próxima a começar',inProgress,'Em execução por você','#ff6b00','◉'),
-    renderGroup('Para produzir hoje',`itens com ${referenceLabel} vencido ou para hoje`,withoutPrimary(toProduceToday),'Pronto para você executar','#ffbd2e','→'),
+    renderGroup('Para produzir hoje',`itens com ${referenceLabel} vencido ou para hoje`,withoutPrimary(toProduceToday),'Confira os insumos de cada atividade','#ffbd2e','→'),
     renderGroup('Atividades a iniciar','ainda não tiveram execução iniciada',withoutPrimary(toStart),'Execução ainda não iniciada','#ffbd2e','＋'),
     renderGroup('Entregue por mim — aguardando aprovação','o que já saiu da sua execução',withoutPrimary(awaitingApproval),'Entregue por você; aguardando aprovação','#579bfc','✓'),
     renderGroup('Em alteração','ajustes solicitados que precisam ser resolvidos antes da próxima entrega',withoutPrimary(inRevision),'Ajuste solicitado; abra o contexto para conferir o que mudar','#ff637a','↻'),

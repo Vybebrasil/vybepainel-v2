@@ -156,9 +156,37 @@ function trocarPreviaMaterial(indice){ const asset=PREVIA_MATERIAL[indice]; if(!
 //
 // Agora tem campo proprio, que viaja na lista. Isso e o que permite o cartao
 // dizer "falta o bruto" antes de alguem abrir a peca.
-const FORMATOS_QUE_PEDEM_BRUTO = /reels|v[ií]deo|video|motion|fotografia|foto|stories|tiktok|audiovisual/i;
+const FORMATOS_QUE_PEDEM_BRUTO = /reels|v[ií]deo|video|motion|fotografia|foto|stor(?:y|ies)|tiktok|audiovisual/i;
 function pedeMaterialBruto(item) {
-  return FORMATOS_QUE_PEDEM_BRUTO.test(String(item?.formato || item?.tipo_conteudo || ''));
+  return FORMATOS_QUE_PEDEM_BRUTO.test(String(item?.formato || item?.tipo_conteudo || item?.tipo || ''));
+}
+
+// Prontidão é disponibilidade de insumos, independente do status da atividade.
+function prontidaoDaAtividade(item = {}) {
+  const briefing = item.tem_briefing;
+  const formato = String(item.formato || item.tipo_conteudo || item.tipo || '').trim();
+  const formatoConhecido = Boolean(formato && formato !== '—');
+  const pedeBruto = pedeMaterialBruto(item);
+  const brutoConhecido = typeof item.material_bruto === 'string';
+  const faltas = [];
+  if (briefing === false) faltas.push('briefing');
+  if (pedeBruto && brutoConhecido && !item.material_bruto.trim()) faltas.push('bruto');
+  const verificar = typeof briefing !== 'boolean' || !formatoConhecido || (pedeBruto && !brutoConhecido);
+  return { faltas, verificar, pronta: !faltas.length && !verificar };
+}
+function prontidaoDaAtividadeHtml(item) {
+  // Aprovação e publicação têm suas próprias conferências. Este aviso pertence
+  // à preparação/execução, onde ainda é possível completar os insumos.
+  if (!['Pode Fazer','A Fazer','Em andamento','Falta Info','Ag. Info Cliente','Aguardo','Alteração','Aguardo Redação','Falta OFF'].includes(operationalFlowStatus(item))) return '';
+  const estado = prontidaoDaAtividade(item);
+  const id = safeText(String(item.id));
+  const acoes = estado.faltas.map(falta => falta === 'briefing'
+    ? `<button type="button" onclick="event.stopPropagation();abrirBriefing('${id}',this)">Falta briefing</button>`
+    : `<button type="button" onclick="event.stopPropagation();abrirMaterialBruto('${id}',event)">Falta material bruto</button>`);
+  if (estado.verificar) acoes.push(`<button type="button" onclick="event.stopPropagation();openItemWorkspace('${id}')">Verificar informações</button>`);
+  return `<div class="focus-readiness ${estado.pronta ? 'is-ready' : 'is-pending'}" aria-label="Insumos para produção">${estado.pronta
+    ? '<span title="Briefing e material necessário registrados">Pronto para produzir</span>'
+    : acoes.join('<span aria-hidden="true">·</span>')}</div>`;
 }
 
 // Lista e detalhe recebem o mesmo resgate do servidor, sem gravar a coluna.
@@ -245,18 +273,21 @@ async function fixarMaterialBruto(itemId, url, event) {
 function abrirMaterialBruto(itemId, event) {
   event?.stopPropagation?.();
   const item = typeof findOperationalItem === 'function' ? findOperationalItem(itemId) : null;
-  const url = String(item?.material_bruto || '');
+  if (typeof item?.material_bruto !== 'string') return openItemWorkspace(itemId);
+  const url = String(item.material_bruto || '');
   if (!url) return pedirMaterialBruto(itemId, event);
   window.open(url, '_blank', 'noopener');
 }
 
-function botaoDeMaterialBrutoHtml(item) {
+function botaoDeMaterialBrutoHtml(item, proxima = false) {
   if (!pedeMaterialBruto(item)) return '';
-  const tem = Boolean(String(item?.material_bruto || '').trim());
-  return `<button type="button" class="focus-brief-btn bruto${tem ? '' : ' faltando'}"
+  const conhecido = typeof item.material_bruto === 'string';
+  const tem = Boolean(String(item.material_bruto || '').trim());
+  const rotulo = !conhecido ? 'Consultar bruto' : tem ? (proxima ? 'Material bruto' : 'Bruto') : 'Sem bruto';
+  return `<button type="button" class="${proxima ? 'focus-next-btn brief' : 'focus-brief-btn bruto'}${conhecido && !tem ? ' faltando' : ''}"
     onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
-    title="${tem ? 'Abrir a pasta com o material captado' : 'Nenhum material bruto registrado · clique para colar o link da pasta'}"
-    aria-label="Material bruto">${ICONE_LINHA.bruto}<span>${tem ? 'Bruto' : 'Sem bruto'}</span></button>`;
+    title="${!conhecido ? 'Consultar material da atividade' : tem ? 'Abrir a pasta com o material captado' : 'Nenhum material bruto registrado · clique para colar o link da pasta'}"
+    aria-label="${rotulo}">${ICONE_LINHA.bruto}<span>${rotulo}</span></button>`;
 }
 
 // A faixa na tela de briefing e na gaveta. E o mesmo desenho nos dois lugares

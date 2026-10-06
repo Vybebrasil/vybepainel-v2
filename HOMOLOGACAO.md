@@ -147,3 +147,11 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 258 testes e build aprovados, incluindo leitura completa/incremental com PGlite, resgate histórico, remoção, estados do indicador e erro da API. `git diff --check` aprovado.
 - Componentes existentes inspecionados no navegador com dados fictícios: “Sem briefing” coincide com o detalhe; o formulário existente foi aberto sem salvar. Screenshots desktop e celular. Não houve teste de escrita em produção; ainda não publicado.
 - Publicação solicitada: base `41d0b077a2fe4007e6a81c9065f8fe5bf394668b`, deployment anterior `7TY5g3sYkogFyezPwum16sPmXczr`. Sem migração ou mudança de ambiente; recuperação do banco não revalidada. CI e preview devem validar o commit exato antes da integração.
+
+## 2026-10-06 — Insumos para produção na fila (local)
+
+- Próxima atividade e fila indicam “Pronto para produzir”, “Falta briefing”, “Falta material bruto” ou “Verificar informações”. Ausência confirmada e dados desconhecidos ficam distintos; formatos sem necessidade de bruto não recebem essa exigência. Indicadores informativos não alteram status.
+- Atalhos reutilizam os formulários existentes. Botão de bruto compartilhado entre fila e próxima atividade; dados desconhecidos abrem o detalhe para consulta. Nenhuma alteração de endpoint, schema ou gravação em produção.
+- `npm run check`: 261 testes e build aprovados. Regressões cobrem formatos, informações incompletas, atalhos e etapas em que o indicador se aplica. `git diff --check` aprovado.
+- Demo local: estados ausente, desconhecido e pronto conferidos; formulários de briefing e bruto abertos sem salvar. Screenshots desktop e celular de 390 px inspecionados, sem overflow horizontal ou erros JavaScript observados. Esta verificação visual não testa persistência. Ainda não publicado.
+- Publicação solicitada: base `3b98daf747b1b787613e8bb32ff4445d375fefd2`, deployment anterior `E4gHCRhMPqzML6hbFyVbdKC6GQqZ`. Sem mudança de ambiente ou banco; recuperação do banco não revalidada nesta melhoria de interface. CI executará instalação limpa e os checks do commit exato antes da integração.

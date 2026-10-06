@@ -349,7 +349,7 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     const finalMetaHtml = safeText(baseMeta) + timerHtml;
   return `<div class="focus-task ${opcoes.primeira ? 'primeira' : ''}" style="--priority-color:${color}">
     <span class="focus-task-priority"></span>
-    <div class="focus-task-title"><div class="focus-task-name">${d.cliente ? `<span class="focus-task-client" title="Cliente: ${safeText(d.cliente)}">${safeText(d.cliente)}</span>` : ''}<button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div></div>
+    <div class="focus-task-title"><div class="focus-task-name">${d.cliente ? `<span class="focus-task-client" title="Cliente: ${safeText(d.cliente)}">${safeText(d.cliente)}</span>` : ''}<button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div>${prontidaoDaAtividadeHtml(d)}</div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
     <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${botaoDeBriefingHtml(d)}${botaoDeMaterialBrutoHtml(d)}${jaTemMaterial(d)

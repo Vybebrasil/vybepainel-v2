@@ -410,7 +410,7 @@ function processDemandas(rawItems) {
     return {
       // contagem de tarefas da solicitação, para a fila mostrar o andamento
       tarefas: item.tarefas || 0, tarefas_feitas: item.tarefas_feitas || 0,
-      material_bruto: item.material_bruto || '',
+      material_bruto: typeof item.material_bruto === 'string' ? item.material_bruto : null,
       tem_briefing: typeof item.tem_briefing === 'boolean' ? item.tem_briefing : null,
       criado_em: item.criado_em || '', cadastrado_por: item.cadastrado_por || '',
       id: String(item.id),
