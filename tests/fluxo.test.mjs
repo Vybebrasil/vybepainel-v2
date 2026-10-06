@@ -302,3 +302,20 @@ test('registro com horário no futuro não vira duração negativa', () => {
   vm.runInContext('r = etapasDaPeca(detalhe, {status:"Em andamento"}, agora); ms = r[0].ms;', c);
   assert.equal(c.ms, 0);
 });
+
+
+test('Cap. Agendada e Aguardo seguem direto para gravação sem portão', async () => {
+  const c = carregar('vybe-portoes.js', 'vybe-status.js');
+  c.setTimeout = setTimeout;
+  c.findOperationalItem = () => ({id:'1',status:'Pode Fazer'});
+  c.operationalStatusOptions = () => [{label:'Cap. Agendada'},{label:'Aguardo'},{label:'Falta Info'}];
+  c.closeStatusEditor = () => {};
+  const gravados = [], formularios = [];
+  c.commitStatusChange = async (item, option) => gravados.push(option.label);
+  c.openStatusContextGate = (item, option) => formularios.push(option.label);
+  await c.updateFocusStatus('1','Cap. Agendada');
+  await c.updateFocusStatus('1','Aguardo');
+  await c.updateFocusStatus('1','Falta Info');
+  assert.deepEqual(gravados, ['Cap. Agendada','Aguardo']);
+  assert.deepEqual(formularios, ['Falta Info']);
+});

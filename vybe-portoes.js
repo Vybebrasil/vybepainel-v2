@@ -33,6 +33,8 @@ const MATERIAL_REVIEW_TARGET_STATUSES = new Set(['agendado','finalizado','feito'
 // outro portao pegou", entao tirar de um so empurra a peca para o outro.
 const CONTEXT_FREE_STATUSES = new Set(['em andamento','em execução','em execucao',
   'finalizado','feito','pode fazer','a fazer','para agendar',
+  // Captação agendada e espera simples seguem direto, sem formulário obrigatório.
+  'cap. agendada','aguardo',
   // Esperar o texto ou o audio chegar nao e uma decisao a justificar: nada foi
   // decidido, so ainda nao chegou. Pedir motivo aqui e pedagio.
   'aguardo redação','aguardo redacao','falta off']);
