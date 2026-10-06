@@ -5801,3 +5801,10 @@ body:has(.status-context-dialog){overflow:hidden}
 @keyframes context-step-in{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:680px){.context-origin-people{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.status-context-dialog [data-context-step]{animation:none}.context-progress-track span{transition:none}}
+
+/* Insumos da atividade: resumo na fila e na próxima ação, sem alterar status. */
+.focus-readiness{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-top:6px;font:500 12px/1.5 var(--mac-ui);color:var(--vybe-muted,#b9bfca)}
+.focus-readiness.is-ready{color:#8adeb5}
+.focus-readiness button{appearance:none;border:0;background:transparent;color:#ffbb89;padding:2px 0;font:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,187,137,.35);text-underline-offset:3px}
+.focus-readiness button:hover{text-decoration-color:currentColor}
+.focus-readiness button:focus-visible{outline:2px solid var(--vybe-orange-soft,#ffb079);outline-offset:3px;border-radius:3px}
