@@ -155,3 +155,10 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 261 testes e build aprovados. Regressões cobrem formatos, informações incompletas, atalhos e etapas em que o indicador se aplica. `git diff --check` aprovado.
 - Demo local: estados ausente, desconhecido e pronto conferidos; formulários de briefing e bruto abertos sem salvar. Screenshots desktop e celular de 390 px inspecionados, sem overflow horizontal ou erros JavaScript observados. Esta verificação visual não testa persistência. Ainda não publicado.
 - Publicação solicitada: base `3b98daf747b1b787613e8bb32ff4445d375fefd2`, deployment anterior `E4gHCRhMPqzML6hbFyVbdKC6GQqZ`. Sem mudança de ambiente ou banco; recuperação do banco não revalidada nesta melhoria de interface. CI executará instalação limpa e os checks do commit exato antes da integração.
+
+## 2026-10-06 — Cap. Agendada e Aguardo sem formulário obrigatório (local)
+
+- Os dois status seguem diretamente para a gravação existente, dispensando o portão de contexto. As exigências dos demais status e as automações permanecem no fluxo existente.
+- `npm run check`: 262 testes e build aprovados; `git diff --check` aprovado. Regressão chama a troca de status e verifica gravação direta nos dois casos, mantendo formulário em Falta Info.
+- Navegador na demo local: ambos encaminhados diretamente sem abrir formulário, com gravação interceptada em memória; sem erros JavaScript observados. Não valida persistência e não escreve em produção. Ainda não publicado.
+- Publicação solicitada: base `558f02110a5f8a51c19ff1a8191734db66d75887`, deployment anterior `7NBcid18wMzGfpp7qkwABAVnorKk`. Sem migração ou mudança de ambiente; recuperação do banco não revalidada. CI fará instalação limpa e checks do commit exato antes da integração.
