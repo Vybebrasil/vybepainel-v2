@@ -27,7 +27,11 @@ const CLIENT_NAME_ALIASES=Object.freeze({
   gruposerragrande:'Serra Grande Bebidas',
   experimente:'Experimente Papelaria'
 });
-function clientMasterCanonicalName(value='') { const original=String(value||'').trim(); return CLIENT_NAME_ALIASES[normalizeClientKey(original)] || original; }
+function clientMasterCanonicalName(value='') {
+  const original=String(value||'').trim();
+  const operacional=typeof normalizarCliente === 'function' ? normalizarCliente(original) : original;
+  return CLIENT_NAME_ALIASES[normalizeClientKey(operacional)] || operacional;
+}
 function clientMasterCellText(cell) {
   if(cell==null) return '';
   if(typeof cell==='string') return cell.trim();
@@ -56,9 +60,9 @@ function nomesSeAproximam(chaveA, chaveB) {
   return chaveA.includes(chaveB) || chaveB.includes(chaveA);
 }
 function clientMasterFind(rows, clientName, mapper=x=>x) {
-  const key=normalizeClientKey(clientName);
+  const key=normalizeClientKey(clientMasterCanonicalName(clientName));
   if(!key) return null;
-  const exact=rows.find(row=>normalizeClientKey(mapper(row))===key);
+  const exact=rows.find(row=>normalizeClientKey(clientMasterCanonicalName(mapper(row)))===key);
   if(exact) return exact;
   return rows.find(row=>nomesSeAproximam(normalizeClientKey(mapper(row)), key)) || null;
 }
@@ -112,9 +116,9 @@ function clientMasterResolveName(value='') {
   if(CLIENT_NAME_ALIASES[normalizeClientKey(original)]) return canonical;
   const sources=[...CLIENT_MASTER_HEADS,...CLIENT_MASTER_ACESSOS];
   const exact=sources.find(row=>normalizeClientKey(row.name)===key);
-  if(exact) return exact.name;
+  if(exact) return clientMasterCanonicalName(exact.name);
   const fuzzy=sources.find(row=>nomesSeAproximam(normalizeClientKey(row.name), key));
-  return fuzzy?.name || canonical;
+  return fuzzy ? clientMasterCanonicalName(fuzzy.name) : canonical;
 }
 function clientMasterRecords() {
   const rawItems=typeof unifiedOperationalItems==='function' ? unifiedOperationalItems() : [...(DADOS_ALL?.length ? DADOS_ALL : DADOS || []), ...(DADOS_DEMANDAS || [])];
