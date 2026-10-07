@@ -170,3 +170,11 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Demo local: listagem de Clientes carregada com conteúdo e solicitação de demonstração, sem erros no console. Duplicidades verificadas nos testes isolados; a demo não confirma dados de produção.
 - Produção consultada somente em leitura. Nenhuma fusão, exclusão ou mudança no banco. Após confirmação do usuário, foram incluídas as variações de Brussolo, Blindagem, Facilite e VÖA na normalização operacional compartilhada com filtros e cadastro. Nenhuma comparação aproximada nova. Ainda não publicado.
 - Publicação solicitada: base `ef245cc6180ae63194d8b173896564c2dbb81e0e`, deployment anterior `dpl_FABazCsdkNE66BchLpwMq47ZxutC`. Sem migração ou mudança de ambiente; recuperação de banco não revalidada nesta correção de nomes. CI fará instalação limpa e checks do commit exato antes da integração.
+
+## 2026-10-07 — Status na linha respeita seleção em lote (local)
+
+- Clicar no status de uma linha marcada na tabela, com duas ou mais atividades selecionadas, reutiliza `loteStatus` e a confirmação existente. O menu indica a quantidade; detalhes e linhas não selecionadas mantêm edição individual.
+- `npm run check`: 268 testes e build aprovados; `git diff --check` aprovado. Regressões verificam escrita em todas as selecionadas, preservação das demais, cancelamento e falha parcial sem sucesso aparente.
+- Navegador em demonstração isolada com as funções reais: clique na linha abriu “Status para 2 atividades”. A confirmação nativa interrompeu a automação do navegador; a conclusão da escrita foi verificada somente nos testes isolados, não em banco ou produção.
+- Nenhuma escrita em produção, migração ou alteração de permissões. Ainda não publicado.
+- Publicação solicitada: base `37780ab2bd693192e2446c7f65543e9fdf454829`, deployment anterior `4cs11kndbmqgnqJLAegj2UogAoyq`. Sem mudança de ambiente ou banco; recuperação não revalidada. CI executará instalação limpa e checks do commit antes da integração.
