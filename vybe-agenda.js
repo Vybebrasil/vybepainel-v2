@@ -2344,7 +2344,7 @@ function loteStatus(event) {
     })), 'status');
   }
   if (!opcoes.length) return showToast('As opções de status ainda estão carregando.', 'info');
-  abrirMenuDeLote(event, 'Status para todas', opcoes.map((o) => ({
+  abrirMenuDeLote(event, `Status para ${SELECIONADAS.size} atividades`, opcoes.map((o) => ({
     rotulo: o.label, cor: o.color,
     aplicar: (item) => tentarEscritaDupla(item, { acao: 'status', item: String(item.id), para: chaveDeStatus(o.label) })
       .then((feito) => { if (!feito) throw new Error('gravação recusada'); applyOutboundItemPatch(item.id,

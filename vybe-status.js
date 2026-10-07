@@ -83,6 +83,13 @@ function openStatusEditor(event, itemId) {
   event.preventDefault();
   event.stopPropagation();
   closeStatusEditor();
+  // Na tabela, editar uma linha marcada deve respeitar o lote visível.
+  // Detalhes e linhas fora da seleção continuam com edição individual.
+  if (event.currentTarget?.closest?.('.grupo-tabela')
+      && typeof SELECIONADAS !== 'undefined' && SELECIONADAS.size > 1
+      && SELECIONADAS.has(String(itemId)) && typeof loteStatus === 'function') {
+    return loteStatus(event);
+  }
   const item = findOperationalItem(itemId);
   if (!item) return showToast('Item não encontrado para atualização.', 'err');
   const statusOptions = operationalStatusOptions(item);
