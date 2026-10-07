@@ -62,6 +62,17 @@ const EQUIPES = Object.freeze({
 
 // Mapa de normalização: nome no board Demandas → nome canônico (igual ao board Produção)
 const CLIENTES_ALIAS = {
+  // Variações legadas confirmadas por Paulo em 07/10/2026. Correspondências
+  // explícitas: não agrupar automaticamente clientes por semelhança de nome.
+  'restaurante brussolo':   'Brussolo Ristorante',
+  'brussolo':               'Brussolo Ristorante',
+  'brussolo ristorante':    'Brussolo Ristorante',
+  'blindagem':              'Blindagem Monitoramento',
+  'blindagem monitoramento':'Blindagem Monitoramento',
+  'facilite':               'Facilite Aprender',
+  'facilita assessoria':    'Facilite Aprender',
+  'comunidade entre mães facilite': 'Facilite Aprender',
+  'facilite aprender':      'Facilite Aprender',
   'ace':                    'Ace - Associação Comercial',
   'academia lions top':     'Academia Lions',
   'corrida dogrun':         'Dogrun',
@@ -87,7 +98,8 @@ const CLIENTES_ALIAS = {
   'hellen rocha':           'Hellen',
   'igor lopes':             'Igor R. Lopes',
   'menina dos óculos':      'Menina dos Oculos',
-  'vöa':                    'VÖA Sportswear',
+  'vöa':                    'VOA',
+  'vöa sportswear':          'VOA',
   'debull':                 'De Bull',
   'irecemodas':             'Irece Modas',
   'irece modas':            'Irece Modas',
