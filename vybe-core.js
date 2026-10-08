@@ -12,11 +12,15 @@ function carteiraDoCliente(nome) {
   const carteira = Object.keys(CARTEIRAS_CLIENTES).find(id => CARTEIRAS_CLIENTES[id].some(n => chave(n) === key));
   return carteira || '';
 }
-function tagClienteHtml(nome, { dentroDeBotao = false } = {}) {
+function descricaoCarteiraCliente(nome) {
   const carteira = carteiraDoCliente(nome);
   const responsavel = carteira === 'vinicius' ? 'Vinícius' : carteira === 'ewerton' ? 'Ewerton' : '';
   const site = normalizarCliente(String(nome || '')).toUpperCase() === 'VOA' ? ' · Site: Ewerton' : '';
-  const descricao = responsavel ? `Responsável geral: ${responsavel}${site}` : 'Responsável geral não definido';
+  return responsavel ? `Responsável geral: ${responsavel}${site}` : 'Responsável geral não definido';
+}
+function tagClienteHtml(nome, { dentroDeBotao = false } = {}) {
+  const carteira = carteiraDoCliente(nome);
+  const descricao = descricaoCarteiraCliente(nome);
   return `<span class="cliente-carteira" data-carteira="${carteira}" title="${safeText(descricao)}" aria-label="${safeText(nome)} — ${safeText(descricao)}"${dentroDeBotao ? '' : ' tabindex="0"'}>${safeText(nome)}</span>`;
 }
 

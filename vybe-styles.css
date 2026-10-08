@@ -5669,10 +5669,12 @@ body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !im
    ficava escondida e era preciso arrastar a barra para achar alguém. */
 .manager-calendar-clients{grid-area:clientes;flex-wrap:wrap;max-height:none;overflow:visible;
   padding:2px 0 4px;gap:6px}
-.manager-calendar-client{height:28px;border-radius:999px;padding:0 12px;border-color:transparent;background:rgba(255,255,255,.05);
-  color:#9a9aa0;font:500 12px var(--mac-ui);font-variant-numeric:tabular-nums}
-.manager-calendar-client b{color:#e6e6ea;font-weight:500}
-.manager-calendar-client.active{border-color:transparent;background:rgba(255,122,26,.2);color:#ffd3ad}
+.manager-calendar-client{height:28px;border-radius:999px;padding:0 12px;border-color:transparent;background:var(--carteira-fundo,rgba(255,255,255,.05));
+  color:var(--carteira-texto,#9a9aa0);font:500 12px var(--mac-ui);font-variant-numeric:tabular-nums}
+.manager-calendar-client b{color:var(--carteira-texto,#e6e6ea);font-weight:500}
+.manager-calendar-client:hover{background:var(--carteira-hover,rgba(255,122,26,.12));border-color:var(--carteira-texto,rgba(255,145,67,.62))}
+.manager-calendar-client:focus-visible{outline:2px solid var(--carteira-texto,#ffbb87);outline-offset:3px}
+.manager-calendar-client.active{border-color:var(--carteira-texto,#ffd3ad);background:var(--carteira-hover,rgba(255,122,26,.2));color:var(--carteira-texto,#ffd3ad);box-shadow:inset 0 0 0 1px currentColor}
 .manager-calendar-client.active b{color:#fff}
 
 /* A faixa das solicitações era uma caixa roxa com borda, do tamanho de um aviso.

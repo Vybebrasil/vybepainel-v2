@@ -186,3 +186,11 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 270 testes e build aprovados. Build repetido após ajuste somente de CSS do resumo compacto; `git diff --check` aprovado. Regressões cobrem carteira, aliases, conta desconhecida, múltiplos clientes e escape do texto.
 - Demonstração isolada com HTML gerado pelo helper e CSS das tags/resumo: screenshots desktop e 390 px inspecionados, sem overflow horizontal ou erros de console. Não foi revisão visual de todas as telas do sistema nem teste de persistência. Ainda não publicado.
 - Publicação solicitada: base `288441ec0ab0ff319083b2a6fe3b91186f03102b`, deployment anterior `7Uqoe7Tu89F3Q6FQ5zebkV487YjG`. Sem migração ou mudança de ambiente; recuperação do banco não revalidada nesta alteração visual. CI executará instalação limpa e checks do commit exato antes da integração.
+
+## 08/10/2026 — Cores das carteiras nos filtros do calendário (local)
+
+- Filtros compactos/expandidos e cliente escolhido no modo busca reutilizam a carteira existente: Vinícius laranja, Ewerton azul, sem definição neutro.
+- Seleção tem contorno; fichas anunciam `aria-pressed` e o título informa o responsável. Sem alteração de dados ou critérios de filtro.
+- `npm run check`: 270 testes aprovados, sintaxe e build aprovados; `git diff --check` aprovado.
+- Inspeção visual em demonstração isolada com o renderizador das fichas e CSS reais, desktop e 390 px: cores, seleção por teclado, sem overflow horizontal e sem erros de console. Não foi validado o fluxo completo autenticado nem persistência (não alterada).
+- Ainda não publicado.
