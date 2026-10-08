@@ -178,3 +178,11 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Navegador em demonstração isolada com as funções reais: clique na linha abriu “Status para 2 atividades”. A confirmação nativa interrompeu a automação do navegador; a conclusão da escrita foi verificada somente nos testes isolados, não em banco ou produção.
 - Nenhuma escrita em produção, migração ou alteração de permissões. Ainda não publicado.
 - Publicação solicitada: base `37780ab2bd693192e2446c7f65543e9fdf454829`, deployment anterior `4cs11kndbmqgnqJLAegj2UogAoyq`. Sem mudança de ambiente ou banco; recuperação não revalidada. CI executará instalação limpa e checks do commit antes da integração.
+
+## 2026-10-08 — Tags por responsável geral do cliente (local)
+
+- Calendário semanal e seletor compartilhado de clientes nas tabelas/resumos usam tags laranja para Vinícius e azul para Ewerton. Divisão informada pelo usuário inclui Serra Grande com Vinícius; VOA informa Ewerton apenas no site. Clientes não definidos ficam neutros.
+- Regra visual centralizada no config e helper compartilhado, respeitando aliases e múltiplos clientes. Não altera executores, heads, permissões ou registros do banco. Nomes e descrição do responsável são escapados e acessíveis.
+- `npm run check`: 270 testes e build aprovados. Build repetido após ajuste somente de CSS do resumo compacto; `git diff --check` aprovado. Regressões cobrem carteira, aliases, conta desconhecida, múltiplos clientes e escape do texto.
+- Demonstração isolada com HTML gerado pelo helper e CSS das tags/resumo: screenshots desktop e 390 px inspecionados, sem overflow horizontal ou erros de console. Não foi revisão visual de todas as telas do sistema nem teste de persistência. Ainda não publicado.
+- Publicação solicitada: base `288441ec0ab0ff319083b2a6fe3b91186f03102b`, deployment anterior `7Uqoe7Tu89F3Q6FQ5zebkV487YjG`. Sem migração ou mudança de ambiente; recuperação do banco não revalidada nesta alteração visual. CI executará instalação limpa e checks do commit exato antes da integração.
