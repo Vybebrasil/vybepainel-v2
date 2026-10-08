@@ -334,8 +334,12 @@ body.vybe-desktop {
 
 /* Relação multicliente: etiquetas na célula e edição explícita em diálogo. */
 .clientes-vinculo-btn { display:flex; flex-wrap:wrap; align-items:center; gap:5px; max-width:100%; border:0; background:transparent; color:var(--text); text-align:left; cursor:pointer; padding:4px; font:inherit; }
-.clientes-vinculo-btn span { padding:3px 7px; border-radius:6px; background:#b39afa14; color:#d4c8ee; overflow-wrap:anywhere; }
-.clientes-vinculo-btn:hover span { background:#b39afa28; }
+.clientes-vinculo-btn span { padding:3px 7px; border-radius:6px; background:var(--carteira-fundo,#b39afa14); color:var(--carteira-texto,#d4c8ee); overflow-wrap:anywhere; }
+.clientes-vinculo-btn:hover span { background:var(--carteira-hover,#b39afa28); }
+.cliente-carteira { --carteira-fundo:#ffffff0d; --carteira-texto:#c9cdd5; --carteira-hover:#ffffff18; display:inline-block; padding:3px 7px; border-radius:6px; background:var(--carteira-fundo); color:var(--carteira-texto); font-size:11px; font-weight:700; line-height:1.4; overflow-wrap:anywhere; }
+.cliente-carteira[data-carteira="vinicius"] { --carteira-fundo:#ff8b3826; --carteira-texto:#ffbb87; --carteira-hover:#ff8b3838; }
+.cliente-carteira[data-carteira="ewerton"] { --carteira-fundo:#579bfc26; --carteira-texto:#a3caff; --carteira-hover:#579bfc38; }
+.cliente-carteira:focus-visible { outline:2px solid var(--carteira-texto); outline-offset:3px; }
 .clientes-vinculo-btn i { font-style:normal; color:var(--text-muted); }
 .clientes-vinculo-dialog { margin:auto; width:min(460px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); padding:24px; border:1px solid #ffffff30; border-radius:20px; background:#23242d; color:#f5f5f7; box-shadow:0 24px 80px #0008; }
 .clientes-vinculo-dialog::backdrop { background:#090a1080; backdrop-filter:blur(5px); }
@@ -636,16 +640,14 @@ body.vybe-desktop {
   border-radius: 999px; font: 600 11.5px var(--mac-ui); white-space: nowrap;
 }
 .vybe-desktop .cartao-rapido .cr-campos .cr-data { border-radius: 999px; font-variant-numeric: tabular-nums; }
-/* Clientes: uma etiqueta só, nomes separados por vírgula e a setinha dentro. */
+/* Clientes: mantém as cores de cada carteira dentro do seletor compacto. */
 .vybe-desktop .cartao-rapido .clientes-vinculo-btn { max-width: 100%; border: 1px solid #ffffff24; background: #ffffff0a; color: var(--text); flex-wrap: nowrap; overflow: hidden; }
 /* Nomes longos encolhem com reticências em vez de empurrar a etiqueta para fora
    do cartão: sem min-width 0, item flexível não encolhe abaixo do texto. */
-/* Sem espaço entre os nomes: a vírgula já separa, e o espaço extra aparecia como
-   "Manga…  , Óticas". A setinha ganha a própria margem. */
-.vybe-desktop .cartao-rapido .cr-campos .clientes-vinculo-btn { min-width: 0; gap: 0; }
-.vybe-desktop .cartao-rapido .clientes-vinculo-btn span { flex: 0 1 auto; min-width: 0; padding: 0; background: none; color: inherit; overflow: hidden; text-overflow: ellipsis; }
+/* Espaço curto entre as carteiras; a setinha mantém sua própria margem. */
+.vybe-desktop .cartao-rapido .cr-campos .clientes-vinculo-btn { min-width: 0; gap: 4px; }
+.vybe-desktop .cartao-rapido .clientes-vinculo-btn span { flex: 0 1 auto; min-width: 0; padding: 2px 5px; background: var(--carteira-fundo,transparent); color: var(--carteira-texto,inherit); overflow: hidden; text-overflow: ellipsis; }
 .vybe-desktop .cartao-rapido .cr-campos .clientes-vinculo-btn i { flex: none; margin-left: 6px; color: var(--text-muted); }
-.vybe-desktop .cartao-rapido .clientes-vinculo-btn span + span::before { content: ', '; }
 .vybe-desktop .cartao-rapido .clientes-vinculo-btn:hover { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); }
 /* Responsável: foto e primeiro nome, no mesmo botão. */
 .vybe-desktop .cartao-rapido .cr-dono { padding: 0 10px 0 2px; border: 1px solid #ffffff24; background: #ffffff0a; color: var(--text); }

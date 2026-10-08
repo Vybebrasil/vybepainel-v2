@@ -2904,7 +2904,7 @@ async function loteArquivar() {
 // Cliente usa vínculos do banco, não opções de uma coluna externa.
 function botaoClientesDoItem(item) {
   const nomes = clientesDoItem(item);
-  return `<button type="button" class="clientes-vinculo-btn" onclick="abrirClientesDoItem('${safeText(item.id)}',event)" aria-label="Editar clientes de ${safeText(item.nome || 'atividade')}">${nomes.map(n => `<span>${safeText(n)}</span>`).join('') || '<span>Selecionar cliente</span>'}<i aria-hidden="true">⌄</i></button>`;
+  return `<button type="button" class="clientes-vinculo-btn" onclick="abrirClientesDoItem('${safeText(item.id)}',event)" aria-label="Editar clientes de ${safeText(item.nome || 'atividade')}">${nomes.map(n => tagClienteHtml(n, { dentroDeBotao: true })).join('') || '<span>Selecionar cliente</span>'}<i aria-hidden="true">⌄</i></button>`;
 }
 async function abrirClientesDoItem(itemId, event) {
   event?.stopPropagation();

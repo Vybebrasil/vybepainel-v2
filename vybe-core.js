@@ -5,6 +5,21 @@ function clientesDoItem(item) {
 }
 function itemTemCliente(item, nome) { return clientesDoItem(item).includes(normalizarCliente(nome)); }
 
+function carteiraDoCliente(nome) {
+  const chave = valor => normalizarCliente(String(valor || '')).normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const key = chave(nome);
+  const carteira = Object.keys(CARTEIRAS_CLIENTES).find(id => CARTEIRAS_CLIENTES[id].some(n => chave(n) === key));
+  return carteira || '';
+}
+function tagClienteHtml(nome, { dentroDeBotao = false } = {}) {
+  const carteira = carteiraDoCliente(nome);
+  const responsavel = carteira === 'vinicius' ? 'Vinícius' : carteira === 'ewerton' ? 'Ewerton' : '';
+  const site = normalizarCliente(String(nome || '')).toUpperCase() === 'VOA' ? ' · Site: Ewerton' : '';
+  const descricao = responsavel ? `Responsável geral: ${responsavel}${site}` : 'Responsável geral não definido';
+  return `<span class="cliente-carteira" data-carteira="${carteira}" title="${safeText(descricao)}" aria-label="${safeText(nome)} — ${safeText(descricao)}"${dentroDeBotao ? '' : ' tabindex="0"'}>${safeText(nome)}</span>`;
+}
+
 // QUANDO FOI, NO RELÓGIO DE IRECÊ.
 //
 // O banco guarda em UTC e a Vybe trabalha em Irecê. Cortar a letra T do texto

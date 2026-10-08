@@ -758,7 +758,7 @@ function renderByDay(sem, filter, dayFilter) {
         <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote">
           <input type="checkbox" ${marcada?'checked':''} aria-label="Marcar ${safeText(d.nome||'')}"
             onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
-        <span class="item-cliente-tag" style="background:rgba(168,85,247,.18);color:#c084fc;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${d.cliente}</span>
+        ${clientesDoItem(d).map(nome => tagClienteHtml(nome)).join('')}
         ${isRequestItem(d)?'<span class="dia-demanda-tag">Demanda</span>':''}${fmtHtml(d.formato)}
         <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}</button>
         ${managerStatusControl(d)}
