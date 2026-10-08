@@ -807,7 +807,10 @@ async function areaClientes(req, res, quem) {
     if (acao === 'ficha') {
       // Cadastro veio do Monday; a partir daqui ele se corrige aqui.
       const { campos } = req.body || {};
-      if (!id || !campos) return res.status(400).json({ error: 'Informe o cliente e os campos.' });
+      if (!Number.isSafeInteger(Number(id)) || Number(id) <= 0 || !campos || typeof campos !== 'object' || Array.isArray(campos))
+        return res.status(400).json({ error: 'Informe o cliente e os campos.' });
+      if (campos.responsavel !== undefined && (typeof campos.responsavel !== 'string' || campos.responsavel.length > 120))
+        return res.status(400).json({ error: 'Responsável geral inválido.' });
       const r = await db`UPDATE vybe_clientes SET
           email=COALESCE(${campos.email ?? null}, email),
           telefone=COALESCE(${campos.telefone ?? null}, telefone),

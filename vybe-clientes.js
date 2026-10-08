@@ -78,7 +78,7 @@ async function ensureClientMasterSources(force=false) {
     PESSOAS_DO_CADASTRO=corpo.pessoas || [];
     CLIENT_MASTER_HEADS=CADASTRO_CLIENTES.map(row=>({
       id:String(row.id),name:String(row.nome||'').trim(),url:'',updated_at:'',
-      people:row.heads||row.responsavel||'',status:row.status||(row.ativo?'Ativo':'Inativo'),
+      people:row.heads||'',status:row.status||(row.ativo?'Ativo':'Inativo'),
       planning:row.planejamento_url||'',nextMeeting:row.proxima_reuniao||'',
       dashboard:row.dashboard||'',plan:row.plano||'',segment:row.segmento||''
     }));
@@ -91,6 +91,7 @@ async function ensureClientMasterSources(force=false) {
       temManus:Boolean(row.manus)
     }));
     CLIENT_MASTER_LOADED=true;
+    atualizarCoresDasCarteiras();
   } catch(error) {
     CLIENT_MASTER_ERROR=error?.message || 'Não foi possível consultar o cadastro mestre Vybe.';
     CLIENT_MASTER_LOADED=false;
@@ -331,7 +332,7 @@ function fichaClienteHtml(nome) {
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : null; };
   const linhas = [
     ['Plano', f.plano], ['Segmento', f.segmento], ['Head', f.heads],
-    ['Responsável', f.responsavel],
+    ['Responsável geral', descricaoCarteiraCliente(nome).replace('Responsável geral: ', '')],
     ['NPS', temNota(f.nps) ? `${f.nps}${f.nps_em ? ` · ${String(f.nps_em).slice(0,10).split('-').reverse().join('/')}` : ''}` : null],
     ['Próx. reunião', dataBr(f.proxima_reuniao)],
     ['E-mail', f.email], ['Telefone', f.telefone], ['CNPJ', f.cnpj], ['Endereço', f.endereco],
@@ -594,13 +595,14 @@ function headsDoClienteHtml(texto) {
 // e ficam por cima do painel de edicao em vez de substitui-lo — cancelar devolve
 // a tela de onde a pessoa veio.
 function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo = false, campo = null, imagem = null, larga = false }) {
+  const focoAnterior = document.activeElement;
   return new Promise((resolve) => {
     document.getElementById('cli-pergunta')?.remove();
     const fundo = document.createElement('div');
     fundo.id = 'cli-pergunta';
     fundo.className = 'cli-pergunta';
-    fundo.innerHTML = `<div class="cli-pergunta-caixa${larga ? ' larga' : ''}" role="dialog" aria-modal="true">
-        <h3>${safeText(titulo)}</h3>
+    fundo.innerHTML = `<div class="cli-pergunta-caixa${larga ? ' larga' : ''}" role="dialog" aria-modal="true" aria-labelledby="cli-pergunta-titulo">
+        <h3 id="cli-pergunta-titulo">${safeText(titulo)}</h3>
         ${imagem ? `<figure class="cli-pergunta-previa"><img src="${safeText(imagem.url)}"
             alt="${safeText(imagem.nome || '')}"
             onerror="this.closest('figure')?.classList.add('sem-previa')">
@@ -622,20 +624,27 @@ function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo
     const fechar = (resposta) => {
       document.removeEventListener('keydown', tecla, true);
       fundo.remove();
+      if (focoAnterior?.isConnected) focoAnterior.focus();
       resolve(resposta);
     };
     const dizerSim = () => fechar(campo ? String(entrada()?.value ?? '').trim() : true);
     const tecla = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); fechar(campo ? null : false); }
       // Num campo de varias linhas, Enter quebra linha — confirmar e no botao.
-      if (e.key === 'Enter' && e.target?.tagName !== 'TEXTAREA') { e.preventDefault(); dizerSim(); }
+      if (e.key === 'Enter' && e.target?.tagName === 'INPUT') { e.preventDefault(); dizerSim(); }
+      if (e.key === 'Tab') {
+        const controles = [...fundo.querySelectorAll('button, input, textarea')].filter(el => !el.disabled);
+        const primeiro = controles[0], ultimo = controles.at(-1);
+        if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo?.focus(); }
+        else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro?.focus(); }
+      }
     };
     fundo.querySelector('[data-nao]').onclick = () => fechar(campo ? null : false);
     fundo.querySelector('[data-sim]').onclick = dizerSim;
     fundo.onclick = (e) => { if (e.target === fundo) fechar(campo ? null : false); };
     document.addEventListener('keydown', tecla, true);
     document.body.append(fundo);
-    setTimeout(() => { const alvo = entrada() || fundo.querySelector('[data-sim]'); alvo?.focus(); entrada()?.select(); }, 30);
+    setTimeout(() => { const alvo = entrada() || fundo.querySelector(perigo ? '[data-nao]' : '[data-sim]'); alvo?.focus(); entrada()?.select(); }, 30);
   });
 }
 
@@ -1132,7 +1141,7 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = { proxima_reuni
       ? `<input type="checkbox" ${marcado ? 'checked' : ''} aria-label="Marcar ${safeText(nome)}"
           onclick="event.stopPropagation();this.closest('tr').classList.toggle('marcada',this.checked);alternarClienteMarcado('${aspas}',this.checked)">`
       : ''}</td>
-    <td class="cli-nome">${safeText(nome)}</td>
+    <td class="cli-nome">${tagClienteHtml(nome)}</td>
     ${clicavel(headsDoClienteHtml(f.heads || ligado.head || ''),
       `abrirHeadsDoCliente(event, '${aspas}')`, 'Clique para escolher o head')}
     <td>${situacaoDoClienteHtml(nome, estado)}</td>
@@ -1514,6 +1523,12 @@ async function gravarCadastroDeCliente(corpo, feito) {
   if (!r.ok) throw new Error(d?.error || 'Não foi possível salvar.');
   showToast(feito, 'success', 4000);
   await ensureClientMasterSources(true);
+  if (CLIENT_MASTER_ERROR) {
+    showToast('Cadastro salvo, mas não foi possível atualizar a tela. Recarregue para conferir.', 'warning', 7000);
+  } else {
+    // Atualiza tags já visíveis sem desmontar formulários ou perder foco.
+    atualizarCoresDasCarteiras();
+  }
   return d;
 }
 
@@ -1556,7 +1571,7 @@ async function cadastrarClienteDaOperacao(nome) {
 
 const CAMPOS_DA_FICHA = [
   ['plano', 'Plano', 'text'], ['segmento', 'Segmento', 'text'],
-  ['responsavel', 'Responsável', 'text'], ['proxima_reuniao', 'Próxima reunião', 'date'],
+  ['responsavel', 'Responsável geral', 'carteira'], ['proxima_reuniao', 'Próxima reunião', 'date'],
   ['planejamento_url', 'Link do planejamento', 'url'], ['nps', 'NPS (0 a 10)', 'number'],
   ['email', 'E-mail', 'text'], ['telefone', 'Telefone', 'text'],
   ['cnpj', 'CNPJ', 'text'], ['endereco', 'Endereço', 'text'],
@@ -1570,6 +1585,15 @@ function abrirFichaDeCliente(nome) {
   const painel = String(f.dashboard || '').trim();
   const campo = ([chave, rotulo, tipo]) => {
     const bruto = f[chave];
+    if (tipo === 'carteira') {
+      const atual = String(bruto || '');
+      const padrao = carteiraDoCliente(nome);
+      const rotuloPadrao = padrao === 'vinicius' ? 'Vinícius' : padrao === 'ewerton' ? 'Ewerton' : 'Sem responsável geral';
+      const opcoes = [...new Set([atual, 'Vinícius', 'Ewerton', 'Sem responsável geral'])];
+      return `<label class="cli-campo"><span>Responsável geral</span>
+        <select id="cli-f-responsavel">${opcoes.map(v => `<option value="${safeText(v)}" ${v === atual ? 'selected' : ''}>${safeText(v || rotuloPadrao + ' (padrão atual)')}</option>`).join('')}</select>
+        <small>Define a carteira e as cores. Não altera heads ou executores.${normalizarCliente(nome) === 'VOA' ? ' Site da VOA: Ewerton.' : ''}</small></label>`;
+    }
     const valor = tipo === 'date' ? String(bruto || '').slice(0, 10) : (bruto ?? '');
     return `<label class="cli-campo${chave === 'planejamento_url' || chave === 'endereco' ? ' largo' : ''}">
       <span>${rotulo}</span>
@@ -1580,8 +1604,7 @@ function abrirFichaDeCliente(nome) {
   openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Cadastro de clientes</span>
       <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
     <h2 class="workflow-title">${safeText(nome)}</h2>
-    <p class="workflow-copy">O que estiver em branco fica como está. Head é definido pelas pessoas ligadas ao
-      cliente, em Conta &amp; Equipe.</p>
+    <p class="workflow-copy">Edite o cadastro e a carteira do cliente. Campos em branco permanecem como estão.</p>
     <input type="hidden" id="cli-f-id" value="${safeText(id)}">
     <input type="hidden" id="cli-f-nome" value="${safeText(nome)}">
     <div class="cli-form">

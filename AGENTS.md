@@ -59,6 +59,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Nexus está fora do escopo. Drive continua responsável pelos arquivos.
 - Um conteúdo pode ter vários clientes. Preserve os vínculos, filtre por qualquer
   cliente associado e não duplique a atividade nem infle totais gerais.
+- A carteira visual usa `vybe_clientes.responsavel` (Vinícius/Ewerton/sem responsável).
+  `CARTEIRAS_CLIENTES` é somente o padrão enquanto não houver escolha explícita.
+  Carteira não substitui os heads vinculados nem os executores das atividades.
 - Use transações nas alterações relacionadas; valide IDs, permissões e campos no
   servidor. Não confie em controles visuais como autorização.
 - O motor de automações executa em uma conexão transacional, com bloqueio da

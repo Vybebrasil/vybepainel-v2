@@ -19,26 +19,42 @@ function ehAdmin() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
 }
 
+let ERROS_DA_CONTA = {};
+let CONTA_CARGA = 0;
 async function carregarConta() {
   const raiz = document.getElementById('conta-root');
   if (!raiz) return;
-  raiz.innerHTML = '<div class="auto-carregando">CARREGANDO…</div>';
-  EQUIPE = []; CLIENTES = []; OPCOES = null; ACESSOS = [];
-  try {
-    const r = await fetch(CONTA_API, { credentials: 'same-origin' });
-    if (r.ok) MINHA_CONTA = (await r.json()).pessoa || null;
-  } catch { MINHA_CONTA = null; }
-  if (ehAdmin()) {
-    // Cada bloco falha por conta própria: a área da conta não pode sumir porque
-    // a lista de clientes não carregou.
-    await Promise.all([
-      (async () => { try { const r = await fetch(PESSOAS_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) EQUIPE = d.pessoas || []; } catch {} })(),
-      (async () => { try { const r = await fetch(CLIENTES_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) CLIENTES = d.clientes || []; } catch {} })(),
-      (async () => { try { const r = await fetch(OPCOES_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) OPCOES = d; } catch {} })(),
-      (async () => { try { const r = await fetch(ACESSOS_API, { credentials:'same-origin' }); const d = await r.json(); if (r.ok) ACESSOS = d.acessos || []; } catch {} })(),
-    ]);
-  }
-  pintarConta();
+  const carga = ++CONTA_CARGA;
+  raiz.innerHTML = '<div class="auto-carregando" role="status">Carregando…</div>';
+  EQUIPE = []; CLIENTES = []; OPCOES = null; ACESSOS = []; MINHA_CONTA = null;
+  ERROS_DA_CONTA = {};
+  const ler = async (url, campo) => {
+    const r = await fetch(url, { credentials:'same-origin', cache:'no-store' });
+    if (!r.ok) throw new Error('Não foi possível carregar.');
+    const d = await r.json();
+    const valor = campo ? d[campo] : d;
+    if (valor == null || (['pessoas','clientes','acessos'].includes(campo) && !Array.isArray(valor)))
+      throw new Error('Resposta incompleta.');
+    return valor;
+  };
+  const carregar = async (chave, url, campo, aplicar) => {
+    try { const valor = await ler(url, campo); if (carga === CONTA_CARGA) aplicar(valor); }
+    catch { if (carga === CONTA_CARGA) ERROS_DA_CONTA[chave] = true; }
+  };
+  await Promise.all([
+    carregar('perfil', CONTA_API, 'pessoa', v => { MINHA_CONTA = v; }),
+    ...(ehAdmin() ? [
+      carregar('equipe', PESSOAS_API, 'pessoas', v => { EQUIPE = v; }),
+      carregar('clientes', CLIENTES_API, 'clientes', v => { CLIENTES = v; }),
+      carregar('opcoes', OPCOES_API, null, v => { OPCOES = v; }),
+      carregar('acessos', ACESSOS_API, 'acessos', v => { ACESSOS = v; }),
+    ] : [])
+  ]);
+  if (carga === CONTA_CARGA) pintarConta();
+}
+
+function erroDaContaHtml() {
+  return '<div class="conta-carregamento-erro" role="alert"><h2>Não foi possível carregar esta seção</h2><p>Confira sua conexão e tente novamente. Os dados não foram alterados.</p><button type="button" class="workflow-secondary" onclick="carregarConta()">Tentar novamente</button></div>';
 }
 
 function quandoAcessou(iso) {
@@ -114,7 +130,8 @@ function alternarVisaoDoTime() {
 function pintarConta() {
   const raiz = document.getElementById('conta-root');
   const eu = MINHA_CONTA || (typeof sessaoAtual === 'function' ? sessaoAtual() : null);
-  if (!raiz || !eu) return;
+  if (!raiz) return;
+  if (!eu) { raiz.innerHTML = erroDaContaHtml(); return; }
 
   const grupos = secoesDaConta(eu);
   const todas = grupos.flatMap((g) => g.itens);
@@ -166,6 +183,7 @@ function cabecaDaSecao(titulo, texto, acao = '') {
 }
 
 function corpoDaSecao(chave, eu) {
+  if (ERROS_DA_CONTA[chave] || (chave === 'senha' && ERROS_DA_CONTA.perfil)) return erroDaContaHtml();
   if (chave === 'senha') return blocoSenha();
   if (chave === 'equipe') return blocoEquipe(eu);
   if (chave === 'clientes') return blocoClientes();

@@ -93,6 +93,7 @@ export function demoApi(req,res,url,body) {
     if(url.searchParams.get('area')==='historico')return reply(200,{ok:true,logs:{moveEvents:{},prazoEvents:{},statusEvents:{},veiculacaoEvents:{},ownerEvents:{}}});
     const area=url.searchParams.get('area');
     if(area==='conta')return reply(200,{ok:true,pessoa});
+    if(area==='clientes')return reply(200,{ok:true,clientes:[{id:1,nome:'Cliente demonstração',ativo:true,status:'Ativo',responsavel:'Vinícius',heads:'Operador de teste',heads_ids:[1]}],pessoas:[pessoa],acessos:[]});
     // Log de atividade fictício: um exemplo de cada tipo de evento, em dias diferentes.
     if(area==='peca' && url.searchParams.get('log')==='1'){
       const h=(dias,hora)=>{const d=new Date();d.setUTCDate(d.getUTCDate()-dias);d.setUTCHours(hora+3,15,0,0);return d.toISOString();};

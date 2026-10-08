@@ -422,6 +422,10 @@ function managerCalendarClientList(allItems, meta) {
 // Com trinta clientes as fichas ocupam quatro linhas antes do calendario
 // comecar; quem sabe o nome prefere digitar.
 let CLIENTES_DO_CALENDARIO = [];
+let TOTAL_DO_CALENDARIO = 0;
+function textoBuscaCliente(valor) {
+  return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
 // Trinta e poucos clientes lado a lado ocupavam quatro linhas — mais espaco que
 // o calendario que eles filtram — e a maioria com zero no mes. Ver todos passa a
 // ser ESCOLHA, nao padrao: por padrao aparecem os tres com mais trabalho no mes,
@@ -465,25 +469,31 @@ function abrirBuscaDeCliente(event) {
   menu.className = 'status-editor cliente-busca';
   const linha = (nome, rotulo, total) => `<button type="button" class="status-editor-option ${
     managerCalendarClientFilter === nome ? 'current' : ''} ${total === 0 ? 'vazio' : ''}"
-    data-busca="${safeText(String(rotulo).toLowerCase())}"
+    data-busca="${safeText(textoBuscaCliente(rotulo))}"
     data-cliente="${safeText(nome)}" onclick="fecharBuscaDeCliente();managerCalendarSetClient(this.dataset.cliente)">
-    <span>${safeText(rotulo)}</span><span class="cliente-busca-conta">${total}</span></button>`;
+    <span>${nome === 'all' ? safeText(rotulo) : tagClienteHtml(rotulo, { dentroDeBotao:true })}</span><span class="cliente-busca-conta">${total}</span></button>`;
   menu.innerHTML = `<div class="status-editor-head">Cliente</div>
-    <input type="text" class="fc-busca" id="cliente-busca-campo" placeholder="Buscar cliente…"
+    <input type="text" class="fc-busca" id="cliente-busca-campo" aria-label="Buscar cliente" placeholder="Buscar cliente…"
       oninput="filtrarBuscaDeCliente(this.value)">
     <div class="cliente-busca-lista" id="cliente-busca-lista">${
-      linha('all', 'Todos os clientes', CLIENTES_DO_CALENDARIO.reduce((n, c) => n + c.count, 0))
-      + CLIENTES_DO_CALENDARIO.map((c) => linha(c.client, c.client, c.count)).join('')}</div>`;
+      linha('all', 'Todos os clientes', TOTAL_DO_CALENDARIO)
+      + CLIENTES_DO_CALENDARIO.map((c) => linha(c.client, c.client, c.count)).join('')}</div>
+    <p id="cliente-busca-vazia" role="status" hidden>Nenhum cliente encontrado.</p>`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, rect);
   document.getElementById('cliente-busca-campo')?.focus();
 }
 
 function filtrarBuscaDeCliente(termo) {
-  const alvo = String(termo || '').trim().toLowerCase();
+  const alvo = textoBuscaCliente(termo);
+  let encontrados = 0;
   document.querySelectorAll('#cliente-busca-lista .status-editor-option').forEach((b) => {
-    b.style.display = !alvo || (b.dataset.busca || '').includes(alvo) ? '' : 'none';
+    const mostrar = !alvo || (b.dataset.cliente !== 'all' && (b.dataset.busca || '').includes(alvo));
+    b.hidden = !mostrar;
+    if (mostrar) encontrados++;
   });
+  const vazio = document.getElementById('cliente-busca-vazia');
+  if (vazio) vazio.hidden = encontrados > 0;
 }
 function managerCalendarSetClient(client) {
   managerCalendarClientFilter = client || 'all';
@@ -965,6 +975,7 @@ function renderManagerCalendar(forcar = false) {
   }).join('');
   CLIENTES_DO_CALENDARIO = clients;
   const totalNoMes = semRecorte.filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso)).length;
+  TOTAL_DO_CALENDARIO = totalNoMes;
   const modoClientes = modoDaListaDeClientes();
   // Cliente sem nada no mes continua na lista, so que apagado: some do caminho
   // do olho sem sumir do alcance do dedo.
@@ -1663,7 +1674,7 @@ async function alternarEtiqueta(coluna, campo, chave, rotulo, ativa) {
 }
 
 async function removerEtiqueta(coluna, campo, chave, rotulo) {
-  if (!window.confirm(`Apagar a etiqueta "${rotulo}"? Isto não dá para desfazer.`)) return;
+  if (!await perguntarNoPainel({ titulo: `Apagar a etiqueta "${rotulo}"?`, texto: 'Esta ação não pode ser desfeita.', confirmar: 'Apagar etiqueta', perigo: true })) return;
   try {
     await chamarEtiqueta({ acao: 'remover', coluna, chave });
     await recarregarCatalogos();
@@ -2062,7 +2073,7 @@ async function aplicarDataSelecionadaEmLote(campo, dateIso, { input = null, sour
     restaurarFonte();
     return showToast(`Lote bloqueado: ${invalidos.length} demanda${invalidos.length === 1 ? ' ficaria' : 's ficariam'} com o prazo depois da veiculação.`, 'err', 8000);
   }
-  if (confirmar && !window.confirm(`Aplicar ${rotulo} ${planningDateBr(dateIso)} nas ${itens.length} demandas selecionadas?`)) {
+  if (confirmar && !await perguntarNoPainel({ titulo: `Aplicar ${rotulo} nas ${itens.length} demandas selecionadas?`, texto: `Nova data: ${planningDateBr(dateIso)}.`, confirmar: 'Aplicar data' })) {
     restaurarFonte();
     return false;
   }
@@ -2917,7 +2928,7 @@ async function abrirClientesDoItem(itemId, event) {
   dialog.setAttribute('aria-labelledby', 'clientes-vinculo-titulo');
   dialog.innerHTML = `<h2 id="clientes-vinculo-titulo">Clientes da atividade</h2>
     <p>Selecione um ou mais clientes. A atividade continua sendo uma só.</p>
-    <input type="search" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+    <input type="search" aria-label="Buscar cliente" placeholder="Buscar cliente…" aria-label="Buscar cliente">
     <div class="clientes-vinculo-lista">Carregando clientes…</div>
     <output class="clientes-vinculo-contagem" aria-live="polite"></output>
     <p class="clientes-vinculo-erro" role="alert"></p>
