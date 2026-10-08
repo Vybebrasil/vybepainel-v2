@@ -337,8 +337,8 @@ body.vybe-desktop {
 .clientes-vinculo-btn span { padding:3px 7px; border-radius:6px; background:var(--carteira-fundo,#b39afa14); color:var(--carteira-texto,#d4c8ee); overflow-wrap:anywhere; }
 .clientes-vinculo-btn:hover span { background:var(--carteira-hover,#b39afa28); }
 .cliente-carteira { --carteira-fundo:#ffffff0d; --carteira-texto:#c9cdd5; --carteira-hover:#ffffff18; display:inline-block; padding:3px 7px; border-radius:6px; background:var(--carteira-fundo); color:var(--carteira-texto); font-size:11px; font-weight:700; line-height:1.4; overflow-wrap:anywhere; }
-.cliente-carteira[data-carteira="vinicius"] { --carteira-fundo:#ff8b3826; --carteira-texto:#ffbb87; --carteira-hover:#ff8b3838; }
-.cliente-carteira[data-carteira="ewerton"] { --carteira-fundo:#579bfc26; --carteira-texto:#a3caff; --carteira-hover:#579bfc38; }
+.cliente-carteira[data-carteira="vinicius"], .manager-calendar-client[data-carteira="vinicius"] { --carteira-fundo:#ff8b3826; --carteira-texto:#ffbb87; --carteira-hover:#ff8b3838; }
+.cliente-carteira[data-carteira="ewerton"], .manager-calendar-client[data-carteira="ewerton"] { --carteira-fundo:#579bfc26; --carteira-texto:#a3caff; --carteira-hover:#579bfc38; }
 .cliente-carteira:focus-visible { outline:2px solid var(--carteira-texto); outline-offset:3px; }
 .clientes-vinculo-btn i { font-style:normal; color:var(--text-muted); }
 .clientes-vinculo-dialog { margin:auto; width:min(460px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); padding:24px; border:1px solid #ffffff30; border-radius:20px; background:#23242d; color:#f5f5f7; box-shadow:0 24px 80px #0008; }

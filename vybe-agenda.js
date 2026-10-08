@@ -980,6 +980,8 @@ function renderManagerCalendar(forcar = false) {
     : '';
   const ficha = ({ client, count }) => `<button type="button" class="manager-calendar-client ${
       managerCalendarClientFilter === client ? 'active' : ''} ${count === 0 ? 'vazio' : ''}"
+      data-carteira="${carteiraDoCliente(client)}" title="${safeText(descricaoCarteiraCliente(client))}"
+      aria-pressed="${managerCalendarClientFilter === client}"
       data-cliente="${safeText(client)}" onclick="managerCalendarSetClient(this.dataset.cliente)"><b>${
       safeText(client)}</b> ${count}${xis(client)}</button>`;
   const fichas = [`<button type="button" class="manager-calendar-client ${managerCalendarClientFilter==='all'?'active':''}" onclick="managerCalendarSetClient('all')"><b>Todos</b> ${totalNoMes}</button>`,
@@ -989,8 +991,8 @@ function renderManagerCalendar(forcar = false) {
   const escolhido = managerCalendarClientFilter === 'all'
     ? { rotulo: 'Todos os clientes', total: totalNoMes }
     : { rotulo: managerCalendarClientFilter, total: (clients.find(c => c.client === managerCalendarClientFilter)?.count ?? 0) };
-  const busca = `<button type="button" class="manager-calendar-client escolha" onclick="abrirBuscaDeCliente(event)"
-      title="Escolher ou buscar cliente"><b>${safeText(escolhido.rotulo)}</b> ${escolhido.total}
+  const busca = `<button type="button" class="manager-calendar-client escolha" data-carteira="${carteiraDoCliente(managerCalendarClientFilter)}" onclick="abrirBuscaDeCliente(event)"
+      title="Escolher ou buscar cliente${managerCalendarClientFilter === 'all' ? '' : ' — ' + safeText(descricaoCarteiraCliente(managerCalendarClientFilter))}"><b>${safeText(escolhido.rotulo)}</b> ${escolhido.total}
       <i class="cliente-seta">▾</i></button>`;
   const alternar = `<button type="button" class="manager-calendar-modo" onclick="trocarModoDaListaDeClientes()"
       title="${modoClientes==='resumo' ? 'Ver todos os clientes lado a lado'
