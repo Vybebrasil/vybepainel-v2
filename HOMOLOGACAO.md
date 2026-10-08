@@ -194,3 +194,14 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 270 testes aprovados, sintaxe e build aprovados; `git diff --check` aprovado.
 - Inspeção visual em demonstração isolada com o renderizador das fichas e CSS reais, desktop e 390 px: cores, seleção por teclado, sem overflow horizontal e sem erros de console. Não foi validado o fluxo completo autenticado nem persistência (não alterada).
 - Ainda não publicado.
+
+## 08/10/2026 — Consistência do painel (local)
+
+- Busca de clientes no calendário normaliza acentos, mostra resultado vazio explícito e usa o total de atividades para “Todos”, sem somar vínculos de clientes.
+- Conta & Equipe distingue falhas de rede/HTTP e respostas incompletas de listas vazias, oferece nova tentativa e ignora respostas de cargas antigas.
+- Cadastro existente permite definir a carteira em `vybe_clientes.responsavel`: Vinícius, Ewerton ou sem responsável geral. Valores anteriores são preservados; a divisão aprovada funciona como padrão até escolha explícita. Heads e executores permanecem separados; a exceção de site da VOA permanece na descrição. Sem migração.
+- Tags visíveis atualizam após leitura do cadastro. Estilos repetidos dos filtros foram consolidados. Campos do cadastro usam duas colunas no desktop e uma no celular; ações acompanham o formulário sem sobreposição.
+- Confirmações de etiqueta e aplicação de datas reutilizam o diálogo do painel. Cancelar com Enter não confirma, há contenção de Tab e retorno de foco.
+- `npm run check`: 276 testes, sintaxe e build aprovados. Persistência da carteira e autorização administrativa testadas com a operação real da API em PGlite isolado; vínculos de heads preservados. Nenhuma escrita em produção.
+- Navegador na demonstração local: busca sem acentos, resultado vazio, edição/seletor de carteira, criação de cliente e Conta & Equipe. Screenshots do cadastro em desktop e 390×844 inspecionados, incluindo rodapé e cancelamento por Enter; console sem erros. Falhas de API e respostas concorrentes cobertas em testes automatizados, não simuladas no navegador.
+- Revisão limitada às superfícies alteradas; não representa reformulação visual de todo o produto. Branch `codex/consistencia-painel`, ainda não publicado.

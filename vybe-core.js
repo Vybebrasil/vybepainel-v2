@@ -9,6 +9,13 @@ function carteiraDoCliente(nome) {
   const chave = valor => normalizarCliente(String(valor || '')).normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const key = chave(nome);
+  // Só o nome canônico exato participa: aproximações não podem transferir carteira.
+  const cadastro = typeof CADASTRO_CLIENTES === 'undefined' ? null : CADASTRO_CLIENTES.find(c => chave(c.nome) === key);
+  const definido = String(cadastro?.responsavel || '').trim();
+  if (definido === 'Sem responsável geral') return '';
+  if (definido === 'Vinícius') return 'vinicius';
+  if (definido === 'Ewerton') return 'ewerton';
+  // Valores legados são preservados; a divisão aprovada vale até edição explícita.
   const carteira = Object.keys(CARTEIRAS_CLIENTES).find(id => CARTEIRAS_CLIENTES[id].some(n => chave(n) === key));
   return carteira || '';
 }
@@ -16,12 +23,21 @@ function descricaoCarteiraCliente(nome) {
   const carteira = carteiraDoCliente(nome);
   const responsavel = carteira === 'vinicius' ? 'Vinícius' : carteira === 'ewerton' ? 'Ewerton' : '';
   const site = normalizarCliente(String(nome || '')).toUpperCase() === 'VOA' ? ' · Site: Ewerton' : '';
-  return responsavel ? `Responsável geral: ${responsavel}${site}` : 'Responsável geral não definido';
+  return responsavel ? `Responsável geral: ${responsavel}${site}` : `Responsável geral não definido${site}`;
 }
 function tagClienteHtml(nome, { dentroDeBotao = false } = {}) {
   const carteira = carteiraDoCliente(nome);
   const descricao = descricaoCarteiraCliente(nome);
   return `<span class="cliente-carteira" data-carteira="${carteira}" title="${safeText(descricao)}" aria-label="${safeText(nome)} — ${safeText(descricao)}"${dentroDeBotao ? '' : ' tabindex="0"'}>${safeText(nome)}</span>`;
+}
+
+function atualizarCoresDasCarteiras() {
+  document.querySelectorAll('.cliente-carteira, .manager-calendar-client[data-carteira]').forEach(el => {
+    const nome = el.dataset.cliente || el.querySelector('b')?.textContent || el.textContent;
+    el.dataset.carteira = carteiraDoCliente(nome);
+    el.title = descricaoCarteiraCliente(nome);
+    if (el.classList.contains('cliente-carteira')) el.setAttribute('aria-label', `${nome} — ${el.title}`);
+  });
 }
 
 // QUANDO FOI, NO RELÓGIO DE IRECÊ.
