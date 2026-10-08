@@ -20,6 +20,7 @@ function contexto() {
     managerCalendarEventHtml:i=>`<article data-id="${i.id}">${i.nome}</article>`,agendaDeDemandasAberta:true,
   });
   for(const f of ['vybe-config.js','vybe-demandas.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);
+  vm.runInContext(fs.readFileSync('vybe-core.js','utf8').split('// QUANDO FOI')[0],c);
   for(const [ini,fim] of [
     ['function managerCalendarItems(', '// Todo cliente da base'],
     ['function fecharDiaDoCalendario()', 'function managerCalendarEventHtml('],

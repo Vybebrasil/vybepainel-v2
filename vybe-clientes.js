@@ -92,6 +92,7 @@ async function ensureClientMasterSources(force=false) {
     }));
     CLIENT_MASTER_LOADED=true;
     atualizarCoresDasCarteiras();
+    if (filtroCarteira !== 'all') atualizarVisoesDaCarteira();
   } catch(error) {
     CLIENT_MASTER_ERROR=error?.message || 'Não foi possível consultar o cadastro mestre Vybe.';
     CLIENT_MASTER_LOADED=false;
@@ -1785,6 +1786,8 @@ function filterDemandaByPerson(personId, wrap) {
 }
 
 function clearDemandaFilters() {
+  filtroCarteira = 'all';
+  pintarFiltroCarteira();
   buscaClienteDemandas='';
   clienteDemandasExato='';
   const busca=document.getElementById('busca-cliente-demandas'); if(busca) busca.value='';

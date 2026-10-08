@@ -146,6 +146,10 @@
   <div id="production-command-banner" class="production-command-banner"><div class="production-command-ident"><i>◫</i><div><span>Unidade de comando</span><b>PRODUÇÃO · CAPTAÇÃO, FOTO E EDIÇÃO</b></div></div><button class="mode-switch-btn" onclick="openModeGate()">Trocar modo</button></div>
   <section id="production-command-dashboard" class="production-command-dashboard"></section>
 
+  <label class="filtro-carteira">Responsável geral
+      <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
+        <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
+      </select></label>
   <!-- Barra de resumo compacta -->
   <div id="compact-summary" class="resumo focus-hidden"><div class="resumo-principal"><div class="resumo-numero">—<i>%</i></div><div class="resumo-legenda"><span>da semana fechada</span><div class="resumo-barra"><i style="width:0"></i></div><small>carregando…</small></div></div></div>
 
@@ -318,6 +322,10 @@
 <div id="painel-demandas" style="display:none;">
   <div class="container">
     <div class="quadro-toolbar">
+      <label class="filtro-carteira">Responsável geral
+      <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
+        <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
+      </select></label>
       <label class="quadro-busca">Buscar por cliente<input id="busca-cliente-demandas" type="search" placeholder="Nome do cliente…" oninput="buscarClienteDemandas(this.value)"></label>
       <button type="button" class="quadro-novo" onclick="cadastrarNoGrupo('demandas','')">+ Nova demanda</button>
     </div>

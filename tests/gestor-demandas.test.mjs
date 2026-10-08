@@ -12,6 +12,7 @@ function contexto(){
   isRequestItem:d=>d.origem==='solicitacao',
   normalizeRequestForOperational:d=>({...d,origem:'solicitacao',board_id:2,veiculacao_iso:d.conclusao_iso||d.prazo_iso||''}),
   getDateIso:d=>c.dateMode==='prazo'?d.prazo_iso:d.veiculacao_iso});
+ vm.runInContext(fs.readFileSync('vybe-core.js','utf8').split('// QUANDO FOI')[0],c);
  vm.runInContext(fs.readFileSync('vybe-gestor.js','utf8'),c);
  vm.runInContext("getDiasSemana=()=>[{iso:'2026-09-09'}]",c);
  return c;

@@ -40,6 +40,36 @@ function atualizarCoresDasCarteiras() {
   });
 }
 
+// Um recorte compartilhado entre conteúdos, demandas e calendário.
+// Uma atividade de duas carteiras aparece em ambas, sempre uma única vez.
+let filtroCarteira = 'all';
+function itemNaCarteira(item) {
+  return filtroCarteira === 'all' || clientesDoItem(item).some(nome => carteiraDoCliente(nome) === filtroCarteira);
+}
+function pintarFiltroCarteira() {
+  document.querySelectorAll('[data-filtro-carteira]').forEach(campo => {
+    campo.value = filtroCarteira;
+    campo.dataset.carteira = filtroCarteira;
+  });
+}
+function atualizarVisoesDaCarteira() {
+  pintarFiltroCarteira();
+  if (activeBoard === 'demandas') { renderDemandas(); return; }
+  renderCompactSummary();
+  for (let n = 1; n <= (META.weeks?.length || 4); n++) renderWeek(n, currentFilter, currentDayFilter);
+  renderOperationalTools();
+  renderManagerCalendar();
+  renderManagerIntelligence();
+  updateClearFiltersState();
+}
+function definirFiltroCarteira(valor) {
+  if (!['all', 'vinicius', 'ewerton'].includes(valor)) return;
+  filtroCarteira = valor;
+  atualizarVisoesDaCarteira();
+  // A leitura existente traz escolhas explícitas do cadastro, inclusive alterações recentes.
+  void ensureClientMasterSources();
+}
+
 // QUANDO FOI, NO RELÓGIO DE IRECÊ.
 //
 // O banco guarda em UTC e a Vybe trabalha em Irecê. Cortar a letra T do texto

@@ -199,7 +199,7 @@ function renderManagerIntelligence() {
   if (panelMode !== 'gestor') { wrap.innerHTML=''; wrap.classList.add('focus-hidden'); updateManagerCommandToggle(0); return; }
   wrap.classList.remove('focus-hidden');
   const claimed = new Set();
-  const scopedItems = selectedPersonIds.size ? DADOS.filter(itemMatchesSelectedPeople) : DADOS;
+  const scopedItems = DADOS.filter(itemNaCarteira).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item));
   const allExternal = scopedItems.filter(d => !isFinishedItem(d) && externalPendingInfo(d)?.external);
   const criticalRaw = scopedItems.filter(d => !isFinishedItem(d) && ['critical','high'].includes(d.operational_risk?.level))
     .sort((a,b) => Number(a.operational_risk?.score ?? 99) - Number(b.operational_risk?.score ?? 99) || getReferenceDate(a).localeCompare(getReferenceDate(b)));
@@ -301,10 +301,10 @@ function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
     })).filter(item => Boolean(item.calendarDateIso));
   }
   const porPrazo = dateMode === 'prazo';
-  const production = (DADOS_ALL?.length ? DADOS_ALL : DADOS || []).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item)).map(item => ({
+  const production = (DADOS_ALL?.length ? DADOS_ALL : DADOS || []).filter(item => itemNaCarteira(item) && (!selectedPersonIds.size || itemMatchesSelectedPeople(item))).map(item => ({
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'content', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.veiculacao_iso || ''), calendarType: item.formato || 'Conteúdo'
   }));
-  const requests = (DADOS_DEMANDAS || []).filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item)).map(item => ({
+  const requests = (DADOS_DEMANDAS || []).filter(item => itemNaCarteira(item) && (!selectedPersonIds.size || itemMatchesSelectedPeople(item))).map(item => ({
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'request', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.conclusao_iso || ''), calendarType: item.tipo || 'Solicitação'
   }));
   // Aqui mora a regra: a tag da solicitacao decide se ela e publicacao.
@@ -1296,7 +1296,7 @@ function verGrupoInteiro(groupId) {
 
 function itensPorGrupo(fonte = null, ordem = null) {
   const base = (fonte || (DADOS_ALL?.length ? DADOS_ALL : DADOS || []))
-    .filter(item => !selectedPersonIds.size || itemMatchesSelectedPeople(item));
+    .filter(item => itemNaCarteira(item) && (!selectedPersonIds.size || itemMatchesSelectedPeople(item)));
   const mapa = new Map();
   base.forEach(item => {
     const id = String(item.group_id || '');
