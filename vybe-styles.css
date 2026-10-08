@@ -5815,3 +5815,9 @@ body:has(.status-context-dialog){overflow:hidden}
 .focus-readiness button{appearance:none;border:0;background:transparent;color:#ffbb89;padding:2px 0;font:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,187,137,.35);text-underline-offset:3px}
 .focus-readiness button:hover{text-decoration-color:currentColor}
 .focus-readiness button:focus-visible{outline:2px solid var(--vybe-orange-soft,#ffb079);outline-offset:3px;border-radius:3px}
+
+/* Mesmo controle de carteira nos dois quadros; texto acompanha a cor. */
+.filtro-carteira{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;color:var(--text-muted,#a4a9b4);font:500 13px var(--mac-ui)}
+.filtro-carteira select{min-height:40px;max-width:100%;padding:8px 12px;border:1px solid var(--linha);border-radius:12px;background:var(--sup-1,#1c1e26);color:var(--carteira-texto,#eef1f6);font:500 14px var(--mac-ui);cursor:pointer}
+.filtro-carteira select:focus-visible{outline:2px solid var(--accent,#ff6b00);outline-offset:3px}
+.filtro-carteira option{color:#eef1f6;background:#1c1e26}

@@ -17,6 +17,7 @@ function demandas(itens) {
   for (const arquivo of ['vybe-config.js', 'vybe-demandas.js']) {
     vm.runInContext(fs.readFileSync(arquivo, 'utf8'), c, { filename: arquivo });
   }
+  vm.runInContext(fs.readFileSync('vybe-core.js','utf8').split('// QUANDO FOI')[0],c);
   c.itens = itens;
   vm.runInContext(`
     DADOS_DEMANDAS = itens;

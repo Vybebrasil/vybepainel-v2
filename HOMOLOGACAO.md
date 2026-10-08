@@ -205,3 +205,12 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 276 testes, sintaxe e build aprovados. Persistência da carteira e autorização administrativa testadas com a operação real da API em PGlite isolado; vínculos de heads preservados. Nenhuma escrita em produção.
 - Navegador na demonstração local: busca sem acentos, resultado vazio, edição/seletor de carteira, criação de cliente e Conta & Equipe. Screenshots do cadastro em desktop e 390×844 inspecionados, incluindo rodapé e cancelamento por Enter; console sem erros. Falhas de API e respostas concorrentes cobertas em testes automatizados, não simuladas no navegador.
 - Revisão limitada às superfícies alteradas; não representa reformulação visual de todo o produto. Branch `codex/consistencia-painel`, ainda não publicado.
+
+## 08/10/2026 — Filtro por responsável geral (local)
+
+- Seletor compartilhado Todos / Vinícius / Ewerton em Produção e Demandas, usando a carteira do cadastro mestre e os vínculos existentes. Grupos, calendário, resumo e contadores operacionais acompanham o recorte; atividades com clientes de duas carteiras aparecem em ambas sem duplicação.
+- A escolha acompanha a troca de quadro e é removida por limpar filtros. O estado é temporário da página, sem gravação de preferência ou alteração de dados.
+- `npm run check`: 280 testes, sintaxe e build aprovados; `git diff --check` aprovado. Regressões cobrem aliases, escolha explícita no cadastro, múltiplos clientes, combinação com filtros e coerência entre grupos e calendário.
+- Demo local: recortes com resultado e vazios, troca entre Produção e Demandas, limpeza e restauração dos totais conferidos. Screenshots desktop e 390×844 inspecionados; controle acessível por teclado e foco visível, sem erros no console.
+- Nenhuma escrita em produção ou mudança de API/banco. Verificação limitada ao filtro e às superfícies afetadas. Branch `codex/filtro-carteira`, ainda não publicado.
+- Publicação solicitada: base `eab31e6518dc597fd0efb3ec2d2bf56b57148d83`, deployment anterior `dpl_6b1HpRiNa1ek3JsGHg5EQaXXdvP2`. Sem migração ou mudança de ambiente; recuperação do banco não revalidada nesta alteração de filtro. CI executará instalação limpa e checks do commit exato antes da integração.

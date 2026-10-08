@@ -491,7 +491,7 @@ function isTainara(r) { return (r||'').toLowerCase().split(',').some(x=>TAINARA_
 function isDesign(r)  { return (r||'').toLowerCase().split(',').some(x=>DESIGN_TEAM.some(d=>x.trim().includes(d))); }
 function isEdicao(r)  { return (r||'').toLowerCase().includes('reriston'); }
 
-function getItemsBySemana(sem) { return DADOS.filter(d=>d.semana===sem && getDateIso(d)); }
+function getItemsBySemana(sem) { return DADOS.filter(itemNaCarteira).filter(d=>d.semana===sem && getDateIso(d)); }
 function getDiasSemana(sem) { return DIAS_SEMANAS[sem-1] || []; }
 function groupByCliente(items) {
   const m={};
@@ -614,13 +614,15 @@ function updateClearFiltersState() {
   const btn = document.getElementById('ops-clear-btn');
   if (!btn) return;
   const search = document.getElementById('global-search');
-  const hasActiveFilter = currentFilter !== 'all' || currentDayFilter !== '' || currentPersonFilter !== 'all' || sortCritico || pendingOnlyActive || (search && search.value.trim() !== '') || dateMode === 'prazo';
+  const hasActiveFilter = filtroCarteira !== 'all' || currentFilter !== 'all' || currentDayFilter !== '' || currentPersonFilter !== 'all' || sortCritico || pendingOnlyActive || (search && search.value.trim() !== '') || dateMode === 'prazo';
   btn.classList.toggle('is-idle', !hasActiveFilter);
   btn.textContent = hasActiveFilter ? '✕ Limpar filtros' : '✓ Sem filtros';
   btn.title = hasActiveFilter ? 'Limpar busca e todos os filtros ativos' : 'Nenhum filtro ativo';
 }
 
 function clearAllFilters(preserveDateMode = false) {
+  filtroCarteira = 'all';
+  pintarFiltroCarteira();
   pendingOnlyActive = false;
   const pendBtn = document.getElementById('btn-pending-only');
   if(pendBtn) { pendBtn.classList.remove('pending-active'); pendBtn.textContent = 'Só pendentes'; }
@@ -650,6 +652,9 @@ function clearAllFilters(preserveDateMode = false) {
   if(critico) critico.classList.remove('active');
   for (let s = 1; s <= (META.weeks ? META.weeks.length : 4); s++) renderWeek(s, currentFilter, currentDayFilter);
   renderOperationalTools();
+  renderCompactSummary();
+  renderManagerCalendar();
+  renderManagerIntelligence();
   updateClearFiltersState();
 }
 // ─── Renderizar por dia ────────────────────────────────────────────────────────────
@@ -657,7 +662,7 @@ function itensDaSemanaGestor(sem) {
   const conteudos = getItemsBySemana(sem);
   if (panelMode !== 'gestor') return conteudos;
   const dias = new Set(getDiasSemana(sem).map(d => d.iso));
-  const demandas = (DADOS_DEMANDAS || []).map(normalizeRequestForOperational)
+  const demandas = (DADOS_DEMANDAS || []).filter(itemNaCarteira).map(normalizeRequestForOperational)
     .filter(d => dias.has(getDateIso(d)));
   const vistos = new Set();
   return [...conteudos, ...demandas].filter(d => {
@@ -802,7 +807,7 @@ function buildDailySummary(dayIso) {
   const conteudos = (typeof DADOS_ALL !== 'undefined' && DADOS_ALL.length ? DADOS_ALL : DADOS) || [];
   const solicitacoes = panelMode === 'gestor' ? (DADOS_DEMANDAS || []).map(normalizeRequestForOperational) : [];
   const vistos = new Set();
-  const itens = [...conteudos, ...solicitacoes].filter((item) => {
+  const itens = [...conteudos, ...solicitacoes].filter(itemNaCarteira).filter((item) => {
     const id = String(item.id);
     if (vistos.has(id)) return false;
     vistos.add(id);
@@ -859,7 +864,8 @@ function renderKPIs() { /* integrado no compact summary */ }
 
 // ─── Progresso Geral ───────────────────────────────────────────────────────
 function renderCompactSummary() {
-  const all = DADOS;
+  pintarFiltroCarteira();
+  const all = DADOS.filter(itemNaCarteira);
   const total = all.length;
   const clientes = [...new Set(all.flatMap(clientesDoItem))];
   const numWeeks = META.weeks ? META.weeks.length : 4;
@@ -872,7 +878,7 @@ function renderCompactSummary() {
   clientes.forEach(c => { for (let w = 1; w <= numWeeks; w++) { if ((groupByCliente(getItemsBySemana(w))[c] || []).length < 3) { clientesLow++; break; } } });
   // Hoje: usar a mesma fonte temporal devolvida pela sincronização do Monday.
   const todayIso = HOJE_ISO || new Date().toISOString().slice(0, 10);
-  const todayItems = DADOS.filter(d => d.veiculacao_iso === todayIso);
+  const todayItems = DADOS.filter(itemNaCarteira).filter(d => d.veiculacao_iso === todayIso);
   const todayPending = todayItems.filter(d => !['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
 
   // Eram oito números do mesmo tamanho, cada um com uma cor. Oito destaques é
@@ -911,7 +917,7 @@ function renderCompactSummary() {
 function renderDaySummary() {
   const todayIso = HOJE_ISO || new Date().toISOString().slice(0,10);
   const todayStr = todayIso ? `${todayIso.slice(8,10)}/${todayIso.slice(5,7)}` : '—';
-  const todayItems = DADOS.filter(d => d.veiculacao_iso === todayIso);
+  const todayItems = DADOS.filter(itemNaCarteira).filter(d => d.veiculacao_iso === todayIso);
   const pending = todayItems.filter(d => !['Finalizado','Agendado'].includes(d.status));
   const done = todayItems.filter(d => d.status === 'Finalizado');
   const scheduled = todayItems.filter(d => d.status === 'Agendado');
@@ -940,7 +946,7 @@ function getActionItems(sem = currentWeek) {
 let showTodayQueue = false;
 function opsTodayIso(){ return HOJE_ISO || new Date().toISOString().slice(0,10); }
 function opsOpenItem(d){ return !['Finalizado','Feito','Para agendar','Agendado'].includes(d.status); }
-function opsSelectedScope(){ return DADOS.filter(d => getDateIso(d) && itemMatchesSelectedPeople(d)); }
+function opsSelectedScope(){ return DADOS.filter(itemNaCarteira).filter(d => getDateIso(d) && itemMatchesSelectedPeople(d)); }
 function opsOwners(d){ const ids=[...(d.responsavel_ids||[]),d.responsavel_id].filter(Boolean).map(String); const users=TEAM_USERS.filter(user=>ids.includes(String(user.id))); return users.length?users:[{id:'unassigned',name:'Sem responsável',color:'#7b8798',photo:''}]; }
 function renderOpsSelectionSummary(){
   const el=document.getElementById('ops-selection-summary'); if(!el) return;

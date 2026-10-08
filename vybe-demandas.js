@@ -235,6 +235,7 @@ function switchBoard(board, btn) {
     if (DADOS_DEMANDAS.length === 0) refreshDemandas();
     else renderDemandas();
   }
+  if (board === 'producao') atualizarVisoesDaCarteira();
   if (board === 'clientes') renderClientesBoard();
   if (board === 'diario') renderDiarioLista();
   if (board === 'performance') renderPerformance();
@@ -641,7 +642,7 @@ function demandaAtrasada(d) {
 // cartao acende a etiqueta, e vice-versa. Sem dois lugares dizendo coisas
 // diferentes sobre o mesmo filtro.
 function renderDemandaKPIs() {
-  const all = DADOS_DEMANDAS;
+  const all = DADOS_DEMANDAS.filter(itemNaCarteira);
   const porStatus = (nomes) => all.filter((d) => nomes.includes(d.status)).length;
   const kpis = [
     { label:'Atrasadas', valor: all.filter(demandaAtrasada).length, sub:'prazo vencido', cls:'red',
@@ -907,7 +908,7 @@ async function juntarAprovacoes() {
 function pintarTiposDeDemanda() {
   const caixa = document.getElementById('demanda-tipo-legend');
   if (!caixa) return;
-  const base = (DADOS_DEMANDAS || []);
+  const base = (DADOS_DEMANDAS || []).filter(itemNaCarteira);
   if (!base.length) { caixa.innerHTML = ''; return; }
   const conta = new Map();
   let sem = 0;
@@ -938,7 +939,7 @@ function pintarTiposDeDemanda() {
 // semCliente: a mesma conta sem o filtro de cliente — é o que cada botão de
 // cliente mostra ("quantas teria se eu escolhesse este").
 function filtrarDemandasBase({ semCliente = false } = {}) {
-  let fi = [...DADOS_DEMANDAS];
+  let fi = DADOS_DEMANDAS.filter(itemNaCarteira);
   const busca=buscaClienteDemandas.trim().toLocaleLowerCase('pt-BR');
   const exato=clienteDemandasExato.toLocaleLowerCase('pt-BR');
   if(!semCliente && exato) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR')===exato));
@@ -979,6 +980,7 @@ function pintarResumoDeFiltros(quantos) {
   const chip = (rotulo, limpar) => `<button type="button" class="resumo-chip" onclick="${limpar}"
     title="Tirar este filtro">${safeText(rotulo)}<i aria-hidden="true">✕</i></button>`;
   const ativos = [];
+  if (filtroCarteira !== 'all') ativos.push(chip('Carteira: ' + (filtroCarteira === 'vinicius' ? 'Vinícius' : 'Ewerton'), "definirFiltroCarteira('all')"));
   if(buscaClienteDemandas.trim()) ativos.push(chip('Cliente: '+buscaClienteDemandas, "document.getElementById('busca-cliente-demandas').value='';buscarClienteDemandas('')"));
   if (currentDemandaAtrasadas) ativos.push(chip('atrasadas', 'focarAtrasadas()'));
   if (currentDemandaStatusFilter !== 'all') ativos.push(chip(currentDemandaStatusFilter, `focarStatus('${String(currentDemandaStatusFilter).replace(/'/g, "\\'")}')`));
@@ -1038,6 +1040,7 @@ function pintarClientesDeDemandas() {
 }
 
 function renderDemandas() {
+  pintarFiltroCarteira();
   // A moldura da tela (numeros do topo, filtro de equipe, lista de dias) era
   // pintada SO por refreshDemandas. E o switchBoard so chama refreshDemandas
   // quando ainda nao ha dados:
