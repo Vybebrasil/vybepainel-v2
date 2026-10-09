@@ -138,6 +138,14 @@ export const SEMENTE = [
     condicao: { grupo_em: [GRUPOS.finalizados] },
     acoes: [{ tipo: 'responsaveis', modo: 'replace', pessoas: [] }] },
 
+  { nome: 'Demanda feita vai para Concluídas, sem responsável', ordem: 23,
+    gatilho: { tipo: 'status', para: 'feito' },
+    condicao: { board_em: [BOARD_DEMANDAS] },
+    acoes: [
+      { tipo: 'grupo', para: GRUPOS_DEMANDAS.concluidas },
+      { tipo: 'responsaveis', modo: 'replace', pessoas: [] },
+    ] },
+
   // "Feito" contava como pronta e abria a revisao de material igual a
   // "Finalizado", mas nenhuma automacao o escutava: a peca parava ali com dono.
   // Paulo em 02/09/2026: "o feito tambem e finalizado, pode limpar o

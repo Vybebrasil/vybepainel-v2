@@ -391,9 +391,14 @@ function recalcularAtrasoDoItem(item) {
 function applyOutboundItemPatch(itemId, patch={}, label='alteração', options={}) {
   const renderizar=options?.render!==false;
   if (patch.status && !patch.status_updated_at) patch.status_updated_at = new Date().toISOString(); const key=String(itemId); const now=new Date().toISOString(); const fields=outboundPatchFields(patch);
-  [DADOS,DADOS_ALL].forEach(list=>(list||[]).forEach(item=>{
+  [DADOS,DADOS_ALL,...(typeof DADOS_DEMANDAS !== 'undefined' ? [DADOS_DEMANDAS] : [])].forEach(list=>(list||[]).forEach(item=>{
     if(String(item.id)!==key) return;
     fields.forEach(([field,value])=>{ item[field]=Array.isArray(value)?[...value]:value; });
+    if (patch.grupo_id !== undefined) item.group_id = patch.grupo_id;
+    if (patch.responsavel_ids) {
+      item.responsavel_id = patch.responsavel_ids[0] || '';
+      item.responsavel = patch.responsavel_ids.map(id => TEAM_USERS.find(u => String(u.id) === String(id))?.name || '').filter(Boolean).join(', ') || '—';
+    }
     if(patch.prazo_iso) item.prazo=planningDateBr(patch.prazo_iso);
     if(patch.veiculacao_iso) item.veiculacao=planningDateBr(patch.veiculacao_iso);
     item.updated_at=now;

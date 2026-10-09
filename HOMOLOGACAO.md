@@ -214,3 +214,12 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Demo local: recortes com resultado e vazios, troca entre Produção e Demandas, limpeza e restauração dos totais conferidos. Screenshots desktop e 390×844 inspecionados; controle acessível por teclado e foco visível, sem erros no console.
 - Nenhuma escrita em produção ou mudança de API/banco. Verificação limitada ao filtro e às superfícies afetadas. Branch `codex/filtro-carteira`, ainda não publicado.
 - Publicação solicitada: base `eab31e6518dc597fd0efb3ec2d2bf56b57148d83`, deployment anterior `dpl_6b1HpRiNa1ek3JsGHg5EQaXXdvP2`. Sem migração ou mudança de ambiente; recuperação do banco não revalidada nesta alteração de filtro. CI executará instalação limpa e checks do commit exato antes da integração.
+
+## 09/10/2026 — Seleção e conclusão em lote em Demandas (local)
+
+- Seleção com Shift acompanha a ordem da tabela de Demandas. Selecionar tudo usa o quadro correto e inclui todas as atividades filtradas do grupo, inclusive além de Mostrar mais.
+- Status em lote usa as opções próprias das atividades selecionadas e aplica o estado final retornado pelo servidor, incluindo grupo e responsáveis. Alterações compartilhadas atualizam também a fonte de Demandas; a ação de data recebe o rótulo Conclusão.
+- Regra específica para demanda marcada Feito: mover para Concluídas e limpar responsáveis. A migração `migrations/2026-10-09-demanda-feita.sql` instala somente essa regra, de forma idempotente. Não altera retroativamente atividades antigas nem substitui regras personalizadas. Deve ser aplicada na publicação; não foi executada em produção.
+- `npm run check`: 285 testes, sintaxe e build aprovados. Operação real de status e migração aplicada duas vezes validadas em PGlite isolado; regressões de seleção e atualização da fonte de Demandas aprovadas.
+- Navegador na demo local com três atividades fictícias temporárias, fora do repositório: seleção por Shift, selecionar tudo, catálogo de status em lote, confirmação e cancelamento. Screenshots desktop e 390×844 inspecionados; console sem erros. Persistência validada nos testes isolados, não no navegador, pois a demo bloqueia escrita.
+- Escopo limitado aos fluxos descritos; não representa auditoria completa de Demandas. Nenhuma escrita em produção. Branch `codex/demandas-lote-conclusao`, ainda não publicado.
