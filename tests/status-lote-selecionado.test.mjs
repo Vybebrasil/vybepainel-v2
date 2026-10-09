@@ -8,7 +8,8 @@ function contexto(ids=['1','2']) {
   const gravados=[],avisos=[],items=[{id:'1',status:'A Fazer'},{id:'2',status:'A Fazer'},{id:'3',status:'A Fazer'}];
   const c=vm.createContext({SELECIONADAS:new Set(ids),STATUS_OPTIONS:[{label:'Pode Fazer',color:'#abc'}],
     closeStatusEditor(){},findOperationalItem:id=>items.find(i=>i.id===String(id)),
-    operationalStatusOptions:()=>[],showToast:(m)=>avisos.push(m),
+    operationalStatusOptions:()=>[{label:'Pode Fazer',color:'#abc'}],
+    updateLocalStatus:(id,o)=>Object.assign(items.find(i=>i.id===id),{status:o.label}),aplicarEfeitoDaAutomacao(){},showToast:(m)=>avisos.push(m),
     abrirMenuDeLote:(_e,titulo,opcoes)=>{c.menu={titulo,opcoes};},
     tentarEscritaDupla:async(item)=>{gravados.push(item.id);return true;},
     chaveDeStatus:s=>s,applyOutboundItemPatch:(id,patch)=>Object.assign(items.find(i=>i.id===id),patch),
@@ -29,6 +30,7 @@ test('status na linha marcada usa lote e grava todas as selecionadas, sem tocar 
 test('linha não marcada, detalhe e seleção única mantêm o caminho individual',()=>{
   for(const [ids,id,tabela] of [[['1','2'],'3',true],[['1','2'],'1',false],[['1'],'1',true]]) {
     const {c,avisos,evento}=contexto(ids);
+    c.operationalStatusOptions=()=>[];
     c.openStatusEditor(evento(tabela),id);
     assert.equal(c.menu,undefined);
     assert.match(avisos[0],/opções de status/);
@@ -45,4 +47,16 @@ test('cancelamento não grava e falha parcial não vira sucesso total',async()=>
   await c.aplicarEmLote('status',c.menu.opcoes[0].aplicar);
   assert.deepEqual(gravados,['2']);
   assert.match(avisos.at(-1),/1 atualizada.*1 falhou/);
+});
+
+test('lote de demandas usa catálogo próprio e aplica o estado devolvido pelo servidor',async()=>{
+ const {c,items,evento}=contexto();
+ c.operationalStatusOptions=()=>[{label:'Feito',chave:'feito',color:'#0f0'}];
+ const efeitos=[]; c.aplicarEfeitoDaAutomacao=(item,resposta)=>efeitos.push([item.id,resposta.depois]);
+ c.tentarEscritaDupla=async(item,corpo)=>{assert.equal(corpo.para,'feito');assert.equal(corpo._devolve,true);return {depois:{status:'Feito',grupo_id:'concluidas',responsavel_ids:[]}};};
+ c.openStatusEditor(evento(),'1');
+ assert.deepEqual(Array.from(c.menu.opcoes,o=>o.rotulo),['Feito']);
+ await c.aplicarEmLote('status',c.menu.opcoes[0].aplicar);
+ assert.deepEqual(items.map(i=>i.status),['Feito','Feito','A Fazer']);
+ assert.equal(efeitos.length,2);assert.deepEqual(efeitos[0][1].responsavel_ids,[]);
 });

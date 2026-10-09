@@ -262,6 +262,8 @@ test('Demandas aciona regras reais de orçamento, impressão, alteração e conc
  r=await trocarStatus(sql,null,{item:'vybe:1',para:'alteracao'});
  assert.deepEqual(r.depois.responsavel_ids,['68036697']);
  r=await trocarStatus(sql,null,{item:'vybe:1',para:'feito'});
+ assert.equal(r.depois.grupo_id,GRUPOS_DEMANDAS.concluidas);
+ assert.equal(r.depois.grupo,'Concluídas');
  assert.deepEqual(r.depois.responsavel_ids,[]);
  assert.equal((await sql`SELECT * FROM vybe_conteudo_clientes`).length,2);
  }finally{await db.close();}
@@ -297,5 +299,19 @@ test('Demandas recusa retomada de evento superado ou atividade removida',async()
  const [ultimo]=await sql`SELECT id FROM vybe_conteudo_eventos WHERE tipo='status' ORDER BY id DESC LIMIT 1`;
  await sql`UPDATE vybe_conteudos SET removido_em=NOW()`;
  await assert.rejects(retomarEncaminhamento(sql,{item:'vybe:1',ocorrencia:String(ultimo.id)}));
+ }finally{await db.close();}
+});
+
+test('migração da conclusão é idempotente e executa no motor existente',async()=>{
+ const {db,sql}=await banco();try{
+ await prepararDemandas(db,sql);
+ await db.exec("ALTER TABLE vybe_automacoes ADD COLUMN origem text; CREATE SEQUENCE teste_regra START 1000; ALTER TABLE vybe_automacoes ALTER COLUMN id SET DEFAULT nextval('teste_regra'); ALTER TABLE vybe_automacoes ALTER COLUMN ativa SET DEFAULT true;");
+ await sql`DELETE FROM vybe_automacoes WHERE nome='Demanda feita vai para Concluídas, sem responsável'`;
+ const migration=fs.readFileSync('migrations/2026-10-09-demanda-feita.sql','utf8');
+ await db.exec(migration);await db.exec(migration);
+ assert.equal((await sql`SELECT * FROM vybe_automacoes WHERE nome='Demanda feita vai para Concluídas, sem responsável'`).length,1);
+ const r=await trocarStatus(sql,null,{item:'vybe:1',para:'feito'});
+ assert.equal(r.automacao_pendente,false);assert.equal(r.depois.grupo_id,GRUPOS_DEMANDAS.concluidas);
+ assert.deepEqual(r.depois.responsavel_ids,[]);
  }finally{await db.close();}
 });

@@ -1866,7 +1866,7 @@ function linhaDeGrupoHtml(item) {
   const escolha = (campo) => `<td onclick="${parar}">${pillEditavel(item, campo)}</td>`;
   return `<tr class="${marcada ? 'marcada' : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
     <td class="grupo-marcar" onclick="${parar}">
-      <input type="checkbox" ${marcada ? 'checked' : ''} aria-label="Selecionar ${safeText(item.nome || '')}"
+      <input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(item.nome || '')}"
              onclick="${parar};alternarSelecao('${safeText(item.id)}',this.checked,event)"></td>
     <td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
         title="ID da atividade · clique para copiar">${safeText(item.id)}</td>
@@ -1903,6 +1903,8 @@ let ULTIMA_MARCADA = null;
 // passar nada, continua valendo a de Grupos, como antes.
 function alternarSelecao(id, marcada, event, ordemVisivel) {
   const alvo = String(id);
+  const tabela = event?.currentTarget?.closest?.('.grupo-tabela');
+  if (!ordemVisivel && tabela) ordemVisivel = [...tabela.querySelectorAll('input[data-item-id]')].map(el => el.dataset.itemId);
   const lista = Array.isArray(ordemVisivel) && ordemVisivel.length
     ? ordemVisivel.map(String)
     : itensPorGrupo().flatMap((g) => {
@@ -1954,13 +1956,11 @@ function repintarOndeHaSelecao() {
   }
 }
 
-function selecionarGrupo(groupId, marcar) {
-  const quadro = quadroDoGrupo(groupId);
+function selecionarGrupo(groupId, marcar, quadro = activeBoard === 'demandas' ? 'demandas' : quadroDoGrupo(groupId)) {
   const cfg = VISAO_DE_GRUPOS[quadro];
   const grupo = itensPorGrupo(cfg.fonte(), cfg.ordem()).find((g) => g.id === groupId);
   if (!grupo) return;
-  const visiveis = gruposExpandidos.has(groupId) ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
-  visiveis.forEach((i) => (marcar ? SELECIONADAS.add(String(i.id)) : SELECIONADAS.delete(String(i.id))));
+  grupo.itens.forEach((i) => (marcar ? SELECIONADAS.add(String(i.id)) : SELECIONADAS.delete(String(i.id))));
   repintarOndeHaSelecao();
 }
 
@@ -2175,7 +2175,7 @@ function deckDeLoteHtml(quadro) {
       ${quadro === 'demandas' ? '' : acao('Captação', "loteEscolha(event,'captacao')")}
       ${acao('Prioridade', "loteEscolha(event,'prioridade')")}
       ${acao('Prazo', "lotePrazo(event,'prazo')")}
-      ${acao('Veiculação', "lotePrazo(event,'veiculacao')")}
+      ${acao(quadro === 'demandas' ? 'Conclusão' : 'Veiculação', "lotePrazo(event,'veiculacao')")}
       <span class="lote-risco" aria-hidden="true"></span>
       <button type="button" class="lote-acao perigo" onclick="loteArquivar()"
         title="Tirar as marcadas das listas — voltam do Arquivo por 15 dias">Arquivar</button>
@@ -2254,14 +2254,14 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     const mostrarTodos = gruposExpandidos.has(grupo.id);
     const visiveis = mostrarTodos ? grupo.itens : grupo.itens.slice(0, LINHAS_POR_GRUPO);
     const restam = total - visiveis.length;
-    const todasMarcadas = visiveis.length > 0 && visiveis.every((i) => SELECIONADAS.has(String(i.id)));
+    const todasMarcadas = total > 0 && grupo.itens.every((i) => SELECIONADAS.has(String(i.id)));
     const corpo = recolhido ? '' : !total ? '<div class="grupos-vazio">Nenhuma atividade neste recorte.</div>' : `
       <div class="grupo-tabela-rolagem">
         <table class="grupo-tabela">
           <thead><tr>
             <th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''}
               aria-label="Selecionar tudo em ${safeText(grupo.nome)}"
-              onchange="selecionarGrupo('${grupo.id}',this.checked)"></th>
+              onchange="selecionarGrupo('${grupo.id}',this.checked,'${quadro}')"></th>
             ${COLUNAS_DA_TABELA[quadro].map((c) => cabecalhoOrdenavel(c, quadro)).join('')}</tr></thead>
           <tbody>${visiveis.map(linhaDeGrupoHtml).join('')}</tbody>
         </table>
@@ -2339,7 +2339,9 @@ async function aplicarEmLote(rotulo, executar) {
 // aconteceu. Pular a conferencia e uma escolha legitima para arrumar o quadro em
 // massa; pular sem saber que pulou, nao.
 function loteStatus(event) {
-  const opcoes = (typeof STATUS_OPTIONS !== 'undefined' ? STATUS_OPTIONS : []) || [];
+  const itens = [...SELECIONADAS].map(findOperationalItem).filter(Boolean);
+  const catalogos = itens.map(operationalStatusOptions);
+  const opcoes = (catalogos[0] || []).filter(o => o.ativa !== false && catalogos.every(lista => lista.some(st => st.label === o.label && st.ativa !== false)));
   // A conferencia de "opcoes carregando" ficava ANTES de tudo e olhava so a
   // lista de Producao. Com uma solicitacao marcada isso e a lista errada: as
   // opcoes dela saem dos proprios dados, e estavam ali o tempo todo. Agora cada
@@ -2359,9 +2361,16 @@ function loteStatus(event) {
   if (!opcoes.length) return showToast('As opções de status ainda estão carregando.', 'info');
   abrirMenuDeLote(event, `Status para ${SELECIONADAS.size} atividades`, opcoes.map((o) => ({
     rotulo: o.label, cor: o.color,
-    aplicar: (item) => tentarEscritaDupla(item, { acao: 'status', item: String(item.id), para: chaveDeStatus(o.label) })
-      .then((feito) => { if (!feito) throw new Error('gravação recusada'); applyOutboundItemPatch(item.id,
-        { status: o.label, status_color: o.color, status_border: o.border, status_index: o.index }, 'status em lote'); }),
+    aplicar: async (item) => {
+      const opcao = operationalStatusOptions(item).find(st => st.label === o.label);
+      const resposta = await tentarEscritaDupla(item, { acao: 'status', item: String(item.id), para: opcao.chave || chaveDeStatus(opcao.label), _devolve: true });
+      if (!resposta) throw new Error('gravação recusada');
+      const depois = resposta.depois;
+      const final = depois?.status ? { label: depois.status, color: depois.status_color, border: depois.status_border, index: depois.status_index } : opcao;
+      updateLocalStatus(item.id, final);
+      aplicarEfeitoDaAutomacao(item, resposta);
+      if (resposta.automacao_pendente) throw new Error('Status salvo, mas encaminhamento pendente. Abra “por que não rodou?” para retomar.');
+    },
     aviso: /aprova|agendad|finalizad|feito/i.test(String(o.label))
       ? `Em lote a conferência da arte não acontece — ${SELECIONADAS.size} peças vão direto para "${o.label}".`
       : '',
@@ -2400,7 +2409,8 @@ function lotePrazo(event, campo) {
   event?.stopPropagation?.();
   if (!SELECIONADAS.size) return;
   fecharMenuDeLote();
-  const rotulo = campo === 'prazo' ? 'Novo prazo' : 'Nova veiculação';
+  const soDemandas = [...SELECIONADAS].map(findOperationalItem).filter(Boolean).every(isRequestItem);
+  const rotulo = campo === 'prazo' ? 'Novo prazo' : soDemandas ? 'Nova conclusão' : 'Nova veiculação';
   const quantas = `${SELECIONADAS.size} ${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}`;
   const hoje = String(META?.today_iso || HOJE_ISO || new Date().toISOString().slice(0, 10));
 
