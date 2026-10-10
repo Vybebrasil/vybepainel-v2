@@ -670,6 +670,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
       ${(() => { const c = cadastroDaPeca(item); return linha('Cadastrado por', `<span class="cr-texto">${safeText(c.quem)}</span>`) + linha('Criado em', `<span class="cr-texto">${safeText(c.quando)}</span>`); })()}
     </div>
+    ${ehDemanda ? `<div class="cr-recursos" id="cr-recursos-${safeText(item.id)}" role="status">Carregando briefing e material…</div>` : ''}
     ${ehDemanda ? `<div class="cr-subs" id="cr-subs-${safeText(item.id)}"><div class="cr-subs-carregando">Carregando subdemandas…</div></div>` : ''}
     <div class="cr-rodape">
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}"
@@ -684,10 +685,14 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       const caixa = document.getElementById(`cr-subs-${item.id}`);
       if (!caixa) return;
       caixa.innerHTML = subitensHtml(detalhe, item);
+      const recursos = document.getElementById(`cr-recursos-${item.id}`);
+      if (recursos) recursos.innerHTML = blocoDoBriefingHtml(detalhe, item) + faixaDeMaterialBrutoHtml(detalhe, item, {compacta:true});
       ancorarPopover(cartao, rect);
     }).catch(() => {
       const caixa = document.getElementById(`cr-subs-${item.id}`);
       if (caixa) caixa.innerHTML = '<div class="cr-subs-carregando">Não foi possível carregar as subdemandas.</div>';
+      const recursos = document.getElementById(`cr-recursos-${item.id}`);
+      if (recursos) recursos.textContent = 'Não foi possível carregar briefing e material. Abra os detalhes para tentar novamente.';
     });
   }
   // Guardado como objeto simples: o DOMRect original some quando a linha e
@@ -1381,6 +1386,7 @@ function ordenarItens(itens) {
 function ordenarPor(campo) {
   if (!CAMPOS_ORDENAVEIS[campo]) return;
   ORDEM = ORDEM.campo === campo ? { campo, desc: !ORDEM.desc } : { campo, desc: false };
+  if (typeof activeBoard !== 'undefined' && activeBoard === 'demandas') guardarPreferenciasDemandas();
   renderVisaoDeGrupos();
   // A ficha do cliente usa a mesma tabela; sem isto, clicar no cabecalho la
   // reordenava a tabela de grupos escondida e deixava a da frente parada.
@@ -2116,7 +2122,8 @@ async function aplicarDataSelecionadaEmLote(campo, dateIso, { input = null, sour
     // sozinho obrigava a remarcar uma a uma.
     showToast(`✓ Lote concluído: ${processadas}/${itens.length} demandas processadas${complemento} · seguem marcadas.`, 'ok', 6000);
   } else {
-    showToast(`Lote parcial: ${processadas}/${itens.length} processadas · ${falhas.length} falhou${falhas.length === 1 ? '' : 'ram'}. As falhas continuam selecionadas.`, 'err', 9000);
+    showToast(`Lote parcial: ${processadas}/${itens.length} processadas · ${falhas.length} falhou${falhas.length === 1 ? '' : 'ram'}.`, 'err', 9000);
+    await perguntarNoPainel({titulo:'Datas não alteradas',texto:falhas.map(({item})=>`${item.nome || 'Sem título'} (${item.id})`).join('; '),confirmar:'Entendi'});
   }
   return falhas.length === 0;
 }
@@ -2166,7 +2173,7 @@ function deckDeLoteHtml(quadro) {
   const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
     safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
   return SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as atividades marcadas">
-      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${SELECIONADAS.size === 1 ? 'marcada' : 'marcadas'}</small></span>
+      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${quadro === 'demandas' ? 'demandas a alterar' : (SELECIONADAS.size === 1 ? 'marcada' : 'marcadas')}</small></span>
       <span class="lote-risco" aria-hidden="true"></span>
       ${acao('Status', 'loteStatus(event)')}
       ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
@@ -2294,13 +2301,17 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
 // quantas passaram e quantas não.
 
 async function aplicarEmLote(rotulo, executar) {
+  if (aplicarEmLote.emAndamento) return;
+  aplicarEmLote.emAndamento = true;
+  try {
   const ids = [...SELECIONADAS];
   if (!ids.length) return;
-  const pergunta = `Aplicar ${rotulo} em ${ids.length} peça${ids.length === 1 ? '' : 's'}?`;
+  const substantivo = typeof activeBoard !== 'undefined' && activeBoard === 'demandas' ? 'demanda' : 'peça';
+  const pergunta = `Aplicar ${rotulo} em ${ids.length} ${substantivo}${ids.length === 1 ? '' : 's'}?`;
   const confirmado = typeof perguntarNoPainel === 'function'
     ? await perguntarNoPainel({ titulo: pergunta,
         texto: 'A alteração vale para todas as marcadas e cada uma fica registrada no histórico.',
-        confirmar: 'Aplicar' })
+        confirmar: `Alterar ${ids.length} ${substantivo}${ids.length === 1 ? '' : 's'}` })
     : window.confirm(pergunta);
   if (!confirmado) return;
   let ok = 0;
@@ -2313,7 +2324,7 @@ async function aplicarEmLote(rotulo, executar) {
     const item = findOperationalItem(id);
     if (!item) { falhas.push(id); andamento(ok + falhas.length); continue; }
     try { await executar(item); ok += 1; }
-    catch (erro) { falhas.push(item.nome || id); console.warn('lote falhou em', id, erro); }
+    catch (erro) { falhas.push(`${item.nome || id} (${id})`); console.warn('lote falhou em', id, erro); }
     andamento(ok + falhas.length);
   }
   // Some da selecao so o que sumiu da tela — peca arquivada ou movida para fora
@@ -2325,7 +2336,11 @@ async function aplicarEmLote(rotulo, executar) {
     return;
   }
   if (!falhas.length) showToast(`✓ ${rotulo} aplicado em ${ok} peça${ok === 1 ? '' : 's'} · seguem marcadas`, 'ok', 5000);
-  else showToast(`${ok} atualizada${ok === 1 ? '' : 's'} · ${falhas.length} falhou: ${falhas.slice(0, 3).join(', ')}`, 'info', 8000);
+  else {
+    showToast(`${ok} atualizada${ok === 1 ? '' : 's'} · ${falhas.length} falhou: ${falhas.join(', ')}`, 'err', 20000);
+    if (typeof perguntarNoPainel === 'function') await perguntarNoPainel({titulo:'Resultado parcial do lote', texto:`${ok} alterações salvas. Não foi possível alterar: ${falhas.join('; ')}. Confira esses itens antes de tentar novamente.`, confirmar:'Entendi'});
+  }
+  } finally { aplicarEmLote.emAndamento = false; }
 }
 
 // O status em lote NAO passa pelos portoes — nem podia: vinte pecas dariam vinte
