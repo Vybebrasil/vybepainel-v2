@@ -943,7 +943,7 @@ function filtrarDemandasBase({ semCliente = false } = {}) {
   const busca=buscaClienteDemandas.trim().toLocaleLowerCase('pt-BR');
   const exato=clienteDemandasExato.toLocaleLowerCase('pt-BR');
   if(!semCliente && exato) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR')===exato));
-  else if(!semCliente && busca) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR').includes(busca)));
+  else if(!semCliente && busca) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR').includes(busca)) || String(d.nome || '').toLocaleLowerCase('pt-BR').includes(busca));
   if (currentDemandaPersonFilter !== 'all') {
     fi = fi.filter(d => (d.responsavel_ids && d.responsavel_ids.includes(currentDemandaPersonFilter)) || d.responsavel_id === currentDemandaPersonFilter);
   }
@@ -981,7 +981,7 @@ function pintarResumoDeFiltros(quantos) {
     title="Tirar este filtro">${safeText(rotulo)}<i aria-hidden="true">✕</i></button>`;
   const ativos = [];
   if (filtroCarteira !== 'all') ativos.push(chip('Carteira: ' + (filtroCarteira === 'vinicius' ? 'Vinícius' : 'Ewerton'), "definirFiltroCarteira('all')"));
-  if(buscaClienteDemandas.trim()) ativos.push(chip('Cliente: '+buscaClienteDemandas, "document.getElementById('busca-cliente-demandas').value='';buscarClienteDemandas('')"));
+  if(buscaClienteDemandas.trim()) ativos.push(chip((clienteDemandasExato ? 'Cliente: ' : 'Busca: ')+buscaClienteDemandas, "document.getElementById('busca-cliente-demandas').value='';buscarClienteDemandas('')"));
   if (currentDemandaAtrasadas) ativos.push(chip('atrasadas', 'focarAtrasadas()'));
   if (currentDemandaStatusFilter !== 'all') ativos.push(chip(currentDemandaStatusFilter, `focarStatus('${String(currentDemandaStatusFilter).replace(/'/g, "\\'")}')`));
   if (currentDemandaTipoFilter !== 'all') ativos.push(chip(
@@ -1063,6 +1063,7 @@ function renderDemandas() {
   if (typeof renderAgendaDeDemandas === 'function') renderAgendaDeDemandas();
   const fi = filtrarDemandasBase();
   pintarResumoDeFiltros(fi.length);
+  document.querySelectorAll('.dem-filtro-popover input[type="search"]').forEach(input => { if (input.value) input.dispatchEvent(new Event('input')); });
   // Atualizar título da semana
   const titleEl = document.getElementById('title-demanda-semana');
   if (titleEl) {
@@ -1200,3 +1201,20 @@ function renderDemandasEsteira(fi) {
   }).join('');
 }
 
+
+// Pesquisa somente as opções do seletor; não altera o recorte operacional.
+function pesquisarOpcoesDemanda(input, id) {
+  const normalizar = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+  const termo = normalizar(input.value);
+  const lista = document.getElementById(id);
+  if (!lista) return;
+  let encontrados = 0;
+  [...lista.children].forEach(el => {
+    const mostrar = normalizar(el.textContent + ' ' + (el.title || '')).includes(termo);
+    el.hidden = !mostrar;
+    if (mostrar) encontrados++;
+  });
+  let vazio = input.parentElement.querySelector('.dem-opcoes-vazias');
+  if (!vazio) { vazio = document.createElement('p'); vazio.className = 'dem-opcoes-vazias'; vazio.setAttribute('role','status'); input.after(vazio); }
+  vazio.textContent = encontrados ? '' : 'Nenhuma opção encontrada.';
+}
