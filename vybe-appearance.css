@@ -1473,3 +1473,13 @@ body.vybe-desktop {
 }
 #painel-demandas .dem-filtro-popover .person-wrap { border:0; padding:4px; border-radius:50%; background:transparent; cursor:pointer; }
 #painel-demandas .kpi-value { font-size:28px; line-height:1.2; }
+
+#dem-visoes { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+#dem-visoes button { display:flex; align-items:center; gap:8px; padding:9px 13px; border:1px solid var(--border); border-radius:12px; color:var(--text); background:#ffffff06; font:500 13px var(--mac-ui); cursor:pointer; }
+#dem-visoes button[aria-pressed="true"] { background:#ff984f20; border-color:#ff984f88; }
+#dem-visoes span { font-size:11px; opacity:.75; font-variant-numeric:tabular-nums; }
+.cartao-rapido .cr-recursos { padding:12px 16px; border-top:1px solid var(--border); font-size:13px; }
+.cartao-rapido .cr-recursos .brief-atalho { margin:0 0 10px; }
+.cartao-rapido .cr-recursos .brief-abrir { padding:12px; }
+.cartao-rapido .cr-recursos .brief-abrir-copy b { font-size:14px; }
+.cartao-rapido .cr-recursos .brief-abrir-trecho { font-size:12px; max-height:54px; overflow:hidden; }
