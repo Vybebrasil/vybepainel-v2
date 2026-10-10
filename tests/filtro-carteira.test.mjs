@@ -47,3 +47,12 @@ test('seletor recusa valor desconhecido e sincroniza controles sem alterar dados
  c.definirFiltroCarteira('outro');assert.equal(vm.runInContext('filtroCarteira',c),'ewerton');
  c.definirFiltroCarteira('all');assert.ok(controles.every(x=>x.value==='all'));assert.equal(c.itens.length,5);
 });
+test('busca de demandas encontra título ou cliente e mantém seleção exata',()=>{
+ const c=contexto();c.itens[0].nome='Briefing de lançamento';
+ vm.runInContext("buscaClienteDemandas='briefing'",c);
+ assert.deepEqual(ids(c.filtrarDemandasBase()),['v']);
+ vm.runInContext("buscaClienteDemandas='Antonov'",c);
+ assert.deepEqual(ids(c.filtrarDemandasBase()),['ambas']);
+ vm.runInContext("clienteDemandasExato='Briefing'",c);
+ assert.deepEqual(ids(c.filtrarDemandasBase()),[]);
+});

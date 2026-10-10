@@ -223,3 +223,11 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 285 testes, sintaxe e build aprovados. Operação real de status e migração aplicada duas vezes validadas em PGlite isolado; regressões de seleção e atualização da fonte de Demandas aprovadas.
 - Navegador na demo local com três atividades fictícias temporárias, fora do repositório: seleção por Shift, selecionar tudo, catálogo de status em lote, confirmação e cancelamento. Screenshots desktop e 390×844 inspecionados; console sem erros. Persistência validada nos testes isolados, não no navegador, pois a demo bloqueia escrita.
 - Escopo limitado aos fluxos descritos; não representa auditoria completa de Demandas. Nenhuma escrita em produção. Branch `codex/demandas-lote-conclusao`, ainda não publicado.
+
+## 10/10/2026 — Refinamento visual de Demandas (local)
+
+- Branch `codex/demandas-visual`, base `9008846`: busca por cliente ou título, filtros progressivos pesquisáveis, indicadores compactos e colunas opcionais.
+- Tabelas com larguras comuns e seleção/nome fixos; seletores de equipe acessíveis pelo teclado.
+- `npm run check`: 286 testes aprovados e build concluído. `git diff --check` aprovado.
+- Demonstração local: desktop e viewport 390×844; busca por título, estado sem opções, Escape, seleção com barra de lote, exibição de ID e abertura de cadastro no grupo A Fazer conferidos. Console sem erros capturados.
+- Sem escrita em produção ou alteração de schema. Persistência não foi revalidada por esta tarefa visual. Ainda não publicado.

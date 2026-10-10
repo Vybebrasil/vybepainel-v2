@@ -1779,6 +1779,7 @@ function filterDemandaByStatusLegend(status, pill) {
 
 function filterDemandaByPerson(personId, wrap) {
   currentDemandaPersonFilter = personId;
+  document.querySelectorAll('#person-filter-bar-demandas .person-wrap').forEach(el => el.setAttribute('aria-pressed', String(el === wrap)));
   document.querySelectorAll('#person-filter-bar-demandas .person-chip').forEach(c => c.classList.remove('active'));
   const chip = wrap.querySelector('.person-chip');
   if (chip) chip.classList.add('active');
@@ -1818,15 +1819,18 @@ function buildDemandaPersonFilter() {
   existing.forEach(e => e.remove());
   TEAM_USERS.forEach(u => {
     if (!activePeople.has(u.id)) return;
-    const wrap = document.createElement('div');
+    const wrap = document.createElement('button');
+    wrap.type = 'button';
     wrap.className = 'person-wrap';
+    wrap.setAttribute('aria-label', u.name);
+    wrap.setAttribute('aria-pressed', String(currentDemandaPersonFilter === u.id));
     wrap.title = u.name;
     wrap.onclick = () => filterDemandaByPerson(u.id, wrap);
     // Mesma regra da tela de Producao: bolinha com foto, nome no title.
     wrap.dataset.personId = u.id;
     wrap.style.setProperty('--person-color', u.color || '#00f0ff');
     const chip = document.createElement('span');
-    chip.className = 'person-chip so-foto';
+    chip.className = 'person-chip so-foto' + (currentDemandaPersonFilter === u.id ? ' active' : '');
     chip.innerHTML = typeof ownerAvatarHtml === 'function'
       ? ownerAvatarHtml(u)
       : `<span class="owner-avatar-fallback" style="background:${u.color}">${
