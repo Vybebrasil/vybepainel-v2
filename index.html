@@ -329,11 +329,12 @@
       <label class="quadro-busca">Buscar cliente ou demanda<input id="busca-cliente-demandas" type="search" placeholder="Buscar cliente ou demanda…" oninput="buscarClienteDemandas(this.value)"></label>
       <button type="button" class="quadro-novo" onclick="cadastrarNoGrupo('demandas','')">+ Nova demanda</button>
     </div>
+    <nav id="dem-visoes" aria-label="Visões de demandas"></nav>
     <div id="kpi-grid-demandas" class="kpi-grid"></div>
 
     <!-- Filtros progressivos preservam os seletores e handlers do recorte. -->
     <div class="dem-controles" onkeydown="if(event.key==='Escape'){const aberto=this.querySelector('details[open]');if(aberto){aberto.open=false;aberto.querySelector('summary').focus();event.stopPropagation();}}">
-      <details class="dem-colunas" name="filtros-demandas"><summary>Colunas</summary><div class="dem-filtro-popover"><label><input type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-id',this.checked)"> Mostrar ID</label><label><input type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-cadastro',this.checked)"> Mostrar cadastro e criação</label></div></details>
+      <details class="dem-colunas" name="filtros-demandas"><summary>Colunas</summary><div class="dem-filtro-popover"><label><input id="dem-coluna-id" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-id',this.checked);guardarPreferenciasDemandas()"> Mostrar ID</label><label><input id="dem-coluna-cadastro" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-cadastro',this.checked);guardarPreferenciasDemandas()"> Mostrar cadastro e criação</label></div></details>
       <details class="dem-filtro" name="filtros-demandas">
         <summary>Status</summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar status" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'demanda-status-legend')">

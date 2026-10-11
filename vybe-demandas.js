@@ -3,6 +3,74 @@ let buscaClienteDemandas = '';
 // nome. Os dois são o mesmo filtro: digitar na caixa desfaz o "exato", e clicar
 // num cliente escreve o nome na caixa.
 let clienteDemandasExato = '';
+// Visões usam o mesmo filtro de grupos, calendário e contagens.
+let visaoRapidaDemandas = 'todas';
+let preferenciasDemandasUsuario = null;
+const VISOES_DEMANDAS = { abertas:'Em aberto', minha:'Minha fila', atrasadas:'Atrasadas', sem:'Sem responsável', concluidas:'Concluídas', todas:'Todas' };
+function pertenceVisaoDemanda(d, visao = visaoRapidaDemandas) {
+  const concluida = DEMANDA_CONCLUIDA.includes(d.status);
+  if (visao === 'concluidas') return concluida;
+  if (visao === 'todas') return true;
+  if (concluida) return false;
+  if (visao === 'atrasadas') return demandaAtrasada(d);
+  const ids = (d.responsavel_ids?.length ? d.responsavel_ids : [d.responsavel_id]).filter(Boolean).map(String);
+  if (visao === 'sem') return !ids.length;
+  if (visao === 'minha') {
+    const eu = typeof pessoaLogada === 'function' ? pessoaLogada() : null;
+    const pessoa = typeof pessoaPeloNome === 'function' ? pessoaPeloNome(eu?.nome || '') : null;
+    return Boolean(eu && ids.includes(String(pessoa?.id || eu.id)));
+  }
+  return true;
+}
+function escolherVisaoDemanda(visao) {
+  if (!Object.hasOwn(VISOES_DEMANDAS, visao)) return;
+  visaoRapidaDemandas = visao;
+  currentDemandaStatusFilter = 'all'; currentDemandaAtrasadas = false;
+  currentDemandaPersonFilter = 'all';
+  renderDemandas();
+}
+function chavePreferenciasDemandas() {
+  const eu = typeof pessoaLogada === 'function' ? pessoaLogada() : null;
+  return eu?.id ? 'vybe_demandas_preferencias:' + eu.id : null;
+}
+function restaurarPreferenciasDemandas() {
+  const chave = chavePreferenciasDemandas();
+  if (!chave || preferenciasDemandasUsuario === chave) return;
+  preferenciasDemandasUsuario = chave;
+  let salvo = {};
+  try { salvo = JSON.parse(localStorage.getItem(chave) || '{}') || {}; } catch { /* preferência inválida */ }
+  visaoRapidaDemandas = Object.hasOwn(VISOES_DEMANDAS, salvo.visao) ? salvo.visao : 'abertas';
+  buscaClienteDemandas = typeof salvo.busca === 'string' ? salvo.busca : '';
+  clienteDemandasExato = typeof salvo.cliente === 'string' ? salvo.cliente : '';
+  currentDemandaStatusFilter = typeof salvo.status === 'string' ? salvo.status : 'all';
+  currentDemandaPersonFilter = typeof salvo.pessoa === 'string' ? salvo.pessoa : 'all';
+  currentDemandaTipoFilter = typeof salvo.tipo === 'string' ? salvo.tipo : 'all';
+  currentDemandaAtrasadas = salvo.atrasadas === true;
+  if (['all','vinicius','ewerton'].includes(salvo.carteira)) filtroCarteira = salvo.carteira;
+  gruposDeDemandasAberto = salvo.calendario !== true; agendaDeDemandasAberta = salvo.calendario === true;
+  currentDemandaDateMode = salvo.data === 'prazo' ? 'prazo' : 'conclusao';
+  currentDemandaDayFilter = /^\d{4}-\d{2}-\d{2}$/.test(salvo.dia || '') ? salvo.dia : '';
+  if (salvo.ordem && Object.hasOwn(CAMPOS_ORDENAVEIS, salvo.ordem.campo)) ORDEM = { campo:salvo.ordem.campo, desc:salvo.ordem.desc === true };
+  const painel = document.getElementById('painel-demandas');
+  for (const coluna of ['id','cadastro']) {
+    painel?.classList.toggle('dem-mostrar-' + coluna, salvo[coluna] === true);
+    const campo = document.getElementById('dem-coluna-' + coluna); if (campo) campo.checked = salvo[coluna] === true;
+  }
+  const busca = document.getElementById('busca-cliente-demandas'); if (busca) busca.value = buscaClienteDemandas;
+}
+function guardarPreferenciasDemandas() {
+  const chave = chavePreferenciasDemandas(); if (!chave || preferenciasDemandasUsuario !== chave) return;
+  const painel = document.getElementById('painel-demandas');
+  try { localStorage.setItem(chave, JSON.stringify({visao:visaoRapidaDemandas, busca:buscaClienteDemandas, cliente:clienteDemandasExato,
+    status:currentDemandaStatusFilter, pessoa:String(currentDemandaPersonFilter), tipo:currentDemandaTipoFilter, atrasadas:currentDemandaAtrasadas,
+    data:currentDemandaDateMode, dia:currentDemandaDayFilter, ordem:ORDEM, carteira:filtroCarteira, calendario:agendaDeDemandasAberta,
+    id:painel?.classList.contains('dem-mostrar-id'), cadastro:painel?.classList.contains('dem-mostrar-cadastro')})); } catch { /* armazenamento indisponível não bloqueia o trabalho */ }
+}
+function pintarVisoesDemandas() {
+  const alvo = document.getElementById('dem-visoes'); if (!alvo) return;
+  alvo.innerHTML = Object.entries(VISOES_DEMANDAS).map(([id,nome]) => `<button type="button" aria-pressed="${visaoRapidaDemandas===id}" onclick="escolherVisaoDemanda('${id}')">${nome}<span>${DADOS_DEMANDAS.filter(itemNaCarteira).filter(d=>pertenceVisaoDemanda(d,id)).length}</span></button>`).join('');
+}
+
 function buscarClienteDemandas(valor) { buscaClienteDemandas=valor; clienteDemandasExato=''; renderDemandas(); }
 function escolherClienteDemandas(nome) {
   const mesmo = clienteDemandasExato && clienteDemandasExato === nome;
@@ -208,6 +276,8 @@ function switchBoard(board, btn) {
     return;
   }
   if (activeBoard === board) return;
+  if (activeBoard === 'demandas' && board !== 'demandas') guardarPreferenciasDemandas();
+  if (activeBoard !== 'demandas' && board === 'demandas') preferenciasDemandasUsuario = null;
   activeBoard = board;
   if(board==='demandas') { gruposDeDemandasAberto=true; agendaDeDemandasAberta=false; gruposDemandasRecolhidos.clear(); }
   document.querySelectorAll('.board-switch-btn').forEach(b => b.classList.remove('active'));
@@ -667,6 +737,7 @@ function renderDemandaKPIs() {
 }
 
 function focarAtrasadas() {
+  if (visaoRapidaDemandas === 'concluidas') visaoRapidaDemandas = 'abertas';
   currentDemandaAtrasadas = !currentDemandaAtrasadas;
   // Atrasada e sobre o prazo, entao a coluna de data tem de ser a do prazo:
   // filtrar por atraso e continuar lendo a data de conclusao esconde o motivo.
@@ -677,6 +748,8 @@ function focarAtrasadas() {
   renderDemandas();
 }
 function focarStatus(status) {
+  if (DEMANDA_CONCLUIDA.includes(status)) visaoRapidaDemandas = 'concluidas';
+  else if (visaoRapidaDemandas === 'concluidas') visaoRapidaDemandas = 'abertas';
   currentDemandaStatusFilter = currentDemandaStatusFilter === status ? 'all' : status;
   document.querySelectorAll('#demanda-status-legend .pill').forEach((p) => {
     p.classList.toggle('active-legend',
@@ -939,7 +1012,7 @@ function pintarTiposDeDemanda() {
 // semCliente: a mesma conta sem o filtro de cliente — é o que cada botão de
 // cliente mostra ("quantas teria se eu escolhesse este").
 function filtrarDemandasBase({ semCliente = false } = {}) {
-  let fi = DADOS_DEMANDAS.filter(itemNaCarteira);
+  let fi = DADOS_DEMANDAS.filter(itemNaCarteira).filter(d=>pertenceVisaoDemanda(d));
   const busca=buscaClienteDemandas.trim().toLocaleLowerCase('pt-BR');
   const exato=clienteDemandasExato.toLocaleLowerCase('pt-BR');
   if(!semCliente && exato) fi=fi.filter(d=>clientesDoItem(d).some(n=>n.toLocaleLowerCase('pt-BR')===exato));
@@ -980,6 +1053,7 @@ function pintarResumoDeFiltros(quantos) {
   const chip = (rotulo, limpar) => `<button type="button" class="resumo-chip" onclick="${limpar}"
     title="Tirar este filtro">${safeText(rotulo)}<i aria-hidden="true">✕</i></button>`;
   const ativos = [];
+  if (visaoRapidaDemandas !== 'todas') ativos.push(chip(VISOES_DEMANDAS[visaoRapidaDemandas], "escolherVisaoDemanda('todas')"));
   if (filtroCarteira !== 'all') ativos.push(chip('Carteira: ' + (filtroCarteira === 'vinicius' ? 'Vinícius' : 'Ewerton'), "definirFiltroCarteira('all')"));
   if(buscaClienteDemandas.trim()) ativos.push(chip((clienteDemandasExato ? 'Cliente: ' : 'Busca: ')+buscaClienteDemandas, "document.getElementById('busca-cliente-demandas').value='';buscarClienteDemandas('')"));
   if (currentDemandaAtrasadas) ativos.push(chip('atrasadas', 'focarAtrasadas()'));
@@ -1040,6 +1114,10 @@ function pintarClientesDeDemandas() {
 }
 
 function renderDemandas() {
+  restaurarPreferenciasDemandas();
+  pintarVisoesDemandas();
+  document.querySelectorAll('#date-mode-bar-demandas .date-mode-btn').forEach(el=>el.classList.toggle('active', el.id === 'btn-dmode-' + currentDemandaDateMode));
+  guardarPreferenciasDemandas();
   pintarFiltroCarteira();
   // A moldura da tela (numeros do topo, filtro de equipe, lista de dias) era
   // pintada SO por refreshDemandas. E o switchBoard so chama refreshDemandas

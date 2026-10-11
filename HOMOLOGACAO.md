@@ -231,3 +231,14 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 286 testes aprovados e build concluído. `git diff --check` aprovado.
 - Demonstração local: desktop e viewport 390×844; busca por título, estado sem opções, Escape, seleção com barra de lote, exibição de ID e abertura de cadastro no grupo A Fazer conferidos. Console sem erros capturados.
 - Sem escrita em produção ou alteração de schema. Persistência não foi revalidada por esta tarefa visual. Ainda não publicado.
+
+## 10/10/2026 — Produtividade em Demandas (local)
+
+- Branch `codex/demandas-produtividade`, base `cf10340`.
+- Visões rápidas: Em aberto, Minha fila, Atrasadas, Sem responsável, Concluídas e Todas. A classificação reutiliza a regra existente de conclusão, sem mover dados.
+- Preferências por usuário no navegador: visão, filtros, busca, colunas, ordenação e calendário. Não há sincronização de preferências entre dispositivos.
+- Lote: confirmação com quantidade, proteção contra duplo envio no executor compartilhado e relação completa de falhas. Datas também identificam cada atividade recusada.
+- Resumo rápido de demandas reutiliza briefing e material bruto da resposta de detalhes, na consulta que já carregava subdemandas; falha de leitura fica explícita.
+- `npm run check`: 289 testes aprovados e build. Regressões para visões combinadas, recuperação/isolamento de preferências, JSON inválido e envio repetido/falhas parciais. `git diff --check` aprovado.
+- Navegador local: visão de concluídas, estado vazio de Minha fila, busca e ID recuperados após reload, resumo com briefing, desktop e celular 390×844; console sem erros capturados.
+- Sem escrita em produção; nenhum schema ou endpoint novo. Ainda não publicado.

@@ -56,3 +56,34 @@ test('busca de demandas encontra título ou cliente e mantém seleção exata',(
  vm.runInContext("clienteDemandasExato='Briefing'",c);
  assert.deepEqual(ids(c.filtrarDemandasBase()),[]);
 });
+
+test('visões de demandas separam concluídas e combinam dono, carteira e cliente',()=>{
+ const c=contexto(); c.pessoaLogada=()=>({id:'7'});
+ c.itens[0].responsavel_ids=['7'];c.itens[1].responsavel_id=8;
+ vm.runInContext("visaoRapidaDemandas='abertas'",c);
+ assert.equal(c.filtrarDemandasBase().length,4);
+ vm.runInContext("visaoRapidaDemandas='minha'",c);
+ assert.deepEqual(ids(c.filtrarDemandasBase()),['v']);
+ vm.runInContext("visaoRapidaDemandas='sem'",c);
+ assert.deepEqual(ids(c.filtrarDemandasBase()),['ambas','sem']);
+ vm.runInContext("visaoRapidaDemandas='concluidas';clienteDemandasExato='VOA'",c);
+ assert.deepEqual(ids(c.filtrarDemandasBase()),['final']);
+ c.pessoaLogada=()=>null;vm.runInContext("visaoRapidaDemandas='minha'",c);
+ assert.deepEqual(ids(c.filtrarDemandasBase()),[]);
+});
+
+test('preferências por usuário recuperam filtros e ignoram JSON inválido',()=>{
+ const c=contexto(), salvos=new Map(); c.pessoaLogada=()=>({id:'7'});
+ c.localStorage={getItem:k=>salvos.get(k),setItem:(k,v)=>salvos.set(k,v)};
+ c.CAMPOS_ORDENAVEIS={nome:{}};c.ORDEM={campo:'nome',desc:true};
+ c.gruposDeDemandasAberto=true;c.agendaDeDemandasAberta=false;
+ c.restaurarPreferenciasDemandas();
+ assert.equal(vm.runInContext('visaoRapidaDemandas',c),'abertas');
+ vm.runInContext("buscaClienteDemandas='Teste';visaoRapidaDemandas='sem'",c);
+ c.guardarPreferenciasDemandas();
+ assert.equal(JSON.parse(salvos.get('vybe_demandas_preferencias:7')).busca,'Teste');
+ vm.runInContext("preferenciasDemandasUsuario=null;buscaClienteDemandas=''",c);
+ c.restaurarPreferenciasDemandas();assert.equal(vm.runInContext('buscaClienteDemandas',c),'Teste');
+ c.pessoaLogada=()=>({id:'8'});salvos.set('vybe_demandas_preferencias:8','{ruim');
+ c.restaurarPreferenciasDemandas();assert.equal(vm.runInContext('buscaClienteDemandas',c),'');
+});

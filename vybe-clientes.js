@@ -1771,6 +1771,8 @@ function filterDemandaByStatusLegend(status, pill) {
     document.querySelectorAll('#demanda-status-legend .pill').forEach(p => p.classList.remove('active-legend'));
   } else {
     currentDemandaStatusFilter = status;
+    if (DEMANDA_CONCLUIDA.includes(status)) visaoRapidaDemandas = 'concluidas';
+    else if (visaoRapidaDemandas === 'concluidas') visaoRapidaDemandas = 'abertas';
     document.querySelectorAll('#demanda-status-legend .pill').forEach(p => p.classList.remove('active-legend'));
     pill.classList.add('active-legend');
   }
@@ -1787,6 +1789,7 @@ function filterDemandaByPerson(personId, wrap) {
 }
 
 function clearDemandaFilters() {
+  visaoRapidaDemandas = 'todas';
   filtroCarteira = 'all';
   pintarFiltroCarteira();
   buscaClienteDemandas='';

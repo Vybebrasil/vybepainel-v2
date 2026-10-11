@@ -60,3 +60,14 @@ test('lote de demandas usa catálogo próprio e aplica o estado devolvido pelo s
  assert.deepEqual(items.map(i=>i.status),['Feito','Feito','A Fazer']);
  assert.equal(efeitos.length,2);assert.deepEqual(efeitos[0][1].responsavel_ids,[]);
 });
+
+test('duplo envio não duplica lote e o resultado identifica todas as falhas',async()=>{
+ const {c}=contexto(); let liberar;let n=0;const perguntas=[];
+ c.perguntarNoPainel=async p=>{perguntas.push(p);return true;};
+ const primeiro=c.aplicarEmLote('status',async()=>{n++; if(n===1)await new Promise(r=>liberar=r);throw Error('recusado');});
+ await new Promise(r=>setImmediate(r));
+ await c.aplicarEmLote('status',async()=>n++);assert.equal(n,1);
+ liberar();await primeiro;assert.equal(n,2);
+ assert.match(perguntas.at(-1).texto,/\(1\).*\(2\)/);
+ assert.equal(c.aplicarEmLote.emAndamento,false);
+});
