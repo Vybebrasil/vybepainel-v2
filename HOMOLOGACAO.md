@@ -242,3 +242,11 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 289 testes aprovados e build. Regressões para visões combinadas, recuperação/isolamento de preferências, JSON inválido e envio repetido/falhas parciais. `git diff --check` aprovado.
 - Navegador local: visão de concluídas, estado vazio de Minha fila, busca e ID recuperados após reload, resumo com briefing, desktop e celular 390×844; console sem erros capturados.
 - Sem escrita em produção; nenhum schema ou endpoint novo. Ainda não publicado.
+
+## 12/10/2026 — Pendências nas atividades do dia
+
+- Branch `codex/pendencias-diarias`, base `ad46ef5`; deployment anterior `dpl_FwLe3H2d1zYMLEYH1beNaJT3d5yQ`.
+- Subaba Pendências em cada dia do Gestor: solicitações abertas anteriores à data do cartão ou sem data, respeitando carteira, pessoas e status. Contagens e progresso do dia não incluem pendências; datas originais preservadas.
+- `npm run check`: 291 testes aprovados e build. Regressões para mudança de ano, deduplicação, conclusão e filtros. `git diff --check` aprovado.
+- Demo local: pendência do dia 12 exibida no dia 13 vazio; desktop 1440×900, celular 390×844, teclado e console sem erros. Sem testes de escrita em produção; ações reutilizam o fluxo existente.
+- Publicação autorizada. CI executará instalação limpa e checks do commit exato antes da integração. Sem migração ou mudança de ambiente; recuperação do banco e fluxos não afetados não foram revalidados nesta mudança.

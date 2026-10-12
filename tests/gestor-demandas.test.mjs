@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 function contexto(){
  const c=vm.createContext({Date,Set,console,panelMode:'gestor',BOARD_ID:1,dateMode:'veiculacao',
+  selectedPersonIds:new Set(),
   DADOS:[{id:'c1',semana:1,veiculacao_iso:'2026-09-09'}],
   DADOS_DEMANDAS:[{id:'d1',tipo:'Reunião',conclusao_iso:'2026-09-09',prazo_iso:'2026-09-08'},
     {id:'d2',tipo:'Identidade visual',prazo_iso:'2026-09-09'},
@@ -26,4 +27,25 @@ test('progresso usa os estados finais próprios das solicitações',()=>{
  const c=contexto();assert.equal(c.atividadeDoDiaConcluida({origem:'solicitacao',status:'Feito'}),true);
  assert.equal(c.atividadeDoDiaConcluida({origem:'solicitacao',status:'A Fazer'}),false);
  assert.equal(c.atividadeDoDiaConcluida({status:'Agendado'}),true);
+});
+
+test('pendências atravessam meses, excluem concluídas e o próprio dia e preservam datas',()=>{
+ const c=contexto();
+ c.DADOS_DEMANDAS=[{id:'antiga',prazo_iso:'2025-12-31'}, {id:'sem'},
+ {id:'hoje',prazo_iso:'2026-01-02'}, {id:'futura',prazo_iso:'2026-01-03'},
+ {id:'feita',prazo_iso:'2025-12-30',status:'Feito'}, {id:'antiga',prazo_iso:'2025-12-31'}];
+ const antes=JSON.stringify(c.DADOS_DEMANDAS);
+ assert.deepEqual(Array.from(c.pendenciasSolicitacoesDoDia('2026-01-02',''),d=>d.id),['antiga','sem']);
+ assert.equal(JSON.stringify(c.DADOS_DEMANDAS),antes);
+});
+test('pendências respeitam o modo de data, carteira, pessoas e status',()=>{
+ const c=contexto();
+ c.DADOS_DEMANDAS=[{id:'a',prazo_iso:'2026-09-01',conclusao_iso:'2026-09-15',status:'A Fazer'},
+ {id:'b',prazo_iso:'2026-09-01',status:'Em execução'}, {id:'c',prazo_iso:'2026-09-01',status:'A Fazer'}];
+ vm.runInContext("itemNaCarteira=d=>d.id!=='c';itemMatchesSelectedPeople=d=>d.id==='a'",c);
+ c.selectedPersonIds.add('p');
+ assert.equal(c.pendenciasSolicitacoesDoDia('2026-09-09','').length,0);
+ c.dateMode='prazo';
+ assert.deepEqual(Array.from(c.pendenciasSolicitacoesDoDia('2026-09-09','status:A Fazer'),d=>d.id),['a']);
+ assert.equal(c.pendenciasSolicitacoesDoDia('2026-09-09','status:Em execução').length,0);
 });

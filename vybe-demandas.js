@@ -605,18 +605,23 @@ function renderIntegratedOperationalViews() {
   }
 }
 let unifiedDemandasLoading=false;
+let unifiedDemandasState='idle';
 async function ensureDemandasForOperationalViews(force=false) {
   if(unifiedDemandasLoading || (!force && DADOS_DEMANDAS.length)) { renderIntegratedOperationalViews(); return; }
   unifiedDemandasLoading=true;
+  unifiedDemandasState='loading';
   try {
     const rawItems=await fetchAllDemandas();
     DADOS_DEMANDAS=processDemandas(rawItems);
+    unifiedDemandasState='ready';
     syncStatusLegendColors('#demanda-status-legend',DADOS_DEMANDAS);
     renderIntegratedOperationalViews();
     // Se a tela de Demandas ja estiver aberta, ela tem de acompanhar: era comum
     // o dado chegar por aqui e a tela continuar vazia ate alguem trocar de aba.
     if (typeof activeBoard !== 'undefined' && activeBoard === 'demandas') renderDemandas();
   } catch(error) {
+    unifiedDemandasState='error';
+    renderIntegratedOperationalViews();
     console.warn('Solicitações indisponíveis para os módulos integrados:',error);
   } finally { unifiedDemandasLoading=false; }
 }
@@ -633,6 +638,7 @@ async function refreshDemandas() {
   try {
     const rawItems = await fetchAllDemandas();
     DADOS_DEMANDAS = processDemandas(rawItems);
+    unifiedDemandasState='ready';
     syncStatusLegendColors('#demanda-status-legend', DADOS_DEMANDAS);
     renderDemandas();
     renderIntegratedOperationalViews();

@@ -681,24 +681,14 @@ function adicionarDemandaNoDia(dateIso) {
   openCadastrosGoverned({ veic, prazo, escolherQuadro: true });
 }
 
-function renderByDay(sem, filter, dayFilter) {
-  const items = itensDaSemanaGestor(sem);
-  // No modo PRAZO, construir lista de dias a partir dos prazos dos itens desta semana
-  let dias;
-  if (dateMode === 'prazo') {
-    const labels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-    const isoSet = [...new Set(items.map(d=>d.prazo_iso).filter(Boolean))].sort();
-    dias = isoSet.map(iso => {
-      const dt = new Date(iso+'T12:00:00');
-      return { iso, label: labels[dt.getDay()], num: String(dt.getDate()).padStart(2,'0'), hoje: iso === HOJE_ISO };
-    });
-  } else {
-    dias = getDiasSemana(sem);
-  }
-  const grid = document.getElementById(`grid-s${sem}`);
-  if (!grid) return;
-  // Aplicar filtros
-  let fi = [...items];
+const abasPendenciasDia = new Map();
+function selecionarAbaDoDia(sem, iso, pendencias) {
+  abasPendenciasDia.set(iso, pendencias);
+  renderByDay(sem, currentFilter, currentDayFilter);
+  document.querySelector(`#grid-s${sem} [data-date="${iso}"] .day-pending-tabs button[aria-pressed="true"]`)?.focus({preventScroll:true});
+}
+function filtrarItensDoDia(items, filter) {
+  let fi = items.filter(itemNaCarteira);
   if (selectedPersonIds.size) {
     fi = fi.filter(itemMatchesSelectedPeople);
   }
@@ -709,6 +699,37 @@ function renderByDay(sem, filter, dayFilter) {
   else if(filter==='edicao')  fi = fi.filter(d=>isEdicao(d.responsavel));
   else if(filter==='status:pending_all') fi = fi.filter(d=>!atividadeDoDiaConcluida(d));
   else if(filter&&filter.startsWith('status:')) fi = fi.filter(d=>d.status===filter.replace('status:',''));
+  return fi;
+}
+function pendenciasSolicitacoesDoDia(iso, filter) {
+  const vistos = new Set();
+  return filtrarItensDoDia((DADOS_DEMANDAS || []).map(normalizeRequestForOperational), filter)
+    .filter(d => {
+      const data = getDateIso(d);
+      const chave = String(d.id);
+      if (vistos.has(chave) || atividadeDoDiaConcluida(d) || (data && data >= iso)) return false;
+      vistos.add(chave);
+      return true;
+    }).sort((a,b) => (getDateIso(a) || '9999').localeCompare(getDateIso(b) || '9999'));
+}
+
+function renderByDay(sem, filter, dayFilter) {
+  const items = itensDaSemanaGestor(sem);
+  // No modo PRAZO, construir lista de dias a partir dos prazos dos itens desta semana
+  let dias;
+  if (dateMode === 'prazo') {
+    const labels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const isoSet = [...new Set([...getDiasSemana(sem).map(d=>d.iso), ...items.map(d=>d.prazo_iso).filter(Boolean)])].sort();
+    dias = isoSet.map(iso => {
+      const dt = new Date(iso+'T12:00:00');
+      return { iso, label: labels[dt.getDay()], num: String(dt.getDate()).padStart(2,'0'), hoje: iso === HOJE_ISO };
+    });
+  } else {
+    dias = getDiasSemana(sem);
+  }
+  const grid = document.getElementById(`grid-s${sem}`);
+  if (!grid) return;
+  const fi = filtrarItensDoDia(items, filter);
   const diasFiltrados = dayFilter ? dias.filter(d=>d.iso===dayFilter) : dias;
   // A ordem que o olho ve nesta tela, na sequencia em que os dias aparecem: e
   // ela que o shift+clique usa para marcar um intervalo.
@@ -731,7 +752,11 @@ function renderByDay(sem, filter, dayFilter) {
     // sumir vira defeito: nao havia como levar uma peca para a quarta-feira se a
     // quarta nao tinha nada. O dia vazio aparece rasteiro, so com a data e o
     // convite, e some de novo assim que a semana e filtrada por um unico dia.
-    if(dayItems.length === 0) {
+    const pendencias = panelMode === 'gestor' ? pendenciasSolicitacoesDoDia(dia.iso, filter) : [];
+    const estadoPendencias = typeof unifiedDemandasState === 'undefined' ? 'ready' : unifiedDemandasState;
+    const avisoPendencias = estadoPendencias === 'error' ? 'Não foi possível atualizar as solicitações. Os dados exibidos podem estar desatualizados.' : (estadoPendencias !== 'ready' && !DADOS_DEMANDAS.length ? 'Carregando solicitações…' : '');
+    const mostrarPendencias = panelMode === 'gestor' && abasPendenciasDia.get(dia.iso) === true;
+    if(dayItems.length === 0 && panelMode !== 'gestor') {
       return `<div class="client-card dia-solta dia-vazio" style="margin-bottom:12px;" data-date="${dia.iso}"
         ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)"
         ondrop="soltarNoDia('${dia.iso}',event,this)">
@@ -742,11 +767,12 @@ function renderByDay(sem, filter, dayFilter) {
       </div>`;
     }
     const dayDone = dayItems.filter(d=>atividadeDoDiaConcluida(d)).length;
-    const dayPct = Math.round(dayDone / dayItems.length * 100);
+    const dayPct = (dayItems.length ? Math.round(dayDone / dayItems.length * 100) : 0);
     const conteudosDoDia=dayItems.filter(d=>!isRequestItem(d)).length;
     const demandasDoDia=dayItems.length-conteudosDoDia;
-    dayItems.forEach(d => ordemVisivel.push(String(d.id)));
-    const rows = dayItems.map(d=>{
+    const exibidos = mostrarPendencias ? pendencias : dayItems;
+    exibidos.forEach(d => { if (!ordemVisivel.includes(String(d.id))) ordemVisivel.push(String(d.id)); });
+    const rows = exibidos.map(d=>{
       const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
       const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
       const isPending = !atividadeDoDiaConcluida(d);
@@ -756,16 +782,16 @@ function renderByDay(sem, filter, dayFilter) {
       // passa o dia, nao. Reusa a MESMA maquina do calendario — mesmo
       // dragstart, mesmo drop, mesma gravacao — em vez de uma segunda
       // implementacao que amanha divergiria da primeira.
-      return `<div class="item-row${isPending?' urgent':''}${marcada?' marcada':''}" draggable="true"
+      return `<div class="item-row${mostrarPendencias?' day-pending-row':''}${isPending?' urgent':''}${marcada?' marcada':''}" draggable="true"
         ondragstart="managerCalendarDragStart('${isRequestItem(d)?'request':'content'}','${safeText(d.id)}',event)"
         ondragend="managerCalendarDragEnd()"
         title="Arraste para outro dia para mudar a veiculação">
         <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote">
-          <input type="checkbox" ${marcada?'checked':''} aria-label="Marcar ${safeText(d.nome||'')}"
-            onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
+          <input type="checkbox" ${marcada?'checked':''} data-day-item="${safeText(d.id)}" aria-label="Marcar ${safeText(d.nome||'')}"
+            onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,Array.from(this.closest('.item-list').querySelectorAll('[data-day-item]'),el=>el.dataset.dayItem))"></label>
         ${clientesDoItem(d).map(nome => tagClienteHtml(nome)).join('')}
         ${isRequestItem(d)?'<span class="dia-demanda-tag">Demanda</span>':''}${fmtHtml(d.formato)}
-        <button type="button" class="item-name item-workspace-link" style="flex:1;min-width:0;" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}</button>
+        <button type="button" class="item-name item-workspace-link" style="${mostrarPendencias?'':'flex:1;min-width:0;'}" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}${mostrarPendencias ? `<span class="day-pending-date">${getDateIso(d) ? 'Pendente de ' + getDateIso(d).split('-').reverse().join('/') : 'Sem data'}</span>` : ''}</button>
         ${managerStatusControl(d)}
         ${botaoDePreviaNaLinha(d)}
         ${quickDateTrigger(d,'manager-date-trigger')}
@@ -787,7 +813,12 @@ function renderByDay(sem, filter, dayFilter) {
         </div>
       </div>
       <div class="client-progress"><div class="client-progress-bar"><div class="client-progress-fill" style="width:${dayPct}%;background:${progressColor}"></div></div><span class="client-progress-text">${dayPct}%</span></div>
-      <div class="item-list">${rows}</div>
+      ${panelMode === 'gestor' ? `<div class="day-pending-tabs" role="group" aria-label="Atividades de ${dia.iso}">
+        <button type="button" aria-pressed="${!mostrarPendencias}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}',false)">Do dia <span>${dayItems.length}</span></button>
+        <button type="button" class="${pendencias.length?'has-pending':''}" aria-pressed="${mostrarPendencias}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}',true)">Pendências <span>${avisoPendencias ? '!' : pendencias.length}</span></button>
+      </div>` : ''}
+      ${mostrarPendencias ? `<p class="day-pending-note">Solicitações abertas anteriores a ${dia.iso.split('-').reverse().join('/')} ou sem data. As datas originais são preservadas.</p>` : ''}
+      <div class="item-list">${mostrarPendencias && avisoPendencias ? `<p class="day-pending-note" role="status">${avisoPendencias}<button type="button" class="day-summary-btn" onclick="ensureDemandasForOperationalViews(true)">Atualizar solicitações</button></p>` : ''}${rows || `<p class="day-pending-note">${mostrarPendencias ? (avisoPendencias ? '' : 'Nenhuma pendência nos filtros atuais.') : 'Nenhuma atividade neste dia. Adicione uma demanda ou arraste uma peça para cá.'}</p>`}</div>
     </div>`;
   }).join('');
   // O dock e o MESMO da visao de Grupos e agora mora no corpo da pagina, uma vez
