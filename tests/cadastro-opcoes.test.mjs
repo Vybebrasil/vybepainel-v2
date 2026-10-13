@@ -41,7 +41,7 @@ test('catálogo respeita quadro e opções desativadas; impede envio repetido',a
 });
 test('cliente salvo é selecionado e aparece sem precisar ter atividades',async()=>{
   const {c}=contexto('client',{gravarCadastroDeCliente:async()=>({cliente:{id:23,nome:'Novo cliente',ativo:true}})});
-  await c.window.fcSalvarNovaOpcao();assert.equal(c.state.client,'Novo cliente');
+  await c.window.fcSalvarNovaOpcao();assert.deepEqual([...c.state.clients],['Cliente A','Novo cliente']);
   const perfis=fs.readFileSync('vybe-perfis.js','utf8');c.DADOS=[];c.clientesDoItem=()=>[];
   vm.runInContext(perfis.slice(perfis.indexOf('function cadastrosClientOptions'),perfis.indexOf('function cadastrosAssigneeNames')),c);
   assert.deepEqual([...c.cadastrosClientOptions()],['Novo cliente']);

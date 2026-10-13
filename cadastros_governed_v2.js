@@ -371,7 +371,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
     // lista guarda so o que muda, e o resto continua valendo para o lote todo.
     itens: [{ titulo: '', veic: '', prazo: '', brief: '' }],
     title: '',
-    client: '',
+    client: '', clients: [],
     format: '',
     veic: '',
     prazo: '',
@@ -548,7 +548,8 @@ window.fcSalvarNovaOpcao = async function() {
       } else if (campo === 'manualCap') CATALOGO_CAPTACAO.push(o);
       else CATALOGO_OPCOES.push({ ...o, coluna_id: cfg.coluna });
     }
-    state[campo] = valor;
+    if (campo === 'client') { state.clients = [...new Set([...(state.clients || (state.client ? [state.client] : [])), valor])]; state.client = state.clients[0]; }
+    else state[campo] = valor;
     salvo = true;
   } catch (e) { erro(e.message || 'Não foi possível salvar. Tente novamente.'); }
   finally { fcEnviando = false; overlay.inert = false; overlay.removeAttribute('aria-busy'); }
@@ -667,7 +668,7 @@ function fcGrupoDoQuadro(grupo) {
      titleEl.textContent = n > 1
        ? `${formatText} - ${titleText}  +${n - 1}`
        : `${formatText} - ${titleText}`;
-     clientEl.textContent = state.client || 'Cliente não selecionado';
+     clientEl.textContent = (state.clients?.length ? state.clients.join(', ') : state.client) || 'Cliente não selecionado';
      
      const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
      const finalGroup = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
@@ -805,7 +806,7 @@ function fcGrupoDoQuadro(grupo) {
   async function fcCriarUm(item, dest, finalGroup, finalStatus, finalCap) {
      const normalized = `${state.format} - ${String(item.titulo).trim()}`;
      const values = {
-        lista_suspensa_mkmqnjbv: {labels:[state.client]},
+        lista_suspensa_mkmqnjbv: {labels:state.clients?.length ? state.clients : [state.client]},
         lista_suspensa0__1: {labels:[state.format]},
         lista_suspensa__1: {ids:[3]},
         data__1: {date:item.veic},
@@ -823,7 +824,7 @@ function fcGrupoDoQuadro(grupo) {
         let itemId = null;
         const pelaEscritaDupla = await tentarEscritaDupla({ id: '' }, {
            acao: 'criar', board: fcQuadro().id,
-           titulo: normalized, cliente: state.clienteNoBanco || state.client, formato: state.format,
+           titulo: normalized, cliente: state.clienteNoBanco || state.client, clientes: state.clientesNoBanco, formato: state.format,
            prazo: item.prazo, veiculacao: item.veic, status: chaveDeStatus(finalStatus),
            grupo_id: finalGroup, briefing: item.brief,
            // "Tipo de conteúdo" só existe em Produção, e lá "Post" (3) é o único
@@ -893,9 +894,10 @@ function fcGrupoDoQuadro(grupo) {
      if (typeof ensureClientMasterSources === 'function') {
        try { await ensureClientMasterSources(); } catch { /* segue com o nome da tela */ }
      }
-     state.clienteNoBanco = cadastroNomeNoBanco(state.client,
+     state.clientesNoBanco = (state.clients?.length ? state.clients : [state.client]).map(nome => cadastroNomeNoBanco(nome,
        typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : [],
-       typeof normalizarCliente === 'function' ? normalizarCliente : null);
+       typeof normalizarCliente === 'function' ? normalizarCliente : null));
+     state.clienteNoBanco = state.clientesNoBanco[0];
      const feitos = [];
      const falhas = [];
      const itensFalhos = [];
@@ -1020,7 +1022,7 @@ function fcGrupoDoQuadro(grupo) {
 
   function fcPergunta(p) {
     if (p === 'board')   return ['O que você vai cadastrar?', 'Os dois quadros têm etapas e status diferentes.'];
-    if (p === 'client')  return ['Para qual cliente?', ''];
+    if (p === 'client')  return ['Para quais clientes?', 'Selecione um ou mais clientes. A atividade será única e vinculada a todos.'];
     if (p === 'format')  return [`Qual ${fcQuadro().rotuloFormato.toLowerCase()}?`,
                                  'É isto que decide para qual etapa a peça vai.'];
     if (p === 'itens') {
@@ -1055,9 +1057,9 @@ function fcGrupoDoQuadro(grupo) {
       return `<input type="text" class="fc-busca" id="fc-busca-cliente" placeholder="Buscar cliente..."
           oninput="fcFiltrar('fc-lista-cliente', this.value)">
         <div class="fc-escolhas" id="fc-lista-cliente">${clientes.map((c) => `
-          <button type="button" class="fc-escolha ${state.client === c ? 'marcada' : ''}"
-            data-busca="${esc2(String(c).toLowerCase())}"
-            data-valor="${esc2(c)}" onclick="fcResponder('client', this.dataset.valor)">${esc2(c)}</button>`).join('')}</div>${fcAdicionarOpcaoHtml('client')}`;
+          <button type="button" class="fc-escolha ${(state.clients?.length ? state.clients : [state.client]).includes(c) ? 'marcada' : ''}"
+            aria-pressed="${(state.clients?.length ? state.clients : [state.client]).includes(c)}" data-busca="${esc2(String(c).toLowerCase())}"
+            data-valor="${esc2(c)}" onclick="fcAlternarCliente(this.dataset.valor)">${esc2(c)}</button>`).join('')}</div>${fcAdicionarOpcaoHtml('client')}`;
     }
     if (p === 'format') {
       const lista = fcListaCatalogo('format');
@@ -1453,7 +1455,7 @@ function fcGrupoDoQuadro(grupo) {
       previa = `${datas.length} ${state.board==='demandas'?'demandas':'conteúdos'} · ${fcDiaCurto(datas[0].veic)} até ${fcDiaCurto(datas[datas.length - 1].veic)}`;
     } catch (erro) { previa = e.inicio || e.quantidade ? erro.message : ''; }
     return `<div class="fc-escala">
-        <div><b>Criar em escala</b><br><small>${esc2(state.format || 'O formato')} para ${esc2(state.client || 'o cliente')}. Os cartões nascem com as datas; depois você cola título e briefing em cada um.</small></div>
+        <div><b>Criar em escala</b><br><small>${esc2(state.format || 'O formato')} para ${esc2(state.clients?.length ? state.clients.join(', ') : (state.client || 'o cliente'))}. Os cartões nascem com as datas; depois você cola título e briefing em cada um.</small></div>
         <div class="fc-escala-campos">
           <label>Quantidade<input type="number" class="fc-campo" min="1" max="${CADASTRO_ESCALA_MAX}" value="${esc2(e.quantidade || '')}"
             oninput="fcEscalaCampo('quantidade',this.value)" placeholder="Ex.: 10"></label>
@@ -1561,6 +1563,18 @@ function fcGrupoDoQuadro(grupo) {
     });
   };
 
+  window.fcAlternarCliente = function(valor) {
+    if (fcEnviando) return;
+    const selecionados = state.clients?.length ? state.clients : (state.client ? [state.client] : []);
+    state.clients = selecionados.includes(valor) ? selecionados.filter(c => c !== valor) : [...selecionados, valor];
+    state.client = state.clients[0] || '';
+    const busca = document.getElementById('fc-busca-cliente')?.value || '';
+    fcDesenharPasso();
+    const campo = document.getElementById('fc-busca-cliente');
+    if (campo) { campo.value = busca; fcFiltrar('fc-lista-cliente', busca); }
+    Array.from(document.querySelectorAll('#fc-lista-cliente [data-valor]')).find(b => b.dataset.valor === valor)?.focus();
+  };
+
   window.fcResponder = function(chave, valor) {
     fcHandleInput(chave, valor);
     fcAvancar();
@@ -1654,7 +1668,7 @@ function fcGrupoDoQuadro(grupo) {
     const existing = document.getElementById('fc-overlay');
     if(existing) existing.remove();
 
-    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', format: '', veic: '', prazo: '', brief: '', assignees: [], removidos: [], materialReady: false, materialBruto: '', briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
+    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', clients: [], format: '', veic: '', prazo: '', brief: '', assignees: [], removidos: [], materialReady: false, materialBruto: '', briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
     
     const inicio = (inicial && typeof inicial === 'object') ? inicial : {};
     if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;
@@ -1681,7 +1695,7 @@ function fcGrupoDoQuadro(grupo) {
     if (inicio.client) {
       const alvo = chaveCliente(inicio.client);
       const achado = alvo && listaDeClientes.find((c) => chaveCliente(c) === alvo);
-      if (achado) state.client = achado;
+      if (achado) { state.client = achado; state.clients = [achado]; }
     }
     if (inicio.veic) {
       state.itens[0].veic = inicio.veic;

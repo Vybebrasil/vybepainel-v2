@@ -85,3 +85,10 @@ test('falha na atualização não limpa os dados existentes', async () => {
   await assert.rejects(c.refreshData(),/sem rede/);
   assert.equal(c.DADOS_DEMANDAS,existentes);
 });
+
+test('envio conserva todos os clientes selecionados para cada cartão',async()=>{
+ const t=cadastro(async()=>({ok:true,id:'vybe:1'}),[{titulo:'Um'}]);
+ t.state.clients=['Cliente A','Cliente B'];t.state.client='Cliente A';
+ await t.enviar();
+ assert.deepEqual([...t.state.clientesNoBanco],['Cliente A','Cliente B']);
+});

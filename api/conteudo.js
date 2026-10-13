@@ -799,7 +799,10 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
            para: opcoes.map((o) => o.rotulo).join(', ') || null, replica_monday: replica, automacoes };
 }
 
-async function criarConteudo(sql, quem, dados) {
+export async function criarConteudo(sql, quem, dados) {
+  return sql.comTransacao(tx => criarConteudoNaTransacao(tx, quem, dados));
+}
+async function criarConteudoNaTransacao(sql, quem, dados) {
   const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing,
           tipo_conteudo = null, captacao = null, prioridade = null, responsaveis = [] } = dados;
   // O destino passa a ser escolhido por quem cadastra. Sem isto, tudo caía em
@@ -814,10 +817,13 @@ async function criarConteudo(sql, quem, dados) {
   // coisa e é dropdown.
   const grupo = grupo_id || C.grupoPadrao;
   const etapa = await grupoDoQuadro(sql, grupo, board);
-  if (!titulo || !cliente) throw new Error('Informe ao menos título e cliente.');
-
-  const cli = (await sql`SELECT id, nome FROM vybe_clientes WHERE LOWER(nome)=LOWER(${String(cliente)})`)[0];
-  if (!cli) throw new Error(`Cliente não cadastrado: ${cliente}`);
+  const nomesPedidos = dados.clientes === undefined ? [cliente] : dados.clientes;
+  if (!titulo || !Array.isArray(nomesPedidos) || !nomesPedidos.length || nomesPedidos.length > 100
+      || nomesPedidos.some(n => typeof n !== 'string' || !n.trim())) throw new Error('Informe título e ao menos um cliente válido.');
+  const nomes = [...new Set(nomesPedidos.map(n => n.trim().toLowerCase()))];
+  const clientes = await sql`SELECT id, nome FROM vybe_clientes WHERE LOWER(nome)=ANY(${nomes}::text[]) AND ativo FOR SHARE`;
+  if (clientes.length !== nomes.length) throw new Error('Há clientes inexistentes, inativos ou ambíguos. Atualize a lista.');
+  const clientesTexto = nomes.map(n => clientes.find(c => c.nome.toLowerCase() === n).nome).join(', ');
   // O status é procurado DENTRO do board: a chave é única por board, e 'feito'
   // existe nos dois com índices diferentes no Monday.
   const st = (await sql`SELECT chave, rotulo, monday_index FROM vybe_status
@@ -829,15 +835,15 @@ async function criarConteudo(sql, quem, dados) {
       WHERE board_id=${board} AND grupo_id=${grupo} FOR SHARE)
     INSERT INTO vybe_conteudos
       (board_id,titulo,formato,clientes_texto,status_chave,etapa,grupo_id,prazo,veiculacao,briefing,prioridade,status_em)
-    SELECT ${board},${titulo},${formato || null},${cli.nome},${st.chave},destino.titulo,${grupo},
+    SELECT ${board},${titulo},${formato || null},${clientesTexto},${st.chave},destino.titulo,${grupo},
       ${prazo || null},${veiculacao || null},${briefing || null},${prioridade || null},NOW() FROM destino RETURNING id`
     : sql`INSERT INTO vybe_conteudos
       (board_id,titulo,formato,clientes_texto,status_chave,etapa,grupo_id,prazo,veiculacao,briefing,prioridade,status_em)
-    VALUES (${board},${titulo},${formato || null},${cli.nome},${st.chave},${etapa},${grupo},
+    VALUES (${board},${titulo},${formato || null},${clientesTexto},${st.chave},${etapa},${grupo},
       ${prazo || null},${veiculacao || null},${briefing || null},${prioridade || null},NOW()) RETURNING id`;
   const [novo] = await inserir;
   if (!novo) throw new Error('O grupo foi removido durante o cadastro. Escolha outro grupo.');
-  await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id) VALUES (${novo.id}, ${cli.id})`;
+  await sql`INSERT INTO vybe_conteudo_clientes (conteudo_id, cliente_id) SELECT ${novo.id}, id FROM UNNEST(${clientes.map(c => String(c.id))}::bigint[]) AS id`;
 
   // O link do material bruto entra no cadastro porque e ali que ele existe: quem
   // registra a peca acabou de sair da captacao e tem a pasta aberta. Cobrar isso
@@ -893,7 +899,7 @@ async function criarConteudo(sql, quem, dados) {
   const replica = 'desativada';
   const mondayId = null;
   return {
-    conteudo_id: novo.id, titulo, cliente: cli.nome, board,
+    conteudo_id: novo.id, titulo, cliente: clientesTexto, clientes: clientes.map(c => c.nome), board,
     destino: demanda ? 'Solicitações de Demandas' : 'Produção de Conteúdo',
     item_id: mondayId || `vybe:${novo.id}`, monday_item_id: mondayId, replica_monday: replica,
   };
