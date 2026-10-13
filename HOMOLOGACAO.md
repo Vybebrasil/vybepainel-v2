@@ -250,3 +250,10 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - `npm run check`: 291 testes aprovados e build. Regressões para mudança de ano, deduplicação, conclusão e filtros. `git diff --check` aprovado.
 - Demo local: pendência do dia 12 exibida no dia 13 vazio; desktop 1440×900, celular 390×844, teclado e console sem erros. Sem testes de escrita em produção; ações reutilizam o fluxo existente.
 - Publicação autorizada. CI executará instalação limpa e checks do commit exato antes da integração. Sem migração ou mudança de ambiente; recuperação do banco e fluxos não afetados não foram revalidados nesta mudança.
+
+## 13/10/2026 — Vários clientes no cadastro (local)
+
+- Cadastro compartilhado de conteúdos e demandas permite marcar/desmarcar clientes sem avançar automaticamente. Prévia e criação em escala mostram todos; novo cliente é acrescentado à seleção existente.
+- API de criação aceita lista de nomes, mantém compatibilidade com o campo único, valida clientes ativos e deduplica. Criação, vínculos e histórico executam na mesma transação do banco; sem schema novo.
+- Testes isolados em PGlite confirmaram criação nos dois quadros, dois vínculos por atividade, rejeição de clientes inválidos/inativos, deduplicação, compatibilidade e rollback em falha no histórico. Testes de seleção, envio e novo cliente aprovados.
+- Verificação visual pendente: ferramenta de navegador expirou em três tentativas, incluindo consulta de disponibilidade. Não houve escrita em produção nem publicação.
