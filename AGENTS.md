@@ -62,6 +62,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 - A carteira visual usa `vybe_clientes.responsavel` (Vinícius/Ewerton/sem responsável).
   `CARTEIRAS_CLIENTES` é somente o padrão enquanto não houver escolha explícita.
   Carteira não substitui os heads vinculados nem os executores das atividades.
+  Ao salvar heads, Ewerton L. como único head define a carteira Ewerton (azul);
+  Vinícius sozinho define Vinícius (laranja). Vários heads, outro head ou nenhum
+  preservam a carteira. Salve vínculos e carteira na mesma transação.
 - Use transações nas alterações relacionadas; valide IDs, permissões e campos no
   servidor. Não confie em controles visuais como autorização.
 - O motor de automações executa em uma conexão transacional, com bloqueio da
