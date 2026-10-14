@@ -218,7 +218,7 @@ function renderClientMasterDetail(cli) {
     ? `<span class="cli-mais" title="${titulo}" onclick="${chamada}">+</span>`
     : '<span class="cli-vazio">—</span>';
   const campo = (rotulo, dentro, chamada, dica) => `<div class="client-master-detail-field${
-    chamada && podeMexer ? ' editavel' : ''}"${chamada && podeMexer ? ` title="${dica}" onclick="${chamada}"` : ''}>
+    chamada && podeMexer ? ' editavel' : ''}"${chamada && podeMexer ? ` role="button" tabindex="0" aria-label="Editar ${rotulo}" title="${dica}" onclick="${chamada}" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();this.click()}"` : ''}>
       <small>${rotulo}</small><b>${dentro}</b></div>`;
 
   const situacao = String(f.status || '').trim();
@@ -686,15 +686,18 @@ function pintarHeadsDoCliente() {
     const escolhida = HEADS_ESCOLHIDOS.has(String(p.id));
     const doTime = (typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS)
       .find((u) => String(u.id) === String(p.monday_user_id)) || pessoaPeloNome(p.nome);
-    return `<button type="button" class="dono-pessoa ${escolhida ? 'ativo' : ''}"
+    return `<button type="button" class="dono-pessoa ${escolhida ? 'selected' : ''}" aria-pressed="${escolhida}"
       onclick="escolherHeadDoCliente('${safeText(String(p.id))}')"
-      title="${safeText(p.nome)}">${ownerAvatarHtml(doTime)}<span>${safeText(firstName(p.nome))}</span></button>`;
+      title="${safeText(p.nome)}">${ownerAvatarHtml(doTime)}<span>${safeText(p.nome)}</span><span class="owner-editor-person-check" aria-hidden="true">${escolhida ? '✓' : ''}</span></button>`;
   }).join('');
 }
 function escolherHeadDoCliente(pessoaId) {
   const chave = String(pessoaId);
   if (HEADS_ESCOLHIDOS.has(chave)) HEADS_ESCOLHIDOS.delete(chave); else HEADS_ESCOLHIDOS.add(chave);
   pintarHeadsDoCliente();
+  document.querySelectorAll('#cli-heads-lista button').forEach(botao => {
+    if (botao.getAttribute('onclick') === `escolherHeadDoCliente('${chave}')`) botao.focus();
+  });
 }
 async function salvarHeadsDoCliente() {
   if (!HEADS_DO_CLIENTE) return;
@@ -1739,7 +1742,7 @@ function redesenharListasDoCliente() {
   const gridProd = document.getElementById('grid-cliente-producao');
   if (gridProd) {
     gridProd.innerHTML = conteudos.length
-      ? tabelaOperacionalHtml(conteudos, 'producao')
+      ? tabelaOperacionalHtml(conteudos, 'producao', { compacta: true })
       : '<div class="grupos-vazio">Nenhum conteúdo em aberto.</div>';
   }
 
@@ -1750,7 +1753,7 @@ function redesenharListasDoCliente() {
   const gridDem = document.getElementById('grid-cliente-demandas');
   if (gridDem) {
     gridDem.innerHTML = solicitacoes.length
-      ? tabelaOperacionalHtml(solicitacoes, 'demandas')
+      ? tabelaOperacionalHtml(solicitacoes, 'demandas', { compacta: true })
       : '<div class="grupos-vazio">Nenhuma solicitação em aberto.</div>';
   }
 }

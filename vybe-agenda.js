@@ -1861,7 +1861,8 @@ async function escolherValor(itemId, campo, chave) {
   applyOutboundItemPatch(itemId, { [campo]: rotulo }, campo);
 }
 
-function linhaDeGrupoHtml(item) {
+function linhaDeGrupoHtml(item, compacta = false) {
+  compacta = compacta === true;
   const parar = 'event.stopPropagation()';
   const marcada = SELECIONADAS.has(String(item.id));
   const data = (campo, iso, atrasado) =>
@@ -1874,23 +1875,23 @@ function linhaDeGrupoHtml(item) {
     <td class="grupo-marcar" onclick="${parar}">
       <input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(item.nome || '')}"
              onclick="${parar};alternarSelecao('${safeText(item.id)}',this.checked,event)"></td>
-    <td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
-        title="ID da atividade · clique para copiar">${safeText(item.id)}</td>
+    ${compacta ? '' : `<td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
+        title="ID da atividade · clique para copiar">${safeText(item.id)}</td>`}
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}${
       isRequestItem(item) && Number(item.tarefas) > 0
         ? `<span class="grupo-subs" title="${Number(item.tarefas_feitas) || 0} de ${Number(item.tarefas)} subdemandas feitas">${
             Number(item.tarefas_feitas) || 0}/${Number(item.tarefas)}</span>` : ''}</td>
     <td class="grupo-previa" onclick="${parar}">${botaoDePreviaNaLinha(item)}</td>
-    <td onclick="${parar}">${botaoClientesDoItem(item)}</td>
-    <td class="grupo-dono" onclick="${parar}">${ownerEditorTrigger(item)}</td>
-    <td onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
+    ${compacta ? '' : `<td onclick="${parar}">${botaoClientesDoItem(item)}</td>`}
+    <td class="grupo-dono" data-label="Responsável" onclick="${parar}">${ownerEditorTrigger(item)}</td>
+    <td data-label="Status" onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
       title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
     ${COLUNAS_DA_TABELA[quadroDoItem(item)]
-        .filter((c) => ['captacao','formato','tipo_conteudo','off_audio','prioridade'].includes(c))
+        .filter((c) => !compacta && ['captacao','formato','tipo_conteudo','off_audio','prioridade'].includes(c))
         .map(escolha).join('')}
-    <td>${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
-    <td>${data('veiculacao', item.veiculacao_iso, false)}</td>
-    ${(() => { const c = cadastroDaPeca(item); return `<td class="grupo-cadastro">${safeText(c.quem)}</td><td class="grupo-cadastro grupo-cadastro-data">${safeText(c.quando)}</td>`; })()}
+    <td data-label="Prazo">${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>
+    <td data-label="${isRequestItem(item) ? 'Conclusão' : 'Veiculação'}">${data('veiculacao', item.veiculacao_iso, false)}</td>
+    ${compacta ? '' : (() => { const c = cadastroDaPeca(item); return `<td class="grupo-cadastro">${safeText(c.quem)}</td><td class="grupo-cadastro grupo-cadastro-data">${safeText(c.quando)}</td>`; })()}
   </tr>`;
 }
 
@@ -2201,13 +2202,13 @@ function deckDeLoteHtml(quadro) {
 // falta de regra: era outra lista, escrita antes das regras existirem. Passando
 // pelas mesmas funcoes, tudo que valer para a tabela de grupos passa a valer
 // aqui sem ninguem precisar pedir de novo.
-function tabelaOperacionalHtml(itens, quadro) {
+function tabelaOperacionalHtml(itens, quadro, { compacta = false } = {}) {
   if (!itens.length) return '';
-  const colunas = COLUNAS_DA_TABELA[quadro] || COLUNAS_DA_TABELA.producao;
+  const colunas = compacta ? ['nome','previa','responsavel','status','prazo_iso','veiculacao_iso'] : COLUNAS_DA_TABELA[quadro] || COLUNAS_DA_TABELA.producao;
   return `<div class="grupo-tabela-rolagem"><table class="grupo-tabela"><thead><tr>
       <th class="grupo-marcar"></th>
       ${colunas.map((c) => cabecalhoOrdenavel(c, quadro)).join('')}</tr></thead>
-    <tbody>${ordenarItens(itens).map(linhaDeGrupoHtml).join('')}</tbody></table></div>`;
+    <tbody>${ordenarItens(itens).map(item => linhaDeGrupoHtml(item, compacta)).join('')}</tbody></table></div>`;
 }
 
 // 'forcar' existe para quem EMPRESTA a secao: no DA Controler ela e uma das tres

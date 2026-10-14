@@ -257,3 +257,15 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - API de criação aceita lista de nomes, mantém compatibilidade com o campo único, valida clientes ativos e deduplica. Criação, vínculos e histórico executam na mesma transação do banco; sem schema novo.
 - Testes isolados em PGlite confirmaram criação nos dois quadros, dois vínculos por atividade, rejeição de clientes inválidos/inativos, deduplicação, compatibilidade e rollback em falha no histórico. Testes de seleção, envio e novo cliente aprovados.
 - Verificação visual pendente: ferramenta de navegador expirou em três tentativas, incluindo consulta de disponibilidade. Não houve escrita em produção nem publicação.
+
+## 14/10/2026 — Ficha do cliente responsiva
+- Conteúdos e solicitações ocupam a largura da ficha com as colunas essenciais, usando a tabela e os editores existentes. Os demais campos seguem no resumo da atividade.
+- Abaixo de 760 px, as linhas viram blocos com rótulos para responsáveis, status, prazo e conclusão/veiculação.
+- Demonstração local conferida em 1280 px e 390 px: nenhuma rolagem horizontal nas duas listas; seleção abre o deck de lote e demanda abre o resumo. Console sem erros. Sem gravações em produção.
+- `npm run check` e `git diff --check` aprovados. Alteração local, ainda não publicada.
+
+## 14/10/2026 — Seleção de head
+- O seletor usava `ativo`, mas o estilo compartilhado reconhece `selected`: a seleção não era indicada. Corrigidos destaque, marca de seleção, `aria-pressed` e preservação de foco ao alternar.
+- Campos editáveis da ficha agora abrem por Enter/Espaço. Nomes completos distinguem pessoas com o mesmo primeiro nome.
+- Navegador local: abertura por teclado e alternância verificadas, sem erros no console. Teste isolado confirma IDs enviados ao salvar; não houve gravação em produção e a persistência real não foi revalidada.
+- `npm run check`, teste específico de seleção e `git diff --check` passaram. Ainda local.
