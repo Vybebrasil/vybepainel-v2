@@ -3164,6 +3164,8 @@ button.subitem-marca:hover{transform:scale(1.35)}
 .cli-historia-linha i{margin-left:auto;font-style:normal;color:#6f7887;font-size:10px}
 /* Head e pessoa: bolinha com foto, como no resto do painel. */
 .cli-heads{display:inline-flex;align-items:center}
+#cli-heads-lista{display:grid;gap:6px;padding:16px 4px 8px}
+#cli-heads-lista .dono-pessoa{min-height:44px}
 .cli-heads img,.cli-heads .owner-avatar-fallback{width:22px;height:22px;border-width:2px}
 /* Celula que edita no lugar: so se anuncia quando o cursor chega nela. */
 .cli-editavel{cursor:text}
@@ -3337,8 +3339,31 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 /* Numero que leva a algum lugar diz isso antes de ser clicado. */
 .kpi-card.clicavel{cursor:pointer}
 .kpi-card.clicavel:hover{border-color:color-mix(in srgb,var(--accent,#ff6b00) 50%,transparent)}
-/* Conteudo e solicitacoes do cliente, lado a lado. */
-.cliente-listas{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px;align-items:start}
+/* A ficha usa a tabela compartilhada com as colunas essenciais; detalhes abrem na atividade. */
+.cliente-listas{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
+.cliente-listas .grupo-tabela{width:100%;min-width:0;table-layout:fixed}
+.cliente-listas .grupo-tabela-rolagem{overflow:visible;border:1px solid var(--vybe-line);border-radius:16px;background:rgba(255,255,255,.025)}
+.cliente-listas .grupo-tabela th,.cliente-listas .grupo-tabela td{min-width:0;white-space:normal;overflow-wrap:anywhere}
+.cliente-listas .grupo-tabela th:first-child{width:36px}
+.cliente-listas .grupo-tabela th:nth-child(2){width:32%}
+.cliente-listas .grupo-tabela th:nth-child(3){width:60px}
+.cliente-listas .grupo-nome{max-width:none;white-space:normal;line-height:1.5}
+.cliente-listas .grupo-data-campo{width:100%;min-width:0;box-sizing:border-box}
+.cliente-listas .grupo-pill-btn .pill{white-space:normal}
+@media(max-width:760px){
+  .cliente-listas .grupo-tabela thead{display:none}
+  .cliente-listas .grupo-tabela,.cliente-listas .grupo-tabela tbody{display:block}
+  .cliente-listas .grupo-tabela tr{display:grid;grid-template-columns:32px minmax(0,1fr) minmax(0,1fr);padding:14px;gap:12px 8px;border-bottom:1px solid var(--vybe-line)}
+  .cliente-listas .grupo-tabela td{display:block;padding:0;border:0;max-width:none}
+  .cliente-listas .grupo-nome{grid-column:2/-1;grid-row:1;font-size:14px}
+  .cliente-listas .grupo-marcar{grid-column:1;grid-row:1}
+  .cliente-listas .grupo-previa{grid-column:1;grid-row:2}
+  .cliente-listas .grupo-dono{grid-column:2;grid-row:2}
+  .cliente-listas td[data-label="Status"]{grid-column:3;grid-row:2}
+  .cliente-listas td[data-label="Prazo"]{grid-column:2}
+  .cliente-listas td:last-child{grid-column:3}
+  .cliente-listas td[data-label]:before{content:attr(data-label);display:block;margin-bottom:6px;color:var(--vybe-muted);font-size:11px}
+}
 .cliente-listas>section{min-width:0}
 /* Tipo de demanda: mesma familia das etiquetas de status, com a conta ao lado.
    "Sem tipo" nao e uma etiqueta — e a ausencia delas —, entao nao ganha cor de
