@@ -3,6 +3,7 @@ import { resolverMaterialBruto } from '../server/material-bruto.js';
 import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.js';
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
+import { salvarHeadsCliente } from '../server/clientes-heads.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
 // Roteador, e não um arquivo por assunto, por um motivo concreto: o plano da
@@ -880,14 +881,12 @@ async function areaClientes(req, res, quem) {
     // ordem em que a pessoa escolheu.
     if (acao === 'heads') {
       const { pessoas } = req.body || {};
-      if (!id || !Array.isArray(pessoas)) return res.status(400).json({ error: 'Informe o cliente e as pessoas.' });
-      const ids = pessoas.map((p) => Number(p)).filter((n) => Number.isFinite(n) && n > 0);
-      await db`DELETE FROM vybe_cliente_pessoas WHERE cliente_id = ${Number(id)}`;
-      for (let i = 0; i < ids.length; i += 1) {
-        await db`INSERT INTO vybe_cliente_pessoas (cliente_id, pessoa_id, ordem)
-          VALUES (${Number(id)}, ${ids[i]}, ${i}) ON CONFLICT DO NOTHING`;
+      try {
+        return res.status(200).json(await salvarHeadsCliente(db, id, pessoas));
+      } catch (erro) {
+        if (erro.status) return res.status(erro.status).json({ error: erro.message });
+        throw erro;
       }
-      return res.status(200).json({ ok: true, pessoas: ids });
     }
 
     // Segmento e etiqueta compartilhada: renomear em um cliente so criaria um

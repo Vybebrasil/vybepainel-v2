@@ -668,6 +668,8 @@ function abrirHeadsDoCliente(event, nome) {
     <h2 class="workflow-title">Head de ${safeText(nome)}</h2>
     <p class="workflow-copy">Clique para somar ou tirar. Vale mais de uma pessoa; a ordem do clique
       é a ordem que aparece na lista.</p>
+    <p class="workflow-copy">Ewerton L. como único head define a carteira azul; Vinícius define a laranja.
+      Com vários heads ou outra pessoa, a carteira atual é mantida.</p>
     <div id="cli-heads-lista" class="dono-pessoas"></div>
     <div class="workflow-actions">
       <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>

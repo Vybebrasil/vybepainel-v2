@@ -269,3 +269,9 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Campos editáveis da ficha agora abrem por Enter/Espaço. Nomes completos distinguem pessoas com o mesmo primeiro nome.
 - Navegador local: abertura por teclado e alternância verificadas, sem erros no console. Teste isolado confirma IDs enviados ao salvar; não houve gravação em produção e a persistência real não foi revalidada.
 - `npm run check`, teste específico de seleção e `git diff --check` passaram. Ainda local.
+
+## 14/10/2026 — Carteira sincronizada com head único
+- Head único Ewerton L. define carteira azul; Vinícius define laranja. Múltiplos heads, outras pessoas e lista vazia preservam a carteira. IDs legados evitam confusão entre homônimos.
+- Vínculos e carteira gravados na mesma transação, com bloqueio do cliente, validação e rollback.
+- 296 testes, build e diff aprovados. PGlite cobriu persistência, ordem, duplicados, IDs inválidos, inativos, rollback e migração idempotente dos cadastros antigos.
+- Seletor conferido na demonstração local, explicação visível e console sem erros. Migração de produção pendente da publicação.
