@@ -53,7 +53,7 @@ test('pendências respeitam o modo de data, carteira, pessoas e status',()=>{
 test('abas separam redes, entregas e pendências sem duplicar clientes nem misturar progresso',()=>{
  const c=contexto();
  const itens=[{id:'c1',clientes:['A','B'],status:'Finalizado'}, {id:'c2',status:'A Fazer'},
- {id:'d1',origem:'solicitacao',status:'Feito'}, {id:'d2',origem:'solicitacao',status:'Em execução'}];
+ {id:'d1',origem:'solicitacao',status:'Finalizado'}, {id:'d2',origem:'solicitacao',status:'Em execução'}];
  const pendencias=[{id:'d0',origem:'solicitacao',status:'A Fazer'}];
  const redes=c.listasDoCartaoDia(itens,pendencias,'social');
  assert.deepEqual(Array.from(redes.lista,i=>i.id),['c1','c2']);
@@ -77,4 +77,27 @@ test('status da lista diária não gera cronômetro quando solicitado',()=>{
  vm.runInContext("pillHtml=()=>'<span>A Fazer</span>';safeText=v=>String(v)",c);
  const html=c.managerStatusControl({id:'c1',nome:'Atividade',status:'A Fazer',status_updated_at:'2026-10-15T08:00:00Z'},{comTempo:false});
  assert.match(html,/openStatusEditor/);assert.doesNotMatch(html,/live-timer|00:00:00/);
+});
+
+test('trocar aba preserva posição do cartão, foco e rolagem interna dos dias',()=>{
+ const c=contexto();let top=120;let restored;let focus;let scroll;
+ const lista={id:'lista-dia',scrollTop:180};
+ const card={getBoundingClientRect:()=>({top}),querySelector:()=>({focus:op=>{focus=op;}})};
+ c.document={querySelector:()=>card,querySelectorAll:()=>[lista],getElementById:()=>lista};
+ c.window={scrollBy:op=>{scroll=op;}};
+ vm.runInContext("currentFilter='all';currentDayFilter='';renderByDay=()=>{}",c);
+ c.renderByDay=()=>{top=80;lista.scrollTop=0;restored=true;};
+ c.selecionarAbaDoDia(1,'2026-09-09','demandas');
+ assert.equal(restored,true);assert.equal(lista.scrollTop,180);
+ assert.equal(focus.preventScroll,true);assert.equal(scroll.top,-40);
+});
+
+ test('Concluídas recolhe somente Finalizado; agendamento continua na lista',()=>{
+ const c=contexto();
+ for(const origem of ['conteudo','solicitacao']) {
+  const itens=['Finalizado','Para agendar','Agendado','Feito','Aprovado'].map((status,id)=>({id,origem,status}));
+  const listas=c.listasDoCartaoDia(itens,[],origem==='solicitacao'?'demandas':'social');
+  assert.deepEqual(Array.from(listas.concluidas,i=>i.status),['Finalizado']);
+  assert.equal(listas.abertas.length,4);
+ }
 });
