@@ -372,16 +372,20 @@
        Agora ela quebra para a linha de baixo DENTRO do cartao, e o nome tem um
        minimo abaixo do qual nao encolhe. */
     .item-row { display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden;padding:5px 14px;border-bottom:1px solid rgba(42,42,56,.5);transition:background .14s}
-    /* Na agenda diária, o título tem sua própria linha; metadados se adaptam ao cartão. */
-    .item-row.day-activity-row { display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:10px;padding:12px 14px;overflow:visible; }
-    .day-activity-row .dia-marcar { margin-top:3px; }
-    .day-activity-content { min-width:0; }
-    .day-activity-row .item-name { display:block;width:100%;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;text-align:left;font-size:13px;line-height:1.5; }
-    .day-activity-details,.day-activity-tags,.day-activity-actions { display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0; }
-    .day-activity-details { margin-top:8px;gap:8px 12px;justify-content:space-between; }
-    .day-activity-tags { flex:1 1 170px; }
-    .day-activity-actions { flex:0 1 auto; }
-    .day-activity-tags .client-tag { max-width:100%;white-space:normal;overflow-wrap:anywhere; }
+    /* Título à esquerda; tags compactas sobre os controles no bloco à direita. */
+    .item-row.day-activity-row { display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;padding:7px 12px;overflow:visible; }
+    .day-activity-row .dia-marcar { margin:0; }
+    .day-activity-content { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,48%);align-items:center;gap:12px;min-width:0; }
+    .day-activity-row .item-name { display:block;width:100%;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;text-align:left;font-size:13px;line-height:1.35; }
+    .day-activity-details { display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:0; }
+    .day-activity-tags,.day-activity-actions { display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:4px;min-width:0;max-width:100%; }
+    .day-activity-tags { font-size:10px;line-height:1.2; }
+    .day-activity-tags > :is(span,button) { font-size:10px;max-width:100%;white-space:normal;overflow-wrap:anywhere; }
+    @container (max-width:460px) {
+      .day-activity-content { grid-template-columns:minmax(0,1fr);gap:5px; }
+      .day-activity-details { align-items:flex-start; }
+      .day-activity-tags,.day-activity-actions { justify-content:flex-start; }
+    }
     .item-row:last-child { border-bottom:none}
     .item-row:hover { background:rgba(0,240,255,.05)}
     .item-date { font-size:10px;font-weight:700;color:var(--text-muted);min-width:38px}
@@ -785,7 +789,7 @@
       .day-pending-row .item-workspace-link { flex-basis:100%;min-width:100%;white-space:normal; }
     }
     .day-pending-date { display:block;color:#ffbf89;font-size:11px;line-height:1.5; }
-    .day-scroll-card { align-self:start; }
+    .day-scroll-card { align-self:start;container-type:inline-size; }
     .day-activity-scroll:focus-visible { outline:2px solid var(--accent2,#ff9d00);outline-offset:-3px; }
     .day-expansion-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px; }
     @media(min-width:769px) {
