@@ -782,20 +782,24 @@ function renderByDay(sem, filter, dayFilter) {
       // passa o dia, nao. Reusa a MESMA maquina do calendario — mesmo
       // dragstart, mesmo drop, mesma gravacao — em vez de uma segunda
       // implementacao que amanha divergiria da primeira.
-      return `<div class="item-row${mostrarPendencias?' day-pending-row':''}${isPending?' urgent':''}${marcada?' marcada':''}" draggable="true"
+      return `<div class="item-row day-activity-row${mostrarPendencias?' day-pending-row':''}${isPending?' urgent':''}${marcada?' marcada':''}" draggable="true"
         ondragstart="managerCalendarDragStart('${isRequestItem(d)?'request':'content'}','${safeText(d.id)}',event)"
         ondragend="managerCalendarDragEnd()"
         title="Arraste para outro dia para mudar a veiculação">
         <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote">
           <input type="checkbox" ${marcada?'checked':''} data-day-item="${safeText(d.id)}" aria-label="Marcar ${safeText(d.nome||'')}"
             onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,Array.from(this.closest('.item-list').querySelectorAll('[data-day-item]'),el=>el.dataset.dayItem))"></label>
-        ${clientesDoItem(d).map(nome => tagClienteHtml(nome)).join('')}
-        ${isRequestItem(d)?'<span class="dia-demanda-tag">Demanda</span>':''}${fmtHtml(d.formato)}
-        <button type="button" class="item-name item-workspace-link" style="${mostrarPendencias?'':'flex:1;min-width:0;'}" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}${mostrarPendencias ? `<span class="day-pending-date">${getDateIso(d) ? 'Pendente de ' + getDateIso(d).split('-').reverse().join('/') : 'Sem data'}</span>` : ''}</button>
-        ${managerStatusControl(d)}
-        ${botaoDePreviaNaLinha(d)}
-        ${quickDateTrigger(d,'manager-date-trigger')}
-        ${ownerEditorTrigger(d,'manager-owner-trigger')}
+        <div class="day-activity-content">
+          <button type="button" class="item-name item-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}${prazoAtrasadoBadge}${mostrarPendencias ? `<span class="day-pending-date">${getDateIso(d) ? 'Pendente de ' + getDateIso(d).split('-').reverse().join('/') : 'Sem data'}</span>` : ''}</button>
+          <div class="day-activity-details">
+            <div class="day-activity-tags">${clientesDoItem(d).map(nome => tagClienteHtml(nome)).join('')}
+              ${isRequestItem(d)?'<span class="dia-demanda-tag">Demanda</span>':''}${fmtHtml(d.formato)}</div>
+            <div class="day-activity-actions">${managerStatusControl(d)}
+              ${botaoDePreviaNaLinha(d)}
+              ${quickDateTrigger(d,'manager-date-trigger')}
+              ${ownerEditorTrigger(d,'manager-owner-trigger')}</div>
+          </div>
+        </div>
       </div>`;
     }).join('');
     const modeIcon = '';

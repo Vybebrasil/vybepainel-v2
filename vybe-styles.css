@@ -372,6 +372,16 @@
        Agora ela quebra para a linha de baixo DENTRO do cartao, e o nome tem um
        minimo abaixo do qual nao encolhe. */
     .item-row { display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden;padding:5px 14px;border-bottom:1px solid rgba(42,42,56,.5);transition:background .14s}
+    /* Na agenda diária, o título tem sua própria linha; metadados se adaptam ao cartão. */
+    .item-row.day-activity-row { display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:10px;padding:12px 14px;overflow:visible; }
+    .day-activity-row .dia-marcar { margin-top:3px; }
+    .day-activity-content { min-width:0; }
+    .day-activity-row .item-name { display:block;width:100%;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;text-align:left;font-size:13px;line-height:1.5; }
+    .day-activity-details,.day-activity-tags,.day-activity-actions { display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0; }
+    .day-activity-details { margin-top:8px;gap:8px 12px;justify-content:space-between; }
+    .day-activity-tags { flex:1 1 170px; }
+    .day-activity-actions { flex:0 1 auto; }
+    .day-activity-tags .client-tag { max-width:100%;white-space:normal;overflow-wrap:anywhere; }
     .item-row:last-child { border-bottom:none}
     .item-row:hover { background:rgba(0,240,255,.05)}
     .item-date { font-size:10px;font-weight:700;color:var(--text-muted);min-width:38px}
