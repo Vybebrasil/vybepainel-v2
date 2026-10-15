@@ -71,7 +71,7 @@
   </div>
 </div>
 
-<header>
+<header class="app-header">
   <div class="header-row1">
     <div class="header-left" role="button" tabindex="0" onclick="voltarAoMenu()"
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();voltarAoMenu();}"
@@ -96,10 +96,6 @@
     </div>
   </div>
   <div class="header-row2">
-    <div id="month-nav" class="mes-nav"><button type="button" class="mes-passo" onclick="changeMonth(-1)" aria-label="Mês anterior">‹</button><span id="month-nav-label" class="mes-rotulo">—</span><button type="button" class="mes-passo" onclick="changeMonth(1)" aria-label="Próximo mês">›</button></div>
-    <span class="badge badge-week1" id="badge-s1">—</span>
-    <span class="badge badge-week2" id="badge-s2">—</span>
-    <span class="badge badge-date" id="badge-hoje">Hoje: —</span>
     <div class="quem-sou" id="quem-sou" style="display:none">
       <button type="button" class="quem-sou-btn" onclick="alternarMenuDaConta()" aria-label="Sua conta">
         <span class="quem-sou-inicial" id="quem-sou-inicial"></span>
@@ -125,12 +121,12 @@
     </div>
     <button type="button" class="appearance-button" onclick="abrirNotas()" title="Suas notas"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="3" width="12" height="14" rx="2"/><path d="M7 7h6M7 10h6M7 13h4"/></svg><span>Notas</span></button>
     <button type="button" class="appearance-button spotlight-button" data-open-spotlight aria-haspopup="dialog" aria-keyshortcuts="Meta+K Control+K" title="Buscar em todo o painel (⌘K)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m16.5 16.5-3.6-3.6" stroke-linecap="round"/></svg>Buscar<kbd>⌘K</kbd></button>
-    <button type="button" class="appearance-button" data-open-appearance aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" stroke="none"/></svg>Aparência</button>
+    <details class="header-utilities"><summary>Ferramentas</summary><div class="header-utilities-menu">    <button type="button" class="appearance-button" data-open-appearance aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" stroke="none"/></svg>Aparência</button>
     <button class="btn-refresh" id="btn-refresh" onclick="refreshData()">
       <span id="refresh-icon">↻</span> Atualizar
     </button>
     <button class="mode-switch-btn" id="mode-switch-btn" onclick="openModeGate()"
-            title="Você está neste modo · clique para trocar" aria-haspopup="dialog">◈ DA Controler</button>
+            title="Você está neste modo · clique para trocar" aria-haspopup="dialog">◈ DA Controler</button></div></details>
   </div>
 </header>
 
@@ -146,10 +142,10 @@
   <div id="production-command-banner" class="production-command-banner"><div class="production-command-ident"><i>◫</i><div><span>Unidade de comando</span><b>PRODUÇÃO · CAPTAÇÃO, FOTO E EDIÇÃO</b></div></div><button class="mode-switch-btn" onclick="openModeGate()">Trocar modo</button></div>
   <section id="production-command-dashboard" class="production-command-dashboard"></section>
 
-  <label class="filtro-carteira">Responsável geral
+  <div class="workspace-heading"><div><span class="workspace-eyebrow">Operação</span><h2>Painel de trabalho</h2></div><label class="filtro-carteira">Responsável geral
       <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
         <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
-      </select></label>
+      </select></label></div>
   <!-- Barra de resumo compacta -->
   <div id="compact-summary" class="resumo focus-hidden"><div class="resumo-principal"><div class="resumo-numero">—<i>%</i></div><div class="resumo-legenda"><span>da semana fechada</span><div class="resumo-barra"><i style="width:0"></i></div><small>carregando…</small></div></div></div>
 
@@ -160,11 +156,9 @@
       <input id="global-search" class="global-search" type="search" autocomplete="off" placeholder="Buscar em todo o painel  ⌘K" aria-haspopup="dialog" oninput="handleGlobalSearch(this.value)">
     </div>
     <div class="ops-botoes">
-      <div class="ops-segmentos" role="group" aria-label="Consultas rápidas">
+      <div class="ops-attention" role="group" aria-label="Prioridades"><span class="toolbar-label">Prioridades</span>
         <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">Requer ação <span id="ops-action-count" class="ops-action-count">0</span></button>
         <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">O que vence hoje <span id="ops-today-count" class="ops-action-count">0</span></button>
-        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
-        <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
       </div>
       <div class="ops-segmentos" role="group" aria-label="Visões da operação">
         <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
@@ -172,13 +166,15 @@
         <button id="ops-arquivo-btn" class="ops-close-btn" onclick="alternarArquivo()" aria-expanded="false" title="Atividades arquivadas — voltam com um clique por 15 dias">Arquivo <span id="ops-arquivo-count" class="ops-action-count">0</span></button>
       </div>
       <div class="ops-vao"></div>
-      <div class="ops-acoes">
+      <div class="ops-acoes"><span class="toolbar-label">Ferramentas</span>        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
+        <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
+<button class="ops-close-btn tab-btn" onclick="showWeek(0,this)">Equipe</button>
         <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
         <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
       </div>
     </div>
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
-    <div id="team-load-strip" class="team-load-strip"></div>
+    <details class="team-load-disclosure"><summary>Carga da equipe</summary><div id="team-load-strip" class="team-load-strip"></div></details>
   </div>
   <div id="ops-action-panel" class="ops-panel focus-hidden"></div>
   <div id="ops-today-panel" class="ops-panel ops-today-panel"></div>
@@ -238,19 +234,23 @@
   </aside>
 
   <!-- Tabs de semana + Toggle View fixo -->
-  <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+  <div class="agenda-navigation"><div class="agenda-navigation-heading"><h2>Agenda da equipe</h2>    <div id="month-nav" class="mes-nav"><button type="button" class="mes-passo" onclick="changeMonth(-1)" aria-label="Mês anterior">‹</button><span id="month-nav-label" class="mes-rotulo">—</span><button type="button" class="mes-passo" onclick="changeMonth(1)" aria-label="Próximo mês">›</button></div>
+    <span class="badge badge-week1" id="badge-s1">—</span>
+    <span class="badge badge-week2" id="badge-s2">—</span>
+    <span class="badge badge-date" id="badge-hoje">Hoje: —</span>
+</div><div class="agenda-navigation-weeks">
     <div class="tabs focus-hidden" id="week-tabs-container" style="margin-bottom:0;border-bottom:none;">
       <span class="tabs-rotulo">Semana</span>
       <button class="tab-btn" id="tab-s1-label" onclick="showWeek(1,this)" style="">01 · 27/07–02/08</button>
       <button class="tab-btn" id="tab-s2-label" onclick="showWeek(2,this)" style="">02 · 03/08–09/08</button>
       <button class="tab-btn" id="tab-s3-label" onclick="showWeek(3,this)" style="">03 · 10/08–16/08</button>
-      <button class="tab-btn active" id="tab-s4-label" onclick="showWeek(4,this)" style="" class="tab-btn e-hoje">04 · 17/08–23/08</button>
+      <button class="tab-btn active e-hoje" id="tab-s4-label" onclick="showWeek(4,this)">04 · 17/08–23/08</button>
       <button class="tab-btn" id="tab-s5-label" onclick="showWeek(5,this)" style="">05 · 24/08–30/08</button>
       <button class="tab-btn" id="tab-s6-label" onclick="showWeek(6,this)" style="">06 · 31/08–06/09</button>
-      <button class="tab-btn" onclick="showWeek(0,this)">Equipe</button>
+
     </div>
-    <button class="sort-btn active focus-hidden" id="btn-view-day" onclick="toggleViewMode(this)" title="Alternar visualização" style="font-size:12px;padding:8px 14px;border:1px solid rgba(0,240,255,.3);margin-left:auto;">Ver por Cliente</button>
-  </div>
+    <button class="sort-btn active focus-hidden" id="btn-view-day" onclick="toggleViewMode(this)" title="Alternar agrupamento das atividades">Ver por Cliente</button>
+  </div></div>
 
   <!-- Semanas 1-4 -->
   <div id="panel-week1" class="week-panel focus-hidden">

@@ -152,3 +152,11 @@ As concluídas ficam recolhidas, preservando a abertura por dia e aba durante a
 sessão. Cronômetros e ações de arquivo/data ficam nos detalhes da atividade;
 status e responsáveis continuam disponíveis na lista. O menu Ações reutiliza o
 cadastro existente com quadro e data de contexto, além de Gerar resumo.
+
+## Hierarquia da navegação
+
+O topo laranja reúne os módulos e o acesso à conta; Aparência, Atualizar e troca
+de modo ficam em Ferramentas. A área operacional distingue prioridades, visões
+e ferramentas, com carga da equipe recolhível. Mês e semanas ficam no cabeçalho
+da agenda; Equipe permanece acessível nas ferramentas da operação. Os controles
+reutilizam os mesmos handlers e filtros, sem alterações de dados.
