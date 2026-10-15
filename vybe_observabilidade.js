@@ -64,7 +64,7 @@ export async function indicadoresIndependencia(sql) {
 }
 
 async function itensDoSnapshot(sql) {
-  const linhas = await sql`SELECT c.id, c.board_id, c.titulo AS nome, c.formato, s.rotulo AS status,
+  const linhas = await sql`SELECT c.id, c.monday_item_id, c.board_id, c.titulo AS nome, c.formato, s.rotulo AS status,
       TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo_iso,
       TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao_iso,
       COALESCE((SELECT JSONB_AGG(x.nome ORDER BY x.nome) FROM (
@@ -83,7 +83,7 @@ async function itensDoSnapshot(sql) {
     const responsaveis = Array.isArray(item.responsaveis) ? item.responsaveis : [];
     const ids = responsaveis.map((p) => p.id).filter(Boolean);
     return {
-      id: String(item.id), board_id: String(item.board_id), nome: item.nome || '',
+      id: String(item.id), atividade_id: item.monday_item_id ? String(item.monday_item_id) : `vybe:${item.id}`, clientes, board_id: String(item.board_id), nome: item.nome || '',
       cliente: clientes.join(', '), formato: item.formato || '', status: item.status || '',
       responsavel: responsaveis.map((p) => p.nome).filter(Boolean).join(', '),
       responsavel_id: ids[0] || null, responsavel_ids: ids,
@@ -93,17 +93,46 @@ async function itensDoSnapshot(sql) {
   });
 }
 
-export async function registrarSnapshotOperacional(sql, origem = 'cron') {
+export async function registrarSnapshotOperacional(sql, origem = 'cron', agora = new Date()) {
   const [indicadores, itens] = await Promise.all([indicadoresIndependencia(sql), itensDoSnapshot(sql)]);
-  const payload = { ...indicadores, itens };
-  const data = new Date().toISOString().slice(0, 10);
+  return gravarSnapshotOperacional(sql, { ...indicadores, itens }, origem, agora);
+}
+
+export function referenciaSnapshot(agora = new Date()) {
+  const partes = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(agora);
+  const valor = tipo => partes.find(p=>p.type===tipo).value;
+  return {dia:`${valor('year')}-${valor('month')}-${valor('day')}`,manha:Number(valor('hour'))>=6 && Number(valor('hour'))<12};
+}
+export async function gravarSnapshotOperacional(sql, dados, origem, agora = new Date()) {
+  const ref=referenciaSnapshot(agora);
+  const payload={...dados};
+  if(ref.manha) payload.mensagens_manha={data:ref.dia,registrada_em:agora.toISOString(),itens:(dados.itens || [])
+    .filter(i=>String(i.board_id)==='7829537690' && i.veiculacao_iso===ref.dia)
+    .map(i=>({id:i.atividade_id || i.id,cliente:i.cliente,clientes:i.clientes || [],veiculacao_iso:i.veiculacao_iso}))};
   const [linha] = await sql`INSERT INTO vybe_operational_snapshots
       (data_referencia, origem, payload, criado_em, atualizado_em)
-    VALUES (${data}, ${String(origem)}, ${JSON.stringify(payload)}::jsonb, NOW(), NOW())
+    VALUES (${ref.dia}, ${String(origem)}, ${JSON.stringify(payload)}::jsonb, NOW(), NOW())
     ON CONFLICT (data_referencia) DO UPDATE SET
-      origem=EXCLUDED.origem, payload=EXCLUDED.payload, atualizado_em=NOW()
-    RETURNING id, data_referencia, origem, atualizado_em`;
-  return { ...linha, payload };
+      origem=EXCLUDED.origem,
+      payload=EXCLUDED.payload || CASE WHEN vybe_operational_snapshots.payload ? 'mensagens_manha'
+        THEN jsonb_build_object('mensagens_manha',vybe_operational_snapshots.payload->'mensagens_manha') ELSE '{}'::jsonb END,
+      atualizado_em=NOW()
+    RETURNING id, data_referencia, origem, atualizado_em, payload`;
+  return linha;
+}
+export async function obterBaseResumo(sql, dia) {
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(dia)) || !Number.isFinite(Date.parse(`${dia}T12:00:00Z`))
+    || new Date(`${dia}T12:00:00Z`).toISOString().slice(0,10)!==dia) throw new Error('Data de referência inválida.');
+  await garantirObservabilidade(sql);
+  const [linha]=await sql`SELECT payload->'mensagens_manha' AS base FROM vybe_operational_snapshots WHERE data_referencia=${dia}`;
+  return linha?.base || null;
+}
+export async function registrarBaseResumo(sql, agora = new Date()) {
+  const ref=referenciaSnapshot(agora);
+  const existente=await obterBaseResumo(sql,ref.dia);
+  if(existente || !ref.manha) return existente;
+  const snapshot=await registrarSnapshotOperacional(sql,'resumo_manha',agora);
+  return snapshot.payload.mensagens_manha || null;
 }
 
 export async function registrarSaude(sql, componente, estado, detalhes = {}) {
@@ -124,7 +153,7 @@ export async function historicoSaude(sql, limite = 100) {
 
 export async function listarSnapshots(sql, limite = 30) {
   await garantirObservabilidade(sql);
-  return sql`SELECT id, data_referencia, origem, payload - 'itens' AS payload, criado_em, atualizado_em
+  return sql`SELECT id, data_referencia, origem, payload - 'itens' - 'mensagens_manha' AS payload, criado_em, atualizado_em
     FROM vybe_operational_snapshots ORDER BY data_referencia DESC
     LIMIT ${Math.max(1, Math.min(Number(limite) || 30, 365))}`;
 }

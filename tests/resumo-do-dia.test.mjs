@@ -2,21 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-function mensagens(itens,dia='2026-12-31') {
-  const ctx=vm.createContext({itens,dia});
+function mensagens(itens,dia='2026-12-31',extra={}) {
+  const ctx=vm.createContext({itens,dia,extra});
   vm.runInContext(fs.readFileSync('vybe-resumo.js','utf8'),ctx);
-  return vm.runInContext(`resumosPorGrupo(itens,dia,{statusDe:i=>i.status,clientesDe:i=>i.clientes||[i.cliente],equipe:[{id:'68036697',nome:'Reriston',limite:4},{id:'b',nome:'Bia',nomeCompleto:'Beatriz',limite:5},{id:'d',nome:'Deivid',limite:5,aprovacoesExtras:true},{id:'j',nome:'Jady',limite:5},{id:'p',nome:'Paulo',grupo:'atendimento'},{id:'v',nome:'Vinícius',grupo:'atendimento'},{id:'e',nome:'Ewerton',grupo:'atendimento'}]})`,ctx);
+  return vm.runInContext(`resumosPorGrupo(itens,dia,{...extra,statusDe:i=>i.status,clientesDe:i=>i.clientes||[i.cliente],equipe:[{id:'68036697',nome:'Reriston',limite:4},{id:'b',nome:'Bia',nomeCompleto:'Beatriz',limite:5},{id:'d',nome:'Deivid',limite:5,aprovacoesExtras:true},{id:'j',nome:'Jady',limite:5},{id:'p',nome:'Paulo',grupo:'atendimento'},{id:'v',nome:'Vinícius',grupo:'atendimento'},{id:'e',nome:'Ewerton',grupo:'atendimento'}]})`,ctx);
 }
 const peca=o=>({id:1,nome:'Card - Teste',cliente:'Cliente A',status:'Pode Fazer',veiculacao_iso:'2026-12-31',responsavel:'Jady Amynne Oliveira Lima',...o});
-const grupo=(msgs,id)=>msgs.find(m=>m.id===id).texto;
+const grupo=(msgs,id)=>msgs.find(m=>m.id===id)?.texto || '';
 test('publicações separa pronto de publicado, conta atividades sem inflar múltiplos clientes e não confunde IDs dos quadros',()=>{
   const msgs=mensagens([
     peca({clientes:['A','B'],status:'Finalizado'}),peca({clientes:['A','B'],status:'Finalizado'}),
     peca({id:2,status:'Agendado'}),peca({id:3,status:'Publicado'}),
     peca({id:1,origem:'solicitacao',status:'Finalizado',nome:'Demanda concluída',conclusao_iso:'2026-12-31'}),
   ]);
-  assert.match(grupo(msgs,'geral'),/3 conteúdos com veiculação/);
-  assert.match(grupo(msgs,'geral'),/Publicados: 33% \(1\)/);
+  assert.match(grupo(msgs,'geral'),/3 conteúdos no total/);
+  assert.match(grupo(msgs,'geral'),/Publicado: 33% \(1\)/);
   assert.match(grupo(msgs,'publicacoes'),/Finalizados \(1\)/);
   assert.match(grupo(msgs,'publicacoes'),/\(A \/ B\)/);
   assert.doesNotMatch(grupo(msgs,'criacao'),/Demanda concluída/);
@@ -39,16 +39,16 @@ test('pendências antigas e sem data, conclusão da demanda, alterações e capt
     peca({id:5,nome:'Finalizada',origem:'solicitacao',status:'Finalizado'}),
   ]);
   assert.match(grupo(msgs,'correcao'),/Alterar antiga.*prazo venceu/);
-  assert.match(grupo(msgs,'criacao'),/Sem data.*sem data/);
+  assert.match(grupo(msgs,'conferencia'),/Prazo de entrega não confirmado: Sem data/);
   assert.doesNotMatch(grupo(msgs,'criacao'),/Finalizada/);
   assert.equal(grupo(msgs,'producao'),'');
   assert.equal(msgs.find(m=>m.id==='producao').pronta,false);
 });
 test('próximos dias atravessam ano; status desconhecido não some e vazio é explícito',()=>{
   const msgs=mensagens([peca({status:'Novo status'}),peca({id:2,veiculacao_iso:'2027-01-01'})]);
-  assert.match(grupo(msgs,'publicacoes'),/Sex 01\/01:\* 1 conteúdos/);
+  assert.match(grupo(msgs,'publicacoes'),/Prévia Sex 01\/01/);
   assert.match(grupo(msgs,'criacao'),/Novo status/);
-  assert.match(grupo(mensagens([]),'correcao'),/Nenhuma alteração pendente/);
+  assert.equal(grupo(mensagens([]),'correcao'),'');
 });
 
 test('trocar destino preserva a edição de cada mensagem',async()=>{
@@ -93,12 +93,12 @@ test('caso de 21 conteúdos distingue três Finalizados de nove Para agendar e f
   for(let n=0;n<18;n++) itens.push(peca({id:`ontem-${n}`,status:'Finalizado',veiculacao_iso:'2026-12-30'}));
   const msgs=mensagens(itens);
   const geral=grupo(msgs,'geral'),publicacoes=grupo(msgs,'publicacoes');
-  assert.match(geral,/Ontem: 18 de 18 conteúdos finalizados/);
+  assert.match(geral,/100% finalizados: 18 de 18/);
   assert.match(geral,/Finalizados: 14% \(3\)/);
   assert.match(geral,/Para agendar: 43% \(9\)/);
-  assert.match(geral,/Pode Fazer: 24% \(5\)/);
-  assert.match(geral,/Segurar Post: 10% \(2\)/);
-  assert.match(geral,/9 conteúdos deste dia ainda não estão prontos/);
+  assert.match(geral,/Em produção: 29% \(6\)/);
+  assert.match(geral,/Post segurado: 9% \(2\)/);
+  assert.doesNotMatch(grupo(msgs,'criacao'),/Segurar Post/);
   assert.match(publicacoes,/Finalizados \(3\)/);
   assert.match(publicacoes,/Para agendar \(9\)/);
   assert.doesNotMatch(geral,/Publicados|prontos para agendar|outros status/i);
@@ -111,5 +111,35 @@ test('normaliza grafia sem juntar estados e mantém a separação na antecipaç�
     peca({id:2,status:' PARA  AGENDAR ',veiculacao_iso:'2027-01-01'}),
     peca({id:3,status:'Agendado',veiculacao_iso:'2027-01-01'}),
   ]);
-  assert.match(grupo(msgs,'publicacoes'),/3 conteúdos; 1 finalizados, 1 para agendar, 1 agendados, 0 pendentes/);
+  assert.match(grupo(msgs,'publicacoes'),/3 conteúdos · 1 finalizados · 1 para agendar · 1 agendados · 0 pendentes/);
+});
+
+test('base original distingue remanejados de ausentes e preserva denominador do fechamento',()=>{
+  const msgs=mensagens([peca({id:1,status:'Finalizado',veiculacao_iso:'2026-12-30'}),peca({id:2,veiculacao_iso:'2027-01-02'})],'2026-12-31',{
+    baseAnterior:{data:'2026-12-30',itens:[{id:1},{id:2},{id:3}]},
+  });
+  assert.match(grupo(msgs,'geral'),/33% finalizados: 1 de 3/);
+  assert.match(grupo(msgs,'geral'),/1 remanejados · 1 não localizados/);
+  assert.match(grupo(msgs,'conferencia'),/100% \(1 atividades\)/);
+  assert.match(grupo(msgs,'conferencia'),/não presumir remanejamento: \[3\]/);
+});
+
+test('sexta antecipa fim de semana e percentuais inteiros fecham em cem',()=>{
+  const msgs=mensagens([peca({id:1,status:'Finalizado',veiculacao_iso:'2026-10-16'}),peca({id:2,status:'Para agendar',veiculacao_iso:'2026-10-16'}),peca({id:3,veiculacao_iso:'2026-10-16'}),peca({id:4,veiculacao_iso:'2026-10-18'})],'2026-10-16');
+  const valores=[...grupo(msgs,'geral').matchAll(/: (\d+)% \(/g)].map(m=>Number(m[1]));
+  assert.equal(valores.reduce((a,b)=>a+b,0),100);
+  assert.match(grupo(msgs,'publicacoes'),/Prévia Sáb 17\/10/);
+  assert.match(grupo(msgs,'publicacoes'),/Prévia Dom 18\/10/);
+});
+
+test('pausas, espera do cliente e informação do Paulo não inflam atrasos',()=>{
+  const msgs=mensagens([
+    peca({id:1,status:'Segurar Post',prazo_iso:'2026-01-01'}),
+    peca({id:2,status:'Ag. Info Cliente',prazo_iso:'2026-01-01'}),
+    peca({id:3,status:'Falta Info',responsavel:'Paulo Martins',responsavel_ids:['p'],prazo_iso:'2026-01-01'}),
+    peca({id:4,prazo_iso:'2026-01-01',responsavel:'',responsavel_ids:[]}),
+  ]);
+  assert.match(grupo(msgs,'geral'),/0 atividades com prazo vencido/);
+  assert.match(grupo(msgs,'conferencia'),/Pendência de informação do Paulo/);
+  assert.match(grupo(msgs,'conferencia'),/Veicula hoje sem responsável/);
 });

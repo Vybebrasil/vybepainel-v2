@@ -834,11 +834,13 @@ let dailySummaryMessages = [];
 let dailySummarySelected = 'geral';
 let dailySummaryDate = '';
 let dailySummaryOpening = 0;
-function buildDailySummary(dayIso) {
-  const conteudos = (typeof DADOS_ALL !== 'undefined' && DADOS_ALL.length ? DADOS_ALL : DADOS) || [];
-  const solicitacoes = panelMode === 'gestor' ? (DADOS_DEMANDAS || []).map(normalizeRequestForOperational) : [];
+function buildDailySummary(dayIso, contexto = {}) {
+  const conteudos = contexto.conteudos || (typeof DADOS_ALL !== 'undefined' && DADOS_ALL.length ? DADOS_ALL : DADOS) || [];
+  const solicitacoes = contexto.solicitacoes || (panelMode === 'gestor' ? (DADOS_DEMANDAS || []).map(normalizeRequestForOperational) : []);
   return resumosPorGrupo([...conteudos, ...solicitacoes].filter(itemNaCarteira), dayIso,
-    { statusDe: operationalFlowStatus, clientesDe: clientesDoItem, equipe:[
+    { statusDe: operationalFlowStatus, clientesDe: clientesDoItem,
+      baseAnterior:contexto.baseAnterior ? {...contexto.baseAnterior,itens:contexto.baseAnterior.itens.filter(itemNaCarteira)} : null,
+      alertaBase:contexto.alertaBase || '',geradoEm:contexto.geradoEm || '', equipe:[
       {id:PESSOAS.RERISTON,nome:'Reriston',limite:4},
       {id:PESSOAS.BEATRIZ,nome:'Bia',limite:5,nomeCompleto:'Beatriz'},
       {id:PESSOAS.DEIVID,nome:'Deivid',limite:5,aprovacoesExtras:true},
@@ -860,6 +862,7 @@ async function selectDailySummary() {
   const aviso=document.getElementById('daily-summary-agenda-status');
   if(copiar) copiar.disabled=!!mensagem?.agenda && !mensagem.pronta;
   if(aviso) aviso.hidden=!mensagem?.agenda;
+  const pessoal=document.getElementById('daily-summary-personal'); if(pessoal) pessoal.hidden=!mensagem?.pessoal;
   if(mensagem?.agenda && !mensagem.pronta) await loadDailySummaryAgenda();
 }
 async function loadDailySummaryAgenda() {
@@ -881,8 +884,15 @@ async function loadDailySummaryAgenda() {
     if(!resposta.ok || !corpo.ok || !Array.isArray(corpo.eventos)) throw new Error(corpo.error || 'Não foi possível consultar a agenda.');
     mensagem.texto=resumoProducaoAgenda(corpo.eventos,dia);
     mensagem.pronta=true;
+    const conferencia=mensagens.find(m=>m.id==='conferencia');
+    if(conferencia) {
+      conferencia.texto=conferencia.texto.split('\n').filter(l=>!l.startsWith('- Agenda:')).join('\n');
+      for(const evento of corpo.eventos.filter(e=>e.ambiguo)) conferencia.texto+=`\n- Agenda: confirmar se é gravação para Mizinho: ${resumoTexto(evento.titulo)} (${resumoDiaCurto(evento.dia)}).`;
+    }
     mostrar(mensagem.texto);
   } catch(erro) {
+    const conferencia=mensagens.find(m=>m.id==='conferencia');
+    if(conferencia && !conferencia.texto.includes('- Agenda: consulta indisponível')) conferencia.texto+='\n- Agenda: consulta indisponível; gravações ainda não confirmadas.';
     mensagem.texto=`Agenda indisponível: ${erro.message}. Nenhum resumo de Produção foi gerado. Use “Consultar agenda novamente” para tentar outra vez.`;
     mostrar(mensagem.texto);
   } finally {
@@ -894,22 +904,43 @@ async function loadDailySummaryAgenda() {
 }
 async function openDailySummary(dayIso) {
   const abertura=++dailySummaryOpening;
-  if (panelMode === 'gestor') {
-    await ensureDemandasForOperationalViews();
-    if (unifiedDemandasState !== 'ready' || unifiedDemandasLoading) {
-      return showToast('As solicitações ainda não estão disponíveis. Atualize o painel e tente novamente.','err',6000);
+  openWorkflowModal(`<div class="workflow-kicker"><span>Comunicação interna</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar resumo">×</button></div><h2 class="workflow-title">Consultando as mensagens</h2><p id="daily-summary-loading">Lendo a operação atual e a base da manhã…</p>`);
+  let contexto;
+  try {
+    const baseResposta=async(url,opcoes={})=>{
+      const r=await fetch(url,{credentials:'same-origin',cache:'no-store',...opcoes});const d=await r.json();
+      if(!r.ok||!d.ok)throw new Error(d.error||'Base da manhã indisponível.');return d.base || null;
+    };
+    const hojeReal=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const [raw,reqs,base]=await Promise.all([
+      fetchAllItems({silent:true}),panelMode==='gestor'?fetchAllDemandas():Promise.resolve([]),
+      baseResposta(`/api/painel?area=diario&base_resumo=${resumoDiasAntes(dayIso,1)}`).then(baseAnterior=>({baseAnterior})).catch(erro=>({alertaBase:erro.message})),
+    ]);
+    contexto={...base,conteudos:processItemsAll(raw,calcWeeks()),solicitacoes:processDemandas(reqs).map(normalizeRequestForOperational),
+      geradoEm:new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Bahia',dateStyle:'short',timeStyle:'short'}).format(new Date())};
+    const hora=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'America/Bahia',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
+    if(dayIso===hojeReal && hora>=6 && hora<12) {
+      try {await baseResposta('/api/painel?area=diario',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acao:'base_resumo'})});}
+      catch {contexto.alertaBase=`${contexto.alertaBase||''} A base desta manhã não pôde ser registrada; conferir amanhã.`.trim();}
     }
+    if(dayIso!==hojeReal) contexto.alertaBase=`${contexto.alertaBase||''} Data selecionada: ${resumoDiaCurto(dayIso)}. Hoje é ${resumoDiaCurto(hojeReal)}.`.trim();
+  } catch(erro) {
+    if(abertura===dailySummaryOpening && document.getElementById('daily-summary-loading')) {
+      document.getElementById('daily-summary-loading').textContent=`Não foi possível ler a operação atual: ${erro.message}. Feche e tente novamente. Nenhuma mensagem foi gerada.`;
+    }
+    return;
   }
-  if(abertura!==dailySummaryOpening) return;
+  if(abertura!==dailySummaryOpening || !document.getElementById('daily-summary-loading')) return;
   dailySummaryDate=dayIso;
-  dailySummaryMessages=buildDailySummary(dayIso);
+  dailySummaryMessages=buildDailySummary(dayIso,contexto);
   dailySummarySelected='geral';
   openWorkflowModal(`<div class="workflow-kicker"><span>Comunicação interna · ${safeText(resumoDiaCurto(dayIso))}</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar resumo">×</button></div>
     <h2 class="workflow-title">Resumo por grupo</h2>
-    <p class="daily-summary-meta">Escolha o destino, revise e copie. As filas usam a carteira selecionada e as atividades em aberto do painel. Publicações também antecipa os próximos dois dias. A busca e os filtros da lista não limitam este resumo. Nada é enviado automaticamente.</p>
+    <p class="daily-summary-meta">Escolha o destino, revise e copie. Dados consultados agora. Criação usa prazo; Publicações usa veiculação e antecipa amanhã (sábado e domingo às sextas). A busca e os filtros da lista não limitam este resumo. Nada é enviado automaticamente.</p>
     <label class="workflow-field"><span>Grupo do WhatsApp</span><select id="daily-summary-group" onchange="selectDailySummary()">${dailySummaryMessages.map(m=>`<option value="${m.id}">${safeText(m.nome)}</option>`).join('')}</select></label>
     <p class="daily-summary-meta">Conteúdos usam veiculação; solicitações usam conclusão ou prazo. Finalizado, Para agendar e Agendado são contados separadamente, conforme o status da atividade. Produção consulta gravações no Google Agenda. Criação: design com 5 demandas por pessoa; editor com 4. Aprovações de Deivid entram à parte.</p>
-    <p id="daily-summary-agenda-status" class="daily-summary-meta" hidden>Gravações e captações dos próximos 7 dias · horário de Brasília. <button type="button" class="workflow-secondary" onclick="loadDailySummaryAgenda()">Consultar agenda novamente</button></p>
+    <p id="daily-summary-personal" class="daily-summary-meta" hidden>Uso pessoal. Estes pontos são para sua conferência, fora das mensagens dos grupos.</p>
+    <p id="daily-summary-agenda-status" class="daily-summary-meta" hidden>Gravações e captações dos hoje e dos próximos 5 dias · horário de Brasília. <button type="button" class="workflow-secondary" onclick="loadDailySummaryAgenda()">Consultar agenda novamente</button></p>
     <textarea id="daily-summary-preview" class="daily-summary-preview" aria-label="Mensagem para revisar e copiar">${safeText(dailySummaryMessages[0].texto)}</textarea>
     <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" id="daily-summary-copy" class="workflow-primary" onclick="copyDailySummary()">Copiar mensagem</button></div>`);
 }

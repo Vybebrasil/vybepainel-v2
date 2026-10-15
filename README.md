@@ -103,9 +103,10 @@ mas os endpoints de importação/reprocessamento estão encerrados.
 ## Agenda de Produção nos resumos
 
 Produção consulta `/api/painel?area=agenda_producao&dia=AAAA-MM-DD`, somente
-para sessões administrativas. A API lê sete dias do Google Agenda, expande
-recorrências e traz gravações, captações e eventos com Mizinho no título. Eventos
-privados/cancelados não entram. Horários são convertidos para `America/Bahia`.
+para sessões administrativas. A API lê o dia escolhido e os próximos cinco dias do Google Agenda e expande
+recorrências. Compromissos sem indicação clara de gravação/captação entram com
+alerta privado para conferência. Eventos privados, cancelados, pessoais e da cor
+5 (Paulo) não entram. Horários são convertidos para `America/Bahia`.
 
 A integração reutiliza `GOOGLE_SERVICE_ACCOUNT`, com token separado de leitura
 `calendar.events.readonly`; o escopo do Drive permanece separado. É necessário
@@ -118,3 +119,22 @@ O conector Google Calendar do chat não fornece credenciais para o aplicativo.
 Consulta ocorre ao selecionar Produção, sem polling. Agenda vazia gera mensagem
 própria; falha de acesso bloqueia a cópia até nova consulta bem-sucedida.
 Referência: [Google Calendar Events.list](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).
+
+## Mensagens internas por grupo
+
+Gerar resumo consulta novamente conteúdos e solicitações antes de montar textos
+para cópia manual. Criação usa prazo de entrega, prioriza atrasados e risco de
+veiculação do dia; designers têm foco em cinco atividades e Reriston em quatro.
+Aprovações de design entram como extras para Deivid. Atendimento e Planejamento
+reúne Paulo, Vinícius e Ewerton. Pausas e espera de informação do Paulo/cliente
+não contam como atraso. Solicitações não aumentam o total editorial.
+
+Finalizado, Para agendar e Agendado são estados separados. Publicações antecipa
+amanhã; na sexta, sábado e domingo. O destino pessoal “Pontos pra conferir”
+separa problemas de dados e de atribuição das mensagens destinadas ao time.
+
+A primeira geração entre 6h e 12h (America/Bahia), por sessão administrativa,
+preserva a lista da manhã no snapshot existente do Diário. Atualizações posteriores
+não substituem essa base. O fechamento compara seus IDs com o estado atual,
+informa remanejados e itens não localizados; sem base histórica, o percentual é
+explicitamente provisório. Não há reconstrução retroativa da lista da manhã.
