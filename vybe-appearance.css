@@ -1537,3 +1537,10 @@ body.vybe-desktop {
 }
 
 .agenda-navigation:has(#week-tabs-container.focus-hidden):has(#btn-view-day.focus-hidden) {display:none}
+
+/* O dia atual ganha profundidade sem alterar a ordem ou cobrir os vizinhos. */
+.vybe-desktop .day-scroll-card.day-is-today {border-color:#ff9b4e!important;box-shadow:0 12px 30px #0004,0 0 0 1px #ff9b4e30!important}
+.vybe-desktop .day-is-today > .client-header {background:linear-gradient(115deg,#ffad66,#ff8c35)!important;border-bottom-color:#66300e30!important}
+.vybe-desktop .day-is-today > .client-header :is(.client-name,.day-date-context,.day-progress-label) {color:#3b200e!important}
+.vybe-desktop .day-is-today > .client-header .day-menu > summary {background:#fff4df50;color:#3b200e;border-color:#63310f30}
+.day-today-label {display:inline-block;margin-left:9px;padding:2px 7px;border-radius:5px;background:#3b200e;color:#fff3e5;font:600 10px var(--mac-ui);vertical-align:middle}

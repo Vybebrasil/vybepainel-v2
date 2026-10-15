@@ -148,7 +148,8 @@ No modo padrão, redes sociais usam veiculação e solicitações usam conclusã
 com fallback para prazo; o modo Prazo continua explícito no cabeçalho do cartão.
 Pendências reúne solicitações abertas anteriores ao dia ou sem data, sem remarcá-las.
 
-As concluídas ficam recolhidas, preservando a abertura por dia e aba durante a
+Somente o status Finalizado entra em Concluídas na agenda diária; Para agendar e
+Agendado continuam na lista principal. As concluídas ficam recolhidas, preservando a abertura por dia e aba durante a
 sessão. Cronômetros e ações de arquivo/data ficam nos detalhes da atividade;
 status e responsáveis continuam disponíveis na lista. O menu Ações reutiliza o
 cadastro existente com quadro e data de contexto, além de Gerar resumo.

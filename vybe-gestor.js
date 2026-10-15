@@ -691,8 +691,8 @@ function listasDoCartaoDia(itens, pendencias, aba='social') {
   const redes=itens.filter(i=>!isRequestItem(i));
   const demandas=itens.filter(isRequestItem);
   const lista=aba==='pendencias'?pendencias:aba==='demandas'?demandas:redes;
-  const abertas=lista.filter(i=>!atividadeDoDiaConcluida(i));
-  const concluidas=lista.filter(atividadeDoDiaConcluida);
+  const abertas=lista.filter(i=>i.status!=='Finalizado');
+  const concluidas=lista.filter(i=>i.status==='Finalizado');
   return {redes,demandas,lista,abertas,concluidas};
 }
 function registrarConcluidasDoDia(iso,aba,detalhes) {
@@ -713,10 +713,21 @@ function alternarExpansaoDoDia(iso, botao) {
 }
 
 function selecionarAbaDoDia(sem, iso, aba) {
+  const seletor=`#grid-s${sem} [data-date="${iso}"]`;
+  const antes=document.querySelector(seletor);
+  const topo=antes?.getBoundingClientRect().top;
+  const rolagens=Array.from(document.querySelectorAll(`#grid-s${sem} .day-activity-scroll`))
+    .map(el=>({id:el.id,top:el.scrollTop}));
   abasPendenciasDia.set(iso, aba===true?'pendencias':aba===false?'social':aba);
   renderByDay(sem, currentFilter, currentDayFilter);
-  document.querySelector(`#grid-s${sem} [data-date="${iso}"] .day-pending-tabs button[aria-pressed="true"]`)?.focus({preventScroll:true});
+  rolagens.forEach(({id,top})=>{const el=document.getElementById(id);if(el)el.scrollTop=top;});
+  const depois=document.querySelector(seletor);
+  depois?.querySelector('.day-pending-tabs button[aria-pressed="true"]')?.focus({preventScroll:true});
+  // A troca pode reduzir a altura da página. Mantém o cartão no mesmo ponto
+  // da janela, inclusive quando o navegador ajusta a rolagem ao recriar a grade.
+  if(depois && topo!==undefined) window.scrollBy({top:depois.getBoundingClientRect().top-topo,left:0,behavior:'instant'});
 }
+
 function filtrarItensDoDia(items, filter) {
   let fi = items.filter(itemNaCarteira);
   if (selectedPersonIds.size) {
@@ -754,6 +765,7 @@ function renderByDay(sem, filter, dayFilter) {
   const grid=document.getElementById(`grid-s${sem}`);
   if(!grid)return;
   const ordemVisivel=[];
+  const hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   grid.innerHTML=dias.filter(d=>!dayFilter||d.iso===dayFilter).map(dia=>{
     const dataCurta=dia.iso.slice(8,10)+'/'+dia.iso.slice(5,7);
     const dayItems=fi.filter(d=>dataDoCartaoDia(d)===dia.iso).sort((a,b)=>String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR'));
@@ -784,8 +796,8 @@ function renderByDay(sem, filter, dayFilter) {
     const tituloAba=aba==='social'?'Redes sociais':aba==='demandas'?'Demandas':'Pendências';
     const vazio=aba==='social'?'Nenhum conteúdo nesta data com os filtros atuais.':aba==='demandas'?'Nenhuma demanda com entrega nesta data e nos filtros atuais.':'Nenhuma solicitação atrasada ou sem data nos filtros atuais.';
     const contexto=dateMode==='prazo'?'Por prazo':aba==='social'?'Por veiculação':'Por conclusão prevista ou prazo';
-    return `<div class="client-card dia-solta day-scroll-card${diasExpandidos.has(dia.iso)?' day-expanded':''}" data-date="${dia.iso}" ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
-      <div class="client-header"><div class="day-heading"><div class="client-name">${dia.label} · ${dataCurta}</div><span class="day-date-context">${contexto}</span></div>
+    return `<div class="client-card dia-solta day-scroll-card${dia.iso===hoje?' day-is-today':''}${diasExpandidos.has(dia.iso)?' day-expanded':''}" data-date="${dia.iso}" ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
+      <div class="client-header"><div class="day-heading"><div class="client-name">${dia.label} · ${dataCurta}${dia.iso===hoje?'<span class="day-today-label">Hoje</span>':''}</div><span class="day-date-context">${contexto}</span></div>
         <div class="day-header-actions"><span class="day-progress-label">${concluidas.length}/${lista.length} concluídas</span><details class="day-menu"><summary aria-label="Ações de ${dataCurta}">Ações</summary><div class="day-menu-options">${panelMode==='gestor'?`<button type="button" onclick="this.closest('details').open=false;adicionarDemandaNoDia('${dia.iso}','${aba}')">Adicionar atividade</button>`:''}<button type="button" onclick="this.closest('details').open=false;openDailySummary('${dia.iso}')">Gerar resumo</button></div></details></div>
       </div>
       ${panelMode==='gestor'?`<div class="day-pending-tabs" role="group" aria-label="Atividades de ${dia.iso}">${[['social','Redes sociais',redes.length],['demandas','Demandas',demandas.length],['pendencias','Pendências',pendencias.length]].map(([id,nome,total])=>`<button type="button" aria-pressed="${aba===id}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}','${id}')">${nome}<span>${id!=='social'&&aviso?'!':total}</span></button>`).join('')}</div>`:''}
