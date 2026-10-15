@@ -3,6 +3,7 @@ import { resolverMaterialBruto } from '../server/material-bruto.js';
 import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.js';
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
+import { listarAgendaProducao } from '../server/agenda-producao.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
@@ -1554,7 +1555,14 @@ async function areaGrupos(req, res, quem) {
   }
 }
 
-const AREAS = { grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+async function areaAgendaProducao(req,res,quem) {
+  if(req.method!=='GET') return res.status(405).json({error:'Método não permitido.'});
+  if(quem.tipo!=='servico' && !quem.pessoa?.admin) return res.status(403).json({error:'Só quem administra consulta a agenda de produção.'});
+  try { return res.status(200).json(await listarAgendaProducao(req.query?.dia)); }
+  catch(erro) { return res.status(erro.status || 502).json({error:erro.status===400 ? erro.message : 'Agenda de produção indisponível. Confira o acesso da conta de serviço ao Google Agenda e tente novamente.'}); }
+}
+
+const AREAS = { agenda_producao:areaAgendaProducao, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar };
 
 export default async function handler(req, res) {

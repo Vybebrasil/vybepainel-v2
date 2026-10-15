@@ -99,3 +99,22 @@ As novas colunas `sessao_versao` e `claim_token` são adições compatíveis.
 Rollback para versões antigas pode reativar webhooks e réplica: prefira hotfix.
 Código de importação e testes da fila histórica permanecem como referência,
 mas os endpoints de importação/reprocessamento estão encerrados.
+
+## Agenda de Produção nos resumos
+
+Produção consulta `/api/painel?area=agenda_producao&dia=AAAA-MM-DD`, somente
+para sessões administrativas. A API lê sete dias do Google Agenda, expande
+recorrências e traz gravações, captações e eventos com Mizinho no título. Eventos
+privados/cancelados não entram. Horários são convertidos para `America/Bahia`.
+
+A integração reutiliza `GOOGLE_SERVICE_ACCOUNT`, com token separado de leitura
+`calendar.events.readonly`; o escopo do Drive permanece separado. É necessário
+ativar a Google Calendar API no projeto da conta de serviço e compartilhar a
+agenda com o `client_email` dessa conta, permitindo ver detalhes dos eventos.
+O calendário padrão é `gestaovybe@gmail.com`; `GOOGLE_CALENDAR_ID` permite
+configurar outro calendário da agência. Nunca exponha a chave privada no navegador.
+O conector Google Calendar do chat não fornece credenciais para o aplicativo.
+
+Consulta ocorre ao selecionar Produção, sem polling. Agenda vazia gera mensagem
+própria; falha de acesso bloqueia a cópia até nova consulta bem-sucedida.
+Referência: [Google Calendar Events.list](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).

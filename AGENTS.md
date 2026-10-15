@@ -83,6 +83,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 - Não exponha segredos em código, logs, commits, screenshots ou respostas. Não
   altere schema/dados de produção sem migração revisável e autorização compatível.
 
+- Resumos internos: Criação lista o risco de furo do dia e até 4 demandas de
+  Reriston, 5 de Bia, 5 de Deivid e 5 de Jady. Aprovações de Deivid são extras.
+  Excedentes aparecem como contagem na próxima fila. Paulo, Vinícius e Ewerton L.
+  vão para Atendimento e Planejamento. Produção usa o Google Agenda para as
+  gravações de Mizinho, nunca prazo/veiculação como substituto de gravação.
+
 ## Direção visual
 
 - Preserve a identidade Vybe: laranja, logo oficial, cartões com cores próprias,
