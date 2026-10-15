@@ -788,7 +788,7 @@ function renderByDay(sem, filter, dayFilter) {
           onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
         <div class="day-activity-content"><div class="day-activity-main">
           <button type="button" class="item-name item-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir detalhes da atividade">${safeText(d.nome)}</button>
-          <div class="day-activity-caption"><span>${clientesDoItem(d).map(safeText).join(' / ')||'Sem cliente'}</span>${d.formato?`<span>${safeText(d.formato)}</span>`:''}${aba==='pendencias'?`<span class="day-pending-date">${data?'Entrega '+data.split('-').reverse().join('/'):'Sem data'}</span>`:''}</div>
+          <div class="day-activity-caption"><span class="day-activity-clients">${clientesDoItem(d).map(nome=>tagClienteHtml(nome)).join(' ')||'Sem cliente'}</span>${d.formato?`<span>${safeText(d.formato)}</span>`:''}${aba==='pendencias'?`<span class="day-pending-date">${data?'Entrega '+data.split('-').reverse().join('/'):'Sem data'}</span>`:''}</div>
         </div><div class="day-activity-actions">${managerStatusControl(d,{comTempo:false})}${ownerEditorTrigger(d,'manager-owner-trigger')}</div></div>
       </div>`;
     };
