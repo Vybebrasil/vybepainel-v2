@@ -30,21 +30,23 @@ function credenciais() {
 const base64url = (b) => Buffer.from(b).toString('base64')
   .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-let tokenCache = { valor: null, expira: 0 };
+const tokensGoogle = new Map();
 
-async function token() {
+export async function tokenGoogle(escopo = ESCOPO) {
   exigirIntegracoesAtivas();
-  if (tokenCache.valor && Date.now() < tokenCache.expira - 60_000) return tokenCache.valor;
+  const tokenCache = tokensGoogle.get(escopo);
+  if (tokenCache?.valor && Date.now() < tokenCache.expira - 60_000) return tokenCache.valor;
   const c = credenciais();
   const agora = Math.floor(Date.now() / 1000);
   const cabeca = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const corpo = base64url(JSON.stringify({
-    iss: c.client_email, scope: ESCOPO, aud: TOKEN_URL, iat: agora, exp: agora + 3600,
+    iss: c.client_email, scope: escopo, aud: TOKEN_URL, iat: agora, exp: agora + 3600,
   }));
   const assinatura = base64url(createSign('RSA-SHA256').update(`${cabeca}.${corpo}`).sign(c.private_key));
 
   const r = await fetch(TOKEN_URL, {
     method: 'POST',
+    signal: AbortSignal.timeout(10000),
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -53,9 +55,11 @@ async function token() {
   });
   const d = await r.json();
   if (!r.ok) throw new Error(`Google recusou a credencial: ${d.error_description || d.error || r.status}`);
-  tokenCache = { valor: d.access_token, expira: Date.now() + d.expires_in * 1000 };
+  tokensGoogle.set(escopo, { valor: d.access_token, expira: Date.now() + d.expires_in * 1000 });
   return d.access_token;
 }
+
+const token = () => tokenGoogle();
 
 async function drive(caminho, opcoes = {}) {
   const r = await fetch(`https://www.googleapis.com/drive/v3/${caminho}`, {

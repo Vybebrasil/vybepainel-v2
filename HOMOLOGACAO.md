@@ -282,3 +282,10 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Inclui pendências antigas/sem data e próximos dois dias; mantém datas próprias das solicitações. Finalizado de conteúdo representa pronto para agendar, sem afirmar publicação. Produção usa dados do painel, sem horários do Google Agenda.
 - `npm run check` aprovado (296 testes e build); após pequenos ajustes de texto e preservação de edição, cinco testes do resumo, sintaxe e build aprovados. `git diff --check` aprovado.
 - Navegador local em desktop e 390 px: seleção de destino, revisão preservada ao alternar, cópia exata e console sem erros. Sem gravação de produção. Não publicado.
+
+## 15/10/2026 — Filas de Criação e agenda real de Produção (local)
+- Criação: risco de furo do dia; 4 demandas de Reriston e 5 por pessoa de Bia, Deivid e Jady. Aprovações de Deivid fora da cota; excedentes como contagem. Riscos do dia têm prioridade nas filas.
+- Atendimento e Planejamento: pendências de Paulo, Vinícius e Ewerton L. Nomes dos grupos padronizados sem prefixo Vybe.
+- Produção: consulta dedicada, somente leitura, à agenda da agência para sete dias de gravações/captações/Mizinho. Recorrências, paginação, horários de Brasília, eventos de dia inteiro e falhas explícitas. Sem escrita no Google nem no banco.
+- A consulta real pelo conector confirmou agenda e eventos existentes, mas não valida o acesso da conta de serviço do aplicativo. Compartilhamento da agenda e Calendar API precisam estar habilitados antes de validar em preview. Nenhuma credencial ou fixture real foi incorporada ao código.
+- Check completo: 301 testes e build passaram. Depois dos ajustes finais, regressões específicas de quotas, separação de grupos, Google, autenticação por escopo e respostas fora de ordem passaram. Verificação local do acesso real à agenda pendente de configuração externa.

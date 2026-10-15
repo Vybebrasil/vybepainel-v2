@@ -832,40 +832,91 @@ let ORDEM_VISIVEL_DO_DIA = [];
 // O mesmo gerador oferece uma mensagem revisável para cada destino interno.
 let dailySummaryMessages = [];
 let dailySummarySelected = 'geral';
+let dailySummaryDate = '';
+let dailySummaryOpening = 0;
 function buildDailySummary(dayIso) {
   const conteudos = (typeof DADOS_ALL !== 'undefined' && DADOS_ALL.length ? DADOS_ALL : DADOS) || [];
   const solicitacoes = panelMode === 'gestor' ? (DADOS_DEMANDAS || []).map(normalizeRequestForOperational) : [];
   return resumosPorGrupo([...conteudos, ...solicitacoes].filter(itemNaCarteira), dayIso,
-    { statusDe: operationalFlowStatus, clientesDe: clientesDoItem, reristonId: PESSOAS.RERISTON });
+    { statusDe: operationalFlowStatus, clientesDe: clientesDoItem, equipe:[
+      {id:PESSOAS.RERISTON,nome:'Reriston',limite:4},
+      {id:PESSOAS.BEATRIZ,nome:'Bia',limite:5,nomeCompleto:'Beatriz'},
+      {id:PESSOAS.DEIVID,nome:'Deivid',limite:5,aprovacoesExtras:true},
+      {id:PESSOAS.JADY,nome:'Jady',limite:5},
+      {id:PESSOAS.PAULO,nome:'Paulo',grupo:'atendimento'},
+      {id:PESSOAS.VINICIUS,nome:'Vinícius',grupo:'atendimento'},
+      {id:PESSOAS.EWERTON_L,nome:'Ewerton',grupo:'atendimento'},
+    ] });
 }
-function selectDailySummary() {
+async function selectDailySummary() {
   const grupo = document.getElementById('daily-summary-group')?.value;
   const mensagem = dailySummaryMessages.find(m=>m.id===grupo);
   const area = document.getElementById('daily-summary-preview');
   const anterior = dailySummaryMessages.find(m=>m.id===dailySummarySelected);
-  if(area && anterior) anterior.texto=area.value;
+  if(area && anterior && (!anterior.agenda || anterior.pronta)) anterior.texto=area.value;
   if(area && mensagem) area.value=mensagem.texto;
   dailySummarySelected=grupo;
+  const copiar=document.getElementById('daily-summary-copy');
+  const aviso=document.getElementById('daily-summary-agenda-status');
+  if(copiar) copiar.disabled=!!mensagem?.agenda && !mensagem.pronta;
+  if(aviso) aviso.hidden=!mensagem?.agenda;
+  if(mensagem?.agenda && !mensagem.pronta) await loadDailySummaryAgenda();
+}
+async function loadDailySummaryAgenda() {
+  const mensagens=dailySummaryMessages;
+  const mensagem=mensagens.find(m=>m.id==='producao');
+  if(!mensagem || mensagem.carregando) return;
+  mensagem.carregando=true;
+  mensagem.pronta=false;
+  const dia=dailySummaryDate;
+  if(dailySummarySelected==='producao') { const botao=document.getElementById('daily-summary-copy'); if(botao) botao.disabled=true; }
+  const mostrar=texto=>{ if(dailySummaryMessages===mensagens && dailySummarySelected==='producao') {
+    const area=document.getElementById('daily-summary-preview'); if(area) area.value=texto;
+  }};
+  mensagem.texto='Consultando gravações no Google Agenda…';
+  mostrar(mensagem.texto);
+  try {
+    const resposta=await fetch(`/api/painel?area=agenda_producao&dia=${encodeURIComponent(dia)}`,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(25000)});
+    const corpo=await resposta.json();
+    if(!resposta.ok || !corpo.ok || !Array.isArray(corpo.eventos)) throw new Error(corpo.error || 'Não foi possível consultar a agenda.');
+    mensagem.texto=resumoProducaoAgenda(corpo.eventos,dia);
+    mensagem.pronta=true;
+    mostrar(mensagem.texto);
+  } catch(erro) {
+    mensagem.texto=`Agenda indisponível: ${erro.message}. Nenhum resumo de Produção foi gerado. Use “Consultar agenda novamente” para tentar outra vez.`;
+    mostrar(mensagem.texto);
+  } finally {
+    mensagem.carregando=false;
+    if(dailySummaryMessages===mensagens && dailySummarySelected==='producao') {
+      const copiar=document.getElementById('daily-summary-copy'); if(copiar) copiar.disabled=!mensagem.pronta;
+    }
+  }
 }
 async function openDailySummary(dayIso) {
+  const abertura=++dailySummaryOpening;
   if (panelMode === 'gestor') {
     await ensureDemandasForOperationalViews();
     if (unifiedDemandasState !== 'ready' || unifiedDemandasLoading) {
       return showToast('As solicitações ainda não estão disponíveis. Atualize o painel e tente novamente.','err',6000);
     }
   }
+  if(abertura!==dailySummaryOpening) return;
+  dailySummaryDate=dayIso;
   dailySummaryMessages=buildDailySummary(dayIso);
   dailySummarySelected='geral';
   openWorkflowModal(`<div class="workflow-kicker"><span>Comunicação interna · ${safeText(resumoDiaCurto(dayIso))}</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar resumo">×</button></div>
     <h2 class="workflow-title">Resumo por grupo</h2>
-    <p class="daily-summary-meta">Escolha o destino, revise e copie. Usa a carteira selecionada e os dados carregados no painel, incluindo pendências antigas e os próximos dois dias. A busca e os filtros da lista não limitam este resumo. Nada é enviado automaticamente.</p>
+    <p class="daily-summary-meta">Escolha o destino, revise e copie. As filas usam a carteira selecionada e as atividades em aberto do painel. Publicações também antecipa os próximos dois dias. A busca e os filtros da lista não limitam este resumo. Nada é enviado automaticamente.</p>
     <label class="workflow-field"><span>Grupo do WhatsApp</span><select id="daily-summary-group" onchange="selectDailySummary()">${dailySummaryMessages.map(m=>`<option value="${m.id}">${safeText(m.nome)}</option>`).join('')}</select></label>
-    <p class="daily-summary-meta">Conteúdos usam veiculação; solicitações usam conclusão ou prazo. Finalizado indica pronto para agendar; publicado só é informado com status explícito. Produção não inclui horários do Google Agenda.</p>
+    <p class="daily-summary-meta">Conteúdos usam veiculação; solicitações usam conclusão ou prazo. Finalizado indica pronto para agendar; publicado só é informado com status explícito. Produção consulta gravações no Google Agenda. Criação: design com 5 demandas por pessoa; editor com 4. Aprovações de Deivid entram à parte.</p>
+    <p id="daily-summary-agenda-status" class="daily-summary-meta" hidden>Gravações e captações dos próximos 7 dias · horário de Brasília. <button type="button" class="workflow-secondary" onclick="loadDailySummaryAgenda()">Consultar agenda novamente</button></p>
     <textarea id="daily-summary-preview" class="daily-summary-preview" aria-label="Mensagem para revisar e copiar">${safeText(dailySummaryMessages[0].texto)}</textarea>
-    <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" class="workflow-primary" onclick="copyDailySummary()">Copiar mensagem</button></div>`);
+    <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" id="daily-summary-copy" class="workflow-primary" onclick="copyDailySummary()">Copiar mensagem</button></div>`);
 }
 async function copyDailySummary() {
   const area=document.getElementById('daily-summary-preview'); if(!area) return;
+  const mensagem=dailySummaryMessages.find(m=>m.id===dailySummarySelected);
+  if(mensagem?.agenda && !mensagem.pronta) return showToast('Aguarde a consulta da agenda antes de copiar.','info');
   const text=area.value;
   try {
     if(navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
