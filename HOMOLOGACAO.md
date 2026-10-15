@@ -275,3 +275,10 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Vínculos e carteira gravados na mesma transação, com bloqueio do cliente, validação e rollback.
 - 296 testes, build e diff aprovados. PGlite cobriu persistência, ordem, duplicados, IDs inválidos, inativos, rollback e migração idempotente dos cadastros antigos.
 - Seletor conferido na demonstração local, explicação visível e console sem erros. Migração de produção pendente da publicação.
+
+## 15/10/2026 — Resumos por grupo do WhatsApp (local)
+- Gerador existente agora prepara Geral, VYBE · Criação, Saída de Publicações, Produção e Correção. Mensagens editáveis e independentes, com cópia manual. Sem IA ou envio externo.
+- Reriston recebe destaque de até quatro atividades; restante fica explicitamente na próxima fila. Compartilhadas aparecem em cada responsável, com totais gerais por atividade.
+- Inclui pendências antigas/sem data e próximos dois dias; mantém datas próprias das solicitações. Finalizado de conteúdo representa pronto para agendar, sem afirmar publicação. Produção usa dados do painel, sem horários do Google Agenda.
+- `npm run check` aprovado (296 testes e build); após pequenos ajustes de texto e preservação de edição, cinco testes do resumo, sintaxe e build aprovados. `git diff --check` aprovado.
+- Navegador local em desktop e 390 px: seleção de destino, revisão preservada ao alternar, cópia exata e console sem erros. Sem gravação de produção. Não publicado.
