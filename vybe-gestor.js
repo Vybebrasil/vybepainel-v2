@@ -682,6 +682,17 @@ function adicionarDemandaNoDia(dateIso) {
 }
 
 const abasPendenciasDia = new Map();
+const diasExpandidos = new Set();
+function alternarExpansaoDoDia(iso, botao) {
+  const expandido=!diasExpandidos.has(iso);
+  if(expandido) diasExpandidos.add(iso); else diasExpandidos.delete(iso);
+  const cartao=botao.closest('.day-scroll-card');
+  if(!cartao) return;
+  cartao.classList.toggle('day-expanded',expandido);
+  botao.setAttribute('aria-expanded',String(expandido));
+  botao.textContent=expandido?'Recolher dia':`Ver todas as ${botao.dataset.total} atividades`;
+}
+
 function selecionarAbaDoDia(sem, iso, pendencias) {
   abasPendenciasDia.set(iso, pendencias);
   renderByDay(sem, currentFilter, currentDayFilter);
@@ -804,7 +815,7 @@ function renderByDay(sem, filter, dayFilter) {
     }).join('');
     const modeIcon = '';
     const progressColor = dayPct === 100 ? '#00ff88' : dayPct >= 50 ? '#ff6b00' : '#ffbd2e';
-    return `<div class="client-card dia-solta" style="margin-bottom:12px;" data-date="${dia.iso}"
+    return `<div class="client-card dia-solta day-scroll-card${diasExpandidos.has(dia.iso)?' day-expanded':''}" style="margin-bottom:12px;" data-date="${dia.iso}"
       ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)"
       ondrop="soltarNoDia('${dia.iso}',event,this)">
       <div class="client-header">
@@ -822,7 +833,8 @@ function renderByDay(sem, filter, dayFilter) {
         <button type="button" class="${pendencias.length?'has-pending':''}" aria-pressed="${mostrarPendencias}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}',true)">Pendências <span>${avisoPendencias ? '!' : pendencias.length}</span></button>
       </div>` : ''}
       ${mostrarPendencias ? `<p class="day-pending-note">Solicitações abertas anteriores a ${dia.iso.split('-').reverse().join('/')} ou sem data. As datas originais são preservadas.</p>` : ''}
-      <div class="item-list">${mostrarPendencias && avisoPendencias ? `<p class="day-pending-note" role="status">${avisoPendencias}<button type="button" class="day-summary-btn" onclick="ensureDemandasForOperationalViews(true)">Atualizar solicitações</button></p>` : ''}${rows || `<p class="day-pending-note">${mostrarPendencias ? (avisoPendencias ? '' : 'Nenhuma pendência nos filtros atuais.') : 'Nenhuma atividade neste dia. Adicione uma demanda ou arraste uma peça para cá.'}</p>`}</div>
+      <div class="item-list day-activity-scroll" id="atividades-dia-${sem}-${dia.iso}" role="region" aria-label="Lista de atividades de ${dia.iso.split('-').reverse().join('/')}" tabindex="0">${mostrarPendencias && avisoPendencias ? `<p class="day-pending-note" role="status">${avisoPendencias}<button type="button" class="day-summary-btn" onclick="ensureDemandasForOperationalViews(true)">Atualizar solicitações</button></p>` : ''}${rows || `<p class="day-pending-note">${mostrarPendencias ? (avisoPendencias ? '' : 'Nenhuma pendência nos filtros atuais.') : 'Nenhuma atividade neste dia. Adicione uma demanda ou arraste uma peça para cá.'}</p>`}</div>
+      ${exibidos.length>6 ? `<div class="day-expansion-footer"><button type="button" class="day-summary-btn day-expand-btn" data-total="${exibidos.length}" aria-controls="atividades-dia-${sem}-${dia.iso}" aria-expanded="${diasExpandidos.has(dia.iso)}" onclick="alternarExpansaoDoDia('${dia.iso}',this)">${diasExpandidos.has(dia.iso)?'Recolher dia':`Ver todas as ${exibidos.length} atividades`}</button><span>Role dentro do dia ou expanda a lista.</span></div>` : ''}
     </div>`;
   }).join('');
   // O dock e o MESMO da visao de Grupos e agora mora no corpo da pagina, uma vez
