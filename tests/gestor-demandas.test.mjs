@@ -49,3 +49,32 @@ test('pendências respeitam o modo de data, carteira, pessoas e status',()=>{
  assert.deepEqual(Array.from(c.pendenciasSolicitacoesDoDia('2026-09-09','status:A Fazer'),d=>d.id),['a']);
  assert.equal(c.pendenciasSolicitacoesDoDia('2026-09-09','status:Em execução').length,0);
 });
+
+test('abas separam redes, entregas e pendências sem duplicar clientes nem misturar progresso',()=>{
+ const c=contexto();
+ const itens=[{id:'c1',clientes:['A','B'],status:'Finalizado'}, {id:'c2',status:'A Fazer'},
+ {id:'d1',origem:'solicitacao',status:'Feito'}, {id:'d2',origem:'solicitacao',status:'Em execução'}];
+ const pendencias=[{id:'d0',origem:'solicitacao',status:'A Fazer'}];
+ const redes=c.listasDoCartaoDia(itens,pendencias,'social');
+ assert.deepEqual(Array.from(redes.lista,i=>i.id),['c1','c2']);
+ assert.equal(redes.concluidas.length,1);assert.equal(redes.abertas.length,1);
+ const demandas=c.listasDoCartaoDia(itens,pendencias,'demandas');
+ assert.deepEqual(Array.from(demandas.lista,i=>i.id),['d1','d2']);
+ assert.equal(demandas.concluidas.length,1);
+ assert.deepEqual(Array.from(c.listasDoCartaoDia(itens,pendencias,'pendencias').lista,i=>i.id),['d0']);
+});
+
+test('entregas de solicitações usam conclusão ou prazo e nunca a veiculação importada',()=>{
+ const c=contexto();
+ const item={origem:'solicitacao',conclusao_iso:'2026-10-16',prazo_iso:'2026-10-15',veiculacao_iso:'2026-12-01'};
+ assert.equal(c.dataDoCartaoDia(item),'2026-10-16');
+ assert.equal(c.dataDoCartaoDia({...item,conclusao_iso:''}),'2026-10-15');
+ c.dateMode='prazo';assert.equal(c.dataDoCartaoDia(item),'2026-10-15');
+});
+
+test('status da lista diária não gera cronômetro quando solicitado',()=>{
+ const c=contexto();
+ vm.runInContext("pillHtml=()=>'<span>A Fazer</span>';safeText=v=>String(v)",c);
+ const html=c.managerStatusControl({id:'c1',nome:'Atividade',status:'A Fazer',status_updated_at:'2026-10-15T08:00:00Z'},{comTempo:false});
+ assert.match(html,/openStatusEditor/);assert.doesNotMatch(html,/live-timer|00:00:00/);
+});

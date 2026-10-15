@@ -139,3 +139,16 @@ preserva a lista da manhã no snapshot existente do Diário. Atualizações post
 não substituem essa base. O fechamento compara seus IDs com o estado atual,
 informa remanejados e itens não localizados; sem base histórica, o percentual é
 explicitamente provisório. Não há reconstrução retroativa da lista da manhã.
+
+## Agenda diária por tipo de trabalho
+
+Cada dia separa Redes sociais, Demandas e Pendências. Os contadores e o progresso
+usam apenas as atividades da aba selecionada, respeitando os filtros ativos.
+No modo padrão, redes sociais usam veiculação e solicitações usam conclusão prevista
+com fallback para prazo; o modo Prazo continua explícito no cabeçalho do cartão.
+Pendências reúne solicitações abertas anteriores ao dia ou sem data, sem remarcá-las.
+
+As concluídas ficam recolhidas, preservando a abertura por dia e aba durante a
+sessão. Cronômetros e ações de arquivo/data ficam nos detalhes da atividade;
+status e responsáveis continuam disponíveis na lista. O menu Ações reutiliza o
+cadastro existente com quadro e data de contexto, além de Gerar resumo.

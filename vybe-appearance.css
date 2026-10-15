@@ -111,7 +111,7 @@ body.vybe-desktop {
   .conta-secao-topo,.cli-bloco-cabeca,.workspace-section-head,.fc-prev-head) {
   background: #ffffff04 !important; border-color: #ffffff12 !important; color: #e6e8ee !important;
 }
-.vybe-desktop .client-header { padding: 15px 16px !important; gap: 12px; flex-wrap: wrap; }
+.vybe-desktop .client-header { padding: var(--day-header-padding,15px 16px) !important; gap: 12px; flex-wrap: wrap; }
 .vybe-desktop .client-name { letter-spacing: -.015em; font-weight: 600 !important; }
 .vybe-desktop .day-header-actions { flex-wrap: wrap; gap: 8px; }
 .vybe-desktop .day-summary-btn { border-radius: 9px !important; min-height: 30px; padding: 5px 9px !important; font-weight: 500 !important; }
