@@ -73,3 +73,23 @@ test('credencial ausente produz diagnóstico seguro antes de consultar o Google'
     else process.env.GOOGLE_SERVICE_ACCOUNT=anterior;
   }
 });
+
+test('diagnóstico permite somente identidade técnica, nunca chave, tokens ou conteúdo arbitrário',async()=>{
+  const {configuracaoAgenda}=await import('../server/agenda-producao.js');
+  const anterior=process.env.GOOGLE_SERVICE_ACCOUNT;
+  try {
+    process.env.GOOGLE_SERVICE_ACCOUNT=JSON.stringify({client_email:'robot@vybe.iam.gserviceaccount.com',project_id:'vybe-test',private_key:'segredo-ficticio',access_token:'token-ficticio'});
+    const d=configuracaoAgenda();
+    assert.equal(d.conta_servico,'robot@vybe.iam.gserviceaccount.com');
+    assert.equal(d.projeto,'vybe-test');
+    assert.doesNotMatch(JSON.stringify(d),/segredo|token|private_key/);
+    process.env.GOOGLE_SERVICE_ACCOUNT=JSON.stringify({client_email:'segredo-ficticio',project_id:'<script>'});
+    assert.equal(configuracaoAgenda().conta_servico,null);
+    assert.equal(configuracaoAgenda().projeto,null);
+    process.env.GOOGLE_SERVICE_ACCOUNT='invalido';
+    assert.equal(configuracaoAgenda().conta_servico,null);
+  } finally {
+    if(anterior===undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT;
+    else process.env.GOOGLE_SERVICE_ACCOUNT=anterior;
+  }
+});

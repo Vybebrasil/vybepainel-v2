@@ -1,6 +1,13 @@
 import { tokenGoogle } from '../vybe_drive.js';
 const FUSO = 'America/Bahia';
 const ESCOPO = 'https://www.googleapis.com/auth/calendar.events.readonly';
+export function configuracaoAgenda() {
+  let conta={};
+  try {conta=JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT || '{}');} catch {}
+  return {agenda:process.env.GOOGLE_CALENDAR_ID || 'gestaovybe@gmail.com',
+    conta_servico:typeof conta.client_email==='string' && /^[a-zA-Z0-9._+-]+@[a-zA-Z0-9.-]+\.gserviceaccount\.com$/.test(conta.client_email)?conta.client_email:null,
+    projeto:typeof conta.project_id==='string' && /^[a-z0-9-]+$/.test(conta.project_id)?conta.project_id:null};
+}
 const normal = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const dataLocal = v => new Intl.DateTimeFormat('en-CA', { timeZone:FUSO,year:'numeric',month:'2-digit',day:'2-digit' }).format(new Date(v));
 const horaLocal = v => new Intl.DateTimeFormat('pt-BR', { timeZone:FUSO,hour:'2-digit',minute:'2-digit',hourCycle:'h23' }).format(new Date(v));
