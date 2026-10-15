@@ -807,7 +807,7 @@ function renderByDay(sem, filter, dayFilter) {
         <div class="client-name">${modeIcon} ${dia.label} — ${String(new Date(dia.iso+'T12:00:00').getDate()).padStart(2,'0')}/${String(new Date(dia.iso+'T12:00:00').getMonth()+1).padStart(2,'0')}</div>
         <div class="day-header-actions">
           ${adicionarBtn}
-          <button type="button" class="day-summary-btn" onclick="openDailySummary('${dia.iso}')" title="Gerar mensagem copiável para o grupo de Criação">◈ Gerar resumo</button>
+          <button type="button" class="day-summary-btn" onclick="openDailySummary('${dia.iso}')" title="Gerar mensagens por grupo do WhatsApp">◈ Gerar resumo</button>
           <span class="count-badge ok">${conteudosDoDia} conteúdo${conteudosDoDia===1?'':'s'} · ${demandasDoDia} demanda${demandasDoDia===1?'':'s'}</span>
           <span style="font-size:10px;color:${progressColor};font-weight:700;">${dayDone}/${dayItems.length}</span>
         </div>
@@ -829,26 +829,40 @@ function renderByDay(sem, filter, dayFilter) {
 // shift+clique de uma linha precisa saber o que veio antes e depois DELA nesta
 // tela, e nao na visao de Grupos.
 let ORDEM_VISIVEL_DO_DIA = [];
-// O texto do resumo mora em vybe-resumo.js (resumoDoDiaTexto). Aqui só se
-// escolhe de onde vêm as peças: todo o quadro, não só a semana carregada —
-// as atrasadas de dias anteriores podem ser de outra semana — e, no Gestor,
-// também as solicitações.
+// O mesmo gerador oferece uma mensagem revisável para cada destino interno.
+let dailySummaryMessages = [];
+let dailySummarySelected = 'geral';
 function buildDailySummary(dayIso) {
-  const referencia = dateMode === 'prazo' ? 'Prazo' : 'Veiculação';
   const conteudos = (typeof DADOS_ALL !== 'undefined' && DADOS_ALL.length ? DADOS_ALL : DADOS) || [];
   const solicitacoes = panelMode === 'gestor' ? (DADOS_DEMANDAS || []).map(normalizeRequestForOperational) : [];
-  const vistos = new Set();
-  const itens = [...conteudos, ...solicitacoes].filter(itemNaCarteira).filter((item) => {
-    const id = String(item.id);
-    if (vistos.has(id)) return false;
-    vistos.add(id);
-    return true;
-  });
-  return resumoDoDiaTexto(itens, dayIso, { referencia, dataDe: getDateIso, statusDe: operationalFlowStatus });
+  return resumosPorGrupo([...conteudos, ...solicitacoes].filter(itemNaCarteira), dayIso,
+    { statusDe: operationalFlowStatus, clientesDe: clientesDoItem, reristonId: PESSOAS.RERISTON });
 }
-function openDailySummary(dayIso) {
-  const summary=buildDailySummary(dayIso);
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Comunicação operacional</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Resumo do dia para Criação</h2><p class="daily-summary-meta">A mensagem separa as peças do dia por etapa — alterar, travado, executar, aprovação, postar, agendado e já postado — e lista as atrasadas de dias anteriores. Ela não envia nada: revise e copie para o grupo do WhatsApp quando estiver pronto.</p><textarea id="daily-summary-preview" class="daily-summary-preview" readonly aria-label="Mensagem de resumo diário">${safeText(summary)}</textarea><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" class="workflow-primary" onclick="copyDailySummary()">Copiar para WhatsApp →</button></div>`);
+function selectDailySummary() {
+  const grupo = document.getElementById('daily-summary-group')?.value;
+  const mensagem = dailySummaryMessages.find(m=>m.id===grupo);
+  const area = document.getElementById('daily-summary-preview');
+  const anterior = dailySummaryMessages.find(m=>m.id===dailySummarySelected);
+  if(area && anterior) anterior.texto=area.value;
+  if(area && mensagem) area.value=mensagem.texto;
+  dailySummarySelected=grupo;
+}
+async function openDailySummary(dayIso) {
+  if (panelMode === 'gestor') {
+    await ensureDemandasForOperationalViews();
+    if (unifiedDemandasState !== 'ready' || unifiedDemandasLoading) {
+      return showToast('As solicitações ainda não estão disponíveis. Atualize o painel e tente novamente.','err',6000);
+    }
+  }
+  dailySummaryMessages=buildDailySummary(dayIso);
+  dailySummarySelected='geral';
+  openWorkflowModal(`<div class="workflow-kicker"><span>Comunicação interna · ${safeText(resumoDiaCurto(dayIso))}</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar resumo">×</button></div>
+    <h2 class="workflow-title">Resumo por grupo</h2>
+    <p class="daily-summary-meta">Escolha o destino, revise e copie. Usa a carteira selecionada e os dados carregados no painel, incluindo pendências antigas e os próximos dois dias. A busca e os filtros da lista não limitam este resumo. Nada é enviado automaticamente.</p>
+    <label class="workflow-field"><span>Grupo do WhatsApp</span><select id="daily-summary-group" onchange="selectDailySummary()">${dailySummaryMessages.map(m=>`<option value="${m.id}">${safeText(m.nome)}</option>`).join('')}</select></label>
+    <p class="daily-summary-meta">Conteúdos usam veiculação; solicitações usam conclusão ou prazo. Finalizado indica pronto para agendar; publicado só é informado com status explícito. Produção não inclui horários do Google Agenda.</p>
+    <textarea id="daily-summary-preview" class="daily-summary-preview" aria-label="Mensagem para revisar e copiar">${safeText(dailySummaryMessages[0].texto)}</textarea>
+    <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" class="workflow-primary" onclick="copyDailySummary()">Copiar mensagem</button></div>`);
 }
 async function copyDailySummary() {
   const area=document.getElementById('daily-summary-preview'); if(!area) return;
@@ -856,7 +870,8 @@ async function copyDailySummary() {
   try {
     if(navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
     else { area.focus(); area.select(); if(!document.execCommand('copy')) throw new Error('A cópia não foi autorizada pelo navegador.'); }
-    showToast('✓ Resumo copiado. Cole no grupo de Criação no WhatsApp.','ok',5000);
+    const nome=dailySummaryMessages.find(m=>m.id===document.getElementById('daily-summary-group')?.value)?.nome || 'escolhido';
+    showToast(`Resumo copiado. Cole no grupo ${nome}.`,'ok',5000);
   } catch(error) { area.focus(); area.select(); showToast('Selecione e copie manualmente a mensagem.','info',5000); }
 }
 

@@ -778,7 +778,7 @@
     .day-header-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end }
     .day-add-btn { border-color:rgba(255,107,0,.42);background:rgba(255,107,0,.08);color:#ffab70 }
     .day-add-btn:hover { background:rgba(255,107,0,.18) }
-    .daily-summary-preview { width:100%;min-height:285px;resize:vertical;background:#080b10;color:#eaf6ff;border:1px solid rgba(0,240,255,.25);border-radius:8px;padding:12px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+    .daily-summary-preview { width:100%;min-height:260px;max-height:45dvh;resize:vertical;overflow:auto;background:var(--vybe-surface,#17191f);color:var(--vybe-text,#eaf6ff);border:1px solid var(--vybe-line-quiet,rgba(255,255,255,.14));border-radius:14px;padding:16px;font:13px/1.65 var(--mac-ui);white-space:pre-wrap;box-sizing:border-box }
     .daily-summary-meta { color:var(--text-muted);font-size:12px;line-height:1.45;margin:-4px 0 14px}
     .owner-editor-trigger { display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;padding:0;border:0;background:transparent;cursor:pointer;border-radius:999px;position:relative}
     .owner-editor-trigger:hover { filter:brightness(1.12);transform:translateY(-1px)}
