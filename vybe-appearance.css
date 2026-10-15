@@ -41,8 +41,8 @@ body.vybe-desktop {
 
 /* Barras de ferramentas: vidro em áreas compactas, sem desfocar cada linha. */
 .vybe-desktop > header {
-  background: var(--glass) !important;
-  border: 1px solid var(--glass-edge) !important;
+  background: linear-gradient(110deg,#ff8b37,#f37622) !important;
+  border: 1px solid #ffab66 !important;
   border-radius: 0 0 var(--radius-window) var(--radius-window);
   padding: 18px 26px 16px !important;
   box-shadow: var(--glass-highlight), 0 8px 30px #0002 !important;
@@ -50,24 +50,24 @@ body.vybe-desktop {
   -webkit-backdrop-filter: blur(24px) saturate(1.35);
 }
 .vybe-desktop .header-title h1 { font-size: 17px !important; letter-spacing: -.035em; }
-.vybe-desktop .header-title p { color: var(--text-muted) !important; font-size: 12px !important; }
+.vybe-desktop .header-title p { color: #542b14 !important; font-size: 12px !important; }
 .vybe-desktop .header-left { background: transparent !important; border: 0 !important; box-shadow: none !important; }
 .vybe-desktop .logo { width: 52px; height: 46px; border-radius: 13px; background: linear-gradient(145deg,#ffab61,#e86a25) !important; animation: none !important; box-shadow: inset 0 1px 0 #ffffff60,0 4px 14px #ff7b2420 !important; }
 .vybe-desktop .logo img { width: 43px; height: 29px; object-fit: contain; }
 .vybe-desktop .board-switch-bar {
   max-width: 100%; min-width: 0; padding: 4px !important; gap: 3px !important;
   border-radius: 14px !important; border: 1px solid #ffffff16 !important;
-  background: #0d0e143d !important; overflow-x: auto;
+  background: #692d1012 !important; overflow-x: auto;
 }
 .vybe-desktop .board-switch-btn {
   min-height: 36px; border-radius: 10px !important; padding: 8px 12px !important;
-  font-size: 12px !important; font-weight: 500 !important; color: #bec2cd !important;
+  font-size: 12px !important; font-weight: 500 !important; color: #3d210f !important;
   background: transparent !important; border: 0 !important; white-space: nowrap;
   transition: background .2s, color .2s, box-shadow .2s !important;
 }
 .vybe-desktop .board-switch-btn:hover { background: #ffffff0d !important; color: white !important; }
 .vybe-desktop .board-switch-btn.active {
-  color: #fff !important; background: color-mix(in srgb,var(--workspace-accent) 26%,#30313b) !important;
+  color: #3d210f !important; background: #fff2de !important;
   box-shadow: inset 0 1px 0 #ffffff30,0 2px 7px #0003 !important;
 }
 .vybe-desktop :is(.mes-nav,.badge,.quem-sou-btn,.mode-switch-btn,.notif-sino,.btn-refresh,.appearance-button) {
@@ -80,7 +80,7 @@ body.vybe-desktop {
 .appearance-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; white-space: nowrap; }
 .appearance-button svg { width: 16px; height: 16px; }
 
-/* Cabeçalho numa barra só, como a barra unificada do macOS 27: marca à esquerda,
+/* Cabeçalho com hierarquia entre navegação e ferramentas: marca à esquerda,
    ferramentas à direita. Onde não cabe — as abas do Gestor ocupam muito — a barra
    quebra para uma segunda linha em vez de espremer ou cortar. */
 .vybe-desktop > header { flex-direction: row !important; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 10px; }
@@ -1483,3 +1483,57 @@ body.vybe-desktop {
 .cartao-rapido .cr-recursos .brief-abrir { padding:12px; }
 .cartao-rapido .cr-recursos .brief-abrir-copy b { font-size:14px; }
 .cartao-rapido .cr-recursos .brief-abrir-trecho { font-size:12px; max-height:54px; overflow:hidden; }
+
+/* Camada do aplicativo: escopo explícito para não alterar cabeçalhos de modais.
+   As regras legadas usam !important; estes seletores limitam a nova hierarquia. */
+.vybe-desktop > .app-header .header-title h1 {color:#351c0f!important}
+.vybe-desktop > .app-header .header-row1 {flex-basis:100%}
+.vybe-desktop > .app-header .header-row2 {gap:8px}
+.vybe-desktop > .app-header .board-switch-bar {border-color:#57270f20!important}
+.vybe-desktop > .app-header .board-switch-btn:hover {color:#351c0f!important;background:#fff4df60!important}
+.vybe-desktop > .app-header .header-row2 :is(.quem-sou-btn,.notif-sino,.appearance-button) {color:#351c0f!important;border-color:#52270c25!important;background:#fff3dc35!important;box-shadow:none!important}
+.header-utilities {position:relative}
+.header-utilities > summary {cursor:pointer;list-style:none;padding:8px 12px;border-radius:9px;background:#53260d14;color:#351c0f;font-weight:600}
+.header-utilities-menu {position:absolute;right:0;top:calc(100% + 8px);z-index:150;min-width:215px;padding:10px;display:grid;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 32px #0005}
+.vybe-desktop > .app-header .header-utilities-menu .appearance-button {color:var(--text)!important;background:var(--surface2)!important}
+.workspace-heading {display:flex;justify-content:space-between;align-items:center;gap:16px;margin:20px 0 14px}
+.workspace-eyebrow,.toolbar-label {font:600 10px var(--mac-ui);color:var(--text-muted);letter-spacing:.06em}
+.workspace-heading h2,.agenda-navigation h2 {font:600 18px var(--mac-ui);color:var(--text);margin:3px 0}
+.workspace-heading .filtro-carteira {margin:0}
+.ops-command-bar .global-search-wrap {flex:1 1 100%;max-width:none}
+.ops-command-bar .ops-attention {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ops-command-bar .ops-attention button {border-radius:20px;background:transparent}
+.ops-command-bar .ops-acoes {flex-wrap:wrap}
+.ops-command-bar .ops-acoes button {border:0;background:transparent;box-shadow:none}
+.ops-command-bar .ops-botoes {gap:16px}
+.team-load-disclosure {width:100%;border-top:1px solid var(--border);padding-top:10px}
+.team-load-disclosure > summary {cursor:pointer;color:var(--text-muted);font-size:11px}
+.team-load-disclosure .team-load-strip {margin-top:10px}
+.team-load-disclosure .team-load-label {display:none}
+.agenda-navigation {margin:24px 0 0;padding:16px 18px 0;background:var(--surface);border:1px solid var(--border);border-bottom:0;border-radius:18px 18px 0 0}
+.agenda-navigation-heading,.agenda-navigation-weeks {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.agenda-navigation-heading {padding-bottom:12px;border-bottom:1px solid var(--border)}
+.agenda-navigation-heading h2 {margin-right:auto}
+.agenda-navigation-heading :is(#badge-s1,#badge-s2) {display:none}
+.agenda-navigation-heading #badge-hoje {border:0;background:none;color:var(--text-muted)}
+.agenda-navigation-weeks {padding-top:8px}
+.agenda-navigation #week-tabs-container {flex:1;flex-wrap:wrap;min-width:0;gap:2px}
+.agenda-navigation #week-tabs-container .tab-btn {font-size:12px;padding:10px 12px}
+.agenda-navigation #week-tabs-container .tab-btn.active {background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:transparent;color:var(--accent);box-shadow:inset 0 -2px var(--accent);border-radius:8px 8px 0 0}
+.agenda-navigation #btn-view-day {margin-left:auto;border:0;background:transparent;color:var(--text-muted);font-size:11px}
+.app-header :is(button,summary):focus-visible,.team-load-disclosure summary:focus-visible {outline:2px solid currentColor;outline-offset:3px}
+@media(max-width:760px) {
+ .vybe-desktop > .app-header .header-row1 {display:block}
+ .app-header .board-switch-bar {margin-top:12px;display:flex}
+ .workspace-heading {align-items:flex-start;flex-wrap:wrap}
+ .ops-command-bar .ops-acoes {gap:8px;width:100%}
+ .ops-command-bar .toolbar-label {width:100%}
+ .agenda-navigation {padding:12px 10px 0}
+ .agenda-navigation-heading {gap:8px}
+ .agenda-navigation-heading h2 {width:100%;font-size:16px}
+ .agenda-navigation #week-tabs-container {flex-basis:100%}
+ .agenda-navigation #week-tabs-container .tab-btn {padding:9px 8px;font-size:11px}
+ .agenda-navigation #btn-view-day {margin:0 0 8px}
+}
+
+.agenda-navigation:has(#week-tabs-container.focus-hidden):has(#btn-view-day.focus-hidden) {display:none}
