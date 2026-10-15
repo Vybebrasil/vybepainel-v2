@@ -27,8 +27,8 @@ test('criação destaca quatro de Reriston, mantém restante na fila e compartil
   const texto=grupo(mensagens(itens),'criacao');
   assert.match(texto,/Reriston · foco em até 4 demandas \(4\)/);
   assert.match(texto,/Reriston · próxima fila \(2\)/);
-  assert.match(texto,/\*Jady · foco em até 5 demandas \(1\)\*/);
-  assert.match(texto,/\*Deivid · foco em até 5 demandas \(1\)\*/);
+  assert.match(texto,/\*Jady · mínimo de 5 demandas \(1\)\*/);
+  assert.match(texto,/\*Deivid · mínimo de 5 demandas \(1\)\*/);
 });
 test('pendências antigas e sem data, conclusão da demanda, alterações e captação vão ao destino correto',()=>{
   const msgs=mensagens([
@@ -64,7 +64,7 @@ test('trocar destino preserva a edição de cada mensagem',async()=>{
   assert.equal(ctx.dailySummaryMessages[1].texto,'Criação revisada');
 });
 
-test('design limita cinco, aprovações de Deivid são extras e atendimento tem destino próprio',()=>{
+test('design mantém todas as demandas do dia, aprovações de Deivid são extras e atendimento tem destino próprio',()=>{
   const itens=[];
   for(const [id,nome] of [['b','Beatriz Souza'],['d','Deivid Souza'],['j','Jady Lima']]) {
     for(let n=1;n<=7;n++) itens.push(peca({id:`${id}${n}`,nome:`Arte ${id}${n}`,responsavel:nome,responsavel_ids:[id]}));
@@ -75,8 +75,8 @@ test('design limita cinco, aprovações de Deivid são extras e atendimento tem 
   const msgs=mensagens(itens);
   const criacao=grupo(msgs,'criacao');
   for(const nome of ['Bia','Deivid','Jady']) {
-    assert.match(criacao,new RegExp(`${nome} · foco em até 5 demandas \\(5\\)`));
-    assert.match(criacao,new RegExp(`${nome} · próxima fila \\(2\\)`));
+    assert.match(criacao,new RegExp(`${nome} · mínimo de 5 demandas \\(7\\)`));
+    assert.doesNotMatch(criacao,new RegExp(`${nome} · próxima fila`));
   }
   assert.match(criacao,/Deivid · aprovações extras \(além das 5\) \(1\)/);
   assert.doesNotMatch(criacao,/Planejamento da conta|Retorno do briefing/);
@@ -142,4 +142,15 @@ test('pausas, espera do cliente e informação do Paulo não inflam atrasos',()=
   assert.match(grupo(msgs,'geral'),/0 atividades com prazo vencido/);
   assert.match(grupo(msgs,'conferencia'),/Pendência de informação do Paulo/);
   assert.match(grupo(msgs,'conferencia'),/Veicula hoje sem responsável/);
+});
+
+test('design completa cinco com próximos prazos, sem data por último e aprovações extras não preenchem a meta',()=>{
+  for(const [id,nome] of [['b','Bia'],['d','Deivid'],['j','Jady']]) {
+    const itens=Array.from({length:7},(_,n)=>peca({id:n,nome:`Design ${n}`,responsavel:nome,responsavel_ids:[id],prazo_iso:n<2?'2026-12-31':n===6?'':`2027-01-0${n-1}`,veiculacao_iso:'2027-02-01'}));
+    itens.push(peca({id:10,nome:'Aprovação extra',responsavel:nome,responsavel_ids:[id],status:'Para aprovação',veiculacao_iso:'2027-02-01'}));
+    const texto=grupo(mensagens(itens),'criacao');
+    assert.match(texto,new RegExp(`${nome} · mínimo de 5 demandas \\(5\\)`));
+    for(let n=0;n<5;n++) assert.match(texto,new RegExp(`Design ${n}`));
+    assert.doesNotMatch(texto,/Design 5|Design 6/);
+  }
 });

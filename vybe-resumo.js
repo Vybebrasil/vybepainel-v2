@@ -149,11 +149,17 @@ function resumosPorGrupo(itens, dia, { statusDe, clientesDe, equipe = [], baseAn
     const fila=pendentes.filter(i=>pertence(i,pessoa)&&!pausa(i)&&!informacaoPaulo(i));
     if(pessoa.grupo==='atendimento') {if(fila.length)temAtendimento=true;atendimentoTexto.push(...bloco(pessoa.nome,fila,false));continue;}
     const aprovacoes=pessoa.aprovacoesExtras?pendentes.filter(aprovacaoDesign):[];
-    const trabalho=fila.filter(i=>!aprovacaoDesign(i)&&!clienteAguarda(i)&&!faltaInfo(i) && ((i.prazo_iso&&i.prazo_iso<=dia)||risco.includes(i))).sort(ordenar);
-    const foco=trabalho.slice(0,pessoa.limite);
+    const disponiveis=fila.filter(i=>!aprovacaoDesign(i)&&!clienteAguarda(i)&&!faltaInfo(i)).sort(ordenar);
+    const trabalho=disponiveis.filter(i=>(i.prazo_iso&&i.prazo_iso<=dia)||risco.includes(i));
+    const design=designers.includes(pessoa);
+    const foco=design
+      ? [...trabalho,...disponiveis.filter(i=>!trabalho.includes(i)).slice(0,Math.max(0,pessoa.limite-trabalho.length))]
+      : trabalho.slice(0,pessoa.limite);
     if(foco.length||aprovacoes.length)temCriacao=true;
-    criacaoTexto.push(...bloco(`${pessoa.nome} · foco em até ${pessoa.limite} demandas`,foco,false));
-    if(trabalho.length>pessoa.limite) criacaoTexto.push('',`*${pessoa.nome} · próxima fila (${trabalho.length-pessoa.limite})*`,'- O restante fica para a fila de amanhã no painel.');
+    criacaoTexto.push(...bloco(`${pessoa.nome} · ${design?'mínimo de':'foco em até'} ${pessoa.limite} demandas`,foco,false));
+    if(design && foco.length<pessoa.limite) criacaoTexto.push(`- Há somente ${foco.length} demandas disponíveis para ${pessoa.nome}.`);
+    const restantes=design?disponiveis.length-foco.length:trabalho.length-foco.length;
+    if(restantes>0) criacaoTexto.push('',`*${pessoa.nome} · próxima fila (${restantes})*`,'- O restante fica para a fila de amanhã no painel.');
     criacaoTexto.push(...bloco(`${pessoa.nome} · aprovações extras (além das ${pessoa.limite})`,aprovacoes,false));
   }
   criacaoTexto.push('','Quem travar em algo, avisa cedo. A gente resolve junto. Bora! 💪');

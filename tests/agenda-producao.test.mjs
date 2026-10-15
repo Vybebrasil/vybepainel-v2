@@ -62,3 +62,14 @@ test('falha da agenda bloqueia cópia e resposta de outro dia não sobrescreve o
   await antiga;
   assert.equal(area.value,'Outro dia');
 });
+
+test('credencial ausente produz diagnóstico seguro antes de consultar o Google',async()=>{
+  const anterior=process.env.GOOGLE_SERVICE_ACCOUNT;
+  delete process.env.GOOGLE_SERVICE_ACCOUNT;
+  try {
+    await assert.rejects(listarAgendaProducao('2026-10-15'),e=>e.status===503&&e.publica===true&&/GOOGLE_SERVICE_ACCOUNT/.test(e.message));
+  } finally {
+    if(anterior===undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT;
+    else process.env.GOOGLE_SERVICE_ACCOUNT=anterior;
+  }
+});
