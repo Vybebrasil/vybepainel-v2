@@ -24,6 +24,9 @@ export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenG
   }
   const fim=new Date(`${dia}T12:00:00Z`); fim.setUTCDate(fim.getUTCDate()+6);
   const calendarId=process.env.GOOGLE_CALENDAR_ID || 'gestaovybe@gmail.com';
+  if(obterToken===tokenGoogle && !process.env.GOOGLE_SERVICE_ACCOUNT) {
+    throw Object.assign(new Error('A integração do Google não está configurada no servidor. Cadastre GOOGLE_SERVICE_ACCOUNT na Vercel e compartilhe a agenda da Vybe com essa conta de serviço.'),{status:503,publica:true});
+  }
   const token=await obterToken(ESCOPO);
   const params=new URLSearchParams({timeMin:`${dia}T00:00:00-03:00`,timeMax:`${fim.toISOString().slice(0,10)}T00:00:00-03:00`,
     singleEvents:'true',orderBy:'startTime',showDeleted:'false',timeZone:FUSO,maxResults:'250',
@@ -35,7 +38,7 @@ export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenG
       {headers:{Authorization:`Bearer ${token}`},signal:AbortSignal.timeout(15000)});
     if(!r.ok) throw Object.assign(new Error([403,404].includes(r.status)
       ? 'O painel não tem acesso à agenda da Vybe. Confira o compartilhamento com a conta de serviço e a ativação da Calendar API.'
-      : 'Não foi possível consultar o Google Agenda. Tente novamente.'),{status:502});
+      : 'Não foi possível consultar o Google Agenda. Tente novamente.'),{status:502,publica:true});
     const corpo=await r.json();
     if(!Array.isArray(corpo.items)) throw new Error('O Google Agenda retornou uma resposta inválida.');
     eventos.push(...corpo.items); pagina=corpo.nextPageToken;

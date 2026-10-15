@@ -124,7 +124,8 @@ Referência: [Google Calendar Events.list](https://developers.google.com/workspa
 
 Gerar resumo consulta novamente conteúdos e solicitações antes de montar textos
 para cópia manual. Criação usa prazo de entrega, prioriza atrasados e risco de
-veiculação do dia; designers têm foco em cinco atividades e Reriston em quatro.
+veiculação do dia; designers recebem todas as atividades vencidas/do dia e completam no mínimo
+cinco com as próximas por prazo (sem data por último); Reriston mantém quatro.
 Aprovações de design entram como extras para Deivid. Atendimento e Planejamento
 reúne Paulo, Vinícius e Ewerton. Pausas e espera de informação do Paulo/cliente
 não contam como atraso. Solicitações não aumentam o total editorial.
