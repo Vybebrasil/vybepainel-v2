@@ -24,7 +24,7 @@ import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js'
 import { quemChama } from '../vybe_acesso.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
-import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot } from '../vybe_observabilidade.js';
+import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot, obterBaseResumo, registrarBaseResumo } from '../vybe_observabilidade.js';
 import { logDaPeca, LIMITE_DO_LOG } from '../server/log-de-atividade.js';
 import { listarGrupos, gruposProntos, criarGrupo, editarGrupo, moverGrupoNaOrdem, ordenarGrupos, apagarGrupo, CORES_DE_GRUPO } from '../server/grupos.js';
 import { listarNotas, salvarNota, apagarNota, notasProntas,
@@ -1372,6 +1372,10 @@ async function areaAcessos(req, res, quem) {
 async function areaDiario(req, res, quem) {
   const db = sql();
   if (req.method === 'GET') {
+    if(req.query?.base_resumo) {
+      try { return res.status(200).json({ok:true,base:await obterBaseResumo(db,req.query.base_resumo)}); }
+      catch { return res.status(400).json({error:'Não foi possível consultar a base da manhã.'}); }
+    }
     const id = Number(req.query?.id || 0);
     if (id) {
       const snapshot = await obterSnapshot(db, id);
@@ -1381,6 +1385,10 @@ async function areaDiario(req, res, quem) {
     return res.status(200).json({ ok: true, snapshots: await listarSnapshots(db, req.query?.limite) });
   }
   if (req.method === 'POST') {
+    if(req.body?.acao==='base_resumo') {
+      if(quem.tipo!=='servico' && !quem.pessoa?.admin) return res.status(403).json({error:'Só quem administra registra a base da manhã.'});
+      return res.status(200).json({ok:true,base:await registrarBaseResumo(db)});
+    }
     const snapshot = await registrarSnapshotOperacional(db, quem.tipo === 'servico' ? 'servico' : 'manual_painel');
     return res.status(200).json({ ok: true, snapshot });
   }

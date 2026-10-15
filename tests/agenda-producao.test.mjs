@@ -4,19 +4,20 @@ import vm from 'node:vm';
 import fs from 'node:fs';
 import { gravacoesDaAgenda,listarAgendaProducao } from '../server/agenda-producao.js';
 const evento=(o={})=>({id:'1',summary:'Gravação Hellen',status:'confirmed',start:{dateTime:'2026-10-15T12:00:00-07:00'},end:{dateTime:'2026-10-15T13:00:00-07:00'},...o});
-test('gravações reais convertem para Bahia e excluem privado, cancelado e eventos sem relação',()=>{
+test('gravações reais convertem para Bahia e excluem privado e cancelado, sinalizando eventos ambíguos',()=>{
   const lista=gravacoesDaAgenda([evento(),evento(),evento({id:'2',summary:'Reunião'}),evento({id:'3',visibility:'private'}),evento({id:'4',status:'cancelled'}),evento({id:'5',summary:'Mizinho - freela',start:{date:'2026-10-16'},end:{date:'2026-10-17'}})]);
-  assert.equal(lista.length,2);
+  assert.equal(lista.length,3);
   assert.equal(lista[0].horario,'16:00 às 17:00');
   assert.equal(lista[0].dia,'2026-10-15');
-  assert.match(lista[1].horario,/Dia inteiro/);
+  assert.match(lista[2].horario,/Dia inteiro/);
+  assert.equal(lista[1].ambiguo,true);
   const ctx=vm.createContext({eventos:lista});
   vm.runInContext(fs.readFileSync('vybe-resumo.js','utf8'),ctx);
   const texto=vm.runInContext("resumoProducaoAgenda(eventos,'2026-10-15')",ctx);
   assert.match(texto,/Mizinho/); assert.match(texto,/16:00 às 17:00: Gravação Hellen/);
   assert.doesNotMatch(texto,/prazo|veiculação/);
 });
-test('API Google consulta sete dias com escopo só de leitura, recorrências e todas as páginas',async()=>{
+test('API Google consulta o dia e os próximos cinco dias com escopo só de leitura, recorrências e todas as páginas',async()=>{
   const chamadas=[]; let scope;
   const resultado=await listarAgendaProducao('2026-12-31',{
     obterToken:async s=>(scope=s,'token-ficticio'),buscar:async(url,op)=>{
@@ -28,7 +29,7 @@ test('API Google consulta sete dias com escopo só de leitura, recorrências e t
   assert.equal(chamadas.length,2);
   assert.equal(chamadas[0].url.searchParams.get('singleEvents'),'true');
   assert.equal(chamadas[0].url.searchParams.get('timeMin'),'2026-12-31T00:00:00-03:00');
-  assert.equal(chamadas[0].url.searchParams.get('timeMax'),'2027-01-07T00:00:00-03:00');
+  assert.equal(chamadas[0].url.searchParams.get('timeMax'),'2027-01-06T00:00:00-03:00');
   assert.equal(chamadas[1].url.searchParams.get('pageToken'),'segunda');
   assert.equal(resultado.eventos.length,1);
 });

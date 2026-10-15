@@ -8,9 +8,10 @@ export function gravacoesDaAgenda(eventos) {
   const vistos = new Set();
   return eventos.filter(e => {
     if (!e.id || vistos.has(e.id) || e.status==='cancelled' || e.visibility==='private'
-      || !/\b(gravacao|captacao|mizinho)\b/.test(normal(e.summary)) || !e.start || !e.end) return false;
+      || e.colorId==='5' || (e.eventType && e.eventType!=='default')
+      || /\b(aguardo|pessoal|aniversario|ferias|folga)\b/.test(normal(e.summary)) || !e.start || !e.end) return false;
     vistos.add(e.id); return true;
-  }).map(e => ({ id:e.id,titulo:String(e.summary || '').replace(/\s+/g,' ').trim(),
+  }).map(e => ({ id:e.id,ambiguo:!/\b(gravacao|captacao)\b/.test(normal(e.summary)),titulo:String(e.summary || '').replace(/\s+/g,' ').trim(),
     dia:e.start.date || dataLocal(e.start.dateTime),
     horario:e.start.date ? 'Dia inteiro · horário não informado' : `${horaLocal(e.start.dateTime)} às ${horaLocal(e.end.dateTime)}`,
     fimDia:e.end.dateTime ? dataLocal(e.end.dateTime) : '',local:String(e.location || '').replace(/\s+/g,' ').trim(),
@@ -21,12 +22,12 @@ export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenG
     || new Date(`${dia}T12:00:00Z`).toISOString().slice(0,10)!==dia) {
     throw Object.assign(new Error('Informe uma data válida.'), {status:400});
   }
-  const fim=new Date(`${dia}T12:00:00Z`); fim.setUTCDate(fim.getUTCDate()+7);
+  const fim=new Date(`${dia}T12:00:00Z`); fim.setUTCDate(fim.getUTCDate()+6);
   const calendarId=process.env.GOOGLE_CALENDAR_ID || 'gestaovybe@gmail.com';
   const token=await obterToken(ESCOPO);
   const params=new URLSearchParams({timeMin:`${dia}T00:00:00-03:00`,timeMax:`${fim.toISOString().slice(0,10)}T00:00:00-03:00`,
     singleEvents:'true',orderBy:'startTime',showDeleted:'false',timeZone:FUSO,maxResults:'250',
-    fields:'items(id,summary,status,start,end,location,visibility),nextPageToken'});
+    fields:'items(id,summary,status,start,end,location,visibility,colorId,eventType),nextPageToken'});
   const eventos=[]; const paginas=new Set(); let pagina;
   do {
     if(pagina) params.set('pageToken',pagina);
