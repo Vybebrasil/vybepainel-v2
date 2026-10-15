@@ -17,7 +17,7 @@ test('publicações separa pronto de publicado, conta atividades sem inflar múl
   ]);
   assert.match(grupo(msgs,'geral'),/3 conteúdos com veiculação/);
   assert.match(grupo(msgs,'geral'),/Publicados: 33% \(1\)/);
-  assert.match(grupo(msgs,'publicacoes'),/Prontos para agendar \(1\)/);
+  assert.match(grupo(msgs,'publicacoes'),/Finalizados \(1\)/);
   assert.match(grupo(msgs,'publicacoes'),/\(A \/ B\)/);
   assert.doesNotMatch(grupo(msgs,'criacao'),/Demanda concluída/);
 });
@@ -83,4 +83,33 @@ test('design limita cinco, aprovações de Deivid são extras e atendimento tem 
   assert.match(grupo(msgs,'atendimento'),/Planejamento da conta/);
   assert.match(grupo(msgs,'atendimento'),/Retorno do briefing/);
   assert.ok(msgs.every(m=>!m.nome.includes('VYBE')));
+});
+
+test('caso de 21 conteúdos distingue três Finalizados de nove Para agendar e fecha ontem por Finalizado',()=>{
+  const itens=[];
+  for(const [status,quantidade] of [['Finalizado',3],['Para agendar',9],['Pode Fazer',5],['Segurar Post',2],['Em andamento',1],['Alteração',1]]) {
+    for(let n=0;n<quantidade;n++) itens.push(peca({id:`${status}-${n}`,status}));
+  }
+  for(let n=0;n<18;n++) itens.push(peca({id:`ontem-${n}`,status:'Finalizado',veiculacao_iso:'2026-12-30'}));
+  const msgs=mensagens(itens);
+  const geral=grupo(msgs,'geral'),publicacoes=grupo(msgs,'publicacoes');
+  assert.match(geral,/Ontem: 18 de 18 conteúdos finalizados/);
+  assert.match(geral,/Finalizados: 14% \(3\)/);
+  assert.match(geral,/Para agendar: 43% \(9\)/);
+  assert.match(geral,/Pode Fazer: 24% \(5\)/);
+  assert.match(geral,/Segurar Post: 10% \(2\)/);
+  assert.match(geral,/9 conteúdos deste dia ainda não estão prontos/);
+  assert.match(publicacoes,/Finalizados \(3\)/);
+  assert.match(publicacoes,/Para agendar \(9\)/);
+  assert.doesNotMatch(geral,/Publicados|prontos para agendar|outros status/i);
+  assert.doesNotMatch(grupo(msgs,'criacao'),/ontem-/);
+});
+
+test('normaliza grafia sem juntar estados e mantém a separação na antecipação dos próximos dias',()=>{
+  const msgs=mensagens([
+    peca({id:1,status:' FINALIZADO ',veiculacao_iso:'2027-01-01'}),
+    peca({id:2,status:' PARA  AGENDAR ',veiculacao_iso:'2027-01-01'}),
+    peca({id:3,status:'Agendado',veiculacao_iso:'2027-01-01'}),
+  ]);
+  assert.match(grupo(msgs,'publicacoes'),/3 conteúdos; 1 finalizados, 1 para agendar, 1 agendados, 0 pendentes/);
 });

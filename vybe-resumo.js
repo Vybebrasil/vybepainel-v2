@@ -25,10 +25,13 @@ function resumosPorGrupo(itens, dia, { statusDe, clientesDe, equipe = [] }) {
   const status = i => normal(statusDe(i));
   const pedido = i => i.origem === 'solicitacao';
   const data = i => pedido(i) ? (i.conclusao_iso || i.prazo_iso || '') : (i.veiculacao_iso || '');
+  const finalizado = i => !pedido(i) && status(i) === 'finalizado';
+  const publicado = i => !pedido(i) && ['publicado','postado'].includes(status(i));
+  const agendado = i => !pedido(i) && status(i) === 'agendado';
   const encerrado = i => pedido(i)
     ? ['finalizado', 'feito', 'aprovado', 'concluido', 'concluidas'].includes(status(i))
-    : ['publicado', 'postado', 'agendado'].includes(status(i));
-  const pronto = i => !pedido(i) && ['finalizado', 'para agendar'].includes(status(i));
+    : finalizado(i) || publicado(i) || agendado(i);
+  const pronto = i => !pedido(i) && status(i) === 'para agendar';
   const cliente = i => (clientesDe(i) || []).map(resumoTexto).filter(Boolean).join(' / ') || 'Sem cliente';
   const alteracao = i => status(i) === 'alteracao';
   const clienteAguarda = i => ['ag. info cliente', 'ag. aprovacao cliente'].includes(status(i));
@@ -62,9 +65,10 @@ function resumosPorGrupo(itens, dia, { statusDe, clientesDe, equipe = [] }) {
   const abertura = `Bom dia, time! ☀️ ${resumoDiaCurto(dia)}.`;
   const risco = hoje.filter(i => !encerrado(i) && !pronto(i));
   const gruposStatus = [
-    ['✅ Publicados', i => ['publicado','postado'].includes(status(i))],
-    ['📌 Agendados', i => status(i)==='agendado'],
-    ['📅 Prontos para agendar', pronto],
+    ['✅ Finalizados', finalizado],
+    ['📌 Agendados', agendado],
+    ['📅 Para agendar', pronto],
+    ...(hoje.some(publicado) ? [['Publicados', publicado]] : []),
     ['✏️ Em alteração', alteracao],
     ['⏳ Aguardando o cliente', clienteAguarda],
     ['👀 Em aprovação interna', aprovacao],
@@ -75,22 +79,31 @@ function resumosPorGrupo(itens, dia, { statusDe, clientesDe, equipe = [] }) {
     return `${titulo}: ${hoje.length ? Math.round(lista.length * 100 / hoje.length) : 0}% (${lista.length})`;
   });
   const restantes = hoje.filter(i => !classificados.has(i));
-  metricas.push(`🎬 Em produção / outros status: ${hoje.length ? Math.round(restantes.length*100/hoje.length) : 0}% (${restantes.length})`);
+  const outrosStatus = new Map();
+  for(const item of restantes) {
+    const chave=status(item);
+    const grupo=outrosStatus.get(chave) || {nome:resumoTexto(statusDe(item)) || 'Sem status',quantidade:0};
+    grupo.quantidade++; outrosStatus.set(chave,grupo);
+  }
+  for(const grupo of outrosStatus.values()) metricas.push(`${grupo.nome}: ${Math.round(grupo.quantidade*100/hoje.length)}% (${grupo.quantidade})`);
   const ontem = conteudos.filter(i => data(i) === resumoDiasAntes(dia,1));
-  const publicadosOntem = ontem.filter(i => ['publicado','postado'].includes(status(i))).length;
-  const geral = [abertura, '', `*Ontem: ${publicadosOntem} de ${ontem.length} conteúdos com status publicado.*`, '',
+  const finalizadosOntem = ontem.filter(finalizado).length;
+  const geral = [abertura, '', `*Ontem: ${finalizadosOntem} de ${ontem.length} conteúdos finalizados.*`,
+    `Para agendar: ${ontem.filter(pronto).length} · Agendados: ${ontem.filter(agendado).length}${ontem.some(publicado) ? ` · Publicados: ${ontem.filter(publicado).length}` : ''}`, '',
     `*${hoje.length} conteúdo${hoje.length === 1 ? "" : "s"} com veiculação neste dia:*`, ...metricas,
     '', `🔴 ${risco.length} conteúdo${risco.length === 1 ? " deste dia ainda não está pronto ou agendado" : "s deste dia ainda não estão prontos ou agendados"}.`,
     `${pendentes.filter(i=>i.prazo_iso && i.prazo_iso<dia).length} atividades pendentes com prazo vencido. Detalhes nos resumos de Criação, Atendimento e Planejamento e Correção.`];
   const publicacoes = [abertura, '', `*Veiculação de ${resumoDiaCurto(dia)}: ${hoje.length} conteúdos*`,
-    ...bloco('✅ Prontos para agendar', hoje.filter(pronto),false),
-    ...bloco('📌 Agendados / publicados', hoje.filter(encerrado),false),
+    ...bloco('✅ Finalizados', hoje.filter(finalizado),false),
+    ...bloco('📅 Para agendar', hoje.filter(pronto),false),
+    ...bloco('📌 Agendados', hoje.filter(agendado),false),
+    ...bloco('Publicados', hoje.filter(publicado),false),
     ...bloco('🔴 Ainda em produção / alteração', risco.filter(i=>!clienteAguarda(i)&&!aprovacao(i)),false),
     ...bloco('⏳ Aguardando cliente / aprovação', risco.filter(i=>clienteAguarda(i)||aprovacao(i)),false)];
   for (let n=1;n<=2;n++) {
     const proximo = resumoDiasAntes(dia,-n);
     const lista = conteudos.filter(i=>data(i)===proximo);
-    publicacoes.push('', `*${resumoDiaCurto(proximo)}:* ${lista.length} conteúdos; ${lista.filter(pronto).length} prontos, ${lista.filter(encerrado).length} agendados/publicados, ${lista.filter(i=>!pronto(i)&&!encerrado(i)).length} pendentes.`);
+    publicacoes.push('', `*${resumoDiaCurto(proximo)}:* ${lista.length} conteúdos; ${lista.filter(finalizado).length} finalizados, ${lista.filter(pronto).length} para agendar, ${lista.filter(agendado).length} agendados${lista.some(publicado) ? `, ${lista.filter(publicado).length} publicados` : ''}, ${lista.filter(i=>!pronto(i)&&!encerrado(i)).length} pendentes.`);
   }
   const pertence = (item,pessoa) => {
     const ids=Array.isArray(item.responsavel_ids) ? item.responsavel_ids.map(String) : [];

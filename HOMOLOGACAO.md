@@ -289,3 +289,9 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Produção: consulta dedicada, somente leitura, à agenda da agência para sete dias de gravações/captações/Mizinho. Recorrências, paginação, horários de Brasília, eventos de dia inteiro e falhas explícitas. Sem escrita no Google nem no banco.
 - A consulta real pelo conector confirmou agenda e eventos existentes, mas não valida o acesso da conta de serviço do aplicativo. Compartilhamento da agenda e Calendar API precisam estar habilitados antes de validar em preview. Nenhuma credencial ou fixture real foi incorporada ao código.
 - Check completo: 301 testes e build passaram. Depois dos ajustes finais, regressões específicas de quotas, separação de grupos, Google, autenticação por escopo e respostas fora de ordem passaram. Verificação local do acesso real à agenda pendente de configuração externa.
+
+## 15/10/2026 — Status distintos nos resumos (local)
+- Corrigida a interpretação que somava Finalizado e Para agendar: Geral e Publicações agora mostram Finalizados, Para agendar e Agendados separadamente. Fechamento de ontem usa Finalizado; publicação só aparece se houver status explícito.
+- Demais status pendentes, como Pode Fazer e Segurar Post, mantêm rótulo e contagem próprios. Antecipação dos próximos dias mantém as mesmas categorias. Finalizados continuam fora das filas pendentes e do risco de furo.
+- Regressão com 21 conteúdos (3 Finalizados, 9 Para agendar e 9 pendentes) e 18 Finalizados ontem; grafia normalizada e virada de ano cobertas. `npm run check` aprovou 305 testes e build. `git diff --check` aprovado.
+- Demonstração local conferida: rótulos separados, orientação corrigida e console sem erros. Sem alteração dos status reais, sem escrita em produção. Ainda não publicado.
