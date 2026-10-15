@@ -785,6 +785,15 @@
       .day-pending-row .item-workspace-link { flex-basis:100%;min-width:100%;white-space:normal; }
     }
     .day-pending-date { display:block;color:#ffbf89;font-size:11px;line-height:1.5; }
+    .day-scroll-card { align-self:start; }
+    .day-activity-scroll:focus-visible { outline:2px solid var(--accent2,#ff9d00);outline-offset:-3px; }
+    .day-expansion-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px; }
+    @media(min-width:769px) {
+      .day-scroll-card:not(.day-expanded) .day-activity-scroll { max-height:480px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable; }
+    }
+    @media(max-width:768px) {
+      .day-expansion-footer { display:none; }
+    }
     .day-header-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end }
     .day-add-btn { border-color:rgba(255,107,0,.42);background:rgba(255,107,0,.08);color:#ffab70 }
     .day-add-btn:hover { background:rgba(255,107,0,.18) }
