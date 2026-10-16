@@ -111,12 +111,33 @@ function escritorioEmitir(type, payload) {
   if (escritorio.socket?.readyState === WebSocket.OPEN)
     escritorio.socket.send(JSON.stringify({ type, payload }));
 }
-async function conectarEscritorio() {
-  if (escritorio.conectando || escritorio.conectado) return;
+// Reconexão sem derrubar nada: a renovação da sessão (a cada 4,5 min) e as
+// quedas de rede abrem um socket novo por trás; a tela, o mapa e a conversa
+// por voz continuam. Só depois de várias tentativas volta para a entrada.
+function escritorioReconectar(motivo) {
+  clearTimeout(escritorio.timerReconexao);
+  const n = (escritorio.tentativasReconexao = (escritorio.tentativasReconexao || 0) + 1);
+  if (n > 8) {
+    escritorio.tentativasReconexao = 0;
+    escritorio.conectado = false;
+    escritorio.online = [];
+    sairChamadaEscritorio();
+    renderEscritorio();
+    escritorioAviso("A conexão caiu. Use Entrar no escritório para voltar.");
+    return;
+  }
+  if (motivo) escritorioAviso("Conexão instável. Reconectando…");
+  escritorio.timerReconexao = setTimeout(() => conectarEscritorio({ reconexao: true }), Math.min(10000, 600 * 2 ** (n - 1)));
+}
+function renovarSessaoEscritorio() {
+  escritorio.socketAntigo = escritorio.socket;
+  conectarEscritorio({ reconexao: true });
+}
+async function conectarEscritorio({ reconexao = false } = {}) {
+  if (escritorio.conectando || (escritorio.conectado && !reconexao)) return;
   escritorio.conectando = true;
   const geracao = escritorio.geracao;
-  atualizarPessoasEscritorio();
-  escritorioAviso("Conectando…");
+  if (!reconexao) { atualizarPessoasEscritorio(); escritorioAviso("Conectando…"); }
   try {
     const base = await escritorioApi("entrada");
     escritorio.base = base;
@@ -143,13 +164,29 @@ async function conectarEscritorio() {
       }
       if (e.type === "session:ready") {
         escritorio.conectando = false;
+        const jaEstava = escritorio.conectado;
         escritorio.conectado = true;
+        escritorio.tentativasReconexao = 0;
+        // Socket da sessão anterior (renovação): fecha sem efeito na tela.
+        const antigo = escritorio.socketAntigo;
+        escritorio.socketAntigo = null;
+        if (antigo && antigo !== socket) try { antigo.close(); } catch {}
         escritorioEmitir("presence:move", {
           sala: escritorio.sala,
+          zona: escritorio.zona,
           status: escritorio.status,
           x: escritorio.perfil.x || 50,
           y: escritorio.perfil.y || 75,
         });
+        if (escritorio.pose) escritorioEmitir("pose", { tipo: escritorio.pose });
+        clearInterval(escritorio.ping);
+        clearTimeout(escritorio.renovar);
+        if (jaEstava && reconexao) {
+          escritorio.renovar = setTimeout(renovarSessaoEscritorio, 270000);
+          escritorio.ping = setInterval(() => escritorioEmitir("system:ping", {}), 30000);
+          atualizarControlesEscritorio();
+          return;
+        }
         renderEscritorio();
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         setTimeout(() => escritorioMotorVoz().catch(() => {}), 1500);
@@ -159,10 +196,7 @@ async function conectarEscritorio() {
           () => escritorioEmitir("system:ping", {}),
           30000,
         );
-        escritorio.renovar = setTimeout(() => {
-          desconectarEscritorio(false);
-          conectarEscritorio();
-        }, 270000);
+        escritorio.renovar = setTimeout(renovarSessaoEscritorio, 270000);
       }
       if (
         e.type === "conversation:invite" &&
@@ -203,24 +237,27 @@ async function conectarEscritorio() {
       clearInterval(escritorio.ping);
       clearTimeout(escritorio.renovar);
       escritorio.conectando = false;
-      escritorio.conectado = false;
+      // Queda inesperada: tenta de novo sem sair da conversa nem voltar à entrada.
+      if (escritorio.conectado) { escritorioReconectar(true); return; }
       escritorio.online = [];
-      sairChamadaEscritorio();
       atualizarPessoasEscritorio();
-      escritorioAviso(
-        "Desconectado. Use Entrar no escritório para reconectar.",
-      );
+      escritorioAviso("Desconectado. Use Entrar no escritório para reconectar.");
       atualizarDockEscritorio();
     };
     socket.onerror = () =>
       escritorioAviso("Falha na conexão. Confira o acesso e tente novamente.");
   } catch (e) {
     escritorio.conectando = false;
+    if (reconexao && escritorio.conectado) { escritorioReconectar(true); return; }
     await sairChamadaEscritorio();
     escritorioAviso(e.message);
   }
 }
 function desconectarEscritorio(sairChamada = true) {
+  clearTimeout(escritorio.timerReconexao);
+  escritorio.tentativasReconexao = 0;
+  try { escritorio.socketAntigo?.close(); } catch {}
+  escritorio.socketAntigo = null;
   escritorio.geracao++;
   // Sair do escritório volta para a entrada da Vybelândia.
   if (sairChamada) escritorio.lobbyFechado = false;
@@ -653,9 +690,13 @@ function escritorioMudouLugar(x, y) {
   escritorio.mapa?.marcarZona(zona ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona) : null);
   // Como no SoWork: sair da zona encerra a conversa dela. Entrar numa sala
   // (decisão do Paulo) já entra na conversa dela com o microfone ligado.
+  // Pisar na porta ou no corredor por um instante não derruba a conversa:
+  // sai só se continuar fora por 1,5 s. Indo direto para outra sala, troca.
+  clearTimeout(escritorio.timerSaidaZona);
   if (saiuDaZona && escritorio.chamada) {
-    sairChamadaEscritorio();
-    escritorioAviso("Você saiu da sala e da conversa.");
+    const sair = () => { if (escritorio.chamada && escritorio.zona !== escritorio.zonaChamada) { sairChamadaEscritorio(); escritorioAviso("Você saiu da sala e da conversa."); } };
+    if (zona && zona !== "foco") sair();
+    else escritorio.timerSaidaZona = setTimeout(sair, 1500);
   }
   if (saiuDaZona) { escritorio.falhaConversa = ""; escritorioConversaAutomatica(); }
   atualizarCabecalhoEscritorio();
@@ -1647,6 +1688,7 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
     escritorio.chamada = meeting;
+    escritorio.zonaChamada = zonaInicial;
     escritorio.falhaConversa = "";
     escritorio.salaChamada = escritorioLugarDe(escritorio.perfil).nome;
     for (const evento of [
@@ -1661,6 +1703,16 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
       meeting.self.on(evento, renderMidiaEscritorio);
     // O navegador bloqueou o som até a pessoa interagir: o próximo clique ou
     // tecla em qualquer lugar já libera (o botão fica como atalho visível).
+    // A conversa caiu sozinha (rede, servidor de mídia): entra de novo na
+    // mesma sala sem a pessoa precisar fazer nada.
+    meeting.self.on("roomLeft", () => {
+      if (escritorio.chamada !== meeting) return;
+      escritorio.chamada = null;
+      escritorioNivelAudio.parar();
+      escritorioAviso("A conversa caiu. Reconectando…");
+      atualizarDockEscritorio();
+      setTimeout(escritorioConversaAutomatica, 1500);
+    });
     meeting.self.on("autoplayError", () => {
       escritorio.somBloqueado = true;
       renderMidiaEscritorio();
