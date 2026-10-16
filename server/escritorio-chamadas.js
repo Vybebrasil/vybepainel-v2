@@ -57,8 +57,9 @@ export async function prepararChamadaEscritorio(
   sala,
   env = process.env,
 ) {
-  const { SALAS_ESCRITORIO } = await import("./escritorio.js");
-  if (!SALAS_ESCRITORIO.includes(sala)) throw new Error("Sala inválida.");
+  // A conversa por voz é da zona do mapa (sala individual ou espaço).
+  const { SALAS_ESCRITORIO, ZONAS_ESCRITORIO } = await import("./escritorio.js");
+  if (!SALAS_ESCRITORIO.includes(sala) && !ZONAS_ESCRITORIO.includes(sala)) throw new Error("Sala inválida.");
   return sql.comTransacao(async (tx) => {
     // Mesmo bloqueio por sala em todas as instâncias; evita criar reuniões duplicadas.
     await tx`SELECT pg_advisory_xact_lock(hashtext(${"escritorio:" + sala}))`;

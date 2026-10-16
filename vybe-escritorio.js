@@ -256,7 +256,7 @@ function aceitarConviteEscritorio() {
   const convite = escritorio.convite;
   if (!convite) return;
   openWorkflowModal(
-    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} convidou você</h2><p>Entrar na conversa da sala ${safeText(ESCRITORIO_SALAS[convite.sala])}? Quem estiver na chamada dessa sala poderá ouvir quando você ligar o microfone.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="mudarSalaEscritorio('${convite.sala}');escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));entrarChamadaEscritorio()">Entrar com microfone desligado</button></div>`,
+    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} convidou você</h2><p>A conversa é em ${safeText(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === convite.zona)?.nome || ESCRITORIO_SALAS[convite.sala] || "outra sala")}. Quem estiver nela poderá ouvir quando você ligar o microfone.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));escritorioIrParaAmbiente('${safeText(convite.zona || "")}');escritorioAviso('Ao chegar, clique em Entrar na conversa (microfone começa desligado).')">Ir até a conversa</button></div>`,
   );
 }
 
@@ -328,6 +328,7 @@ function escritorioChegar() {
   const lugar = mesa ? mesa.cadeira : { x: 36, y: 8 };
   Object.assign(escritorio.perfil, escritorioParaPorcentagem(lugar.x, lugar.y));
   escritorio.sala = escritorioSalaEm(lugar.x, lugar.y);
+  escritorio.zona = escritorioZonaEm(lugar.x, lugar.y);
 }
 function escritorioMinhaMesa() {
   const a = escritorioDonos().get(escritorio.base?.eu);
@@ -389,8 +390,10 @@ function atualizarPessoasEscritorio() {
     : [{ id: eu, nome: "Você · fora do escritório", perfil: escritorio.perfil, sala, status: "ausente", x: escritorio.perfil.x || 50, y: escritorio.perfil.y || 75 }];
   if (escritorio.mapa) {
     escritorio.mapa.atualizarPessoas(visiveis.map((p) => {
-      const pos = escritorioPosicao(p);
       const voce = p.id === eu;
+      // O próprio boneco é guiado localmente (movimento contínuo); o servidor
+      // só repete o que este navegador mandou.
+      const pos = voce ? escritorioPosicao(escritorio.perfil || {}) : escritorioPosicao(p);
       const perfilDe = escritorio.base.equipe.find((e) => e.id === p.id)?.perfil || p.perfil || {};
       // Parado num assento (cadeira, sofá, banqueta…), o boneco senta virado
       // para onde o assento olha.
@@ -401,7 +404,7 @@ function atualizarPessoasEscritorio() {
         id: p.id, nome: voce && escritorio.conectado ? "Você" : p.nome, perfil: perfilDe, status: p.status, corStatus,
         rotulo: `${p.nome}${voce ? " (você)" : ""} · ${nomeStatus}`,
         x: Math.round(pos.x), y: Math.round(pos.y),
-        acao: voce && escritorio.emMovimento ? "wlk" : sentado ? "sit" : "std", dir: sentado ? dirAssento : undefined,
+        acao: sentado ? "sit" : "std", dir: sentado ? dirAssento : undefined, local: voce,
         aoClicar: convidarConversaEscritorio,
       };
     }));
@@ -455,7 +458,7 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('video')", "camera", s.videoEnabled ? "Câmera ligada" : "Câmera desligada", `aria-pressed="${Boolean(s.videoEnabled)}"`) +
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
       botao("sairChamadaEscritorio().then(renderEscritorio)", "sair", "Sair da conversa", 'class="ofc-dock-btn perigo"')
-    : botao("entrarChamadaEscritorio()", "fone", "Entrar na conversa", escritorio.conectado && escritorio.sala !== "foco" && !escritorio.entrandoChamada ? "" : "disabled");
+    : botao("entrarChamadaEscritorio()", "fone", "Entrar na conversa", escritorio.conectado && escritorio.zona && escritorio.zona !== "foco" && !escritorio.entrandoChamada ? "" : 'disabled title="Entre numa sala para conversar"');
   el.innerHTML = `<label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório") : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "")}`;
 }
 function renderEscritorio() {
@@ -493,7 +496,7 @@ function renderEscritorio() {
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><h3>${safeText(ESCRITORIO_SALAS[sala])}</h3><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para esta sala" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
 </aside>
 <main class="ofc-principal">
- <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span>${sala === "foco" ? "Espaço silencioso, sem conversa por voz." : "Conversa: " + safeText(ESCRITORIO_SALAS[sala]) + " · WASD ou clique para andar"}</span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
+ <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
@@ -510,6 +513,7 @@ function renderEscritorio() {
   if (escritorio.chamada) renderMidiaEscritorio();
   montarMapaEscritorio();
   if (typeof renderBarraEditorEscritorio === "function") renderBarraEditorEscritorio();
+  atualizarCabecalhoEscritorio();
 }
 // O mapa é criado uma vez e só muda de lugar quando a tela é redesenhada:
 // assim não recarrega móveis nem perde câmera e animação.
@@ -535,6 +539,7 @@ function montarMapaEscritorio() {
       aoClicar: (x, y) => cliqueNoMapaEscritorio(x, y),
     });
     requestAnimationFrame(() => centralizarEmMimEscritorio());
+    escritorio.mapa.marcarZona(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorio.zona) || null);
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
     if (!escritorio.base.demo) setTimeout(() => mapaGuardarBoneco(mapaFigura(escritorio.perfil)), 4000);
   }
@@ -543,6 +548,7 @@ function montarMapaEscritorio() {
 function centralizarEmMimEscritorio() {
   const pos = escritorioPosicao(escritorio.perfil || {});
   escritorio.mapa?.centralizar(pos.x, pos.y);
+  escritorio.mapa?.seguir(pos.x, pos.y, true);
 }
 function alternarAbaEscritorio(aba, manter) {
   const aberto = escritorio.lateral ?? !window.matchMedia?.("(max-width: 760px)").matches;
@@ -563,36 +569,119 @@ function mudarSalaEscritorio(sala, verMapa) {
   escritorioIrPara(a ? (a.x0 + a.x1) / 2 : 30, a ? a.y1 - 1.5 : 18);
   if (verMapa) renderEscritorio();
 }
-// Anda até um ladrilho como no Habbo: pelo caminho livre, um ladrilho por
-// vez, e cada passo vai para a equipe. A sala de conversa é a do ambiente.
-function escritorioPasso(x, y) {
-  const { x: px, y: py } = escritorioParaPorcentagem(x, y);
-  const sala = escritorioSalaEm(x, y);
-  escritorio.perfil = { ...escritorio.perfil, x: px, y: py };
-  escritorioEmitir("presence:move", { sala, x: px, y: py });
-  if (sala !== escritorio.sala) {
-    escritorio.sala = sala;
-    renderEscritorio();
-  } else atualizarPessoasEscritorio();
+// Movimento contínuo (como em jogo): a posição anda em frações de ladrilho a
+// cada quadro, com colisão na grade do mapa. Clique segue o caminho livre
+// (A*); WASD/setas dirigem direto. A presença vai para a equipe a cada 150 ms.
+const ESCRITORIO_VELOCIDADE = 4.2; // ladrilhos por segundo
+const movimento = { x: 0, y: 0, rota: [], quadro: null, ultimo: 0, envio: 0, dir: 2, andando: false };
+function escritorioZonaEm(x, y) {
+  return escritorioAmbienteEm(x, y)?.id || "";
 }
-const ESCRITORIO_PASSO_MS = 320;
+// Atualiza o que depende do lugar: sala de conversa, zona, cabeçalho e dock.
+function escritorioMudouLugar(x, y) {
+  const sala = escritorioSalaEm(x, y), zona = escritorioZonaEm(x, y);
+  if (zona === escritorio.zona && sala === escritorio.sala) return;
+  const saiuDaZona = zona !== escritorio.zona;
+  escritorio.sala = sala;
+  escritorio.zona = zona;
+  escritorio.mapa?.marcarZona(zona ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona) : null);
+  // Como no SoWork: sair da zona encerra a conversa dela.
+  if (saiuDaZona && escritorio.chamada) {
+    sairChamadaEscritorio();
+    escritorioAviso("Você saiu da zona e da conversa.");
+  }
+  atualizarCabecalhoEscritorio();
+  atualizarControlesEscritorio();
+}
+function atualizarCabecalhoEscritorio() {
+  const lugar = document.getElementById("office-lugar"), dica = document.getElementById("office-lugar-dica");
+  if (lugar) lugar.textContent = escritorioLugarDe(escritorio.perfil).nome;
+  if (dica) dica.textContent = escritorio.zona
+    ? (escritorio.zona === "foco" ? "Zona silenciosa: sem conversa por voz." : "Zona de conversa: quem está aqui pode falar com você.")
+    : "Corredor · entre numa sala para conversar";
+}
+function escritorioEnviarPosicao(forcar) {
+  const agora = performance.now();
+  if (!forcar && agora - movimento.envio < 150) return;
+  movimento.envio = agora;
+  const { x: px, y: py } = escritorioParaPorcentagem(movimento.x, movimento.y);
+  escritorio.perfil = { ...escritorio.perfil, x: px, y: py };
+  escritorioEmitir("presence:move", { sala: escritorio.sala, zona: escritorio.zona, x: px, y: py });
+}
+function escritorioDirecaoTeclas() {
+  let dx = 0, dy = 0;
+  for (const t of escritorioTeclas) { dx += ESCRITORIO_TECLAS[t][0]; dy += ESCRITORIO_TECLAS[t][1]; }
+  const n = Math.hypot(dx, dy);
+  return n ? [dx / n, dy / n] : [0, 0];
+}
+// Pode ocupar a posição (x,y) vindo de (ox,oy)? Testa a troca de ladrilho.
+function escritorioPodeIr(ox, oy, x, y) {
+  const a = { x: Math.round(ox), y: Math.round(oy) }, b = { x: Math.round(x), y: Math.round(y) };
+  if (a.x === b.x && a.y === b.y) return true;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  if (Math.abs(dx) > 1 || Math.abs(dy) > 1) return false;
+  if (!escritorio.mapa?.podePassar(a.x, a.y, dx, dy)) return false;
+  // Assento só pelo clique (senta); andando com o teclado ele é sólido.
+  return escritorio.mapa.assentoEm(b.x, b.y) === undefined;
+}
+function escritorioQuadro(agora) {
+  movimento.quadro = null;
+  const dt = Math.min(0.05, (agora - (movimento.ultimo || agora)) / 1000);
+  movimento.ultimo = agora;
+  let [vx, vy] = escritorioDirecaoTeclas();
+  let teclado = Boolean(vx || vy);
+  if (!teclado && movimento.rota.length) {
+    const alvo = movimento.rota[0];
+    const dx = alvo.x - movimento.x, dy = alvo.y - movimento.y, d = Math.hypot(dx, dy);
+    const passo = ESCRITORIO_VELOCIDADE * dt;
+    if (d <= passo) {
+      movimento.x = alvo.x; movimento.y = alvo.y;
+      movimento.rota.shift();
+      vx = dx; vy = dy;
+    } else {
+      vx = dx / d; vy = dy / d;
+      movimento.x += vx * passo; movimento.y += vy * passo;
+    }
+  } else if (teclado) {
+    const passo = ESCRITORIO_VELOCIDADE * dt;
+    const nx = movimento.x + vx * passo, ny = movimento.y + vy * passo;
+    // Bate e desliza: tenta o movimento todo, depois só um eixo.
+    if (escritorioPodeIr(movimento.x, movimento.y, nx, ny)) { movimento.x = nx; movimento.y = ny; }
+    else if (escritorioPodeIr(movimento.x, movimento.y, nx, movimento.y)) movimento.x = nx;
+    else if (escritorioPodeIr(movimento.x, movimento.y, movimento.x, ny)) movimento.y = ny;
+  }
+  const andando = teclado || movimento.rota.length > 0;
+  if (vx || vy) movimento.dir = mapaDirecaoDoPasso(vx, vy);
+  // Parou: encaixa no centro do ladrilho (como no Habbo).
+  if (!andando) { movimento.x = Math.round(movimento.x); movimento.y = Math.round(movimento.y); }
+  const assento = andando ? undefined : escritorio.mapa?.assentoEm(movimento.x, movimento.y);
+  escritorio.emMovimento = andando;
+  escritorio.mapa?.mover(escritorio.base.eu, movimento.x, movimento.y, assento ?? movimento.dir, andando ? "wlk" : assento !== undefined ? "sit" : "std");
+  escritorio.mapa?.seguir(movimento.x, movimento.y);
+  escritorioMudouLugar(movimento.x, movimento.y);
+  escritorioEnviarPosicao(!andando);
+  if (andando) movimento.quadro = requestAnimationFrame(escritorioQuadro);
+  else atualizarPessoasEscritorio();
+}
+function escritorioAnimarMovimento() {
+  if (movimento.quadro) return;
+  const pos = escritorioPosicao(escritorio.perfil || {});
+  if (!movimento.andando) { movimento.x = pos.x; movimento.y = pos.y; }
+  movimento.ultimo = 0;
+  movimento.quadro = requestAnimationFrame(escritorioQuadro);
+}
 function escritorioIrPara(x, y) {
-  clearTimeout(escritorio.andando);
-  const de = escritorioPosicao(escritorio.perfil || {});
+  const de = { x: Math.round(movimento.quadro ? movimento.x : escritorioPosicao(escritorio.perfil || {}).x), y: Math.round(movimento.quadro ? movimento.y : escritorioPosicao(escritorio.perfil || {}).y) };
   const passos = escritorio.mapa?.caminho(de, { x, y });
   if (passos === null || passos === undefined) {
     // Sem mapa pronto (ou destino sem caminho): não teleporta.
     if (escritorio.mapa) escritorioAviso("Não dá para chegar aí: há parede ou móvel no caminho.");
     return;
   }
-  const andar = () => {
-    const passo = passos.shift();
-    if (!passo) return;
-    escritorio.emMovimento = passos.length > 0;
-    escritorioPasso(passo.x, passo.y);
-    if (passos.length) escritorio.andando = setTimeout(andar, ESCRITORIO_PASSO_MS);
-  };
-  andar();
+  if (!movimento.quadro) { const p = escritorioPosicao(escritorio.perfil || {}); movimento.x = p.x; movimento.y = p.y; }
+  movimento.rota = passos;
+  escritorio.mapa?.seguir(movimento.x, movimento.y, true);
+  escritorioAnimarMovimento();
 }
 function cliqueNoMapaEscritorio(x, y) {
   if (escritorio.edicao) { cliqueEditorEscritorio(x, y); return; }
@@ -608,37 +697,15 @@ function cliqueNoMapaEscritorio(x, y) {
   }
   escritorioIrPara(x, y);
 }
-// WASD e setas como em jogo: enquanto a tecla está presa, anda um ladrilho a
-// cada passo; duas teclas somam (W+D vai na diagonal) e, se a direção está
-// bloqueada, desliza pela componente livre em vez de parar.
+// WASD e setas: enquanto a tecla está presa, o boneco anda (movimento
+// contínuo acima); duas teclas somam a direção.
 const ESCRITORIO_TECLAS = {
   ArrowUp: [-1, -1], w: [-1, -1], ArrowDown: [1, 1], s: [1, 1],
   ArrowLeft: [-1, 1], a: [-1, 1], ArrowRight: [1, -1], d: [1, -1],
 };
 const escritorioTeclas = new Set();
-function escritorioDirecaoTeclas() {
-  let dx = 0, dy = 0;
-  for (const t of escritorioTeclas) { dx += ESCRITORIO_TECLAS[t][0]; dy += ESCRITORIO_TECLAS[t][1]; }
-  return [Math.sign(dx), Math.sign(dy)];
-}
-function escritorioPassoTeclado() {
-  clearTimeout(escritorio.timerTeclado);
-  const [dx, dy] = escritorioDirecaoTeclas();
-  if (!dx && !dy) { escritorioPararTeclado(); return; }
-  const pos = escritorioPosicao(escritorio.perfil || {});
-  const x = Math.round(pos.x), y = Math.round(pos.y);
-  const tentativas = dx && dy ? [[dx, dy], [dx, 0], [0, dy]] : [[dx, dy]];
-  const ok = tentativas.find(([a, b]) => escritorio.mapa?.podePassar(x, y, a, b));
-  if (ok) {
-    escritorio.emMovimento = true;
-    escritorioPasso(x + ok[0], y + ok[1]);
-  }
-  escritorio.timerTeclado = setTimeout(escritorioPassoTeclado, ESCRITORIO_PASSO_MS);
-}
 function escritorioPararTeclado() {
-  clearTimeout(escritorio.timerTeclado);
-  escritorio.timerTeclado = null;
-  if (escritorio.emMovimento) { escritorio.emMovimento = false; atualizarPessoasEscritorio(); }
+  escritorioTeclas.clear();
 }
 function escritorioTecla(e) {
   if (e.target.closest?.("input, textarea, select, [contenteditable]") || e.metaKey || e.ctrlKey || e.altKey) return false;
@@ -650,23 +717,20 @@ function tecladoEscritorio(e) {
   if (!chave) return;
   e.preventDefault();
   if (!escritorio.conectado && !escritorio.base?.demo) return;
-  clearTimeout(escritorio.andando); // tecla interrompe um caminho por clique
-  const novo = !escritorioTeclas.has(chave);
+  movimento.rota = []; // tecla interrompe um caminho por clique
   escritorioTeclas.add(chave);
-  if (novo && !escritorio.timerTeclado) escritorioPassoTeclado();
+  escritorio.mapa?.seguir(movimento.x, movimento.y, true);
+  escritorioAnimarMovimento();
 }
 function soltarTeclaEscritorio(e) {
   const chave = escritorioTecla(e);
-  if (!chave) return;
-  escritorioTeclas.delete(chave);
-  if (!escritorioTeclas.size) escritorioPararTeclado();
+  if (chave) escritorioTeclas.delete(chave);
 }
 function irParaMinhaMesaEscritorio() {
   const mesa = escritorioMinhaMesa();
   if (!mesa) return;
   if (escritorio.modo === "lista") { escritorio.modo = "mapa"; renderEscritorio(); }
   escritorioIrPara(mesa.cadeira.x, mesa.cadeira.y);
-  escritorio.mapa?.centralizar(mesa.cadeira.x, mesa.cadeira.y);
 }
 // O painel é o computador da mesa: abre por cima do escritório e a presença
 // continua; "Voltar ao escritório" no dock traz o mapa de volta.
@@ -782,7 +846,8 @@ async function entrarChamadaEscritorio() {
   escritorioAviso("Preparando conversa…");
   let meeting;
   try {
-    const d = await escritorioApi("chamada", { sala });
+    if (!escritorio.zona) throw new Error("Entre numa sala para conversar.");
+    const d = await escritorioApi("chamada", { sala: escritorio.zona });
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
     if (!window.RealtimeKitClient)
@@ -803,7 +868,7 @@ async function entrarChamadaEscritorio() {
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
     escritorio.chamada = meeting;
-    escritorio.salaChamada = ESCRITORIO_SALAS[sala];
+    escritorio.salaChamada = escritorioLugarDe(escritorio.perfil).nome;
     for (const evento of [
       "participantJoined",
       "participantLeft",

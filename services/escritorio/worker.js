@@ -9,6 +9,8 @@ const salas = [
   "foco",
 ];
 const estados = ["disponivel", "foco", "reuniao", "ausente"];
+// Zona do mapa (sala individual ou espaço); fora delas, corredor ("").
+const zonaValida = (z) => (/^(sala-([0-9]|1[01])|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge)$/.test(String(z || "")) ? String(z) : "");
 export async function verificarEntrada(token, segredo, agora = Date.now()) {
   try {
     if (
@@ -117,6 +119,7 @@ export class EscritorioRoom {
         nome: a.nome,
         perfil: a.perfil,
         sala: a.sala,
+        zona: a.zona || "",
         x: a.x,
         y: a.y,
         status: a.status,
@@ -181,6 +184,7 @@ export class EscritorioRoom {
       a = {
         ...a,
         sala: p.sala,
+        zona: zonaValida(p.zona),
         status: estados.includes(p.status) ? p.status : a.status,
         x: Math.max(6, Math.min(94, p.x)),
         y: Math.max(6, Math.min(94, p.y)),
@@ -196,12 +200,14 @@ export class EscritorioRoom {
           outro.sub === String(p.id) &&
           outro.sub !== a.sub &&
           outro.sala === a.sala &&
+          (outro.zona || "") === (a.zona || "") &&
           outro.status === "disponivel" &&
           Math.hypot(outro.x - a.x, outro.y - a.y) <= 25
         )
           this.send(target, "conversation:invite", {
             nome: a.nome,
             sala: a.sala,
+            zona: a.zona || "",
           });
       }
       s.serializeAttachment(a);

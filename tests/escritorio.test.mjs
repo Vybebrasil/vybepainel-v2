@@ -585,3 +585,18 @@ test("Worker aceita só os endereços do painel listados, por igualdade exata", 
   assert.equal((await pedir("https://evil.test")).status, 403);
   assert.equal((await pedir(null)).status, 403);
 });
+
+test("Worker guarda a zona do mapa e descarta zona inventada", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const enviados = [];
+  const s = { a: { sub: "1", nome: "Paulo", sala: "criacao", zona: "", x: 50, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300 },
+    deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { enviados.push(JSON.parse(m)); } };
+  sockets.push(s);
+  await room.webSocketMessage(s, JSON.stringify({ type: "presence:move", payload: { sala: "criacao", zona: "sala-3", x: 40, y: 40 } }));
+  assert.equal(s.a.zona, "sala-3");
+  s.a.last = 0;
+  await room.webSocketMessage(s, JSON.stringify({ type: "presence:move", payload: { sala: "criacao", zona: "<x>", x: 40, y: 40 } }));
+  assert.equal(s.a.zona, "");
+  assert.equal(enviados.filter((e) => e.type === "presence:update").at(-1).payload[0].zona, "");
+});

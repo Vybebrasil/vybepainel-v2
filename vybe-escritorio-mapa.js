@@ -355,6 +355,22 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   const fundo = document.createElement("canvas");
   fundo.width = largura; fundo.height = altura; fundo.className = "mapa-fundo";
   palco.append(fundo);
+  // Zona onde a pessoa está: piso destacado com a cor da área e contorno.
+  const zonaCanvas = document.createElement("canvas");
+  zonaCanvas.width = largura; zonaCanvas.height = altura; zonaCanvas.className = "mapa-zona";
+  palco.append(zonaCanvas);
+  function marcarZona(a) {
+    const g = zonaCanvas.getContext("2d");
+    g.clearRect(0, 0, largura, altura);
+    if (!a) return;
+    const cor = (typeof ESCRITORIO_COR_SALA !== "undefined" && ESCRITORIO_COR_SALA[a.sala]) || "#ff8a35";
+    const pts = [mapaTela(a.x0, a.y0, origem), mapaTela(a.x1, a.y0, origem), mapaTela(a.x1, a.y1, origem), mapaTela(a.x0, a.y1, origem)];
+    g.beginPath(); pts.forEach((t, i) => (i ? g.lineTo(t.x, t.y) : g.moveTo(t.x, t.y))); g.closePath();
+    g.fillStyle = cor + "3d"; g.fill();
+    g.shadowColor = cor; g.shadowBlur = 14;
+    g.setLineDash([16, 8]); g.lineWidth = 5; g.strokeStyle = cor; g.stroke();
+    g.shadowBlur = 0;
+  }
   el.replaceChildren(palco);
   const imgLogo = new Image();
   imgLogo.src = logo;
@@ -467,7 +483,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     if (dist < 0.05) { p.acao = alvo.acao || "std"; if (alvo.dir != null) p.dir = alvo.dir; trocarImagem(p); posicionarPessoa(p); return; }
     p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y);
     p.acao = "wlk"; trocarImagem(p);
-    const dur = Math.min(4000, dist * 320), ini = performance.now();
+    // Passos curtos (vindos da presença a cada 150 ms) emendam sem trancos.
+    const dur = Math.min(4000, dist < 1.5 ? 170 : dist * 240), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
@@ -514,6 +531,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
       p.etiqueta.querySelector("b").textContent = q.nome;
       p.no.setAttribute("aria-label", q.rotulo || q.nome);
       p.no.dataset.status = q.status || "";
+      // O próprio boneco, enquanto este navegador o guia, não é puxado pela
+      // posição (atrasada) que volta do servidor.
+      if (q.local && performance.now() - (p.guiado || 0) < 400) continue;
       if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01 || p.acao !== (q.acao || "std")) caminhar(p, q);
       else trocarImagem(p);
     }
@@ -545,7 +565,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     if (!arrasto) return;
     const dx = e.clientX - arrasto.x, dy = e.clientY - arrasto.y;
     if (Math.hypot(dx, dy) > 4) arrasto.moveu = true;
-    if (arrasto.moveu) { cam = { x: arrasto.cx + dx, y: arrasto.cy + dy }; aplicar(); }
+    if (arrasto.moveu) { seguindo = false; alvoCam = null; cam = { x: arrasto.cx + dx, y: arrasto.cy + dy }; aplicar(); }
   });
   el.addEventListener("pointerup", (e) => {
     const a = arrasto; arrasto = null;
@@ -559,6 +579,34 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     const r = el.getBoundingClientRect();
     mudarZoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
+
+  // Câmera que acompanha a pessoa: desliza até ela; arrastar o mapa solta,
+  // voltar a andar prende de novo.
+  let seguindo = true, alvoCam = null, quadroCam = null;
+  const deslizar = () => {
+    quadroCam = null;
+    if (!alvoCam) return;
+    const dx = alvoCam.x - cam.x, dy = alvoCam.y - cam.y;
+    if (Math.hypot(dx, dy) < 0.5) { cam = { ...alvoCam }; aplicar(); return; }
+    cam = { x: cam.x + dx * 0.16, y: cam.y + dy * 0.16 }; aplicar();
+    quadroCam = requestAnimationFrame(deslizar);
+  };
+  function seguir(x, y, retomar) {
+    if (retomar) seguindo = true;
+    if (!seguindo) return;
+    const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
+    alvoCam = { x: r.width / 2 - t.x * zoom, y: r.height / 2 - t.y * zoom };
+    if (!quadroCam) quadroCam = requestAnimationFrame(deslizar);
+  }
+  // Posiciona direto (movimento contínuo guiado por este navegador).
+  function mover(id, x, y, dir, acao) {
+    const p = pessoas.get(id);
+    if (!p) return;
+    cancelAnimationFrame(p.passo); clearTimeout(p.parar);
+    p.guiado = performance.now();
+    p.x = x; p.y = y; p.dir = dir; p.acao = acao;
+    trocarImagem(p); posicionarPessoa(p);
+  }
 
   // Animação dos móveis: 8 quadros/s, só com o mapa visível na tela.
   let quadro = 0, relogio = null;
@@ -577,11 +625,11 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   prontos.then(() => { if (animados.length) relogio = setInterval(animar, 125); });
 
   return {
-    origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas,
+    origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { clearInterval(relogio); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { clearInterval(relogio); cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }
