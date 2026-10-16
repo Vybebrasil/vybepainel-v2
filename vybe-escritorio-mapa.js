@@ -263,6 +263,76 @@ function mapaDirecaoDoPasso(dx, dy) {
   return { 0: 2, 1: 3, 2: 4, 3: 5, 4: 6, "-4": 6, "-3": 7, "-2": 0, "-1": 1 }[oito] ?? 2;
 }
 
+// Mecânica do Habbo: anda de ladrilho em ladrilho, desvia de paredes e móveis
+// e senta quando para num assento. A grade marca o que bloqueia; paredes são
+// arestas entre ladrilhos vizinhos.
+const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair",
+  "hygge_c25_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair"]);
+function mapaMontarGrade(P, moveis) {
+  const W = P.W, H = P.H;
+  const bloqueado = new Uint8Array(W * H);
+  const assento = new Map(); // índice → direção de quem senta
+  const profAssento = new Map(); // índice → profundidade do assento (quem senta fica à frente)
+  const paredes = new Set(); // "x,y|x,y" entre vizinhos
+  const ind = (x, y) => y * W + x;
+  const aresta = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
+  for (const [x0, y0, x1, y1] of P.divisorias) {
+    if (y0 === y1) for (let x = x0; x < x1; x++) paredes.add(aresta(ind(x, y0 - 1), ind(x, y0)));
+    else for (let y = y0; y < y1; y++) paredes.add(aresta(ind(x0 - 1, y), ind(x0, y)));
+  }
+  const pi = P.piscina;
+  if (pi) for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) bloqueado[ind(x, y)] = 1;
+  for (const m of moveis) {
+    if (m.altura || m.plano) continue; // em cima de mesa ou rente ao piso
+    const senta = MAPA_ASSENTOS.has(m.classe);
+    for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
+      const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      if (senta) { assento.set(ind(x, y), m.dir); profAssento.set(ind(x, y), m.prof); }
+      else bloqueado[ind(x, y)] = 1;
+    }
+  }
+  return { W, H, bloqueado, assento, profAssento, paredes, ind, aresta };
+}
+// Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
+// caminhos retos também passam (não corta quina de parede).
+function mapaPassa(g, x, y, dx, dy) {
+  const nx = x + dx, ny = y + dy;
+  if (nx < 0 || ny < 0 || nx >= g.W || ny >= g.H || g.bloqueado[g.ind(nx, ny)]) return false;
+  if (dx && dy) return mapaPassa(g, x, y, dx, 0) && mapaPassa(g, x + dx, y, 0, dy) && mapaPassa(g, x, y, 0, dy) && mapaPassa(g, x, y + dy, dx, 0);
+  return !g.paredes.has(g.aresta(g.ind(x, y), g.ind(nx, ny)));
+}
+// A* em 8 direções. Devolve os ladrilhos do caminho (sem o de partida) ou null.
+function mapaCaminho(g, de, para) {
+  const sx = Math.round(de.x), sy = Math.round(de.y), tx = Math.floor(para.x), ty = Math.floor(para.y);
+  if (tx < 0 || ty < 0 || tx >= g.W || ty >= g.H || g.bloqueado[g.ind(tx, ty)]) return null;
+  if (sx === tx && sy === ty) return [];
+  const inicio = g.ind(Math.max(0, Math.min(g.W - 1, sx)), Math.max(0, Math.min(g.H - 1, sy))), alvo = g.ind(tx, ty);
+  const custo = new Map([[inicio, 0]]), veio = new Map(), aberto = [[0, inicio]], fechado = new Set();
+  const h = (i) => { const dx = Math.abs((i % g.W) - tx), dy = Math.abs(Math.floor(i / g.W) - ty); return Math.max(dx, dy) + 0.414 * Math.min(dx, dy); };
+  while (aberto.length) {
+    let k = 0;
+    for (let i = 1; i < aberto.length; i++) if (aberto[i][0] < aberto[k][0]) k = i;
+    const [, atual] = aberto.splice(k, 1)[0];
+    if (atual === alvo) break;
+    if (fechado.has(atual)) continue;
+    fechado.add(atual);
+    const x = atual % g.W, y = Math.floor(atual / g.W);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      if (!mapaPassa(g, x, y, dx, dy)) continue;
+      const viz = g.ind(x + dx, y + dy);
+      // Assento só serve de destino: ninguém atravessa sofá ou cadeira.
+      if (g.assento.has(viz) && viz !== alvo) continue;
+      const c = custo.get(atual) + (dx && dy ? 1.414 : 1);
+      if (c < (custo.get(viz) ?? Infinity)) { custo.set(viz, c); veio.set(viz, atual); aberto.push([c + h(viz), viz]); }
+    }
+  }
+  if (!veio.has(alvo)) return null;
+  const passos = [];
+  for (let i = alvo; i !== inicio; i = veio.get(i)) passos.unshift({ x: i % g.W, y: Math.floor(i / g.W) });
+  return passos;
+}
+
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
 function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   const P = planta;
@@ -321,14 +391,15 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
       desenho.canvas.dataset.classe = classe;
       colocar(desenho.canvas, x, y, { ...desenho, oy: desenho.oy - altura * 32 }, prof);
       palco.append(desenho.canvas);
-      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim };
+      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof };
       moveis.push(item);
       if (item.quadros > 1 && !reduzido) animados.push(item);
     } catch (e) {
       console.warn(e.message);
     }
   };
-  const prontos = Promise.all(P.moveis.map(montar));
+  let grade = null;
+  const prontos = Promise.all(P.moveis.map(montar)).then(() => { grade = mapaMontarGrade(P, moveis); });
 
   // Rótulos dos ambientes
   for (const a of P.ambientes) {
@@ -347,7 +418,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     const t = mapaTela(p.x, p.y, origem);
     p.no.style.left = t.x + "px";
     p.no.style.top = t.y + MAPA_TH / 2 + "px";
-    p.no.style.zIndex = Math.round((Math.floor(p.x) + Math.floor(p.y)) * 10) + 6;
+    // Sentado, fica à frente do assento (sofá longo tem profundidade maior).
+    const sobre = p.acao === "sit" && grade ? grade.profAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : undefined;
+    p.no.style.zIndex = Math.max(Math.round((Math.floor(p.x) + Math.floor(p.y)) * 10) + 6, (sobre ?? 0) + 2);
   };
   const trocarImagem = (p) => {
     const url = mapaAvatarUrl(p.figura, p.dir, p.acao);
@@ -356,16 +429,16 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   const caminhar = (p, alvo) => {
     cancelAnimationFrame(p.passo);
     const de = { x: p.x, y: p.y }, dist = Math.hypot(alvo.x - de.x, alvo.y - de.y);
-    if (dist < 0.05) { p.acao = alvo.acao || "std"; trocarImagem(p); return; }
+    if (dist < 0.05) { p.acao = alvo.acao || "std"; if (alvo.dir != null) p.dir = alvo.dir; trocarImagem(p); posicionarPessoa(p); return; }
     p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y);
     p.acao = "wlk"; trocarImagem(p);
-    const dur = Math.min(4000, dist * 260), ini = performance.now();
+    const dur = Math.min(4000, dist * 350), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
       posicionarPessoa(p);
       if (k < 1) p.passo = requestAnimationFrame(passo);
-      else { p.acao = alvo.acao || "std"; if (alvo.dir != null) p.dir = alvo.dir; trocarImagem(p); }
+      else { p.acao = alvo.acao || "std"; if (alvo.dir != null) p.dir = alvo.dir; trocarImagem(p); posicionarPessoa(p); }
     };
     p.passo = requestAnimationFrame(passo);
   };
@@ -464,6 +537,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom,
+    caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
+    assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
     destruir() { clearInterval(relogio); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };

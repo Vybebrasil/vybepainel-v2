@@ -52,8 +52,10 @@ function escritorioPrecisaAbertura() {
 }
 function abrirAberturaEscritorio(etapa = "cena") {
   const eu = escritorio.base?.equipe.find((p) => p.id === escritorio.base.eu);
-  criador.etapa = etapa;
+  // "Meu espaço" pede só o criador; a abertura completa termina nas boas-vindas.
   criador.so = etapa === "personagem";
+  // Quem acabou de passar pela Vybelândia no login vai direto ao personagem.
+  criador.etapa = etapa === "cena" && window.VYBELANDIA_VISTA ? "personagem" : etapa;
   criador.f = criadorDaFigura(escritorio.perfil?.figura || mapaFigura(escritorio.perfil || {}));
   criador.nome = String(eu?.nome || "").split(" ")[0] || "equipe";
   let el = document.getElementById("ofc-abertura");

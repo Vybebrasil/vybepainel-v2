@@ -11,8 +11,8 @@ const ESCRITORIO_DONOS = ["Paulo", "Vinícius", "Ewerton", "Deivid", "Bia", "Jad
 const ESCRITORIO_DONOS_CADASTRO = { Bia: ["Beatriz"], Taynara: ["Tainara"] };
 const ESCRITORIO_SALA_LADO = 10;
 const ESCRITORIO_PLANTA = (() => {
-  const W = 76, H = 58;
-  const PREDIO = { x0: 0, y0: 0, x1: 68, y1: 47 };
+  const W = 80, H = 58;
+  const PREDIO = { x0: 0, y0: 0, x1: 72, y1: 47 };
   const PISO = {
     madeira: ["#6b4a33", "#62432e"], clara: ["#9c7550", "#916b48"], concreto: ["#3d3f46", "#383a40"],
     carpete: ["#2c3444", "#27303e"], preto: ["#1b1b20", "#17171b"], cafe: ["#c9c4bd", "#bdb8b1"],
@@ -28,22 +28,25 @@ const ESCRITORIO_PLANTA = (() => {
   ambiente("reuniao", "Sala de reunião", "reuniao", 18, 0, 30, 9, "carpete");
   ambiente("recepcao", "Recepção", "convivencia", 30, 0, 42, 9, "preto");
   ambiente("cafe", "Café", "convivencia", 42, 0, 54, 9, "cafe");
-  ambiente("academia", "Academia", "convivencia", 54, 0, 68, 9, "academia");
+  ambiente("academia", "Academia", "convivencia", 54, 0, 72, 9, "academia");
   // Salas individuais 10×10: fileira de cima (porta para baixo) e de baixo (porta para cima)
   [...ESCRITORIO_DONOS, "", "", ""].forEach((dono, i) => {
-    const linha = i < 6 ? 0 : 1, col = i % 6, y0 = linha ? 25 : 12;
-    ambiente("sala-" + i, dono ? "Sala de " + dono : "Sala livre", "criacao", col * L, y0, col * L + L, y0 + L,
+    // Três salas, a passagem do meio (x 30–34) e mais três.
+    const linha = i < 6 ? 0 : 1, col = i % 6, y0 = linha ? 25 : 12, x0 = col < 3 ? col * L : 34 + (col - 3) * L;
+    ambiente("sala-" + i, dono ? "Sala de " + dono : "Sala livre", "criacao", x0, y0, x0 + L, y0 + L,
       i % 2 ? "madeira" : "clara", { pessoal: true, dono, porta: linha ? "cima" : "baixo" });
   });
-  ambiente("foco", "Foco", "foco", 60, 12, 68, 22, "carpete");
-  ambiente("jogos", "Jogos", "convivencia", 60, 25, 68, 35, "verde");
+  ambiente("foco", "Foco", "foco", 64, 12, 72, 22, "carpete");
+  ambiente("jogos", "Jogos", "convivencia", 64, 25, 72, 35, "verde");
   // Frente (y 38–47)
   ambiente("producao", "Produção", "producao", 0, 38, 26, 47, "concreto");
-  ambiente("lounge", "Lounge", "convivencia", 26, 38, 68, 47, "madeira");
+  ambiente("lounge", "Lounge", "convivencia", 26, 38, 72, 47, "madeira");
 
   // Divisórias sobre as arestas [x0,y0,x1,y1]; portas são vãos de 2 ladrilhos.
   const divisorias = [];
   for (const a of ambientes) if (a.x0 > 0) divisorias.push([a.x0, a.y0, a.x0, a.y1]);
+  // Lado direito das salas que dão para a passagem do meio.
+  for (const a of ambientes) if (a.pessoal && a.x1 === 30) divisorias.push([30, a.y0, 30, a.y1]);
   const comPorta = (y, lista, fechada) => {
     for (const a of lista) {
       if (fechada) { divisorias.push([a.x0, y, a.x1, y]); continue; }
@@ -84,14 +87,14 @@ const ESCRITORIO_PLANTA = (() => {
   for (const x of [44, 49]) { p("darkmodern_c20_lowtable", x, 5, 2); p("hc26_10", x, 4, 4); p("hc26_10", x + 2, 4, 4); p("hc26_10", x, 6, 0); p("hc26_10", x + 2, 6, 0); }
   // Academia
   for (let i = 0; i < 4; i++) p("olympics_c16_treadmill", 56 + i * 2, 1, 4);
-  p("school_c22_equipment", 58, 5, 2); p("school_c22_equipment", 62, 5, 2); p("army_c15_plant", 67, 8);
+  p("school_c22_equipment", 58, 5, 2); p("school_c22_equipment", 66, 5, 2); p("army_c15_plant", 71, 8);
   // Foco: estantes no fundo, poltronas e luminária
-  for (let i = 0; i < 4; i++) p("lodge_dark_bookcase", 60 + i * 2, 12, 0);
-  p("hygge_c25_armchair", 62, 16, 2); p("hygge_c25_armchair", 65, 16, 6); p("darkmodern_c20_floorlight", 67, 15, 2, 1);
-  p("hygge_c25_carpet", 62, 17, 0); p("army_c15_plant", 67, 21);
+  for (let i = 0; i < 4; i++) p("lodge_dark_bookcase", 64 + i * 2, 12, 0);
+  p("hygge_c25_armchair", 66, 16, 2); p("hygge_c25_armchair", 69, 16, 6); p("darkmodern_c20_floorlight", 71, 15, 2, 1);
+  p("hygge_c25_carpet", 66, 17, 0); p("army_c15_plant", 71, 21);
   // Jogos
-  p("bling15_pooltable", 62, 27, 0); p("ads_aftv_footballtable", 65, 31, 0);
-  p("darkmodern_c20_tv", 67, 27, 2, 1); p("hygge_c25_hangingchair", 61, 34, 2); p("mafia_c26_armchair_dark", 67, 33, 6);
+  p("bling15_pooltable", 66, 27, 0); p("ads_aftv_footballtable", 69, 31, 0);
+  p("darkmodern_c20_tv", 71, 27, 2, 1); p("hygge_c25_hangingchair", 65, 34, 2); p("mafia_c26_armchair_dark", 71, 33, 6);
   // Produção: bancadas com dois monitores, cadeira de frente para a tela
   for (let i = 0; i < 8; i++) {
     const x = 2 + (i % 4) * 6, y = 40 + Math.floor(i / 4) * 4;
@@ -105,7 +108,7 @@ const ESCRITORIO_PLANTA = (() => {
     p("mafia_c26_sofa_dark", x, 44, 4); p("mafia_c26_armchair_dark", x + 3, 42, 6);
   }
   p("hc26_5", 55, 40, 2); p("hc26_3", 56, 41, 0); p("darkmodern_c20_tv", 59, 41, 2, 1);
-  p("darkmodern_c20_floorlight", 67, 39, 2, 1); p("easter_c22_fanpalm", 67, 46); p("easter_c22_fanpalm", 26, 46);
+  p("darkmodern_c20_floorlight", 71, 39, 2, 1); p("easter_c22_fanpalm", 71, 46); p("easter_c22_fanpalm", 26, 46);
   p("easter_c22_fanpalm", 38, 46); p("easter_c22_fanpalm", 50, 46);
 
   // Área externa: piscina (no piso), espreguiçadeiras, guarda-sóis, canteiro,
@@ -114,11 +117,11 @@ const ESCRITORIO_PLANTA = (() => {
   for (let i = 0; i < 7; i++) p("js_c16_lounger", 34 + i * 2, 55, 0);
   p("tiki_parasol", 33, 55); p("lido_parasol", 42, 55); p("tiki_parasol", 49, 50);
   for (let i = 0; i < 22; i++) p(i % 2 ? "hobbies_c26_flower" : "hobbies_c26_flowerpot2", 1 + i * 3, 48, 2);
-  for (const [x, y] of [[3, 53], [70, 55]]) p("lt_c26_banyantree", x, y, 2);
-  for (const [x, y] of [[13, 55], [26, 55], [73, 48]]) p("ducket_c26_appletree", x, y, 2);
-  for (const [x, y] of [[32, 49], [51, 54], [70, 3], [70, 15], [70, 27], [70, 39]]) p("vwave_c21_palm", x, y, 2);
+  for (const [x, y] of [[3, 53], [74, 55]]) p("lt_c26_banyantree", x, y, 2);
+  for (const [x, y] of [[13, 55], [26, 55], [77, 48]]) p("ducket_c26_appletree", x, y, 2);
+  for (const [x, y] of [[32, 49], [51, 54], [74, 3], [74, 15], [74, 27], [74, 39]]) p("vwave_c21_palm", x, y, 2);
   for (const [x, y] of [[8, 51], [20, 51], [14, 54]]) p("br_c25_stonebench", x, y, 0);
-  for (const [x, y] of [[68, 9], [68, 22], [68, 35]]) p("hobbies_c26_flowerpot2", x, y, 2);
+  for (const [x, y] of [[72, 9], [72, 22], [72, 35]]) p("hobbies_c26_flowerpot2", x, y, 2);
 
   // Textos e logo pintados nas paredes do fundo (x = parede de cima-direita).
   const quadros = [
@@ -129,7 +132,7 @@ const ESCRITORIO_PLANTA = (() => {
   ];
   // Corredores (linha laranja), postes da praça e o letreiro da Vybelândia.
   const corredores = [10.5, 23.5, 36.5];
-  const postes = [[2, 48], [12, 48], [24, 48], [52, 48], [62, 48], [69, 6], [69, 18], [69, 30], [69, 42], [45, 52], [30, 52]];
+  const postes = [[2, 48], [12, 48], [24, 48], [52, 48], [62, 48], [73, 6], [73, 18], [73, 30], [73, 42], [45, 52], [30, 52]];
   const letreiro = { texto: "VYBELÂNDIA", de: 44, ate: 66 };
   return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro };
 })();

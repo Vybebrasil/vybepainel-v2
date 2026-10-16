@@ -6110,3 +6110,14 @@ body.no-escritorio {overflow:hidden}
 @keyframes abr-painel {from{opacity:0;transform:translate(-50%,-46%) scale(.98)}}
 @media(max-width:760px){.abr-painel,.abr-boas{grid-template-columns:1fr;padding:18px;gap:16px}.abr-previa img{width:96px;height:165px}.abr-opcoes{max-height:none}.abr-painel{overflow-y:auto}}
 @media(prefers-reduced-motion:reduce){.ofc-abertura::before{display:none}.abr-cena,.abr-luz,.abr-faiscas i,.abr-texto,.abr-texto h1 b,.abr-painel{animation:none}.abr-texto{opacity:1;transform:none}.abr-faiscas{display:none}}
+
+/* Login na Vybelândia: a cena da abertura fica atrás; "Entrar" revela a caixa. */
+#login-gate.login-vybelandia {overflow:hidden;background:#07070a}
+#login-gate.login-vybelandia .login-caixa {position:relative;z-index:5;background:#14151bde;border:1px solid #ff8a3540;border-radius:24px;box-shadow:0 30px 90px #000c;backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);animation:abr-painel-login .5s cubic-bezier(.2,.8,.2,1)}
+#login-gate.login-vybelandia[data-etapa=cena] .login-caixa {display:none}
+#login-gate.login-vybelandia[data-etapa=login] .login-chegada,#login-gate.login-vybelandia[data-etapa=login] .abr-faiscas {display:none}
+#login-gate.login-vybelandia[data-etapa=login] .abr-cena {animation:none;transform:scale(1.08);filter:blur(7px) brightness(.42) saturate(1.1);transition:filter .6s}
+#login-gate.login-vybelandia h1.login-cidade {margin:0;font:800 clamp(34px,5.4vw,68px)/1.02 var(--mac-ui);letter-spacing:-.03em;color:#fff4ea}
+#login-gate.login-vybelandia .login-chegada p {color:#f3e3d4;font-size:clamp(15px,1.4vw,18px);line-height:1.5}
+@keyframes abr-painel-login {from{opacity:0;transform:translateY(14px) scale(.98)}}
+@media(prefers-reduced-motion:reduce){#login-gate.login-vybelandia .login-caixa{animation:none}}

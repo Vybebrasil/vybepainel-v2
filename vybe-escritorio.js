@@ -320,20 +320,20 @@ function atualizarPessoasEscritorio() {
     ? pessoas
     : [{ id: eu, nome: "Você · fora do escritório", perfil: escritorio.perfil, sala, status: "ausente", x: escritorio.perfil.x || 50, y: escritorio.perfil.y || 75 }];
   if (escritorio.mapa) {
-    const mesas = escritorioDonos();
     escritorio.mapa.atualizarPessoas(visiveis.map((p) => {
       const pos = escritorioPosicao(p);
       const voce = p.id === eu;
       const perfilDe = escritorio.base.equipe.find((e) => e.id === p.id)?.perfil || p.perfil || {};
-      // Na cadeira da própria mesa, o boneco aparece sentado.
-      const a = mesas.get(p.id), mesa = a && escritorioMesaDaSala(a);
-      const sentado = mesa && Math.hypot(pos.x - mesa.cadeira.x, pos.y - mesa.cadeira.y) < 0.6;
+      // Parado num assento (cadeira, sofá, banqueta…), o boneco senta virado
+      // para onde o assento olha.
+      const dirAssento = escritorio.mapa.assentoEm(pos.x, pos.y);
+      const sentado = dirAssento !== undefined;
       const [nomeStatus, corStatus] = ESCRITORIO_STATUS[p.status] || ESCRITORIO_STATUS.disponivel;
       return {
         id: p.id, nome: voce && escritorio.conectado ? "Você" : p.nome, perfil: perfilDe, status: p.status, corStatus,
         rotulo: `${p.nome}${voce ? " (você)" : ""} · ${nomeStatus}`,
-        x: sentado ? mesa.cadeira.x : pos.x, y: sentado ? mesa.cadeira.y : pos.y,
-        acao: sentado ? "sit" : "std", dir: sentado ? mesa.cadeira.dir : undefined,
+        x: Math.round(pos.x), y: Math.round(pos.y),
+        acao: sentado ? "sit" : "std", dir: sentado ? dirAssento : undefined,
         aoClicar: convidarConversaEscritorio,
       };
     }));
@@ -443,7 +443,6 @@ function montarMapaEscritorio() {
     el.id = "office-map";
     el.tabIndex = 0;
     el.setAttribute("aria-label", "Mapa do escritório. Clique no piso ou use as setas para andar; arraste para mover o mapa.");
-    el.addEventListener("keydown", tecladoEscritorio);
     escritorio.mapaEl = el;
   }
   const el = escritorio.mapaEl;
@@ -483,8 +482,9 @@ function mudarSalaEscritorio(sala, verMapa) {
   escritorioIrPara(a ? (a.x0 + a.x1) / 2 : 30, a ? a.y1 - 1.5 : 18);
   if (verMapa) renderEscritorio();
 }
-// Anda até um ladrilho: a sala de conversa passa a ser a do ambiente.
-function escritorioIrPara(x, y) {
+// Anda até um ladrilho como no Habbo: pelo caminho livre, um ladrilho por
+// vez, e cada passo vai para a equipe. A sala de conversa é a do ambiente.
+function escritorioPasso(x, y) {
   const { x: px, y: py } = escritorioParaPorcentagem(x, y);
   const sala = escritorioSalaEm(x, y);
   escritorio.perfil = { ...escritorio.perfil, x: px, y: py };
@@ -492,7 +492,24 @@ function escritorioIrPara(x, y) {
   if (sala !== escritorio.sala) {
     escritorio.sala = sala;
     renderEscritorio();
-  } else if (!escritorio.conectado) atualizarPessoasEscritorio();
+  } else atualizarPessoasEscritorio();
+}
+function escritorioIrPara(x, y) {
+  clearTimeout(escritorio.andando);
+  const de = escritorioPosicao(escritorio.perfil || {});
+  const passos = escritorio.mapa?.caminho(de, { x, y });
+  if (passos === null || passos === undefined) {
+    // Sem mapa pronto (ou destino sem caminho): não teleporta.
+    if (escritorio.mapa) escritorioAviso("Não dá para chegar aí: há parede ou móvel no caminho.");
+    return;
+  }
+  const andar = () => {
+    const passo = passos.shift();
+    if (!passo) return;
+    escritorioPasso(passo.x, passo.y);
+    if (passos.length) escritorio.andando = setTimeout(andar, 350);
+  };
+  andar();
 }
 function cliqueNoMapaEscritorio(x, y) {
   if (!escritorio.conectado && !escritorio.base?.demo) {
@@ -507,14 +524,21 @@ function cliqueNoMapaEscritorio(x, y) {
   }
   escritorioIrPara(x, y);
 }
-// Setas seguem a tela: para cima anda para o fundo do mapa.
+// WASD e setas: um ladrilho por toque (segurar repete), seguindo a tela.
+const ESCRITORIO_TECLAS = {
+  ArrowUp: [-1, -1], w: [-1, -1], ArrowDown: [1, 1], s: [1, 1],
+  ArrowLeft: [-1, 1], a: [-1, 1], ArrowRight: [1, -1], d: [1, -1],
+};
 function tecladoEscritorio(e) {
-  const passo = { ArrowUp: [-1, -1], ArrowDown: [1, 1], ArrowLeft: [-1, 1], ArrowRight: [1, -1] }[e.key];
-  if (!passo) return;
+  if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+  const passo = ESCRITORIO_TECLAS[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+  if (!passo || e.metaKey || e.ctrlKey || e.altKey) return;
   e.preventDefault();
   if (!escritorio.conectado && !escritorio.base?.demo) return;
-  const pos = escritorioPosicao(escritorio.perfil || {}), P = ESCRITORIO_PLANTA;
-  escritorioIrPara(Math.max(0, Math.min(P.W - 1, pos.x + passo[0])), Math.max(0, Math.min(P.H - 1, pos.y + passo[1])));
+  if (e.repeat && Date.now() - (escritorio.ultimoPasso || 0) < 380) return;
+  escritorio.ultimoPasso = Date.now();
+  const pos = escritorioPosicao(escritorio.perfil || {});
+  escritorioIrPara(Math.round(pos.x) + passo[0], Math.round(pos.y) + passo[1]);
 }
 function irParaMinhaMesaEscritorio() {
   const mesa = escritorioMinhaMesa();
@@ -748,4 +772,13 @@ async function sairChamadaEscritorio() {
 window.addEventListener("pagehide", () => {
   escritorio.socket?.close();
   escritorio.chamada?.leave();
+});
+
+// WASD/setas valem em qualquer lugar do escritório, não só com o mapa focado;
+// campos de texto, modais e a abertura ficam de fora.
+globalThis.document?.addEventListener?.("keydown", (e) => {
+  if (typeof activeBoard === "undefined" || activeBoard !== "escritorio" || !escritorio.mapa) return;
+  if (document.getElementById("ofc-abertura") || document.querySelector(".workflow-modal")) return;
+  if ((escritorio.modo || "mapa") !== "mapa") return;
+  tecladoEscritorio(e);
 });

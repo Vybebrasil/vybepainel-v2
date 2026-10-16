@@ -459,3 +459,50 @@ test("perfil guarda só figura bem formada e data de abertura válida", () => {
   assert.equal(ruim.figura, "");
   assert.equal(ruim.abertura, "");
 });
+
+// Mecânica do Habbo: paredes e móveis bloqueiam, assento só como destino.
+function gradeDeTeste(moveis = [], divisorias = []) {
+  const c = vm.createContext({ window: {}, document: {} });
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
+  c.P = { W: 8, H: 6, divisorias, piscina: null };
+  c.moveis = moveis;
+  vm.runInContext("g = mapaMontarGrade(P, moveis)", c);
+  return (de, para) => { c.de = de; c.para = para; return vm.runInContext("mapaCaminho(g, de, para)", c); };
+}
+
+test("caminho desvia da parede pela porta e nunca cruza aresta bloqueada", () => {
+  // Parede vertical em x=4 com porta (vão) em y=5.
+  const caminho = gradeDeTeste([], [[4, 0, 4, 5]]);
+  const passos = caminho({ x: 1, y: 1 }, { x: 6, y: 1 });
+  assert.ok(passos && passos.length > 5, "precisa dar a volta");
+  let ant = { x: 1, y: 1 };
+  for (const p of passos) {
+    // atravessar x=3→4 só na linha da porta (y=5)
+    if ((ant.x <= 3 && p.x >= 4) || (ant.x >= 4 && p.x <= 3)) assert.equal(Math.max(ant.y, p.y), 5);
+    assert.ok(Math.abs(p.x - ant.x) <= 1 && Math.abs(p.y - ant.y) <= 1, "um ladrilho por passo");
+    ant = p;
+  }
+  assert.equal(JSON.stringify(passos.at(-1)), JSON.stringify({ x: 6, y: 1 }));
+});
+
+test("móvel bloqueia; destino sobre móvel não tem caminho; parede fechada também não", () => {
+  const mesa = { classe: "exe_table", x: 3, y: 0, dim: { x: 2, y: 6 }, dir: 0 };
+  assert.equal(gradeDeTeste([mesa])({ x: 1, y: 1 }, { x: 6, y: 1 }), null);
+  assert.equal(gradeDeTeste([mesa])({ x: 1, y: 1 }, { x: 3, y: 2 }), null);
+  assert.equal(gradeDeTeste([], [[4, 0, 4, 6]])({ x: 1, y: 1 }, { x: 6, y: 1 }), null);
+});
+
+test("assento é destino, mas não atalho", () => {
+  const sofa = { classe: "hc26_5", x: 3, y: 0, dim: { x: 1, y: 5 }, dir: 2 };
+  const caminho = gradeDeTeste([sofa]);
+  assert.equal(JSON.stringify(caminho({ x: 1, y: 2 }, { x: 3, y: 2 }).at(-1)), JSON.stringify({ x: 3, y: 2 }));
+  const volta = caminho({ x: 1, y: 2 }, { x: 5, y: 2 });
+  assert.ok(volta.every((p) => !(p.x === 3 && p.y < 5)), "não pisa no sofá no meio do caminho");
+});
+
+test("diagonal não corta quina de parede", () => {
+  // Parede horizontal em y=3 de x=0 a 3: de (2,2) para (3,3) não pode ir em diagonal.
+  const passos = gradeDeTeste([], [[0, 3, 3, 3]])({ x: 2, y: 2 }, { x: 2, y: 3 });
+  assert.ok(passos.length > 1);
+  assert.ok(!passos.some((p, i) => i === 0 && p.y === 3 && p.x <= 2));
+});
