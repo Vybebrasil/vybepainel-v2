@@ -20,6 +20,8 @@ const ESCRITORIO_PLANTA = (() => {
     sala0: ["#7a4f3a", "#704836"], sala1: ["#5e4636", "#564031"], sala2: ["#3f4a5c", "#394354"], sala3: ["#6b5a3e", "#625238"],
     sala4: ["#6a4555", "#613f4e"], sala5: ["#4a5a48", "#435242"], sala6: ["#5a4a6a", "#524361"], sala7: ["#7a5a3a", "#705235"],
     sala8: ["#45545e", "#3f4d56"], sala9: ["#665040", "#5d493a"], sala10: ["#5b5040", "#53493a"], sala11: ["#4f4a5a", "#484352"],
+    // Espaços do Lounge, cada um com o seu piso.
+    lareira: ["#4f3626", "#472f21"], cinema: ["#262a3c", "#222536"], pista: ["#2c2338", "#271f32"], bar: ["#3d2b22", "#36261e"],
   };
   // Cor do letreiro em neon de cada sala.
   const CORES_SALAS = ["#ff8a35", "#ffb347", "#5aa9ff", "#ffd166", "#ff6fa8", "#7ee08a", "#b48cff", "#ff9a5a", "#5ad1e6", "#e8a87c", "#d6c27a", "#a7a3ff"];
@@ -45,7 +47,17 @@ const ESCRITORIO_PLANTA = (() => {
   ambiente("jogos", "Jogos", "convivencia", 64, 25, 72, 35, "verde");
   // Frente (y 38–47)
   ambiente("producao", "Produção", "producao", 0, 38, 26, 47, "concreto");
-  ambiente("lounge", "Lounge", "convivencia", 26, 38, 72, 47, "madeira");
+  ambiente("lounge", "Lounge", "convivencia", 26, 38, 72, 47, "madeira", { semRotulo: true });
+  // O Lounge é uma zona só (uma conversa), dividido em quatro espaços com
+  // piso, nome e divisórias baixas próprias; a frente fica aberta para passar.
+  const pisos = [
+    { x0: 26, y0: 38, x1: 37, y1: 47, piso: "lareira" }, { x0: 37, y0: 38, x1: 48, y1: 47, piso: "cinema" },
+    { x0: 48, y0: 38, x1: 58, y1: 47, piso: "pista" }, { x0: 58, y0: 38, x1: 72, y1: 47, piso: "bar" },
+  ];
+  const rotulos = [
+    { texto: "Lareira", x: 31.5, y: 46.4 }, { texto: "Cinema", x: 42.5, y: 46.4 },
+    { texto: "Pista", x: 53, y: 46.4 }, { texto: "Bar", x: 69.5, y: 46.4 },
+  ];
 
   // Divisórias sobre as arestas [x0,y0,x1,y1]; portas são vãos de 2 ladrilhos.
   const divisorias = [];
@@ -68,9 +80,20 @@ const ESCRITORIO_PLANTA = (() => {
   comPorta(25, fileira(25));
   comPorta(35, fileira(25).filter((a) => a.pessoal), true); comPorta(35, fileira(25).filter((a) => !a.pessoal));
   comPorta(38, fileira(38));
+  // Paredes altas (como no SoWork) nas duas paredes do fundo de cada sala
+  // individual, na cor dela: a da esquerda (x0) e a de trás (y0). As da frente
+  // ficam baixas para enxergar dentro. O 5º campo é a cor da parede alta.
+  for (const d of divisorias) {
+    const [x0, y0, x1, y1] = d;
+    const sala = ambientes.find((a) => a.pessoal && (x0 === x1
+      ? x0 === a.x0 && y0 >= a.y0 && y1 <= a.y1
+      : y0 === a.y0 && x0 >= a.x0 && x1 <= a.x1));
+    if (sala) d.push(sala.cor);
+  }
   // Produção: o estúdio de gravação (x 0–10) fica separado das ilhas de edição
   // por uma divisória, com a passagem na frente.
   divisorias.push([10, 38, 10, 44]);
+  divisorias.push([37, 38, 37, 44], [48, 40, 48, 44], [58, 38, 58, 44]);
 
   // Móveis: [classe, x, y, direção, estado, altura (em cima de mesa)]
   const m = [];
@@ -87,7 +110,7 @@ const ESCRITORIO_PLANTA = (() => {
   // Reunião: mesa comprida no meio, cadeiras dos dois lados, quadro e arquivos
   p("army_c15_contable2", 20, 4, 0); for (const x of [21, 23, 25]) p("army_c15_contable", x, 4, 0); p("army_c15_contable2", 27, 4, 0);
   for (let x = 20; x <= 27; x++) { p("army_c15_leatherchr", x, 3, 4); p("army_c15_leatherchr", x, 5, 0); }
-  p("uni_c23_whiteboard", 29, 3, 2); p("plant_yukka", 18, 0, 0); p("plant_yukka", 29, 8, 0);
+  p("uni_c23_whiteboard", 18, 4, 2); p("plant_yukka", 18, 0, 0); p("plant_yukka", 29, 8, 0);
   p("army_c15_cabinet", 20, 0, 4); p("army_c15_cabinet", 21, 0, 4); p("army_c15_cabinet", 22, 0, 4);
   // Recepção: balcão de atendimento de frente para a porta, com a cadeira da
   // recepção atrás; área de espera com dois sofás frente a frente sobre o
@@ -156,7 +179,7 @@ const ESCRITORIO_PLANTA = (() => {
   p("hc_exe_table", 16, 42, 0);
   for (const x of [16, 17, 18]) p("modern_c17_chair", x, 44, 0);
   p("modern_c17_chair", 15, 42, 2); p("modern_c17_chair", 19, 43, 6);
-  p("matic_water_dispenser", 25, 41, 4); p("exe_c15_printer", 25, 43, 2);
+  p("matic_water_dispenser", 25, 41, 4); p("exe_c15_printer", 14, 38, 0);
   p("easter_c22_fanpalm", 25, 46); p("bohogarden_c21_snakeplant", 21, 46, 2);
   // Lounge, em quatro ambientes da esquerda para a direita:
   // lareira (sofá e poltronas virados para o fogo, mesinha no meio, tapete),
@@ -165,14 +188,21 @@ const ESCRITORIO_PLANTA = (() => {
   p("darkmodern_c20_lowtable", 30, 42, 2); p("mafia_c26_sofa_dark", 30, 44, 0);
   p("mafia_c26_armchair_dark", 28, 42, 2); p("mafia_c26_armchair_dark", 34, 42, 6);
   p("theatre_plant", 28, 38, 2); p("theatre_plant", 35, 38, 2); p("modern_c17_floorlamp", 27, 45, 2, 1);
+  p("hygge_c18_shelf", 26, 40, 2, 1); p("hygge_c18_shelf", 26, 43, 2, 1);
   p("uni_projector", 41, 38, 4); p("js_exe_rug", 41, 42, 0);
   p("hc23_6", 41, 43, 0); p("hc23_6", 41, 45, 0);
   p("modern_c17_floorlamp", 39, 38, 2, 1); p("modern_c17_floorlamp", 45, 38, 2, 1);
+  // Pista: cabine do DJ e jukebox na parede, piso de luz, refletores.
   p("hc25_6", 52, 38, 0, 1); p("disco_c26_jukebox", 54, 38, 0, 1);
-  p("darkmodern_c20_rug", 52, 40, 0); p("spotlight", 51, 39, 2); p("spotlight", 57, 39, 6);
-  p("lodge_dark_bardesk", 65, 40, 0); p("lodge_dark_minibar", 68, 38, 4, 1); p("army_c15_cabinet", 69, 38, 4); p("lodge_dark_minibar", 70, 38, 4, 1);
-  for (const y of [40, 41, 42]) p("vwave_c21_barstool", 64, y, 2);
-  for (const x of [60, 63]) { p("vwave_c21_bartable", x, 45, 0); p("vwave_c21_barstool", x - 1, 45, 2); p("vwave_c21_barstool", x + 1, 46, 6); }
+  for (const x of [50, 52, 54]) for (const y of [40, 42]) p("disco_c26_floor", x, y, 0, 1);
+  p("spotlight", 49, 39, 2); p("spotlight", 57, 39, 6);
+  // Bar: balcão com bebidas e as banquetas na frente; atrás dele, a
+  // prateleira de garrafas e os frigobares; mesas altas perto da piscina.
+  for (const x of [63, 64, 65, 66, 67]) { p("js_exe_bardesk", x, 41, 0); p("vwave_c21_barstool", x, 42, 0); }
+  p("exe_drinks", 64, 41, 4, 0, 1); p("exe_drinks", 66, 41, 4, 0, 1);
+  p("ktchn15_bubblejuicerack", 63, 38, 4, 1); p("ktchn15_bubblejuicerack", 65, 38, 4, 1);
+  p("lodge_dark_minibar", 68, 38, 4, 1); p("lodge_dark_minibar", 69, 38, 4, 1);
+  for (const x of [60, 63, 66]) { p("vwave_c21_bartable", x, 45, 0); p("vwave_c21_barstool", x - 1, 45, 2); p("vwave_c21_barstool", x + 1, 46, 6); }
   p("modern_c17_floorlamp", 71, 46, 2, 1);
   for (const x of [38, 50]) p("easter_c22_fanpalm", x, 46);
 
@@ -205,7 +235,7 @@ const ESCRITORIO_PLANTA = (() => {
   // Postes nos vãos entre os canteiros e fora da piscina.
   const postes = [[4, 48], [16, 48], [28, 48], [40, 48], [52, 48], [64, 48], [73, 6], [73, 18], [73, 30], [73, 42], [51, 57], [28, 52]];
   const letreiro = { texto: "VYBELÂNDIA", de: 44, ate: 66 };
-  return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro };
+  return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro, pisos, rotulos };
 })();
 // Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho.
 function escritorioParaMapa(px, py) {
@@ -265,15 +295,15 @@ function escritorioMoveisDaSala(a) {
     // mesinha e poltrona.
     atendimento: [
       ...visita("mafia_c26_armchair_white"), item("exe_globe", 0, 2, 0), item("exe_c15_telephone", 3, 5, 2, 0, 1),
-      item("modern_c17_sofa", 7, 0, 4), item("hc26_3", 7, 2, 2), item("mafia_c26_armchair_dark", 9, 2, 6),
-      item("modern_c17_floorlamp", 9, 0, 2, 1), item("bohogarden_c21_cheeseplant", 9, 8, 2),
+      item("modern_c17_sofa", 6, 0, 4), item("hc26_3", 6, 2, 2), item("mafia_c26_armchair_dark", 8, 2, 6),
+      item("modern_c17_floorlamp", 8, 0, 2, 1), item("bohogarden_c21_cheeseplant", 9, 8, 2),
     ],
     // Estação de criação com dois monitores no fundo e canto de ideias com pufes.
     design: [
       item("modern_c17_chair", 5, 4, 6),
-      item("hc_exe_wrkdesk", 8, 0, 4), item("army_c15_leatherchr", 8, 1, 0),
+      item("hc_exe_wrkdesk", 6, 0, 4), item("army_c15_leatherchr", 6, 1, 0),
       item("cubie_rug_p", 6, 5, 0), item("cubie_beanbag_b", 6, 6, 2), item("hc26_3", 7, 6, 0), item("cubie_beanbag_p", 8, 6, 6),
-      item("bohogarden_c21_snakeplant", 9, 9, 2), item("modern_c17_floorlamp", 9, 3, 2, 1),
+      item("bohogarden_c21_snakeplant", 9, 9, 2), item("modern_c17_floorlamp", 8, 0, 2, 1),
     ],
     // Mini estúdio: palco iluminado, câmera virada para ele e a cadeira de
     // quem dirige a gravação.
@@ -289,17 +319,17 @@ function escritorioMoveisDaSala(a) {
       item("modern_c17_chair", 5, 4, 6),
       item("hygge_c25_carpet", 6, 4, 0), item("hygge_c25_coffeetable", 7, 5, 0),
       item("hygge_c25_armchair", 6, 5, 2), item("hygge_c25_armchair", 8, 6, 6),
-      item("hygge_c25_hangingchair", 9, 1, 6), item("hygge_c18_shelf", 0, 2, 2, 1),
+      item("hygge_c25_hangingchair", 8, 1, 6), item("hygge_c18_shelf", 0, 2, 2, 1),
       item("bohogarden_c21_fanpalm", 9, 9, 2),
     ],
     // Bancada de vidro com segundo monitor e pufes em volta da mesinha.
     criacao: [
       ...visita("mafia_c26_armchair_dark"),
-      item("gaming_c18_rigpro", 7, 0, 0), item("computer_flatscreen", 8, 0, 4, 1, 1.3), item("army_c15_leatherchr", 8, 1, 0),
+      item("gaming_c18_rigpro", 6, 0, 0), item("computer_flatscreen", 7, 0, 4, 1, 1.3), item("army_c15_leatherchr", 7, 1, 0),
       item("cubie_rug_b", 6, 5, 0), item("cubie_beanbag_b", 6, 6, 2), item("hc26_3", 7, 6, 0), item("cubie_beanbag_b", 8, 6, 6),
       item("bohogarden_c21_snakeplant", 9, 9, 2),
     ],
-    livre: [...visita("modern_c17_chair"), item("modern_c17_floorlamp", 9, 0, 2, 1), item("bohogarden_c21_cheeseplant", 9, 8, 2)],
+    livre: [...visita("modern_c17_chair"), item("modern_c17_floorlamp", 8, 0, 2, 1), item("bohogarden_c21_cheeseplant", 9, 8, 2)],
   };
   return [...base, ...temas[tema]];
 }

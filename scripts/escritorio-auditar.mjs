@@ -142,6 +142,32 @@ for (const it of itens) {
   }
   if (!achou) problemas.push(`${it.classe} (${it.x},${it.y})${it.camada !== "geral" ? " em " + it.camada : ""} virado para o nada (direção ${it.dir})`);
 }
+// Frente do desenho: na arte de 4 direções, 0/2/4/6 olham para −y/+x/+y/−x;
+// na de duas (0 e 2, ou 2 e 4), a frente é sempre para quem olha o mapa:
+// 0 e 4 para +y, 2 para +x. Móvel com frente (estante, fliperama, TV…) não
+// pode ficar de frente para uma parede encostada nele.
+const FRENTE = /arcade|pinball|retrogames|jukebox|bookcase|bookshelf|shelve|_shelf|tv$|screen|projector|fireplace|wrkdesk|minibar|fridge|stove|sink|counter|cabinet|cupboard|dispenser|mixingdesk|lectern|whiteboard|coffeemachine|microwave|printer|hc25_6|bardesk|rigpro/;
+const frenteDe = (it, dirs) => {
+  if (dirs.length >= 4) return OLHA[it.dir];
+  return { 0: [0, 1], 2: [1, 0], 4: [0, 1] }[it.dir];
+};
+for (const it of itens) {
+  if (!FRENTE.test(it.classe) || it.altura) continue;
+  const f = frenteDe(it, arte(it.classe).dirs);
+  if (!f) continue;
+  const [fx, fy] = f;
+  // Ladrilhos da borda da frente e o vizinho logo adiante.
+  let contra = 0, total = 0;
+  for (let i = 0; i < it.w; i++) for (let j = 0; j < it.h; j++) {
+    const x = it.x + i, y = it.y + j;
+    if ((fx && (i + fx < 0 || i + fx >= it.w)) || (fy && (j + fy < 0 || j + fy >= it.h))) {
+      total++;
+      const nx = x + fx, ny = y + fy;
+      if (temParede(x, y, nx, ny) || nx < 0 || ny < 0 || nx >= P.W || ny >= P.H || (nx >= P.PREDIO.x1 && x < P.PREDIO.x1) || (ny >= P.PREDIO.y1 && y < P.PREDIO.y1)) contra++;
+    }
+  }
+  if (total && contra === total) problemas.push(`${it.classe} (${it.x},${it.y})${it.camada !== "geral" ? " em " + it.camada : ""} de frente para a parede (direção ${it.dir})`);
+}
 // Postes (desenhados à parte) não ficam em cima de móvel nem dentro da piscina.
 for (const [x, y] of P.postes || []) {
   if (ocup.has(`${x},${y}`)) problemas.push(`poste (${x},${y}) em cima de ${ocup.get(`${x},${y}`)}`);
