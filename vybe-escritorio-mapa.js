@@ -111,14 +111,34 @@ function mapaDesenharFundo(canvas, planta, origem, logo) {
     g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(c.x, c.y); g.lineTo(d.x, d.y); g.closePath();
   };
   const cor = (piso, x, y) => { const p = planta.PISO[piso] || planta.PISO.corredor; return p[(Math.floor(x) + Math.floor(y)) % 2]; };
-  // Gramado em volta, deck da piscina e o prédio
-  for (let x = 0; x < planta.W; x++) for (let y = 0; y < planta.H; y++) { losango(x, y); g.fillStyle = cor("grama", x, y); g.fill(); }
   const P = planta.PREDIO;
+  // Vybelândia: a cidade ao fundo, com janelas acesas, atrás das paredes.
+  const topoEsq = mapaTela(0, P.y1, origem), topoMeio = mapaTela(0, 0, origem), topoDir = mapaTela(P.x1, 0, origem);
+  let semente = 7;
+  const sorte = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
+  for (let x = topoEsq.x - 120; x < topoDir.x + 160; x += 34 + sorte() * 40) {
+    const t = x < topoMeio.x ? (x - topoEsq.x) / (topoMeio.x - topoEsq.x) : (topoDir.x - x) / (topoDir.x - topoMeio.x);
+    const base = topoMeio.y - MAPA_PAREDE + (1 - Math.max(0, Math.min(1, t))) * (topoEsq.y - topoMeio.y) + 40;
+    const w = 30 + sorte() * 46, h = 120 + sorte() * 260;
+    g.fillStyle = sorte() > 0.5 ? "#15121a" : "#1c1720";
+    g.fillRect(x, base - h, w, h + 40);
+    for (let wy = base - h + 10; wy < base - 8; wy += 14) for (let wx = x + 6; wx < x + w - 6; wx += 10)
+      if (sorte() > 0.55) { g.fillStyle = sorte() > 0.3 ? "#ffb35c" : "#ff7a1a"; g.globalAlpha = 0.55 + sorte() * 0.45; g.fillRect(wx, wy, 4, 6); g.globalAlpha = 1; }
+  }
+  // Praça escura em volta (como as calçadas da Vybelândia), com gramados nos cantos.
+  for (let x = 0; x < planta.W; x++) for (let y = 0; y < planta.H; y++) {
+    const gramado = (x >= P.x1 + 3 && y > P.y1) || (y >= P.y1 + 7 && x < 22);
+    losango(x, y); g.fillStyle = gramado ? cor("grama", x, y) : (x + y) % 6 === 0 ? "#34323a" : cor("praca", x, y); g.fill();
+  }
   for (let x = P.x0; x < P.x1; x++) for (let y = P.y0; y < P.y1; y++) {
     const a = escritorioAmbienteEm(x + 0.5, y + 0.5);
     losango(x, y); g.fillStyle = cor(a ? a.piso : "corredor", x, y); g.fill();
     g.strokeStyle = "#0000001a"; g.lineWidth = 1; g.stroke();
   }
+  // Faixa laranja no meio dos corredores, como as ruas da Vybelândia.
+  g.strokeStyle = "#ff7a1a55"; g.lineWidth = 2; g.setLineDash([10, 8]);
+  for (const y of planta.corredores || []) { const a = mapaTela(P.x0, y, origem), b = mapaTela(P.x1, y, origem); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
+  g.setLineDash([]);
   const pi = planta.piscina;
   for (let x = pi.x0 - 1; x < pi.x1 + 1; x++) for (let y = pi.y0 - 1; y < pi.y1 + 2; y++) { losango(x, y); g.fillStyle = cor("deck", x, y); g.fill(); }
   // Água da piscina: azul com reflexos e a borda interna mais escura.
@@ -178,6 +198,30 @@ function mapaDesenharFundo(canvas, planta, origem, logo) {
       g.shadowColor = q.cor; g.shadowBlur = 8;
       g.fillText(q.texto, largX / 2, 0, Math.abs(largX) - 8);
     }
+    g.restore();
+  }
+  // Postes com luz laranja na praça.
+  for (const [x, y] of planta.postes || []) {
+    const t = mapaTela(x + 0.5, y + 0.5, origem);
+    const brilho = g.createRadialGradient(t.x, t.y, 4, t.x, t.y, 120);
+    brilho.addColorStop(0, "#ffb05c66"); brilho.addColorStop(1, "#ff7a1a00");
+    g.fillStyle = brilho; g.beginPath(); g.ellipse(t.x, t.y, 120, 60, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#1b1b20"; g.fillRect(t.x - 2, t.y - 92, 4, 92);
+    g.fillStyle = "#ffd29a"; g.shadowColor = "#ff8a2a"; g.shadowBlur = 18; g.beginPath(); g.arc(t.x, t.y - 96, 6, 0, Math.PI * 2); g.fill(); g.shadowBlur = 0;
+  }
+  // Letreiro em neon sobre a parede do fundo.
+  if (planta.letreiro) {
+    const a = mapaTela(planta.letreiro.de, 0, origem), b = mapaTela(planta.letreiro.ate, 0, origem);
+    const ang = Math.atan2(b.y - a.y, b.x - a.x);
+    g.save();
+    g.translate(a.x, a.y - MAPA_PAREDE - 58);
+    g.transform(1, Math.tan(ang), 0, 1, 0, 0);
+    const larg = (b.x - a.x);
+    g.fillStyle = "#121116"; g.fillRect(-10, -44, larg + 20, 66);
+    g.font = "900 46px 'Arial Black', Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.shadowColor = "#ff7a1a"; g.shadowBlur = 22; g.fillStyle = "#ff8a2a";
+    g.fillText(planta.letreiro.texto, larg / 2, -10, larg);
+    g.shadowBlur = 0; g.lineWidth = 1.5; g.strokeStyle = "#ffd29a"; g.strokeText(planta.letreiro.texto, larg / 2, -10, larg);
     g.restore();
   }
 }

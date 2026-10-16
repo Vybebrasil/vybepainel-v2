@@ -55,13 +55,10 @@ function chooseOfficeMode() {
   closeModeGate();
   switchBoard("escritorio", document.getElementById("btn-board-escritorio"));
 }
+// Mesmo boneco do mapa (Habbo), em pé, para listas, lobby e cartões.
 function escritorioAvatar(perfil = {}, nome = "") {
-  const pele =
-    { clara: "#f4d3b4", media: "#c58a61", escura: "#764b38" }[perfil.pele] ||
-    "#c58a61";
-  const roupa = ESCRITORIO_PALETA[perfil.roupa] || ESCRITORIO_PALETA.laranja;
-  const cabelo = perfil.cabelo || "curto";
-  return `<svg class="office-avatar" viewBox="0 0 64 82" role="img" aria-label="Personagem de ${safeText(nome)}"><ellipse cx="32" cy="77" rx="22" ry="4" fill="#0003"/><path d="M22 62v11m20-11v11" stroke="#263242" stroke-width="9" stroke-linecap="round"/><path d="M17 59V44q15-12 30 0v15Z" fill="${roupa}"/><path d="M17 44l-5 15m35-15 5 15" stroke="${pele}" stroke-width="7" stroke-linecap="round"/>${cabelo === "longo" ? '<path d="M16 19q16-23 32 0v24H16Z" fill="#332722"/>' : ""}<ellipse cx="32" cy="23" rx="16" ry="18" fill="${pele}"/>${cabelo === "sem" ? "" : cabelo === "cacheado" ? '<path d="M16 21q-7-8 0-12 0-10 10-7 7-6 13 0 12-2 13 9 7 8-3 12l-3-9-8-4-9 3-9-2Z" fill="#332722"/>' : '<path d="M16 21Q10 0 32 1q25 0 17 22l-6-11-9 3-10-4Z" fill="#332722"/>'}<circle cx="26" cy="24" r="1.5" fill="#282322"/><circle cx="38" cy="24" r="1.5" fill="#282322"/><path d="M28 32q4 3 8 0" stroke="#653d32" stroke-width="1.5" fill="none"/></svg>`;
+  const url = "https://www.habboassets.com/imaging/avatar.png?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: 2 });
+  return `<img class="office-avatar" src="${url}" alt="Personagem de ${safeText(nome)}" width="64" height="110" loading="lazy">`;
 }
 async function escritorioApi(acao, corpo) {
   const r = await fetch(
@@ -87,6 +84,7 @@ async function abrirEscritorio() {
   const painel = document.getElementById("painel-escritorio");
   if (escritorio.base) {
     renderEscritorio();
+    if (escritorioPrecisaAbertura()) abrirAberturaEscritorio();
     return;
   }
   painel.innerHTML =
@@ -100,6 +98,7 @@ async function abrirEscritorio() {
     escritorio.base = base;
     escritorioChegar();
     renderEscritorio();
+    if (escritorioPrecisaAbertura()) abrirAberturaEscritorio();
   } catch (e) {
     painel.innerHTML = `<div class="office-state"><h2>Escritório</h2><p>${safeText(e.message)}</p><button type="button" class="workflow-secondary" onclick="abrirEscritorio()">Tentar novamente</button></div>`;
   }
@@ -572,67 +571,9 @@ async function iniciarNoEscritorio() {
   escritorio.boardAntes = antes;
   voltarAoEscritorio();
 }
+// "Meu espaço" abre o criador de personagem da abertura.
 function personalizarEscritorio() {
-  const p = escritorio.perfil;
-  const campo = (id, nome, opcoes) =>
-    `<label class="workflow-field"><span>${nome}</span><select aria-label="${safeText(nome)}" name="${id}">${Object.entries(
-      opcoes,
-    )
-      .map(
-        ([k, v]) =>
-          `<option value="${k}" ${p[id] === k ? "selected" : ""}>${v}</option>`,
-      )
-      .join("")}</select></label>`;
-  const cores = {
-    laranja: "Laranja",
-    azul: "Azul",
-    verde: "Verde",
-    roxo: "Roxo",
-    rosa: "Rosa",
-    grafite: "Grafite",
-  };
-  openWorkflowModal(
-    `<div class="workflow-kicker">Meu espaço<button class="workflow-close" onclick="closeWorkflowModal()" aria-label="Fechar personalização">×</button></div><h2 class="workflow-title">Um espaço com a sua cara</h2><form onsubmit="event.preventDefault();salvarPersonalizacaoEscritorio(this)" onchange="previaPersonalizacaoEscritorio(this)"><div id="office-avatar-preview" class="office-avatar-preview">${escritorioAvatar(p, "Sua prévia")}</div>${campo("roupa", "Roupa", cores)}${campo("pele", "Tom de pele", { clara: "Claro", media: "Médio", escura: "Escuro" })}${campo("cabelo", "Cabelo", { curto: "Curto", longo: "Longo", cacheado: "Cacheado", sem: "Sem cabelo" })}${campo("mesa", "Mesa", cores)}${campo("objeto", "Objeto da mesa", { planta: "Planta", livros: "Livros", luminaria: "Luminária" })}${campo("sala", "Meu espaço fica em", ESCRITORIO_SALAS)}<p id="office-profile-error" role="alert"></p><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button class="workflow-primary">Salvar meu espaço</button></div></form>`,
-  );
-}
-function previaPersonalizacaoEscritorio(form) {
-  const preview = document.getElementById("office-avatar-preview");
-  if (preview)
-    preview.innerHTML = escritorioAvatar(
-      Object.fromEntries(new FormData(form)),
-      "Sua prévia",
-    );
-}
-async function salvarPersonalizacaoEscritorio(form) {
-  if (escritorio.salvando) return;
-  escritorio.salvando = true;
-  const btn = form.querySelector("button.workflow-primary");
-  btn.disabled = true;
-  try {
-    const perfil = {
-      ...escritorio.perfil,
-      ...Object.fromEntries(new FormData(form)),
-    };
-    const d = await escritorioApi("perfil", { perfil });
-    escritorio.perfil = d.perfil;
-    escritorio.base.equipe.find((p) => p.id === escritorio.base.eu).perfil =
-      d.perfil;
-    // A sala individual pode mudar com a área escolhida: refaz o mapa.
-    escritorio.mapa?.destruir();
-    escritorio.mapa = null;
-    if (form.isConnected) closeWorkflowModal();
-    renderEscritorio();
-    if (escritorio.conectado) {
-      desconectarEscritorio(false);
-      await conectarEscritorio();
-    }
-  } catch (e) {
-    const erro = form.querySelector("#office-profile-error");
-    if (erro) erro.textContent = e.message;
-  } finally {
-    escritorio.salvando = false;
-    if (btn.isConnected) btn.disabled = false;
-  }
+  abrirAberturaEscritorio("personagem");
 }
 async function carregarChatEscritorio() {
   const seq = ++escritorio.chatSeq,

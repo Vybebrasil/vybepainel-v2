@@ -14,10 +14,10 @@ const ESCRITORIO_PLANTA = (() => {
   const W = 76, H = 58;
   const PREDIO = { x0: 0, y0: 0, x1: 68, y1: 47 };
   const PISO = {
-    madeira: ["#8a6243", "#7d583b"], clara: ["#c9a27a", "#bd966f"], concreto: ["#5d6069", "#555861"],
-    carpete: ["#3c4658", "#364051"], preto: ["#24252b", "#1e1f24"], cafe: ["#d9d9d6", "#cfcfcc"],
-    verde: ["#2f5d4a", "#2a5443"], corredor: ["#3a3b42", "#34353b"], academia: ["#2b2c31", "#26272c"],
-    grama: ["#6fb54f", "#67ab48"], deck: ["#b98a5e", "#ad7f55"],
+    madeira: ["#6b4a33", "#62432e"], clara: ["#9c7550", "#916b48"], concreto: ["#3d3f46", "#383a40"],
+    carpete: ["#2c3444", "#27303e"], preto: ["#1b1b20", "#17171b"], cafe: ["#c9c4bd", "#bdb8b1"],
+    verde: ["#23493a", "#1f4134"], corredor: ["#2b2b31", "#27272c"], academia: ["#222227", "#1e1e22"],
+    grama: ["#3f7d3a", "#3a7335"], deck: ["#8a5f3c", "#7f5736"], praca: ["#2a2930", "#26252b"],
   };
   const L = ESCRITORIO_SALA_LADO;
   const ambientes = [];
@@ -127,7 +127,11 @@ const ESCRITORIO_PLANTA = (() => {
     { tipo: "texto", texto: "TÔ NA VYBE", cor: "#ff3b2f", parede: "y", de: 14, ate: 20 },
     { tipo: "texto", texto: "É A VYBE, MINHA VIDINHA!", cor: "#ffffff", parede: "y", de: 38, ate: 46 },
   ];
-  return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros };
+  // Corredores (linha laranja), postes da praça e o letreiro da Vybelândia.
+  const corredores = [10.5, 23.5, 36.5];
+  const postes = [[2, 48], [12, 48], [24, 48], [52, 48], [62, 48], [69, 6], [69, 18], [69, 30], [69, 42], [45, 52], [30, 52]];
+  const letreiro = { texto: "VYBELÂNDIA", de: 44, ate: 66 };
+  return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro };
 })();
 // Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho.
 function escritorioParaMapa(px, py) {

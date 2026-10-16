@@ -153,3 +153,7 @@ Após login do responsável na Cloudflare, foi confirmado:
   `/api/painel?area=escritorio&acao=arte`, só com sessão. Para adicionar um
   móvel: `node scripts/habbo-moveis.mjs <classe>`. Os bonecos vêm do imager do
   Habbo no navegador de cada pessoa (pose, direção e andar).
+- Abertura da Vybelândia (`vybe-escritorio-abertura.js`): cena animada com
+  `assets/vybelandia.webp`, criador de personagem (peças do Habbo conferidas por
+  corpo) e boas-vindas. Cada pessoa vê uma vez por versão (`ESCRITORIO_ABERTURA`,
+  guardada em `perfil.abertura`); para todos verem de novo, troque a data.

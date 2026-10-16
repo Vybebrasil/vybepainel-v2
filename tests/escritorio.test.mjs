@@ -191,13 +191,16 @@ test("Worker exige assinatura e ignora identidade enviada junto com a entrada", 
 test("avatar escapa nome e não interpola cores arbitrárias como HTML", () => {
   const c = vm.createContext({
     window: { addEventListener() {} },
+    URLSearchParams,
     safeText: (v) =>
       String(v).replaceAll("<", "&lt;").replaceAll('"', "&quot;"),
   });
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
   vm.runInContext(readFileSync("vybe-escritorio.js", "utf8"), c);
-  const html = c.escritorioAvatar({ roupa: '" onload="alert(1)' }, "<script>");
+  const html = c.escritorioAvatar({ roupa: '" onload="alert(1)', figura: '"><img src=x onerror=alert(1)>' }, "<script>");
   assert.ok(!html.includes("<script>"));
   assert.ok(!html.includes("onload="));
+  assert.ok(!html.includes("onerror"));
   assert.ok(html.includes("&lt;script>"));
 });
 
@@ -333,8 +336,9 @@ function telaDoEscritorio(entrada) {
   });
   vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8"), c);
   vm.runInContext(readFileSync("vybe-escritorio.js", "utf8"), c);
+  vm.runInContext(readFileSync("vybe-escritorio-abertura.js", "utf8"), c);
   c.entrada = entrada;
-  vm.runInContext("escritorioApi=()=>entrada;renderEscritorio=()=>{};", c);
+  vm.runInContext("escritorioApi=()=>entrada;renderEscritorio=()=>{};abrirAberturaEscritorio=()=>{abertura=(globalThis.abertura||0)+1};", c);
   return { c, painel };
 }
 
@@ -348,6 +352,8 @@ test("abrir o escritório carrega a base e não estoura erro", async () => {
   // Chega sentado na própria sala, que fica na área escolhida (criação).
   assert.equal(vm.runInContext("escritorio.sala", c), "criacao");
   assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.sala", c), "criacao");
+  // Quem ainda não viu a abertura desta versão vê a cena ao entrar.
+  assert.equal(vm.runInContext("globalThis.abertura", c), 1);
 });
 
 test("resposta atrasada não reabre o escritório depois de sair", async () => {
@@ -443,4 +449,13 @@ test("figura do boneco: escolhas do perfil viram figura válida; figura colada s
   assert.match(vm.runInContext('mapaFigura({ pele: "escura", roupa: "azul", cabelo: "longo" })', c), /^hd-600-14\.ch-665-82/);
   assert.equal(vm.runInContext('mapaFigura({ figura: "hd-180-1.hr-828-61" })', c), "hd-180-1.hr-828-61");
   assert.doesNotMatch(vm.runInContext('mapaFigura({ figura: "x\\"><script>" })', c), /script/);
+});
+
+test("perfil guarda só figura bem formada e data de abertura válida", () => {
+  const ok = perfilEscritorio({ figura: "hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110", abertura: "2026-10-16" });
+  assert.equal(ok.figura, "hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110");
+  assert.equal(ok.abertura, "2026-10-16");
+  const ruim = perfilEscritorio({ figura: 'hd-180-1"><script>', abertura: "amanhã" });
+  assert.equal(ruim.figura, "");
+  assert.equal(ruim.abertura, "");
 });

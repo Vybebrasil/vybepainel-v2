@@ -35,6 +35,8 @@ html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
 html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
+const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
+html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
 await writeFile('dist/index.html', html);
 // Rota de recuperação já utilizada pelo módulo de cadastros.
 await writeFile('dist/cadastros_governed_v2.js', (await transform(await readFile('cadastros_governed_v2.js','utf8'),
