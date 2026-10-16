@@ -148,6 +148,7 @@ async function conectarEscritorio() {
         });
         renderEscritorio();
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
+        setTimeout(() => escritorioMotorVoz().catch(() => {}), 1500);
         escritorioConversaAutomatica();
         carregarResumoRecados();
         escritorio.ping = setInterval(
@@ -1432,14 +1433,39 @@ async function enviarChatEscritorio(form) {
 // Ao parar numa sala (1,2 s, para não entrar e sair de chamadas só passando
 // pelo corredor), entra na conversa dela com o microfone ligado. Foco e
 // corredor não têm conversa por voz.
+// Motor de chamadas (~650 KB) baixado uma vez, logo ao entrar no escritório,
+// para a primeira conversa não esperar o download.
+function escritorioMotorVoz() {
+  if (window.RealtimeKitClient) return Promise.resolve();
+  escritorio.motorVoz ||= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@cloudflare/realtimekit@2.0.1/dist/browser.js";
+    s.onload = resolve;
+    s.onerror = () => { escritorio.motorVoz = null; reject(new Error("Não foi possível carregar o motor de chamadas.")); };
+    document.head.appendChild(s);
+  });
+  return escritorio.motorVoz;
+}
+// Pede o acesso à conversa da sala assim que a pessoa entra nela (em paralelo
+// com a espera curta para não abrir chamada de quem só está passando).
+function escritorioTokenDaZona(zona) {
+  const t = escritorio.tokenPrevio;
+  if (t && t.zona === zona && Date.now() - t.em < 60000) return t.promessa;
+  const promessa = escritorioApi("chamada", { sala: zona });
+  promessa.catch(() => { if (escritorio.tokenPrevio?.promessa === promessa) escritorio.tokenPrevio = null; });
+  escritorio.tokenPrevio = { zona, em: Date.now(), promessa };
+  return promessa;
+}
 function escritorioConversaAutomatica() {
   clearTimeout(escritorio.timerConversa);
   const zona = escritorio.zona;
   if (!zona || zona === "foco" || !escritorio.conectado || escritorio.base?.demo) return;
+  escritorioMotorVoz().catch(() => {});
+  escritorioTokenDaZona(zona);
   escritorio.timerConversa = setTimeout(async () => {
     if (escritorio.zona !== zona || escritorio.chamada || escritorio.entrandoChamada) return;
     await entrarChamadaEscritorio({ microfone: true });
-  }, 1200);
+  }, 600);
 }
 // Cada etapa da conversa tem prazo: em vez de ficar em "Preparando conversa…"
 // para sempre, a pessoa vê em qual etapa parou (e o console guarda o motivo).
@@ -1464,26 +1490,22 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
   let meeting;
   try {
     if (!escritorio.zona) throw new Error("Entre numa sala para conversar.");
-    const d = await escritorioComPrazo(escritorioApi("chamada", { sala: escritorio.zona }), 15000, "servidor da conversa");
+    const d = await escritorioComPrazo(escritorioTokenDaZona(escritorio.zona), 15000, "servidor da conversa");
+    escritorio.tokenPrevio = null; // cada token entra uma vez
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
-    if (!window.RealtimeKitClient)
-      await escritorioComPrazo(new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src =
-          "https://cdn.jsdelivr.net/npm/@cloudflare/realtimekit@2.0.1/dist/browser.js";
-        s.onload = resolve;
-        s.onerror = () =>
-          reject(new Error("Não foi possível carregar o motor de chamadas."));
-        document.head.appendChild(s);
-      }), 20000, "carregando o motor de chamadas");
+    await escritorioComPrazo(escritorioMotorVoz(), 20000, "carregando o motor de chamadas");
     // O próprio SDK toca o áudio de todos (um elemento só, sem eco de cópias);
     // se o navegador bloquear, aparece o botão "Ativar som da conversa".
-    meeting = await escritorioComPrazo(window.RealtimeKitClient.init({
+    // Com microfone, o SDK já pega o áudio enquanto entra (mais rápido que
+    // ligar depois de entrar). Se o microfone for negado, entra só ouvindo.
+    const iniciar = (audio) => escritorioComPrazo(window.RealtimeKitClient.init({
       authToken: d.authToken,
-      defaults: { audio: false, video: false },
+      defaults: { audio, video: false },
       modules: { experimentalAudioPlayback: true },
     }), 20000, "iniciando a chamada");
+    try { meeting = await iniciar(Boolean(microfone)); }
+    catch (e) { if (!microfone) throw e; console.warn("Chamada com microfone:", e); meeting = await iniciar(false); }
     escritorioNivelAudio.iniciar();
     await escritorioComPrazo(meeting.join(), 20000, "entrando na sala de voz");
     if (geracao !== escritorio.geracao || !escritorio.conectado)
@@ -1515,7 +1537,7 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     // Mudou de sala enquanto entrava: não fica numa conversa que não é a dela.
     if (escritorio.zona !== zonaInicial) { await sairChamadaEscritorio(); return; }
     let semMicrofone = false;
-    if (microfone) {
+    if (microfone && !meeting.self.audioEnabled) {
       // Na primeira vez o navegador pergunta: a pessoa precisa clicar em Permitir.
       escritorioAviso("Clique em Permitir no aviso do navegador para usar o microfone.");
       try { await meeting.self.enableAudio(); } catch (e) { semMicrofone = true; console.warn("Microfone:", e); }
