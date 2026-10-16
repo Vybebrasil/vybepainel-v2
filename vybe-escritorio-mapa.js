@@ -319,7 +319,8 @@ function mapaDirecaoDoPasso(dx, dy) {
 // e senta quando para num assento. A grade marca o que bloqueia; paredes são
 // arestas entre ladrilhos vizinhos.
 const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair",
-  "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair"]);
+  "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
+  "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6"]);
 function mapaMontarGrade(P, moveis) {
   const W = P.W, H = P.H;
   const bloqueado = new Uint8Array(W * H);
@@ -629,9 +630,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
 
   // Rótulos dos ambientes
   for (const a of P.ambientes) {
-    // Sala individual: letreiro no fundo da sala (perto da parede de trás), sem
-    // cobrir os móveis; espaços comuns: no centro.
-    const t = a.pessoal ? mapaTela((a.x0 + a.x1) / 2 + 1, a.y0 + 0.35, origem) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
+    // Sala individual: letreiro na porta (a faixa que fica sempre livre), sem
+    // cobrir os móveis do fundo; espaços comuns: no centro.
+    const t = a.pessoal ? mapaTela((a.x0 + a.x1) / 2, a.porta === "baixo" ? a.y1 - 0.4 : a.y0 + 0.4, origem) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
     const r = document.createElement("span");
     // Sala individual: letreiro em neon (cor da sala) no fundo dela.
     r.className = "mapa-rotulo" + (a.pessoal ? " neon" : "");
