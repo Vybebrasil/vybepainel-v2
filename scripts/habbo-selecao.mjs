@@ -55,11 +55,21 @@ for (const e of escolhidos) {
   await writeFile(`assets/escritorio/habbo/${e.classe}.png`, png);
   ok++;
 }
-const catalogo = escolhidos.filter((e) => !e.falhou).map((e) => ({
+// Quantas das 4 direções (0/2/4/6) a arte tem: o editor mostra se o móvel gira.
+const giros = async (classe) => {
+  try {
+    const j = JSON.parse(await readFile(`assets/escritorio/habbo/${classe}.json`, "utf8"));
+    const v = j.visualizations.find((x) => x.size === 64);
+    return [0, 2, 4, 6].filter((d) => Object.hasOwn(v?.directions || {}, String(d))).length || 1;
+  } catch { return 0; }
+};
+const catalogo = [];
+for (const e of escolhidos.filter((x) => !x.falhou)) catalogo.push({
   classe: e.classe,
   nome: (nomes[e.classe] || e.classe.replace(/_/g, " ")).slice(0, 40),
   categoria: e.categoria,
-}));
+  giros: await giros(e.classe),
+});
 // Catálogo do editor: carregado só ao abrir o editor, pela API (com sessão).
 await writeFile("assets/escritorio/habbo/catalogo.json", JSON.stringify(catalogo));
 console.log(`Seleção: ${catalogo.length} móveis (${ok} com arte no painel).`);
