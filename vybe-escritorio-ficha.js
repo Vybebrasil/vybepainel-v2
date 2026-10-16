@@ -128,25 +128,32 @@ const ESCRITORIO_PISOS_SALA = [
   ["lareira", "Tijolo"], ["cinema", "Azul-noite"], ["pista", "Roxo"],
 ];
 const ESCRITORIO_PAREDES_SALA = ["", "#ff8a35", "#ffb347", "#ffd166", "#ff6fa8", "#e05a5a", "#b48cff", "#7c6cff", "#5aa9ff", "#5ad1e6", "#7ee08a", "#3fb68b", "#e8e8ee", "#8a8f9c"];
+// Escolha de piso e paredes. No editor fica na própria barra lateral (aba
+// "Piso e paredes"); fora dele (pela ficha) abre o editor nessa aba.
+function escritorioEstiloSalaHtml() {
+  const mesa = escritorioMinhaMesa();
+  if (!mesa) return '<p class="ofc-nota">Você ainda não tem sala no escritório.</p>';
+  const p = escritorio.perfil || {}, a = mesa.ambiente;
+  const piso = (id) => { const c = ESCRITORIO_PLANTA.PISO[id || a.pisoPadrao || a.piso]; return c ? `repeating-conic-gradient(${c[0]} 0 25%,${c[1]} 0 50%) 0 0/16px 16px` : "#333"; };
+  return `<p class="ofc-nota">Toque numa opção: a sua sala muda na hora e todo mundo vê igual. Não precisa clicar em Salvar.</p>
+<h4>Piso</h4><div class="ofc-amostras">${ESCRITORIO_PISOS_SALA.map(([id, nome]) => `<button type="button" aria-pressed="${(p.sala_piso || "") === id}" onclick="estiloSalaEscritorio('sala_piso','${id}')" aria-label="Piso ${nome}"><i style="background:${piso(id)}"></i><span>${nome}</span></button>`).join("")}</div>
+<h4>Cor das paredes</h4><div class="ofc-amostras cores">${ESCRITORIO_PAREDES_SALA.map((c) => `<button type="button" aria-pressed="${(p.sala_parede || "") === c}" onclick="estiloSalaEscritorio('sala_parede','${c}')" aria-label="${c ? "Cor " + c : "Cor padrão da sala"}" title="${c ? c : "Padrão da sala"}"><i style="background:${c || a.corPadrao || a.cor}"></i>${c ? "" : "<span>Padrão</span>"}</button>`).join("")}</div>
+<p class="ofc-erro" id="office-estilo-erro" role="alert"></p>`;
+}
 function abrirEstiloSalaEscritorio() {
   const mesa = escritorioMinhaMesa();
   if (!mesa) return escritorioAviso("Você ainda não tem sala no escritório.");
-  let d = document.getElementById("office-estilo-sala");
-  if (!d) {
-    d = document.createElement("dialog");
-    d.id = "office-estilo-sala";
-    d.className = "ofc-ficha";
-    d.setAttribute("aria-labelledby", "office-estilo-titulo");
-    d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
-    document.body.append(d);
+  document.getElementById("office-ficha")?.close?.();
+  if (!escritorio.edicao || escritorio.edicao.camada !== mesa.ambiente.id) {
+    if (escritorio.edicao?.mudou && !confirm("Descartar as mudanças desta edição?")) return;
+    escritorio.edicao = null;
+    abrirEditorEscritorio(mesa.ambiente.id);
   }
-  const p = escritorio.perfil || {};
-  const piso = (id) => { const c = ESCRITORIO_PLANTA.PISO[id || mesa.ambiente.pisoPadrao || mesa.ambiente.piso]; return c ? `linear-gradient(135deg,${c[0]} 50%,${c[1]} 50%)` : "#333"; };
-  d.innerHTML = `<div class="ofc-ficha-topo"><div><h3 id="office-estilo-titulo">Piso e paredes da sua sala</h3><small>Todo mundo vê como você deixar.</small></div><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
-<h4>Piso</h4><div class="ofc-amostras">${ESCRITORIO_PISOS_SALA.map(([id, nome]) => `<button type="button" aria-pressed="${(p.sala_piso || "") === id}" onclick="estiloSalaEscritorio('sala_piso','${id}')" title="${nome}" aria-label="Piso ${nome}"><i style="background:${piso(id)}"></i><span>${nome}</span></button>`).join("")}</div>
-<h4>Cor das paredes</h4><div class="ofc-amostras cores">${ESCRITORIO_PAREDES_SALA.map((c) => `<button type="button" aria-pressed="${(p.sala_parede || "") === c}" onclick="estiloSalaEscritorio('sala_parede','${c}')" aria-label="${c ? "Cor " + c : "Cor padrão da sala"}" title="${c ? c : "Padrão da sala"}"><i style="background:${c || mesa.ambiente.corPadrao || mesa.ambiente.cor}"></i>${c ? "" : "<span>Padrão</span>"}</button>`).join("")}</div>
-<p class="ofc-erro" id="office-estilo-erro" role="alert"></p>`;
-  if (!d.open) d.showModal();
+  escritorio.catalogoCategoria = "Sala";
+  escritorio.aba = "catalogo";
+  escritorio.lateral = true;
+  renderEscritorio();
+  escritorio.mapa?.centralizar((mesa.ambiente.x0 + mesa.ambiente.x1) / 2, (mesa.ambiente.y0 + mesa.ambiente.y1) / 2);
 }
 async function estiloSalaEscritorio(campo, valor) {
   const antes = escritorio.perfil[campo] || "";
@@ -169,7 +176,8 @@ async function estiloSalaEscritorio(campo, valor) {
     if (erro) erro.textContent = e.message;
     return;
   }
-  if (document.getElementById("office-estilo-sala")?.open) abrirEstiloSalaEscritorio();
+  if (escritorio.edicao && escritorio.catalogoCategoria === "Sala") renderEscritorio();
+  escritorioAviso(campo === "sala_piso" ? "Piso da sala trocado." : "Cor das paredes trocada.");
 }
 // Recria o mapa (piso e paredes são desenhados uma vez), mantendo a câmera.
 function escritorioRedesenharMapa() {

@@ -6613,3 +6613,9 @@ body.no-escritorio {overflow:hidden}
 .ofc-paginas {display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0;font-size:12px;color:var(--ofc-suave)}
 .ofc-paginas button {width:34px;height:30px;border-radius:9px;border:1px solid var(--ofc-borda);background:#ffffff10;color:var(--ofc-texto);font:700 16px var(--mac-ui);cursor:pointer}
 .ofc-paginas button:disabled {opacity:.35;cursor:default}
+.ofc-cats-topo {margin:2px 0 10px}
+.ofc-cats-topo button {font-size:12px;padding:7px 12px}
+.ofc-catalogo .ofc-amostras {grid-template-columns:repeat(3,minmax(0,1fr))}
+.ofc-catalogo .ofc-amostras.cores {grid-template-columns:repeat(5,minmax(0,1fr))}
+.ofc-catalogo .ofc-amostras i {height:40px}
+.ofc-catalogo .ofc-amostras.cores i {height:32px}
