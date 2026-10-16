@@ -65,8 +65,11 @@ const ESCRITORIO_PLANTA = (() => {
   // Móveis: [classe, x, y, direção, estado, altura (em cima de mesa)]
   const m = [];
   const p = (classe, x, y, dir = 2, estado = 0, altura = 0) => m.push([classe, x, y, dir, estado, altura]);
-  // Auditório: palco com púlpito, telão na parede, refletores e plateia olhando para o palco
-  p("army15_largescreen", 0, 4, 2, 1); p("classic7_stage", 2, 3, 2);
+  // Auditório: telão na parede, púlpito sobre o tapete, refletores e plantas,
+  // plateia olhando para o telão
+  p("army15_largescreen", 0, 4, 2, 1); p("js_exe_rug", 1, 3, 0); p("uni_lectern", 2, 4, 2);
+  p("spotlight", 1, 1, 2); p("spotlight", 1, 8, 2);
+  p("bohogarden_c21_cheeseplant", 4, 0, 2); p("bohogarden_c21_cheeseplant", 4, 8, 2);
   for (let f = 0; f < 6; f++) for (let c = 0; c < 7; c++) p("hc26_10", 6 + f * 2, 1 + c, 6);
   p("easter_c22_fanpalm", 17, 0); p("easter_c22_fanpalm", 17, 8); p("darkmodern_c20_speakers", 0, 1, 2); p("darkmodern_c20_speakers", 0, 7, 2);
   // Reunião: mesa comprida no meio, cadeiras dos dois lados, quadro e arquivos
@@ -125,6 +128,11 @@ const ESCRITORIO_PLANTA = (() => {
   for (const y of [40, 41, 42]) p("vwave_c21_barstool", 64, y, 2);
   for (const x of [60, 63]) { p("vwave_c21_bartable", x, 45, 0); p("vwave_c21_barstool", x - 1, 45, 2); p("vwave_c21_barstool", x + 1, 46, 6); }
   p("darkmodern_c20_floorlight", 71, 46, 2, 1); p("easter_c22_fanpalm", 26, 46);
+  // Lounge: tapete e luz na pista do DJ, plantas entre os cantos de sofá
+  p("darkmodern_c20_rug", 52, 40, 0); p("spotlight", 51, 39, 2); p("spotlight", 57, 39, 6);
+  for (const x of [37, 47]) p("theatre_plant", x, 38, 2);
+  // Passagem do meio entre as salas: vasos altos dos dois lados, como uma rua da Vybelândia
+  for (const y of [14, 19, 28, 33]) { p("suncity_c19_plantpillar", 30, y, 2); p("suncity_c19_plantpillar", 33, y, 2); }
   p("easter_c22_fanpalm", 38, 46); p("easter_c22_fanpalm", 50, 46);
 
   // Área externa: piscina (no piso), espreguiçadeiras, guarda-sóis, canteiro,

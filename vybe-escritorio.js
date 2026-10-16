@@ -377,7 +377,7 @@ function escritorioIrAte(id) {
   const x0 = Math.round(alvo.x), y0 = Math.round(alvo.y);
   for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
     if (escritorio.mapa.assentoEm(x0 + dx, y0 + dy) !== undefined) continue;
-    if (escritorio.mapa.caminho(de, { x: x0 + dx, y: y0 + dy })) { escritorioIrPara(x0 + dx, y0 + dy); escritorio.mapa.centralizar(x0, y0); return; }
+    if (escritorio.mapa.caminho(de, { x: x0 + dx, y: y0 + dy })) { escritorioIrPara(x0 + dx, y0 + dy); movimento.turbo = true; return; }
   }
   escritorioAviso("Não achei caminho até " + o.nome + ".");
 }
@@ -393,7 +393,7 @@ function escritorioIrParaAmbiente(id) {
     const x = cx + dx, y = cy + dy;
     if (x < a.x0 || y < a.y0 || x >= a.x1 || y >= a.y1) continue;
     if (escritorio.mapa.assentoEm(x, y) !== undefined) continue;
-    if (escritorio.mapa.caminho(de, { x, y })) { escritorioIrPara(x, y); escritorio.mapa.centralizar(x, y); return; }
+    if (escritorio.mapa.caminho(de, { x, y })) { escritorioIrPara(x, y); movimento.turbo = true; return; }
   }
   escritorioAviso("Não achei caminho até " + a.nome + ".");
 }
@@ -621,6 +621,7 @@ function mudarSalaEscritorio(sala, verMapa) {
   const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.sala === sala && !x.pessoal);
   if (verMapa) escritorio.modo = "mapa";
   escritorioIrPara(a ? (a.x0 + a.x1) / 2 : 30, a ? a.y1 - 1.5 : 18);
+  movimento.turbo = true;
   if (verMapa) renderEscritorio();
 }
 // Movimento contínuo (como em jogo): a posição anda em frações de ladrilho a
@@ -701,7 +702,9 @@ function escritorioQuadro(agora) {
   let [vx, vy] = escritorioDirecaoTeclas(agora);
   let teclado = Boolean(vx || vy);
   if (ESCRITORIO_APARELHOS[escritorio.pose] && (teclado || movimento.rota.length)) definirPoseEscritorio("");
-  const velocidade = ESCRITORIO_VELOCIDADE * (escritorio.correndo && teclado ? 1.5 : 1);
+  // Ir até uma sala ou pessoa pela lateral: 3x mais rápido (viagem longa).
+  if (teclado) movimento.turbo = false;
+  const velocidade = ESCRITORIO_VELOCIDADE * (escritorio.correndo && teclado ? 1.5 : 1) * (movimento.turbo && !teclado ? 3 : 1);
   if (!teclado && movimento.rota.length) {
     const alvo = movimento.rota[0];
     const dx = alvo.x - movimento.x, dy = alvo.y - movimento.y, d = Math.hypot(dx, dy);
@@ -747,6 +750,7 @@ function escritorioQuadro(agora) {
     if (escritorioPodeIr(movimento.x, movimento.y, cx, cy)) movimento.rota.push({ x: cx, y: cy });
   }
   const andando = teclado || movimento.rota.length > 0;
+  if (!andando) movimento.turbo = false;
   // Ao andar, acenar e deitar acabam (o café continua na mão).
   if (andando && (escritorio.pose === "acenar" || escritorio.pose === "deitar")) definirPoseEscritorio("");
   escritorioSomDePasso(andando);
