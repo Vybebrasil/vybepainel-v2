@@ -64,6 +64,15 @@ test('abas separam redes, entregas e pendências sem duplicar clientes nem mistu
  assert.deepEqual(Array.from(c.listasDoCartaoDia(itens,pendencias,'pendencias').lista,i=>i.id),['d0']);
 });
 
+test('cartão do dia: em aberto primeiro, depois aprovação, para agendar juntos e agendado por último',()=>{
+ const c=contexto();
+ const itens=[['Para agendar','B'],['Pode Fazer','C'],['Agendado','A'],['Em andamento','A'],['Para aprovação','A'],['Para agendar','A'],['Finalizado','A']]
+  .map(([status,cliente],i)=>({id:'x'+i,status,cliente}));
+ const r=c.listasDoCartaoDia(itens,[],'social');
+ assert.deepEqual(Array.from(r.abertas,i=>i.status+'/'+i.cliente),['Em andamento/A','Pode Fazer/C','Para aprovação/A','Para agendar/A','Para agendar/B','Agendado/A']);
+ assert.equal(r.concluidas.length,1);
+});
+
 test('entregas de solicitações usam conclusão ou prazo e nunca a veiculação importada',()=>{
  const c=contexto();
  const item={origem:'solicitacao',conclusao_iso:'2026-10-16',prazo_iso:'2026-10-15',veiculacao_iso:'2026-12-01'};

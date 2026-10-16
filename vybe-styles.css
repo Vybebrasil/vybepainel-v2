@@ -6366,3 +6366,12 @@ body.no-escritorio {overflow:hidden}
 .cri-paginas {display:flex;align-items:center;justify-content:center;gap:12px;font:600 13px var(--mac-ui);color:#d9cfc4;font-variant-numeric:tabular-nums}
 .cri-paginas button {width:40px;height:36px;padding:0;font-size:18px}
 .cri-paginas button:disabled {opacity:.35;cursor:default}
+
+/* Cartão do dia: o que está em aberto (ainda a produzir) em vermelho leve, e um
+   respiro entre os grupos (aberto, aprovação, para agendar, agendado). */
+.day-activity-row.day-row-aberta {background:linear-gradient(90deg,#ff5a5a1f,#ff5a5a0a 70%,transparent);box-shadow:inset 3px 0 0 #ff6b6bb3}
+.day-activity-row.day-row-aberta:hover {background:linear-gradient(90deg,#ff5a5a2b,#ff5a5a12 70%,transparent)}
+.day-activity-row[data-grupo="0"]+.day-activity-row:not([data-grupo="0"]),
+.day-activity-row[data-grupo="1"]+.day-activity-row[data-grupo="2"],
+.day-activity-row[data-grupo="1"]+.day-activity-row[data-grupo="3"],
+.day-activity-row[data-grupo="2"]+.day-activity-row[data-grupo="3"] {border-top:1px solid #ffffff1f;margin-top:6px}

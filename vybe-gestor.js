@@ -687,11 +687,25 @@ const concluidasAbertasDia = new Set();
 function dataDoCartaoDia(item) {
   return isRequestItem(item) && dateMode !== 'prazo' ? (item.conclusao_iso || item.prazo_iso || '') : getDateIso(item);
 }
+// Ordem do dia: o que ainda precisa ser produzido vem primeiro (e fica em
+// destaque vermelho leve); depois aprovação; "Para agendar" juntos; "Agendado"
+// por último. Dentro de cada grupo, por cliente.
+function grupoDoDiaPorStatus(status) {
+  const s=String(status||'').toLocaleLowerCase('pt-BR');
+  if(s==='agendado') return 3;
+  if(s==='para agendar') return 2;
+  if(/aprova/.test(s)) return 1;
+  return 0;
+}
+function ordenarCartaoDia(lista) {
+  return [...lista].sort((a,b)=>grupoDoDiaPorStatus(a.status)-grupoDoDiaPorStatus(b.status)
+    ||String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR'));
+}
 function listasDoCartaoDia(itens, pendencias, aba='social') {
   const redes=itens.filter(i=>!isRequestItem(i));
   const demandas=itens.filter(isRequestItem);
   const lista=aba==='pendencias'?pendencias:aba==='demandas'?demandas:redes;
-  const abertas=lista.filter(i=>i.status!=='Finalizado');
+  const abertas=ordenarCartaoDia(lista.filter(i=>i.status!=='Finalizado'));
   const concluidas=lista.filter(i=>i.status==='Finalizado');
   return {redes,demandas,lista,abertas,concluidas};
 }
@@ -782,7 +796,8 @@ function renderByDay(sem, filter, dayFilter) {
     const linha=d=>{
       const marcada=typeof SELECIONADAS!=='undefined'&&SELECIONADAS.has(String(d.id));
       const data=dataDoCartaoDia(d);
-      return `<div class="item-row day-activity-row${marcada?' marcada':''}${aba==='pendencias'?' day-pending-row':''}" draggable="true"
+      const emAberto=d.status!=='Finalizado'&&grupoDoDiaPorStatus(d.status)===0;
+      return `<div class="item-row day-activity-row${marcada?' marcada':''}${aba==='pendencias'?' day-pending-row':''}${emAberto?' day-row-aberta':''}" data-grupo="${grupoDoDiaPorStatus(d.status)}" draggable="true"
         ondragstart="managerCalendarDragStart('${isRequestItem(d)?'request':'content'}','${safeText(d.id)}',event)" ondragend="managerCalendarDragEnd()" title="Arraste para mudar a data">
         <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote"><input type="checkbox" ${marcada?'checked':''} data-day-item="${safeText(d.id)}" aria-label="Marcar ${safeText(d.nome||'')}"
           onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
