@@ -249,6 +249,11 @@ function abrirAberturaEscritorio(etapa = "cena") {
     document.body.append(el);
   }
   renderAberturaEscritorio();
+  // Garantia: a cortina preta e o texto da cena dependem de animação CSS; em
+  // alguns computadores (aba em segundo plano, economia de energia) a animação
+  // não roda e a tela ficava preta. Depois de 3,5 s mostra tudo de qualquer jeito.
+  clearTimeout(criador.timerGarantia);
+  criador.timerGarantia = setTimeout(() => el.classList.add("abr-pronta"), 3500);
 }
 function fecharAberturaEscritorio() {
   document.getElementById("ofc-abertura")?.remove();

@@ -140,6 +140,8 @@ function montarTelaDeLogin() {
   // A entrada é a Vybelândia: a cena anima e o "Entrar" revela quem é e a senha.
   gate.className = 'login-vybelandia';
   gate.dataset.etapa = 'cena';
+  // Sem depender da animação para o texto aparecer (ver vybe-escritorio-abertura.js).
+  setTimeout(() => gate.classList.add('abr-pronta'), 4000);
   gate.style.setProperty('--vybelandia', `url("${document.getElementById('vybelandia-img')?.getAttribute('href') || '/assets/vybelandia.webp'}")`);
   const faiscas = Array.from({ length: 24 }, (_, i) =>
     `<i style="--x:${(i * 41) % 100}%;--d:${4 + (i % 5)}s;--a:${(i * 0.37) % 4}s;--s:${2 + (i % 3)}px"></i>`).join('');
