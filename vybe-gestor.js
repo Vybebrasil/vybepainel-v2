@@ -823,6 +823,25 @@ function renderByDay(sem, filter, dayFilter) {
     </div>`;
   }).join('');
   ORDEM_VISIVEL_DO_DIA=ordemVisivel;
+  encaixarCartoesDoDia(grid);
+}
+// Cartões de dia com alturas diferentes deixavam buracos na grade (a linha
+// toda esperava o cartão mais alto). Cada cartão ocupa só as linhas finas
+// de que precisa, na ordem dos dias, e reencaixa quando muda de altura.
+const OBSERVADOR_CARTOES_DIA = typeof ResizeObserver === 'function'
+  ? new ResizeObserver(entradas => { for (const e of entradas) ajustarAlturaCartaoDia(e.target); })
+  : null;
+function ajustarAlturaCartaoDia(cartao) {
+  const grade = cartao.parentElement;
+  if (!grade || !grade.classList.contains('dias-encaixados')) return;
+  const linha = 4, espaco = 18;
+  cartao.style.gridRowEnd = 'span ' + Math.max(1, Math.ceil((cartao.getBoundingClientRect().height + espaco) / linha));
+}
+function encaixarCartoesDoDia(grid) {
+  if (!grid || !OBSERVADOR_CARTOES_DIA) return;
+  const cartoes = [...grid.querySelectorAll(':scope > .day-scroll-card')];
+  grid.classList.toggle('dias-encaixados', cartoes.length > 1);
+  for (const c of cartoes) { ajustarAlturaCartaoDia(c); OBSERVADOR_CARTOES_DIA.observe(c); }
 }
 // A ordem em que as pecas aparecem na lista por dia. Guardada porque o
 // shift+clique de uma linha precisa saber o que veio antes e depois DELA nesta

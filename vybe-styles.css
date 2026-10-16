@@ -6625,3 +6625,6 @@ body.no-escritorio {overflow:hidden}
 .ofc-giro.nao {background:#ffffff14;color:var(--ofc-suave)}
 .ofc-editor-flutua button:disabled {opacity:.5;cursor:default}
 .ofc-ferramentas button {font-size:12px;padding:7px 10px}
+/* Cartões de dia encaixados (sem buracos entre cartões de alturas diferentes). */
+.clients-grid.dias-encaixados {grid-auto-rows:4px;row-gap:0;align-items:start}
+.clients-grid.dias-encaixados > .day-scroll-card {margin-bottom:0}
