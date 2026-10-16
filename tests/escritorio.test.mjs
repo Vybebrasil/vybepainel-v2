@@ -830,3 +830,12 @@ test("Worker: passo logo depois de outro evento não é descartado", async () =>
   await room.webSocketMessage(s, JSON.stringify({ type: "presence:move", payload: { sala: "convivencia", zona: "lounge", x: 61, y: 62 } }));
   assert.equal(s.a.x, 61);
 });
+
+test("conversa: a própria conexão antiga e entradas repetidas não aparecem nem tocam", () => {
+  const c = vm.createContext({ window: { addEventListener() {} }, document: { getElementById: () => null, addEventListener() {} } });
+  vm.runInContext(readFileSync("vybe-escritorio.js", "utf8"), c);
+  vm.runInContext("escritorio.base={eu:'1'}", c);
+  const lista = [{ id: "a", customParticipantId: "1:velho" }, { id: "b", customParticipantId: "4:x" }, { id: "c", customParticipantId: "4:y" }, { id: "d", customParticipantId: "7:z" }];
+  const outros = c.escritorioOutrosNaChamada({ participants: { joined: { toArray: () => lista } } });
+  assert.equal(JSON.stringify(outros.map((p) => p.id)), JSON.stringify(["c", "d"]));
+});

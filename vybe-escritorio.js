@@ -2104,7 +2104,7 @@ function renderMidiaEscritorio() {
     b.onclick = async () => { try { await meeting.self.playAudio(); escritorio.somBloqueado = false; } catch {} renderMidiaEscritorio(); };
     el.append(b);
   }
-  for (const p of [meeting.self, ...meeting.participants.joined.toArray()]) {
+  for (const p of [meeting.self, ...escritorioOutrosNaChamada(meeting)]) {
     const eu = p === meeting.self;
     const tile = document.createElement("div");
     tile.className = "office-call-pessoa";
@@ -2167,20 +2167,20 @@ function renderMidiaEscritorio() {
     }
     el.append(tile);
   }
-  escritorioNivelAudio.acompanhar([meeting.self, ...meeting.participants.joined.toArray()]);
+  escritorioNivelAudio.acompanhar([meeting.self, ...escritorioOutrosNaChamada(meeting)]);
   // Depois do SDK (que repõe a voz no próprio mix a cada mudança de áudio).
   setTimeout(aplicarVolumesEscritorio, 0);
   escritorioPreviaTela(meeting.self);
   // Barra compacta: um rosto (iniciais) por pessoa; quem fala acende.
   const rostos = document.getElementById("office-call-rostos");
-  if (rostos) rostos.innerHTML = [meeting.self, ...meeting.participants.joined.toArray()].map((p) => {
+  if (rostos) rostos.innerHTML = [meeting.self, ...escritorioOutrosNaChamada(meeting)].map((p) => {
     const ini = String(p.name || "?").split(/\s+/).slice(0, 2).map((x) => x[0] || "").join("").toUpperCase();
     return `<i class="office-call-rosto${p.audioEnabled ? "" : " mudo"}" data-participante="${safeText(String(p.id))}" title="${safeText(p.name || "")}${p.audioEnabled ? "" : " · microfone desligado"}">${safeText(ini)}</i>`;
   }).join("");
   // Vídeo de cada pessoa também numa bolha sobre o boneco dela no mapa. O id
   // do participante é "pessoa:código", criado pelo servidor.
   const comVideo = new Map();
-  for (const p of [meeting.self, ...meeting.participants.joined.toArray()]) {
+  for (const p of [meeting.self, ...escritorioOutrosNaChamada(meeting)]) {
     const pessoa = p === meeting.self ? String(escritorio.base?.eu) : String(p.customParticipantId || "").split(":")[0];
     if (pessoa && p.videoEnabled && p.videoTrack) comVideo.set(pessoa, new MediaStream([p.videoTrack]));
   }
@@ -2439,7 +2439,11 @@ function aplicarVolumesEscritorio() {
   const m = escritorio.chamada;
   if (!m?.audio) return;
   const vistos = new Set();
-  for (const p of m.participants.joined.toArray()) {
+  // Conexão antiga da mesma pessoa (recarregou a página, a rede caiu) ainda na
+  // sala: nunca toca (senão você ouve a própria voz ou a pessoa em dobro).
+  const validos = new Set(escritorioOutrosNaChamada(m));
+  for (const p of m.participants.joined.toArray()) if (!validos.has(p)) { try { m.audio.removeParticipantTrack(p.id); } catch {} }
+  for (const p of validos) {
     const id = String(p.customParticipantId || "").split(":")[0];
     const v = escritorioVolumePessoa(id);
     const trilha = p.audioEnabled && p.audioTrack;
@@ -2466,4 +2470,18 @@ function aplicarVolumesEscritorio() {
     el.play?.().catch(() => {});
   }
   for (const [id, el] of escritorioSonsPessoas) if (!vistos.has(id)) { el.srcObject = null; el.remove(); escritorioSonsPessoas.delete(id); }
+}
+
+// Quem está na conversa, uma vez por pessoa: some a sua própria conexão
+// antiga (que a sala ainda não derrubou) e, se alguém aparece duas vezes,
+// fica a entrada mais recente.
+function escritorioOutrosNaChamada(meeting) {
+  const eu = String(escritorio.base?.eu);
+  const porPessoa = new Map();
+  for (const p of meeting?.participants?.joined?.toArray?.() || []) {
+    const id = String(p.customParticipantId || "").split(":")[0] || p.id;
+    if (id === eu) continue;
+    porPessoa.set(id, p);
+  }
+  return [...porPessoa.values()];
 }
