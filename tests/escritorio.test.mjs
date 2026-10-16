@@ -782,3 +782,40 @@ test("imagens da equipe: só a própria sala, só imagem de verdade, quadro na p
   assert.deepEqual(mapa.camadas[salaJady].itens, [["exe_plant", 1, 1, 2, 0, 0]]);
   assert.equal(mapa.imagens.length, 0);
 });
+
+test("Worker: fila de música só no Lounge, link do YouTube validado e o fim avança uma vez", async () => {
+  const sockets = [];
+  const guardado = new Map();
+  const room = new EscritorioRoom({ getWebSockets: () => sockets, storage: { get: async (k) => guardado.get(k), put: async (k, v) => guardado.set(k, v) } }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const sock = (sub, zona) => {
+    const s = { a: { sub, nome: "P" + sub, sala: "convivencia", zona, x: 50, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300 },
+      msgs: [], deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { this.msgs.push(JSON.parse(m)); } };
+    sockets.push(s); return s;
+  };
+  const um = sock("1", "lounge"), fora = sock("2", "cafe");
+  const ev = async (s, type, payload) => { s.a.last = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
+  const estado = () => fora.msgs.filter((m) => m.type === "music:state").at(-1)?.payload;
+  // Fora do Lounge não mexe na fila.
+  await ev(fora, "music:enqueue", { fonte: { kind: "video", videoId: "dQw4w9WgXcQ" } });
+  assert.equal(estado(), undefined);
+  await ev(um, "music:enqueue", { fonte: { kind: "video", videoId: "<script>abc" } });
+  assert.match(um.msgs.at(-1).payload.message, /YouTube/);
+  await ev(um, "music:enqueue", { fonte: { kind: "video", videoId: "dQw4w9WgXcQ" } });
+  await ev(um, "music:enqueue", { fonte: { kind: "playlist", playlistId: "PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG" } });
+  let m = estado();
+  assert.equal(m.fila.length, 2);
+  assert.equal(m.fila[0].por, "P1");
+  assert.equal(m.tocando, true);
+  assert.equal(m.indice, 0);
+  // Dois navegadores avisam o fim da mesma música: avança só uma vez.
+  const rev = m.revisao;
+  await ev(um, "music:ended", { revisao: rev });
+  await ev(um, "music:ended", { revisao: rev });
+  assert.equal(estado().indice, 1);
+  await ev(um, "music:control", { acao: "pausar" });
+  assert.equal(estado().tocando, false);
+  await ev(um, "music:control", { acao: "remover", id: estado().fila[1].id });
+  assert.equal(estado().fila.length, 1);
+  // A fila sobrevive à sala do Worker dormir (fica guardada).
+  assert.equal(guardado.get("musica").fila.length, 1);
+});

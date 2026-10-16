@@ -6457,3 +6457,42 @@ body.no-escritorio {overflow:hidden}
 .ofc-imagem .ofc-movel img {object-fit:contain;background:#00000033;border-radius:6px}
 .ofc-imagem-apagar {font:inherit;font-size:11px;color:#ffb4a8;background:none;border:0;cursor:pointer;padding:2px}
 .ofc-imagem-apagar:focus-visible {outline:2px solid var(--ofc-laranja);border-radius:4px}
+
+/* Sala da música (Pista do Lounge): player do YouTube e controles. */
+.ofc-musica {position:absolute;right:16px;top:72px;z-index:30;width:224px;display:grid;gap:8px;padding:12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);box-shadow:0 18px 40px #0008;backdrop-filter:blur(14px)}
+.ofc-musica[hidden] {display:none}
+.ofc-musica-player {border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9}
+.ofc-musica-player iframe {display:block;width:100%;height:100%;border:0}
+.ofc-musica-info {display:grid;gap:6px;font-size:12px}
+.ofc-musica-info b {font-size:13px}
+.ofc-musica-info small {color:var(--ofc-suave)}
+.ofc-musica-ctl {display:flex;gap:6px;justify-content:center}
+.ofc-musica-ctl button {display:grid;place-items:center;min-width:36px;height:32px;padding:0 10px;font:600 12px var(--mac-ui);color:var(--ofc-texto);background:#ffffff12;border:1px solid var(--ofc-borda);border-radius:9px;cursor:pointer}
+.ofc-musica-ctl button:disabled {opacity:.4;cursor:default}
+.ofc-musica-ctl .ofc-ico {width:16px;height:16px}
+.ofc-musica-vol {display:flex;align-items:center;gap:8px;color:var(--ofc-suave)}
+.ofc-musica-vol input {flex:1;accent-color:var(--ofc-laranja)}
+.ofc-musica-painel {margin:auto;width:min(520px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 48px));padding:18px;border-radius:18px;color:var(--ofc-texto,#eef0f5);background:#1d2029;border:1px solid #ffffff17;box-shadow:0 30px 80px #000a}
+.ofc-musica-painel::backdrop {background:#0008}
+.ofc-musica-painel .ofc-dialogo-topo {display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ofc-musica-painel h3 {margin:0;font:700 17px var(--mac-ui)}
+.ofc-musica-painel .ofc-nota {color:#a3a9b7;font-size:12px}
+.ofc-musica-form {display:flex;gap:8px}
+.ofc-musica-form input {flex:1;min-width:0;font:inherit;font-size:13px;color:inherit;background:#ffffff0d;border:1px solid #ffffff17;border-radius:9px;padding:9px 10px}
+.ofc-erro {min-height:1em;margin:6px 0;color:#ffb4a8;font-size:12px}
+.ofc-musica-lista {display:grid;gap:6px;margin:0;padding:0;list-style:none;max-height:340px;overflow:auto}
+.ofc-musica-lista li {display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:#ffffff08}
+.ofc-musica-lista li[aria-current="true"] {background:#ff95481f;outline:1px solid #ff954866}
+.ofc-musica-lista img {border-radius:6px;object-fit:cover}
+.ofc-musica-lista span {flex:1;min-width:0;display:grid}
+.ofc-musica-lista small {color:#a3a9b7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-musica-lista button {font:600 12px var(--mac-ui);color:inherit;background:#ffffff12;border:1px solid #ffffff17;border-radius:8px;padding:6px 9px;cursor:pointer}
+.ofc-musica-lista button:disabled {opacity:.4;cursor:default}
+.ofc-musica-lista button.perigo {color:#ffb4a8}
+.ofc-musica-rodape {display:flex;justify-content:flex-end;margin-top:10px}
+/* Qualidade da tela mostrada. */
+.ofc-minha-tela-qualidade {display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ofc-suave);padding:0 10px}
+.ofc-minha-tela-qualidade select {flex:1;font:inherit;color:var(--ofc-texto);background:#ffffff0d;border:1px solid var(--ofc-borda);border-radius:8px;padding:5px}
+.ofc-minha-tela-pedido {display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 10px 10px;padding:8px;border-radius:10px;background:#ff95481f;font-size:12px}
+.office-call-pedir {display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;color:var(--ofc-suave)}
+.office-call-pedir button {font:600 11px var(--mac-ui);color:var(--ofc-texto);background:#ffffff12;border:1px solid var(--ofc-borda);border-radius:7px;padding:4px 8px;cursor:pointer}

@@ -17,6 +17,20 @@ const POSES = ["acenar", "deitar", "cafe", "bebida", "lanche", "exercicio", "bic
 const POSES_MANTIDAS = ["cafe", "bebida", "lanche", "exercicio", "bicicleta"];
 // Móvel ligado/desligado: "classe@x,y" do mapa geral e o estado da animação.
 const MOVEL_CHAVE = /^[a-z0-9_]{1,64}@\d{1,2},\d{1,2}$/;
+// Sala da música (a Pista do Lounge): fila de vídeos/playlists do YouTube,
+// como o bot do VybeChat. Cada navegador toca o próprio player; aqui fica só a
+// fila, o que está tocando e desde quando, para todos ouvirem no mesmo ponto.
+const MUSICA_LIMITE = 50;
+const ID_YOUTUBE = /^[a-zA-Z0-9_-]+$/;
+export function fonteMusica(f) {
+  if (!f || typeof f !== "object") return null;
+  if (f.kind === "video" && typeof f.videoId === "string" && f.videoId.length === 11 && ID_YOUTUBE.test(f.videoId)) return { kind: "video", videoId: f.videoId };
+  if (f.kind === "playlist" && typeof f.playlistId === "string" && f.playlistId.length >= 10 && f.playlistId.length <= 80 && ID_YOUTUBE.test(f.playlistId) && !/^(RD|LL|WL|LM)/.test(f.playlistId))
+    return { kind: "playlist", playlistId: f.playlistId };
+  return null;
+}
+const musicaVazia = () => ({ fila: [], indice: 0, tocando: false, posicao: 0, atualizado: Date.now(), revisao: 0, por: null });
+const posicaoAgora = (m, agora = Date.now()) => Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));
 const zonaValida = (z) => (/^(sala-([0-9]|1[01])|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge)$/.test(String(z || "")) ? String(z) : "");
 export async function verificarEntrada(token, segredo, agora = Date.now()) {
   try {
@@ -129,6 +143,18 @@ export class EscritorioRoom {
   }
   listaMoveis() {
     return [...this.moveis];
+  }
+  async musica() {
+    if (!this._musica) this._musica = (await this.ctx.storage?.get?.("musica")) || musicaVazia();
+    return this._musica;
+  }
+  async mudarMusica(m, a) {
+    m.revisao++;
+    m.atualizado = Date.now();
+    m.por = a ? { id: a.sub, nome: a.nome } : null;
+    this._musica = m;
+    await this.ctx.storage?.put?.("musica", m);
+    this.broadcast("music:state", m);
   }
   listaTrancas() {
     return [...this.trancas].map(([zona, permitidos]) => ({ zona, permitidos: [...permitidos] }));
@@ -284,6 +310,54 @@ export class EscritorioRoom {
       if (!this.moveis.has(p.chave) && this.moveis.size >= 300) return;
       this.moveis.set(p.chave, estado);
       this.broadcast("furni:states", this.listaMoveis());
+      return;
+    } else if (evento.type === "music:get") {
+      this.send(s, "music:state", await this.musica());
+      return;
+    } else if (evento.type === "music:enqueue" || evento.type === "music:control" || evento.type === "music:ended") {
+      // Mexe na fila só quem está no Lounge (a Pista é lá); autoria da sessão.
+      if (a.zona !== "lounge") return;
+      const m = { ...(await this.musica()) };
+      m.fila = [...m.fila];
+      if (evento.type === "music:enqueue") {
+        const fonte = fonteMusica(p.fonte);
+        if (!fonte) return this.send(s, "realtime:error", { message: "Use um link de vídeo ou playlist do YouTube." });
+        if (m.fila.length >= MUSICA_LIMITE) return this.send(s, "realtime:error", { message: `A fila de música chegou a ${MUSICA_LIMITE}.` });
+        m.fila.push({ ...fonte, id: crypto.randomUUID(), por: a.nome });
+        // Fila parada ou acabada: começa pela que entrou.
+        if (!m.tocando) { m.indice = m.fila.length - 1; m.posicao = 0; m.tocando = true; }
+        else m.posicao = posicaoAgora(m);
+      } else if (evento.type === "music:ended") {
+        // Vários navegadores avisam o fim: só o primeiro (mesma revisão) avança.
+        if (p.revisao !== m.revisao) return;
+        if (m.indice + 1 < m.fila.length) { m.indice++; m.posicao = 0; } else { m.tocando = false; m.posicao = 0; }
+      } else {
+        const acao = p.acao;
+        if (acao === "tocar") { if (!m.fila.length) return; m.posicao = posicaoAgora(m); m.tocando = true; }
+        else if (acao === "pausar") { m.posicao = posicaoAgora(m); m.tocando = false; }
+        else if (acao === "proxima" || acao === "anterior") {
+          const i = m.indice + (acao === "proxima" ? 1 : -1);
+          if (i < 0 || i >= m.fila.length) return;
+          m.indice = i; m.posicao = 0; m.tocando = true;
+        } else if (acao === "tocarItem" || acao === "remover") {
+          const i = m.fila.findIndex((f) => f.id === p.id);
+          if (i < 0) return;
+          if (acao === "tocarItem") { m.indice = i; m.posicao = 0; m.tocando = true; }
+          else {
+            m.fila.splice(i, 1);
+            if (i < m.indice) m.indice--;
+            else if (i === m.indice) { m.posicao = 0; if (m.indice >= m.fila.length) { m.indice = Math.max(0, m.fila.length - 1); m.tocando = false; } }
+            if (!m.fila.length) m.tocando = false;
+          }
+        } else if (acao === "limpar") { Object.assign(m, musicaVazia(), { revisao: m.revisao }); }
+        else return;
+      }
+      await this.mudarMusica(m, a);
+      return;
+    } else if (evento.type === "screen:quality") {
+      // Quem assiste pede outra qualidade a quem mostra a tela (mesma zona).
+      if (typeof p.para !== "string" || !/^\d{1,18}$/.test(p.para) || !["nitida", "equilibrada", "leve"].includes(p.nivel) || !a.zona) return;
+      for (const t of this.naZona(a.zona)) if (this.estado(t).sub === p.para) this.send(t, "screen:quality", { de: a.sub, nome: a.nome, nivel: p.nivel });
       return;
     } else if (evento.type === "pose") {
       if (!POSES.includes(p.tipo)) return;
