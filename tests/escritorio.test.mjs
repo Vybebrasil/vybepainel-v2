@@ -272,8 +272,10 @@ test("resposta atrasada de entrada não abre WebSocket depois de desconectar", a
   const c = vm.createContext({
     window: { addEventListener() {} },
     document: { getElementById: () => null },
+    setInterval() { return 0; },
     clearInterval() {},
     clearTimeout() {},
+    URL,
     WebSocket: class {
       constructor() {
         websockets++;

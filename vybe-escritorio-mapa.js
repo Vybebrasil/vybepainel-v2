@@ -581,7 +581,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   };
   // Depois de ordenar, quem já estava no mapa ganha a profundidade nova (sem
   // isso, quem chegou antes dos móveis carregarem ficava atrás das paredes).
-  const prontos = Promise.all(P.moveis.map(montar)).then(() => { ordenar(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); });
+  // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
+  const carga = { feitos: 0, total: P.moveis.length, pronto: false };
+  const prontos = Promise.all(P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))).then(() => { ordenar(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   async function definirMoveis(lista) {
     for (const item of moveis) item.no.remove();
@@ -1022,7 +1024,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   prontos.then(() => { relogio = setInterval(animar, 125); });
 
   return {
-    origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
+    origem, prontos, carga, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
     balao, reagir, anexarVideo, marcarFalando, marcarAviso, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),

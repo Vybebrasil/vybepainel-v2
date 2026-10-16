@@ -133,27 +133,88 @@ function renovarSessaoEscritorio() {
   escritorio.socketAntigo = escritorio.socket;
   conectarEscritorio({ reconexao: true });
 }
+// Tela de entrada: etapas reais do caminho até o mapa (acesso → servidor →
+// sessão → móveis). Só o carregamento do mapa tem porcentagem, porque é o
+// único passo que dá para contar; parado mais de 12 s, oferece tentar de novo.
+const ESCRITORIO_ETAPAS_ENTRADA = {
+  acesso: { texto: "Conferindo seu acesso…", de: 6, ate: 20 },
+  conexao: { texto: "Conectando ao escritório…", de: 20, ate: 40 },
+  sessao: { texto: "Entrando…", de: 40, ate: 55 },
+  mapa: { texto: "Carregando o mapa", de: 55, ate: 100 },
+};
+function escritorioEtapaEntrada(etapa) {
+  escritorio.entrada = { etapa, desde: Date.now(), erro: "" };
+  clearInterval(escritorio.timerEntrada);
+  escritorio.timerEntrada = setInterval(atualizarEntradaEscritorio, 500);
+  atualizarEntradaEscritorio();
+}
+function escritorioErroEntrada(texto) {
+  clearInterval(escritorio.timerEntrada);
+  escritorio.entrada = { etapa: escritorio.entrada?.etapa || "acesso", desde: Date.now(), erro: texto };
+  escritorio.carregandoMapa = false;
+  if (!escritorio.conectado) renderEscritorio();
+}
+function escritorioFimEntrada() {
+  clearInterval(escritorio.timerEntrada);
+  escritorio.entrada = null;
+  escritorio.carregandoMapa = false;
+}
+function escritorioEntradaHtml() {
+  const e = escritorio.entrada;
+  if (!e) return "";
+  if (e.erro)
+    return `<div id="office-entrada" class="ofc-entrada erro" role="alert"><p>${safeText(e.erro)}</p><button type="button" class="ofc-primario" onclick="tentarEntrarDeNovoEscritorio()">Tentar de novo</button></div>`;
+  const passo = ESCRITORIO_ETAPAS_ENTRADA[e.etapa] || ESCRITORIO_ETAPAS_ENTRADA.acesso;
+  const carga = escritorio.mapa?.carga;
+  const fracao = e.etapa === "mapa" && carga?.total ? Math.min(1, carga.feitos / carga.total) : 0;
+  const pct = e.etapa === "mapa" ? Math.round(fracao * 100) : null;
+  const largura = Math.round(passo.de + (passo.ate - passo.de) * fracao);
+  const demorando = Date.now() - e.desde > 12000;
+  return `<div id="office-entrada" class="ofc-entrada" role="status" aria-live="polite">
+<div class="ofc-entrada-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${largura}" aria-label="Entrando no escritório"><span style="width:${largura}%"></span></div>
+<p>${passo.texto}${pct !== null ? ` ${pct}%` : ""}</p>
+${demorando ? `<p class="ofc-entrada-lenta">Está demorando mais que o normal.</p><button type="button" class="ofc-secundario" onclick="tentarEntrarDeNovoEscritorio()">Tentar de novo</button>` : ""}</div>`;
+}
+function atualizarEntradaEscritorio() {
+  const el = document.getElementById("office-entrada");
+  if (el) el.outerHTML = escritorioEntradaHtml();
+}
+function tentarEntrarDeNovoEscritorio() {
+  escritorioFimEntrada();
+  escritorio.geracao++;
+  const socket = escritorio.socket;
+  escritorio.socket = null;
+  try { socket?.close(); } catch {}
+  escritorio.conectando = false;
+  escritorio.conectado = false;
+  conectarEscritorio();
+}
 async function conectarEscritorio({ reconexao = false } = {}) {
   if (escritorio.conectando || (escritorio.conectado && !reconexao)) return;
   escritorio.conectando = true;
   const geracao = escritorio.geracao;
-  if (!reconexao) { atualizarPessoasEscritorio(); escritorioAviso("Conectando…"); }
+  if (!reconexao) { escritorioEtapaEntrada("acesso"); renderEscritorio(); }
   try {
     const base = await escritorioApi("entrada");
+    // Saiu (ou tentou de novo) enquanto a resposta não chegava: esta tentativa morre aqui.
+    if (geracao !== escritorio.geracao) return;
     escritorio.base = base;
     if (!base.worker || !base.token)
       throw new Error(base.aviso || "Conexão indisponível.");
+    if (!reconexao) escritorioEtapaEntrada("conexao");
     const url = new URL("/room/vybe-os", base.worker);
     url.protocol = "wss:";
     const socket = new WebSocket(url);
     escritorio.socket = socket;
-    socket.onopen = () =>
+    socket.onopen = () => {
+      if (!reconexao) escritorioEtapaEntrada("sessao");
       socket.send(
         JSON.stringify({
           type: "presence:join",
           payload: { token: base.token },
         }),
       );
+    };
     socket.onmessage = (event) => {
       if (escritorio.socket !== socket) return;
       let e;
@@ -187,6 +248,12 @@ async function conectarEscritorio({ reconexao = false } = {}) {
           atualizarControlesEscritorio();
           return;
         }
+        // A cortina da entrada só sai quando os móveis terminam de carregar.
+        if (escritorio.mapa && !escritorio.mapa.carga?.pronto) {
+          escritorioEtapaEntrada("mapa");
+          escritorio.carregandoMapa = true;
+          escritorio.mapa.prontos.then(() => { if (!escritorio.carregandoMapa) return; escritorioFimEntrada(); renderEscritorio(); });
+        } else escritorioFimEntrada();
         renderEscritorio();
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         setTimeout(() => escritorioMotorVoz().catch(() => {}), 1500);
@@ -243,16 +310,19 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       if (escritorio.conectado) { escritorioReconectar(true); return; }
       escritorio.online = [];
       atualizarPessoasEscritorio();
-      escritorioAviso("Desconectado. Use Entrar no escritório para reconectar.");
+      if (escritorio.entrada) escritorioErroEntrada("A conexão com o escritório caiu antes de entrar. Confira a internet e tente de novo.");
+      else escritorioAviso("Desconectado. Use Entrar no escritório para reconectar.");
       atualizarDockEscritorio();
     };
     socket.onerror = () =>
       escritorioAviso("Falha na conexão. Confira o acesso e tente novamente.");
   } catch (e) {
+    if (geracao !== escritorio.geracao) return;
     escritorio.conectando = false;
     if (reconexao && escritorio.conectado) { escritorioReconectar(true); return; }
     await sairChamadaEscritorio();
-    escritorioAviso(e.message);
+    if (!reconexao) escritorioErroEntrada(e.message);
+    else escritorioAviso(e.message);
   }
 }
 function desconectarEscritorio(sairChamada = true) {
@@ -270,6 +340,7 @@ function desconectarEscritorio(sairChamada = true) {
   socket?.close();
   escritorio.conectado = false;
   escritorio.conectando = false;
+  escritorioFimEntrada();
   escritorio.online = [];
   if (sairChamada) sairChamadaEscritorio();
   renderEscritorio();
@@ -576,7 +647,9 @@ function renderEscritorio() {
   const lateral = escritorio.lateral ?? !celular;
   const rail = (id, icone, rotulo, acao, ativo) =>
     `<button type="button" class="ofc-rail-btn" onclick="${acao}" aria-pressed="${Boolean(ativo)}" aria-label="${rotulo}" title="${rotulo}">${escritorioIcone(icone)}<span>${rotulo}</span></button>`;
-  const lobby = !escritorio.conectado && !escritorio.lobbyFechado;
+  // A entrada também aparece enquanto conecta (inclusive vindo da abertura),
+  // com as etapas e o erro no próprio cartão.
+  const lobby = (!escritorio.conectado && (!escritorio.lobbyFechado || escritorio.entrada)) || escritorio.carregandoMapa;
   painel.innerHTML = `<section class="ofc" data-modo="${modo}" data-lateral="${lateral}">
 <nav class="ofc-rail" aria-label="Escritório">
  <img class="ofc-logo" src="${safeText(document.querySelector(".logo img")?.getAttribute("src") || "/assets/vybe-branca.png")}" alt="Vybe">
@@ -614,7 +687,7 @@ function renderEscritorio() {
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <canvas class="ofc-minimapa" id="office-minimapa" width="232" height="168" ${modo === "mapa" ? "" : "hidden"} aria-label="Minimapa: clique para ir até lá" onclick="cliqueMinimapaEscritorio(event)"></canvas>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Em cada sala você entra na conversa dela com o microfone ligado; a câmera começa desligada.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div></div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Em cada sala você entra na conversa dela com o microfone ligado; a câmera começa desligada.</p>${escritorio.entrada ? escritorioEntradaHtml() : `<div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}">${b.demo ? "Ver o escritório" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div>`}</div></div>` : ""}
 </main>
 </section>`;
   document.body.classList.add("no-escritorio");
