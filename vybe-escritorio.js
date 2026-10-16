@@ -168,8 +168,10 @@ async function conectarEscritorio() {
         );
       }
       if (e.type === "presence:update") {
+        avisarEntradasEscritorio(escritorio.online, e.payload);
         escritorio.online = e.payload;
         atualizarPessoasEscritorio();
+        desenharMinimapaEscritorio();
       }
       if (e.type === "chat:changed" && e.payload.sala === escritorio.sala)
         carregarChatEscritorio();
@@ -285,6 +287,7 @@ function escritorioIcone(nome) {
     editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
     reagir: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2M9 9.5h.01M15 9.5h.01"/>',
     cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+    som: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
   }[nome] || "";
@@ -413,8 +416,11 @@ function atualizarPessoasEscritorio() {
       return {
         id: p.id, nome: voce && escritorio.conectado ? "Você" : p.nome, perfil: perfilDe, status: p.status, corStatus,
         rotulo: `${p.nome}${voce ? " (você)" : ""} · ${nomeStatus}`,
+        statusTexto: p.status && p.status !== "disponivel" ? nomeStatus : "",
         x: Math.round(pos.x), y: Math.round(pos.y),
-        acao: sentado ? "sit" : "std", dir: sentado ? dirAssento : undefined, local: voce,
+        acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado),
+        mao: (voce ? escritorio.pose : p.pose) === "cafe" ? "crr=6" : "",
+        dir: sentado ? dirAssento : undefined, local: voce,
         aoClicar: convidarConversaEscritorio,
       };
     }));
@@ -425,7 +431,7 @@ function atualizarPessoasEscritorio() {
     const fora = escritorio.base.equipe.filter((p) => !pessoas.some((o) => o.id === p.id));
     const linha = (p) => {
       const o = pessoas.find((x) => x.id === p.id);
-      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${o && p.id !== eu ? `<button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')">Ir</button>` : ""}</li>`;
+      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${o && p.id !== eu ? `<button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')">Ir</button><button type="button" class="ofc-mini" onclick="seguirPessoaEscritorio('${safeText(o.id)}')">Seguir</button>` : ""}</li>`;
     };
     lista.innerHTML = `<h4>Online agora · ${online.length}</h4><ul>${online.map(linha).join("") || '<li class="ofc-vazio">Ninguém conectado ainda.</li>'}</ul><h4>Fora do escritório · ${fora.length}</h4><ul>${fora.map(linha).join("")}</ul>`;
   }
@@ -469,7 +475,7 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
       botao("sairChamadaEscritorio().then(renderEscritorio)", "sair", "Sair da conversa", 'class="ofc-dock-btn perigo"')
     : botao("entrarChamadaEscritorio()", "fone", "Entrar na conversa", escritorio.conectado && escritorio.zona && escritorio.zona !== "foco" && !escritorio.entrandoChamada ? "" : 'disabled title="Entre numa sala para conversar"');
-  el.innerHTML = `<label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir">${escritorioIcone("reagir")}<span>Reagir</span></summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório") : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "")}`;
+  el.innerHTML = `<label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir">${escritorioIcone("reagir")}<span>Reagir</span></summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-poses"><summary class="ofc-dock-btn" aria-label="Ações do boneco">${escritorioIcone("espaco")}<span>Ações</span></summary><div class="ofc-poses"><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')">Acenar <kbd>1</kbd></button><button type="button" onclick="deitarEscritorio()">Deitar <kbd>2</kbd></button><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')">Café na mão <kbd>3</kbd></button></div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Som ligado" : "Som desligado", `aria-pressed="${escritorioSomLigado()}"`)}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório") : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "")}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -512,6 +518,9 @@ function renderEscritorio() {
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <section id="office-call" class="office-call" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><div class="office-call-actions"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b></div><div id="office-call-media" class="office-call-media"></div></section>
  <div class="ofc-editor" id="office-editor" role="toolbar" aria-label="Editor do mapa" hidden></div>
+ <div class="ofc-acao" id="office-acao" hidden></div>
+ <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
+ <canvas class="ofc-minimapa" id="office-minimapa" width="232" height="168" ${modo === "mapa" ? "" : "hidden"} aria-label="Minimapa: clique para ir até lá" onclick="cliqueMinimapaEscritorio(event)"></canvas>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
  ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo"><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Câmera e microfone começam desligados.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div><label class="ofc-lobby-pref"><input type="checkbox" ${escritorioInicio() === "painel" ? "checked" : ""} onchange="escritorioInicio(this.checked?'painel':'escritorio')">Neste computador, abrir direto no painel</label><button type="button" class="office-text-button" onclick="escritorio.lobbyFechado=true;abrirPainelDoEscritorio()">Ir para o painel sem entrar</button></div></div>` : ""}
 </main>
@@ -524,6 +533,9 @@ function renderEscritorio() {
   montarMapaEscritorio();
   if (typeof renderBarraEditorEscritorio === "function") renderBarraEditorEscritorio();
   atualizarCabecalhoEscritorio();
+  escritorio.minimapaEm = 0;
+  setTimeout(desenharMinimapaEscritorio, 50);
+  atualizarAcaoProximaEscritorio();
 }
 // O mapa é criado uma vez e só muda de lugar quando a tela é redesenhada:
 // assim não recarrega móveis nem perde câmera e animação.
@@ -618,9 +630,13 @@ function escritorioEnviarPosicao(forcar) {
   escritorio.perfil = { ...escritorio.perfil, x: px, y: py };
   escritorioEmitir("presence:move", { sala: escritorio.sala, zona: escritorio.zona, x: px, y: py });
 }
-function escritorioDirecaoTeclas() {
+// Toque rápido só vira o boneco (como no Habbo); segurar mais de 140 ms anda.
+function escritorioDirecaoTeclas(agora = performance.now()) {
   let dx = 0, dy = 0;
-  for (const t of escritorioTeclas) { dx += ESCRITORIO_TECLAS[t][0]; dy += ESCRITORIO_TECLAS[t][1]; }
+  for (const t of escritorioTeclas) {
+    if (agora - (escritorioTeclasDesde.get(t) || 0) < 140) continue;
+    dx += ESCRITORIO_TECLAS[t][0]; dy += ESCRITORIO_TECLAS[t][1];
+  }
   const n = Math.hypot(dx, dy);
   return n ? [dx / n, dy / n] : [0, 0];
 }
@@ -634,6 +650,8 @@ function escritorioPodeIr(ox, oy, x, y) {
   const a = { x: Math.round(ox), y: Math.round(oy) }, b = { x: Math.round(x), y: Math.round(y) };
   if (a.x === b.x && a.y === b.y) return true;
   if (escritorioZonaBloqueada(escritorioZonaEm(b.x, b.y))) { avisarTrancadaEscritorio(escritorioZonaEm(b.x, b.y)); return false; }
+  // Ninguém atravessa ninguém: o ladrilho de outra pessoa é ocupado.
+  if (escritorioOcupado(b.x, b.y)) return false;
   const dx = b.x - a.x, dy = b.y - a.y;
   if (Math.abs(dx) > 1 || Math.abs(dy) > 1) return false;
   if (!escritorio.mapa?.podePassar(a.x, a.y, dx, dy)) return false;
@@ -644,12 +662,13 @@ function escritorioQuadro(agora) {
   movimento.quadro = null;
   const dt = Math.min(0.05, (agora - (movimento.ultimo || agora)) / 1000);
   movimento.ultimo = agora;
-  let [vx, vy] = escritorioDirecaoTeclas();
+  let [vx, vy] = escritorioDirecaoTeclas(agora);
   let teclado = Boolean(vx || vy);
+  const velocidade = ESCRITORIO_VELOCIDADE * (escritorio.correndo && teclado ? 1.8 : 1);
   if (!teclado && movimento.rota.length) {
     const alvo = movimento.rota[0];
     const dx = alvo.x - movimento.x, dy = alvo.y - movimento.y, d = Math.hypot(dx, dy);
-    const passo = ESCRITORIO_VELOCIDADE * dt;
+    const passo = velocidade * dt;
     if (d <= passo) {
       movimento.x = alvo.x; movimento.y = alvo.y;
       movimento.rota.shift();
@@ -659,7 +678,7 @@ function escritorioQuadro(agora) {
       movimento.x += vx * passo; movimento.y += vy * passo;
     }
   } else if (teclado) {
-    const passo = ESCRITORIO_VELOCIDADE * dt;
+    const passo = velocidade * dt;
     const nx = movimento.x + vx * passo, ny = movimento.y + vy * passo;
     // Bate e desliza: tenta o movimento todo, depois só um eixo.
     if (escritorioPodeIr(movimento.x, movimento.y, nx, ny)) { movimento.x = nx; movimento.y = ny; }
@@ -667,15 +686,20 @@ function escritorioQuadro(agora) {
     else if (escritorioPodeIr(movimento.x, movimento.y, movimento.x, ny)) movimento.y = ny;
   }
   const andando = teclado || movimento.rota.length > 0;
+  // Ao andar, acenar e deitar acabam (o café continua na mão).
+  if (andando && (escritorio.pose === "acenar" || escritorio.pose === "deitar")) definirPoseEscritorio("");
+  escritorioSomDePasso(andando);
   if (vx || vy) movimento.dir = mapaDirecaoDoPasso(vx, vy);
   // Parou: encaixa no centro do ladrilho (como no Habbo).
   if (!andando) { movimento.x = Math.round(movimento.x); movimento.y = Math.round(movimento.y); }
   const assento = andando ? undefined : escritorio.mapa?.assentoEm(movimento.x, movimento.y);
   escritorio.emMovimento = andando;
-  escritorio.mapa?.mover(escritorio.base.eu, movimento.x, movimento.y, assento ?? movimento.dir, andando ? "wlk" : assento !== undefined ? "sit" : "std");
+  escritorio.mapa?.mover(escritorio.base.eu, movimento.x, movimento.y, assento ?? movimento.dir, andando ? "wlk" : escritorioAcaoDaPose(escritorio.pose, assento !== undefined));
   escritorio.mapa?.seguir(movimento.x, movimento.y);
   escritorioMudouLugar(movimento.x, movimento.y);
   escritorioEnviarPosicao(!andando);
+  atualizarAcaoProximaEscritorio();
+  desenharMinimapaEscritorio();
   if (andando) movimento.quadro = requestAnimationFrame(escritorioQuadro);
   else atualizarPessoasEscritorio();
 }
@@ -703,6 +727,7 @@ function escritorioIrPara(x, y) {
 }
 function cliqueNoMapaEscritorio(x, y) {
   if (escritorio.edicao) { cliqueEditorEscritorio(x, y); return; }
+  escritorio.seguindoId = null;
   if (!escritorio.conectado && !escritorio.base?.demo) {
     escritorioAviso("Entre no escritório para andar pelo mapa.");
     return;
@@ -740,6 +765,7 @@ function baterPortaEscritorio(zona) {
   escritorioAviso("Você bateu na porta. Aguarde alguém deixar entrar.");
 }
 function avisoBatidaEscritorio({ id, nome, zona }) {
+  escritorioTocar(180, 0.12, 0.2); setTimeout(() => escritorioTocar(170, 0.12, 0.2), 180);
   const el = document.getElementById("office-feedback");
   if (!el) return;
   el.innerHTML = `<b>${safeText(nome)}</b> bateu na porta. <button type="button" class="ofc-mini" onclick="escritorioEmitir('zone:admit',{zona:'${safeText(zona)}',id:'${safeText(id)}'});escritorioAviso('Pode entrar.')">Deixar entrar</button> <button type="button" class="ofc-mini" onclick="escritorioAviso('')">Agora não</button>`;
@@ -750,6 +776,190 @@ function reagirEscritorio(tipo) {
   document.getElementById("office-reacoes")?.removeAttribute("open");
 }
 
+// Poses (acenar, deitar, café na mão): vão para a equipe pelo Worker.
+function escritorioAcaoDaPose(pose, sentado) {
+  if (pose === "deitar") return "lay";
+  if (pose === "acenar") return "wav";
+  return sentado ? "sit" : "std";
+}
+function definirPoseEscritorio(pose) {
+  if (escritorio.pose === pose) return;
+  escritorio.pose = pose;
+  escritorioEmitir("pose", { tipo: pose });
+  clearTimeout(escritorio.timerPose);
+  // Acenar dura uns segundos; o café acaba depois de um tempo.
+  if (pose === "acenar") escritorio.timerPose = setTimeout(() => definirPoseEscritorio(""), 4000);
+  if (pose === "cafe") escritorio.timerPose = setTimeout(() => definirPoseEscritorio(""), 120000);
+  const p = escritorioPosicao(escritorio.perfil || {});
+  escritorio.mapa?.mover(escritorio.base.eu, Math.round(p.x), Math.round(p.y), movimento.dir, escritorioAcaoDaPose(pose, escritorio.mapa?.assentoEm(p.x, p.y) !== undefined));
+  atualizarPessoasEscritorio();
+  atualizarAcaoProximaEscritorio();
+}
+const ESCRITORIO_DEITAVEIS = /sofa|lounger|bench|_5$/;
+function deitarEscritorio() {
+  const p = escritorioPosicao(escritorio.perfil || {});
+  const embaixo = escritorio.mapa?.moveisPerto(Math.round(p.x), Math.round(p.y), 0).find((m) => ESCRITORIO_DEITAVEIS.test(m.classe));
+  if (!embaixo && escritorio.pose !== "deitar") { escritorioAviso("Para deitar, sente num sofá ou numa espreguiçadeira e aperte 2."); return; }
+  definirPoseEscritorio(escritorio.pose === "deitar" ? "" : "deitar");
+}
+function escritorioOcupado(x, y) {
+  const eu = String(escritorio.base?.eu);
+  return (escritorio.online || []).some((o) => {
+    if (String(o.id) === eu) return false;
+    const pos = escritorioPosicao(o);
+    return Math.round(pos.x) === x && Math.round(pos.y) === y;
+  });
+}
+
+// Interação ao chegar perto: um botão (e a tecla E) com o que dá para fazer.
+const ESCRITORIO_TELAS = /projector|_tv$|tv_|television/;
+const ESCRITORIO_CAFE = /coffeemachine|coffee/;
+function escritorioAcoesPerto() {
+  if (!escritorio.mapa || escritorio.edicao) return null;
+  const p = { x: Math.round(movimento.quadro ? movimento.x : escritorioPosicao(escritorio.perfil || {}).x), y: Math.round(movimento.quadro ? movimento.y : escritorioPosicao(escritorio.perfil || {}).y) };
+  const eu = String(escritorio.base.eu);
+  // Pessoa ao lado
+  const vizinho = (escritorio.online || []).find((o) => {
+    if (String(o.id) === eu) return false;
+    const q = escritorioPosicao(o);
+    return Math.max(Math.abs(Math.round(q.x) - p.x), Math.abs(Math.round(q.y) - p.y)) <= 2;
+  });
+  if (vizinho) return { texto: "Conversar com " + String(vizinho.nome).split(" ")[0], fazer: () => convidarConversaEscritorio(vizinho.id) };
+  // Sala trancada ao lado
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const z = escritorioZonaEm(p.x + dx, p.y + dy);
+    if (escritorioZonaBloqueada(z)) return { texto: "Bater na porta", fazer: () => baterPortaEscritorio(z) };
+  }
+  const perto = escritorio.mapa.moveisPerto(p.x, p.y, 1);
+  const mesa = escritorioMinhaMesa();
+  if (mesa) {
+    const naMesa = perto.find((m) => m.classe === "exe_table" && Math.floor(m.x) === mesa.x && Math.floor(m.y) === mesa.y);
+    if (naMesa) return { item: naMesa, texto: "Abrir painel", fazer: abrirPainelDoEscritorio };
+  }
+  const cafe = perto.find((m) => ESCRITORIO_CAFE.test(m.classe));
+  if (cafe) return { item: cafe, texto: escritorio.pose === "cafe" ? "Largar o café" : "Pegar um café", fazer: () => definirPoseEscritorio(escritorio.pose === "cafe" ? "" : "cafe") };
+  const tela = escritorio.mapa.moveisPerto(p.x, p.y, 2).find((m) => ESCRITORIO_TELAS.test(m.classe));
+  if (tela && escritorio.zona && escritorio.zona !== "foco")
+    return { item: tela, texto: "Mostrar minha tela aqui", fazer: mostrarTelaEscritorio };
+  const assento = perto.find((m) => escritorio.mapa.assentoEm(Math.floor(m.x), Math.floor(m.y)) !== undefined && !(Math.floor(m.x) === p.x && Math.floor(m.y) === p.y));
+  if (assento && escritorio.mapa.assentoEm(p.x, p.y) === undefined)
+    return { item: assento, texto: "Sentar", fazer: () => escritorioIrPara(Math.floor(assento.x), Math.floor(assento.y)) };
+  return null;
+}
+function atualizarAcaoProximaEscritorio() {
+  const a = escritorioAcoesPerto();
+  escritorio.acaoProxima = a;
+  escritorio.mapa?.realcar(a?.item || null);
+  const el = document.getElementById("office-acao");
+  if (!el) return;
+  const chave = a ? a.texto : "";
+  if (el.dataset.chave === chave) return;
+  el.dataset.chave = chave;
+  el.hidden = !a;
+  if (a) el.innerHTML = `<button type="button" onclick="escritorio.acaoProxima?.fazer()"><kbd>E</kbd>${safeText(a.texto)}</button>`;
+}
+async function mostrarTelaEscritorio() {
+  if (!escritorio.chamada) await entrarChamadaEscritorio();
+  if (escritorio.chamada && !escritorio.chamada.self.screenShareEnabled) alternarMidiaEscritorio("screen");
+}
+
+// Seguir alguém: anda até o lado da pessoa e continua acompanhando.
+function seguirPessoaEscritorio(id) {
+  escritorio.seguindoId = id;
+  clearInterval(escritorio.timerSeguir);
+  const passo = () => {
+    if (escritorio.seguindoId !== id) return clearInterval(escritorio.timerSeguir);
+    const o = escritorio.online.find((p) => p.id === id);
+    if (!o) { escritorio.seguindoId = null; escritorioAviso("A pessoa saiu do escritório."); return clearInterval(escritorio.timerSeguir); }
+    const alvo = escritorioPosicao(o), eu = { x: Math.round(movimento.x), y: Math.round(movimento.y) };
+    if (Math.max(Math.abs(Math.round(alvo.x) - eu.x), Math.abs(Math.round(alvo.y) - eu.y)) <= 1) return;
+    for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+      const x = Math.round(alvo.x) + dx, y = Math.round(alvo.y) + dy;
+      if (escritorio.mapa?.assentoEm(x, y) !== undefined || escritorioOcupado(x, y)) continue;
+      if (escritorio.mapa?.caminho(eu, { x, y })) { movimento.rota = escritorio.mapa.caminho(eu, { x, y }); escritorioAnimarMovimento(); return; }
+    }
+  };
+  passo();
+  escritorio.timerSeguir = setInterval(passo, 900);
+  escritorioAviso("Seguindo " + (escritorio.online.find((p) => p.id === id)?.nome || "") + ". Aperte uma tecla para parar.");
+}
+
+// Avisos discretos de quem entra e sai.
+function avisarEntradasEscritorio(antes, depois) {
+  if (!antes?.length) return; // primeira lista: só quem já estava
+  const eu = String(escritorio.base?.eu);
+  const idsAntes = new Set(antes.map((p) => p.id)), idsDepois = new Set(depois.map((p) => p.id));
+  for (const p of depois) if (!idsAntes.has(p.id) && String(p.id) !== eu) avisoRapidoEscritorio(p.nome + " entrou no escritório");
+  for (const p of antes) if (!idsDepois.has(p.id) && String(p.id) !== eu) avisoRapidoEscritorio(p.nome + " saiu");
+}
+function avisoRapidoEscritorio(texto) {
+  const el = document.getElementById("office-avisos");
+  if (!el) return;
+  const a = document.createElement("p");
+  a.textContent = texto;
+  el.append(a);
+  setTimeout(() => a.remove(), 4500);
+}
+
+// Minimapa: a planta vista de cima, com um ponto por pessoa; clique para ir.
+function desenharMinimapaEscritorio() {
+  const c = document.getElementById("office-minimapa");
+  if (!c || c.offsetParent === null) return;
+  const agora = performance.now();
+  if (agora - (escritorio.minimapaEm || 0) < 120) return;
+  escritorio.minimapaEm = agora;
+  const P = ESCRITORIO_PLANTA, k = c.width / P.W;
+  const g = c.getContext("2d");
+  g.clearRect(0, 0, c.width, c.height);
+  g.fillStyle = "#24252c"; g.fillRect(P.PREDIO.x0 * k, P.PREDIO.y0 * k, (P.PREDIO.x1 - P.PREDIO.x0) * k, (P.PREDIO.y1 - P.PREDIO.y0) * k);
+  for (const a of P.ambientes) {
+    g.fillStyle = (ESCRITORIO_COR_SALA[a.sala] || "#888") + (a.id === escritorio.zona ? "aa" : "40");
+    g.fillRect(a.x0 * k + 1, a.y0 * k + 1, (a.x1 - a.x0) * k - 2, (a.y1 - a.y0) * k - 2);
+  }
+  const pi = P.piscina; g.fillStyle = "#2e8fd4aa"; g.fillRect(pi.x0 * k, pi.y0 * k, (pi.x1 - pi.x0) * k, (pi.y1 - pi.y0) * k);
+  const eu = String(escritorio.base?.eu);
+  for (const o of escritorio.online || []) {
+    if (String(o.id) === eu) continue;
+    const q = escritorioPosicao(o);
+    g.fillStyle = "#ffffff"; g.beginPath(); g.arc(q.x * k, q.y * k, 3, 0, 7); g.fill();
+  }
+  const m = movimento.quadro ? movimento : escritorioPosicao(escritorio.perfil || {});
+  g.fillStyle = "#ff8a35"; g.strokeStyle = "#1a1a1f"; g.lineWidth = 2;
+  g.beginPath(); g.arc(m.x * k, m.y * k, 4.5, 0, 7); g.fill(); g.stroke();
+}
+function cliqueMinimapaEscritorio(e) {
+  const c = e.currentTarget, r = c.getBoundingClientRect(), P = ESCRITORIO_PLANTA;
+  const x = Math.floor(((e.clientX - r.left) / r.width) * P.W), y = Math.floor(((e.clientY - r.top) / r.height) * P.H);
+  escritorioIrPara(x, y);
+}
+
+// Som de passos (baixinho), com botão para desligar.
+let escritorioAudio = null, escritorioUltimoPasso = 0;
+function escritorioSomLigado() {
+  try { return localStorage.getItem("vybe-escritorio-som") !== "0"; } catch { return true; }
+}
+function alternarSomEscritorio() {
+  try { localStorage.setItem("vybe-escritorio-som", escritorioSomLigado() ? "0" : "1"); } catch {}
+  atualizarControlesEscritorio();
+}
+function escritorioTocar(freq, dur, vol) {
+  if (!escritorioSomLigado()) return;
+  try {
+    escritorioAudio ||= new AudioContext();
+    const a = escritorioAudio, o = a.createOscillator(), g = a.createGain();
+    o.type = "triangle"; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + dur);
+  } catch {}
+}
+function escritorioSomDePasso(andando) {
+  if (!andando) return;
+  const agora = performance.now();
+  if (agora - escritorioUltimoPasso < (escritorio.correndo ? 210 : 330)) return;
+  escritorioUltimoPasso = agora;
+  escritorioTocar(90 + Math.random() * 40, 0.06, 0.05);
+}
+
 // WASD e setas: enquanto a tecla está presa, o boneco anda (movimento
 // contínuo acima); duas teclas somam a direção.
 const ESCRITORIO_TECLAS = {
@@ -757,6 +967,7 @@ const ESCRITORIO_TECLAS = {
   ArrowLeft: [-1, 1], a: [-1, 1], ArrowRight: [1, -1], d: [1, -1],
 };
 const escritorioTeclas = new Set();
+const escritorioTeclasDesde = new Map();
 function escritorioPararTeclado() {
   escritorioTeclas.clear();
 }
@@ -771,6 +982,12 @@ function tecladoEscritorio(e) {
   e.preventDefault();
   if (!escritorio.conectado && !escritorio.base?.demo) return;
   movimento.rota = []; // tecla interrompe um caminho por clique
+  escritorio.seguindoId = null;
+  if (!escritorioTeclas.has(chave)) {
+    escritorioTeclasDesde.set(chave, performance.now());
+    // Vira na hora para o lado da tecla.
+    movimento.dir = mapaDirecaoDoPasso(...ESCRITORIO_TECLAS[chave]);
+  }
   escritorioTeclas.add(chave);
   escritorio.mapa?.seguir(movimento.x, movimento.y, true);
   escritorioAnimarMovimento();
@@ -1030,8 +1247,16 @@ globalThis.document?.addEventListener?.("keydown", (e) => {
   if (document.getElementById("ofc-abertura") || document.querySelector(".workflow-modal")) return;
   if ((escritorio.modo || "mapa") !== "mapa") return;
   if (escritorio.edicao) { if (teclaEditorEscritorio(e)) e.preventDefault(); return; }
+  escritorio.correndo = e.shiftKey;
+  if (!e.target.closest?.("input, textarea, select, [contenteditable]") && !e.metaKey && !e.ctrlKey && !e.altKey && !e.repeat) {
+    const k = e.key.toLowerCase();
+    if (k === "e" && escritorio.acaoProxima) { e.preventDefault(); escritorio.acaoProxima.fazer(); return; }
+    if (k === "1") { e.preventDefault(); definirPoseEscritorio(escritorio.pose === "acenar" ? "" : "acenar"); return; }
+    if (k === "2") { e.preventDefault(); deitarEscritorio(); return; }
+    if (k === "3") { e.preventDefault(); definirPoseEscritorio(escritorio.pose === "cafe" ? "" : "cafe"); return; }
+  }
   tecladoEscritorio(e);
 });
-globalThis.document?.addEventListener?.("keyup", soltarTeclaEscritorio);
+globalThis.document?.addEventListener?.("keyup", (e) => { escritorio.correndo = e.shiftKey; soltarTeclaEscritorio(e); });
 // Trocar de aba com a tecla presa não pode deixar o boneco andando sozinho.
 globalThis.window?.addEventListener?.("blur", () => { escritorioTeclas.clear(); escritorioPararTeclado(); });

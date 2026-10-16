@@ -6165,3 +6165,17 @@ body.no-escritorio {overflow:hidden}
 .ofc-reacoes>div {position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);display:flex;gap:4px;padding:6px;border-radius:14px;background:var(--ofc-vidro,#1c1e27ee);border:1px solid #ffffff22;box-shadow:0 10px 30px #0007}
 .ofc-reacoes>div button {width:40px;height:40px;border:0;border-radius:10px;background:transparent;font-size:22px;cursor:pointer}
 .ofc-reacoes>div button:hover {background:#ffffff18}
+.mapa-obj.mapa-interativo {filter:drop-shadow(0 0 3px #ffd29a) drop-shadow(0 0 8px #ff8a35aa)}
+.mapa-pessoa.distante img {opacity:.55}
+.mapa-etiqueta small {color:#ffd29a;font-weight:600;margin-left:2px}
+.ofc-acao {position:absolute;z-index:7;left:50%;bottom:86px;transform:translateX(-50%)}
+.ofc-acao[hidden] {display:none}
+.ofc-acao button {display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:12px;border:1px solid #ff8a3566;background:#1d1610ee;color:#ffe7d2;font:650 13px var(--mac-ui);cursor:pointer;box-shadow:0 10px 30px #0008;animation:mapa-balao .2s ease-out}
+.ofc-acao kbd,.ofc-poses kbd {display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:#ff8a35;color:#1d1107;font:700 12px var(--mac-ui)}
+.ofc-poses {flex-direction:column;align-items:stretch;min-width:170px}
+.ofc-reacoes>div.ofc-poses button {width:auto;height:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;font:600 13px var(--mac-ui);color:#fff}
+.ofc-avisos {position:absolute;z-index:7;top:64px;right:16px;display:grid;gap:6px;justify-items:end;pointer-events:none}
+.ofc-avisos p {padding:7px 12px;border-radius:10px;background:#171a22e6;border:1px solid #ffffff1c;color:#e8eaf0;font:600 12px var(--mac-ui);animation:mapa-balao .25s ease-out}
+.ofc-minimapa {position:absolute;z-index:6;left:16px;bottom:16px;width:232px;height:168px;border-radius:14px;background:#0f1015d9;border:1px solid #ffffff1c;box-shadow:0 10px 30px #0007;cursor:pointer}
+.ofc-minimapa[hidden] {display:none}
+@media(max-width:1100px){.ofc-minimapa{display:none}}
