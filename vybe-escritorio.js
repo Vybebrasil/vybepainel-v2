@@ -1425,7 +1425,7 @@ function personalizarEscritorio() {
   abrirAberturaEscritorio("personagem");
 }
 // Clientes: a lista do cadastro (o mesmo da aba Clientes) com dois atalhos por
-// cliente: todas as demandas dele (Demandas filtrada pelo cliente) e o VybeHub
+// cliente: a ficha dele na aba Clientes (com tudo do cliente) e o VybeHub
 // (portal do cliente, vybehub.vercel.app/cliente/<nome-do-cliente>).
 const ESCRITORIO_VYBEHUB = "https://vybehub.vercel.app";
 function escritorioSlugCliente(nome) {
@@ -1457,20 +1457,18 @@ function escritorioClientesHtml() {
     .sort((a, b) => Number(ativo(b)) - Number(ativo(a)) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
   const linha = (c) => {
     const nome = String(c.nome || ""), arg = safeText(JSON.stringify(nome));
-    return `<li class="${ativo(c) ? "" : "inativo"}"><b>${safeText(nome)}</b>${ativo(c) ? "" : "<small>Inativo</small>"}<div><button type="button" class="ofc-mini" onclick='abrirDemandasDoClienteEscritorio(${arg})'>Demandas</button><a class="ofc-mini" href="${ESCRITORIO_VYBEHUB}/cliente/${encodeURIComponent(escritorioSlugCliente(nome))}" target="_blank" rel="noopener">VybeHub ↗</a></div></li>`;
+    return `<li class="${ativo(c) ? "" : "inativo"}"><b>${safeText(nome)}</b>${ativo(c) ? "" : "<small>Inativo</small>"}<div><button type="button" class="ofc-mini" onclick='abrirClienteNoPainelEscritorio(${arg})' title="Conteúdos, solicitações, dados e acessos do cliente">Ver cliente</button><a class="ofc-mini" href="${ESCRITORIO_VYBEHUB}/cliente/${encodeURIComponent(escritorioSlugCliente(nome))}" target="_blank" rel="noopener">VybeHub ↗</a></div></li>`;
   };
   return `<div class="office-chat-head"><h3>Clientes</h3><a class="office-text-button" href="${ESCRITORIO_VYBEHUB}/admin" target="_blank" rel="noopener">VybeHub admin ↗</a></div>
 <input type="search" class="ofc-busca-cliente" placeholder="Buscar cliente" aria-label="Buscar cliente" value="${safeText(escritorio.buscaCliente || "")}" oninput="escritorio.buscaCliente=this.value;atualizarClientesEscritorio()" autocomplete="off">
 <ul class="ofc-clientes-lista">${filtrados.map(linha).join("") || '<li class="ofc-vazio">Nenhum cliente com esse nome.</li>'}</ul>`;
 }
-function abrirDemandasDoClienteEscritorio(nome) {
-  abrirPainelDoEscritorio("demandas");
-  // Mostra todas as demandas do cliente (em aberto e concluídas), só dele.
-  setTimeout(() => {
-    if (typeof escolherVisaoDemanda === "function") escolherVisaoDemanda("todas");
-    if (typeof clienteDemandasExato !== "undefined" && clienteDemandasExato === nome) return;
-    if (typeof escolherClienteDemandas === "function") escolherClienteDemandas(nome);
-  }, 60);
+// Abre a ficha do cliente na aba Clientes (conteúdos, solicitações, heads,
+// dados e acessos) — o mesmo caminho da agenda (managerCalendarOpenClientMaster).
+function abrirClienteNoPainelEscritorio(nome) {
+  abrirPainelDoEscritorio("clientes");
+  const nomeCerto = typeof clientMasterResolveName === "function" ? clientMasterResolveName(nome) || nome : nome;
+  setTimeout(() => { if (typeof abrirClienteDetalhe === "function") abrirClienteDetalhe(nomeCerto); }, 120);
 }
 // Recados individuais: conversa de texto entre duas pessoas, guardada no Neon
 // até ser lida. O Worker só avisa que chegou; o texto vem da API autenticada.
