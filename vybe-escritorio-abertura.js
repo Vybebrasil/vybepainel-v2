@@ -12,12 +12,19 @@ function vybelandiaCenaHtml(parada = false) {
   const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   if (parada) return `<video class="abr-cena parada" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true"></video>`;
   const ligado = vybelandiaSomLigado();
-  return `<video class="abr-cena" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true" onplaying="vybelandiaAplicarSom()"></video><button type="button" class="abr-som" aria-pressed="${ligado}" onclick="vybelandiaAlternarSom()">${ligado ? "Som ligado" : "Som desligado"}</button>`;
+  return `<video class="abr-cena" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true" onplaying="vybelandiaAplicarSom()"></video><button type="button" class="abr-som" aria-pressed="${!ligado}" onclick="vybelandiaAlternarSom()">${vybelandiaSomRotulo(ligado)}</button>`;
 }
 // Trilha da cena: o vídeo tem som, mas o navegador só deixa tocar depois de
 // um clique ou tecla. Segue a mesma escolha do "Som ligado" do escritório.
 function vybelandiaSomLigado() {
   return typeof escritorioSomLigado !== "function" || escritorioSomLigado();
+}
+// O botão diz o que faz: "Desligar som" quando está tocando, "Ligar som" quando mudo.
+function vybelandiaSomRotulo(ligado) {
+  const icone = ligado
+    ? '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/>'
+    : '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/>';
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icone}</svg><span>${ligado ? "Desligar som" : "Ligar som"}</span>`;
 }
 function vybelandiaAplicarSom() {
   const ligado = vybelandiaSomLigado();
@@ -29,8 +36,8 @@ function vybelandiaAplicarSom() {
     v.play()?.catch(() => { v.muted = true; v.play()?.catch(() => {}); });
   }
   for (const b of document.querySelectorAll(".abr-som")) {
-    b.setAttribute("aria-pressed", String(ligado));
-    b.textContent = ligado ? "Som ligado" : "Som desligado";
+    b.setAttribute("aria-pressed", String(!ligado));
+    b.innerHTML = vybelandiaSomRotulo(ligado);
   }
 }
 function vybelandiaAlternarSom() {

@@ -6027,8 +6027,6 @@ body.no-escritorio {overflow:hidden}
 .ofc-primario:hover:not(:disabled) {background:#ffa766}
 .ofc-primario:disabled {opacity:.6;cursor:progress}
 .ofc-secundario {border:1px solid var(--ofc-borda);background:#ffffff0a;color:var(--ofc-texto)}
-.ofc-lobby-pref {display:flex;align-items:center;gap:8px;color:var(--ofc-suave);font-size:12px;cursor:pointer}
-.ofc-lobby-pref input {accent-color:var(--ofc-laranja)}
 .ofc :is(button,select,input,a):focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
 .office-call {position:absolute;z-index:7;top:70px;right:16px;width:min(340px,calc(100% - 32px));max-height:calc(100% - 170px);overflow:auto;padding:12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .office-call[hidden],.office-dock[hidden] {display:none}
@@ -6076,9 +6074,9 @@ body.no-escritorio {overflow:hidden}
 .abr-pular {position:absolute;z-index:7;top:20px;right:22px;padding:9px 16px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-pular:hover {background:#000a}
 .abr-saida-acoes {display:flex;flex-wrap:wrap;gap:10px}
-.abr-som {position:absolute;z-index:7;left:22px;bottom:20px;padding:8px 14px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
+.abr-som {position:absolute;z-index:7;left:22px;bottom:20px;display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid #ffffff40;background:#000a;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-som:hover {background:#000a}
-.abr-som[aria-pressed=false] {color:#ffffffb3}
+.abr-som[aria-pressed=true] {color:#ffffffcc}
 .abr-som:focus-visible,.abr-pular:focus-visible {outline:2px solid #ff8a2a;outline-offset:2px}
 .abr-texto {text-shadow:0 2px 12px #000c;position:absolute;z-index:5;left:clamp(20px,6vw,90px);bottom:clamp(28px,9vh,96px);max-width:620px;display:grid;gap:14px;opacity:0;transform:translateY(24px);animation:abr-texto .9s 3.2s cubic-bezier(.2,.8,.2,1) forwards}
 .abr-kicker {color:#ffb27a;font:700 12px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
@@ -6232,3 +6230,17 @@ body.no-escritorio {overflow:hidden}
 .tut-pular:hover {color:#fff}
 .tut-pular:focus-visible {outline:2px solid #ff8a35;outline-offset:2px;border-radius:6px}
 @media(prefers-reduced-motion:reduce){.tut-furo {transition:none}}
+
+/* Conversa: quem está ligado e se o som está passando. */
+.office-call-pessoa {display:grid;gap:6px}
+.office-call-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.office-call-topo b {margin:0;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.office-call-mic {flex:none;padding:2px 7px;border-radius:999px;font:600 10px var(--mac-ui);background:#ffffff14;color:#c9bfb4}
+.office-call-mic[data-ligado=true] {background:#3fbf7f2e;color:#9de8bd}
+.office-call-nivel {display:block;height:6px;border-radius:999px;background:#ffffff12;overflow:hidden}
+.office-call-nivel i {display:block;height:100%;width:0;border-radius:inherit;background:#4fd18b;transition:width .1s linear}
+.office-call-pessoa small {font-size:11px;color:#c9bfb4}
+.office-call-som {width:100%;padding:9px 12px;border:0;border-radius:10px;background:var(--ofc-laranja,#ff8a35);color:#1a1008;font:700 13px var(--mac-ui);cursor:pointer}
+.office-call-som:focus-visible {outline:2px solid #fff;outline-offset:2px}
+.mapa-pessoa.falando::after {content:"";position:absolute;left:8px;bottom:-5px;width:48px;height:18px;border-radius:50%;border:3px solid #4fd18b;box-shadow:0 0 10px #4fd18b;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.office-call-nivel i {transition:none}}

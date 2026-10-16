@@ -800,6 +800,10 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     setTimeout(() => r.remove(), 2400);
   }
   // Vídeo da pessoa numa bolha acima do boneco (null tira).
+  // Quem está falando na conversa ganha um anel verde nos pés.
+  function marcarFalando(id, falando) {
+    pessoas.get(String(id))?.no.classList.toggle("falando", Boolean(falando));
+  }
   function anexarVideo(id, stream) {
     const p = pessoas.get(id);
     if (!p) return;
@@ -848,7 +852,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
-    balao, reagir, anexarVideo, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
+    balao, reagir, anexarVideo, marcarFalando, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
