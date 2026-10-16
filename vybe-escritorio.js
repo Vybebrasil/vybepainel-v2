@@ -1178,7 +1178,9 @@ function escritorioAcoesPerto() {
     const passos = escritorio.mapa.caminho(p, { x: qx, y: qy });
     return Boolean(passos && passos.length <= 3);
   });
-  if (vizinho) return { texto: "Conversar com " + String(vizinho.nome).split(" ")[0], fazer: () => convidarConversaEscritorio(vizinho.id) };
+  // Numa sala com voz, todos ali já estão na mesma conversa: sem convite.
+  const salaComVoz = escritorio.zona && escritorio.zona !== "foco";
+  if (vizinho && !salaComVoz) return { texto: "Conversar com " + String(vizinho.nome).split(" ")[0], fazer: () => convidarConversaEscritorio(vizinho.id) };
   // Sala trancada ao lado
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
     const z = escritorioZonaEm(p.x + dx, p.y + dy);
@@ -1794,14 +1796,16 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     // Mudou de sala enquanto entrava: não fica numa conversa que não é a dela.
     if (escritorio.zona !== zonaInicial) { await sairChamadaEscritorio(); return; }
     let semMicrofone = false;
+    escritorio.erroMic = null;
     if (microfone && !meeting.self.audioEnabled) {
       // Na primeira vez o navegador pergunta: a pessoa precisa clicar em Permitir.
       escritorioAviso("Clique em Permitir no aviso do navegador para usar o microfone.");
       try { await meeting.self.enableAudio(); } catch (e) { semMicrofone = true; console.warn("Microfone:", e); }
+      if (!meeting.self.audioEnabled) { semMicrofone = true; escritorio.erroMic = await escritorioDiagnosticarMic(); escritorio.callAberta = true; }
     }
     renderEscritorio();
     escritorioAviso(!microfone ? "Conversa aberta. Microfone e câmera estão desligados."
-      : semMicrofone ? "Conversa aberta, mas o navegador não liberou o microfone. Clique no cadeado da barra de endereço e permita o microfone."
+      : semMicrofone ? "Você está ouvindo, mas seu microfone não ligou: " + (escritorio.erroMic?.titulo || "veja o motivo na conversa").toLowerCase() + "."
       : "Você entrou na conversa da sala: quem está aqui ouve você. Clique no microfone para silenciar.");
   } catch (e) {
     console.warn("Conversa do escritório:", e);
@@ -1961,8 +1965,10 @@ async function alternarMidiaEscritorio(tipo) {
   const self = escritorio.chamada?.self;
   if (!self) return;
   try {
-    if (tipo === "audio")
+    if (tipo === "audio") {
       await self[self.audioEnabled ? "disableAudio" : "enableAudio"]();
+      escritorio.erroMic = self.audioEnabled ? null : escritorio.erroMic;
+    }
     if (tipo === "video")
       await self[self.videoEnabled ? "disableVideo" : "enableVideo"]();
     if (tipo === "screen")
@@ -1971,6 +1977,7 @@ async function alternarMidiaEscritorio(tipo) {
       ]();
     renderMidiaEscritorio();
   } catch (e) {
+    if (tipo === "audio") { escritorio.erroMic = await escritorioDiagnosticarMic(); renderMidiaEscritorio(); escritorioAviso(escritorio.erroMic.titulo); return; }
     escritorioAviso("Não foi possível ativar o dispositivo: " + e.message);
   }
 }
@@ -1979,6 +1986,23 @@ function renderMidiaEscritorio() {
     el = document.getElementById("office-call-media");
   if (!meeting || !el) return;
   el.replaceChildren();
+  if (escritorio.erroMic) {
+    const caixa = document.createElement("div");
+    caixa.className = "office-call-erro";
+    caixa.setAttribute("role", "alert");
+    caixa.innerHTML = `<b>${safeText(escritorio.erroMic.titulo)}</b><p>${safeText(escritorio.erroMic.dica)}</p>${escritorio.erroMic.podeTentar ? '<button type="button" class="office-call-som" onclick="liberarMicrofoneEscritorio()">Liberar microfone</button>' : ""}`;
+    el.append(caixa);
+    document.getElementById("office-call")?.classList.add("aberta");
+  }
+  // Quem está na mesma sala mas não entrou na conversa (não está ouvindo).
+  const naChamada = new Set([String(escritorio.base?.eu), ...meeting.participants.joined.toArray().map((p) => String(p.customParticipantId || "").split(":")[0])]);
+  const fora = (escritorio.online || []).filter((o) => !naChamada.has(String(o.id)) && escritorioZonaEm(Math.round(escritorioPosicao(o).x), Math.round(escritorioPosicao(o).y)) === escritorio.zona);
+  if (fora.length) {
+    const p = document.createElement("p");
+    p.className = "office-call-fora";
+    p.textContent = `Na sala, mas fora da conversa: ${fora.map((o) => String(o.nome).split(" ")[0]).join(", ")}. ${fora.length > 1 ? "Elas ainda não ouvem" : "Ainda não ouve"} você. Peça para atualizar a página (Ctrl ou Cmd + Shift + R).`;
+    el.append(p);
+  }
   if (escritorio.somBloqueado) {
     const b = document.createElement("button");
     b.type = "button";
@@ -2048,6 +2072,44 @@ function renderMidiaEscritorio() {
   }
   for (const id of escritorio.mapa?.idsNoMapa() || []) escritorio.mapa.anexarVideo(id, comVideo.get(id) || null);
   atualizarDockEscritorio();
+}
+// Por que o microfone não liga: pergunta direto ao navegador e traduz o erro.
+async function escritorioDiagnosticarMic() {
+  if (!navigator.mediaDevices?.getUserMedia)
+    return { titulo: "Este navegador não dá acesso ao microfone", dica: "Use o Chrome, o Edge ou o Safari atualizados, pelo endereço https do painel." };
+  let permissao = "";
+  try { permissao = (await navigator.permissions?.query({ name: "microphone" }))?.state || ""; } catch {}
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach((t) => t.stop());
+    return { titulo: "O microfone funciona, mas a conversa não o ligou", dica: "Clique em Liberar microfone para tentar de novo.", podeTentar: true };
+  } catch (e) {
+    const n = e?.name || "";
+    if (n === "NotAllowedError" || n === "SecurityError" || permissao === "denied")
+      return { titulo: "O navegador bloqueou o microfone", dica: "Clique no cadeado ao lado do endereço do site, escolha Microfone: Permitir e depois em Liberar microfone. No Mac, confira também Ajustes do Sistema › Privacidade e Segurança › Microfone e ative o navegador.", podeTentar: true };
+    if (n === "NotFoundError" || n === "OverconstrainedError")
+      return { titulo: "Nenhum microfone encontrado", dica: "Conecte um fone com microfone ou ative o microfone do computador e clique em Liberar microfone.", podeTentar: true };
+    if (n === "NotReadableError" || n === "AbortError")
+      return { titulo: "O microfone está sendo usado por outro programa", dica: "Feche Meet, Zoom, Teams, WhatsApp ou outra aba que esteja usando o microfone e clique em Liberar microfone.", podeTentar: true };
+    return { titulo: "O microfone não ligou", dica: (e?.message || n || "Erro desconhecido") + ". Tente Liberar microfone ou escolha outro em Ajustes de áudio.", podeTentar: true };
+  }
+}
+// Botão "Liberar microfone": pede o acesso de novo (abre o aviso do navegador)
+// e liga o microfone na conversa.
+async function liberarMicrofoneEscritorio() {
+  const self = escritorio.chamada?.self;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach((t) => t.stop());
+    if (self && !self.audioEnabled) await self.enableAudio();
+    escritorio.erroMic = self?.audioEnabled ? null : await escritorioDiagnosticarMic();
+    escritorioAviso(escritorio.erroMic ? escritorio.erroMic.titulo : "Microfone liberado. Fale algo e veja a barra verde.");
+  } catch {
+    escritorio.erroMic = await escritorioDiagnosticarMic();
+    escritorioAviso(escritorio.erroMic.titulo);
+  }
+  renderMidiaEscritorio();
+  atualizarControlesEscritorio();
 }
 // Volume de cada pessoa na conversa (o seu e o dos outros), 10 vezes por
 // segundo, só enquanto há conversa: barra no cartão e anel no boneco do mapa.

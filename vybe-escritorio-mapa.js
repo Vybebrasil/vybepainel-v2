@@ -795,11 +795,12 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   const alvo = { x: 0, y: 0, z: 1 };
   let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true;
   const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  palco.style.willChange = "transform";
+  // Sem will-change/translate3d: o palco tem ~4500×2400 px e virar uma camada
+  // de GPU inteira deixava trechos pretos e bonecos sumindo em placas fracas.
   // Letreiros com tamanho mínimo na tela: abaixo de ~0,9 de zoom crescem
   // na mesma proporção em que o mapa diminui.
   const aplicar = () => {
-    palco.style.transform = `translate3d(${cam.x}px,${cam.y}px,0) scale(${zoom})`;
+    palco.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${zoom})`;
     palco.style.setProperty("--contra", Math.max(1, 0.9 / zoom).toFixed(3));
   };
   const animarCam = (agora) => {
