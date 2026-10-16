@@ -7,6 +7,8 @@
 // 4 para +y, 6 para −x; medidas valem em 0/4 e giram em 2/6.
 // Cada ambiente pertence a uma sala de conversa do servidor.
 const ESCRITORIO_DONOS = ["Paulo", "Vinícius", "Ewerton", "Deivid", "Bia", "Jady", "Mizinho", "Taynara", "Reriston"];
+// Como cada um está no cadastro, quando o nome da sala é apelido ou outra grafia.
+const ESCRITORIO_DONOS_CADASTRO = { Bia: ["Beatriz"], Taynara: ["Tainara"] };
 const ESCRITORIO_SALA_LADO = 10;
 const ESCRITORIO_PLANTA = (() => {
   const W = 76, H = 58;
@@ -151,9 +153,9 @@ function escritorioSalasPessoais(equipe = []) {
   const donos = new Map();
   for (const a of ESCRITORIO_PLANTA.ambientes) {
     if (!a.pessoal || !a.dono) continue;
-    const alvo = escritorioSemAcento(a.dono);
-    const pessoa = equipe.find((p) => !donos.has(p.id) && escritorioSemAcento(p.nome).split(/\s+/)[0] === alvo)
-      || equipe.find((p) => !donos.has(p.id) && escritorioSemAcento(p.nome).startsWith(alvo));
+    const alvos = [a.dono, ...(ESCRITORIO_DONOS_CADASTRO[a.dono] || [])].map(escritorioSemAcento);
+    const pessoa = equipe.find((p) => !donos.has(p.id) && alvos.includes(escritorioSemAcento(p.nome).split(/\s+/)[0]))
+      || equipe.find((p) => !donos.has(p.id) && alvos.some((alvo) => escritorioSemAcento(p.nome).startsWith(alvo)));
     if (pessoa) donos.set(pessoa.id, a);
   }
   return donos;

@@ -428,10 +428,10 @@ test("salas individuais: cada dono na sua, pelo primeiro nome sem acento; livres
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
   c.equipe = [
     { id: "1", nome: "Paulo Martins" }, { id: "2", nome: "Vinicius Souza" }, { id: "3", nome: "Ewerton L." },
-    { id: "4", nome: "Fulano Externo" },
+    { id: "4", nome: "Fulano Externo" }, { id: "5", nome: "Beatriz Souza" }, { id: "6", nome: "Tainara Lima" },
   ];
   const r = Object.fromEntries(vm.runInContext("[...escritorioSalasPessoais(equipe)].map(([id, a]) => [id, a.nome])", c));
-  assert.deepEqual(r, { 1: "Sala de Paulo", 2: "Sala de Vinícius", 3: "Sala de Ewerton" });
+  assert.deepEqual(r, { 1: "Sala de Paulo", 2: "Sala de Vinícius", 3: "Sala de Ewerton", 5: "Sala de Bia", 6: "Sala de Taynara" });
   const salas = vm.runInContext("ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.x1 - a.x0, a.y1 - a.y0, a.nome])", c);
   assert.equal(salas.length, 12);
   assert.ok(salas.every(([w, h]) => w === 10 && h === 10));
