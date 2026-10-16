@@ -678,6 +678,13 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt });
     }
   }
+  // Altura da parede num trecho (para os itens pendurados): a do muro da
+  // planta, ou a do prédio nas paredes de fora.
+  const mapaAlturaParede = (x, y, eixo) => {
+    const m = muros.find((w) => w.eixo === eixo && w.x === x && w.y === y);
+    if (m) return m.alt || (m.cor ? 82 : 46);
+    return (eixo === "x" && y === P.PREDIO?.y0) || (eixo === "y" && x === P.PREDIO?.x0) ? MAPA_PAREDE : 82;
+  };
   // Móveis (animados ficam numa lista para trocar de quadro)
   const animados = [];
   const moveis = [];
@@ -793,7 +800,15 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         no.className = "mapa-obj mapa-de-parede";
         no.dataset.classe = classe;
         no.style.left = ancora.x + desenho.ox + MAPA_PAREDE_AJUSTE[d0].x + "px";
-        no.style.top = ancora.y + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y - altura * 32 + "px";
+        // A parede tem altura própria (prédio 118, sala 82 ou a que o dono
+        // pintou, divisória baixa 46): o item fica sempre dentro dela, sem
+        // passar do topo (antes as janelas "flutuavam" acima das paredes das salas).
+        let topo = ancora.y + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y - altura * 32;
+        const altParede = mapaAlturaParede(Math.floor(x), Math.floor(y), d0 === 2 ? "y" : "x");
+        const teto = ancora.y - altParede + 4, h = no.height;
+        if (topo < teto) topo = teto;
+        if (topo + h > ancora.y + 2) topo = Math.max(teto, ancora.y + 2 - h);
+        no.style.top = topo + "px";
         no.style.zIndex = Math.round((Math.floor(x) + Math.floor(y)) * 10) + 3;
         palco.append(no);
         const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: Number(no.style.zIndex), caixa: null, origem: origemItem };
