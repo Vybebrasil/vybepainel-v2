@@ -70,8 +70,10 @@ function escritorioElementoMusica() {
   el.className = "ofc-musica";
   el.setAttribute("aria-label", "Música da Pista e do Bar");
   el.hidden = true;
-  el.innerHTML = `<div class="ofc-musica-player"><div id="office-yt"></div></div><div class="ofc-musica-info"></div>`;
+  el.innerHTML = `<div class="ofc-musica-topo" title="Arraste para mudar de lugar"><b>${escritorioIcone("musica")}Música</b><button type="button" class="ofc-x" onclick="minimizarMusicaEscritorio()" aria-label="Minimizar o player" title="Minimizar">–</button></div><div class="ofc-musica-player"><div id="office-yt"></div></div><div class="ofc-musica-info"></div>`;
   escritorio.musicaEl = el;
+  try { if (localStorage.getItem("vybe-escritorio-musica-mini") === "1") el.classList.add("mini"); } catch {}
+  arrastarMusicaEscritorio(el);
   return el;
 }
 function chaveMusica(m) {
@@ -178,4 +180,46 @@ function adicionarMusicaEscritorio(form) {
   erro.textContent = "";
   escritorioEmitir("music:enqueue", { fonte });
   form.reset();
+}
+
+// O player pode ser arrastado pelo topo (fica onde a pessoa deixou) e
+// minimizado; a música continua tocando.
+function minimizarMusicaEscritorio() {
+  const el = escritorio.musicaEl;
+  if (!el) return;
+  el.classList.toggle("mini");
+  try { el.classList.contains("mini") ? localStorage.setItem("vybe-escritorio-musica-mini", "1") : localStorage.removeItem("vybe-escritorio-musica-mini"); } catch {}
+}
+function posicionarMusicaEscritorio(el, x, y) {
+  const pai = el.offsetParent || el.parentElement;
+  if (!pai) return;
+  const maxX = Math.max(0, pai.clientWidth - el.offsetWidth - 8), maxY = Math.max(0, pai.clientHeight - el.offsetHeight - 8);
+  x = Math.min(maxX, Math.max(8, x)); y = Math.min(maxY, Math.max(8, y));
+  Object.assign(el.style, { left: x + "px", top: y + "px", right: "auto", bottom: "auto" });
+  return { x, y };
+}
+function arrastarMusicaEscritorio(el) {
+  const topo = el.querySelector(".ofc-musica-topo");
+  let inicio = null;
+  const salvo = (() => { try { return JSON.parse(localStorage.getItem("vybe-escritorio-musica-pos") || "null"); } catch { return null; } })();
+  if (salvo) requestAnimationFrame(() => posicionarMusicaEscritorio(el, salvo.x, salvo.y));
+  topo.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("button")) return;
+    e.stopPropagation();
+    inicio = { px: e.clientX, py: e.clientY, x: el.offsetLeft, y: el.offsetTop };
+    topo.setPointerCapture(e.pointerId);
+    el.classList.add("arrastando");
+  });
+  topo.addEventListener("pointermove", (e) => {
+    if (!inicio) return;
+    posicionarMusicaEscritorio(el, inicio.x + e.clientX - inicio.px, inicio.y + e.clientY - inicio.py);
+  });
+  const soltar = () => {
+    if (!inicio) return;
+    inicio = null;
+    el.classList.remove("arrastando");
+    try { localStorage.setItem("vybe-escritorio-musica-pos", JSON.stringify({ x: el.offsetLeft, y: el.offsetTop })); } catch {}
+  };
+  topo.addEventListener("pointerup", soltar);
+  topo.addEventListener("pointercancel", soltar);
 }
