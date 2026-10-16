@@ -1,5 +1,5 @@
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
-import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio } from "./escritorio-mapa.js";
+import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -219,6 +219,19 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(e.status || 502).json({ error: e.message });
     }
   }
+  // Imagem da equipe (quadro/tapete): só para quem está logado; o id não
+  // muda de conteúdo, então o navegador guarda.
+  if (req.method === "GET" && req.query?.acao === "imagem") {
+    try {
+      const img = await imagemEscritorio(sql, String(req.query.id || ""));
+      res.setHeader("Content-Type", img.mime);
+      res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      return res.status(200).send(img.dados);
+    } catch (e) {
+      return res.status(e.status || 502).json({ error: e.message });
+    }
+  }
   if (!(await escritorioPronto(sql)))
     return res.status(503).json({
       error: "O escritório aguarda a migração revisada do banco.",
@@ -284,6 +297,16 @@ export async function areaEscritorio(req, res, quem, sql) {
     const { salas } = await carregarEscritorio(sql, pessoa);
     try {
       return res.status(200).json({ ok: true, ...(await salvarCamadaEscritorio(sql, pessoa, salas, req.body || {})) });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+  }
+  if (acao === "imagem" || acao === "imagem-apagar") {
+    const { salas } = await carregarEscritorio(sql, pessoa);
+    try {
+      return res.status(200).json({ ok: true, imagem: acao === "imagem"
+        ? await enviarImagemEscritorio(sql, pessoa, salas, req.body || {})
+        : await apagarImagemEscritorio(sql, pessoa, salas, req.body || {}) });
     } catch (e) {
       return res.status(e.status || 400).json({ error: e.message });
     }

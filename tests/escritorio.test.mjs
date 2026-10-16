@@ -749,3 +749,36 @@ test("Worker: chamar alguém de longe avisa só a pessoa, com a sala de quem cha
   await room.webSocketMessage(outro, JSON.stringify({ type: "conversation:summon", payload: { id: "2" } }));
   assert.equal(longe.msgs.filter((m) => m.type === "conversation:invite").length, 1);
 });
+
+test("imagens da equipe: só a própria sala, só imagem de verdade, quadro na parede e apagar tira do mapa", async (t) => {
+  const { enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio } = await import("../server/escritorio-mapa.js");
+  const { db, sql } = await banco();
+  t.after(() => db.close());
+  const salas = salasDoEscritorio([{ id: 1, nome: "Paulo" }, { id: 2, nome: "Jady" }]);
+  const jady = { id: 2, admin: false }, paulo = { id: 1, admin: true };
+  const salaJady = salas.find((s) => s.pessoa_id === "2").id;
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(20)]).toString("base64");
+  await db.exec(readFileSync("migrations/2026-10-16-escritorio-mapa.sql", "utf8"));
+  // Sem a migração das imagens: recusa com aviso.
+  await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: salaJady, tipo: "quadro", largura: 2, altura: 2, dados: png }), /migração/);
+  await db.exec(readFileSync("migrations/2026-10-17-escritorio-imagens.sql", "utf8"));
+  await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: "sala-0", tipo: "quadro", largura: 2, altura: 2, dados: png }), /sua sala/);
+  await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: salaJady, tipo: "quadro", largura: 2, altura: 2, dados: Buffer.from("<svg onload=x>").toString("base64") }), /PNG, JPG ou WEBP/);
+  await assert.rejects(enviarImagemEscritorio(sql, paulo, salas, { camada: "geral", tipo: "quadro", largura: 2, altura: 2, dados: png }), /parede de uma sala/);
+  await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: salaJady, tipo: "quadro", largura: 2, altura: 4, dados: png }), /Tamanho/);
+  const img = await enviarImagemEscritorio(sql, jady, salas, { camada: salaJady, tipo: "quadro", largura: 3, altura: 2, nome: "Logo", dados: png });
+  assert.equal((await imagemEscritorio(sql, img.id)).mime, "image/png");
+  const classe = "vybeimg_" + img.id;
+  // Quadro fora da parede do fundo é recusado; na parede, salva.
+  await assert.rejects(salvarCamadaEscritorio(sql, jady, salas, { camada: salaJady, itens: [[classe, 3, 3, 4]], versao: 0 }), /parede/);
+  const salvo = await salvarCamadaEscritorio(sql, jady, salas, { camada: salaJady, itens: [[classe, 3, 0, 4], ["exe_plant", 1, 1, 2]], versao: 0 });
+  assert.equal(salvo.versao, 1);
+  // Imagem de uma sala não entra em outra.
+  await assert.rejects(salvarCamadaEscritorio(sql, paulo, salas, { camada: "sala-0", itens: [[classe, 3, 0, 4]], versao: 0 }), /outra área/);
+  assert.equal((await carregarMapaEscritorio(sql)).imagens.length, 1);
+  await assert.rejects(apagarImagemEscritorio(sql, { id: 3, admin: false }, salas, { id: img.id }), /sua sala/);
+  await apagarImagemEscritorio(sql, jady, salas, { id: img.id });
+  const mapa = await carregarMapaEscritorio(sql);
+  assert.deepEqual(mapa.camadas[salaJady].itens, [["exe_plant", 1, 1, 2, 0, 0]]);
+  assert.equal(mapa.imagens.length, 0);
+});

@@ -159,3 +159,13 @@ Após login do responsável na Cloudflare, foi confirmado:
   `assets/vybelandia.webp`, criador de personagem (peças do Habbo conferidas por
   corpo) e boas-vindas. Cada pessoa vê uma vez por versão (`ESCRITORIO_ABERTURA`,
   guardada em `perfil.abertura`); para todos verem de novo, troque a data.
+- Salas individuais têm as duas paredes do fundo altas, na cor da sala
+  (`divisorias` com 5º campo de cor em `vybe-escritorio-planta.js`).
+- Quadros e tapetes da equipe (`migrations/2026-10-17-escritorio-imagens.sql`,
+  tabela `vybe_escritorio_imagens`): PNG/JPG/WEBP até 1,5 MB, tipo conferido
+  pelos bytes no servidor. O dono da sala (ou administrador) envia pelo editor,
+  aba Imagens; quadro vai na parede alta do fundo (até 6×3 ladrilhos), tapete no
+  piso (até 6×6; no mapa geral, só tapete e só administrador). No mapa o item é
+  `["vybeimg_<id>", x, y, dir]`; apagar a imagem tira o item da camada na mesma
+  transação. O arquivo sai por `/api/painel?area=escritorio&acao=imagem&id=`,
+  só com sessão. Sem a migração, o editor avisa e o resto do mapa segue igual.

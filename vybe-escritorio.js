@@ -464,7 +464,7 @@ function escritorioMoveisAtuais() {
   return moveis;
 }
 function escritorioPlantaComMesas() {
-  return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais() };
+  return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais(), imagens: escritorio.base?.mapa?.imagens || [] };
 }
 // Nomes das salas individuais conforme o dono informado pelo servidor.
 function escritorioAplicarSalas() {
