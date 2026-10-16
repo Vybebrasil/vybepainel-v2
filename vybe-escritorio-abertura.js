@@ -37,7 +37,7 @@ function vybelandiaAlternarSom() {
   vybelandiaAplicarSom();
 }
 // O primeiro clique ou tecla da página libera o som da cena que está tocando.
-for (const tipo of ["pointerdown", "keydown"]) document.addEventListener(tipo, () => setTimeout(vybelandiaAplicarSom), true);
+if (typeof document.addEventListener === "function") for (const tipo of ["pointerdown", "keydown"]) document.addEventListener(tipo, () => setTimeout(vybelandiaAplicarSom), true);
 
 // Criador de personagem no estilo do Habbo: abas por categoria, grade com
 // miniatura de cada peça já no boneco da pessoa, cores reais de cada peça
