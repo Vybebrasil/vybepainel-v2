@@ -6434,3 +6434,13 @@ body.no-escritorio {overflow:hidden}
 .office-call-erro b {font:700 13px var(--mac-ui);color:#ffb3b3}
 .office-call-erro p {margin:0;font:500 12px/1.45 var(--mac-ui);color:#f0d7d7}
 .office-call-fora {margin:0;padding:8px 10px;border-radius:10px;background:#ffb34714;color:#ffd9a3;font:500 12px/1.45 var(--mac-ui)}
+
+/* Entrada do escritório: barra com a etapa real (e a porcentagem do mapa). */
+.ofc-entrada {display:grid;gap:8px;width:100%;justify-items:center}
+.ofc-entrada-barra {width:100%;height:8px;border-radius:99px;background:#ffffff14;overflow:hidden}
+.ofc-entrada-barra span {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff7a1a,#ffb347);transition:width .4s ease}
+.ofc-entrada p {margin:0;font:600 13px var(--mac-ui);color:var(--ofc-texto,#f2f2f5);font-variant-numeric:tabular-nums}
+.ofc-entrada .ofc-entrada-lenta {font-weight:500;color:var(--ofc-suave)}
+.ofc-entrada.erro p {color:#ffb4a8;font-weight:500;line-height:1.45}
+.ofc-entrada button {width:100%}
+@media (prefers-reduced-motion: reduce) {.ofc-entrada-barra span {transition:none}}
