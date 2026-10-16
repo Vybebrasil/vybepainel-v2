@@ -967,6 +967,7 @@ function escritorioSomLigado() {
 function alternarSomEscritorio() {
   try { localStorage.setItem("vybe-escritorio-som", escritorioSomLigado() ? "0" : "1"); } catch {}
   atualizarControlesEscritorio();
+  if (typeof vybelandiaAplicarSom === "function") vybelandiaAplicarSom();
 }
 function escritorioTocar(freq, dur, vol) {
   if (!escritorioSomLigado()) return;

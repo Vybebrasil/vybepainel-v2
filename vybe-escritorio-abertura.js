@@ -9,8 +9,35 @@ function vybelandiaCenaHtml(parada = false) {
   const capa = href("vybelandia-img", "/assets/vybelandia.webp");
   const video = window.matchMedia?.("(max-width: 900px)").matches ? href("vybelandia-video-leve", "/assets/vybelandia-540.mp4") : href("vybelandia-video", "/assets/vybelandia.mp4");
   const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  return `<video class="abr-cena${parada ? " parada" : ""}" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true"></video>`;
+  if (parada) return `<video class="abr-cena parada" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true"></video>`;
+  const ligado = vybelandiaSomLigado();
+  return `<video class="abr-cena" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true" onplaying="vybelandiaAplicarSom()"></video><button type="button" class="abr-som" aria-pressed="${ligado}" onclick="vybelandiaAlternarSom()">${ligado ? "Som ligado" : "Som desligado"}</button>`;
 }
+// Trilha da cena: o vídeo tem som, mas o navegador só deixa tocar depois de
+// um clique ou tecla. Segue a mesma escolha do "Som ligado" do escritório.
+function vybelandiaSomLigado() {
+  return typeof escritorioSomLigado !== "function" || escritorioSomLigado();
+}
+function vybelandiaAplicarSom() {
+  const ligado = vybelandiaSomLigado();
+  const pode = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+  for (const v of document.querySelectorAll("video.abr-cena:not(.parada)")) {
+    if (!ligado) { v.muted = true; continue; }
+    if (!v.muted || !pode) continue;
+    v.muted = false; v.volume = 0.7;
+    v.play()?.catch(() => { v.muted = true; v.play()?.catch(() => {}); });
+  }
+  for (const b of document.querySelectorAll(".abr-som")) {
+    b.setAttribute("aria-pressed", String(ligado));
+    b.textContent = ligado ? "Som ligado" : "Som desligado";
+  }
+}
+function vybelandiaAlternarSom() {
+  try { localStorage.setItem("vybe-escritorio-som", vybelandiaSomLigado() ? "0" : "1"); } catch {}
+  vybelandiaAplicarSom();
+}
+// O primeiro clique ou tecla da página libera o som da cena que está tocando.
+for (const tipo of ["pointerdown", "keydown"]) document.addEventListener(tipo, () => setTimeout(vybelandiaAplicarSom), true);
 
 // Criador de personagem no estilo do Habbo: abas por categoria, grade com
 // miniatura de cada peça já no boneco da pessoa, cores reais de cada peça

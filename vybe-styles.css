@@ -6070,6 +6070,10 @@ body.no-escritorio {overflow:hidden}
 .abr-vinheta {position:absolute;inset:0;z-index:3;background:radial-gradient(120% 90% at 50% 40%,transparent 45%,#05050ad9 100%),linear-gradient(to top,#05050af2 0,transparent 50%),linear-gradient(to right,#05050acc 0,transparent 55%)}
 .abr-pular {position:absolute;z-index:7;top:20px;right:22px;padding:9px 16px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-pular:hover {background:#000a}
+.abr-som {position:absolute;z-index:7;left:22px;bottom:20px;padding:8px 14px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
+.abr-som:hover {background:#000a}
+.abr-som[aria-pressed=false] {color:#ffffffb3}
+.abr-som:focus-visible,.abr-pular:focus-visible {outline:2px solid #ff8a2a;outline-offset:2px}
 .abr-texto {text-shadow:0 2px 12px #000c;position:absolute;z-index:5;left:clamp(20px,6vw,90px);bottom:clamp(28px,9vh,96px);max-width:620px;display:grid;gap:14px;opacity:0;transform:translateY(24px);animation:abr-texto .9s 3.2s cubic-bezier(.2,.8,.2,1) forwards}
 .abr-kicker {color:#ffb27a;font:700 12px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
 .abr-texto h1 {font:800 clamp(34px,5.4vw,68px)/1.02 var(--mac-ui);letter-spacing:-.03em;text-wrap:balance}
