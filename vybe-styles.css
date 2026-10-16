@@ -6216,3 +6216,19 @@ body.no-escritorio {overflow:hidden}
 .ofc-lobby .abr-cena,.ofc-lobby .abr-vinheta {position:absolute}
 .ofc-lobby-cartao {position:relative;z-index:4}
 .ofc-eu .office-avatar {width:26px;height:44px;object-fit:cover;object-position:top;margin:-8px 0 -6px}
+
+/* Tutorial do escritório: escurece tudo menos o controle explicado. */
+.ofc-tutorial {position:fixed;inset:0;z-index:890;font-family:var(--mac-ui)}
+.tut-fundo {position:absolute;inset:0;background:#05060acc}
+.tut-furo {position:absolute;border-radius:14px;box-shadow:0 0 0 9999px #05060acc,0 0 0 2px #ff8a35,0 0 22px #ff8a3588;pointer-events:none;transition:left .25s,top .25s,width .25s,height .25s}
+.tut-cartao {position:absolute;display:grid;gap:8px;padding:18px 18px 14px;border-radius:18px;background:#1d2029;border:1px solid #ffffff1f;color:#fff4ea;box-shadow:0 24px 60px #000a}
+.tut-passo {font:700 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase;color:#ff9b52}
+.tut-cartao h2 {margin:0;font:700 18px/1.25 var(--mac-ui);text-wrap:balance}
+.tut-cartao p {margin:0;font:400 14px/1.5 var(--mac-ui);color:#e7dccf}
+.tut-acoes {display:flex;align-items:center;gap:8px;margin-top:6px}
+.tut-acoes span {flex:1}
+.tut-acoes .abr-primario,.tut-acoes .abr-secundario {padding:9px 16px;border-radius:12px;font-size:13px}
+.tut-pular {border:0;background:none;color:#cbbfb2;font:600 13px var(--mac-ui);cursor:pointer;padding:6px 2px}
+.tut-pular:hover {color:#fff}
+.tut-pular:focus-visible {outline:2px solid #ff8a35;outline-offset:2px;border-radius:6px}
+@media(prefers-reduced-motion:reduce){.tut-furo {transition:none}}
