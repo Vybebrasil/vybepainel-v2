@@ -5931,6 +5931,7 @@ body.no-escritorio {overflow:hidden}
 .ofc-aba h4 {margin:14px 0 6px;color:var(--ofc-suave);font:600 11px var(--mac-ui);letter-spacing:.04em;text-transform:uppercase}
 .ofc-aba ul {list-style:none;margin:0;padding:0}
 .ofc-salas {display:grid;gap:2px}
+.ofc-salas h5 {margin:10px 0 2px;padding:0 10px;color:var(--ofc-suave);font:600 10px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
 .ofc-sala {display:grid;grid-template-columns:10px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:550 13px var(--mac-ui);text-align:left;cursor:pointer}
 .ofc-sala i,.ofc-sala-atual i,.ofc-cartao-topo i {width:10px;height:10px;border-radius:3px;background:var(--sala)}
 .ofc-sala small {color:var(--ofc-suave);font-size:11px}
@@ -6061,7 +6062,7 @@ body.no-escritorio {overflow:hidden}
 /* Abertura da Vybelândia: cena animada, criador de personagem e boas-vindas. */
 .ofc-abertura {position:fixed;inset:0;z-index:880;overflow:hidden;background:#07070a;color:#fff4ea;font-family:var(--mac-ui)}
 .ofc-abertura::before {content:"";position:absolute;inset:0;z-index:6;background:#000;pointer-events:none;animation:abr-abrir 1.6s ease-out forwards}
-.abr-cena {position:absolute;inset:-4%;background:var(--vybelandia) center/cover no-repeat;transform-origin:50% 40%;animation:abr-zoom 10s cubic-bezier(.2,.7,.2,1) forwards}
+.abr-cena {position:absolute;inset:-4%;width:108%;height:108%;object-fit:cover;background:var(--vybelandia) center/cover no-repeat;transform-origin:50% 40%;animation:abr-zoom 10s cubic-bezier(.2,.7,.2,1) forwards}
 .abr-cena.parada {animation:none;transform:scale(1.08);filter:blur(7px) brightness(.42) saturate(1.1)}
 .abr-luz {position:absolute;inset:0;z-index:1;background:linear-gradient(105deg,transparent 35%,#ffb36655 48%,#fff1 52%,transparent 65%) 0 0/300% 100%;mix-blend-mode:screen;opacity:0;animation:abr-varrer 3.8s 1.4s ease-in-out forwards}
 .abr-faiscas {position:absolute;inset:0;z-index:2;pointer-events:none}

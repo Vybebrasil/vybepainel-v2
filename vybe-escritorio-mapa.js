@@ -428,17 +428,24 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   };
   const caminhar = (p, alvo) => {
     cancelAnimationFrame(p.passo);
+    clearTimeout(p.parar);
     const de = { x: p.x, y: p.y }, dist = Math.hypot(alvo.x - de.x, alvo.y - de.y);
     if (dist < 0.05) { p.acao = alvo.acao || "std"; if (alvo.dir != null) p.dir = alvo.dir; trocarImagem(p); posicionarPessoa(p); return; }
     p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y);
     p.acao = "wlk"; trocarImagem(p);
-    const dur = Math.min(4000, dist * 350), ini = performance.now();
+    const dur = Math.min(4000, dist * 320), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
       posicionarPessoa(p);
       if (k < 1) p.passo = requestAnimationFrame(passo);
-      else { p.acao = alvo.acao || "std"; if (alvo.dir != null) p.dir = alvo.dir; trocarImagem(p); posicionarPessoa(p); }
+      else {
+        // Entre um passo e outro o boneco continua andando; só para (ou senta)
+        // se não chegar outro passo logo em seguida.
+        const fim = () => { p.acao = alvo.acao || "std"; if (alvo.dir != null) p.dir = alvo.dir; trocarImagem(p); posicionarPessoa(p); };
+        if ((alvo.acao || "std") === "wlk") return;
+        p.parar = setTimeout(fim, 140);
+      }
     };
     p.passo = requestAnimationFrame(passo);
   };
@@ -538,6 +545,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
+    podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
     destruir() { clearInterval(relogio); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },

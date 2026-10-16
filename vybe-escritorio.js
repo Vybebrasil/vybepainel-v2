@@ -226,7 +226,7 @@ function atualizarDockEscritorio() {
   ]);
   if (dock.dataset.estado === assinatura) return atualizarControlesEscritorio();
   dock.dataset.estado = assinatura;
-  dock.innerHTML = `<button class="office-dock-volta" onclick="voltarAoEscritorio()">${escritorioIcone("mapa")}<span>Voltar ao escritório</span></button>${escritorio.conectado ? `<details class="office-dock-team"><summary>${escritorio.online.length} online</summary><div>${escritorio.online.map((p) => `<p>${safeText(p.nome)} · ${safeText(ESCRITORIO_SALAS[p.sala])}</p>`).join("")}</div></details>` : ""}${escritorio.chamada ? `<button onclick="alternarMidiaEscritorio('audio')">${escritorio.chamada.self.audioEnabled ? "Desligar microfone" : "Ligar microfone"}</button><button onclick="sairChamadaEscritorio()">Sair da chamada</button>` : ""}${escritorio.convite ? '<button onclick="aceitarConviteEscritorio()">Ver convite</button>' : ""}`;
+  dock.innerHTML = `<button class="office-dock-volta" onclick="voltarAoEscritorio()">${escritorioIcone("mapa")}<span>Voltar ao escritório</span></button>${escritorio.conectado ? `<details class="office-dock-team"><summary>${escritorio.online.length} online</summary><div>${escritorio.online.map((p) => `<p>${safeText(p.nome)} · ${safeText(escritorioLugarDe(p).nome)}</p>`).join("")}</div></details>` : ""}${escritorio.chamada ? `<button onclick="alternarMidiaEscritorio('audio')">${escritorio.chamada.self.audioEnabled ? "Desligar microfone" : "Ligar microfone"}</button><button onclick="sairChamadaEscritorio()">Sair da chamada</button>` : ""}${escritorio.convite ? '<button onclick="aceitarConviteEscritorio()">Ver convite</button>' : ""}`;
   atualizarControlesEscritorio();
 }
 function convidarConversaEscritorio(id) {
@@ -301,6 +301,42 @@ function escritorioMinhaMesa() {
   const a = escritorioDonos().get(escritorio.base?.eu);
   return a ? { ambiente: a, ...escritorioMesaDaSala(a) } : null;
 }
+// Nome do lugar onde a pessoa está: a sala do mapa, o corredor ou a área externa.
+function escritorioLugarDe(p) {
+  const pos = escritorioPosicao(p || {});
+  const a = escritorioAmbienteEm(pos.x, pos.y);
+  if (a) return a;
+  const P = ESCRITORIO_PLANTA.PREDIO;
+  return { id: pos.x < P.x1 && pos.y < P.y1 ? "corredor" : "externa", nome: pos.x < P.x1 && pos.y < P.y1 ? "Corredor" : "Área externa", sala: "convivencia" };
+}
+// "Ir" ao lado de alguém: anda até um ladrilho livre ao lado da pessoa.
+function escritorioIrAte(id) {
+  const o = escritorio.online.find((p) => p.id === id);
+  if (!o || !escritorio.mapa) return;
+  const alvo = escritorioPosicao(o), de = escritorioPosicao(escritorio.perfil || {});
+  const x0 = Math.round(alvo.x), y0 = Math.round(alvo.y);
+  for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    if (escritorio.mapa.assentoEm(x0 + dx, y0 + dy) !== undefined) continue;
+    if (escritorio.mapa.caminho(de, { x: x0 + dx, y: y0 + dy })) { escritorioIrPara(x0 + dx, y0 + dy); escritorio.mapa.centralizar(x0, y0); return; }
+  }
+  escritorioAviso("Não achei caminho até " + o.nome + ".");
+}
+// Anda até um ambiente: o ladrilho livre mais perto do centro que tenha caminho.
+function escritorioIrParaAmbiente(id) {
+  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === id);
+  if (!a || !escritorio.mapa) return;
+  if (escritorio.modo === "lista") { escritorio.modo = "mapa"; renderEscritorio(); }
+  const de = escritorioPosicao(escritorio.perfil || {});
+  const cx = Math.floor((a.x0 + a.x1) / 2), cy = Math.floor((a.y0 + a.y1) / 2);
+  for (let r = 0; r < 6; r++) for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const x = cx + dx, y = cy + dy;
+    if (x < a.x0 || y < a.y0 || x >= a.x1 || y >= a.y1) continue;
+    if (escritorio.mapa.assentoEm(x, y) !== undefined) continue;
+    if (escritorio.mapa.caminho(de, { x, y })) { escritorioIrPara(x, y); escritorio.mapa.centralizar(x, y); return; }
+  }
+  escritorioAviso("Não achei caminho até " + a.nome + ".");
+}
 // Onde a pessoa está no mapa (ladrilho), a partir da presença em porcentagem.
 function escritorioPosicao(p) {
   return escritorioParaMapa(p.x ?? 50, p.y ?? 50);
@@ -333,7 +369,7 @@ function atualizarPessoasEscritorio() {
         id: p.id, nome: voce && escritorio.conectado ? "Você" : p.nome, perfil: perfilDe, status: p.status, corStatus,
         rotulo: `${p.nome}${voce ? " (você)" : ""} · ${nomeStatus}`,
         x: Math.round(pos.x), y: Math.round(pos.y),
-        acao: sentado ? "sit" : "std", dir: sentado ? dirAssento : undefined,
+        acao: voce && escritorio.emMovimento ? "wlk" : sentado ? "sit" : "std", dir: sentado ? dirAssento : undefined,
         aoClicar: convidarConversaEscritorio,
       };
     }));
@@ -344,18 +380,25 @@ function atualizarPessoasEscritorio() {
     const fora = escritorio.base.equipe.filter((p) => !pessoas.some((o) => o.id === p.id));
     const linha = (p) => {
       const o = pessoas.find((x) => x.id === p.id);
-      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(ESCRITORIO_SALAS[o.sala])}` : "Fora do escritório"}</small></div>${o && o.sala !== sala ? `<button type="button" class="ofc-mini" onclick="mudarSalaEscritorio('${o.sala}')">Ir</button>` : ""}</li>`;
+      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${o && p.id !== eu ? `<button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')">Ir</button>` : ""}</li>`;
     };
     lista.innerHTML = `<h4>Online agora · ${online.length}</h4><ul>${online.map(linha).join("") || '<li class="ofc-vazio">Ninguém conectado ainda.</li>'}</ul><h4>Fora do escritório · ${fora.length}</h4><ul>${fora.map(linha).join("")}</ul>`;
   }
   const salas = document.getElementById("office-rooms");
-  if (salas)
-    salas.innerHTML = Object.entries(ESCRITORIO_SALAS).map(([id, nome]) => {
-      const aqui = pessoas.filter((p) => p.sala === id).length;
-      return `<button type="button" class="ofc-sala" aria-pressed="${id === sala}" style="--sala:${ESCRITORIO_COR_SALA[id]}" onclick="mudarSalaEscritorio('${id}')"><i></i><span>${nome}</span><small>${aqui ? aqui + (aqui > 1 ? " pessoas" : " pessoa") : "vazia"}</small></button>`;
-    }).join("");
+  if (salas) {
+    const meu = escritorioLugarDe(escritorio.perfil).id;
+    const contar = (id) => pessoas.filter((p) => escritorioLugarDe(p).id === id).length;
+    const linha = (a) => {
+      const aqui = contar(a.id);
+      return `<button type="button" class="ofc-sala" aria-pressed="${a.id === meu}" style="--sala:${ESCRITORIO_COR_SALA[a.sala]}" onclick="escritorioIrParaAmbiente('${a.id}')"><i></i><span>${safeText(a.nome)}</span><small>${aqui ? aqui + (aqui > 1 ? " pessoas" : " pessoa") : a.id === meu ? "você" : ""}</small></button>`;
+    };
+    const A = ESCRITORIO_PLANTA.ambientes;
+    salas.innerHTML = `<h5>Salas individuais</h5>${A.filter((a) => a.pessoal).map(linha).join("")}<h5>Espaços</h5>${A.filter((a) => !a.pessoal).map(linha).join("")}`;
+  }
   const lote = document.getElementById("office-lista-salas");
   if (lote) lote.innerHTML = escritorioListaSalasHtml();
+  const lugar = document.getElementById("office-lugar");
+  if (lugar) lugar.textContent = escritorioLugarDe(escritorio.perfil).nome;
   const contador = document.getElementById("office-online");
   if (contador) contador.textContent = escritorio.conectado ? `${pessoas.length} online` : "Você está fora";
   atualizarDockEscritorio();
@@ -416,7 +459,7 @@ function renderEscritorio() {
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><h3>${safeText(ESCRITORIO_SALAS[sala])}</h3><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para esta sala" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
 </aside>
 <main class="ofc-principal">
- <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2>${safeText(ESCRITORIO_SALAS[sala])}</h2><span>${sala === "foco" ? "Espaço silencioso, sem conversa por voz." : "Clique no piso para caminhar."}</span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
+ <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span>${sala === "foco" ? "Espaço silencioso, sem conversa por voz." : "Conversa: " + safeText(ESCRITORIO_SALAS[sala]) + " · WASD ou clique para andar"}</span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
@@ -494,6 +537,7 @@ function escritorioPasso(x, y) {
     renderEscritorio();
   } else atualizarPessoasEscritorio();
 }
+const ESCRITORIO_PASSO_MS = 320;
 function escritorioIrPara(x, y) {
   clearTimeout(escritorio.andando);
   const de = escritorioPosicao(escritorio.perfil || {});
@@ -506,8 +550,9 @@ function escritorioIrPara(x, y) {
   const andar = () => {
     const passo = passos.shift();
     if (!passo) return;
+    escritorio.emMovimento = passos.length > 0;
     escritorioPasso(passo.x, passo.y);
-    if (passos.length) escritorio.andando = setTimeout(andar, 350);
+    if (passos.length) escritorio.andando = setTimeout(andar, ESCRITORIO_PASSO_MS);
   };
   andar();
 }
@@ -524,21 +569,58 @@ function cliqueNoMapaEscritorio(x, y) {
   }
   escritorioIrPara(x, y);
 }
-// WASD e setas: um ladrilho por toque (segurar repete), seguindo a tela.
+// WASD e setas como em jogo: enquanto a tecla está presa, anda um ladrilho a
+// cada passo; duas teclas somam (W+D vai na diagonal) e, se a direção está
+// bloqueada, desliza pela componente livre em vez de parar.
 const ESCRITORIO_TECLAS = {
   ArrowUp: [-1, -1], w: [-1, -1], ArrowDown: [1, 1], s: [1, 1],
   ArrowLeft: [-1, 1], a: [-1, 1], ArrowRight: [1, -1], d: [1, -1],
 };
+const escritorioTeclas = new Set();
+function escritorioDirecaoTeclas() {
+  let dx = 0, dy = 0;
+  for (const t of escritorioTeclas) { dx += ESCRITORIO_TECLAS[t][0]; dy += ESCRITORIO_TECLAS[t][1]; }
+  return [Math.sign(dx), Math.sign(dy)];
+}
+function escritorioPassoTeclado() {
+  clearTimeout(escritorio.timerTeclado);
+  const [dx, dy] = escritorioDirecaoTeclas();
+  if (!dx && !dy) { escritorioPararTeclado(); return; }
+  const pos = escritorioPosicao(escritorio.perfil || {});
+  const x = Math.round(pos.x), y = Math.round(pos.y);
+  const tentativas = dx && dy ? [[dx, dy], [dx, 0], [0, dy]] : [[dx, dy]];
+  const ok = tentativas.find(([a, b]) => escritorio.mapa?.podePassar(x, y, a, b));
+  if (ok) {
+    escritorio.emMovimento = true;
+    escritorioPasso(x + ok[0], y + ok[1]);
+  }
+  escritorio.timerTeclado = setTimeout(escritorioPassoTeclado, ESCRITORIO_PASSO_MS);
+}
+function escritorioPararTeclado() {
+  clearTimeout(escritorio.timerTeclado);
+  escritorio.timerTeclado = null;
+  if (escritorio.emMovimento) { escritorio.emMovimento = false; atualizarPessoasEscritorio(); }
+}
+function escritorioTecla(e) {
+  if (e.target.closest?.("input, textarea, select, [contenteditable]") || e.metaKey || e.ctrlKey || e.altKey) return false;
+  const chave = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  return ESCRITORIO_TECLAS[chave] ? chave : false;
+}
 function tecladoEscritorio(e) {
-  if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
-  const passo = ESCRITORIO_TECLAS[e.key.length === 1 ? e.key.toLowerCase() : e.key];
-  if (!passo || e.metaKey || e.ctrlKey || e.altKey) return;
+  const chave = escritorioTecla(e);
+  if (!chave) return;
   e.preventDefault();
   if (!escritorio.conectado && !escritorio.base?.demo) return;
-  if (e.repeat && Date.now() - (escritorio.ultimoPasso || 0) < 380) return;
-  escritorio.ultimoPasso = Date.now();
-  const pos = escritorioPosicao(escritorio.perfil || {});
-  escritorioIrPara(Math.round(pos.x) + passo[0], Math.round(pos.y) + passo[1]);
+  clearTimeout(escritorio.andando); // tecla interrompe um caminho por clique
+  const novo = !escritorioTeclas.has(chave);
+  escritorioTeclas.add(chave);
+  if (novo && !escritorio.timerTeclado) escritorioPassoTeclado();
+}
+function soltarTeclaEscritorio(e) {
+  const chave = escritorioTecla(e);
+  if (!chave) return;
+  escritorioTeclas.delete(chave);
+  if (!escritorioTeclas.size) escritorioPararTeclado();
 }
 function irParaMinhaMesaEscritorio() {
   const mesa = escritorioMinhaMesa();
@@ -782,3 +864,6 @@ globalThis.document?.addEventListener?.("keydown", (e) => {
   if ((escritorio.modo || "mapa") !== "mapa") return;
   tecladoEscritorio(e);
 });
+globalThis.document?.addEventListener?.("keyup", soltarTeclaEscritorio);
+// Trocar de aba com a tecla presa não pode deixar o boneco andando sozinho.
+globalThis.window?.addEventListener?.("blur", () => { escritorioTeclas.clear(); escritorioPararTeclado(); });

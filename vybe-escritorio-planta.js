@@ -8,7 +8,7 @@
 // Cada ambiente pertence a uma sala de conversa do servidor.
 const ESCRITORIO_DONOS = ["Paulo", "Vinícius", "Ewerton", "Deivid", "Bia", "Jady", "Mizinho", "Taynara", "Reriston"];
 // Como cada um está no cadastro, quando o nome da sala é apelido ou outra grafia.
-const ESCRITORIO_DONOS_CADASTRO = { Bia: ["Beatriz"], Taynara: ["Tainara"] };
+const ESCRITORIO_DONOS_CADASTRO = { Bia: ["Beatriz"], Taynara: ["Tainara"], Mizinho: ["Ademir"] };
 const ESCRITORIO_SALA_LADO = 10;
 const ESCRITORIO_PLANTA = (() => {
   const W = 80, H = 58;
@@ -98,7 +98,7 @@ const ESCRITORIO_PLANTA = (() => {
   // Produção: bancadas com dois monitores, cadeira de frente para a tela
   for (let i = 0; i < 8; i++) {
     const x = 2 + (i % 4) * 6, y = 40 + Math.floor(i / 4) * 4;
-    p("exe_table", x, y, 0); p("computer_flatscreen", x, y + 1, 2, 1, 1); p("computer_flatscreen", x + 2, y + 1, 2, 1, 1);
+    p("exe_table", x, y, 0); p("computer_flatscreen", x + 1, y + 1, 0, 1, 1);
     p("army_c15_leatherchr", x + 1, y - 1, 4);
   }
   p("exe_c15_printer", 25, 38, 2); p("army_c15_plant", 0, 46);
@@ -182,9 +182,10 @@ function escritorioMesaDaSala(a) {
   const mesa = escritorioNaSala(a, 4, 1, 2), cadeira = escritorioNaSala(a, 5, 0);
   return { x: mesa.x, y: mesa.y, w: 3, h: 2, cadeira: { ...cadeira, dir: escritorioDirNaSala(a, 4) } };
 }
-// Mobília igual em todas as salas: mesa com dois monitores, luminária e
-// telefone; duas cadeiras de visita; estantes no fundo; canto de conversa com
-// sofá, mesinha e tapete; TV, luminária de chão e plantas nos cantos da porta.
+// Mobília igual em todas as salas: mesa (o telefone e os papéis já vêm nela)
+// com um computador virado para quem trabalha; duas poltronas de visita;
+// estantes no fundo; canto de conversa com sofá, mesinha e tapete; luminária e
+// plantas. Nada encostado nas divisórias laterais, para não atravessá-las.
 function escritorioMoveisDaSala(a) {
   const item = (classe, lx, ly, dir, estado = 0, altura = 0, prof = 1) => {
     const t = escritorioNaSala(a, lx, ly, prof);
@@ -193,15 +194,12 @@ function escritorioMoveisDaSala(a) {
   const mesa = escritorioMesaDaSala(a);
   return [
     item("exe_table", 4, 1, 0, 0, 0, 2),
-    // Monitores de lado (direção 2): a tela aparece para quem olha o mapa.
-    ["computer_flatscreen", ...Object.values(escritorioNaSala(a, 4, 2)), 2, 1, 1], ["computer_flatscreen", ...Object.values(escritorioNaSala(a, 5, 2)), 2, 1, 1],
-    item("darkmodern_c20_lamp", 6, 2, 0, 1, 1), item("exe_c15_telephone", 6, 1, 0, 0, 1),
+    item("computer_flatscreen", 5, 2, 0, 1, 1),
     ["army_c15_leatherchr", mesa.cadeira.x, mesa.cadeira.y, mesa.cadeira.dir, 0, 0],
     item("mafia_c26_armchair_dark", 4, 4, 0), item("mafia_c26_armchair_dark", 6, 4, 0),
-    item("lodge_dark_bookcase", 0, 0, 0), item("lodge_dark_bookcase", 8, 0, 0),
-    item("hygge_c25_carpet", 0, 5, 0, 0, 0, 4), item("hc26_5", 0, 5, 2, 0, 0, 3), item("hc26_3", 2, 5, 0, 0, 0, 2),
-    item("darkmodern_c20_tv", 9, 6, 6, 1), item("mafia_c26_armchair_dark", 7, 6, 2),
-    item("darkmodern_c20_floorlight", 9, 3, 2, 1),
-    item("army_c15_plant", 0, 9, 2), item("plant_yukka", 9, 9, 2),
+    item("lodge_dark_bookcase", 1, 0, 0), item("lodge_dark_bookcase", 7, 0, 0),
+    item("hygge_c25_carpet", 1, 5, 0, 0, 0, 4), item("hc26_5", 1, 5, 2, 0, 0, 3), item("hc26_3", 3, 5, 0, 0, 0, 2),
+    item("mafia_c26_armchair_dark", 5, 6, 6),
+    item("army_c15_plant", 1, 8, 2), item("plant_yukka", 8, 8, 2),
   ];
 }

@@ -144,7 +144,7 @@ function montarTelaDeLogin() {
   const faiscas = Array.from({ length: 24 }, (_, i) =>
     `<i style="--x:${(i * 41) % 100}%;--d:${4 + (i % 5)}s;--a:${(i * 0.37) % 4}s;--s:${2 + (i % 3)}px"></i>`).join('');
   gate.innerHTML = `
-    <div class="abr-cena" aria-hidden="true"></div><div class="abr-luz" aria-hidden="true"></div>
+    ${typeof vybelandiaCenaHtml === 'function' ? vybelandiaCenaHtml() : '<div class="abr-cena" aria-hidden="true"></div>'}<div class="abr-luz" aria-hidden="true"></div>
     <div class="abr-faiscas" aria-hidden="true">${faiscas}</div><div class="abr-vinheta" aria-hidden="true"></div>
     <div class="abr-texto login-chegada"><span class="abr-kicker">Vybe OS · ${saudacao()}</span><h1 class="login-cidade">Bem-vindo à <b>Vybelândia</b></h1>
       <p>O escritório da Vybe agora é uma cidade. Entre para encontrar a equipe.</p>
