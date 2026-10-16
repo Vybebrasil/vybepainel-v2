@@ -6652,3 +6652,4 @@ body.no-escritorio {overflow:hidden}
 .mapa-luz.fogo {background:radial-gradient(closest-side,rgba(255,150,70,calc(.42 * var(--forca,.5))),rgba(255,110,40,calc(.14 * var(--forca,.5))) 55%,transparent);animation:mapa-luz-fogo 2.4s ease-in-out infinite}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
+.mapa-video-fundo {position:absolute;z-index:0;pointer-events:none;object-fit:fill;image-rendering:pixelated}

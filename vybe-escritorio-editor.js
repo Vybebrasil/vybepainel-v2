@@ -136,6 +136,16 @@ async function cliqueEditorEscritorio(x, y) {
     else { const it = e.itens[e.sel]; it[1] = lugar.lx; it[2] = lugar.ly; it[3] = lugar.dir; }
     return escritorioEditorMudou();
   }
+  if (e.novo && escritorioEhParede(e.novo)) {
+    const lugar = escritorioLugarParede(Math.floor(x), Math.floor(y), x, y);
+    if (!lugar) return escritorioAviso("Itens de parede vão encostados numa parede: clique no piso junto dela.");
+    e.itens.push([e.novo, lugar.lx, lugar.ly, lugar.dir, 0, 1]);
+    e.sel = e.itens.length - 1;
+    e.novo = null;
+    escritorio.mapa?.previa(null);
+    escritorioAviso("Pendurado. Alt + ↑/↓ sobe e desce; Alt + ←/→ desliza na parede.");
+    return escritorioEditorMudou();
+  }
   if (e.novo) {
     const d = await escritorio.mapa.medidas(e.novo, e.novoDir ?? 2);
     // Peça pequena (computador, telefone, abajur…) solta numa mesa, balcão ou
@@ -266,6 +276,16 @@ function escritorioEmCimaDe(x, y, ignorar = -1) {
 }
 async function empurrarSelecionadoEscritorio(dx, dy, fino = false) {
   const e = escritorio.edicao, it = e.itens[e.sel];
+  // Item de parede: ↑/↓ (com Alt) sobe e desce; ←/→ desliza ao longo da parede.
+  if (escritorioEhParede(it[0])) {
+    const r = (v) => Math.round(v * 100) / 100;
+    if (dy && dx === 0 && fino) { it[5] = Math.max(0, Math.min(4, r((it[5] || 0) - dy * 0.25))); return escritorioEditorMudou(); }
+    const passo = fino ? 0.25 : 1, ao = it[3] === 2 ? "y" : "x";
+    const d = ao === "x" ? dx || -dy : dy || -dx;
+    const c = escritorioCantoCamada(e.camada), k = ao === "x" ? 1 : 2, lim = ao === "x" ? c.w : c.h;
+    it[k] = Math.max(0, Math.min(lim - 1, r(it[k] + d * passo)));
+    return escritorioEditorMudou();
+  }
   // Ajuste fino (Alt + setas): um quarto de ladrilho, para qualquer móvel
   // (cadeira no meio de uma mesa de 2, peça em cima da mesa…).
   if (fino) {
@@ -396,6 +416,7 @@ const ESCRITORIO_GRUPOS_CATALOGO = [
   ["Divisórias", (m) => m.categoria === "Divisórias"],
   ["Jogos e música", (m) => ["Jogos", "Música", "Festa"].includes(m.categoria)],
   ["Cozinha e bar", (m) => m.categoria === "Cozinha" || /bardesk|bartable|minibar|fridge|drinks/.test(m.classe)],
+  ["Na parede (janelas, quadros, luzes)", (m) => m.parede],
   ["Animados (luz, água, fogo…)", (m) => m.anima],
   ["Pisos do acervo", (m) => m.categoria === "Pisos do acervo"],
   ["Quarto e banho", (m) => /bed|bath|toilet|shower|sink|tub\b|wardrobe|dresser/i.test(m.classe + " " + m.nome)],
@@ -463,7 +484,7 @@ function desenharCatalogoEscritorio() {
   } else lista = escritorioListaCatalogo(grupo);
   const paginas = Math.max(1, Math.ceil(lista.length / ESCRITORIO_POR_PAGINA));
   const pag = Math.min(paginas - 1, escritorio.catalogoPagina || 0);
-  const cartao = (m) => `<button type="button" class="ofc-movel" draggable="true" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${escritorioSeloGiro(m.giros)}${m.anima ? '<em class="ofc-giro animado">animado</em>' : ""}</button>`;
+  const cartao = (m) => `<button type="button" class="ofc-movel" draggable="true" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${m.parede ? '<em class="ofc-giro">na parede</em>' : escritorioSeloGiro(m.giros)}${m.anima ? '<em class="ofc-giro animado">animado</em>' : ""}</button>`;
   el.innerHTML = !lista.length
     ? `<p class="ofc-nota">${busca ? "Nada com esse nome no catálogo do painel." : grupo === "Recentes" ? "Os móveis que você usar aparecem aqui." : "Nada nesta categoria."}</p>`
     : `<h4>${busca ? `${lista.length} encontrados` : safeText(grupo)}</h4><div class="ofc-moveis">${lista.slice(pag * ESCRITORIO_POR_PAGINA, (pag + 1) * ESCRITORIO_POR_PAGINA).map(cartao).join("")}</div>${paginas > 1 ? `<div class="ofc-paginas"><button type="button" onclick="escritorio.catalogoPagina=${pag - 1};desenharCatalogoEscritorio()" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${paginas}</span><button type="button" onclick="escritorio.catalogoPagina=${pag + 1};desenharCatalogoEscritorio()" ${pag + 1 < paginas ? "" : "disabled"} aria-label="Próxima página">›</button></div>` : ""}`;
@@ -487,6 +508,7 @@ async function previaEditorEscritorio(x, y) {
   if (!e || x < 0) return escritorio.mapa?.previa(null);
   escritorio.ultimoPasso = { x, y };
   if (e.colar) { const [cl, dx, dy, d] = e.colar[0]; return escritorio.mapa?.previa(cl, x + dx, y + dy, d, true); }
+  if (e.novo && escritorioEhParede(e.novo)) return escritorio.mapa?.previa(null);
   const it = e.novo ? null : e.sel !== null ? e.itens[e.sel] : null;
   const classe = e.novo || it?.[0];
   if (!classe || e.trocar != null) return escritorio.mapa?.previa(null);
@@ -730,6 +752,12 @@ async function soltarNoEditorEscritorio(x, y, moveu) {
   escritorio.mapa?.previa(null);
   if (!moveu) return renderBarraEditorEscritorio();
   const it = e.itens[a.i], c = escritorioCantoCamada(e.camada);
+  if (escritorioEhParede(it[0])) {
+    const lugar = escritorioLugarParede(x, y, x + 0.5, y + 0.5);
+    if (!lugar) return escritorioAviso("Solte junto de uma parede.");
+    it[1] = lugar.lx; it[2] = lugar.ly; it[3] = lugar.dir;
+    return escritorioEditorMudou();
+  }
   if (escritorioImagemDe(it[0])?.tipo === "quadro") {
     const lugar = escritorioLugarQuadro(it[0], x - c.x, y - c.y, a.i);
     if (lugar.erro) return escritorioAviso(lugar.erro);
@@ -832,6 +860,8 @@ function acompanharSelecaoEditorEscritorio() {
     barra.dataset.chave = chave;
     barra.innerHTML = grupo > 1
       ? `<span class="ofc-grupo-n">${grupo} móveis</span><span class="ofc-fino" role="group" aria-label="Mover o grupo ¼ de ladrilho"><button type="button" onclick="moverGrupoEscritorio(-0.25,0)" aria-label="Para cima e esquerda">↖</button><button type="button" onclick="moverGrupoEscritorio(0,-0.25)" aria-label="Para cima e direita">↗</button><button type="button" onclick="moverGrupoEscritorio(0,0.25)" aria-label="Para baixo e esquerda">↙</button><button type="button" onclick="moverGrupoEscritorio(0.25,0)" aria-label="Para baixo e direita">↘</button></span><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar (Ctrl+D)">Duplicar</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar para colar em outra sala (Ctrl+C)">Copiar</button><button type="button" onclick="salvarConjuntoEscritorio()">Guardar conjunto</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar todos</button>`
+      : escritorioEhParede(it[0])
+      ? `<button type="button" onclick="empurrarSelecionadoEscritorio(0,-1,true)" title="Subir (Alt + ↑)">Subir</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,1,true)" title="Descer (Alt + ↓)">Descer</button><button type="button" onclick="empurrarSelecionadoEscritorio(-1,0,true)" aria-label="Deslizar para um lado">◀</button><button type="button" onclick="empurrarSelecionadoEscritorio(1,0,true)" aria-label="Deslizar para o outro lado">▶</button><button type="button" onclick="copiarSelecaoEscritorio()">Copiar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button>`
       : img
       ? `<button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button>`
       : `${giros === 1 ? '<button type="button" disabled title="Este móvel não gira">Não gira</button>' : `<button type="button" onclick="girarSelecionadoEscritorio()" title="Girar (R)${giros ? ` · ${giros} lados` : ""}">↻ Girar${giros ? ` · ${giros}` : ""}</button>`}<button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar (Ctrl+D)">Duplicar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()" title="Põe a peça em cima de uma mesa">Em cima da mesa</button><span class="ofc-fino" role="group" aria-label="Ajuste fino (Alt + setas)" title="Ajuste fino: um quarto de ladrilho (Alt + setas)"><button type="button" onclick="empurrarSelecionadoEscritorio(-1,0,true)" aria-label="Ajuste fino para cima e esquerda">↖</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,-1,true)" aria-label="Ajuste fino para cima e direita">↗</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,1,true)" aria-label="Ajuste fino para baixo e esquerda">↙</button><button type="button" onclick="empurrarSelecionadoEscritorio(1,0,true)" aria-label="Ajuste fino para baixo e direita">↘</button></span><button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar (Ctrl+C)">Copiar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="Apagar (Delete)">Apagar</button>`;
@@ -1043,4 +1073,27 @@ async function carregarVersaoEscritorio(id) {
   } catch (erro) {
     escritorioAviso(erro.message);
   }
+}
+
+// Itens de parede do acervo: ficam encostados no trecho de parede do ladrilho
+// (fundo = direção 4, esquerda = 2), em qualquer parede que exista ali.
+function escritorioEhParede(classe) {
+  return Boolean((escritorioCatalogo || []).find((m) => m.classe === classe)?.parede);
+}
+function escritorioTemParede(x, y, eixo) {
+  const P = ESCRITORIO_PLANTA;
+  if (eixo === "x" && y === P.PREDIO.y0) return true;
+  if (eixo === "y" && x === P.PREDIO.x0) return true;
+  return P.divisorias.some(([x0, y0, x1, y1]) => (eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1));
+}
+function escritorioLugarParede(x, y, fx = x + 0.5, fy = y + 0.5) {
+  const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
+  if (x < c.x || y < c.y || x >= c.x + c.w || y >= c.y + c.h) return null;
+  // Parede mais perto do ponto clicado entre a de trás e a da esquerda do ladrilho.
+  const op = [];
+  if (escritorioTemParede(x, y, "x")) op.push({ dist: fy - y, dir: 4 });
+  if (escritorioTemParede(x, y, "y")) op.push({ dist: fx - x, dir: 2 });
+  if (!op.length) return null;
+  const { dir } = op.sort((a, b) => a.dist - b.dist)[0];
+  return { lx: x - c.x, ly: y - c.y, dir };
 }

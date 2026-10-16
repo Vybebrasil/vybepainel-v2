@@ -43,6 +43,16 @@ function mapaDimensoes(dados, dir) {
   const d = dados.logic?.model?.dimensions || { x: 1, y: 1 };
   return dir === 2 || dir === 6 ? { x: d.y || 1, y: d.x || 1, z: d.z } : { x: d.x || 1, y: d.y || 1, z: d.z };
 }
+// Item de parede do Habbo (janela, quadro, luminária de parede…): só tem as
+// direções 2 (parede da esquerda) e 4 (parede do fundo) e quase não tem fundo.
+// Ajuste do ponto de registro do Habbo para a nossa parede (por direção).
+const MAPA_PAREDE_AJUSTE = { 2: { x: 0, y: -46 }, 4: { x: 0, y: -46 } };
+function mapaEhDeParede(dados) {
+  const v = dados.visualizations.find((x) => x.size === 64);
+  const dirs = Object.keys(v?.directions || {}).map(Number);
+  const d = dados.logic?.model?.dimensions || {};
+  return dirs.length > 0 && dirs.every((x) => x === 2 || x === 4) && (d.y ?? 1) <= 0.3;
+}
 function mapaDirecaoValida(dados, dir) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const dirs = Object.keys(v?.directions || {}).map(Number);
@@ -95,18 +105,52 @@ function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro) {
   for (const c of caixas) {
     g.save();
     g.globalAlpha = c.alpha;
-    if (c.ink === "ADD") g.globalCompositeOperation = "lighter";
+    // Camada "ADD" (luz, brilho): no Habbo o preto não soma nada. Num canvas
+    // transparente o preto aparecia como uma caixa preta; vira transparência.
+    let fonte = imagem, sx = c.f.x, sy = c.f.y;
+    if (c.ink === "ADD") { fonte = mapaLuzSemPreto(imagem, c.f); sx = 0; sy = 0; g.globalCompositeOperation = "lighter"; }
     const dx = c.x - minX, dy = c.y - minY;
     if (c.flip) {
       g.translate(dx + c.f.w, dy);
       g.scale(-1, 1);
-      g.drawImage(imagem, c.f.x, c.f.y, c.f.w, c.f.h, 0, 0, c.f.w, c.f.h);
-    } else g.drawImage(imagem, c.f.x, c.f.y, c.f.w, c.f.h, dx, dy, c.f.w, c.f.h);
+      g.drawImage(fonte, sx, sy, c.f.w, c.f.h, 0, 0, c.f.w, c.f.h);
+    } else g.drawImage(fonte, sx, sy, c.f.w, c.f.h, dx, dy, c.f.w, c.f.h);
     g.restore();
   }
   return { canvas, ox: minX, oy: minY };
 }
+const MAPA_LUZES_CACHE = new WeakMap();
+function mapaLuzSemPreto(imagem, f) {
+  let porImagem = MAPA_LUZES_CACHE.get(imagem);
+  if (!porImagem) MAPA_LUZES_CACHE.set(imagem, (porImagem = new Map()));
+  const chave = `${f.x},${f.y},${f.w},${f.h}`;
+  if (porImagem.has(chave)) return porImagem.get(chave);
+  const c = document.createElement("canvas");
+  c.width = f.w; c.height = f.h;
+  const g = c.getContext("2d");
+  g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+  try {
+    const px = g.getImageData(0, 0, f.w, f.h), d = px.data;
+    for (let i = 0; i < d.length; i += 4) d[i + 3] = Math.round((Math.max(d[i], d[i + 1], d[i + 2]) * d[i + 3]) / 255);
+    g.putImageData(px, 0, 0);
+  } catch { /* imagem de outro domínio: fica como estava */ }
+  porImagem.set(chave, c);
+  return c;
+}
 // Piso, borda do prédio, paredes do fundo e textos/logo pintados nelas.
+function reduzMovFundo() {
+  let parado = false;
+  try { parado = localStorage.getItem("vybe-escritorio-fundo-parado") === "1"; } catch {}
+  return parado || Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+}
+// Botão "Pausar o fundo animado" (computador fraco ou para economizar bateria).
+function alternarFundoAnimadoEscritorio() {
+  const parar = !reduzMovFundo();
+  try { parar ? localStorage.setItem("vybe-escritorio-fundo-parado", "1") : localStorage.removeItem("vybe-escritorio-fundo-parado"); } catch {}
+  const v = document.querySelector(".mapa-video-fundo");
+  if (v) parar ? v.pause() : v.play().catch(() => {});
+  if (typeof atualizarControlesEscritorio === "function") atualizarControlesEscritorio();
+}
 function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   const dia = ceu === "manha" || ceu === "tarde";
   const g = canvas.getContext("2d");
@@ -121,7 +165,9 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   const topoEsq = mapaTela(0, P.y1, origem), topoMeio = mapaTela(0, 0, origem), topoDir = mapaTela(P.x1, 0, origem);
   let semente = 7;
   const sorte = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
-  for (let x = topoEsq.x - 120; x < topoDir.x + 160; x += 34 + sorte() * 40) {
+  // Com o vídeo da Vybelândia de fundo, a cidade, o céu e a praça vêm dele.
+  const video = Boolean(planta.fundoVideo);
+  for (let x = topoEsq.x - 120; !video && x < topoDir.x + 160; x += 34 + sorte() * 40) {
     const t = x < topoMeio.x ? (x - topoEsq.x) / (topoMeio.x - topoEsq.x) : (topoDir.x - x) / (topoDir.x - topoMeio.x);
     const base = topoMeio.y - MAPA_PAREDE + (1 - Math.max(0, Math.min(1, t))) * (topoEsq.y - topoMeio.y) + 40;
     const w = 30 + sorte() * 46, h = 120 + sorte() * 260;
@@ -134,7 +180,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
       else if (acesa) { g.fillStyle = quente ? "#ffb35c" : "#ff7a1a"; g.globalAlpha = alfa; g.fillRect(wx, wy, 4, 6); g.globalAlpha = 1; }
     }
   }
-  if (dia) {
+  if (dia && !video) {
     // Nuvens leves no céu do dia.
     g.fillStyle = "#ffffff";
     for (let i = 0; i < 7; i++) {
@@ -145,7 +191,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.globalAlpha = 1;
   }
   // Praça escura em volta (como as calçadas da Vybelândia), com gramados nos cantos.
-  for (let x = 0; x < planta.W; x++) for (let y = 0; y < planta.H; y++) {
+  for (let x = 0; !video && x < planta.W; x++) for (let y = 0; y < planta.H; y++) {
     const gramado = (x >= P.x1 + 3 && y > P.y1) || (y >= P.y1 + 7 && x < 22);
     losango(x, y); g.fillStyle = gramado ? cor("grama", x, y) : (x + y) % 6 === 0 ? "#34323a" : cor("praca", x, y); g.fill();
   }
@@ -224,7 +270,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.restore();
   }
   // Postes com luz laranja na praça.
-  for (const [x, y] of planta.postes || []) {
+  for (const [x, y] of video ? [] : planta.postes || []) {
     const t = mapaTela(x + 0.5, y + 0.5, origem);
     const brilho = g.createRadialGradient(t.x, t.y, 4, t.x, t.y, 120);
     brilho.addColorStop(0, "#ffb05c66"); brilho.addColorStop(1, "#ff7a1a00");
@@ -233,7 +279,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.fillStyle = "#ffd29a"; g.shadowColor = "#ff8a2a"; g.shadowBlur = 18; g.beginPath(); g.arc(t.x, t.y - 96, 6, 0, Math.PI * 2); g.fill(); g.shadowBlur = 0;
   }
   // Letreiro em neon sobre a parede do fundo.
-  if (planta.letreiro) {
+  if (planta.letreiro && !video) {
     const a = mapaTela(planta.letreiro.de, 0, origem), b = mapaTela(planta.letreiro.ate, 0, origem);
     const ang = Math.atan2(b.y - a.y, b.x - a.x);
     g.save();
@@ -542,6 +588,29 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     for (let x = a.x0; x < a.x1; x++) for (let y = a.y0; y < a.y1; y++) { const p = mapaTela(x + 0.5, y + 0.5, origem); g.fillRect(p.x - 1, p.y - 1, 2, 2); }
     palco.append(gradeNo);
   }
+  // Fundo em vídeo (a Vybelândia animada): fica no palco, embaixo de tudo, e
+  // anda com a câmera; a praça vazia do vídeo é alinhada com o mapa (canto de
+  // cima e canto da esquerda). Para quando a aba sai da frente ou com
+  // "reduzir movimento" (fica o quadro parado).
+  let videoNo = null;
+  if (P.fundoVideo) {
+    // Canto da esquerda do mapa no canto da esquerda da praça; o canto de baixo
+    // do mapa perto da borda de baixo do vídeo (assim o vídeo cobre o mapa todo).
+    const V = P.fundoVideo, esq = mapaTela(0, P.H, origem), baixo = mapaTela(P.W, P.H, origem);
+    const escala = (baixo.y - esq.y) / (V.baixoY - V.esquerda[1]);
+    const topo = { x: esq.x + 0, y: esq.y };
+    V.topo = V.esquerda;
+    videoNo = document.createElement("video");
+    Object.assign(videoNo, { src: V.url, muted: true, loop: true, playsInline: true, autoplay: !reduzMovFundo(), preload: "auto" });
+    videoNo.setAttribute("aria-hidden", "true");
+    videoNo.className = "mapa-video-fundo";
+    Object.assign(videoNo.style, { left: topo.x - V.topo[0] * escala + "px", top: topo.y - V.topo[1] * escala + "px", width: V.largura * escala + "px", height: V.altura * escala + "px" });
+    palco.prepend(videoNo);
+    const aoMudarAba = () => { if (document.hidden || reduzMovFundo()) videoNo.pause(); else videoNo.play().catch(() => {}); };
+    document.addEventListener("visibilitychange", aoMudarAba);
+    videoNo.desligar = () => { document.removeEventListener("visibilitychange", aoMudarAba); videoNo.pause(); videoNo.removeAttribute("src"); videoNo.load(); };
+    videoNo.addEventListener("loadeddata", () => { if (reduzMovFundo()) { videoNo.currentTime = 2; videoNo.pause(); } }, { once: true });
+  }
   const zonaCanvas = document.createElement("canvas");
   zonaCanvas.width = largura; zonaCanvas.height = altura; zonaCanvas.className = "mapa-zona";
   palco.append(zonaCanvas);
@@ -616,7 +685,11 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     item.quadros = mapaQuadros(item.m.dados, estado);
     item.no.width = d.canvas.width; item.no.height = d.canvas.height;
     item.no.getContext("2d").drawImage(d.canvas, 0, 0);
-    colocar(item.no, item.x, item.y, { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 }, item.prof);
+    if (item.parede) {
+      const anc = item.dir === 2 ? mapaTela(Math.floor(item.x), Math.floor(item.y) + 0.5, origem) : mapaTela(Math.floor(item.x) + 0.5, Math.floor(item.y), origem);
+      item.no.style.left = anc.x + d.ox + MAPA_PAREDE_AJUSTE[item.dir].x + "px";
+      item.no.style.top = anc.y + d.oy + MAPA_PAREDE_AJUSTE[item.dir].y - item.altura * 32 + "px";
+    } else colocar(item.no, item.x, item.y, { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 }, item.prof);
     const i = animados.indexOf(item);
     if (i >= 0) animados.splice(i, 1);
     if (item.quadros > 1 && !reduzido) animados.push(item);
@@ -695,10 +768,30 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     }
     try {
       const m = await mapaCarregarMovel(classe);
-      const d0 = mapaDirecaoValida(m.dados, dir);
+      // Item de parede: "dir" diz a parede (4 = fundo, que desce para a
+      // direita; 2 = esquerda, que desce para a esquerda), igual à arte do Habbo.
+      const deParede = mapaEhDeParede(m.dados);
+      const d0 = deParede ? (dir === 2 ? 2 : 4) : mapaDirecaoValida(m.dados, dir);
       const desenho = mapaDesenharMovel(m, d0, estado, 0);
       if (!desenho) return;
       const dim = mapaDimensoes(m.dados, d0);
+      // De parede: pendurado no trecho de parede do ladrilho, a "altura"
+      // (em ladrilhos de parede, 1 = 32 px) acima do chão. Não bloqueia o piso.
+      if (deParede) {
+        const ancora = d0 === 2 ? mapaTela(Math.floor(x), Math.floor(y) + 0.5, origem) : mapaTela(Math.floor(x) + 0.5, Math.floor(y), origem);
+        const no = desenho.canvas;
+        no.className = "mapa-obj mapa-de-parede";
+        no.dataset.classe = classe;
+        no.style.left = ancora.x + desenho.ox + MAPA_PAREDE_AJUSTE[d0].x + "px";
+        no.style.top = ancora.y + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y - altura * 32 + "px";
+        no.style.zIndex = Math.round((Math.floor(x) + Math.floor(y)) * 10) + 3;
+        palco.append(no);
+        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: Number(no.style.zIndex), caixa: null, origem: origemItem };
+        moveis.push(item);
+        if (item.quadros > 1 && !reduzido) animados.push(item);
+        if (estadosForcados.has(chaveMovel(item))) aplicarEstado(item, estadosForcados.get(chaveMovel(item)));
+        return;
+      }
       // Rente ao piso (tapete): altura zero E desenho baixo. Muita arte do Habbo
       // declara altura zero mesmo sendo alta (sinuca, TV, bebedouro): essa é sólida.
       // Em cima de mesa nunca é "rente ao piso" (notebook, papéis).
@@ -744,6 +837,16 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   const ordenar = () => {
     mapaOrdenar([...muros, ...moveis.filter((m) => !m.plano)]);
     for (const m of muros) m.prof = Number(m.no.style.zIndex);
+    // Item de parede: logo à frente do trecho de parede em que está pendurado.
+    for (const it of moveis) {
+      if (!it.parede) continue;
+      // Acima de todos os trechos da mesma parede que o desenho cobre (uma
+      // janela larga passa de um trecho para o outro).
+      const eixo = it.lado === 4 ? "x" : "y";
+      const l = parseFloat(it.no.style.left), r = l + it.no.width;
+      const linha = muros.filter((w) => w.eixo === eixo && (eixo === "x" ? w.y === Math.floor(it.y) : w.x === Math.floor(it.x)) && w.r > l && w.l < r);
+      it.no.style.zIndex = it.prof = (linha.length ? Math.max(...linha.map((w) => w.prof)) : Math.round((Math.floor(it.x) + Math.floor(it.y)) * 10)) + 1;
+    }
   };
   // Depois de ordenar, quem já estava no mapa ganha a profundidade nova (sem
   // isso, quem chegou antes dos móveis carregarem ficava atrás das paredes).
@@ -1303,6 +1406,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { videoNo?.desligar?.(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }
