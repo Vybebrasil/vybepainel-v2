@@ -91,6 +91,17 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Produção usa o Google Agenda para as
   gravações de Mizinho, nunca prazo/veiculação como substituto de gravação.
 
+## Escritório integrado
+
+- O Escritório usa identidade individual da sessão Vybe. Nunca reintroduza código
+  compartilhado, identidade por nome livre, OAuth Manus ou consulta ao Monday.
+- Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
+  conserva apenas presença/posição transitórias. O motor RealtimeKit do VybeChat
+  é reaproveitado para mídia, com credenciais exclusivamente no servidor.
+- Entrada em chamada é explícita, câmera/microfone começam desligados. Presença
+  não é comprovação de produtividade. Não publique nem afirme validação de mídia
+  apenas por abrir a demonstração. Consulte `docs/escritorio-vybechat.md`.
+
 ## Direção visual
 
 - Preserve a identidade Vybe: laranja, logo oficial, cartões com cores próprias,

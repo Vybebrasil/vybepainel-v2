@@ -290,6 +290,7 @@ function switchBoard(board, btn) {
     performance: 'Médias e desempenho individual da equipe',
     'ai-usage':  'Uso, custos estimados e limites do Jarvis',
     automacoes:  'Regras que movem, atribuem e avisam sozinhas',
+    escritorio:  'Presença, conversas e o espaço da equipe',
     conta:       'Sua conta e, para quem administra, a equipe'
   };
   document.getElementById('header-sub').textContent = subs[board] || '';
@@ -301,6 +302,8 @@ function switchBoard(board, btn) {
   document.getElementById('painel-ai-usage').style.display     = board==='ai-usage' ? 'block' : 'none';
   document.getElementById('painel-automacoes').style.display   = board==='automacoes' ? 'block' : 'none';
   document.getElementById('painel-conta').style.display        = board==='conta' ? 'block' : 'none';
+  document.getElementById('painel-escritorio').style.display = board==='escritorio'?'block':'none';
+  if(board==='escritorio')abrirEscritorio();
   if (board === 'demandas') {
     if (DADOS_DEMANDAS.length === 0) refreshDemandas();
     else renderDemandas();

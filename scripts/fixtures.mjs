@@ -93,6 +93,10 @@ export function demoApi(req,res,url,body) {
     if(url.searchParams.get('area')==='historico')return reply(200,{ok:true,logs:{moveEvents:{},prazoEvents:{},statusEvents:{},veiculacaoEvents:{},ownerEvents:{}}});
     const area=url.searchParams.get('area');
     if(area==='conta')return reply(200,{ok:true,pessoa});
+    if(area==='escritorio') {
+      if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
+      return reply(200,{ok:true,demo:true,eu:'1',worker:null,token:null,equipe:['Operador de teste','Design demonstração','Edição demonstração','Atendimento demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul','verde','roxo'][i],pele:'media',cabelo:['curto','longo','cacheado','curto'][i],mesa:['grafite','azul','verde','roxo'][i],objeto:['planta','livros','luminaria','planta'][i],sala:'convivencia',x:50,y:70}}))});
+    }
     if(area==='clientes')return reply(200,{ok:true,clientes:[{id:1,nome:'Cliente demonstração',ativo:true,status:'Ativo',responsavel:'Vinícius',heads:'Operador de teste',heads_ids:[1]}],pessoas:[pessoa],acessos:[]});
     // Log de atividade fictício: um exemplo de cada tipo de evento, em dias diferentes.
     if(area==='peca' && url.searchParams.get('log')==='1'){

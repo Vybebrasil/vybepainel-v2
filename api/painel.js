@@ -1,3 +1,4 @@
+import { areaEscritorio } from '../server/escritorio.js';
 import { resolverBriefing, MARCAS_BRIEFING } from '../server/briefing.js';
 import { resolverMaterialBruto } from '../server/material-bruto.js';
 import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.js';
@@ -1571,7 +1572,7 @@ async function areaAgendaProducao(req,res,quem) {
   catch(erro) { return res.status(erro.status || 502).json({error:erro.status===400 || erro.publica===true ? erro.message : 'Agenda de produção indisponível. Confira o acesso da conta de serviço ao Google Agenda e tente novamente.'}); }
 }
 
-const AREAS = { agenda_producao:areaAgendaProducao, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar };
 
 export default async function handler(req, res) {

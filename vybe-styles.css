@@ -5900,3 +5900,81 @@ body:has(.status-context-dialog){overflow:hidden}
 .filtro-carteira select{min-height:40px;max-width:100%;padding:8px 12px;border:1px solid var(--linha);border-radius:12px;background:var(--sup-1,#1c1e26);color:var(--carteira-texto,#eef1f6);font:500 14px var(--mac-ui);cursor:pointer}
 .filtro-carteira select:focus-visible{outline:2px solid var(--accent,#ff6b00);outline-offset:3px}
 .filtro-carteira option{color:#eef1f6;background:#1c1e26}
+
+/* Escritório: mapa leve em DOM/SVG, sem laço de renderização contínuo. */
+#painel-escritorio {max-width:1800px;margin:0 auto;padding:24px}
+.office-shell {border:1px solid var(--border);border-radius:22px;background:var(--surface);overflow:hidden}
+.office-heading {display:flex;justify-content:space-between;align-items:center;gap:16px;padding:24px 26px 14px}
+.office-heading h2 {font:650 26px var(--mac-ui);letter-spacing:-.04em;margin:4px 0}
+.office-heading p,.office-room-heading p,.office-team>p {color:var(--text-muted);font-size:12px}
+.office-feedback {min-height:34px;padding:0 26px 12px;color:var(--text-muted);font-size:12px}
+.office-layout {display:grid;grid-template-columns:170px minmax(0,1fr) 200px;border-top:1px solid var(--border)}
+.office-sidebar,.office-team {padding:18px 14px}
+.office-sidebar {border-right:1px solid var(--border)}
+.office-team {border-left:1px solid var(--border)}
+.office-sidebar nav {display:grid;gap:4px}
+.office-sidebar nav button {border:0;border-radius:9px;background:transparent;color:var(--text-muted);padding:10px 12px;text-align:left;font:550 12px var(--mac-ui);cursor:pointer}
+.office-sidebar nav button[aria-pressed=true] {background:#ff93451c;color:#ffb17a}
+.office-own {margin-top:26px;border-top:1px solid var(--border);padding-top:16px;display:grid;gap:12px}
+.office-own h3,.office-team h3,.office-chat h3 {font-size:13px}
+.office-own>.office-avatar {width:64px;margin:auto}
+.office-own label {display:grid;gap:5px;font-size:11px;color:var(--text-muted)}
+.office-own select {width:100%;padding:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px}
+.office-center {min-width:0}
+.office-room-heading {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px}
+.office-room-heading h3 {font:600 17px var(--mac-ui);margin-bottom:3px}
+.office-map {height:450px;position:relative;isolation:isolate;overflow:hidden;cursor:crosshair;background-color:#283635;background-image:linear-gradient(30deg,#ffffff05 12%,transparent 12.5%,transparent 87%,#ffffff05 87.5%),linear-gradient(150deg,#ffffff05 12%,transparent 12.5%,transparent 87%,#ffffff05 87.5%),linear-gradient(30deg,#ffffff05 12%,transparent 12.5%,transparent 87%,#ffffff05 87.5%),linear-gradient(150deg,#ffffff05 12%,transparent 12.5%,transparent 87%,#ffffff05 87.5%);background-size:70px 120px;background-position:0 0,0 0,35px 60px,35px 60px;border-block:1px solid #ffffff12}
+.office-wall {position:absolute;left:0;right:0;top:0;height:92px;display:flex;align-items:center;justify-content:center;gap:16px;background:linear-gradient(110deg,#24312f,#35423b);box-shadow:0 9px 18px #0003;border-bottom:5px solid #53604f}
+.office-wall>span {font:800 27px var(--mac-ui);color:#ffad6e;letter-spacing:.18em}
+.office-wall small {color:#c0ccba;border-left:1px solid #ffffff30;padding-left:16px}
+.office-rug {position:absolute;width:64%;height:56%;left:18%;top:30%;background:#ddc9a115;border:2px solid #d7c5a120;transform:skewY(-4deg);border-radius:25% 12%;pointer-events:none}
+.office-desks {position:absolute;inset:115px 35px 80px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:55px 30px;align-content:start;pointer-events:none}
+.office-desk {position:relative;filter:drop-shadow(0 9px 4px #0003)}
+.office-desk-top {height:42px;background:linear-gradient(155deg,color-mix(in srgb,var(--desk) 50%,#dec9a9),var(--desk));transform:skewY(-8deg);border-radius:5px;box-shadow:0 5px #202a2b,8px 19px 0 -4px #1a2726,-8px 19px 0 -4px #1a2726}
+.office-desk>span {display:block;position:relative;top:23px;text-align:center;color:#e5e5da;font-size:10px;text-shadow:0 1px #000;overflow-wrap:anywhere}
+.office-monitor {position:absolute;width:32px;height:24px;background:#203e47;border:3px solid #122429;left:calc(50% - 16px);top:-13px;border-radius:3px;box-shadow:0 6px 0 -3px #14292a}
+.office-decoration {position:absolute;right:10%;top:-6px;width:12px;height:20px}
+.office-decoration.planta {border-radius:45% 50% 15% 20%;background:#78a66d;box-shadow:0 8px 0 -2px #b5896b}
+.office-decoration.livros {height:12px;top:9px;background:#f3c783;box-shadow:0 -4px #af7999,0 -8px #80a6aa;transform:skewY(10deg)}
+.office-decoration.luminaria {border-radius:50% 50% 0 0;background:#ffe1a0;box-shadow:0 9px 0 -4px #3e4848}
+.office-table {grid-column:2/4;height:110px;background:#9d7e5d;border:8px solid #b29471;border-radius:35%;box-shadow:0 12px #473f35;display:grid;place-items:center;color:#291f17;font-size:11px}
+.office-people {position:absolute;inset:0;pointer-events:none}
+.office-person {position:absolute;transform:translate(-50%,-75%);border:0;background:none;display:grid;justify-items:center;color:#fff;pointer-events:auto;cursor:pointer;max-width:140px;transition:left .2s,top .2s}
+.office-person>.office-avatar {width:56px;height:72px;filter:drop-shadow(0 5px 5px #0004)}
+.office-person>span {background:#10201fe8;border:1px solid #ffffff20;padding:3px 7px;border-radius:7px;max-width:140px;font-size:10px;overflow-wrap:anywhere}
+.office-map-hint {position:absolute;bottom:12px;left:16px;color:#d5e0d2;font-size:10px}
+.office-member {display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}
+.office-member>.office-avatar {width:32px;height:42px;flex-shrink:0}
+.office-member b {font-size:11px;overflow-wrap:anywhere}
+.office-member small {display:block;font-size:10px;color:var(--text-muted)}
+.office-text-button {border:0;background:none;color:var(--text-muted);font:500 11px var(--mac-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.office-chat {padding:18px 20px}
+.office-chat-head {display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}
+#office-chat-list {height:180px;overflow-y:auto;overscroll-behavior:contain;font-size:12px;padding:8px 0;color:var(--text-muted)}
+#office-chat-list article {margin-bottom:10px}
+#office-chat-list b {color:var(--text);font-size:11px}
+#office-chat-list p {white-space:pre-wrap;overflow-wrap:anywhere}
+.office-chat form {display:flex;gap:8px;margin-top:12px}
+.office-chat input {min-width:0;flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;color:var(--text)}
+.office-dock {position:fixed;z-index:110;bottom:18px;right:18px;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100vw - 36px);padding:8px;border:1px solid #ffb17a45;background:#23242bf2;box-shadow:0 10px 32px #0005;border-radius:14px}
+.office-dock[hidden],.office-call[hidden] {display:none}
+.office-dock button,.office-call-actions button {padding:7px 10px;background:#ffffff0b;color:#f4f4f5;border:1px solid #ffffff20;border-radius:7px;font-size:11px;cursor:pointer}
+.office-call {padding:15px;background:#10191c;border-block:1px solid var(--border)}
+.office-call-actions {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.office-call-actions b {font-size:12px;margin-right:auto}
+.office-call-media {display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px}
+.office-call-media>div {min-width:0;background:#ffffff08;border-radius:10px;padding:10px}
+.office-call-media video {width:100%;max-height:300px;object-fit:contain;border-radius:8px}
+.office-call-media audio {width:100%;height:28px}
+.office-call-media b {display:block;font-size:11px;margin-bottom:6px}
+.office-state {padding:40px;display:grid;gap:15px;max-width:650px;margin:auto}
+.office-shell :is(button,select,input):focus-visible,.office-map:focus-visible {outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:1100px){.office-layout{grid-template-columns:150px minmax(0,1fr)}.office-team{grid-column:1/-1;border-left:0;border-top:1px solid var(--border)}#office-roster{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}}
+@media(max-width:680px){#painel-escritorio{padding:12px}.office-heading{padding:18px;flex-wrap:wrap}.office-heading h2{font-size:22px}.office-layout{display:block}.office-sidebar{border:0;padding:10px}.office-sidebar nav{display:grid;grid-template-columns:repeat(3,1fr)}.office-sidebar nav button{text-align:center;font-size:11px;padding:9px 4px}.office-own{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}.office-own h3,.office-own>.office-avatar{display:none}.office-own label{max-width:140px}.office-room-heading{padding:16px 12px;flex-wrap:wrap}.office-map{height:370px}.office-desks{inset:110px 18px 65px;gap:60px 16px;grid-template-columns:repeat(3,minmax(0,1fr))}.office-chat{padding:15px}.office-chat form{flex-wrap:wrap}.office-chat input{flex-basis:180px}.office-feedback{padding-inline:18px}.office-dock{bottom:8px;right:8px}.office-table{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.office-person{transition:none}}
+.office-avatar-preview {display:flex;justify-content:center;padding:12px;background:#ffffff06;border-radius:12px;margin-bottom:14px}
+.office-avatar-preview .office-avatar {width:76px;height:96px}
+.office-dock-team {position:relative;font-size:11px;color:#eee}
+.office-dock-team summary {cursor:pointer;padding:7px}
+.office-dock-team>div {position:absolute;bottom:calc(100% + 15px);right:0;min-width:230px;max-height:250px;overflow:auto;padding:12px;background:#23242b;border:1px solid #ffffff20;border-radius:10px;box-shadow:0 8px 25px #0005}
+.office-dock-team p {padding:5px 0}
