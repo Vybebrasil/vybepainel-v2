@@ -226,6 +226,9 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       if (e.type === "session:ready") {
         escritorio.conectando = false;
         const jaEstava = escritorio.conectado;
+        // Entrou: se a conexão cair depois (rede, aba no fundo), volta sozinho.
+        escritorio.querConectado = true;
+        try { localStorage.setItem("vybe-escritorio-dentro", "1"); } catch {}
         escritorio.conectado = true;
         escritorio.tentativasReconexao = 0;
         // Socket da sessão anterior (renovação): fecha sem efeito na tela.
@@ -329,6 +332,8 @@ async function conectarEscritorio({ reconexao = false } = {}) {
   }
 }
 function desconectarEscritorio(sairChamada = true) {
+  // Saiu de propósito: não reconecta sozinho.
+  if (sairChamada) { escritorio.querConectado = false; try { localStorage.removeItem("vybe-escritorio-dentro"); } catch {} }
   clearTimeout(escritorio.timerReconexao);
   escritorio.tentativasReconexao = 0;
   try { escritorio.socketAntigo?.close(); } catch {}
@@ -368,7 +373,7 @@ function atualizarDockEscritorio() {
   ]);
   if (dock.dataset.estado === assinatura) return atualizarControlesEscritorio();
   dock.dataset.estado = assinatura;
-  dock.innerHTML = `<button class="office-dock-volta" onclick="voltarAoEscritorio()">${escritorioIcone("mapa")}<span>Voltar ao escritório</span></button>${escritorio.conectado ? `<details class="office-dock-team"><summary>${escritorio.online.length} online</summary><div>${escritorio.online.map((p) => `<p>${safeText(p.nome)} · ${safeText(escritorioLugarDe(p).nome)}</p>`).join("")}</div></details>` : ""}${escritorio.chamada ? `<button onclick="alternarMidiaEscritorio('audio')">${escritorio.chamada.self.audioEnabled ? "Desligar microfone" : "Ligar microfone"}</button><button onclick="sairChamadaEscritorio()">Sair da chamada</button>` : ""}${escritorio.convite ? '<button onclick="aceitarConviteEscritorio()">Ver convite</button>' : ""}`;
+  dock.innerHTML = `<button class="office-dock-volta" onclick="voltarAoEscritorio()">${escritorioIcone("mapa")}<span>Voltar ao escritório</span></button>${escritorio.conectado ? `<details class="office-dock-team"><summary>${escritorio.online.length} online</summary><div>${escritorio.online.map((p) => `<p>${safeText(p.nome)} · ${safeText(escritorioLugarDe(p).nome)}</p>`).join("")}</div></details>` : `<button type="button" onclick="conectarEscritorio()" ${escritorio.conectando ? "disabled" : ""} title="Entra no escritório sem sair do painel: você vê quem está online e a equipe vê você">${escritorio.conectando ? "Entrando…" : "Fora do escritório · Entrar"}</button>`}${escritorio.chamada ? `<button onclick="alternarMidiaEscritorio('audio')">${escritorio.chamada.self.audioEnabled ? "Desligar microfone" : "Ligar microfone"}</button><button onclick="sairChamadaEscritorio()">Sair da chamada</button>` : ""}${escritorio.convite ? '<button onclick="aceitarConviteEscritorio()">Ver convite</button>' : ""}`;
   atualizarControlesEscritorio();
 }
 function convidarConversaEscritorio(id) {
@@ -2578,4 +2583,19 @@ function escritorioMarcarRecados() {
 function escritorioChaveTrecho(a, i) {
   const k = i % 10, lado = Math.floor(i / 10);
   return [`x:${a.x0 + k},${a.y0}`, `y:${a.x0},${a.y0 + k}`, `x:${a.x0 + k},${a.y1}`, `y:${a.x1},${a.y0 + k}`][lado];
+}
+
+// Quem estava dentro e caiu (rede, computador dormiu, aba muito tempo no
+// fundo) volta sozinho ao reabrir a aba ou quando a internet volta.
+function escritorioVoltarSeQueria() {
+  let queria = escritorio.querConectado;
+  try { queria ||= localStorage.getItem("vybe-escritorio-dentro") === "1"; } catch {}
+  if (!queria || escritorio.conectado || escritorio.conectando || !escritorio.base || escritorio.base.demo) return;
+  if (document.visibilityState !== "visible" || navigator.onLine === false) return;
+  conectarEscritorio();
+}
+if (typeof document !== "undefined" && document.addEventListener && typeof setInterval === "function") {
+  document.addEventListener("visibilitychange", escritorioVoltarSeQueria);
+  if (typeof window !== "undefined") window.addEventListener?.("online", escritorioVoltarSeQueria);
+  setInterval(escritorioVoltarSeQueria, 60000);
 }

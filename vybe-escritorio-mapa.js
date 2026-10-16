@@ -381,6 +381,7 @@ function mapaMontarGrade(P, moveis) {
   const bloqueado = new Uint8Array(W * H);
   const assento = new Map(); // índice → direção de quem senta
   const profAssento = new Map(); // índice → profundidade do assento (quem senta fica à frente)
+  const desvioAssento = new Map(); // índice → quanto o assento saiu do ladrilho (ajuste fino)
   const paredes = new Set(); // "x,y|x,y" entre vizinhos
   const ind = (x, y) => y * W + x;
   const aresta = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
@@ -396,11 +397,11 @@ function mapaMontarGrade(P, moveis) {
     for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
       const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      if (senta) { assento.set(ind(x, y), m.dir); profAssento.set(ind(x, y), m.prof); }
+      if (senta) { assento.set(ind(x, y), m.dir); profAssento.set(ind(x, y), m.prof); desvioAssento.set(ind(x, y), { dx: m.x - Math.floor(m.x), dy: m.y - Math.floor(m.y) }); }
       else bloqueado[ind(x, y)] = 1;
     }
   }
-  return { W, H, bloqueado, assento, profAssento, paredes, ind, aresta };
+  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta };
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
 // caminhos retos também passam (não corta quina de parede).
@@ -803,7 +804,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     }
   };
   const posicionarPessoa = (p) => {
-    const t = mapaTela(p.x, p.y, origem);
+    // Sentado numa cadeira posta fora do ladrilho (ajuste fino), acompanha a cadeira.
+    const desvio = p.acao === "sit" && grade ? grade.desvioAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : null;
+    const t = mapaTela(p.x + (desvio?.dx || 0), p.y + (desvio?.dy || 0), origem);
     p.no.style.left = t.x + "px";
     p.no.style.top = t.y + MAPA_TH / 2 + "px";
     // Sentado, fica à frente do assento (sofá longo tem profundidade maior).
