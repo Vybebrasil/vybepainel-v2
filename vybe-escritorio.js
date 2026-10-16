@@ -601,13 +601,15 @@ function mudarSalaEscritorio(sala, verMapa) {
 // Movimento contínuo (como em jogo): a posição anda em frações de ladrilho a
 // cada quadro, com colisão na grade do mapa. Clique segue o caminho livre
 // (A*); WASD/setas dirigem direto. A presença vai para a equipe a cada 150 ms.
-const ESCRITORIO_VELOCIDADE = 4.2; // ladrilhos por segundo
+const ESCRITORIO_VELOCIDADE = 3.2; // ladrilhos por segundo
 const movimento = { x: 0, y: 0, rota: [], quadro: null, ultimo: 0, envio: 0, dir: 2, andando: false };
 function escritorioZonaEm(x, y) {
   return escritorioAmbienteEm(x, y)?.id || "";
 }
 // Atualiza o que depende do lugar: sala de conversa, zona, cabeçalho e dock.
 function escritorioMudouLugar(x, y) {
+  // O ladrilho em que a pessoa está é o arredondado (o mesmo do andar).
+  x = Math.round(x); y = Math.round(y);
   const sala = escritorioSalaEm(x, y), zona = escritorioZonaEm(x, y);
   if (zona === escritorio.zona && sala === escritorio.sala) return;
   const saiuDaZona = zona !== escritorio.zona;
@@ -685,12 +687,20 @@ function escritorioQuadro(agora) {
       movimento.x += vx * passo; movimento.y += vy * passo;
     }
   } else if (teclado) {
+    // Tecla manda: a rota do clique (se houver) é abandonada.
+    movimento.rota.length = 0;
     const passo = velocidade * dt;
     const nx = movimento.x + vx * passo, ny = movimento.y + vy * passo;
     // Bate e desliza: tenta o movimento todo, depois só um eixo.
     if (escritorioPodeIr(movimento.x, movimento.y, nx, ny)) { movimento.x = nx; movimento.y = ny; }
     else if (escritorioPodeIr(movimento.x, movimento.y, nx, movimento.y)) movimento.x = nx;
     else if (escritorioPodeIr(movimento.x, movimento.y, movimento.x, ny)) movimento.y = ny;
+  }
+  // Soltou a tecla no meio do ladrilho: termina o passo até o centro dele
+  // (como no Habbo), em vez de pular para lá.
+  if (!teclado && !movimento.rota.length && (movimento.x % 1 || movimento.y % 1)) {
+    const cx = Math.round(movimento.x), cy = Math.round(movimento.y);
+    if (escritorioPodeIr(movimento.x, movimento.y, cx, cy)) movimento.rota.push({ x: cx, y: cy });
   }
   const andando = teclado || movimento.rota.length > 0;
   // Ao andar, acenar e deitar acabam (o café continua na mão).
@@ -707,7 +717,8 @@ function escritorioQuadro(agora) {
   escritorioEnviarPosicao(!andando);
   atualizarAcaoProximaEscritorio();
   desenharMinimapaEscritorio();
-  if (andando) movimento.quadro = requestAnimationFrame(escritorioQuadro);
+  // Com tecla presa (ainda no tempo de só virar), o ciclo continua esperando.
+  if (andando || escritorioTeclas.size) movimento.quadro = requestAnimationFrame(escritorioQuadro);
   else atualizarPessoasEscritorio();
 }
 function escritorioAnimarMovimento() {
