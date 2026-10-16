@@ -6075,10 +6075,6 @@ body.no-escritorio {overflow:hidden}
 .abr-pular {position:absolute;z-index:7;top:20px;right:22px;padding:9px 16px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-pular:hover {background:#000a}
 .abr-saida-acoes {display:flex;flex-wrap:wrap;gap:10px}
-.abr-som {position:absolute;z-index:7;left:22px;bottom:20px;display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid #ffffff40;background:#000a;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
-.abr-som:hover {background:#000a}
-.abr-som[aria-pressed=true] {color:#ffffffcc}
-.abr-som:focus-visible,.abr-pular:focus-visible {outline:2px solid #ff8a2a;outline-offset:2px}
 .abr-texto {text-shadow:0 2px 12px #000c;position:absolute;z-index:5;left:clamp(20px,6vw,90px);bottom:clamp(28px,9vh,96px);max-width:620px;display:grid;gap:14px;opacity:0;transform:translateY(24px);animation:abr-texto .9s 3.2s cubic-bezier(.2,.8,.2,1) forwards}
 .abr-kicker {color:#ffb27a;font:700 12px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
 .abr-texto h1 {font:800 clamp(34px,5.4vw,68px)/1.02 var(--mac-ui);letter-spacing:-.03em;text-wrap:balance}
@@ -6375,3 +6371,17 @@ body.no-escritorio {overflow:hidden}
 .day-activity-row[data-grupo="1"]+.day-activity-row[data-grupo="2"],
 .day-activity-row[data-grupo="1"]+.day-activity-row[data-grupo="3"],
 .day-activity-row[data-grupo="2"]+.day-activity-row[data-grupo="3"] {border-top:1px solid #ffffff1f;margin-top:6px}
+
+/* Ajustes de áudio */
+.ofc-ajustes-audio {position:absolute;z-index:9;right:16px;bottom:90px;width:min(340px,calc(100% - 32px));display:grid;gap:10px;padding:14px;border-radius:16px;background:var(--ofc-vidro,#1d2029f0);border:1px solid var(--ofc-borda,#ffffff1f);box-shadow:0 18px 40px #000a;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-campo {display:grid;gap:4px;font:600 12px var(--mac-ui)}
+.ofc-campo select {padding:8px 10px;border-radius:10px;border:1px solid #ffffff22;background:#00000040;color:inherit;font:500 13px var(--mac-ui)}
+.ofc-teste-mic {display:grid;gap:4px}
+.ofc-teste-mic small {font:500 11px var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
+.ofc-chave {display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.ofc-chave input {margin-top:2px;accent-color:#ff8a35;width:16px;height:16px}
+.ofc-chave span {display:grid;gap:1px}
+.ofc-chave b {font:600 13px var(--mac-ui)}
+.ofc-chave small {font:500 11px/1.35 var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
+#ofc-btn-audio.alerta {background:#ff8a3533;color:#ffc79a;animation:mapa-aviso 1.6s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){#ofc-btn-audio.alerta {animation:none}}
