@@ -5985,7 +5985,7 @@ body.no-escritorio {overflow:hidden}
 .mapa-pessoa {position:absolute;width:64px;height:110px;margin:-104px 0 0 -32px;border:0;padding:0;background:none;cursor:pointer}
 .mapa-pessoa img {display:block;width:64px;height:110px;image-rendering:pixelated;pointer-events:none}
 .mapa-pessoa.voce::before {content:"";position:absolute;left:12px;bottom:-2px;width:40px;height:14px;border-radius:50%;border:2px solid var(--ofc-laranja);opacity:.9}
-.mapa-etiqueta {position:absolute;left:50%;bottom:100%;transform:translate(-50%,4px);display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:9px;background:#171a22e6;border:1px solid #ffffff22;color:#fff;font:650 11px var(--mac-ui);white-space:nowrap}
+.mapa-etiqueta {position:absolute;left:50%;bottom:100%;transform:translate(-50%,calc(4px - var(--sobe,0px)));transition:transform .15s;display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:9px;background:#171a22e6;border:1px solid #ffffff22;color:#fff;font:650 11px var(--mac-ui);white-space:nowrap}
 .mapa-pessoa:focus-visible .mapa-etiqueta {outline:2px solid var(--ofc-laranja)}
 .ofc-zoom {position:absolute;z-index:6;right:16px;bottom:16px;display:grid;gap:4px;padding:4px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);border-radius:14px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .ofc-zoom[hidden] {display:none}
@@ -6029,7 +6029,7 @@ body.no-escritorio {overflow:hidden}
 .ofc-primario:disabled {opacity:.6;cursor:progress}
 .ofc-secundario {border:1px solid var(--ofc-borda);background:#ffffff0a;color:var(--ofc-texto)}
 .ofc :is(button,select,input,a):focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
-.office-call {position:absolute;z-index:7;top:70px;right:16px;width:min(340px,calc(100% - 32px));max-height:calc(100% - 170px);overflow:auto;padding:12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.office-call {position:relative;z-index:7;flex:0 1 auto;min-height:0;width:auto;overflow:auto;padding:12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .office-call[hidden],.office-dock[hidden] {display:none}
 .office-call-actions b {font-size:12px}
 .office-call-media {display:grid;gap:8px;margin-top:10px}
@@ -6179,7 +6179,7 @@ body.no-escritorio {overflow:hidden}
 .ofc-acao kbd,.ofc-poses kbd {display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:#ff8a35;color:#1d1107;font:700 12px var(--mac-ui)}
 .ofc-poses {flex-direction:column;align-items:stretch;min-width:170px}
 .ofc-reacoes>div.ofc-poses button {width:auto;height:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;font:600 13px var(--mac-ui);color:#fff}
-.ofc-avisos {position:absolute;z-index:7;top:64px;right:16px;display:grid;gap:6px;justify-items:end;pointer-events:none}
+.ofc-avisos {position:absolute;z-index:8;top:64px;left:50%;transform:translateX(-50%);display:grid;gap:6px;justify-items:center;pointer-events:none}
 .ofc-avisos p {padding:7px 12px;border-radius:10px;background:#171a22e6;border:1px solid #ffffff1c;color:#e8eaf0;font:600 12px var(--mac-ui);animation:mapa-balao .25s ease-out}
 .ofc-minimapa {position:absolute;z-index:6;left:16px;bottom:16px;width:232px;height:168px;border-radius:14px;background:#0f1015d9;border:1px solid #ffffff1c;box-shadow:0 10px 30px #0007;cursor:pointer}
 .ofc-minimapa[hidden] {display:none}
@@ -6459,7 +6459,7 @@ body.no-escritorio {overflow:hidden}
 .ofc-imagem-apagar:focus-visible {outline:2px solid var(--ofc-laranja);border-radius:4px}
 
 /* Sala da música (Pista do Lounge): player do YouTube e controles. */
-.ofc-musica {position:absolute;left:16px;top:76px;z-index:30;width:224px;display:grid;gap:8px;padding:12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);box-shadow:0 18px 40px #0008;backdrop-filter:blur(14px)}
+.ofc-musica {position:relative;flex:none;z-index:30;width:224px;display:grid;gap:8px;padding:12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);box-shadow:0 18px 40px #0008;backdrop-filter:blur(14px)}
 .ofc-musica[hidden] {display:none}
 .ofc-musica-player {border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9}
 .ofc-musica-player iframe {display:block;width:100%;height:100%;border:0}
@@ -6509,3 +6509,36 @@ body.no-escritorio {overflow:hidden}
 /* Minimizado: o vídeo continua no tamanho mínimo que o YouTube pede, só some a parte de controles. */
 .ofc-musica.mini {width:200px}
 .ofc-musica.mini .ofc-musica-info small, .ofc-musica.mini .ofc-musica-vol, .ofc-musica.mini .ofc-musica-info > .ofc-secundario {display:none}
+
+/* Coluna da direita: conversa, música e a tela que você mostra, uma embaixo
+   da outra (antes eram janelas soltas que se cobriam). */
+.ofc-coluna {position:absolute;z-index:7;top:70px;right:16px;bottom:216px;width:min(340px,calc(100% - 32px));display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.ofc-coluna > * {pointer-events:auto}
+.ofc-coluna .ofc-musica {width:auto}
+.ofc-coluna .ofc-minha-tela {position:relative;left:auto;bottom:auto;width:auto;flex:none}
+/* Player arrastado para fora da coluna. */
+.ofc-musica.solto {position:absolute;z-index:9;width:224px}
+.office-call-rosto {position:relative;overflow:hidden}
+.office-call-rosto img {position:absolute;inset:-2px 0 0 -3px;width:30px;height:30px;object-fit:cover;object-position:50% 20%;image-rendering:pixelated}
+.office-call-rosto span {font-style:normal}
+.ofc-musica:not(.solto) .ofc-encaixar {display:none}
+.ofc-musica-topo span {display:flex;gap:2px}
+
+.ofc-vazios {display:grid;gap:8px;padding:4px 2px 12px}
+.ofc-vazios h4 {margin:0;font:600 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ofc-suave)}
+.ofc-vazios div {display:flex;flex-wrap:wrap;gap:6px}
+.ofc-vazios .ofc-mini {border-left:3px solid var(--sala)}
+.ofc-cartao .ofc-mini:disabled {opacity:.6;cursor:default}
+.ofc-cartao ul:empty {display:none}
+/* Celular: a coluna (conversa, música, tela) fica embaixo, acima da barra. */
+@media (max-width: 760px) {
+  .ofc-coluna {top:auto;bottom:150px;left:16px;right:16px;width:auto;max-height:45vh}
+  .ofc-coluna {max-height:40vh}
+  /* A lista rola até o fim sem ficar escondida atrás da coluna. */
+  .ofc-lista {padding-bottom:calc(40vh + 170px)}
+  /* Player compacto: vídeo pequeno à esquerda, controles à direita. */
+  .ofc-coluna .ofc-musica {display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px;padding:10px}
+  .ofc-coluna .ofc-musica-topo {grid-column:1/-1}
+  .ofc-coluna .ofc-musica-player {align-self:start}
+  .ofc-coluna .ofc-musica-info .ofc-secundario {padding:6px}
+}

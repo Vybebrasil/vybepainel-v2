@@ -516,10 +516,10 @@ function escritorioIrAte(id) {
   escritorioAviso("Não achei caminho até " + o.nome + ".");
 }
 // Anda até um ambiente: o ladrilho livre mais perto do centro que tenha caminho.
-function escritorioIrParaAmbiente(id) {
-  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === id);
+function escritorioIrParaAmbiente(id, manterLista = false, alvo = null) {
+  const a = alvo || ESCRITORIO_PLANTA.ambientes.find((x) => x.id === id);
   if (!a || !escritorio.mapa) return;
-  if (escritorio.modo === "lista") { escritorio.modo = "mapa"; renderEscritorio(); }
+  if (escritorio.modo === "lista" && !manterLista) { escritorio.modo = "mapa"; renderEscritorio(); }
   const de = escritorioPosicao(escritorio.perfil || {});
   const cx = Math.floor((a.x0 + a.x1) / 2), cy = Math.floor((a.y0 + a.y1) / 2);
   for (let r = 0; r < 6; r++) for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
@@ -562,7 +562,7 @@ function atualizarPessoasEscritorio() {
       const sentado = dirAssento !== undefined;
       const [nomeStatus, corStatus] = ESCRITORIO_STATUS[p.status] || ESCRITORIO_STATUS.disponivel;
       return {
-        id: p.id, nome: voce && escritorio.conectado ? "Você" : p.nome, perfil: perfilDe, status: p.status, corStatus,
+        id: p.id, nome: voce && escritorio.conectado ? "Você" : escritorioNomeCurto(p.nome), perfil: perfilDe, status: p.status, corStatus,
         rotulo: `${p.nome}${voce ? " (você)" : ""} · ${nomeStatus}`,
         statusTexto: p.status && p.status !== "disponivel" ? nomeStatus : "",
         x: Math.round(pos.x), y: Math.round(pos.y),
@@ -602,13 +602,22 @@ function atualizarPessoasEscritorio() {
   if (contador) contador.textContent = escritorio.conectado ? `${pessoas.length} online` : "Você está fora";
   atualizarDockEscritorio();
 }
-// Modo lista: as salas como cartões, sem cena. É o modo do celular.
+// Modo lista (o do celular): os mesmos lugares do mapa, com quem está em cada
+// um. Ir para um lugar anda até lá sem sair da lista, e a conversa da sala
+// entra sozinha como no mapa. Lugares vazios ficam numa linha compacta.
 function escritorioListaSalasHtml() {
   const pessoas = escritorio.conectado ? escritorio.online : [];
-  return Object.entries(ESCRITORIO_SALAS).map(([id, nome]) => {
-    const aqui = pessoas.filter((p) => p.sala === id);
-    return `<article class="ofc-cartao" style="--sala:${ESCRITORIO_COR_SALA[id]}"><div class="ofc-cartao-topo"><i></i><h3>${nome}</h3><small>${aqui.length ? aqui.length + " online" : "Vazia"}</small></div><ul>${aqui.map((p) => `<li>${escritorioAvatar(p.perfil, p.nome)}<span><b>${safeText(p.nome)}</b><small>${escritorioStatusHtml(p.status)}</small></span></li>`).join("")}</ul><button type="button" class="ofc-mini" onclick="mudarSalaEscritorio('${id}',true)">${id === escritorio.sala ? "Você está aqui" : "Ir para esta sala"}</button></article>`;
-  }).join("");
+  const meu = escritorioLugarDe(escritorio.perfil).id;
+  const m = escritorio.musica, tocando = m?.tocando && m.fila?.[m.indice];
+  const musica = tocando ? `<article class="ofc-cartao ofc-cartao-musica" style="--sala:#b48cff"><div class="ofc-cartao-topo"><i></i><h3>Música na Pista</h3><small>${m.fila.length} na fila</small></div><p class="ofc-nota">De ${safeText(String(tocando.por || "").split(" ")[0])}. Quem está na Pista ou no Bar ouve junto.</p><button type="button" class="ofc-mini" onclick="irParaMusicaEscritorio()">${escritorioNaPista() ? "Você está ouvindo" : "Ir ouvir"}</button></article>` : "";
+  const cartao = (a) => {
+    const aqui = pessoas.filter((p) => escritorioLugarDe(p).id === a.id);
+    return `<article class="ofc-cartao" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}"><div class="ofc-cartao-topo"><i></i><h3>${safeText(a.nome)}</h3><small>${aqui.length} ${aqui.length === 1 ? "pessoa" : "pessoas"}</small></div><ul>${aqui.map((p) => `<li>${escritorioAvatar(p.perfil, p.nome)}<span><b>${safeText(p.nome)}</b><small>${escritorioStatusHtml(p.status)}</small></span></li>`).join("")}</ul><button type="button" class="ofc-mini" onclick="escritorioIrParaAmbiente('${a.id}',true)" ${a.id === meu ? "disabled" : ""}>${a.id === meu ? "Você está aqui" : "Ir para cá"}</button></article>`;
+  };
+  const A = ESCRITORIO_PLANTA.ambientes;
+  const comGente = A.filter((a) => a.id === meu || pessoas.some((p) => escritorioLugarDe(p).id === a.id));
+  const vazios = A.filter((a) => !comGente.includes(a));
+  return `${musica}${comGente.map(cartao).join("")}<section class="ofc-vazios"><h4>Outros lugares</h4><div>${vazios.map((a) => `<button type="button" class="ofc-mini" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}" onclick="escritorioIrParaAmbiente('${a.id}',true)">${safeText(a.nome)}</button>`).join("")}</div></section>`;
 }
 // Botões do dock dentro do escritório: o que muda com conexão e chamada.
 function atualizarControlesEscritorio() {
@@ -639,7 +648,7 @@ function atualizarControlesEscritorio() {
     const tranca = escritorioPodeTrancar() ? item("trancarZonaEscritorio()", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
     const poses = escritorio.conectado ? `<span class="ofc-mais-titulo">Seu boneco</span>${item("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", "Acenar <kbd>1</kbd>")}${item("deitarEscritorio()", "Deitar <kbd>2</kbd>")}${item("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", "Café na mão <kbd>3</kbd>")}` : "";
     return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
-  })()}<span class="ofc-sep"></span>${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisos ? `Painel · ${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso" : "avisos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisos ? ' data-avisos="true"' : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
+  })()}<span class="ofc-sep"></span>${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -689,10 +698,12 @@ function renderEscritorio() {
  <details class="ofc-areas" ${modo === "mapa" ? "" : "hidden"}><summary aria-label="Ir para uma área">${escritorioIcone("mapa")}<span>Ir para</span></summary><nav aria-label="Áreas do mapa">${ESCRITORIO_AREAS.map(([id, nome]) => `<button type="button" onclick="olharAreaEscritorio('${id}');this.closest('details').open=false">${nome}</button>`).join("")}</nav></details>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
+ <div class="ofc-coluna" id="office-coluna">
  <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
+ <div id="office-musica-lugar"></div>
+ </div>
  <div class="ofc-editor" id="office-editor" role="toolbar" aria-label="Editor do mapa" hidden></div>
  <div class="ofc-acao" id="office-acao" hidden></div>
- <div id="office-musica-lugar"></div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <canvas class="ofc-minimapa" id="office-minimapa" width="232" height="168" ${modo === "mapa" ? "" : "hidden"} aria-label="Minimapa: clique para ir até lá" onclick="cliqueMinimapaEscritorio(event)"></canvas>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
@@ -729,7 +740,12 @@ function montarMapaEscritorio() {
   lugar.replaceWith(el);
   // A música fica fora do redesenho: recriar o player cortaria a música.
   const lugarMusica = document.getElementById("office-musica-lugar");
-  if (lugarMusica) lugarMusica.replaceWith(escritorioElementoMusica());
+  if (lugarMusica) {
+    const musica = escritorioElementoMusica();
+    // Solto (a pessoa arrastou): fica por cima do mapa; senão, na coluna da direita.
+    if (musica.classList.contains("solto")) { lugarMusica.remove(); document.querySelector(".ofc-principal")?.append(musica); }
+    else lugarMusica.replaceWith(musica);
+  }
   if (!escritorio.mapa) {
     escritorio.mapa = criarMapaEscritorio(el, {
       planta: escritorioPlantaComMesas(),
@@ -1481,6 +1497,11 @@ function escritorioAvisos(lista) {
   const antes = escritorio.avisosVistos;
   // Total real do servidor (a lista vem limitada a 100).
   escritorio.avisos = typeof notificacoesNaoLidas === "number" ? Math.max(notificacoesNaoLidas, naoLidas.length) : naoLidas.length;
+  // No botão do Painel conta só o que chegou desde a última vez que a pessoa
+  // abriu o Painel (o total continua no cartão da mesa).
+  let visto = 0;
+  try { visto = Number(localStorage.getItem("vybe-escritorio-avisos-visto")) || 0; if (!visto) { visto = Date.now(); localStorage.setItem("vybe-escritorio-avisos-visto", String(visto)); } } catch {}
+  escritorio.avisosNovos = naoLidas.filter((n) => Date.parse(n.criada_em) > visto).length;
   escritorio.avisosVistos = new Set(naoLidas.map((n) => String(n.id)));
   const mesa = escritorioMinhaMesa();
   escritorio.mapa?.marcarAviso(mesa?.x, mesa ? mesa.y + 1 : undefined, Boolean(mesa && naoLidas.length));
@@ -1497,6 +1518,8 @@ function escritorioAvisos(lista) {
 // "Painel" abre a tela de módulos (Gestor, Minhas tarefas, Foco…), onde fica
 // todo o trabalho; com um quadro, vai direto a ele.
 function abrirPainelDoEscritorio(quadro) {
+  try { localStorage.setItem("vybe-escritorio-avisos-visto", String(Date.now())); } catch {}
+  escritorio.avisosNovos = 0;
   const destino = quadro || (escritorio.boardAntes && escritorio.boardAntes !== "escritorio" ? escritorio.boardAntes : "producao");
   const btn = document.getElementById("btn-board-" + destino);
   if (btn) switchBoard(destino, btn);
@@ -2175,7 +2198,11 @@ function renderMidiaEscritorio() {
   const rostos = document.getElementById("office-call-rostos");
   if (rostos) rostos.innerHTML = [meeting.self, ...escritorioOutrosNaChamada(meeting)].map((p) => {
     const ini = String(p.name || "?").split(/\s+/).slice(0, 2).map((x) => x[0] || "").join("").toUpperCase();
-    return `<i class="office-call-rosto${p.audioEnabled ? "" : " mudo"}" data-participante="${safeText(String(p.id))}" title="${safeText(p.name || "")}${p.audioEnabled ? "" : " · microfone desligado"}">${safeText(ini)}</i>`;
+    // Rosto do boneco da pessoa (iniciais se a imagem não vier).
+    const pessoa = p === meeting.self ? String(escritorio.base?.eu) : String(p.customParticipantId || "").split(":")[0];
+    const perfil = p === meeting.self ? escritorio.perfil : escritorio.base?.equipe?.find((e) => String(e.id) === pessoa)?.perfil;
+    const rosto = perfil ? `<img src="https://www.habbo.com/habbo-imaging/avatarimage?${new URLSearchParams({ figure: mapaFigura(perfil), headonly: "1", direction: "2", head_direction: "3", size: "s" })}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+    return `<i class="office-call-rosto${p.audioEnabled ? "" : " mudo"}" data-participante="${safeText(String(p.id))}" title="${safeText(p.name || "")}${p.audioEnabled ? "" : " · microfone desligado"}" aria-label="${safeText(p.name || "")}"><span aria-hidden="true">${safeText(ini)}</span>${rosto}</i>`;
   }).join("");
   // Vídeo de cada pessoa também numa bolha sobre o boneco dela no mapa. O id
   // do participante é "pessoa:código", criado pelo servidor.
@@ -2299,7 +2326,8 @@ function escritorioPreviaTela(self) {
     el.className = "ofc-minha-tela";
     el.setAttribute("aria-label", "Você está mostrando sua tela");
     el.innerHTML = `<div class="ofc-minha-tela-topo"><b><i aria-hidden="true"></i>Você está mostrando a tela</b><button type="button" class="ofc-x" aria-label="Esconder a prévia" title="Esconder a prévia (continua mostrando)" onclick="this.closest('section').classList.toggle('mini')">–</button></div><video autoplay muted playsinline></video><label class="ofc-minha-tela-qualidade">Qualidade <select aria-label="Qualidade da tela que você mostra" onchange="qualidadeTelaEscritorio(this.value)">${Object.entries(ESCRITORIO_QUALIDADE_TELA).map(([id, q]) => `<option value="${id}"${id === escritorioQualidadeTela() ? " selected" : ""}>${q.nome}</option>`).join("")}</select></label><div class="ofc-minha-tela-acoes"><button type="button" class="ofc-mini" onclick="trocarTelaEscritorio()">Trocar o que mostro</button><button type="button" class="ofc-mini perigo" onclick="alternarMidiaEscritorio('screen')">Parar de mostrar</button></div>`;
-    document.querySelector(".ofc-principal")?.append(el);
+    // Na coluna da direita, embaixo da conversa (nada por cima de nada).
+    (document.getElementById("office-coluna") || document.querySelector(".ofc-principal"))?.append(el);
   }
   const v = el.querySelector("video");
   if (v.srcObject?.getVideoTracks()[0] !== track) v.srcObject = new MediaStream([track]);
@@ -2484,4 +2512,12 @@ function escritorioOutrosNaChamada(meeting) {
     porPessoa.set(id, p);
   }
   return [...porPessoa.values()];
+}
+
+// Nome na etiqueta do mapa: primeiro nome e a inicial do último ("Reriston
+// S."); o nome inteiro fica no rótulo de acessibilidade e no cartão.
+function escritorioNomeCurto(nome) {
+  const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length < 2) return partes[0] || "";
+  return partes[0] + " " + partes.at(-1)[0].toUpperCase() + ".";
 }
