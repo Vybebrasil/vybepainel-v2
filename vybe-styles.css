@@ -5951,10 +5951,11 @@ body.no-escritorio {overflow:hidden}
 .office-chat {display:flex;flex-direction:column}
 .office-chat-head {display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}
 .office-chat h3 {font:650 14px var(--mac-ui)}
-#office-chat-list {flex:1;min-height:120px;overflow-y:auto;overscroll-behavior:contain;font-size:13px;color:var(--ofc-suave)}
-#office-chat-list article {margin-bottom:12px}
-#office-chat-list b {color:var(--ofc-texto);font-size:12px}
-#office-chat-list p {white-space:pre-wrap;overflow-wrap:anywhere;color:#d6d9e1;margin-top:2px}
+#office-chat-list,#office-recados-lista {flex:1;min-height:120px;overflow-y:auto;overscroll-behavior:contain;font-size:13px;color:var(--ofc-suave)}
+#office-chat-list article,#office-recados-lista article {margin-bottom:12px}
+#office-recados-lista article {padding:6px 8px;border-radius:10px}
+#office-chat-list b,#office-recados-lista b {color:var(--ofc-texto);font-size:12px}
+#office-chat-list p,#office-recados-lista p {white-space:pre-wrap;overflow-wrap:anywhere;color:#d6d9e1;margin-top:2px}
 .office-chat form {display:flex;gap:8px;margin-top:10px}
 .office-chat input {min-width:0;flex:1;background:#ffffff0b;border:1px solid var(--ofc-borda);border-radius:10px;padding:10px;color:var(--ofc-texto);font:13px var(--mac-ui)}
 .office-text-button {border:0;background:none;color:var(--ofc-suave,var(--text-muted));font:500 12px var(--mac-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
@@ -6252,3 +6253,21 @@ body.no-escritorio {overflow:hidden}
 @media(prefers-reduced-motion:reduce){.mapa-obj.mapa-aviso {animation:none;filter:drop-shadow(0 0 3px #ff8a35) drop-shadow(0 0 8px #ff8a35aa)}}
 
 .ofc-voz-estado {display:flex;align-items:center;gap:6px;min-height:34px;padding:7px 9px;color:var(--ofc-suave,#c9bfb4);font:600 12px var(--mac-ui);white-space:nowrap}
+
+/* Recados individuais */
+.ofc-badge {display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ff8a35;color:#1a1008;font:700 10px var(--mac-ui)}
+.ofc-recados-lista {list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ofc-recados-lista button {display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:10px;background:transparent;color:inherit;font:600 13px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-recados-lista button:hover {background:#ffffff10}
+.ofc-recados-lista button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.ofc-recados-lista button>span:first-of-type {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-recados-lista .office-avatar {width:28px;height:44px;object-fit:cover;object-position:top}
+.ofc-recados #office-recados-lista article.meu {background:#ff8a3514}
+.ofc-recados #office-recados-lista small {display:block;margin-top:2px;font-size:10px;color:var(--ofc-suave,#c9bfb4)}
+
+/* Cartão da própria mesa ao passar o mouse */
+.ofc-mesa-card {position:absolute;z-index:9;display:grid;gap:4px;min-width:200px;max-width:280px;padding:10px 12px;border-radius:14px;background:var(--ofc-vidro,#1d2029f0);border:1px solid var(--ofc-borda,#ffffff1f);box-shadow:0 14px 34px #0009;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:var(--ofc-texto,#fff)}
+.ofc-mesa-card[hidden] {display:none}
+.ofc-mesa-card b {font:700 13px var(--mac-ui)}
+.ofc-mesa-card small {font:500 12px var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
+.ofc-mesa-card div {display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}

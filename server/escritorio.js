@@ -132,6 +132,52 @@ export async function enviarMensagemEscritorio(
     ON CONFLICT(pessoa_id,chave) DO UPDATE SET chave=EXCLUDED.chave RETURNING id`;
   return String(r.id);
 }
+// Recados individuais: só quem enviou e quem recebeu leem a conversa. Sem a
+// tabela (migração ainda não aplicada), a área avisa em vez de quebrar.
+async function recadosProntos(sql) {
+  const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_recados') IS NOT NULL AS existe`;
+  if (!r?.existe) throw Object.assign(new Error("Os recados aguardam a migração revisada do banco."), { status: 503 });
+}
+const idPessoa = (v) => {
+  const s = String(v ?? "");
+  if (!/^\d{1,18}$/.test(s)) throw Object.assign(new Error("Pessoa inválida."), { status: 400 });
+  return s;
+};
+export async function resumoRecadosEscritorio(sql, pessoaId) {
+  await recadosProntos(sql);
+  const rows = await sql`SELECT de_id, COUNT(*)::int AS nao_lidos, MAX(criado_em) AS ultimo
+    FROM vybe_escritorio_recados WHERE para_id = ${pessoaId} AND lido_em IS NULL GROUP BY de_id`;
+  return rows.map((r) => ({ de: String(r.de_id), nao_lidos: r.nao_lidos, ultimo: r.ultimo }));
+}
+export async function conversaRecadosEscritorio(sql, pessoaId, com) {
+  await recadosProntos(sql);
+  const outro = idPessoa(com);
+  const rows = await sql`SELECT id, de_id, para_id, texto, criado_em, lido_em FROM vybe_escritorio_recados
+    WHERE (de_id = ${pessoaId} AND para_id = ${outro}) OR (de_id = ${outro} AND para_id = ${pessoaId})
+    ORDER BY id DESC LIMIT 60`;
+  return rows.reverse().map((r) => ({ id: String(r.id), de: String(r.de_id), para: String(r.para_id), texto: r.texto, criado_em: r.criado_em, lido_em: r.lido_em }));
+}
+export async function enviarRecadoEscritorio(sql, pessoaId, { para, texto, chave }) {
+  await recadosProntos(sql);
+  const destino = idPessoa(para);
+  if (destino === String(pessoaId)) throw Object.assign(new Error("Escolha outra pessoa."), { status: 400 });
+  if (typeof texto !== "string" || !texto.trim() || texto.length > 2000)
+    throw Object.assign(new Error("Escreva um recado de até 2.000 caracteres."), { status: 400 });
+  if (typeof chave !== "string" || !/^[a-f0-9-]{36}$/i.test(chave))
+    throw Object.assign(new Error("Identificador de recado inválido."), { status: 400 });
+  const [existe] = await sql`SELECT 1 AS ok FROM vybe_pessoas WHERE id = ${destino} AND ativo = TRUE AND pode_entrar = TRUE`;
+  if (!existe) throw Object.assign(new Error("Pessoa não encontrada."), { status: 404 });
+  const [r] = await sql`INSERT INTO vybe_escritorio_recados(de_id, para_id, texto, chave)
+    VALUES (${pessoaId}, ${destino}, ${texto.trim()}, ${chave})
+    ON CONFLICT (de_id, chave) DO UPDATE SET chave = EXCLUDED.chave RETURNING id`;
+  return String(r.id);
+}
+export async function lerRecadosEscritorio(sql, pessoaId, com) {
+  await recadosProntos(sql);
+  const outro = idPessoa(com);
+  await sql`UPDATE vybe_escritorio_recados SET lido_em = NOW()
+    WHERE para_id = ${pessoaId} AND de_id = ${outro} AND lido_em IS NULL`;
+}
 export const PASTA_ARTE_ESCRITORIO = join(process.cwd(), "assets", "escritorio", "habbo");
 export async function enviarArteEscritorio(res, arquivo) {
   const m = /^([a-z0-9_]+)\.(png|json)$/.exec(arquivo);
@@ -181,6 +227,14 @@ export async function areaEscritorio(req, res, quem, sql) {
   const pessoa = quem.pessoa;
   const acao = req.query?.acao || req.body?.acao || "entrada";
   if (req.method === "GET") {
+    if (acao === "recados" || acao === "recados-resumo")
+      try {
+        return res.status(200).json(acao === "recados"
+          ? { ok: true, recados: await conversaRecadosEscritorio(sql, String(pessoa.id), req.query.com) }
+          : { ok: true, resumo: await resumoRecadosEscritorio(sql, String(pessoa.id)) });
+      } catch (e) {
+        return res.status(e.status || 400).json({ error: e.message });
+      }
     if (acao === "mensagens")
       return res.status(200).json({
         ok: true,
@@ -234,6 +288,15 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(e.status || 400).json({ error: e.message });
     }
   }
+  if (acao === "recado" || acao === "recados-lidos")
+    try {
+      if (acao === "recado")
+        return res.status(200).json({ ok: true, id: await enviarRecadoEscritorio(sql, String(pessoa.id), req.body || {}) });
+      await lerRecadosEscritorio(sql, String(pessoa.id), req.body?.com);
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
   if (acao === "mensagem")
     return res.status(200).json({
       ok: true,
