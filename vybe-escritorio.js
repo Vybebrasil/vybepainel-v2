@@ -305,6 +305,7 @@ function escritorioIcone(nome) {
     reagir: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2M9 9.5h.01M15 9.5h.01"/>',
     cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
     som: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6"/>',
+    ajustes: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
   }[nome] || "";
@@ -493,6 +494,7 @@ function atualizarControlesEscritorio() {
   const conversa = c
     ? botao("alternarMidiaEscritorio('audio')", "microfone", s.audioEnabled ? "Microfone ligado" : "Microfone desligado", `aria-pressed="${Boolean(s.audioEnabled)}"`) +
       botao("alternarMidiaEscritorio('video')", "camera", s.videoEnabled ? "Câmera ligada" : "Câmera desligada", `aria-pressed="${Boolean(s.videoEnabled)}"`) +
+      botao("abrirAjustesAudioEscritorio()", "ajustes", "Ajustes de áudio", 'id="ofc-btn-audio"') +
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
       `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>Na conversa da sala</span></span>`
     // A conversa é automática por sala: sem botão de entrar. Só aparece o
@@ -1251,7 +1253,6 @@ function escritorioSomLigado() {
 function alternarSomEscritorio() {
   try { localStorage.setItem("vybe-escritorio-som", escritorioSomLigado() ? "0" : "1"); } catch {}
   atualizarControlesEscritorio();
-  if (typeof vybelandiaAplicarSom === "function") vybelandiaAplicarSom();
 }
 function escritorioTocar(freq, dur, vol) {
   if (!escritorioSomLigado()) return;
@@ -1635,13 +1636,14 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     // ligar depois de entrar). Se o microfone for negado, entra só ouvindo.
     const iniciar = (audio) => escritorioComPrazo(window.RealtimeKitClient.init({
       authToken: d.authToken,
-      defaults: { audio, video: false },
+      defaults: { audio, video: false, mediaConfiguration: { audio: escritorioPrefsAudio() } },
       modules: { experimentalAudioPlayback: true },
     }), 20000, "iniciando a chamada");
     try { meeting = await iniciar(Boolean(microfone)); }
     catch (e) { if (!microfone) throw e; console.warn("Chamada com microfone:", e); meeting = await iniciar(false); }
     escritorioNivelAudio.iniciar();
     await escritorioComPrazo(meeting.join(), 20000, "entrando na sala de voz");
+    escritorioAplicarDispositivos(meeting);
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
     escritorio.chamada = meeting;
@@ -1690,6 +1692,93 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     atualizarDockEscritorio();
     atualizarControlesEscritorio();
   }
+}
+// Ajustes de áudio: microfone, saída de som e processamento (redução de ruído,
+// cancelamento de eco, ganho automático). Ficam neste computador; o
+// processamento vale ao reconectar a conversa.
+const ESCRITORIO_AUDIO_PREFS = "vybe-escritorio-audio";
+function escritorioLerPrefsAudio() {
+  try { return JSON.parse(localStorage.getItem(ESCRITORIO_AUDIO_PREFS) || "{}") || {}; } catch { return {}; }
+}
+function escritorioPrefsAudio() {
+  const p = escritorioLerPrefsAudio();
+  return { noiseSupression: p.ruido !== false, echoCancellation: p.eco !== false, autoGainControl: p.ganho !== false };
+}
+function escritorioSalvarPrefsAudio(mudanca) {
+  try { localStorage.setItem(ESCRITORIO_AUDIO_PREFS, JSON.stringify({ ...escritorioLerPrefsAudio(), ...mudanca })); } catch {}
+}
+async function escritorioAplicarDispositivos(meeting) {
+  const p = escritorioLerPrefsAudio(), self = meeting?.self;
+  if (!self) return;
+  try {
+    if (p.microfone) { const d = (await self.getAudioDevices()).find((x) => x.deviceId === p.microfone); if (d) await self.setDevice(d); }
+    if (p.saida) { const d = (await self.getSpeakerDevices()).find((x) => x.deviceId === p.saida); if (d) await self.setDevice(d); }
+  } catch (e) { console.warn("Dispositivo de áudio:", e); }
+}
+async function abrirAjustesAudioEscritorio() {
+  const self = escritorio.chamada?.self;
+  document.getElementById("ofc-btn-audio")?.classList.remove("alerta");
+  let el = document.getElementById("office-ajustes-audio");
+  if (el) { el.remove(); return; }
+  const caixa = document.querySelector(".ofc-principal");
+  if (!caixa) return;
+  el = document.createElement("section");
+  el.id = "office-ajustes-audio";
+  el.className = "ofc-ajustes-audio";
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-label", "Ajustes de áudio");
+  caixa.append(el);
+  let mics = [], saidas = [];
+  try { mics = self ? await self.getAudioDevices() : []; saidas = self ? await self.getSpeakerDevices() : []; } catch {}
+  const atual = self?.getCurrentDevices?.() || {};
+  const p = escritorioPrefsAudio();
+  const nome = (d, i, tipo) => safeText(d.label || `${tipo} ${i + 1}`);
+  const opcoes = (lista, id, tipo) => lista.map((d, i) => `<option value="${safeText(d.deviceId)}" ${d.deviceId === id ? "selected" : ""}>${nome(d, i, tipo)}</option>`).join("");
+  const chave = (id, rotulo, dica, ligado) => `<label class="ofc-chave"><input type="checkbox" ${ligado ? "checked" : ""} onchange="mudarProcessamentoAudio('${id}',this.checked)"><span><b>${rotulo}</b><small>${dica}</small></span></label>`;
+  el.innerHTML = `<div class="ofc-recado-topo"><b>Ajustes de áudio</b><button type="button" class="ofc-x" aria-label="Fechar" onclick="this.closest('section').remove()">×</button></div>
+${self ? `<label class="ofc-campo"><span>Microfone</span><select onchange="trocarDispositivoAudio('audioinput',this.value)">${opcoes(mics, atual.audio?.deviceId, "Microfone") || "<option>Nenhum microfone encontrado</option>"}</select></label>
+<div class="ofc-teste-mic"><small>Fale algo: a barra deve mexer.</small><i class="office-call-nivel" aria-hidden="true"><i id="office-nivel-teste"></i></i></div>
+<label class="ofc-campo"><span>Saída de som</span><select onchange="trocarDispositivoAudio('audiooutput',this.value)" ${saidas.length ? "" : "disabled"}>${opcoes(saidas, atual.speaker?.deviceId, "Saída") || "<option>Padrão do sistema</option>"}</select></label>
+${saidas.length ? "" : '<small class="ofc-fila-nota">Este navegador não deixa escolher a saída; use a do sistema.</small>'}` : '<p class="ofc-fila-nota">Entre numa sala para escolher o microfone e a saída. Os ajustes abaixo já valem para a próxima conversa.</p>'}
+${chave("ruido", "Redução de ruído", "Corta barulho de fundo constante.", p.noiseSupression)}
+${chave("eco", "Cancelamento de eco", "Evita que sua caixa de som volte no microfone.", p.echoCancellation)}
+${chave("ganho", "Ganho automático", "Ajusta a sensibilidade do microfone sozinho. Desligue se sua voz ficar baixa ou estourando.", p.autoGainControl)}`;
+  // Barra de teste ao vivo do próprio microfone.
+  clearInterval(escritorio.timerTesteMic);
+  escritorio.timerTesteMic = setInterval(() => {
+    const barraTeste = document.getElementById("office-nivel-teste");
+    if (!barraTeste) { clearInterval(escritorio.timerTesteMic); return; }
+    const f = escritorio.chamada && escritorioNivelAudio.fontes.get(escritorio.chamada.self.id);
+    if (!f) { barraTeste.style.width = "0%"; return; }
+    f.an.getByteTimeDomainData(f.dados);
+    let soma = 0; for (const v of f.dados) soma += (v - 128) * (v - 128);
+    barraTeste.style.width = Math.round(Math.min(1, Math.sqrt(soma / f.dados.length) / 28) * 100) + "%";
+  }, 100);
+}
+async function trocarDispositivoAudio(tipo, id) {
+  const self = escritorio.chamada?.self;
+  if (!self) return;
+  try {
+    const lista = tipo === "audioinput" ? await self.getAudioDevices() : await self.getSpeakerDevices();
+    const d = lista.find((x) => x.deviceId === id);
+    if (!d) return;
+    await self.setDevice(d);
+    escritorioSalvarPrefsAudio(tipo === "audioinput" ? { microfone: id } : { saida: id });
+    escritorioNivelAudio.ultimoSom = Date.now(); escritorioNivelAudio.avisouMudo = false;
+    escritorioAviso(tipo === "audioinput" ? "Microfone trocado. Fale algo e veja a barra." : "Saída de som trocada.");
+    renderMidiaEscritorio();
+  } catch (e) {
+    escritorioAviso("Não foi possível trocar: " + e.message);
+  }
+}
+async function mudarProcessamentoAudio(qual, ligado) {
+  escritorioSalvarPrefsAudio({ [qual]: ligado });
+  if (!escritorio.chamada) return;
+  // Vale ao reconectar: sai e entra de novo na conversa da sala.
+  escritorioAviso("Aplicando o ajuste: reconectando a conversa…");
+  escritorio.reconectandoAudio = true;
+  try { await sairChamadaEscritorio(); await entrarChamadaEscritorio({ microfone: true }); }
+  finally { escritorio.reconectandoAudio = false; }
 }
 async function alternarMidiaEscritorio(tipo) {
   const self = escritorio.chamada?.self;
@@ -1819,6 +1908,15 @@ const escritorioNivelAudio = {
     }
   },
   marcar(p, nivel) {
+    // Microfone ligado e mudo por 8 s: provavelmente a entrada errada.
+    if (p === escritorio.chamada?.self && p.audioEnabled) {
+      if (nivel > 0.03) this.ultimoSom = Date.now();
+      else if (!this.avisouMudo && Date.now() - (this.ultimoSom ||= Date.now()) > 8000) {
+        this.avisouMudo = true;
+        escritorioAviso("Seu microfone não está captando som. Abra Ajustes de áudio e escolha outra entrada.");
+        document.getElementById("ofc-btn-audio")?.classList.add("alerta");
+      }
+    }
     const barra = document.querySelector(`.office-call-pessoa[data-participante="${CSS.escape(String(p.id))}"] .office-call-nivel i`);
     if (barra) barra.style.width = Math.round(nivel * 100) + "%";
     document.querySelector(`.office-call-rosto[data-participante="${CSS.escape(String(p.id))}"]`)?.classList.toggle("falando", nivel > 0.12);
@@ -1827,6 +1925,7 @@ const escritorioNivelAudio = {
   },
   parar() {
     clearInterval(this.relogio); this.relogio = null;
+    this.ultimoSom = 0; this.avisouMudo = false;
     for (const f of this.fontes.values()) { f.fonte.disconnect(); this.marcar(f.p, 0); }
     this.fontes.clear();
   },
@@ -1836,6 +1935,7 @@ async function sairChamadaEscritorio() {
   escritorio.chamada = null;
   escritorio.somBloqueado = false;
   escritorioNivelAudio.parar();
+  if (!escritorio.reconectandoAudio) document.getElementById("office-ajustes-audio")?.remove();
   try {
     await m?.leave();
   } catch {
