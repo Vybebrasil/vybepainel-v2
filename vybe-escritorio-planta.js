@@ -77,9 +77,11 @@ const ESCRITORIO_PLANTA = (() => {
   const p = (classe, x, y, dir = 2, estado = 0, altura = 0) => m.push([classe, x, y, dir, estado, altura]);
   // Auditório: telão na parede, púlpito sobre o tapete, refletores e plantas,
   // plateia olhando para o telão
-  p("army15_largescreen", 0, 4, 2, 1); p("js_exe_rug", 1, 3, 0); p("uni_lectern", 2, 4, 2);
+  // Telão de projeção encostado na parede (o painel fino de parede ficava um
+  // ladrilho para fora e torto), púlpito ao lado sobre o tapete.
+  p("uni_projector", 0, 3, 2); p("js_exe_rug", 1, 6, 0); p("uni_lectern", 2, 7, 2);
   p("spotlight", 1, 1, 2); p("spotlight", 1, 8, 2);
-  p("bohogarden_c21_cheeseplant", 4, 0, 2); p("bohogarden_c21_cheeseplant", 4, 8, 2);
+  p("bohogarden_c21_cheeseplant", 4, 0, 2);
   for (let f = 0; f < 6; f++) for (let c = 0; c < 5; c++) p("hc26_10", 6 + f * 2, 2 + c, 6);
   p("easter_c22_fanpalm", 17, 0); p("easter_c22_fanpalm", 17, 8); p("darkmodern_c20_speakers", 0, 1, 2); p("darkmodern_c20_speakers", 0, 7, 2);
   // Reunião: mesa comprida no meio, cadeiras dos dois lados, quadro e arquivos
@@ -163,8 +165,8 @@ const ESCRITORIO_PLANTA = (() => {
   p("darkmodern_c20_lowtable", 30, 42, 2); p("mafia_c26_sofa_dark", 30, 44, 0);
   p("mafia_c26_armchair_dark", 28, 42, 2); p("mafia_c26_armchair_dark", 34, 42, 6);
   p("theatre_plant", 28, 38, 2); p("theatre_plant", 35, 38, 2); p("modern_c17_floorlamp", 27, 45, 2, 1);
-  p("army15_largescreen", 42, 38, 4, 1);
-  p("hc23_6", 41, 42, 0); p("hc23_6", 41, 45, 0);
+  p("uni_projector", 41, 38, 4); p("js_exe_rug", 41, 42, 0);
+  p("hc23_6", 41, 43, 0); p("hc23_6", 41, 45, 0);
   p("modern_c17_floorlamp", 39, 38, 2, 1); p("modern_c17_floorlamp", 45, 38, 2, 1);
   p("hc25_6", 52, 38, 0, 1); p("disco_c26_jukebox", 54, 38, 0, 1);
   p("darkmodern_c20_rug", 52, 40, 0); p("spotlight", 51, 39, 2); p("spotlight", 57, 39, 6);
@@ -177,13 +179,18 @@ const ESCRITORIO_PLANTA = (() => {
   // Área externa: piscina (no piso), espreguiçadeiras, guarda-sóis, canteiro,
   // árvores longe do prédio, bancos.
   const piscina = { x0: 34, y0: 49, x1: 48, y1: 54 };
-  for (let i = 0; i < 7; i++) p("js_c16_lounger", 34 + i * 2, 55, 0);
-  p("tiki_parasol", 33, 55, 0); p("lido_parasol", 41, 56, 0); p("tiki_parasol", 49, 50, 0);
+  // Espreguiçadeiras com os pés para a piscina (a cabeça fica no lado de
+  // menor x, então só servem do lado esquerdo dela); embaixo, cadeiras de
+  // praia viradas para a água com mesinhas entre elas.
+  for (const y of [49, 51, 53]) p("js_c16_lounger", 30, y, 2);
+  for (const x of [35, 38, 41, 44, 47]) p("ducket_c26_seachair", x, 55, 0);
+  for (const x of [36, 42, 48]) p("ducket_c26_seasidetable", x, 55, 0);
+  p("tiki_parasol", 33, 56, 0); p("tiki_parasol", 49, 50, 0);
   // Canteiros de flores na frente do prédio, com vãos para passar.
   for (let i = 0; i < 12; i++) p("stone_flowerbed", 1 + i * 6, 48, 0, 1);
   p("lt_c26_banyantree", 3, 53, 2);
   for (const [x, y] of [[13, 55], [26, 55], [77, 48], [77, 56]]) p("olympus_c25_olivetree", x, y, 2);
-  for (const [x, y] of [[32, 49], [51, 54], [74, 3], [74, 15], [74, 27], [74, 39]]) p("vwave_c21_palm", x, y, 2);
+  for (const [x, y] of [[29, 56], [51, 54], [74, 3], [74, 15], [74, 27], [74, 39]]) p("vwave_c21_palm", x, y, 2);
   for (const [x, y] of [[8, 51], [20, 51], [14, 54]]) p("br_c25_stonebench", x, y, 0);
 
   // Textos e logo pintados nas paredes do fundo (x = parede de cima-direita).
@@ -195,7 +202,8 @@ const ESCRITORIO_PLANTA = (() => {
   ];
   // Corredores (linha laranja), postes da praça e o letreiro da Vybelândia.
   const corredores = [10.5, 23.5, 36.5];
-  const postes = [[2, 48], [12, 48], [24, 48], [52, 48], [62, 48], [73, 6], [73, 18], [73, 30], [73, 42], [45, 52], [30, 52]];
+  // Postes nos vãos entre os canteiros e fora da piscina.
+  const postes = [[4, 48], [16, 48], [28, 48], [40, 48], [52, 48], [64, 48], [73, 6], [73, 18], [73, 30], [73, 42], [51, 57], [28, 52]];
   const letreiro = { texto: "VYBELÂNDIA", de: 44, ate: 66 };
   return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro };
 })();

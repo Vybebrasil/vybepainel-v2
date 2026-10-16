@@ -135,12 +135,21 @@ for (const it of itens) {
     for (let i = 0; i < it.w && !achou; i++) for (let j = 0; j < it.h && !achou; j++) for (let l = -lado; l <= lado && !achou; l++) {
       const x = it.x + i + dx * k + (dy ? l : 0), y = it.y + j + dy * k + (dx ? l : 0);
       if (k > 1 && temParede(x - dx, y - dy, x, y)) continue;
+      if (x >= pi.x0 && x < pi.x1 && y >= pi.y0 && y < pi.y1) { achou = true; break; }
       const alvo = itens.find((o) => o !== it && !o.plano && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
       if (alvo && (FOCO.test(alvo.classe) || (alvo.assento && OLHA[alvo.dir] && ((OLHA[alvo.dir][0] === -dx && OLHA[alvo.dir][1] === -dy) || alvo.dir === it.dir)))) achou = true;
     }
   }
   if (!achou) problemas.push(`${it.classe} (${it.x},${it.y})${it.camada !== "geral" ? " em " + it.camada : ""} virado para o nada (direção ${it.dir})`);
 }
+// Postes (desenhados à parte) não ficam em cima de móvel nem dentro da piscina.
+for (const [x, y] of P.postes || []) {
+  if (ocup.has(`${x},${y}`)) problemas.push(`poste (${x},${y}) em cima de ${ocup.get(`${x},${y}`)}`);
+  if (x >= pi.x0 && x < pi.x1 && y >= pi.y0 && y < pi.y1) problemas.push(`poste (${x},${y}) dentro da piscina`);
+}
+// Painel fino de parede (largura menor que um ladrilho) não fica encostado de
+// verdade: aparece um ladrilho para fora e torto.
+for (const it of itens) if (/largescreen/.test(it.classe)) problemas.push(`${it.classe} (${it.x},${it.y}) é painel de parede; use um telão de chão`);
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));
 console.log(unicos.length ? unicos.join("\n") : "Planta sem problemas.");
