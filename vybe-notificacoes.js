@@ -22,6 +22,7 @@ async function carregarNotificacoes() {
     notificacoes = dados.notificacoes || [];
     pintarSino(dados.nao_lidas || 0);
     if (notificacoesAbertas) pintarListaNotificacoes();
+    if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
   } catch { /* sino ausente não pode atrapalhar o painel */ }
 }
 
@@ -88,6 +89,7 @@ async function marcarNotificacoesLidas() {
     notificacoes = notificacoes.map((n) => ({ ...n, lida_em: n.lida_em || new Date().toISOString() }));
     pintarSino(0);
     pintarListaNotificacoes();
+    if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
   } catch { /* sem efeito visível se falhar */ }
 }
 
@@ -102,6 +104,7 @@ async function abrirDoNotificacao(id, itemId) {
   if (alvo) alvo.lida_em = new Date().toISOString();
   pintarSino(notificacoes.filter((n) => !n.lida_em).length);
   pintarListaNotificacoes();
+  if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
   if (typeof openSearchItem === 'function') openSearchItem(itemId);
   alternarNotificacoes();
 }

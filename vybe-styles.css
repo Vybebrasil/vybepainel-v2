@@ -6244,3 +6244,9 @@ body.no-escritorio {overflow:hidden}
 .office-call-som:focus-visible {outline:2px solid #fff;outline-offset:2px}
 .mapa-pessoa.falando::after {content:"";position:absolute;left:8px;bottom:-5px;width:48px;height:18px;border-radius:50%;border:3px solid #4fd18b;box-shadow:0 0 10px #4fd18b;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.office-call-nivel i {transition:none}}
+
+/* Avisos no escritório: botão Painel com contagem e computador da mesa aceso. */
+.ofc-dock-btn[data-avisos=true] {background:#ff8a3526;color:#ffc79a}
+.mapa-obj.mapa-aviso {animation:mapa-aviso 1.6s ease-in-out infinite}
+@keyframes mapa-aviso {0%,100% {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35aa)} 50% {filter:drop-shadow(0 0 4px #ffb36b) drop-shadow(0 0 14px #ff8a35)}}
+@media(prefers-reduced-motion:reduce){.mapa-obj.mapa-aviso {animation:none;filter:drop-shadow(0 0 3px #ff8a35) drop-shadow(0 0 8px #ff8a35aa)}}
