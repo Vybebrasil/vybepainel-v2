@@ -644,6 +644,22 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
 
   // Personagens
   const pessoas = new Map(); // id → {no, img, x, y, dir, acao, figura}
+  // Bonecos no mesmo vão de profundidade: o mais ao fundo primeiro (o de trás
+  // nunca cobre o da frente). Antes um resto de divisão embaralhava a ordem.
+  const ordenarPessoas = () => {
+    const vaos = new Map();
+    for (const q of pessoas.values()) {
+      if (!q.vao) continue;
+      const k = q.vao[0];
+      if (!vaos.has(k)) vaos.set(k, []);
+      vaos.get(k).push(q);
+    }
+    for (const lista of vaos.values()) {
+      lista.sort((a, b) => a.frente - b.frente);
+      const [ini, fim] = lista[0].vao, passo = Math.max(1, Math.floor((Math.max(ini, fim) - ini + 1) / Math.max(1, lista.length)));
+      lista.forEach((q, i) => { q.no.style.zIndex = Math.min(Math.max(ini, fim), ini + i * passo); });
+    }
+  };
   const posicionarPessoa = (p) => {
     const t = mapaTela(p.x, p.y, origem);
     p.no.style.left = t.x + "px";
@@ -671,10 +687,12 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
       const dentro = rx >= m.caixa.x0 && rx < m.caixa.x1 && ry >= m.caixa.y0 && ry < m.caixa.y1;
       if (dentro || mapaAtras(m.caixa, eu)) max = Math.max(max, m.prof); else min = Math.min(min, m.prof);
     }
-    // Entre bonecos do mesmo vão, quem está mais à frente (x+y) por cima.
-    let z = sobre !== undefined ? sobre + 2 : max + 1 + ((rx + ry) % 8);
-    if (sobre === undefined && min < Infinity && z >= min) z = Math.max(max + 1, min - 1);
-    p.no.style.zIndex = z;
+    // Entre os móveis o boneco vai para o vão (max, min). A ordem entre bonecos
+    // no mesmo vão é feita depois, por quem está mais à frente (x+y).
+    p.vao = sobre !== undefined ? [sobre + 1, sobre + 9] : [max + 1, min < Infinity ? Math.max(max + 1, min - 1) : max + 9];
+    p.frente = p.x + p.y;
+    ordenarPessoas();
+    const z = Number(p.no.style.zIndex);
     // Área do boneco (de pé, ~100 px acima dos pés) para recortar paredes.
     recortar(p.id, t.x - 20, pe - 100, t.x + 20, pe, z);
   };
@@ -939,8 +957,18 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     alvo?.no.classList.add("mapa-aviso");
   }
   // Quem está falando na conversa ganha um anel verde nos pés.
+  // e o nome dele acende em verde com ondas piscando.
   function marcarFalando(id, falando) {
-    pessoas.get(String(id))?.no.classList.toggle("falando", Boolean(falando));
+    const p = pessoas.get(String(id));
+    if (!p) return;
+    p.no.classList.toggle("falando", Boolean(falando));
+    if (falando && !p.etiqueta.querySelector(".mapa-fala")) {
+      const f = document.createElement("span");
+      f.className = "mapa-fala";
+      f.setAttribute("aria-hidden", "true");
+      f.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>';
+      p.etiqueta.append(f);
+    }
   }
   function anexarVideo(id, stream) {
     const p = pessoas.get(id);

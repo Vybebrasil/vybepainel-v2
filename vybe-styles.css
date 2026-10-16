@@ -6385,3 +6385,22 @@ body.no-escritorio {overflow:hidden}
 .ofc-chave small {font:500 11px/1.35 var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
 #ofc-btn-audio.alerta {background:#ff8a3533;color:#ffc79a;animation:mapa-aviso 1.6s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){#ofc-btn-audio.alerta {animation:none}}
+
+/* Quem está falando: balão com ondas piscando sobre a cabeça */
+.mapa-fala {display:none;place-items:center;width:18px;height:18px;border-radius:50%;background:#4fd18b;color:#0b2a17}
+.mapa-pessoa.falando .mapa-etiqueta {border-color:#4fd18b;box-shadow:0 0 0 2px #4fd18b55,0 0 12px #4fd18b88}
+.mapa-pessoa.falando .mapa-fala {display:grid;animation:mapa-fala .8s ease-in-out infinite}
+@keyframes mapa-fala {0%,100% {transform:scale(1);opacity:1} 50% {transform:scale(1.2);opacity:.7}}
+@media(prefers-reduced-motion:reduce){.mapa-pessoa.falando .mapa-fala {animation:none}}
+
+/* Clientes no escritório */
+.ofc-clientes {display:flex;flex-direction:column;gap:8px;min-height:0}
+.ofc-busca-cliente {padding:8px 10px;border-radius:10px;border:1px solid #ffffff22;background:#00000040;color:inherit;font:500 13px var(--mac-ui)}
+.ofc-clientes-lista {list-style:none;margin:0;padding:0;display:grid;gap:2px;overflow-y:auto;min-height:0}
+.ofc-clientes-lista li {display:grid;gap:5px;padding:8px;border-radius:10px}
+.ofc-clientes-lista li:hover {background:#ffffff0c}
+.ofc-clientes-lista b {font:600 13px var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-clientes-lista small {font:500 11px var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
+.ofc-clientes-lista li div {display:flex;gap:6px}
+.ofc-clientes-lista li.inativo b {opacity:.6}
+.ofc-clientes-lista a.ofc-mini {text-decoration:none;display:inline-flex;align-items:center}

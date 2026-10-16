@@ -111,12 +111,33 @@ function escritorioEmitir(type, payload) {
   if (escritorio.socket?.readyState === WebSocket.OPEN)
     escritorio.socket.send(JSON.stringify({ type, payload }));
 }
-async function conectarEscritorio() {
-  if (escritorio.conectando || escritorio.conectado) return;
+// Reconexão sem derrubar nada: a renovação da sessão (a cada 4,5 min) e as
+// quedas de rede abrem um socket novo por trás; a tela, o mapa e a conversa
+// por voz continuam. Só depois de várias tentativas volta para a entrada.
+function escritorioReconectar(motivo) {
+  clearTimeout(escritorio.timerReconexao);
+  const n = (escritorio.tentativasReconexao = (escritorio.tentativasReconexao || 0) + 1);
+  if (n > 8) {
+    escritorio.tentativasReconexao = 0;
+    escritorio.conectado = false;
+    escritorio.online = [];
+    sairChamadaEscritorio();
+    renderEscritorio();
+    escritorioAviso("A conexão caiu. Use Entrar no escritório para voltar.");
+    return;
+  }
+  if (motivo) escritorioAviso("Conexão instável. Reconectando…");
+  escritorio.timerReconexao = setTimeout(() => conectarEscritorio({ reconexao: true }), Math.min(10000, 600 * 2 ** (n - 1)));
+}
+function renovarSessaoEscritorio() {
+  escritorio.socketAntigo = escritorio.socket;
+  conectarEscritorio({ reconexao: true });
+}
+async function conectarEscritorio({ reconexao = false } = {}) {
+  if (escritorio.conectando || (escritorio.conectado && !reconexao)) return;
   escritorio.conectando = true;
   const geracao = escritorio.geracao;
-  atualizarPessoasEscritorio();
-  escritorioAviso("Conectando…");
+  if (!reconexao) { atualizarPessoasEscritorio(); escritorioAviso("Conectando…"); }
   try {
     const base = await escritorioApi("entrada");
     escritorio.base = base;
@@ -143,13 +164,29 @@ async function conectarEscritorio() {
       }
       if (e.type === "session:ready") {
         escritorio.conectando = false;
+        const jaEstava = escritorio.conectado;
         escritorio.conectado = true;
+        escritorio.tentativasReconexao = 0;
+        // Socket da sessão anterior (renovação): fecha sem efeito na tela.
+        const antigo = escritorio.socketAntigo;
+        escritorio.socketAntigo = null;
+        if (antigo && antigo !== socket) try { antigo.close(); } catch {}
         escritorioEmitir("presence:move", {
           sala: escritorio.sala,
+          zona: escritorio.zona,
           status: escritorio.status,
           x: escritorio.perfil.x || 50,
           y: escritorio.perfil.y || 75,
         });
+        if (escritorio.pose) escritorioEmitir("pose", { tipo: escritorio.pose });
+        clearInterval(escritorio.ping);
+        clearTimeout(escritorio.renovar);
+        if (jaEstava && reconexao) {
+          escritorio.renovar = setTimeout(renovarSessaoEscritorio, 270000);
+          escritorio.ping = setInterval(() => escritorioEmitir("system:ping", {}), 30000);
+          atualizarControlesEscritorio();
+          return;
+        }
         renderEscritorio();
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         setTimeout(() => escritorioMotorVoz().catch(() => {}), 1500);
@@ -159,10 +196,7 @@ async function conectarEscritorio() {
           () => escritorioEmitir("system:ping", {}),
           30000,
         );
-        escritorio.renovar = setTimeout(() => {
-          desconectarEscritorio(false);
-          conectarEscritorio();
-        }, 270000);
+        escritorio.renovar = setTimeout(renovarSessaoEscritorio, 270000);
       }
       if (
         e.type === "conversation:invite" &&
@@ -203,24 +237,27 @@ async function conectarEscritorio() {
       clearInterval(escritorio.ping);
       clearTimeout(escritorio.renovar);
       escritorio.conectando = false;
-      escritorio.conectado = false;
+      // Queda inesperada: tenta de novo sem sair da conversa nem voltar à entrada.
+      if (escritorio.conectado) { escritorioReconectar(true); return; }
       escritorio.online = [];
-      sairChamadaEscritorio();
       atualizarPessoasEscritorio();
-      escritorioAviso(
-        "Desconectado. Use Entrar no escritório para reconectar.",
-      );
+      escritorioAviso("Desconectado. Use Entrar no escritório para reconectar.");
       atualizarDockEscritorio();
     };
     socket.onerror = () =>
       escritorioAviso("Falha na conexão. Confira o acesso e tente novamente.");
   } catch (e) {
     escritorio.conectando = false;
+    if (reconexao && escritorio.conectado) { escritorioReconectar(true); return; }
     await sairChamadaEscritorio();
     escritorioAviso(e.message);
   }
 }
 function desconectarEscritorio(sairChamada = true) {
+  clearTimeout(escritorio.timerReconexao);
+  escritorio.tentativasReconexao = 0;
+  try { escritorio.socketAntigo?.close(); } catch {}
+  escritorio.socketAntigo = null;
   escritorio.geracao++;
   // Sair do escritório volta para a entrada da Vybelândia.
   if (sairChamada) escritorio.lobbyFechado = false;
@@ -291,6 +328,7 @@ function escritorioIcone(nome) {
     mapa: '<path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4"/>',
     pessoas: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5"/><path d="M16 4.6a3 3 0 010 6M18 14.8c1.6.8 2.6 2.5 3 5.2"/>',
     conversa: '<path d="M4 5h16v11H9l-5 4z"/>',
+    clientes: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>',
     ajuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8 1c0 1.7-2.4 2-2.4 3.6"/><path d="M12 17h.01"/>',
     espaco: '<circle cx="12" cy="8" r="3.6"/><path d="M5 21c.8-4.4 3.5-6.6 7-6.6s6.2 2.2 7 6.6"/>',
     painel: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>',
@@ -528,6 +566,7 @@ function renderEscritorio() {
  ${rail("lista", "lista", "Salas", "alternarModoEscritorio('lista')", modo === "lista")}
  ${rail("pessoas", "pessoas", "Pessoas", "alternarAbaEscritorio('pessoas')", lateral && aba === "pessoas")}
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
+ ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
  <span class="ofc-rail-fim"></span>
  ${escritorioCamadaParaEditar() ? rail("editar", "editar", escritorio.base.admin ? "Editar" : "Minha sala", escritorio.edicao ? "sairEditorEscritorio()" : "abrirEditorEscritorio()", Boolean(escritorio.edicao)) : ""}
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
@@ -541,6 +580,7 @@ function renderEscritorio() {
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><h4>Salas</h4><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div><p class="ofc-nota">Online indica presença, não produtividade.</p></div>
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><h3>${safeText(ESCRITORIO_SALAS[sala])}</h3><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para esta sala" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
+ <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
 </aside>
 <main class="ofc-principal">
  <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
@@ -619,6 +659,7 @@ function alternarAbaEscritorio(aba, manter) {
   escritorio.aba = aba;
   renderEscritorio();
   if (aba === "recados") atualizarRecadosEscritorio();
+  if (aba === "clientes") carregarClientesEscritorio();
 }
 function alternarModoEscritorio(modo) {
   escritorio.modo = modo;
@@ -653,9 +694,13 @@ function escritorioMudouLugar(x, y) {
   escritorio.mapa?.marcarZona(zona ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona) : null);
   // Como no SoWork: sair da zona encerra a conversa dela. Entrar numa sala
   // (decisão do Paulo) já entra na conversa dela com o microfone ligado.
+  // Pisar na porta ou no corredor por um instante não derruba a conversa:
+  // sai só se continuar fora por 1,5 s. Indo direto para outra sala, troca.
+  clearTimeout(escritorio.timerSaidaZona);
   if (saiuDaZona && escritorio.chamada) {
-    sairChamadaEscritorio();
-    escritorioAviso("Você saiu da sala e da conversa.");
+    const sair = () => { if (escritorio.chamada && escritorio.zona !== escritorio.zonaChamada) { sairChamadaEscritorio(); escritorioAviso("Você saiu da sala e da conversa."); } };
+    if (zona && zona !== "foco") sair();
+    else escritorio.timerSaidaZona = setTimeout(sair, 1500);
   }
   if (saiuDaZona) { escritorio.falhaConversa = ""; escritorioConversaAutomatica(); }
   atualizarCabecalhoEscritorio();
@@ -1379,6 +1424,54 @@ async function iniciarNoEscritorio() {
 function personalizarEscritorio() {
   abrirAberturaEscritorio("personagem");
 }
+// Clientes: a lista do cadastro (o mesmo da aba Clientes) com dois atalhos por
+// cliente: todas as demandas dele (Demandas filtrada pelo cliente) e o VybeHub
+// (portal do cliente, vybehub.vercel.app/cliente/<nome-do-cliente>).
+const ESCRITORIO_VYBEHUB = "https://vybehub.vercel.app";
+function escritorioSlugCliente(nome) {
+  return String(nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+async function carregarClientesEscritorio() {
+  if (typeof ensureClientMasterSources !== "function") return;
+  if (typeof CLIENT_MASTER_LOADED !== "undefined" && CLIENT_MASTER_LOADED) { atualizarClientesEscritorio(); return; }
+  try { await ensureClientMasterSources(); } catch {}
+  atualizarClientesEscritorio();
+}
+function atualizarClientesEscritorio() {
+  const el = document.getElementById("office-clientes");
+  if (!el) return;
+  const busca = el.querySelector("input")?.value || escritorio.buscaCliente || "";
+  el.innerHTML = escritorioClientesHtml();
+  const campo = el.querySelector("input");
+  if (campo && busca) { campo.value = busca; campo.focus(); campo.setSelectionRange(busca.length, busca.length); }
+}
+function escritorioClientesHtml() {
+  const lista = typeof CADASTRO_CLIENTES === "undefined" ? [] : CADASTRO_CLIENTES;
+  if (!lista.length) {
+    const erro = typeof CLIENT_MASTER_ERROR !== "undefined" && CLIENT_MASTER_ERROR;
+    return `<div class="office-chat-head"><h3>Clientes</h3></div><p class="ofc-nota">${erro ? safeText(erro) : "Carregando clientes…"}</p>`;
+  }
+  const busca = (escritorio.buscaCliente || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const ativo = (c) => c.ativo !== false && !/inativ/i.test(String(c.status || ""));
+  const filtrados = lista.filter((c) => !busca || String(c.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(busca))
+    .sort((a, b) => Number(ativo(b)) - Number(ativo(a)) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+  const linha = (c) => {
+    const nome = String(c.nome || ""), arg = safeText(JSON.stringify(nome));
+    return `<li class="${ativo(c) ? "" : "inativo"}"><b>${safeText(nome)}</b>${ativo(c) ? "" : "<small>Inativo</small>"}<div><button type="button" class="ofc-mini" onclick='abrirDemandasDoClienteEscritorio(${arg})'>Demandas</button><a class="ofc-mini" href="${ESCRITORIO_VYBEHUB}/cliente/${encodeURIComponent(escritorioSlugCliente(nome))}" target="_blank" rel="noopener">VybeHub ↗</a></div></li>`;
+  };
+  return `<div class="office-chat-head"><h3>Clientes</h3><a class="office-text-button" href="${ESCRITORIO_VYBEHUB}/admin" target="_blank" rel="noopener">VybeHub admin ↗</a></div>
+<input type="search" class="ofc-busca-cliente" placeholder="Buscar cliente" aria-label="Buscar cliente" value="${safeText(escritorio.buscaCliente || "")}" oninput="escritorio.buscaCliente=this.value;atualizarClientesEscritorio()" autocomplete="off">
+<ul class="ofc-clientes-lista">${filtrados.map(linha).join("") || '<li class="ofc-vazio">Nenhum cliente com esse nome.</li>'}</ul>`;
+}
+function abrirDemandasDoClienteEscritorio(nome) {
+  abrirPainelDoEscritorio("demandas");
+  // Mostra todas as demandas do cliente (em aberto e concluídas), só dele.
+  setTimeout(() => {
+    if (typeof escolherVisaoDemanda === "function") escolherVisaoDemanda("todas");
+    if (typeof clienteDemandasExato !== "undefined" && clienteDemandasExato === nome) return;
+    if (typeof escolherClienteDemandas === "function") escolherClienteDemandas(nome);
+  }, 60);
+}
 // Recados individuais: conversa de texto entre duas pessoas, guardada no Neon
 // até ser lida. O Worker só avisa que chegou; o texto vem da API autenticada.
 function escritorioRecadosNaoLidos() {
@@ -1647,6 +1740,7 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
     escritorio.chamada = meeting;
+    escritorio.zonaChamada = zonaInicial;
     escritorio.falhaConversa = "";
     escritorio.salaChamada = escritorioLugarDe(escritorio.perfil).nome;
     for (const evento of [
@@ -1661,6 +1755,16 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
       meeting.self.on(evento, renderMidiaEscritorio);
     // O navegador bloqueou o som até a pessoa interagir: o próximo clique ou
     // tecla em qualquer lugar já libera (o botão fica como atalho visível).
+    // A conversa caiu sozinha (rede, servidor de mídia): entra de novo na
+    // mesma sala sem a pessoa precisar fazer nada.
+    meeting.self.on("roomLeft", () => {
+      if (escritorio.chamada !== meeting) return;
+      escritorio.chamada = null;
+      escritorioNivelAudio.parar();
+      escritorioAviso("A conversa caiu. Reconectando…");
+      atualizarDockEscritorio();
+      setTimeout(escritorioConversaAutomatica, 1500);
+    });
     meeting.self.on("autoplayError", () => {
       escritorio.somBloqueado = true;
       renderMidiaEscritorio();

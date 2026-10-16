@@ -139,7 +139,7 @@ const ESCRITORIO_PLANTA = (() => {
   p("darkmodern_c20_rug", 52, 40, 0); p("spotlight", 51, 39, 2); p("spotlight", 57, 39, 6);
   for (const x of [37, 47]) p("theatre_plant", x, 38, 2);
   // Passagem do meio entre as salas: vasos altos dos dois lados, como uma rua da Vybelândia
-  for (const y of [15, 31]) { p("suncity_c19_plantpillar", 30, y, 2); p("suncity_c19_plantpillar", 33, y, 2); }
+  for (const y of [17, 31]) { p("suncity_c19_plantpillar", 30, y, 2); p("suncity_c19_plantpillar", 33, y, 2); }
   for (const y of [19, 27]) { p("suncity_c19_streetlight", 30, y, 2); p("suncity_c19_streetlight", 33, y, 2); }
   p("easter_c22_fanpalm", 38, 46); p("easter_c22_fanpalm", 50, 46);
 
