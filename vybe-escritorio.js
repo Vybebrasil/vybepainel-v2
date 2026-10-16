@@ -284,6 +284,11 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       if (e.type === "presence:update") {
         avisarEntradasEscritorio(escritorio.online, e.payload);
         escritorio.online = e.payload;
+        // Alguém entrou ou saiu da sua sala: passa (ou deixa) de ser ouvido.
+        if (escritorio.chamada) {
+          const ouvindo = escritorioOuvindo(escritorio.chamada).map((p) => p.id).join();
+          if (ouvindo !== escritorio.ouvindoAntes) { escritorio.ouvindoAntes = ouvindo; escritorioTocarVozes(); renderMidiaEscritorio(); }
+        }
         atualizarPessoasEscritorio();
         desenharMinimapaEscritorio();
       }
@@ -291,7 +296,10 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         carregarChatEscritorio();
       if (e.type === "realtime:error") escritorioAviso(e.payload.message);
       if (e.type === "zone:locks") {
+        const canalAntes = escritorioCanal();
         escritorio.trancas = new Map((e.payload || []).map((t) => [t.zona, new Set(t.permitidos)]));
+        // Trancaram (ou destrancaram) a sala onde você está: muda de conversa.
+        if (escritorioCanal() !== canalAntes) escritorioConversaAutomatica();
         escritorio.mapa?.marcarTrancas(new Set(escritorio.trancas.keys()));
         atualizarControlesEscritorio();
       }
@@ -332,6 +340,8 @@ async function conectarEscritorio({ reconexao = false } = {}) {
   }
 }
 function desconectarEscritorio(sairChamada = true) {
+  clearTimeout(escritorio.timerVoz);
+  clearTimeout(escritorio.timerConversa);
   // Saiu de propósito: não reconecta sozinho.
   if (sairChamada) { escritorio.querConectado = false; try { localStorage.removeItem("vybe-escritorio-dentro"); } catch {} }
   clearTimeout(escritorio.timerReconexao);
@@ -674,14 +684,14 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('video')", "camera", s.videoEnabled ? "Câmera ligada" : "Câmera desligada", `aria-pressed="${Boolean(s.videoEnabled)}"`) +
       botao("abrirAjustesAudioEscritorio()", "ajustes", "Ajustes de áudio", 'id="ofc-btn-audio"') +
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
-      `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>Na conversa da sala</span></span>`
-    // A conversa é automática por sala: sem botão de entrar. Só aparece o
-    // estado e, se falhou, "Tentar de novo".
-    : !escritorio.conectado || !escritorio.zona || escritorio.zona === "foco"
+      `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>${escritorioCanal() ? "Na conversa da sala" : escritorio.zona === "foco" ? "Foco: sem voz" : "Sem voz no corredor"}</span></span>`
+    // A conversa é automática: sem botão de entrar. Mostra a etapa e, se
+    // falhou, o motivo com "Tentar agora" (ela também tenta sozinha).
+    : !escritorio.conectado || (!escritorioCanal() && !escritorio.entrandoChamada && !escritorio.falhaConversa)
       ? `<span class="ofc-voz-estado">${escritorioIcone("fone")}<span>${escritorio.zona === "foco" ? "Foco: sem voz" : "Sem voz no corredor"}</span></span>`
       : escritorio.falhaConversa && !escritorio.entrandoChamada
-        ? botao("escritorio.falhaConversa='';entrarChamadaEscritorio({microfone:true})", "fone", "Voz falhou · tentar de novo", `title="${safeText(escritorio.falhaConversa)}"`, { texto: true, classe: "perigo" })
-        : `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>Conectando a voz…</span></span>`;
+        ? botao("escritorio.falhaConversa='';escritorio.tentativasVoz=0;escritorioConversaAutomatica()", "fone", "Voz não conectou · tentar agora", `title="${safeText(escritorio.falhaConversa)} (tentando de novo sozinho)"`, { texto: true, classe: "perigo" })
+        : `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>Conectando a voz${escritorio.etapaVoz ? ": " + safeText(escritorio.etapaVoz) : ""}…</span></span>`;
   el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="abrirFichaEscritorio(escritorio.base.eu)" aria-label="Sua ficha e personagem" title="Sua ficha e personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${(() => {
     // "Mais": o que se usa de vez em quando fica num menu só, para a barra
     // caber numa linha.
@@ -861,12 +871,13 @@ function escritorioMudouLugar(x, y) {
   // Pisar na porta ou no corredor por um instante não derruba a conversa:
   // sai só se continuar fora por 1,5 s. Indo direto para outra sala, troca.
   clearTimeout(escritorio.timerSaidaZona);
-  if (saiuDaZona && escritorio.chamada) {
-    const sair = () => { if (escritorio.chamada && escritorio.zona !== escritorio.zonaChamada) { sairChamadaEscritorio(); escritorioAviso("Você saiu da sala e da conversa."); } };
-    if (zona && zona !== "foco") sair();
-    else escritorio.timerSaidaZona = setTimeout(sair, 1500);
+  if (saiuDaZona) {
+    escritorio.falhaConversa = "";
+    // Pisar na porta ou no corredor por um instante não corta a voz: só
+    // depois de 1,2 s fora. Entrando numa sala, troca na hora.
+    if (escritorioCanal(zona)) escritorioConversaAutomatica();
+    else escritorio.timerSaidaZona = setTimeout(escritorioConversaAutomatica, 1200);
   }
-  if (saiuDaZona) { escritorio.falhaConversa = ""; escritorioConversaAutomatica(); }
   atualizarCabecalhoEscritorio();
   atualizarControlesEscritorio();
 }
@@ -1841,7 +1852,19 @@ async function enviarChatEscritorio(form) {
 // corredor não têm conversa por voz.
 // Motor de chamadas (~650 KB) baixado uma vez, logo ao entrar no escritório,
 // para a primeira conversa não esperar o download.
+// A tela mostrada vai sem áudio do computador: com ele, a voz de quem está na
+// conversa era capturada de novo e voltava para a sala (voz em dobro, com
+// atraso). O SDK sempre pede áudio; aqui o pedido sai sem.
+function escritorioTelaSemAudio() {
+  const md = navigator.mediaDevices;
+  if (!md?.getDisplayMedia || md.getDisplayMedia.vybeSemAudio) return;
+  const original = md.getDisplayMedia.bind(md);
+  const semAudio = (c = {}) => original({ ...c, audio: false, systemAudio: "exclude", selfBrowserSurface: "exclude", surfaceSwitching: "include" });
+  semAudio.vybeSemAudio = true;
+  md.getDisplayMedia = semAudio;
+}
 function escritorioMotorVoz() {
+  escritorioTelaSemAudio();
   if (window.RealtimeKitClient) return Promise.resolve();
   escritorio.motorVoz ||= new Promise((resolve, reject) => {
     const s = document.createElement("script");
@@ -1862,16 +1885,50 @@ function escritorioTokenDaZona(zona) {
   escritorio.tokenPrevio = { zona, em: Date.now(), promessa };
   return promessa;
 }
+// Canal de voz: os espaços abertos dividem uma conversa só ("escritorio") e
+// cada um ouve apenas quem está na mesma sala; trocar de sala é instantâneo.
+// Sala trancada tem conversa própria (o som não sai dela). Foco e corredor
+// não têm voz (o microfone desliga, nada toca).
+function escritorioCanal(zona = escritorio.zona) {
+  if (!zona || zona === "foco") return null;
+  return escritorio.trancas?.has(zona) ? zona : "escritorio";
+}
 function escritorioConversaAutomatica() {
   clearTimeout(escritorio.timerConversa);
-  const zona = escritorio.zona;
-  if (!zona || zona === "foco" || !escritorio.conectado || escritorio.base?.demo) return;
+  if (!escritorio.conectado || escritorio.base?.demo) return;
+  // Corredor/Foco: fica na conversa geral (pronta para a próxima sala), só
+  // sem microfone e sem som; da sala trancada, sai.
+  const alvo = escritorioCanal() || "escritorio";
   escritorioMotorVoz().catch(() => {});
-  escritorioTokenDaZona(zona);
+  if (escritorio.chamada && escritorio.canalChamada === alvo) { escritorioSincronizarVoz(); return; }
+  if (escritorio.entrandoChamada) { escritorio.timerConversa = setTimeout(escritorioConversaAutomatica, 800); return; }
+  escritorioTokenDaZona(alvo);
   escritorio.timerConversa = setTimeout(async () => {
-    if (escritorio.zona !== zona || escritorio.chamada || escritorio.entrandoChamada) return;
-    await entrarChamadaEscritorio({ microfone: true });
-  }, 600);
+    if ((escritorioCanal() || "escritorio") !== alvo || escritorio.entrandoChamada) return;
+    if (escritorio.chamada && escritorio.canalChamada !== alvo) await sairChamadaEscritorio();
+    if (!escritorio.chamada) await entrarChamadaEscritorio({ canal: alvo });
+  }, alvo === "escritorio" ? 0 : 400);
+}
+// Microfone e som acompanham o lugar, sem sair da conversa: na sala, o
+// microfone volta como a pessoa deixou; no corredor ou no Foco, desliga.
+async function escritorioSincronizarVoz() {
+  const m = escritorio.chamada;
+  if (!m) return;
+  const ativa = Boolean(escritorioCanal());
+  const quer = escritorio.microfoneQuer !== false;
+  try {
+    if (ativa && quer && !m.self.audioEnabled && !escritorio.erroMic) {
+      await m.self.enableAudio();
+      if (!m.self.audioEnabled) { escritorio.erroMic = await escritorioDiagnosticarMic(); escritorio.callAberta = true; }
+    } else if (!ativa && m.self.audioEnabled) await m.self.disableAudio();
+  } catch {
+    if (ativa) { escritorio.erroMic = await escritorioDiagnosticarMic(); escritorio.callAberta = true; }
+  }
+  if (!ativa && m.self.screenShareEnabled) await m.self.disableScreenShare().catch(() => {});
+  escritorio.salaChamada = ativa ? escritorioLugarDe(escritorio.perfil).nome : "sem voz aqui";
+  escritorioTocarVozes();
+  renderMidiaEscritorio();
+  atualizarControlesEscritorio();
 }
 // Cada etapa da conversa tem prazo: em vez de ficar em "Preparando conversa…"
 // para sempre, a pessoa vê em qual etapa parou (e o console guarda o motivo).
@@ -1882,7 +1939,7 @@ function escritorioComPrazo(promessa, ms, etapa) {
     new Promise((_, rej) => { timer = setTimeout(() => rej(new Error(`A conversa não abriu (${etapa}). Tente de novo.`)), ms); }),
   ]).finally(() => clearTimeout(timer));
 }
-async function entrarChamadaEscritorio({ microfone = false } = {}) {
+async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritorio", microfone = Boolean(escritorioCanal()) && escritorio.microfoneQuer !== false } = {}) {
   if (escritorio.chamada || escritorio.entrandoChamada) return;
   if (!escritorio.conectado) {
     escritorioAviso("Entre no escritório antes de abrir uma conversa.");
@@ -1895,12 +1952,15 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
   escritorioAviso("Preparando conversa…");
   let meeting;
   try {
-    if (!escritorio.zona) throw new Error("Entre numa sala para conversar.");
-    const d = await escritorioComPrazo(escritorioTokenDaZona(escritorio.zona), 15000, "servidor da conversa");
+    escritorio.etapaVoz = "pedindo acesso à conversa";
+    atualizarControlesEscritorio();
+    const d = await escritorioComPrazo(escritorioTokenDaZona(canal), 12000, "servidor da conversa");
     escritorio.tokenPrevio = null; // cada token entra uma vez
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
+    escritorio.etapaVoz = "carregando o motor de chamadas";
     await escritorioComPrazo(escritorioMotorVoz(), 20000, "carregando o motor de chamadas");
+    escritorio.etapaVoz = "conectando o áudio";
     // O próprio SDK toca o áudio de todos (um elemento só, sem eco de cópias);
     // se o navegador bloquear, aparece o botão "Ativar som da conversa".
     // Com microfone, o SDK já pega o áudio enquanto entra (mais rápido que
@@ -1908,7 +1968,9 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     const iniciar = (audio) => escritorioComPrazo(window.RealtimeKitClient.init({
       authToken: d.authToken,
       defaults: { audio, video: false, mediaConfiguration: { audio: escritorioPrefsAudio(), screenshare: escritorioLimiteTela() } },
-      modules: { experimentalAudioPlayback: true },
+      // O som de cada pessoa é tocado pelo painel (escritorioTocarVozes): só
+      // quem está na mesma sala, com o volume de cada um e sem cópias.
+      modules: { experimentalAudioPlayback: false },
     }), 20000, "iniciando a chamada");
     try { meeting = await iniciar(Boolean(microfone)); }
     catch (e) { if (!microfone) throw e; console.warn("Chamada com microfone:", e); meeting = await iniciar(false); }
@@ -1919,7 +1981,10 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
     escritorio.chamada = meeting;
-    escritorio.zonaChamada = zonaInicial;
+    escritorio.canalChamada = canal;
+    escritorio.zonaChamada = canal;
+    escritorio.tentativasVoz = 0;
+    escritorio.etapaVoz = "";
     escritorio.falhaConversa = "";
     escritorio.salaChamada = escritorioLugarDe(escritorio.perfil).nome;
     for (const evento of [
@@ -1929,7 +1994,7 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
       "videoUpdate",
       "screenShareUpdate",
     ])
-      meeting.participants.joined.on(evento, renderMidiaEscritorio);
+      meeting.participants.joined.on(evento, () => { escritorioTocarVozes(); renderMidiaEscritorio(); });
     for (const evento of ["audioUpdate", "videoUpdate", "screenShareUpdate"])
       meeting.self.on(evento, renderMidiaEscritorio);
     // O navegador bloqueou o som até a pessoa interagir: o próximo clique ou
@@ -1940,9 +2005,10 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
       if (escritorio.chamada !== meeting) return;
       escritorio.chamada = null;
       escritorioNivelAudio.parar();
+      escritorioPararVozes();
       escritorioAviso("A conversa caiu. Reconectando…");
       atualizarDockEscritorio();
-      setTimeout(escritorioConversaAutomatica, 1500);
+      escritorioTentarVozDeNovo();
     });
     meeting.self.on("autoplayError", () => {
       escritorio.somBloqueado = true;
@@ -1953,8 +2019,9 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
       document.addEventListener("pointerdown", liberar, { once: true, capture: true });
       document.addEventListener("keydown", liberar, { once: true, capture: true });
     });
-    // Mudou de sala enquanto entrava: não fica numa conversa que não é a dela.
-    if (escritorio.zona !== zonaInicial) { await sairChamadaEscritorio(); return; }
+    // Mudou de lugar enquanto entrava: a conversa geral só acerta microfone e
+    // som; a de uma sala trancada que ficou para trás é deixada.
+    if ((escritorioCanal() || "escritorio") !== canal) { await sairChamadaEscritorio(); escritorioConversaAutomatica(); return; }
     let semMicrofone = false;
     escritorio.erroMic = null;
     if (microfone && !meeting.self.audioEnabled) {
@@ -1964,6 +2031,8 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
       if (!meeting.self.audioEnabled) { semMicrofone = true; escritorio.erroMic = await escritorioDiagnosticarMic(); escritorio.callAberta = true; }
     }
     renderEscritorio();
+    escritorioTocarVozes();
+    if (!escritorioCanal()) return;
     escritorioAviso(!microfone ? "Conversa aberta. Microfone e câmera estão desligados."
       : semMicrofone ? "Você está ouvindo, mas seu microfone não ligou: " + (escritorio.erroMic?.titulo || "veja o motivo na conversa").toLowerCase() + "."
       : "Você entrou na conversa da sala: quem está aqui ouve você. Clique no microfone para silenciar.");
@@ -1971,7 +2040,9 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     console.warn("Conversa do escritório:", e);
     await meeting?.leave().catch(() => {});
     escritorio.falhaConversa = e.message;
-    escritorioAviso(e.message);
+    escritorio.etapaVoz = "";
+    escritorioAviso(e.message + " Tentando de novo…");
+    escritorioTentarVozDeNovo();
   } finally {
     escritorio.entrandoChamada = false;
     atualizarDockEscritorio();
@@ -2126,6 +2197,8 @@ async function alternarMidiaEscritorio(tipo) {
   if (!self) return;
   try {
     if (tipo === "audio") {
+      if (!self.audioEnabled && !escritorioCanal()) return escritorioAviso("Aqui não tem voz. Entre numa sala para falar.");
+      escritorio.microfoneQuer = !self.audioEnabled;
       await self[self.audioEnabled ? "disableAudio" : "enableAudio"]();
       escritorio.erroMic = self.audioEnabled ? null : escritorio.erroMic;
     }
@@ -2170,10 +2243,10 @@ function renderMidiaEscritorio() {
     b.type = "button";
     b.className = "office-call-som";
     b.textContent = "Ativar som da conversa";
-    b.onclick = async () => { try { await meeting.self.playAudio(); escritorio.somBloqueado = false; } catch {} renderMidiaEscritorio(); };
+    b.onclick = escritorioDesbloquearSom;
     el.append(b);
   }
-  for (const p of [meeting.self, ...escritorioOutrosNaChamada(meeting)]) {
+  for (const p of [meeting.self, ...escritorioOuvindo(meeting)]) {
     const eu = p === meeting.self;
     const tile = document.createElement("div");
     tile.className = "office-call-pessoa";
@@ -2236,13 +2309,13 @@ function renderMidiaEscritorio() {
     }
     el.append(tile);
   }
-  escritorioNivelAudio.acompanhar([meeting.self, ...escritorioOutrosNaChamada(meeting)]);
+  escritorioNivelAudio.acompanhar([meeting.self, ...escritorioOuvindo(meeting)]);
   // Depois do SDK (que repõe a voz no próprio mix a cada mudança de áudio).
   setTimeout(aplicarVolumesEscritorio, 0);
   escritorioPreviaTela(meeting.self);
   // Barra compacta: um rosto (iniciais) por pessoa; quem fala acende.
   const rostos = document.getElementById("office-call-rostos");
-  if (rostos) rostos.innerHTML = [meeting.self, ...escritorioOutrosNaChamada(meeting)].map((p) => {
+  if (rostos) rostos.innerHTML = [meeting.self, ...escritorioOuvindo(meeting)].map((p) => {
     const ini = String(p.name || "?").split(/\s+/).slice(0, 2).map((x) => x[0] || "").join("").toUpperCase();
     // Rosto do boneco da pessoa (iniciais se a imagem não vier).
     const pessoa = p === meeting.self ? String(escritorio.base?.eu) : String(p.customParticipantId || "").split(":")[0];
@@ -2253,7 +2326,7 @@ function renderMidiaEscritorio() {
   // Vídeo de cada pessoa também numa bolha sobre o boneco dela no mapa. O id
   // do participante é "pessoa:código", criado pelo servidor.
   const comVideo = new Map();
-  for (const p of [meeting.self, ...escritorioOutrosNaChamada(meeting)]) {
+  for (const p of [meeting.self, ...escritorioOuvindo(meeting)]) {
     const pessoa = p === meeting.self ? String(escritorio.base?.eu) : String(p.customParticipantId || "").split(":")[0];
     if (pessoa && p.videoEnabled && p.videoTrack) comVideo.set(pessoa, new MediaStream([p.videoTrack]));
   }
@@ -2393,10 +2466,11 @@ async function trocarTelaEscritorio() {
 async function sairChamadaEscritorio() {
   const m = escritorio.chamada;
   escritorio.chamada = null;
+  escritorio.canalChamada = null;
+  escritorio.ouvindoAntes = "";
   escritorio.somBloqueado = false;
   escritorioNivelAudio.parar();
-  for (const el of escritorioSonsPessoas.values()) { el.srcObject = null; el.remove(); }
-  escritorioSonsPessoas.clear();
+  escritorioPararVozes();
   if (!escritorio.reconectandoAudio) document.getElementById("office-ajustes-audio")?.remove();
   try {
     await m?.leave();
@@ -2509,26 +2583,17 @@ function silenciarPessoaEscritorio(id) {
   guardarVolumePessoa(id, { mudo: !escritorioVolumePessoa(id).mudo });
   renderMidiaEscritorio();
 }
-function aplicarVolumesEscritorio() {
+function aplicarVolumesEscritorio() { escritorioTocarVozes(); }
+// Toca a voz de quem está na mesma sala (cada um num áudio próprio, com o
+// volume que você escolheu). Fora de sala com voz, nada toca.
+function escritorioTocarVozes() {
   const m = escritorio.chamada;
-  if (!m?.audio) return;
   const vistos = new Set();
-  // Conexão antiga da mesma pessoa (recarregou a página, a rede caiu) ainda na
-  // sala: nunca toca (senão você ouve a própria voz ou a pessoa em dobro).
-  const validos = new Set(escritorioOutrosNaChamada(m));
-  for (const p of m.participants.joined.toArray()) if (!validos.has(p)) { try { m.audio.removeParticipantTrack(p.id); } catch {} }
-  for (const p of validos) {
-    const id = String(p.customParticipantId || "").split(":")[0];
-    const v = escritorioVolumePessoa(id);
+  for (const p of m && escritorioCanal() ? escritorioOuvindo(m) : []) {
     const trilha = p.audioEnabled && p.audioTrack;
+    if (!trilha) continue;
+    const v = escritorioVolumePessoa(String(p.customParticipantId || "").split(":")[0]);
     let el = escritorioSonsPessoas.get(p.id);
-    if (!trilha || (v.vol === 100 && !v.mudo)) {
-      // Volume normal: volta para o mix do SDK.
-      if (el) { el.srcObject = null; el.remove(); escritorioSonsPessoas.delete(p.id); if (trilha) try { m.audio.addParticipantTrack(p.id, trilha); } catch {} }
-      continue;
-    }
-    vistos.add(p.id);
-    try { m.audio.removeParticipantTrack(p.id); } catch {}
     if (!el) {
       el = document.createElement("audio");
       el.autoplay = true;
@@ -2538,12 +2603,46 @@ function aplicarVolumesEscritorio() {
       const saida = escritorioLerPrefsAudio().saida;
       if (saida && typeof el.setSinkId === "function") el.setSinkId(saida).catch(() => {});
     }
+    vistos.add(p.id);
     if (el.srcObject?.getAudioTracks()[0] !== trilha) el.srcObject = new MediaStream([trilha]);
     el.muted = v.mudo;
     el.volume = v.vol / 100;
-    el.play?.().catch(() => {});
+    if (el.paused) el.play().then(() => { if (escritorio.somBloqueado) { escritorio.somBloqueado = false; renderMidiaEscritorio(); } }).catch(() => { if (!escritorio.somBloqueado) { escritorio.somBloqueado = true; renderMidiaEscritorio(); escritorioEsperarClique(); } });
   }
   for (const [id, el] of escritorioSonsPessoas) if (!vistos.has(id)) { el.srcObject = null; el.remove(); escritorioSonsPessoas.delete(id); }
+}
+function escritorioPararVozes() {
+  for (const el of escritorioSonsPessoas.values()) { el.srcObject = null; el.remove(); }
+  escritorioSonsPessoas.clear();
+}
+// O navegador bloqueia som antes do primeiro clique: o próximo clique ou tecla libera.
+function escritorioDesbloquearSom() {
+  for (const el of escritorioSonsPessoas.values()) el.play().catch(() => {});
+  escritorio.somBloqueado = false;
+  renderMidiaEscritorio();
+}
+function escritorioEsperarClique() {
+  document.addEventListener("pointerdown", escritorioDesbloquearSom, { once: true, capture: true });
+  document.addEventListener("keydown", escritorioDesbloquearSom, { once: true, capture: true });
+}
+// Quem você ouve: na conversa geral, só quem está na mesma sala (pela
+// presença do escritório); na sala trancada, todos da conversa dela.
+function escritorioOuvindo(meeting) {
+  const outros = escritorioOutrosNaChamada(meeting);
+  if (escritorio.canalChamada !== "escritorio") return outros;
+  const zona = escritorio.zona;
+  if (!escritorioCanal(zona)) return [];
+  const naSala = new Set((escritorio.online || []).filter((o) => o.zona === zona).map((o) => String(o.id)));
+  return outros.filter((p) => naSala.has(String(p.customParticipantId || "").split(":")[0]));
+}
+// Não conectou ou caiu: tenta de novo sozinho, cada vez esperando um pouco
+// mais (até 30 s), sem desistir enquanto a pessoa estiver no escritório.
+function escritorioTentarVozDeNovo() {
+  clearTimeout(escritorio.timerVoz);
+  if (!escritorio.conectado) return;
+  const n = (escritorio.tentativasVoz = (escritorio.tentativasVoz || 0) + 1);
+  escritorio.timerVoz = setTimeout(() => { if (!escritorio.chamada && !escritorio.entrandoChamada) escritorioConversaAutomatica(); }, Math.min(30000, 1000 * 2 ** Math.min(n - 1, 5)));
+  atualizarControlesEscritorio();
 }
 
 // Quem está na conversa, uma vez por pessoa: some a sua própria conexão
@@ -2555,6 +2654,9 @@ function escritorioOutrosNaChamada(meeting) {
   for (const p of meeting?.participants?.joined?.toArray?.() || []) {
     const id = String(p.customParticipantId || "").split(":")[0] || p.id;
     if (id === eu) continue;
+    // Duas entradas da mesma pessoa: fica a que está com som (ou a última).
+    const antes = porPessoa.get(id);
+    if (antes && antes.audioEnabled && !p.audioEnabled) continue;
     porPessoa.set(id, p);
   }
   return [...porPessoa.values()];

@@ -177,3 +177,11 @@ Após login do responsável na Cloudflare, foi confirmado:
 - Qualidade da tela mostrada: quem mostra escolhe Nítida, Equilibrada ou Leve;
   quem assiste pede (`screen:quality`) e quem mostra aplica com um clique. O
   RealtimeKit não entrega qualidades diferentes da tela para cada espectador.
+- Conversa única (`escritorioCanal`): espaços abertos → canal `escritorio`;
+  sala trancada → canal da zona. O SDK não toca áudio
+  (`experimentalAudioPlayback: false`); `escritorioTocarVozes` toca só quem
+  está na mesma zona (presença do Worker), com volume por pessoa. Cada pessoa
+  reaproveita o participante (`vybe_escritorio_salas`, chave
+  `p:<pessoa>:<canal>`, token renovado em `/participants/<id>/token`). A tela
+  mostrada vai sem áudio do sistema. Falha ou queda tentam de novo sozinhas
+  (1 s, 2 s, 4 s… até 30 s).

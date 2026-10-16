@@ -98,9 +98,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
   conserva apenas presença/posição transitórias. O motor RealtimeKit do VybeChat
   é reaproveitado para mídia, com credenciais exclusivamente no servidor.
-- Voz por sala (decisão do Paulo, 16/10/2026): ficar numa sala entra na conversa
-  dela com o microfone ligado e sair da sala sai da conversa; Foco e corredor
-  não têm voz. A câmera começa desligada. O microfone ligado fica sempre visível
+- Voz por sala (decisão do Paulo, 16/10/2026): numa sala a pessoa fala e ouve
+  quem está nela, com o microfone ligado; Foco e corredor não têm voz. Desde
+  17/10/2026 (decisão do Paulo) os espaços abertos usam uma conversa única do
+  RealtimeKit e o painel só toca quem está na mesma sala, para trocar de sala
+  sem reconectar; o som das outras salas chega ao navegador sem tocar. Sala
+  trancada usa conversa própria, privada de verdade. A câmera começa desligada. O microfone ligado fica sempre visível
   e silenciar é um clique. Presença não é comprovação de produtividade. Não publique nem afirme validação de mídia
   apenas por abrir a demonstração. Consulte `docs/escritorio-vybechat.md`.
 

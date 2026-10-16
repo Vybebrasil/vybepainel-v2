@@ -857,3 +857,24 @@ test("perfil: piso pintado e paredes só no formato certo", () => {
   assert.equal(ruim.sala_pisos, "");
   assert.equal(ruim.sala_paredes, "");
 });
+
+test("chamada: conversa única do escritório e a mesma pessoa reaproveita o participante", async (t) => {
+  const { prepararChamadaEscritorio } = await import("../server/escritorio-chamadas.js");
+  const { db, sql } = await banco();
+  t.after(() => db.close());
+  const chamadas = [];
+  const fetchAntes = globalThis.fetch;
+  t.after(() => { globalThis.fetch = fetchAntes; });
+  globalThis.fetch = async (url, init) => {
+    chamadas.push([String(url).replace(/^.*\/kit\/app/, ""), init.method]);
+    const data = /\/token$/.test(url) ? { token: "renovado" } : /\/participants$/.test(url) ? { id: "part-1", token: "novo" } : { id: "reuniao-1" };
+    return { ok: true, json: async () => ({ success: true, data }) };
+  };
+  const env = { CLOUDFLARE_ACCOUNT_ID: "a", REALTIMEKIT_APP_ID: "app", CLOUDFLARE_REALTIME_API_TOKEN: "t" };
+  const pessoa = { id: 1, nome: "Paulo" };
+  assert.equal((await prepararChamadaEscritorio(sql, pessoa, "escritorio", env)).authToken, "novo");
+  // Reconectar: não cria outro participante, só renova o token.
+  assert.equal((await prepararChamadaEscritorio(sql, pessoa, "escritorio", env)).authToken, "renovado");
+  assert.deepEqual(chamadas.map(([u, m]) => m + " " + u), ["POST /meetings", "POST /meetings/reuniao-1/participants", "POST /meetings/reuniao-1/participants/part-1/token"]);
+  await assert.rejects(prepararChamadaEscritorio(sql, pessoa, "<x>", env), /Sala inválida/);
+});
