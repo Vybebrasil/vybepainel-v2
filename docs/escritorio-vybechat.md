@@ -65,6 +65,11 @@ Nada deste documento aplica migração ou publica serviços automaticamente.
    O token Realtime Admin fica somente no servidor. Não habilitar gravação automática.
 5. `VYBE_ORIGIN` no Worker deve ser exatamente o domínio do painel. Em homologação,
    usar Worker e banco separados; não ampliar origem de produção para localhost.
+   O ambiente `homologacao` do Wrangler fixa o Worker separado e a origem do
+   preview da branch `codex/escritorio-vybechat`. Implantar com
+   `npx wrangler deploy --env homologacao`, a partir de `services/escritorio`.
+   Não executar o deploy padrão durante o piloto. O segredo desse ambiente é
+   próprio; não é herdado do Worker de produção.
 6. Reimplantar o painel depois das variáveis. Confirmar com duas contas de teste
    autorizadas: entrada, saída, reconexão/expiração, isolamento de identidade,
    mensagem, convite, microfone, câmera, tela e retorno às atividades. Conferir
@@ -100,3 +105,14 @@ Após login do responsável na Cloudflare, foi confirmado:
   adaptador. Não usar `group-call-host`: esse nome não existe no aplicativo criado.
 - Não houve aplicação da migração em produção, alteração do Worker atual,
   publicação do módulo no painel ou alegação de chamada real funcionando.
+
+### Preparação posterior do preview
+
+- O responsável criou o token e salvou `CLOUDFLARE_REALTIME_API_TOKEN`; a interface
+  confirmou o nome em Preview, Production e Development, sem revelar o valor.
+- `CLOUDFLARE_ACCOUNT_ID`, `REALTIMEKIT_APP_ID` e `REALTIMEKIT_PRESET_NAME` foram
+  cadastrados como Config somente em Preview para o aplicativo isolado acima.
+- PR #129 permanece em rascunho. O primeiro preview e os checks do commit
+  `42f4d25` passaram; isso não valida presença, chamadas nem escrita remota.
+- A migração, banco isolado, Worker e segredo compartilhado de sessão ainda
+  precisam de configuração antes de iniciar testes com pessoas.
