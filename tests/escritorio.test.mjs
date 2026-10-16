@@ -574,3 +574,14 @@ test("boneco: guarda a cópia na primeira vez e depois não chama o site", async
   await assert.rejects(bonecoEscritorio(sql, '"><script>', 2, site), /inválido/);
   await assert.rejects(bonecoEscritorio(sql, "hd-180-1", 9, site), /inválido/);
 });
+
+test("Worker aceita só os endereços do painel listados, por igualdade exata", async () => {
+  const worker = (await import("../services/escritorio/worker.js")).default;
+  const env = { VYBE_ORIGIN: "https://vybepainel-v2.vercel.app,https://vybepainel-v2-vybe-hub.vercel.app", ESCRITORIO: { idFromName: () => "id", get: () => ({ fetch: () => new Response("ok") }) } };
+  const pedir = (origem) => worker.fetch(new Request("https://w.test/room/vybe-os", { headers: origem ? { Origin: origem } : {} }), env);
+  assert.equal((await pedir("https://vybepainel-v2.vercel.app")).status, 200);
+  assert.equal((await pedir("https://vybepainel-v2-vybe-hub.vercel.app")).status, 200);
+  assert.equal((await pedir("https://vybepainel-v2.vercel.app.evil.test")).status, 403);
+  assert.equal((await pedir("https://evil.test")).status, 403);
+  assert.equal((await pedir(null)).status, 403);
+});

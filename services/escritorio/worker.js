@@ -63,8 +63,11 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === "/health")
       return Response.json({ ok: true, service: "vybe-escritorio" });
+    // VYBE_ORIGIN aceita mais de um endereço do painel, separados por vírgula
+    // (o oficial e o alias do time). Só a igualdade exata vale.
     const origem = req.headers.get("Origin");
-    if (origem !== env.VYBE_ORIGIN)
+    const permitidas = String(env.VYBE_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
+    if (!origem || !permitidas.includes(origem))
       return new Response("Origem não permitida", { status: 403 });
     if (url.pathname !== "/room/vybe-os")
       return new Response("Não encontrado", { status: 404 });
