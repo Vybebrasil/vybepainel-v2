@@ -25,6 +25,8 @@ export const CORES_ESCRITORIO = [
   "rosa",
   "grafite",
 ];
+export const PISOS_SALA_ESCRITORIO = ["", "madeira", "clara", "concreto", "carpete", "preto", "cafe", "verde", "deck", "lareira", "cinema", "pista"];
+export const PAREDES_SALA_ESCRITORIO = ["", "#ff8a35", "#ffb347", "#ffd166", "#ff6fa8", "#e05a5a", "#b48cff", "#7c6cff", "#5aa9ff", "#5ad1e6", "#7ee08a", "#3fb68b", "#e8e8ee", "#8a8f9c"];
 export function perfilEscritorio(valor = {}) {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) valor = {};
   const opcao = (campo, lista, padrao) =>
@@ -47,6 +49,9 @@ export function perfilEscritorio(valor = {}) {
     figura: /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/.test(String(valor.figura || ""))
       ? String(valor.figura)
       : "",
+    // Piso e cor das paredes da própria sala (só valores conhecidos).
+    sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
+    sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
   };

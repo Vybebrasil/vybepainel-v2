@@ -475,8 +475,20 @@ function escritorioPlantaComMesas() {
   return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais(), imagens: escritorio.base?.mapa?.imagens || [] };
 }
 // Nomes das salas individuais conforme o dono informado pelo servidor.
+// Piso e cor das paredes que o dono escolheu (perfil); sem escolha, o padrão.
 function escritorioAplicarSalas() {
-  for (const a of ESCRITORIO_PLANTA.ambientes) if (a.pessoal) a.nome = escritorioNomeDaSala(a);
+  const donos = new Map((escritorio.base?.salas || []).map((s) => [s.id, s.pessoa_id]));
+  for (const a of ESCRITORIO_PLANTA.ambientes) {
+    if (!a.pessoal) continue;
+    a.nome = escritorioNomeDaSala(a);
+    a.pisoPadrao ??= a.piso;
+    a.corPadrao ??= a.cor;
+    const dono = donos.get(a.id);
+    const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
+    a.piso = perfil?.sala_piso && ESCRITORIO_PLANTA.PISO[perfil.sala_piso] ? perfil.sala_piso : a.pisoPadrao;
+    a.cor = /^#[0-9a-f]{6}$/i.test(perfil?.sala_parede || "") ? perfil.sala_parede : a.corPadrao;
+  }
+  for (const d of ESCRITORIO_PLANTA.divisorias) if (d.sala) d[4] = ESCRITORIO_PLANTA.ambientes.find((a) => a.id === d.sala)?.cor || d[4];
 }
 // Ao chegar, a pessoa aparece sentada na própria mesa; sem sala, na recepção.
 function escritorioChegar() {
@@ -569,7 +581,7 @@ function atualizarPessoasEscritorio() {
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado),
         mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || "",
         dir: sentado ? dirAssento : ESCRITORIO_APARELHOS[voce ? escritorio.pose : p.pose] ? escritorioNoAparelho(Math.round(pos.x), Math.round(pos.y))?.dir : undefined, local: voce,
-        aoClicar: voce ? personalizarEscritorio : abrirRecadosEscritorio,
+        aoClicar: abrirFichaEscritorio,
       };
     }));
   }
@@ -623,6 +635,7 @@ function escritorioListaSalasHtml() {
 function atualizarControlesEscritorio() {
   const el = document.getElementById("office-controls");
   if (!el) return;
+  if (typeof atualizarBarraDiaEscritorio === "function") atualizarBarraDiaEscritorio();
   const c = escritorio.chamada, s = c?.self;
   // Dock numa linha só: só os botões principais mostram o nome; os outros são
   // ícone com nome no rótulo acessível e na dica do mouse.
@@ -641,7 +654,7 @@ function atualizarControlesEscritorio() {
       : escritorio.falhaConversa && !escritorio.entrandoChamada
         ? botao("escritorio.falhaConversa='';entrarChamadaEscritorio({microfone:true})", "fone", "Voz falhou · tentar de novo", `title="${safeText(escritorio.falhaConversa)}"`, { texto: true, classe: "perigo" })
         : `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>Conectando a voz…</span></span>`;
-  el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="personalizarEscritorio()" aria-label="Personalizar meu personagem" title="Personalizar meu personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${(() => {
+  el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="abrirFichaEscritorio(escritorio.base.eu)" aria-label="Sua ficha e personagem" title="Sua ficha e personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${(() => {
     // "Mais": o que se usa de vez em quando fica num menu só, para a barra
     // caber numa linha.
     const item = (acao, rotulo, extra = "") => `<button type="button" onclick="${acao};this.closest('details').open=false" ${extra}>${rotulo}</button>`;

@@ -839,3 +839,12 @@ test("conversa: a própria conexão antiga e entradas repetidas não aparecem ne
   const outros = c.escritorioOutrosNaChamada({ participants: { joined: { toArray: () => lista } } });
   assert.equal(JSON.stringify(outros.map((p) => p.id)), JSON.stringify(["c", "d"]));
 });
+
+test("perfil: piso e parede da sala só com valores conhecidos", () => {
+  const p = perfilEscritorio({ sala_piso: "pista", sala_parede: "#5ad1e6" });
+  assert.equal(p.sala_piso, "pista");
+  assert.equal(p.sala_parede, "#5ad1e6");
+  const q = perfilEscritorio({ sala_piso: "url(javascript:x)", sala_parede: "red;background:url(x)" });
+  assert.equal(q.sala_piso, "");
+  assert.equal(q.sala_parede, "");
+});

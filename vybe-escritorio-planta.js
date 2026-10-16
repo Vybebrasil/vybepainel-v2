@@ -88,7 +88,7 @@ const ESCRITORIO_PLANTA = (() => {
     const sala = ambientes.find((a) => a.pessoal && (x0 === x1
       ? x0 === a.x0 && y0 >= a.y0 && y1 <= a.y1
       : y0 === a.y0 && x0 >= a.x0 && x1 <= a.x1));
-    if (sala) d.push(sala.cor);
+    if (sala) { d.push(sala.cor); d.sala = sala.id; }
   }
   // Produção: o estúdio de gravação (x 0–10) fica separado das ilhas de edição
   // por uma divisória, com a passagem na frente.
