@@ -758,7 +758,7 @@ function montarMapaEscritorio() {
     escritorio.mapa.marcarZona(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorio.zona) || null);
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => escritorioDestravar());
+    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -1645,6 +1645,7 @@ async function carregarResumoRecados() {
   }
   if (!escritorio.recadoCom) atualizarRecadosEscritorio();
   atualizarPessoasEscritorio();
+  escritorioMarcarRecados();
   const abas = document.querySelector(".ofc-abas [onclick*=\"'recados'\"]");
   if (abas) abas.innerHTML = "Recados" + (escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : "");
 }
@@ -2520,4 +2521,13 @@ function escritorioNomeCurto(nome) {
   const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
   if (partes.length < 2) return partes[0] || "";
   return partes[0] + " " + partes.at(-1)[0].toUpperCase() + ".";
+}
+
+// Envelope aceso sobre a própria mesa enquanto houver recado não lido (só
+// quem recebeu vê). Clicar abre a conversa de quem mandou (ou a lista).
+function escritorioMarcarRecados() {
+  const mesa = escritorioMinhaMesa(), n = escritorioRecadosNaoLidos();
+  const de = Object.entries(escritorio.recadosResumo || {}).filter(([, q]) => q > 0).map(([id]) => id);
+  const nomes = de.slice(0, 3).map((id) => escritorioNomePessoa(id).split(" ")[0]).join(", ") + (de.length > 3 ? "…" : "");
+  escritorio.mapa?.marcarRecado?.(mesa?.x, mesa?.y, mesa ? n : 0, nomes, () => abrirRecadosEscritorio(de.length === 1 ? de[0] : null));
 }
