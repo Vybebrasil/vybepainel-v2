@@ -6619,3 +6619,8 @@ body.no-escritorio {overflow:hidden}
 .ofc-catalogo .ofc-amostras.cores {grid-template-columns:repeat(5,minmax(0,1fr))}
 .ofc-catalogo .ofc-amostras i {height:40px}
 .ofc-catalogo .ofc-amostras.cores i {height:32px}
+/* Selo no catálogo: quantos lados o móvel gira. */
+.ofc-movel {position:relative}
+.ofc-giro {padding:1px 6px;border-radius:6px;background:#ff8a3533;color:#ffc79a;font:700 9px var(--mac-ui);font-style:normal}
+.ofc-giro.nao {background:#ffffff14;color:var(--ofc-suave)}
+.ofc-editor-flutua button:disabled {opacity:.5;cursor:default}

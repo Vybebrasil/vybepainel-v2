@@ -295,7 +295,16 @@ async function carregarCatalogoEscritorio() {
 const ESCRITORIO_COMPUTADORES = [
   ["computer_flatscreen", "Computador de mesa"], ["computer_laptop", "Notebook"], ["uni_laptop", "Notebook da faculdade"],
   ["computer_old", "Computador antigo"], ["steampunk_computer", "Computador steampunk"], ["easter_c23_solarpunkcomputer", "Computador solar"],
-].map(([classe, nome]) => ({ classe, nome, categoria: "Computadores" }));
+].map(([classe, nome]) => ({ classe, nome, categoria: "Computadores", giros: classe === "easter_c23_solarpunkcomputer" ? 2 : 4 }));
+// Quantos lados o móvel tem (1 = não gira). Do catálogo; sem ele, do desenho já carregado.
+function escritorioGirosDe(classe) {
+  const m = (escritorioCatalogo || []).find((x) => x.classe === classe) || ESCRITORIO_COMPUTADORES.find((x) => x.classe === classe);
+  return m?.giros || 0;
+}
+function escritorioSeloGiro(giros) {
+  if (!giros) return "";
+  return giros < 2 ? '<em class="ofc-giro nao" title="Este móvel não gira">Não gira</em>' : `<em class="ofc-giro" title="Gira para ${giros} lados (R)">↻ ${giros} lados</em>`;
+}
 // Nome em português: o catálogo do Habbo vem em inglês. Traduz as palavras
 // mais comuns e põe o substantivo na frente ("Gray Sofa" → "Sofá cinza").
 const ESCRITORIO_SUBSTANTIVOS = { table: "Mesa", chair: "Cadeira", tree: "Árvore", lamp: "Luminária", sofa: "Sofá", corner: "Canto", divider: "Divisória", stool: "Banqueta", rug: "Tapete", plant: "Planta", bench: "Banco", shelf: "Prateleira", light: "Luz", lights: "Luzes", desk: "Escrivaninha", seat: "Assento", armchair: "Poltrona", flower: "Flor", flowers: "Flores", fence: "Cerca", floor: "Piso", wall: "Parede", counter: "Balcão", block: "Bloco", pillow: "Almofada", stage: "Palco", bookcase: "Estante", carpet: "Carpete", candles: "Velas", candle: "Vela", throne: "Trono", vase: "Vaso", lantern: "Lanterna", ball: "Bola", bush: "Arbusto", toilet: "Vaso sanitário", lounge: "Espreguiçadeira", cat: "Gato", screen: "Tela", scoreboard: "Placar", drinks: "Bebidas", tea: "Chá", pillar: "Pilar", chandelier: "Lustre", box: "Caixa", rock: "Pedra", bed: "Cama", garden: "Jardim", cushion: "Almofada", fan: "Ventilador", cactus: "Cacto", bonsai: "Bonsai", gate: "Portão", mattress: "Colchão", computer: "Computador", laptop: "Notebook", tv: "TV", fridge: "Geladeira", stove: "Fogão", sink: "Pia", cabinet: "Armário", crate: "Caixote", pot: "Vaso", torch: "Tocha", palm: "Palmeira", jukebox: "Jukebox", clock: "Relógio", mirror: "Espelho", window: "Janela", door: "Porta", statue: "Estátua", fountain: "Fonte", printer: "Impressora", whiteboard: "Quadro branco", bar: "Bar", railing: "Grade" };
@@ -337,7 +346,7 @@ const ESCRITORIO_GRUPOS_CATALOGO = [
   ["Cozinha e bar", (m) => m.categoria === "Cozinha" || /bardesk|bartable|minibar|fridge|drinks/.test(m.classe)],
   ["Casa e decoração", (m) => ["Casa", "Escritório", "Escola", "Cinema", "Brasil", "Cidade"].includes(m.categoria)],
 ];
-const ESCRITORIO_POR_PAGINA = 15;
+const ESCRITORIO_POR_PAGINA = 12;
 function escritorioTipoAssento(m) {
   if (m.categoria !== "Cadeiras e sofás" && !/armchair|beanbag|lounger|hangingchair/.test(m.classe)) return "";
   const n = String(m.nome).toLowerCase() + " " + m.classe;
@@ -389,7 +398,7 @@ function desenharCatalogoEscritorio() {
   } else lista = escritorioListaCatalogo(grupo);
   const paginas = Math.max(1, Math.ceil(lista.length / ESCRITORIO_POR_PAGINA));
   const pag = Math.min(paginas - 1, escritorio.catalogoPagina || 0);
-  const cartao = (m) => `<button type="button" class="ofc-movel" draggable="true" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span></button>`;
+  const cartao = (m) => `<button type="button" class="ofc-movel" draggable="true" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${escritorioSeloGiro(m.giros)}</button>`;
   el.innerHTML = !lista.length
     ? `<p class="ofc-nota">${busca ? "Nada com esse nome no catálogo do painel." : grupo === "Recentes" ? "Os móveis que você usar aparecem aqui." : "Nada nesta categoria."}</p>`
     : `<h4>${busca ? `${lista.length} encontrados` : safeText(grupo)}</h4><div class="ofc-moveis">${lista.slice(pag * ESCRITORIO_POR_PAGINA, (pag + 1) * ESCRITORIO_POR_PAGINA).map(cartao).join("")}</div>${paginas > 1 ? `<div class="ofc-paginas"><button type="button" onclick="escritorio.catalogoPagina=${pag - 1};desenharCatalogoEscritorio()" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${paginas}</span><button type="button" onclick="escritorio.catalogoPagina=${pag + 1};desenharCatalogoEscritorio()" ${pag + 1 < paginas ? "" : "disabled"} aria-label="Próxima página">›</button></div>` : ""}`;
@@ -725,12 +734,13 @@ function acompanharSelecaoEditorEscritorio() {
     principal.append(barra);
   }
   const img = escritorioImagemDe(it[0]);
-  const chave = `${e.sel}|${it[0]}|${it[5]}`;
+  const giros = escritorioGirosDe(it[0]);
+  const chave = `${e.sel}|${it[0]}|${it[5]}|${giros}`;
   if (barra.dataset.chave !== chave) {
     barra.dataset.chave = chave;
     barra.innerHTML = img
       ? `<button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button>`
-      : `<button type="button" onclick="girarSelecionadoEscritorio()" title="Girar (R)">Girar</button><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar (Ctrl+D)">Duplicar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()" title="Põe a peça em cima de uma mesa">Em cima da mesa</button><button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="Apagar (Delete)">Apagar</button>`;
+      : `${giros === 1 ? '<button type="button" disabled title="Este móvel não gira">Não gira</button>' : `<button type="button" onclick="girarSelecionadoEscritorio()" title="Girar (R)${giros ? ` · ${giros} lados` : ""}">↻ Girar${giros ? ` · ${giros}` : ""}</button>`}<button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar (Ctrl+D)">Duplicar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()" title="Põe a peça em cima de uma mesa">Em cima da mesa</button><button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="Apagar (Delete)">Apagar</button>`;
   }
   const c = escritorioCantoCamada(e.camada), base = principal.getBoundingClientRect();
   const p = escritorio.mapa.naJanela(it[1] + c.x + 0.5, it[2] + c.y + 0.5);
