@@ -6444,3 +6444,16 @@ body.no-escritorio {overflow:hidden}
 .ofc-entrada.erro p {color:#ffb4a8;font-weight:500;line-height:1.45}
 .ofc-entrada button {width:100%}
 @media (prefers-reduced-motion: reduce) {.ofc-entrada-barra span {transition:none}}
+
+/* Editor: imagens da equipe (quadros e tapetes). */
+.ofc-imagem-form {display:grid;gap:10px;margin:4px 0 14px}
+.ofc-imagem-form label {display:grid;gap:4px;font-size:12px;color:var(--ofc-suave)}
+.ofc-imagem-form label, .ofc-imagem-tam label {min-width:0}
+.ofc-imagem-form input, .ofc-imagem-form select {box-sizing:border-box;width:100%;min-width:0;font:inherit;font-size:13px;color:var(--ofc-texto);background:#ffffff0d;border:1px solid var(--ofc-borda);border-radius:8px;padding:7px 8px}
+.ofc-imagem-tam {display:flex;align-items:end;gap:8px}
+.ofc-imagem-tam label {flex:1}
+.ofc-imagem-tam span, .ofc-imagem-tam small {padding-bottom:8px;color:var(--ofc-suave)}
+.ofc-imagem {display:grid;gap:4px}
+.ofc-imagem .ofc-movel img {object-fit:contain;background:#00000033;border-radius:6px}
+.ofc-imagem-apagar {font:inherit;font-size:11px;color:#ffb4a8;background:none;border:0;cursor:pointer;padding:2px}
+.ofc-imagem-apagar:focus-visible {outline:2px solid var(--ofc-laranja);border-radius:4px}

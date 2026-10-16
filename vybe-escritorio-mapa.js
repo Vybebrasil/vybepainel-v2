@@ -249,7 +249,10 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
 // Divisória entre ambientes: um bloco escuro baixo por ladrilho de aresta.
 // Divisória baixa (corredores, espaços comuns) ou parede alta de sala
 // individual: mais alta, com a cor da sala no acabamento e um rodapé.
-function mapaDivisoria(x, y, eixo, cor) {
+// fatias: pedaços de quadros da equipe pintados neste trecho de parede
+// ({ img, u0, u1, h }: a faixa da imagem, em fração da largura, e a altura em
+// ladrilhos de parede).
+function mapaDivisoria(x, y, eixo, cor, fatias = []) {
   const c = document.createElement("canvas");
   const alt = cor ? 82 : 46;
   c.width = MAPA_TW / 2 + 6; c.height = MAPA_TH / 2 + alt + 6;
@@ -266,6 +269,26 @@ function mapaDivisoria(x, y, eixo, cor) {
     g.globalAlpha = sobe ? 0.16 : 0.1; faixa(6, alt, cor); g.globalAlpha = 1;
     faixa(alt - 7, alt, cor);
     faixa(0, 6, "#00000055");
+  }
+  // Quadros: a imagem acompanha a parede (esquerda da tela = começo da imagem),
+  // centrada na altura, com uma moldura fina.
+  for (const f of fatias) {
+    const A = sobe ? { x: p0.x + 3, y: p0.y } : { x: p1.x + 3, y: p1.y };
+    const B = sobe ? { x: p1.x + 3, y: p1.y } : { x: p0.x + 3, y: p0.y };
+    const H = f.h * 22, base = Math.max(8, (alt - H) / 2);
+    const iw = f.img.naturalWidth, ih = f.img.naturalHeight;
+    if (!iw || !ih) continue;
+    g.save();
+    g.setTransform(B.x - A.x, B.y - A.y, 0, H, A.x, A.y - base - H);
+    g.drawImage(f.img, f.u0 * iw, 0, Math.max(1, (f.u1 - f.u0) * iw), ih, 0, 0, 1, 1);
+    g.restore();
+    g.strokeStyle = "#0b0b0fcc"; g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(A.x, A.y - base - H); g.lineTo(B.x, B.y - base - H);
+    g.moveTo(A.x, A.y - base); g.lineTo(B.x, B.y - base);
+    if (f.u0 === 0) { g.moveTo(A.x, A.y - base); g.lineTo(A.x, A.y - base - H); }
+    if (f.u1 >= 0.999) { g.moveTo(B.x, B.y - base); g.lineTo(B.x, B.y - base - H); }
+    g.stroke();
   }
   g.fillStyle = cor || "#4a4d57";
   g.beginPath(); g.moveTo(p0.x + 3, p0.y - alt); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p1.x + 3, p1.y - alt - 3); g.lineTo(p0.x + 3, p0.y - alt - 3); g.closePath(); g.fill();
@@ -525,7 +548,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
       palco.append(d.canvas);
       const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
-      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set() });
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor });
     }
   }
   // Móveis (animados ficam numa lista para trocar de quadro)
@@ -556,8 +579,68 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
       for (const m of moveis) if (chaveMovel(m) === chave) aplicarEstado(m, estado);
     }
   }
+  // Imagens da equipe ("vybeimg_<id>"): quadro pintado na parede alta da
+  // sala; tapete desenhado no piso (rente ao chão, dá para andar por cima).
+  const IMAGENS = new Map((P.imagens || []).map((i) => ["vybeimg_" + i.id, i]));
+  const urlImagem = (id) => (P.urlImagem ? P.urlImagem(id) : "/api/painel?area=escritorio&acao=imagem&id=" + encodeURIComponent(id));
+  const imagensCarregadas = new Map();
+  const carregarImagem = (id) => {
+    if (!imagensCarregadas.has(id)) imagensCarregadas.set(id, new Promise((ok, erro) => {
+      const img = new Image();
+      img.onload = () => ok(img);
+      img.onerror = () => erro(new Error("Imagem indisponível."));
+      img.src = urlImagem(id);
+    }));
+    return imagensCarregadas.get(id);
+  };
+  const quadrosParede = [];
+  function pintarParedes() {
+    for (const m of muros) {
+      if (!m.cor) continue;
+      const fatias = [];
+      for (const q of quadrosParede) {
+        if (q.dir === 4 && m.eixo === "x" && m.y === q.y && m.x >= q.x && m.x < q.x + q.w) {
+          const u0 = (m.x - q.x) / q.w; fatias.push({ img: q.img, u0, u1: u0 + 1 / q.w, h: q.h });
+        }
+        if (q.dir === 2 && m.eixo === "y" && m.x === q.x && m.y >= q.y && m.y < q.y + q.w) {
+          const u0 = (q.y + q.w - m.y - 1) / q.w; fatias.push({ img: q.img, u0, u1: u0 + 1 / q.w, h: q.h });
+        }
+      }
+      if (!fatias.length && !m.pintado) continue;
+      const d = mapaDivisoria(m.x, m.y, m.eixo, m.cor, fatias);
+      const g = m.no.getContext("2d");
+      g.clearRect(0, 0, m.no.width, m.no.height);
+      g.drawImage(d.canvas, 0, 0);
+      m.pintado = fatias.length > 0;
+    }
+  }
+  async function montarImagem(meta, x, y, dir, origemItem) {
+    const img = await carregarImagem(meta.id);
+    const w = meta.largura, h = meta.altura;
+    if (meta.tipo === "quadro") {
+      quadrosParede.push({ x: Math.floor(x), y: Math.floor(y), dir, w, h, img, origem: origemItem });
+      return;
+    }
+    const c = document.createElement("canvas");
+    c.width = (w + h) * (MAPA_TW / 2); c.height = (w + h) * (MAPA_TH / 2);
+    const g = c.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    g.setTransform(w * MAPA_TW / 2, w * MAPA_TH / 2, -h * MAPA_TW / 2, h * MAPA_TH / 2, h * MAPA_TW / 2, 0);
+    g.drawImage(img, 0, 0, 1, 1);
+    c.className = "mapa-obj";
+    c.dataset.classe = "vybeimg_" + meta.id;
+    colocar(c, x, y, { ox: -h * (MAPA_TW / 2), oy: 0 }, 1);
+    palco.append(c);
+    const caixa = { x0: Math.floor(x), x1: Math.floor(x) + w, y0: Math.floor(y), y1: Math.floor(y) + h, altura: 0 };
+    moveis.push({ classe: "vybeimg_" + meta.id, x, y, dir, estado: 0, m: null, no: c, quadros: 1, dim: { x: w, y: h, z: 0 }, altura: 0, plano: true, prof: 1, caixa, origem: origemItem });
+  }
   // altura: em unidades do Habbo (1 = 32 px), para o que fica em cima de mesas.
   const montar = async ([classe, x, y, dir, estado, altura = 0, origemItem = null]) => {
+    if (classe.startsWith("vybeimg_")) {
+      const meta = IMAGENS.get(classe);
+      if (meta) await montarImagem(meta, x, y, dir, origemItem).catch((e) => console.warn(e.message));
+      return;
+    }
     try {
       const m = await mapaCarregarMovel(classe);
       const d0 = mapaDirecaoValida(m.dados, dir);
@@ -594,14 +677,16 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   // isso, quem chegou antes dos móveis carregarem ficava atrás das paredes).
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
-  const prontos = Promise.all(P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))).then(() => { ordenar(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
+  const prontos = Promise.all(P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))).then(() => { ordenar(); pintarParedes(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   async function definirMoveis(lista) {
     for (const item of moveis) item.no.remove();
     moveis.length = 0;
     animados.length = 0;
+    quadrosParede.length = 0;
     await Promise.all(lista.map(montar));
     ordenar();
+    pintarParedes();
     grade = mapaMontarGrade(P, moveis);
     for (const p of pessoas.values()) posicionarPessoa(p);
     destacar(selecionado);
@@ -624,7 +709,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     const chave = classe ? `${classe}|${x}|${y}|${dir}|${cabe}` : "";
     if (chave === previaChave) return;
     previaChave = chave;
-    if (!classe) { previaNo?.remove(); previaNo = null; return; }
+    if (!classe || classe.startsWith("vybeimg_")) { previaNo?.remove(); previaNo = null; return; }
     try {
       const m = await mapaCarregarMovel(classe);
       if (previaChave !== chave) return;
@@ -639,6 +724,12 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     } catch {}
   }
   async function medidas(classe, dir) {
+    // Imagem da equipe: tapete ocupa largura × altura; quadro, um ladrilho
+    // encostado na parede (quem decide onde cabe é o editor).
+    const meta = IMAGENS.get(classe);
+    if (meta) return meta.tipo === "tapete"
+      ? { x: meta.largura, y: meta.altura, z: 0, dir: 0, direcoes: [0], imagem: meta }
+      : { x: 1, y: 1, z: 0, dir, direcoes: [2, 4], imagem: meta };
     const m = await mapaCarregarMovel(classe);
     const d = mapaDirecaoValida(m.dados, dir);
     return { ...mapaDimensoes(m.dados, d), dir: d, direcoes: Object.keys(m.dados.visualizations.find((v) => v.size === 64)?.directions || { 0: 1 }).map(Number) };
@@ -1043,7 +1134,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   prontos.then(() => { relogio = setInterval(animar, 125); });
 
   return {
-    origem, prontos, carga, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
+    origem, prontos, carga, atualizarPessoas,
+    // Imagem nova (enviada agora) passa a poder ser desenhada.
+    registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
     balao, reagir, anexarVideo, marcarFalando, marcarAviso, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),

@@ -94,6 +94,21 @@ function escritorioEditorMudou() {
 async function cliqueEditorEscritorio(x, y) {
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
   const lx = Math.floor(x) - c.x, ly = Math.floor(y) - c.y;
+  // Quadro: vai na parede alta mais perto do ladrilho clicado.
+  const quadroNovo = e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro";
+  const quadroSel = !e.novo && e.sel !== null && escritorioImagemDe(e.itens[e.sel]?.[0])?.tipo === "quadro";
+  if (quadroNovo || quadroSel) {
+    const classe = quadroNovo ? e.novo : e.itens[e.sel][0];
+    const lugar = escritorioLugarQuadro(classe, lx, ly, quadroNovo ? -1 : e.sel);
+    if (lugar.erro) {
+      // Clique em outro quadro ou móvel seleciona em vez de mover.
+      if (!quadroNovo && escritorioSelecionarNoClique(x, y, lx, ly)) return;
+      return escritorioAviso(lugar.erro);
+    }
+    if (quadroNovo) { e.itens.push([classe, lugar.lx, lugar.ly, lugar.dir, 0, 0]); e.sel = e.itens.length - 1; e.novo = null; escritorioAviso("Quadro colocado. Clique em outro trecho da parede para mudar; Delete apaga."); }
+    else { const it = e.itens[e.sel]; it[1] = lugar.lx; it[2] = lugar.ly; it[3] = lugar.dir; }
+    return escritorioEditorMudou();
+  }
   if (e.novo) {
     if (!(await escritorioCabe(e.novo, lx, ly, 2))) return escritorioAviso("Esse móvel não cabe aí. Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
     const d = await escritorio.mapa.medidas(e.novo, 2);
@@ -104,12 +119,7 @@ async function cliqueEditorEscritorio(x, y) {
     escritorioAviso("Móvel colocado. R gira, Delete apaga, setas empurram.");
     return escritorioEditorMudou();
   }
-  const daCamada = escritorio.mapa.moveisEm(x, y).find((m) => m.origem?.camada === e.camada);
-  if (daCamada && daCamada.origem.i !== e.sel) {
-    e.sel = daCamada.origem.i;
-    escritorio.mapa.destacar(daCamada.origem);
-    return renderBarraEditorEscritorio();
-  }
+  if (escritorioSelecionarNoClique(x, y, lx, ly)) return;
   if (e.sel !== null) {
     const it = e.itens[e.sel];
     if (!(await escritorioCabe(it[0], lx, ly, it[3]))) return escritorioAviso("Não cabe aí.");
@@ -117,10 +127,30 @@ async function cliqueEditorEscritorio(x, y) {
     return escritorioEditorMudou();
   }
 }
+// Seleciona o quadro encostado no ladrilho clicado ou o móvel em cima dele.
+function escritorioSelecionarNoClique(x, y, lx, ly) {
+  const e = escritorio.edicao;
+  const quadro = e.itens.findIndex((it) => escritorioImagemDe(it[0])?.tipo === "quadro" && escritorioQuadroCobre(it, lx, ly));
+  if (quadro >= 0 && quadro !== e.sel) {
+    e.sel = quadro;
+    escritorio.mapa.destacar(null);
+    renderBarraEditorEscritorio();
+    return true;
+  }
+  const daCamada = escritorio.mapa.moveisEm(x, y).find((m) => m.origem?.camada === e.camada);
+  if (daCamada && daCamada.origem.i !== e.sel) {
+    e.sel = daCamada.origem.i;
+    escritorio.mapa.destacar(daCamada.origem);
+    renderBarraEditorEscritorio();
+    return true;
+  }
+  return false;
+}
 async function girarSelecionadoEscritorio() {
   const e = escritorio.edicao;
   if (!e || e.sel === null) return;
   const it = e.itens[e.sel];
+  if (escritorioImagemDe(it[0])) return escritorioAviso(escritorioImagemDe(it[0]).tipo === "quadro" ? "O quadro segue a parede: clique em outro trecho dela para mudar." : "O tapete fica do jeito que a imagem é.");
   const { direcoes } = await escritorio.mapa.medidas(it[0], it[3]);
   // Só as direções que o móvel tem de verdade (alguns só têm 1 ou 2).
   const lista = [0, 2, 4, 6].filter((d) => direcoes.includes(d));
@@ -142,11 +172,18 @@ function alturaSelecionadoEscritorio() {
   const e = escritorio.edicao;
   if (!e || e.sel === null) return;
   const it = e.itens[e.sel];
+  if (escritorioImagemDe(it[0])) return;
   it[5] = it[5] ? 0 : 1;
   escritorioEditorMudou();
 }
 async function empurrarSelecionadoEscritorio(dx, dy) {
   const e = escritorio.edicao, it = e.itens[e.sel];
+  if (escritorioImagemDe(it[0])?.tipo === "quadro") {
+    const lugar = escritorioLugarQuadro(it[0], it[3] === 4 ? it[1] + dx : 0, it[3] === 2 ? it[2] + dy : 0, e.sel, it[3]);
+    if (lugar.erro) return;
+    it[1] = lugar.lx; it[2] = lugar.ly;
+    return escritorioEditorMudou();
+  }
   if (!(await escritorioCabe(it[0], it[1] + dx, it[2] + dy, it[3]))) return;
   it[1] += dx; it[2] += dy;
   escritorioEditorMudou();
@@ -172,8 +209,8 @@ function renderBarraEditorEscritorio() {
   el.hidden = !e;
   if (!e) return;
   const it = e.sel !== null ? e.itens[e.sel] : null;
-  el.innerHTML = `<div class="ofc-editor-info"><b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b><span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo ? "Clique no piso para colocar o móvel · Esc cancela" : it ? "R gira · Delete apaga · setas empurram · clique no piso move" : "Clique num móvel para selecionar ou escolha um no catálogo"}</span></div>
-${it ? `<div class="ofc-editor-sel"><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>` : ""}
+  el.innerHTML = `<div class="ofc-editor-info"><b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b><span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · Esc cancela" : it ? "R gira · Delete apaga · setas empurram · clique no piso move" : "Clique num móvel para selecionar ou escolha um no catálogo"}</span></div>
+${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel"><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel"><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
 <div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
 }
 // Catálogo: os móveis do painel por categoria e a busca no catálogo do Habbo.
@@ -197,6 +234,8 @@ const ESCRITORIO_COMPUTADORES = [
 function escritorioCatalogoHtml() {
   if (!escritorioCatalogo) { carregarCatalogoEscritorio(); return '<p class="ofc-nota">Carregando catálogo…</p>'; }
   const filtro = escritorio.catalogoCategoria || "";
+  const abaImagens = `<button type="button" aria-pressed="${filtro === "Imagens"}" onclick="escritorio.catalogoCategoria='Imagens';renderEscritorio()">Imagens · ${escritorioImagensDaCamada().length}</button>`;
+  if (filtro === "Imagens") return `<div class="ofc-cats"><button type="button" onclick="escritorio.catalogoCategoria='';renderEscritorio()">Móveis</button>${abaImagens}</div>${escritorioImagensHtml()}`;
   const todas = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES];
   const lista = filtro ? todas.filter((m) => m.categoria === filtro) : todas.filter((m) => m.categoria === "Do escritório");
   const cats = [...new Set(lista.map((m) => m.categoria))];
@@ -204,7 +243,7 @@ function escritorioCatalogoHtml() {
   const cartao = (m) => `<button type="button" class="ofc-movel" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(m.nome)}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(m.nome)}</span></button>`;
   return `<form class="ofc-busca" onsubmit="event.preventDefault();buscarMovelEscritorio(this.q.value)"><input name="q" placeholder="Buscar no catálogo do Habbo (ex.: sofa, plant, lamp)" aria-label="Buscar móvel" autocomplete="off"><button class="workflow-primary">Buscar</button></form>
 <div id="office-busca-resultados" class="ofc-moveis"></div>
-<div class="ofc-cats">${abas.map((c) => `<button type="button" aria-pressed="${(filtro || "Do escritório") === c}" onclick="escritorio.catalogoCategoria='${safeText(c)}';renderEscritorio()">${safeText(c)} · ${todas.filter((m) => m.categoria === c).length}</button>`).join("")}</div>
+<div class="ofc-cats">${abaImagens}${abas.map((c) => `<button type="button" aria-pressed="${(filtro || "Do escritório") === c}" onclick="escritorio.catalogoCategoria='${safeText(c)}';renderEscritorio()">${safeText(c)} · ${todas.filter((m) => m.categoria === c).length}</button>`).join("")}</div>
 ${cats.map((c) => `<h4>${safeText(c)}</h4><div class="ofc-moveis">${lista.filter((m) => m.categoria === c).map(cartao).join("")}</div>`).join("") || '<p class="ofc-nota">Busque um móvel pelo nome em inglês.</p>'}`;
 }
 async function buscarMovelEscritorio(q) {
@@ -268,5 +307,132 @@ async function miniaturaLocalEscritorio(img, classe) {
     if (d) img.src = d.canvas.toDataURL();
   } catch {
     img.style.visibility = "hidden";
+  }
+}
+
+// Imagens da equipe: a pessoa sobe um PNG/JPG/WEBP e usa como quadro (na
+// parede alta da própria sala) ou tapete (no piso). O servidor confere dono,
+// tipo do arquivo e tamanho; aqui só se reduz a imagem grande antes de enviar.
+function escritorioImagemDe(classe) {
+  const m = /^vybeimg_(\d+)$/.exec(String(classe || ""));
+  return m ? (escritorio.base?.mapa?.imagens || []).find((i) => i.id === m[1]) || null : null;
+}
+function escritorioImagensDaCamada() {
+  const camada = escritorio.edicao?.camada;
+  return (escritorio.base?.mapa?.imagens || []).filter((i) => i.camada === camada);
+}
+function escritorioUrlImagem(id) {
+  return ESCRITORIO_PLANTA.urlImagem ? ESCRITORIO_PLANTA.urlImagem(id) : "/api/painel?area=escritorio&acao=imagem&id=" + encodeURIComponent(id);
+}
+// Lugar do quadro na parede: dir 4 = parede de trás (ly 0), dir 2 = parede da
+// esquerda (lx 0). Fica inteiro na sala, fora da porta e sem cobrir outro.
+function escritorioLugarQuadro(classe, lx, ly, ignorar = -1, dirFixa = null) {
+  const e = escritorio.edicao, img = escritorioImagemDe(classe);
+  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === e.camada);
+  if (!img || !a?.pessoal) return { erro: "Quadro só nas salas individuais." };
+  const L = a.x1 - a.x0;
+  let dir = dirFixa;
+  if (dir == null) dir = ly === 0 ? 4 : lx === 0 && a.x0 > 0 ? 2 : null;
+  if (dir == null) return { erro: a.x0 > 0 ? "Clique no piso encostado na parede alta (a de trás ou a da esquerda)." : "Clique no piso encostado na parede alta de trás." };
+  const ini = dir === 4 ? lx : ly;
+  if (ini < 0 || ini + img.largura > L) return { erro: "O quadro não cabe aí: chegue mais para o canto." };
+  if (dir === 4 && a.porta === "cima" && ini < 6 && ini + img.largura > 4) return { erro: "Ali é a porta. Escolha outro trecho da parede." };
+  const outro = e.itens.findIndex((it, i) => {
+    if (i === ignorar || it[3] !== dir) return false;
+    const o = escritorioImagemDe(it[0]);
+    if (o?.tipo !== "quadro") return false;
+    const oi = dir === 4 ? it[1] : it[2];
+    return ini < oi + o.largura && oi < ini + img.largura;
+  });
+  if (outro >= 0) return { erro: "Já tem um quadro aí." };
+  return dir === 4 ? { lx: ini, ly: 0, dir } : { lx: 0, ly: ini, dir };
+}
+function escritorioQuadroCobre(it, lx, ly) {
+  const img = escritorioImagemDe(it[0]);
+  if (!img) return false;
+  return it[3] === 4 ? ly === 0 && lx >= it[1] && lx < it[1] + img.largura : lx === 0 && ly >= it[2] && ly < it[2] + img.largura;
+}
+function escritorioImagensHtml() {
+  const e = escritorio.edicao;
+  const geral = e?.camada === "geral";
+  const lista = escritorioImagensDaCamada();
+  const tamanhos = (max) => Array.from({ length: max }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+  return `<form class="ofc-imagem-form" onsubmit="event.preventDefault();enviarImagemEscritorio(this)">
+<label>Imagem (PNG, JPG ou WEBP)<input type="file" name="arquivo" accept="image/png,image/jpeg,image/webp" required></label>
+<label>Usar como<select name="tipo" onchange="alturasImagemEscritorio(this.form)">${geral ? "" : '<option value="quadro">Quadro na parede</option>'}<option value="tapete">Tapete no chão</option></select></label>
+<div class="ofc-imagem-tam"><label>Largura<select name="largura">${tamanhos(6).replace('value="3"', 'value="3" selected')}</select></label><span>×</span><label>Altura<select name="altura">${tamanhos(geral ? 6 : 3).replace('value="2"', 'value="2" selected')}</select></label><small>ladrilhos</small></div>
+<label>Nome (opcional)<input name="nome" maxlength="80" placeholder="Ex.: logo da Vybe"></label>
+<button class="workflow-primary" ${e?.enviando ? "disabled" : ""}>${e?.enviando ? "Enviando…" : "Enviar imagem"}</button>
+<p class="ofc-nota">${geral ? "No mapa geral, só tapetes." : "Quadro fica pintado na parede alta do fundo da sala; tapete fica no chão."} Até 1,5 MB.</p></form>
+<h4>Imagens ${geral ? "do mapa" : "desta sala"}</h4>
+<div class="ofc-moveis">${lista.map((i) => `<div class="ofc-imagem"><button type="button" class="ofc-movel" onclick="escolherMovelEscritorio('vybeimg_${i.id}')" title="Colocar ${safeText(i.nome || "imagem")}"><img loading="lazy" src="${escritorioUrlImagem(i.id)}" alt=""><span>${i.tipo === "quadro" ? "Quadro" : "Tapete"} ${i.largura}×${i.altura}${i.nome ? " · " + safeText(i.nome) : ""}</span></button><button type="button" class="ofc-imagem-apagar" onclick="apagarImagemEscritorio('${i.id}')" aria-label="Apagar a imagem ${safeText(i.nome || "")}">Apagar</button></div>`).join("") || '<p class="ofc-nota">Nenhuma imagem ainda.</p>'}</div>`;
+}
+// Quadro tem até 3 de altura (a parede); tapete, até 6.
+function alturasImagemEscritorio(form) {
+  const max = form.tipo.value === "quadro" ? 3 : 6, atual = Math.min(max, Number(form.altura.value) || 2);
+  form.altura.innerHTML = Array.from({ length: max }, (_, i) => `<option value="${i + 1}"${i + 1 === atual ? " selected" : ""}>${i + 1}</option>`).join("");
+}
+// Imagem grande é reduzida (lado maior até 1024 px) antes de enviar.
+function escritorioPrepararImagem(arquivo) {
+  return new Promise((ok, erro) => {
+    if (!/^image\/(png|jpeg|webp)$/.test(arquivo.type)) return erro(new Error("Use uma imagem PNG, JPG ou WEBP."));
+    const leitor = new FileReader();
+    leitor.onerror = () => erro(new Error("Não deu para ler a imagem."));
+    leitor.onload = () => {
+      const img = new Image();
+      img.onerror = () => erro(new Error("Essa imagem não abriu. Tente outro arquivo."));
+      img.onload = () => {
+        const lado = Math.max(img.naturalWidth, img.naturalHeight);
+        if (arquivo.size <= 1572864 && lado <= 1600) return ok(String(leitor.result).split(",")[1]);
+        const k = 1024 / lado, c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const dados = c.toDataURL(arquivo.type === "image/jpeg" ? "image/jpeg" : "image/png", 0.88).split(",")[1];
+        if (dados.length * 0.75 > 1572864) return erro(new Error("A imagem continua grande demais. Use uma menor."));
+        ok(dados);
+      };
+      img.src = String(leitor.result);
+    };
+    leitor.readAsDataURL(arquivo);
+  });
+}
+async function enviarImagemEscritorio(form) {
+  const e = escritorio.edicao;
+  if (!e || e.enviando) return;
+  if (escritorio.base.demo) return escritorioAviso("A demonstração não guarda imagens.");
+  const arquivo = form.arquivo.files?.[0];
+  if (!arquivo) return escritorioAviso("Escolha uma imagem.");
+  const pedido = { camada: e.camada, tipo: form.tipo.value, largura: Number(form.largura.value), altura: Number(form.altura.value), nome: form.nome.value.trim() };
+  e.enviando = true;
+  renderEscritorio();
+  try {
+    const dados = await escritorioPrepararImagem(arquivo);
+    const r = await escritorioApi("imagem", { ...pedido, dados });
+    escritorio.base.mapa.imagens = [...(escritorio.base.mapa.imagens || []), r.imagem];
+    escritorio.mapa?.registrarImagem(r.imagem);
+    escritorioAviso("Imagem enviada. Clique nela para colocar.");
+  } catch (erro) {
+    escritorioAviso(erro.message);
+  }
+  e.enviando = false;
+  renderEscritorio();
+}
+async function apagarImagemEscritorio(id) {
+  const e = escritorio.edicao;
+  if (!e || !confirm("Apagar esta imagem? Ela sai do mapa também.")) return;
+  if (escritorio.base.demo) return escritorioAviso("A demonstração não apaga imagens.");
+  try {
+    const r = await escritorioApi("imagem-apagar", { id });
+    const classe = "vybeimg_" + id;
+    escritorio.base.mapa.imagens = (escritorio.base.mapa.imagens || []).filter((i) => i.id !== String(id));
+    // O servidor já tirou a imagem da área salva; a edição aberta acompanha.
+    if (r.imagem.versao) { escritorio.base.mapa.camadas[r.imagem.camada] = { itens: r.imagem.itens, versao: r.imagem.versao }; if (e.camada === r.imagem.camada) e.versao = r.imagem.versao; }
+    e.itens = e.itens.filter((it) => it[0] !== classe);
+    e.sel = null;
+    escritorioEditorMudou();
+    renderEscritorio();
+    escritorioAviso("Imagem apagada.");
+  } catch (erro) {
+    escritorioAviso(erro.message);
   }
 }

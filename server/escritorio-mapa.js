@@ -51,21 +51,30 @@ export async function mapaPronto(sql) {
   return Boolean(r?.existe);
 }
 // Camadas salvas; sem a tabela (migração ainda não aplicada), o mapa padrão.
+// As imagens da equipe (quadros e tapetes) vêm só com os dados para desenhar;
+// o arquivo sai por outra rota.
 export async function carregarMapaEscritorio(sql) {
   if (!(await mapaPronto(sql))) return { editavel: false, camadas: {} };
   const linhas = await sql`SELECT camada, itens, versao FROM vybe_escritorio_mapa`;
-  return { editavel: true, camadas: Object.fromEntries(linhas.map((l) => [l.camada, { itens: l.itens, versao: l.versao }])) };
+  const mapa = { editavel: true, camadas: Object.fromEntries(linhas.map((l) => [l.camada, { itens: l.itens, versao: l.versao }])) };
+  if (await imagensProntas(sql)) mapa.imagens = await listarImagensEscritorio(sql);
+  return mapa;
+}
+// Quem edita cada camada: 'geral' só administrador; sala, o dono ou administrador.
+function conferirEdicao(pessoa, salas, camada) {
+  const sala = salas.find((s) => s.id === camada);
+  if (camada !== "geral" && !sala) throw Object.assign(new Error("Camada inválida."), { status: 400 });
+  const admin = Boolean(pessoa.admin);
+  if (camada === "geral" ? !admin : !admin && sala.pessoa_id !== String(pessoa.id))
+    throw Object.assign(new Error(camada === "geral" ? "Só quem administra edita o mapa." : "Você só edita a sua sala."), { status: 403 });
 }
 // Salva uma camada inteira. Permissão: 'geral' só administrador; sala, o dono
 // ou administrador. A versão evita apagar o que outra pessoa salvou antes.
 export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens, versao }) {
-  const sala = salas.find((s) => s.id === camada);
-  if (camada !== "geral" && !sala) throw new Error("Camada inválida.");
-  const admin = Boolean(pessoa.admin);
-  if (camada === "geral" ? !admin : !admin && sala.pessoa_id !== String(pessoa.id))
-    throw Object.assign(new Error(camada === "geral" ? "Só quem administra edita o mapa." : "Você só edita a sua sala."), { status: 403 });
+  conferirEdicao(pessoa, salas, camada);
   if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
   const limpos = itensValidos(camada, itens);
+  await conferirImagensDaCamada(sql, camada, limpos);
   const esperada = Number(versao) || 0;
   const [r] = await sql`INSERT INTO vybe_escritorio_mapa(camada, itens, versao, atualizado_por)
     VALUES(${camada}, ${JSON.stringify(limpos)}::jsonb, 1, ${pessoa.id})
@@ -127,4 +136,88 @@ export async function bonecoEscritorio(sql, figura, direcao, buscar = fetch) {
   if (tabela?.existe && png.length <= 200000)
     await sql`INSERT INTO vybe_escritorio_bonecos(figura, direcao, png) VALUES(${figura}, ${dir}, ${png}) ON CONFLICT DO NOTHING`;
   return png;
+}
+
+// Imagens da equipe. Item no mapa: ["vybeimg_<id>", x, y, dir, 0, 0]. Quadro
+// fica na parede alta do fundo de uma sala (dir 4: parede de trás, y = 0;
+// dir 2: parede da esquerda, x = 0); tapete fica no piso.
+export const IMAGEM_ITEM = /^vybeimg_(\d{1,12})$/;
+const LIMITE_IMAGEM = 1572864; // 1,5 MB
+export async function imagensProntas(sql) {
+  const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_imagens') IS NOT NULL AS existe`;
+  return Boolean(r?.existe);
+}
+export async function listarImagensEscritorio(sql) {
+  const linhas = await sql`SELECT id, camada, tipo, largura, altura, nome FROM vybe_escritorio_imagens ORDER BY id`;
+  return linhas.map((l) => ({ id: String(l.id), camada: l.camada, tipo: l.tipo, largura: Number(l.largura), altura: Number(l.altura), nome: l.nome }));
+}
+// Tipo do arquivo pelos primeiros bytes (não pelo nome nem pelo que o
+// navegador disse).
+export function tipoDaImagem(buf) {
+  if (buf.length > 8 && buf[0] === 0x89 && buf.toString("latin1", 1, 4) === "PNG") return "image/png";
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
+  if (buf.length > 12 && buf.toString("latin1", 0, 4) === "RIFF" && buf.toString("latin1", 8, 12) === "WEBP") return "image/webp";
+  return null;
+}
+export async function enviarImagemEscritorio(sql, pessoa, salas, { camada, tipo, largura, altura, nome = "", dados } = {}) {
+  conferirEdicao(pessoa, salas, camada);
+  if (!(await imagensProntas(sql))) throw Object.assign(new Error("Quadros e tapetes aguardam a migração do banco."), { status: 503 });
+  if (!["quadro", "tapete"].includes(tipo)) throw Object.assign(new Error("Escolha quadro ou tapete."), { status: 400 });
+  if (tipo === "quadro" && camada === "geral") throw Object.assign(new Error("Quadro vai na parede de uma sala."), { status: 400 });
+  const w = Number(largura), h = Number(altura);
+  const maxH = tipo === "quadro" ? 3 : 6;
+  if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || w > 6 || h < 1 || h > maxH)
+    throw Object.assign(new Error(`Tamanho inválido: até 6 de largura e ${maxH} de altura.`), { status: 400 });
+  const buf = Buffer.from(String(dados || ""), "base64");
+  if (!buf.length) throw Object.assign(new Error("Escolha uma imagem."), { status: 400 });
+  if (buf.length > LIMITE_IMAGEM) throw Object.assign(new Error("A imagem passa de 1,5 MB. Reduza e tente de novo."), { status: 413 });
+  const mime = tipoDaImagem(buf);
+  if (!mime) throw Object.assign(new Error("Use uma imagem PNG, JPG ou WEBP."), { status: 400 });
+  const [{ total }] = await sql`SELECT COUNT(*)::int AS total FROM vybe_escritorio_imagens WHERE camada = ${camada}`;
+  if (total >= 40) throw Object.assign(new Error("Esta área já tem 40 imagens. Apague alguma antes."), { status: 400 });
+  const [r] = await sql`INSERT INTO vybe_escritorio_imagens(camada, tipo, largura, altura, nome, mime, dados, criado_por)
+    VALUES(${camada}, ${tipo}, ${w}, ${h}, ${String(nome).slice(0, 80)}, ${mime}, ${buf}, ${String(pessoa.id)})
+    RETURNING id`;
+  return { id: String(r.id), camada, tipo, largura: w, altura: h, nome: String(nome).slice(0, 80) };
+}
+export async function imagemEscritorio(sql, id) {
+  if (!/^\d{1,12}$/.test(String(id || ""))) throw Object.assign(new Error("Imagem inválida."), { status: 400 });
+  if (!(await imagensProntas(sql))) throw Object.assign(new Error("Imagem não encontrada."), { status: 404 });
+  const [r] = await sql`SELECT mime, dados FROM vybe_escritorio_imagens WHERE id = ${id}`;
+  if (!r) throw Object.assign(new Error("Imagem não encontrada."), { status: 404 });
+  return { mime: r.mime, dados: paraBuffer(r.dados) };
+}
+// Apaga a imagem e tira do mapa da camada os itens que a usavam (na mesma
+// transação), para não sobrar quadro apontando para o nada.
+export async function apagarImagemEscritorio(sql, pessoa, salas, { id } = {}) {
+  if (!/^\d{1,12}$/.test(String(id || ""))) throw Object.assign(new Error("Imagem inválida."), { status: 400 });
+  const [img] = await sql`SELECT camada FROM vybe_escritorio_imagens WHERE id = ${id}`;
+  if (!img) throw Object.assign(new Error("Imagem não encontrada."), { status: 404 });
+  conferirEdicao(pessoa, salas, img.camada);
+  const classe = "vybeimg_" + id;
+  const [, atualizada] = await sql.transaction([
+    sql`DELETE FROM vybe_escritorio_imagens WHERE id = ${id}`,
+    sql`UPDATE vybe_escritorio_mapa SET itens = COALESCE((SELECT jsonb_agg(i) FROM jsonb_array_elements(itens) i WHERE i->>0 <> ${classe}), '[]'::jsonb),
+      versao = versao + 1, atualizado_por = ${pessoa.id}, atualizado_em = NOW()
+      WHERE camada = ${img.camada} AND itens @> ${JSON.stringify([[classe]])}::jsonb
+      RETURNING itens, versao`,
+  ]);
+  const camada = atualizada?.[0];
+  return { id: String(id), camada: img.camada, ...(camada ? { itens: camada.itens, versao: camada.versao } : {}) };
+}
+// Ao salvar uma camada: cada imagem usada existe, é desta camada, e o quadro
+// está encostado na parede do fundo da sala.
+async function conferirImagensDaCamada(sql, camada, itens) {
+  const usadas = itens.filter(([c]) => IMAGEM_ITEM.test(c));
+  if (!usadas.length) return;
+  if (!(await imagensProntas(sql))) throw Object.assign(new Error("Quadros e tapetes aguardam a migração do banco."), { status: 503 });
+  const ids = [...new Set(usadas.map(([c]) => c.match(IMAGEM_ITEM)[1]))];
+  const linhas = await sql`SELECT id, camada, tipo FROM vybe_escritorio_imagens WHERE id = ANY(${ids}::bigint[])`;
+  const por = new Map(linhas.map((l) => [String(l.id), l]));
+  for (const [c, x, y, dir] of usadas) {
+    const img = por.get(c.match(IMAGEM_ITEM)[1]);
+    if (!img || img.camada !== camada) throw Object.assign(new Error("Imagem de outra área ou apagada."), { status: 400 });
+    if (img.tipo === "quadro" && !((dir === 4 && y === 0) || (dir === 2 && x === 0)))
+      throw Object.assign(new Error("O quadro fica na parede do fundo da sala."), { status: 400 });
+  }
 }
