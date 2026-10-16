@@ -6551,3 +6551,4 @@ body.no-escritorio {overflow:hidden}
 .mapa-recado::after {content:"";position:absolute;left:50%;bottom:-14px;width:2px;height:12px;margin-left:-1px;background:linear-gradient(#ff8a35,transparent)}
 @keyframes mapa-recado {0%,100% {transform:translateY(0)} 50% {transform:translateY(-6px)}}
 @media (prefers-reduced-motion: reduce) {.mapa-recado {animation:none}}
+.ofc-editor-info select {font:700 13px var(--mac-ui);color:var(--ofc-texto);background:#ffffff12;border:1px solid var(--ofc-borda);border-radius:8px;padding:4px 6px;max-width:260px}

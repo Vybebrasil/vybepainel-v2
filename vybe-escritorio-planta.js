@@ -193,7 +193,9 @@ const ESCRITORIO_PLANTA = (() => {
   p("hc23_6", 41, 43, 0); p("hc23_6", 41, 45, 0);
   p("modern_c17_floorlamp", 39, 38, 2, 1); p("modern_c17_floorlamp", 45, 38, 2, 1);
   // Pista: cabine do DJ e jukebox na parede, piso de luz, refletores.
-  p("hc25_6", 52, 38, 0, 1); p("disco_c26_jukebox", 54, 38, 0, 1);
+  // A jukebox fica na parede da esquerda, de frente para a pista (encostada
+  // na cabine do DJ ela parecia de lado).
+  p("hc25_6", 52, 38, 0, 1); p("disco_c26_jukebox", 48, 42, 2, 1);
   for (const x of [50, 52, 54]) for (const y of [40, 42]) p("disco_c26_floor", x, y, 0, 1);
   p("spotlight", 49, 39, 2); p("spotlight", 57, 39, 6);
   // Bar: balcão com bebidas e as banquetas na frente; atrás dele, a
