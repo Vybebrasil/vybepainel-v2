@@ -15,7 +15,10 @@ const arte = (c) => {
   const v = j.visualizations.find((v) => v.size === 64);
   // Altura do desenho (maior quadro), para a mesma regra de "rente ao piso" do mapa.
   const alto = Math.max(0, ...Object.values(j.spritesheet?.frames || {}).filter((_, i) => i < 400).map((f) => f.frame?.h || 0));
-  return { d: j.logic?.model?.dimensions || { x: 1, y: 1, z: 1 }, dirs: Object.keys(v?.directions || {}).map(Number), alto };
+  const d = j.logic?.model?.dimensions || { x: 1, y: 1, z: 1 }, dirs = Object.keys(v?.directions || {}).map(Number);
+  // Item de parede (mesma regra do mapa): não ocupa o piso.
+  const parede = dirs.length > 0 && dirs.every((x) => x === 2 || x === 4) && (d.y ?? 1) <= 0.3;
+  return { d, dirs, alto, parede };
 };
 // Mesma lista de assentos do mapa (lida do código, para não divergir).
 const fonteMapa = readFileSync("vybe-escritorio-mapa.js", "utf8");
@@ -35,6 +38,7 @@ for (const m of moveis) {
   const [classe, x, y, dir0, , altura = 0, camada = "geral"] = m;
   const a = arte(classe);
   if (!a) { problemas.push(`${classe} (${x},${y}) sem arte no painel`); continue; }
+  if (a.parede) { if (![2, 4].includes(dir0)) problemas.push(`${classe} (${x},${y}) de parede com direção ${dir0}`); continue; }
   let dir = dir0;
   if (a.dirs.length && !a.dirs.includes(dir)) {
     dir = a.dirs.includes((dir + 4) % 8) ? (dir + 4) % 8 : a.dirs[0];
@@ -85,13 +89,17 @@ for (const it of itens) {
 }
 const pi = P.piscina;
 for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) solido.add(`${x},${y}`);
+// Atrás do prédio não se anda (mesma regra da grade do mapa).
+const B = P.PREDIO;
+for (let x = 0; x < P.W; x++) for (let y = 0; y < P.H; y++) if ((y < B.y0 && x < B.x1 + 1) || (x < B.x0 && y < B.y1 + 1)) solido.add(`${x},${y}`);
 const anda = (x, y) => x >= 0 && y >= 0 && x < P.W && y < P.H && !solido.has(`${x},${y}`) && !assento.has(`${x},${y}`);
 const passo = (x, y, dx, dy) => {
   if (!anda(x + dx, y + dy)) return false;
   if (dx && dy) return passo(x, y, dx, 0) && passo(x + dx, y, 0, dy) && passo(x, y, 0, dy) && passo(x, y + dy, dx, 0);
   return !temParede(x, y, x + dx, y + dy);
 };
-const chega = new Set(["36,5"]), fila = [[36, 5]];
+const E = P.entrada;
+const chega = new Set([`${E.x},${E.y}`]), fila = [[E.x, E.y]];
 while (fila.length) {
   const [x, y] = fila.shift();
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {

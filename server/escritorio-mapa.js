@@ -26,7 +26,7 @@ export function salasDoEscritorio(equipe = []) {
 }
 
 export const LADO_SALA = 10;
-const LIMITE = { geral: { x: 80, y: 58, itens: 900 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 80 } };
+const LIMITE = { geral: { x: 80, y: 80, itens: 900 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 80 } };
 // Item: [classe, x, y, direção, estado, altura]. Nas salas, x/y são relativos à
 // sala e o item inteiro fica dentro dela (o tamanho real é conferido no mapa).
 export function itensValidos(camada, itens) {
@@ -55,8 +55,9 @@ export async function mapaPronto(sql) {
 // o arquivo sai por outra rota.
 export async function carregarMapaEscritorio(sql) {
   if (!(await mapaPronto(sql))) return { editavel: false, camadas: {} };
-  const linhas = await sql`SELECT camada, itens, versao FROM vybe_escritorio_mapa`;
-  const mapa = { editavel: true, camadas: Object.fromEntries(linhas.map((l) => [l.camada, { itens: l.itens, versao: l.versao }])) };
+  const linhas = await sql`SELECT camada, itens, versao, atualizado_em FROM vybe_escritorio_mapa`;
+  // "em": quando foi salva (o painel ignora o mapa geral salvo sobre uma planta antiga).
+  const mapa = { editavel: true, camadas: Object.fromEntries(linhas.map((l) => [l.camada, { itens: l.itens, versao: l.versao, em: l.atualizado_em }])) };
   if (await imagensProntas(sql)) mapa.imagens = await listarImagensEscritorio(sql);
   return mapa;
 }
