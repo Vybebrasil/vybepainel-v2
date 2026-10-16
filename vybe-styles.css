@@ -6542,3 +6542,13 @@ body.no-escritorio {overflow:hidden}
   .ofc-coluna .ofc-musica-player {align-self:start}
   .ofc-coluna .ofc-musica-info .ofc-secundario {padding:6px}
 }
+
+/* Recado esperando: envelope aceso sobre a mesa, com o número. */
+.mapa-recado {position:absolute;z-index:99980;width:40px;height:40px;margin-left:-20px;display:grid;place-items:center;border-radius:12px;border:1px solid #ffd1a6;background:linear-gradient(160deg,#ff9a4d,#ff6a1a);color:#fff;cursor:pointer;box-shadow:0 0 0 3px #ff8a3540,0 0 18px #ff8a35cc;animation:mapa-recado 1.8s ease-in-out infinite}
+.mapa-recado svg {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linejoin:round}
+.mapa-recado b {position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#fff;color:#c2410c;font:800 11px/18px var(--mac-ui)}
+.mapa-recado:focus-visible {outline:3px solid #fff;outline-offset:2px}
+.mapa-recado::after {content:"";position:absolute;left:50%;bottom:-14px;width:2px;height:12px;margin-left:-1px;background:linear-gradient(#ff8a35,transparent)}
+@keyframes mapa-recado {0%,100% {transform:translateY(0)} 50% {transform:translateY(-6px)}}
+@media (prefers-reduced-motion: reduce) {.mapa-recado {animation:none}}
+.ofc-editor-info select {font:700 13px var(--mac-ui);color:var(--ofc-texto);background:#ffffff12;border:1px solid var(--ofc-borda);border-radius:8px;padding:4px 6px;max-width:260px}

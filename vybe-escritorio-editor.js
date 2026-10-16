@@ -12,6 +12,9 @@ function escritorioPodeEditar(camada) {
 function escritorioCamadaParaEditar() {
   const aqui = escritorioLugarDe(escritorio.perfil);
   if (aqui?.pessoal && escritorioPodeEditar(aqui.id)) return aqui.id;
+  // Quem administra, fora de uma sala individual, edita o mapa geral (onde
+  // está: Lounge, Recepção…); antes abria a própria sala e nada do resto mexia.
+  if (escritorio.base?.admin && !aqui?.pessoal && escritorioPodeEditar("geral")) return "geral";
   const minha = escritorioMinhaMesa()?.ambiente.id;
   if (minha && escritorioPodeEditar(minha)) return minha;
   return escritorio.base?.admin ? "geral" : null;
@@ -120,6 +123,17 @@ async function cliqueEditorEscritorio(x, y) {
     return escritorioEditorMudou();
   }
   if (escritorioSelecionarNoClique(x, y, lx, ly)) return;
+  // Clicou num móvel de outra área que a pessoa pode editar: troca para ela.
+  const deOutra = escritorio.mapa.moveisEm(x, y).find((m) => m.origem && m.origem.camada !== e.camada && escritorioPodeEditar(m.origem.camada));
+  if (deOutra && e.sel === null) {
+    if (e.mudou) return escritorioAviso("Esse móvel é de " + escritorioNomeCamada(deOutra.origem.camada) + ". Salve ou cancele esta edição antes.");
+    abrirEditorEscritorio(deOutra.origem.camada);
+    escritorio.edicao.sel = deOutra.origem.i;
+    escritorio.mapa.destacar(deOutra.origem);
+    renderBarraEditorEscritorio();
+    return escritorioAviso("Agora editando " + escritorioNomeCamada(deOutra.origem.camada) + ".");
+  }
+  if (!deOutra && e.sel === null && escritorio.mapa.moveisEm(x, y).length) return escritorioAviso("Esse móvel não é de " + escritorioNomeCamada(e.camada) + ", e você não pode editá-lo.");
   if (e.sel !== null) {
     const it = e.itens[e.sel];
     if (!(await escritorioCabe(it[0], lx, ly, it[3]))) return escritorioAviso("Não cabe aí.");
@@ -209,7 +223,10 @@ function renderBarraEditorEscritorio() {
   el.hidden = !e;
   if (!e) return;
   const it = e.sel !== null ? e.itens[e.sel] : null;
-  el.innerHTML = `<div class="ofc-editor-info"><b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b><span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · Esc cancela" : it ? "R gira · Delete apaga · setas empurram · clique no piso move" : "Clique num móvel para selecionar ou escolha um no catálogo"}</span></div>
+  // Quem administra escolhe a área a editar (mapa geral ou qualquer sala).
+  const areas = escritorio.base?.admin ? [["geral", "Mapa geral (espaços comuns)"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])] : [];
+  const escolha = areas.length ? `<select aria-label="Área que você está editando" onchange="trocarCamadaEditorEscritorio(this.value)">${areas.map(([id, nome]) => `<option value="${id}"${id === e.camada ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select>` : `<b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b>`;
+  el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · Esc cancela" : it ? "R gira · Delete apaga · setas empurram · clique no piso move" : "Clique num móvel para selecionar ou escolha um no catálogo"}</span></div>
 ${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel"><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel"><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
 <div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
 }
@@ -435,4 +452,12 @@ async function apagarImagemEscritorio(id) {
   } catch (erro) {
     escritorioAviso(erro.message);
   }
+}
+
+function trocarCamadaEditorEscritorio(camada) {
+  const e = escritorio.edicao;
+  if (!e || camada === e.camada) return;
+  if (e.mudou && !confirm("Descartar as mudanças em " + escritorioNomeCamada(e.camada) + "?")) return renderBarraEditorEscritorio();
+  escritorio.edicao = null;
+  abrirEditorEscritorio(camada);
 }

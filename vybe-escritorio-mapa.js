@@ -1091,6 +1091,29 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
       || moveisPerto(x, y, 1).find((m) => /computer|flatscreen/.test(m.classe));
     alvo?.no.classList.add("mapa-aviso");
   }
+  // Recado esperando: um envelope aceso flutuando sobre a mesa de quem recebeu,
+  // com quantos são. Clicar abre os recados.
+  let recadoNo = null;
+  function marcarRecado(x, y, n, nomes, aoClicar) {
+    if (!n || x === undefined) { recadoNo?.remove(); recadoNo = null; return; }
+    if (!recadoNo) {
+      recadoNo = document.createElement("button");
+      recadoNo.type = "button";
+      recadoNo.className = "mapa-recado";
+      recadoNo.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.2"/><path d="M3.8 7l8.2 6 8.2-6"/></svg><b></b>';
+      recadoNo.addEventListener("click", (e) => { e.stopPropagation(); recadoNo.aoClicar?.(); });
+      recadoNo.addEventListener("pointerdown", (e) => e.stopPropagation());
+      palco.append(recadoNo);
+    }
+    recadoNo.aoClicar = aoClicar;
+    const t = mapaTela(x + 1, y + 1, origem);
+    recadoNo.style.left = t.x + "px";
+    recadoNo.style.top = t.y - 96 + "px";
+    recadoNo.querySelector("b").textContent = n > 9 ? "9+" : String(n);
+    const texto = `${n} ${n === 1 ? "recado" : "recados"} para você${nomes ? " · de " + nomes : ""}. Clique para ler.`;
+    recadoNo.title = texto;
+    recadoNo.setAttribute("aria-label", texto);
+  }
   // Quem está falando na conversa ganha um anel verde nos pés.
   // e o nome dele acende em verde com ondas piscando.
   function marcarFalando(id, falando) {
@@ -1155,7 +1178,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     origem, prontos, carga, atualizarPessoas,
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
-    balao, reagir, anexarVideo, marcarFalando, marcarAviso, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
+    balao, reagir, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
