@@ -174,6 +174,14 @@ async function conectarEscritorio() {
       if (e.type === "chat:changed" && e.payload.sala === escritorio.sala)
         carregarChatEscritorio();
       if (e.type === "realtime:error") escritorioAviso(e.payload.message);
+      if (e.type === "zone:locks") {
+        escritorio.trancas = new Map((e.payload || []).map((t) => [t.zona, new Set(t.permitidos)]));
+        escritorio.mapa?.marcarTrancas(new Set(escritorio.trancas.keys()));
+        atualizarControlesEscritorio();
+      }
+      if (e.type === "zone:knock") avisoBatidaEscritorio(e.payload);
+      if (e.type === "reaction") escritorio.mapa?.reagir(e.payload.id, e.payload.tipo);
+      if (e.type === "chat:bubble") escritorio.mapa?.balao(e.payload.id, e.payload.texto);
     };
     socket.onclose = () => {
       if (escritorio.socket !== socket) return;
@@ -275,6 +283,8 @@ function escritorioIcone(nome) {
     entrar: '<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H8"/>',
     lista: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
+    reagir: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2M9 9.5h.01M15 9.5h.01"/>',
+    cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
   }[nome] || "";
@@ -459,7 +469,7 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
       botao("sairChamadaEscritorio().then(renderEscritorio)", "sair", "Sair da conversa", 'class="ofc-dock-btn perigo"')
     : botao("entrarChamadaEscritorio()", "fone", "Entrar na conversa", escritorio.conectado && escritorio.zona && escritorio.zona !== "foco" && !escritorio.entrandoChamada ? "" : 'disabled title="Entre numa sala para conversar"');
-  el.innerHTML = `<label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório") : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "")}`;
+  el.innerHTML = `<label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir">${escritorioIcone("reagir")}<span>Reagir</span></summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório") : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "")}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -615,9 +625,15 @@ function escritorioDirecaoTeclas() {
   return n ? [dx / n, dy / n] : [0, 0];
 }
 // Pode ocupar a posição (x,y) vindo de (ox,oy)? Testa a troca de ladrilho.
+// Sala trancada: só entra quem estava lá ou foi deixado entrar.
+function escritorioZonaBloqueada(zona) {
+  const t = zona && escritorio.trancas?.get(zona);
+  return Boolean(t) && !t.has(String(escritorio.base?.eu)) && zona !== escritorio.zona;
+}
 function escritorioPodeIr(ox, oy, x, y) {
   const a = { x: Math.round(ox), y: Math.round(oy) }, b = { x: Math.round(x), y: Math.round(y) };
   if (a.x === b.x && a.y === b.y) return true;
+  if (escritorioZonaBloqueada(escritorioZonaEm(b.x, b.y))) { avisarTrancadaEscritorio(escritorioZonaEm(b.x, b.y)); return false; }
   const dx = b.x - a.x, dy = b.y - a.y;
   if (Math.abs(dx) > 1 || Math.abs(dy) > 1) return false;
   if (!escritorio.mapa?.podePassar(a.x, a.y, dx, dy)) return false;
@@ -672,6 +688,8 @@ function escritorioAnimarMovimento() {
 }
 function escritorioIrPara(x, y) {
   const de = { x: Math.round(movimento.quadro ? movimento.x : escritorioPosicao(escritorio.perfil || {}).x), y: Math.round(movimento.quadro ? movimento.y : escritorioPosicao(escritorio.perfil || {}).y) };
+  const destino = escritorioZonaEm(Math.floor(x), Math.floor(y));
+  if (escritorioZonaBloqueada(destino)) { avisarTrancadaEscritorio(destino, true); return; }
   const passos = escritorio.mapa?.caminho(de, { x, y });
   if (passos === null || passos === undefined) {
     // Sem mapa pronto (ou destino sem caminho): não teleporta.
@@ -697,6 +715,41 @@ function cliqueNoMapaEscritorio(x, y) {
   }
   escritorioIrPara(x, y);
 }
+// Trancar/destrancar a zona onde a pessoa está; bater na porta; deixar entrar.
+function escritorioPodeTrancar() {
+  const z = escritorio.zona;
+  if (!z || !escritorio.conectado) return false;
+  return !z.startsWith("sala-") || escritorioMinhaMesa()?.ambiente.id === z || Boolean(escritorio.base?.admin);
+}
+function trancarZonaEscritorio() {
+  const trancada = !escritorio.trancas?.has(escritorio.zona);
+  escritorioEmitir("zone:lock", { zona: escritorio.zona, trancada });
+  escritorioAviso(trancada ? "Sala trancada: quem chegar precisa bater na porta." : "Sala destrancada.");
+}
+let escritorioUltimoAvisoTranca = 0;
+function avisarTrancadaEscritorio(zona, pedido) {
+  if (!pedido && Date.now() - escritorioUltimoAvisoTranca < 2500) return;
+  escritorioUltimoAvisoTranca = Date.now();
+  const nome = ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona)?.nome || "Esta sala";
+  const el = document.getElementById("office-feedback");
+  if (!el) return;
+  el.innerHTML = `${safeText(nome)} está trancada. <button type="button" class="ofc-mini" onclick="baterPortaEscritorio('${safeText(zona)}')">Bater na porta</button>`;
+}
+function baterPortaEscritorio(zona) {
+  escritorioEmitir("zone:knock", { zona });
+  escritorioAviso("Você bateu na porta. Aguarde alguém deixar entrar.");
+}
+function avisoBatidaEscritorio({ id, nome, zona }) {
+  const el = document.getElementById("office-feedback");
+  if (!el) return;
+  el.innerHTML = `<b>${safeText(nome)}</b> bateu na porta. <button type="button" class="ofc-mini" onclick="escritorioEmitir('zone:admit',{zona:'${safeText(zona)}',id:'${safeText(id)}'});escritorioAviso('Pode entrar.')">Deixar entrar</button> <button type="button" class="ofc-mini" onclick="escritorioAviso('')">Agora não</button>`;
+}
+const ESCRITORIO_REACOES = { aplauso: "👏", coracao: "❤️", risada: "😂", joinha: "👍", fogo: "🔥", festa: "🎉" };
+function reagirEscritorio(tipo) {
+  escritorioEmitir("reaction", { tipo });
+  document.getElementById("office-reacoes")?.removeAttribute("open");
+}
+
 // WASD e setas: enquanto a tecla está presa, o boneco anda (movimento
 // contínuo acima); duas teclas somam a direção.
 const ESCRITORIO_TECLAS = {
@@ -826,6 +879,7 @@ async function enviarChatEscritorio(form) {
     input.value = "";
     delete form.dataset.chave;
     escritorioEmitir("chat:changed", { sala });
+    escritorioEmitir("chat:bubble", { texto });
     await carregarChatEscritorio();
   } catch (e) {
     escritorioAviso(e.message);
@@ -940,6 +994,14 @@ function renderMidiaEscritorio() {
     }
     el.append(tile);
   }
+  // Vídeo de cada pessoa também numa bolha sobre o boneco dela no mapa. O id
+  // do participante é "pessoa:código", criado pelo servidor.
+  const comVideo = new Map();
+  for (const p of [meeting.self, ...meeting.participants.joined.toArray()]) {
+    const pessoa = p === meeting.self ? String(escritorio.base?.eu) : String(p.customParticipantId || "").split(":")[0];
+    if (pessoa && p.videoEnabled && p.videoTrack) comVideo.set(pessoa, new MediaStream([p.videoTrack]));
+  }
+  for (const id of escritorio.mapa?.idsNoMapa() || []) escritorio.mapa.anexarVideo(id, comVideo.get(id) || null);
   atualizarDockEscritorio();
 }
 async function sairChamadaEscritorio() {
@@ -952,6 +1014,7 @@ async function sairChamadaEscritorio() {
   } finally {
     document.getElementById("office-call")?.setAttribute("hidden", "");
     document.getElementById("office-call-media")?.replaceChildren();
+    for (const id of escritorio.mapa?.idsNoMapa() || []) escritorio.mapa.anexarVideo(id, null);
     atualizarDockEscritorio();
   }
 }

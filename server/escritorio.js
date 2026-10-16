@@ -56,6 +56,7 @@ export function assinarEntradaEscritorio(
   perfil,
   segredo,
   agora = Date.now(),
+  minhaSala = "",
 ) {
   if (!segredo || segredo.length < 32)
     throw new Error(
@@ -66,6 +67,8 @@ export function assinarEntradaEscritorio(
     nome: pessoa.nome,
     admin: Boolean(pessoa.admin),
     perfil: perfilEscritorio(perfil),
+    // Sala individual da pessoa (decidida aqui): só ela e quem administra a trancam.
+    minhaSala: /^sala-([0-9]|1[01])$/.test(String(minhaSala)) ? String(minhaSala) : "",
     aud: "vybe-escritorio",
     iat: Math.floor(agora / 1000),
     exp: Math.floor(agora / 1000) + 300,
@@ -199,6 +202,8 @@ export async function areaEscritorio(req, res, quem, sql) {
             pessoa,
             perfil,
             process.env.ESCRITORIO_SESSION_SECRET,
+            Date.now(),
+            base.salas.find((x) => x.pessoa_id === String(pessoa.id))?.id || "",
           )
         : null,
       aviso: configurado
