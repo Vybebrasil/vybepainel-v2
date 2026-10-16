@@ -7,10 +7,10 @@ const MAPA_TW = 64, MAPA_TH = 32, MAPA_PAREDE = 118;
 const MAPA_MOVEIS = new Map(); // classe → Promise<{dados, imagem}>
 const MAPA_BASE = "/api/painel?area=escritorio&acao=arte&arquivo=";
 
-// A arte só sai pela API, para quem está logado. No build, ESCRITORIO_ARQUIVOS
-// traz a versão (hash) de cada arquivo, para o cache do navegador renovar.
+// A arte só sai pela API, para quem está logado. No build, a versão da pasta
+// de arte entra no endereço, para o cache do navegador renovar.
 function mapaArquivo(nome) {
-  const versao = typeof ESCRITORIO_ARQUIVOS !== "undefined" && ESCRITORIO_ARQUIVOS[nome];
+  const versao = typeof ESCRITORIO_ARTE_VERSAO !== "undefined" && ESCRITORIO_ARTE_VERSAO;
   return MAPA_BASE + encodeURIComponent(nome) + (versao ? "&v=" + versao : "");
 }
 function mapaCarregarMovel(classe) {

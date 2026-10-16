@@ -1,6 +1,6 @@
 // Monta a seleção de móveis que fica no painel a partir do acervo baixado
 // (scripts/habbo-acervo.mjs): extrai .json/.png para assets/escritorio/habbo e
-// gera vybe-escritorio-catalogo.js (nome e categoria para o editor).
+// gera assets/escritorio/habbo/catalogo.json (nome e categoria para o editor).
 // node scripts/habbo-selecao.mjs <pasta do acervo>
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import { inflateSync } from "node:zlib";
@@ -30,7 +30,7 @@ for (const it of oficial) {
   escolhidos.push({ classe: it.classe, categoria: cat });
 }
 // Os que o mapa padrão já usa entram sempre.
-for (const f of await readdir("assets/escritorio/habbo")) if (f.endsWith(".json")) {
+for (const f of await readdir("assets/escritorio/habbo")) if (f.endsWith(".json") && f !== "catalogo.json") {
   const c = f.slice(0, -5);
   if (!escolhidos.some((e) => e.classe === c)) escolhidos.push({ classe: c, categoria: "Do escritório" });
 }
@@ -60,5 +60,6 @@ const catalogo = escolhidos.filter((e) => !e.falhou).map((e) => ({
   nome: (nomes[e.classe] || e.classe.replace(/_/g, " ")).slice(0, 40),
   categoria: e.categoria,
 }));
-await writeFile("vybe-escritorio-catalogo.js", `// Gerado por scripts/habbo-selecao.mjs: móveis que ficam no painel (o resto vem\n// do acervo/catálogo do Habbo sob demanda). Não editar à mão.\nconst ESCRITORIO_CATALOGO = ${JSON.stringify(catalogo)};\n`);
+// Catálogo do editor: carregado só ao abrir o editor, pela API (com sessão).
+await writeFile("assets/escritorio/habbo/catalogo.json", JSON.stringify(catalogo));
 console.log(`Seleção: ${catalogo.length} móveis (${ok} com arte no painel).`);

@@ -6145,3 +6145,6 @@ body.no-escritorio {overflow:hidden}
 .abr-busca {flex:1;min-width:160px;padding:7px 10px;border-radius:10px;border:1px solid #ffffff22;background:#ffffff0b;color:#fff;font:13px var(--mac-ui)}
 .abr-acessorios {max-height:132px;overflow-y:auto}
 .abr-nota {color:var(--ofc-suave,#a3a9b7);font-size:12px}
+.ofc-cats {display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}
+.ofc-cats button {padding:5px 9px;border-radius:999px;border:1px solid #ffffff1c;background:#ffffff08;color:var(--ofc-suave);font:600 11px var(--mac-ui);cursor:pointer}
+.ofc-cats button[aria-pressed=true] {border-color:#ff8a35;background:#ff8a3524;color:#ffd2b0}

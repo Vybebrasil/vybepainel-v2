@@ -175,12 +175,28 @@ ${it ? `<div class="ofc-editor-sel"><button type="button" onclick="girarSelecion
 <div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
 }
 // Catálogo: os móveis do painel por categoria e a busca no catálogo do Habbo.
+// A lista do catálogo do painel vem pela API na primeira vez que o editor abre.
+let escritorioCatalogo = null;
+async function carregarCatalogoEscritorio() {
+  if (escritorioCatalogo) return;
+  escritorioCatalogo = [];
+  try {
+    const r = await fetch(mapaArquivo("catalogo.json"), { credentials: "same-origin" });
+    escritorioCatalogo = r.ok ? await r.json() : [];
+  } catch {}
+  if (escritorio.edicao) renderEscritorio();
+}
 function escritorioCatalogoHtml() {
-  const lista = typeof ESCRITORIO_CATALOGO !== "undefined" ? ESCRITORIO_CATALOGO : [];
+  if (!escritorioCatalogo) { carregarCatalogoEscritorio(); return '<p class="ofc-nota">Carregando catálogo…</p>'; }
+  const filtro = escritorio.catalogoCategoria || "";
+  const todas = escritorioCatalogo;
+  const lista = filtro ? todas.filter((m) => m.categoria === filtro) : todas.filter((m) => m.categoria === "Do escritório");
   const cats = [...new Set(lista.map((m) => m.categoria))];
-  const cartao = (m) => `<button type="button" class="ofc-movel" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(m.nome)}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt=""><span>${safeText(m.nome)}</span></button>`;
+  const abas = [...new Set(todas.map((m) => m.categoria))];
+  const cartao = (m) => `<button type="button" class="ofc-movel" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(m.nome)}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(m.nome)}</span></button>`;
   return `<form class="ofc-busca" onsubmit="event.preventDefault();buscarMovelEscritorio(this.q.value)"><input name="q" placeholder="Buscar no catálogo do Habbo (ex.: sofa, plant, lamp)" aria-label="Buscar móvel" autocomplete="off"><button class="workflow-primary">Buscar</button></form>
 <div id="office-busca-resultados" class="ofc-moveis"></div>
+<div class="ofc-cats">${abas.map((c) => `<button type="button" aria-pressed="${(filtro || "Do escritório") === c}" onclick="escritorio.catalogoCategoria='${safeText(c)}';renderEscritorio()">${safeText(c)} · ${todas.filter((m) => m.categoria === c).length}</button>`).join("")}</div>
 ${cats.map((c) => `<h4>${safeText(c)}</h4><div class="ofc-moveis">${lista.filter((m) => m.categoria === c).map(cartao).join("")}</div>`).join("") || '<p class="ofc-nota">Busque um móvel pelo nome em inglês.</p>'}`;
 }
 async function buscarMovelEscritorio(q) {
@@ -203,4 +219,18 @@ function escolherMovelEscritorio(classe) {
   escritorio.mapa?.medidas(classe, 2).catch(() => escritorioAviso("Esse móvel não carregou."));
   renderBarraEditorEscritorio();
   escritorioAviso("Clique no piso para colocar.");
+}
+
+// Sem a foto do site, desenha a miniatura com a arte guardada no painel.
+async function miniaturaLocalEscritorio(img, classe) {
+  img.onerror = null;
+  try {
+    const m = await mapaCarregarMovel(classe);
+    const v = m.dados.visualizations.find((x) => x.size === 64);
+    const dir = Number(Object.keys(v?.directions || { 2: 1 })[0]) || 0;
+    const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? dir, 0, 0);
+    if (d) img.src = d.canvas.toDataURL();
+  } catch {
+    img.style.visibility = "hidden";
+  }
 }
