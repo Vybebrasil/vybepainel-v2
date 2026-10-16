@@ -5975,6 +5975,10 @@ body.no-escritorio {overflow:hidden}
 .ofc-mapa:active {cursor:grabbing}
 .mapa-palco {position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:pixelated}
 .mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
+/* Parede com alguém logo atrás: fica translúcida para o boneco aparecer. */
+.mapa-muro {transition:opacity .2s}
+.mapa-muro.recortado {opacity:.28}
+@media(prefers-reduced-motion:reduce){.mapa-muro {transition:none}}
 .mapa-fundo {left:0;top:0;z-index:0}
 .mapa-rotulo {position:absolute;z-index:99000;transform:translate(-50%,-50%);padding:3px 9px;border-radius:8px;background:#11131acc;color:#eef0f5;font:650 12px var(--mac-ui);white-space:nowrap;pointer-events:none;opacity:.85}
 .mapa-pessoa {position:absolute;width:64px;height:110px;margin:-104px 0 0 -32px;border:0;padding:0;background:none;cursor:pointer}

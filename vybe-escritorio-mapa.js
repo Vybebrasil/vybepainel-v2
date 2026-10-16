@@ -262,10 +262,28 @@ async function mapaGuardarBoneco(figura) {
   }
 }
 // acao: std/wlk/sit/lay/wav; mao: algo na mão ("crr=6" é a caneca de café).
-function mapaAvatarUrl(figura, dir, acao, mao) {
+// quadro: andando, o Habbo tem 4 quadros de passo (frame_num 0–3).
+function mapaAvatarUrl(figura, dir, acao, mao, quadro) {
   const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: dir, action: mao ? `${acao},${mao}` : acao, gesture: "sml", size: "n" });
+  if (acao === "wlk") q.set("frame_num", String(quadro || 0));
   return "https://www.habbo.com/habbo-imaging/avatarimage?" + q;
 }
+// Quadros já baixados: a troca só acontece com a imagem pronta, sem piscar.
+const MAPA_BONECOS = new Map();
+function mapaBonecoPronto(url, aoCarregar) {
+  let img = MAPA_BONECOS.get(url);
+  if (!img) {
+    img = new Image();
+    img.referrerPolicy = "no-referrer";
+    img.src = url;
+    MAPA_BONECOS.set(url, img);
+    if (MAPA_BONECOS.size > 600) MAPA_BONECOS.delete(MAPA_BONECOS.keys().next().value);
+  }
+  if (img.complete && img.naturalWidth) return true;
+  img.addEventListener("load", aoCarregar, { once: true });
+  return false;
+}
+const MAPA_QUADRO_PASSO = 110; // ms por quadro de passo (como no Habbo)
 // Direção do Habbo (0–7) para um passo na grade.
 function mapaDirecaoDoPasso(dx, dy) {
   const a = Math.atan2(dy, dx);
@@ -385,16 +403,29 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     no.style.top = t.y + desenho.oy + "px";
     no.style.zIndex = prof;
   };
-  // Divisórias
+  // Divisórias. Parede na frente de alguém fica transparente (recorte), para
+  // ninguém sumir atrás dela.
+  const muros = [];
+  const recortar = (id, l, t, r, b, prof) => {
+    for (const m of muros) {
+      const cobre = m.prof > prof && m.l < r && m.r > l && m.t < b && m.b > t;
+      if (cobre === m.quem.has(id)) continue;
+      cobre ? m.quem.add(id) : m.quem.delete(id);
+      m.no.classList.toggle("recortado", m.quem.size > 0);
+    }
+  };
   for (const [x0, y0, x1, y1] of P.divisorias) {
     const eixo = y0 === y1 ? "x" : "y";
     const n = eixo === "x" ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
       const d = mapaDivisoria(x, y, eixo);
-      d.canvas.className = "mapa-obj";
-      colocar(d.canvas, x, y, d, Math.round((x + y) * 10) + 2);
+      d.canvas.className = "mapa-obj mapa-muro";
+      const prof = Math.round((x + y) * 10) + 2;
+      colocar(d.canvas, x, y, d, prof);
       palco.append(d.canvas);
+      const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
+      muros.push({ no: d.canvas, prof, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set() });
     }
   }
   // Móveis (animados ficam numa lista para trocar de quadro)
@@ -481,11 +512,22 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     p.no.style.top = t.y + MAPA_TH / 2 + "px";
     // Sentado, fica à frente do assento (sofá longo tem profundidade maior).
     const sobre = p.acao === "sit" && grade ? grade.profAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : undefined;
-    p.no.style.zIndex = Math.max(Math.round((Math.floor(p.x) + Math.floor(p.y)) * 10) + 6, (sobre ?? 0) + 2);
+    const z = Math.max(Math.round((Math.floor(p.x) + Math.floor(p.y)) * 10) + 6, (sobre ?? 0) + 2);
+    p.no.style.zIndex = z;
+    // Área do boneco (de pé, ~100 px acima dos pés) para recortar paredes.
+    const pe = t.y + MAPA_TH / 2 + 8;
+    recortar(p.id, t.x - 20, pe - 100, t.x + 20, pe, z);
   };
   const trocarImagem = (p) => {
-    const url = mapaAvatarUrl(p.figura, p.dir, p.acao, p.mao);
-    if (p.img.dataset.url !== url) { p.img.dataset.url = url; delete p.img.dataset.reserva; p.img.src = url; }
+    const quadro = p.acao === "wlk" ? Math.floor(performance.now() / MAPA_QUADRO_PASSO) % 4 : 0;
+    const url = mapaAvatarUrl(p.figura, p.dir, p.acao, p.mao, quadro);
+    if (p.img.dataset.url === url) return;
+    p.img.dataset.url = url;
+    const aplicar = () => { if (p.img.dataset.url === url) { delete p.img.dataset.reserva; p.img.src = url; } };
+    // Primeira imagem (ou quadro que falhou) entra direto; as outras esperam
+    // estar baixadas para trocar, e os 4 passos da direção já vão sendo pedidos.
+    if (!p.img.getAttribute("src") || mapaBonecoPronto(url, aplicar)) aplicar();
+    if (p.acao === "wlk") for (let i = 0; i < 4; i++) mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, "wlk", p.mao, i), () => {});
   };
   const caminhar = (p, alvo) => {
     cancelAnimationFrame(p.passo);
@@ -499,7 +541,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
-      posicionarPessoa(p);
+      trocarImagem(p); posicionarPessoa(p);
       if (k < 1) p.passo = requestAnimationFrame(passo);
       else {
         // Entre um passo e outro o boneco continua andando; só para (ou senta)
@@ -532,10 +574,12 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
         no.append(etiqueta, img);
         no.addEventListener("click", (e) => { e.stopPropagation(); q.aoClicar?.(q.id); });
         palco.append(no);
-        p = { no, img, etiqueta, x: q.x, y: q.y, dir: q.dir ?? 2, acao: q.acao || "std", figura };
+        p = { id: q.id, no, img, etiqueta, x: q.x, y: q.y, dir: q.dir ?? 2, acao: q.acao || "std", figura };
         pessoas.set(q.id, p);
         posicionarPessoa(p);
         trocarImagem(p);
+        // O próprio boneco: os passos das 8 direções já ficam baixados.
+        if (q.id === eu) for (let d = 0; d < 8; d++) for (let i = 0; i < 4; i++) mapaBonecoPronto(mapaAvatarUrl(figura, d, "wlk", q.mao || "", i), () => {});
       }
       p.figura = figura;
       p.mao = q.mao || "";
@@ -553,7 +597,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
       if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01 || p.acao !== (q.acao || "std")) caminhar(p, q);
       else trocarImagem(p);
     }
-    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); pessoas.delete(id); }
+    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
   }
 
   // Câmera: arrastar move, roda/pinça e botões mudam o zoom.
@@ -687,6 +731,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   const animar = () => {
     if (document.hidden || !el.isConnected || !el.offsetParent) return;
     quadro++;
+    // Quem está andando troca o quadro do passo mesmo entre um passo e outro.
+    for (const p of pessoas.values()) if (p.acao === "wlk") trocarImagem(p);
     for (const item of animados) {
       const d = mapaDesenharMovel(item.m, item.dir, item.estado, quadro);
       if (!d) continue;
@@ -696,7 +742,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
       g.drawImage(d.canvas, 0, 0);
     }
   };
-  prontos.then(() => { if (animados.length) relogio = setInterval(animar, 125); });
+  prontos.then(() => { relogio = setInterval(animar, 125); });
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
