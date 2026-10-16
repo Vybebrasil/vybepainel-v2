@@ -209,6 +209,8 @@ async function conectarEscritorio() {
 }
 function desconectarEscritorio(sairChamada = true) {
   escritorio.geracao++;
+  // Sair do escritório volta para a entrada da Vybelândia.
+  if (sairChamada) escritorio.lobbyFechado = false;
   clearInterval(escritorio.ping);
   clearTimeout(escritorio.renovar);
   const socket = escritorio.socket;
@@ -338,7 +340,9 @@ function escritorioChegar() {
   escritorioAplicarSalas();
   escritorio.perfil = { ...(base.equipe.find((p) => p.id === base.eu)?.perfil || {}) };
   const mesa = escritorioMinhaMesa();
-  const lugar = mesa ? mesa.cadeira : { x: 36, y: 8 };
+  // Chega pela porta da própria sala (a cadeira fica atrás da mesa, num canto
+  // fechado); sem sala, pela recepção.
+  const lugar = mesa ? escritorioNaSala(mesa.ambiente, 5, 8) : { x: 36, y: 8 };
   Object.assign(escritorio.perfil, escritorioParaPorcentagem(lugar.x, lugar.y));
   escritorio.sala = escritorioSalaEm(lugar.x, lugar.y);
   escritorio.zona = escritorioZonaEm(lugar.x, lugar.y);
@@ -421,7 +425,7 @@ function atualizarPessoasEscritorio() {
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado),
         mao: (voce ? escritorio.pose : p.pose) === "cafe" ? "crr=6" : "",
         dir: sentado ? dirAssento : undefined, local: voce,
-        aoClicar: convidarConversaEscritorio,
+        aoClicar: voce ? personalizarEscritorio : convidarConversaEscritorio,
       };
     }));
   }
@@ -475,7 +479,7 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
       botao("sairChamadaEscritorio().then(renderEscritorio)", "sair", "Sair da conversa", 'class="ofc-dock-btn perigo"')
     : botao("entrarChamadaEscritorio()", "fone", "Entrar na conversa", escritorio.conectado && escritorio.zona && escritorio.zona !== "foco" && !escritorio.entrandoChamada ? "" : 'disabled title="Entre numa sala para conversar"');
-  el.innerHTML = `<label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir">${escritorioIcone("reagir")}<span>Reagir</span></summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-poses"><summary class="ofc-dock-btn" aria-label="Ações do boneco">${escritorioIcone("espaco")}<span>Ações</span></summary><div class="ofc-poses"><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')">Acenar <kbd>1</kbd></button><button type="button" onclick="deitarEscritorio()">Deitar <kbd>2</kbd></button><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')">Café na mão <kbd>3</kbd></button></div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Som ligado" : "Som desligado", `aria-pressed="${escritorioSomLigado()}"`)}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório") : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "")}`;
+  el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="personalizarEscritorio()" aria-label="Personalizar meu personagem" title="Personalizar meu personagem">${escritorioAvatar(escritorio.perfil, "você")}<span>Personagem</span></button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir">${escritorioIcone("reagir")}<span>Reagir</span></summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-poses"><summary class="ofc-dock-btn" aria-label="Ações do boneco">${escritorioIcone("espaco")}<span>Ações</span></summary><div class="ofc-poses"><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')">Acenar <kbd>1</kbd></button><button type="button" onclick="deitarEscritorio()">Deitar <kbd>2</kbd></button><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')">Café na mão <kbd>3</kbd></button></div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Som ligado" : "Som desligado", `aria-pressed="${escritorioSomLigado()}"`)}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório") : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "")}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -522,7 +526,7 @@ function renderEscritorio() {
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <canvas class="ofc-minimapa" id="office-minimapa" width="232" height="168" ${modo === "mapa" ? "" : "hidden"} aria-label="Minimapa: clique para ir até lá" onclick="cliqueMinimapaEscritorio(event)"></canvas>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo"><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Câmera e microfone começam desligados.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div><label class="ofc-lobby-pref"><input type="checkbox" ${escritorioInicio() === "painel" ? "checked" : ""} onchange="escritorioInicio(this.checked?'painel':'escritorio')">Neste computador, abrir direto no painel</label><button type="button" class="office-text-button" onclick="escritorio.lobbyFechado=true;abrirPainelDoEscritorio()">Ir para o painel sem entrar</button></div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Câmera e microfone começam desligados.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div><label class="ofc-lobby-pref"><input type="checkbox" ${escritorioInicio() === "painel" ? "checked" : ""} onchange="escritorioInicio(this.checked?'painel':'escritorio')">Neste computador, abrir direto no painel</label><button type="button" class="office-text-button" onclick="escritorio.lobbyFechado=true;abrirPainelDoEscritorio()">Ir para o painel sem entrar</button></div></div>` : ""}
 </main>
 </section>`;
   document.body.classList.add("no-escritorio");
@@ -562,6 +566,9 @@ function montarMapaEscritorio() {
     });
     requestAnimationFrame(() => centralizarEmMimEscritorio());
     escritorio.mapa.marcarZona(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorio.zona) || null);
+    // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
+    // mais perto que tenha caminho até a recepção.
+    escritorio.mapa.prontos.then(() => escritorioDestravar());
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
     if (!escritorio.base.demo) setTimeout(() => mapaGuardarBoneco(mapaFigura(escritorio.perfil)), 4000);
   }
@@ -809,6 +816,25 @@ function escritorioOcupado(x, y) {
     const pos = escritorioPosicao(o);
     return Math.round(pos.x) === x && Math.round(pos.y) === y;
   });
+}
+
+function escritorioDestravar() {
+  if (!escritorio.mapa) return;
+  const p = escritorioPosicao(escritorio.perfil || {}), de = { x: Math.round(p.x), y: Math.round(p.y) };
+  const saida = { x: 36, y: 10 };
+  if (escritorio.mapa.caminho(de, saida)) return;
+  for (let r = 1; r < 12; r++) for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const t = { x: de.x + dx, y: de.y + dy };
+    if (escritorio.mapa.assentoEm(t.x, t.y) === undefined && escritorio.mapa.caminho(t, saida)) {
+      const pc = escritorioParaPorcentagem(t.x, t.y);
+      escritorio.perfil = { ...escritorio.perfil, x: pc.x, y: pc.y };
+      movimento.x = t.x; movimento.y = t.y;
+      escritorio.mapa.mover(escritorio.base.eu, t.x, t.y, 2, "std");
+      escritorioEnviarPosicao(true);
+      return;
+    }
+  }
 }
 
 // Interação ao chegar perto: um botão (e a tecla E) com o que dá para fazer.

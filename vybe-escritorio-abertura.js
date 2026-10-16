@@ -2,29 +2,6 @@
 // Cada pessoa vê uma vez por versão (perfil.abertura); "Meu espaço" reabre só
 // o criador. Animação respeita prefers-reduced-motion e sempre pode ser pulada.
 const ESCRITORIO_ABERTURA = "2026-10-16";
-// Peças conferidas no imager para cada corpo: algumas só existem para um
-// deles e somem no outro sem erro, por isso as listas são separadas.
-const CRIADOR_PECAS = {
-  M: {
-    cabelo: [828, 100, 115, 125, 155, 165, 170, 893, 3163, 515],
-    camisa: [255, 210, 215, 235, 3030, 3015],
-    calca: [280, 270, 285, 3023],
-    sapato: [305, 290, 300, 905],
-  },
-  F: {
-    cabelo: [515, 545, 575, 836, 890, 3163, 155, 893],
-    camisa: [665, 685, 690],
-    calca: [700, 710, 716, 3023],
-    sapato: [725, 905],
-  },
-};
-const CRIADOR_PELES = { 1: "#ffcb98", 10: "#ffdbc1", 2: "#e3ae7d", 8: "#f4ac54", 3: "#c99263", 4: "#ae7748", 19: "#b87560", 5: "#945c2f", 20: "#9c543f" };
-const CRIADOR_CABELOS = { 61: "#202020", 1394: "#2d180e", 45: "#423024", 37: "#6f4321", 48: "#a02900", 35: "#b29640", 34: "#b8ac85", 40: "#9c989d" };
-const CRIADOR_CORES = {
-  1323: "#ff5b08", 94: "#ff9211", 70: "#c74400", 110: "#161616", 64: "#414141", 92: "#bbbbbb", 96: "#ff1300", 107: "#1f55ff",
-  82: "#3a5977", 104: "#00b9a8", 102: "#1cdc00", 84: "#6bae61", 99: "#c600ad", 76: "#7e5b90", 93: "#fff41d", 95: "#ff27a6", 90: "#96743d",
-};
-const criador = { etapa: "cena", direcao: 2, figura: null, salvando: false, so: false };
 // Fundo da Vybelândia: o vídeo animado (versão leve em telas pequenas), com a
 // imagem parada como capa enquanto carrega. Usado também no login.
 function vybelandiaCenaHtml(parada = false) {
@@ -35,92 +12,173 @@ function vybelandiaCenaHtml(parada = false) {
   return `<video class="abr-cena${parada ? " parada" : ""}" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true"></video>`;
 }
 
-function criadorDaFigura(fig) {
-  const f = { g: "M", pele: 1, cabelo: 828, corCabelo: 61, camisa: 255, corCamisa: 1323, calca: 280, corCalca: 110, sapato: 305, corSapato: 110, extras: {} };
-  for (const parte of String(fig || "").split(".")) {
-    const [t, conj, cor] = parte.split("-");
-    const n = Number(conj), c = Number(cor);
-    if (t === "hd") { f.g = n === 600 ? "F" : "M"; if (CRIADOR_PELES[c]) f.pele = c; }
-    if (t === "hr") { f.cabelo = n; if (CRIADOR_CABELOS[c]) f.corCabelo = c; }
-    if (t === "ch") { f.camisa = n; if (CRIADOR_CORES[c]) f.corCamisa = c; }
-    if (t === "lg") { f.calca = n; if (CRIADOR_CORES[c]) f.corCalca = c; }
-    if (t === "sh") { f.sapato = n; if (CRIADOR_CORES[c]) f.corSapato = c; }
-    // Acessórios: tipo, conjunto e as cores como estão na figura.
-    if (CRIADOR_ACESSORIOS[t]) f.extras[t] = { id: n, cores: parte.split("-").slice(2).map(Number).filter(Boolean) };
+// Criador de personagem no estilo do Habbo: abas por categoria, grade com
+// miniatura de cada peça já no boneco da pessoa, cores reais de cada peça
+// (catálogo oficial em assets/escritorio/habbo/figuras.json), "Nenhum" para o
+// que é opcional e "Aleatório".
+const CRIADOR_ABAS = [
+  { t: "hd", nome: "Rosto e pele", cabeca: true },
+  { t: "hr", nome: "Cabelo", cabeca: true },
+  { t: "ha", nome: "Chapéu", cabeca: true, opcional: true },
+  { t: "he", nome: "Na cabeça", cabeca: true, opcional: true },
+  { t: "ea", nome: "Óculos", cabeca: true, opcional: true },
+  { t: "fa", nome: "Rosto", cabeca: true, opcional: true },
+  { t: "ch", nome: "Camisa" },
+  { t: "cc", nome: "Casaco", opcional: true },
+  { t: "ca", nome: "Pescoço", opcional: true },
+  { t: "cp", nome: "Estampa", opcional: true },
+  { t: "wa", nome: "Cintura", opcional: true },
+  { t: "lg", nome: "Calça" },
+  { t: "sh", nome: "Sapato", opcional: true },
+];
+const CRIADOR_PADRAO = { M: "hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110", F: "hd-600-1.hr-515-61.ch-665-1323.lg-700-110.sh-725-110" };
+const criador = { etapa: "cena", direcao: 2, aba: "hr", mostrar: 60, salvando: false, so: false, cat: null };
+async function criadorCarregarCatalogo() {
+  if (criador.cat || criador.carregando) return;
+  criador.carregando = true;
+  try {
+    const r = await fetch(mapaArquivo("figuras.json"), { credentials: "same-origin" });
+    if (r.ok) criador.cat = await r.json();
+  } catch {}
+  criador.carregando = false;
+  if (criador.f) {
+    // O corpo vem do rosto escolhido (o catálogo diz o gênero de cada rosto).
+    const g = criadorConjunto("hd", criador.f.partes.hd?.id)?.[1];
+    if (g === "M" || g === "F") criador.f.g = g;
+    criadorAjustarCorpo();
   }
-  const p = CRIADOR_PECAS[f.g];
-  for (const campo of ["cabelo", "camisa", "calca", "sapato"]) if (!p[campo].includes(f[campo])) f[campo] = p[campo][0];
-  return f;
+  renderAberturaEscritorio();
+}
+// Gênero de um conjunto pelo catálogo (U serve para os dois).
+function criadorConjunto(t, id) {
+  return criador.cat?.tipos[t]?.s.find((s) => s[0] === Number(id)) || null;
+}
+function criadorDaFigura(fig) {
+  const partes = {};
+  for (const parte of String(fig || "").split(".")) {
+    const [t, id, ...cores] = parte.split("-");
+    if (/^[a-z]{2}$/.test(t) && /^\d+$/.test(id || "")) partes[t] = { id: Number(id), cores: cores.map(Number).filter(Boolean) };
+  }
+  const g = partes.hd && [600, 605, 610, 615, 620, 625, 626, 627, 628, 629].includes(partes.hd.id) ? "F" : "M";
+  if (!partes.hd) return criadorDaFigura(CRIADOR_PADRAO.M);
+  return { g, partes };
 }
 function criadorFigura(f) {
-  const extras = Object.entries(f.extras || {}).map(([t, e]) => [t, e.id, ...(e.cores || [])].join("-"));
-  return [`hd-${f.g === "F" ? 600 : 180}-${f.pele}.hr-${f.cabelo}-${f.corCabelo}.ch-${f.camisa}-${f.corCamisa}.lg-${f.calca}-${f.corCalca}.sh-${f.sapato}-${f.corSapato}`, ...extras].join(".");
+  // A cabeça primeiro; o resto na ordem das abas.
+  return CRIADOR_ABAS.filter((a) => f.partes[a.t]).map((a) => [a.t, f.partes[a.t].id, ...f.partes[a.t].cores].join("-")).join(".");
 }
-// Acessórios do catálogo do Habbo: cada aba busca bibliotecas por prefixo; a
-// peça escolhida entra na figura com as cores reais da paleta dela.
-const CRIADOR_ACESSORIOS = {
-  ha: { nome: "Chapéu", prefixo: "hat_" }, he: { nome: "Cabeça", prefixo: "acc_head_" },
-  ea: { nome: "Óculos", prefixo: "acc_eye_" }, fa: { nome: "Rosto", prefixo: "acc_face_" },
-  ca: { nome: "Pescoço", prefixo: "acc_chest_" }, cc: { nome: "Casaco", prefixo: "jacket_" },
-  wa: { nome: "Cintura", prefixo: "acc_waist_" }, cp: { nome: "Estampa", prefixo: "acc_print_" },
-};
-const criadorCatalogo = { tipo: "ha", resultados: [], busca: "", paletas: {} };
-async function criadorBuscarAcessorio(tipo, termo = "") {
-  criadorCatalogo.tipo = tipo;
-  criadorCatalogo.busca = termo;
-  criadorCatalogo.resultados = null;
+function criadorServe(conj, g) {
+  return conj && (conj[1] === "U" || conj[1] === g);
+}
+// Ao trocar o corpo (ou ao carregar o catálogo), tira o que não serve.
+function criadorAjustarCorpo() {
+  const f = criador.f;
+  if (!criador.cat) return;
+  for (const [t, p] of Object.entries(f.partes)) {
+    const conj = criadorConjunto(t, p.id);
+    if (conj && !criadorServe(conj, f.g)) {
+      const aba = CRIADOR_ABAS.find((a) => a.t === t);
+      if (aba?.opcional) delete f.partes[t];
+      else {
+        const primeiro = criador.cat.tipos[t].s.find((s) => criadorServe(s, f.g) && !s[2]);
+        if (primeiro) f.partes[t] = { id: primeiro[0], cores: p.cores.slice(0, Math.max(1, primeiro[3])) };
+      }
+    }
+  }
+}
+function criadorTrocarCorpo(g) {
+  if (criador.f.g === g) return;
+  criador.f = { ...criadorDaFigura(CRIADOR_PADRAO[g]), partes: { ...criadorDaFigura(CRIADOR_PADRAO[g]).partes, ...Object.fromEntries(Object.entries(criador.f.partes).filter(([t]) => !["hd", "hr", "ch", "lg", "sh"].includes(t))) } };
+  criador.f.g = g;
+  criadorAjustarCorpo();
   renderAberturaEscritorio();
-  try {
-    const q = CRIADOR_ACESSORIOS[tipo].prefixo + termo.trim().replace(/\s+/g, "_");
-    const r = await fetch("https://www.habboassets.com/imaging/search?" + new URLSearchParams({ type: "clothing", q }));
-    const d = await r.json();
-    if (criadorCatalogo.tipo !== tipo) return;
-    // Só o que serve para o corpo escolhido (U = os dois).
-    const g = criador.f.g;
-    criadorCatalogo.resultados = (d.results || []).map((x) => x.name).filter((n) => new RegExp(`_(U|${g})_`, "i").test(n));
-  } catch {
-    criadorCatalogo.resultados = [];
+}
+function criadorPaleta(t) {
+  const p = criador.cat?.tipos[t]?.p;
+  return (p && criador.cat.pal[p]) || [];
+}
+function criadorEscolher(t, id) {
+  const f = criador.f;
+  if (id === null) delete f.partes[t];
+  else {
+    const conj = criadorConjunto(t, id), pal = criadorPaleta(t);
+    const n = Math.max(conj ? conj[3] : 1, 0);
+    const atuais = f.partes[t]?.cores || [];
+    const cores = Array.from({ length: n }, (_, i) => atuais[i] || pal[i === 0 ? 0 : Math.min(pal.length - 1, 8)]?.[0] || 1);
+    f.partes[t] = { id: Number(id), cores };
   }
   renderAberturaEscritorio();
 }
-async function criadorUsarAcessorio(biblioteca) {
-  try {
-    const d = await (await fetch("https://www.habboassets.com/imaging/info/clothing/" + encodeURIComponent(biblioteca))).json();
-    const conj = d.revisions?.[0]?.sets?.find((x) => x.wearable !== false && (x.gender === "U" || x.gender === criador.f.g));
-    if (!conj || !CRIADOR_ACESSORIOS[conj.type]) throw new Error();
-    const paleta = (d.palettes?.[conj.palette] || []).filter((c) => c.selectable !== false);
-    criadorCatalogo.paletas[conj.type] = paleta;
-    const cores = conj.colors ? (conj.defaultColors?.length ? conj.defaultColors : [paleta[0]?.id]).slice(0, conj.colors) : [];
-    criador.f.extras[conj.type] = { id: conj.id, cores, nome: biblioteca };
-  } catch {
-    const erro = document.getElementById("abr-erro");
-    if (erro) erro.textContent = "Essa peça não carregou. Escolha outra.";
+function criadorCor(t, i, cor) {
+  const p = criador.f.partes[t];
+  if (!p) return;
+  p.cores[i] = Number(cor);
+  renderAberturaEscritorio();
+}
+function criadorAleatorio() {
+  if (!criador.cat) return;
+  const f = { g: criador.f.g, partes: {} };
+  const sorteia = (lista) => lista[Math.floor(Math.random() * lista.length)];
+  for (const a of CRIADOR_ABAS) {
+    if (a.opcional && Math.random() < 0.7) continue;
+    const conj = sorteia(criador.cat.tipos[a.t].s.filter((s) => criadorServe(s, f.g) && !s[2]));
+    if (!conj) continue;
+    const pal = criadorPaleta(a.t).filter((c) => !c[2]);
+    f.partes[a.t] = { id: conj[0], cores: Array.from({ length: Math.max(conj[3], 0) }, () => sorteia(pal)?.[0] || 1) };
   }
+  criador.f = f;
   renderAberturaEscritorio();
 }
-function criadorCorAcessorio(tipo, cor) {
-  const e = criador.f.extras[tipo];
-  if (!e?.cores?.length) return;
-  e.cores[0] = cor;
-  renderAberturaEscritorio();
-}
-function criadorTirarAcessorio(tipo) {
-  delete criador.f.extras[tipo];
-  renderAberturaEscritorio();
-}
-function criadorAcessoriosHtml() {
-  const t = criadorCatalogo.tipo, cat = CRIADOR_ACESSORIOS[t], usado = criador.f.extras[t];
-  const nomeDe = (n) => n.replace(/^(hat|acc_[a-z]+|jacket)_[UMF]_/i, "").replace(/_/g, " ");
-  const paleta = criadorCatalogo.paletas[t] || [];
-  return `<div class="abr-grupo"><h3>Acessórios</h3>
-  <div class="abr-linha">${Object.entries(CRIADOR_ACESSORIOS).map(([id, a]) => `<button type="button" class="abr-estilo" aria-pressed="${id === t}" onclick="criadorBuscarAcessorio('${id}')">${a.nome}${criador.f.extras[id] ? " ●" : ""}</button>`).join("")}</div>
-  <form class="abr-linha" onsubmit="event.preventDefault();criadorBuscarAcessorio('${t}', this.q.value)"><input class="abr-busca" name="q" value="${safeText(criadorCatalogo.busca)}" placeholder="Buscar ${cat.nome.toLowerCase()} (em inglês)" aria-label="Buscar ${cat.nome}"><button class="abr-estilo">Buscar</button>${usado ? `<button type="button" class="abr-estilo" onclick="criadorTirarAcessorio('${t}')">Tirar ${cat.nome.toLowerCase()}</button>` : ""}</form>
-  <div class="abr-linha abr-acessorios">${criadorCatalogo.resultados === null ? "<span class=\"abr-nota\">Buscando…</span>" : (criadorCatalogo.resultados || []).map((n) => `<button type="button" class="abr-estilo" aria-pressed="${usado?.nome === n}" onclick="criadorUsarAcessorio('${safeText(n)}')">${safeText(nomeDe(n))}</button>`).join("") || "<span class=\"abr-nota\">Escolha uma aba ou busque um nome.</span>"}</div>
-  ${usado?.cores?.length && paleta.length ? `<div class="abr-linha">${paleta.slice(0, 40).map((c) => `<button type="button" class="abr-cor" style="--c:#${safeText(c.hex)}" aria-pressed="${usado.cores[0] === c.id}" aria-label="Cor ${c.id}" onclick="criadorCorAcessorio('${t}', ${Number(c.id)})"></button>`).join("")}</div>` : ""}
-  </div>`;
+// Miniatura: o próprio boneco com a peça trocada (cabeça só a cabeça).
+function criadorMiniatura(t, id, cabeca) {
+  const f = { g: criador.f.g, partes: { ...criador.f.partes } };
+  if (id === null) delete f.partes[t];
+  else {
+    const conj = criadorConjunto(t, id), pal = criadorPaleta(t);
+    const atuais = criador.f.partes[t]?.cores || [];
+    f.partes[t] = { id, cores: Array.from({ length: Math.max(conj?.[3] ?? 1, 0) }, (_, i) => atuais[i] || pal[0]?.[0] || 1) };
+  }
+  const q = new URLSearchParams({ figure: criadorFigura(f), direction: 3, head_direction: 3, size: "n", gesture: "sml" });
+  if (cabeca) q.set("headonly", "1");
+  return "https://www.habbo.com/habbo-imaging/avatarimage?" + q;
 }
 function criadorImagem(fig, dir = 2, tamanho = "l") {
-  return "https://www.habboassets.com/imaging/avatar.png?" + new URLSearchParams({ figure: fig, direction: dir, size: tamanho });
+  return "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: fig, direction: dir, head_direction: dir, size: tamanho, gesture: "sml" });
+}
+function criadorPainelHtml() {
+  const f = criador.f, fig = criadorFigura(f);
+  const aba = CRIADOR_ABAS.find((a) => a.t === criador.aba) || CRIADOR_ABAS[1];
+  const tipo = criador.cat?.tipos[aba.t];
+  const conjuntos = (tipo?.s || []).filter((s) => criadorServe(s, f.g));
+  const atual = f.partes[aba.t];
+  const conjAtual = atual && criadorConjunto(aba.t, atual.id);
+  const pal = criadorPaleta(aba.t);
+  const reserva = (t, id) => `this.onerror=null;this.src='https://www.habboassets.com/imaging/avatar.png?figure='+encodeURIComponent(this.dataset.fig)+'&direction=3'`;
+  const tile = (id, rotulo) => {
+    const src = criadorMiniatura(aba.t, id, aba.cabeca);
+    const fg = decodeURIComponent(new URL(src).searchParams.get("figure"));
+    return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" aria-label="${rotulo}" title="${rotulo}"><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt="">${id === null ? "<span>Nenhum</span>" : ""}</button>`;
+  };
+  const cores = (i) => `<div class="cri-cores" role="group" aria-label="Cor ${i + 1}">${pal.map(([id, hex]) => `<button type="button" class="abr-cor" style="--c:#${safeText(hex)}" aria-pressed="${atual?.cores[i] === id}" aria-label="Cor ${id}" onclick="criadorCor('${aba.t}', ${i}, ${id})"></button>`).join("")}</div>`;
+  return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
+<section class="abr-painel cri" aria-labelledby="abr-titulo">
+ <div class="abr-previa">
+  <div class="cri-corpo">${["M", "F"].map((g) => `<button type="button" class="abr-estilo" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div>
+  <img src="${criadorImagem(fig, criador.direcao)}" alt="Prévia do seu personagem" width="128" height="220">
+  <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div>
+ </div>
+ <div class="abr-opcoes cri-opcoes">
+  <span class="abr-kicker">${criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">Seu personagem</h2>
+  <nav class="cri-abas" aria-label="Partes do personagem">${CRIADOR_ABAS.map((a) => `<button type="button" aria-pressed="${a.t === aba.t}" onclick="criador.aba='${a.t}';criador.mostrar=60;renderAberturaEscritorio()">${a.nome}${f.partes[a.t] && a.opcional ? " ●" : ""}</button>`).join("")}</nav>
+  ${!criador.cat ? '<p class="abr-nota">Carregando o catálogo…</p>' : `
+  ${pal.length && atual && (conjAtual?.[3] ?? 1) > 0 ? `<h3 class="cri-sub">Cor</h3>${cores(0)}${(conjAtual?.[3] ?? 0) > 1 ? `<h3 class="cri-sub">Segunda cor</h3>${cores(1)}` : ""}` : ""}
+  <h3 class="cri-sub">${aba.nome} · ${conjuntos.length} opções</h3>
+  <div class="cri-grade">${aba.opcional ? tile(null, "Nenhum") : ""}${conjuntos.slice(0, criador.mostrar).map((s) => tile(s[0], aba.nome + " " + s[0])).join("")}</div>
+  ${conjuntos.length > criador.mostrar ? `<button type="button" class="abr-secundario cri-mais" onclick="criador.mostrar+=60;renderAberturaEscritorio()">Mostrar mais (${conjuntos.length - criador.mostrar})</button>` : ""}`}
+  <p class="abr-erro" role="alert" id="abr-erro"></p>
+  <div class="abr-acoes">${criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='boas';renderAberturaEscritorio()">Continuar</button>`}</div>
+ </div>
+</section>`;
 }
 function escritorioPrecisaAbertura() {
   return Boolean(escritorio.base) && escritorio.perfil?.abertura !== ESCRITORIO_ABERTURA;
@@ -133,6 +191,7 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.etapa = etapa === "cena" && window.VYBELANDIA_VISTA ? "personagem" : etapa;
   criador.f = criadorDaFigura(escritorio.perfil?.figura || mapaFigura(escritorio.perfil || {}));
   criador.nome = String(eu?.nome || "").split(" ")[0] || "equipe";
+  criadorCarregarCatalogo();
   let el = document.getElementById("ofc-abertura");
   if (!el) {
     el = document.createElement("div");
@@ -165,29 +224,7 @@ function renderAberturaEscritorio() {
     return;
   }
   if (criador.etapa === "personagem") {
-    if (!criadorCatalogo.carregado) { criadorCatalogo.carregado = true; setTimeout(() => criadorBuscarAcessorio(criadorCatalogo.tipo), 0); }
-    const f = criador.f, pecas = CRIADOR_PECAS[f.g];
-    const fig = criadorFigura(f);
-    const chips = (campo, cores) => Object.entries(cores).map(([id, cor]) =>
-      `<button type="button" class="abr-cor" style="--c:${cor}" aria-pressed="${String(f[campo]) === id}" aria-label="Cor ${id}" onclick="criador.f.${campo}=${id};renderAberturaEscritorio()"></button>`).join("");
-    const estilos = (campo, lista, rotulo) => lista.map((id, i) =>
-      `<button type="button" class="abr-estilo" aria-pressed="${f[campo] === id}" onclick="criador.f.${campo}=${id};renderAberturaEscritorio()">${rotulo} ${i + 1}</button>`).join("");
-    el.innerHTML = `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
-<section class="abr-painel" aria-labelledby="abr-titulo">
- <div class="abr-previa"><img src="${criadorImagem(fig, criador.direcao)}" alt="Prévia do seu personagem" width="128" height="220"><div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div></div>
- <div class="abr-opcoes">
-  <span class="abr-kicker">${criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">Seu personagem</h2>
-  <div class="abr-grupo"><h3>Corpo</h3><div class="abr-linha">${["M", "F"].map((g) => `<button type="button" class="abr-estilo" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div></div>
-  <div class="abr-grupo"><h3>Pele</h3><div class="abr-linha">${chips("pele", CRIADOR_PELES)}</div></div>
-  <div class="abr-grupo"><h3>Cabelo</h3><div class="abr-linha">${estilos("cabelo", pecas.cabelo, "Estilo")}</div><div class="abr-linha">${chips("corCabelo", CRIADOR_CABELOS)}</div></div>
-  <div class="abr-grupo"><h3>Camisa</h3><div class="abr-linha">${estilos("camisa", pecas.camisa, "Modelo")}</div><div class="abr-linha">${chips("corCamisa", CRIADOR_CORES)}</div></div>
-  <div class="abr-grupo"><h3>Calça</h3><div class="abr-linha">${estilos("calca", pecas.calca, "Modelo")}</div><div class="abr-linha">${chips("corCalca", CRIADOR_CORES)}</div></div>
-  <div class="abr-grupo"><h3>Sapato</h3><div class="abr-linha">${estilos("sapato", pecas.sapato, "Modelo")}</div><div class="abr-linha">${chips("corSapato", CRIADOR_CORES)}</div></div>
-  ${criadorAcessoriosHtml()}
-  <p class="abr-erro" role="alert" id="abr-erro"></p>
-  <div class="abr-acoes">${criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='boas';renderAberturaEscritorio()">Continuar</button>`}</div>
- </div>
-</section>`;
+    el.innerHTML = criadorPainelHtml();
     return;
   }
   // Boas-vindas
@@ -197,7 +234,7 @@ function renderAberturaEscritorio() {
  <img class="abr-boneco" src="${criadorImagem(criadorFigura(criador.f), 4)}" alt="" width="128" height="220">
  <div><span class="abr-kicker">Passo 2 de 2</span><h2 id="abr-titulo">Bem-vindo à Vybelândia, ${safeText(criador.nome)}!</h2>
  <ul class="abr-dicas">
-  <li><b>${mesa ? safeText(mesa.ambiente.nome) : "Sua sala"}</b> ${mesa ? "é sua: você chega sentado na sua mesa." : "ainda não foi definida; você chega pela recepção."}</li>
+  <li><b>${mesa ? safeText(mesa.ambiente.nome) : "Sua sala"}</b> ${mesa ? "é sua: você chega pela porta dela, e o computador da mesa abre o painel." : "ainda não foi definida; você chega pela recepção."}</li>
   <li><b>Clique no piso</b> para andar. Arraste para mover o mapa e use a roda do mouse para o zoom.</li>
   <li><b>O computador da sua mesa</b> abre o painel. "Voltar ao escritório" traz você de volta.</li>
   <li><b>Entre na conversa</b> da sala para falar com quem está nela. Microfone e câmera começam desligados.</li>
@@ -206,16 +243,6 @@ function renderAberturaEscritorio() {
  <div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='personagem';renderAberturaEscritorio()">Ajustar personagem</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio(true)">Entrar no escritório</button></div></div>
 </section>`;
   el.querySelector(".abr-primario")?.focus({ preventScroll: true });
-}
-function criadorTrocarCorpo(g) {
-  const f = criador.f;
-  f.g = g;
-  const p = CRIADOR_PECAS[g];
-  if (!p.cabelo.includes(f.cabelo)) f.cabelo = p.cabelo[0];
-  if (!p.camisa.includes(f.camisa)) f.camisa = p.camisa[0];
-  if (!p.calca.includes(f.calca)) f.calca = p.calca[0];
-  if (!p.sapato.includes(f.sapato)) f.sapato = p.sapato[0];
-  renderAberturaEscritorio();
 }
 // Salva o boneco (e que a abertura foi vista). Ao fim da abertura, entra.
 async function salvarPersonagemEscritorio(entrar) {
