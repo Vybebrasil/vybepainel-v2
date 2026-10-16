@@ -15,7 +15,7 @@
 const ESCRITORIO_SALA_LADO = 10;
 // Quando esta planta entrou no ar: o mapa geral salvo antes disso é da planta
 // anterior e não vale mais (as salas individuais continuam, são relativas).
-const ESCRITORIO_PLANTA_DESDE = "2026-10-17T00:00:00Z";
+const ESCRITORIO_PLANTA_DESDE = "2026-10-16T23:34:00Z";
 const ESCRITORIO_PLANTA = (() => {
   // O mapa é quadrado, do tamanho da praça do vídeo de fundo; o prédio
   // (76 × 50) fica no meio, com jardim atrás e a frente para a rua. Tudo
