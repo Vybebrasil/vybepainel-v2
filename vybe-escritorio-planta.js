@@ -22,6 +22,8 @@ const ESCRITORIO_PLANTA = (() => {
     sala8: ["#45545e", "#3f4d56"], sala9: ["#665040", "#5d493a"], sala10: ["#5b5040", "#53493a"], sala11: ["#4f4a5a", "#484352"],
     // Espaços do Lounge, cada um com o seu piso.
     lareira: ["#4f3626", "#472f21"], cinema: ["#262a3c", "#222536"], pista: ["#2c2338", "#271f32"], bar: ["#3d2b22", "#36261e"],
+    // Mais pisos para pintar as salas.
+    marmore: ["#d9d6d0", "#cfccc5"], gramado: ["#4f8a43", "#467d3c"], nogueira: ["#3e2a1e", "#36241a"], vinho: ["#5a2230", "#4f1d2a"],
   };
   // Cor do letreiro em neon de cada sala.
   const CORES_SALAS = ["#ff8a35", "#ffb347", "#5aa9ff", "#ffd166", "#ff6fa8", "#7ee08a", "#b48cff", "#ff9a5a", "#5ad1e6", "#e8a87c", "#d6c27a", "#a7a3ff"];
@@ -280,10 +282,10 @@ function escritorioMesaDaSala(a) {
 // divisória), móveis com frente virada para dentro da sala, a faixa da porta
 // (no meio, em cima ou embaixo) e o fundo onde fica o letreiro livres.
 const ESCRITORIO_TEMAS_SALAS = ["atendimento", "atendimento", "atendimento", "design", "design", "design", "estudio", "planejamento", "criacao", "livre", "livre", "livre"];
-function escritorioMoveisDaSala(a) {
+function escritorioMoveisDaSala(a, temaEscolhido) {
   const item = (classe, lx, ly, dir, estado = 0, altura = 0) => [classe, a.x0 + lx, a.y0 + ly, dir, estado, altura];
   const mesa = escritorioMesaDaSala(a);
-  const tema = ESCRITORIO_TEMAS_SALAS[Number(String(a.id).split("-")[1])] || "livre";
+  const tema = temaEscolhido || ESCRITORIO_TEMAS_SALAS[Number(String(a.id).split("-")[1])] || "livre";
   const base = [
     item("exe_table", 2, 3, 2),
     item("computer_flatscreen", 2, 4, 6, 1, 1),

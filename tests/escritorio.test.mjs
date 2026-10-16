@@ -878,3 +878,24 @@ test("chamada: conversa única do escritório e a mesma pessoa reaproveita o par
   assert.deepEqual(chamadas.map(([u, m]) => m + " " + u), ["POST /meetings", "POST /meetings/reuniao-1/participants", "POST /meetings/reuniao-1/participants/part-1/token"]);
   await assert.rejects(prepararChamadaEscritorio(sql, pessoa, "<x>", env), /Sala inválida/);
 });
+
+test("mapa: cada salvamento guarda a versão anterior e só quem edita vê o histórico", async (t) => {
+  const { versoesDaCamada, itensDaVersao } = await import("../server/escritorio-mapa.js");
+  const { db, sql } = await banco();
+  t.after(() => db.close());
+  await db.exec(readFileSync("migrations/2026-10-16-escritorio-mapa.sql", "utf8"));
+  const salas = salasDoEscritorio([{ id: 1, nome: "Paulo" }, { id: 2, nome: "Jady" }]);
+  const paulo = { id: 1, admin: true }, jady = { id: 2, admin: false };
+  // Sem a migração do histórico, salvar continua funcionando.
+  await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [["exe_plant", 1, 1, 2]], versao: 0 });
+  await assert.rejects(versoesDaCamada(sql, paulo, salas, "geral"), /migração/);
+  await db.exec(readFileSync("migrations/2026-10-17-escritorio-mapa-versoes.sql", "utf8"));
+  await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [["exe_plant", 2, 2, 2]], versao: 1 });
+  await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [], versao: 2 });
+  const versoes = await versoesDaCamada(sql, paulo, salas, "geral");
+  assert.deepEqual(versoes.map((v) => v.versao), [2, 1]);
+  const v1 = await itensDaVersao(sql, paulo, salas, versoes[1].id);
+  assert.deepEqual(v1.itens, [["exe_plant", 1, 1, 2, 0, 0]]);
+  await assert.rejects(versoesDaCamada(sql, jady, salas, "geral"), /administra/);
+  await assert.rejects(itensDaVersao(sql, jady, salas, versoes[0].id), /administra/);
+});
