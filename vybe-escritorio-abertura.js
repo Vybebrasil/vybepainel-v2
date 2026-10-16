@@ -1,7 +1,8 @@
 // Abertura da Vybelândia: cena animada → criação do personagem → boas-vindas.
 // Cada pessoa vê uma vez por versão (perfil.abertura); "Meu espaço" reabre só
 // o criador. Animação respeita prefers-reduced-motion e sempre pode ser pulada.
-const ESCRITORIO_ABERTURA = "2026-10-16";
+// Mudar esta data faz a abertura (e o tutorial) aparecer de novo para todos.
+const ESCRITORIO_ABERTURA = "2026-10-17";
 // Fundo da Vybelândia: o vídeo animado (versão leve em telas pequenas), com a
 // imagem parada como capa enquanto carrega. Usado também no login.
 function vybelandiaCenaHtml(parada = false) {
@@ -274,7 +275,7 @@ function renderAberturaEscritorio() {
  <ul class="abr-dicas">
   <li><b>${mesa ? safeText(mesa.ambiente.nome) : "Sua sala"}</b> ${mesa ? "é sua: você chega pela porta dela, e o computador da mesa abre o painel." : "ainda não foi definida; você chega pela recepção."}</li>
   <li><b>Clique no piso</b> para andar. Arraste para mover o mapa e use a roda do mouse para o zoom.</li>
-  <li><b>O computador da sua mesa</b> abre o painel. "Voltar ao escritório" traz você de volta.</li>
+  <li><b>Suas demandas</b> ficam no botão Painel, na barra de baixo: modo Gestor, Minhas tarefas, Foco e os outros módulos. "Voltar ao escritório" traz você de volta ao mapa.</li>
   <li><b>Entre na conversa</b> da sala para falar com quem está nela. Microfone e câmera começam desligados.</li>
  </ul>
  <p class="abr-erro" role="alert" id="abr-erro"></p>
@@ -297,6 +298,8 @@ async function salvarPersonagemEscritorio(entrar) {
     const eu = escritorio.base.equipe.find((p) => p.id === escritorio.base.eu);
     if (eu) eu.perfil = { ...eu.perfil, figura: salvo.figura, abertura: salvo.abertura };
     fecharAberturaEscritorio();
+    // Fim da abertura: ao entrar, o tutorial mostra o básico (e onde ficam as demandas).
+    if (entrar && !criador.so) escritorio.tutorialPendente = true;
     renderEscritorio();
     if (!escritorio.base.demo) mapaGuardarBoneco(salvo.figura);
     if (entrar && !escritorio.base.demo) {
@@ -305,6 +308,7 @@ async function salvarPersonagemEscritorio(entrar) {
     } else if (entrar) {
       escritorio.lobbyFechado = true;
       renderEscritorio();
+      if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
     } else if (escritorio.conectado) {
       // O boneco viaja no token da presença: reconecta para os outros verem.
       desconectarEscritorio(false);
@@ -316,4 +320,75 @@ async function salvarPersonagemEscritorio(entrar) {
   } finally {
     criador.salvando = false;
   }
+}
+
+// Tutorial do básico: destaca cada controle de verdade na tela, um por vez.
+// Abre sozinho depois da abertura e pode ser revisto no botão Tutorial.
+const TUTORIAL_ESCRITORIO = [
+  { alvo: ".mapa-pessoa.voce", titulo: "Este é você", texto: "Clique no piso para andar, ou use W A S D (ou as setas). Segure Shift para correr." },
+  { alvo: "#ofc-btn-painel", titulo: "Suas demandas estão aqui", texto: "Painel abre o seu espaço de trabalho: modo Gestor, Minhas tarefas, Foco e todos os módulos, com as demandas. Lá, o botão Voltar ao escritório (embaixo) traz você de volta ao mapa." },
+  { alvo: ".ofc-rail-btn[aria-label='Painel']", titulo: "Também pela lateral", texto: "O Painel também fica na barra da esquerda, sempre à mão. O computador da sua mesa faz o mesmo: chegue perto e aperte E." },
+  { alvo: "#office-acao:not([hidden])", titulo: "Chegou perto, aperte E", texto: "Perto de alguém ou de um objeto aparece um botão com a tecla E: conversar, sentar, pegar um café, ligar a jukebox, correr na esteira. No computador da sua mesa, o E abre o painel." },
+  { alvo: "[aria-label='Entrar na conversa']", titulo: "Conversa por sala", texto: "Cada sala é uma zona de conversa. Entre na conversa para falar com quem está nela. Microfone e câmera começam desligados." },
+  { alvo: ".ofc-status", titulo: "Sua disponibilidade", texto: "Mostre se está disponível, em foco ou ausente. Estar online não mede produtividade." },
+  { alvo: ".ofc-eu", titulo: "Seu personagem", texto: "Clique aqui (ou no seu boneco) para trocar roupa, cabelo e acessórios." },
+  { alvo: "[aria-label='Tutorial']", titulo: "Pronto!", texto: "Para rever estas dicas, use o botão Tutorial na barra da esquerda." },
+];
+const tutorial = { passo: 0 };
+function iniciarTutorialEscritorio() {
+  if (typeof activeBoard !== "undefined" && activeBoard !== "escritorio") return;
+  tutorial.passo = 0;
+  let el = document.getElementById("ofc-tutorial");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "ofc-tutorial";
+    el.className = "ofc-tutorial";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    el.setAttribute("aria-labelledby", "ofc-tutorial-titulo");
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); fecharTutorialEscritorio(); }
+      if (e.key === "ArrowRight") { e.stopPropagation(); passoTutorialEscritorio(1); }
+      if (e.key === "ArrowLeft") { e.stopPropagation(); passoTutorialEscritorio(-1); }
+    });
+    document.body.append(el);
+    window.addEventListener("resize", renderTutorialEscritorio);
+  }
+  renderTutorialEscritorio();
+}
+function fecharTutorialEscritorio() {
+  document.getElementById("ofc-tutorial")?.remove();
+  window.removeEventListener("resize", renderTutorialEscritorio);
+}
+function passoTutorialEscritorio(d) {
+  tutorial.passo = Math.max(0, Math.min(TUTORIAL_ESCRITORIO.length - 1, tutorial.passo + d));
+  renderTutorialEscritorio();
+}
+function renderTutorialEscritorio() {
+  const el = document.getElementById("ofc-tutorial");
+  if (!el) return;
+  const p = TUTORIAL_ESCRITORIO[tutorial.passo], ultimo = tutorial.passo === TUTORIAL_ESCRITORIO.length - 1;
+  const alvo = p.alvo && [...document.querySelectorAll(p.alvo)].find((n) => n.getClientRects().length);
+  const r = alvo?.getBoundingClientRect();
+  const folga = 8;
+  const furo = r ? `left:${r.left - folga}px;top:${r.top - folga}px;width:${r.width + folga * 2}px;height:${r.height + folga * 2}px` : "";
+  el.innerHTML = `${r ? `<div class="tut-furo" style="${furo}"></div>` : '<div class="tut-fundo"></div>'}
+<section class="tut-cartao" tabindex="-1">
+ <span class="tut-passo">${tutorial.passo + 1} de ${TUTORIAL_ESCRITORIO.length}</span>
+ <h2 id="ofc-tutorial-titulo">${safeText(p.titulo)}</h2>
+ <p>${safeText(p.texto)}</p>
+ <div class="tut-acoes"><button type="button" class="tut-pular" onclick="fecharTutorialEscritorio()">${ultimo ? "Fechar" : "Pular tutorial"}</button><span></span>${tutorial.passo ? '<button type="button" class="abr-secundario" onclick="passoTutorialEscritorio(-1)">Voltar</button>' : ""}<button type="button" class="abr-primario" onclick="${ultimo ? "fecharTutorialEscritorio()" : "passoTutorialEscritorio(1)"}">${ultimo ? "Começar" : "Próximo"}</button></div>
+</section>`;
+  // Cartão perto do alvo, sem sair da tela; sem alvo, no centro.
+  const c = el.querySelector(".tut-cartao");
+  const cw = Math.min(340, innerWidth - 32);
+  c.style.width = cw + "px";
+  const ch = c.offsetHeight;
+  let x = innerWidth / 2 - cw / 2, y = innerHeight / 2 - ch / 2;
+  if (r) {
+    x = Math.max(16, Math.min(innerWidth - cw - 16, r.left + r.width / 2 - cw / 2));
+    y = r.top - ch - 18 >= 16 ? r.top - ch - 18 : Math.min(innerHeight - ch - 16, r.bottom + 18);
+  }
+  c.style.cssText = `width:${cw}px;left:${x}px;top:${Math.max(16, y)}px`;
+  el.querySelector(".abr-primario")?.focus({ preventScroll: true });
 }

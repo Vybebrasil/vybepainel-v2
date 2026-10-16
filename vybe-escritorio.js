@@ -148,6 +148,7 @@ async function conectarEscritorio() {
           y: escritorio.perfil.y || 75,
         });
         renderEscritorio();
+        if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         escritorio.ping = setInterval(
           () => escritorioEmitir("system:ping", {}),
           30000,
@@ -283,6 +284,7 @@ function escritorioIcone(nome) {
     mapa: '<path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4"/>',
     pessoas: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5"/><path d="M16 4.6a3 3 0 010 6M18 14.8c1.6.8 2.6 2.5 3 5.2"/>',
     conversa: '<path d="M4 5h16v11H9l-5 4z"/>',
+    ajuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8 1c0 1.7-2.4 2-2.4 3.6"/><path d="M12 17h.01"/>',
     espaco: '<circle cx="12" cy="8" r="3.6"/><path d="M5 21c.8-4.4 3.5-6.6 7-6.6s6.2 2.2 7 6.6"/>',
     painel: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>',
     mesa: '<path d="M3 10h18M5 10v9M19 10v9M8 10V6h8v4"/>',
@@ -487,7 +489,7 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
       botao("sairChamadaEscritorio().then(renderEscritorio)", "sair", "Sair da conversa", "", { texto: true, classe: "perigo" })
     : botao("entrarChamadaEscritorio()", "fone", "Entrar na conversa", escritorio.conectado && escritorio.zona && escritorio.zona !== "foco" && !escritorio.entrandoChamada ? "" : 'disabled title="Entre numa sala para conversar"', { texto: true });
-  el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="personalizarEscritorio()" aria-label="Personalizar meu personagem" title="Personalizar meu personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-poses"><summary class="ofc-dock-btn" aria-label="Ações do boneco" title="Ações do boneco">${escritorioIcone("espaco")}</summary><div class="ofc-poses"><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')">Acenar <kbd>1</kbd></button><button type="button" onclick="deitarEscritorio()">Deitar <kbd>2</kbd></button><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')">Café na mão <kbd>3</kbd></button></div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Som ligado" : "Som desligado", `aria-pressed="${escritorioSomLigado()}"`)}${botao("abrirPainelDoEscritorio()", "painel", "Abrir painel")}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
+  el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="personalizarEscritorio()" aria-label="Personalizar meu personagem" title="Personalizar meu personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-poses"><summary class="ofc-dock-btn" aria-label="Ações do boneco" title="Ações do boneco">${escritorioIcone("espaco")}</summary><div class="ofc-poses"><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')">Acenar <kbd>1</kbd></button><button type="button" onclick="deitarEscritorio()">Deitar <kbd>2</kbd></button><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')">Café na mão <kbd>3</kbd></button></div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Som ligado" : "Som desligado", `aria-pressed="${escritorioSomLigado()}"`)}${botao("abrirPainelDoEscritorio()", "painel", "Painel", 'id="ofc-btn-painel"', { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -515,6 +517,7 @@ function renderEscritorio() {
  ${escritorioCamadaParaEditar() ? rail("editar", "editar", escritorio.base.admin ? "Editar" : "Minha sala", escritorio.edicao ? "sairEditorEscritorio()" : "abrirEditorEscritorio()", Boolean(escritorio.edicao)) : ""}
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
  ${rail("painel", "painel", "Painel", "abrirPainelDoEscritorio()", false)}
+ ${rail("ajuda", "ajuda", "Tutorial", "iniciarTutorialEscritorio()", false)}
 </nav>
 <aside class="ofc-lateral" aria-label="${aba === "conversa" ? "Conversa da sala" : "Pessoas e salas"}">
  <div class="ofc-lateral-topo"><div><b>Vybe</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div><button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
@@ -1150,14 +1153,14 @@ function irParaMinhaMesaEscritorio() {
 }
 // O painel é o computador da mesa: abre por cima do escritório e a presença
 // continua; "Voltar ao escritório" no dock traz o mapa de volta.
-function abrirPainelDoEscritorio() {
-  const destino = escritorio.boardAntes && escritorio.boardAntes !== "escritorio" ? escritorio.boardAntes : "producao";
+// "Painel" abre a tela de módulos (Gestor, Minhas tarefas, Foco…), onde fica
+// todo o trabalho; com um quadro, vai direto a ele.
+function abrirPainelDoEscritorio(quadro) {
+  const destino = quadro || (escritorio.boardAntes && escritorio.boardAntes !== "escritorio" ? escritorio.boardAntes : "producao");
   const btn = document.getElementById("btn-board-" + destino);
   if (btn) switchBoard(destino, btn);
-  if (escritorio.portaoAntes) {
-    escritorio.portaoAntes = false;
-    if (typeof openModeGate === "function") openModeGate();
-  }
+  escritorio.portaoAntes = false;
+  if (!quadro && typeof openModeGate === "function") openModeGate();
   atualizarDockEscritorio();
 }
 function voltarAoEscritorio() {
@@ -1179,7 +1182,6 @@ function escritorioInicio(valor) {
 // configurado e a pessoa não preferir o painel. No celular, segue o painel.
 async function iniciarNoEscritorio() {
   if (window.matchMedia?.("(max-width: 760px)").matches) return;
-  if (escritorioInicio() === "painel") return;
   if (new URLSearchParams(location.search).has("atividade")) return;
   const antes = typeof activeBoard !== "undefined" ? activeBoard : "producao";
   let base;
@@ -1189,6 +1191,11 @@ async function iniciarNoEscritorio() {
     return;
   }
   if (!base.demo && !base.worker) return;
+  // Quem prefere abrir no painel continua no painel, menos na primeira vez de
+  // uma abertura nova (todos veem a novidade uma vez).
+  const versao = typeof ESCRITORIO_ABERTURA === "undefined" ? "" : ESCRITORIO_ABERTURA;
+  const viu = !versao || base.equipe?.find((p) => p.id === base.eu)?.perfil?.abertura === versao;
+  if (escritorioInicio() === "painel" && viu) return;
   if (typeof activeBoard !== "undefined" && activeBoard !== antes) return;
   escritorio.base = base;
   escritorioChegar();
@@ -1390,7 +1397,7 @@ window.addEventListener("pagehide", () => {
 // campos de texto, modais e a abertura ficam de fora.
 globalThis.document?.addEventListener?.("keydown", (e) => {
   if (typeof activeBoard === "undefined" || activeBoard !== "escritorio" || !escritorio.mapa) return;
-  if (document.getElementById("ofc-abertura") || document.querySelector(".workflow-modal")) return;
+  if (document.getElementById("ofc-abertura") || document.getElementById("ofc-tutorial") || document.querySelector(".workflow-modal")) return;
   if ((escritorio.modo || "mapa") !== "mapa") return;
   if (escritorio.edicao) { if (teclaEditorEscritorio(e)) e.preventDefault(); return; }
   escritorio.correndo = e.shiftKey;
