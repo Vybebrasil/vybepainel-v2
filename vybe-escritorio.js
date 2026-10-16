@@ -751,6 +751,7 @@ function montarMapaEscritorio() {
   const el = escritorio.mapaEl;
   el.hidden = lugar.hidden;
   lugar.replaceWith(el);
+  if (escritorio.edicao && typeof desenharCatalogoEscritorio === "function") desenharCatalogoEscritorio();
   // A música fica fora do redesenho: recriar o player cortaria a música.
   const lugarMusica = document.getElementById("office-musica-lugar");
   if (lugarMusica) {
@@ -766,6 +767,9 @@ function montarMapaEscritorio() {
       eu: escritorio.base.eu,
       aoClicar: (x, y) => cliqueNoMapaEscritorio(x, y),
       aoPassar: (x, y, cx, cy) => passarNoMapaEscritorio(x, y, cx, cy),
+      aoPegar: (x, y) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y),
+      aoArrastar: (x, y) => arrastarNoEditorEscritorio(x, y),
+      aoSoltar: (x, y, moveu) => soltarNoEditorEscritorio(x, y, moveu),
     });
     requestAnimationFrame(() => centralizarEmMimEscritorio());
     escritorio.mapa.marcarZona(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorio.zona) || null);

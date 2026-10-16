@@ -472,7 +472,7 @@ function mapaOrdenar(objetos) {
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
-function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
+function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar }) {
   const P = planta;
   const largura = (P.W + P.H) * (MAPA_TW / 2) + 80;
   const altura = (P.W + P.H) * (MAPA_TH / 2) + MAPA_PAREDE + 140;
@@ -972,9 +972,23 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     mexerCam();
   }
   let arrasto = null;
+  // Ladrilho sob um ponto da janela (mouse, dedo, arrastar do catálogo).
+  const ladrilhoEm = (cx, cy) => {
+    const r = palco.getBoundingClientRect();
+    const t = mapaLadrilho((cx - r.left) / zoom, (cy - r.top) / zoom, origem);
+    return { x: Math.floor(t.x), y: Math.floor(t.y) };
+  };
   el.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target.closest("button")) return;
     inercia = null;
+    // Editor: apertar num móvel da área em edição pega o móvel (em vez de
+    // arrastar o mapa); soltar larga onde o mouse estiver.
+    const t0 = ladrilhoEm(e.clientX, e.clientY);
+    if (aoPegar?.(t0.x, t0.y)) {
+      arrasto = { item: true, x: e.clientX, y: e.clientY, moveu: false, ult: [] };
+      el.setPointerCapture?.(e.pointerId);
+      return;
+    }
     // Pega a câmera de onde ela está agora (mesmo no meio de uma animação).
     alvo.x = cam.x; alvo.y = cam.y; alvo.z = zoom;
     arrasto = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moveu: false, ult: [{ t: performance.now(), x: e.clientX, y: e.clientY }] };
@@ -993,6 +1007,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     const dx = e.clientX - arrasto.x, dy = e.clientY - arrasto.y;
     if (Math.hypot(dx, dy) > 4) arrasto.moveu = true;
     if (!arrasto.moveu) return;
+    if (arrasto.item) { const t = ladrilhoEm(e.clientX, e.clientY); aoArrastar?.(t.x, t.y); return; }
     seguindo = false;
     alvo.x = cam.x = arrasto.cx + dx; alvo.y = cam.y = arrasto.cy + dy;
     aplicar();
@@ -1003,6 +1018,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   el.addEventListener("pointerup", (e) => {
     const a = arrasto; arrasto = null;
     if (!a) return;
+    if (a.item) { const t = ladrilhoEm(e.clientX, e.clientY); aoSoltar?.(t.x, t.y, a.moveu); return; }
     if (a.moveu) {
       // Solta com a velocidade dos últimos ~90 ms e desliza até parar.
       const p0 = a.ult[0], p1 = a.ult[a.ult.length - 1], dt = Math.max(1, p1.t - p0.t);
@@ -1175,7 +1191,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   prontos.then(() => { relogio = setInterval(animar, 125); });
 
   return {
-    origem, prontos, carga, atualizarPessoas,
+    origem, prontos, carga, atualizarPessoas, ladrilhoEm,
+    // Ponto da janela de um ladrilho (para pôr a barrinha do editor ao lado do móvel).
+    naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
     balao, reagir, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,

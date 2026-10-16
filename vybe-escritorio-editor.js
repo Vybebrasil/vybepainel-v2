@@ -34,6 +34,9 @@ function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
     versao: salvo?.versao || 0,
     sel: null, novo: null, mudou: false,
   };
+  // Histórico para desfazer/refazer (fotos da lista de itens).
+  escritorio.edicao.passos = [JSON.stringify(escritorio.edicao.itens)];
+  escritorio.edicao.futuro = [];
   escritorio.modo = "mapa";
   escritorio.aba = "catalogo";
   escritorio.lateral = true;
@@ -77,14 +80,25 @@ function escritorioCantoCamada(camada) {
   const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === camada);
   return a ? { x: a.x0, y: a.y0, w: a.x1 - a.x0, h: a.y1 - a.y0 } : { x: 0, y: 0, w: ESCRITORIO_PLANTA.W, h: ESCRITORIO_PLANTA.H };
 }
-// O móvel inteiro precisa caber na área que a pessoa pode editar.
-async function escritorioCabe(classe, lx, ly, dir) {
+// O móvel inteiro precisa caber na área que a pessoa pode editar e, se for
+// sólido (não tapete), não pode cair em cima de outro móvel sólido.
+async function escritorioCabe(classe, lx, ly, dir, ignorar = null, colisao = true) {
   const c = escritorioCantoCamada(escritorio.edicao.camada);
   const d = await escritorio.mapa.medidas(classe, dir);
-  return lx >= 0 && ly >= 0 && lx + d.x <= c.w && ly + d.y <= c.h;
+  if (!(lx >= 0 && ly >= 0 && lx + d.x <= c.w && ly + d.y <= c.h)) return false;
+  if (!colisao || !(d.z > 0.05) || d.imagem) return true;
+  for (let i = 0; i < Math.max(1, Math.round(d.x)); i++) for (let j = 0; j < Math.max(1, Math.round(d.y)); j++)
+    if (escritorio.mapa.moveisEm(c.x + lx + i, c.y + ly + j).some((m) => !m.plano && !m.altura && !(ignorar && m.origem?.camada === escritorio.edicao.camada && m.origem?.i === ignorar.i))) return false;
+  return true;
 }
 let escritorioRedesenho = null;
-function escritorioEditorMudou() {
+function escritorioEditorMudou(semPasso = false) {
+  const ed = escritorio.edicao;
+  if (!ed) return;
+  if (!semPasso && ed.passos) {
+    const foto = JSON.stringify(ed.itens);
+    if (foto !== ed.passos.at(-1)) { ed.passos.push(foto); ed.futuro = []; if (ed.passos.length > 80) ed.passos.shift(); }
+  }
   escritorio.edicao.mudou = true;
   clearTimeout(escritorioRedesenho);
   escritorioRedesenho = setTimeout(async () => {
@@ -113,9 +127,16 @@ async function cliqueEditorEscritorio(x, y) {
     return escritorioEditorMudou();
   }
   if (e.novo) {
-    if (!(await escritorioCabe(e.novo, lx, ly, 2))) return escritorioAviso("Esse móvel não cabe aí. Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
+    let altura = 0;
+    if (!(await escritorioCabe(e.novo, lx, ly, 2))) {
+      // Peça pequena solta em cima de mesa/balcão: vai em cima dela.
+      const d0 = await escritorio.mapa.medidas(e.novo, 2);
+      const mesa = escritorio.mapa.moveisEm(x, y).find((m) => /table|desk|counter|bardesk|shelve|cabinet/.test(m.classe) && !m.altura);
+      if (mesa && d0.x <= 1 && d0.y <= 1 && (await escritorioCabe(e.novo, lx, ly, 2, null, false))) altura = 1;
+      else return escritorioAviso("Esse móvel não cabe aí (ou já tem outro no lugar). Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
+    }
     const d = await escritorio.mapa.medidas(e.novo, 2);
-    e.itens.push([e.novo, lx, ly, d.dir, 0, 0]);
+    e.itens.push([e.novo, lx, ly, d.dir, 0, altura]);
     escritorio.mapa?.previa(null);
     e.sel = e.itens.length - 1;
     e.novo = null;
@@ -205,6 +226,10 @@ async function empurrarSelecionadoEscritorio(dx, dy) {
 function teclaEditorEscritorio(e) {
   const ed = escritorio.edicao;
   if (!ed || e.target.closest?.("input, textarea, select")) return false;
+  const cmd = e.metaKey || e.ctrlKey, k0 = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (cmd && k0 === "z") { e.preventDefault?.(); e.shiftKey ? refazerEditorEscritorio() : desfazerEditorEscritorio(); return true; }
+  if (cmd && k0 === "y") { e.preventDefault?.(); refazerEditorEscritorio(); return true; }
+  if (cmd && k0 === "d") { e.preventDefault?.(); duplicarSelecionadoEscritorio(); return true; }
   if (e.key === "Escape") { if (ed.trocar != null) ed.trocar = null; else if (ed.novo) ed.novo = null; else { ed.sel = null; escritorio.mapa?.destacar(null); } escritorio.mapa?.previa(null); renderBarraEditorEscritorio(); return true; }
   if (ed.sel === null) return false;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -221,13 +246,17 @@ function renderBarraEditorEscritorio() {
   const e = escritorio.edicao;
   if (!el) return;
   el.hidden = !e;
-  if (!e) return;
+  if (!e) { document.getElementById("office-editor-sel")?.remove(); return; }
   const it = e.sel !== null ? e.itens[e.sel] : null;
+  cancelAnimationFrame(escritorio.selQuadro || 0);
+  acompanharSelecaoEditorEscritorio();
   // Quem administra escolhe a área a editar (mapa geral ou qualquer sala).
   const areas = escritorio.base?.admin ? [["geral", "Mapa geral (espaços comuns)"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])] : [];
   const escolha = areas.length ? `<select aria-label="Área que você está editando" onchange="trocarCamadaEditorEscritorio(this.value)">${areas.map(([id, nome]) => `<option value="${id}"${id === e.camada ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select>` : `<b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b>`;
-  el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · Esc cancela" : it ? "R gira · Delete apaga · setas empurram · clique no piso move" : "Clique num móvel para selecionar ou escolha um no catálogo"}</span></div>
-${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel"><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel"><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
+  const minhaSala = e.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === e.camada;
+  el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · Esc cancela" : it ? "Arraste para mudar de lugar · R gira · Delete apaga · Ctrl+Z desfaz" : "Arraste um móvel para mudar de lugar, ou arraste um do catálogo para o mapa"}</span></div>
+<div class="ofc-editor-hist"><button type="button" onclick="desfazerEditorEscritorio()" ${e.passos?.length > 1 ? "" : "disabled"} title="Desfazer (Ctrl+Z)">Desfazer</button><button type="button" onclick="refazerEditorEscritorio()" ${e.futuro?.length ? "" : "disabled"} title="Refazer (Ctrl+Shift+Z)">Refazer</button><button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${minhaSala ? '<button type="button" onclick="abrirEstiloSalaEscritorio()">Piso e paredes</button>' : ""}</div>
+${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel" hidden><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel" hidden><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
 <div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
 }
 // Catálogo: os móveis do painel por categoria e a busca no catálogo do Habbo.
@@ -248,20 +277,100 @@ const ESCRITORIO_COMPUTADORES = [
   ["computer_flatscreen", "Computador de mesa"], ["computer_laptop", "Notebook"], ["uni_laptop", "Notebook da faculdade"],
   ["computer_old", "Computador antigo"], ["steampunk_computer", "Computador steampunk"], ["easter_c23_solarpunkcomputer", "Computador solar"],
 ].map(([classe, nome]) => ({ classe, nome, categoria: "Computadores" }));
+// Nome em português: o catálogo do Habbo vem em inglês. Traduz as palavras
+// mais comuns e põe o substantivo na frente ("Gray Sofa" → "Sofá cinza").
+const ESCRITORIO_SUBSTANTIVOS = { table: "Mesa", chair: "Cadeira", tree: "Árvore", lamp: "Luminária", sofa: "Sofá", corner: "Canto", divider: "Divisória", stool: "Banqueta", rug: "Tapete", plant: "Planta", bench: "Banco", shelf: "Prateleira", light: "Luz", lights: "Luzes", desk: "Escrivaninha", seat: "Assento", armchair: "Poltrona", flower: "Flor", flowers: "Flores", fence: "Cerca", floor: "Piso", wall: "Parede", counter: "Balcão", block: "Bloco", pillow: "Almofada", stage: "Palco", bookcase: "Estante", carpet: "Carpete", candles: "Velas", candle: "Vela", throne: "Trono", vase: "Vaso", lantern: "Lanterna", ball: "Bola", bush: "Arbusto", toilet: "Vaso sanitário", lounge: "Espreguiçadeira", cat: "Gato", screen: "Tela", scoreboard: "Placar", drinks: "Bebidas", tea: "Chá", pillar: "Pilar", chandelier: "Lustre", box: "Caixa", rock: "Pedra", bed: "Cama", garden: "Jardim", cushion: "Almofada", fan: "Ventilador", cactus: "Cacto", bonsai: "Bonsai", gate: "Portão", mattress: "Colchão", computer: "Computador", laptop: "Notebook", tv: "TV", fridge: "Geladeira", stove: "Fogão", sink: "Pia", cabinet: "Armário", crate: "Caixote", pot: "Vaso", torch: "Tocha", palm: "Palmeira", jukebox: "Jukebox", clock: "Relógio", mirror: "Espelho", window: "Janela", door: "Porta", statue: "Estátua", fountain: "Fonte", printer: "Impressora", whiteboard: "Quadro branco", bar: "Bar", railing: "Grade" };
+const ESCRITORIO_ADJETIVOS = { dark: "escuro", blue: "azul", red: "vermelho", black: "preto", modern: "moderno", yellow: "amarelo", pink: "rosa", white: "branco", coffee: "de centro", green: "verde", large: "grande", glass: "de vidro", gold: "dourado", dining: "de jantar", street: "de rua", side: "lateral", beige: "bege", "(beige)": "bege", small: "pequeno", purple: "roxo", gray: "cinza", grey: "cinza", wooden: "de madeira", kitchen: "de cozinha", picnic: "de piquenique", chinese: "chinês", inflatable: "inflável", folding: "dobrável", ancient: "antigo", marble: "de mármore", executive: "executivo", orange: "laranja", hanging: "suspenso", leather: "de couro", school: "da escola", bathroom: "de banheiro", solid: "sólido", potted: "no vaso", aquamarine: "água-marinha", electric: "elétrico", old: "antigo", office: "de escritório", three: "de três lugares", two: "de dois lugares", suspended: "suspenso", "pool-side": "de piscina", iced: "gelo", round: "redondo", square: "quadrado", long: "comprido", mini: "mini", big: "grande", tall: "alto", low: "baixo", double: "duplo", silver: "prateado", brown: "marrom", wood: "madeira", metal: "de metal", plastic: "de plástico", "&": "e" };
+function escritorioNomeMovel(m) {
+  if (m.categoria === "Computadores" || /[ãçéíóú]/i.test(m.nome)) return m.nome;
+  // Sem nome no catálogo vem a classe ("bling_sofa_mu"): vira palavras.
+  const base = /_/.test(m.nome || "") || !m.nome ? String(m.nome || m.classe).replace(/_?c\d+_/g, " ").replace(/_/g, " ") : m.nome;
+  const palavras = base.split(/\s+/).filter(Boolean);
+  const nomes = [], resto = [];
+  for (const p of palavras) {
+    const k = p.toLowerCase();
+    if (ESCRITORIO_SUBSTANTIVOS[k] && !nomes.length) nomes.push(ESCRITORIO_SUBSTANTIVOS[k]);
+    else if (ESCRITORIO_SUBSTANTIVOS[k]) resto.push(ESCRITORIO_SUBSTANTIVOS[k].toLowerCase());
+    else if (ESCRITORIO_ADJETIVOS[k]) resto.push(ESCRITORIO_ADJETIVOS[k]);
+    else resto.push(p);
+  }
+  return [...nomes, ...resto].join(" ") || m.nome;
+}
+// Categorias por uso (as do Habbo misturavam 299 cadeiras e sofás numa só).
+const ESCRITORIO_GRUPOS_CATALOGO = [
+  ["Recentes", null],
+  ["Do escritório", (m) => m.categoria === "Do escritório"],
+  ["Computadores", (m) => m.categoria === "Computadores" || /computer|laptop|monitor/.test(m.classe)],
+  ["Mesas", (m) => m.categoria === "Mesas" && !/desk/.test(m.classe)],
+  ["Escrivaninhas", (m) => /desk/.test(m.classe) && !/bardesk/.test(m.classe)],
+  // Pelo nome (o que a peça é), não pela classe: "couch_norja" é um banco.
+  ["Cadeiras", (m) => escritorioTipoAssento(m) === "cadeira"],
+  ["Poltronas e pufes", (m) => escritorioTipoAssento(m) === "poltrona"],
+  ["Sofás", (m) => escritorioTipoAssento(m) === "sofa"],
+  ["Bancos e banquetas", (m) => escritorioTipoAssento(m) === "banco"],
+  ["Estantes", (m) => m.categoria === "Estantes"],
+  ["Luzes", (m) => m.categoria === "Luzes"],
+  ["Tapetes", (m) => m.categoria === "Tapetes"],
+  ["Plantas", (m) => m.categoria === "Jardim" && /plant|flower|tree|bush|palm|cactus|bonsai|pot/.test(m.classe)],
+  ["Jardim e área externa", (m) => m.categoria === "Jardim" && !/plant|flower|tree|bush|palm|cactus|bonsai|pot/.test(m.classe)],
+  ["Divisórias", (m) => m.categoria === "Divisórias"],
+  ["Jogos e música", (m) => ["Jogos", "Música", "Festa"].includes(m.categoria)],
+  ["Cozinha e bar", (m) => m.categoria === "Cozinha" || /bardesk|bartable|minibar|fridge|drinks/.test(m.classe)],
+  ["Casa e decoração", (m) => ["Casa", "Escritório", "Escola", "Cinema", "Brasil", "Cidade"].includes(m.categoria)],
+];
+const ESCRITORIO_POR_PAGINA = 15;
+function escritorioTipoAssento(m) {
+  if (m.categoria !== "Cadeiras e sofás" && !/armchair|beanbag|lounger|hangingchair/.test(m.classe)) return "";
+  const n = String(m.nome).toLowerCase() + " " + m.classe;
+  if (/armchair|sofachair|pouf|beanbag|lounger|chaise|hangingchair|hanging chair|cushion|pillow/.test(n)) return "poltrona";
+  if (/bench|stool|seat|throne|banquet/.test(n)) return "banco";
+  if (/sofa|couch|divan|sohva/.test(n)) return "sofa";
+  return "cadeira";
+}
+function escritorioRecentes() {
+  try { return JSON.parse(localStorage.getItem("vybe-escritorio-recentes") || "[]").filter((c) => typeof c === "string").slice(0, 24); } catch { return []; }
+}
+function escritorioLembrarMovel(classe) {
+  if (escritorioImagemDe(classe)) return;
+  try { localStorage.setItem("vybe-escritorio-recentes", JSON.stringify([classe, ...escritorioRecentes().filter((c) => c !== classe)].slice(0, 24))); } catch {}
+}
 function escritorioCatalogoHtml() {
   if (!escritorioCatalogo) { carregarCatalogoEscritorio(); return '<p class="ofc-nota">Carregando catálogo…</p>'; }
   const filtro = escritorio.catalogoCategoria || "";
   const abaImagens = `<button type="button" aria-pressed="${filtro === "Imagens"}" onclick="escritorio.catalogoCategoria='Imagens';renderEscritorio()">Imagens · ${escritorioImagensDaCamada().length}</button>`;
   if (filtro === "Imagens") return `<div class="ofc-cats"><button type="button" onclick="escritorio.catalogoCategoria='';renderEscritorio()">Móveis</button>${abaImagens}</div>${escritorioImagensHtml()}`;
+  return `<div class="ofc-busca"><input id="office-catalogo-busca" type="search" placeholder="Buscar: mesa, sofá, planta, luz…" aria-label="Buscar móvel" autocomplete="off" value="${safeText(escritorio.catalogoBusca || "")}" oninput="escritorio.catalogoBusca=this.value;escritorio.catalogoPagina=0;desenharCatalogoEscritorio()"></div>
+<label class="ofc-cat-escolha"><span>Categoria</span><select onchange="escritorio.catalogoCategoria=this.value;escritorio.catalogoPagina=0;escritorio.catalogoBusca='';renderEscritorio()">${ESCRITORIO_GRUPOS_CATALOGO.map(([nome]) => `<option value="${safeText(nome)}"${(filtro || (escritorioRecentes().length ? "Recentes" : "Do escritório")) === nome ? " selected" : ""}>${safeText(nome)} · ${escritorioListaCatalogo(nome).length}</option>`).join("")}</select></label>
+<div class="ofc-cats">${abaImagens}</div>
+<div id="office-catalogo-lista"></div>
+<p class="ofc-nota">Clique num móvel e depois no piso, ou arraste direto para o mapa. Não achou? <button type="button" class="office-text-button" onclick="buscarMovelEscritorio(document.getElementById('office-catalogo-busca').value)">Buscar no catálogo completo do Habbo</button> (em inglês).</p>
+<div id="office-busca-resultados" class="ofc-moveis"></div>`;
+}
+function escritorioListaCatalogo(grupo) {
   const todas = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES];
-  const lista = filtro ? todas.filter((m) => m.categoria === filtro) : todas.filter((m) => m.categoria === "Do escritório");
-  const cats = [...new Set(lista.map((m) => m.categoria))];
-  const abas = [...new Set(todas.map((m) => m.categoria))];
-  const cartao = (m) => `<button type="button" class="ofc-movel" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(m.nome)}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(m.nome)}</span></button>`;
-  return `<form class="ofc-busca" onsubmit="event.preventDefault();buscarMovelEscritorio(this.q.value)"><input name="q" placeholder="Buscar no catálogo do Habbo (ex.: sofa, plant, lamp)" aria-label="Buscar móvel" autocomplete="off"><button class="workflow-primary">Buscar</button></form>
-<div id="office-busca-resultados" class="ofc-moveis"></div>
-<div class="ofc-cats">${abaImagens}${abas.map((c) => `<button type="button" aria-pressed="${(filtro || "Do escritório") === c}" onclick="escritorio.catalogoCategoria='${safeText(c)}';renderEscritorio()">${safeText(c)} · ${todas.filter((m) => m.categoria === c).length}</button>`).join("")}</div>
-${cats.map((c) => `<h4>${safeText(c)}</h4><div class="ofc-moveis">${lista.filter((m) => m.categoria === c).map(cartao).join("")}</div>`).join("") || '<p class="ofc-nota">Busque um móvel pelo nome em inglês.</p>'}`;
+  if (grupo === "Recentes") { const r = escritorioRecentes(); return r.map((c) => todas.find((m) => m.classe === c) || { classe: c, nome: c.replace(/_/g, " "), categoria: "" }); }
+  const f = ESCRITORIO_GRUPOS_CATALOGO.find(([n]) => n === grupo)?.[1];
+  const vistos = new Set();
+  return todas.filter((m) => f?.(m) && !vistos.has(m.classe) && vistos.add(m.classe)).sort((a, b) => escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR"));
+}
+// Lista com páginas (sem rolar sem fim) e busca enquanto digita.
+function desenharCatalogoEscritorio() {
+  const el = document.getElementById("office-catalogo-lista");
+  if (!el || !escritorioCatalogo) return;
+  const busca = String(escritorio.catalogoBusca || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const grupo = escritorio.catalogoCategoria || (escritorioRecentes().length ? "Recentes" : "Do escritório");
+  let lista;
+  if (busca) {
+    const vistos = new Set();
+    const sem = (t) => String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    lista = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES].filter((m) => !vistos.has(m.classe) && vistos.add(m.classe) && (sem(escritorioNomeMovel(m)).includes(busca) || sem(m.nome).includes(busca) || m.classe.includes(busca)));
+  } else lista = escritorioListaCatalogo(grupo);
+  const paginas = Math.max(1, Math.ceil(lista.length / ESCRITORIO_POR_PAGINA));
+  const pag = Math.min(paginas - 1, escritorio.catalogoPagina || 0);
+  const cartao = (m) => `<button type="button" class="ofc-movel" draggable="true" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span></button>`;
+  el.innerHTML = !lista.length
+    ? `<p class="ofc-nota">${busca ? "Nada com esse nome no catálogo do painel." : grupo === "Recentes" ? "Os móveis que você usar aparecem aqui." : "Nada nesta categoria."}</p>`
+    : `<h4>${busca ? `${lista.length} encontrados` : safeText(grupo)}</h4><div class="ofc-moveis">${lista.slice(pag * ESCRITORIO_POR_PAGINA, (pag + 1) * ESCRITORIO_POR_PAGINA).map(cartao).join("")}</div>${paginas > 1 ? `<div class="ofc-paginas"><button type="button" onclick="escritorio.catalogoPagina=${pag - 1};desenharCatalogoEscritorio()" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${paginas}</span><button type="button" onclick="escritorio.catalogoPagina=${pag + 1};desenharCatalogoEscritorio()" ${pag + 1 < paginas ? "" : "disabled"} aria-label="Próxima página">›</button></div>` : ""}`;
 }
 async function buscarMovelEscritorio(q) {
   const el = document.getElementById("office-busca-resultados");
@@ -291,6 +400,7 @@ async function previaEditorEscritorio(x, y) {
 }
 function escolherMovelEscritorio(classe) {
   if (!escritorio.edicao || !/^[a-z0-9_]+$/i.test(classe)) return;
+  escritorioLembrarMovel(classe);
   // Trocando o modelo da mesa ou do computador: mesmo lugar, outro móvel.
   const e = escritorio.edicao;
   if (e.trocar != null && e.itens[e.trocar]) {
@@ -460,4 +570,156 @@ function trocarCamadaEditorEscritorio(camada) {
   if (e.mudou && !confirm("Descartar as mudanças em " + escritorioNomeCamada(e.camada) + "?")) return renderBarraEditorEscritorio();
   escritorio.edicao = null;
   abrirEditorEscritorio(camada);
+}
+
+// Arrastar um móvel da área em edição: pega no aperto, mostra onde vai cair
+// (verde cabe, vermelho não) e larga ao soltar.
+function pegarNoEditorEscritorio(x, y) {
+  const e = escritorio.edicao;
+  if (!e || e.novo || e.trocar != null || !escritorio.mapa) return false;
+  const c = escritorioCantoCamada(e.camada), lx = x - c.x, ly = y - c.y;
+  let i = e.itens.findIndex((it) => escritorioImagemDe(it[0])?.tipo === "quadro" && escritorioQuadroCobre(it, lx, ly));
+  if (i < 0) i = escritorio.mapa.moveisEm(x, y).find((m) => m.origem?.camada === e.camada)?.origem.i ?? -1;
+  if (i < 0) return false;
+  const it = e.itens[i];
+  e.sel = i;
+  e.arrasto = { i, dx: lx - Math.floor(it[1]), dy: ly - Math.floor(it[2]), alvo: null };
+  escritorio.mapa.destacar({ camada: e.camada, i });
+  renderBarraEditorEscritorio();
+  return true;
+}
+async function arrastarNoEditorEscritorio(x, y) {
+  const e = escritorio.edicao, a = e?.arrasto;
+  if (!a) return;
+  const it = e.itens[a.i], c = escritorioCantoCamada(e.camada);
+  if (escritorioImagemDe(it[0])?.tipo === "quadro") return;
+  const nx = x - c.x - a.dx, ny = y - c.y - a.dy;
+  if (a.alvo && a.alvo.nx === nx && a.alvo.ny === ny) return;
+  a.alvo = { nx, ny, cabe: false };
+  let cabe = false;
+  try { cabe = it[5] ? true : await escritorioCabe(it[0], nx, ny, it[3], { i: a.i }); } catch {}
+  if (a.alvo.nx !== nx || a.alvo.ny !== ny) return;
+  a.alvo.cabe = cabe;
+  escritorio.mapa.previa(it[0], nx + c.x, ny + c.y, it[3], cabe);
+}
+async function soltarNoEditorEscritorio(x, y, moveu) {
+  const e = escritorio.edicao, a = e?.arrasto;
+  if (!a) return;
+  e.arrasto = null;
+  escritorio.mapa?.previa(null);
+  if (!moveu) return renderBarraEditorEscritorio();
+  const it = e.itens[a.i], c = escritorioCantoCamada(e.camada);
+  if (escritorioImagemDe(it[0])?.tipo === "quadro") {
+    const lugar = escritorioLugarQuadro(it[0], x - c.x, y - c.y, a.i);
+    if (lugar.erro) return escritorioAviso(lugar.erro);
+    it[1] = lugar.lx; it[2] = lugar.ly; it[3] = lugar.dir;
+    return escritorioEditorMudou();
+  }
+  const nx = x - c.x - a.dx, ny = y - c.y - a.dy;
+  let cabe = false;
+  try { cabe = it[5] ? true : await escritorioCabe(it[0], nx, ny, it[3], { i: a.i }); } catch {}
+  if (!cabe) return escritorioAviso("Não cabe aí, ou já tem outro móvel no lugar. Solte dentro de " + escritorioNomeCamada(e.camada) + ".");
+  it[1] = nx; it[2] = ny;
+  escritorioEditorMudou();
+}
+function escritorioVoltarPasso(de, para) {
+  const e = escritorio.edicao;
+  if (!e || de.length < (de === e.passos ? 2 : 1)) return;
+  if (de === e.passos) { e.futuro.push(e.passos.pop()); e.itens = JSON.parse(e.passos.at(-1)); }
+  else { const foto = e.futuro.pop(); e.passos.push(foto); e.itens = JSON.parse(foto); }
+  e.sel = null;
+  escritorio.mapa?.destacar(null);
+  escritorioEditorMudou(true);
+}
+function desfazerEditorEscritorio() { const e = escritorio.edicao; if (e) escritorioVoltarPasso(e.passos, e.futuro); }
+function refazerEditorEscritorio() { const e = escritorio.edicao; if (e) escritorioVoltarPasso(e.futuro, e.passos); }
+async function duplicarSelecionadoEscritorio() {
+  const e = escritorio.edicao;
+  if (!e || e.sel === null) return;
+  const it = e.itens[e.sel];
+  if (escritorioImagemDe(it[0])) return escritorioAviso("Imagens não se duplicam; envie outra na aba Imagens.");
+  for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [2, 0], [0, 2], [-2, 0], [0, -2]]) {
+    if (await escritorioCabe(it[0], it[1] + dx, it[2] + dy, it[3], null, !it[5])) {
+      e.itens.push([it[0], it[1] + dx, it[2] + dy, it[3], it[4] || 0, it[5] || 0]);
+      e.sel = e.itens.length - 1;
+      escritorioAviso("Cópia criada. Arraste para o lugar certo.");
+      return escritorioEditorMudou();
+    }
+  }
+  escritorioAviso("Não há espaço livre ao lado para a cópia.");
+}
+function restaurarPadraoEditorEscritorio() {
+  const e = escritorio.edicao;
+  if (!e || !confirm("Voltar " + escritorioNomeCamada(e.camada) + " ao desenho original? Você ainda pode desfazer antes de salvar.")) return;
+  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === e.camada);
+  e.itens = e.camada === "geral" ? ESCRITORIO_PLANTA.moveis.map((it) => [...it.slice(0, 6)]) : escritorioMoveisDaSala(a).map(([cl, x, y, ...r]) => [cl, x - a.x0, y - a.y0, ...r]);
+  e.sel = null;
+  escritorio.mapa?.destacar(null);
+  escritorioEditorMudou();
+}
+// Arrastar do catálogo direto para o mapa.
+function arrastarDoCatalogoEscritorio(ev, classe) {
+  if (!escritorio.edicao) return;
+  escritorio.arrastandoCatalogo = classe;
+  escritorioLembrarMovel(classe);
+  ev.dataTransfer.effectAllowed = "copy";
+  ev.dataTransfer.setData("text/plain", classe);
+}
+document.addEventListener?.("dragover", (ev) => {
+  const classe = escritorio.arrastandoCatalogo, e = escritorio.edicao;
+  if (!classe || !e || !ev.target.closest?.("#office-map")) return;
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = "copy";
+  const t = escritorio.mapa.ladrilhoEm(ev.clientX, ev.clientY);
+  if (escritorio.arrastoCatalogoEm === t.x + "," + t.y) return;
+  escritorio.arrastoCatalogoEm = t.x + "," + t.y;
+  const c = escritorioCantoCamada(e.camada);
+  escritorioCabe(classe, t.x - c.x, t.y - c.y, 2).then((cabe) => escritorio.mapa?.previa(classe, t.x, t.y, 2, cabe)).catch(() => {});
+});
+document.addEventListener?.("drop", (ev) => {
+  const classe = escritorio.arrastandoCatalogo, e = escritorio.edicao;
+  if (!classe || !e || !ev.target.closest?.("#office-map")) return;
+  ev.preventDefault();
+  escritorio.arrastandoCatalogo = null;
+  escritorio.arrastoCatalogoEm = "";
+  const t = escritorio.mapa.ladrilhoEm(ev.clientX, ev.clientY);
+  e.novo = classe;
+  e.sel = null;
+  cliqueEditorEscritorio(t.x + 0.5, t.y + 0.5);
+});
+// Barrinha ao lado do móvel selecionado (girar, duplicar, em cima da mesa,
+// apagar), acompanhando o mapa enquanto ele se mexe.
+function acompanharSelecaoEditorEscritorio() {
+  const principal = document.querySelector(".ofc-principal");
+  let barra = document.getElementById("office-editor-sel");
+  const e = escritorio.edicao, it = e && e.sel !== null ? e.itens[e.sel] : null;
+  if (!it || !principal || !escritorio.mapa) { barra?.remove(); escritorio.selQuadro = 0; return; }
+  if (!barra) {
+    barra = document.createElement("div");
+    barra.id = "office-editor-sel";
+    barra.className = "ofc-editor-flutua";
+    barra.setAttribute("role", "toolbar");
+    barra.setAttribute("aria-label", "Móvel selecionado");
+    principal.append(barra);
+  }
+  const img = escritorioImagemDe(it[0]);
+  const chave = `${e.sel}|${it[0]}|${it[5]}`;
+  if (barra.dataset.chave !== chave) {
+    barra.dataset.chave = chave;
+    barra.innerHTML = img
+      ? `<button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button>`
+      : `<button type="button" onclick="girarSelecionadoEscritorio()" title="Girar (R)">Girar</button><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar (Ctrl+D)">Duplicar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()" title="Põe a peça em cima de uma mesa">Em cima da mesa</button><button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="Apagar (Delete)">Apagar</button>`;
+  }
+  const c = escritorioCantoCamada(e.camada), base = principal.getBoundingClientRect();
+  const p = escritorio.mapa.naJanela(it[1] + c.x + 0.5, it[2] + c.y + 0.5);
+  barra.style.left = Math.max(8, Math.min(base.width - barra.offsetWidth - 8, p.x - base.left - barra.offsetWidth / 2)) + "px";
+  barra.style.top = Math.max(8, p.y - base.top + 24) + "px";
+  escritorio.selQuadro = requestAnimationFrame(acompanharSelecaoEditorEscritorio);
+}
+function trocarModeloEditorEscritorio() {
+  const e = escritorio.edicao;
+  if (!e || e.sel === null) return;
+  e.trocar = e.sel;
+  renderBarraEditorEscritorio();
+  escritorioAviso("Escolha no catálogo o novo modelo.");
 }
