@@ -540,9 +540,11 @@ function renderEscritorio() {
  <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div id="office-mesa-card" class="ofc-mesa-card" role="dialog" aria-label="Sua mesa" hidden onmouseleave="this.hidden=true"></div>
+ <div id="office-info-card" class="ofc-mesa-card ofc-info-card" role="status" hidden onmouseleave="this.hidden=true"></div>
+ <nav class="ofc-areas" aria-label="Ir para uma área" ${modo === "mapa" ? "" : "hidden"}>${ESCRITORIO_AREAS.map(([id, nome]) => `<button type="button" onclick="olharAreaEscritorio('${id}')">${nome}</button>`).join("")}</nav>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
- <section id="office-call" class="office-call" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><div class="office-call-actions"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b></div><div id="office-call-media" class="office-call-media"></div></section>
+ <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
  <div class="ofc-editor" id="office-editor" role="toolbar" aria-label="Editor do mapa" hidden></div>
  <div class="ofc-acao" id="office-acao" hidden></div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
@@ -797,6 +799,7 @@ function escritorioIrPara(x, y) {
 // mesa ou o computador no editor da sala.
 function passarNoMapaEscritorio(x, y, cx, cy) {
   if (escritorio.edicao) { previaEditorEscritorio(x, y); return; }
+  passarNoQuadroEscritorio(x, y);
   const mesa = escritorioMinhaMesa();
   const em = mesa && !escritorio.edicao && x >= mesa.x && x < mesa.x + mesa.w && y >= mesa.y && y < mesa.y + mesa.h;
   const card = document.getElementById("office-mesa-card");
@@ -809,9 +812,10 @@ function passarNoMapaEscritorio(x, y, cx, cy) {
   const caixa = card.parentElement.getBoundingClientRect();
   const st = ESCRITORIO_STATUS[escritorio.status] || ESCRITORIO_STATUS.disponivel;
   const avisos = escritorio.avisos || 0;
-  if (card.hidden || card.dataset.chave !== `${escritorio.status}|${avisos}`) {
-    card.dataset.chave = `${escritorio.status}|${avisos}`;
-    card.innerHTML = `<b>Sua mesa</b><small>${safeText(mesa.ambiente.nome)} · <span style="color:${st[1]}">${safeText(st[0])}</span></small><small>${avisos ? `${avisos} ${avisos === 1 ? "aviso" : "avisos"} no Painel` : "Nenhum aviso novo"}</small><div><button type="button" class="ofc-mini" onclick="abrirPainelDoEscritorio()">Abrir painel</button>${escritorioPodeEditar(mesa.ambiente.id) ? `<button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('mesa')">Editar mesa</button><button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('computador')">Editar computador</button>` : ""}</div>`;
+  const fila = escritorioDemandasProntas() ? DADOS_DEMANDAS.length : -1;
+  if (card.hidden || card.dataset.chave !== `${escritorio.status}|${avisos}|${fila}`) {
+    card.dataset.chave = `${escritorio.status}|${avisos}|${fila}`;
+    card.innerHTML = `<b>Sua mesa</b><small>${safeText(mesa.ambiente.nome)} · <span style="color:${st[1]}">${safeText(st[0])}</span></small><small>${avisos ? `${avisos} ${avisos === 1 ? "aviso" : "avisos"} no Painel` : "Nenhum aviso novo"}</small>${escritorioMinhaFilaHtml()}<div><button type="button" class="ofc-mini" onclick="abrirPainelDoEscritorio()">Abrir painel</button>${escritorioPodeEditar(mesa.ambiente.id) ? `<button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('mesa')">Editar mesa</button><button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('computador')">Editar computador</button>` : ""}</div>`;
   }
   // Preso à mesa (não acompanha o mouse): aparece acima dela e fica parado.
   if (!card.hidden) return;
@@ -824,6 +828,72 @@ function passarNoMapaEscritorio(x, y, cx, cy) {
   const ay = palco ? palco.top + topo.y * escala - caixa.top - 70 * escala : cy - caixa.top;
   card.style.left = Math.max(8, Math.min(caixa.width - w - 8, ax - w / 2)) + "px";
   card.style.top = Math.max(8, Math.min(caixa.height - h - 8, ay - h)) + "px";
+}
+// Dados de trabalho no mapa (mesa, quadro da reunião, telão do auditório): as
+// mesmas demandas do painel (DADOS_DEMANDAS), carregadas uma vez sob demanda.
+function escritorioDemandasProntas() {
+  if (typeof DADOS_DEMANDAS === "undefined") return false;
+  if (!DADOS_DEMANDAS.length && typeof ensureDemandasForOperationalViews === "function" && !escritorio.pediuDemandas) {
+    escritorio.pediuDemandas = true;
+    Promise.resolve(ensureDemandasForOperationalViews()).finally(() => { escritorio.pediuDemandas = false; });
+  }
+  return DADOS_DEMANDAS.length > 0;
+}
+const escritorioAberta = (d) => typeof DEMANDA_CONCLUIDA === "undefined" || !DEMANDA_CONCLUIDA.includes(d.status);
+function escritorioDataCurta(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+  return m ? `${m[3]}/${m[2]}` : "sem prazo";
+}
+function escritorioMinhaFilaHtml() {
+  if (!escritorioDemandasProntas()) return '<small class="ofc-fila-nota">Carregando sua fila…</small>';
+  const minhas = DADOS_DEMANDAS.filter((d) => typeof pertenceVisaoDemanda === "function" && pertenceVisaoDemanda(d, "minha"))
+    .sort((a, b) => String(a.prazo_iso || "9999").localeCompare(String(b.prazo_iso || "9999"))).slice(0, 3);
+  if (!minhas.length) return '<small class="ofc-fila-nota">Nenhuma demanda na sua fila.</small>';
+  const hoje = typeof META !== "undefined" ? META.today_iso : "";
+  return `<ul class="ofc-fila">${minhas.map((d) => `<li><button type="button" onclick="escritorioAbrirDemanda('${safeText(String(d.id))}')"><span>${safeText(d.nome || "Demanda")}</span><small class="${d.prazo_iso && hoje && d.prazo_iso < hoje ? "atrasada" : d.prazo_iso === hoje ? "hoje" : ""}">${d.prazo_iso && hoje && d.prazo_iso < hoje ? "Atrasada · " : d.prazo_iso === hoje ? "Hoje · " : ""}${escritorioDataCurta(d.prazo_iso)}</small></button></li>`).join("")}</ul>`;
+}
+function escritorioAbrirDemanda(id) {
+  document.getElementById("office-mesa-card")?.setAttribute("hidden", "");
+  if (typeof openSearchItem === "function") openSearchItem(id);
+}
+// Quadro branco da sala de reunião: números do dia. Telão do auditório: fila
+// da Criação (Reriston, Bia, Deivid, Jady).
+const ESCRITORIO_QUADROS = [
+  { re: /whiteboard/, titulo: "Quadro da equipe · hoje", html: () => {
+    const abertas = DADOS_DEMANDAS.filter(escritorioAberta), hoje = typeof META !== "undefined" ? META.today_iso : "";
+    const n = (f) => abertas.filter(f).length;
+    return `<dl class="ofc-numeros"><div><dt>Vencem hoje</dt><dd>${n((d) => d.prazo_iso === hoje)}</dd></div><div><dt>Atrasadas</dt><dd class="alerta">${n((d) => typeof demandaAtrasada === "function" && demandaAtrasada(d))}</dd></div><div><dt>Em aprovação</dt><dd>${n((d) => /aprova/i.test(String(d.status || "")))}</dd></div></dl>`;
+  } },
+  { re: /largescreen/, titulo: "Fila da Criação", html: () => {
+    const abertas = DADOS_DEMANDAS.filter(escritorioAberta);
+    const linhas = ["Reriston", "Bia", "Deivid", "Jady"].map((nome) => {
+      const id = typeof pessoaPeloNome === "function" ? String(pessoaPeloNome(nome)?.id || "") : "";
+      const qtd = id ? abertas.filter((d) => (d.responsavel_ids?.length ? d.responsavel_ids : [d.responsavel_id]).map(String).includes(id)).length : 0;
+      return `<div><dt>${nome}</dt><dd>${id ? qtd : "–"}</dd></div>`;
+    });
+    return `<dl class="ofc-numeros">${linhas.join("")}</dl>`;
+  } },
+];
+function passarNoQuadroEscritorio(x, y) {
+  const card = document.getElementById("office-info-card");
+  if (!card || !escritorio.mapa || x < 0) { if (card && !card.matches(":hover")) card.hidden = true; return; }
+  const m = escritorio.mapa.moveisPerto(x, y, 0).find((i) => ESCRITORIO_QUADROS.some((q) => q.re.test(i.classe)));
+  if (!m) { if (!card.matches(":hover")) card.hidden = true; return; }
+  const q = ESCRITORIO_QUADROS.find((q) => q.re.test(m.classe));
+  const chave = m.classe + "|" + (escritorioDemandasProntas() ? DADOS_DEMANDAS.length : -1);
+  if (card.dataset.chave !== chave) {
+    card.dataset.chave = chave;
+    card.innerHTML = `<b>${q.titulo}</b>${escritorioDemandasProntas() ? q.html() : '<small class="ofc-fila-nota">Carregando demandas…</small>'}<small class="ofc-fila-nota">Números das demandas do painel.</small>`;
+  }
+  if (!card.hidden && card.dataset.alvo === m.classe) return;
+  card.dataset.alvo = m.classe;
+  card.hidden = false;
+  const caixa = card.parentElement.getBoundingClientRect(), palco = document.querySelector(".mapa-palco");
+  const pr = palco.getBoundingClientRect(), escala = pr.width / palco.offsetWidth;
+  const t = escritorio.mapa.tela(Math.floor(m.x) + 0.5, Math.floor(m.y) + 0.5);
+  const ax = pr.left + t.x * escala - caixa.left, ay = pr.top + t.y * escala - caixa.top - 90 * escala;
+  card.style.left = Math.max(8, Math.min(caixa.width - card.offsetWidth - 8, ax - card.offsetWidth / 2)) + "px";
+  card.style.top = Math.max(8, Math.min(caixa.height - card.offsetHeight - 8, ay - card.offsetHeight)) + "px";
 }
 // Abre o editor da própria sala já com a mesa (ou o computador) selecionado.
 function editarMovelDaMesaEscritorio(qual) {
@@ -847,6 +917,14 @@ function editarMovelDaMesaEscritorio(qual) {
   escritorio.mapa?.destacar({ camada: e.camada, i });
   renderBarraEditorEscritorio();
   escritorioAviso(`Escolha no catálogo, à esquerda, ${qual === "computador" ? "o novo computador" : "a nova mesa"}. Ela troca no mesmo lugar.`);
+}
+// Atalhos de câmera: o mapa é grande; "Escritório" mostra as salas e "Lazer"
+// a cozinha, academia, jogos, lounge e piscina. Só a câmera vai (o boneco fica).
+const ESCRITORIO_AREAS = [["salas", "Salas"], ["reunioes", "Reuniões"], ["lazer", "Lazer"], ["externa", "Área externa"], ["eu", "Onde estou"]];
+function olharAreaEscritorio(id) {
+  const alvo = { salas: [32, 24, 0.75], reunioes: [15, 5, 0.9], lazer: [56, 18, 0.7], externa: [40, 52, 0.85] }[id];
+  if (id === "eu" || !alvo) { centralizarEmMimEscritorio(); return; }
+  escritorio.mapa?.olhar(alvo[0], alvo[1], alvo[2]);
 }
 // Ladrilho livre colado num retângulo (mesa), o mais perto de quem anda.
 function escritorioLadoLivre(r) {
@@ -1022,10 +1100,14 @@ function escritorioAcoesPerto() {
   const p = { x: Math.round(movimento.quadro ? movimento.x : escritorioPosicao(escritorio.perfil || {}).x), y: Math.round(movimento.quadro ? movimento.y : escritorioPosicao(escritorio.perfil || {}).y) };
   const eu = String(escritorio.base.eu);
   // Pessoa ao lado
+  // Perto de verdade: até 2 ladrilhos E com caminho curto (nada de conversar
+  // com quem está do outro lado da parede).
   const vizinho = (escritorio.online || []).find((o) => {
     if (String(o.id) === eu) return false;
-    const q = escritorioPosicao(o);
-    return Math.max(Math.abs(Math.round(q.x) - p.x), Math.abs(Math.round(q.y) - p.y)) <= 2;
+    const q = escritorioPosicao(o), qx = Math.round(q.x), qy = Math.round(q.y);
+    if (Math.max(Math.abs(qx - p.x), Math.abs(qy - p.y)) > 2) return false;
+    const passos = escritorio.mapa.caminho(p, { x: qx, y: qy });
+    return Boolean(passos && passos.length <= 3);
   });
   if (vizinho) return { texto: "Conversar com " + String(vizinho.nome).split(" ")[0], fazer: () => convidarConversaEscritorio(vizinho.id) };
   // Sala trancada ao lado
@@ -1383,9 +1465,44 @@ async function enviarRecadoEscritorioForm(form) {
     btn.disabled = false;
   }
 }
+// Recado chegou fora da conversa aberta: cartão no canto com o texto e
+// resposta rápida ali mesmo.
+async function recadoRapidoEscritorio(de, nome) {
+  const caixa = document.querySelector(".ofc-principal");
+  if (!caixa) return;
+  let el = document.getElementById("office-recado-rapido");
+  if (!el) { el = document.createElement("section"); el.id = "office-recado-rapido"; el.className = "ofc-recado-rapido"; el.setAttribute("role", "status"); caixa.append(el); }
+  let ultimo = "";
+  try {
+    const r = await fetch("/api/painel?area=escritorio&acao=recados&com=" + encodeURIComponent(de), { credentials: "same-origin", cache: "no-store" });
+    const d = await r.json();
+    ultimo = d.recados?.filter((m) => m.de === String(de)).at(-1)?.texto || "";
+  } catch {}
+  const primeiro = String(nome || "Alguém").split(" ")[0];
+  el.innerHTML = `<div class="ofc-recado-topo"><b>Recado de ${safeText(primeiro)}</b><button type="button" class="ofc-x" aria-label="Fechar" onclick="this.closest('section').remove()">×</button></div>${ultimo ? `<p>${safeText(ultimo)}</p>` : ""}<form onsubmit="event.preventDefault();responderRecadoRapido(this,'${safeText(String(de))}')"><input name="texto" maxlength="2000" required autocomplete="off" aria-label="Responder a ${safeText(primeiro)}" placeholder="Responder a ${safeText(primeiro)}"><button class="workflow-primary">Enviar</button></form><button type="button" class="office-text-button" onclick="this.closest('section').remove();abrirRecadosEscritorio('${safeText(String(de))}')">Abrir conversa</button>`;
+  clearTimeout(escritorio.timerRecadoRapido);
+  escritorio.timerRecadoRapido = setTimeout(() => { if (!el.matches(":focus-within, :hover")) el.remove(); }, 20000);
+}
+async function responderRecadoRapido(form, para) {
+  const btn = form.querySelector("button");
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try {
+    await escritorioApi("recado", { para, texto: form.elements.texto.value, chave: form.dataset.chave ||= crypto.randomUUID() });
+    escritorioEmitir("recado:novo", { para });
+    if (!escritorio.base?.demo) await escritorioApi("recados-lidos", { com: para }).catch(() => {});
+    form.closest("section").innerHTML = '<p class="ofc-fila-nota">Resposta enviada.</p>';
+    setTimeout(() => document.getElementById("office-recado-rapido")?.remove(), 2500);
+    carregarResumoRecados();
+  } catch (e) {
+    escritorioAviso(e.message);
+    btn.disabled = false;
+  }
+}
 function recadoChegouEscritorio({ de, nome } = {}) {
   if (escritorio.aba === "recados" && escritorio.recadoCom === String(de) && escritorio.lateral !== false) carregarConversaRecados();
   else {
+    recadoRapidoEscritorio(de, nome);
     escritorio.mapa?.balao(String(escritorio.base?.eu), `Recado de ${String(nome || "alguém").split(" ")[0]}. Abra a aba Recados.`);
     escritorioAviso(`Novo recado de ${nome || "alguém"}.`);
     escritorioTocar(880, 0.12, 0.05);
@@ -1645,6 +1762,12 @@ function renderMidiaEscritorio() {
     el.append(tile);
   }
   escritorioNivelAudio.acompanhar([meeting.self, ...meeting.participants.joined.toArray()]);
+  // Barra compacta: um rosto (iniciais) por pessoa; quem fala acende.
+  const rostos = document.getElementById("office-call-rostos");
+  if (rostos) rostos.innerHTML = [meeting.self, ...meeting.participants.joined.toArray()].map((p) => {
+    const ini = String(p.name || "?").split(/\s+/).slice(0, 2).map((x) => x[0] || "").join("").toUpperCase();
+    return `<i class="office-call-rosto${p.audioEnabled ? "" : " mudo"}" data-participante="${safeText(String(p.id))}" title="${safeText(p.name || "")}${p.audioEnabled ? "" : " · microfone desligado"}">${safeText(ini)}</i>`;
+  }).join("");
   // Vídeo de cada pessoa também numa bolha sobre o boneco dela no mapa. O id
   // do participante é "pessoa:código", criado pelo servidor.
   const comVideo = new Map();
@@ -1694,6 +1817,7 @@ const escritorioNivelAudio = {
   marcar(p, nivel) {
     const barra = document.querySelector(`.office-call-pessoa[data-participante="${CSS.escape(String(p.id))}"] .office-call-nivel i`);
     if (barra) barra.style.width = Math.round(nivel * 100) + "%";
+    document.querySelector(`.office-call-rosto[data-participante="${CSS.escape(String(p.id))}"]`)?.classList.toggle("falando", nivel > 0.12);
     const pessoa = p === escritorio.chamada?.self ? String(escritorio.base?.eu) : String(p.customParticipantId || "").split(":")[0];
     if (pessoa) escritorio.mapa?.marcarFalando(pessoa, nivel > 0.12);
   },

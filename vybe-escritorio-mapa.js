@@ -266,6 +266,11 @@ async function mapaGuardarBoneco(figura) {
   }
 }
 // acao: std/wlk/sit/lay/wav; mao: algo na mão ("crr=6" é a caneca de café).
+// Selos de status (SVG, sem emoji): fone para "Em foco", balão para "Em reunião".
+const MAPA_SELOS = {
+  foco: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 15v-3a8 8 0 0116 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>',
+  reuniao: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+};
 // quadro: andando, o Habbo tem 4 quadros de passo (frame_num 0–3).
 function mapaAvatarUrl(figura, dir, acao, mao, quadro) {
   const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: dir, action: mao ? `${acao},${mao}` : acao, gesture: "sml", size: "n" });
@@ -424,6 +429,13 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60 };
   const palco = document.createElement("div");
   palco.className = "mapa-palco";
+  // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
+  const ceu = () => {
+    const h = new Date(Date.now() - 3 * 3600e3).getUTCHours();
+    el.dataset.ceu = h < 5 ? "madrugada" : h < 11 ? "manha" : h < 16 ? "tarde" : h < 19 ? "por-do-sol" : "noite";
+  };
+  ceu();
+  const relogioCeu = setInterval(ceu, 5 * 60e3);
   palco.style.width = largura + "px";
   palco.style.height = altura + "px";
   const fundo = document.createElement("canvas");
@@ -597,9 +609,13 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
 
   // Rótulos dos ambientes
   for (const a of P.ambientes) {
-    const t = mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
+    // Sala individual: letreiro no fundo da sala (perto da parede de trás), sem
+    // cobrir os móveis; espaços comuns: no centro.
+    const t = a.pessoal ? mapaTela((a.x0 + a.x1) / 2 + 1, a.y0 + 0.35, origem) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
     const r = document.createElement("span");
-    r.className = "mapa-rotulo";
+    // Sala individual: letreiro em neon (cor da sala) no fundo dela.
+    r.className = "mapa-rotulo" + (a.pessoal ? " neon" : "");
+    if (a.pessoal && a.cor) r.style.setProperty("--neon", a.cor);
     r.dataset.ambiente = a.id;
     r.textContent = a.nome;
     r.style.left = t.x + "px"; r.style.top = t.y + "px";
@@ -710,6 +726,14 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
       // Status escrito quando não está disponível; em foco ou ausente, o
       // boneco fica meio transparente (não é hora de chamar).
       p.etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
+      // Selo de status sobre a cabeça, visível de longe (foco: fone; reunião: balão).
+      let selo = p.no.querySelector(".mapa-selo");
+      const icone = MAPA_SELOS[q.status];
+      if (!icone) selo?.remove();
+      else {
+        if (!selo) { selo = document.createElement("span"); selo.className = "mapa-selo"; selo.setAttribute("aria-hidden", "true"); p.no.append(selo); }
+        if (selo.dataset.status !== q.status) { selo.dataset.status = q.status; selo.innerHTML = icone; }
+      }
       p.etiqueta.querySelector("b").textContent = q.nome;
       if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
       p.no.classList.toggle("distante", q.status === "foco" || q.status === "ausente");
@@ -821,6 +845,14 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     mudarZoom(fator, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
 
+  // Leva a câmera, suave, até um ponto com outro zoom (atalhos de área).
+  function olhar(x, y, z) {
+    const r = el.getBoundingClientRect(), t = mapaTela(x, y, origem);
+    alvo.z = Math.max(0.35, Math.min(2.2, z || alvo.z));
+    alvo.x = r.width / 2 - t.x * alvo.z; alvo.y = r.height / 2 - t.y * alvo.z;
+    seguindo = false; inercia = null;
+    mexerCam();
+  }
   // Câmera que acompanha a pessoa: só muda o alvo; arrastar o mapa solta,
   // voltar a andar prende de novo.
   function seguir(x, y, retomar) {
@@ -833,9 +865,11 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   }
   // Móveis a até `raio` ladrilhos da posição (pela borda do móvel).
   function moveisPerto(x, y, raio) {
+    // Pela caixa no piso (móvel fino, como telão de 0,2 ladrilho, ocupa 1).
     return moveis.filter((m) => {
-      const dx = Math.max(Math.floor(m.x) - x, 0, x - (Math.floor(m.x) + m.dim.x - 1));
-      const dy = Math.max(Math.floor(m.y) - y, 0, y - (Math.floor(m.y) + m.dim.y - 1));
+      const w = Math.max(1, Math.round(m.dim.x)), h = Math.max(1, Math.round(m.dim.y));
+      const dx = Math.max(Math.floor(m.x) - x, 0, x - (Math.floor(m.x) + w - 1));
+      const dy = Math.max(Math.floor(m.y) - y, 0, y - (Math.floor(m.y) + h - 1));
       return Math.max(dx, dy) <= raio;
     });
   }
@@ -931,11 +965,11 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
-    balao, reagir, anexarVideo, marcarFalando, marcarAviso, previa, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
+    balao, reagir, anexarVideo, marcarFalando, marcarAviso, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { clearInterval(relogio); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }

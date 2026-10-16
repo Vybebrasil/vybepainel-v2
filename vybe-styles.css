@@ -6275,3 +6275,61 @@ body.no-escritorio {overflow:hidden}
 /* Prévia do móvel no editor */
 .mapa-previa {opacity:.62;filter:drop-shadow(0 0 4px #4fd18b);pointer-events:none}
 .mapa-previa.nao-cabe {filter:drop-shadow(0 0 4px #ff5a5a) saturate(.4) sepia(.4) hue-rotate(-30deg)}
+
+/* Letreiro em neon das salas individuais */
+.mapa-rotulo.neon {background:#0b0a10d9;color:var(--neon,#ff8a35);border:1px solid color-mix(in srgb,var(--neon,#ff8a35) 55%,transparent);font:800 12px var(--mac-ui);letter-spacing:.04em;text-shadow:0 0 6px color-mix(in srgb,var(--neon,#ff8a35) 70%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--neon,#ff8a35) 35%,transparent);opacity:1}
+/* Conversa compacta: barra com rostos; clique abre a lista */
+.office-call {padding:0;overflow:hidden}
+.office-call-actions {display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.office-call-actions:focus-visible {outline:2px solid #ff8a35;outline-offset:-2px;border-radius:16px}
+.office-call-actions b {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.office-call-rostos {display:flex;gap:4px}
+.office-call-rosto {display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#ffffff1a;color:#fff;font:700 10px var(--mac-ui);font-style:normal;box-shadow:0 0 0 2px transparent;transition:box-shadow .12s}
+.office-call-rosto.mudo {opacity:.55}
+.office-call-rosto.falando {box-shadow:0 0 0 2px #4fd18b,0 0 10px #4fd18b}
+.office-call-seta {width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);opacity:.7;transition:transform .15s}
+.office-call.aberta .office-call-seta {transform:rotate(-135deg)}
+.office-call .office-call-media {display:none;padding:0 12px 12px;margin:0}
+.office-call.aberta .office-call-media {display:grid}
+.office-call .office-call-som {margin-bottom:6px}
+.office-call:not(.aberta) .office-call-media:has(.office-call-som) {display:grid}
+.office-call:not(.aberta) .office-call-media:has(.office-call-som) .office-call-pessoa {display:none}
+/* Selo de status sobre a cabeça */
+.mapa-selo {position:absolute;left:44px;top:14px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#14121bee;border:1px solid #ffffff2a;pointer-events:none}
+.mapa-selo[data-status=foco] {color:#b9a8ff}
+.mapa-selo[data-status=reuniao] {color:#ffb27a}
+/* Atalhos de área */
+.ofc-areas {position:absolute;z-index:6;right:16px;bottom:200px;display:grid;gap:4px;padding:4px;border-radius:14px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-areas[hidden] {display:none}
+.ofc-areas button {padding:6px 10px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:600 11px var(--mac-ui);text-align:right;cursor:pointer;white-space:nowrap}
+.ofc-areas button:hover {background:#ffffff12}
+.ofc-areas button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+@media(max-width:760px){.ofc-areas {display:none}}
+/* Céu no horário de Irecê */
+.ofc-mapa[data-ceu=madrugada] {background:linear-gradient(180deg,#06060f 0%,#0e1028 45%,#1c1838 80%,#2a2140 100%)}
+.ofc-mapa[data-ceu=manha] {background:linear-gradient(180deg,#3d6fb0 0%,#6f9fd6 40%,#f2b98a 85%,#ffd7a1 100%)}
+.ofc-mapa[data-ceu=tarde] {background:linear-gradient(180deg,#2f72c4 0%,#5a9be0 45%,#a9cdf0 85%,#d9ecff 100%)}
+.ofc-mapa[data-ceu=por-do-sol] {background:linear-gradient(180deg,#120c18 0%,#2a1424 30%,#7a2c1e 62%,#d9661f 86%,#f39a3d 100%)}
+.ofc-mapa[data-ceu=noite] {background:linear-gradient(180deg,#07060d 0%,#120d22 40%,#2a1730 75%,#4a1f2a 100%)}
+
+/* Fila na mesa, quadros com números e recado rápido */
+.ofc-fila {list-style:none;margin:4px 0 0;padding:0;display:grid;gap:2px}
+.ofc-fila button {display:grid;gap:1px;width:100%;padding:5px 6px;border:0;border-radius:8px;background:#ffffff08;color:inherit;text-align:left;cursor:pointer}
+.ofc-fila button:hover {background:#ffffff14}
+.ofc-fila button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.ofc-fila span {font:600 12px var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-fila small {font:500 11px var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
+.ofc-fila small.hoje {color:#ffc56b}
+.ofc-fila small.atrasada {color:#ff8f8f}
+.ofc-fila-nota {font:500 11px var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
+.ofc-numeros {display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px;margin:6px 0 2px}
+.ofc-numeros div {padding:6px 8px;border-radius:10px;background:#ffffff0c}
+.ofc-numeros dt {font:600 10px var(--mac-ui);color:var(--ofc-suave,#c9bfb4);text-transform:uppercase;letter-spacing:.04em}
+.ofc-numeros dd {margin:2px 0 0;font:800 20px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-numeros dd.alerta {color:#ff8f8f}
+.ofc-info-card {min-width:240px}
+.ofc-recado-rapido {position:absolute;z-index:9;right:16px;top:70px;width:min(320px,calc(100% - 32px));display:grid;gap:8px;padding:12px;border-radius:16px;background:var(--ofc-vidro,#1d2029f0);border:1px solid var(--ofc-borda,#ffffff1f);box-shadow:0 18px 40px #000a;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-recado-topo {display:flex;align-items:center;justify-content:space-between}
+.ofc-recado-rapido p {margin:0;font:400 13px/1.45 var(--mac-ui);white-space:pre-wrap;overflow-wrap:anywhere}
+.ofc-recado-rapido form {display:flex;gap:6px}
+.ofc-recado-rapido input {flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid #ffffff22;background:#00000040;color:inherit;font:inherit}
