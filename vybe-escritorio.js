@@ -1284,10 +1284,14 @@ async function entrarChamadaEscritorio() {
           reject(new Error("Não foi possível carregar o motor de chamadas."));
         document.head.appendChild(s);
       });
+    // O próprio SDK toca o áudio de todos (um elemento só, sem eco de cópias);
+    // se o navegador bloquear, aparece o botão "Ativar som da conversa".
     meeting = await window.RealtimeKitClient.init({
       authToken: d.authToken,
       defaults: { audio: false, video: false },
+      modules: { experimentalAudioPlayback: true },
     });
+    escritorioNivelAudio.iniciar();
     await meeting.join();
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
@@ -1303,6 +1307,7 @@ async function entrarChamadaEscritorio() {
       meeting.participants.joined.on(evento, renderMidiaEscritorio);
     for (const evento of ["audioUpdate", "videoUpdate", "screenShareUpdate"])
       meeting.self.on(evento, renderMidiaEscritorio);
+    meeting.self.on("autoplayError", () => { escritorio.somBloqueado = true; renderMidiaEscritorio(); });
     renderEscritorio();
     escritorioAviso("Conversa aberta. Microfone e câmera estão desligados.");
   } catch (e) {
@@ -1334,36 +1339,59 @@ function renderMidiaEscritorio() {
     el = document.getElementById("office-call-media");
   if (!meeting || !el) return;
   el.replaceChildren();
+  if (escritorio.somBloqueado) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "office-call-som";
+    b.textContent = "Ativar som da conversa";
+    b.onclick = async () => { try { await meeting.self.playAudio(); escritorio.somBloqueado = false; } catch {} renderMidiaEscritorio(); };
+    el.append(b);
+  }
   for (const p of [meeting.self, ...meeting.participants.joined.toArray()]) {
+    const eu = p === meeting.self;
     const tile = document.createElement("div");
+    tile.className = "office-call-pessoa";
+    tile.dataset.participante = p.id;
+    const topo = document.createElement("div");
+    topo.className = "office-call-topo";
     const nome = document.createElement("b");
-    nome.textContent = p.name || "Participante";
-    tile.append(nome);
+    nome.textContent = (p.name || "Participante") + (eu ? " (você)" : "");
+    const mic = document.createElement("span");
+    mic.className = "office-call-mic";
+    mic.dataset.ligado = String(Boolean(p.audioEnabled));
+    mic.textContent = p.audioEnabled ? "Microfone ligado" : "Microfone desligado";
+    topo.append(nome, mic);
+    // Barra de volume: mostra que o som está chegando (ou saindo, no seu caso).
+    const nivel = document.createElement("i");
+    nivel.className = "office-call-nivel";
+    nivel.setAttribute("aria-hidden", "true");
+    nivel.append(document.createElement("i"));
+    tile.append(topo, nivel);
+    if (eu && p.audioEnabled) {
+      const dica = document.createElement("small");
+      dica.textContent = "Fale algo: a barra verde mexe quando o microfone capta sua voz.";
+      tile.append(dica);
+    }
     if (p.videoEnabled && p.videoTrack) {
       const v = document.createElement("video");
       v.autoplay = true;
       v.playsInline = true;
-      v.muted = p === meeting.self;
+      v.muted = true;
       v.srcObject = new MediaStream([p.videoTrack]);
       tile.append(v);
-    }
-    if (p !== meeting.self && p.audioTrack && p.audioEnabled) {
-      const a = document.createElement("audio");
-      a.autoplay = true;
-      a.controls = true;
-      a.srcObject = new MediaStream([p.audioTrack]);
-      tile.append(a);
     }
     if (p.screenShareEnabled && p.screenShareTracks?.video) {
       const v = document.createElement("video");
       v.autoplay = true;
       v.playsInline = true;
+      v.muted = true;
       v.controls = true;
       v.srcObject = new MediaStream([p.screenShareTracks.video]);
       tile.append(v);
     }
     el.append(tile);
   }
+  escritorioNivelAudio.acompanhar([meeting.self, ...meeting.participants.joined.toArray()]);
   // Vídeo de cada pessoa também numa bolha sobre o boneco dela no mapa. O id
   // do participante é "pessoa:código", criado pelo servidor.
   const comVideo = new Map();
@@ -1374,9 +1402,59 @@ function renderMidiaEscritorio() {
   for (const id of escritorio.mapa?.idsNoMapa() || []) escritorio.mapa.anexarVideo(id, comVideo.get(id) || null);
   atualizarDockEscritorio();
 }
+// Volume de cada pessoa na conversa (o seu e o dos outros), 10 vezes por
+// segundo, só enquanto há conversa: barra no cartão e anel no boneco do mapa.
+const escritorioNivelAudio = {
+  ctx: null, fontes: new Map(), relogio: null,
+  iniciar() {
+    try { this.ctx ||= new AudioContext(); this.ctx.resume?.(); } catch {}
+    clearInterval(this.relogio);
+    this.relogio = setInterval(() => this.medir(), 100);
+  },
+  acompanhar(lista) {
+    if (!this.ctx) return;
+    const vistos = new Set();
+    for (const p of lista) {
+      if (!p.audioEnabled || !p.audioTrack) continue;
+      vistos.add(p.id);
+      const atual = this.fontes.get(p.id);
+      if (atual?.track === p.audioTrack) { atual.p = p; continue; }
+      atual?.fonte.disconnect();
+      try {
+        const fonte = this.ctx.createMediaStreamSource(new MediaStream([p.audioTrack]));
+        const an = this.ctx.createAnalyser();
+        an.fftSize = 512;
+        fonte.connect(an); // sem ligar na saída: só mede, quem toca é o SDK
+        this.fontes.set(p.id, { p, track: p.audioTrack, fonte, an, dados: new Uint8Array(an.fftSize) });
+      } catch {}
+    }
+    for (const [id, f] of this.fontes) if (!vistos.has(id)) { f.fonte.disconnect(); this.fontes.delete(id); this.marcar(f.p, 0); }
+  },
+  medir() {
+    for (const f of this.fontes.values()) {
+      f.an.getByteTimeDomainData(f.dados);
+      let soma = 0;
+      for (const v of f.dados) soma += (v - 128) * (v - 128);
+      this.marcar(f.p, Math.min(1, Math.sqrt(soma / f.dados.length) / 28));
+    }
+  },
+  marcar(p, nivel) {
+    const barra = document.querySelector(`.office-call-pessoa[data-participante="${CSS.escape(String(p.id))}"] .office-call-nivel i`);
+    if (barra) barra.style.width = Math.round(nivel * 100) + "%";
+    const pessoa = p === escritorio.chamada?.self ? String(escritorio.base?.eu) : String(p.customParticipantId || "").split(":")[0];
+    if (pessoa) escritorio.mapa?.marcarFalando(pessoa, nivel > 0.12);
+  },
+  parar() {
+    clearInterval(this.relogio); this.relogio = null;
+    for (const f of this.fontes.values()) { f.fonte.disconnect(); this.marcar(f.p, 0); }
+    this.fontes.clear();
+  },
+};
 async function sairChamadaEscritorio() {
   const m = escritorio.chamada;
   escritorio.chamada = null;
+  escritorio.somBloqueado = false;
+  escritorioNivelAudio.parar();
   try {
     await m?.leave();
   } catch {
