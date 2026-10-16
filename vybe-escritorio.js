@@ -472,7 +472,9 @@ function escritorioMoveisAtuais() {
   return moveis;
 }
 function escritorioPlantaComMesas() {
-  return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais(), imagens: escritorio.base?.mapa?.imagens || [] };
+  // Pintura das salas é lida na hora de desenhar (muda sem recriar o mapa).
+  return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais(), imagens: escritorio.base?.mapa?.imagens || [],
+    pisoLadrilho: (x, y) => ESCRITORIO_PLANTA.pisoLadrilho?.(x, y), paredeEm: (x, y, eixo) => ESCRITORIO_PLANTA.paredeEm?.(x, y, eixo) };
 }
 // Nomes das salas individuais conforme o dono informado pelo servidor.
 // Piso e cor das paredes que o dono escolheu (perfil); sem escolha, o padrão.
@@ -489,6 +491,26 @@ function escritorioAplicarSalas() {
     a.cor = /^#[0-9a-f]{6}$/i.test(perfil?.sala_parede || "") ? perfil.sala_parede : a.corPadrao;
   }
   for (const d of ESCRITORIO_PLANTA.divisorias) if (d.sala) d[4] = ESCRITORIO_PLANTA.ambientes.find((a) => a.id === d.sala)?.cor || d[4];
+  // Ladrilhos e trechos de parede pintados por cada dono (perfil.sala_pisos e
+  // perfil.sala_paredes), consultados pelo mapa ao desenhar.
+  const pisos = new Map(), paredes = new Map();
+  for (const a of ESCRITORIO_PLANTA.ambientes) {
+    if (!a.pessoal) continue;
+    const dono = donos.get(a.id);
+    const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
+    const lp = String(perfil?.sala_pisos || ""), lw = String(perfil?.sala_paredes || "");
+    if (lp.length === 100) for (let i = 0; i < 100; i++) {
+      const k = typeof ESCRITORIO_PISOS_SALA !== "undefined" ? ESCRITORIO_PISOS_SALA[parseInt(lp[i], 16)]?.[0] : "";
+      if (k) pisos.set(`${a.x0 + (i % 10)},${a.y0 + Math.floor(i / 10)}`, k);
+    }
+    if (lw.length === 40) for (let i = 0; i < 20; i++) {
+      const estilo = lw[i * 2], cor = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA[parseInt(lw[i * 2 + 1], 16)] : "";
+      if (estilo === "a" && !cor) continue;
+      paredes.set(i < 10 ? `x:${a.x0 + i},${a.y0}` : `y:${a.x0},${a.y0 + i - 10}`, { estilo, cor: cor || a.cor });
+    }
+  }
+  ESCRITORIO_PLANTA.pisoLadrilho = (x, y) => pisos.get(x + "," + y);
+  ESCRITORIO_PLANTA.paredeEm = (x, y, eixo) => paredes.get(`${eixo}:${x},${y}`);
 }
 // Ao chegar, a pessoa aparece sentada na própria mesa; sem sala, na recepção.
 function escritorioChegar() {

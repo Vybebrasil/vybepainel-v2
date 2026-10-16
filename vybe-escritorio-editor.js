@@ -108,7 +108,12 @@ function escritorioEditorMudou(semPasso = false) {
     renderBarraEditorEscritorio();
   }, 30);
 }
+// Aba "Piso e paredes" aberta: o clique (e o arrasto) pinta em vez de mover móvel.
+function escritorioPintando() {
+  return escritorio.edicao && escritorio.catalogoCategoria === "Sala" && typeof pintarNaSalaEscritorio === "function";
+}
 async function cliqueEditorEscritorio(x, y) {
+  if (escritorioPintando()) { if (!pintarNaSalaEscritorio(Math.floor(x), Math.floor(y)) && escritorioPincel().ferramenta !== "balde") escritorioAviso(escritorioPincel().ferramenta === "parede" ? "Clique no piso encostado na parede alta da sua sala." : "Pinte dentro da sua sala."); return; }
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
   const lx = Math.floor(x) - c.x, ly = Math.floor(y) - c.y;
   // Quadro: vai na parede alta mais perto do ladrilho clicado.
@@ -606,6 +611,7 @@ function trocarCamadaEditorEscritorio(camada) {
 // Arrastar um móvel da área em edição: pega no aperto, mostra onde vai cair
 // (verde cabe, vermelho não) e larga ao soltar.
 function pegarNoEditorEscritorio(x, y) {
+  if (escritorioPintando() && escritorioPincel().ferramenta !== "balde") { escritorio.pintandoArrasto = true; pintarNaSalaEscritorio(x, y); return true; }
   const e = escritorio.edicao;
   if (!e || e.novo || e.trocar != null || !escritorio.mapa) return false;
   const c = escritorioCantoCamada(e.camada), lx = x - c.x, ly = y - c.y;
@@ -620,6 +626,7 @@ function pegarNoEditorEscritorio(x, y) {
   return true;
 }
 async function arrastarNoEditorEscritorio(x, y) {
+  if (escritorio.pintandoArrasto) { pintarNaSalaEscritorio(x, y); return; }
   const e = escritorio.edicao, a = e?.arrasto;
   if (!a) return;
   const it = e.itens[a.i], c = escritorioCantoCamada(e.camada);
@@ -634,6 +641,7 @@ async function arrastarNoEditorEscritorio(x, y) {
   escritorio.mapa.previa(it[0], nx + c.x, ny + c.y, it[3], cabe);
 }
 async function soltarNoEditorEscritorio(x, y, moveu) {
+  if (escritorio.pintandoArrasto) { escritorio.pintandoArrasto = false; return; }
   const e = escritorio.edicao, a = e?.arrasto;
   if (!a) return;
   e.arrasto = null;

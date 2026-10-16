@@ -52,6 +52,10 @@ export function perfilEscritorio(valor = {}) {
     // Piso e cor das paredes da própria sala (só valores conhecidos).
     sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
+    // Piso pintado ladrilho a ladrilho (10×10, um código por ladrilho; 0 =
+    // o piso da sala) e cada trecho das duas paredes altas (estilo + cor).
+    sala_pisos: /^[0-9ab]{100}$/.test(String(valor.sala_pisos || "")) ? String(valor.sala_pisos) : "",
+    sala_paredes: /^([a-h][0-9a-d]){20}$/.test(String(valor.sala_paredes || "")) ? String(valor.sala_paredes) : "",
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
   };
