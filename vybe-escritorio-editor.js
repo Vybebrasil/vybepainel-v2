@@ -138,7 +138,9 @@ async function cliqueEditorEscritorio(x, y) {
     const sobre = d.x <= 1 && d.y <= 1 ? escritorioEmCimaDe(Math.floor(x), Math.floor(y)) : null;
     if (!sobre && !(await escritorioCabe(e.novo, lx, ly, d.dir)))
       return escritorioAviso("Esse móvel não cabe aí (ou já tem outro no lugar). Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
-    e.itens.push(sobre ? [e.novo, sobre.lx, sobre.ly, d.dir, 0, sobre.altura] : [e.novo, lx, ly, d.dir, 0, 0]);
+    const aj = e.novoAjuste || { dx: 0, dy: 0 }, rd = (v) => Math.round(v * 100) / 100;
+    e.itens.push(sobre ? [e.novo, rd(sobre.lx + aj.dx), rd(sobre.ly + aj.dy), d.dir, 0, sobre.altura] : [e.novo, rd(lx + aj.dx), rd(ly + aj.dy), d.dir, 0, 0]);
+    e.novoAjuste = null;
     escritorio.mapa?.previa(null);
     e.sel = e.itens.length - 1;
     e.novo = null;
@@ -259,6 +261,9 @@ function teclaEditorEscritorio(e) {
   if (e.key === "Escape") { if (ed.trocar != null) ed.trocar = null; else if (ed.novo) ed.novo = null; else { ed.sel = null; escritorio.mapa?.destacar(null); } escritorio.mapa?.previa(null); renderBarraEditorEscritorio(); return true; }
   // Móvel novo ainda na mão: R gira a prévia antes de colocar.
   if (ed.novo && ed.sel === null && (e.key === "r" || e.key === "R")) { girarNovoEscritorio(); return true; }
+  // Móvel novo na mão: Alt + setas ajusta a prévia antes de colocar (¼ de ladrilho).
+  const fino = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
+  if (ed.novo && ed.sel === null && e.altKey && fino) { ajustarNovoEscritorio(...fino); return true; }
   if (ed.sel === null) return false;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === "r") { girarSelecionadoEscritorio(); return true; }
@@ -282,7 +287,7 @@ function renderBarraEditorEscritorio() {
   const areas = escritorio.base?.admin ? [["geral", "Mapa geral (espaços comuns)"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])] : [];
   const escolha = areas.length ? `<select aria-label="Área que você está editando" onchange="trocarCamadaEditorEscritorio(this.value)">${areas.map(([id, nome]) => `<option value="${id}"${id === e.camada ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select>` : `<b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b>`;
   const minhaSala = e.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === e.camada;
-  el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · R gira antes de colocar · Esc cancela" : it ? "Arraste para mudar de lugar · Alt + setas: ajuste fino · R gira · Ctrl+Z desfaz" : "Arraste um móvel para mudar de lugar, ou arraste um do catálogo para o mapa"}</span></div>
+  el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? `Clique no piso para colocar · R gira · Alt + setas ajusta fino${e.novoAjuste && (e.novoAjuste.dx || e.novoAjuste.dy) ? " (ajustado)" : ""} · Esc cancela` : it ? "Arraste para mudar de lugar · Alt + setas: ajuste fino · R gira · Ctrl+Z desfaz" : "Arraste um móvel para mudar de lugar, ou arraste um do catálogo para o mapa"}</span></div>
 <div class="ofc-editor-hist"><button type="button" onclick="desfazerEditorEscritorio()" ${e.passos?.length > 1 ? "" : "disabled"} title="Desfazer (Ctrl+Z)">Desfazer</button><button type="button" onclick="refazerEditorEscritorio()" ${e.futuro?.length ? "" : "disabled"} title="Refazer (Ctrl+Shift+Z)">Refazer</button><button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${minhaSala ? '<button type="button" onclick="abrirEstiloSalaEscritorio()">Piso e paredes</button>' : ""}</div>
 ${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel" hidden><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel" hidden><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
 <div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
@@ -435,9 +440,11 @@ async function previaEditorEscritorio(x, y) {
   if (!classe || e.trocar != null) return escritorio.mapa?.previa(null);
   const c = escritorioCantoCamada(e.camada), dir = e.novo ? (e.novoDir ?? 2) : it[3];
   const lx = x - c.x, ly = y - c.y;
+  // Móvel novo: a prévia já mostra o ajuste fino (Alt + setas) escolhido.
+  const aj = e.novo ? e.novoAjuste || { dx: 0, dy: 0 } : { dx: 0, dy: 0 };
   let cabe = false;
   try { cabe = await escritorioCabe(classe, lx, ly, dir); } catch {}
-  escritorio.mapa?.previa(classe, x, y, dir, cabe);
+  escritorio.mapa?.previa(classe, x + aj.dx, y + aj.dy, dir, cabe);
 }
 function escolherMovelEscritorio(classe) {
   if (!escritorio.edicao || !/^[a-z0-9_]+$/i.test(classe)) return;
@@ -458,6 +465,7 @@ function escolherMovelEscritorio(classe) {
   }
   escritorio.edicao.novo = classe;
   escritorio.edicao.novoDir = 2;
+  escritorio.edicao.novoAjuste = null;
   escritorio.edicao.sel = null;
   escritorio.mapa?.destacar(null);
   escritorio.mapa?.medidas(classe, 2).catch(() => escritorioAviso("Esse móvel não carregou."));
@@ -778,6 +786,17 @@ async function girarNovoEscritorio() {
   if (lista.length < 2) return escritorioAviso("Esse móvel não gira.");
   const atual = lista.includes(e.novoDir) ? e.novoDir : lista[0];
   e.novoDir = lista[(lista.indexOf(atual) + 1) % lista.length];
+  const ult = escritorio.ultimoPasso;
+  if (ult) previaEditorEscritorio(ult.x, ult.y);
+}
+
+function ajustarNovoEscritorio(dx, dy) {
+  const e = escritorio.edicao;
+  if (!e?.novo) return;
+  const a = e.novoAjuste || { dx: 0, dy: 0 };
+  // Até ¾ de ladrilho para cada lado: mais que isso, é só mover o mouse.
+  e.novoAjuste = { dx: Math.max(-0.75, Math.min(0.75, a.dx + dx * 0.25)), dy: Math.max(-0.75, Math.min(0.75, a.dy + dy * 0.25)) };
+  renderBarraEditorEscritorio();
   const ult = escritorio.ultimoPasso;
   if (ult) previaEditorEscritorio(ult.x, ult.y);
 }
