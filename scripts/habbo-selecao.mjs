@@ -30,7 +30,7 @@ for (const it of oficial) {
   escolhidos.push({ classe: it.classe, categoria: cat });
 }
 // Os que o mapa padrão já usa entram sempre.
-for (const f of await readdir("assets/escritorio/habbo")) if (f.endsWith(".json") && f !== "catalogo.json") {
+for (const f of await readdir("assets/escritorio/habbo")) if (f.endsWith(".json") && !["catalogo.json", "figuras.json"].includes(f)) {
   const c = f.slice(0, -5);
   if (!escolhidos.some((e) => e.classe === c)) escolhidos.push({ classe: c, categoria: "Do escritório" });
 }

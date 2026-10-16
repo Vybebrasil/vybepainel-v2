@@ -44,7 +44,7 @@ export function perfilEscritorio(valor = {}) {
     y: coordenada("y", 70),
     // Boneco do Habbo montado no criador: partes "tipo-conjunto-cor" separadas
     // por ponto. Só esse formato passa; vai para uma URL de imagem.
-    figura: /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,11}$/.test(String(valor.figura || ""))
+    figura: /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/.test(String(valor.figura || ""))
       ? String(valor.figura)
       : "",
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.

@@ -25,7 +25,7 @@ const ESCRITORIO_PLANTA = (() => {
   ambiente("auditorio", "Auditório", "reuniao", 0, 0, 18, 9, "madeira");
   ambiente("reuniao", "Sala de reunião", "reuniao", 18, 0, 30, 9, "carpete");
   ambiente("recepcao", "Recepção", "convivencia", 30, 0, 42, 9, "preto");
-  ambiente("cafe", "Café", "convivencia", 42, 0, 54, 9, "cafe");
+  ambiente("cafe", "Cozinha", "convivencia", 42, 0, 54, 9, "cafe");
   ambiente("academia", "Academia", "convivencia", 54, 0, 72, 9, "academia");
   // Salas individuais 10×10: fileira de cima (porta para baixo) e de baixo (porta para cima)
   Array.from({ length: 12 }, (_, i) => i).forEach((i) => {
@@ -65,48 +65,67 @@ const ESCRITORIO_PLANTA = (() => {
   // Móveis: [classe, x, y, direção, estado, altura (em cima de mesa)]
   const m = [];
   const p = (classe, x, y, dir = 2, estado = 0, altura = 0) => m.push([classe, x, y, dir, estado, altura]);
-  // Auditório: telão na parede da esquerda, púlpito e plateia olhando para ele
-  p("cine_projector", 1, 4, 2, 1); p("uni_lectern", 3, 3, 2); p("uni_lectern", 3, 5, 2);
+  // Auditório: palco com púlpito, telão na parede, refletores e plateia olhando para o palco
+  p("classic7_stage", 1, 3, 2); p("uni_lectern", 2, 4, 2, 0, 1.15); p("army15_largescreen", 0, 4, 2, 1);
+  p("cine_light1", 2, 0, 4, 1); p("cine_light2", 5, 0, 4, 1);
   for (let f = 0; f < 6; f++) for (let c = 0; c < 7; c++) p("hc26_10", 6 + f * 2, 1 + c, 6);
   p("easter_c22_fanpalm", 17, 0); p("easter_c22_fanpalm", 17, 8); p("darkmodern_c20_speakers", 0, 1, 2); p("darkmodern_c20_speakers", 0, 7, 2);
-  // Reunião: mesa comprida no meio, cadeiras dos dois lados, quadro na parede
+  // Reunião: mesa comprida no meio, cadeiras dos dois lados, quadro e arquivos
   p("army_c15_contable2", 20, 4, 0); for (const x of [21, 23, 25]) p("army_c15_contable", x, 4, 0); p("army_c15_contable2", 27, 4, 0);
   for (let x = 20; x <= 27; x++) { p("army_c15_leatherchr", x, 3, 4); p("army_c15_leatherchr", x, 5, 0); }
   p("uni_c23_whiteboard", 29, 3, 2); p("plant_yukka", 18, 0); p("plant_yukka", 29, 8);
+  p("army_c15_cabinet", 20, 0, 4); p("army_c15_cabinet", 21, 0, 4); p("army_c15_cabinet", 22, 0, 4);
   // Recepção: tapete, balcão, sofá e mesa de centro
   p("hygge_c25_carpet", 34, 3, 0); p("hygge_c25_counter2", 35, 1, 2); p("hygge_c25_counter2", 37, 1, 2);
   p("mafia_c26_sofa_dark", 34, 7, 0); p("mafia_c26_coffeetable_dark", 35, 5, 2);
   p("easter_c22_fanpalm", 30, 0); p("easter_c22_fanpalm", 41, 0); p("darkmodern_c20_pug", 40, 6, 2);
-  // Café: bancada no fundo, geladeira, banquetas e mesinhas
-  for (let i = 0; i < 3; i++) p("hygge_c25_counter2", 43 + i * 2, 0, 2);
-  p("hygge_c25_kitchensink", 49, 0, 4); p("purablk_c16_fridge", 51, 0, 4);
-  p("sunsetcafe_c20_coffeemachine", 43, 0, 2, 1, 1.4); p("hygge_c25_microwave", 45, 0, 2, 0, 1.4);
-  for (let i = 0; i < 4; i++) p("hygge_c25_barstool", 43 + i * 2, 2, 0);
-  for (const x of [44, 49]) { p("darkmodern_c20_lowtable", x, 5, 2); p("hc26_10", x, 4, 4); p("hc26_10", x + 2, 4, 4); p("hc26_10", x, 6, 0); p("hc26_10", x + 2, 6, 0); }
-  // Academia
+  // Cozinha: geladeiras, bancada com fogão e pia na parede do fundo, café e
+  // micro-ondas em cima da bancada, bebedouro e duas mesas de almoço
+  p("mode_fridge", 42, 0, 4); p("hygge_c25_counter1", 43, 0, 4); p("hygge_c25_counter1", 44, 0, 4);
+  p("hygge_c25_stove", 45, 0, 4); p("hygge_c25_counter1", 46, 0, 4); p("hygge_c25_kitchensink", 47, 0, 4);
+  p("hygge_c25_counter1", 48, 0, 4); p("hygge_c25_counter1", 49, 0, 4); p("purablk_c16_fridge", 50, 0, 4);
+  p("ktchn_c15_cupboard", 51, 0, 4); p("ktchn_c15_cupboard", 52, 0, 4); p("matic_water_dispenser", 53, 0, 4);
+  p("sunsetcafe_c20_coffeemachine", 43, 0, 2, 1, 1.2); p("hygge_c25_microwave", 44, 0, 2, 0, 1.2);
+  for (const x of [44, 50]) {
+    p("hc25_12", x, 4, 0);
+    for (const dx of [0, 1]) { p("hc26_10", x + dx, 3, 4); p("hc26_10", x + dx, 5, 0); }
+  }
+  p("school_c22_cafe", 43, 7, 0); p("school_c22_cafe", 51, 7, 0);
+  // Academia: esteiras e bicicletas no fundo, pesos na parede, camas elásticas
   for (let i = 0; i < 4; i++) p("olympics_c16_treadmill", 56 + i * 2, 1, 4);
-  p("school_c22_equipment", 58, 5, 2); p("school_c22_equipment", 66, 5, 2); p("army_c15_plant", 71, 8);
+  p("paris15_bicycle", 65, 1, 4); p("paris15_bicycle", 67, 1, 4); p("matic_water_dispenser", 70, 0, 4);
+  p("olympics_c16_weightrack", 54, 4, 2); p("olympics_c16_weightrack", 54, 6, 2);
+  p("uni_dumbells", 56, 4, 2); p("uni_dumbells", 56, 6, 2);
+  p("school_c22_equipment", 59, 5, 2); p("school_c22_equipment", 66, 5, 2);
+  p("olympics_c16_trampoline", 69, 4, 2); p("olympics_c16_trampoline", 69, 6, 2); p("army_c15_plant", 71, 8);
   // Foco: estantes no fundo, poltronas e luminária
   for (let i = 0; i < 4; i++) p("lodge_dark_bookcase", 64 + i * 2, 12, 0);
   p("hygge_c25_armchair", 66, 16, 2); p("hygge_c25_armchair", 69, 16, 6); p("darkmodern_c20_floorlight", 71, 15, 2, 1);
   p("hygge_c25_carpet", 66, 17, 0); p("army_c15_plant", 71, 21);
-  // Jogos
-  p("bling15_pooltable", 66, 27, 0); p("ads_aftv_footballtable", 69, 31, 0);
-  p("darkmodern_c20_tv", 71, 27, 2, 1); p("hygge_c25_hangingchair", 65, 34, 2); p("mafia_c26_armchair_dark", 71, 33, 6);
+  // Jogos: fliperamas e pinball nas paredes, sinuca e pebolim no meio
+  p("bling15_pooltable", 66, 27, 0); p("ads_aftv_footballtable", 68, 30, 0);
+  p("tokyo_c18_retroarcade", 64, 26, 2, 1); p("graffiti_r24_arcademachine", 64, 28, 2, 1); p("arcade_c23_pinball", 64, 30, 2, 1);
+  p("vwave_r21_jukebox", 64, 33, 2, 1); p("tokyo_c18_racearcade", 71, 26, 6, 1); p("tokyo_c18_racearcade", 71, 27, 6, 1);
+  p("rainyday_c20_retrogames", 71, 33, 2, 1); p("mafia_c26_armchair_dark", 70, 33, 2);
   // Produção: bancadas com dois monitores, cadeira de frente para a tela
   for (let i = 0; i < 8; i++) {
     const x = 2 + (i % 4) * 6, y = 40 + Math.floor(i / 4) * 4;
     p("exe_table", x, y, 0); p("computer_flatscreen", x + 1, y + 1, 0, 1, 1);
     p("army_c15_leatherchr", x + 1, y - 1, 4);
   }
-  p("exe_c15_printer", 25, 38, 2); p("army_c15_plant", 0, 46);
-  // Lounge: três ambientes de sofá, TV e plantas
-  for (const x of [30, 42]) {
+  p("exe_c15_printer", 25, 38, 2); p("army_c15_cabinet", 0, 40, 2); p("army_c15_cabinet", 0, 41, 2); p("army_c15_plant", 0, 46);
+  // Lounge: lareira com sofás, área de TV, DJ e bar com banquetas
+  p("lodge_dark_fireplace", 34, 38, 4, 1);
+  for (const x of [30, 40]) {
     p("hygge_c25_carpet", x, 40, 0); p("mafia_c26_sofa_dark", x, 39, 0); p("darkmodern_c20_lowtable", x + 1, 41, 2);
     p("mafia_c26_sofa_dark", x, 44, 4); p("mafia_c26_armchair_dark", x + 3, 42, 6);
   }
-  p("hc26_5", 55, 40, 2); p("hc26_3", 56, 41, 0); p("darkmodern_c20_tv", 59, 41, 2, 1);
-  p("darkmodern_c20_floorlight", 71, 39, 2, 1); p("easter_c22_fanpalm", 71, 46); p("easter_c22_fanpalm", 26, 46);
+  p("hc25_6", 52, 38, 4, 1); p("disco_c26_jukebox", 54, 38, 4, 1); p("cine_light2", 51, 38, 4, 1); p("cine_light2", 56, 38, 4, 1);
+  p("hc26_5", 55, 41, 2); p("hc26_3", 56, 42, 0); p("darkmodern_c20_tv", 59, 42, 2, 1);
+  p("lodge_dark_bardesk", 65, 40, 0); p("lodge_dark_minibar", 68, 38, 4, 1); p("army_c15_cabinet", 69, 38, 4); p("lodge_dark_minibar", 70, 38, 4, 1);
+  for (const y of [40, 41, 42]) p("vwave_c21_barstool", 64, y, 2);
+  for (const x of [60, 63]) { p("vwave_c21_bartable", x, 45, 0); p("vwave_c21_barstool", x - 1, 45, 2); p("vwave_c21_barstool", x + 1, 46, 6); }
+  p("darkmodern_c20_floorlight", 71, 46, 2, 1); p("easter_c22_fanpalm", 26, 46);
   p("easter_c22_fanpalm", 38, 46); p("easter_c22_fanpalm", 50, 46);
 
   // Área externa: piscina (no piso), espreguiçadeiras, guarda-sóis, canteiro,
@@ -115,8 +134,8 @@ const ESCRITORIO_PLANTA = (() => {
   for (let i = 0; i < 7; i++) p("js_c16_lounger", 34 + i * 2, 55, 0);
   p("tiki_parasol", 33, 55); p("lido_parasol", 42, 55); p("tiki_parasol", 49, 50);
   for (let i = 0; i < 22; i++) p(i % 2 ? "hobbies_c26_flower" : "hobbies_c26_flowerpot2", 1 + i * 3, 48, 2);
-  for (const [x, y] of [[3, 53], [74, 55]]) p("lt_c26_banyantree", x, y, 2);
-  for (const [x, y] of [[13, 55], [26, 55], [77, 48]]) p("ducket_c26_appletree", x, y, 2);
+  p("lt_c26_banyantree", 3, 53, 2);
+  for (const [x, y] of [[13, 55], [26, 55], [77, 48], [77, 56]]) p("ducket_c26_appletree", x, y, 2);
   for (const [x, y] of [[32, 49], [51, 54], [74, 3], [74, 15], [74, 27], [74, 39]]) p("vwave_c21_palm", x, y, 2);
   for (const [x, y] of [[8, 51], [20, 51], [14, 54]]) p("br_c25_stonebench", x, y, 0);
   for (const [x, y] of [[72, 9], [72, 22], [72, 35]]) p("hobbies_c26_flowerpot2", x, y, 2);
