@@ -149,6 +149,7 @@ async function conectarEscritorio() {
         renderEscritorio();
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         escritorioConversaAutomatica();
+        carregarResumoRecados();
         escritorio.ping = setInterval(
           () => escritorioEmitir("system:ping", {}),
           30000,
@@ -183,6 +184,7 @@ async function conectarEscritorio() {
         atualizarControlesEscritorio();
       }
       if (e.type === "zone:knock") avisoBatidaEscritorio(e.payload);
+      if (e.type === "recado:novo") recadoChegouEscritorio(e.payload);
       if (e.type === "furni:states") {
         escritorio.estadosMoveis = e.payload;
         escritorio.mapa?.estadosMoveis(e.payload);
@@ -433,7 +435,7 @@ function atualizarPessoasEscritorio() {
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado),
         mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || "",
         dir: sentado ? dirAssento : ESCRITORIO_APARELHOS[voce ? escritorio.pose : p.pose] ? escritorioNoAparelho(Math.round(pos.x), Math.round(pos.y))?.dir : undefined, local: voce,
-        aoClicar: voce ? personalizarEscritorio : convidarConversaEscritorio,
+        aoClicar: voce ? personalizarEscritorio : abrirRecadosEscritorio,
       };
     }));
   }
@@ -443,7 +445,7 @@ function atualizarPessoasEscritorio() {
     const fora = escritorio.base.equipe.filter((p) => !pessoas.some((o) => o.id === p.id));
     const linha = (p) => {
       const o = pessoas.find((x) => x.id === p.id);
-      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${o && p.id !== eu ? `<button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')">Ir</button><button type="button" class="ofc-mini" onclick="seguirPessoaEscritorio('${safeText(o.id)}')">Seguir</button>` : ""}</li>`;
+      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${o && p.id !== eu ? `<button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')">Ir</button><button type="button" class="ofc-mini" onclick="seguirPessoaEscritorio('${safeText(o.id)}')">Seguir</button>` : ""}${p.id !== eu ? `<button type="button" class="ofc-mini" onclick="abrirRecadosEscritorio('${safeText(p.id)}')" aria-label="Recado para ${safeText(p.nome)}">Recado${escritorio.recadosResumo?.[p.id] ? ` · ${escritorio.recadosResumo[p.id]}` : ""}</button>` : ""}</li>`;
     };
     lista.innerHTML = `<h4>Online agora · ${online.length}</h4><ul>${online.map(linha).join("") || '<li class="ofc-vazio">Ninguém conectado ainda.</li>'}</ul><h4>Fora do escritório · ${fora.length}</h4><ul>${fora.map(linha).join("")}</ul>`;
   }
@@ -527,14 +529,16 @@ function renderEscritorio() {
 </nav>
 <aside class="ofc-lateral" aria-label="${aba === "conversa" ? "Conversa da sala" : "Pessoas e salas"}">
  <div class="ofc-lateral-topo"><div><b>Vybe</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div><button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
- <div class="ofc-abas" role="tablist"${escritorio.edicao ? ' style="grid-template-columns:1fr 1fr 1fr"' : ""}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Catálogo</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button></div>
+ <div class="ofc-abas" role="tablist"${escritorio.edicao ? ' style="grid-template-columns:repeat(4,1fr)"' : ' style="grid-template-columns:repeat(3,1fr)"'}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Catálogo</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button><button role="tab" aria-selected="${aba === "recados"}" onclick="alternarAbaEscritorio('recados',true)">Recados${escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : ""}</button></div>
  ${escritorio.edicao ? `<div class="ofc-aba ofc-catalogo" ${aba === "catalogo" ? "" : "hidden"}>${escritorioCatalogoHtml()}</div>` : ""}
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><h4>Salas</h4><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div><p class="ofc-nota">Online indica presença, não produtividade.</p></div>
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><h3>${safeText(ESCRITORIO_SALAS[sala])}</h3><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para esta sala" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
+ <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
 </aside>
 <main class="ofc-principal">
  <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
+ <div id="office-mesa-card" class="ofc-mesa-card" role="dialog" aria-label="Sua mesa" hidden onmouseleave="this.hidden=true"></div>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <section id="office-call" class="office-call" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><div class="office-call-actions"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b></div><div id="office-call-media" class="office-call-media"></div></section>
@@ -580,6 +584,7 @@ function montarMapaEscritorio() {
       logo: document.querySelector(".logo img")?.getAttribute("src") || "/assets/vybe-branca.png",
       eu: escritorio.base.eu,
       aoClicar: (x, y) => cliqueNoMapaEscritorio(x, y),
+      aoPassar: (x, y, cx, cy) => passarNoMapaEscritorio(x, y, cx, cy),
     });
     requestAnimationFrame(() => centralizarEmMimEscritorio());
     escritorio.mapa.marcarZona(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorio.zona) || null);
@@ -604,6 +609,7 @@ function alternarAbaEscritorio(aba, manter) {
   else escritorio.lateral = true;
   escritorio.aba = aba;
   renderEscritorio();
+  if (aba === "recados") atualizarRecadosEscritorio();
 }
 function alternarModoEscritorio(modo) {
   escritorio.modo = modo;
@@ -780,6 +786,49 @@ function escritorioIrPara(x, y) {
   movimento.rota = passos;
   escritorio.mapa?.seguir(movimento.x, movimento.y, true);
   escritorioAnimarMovimento();
+}
+// Cartão da própria mesa: o dono passa o mouse na mesa (ou no computador) e
+// vê a sala, o status e os avisos, com atalhos para o painel e para editar a
+// mesa ou o computador no editor da sala.
+function passarNoMapaEscritorio(x, y, cx, cy) {
+  const mesa = escritorioMinhaMesa();
+  const em = mesa && !escritorio.edicao && x >= mesa.x && x < mesa.x + mesa.w && y >= mesa.y && y < mesa.y + mesa.h;
+  const card = document.getElementById("office-mesa-card");
+  clearTimeout(escritorio.timerMesaCard);
+  if (!em) {
+    if (card && !card.matches(":hover")) escritorio.timerMesaCard = setTimeout(() => { if (!card.matches(":hover")) card.hidden = true; }, 350);
+    return;
+  }
+  if (!card) return;
+  const caixa = card.parentElement.getBoundingClientRect();
+  const st = ESCRITORIO_STATUS[escritorio.status] || ESCRITORIO_STATUS.disponivel;
+  const avisos = escritorio.avisos || 0;
+  if (card.hidden || card.dataset.chave !== `${escritorio.status}|${avisos}`) {
+    card.dataset.chave = `${escritorio.status}|${avisos}`;
+    card.innerHTML = `<b>Sua mesa</b><small>${safeText(mesa.ambiente.nome)} · <span style="color:${st[1]}">${safeText(st[0])}</span></small><small>${avisos ? `${avisos} ${avisos === 1 ? "aviso" : "avisos"} no Painel` : "Nenhum aviso novo"}</small><div><button type="button" class="ofc-mini" onclick="abrirPainelDoEscritorio()">Abrir painel</button>${escritorioPodeEditar(mesa.ambiente.id) ? `<button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('mesa')">Editar mesa</button><button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('computador')">Editar computador</button>` : ""}</div>`;
+  }
+  card.hidden = false;
+  const w = card.offsetWidth, h = card.offsetHeight;
+  card.style.left = Math.max(8, Math.min(caixa.width - w - 8, cx - caixa.left + 14)) + "px";
+  card.style.top = Math.max(8, Math.min(caixa.height - h - 8, cy - caixa.top - h - 10)) + "px";
+}
+// Abre o editor da própria sala já com a mesa (ou o computador) selecionado.
+function editarMovelDaMesaEscritorio(qual) {
+  const mesa = escritorioMinhaMesa();
+  if (!mesa) return;
+  document.getElementById("office-mesa-card")?.setAttribute("hidden", "");
+  abrirEditorEscritorio(mesa.ambiente.id);
+  const e = escritorio.edicao;
+  if (!e) return;
+  const c = escritorioCantoCamada(e.camada);
+  const re = qual === "computador" ? /computer|flatscreen|laptop|monitor/ : /table|desk/;
+  const dentro = (it) => it[1] + c.x >= mesa.x - 1 && it[1] + c.x <= mesa.x + mesa.w && it[2] + c.y >= mesa.y - 1 && it[2] + c.y <= mesa.y + mesa.h;
+  const i = e.itens.findIndex((it) => re.test(it[0]) && dentro(it));
+  if (i < 0) { escritorioAviso(qual === "computador" ? "Não achei um computador na sua mesa. Escolha um no catálogo." : "Não achei a mesa. Escolha uma no catálogo."); return; }
+  e.sel = i;
+  escritorio.mapa?.destacar({ camada: e.camada, i });
+  renderBarraEditorEscritorio();
+  escritorioAviso((qual === "computador" ? "Computador" : "Mesa") + " selecionado: arraste clicando no piso, R gira, Delete apaga. Para trocar o modelo, escolha outro no catálogo.");
 }
 // Ladrilho livre colado num retângulo (mesa), o mais perto de quem anda.
 function escritorioLadoLivre(r) {
@@ -1225,6 +1274,106 @@ async function iniciarNoEscritorio() {
 function personalizarEscritorio() {
   abrirAberturaEscritorio("personagem");
 }
+// Recados individuais: conversa de texto entre duas pessoas, guardada no Neon
+// até ser lida. O Worker só avisa que chegou; o texto vem da API autenticada.
+function escritorioRecadosNaoLidos() {
+  return Object.values(escritorio.recadosResumo || {}).reduce((a, b) => a + b, 0);
+}
+function escritorioNomePessoa(id) {
+  return escritorio.base?.equipe.find((p) => String(p.id) === String(id))?.nome || "Alguém";
+}
+function escritorioRecadosHtml() {
+  const com = escritorio.recadoCom;
+  if (escritorio.recadosIndisponivel)
+    return `<p class="ofc-nota">${safeText(escritorio.recadosIndisponivel)}</p>`;
+  if (!com) {
+    const eu = String(escritorio.base?.eu);
+    const resumo = escritorio.recadosResumo || {};
+    const outros = (escritorio.base?.equipe || []).filter((p) => String(p.id) !== eu)
+      .sort((a, b) => (resumo[b.id] || 0) - (resumo[a.id] || 0) || a.nome.localeCompare(b.nome));
+    return `<div class="office-chat-head"><h3>Recados</h3></div><p class="ofc-nota">Mensagem só para uma pessoa. Fica guardada até ela ler, mesmo fora do escritório.</p><ul class="ofc-recados-lista">${outros.map((p) => `<li><button type="button" onclick="abrirRecadosEscritorio('${safeText(p.id)}')">${escritorioAvatar(p.perfil, p.nome)}<span>${safeText(p.nome)}</span>${resumo[p.id] ? `<span class="ofc-badge" aria-label="${resumo[p.id]} não lidos">${resumo[p.id]}</span>` : ""}</button></li>`).join("")}</ul>`;
+  }
+  const nome = escritorioNomePessoa(com);
+  return `<div class="office-chat-head"><button type="button" class="office-text-button" onclick="escritorio.recadoCom=null;atualizarRecadosEscritorio()">‹ Recados</button><h3>${safeText(nome)}</h3></div><div id="office-recados-lista" role="log" aria-live="polite">Carregando recados…</div><form onsubmit="event.preventDefault();enviarRecadoEscritorioForm(this)"><input aria-label="Recado para ${safeText(nome)}" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Recado para ${safeText(nome.split(" ")[0])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form>`;
+}
+function atualizarRecadosEscritorio() {
+  const el = document.getElementById("office-recados");
+  if (el) el.innerHTML = escritorioRecadosHtml();
+  if (escritorio.recadoCom) carregarConversaRecados();
+}
+async function carregarResumoRecados() {
+  try {
+    const d = await escritorioApi("recados-resumo");
+    escritorio.recadosIndisponivel = "";
+    escritorio.recadosResumo = Object.fromEntries(d.resumo.map((r) => [r.de, r.nao_lidos]));
+  } catch (e) {
+    escritorio.recadosIndisponivel = e.message;
+  }
+  if (escritorio.recadosResumo && escritorioRecadosNaoLidos() && !escritorio.avisouRecados) {
+    escritorio.avisouRecados = true;
+    escritorio.mapa?.balao(String(escritorio.base?.eu), `Você tem ${escritorioRecadosNaoLidos()} ${escritorioRecadosNaoLidos() === 1 ? "recado" : "recados"}. Abra a aba Recados.`);
+  }
+  if (!escritorio.recadoCom) atualizarRecadosEscritorio();
+  atualizarPessoasEscritorio();
+  const abas = document.querySelector(".ofc-abas [onclick*=\"'recados'\"]");
+  if (abas) abas.innerHTML = "Recados" + (escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : "");
+}
+function abrirRecadosEscritorio(id) {
+  escritorio.recadoCom = id ? String(id) : null;
+  escritorio.aba = "recados";
+  escritorio.lateral = true;
+  renderEscritorio();
+  atualizarRecadosEscritorio();
+}
+async function carregarConversaRecados() {
+  const com = escritorio.recadoCom, seq = (escritorio.recadosSeq = (escritorio.recadosSeq || 0) + 1);
+  const el = document.getElementById("office-recados-lista");
+  if (!el || !com) return;
+  try {
+    const r = await fetch("/api/painel?area=escritorio&acao=recados&com=" + encodeURIComponent(com), { credentials: "same-origin", cache: "no-store" });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || "Falha ao ler recados.");
+    if (seq !== escritorio.recadosSeq) return;
+    const eu = String(escritorio.base?.eu);
+    el.innerHTML = d.recados.length
+      ? d.recados.map((m) => `<article class="${m.de === eu ? "meu" : ""}"><b>${m.de === eu ? "Você" : safeText(escritorioNomePessoa(m.de).split(" ")[0])}</b><p>${safeText(m.texto)}</p><small>${new Date(m.criado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${m.de === eu && m.lido_em ? " · lido" : ""}</small></article>`).join("")
+      : `<p>Nenhum recado ainda. Escreva o primeiro: ${safeText(escritorioNomePessoa(com).split(" ")[0])} vê quando abrir o escritório.</p>`;
+    el.scrollTop = el.scrollHeight;
+    if (!escritorio.base?.demo && d.recados.some((m) => m.para === eu && !m.lido_em)) {
+      await escritorioApi("recados-lidos", { com });
+      carregarResumoRecados();
+    }
+  } catch (e) {
+    if (seq === escritorio.recadosSeq) el.textContent = e.message;
+  }
+}
+async function enviarRecadoEscritorioForm(form) {
+  const input = form.elements.texto, btn = form.querySelector("button"), para = escritorio.recadoCom;
+  if (btn.disabled || !para) return;
+  btn.disabled = true;
+  const chave = form.dataset.chave || crypto.randomUUID();
+  form.dataset.chave = chave;
+  try {
+    await escritorioApi("recado", { para, texto: input.value, chave });
+    input.value = "";
+    delete form.dataset.chave;
+    escritorioEmitir("recado:novo", { para });
+    await carregarConversaRecados();
+  } catch (e) {
+    escritorioAviso(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+function recadoChegouEscritorio({ de, nome } = {}) {
+  if (escritorio.aba === "recados" && escritorio.recadoCom === String(de) && escritorio.lateral !== false) carregarConversaRecados();
+  else {
+    escritorio.mapa?.balao(String(escritorio.base?.eu), `Recado de ${String(nome || "alguém").split(" ")[0]}. Abra a aba Recados.`);
+    escritorioAviso(`Novo recado de ${nome || "alguém"}.`);
+    escritorioTocar(880, 0.12, 0.05);
+    carregarResumoRecados();
+  }
+}
 async function carregarChatEscritorio() {
   const seq = ++escritorio.chatSeq,
     sala = escritorio.sala;
@@ -1348,7 +1497,17 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
       meeting.participants.joined.on(evento, renderMidiaEscritorio);
     for (const evento of ["audioUpdate", "videoUpdate", "screenShareUpdate"])
       meeting.self.on(evento, renderMidiaEscritorio);
-    meeting.self.on("autoplayError", () => { escritorio.somBloqueado = true; renderMidiaEscritorio(); });
+    // O navegador bloqueou o som até a pessoa interagir: o próximo clique ou
+    // tecla em qualquer lugar já libera (o botão fica como atalho visível).
+    meeting.self.on("autoplayError", () => {
+      escritorio.somBloqueado = true;
+      renderMidiaEscritorio();
+      const liberar = async () => {
+        try { await meeting.self.playAudio(); escritorio.somBloqueado = false; renderMidiaEscritorio(); } catch {}
+      };
+      document.addEventListener("pointerdown", liberar, { once: true, capture: true });
+      document.addEventListener("keydown", liberar, { once: true, capture: true });
+    });
     // Mudou de sala enquanto entrava: não fica numa conversa que não é a dela.
     if (escritorio.zona !== zonaInicial) { await sairChamadaEscritorio(); return; }
     let semMicrofone = false;

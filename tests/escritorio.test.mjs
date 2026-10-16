@@ -10,6 +10,10 @@ import {
   salvarPerfilEscritorio,
   enviarMensagemEscritorio,
   mensagensEscritorio,
+  enviarRecadoEscritorio,
+  conversaRecadosEscritorio,
+  resumoRecadosEscritorio,
+  lerRecadosEscritorio,
   areaEscritorio,
 } from "../server/escritorio.js";
 import {
@@ -685,4 +689,43 @@ test("Planta do escritório: sem móvel sobreposto, porta bloqueada, móvel solt
   const { spawnSync } = await import("node:child_process");
   const r = spawnSync(process.execPath, ["scripts/escritorio-auditar.mjs"], { encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+test("recados: só os dois leem, idempotente por chave, contagem e leitura", async (t) => {
+  const { db, sql } = await banco();
+  t.after(() => db.close());
+  const chave = "11111111-2222-3333-4444-555555555555";
+  // Sem a migração: avisa, não quebra.
+  await assert.rejects(resumoRecadosEscritorio(sql, "1"), /migração/);
+  await db.exec(readFileSync("migrations/2026-10-16-escritorio-recados.sql", "utf8"));
+  const id = await enviarRecadoEscritorio(sql, "1", { para: "2", texto: "  Oi Jady  ", chave });
+  assert.equal(await enviarRecadoEscritorio(sql, "1", { para: "2", texto: "Oi Jady", chave }), id);
+  await enviarRecadoEscritorio(sql, "2", { para: "1", texto: "Oi Paulo", chave: "22222222-2222-3333-4444-555555555555" });
+  await assert.rejects(enviarRecadoEscritorio(sql, "1", { para: "1", texto: "eu", chave: "33333333-2222-3333-4444-555555555555" }), /outra pessoa/);
+  await assert.rejects(enviarRecadoEscritorio(sql, "1", { para: "3", texto: "x", chave: "44444444-2222-3333-4444-555555555555" }), /não encontrada/);
+  await assert.rejects(enviarRecadoEscritorio(sql, "1", { para: "2", texto: "", chave: "55555555-2222-3333-4444-555555555555" }), /2.000/);
+  await assert.rejects(conversaRecadosEscritorio(sql, "1", "2 OR 1=1"), /inválida/);
+  const conversa = await conversaRecadosEscritorio(sql, "1", "2");
+  assert.deepEqual(conversa.map((r) => [r.de, r.texto]), [["1", "Oi Jady"], ["2", "Oi Paulo"]]);
+  // Terceira pessoa não vê a conversa dos dois.
+  assert.equal((await conversaRecadosEscritorio(sql, "3", "2")).length, 0);
+  assert.deepEqual((await resumoRecadosEscritorio(sql, "2")).map((r) => [r.de, r.nao_lidos]), [["1", 1]]);
+  await lerRecadosEscritorio(sql, "2", "1");
+  assert.equal((await resumoRecadosEscritorio(sql, "2")).length, 0);
+  assert.equal((await resumoRecadosEscritorio(sql, "1")).length, 1, "ler os recados de um não marca os do outro");
+});
+
+test("Worker: aviso de recado vai só para quem recebeu, com a autoria da sessão", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const sock = (sub) => {
+    const s = { a: { sub, nome: "P" + sub, sala: "criacao", zona: "", x: 50, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300 },
+      msgs: [], deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { this.msgs.push(JSON.parse(m)); } };
+    sockets.push(s); return s;
+  };
+  const um = sock("1"), dois = sock("2"), tres = sock("3");
+  um.a.last = 0;
+  await room.webSocketMessage(um, JSON.stringify({ type: "recado:novo", payload: { para: "2", de: "3" } }));
+  assert.deepEqual(dois.msgs.filter((m) => m.type === "recado:novo").map((m) => m.payload), [{ de: "1", nome: "P1" }]);
+  assert.ok(!tres.msgs.some((m) => m.type === "recado:novo"));
 });

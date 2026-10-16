@@ -417,7 +417,7 @@ function mapaOrdenar(objetos) {
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
-function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
+function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   const P = planta;
   const largura = (P.W + P.H) * (MAPA_TW / 2) + 80;
   const altura = (P.W + P.H) * (MAPA_TH / 2) + MAPA_PAREDE + 140;
@@ -702,63 +702,112 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
   }
 
-  // Câmera: arrastar move, roda/pinça e botões mudam o zoom.
+  // Câmera suave: um alvo (posição e zoom) e um único quadro de animação que
+  // aproxima a câmera dele com amortecimento exponencial (independe da taxa de
+  // quadros). Roda do mouse e pinça do trackpad dão zoom contínuo no ponto do
+  // cursor; arrastar segue o dedo na hora e solta com inércia; acompanhar a
+  // pessoa só muda o alvo. Sem movimento de sobra, o laço para.
   let zoom = 1, cam = { x: 0, y: 0 };
-  const aplicar = () => { palco.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${zoom})`; };
+  const alvo = { x: 0, y: 0, z: 1 };
+  let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true;
+  const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  palco.style.willChange = "transform";
+  const aplicar = () => { palco.style.transform = `translate3d(${cam.x}px,${cam.y}px,0) scale(${zoom})`; };
+  const animarCam = (agora) => {
+    quadroCam = null;
+    const dt = Math.min(64, agora - (ultimoCam || agora - 16)); ultimoCam = agora;
+    if (inercia) {
+      alvo.x += inercia.vx * dt; alvo.y += inercia.vy * dt;
+      const atrito = Math.exp(-dt / 220);
+      inercia.vx *= atrito; inercia.vy *= atrito;
+      if (Math.hypot(inercia.vx, inercia.vy) < 0.02) inercia = null;
+    }
+    const k = reduzMov ? 1 : 1 - Math.exp(-dt / 85);
+    zoom += (alvo.z - zoom) * k;
+    cam.x += (alvo.x - cam.x) * k; cam.y += (alvo.y - cam.y) * k;
+    const parado = !inercia && Math.abs(alvo.z - zoom) < 0.0005 && Math.hypot(alvo.x - cam.x, alvo.y - cam.y) < 0.3;
+    if (parado) { zoom = alvo.z; cam.x = alvo.x; cam.y = alvo.y; }
+    aplicar();
+    if (!parado) quadroCam = requestAnimationFrame(animarCam);
+    else ultimoCam = 0;
+  };
+  const mexerCam = () => { if (!quadroCam) quadroCam = requestAnimationFrame(animarCam); };
   function centralizar(x, y) {
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
-    cam = { x: r.width / 2 - t.x * zoom, y: r.height / 2 - t.y * zoom };
+    alvo.x = cam.x = r.width / 2 - t.x * alvo.z; alvo.y = cam.y = r.height / 2 - t.y * alvo.z;
+    zoom = alvo.z; inercia = null;
     aplicar();
   }
+  // Zoom em volta de um ponto da tela (o cursor; sem ponto, o centro).
   function mudarZoom(fator, cx, cy) {
     const r = el.getBoundingClientRect();
     cx ??= r.width / 2; cy ??= r.height / 2;
-    const novo = Math.max(0.35, Math.min(2, zoom * fator));
-    cam.x = cx - ((cx - cam.x) / zoom) * novo; cam.y = cy - ((cy - cam.y) / zoom) * novo;
-    zoom = novo; aplicar();
+    const novo = Math.max(0.35, Math.min(2.2, alvo.z * fator));
+    alvo.x = cx - ((cx - alvo.x) / alvo.z) * novo; alvo.y = cy - ((cy - alvo.y) / alvo.z) * novo;
+    alvo.z = novo;
+    mexerCam();
   }
   let arrasto = null;
   el.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target.closest("button")) return;
-    arrasto = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moveu: false };
+    inercia = null;
+    // Pega a câmera de onde ela está agora (mesmo no meio de uma animação).
+    alvo.x = cam.x; alvo.y = cam.y; alvo.z = zoom;
+    arrasto = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moveu: false, ult: [{ t: performance.now(), x: e.clientX, y: e.clientY }] };
     el.setPointerCapture?.(e.pointerId);
   });
   el.addEventListener("pointermove", (e) => {
-    if (!arrasto) return;
+    if (!arrasto) {
+      // Mouse passando (sem arrastar): avisa o ladrilho, para o cartão da mesa.
+      if (aoPassar && e.pointerType !== "touch") {
+        const r = palco.getBoundingClientRect();
+        const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
+        aoPassar(Math.floor(t.x), Math.floor(t.y), e.clientX, e.clientY);
+      }
+      return;
+    }
     const dx = e.clientX - arrasto.x, dy = e.clientY - arrasto.y;
     if (Math.hypot(dx, dy) > 4) arrasto.moveu = true;
-    if (arrasto.moveu) { seguindo = false; alvoCam = null; cam = { x: arrasto.cx + dx, y: arrasto.cy + dy }; aplicar(); }
+    if (!arrasto.moveu) return;
+    seguindo = false;
+    alvo.x = cam.x = arrasto.cx + dx; alvo.y = cam.y = arrasto.cy + dy;
+    aplicar();
+    const agora = performance.now();
+    arrasto.ult.push({ t: agora, x: e.clientX, y: e.clientY });
+    while (arrasto.ult.length > 2 && agora - arrasto.ult[0].t > 90) arrasto.ult.shift();
   });
   el.addEventListener("pointerup", (e) => {
     const a = arrasto; arrasto = null;
-    if (!a || a.moveu) return;
+    if (!a) return;
+    if (a.moveu) {
+      // Solta com a velocidade dos últimos ~90 ms e desliza até parar.
+      const p0 = a.ult[0], p1 = a.ult[a.ult.length - 1], dt = Math.max(1, p1.t - p0.t);
+      if (!reduzMov && performance.now() - p1.t < 60) { inercia = { vx: (p1.x - p0.x) / dt, vy: (p1.y - p0.y) / dt }; mexerCam(); }
+      return;
+    }
     const r = palco.getBoundingClientRect();
     const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
     if (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H) aoClicar?.(t.x, t.y);
   });
+  el.addEventListener("pointerleave", () => aoPassar?.(-1, -1));
   el.addEventListener("wheel", (e) => {
     e.preventDefault();
     const r = el.getBoundingClientRect();
-    mudarZoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
+    // Trackpad manda passos pequenos (e ctrl na pinça); roda, passos grandes.
+    const passo = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    const fator = Math.exp(-Math.max(-60, Math.min(60, passo)) * (e.ctrlKey ? 0.012 : 0.0022));
+    mudarZoom(fator, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
 
-  // Câmera que acompanha a pessoa: desliza até ela; arrastar o mapa solta,
+  // Câmera que acompanha a pessoa: só muda o alvo; arrastar o mapa solta,
   // voltar a andar prende de novo.
-  let seguindo = true, alvoCam = null, quadroCam = null;
-  const deslizar = () => {
-    quadroCam = null;
-    if (!alvoCam) return;
-    const dx = alvoCam.x - cam.x, dy = alvoCam.y - cam.y;
-    if (Math.hypot(dx, dy) < 0.5) { cam = { ...alvoCam }; aplicar(); return; }
-    cam = { x: cam.x + dx * 0.16, y: cam.y + dy * 0.16 }; aplicar();
-    quadroCam = requestAnimationFrame(deslizar);
-  };
   function seguir(x, y, retomar) {
     if (retomar) seguindo = true;
     if (!seguindo) return;
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
-    alvoCam = { x: r.width / 2 - t.x * zoom, y: r.height / 2 - t.y * zoom };
-    if (!quadroCam) quadroCam = requestAnimationFrame(deslizar);
+    alvo.x = r.width / 2 - t.x * alvo.z; alvo.y = r.height / 2 - t.y * alvo.z;
+    inercia = null;
+    mexerCam();
   }
   // Móveis a até `raio` ladrilhos da posição (pela borda do móvel).
   function moveisPerto(x, y, raio) {
@@ -865,6 +914,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { clearInterval(relogio); cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { clearInterval(relogio); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }

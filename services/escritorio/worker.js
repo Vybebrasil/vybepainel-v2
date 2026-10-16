@@ -266,6 +266,11 @@ export class EscritorioRoom {
       this.trancas.get(zona).add(p.id.slice(0, 40));
       this.broadcast("zone:locks", this.listaTrancas());
       return;
+    } else if (evento.type === "recado:novo") {
+      // Só um toque para quem recebeu: o texto é relido da API autenticada.
+      if (typeof p.para !== "string" || !/^\d{1,18}$/.test(p.para) || p.para === a.sub) return;
+      for (const t of this.ativos()) if (this.estado(t).sub === p.para) this.send(t, "recado:novo", { de: a.sub, nome: a.nome });
+      return;
     } else if (evento.type === "furni:toggle") {
       const estado = Number(p.estado);
       if (typeof p.chave !== "string" || !MOVEL_CHAVE.test(p.chave) || !Number.isInteger(estado) || estado < 0 || estado > 20) return;
