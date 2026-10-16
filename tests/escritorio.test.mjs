@@ -399,30 +399,20 @@ test("computador abre no escritório configurado", async () => {
   assert.equal(vm.runInContext("escritorio.sala", c), vm.runInContext("escritorioMinhaMesa().ambiente.sala", c));
 });
 
-test("celular, preferência pelo painel ou escritório sem configuração seguem no painel", async () => {
+test("celular ou escritório sem configuração seguem no painel", async () => {
   for (const caso of [
     { celular: true, entrada: baseConfigurada() },
-    { preferencia: "painel", entrada: baseConfigurada(), versao: "2026-10-17", viu: "2026-10-17" },
     { entrada: Promise.resolve({ eu: "1", worker: null, aviso: "Sem configuração", equipe: [] }) },
     { entrada: Promise.reject(new Error("falhou")) },
   ]) {
     const { c, trocas } = inicioDoEscritorio(caso);
-    if (caso.versao) {
-      vm.runInContext(`var ESCRITORIO_ABERTURA = "${caso.versao}";`, c);
-      const b = await caso.entrada; b.equipe[0].perfil.abertura = caso.viu;
-      c.entrada = Promise.resolve(b);
-      vm.runInContext("escritorioApi=()=>entrada;", c);
-    }
     await c.iniciarNoEscritorio();
     assert.deepEqual(trocas, [], JSON.stringify(caso));
   }
 });
 
-test("preferência pelo painel: abertura nova ainda não vista leva ao escritório uma vez", async () => {
-  const b = await baseConfigurada();
-  b.equipe[0].perfil.abertura = "2026-10-16";
-  const { c, trocas } = inicioDoEscritorio({ preferencia: "painel", entrada: Promise.resolve(b) });
-  vm.runInContext('var ESCRITORIO_ABERTURA = "2026-10-17";', c);
+test("a antiga preferência de abrir no painel não tira mais ninguém do escritório", async () => {
+  const { c, trocas } = inicioDoEscritorio({ preferencia: "painel", entrada: baseConfigurada() });
   await c.iniciarNoEscritorio();
   assert.deepEqual(trocas, ["escritorio"]);
 });

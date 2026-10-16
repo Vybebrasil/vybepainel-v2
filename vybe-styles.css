@@ -6027,8 +6027,6 @@ body.no-escritorio {overflow:hidden}
 .ofc-primario:hover:not(:disabled) {background:#ffa766}
 .ofc-primario:disabled {opacity:.6;cursor:progress}
 .ofc-secundario {border:1px solid var(--ofc-borda);background:#ffffff0a;color:var(--ofc-texto)}
-.ofc-lobby-pref {display:flex;align-items:center;gap:8px;color:var(--ofc-suave);font-size:12px;cursor:pointer}
-.ofc-lobby-pref input {accent-color:var(--ofc-laranja)}
 .ofc :is(button,select,input,a):focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
 .office-call {position:absolute;z-index:7;top:70px;right:16px;width:min(340px,calc(100% - 32px));max-height:calc(100% - 170px);overflow:auto;padding:12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .office-call[hidden],.office-dock[hidden] {display:none}
@@ -6076,9 +6074,9 @@ body.no-escritorio {overflow:hidden}
 .abr-pular {position:absolute;z-index:7;top:20px;right:22px;padding:9px 16px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-pular:hover {background:#000a}
 .abr-saida-acoes {display:flex;flex-wrap:wrap;gap:10px}
-.abr-som {position:absolute;z-index:7;left:22px;bottom:20px;padding:8px 14px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
+.abr-som {position:absolute;z-index:7;left:22px;bottom:20px;display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid #ffffff40;background:#000a;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-som:hover {background:#000a}
-.abr-som[aria-pressed=false] {color:#ffffffb3}
+.abr-som[aria-pressed=true] {color:#ffffffcc}
 .abr-som:focus-visible,.abr-pular:focus-visible {outline:2px solid #ff8a2a;outline-offset:2px}
 .abr-texto {text-shadow:0 2px 12px #000c;position:absolute;z-index:5;left:clamp(20px,6vw,90px);bottom:clamp(28px,9vh,96px);max-width:620px;display:grid;gap:14px;opacity:0;transform:translateY(24px);animation:abr-texto .9s 3.2s cubic-bezier(.2,.8,.2,1) forwards}
 .abr-kicker {color:#ffb27a;font:700 12px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}

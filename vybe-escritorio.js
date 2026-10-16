@@ -30,7 +30,6 @@ const ESCRITORIO_STATUS = {
   reuniao: ["Em reunião", "#ff9548"],
   ausente: ["Ausente", "#8a93a3"],
 };
-const ESCRITORIO_INICIO = "vybe-escritorio-inicio";
 const escritorio = {
   geracao: 0,
   base: null,
@@ -537,7 +536,7 @@ function renderEscritorio() {
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <canvas class="ofc-minimapa" id="office-minimapa" width="232" height="168" ${modo === "mapa" ? "" : "hidden"} aria-label="Minimapa: clique para ir até lá" onclick="cliqueMinimapaEscritorio(event)"></canvas>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Câmera e microfone começam desligados.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div><label class="ofc-lobby-pref"><input type="checkbox" ${escritorioInicio() === "painel" ? "checked" : ""} onchange="escritorioInicio(this.checked?'painel':'escritorio')">Neste computador, abrir direto no painel</label><button type="button" class="office-text-button" onclick="escritorio.lobbyFechado=true;abrirPainelDoEscritorio()">Ir para o painel sem entrar</button></div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Câmera e microfone começam desligados.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div></div></div>` : ""}
 </main>
 </section>`;
   document.body.classList.add("no-escritorio");
@@ -1170,16 +1169,8 @@ function voltarAoEscritorio() {
   switchBoard("escritorio", document.getElementById("btn-board-escritorio"));
 }
 // Preferência deste computador: quem produz pode preferir abrir no painel.
-function escritorioInicio(valor) {
-  try {
-    if (valor) localStorage.setItem(ESCRITORIO_INICIO, valor);
-    return localStorage.getItem(ESCRITORIO_INICIO) || "escritorio";
-  } catch {
-    return "escritorio";
-  }
-}
-// Tela inicial: no computador, o painel abre no escritório — se ele estiver
-// configurado e a pessoa não preferir o painel. No celular, segue o painel.
+// Tela inicial: no computador, o painel abre no escritório quando ele está
+// configurado. No celular, segue o painel.
 async function iniciarNoEscritorio() {
   if (window.matchMedia?.("(max-width: 760px)").matches) return;
   if (new URLSearchParams(location.search).has("atividade")) return;
@@ -1191,11 +1182,6 @@ async function iniciarNoEscritorio() {
     return;
   }
   if (!base.demo && !base.worker) return;
-  // Quem prefere abrir no painel continua no painel, menos na primeira vez de
-  // uma abertura nova (todos veem a novidade uma vez).
-  const versao = typeof ESCRITORIO_ABERTURA === "undefined" ? "" : ESCRITORIO_ABERTURA;
-  const viu = !versao || base.equipe?.find((p) => p.id === base.eu)?.perfil?.abertura === versao;
-  if (escritorioInicio() === "painel" && viu) return;
   if (typeof activeBoard !== "undefined" && activeBoard !== antes) return;
   escritorio.base = base;
   escritorioChegar();
