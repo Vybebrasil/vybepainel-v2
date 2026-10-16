@@ -254,6 +254,17 @@ function renderAberturaEscritorio() {
     el.innerHTML = criadorPainelHtml();
     return;
   }
+  // Saiu do escritório: volta para a entrada da Vybelândia (a tela inicial),
+  // que pergunta se quer entrar de novo.
+  if (criador.etapa === "saida") {
+    const faiscas = Array.from({ length: 24 }, (_, i) =>
+      `<i style="--x:${(i * 41) % 100}%;--d:${4 + (i % 5)}s;--a:${(i * 0.37) % 4}s;--s:${2 + (i % 3)}px"></i>`).join("");
+    el.innerHTML = `${vybelandiaCenaHtml()}<div class="abr-luz" aria-hidden="true"></div><div class="abr-faiscas" aria-hidden="true">${faiscas}</div><div class="abr-vinheta" aria-hidden="true"></div>
+<div class="abr-texto"><span class="abr-kicker">Vybe OS · você saiu do escritório</span><h1>Bem-vindo à <b>Vybelândia</b></h1><p>${safeText(criador.nome)}, quer entrar de novo? A equipe só vê você quando entrar.</p>
+<div class="abr-saida-acoes"><button type="button" class="abr-primario" onclick="fecharAberturaEscritorio();escritorio.lobbyFechado=true;${escritorio.base?.demo ? "renderEscritorio()" : "conectarEscritorio()"}">Entrar na Vybelândia</button><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio();abrirPainelDoEscritorio()">Ir para o painel</button></div></div>`;
+    el.querySelector(".abr-primario")?.focus({ preventScroll: true });
+    return;
+  }
   // Boas-vindas
   const mesa = escritorioMinhaMesa();
   el.innerHTML = `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>

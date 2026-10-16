@@ -4,6 +4,10 @@
 // Móveis: assets/escritorio/habbo (formato nitro). Bonecos: imager do Habbo.
 // Animação só com o escritório visível e sem prefers-reduced-motion.
 const MAPA_TW = 64, MAPA_TH = 32, MAPA_PAREDE = 118;
+// A arte do Habbo tem o ponto de registro no centro do ladrilho; mapaTela dá o
+// vértice de cima. Sem esta meia altura, todo móvel ficava meio ladrilho para
+// trás (flutuando) em relação ao piso, à grade de colisão e aos bonecos.
+const MAPA_MOVEL_Y = MAPA_TH / 2;
 const MAPA_MOVEIS = new Map(); // classe → Promise<{dados, imagem}>
 const MAPA_BASE = "/api/painel?area=escritorio&acao=arte&arquivo=";
 
@@ -295,7 +299,7 @@ function mapaDirecaoDoPasso(dx, dy) {
 // e senta quando para num assento. A grade marca o que bloqueia; paredes são
 // arestas entre ladrilhos vizinhos.
 const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair",
-  "hygge_c25_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair"]);
+  "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair"]);
 function mapaMontarGrade(P, moveis) {
   const W = P.W, H = P.H;
   const bloqueado = new Uint8Array(W * H);
@@ -359,6 +363,57 @@ function mapaCaminho(g, de, para) {
   const passos = [];
   for (let i = alvo; i !== inicio; i = veio.get(i)) passos.unshift({ x: i % g.W, y: Math.floor(i / g.W) });
   return passos;
+}
+
+// Quem fica atrás de quem (caixas no piso, como no Habbo): A está atrás de B
+// se termina antes de B começar no x ou no y. Em cima de mesa fica à frente
+// da mesa. Sem separação (casos raros), decide a soma dos centros.
+function mapaAtras(a, b) {
+  const ax = a.x1 <= b.x0, bx = b.x1 <= a.x0, ay = a.y1 <= b.y0, by = b.y1 <= a.y0;
+  if ((ax || ay) && !(bx || by)) return true;
+  if ((bx || by) && !(ax || ay)) return false;
+  if (!(ax || ay || bx || by) && (a.altura || 0) !== (b.altura || 0)) return (a.altura || 0) < (b.altura || 0);
+  return a.x0 + a.x1 + a.y0 + a.y1 < b.x0 + b.x1 + b.y0 + b.y1;
+}
+function mapaDiagonal(a, b) {
+  return (a.x1 <= b.x0 || a.y1 <= b.y0) && (b.x1 <= a.x0 || b.y1 <= a.y0);
+}
+// Ordena paredes e móveis que se cruzam na tela (ordem topológica) e dá a
+// cada um uma profundidade com folga de 10, para os bonecos caberem entre eles.
+// A fórmula antiga (soma do canto da frente) empatava ou invertia móveis
+// compridos com os vizinhos: mesa e cadeira, sofá e mesinha.
+function mapaOrdenar(objetos) {
+  const n = objetos.length, depois = Array.from({ length: n }, () => []), grau = new Array(n).fill(0);
+  // Folga do tamanho de um boneco: dois móveis que um boneco pode cruzar ao
+  // mesmo tempo também ganham ordem entre si (senão ele não cabe entre eles).
+  const ret = objetos.map((o) => ({ l: parseFloat(o.no.style.left) - 24, t: parseFloat(o.no.style.top) - 60, r: parseFloat(o.no.style.left) + o.no.width + 24, b: parseFloat(o.no.style.top) + o.no.height + 20 }));
+  const ordem = [...objetos.keys()].sort((i, j) => ret[i].l - ret[j].l);
+  for (let k = 0; k < n; k++) {
+    const i = ordem[k];
+    for (let q = k + 1; q < n; q++) {
+      const j = ordem[q];
+      if (ret[j].l >= ret[i].r) break;
+      if (ret[j].t >= ret[i].b || ret[j].b <= ret[i].t) continue;
+      if (mapaDiagonal(objetos[i].caixa, objetos[j].caixa) && !(ret[j].l < ret[i].r - 48 && ret[j].t < ret[i].b - 80 && ret[j].b > ret[i].t + 80)) continue;
+      if (mapaAtras(objetos[i].caixa, objetos[j].caixa)) { depois[i].push(j); grau[j]++; }
+      else { depois[j].push(i); grau[i]++; }
+    }
+  }
+  // Kahn, escolhendo sempre o mais ao fundo; ciclo (raro) quebra pelo mais ao fundo.
+  const chave = (i) => objetos[i].caixa.x0 + objetos[i].caixa.y0 + (objetos[i].caixa.altura || 0) * 0.01;
+  const feito = new Array(n).fill(false);
+  let livres = [...objetos.keys()].filter((i) => !grau[i]), rank = 0;
+  for (let cont = 0; cont < n; cont++) {
+    if (!livres.length) livres = [[...objetos.keys()].filter((i) => !feito[i]).sort((a, b) => chave(a) - chave(b))[0]];
+    let m = 0;
+    for (let k = 1; k < livres.length; k++) if (chave(livres[k]) < chave(livres[m])) m = k;
+    const i = livres.splice(m, 1)[0];
+    if (feito[i]) { cont--; continue; }
+    feito[i] = true;
+    objetos[i].prof = 10 + (rank++) * 10;
+    objetos[i].no.style.zIndex = objetos[i].prof;
+    for (const j of depois[i]) if (--grau[j] === 0 && !feito[j]) livres.push(j);
+  }
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
@@ -425,13 +480,38 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
       colocar(d.canvas, x, y, d, prof);
       palco.append(d.canvas);
       const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
-      muros.push({ no: d.canvas, prof, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set() });
+      const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set() });
     }
   }
   // Móveis (animados ficam numa lista para trocar de quadro)
   const animados = [];
   const moveis = [];
   const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  // Móveis ligados/desligados pela equipe ("classe@x,y" → estado), inclusive
+  // os que chegam antes de o móvel terminar de carregar.
+  const estadosForcados = new Map();
+  const chaveMovel = (m) => `${m.classe}@${Math.floor(m.x)},${Math.floor(m.y)}`;
+  const aplicarEstado = (item, estado) => {
+    if (item.estado === estado) return;
+    const d = mapaDesenharMovel(item.m, item.dir, estado, 0);
+    if (!d) return;
+    item.ligadoPadrao ??= item.estado || 1;
+    item.estado = estado;
+    item.quadros = mapaQuadros(item.m.dados, estado);
+    item.no.width = d.canvas.width; item.no.height = d.canvas.height;
+    item.no.getContext("2d").drawImage(d.canvas, 0, 0);
+    colocar(item.no, item.x, item.y, { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 }, item.prof);
+    const i = animados.indexOf(item);
+    if (i >= 0) animados.splice(i, 1);
+    if (item.quadros > 1 && !reduzido) animados.push(item);
+  };
+  function estadosMoveis(lista) {
+    for (const [chave, estado] of lista || []) {
+      estadosForcados.set(chave, estado);
+      for (const m of moveis) if (chaveMovel(m) === chave) aplicarEstado(m, estado);
+    }
+  }
   // altura: em unidades do Habbo (1 = 32 px), para o que fica em cima de mesas.
   const montar = async ([classe, x, y, dir, estado, altura = 0, origemItem = null]) => {
     try {
@@ -440,40 +520,40 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
       const desenho = mapaDesenharMovel(m, d0, estado, 0);
       if (!desenho) return;
       const dim = mapaDimensoes(m.dados, d0);
-      const plano = !(dim.z > 0.05); // tapetes ficam rente ao piso
+      // Rente ao piso (tapete): altura zero E desenho baixo. Muita arte do Habbo
+      // declara altura zero mesmo sendo alta (sinuca, TV, bebedouro): essa é sólida.
+      const plano = !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12;
       // Em cima de uma mesa (até 3×3), fica à frente dela: a mesa termina até
       // 4 ladrilhos (40 de profundidade) adiante da peça apoiada.
       const prof = plano ? 1 : Math.round((x + dim.x - 1 + y + dim.y - 1) * 10) + 4 + (altura ? 45 : 0);
       desenho.canvas.className = "mapa-obj";
       desenho.canvas.dataset.classe = classe;
-      colocar(desenho.canvas, x, y, { ...desenho, oy: desenho.oy - altura * 32 }, prof);
+      colocar(desenho.canvas, x, y, { ...desenho, oy: desenho.oy + MAPA_MOVEL_Y - altura * 32 }, prof);
       palco.append(desenho.canvas);
-      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof, origem: origemItem };
+      const caixa = { x0: Math.floor(x), x1: Math.floor(x) + Math.max(1, Math.round(dim.x)), y0: Math.floor(y), y1: Math.floor(y) + Math.max(1, Math.round(dim.y)), altura };
+      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof, caixa, origem: origemItem };
       moveis.push(item);
       if (item.quadros > 1 && !reduzido) animados.push(item);
+      if (estadosForcados.has(chaveMovel(item))) aplicarEstado(item, estadosForcados.get(chaveMovel(item)));
     } catch (e) {
       console.warn(e.message);
     }
   };
   let grade = null, selecionado = null;
-  // O que está em cima de mesa/balcão fica logo à frente do móvel de baixo
-  // (e não à frente de quem passa ao lado).
-  const ajustarEmpilhados = () => {
-    for (const m of moveis) {
-      if (!m.altura) continue;
-      const base = moveis.find((b) => !b.altura && !b.plano && Math.floor(m.x) >= Math.floor(b.x) && Math.floor(m.x) < Math.floor(b.x) + b.dim.x && Math.floor(m.y) >= Math.floor(b.y) && Math.floor(m.y) < Math.floor(b.y) + b.dim.y);
-      if (base) { m.prof = base.prof + 1; m.no.style.zIndex = m.prof; }
-    }
+  // Profundidade de paredes e móveis (os tapetes ficam rente ao piso, embaixo).
+  const ordenar = () => {
+    mapaOrdenar([...muros, ...moveis.filter((m) => !m.plano)]);
+    for (const m of muros) m.prof = Number(m.no.style.zIndex);
   };
-  const prontos = Promise.all(P.moveis.map(montar)).then(() => { grade = mapaMontarGrade(P, moveis); ajustarEmpilhados(); });
+  const prontos = Promise.all(P.moveis.map(montar)).then(() => { ordenar(); grade = mapaMontarGrade(P, moveis); });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   async function definirMoveis(lista) {
     for (const item of moveis) item.no.remove();
     moveis.length = 0;
     animados.length = 0;
     await Promise.all(lista.map(montar));
+    ordenar();
     grade = mapaMontarGrade(P, moveis);
-    ajustarEmpilhados();
     destacar(selecionado);
   }
   // Móveis que ocupam o ladrilho, do mais à frente para o mais atrás.
@@ -512,10 +592,32 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     p.no.style.top = t.y + MAPA_TH / 2 + "px";
     // Sentado, fica à frente do assento (sofá longo tem profundidade maior).
     const sobre = p.acao === "sit" && grade ? grade.profAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : undefined;
-    const z = Math.max(Math.round((Math.floor(p.x) + Math.floor(p.y)) * 10) + 6, (sobre ?? 0) + 2);
+    // Ladrilho em que está (o arredondado) e a regra das caixas isométricas:
+    // à frente de um móvel se passou do lado de baixo ou da direita dele;
+    // atrás se está antes dele. Assim sofá e mesa compridos não cobrem quem
+    // está do lado (a profundidade do móvel é a do canto mais à frente).
+    // Mesma regra das caixas, só com o que cruza o desenho do boneco. Fica
+    // logo à frente do mais alto que está atrás dele, e atrás do resto.
+    const rx = Math.round(p.x), ry = Math.round(p.y);
+    const pe = t.y + MAPA_TH / 2 + 8, l = t.x - 22, r = t.x + 22, topo = pe - 104;
+    const eu = { x0: rx, x1: rx + 1, y0: ry, y1: ry + 1 };
+    let min = Infinity, max = 0;
+    for (const m of sobre === undefined ? [...moveis, ...muros] : []) {
+      if (m.plano || !m.caixa) continue;
+      if (Math.abs(m.caixa.x0 - rx) > 6 || Math.abs(m.caixa.y0 - ry) > 6) continue;
+      const ml = parseFloat(m.no.style.left), mt = parseFloat(m.no.style.top);
+      if (ml > r || ml + m.no.width < l || mt > pe || mt + m.no.height < topo) continue;
+      // Na diagonal (separado num eixo para cada lado) não há quem tape quem: não conta.
+      if (mapaDiagonal(m.caixa, eu)) continue;
+      // Em cima do móvel (esteira, bicicleta): o boneco fica à frente dele.
+      const dentro = rx >= m.caixa.x0 && rx < m.caixa.x1 && ry >= m.caixa.y0 && ry < m.caixa.y1;
+      if (dentro || mapaAtras(m.caixa, eu)) max = Math.max(max, m.prof); else min = Math.min(min, m.prof);
+    }
+    // Entre bonecos do mesmo vão, quem está mais à frente (x+y) por cima.
+    let z = sobre !== undefined ? sobre + 2 : max + 1 + ((rx + ry) % 8);
+    if (sobre === undefined && min < Infinity && z >= min) z = Math.max(max + 1, min - 1);
     p.no.style.zIndex = z;
     // Área do boneco (de pé, ~100 px acima dos pés) para recortar paredes.
-    const pe = t.y + MAPA_TH / 2 + 8;
     recortar(p.id, t.x - 20, pe - 100, t.x + 20, pe, z);
   };
   const trocarImagem = (p) => {
@@ -746,7 +848,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
-    balao, reagir, anexarVideo, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes,
+    balao, reagir, anexarVideo, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),

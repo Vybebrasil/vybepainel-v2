@@ -652,3 +652,32 @@ test("Worker: pose vai para todos; acenar acaba ao andar, café continua na mão
   await ev("pose", { tipo: "voar" });
   assert.equal(s.a.pose, "cafe");
 });
+
+test("Worker: bebida e esteira continuam ao andar; móvel ligado vale para todos", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const sock = (sub) => {
+    const s = { a: { sub, nome: "P" + sub, sala: "criacao", zona: "", x: 50, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300 },
+      msgs: [], deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { this.msgs.push(JSON.parse(m)); } };
+    sockets.push(s); return s;
+  };
+  const um = sock("1"), dois = sock("2");
+  const ev = async (s, type, payload) => { s.a.last = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
+  for (const tipo of ["bebida", "lanche", "exercicio"]) {
+    await ev(um, "pose", { tipo });
+    await ev(um, "presence:move", { sala: "criacao", zona: "", x: 41, y: 40 });
+    assert.equal(um.a.pose, tipo);
+  }
+  await ev(um, "furni:toggle", { chave: "vwave_r21_jukebox@64,33", estado: 0 });
+  assert.deepEqual(dois.msgs.filter((m) => m.type === "furni:states").at(-1).payload, [["vwave_r21_jukebox@64,33", 0]]);
+  // Chave ou estado fora do formato não entram.
+  await ev(um, "furni:toggle", { chave: "<script>@1,1", estado: 1 });
+  await ev(um, "furni:toggle", { chave: "x@1,1", estado: 99 });
+  assert.equal(room.moveis.size, 1);
+});
+
+test("Planta do escritório: sem móvel sobreposto, porta bloqueada, móvel solto ou lugar sem acesso", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const r = spawnSync(process.execPath, ["scripts/escritorio-auditar.mjs"], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});

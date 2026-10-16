@@ -6002,14 +6002,15 @@ body.no-escritorio {overflow:hidden}
 .ofc-cartao li b {display:block;font-size:12px}
 .ofc-cartao li small {display:flex;align-items:center;gap:5px;color:var(--ofc-suave);font-size:11px}
 .ofc-cartao .ofc-mini {align-self:flex-start;margin-top:auto}
-.ofc-dock {position:absolute;z-index:6;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;max-width:calc(100% - 24px);overflow-x:auto;padding:6px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);border-radius:18px;box-shadow:0 16px 40px #0007;backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3)}
-.ofc-dock-btn {display:flex;align-items:center;gap:7px;padding:9px 12px;border:0;border-radius:12px;background:transparent;color:var(--ofc-texto);font:600 12px var(--mac-ui);white-space:nowrap;cursor:pointer}
+.ofc-dock {position:absolute;z-index:6;left:50%;bottom:14px;transform:translateX(-50%);width:max-content;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px;max-width:calc(100% - 24px);padding:4px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);border-radius:18px;box-shadow:0 16px 40px #0007;backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3)}
+.ofc-dock-btn {display:flex;align-items:center;gap:6px;min-height:34px;padding:7px 9px;border:0;border-radius:10px;background:transparent;color:var(--ofc-texto);font:600 12px var(--mac-ui);white-space:nowrap;cursor:pointer}
 .ofc-dock-btn:hover:not(:disabled) {background:#ffffff12}
+.ofc-dock-btn:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
 .ofc-dock-btn:disabled {opacity:.4;cursor:not-allowed}
 .ofc-dock-btn[aria-pressed=true] {background:#3fbf7f26;color:#9de8bd}
 .ofc-dock-btn.perigo {color:#ff9b9b}
 .ofc-sep {width:1px;height:24px;background:var(--ofc-borda);margin:0 4px;flex-shrink:0}
-.ofc-status {position:relative;display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:12px;font:600 12px var(--mac-ui);white-space:nowrap;cursor:pointer}
+.ofc-status {position:relative;display:flex;align-items:center;gap:6px;padding:7px 9px;border-radius:10px;font:600 12px var(--mac-ui);white-space:nowrap;cursor:pointer}
 .ofc-status:hover {background:#ffffff12}
 .ofc-status select {position:absolute;inset:0;opacity:0;cursor:pointer}
 .ofc-status select:disabled {cursor:not-allowed}
@@ -6074,6 +6075,7 @@ body.no-escritorio {overflow:hidden}
 .abr-vinheta {position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(120% 90% at 50% 40%,transparent 45%,#05050ad9 100%),linear-gradient(to top,#05050af2 0,transparent 50%),linear-gradient(to right,#05050acc 0,transparent 55%)}
 .abr-pular {position:absolute;z-index:7;top:20px;right:22px;padding:9px 16px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-pular:hover {background:#000a}
+.abr-saida-acoes {display:flex;flex-wrap:wrap;gap:10px}
 .abr-som {position:absolute;z-index:7;left:22px;bottom:20px;padding:8px 14px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-som:hover {background:#000a}
 .abr-som[aria-pressed=false] {color:#ffffffb3}
