@@ -2032,6 +2032,7 @@ function renderMidiaEscritorio() {
     el.append(tile);
   }
   escritorioNivelAudio.acompanhar([meeting.self, ...meeting.participants.joined.toArray()]);
+  escritorioPreviaTela(meeting.self);
   // Barra compacta: um rosto (iniciais) por pessoa; quem fala acende.
   const rostos = document.getElementById("office-call-rostos");
   if (rostos) rostos.innerHTML = [meeting.self, ...meeting.participants.joined.toArray()].map((p) => {
@@ -2110,6 +2111,34 @@ const escritorioNivelAudio = {
     this.fontes.clear();
   },
 };
+// Mini tela de quem está mostrando a tela (como no Meet): vê o que está
+// transmitindo e pode trocar a tela/janela ou parar.
+function escritorioPreviaTela(self) {
+  let el = document.getElementById("office-minha-tela");
+  const track = self?.screenShareEnabled && self.screenShareTracks?.video;
+  if (!track) { el?.remove(); return; }
+  if (!el) {
+    el = document.createElement("section");
+    el.id = "office-minha-tela";
+    el.className = "ofc-minha-tela";
+    el.setAttribute("aria-label", "Você está mostrando sua tela");
+    el.innerHTML = `<div class="ofc-minha-tela-topo"><b><i aria-hidden="true"></i>Você está mostrando a tela</b><button type="button" class="ofc-x" aria-label="Esconder a prévia" title="Esconder a prévia (continua mostrando)" onclick="this.closest('section').classList.toggle('mini')">–</button></div><video autoplay muted playsinline></video><div class="ofc-minha-tela-acoes"><button type="button" class="ofc-mini" onclick="trocarTelaEscritorio()">Trocar o que mostro</button><button type="button" class="ofc-mini perigo" onclick="alternarMidiaEscritorio('screen')">Parar de mostrar</button></div>`;
+    document.querySelector(".ofc-principal")?.append(el);
+  }
+  const v = el.querySelector("video");
+  if (v.srcObject?.getVideoTracks()[0] !== track) v.srcObject = new MediaStream([track]);
+}
+async function trocarTelaEscritorio() {
+  const self = escritorio.chamada?.self;
+  if (!self) return;
+  try {
+    await self.disableScreenShare();
+    await self.enableScreenShare();
+  } catch (e) {
+    escritorioAviso("Não foi possível trocar a tela: " + e.message);
+  }
+  renderMidiaEscritorio();
+}
 async function sairChamadaEscritorio() {
   const m = escritorio.chamada;
   escritorio.chamada = null;
@@ -2123,6 +2152,7 @@ async function sairChamadaEscritorio() {
   } finally {
     document.getElementById("office-call")?.setAttribute("hidden", "");
     document.getElementById("office-call-media")?.replaceChildren();
+    document.getElementById("office-minha-tela")?.remove();
     for (const id of escritorio.mapa?.idsNoMapa() || []) escritorio.mapa.anexarVideo(id, null);
     atualizarDockEscritorio();
   }

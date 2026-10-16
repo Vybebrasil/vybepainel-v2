@@ -6407,3 +6407,24 @@ body.no-escritorio {overflow:hidden}
 .ofc-campo input[type=range] {accent-color:#ff8a35;width:100%}
 .ofc-mais-titulo {display:block;padding:6px 10px 2px;font:700 10px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ofc-suave,#c9bfb4)}
 .ofc-mais .ofc-poses button:disabled {opacity:.45;cursor:default}
+
+/* Garantia da abertura: sem depender da animação para aparecer */
+.ofc-abertura.abr-pronta::before {display:none}
+.ofc-abertura.abr-pronta .abr-texto {opacity:1;transform:none}
+.ofc-abertura.abr-pronta .abr-cena:not(.parada) {animation:none;filter:none;transform:scale(1.04)}
+.ofc-abertura.abr-pronta .abr-texto {animation:none}
+
+/* Prévia da própria tela compartilhada */
+.ofc-minha-tela {position:absolute;z-index:9;left:16px;bottom:90px;width:min(300px,calc(100% - 32px));display:grid;gap:6px;padding:8px;border-radius:14px;background:var(--ofc-vidro,#1d2029f0);border:1px solid var(--ofc-borda,#ffffff1f);box-shadow:0 14px 34px #000a;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-minha-tela-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ofc-minha-tela-topo b {display:flex;align-items:center;gap:6px;font:600 12px var(--mac-ui)}
+.ofc-minha-tela-topo b i {width:8px;height:8px;border-radius:50%;background:#ff5a5a;box-shadow:0 0 8px #ff5a5a}
+.ofc-minha-tela video {width:100%;aspect-ratio:16/9;object-fit:contain;border-radius:8px;background:#000}
+.ofc-minha-tela-acoes {display:flex;gap:6px;flex-wrap:wrap}
+.ofc-minha-tela.mini video,.ofc-minha-tela.mini .ofc-minha-tela-acoes {display:none}
+#login-gate.abr-pronta .abr-texto {opacity:1;transform:none}
+
+/* Aviso de versão nova do painel */
+.versao-nova {position:fixed;z-index:2000;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:14px;background:#1d2029f2;border:1px solid #ff8a3566;color:#fff;font:600 13px var(--mac-ui);box-shadow:0 18px 40px #000a}
+.versao-nova button {padding:7px 12px;border:0;border-radius:10px;background:#ff8a35;color:#1a1008;font:700 13px var(--mac-ui);cursor:pointer}
+.versao-nova button:focus-visible {outline:2px solid #fff;outline-offset:2px}
