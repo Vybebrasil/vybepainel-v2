@@ -148,6 +148,7 @@ async function conectarEscritorio() {
         });
         renderEscritorio();
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
+        escritorioConversaAutomatica();
         escritorio.ping = setInterval(
           () => escritorioEmitir("system:ping", {}),
           30000,
@@ -274,7 +275,7 @@ function aceitarConviteEscritorio() {
   const convite = escritorio.convite;
   if (!convite) return;
   openWorkflowModal(
-    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} convidou você</h2><p>A conversa é em ${safeText(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === convite.zona)?.nome || ESCRITORIO_SALAS[convite.sala] || "outra sala")}. Quem estiver nela poderá ouvir quando você ligar o microfone.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));escritorioIrParaAmbiente('${safeText(convite.zona || "")}');escritorioAviso('Ao chegar, clique em Entrar na conversa (microfone começa desligado).')">Ir até a conversa</button></div>`,
+    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} convidou você</h2><p>A conversa é em ${safeText(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === convite.zona)?.nome || ESCRITORIO_SALAS[convite.sala] || "outra sala")}. Ao chegar, você entra na conversa com o microfone ligado.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));escritorioIrParaAmbiente('${safeText(convite.zona || "")}');escritorioAviso('Ao chegar na sala, você entra na conversa com o microfone ligado.')">Ir até a conversa</button></div>`,
   );
 }
 
@@ -487,7 +488,7 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('video')", "camera", s.videoEnabled ? "Câmera ligada" : "Câmera desligada", `aria-pressed="${Boolean(s.videoEnabled)}"`) +
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
       botao("sairChamadaEscritorio().then(renderEscritorio)", "sair", "Sair da conversa", "", { texto: true, classe: "perigo" })
-    : botao("entrarChamadaEscritorio()", "fone", "Entrar na conversa", escritorio.conectado && escritorio.zona && escritorio.zona !== "foco" && !escritorio.entrandoChamada ? "" : 'disabled title="Entre numa sala para conversar"', { texto: true });
+    : botao("entrarChamadaEscritorio({microfone:true})", "fone", "Entrar na conversa", escritorio.conectado && escritorio.zona && escritorio.zona !== "foco" && !escritorio.entrandoChamada ? "" : 'disabled title="Entre numa sala para conversar"', { texto: true });
   el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="personalizarEscritorio()" aria-label="Personalizar meu personagem" title="Personalizar meu personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-poses"><summary class="ofc-dock-btn" aria-label="Ações do boneco" title="Ações do boneco">${escritorioIcone("espaco")}</summary><div class="ofc-poses"><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')">Acenar <kbd>1</kbd></button><button type="button" onclick="deitarEscritorio()">Deitar <kbd>2</kbd></button><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')">Café na mão <kbd>3</kbd></button></div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Som ligado" : "Som desligado", `aria-pressed="${escritorioSomLigado()}"`)}${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisos ? `Painel · ${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso" : "avisos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisos ? ' data-avisos="true"' : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
@@ -536,7 +537,7 @@ function renderEscritorio() {
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <canvas class="ofc-minimapa" id="office-minimapa" width="232" height="168" ${modo === "mapa" ? "" : "hidden"} aria-label="Minimapa: clique para ir até lá" onclick="cliqueMinimapaEscritorio(event)"></canvas>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Câmera e microfone começam desligados.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div></div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Em cada sala você entra na conversa dela com o microfone ligado; a câmera começa desligada.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div></div></div>` : ""}
 </main>
 </section>`;
   document.body.classList.add("no-escritorio");
@@ -628,11 +629,13 @@ function escritorioMudouLugar(x, y) {
   escritorio.sala = sala;
   escritorio.zona = zona;
   escritorio.mapa?.marcarZona(zona ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona) : null);
-  // Como no SoWork: sair da zona encerra a conversa dela.
+  // Como no SoWork: sair da zona encerra a conversa dela. Entrar numa sala
+  // (decisão do Paulo) já entra na conversa dela com o microfone ligado.
   if (saiuDaZona && escritorio.chamada) {
     sairChamadaEscritorio();
-    escritorioAviso("Você saiu da zona e da conversa.");
+    escritorioAviso("Você saiu da sala e da conversa.");
   }
+  if (saiuDaZona) escritorioConversaAutomatica();
   atualizarCabecalhoEscritorio();
   atualizarControlesEscritorio();
 }
@@ -1160,7 +1163,8 @@ function irParaMinhaMesaEscritorio() {
 function escritorioAvisos(lista) {
   const naoLidas = (lista || []).filter((n) => !n.lida_em);
   const antes = escritorio.avisosVistos;
-  escritorio.avisos = naoLidas.length;
+  // Total real do servidor (a lista vem limitada a 100).
+  escritorio.avisos = typeof notificacoesNaoLidas === "number" ? Math.max(notificacoesNaoLidas, naoLidas.length) : naoLidas.length;
   escritorio.avisosVistos = new Set(naoLidas.map((n) => String(n.id)));
   const mesa = escritorioMinhaMesa();
   escritorio.mapa?.marcarAviso(mesa?.x, mesa ? mesa.y + 1 : undefined, Boolean(mesa && naoLidas.length));
@@ -1170,7 +1174,7 @@ function escritorioAvisos(lista) {
   if (!eu || !escritorio.mapa || !naoLidas.length) return;
   const novos = antes ? naoLidas.filter((n) => !antes.has(String(n.id))) : [];
   const texto = !antes
-    ? `Você tem ${naoLidas.length} ${naoLidas.length === 1 ? "aviso" : "avisos"} no Painel.`
+    ? `Você tem ${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso" : "avisos"} no Painel.`
     : novos.length ? "Novo aviso: " + String(novos[0].texto || "").slice(0, 90) : "";
   if (texto) escritorio.mapa.balao(String(eu), texto);
 }
@@ -1266,7 +1270,19 @@ async function enviarChatEscritorio(form) {
     input.disabled = false;
   }
 }
-async function entrarChamadaEscritorio() {
+// Ao parar numa sala (1,2 s, para não entrar e sair de chamadas só passando
+// pelo corredor), entra na conversa dela com o microfone ligado. Foco e
+// corredor não têm conversa por voz.
+function escritorioConversaAutomatica() {
+  clearTimeout(escritorio.timerConversa);
+  const zona = escritorio.zona;
+  if (!zona || zona === "foco" || !escritorio.conectado || escritorio.base?.demo) return;
+  escritorio.timerConversa = setTimeout(async () => {
+    if (escritorio.zona !== zona || escritorio.chamada || escritorio.entrandoChamada) return;
+    await entrarChamadaEscritorio({ microfone: true });
+  }, 1200);
+}
+async function entrarChamadaEscritorio({ microfone = false } = {}) {
   if (escritorio.chamada || escritorio.entrandoChamada) return;
   if (!escritorio.conectado) {
     escritorioAviso("Entre no escritório antes de abrir uma conversa.");
@@ -1274,7 +1290,8 @@ async function entrarChamadaEscritorio() {
   }
   escritorio.entrandoChamada = true;
   const geracao = escritorio.geracao,
-    sala = escritorio.sala;
+    sala = escritorio.sala,
+    zonaInicial = escritorio.zona;
   escritorioAviso("Preparando conversa…");
   let meeting;
   try {
@@ -1316,8 +1333,16 @@ async function entrarChamadaEscritorio() {
     for (const evento of ["audioUpdate", "videoUpdate", "screenShareUpdate"])
       meeting.self.on(evento, renderMidiaEscritorio);
     meeting.self.on("autoplayError", () => { escritorio.somBloqueado = true; renderMidiaEscritorio(); });
+    // Mudou de sala enquanto entrava: não fica numa conversa que não é a dela.
+    if (escritorio.zona !== zonaInicial) { await sairChamadaEscritorio(); return; }
+    let semMicrofone = false;
+    if (microfone) {
+      try { await meeting.self.enableAudio(); } catch { semMicrofone = true; }
+    }
     renderEscritorio();
-    escritorioAviso("Conversa aberta. Microfone e câmera estão desligados.");
+    escritorioAviso(!microfone ? "Conversa aberta. Microfone e câmera estão desligados."
+      : semMicrofone ? "Conversa aberta, mas o navegador não liberou o microfone. Clique no cadeado da barra de endereço e permita o microfone."
+      : "Você entrou na conversa da sala: quem está aqui ouve você. Clique no microfone para silenciar.");
   } catch (e) {
     await meeting?.leave().catch(() => {});
     escritorioAviso(e.message);

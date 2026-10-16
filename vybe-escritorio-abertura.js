@@ -283,7 +283,7 @@ function renderAberturaEscritorio() {
   <li><b>${mesa ? safeText(mesa.ambiente.nome) : "Sua sala"}</b> ${mesa ? "é sua: você chega pela porta dela, e o computador da mesa abre o painel." : "ainda não foi definida; você chega pela recepção."}</li>
   <li><b>Clique no piso</b> para andar. Arraste para mover o mapa e use a roda do mouse para o zoom.</li>
   <li><b>Suas demandas</b> ficam no botão Painel, na barra de baixo: modo Gestor, Minhas tarefas, Foco e os outros módulos. "Voltar ao escritório" traz você de volta ao mapa.</li>
-  <li><b>Entre na conversa</b> da sala para falar com quem está nela. Microfone e câmera começam desligados.</li>
+  <li><b>Entrou numa sala, está na conversa dela</b>, com o microfone ligado: quem está ali ouve você. Clique no microfone para silenciar. A câmera começa desligada.</li>
  </ul>
  <p class="abr-erro" role="alert" id="abr-erro"></p>
  <div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='personagem';renderAberturaEscritorio()">Ajustar personagem</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio(true)">Entrar no escritório</button></div></div>
@@ -336,7 +336,7 @@ const TUTORIAL_ESCRITORIO = [
   { alvo: "#ofc-btn-painel", titulo: "Suas demandas estão aqui", texto: "Painel abre o seu espaço de trabalho: modo Gestor, Minhas tarefas, Foco e todos os módulos, com as demandas. Lá, o botão Voltar ao escritório (embaixo) traz você de volta ao mapa." },
   { alvo: ".ofc-rail-btn[aria-label='Painel']", titulo: "Também pela lateral", texto: "O Painel também fica na barra da esquerda, sempre à mão. O computador da sua mesa faz o mesmo: chegue perto e aperte E." },
   { alvo: "#office-acao:not([hidden])", titulo: "Chegou perto, aperte E", texto: "Perto de alguém ou de um objeto aparece um botão com a tecla E: conversar, sentar, pegar um café, ligar a jukebox, correr na esteira. No computador da sua mesa, o E abre o painel." },
-  { alvo: "[aria-label='Entrar na conversa']", titulo: "Conversa por sala", texto: "Cada sala é uma zona de conversa. Entre na conversa para falar com quem está nela. Microfone e câmera começam desligados." },
+  { alvo: ".ofc-dock", titulo: "Conversa por sala", texto: "Entrou numa sala, você está na conversa dela com o microfone ligado: quem está ali ouve você. O botão do microfone, aqui embaixo, silencia. Ao sair da sala, sai da conversa. No Foco e no corredor não há voz." },
   { alvo: ".ofc-status", titulo: "Sua disponibilidade", texto: "Mostre se está disponível, em foco ou ausente. Estar online não mede produtividade." },
   { alvo: ".ofc-eu", titulo: "Seu personagem", texto: "Clique aqui (ou no seu boneco) para trocar roupa, cabelo e acessórios." },
   { alvo: "[aria-label='Tutorial']", titulo: "Pronto!", texto: "Para rever estas dicas, use o botão Tutorial na barra da esquerda." },

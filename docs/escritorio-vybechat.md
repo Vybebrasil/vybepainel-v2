@@ -9,9 +9,11 @@ pele, cabelo, cor da mesa e um objeto decorativo. Não é um editor livre de pis
 paredes e móveis como o SoWork.
 
 A movimentação é por clique ou setas. Aproximar-se permite enviar convite à
-conversa da sala; só Disponível recebe convites. Entrar exige ação explícita e
-começa com câmera/microfone desligados. A conversa é compartilhada com quem entra
-na mesma sala; não é áudio espacial privado por distância. Foco não oferece chamada.
+conversa da sala; só Disponível recebe convites. Ficar numa sala
+(1,2 s) entra na conversa dela com o microfone ligado; sair da sala sai da conversa
+(decisão do Paulo, 16/10/2026). A câmera começa desligada. A conversa é
+compartilhada com quem está na mesma sala; não é áudio espacial privado por
+distância. Foco e corredor não oferecem chamada.
 
 A barra compacta mantém presença, lista de colegas e acesso à chamada enquanto
 as atividades do painel estão abertas. Estado de presença não é medida de jornada
