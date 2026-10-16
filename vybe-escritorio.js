@@ -328,6 +328,7 @@ function escritorioIcone(nome) {
     mapa: '<path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4"/>',
     pessoas: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5"/><path d="M16 4.6a3 3 0 010 6M18 14.8c1.6.8 2.6 2.5 3 5.2"/>',
     conversa: '<path d="M4 5h16v11H9l-5 4z"/>',
+    clientes: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>',
     ajuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8 1c0 1.7-2.4 2-2.4 3.6"/><path d="M12 17h.01"/>',
     espaco: '<circle cx="12" cy="8" r="3.6"/><path d="M5 21c.8-4.4 3.5-6.6 7-6.6s6.2 2.2 7 6.6"/>',
     painel: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>',
@@ -565,6 +566,7 @@ function renderEscritorio() {
  ${rail("lista", "lista", "Salas", "alternarModoEscritorio('lista')", modo === "lista")}
  ${rail("pessoas", "pessoas", "Pessoas", "alternarAbaEscritorio('pessoas')", lateral && aba === "pessoas")}
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
+ ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
  <span class="ofc-rail-fim"></span>
  ${escritorioCamadaParaEditar() ? rail("editar", "editar", escritorio.base.admin ? "Editar" : "Minha sala", escritorio.edicao ? "sairEditorEscritorio()" : "abrirEditorEscritorio()", Boolean(escritorio.edicao)) : ""}
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
@@ -578,6 +580,7 @@ function renderEscritorio() {
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><h4>Salas</h4><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div><p class="ofc-nota">Online indica presença, não produtividade.</p></div>
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><h3>${safeText(ESCRITORIO_SALAS[sala])}</h3><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para esta sala" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
+ <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
 </aside>
 <main class="ofc-principal">
  <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
@@ -656,6 +659,7 @@ function alternarAbaEscritorio(aba, manter) {
   escritorio.aba = aba;
   renderEscritorio();
   if (aba === "recados") atualizarRecadosEscritorio();
+  if (aba === "clientes") carregarClientesEscritorio();
 }
 function alternarModoEscritorio(modo) {
   escritorio.modo = modo;
@@ -1419,6 +1423,54 @@ async function iniciarNoEscritorio() {
 // "Meu espaço" abre o criador de personagem da abertura.
 function personalizarEscritorio() {
   abrirAberturaEscritorio("personagem");
+}
+// Clientes: a lista do cadastro (o mesmo da aba Clientes) com dois atalhos por
+// cliente: todas as demandas dele (Demandas filtrada pelo cliente) e o VybeHub
+// (portal do cliente, vybehub.vercel.app/cliente/<nome-do-cliente>).
+const ESCRITORIO_VYBEHUB = "https://vybehub.vercel.app";
+function escritorioSlugCliente(nome) {
+  return String(nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+async function carregarClientesEscritorio() {
+  if (typeof ensureClientMasterSources !== "function") return;
+  if (typeof CLIENT_MASTER_LOADED !== "undefined" && CLIENT_MASTER_LOADED) { atualizarClientesEscritorio(); return; }
+  try { await ensureClientMasterSources(); } catch {}
+  atualizarClientesEscritorio();
+}
+function atualizarClientesEscritorio() {
+  const el = document.getElementById("office-clientes");
+  if (!el) return;
+  const busca = el.querySelector("input")?.value || escritorio.buscaCliente || "";
+  el.innerHTML = escritorioClientesHtml();
+  const campo = el.querySelector("input");
+  if (campo && busca) { campo.value = busca; campo.focus(); campo.setSelectionRange(busca.length, busca.length); }
+}
+function escritorioClientesHtml() {
+  const lista = typeof CADASTRO_CLIENTES === "undefined" ? [] : CADASTRO_CLIENTES;
+  if (!lista.length) {
+    const erro = typeof CLIENT_MASTER_ERROR !== "undefined" && CLIENT_MASTER_ERROR;
+    return `<div class="office-chat-head"><h3>Clientes</h3></div><p class="ofc-nota">${erro ? safeText(erro) : "Carregando clientes…"}</p>`;
+  }
+  const busca = (escritorio.buscaCliente || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const ativo = (c) => c.ativo !== false && !/inativ/i.test(String(c.status || ""));
+  const filtrados = lista.filter((c) => !busca || String(c.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(busca))
+    .sort((a, b) => Number(ativo(b)) - Number(ativo(a)) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+  const linha = (c) => {
+    const nome = String(c.nome || ""), arg = safeText(JSON.stringify(nome));
+    return `<li class="${ativo(c) ? "" : "inativo"}"><b>${safeText(nome)}</b>${ativo(c) ? "" : "<small>Inativo</small>"}<div><button type="button" class="ofc-mini" onclick='abrirDemandasDoClienteEscritorio(${arg})'>Demandas</button><a class="ofc-mini" href="${ESCRITORIO_VYBEHUB}/cliente/${encodeURIComponent(escritorioSlugCliente(nome))}" target="_blank" rel="noopener">VybeHub ↗</a></div></li>`;
+  };
+  return `<div class="office-chat-head"><h3>Clientes</h3><a class="office-text-button" href="${ESCRITORIO_VYBEHUB}/admin" target="_blank" rel="noopener">VybeHub admin ↗</a></div>
+<input type="search" class="ofc-busca-cliente" placeholder="Buscar cliente" aria-label="Buscar cliente" value="${safeText(escritorio.buscaCliente || "")}" oninput="escritorio.buscaCliente=this.value;atualizarClientesEscritorio()" autocomplete="off">
+<ul class="ofc-clientes-lista">${filtrados.map(linha).join("") || '<li class="ofc-vazio">Nenhum cliente com esse nome.</li>'}</ul>`;
+}
+function abrirDemandasDoClienteEscritorio(nome) {
+  abrirPainelDoEscritorio("demandas");
+  // Mostra todas as demandas do cliente (em aberto e concluídas), só dele.
+  setTimeout(() => {
+    if (typeof escolherVisaoDemanda === "function") escolherVisaoDemanda("todas");
+    if (typeof clienteDemandasExato !== "undefined" && clienteDemandasExato === nome) return;
+    if (typeof escolherClienteDemandas === "function") escolherClienteDemandas(nome);
+  }, 60);
 }
 // Recados individuais: conversa de texto entre duas pessoas, guardada no Neon
 // até ser lida. O Worker só avisa que chegou; o texto vem da API autenticada.
