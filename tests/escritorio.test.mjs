@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -435,10 +436,25 @@ test("clique no mapa volta para o mesmo ladrilho e a presença ida e volta", () 
 
 test("cada ambiente do mapa leva à sala de conversa certa", () => {
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
-  assert.equal(vm.runInContext("escritorioSalaEm(2, 2)", c), "reuniao"); // auditório
-  assert.equal(vm.runInContext("escritorioSalaEm(64, 16)", c), "foco");
-  assert.equal(vm.runInContext("escritorioSalaEm(20, 23)", c), "convivencia"); // corredor
-  assert.equal(vm.runInContext("escritorioSalaEm(40, 51)", c), "convivencia"); // piscina
+  assert.equal(vm.runInContext("escritorioSalaEm(4, 40)", c), "reuniao"); // auditório
+  assert.equal(vm.runInContext("escritorioSalaEm(72, 26)", c), "foco");
+  assert.equal(vm.runInContext("escritorioSalaEm(22, 36)", c), "convivencia"); // corredor
+  assert.equal(vm.runInContext("escritorioSalaEm(57, 65)", c), "convivencia"); // piscina
+  assert.equal(vm.runInContext("escritorioAmbienteEm(35, 57).id", c), "recepcao"); // entrada
+});
+
+test("planta nova: mapa geral salvo sobre a planta antiga não vale; o salvo depois vale", () => {
+  const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  const padrao = vm.runInContext("ESCRITORIO_PLANTA.moveis.length", c);
+  vm.runInContext('escritorio.base = { ...(escritorio.base || {}), mapa: { camadas: { geral: { itens: [["exe_plant", 1, 1, 2]], versao: 4, em: "2026-10-10T12:00:00Z" } } } }', c);
+  assert.equal(vm.runInContext('escritorioItensDaCamada("geral").length', c), padrao);
+  vm.runInContext('escritorio.base.mapa.camadas.geral.em = "2027-01-01T00:00:00Z"', c);
+  assert.equal(vm.runInContext('escritorioItensDaCamada("geral").length', c), 1);
+});
+
+test("planta nova passa na auditoria (colisões, portas, acessos)", () => {
+  const r = spawnSync(process.execPath, ["scripts/escritorio-auditar.mjs"], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
 });
 
 test("salas individuais: 12 iguais de 10×10 e o dono vem do servidor", () => {

@@ -14,7 +14,9 @@ const oficial = JSON.parse(await readFile(join(pasta, "indice-oficial.json"), "u
 const nomes = Object.fromEntries(JSON.parse(await readFile(join(pasta, "indice.json"), "utf8")).map((i) => [i.classe, i.nome]));
 const temArquivo = new Set((await readdir(pasta)).filter((f) => f.endsWith(".nitro")).map((f) => f.slice(0, -6)));
 // Recomeça dos móveis que ficam no painel (rodar de novo não duplica).
-const atual = JSON.parse(await readFile("assets/escritorio/habbo/catalogo.json", "utf8")).filter((m) => !m.remoto);
+const atual = JSON.parse(await readFile("assets/escritorio/habbo/catalogo.json", "utf8")).filter((m) => !m.remoto && !m.parede);
+// Itens de parede que o mapa padrão usa ficam no painel (arte local).
+const local = new Set((await readdir("assets/escritorio/habbo")).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)));
 const jaTem = new Set(atual.map((m) => m.classe));
 
 // Fora: temas que não cabem num escritório e itens de sistema do Habbo.
@@ -67,7 +69,7 @@ for (const it of oficial) {
   const anima = Object.values(v.animations || {}).some((a) => Object.values(a.layers || {}).some((l) => new Set(Object.values(l.frameSequences?.[0]?.frames || {}).map((f) => f.id)).size > 1));
   porLinhaParede.set(linha, n + 1);
   jaTem.add(it.classe);
-  novos.push({ classe: it.classe, nome: nome.slice(0, 40), categoria: "Na parede", giros: 1, parede: true, remoto: true, ...(anima ? { anima: true } : {}) });
+  novos.push({ classe: it.classe, nome: nome.slice(0, 40), categoria: "Na parede", giros: 1, parede: true, ...(local.has(it.classe) ? {} : { remoto: true }), ...(anima ? { anima: true } : {}) });
 }
 for (const it of oficial) {
   if (jaTem.has(it.classe) || !temArquivo.has(it.classe) || FORA.test(it.classe)) continue;

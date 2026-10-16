@@ -65,7 +65,7 @@ async function salvarEditorEscritorio() {
     let r = { camada: e.camada, itens: e.itens, versao: e.versao + 1 };
     if (!escritorio.base.demo) r = await escritorioApi("mapa", { camada: e.camada, itens: e.itens, versao: e.versao });
     escritorio.base.mapa = escritorio.base.mapa || { editavel: true, camadas: {} };
-    escritorio.base.mapa.camadas[e.camada] = { itens: r.itens, versao: r.versao };
+    escritorio.base.mapa.camadas[e.camada] = { itens: r.itens, versao: r.versao, em: new Date().toISOString() };
     escritorio.edicao = null;
     escritorio.aba = "pessoas";
     escritorio.mapa?.destacar(null);
@@ -677,7 +677,7 @@ async function apagarImagemEscritorio(id) {
     const classe = "vybeimg_" + id;
     escritorio.base.mapa.imagens = (escritorio.base.mapa.imagens || []).filter((i) => i.id !== String(id));
     // O servidor já tirou a imagem da área salva; a edição aberta acompanha.
-    if (r.imagem.versao) { escritorio.base.mapa.camadas[r.imagem.camada] = { itens: r.imagem.itens, versao: r.imagem.versao }; if (e.camada === r.imagem.camada) e.versao = r.imagem.versao; }
+    if (r.imagem.versao) { escritorio.base.mapa.camadas[r.imagem.camada] = { itens: r.imagem.itens, versao: r.imagem.versao, em: new Date().toISOString() }; if (e.camada === r.imagem.camada) e.versao = r.imagem.versao; }
     e.itens = e.itens.filter((it) => it[0] !== classe);
     e.sel = null;
     escritorioEditorMudou();

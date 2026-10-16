@@ -15,7 +15,10 @@ const arte = (c) => {
   const v = j.visualizations.find((v) => v.size === 64);
   // Altura do desenho (maior quadro), para a mesma regra de "rente ao piso" do mapa.
   const alto = Math.max(0, ...Object.values(j.spritesheet?.frames || {}).filter((_, i) => i < 400).map((f) => f.frame?.h || 0));
-  return { d: j.logic?.model?.dimensions || { x: 1, y: 1, z: 1 }, dirs: Object.keys(v?.directions || {}).map(Number), alto };
+  const d = j.logic?.model?.dimensions || { x: 1, y: 1, z: 1 }, dirs = Object.keys(v?.directions || {}).map(Number);
+  // Item de parede (mesma regra do mapa): não ocupa o piso.
+  const parede = dirs.length > 0 && dirs.every((x) => x === 2 || x === 4) && (d.y ?? 1) <= 0.3;
+  return { d, dirs, alto, parede };
 };
 // Mesma lista de assentos do mapa (lida do código, para não divergir).
 const fonteMapa = readFileSync("vybe-escritorio-mapa.js", "utf8");
@@ -30,11 +33,16 @@ for (const [x0, y0, x1, y1] of P.divisorias) {
   else for (let y = y0; y < y1; y++) parede.add(`${x0 - 1},${y}|${x0},${y}`);
 }
 const temParede = (ax, ay, bx, by) => parede.has(`${ax},${ay}|${bx},${by}`) || parede.has(`${bx},${by}|${ax},${ay}`);
-const itens = [];
+const itens = [], pendurados = [];
 for (const m of moveis) {
   const [classe, x, y, dir0, , altura = 0, camada = "geral"] = m;
   const a = arte(classe);
   if (!a) { problemas.push(`${classe} (${x},${y}) sem arte no painel`); continue; }
+  if (a.parede) {
+    if (![2, 4].includes(dir0)) problemas.push(`${classe} (${x},${y}) de parede com direção ${dir0}`);
+    pendurados.push({ classe, x: Math.floor(x), y: Math.floor(y), dir: dir0, w: Math.max(1, Math.round(a.d.x || 1)), camada, alto: a.alto });
+    continue;
+  }
   let dir = dir0;
   if (a.dirs.length && !a.dirs.includes(dir)) {
     dir = a.dirs.includes((dir + 4) % 8) ? (dir + 4) % 8 : a.dirs[0];
@@ -85,13 +93,17 @@ for (const it of itens) {
 }
 const pi = P.piscina;
 for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) solido.add(`${x},${y}`);
+// Atrás do prédio não se anda (mesma regra da grade do mapa).
+const B = P.PREDIO;
+for (let x = 0; x < P.W; x++) for (let y = 0; y < P.H; y++) if ((y < B.y0 && x < B.x1 + 1) || (x < B.x0 && y < B.y1 + 1)) solido.add(`${x},${y}`);
 const anda = (x, y) => x >= 0 && y >= 0 && x < P.W && y < P.H && !solido.has(`${x},${y}`) && !assento.has(`${x},${y}`);
 const passo = (x, y, dx, dy) => {
   if (!anda(x + dx, y + dy)) return false;
   if (dx && dy) return passo(x, y, dx, 0) && passo(x + dx, y, 0, dy) && passo(x, y, 0, dy) && passo(x, y + dy, dx, 0);
   return !temParede(x, y, x + dx, y + dy);
 };
-const chega = new Set(["36,5"]), fila = [[36, 5]];
+const E = P.entrada;
+const chega = new Set([`${E.x},${E.y}`]), fila = [[E.x, E.y]];
 while (fila.length) {
   const [x, y] = fila.shift();
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
@@ -176,6 +188,21 @@ for (const [x, y] of P.postes || []) {
 // Painel fino de parede (largura menor que um ladrilho) não fica encostado de
 // verdade: aparece um ladrilho para fora e torto.
 for (const it of itens) if (/largescreen/.test(it.classe)) problemas.push(`${it.classe} (${it.x},${it.y}) é painel de parede; use um telão de chão`);
+// Itens de parede: precisam de parede de verdade atrás (divisória da planta
+// ou a do prédio) e não podem ficar atrás de móvel alto encostado nela
+// (computador, luminária, estante, planta grande): um some atrás do outro.
+const paredeEm = (x, y, eixo) => (eixo === "x" ? y === P.PREDIO.y0 && x >= P.PREDIO.x0 && x < P.PREDIO.x1 : x === P.PREDIO.x0 && y >= P.PREDIO.y0 && y < P.PREDIO.y1)
+  || P.divisorias.some(([x0, y0, x1, y1]) => (eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1));
+const ALTO = 92; // px de desenho: acima disso o móvel cobre a parte de baixo do item
+for (const q of pendurados) {
+  const nome = `${q.classe} (${q.x},${q.y})${q.camada !== "geral" ? " em " + q.camada : ""}`;
+  for (let k = 0; k < q.w; k++) {
+    const x = q.dir === 4 ? q.x + k : q.x, y = q.dir === 4 ? q.y : q.y + k;
+    if (!paredeEm(x, y, q.dir === 4 ? "x" : "y")) { problemas.push(`${nome} pendurado sem parede atrás`); break; }
+    const alto = itens.find((o) => !o.plano && !o.altura && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h && (arte(o.classe)?.alto || 0) > ALTO);
+    if (alto) { problemas.push(`${nome} atrás de ${alto.classe} (${alto.x},${alto.y})`); break; }
+  }
+}
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));
 console.log(unicos.length ? unicos.join("\n") : "Planta sem problemas.");

@@ -206,7 +206,8 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   }
   // Faixa laranja no meio dos corredores, como as ruas da Vybelândia.
   g.strokeStyle = "#ff7a1a55"; g.lineWidth = 2; g.setLineDash([10, 8]);
-  for (const y of planta.corredores || []) { const a = mapaTela(P.x0, y, origem), b = mapaTela(P.x1, y, origem); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
+  // Corredor: y (de ponta a ponta do prédio) ou [y, x0, x1] (um trecho).
+  for (const c of planta.corredores || []) { const [y, cx0, cx1] = Array.isArray(c) ? c : [c, P.x0, P.x1]; const a = mapaTela(cx0, y, origem), b = mapaTela(cx1, y, origem); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
   g.setLineDash([]);
   const pi = planta.piscina;
   for (let x = pi.x0 - 1; x < pi.x1 + 1; x++) for (let y = pi.y0 - 1; y < pi.y1 + 2; y++) { losango(x, y); g.fillStyle = cor("deck", x, y); g.fill(); }
@@ -249,8 +250,8 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.beginPath(); g.moveTo(a.x, a.y - 4); g.lineTo(b.x, b.y - 4); g.stroke();
   }
   for (const q of planta.quadros) {
-    const a = q.parede === "x" ? mapaTela(q.de, 0, origem) : mapaTela(0, q.de, origem);
-    const b = q.parede === "x" ? mapaTela(q.ate, 0, origem) : mapaTela(0, q.ate, origem);
+    const a = q.parede === "x" ? mapaTela(q.de, P.y0, origem) : mapaTela(P.x0, q.de, origem);
+    const b = q.parede === "x" ? mapaTela(q.ate, P.y0, origem) : mapaTela(P.x0, q.ate, origem);
     const largura = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
     g.save();
     g.translate(a.x, a.y - MAPA_PAREDE * 0.62);
@@ -280,7 +281,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   }
   // Letreiro em neon sobre a parede do fundo.
   if (planta.letreiro && !video) {
-    const a = mapaTela(planta.letreiro.de, 0, origem), b = mapaTela(planta.letreiro.ate, 0, origem);
+    const a = mapaTela(planta.letreiro.de, P.y0, origem), b = mapaTela(planta.letreiro.ate, P.y0, origem);
     const ang = Math.atan2(b.y - a.y, b.x - a.x);
     g.save();
     g.translate(a.x, a.y - MAPA_PAREDE - 58);
@@ -437,6 +438,10 @@ function mapaMontarGrade(P, moveis) {
   }
   const pi = P.piscina;
   if (pi) for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) bloqueado[ind(x, y)] = 1;
+  // Atrás do prédio (jardim do fundo) não se anda: as paredes do prédio são
+  // desenhadas no fundo e não entram na grade.
+  const B = P.PREDIO;
+  if (B) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if ((y < B.y0 && x < B.x1 + 1) || (x < B.x0 && y < B.y1 + 1)) bloqueado[ind(x, y)] = 1;
   for (const m of moveis) {
     if (m.altura || m.plano) continue; // em cima de mesa ou rente ao piso
     const senta = MAPA_ASSENTOS.has(m.classe);
@@ -594,14 +599,17 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   // "reduzir movimento" (fica o quadro parado).
   let videoNo = null;
   if (P.fundoVideo) {
-    // Canto da esquerda do mapa no canto da esquerda da praça; o canto de baixo
-    // do mapa perto da borda de baixo do vídeo (assim o vídeo cobre o mapa todo).
-    const V = P.fundoVideo, esq = mapaTela(0, P.H, origem), baixo = mapaTela(P.W, P.H, origem);
-    const escala = (baixo.y - esq.y) / (V.baixoY - V.esquerda[1]);
-    const topo = { x: esq.x + 0, y: esq.y };
-    V.topo = V.esquerda;
+    // A praça vazia do vídeo (quatro cantos, em pixels do vídeo) recebe o
+    // mapa inteiro: mesma altura de cima a baixo e o mesmo centro.
+    const V = P.fundoVideo, q = V.praca, cima = mapaTela(0, 0, origem), baixo = mapaTela(P.W, P.H, origem), meio = mapaTela(P.W / 2, P.H / 2, origem);
+    const escala = (baixo.y - cima.y) / (q.baixo[1] - q.topo[1]);
+    const cx = (q.esq[0] + q.dir[0] + q.topo[0] + q.baixo[0]) / 4, cy = (q.esq[1] + q.dir[1] + q.topo[1] + q.baixo[1]) / 4;
+    const topo = meio;
+    V.topo = [cx, cy];
     videoNo = document.createElement("video");
     Object.assign(videoNo, { src: V.url, muted: true, loop: true, playsInline: true, autoplay: !reduzMovFundo(), preload: "auto" });
+    // Fundo é só imagem: sem som em nenhum navegador (o arquivo também não tem áudio).
+    videoNo.defaultMuted = true; videoNo.volume = 0; videoNo.setAttribute("muted", "");
     videoNo.setAttribute("aria-hidden", "true");
     videoNo.className = "mapa-video-fundo";
     Object.assign(videoNo.style, { left: topo.x - V.topo[0] * escala + "px", top: topo.y - V.topo[1] * escala + "px", width: V.largura * escala + "px", height: V.altura * escala + "px" });
@@ -652,22 +660,31 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       m.no.classList.toggle("recortado", m.quem.size > 0);
     }
   };
-  for (const [x0, y0, x1, y1, cor] of P.divisorias) {
+  for (const dv of P.divisorias) {
+    // 6º campo: estilo padrão do trecho (vidro na reunião, tijolo no Lounge…).
+    const [x0, y0, x1, y1, cor] = dv, estiloBase = dv.estilo;
     const eixo = y0 === y1 ? "x" : "y";
     const n = eixo === "x" ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
       const est = P.paredeEm?.(x, y, eixo);
-      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo, est?.alt);
+      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt);
       d.canvas.className = "mapa-obj mapa-muro";
       const prof = Math.round((x + y) * 10) + 2;
       colocar(d.canvas, x, y, d, prof);
       palco.append(d.canvas);
       const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
-      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo, alt: est?.alt });
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt });
     }
   }
+  // Altura da parede num trecho (para os itens pendurados): a do muro da
+  // planta, ou a do prédio nas paredes de fora.
+  const mapaAlturaParede = (x, y, eixo) => {
+    const m = muros.find((w) => w.eixo === eixo && w.x === x && w.y === y);
+    if (m) return m.alt || (m.cor ? 82 : 46);
+    return (eixo === "x" && y === P.PREDIO?.y0) || (eixo === "y" && x === P.PREDIO?.x0) ? MAPA_PAREDE : 82;
+  };
   // Móveis (animados ficam numa lista para trocar de quadro)
   const animados = [];
   const moveis = [];
@@ -783,7 +800,15 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         no.className = "mapa-obj mapa-de-parede";
         no.dataset.classe = classe;
         no.style.left = ancora.x + desenho.ox + MAPA_PAREDE_AJUSTE[d0].x + "px";
-        no.style.top = ancora.y + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y - altura * 32 + "px";
+        // A parede tem altura própria (prédio 118, sala 82 ou a que o dono
+        // pintou, divisória baixa 46): o item fica sempre dentro dela, sem
+        // passar do topo (antes as janelas "flutuavam" acima das paredes das salas).
+        let topo = ancora.y + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y - altura * 32;
+        const altParede = mapaAlturaParede(Math.floor(x), Math.floor(y), d0 === 2 ? "y" : "x");
+        const teto = ancora.y - altParede + 4, h = no.height;
+        if (topo < teto) topo = teto;
+        if (topo + h > ancora.y + 2) topo = Math.max(teto, ancora.y + 2 - h);
+        no.style.top = topo + "px";
         no.style.zIndex = Math.round((Math.floor(x) + Math.floor(y)) * 10) + 3;
         palco.append(no);
         const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: Number(no.style.zIndex), caixa: null, origem: origemItem };
@@ -1393,7 +1418,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         if (m.corBase === undefined) m.corBase = m.cor || "";
         const salaCor = P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4];
         m.cor = est?.cor || salaCor || m.corBase;
-        m.estilo = est?.estilo; m.alt = est?.alt;
+        m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt;
       }
       pintarParedes(true);
     },

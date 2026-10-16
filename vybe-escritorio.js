@@ -471,7 +471,11 @@ function escritorioNomeDaSala(a) {
 // Camadas do mapa: o mapa geral e cada sala individual. Sem nada salvo, vale o
 // padrão do código. Nas salas, os itens ficam relativos ao canto da sala.
 function escritorioItensDaCamada(camada) {
-  const salvo = escritorio.edicao?.camada === camada ? escritorio.edicao.itens : escritorio.base?.mapa?.camadas?.[camada]?.itens;
+  const guardada = escritorio.base?.mapa?.camadas?.[camada];
+  // Mapa geral salvo antes da planta atual era de outra planta (coordenadas
+  // de outro desenho): vale o padrão; a versão antiga fica no histórico.
+  const antiga = camada === "geral" && guardada && !(new Date(guardada.em || 0) >= new Date(ESCRITORIO_PLANTA_DESDE));
+  const salvo = escritorio.edicao?.camada === camada ? escritorio.edicao.itens : antiga ? null : guardada?.itens;
   if (salvo) return salvo;
   if (camada === "geral") return ESCRITORIO_PLANTA.moveis;
   const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === camada);
@@ -488,11 +492,11 @@ function escritorioMoveisAtuais() {
 }
 function escritorioPlantaComMesas() {
   // Pintura das salas é lida na hora de desenhar (muda sem recriar o mapa).
-  // Fundo animado da Vybelândia: a praça vazia do vídeo (1280×720) tem o canto
-  // da esquerda em (152, 432); o mapa vai até perto da borda de baixo (705).
+  // Fundo animado da Vybelândia: os quatro cantos da praça vazia do vídeo
+  // (1280×720), onde o mapa quadrado se encaixa.
   const video = document.getElementById("escritorio-fundo-video")?.getAttribute("href");
   return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais(), imagens: escritorio.base?.mapa?.imagens || [],
-    fundoVideo: video ? { url: video, largura: 1280, altura: 720, esquerda: [152, 432], baixoY: 705 } : null,
+    fundoVideo: video ? { url: video, largura: 1280, altura: 720, praca: { esq: [168, 388], topo: [626, 187], dir: [1082, 407], baixo: [640, 657] } } : null,
     pisoLadrilho: (x, y) => ESCRITORIO_PLANTA.pisoLadrilho?.(x, y), paredeEm: (x, y, eixo) => ESCRITORIO_PLANTA.paredeEm?.(x, y, eixo) };
 }
 // Nomes das salas individuais conforme o dono informado pelo servidor.
@@ -540,7 +544,7 @@ function escritorioChegar() {
   const mesa = escritorioMinhaMesa();
   // Chega pela porta da própria sala (a cadeira fica atrás da mesa, num canto
   // fechado); sem sala, pela recepção.
-  const lugar = mesa ? escritorioNaSala(mesa.ambiente, 5, 8) : { x: 36, y: 8 };
+  const lugar = mesa ? escritorioNaSala(mesa.ambiente, 5, 8) : ESCRITORIO_PLANTA.entrada;
   Object.assign(escritorio.perfil, escritorioParaPorcentagem(lugar.x, lugar.y));
   escritorio.sala = escritorioSalaEm(lugar.x, lugar.y);
   escritorio.zona = escritorioZonaEm(lugar.x, lugar.y);
@@ -555,7 +559,8 @@ function escritorioLugarDe(p) {
   const a = escritorioAmbienteEm(pos.x, pos.y);
   if (a) return a;
   const P = ESCRITORIO_PLANTA.PREDIO;
-  return { id: pos.x < P.x1 && pos.y < P.y1 ? "corredor" : "externa", nome: pos.x < P.x1 && pos.y < P.y1 ? "Corredor" : "Área externa", sala: "convivencia" };
+  const dentro = pos.x >= P.x0 && pos.y >= P.y0 && pos.x < P.x1 && pos.y < P.y1;
+  return { id: dentro ? "corredor" : "externa", nome: dentro ? "Corredor" : "Área externa", sala: "convivencia" };
 }
 // "Ir" ao lado de alguém: anda até um ladrilho livre ao lado da pessoa.
 function escritorioIrAte(id) {
@@ -1155,7 +1160,7 @@ function editarMovelDaMesaEscritorio(qual) {
 // a cozinha, academia, jogos, lounge e piscina. Só a câmera vai (o boneco fica).
 const ESCRITORIO_AREAS = [["salas", "Salas"], ["reunioes", "Reuniões"], ["lazer", "Lazer"], ["externa", "Área externa"], ["eu", "Onde estou"]];
 function olharAreaEscritorio(id) {
-  const alvo = { salas: [32, 24, 0.75], reunioes: [15, 5, 0.9], lazer: [56, 18, 0.7], externa: [40, 52, 0.85] }[id];
+  const alvo = ESCRITORIO_PLANTA.vistas?.[id];
   if (id === "eu" || !alvo) { centralizarEmMimEscritorio(); return; }
   escritorio.mapa?.olhar(alvo[0], alvo[1], alvo[2]);
 }
@@ -1272,7 +1277,7 @@ function escritorioOcupado(x, y) {
 function escritorioDestravar() {
   if (!escritorio.mapa) return;
   const p = escritorioPosicao(escritorio.perfil || {}), de = { x: Math.round(p.x), y: Math.round(p.y) };
-  const saida = { x: 36, y: 10 };
+  const saida = ESCRITORIO_PLANTA.entrada;
   if (escritorio.mapa.caminho(de, saida)) return;
   for (let r = 1; r < 12; r++) for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
