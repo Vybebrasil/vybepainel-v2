@@ -205,8 +205,10 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         escritorio.convite = e.payload;
         atualizarDockEscritorio();
         escritorioAviso(
-          e.payload.nome + " convidou você para a conversa da sala.",
+          e.payload.nome + (e.payload.chamado ? " chamou você para a sala dele." : " convidou você para a conversa da sala."),
         );
+        // Chamado de longe: pergunta na hora (Ir até a sala / Agora não).
+        if (e.payload.chamado) { escritorioTocar(740, 0.15, 0.06); setTimeout(() => escritorioTocar(988, 0.15, 0.06), 160); aceitarConviteEscritorio(); }
       }
       if (e.type === "presence:update") {
         avisarEntradasEscritorio(escritorio.online, e.payload);
@@ -315,11 +317,19 @@ function convidarConversaEscritorio(id) {
     "Convite para a conversa da sala enviado para " + outro.nome + ".",
   );
 }
+// Chamar alguém de qualquer lugar para a sala onde você está.
+function chamarParaSalaEscritorio(id) {
+  if (!escritorio.zona || escritorio.zona === "foco") { escritorioAviso("Entre numa sala para chamar alguém até ela."); return; }
+  const outro = (escritorio.online || []).find((p) => String(p.id) === String(id));
+  if (!outro) { escritorioAviso("Essa pessoa não está no escritório agora. Deixe um recado."); return; }
+  escritorioEmitir("conversation:summon", { id: String(id) });
+  escritorioAviso(`Você chamou ${String(outro.nome).split(" ")[0]} para ${escritorioLugarDe(escritorio.perfil).nome}.`);
+}
 function aceitarConviteEscritorio() {
   const convite = escritorio.convite;
   if (!convite) return;
   openWorkflowModal(
-    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} convidou você</h2><p>A conversa é em ${safeText(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === convite.zona)?.nome || ESCRITORIO_SALAS[convite.sala] || "outra sala")}. Ao chegar, você entra na conversa com o microfone ligado.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));escritorioIrParaAmbiente('${safeText(convite.zona || "")}');escritorioAviso('Ao chegar na sala, você entra na conversa com o microfone ligado.')">Ir até a conversa</button></div>`,
+    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} ${convite.chamado ? "chamou você" : "convidou você"}</h2><p>A conversa é em ${safeText(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === convite.zona)?.nome || ESCRITORIO_SALAS[convite.sala] || "outra sala")}. Ao chegar, você entra na conversa com o microfone ligado.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));escritorioIrParaAmbiente('${safeText(convite.zona || "")}');escritorioAviso('Ao chegar na sala, você entra na conversa com o microfone ligado.')">Ir até a conversa</button></div>`,
   );
 }
 
@@ -344,6 +354,7 @@ function escritorioIcone(nome) {
     cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
     som: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6"/>',
     ajustes: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+    mais: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
   }[nome] || "";
@@ -489,7 +500,7 @@ function atualizarPessoasEscritorio() {
     const fora = escritorio.base.equipe.filter((p) => !pessoas.some((o) => o.id === p.id));
     const linha = (p) => {
       const o = pessoas.find((x) => x.id === p.id);
-      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${o && p.id !== eu ? `<button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')">Ir</button><button type="button" class="ofc-mini" onclick="seguirPessoaEscritorio('${safeText(o.id)}')">Seguir</button>` : ""}${p.id !== eu ? `<button type="button" class="ofc-mini" onclick="abrirRecadosEscritorio('${safeText(p.id)}')" aria-label="Recado para ${safeText(p.nome)}">Recado${escritorio.recadosResumo?.[p.id] ? ` · ${escritorio.recadosResumo[p.id]}` : ""}</button>` : ""}</li>`;
+      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${o && p.id !== eu ? `<button type="button" class="ofc-mini" onclick="chamarParaSalaEscritorio('${safeText(o.id)}')" title="Chamar para a sala onde você está">Chamar</button><button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')">Ir</button><button type="button" class="ofc-mini" onclick="seguirPessoaEscritorio('${safeText(o.id)}')">Seguir</button>` : ""}${p.id !== eu ? `<button type="button" class="ofc-mini" onclick="abrirRecadosEscritorio('${safeText(p.id)}')" aria-label="Recado para ${safeText(p.nome)}">Recado${escritorio.recadosResumo?.[p.id] ? ` · ${escritorio.recadosResumo[p.id]}` : ""}</button>` : ""}</li>`;
     };
     lista.innerHTML = `<h4>Online agora · ${online.length}</h4><ul>${online.map(linha).join("") || '<li class="ofc-vazio">Ninguém conectado ainda.</li>'}</ul><h4>Fora do escritório · ${fora.length}</h4><ul>${fora.map(linha).join("")}</ul>`;
   }
@@ -542,7 +553,14 @@ function atualizarControlesEscritorio() {
       : escritorio.falhaConversa && !escritorio.entrandoChamada
         ? botao("escritorio.falhaConversa='';entrarChamadaEscritorio({microfone:true})", "fone", "Voz falhou · tentar de novo", `title="${safeText(escritorio.falhaConversa)}"`, { texto: true, classe: "perigo" })
         : `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>Conectando a voz…</span></span>`;
-  el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="personalizarEscritorio()" aria-label="Personalizar meu personagem" title="Personalizar meu personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-poses"><summary class="ofc-dock-btn" aria-label="Ações do boneco" title="Ações do boneco">${escritorioIcone("espaco")}</summary><div class="ofc-poses"><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')">Acenar <kbd>1</kbd></button><button type="button" onclick="deitarEscritorio()">Deitar <kbd>2</kbd></button><button type="button" onclick="definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')">Café na mão <kbd>3</kbd></button></div></details>` : ""}${escritorioPodeTrancar() ? botao("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar" : "Trancar sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : ""}<span class="ofc-sep"></span>${botao("irParaMinhaMesaEscritorio()", "mesa", "Minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${botao("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Som ligado" : "Som desligado", `aria-pressed="${escritorioSomLigado()}"`)}${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisos ? `Painel · ${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso" : "avisos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisos ? ' data-avisos="true"' : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
+  el.innerHTML = `<button type="button" class="ofc-dock-btn ofc-eu" onclick="personalizarEscritorio()" aria-label="Personalizar meu personagem" title="Personalizar meu personagem">${escritorioAvatar(escritorio.perfil, "você")}</button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${(() => {
+    // "Mais": o que se usa de vez em quando fica num menu só, para a barra
+    // caber numa linha.
+    const item = (acao, rotulo, extra = "") => `<button type="button" onclick="${acao};this.closest('details').open=false" ${extra}>${rotulo}</button>`;
+    const tranca = escritorioPodeTrancar() ? item("trancarZonaEscritorio()", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
+    const poses = escritorio.conectado ? `<span class="ofc-mais-titulo">Seu boneco</span>${item("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", "Acenar <kbd>1</kbd>")}${item("deitarEscritorio()", "Deitar <kbd>2</kbd>")}${item("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", "Café na mão <kbd>3</kbd>")}` : "";
+    return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
+  })()}<span class="ofc-sep"></span>${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisos ? `Painel · ${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso" : "avisos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisos ? ' data-avisos="true"' : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -1735,6 +1753,7 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     escritorioNivelAudio.iniciar();
     await escritorioComPrazo(meeting.join(), 20000, "entrando na sala de voz");
     escritorioAplicarDispositivos(meeting);
+    escritorioAplicarFiltroVoz(meeting);
     if (geracao !== escritorio.geracao || !escritorio.conectado)
       throw new Error("Entrada na chamada cancelada.");
     escritorio.chamada = meeting;
@@ -1806,6 +1825,55 @@ function escritorioPrefsAudio() {
   const p = escritorioLerPrefsAudio();
   return { noiseSupression: p.ruido !== false, echoCancellation: p.eco !== false, autoGainControl: p.ganho !== false };
 }
+// Filtro de voz (ligado por padrão): corta graves de ambiente (ventilador,
+// carro, ar-condicionado) e fecha o microfone quando o som fica abaixo do
+// limite de sensibilidade (cachorro longe, TV baixa, teclado). Roda no próprio
+// navegador, como um passo antes de enviar a voz.
+const escritorioFiltroVoz = { limite: 0.018 };
+function escritorioLimiteFiltro() {
+  const p = escritorioLerPrefsAudio();
+  // Sensibilidade 1 (pega tudo) a 10 (só voz próxima); padrão 5.
+  const sens = Math.min(10, Math.max(1, Number(p.sensibilidade) || 5));
+  return 0.004 + (sens - 1) * 0.0045;
+}
+function escritorioMiddlewaresVoz() {
+  const passaAlta = async (ctx) => { const f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 110; f.Q.value = 0.7; return f; };
+  const corteAgudo = async (ctx) => { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 7500; return f; };
+  let medidor = null;
+  const medir = async (ctx) => { medidor = ctx.createAnalyser(); medidor.fftSize = 512; return medidor; };
+  const portao = async (ctx) => {
+    const g = ctx.createGain(), dados = new Uint8Array(512);
+    let aberto = 0;
+    const tick = () => {
+      if (!medidor || ctx.state === "closed") return;
+      medidor.getByteTimeDomainData(dados);
+      let soma = 0; for (const v of dados) soma += (v - 128) * (v - 128);
+      const nivel = Math.sqrt(soma / dados.length) / 128;
+      // Abre rápido, fecha devagar (não corta o fim das palavras).
+      if (nivel > escritorioFiltroVoz.limite) aberto = 12; else if (aberto > 0) aberto--;
+      g.gain.setTargetAtTime(aberto > 0 ? 1 : 0.03, ctx.currentTime, aberto > 0 ? 0.01 : 0.08);
+      setTimeout(tick, 20);
+    };
+    tick();
+    return g;
+  };
+  return [passaAlta, corteAgudo, medir, portao];
+}
+async function escritorioAplicarFiltroVoz(meeting) {
+  const self = meeting?.self;
+  if (!self?.addAudioMiddleware) return;
+  escritorioFiltroVoz.limite = escritorioLimiteFiltro();
+  try { await self.removeAllAudioMiddlewares?.(); } catch {}
+  if (escritorioLerPrefsAudio().filtro === false) return;
+  try { for (const m of escritorioMiddlewaresVoz()) await self.addAudioMiddleware(m); }
+  catch (e) { console.warn("Filtro de voz:", e); }
+}
+function mudarSensibilidadeAudio(v) {
+  escritorioSalvarPrefsAudio({ sensibilidade: Number(v) });
+  escritorioFiltroVoz.limite = escritorioLimiteFiltro();
+  const r = document.getElementById("office-sens-rotulo");
+  if (r) r.textContent = Number(v) <= 3 ? "Pega mais som" : Number(v) >= 8 ? "Só voz bem próxima" : "Equilibrado";
+}
 function escritorioSalvarPrefsAudio(mudanca) {
   try { localStorage.setItem(ESCRITORIO_AUDIO_PREFS, JSON.stringify({ ...escritorioLerPrefsAudio(), ...mudanca })); } catch {}
 }
@@ -1842,6 +1910,8 @@ ${self ? `<label class="ofc-campo"><span>Microfone</span><select onchange="troca
 <div class="ofc-teste-mic"><small>Fale algo: a barra deve mexer.</small><i class="office-call-nivel" aria-hidden="true"><i id="office-nivel-teste"></i></i></div>
 <label class="ofc-campo"><span>Saída de som</span><select onchange="trocarDispositivoAudio('audiooutput',this.value)" ${saidas.length ? "" : "disabled"}>${opcoes(saidas, atual.speaker?.deviceId, "Saída") || "<option>Padrão do sistema</option>"}</select></label>
 ${saidas.length ? "" : '<small class="ofc-fila-nota">Este navegador não deixa escolher a saída; use a do sistema.</small>'}` : '<p class="ofc-fila-nota">Entre numa sala para escolher o microfone e a saída. Os ajustes abaixo já valem para a próxima conversa.</p>'}
+${(() => { const sens = Math.min(10, Math.max(1, Number(escritorioLerPrefsAudio().sensibilidade) || 5)); return `<label class="ofc-chave"><input type="checkbox" ${escritorioLerPrefsAudio().filtro === false ? "" : "checked"} onchange="mudarFiltroVozEscritorio(this.checked)"><span><b>Filtro de voz (recomendado)</b><small>Fecha o microfone quando não é você falando: corta barulho da casa, ventilador e teclado.</small></span></label>
+<label class="ofc-campo"><span>Sensibilidade · <i id="office-sens-rotulo" style="font-style:normal;color:#ffb27a">${sens <= 3 ? "Pega mais som" : sens >= 8 ? "Só voz bem próxima" : "Equilibrado"}</i></span><input type="range" min="1" max="10" step="1" value="${sens}" oninput="mudarSensibilidadeAudio(this.value)" aria-label="Sensibilidade do filtro de voz"><small class="ofc-fila-nota">Se sua voz corta no começo das frases, diminua. Se ainda passa barulho, aumente.</small></label>`; })()}
 ${chave("ruido", "Redução de ruído", "Corta barulho de fundo constante.", p.noiseSupression)}
 ${chave("eco", "Cancelamento de eco", "Evita que sua caixa de som volte no microfone.", p.echoCancellation)}
 ${chave("ganho", "Ganho automático", "Ajusta a sensibilidade do microfone sozinho. Desligue se sua voz ficar baixa ou estourando.", p.autoGainControl)}`;
@@ -1872,6 +1942,11 @@ async function trocarDispositivoAudio(tipo, id) {
   } catch (e) {
     escritorioAviso("Não foi possível trocar: " + e.message);
   }
+}
+async function mudarFiltroVozEscritorio(ligado) {
+  escritorioSalvarPrefsAudio({ filtro: ligado });
+  if (escritorio.chamada) await escritorioAplicarFiltroVoz(escritorio.chamada);
+  escritorioAviso(ligado ? "Filtro de voz ligado." : "Filtro de voz desligado.");
 }
 async function mudarProcessamentoAudio(qual, ligado) {
   escritorioSalvarPrefsAudio({ [qual]: ligado });
@@ -1986,17 +2061,20 @@ const escritorioNivelAudio = {
     if (!this.ctx) return;
     const vistos = new Set();
     for (const p of lista) {
-      if (!p.audioEnabled || !p.audioTrack) continue;
+      // O próprio microfone é medido antes do filtro de voz (rawAudioTrack):
+      // assim o aviso de "não está captando" não dispara quando o filtro fecha.
+      const trilha = (p === escritorio.chamada?.self && p.rawAudioTrack) || p.audioTrack;
+      if (!p.audioEnabled || !trilha) continue;
       vistos.add(p.id);
       const atual = this.fontes.get(p.id);
-      if (atual?.track === p.audioTrack) { atual.p = p; continue; }
+      if (atual?.track === trilha) { atual.p = p; continue; }
       atual?.fonte.disconnect();
       try {
-        const fonte = this.ctx.createMediaStreamSource(new MediaStream([p.audioTrack]));
+        const fonte = this.ctx.createMediaStreamSource(new MediaStream([trilha]));
         const an = this.ctx.createAnalyser();
         an.fftSize = 512;
         fonte.connect(an); // sem ligar na saída: só mede, quem toca é o SDK
-        this.fontes.set(p.id, { p, track: p.audioTrack, fonte, an, dados: new Uint8Array(an.fftSize) });
+        this.fontes.set(p.id, { p, track: trilha, fonte, an, dados: new Uint8Array(an.fftSize) });
       } catch {}
     }
     for (const [id, f] of this.fontes) if (!vistos.has(id)) { f.fonte.disconnect(); this.fontes.delete(id); this.marcar(f.p, 0); }

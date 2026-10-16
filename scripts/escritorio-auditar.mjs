@@ -119,6 +119,28 @@ for (const it of itens) {
   if (!(it.assento || INTERATIVOS.test(it.classe))) continue;
   if (!alcancavel(it)) problemas.push(`${it.classe} (${it.x},${it.y})${it.camada !== "geral" ? " em " + it.camada : ""} sem acesso a pé`);
 }
+// Assento virado para algo: na frente dele (até 5 ladrilhos, na direção em que
+// ele olha) precisa haver mesa, TV/telão, púlpito, palco, lareira ou outro
+// assento virado de volta. Pega "sofá virado para a parede / para o nada".
+const FOCO = /table|desk|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
+const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
+const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill/;
+for (const it of itens) {
+  if (!it.assento || SEM_FOCO_OK.test(it.classe)) continue;
+  const [dx, dy] = OLHA[it.dir] || [0, 0];
+  let achou = false;
+  for (let k = 1; k <= 5 && !achou; k++) {
+    // De longe vale olhar um pouco de lado (plateia para o palco/telão).
+    const lado = k >= 3 ? 2 : 0;
+    for (let i = 0; i < it.w && !achou; i++) for (let j = 0; j < it.h && !achou; j++) for (let l = -lado; l <= lado && !achou; l++) {
+      const x = it.x + i + dx * k + (dy ? l : 0), y = it.y + j + dy * k + (dx ? l : 0);
+      if (k > 1 && temParede(x - dx, y - dy, x, y)) continue;
+      const alvo = itens.find((o) => o !== it && !o.plano && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
+      if (alvo && (FOCO.test(alvo.classe) || (alvo.assento && OLHA[alvo.dir] && ((OLHA[alvo.dir][0] === -dx && OLHA[alvo.dir][1] === -dy) || alvo.dir === it.dir)))) achou = true;
+    }
+  }
+  if (!achou) problemas.push(`${it.classe} (${it.x},${it.y})${it.camada !== "geral" ? " em " + it.camada : ""} virado para o nada (direção ${it.dir})`);
+}
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));
 console.log(unicos.length ? unicos.join("\n") : "Planta sem problemas.");

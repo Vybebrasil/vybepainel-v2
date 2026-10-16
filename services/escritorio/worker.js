@@ -246,6 +246,13 @@ export class EscritorioRoom {
       }
       s.serializeAttachment(a);
       return;
+    } else if (evento.type === "conversation:summon") {
+      // Chamar alguém de longe para a sala onde você está: só um aviso para a
+      // pessoa (que decide se vai); autoria e sala vêm da sessão.
+      if (typeof p.id !== "string" || !/^\d{1,18}$/.test(p.id) || p.id === a.sub || !a.zona) return;
+      for (const t of this.ativos()) if (this.estado(t).sub === p.id)
+        this.send(t, "conversation:invite", { nome: a.nome, sala: a.sala, zona: a.zona, chamado: true });
+      return;
     } else if (evento.type === "zone:lock") {
       const zona = zonaValida(p.zona);
       // Só quem está na zona tranca; sala individual, só a dona ou quem administra.

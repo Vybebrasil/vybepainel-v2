@@ -729,3 +729,21 @@ test("Worker: aviso de recado vai só para quem recebeu, com a autoria da sessã
   assert.deepEqual(dois.msgs.filter((m) => m.type === "recado:novo").map((m) => m.payload), [{ de: "1", nome: "P1" }]);
   assert.ok(!tres.msgs.some((m) => m.type === "recado:novo"));
 });
+
+test("Worker: chamar alguém de longe avisa só a pessoa, com a sala de quem chamou", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const sock = (sub, zona, x) => {
+    const s = { a: { sub, nome: "P" + sub, sala: "criacao", zona, x, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300 },
+      msgs: [], deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { this.msgs.push(JSON.parse(m)); } };
+    sockets.push(s); return s;
+  };
+  const eu = sock("1", "sala-0", 10), longe = sock("2", "cozinha", 90), outro = sock("3", "", 50);
+  await room.webSocketMessage(eu, JSON.stringify({ type: "conversation:summon", payload: { id: "2" } }));
+  assert.deepEqual(longe.msgs.filter((m) => m.type === "conversation:invite").map((m) => m.payload), [{ nome: "P1", sala: "criacao", zona: "sala-0", chamado: true }]);
+  assert.ok(!outro.msgs.some((m) => m.type === "conversation:invite"));
+  // Fora de uma sala (corredor) não chama.
+  outro.a.last = 0;
+  await room.webSocketMessage(outro, JSON.stringify({ type: "conversation:summon", payload: { id: "2" } }));
+  assert.equal(longe.msgs.filter((m) => m.type === "conversation:invite").length, 1);
+});

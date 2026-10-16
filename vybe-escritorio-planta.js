@@ -77,17 +77,22 @@ const ESCRITORIO_PLANTA = (() => {
   p("army15_largescreen", 0, 4, 2, 1); p("js_exe_rug", 1, 3, 0); p("uni_lectern", 2, 4, 2);
   p("spotlight", 1, 1, 2); p("spotlight", 1, 8, 2);
   p("bohogarden_c21_cheeseplant", 4, 0, 2); p("bohogarden_c21_cheeseplant", 4, 8, 2);
-  for (let f = 0; f < 6; f++) for (let c = 0; c < 7; c++) p("hc26_10", 6 + f * 2, 1 + c, 6);
+  for (let f = 0; f < 6; f++) for (let c = 0; c < 5; c++) p("hc26_10", 6 + f * 2, 2 + c, 6);
   p("easter_c22_fanpalm", 17, 0); p("easter_c22_fanpalm", 17, 8); p("darkmodern_c20_speakers", 0, 1, 2); p("darkmodern_c20_speakers", 0, 7, 2);
   // Reunião: mesa comprida no meio, cadeiras dos dois lados, quadro e arquivos
   p("army_c15_contable2", 20, 4, 0); for (const x of [21, 23, 25]) p("army_c15_contable", x, 4, 0); p("army_c15_contable2", 27, 4, 0);
   for (let x = 20; x <= 27; x++) { p("army_c15_leatherchr", x, 3, 4); p("army_c15_leatherchr", x, 5, 0); }
   p("uni_c23_whiteboard", 29, 3, 2); p("plant_yukka", 18, 0, 0); p("plant_yukka", 29, 8, 0);
   p("army_c15_cabinet", 20, 0, 4); p("army_c15_cabinet", 21, 0, 4); p("army_c15_cabinet", 22, 0, 4);
-  // Recepção: tapete, balcão, sofá e mesa de centro
-  p("hygge_c25_carpet", 34, 3, 0); p("hygge_c25_counter2", 35, 1, 2); p("hygge_c25_counter2", 37, 1, 2);
-  p("mafia_c26_sofa_dark", 34, 7, 0); p("mafia_c26_coffeetable_dark", 35, 5, 2);
-  p("easter_c22_fanpalm", 30, 0); p("easter_c22_fanpalm", 41, 0); p("darkmodern_c20_pug", 40, 6, 2);
+  // Recepção: balcão de atendimento de frente para a porta, com a cadeira da
+  // recepção atrás; área de espera com dois sofás frente a frente sobre o
+  // tapete; plantas e estante nos cantos. O corredor da porta fica livre.
+  for (const x of [34, 37]) p("hygge_c25_counter2", x, 2, 0);
+  p("modern_c17_chair", 35, 1, 4); p("hygge_c25_desklamp", 34, 2, 2, 1, 1.2);
+  p("hygge_c25_carpet", 31, 4, 0); p("modern_c17_sofa", 31, 4, 4); p("modern_c17_lowtable", 31, 5, 2); p("modern_c17_sofa", 31, 7, 0);
+  p("modern_c17_floorlamp", 33, 7, 2, 1);
+  p("modern_c17_shelf", 41, 4, 0); p("mafia_c26_planter_white", 30, 0, 0); p("mafia_c26_planter_white", 41, 0, 0);
+  p("mafia_c26_planter_dark", 39, 8, 0); p("darkmodern_c20_pug", 40, 6, 2);
   // Cozinha: geladeiras, bancada com fogão e pia na parede do fundo, café e
   // micro-ondas em cima da bancada, bebedouro e duas mesas de almoço
   p("mode_fridge", 42, 0, 0); p("hygge_c25_counter1", 43, 0, 0); p("hygge_c25_counter1", 44, 0, 0);
@@ -107,27 +112,45 @@ const ESCRITORIO_PLANTA = (() => {
   p("uni_dumbells", 56, 4, 2); p("uni_dumbells", 56, 6, 2);
   p("school_c22_equipment", 59, 5, 2); p("school_c22_equipment", 66, 5, 2);
   p("olympics_c16_trampoline", 69, 4, 2); p("olympics_c16_trampoline", 69, 6, 2); p("army_c15_plant", 71, 8);
-  // Foco: estantes no fundo, poltronas e luminária
-  for (const x of [64, 70]) p("lodge_dark_bookcase", x, 12, 0);
-  p("hygge_c25_armchair", 66, 16, 2); p("hygge_c25_armchair", 69, 16, 6); p("darkmodern_c20_floorlight", 71, 15, 2, 1);
-  p("hygge_c25_carpet", 66, 17, 0); p("army_c15_plant", 71, 21);
-  // Jogos: fliperamas e pinball nas paredes, sinuca e pebolim no meio
+  // Foco: biblioteca silenciosa. Estantes altas na parede da esquerda, mesa
+  // de leitura com duas poltronas viradas para ela sobre o tapete, pufes
+  // perto das estantes e luminárias.
+  for (const y of [13, 16, 19]) p("classic9_bookshelf", 64, y, 0);
+  p("hygge_c25_carpet", 67, 16, 0); p("classic9_table", 68, 17, 0);
+  p("hygge_c25_armchair", 67, 17, 2); p("hygge_c25_armchair", 70, 18, 6);
+  p("classic9_light", 67, 19, 2, 1); p("darkmodern_c20_floorlight", 71, 15, 2, 1);
+  p("cubie_beanbag_b", 65, 15, 2); p("cubie_beanbag_p", 65, 18, 2);
+  p("mafia_c26_planter_dark", 71, 13, 0); p("army_c15_plant", 71, 21);
+  // Jogos: fliperamas e pinball nas paredes, sinuca e pebolim no meio,
+  // máquinas novas na parede do fundo, cada uma de frente para o salão.
   p("bling15_pooltable", 66, 27, 4); p("ads_aftv_footballtable", 68, 30, 0);
   p("tokyo_c18_retroarcade", 64, 26, 2, 1); p("graffiti_r24_arcademachine", 64, 28, 2, 1); p("arcade_c23_pinball", 64, 30, 2, 1);
   p("vwave_r21_jukebox", 64, 33, 2, 1); p("tokyo_c18_racearcade", 71, 26, 6, 1); p("tokyo_c18_racearcade", 71, 27, 6, 1);
   p("rainyday_c20_retrogames", 71, 33, 2, 1); p("mafia_c26_armchair_dark", 70, 33, 2);
-  // Produção: bancadas com dois monitores, cadeira de frente para a tela
-  for (let i = 0; i < 8; i++) {
-    const x = 2 + (i % 4) * 6, y = 40 + Math.floor(i / 4) * 4;
+  p("arcade_c23_space", 66, 25, 4, 1); p("arcade_c23_cyberpunk", 69, 25, 4, 1);
+  // Produção: estúdio de gravação à esquerda (piso de chroma, refletores,
+  // câmera de frente para o set e mesa de som) e ilhas de edição à direita:
+  // duas fileiras de bancadas, cada cadeira de frente para o seu monitor, com
+  // corredor entre as fileiras e vasos separando as baias.
+  p("studio_floorlight", 1, 40, 0, 1); p("studio_lights1", 2, 38, 2, 1);
+  p("modern_c17_chair", 2, 41, 4); p("modern_c17_chair", 3, 41, 4);
+  p("studio_camera", 3, 45, 0, 1);
+  p("studio_mixingdesk", 6, 46, 0, 1); p("studio_chair", 8, 45, 4);
+  p("army_c15_cabinet", 0, 45, 2); p("army_c15_plant", 0, 46);
+  for (const y of [40, 44]) for (const x of [14, 18, 22]) {
     p("exe_table", x, y, 0); p("computer_flatscreen", x + 1, y + 1, 0, 1, 1);
     p("army_c15_leatherchr", x + 1, y - 1, 4);
   }
-  p("exe_c15_printer", 25, 38, 2); p("army_c15_cabinet", 0, 40, 2); p("army_c15_cabinet", 0, 41, 2); p("army_c15_plant", 0, 46);
+  for (const y of [40, 44]) for (const x of [17, 21]) p("mafia_c26_planter_dark", x, y, 0);
+  p("exe_c15_printer", 25, 38, 2); p("modern_c17_shelf", 25, 44, 0);
   // Lounge: lareira com sofás, área de TV, DJ e bar com banquetas
   p("lodge_dark_fireplace", 34, 38, 0, 1);
+  // Dois cantos de conversa: sofás frente a frente com a mesinha no meio e
+  // uma poltrona virada para ela, tudo sobre o tapete.
   for (const x of [30, 40]) {
-    p("hygge_c25_carpet", x, 40, 0); p("mafia_c26_sofa_dark", x, 39, 0); p("darkmodern_c20_lowtable", x + 1, 41, 2);
-    p("mafia_c26_sofa_dark", x, 44, 4); p("mafia_c26_armchair_dark", x + 3, 42, 6);
+    p("hygge_c25_carpet", x, 40, 0);
+    p("mafia_c26_sofa_dark", x, 39, 4); p("darkmodern_c20_lowtable", x, 41, 2); p("mafia_c26_sofa_dark", x, 43, 0);
+    p("mafia_c26_armchair_dark", x + 3, 41, 6);
   }
   p("hc25_6", 52, 38, 0, 1); p("disco_c26_jukebox", 54, 38, 0, 1);
   p("hc26_5", 55, 41, 2); p("hc26_3", 56, 42, 0);
