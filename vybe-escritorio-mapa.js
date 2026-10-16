@@ -320,7 +320,7 @@ function mapaDirecaoDoPasso(dx, dy) {
 // arestas entre ladrilhos vizinhos.
 const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair",
   "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
-  "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6"]);
+  "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair"]);
 function mapaMontarGrade(P, moveis) {
   const W = P.W, H = P.H;
   const bloqueado = new Uint8Array(W * H);
@@ -579,7 +579,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     mapaOrdenar([...muros, ...moveis.filter((m) => !m.plano)]);
     for (const m of muros) m.prof = Number(m.no.style.zIndex);
   };
-  const prontos = Promise.all(P.moveis.map(montar)).then(() => { ordenar(); grade = mapaMontarGrade(P, moveis); });
+  // Depois de ordenar, quem já estava no mapa ganha a profundidade nova (sem
+  // isso, quem chegou antes dos móveis carregarem ficava atrás das paredes).
+  const prontos = Promise.all(P.moveis.map(montar)).then(() => { ordenar(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   async function definirMoveis(lista) {
     for (const item of moveis) item.no.remove();
@@ -588,6 +590,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     await Promise.all(lista.map(montar));
     ordenar();
     grade = mapaMontarGrade(P, moveis);
+    for (const p of pessoas.values()) posicionarPessoa(p);
     destacar(selecionado);
   }
   // Móveis que ocupam o ladrilho, do mais à frente para o mais atrás.

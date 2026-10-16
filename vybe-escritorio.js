@@ -933,7 +933,7 @@ const ESCRITORIO_QUADROS = [
     const n = (f) => abertas.filter(f).length;
     return `<dl class="ofc-numeros"><div><dt>Vencem hoje</dt><dd>${n((d) => d.prazo_iso === hoje)}</dd></div><div><dt>Atrasadas</dt><dd class="alerta">${n((d) => typeof demandaAtrasada === "function" && demandaAtrasada(d))}</dd></div><div><dt>Em aprovação</dt><dd>${n((d) => /aprova/i.test(String(d.status || "")))}</dd></div></dl>`;
   } },
-  { re: /largescreen/, titulo: "Fila da Criação", html: () => {
+  { re: /largescreen|projector/, titulo: "Fila da Criação", html: () => {
     const abertas = DADOS_DEMANDAS.filter(escritorioAberta);
     const linhas = ["Reriston", "Bia", "Deivid", "Jady"].map((nome) => {
       const id = typeof pessoaPeloNome === "function" ? String(pessoaPeloNome(nome)?.id || "") : "";
