@@ -600,3 +600,37 @@ test("Worker guarda a zona do mapa e descarta zona inventada", async () => {
   assert.equal(s.a.zona, "");
   assert.equal(enviados.filter((e) => e.type === "presence:update").at(-1).payload[0].zona, "");
 });
+
+test("Worker: trancar sala, bater, deixar entrar, reação e balão", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const sock = (sub, zona, extra = {}) => {
+    const s = { a: { sub, nome: "P" + sub, sala: "criacao", zona, x: 50, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300, ...extra },
+      msgs: [], deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { this.msgs.push(JSON.parse(m)); } };
+    sockets.push(s); return s;
+  };
+  const dona = sock("1", "sala-0", { minhaSala: "sala-0" }), outro = sock("2", "sala-0"), fora = sock("3", "");
+  const ev = async (s, type, payload) => { s.a.last = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
+  await ev(outro, "zone:lock", { zona: "sala-0", trancada: true });
+  assert.equal(room.trancas.size, 0, "só a dona tranca a sala individual");
+  await ev(dona, "zone:lock", { zona: "sala-0", trancada: true });
+  assert.deepEqual([...room.trancas.get("sala-0")].sort(), ["1", "2"]);
+  await ev(fora, "zone:knock", { zona: "sala-0" });
+  assert.ok(dona.msgs.some((m) => m.type === "zone:knock" && m.payload.id === "3"));
+  assert.ok(!fora.msgs.some((m) => m.type === "zone:knock"));
+  await ev(fora, "zone:admit", { zona: "sala-0", id: "3" });
+  assert.ok(!room.trancas.get("sala-0").has("3"), "quem está fora não se deixa entrar");
+  await ev(dona, "zone:admit", { zona: "sala-0", id: "3" });
+  assert.ok(room.trancas.get("sala-0").has("3"));
+  await ev(fora, "reaction", { tipo: "coracao" });
+  await ev(fora, "reaction", { tipo: "<x>" });
+  assert.equal(dona.msgs.filter((m) => m.type === "reaction").length, 1);
+  await ev(fora, "chat:bubble", { texto: "  oi   pessoal  " + "x".repeat(300), id: "1" });
+  const b = dona.msgs.find((m) => m.type === "chat:bubble");
+  assert.equal(b.payload.id, "3");
+  assert.ok(b.payload.texto.startsWith("oi pessoal") && b.payload.texto.length === 140);
+  // Todos saem: destranca sozinha.
+  dona.a.zona = ""; outro.a.zona = "";
+  await ev(dona, "presence:move", { sala: "criacao", zona: "", x: 40, y: 40 });
+  assert.equal(room.trancas.size, 0);
+});

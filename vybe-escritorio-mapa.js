@@ -598,6 +598,48 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     alvoCam = { x: r.width / 2 - t.x * zoom, y: r.height / 2 - t.y * zoom };
     if (!quadroCam) quadroCam = requestAnimationFrame(deslizar);
   }
+  // Balão de fala sobre a cabeça (some sozinho).
+  function balao(id, texto) {
+    const p = pessoas.get(id);
+    if (!p) return;
+    p.no.querySelector(".mapa-balao")?.remove();
+    const b = document.createElement("span");
+    b.className = "mapa-balao";
+    b.textContent = texto;
+    p.no.append(b);
+    setTimeout(() => b.remove(), Math.min(9000, 3500 + texto.length * 60));
+  }
+  // Reação rápida: sobe e some acima do boneco.
+  const REACAO = { aplauso: "👏", coracao: "❤️", risada: "😂", joinha: "👍", fogo: "🔥", festa: "🎉" };
+  function reagir(id, tipo) {
+    const p = pessoas.get(id);
+    if (!p || !REACAO[tipo]) return;
+    const r = document.createElement("span");
+    r.className = "mapa-reacao";
+    r.textContent = REACAO[tipo];
+    r.style.left = 20 + Math.random() * 24 + "px";
+    p.no.append(r);
+    setTimeout(() => r.remove(), 2400);
+  }
+  // Vídeo da pessoa numa bolha acima do boneco (null tira).
+  function anexarVideo(id, stream) {
+    const p = pessoas.get(id);
+    if (!p) return;
+    let v = p.no.querySelector(".mapa-video");
+    if (!stream) { v?.remove(); return; }
+    if (!v) {
+      v = document.createElement("video");
+      v.className = "mapa-video"; v.autoplay = true; v.muted = true; v.playsInline = true;
+      p.no.append(v);
+    }
+    if (v.srcObject?.getVideoTracks?.()[0] !== stream.getVideoTracks()[0]) v.srcObject = stream;
+  }
+  function idsNoMapa() { return [...pessoas.keys()]; }
+  // Salas trancadas: cadeado no nome da sala.
+  function marcarTrancas(zonas) {
+    for (const r of palco.querySelectorAll(".mapa-rotulo")) r.classList.toggle("trancada", zonas.has(r.dataset.ambiente));
+  }
+
   // Posiciona direto (movimento contínuo guiado por este navegador).
   function mover(id, x, y, dir, acao) {
     const p = pessoas.get(id);
@@ -626,6 +668,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
+    balao, reagir, anexarVideo, idsNoMapa, marcarTrancas,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),

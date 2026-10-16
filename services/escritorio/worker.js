@@ -10,6 +10,7 @@ const salas = [
 ];
 const estados = ["disponivel", "foco", "reuniao", "ausente"];
 // Zona do mapa (sala individual ou espaço); fora delas, corredor ("").
+const REACOES = ["aplauso", "coracao", "risada", "joinha", "fogo", "festa"];
 const zonaValida = (z) => (/^(sala-([0-9]|1[01])|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge)$/.test(String(z || "")) ? String(z) : "");
 export async function verificarEntrada(token, segredo, agora = Date.now()) {
   try {
@@ -110,7 +111,22 @@ export class EscritorioRoom {
   broadcast(t, p) {
     for (const s of this.ativos()) this.send(s, t, p);
   }
+  // Salas trancadas: transitórias, na memória da sala do Worker (como a presença).
+  get trancas() {
+    if (!this._trancas) this._trancas = new Map();
+    return this._trancas;
+  }
+  listaTrancas() {
+    return [...this.trancas].map(([zona, permitidos]) => ({ zona, permitidos: [...permitidos] }));
+  }
+  naZona(zona) {
+    return this.ativos().filter((t) => this.estado(t).zona === zona);
+  }
   presenca() {
+    // Sala trancada que ficou vazia destranca sozinha.
+    let mudou = false;
+    for (const zona of this.trancas.keys()) if (!this.naZona(zona).length) { this.trancas.delete(zona); mudou = true; }
+    if (mudou) this.broadcast("zone:locks", this.listaTrancas());
     const pessoas = new Map();
     for (const s of this.ativos()) {
       const a = this.estado(s);
@@ -161,6 +177,7 @@ export class EscritorioRoom {
         last: 0,
       });
       this.send(s, "session:ready", {});
+      this.send(s, "zone:locks", this.listaTrancas());
       this.presenca();
       return;
     }
@@ -211,6 +228,36 @@ export class EscritorioRoom {
           });
       }
       s.serializeAttachment(a);
+      return;
+    } else if (evento.type === "zone:lock") {
+      const zona = zonaValida(p.zona);
+      // Só quem está na zona tranca; sala individual, só a dona ou quem administra.
+      if (!zona || a.zona !== zona) return;
+      if (zona.startsWith("sala-") && a.minhaSala !== zona && !a.admin) return;
+      if (p.trancada) this.trancas.set(zona, new Set(this.naZona(zona).map((t) => this.estado(t).sub)));
+      else this.trancas.delete(zona);
+      this.broadcast("zone:locks", this.listaTrancas());
+      return;
+    } else if (evento.type === "zone:knock") {
+      const zona = zonaValida(p.zona);
+      if (!zona || !this.trancas.has(zona) || this.trancas.get(zona).has(a.sub)) return;
+      for (const t of this.naZona(zona)) this.send(t, "zone:knock", { id: a.sub, nome: a.nome, zona });
+      return;
+    } else if (evento.type === "zone:admit") {
+      const zona = zonaValida(p.zona);
+      if (!zona || a.zona !== zona || !this.trancas.has(zona) || typeof p.id !== "string") return;
+      this.trancas.get(zona).add(p.id.slice(0, 40));
+      this.broadcast("zone:locks", this.listaTrancas());
+      return;
+    } else if (evento.type === "reaction") {
+      if (!REACOES.includes(p.tipo)) return;
+      this.broadcast("reaction", { id: a.sub, tipo: p.tipo });
+      return;
+    } else if (evento.type === "chat:bubble") {
+      // Balão sobre a cabeça: só o texto, curto; a autoria vem da sessão.
+      const texto = typeof p.texto === "string" ? p.texto.replace(/\s+/g, " ").trim().slice(0, 140) : "";
+      if (!texto) return;
+      this.broadcast("chat:bubble", { id: a.sub, texto });
       return;
     } else if (evento.type === "chat:changed") {
       if (!salas.includes(p.sala)) return;
