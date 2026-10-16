@@ -50,6 +50,25 @@ const ler = async (classe) => {
   }
   return null;
 };
+// Itens de parede (janelas, quadros, luminárias, prateleiras de parede).
+const PAREDE = new Set(["wall", "window", "wall_decoration"]);
+const porLinhaParede = new Map();
+for (const it of oficial) {
+  if (!PAREDE.has(it.categoria) || jaTem.has(it.classe) || !temArquivo.has(it.classe) || FORA.test(it.classe)) continue;
+  const nome = nomes[it.classe] || "";
+  if (!nome || TEMAS.test(it.classe) || TEMAS.test(nome) || /^(\$|%|\{)|wallpaper|landscape|countdown|poster_\d+$/i.test(it.classe + " " + nome)) continue;
+  const linha = it.classe.split("_")[0].toLowerCase();
+  const n = porLinhaParede.get(linha) || 0;
+  if (n >= 25) continue;
+  let dados;
+  try { dados = await ler(it.classe); } catch { continue; }
+  const v = dados?.visualizations?.find((x) => x.size === 64);
+  if (!v || !Object.hasOwn(v.directions || {}, "2") || !Object.hasOwn(v.directions || {}, "4")) continue;
+  const anima = Object.values(v.animations || {}).some((a) => Object.values(a.layers || {}).some((l) => new Set(Object.values(l.frameSequences?.[0]?.frames || {}).map((f) => f.id)).size > 1));
+  porLinhaParede.set(linha, n + 1);
+  jaTem.add(it.classe);
+  novos.push({ classe: it.classe, nome: nome.slice(0, 40), categoria: "Na parede", giros: 1, parede: true, remoto: true, ...(anima ? { anima: true } : {}) });
+}
 for (const it of oficial) {
   if (jaTem.has(it.classe) || !temArquivo.has(it.classe) || FORA.test(it.classe)) continue;
   const nome = nomes[it.classe] || "";

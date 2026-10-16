@@ -488,7 +488,11 @@ function escritorioMoveisAtuais() {
 }
 function escritorioPlantaComMesas() {
   // Pintura das salas é lida na hora de desenhar (muda sem recriar o mapa).
+  // Fundo animado da Vybelândia: a praça vazia do vídeo (1280×720) tem o canto
+  // da esquerda em (152, 432); o mapa vai até perto da borda de baixo (705).
+  const video = document.getElementById("escritorio-fundo-video")?.getAttribute("href");
   return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais(), imagens: escritorio.base?.mapa?.imagens || [],
+    fundoVideo: video ? { url: video, largura: 1280, altura: 720, esquerda: [152, 432], baixoY: 705 } : null,
     pisoLadrilho: (x, y) => ESCRITORIO_PLANTA.pisoLadrilho?.(x, y), paredeEm: (x, y, eixo) => ESCRITORIO_PLANTA.paredeEm?.(x, y, eixo) };
 }
 // Nomes das salas individuais conforme o dono informado pelo servidor.
@@ -698,7 +702,7 @@ function atualizarControlesEscritorio() {
     const item = (acao, rotulo, extra = "") => `<button type="button" onclick="${acao};this.closest('details').open=false" ${extra}>${rotulo}</button>`;
     const tranca = escritorioPodeTrancar() ? item("trancarZonaEscritorio()", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
     const poses = escritorio.conectado ? `<span class="ofc-mais-titulo">Seu boneco</span>${item("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", "Acenar <kbd>1</kbd>")}${item("deitarEscritorio()", "Deitar <kbd>2</kbd>")}${item("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", "Café na mão <kbd>3</kbd>")}` : "";
-    return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
+    return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}${item("alternarFundoAnimadoEscritorio()", typeof reduzMovFundo === "function" && reduzMovFundo() ? "Animar o fundo da cidade" : "Pausar o fundo animado")}</div></details>`;
   })()}<span class="ofc-sep"></span>${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
