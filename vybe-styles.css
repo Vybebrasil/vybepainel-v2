@@ -6404,3 +6404,6 @@ body.no-escritorio {overflow:hidden}
 .ofc-clientes-lista li div {display:flex;gap:6px}
 .ofc-clientes-lista li.inativo b {opacity:.6}
 .ofc-clientes-lista a.ofc-mini {text-decoration:none;display:inline-flex;align-items:center}
+.ofc-campo input[type=range] {accent-color:#ff8a35;width:100%}
+.ofc-mais-titulo {display:block;padding:6px 10px 2px;font:700 10px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ofc-suave,#c9bfb4)}
+.ofc-mais .ofc-poses button:disabled {opacity:.45;cursor:default}
