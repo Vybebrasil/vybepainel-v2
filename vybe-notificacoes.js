@@ -13,6 +13,7 @@ const INTERVALO_NOTIFICACOES = 5 * 60 * 1000;
 
 let notificacoes = [];
 let notificacoesAbertas = false;
+let notificacoesNaoLidas = 0; // total real (a lista traz no máximo 100)
 
 async function carregarNotificacoes() {
   try {
@@ -20,7 +21,8 @@ async function carregarNotificacoes() {
     if (!resposta.ok) return;
     const dados = await resposta.json();
     notificacoes = dados.notificacoes || [];
-    pintarSino(dados.nao_lidas || 0);
+    notificacoesNaoLidas = dados.nao_lidas || 0;
+    pintarSino(notificacoesNaoLidas);
     if (notificacoesAbertas) pintarListaNotificacoes();
     if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
   } catch { /* sino ausente não pode atrapalhar o painel */ }
@@ -87,6 +89,7 @@ async function marcarNotificacoesLidas() {
   try {
     await fetch(NOTIFICACOES_API, { method: 'POST', credentials: 'same-origin' });
     notificacoes = notificacoes.map((n) => ({ ...n, lida_em: n.lida_em || new Date().toISOString() }));
+    notificacoesNaoLidas = 0;
     pintarSino(0);
     pintarListaNotificacoes();
     if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
@@ -101,8 +104,9 @@ async function abrirDoNotificacao(id, itemId) {
     await fetch(`${NOTIFICACOES_API}&id=${encodeURIComponent(id)}`, { method: 'POST', credentials: 'same-origin' });
   } catch { /* segue mesmo assim */ }
   const alvo = notificacoes.find((n) => String(n.id) === String(id));
+  if (alvo && !alvo.lida_em) notificacoesNaoLidas = Math.max(0, notificacoesNaoLidas - 1);
   if (alvo) alvo.lida_em = new Date().toISOString();
-  pintarSino(notificacoes.filter((n) => !n.lida_em).length);
+  pintarSino(notificacoesNaoLidas);
   pintarListaNotificacoes();
   if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
   if (typeof openSearchItem === 'function') openSearchItem(itemId);

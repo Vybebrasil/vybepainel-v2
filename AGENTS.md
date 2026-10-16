@@ -98,8 +98,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
   conserva apenas presença/posição transitórias. O motor RealtimeKit do VybeChat
   é reaproveitado para mídia, com credenciais exclusivamente no servidor.
-- Entrada em chamada é explícita, câmera/microfone começam desligados. Presença
-  não é comprovação de produtividade. Não publique nem afirme validação de mídia
+- Voz por sala (decisão do Paulo, 16/10/2026): ficar numa sala entra na conversa
+  dela com o microfone ligado e sair da sala sai da conversa; Foco e corredor
+  não têm voz. A câmera começa desligada. O microfone ligado fica sempre visível
+  e silenciar é um clique. Presença não é comprovação de produtividade. Não publique nem afirme validação de mídia
   apenas por abrir a demonstração. Consulte `docs/escritorio-vybechat.md`.
 
 ## Direção visual
