@@ -522,7 +522,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
       const dim = mapaDimensoes(m.dados, d0);
       // Rente ao piso (tapete): altura zero E desenho baixo. Muita arte do Habbo
       // declara altura zero mesmo sendo alta (sinuca, TV, bebedouro): essa é sólida.
-      const plano = !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12;
+      // Em cima de mesa nunca é "rente ao piso" (notebook, papéis).
+      const plano = !altura && !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12;
       // Em cima de uma mesa (até 3×3), fica à frente dela: a mesa termina até
       // 4 ladrilhos (40 de profundidade) adiante da peça apoiada.
       const prof = plano ? 1 : Math.round((x + dim.x - 1 + y + dim.y - 1) * 10) + 4 + (altura ? 45 : 0);
@@ -567,6 +568,27 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     for (const m of moveis) m.no.classList.toggle("mapa-selecionado", Boolean(origem) && m.origem?.camada === origem.camada && m.origem?.i === origem.i);
   }
   // Medidas no chão de um móvel numa direção (carrega o modelo se precisar).
+  // Prévia do editor: o móvel meio transparente no ladrilho do mouse (verde
+  // se cabe, vermelho se não). null tira a prévia.
+  let previaNo = null, previaChave = "";
+  async function previa(classe, x, y, dir, cabe = true) {
+    const chave = classe ? `${classe}|${x}|${y}|${dir}|${cabe}` : "";
+    if (chave === previaChave) return;
+    previaChave = chave;
+    if (!classe) { previaNo?.remove(); previaNo = null; return; }
+    try {
+      const m = await mapaCarregarMovel(classe);
+      if (previaChave !== chave) return;
+      const d0 = mapaDirecaoValida(m.dados, dir);
+      const desenho = mapaDesenharMovel(m, d0, 0, 0);
+      if (!desenho) return;
+      previaNo?.remove();
+      previaNo = desenho.canvas;
+      previaNo.className = "mapa-obj mapa-previa" + (cabe ? "" : " nao-cabe");
+      colocar(previaNo, x, y, { ...desenho, oy: desenho.oy + MAPA_MOVEL_Y }, 99990);
+      palco.append(previaNo);
+    } catch {}
+  }
   async function medidas(classe, dir) {
     const m = await mapaCarregarMovel(classe);
     const d = mapaDirecaoValida(m.dados, dir);
@@ -909,7 +931,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
-    balao, reagir, anexarVideo, marcarFalando, marcarAviso, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
+    balao, reagir, anexarVideo, marcarFalando, marcarAviso, previa, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),

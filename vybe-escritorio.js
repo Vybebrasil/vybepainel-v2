@@ -796,6 +796,7 @@ function escritorioIrPara(x, y) {
 // vê a sala, o status e os avisos, com atalhos para o painel e para editar a
 // mesa ou o computador no editor da sala.
 function passarNoMapaEscritorio(x, y, cx, cy) {
+  if (escritorio.edicao) { previaEditorEscritorio(x, y); return; }
   const mesa = escritorioMinhaMesa();
   const em = mesa && !escritorio.edicao && x >= mesa.x && x < mesa.x + mesa.w && y >= mesa.y && y < mesa.y + mesa.h;
   const card = document.getElementById("office-mesa-card");
@@ -812,10 +813,17 @@ function passarNoMapaEscritorio(x, y, cx, cy) {
     card.dataset.chave = `${escritorio.status}|${avisos}`;
     card.innerHTML = `<b>Sua mesa</b><small>${safeText(mesa.ambiente.nome)} · <span style="color:${st[1]}">${safeText(st[0])}</span></small><small>${avisos ? `${avisos} ${avisos === 1 ? "aviso" : "avisos"} no Painel` : "Nenhum aviso novo"}</small><div><button type="button" class="ofc-mini" onclick="abrirPainelDoEscritorio()">Abrir painel</button>${escritorioPodeEditar(mesa.ambiente.id) ? `<button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('mesa')">Editar mesa</button><button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('computador')">Editar computador</button>` : ""}</div>`;
   }
+  // Preso à mesa (não acompanha o mouse): aparece acima dela e fica parado.
+  if (!card.hidden) return;
   card.hidden = false;
   const w = card.offsetWidth, h = card.offsetHeight;
-  card.style.left = Math.max(8, Math.min(caixa.width - w - 8, cx - caixa.left + 14)) + "px";
-  card.style.top = Math.max(8, Math.min(caixa.height - h - 8, cy - caixa.top - h - 10)) + "px";
+  const topo = escritorio.mapa.tela(mesa.x + mesa.w / 2, mesa.y + mesa.h / 2);
+  const palco = document.querySelector(".mapa-palco")?.getBoundingClientRect();
+  const escala = palco ? palco.width / document.querySelector(".mapa-palco").offsetWidth : 1;
+  const ax = palco ? palco.left + topo.x * escala - caixa.left : cx - caixa.left;
+  const ay = palco ? palco.top + topo.y * escala - caixa.top - 70 * escala : cy - caixa.top;
+  card.style.left = Math.max(8, Math.min(caixa.width - w - 8, ax - w / 2)) + "px";
+  card.style.top = Math.max(8, Math.min(caixa.height - h - 8, ay - h)) + "px";
 }
 // Abre o editor da própria sala já com a mesa (ou o computador) selecionado.
 function editarMovelDaMesaEscritorio(qual) {
@@ -831,9 +839,14 @@ function editarMovelDaMesaEscritorio(qual) {
   const i = e.itens.findIndex((it) => re.test(it[0]) && dentro(it));
   if (i < 0) { escritorioAviso(qual === "computador" ? "Não achei um computador na sua mesa. Escolha um no catálogo." : "Não achei a mesa. Escolha uma no catálogo."); return; }
   e.sel = i;
+  e.trocar = i;
+  escritorio.catalogoCategoria = qual === "computador" ? "Computadores" : "Mesas";
+  escritorio.aba = "catalogo";
+  escritorio.lateral = true;
+  renderEscritorio();
   escritorio.mapa?.destacar({ camada: e.camada, i });
   renderBarraEditorEscritorio();
-  escritorioAviso((qual === "computador" ? "Computador" : "Mesa") + " selecionado: arraste clicando no piso, R gira, Delete apaga. Para trocar o modelo, escolha outro no catálogo.");
+  escritorioAviso(`Escolha no catálogo, à esquerda, ${qual === "computador" ? "o novo computador" : "a nova mesa"}. Ela troca no mesmo lugar.`);
 }
 // Ladrilho livre colado num retângulo (mesa), o mais perto de quem anda.
 function escritorioLadoLivre(r) {

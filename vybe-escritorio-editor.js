@@ -43,6 +43,7 @@ function sairEditorEscritorio() {
   escritorio.edicao = null;
   escritorio.aba = "pessoas";
   escritorio.mapa?.destacar(null);
+  escritorio.mapa?.previa(null);
   escritorio.mapa?.definirMoveis(escritorioMoveisAtuais());
   renderEscritorio();
 }
@@ -97,6 +98,7 @@ async function cliqueEditorEscritorio(x, y) {
     if (!(await escritorioCabe(e.novo, lx, ly, 2))) return escritorioAviso("Esse móvel não cabe aí. Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
     const d = await escritorio.mapa.medidas(e.novo, 2);
     e.itens.push([e.novo, lx, ly, d.dir, 0, 0]);
+    escritorio.mapa?.previa(null);
     e.sel = e.itens.length - 1;
     e.novo = null;
     escritorioAviso("Móvel colocado. R gira, Delete apaga, setas empurram.");
@@ -152,7 +154,7 @@ async function empurrarSelecionadoEscritorio(dx, dy) {
 function teclaEditorEscritorio(e) {
   const ed = escritorio.edicao;
   if (!ed || e.target.closest?.("input, textarea, select")) return false;
-  if (e.key === "Escape") { if (ed.novo) ed.novo = null; else { ed.sel = null; escritorio.mapa?.destacar(null); } renderBarraEditorEscritorio(); return true; }
+  if (e.key === "Escape") { if (ed.trocar != null) ed.trocar = null; else if (ed.novo) ed.novo = null; else { ed.sel = null; escritorio.mapa?.destacar(null); } escritorio.mapa?.previa(null); renderBarraEditorEscritorio(); return true; }
   if (ed.sel === null) return false;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === "r") { girarSelecionadoEscritorio(); return true; }
@@ -170,7 +172,7 @@ function renderBarraEditorEscritorio() {
   el.hidden = !e;
   if (!e) return;
   const it = e.sel !== null ? e.itens[e.sel] : null;
-  el.innerHTML = `<div class="ofc-editor-info"><b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b><span>${e.novo ? "Clique no piso para colocar o móvel · Esc cancela" : it ? "R gira · Delete apaga · setas empurram · clique no piso move" : "Clique num móvel para selecionar ou escolha um no catálogo"}</span></div>
+  el.innerHTML = `<div class="ofc-editor-info"><b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b><span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo ? "Clique no piso para colocar o móvel · Esc cancela" : it ? "R gira · Delete apaga · setas empurram · clique no piso move" : "Clique num móvel para selecionar ou escolha um no catálogo"}</span></div>
 ${it ? `<div class="ofc-editor-sel"><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>` : ""}
 <div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
 }
@@ -186,10 +188,16 @@ async function carregarCatalogoEscritorio() {
   } catch {}
   if (escritorio.edicao) renderEscritorio();
 }
+// Computadores que vêm com o painel (para "Editar computador"); entram no
+// catálogo como uma categoria própria.
+const ESCRITORIO_COMPUTADORES = [
+  ["computer_flatscreen", "Computador de mesa"], ["computer_laptop", "Notebook"], ["uni_laptop", "Notebook da faculdade"],
+  ["computer_old", "Computador antigo"], ["steampunk_computer", "Computador steampunk"], ["easter_c23_solarpunkcomputer", "Computador solar"],
+].map(([classe, nome]) => ({ classe, nome, categoria: "Computadores" }));
 function escritorioCatalogoHtml() {
   if (!escritorioCatalogo) { carregarCatalogoEscritorio(); return '<p class="ofc-nota">Carregando catálogo…</p>'; }
   const filtro = escritorio.catalogoCategoria || "";
-  const todas = escritorioCatalogo;
+  const todas = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES];
   const lista = filtro ? todas.filter((m) => m.categoria === filtro) : todas.filter((m) => m.categoria === "Do escritório");
   const cats = [...new Set(lista.map((m) => m.categoria))];
   const abas = [...new Set(todas.map((m) => m.categoria))];
@@ -211,8 +219,36 @@ async function buscarMovelEscritorio(q) {
     el.innerHTML = '<p class="ofc-nota">O catálogo do Habbo não respondeu. Use os móveis do painel abaixo.</p>';
   }
 }
+// Prévia ao passar o mouse no editor: o móvel novo (ou o selecionado) onde ele
+// iria ficar, verde se cabe e vermelho se não.
+async function previaEditorEscritorio(x, y) {
+  const e = escritorio.edicao;
+  if (!e || x < 0) return escritorio.mapa?.previa(null);
+  const it = e.novo ? null : e.sel !== null ? e.itens[e.sel] : null;
+  const classe = e.novo || it?.[0];
+  if (!classe || e.trocar != null) return escritorio.mapa?.previa(null);
+  const c = escritorioCantoCamada(e.camada), dir = e.novo ? 2 : it[3];
+  const lx = x - c.x, ly = y - c.y;
+  let cabe = false;
+  try { cabe = await escritorioCabe(classe, lx, ly, dir); } catch {}
+  escritorio.mapa?.previa(classe, x, y, dir, cabe);
+}
 function escolherMovelEscritorio(classe) {
   if (!escritorio.edicao || !/^[a-z0-9_]+$/i.test(classe)) return;
+  // Trocando o modelo da mesa ou do computador: mesmo lugar, outro móvel.
+  const e = escritorio.edicao;
+  if (e.trocar != null && e.itens[e.trocar]) {
+    const it = e.itens[e.trocar];
+    escritorioCabe(classe, it[1], it[2], it[3]).then((cabe) => {
+      if (!cabe) return escritorioAviso("Esse modelo não cabe no lugar do atual. Escolha outro ou apague o atual e coloque o novo.");
+      it[0] = classe;
+      e.sel = e.trocar;
+      e.trocar = null;
+      escritorioAviso("Trocado. Clique em Salvar para manter.");
+      escritorioEditorMudou();
+    }).catch(() => escritorioAviso("Esse móvel não carregou."));
+    return;
+  }
   escritorio.edicao.novo = classe;
   escritorio.edicao.sel = null;
   escritorio.mapa?.destacar(null);
