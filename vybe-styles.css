@@ -6628,3 +6628,5 @@ body.no-escritorio {overflow:hidden}
 /* Cartões de dia encaixados (sem buracos entre cartões de alturas diferentes). */
 .clients-grid.dias-encaixados {grid-auto-rows:4px;row-gap:0;align-items:start}
 .clients-grid.dias-encaixados > .day-scroll-card {margin-bottom:0}
+.ofc-fino {display:inline-grid;grid-template-columns:repeat(2,22px);gap:2px}
+.ofc-editor-flutua .ofc-fino button {padding:0;width:22px;height:16px;font-size:11px;line-height:1}
