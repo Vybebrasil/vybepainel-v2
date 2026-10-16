@@ -18,7 +18,9 @@ const arte = (c) => {
   const d = j.logic?.model?.dimensions || { x: 1, y: 1, z: 1 }, dirs = Object.keys(v?.directions || {}).map(Number);
   // Item de parede (mesma regra do mapa): não ocupa o piso.
   const parede = dirs.length > 0 && dirs.every((x) => x === 2 || x === 4) && (d.y ?? 1) <= 0.3;
-  return { d, dirs, alto, parede };
+  // Estados em que o desenho se mexe (mais de um quadro na animação).
+  const anima = new Set(Object.entries(v?.animations || {}).filter(([, an]) => Object.values(an.layers || {}).some((l) => new Set(Object.values(l.frameSequences?.[0]?.frames || {}).map((f) => f.id)).size > 1)).map(([e]) => Number(e)));
+  return { d, dirs, alto, parede, anima };
 };
 // Mesma lista de assentos do mapa (lida do código, para não divergir).
 const fonteMapa = readFileSync("vybe-escritorio-mapa.js", "utf8");
@@ -128,7 +130,8 @@ for (const a of P.ambientes) if (a.pessoal) {
 // Assentos e móveis com ação do E precisam de um ladrilho alcançável ao lado.
 const INTERATIVOS = /coffee|fridge|water_dispenser|minibar|stove|microwave|school_c22_cafe|treadmill|bicycle|jukebox|hc25_6|pinball|arcade|retrogames|fireplace|floorlight|pooltable|projector|largescreen|_tv$|exe_table/;
 for (const it of itens) {
-  if (!(it.assento || INTERATIVOS.test(it.classe))) continue;
+  // Em cima de mesa (xícara, notebook) é enfeite: quem senta à mesa alcança.
+  if (!(it.assento || INTERATIVOS.test(it.classe)) || it.altura) continue;
   if (!alcancavel(it)) problemas.push(`${it.classe} (${it.x},${it.y})${it.camada !== "geral" ? " em " + it.camada : ""} sem acesso a pé`);
 }
 // Assento virado para algo: na frente dele (até 5 ladrilhos, na direção em que
@@ -202,6 +205,13 @@ for (const q of pendurados) {
     const alto = itens.find((o) => !o.plano && !o.altura && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h && (arte(o.classe)?.alto || 0) > ALTO);
     if (alto) { problemas.push(`${nome} atrás de ${alto.classe} (${alto.x},${alto.y})`); break; }
   }
+}
+// Cenário com vida: cada ambiente precisa de pelo menos 3 objetos que se
+// mexem de verdade (no estado em que foram colocados).
+const VIVOS_MINIMO = 3;
+for (const amb of P.ambientes) {
+  const vivos = moveis.filter(([classe, x, y, , estado = 0]) => x >= amb.x0 && x < amb.x1 && y >= amb.y0 && y < amb.y1 && arte(classe)?.anima.has(Number(estado))).length;
+  if (vivos < VIVOS_MINIMO) problemas.push(`${amb.nome || amb.id} com só ${vivos} objeto(s) animado(s) (mínimo ${VIVOS_MINIMO})`);
 }
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));
