@@ -116,3 +116,12 @@ Após login do responsável na Cloudflare, foi confirmado:
   `42f4d25` passaram; isso não valida presença, chamadas nem escrita remota.
 - A migração, banco isolado, Worker e segredo compartilhado de sessão ainda
   precisam de configuração antes de iniciar testes com pessoas.
+- Banco isolado criado em seguida: `codex-escritorio-homologacao`,
+  `br-tiny-mud-acdko4uj`, projeto `bold-silence-70503527`, com expiração
+  automática em 16/10/2026 às 21h36 (America/Bahia). O preview ainda precisa do
+  override de conexão dessa cópia; não testar escrita com a conexão compartilhada.
+- Serviço `vybe-escritorio-homologacao` conectado, com autorização do responsável,
+  somente ao repositório do painel e à branch `codex/escritorio-vybechat`.
+  Builds automáticas de outras branches permanecem desabilitadas. A primeira
+  build tentou `main` antes de a seleção de branch estar disponível e falhou por
+  diretório ausente; não publicou o código do escritório.
