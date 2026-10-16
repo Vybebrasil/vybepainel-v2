@@ -503,12 +503,14 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   palco.className = "mapa-palco";
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
   let fundoPronto = null;
+  var luzesLigadas = false; // vira true quando os móveis terminam de carregar
   const ceu = () => {
     const h = new Date(Date.now() - 3 * 3600e3).getUTCHours();
     const agora = h < 5 ? "madrugada" : h < 11 ? "manha" : h < 16 ? "tarde" : h < 19 ? "por-do-sol" : "noite";
     if (el.dataset.ceu === agora) return;
     el.dataset.ceu = agora;
     fundoPronto?.(); // redesenha a cidade (dia claro / noite acesa)
+    if (luzesLigadas) pintarLuzes();
   };
   ceu();
   const relogioCeu = setInterval(ceu, 5 * 60e3);
@@ -518,6 +520,28 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   fundo.width = largura; fundo.height = altura; fundo.className = "mapa-fundo";
   palco.append(fundo);
   // Zona onde a pessoa está: piso destacado com a cor da área e contorno.
+  // Grade do editor: só do tamanho da área editada (uma tela inteira pesaria
+  // na placa de vídeo), com o centro de cada ladrilho marcado.
+  let gradeNo = null;
+  function mostrarGrade(a) {
+    gradeNo?.remove(); gradeNo = null;
+    if (!a) return;
+    const cantos = [mapaTela(a.x0, a.y0, origem), mapaTela(a.x1, a.y0, origem), mapaTela(a.x1, a.y1, origem), mapaTela(a.x0, a.y1, origem)];
+    const l = Math.min(...cantos.map((t) => t.x)) - 2, t0 = Math.min(...cantos.map((t) => t.y)) - 2;
+    const w = Math.max(...cantos.map((t) => t.x)) - l + 4, h = Math.max(...cantos.map((t) => t.y)) - t0 + 4;
+    gradeNo = document.createElement("canvas");
+    gradeNo.width = w; gradeNo.height = h;
+    gradeNo.className = "mapa-grade";
+    gradeNo.style.left = l + "px"; gradeNo.style.top = t0 + "px";
+    const g = gradeNo.getContext("2d");
+    g.translate(-l, -t0);
+    g.strokeStyle = "#ffffff66"; g.lineWidth = 1;
+    for (let x = a.x0; x <= a.x1; x++) { const p = mapaTela(x, a.y0, origem), q = mapaTela(x, a.y1, origem); g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke(); }
+    for (let y = a.y0; y <= a.y1; y++) { const p = mapaTela(a.x0, y, origem), q = mapaTela(a.x1, y, origem); g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke(); }
+    g.fillStyle = "#ffffff30";
+    for (let x = a.x0; x < a.x1; x++) for (let y = a.y0; y < a.y1; y++) { const p = mapaTela(x + 0.5, y + 0.5, origem); g.fillRect(p.x - 1, p.y - 1, 2, 2); }
+    palco.append(gradeNo);
+  }
   const zonaCanvas = document.createElement("canvas");
   zonaCanvas.width = largura; zonaCanvas.height = altura; zonaCanvas.className = "mapa-zona";
   palco.append(zonaCanvas);
@@ -602,6 +626,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       estadosForcados.set(chave, estado);
       for (const m of moveis) if (chaveMovel(m) === chave) aplicarEstado(m, estado);
     }
+    if (luzesLigadas) pintarLuzes();
   }
   // Imagens da equipe ("vybeimg_<id>"): quadro pintado na parede alta da
   // sala; tapete desenhado no piso (rente ao chão, dá para andar por cima).
@@ -695,6 +720,26 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     }
   };
   let grade = null, selecionado = null;
+  // Luz das luminárias no chão: um brilho suave em volta de cada luz ligada,
+  // mais forte à noite (o céu segue o horário de Irecê).
+  const LUZ = /lamp|light|lantern|candle|torch|chandelier|neon|spotlight|fireplace|jukebox|bump_lights|floornutlight/i;
+  const luzes = [];
+  function pintarLuzes() {
+    for (const n of luzes) n.remove();
+    luzes.length = 0;
+    const forca = { noite: 1, madrugada: 1, "por-do-sol": 0.7, manha: 0.3, tarde: 0.25 }[el.dataset.ceu] ?? 0.5;
+    for (const m of moveis) {
+      if (!LUZ.test(m.classe) || m.estado === 0 && !/fireplace|candle|torch/.test(m.classe)) continue;
+      const t = mapaTela(Math.floor(m.x) + m.dim.x / 2, Math.floor(m.y) + m.dim.y / 2, origem);
+      const n = document.createElement("i");
+      n.className = "mapa-luz";
+      n.style.left = t.x + "px"; n.style.top = t.y + "px";
+      n.style.setProperty("--forca", String(forca));
+      if (/fireplace|candle|torch/.test(m.classe)) n.classList.add("fogo");
+      palco.append(n);
+      luzes.push(n);
+    }
+  }
   // Profundidade de paredes e móveis (os tapetes ficam rente ao piso, embaixo).
   const ordenar = () => {
     mapaOrdenar([...muros, ...moveis.filter((m) => !m.plano)]);
@@ -704,7 +749,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   // isso, quem chegou antes dos móveis carregarem ficava atrás das paredes).
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
-  const prontos = Promise.all(P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))).then(() => { ordenar(); pintarParedes(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
+  const prontos = Promise.all(P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   async function definirMoveis(lista) {
     for (const item of moveis) item.no.remove();
@@ -714,6 +759,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     await Promise.all(lista.map(montar));
     ordenar();
     pintarParedes();
+    pintarLuzes();
     grade = mapaMontarGrade(P, moveis);
     for (const p of pessoas.values()) posicionarPessoa(p);
     destacar(selecionado);
@@ -724,9 +770,11 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     return moveis.filter((m) => tx >= Math.floor(m.x) && tx < Math.floor(m.x) + m.dim.x && ty >= Math.floor(m.y) && ty < Math.floor(m.y) + m.dim.y)
       .sort((a, b) => b.prof - a.prof);
   }
+  // origem: um móvel ({camada, i}) ou vários (lista), para a seleção em grupo.
   function destacar(origem) {
     selecionado = origem;
-    for (const m of moveis) m.no.classList.toggle("mapa-selecionado", Boolean(origem) && m.origem?.camada === origem.camada && m.origem?.i === origem.i);
+    const lista = Array.isArray(origem) ? origem : origem ? [origem] : [];
+    for (const m of moveis) m.no.classList.toggle("mapa-selecionado", lista.some((o) => m.origem?.camada === o.camada && m.origem?.i === o.i));
   }
   // Medidas no chão de um móvel numa direção (carrega o modelo se precisar).
   // Prévia do editor: o móvel meio transparente no ladrilho do mouse (verde
@@ -1233,7 +1281,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   prontos.then(() => { relogio = setInterval(animar, 125); });
 
   return {
-    origem, prontos, carga, atualizarPessoas, ladrilhoEm,
+    origem, prontos, carga, atualizarPessoas, ladrilhoEm, grade: mostrarGrade,
     // Piso e paredes pintados mudaram: redesenha só o fundo e as paredes.
     repintar: () => {
       fundoPronto?.();

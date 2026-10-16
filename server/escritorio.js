@@ -1,5 +1,5 @@
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
-import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio } from "./escritorio-mapa.js";
+import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -25,7 +25,7 @@ export const CORES_ESCRITORIO = [
   "rosa",
   "grafite",
 ];
-export const PISOS_SALA_ESCRITORIO = ["", "madeira", "clara", "concreto", "carpete", "preto", "cafe", "verde", "deck", "lareira", "cinema", "pista"];
+export const PISOS_SALA_ESCRITORIO = ["", "madeira", "clara", "concreto", "carpete", "preto", "cafe", "verde", "deck", "lareira", "cinema", "pista", "marmore", "gramado", "nogueira", "vinho"];
 export const PAREDES_SALA_ESCRITORIO = ["", "#ff8a35", "#ffb347", "#ffd166", "#ff6fa8", "#e05a5a", "#b48cff", "#7c6cff", "#5aa9ff", "#5ad1e6", "#7ee08a", "#3fb68b", "#e8e8ee", "#8a8f9c"];
 export function perfilEscritorio(valor = {}) {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) valor = {};
@@ -54,7 +54,7 @@ export function perfilEscritorio(valor = {}) {
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
     // Piso pintado ladrilho a ladrilho (10×10, um código por ladrilho; 0 =
     // o piso da sala) e cada trecho das duas paredes altas (estilo + cor).
-    sala_pisos: /^[0-9ab]{100}$/.test(String(valor.sala_pisos || "")) ? String(valor.sala_pisos) : "",
+    sala_pisos: /^[0-9a-f]{100}$/.test(String(valor.sala_pisos || "")) ? String(valor.sala_pisos) : "",
     // 40 trechos (10 por lado: fundo, esquerda, frente, direita), cada um com
     // estilo, cor e altura (0 baixa, 1 média, 2 alta).
     sala_paredes: /^([a-h-][0-9a-d][0-2]){40}$/.test(String(valor.sala_paredes || "")) ? String(valor.sala_paredes) : "",
@@ -256,6 +256,15 @@ export async function areaEscritorio(req, res, quem, sql) {
         return res.status(200).json(acao === "recados"
           ? { ok: true, recados: await conversaRecadosEscritorio(sql, String(pessoa.id), req.query.com) }
           : { ok: true, resumo: await resumoRecadosEscritorio(sql, String(pessoa.id)) });
+      } catch (e) {
+        return res.status(e.status || 400).json({ error: e.message });
+      }
+    if (acao === "mapa-versoes" || acao === "mapa-versao")
+      try {
+        const { salas } = await carregarEscritorio(sql, pessoa);
+        return res.status(200).json(acao === "mapa-versoes"
+          ? { ok: true, versoes: await versoesDaCamada(sql, pessoa, salas, String(req.query.camada || "")) }
+          : { ok: true, ...(await itensDaVersao(sql, pessoa, salas, String(req.query.id || ""))) });
       } catch (e) {
         return res.status(e.status || 400).json({ error: e.message });
       }

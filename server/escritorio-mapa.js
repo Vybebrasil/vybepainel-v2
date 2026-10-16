@@ -75,6 +75,8 @@ export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens
   if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
   const limpos = itensValidos(camada, itens);
   await conferirImagensDaCamada(sql, camada, limpos);
+  // Guarda a versão que vai ser trocada (se o histórico já existe no banco).
+  if (await versoesProntas(sql)) await guardarVersaoAnterior(sql, camada, Number(versao) || 0);
   const esperada = Number(versao) || 0;
   const [r] = await sql`INSERT INTO vybe_escritorio_mapa(camada, itens, versao, atualizado_por)
     VALUES(${camada}, ${JSON.stringify(limpos)}::jsonb, 1, ${pessoa.id})
@@ -220,4 +222,34 @@ async function conferirImagensDaCamada(sql, camada, itens) {
     if (img.tipo === "quadro" && !((dir === 4 && y === 0) || (dir === 2 && x === 0)))
       throw Object.assign(new Error("O quadro fica na parede do fundo da sala."), { status: 400 });
   }
+}
+
+// Histórico do mapa: a versão anterior de cada camada, as 30 mais recentes.
+export async function versoesProntas(sql) {
+  const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_mapa_versoes') IS NOT NULL AS existe`;
+  return Boolean(r?.existe);
+}
+async function guardarVersaoAnterior(sql, camada, versao) {
+  await sql.transaction([
+    sql`INSERT INTO vybe_escritorio_mapa_versoes(camada, itens, versao, atualizado_por, salvo_em)
+      SELECT camada, itens, versao, atualizado_por, atualizado_em FROM vybe_escritorio_mapa WHERE camada = ${camada} AND versao = ${versao}`,
+    sql`DELETE FROM vybe_escritorio_mapa_versoes WHERE camada = ${camada} AND id NOT IN (
+      SELECT id FROM vybe_escritorio_mapa_versoes WHERE camada = ${camada} ORDER BY id DESC LIMIT 30)`,
+  ]);
+}
+export async function versoesDaCamada(sql, pessoa, salas, camada) {
+  conferirEdicao(pessoa, salas, camada);
+  if (!(await versoesProntas(sql))) throw Object.assign(new Error("O histórico do mapa aguarda a migração do banco."), { status: 503 });
+  const linhas = await sql`SELECT v.id, v.versao, v.salvo_em, jsonb_array_length(v.itens) AS itens, p.nome
+    FROM vybe_escritorio_mapa_versoes v LEFT JOIN vybe_pessoas p ON p.id = v.atualizado_por
+    WHERE v.camada = ${camada} ORDER BY v.id DESC LIMIT 30`;
+  return linhas.map((l) => ({ id: String(l.id), versao: l.versao, em: l.salvo_em, itens: Number(l.itens), por: l.nome || "" }));
+}
+export async function itensDaVersao(sql, pessoa, salas, id) {
+  if (!/^\d{1,12}$/.test(String(id || ""))) throw Object.assign(new Error("Versão inválida."), { status: 400 });
+  if (!(await versoesProntas(sql))) throw Object.assign(new Error("Versão não encontrada."), { status: 404 });
+  const [v] = await sql`SELECT camada, itens FROM vybe_escritorio_mapa_versoes WHERE id = ${id}`;
+  if (!v) throw Object.assign(new Error("Versão não encontrada."), { status: 404 });
+  conferirEdicao(pessoa, salas, v.camada);
+  return { camada: v.camada, itens: v.itens };
 }

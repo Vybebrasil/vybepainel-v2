@@ -6636,3 +6636,19 @@ body.no-escritorio {overflow:hidden}
 .mapa-etiqueta.solta.falando {border-color:#4fd18b;box-shadow:0 0 0 2px #4fd18b55,0 0 12px #4fd18b88}
 .mapa-etiqueta.solta.falando .mapa-fala {display:grid;animation:mapa-fala .8s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.mapa-etiqueta.solta.falando .mapa-fala {animation:none}}
+.ofc-modelos {display:grid;gap:8px}
+.ofc-modelos button {display:grid;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--ofc-borda);background:#ffffff08;color:var(--ofc-texto);cursor:pointer}
+.ofc-modelos button:hover {border-color:#ff8a3577;background:#ff8a3514}
+.ofc-modelos b {font:700 13px var(--mac-ui)}
+.ofc-modelos small {font-size:11px;color:var(--ofc-suave)}
+.ofc-grupo-n {align-self:center;padding:0 6px;font:700 12px var(--mac-ui);color:#ffd2b0}
+.ofc-conjunto {display:grid;gap:4px}
+.ofc-pisos-acervo {max-height:260px;overflow:auto}
+.ofc-movel[aria-pressed="true"] {outline:2px solid #ff9548;background:#ff8a3514}
+.ofc-ficha h4 small, .ofc-catalogo h4 small {text-transform:none;letter-spacing:0;font-weight:500}
+.mapa-grade {position:absolute;z-index:2;pointer-events:none}
+/* Luz das luminárias no chão (mais forte à noite). */
+.mapa-luz {position:absolute;z-index:1;width:220px;height:110px;margin:-55px 0 0 -110px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(255,214,150,calc(.34 * var(--forca,.5))),rgba(255,190,110,calc(.12 * var(--forca,.5))) 55%,transparent);mix-blend-mode:screen}
+.mapa-luz.fogo {background:radial-gradient(closest-side,rgba(255,150,70,calc(.42 * var(--forca,.5))),rgba(255,110,40,calc(.14 * var(--forca,.5))) 55%,transparent);animation:mapa-luz-fogo 2.4s ease-in-out infinite}
+@keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
+@media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
