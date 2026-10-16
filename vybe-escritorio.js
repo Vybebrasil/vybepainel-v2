@@ -57,7 +57,8 @@ function chooseOfficeMode() {
 }
 // Mesmo boneco do mapa (Habbo), em pé, para listas, lobby e cartões.
 function escritorioAvatar(perfil = {}, nome = "") {
-  const url = "https://www.habboassets.com/imaging/avatar.png?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: 2 });
+  // A cópia guardada no nosso banco (busca no catálogo só na primeira vez).
+  const url = mapaBonecoGuardado(mapaFigura(perfil), 2);
   return `<img class="office-avatar" src="${url}" alt="Personagem de ${safeText(nome)}" width="64" height="110" loading="lazy">`;
 }
 async function escritorioApi(acao, corpo) {
@@ -534,6 +535,8 @@ function montarMapaEscritorio() {
       aoClicar: (x, y) => cliqueNoMapaEscritorio(x, y),
     });
     requestAnimationFrame(() => centralizarEmMimEscritorio());
+    // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
+    if (!escritorio.base.demo) setTimeout(() => mapaGuardarBoneco(mapaFigura(escritorio.perfil)), 4000);
   }
   atualizarPessoasEscritorio();
 }

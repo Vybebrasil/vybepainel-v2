@@ -44,7 +44,7 @@ function notasDemo(req,url,body,reply){
   }
   return reply(405,{error:'Método não permitido.'});
 }
-export function demoApi(req,res,url,body) {
+export async function demoApi(req,res,url,body) {
   const reply=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(data));};
   const sessao=String(req.headers.cookie||'').includes('vybe_demo=1');
   if(url.pathname==='/api/sessao') {
@@ -97,6 +97,7 @@ export function demoApi(req,res,url,body) {
     if(area==='conta')return reply(200,{ok:true,pessoa});
     if(area==='escritorio') {
       if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
+      if(url.searchParams.get('acao')==='boneco'){const r=await fetch('https://www.habboassets.com/imaging/avatar.png?'+new URLSearchParams({figure:url.searchParams.get('figura')||'',direction:url.searchParams.get('dir')||'2',size:'n'})).catch(()=>null);if(!r?.ok)return reply(404,{error:'Boneco indisponível.'});res.writeHead(200,{'Content-Type':'image/png'});return res.end(Buffer.from(await r.arrayBuffer()));}
       if(url.searchParams.get('acao')==='arte'){const arquivo=url.searchParams.get('arquivo')||'';if(!/^[a-z0-9_]+\.(png|json)$/.test(arquivo))return reply(400,{error:'Arquivo inválido.'});try{const dados=readFileSync(new URL('../assets/escritorio/habbo/'+arquivo,import.meta.url));res.writeHead(200,{'Content-Type':arquivo.endsWith('.png')?'image/png':'application/json; charset=utf-8'});return res.end(dados);}catch{return reply(404,{error:'Arte não encontrada.'});}}
       const equipeDemo=['Operador de teste','Design demonstração','Edição demonstração','Atendimento demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul','verde','roxo'][i],pele:'media',cabelo:['curto','longo','cacheado','curto'][i],mesa:['grafite','azul','verde','roxo'][i],objeto:['planta','livros','luminaria','planta'][i],sala:'convivencia',x:50,y:70}}));
       return reply(200,{ok:true,demo:true,eu:'1',admin:true,worker:null,token:null,equipe:equipeDemo,salas:salasDoEscritorio(equipeDemo),mapa:{editavel:false,camadas:{}}});

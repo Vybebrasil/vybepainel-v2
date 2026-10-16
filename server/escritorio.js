@@ -1,5 +1,5 @@
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
-import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio } from "./escritorio-mapa.js";
+import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -155,6 +155,16 @@ export async function areaEscritorio(req, res, quem, sql) {
   // como arquivo público do site. O nome é validado; nada fora da pasta.
   if (req.method === "GET" && req.query?.acao === "arte")
     return enviarArteEscritorio(res, String(req.query.arquivo || ""));
+  if (req.method === "GET" && req.query?.acao === "boneco") {
+    try {
+      const png = await bonecoEscritorio(sql, String(req.query.figura || ""), req.query.dir);
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "private, max-age=86400");
+      return res.status(200).send(png);
+    } catch (e) {
+      return res.status(e.status || 502).json({ error: e.message });
+    }
+  }
   if (!(await escritorioPronto(sql)))
     return res.status(503).json({
       error: "O escritório aguarda a migração revisada do banco.",

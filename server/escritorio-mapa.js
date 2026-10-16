@@ -107,3 +107,24 @@ export async function arteRemotaEscritorio(classe, extensao, buscar = fetch) {
   }
   return (await cacheArte.get(classe))[extensao];
 }
+
+// Cópia dos bonecos: em pé, 8 direções, guardada no banco na primeira vez que
+// alguém pede. Se o Habbo cair, o mapa usa esta cópia.
+export const FIGURA_VALIDA = /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/;
+const paraBuffer = (v) => (Buffer.isBuffer(v) ? v : typeof v === "string" && v.startsWith("\\x") ? Buffer.from(v.slice(2), "hex") : Buffer.from(v));
+export async function bonecoEscritorio(sql, figura, direcao, buscar = fetch) {
+  const dir = Number(direcao);
+  if (!FIGURA_VALIDA.test(String(figura || "")) || !Number.isInteger(dir) || dir < 0 || dir > 7)
+    throw Object.assign(new Error("Boneco inválido."), { status: 400 });
+  const [tabela] = await sql`SELECT to_regclass('public.vybe_escritorio_bonecos') IS NOT NULL AS existe`;
+  if (tabela?.existe) {
+    const [r] = await sql`SELECT png FROM vybe_escritorio_bonecos WHERE figura = ${figura} AND direcao = ${dir}`;
+    if (r) return paraBuffer(r.png);
+  }
+  const r = await buscar("https://www.habboassets.com/imaging/avatar.png?" + new URLSearchParams({ figure: figura, direction: String(dir), size: "n" }));
+  if (!r.ok) throw Object.assign(new Error("Boneco indisponível."), { status: 404 });
+  const png = Buffer.from(await r.arrayBuffer());
+  if (tabela?.existe && png.length <= 200000)
+    await sql`INSERT INTO vybe_escritorio_bonecos(figura, direcao, png) VALUES(${figura}, ${dir}, ${png}) ON CONFLICT DO NOTHING`;
+  return png;
+}

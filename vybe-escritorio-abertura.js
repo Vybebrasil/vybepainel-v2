@@ -233,6 +233,7 @@ async function salvarPersonagemEscritorio(entrar) {
     if (eu) eu.perfil = { ...eu.perfil, figura: salvo.figura, abertura: salvo.abertura };
     fecharAberturaEscritorio();
     renderEscritorio();
+    if (!escritorio.base.demo) mapaGuardarBoneco(salvo.figura);
     if (entrar && !escritorio.base.demo) {
       if (escritorio.conectado) { desconectarEscritorio(false); }
       await conectarEscritorio();

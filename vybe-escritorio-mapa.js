@@ -252,6 +252,15 @@ function mapaFigura(perfil = {}) {
   const corpo = perfil.cabelo === "longo" ? `hd-600-${pele}.ch-665-${roupa}.lg-700-82.sh-725-62` : `hd-180-${pele}.ch-255-${roupa}.lg-280-110.sh-305-62`;
   return [corpo, cabelo].filter(Boolean).join(".");
 }
+function mapaBonecoGuardado(figura, dir) {
+  return "/api/painel?" + new URLSearchParams({ area: "escritorio", acao: "boneco", figura, dir });
+}
+// Garante a cópia das 8 direções de um boneco (uma por vez, sem pressa).
+async function mapaGuardarBoneco(figura) {
+  for (let dir = 0; dir < 8; dir++) {
+    try { await fetch(mapaBonecoGuardado(figura, dir), { credentials: "same-origin" }); } catch {}
+  }
+}
 function mapaAvatarUrl(figura, dir, acao) {
   const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: dir, action: acao, gesture: "sml", size: "n" });
   return "https://www.habbo.com/habbo-imaging/avatarimage?" + q;
@@ -488,8 +497,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
         img.alt = "";
         img.draggable = false;
         img.referrerPolicy = "no-referrer";
-        // Sem o imager do Habbo, o boneco em pé do habboassets.
-        img.onerror = () => { if (!img.dataset.reserva) { img.dataset.reserva = "1"; img.src = "https://www.habboassets.com/imaging/avatar.png?" + new URLSearchParams({ figure: p.figura, direction: p.dir }); } };
+        // Sem o imager do Habbo, a cópia guardada no nosso banco (em pé).
+        img.onerror = () => { if (!img.dataset.reserva) { img.dataset.reserva = "1"; img.src = mapaBonecoGuardado(p.figura, p.dir); } };
         const etiqueta = document.createElement("span");
         etiqueta.className = "mapa-etiqueta";
         no.append(etiqueta, img);

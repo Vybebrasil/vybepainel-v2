@@ -557,3 +557,20 @@ test("arte remota só aceita nome de móvel e não chama a rede com nome inváli
   await assert.rejects(arteRemotaEscritorio("../segredo", "png", () => { chamadas++; }), /inválido/);
   assert.equal(chamadas, 0);
 });
+
+test("boneco: guarda a cópia na primeira vez e depois não chama o site", async (t) => {
+  const { bonecoEscritorio } = await import("../server/escritorio-mapa.js");
+  const { db, sql } = await banco();
+  t.after(() => db.close());
+  await db.exec(readFileSync("migrations/2026-10-16-escritorio-bonecos.sql", "utf8"));
+  let chamadas = 0;
+  const site = async () => { chamadas++; return { ok: true, arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer }; };
+  const a = await bonecoEscritorio(sql, "hd-180-1.hr-828-61", 2, site);
+  const b = await bonecoEscritorio(sql, "hd-180-1.hr-828-61", 2, site);
+  assert.equal(chamadas, 1);
+  assert.deepEqual([...b], [...a]);
+  const fora = async () => ({ ok: false });
+  assert.deepEqual([...(await bonecoEscritorio(sql, "hd-180-1.hr-828-61", 2, fora))], [137, 80, 78, 71]);
+  await assert.rejects(bonecoEscritorio(sql, '"><script>', 2, site), /inválido/);
+  await assert.rejects(bonecoEscritorio(sql, "hd-180-1", 9, site), /inválido/);
+});
