@@ -51,6 +51,10 @@ if (typeof document.addEventListener === "function") for (const tipo of ["pointe
 // miniatura de cada peça já no boneco da pessoa, cores reais de cada peça
 // (catálogo oficial em assets/escritorio/habbo/figuras.json), "Nenhum" para o
 // que é opcional e "Aleatório".
+// Grupos do criador: primeiro escolhe a região, depois a peça.
+const CRIADOR_GRUPOS = [["cabeca", "Cabeça", ["hd", "hr", "ha", "he", "ea", "fa"]], ["corpo", "Corpo", ["ch", "cc", "ca", "cp", "wa"]], ["pernas", "Pernas e pés", ["lg", "sh"]]];
+// Cores mais usadas primeiro; o resto só com "Mais cores".
+const CRIADOR_CORES_VISIVEIS = 24;
 const CRIADOR_ABAS = [
   { t: "hd", nome: "Rosto e pele", cabeca: true },
   { t: "hr", nome: "Cabelo", cabeca: true },
@@ -180,6 +184,25 @@ function criadorMiniatura(t, id, cabeca) {
 function criadorImagem(fig, dir = 2, tamanho = "l") {
   return "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: fig, direction: dir, head_direction: dir, size: tamanho, gesture: "sml" });
 }
+function criadorPagina(d) {
+  criador.pagina = Math.max(0, (criador.pagina || 0) + d);
+  renderAberturaEscritorio();
+}
+// Roda do mouse (ou dois dedos) sobre a grade troca de página.
+function criadorRodaPagina(e) {
+  if (Math.abs(e.deltaY) < 20 || Date.now() - (criador.ultimaRoda || 0) < 350) return;
+  e.preventDefault();
+  criador.ultimaRoda = Date.now();
+  criadorPagina(e.deltaY > 0 ? 1 : -1);
+}
+// Quantas peças cabem na grade sem rolar (medido depois de desenhar).
+function criadorMedirPagina() {
+  const g = document.querySelector("#ofc-abertura .cri-grade"), t = g?.querySelector(".cri-peca");
+  if (!g || !t) return;
+  const gap = 6, cols = Math.max(1, Math.floor((g.clientWidth + gap) / (t.offsetWidth + gap))), linhas = Math.max(1, Math.floor((g.clientHeight + gap) / (t.offsetHeight + gap)));
+  const por = Math.max(12, cols * linhas);
+  if (por !== criador.porPagina) { criador.porPagina = por; renderAberturaEscritorio(); }
+}
 function criadorPainelHtml() {
   const f = criador.f, fig = criadorFigura(f);
   const aba = CRIADOR_ABAS.find((a) => a.t === criador.aba) || CRIADOR_ABAS[1];
@@ -194,22 +217,42 @@ function criadorPainelHtml() {
     const fg = decodeURIComponent(new URL(src).searchParams.get("figure"));
     return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" aria-label="${rotulo}" title="${rotulo}"><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt="">${id === null ? "<span>Nenhum</span>" : ""}</button>`;
   };
-  const cores = (i) => `<div class="cri-cores" role="group" aria-label="Cor ${i + 1}">${pal.map(([id, hex]) => `<button type="button" class="abr-cor" style="--c:#${safeText(hex)}" aria-pressed="${atual?.cores[i] === id}" aria-label="Cor ${id}" onclick="criadorCor('${aba.t}', ${i}, ${id})"></button>`).join("")}</div>`;
+  // Uma paleta por vez (Cor 1 / Cor 2), com as mais usadas visíveis e o resto
+  // em "Mais cores"; a cor escolhida fica sempre visível no topo.
+  const nCores = Math.min(2, Math.max(0, conjAtual?.[3] ?? 1));
+  const qual = Math.min(criador.corAtiva || 0, Math.max(0, nCores - 1));
+  const hexDe = (id) => pal.find((c) => c[0] === id)?.[1] || "888888";
+  const todasCores = criador.maisCores ? pal : pal.slice(0, CRIADOR_CORES_VISIVEIS);
+  const escolhidaFora = atual && !todasCores.some(([id]) => id === atual.cores[qual]);
+  const visiveis = escolhidaFora ? [pal.find((c) => c[0] === atual.cores[qual]), ...todasCores].filter(Boolean) : todasCores;
+  const cores = () => `<div class="cri-cores-topo">${Array.from({ length: nCores }, (_, i) => `<button type="button" class="cri-cor-alvo" aria-pressed="${i === qual}" onclick="criador.corAtiva=${i};renderAberturaEscritorio()"><i style="--c:#${safeText(hexDe(atual?.cores[i]))}"></i>${nCores > 1 ? (i ? "Cor 2" : "Cor 1") : "Cor"}</button>`).join("")}${pal.length > CRIADOR_CORES_VISIVEIS ? `<button type="button" class="cri-mais-cores" onclick="criador.maisCores=!criador.maisCores;renderAberturaEscritorio()">${criador.maisCores ? "Menos cores" : `Mais cores (${pal.length - CRIADOR_CORES_VISIVEIS})`}</button>` : ""}</div><div class="cri-cores${criador.maisCores ? " todas" : ""}" role="group" aria-label="${nCores > 1 ? (qual ? "Cor 2" : "Cor 1") : "Cor"}">${visiveis.map(([id, hex]) => `<button type="button" class="abr-cor" style="--c:#${safeText(hex)}" aria-pressed="${atual?.cores[qual] === id}" aria-label="Cor ${id}" onclick="criadorCor('${aba.t}', ${qual}, ${id})"></button>`).join("")}</div>`;
   return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel cri" aria-labelledby="abr-titulo">
  <div class="abr-previa">
-  <div class="cri-corpo">${["M", "F"].map((g) => `<button type="button" class="abr-estilo" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div>
   <img src="${criadorImagem(fig, criador.direcao)}" alt="Prévia do seu personagem" width="128" height="220">
+  <div class="cri-corpo" role="group" aria-label="Corpo">${["M", "F"].map((g) => `<button type="button" class="abr-estilo" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div>
   <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div>
  </div>
  <div class="abr-opcoes cri-opcoes">
   <span class="abr-kicker">${criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">Seu personagem</h2>
-  <nav class="cri-abas" aria-label="Partes do personagem">${CRIADOR_ABAS.map((a) => `<button type="button" aria-pressed="${a.t === aba.t}" onclick="criador.aba='${a.t}';criador.mostrar=60;renderAberturaEscritorio()">${a.nome}${f.partes[a.t] && a.opcional ? " ●" : ""}</button>`).join("")}</nav>
+  ${(() => {
+    const grupo = CRIADOR_GRUPOS.find((g) => g[2].includes(aba.t)) || CRIADOR_GRUPOS[0];
+    return `<nav class="cri-grupos" aria-label="Região">${CRIADOR_GRUPOS.map(([id, nome, abas]) => `<button type="button" aria-pressed="${id === grupo[0]}" onclick="criador.aba='${abas.includes(criador.aba) ? criador.aba : abas[id === "cabeca" ? 1 : 0]}';criador.pagina=0;criador.corAtiva=0;renderAberturaEscritorio()">${nome}</button>`).join("")}</nav>
+  <nav class="cri-abas" aria-label="Peças de ${grupo[1]}">${CRIADOR_ABAS.filter((a) => grupo[2].includes(a.t)).map((a) => `<button type="button" aria-pressed="${a.t === aba.t}" onclick="criador.aba='${a.t}';criador.pagina=0;criador.corAtiva=0;renderAberturaEscritorio()">${a.nome}${f.partes[a.t] && a.opcional ? '<i class="cri-usando" title="Usando"></i>' : ""}</button>`).join("")}</nav>`;
+  })()}
   ${!criador.cat ? '<p class="abr-nota">Carregando o catálogo…</p>' : `
-  ${pal.length && atual && (conjAtual?.[3] ?? 1) > 0 ? `<h3 class="cri-sub">Cor</h3>${cores(0)}${(conjAtual?.[3] ?? 0) > 1 ? `<h3 class="cri-sub">Segunda cor</h3>${cores(1)}` : ""}` : ""}
+  ${pal.length && atual && nCores > 0 ? cores() : ""}
   <h3 class="cri-sub">${aba.nome} · ${conjuntos.length} opções</h3>
-  <div class="cri-grade">${aba.opcional ? tile(null, "Nenhum") : ""}${conjuntos.slice(0, criador.mostrar).map((s) => tile(s[0], aba.nome + " " + s[0])).join("")}</div>
-  ${conjuntos.length > criador.mostrar ? `<button type="button" class="abr-secundario cri-mais" onclick="criador.mostrar+=60;renderAberturaEscritorio()">Mostrar mais (${conjuntos.length - criador.mostrar})</button>` : ""}`}
+  ${(() => {
+    // Por página, do tamanho exato da grade (sem rolar): "Nenhum" + peças.
+    const itens = [...(aba.opcional ? [null] : []), ...conjuntos.map((c) => c[0])];
+    const por = Math.max(12, criador.porPagina || 48), total = Math.max(1, Math.ceil(itens.length / por));
+    const pag = Math.min(criador.pagina || 0, total - 1);
+    criador.pagina = pag;
+    const pagina = itens.slice(pag * por, pag * por + por);
+    return `<div class="cri-grade" onwheel="criadorRodaPagina(event)">${pagina.map((id) => id === null ? tile(null, "Nenhum") : tile(id, aba.nome + " " + id)).join("")}</div>
+  ${total > 1 ? `<nav class="cri-paginas" aria-label="Páginas"><button type="button" class="abr-secundario" onclick="criadorPagina(-1)" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${total}</span><button type="button" class="abr-secundario" onclick="criadorPagina(1)" ${pag < total - 1 ? "" : "disabled"} aria-label="Próxima página">›</button></nav>` : ""}`;
+  })()}`}
   <p class="abr-erro" role="alert" id="abr-erro"></p>
   <div class="abr-acoes">${criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='boas';renderAberturaEscritorio()">Continuar</button>`}</div>
  </div>
@@ -260,6 +303,7 @@ function renderAberturaEscritorio() {
   }
   if (criador.etapa === "personagem") {
     el.innerHTML = criadorPainelHtml();
+    requestAnimationFrame(criadorMedirPagina);
     return;
   }
   // Saiu do escritório: volta para a entrada da Vybelândia (a tela inicial),

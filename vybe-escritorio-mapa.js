@@ -107,7 +107,8 @@ function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro) {
   return { canvas, ox: minX, oy: minY };
 }
 // Piso, borda do prédio, paredes do fundo e textos/logo pintados nelas.
-function mapaDesenharFundo(canvas, planta, origem, logo) {
+function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
+  const dia = ceu === "manha" || ceu === "tarde";
   const g = canvas.getContext("2d");
   g.imageSmoothingEnabled = false;
   const losango = (x, y, w = 1, h = 1) => {
@@ -124,10 +125,24 @@ function mapaDesenharFundo(canvas, planta, origem, logo) {
     const t = x < topoMeio.x ? (x - topoEsq.x) / (topoMeio.x - topoEsq.x) : (topoDir.x - x) / (topoDir.x - topoMeio.x);
     const base = topoMeio.y - MAPA_PAREDE + (1 - Math.max(0, Math.min(1, t))) * (topoEsq.y - topoMeio.y) + 40;
     const w = 30 + sorte() * 46, h = 120 + sorte() * 260;
-    g.fillStyle = sorte() > 0.5 ? "#15121a" : "#1c1720";
+    // De dia, prédios azulados com vidros claros; à noite, escuros e acesos.
+    g.fillStyle = dia ? (sorte() > 0.5 ? "#4a5a78" : "#5a6a88") : sorte() > 0.5 ? "#15121a" : "#1c1720";
     g.fillRect(x, base - h, w, h + 40);
-    for (let wy = base - h + 10; wy < base - 8; wy += 14) for (let wx = x + 6; wx < x + w - 6; wx += 10)
-      if (sorte() > 0.55) { g.fillStyle = sorte() > 0.3 ? "#ffb35c" : "#ff7a1a"; g.globalAlpha = 0.55 + sorte() * 0.45; g.fillRect(wx, wy, 4, 6); g.globalAlpha = 1; }
+    for (let wy = base - h + 10; wy < base - 8; wy += 14) for (let wx = x + 6; wx < x + w - 6; wx += 10) {
+      const acesa = sorte() > 0.55, quente = sorte() > 0.3, alfa = 0.55 + sorte() * 0.45;
+      if (dia) { if (acesa) { g.fillStyle = "#cfe3ff"; g.globalAlpha = 0.35 + alfa * 0.3; g.fillRect(wx, wy, 4, 6); g.globalAlpha = 1; } }
+      else if (acesa) { g.fillStyle = quente ? "#ffb35c" : "#ff7a1a"; g.globalAlpha = alfa; g.fillRect(wx, wy, 4, 6); g.globalAlpha = 1; }
+    }
+  }
+  if (dia) {
+    // Nuvens leves no céu do dia.
+    g.fillStyle = "#ffffff";
+    for (let i = 0; i < 7; i++) {
+      const cx = topoEsq.x + sorte() * (topoDir.x - topoEsq.x), cy = topoMeio.y - MAPA_PAREDE - 260 - sorte() * 220;
+      g.globalAlpha = 0.5 + sorte() * 0.3;
+      for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(cx + k * 34, cy + (k % 2) * 8, 46, 20, 0, 0, Math.PI * 2); g.fill(); }
+    }
+    g.globalAlpha = 1;
   }
   // Praça escura em volta (como as calçadas da Vybelândia), com gramados nos cantos.
   for (let x = 0; x < planta.W; x++) for (let y = 0; y < planta.H; y++) {
@@ -430,9 +445,13 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   const palco = document.createElement("div");
   palco.className = "mapa-palco";
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
+  let fundoPronto = null;
   const ceu = () => {
     const h = new Date(Date.now() - 3 * 3600e3).getUTCHours();
-    el.dataset.ceu = h < 5 ? "madrugada" : h < 11 ? "manha" : h < 16 ? "tarde" : h < 19 ? "por-do-sol" : "noite";
+    const agora = h < 5 ? "madrugada" : h < 11 ? "manha" : h < 16 ? "tarde" : h < 19 ? "por-do-sol" : "noite";
+    if (el.dataset.ceu === agora) return;
+    el.dataset.ceu = agora;
+    fundoPronto?.(); // redesenha a cidade (dia claro / noite acesa)
   };
   ceu();
   const relogioCeu = setInterval(ceu, 5 * 60e3);
@@ -460,8 +479,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   el.replaceChildren(palco);
   const imgLogo = new Image();
   imgLogo.src = logo;
-  const pintarFundo = () => mapaDesenharFundo(fundo, P, origem, imgLogo);
+  const pintarFundo = () => { fundo.getContext("2d").clearRect(0, 0, fundo.width, fundo.height); mapaDesenharFundo(fundo, P, origem, imgLogo, el.dataset.ceu); };
   pintarFundo();
+  fundoPronto = pintarFundo;
   imgLogo.onload = pintarFundo;
 
   const colocar = (no, x, y, desenho, prof) => {
@@ -758,7 +778,12 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true;
   const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   palco.style.willChange = "transform";
-  const aplicar = () => { palco.style.transform = `translate3d(${cam.x}px,${cam.y}px,0) scale(${zoom})`; };
+  // Letreiros com tamanho mínimo na tela: abaixo de ~0,9 de zoom crescem
+  // na mesma proporção em que o mapa diminui.
+  const aplicar = () => {
+    palco.style.transform = `translate3d(${cam.x}px,${cam.y}px,0) scale(${zoom})`;
+    palco.style.setProperty("--contra", Math.max(1, 0.9 / zoom).toFixed(3));
+  };
   const animarCam = (agora) => {
     quadroCam = null;
     const dt = Math.min(64, agora - (ultimoCam || agora - 16)); ultimoCam = agora;

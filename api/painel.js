@@ -155,14 +155,15 @@ async function areaNotificacoes(req, res, quem) {
          AND n.criada_em > NOW() - INTERVAL '30 days'
        ORDER BY n.lida_em NULLS FIRST, n.criada_em DESC
        LIMIT 100`;
-    // A lista mostra no máximo 100; a contagem de não lidas é a real (antes
-    // parava em 100 junto com a lista).
+    // A lista mostra no máximo 100 dos últimos 30 dias; a contagem de não lidas
+    // é a real, mas só dos últimos 7 dias: aviso de prazo antigo virou ruído
+    // (o número parado em 105 ninguém lia). Os antigos continuam na lista.
     const [{ total }] = await db`
       SELECT COUNT(*)::int AS total
         FROM vybe_notificacoes
        WHERE pessoa_id = ${pessoaId}
          AND lida_em IS NULL
-         AND criada_em > NOW() - INTERVAL '30 days'`;
+         AND criada_em > NOW() - INTERVAL '7 days'`;
     return res.status(200).json({
       ok: true,
       nao_lidas: total,
