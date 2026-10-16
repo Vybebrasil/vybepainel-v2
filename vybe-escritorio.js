@@ -722,6 +722,12 @@ function escritorioQuadro(agora) {
     if (escritorioPodeIr(movimento.x, movimento.y, ax, ay)) movimento.rota.push({ x: ax, y: ay });
     else if (escritorioPodeIr(movimento.x, movimento.y, cx, cy)) movimento.rota.push({ x: cx, y: cy });
   }
+  // Soltou a tecla no meio do ladrilho: termina o passo até o centro dele
+  // (como no Habbo), em vez de pular para lá.
+  if (!teclado && !movimento.rota.length && (movimento.x % 1 || movimento.y % 1)) {
+    const cx = Math.round(movimento.x), cy = Math.round(movimento.y);
+    if (escritorioPodeIr(movimento.x, movimento.y, cx, cy)) movimento.rota.push({ x: cx, y: cy });
+  }
   const andando = teclado || movimento.rota.length > 0;
   // Ao andar, acenar e deitar acabam (o café continua na mão).
   if (andando && (escritorio.pose === "acenar" || escritorio.pose === "deitar")) definirPoseEscritorio("");
