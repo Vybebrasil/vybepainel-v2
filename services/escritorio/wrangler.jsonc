@@ -1,0 +1,15 @@
+{
+  "name":"vybe-escritorio",
+  "main":"worker.js",
+  "compatibility_date":"2026-10-15",
+  "vars":{"VYBE_ORIGIN":"https://vybepainel-v2.vercel.app,https://vybepainel-v2-vybe-hub.vercel.app"},
+  "durable_objects":{"bindings":[{"name":"ESCRITORIO","class_name":"EscritorioRoom"}]},
+  "migrations":[{"tag":"v1","new_sqlite_classes":["EscritorioRoom"]}],
+  "env":{
+    "homologacao":{
+      "name":"vybe-escritorio-homologacao",
+      "vars":{"VYBE_ORIGIN":"https://vybepainel-v2-git-codex-escritorio-vybechat-vybe-hub.vercel.app"},
+      "durable_objects":{"bindings":[{"name":"ESCRITORIO","class_name":"EscritorioRoom"}]}
+    }
+  }
+}

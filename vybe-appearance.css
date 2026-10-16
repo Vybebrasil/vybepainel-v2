@@ -307,7 +307,7 @@ body.vybe-desktop {
    sobrepostos — o problema que vybe-styles.css já tinha resolvido com fundo
    sólido. O fundo volta a ser sólido. */
 .vybe-desktop .workspace-actions { background: var(--surface) !important; border-radius: 13px; }
-.vybe-desktop #login-gate { background: radial-gradient(ellipse at 15% 20%,#a44c283b,transparent 60%),#15161e !important; }
+.vybe-desktop #login-gate { background: #07070a !important; }
 .vybe-desktop .login-caixa { background: var(--glass) !important; backdrop-filter: blur(24px); }
 .vybe-desktop :is(.workspace-drawer,.appearance-dialog[open],.spotlight-dialog[open],.fc-modal,.p-create-modal) { animation: glass-window-in .28s var(--curva) both; }
 @keyframes glass-window-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }

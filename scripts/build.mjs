@@ -7,8 +7,17 @@ const fontes = [...html.matchAll(/<script\s+src="\/([^"?]+)"\s*><\/script>/g)].m
 if (!fontes.length) throw new Error('Nenhum módulo encontrado.');
 // Preserva os limites entre scripts: concatenar mudaria o momento em que
 // declarações globais substituem funções anteriores (hoisting).
+// Arte do escritório (assets/escritorio/habbo) não vai para o dist: sai pela
+// API só para quem está logado. Uma versão única (hash da pasta) renova o
+// cache do navegador quando qualquer arquivo muda.
+const hashArte = createHash('sha256');
+for (const f of (await readdir('assets/escritorio/habbo')).filter((f) => /\.(png|json)$/.test(f)).sort())
+  hashArte.update(f).update(await readFile(`assets/escritorio/habbo/${f}`));
+const versaoArte = hashArte.digest('hex').slice(0, 12);
+const comSprites = (codigo) => codigo.replace(/const MAPA_BASE = "[^"]*";/,
+  (m) => `${m} const ESCRITORIO_ARTE_VERSAO = ${JSON.stringify(versaoArte)};`);
 const modulos = await Promise.all(fontes.map(async (fonte) => ({ fonte,
-  ...(await transform(await readFile(fonte,'utf8'), { loader:'js', minifyWhitespace:true,
+  ...(await transform(comSprites(await readFile(fonte,'utf8')), { loader:'js', minifyWhitespace:true,
     minifySyntax:true, minifyIdentifiers:false, target:'es2022', legalComments:'none' })) })));
 const css = await transform(await readFile('vybe-styles.css', 'utf8'), { loader: 'css', minify: true });
 await mkdir('dist/assets', { recursive: true });
@@ -28,6 +37,10 @@ html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
 html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
+const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
+html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
+for (const [arquivo, nome] of [['vybelandia-540.mp4', 'vybelandia-540'], ['vybelandia.mp4', 'vybelandia']])
+  html = html.replaceAll(`/assets/${arquivo}`, await asset(await readFile(`assets/${arquivo}`), 'mp4', nome));
 await writeFile('dist/index.html', html);
 // Rota de recuperação já utilizada pelo módulo de cadastros.
 await writeFile('dist/cadastros_governed_v2.js', (await transform(await readFile('cadastros_governed_v2.js','utf8'),

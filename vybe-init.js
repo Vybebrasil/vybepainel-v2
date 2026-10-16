@@ -52,6 +52,7 @@ function iniciarPainel() {
   const legacyKpi = document.getElementById('kpi-grid');
   if (legacyKpi) legacyKpi.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px 0;">Carregando dados do banco Vybe...</div>';
   initPanelMode();
+  if (typeof iniciarNoEscritorio === 'function') iniciarNoEscritorio();
   if (hydrateProductionCache()) {
     setSyncHealth('checking', 'Cache operacional carregado · aguardando confirmação do banco Vybe…');
     // A tela entra com o último estado válido e confirma o domínio próprio; o espelho apenas observa a contingência.

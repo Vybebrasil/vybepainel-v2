@@ -161,3 +161,10 @@ de modo ficam em Ferramentas. A área operacional distingue prioridades, visões
 e ferramentas, com carga da equipe recolhível. Mês e semanas ficam no cabeçalho
 da agenda; Equipe permanece acessível nas ferramentas da operação. Os controles
 reutilizam os mesmos handlers e filtros, sem alterações de dados.
+
+## Escritório e VybeChat
+
+O módulo Escritório integra presença, personagem/mesa, salas e conversa ao login
+existente. A comunicação reutiliza o protocolo e o motor RealtimeKit do VybeChat;
+Neon mantém a autoridade dos dados. A ativação exige migração e configuração
+externa antes de uso pela equipe. Veja [escopo, limites e ativação](docs/escritorio-vybechat.md).

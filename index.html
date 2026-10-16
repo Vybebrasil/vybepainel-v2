@@ -3,7 +3,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vybe OS — Painel de Produção v2</title>
   <link rel="stylesheet" href="/vybe-styles.css">
-  <link rel="stylesheet" href="/vybe-appearance.css"></head>
+  <link rel="stylesheet" href="/vybe-appearance.css">
+  <link rel="prefetch" id="vybelandia-img" href="/assets/vybelandia.webp" as="image">
+  <!-- Vídeo da Vybelândia: só baixa quando a cena aparece (rel=alternate não busca). -->
+  <link rel="alternate" id="vybelandia-video" type="video/mp4" href="/assets/vybelandia.mp4">
+  <link rel="alternate" id="vybelandia-video-leve" type="video/mp4" href="/assets/vybelandia-540.mp4">
+</head>
 <body class="auth-pending vybe-desktop">
 
 <div id="loading" aria-live="polite" aria-label="Inicializando Vybe OS">
@@ -62,6 +67,7 @@
       <button id="station-clientes" class="identity-station station-clientes" data-station="clientes" type="button" style="--station-color:#8b7dff" onclick="chooseClientMode()">
         <span class="station-top"><span>Relacionamento</span><span class="station-ready"><i></i>Online</span></span><span class="station-icon">◉</span><span class="station-name">Clientes</span><span class="station-description">Contas, responsáveis e acessos dos clientes.</span><span class="station-metrica" id="metrica-clientes"></span><span class="station-action"><em>Abrir Clientes</em><b>↗</b></span>
       </button>
+      <button id="station-escritorio" class="identity-station" data-station="escritorio" type="button" style="--station-color:#72ccac" onclick="chooseOfficeMode()"><span class="station-top"><span>Equipe conectada</span></span><span class="station-icon" aria-hidden="true">⌂</span><span class="station-name">Escritório</span><span class="station-description">Seu personagem, sua mesa e conversas com a equipe.</span><span class="station-action"><em>Entrar no escritório</em><b>→</b></span></button>
     </div>
     <div class="identity-footer"><span>Escolha onde quer trabalhar</span><span>Vybe OS</span></div>
     <div id="focus-picker" class="focus-picker identity-focus-picker">
@@ -86,6 +92,7 @@
       <span aria-hidden="true">←</span> Todos os módulos</button>
     <div class="board-switch-bar focus-hidden">
       <button class="board-switch-btn active" id="btn-board-producao" onclick="switchBoard('producao',this)">Produção</button>
+      <button class="board-switch-btn" id="btn-board-escritorio" onclick="switchBoard('escritorio',this)">Escritório</button>
       <button class="board-switch-btn" id="btn-board-demandas" onclick="switchBoard('demandas',this)">Demandas</button>
       <button class="board-switch-btn" id="btn-board-clientes" onclick="switchBoard('clientes',this)">Clientes</button>
       <button class="board-switch-btn" id="btn-board-diario" onclick="switchBoard('diario',this)">Diário</button>
@@ -543,6 +550,8 @@
   <div class="container ai-usage-shell" id="ai-usage-root"></div>
 </div>
 
+<section id="painel-escritorio" style="display:none" aria-label="Escritório da equipe"></section>
+<div id="office-dock" class="office-dock" hidden></div>
 <footer>
   <strong>Vybe OS</strong> · Painel de Produção · <span id="footer-update">Aguardando autenticação e leitura do banco Vybe.</span>
 </footer>
@@ -581,6 +590,11 @@
   <script src="/vybe-automacoes-ui.js"></script>
   <script src="/vybe-grupos.js"></script>
   <script src="/vybe-conta.js"></script>
+  <script src="/vybe-escritorio-planta.js"></script>
+  <script src="/vybe-escritorio-mapa.js"></script>
+  <script src="/vybe-escritorio.js"></script>
+  <script src="/vybe-escritorio-editor.js"></script>
+  <script src="/vybe-escritorio-abertura.js"></script>
   <script src="/vybe-login.js"></script>
   <script src="/vybe-init.js"></script>
 <script src="/cadastros_governed_v2.js"></script>

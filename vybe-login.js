@@ -137,7 +137,18 @@ function montarTelaDeLogin() {
   if (document.getElementById('login-gate')) return;
   const gate = document.createElement('div');
   gate.id = 'login-gate';
+  // A entrada é a Vybelândia: a cena anima e o "Entrar" revela quem é e a senha.
+  gate.className = 'login-vybelandia';
+  gate.dataset.etapa = 'cena';
+  gate.style.setProperty('--vybelandia', `url("${document.getElementById('vybelandia-img')?.getAttribute('href') || '/assets/vybelandia.webp'}")`);
+  const faiscas = Array.from({ length: 24 }, (_, i) =>
+    `<i style="--x:${(i * 41) % 100}%;--d:${4 + (i % 5)}s;--a:${(i * 0.37) % 4}s;--s:${2 + (i % 3)}px"></i>`).join('');
   gate.innerHTML = `
+    ${typeof vybelandiaCenaHtml === 'function' ? vybelandiaCenaHtml() : '<div class="abr-cena" aria-hidden="true"></div>'}<div class="abr-luz" aria-hidden="true"></div>
+    <div class="abr-faiscas" aria-hidden="true">${faiscas}</div><div class="abr-vinheta" aria-hidden="true"></div>
+    <div class="abr-texto login-chegada"><span class="abr-kicker">Vybe OS · ${saudacao()}</span><h1 class="login-cidade">Bem-vindo à <b>Vybelândia</b></h1>
+      <p>O escritório da Vybe agora é uma cidade. Entre para encontrar a equipe.</p>
+      <button type="button" class="abr-primario" id="login-chegar">Entrar na Vybelândia</button></div>
     <form class="login-caixa carregando-rostos" id="login-form" autocomplete="on">
       <div class="login-marca"><span class="login-logo">V</span>
         <div><b>Vybe OS</b><small>Painel de Produção</small></div>
@@ -169,6 +180,14 @@ function montarTelaDeLogin() {
     </form>`;
   document.body.appendChild(gate);
   pintarRostos();
+  const chegar = () => {
+    gate.dataset.etapa = 'login';
+    window.VYBELANDIA_VISTA = true; // a abertura do escritório não repete a cena
+    document.querySelector('#login-rostos-lista button, #login-senha')?.focus({ preventScroll: true });
+  };
+  document.getElementById('login-chegar').addEventListener('click', chegar);
+  gate.addEventListener('keydown', (e) => { if (e.key === 'Enter' && gate.dataset.etapa === 'cena') { e.preventDefault(); chegar(); } });
+  document.getElementById('login-chegar').focus({ preventScroll: true });
 
   const form = document.getElementById('login-form');
   const erro = document.getElementById('login-erro');
