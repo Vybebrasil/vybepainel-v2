@@ -6250,3 +6250,5 @@ body.no-escritorio {overflow:hidden}
 .mapa-obj.mapa-aviso {animation:mapa-aviso 1.6s ease-in-out infinite}
 @keyframes mapa-aviso {0%,100% {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35aa)} 50% {filter:drop-shadow(0 0 4px #ffb36b) drop-shadow(0 0 14px #ff8a35)}}
 @media(prefers-reduced-motion:reduce){.mapa-obj.mapa-aviso {animation:none;filter:drop-shadow(0 0 3px #ff8a35) drop-shadow(0 0 8px #ff8a35aa)}}
+
+.ofc-voz-estado {display:flex;align-items:center;gap:6px;min-height:34px;padding:7px 9px;color:var(--ofc-suave,#c9bfb4);font:600 12px var(--mac-ui);white-space:nowrap}
