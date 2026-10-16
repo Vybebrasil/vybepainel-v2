@@ -5981,7 +5981,7 @@ body.no-escritorio {overflow:hidden}
 .mapa-muro.recortado {opacity:.28}
 @media(prefers-reduced-motion:reduce){.mapa-muro {transition:none}}
 .mapa-fundo {left:0;top:0;z-index:0}
-.mapa-rotulo {position:absolute;z-index:99000;transform:translate(-50%,-50%);padding:3px 9px;border-radius:8px;background:#11131acc;color:#eef0f5;font:650 12px var(--mac-ui);white-space:nowrap;pointer-events:none;opacity:.85}
+.mapa-rotulo {position:absolute;z-index:99000;transform:translate(-50%,-50%) scale(var(--contra,1));padding:3px 9px;border-radius:8px;background:#11131acc;color:#eef0f5;font:650 12px var(--mac-ui);white-space:nowrap;pointer-events:none;opacity:.85}
 .mapa-pessoa {position:absolute;width:64px;height:110px;margin:-104px 0 0 -32px;border:0;padding:0;background:none;cursor:pointer}
 .mapa-pessoa img {display:block;width:64px;height:110px;image-rendering:pixelated;pointer-events:none}
 .mapa-pessoa.voce::before {content:"";position:absolute;left:12px;bottom:-2px;width:40px;height:14px;border-radius:50%;border:2px solid var(--ofc-laranja);opacity:.9}
@@ -6299,11 +6299,16 @@ body.no-escritorio {overflow:hidden}
 .mapa-selo[data-status=foco] {color:#b9a8ff}
 .mapa-selo[data-status=reuniao] {color:#ffb27a}
 /* Atalhos de área */
-.ofc-areas {position:absolute;z-index:6;right:16px;bottom:200px;display:grid;gap:4px;padding:4px;border-radius:14px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-areas {position:absolute;z-index:6;right:16px;bottom:200px;display:grid;justify-items:end;gap:4px}
 .ofc-areas[hidden] {display:none}
-.ofc-areas button {padding:6px 10px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:600 11px var(--mac-ui);text-align:right;cursor:pointer;white-space:nowrap}
-.ofc-areas button:hover {background:#ffffff12}
-.ofc-areas button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.ofc-areas summary {display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:12px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);color:var(--ofc-texto);font:600 12px var(--mac-ui);cursor:pointer;list-style:none;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-areas summary::-webkit-details-marker {display:none}
+.ofc-areas summary:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.ofc-areas summary svg {width:16px;height:16px}
+.ofc-areas nav {order:-1;display:grid;gap:2px;padding:4px;border-radius:12px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-areas nav button {padding:6px 10px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:600 12px var(--mac-ui);text-align:right;cursor:pointer;white-space:nowrap}
+.ofc-areas nav button:hover {background:#ffffff12}
+.ofc-areas nav button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
 @media(max-width:760px){.ofc-areas {display:none}}
 /* Céu no horário de Irecê */
 .ofc-mapa[data-ceu=madrugada] {background:linear-gradient(180deg,#06060f 0%,#0e1028 45%,#1c1838 80%,#2a2140 100%)}
@@ -6333,3 +6338,31 @@ body.no-escritorio {overflow:hidden}
 .ofc-recado-rapido p {margin:0;font:400 13px/1.45 var(--mac-ui);white-space:pre-wrap;overflow-wrap:anywhere}
 .ofc-recado-rapido form {display:flex;gap:6px}
 .ofc-recado-rapido input {flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid #ffffff22;background:#00000040;color:inherit;font:inherit}
+
+/* Criador: região → peça, uma paleta por vez, miniatura recortada na peça */
+.cri .abr-previa {align-content:center;gap:18px}
+.cri .abr-previa img {width:224px;height:385px}
+.cri-grupos {display:flex;gap:4px;padding:3px;border-radius:12px;background:#ffffff0a;width:max-content;max-width:100%}
+.cri-grupos button {padding:7px 14px;border:0;border-radius:9px;background:transparent;color:#d9cfc4;font:700 13px var(--mac-ui);cursor:pointer}
+.cri-grupos button[aria-pressed=true] {background:#ff8a35;color:#1d1107}
+.cri-grupos button:focus-visible,.cri-abas button:focus-visible,.cri-cor-alvo:focus-visible,.cri-mais-cores:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.cri-abas {flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.cri-abas button {display:flex;align-items:center;gap:6px;white-space:nowrap}
+.cri-usando {width:7px;height:7px;border-radius:50%;background:#4fd18b}
+.cri-cores-topo {display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cri-cor-alvo {display:flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border-radius:999px;border:1px solid #ffffff22;background:#ffffff0a;color:#e9e9ee;font:600 12px var(--mac-ui);cursor:pointer}
+.cri-cor-alvo i {width:18px;height:18px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px #ffffff40}
+.cri-cor-alvo[aria-pressed=true] {border-color:#ff8a35;background:#ff8a3522}
+.cri-mais-cores {margin-left:auto;padding:5px 10px;border:0;border-radius:8px;background:transparent;color:#ffb27a;font:600 12px var(--mac-ui);cursor:pointer}
+.cri-cores {max-height:none;overflow:visible;gap:6px}
+.cri-cores.todas {max-height:132px;overflow-y:auto}
+
+@media(max-width:760px){.cri .abr-previa img{width:112px;height:192px}}
+.cri-peca.cabeca img {transform:scale(1.55)}
+.cri-grade {overflow:hidden;grid-template-columns:repeat(auto-fill,minmax(70px,1fr))}
+.cri-peca {height:92px}
+.cri-peca.cabeca {height:74px}
+.cri-peca:not(.cabeca) img {height:100px;transform:none}
+.cri-paginas {display:flex;align-items:center;justify-content:center;gap:12px;font:600 13px var(--mac-ui);color:#d9cfc4;font-variant-numeric:tabular-nums}
+.cri-paginas button {width:40px;height:36px;padding:0;font-size:18px}
+.cri-paginas button:disabled {opacity:.35;cursor:default}

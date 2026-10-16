@@ -76,9 +76,13 @@ async function escritorioApi(acao, corpo) {
     throw new Error(d.error || "Não foi possível acessar o escritório.");
   return d;
 }
+// Aviso no canto: some sozinho depois de alguns segundos (erros ficam mais).
 function escritorioAviso(texto) {
   const el = document.getElementById("office-feedback");
-  if (el) el.textContent = texto;
+  if (!el) return;
+  el.textContent = texto;
+  clearTimeout(escritorio.timerAviso);
+  if (texto) escritorio.timerAviso = setTimeout(() => { if (el.textContent === texto) el.textContent = ""; }, /falh|não |erro|negad|bloque/i.test(texto) ? 12000 : 6000);
 }
 async function abrirEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -541,7 +545,7 @@ function renderEscritorio() {
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div id="office-mesa-card" class="ofc-mesa-card" role="dialog" aria-label="Sua mesa" hidden onmouseleave="this.hidden=true"></div>
  <div id="office-info-card" class="ofc-mesa-card ofc-info-card" role="status" hidden onmouseleave="this.hidden=true"></div>
- <nav class="ofc-areas" aria-label="Ir para uma área" ${modo === "mapa" ? "" : "hidden"}>${ESCRITORIO_AREAS.map(([id, nome]) => `<button type="button" onclick="olharAreaEscritorio('${id}')">${nome}</button>`).join("")}</nav>
+ <details class="ofc-areas" ${modo === "mapa" ? "" : "hidden"}><summary aria-label="Ir para uma área">${escritorioIcone("mapa")}<span>Ir para</span></summary><nav aria-label="Áreas do mapa">${ESCRITORIO_AREAS.map(([id, nome]) => `<button type="button" onclick="olharAreaEscritorio('${id}');this.closest('details').open=false">${nome}</button>`).join("")}</nav></details>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
@@ -815,7 +819,7 @@ function passarNoMapaEscritorio(x, y, cx, cy) {
   const fila = escritorioDemandasProntas() ? DADOS_DEMANDAS.length : -1;
   if (card.hidden || card.dataset.chave !== `${escritorio.status}|${avisos}|${fila}`) {
     card.dataset.chave = `${escritorio.status}|${avisos}|${fila}`;
-    card.innerHTML = `<b>Sua mesa</b><small>${safeText(mesa.ambiente.nome)} · <span style="color:${st[1]}">${safeText(st[0])}</span></small><small>${avisos ? `${avisos} ${avisos === 1 ? "aviso" : "avisos"} no Painel` : "Nenhum aviso novo"}</small>${escritorioMinhaFilaHtml()}<div><button type="button" class="ofc-mini" onclick="abrirPainelDoEscritorio()">Abrir painel</button>${escritorioPodeEditar(mesa.ambiente.id) ? `<button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('mesa')">Editar mesa</button><button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('computador')">Editar computador</button>` : ""}</div>`;
+    card.innerHTML = `<b>Sua mesa</b><small>${safeText(mesa.ambiente.nome)} · <span style="color:${st[1]}">${safeText(st[0])}</span></small><small>${avisos ? `${avisos} ${avisos === 1 ? "aviso" : "avisos"} no Painel · <button type="button" class="office-text-button" onclick="marcarNotificacoesLidas().then(()=>{document.getElementById('office-mesa-card').hidden=true})">marcar como lidos</button>` : "Nenhum aviso novo"}</small>${escritorioMinhaFilaHtml()}<div><button type="button" class="ofc-mini" onclick="abrirPainelDoEscritorio()">Abrir painel</button>${escritorioPodeEditar(mesa.ambiente.id) ? `<button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('mesa')">Editar mesa</button><button type="button" class="ofc-mini" onclick="editarMovelDaMesaEscritorio('computador')">Editar computador</button>` : ""}</div>`;
   }
   // Preso à mesa (não acompanha o mouse): aparece acima dela e fica parado.
   if (!card.hidden) return;
