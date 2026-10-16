@@ -258,6 +258,7 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         setTimeout(() => escritorioMotorVoz().catch(() => {}), 1500);
         escritorioConversaAutomatica();
+        escritorioEmitir("music:get", {});
         carregarResumoRecados();
         escritorio.ping = setInterval(
           () => escritorioEmitir("system:ping", {}),
@@ -300,6 +301,8 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       }
       if (e.type === "reaction") escritorio.mapa?.reagir(e.payload.id, e.payload.tipo);
       if (e.type === "chat:bubble") escritorio.mapa?.balao(e.payload.id, e.payload.texto);
+      if (e.type === "music:state") receberMusicaEscritorio(e.payload);
+      if (e.type === "screen:quality") pedidoQualidadeTelaEscritorio(e.payload);
     };
     socket.onclose = () => {
       if (escritorio.socket !== socket) return;
@@ -342,6 +345,8 @@ function desconectarEscritorio(sairChamada = true) {
   escritorio.conectando = false;
   escritorioFimEntrada();
   escritorio.online = [];
+  escritorio.naPista = false;
+  if (typeof sincronizarMusicaEscritorio === "function") sincronizarMusicaEscritorio();
   if (sairChamada) sairChamadaEscritorio();
   renderEscritorio();
   if (sairChamada && typeof abrirAberturaEscritorio === "function") abrirAberturaEscritorio("saida");
@@ -427,6 +432,9 @@ function escritorioIcone(nome) {
     ajustes: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
     mais: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    voltar: '<path d="M18 6l-8 6 8 6zM6 6v12"/>',
+    avancar: '<path d="M6 6l8 6-8 6zM18 6v12"/>',
+    musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
   }[nome] || "";
   return `<svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -684,6 +692,7 @@ function renderEscritorio() {
  <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
  <div class="ofc-editor" id="office-editor" role="toolbar" aria-label="Editor do mapa" hidden></div>
  <div class="ofc-acao" id="office-acao" hidden></div>
+ <div id="office-musica-lugar"></div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <canvas class="ofc-minimapa" id="office-minimapa" width="232" height="168" ${modo === "mapa" ? "" : "hidden"} aria-label="Minimapa: clique para ir até lá" onclick="cliqueMinimapaEscritorio(event)"></canvas>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
@@ -718,6 +727,9 @@ function montarMapaEscritorio() {
   const el = escritorio.mapaEl;
   el.hidden = lugar.hidden;
   lugar.replaceWith(el);
+  // A música fica fora do redesenho: recriar o player cortaria a música.
+  const lugarMusica = document.getElementById("office-musica-lugar");
+  if (lugarMusica) lugarMusica.replaceWith(escritorioElementoMusica());
   if (!escritorio.mapa) {
     escritorio.mapa = criarMapaEscritorio(el, {
       planta: escritorioPlantaComMesas(),
@@ -907,6 +919,9 @@ function escritorioQuadro(agora) {
   escritorio.mapa?.mover(escritorio.base.eu, movimento.x, movimento.y, assento ?? movimento.dir, andando ? "wlk" : escritorioAcaoDaPose(escritorio.pose, assento !== undefined));
   escritorio.mapa?.seguir(movimento.x, movimento.y);
   escritorioMudouLugar(movimento.x, movimento.y);
+  // Entrou ou saiu da Pista: a música toca ou para (só para esta pessoa).
+  const naPista = escritorioNaPista();
+  if (naPista !== escritorio.naPista) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
   escritorioEnviarPosicao(!andando);
   atualizarAcaoProximaEscritorio();
   desenharMinimapaEscritorio();
@@ -1281,6 +1296,9 @@ function escritorioAcoesPerto() {
   const tela = escritorio.mapa.moveisPerto(p.x, p.y, 2).find((m) => ESCRITORIO_TELAS.test(m.classe));
   if (tela && escritorio.zona && escritorio.zona !== "foco")
     return { item: tela, texto: "Mostrar minha tela aqui", fazer: mostrarTelaEscritorio };
+  // Na Pista, a jukebox e a cabine do DJ são o bot de música da sala.
+  const som = escritorioNaPista() && perto.find((m) => /jukebox|^hc25_6$/.test(m.classe));
+  if (som) return { item: som, texto: "Abrir a música", fazer: abrirMusicaEscritorio };
   for (const m of perto) {
     const nome = ESCRITORIO_LIGAVEIS.find(([re]) => re.test(m.classe))?.[1];
     if (nome) return { item: m, texto: (m.estado ? "Desligar " : "Ligar ") + nome, fazer: () => alternarMovelEscritorio(m) };
@@ -1820,7 +1838,7 @@ async function entrarChamadaEscritorio({ microfone = false } = {}) {
     // ligar depois de entrar). Se o microfone for negado, entra só ouvindo.
     const iniciar = (audio) => escritorioComPrazo(window.RealtimeKitClient.init({
       authToken: d.authToken,
-      defaults: { audio, video: false, mediaConfiguration: { audio: escritorioPrefsAudio() } },
+      defaults: { audio, video: false, mediaConfiguration: { audio: escritorioPrefsAudio(), screenshare: escritorioLimiteTela() } },
       modules: { experimentalAudioPlayback: true },
     }), 20000, "iniciando a chamada");
     try { meeting = await iniciar(Boolean(microfone)); }
@@ -2044,10 +2062,12 @@ async function alternarMidiaEscritorio(tipo) {
     }
     if (tipo === "video")
       await self[self.videoEnabled ? "disableVideo" : "enableVideo"]();
-    if (tipo === "screen")
+    if (tipo === "screen") {
       await self[
         self.screenShareEnabled ? "disableScreenShare" : "enableScreenShare"
       ]();
+      if (self.screenShareEnabled) await aplicarQualidadeTelaEscritorio();
+    }
     renderMidiaEscritorio();
   } catch (e) {
     if (tipo === "audio") { escritorio.erroMic = await escritorioDiagnosticarMic(); renderMidiaEscritorio(); escritorioAviso(escritorio.erroMic.titulo); return; }
@@ -2098,6 +2118,15 @@ function renderMidiaEscritorio() {
     mic.dataset.ligado = String(Boolean(p.audioEnabled));
     mic.textContent = p.audioEnabled ? "Microfone ligado" : "Microfone desligado";
     topo.append(nome, mic);
+    // Volume desta pessoa só para você (e silenciar), guardado neste navegador.
+    const pessoaId = String(p.customParticipantId || "").split(":")[0];
+    if (!eu && /^\d+$/.test(pessoaId)) {
+      const v = escritorioVolumePessoa(pessoaId);
+      const ctl = document.createElement("div");
+      ctl.className = "office-call-volume";
+      ctl.innerHTML = `<button type="button" aria-pressed="${v.mudo}" onclick="silenciarPessoaEscritorio('${pessoaId}')">${v.mudo ? "Ouvir de novo" : "Silenciar para mim"}</button><input type="range" min="0" max="100" value="${v.mudo ? 0 : v.vol}" aria-label="Volume de ${safeText(p.name || "participante")} só para você" oninput="volumePessoaEscritorio('${pessoaId}',this.value)">`;
+      tile.append(ctl);
+    }
     // Barra de volume: mostra que o som está chegando (ou saindo, no seu caso).
     const nivel = document.createElement("i");
     nivel.className = "office-call-nivel";
@@ -2125,10 +2154,20 @@ function renderMidiaEscritorio() {
       v.controls = true;
       v.srcObject = new MediaStream([p.screenShareTracks.video]);
       tile.append(v);
+      // Quem assiste pede a quem mostra uma tela mais nítida ou mais leve.
+      const dono = String(p.customParticipantId || "").split(":")[0];
+      if (!eu && /^\d+$/.test(dono)) {
+        const pedir = document.createElement("div");
+        pedir.className = "office-call-pedir";
+        pedir.innerHTML = `<span>Qualidade desta tela:</span><button type="button" onclick="pedirQualidadeTelaEscritorio('${dono}','nitida')">Pedir mais nítida</button><button type="button" onclick="pedirQualidadeTelaEscritorio('${dono}','leve')">Pedir mais leve</button>`;
+        tile.append(pedir);
+      }
     }
     el.append(tile);
   }
   escritorioNivelAudio.acompanhar([meeting.self, ...meeting.participants.joined.toArray()]);
+  // Depois do SDK (que repõe a voz no próprio mix a cada mudança de áudio).
+  setTimeout(aplicarVolumesEscritorio, 0);
   escritorioPreviaTela(meeting.self);
   // Barra compacta: um rosto (iniciais) por pessoa; quem fala acende.
   const rostos = document.getElementById("office-call-rostos");
@@ -2257,7 +2296,7 @@ function escritorioPreviaTela(self) {
     el.id = "office-minha-tela";
     el.className = "ofc-minha-tela";
     el.setAttribute("aria-label", "Você está mostrando sua tela");
-    el.innerHTML = `<div class="ofc-minha-tela-topo"><b><i aria-hidden="true"></i>Você está mostrando a tela</b><button type="button" class="ofc-x" aria-label="Esconder a prévia" title="Esconder a prévia (continua mostrando)" onclick="this.closest('section').classList.toggle('mini')">–</button></div><video autoplay muted playsinline></video><div class="ofc-minha-tela-acoes"><button type="button" class="ofc-mini" onclick="trocarTelaEscritorio()">Trocar o que mostro</button><button type="button" class="ofc-mini perigo" onclick="alternarMidiaEscritorio('screen')">Parar de mostrar</button></div>`;
+    el.innerHTML = `<div class="ofc-minha-tela-topo"><b><i aria-hidden="true"></i>Você está mostrando a tela</b><button type="button" class="ofc-x" aria-label="Esconder a prévia" title="Esconder a prévia (continua mostrando)" onclick="this.closest('section').classList.toggle('mini')">–</button></div><video autoplay muted playsinline></video><label class="ofc-minha-tela-qualidade">Qualidade <select aria-label="Qualidade da tela que você mostra" onchange="qualidadeTelaEscritorio(this.value)">${Object.entries(ESCRITORIO_QUALIDADE_TELA).map(([id, q]) => `<option value="${id}"${id === escritorioQualidadeTela() ? " selected" : ""}>${q.nome}</option>`).join("")}</select></label><div class="ofc-minha-tela-acoes"><button type="button" class="ofc-mini" onclick="trocarTelaEscritorio()">Trocar o que mostro</button><button type="button" class="ofc-mini perigo" onclick="alternarMidiaEscritorio('screen')">Parar de mostrar</button></div>`;
     document.querySelector(".ofc-principal")?.append(el);
   }
   const v = el.querySelector("video");
@@ -2269,6 +2308,7 @@ async function trocarTelaEscritorio() {
   try {
     await self.disableScreenShare();
     await self.enableScreenShare();
+    await aplicarQualidadeTelaEscritorio();
   } catch (e) {
     escritorioAviso("Não foi possível trocar a tela: " + e.message);
   }
@@ -2279,6 +2319,8 @@ async function sairChamadaEscritorio() {
   escritorio.chamada = null;
   escritorio.somBloqueado = false;
   escritorioNivelAudio.parar();
+  for (const el of escritorioSonsPessoas.values()) { el.srcObject = null; el.remove(); }
+  escritorioSonsPessoas.clear();
   if (!escritorio.reconectandoAudio) document.getElementById("office-ajustes-audio")?.remove();
   try {
     await m?.leave();
@@ -2317,3 +2359,109 @@ globalThis.document?.addEventListener?.("keydown", (e) => {
 globalThis.document?.addEventListener?.("keyup", (e) => { escritorio.correndo = e.shiftKey; soltarTeclaEscritorio(e); });
 // Trocar de aba com a tecla presa não pode deixar o boneco andando sozinho.
 globalThis.window?.addEventListener?.("blur", () => { escritorioTeclas.clear(); escritorioPararTeclado(); });
+
+// Qualidade da tela mostrada. Quem mostra escolhe (vale para todos que
+// assistem); quem assiste pede a quem mostra, que vê o pedido e aplica com um
+// clique. O RealtimeKit não deixa cada um receber uma qualidade diferente da
+// tela, então a escolha é sempre de quem transmite.
+const ESCRITORIO_QUALIDADE_TELA = {
+  nitida: { nome: "Nítida (texto e planilha)", w: 1920, h: 1080, fps: 15 },
+  equilibrada: { nome: "Equilibrada", w: 1280, h: 720, fps: 12 },
+  leve: { nome: "Leve (internet fraca)", w: 854, h: 480, fps: 6 },
+};
+function escritorioQualidadeTela() {
+  try { const q = localStorage.getItem("vybe-escritorio-qualidade-tela"); return ESCRITORIO_QUALIDADE_TELA[q] ? q : "equilibrada"; } catch { return "equilibrada"; }
+}
+function escritorioLimiteTela() {
+  const q = ESCRITORIO_QUALIDADE_TELA.nitida;
+  return { width: { max: q.w }, height: { max: q.h }, frameRate: { ideal: 12, max: q.fps } };
+}
+async function aplicarQualidadeTelaEscritorio() {
+  const self = escritorio.chamada?.self, q = ESCRITORIO_QUALIDADE_TELA[escritorioQualidadeTela()];
+  if (!self?.screenShareEnabled) return;
+  const restricao = { width: { ideal: q.w }, height: { ideal: q.h }, frameRate: { ideal: q.fps } };
+  try { await self.updateScreenshareConstraints?.(restricao); } catch {}
+  // Também direto na faixa de vídeo (vale mesmo se o SDK ignorar o pedido).
+  try { await self.screenShareTracks?.video?.applyConstraints({ width: { max: q.w }, height: { max: q.h }, frameRate: { max: q.fps } }); } catch {}
+}
+async function qualidadeTelaEscritorio(nivel) {
+  if (!ESCRITORIO_QUALIDADE_TELA[nivel]) return;
+  try { localStorage.setItem("vybe-escritorio-qualidade-tela", nivel); } catch {}
+  await aplicarQualidadeTelaEscritorio();
+  const sel = document.querySelector("#office-minha-tela select");
+  if (sel) sel.value = nivel;
+  escritorioAviso("Tela em qualidade " + ESCRITORIO_QUALIDADE_TELA[nivel].nome.split(" (")[0].toLowerCase() + ".");
+}
+function pedirQualidadeTelaEscritorio(para, nivel) {
+  escritorioEmitir("screen:quality", { para, nivel });
+  escritorioAviso(nivel === "leve" ? "Pedido de tela mais leve enviado." : "Pedido de tela mais nítida enviado.");
+}
+function pedidoQualidadeTelaEscritorio({ nome, nivel } = {}) {
+  if (!ESCRITORIO_QUALIDADE_TELA[nivel] || !escritorio.chamada?.self?.screenShareEnabled) return;
+  const el = document.getElementById("office-minha-tela");
+  if (!el) return;
+  el.querySelector(".ofc-minha-tela-pedido")?.remove();
+  const aviso = document.createElement("div");
+  aviso.className = "ofc-minha-tela-pedido";
+  aviso.setAttribute("role", "status");
+  aviso.innerHTML = `<span>${safeText(String(nome || "Alguém").split(" ")[0])} pediu a tela ${nivel === "leve" ? "mais leve" : "mais nítida"}.</span><button type="button" class="ofc-mini" onclick="qualidadeTelaEscritorio('${nivel}');this.parentElement.remove()">Aplicar</button><button type="button" class="ofc-mini" onclick="this.parentElement.remove()">Agora não</button>`;
+  el.append(aviso);
+}
+
+// Volume de cada pessoa, só para quem escolhe. O RealtimeKit toca todas as
+// vozes misturadas num único áudio, sem volume por pessoa; quem tem volume
+// próprio sai desse mix e toca num áudio separado deste navegador.
+const escritorioSonsPessoas = new Map(); // id do participante → <audio>
+function escritorioVolumes() {
+  try { return JSON.parse(localStorage.getItem("vybe-escritorio-volumes") || "{}") || {}; } catch { return {}; }
+}
+function escritorioVolumePessoa(id) {
+  const v = escritorioVolumes()[id] || {};
+  return { vol: Number.isFinite(v.vol) ? Math.max(0, Math.min(100, v.vol)) : 100, mudo: Boolean(v.mudo) };
+}
+function guardarVolumePessoa(id, mudanca) {
+  const todos = escritorioVolumes();
+  const v = { ...escritorioVolumePessoa(id), ...mudanca };
+  if (v.vol === 100 && !v.mudo) delete todos[id]; else todos[id] = v;
+  try { localStorage.setItem("vybe-escritorio-volumes", JSON.stringify(todos)); } catch {}
+  aplicarVolumesEscritorio();
+}
+function volumePessoaEscritorio(id, valor) {
+  guardarVolumePessoa(id, { vol: Number(valor), mudo: false });
+}
+function silenciarPessoaEscritorio(id) {
+  guardarVolumePessoa(id, { mudo: !escritorioVolumePessoa(id).mudo });
+  renderMidiaEscritorio();
+}
+function aplicarVolumesEscritorio() {
+  const m = escritorio.chamada;
+  if (!m?.audio) return;
+  const vistos = new Set();
+  for (const p of m.participants.joined.toArray()) {
+    const id = String(p.customParticipantId || "").split(":")[0];
+    const v = escritorioVolumePessoa(id);
+    const trilha = p.audioEnabled && p.audioTrack;
+    let el = escritorioSonsPessoas.get(p.id);
+    if (!trilha || (v.vol === 100 && !v.mudo)) {
+      // Volume normal: volta para o mix do SDK.
+      if (el) { el.srcObject = null; el.remove(); escritorioSonsPessoas.delete(p.id); if (trilha) try { m.audio.addParticipantTrack(p.id, trilha); } catch {} }
+      continue;
+    }
+    vistos.add(p.id);
+    try { m.audio.removeParticipantTrack(p.id); } catch {}
+    if (!el) {
+      el = document.createElement("audio");
+      el.autoplay = true;
+      el.hidden = true;
+      document.body.append(el);
+      escritorioSonsPessoas.set(p.id, el);
+      const saida = escritorioLerPrefsAudio().saida;
+      if (saida && typeof el.setSinkId === "function") el.setSinkId(saida).catch(() => {});
+    }
+    if (el.srcObject?.getAudioTracks()[0] !== trilha) el.srcObject = new MediaStream([trilha]);
+    el.muted = v.mudo;
+    el.volume = v.vol / 100;
+    el.play?.().catch(() => {});
+  }
+  for (const [id, el] of escritorioSonsPessoas) if (!vistos.has(id)) { el.srcObject = null; el.remove(); escritorioSonsPessoas.delete(id); }
+}

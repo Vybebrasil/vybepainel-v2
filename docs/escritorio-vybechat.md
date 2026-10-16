@@ -169,3 +169,11 @@ Após login do responsável na Cloudflare, foi confirmado:
   `["vybeimg_<id>", x, y, dir]`; apagar a imagem tira o item da camada na mesma
   transação. O arquivo sai por `/api/painel?area=escritorio&acao=imagem&id=`,
   só com sessão. Sem a migração, o editor avisa e o resto do mapa segue igual.
+- Sala da música (`vybe-escritorio-musica.js`): a Pista do Lounge tem o bot de
+  música do VybeChat. A fila (até 50 links de vídeo/playlist do YouTube) e o
+  ponto em que a música está ficam no Worker (`music:*`, guardados no storage da
+  sala); cada navegador toca o próprio player do YouTube só enquanto a pessoa
+  está na Pista. Mexer na fila exige estar no Lounge. Volume é por pessoa.
+- Qualidade da tela mostrada: quem mostra escolhe Nítida, Equilibrada ou Leve;
+  quem assiste pede (`screen:quality`) e quem mostra aplica com um clique. O
+  RealtimeKit não entrega qualidades diferentes da tela para cada espectador.
