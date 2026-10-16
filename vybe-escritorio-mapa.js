@@ -254,9 +254,10 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
 // fatias: pedaços de quadros da equipe pintados neste trecho de parede
 // ({ img, u0, u1, h }: a faixa da imagem, em fração da largura, e a altura em
 // ladrilhos de parede).
-function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a") {
+// altura: em px (46 baixa, 64 média, 82 alta); sem ela, alta se tem cor.
+function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0) {
   const c = document.createElement("canvas");
-  const alt = cor ? 82 : 46;
+  const alt = altura || (cor ? 82 : 46);
   c.width = MAPA_TW / 2 + 6; c.height = MAPA_TH / 2 + alt + 6;
   const g = c.getContext("2d");
   // eixo "x": a aresta vai para baixo-direita; "y": para baixo-esquerda
@@ -563,14 +564,14 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
       const est = P.paredeEm?.(x, y, eixo);
-      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo);
+      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo, est?.alt);
       d.canvas.className = "mapa-obj mapa-muro";
       const prof = Math.round((x + y) * 10) + 2;
       colocar(d.canvas, x, y, d, prof);
       palco.append(d.canvas);
       const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
-      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo });
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo, alt: est?.alt });
     }
   }
   // Móveis (animados ficam numa lista para trocar de quadro)
@@ -618,7 +619,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   const quadrosParede = [];
   function pintarParedes(forcar = false) {
     for (const m of muros) {
-      if (!m.cor) continue;
+      if (!m.cor && !m.alt && !m.pintadoAntes) continue;
+      m.pintadoAntes = Boolean(m.cor || m.alt);
       const fatias = [];
       for (const q of quadrosParede) {
         if (q.dir === 4 && m.eixo === "x" && m.y === q.y && m.x >= q.x && m.x < q.x + q.w) {
@@ -629,7 +631,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         }
       }
       if (!fatias.length && !m.pintado && !forcar) continue;
-      const d = mapaDivisoria(m.x, m.y, m.eixo, m.cor, fatias, m.estilo);
+      const d = mapaDivisoria(m.x, m.y, m.eixo, m.cor, fatias, m.estilo, m.alt);
+      // A altura pode ter mudado: o canvas e a posição acompanham.
+      if (m.no.height !== d.canvas.height) { m.no.width = d.canvas.width; m.no.height = d.canvas.height; colocar(m.no, m.x, m.y, d, m.prof); m.t = parseFloat(m.no.style.top); m.b = m.t + m.no.height; }
       const g = m.no.getContext("2d");
       g.clearRect(0, 0, m.no.width, m.no.height);
       g.drawImage(d.canvas, 0, 0);
@@ -998,7 +1002,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   const ladrilhoEm = (cx, cy) => {
     const r = palco.getBoundingClientRect();
     const t = mapaLadrilho((cx - r.left) / zoom, (cy - r.top) / zoom, origem);
-    return { x: Math.floor(t.x), y: Math.floor(t.y) };
+    return { x: Math.floor(t.x), y: Math.floor(t.y), fx: t.x, fy: t.y };
   };
   el.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target.closest("button")) return;
@@ -1006,7 +1010,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Editor: apertar num móvel da área em edição pega o móvel (em vez de
     // arrastar o mapa); soltar larga onde o mouse estiver.
     const t0 = ladrilhoEm(e.clientX, e.clientY);
-    if (aoPegar?.(t0.x, t0.y)) {
+    if (aoPegar?.(t0.x, t0.y, t0.fx, t0.fy)) {
       arrasto = { item: true, x: e.clientX, y: e.clientY, moveu: false, ult: [] };
       el.setPointerCapture?.(e.pointerId);
       return;
@@ -1029,7 +1033,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     const dx = e.clientX - arrasto.x, dy = e.clientY - arrasto.y;
     if (Math.hypot(dx, dy) > 4) arrasto.moveu = true;
     if (!arrasto.moveu) return;
-    if (arrasto.item) { const t = ladrilhoEm(e.clientX, e.clientY); aoArrastar?.(t.x, t.y); return; }
+    if (arrasto.item) { const t = ladrilhoEm(e.clientX, e.clientY); aoArrastar?.(t.x, t.y, t.fx, t.fy); return; }
     seguindo = false;
     alvo.x = cam.x = arrasto.cx + dx; alvo.y = cam.y = arrasto.cy + dy;
     aplicar();
@@ -1217,7 +1221,13 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Piso e paredes pintados mudaram: redesenha só o fundo e as paredes.
     repintar: () => {
       fundoPronto?.();
-      for (const m of muros) { const est = P.paredeEm?.(m.x, m.y, m.eixo); if (m.corBase === undefined) m.corBase = m.cor; if (m.corBase) { m.cor = est?.cor || P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4] || m.corBase; m.estilo = est?.estilo; } }
+      for (const m of muros) {
+        const est = P.paredeEm?.(m.x, m.y, m.eixo);
+        if (m.corBase === undefined) m.corBase = m.cor || "";
+        const salaCor = P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4];
+        m.cor = est?.cor || salaCor || m.corBase;
+        m.estilo = est?.estilo; m.alt = est?.alt;
+      }
       pintarParedes(true);
     },
     // Ponto da janela de um ladrilho (para pôr a barrinha do editor ao lado do móvel).

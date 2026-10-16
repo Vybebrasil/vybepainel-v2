@@ -132,7 +132,7 @@ const ESCRITORIO_PAREDES_SALA = ["", "#ff8a35", "#ffb347", "#ffd166", "#ff6fa8",
 // material e clica (ou arrasta) nos ladrilhos e nos trechos de parede.
 const ESCRITORIO_ESTILOS_PAREDE = [["a", "Padrão"], ["b", "Lisa"], ["c", "Tijolo"], ["d", "Madeira"], ["e", "Concreto"], ["f", "Vidro"], ["g", "Listrada"], ["h", "Azulejo"]];
 function escritorioPincel() {
-  return escritorio.pincel ||= { ferramenta: "piso", piso: "preto", estilo: "c", cor: "" };
+  return escritorio.pincel ||= { ferramenta: "piso", piso: "preto", estilo: "c", cor: "", altura: "2" };
 }
 function escritorioEstiloSalaHtml() {
   const mesa = escritorioMinhaMesa();
@@ -142,8 +142,9 @@ function escritorioEstiloSalaHtml() {
   const amostraParede = (e) => ({ a: `linear-gradient(${a.corPadrao} 0 12%,#2b2d36 12%)`, b: pin.cor || a.corPadrao, c: "repeating-linear-gradient(#8a4733 0 7px,#3b1f17 7px 8px)", d: "repeating-linear-gradient(90deg,#7a5235 0 9px,#4a2f1c 9px 10px)", e: "#6e7077", f: "linear-gradient(135deg,#cfeaff,#7fb6e0)", g: `repeating-linear-gradient(90deg,${pin.cor || a.corPadrao} 0 6px,#00000040 6px 12px)`, h: "repeating-linear-gradient(#e9edf2 0 9px,#b8c0ca 9px 10px),#e9edf2" }[e]);
   const ferr = (id, nome, dica) => `<button type="button" aria-pressed="${pin.ferramenta === id}" onclick="escritorioPincel().ferramenta='${id}';renderEscritorio()" title="${dica}">${nome}</button>`;
   return `<div class="ofc-cats ofc-ferramentas">${ferr("piso", "Pintar piso", "Clique ou arraste nos ladrilhos da sua sala")}${ferr("balde", "Piso inteiro", "Troca o piso da sala toda de uma vez")}${ferr("parede", "Pintar parede", "Clique nos trechos das paredes altas")}</div>
-<p class="ofc-nota">${pin.ferramenta === "parede" ? "Escolha o estilo e a cor e clique no piso encostado na parede alta (de trás ou da esquerda) para trocar aquele trecho. Arraste para pintar vários." : pin.ferramenta === "balde" ? "Toque num piso: a sala inteira muda (os ladrilhos pintados à mão saem)." : "Escolha o piso e clique ou arraste nos ladrilhos da sua sala."} Muda na hora para todos, sem precisar de Salvar.</p>
+<p class="ofc-nota">${pin.ferramenta === "parede" ? "Escolha estilo, altura e cor e clique no piso encostado em qualquer parede da sua sala (fundo, lados ou frente) para trocar aquele trecho. Arraste para fazer vários." : pin.ferramenta === "balde" ? "Toque num piso: a sala inteira muda (os ladrilhos pintados à mão saem)." : "Escolha o piso e clique ou arraste nos ladrilhos da sua sala."} Muda na hora para todos, sem precisar de Salvar.</p>
 ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostras">${ESCRITORIO_ESTILOS_PAREDE.map(([id, nome]) => `<button type="button" aria-pressed="${pin.estilo === id}" onclick="escritorioPincel().estilo='${id}';renderEscritorio()"><i style="background:${amostraParede(id)}"></i><span>${nome}</span></button>`).join("")}</div>
+<h4>Altura</h4><div class="ofc-cats ofc-ferramentas">${[["0", "Baixa"], ["1", "Média"], ["2", "Alta"]].map(([h, n]) => `<button type="button" aria-pressed="${pin.altura === h}" onclick="escritorioPincel().altura='${h}';renderEscritorio()">${n}</button>`).join("")}</div>
 <h4>Cor (Padrão, Lisa e Listrada)</h4><div class="ofc-amostras cores">${ESCRITORIO_PAREDES_SALA.map((c) => `<button type="button" aria-pressed="${pin.cor === c}" onclick="escritorioPincel().cor='${c}';renderEscritorio()" aria-label="${c ? "Cor " + c : "Cor da sala"}"><i style="background:${c || a.corPadrao}"></i>${c ? "" : "<span>Da sala</span>"}</button>`).join("")}</div>
 <div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="pintarTodasParedesEscritorio()">Aplicar em todas as paredes</button><button type="button" class="ofc-secundario" onclick="limparPinturaEscritorio('sala_paredes')">Paredes como eram</button></div>`
   : `<h4>Piso</h4><div class="ofc-amostras">${ESCRITORIO_PISOS_SALA.map(([id, nome]) => `<button type="button" aria-pressed="${pin.ferramenta === "balde" ? (escritorio.perfil.sala_piso || "") === id : pin.piso === id}" onclick="${pin.ferramenta === "balde" ? `estiloSalaEscritorio('sala_piso','${id}',true)` : `escritorioPincel().piso='${id}';renderEscritorio()`}" aria-label="Piso ${nome}"><i style="background:${piso(id)}"></i><span>${nome}</span></button>`).join("")}</div>
@@ -151,20 +152,25 @@ ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostr
 <p class="ofc-erro" id="office-estilo-erro" role="alert"></p>`;
 }
 // Pinta um ladrilho ou trecho de parede da própria sala (x, y do mapa).
-function pintarNaSalaEscritorio(x, y) {
+function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
   const mesa = escritorioMinhaMesa(), pin = escritorioPincel();
   if (!mesa) return false;
   const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0;
   if (lx < 0 || ly < 0 || lx >= 10 || ly >= 10) return false;
   const p = escritorio.perfil;
   if (pin.ferramenta === "parede") {
-    // Trecho de trás (ly 0) ou da esquerda (lx 0) encostado no ladrilho.
-    const i = ly === 0 ? lx : lx === 0 ? 10 + ly : -1;
-    if (i < 0) return false;
-    const atual = String(p.sala_paredes || "").length === 40 ? p.sala_paredes : "a0".repeat(20);
-    const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16);
-    if (atual.slice(i * 2, i * 2 + 2) === cod) return true;
-    escritorio.perfil = { ...p, sala_paredes: atual.slice(0, i * 2) + cod + atual.slice(i * 2 + 2) };
+    // Parede mais perto do ponto clicado, entre as que encostam no ladrilho
+    // (fundo, esquerda, frente, direita) e que existem no mapa.
+    const ux = fx - a.x0, uy = fy - a.y0;
+    const lados = [[0, uy, ly === 0], [1, ux, lx === 0], [2, 10 - uy, ly === 9], [3, 10 - ux, lx === 9]]
+      .filter(([lado, , encosta]) => encosta && escritorioTrechoExiste(a, lado * 10 + (lado % 2 ? ly : lx)))
+      .sort((m, n) => m[1] - n[1]);
+    if (!lados.length) return false;
+    const lado = lados[0][0], i = lado * 10 + (lado % 2 ? ly : lx);
+    const atual = String(p.sala_paredes || "").length === 120 ? p.sala_paredes : "-00".repeat(40);
+    const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
+    if (atual.slice(i * 3, i * 3 + 3) === cod) return true;
+    escritorio.perfil = { ...p, sala_paredes: atual.slice(0, i * 3) + cod + atual.slice(i * 3 + 3) };
   } else if (pin.ferramenta === "piso") {
     const i = ly * 10 + lx;
     const atual = String(p.sala_pisos || "").length === 100 ? p.sala_pisos : "0".repeat(100);
@@ -177,7 +183,10 @@ function pintarNaSalaEscritorio(x, y) {
 }
 function pintarTodasParedesEscritorio() {
   const pin = escritorioPincel();
-  escritorio.perfil = { ...escritorio.perfil, sala_paredes: (pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16)).repeat(20) };
+  const a = escritorioMinhaMesa()?.ambiente;
+  if (!a) return;
+  const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
+  escritorio.perfil = { ...escritorio.perfil, sala_paredes: Array.from({ length: 40 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("") };
   escritorioPinturaMudou();
 }
 function limparPinturaEscritorio(campo) {
@@ -255,3 +264,10 @@ function escritorioRedesenharMapa() {
 // As demandas chegam e mudam com o Painel: a barra acompanha a cada minuto.
 if (typeof window !== "undefined" && typeof setInterval === "function")
   setInterval(() => { if (typeof activeBoard !== "undefined" && activeBoard === "escritorio") atualizarBarraDiaEscritorio(); }, 60000);
+
+// O trecho existe como parede no mapa (portas são vãos, sem parede)?
+function escritorioTrechoExiste(a, i) {
+  const [eixo, resto] = escritorioChaveTrecho(a, i).split(":");
+  const [x, y] = resto.split(",").map(Number);
+  return ESCRITORIO_PLANTA.divisorias.some(([x0, y0, x1, y1]) => eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1);
+}

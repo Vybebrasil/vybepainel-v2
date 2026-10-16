@@ -503,10 +503,11 @@ function escritorioAplicarSalas() {
       const k = typeof ESCRITORIO_PISOS_SALA !== "undefined" ? ESCRITORIO_PISOS_SALA[parseInt(lp[i], 16)]?.[0] : "";
       if (k) pisos.set(`${a.x0 + (i % 10)},${a.y0 + Math.floor(i / 10)}`, k);
     }
-    if (lw.length === 40) for (let i = 0; i < 20; i++) {
-      const estilo = lw[i * 2], cor = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA[parseInt(lw[i * 2 + 1], 16)] : "";
-      if (estilo === "a" && !cor) continue;
-      paredes.set(i < 10 ? `x:${a.x0 + i},${a.y0}` : `y:${a.x0},${a.y0 + i - 10}`, { estilo, cor: cor || a.cor });
+    if (lw.length === 120) for (let i = 0; i < 40; i++) {
+      const [estilo, c, h] = lw.slice(i * 3, i * 3 + 3);
+      if (estilo === "-") continue;
+      const cor = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA[parseInt(c, 16)] : "";
+      paredes.set(escritorioChaveTrecho(a, i), { estilo, cor: cor || a.cor, alt: [46, 64, 82][Number(h)] });
     }
   }
   ESCRITORIO_PLANTA.pisoLadrilho = (x, y) => pisos.get(x + "," + y);
@@ -789,8 +790,8 @@ function montarMapaEscritorio() {
       eu: escritorio.base.eu,
       aoClicar: (x, y) => cliqueNoMapaEscritorio(x, y),
       aoPassar: (x, y, cx, cy) => passarNoMapaEscritorio(x, y, cx, cy),
-      aoPegar: (x, y) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y),
-      aoArrastar: (x, y) => arrastarNoEditorEscritorio(x, y),
+      aoPegar: (x, y, fx, fy) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y, fx, fy),
+      aoArrastar: (x, y, fx, fy) => arrastarNoEditorEscritorio(x, y, fx, fy),
       aoSoltar: (x, y, moveu) => soltarNoEditorEscritorio(x, y, moveu),
     });
     requestAnimationFrame(() => centralizarEmMimEscritorio());
@@ -2569,4 +2570,12 @@ function escritorioMarcarRecados() {
   const de = Object.entries(escritorio.recadosResumo || {}).filter(([, q]) => q > 0).map(([id]) => id);
   const nomes = de.slice(0, 3).map((id) => escritorioNomePessoa(id).split(" ")[0]).join(", ") + (de.length > 3 ? "…" : "");
   escritorio.mapa?.marcarRecado?.(mesa?.x, mesa?.y, mesa ? n : 0, nomes, () => abrirRecadosEscritorio(de.length === 1 ? de[0] : null));
+}
+
+// Trecho i das paredes de uma sala individual (10 por lado): 0–9 fundo (y0),
+// 10–19 esquerda (x0), 20–29 frente (y1), 30–39 direita (x1). Chave igual à
+// que o mapa usa para cada pedaço de divisória.
+function escritorioChaveTrecho(a, i) {
+  const k = i % 10, lado = Math.floor(i / 10);
+  return [`x:${a.x0 + k},${a.y0}`, `y:${a.x0},${a.y0 + k}`, `x:${a.x0 + k},${a.y1}`, `y:${a.x1},${a.y0 + k}`][lado];
 }
