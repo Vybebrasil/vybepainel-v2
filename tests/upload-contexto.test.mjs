@@ -17,6 +17,9 @@ test('contexto oculta URL e recusa pessoa, peça, expiração e adulteração',(
  }finally{if(antes===undefined)delete process.env.SESSAO_SECRET;else process.env.SESSAO_SECRET=antes;}
 });
 test('Drive usa Range real, consulta vazia, conclusão e expiração; bloqueia endereço externo',async()=>{
+ // Este teste usa fetch simulado; não herda a configuração do deployment.
+ const homologacao=process.env.VYBE_HOMOLOGACAO;
+ delete process.env.VYBE_HOMOLOGACAO;
  const original=global.fetch;let status=308,range='bytes=0-1',op,vezes=0;
  global.fetch=async(u,o)=>{vezes++;op=o;return {status,ok:status===200,headers:new Headers(range?{Range:range}:{}),json:async()=>({id:'arquivo'})};};
  try {
@@ -28,7 +31,17 @@ test('Drive usa Range real, consulta vazia, conclusão e expiração; bloqueia e
  status=404;assert.equal((await consultarUploadNoDrive({sessao,total:10})).expirado,true);
  const antes=vezes;await assert.rejects(consultarUploadNoDrive({sessao:'https://evil.example',total:10}));assert.equal(vezes,antes);
  await assert.rejects(enviarParteNoDrive({sessao,total:10,inicio:9,conteudo:Buffer.from('abc')}));
- }finally{global.fetch=original;}
+ }finally{global.fetch=original;if(homologacao===undefined)delete process.env.VYBE_HOMOLOGACAO;else process.env.VYBE_HOMOLOGACAO=homologacao;}
+});
+test('homologação bloqueia upload e consulta antes de chamar fetch',async()=>{
+ const homologacao=process.env.VYBE_HOMOLOGACAO,original=global.fetch;let chamadas=0;
+ process.env.VYBE_HOMOLOGACAO='1';
+ global.fetch=async()=>{chamadas++;throw new Error('rede não deveria ser chamada');};
+ try{
+  await assert.rejects(enviarParteNoDrive({sessao,total:10,inicio:0,conteudo:Buffer.from('abc')}),/desativadas/);
+  await assert.rejects(consultarUploadNoDrive({sessao,total:10}),/desativadas/);
+  assert.equal(chamadas,0);
+ }finally{global.fetch=original;if(homologacao===undefined)delete process.env.VYBE_HOMOLOGACAO;else process.env.VYBE_HOMOLOGACAO=homologacao;}
 });
 test('API vincula consulta e trecho à sessão e usa o total protegido',async()=>{
  const {default:fs}=await import('node:fs');const {default:vm}=await import('node:vm');
