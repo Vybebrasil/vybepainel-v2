@@ -125,3 +125,14 @@ Após login do responsável na Cloudflare, foi confirmado:
   Builds automáticas de outras branches permanecem desabilitadas. A primeira
   build tentou `main` antes de a seleção de branch estar disponível e falhou por
   diretório ausente; não publicou o código do escritório.
+- Em seguida, a build da branch publicou o Worker separado. `/health` em
+  `https://vybe-escritorio-homologacao.gestaovybe.workers.dev` retornou
+  `{"ok":true,"service":"vybe-escritorio"}`. Esse teste não comprova WebSocket
+  autenticado ou chamada: o segredo de sessão ainda falta.
+- A migração foi aplicada somente em `br-tiny-mud-acdko4uj`; uma consulta posterior
+  confirmou as três tabelas `vybe_escritorio_perfis`, `vybe_escritorio_mensagens`
+  e `vybe_escritorio_salas`. Nenhuma migração foi aplicada na origem `main`.
+- `VYBE_HOMOLOGACAO=1` e `ESCRITORIO_WORKER_URL` foram preparados para o override
+  exclusivo da branch do escritório. O cadastro de `DATABASE_URL` dessa cópia e
+  de `ESCRITORIO_SESSION_SECRET` nas duas plataformas requer conclusão pelo
+  responsável. Não iniciar escrita pelo preview antes de conferir esses cadastros.
