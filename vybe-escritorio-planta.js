@@ -16,7 +16,13 @@ const ESCRITORIO_PLANTA = (() => {
     carpete: ["#2c3444", "#27303e"], preto: ["#1b1b20", "#17171b"], cafe: ["#c9c4bd", "#bdb8b1"],
     verde: ["#23493a", "#1f4134"], corredor: ["#2b2b31", "#27272c"], academia: ["#222227", "#1e1e22"],
     grama: ["#3f7d3a", "#3a7335"], deck: ["#8a5f3c", "#7f5736"], praca: ["#2a2930", "#26252b"],
+    // Pisos das salas individuais (madeiras e tons próximos, cada um diferente).
+    sala0: ["#7a4f3a", "#704836"], sala1: ["#5e4636", "#564031"], sala2: ["#3f4a5c", "#394354"], sala3: ["#6b5a3e", "#625238"],
+    sala4: ["#6a4555", "#613f4e"], sala5: ["#4a5a48", "#435242"], sala6: ["#5a4a6a", "#524361"], sala7: ["#7a5a3a", "#705235"],
+    sala8: ["#45545e", "#3f4d56"], sala9: ["#665040", "#5d493a"], sala10: ["#5b5040", "#53493a"], sala11: ["#4f4a5a", "#484352"],
   };
+  // Cor do letreiro em neon de cada sala.
+  const CORES_SALAS = ["#ff8a35", "#ffb347", "#5aa9ff", "#ffd166", "#ff6fa8", "#7ee08a", "#b48cff", "#ff9a5a", "#5ad1e6", "#e8a87c", "#d6c27a", "#a7a3ff"];
   const L = ESCRITORIO_SALA_LADO;
   const ambientes = [];
   const ambiente = (id, nome, sala, x0, y0, x1, y1, piso, extra = {}) =>
@@ -31,8 +37,9 @@ const ESCRITORIO_PLANTA = (() => {
   Array.from({ length: 12 }, (_, i) => i).forEach((i) => {
     // Três salas, a passagem do meio (x 30–34) e mais três.
     const linha = i < 6 ? 0 : 1, col = i % 6, y0 = linha ? 25 : 12, x0 = col < 3 ? col * L : 34 + (col - 3) * L;
+    // Cada sala com piso e cor de letreiro próprios (identidade do dono).
     ambiente("sala-" + i, "Sala livre", "criacao", x0, y0, x0 + L, y0 + L,
-      i % 2 ? "madeira" : "clara", { pessoal: true, porta: linha ? "cima" : "baixo" });
+      "sala" + i, { pessoal: true, porta: linha ? "cima" : "baixo", cor: CORES_SALAS[i] });
   });
   ambiente("foco", "Foco", "foco", 64, 12, 72, 22, "carpete");
   ambiente("jogos", "Jogos", "convivencia", 64, 25, 72, 35, "verde");
@@ -132,7 +139,8 @@ const ESCRITORIO_PLANTA = (() => {
   p("darkmodern_c20_rug", 52, 40, 0); p("spotlight", 51, 39, 2); p("spotlight", 57, 39, 6);
   for (const x of [37, 47]) p("theatre_plant", x, 38, 2);
   // Passagem do meio entre as salas: vasos altos dos dois lados, como uma rua da Vybelândia
-  for (const y of [14, 19, 28, 33]) { p("suncity_c19_plantpillar", 30, y, 2); p("suncity_c19_plantpillar", 33, y, 2); }
+  for (const y of [15, 31]) { p("suncity_c19_plantpillar", 30, y, 2); p("suncity_c19_plantpillar", 33, y, 2); }
+  for (const y of [19, 27]) { p("suncity_c19_streetlight", 30, y, 2); p("suncity_c19_streetlight", 33, y, 2); }
   p("easter_c22_fanpalm", 38, 46); p("easter_c22_fanpalm", 50, 46);
 
   // Área externa: piscina (no piso), espreguiçadeiras, guarda-sóis, canteiro,
