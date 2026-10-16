@@ -318,3 +318,41 @@ test("cancelar escritório durante preparação de chamada não entra no SDK", a
   await promessa;
   assert.equal(entradas, 0);
 });
+
+// abrirEscritorio usava uma variável `geracao` que não existia nela: o escritório
+// mostrava "geracao is not defined" e nunca abria. Nenhum teste chamava a
+// abertura — estes dois chamam.
+function telaDoEscritorio(entrada) {
+  const painel = { innerHTML: "" };
+  const c = vm.createContext({
+    window: { addEventListener() {} },
+    document: { getElementById: (id) => (id === "painel-escritorio" ? painel : null) },
+    safeText: (v) => String(v),
+    clearInterval() {},
+    clearTimeout() {},
+  });
+  vm.runInContext(readFileSync("vybe-escritorio.js", "utf8"), c);
+  c.entrada = entrada;
+  vm.runInContext("escritorioApi=()=>entrada;renderEscritorio=()=>{};", c);
+  return { c, painel };
+}
+
+test("abrir o escritório carrega a base e não estoura erro", async () => {
+  const { c, painel } = telaDoEscritorio(Promise.resolve({
+    eu: "1", equipe: [{ id: "1", perfil: { sala: "criacao" } }],
+  }));
+  await c.abrirEscritorio();
+  assert.ok(!/not defined/.test(painel.innerHTML), painel.innerHTML);
+  assert.equal(vm.runInContext("escritorio.base.eu", c), "1");
+  assert.equal(vm.runInContext("escritorio.sala", c), "criacao");
+});
+
+test("resposta atrasada não reabre o escritório depois de sair", async () => {
+  let resolver;
+  const { c } = telaDoEscritorio(new Promise((r) => { resolver = r; }));
+  const promessa = c.abrirEscritorio();
+  c.desconectarEscritorio();
+  resolver({ eu: "1", equipe: [] });
+  await promessa;
+  assert.equal(vm.runInContext("escritorio.base", c), null);
+});

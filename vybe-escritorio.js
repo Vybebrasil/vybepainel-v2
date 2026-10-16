@@ -75,6 +75,9 @@ async function abrirEscritorio() {
   }
   painel.innerHTML =
     '<div class="office-state" role="status">Preparando seu escritório…</div>';
+  // A geração é lida ANTES de esperar o servidor: se a pessoa sair enquanto a
+  // resposta não chega, a resposta atrasada não reabre um escritório fechado.
+  const geracao = escritorio.geracao;
   try {
     const base = await escritorioApi("entrada");
     if (geracao !== escritorio.geracao) return;
