@@ -59,7 +59,9 @@ export async function prepararChamadaEscritorio(
 ) {
   // A conversa por voz é da zona do mapa (sala individual ou espaço).
   const { SALAS_ESCRITORIO, ZONAS_ESCRITORIO } = await import("./escritorio.js");
-  if (!SALAS_ESCRITORIO.includes(sala) && !ZONAS_ESCRITORIO.includes(sala)) throw new Error("Sala inválida.");
+  // "escritorio": a conversa única dos espaços abertos (cada um só ouve quem
+  // está na mesma sala); as zonas continuam valendo para salas trancadas.
+  if (sala !== "escritorio" && !SALAS_ESCRITORIO.includes(sala) && !ZONAS_ESCRITORIO.includes(sala)) throw new Error("Sala inválida.");
   return sql.comTransacao(async (tx) => {
     // Mesmo bloqueio por sala em todas as instâncias; evita criar reuniões duplicadas.
     await tx`SELECT pg_advisory_xact_lock(hashtext(${"escritorio:" + sala}))`;
@@ -80,6 +82,16 @@ export async function prepararChamadaEscritorio(
       id = m.id;
       await tx`INSERT INTO vybe_escritorio_salas(sala,reuniao_id) VALUES(${sala},${id})`;
     }
+    // A mesma pessoa reaproveita o mesmo participante (só renova o token):
+    // reconectar ou abrir outra aba não deixa um "fantasma" falando junto.
+    const chave = "p:" + String(pessoa.id) + ":" + sala;
+    const [guardado] = await tx`SELECT reuniao_id FROM vybe_escritorio_salas WHERE sala=${chave}`;
+    if (guardado?.reuniao_id) {
+      try {
+        const r = await realtimeKitRequest(env, `/meetings/${encodeURIComponent(id)}/participants/${encodeURIComponent(guardado.reuniao_id)}/token`, { method: "POST", body: "{}" });
+        if (typeof r.token === "string") return { authToken: r.token };
+      } catch { /* participante expirou ou foi removido: cria outro abaixo */ }
+    }
     const p = await realtimeKitRequest(
       env,
       `/meetings/${encodeURIComponent(id)}/participants`,
@@ -94,6 +106,9 @@ export async function prepararChamadaEscritorio(
     );
     if (typeof p.token !== "string")
       throw new Error("Participante sem token de chamada.");
+    if (typeof p.id === "string")
+      await tx`INSERT INTO vybe_escritorio_salas(sala,reuniao_id) VALUES(${chave},${p.id})
+        ON CONFLICT(sala) DO UPDATE SET reuniao_id=EXCLUDED.reuniao_id`;
     return { authToken: p.token };
   });
 }

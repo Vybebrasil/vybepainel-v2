@@ -809,6 +809,10 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     const t = mapaTela(p.x + (desvio?.dx || 0), p.y + (desvio?.dy || 0), origem);
     p.no.style.left = t.x + "px";
     p.no.style.top = t.y + MAPA_TH / 2 + "px";
+    // O nome fica numa camada acima dos móveis (antes um monitor ou cadeira
+    // na frente cobria a etiqueta).
+    p.etiqueta.style.left = t.x + "px";
+    p.etiqueta.style.top = t.y + MAPA_TH / 2 - 104 + "px";
     // Sentado, fica à frente do assento (sofá longo tem profundidade maior).
     const sobre = p.acao === "sit" && grade ? grade.profAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : undefined;
     // Ladrilho em que está (o arredondado) e a regra das caixas isométricas:
@@ -911,9 +915,15 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         // Sem o imager do Habbo, a cópia guardada no nosso banco (em pé).
         img.onerror = () => { if (!img.dataset.reserva) { img.dataset.reserva = "1"; img.src = mapaBonecoGuardado(p.figura, p.dir); } };
         const etiqueta = document.createElement("span");
-        etiqueta.className = "mapa-etiqueta";
-        no.append(etiqueta, img);
+        etiqueta.className = "mapa-etiqueta solta" + (q.id === eu ? " voce" : "");
+        etiqueta.setAttribute("aria-hidden", "true");
+        etiqueta.addEventListener("click", (e) => { e.stopPropagation(); q.aoClicar?.(q.id); });
+        etiqueta.addEventListener("pointerdown", (e) => e.stopPropagation());
+        no.append(img);
+        palco.append(etiqueta);
         no.addEventListener("click", (e) => { e.stopPropagation(); q.aoClicar?.(q.id); });
+        no.addEventListener("focus", () => etiqueta.classList.add("foco"));
+        no.addEventListener("blur", () => etiqueta.classList.remove("foco"));
         palco.append(no);
         p = { id: q.id, no, img, etiqueta, x: q.x, y: q.y, dir: q.dir ?? 2, acao: q.acao || "std", figura };
         pessoas.set(q.id, p);
@@ -946,7 +956,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01 || p.acao !== (q.acao || "std")) caminhar(p, q);
       else trocarImagem(p);
     }
-    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
+    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); p.etiqueta.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
+    separarEtiquetas();
   }
 
   // Câmera suave: um alvo (posição e zoom) e um único quadro de animação que
@@ -1165,6 +1176,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     const p = pessoas.get(String(id));
     if (!p) return;
     p.no.classList.toggle("falando", Boolean(falando));
+    p.etiqueta.classList.toggle("falando", Boolean(falando));
+    separarEtiquetas();
     if (falando && !p.etiqueta.querySelector(".mapa-fala")) {
       const f = document.createElement("span");
       f.className = "mapa-fala";

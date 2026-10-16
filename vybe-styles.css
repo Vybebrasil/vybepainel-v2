@@ -6630,3 +6630,9 @@ body.no-escritorio {overflow:hidden}
 .clients-grid.dias-encaixados > .day-scroll-card {margin-bottom:0}
 .ofc-fino {display:inline-grid;grid-template-columns:repeat(2,22px);gap:2px}
 .ofc-editor-flutua .ofc-fino button {padding:0;width:22px;height:16px;font-size:11px;line-height:1}
+/* Nome das pessoas numa camada acima dos móveis. */
+.mapa-etiqueta.solta {z-index:99500;left:0;top:0;bottom:auto;transform:translate(-50%,calc(-100% + 4px - var(--sobe,0px)));cursor:pointer}
+.mapa-etiqueta.solta.foco {outline:2px solid var(--ofc-laranja)}
+.mapa-etiqueta.solta.falando {border-color:#4fd18b;box-shadow:0 0 0 2px #4fd18b55,0 0 12px #4fd18b88}
+.mapa-etiqueta.solta.falando .mapa-fala {display:grid;animation:mapa-fala .8s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.mapa-etiqueta.solta.falando .mapa-fala {animation:none}}
