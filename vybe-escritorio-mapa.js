@@ -195,6 +195,27 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     const gramado = (x >= P.x1 + 3 && y > P.y1) || (y >= P.y1 + 7 && x < 22);
     losango(x, y); g.fillStyle = gramado ? cor("grama", x, y) : (x + y) % 6 === 0 ? "#34323a" : cor("praca", x, y); g.fill();
   }
+  // Pisos do acervo (madeira, mármore, carpete, grama…): o desenho do móvel
+  // de piso repetido no ladrilho, recortado no losango. Enquanto a arte não
+  // chega (ou se faltar), fica a cor lisa.
+  const texturas = planta.texturasProntas;
+  const textura = (x, y, classe, x0 = 0, y0 = 0, modo = "") => {
+    const t = classe && texturas?.get(classe);
+    if (!t) return false;
+    const ax = x - (((x - x0) % t.dw) + t.dw) % t.dw, ay = y - (((y - y0) % t.dh) + t.dh) % t.dh, q = mapaTela(ax, ay, origem);
+    g.save(); losango(x, y); g.clip();
+    if (modo) { g.globalCompositeOperation = modo; g.globalAlpha = 0.55; }
+    // O desenho do piso cobre a área inteira do móvel (dw × dh ladrilhos):
+    // encaixa pelo topo e pelo centro dessa área, não pelo registro do Habbo
+    // (que deixava meio ladrilho de folga e o piso saía em xadrez).
+    g.drawImage(t.canvas, q.x + (t.dw - t.dh) * 16 - t.canvas.width / 2, q.y + (t.dw + t.dh) * 16 - t.canvas.height + 4);
+    g.restore();
+    return true;
+  };
+  // Lá fora: gramados, calçadas e deck desenhados por cima da praça do vídeo.
+  for (const r of planta.texturas || []) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) {
+    if (!textura(x, y, r.textura, r.x0, r.y0)) { losango(x, y); g.fillStyle = cor(r.piso || "praca", x, y); g.fill(); }
+  }
   for (let x = P.x0; x < P.x1; x++) for (let y = P.y0; y < P.y1; y++) {
     const a = escritorioAmbienteEm(x + 0.5, y + 0.5);
     // Piso de um espaço dentro do ambiente (os quatro do Lounge).
@@ -202,7 +223,11 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     // Ladrilho pintado pelo dono da sala.
     const pintado = planta.pisoLadrilho?.(x, y);
     losango(x, y); g.fillStyle = cor(pintado || (extra ? extra.piso : a ? a.piso : "corredor"), x, y); g.fill();
-    g.strokeStyle = "#0000001a"; g.lineWidth = 1; g.stroke();
+    // Sala individual (e o que o dono pintou): a cor dela com o veio da
+    // madeira por cima; espaços comuns e corredores: o piso do acervo.
+    if (pintado || a?.pessoal) textura(x, y, planta.texturaSalas, a?.x0 || 0, a?.y0 || 0, "soft-light");
+    else textura(x, y, extra?.textura || a?.textura || (a ? "" : planta.texturaCorredor), extra?.x0 ?? a?.x0 ?? 0, extra?.y0 ?? a?.y0 ?? 0);
+    g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
   }
   // Faixa laranja no meio dos corredores, como as ruas da Vybelândia.
   g.strokeStyle = "#ff7a1a55"; g.lineWidth = 2; g.setLineDash([10, 8]);
@@ -210,7 +235,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   for (const c of planta.corredores || []) { const [y, cx0, cx1] = Array.isArray(c) ? c : [c, P.x0, P.x1]; const a = mapaTela(cx0, y, origem), b = mapaTela(cx1, y, origem); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
   g.setLineDash([]);
   const pi = planta.piscina;
-  for (let x = pi.x0 - 1; x < pi.x1 + 1; x++) for (let y = pi.y0 - 1; y < pi.y1 + 2; y++) { losango(x, y); g.fillStyle = cor("deck", x, y); g.fill(); }
+  for (let x = pi.x0 - 1; x < pi.x1 + 1; x++) for (let y = pi.y0 - 1; y < pi.y1 + 2; y++) if (!textura(x, y, planta.texturaDeck, pi.x0 - 1, pi.y0 - 1)) { losango(x, y); g.fillStyle = cor("deck", x, y); g.fill(); }
   // Água da piscina: azul com reflexos e a borda interna mais escura.
   losango(pi.x0, pi.y0, pi.x1 - pi.x0, pi.y1 - pi.y0);
   const ag = mapaTela(pi.x0, pi.y0, origem), ab = mapaTela(pi.x1, pi.y1, origem);
@@ -642,6 +667,16 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   pintarFundo();
   fundoPronto = pintarFundo;
   imgLogo.onload = pintarFundo;
+  // Pisos do acervo: carrega a arte de cada um uma vez e redesenha o fundo.
+  const classesPiso = [...new Set([P.texturaSalas, P.texturaCorredor, P.texturaDeck, ...(P.texturas || []).map((r) => r.textura),
+    ...(P.ambientes || []).map((a) => a.textura), ...(P.pisos || []).map((q) => q.textura)].filter(Boolean))];
+  if (classesPiso.length) Promise.all(classesPiso.map(async (c) => {
+    try {
+      const m = await mapaCarregarMovel(c), dim = m.dados.logic?.model?.dimensions || {};
+      const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 0), 0, 0);
+      return d ? [c, { ...d, dw: Math.max(1, Math.round(dim.x || 1)), dh: Math.max(1, Math.round(dim.y || 1)) }] : null;
+    } catch { return null; }
+  })).then((lista) => { P.texturasProntas = new Map(lista.filter(Boolean)); pintarFundo(); });
 
   const colocar = (no, x, y, desenho, prof) => {
     const t = mapaTela(x, y, origem);
