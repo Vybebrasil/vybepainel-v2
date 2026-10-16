@@ -606,7 +606,7 @@ test("Worker guarda a zona do mapa e descarta zona inventada", async () => {
   sockets.push(s);
   await room.webSocketMessage(s, JSON.stringify({ type: "presence:move", payload: { sala: "criacao", zona: "sala-3", x: 40, y: 40 } }));
   assert.equal(s.a.zona, "sala-3");
-  s.a.last = 0;
+  s.a.last = 0; s.a.lastMov = 0;
   await room.webSocketMessage(s, JSON.stringify({ type: "presence:move", payload: { sala: "criacao", zona: "<x>", x: 40, y: 40 } }));
   assert.equal(s.a.zona, "");
   assert.equal(enviados.filter((e) => e.type === "presence:update").at(-1).payload[0].zona, "");
@@ -621,7 +621,7 @@ test("Worker: trancar sala, bater, deixar entrar, reação e balão", async () =
     sockets.push(s); return s;
   };
   const dona = sock("1", "sala-0", { minhaSala: "sala-0" }), outro = sock("2", "sala-0"), fora = sock("3", "");
-  const ev = async (s, type, payload) => { s.a.last = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
+  const ev = async (s, type, payload) => { s.a.last = 0; s.a.lastMov = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
   await ev(outro, "zone:lock", { zona: "sala-0", trancada: true });
   assert.equal(room.trancas.size, 0, "só a dona tranca a sala individual");
   await ev(dona, "zone:lock", { zona: "sala-0", trancada: true });
@@ -673,7 +673,7 @@ test("Worker: bebida e esteira continuam ao andar; móvel ligado vale para todos
     sockets.push(s); return s;
   };
   const um = sock("1"), dois = sock("2");
-  const ev = async (s, type, payload) => { s.a.last = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
+  const ev = async (s, type, payload) => { s.a.last = 0; s.a.lastMov = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
   for (const tipo of ["bebida", "lanche", "exercicio"]) {
     await ev(um, "pose", { tipo });
     await ev(um, "presence:move", { sala: "criacao", zona: "", x: 41, y: 40 });
@@ -793,7 +793,7 @@ test("Worker: fila de música só no Lounge, link do YouTube validado e o fim av
     sockets.push(s); return s;
   };
   const um = sock("1", "lounge"), fora = sock("2", "cafe");
-  const ev = async (s, type, payload) => { s.a.last = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
+  const ev = async (s, type, payload) => { s.a.last = 0; s.a.lastMov = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
   const estado = () => fora.msgs.filter((m) => m.type === "music:state").at(-1)?.payload;
   // Fora do Lounge não mexe na fila.
   await ev(fora, "music:enqueue", { fonte: { kind: "video", videoId: "dQw4w9WgXcQ" } });
@@ -818,4 +818,15 @@ test("Worker: fila de música só no Lounge, link do YouTube validado e o fim av
   assert.equal(estado().fila.length, 1);
   // A fila sobrevive à sala do Worker dormir (fica guardada).
   assert.equal(guardado.get("musica").fila.length, 1);
+});
+
+test("Worker: passo logo depois de outro evento não é descartado", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const s = { a: { sub: "1", nome: "P1", sala: "convivencia", zona: "lounge", x: 50, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300 },
+    msgs: [], deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { this.msgs.push(JSON.parse(m)); } };
+  sockets.push(s);
+  await room.webSocketMessage(s, JSON.stringify({ type: "reaction", payload: { tipo: "joinha" } }));
+  await room.webSocketMessage(s, JSON.stringify({ type: "presence:move", payload: { sala: "convivencia", zona: "lounge", x: 61, y: 62 } }));
+  assert.equal(s.a.x, 61);
 });

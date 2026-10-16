@@ -21,11 +21,12 @@ function escritorioFonteMusica(texto) {
   const video = host.endsWith("youtu.be") ? partes[0] : url.searchParams.get("v") || (["embed", "shorts", "live"].includes(partes[0]) ? partes[1] : null);
   return video && video.length === 11 && id.test(video) ? { kind: "video", videoId: video } : null;
 }
+// A música toca na Pista e no Bar (os dois espaços da direita do Lounge).
+const ESCRITORIO_MUSICA_ESPACOS = ["pista", "bar"];
 function escritorioNaPista() {
-  const pista = (ESCRITORIO_PLANTA.pisos || []).find((q) => q.piso === "pista");
   const pos = escritorioPosicao(escritorio.perfil || {});
   const x = typeof movimento !== "undefined" && movimento.quadro ? movimento.x : pos.x, y = typeof movimento !== "undefined" && movimento.quadro ? movimento.y : pos.y;
-  return Boolean(pista && escritorio.conectado && x >= pista.x0 && x < pista.x1 && y >= pista.y0 && y < pista.y1);
+  return escritorio.conectado && (ESCRITORIO_PLANTA.pisos || []).some((q) => ESCRITORIO_MUSICA_ESPACOS.includes(q.piso) && x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
 }
 function escritorioPosicaoMusica(m, agora = Date.now()) {
   return Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));
@@ -67,7 +68,7 @@ function escritorioElementoMusica() {
   if (escritorio.musicaEl) return escritorio.musicaEl;
   const el = document.createElement("section");
   el.className = "ofc-musica";
-  el.setAttribute("aria-label", "Música da Pista");
+  el.setAttribute("aria-label", "Música da Pista e do Bar");
   el.hidden = true;
   el.innerHTML = `<div class="ofc-musica-player"><div id="office-yt"></div></div><div class="ofc-musica-info"></div>`;
   escritorio.musicaEl = el;
@@ -151,7 +152,7 @@ function abrirMusicaEscritorio() {
     document.body.append(d);
   }
   d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-musica-titulo">Música da Pista</h3><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
-<p class="ofc-nota">Quem está na Pista ouve junto. O volume é só seu.</p>
+<p class="ofc-nota">Quem está na Pista ou no Bar ouve junto. O volume é só seu.</p>
 <form class="ofc-musica-form" onsubmit="event.preventDefault();adicionarMusicaEscritorio(this)"><input name="link" placeholder="Cole um link do YouTube (vídeo ou playlist)" aria-label="Link do YouTube" autocomplete="off" required><button class="workflow-primary">Pôr na fila</button></form>
 <p class="ofc-erro" id="office-musica-erro" role="alert"></p>
 <div id="office-musica-fila"></div>`;

@@ -231,8 +231,13 @@ export class EscritorioRoom {
       this.send(s, "system:pong", {});
       return;
     }
-    if (Date.now() - a.last < 120) return;
-    a.last = Date.now();
+    // Limite por tipo: o passo chega a cada 150 ms e a rede às vezes junta dois;
+    // antes um limite único de 120 ms descartava passos (e a parada final), e
+    // os outros viam a pessoa travada no lugar errado.
+    const mov = evento.type === "presence:move";
+    const campo = mov ? "lastMov" : "last";
+    if (Date.now() - (a[campo] || 0) < (mov ? 40 : 120)) return;
+    a[campo] = Date.now();
     if (evento.type === "presence:move") {
       if (
         !salas.includes(p.sala) ||
