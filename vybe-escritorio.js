@@ -2120,12 +2120,13 @@ function renderMidiaEscritorio() {
     topo.append(nome, mic);
     // Volume desta pessoa só para você (e silenciar), guardado neste navegador.
     const pessoaId = String(p.customParticipantId || "").split(":")[0];
+    let volume = null;
     if (!eu && /^\d+$/.test(pessoaId)) {
       const v = escritorioVolumePessoa(pessoaId);
       const ctl = document.createElement("div");
       ctl.className = "office-call-volume";
-      ctl.innerHTML = `<button type="button" aria-pressed="${v.mudo}" onclick="silenciarPessoaEscritorio('${pessoaId}')">${v.mudo ? "Ouvir de novo" : "Silenciar para mim"}</button><input type="range" min="0" max="100" value="${v.mudo ? 0 : v.vol}" aria-label="Volume de ${safeText(p.name || "participante")} só para você" oninput="volumePessoaEscritorio('${pessoaId}',this.value)">`;
-      tile.append(ctl);
+      ctl.innerHTML = `<input type="range" min="0" max="100" value="${v.mudo ? 0 : v.vol}" aria-label="Volume de ${safeText(p.name || "participante")} só para você" title="Volume só para você" oninput="volumePessoaEscritorio('${pessoaId}',this.value)"><button type="button" aria-pressed="${v.mudo}" title="Só você deixa de ouvir" onclick="silenciarPessoaEscritorio('${pessoaId}')">${v.mudo ? "Ouvir" : "Silenciar"}</button>`;
+      volume = ctl;
     }
     // Barra de volume: mostra que o som está chegando (ou saindo, no seu caso).
     const nivel = document.createElement("i");
@@ -2133,6 +2134,7 @@ function renderMidiaEscritorio() {
     nivel.setAttribute("aria-hidden", "true");
     nivel.append(document.createElement("i"));
     tile.append(topo, nivel);
+    if (volume) tile.append(volume);
     if (eu && p.audioEnabled) {
       const dica = document.createElement("small");
       dica.textContent = "Fale algo: a barra verde mexe quando o microfone capta sua voz.";
