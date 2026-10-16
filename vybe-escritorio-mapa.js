@@ -287,7 +287,7 @@ function mapaBonecoPronto(url, aoCarregar) {
   img.addEventListener("load", aoCarregar, { once: true });
   return false;
 }
-const MAPA_QUADRO_PASSO = 110; // ms por quadro de passo (como no Habbo)
+const MAPA_QUADRO_PASSO = 85; // ms por quadro de passo, no ritmo da velocidade normal
 // Direção do Habbo (0–7) para um passo na grade.
 function mapaDirecaoDoPasso(dx, dy) {
   const a = Math.atan2(dy, dx);
@@ -639,7 +639,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y);
     p.acao = "wlk"; trocarImagem(p);
     // Passos curtos (vindos da presença a cada 150 ms) emendam sem trancos.
-    const dur = Math.min(4000, dist < 1.5 ? 170 : dist * 240), ini = performance.now();
+    const dur = Math.min(4000, dist < 1.5 ? 150 : dist * 172), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;

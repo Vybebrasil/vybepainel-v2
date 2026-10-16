@@ -614,7 +614,7 @@ function mudarSalaEscritorio(sala, verMapa) {
 // Movimento contínuo (como em jogo): a posição anda em frações de ladrilho a
 // cada quadro, com colisão na grade do mapa. Clique segue o caminho livre
 // (A*); WASD/setas dirigem direto. A presença vai para a equipe a cada 150 ms.
-const ESCRITORIO_VELOCIDADE = 3.2; // ladrilhos por segundo
+const ESCRITORIO_VELOCIDADE = 5.8; // ladrilhos por segundo (o antigo "correr" virou o normal)
 const movimento = { x: 0, y: 0, rota: [], quadro: null, ultimo: 0, envio: 0, dir: 2, andando: false };
 function escritorioZonaEm(x, y) {
   return escritorioAmbienteEm(x, y)?.id || "";
@@ -689,7 +689,7 @@ function escritorioQuadro(agora) {
   let [vx, vy] = escritorioDirecaoTeclas(agora);
   let teclado = Boolean(vx || vy);
   if (ESCRITORIO_APARELHOS[escritorio.pose] && (teclado || movimento.rota.length)) definirPoseEscritorio("");
-  const velocidade = ESCRITORIO_VELOCIDADE * (escritorio.correndo && teclado ? 1.8 : 1);
+  const velocidade = ESCRITORIO_VELOCIDADE * (escritorio.correndo && teclado ? 1.5 : 1);
   if (!teclado && movimento.rota.length) {
     const alvo = movimento.rota[0];
     const dx = alvo.x - movimento.x, dy = alvo.y - movimento.y, d = Math.hypot(dx, dy);
@@ -1107,7 +1107,7 @@ function escritorioTocar(freq, dur, vol) {
 function escritorioSomDePasso(andando) {
   if (!andando) return;
   const agora = performance.now();
-  if (agora - escritorioUltimoPasso < (escritorio.correndo ? 210 : 330)) return;
+  if (agora - escritorioUltimoPasso < (escritorio.correndo ? 170 : 240)) return;
   escritorioUltimoPasso = agora;
   escritorioTocar(90 + Math.random() * 40, 0.06, 0.05);
 }
