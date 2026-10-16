@@ -11,6 +11,8 @@ const salas = [
 const estados = ["disponivel", "foco", "reuniao", "ausente"];
 // Zona do mapa (sala individual ou espaço); fora delas, corredor ("").
 const REACOES = ["aplauso", "coracao", "risada", "joinha", "fogo", "festa"];
+// Poses visíveis para todos: acenar e deitar acabam ao andar; o café segue na mão.
+const POSES = ["acenar", "deitar", "cafe", ""];
 const zonaValida = (z) => (/^(sala-([0-9]|1[01])|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge)$/.test(String(z || "")) ? String(z) : "");
 export async function verificarEntrada(token, segredo, agora = Date.now()) {
   try {
@@ -136,6 +138,7 @@ export class EscritorioRoom {
         perfil: a.perfil,
         sala: a.sala,
         zona: a.zona || "",
+        pose: a.pose || "",
         x: a.x,
         y: a.y,
         status: a.status,
@@ -202,6 +205,7 @@ export class EscritorioRoom {
         ...a,
         sala: p.sala,
         zona: zonaValida(p.zona),
+        pose: a.pose === "cafe" ? "cafe" : "",
         status: estados.includes(p.status) ? p.status : a.status,
         x: Math.max(6, Math.min(94, p.x)),
         y: Math.max(6, Math.min(94, p.y)),
@@ -249,6 +253,9 @@ export class EscritorioRoom {
       this.trancas.get(zona).add(p.id.slice(0, 40));
       this.broadcast("zone:locks", this.listaTrancas());
       return;
+    } else if (evento.type === "pose") {
+      if (!POSES.includes(p.tipo)) return;
+      a.pose = p.tipo;
     } else if (evento.type === "reaction") {
       if (!REACOES.includes(p.tipo)) return;
       this.broadcast("reaction", { id: a.sub, tipo: p.tipo });

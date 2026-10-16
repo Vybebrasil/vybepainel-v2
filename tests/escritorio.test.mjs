@@ -634,3 +634,21 @@ test("Worker: trancar sala, bater, deixar entrar, reação e balão", async () =
   await ev(dona, "presence:move", { sala: "criacao", zona: "", x: 40, y: 40 });
   assert.equal(room.trancas.size, 0);
 });
+
+test("Worker: pose vai para todos; acenar acaba ao andar, café continua na mão", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const s = { a: { sub: "1", nome: "P", sala: "criacao", zona: "", x: 50, y: 50, status: "disponivel", last: 0, exp: Math.floor(Date.now() / 1000) + 300 },
+    msgs: [], deserializeAttachment() { return this.a; }, serializeAttachment(v) { this.a = v; }, send(m) { this.msgs.push(JSON.parse(m)); } };
+  sockets.push(s);
+  const ev = async (type, payload) => { s.a.last = 0; await room.webSocketMessage(s, JSON.stringify({ type, payload })); };
+  await ev("pose", { tipo: "acenar" });
+  assert.equal(s.msgs.at(-1).payload[0].pose, "acenar");
+  await ev("presence:move", { sala: "criacao", zona: "", x: 40, y: 40 });
+  assert.equal(s.a.pose, "");
+  await ev("pose", { tipo: "cafe" });
+  await ev("presence:move", { sala: "criacao", zona: "", x: 41, y: 40 });
+  assert.equal(s.a.pose, "cafe");
+  await ev("pose", { tipo: "voar" });
+  assert.equal(s.a.pose, "cafe");
+});

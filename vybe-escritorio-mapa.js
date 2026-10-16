@@ -261,8 +261,9 @@ async function mapaGuardarBoneco(figura) {
     try { await fetch(mapaBonecoGuardado(figura, dir), { credentials: "same-origin" }); } catch {}
   }
 }
-function mapaAvatarUrl(figura, dir, acao) {
-  const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: dir, action: acao, gesture: "sml", size: "n" });
+// acao: std/wlk/sit/lay/wav; mao: algo na mão ("crr=6" é a caneca de café).
+function mapaAvatarUrl(figura, dir, acao, mao) {
+  const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: dir, action: mao ? `${acao},${mao}` : acao, gesture: "sml", size: "n" });
   return "https://www.habbo.com/habbo-imaging/avatarimage?" + q;
 }
 // Direção do Habbo (0–7) para um passo na grade.
@@ -424,7 +425,16 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     }
   };
   let grade = null, selecionado = null;
-  const prontos = Promise.all(P.moveis.map(montar)).then(() => { grade = mapaMontarGrade(P, moveis); });
+  // O que está em cima de mesa/balcão fica logo à frente do móvel de baixo
+  // (e não à frente de quem passa ao lado).
+  const ajustarEmpilhados = () => {
+    for (const m of moveis) {
+      if (!m.altura) continue;
+      const base = moveis.find((b) => !b.altura && !b.plano && Math.floor(m.x) >= Math.floor(b.x) && Math.floor(m.x) < Math.floor(b.x) + b.dim.x && Math.floor(m.y) >= Math.floor(b.y) && Math.floor(m.y) < Math.floor(b.y) + b.dim.y);
+      if (base) { m.prof = base.prof + 1; m.no.style.zIndex = m.prof; }
+    }
+  };
+  const prontos = Promise.all(P.moveis.map(montar)).then(() => { grade = mapaMontarGrade(P, moveis); ajustarEmpilhados(); });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   async function definirMoveis(lista) {
     for (const item of moveis) item.no.remove();
@@ -432,6 +442,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     animados.length = 0;
     await Promise.all(lista.map(montar));
     grade = mapaMontarGrade(P, moveis);
+    ajustarEmpilhados();
     destacar(selecionado);
   }
   // Móveis que ocupam o ladrilho, do mais à frente para o mais atrás.
@@ -473,7 +484,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     p.no.style.zIndex = Math.max(Math.round((Math.floor(p.x) + Math.floor(p.y)) * 10) + 6, (sobre ?? 0) + 2);
   };
   const trocarImagem = (p) => {
-    const url = mapaAvatarUrl(p.figura, p.dir, p.acao);
+    const url = mapaAvatarUrl(p.figura, p.dir, p.acao, p.mao);
     if (p.img.dataset.url !== url) { p.img.dataset.url = url; delete p.img.dataset.reserva; p.img.src = url; }
   };
   const caminhar = (p, alvo) => {
@@ -527,13 +538,18 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
         trocarImagem(p);
       }
       p.figura = figura;
-      p.etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>`;
+      p.mao = q.mao || "";
+      // Status escrito quando não está disponível; em foco ou ausente, o
+      // boneco fica meio transparente (não é hora de chamar).
+      p.etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
       p.etiqueta.querySelector("b").textContent = q.nome;
+      if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
+      p.no.classList.toggle("distante", q.status === "foco" || q.status === "ausente");
       p.no.setAttribute("aria-label", q.rotulo || q.nome);
       p.no.dataset.status = q.status || "";
       // O próprio boneco, enquanto este navegador o guia, não é puxado pela
       // posição (atrasada) que volta do servidor.
-      if (q.local && performance.now() - (p.guiado || 0) < 400) continue;
+      if (q.local && performance.now() - (p.guiado || 0) < 400) { trocarImagem(p); continue; }
       if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01 || p.acao !== (q.acao || "std")) caminhar(p, q);
       else trocarImagem(p);
     }
@@ -598,6 +614,22 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
     alvoCam = { x: r.width / 2 - t.x * zoom, y: r.height / 2 - t.y * zoom };
     if (!quadroCam) quadroCam = requestAnimationFrame(deslizar);
   }
+  // Móveis a até `raio` ladrilhos da posição (pela borda do móvel).
+  function moveisPerto(x, y, raio) {
+    return moveis.filter((m) => {
+      const dx = Math.max(Math.floor(m.x) - x, 0, x - (Math.floor(m.x) + m.dim.x - 1));
+      const dy = Math.max(Math.floor(m.y) - y, 0, y - (Math.floor(m.y) + m.dim.y - 1));
+      return Math.max(dx, dy) <= raio;
+    });
+  }
+  let realcado = null;
+  function realcar(item) {
+    if (realcado === item) return;
+    realcado?.no.classList.remove("mapa-interativo");
+    realcado = item;
+    item?.no.classList.add("mapa-interativo");
+  }
+  function posicoes() { return [...pessoas].map(([id, p]) => ({ id, x: p.x, y: p.y })); }
   // Balão de fala sobre a cabeça (some sozinho).
   function balao(id, texto) {
     const p = pessoas.get(id);
@@ -668,7 +700,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
 
   return {
     origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
-    balao, reagir, anexarVideo, idsNoMapa, marcarTrancas,
+    balao, reagir, anexarVideo, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
