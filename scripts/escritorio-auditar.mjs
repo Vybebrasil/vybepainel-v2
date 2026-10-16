@@ -122,7 +122,7 @@ for (const it of itens) {
 // Assento virado para algo: na frente dele (até 5 ladrilhos, na direção em que
 // ele olha) precisa haver mesa, TV/telão, púlpito, palco, lareira ou outro
 // assento virado de volta. Pega "sofá virado para a parede / para o nada".
-const FOCO = /table|desk|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
+const FOCO = /table|desk|rigpro|hc26_2|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
 const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
 const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill/;
 for (const it of itens) {
