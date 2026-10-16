@@ -1,4 +1,5 @@
 // Exclusivo do servidor local. Nenhuma consulta ou gravação externa.
+import { readFileSync } from 'node:fs';
 import { GRUPOS_PADRAO, CORES_DE_GRUPO } from '../server/grupos.js';
 const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
 // As Notas gravam na demonstração: são um caderno em memória, sem banco nem
@@ -95,6 +96,7 @@ export function demoApi(req,res,url,body) {
     if(area==='conta')return reply(200,{ok:true,pessoa});
     if(area==='escritorio') {
       if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
+      if(url.searchParams.get('acao')==='arte'){const arquivo=url.searchParams.get('arquivo')||'';if(!/^[a-z0-9_]+\.(png|json)$/.test(arquivo))return reply(400,{error:'Arquivo inválido.'});try{const dados=readFileSync(new URL('../assets/escritorio/habbo/'+arquivo,import.meta.url));res.writeHead(200,{'Content-Type':arquivo.endsWith('.png')?'image/png':'application/json; charset=utf-8'});return res.end(dados);}catch{return reply(404,{error:'Arte não encontrada.'});}}
       return reply(200,{ok:true,demo:true,eu:'1',worker:null,token:null,equipe:['Operador de teste','Design demonstração','Edição demonstração','Atendimento demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul','verde','roxo'][i],pele:'media',cabelo:['curto','longo','cacheado','curto'][i],mesa:['grafite','azul','verde','roxo'][i],objeto:['planta','livros','luminaria','planta'][i],sala:'convivencia',x:50,y:70}}))});
     }
     if(area==='clientes')return reply(200,{ok:true,clientes:[{id:1,nome:'Cliente demonstração',ativo:true,status:'Ativo',responsavel:'Vinícius',heads:'Operador de teste',heads_ids:[1]}],pessoas:[pessoa],acessos:[]});

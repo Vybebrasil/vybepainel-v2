@@ -136,3 +136,20 @@ Após login do responsável na Cloudflare, foi confirmado:
   exclusivo da branch do escritório. O cadastro de `DATABASE_URL` dessa cópia e
   de `ESCRITORIO_SESSION_SECRET` nas duas plataformas requer conclusão pelo
   responsável. Não iniciar escrita pelo preview antes de conferir esses cadastros.
+
+## Mapa e arte (16/10/2026)
+
+- O escritório é um mapa único (`vybe-escritorio-planta.js`) desenhado por
+  `vybe-escritorio-mapa.js`: piso e paredes em canvas; cada móvel, divisória e
+  personagem é um elemento com z-index pela profundidade. A presença continua em
+  porcentagem no Worker; a sala de conversa é a do ambiente onde a pessoa está.
+- Doze salas individuais de 10×10 (Paulo, Vinícius, Ewerton, Deivid, Bia, Jady,
+  Mizinho, Taynara, Reriston e três livres), ligadas pelo primeiro nome.
+- A arte é do Habbo (Sulake), obtida pelo habboassets.com. **Uso interno**,
+  autorizado pelo Paulo em 16/10/2026, ciente de que não há licença: não usar em
+  material público, comercial ou de cliente.
+- A arte não é arquivo público do site: fica em `assets/escritorio/habbo`, vai
+  junto da função (`includeFiles` no `vercel.json`) e sai por
+  `/api/painel?area=escritorio&acao=arte`, só com sessão. Para adicionar um
+  móvel: `node scripts/habbo-moveis.mjs <classe>`. Os bonecos vêm do imager do
+  Habbo no navegador de cada pessoa (pose, direção e andar).

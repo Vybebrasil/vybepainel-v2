@@ -1,5 +1,7 @@
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { createHmac } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const SALAS_ESCRITORIO = [
   "convivencia",
@@ -109,6 +111,21 @@ export async function enviarMensagemEscritorio(
     ON CONFLICT(pessoa_id,chave) DO UPDATE SET chave=EXCLUDED.chave RETURNING id`;
   return String(r.id);
 }
+export const PASTA_ARTE_ESCRITORIO = join(process.cwd(), "assets", "escritorio", "habbo");
+export async function enviarArteEscritorio(res, arquivo) {
+  const m = /^([a-z0-9_]+)\.(png|json)$/.exec(arquivo);
+  if (!m) return res.status(400).json({ error: "Arquivo inválido." });
+  let dados;
+  try {
+    dados = await readFile(join(PASTA_ARTE_ESCRITORIO, arquivo));
+  } catch {
+    return res.status(404).json({ error: "Arte não encontrada." });
+  }
+  res.setHeader("Content-Type", m[2] === "png" ? "image/png" : "application/json; charset=utf-8");
+  // O endereço muda quando o arquivo muda (?v=hash); cache só no navegador.
+  res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+  return res.status(200).send(dados);
+}
 export async function areaEscritorio(req, res, quem, sql) {
   if (quem.tipo !== "sessao")
     return res.status(403).json({
@@ -116,6 +133,10 @@ export async function areaEscritorio(req, res, quem, sql) {
     });
   if (!["GET", "POST"].includes(req.method))
     return res.status(405).json({ error: "Método não permitido." });
+  // Arte do mapa (Habbo, uso interno): só sai para quem está logado, nunca
+  // como arquivo público do site. O nome é validado; nada fora da pasta.
+  if (req.method === "GET" && req.query?.acao === "arte")
+    return enviarArteEscritorio(res, String(req.query.arquivo || ""));
   if (!(await escritorioPronto(sql)))
     return res.status(503).json({
       error: "O escritório aguarda a migração revisada do banco.",

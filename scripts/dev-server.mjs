@@ -59,9 +59,7 @@ export function createDevServer() {
       const html = await readFile(resolve(ROOT,'index.html'),'utf8');
       const publicFiles = new Set(['index.html','cadastros_governed_v2.js',
         ...[...html.matchAll(/(?:src|href)="\/([^"?]+)"/g)].map((m)=>m[1])]);
-      // Imagens do escritório são pedidas pelo JS, não aparecem no index.html.
-      const imagemDoEscritorio = /^assets\/escritorio\/[\w-]+\.png$/.test(file);
-      if ((!publicFiles.has(file) && !imagemDoEscritorio) || !['GET','HEAD'].includes(req.method)) { res.writeHead(404).end('Não encontrado.'); return; }
+      if (!publicFiles.has(file) || !['GET','HEAD'].includes(req.method)) { res.writeHead(404).end('Não encontrado.'); return; }
       let data=await readFile(resolve(ROOT,file));
       if(file==='index.html') data=Buffer.from(data.toString().replace('</body>',
         '<div style="position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#493700;color:white;text-align:center;font:12px sans-serif;padding:5px">AMBIENTE LOCAL · '+(upstream?'Proxy de inspeção':'Dados fictícios · senha: demo-local')+'</div></body>'));

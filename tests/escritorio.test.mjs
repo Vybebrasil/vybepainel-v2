@@ -331,6 +331,7 @@ function telaDoEscritorio(entrada) {
     clearInterval() {},
     clearTimeout() {},
   });
+  vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8"), c);
   vm.runInContext(readFileSync("vybe-escritorio.js", "utf8"), c);
   c.entrada = entrada;
   vm.runInContext("escritorioApi=()=>entrada;renderEscritorio=()=>{};", c);
@@ -339,12 +340,14 @@ function telaDoEscritorio(entrada) {
 
 test("abrir o escritório carrega a base e não estoura erro", async () => {
   const { c, painel } = telaDoEscritorio(Promise.resolve({
-    eu: "1", equipe: [{ id: "1", perfil: { sala: "criacao" } }],
+    eu: "1", equipe: [{ id: "1", nome: "Paulo Martins", perfil: { sala: "criacao" } }],
   }));
   await c.abrirEscritorio();
   assert.ok(!/not defined/.test(painel.innerHTML), painel.innerHTML);
   assert.equal(vm.runInContext("escritorio.base.eu", c), "1");
+  // Chega sentado na própria sala, que fica na área escolhida (criação).
   assert.equal(vm.runInContext("escritorio.sala", c), "criacao");
+  assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.sala", c), "criacao");
 });
 
 test("resposta atrasada não reabre o escritório depois de sair", async () => {
@@ -371,19 +374,23 @@ function inicioDoEscritorio({ celular = false, preferencia = null, entrada }) {
     clearInterval() {},
     clearTimeout() {},
   });
+  vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8"), c);
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
   vm.runInContext(readFileSync("vybe-escritorio.js", "utf8"), c);
   c.entrada = entrada;
   c.trocas = trocas;
   vm.runInContext("var activeBoard='producao';escritorioApi=()=>entrada;voltarAoEscritorio=()=>trocas.push('escritorio');", c);
   return { c, trocas };
 }
-const baseConfigurada = () => Promise.resolve({ eu: "1", worker: "https://w.test", equipe: [{ id: "1", perfil: { sala: "foco" } }] });
+const baseConfigurada = () => Promise.resolve({ eu: "1", worker: "https://w.test", equipe: [{ id: "1", nome: "Bia Santos", perfil: { sala: "foco" } }] });
 
 test("computador abre no escritório configurado", async () => {
   const { c, trocas } = inicioDoEscritorio({ entrada: baseConfigurada() });
   await c.iniciarNoEscritorio();
   assert.deepEqual(trocas, ["escritorio"]);
-  assert.equal(vm.runInContext("escritorio.sala", c), "foco");
+  // Chega sentada na própria sala (Sala de Bia) e a conversa é a dela.
+  assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.nome", c), "Sala de Bia");
+  assert.equal(vm.runInContext("escritorio.sala", c), vm.runInContext("escritorioMinhaMesa().ambiente.sala", c));
 });
 
 test("celular, preferência pelo painel ou escritório sem configuração seguem no painel", async () => {
@@ -399,10 +406,41 @@ test("celular, preferência pelo painel ou escritório sem configuração seguem
   }
 });
 
-test("clique no piso volta para a mesma posição em porcentagem", () => {
+test("clique no mapa volta para o mesmo ladrilho e a presença ida e volta", () => {
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
-  for (const [u, v] of [[1, 1], [3, 4.5], [5.2, 0.8]]) {
-    const r = vm.runInContext(`(() => { const p = escritorioProjetar(${u}, ${v}); const { W } = escritorioCenaTamanho(); const { TW, TH, PAREDE, MARGEM } = ESCRITORIO_CENA; const a = (p.x - W / 2) / (TW / 2), s = (p.y - MARGEM - PAREDE) / (TH / 2); return [(a + s) / 2, (s - a) / 2]; })()`, c);
-    assert.ok(Math.abs(r[0] - u) < 1e-9 && Math.abs(r[1] - v) < 1e-9);
+  for (const [x, y] of [[1, 1], [20.5, 13.25], [67, 46]]) {
+    const r = vm.runInContext(`(() => { const o = { x: 100, y: 200 }; const t = mapaTela(${x}, ${y}, o); return mapaLadrilho(t.x, t.y, o); })()`, c);
+    assert.ok(Math.abs(r.x - x) < 1e-9 && Math.abs(r.y - y) < 1e-9);
+    const v = vm.runInContext(`(() => { const p = escritorioParaPorcentagem(${x}, ${y}); return escritorioParaMapa(p.x, p.y); })()`, c);
+    assert.ok(Math.abs(v.x - x) < 1e-9 && Math.abs(v.y - y) < 1e-9);
   }
+});
+
+test("cada ambiente do mapa leva à sala de conversa certa", () => {
+  const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  assert.equal(vm.runInContext("escritorioSalaEm(2, 2)", c), "reuniao"); // auditório
+  assert.equal(vm.runInContext("escritorioSalaEm(64, 16)", c), "foco");
+  assert.equal(vm.runInContext("escritorioSalaEm(20, 23)", c), "convivencia"); // corredor
+  assert.equal(vm.runInContext("escritorioSalaEm(40, 51)", c), "convivencia"); // piscina
+});
+
+test("salas individuais: cada dono na sua, pelo primeiro nome sem acento; livres ficam livres", () => {
+  const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  c.equipe = [
+    { id: "1", nome: "Paulo Martins" }, { id: "2", nome: "Vinicius Souza" }, { id: "3", nome: "Ewerton L." },
+    { id: "4", nome: "Fulano Externo" },
+  ];
+  const r = Object.fromEntries(vm.runInContext("[...escritorioSalasPessoais(equipe)].map(([id, a]) => [id, a.nome])", c));
+  assert.deepEqual(r, { 1: "Sala de Paulo", 2: "Sala de Vinícius", 3: "Sala de Ewerton" });
+  const salas = vm.runInContext("ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.x1 - a.x0, a.y1 - a.y0, a.nome])", c);
+  assert.equal(salas.length, 12);
+  assert.ok(salas.every(([w, h]) => w === 10 && h === 10));
+  assert.equal(salas.filter((s) => s[2] === "Sala livre").length, 3);
+});
+
+test("figura do boneco: escolhas do perfil viram figura válida; figura colada só se bem formada", () => {
+  const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  assert.match(vm.runInContext('mapaFigura({ pele: "escura", roupa: "azul", cabelo: "longo" })', c), /^hd-600-14\.ch-665-82/);
+  assert.equal(vm.runInContext('mapaFigura({ figura: "hd-180-1.hr-828-61" })', c), "hd-180-1.hr-828-61");
+  assert.doesNotMatch(vm.runInContext('mapaFigura({ figura: "x\\"><script>" })', c), /script/);
 });

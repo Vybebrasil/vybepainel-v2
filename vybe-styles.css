@@ -5967,32 +5967,22 @@ body.no-escritorio {overflow:hidden}
 .ofc-mapa {position:absolute;inset:0;overflow:hidden;cursor:pointer;outline:none}
 .ofc-mapa[hidden] {display:none}
 .ofc-mapa:focus-visible {box-shadow:inset 0 0 0 2px var(--ofc-laranja)}
-.ofc-palco {position:absolute;left:0;top:0;transform-origin:0 0}
-.ofc-casco {position:absolute;inset:0}
-.ofc-piso {fill:#ebe5dc}
-.ofc-grade line {stroke:#8a7d6a;stroke-opacity:.16;stroke-width:2}
-.ofc-janela {fill:url(#ofc-vidro);stroke:#9fb6cc;stroke-opacity:.5;stroke-width:4}
-.ofc-parede-marca {font:800 54px var(--mac-ui);letter-spacing:.2em;fill:#ffffffd9}
-.ofc-parede-sala {font:700 26px var(--mac-ui);letter-spacing:.18em}
-.ofc-obj {position:absolute;pointer-events:none;user-select:none}
-.ofc-placa {position:absolute;z-index:4000;transform:translate(-50%,0);padding:3px 10px;border-radius:8px;background:#1f2430e6;color:#e9ecf2;font:600 20px var(--mac-ui);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-.ofc-placa.minha {background:var(--ofc-laranja);color:#1c1208}
-.ofc-pc {position:absolute;width:80px;height:80px;border:0;padding:0;background:none;cursor:pointer}
-.ofc-pc .ofc-obj {position:static;display:block;margin:20px auto 0}
-.ofc-pc>span {position:absolute;left:50%;bottom:100%;transform:translate(-50%,6px);padding:4px 10px;border-radius:8px;background:#1f2430;color:#fff;font:600 18px var(--mac-ui);white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none}
-.ofc-pc:hover>span,.ofc-pc:focus-visible>span {opacity:1;transform:translate(-50%,0)}
-.ofc-pc:hover .ofc-obj,.ofc-pc:focus-visible .ofc-obj {filter:drop-shadow(0 0 10px #ffb27a) brightness(1.15)}
-.ofc-pc:focus-visible {outline:3px solid var(--ofc-laranja);outline-offset:4px;border-radius:12px}
-.office-people {position:absolute;inset:0;pointer-events:none}
-.office-person {position:absolute;transform:translate(-50%,-100%);border:0;padding:0;background:none;display:grid;justify-items:center;gap:6px;color:#fff;pointer-events:auto;cursor:pointer;transition:left .55s ease,top .55s ease}
-.office-person>.office-avatar {width:96px;height:123px;filter:drop-shadow(0 8px 6px #0004)}
-.office-person.voce::after {content:"";position:absolute;bottom:-6px;left:50%;width:96px;height:30px;transform:translateX(-50%);border-radius:50%;border:4px solid var(--ofc-laranja);opacity:.8;z-index:-1}
-.ofc-etiqueta {display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:12px;background:#171a22eb;border:2px solid #ffffff1c;font:600 20px var(--mac-ui);white-space:nowrap;max-width:280px}
-.ofc-etiqueta b {overflow:hidden;text-overflow:ellipsis}
-.office-person .ofc-ponto {width:13px;height:13px}
-.office-person .ofc-etiqueta {font-size:0}
-.office-person .ofc-etiqueta b {font-size:20px}
-.office-person:focus-visible .ofc-etiqueta {outline:3px solid var(--ofc-laranja)}
+/* Mapa no estilo Habbo: pixels nítidos; cada peça é um elemento com z-index. */
+.ofc-mapa {background:#0f1116;cursor:grab;touch-action:none}
+.ofc-mapa:active {cursor:grabbing}
+.mapa-palco {position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:pixelated}
+.mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
+.mapa-fundo {left:0;top:0;z-index:0}
+.mapa-rotulo {position:absolute;z-index:99000;transform:translate(-50%,-50%);padding:3px 9px;border-radius:8px;background:#11131acc;color:#eef0f5;font:650 12px var(--mac-ui);white-space:nowrap;pointer-events:none;opacity:.85}
+.mapa-pessoa {position:absolute;width:64px;height:110px;margin:-104px 0 0 -32px;border:0;padding:0;background:none;cursor:pointer}
+.mapa-pessoa img {display:block;width:64px;height:110px;image-rendering:pixelated;pointer-events:none}
+.mapa-pessoa.voce::before {content:"";position:absolute;left:12px;bottom:-2px;width:40px;height:14px;border-radius:50%;border:2px solid var(--ofc-laranja);opacity:.9}
+.mapa-etiqueta {position:absolute;left:50%;bottom:100%;transform:translate(-50%,4px);display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:9px;background:#171a22e6;border:1px solid #ffffff22;color:#fff;font:650 11px var(--mac-ui);white-space:nowrap}
+.mapa-pessoa:focus-visible .mapa-etiqueta {outline:2px solid var(--ofc-laranja)}
+.ofc-zoom {position:absolute;z-index:6;right:16px;bottom:16px;display:grid;gap:4px;padding:4px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);border-radius:14px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-zoom[hidden] {display:none}
+.ofc-zoom button {width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--ofc-texto);font:600 18px var(--mac-ui);cursor:pointer}
+.ofc-zoom button:hover {background:#ffffff14}
 .ofc-lista {position:absolute;inset:70px 16px 90px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;align-content:start}
 .ofc-lista[hidden] {display:none}
 .ofc-cartao {display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);border-top:3px solid var(--sala)}
@@ -6066,4 +6056,3 @@ body.no-escritorio {overflow:hidden}
   .ofc-lista{inset:132px 12px 84px;grid-template-columns:1fr}
   .ofc-dock{bottom:10px}
 }
-@media(prefers-reduced-motion:reduce){.office-person,.ofc-pc>span{transition:none}}

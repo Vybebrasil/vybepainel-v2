@@ -7,19 +7,13 @@ const fontes = [...html.matchAll(/<script\s+src="\/([^"?]+)"\s*><\/script>/g)].m
 if (!fontes.length) throw new Error('Nenhum módulo encontrado.');
 // Preserva os limites entre scripts: concatenar mudaria o momento em que
 // declarações globais substituem funções anteriores (hoisting).
-// Imagens do escritório entram com hash no nome (o /assets/ é imutável em
-// cache) e o caminho é trocado no código antes de minificar.
-await mkdir('dist/assets/escritorio', { recursive: true });
-const sprites = new Map();
-for (const f of (await readdir('assets/escritorio')).filter((f) => f.endsWith('.png'))) {
-  const dados = await readFile(`assets/escritorio/${f}`);
-  const nome = `${f.replace(/\.png$/, '')}-${createHash('sha256').update(dados).digest('hex').slice(0, 12)}.png`;
-  await writeFile(`dist/assets/escritorio/${nome}`, dados);
-  sprites.set(f, nome);
-}
-const comSprites = (codigo) => codigo.includes('/assets/escritorio/')
-  ? codigo.replace(/ESCRITORIO_SPRITES\s*=\s*"\/assets\/escritorio\/";/, `ESCRITORIO_SPRITES = "/assets/escritorio/"; const ESCRITORIO_ARQUIVOS = ${JSON.stringify(Object.fromEntries(sprites))};`)
-  : codigo;
+// Arte do escritório (assets/escritorio/habbo) não vai para o dist: sai pela
+// API só para quem está logado. O mapa recebe o hash de cada arquivo.
+const arquivosDoMapa = {};
+for (const f of (await readdir('assets/escritorio/habbo')).filter((f) => /\.(png|json)$/.test(f)))
+  arquivosDoMapa[f] = createHash('sha256').update(await readFile(`assets/escritorio/habbo/${f}`)).digest('hex').slice(0, 12);
+const comSprites = (codigo) => codigo.replace(/const MAPA_BASE = "[^"]*";/,
+  (m) => `${m} const ESCRITORIO_ARQUIVOS = ${JSON.stringify(arquivosDoMapa)};`);
 const modulos = await Promise.all(fontes.map(async (fonte) => ({ fonte,
   ...(await transform(comSprites(await readFile(fonte,'utf8')), { loader:'js', minifyWhitespace:true,
     minifySyntax:true, minifyIdentifiers:false, target:'es2022', legalComments:'none' })) })));

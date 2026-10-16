@@ -30,55 +30,6 @@ const ESCRITORIO_STATUS = {
   reuniao: ["Em reunião", "#ff9548"],
   ausente: ["Ausente", "#8a93a3"],
 };
-// Cena isométrica. Móveis: Furniture Kit da Kenney (CC0, kenney.nl), em
-// assets/escritorio. A sala tem N×N ladrilhos; a presença continua em
-// porcentagem (6–94), então o Worker não muda: x vira u e y vira v.
-const ESCRITORIO_CENA = { N: 6, TW: 208, TH: 140, PAREDE: 210, MARGEM: 24 };
-const ESCRITORIO_SPRITES = "/assets/escritorio/";
-// Mesas ficam no fundo da sala; a frente é de cada ambiente.
-const ESCRITORIO_MESAS = [
-  [1.1, 1.25], [2.5, 1.25], [3.9, 1.25], [1.1, 3.1], [2.5, 3.1], [3.9, 3.1], [5.2, 1.25], [5.2, 3.1],
-];
-const ESCRITORIO_DECOR = {
-  convivencia: [
-    ["rugRounded_SE", 2.6, 4.9], ["tableCoffee_SE", 2.6, 4.9], ["loungeSofa_SE", 1.6, 4.8],
-    ["loungeChair_SW", 3.6, 4.8], ["lampSquareFloor_SE", 5.6, 3.9], ["pottedPlant_SE", 0.4, 5.6], ["pottedPlant_SE", 5.6, 5.6],
-  ],
-  criacao: [
-    ["rugRectangle_SE", 2.8, 4.9], ["bookcaseOpen_SW", 0.4, 4.4], ["loungeChair_SE", 2.4, 5],
-    ["lampSquareFloor_SE", 3.4, 4.5], ["pottedPlant_SE", 5.6, 5.5], ["plantSmall2_SE", 4.8, 5.2],
-  ],
-  atendimento: [
-    ["tableRound_SE", 2.8, 4.8], ["chair_SE", 2.8, 4.1], ["chair_NW", 2.8, 5.5],
-    ["chair_SW", 2.1, 4.8], ["chair_NE", 3.5, 4.8], ["pottedPlant_SE", 0.4, 5.6], ["pottedPlant_SE", 5.6, 5.6],
-  ],
-  producao: [
-    ["table_SE", 2.8, 4.8], ["laptop_SE", 2.65, 4.75, 58], ["chair_NW", 2.4, 5.5], ["chair_NW", 3.2, 5.5],
-    ["lampSquareFloor_SE", 4.8, 4.8], ["pottedPlant_SE", 0.4, 5.6],
-  ],
-  reuniao: [
-    ["rugRectangle_SE", 2.9, 4.8], ["table_SE", 2.9, 4.8], ["chair_SE", 2.5, 4.1], ["chair_SE", 3.3, 4.1],
-    ["chair_NW", 2.5, 5.5], ["chair_NW", 3.3, 5.5], ["pottedPlant_SE", 0.4, 5.6], ["pottedPlant_SE", 5.6, 5.6],
-  ],
-  foco: [
-    ["bookcaseOpen_SW", 0.4, 4.1], ["bookcaseOpen_SW", 0.4, 5.1], ["rugRounded_SE", 2.4, 4.9], ["loungeChair_SE", 2.4, 4.9],
-    ["lampSquareFloor_SE", 3.2, 4.4], ["pottedPlant_SE", 5.6, 5.6],
-  ],
-};
-const ESCRITORIO_OBJETO_SPRITE = {
-  planta: "plantSmall1_SE",
-  livros: "books_SE",
-  luminaria: "lampRoundTable_SE",
-};
-// O espaldar vermelho da cadeira ganha a cor que a pessoa escolheu para a mesa.
-const ESCRITORIO_MATIZ = {
-  laranja: "hue-rotate(25deg)",
-  azul: "hue-rotate(205deg)",
-  verde: "hue-rotate(130deg)",
-  roxo: "hue-rotate(255deg)",
-  rosa: "hue-rotate(320deg) saturate(.75)",
-  grafite: "saturate(.12) brightness(.8)",
-};
 const ESCRITORIO_INICIO = "vybe-escritorio-inicio";
 const escritorio = {
   geracao: 0,
@@ -147,8 +98,7 @@ async function abrirEscritorio() {
     const base = await escritorioApi("entrada");
     if (geracao !== escritorio.geracao) return;
     escritorio.base = base;
-    escritorio.perfil = base.equipe.find((p) => p.id === base.eu)?.perfil || {};
-    escritorio.sala = escritorio.perfil.sala || "convivencia";
+    escritorioChegar();
     renderEscritorio();
   } catch (e) {
     painel.innerHTML = `<div class="office-state"><h2>Escritório</h2><p>${safeText(e.message)}</p><button type="button" class="workflow-secondary" onclick="abrirEscritorio()">Tentar novamente</button></div>`;
@@ -310,7 +260,6 @@ function aceitarConviteEscritorio() {
   );
 }
 
-const ESCRITORIO_TAMANHOS = {bookcaseOpen_SW:[67,140],books_SE:[26,27],chairDesk_SE:[60,97],chair_NE:[42,67],chair_NW:[41,68],chair_SE:[42,79],chair_SW:[41,79],computerScreen_NW:[47,54],desk_SE:[116,122],lampRoundTable_SE:[24,49],lampSquareFloor_SE:[24,108],laptop_SE:[50,52],loungeChair_SE:[91,106],loungeChair_SW:[91,106],loungeSofa_SE:[141,141],plantSmall1_SE:[14,18],plantSmall2_SE:[14,19],pottedPlant_SE:[28,85],rugRectangle_SE:[257,184],rugRounded_SE:[202,144],tableCoffee_SE:[110,102],tableRound_SE:[113,95],table_SE:[133,129]};
 function escritorioIcone(nome) {
   const d = {
     mapa: '<path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4"/>',
@@ -325,91 +274,37 @@ function escritorioIcone(nome) {
     sair: '<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>',
     entrar: '<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H8"/>',
     lista: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
   }[nome] || "";
   return `<svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 }
-// No build, ESCRITORIO_ARQUIVOS liga cada imagem ao nome com hash.
-function escritorioArquivo(nome) {
-  const comHash = typeof ESCRITORIO_ARQUIVOS !== "undefined" && ESCRITORIO_ARQUIVOS[nome + ".png"];
-  return ESCRITORIO_SPRITES + (comHash || nome + ".png");
+// Mapa único: a planta ganha, em cada sala individual, a mesa de quem a ocupa.
+function escritorioDonos() {
+  return escritorioSalasPessoais(escritorio.base?.equipe || []);
 }
-function escritorioCenaTamanho() {
-  const { N, TW, TH, PAREDE, MARGEM } = ESCRITORIO_CENA;
-  return { W: N * TW + MARGEM * 2, H: MARGEM * 2 + PAREDE + N * TH };
+function escritorioPlantaComMesas() {
+  const P = ESCRITORIO_PLANTA;
+  const moveis = [...P.moveis];
+  for (const a of P.ambientes) if (a.pessoal) moveis.push(...escritorioMoveisDaSala(a));
+  return { ...P, moveis };
 }
-function escritorioProjetar(u, v) {
-  const { TW, TH, PAREDE, MARGEM } = ESCRITORIO_CENA;
-  const { W } = escritorioCenaTamanho();
-  return { x: W / 2 + ((u - v) * TW) / 2, y: MARGEM + PAREDE + ((u + v) * TH) / 2 };
-}
-function escritorioPorcentagem(u) {
-  return Math.max(6, Math.min(94, (u / ESCRITORIO_CENA.N) * 100));
-}
-// O ponto de apoio de um móvel isométrico fica no centro do losango da base:
-// a um terço da largura acima do pé da imagem.
-function escritorioSprite(nome, u, v, alt = 0, extra = "") {
-  const [w, h] = ESCRITORIO_TAMANHOS[nome] || [60, 60];
-  const p = escritorioProjetar(u, v);
-  const z = Math.round((u + v) * 100) + (alt ? 5 : 0);
-  return `<img class="ofc-obj" src="${escritorioArquivo(nome)}" alt="" width="${w}" height="${h}" draggable="false" style="left:${(p.x - w / 2).toFixed(1)}px;top:${(p.y - h + w * 0.335 - alt).toFixed(1)}px;z-index:${z};${extra}">`;
-}
-// Quem tem mesa nesta sala, na ordem da equipe; cada um ocupa uma posição fixa.
-function escritorioMesasDaSala(sala) {
-  return (escritorio.base?.equipe || [])
-    .filter((p) => (p.perfil?.sala || "convivencia") === sala)
-    .slice(0, ESCRITORIO_MESAS.length)
-    .map((p, i) => ({ pessoa: p, u: ESCRITORIO_MESAS[i][0], v: ESCRITORIO_MESAS[i][1] }));
+// Ao chegar, a pessoa aparece sentada na própria mesa; sem sala, na recepção.
+function escritorioChegar() {
+  const base = escritorio.base;
+  escritorio.perfil = { ...(base.equipe.find((p) => p.id === base.eu)?.perfil || {}) };
+  const mesa = escritorioMinhaMesa();
+  const lugar = mesa ? mesa.cadeira : { x: 36, y: 8 };
+  Object.assign(escritorio.perfil, escritorioParaPorcentagem(lugar.x, lugar.y));
+  escritorio.sala = escritorioSalaEm(lugar.x, lugar.y);
 }
 function escritorioMinhaMesa() {
-  const sala = escritorio.perfil?.sala || "convivencia";
-  const mesa = escritorioMesasDaSala(sala).find((m) => m.pessoa.id === escritorio.base?.eu);
-  return mesa ? { sala, ...mesa } : null;
+  const a = escritorioDonos().get(escritorio.base?.eu);
+  return a ? { ambiente: a, ...escritorioMesaDaSala(a) } : null;
 }
-function escritorioCenaHtml(sala) {
-  const { N, TW, TH, PAREDE } = ESCRITORIO_CENA;
-  const { W, H } = escritorioCenaTamanho();
-  const cor = ESCRITORIO_COR_SALA[sala];
-  const t = escritorioProjetar(0, 0), r = escritorioProjetar(N, 0),
-    b = escritorioProjetar(N, N), l = escritorioProjetar(0, N);
-  const pt = (p, dy = 0) => `${p.x},${p.y + dy}`;
-  let grade = "";
-  for (let i = 1; i < N; i++) {
-    const a1 = escritorioProjetar(i, 0), a2 = escritorioProjetar(i, N),
-      b1 = escritorioProjetar(0, i), b2 = escritorioProjetar(N, i);
-    grade += `<line x1="${a1.x}" y1="${a1.y}" x2="${a2.x}" y2="${a2.y}"/><line x1="${b1.x}" y1="${b1.y}" x2="${b2.x}" y2="${b2.y}"/>`;
-  }
-  // Janelas na parede da esquerda: paralelogramos ao longo da aresta u=0.
-  const janela = (v0, v1) => {
-    const p0 = escritorioProjetar(0, v0), p1 = escritorioProjetar(0, v1);
-    return `<polygon class="ofc-janela" points="${pt(p0, -PAREDE + 40)} ${pt(p1, -PAREDE + 40)} ${pt(p1, -60)} ${pt(p0, -60)}"/>`;
-  };
-  const inclina = TH / TW;
-  const placa = escritorioProjetar(N * 0.18, 0);
-  const svg = `<svg class="ofc-casco" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">
-<defs><linearGradient id="ofc-parede-e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4152"/><stop offset="1" stop-color="#2a303d"/></linearGradient><linearGradient id="ofc-parede-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#323947"/><stop offset="1" stop-color="#242a35"/></linearGradient><linearGradient id="ofc-vidro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bfe3ff" stop-opacity=".5"/><stop offset="1" stop-color="#6f9cc4" stop-opacity=".22"/></linearGradient></defs>
-<polygon points="${pt(t)} ${pt(r)} ${pt(b)} ${pt(l)}" fill="#0005" transform="translate(0 26)"/>
-<polygon class="ofc-piso" points="${pt(t)} ${pt(r)} ${pt(b)} ${pt(l)}"/>
-<polygon points="${pt(l)} ${pt(b)} ${pt(b, 18)} ${pt(l, 18)}" fill="#b9b1a5"/><polygon points="${pt(b)} ${pt(r)} ${pt(r, 18)} ${pt(b, 18)}" fill="#cfc7ba"/>
-<g class="ofc-grade">${grade}</g>
-<polygon points="${pt(t)} ${pt(l)} ${pt(l, -PAREDE)} ${pt(t, -PAREDE)}" fill="url(#ofc-parede-e)"/>
-<polygon points="${pt(t)} ${pt(r)} ${pt(r, -PAREDE)} ${pt(t, -PAREDE)}" fill="url(#ofc-parede-d)"/>
-${janela(0.8, 2.6)}${janela(3.4, 5.2)}
-<polygon points="${pt(t)} ${pt(l)} ${pt(l, -14)} ${pt(t, -14)}" fill="${cor}" opacity=".85"/><polygon points="${pt(t)} ${pt(r)} ${pt(r, -14)} ${pt(t, -14)}" fill="${cor}" opacity=".7"/>
-<polygon points="${pt(t, -PAREDE)} ${pt(l, -PAREDE)} ${pt(l, -PAREDE - 12)} ${pt(t, -PAREDE - 12)}" fill="#4a5265"/><polygon points="${pt(t, -PAREDE)} ${pt(r, -PAREDE)} ${pt(r, -PAREDE - 12)} ${pt(t, -PAREDE - 12)}" fill="#424a5c"/>
-<g transform="matrix(1 ${inclina} 0 1 ${placa.x} ${placa.y - PAREDE + 80})"><text class="ofc-parede-marca" x="0" y="0">VYBE</text><text class="ofc-parede-sala" x="4" y="46" fill="${cor}">${safeText(ESCRITORIO_SALAS[sala]).toUpperCase()}</text></g>
-</svg>`;
-  const decor = (ESCRITORIO_DECOR[sala] || []).map(([n, u, v, alt]) => escritorioSprite(n, u, v, alt)).join("");
-  const mesas = escritorioMesasDaSala(sala).map(({ pessoa, u, v }) => {
-    const minha = pessoa.id === escritorio.base.eu;
-    const cadeira = escritorioSprite("chairDesk_SE", u + 0.05, v - 0.72, 0, `filter:${ESCRITORIO_MATIZ[pessoa.perfil?.mesa] || ESCRITORIO_MATIZ.grafite}`);
-    const objeto = ESCRITORIO_OBJETO_SPRITE[pessoa.perfil?.objeto];
-    const p = escritorioProjetar(u, v);
-    const z = Math.round((u + v) * 100) + 8;
-    const tela = escritorioSprite("computerScreen_NW", u - 0.1, v - 0.05, 56);
-    return `${cadeira}${escritorioSprite("desk_SE", u, v)}${objeto ? escritorioSprite(objeto, u + 0.32, v + 0.02, 56) : ""}${minha ? `<button class="ofc-pc" type="button" style="left:${p.x - 40}px;top:${p.y - 112}px;z-index:${z + 2}" onclick="abrirPainelDoEscritorio()" aria-label="Abrir o painel no computador da sua mesa" title="Abrir o painel">${tela}<span>Abrir painel</span></button>` : tela}<span class="ofc-placa${minha ? " minha" : ""}" style="left:${p.x - 30}px;top:${p.y + 14}px">${safeText(minha ? "Minha mesa" : pessoa.nome)}</span>`;
-  }).join("");
-  return `<div class="ofc-palco" id="office-stage" style="width:${W}px;height:${H}px;--sala:${cor}">${svg}${decor}${mesas}<div id="office-people" class="office-people"></div></div>`;
+// Onde a pessoa está no mapa (ladrilho), a partir da presença em porcentagem.
+function escritorioPosicao(p) {
+  return escritorioParaMapa(p.x ?? 50, p.y ?? 50);
 }
 function escritorioStatusHtml(status) {
   const [nome, cor] = ESCRITORIO_STATUS[status] || ESCRITORIO_STATUS.disponivel;
@@ -425,18 +320,25 @@ function atualizarPessoasEscritorio() {
   const visiveis = escritorio.conectado
     ? pessoas
     : [{ id: eu, nome: "Você · fora do escritório", perfil: escritorio.perfil, sala, status: "ausente", x: escritorio.perfil.x || 50, y: escritorio.perfil.y || 75 }];
-  const N = ESCRITORIO_CENA.N;
-  const mapa = document.getElementById("office-people");
-  if (mapa)
-    mapa.innerHTML = visiveis
-      .filter((p) => p.sala === sala)
-      .map((p) => {
-        const u = ((Number(p.x) || 50) / 100) * N, v = ((Number(p.y) || 70) / 100) * N;
-        const pos = escritorioProjetar(u, v);
-        const voce = p.id === eu;
-        return `<button class="office-person${voce ? " voce" : ""}" style="left:${pos.x}px;top:${pos.y}px;z-index:${Math.round((u + v) * 100) + 3}" onclick="convidarConversaEscritorio('${safeText(p.id)}')" aria-label="${safeText(p.nome)}${voce ? " (você)" : ""} · ${safeText((ESCRITORIO_STATUS[p.status] || ESCRITORIO_STATUS.disponivel)[0])}"><span class="ofc-etiqueta">${escritorioStatusHtml(p.status)}<b>${safeText(voce && escritorio.conectado ? "Você" : p.nome)}</b></span>${escritorioAvatar(p.perfil, p.nome)}</button>`;
-      })
-      .join("");
+  if (escritorio.mapa) {
+    const mesas = escritorioDonos();
+    escritorio.mapa.atualizarPessoas(visiveis.map((p) => {
+      const pos = escritorioPosicao(p);
+      const voce = p.id === eu;
+      const perfilDe = escritorio.base.equipe.find((e) => e.id === p.id)?.perfil || p.perfil || {};
+      // Na cadeira da própria mesa, o boneco aparece sentado.
+      const a = mesas.get(p.id), mesa = a && escritorioMesaDaSala(a);
+      const sentado = mesa && Math.hypot(pos.x - mesa.cadeira.x, pos.y - mesa.cadeira.y) < 0.6;
+      const [nomeStatus, corStatus] = ESCRITORIO_STATUS[p.status] || ESCRITORIO_STATUS.disponivel;
+      return {
+        id: p.id, nome: voce && escritorio.conectado ? "Você" : p.nome, perfil: perfilDe, status: p.status, corStatus,
+        rotulo: `${p.nome}${voce ? " (você)" : ""} · ${nomeStatus}`,
+        x: sentado ? mesa.cadeira.x : pos.x, y: sentado ? mesa.cadeira.y : pos.y,
+        acao: sentado ? "sit" : "std", dir: sentado ? mesa.cadeira.dir : undefined,
+        aoClicar: convidarConversaEscritorio,
+      };
+    }));
+  }
   const lista = document.getElementById("office-roster");
   if (lista) {
     const online = escritorio.base.equipe.filter((p) => pessoas.some((o) => o.id === p.id));
@@ -516,7 +418,8 @@ function renderEscritorio() {
 </aside>
 <main class="ofc-principal">
  <div class="ofc-topo"><div class="ofc-sala-atual" style="--sala:${ESCRITORIO_COR_SALA[sala]}"><i></i><h2>${safeText(ESCRITORIO_SALAS[sala])}</h2><span>${sala === "foco" ? "Espaço silencioso, sem conversa por voz." : "Clique no piso para caminhar."}</span></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
- <div class="ofc-mapa" id="office-map" tabindex="0" ${modo === "mapa" ? "" : "hidden"} aria-label="Mapa da sala ${safeText(ESCRITORIO_SALAS[sala])}. Clique no piso ou use as setas para mover seu personagem." onclick="moverEscritorio(event)" onkeydown="tecladoEscritorio(event)">${escritorioCenaHtml(sala)}</div>
+ <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
+ <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <section id="office-call" class="office-call" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><div class="office-call-actions"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b></div><div id="office-call-media" class="office-call-media"></div></section>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
@@ -528,30 +431,39 @@ function renderEscritorio() {
   atualizarControlesEscritorio();
   carregarChatEscritorio();
   if (escritorio.chamada) renderMidiaEscritorio();
-  ajustarCenaEscritorio();
+  montarMapaEscritorio();
 }
-// A cena tem tamanho fixo e é escalada para caber; sem laço de animação.
-let escritorioObservador = null;
-function ajustarCenaEscritorio() {
-  const mapa = document.getElementById("office-map"),
-    palco = document.getElementById("office-stage");
-  escritorioObservador?.disconnect();
-  if (!mapa || !palco) return;
-  const ajustar = () => {
-    const { W, H } = escritorioCenaTamanho();
-    const r = mapa.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    // Espaço livre entre a barra da sala (em cima) e o dock (embaixo).
-    const topo = 60, base = 84, util = Math.max(200, r.height - topo - base);
-    const k = Math.min((r.width - 24) / W, util / H, 1);
-    escritorio.escala = k;
-    palco.style.transform = `translate(${(r.width - W * k) / 2}px,${topo + (util - H * k) / 2}px) scale(${k})`;
-  };
-  ajustar();
-  if (window.ResizeObserver) {
-    escritorioObservador = new ResizeObserver(ajustar);
-    escritorioObservador.observe(mapa);
+// O mapa é criado uma vez e só muda de lugar quando a tela é redesenhada:
+// assim não recarrega móveis nem perde câmera e animação.
+function montarMapaEscritorio() {
+  const lugar = document.getElementById("office-map-lugar");
+  if (!lugar) return;
+  if (!escritorio.mapaEl) {
+    const el = document.createElement("div");
+    el.className = "ofc-mapa";
+    el.id = "office-map";
+    el.tabIndex = 0;
+    el.setAttribute("aria-label", "Mapa do escritório. Clique no piso ou use as setas para andar; arraste para mover o mapa.");
+    el.addEventListener("keydown", tecladoEscritorio);
+    escritorio.mapaEl = el;
   }
+  const el = escritorio.mapaEl;
+  el.hidden = lugar.hidden;
+  lugar.replaceWith(el);
+  if (!escritorio.mapa) {
+    escritorio.mapa = criarMapaEscritorio(el, {
+      planta: escritorioPlantaComMesas(),
+      logo: document.querySelector(".logo img")?.getAttribute("src") || "/assets/vybe-branca.png",
+      eu: escritorio.base.eu,
+      aoClicar: (x, y) => cliqueNoMapaEscritorio(x, y),
+    });
+    requestAnimationFrame(() => centralizarEmMimEscritorio());
+  }
+  atualizarPessoasEscritorio();
+}
+function centralizarEmMimEscritorio() {
+  const pos = escritorioPosicao(escritorio.perfil || {});
+  escritorio.mapa?.centralizar(pos.x, pos.y);
 }
 function alternarAbaEscritorio(aba, manter) {
   const aberto = escritorio.lateral ?? !window.matchMedia?.("(max-width: 760px)").matches;
@@ -564,53 +476,53 @@ function alternarModoEscritorio(modo) {
   escritorio.modo = modo;
   renderEscritorio();
 }
+// Ir para uma sala de conversa: anda até o primeiro ambiente dela.
 function mudarSalaEscritorio(sala, verMapa) {
   if (!Object.hasOwn(ESCRITORIO_SALAS, sala)) return;
-  escritorio.sala = sala;
-  escritorio.perfil = { ...escritorio.perfil, x: 50, y: 70 };
-  escritorioEmitir("presence:move", { sala, x: 50, y: 70 });
+  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.sala === sala && !x.pessoal);
   if (verMapa) escritorio.modo = "mapa";
-  renderEscritorio();
+  escritorioIrPara(a ? (a.x0 + a.x1) / 2 : 30, a ? a.y1 - 1.5 : 18);
+  if (verMapa) renderEscritorio();
 }
-function escritorioMover(x, y) {
-  escritorio.perfil = { ...escritorio.perfil, x, y };
-  escritorioEmitir("presence:move", { sala: escritorio.sala, x, y });
-  if (!escritorio.conectado) atualizarPessoasEscritorio();
+// Anda até um ladrilho: a sala de conversa passa a ser a do ambiente.
+function escritorioIrPara(x, y) {
+  const { x: px, y: py } = escritorioParaPorcentagem(x, y);
+  const sala = escritorioSalaEm(x, y);
+  escritorio.perfil = { ...escritorio.perfil, x: px, y: py };
+  escritorioEmitir("presence:move", { sala, x: px, y: py });
+  if (sala !== escritorio.sala) {
+    escritorio.sala = sala;
+    renderEscritorio();
+  } else if (!escritorio.conectado) atualizarPessoasEscritorio();
 }
-function moverEscritorio(e) {
-  if (e.target.closest("button") || (!escritorio.conectado && !escritorio.base?.demo)) return;
-  const palco = document.getElementById("office-stage");
-  if (!palco) return;
-  const r = palco.getBoundingClientRect(), k = escritorio.escala || 1;
-  const { W } = escritorioCenaTamanho();
-  const { TW, TH, PAREDE, MARGEM } = ESCRITORIO_CENA;
-  const a = ((e.clientX - r.left) / k - W / 2) / (TW / 2),
-    s = ((e.clientY - r.top) / k - MARGEM - PAREDE) / (TH / 2);
-  const u = (a + s) / 2, v = (s - a) / 2;
-  if (u < 0 || v < 0 || u > ESCRITORIO_CENA.N || v > ESCRITORIO_CENA.N) return;
-  escritorioMover(escritorioPorcentagem(u), escritorioPorcentagem(v));
+function cliqueNoMapaEscritorio(x, y) {
+  if (!escritorio.conectado && !escritorio.base?.demo) {
+    escritorioAviso("Entre no escritório para andar pelo mapa.");
+    return;
+  }
+  // O computador da própria mesa abre o painel.
+  const mesa = escritorioMinhaMesa();
+  if (mesa && x >= mesa.x && x < mesa.x + mesa.w && y >= mesa.y && y < mesa.y + mesa.h) {
+    abrirPainelDoEscritorio();
+    return;
+  }
+  escritorioIrPara(x, y);
 }
-// Setas seguem a tela, não os eixos do piso: para cima anda para o fundo.
+// Setas seguem a tela: para cima anda para o fundo do mapa.
 function tecladoEscritorio(e) {
-  const passo = { ArrowUp: [-3, -3], ArrowDown: [3, 3], ArrowLeft: [-3, 3], ArrowRight: [3, -3] }[e.key];
+  const passo = { ArrowUp: [-1, -1], ArrowDown: [1, 1], ArrowLeft: [-1, 1], ArrowRight: [1, -1] }[e.key];
   if (!passo) return;
   e.preventDefault();
   if (!escritorio.conectado && !escritorio.base?.demo) return;
-  const lim = (n) => Math.max(6, Math.min(94, n));
-  escritorioMover(lim((escritorio.perfil.x || 50) + passo[0]), lim((escritorio.perfil.y || 75) + passo[1]));
+  const pos = escritorioPosicao(escritorio.perfil || {}), P = ESCRITORIO_PLANTA;
+  escritorioIrPara(Math.max(0, Math.min(P.W - 1, pos.x + passo[0])), Math.max(0, Math.min(P.H - 1, pos.y + passo[1])));
 }
 function irParaMinhaMesaEscritorio() {
   const mesa = escritorioMinhaMesa();
   if (!mesa) return;
-  if (escritorio.sala !== mesa.sala) {
-    escritorio.sala = mesa.sala;
-    escritorio.modo = "mapa";
-    renderEscritorio();
-  }
-  const x = escritorioPorcentagem(mesa.u + 0.05), y = escritorioPorcentagem(mesa.v - 0.72);
-  escritorio.perfil = { ...escritorio.perfil, x, y };
-  escritorioEmitir("presence:move", { sala: mesa.sala, x, y });
-  atualizarPessoasEscritorio();
+  if (escritorio.modo === "lista") { escritorio.modo = "mapa"; renderEscritorio(); }
+  escritorioIrPara(mesa.cadeira.x, mesa.cadeira.y);
+  escritorio.mapa?.centralizar(mesa.cadeira.x, mesa.cadeira.y);
 }
 // O painel é o computador da mesa: abre por cima do escritório e a presença
 // continua; "Voltar ao escritório" no dock traz o mapa de volta.
@@ -655,8 +567,7 @@ async function iniciarNoEscritorio() {
   if (!base.demo && !base.worker) return;
   if (typeof activeBoard !== "undefined" && activeBoard !== antes) return;
   escritorio.base = base;
-  escritorio.perfil = base.equipe.find((p) => p.id === base.eu)?.perfil || {};
-  escritorio.sala = escritorio.perfil.sala || "convivencia";
+  escritorioChegar();
   escritorio.portaoAntes = Boolean(document.getElementById("mode-gate")?.classList.contains("open"));
   escritorio.boardAntes = antes;
   voltarAoEscritorio();
@@ -706,6 +617,9 @@ async function salvarPersonalizacaoEscritorio(form) {
     escritorio.perfil = d.perfil;
     escritorio.base.equipe.find((p) => p.id === escritorio.base.eu).perfil =
       d.perfil;
+    // A sala individual pode mudar com a área escolhida: refaz o mapa.
+    escritorio.mapa?.destruir();
+    escritorio.mapa = null;
     if (form.isConnected) closeWorkflowModal();
     renderEscritorio();
     if (escritorio.conectado) {
