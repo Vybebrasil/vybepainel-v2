@@ -145,7 +145,9 @@ const ESCRITORIO_PLANTA = (() => {
   p("lodge_dark_desk", 27, 44, 2); p("modern_c17_chair", 26, 45, 2);
   p("hygge_c25_desklamp", 27, 44, 2, 1, 1.1); p("computer_flatscreen", 27, 46, 2, 1, 1.1);
   p("exe_wfall", 24, 44, 2, 1, 0.9); p("hc_wall_lamp", 24, 42, 2, 1, 1.2); p("hc_wall_lamp", 24, 49, 2, 1, 1.2);
-  p("hygge_c25_carpet", 37, 44, 0); p("modern_c17_sofa", 37, 44, 4); p("modern_c17_lowtable", 37, 45, 2); p("modern_c17_sofa", 37, 47, 0);
+  // Espera: tapete 3×3 com dois sofás de três lugares frente a frente e a
+  // mesa baixa (3 de largura) entre eles, tudo na mesma largura.
+  p("js_exe_rug", 37, 44, 0); p("js_exe_sofa", 37, 44, 4); p("modern_c17_lowtable", 37, 45, 2); p("js_exe_sofa", 37, 46, 0);
   p("modern_c17_floorlamp", 40, 44, 2, 1); p("darkmodern_c20_pug", 40, 47, 2, 1);
   p("pixel_painting_blue", 26, 40, 4, 0, 1); p("pixel_clock_black", 28, 40, 4, 0, 1.2); p("pixel_painting_red", 39, 40, 4, 0, 1);
   p("mafia_c26_planter_white", 25, 41, 0); p("mafia_c26_planter_white", 41, 41, 0);
@@ -214,7 +216,7 @@ const ESCRITORIO_PLANTA = (() => {
   p("bling15_pooltable", 55, 31, 4); p("ads_aftv_footballtable", 58, 33, 0);
   p("tokyo_c18_racearcade", 62, 31, 6, 1); p("tokyo_c18_racearcade", 62, 32, 6, 1);
   p("theatre_plant", 62, 36, 2); p("army_c15_plant", 50, 36);
-  p("cubie_decal_1_b", 50, 29, 2, 0, 1.2); p("uni_vinyl", 57, 28, 4, 0, 1.4); p("cubie_decal_2_p", 60, 28, 4, 0, 1.4);
+  p("cubie_decal_1_b", 50, 29, 2, 0, 1.2); p("uni_vinyl", 57, 28, 4, 0, 1.4);
 
   // Academia (63–76 × 28–37): esteiras e bicicletas no fundo, pesos na parede
   // da esquerda, camas elásticas na direita.
@@ -230,7 +232,7 @@ const ESCRITORIO_PLANTA = (() => {
   // Foco (66–76 × 0–24): biblioteca silenciosa. Estantes na parede da
   // esquerda, mesas de estudo com luminária, cadeiras dos dois lados, canto
   // de leitura com pufes e a cadeira suspensa.
-  for (const y of [1, 3, 5, 7, 15, 17, 19, 21]) p("purablk_c16_shelve", 66, y, 2);
+  for (const y of [1, 3, 5, 7, 17, 19, 21]) p("purablk_c16_shelve", 66, y, 2);
   for (const y of [3, 7, 16, 20]) {
     p("classic9_table", 70, y, 0); p("classic9_light", 70, y, 2, 1, 0.7);
     for (const dy of [0, 1]) { p("classic9_chair", 69, y + dy, 2); p("classic9_chair", 72, y + dy, 6); }
@@ -238,7 +240,7 @@ const ESCRITORIO_PLANTA = (() => {
   p("cubie_rug_b", 73, 11, 0); p("cubie_beanbag_b", 74, 11, 6); p("cubie_beanbag_p", 74, 13, 6); p("hc26_3", 73, 11, 0); p("hc26_3", 73, 13, 0);
   p("hygge_c25_hangingchair", 75, 1, 6); p("modern_c17_floorlamp", 75, 9, 2, 1); p("modern_c17_floorlamp", 75, 18, 2, 1);
   p("theatre_plant", 67, 0, 2); p("army_c15_plant", 75, 23); p("bohogarden_c21_fanpalm", 67, 23, 2);
-  p("uni_libraryshelf", 66, 12, 2, 0, 1); p("waasa_wall_shelf1", 66, 10, 2, 0, 1.2);
+  p("uni_libraryshelf", 66, 14, 2, 0, 1);
 
   // Lounge (42–76 × 40–50), da esquerda para a direita: lareira (sofá e
   // poltronas virados para o fogo), cinema (dois sofás em fila virados para o
@@ -247,11 +249,11 @@ const ESCRITORIO_PLANTA = (() => {
   p("darkmodern_c20_lowtable", 44, 44, 2); p("mafia_c26_sofa_dark", 44, 46, 0);
   p("mafia_c26_armchair_dark", 43, 44, 2); p("mafia_c26_armchair_dark", 48, 44, 6);
   p("theatre_plant", 43, 40, 2); p("theatre_plant", 47, 40, 2); p("modern_c17_floorlamp", 49, 48, 2, 1);
-  p("hygge_c18_shelf", 42, 41, 2, 1); p("attic15_painting", 43, 40, 4, 0, 1.4); p("attic15_painting", 42, 45, 2, 0, 1.2);
+  p("hygge_c18_shelf", 42, 41, 2, 1); p("attic15_painting", 44, 40, 4, 0, 1.4); p("attic15_painting", 42, 45, 2, 0, 1.2);
   p("uni_projector", 53, 40, 4); p("js_exe_rug", 53, 44, 0);
   p("hc23_6", 53, 45, 0); p("hc23_6", 53, 47, 0);
   p("modern_c17_floorlamp", 51, 40, 2, 1); p("modern_c17_floorlamp", 57, 40, 2, 1);
-  p("cine_light1", 51, 40, 4, 1, 1.8); p("cine_light1", 57, 40, 4, 1, 1.8);
+  p("cine_light1", 52, 40, 4, 1, 1.8); p("cine_light1", 56, 40, 4, 1, 1.8);
   p("hc25_6", 64, 40, 0, 1); p("disco_c26_jukebox", 58, 42, 2, 1);
   for (const x of [60, 62, 64]) for (const y of [43, 45]) p("disco_c26_floor", x, y, 0, 1);
   p("spotlight", 59, 41, 2); p("spotlight", 66, 41, 6);
@@ -261,7 +263,7 @@ const ESCRITORIO_PLANTA = (() => {
   p("ktchn15_bubblejuicerack", 68, 40, 4, 1); p("ktchn15_bubblejuicerack", 70, 40, 4, 1);
   p("lodge_dark_minibar", 72, 40, 4, 1); p("lodge_dark_minibar", 73, 40, 4, 1);
   for (const x of [69, 73]) { p("vwave_c21_bartable", x, 47, 0); p("vwave_c21_barstool", x - 1, 47, 2); p("vwave_c21_barstool", x + 1, 48, 6); }
-  p("uni_fairylights", 68, 40, 4, 0, 2); p("china_light", 75, 41, 2, 1, 1.4); p("modern_c17_floorlamp", 75, 49, 2, 1);
+  p("uni_fairylights", 72, 40, 4, 0, 2); p("modern_c17_floorlamp", 75, 49, 2, 1);
 
   // Eixo central e corredores: plantas nas pontas, longe das portas.
   p("bohogarden_c21_fanpalm", 30, 0, 2); p("bohogarden_c21_fanpalm", 35, 0, 2);
@@ -368,8 +370,10 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     // fundo é a parede da porta).
     item(Number(String(a.id).split("-")[1]) % 2 ? "pixel_painting_blue" : "pixel_painting_red", 0, 5, 2, 0, 1.1),
     ...(a.porta === "baixo"
-      ? [item("window_double_default", 3, 0, 4, 0, 1), item("window_double_default", 7, 0, 4, 0, 1)]
-      : [item("hc_wall_lamp", 2, 0, 4, 1, 1.3), item("hc_wall_lamp", 8, 0, 4, 1, 1.3)]),
+      // Janelas e luminária só no trecho do fundo que nenhum tema ocupa com
+      // móvel alto (de 6 a 8 ficam estação, luminária de pé e estantes).
+      ? [item("window_double_default", 1, 0, 4, 0, 1), item("window_double_default", 3, 0, 4, 0, 1)]
+      : [item("hc_wall_lamp", 2, 0, 4, 1, 1.3)]),
   ];
   // Cadeiras de visita viradas para a mesa (cada tema com as suas).
   const visita = (classe) => [item(classe, 5, 3, 6), item(classe, 5, 5, 6)];
