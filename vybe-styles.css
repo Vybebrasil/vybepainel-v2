@@ -6385,3 +6385,10 @@ body.no-escritorio {overflow:hidden}
 .ofc-chave small {font:500 11px/1.35 var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
 #ofc-btn-audio.alerta {background:#ff8a3533;color:#ffc79a;animation:mapa-aviso 1.6s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){#ofc-btn-audio.alerta {animation:none}}
+
+/* Quem está falando: balão com ondas piscando sobre a cabeça */
+.mapa-fala {display:none;place-items:center;width:18px;height:18px;border-radius:50%;background:#4fd18b;color:#0b2a17}
+.mapa-pessoa.falando .mapa-etiqueta {border-color:#4fd18b;box-shadow:0 0 0 2px #4fd18b55,0 0 12px #4fd18b88}
+.mapa-pessoa.falando .mapa-fala {display:grid;animation:mapa-fala .8s ease-in-out infinite}
+@keyframes mapa-fala {0%,100% {transform:scale(1);opacity:1} 50% {transform:scale(1.2);opacity:.7}}
+@media(prefers-reduced-motion:reduce){.mapa-pessoa.falando .mapa-fala {animation:none}}
