@@ -151,7 +151,9 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   }
   for (let x = P.x0; x < P.x1; x++) for (let y = P.y0; y < P.y1; y++) {
     const a = escritorioAmbienteEm(x + 0.5, y + 0.5);
-    losango(x, y); g.fillStyle = cor(a ? a.piso : "corredor", x, y); g.fill();
+    // Piso de um espaço dentro do ambiente (os quatro do Lounge).
+    const extra = (planta.pisos || []).find((q) => x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
+    losango(x, y); g.fillStyle = cor(extra ? extra.piso : a ? a.piso : "corredor", x, y); g.fill();
     g.strokeStyle = "#0000001a"; g.lineWidth = 1; g.stroke();
   }
   // Faixa laranja no meio dos corredores, como as ruas da Vybelândia.
@@ -245,18 +247,27 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   }
 }
 // Divisória entre ambientes: um bloco escuro baixo por ladrilho de aresta.
-function mapaDivisoria(x, y, eixo) {
+// Divisória baixa (corredores, espaços comuns) ou parede alta de sala
+// individual: mais alta, com a cor da sala no acabamento e um rodapé.
+function mapaDivisoria(x, y, eixo, cor) {
   const c = document.createElement("canvas");
-  const alt = 46;
+  const alt = cor ? 82 : 46;
   c.width = MAPA_TW / 2 + 6; c.height = MAPA_TH / 2 + alt + 6;
   const g = c.getContext("2d");
   // eixo "x": a aresta vai para baixo-direita; "y": para baixo-esquerda
   const sobe = eixo === "x";
   const p0 = sobe ? { x: 0, y: alt } : { x: MAPA_TW / 2, y: alt };
   const p1 = sobe ? { x: MAPA_TW / 2, y: alt + MAPA_TH / 2 } : { x: 0, y: alt + MAPA_TH / 2 };
-  g.fillStyle = sobe ? "#1c1d22" : "#131418";
+  g.fillStyle = cor ? (sobe ? "#2b2d36" : "#22242c") : sobe ? "#1c1d22" : "#131418";
   g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.fill();
-  g.fillStyle = "#4a4d57";
+  if (cor) {
+    // Faixa da cor da sala no alto e rodapé escuro: a parede tem dono.
+    const faixa = (de, ate, estilo) => { g.fillStyle = estilo; g.beginPath(); g.moveTo(p0.x + 3, p0.y - de); g.lineTo(p1.x + 3, p1.y - de); g.lineTo(p1.x + 3, p1.y - ate); g.lineTo(p0.x + 3, p0.y - ate); g.closePath(); g.fill(); };
+    g.globalAlpha = sobe ? 0.16 : 0.1; faixa(6, alt, cor); g.globalAlpha = 1;
+    faixa(alt - 7, alt, cor);
+    faixa(0, 6, "#00000055");
+  }
+  g.fillStyle = cor || "#4a4d57";
   g.beginPath(); g.moveTo(p0.x + 3, p0.y - alt); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p1.x + 3, p1.y - alt - 3); g.lineTo(p0.x + 3, p0.y - alt - 3); g.closePath(); g.fill();
   return { canvas: c, ox: sobe ? -3 : -MAPA_TW / 2 - 3, oy: -alt };
 }
@@ -502,12 +513,12 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
       m.no.classList.toggle("recortado", m.quem.size > 0);
     }
   };
-  for (const [x0, y0, x1, y1] of P.divisorias) {
+  for (const [x0, y0, x1, y1, cor] of P.divisorias) {
     const eixo = y0 === y1 ? "x" : "y";
     const n = eixo === "x" ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
-      const d = mapaDivisoria(x, y, eixo);
+      const d = mapaDivisoria(x, y, eixo, cor);
       d.canvas.className = "mapa-obj mapa-muro";
       const prof = Math.round((x + y) * 10) + 2;
       colocar(d.canvas, x, y, d, prof);
@@ -634,7 +645,15 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
   }
 
   // Rótulos dos ambientes
+  for (const q of P.rotulos || []) {
+    const t = mapaTela(q.x, q.y, origem), r = document.createElement("span");
+    r.className = "mapa-rotulo";
+    r.textContent = q.texto;
+    r.style.left = t.x + "px"; r.style.top = t.y + "px";
+    palco.append(r);
+  }
   for (const a of P.ambientes) {
+    if (a.semRotulo) continue;
     // Sala individual: letreiro na porta (a faixa que fica sempre livre), sem
     // cobrir os móveis do fundo; espaços comuns: no centro.
     const t = a.pessoal ? mapaTela((a.x0 + a.x1) / 2, a.porta === "baixo" ? a.y1 - 0.4 : a.y0 + 0.4, origem) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
