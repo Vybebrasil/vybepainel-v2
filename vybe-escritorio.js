@@ -2118,6 +2118,15 @@ function renderMidiaEscritorio() {
     mic.dataset.ligado = String(Boolean(p.audioEnabled));
     mic.textContent = p.audioEnabled ? "Microfone ligado" : "Microfone desligado";
     topo.append(nome, mic);
+    // Volume desta pessoa só para você (e silenciar), guardado neste navegador.
+    const pessoaId = String(p.customParticipantId || "").split(":")[0];
+    if (!eu && /^\d+$/.test(pessoaId)) {
+      const v = escritorioVolumePessoa(pessoaId);
+      const ctl = document.createElement("div");
+      ctl.className = "office-call-volume";
+      ctl.innerHTML = `<button type="button" aria-pressed="${v.mudo}" onclick="silenciarPessoaEscritorio('${pessoaId}')">${v.mudo ? "Ouvir de novo" : "Silenciar para mim"}</button><input type="range" min="0" max="100" value="${v.mudo ? 0 : v.vol}" aria-label="Volume de ${safeText(p.name || "participante")} só para você" oninput="volumePessoaEscritorio('${pessoaId}',this.value)">`;
+      tile.append(ctl);
+    }
     // Barra de volume: mostra que o som está chegando (ou saindo, no seu caso).
     const nivel = document.createElement("i");
     nivel.className = "office-call-nivel";
@@ -2157,6 +2166,8 @@ function renderMidiaEscritorio() {
     el.append(tile);
   }
   escritorioNivelAudio.acompanhar([meeting.self, ...meeting.participants.joined.toArray()]);
+  // Depois do SDK (que repõe a voz no próprio mix a cada mudança de áudio).
+  setTimeout(aplicarVolumesEscritorio, 0);
   escritorioPreviaTela(meeting.self);
   // Barra compacta: um rosto (iniciais) por pessoa; quem fala acende.
   const rostos = document.getElementById("office-call-rostos");
@@ -2308,6 +2319,8 @@ async function sairChamadaEscritorio() {
   escritorio.chamada = null;
   escritorio.somBloqueado = false;
   escritorioNivelAudio.parar();
+  for (const el of escritorioSonsPessoas.values()) { el.srcObject = null; el.remove(); }
+  escritorioSonsPessoas.clear();
   if (!escritorio.reconectandoAudio) document.getElementById("office-ajustes-audio")?.remove();
   try {
     await m?.leave();
@@ -2393,4 +2406,62 @@ function pedidoQualidadeTelaEscritorio({ nome, nivel } = {}) {
   aviso.setAttribute("role", "status");
   aviso.innerHTML = `<span>${safeText(String(nome || "Alguém").split(" ")[0])} pediu a tela ${nivel === "leve" ? "mais leve" : "mais nítida"}.</span><button type="button" class="ofc-mini" onclick="qualidadeTelaEscritorio('${nivel}');this.parentElement.remove()">Aplicar</button><button type="button" class="ofc-mini" onclick="this.parentElement.remove()">Agora não</button>`;
   el.append(aviso);
+}
+
+// Volume de cada pessoa, só para quem escolhe. O RealtimeKit toca todas as
+// vozes misturadas num único áudio, sem volume por pessoa; quem tem volume
+// próprio sai desse mix e toca num áudio separado deste navegador.
+const escritorioSonsPessoas = new Map(); // id do participante → <audio>
+function escritorioVolumes() {
+  try { return JSON.parse(localStorage.getItem("vybe-escritorio-volumes") || "{}") || {}; } catch { return {}; }
+}
+function escritorioVolumePessoa(id) {
+  const v = escritorioVolumes()[id] || {};
+  return { vol: Number.isFinite(v.vol) ? Math.max(0, Math.min(100, v.vol)) : 100, mudo: Boolean(v.mudo) };
+}
+function guardarVolumePessoa(id, mudanca) {
+  const todos = escritorioVolumes();
+  const v = { ...escritorioVolumePessoa(id), ...mudanca };
+  if (v.vol === 100 && !v.mudo) delete todos[id]; else todos[id] = v;
+  try { localStorage.setItem("vybe-escritorio-volumes", JSON.stringify(todos)); } catch {}
+  aplicarVolumesEscritorio();
+}
+function volumePessoaEscritorio(id, valor) {
+  guardarVolumePessoa(id, { vol: Number(valor), mudo: false });
+}
+function silenciarPessoaEscritorio(id) {
+  guardarVolumePessoa(id, { mudo: !escritorioVolumePessoa(id).mudo });
+  renderMidiaEscritorio();
+}
+function aplicarVolumesEscritorio() {
+  const m = escritorio.chamada;
+  if (!m?.audio) return;
+  const vistos = new Set();
+  for (const p of m.participants.joined.toArray()) {
+    const id = String(p.customParticipantId || "").split(":")[0];
+    const v = escritorioVolumePessoa(id);
+    const trilha = p.audioEnabled && p.audioTrack;
+    let el = escritorioSonsPessoas.get(p.id);
+    if (!trilha || (v.vol === 100 && !v.mudo)) {
+      // Volume normal: volta para o mix do SDK.
+      if (el) { el.srcObject = null; el.remove(); escritorioSonsPessoas.delete(p.id); if (trilha) try { m.audio.addParticipantTrack(p.id, trilha); } catch {} }
+      continue;
+    }
+    vistos.add(p.id);
+    try { m.audio.removeParticipantTrack(p.id); } catch {}
+    if (!el) {
+      el = document.createElement("audio");
+      el.autoplay = true;
+      el.hidden = true;
+      document.body.append(el);
+      escritorioSonsPessoas.set(p.id, el);
+      const saida = escritorioLerPrefsAudio().saida;
+      if (saida && typeof el.setSinkId === "function") el.setSinkId(saida).catch(() => {});
+    }
+    if (el.srcObject?.getAudioTracks()[0] !== trilha) el.srcObject = new MediaStream([trilha]);
+    el.muted = v.mudo;
+    el.volume = v.vol / 100;
+    el.play?.().catch(() => {});
+  }
+  for (const [id, el] of escritorioSonsPessoas) if (!vistos.has(id)) { el.srcObject = null; el.remove(); escritorioSonsPessoas.delete(id); }
 }

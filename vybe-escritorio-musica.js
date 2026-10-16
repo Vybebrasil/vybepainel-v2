@@ -33,9 +33,20 @@ function escritorioPosicaoMusica(m, agora = Date.now()) {
 function escritorioVolumeMusica() {
   try { const v = Number(localStorage.getItem("vybe-escritorio-volume-musica")); return Number.isFinite(v) && v >= 0 && v <= 100 && localStorage.getItem("vybe-escritorio-volume-musica") !== null ? v : 60; } catch { return 60; }
 }
+function escritorioMusicaMuda() {
+  try { return localStorage.getItem("vybe-escritorio-musica-muda") === "1"; } catch { return false; }
+}
 function volumeMusicaEscritorio(v) {
-  try { localStorage.setItem("vybe-escritorio-volume-musica", String(v)); } catch {}
+  try { localStorage.setItem("vybe-escritorio-volume-musica", String(v)); localStorage.removeItem("vybe-escritorio-musica-muda"); } catch {}
   escritorio.player?.setVolume?.(Number(v));
+  escritorio.player?.unMute?.();
+}
+// Silenciar a música só para você (o resto da Pista continua ouvindo).
+function silenciarMusicaEscritorio() {
+  const muda = !escritorioMusicaMuda();
+  try { muda ? localStorage.setItem("vybe-escritorio-musica-muda", "1") : localStorage.removeItem("vybe-escritorio-musica-muda"); } catch {}
+  muda ? escritorio.player?.mute?.() : escritorio.player?.unMute?.();
+  desenharInfoMusicaEscritorio();
 }
 // API do player do YouTube: carrega só quando alguém entra na Pista com música.
 function escritorioCarregarYoutube() {
@@ -87,7 +98,7 @@ async function sincronizarMusicaEscritorio() {
       width: 192, height: 108,
       playerVars: { autoplay: 1, controls: 0, disablekb: 1, modestbranding: 1, playsinline: 1, rel: 0 },
       events: {
-        onReady: (e) => { e.target.setVolume(escritorioVolumeMusica()); carregar(e.target); },
+        onReady: (e) => { e.target.setVolume(escritorioVolumeMusica()); if (escritorioMusicaMuda()) e.target.mute(); carregar(e.target); },
         onStateChange: (e) => {
           // Fim do vídeo (ou da playlist inteira): avisa o Worker uma vez por revisão.
           if (e.data === YT.PlayerState.ENDED) {
@@ -116,7 +127,7 @@ function desenharInfoMusicaEscritorio() {
   el.innerHTML = `<b>${f ? (m.tocando ? "Tocando" : "Pausada") : "Fila vazia"}</b><small>${f ? `${f.kind === "playlist" ? "Playlist" : "Música"} ${m.indice + 1} de ${m.fila.length} · de ${safeText(String(f.por || "").split(" ")[0])}` : ""}</small>
 ${escritorio.musicaBloqueada ? '<button type="button" class="ofc-primario" onclick="escritorio.player?.playVideo?.()">Clique para ouvir</button>' : ""}
 <div class="ofc-musica-ctl"><button type="button" onclick="controleMusicaEscritorio('anterior')" aria-label="Anterior" ${m?.indice > 0 ? "" : "disabled"}>${escritorioIcone("voltar")}</button><button type="button" onclick="controleMusicaEscritorio('${m?.tocando ? "pausar" : "tocar"}')" aria-label="${m?.tocando ? "Pausar" : "Tocar"}">${m?.tocando ? "Pausar" : "Tocar"}</button><button type="button" onclick="controleMusicaEscritorio('proxima')" aria-label="Próxima" ${m && m.indice + 1 < m.fila.length ? "" : "disabled"}>${escritorioIcone("avancar")}</button></div>
-<label class="ofc-musica-vol">Volume <input type="range" min="0" max="100" value="${escritorioVolumeMusica()}" oninput="volumeMusicaEscritorio(this.value)" aria-label="Volume da música (só para você)"></label>
+<div class="ofc-musica-vol"><button type="button" aria-pressed="${escritorioMusicaMuda()}" onclick="silenciarMusicaEscritorio()">${escritorioMusicaMuda() ? "Ouvir" : "Silenciar"}</button><input type="range" min="0" max="100" value="${escritorioMusicaMuda() ? 0 : escritorioVolumeMusica()}" oninput="volumeMusicaEscritorio(this.value);if(this.previousElementSibling.getAttribute('aria-pressed')==='true')desenharInfoMusicaEscritorio()" aria-label="Volume da música (só para você)"></div>
 <button type="button" class="ofc-secundario" onclick="abrirMusicaEscritorio()">Fila e link</button>`;
 }
 function controleMusicaEscritorio(acao, id) {

@@ -6496,3 +6496,7 @@ body.no-escritorio {overflow:hidden}
 .ofc-minha-tela-pedido {display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 10px 10px;padding:8px;border-radius:10px;background:#ff95481f;font-size:12px}
 .office-call-pedir {display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;color:var(--ofc-suave)}
 .office-call-pedir button {font:600 11px var(--mac-ui);color:var(--ofc-texto);background:#ffffff12;border:1px solid var(--ofc-borda);border-radius:7px;padding:4px 8px;cursor:pointer}
+.ofc-musica-vol button, .office-call-volume button {font:600 11px var(--mac-ui);color:var(--ofc-texto);background:#ffffff12;border:1px solid var(--ofc-borda);border-radius:7px;padding:4px 8px;cursor:pointer;white-space:nowrap}
+.ofc-musica-vol button[aria-pressed="true"], .office-call-volume button[aria-pressed="true"] {color:#ffb4a8;border-color:#ffb4a866}
+.office-call-volume {display:flex;align-items:center;gap:8px}
+.office-call-volume input {flex:1;min-width:0;accent-color:var(--ofc-laranja)}
