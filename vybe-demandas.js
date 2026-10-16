@@ -303,6 +303,9 @@ function switchBoard(board, btn) {
   document.getElementById('painel-automacoes').style.display   = board==='automacoes' ? 'block' : 'none';
   document.getElementById('painel-conta').style.display        = board==='conta' ? 'block' : 'none';
   document.getElementById('painel-escritorio').style.display = board==='escritorio'?'block':'none';
+  // O escritório ocupa a tela inteira; fora dele, a página volta a rolar.
+  document.body.classList.toggle('no-escritorio', board==='escritorio');
+  if (typeof atualizarDockEscritorio === 'function') atualizarDockEscritorio();
   if(board==='escritorio')abrirEscritorio();
   if (board === 'demandas') {
     if (DADOS_DEMANDAS.length === 0) refreshDemandas();

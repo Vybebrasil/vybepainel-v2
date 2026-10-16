@@ -356,3 +356,53 @@ test("resposta atrasada não reabre o escritório depois de sair", async () => {
   await promessa;
   assert.equal(vm.runInContext("escritorio.base", c), null);
 });
+
+// Escritório como tela inicial: só no computador, só se estiver configurado e
+// só para quem não preferiu abrir no painel.
+function inicioDoEscritorio({ celular = false, preferencia = null, entrada }) {
+  const trocas = [];
+  const c = vm.createContext({
+    window: { addEventListener() {}, matchMedia: () => ({ matches: celular }) },
+    document: { getElementById: () => null },
+    location: { search: "" },
+    URLSearchParams,
+    localStorage: { getItem: () => preferencia, setItem() {} },
+    safeText: (v) => String(v),
+    clearInterval() {},
+    clearTimeout() {},
+  });
+  vm.runInContext(readFileSync("vybe-escritorio.js", "utf8"), c);
+  c.entrada = entrada;
+  c.trocas = trocas;
+  vm.runInContext("var activeBoard='producao';escritorioApi=()=>entrada;voltarAoEscritorio=()=>trocas.push('escritorio');", c);
+  return { c, trocas };
+}
+const baseConfigurada = () => Promise.resolve({ eu: "1", worker: "https://w.test", equipe: [{ id: "1", perfil: { sala: "foco" } }] });
+
+test("computador abre no escritório configurado", async () => {
+  const { c, trocas } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  await c.iniciarNoEscritorio();
+  assert.deepEqual(trocas, ["escritorio"]);
+  assert.equal(vm.runInContext("escritorio.sala", c), "foco");
+});
+
+test("celular, preferência pelo painel ou escritório sem configuração seguem no painel", async () => {
+  for (const caso of [
+    { celular: true, entrada: baseConfigurada() },
+    { preferencia: "painel", entrada: baseConfigurada() },
+    { entrada: Promise.resolve({ eu: "1", worker: null, aviso: "Sem configuração", equipe: [] }) },
+    { entrada: Promise.reject(new Error("falhou")) },
+  ]) {
+    const { c, trocas } = inicioDoEscritorio(caso);
+    await c.iniciarNoEscritorio();
+    assert.deepEqual(trocas, [], JSON.stringify(caso));
+  }
+});
+
+test("clique no piso volta para a mesma posição em porcentagem", () => {
+  const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  for (const [u, v] of [[1, 1], [3, 4.5], [5.2, 0.8]]) {
+    const r = vm.runInContext(`(() => { const p = escritorioProjetar(${u}, ${v}); const { W } = escritorioCenaTamanho(); const { TW, TH, PAREDE, MARGEM } = ESCRITORIO_CENA; const a = (p.x - W / 2) / (TW / 2), s = (p.y - MARGEM - PAREDE) / (TH / 2); return [(a + s) / 2, (s - a) / 2]; })()`, c);
+    assert.ok(Math.abs(r[0] - u) < 1e-9 && Math.abs(r[1] - v) < 1e-9);
+  }
+});
