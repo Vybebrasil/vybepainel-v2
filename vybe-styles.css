@@ -6624,3 +6624,4 @@ body.no-escritorio {overflow:hidden}
 .ofc-giro {padding:1px 6px;border-radius:6px;background:#ff8a3533;color:#ffc79a;font:700 9px var(--mac-ui);font-style:normal}
 .ofc-giro.nao {background:#ffffff14;color:var(--ofc-suave)}
 .ofc-editor-flutua button:disabled {opacity:.5;cursor:default}
+.ofc-ferramentas button {font-size:12px;padding:7px 10px}

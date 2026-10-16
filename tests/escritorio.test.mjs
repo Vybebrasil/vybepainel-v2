@@ -848,3 +848,12 @@ test("perfil: piso e parede da sala só com valores conhecidos", () => {
   assert.equal(q.sala_piso, "");
   assert.equal(q.sala_parede, "");
 });
+
+test("perfil: piso pintado e paredes só no formato certo", () => {
+  const ok = perfilEscritorio({ sala_pisos: "0".repeat(99) + "b", sala_paredes: "c02".repeat(39) + "hd0" });
+  assert.equal(ok.sala_pisos.length, 100);
+  assert.equal(ok.sala_paredes.length, 120);
+  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(100), sala_paredes: "c03".repeat(40) });
+  assert.equal(ruim.sala_pisos, "");
+  assert.equal(ruim.sala_paredes, "");
+});

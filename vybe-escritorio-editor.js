@@ -108,7 +108,12 @@ function escritorioEditorMudou(semPasso = false) {
     renderBarraEditorEscritorio();
   }, 30);
 }
+// Aba "Piso e paredes" aberta: o clique (e o arrasto) pinta em vez de mover móvel.
+function escritorioPintando() {
+  return escritorio.edicao && escritorio.catalogoCategoria === "Sala" && typeof pintarNaSalaEscritorio === "function";
+}
 async function cliqueEditorEscritorio(x, y) {
+  if (escritorioPintando()) { if (!pintarNaSalaEscritorio(Math.floor(x), Math.floor(y), x, y) && escritorioPincel().ferramenta !== "balde") escritorioAviso(escritorioPincel().ferramenta === "parede" ? "Clique no piso encostado numa parede da sua sala." : "Pinte dentro da sua sala."); return; }
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
   const lx = Math.floor(x) - c.x, ly = Math.floor(y) - c.y;
   // Quadro: vai na parede alta mais perto do ladrilho clicado.
@@ -127,11 +132,11 @@ async function cliqueEditorEscritorio(x, y) {
     return escritorioEditorMudou();
   }
   if (e.novo) {
-    const d = await escritorio.mapa.medidas(e.novo, 2);
+    const d = await escritorio.mapa.medidas(e.novo, e.novoDir ?? 2);
     // Peça pequena (computador, telefone, abajur…) solta numa mesa, balcão ou
     // estante baixa: vai para cima dela, no meio, na altura do tampo.
     const sobre = d.x <= 1 && d.y <= 1 ? escritorioEmCimaDe(Math.floor(x), Math.floor(y)) : null;
-    if (!sobre && !(await escritorioCabe(e.novo, lx, ly, 2)))
+    if (!sobre && !(await escritorioCabe(e.novo, lx, ly, d.dir)))
       return escritorioAviso("Esse móvel não cabe aí (ou já tem outro no lugar). Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
     e.itens.push(sobre ? [e.novo, sobre.lx, sobre.ly, d.dir, 0, sobre.altura] : [e.novo, lx, ly, d.dir, 0, 0]);
     escritorio.mapa?.previa(null);
@@ -188,7 +193,8 @@ async function girarSelecionadoEscritorio() {
   const lista = [0, 2, 4, 6].filter((d) => direcoes.includes(d));
   if (lista.length < 2) return escritorioAviso("Esse móvel não gira no Habbo.");
   const prox = lista[(lista.indexOf(it[3]) + 1) % lista.length];
-  if (!(await escritorioCabe(it[0], it[1], it[2], prox))) return escritorioAviso("Girado, ele não caberia aí.");
+  // A peça não pode bater nela mesma (antes isso travava o girar de tudo).
+  if (!(await escritorioCabe(it[0], it[1], it[2], prox, { i: e.sel }, !it[5]))) return escritorioAviso("Girado, ele bateria em outro móvel ou sairia da área. Arraste para um lugar livre e gire de novo.");
   it[3] = prox;
   escritorioEditorMudou();
 }
@@ -250,6 +256,8 @@ function teclaEditorEscritorio(e) {
   if (cmd && k0 === "y") { e.preventDefault?.(); refazerEditorEscritorio(); return true; }
   if (cmd && k0 === "d") { e.preventDefault?.(); duplicarSelecionadoEscritorio(); return true; }
   if (e.key === "Escape") { if (ed.trocar != null) ed.trocar = null; else if (ed.novo) ed.novo = null; else { ed.sel = null; escritorio.mapa?.destacar(null); } escritorio.mapa?.previa(null); renderBarraEditorEscritorio(); return true; }
+  // Móvel novo ainda na mão: R gira a prévia antes de colocar.
+  if (ed.novo && ed.sel === null && (e.key === "r" || e.key === "R")) { girarNovoEscritorio(); return true; }
   if (ed.sel === null) return false;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === "r") { girarSelecionadoEscritorio(); return true; }
@@ -273,7 +281,7 @@ function renderBarraEditorEscritorio() {
   const areas = escritorio.base?.admin ? [["geral", "Mapa geral (espaços comuns)"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])] : [];
   const escolha = areas.length ? `<select aria-label="Área que você está editando" onchange="trocarCamadaEditorEscritorio(this.value)">${areas.map(([id, nome]) => `<option value="${id}"${id === e.camada ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select>` : `<b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b>`;
   const minhaSala = e.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === e.camada;
-  el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · Esc cancela" : it ? "Arraste para mudar de lugar · R gira · Delete apaga · Ctrl+Z desfaz" : "Arraste um móvel para mudar de lugar, ou arraste um do catálogo para o mapa"}</span></div>
+  el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.trocar != null ? "Escolha no catálogo, à esquerda, o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.novo ? "Clique no piso para colocar · R gira antes de colocar · Esc cancela" : it ? "Arraste para mudar de lugar · R gira · Delete apaga · Ctrl+Z desfaz" : "Arraste um móvel para mudar de lugar, ou arraste um do catálogo para o mapa"}</span></div>
 <div class="ofc-editor-hist"><button type="button" onclick="desfazerEditorEscritorio()" ${e.passos?.length > 1 ? "" : "disabled"} title="Desfazer (Ctrl+Z)">Desfazer</button><button type="button" onclick="refazerEditorEscritorio()" ${e.futuro?.length ? "" : "disabled"} title="Refazer (Ctrl+Shift+Z)">Refazer</button><button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${minhaSala ? '<button type="button" onclick="abrirEstiloSalaEscritorio()">Piso e paredes</button>' : ""}</div>
 ${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel" hidden><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel" hidden><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
 <div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
@@ -420,10 +428,11 @@ async function buscarMovelEscritorio(q) {
 async function previaEditorEscritorio(x, y) {
   const e = escritorio.edicao;
   if (!e || x < 0) return escritorio.mapa?.previa(null);
+  escritorio.ultimoPasso = { x, y };
   const it = e.novo ? null : e.sel !== null ? e.itens[e.sel] : null;
   const classe = e.novo || it?.[0];
   if (!classe || e.trocar != null) return escritorio.mapa?.previa(null);
-  const c = escritorioCantoCamada(e.camada), dir = e.novo ? 2 : it[3];
+  const c = escritorioCantoCamada(e.camada), dir = e.novo ? (e.novoDir ?? 2) : it[3];
   const lx = x - c.x, ly = y - c.y;
   let cabe = false;
   try { cabe = await escritorioCabe(classe, lx, ly, dir); } catch {}
@@ -447,6 +456,7 @@ function escolherMovelEscritorio(classe) {
     return;
   }
   escritorio.edicao.novo = classe;
+  escritorio.edicao.novoDir = 2;
   escritorio.edicao.sel = null;
   escritorio.mapa?.destacar(null);
   escritorio.mapa?.medidas(classe, 2).catch(() => escritorioAviso("Esse móvel não carregou."));
@@ -605,7 +615,8 @@ function trocarCamadaEditorEscritorio(camada) {
 
 // Arrastar um móvel da área em edição: pega no aperto, mostra onde vai cair
 // (verde cabe, vermelho não) e larga ao soltar.
-function pegarNoEditorEscritorio(x, y) {
+function pegarNoEditorEscritorio(x, y, fx, fy) {
+  if (escritorioPintando() && escritorioPincel().ferramenta !== "balde") { escritorio.pintandoArrasto = true; pintarNaSalaEscritorio(x, y, fx, fy); return true; }
   const e = escritorio.edicao;
   if (!e || e.novo || e.trocar != null || !escritorio.mapa) return false;
   const c = escritorioCantoCamada(e.camada), lx = x - c.x, ly = y - c.y;
@@ -619,7 +630,8 @@ function pegarNoEditorEscritorio(x, y) {
   renderBarraEditorEscritorio();
   return true;
 }
-async function arrastarNoEditorEscritorio(x, y) {
+async function arrastarNoEditorEscritorio(x, y, fx, fy) {
+  if (escritorio.pintandoArrasto) { pintarNaSalaEscritorio(x, y, fx, fy); return; }
   const e = escritorio.edicao, a = e?.arrasto;
   if (!a) return;
   const it = e.itens[a.i], c = escritorioCantoCamada(e.camada);
@@ -634,6 +646,7 @@ async function arrastarNoEditorEscritorio(x, y) {
   escritorio.mapa.previa(it[0], nx + c.x, ny + c.y, it[3], cabe);
 }
 async function soltarNoEditorEscritorio(x, y, moveu) {
+  if (escritorio.pintandoArrasto) { escritorio.pintandoArrasto = false; return; }
   const e = escritorio.edicao, a = e?.arrasto;
   if (!a) return;
   e.arrasto = null;
@@ -754,4 +767,16 @@ function trocarModeloEditorEscritorio() {
   e.trocar = e.sel;
   renderBarraEditorEscritorio();
   escritorioAviso("Escolha no catálogo o novo modelo.");
+}
+
+async function girarNovoEscritorio() {
+  const e = escritorio.edicao;
+  if (!e?.novo) return;
+  const { direcoes } = await escritorio.mapa.medidas(e.novo, e.novoDir ?? 2);
+  const lista = [0, 2, 4, 6].filter((d) => direcoes.includes(d));
+  if (lista.length < 2) return escritorioAviso("Esse móvel não gira.");
+  const atual = lista.includes(e.novoDir) ? e.novoDir : lista[0];
+  e.novoDir = lista[(lista.indexOf(atual) + 1) % lista.length];
+  const ult = escritorio.ultimoPasso;
+  if (ult) previaEditorEscritorio(ult.x, ult.y);
 }
