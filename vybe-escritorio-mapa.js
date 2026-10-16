@@ -811,6 +811,24 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu }) {
     const z = Number(p.no.style.zIndex);
     // Área do boneco (de pé, ~100 px acima dos pés) para recortar paredes.
     recortar(p.id, t.x - 20, pe - 100, t.x + 20, pe, z);
+    separarEtiquetas();
+  };
+  // Etiquetas que se cruzam (gente junta na Pista): a de quem está mais ao
+  // fundo sobe um degrau, até não bater em nenhuma da frente.
+  let etiquetasQuadro = 0;
+  const separarEtiquetas = () => {
+    if (etiquetasQuadro) return;
+    etiquetasQuadro = requestAnimationFrame(() => {
+      etiquetasQuadro = 0;
+      const lista = [...pessoas.values()].map((p) => ({ p, x: parseFloat(p.no.style.left), y: parseFloat(p.no.style.top), w: p.etiqueta.offsetWidth || 80 })).sort((a, b) => b.y - a.y);
+      const postas = [];
+      for (const it of lista) {
+        let sobe = 0;
+        while (sobe < 108 && postas.some((u) => Math.abs(u.x - it.x) < (u.w + it.w) / 2 + 4 && Math.abs((u.y - u.sobe) - (it.y - sobe)) < 19)) sobe += 19;
+        postas.push({ ...it, sobe });
+        it.p.etiqueta.style.setProperty("--sobe", sobe + "px");
+      }
+    });
   };
   const trocarImagem = (p) => {
     const quadro = p.acao === "wlk" ? Math.floor(performance.now() / MAPA_QUADRO_PASSO) % 4 : 0;

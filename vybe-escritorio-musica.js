@@ -70,7 +70,7 @@ function escritorioElementoMusica() {
   el.className = "ofc-musica";
   el.setAttribute("aria-label", "Música da Pista e do Bar");
   el.hidden = true;
-  el.innerHTML = `<div class="ofc-musica-topo" title="Arraste para mudar de lugar"><b>${escritorioIcone("musica")}Música</b><button type="button" class="ofc-x" onclick="minimizarMusicaEscritorio()" aria-label="Minimizar o player" title="Minimizar">–</button></div><div class="ofc-musica-player"><div id="office-yt"></div></div><div class="ofc-musica-info"></div>`;
+  el.innerHTML = `<div class="ofc-musica-topo" title="Arraste para mudar de lugar"><b>${escritorioIcone("musica")}Música</b><span><button type="button" class="ofc-x ofc-encaixar" onclick="encaixarMusicaEscritorio()" aria-label="Voltar o player para a coluna" title="Voltar para a coluna da direita">↘</button><button type="button" class="ofc-x" onclick="minimizarMusicaEscritorio()" aria-label="Minimizar o player" title="Minimizar">–</button></span></div><div class="ofc-musica-player"><div id="office-yt"></div></div><div class="ofc-musica-info"></div>`;
   escritorio.musicaEl = el;
   try { if (localStorage.getItem("vybe-escritorio-musica-mini") === "1") el.classList.add("mini"); } catch {}
   arrastarMusicaEscritorio(el);
@@ -140,6 +140,8 @@ function controleMusicaEscritorio(acao, id) {
 function receberMusicaEscritorio(estado) {
   escritorio.musica = estado;
   sincronizarMusicaEscritorio();
+  const lista = document.getElementById("office-lista-salas");
+  if (lista && !lista.hidden) lista.innerHTML = escritorioListaSalasHtml();
   if (document.getElementById("office-musica-fila")) desenharFilaMusicaEscritorio();
 }
 // Painel da jukebox: colar link, ver a fila, tocar uma, tirar uma.
@@ -202,10 +204,19 @@ function arrastarMusicaEscritorio(el) {
   const topo = el.querySelector(".ofc-musica-topo");
   let inicio = null;
   const salvo = (() => { try { return JSON.parse(localStorage.getItem("vybe-escritorio-musica-pos") || "null"); } catch { return null; } })();
-  if (salvo) requestAnimationFrame(() => posicionarMusicaEscritorio(el, salvo.x, salvo.y));
+  if (salvo) { el.classList.add("solto"); requestAnimationFrame(() => posicionarMusicaEscritorio(el, salvo.x, salvo.y)); }
   topo.addEventListener("pointerdown", (e) => {
     if (e.target.closest("button")) return;
     e.stopPropagation();
+    // Primeiro arraste: sai da coluna e passa a flutuar sobre o mapa.
+    if (!el.classList.contains("solto")) {
+      const principal = document.querySelector(".ofc-principal");
+      if (!principal) return;
+      const r = el.getBoundingClientRect(), base = principal.getBoundingClientRect();
+      el.classList.add("solto");
+      principal.append(el);
+      posicionarMusicaEscritorio(el, r.left - base.left, r.top - base.top);
+    }
     inicio = { px: e.clientX, py: e.clientY, x: el.offsetLeft, y: el.offsetTop };
     topo.setPointerCapture(e.pointerId);
     el.classList.add("arrastando");
@@ -222,4 +233,19 @@ function arrastarMusicaEscritorio(el) {
   };
   topo.addEventListener("pointerup", soltar);
   topo.addEventListener("pointercancel", soltar);
+}
+
+function encaixarMusicaEscritorio() {
+  const el = escritorio.musicaEl, coluna = document.getElementById("office-coluna");
+  if (!el || !coluna) return;
+  el.classList.remove("solto");
+  Object.assign(el.style, { left: "", top: "", right: "", bottom: "" });
+  coluna.append(el);
+  try { localStorage.removeItem("vybe-escritorio-musica-pos"); } catch {}
+}
+
+// Atalho (lista do celular): anda até a Pista para ouvir.
+function irParaMusicaEscritorio() {
+  const pista = (ESCRITORIO_PLANTA.pisos || []).find((q) => q.piso === "pista");
+  if (pista) escritorioIrParaAmbiente("lounge", true, { ...pista, nome: "a Pista" });
 }
