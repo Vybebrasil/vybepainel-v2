@@ -6067,7 +6067,7 @@ body.no-escritorio {overflow:hidden}
 .abr-luz {position:absolute;inset:0;z-index:1;background:linear-gradient(105deg,transparent 35%,#ffb36655 48%,#fff1 52%,transparent 65%) 0 0/300% 100%;mix-blend-mode:screen;opacity:0;animation:abr-varrer 3.8s 1.4s ease-in-out forwards}
 .abr-faiscas {position:absolute;inset:0;z-index:2;pointer-events:none}
 .abr-faiscas i {position:absolute;bottom:-10px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;background:#ffb15e;box-shadow:0 0 10px 3px #ff7a1acc;opacity:0;animation:abr-subir var(--d) var(--a) linear infinite}
-.abr-vinheta {position:absolute;inset:0;z-index:3;background:radial-gradient(120% 90% at 50% 40%,transparent 45%,#05050ad9 100%),linear-gradient(to top,#05050af2 0,transparent 50%),linear-gradient(to right,#05050acc 0,transparent 55%)}
+.abr-vinheta {position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(120% 90% at 50% 40%,transparent 45%,#05050ad9 100%),linear-gradient(to top,#05050af2 0,transparent 50%),linear-gradient(to right,#05050acc 0,transparent 55%)}
 .abr-pular {position:absolute;z-index:7;top:20px;right:22px;padding:9px 16px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
 .abr-pular:hover {background:#000a}
 .abr-som {position:absolute;z-index:7;left:22px;bottom:20px;padding:8px 14px;border-radius:999px;border:1px solid #ffffff33;background:#0007;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(8px)}
@@ -6208,5 +6208,5 @@ body.no-escritorio {overflow:hidden}
 @media(max-width:760px){.abr-painel.cri{grid-template-columns:1fr;height:auto}.cri-grade{max-height:50vh}}
 .ofc-lobby {overflow:hidden}
 .ofc-lobby .abr-cena,.ofc-lobby .abr-vinheta {position:absolute}
-.ofc-lobby-cartao {position:relative;z-index:2}
+.ofc-lobby-cartao {position:relative;z-index:4}
 .ofc-eu .office-avatar {width:26px;height:44px;object-fit:cover;object-position:top;margin:-8px 0 -6px}
