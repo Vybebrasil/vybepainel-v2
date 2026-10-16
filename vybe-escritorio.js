@@ -273,24 +273,55 @@ function escritorioIcone(nome) {
     sair: '<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>',
     entrar: '<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H8"/>',
     lista: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
   }[nome] || "";
   return `<svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 }
 // Mapa único: a planta ganha, em cada sala individual, a mesa de quem a ocupa.
+// Dono de cada sala individual: decisão do servidor (base.salas).
 function escritorioDonos() {
-  return escritorioSalasPessoais(escritorio.base?.equipe || []);
+  const donos = new Map();
+  for (const s of escritorio.base?.salas || []) {
+    const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === s.id);
+    if (a && s.pessoa_id) donos.set(s.pessoa_id, a);
+  }
+  return donos;
+}
+function escritorioNomeDaSala(a) {
+  const s = (escritorio.base?.salas || []).find((x) => x.id === a.id);
+  return s?.dono ? "Sala de " + s.dono : "Sala livre";
+}
+// Camadas do mapa: o mapa geral e cada sala individual. Sem nada salvo, vale o
+// padrão do código. Nas salas, os itens ficam relativos ao canto da sala.
+function escritorioItensDaCamada(camada) {
+  const salvo = escritorio.edicao?.camada === camada ? escritorio.edicao.itens : escritorio.base?.mapa?.camadas?.[camada]?.itens;
+  if (salvo) return salvo;
+  if (camada === "geral") return ESCRITORIO_PLANTA.moveis;
+  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === camada);
+  return escritorioMoveisDaSala(a).map(([c, x, y, ...r]) => [c, x - a.x0, y - a.y0, ...r]);
+}
+function escritorioMoveisAtuais() {
+  const moveis = escritorioItensDaCamada("geral").map((it, i) => [...it.slice(0, 6), { camada: "geral", i }]);
+  for (const a of ESCRITORIO_PLANTA.ambientes) {
+    if (!a.pessoal) continue;
+    escritorioItensDaCamada(a.id).forEach(([c, x, y, dir, estado = 0, altura = 0], i) =>
+      moveis.push([c, x + a.x0, y + a.y0, dir, estado, altura, { camada: a.id, i }]));
+  }
+  return moveis;
 }
 function escritorioPlantaComMesas() {
-  const P = ESCRITORIO_PLANTA;
-  const moveis = [...P.moveis];
-  for (const a of P.ambientes) if (a.pessoal) moveis.push(...escritorioMoveisDaSala(a));
-  return { ...P, moveis };
+  return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais() };
+}
+// Nomes das salas individuais conforme o dono informado pelo servidor.
+function escritorioAplicarSalas() {
+  for (const a of ESCRITORIO_PLANTA.ambientes) if (a.pessoal) a.nome = escritorioNomeDaSala(a);
 }
 // Ao chegar, a pessoa aparece sentada na própria mesa; sem sala, na recepção.
 function escritorioChegar() {
   const base = escritorio.base;
+  escritorioAplicarSalas();
   escritorio.perfil = { ...(base.equipe.find((p) => p.id === base.eu)?.perfil || {}) };
   const mesa = escritorioMinhaMesa();
   const lugar = mesa ? mesa.cadeira : { x: 36, y: 8 };
@@ -449,12 +480,14 @@ function renderEscritorio() {
  ${rail("pessoas", "pessoas", "Pessoas", "alternarAbaEscritorio('pessoas')", lateral && aba === "pessoas")}
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
  <span class="ofc-rail-fim"></span>
+ ${escritorioCamadaParaEditar() ? rail("editar", "editar", escritorio.base.admin ? "Editar" : "Minha sala", escritorio.edicao ? "sairEditorEscritorio()" : "abrirEditorEscritorio()", Boolean(escritorio.edicao)) : ""}
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
  ${rail("painel", "painel", "Painel", "abrirPainelDoEscritorio()", false)}
 </nav>
 <aside class="ofc-lateral" aria-label="${aba === "conversa" ? "Conversa da sala" : "Pessoas e salas"}">
  <div class="ofc-lateral-topo"><div><b>Vybe</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div><button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
- <div class="ofc-abas" role="tablist"><button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button></div>
+ <div class="ofc-abas" role="tablist"${escritorio.edicao ? ' style="grid-template-columns:1fr 1fr 1fr"' : ""}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Catálogo</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button></div>
+ ${escritorio.edicao ? `<div class="ofc-aba ofc-catalogo" ${aba === "catalogo" ? "" : "hidden"}>${escritorioCatalogoHtml()}</div>` : ""}
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><h4>Salas</h4><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div><p class="ofc-nota">Online indica presença, não produtividade.</p></div>
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><h3>${safeText(ESCRITORIO_SALAS[sala])}</h3><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para esta sala" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
 </aside>
@@ -464,6 +497,7 @@ function renderEscritorio() {
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <section id="office-call" class="office-call" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><div class="office-call-actions"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b></div><div id="office-call-media" class="office-call-media"></div></section>
+ <div class="ofc-editor" id="office-editor" role="toolbar" aria-label="Editor do mapa" hidden></div>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
  ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo"><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Câmera e microfone começam desligados.</p><div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}" ${escritorio.conectando ? "disabled" : ""}>${b.demo ? "Ver o escritório" : escritorio.conectando ? "Entrando…" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div><label class="ofc-lobby-pref"><input type="checkbox" ${escritorioInicio() === "painel" ? "checked" : ""} onchange="escritorioInicio(this.checked?'painel':'escritorio')">Neste computador, abrir direto no painel</label><button type="button" class="office-text-button" onclick="escritorio.lobbyFechado=true;abrirPainelDoEscritorio()">Ir para o painel sem entrar</button></div></div>` : ""}
 </main>
@@ -474,6 +508,7 @@ function renderEscritorio() {
   carregarChatEscritorio();
   if (escritorio.chamada) renderMidiaEscritorio();
   montarMapaEscritorio();
+  if (typeof renderBarraEditorEscritorio === "function") renderBarraEditorEscritorio();
 }
 // O mapa é criado uma vez e só muda de lugar quando a tela é redesenhada:
 // assim não recarrega móveis nem perde câmera e animação.
@@ -557,6 +592,7 @@ function escritorioIrPara(x, y) {
   andar();
 }
 function cliqueNoMapaEscritorio(x, y) {
+  if (escritorio.edicao) { cliqueEditorEscritorio(x, y); return; }
   if (!escritorio.conectado && !escritorio.base?.demo) {
     escritorioAviso("Entre no escritório para andar pelo mapa.");
     return;
@@ -862,6 +898,7 @@ globalThis.document?.addEventListener?.("keydown", (e) => {
   if (typeof activeBoard === "undefined" || activeBoard !== "escritorio" || !escritorio.mapa) return;
   if (document.getElementById("ofc-abertura") || document.querySelector(".workflow-modal")) return;
   if ((escritorio.modo || "mapa") !== "mapa") return;
+  if (escritorio.edicao) { if (teclaEditorEscritorio(e)) e.preventDefault(); return; }
   tecladoEscritorio(e);
 });
 globalThis.document?.addEventListener?.("keyup", soltarTeclaEscritorio);

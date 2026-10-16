@@ -344,7 +344,7 @@ function telaDoEscritorio(entrada) {
 
 test("abrir o escritório carrega a base e não estoura erro", async () => {
   const { c, painel } = telaDoEscritorio(Promise.resolve({
-    eu: "1", equipe: [{ id: "1", nome: "Paulo Martins", perfil: { sala: "criacao" } }],
+    eu: "1", equipe: [{ id: "1", nome: "Paulo Martins", perfil: { sala: "criacao" } }], salas: [{ id: "sala-0", dono: "Paulo", pessoa_id: "1" }],
   }));
   await c.abrirEscritorio();
   assert.ok(!/not defined/.test(painel.innerHTML), painel.innerHTML);
@@ -388,7 +388,7 @@ function inicioDoEscritorio({ celular = false, preferencia = null, entrada }) {
   vm.runInContext("var activeBoard='producao';escritorioApi=()=>entrada;voltarAoEscritorio=()=>trocas.push('escritorio');", c);
   return { c, trocas };
 }
-const baseConfigurada = () => Promise.resolve({ eu: "1", worker: "https://w.test", equipe: [{ id: "1", nome: "Bia Santos", perfil: { sala: "foco" } }] });
+const baseConfigurada = () => Promise.resolve({ eu: "1", worker: "https://w.test", equipe: [{ id: "1", nome: "Bia Santos", perfil: { sala: "foco" } }], salas: [{ id: "sala-4", dono: "Bia", pessoa_id: "1" }] });
 
 test("computador abre no escritório configurado", async () => {
   const { c, trocas } = inicioDoEscritorio({ entrada: baseConfigurada() });
@@ -430,18 +430,15 @@ test("cada ambiente do mapa leva à sala de conversa certa", () => {
   assert.equal(vm.runInContext("escritorioSalaEm(40, 51)", c), "convivencia"); // piscina
 });
 
-test("salas individuais: cada dono na sua, pelo primeiro nome sem acento; livres ficam livres", () => {
+test("salas individuais: 12 iguais de 10×10 e o dono vem do servidor", () => {
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
-  c.equipe = [
-    { id: "1", nome: "Paulo Martins" }, { id: "2", nome: "Vinicius Souza" }, { id: "3", nome: "Ewerton L." },
-    { id: "4", nome: "Fulano Externo" }, { id: "5", nome: "Beatriz Souza" }, { id: "6", nome: "Tainara Lima" },
-  ];
-  const r = Object.fromEntries(vm.runInContext("[...escritorioSalasPessoais(equipe)].map(([id, a]) => [id, a.nome])", c));
-  assert.deepEqual(r, { 1: "Sala de Paulo", 2: "Sala de Vinícius", 3: "Sala de Ewerton", 5: "Sala de Bia", 6: "Sala de Taynara" });
-  const salas = vm.runInContext("ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.x1 - a.x0, a.y1 - a.y0, a.nome])", c);
+  const salas = vm.runInContext("ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.x1 - a.x0, a.y1 - a.y0])", c);
   assert.equal(salas.length, 12);
   assert.ok(salas.every(([w, h]) => w === 10 && h === 10));
-  assert.equal(salas.filter((s) => s[2] === "Sala livre").length, 3);
+  vm.runInContext('escritorio.base = { eu: "1", equipe: [], salas: [{ id: "sala-3", dono: "Deivid", pessoa_id: "1" }] }; escritorioAplicarSalas();', c);
+  assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.id", c), "sala-3");
+  assert.equal(vm.runInContext('ESCRITORIO_PLANTA.ambientes.find((a) => a.id === "sala-3").nome', c), "Sala de Deivid");
+  assert.equal(vm.runInContext('ESCRITORIO_PLANTA.ambientes.find((a) => a.id === "sala-4").nome', c), "Sala livre");
 });
 
 test("figura do boneco: escolhas do perfil viram figura válida; figura colada só se bem formada", () => {
@@ -505,4 +502,58 @@ test("diagonal não corta quina de parede", () => {
   const passos = gradeDeTeste([], [[0, 3, 3, 3]])({ x: 2, y: 2 }, { x: 2, y: 3 });
   assert.ok(passos.length > 1);
   assert.ok(!passos.some((p, i) => i === 0 && p.y === 3 && p.x <= 2));
+});
+
+// Mapa editável: só administrador mexe no mapa; cada um na própria sala.
+import { salasDoEscritorio, salvarCamadaEscritorio, itensValidos, carregarMapaEscritorio, arteRemotaEscritorio } from "../server/escritorio-mapa.js";
+
+test("salas: dono pelo primeiro nome ou apelido do cadastro; livres sem dono", () => {
+  const salas = salasDoEscritorio([
+    { id: 1, nome: "Paulo Martins" }, { id: 2, nome: "Beatriz Rocha" }, { id: 3, nome: "Ademir Dourado" }, { id: 4, nome: "Breno Fernandes" },
+  ]);
+  assert.equal(salas.length, 12);
+  assert.equal(salas[0].pessoa_id, "1");
+  assert.equal(salas.find((s) => s.dono === "Bia").pessoa_id, "2");
+  assert.equal(salas.find((s) => s.dono === "Mizinho").pessoa_id, "3");
+  assert.ok(!salas.some((s) => s.pessoa_id === "4"));
+  assert.equal(salas.filter((s) => !s.dono).length, 3);
+});
+
+test("itens: fora da área, classe estranha ou direção inválida são recusados", () => {
+  assert.throws(() => itensValidos("sala-0", [["exe_table", 10, 2, 0]]), /fora/);
+  assert.throws(() => itensValidos("geral", [["<script>", 1, 1, 0]]), /inválido/);
+  assert.throws(() => itensValidos("geral", [["exe_table", 1, 1, 3]]), /Direção/);
+  assert.deepEqual(itensValidos("sala-0", [["exe_table", 4, 1, 0]]), [["exe_table", 4, 1, 0, 0, 0]]);
+});
+
+test("permissões e versão ao salvar camadas do mapa", async (t) => {
+  const { db, sql } = await banco();
+  t.after(() => db.close());
+  const salas = salasDoEscritorio([{ id: 1, nome: "Paulo" }, { id: 2, nome: "Jady" }]);
+  // Sem a migração: recusa com aviso, não quebra a entrada.
+  await assert.rejects(salvarCamadaEscritorio(sql, { id: 1, admin: true }, salas, { camada: "geral", itens: [], versao: 0 }), /migração/);
+  assert.deepEqual(await carregarMapaEscritorio(sql), { editavel: false, camadas: {} });
+  await db.exec(readFileSync("migrations/2026-10-16-escritorio-mapa.sql", "utf8"));
+  const jady = { id: 2, admin: false }, paulo = { id: 1, admin: true };
+  await assert.rejects(salvarCamadaEscritorio(sql, jady, salas, { camada: "geral", itens: [], versao: 0 }), /administra/);
+  await assert.rejects(salvarCamadaEscritorio(sql, jady, salas, { camada: "sala-0", itens: [], versao: 0 }), /sua sala/);
+  const salaJady = salas.find((s) => s.pessoa_id === "2").id;
+  const r1 = await salvarCamadaEscritorio(sql, jady, salas, { camada: salaJady, itens: [["exe_table", 4, 1, 0]], versao: 0 });
+  assert.equal(r1.versao, 1);
+  // Alguém salvou antes: a versão antiga não sobrescreve.
+  await assert.rejects(salvarCamadaEscritorio(sql, jady, salas, { camada: salaJady, itens: [], versao: 0 }), /antes/);
+  const r2 = await salvarCamadaEscritorio(sql, paulo, salas, { camada: salaJady, itens: [], versao: 1 });
+  assert.equal(r2.versao, 2);
+  const r3 = await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [["exe_plant", 70, 50, 2]], versao: 0 });
+  assert.equal(r3.versao, 1);
+  const mapa = await carregarMapaEscritorio(sql);
+  assert.equal(mapa.editavel, true);
+  assert.deepEqual(mapa.camadas.geral.itens, [["exe_plant", 70, 50, 2, 0, 0]]);
+  assert.deepEqual(mapa.camadas[salaJady].itens, []);
+});
+
+test("arte remota só aceita nome de móvel e não chama a rede com nome inválido", async () => {
+  let chamadas = 0;
+  await assert.rejects(arteRemotaEscritorio("../segredo", "png", () => { chamadas++; }), /inválido/);
+  assert.equal(chamadas, 0);
 });

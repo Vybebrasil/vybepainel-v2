@@ -1,4 +1,5 @@
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
+import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -79,13 +80,18 @@ export async function carregarEscritorio(sql, pessoa) {
     await sql`SELECT p.id,p.nome,COALESCE(e.preferencias,'{}'::jsonb) AS preferencias
     FROM vybe_pessoas p LEFT JOIN vybe_escritorio_perfis e ON e.pessoa_id=p.id
     WHERE p.ativo=TRUE AND p.pode_entrar=TRUE ORDER BY p.nome`;
+  const lista = equipe.map((p) => ({
+    id: String(p.id),
+    nome: p.nome,
+    perfil: perfilEscritorio(p.preferencias),
+  }));
   return {
     eu: String(pessoa.id),
-    equipe: equipe.map((p) => ({
-      id: String(p.id),
-      nome: p.nome,
-      perfil: perfilEscritorio(p.preferencias),
-    })),
+    admin: Boolean(pessoa.admin),
+    equipe: lista,
+    // Dono de cada sala individual e o mapa salvo (camadas editadas).
+    salas: salasDoEscritorio(lista),
+    mapa: await carregarMapaEscritorio(sql),
   };
 }
 export async function salvarPerfilEscritorio(sql, pessoaId, valor) {
@@ -126,7 +132,12 @@ export async function enviarArteEscritorio(res, arquivo) {
   try {
     dados = await readFile(join(PASTA_ARTE_ESCRITORIO, arquivo));
   } catch {
-    return res.status(404).json({ error: "Arte não encontrada." });
+    // Fora dos móveis do painel: vem do catálogo do Habbo (editor do mapa).
+    try {
+      dados = await arteRemotaEscritorio(m[1], m[2]);
+    } catch (e) {
+      return res.status(e.status || 502).json({ error: e.message });
+    }
   }
   res.setHeader("Content-Type", m[2] === "png" ? "image/png" : "application/json; charset=utf-8");
   // O endereço muda quando o arquivo muda (?v=hash); cache só no navegador.
@@ -195,6 +206,14 @@ export async function areaEscritorio(req, res, quem, sql) {
       ok: true,
       perfil: await salvarPerfilEscritorio(sql, pessoa.id, req.body?.perfil),
     });
+  if (acao === "mapa") {
+    const { salas } = await carregarEscritorio(sql, pessoa);
+    try {
+      return res.status(200).json({ ok: true, ...(await salvarCamadaEscritorio(sql, pessoa, salas, req.body || {})) });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+  }
   if (acao === "mensagem")
     return res.status(200).json({
       ok: true,

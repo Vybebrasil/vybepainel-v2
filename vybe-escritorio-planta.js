@@ -6,9 +6,7 @@
 // desce para a esquerda. Direções do Habbo: 0 olha para −y, 2 para +x,
 // 4 para +y, 6 para −x; medidas valem em 0/4 e giram em 2/6.
 // Cada ambiente pertence a uma sala de conversa do servidor.
-const ESCRITORIO_DONOS = ["Paulo", "Vinícius", "Ewerton", "Deivid", "Bia", "Jady", "Mizinho", "Taynara", "Reriston"];
-// Como cada um está no cadastro, quando o nome da sala é apelido ou outra grafia.
-const ESCRITORIO_DONOS_CADASTRO = { Bia: ["Beatriz"], Taynara: ["Tainara"], Mizinho: ["Ademir"] };
+// Quem é dono de cada sala vem do servidor (base.salas); aqui só a geometria.
 const ESCRITORIO_SALA_LADO = 10;
 const ESCRITORIO_PLANTA = (() => {
   const W = 80, H = 58;
@@ -30,11 +28,11 @@ const ESCRITORIO_PLANTA = (() => {
   ambiente("cafe", "Café", "convivencia", 42, 0, 54, 9, "cafe");
   ambiente("academia", "Academia", "convivencia", 54, 0, 72, 9, "academia");
   // Salas individuais 10×10: fileira de cima (porta para baixo) e de baixo (porta para cima)
-  [...ESCRITORIO_DONOS, "", "", ""].forEach((dono, i) => {
+  Array.from({ length: 12 }, (_, i) => i).forEach((i) => {
     // Três salas, a passagem do meio (x 30–34) e mais três.
     const linha = i < 6 ? 0 : 1, col = i % 6, y0 = linha ? 25 : 12, x0 = col < 3 ? col * L : 34 + (col - 3) * L;
-    ambiente("sala-" + i, dono ? "Sala de " + dono : "Sala livre", "criacao", x0, y0, x0 + L, y0 + L,
-      i % 2 ? "madeira" : "clara", { pessoal: true, dono, porta: linha ? "cima" : "baixo" });
+    ambiente("sala-" + i, "Sala livre", "criacao", x0, y0, x0 + L, y0 + L,
+      i % 2 ? "madeira" : "clara", { pessoal: true, porta: linha ? "cima" : "baixo" });
   });
   ambiente("foco", "Foco", "foco", 64, 12, 72, 22, "carpete");
   ambiente("jogos", "Jogos", "convivencia", 64, 25, 72, 35, "verde");
@@ -151,21 +149,6 @@ function escritorioAmbienteEm(x, y) {
 // Corredores e área externa são convivência.
 function escritorioSalaEm(x, y) {
   return escritorioAmbienteEm(x, y)?.sala || "convivencia";
-}
-const escritorioSemAcento = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-// Sala individual de cada dono: pelo primeiro nome (sem acento) ou pelo nome
-// completo começando por ele. Quem não está na lista não ganha sala; as salas
-// livres continuam livres.
-function escritorioSalasPessoais(equipe = []) {
-  const donos = new Map();
-  for (const a of ESCRITORIO_PLANTA.ambientes) {
-    if (!a.pessoal || !a.dono) continue;
-    const alvos = [a.dono, ...(ESCRITORIO_DONOS_CADASTRO[a.dono] || [])].map(escritorioSemAcento);
-    const pessoa = equipe.find((p) => !donos.has(p.id) && alvos.includes(escritorioSemAcento(p.nome).split(/\s+/)[0]))
-      || equipe.find((p) => !donos.has(p.id) && alvos.some((alvo) => escritorioSemAcento(p.nome).startsWith(alvo)));
-    if (pessoa) donos.set(pessoa.id, a);
-  }
-  return donos;
 }
 // Coordenadas locais da sala: ly = 0 é o fundo (longe da porta) e cresce em
 // direção à porta. Nas salas com porta para cima, tudo é espelhado em y,

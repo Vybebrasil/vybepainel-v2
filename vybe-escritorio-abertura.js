@@ -36,7 +36,7 @@ function vybelandiaCenaHtml(parada = false) {
 }
 
 function criadorDaFigura(fig) {
-  const f = { g: "M", pele: 1, cabelo: 828, corCabelo: 61, camisa: 255, corCamisa: 1323, calca: 280, corCalca: 110, sapato: 305, corSapato: 110 };
+  const f = { g: "M", pele: 1, cabelo: 828, corCabelo: 61, camisa: 255, corCamisa: 1323, calca: 280, corCalca: 110, sapato: 305, corSapato: 110, extras: {} };
   for (const parte of String(fig || "").split(".")) {
     const [t, conj, cor] = parte.split("-");
     const n = Number(conj), c = Number(cor);
@@ -45,13 +45,79 @@ function criadorDaFigura(fig) {
     if (t === "ch") { f.camisa = n; if (CRIADOR_CORES[c]) f.corCamisa = c; }
     if (t === "lg") { f.calca = n; if (CRIADOR_CORES[c]) f.corCalca = c; }
     if (t === "sh") { f.sapato = n; if (CRIADOR_CORES[c]) f.corSapato = c; }
+    // Acessórios: tipo, conjunto e as cores como estão na figura.
+    if (CRIADOR_ACESSORIOS[t]) f.extras[t] = { id: n, cores: parte.split("-").slice(2).map(Number).filter(Boolean) };
   }
   const p = CRIADOR_PECAS[f.g];
   for (const campo of ["cabelo", "camisa", "calca", "sapato"]) if (!p[campo].includes(f[campo])) f[campo] = p[campo][0];
   return f;
 }
 function criadorFigura(f) {
-  return `hd-${f.g === "F" ? 600 : 180}-${f.pele}.hr-${f.cabelo}-${f.corCabelo}.ch-${f.camisa}-${f.corCamisa}.lg-${f.calca}-${f.corCalca}.sh-${f.sapato}-${f.corSapato}`;
+  const extras = Object.entries(f.extras || {}).map(([t, e]) => [t, e.id, ...(e.cores || [])].join("-"));
+  return [`hd-${f.g === "F" ? 600 : 180}-${f.pele}.hr-${f.cabelo}-${f.corCabelo}.ch-${f.camisa}-${f.corCamisa}.lg-${f.calca}-${f.corCalca}.sh-${f.sapato}-${f.corSapato}`, ...extras].join(".");
+}
+// Acessórios do catálogo do Habbo: cada aba busca bibliotecas por prefixo; a
+// peça escolhida entra na figura com as cores reais da paleta dela.
+const CRIADOR_ACESSORIOS = {
+  ha: { nome: "Chapéu", prefixo: "hat_" }, he: { nome: "Cabeça", prefixo: "acc_head_" },
+  ea: { nome: "Óculos", prefixo: "acc_eye_" }, fa: { nome: "Rosto", prefixo: "acc_face_" },
+  ca: { nome: "Pescoço", prefixo: "acc_chest_" }, cc: { nome: "Casaco", prefixo: "jacket_" },
+  wa: { nome: "Cintura", prefixo: "acc_waist_" }, cp: { nome: "Estampa", prefixo: "acc_print_" },
+};
+const criadorCatalogo = { tipo: "ha", resultados: [], busca: "", paletas: {} };
+async function criadorBuscarAcessorio(tipo, termo = "") {
+  criadorCatalogo.tipo = tipo;
+  criadorCatalogo.busca = termo;
+  criadorCatalogo.resultados = null;
+  renderAberturaEscritorio();
+  try {
+    const q = CRIADOR_ACESSORIOS[tipo].prefixo + termo.trim().replace(/\s+/g, "_");
+    const r = await fetch("https://www.habboassets.com/imaging/search?" + new URLSearchParams({ type: "clothing", q }));
+    const d = await r.json();
+    if (criadorCatalogo.tipo !== tipo) return;
+    // Só o que serve para o corpo escolhido (U = os dois).
+    const g = criador.f.g;
+    criadorCatalogo.resultados = (d.results || []).map((x) => x.name).filter((n) => new RegExp(`_(U|${g})_`, "i").test(n));
+  } catch {
+    criadorCatalogo.resultados = [];
+  }
+  renderAberturaEscritorio();
+}
+async function criadorUsarAcessorio(biblioteca) {
+  try {
+    const d = await (await fetch("https://www.habboassets.com/imaging/info/clothing/" + encodeURIComponent(biblioteca))).json();
+    const conj = d.revisions?.[0]?.sets?.find((x) => x.wearable !== false && (x.gender === "U" || x.gender === criador.f.g));
+    if (!conj || !CRIADOR_ACESSORIOS[conj.type]) throw new Error();
+    const paleta = (d.palettes?.[conj.palette] || []).filter((c) => c.selectable !== false);
+    criadorCatalogo.paletas[conj.type] = paleta;
+    const cores = conj.colors ? (conj.defaultColors?.length ? conj.defaultColors : [paleta[0]?.id]).slice(0, conj.colors) : [];
+    criador.f.extras[conj.type] = { id: conj.id, cores, nome: biblioteca };
+  } catch {
+    const erro = document.getElementById("abr-erro");
+    if (erro) erro.textContent = "Essa peça não carregou. Escolha outra.";
+  }
+  renderAberturaEscritorio();
+}
+function criadorCorAcessorio(tipo, cor) {
+  const e = criador.f.extras[tipo];
+  if (!e?.cores?.length) return;
+  e.cores[0] = cor;
+  renderAberturaEscritorio();
+}
+function criadorTirarAcessorio(tipo) {
+  delete criador.f.extras[tipo];
+  renderAberturaEscritorio();
+}
+function criadorAcessoriosHtml() {
+  const t = criadorCatalogo.tipo, cat = CRIADOR_ACESSORIOS[t], usado = criador.f.extras[t];
+  const nomeDe = (n) => n.replace(/^(hat|acc_[a-z]+|jacket)_[UMF]_/i, "").replace(/_/g, " ");
+  const paleta = criadorCatalogo.paletas[t] || [];
+  return `<div class="abr-grupo"><h3>Acessórios</h3>
+  <div class="abr-linha">${Object.entries(CRIADOR_ACESSORIOS).map(([id, a]) => `<button type="button" class="abr-estilo" aria-pressed="${id === t}" onclick="criadorBuscarAcessorio('${id}')">${a.nome}${criador.f.extras[id] ? " ●" : ""}</button>`).join("")}</div>
+  <form class="abr-linha" onsubmit="event.preventDefault();criadorBuscarAcessorio('${t}', this.q.value)"><input class="abr-busca" name="q" value="${safeText(criadorCatalogo.busca)}" placeholder="Buscar ${cat.nome.toLowerCase()} (em inglês)" aria-label="Buscar ${cat.nome}"><button class="abr-estilo">Buscar</button>${usado ? `<button type="button" class="abr-estilo" onclick="criadorTirarAcessorio('${t}')">Tirar ${cat.nome.toLowerCase()}</button>` : ""}</form>
+  <div class="abr-linha abr-acessorios">${criadorCatalogo.resultados === null ? "<span class=\"abr-nota\">Buscando…</span>" : (criadorCatalogo.resultados || []).map((n) => `<button type="button" class="abr-estilo" aria-pressed="${usado?.nome === n}" onclick="criadorUsarAcessorio('${safeText(n)}')">${safeText(nomeDe(n))}</button>`).join("") || "<span class=\"abr-nota\">Escolha uma aba ou busque um nome.</span>"}</div>
+  ${usado?.cores?.length && paleta.length ? `<div class="abr-linha">${paleta.slice(0, 40).map((c) => `<button type="button" class="abr-cor" style="--c:#${safeText(c.hex)}" aria-pressed="${usado.cores[0] === c.id}" aria-label="Cor ${c.id}" onclick="criadorCorAcessorio('${t}', ${Number(c.id)})"></button>`).join("")}</div>` : ""}
+  </div>`;
 }
 function criadorImagem(fig, dir = 2, tamanho = "l") {
   return "https://www.habboassets.com/imaging/avatar.png?" + new URLSearchParams({ figure: fig, direction: dir, size: tamanho });
@@ -99,6 +165,7 @@ function renderAberturaEscritorio() {
     return;
   }
   if (criador.etapa === "personagem") {
+    if (!criadorCatalogo.carregado) { criadorCatalogo.carregado = true; setTimeout(() => criadorBuscarAcessorio(criadorCatalogo.tipo), 0); }
     const f = criador.f, pecas = CRIADOR_PECAS[f.g];
     const fig = criadorFigura(f);
     const chips = (campo, cores) => Object.entries(cores).map(([id, cor]) =>
@@ -116,6 +183,7 @@ function renderAberturaEscritorio() {
   <div class="abr-grupo"><h3>Camisa</h3><div class="abr-linha">${estilos("camisa", pecas.camisa, "Modelo")}</div><div class="abr-linha">${chips("corCamisa", CRIADOR_CORES)}</div></div>
   <div class="abr-grupo"><h3>Calça</h3><div class="abr-linha">${estilos("calca", pecas.calca, "Modelo")}</div><div class="abr-linha">${chips("corCalca", CRIADOR_CORES)}</div></div>
   <div class="abr-grupo"><h3>Sapato</h3><div class="abr-linha">${estilos("sapato", pecas.sapato, "Modelo")}</div><div class="abr-linha">${chips("corSapato", CRIADOR_CORES)}</div></div>
+  ${criadorAcessoriosHtml()}
   <p class="abr-erro" role="alert" id="abr-erro"></p>
   <div class="abr-acoes">${criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='boas';renderAberturaEscritorio()">Continuar</button>`}</div>
  </div>

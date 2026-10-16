@@ -6122,3 +6122,26 @@ body.no-escritorio {overflow:hidden}
 #login-gate.login-vybelandia .login-chegada p {color:#f3e3d4;font-size:clamp(15px,1.4vw,18px);line-height:1.5}
 @keyframes abr-painel-login {from{opacity:0;transform:translateY(14px) scale(.98)}}
 @media(prefers-reduced-motion:reduce){#login-gate.login-vybelandia .login-caixa{animation:none}}
+
+/* Editor do mapa */
+.mapa-obj.mapa-selecionado {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35cc)}
+.ofc-editor {position:absolute;z-index:7;top:64px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;flex-wrap:wrap;max-width:calc(100% - 32px);padding:10px 12px;border-radius:16px;background:#1d1610ee;border:1px solid #ff8a3566;box-shadow:0 14px 40px #0008;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-editor[hidden] {display:none}
+.ofc-editor-info {display:grid;gap:2px}
+.ofc-editor-info b {font:700 13px var(--mac-ui);color:#ffd2b0}
+.ofc-editor-info span {font-size:12px;color:var(--ofc-suave)}
+.ofc-editor-sel,.ofc-editor-acoes {display:flex;gap:6px}
+.ofc-editor button {padding:8px 12px;border-radius:10px;border:1px solid #ffffff22;background:#ffffff10;color:#fff;font:600 12px var(--mac-ui);cursor:pointer}
+.ofc-editor button[aria-pressed=true] {border-color:#ff8a35;background:#ff8a3529}
+.ofc-editor button.perigo {color:#ff9b9b}
+.ofc-editor .ofc-primario {flex:none;padding:8px 16px}
+.ofc-busca {display:flex;gap:6px;margin:8px 0}
+.ofc-busca input {flex:1;min-width:0;background:#ffffff0b;border:1px solid var(--ofc-borda);border-radius:10px;padding:9px;color:var(--ofc-texto);font:13px var(--mac-ui)}
+.ofc-moveis {display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
+.ofc-movel {display:grid;justify-items:center;gap:4px;padding:6px 4px;border-radius:10px;border:1px solid #ffffff14;background:#ffffff08;color:var(--ofc-suave);font:500 10px var(--mac-ui);cursor:pointer;min-width:0}
+.ofc-movel:hover {border-color:#ff8a3577;background:#ff8a3514;color:#fff}
+.ofc-movel img {width:56px;height:56px;object-fit:contain;image-rendering:pixelated}
+.ofc-movel span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abr-busca {flex:1;min-width:160px;padding:7px 10px;border-radius:10px;border:1px solid #ffffff22;background:#ffffff0b;color:#fff;font:13px var(--mac-ui)}
+.abr-acessorios {max-height:132px;overflow-y:auto}
+.abr-nota {color:var(--ofc-suave,#a3a9b7);font-size:12px}

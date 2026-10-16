@@ -376,7 +376,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   const moveis = [];
   const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // altura: em unidades do Habbo (1 = 32 px), para o que fica em cima de mesas.
-  const montar = async ([classe, x, y, dir, estado, altura = 0]) => {
+  const montar = async ([classe, x, y, dir, estado, altura = 0, origemItem = null]) => {
     try {
       const m = await mapaCarregarMovel(classe);
       const d0 = mapaDirecaoValida(m.dados, dir);
@@ -391,15 +391,40 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
       desenho.canvas.dataset.classe = classe;
       colocar(desenho.canvas, x, y, { ...desenho, oy: desenho.oy - altura * 32 }, prof);
       palco.append(desenho.canvas);
-      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof };
+      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof, origem: origemItem };
       moveis.push(item);
       if (item.quadros > 1 && !reduzido) animados.push(item);
     } catch (e) {
       console.warn(e.message);
     }
   };
-  let grade = null;
+  let grade = null, selecionado = null;
   const prontos = Promise.all(P.moveis.map(montar)).then(() => { grade = mapaMontarGrade(P, moveis); });
+  // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
+  async function definirMoveis(lista) {
+    for (const item of moveis) item.no.remove();
+    moveis.length = 0;
+    animados.length = 0;
+    await Promise.all(lista.map(montar));
+    grade = mapaMontarGrade(P, moveis);
+    destacar(selecionado);
+  }
+  // Móveis que ocupam o ladrilho, do mais à frente para o mais atrás.
+  function moveisEm(x, y) {
+    const tx = Math.floor(x), ty = Math.floor(y);
+    return moveis.filter((m) => tx >= Math.floor(m.x) && tx < Math.floor(m.x) + m.dim.x && ty >= Math.floor(m.y) && ty < Math.floor(m.y) + m.dim.y)
+      .sort((a, b) => b.prof - a.prof);
+  }
+  function destacar(origem) {
+    selecionado = origem;
+    for (const m of moveis) m.no.classList.toggle("mapa-selecionado", Boolean(origem) && m.origem?.camada === origem.camada && m.origem?.i === origem.i);
+  }
+  // Medidas no chão de um móvel numa direção (carrega o modelo se precisar).
+  async function medidas(classe, dir) {
+    const m = await mapaCarregarMovel(classe);
+    const d = mapaDirecaoValida(m.dados, dir);
+    return { ...mapaDimensoes(m.dados, d), dir: d, direcoes: Object.keys(m.dados.visualizations.find((v) => v.size === 64)?.directions || { 0: 1 }).map(Number) };
+  }
 
   // Rótulos dos ambientes
   for (const a of P.ambientes) {
@@ -543,7 +568,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, eu }) {
   prontos.then(() => { if (animados.length) relogio = setInterval(animar, 125); });
 
   return {
-    origem, prontos, atualizarPessoas, centralizar, mudarZoom,
+    origem, prontos, atualizarPessoas, centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas,
     caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
