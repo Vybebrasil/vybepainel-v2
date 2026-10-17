@@ -260,6 +260,15 @@ function auditar(cena, P, moveis, avisos) {
       || (pi && pi.x1 > x0 && pi.x0 < x0 + 6 && pi.y1 > y0 && pi.y0 < y0 + 6);
     if (!algum) problemas.push(`área externa vazia em (${x0},${y0})–(${x0 + 5},${y0 + 5})`);
   }
+  // Item de parede mais alto que a parede: o desenho é empurrado para baixo
+  // e a peça aparece rente ao chão (arandela do cinema, por exemplo). A
+  // altura que conta é a do desenho menos a inclinação da largura.
+  for (const q of pendurados) {
+    const dv = P.divisorias.find(([x0, y0, x1, y1]) => (q.dir === 4 ? y0 === y1 && y0 === q.y && q.x >= x0 && q.x < x1 : x0 === x1 && x0 === q.x && q.y >= y0 && q.y < y1));
+    const alt = dv?.alt ?? (dv?.baixa ? 46 : 118);
+    const util = q.alto - q.w * 16;
+    if (util > alt + 10) problemas.push(nomeCena(`${q.classe} (${q.x},${q.y}) não cabe na parede (${Math.round(util)} px de desenho, parede de ${alt})`));
+  }
   // Dois itens pendurados no mesmo trecho de parede (um cobre o outro).
   const trechos = new Map();
   for (const q of pendurados) for (let k = 0; k < q.w; k++) {

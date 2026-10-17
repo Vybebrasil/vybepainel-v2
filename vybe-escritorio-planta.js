@@ -427,8 +427,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["hygge_c25_armchair", 1, 7, 2], ["hygge_c25_armchair", 1, 8, 2],
     ["hygge_c25_coffeetable", 2, 7, 0], ["hygge_c25_armchair", 3, 8, 6],
     ["ktchn10_tea", 2, 7, 0, 0, 0.6], ["mm_lamp", 0, 7, 2],
-    // Lateral direita: cadeira suspensa no fundo e vaso de plumas.
-    ["hygge_c25_hangingchair", 11, 2, 6], ["hygge_c25_featherdeco", 11, 4, 0],
+    // Lateral direita: vaso de plumas junto da cristaleira e a cadeira
+    // suspensa mais à frente (no fundo ela tapava a cristaleira).
+    ["hygge_c25_hangingchair", 11, 5, 6], ["hygge_c25_featherdeco", 11, 2, 0],
     ["bohogarden_c21_snakeplant", 11, 8, 2],
   ],
   // Sala de reunião: escritório executivo em madeira escura. Estante,
@@ -477,11 +478,11 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // arandelas nas paredes, plateia em dois blocos com corredor no meio,
   // bilheteria e pipoca na entrada.
   auditorio: () => [
-    ["cine_screen", 4, 0, 0], ["cine_light1", 1, 0, 4, 0, 1.2], ["cine_light1", 12, 0, 4, 0, 1.2],
+    ["cine_screen", 4, 0, 0], ["cine_light2", 1, 0, 4, 0, 0.4], ["cine_light2", 12, 0, 4, 0, 0.4],
     ["cine_platform", 5, 2, 0], ["uni_lectern", 8, 2, 0, 0, 1.4],
     ["spotlight", 3, 1, 2], ["spotlight", 10, 1, 6],
     ["cine_pstr_1", 0, 3, 2, 0, 0.6], ["cine_pstr_6", 0, 7, 2, 0, 0.6],
-    ["cine_light2", 0, 1, 2, 0, 1], ["cine_light2", 0, 5, 2, 0, 1], ["cine_light2", 0, 9, 2, 0, 1],
+    ["cine_light2", 0, 1, 2, 0, 0.4], ["cine_light2", 0, 5, 2, 0, 0.4], ["cine_light2", 0, 9, 2, 0, 0.4],
     ...[5, 6, 8, 9].flatMap((y) => [2, 3, 4, 5, 8, 9, 10, 11].map((x) => ["theatre_seat", x, y, 0])),
     ["cine_ticket_booth", 1, 10, 0], ["cine_popcorn", 12, 10, 4], ["cine_vipsign", 13, 8, 0],
     ["cine_projector", 13, 6, 6], ["theatre_plant", 0, 11, 0], ["theatre_plant", 13, 11, 0],
@@ -508,7 +509,10 @@ const ESCRITORIO_MOVEIS_CENAS = {
     // Estantes cheias de livros, da altura da parede (a da biblioteca
     // clássica passava do teto; a de madeira escura é vazia).
     ["shelves_silo", 0, 0, 2], ["shelves_silo", 0, 2, 2], ["shelves_silo", 0, 4, 2],
-    ...[2, 4, 6].flatMap((x) => [["uni_libraryshelf", x, 0, 4, 0, 0.3], ["rainyday_c20_woodendesk", x, 0, 4], ["hygge_c25_desklamp", x, 0, 0, 0, 1], ["classic9_chair", x, 1, 0]]),
+    // Prateleiras de livros na parede, em fila sobre as mesas de estudo (a
+    // estante de parede alta do acervo não cabia na altura da parede).
+    ...[2, 3, 4, 5, 6, 7].map((x) => ["waasa_wall_shelf1", x, 0, 4, 0, 1.6]),
+    ...[2, 4, 6].flatMap((x) => [["rainyday_c20_woodendesk", x, 0, 4], ["hygge_c25_desklamp", x, 0, 0, 0, 1], ["classic9_chair", x, 1, 0]]),
     ["exe_globe", 8, 0, 0], ["shelves_silo", 9, 0, 4],
     ["classic9_table", 4, 4, 0], ["classic9_light", 4, 4, 0, 0, 0.7], ["bookpile", 5, 5, 0, 0, 0.7],
     ["classic9_chair", 3, 4, 2], ["classic9_chair", 3, 5, 2], ["classic9_chair", 6, 4, 6], ["classic9_chair", 6, 5, 6],
