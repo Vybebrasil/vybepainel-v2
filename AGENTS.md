@@ -112,6 +112,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   locais e zona explícita `sala-N`. No mapa geral ficam as fachadas e suas portas.
   Preserve entrada/saída, trancas e a mesma identidade de sala para voz e editor.
   Não transforme coordenadas locais do quarto em posições do mapa geral.
+- Espaços comuns (decisão do Paulo, 17/10/2026) também são cenas próprias,
+  como os quartos: Reunião, Auditório, Produção, Café, Jogos, Foco, Academia
+  e Lounge. No mapa geral ficam como prédios com telhado, porta e letreiro;
+  o id do espaço é a zona de conversa (a mesma que o Worker já aceita).
+  Cada cena segue as referências de quartos do Habbo: uma linha de móveis,
+  parede do fundo ocupada, peças empilhadas apoiadas no topo da de baixo.
+  Os móveis ficam em `ESCRITORIO_MOVEIS_CENAS` (`vybe-escritorio-planta.js`).
 - Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   VybeCoins: 10 por primeira finalização de demanda, 50 por conquista única.

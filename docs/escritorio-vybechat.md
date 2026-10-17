@@ -437,3 +437,31 @@ móvel do quarto, preservando a unidade comprada no inventário.
 Verificação: regressões de quantidade, bordas, escadas, câmera, interrupção,
 prévia em mesa e resposta atrasada. Demo desktop inspecionada, sem erros de console;
 a demo não comprova persistência nem mídia em produção.
+
+### Espaços comuns como cenas e mapa em quarteirões (17/10/2026, noite)
+
+Pedido do Paulo depois de comparar com as referências (quartos da Habbo News
+#174 e a "Cozinha Moderna" do vídeo acima): o mapa único de 80 × 80, com
+paredes internas de vidro baixo e móveis espalhados, não chegava perto delas.
+Diagnóstico: faltava empilhar, faltavam paredes altas com itens e a escala
+deixava tudo miúdo e vazio.
+
+- Os oito espaços comuns (Reunião, Auditório, Produção, Café, Jogos, Foco,
+  Academia, Lounge) viraram cenas próprias, pelo mesmo mecanismo dos quartos
+  (`escritorioPlantaDoQuarto`, planta embutida no ambiente, sem parede na
+  frente). A zona é o id do espaço — a mesma que o Worker já aceitava —, então
+  voz, convites e contagens não mudaram. Recepção e Pátio continuam no mapa.
+- Cada cena tem uma linha de móveis e fica preenchida do chão à parede
+  (`ESCRITORIO_MOVEIS_CENAS`): Café é a cozinha moderna (bancada preta, coifa,
+  armários de parede, ilha, jantar); Reunião é executiva em madeira escura;
+  Auditório é cinema; Jogos é fliperama; Foco é biblioteca; Academia,
+  Produção (estúdio e edição) e Lounge (bar, lareira, pista).
+- No mapa geral os espaços viram prédios com telhado (mureta e caixas de ar),
+  janela sobre os bancos da calçada, vasos e postes nas pontas e na porta. O
+  telhado entra no recorte das paredes: fica transparente com alguém atrás.
+- Empilhar como no Habbo: no editor, qualquer móvel sólido (menos assento)
+  serve de base; no desenho, o de cima fica à frente; no verificador, a peça
+  apoia no topo mais alto abaixo dela (nem flutua nem afunda).
+- O verificador confere cada cena; janela em fachada conta como parede de fora.
+- Cenas comuns não são editáveis pelo editor (a camada continua só `geral` e
+  salas); o mapa geral salvo antes desta mudança deixa de valer.

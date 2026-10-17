@@ -500,6 +500,7 @@ function escritorioItensDaCamada(camada) {
   if (salvo) return salvo;
   if (camada === "geral") return ESCRITORIO_PLANTA.moveis;
   const a = escritorioAmbienteDoQuarto(camada);
+  if (a?.cena) return escritorioMoveisDaCena(a);
   if(!a || camada.endsWith("-andar-1")) return [];
   return escritorioMoveisDaSala(a).map(([c, x, y, ...r]) => [c, x - a.x0, y - a.y0, ...r]);
 }
@@ -521,6 +522,10 @@ function escritorioAlterarDecoracao(patch) {
 }
 function escritorioPayloadDecoracao() { return {...escritorioPerfilDecoracao(), ...(escritorio.quarto?.endsWith('-andar-1') ? {andar:1} : {})}; }
 function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
+  // Cena própria: o quarto de uma sala (sala-N, com o segundo andar) ou um
+  // espaço comum que virou cena (Café, Lounge…).
+  const comum=id && escritorioCenaComum(id);
+  if(comum) return comum;
   const a=id && ESCRITORIO_PLANTA.ambientes.find(a=>a.id===escritorioRaizQuarto(id) && a.pessoal);
   if(!a || !String(id).endsWith('-andar-1')) return a || null;
   const perfil=escritorioPerfilDecoracao(id);
@@ -533,7 +538,7 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   r.pintura={pisos,paredes}; return r;
 }
 function escritorioAndaresHtml() {
-  const id=escritorio.quarto;if(!id) return '';
+  const id=escritorio.quarto;if(!id || escritorioCenaComum(id)) return '';
   const raiz=escritorioRaizQuarto(id), superior=escritorioPerfilDecoracao(raiz+'-andar-1');
   return `<nav class="ofc-andares" aria-label="Andares do escritório"><button type="button" aria-pressed="${id===raiz}" onclick="escritorioEntrarNoQuarto('${raiz}')">Térreo</button>${superior?.quarto_configurado ? `<button type="button" aria-pressed="${id!==raiz}" onclick="escritorioEntrarNoQuarto('${raiz}-andar-1')">Segundo andar</button>` : ''}${escritorioNoMeuQuarto() ? `<button type="button" onclick="personalizarEscritorio()">Gerenciar meu espaço</button>` : ''}</nav>`;
 }
@@ -612,7 +617,7 @@ function escritorioChegar() {
 function escritorioNaCena(p) {
   if (!p || String(p.id) === String(escritorio.base?.eu)) return true;
   const z = String(p.zona || "");
-  return escritorio.quarto ? z === escritorio.quarto : !/^sala-/.test(z);
+  return escritorio.quarto ? z === escritorio.quarto : !/^sala-/.test(z) && !escritorioCenaComum(z);
 }
 function escritorioNoMeuQuarto() {
   const mesa = escritorioMinhaMesa();
@@ -681,7 +686,9 @@ function escritorioLugarDe(p) {
   const zona = eu ? escritorio.zona : String(p.zona || "");
   if (/^sala-/.test(zona)) { const q = escritorioAmbienteDoQuarto(zona); if (q) return q; }
   const pos = escritorioPosicao(p || {});
-  const a = ESCRITORIO_PLANTA.ambientes.find((q) => !q.pessoal && pos.x >= q.x0 && pos.x < q.x1 && pos.y >= q.y0 && pos.y < q.y1);
+  const cena = escritorioCenaComum(zona);
+  if (cena) return cena;
+  const a = ESCRITORIO_PLANTA.ambientes.find((q) => !q.fachada && pos.x >= q.x0 && pos.x < q.x1 && pos.y >= q.y0 && pos.y < q.y1);
   if (a) return a;
   const P = ESCRITORIO_PLANTA.PREDIO;
   const dentro = pos.x >= P.x0 && pos.y >= P.y0 && pos.x < P.x1 && pos.y < P.y1;
@@ -696,7 +703,7 @@ function escritorioIrAte(id) {
   if (!escritorioNaCena(o)) {
     const zona = String(o.zona || "");
     escritorio.aoChegarNaCena = () => escritorioIrAte(id);
-    if (/^sala-/.test(zona)) escritorioIrParaAmbiente(zona);
+    if (/^sala-/.test(zona) || escritorioCenaComum(zona)) escritorioIrParaAmbiente(zona);
     else escritorioSairDoQuarto();
     return;
   }
@@ -721,8 +728,8 @@ function escritorioIrParaAmbiente(id, manterLista = false, alvo = null) {
     escritorioSairDoQuarto();
     return;
   }
-  if (a.pessoal) {
-    if (escritorioZonaBloqueada(a.id)) { avisarTrancadaEscritorio(a.id, true); return; }
+  if (a.fachada) {
+    if (a.pessoal && escritorioZonaBloqueada(a.id)) { avisarTrancadaEscritorio(a.id, true); return; }
     const e = a.fachada.entrada[0];
     escritorioIrPara(e.x, e.y);
     movimento.turbo = true;
@@ -809,7 +816,7 @@ function atualizarPessoasEscritorio() {
     salas.innerHTML = `<h5>Salas individuais</h5>${A.filter((a) => a.pessoal).map(linha).join("")}<h5>Espaços</h5>${A.filter((a) => !a.pessoal).map(linha).join("")}`;
   }
   // Fachadas do mapa geral: quantos estão dentro de cada quarto.
-  if (escritorio.mapa && !escritorio.quarto) escritorio.mapa.marcarFachadas(ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => {
+  if (escritorio.mapa && !escritorio.quarto) escritorio.mapa.marcarFachadas(ESCRITORIO_PLANTA.ambientes.filter((a) => a.fachada).map((a) => {
     const dentro = escritorio.conectado ? pessoas.filter((p) => String(p.zona || "") === a.id) : [];
     return { id: a.id, n: dentro.length, nomes: dentro.map((p) => String(p.nome).split(" ")[0]).join(", ") };
   }));
@@ -1773,7 +1780,7 @@ function seguirPessoaEscritorio(id) {
     const o = escritorio.online.find((p) => p.id === id);
     if (!o) { escritorio.seguindoId = null; escritorioAviso("A pessoa saiu do escritório."); return clearInterval(escritorio.timerSeguir); }
     // Em outra cena (entrou num quarto, ou saiu dele): vai até lá e volta a seguir.
-    if (!escritorioNaCena(o)) { clearInterval(escritorio.timerSeguir); escritorio.aoChegarNaCena = () => seguirPessoaEscritorio(id); const z = String(o.zona || ""); if (/^sala-/.test(z)) escritorioIrParaAmbiente(z); else escritorioSairDoQuarto(); return; }
+    if (!escritorioNaCena(o)) { clearInterval(escritorio.timerSeguir); escritorio.aoChegarNaCena = () => seguirPessoaEscritorio(id); const z = String(o.zona || ""); if (/^sala-/.test(z) || escritorioCenaComum(z)) escritorioIrParaAmbiente(z); else escritorioSairDoQuarto(); return; }
     const alvo = escritorioPosicao(o), eu = { x: Math.round(movimento.x), y: Math.round(movimento.y) };
     if (Math.max(Math.abs(Math.round(alvo.x) - eu.x), Math.abs(Math.round(alvo.y) - eu.y)) <= 1) return;
     for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
@@ -1817,14 +1824,14 @@ function desenharMinimapaEscritorio() {
   g.fillStyle = "#24252c"; g.fillRect(P.PREDIO.x0 * k, P.PREDIO.y0 * k, (P.PREDIO.x1 - P.PREDIO.x0) * k, (P.PREDIO.y1 - P.PREDIO.y0) * k);
   // Espaços comuns e as fachadas das salas (quem está num quarto não aparece).
   for (const a of P.ambientes) {
-    const r = a.pessoal ? a.fachada : a;
-    g.fillStyle = (a.pessoal ? a.cor : ESCRITORIO_COR_SALA[a.sala] || "#888") + (a.id === escritorio.zona ? "aa" : "40");
+    const r = a.fachada || a;
+    g.fillStyle = (a.fachada ? a.cor : ESCRITORIO_COR_SALA[a.sala] || "#888") + (a.id === escritorio.zona ? "aa" : "40");
     g.fillRect(r.x0 * k + 1, r.y0 * k + 1, (r.x1 - r.x0) * k - 2, (r.y1 - r.y0) * k - 2);
   }
   const pi = P.piscina; g.fillStyle = "#2e8fd4aa"; g.fillRect(pi.x0 * k, pi.y0 * k, (pi.x1 - pi.x0) * k, (pi.y1 - pi.y0) * k);
   const eu = String(escritorio.base?.eu);
   for (const o of escritorio.online || []) {
-    if (String(o.id) === eu || /^sala-/.test(String(o.zona || ""))) continue;
+    if (String(o.id) === eu || /^sala-/.test(String(o.zona || "")) || escritorioCenaComum(o.zona)) continue;
     const q = escritorioPosicao(o);
     g.fillStyle = "#ffffff"; g.beginPath(); g.arc(q.x * k, q.y * k, 3, 0, 7); g.fill();
   }
