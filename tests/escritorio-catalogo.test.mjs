@@ -14,3 +14,17 @@ test('abas preservam preço e estoque da loja; inventário só coloca, vitrine c
  vm.runInContext(`escritorio.base.economia.loja.mapa.get('raro_teste').restante=0`,c);
  assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c),/Esgotado/);
 });
+
+test('curadoria tem arte local completa, dimensões válidas e não concede móveis nos modelos gratuitos',()=>{
+ const catalogo=JSON.parse(readFileSync('assets/escritorio/habbo/catalogo.json'));
+ const quartos=JSON.parse(readFileSync('assets/escritorio/habbo/quartos.json'));
+ assert.equal(new Set(catalogo.map(m=>m.classe)).size,catalogo.length);
+ const novos=catalogo.filter(m=>m.curadoria==='construcao-2026-10');assert.equal(novos.length,51);
+ for(const m of novos) {
+  const d=JSON.parse(readFileSync('assets/escritorio/habbo/'+m.classe+'.json'));
+  const png=readFileSync('assets/escritorio/habbo/'+m.classe+'.png');assert.equal(png.readUInt32BE(0),0x89504e47);
+  const v=d.visualizations.find(v=>v.size===64);assert.ok(v && d.logic.model.dimensions.x<=6 && d.logic.model.dimensions.y<=6,m.classe);
+  for(const dir of Object.keys(v.directions)) assert.ok(Array.from({length:v.layerCount},(_,i)=>`${d.name}_64_${String.fromCharCode(97+i)}_${dir}_0`).some(key=>{const a=d.assets[key];return a && d.spritesheet.frames[`${d.name}_${a.source || key}`];}),m.classe+'/'+dir);
+ }
+ for(const m of quartos.modelos) for(const [c] of m.itens) assert.ok(quartos.essenciais.includes(c),m.id+'/'+c);
+});

@@ -36,7 +36,7 @@ BEGIN
  UPDATE vybe_escritorio_mapa SET itens='[]'::jsonb,versao=versao+1,atualizado_em=now()
  WHERE camada <> 'geral';
  UPDATE vybe_escritorio_perfis SET preferencias=(preferencias
-  - 'sala_planta' - 'sala_piso' - 'sala_parede' - 'sala_pisos' - 'sala_paredes')
+  - 'sala_planta' - 'sala_piso' - 'sala_parede' - 'sala_pisos' - 'sala_paredes' - 'sala_andares')
   || '{"quarto_configurado":false}'::jsonb,atualizado_em=now();
 END $$;
 COMMIT;

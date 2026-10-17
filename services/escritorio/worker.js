@@ -31,7 +31,7 @@ export function fonteMusica(f) {
 }
 const musicaVazia = () => ({ fila: [], indice: 0, tocando: false, posicao: 0, atualizado: Date.now(), revisao: 0, por: null });
 const posicaoAgora = (m, agora = Date.now()) => Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));
-const zonaValida = (z) => (/^(sala-([0-9]|1[01])|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge)$/.test(String(z || "")) ? String(z) : "");
+const zonaValida = (z) => (/^(sala-([0-9]|1[01])(-andar-1)?|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge)$/.test(String(z || "")) ? String(z) : "");
 export async function verificarEntrada(token, segredo, agora = Date.now()) {
   try {
     if (
@@ -85,7 +85,7 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     if (url.pathname === "/health")
-      return Response.json({ ok: true, service: "vybe-escritorio" });
+      return Response.json({ ok: true, service: "vybe-escritorio", andares: 1 });
     // VYBE_ORIGIN aceita mais de um endereço do painel, separados por vírgula
     // (o oficial e o alias do time). Só a igualdade exata vale.
     const origem = req.headers.get("Origin");
@@ -292,7 +292,7 @@ export class EscritorioRoom {
       const zona = zonaValida(p.zona);
       // Só quem está na zona tranca; sala individual, só a dona ou quem administra.
       if (!zona || a.zona !== zona) return;
-      if (zona.startsWith("sala-") && a.minhaSala !== zona && !a.admin) return;
+      if (zona.startsWith("sala-") && a.minhaSala !== zona.replace(/-andar-1$/, "") && !a.admin) return;
       if (p.trancada) this.trancas.set(zona, new Set(this.naZona(zona).map((t) => this.estado(t).sub)));
       else this.trancas.delete(zona);
       this.broadcast("zone:locks", this.listaTrancas());

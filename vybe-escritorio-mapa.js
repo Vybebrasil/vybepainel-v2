@@ -32,7 +32,7 @@ function mapaCarregarMovel(classe) {
 }
 // Ladrilho → tela: vértice de cima do ladrilho.
 function mapaTela(x, y, origem) {
-  return { x: origem.x + (x - y) * (MAPA_TW / 2), y: origem.y + (x + y) * (MAPA_TH / 2) - (origem.alturaAtual ?? origem.nivelEm?.(x,y) ?? 0)*24 };
+  return { x: origem.x + (x - y) * (MAPA_TW / 2), y: origem.y + (x + y) * (MAPA_TH / 2) - (origem.alturaAtual ?? origem.alturaEm?.(x,y) ?? origem.nivelEm?.(x,y) ?? 0)*24 };
 }
 function mapaLadrilho(sx, sy, origem) {
   if (origem.nivelEm) {
@@ -245,6 +245,27 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   // o veio da madeira por cima; corredores e espaços comuns: o piso do acervo.
   const ladrilho = (x, y, a, extra = null) => {
     if(planta.quarto) origem.alturaAtual=planta.nivelEm?.(x,y) || 0;
+    const escada = planta.escadaEm?.(x,y);
+    if (escada) {
+      const eixoX=Boolean(escada.dx), sobe=(escada.dx || escada.dy)>0;
+      for(let i=0;i<4;i++) {
+        const f=i/4, seguinte=(i+1)/4, n=2*(sobe ? seguinte : 1-f);
+        origem.alturaAtual=n;
+        const x0=x+(eixoX?f:0),y0=y+(eixoX?0:f),x1=x+(eixoX?seguinte:1),y1=y+(eixoX?1:seguinte);
+        const pontos=[mapaTela(x0,y0,origem),mapaTela(x1,y0,origem),mapaTela(x1,y1,origem),mapaTela(x0,y1,origem)];
+        g.beginPath();pontos.forEach((p,j)=>(j?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)));g.closePath();
+        const piso=planta.pisoLadrilho?.(x,y) || a?.piso || 'madeira';
+        g.fillStyle=mapaTom(cor(piso,x,y),1.10);g.fill();
+        g.strokeStyle='#00000050';g.lineWidth=1;g.stroke();
+        // Espelho do degrau, com o mesmo material do piso, e quina iluminada.
+        const p=pontos[eixoX?1:3],q=pontos[2];
+        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+12);g.lineTo(p.x,p.y+12);g.closePath();
+        g.fillStyle=mapaTom(cor(piso,x,y),0.66);g.fill();
+        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.strokeStyle='#ffffff45';g.stroke();
+      }
+      delete origem.alturaAtual;
+      return;
+    }
     const pintado = planta.pisoLadrilho?.(x, y);
     losango(x, y); g.fillStyle = cor(pintado || (extra ? extra.piso : a ? a.piso : "corredor"), x, y); g.fill();
     if (pintado || a?.pessoal) textura(x, y, planta.texturaSalas, a?.x0 || 0, a?.y0 || 0, "soft-light");
@@ -256,7 +277,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
         const viz=planta.andavel(x+dx,y+dy) ? planta.nivelEm(x+dx,y+dy) : -0.4;
         if(n<=viz) continue;
         const p=mapaTela(x+dx,y+dy,origem),q=mapaTela(x+1,y+1,origem);
-        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+(n-viz)*24);g.lineTo(p.x,p.y+(n-viz)*24);g.closePath();g.fillStyle=dx?"#36333c":"#49424b";g.fill();
+        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+(n-viz)*24);g.lineTo(p.x,p.y+(n-viz)*24);g.closePath();g.fillStyle=mapaTom(cor(a?.piso || "madeira",x,y),dx?0.55:0.7);g.fill();
       }
       delete origem.alturaAtual;
     }
@@ -284,7 +305,6 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     const qw = planta.W - 1, qh = planta.H - 1;
     for (let soma=0;soma<qw+qh;soma++) for(let x=0;x<qw;x++) {const y=soma-x;if(y>=0&&y<qh&&planta.andavel(x,y)) ladrilho(x,y,a);}
     soleiras();
-    borda(a.x0, a.y1, a.x1, a.y1, "#1b1c20"); borda(a.x1, a.y0, a.x1, a.y1, "#25262b");
     return;
   }
   // Lá fora: gramados, calçadas e deck desenhados por cima da praça do vídeo.
@@ -617,7 +637,7 @@ function mapaMontarGrade(P, moveis) {
       else bloqueado[ind(x, y)] = 1;
     }
   }
-  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta, nivelEm:P.nivelEm };
+  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
 // caminhos retos também passam (não corta quina de parede).
@@ -722,7 +742,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
   const largura = (P.W + P.H) * (MAPA_TW / 2) + 80;
   const altura = (P.W + P.H) * (MAPA_TH / 2) + MAPA_PAREDE + 140;
-  const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60, nivelEm:P.nivelEm };
+  const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
   const palco = document.createElement("div");
   palco.className = "mapa-palco";
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.

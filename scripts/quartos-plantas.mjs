@@ -52,6 +52,48 @@ const FORMATOS = [
       return c;
     },
   },
+  {
+    id: "galeria", nome: "Galeria em zigue-zague", dica: "Três alas deslocadas, ligadas por uma passagem larga", medidas: { G: [10, 10], GG: [12, 12] }, aberta: true,
+    celdas: (w, h) => {
+      const c = vazio(w, h, -1), corte = w - 6;
+      for (let y=0;y<h;y++) for(let x=0;x<w;x++)
+        if ((x<4 && y<h-3) || (y>=3 && y<h-3) || (x>=corte && y>=3)) c[y][x]=0;
+      return c;
+    },
+  },
+  {
+    id: "alas", nome: "Alas assimétricas", dica: "Uma ala de trabalho, um recuo e um salão lateral", medidas: { G: [10, 10], GG: [12, 12] }, aberta: true,
+    celdas: (w, h) => {
+      const c = vazio(w,h,-1);
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++) if((y<4 && x<w-3)||(y>=2 && x>=w-6)||(y>=h-3)) c[y][x]=0;
+      return c;
+    },
+  },
+  {
+    id: "terracos", nome: "Terraços conectados", dica: "Ala elevada e dois espaços abertos ligados por escada", medidas: { G: [10, 10], GG: [12, 12] }, aberta: true,
+    celdas: (w, h) => {
+      const c=vazio(w,h,-1);
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
+        if(y<3) c[y][x]=2;
+        else if(x<4 || x>=w-4 || y>=h-4) c[y][x]=0;
+      }
+      for(const x of [1,2,w-3,w-2]) c[2][x]=1;
+      return c;
+    },
+  },
+  {
+    id: "mirante", nome: "Loft com mirante", dica: "Mezanino lateral, escada larga e salão em recuo", medidas: { G: [10, 10], GG: [12, 12] }, aberta: true,
+    celdas: (w,h) => {
+      const c=vazio(w,h,-1);
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
+        if(x<4 && y<h-3) c[y][x]=2;
+        else if((y>=3 && y<h-3)||x>=w-4||y>=h-4) c[y][x]=0;
+      }
+      for(const y of [3,4,5]) c[y][3]=1;
+      return c;
+    },
+  },
+
 ];
 
 // Vão de cada porta: embaixo, no meio da última linha; à direita, nas linhas
@@ -60,7 +102,10 @@ const FORMATOS = [
 // h-4 e h-3 longe da parede da direita.
 function portasDe(celdas) {
   const h = celdas.length, w = celdas[0].length;
-  return { baixo: Math.floor(w / 2) - 1, direita: h - 5 };
+  const livre = (x,y) => celdas[y]?.[x] === 0;
+  const bx = Array.from({length:w-1},(_,x)=>x).filter(x=>livre(x,h-1)&&livre(x+1,h-1));
+  const dy = Array.from({length:h-1},(_,y)=>y).filter(y=>livre(w-1,y)&&livre(w-1,y+1));
+  return { baixo: bx.includes(Math.floor(w/2)-1) ? Math.floor(w/2)-1 : bx[0], direita: dy.includes(h-5) ? h-5 : dy[0] };
 }
 function escadaDe(celdas) {
   const r = [];
@@ -70,7 +115,7 @@ function escadaDe(celdas) {
 
 const catalogo = JSON.parse(await readFile(ARQUIVO, "utf8"));
 const legado = catalogo.plantas.filter((p) => !p.formato).map((p) => ({
-  ...p, legado: true, portas: portasDe(p.celdas), escada: escadaDe(p.celdas), deslocamento: [p.celdas[0].length - 8, p.celdas.length - 8],
+  ...p, legado: true, portas: p.portas || portasDe(p.celdas), escada: escadaDe(p.celdas), deslocamento: [p.celdas[0].length - 8, p.celdas.length - 8],
 }));
 const novas = [];
 for (const f of FORMATOS) for (const [tam, [w, h]] of Object.entries(f.medidas)) {
@@ -80,6 +125,7 @@ for (const f of FORMATOS) for (const [tam, [w, h]] of Object.entries(f.medidas))
     id: `${f.id}-${tam.toLowerCase()}`, nome: f.nome, formato: f.id, tamanho: tam, tamanhoNome: TAMANHOS[tam],
     dica: f.dica, medidas: `${w} × ${h} · ${n} ladrilhos`, celdas,
     ...(f.divisorias ? { divisorias: f.divisorias(w, h) } : {}),
+    ...(f.aberta ? { bordaAberta: true } : {}),
     portas: portasDe(celdas), escada: escadaDe(celdas), deslocamento: [w - 8, h - 8],
   });
 }
