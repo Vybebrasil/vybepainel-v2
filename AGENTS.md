@@ -107,6 +107,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e silenciar é um clique. Presença não é comprovação de produtividade. Não publique nem afirme validação de mídia
   apenas por abrir a demonstração. Consulte `docs/escritorio-vybechat.md`.
 
+- Quartos pessoais (fase 1, 17/10/2026) são cenas 8×8 separadas, com coordenadas
+  locais e zona explícita `sala-N`. No mapa geral ficam as fachadas e suas portas.
+  Preserve entrada/saída, trancas e a mesma identidade de sala para voz e editor.
+  Não transforme coordenadas locais do quarto em posições do mapa geral.
+
 ## Direção visual
 
 - Preserve a identidade Vybe: laranja, logo oficial, cartões com cores próprias,

@@ -232,3 +232,46 @@ Após login do responsável na Cloudflare, foi confirmado:
   `p:<pessoa>:<canal>`, token renovado em `/participants/<id>/token`). A tela
   mostrada vai sem áudio do sistema. Falha ou queda tentam de novo sozinhas
   (1 s, 2 s, 4 s… até 30 s).
+
+
+## Quartos próprios — fase 1 (17/10/2026)
+
+As salas pessoais passam a ser cenas próprias de 8×8, em coordenadas locais.
+No mapa geral ficam fachadas, portas, letreiros e contagem de ocupantes. Entrar
+pela porta (ou escolher a sala) troca a cena; a soleira e “Voltar ao mapa” levam
+à saída da fachada. Cada cena mostra apenas as pessoas que estão nela.
+
+A zona `sala-N` continua identificando presença, trancas, convites e voz. Esta
+fase não muda Worker, API nem schema. O editor recebe a planta da cena atual;
+modelo, piso e paredes continuam usando as estruturas existentes. A fase 2 de
+modelos e redefinição de arrumação não foi implementada nesta revisão.
+
+A retomada incluiu correções para limitar o céu ao mapa geral e enquadrar o
+quarto na área disponível ao redimensionar a janela. O observador de tamanho
+é desconectado ao destruir a cena.
+
+Verificação: os 56 testes específicos e a auditoria de planta passaram antes
+desses ajustes visuais; o check completo final também passou com 376 testes e build. A cena
+do quarto foi aberta na demo desktop; a conferência do editor e do celular
+ficou incompleta porque o navegador deixou de responder. A demo não conecta
+presença nem mídia e não comprova voz entre pessoas ou persistência remota.
+Conferir essas superfícies e os checks do commit final antes de promover.
+
+
+### Próxima etapa: criação do quarto e VybeCoin
+
+Direção solicitada pelo Paulo em 17/10/2026; ainda não implementada:
+
+1. Escolher uma planta com prévia: compacta, retangular, em L, com divisória e,
+   posteriormente, níveis/escada com circulação e altura funcionais.
+2. Começar vazio ou com um conjunto simples gratuito de móveis essenciais.
+3. Personalizar piso, paredes e arrumação pelo editor existente.
+4. Evoluir com móveis e decorações adquiridos com VybeCoins virtuais.
+
+A escolha da planta deve pertencer ao perfil da pessoa; arrumação continua na
+camada da sala. O catálogo deve distinguir itens básicos gratuitos dos adquiridos,
+sem conceder inventário ou moedas apenas pelo estado do navegador. A economia
+exige saldo e histórico transacional no servidor, concessão idempotente por
+conquista/entrega e definição dos critérios de qualidade antes de ser ativada.
+Não haverá recompensa por mera presença online. Loja, preços e recompensas não
+fazem parte da fase 1 e não foram publicados nem adicionados ao banco.

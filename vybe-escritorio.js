@@ -968,7 +968,7 @@ function montarMapaEscritorio() {
     });
     // Quarto: cabe inteiro na tela, um pouco mais perto; mapa: a câmera segue a pessoa.
     const quarto = escritorioAmbienteDoQuarto();
-    requestAnimationFrame(() => (quarto ? escritorio.mapa?.centralizar((quarto.x0 + quarto.x1) / 2, (quarto.y0 + quarto.y1) / 2 + 1, 1.35) : centralizarEmMimEscritorio()));
+    requestAnimationFrame(() => (quarto ? escritorio.mapa?.enquadrarQuarto() : centralizarEmMimEscritorio()));
     escritorio.mapa.marcarZona(quarto || ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorio.zona) || null);
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.

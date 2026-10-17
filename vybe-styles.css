@@ -6355,11 +6355,11 @@ body.no-escritorio {overflow:hidden}
 .ofc-areas nav button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
 @media(max-width:760px){.ofc-areas {display:none}}
 /* Céu no horário de Irecê */
-.ofc-mapa[data-ceu=madrugada] {background:linear-gradient(180deg,#06060f 0%,#0e1028 45%,#1c1838 80%,#2a2140 100%)}
-.ofc-mapa[data-ceu=manha] {background:linear-gradient(180deg,#3d6fb0 0%,#6f9fd6 40%,#f2b98a 85%,#ffd7a1 100%)}
-.ofc-mapa[data-ceu=tarde] {background:linear-gradient(180deg,#2f72c4 0%,#5a9be0 45%,#a9cdf0 85%,#d9ecff 100%)}
-.ofc-mapa[data-ceu=por-do-sol] {background:linear-gradient(180deg,#120c18 0%,#2a1424 30%,#7a2c1e 62%,#d9661f 86%,#f39a3d 100%)}
-.ofc-mapa[data-ceu=noite] {background:linear-gradient(180deg,#07060d 0%,#120d22 40%,#2a1730 75%,#4a1f2a 100%)}
+.ofc-mapa[data-cena=mapa][data-ceu=madrugada] {background:linear-gradient(180deg,#06060f 0%,#0e1028 45%,#1c1838 80%,#2a2140 100%)}
+.ofc-mapa[data-cena=mapa][data-ceu=manha] {background:linear-gradient(180deg,#3d6fb0 0%,#6f9fd6 40%,#f2b98a 85%,#ffd7a1 100%)}
+.ofc-mapa[data-cena=mapa][data-ceu=tarde] {background:linear-gradient(180deg,#2f72c4 0%,#5a9be0 45%,#a9cdf0 85%,#d9ecff 100%)}
+.ofc-mapa[data-cena=mapa][data-ceu=por-do-sol] {background:linear-gradient(180deg,#120c18 0%,#2a1424 30%,#7a2c1e 62%,#d9661f 86%,#f39a3d 100%)}
+.ofc-mapa[data-cena=mapa][data-ceu=noite] {background:linear-gradient(180deg,#07060d 0%,#120d22 40%,#2a1730 75%,#4a1f2a 100%)}
 
 /* Fila na mesa, quadros com números e recado rápido */
 .ofc-fila {list-style:none;margin:4px 0 0;padding:0;display:grid;gap:2px}

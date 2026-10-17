@@ -1417,6 +1417,19 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     zoom = alvo.z; inercia = null;
     aplicar();
   }
+  // O quarto cabe na área disponível, inclusive após abrir a lateral ou girar o celular.
+  function enquadrarQuarto() {
+    if (!P.quarto) return;
+    const a = P.ambientes[0], r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const w = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TW / 2 + 48;
+    const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100;
+    centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
+      Math.max(0.35, Math.min(1.35, (r.width - 32) / w, (r.height - 180) / h)));
+  }
+  const tamanhoQuarto = P.quarto && typeof ResizeObserver !== "undefined"
+    ? new ResizeObserver(enquadrarQuarto) : null;
+  tamanhoQuarto?.observe(el);
   // Zoom em volta de um ponto da tela (o cursor; sem ponto, o centro).
   function mudarZoom(fator, cx, cy) {
     const r = el.getBoundingClientRect();
@@ -1675,7 +1688,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Ponto da janela de um ladrilho (para pôr a barrinha do editor ao lado do móvel).
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
-    registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona, marcarFachadas,
+    registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona, marcarFachadas,
     balao, reagir, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
@@ -1683,6 +1696,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     bloqueadoEm: (x, y) => Boolean(grade) && (x < 0 || y < 0 || x >= grade.W || y >= grade.H || Boolean(grade.bloqueado[grade.ind(x, y)])),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { videoNo?.desligar?.(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { tamanhoQuarto?.disconnect(); videoNo?.desligar?.(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }
