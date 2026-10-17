@@ -414,3 +414,26 @@ Resumo:
 - Validação local: suíte completa e auditoria de circulação; regressões de
   reinício idempotente com backup e da integração inventário/loja em PGlite/VM.
   A demo não comprova escrita em produção nem funcionamento de voz/vídeo.
+
+### Construção e interação — referências e melhorias (17/10/2026)
+
+Trechos inspecionados das referências enviadas pelo Paulo:
+- https://www.youtube.com/watch?v=MojE_8e-t7I — quartos e coleções antigas.
+- https://www.youtube.com/watch?v=0Aql5ztnV60 — construção de cozinha moderna.
+- https://www.youtube.com/watch?v=QjvLdnI9cpE — apartamento contemporâneo.
+
+O editor existente é reaproveitado: barra compacta com Selecionar/Mover visão,
+Espaço temporário para câmera, grade alternável e atalhos. Opções menos usadas
+ficam recolhidas. Construção e arquitetura / Janelas e portas são filtros do
+mesmo catálogo (não importam nem concedem móveis novos).
+
+A entrada no editor interrompe a rota do personagem; não altera a velocidade,
+a presença ou a voz. A prévia usa posição final com ajuste fino e altura de apoio;
+cliques atrasados e arrastos cancelados não inserem/movem peças. A escada livre
+segue a mesma restrição do servidor. Duplicar/colar respeita o inventário local
+carregado, sem substituir a validação transacional ao salvar. Guardar remove o
+móvel do quarto, preservando a unidade comprada no inventário.
+
+Verificação: regressões de quantidade, bordas, escadas, câmera, interrupção,
+prévia em mesa e resposta atrasada. Demo desktop inspecionada, sem erros de console;
+a demo não comprova persistência nem mídia em produção.
