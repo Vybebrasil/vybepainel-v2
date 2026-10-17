@@ -539,18 +539,43 @@ function escritorioPlantaGeral() {
 }
 // Paredes do quarto (cena própria, coordenadas locais): as duas do fundo
 // altas na cor da sala; as da frente baixas, de vidro, com o vão da porta.
+function escritorioModeloPlanta(a) {
+  return typeof escritorio !== "undefined" ? escritorio.base?.quartos?.plantas?.find(p => p.id === a.planta) : null;
+}
+function escritorioNivelQuarto(a, x, y) {
+  if (x < 0 || y < 0 || x >= 8 || y >= 8) return -1;
+  return escritorioModeloPlanta(a)?.celdas[Math.floor(y)]?.[Math.floor(x)] ?? 0;
+}
 function escritorioParedesDoQuarto(a) {
-  const L = ESCRITORIO_SALA_LADO, m = L / 2 - 1, lista = [];
-  const por = (x0, y0, x1, y1, alta) => {
-    const r = [x0, y0, x1, y1];
-    if (alta) { r.push(a.cor); r.sala = a.id; r.alt = 118; } else r.baixa = true;
+  const lista = [], L = ESCRITORIO_SALA_LADO, m=L/2-1;
+  const por = (x0,y0,x1,y1,alta) => {
+    const r=[x0,y0,x1,y1];
+    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=118;} else r.baixa=true;
     lista.push(r);
   };
-  por(0, 0, L, 0, true);
-  por(0, 0, 0, L, true);
-  if (a.porta === "baixo") { por(0, L, m, L, false); por(m + 2, L, L, L, false); por(L, 0, L, L, false); }
-  else { por(0, L, L, L, false); por(L, 0, L, m, false); por(L, m + 2, L, L, false); }
-  return lista;
+  for(let x=0;x<L;x++) for(let y=0;y<L;y++) {
+    if(escritorioNivelQuarto(a,x,y)<0) continue;
+    if(escritorioNivelQuarto(a,x,y-1)<0) por(x,y,x+1,y,true);
+    if(escritorioNivelQuarto(a,x-1,y)<0) por(x,y,x,y+1,true);
+    if(escritorioNivelQuarto(a,x,y+1)<0 && !(a.porta==="baixo" && y===L-1 && x>=m && x<m+2)) por(x,y+1,x+1,y+1,false);
+    if(escritorioNivelQuarto(a,x+1,y)<0 && !(a.porta!=="baixo" && x===L-1 && y>=m && y<m+2)) por(x+1,y,x+1,y+1,false);
+  }
+  const grupos=new Map();
+  for(const r of lista) {
+    const horizontal=r[1]===r[3],chave=[horizontal,horizontal?r[1]:r[0],Boolean(r.baixa)].join(":");
+    if(!grupos.has(chave)) grupos.set(chave,[]);grupos.get(chave).push(r);
+  }
+  const unidas=[];
+  for(const grupo of grupos.values()) {
+    const h=grupo[0][1]===grupo[0][3];grupo.sort((a,b)=>a[h?0:1]-b[h?0:1]);
+    for(const r of grupo) {
+      const ultimo=unidas.at(-1);
+      if(ultimo && grupo.includes(ultimo) && ultimo[h?2:3]===r[h?0:1]) ultimo[h?2:3]=r[h?2:3];
+      else unidas.push(r);
+    }
+  }
+  for(const trecho of escritorioModeloPlanta(a)?.divisorias || []) {const r=[...trecho];r.baixa=true;unidas.push(r);}
+  return unidas;
 }
 // Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;
 // pisar nela volta ao mapa) e o escuro em volta, como num quarto do Habbo.
@@ -565,7 +590,8 @@ function escritorioPlantaDoQuarto(a) {
     rotulos: [{ texto: "Porta · voltar ao mapa", x: soleira.x + soleira.w / 2, y: soleira.y + soleira.h / 2, saida: true }],
     soleiras: [soleira], entrada: escritorioEntradaDaSala(a), saida: { x: soleira.x, y: soleira.y },
     // Só se anda dentro do quarto e na soleira.
-    andavel: (x, y) => (x >= 0 && y >= 0 && x < L && y < L) || naSoleira(x, y),
+    andavel: (x, y) => escritorioNivelQuarto(a,x,y) >= 0 || naSoleira(x, y),
+    nivelEm: (x,y) => Math.max(0,escritorioNivelQuarto(a,x,y)),
   };
 }
 // Corredores e área externa são convivência.

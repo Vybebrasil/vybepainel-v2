@@ -258,20 +258,45 @@ presença nem mídia e não comprova voz entre pessoas ou persistência remota.
 Conferir essas superfícies e os checks do commit final antes de promover.
 
 
-### Próxima etapa: criação do quarto e VybeCoin
+### Criação do quarto e VybeCoin — implementação local
 
-Direção solicitada pelo Paulo em 17/10/2026; ainda não implementada:
+Solicitado por Paulo em 17/10/2026. O criador existente agora conduz por planta,
+mobília inicial (vazio/essencial/boas conversas), acabamento e confirmação. O
+catálogo único `assets/escritorio/habbo/quartos.json` define plantas e itens
+iniciais para navegador e servidor. Plantas: compacto, retangular, amplo, L,
+dividido e níveis. Níveis usam altura na projeção, seleção e deslocamento; só a
+escada conecta os patamares. A soleira conserva a identidade da sala e a voz.
 
-1. Escolher uma planta com prévia: compacta, retangular, em L, com divisória e,
-   posteriormente, níveis/escada com circulação e altura funcionais.
-2. Começar vazio ou com um conjunto simples gratuito de móveis essenciais.
-3. Personalizar piso, paredes e arrumação pelo editor existente.
-4. Evoluir com móveis e decorações adquiridos com VybeCoins virtuais.
+Perfil guarda `sala_planta` e `quarto_configurado`; a camada da sala continua
+responsável pelos móveis. A configuração é transacional e idempotente. Móveis
+já salvos são preservados, desde que caibam na planta, e entram no inventário.
+O endpoint de perfil não permite forjar configuração nem trocar a planta.
 
-A escolha da planta deve pertencer ao perfil da pessoa; arrumação continua na
-camada da sala. O catálogo deve distinguir itens básicos gratuitos dos adquiridos,
-sem conceder inventário ou moedas apenas pelo estado do navegador. A economia
-exige saldo e histórico transacional no servidor, concessão idempotente por
-conquista/entrega e definição dos critérios de qualidade antes de ser ativada.
-Não haverá recompensa por mera presença online. Loja, preços e recompensas não
-fazem parte da fase 1 e não foram publicados nem adicionados ao banco.
+O editor existente distingue loja e inventário. Mesa, cadeira, computador básico
+e cacto são gratuitos; cada unidade extra custa 25 moedas. A compra bloqueia a
+carteira e usa chave idempotente. Salvamento verifica inventário do dono, número
+de unidades, medidas reais, patamares e escada livre; cópia e histórico não
+concedem móveis. A loja não concede acesso a salas de outra pessoa.
+
+Regra confirmada por Paulo: 10 moedas por demanda finalizada e 50 por conquista.
+A migração `2026-10-17-escritorio-vybecoins.sql` adiciona carteiras, razão,
+inventário e recibo global da demanda. O trigger acompanha o evento de status na
+mesma transação, antes das automações retirarem responsáveis. Cada executor
+recebe 10 apenas na primeira finalização da atividade. Reabrir ou trocar de
+executor não recompensa de novo. Demandas já finalizadas antes da migração são
+marcadas sem crédito retroativo. Conquistas únicas: montar o quarto, primeira,
+quinta e décima demanda concluída. Não há moedas por mera presença.
+
+Migração não aplicada a produção. Persistência foi verificada com PGlite isolado. A demo
+simula somente o estado visual em memória e não comprova banco remoto, presença
+ou mídia. A ativação depende de revisar/aplicar a migração e verificar o preview
+antes da promoção.
+
+Validação local: `npm run check` passou com 383 testes; as regressões adicionais
+verificaram a preservação do inventário ao recomeçar a decoração e todos os modelos
+iniciais nas seis plantas. Build e `git diff --check` passaram. Fluxo de criação,
+saldo, inventário e compra simulada foram conferidos no navegador em desktop e
+390×844; sem erros de console nesse fluxo. A compra demonstrativa consumiu 25 de
+50 moedas apenas em memória. A faixa da demo intercepta o centro de alguns
+botões da navegação móvel; a conferência usou a parte descoberta dos controles.
+Checks do commit final devem ser confirmados no PR antes de promover.

@@ -1,5 +1,8 @@
+import { carregarEconomia } from "./escritorio-economia.js";
+import { validarPisoQuarto } from "./escritorio-quartos.js";
 // Mapa editável e salas individuais do escritório. O servidor é a autoridade:
 // quem é dono de cada sala, quem pode editar cada camada e o que é um item válido.
+import { readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 
 // Ordem das salas individuais no mapa (sala-0 … sala-8), uma por pessoa.
@@ -72,9 +75,36 @@ function conferirEdicao(pessoa, salas, camada) {
 // Salva uma camada inteira. Permissão: 'geral' só administrador; sala, o dono
 // ou administrador. A versão evita apagar o que outra pessoa salvou antes.
 export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens, versao }) {
+  return sql.comTransacao(async tx => salvarCamadaTransacional(tx, pessoa, salas, {camada,itens,versao}));
+}
+async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao}) {
   conferirEdicao(pessoa, salas, camada);
   if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
   const limpos = itensValidos(camada, itens);
+  if (camada !== "geral") {
+    const dono = salas.find(s => s.id === camada)?.pessoa_id;
+    const economia = await carregarEconomia(sql, dono);
+    if (economia.disponivel) {
+      const [p] = await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${dono} FOR UPDATE`;
+      if (!p?.preferencias?.quarto_configurado) throw new Error("Configure seu quarto antes de decorar.");
+      const dimensoes=new Map();
+      for(const [classe] of limpos) {
+        if(IMAGEM_ITEM.test(classe) || dimensoes.has(classe)) continue;
+        let dados;
+        try {dados=JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/'+classe+'.json',import.meta.url),'utf8'));}
+        catch {dados=JSON.parse((await arteRemotaEscritorio(classe,'json')).toString());}
+        dimensoes.set(classe,dados.logic?.model?.dimensions || {x:1,y:1});
+      }
+      validarPisoQuarto(p.preferencias.sala_planta,limpos,dimensoes);
+      const usados = new Map();
+      for (const it of limpos) {
+        if (IMAGEM_ITEM.test(it[0]) || economia.essenciais.includes(it[0])) continue;
+        usados.set(it[0],(usados.get(it[0]) || 0)+1);
+      }
+      for (const [classe,n] of usados) if ((economia.inventario.find(i=>i.classe===classe)?.quantidade || 0)<n)
+        throw Object.assign(new Error("Compre os móveis no inventário antes de colocá-los no quarto."),{status:409});
+    }
+  }
   await conferirImagensDaCamada(sql, camada, limpos);
   // Guarda a versão que vai ser trocada (se o histórico já existe no banco).
   if (await versoesProntas(sql)) await guardarVersaoAnterior(sql, camada, Number(versao) || 0);
@@ -236,12 +266,11 @@ export async function versoesProntas(sql) {
   return Boolean(r?.existe);
 }
 async function guardarVersaoAnterior(sql, camada, versao) {
-  await sql.transaction([
-    sql`INSERT INTO vybe_escritorio_mapa_versoes(camada, itens, versao, atualizado_por, salvo_em)
-      SELECT camada, itens, versao, atualizado_por, atualizado_em FROM vybe_escritorio_mapa WHERE camada = ${camada} AND versao = ${versao}`,
-    sql`DELETE FROM vybe_escritorio_mapa_versoes WHERE camada = ${camada} AND id NOT IN (
-      SELECT id FROM vybe_escritorio_mapa_versoes WHERE camada = ${camada} ORDER BY id DESC LIMIT 30)`,
-  ]);
+  // A camada já está dentro da mesma transação interativa do salvamento.
+  await sql`INSERT INTO vybe_escritorio_mapa_versoes(camada, itens, versao, atualizado_por, salvo_em)
+    SELECT camada, itens, versao, atualizado_por, atualizado_em FROM vybe_escritorio_mapa WHERE camada = ${camada} AND versao = ${versao}`;
+  await sql`DELETE FROM vybe_escritorio_mapa_versoes WHERE camada = ${camada} AND id NOT IN (
+    SELECT id FROM vybe_escritorio_mapa_versoes WHERE camada = ${camada} ORDER BY id DESC LIMIT 30)`;
 }
 export async function versoesDaCamada(sql, pessoa, salas, camada) {
   conferirEdicao(pessoa, salas, camada);

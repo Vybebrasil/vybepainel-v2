@@ -32,9 +32,16 @@ function mapaCarregarMovel(classe) {
 }
 // Ladrilho → tela: vértice de cima do ladrilho.
 function mapaTela(x, y, origem) {
-  return { x: origem.x + (x - y) * (MAPA_TW / 2), y: origem.y + (x + y) * (MAPA_TH / 2) };
+  return { x: origem.x + (x - y) * (MAPA_TW / 2), y: origem.y + (x + y) * (MAPA_TH / 2) - (origem.alturaAtual ?? origem.nivelEm?.(x,y) ?? 0)*24 };
 }
 function mapaLadrilho(sx, sy, origem) {
+  if (origem.nivelEm) {
+    // Testa cada patamar projetado: o clique deve atingir o chão elevado.
+    for(let n=2;n>=0;n--) {
+      const t=mapaLadrilho(sx,sy+n*24,{...origem,nivelEm:null});
+      if(origem.nivelEm(t.x,t.y)===n) return t;
+    }
+  }
   const a = (sx - origem.x) / (MAPA_TW / 2), b = (sy - origem.y) / (MAPA_TH / 2);
   return { x: (a + b) / 2, y: (b - a) / 2 };
 }
@@ -237,11 +244,22 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   // Ladrilho de sala pessoal (quarto ou o que o dono pintou): a cor dela com
   // o veio da madeira por cima; corredores e espaços comuns: o piso do acervo.
   const ladrilho = (x, y, a, extra = null) => {
+    if(planta.quarto) origem.alturaAtual=planta.nivelEm?.(x,y) || 0;
     const pintado = planta.pisoLadrilho?.(x, y);
     losango(x, y); g.fillStyle = cor(pintado || (extra ? extra.piso : a ? a.piso : "corredor"), x, y); g.fill();
     if (pintado || a?.pessoal) textura(x, y, planta.texturaSalas, a?.x0 || 0, a?.y0 || 0, "soft-light");
     else textura(x, y, extra?.textura || a?.textura || (a ? "" : planta.texturaCorredor), extra?.x0 ?? a?.x0 ?? 0, extra?.y0 ?? a?.y0 ?? 0);
     g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
+    if(planta.quarto) {
+      const n=origem.alturaAtual;
+      for(const [dx,dy] of [[1,0],[0,1]]) {
+        const viz=planta.andavel(x+dx,y+dy) ? planta.nivelEm(x+dx,y+dy) : -0.4;
+        if(n<=viz) continue;
+        const p=mapaTela(x+dx,y+dy,origem),q=mapaTela(x+1,y+1,origem);
+        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+(n-viz)*24);g.lineTo(p.x,p.y+(n-viz)*24);g.closePath();g.fillStyle=dx?"#36333c":"#49424b";g.fill();
+      }
+      delete origem.alturaAtual;
+    }
   };
   // Soleira sob cada porta: o vão ganha um piso próprio, mais claro, para a
   // porta de vidro ter chão embaixo em vez de parecer solta no corredor.
@@ -262,7 +280,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   // escuro, como um quarto do Habbo. O resto desta função é o prédio.
   if (planta.quarto) {
     const a = planta.ambientes[0];
-    for (let x = a.x0; x < a.x1; x++) for (let y = a.y0; y < a.y1; y++) ladrilho(x, y, a);
+    for (let soma=0;soma<16;soma++) for(let x=0;x<8;x++) {const y=soma-x;if(y>=0&&y<8&&planta.andavel(x,y)) ladrilho(x,y,a);}
     soleiras();
     borda(a.x0, a.y1, a.x1, a.y1, "#1b1c20"); borda(a.x1, a.y0, a.x1, a.y1, "#25262b");
     return;
@@ -559,7 +577,7 @@ function mapaDirecaoDoPasso(dx, dy) {
 // Mecânica do Habbo: anda de ladrilho em ladrilho, desvia de paredes e móveis
 // e senta quando para num assento. A grade marca o que bloqueia; paredes são
 // arestas entre ladrilhos vizinhos.
-const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
+const MAPA_ASSENTOS = new Set(["chair_polyfon","hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
   "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
   "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair"]);
 function mapaMontarGrade(P, moveis) {
@@ -597,13 +615,14 @@ function mapaMontarGrade(P, moveis) {
       else bloqueado[ind(x, y)] = 1;
     }
   }
-  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta };
+  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta, nivelEm:P.nivelEm };
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
 // caminhos retos também passam (não corta quina de parede).
 function mapaPassa(g, x, y, dx, dy) {
   const nx = x + dx, ny = y + dy;
   if (nx < 0 || ny < 0 || nx >= g.W || ny >= g.H || g.bloqueado[g.ind(nx, ny)]) return false;
+  if (g.nivelEm && Math.abs(g.nivelEm(x,y)-g.nivelEm(nx,ny))>1) return false;
   if (dx && dy) return mapaPassa(g, x, y, dx, 0) && mapaPassa(g, x + dx, y, 0, dy) && mapaPassa(g, x, y, 0, dy) && mapaPassa(g, x, y + dy, dx, 0);
   return !g.paredes.has(g.aresta(g.ind(x, y), g.ind(nx, ny)));
 }
@@ -701,7 +720,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
   const largura = (P.W + P.H) * (MAPA_TW / 2) + 80;
   const altura = (P.W + P.H) * (MAPA_TH / 2) + MAPA_PAREDE + 140;
-  const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60 };
+  const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60, nivelEm:P.nivelEm };
   const palco = document.createElement("div");
   palco.className = "mapa-palco";
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
@@ -1426,6 +1445,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100;
     centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
       Math.max(0.35, Math.min(1.35, (r.width - 32) / w, (r.height - 180) / h)));
+    // O centro visual inclui as paredes e o patamar alto, acima do piso.
+    alvo.y += (MAPA_PAREDE + (P.nivelEm ? 48 : 0)) * alvo.z / 2;
+    cam.y=alvo.y; aplicar();
   }
   const tamanhoQuarto = P.quarto && typeof ResizeObserver !== "undefined"
     ? new ResizeObserver(enquadrarQuarto) : null;

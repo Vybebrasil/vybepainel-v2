@@ -111,6 +111,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   locais e zona explícita `sala-N`. No mapa geral ficam as fachadas e suas portas.
   Preserve entrada/saída, trancas e a mesma identidade de sala para voz e editor.
   Não transforme coordenadas locais do quarto em posições do mapa geral.
+- Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
+  Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
+  VybeCoins: 10 por primeira finalização de demanda, 50 por conquista única.
+  Créditos acompanham o evento na transação; compras bloqueiam a carteira e são
+  idempotentes. Nunca conceda saldo/inventário a partir de valores do navegador.
 
 ## Direção visual
 

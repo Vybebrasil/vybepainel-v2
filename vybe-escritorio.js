@@ -536,6 +536,7 @@ function escritorioAplicarSalas() {
     a.corPadrao ??= a.cor;
     const dono = donos.get(a.id);
     const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
+    a.planta = perfil?.sala_planta || "amplo";
     a.piso = perfil?.sala_piso && ESCRITORIO_PLANTA.PISO[perfil.sala_piso] ? perfil.sala_piso : a.pisoPadrao;
     a.cor = /^#[0-9a-f]{6}$/i.test(perfil?.sala_parede || "") ? perfil.sala_parede : a.corPadrao;
   }
@@ -632,7 +633,14 @@ function escritorioTrocarCena(quarto, lugar, dir) {
 }
 function escritorioMinhaMesa() {
   const a = escritorioDonos().get(escritorio.base?.eu);
-  return a ? { ambiente: a, ...escritorioMesaDaSala(a) } : null;
+  if(!a) return null;
+  if(escritorio.perfil?.quarto_configurado) {
+    const itens=escritorioItensDaCamada(a.id);
+    const computador=itens.find(it=>/computer|laptop/.test(it[0]));
+    const cadeira=itens.find(it=>/chair/.test(it[0]));
+    if(computador) return {ambiente:a,x:computador[1],y:computador[2],w:1,h:1,cadeira:cadeira?{x:cadeira[1],y:cadeira[2],dir:cadeira[3]}:escritorioEntradaDaSala(a)};
+  }
+  return { ambiente:a, ...escritorioMesaDaSala(a) };
 }
 // Nome do lugar onde a pessoa está: o quarto (pela zona da presença), a sala
 // do mapa, o corredor ou a área externa. Sem presença (o próprio perfil),
@@ -1668,7 +1676,7 @@ function escritorioAcoesPerto() {
   const perto = escritorio.mapa.moveisPerto(p.x, p.y, 1);
   const mesa = escritorioNoMeuQuarto() ? escritorioMinhaMesa() : null;
   if (mesa) {
-    const naMesa = perto.find((m) => m.classe === "exe_table" && Math.floor(m.x) === mesa.x && Math.floor(m.y) === mesa.y);
+    const naMesa = perto.find((m) => (m.classe === "exe_table" || /computer|laptop/.test(m.classe)) && Math.floor(m.x) === mesa.x && Math.floor(m.y) === mesa.y);
     if (naMesa) return { item: naMesa, texto: escritorio.avisos ? `Abrir painel · ${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso" : "avisos"}` : "Abrir painel", fazer: () => abrirPainelDoEscritorio() };
   }
   const cafe = perto.find((m) => ESCRITORIO_CAFE.test(m.classe));
