@@ -533,7 +533,7 @@ function criadorMontarPrevias(raiz) {
   for (const el of raiz.querySelectorAll("[data-previa]")) {
     const [plantaId, modeloId, piso, parede, boneco] = el.dataset.previa.split("|");
     const a = criadorAmbientePrevia(plantaId, piso, parede);
-    const planta = { ...escritorioPlantaDoQuarto(a), moveis: criadorItensDaOpcao(modeloId, plantaId).map((it) => [...it.slice(0, 6)]), rotulos: [], imagens: [], previa: true };
+    const planta = { ...escritorioPlantaDoQuarto(a), moveis: [...criadorItensDaOpcao(modeloId, plantaId).map((it) => [...it.slice(0, 6)]), ...(escritorioPlantaDoQuarto(a).fixos || [])], rotulos: [], imagens: [], previa: true };
     try {
       const mapa = criarMapaEscritorio(el, { planta, logo: "", eu: null });
       if (boneco) mapa.atualizarPessoas([{ id: "previa", nome: criador.nome, perfil: { figura: criadorFigura(criador.f) }, status: "disponivel", corStatus: "#3fbf7f",

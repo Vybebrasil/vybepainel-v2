@@ -435,7 +435,10 @@ function escritorioNivelQuarto(a, x, y) {
 function escritorioEscadaQuarto(a,x,y) {
   const p=escritorioModeloPlanta(a), ix=Math.floor(x), iy=Math.floor(y);
   if(!p?.escada?.some(([ex,ey])=>ex===ix && ey===iy)) return null;
-  const alto=[[0,-1],[0,1],[-1,0],[1,0]].find(([dx,dy])=>escritorioNivelQuarto(a,ix+dx,iy+dy)===2);
+  // O patamar alto de um lado e o piso do outro: o vizinho alto que fica ao
+  // lado da escada (o canto do mezanino) não define o sentido da subida.
+  const lados=[[0,-1],[0,1],[-1,0],[1,0]].filter(([dx,dy])=>escritorioNivelQuarto(a,ix+dx,iy+dy)===2);
+  const alto=lados.find(([dx,dy])=>escritorioNivelQuarto(a,ix-dx,iy-dy)===0) || lados[0];
   return alto ? {x:ix,y:iy,dx:alto[0],dy:alto[1]} : null;
 }
 function escritorioAlturaQuarto(a,x,y) {
@@ -475,6 +478,29 @@ function escritorioParedesDoQuarto(a) {
   for(const trecho of escritorioModeloPlanta(a)?.divisorias || []) {const r=[...trecho];r.baixa=true;unidas.push(r);}
   return unidas;
 }
+// Peças fixas da planta (não são do dono, não entram no inventário nem no
+// editor): a escada do acervo em cada ladrilho de escada, subindo para o
+// mezanino, e a balaustrada na borda do mezanino onde há queda para o piso.
+// [classe, x, y, dir, estado, altura]. As duas se atravessam (MAPA_PASSAVEIS).
+const ESCRITORIO_PECA_ESCADA = "bc_stairs_recolorable", ESCRITORIO_PECA_GUARDA = "hotel_c18_rail";
+// Direção da peça de escada pelo lado em que fica o patamar alto.
+const ESCRITORIO_DIR_ESCADA = { "0,-1": 4, "0,1": 0, "-1,0": 2, "1,0": 6 };
+function escritorioPecasDoQuarto(a) {
+  const { w, h } = escritorioDimQuarto(a), pecas = [];
+  for (const [x, y] of escritorioModeloPlanta(a)?.escada || []) {
+    const e = escritorioEscadaQuarto(a, x, y);
+    if (e) pecas.push([ESCRITORIO_PECA_ESCADA, x, y, ESCRITORIO_DIR_ESCADA[e.dx + "," + e.dy] ?? 4, 0, 0]);
+  }
+  // Borda da frente (+y) e da direita (+x) do mezanino: ali o patamar cai
+  // para o piso de baixo e a queda fica à vista de quem olha.
+  const alto = (x, y) => escritorioNivelQuarto(a, x, y) === 2;
+  const cai = (x, y) => { const n = escritorioNivelQuarto(a, x, y); return n === 0; };
+  for (let y = 0; y < h; y++) for (let x = 0; x + 1 < w; x++)
+    if (alto(x, y) && alto(x + 1, y) && cai(x, y + 1) && cai(x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x, y + 0.5, 4, 0, 0]); x++; }
+  for (let x = 0; x < w; x++) for (let y = 0; y + 1 < h; y++)
+    if (alto(x, y) && alto(x, y + 1) && cai(x + 1, y) && cai(x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x + 0.5, y, 2, 0, 0]); y++; }
+  return pecas;
+}
 // Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;
 // pisar nela volta ao mapa) e o escuro em volta, como num quarto do Habbo.
 function escritorioPlantaDoQuarto(a) {
@@ -483,7 +509,7 @@ function escritorioPlantaDoQuarto(a) {
   const naSoleira = (x, y) => x >= soleira.x && x < soleira.x + soleira.w && y >= soleira.y && y < soleira.y + soleira.h;
   return {
     W: w + 1, H: h + 1, PREDIO: null, PISO: ESCRITORIO_PLANTA.PISO, quarto: a.id, fixa: true,
-    ambientes: [{ ...a, x1: a.x0 + w, y1: a.y0 + h }], divisorias: escritorioParedesDoQuarto(a), moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
+    ambientes: [{ ...a, x1: a.x0 + w, y1: a.y0 + h }], divisorias: escritorioParedesDoQuarto(a), moveis: [], fixos: escritorioPecasDoQuarto(a), piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], texturas: [], texturaSalas: ESCRITORIO_PLANTA.texturaSalas, portas: [], elevadores: [], fundo: null, vistas: {},
     rotulos: [{ texto: "Porta · voltar ao mapa", x: soleira.x + soleira.w / 2, y: soleira.y + soleira.h / 2, saida: true }],
     soleiras: [soleira], entrada: escritorioEntradaDaSala(a), saida: { x: soleira.x, y: soleira.y },
