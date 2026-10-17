@@ -350,6 +350,15 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
 // do pincel da sala usam os mesmos painéis; "b" (lisa) fica só na cor.
 // Portas que ficam nos vãos: abrem e fecham, e o boneco passa por elas.
 const MAPA_PORTAS = /^(val14_gate|ktchn_gate|wildwest_saloondr)$/;
+// Onde a porta é desenhada: a arte do Habbo fica no meio do ladrilho, mas a
+// nossa porta é o vão da parede, que passa pela aresta de trás do ladrilho
+// (y, nas paredes de fundo; x, nas da esquerda). O desenho recua meio
+// ladrilho até essa linha; sem isso a porta ficava solta, meio passo à
+// frente do vão, como se flutuasse no corredor.
+function mapaPosicaoPorta(classe, x, y, dir) {
+  if (!MAPA_PORTAS.test(classe)) return [x, y];
+  return dir === 2 || dir === 6 ? [x - 0.5, y] : [x, y - 0.5];
+}
 const MAPA_ESTILO_TEXTURA = { c: "urban_wall", d: "gardenshed_wall", e: "sb_wall", f: "exe_c15_wall", g: "hygge_c25_wallpaper1", h: "bathroom_wall4" };
 const MAPA_TEXTURA_SALA = "art_c20_wall"; // padrão das salas, tingido na cor do dono
 const MAPA_TEXTURAS_PAREDE = new Map(); // classe → { 2: {canvas}, 4: {canvas}, n }
@@ -803,7 +812,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       const anc = item.dir === 2 ? mapaTela(Math.floor(item.x), Math.floor(item.y) + 0.5, origem) : mapaTela(Math.floor(item.x) + 0.5, Math.floor(item.y), origem);
       item.no.style.left = anc.x + d.ox + MAPA_PAREDE_AJUSTE[item.dir].x + "px";
       item.no.style.top = anc.y + d.oy + MAPA_PAREDE_AJUSTE[item.dir].y - item.altura * 32 + "px";
-    } else colocar(item.no, item.x, item.y, { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 }, item.prof);
+    } else colocar(item.no, ...mapaPosicaoPorta(item.classe, item.x, item.y, item.dir), { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 }, item.prof);
     const i = animados.indexOf(item);
     if (i >= 0) animados.splice(i, 1);
     if (item.quadros > 1 && !reduzido) animados.push(item);
@@ -923,7 +932,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       const prof = plano ? 1 : Math.round((x + dim.x - 1 + y + dim.y - 1) * 10) + 4 + (altura ? 45 : 0);
       desenho.canvas.className = "mapa-obj";
       desenho.canvas.dataset.classe = classe;
-      colocar(desenho.canvas, x, y, { ...desenho, oy: desenho.oy + MAPA_MOVEL_Y - altura * 32 }, prof);
+      colocar(desenho.canvas, ...mapaPosicaoPorta(classe, x, y, d0), { ...desenho, oy: desenho.oy + MAPA_MOVEL_Y - altura * 32 }, prof);
       palco.append(desenho.canvas);
       const caixa = { x0: Math.floor(x), x1: Math.floor(x) + Math.max(1, Math.round(dim.x)), y0: Math.floor(y), y1: Math.floor(y) + Math.max(1, Math.round(dim.y)), altura };
       const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof, caixa, origem: origemItem };

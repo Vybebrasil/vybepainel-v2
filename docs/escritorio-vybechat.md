@@ -177,7 +177,9 @@ Após login do responsável na Cloudflare, foi confirmado:
   só na abertura: no mapa chegava borrado, disputava atenção e gastava CPU.
 - Corredores do prédio usam a calçada clara da praça (`texturaCorredor`), cada
   porta tem soleira própria no piso e o letreiro em neon da sala fica acima da
-  porta, não em cima dela.
+  porta, não em cima dela. O desenho da porta recua meio ladrilho até a linha
+  da parede (`mapaPosicaoPorta`): a arte do Habbo fica no meio do ladrilho e a
+  porta aparecia solta, meio passo à frente do vão.
 - Quadros e tapetes da equipe (`migrations/2026-10-17-escritorio-imagens.sql`,
   tabela `vybe_escritorio_imagens`): PNG/JPG/WEBP até 1,5 MB, tipo conferido
   pelos bytes no servidor. O dono da sala (ou administrador) envia pelo editor,
