@@ -36,7 +36,7 @@ for (const [x0, y0, x1, y1] of P.divisorias) {
 }
 const temParede = (ax, ay, bx, by) => parede.has(`${ax},${ay}|${bx},${by}`) || parede.has(`${bx},${by}|${ax},${ay}`);
 const itens = [], pendurados = [];
-const PORTAS = /^(val14_gate|ktchn_gate|wildwest_saloondr)$/;
+const PORTAS = /^(val14_gate|exe_gate|ktchn_gate|wildwest_saloondr)$/;
 for (const m of moveis) {
   const [classe, x, y, dir0, , altura = 0, camada = "geral"] = m;
   const a = arte(classe);

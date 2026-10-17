@@ -210,7 +210,7 @@ const ESCRITORIO_PLANTA = (() => {
   {
     const q = em("recepcao");
     q("lodge_dark_desk", 3, 4, 2); q("modern_c17_chair", 2, 5, 2);
-    q("hygge_c25_desklamp", 3, 4, 2, 1, 1.25); q("computer_flatscreen", 3, 6, 2, 1, 1.25); q("giftflowers", 3, 5, 2, 0, 1.25);
+    q("hygge_c25_desklamp", 3, 4, 2, 1, 1.25); q("computer_flatscreen", 3, 6, 6, 1, 1.25); q("giftflowers", 3, 5, 2, 0, 1.25);
     q("js_exe_rug", 7, 4, 0); q("js_exe_sofa", 7, 4, 4); q("modern_c17_lowtable", 7, 5, 2); q("js_exe_sofa", 7, 6, 0);
     q("darkmodern_c20_reads", 8, 5, 2, 0, 0.95);
     q("modern_c17_floorlamp", 10, 4, 2, 1); q("darkmodern_c20_pug", 10, 7, 2, 1);
@@ -361,22 +361,29 @@ const ESCRITORIO_PLANTA = (() => {
   // Portas de verdade nos vãos (abrem quando alguém chega perto; a sala
   // trancada fica com a porta fechada). Ficam na linha da parede:
   // [classe, x, y, dir (0 = vão numa parede de fundo/frente, 2 = de lado), zona].
+  // Porta de vidro (val14_gate, 2 ladrilhos) só nos vãos de parede média, onde
+  // ela cabe. Nos vãos de parede baixa não há porta: a passagem fica aberta,
+  // com a soleira no piso (como nos quartos do Habbo); uma porta de 4 ladrilhos
+  // de altura numa parede de 1,5 parecia solta, e o portão baixo virava caixa.
   const portas = [];
   const porta = (classe, x, y, dir, zona) => { p(classe, x, y, dir, 0); portas.push({ classe, x: x + OX, y: y + OY, dir, zona, w: dir === 2 ? 1 : 2, h: dir === 2 ? 2 : 1 }); };
+  porta("val14_gate", 53, 24, 0, "academia"); porta("val14_gate", 10, 38, 0, "producao");
+  porta("val14_gate", 40, 38, 0, "lounge"); porta("val14_gate", 49, 38, 0, "lounge");
+  // Vãos sem porta (soleira no piso): [x, y, w, h] do trecho de piso do vão.
+  const soleiras = [];
+  const soleira = (x, y, dir) => soleiras.push({ x: x + OX, y: y + OY, w: dir === 2 ? 1 : 2, h: dir === 2 ? 2 : 1 });
   for (const s of ambientes.filter((x) => x.pessoal)) {
     const a = rel(s);
-    if (s.porta === "baixo") porta("val14_gate", a.x0 + L / 2 - 1, a.y1, 0, s.id);
-    else porta("val14_gate", a.x1, a.y0 + L / 2 - 1, 2, s.id);
+    if (s.porta === "baixo") soleira(a.x0 + L / 2 - 1, a.y1, 0);
+    else soleira(a.x1, a.y0 + L / 2 - 1, 2);
   }
-  porta("val14_gate", 24, 15, 2, "reuniao"); porta("val14_gate", 36, 15, 2, "cafe"); porta("val14_gate", 53, 21, 0, "jogos");
-  porta("val14_gate", 24, 28, 2, "auditorio"); porta("val14_gate", 36, 28, 2, "foco"); porta("val14_gate", 53, 24, 0, "academia");
-  porta("val14_gate", 10, 38, 0, "producao"); porta("val14_gate", 24, 42, 2, "producao");
-  porta("val14_gate", 28, 48, 0, "recepcao"); porta("val14_gate", 30, 48, 0, "recepcao"); porta("val14_gate", 36, 43, 2, "lounge");
-  porta("val14_gate", 40, 38, 0, "lounge"); porta("val14_gate", 49, 38, 0, "lounge"); porta("val14_gate", 44, 48, 0, "lounge"); porta("val14_gate", 56, 48, 0, "lounge");
+  soleira(24, 15, 2); soleira(36, 15, 2); soleira(53, 21, 0); soleira(24, 28, 2); soleira(36, 28, 2); soleira(24, 42, 2);
+  soleira(28, 48, 0); soleira(30, 48, 0); soleira(36, 43, 2); soleira(44, 48, 0); soleira(56, 48, 0);
   // Elevadores (teletransporte): da Recepção para o fundo do pátio e para a Produção.
   const elevadores = [];
   const elevador = (nome, x, y, dir, sai) => { p("exe_elevator", x, y, dir, 0); elevadores.push({ nome, x: x + OX, y: y + OY, sai: { x: sai[0] + OX, y: sai[1] + OY } }); };
-  elevador("Recepção", 24, 38, 2, [25, 38]); elevador("Salas", 30, 0, 4, [30, 1]); elevador("Produção", 23, 38, 4, [23, 39]);
+  // O elevador do fundo fica no canto do pátio, fora da frente do logo da Vybe.
+  elevador("Recepção", 24, 38, 2, [25, 38]); elevador("Salas", 35, 0, 4, [35, 1]); elevador("Produção", 0, 47, 2, [1, 47]);
 
   // Terraço do Lounge (36–60 × 48–58): deck com a piscina, espreguiçadeiras
   // com os pés para a água, cadeiras de praia viradas para ela, guarda-sóis,
@@ -440,7 +447,7 @@ const ESCRITORIO_PLANTA = (() => {
   return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro, pisos, rotulos, entrada, vistas,
     // Corredores com a calçada clara da praça (a mesma da entrada): o chão
     // entre as salas lê como piso, não como vazio.
-    texturas, texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement", texturaDeck: "country_patio", portas, elevadores };
+    texturas, texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement", texturaDeck: "country_patio", portas, soleiras, elevadores };
 })();
 // Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho.
 function escritorioParaMapa(px, py) {
@@ -502,12 +509,13 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
   const naParede = (classe, lx, estado, altura) => item(classe, lx, 0, 4, estado, altura, true);
   const base = [
     item("exe_table", 2, 2, 0),
-    item("computer_flatscreen", 3, 2, 4, 1, 0.95),
+    // O monitor olha para a cadeira do dono (atrás da mesa), não para a sala.
+    item("computer_flatscreen", 3, 2, 0, 1, 0.95),
     item("darkmodern_c20_folder", 2, 3, 2, 0, 0.95),
     // Visitas de frente para a mesa, sobre o tapete; planta no canto do fundo.
     item("exe_rug", 2, 4, 0),
     item("exe_plant", 0, 0, 0),
-    naParede("window_double_default", 1, 0, 0.9),
+    naParede("window_double_default", 1, 0, 1.0),
     naParede("hc_wall_lamp", 5, 1, 1.3),
     naParede("pixel_clock_black", 7, 0, 1.4),
   ];
@@ -523,7 +531,7 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     // compacto, luz de chão e prateleira baixa.
     criacao: [
       item("modern_c17_chair", 3, 1, 4), item("cubie_beanbag_b", 2, 5, 0), item("cubie_beanbag_p", 4, 5, 0),
-      item("art_c20_drawingtablet", 4, 3, 2, 2, 0.95), item("modern_c17_iscreen", 2, 2, 2, 1, 0.95),
+      item("art_c20_drawingtablet", 4, 2, 0, 2, 0.95),
       item("icedblk_c16_sofa", 7, 2, 6), item("cubie_shelf_2_p", 6, 0, 0), item("darkmodern_c20_floorlight", 0, 6, 2, 7),
       item("modern_c17_plant", 7, 6, 2), item("darkmodern_c20_neonlight", 6, 7, 0),
     ],
@@ -531,9 +539,10 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     // de som, rádio na prateleira e o aparador.
     producao: [
       item("studio_chair", 3, 1, 4), item("studio_chair", 2, 5, 0), item("studio_chair", 4, 5, 0),
-      item("hygge_c25_desklamp", 4, 3, 2, 1, 0.95), item("studio_camera", 6, 6, 6, 2),
+      // Câmera no tripé apontada para a cadeira do dono (mesma linha, y = 1).
+      item("hygge_c25_desklamp", 4, 3, 2, 1, 0.95), item("studio_camera", 6, 1, 6, 2),
       item("hygge_c18_shelf", 6, 0, 0, 1), item("hc_radio", 6, 0, 4, 1, 1.2),
-      item("darkmodern_c20_speakers", 7, 2, 2), item("darkmodern_c20_speakers", 7, 4, 2),
+      item("darkmodern_c20_speakers", 7, 3, 0), item("darkmodern_c20_speakers", 7, 5, 0),
       item("bohogarden_c21_snakeplant", 0, 6, 2),
     ],
   };

@@ -240,7 +240,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   }
   // Soleira sob cada porta: o vão ganha um piso próprio, mais claro, para a
   // porta de vidro ter chão embaixo em vez de parecer solta no corredor.
-  for (const pt of planta.portas || []) for (let i = 0; i < pt.w; i++) for (let j = 0; j < pt.h; j++) {
+  for (const pt of [...(planta.portas || []), ...(planta.soleiras || [])]) for (let i = 0; i < pt.w; i++) for (let j = 0; j < pt.h; j++) {
     losango(pt.x + i, pt.y + j);
     g.fillStyle = "#8c8e99"; g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
     g.strokeStyle = "#00000040"; g.lineWidth = 1; g.stroke();
@@ -349,7 +349,7 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
 // a arte do painel de parede do Habbo, recortada em cada trecho. Os estilos
 // do pincel da sala usam os mesmos painéis; "b" (lisa) fica só na cor.
 // Portas que ficam nos vãos: abrem e fecham, e o boneco passa por elas.
-const MAPA_PORTAS = /^(val14_gate|ktchn_gate|wildwest_saloondr)$/;
+const MAPA_PORTAS = /^(val14_gate|exe_gate|ktchn_gate|wildwest_saloondr)$/;
 // Onde a porta é desenhada: a arte do Habbo fica no meio do ladrilho, mas a
 // nossa porta é o vão da parede, que passa pela aresta de trás do ladrilho
 // (y, nas paredes de fundo; x, nas da esquerda). O desenho recua meio
