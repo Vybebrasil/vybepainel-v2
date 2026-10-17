@@ -106,7 +106,12 @@ const ESCRITORIO_PLANTA = (() => {
     // Fundo e esquerda (altas, na cor da sala); a frente para o corredor tem
     // a porta e a de trás fica fechada. Em cima e à esquerda do prédio, a
     // parede da sala reveste a do prédio (o dono pinta igual às outras).
-    parede(a.x0, a.y0, a.x1, a.y0, a.porta === "cima" ? meio(a.x0, a.x1) : []);
+    if (a.porta === "cima") parede(a.x0, a.y0, a.x1, a.y0, meio(a.x0, a.x1));
+    else {
+      // Fundo que dá para fora: faixa de vidro (janela) de 1 a 5, parede no resto.
+      parede(a.x0, a.y0, a.x0 + 1, a.y0); parede(a.x0 + 5, a.y0, a.x1, a.y0);
+      parede(a.x0 + 1, a.y0, a.x0 + 5, a.y0); divisorias.at(-1).janela = true;
+    }
     parede(a.x0, a.y0, a.x0, a.y1);
     parede(a.x0, a.y1, a.x1, a.y1, a.porta === "baixo" ? meio(a.x0, a.x1) : []);
   }
@@ -146,7 +151,7 @@ const ESCRITORIO_PLANTA = (() => {
     const a = dono(d);
     if (!a) continue;
     d.push(a.cor);
-    if (a.pessoal) d.sala = a.id; else { d.estilo = a.estilo; d.textura = a.texturaParede; }
+    if (a.pessoal) { d.sala = a.id; if (d.janela) d.textura = "exe_c15_wall"; } else { d.estilo = a.estilo; d.textura = a.texturaParede; }
   }
 
   // Móveis: [classe, x, y, direção, estado, altura (em cima de mesa / na parede)]
@@ -219,7 +224,7 @@ const ESCRITORIO_PLANTA = (() => {
     for (const dx of [0, 1]) { p("hc26_10", x + dx, 31, 4); p("hc26_10", x + dx, 33, 0); }
   }
   p("school_c22_cafe", 46, 35, 0);
-  p("window_70s_wide", 36, 33, 2, 0, 1); p("pixel_clock_black", 36, 30, 2, 0, 1.4);
+  p("cine_pstr_6", 36, 33, 2, 0, 1.1); p("pixel_clock_black", 36, 30, 2, 0, 1.4);
   p("bohogarden_c21_fanpalm", 49, 36, 2);
 
   // Jogos (50–63 × 28–37): fliperamas e pinball na parede do fundo, jukebox
@@ -242,7 +247,7 @@ const ESCRITORIO_PLANTA = (() => {
   p("uni_dumbells", 65, 31, 2); p("uni_dumbells", 65, 33, 2);
   p("olympics_c16_trampoline", 73, 33, 2); p("olympics_c16_trampoline", 73, 35, 2);
   p("bohogarden_c21_snakeplant", 63, 36, 2); p("modern_c17_floorlamp", 75, 36, 2, 1);
-  p("hc_wall_lamp", 67, 28, 4, 1, 1.4); p("hc_wall_lamp", 70, 28, 4, 1, 1.4); p("window_skyscraper", 63, 34, 2, 0, 1);
+  p("hc_wall_lamp", 67, 28, 4, 1, 1.4); p("hc_wall_lamp", 70, 28, 4, 1, 1.4); p("cubie_decal_1_b", 63, 34, 2, 0, 1.2);
 
   // Foco (66–76 × 0–24): biblioteca silenciosa. Estantes na parede da
   // esquerda, mesas de estudo com luminária, cadeiras dos dois lados, canto
@@ -433,15 +438,12 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     item("plant_yukka", 0, 0, 0), item("purablk_c16_shelve", 0, 7, 2),
     // Mesa de quem trabalha com café e pasta, não vazia.
     item("coffee_cup", 3, 3, 4, 0, 1), item("darkmodern_c20_folder", 2, 5, 2, 0, 1),
-    // Na parede: um quadro na da esquerda; no fundo, janelas (salas da
-    // fileira de cima, parede de fora) ou luminárias (as de baixo, onde o
-    // fundo é a parede da porta).
+    // Na parede: um quadro na da esquerda e uma luminária no fundo. As salas
+    // de cima têm a janela de verdade na própria parede (vidro com a cidade,
+    // porque o fundo delas dá para fora); janela pendurada em parede de
+    // dentro mostrava a parede atrás do vidro.
     item(Number(String(a.id).split("-")[1]) % 2 ? "pixel_painting_blue" : "pixel_painting_red", 0, 5, 2, 0, 1.1),
-    ...(a.porta === "baixo"
-      // Janelas e luminária só no trecho do fundo que nenhum tema ocupa com
-      // móvel alto (de 6 a 8 ficam estação, luminária de pé e estantes).
-      ? [item("window_double_default", 1, 0, 4, 0, 1), item("window_double_default", 3, 0, 4, 0, 1)]
-      : [item("hc_wall_lamp", 2, 0, 4, 1, 1.3)]),
+    item("hc_wall_lamp", a.porta === "baixo" ? 5 : 2, 0, 4, 1, 1.3),
   ];
   // Cadeiras de visita viradas para a mesa (cada tema com as suas).
   const visita = (classe) => [item(classe, 5, 3, 6), item(classe, 5, 5, 6)];
@@ -449,7 +451,7 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     // Arquivo atrás da mesa e canto para receber o cliente: sofá no fundo,
     // mesinha e poltrona.
     atendimento: [
-      ...visita("mafia_c26_armchair_white"), item("exe_globe", 0, 2, 0), item("exe_c15_telephone", 3, 5, 2, 0, 1),
+      ...visita("mafia_c26_armchair_white"), item("exe_globe", 0, 2, 0), item("exe_c15_telephone", 3, 4, 2, 0, 1),
       item("modern_c17_sofa", 6, 0, 4), item("hc26_3", 6, 2, 2), item("mafia_c26_armchair_dark", 8, 2, 6),
       item("modern_c17_floorlamp", 8, 0, 2, 1), item("bohogarden_c21_cheeseplant", 9, 8, 2),
     ],

@@ -274,6 +274,27 @@ function escritorioEmCimaDe(x, y, ignorar = -1) {
   const cx = ref === base ? Math.floor(base.x) + (w - 1) / 2 : ref.x, cy = ref === base ? Math.floor(base.y) + (h - 1) / 2 : ref.y;
   return { lx: r(cx - c.x), ly: r(cy - c.y), altura: r(Math.min(5, Math.max(0.5, topo(alto)))) };
 }
+// Física do que fica em cima de móvel: só onde há tampo embaixo (no
+// ladrilho do centro do objeto) e sempre na altura do tampo. Devolve a
+// altura certa ou null (sairia da mesa).
+function escritorioApoioPara(lx, ly, i) {
+  const c = escritorioCantoCamada(escritorio.edicao.camada);
+  const apoio = escritorioEmCimaDe(Math.floor(c.x + lx + 0.5), Math.floor(c.y + ly + 0.5), i);
+  return apoio ? apoio.altura : null;
+}
+// Mover uma mesa (ou estante, balcão…) leva junto o que está em cima dela.
+async function escritorioLevarOQueEstaEmCima(i, ox, oy, dx, dy) {
+  const e = escritorio.edicao, it = e.itens[i];
+  if (!it || it[5] || (!dx && !dy)) return;
+  let d;
+  try { d = await escritorio.mapa.medidas(it[0], it[3]); } catch { return; }
+  const w = Math.max(1, Math.round(d.x)), h = Math.max(1, Math.round(d.y)), r = (v) => Math.round(v * 100) / 100;
+  e.itens.forEach((o, j) => {
+    if (j === i || !o[5] || escritorioEhParede(o[0])) return;
+    const cx = o[1] + 0.5, cy = o[2] + 0.5;
+    if (cx >= ox && cx < ox + w && cy >= oy && cy < oy + h) { o[1] = r(o[1] + dx); o[2] = r(o[2] + dy); }
+  });
+}
 async function empurrarSelecionadoEscritorio(dx, dy, fino = false) {
   const e = escritorio.edicao, it = e.itens[e.sel];
   // Item de parede: ↑/↓ (com Alt) sobe e desce; ←/→ desliza ao longo da parede.
@@ -292,7 +313,14 @@ async function empurrarSelecionadoEscritorio(dx, dy, fino = false) {
     const c = escritorioCantoCamada(e.camada), r = (v) => Math.round(v * 100) / 100;
     const nx = r(it[1] + dx * 0.25), ny = r(it[2] + dy * 0.25);
     if (nx < 0 || ny < 0 || nx > c.w - 1 || ny > c.h - 1) return;
+    if (it[5]) {
+      const alt = escritorioApoioPara(nx, ny, e.sel);
+      if (alt == null) return escritorioAviso("Aí ele sairia do tampo. Para tirar da mesa, arraste até o chão.");
+      it[5] = alt;
+    }
+    const ox = it[1], oy = it[2];
     it[1] = nx; it[2] = ny;
+    await escritorioLevarOQueEstaEmCima(e.sel, ox, oy, nx - ox, ny - oy);
     return escritorioEditorMudou();
   }
   if (escritorioImagemDe(it[0])?.tipo === "quadro") {
@@ -301,8 +329,16 @@ async function empurrarSelecionadoEscritorio(dx, dy, fino = false) {
     it[1] = lugar.lx; it[2] = lugar.ly;
     return escritorioEditorMudou();
   }
-  if (!(await escritorioCabe(it[0], it[1] + dx, it[2] + dy, it[3]))) return;
+  if (it[5]) {
+    const alt = escritorioApoioPara(it[1] + dx, it[2] + dy, e.sel);
+    if (alt == null) return escritorioAviso("Aí ele sairia do tampo. Para tirar da mesa, arraste até o chão.");
+    it[1] += dx; it[2] += dy; it[5] = alt;
+    return escritorioEditorMudou();
+  }
+  if (!(await escritorioCabe(it[0], it[1] + dx, it[2] + dy, it[3], { i: e.sel }))) return;
+  const ox = it[1], oy = it[2];
   it[1] += dx; it[2] += dy;
+  await escritorioLevarOQueEstaEmCima(e.sel, ox, oy, dx, dy);
   escritorioEditorMudou();
 }
 function teclaEditorEscritorio(e) {
@@ -766,9 +802,17 @@ async function soltarNoEditorEscritorio(x, y, moveu) {
   }
   const nx = x - c.x - a.dx, ny = y - c.y - a.dy;
   let cabe = false;
-  try { cabe = it[5] ? true : await escritorioCabe(it[0], nx, ny, it[3], { i: a.i }); } catch {}
+  // Solto em cima de uma mesa: assenta no tampo; no chão, volta ao chão.
+  // Só peça pequena (1 ladrilho) sobe na mesa: mesa sobre mesa não.
+  let pequeno = false;
+  try { const d = await escritorio.mapa.medidas(it[0], it[3]); pequeno = Math.round(d.x) <= 1 && Math.round(d.y) <= 1 && !d.imagem; } catch {}
+  const apoio = pequeno ? escritorioApoioPara(nx, ny, a.i) : null;
+  if (apoio != null && !MAPA_ASSENTOS.has(it[0])) { it[1] = nx; it[2] = ny; it[5] = apoio; return escritorioEditorMudou(); }
+  try { cabe = await escritorioCabe(it[0], nx, ny, it[3], { i: a.i }); } catch {}
   if (!cabe) return escritorioAviso("Não cabe aí, ou já tem outro móvel no lugar. Solte dentro de " + escritorioNomeCamada(e.camada) + ".");
-  it[1] = nx; it[2] = ny;
+  const ox = it[1], oy = it[2], estavaEmCima = it[5];
+  it[1] = nx; it[2] = ny; it[5] = 0;
+  if (!estavaEmCima) await escritorioLevarOQueEstaEmCima(a.i, ox, oy, nx - ox, ny - oy);
   escritorioEditorMudou();
 }
 function escritorioVoltarPasso(de, para) {
