@@ -48,7 +48,7 @@ const ESCRITORIO_PLANTA = (() => {
   const PISO = {
     madeira: ["#6b4a33", "#62432e"], clara: ["#9c7550", "#916b48"], concreto: ["#3d3f46", "#383a40"],
     carpete: ["#2c3444", "#27303e"], preto: ["#1b1b20", "#17171b"], cafe: ["#c9c4bd", "#bdb8b1"],
-    verde: ["#23493a", "#1f4134"], corredor: ["#2b2b31", "#27272c"], academia: ["#222227", "#1e1e22"],
+    verde: ["#23493a", "#1f4134"], corredor: ["#5c5d66", "#56575f"], academia: ["#222227", "#1e1e22"],
     grama: ["#3f7d3a", "#3a7335"], deck: ["#8a5f3c", "#7f5736"], praca: ["#2a2930", "#26252b"],
     // Pisos das salas individuais (madeiras e tons próximos, cada um diferente).
     sala0: ["#7a4f3a", "#704836"], sala1: ["#5e4636", "#564031"], sala2: ["#3f4a5c", "#394354"], sala3: ["#6b5a3e", "#625238"],
@@ -331,7 +331,8 @@ const ESCRITORIO_PLANTA = (() => {
   // Lounge: vela e café na lareira, pipoca no cinema, globos na pista, neon no bar.
   p("lodge_dark_candle", 45, 44, 2, 0, 1);
   p("cine_popcorn", 51, 46, 4);
-  p("disco_c26_discoball", 66, 48, 0);
+  // Globo de espelhos pendurado (a arte é de teto: no chão parecia uma bola na pista).
+  p("disco_c26_discoball", 62, 44, 0, 0, 2.4);
 
   // Eixo central e corredores: plantas nas pontas, longe das portas.
   p("bohogarden_c21_fanpalm", 30, 0, 2); p("bohogarden_c21_fanpalm", 35, 0, 2);
@@ -344,7 +345,8 @@ const ESCRITORIO_PLANTA = (() => {
   for (const y of [53, 55, 57]) p("js_c16_lounger", 46, y, 2);
   for (const x of [51, 54, 57, 60, 63]) p("ducket_c26_seachair", x, 59, 0);
   for (const x of [52, 58, 64]) p("ducket_c26_seasidetable", x, 59, 0);
-  p("tiki_parasol", 49, 60, 0); p("tiki_parasol", 67, 53, 0); p("lido_parasol", 48, 52, 0);
+  // Guarda-sol longe da parede do Lounge: encostado nela, cobria o letreiro "Lareira".
+  p("tiki_parasol", 49, 60, 0); p("tiki_parasol", 67, 53, 0); p("lido_parasol", 49, 55, 0);
   for (const [x, y] of [[70, 53], [74, 53], [70, 57], [74, 57]]) { p("vwave_c21_bartable", x, y, 0); p("vwave_c21_barstool", x - 1, y, 2); p("vwave_c21_barstool", x + 1, y + 1, 6); }
   p("lido_parasol", 72, 55, 0); p("vwave_c21_palm", 77, 51, 2); p("vwave_c21_palm", 77, 59, 2);
   // Calçada da entrada (x 31–34, livre até a rua) com palmeiras, postes,
@@ -401,7 +403,9 @@ const ESCRITORIO_PLANTA = (() => {
     { x0: -2, y0: 68, x1: 78, y1: 70, textura: "urban_sidewalk", piso: "praca" },
   ].map((r) => ({ ...r, x0: r.x0 + OX, x1: r.x1 + OX, y0: r.y0 + OY, y1: r.y1 + OY }));
   return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro, pisos, rotulos, entrada, vistas,
-    texturas, texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "darkmodern_c20_floor", texturaDeck: "country_patio", portas, elevadores };
+    // Corredores com a calçada clara da praça (a mesma da entrada): o chão
+    // entre as salas lê como piso, não como vazio.
+    texturas, texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement", texturaDeck: "country_patio", portas, elevadores };
 })();
 // Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho.
 function escritorioParaMapa(px, py) {
@@ -461,6 +465,10 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     // dentro mostrava a parede atrás do vidro.
     item(Number(String(a.id).split("-")[1]) % 2 ? "pixel_painting_blue" : "pixel_painting_red", 0, 5, 2, 0, 1.1),
     item("hc_wall_lamp", a.porta === "baixo" ? 5 : 2, 0, 4, 1, 1.3),
+    // Relógio no fundo e tapete sob as cadeiras de visita: a sala deixa de
+    // ser um piso vazio com móveis nos cantos.
+    item("pixel_clock_black", 3, 0, 4, 0, 1.4),
+    item("js_exe_rug", 4, 3, 0),
   ];
   // Cadeiras de visita viradas para a mesa (cada tema com as suas).
   const visita = (classe) => [item(classe, 5, 3, 6), item(classe, 5, 5, 6)];

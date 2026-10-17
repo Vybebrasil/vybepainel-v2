@@ -507,11 +507,12 @@ function escritorioMoveisAtuais() {
 }
 function escritorioPlantaComMesas() {
   // Pintura das salas é lida na hora de desenhar (muda sem recriar o mapa).
-  // Fundo animado da Vybelândia: os quatro cantos da praça vazia do vídeo
-  // (1280×720), onde o mapa quadrado se encaixa.
-  const video = document.getElementById("escritorio-fundo-video")?.getAttribute("href");
+  // Praça da Vybelândia (imagem parada, 1672×941): os quatro cantos da praça
+  // vazia, onde o mapa quadrado se encaixa. O vídeo ficou só na abertura: no
+  // mapa ele chegava borrado, disputava atenção e gastava CPU o dia inteiro.
+  const imagem = document.getElementById("escritorio-fundo-imagem")?.getAttribute("href");
   return { ...ESCRITORIO_PLANTA, moveis: escritorioMoveisAtuais(), imagens: escritorio.base?.mapa?.imagens || [],
-    fundoVideo: video ? { url: video, largura: 1280, altura: 720, praca: { esq: [168, 388], topo: [626, 187], dir: [1082, 407], baixo: [640, 657] } } : null,
+    fundo: imagem ? { url: imagem, largura: 1672, altura: 941, praca: { esq: [155, 552], topo: [1007, 198], dir: [1535, 450], baixo: [690, 826] } } : null,
     pisoLadrilho: (x, y) => ESCRITORIO_PLANTA.pisoLadrilho?.(x, y), paredeEm: (x, y, eixo) => ESCRITORIO_PLANTA.paredeEm?.(x, y, eixo) };
 }
 // Nomes das salas individuais conforme o dono informado pelo servidor.
@@ -725,7 +726,7 @@ function atualizarControlesEscritorio() {
     const item = (acao, rotulo, extra = "") => `<button type="button" onclick="${acao};this.closest('details').open=false" ${extra}>${rotulo}</button>`;
     const tranca = escritorioPodeTrancar() ? item("trancarZonaEscritorio()", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
     const poses = escritorio.conectado ? `<span class="ofc-mais-titulo">Seu boneco</span>${item("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", "Acenar <kbd>1</kbd>")}${item("deitarEscritorio()", "Deitar <kbd>2</kbd>")}${item("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", "Café na mão <kbd>3</kbd>")}` : "";
-    return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}${item("alternarFundoAnimadoEscritorio()", typeof reduzMovFundo === "function" && reduzMovFundo() ? "Animar o fundo da cidade" : "Pausar o fundo animado")}</div></details>`;
+    return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
   })()}<span class="ofc-sep"></span>${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
