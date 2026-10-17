@@ -65,15 +65,15 @@ const ESCRITORIO_PLANTA = (() => {
     "sala" + i, { pessoal: true, porta: y0 ? "cima" : "baixo", cor: CORES_SALAS[i] }));
   // Espaços comuns: cor e estilo das paredes altas de cada um.
   // "textura": o piso do acervo de cada espaço (a cor fica enquanto carrega).
-  ambiente("foco", "Foco", "foco", 66, 0, 76, 24, "clara", { cor: "#8b6b4a", estilo: "d", textura: "rainyday_c20_woodenfloor" });
-  ambiente("auditorio", "Auditório", "reuniao", 0, 28, 16, 37, "carpete", { cor: "#6b4fa0", estilo: "b", textura: "hs_carpet" });
-  ambiente("reuniao", "Sala de reunião", "reuniao", 16, 28, 30, 37, "carpete", { cor: "#5aa9ff", estilo: "f", textura: "lodge_dark_floor" });
-  ambiente("cafe", "Café", "convivencia", 36, 28, 50, 37, "cafe", { cor: "#d9a066", estilo: "h", textura: "ktchn_c15_floor" });
-  ambiente("jogos", "Jogos", "convivencia", 50, 28, 63, 37, "verde", { cor: "#3fae7a", estilo: "g", textura: "sf_floor" });
-  ambiente("academia", "Academia", "convivencia", 63, 28, 76, 37, "academia", { cor: "#7a8494", estilo: "e", textura: "olympics_c16_softmat" });
-  ambiente("producao", "Produção", "producao", 0, 40, 24, 50, "concreto", { cor: "#4a5560", estilo: "e", textura: "cpunk_c15_road" });
-  ambiente("recepcao", "Recepção", "convivencia", 24, 40, 42, 50, "marmore", { cor: "#ff8a35", estilo: "d", textura: "greek_c15_floor" });
-  ambiente("lounge", "Lounge", "convivencia", 42, 40, 76, 50, "madeira", { semRotulo: true, cor: "#b4583a", estilo: "c" });
+  ambiente("foco", "Foco", "foco", 66, 0, 76, 24, "clara", { cor: "#8b6b4a", estilo: "d", textura: "rainyday_c20_woodenfloor", texturaParede: "gardenshed_wall" });
+  ambiente("auditorio", "Auditório", "reuniao", 0, 28, 16, 37, "carpete", { cor: "#6b4fa0", estilo: "b", textura: "hs_carpet", texturaParede: "celestial_c19_wall" });
+  ambiente("reuniao", "Sala de reunião", "reuniao", 16, 28, 30, 37, "carpete", { cor: "#5aa9ff", estilo: "f", textura: "lodge_dark_floor", texturaParede: "exe_c15_wall" });
+  ambiente("cafe", "Café", "convivencia", 36, 28, 50, 37, "cafe", { cor: "#d9a066", estilo: "h", textura: "ktchn_c15_floor", texturaParede: "bathroom_wall4" });
+  ambiente("jogos", "Jogos", "convivencia", 50, 28, 63, 37, "verde", { cor: "#3fae7a", estilo: "g", textura: "sf_floor", texturaParede: "cpunk_c15_wall" });
+  ambiente("academia", "Academia", "convivencia", 63, 28, 76, 37, "academia", { cor: "#7a8494", estilo: "e", textura: "olympics_c16_softmat", texturaParede: "grungewall" });
+  ambiente("producao", "Produção", "producao", 0, 40, 24, 50, "concreto", { cor: "#4a5560", estilo: "e", textura: "cpunk_c15_road", texturaParede: "sb_wall" });
+  ambiente("recepcao", "Recepção", "convivencia", 24, 40, 42, 50, "marmore", { cor: "#ff8a35", estilo: "d", textura: "greek_c15_floor", texturaParede: "attic15_wall" });
+  ambiente("lounge", "Lounge", "convivencia", 42, 40, 76, 50, "madeira", { semRotulo: true, cor: "#b4583a", estilo: "c", texturaParede: "urban_wall" });
   // O Lounge é uma zona só (uma conversa), em quatro espaços com piso, nome e
   // divisórias baixas próprias; a frente abre para o terraço.
   const pisos = [
@@ -146,7 +146,7 @@ const ESCRITORIO_PLANTA = (() => {
     const a = dono(d);
     if (!a) continue;
     d.push(a.cor);
-    if (a.pessoal) d.sala = a.id; else d.estilo = a.estilo;
+    if (a.pessoal) d.sala = a.id; else { d.estilo = a.estilo; d.textura = a.texturaParede; }
   }
 
   // Móveis: [classe, x, y, direção, estado, altura (em cima de mesa / na parede)]
