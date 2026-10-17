@@ -137,20 +137,28 @@ function mapaLuzSemPreto(imagem, f) {
   porImagem.set(chave, c);
   return c;
 }
+// Cor em hex ("#rrggbb") mais escura ou mais clara: f < 1 escurece, f > 1
+// clareia (mistura com branco). Usada nas paredes, para a base e o topo
+// seguirem a cor da sala em vez de um cinza fixo.
+function mapaTom(cor, f) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(cor || ""));
+  if (!m) return cor || "#4a4d57";
+  const c = m.slice(1).map((h) => parseInt(h, 16)).map((v) => (f <= 1 ? v * f : v + (255 - v) * (f - 1)));
+  return "#" + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
+}
+// Linhas com desenho de verdade num canvas (a arte do Habbo tem margens
+// transparentes; as paredes ladrilham só a parte visível).
+function mapaRecorteOpaco(canvas) {
+  const g = canvas.getContext("2d"), { width: w, height: h } = canvas;
+  if (!w || !h) return { y0: 0, y1: h };
+  const d = g.getImageData(0, 0, w, h).data;
+  let y0 = 0, y1 = h;
+  const opaca = (y) => { for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 8) return true; return false; };
+  while (y0 < h - 1 && !opaca(y0)) y0++;
+  while (y1 > y0 + 1 && !opaca(y1 - 1)) y1--;
+  return { y0, y1 };
+}
 // Piso, borda do prédio, paredes do fundo e textos/logo pintados nelas.
-function reduzMovFundo() {
-  let parado = false;
-  try { parado = localStorage.getItem("vybe-escritorio-fundo-parado") === "1"; } catch {}
-  return parado || Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
-}
-// Botão "Pausar o fundo animado" (computador fraco ou para economizar bateria).
-function alternarFundoAnimadoEscritorio() {
-  const parar = !reduzMovFundo();
-  try { parar ? localStorage.setItem("vybe-escritorio-fundo-parado", "1") : localStorage.removeItem("vybe-escritorio-fundo-parado"); } catch {}
-  const v = document.querySelector(".mapa-video-fundo");
-  if (v) parar ? v.pause() : v.play().catch(() => {});
-  if (typeof atualizarControlesEscritorio === "function") atualizarControlesEscritorio();
-}
 function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   const dia = ceu === "manha" || ceu === "tarde";
   const g = canvas.getContext("2d");
@@ -165,8 +173,9 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   const topoEsq = mapaTela(0, P.y1, origem), topoMeio = mapaTela(0, 0, origem), topoDir = mapaTela(P.x1, 0, origem);
   let semente = 7;
   const sorte = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
-  // Com o vídeo da Vybelândia de fundo, a cidade, o céu e a praça vêm dele.
-  const video = Boolean(planta.fundoVideo);
+  // Com a imagem da praça da Vybelândia de fundo, a cidade, o céu e a praça
+  // vêm dela; o desenho abaixo é só o reserva (sem a imagem).
+  const video = Boolean(planta.fundo);
   for (let x = topoEsq.x - 120; !video && x < topoDir.x + 160; x += 34 + sorte() * 40) {
     const t = x < topoMeio.x ? (x - topoEsq.x) / (topoMeio.x - topoEsq.x) : (topoDir.x - x) / (topoDir.x - topoMeio.x);
     const base = topoMeio.y - MAPA_PAREDE + (1 - Math.max(0, Math.min(1, t))) * (topoEsq.y - topoMeio.y) + 40;
@@ -229,6 +238,13 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     else textura(x, y, extra?.textura || a?.textura || (a ? "" : planta.texturaCorredor), extra?.x0 ?? a?.x0 ?? 0, extra?.y0 ?? a?.y0 ?? 0);
     g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
   }
+  // Soleira sob cada porta: o vão ganha um piso próprio, mais claro, para a
+  // porta de vidro ter chão embaixo em vez de parecer solta no corredor.
+  for (const pt of planta.portas || []) for (let i = 0; i < pt.w; i++) for (let j = 0; j < pt.h; j++) {
+    losango(pt.x + i, pt.y + j);
+    g.fillStyle = "#8c8e99"; g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = "#00000040"; g.lineWidth = 1; g.stroke();
+  }
   // Faixa laranja no meio dos corredores, como as ruas da Vybelândia.
   g.strokeStyle = "#ff7a1a55"; g.lineWidth = 2; g.setLineDash([10, 8]);
   // Corredor: y (de ponta a ponta do prédio) ou [y, x0, x1] (um trecho).
@@ -279,7 +295,9 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     const b = q.parede === "x" ? mapaTela(q.ate, P.y0, origem) : mapaTela(P.x0, q.ate, origem);
     const largura = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
     g.save();
-    g.translate(a.x, a.y - MAPA_PAREDE * 0.62);
+    // No alto da parede, acima dos móveis encostados nela (o "É A VYBE"
+    // ficava escondido atrás do estúdio da Produção).
+    g.translate(a.x, a.y - MAPA_PAREDE * 0.8);
     // Inclinação da parede sem girar o texto na vertical
     g.transform(1, Math.tan(ang), 0, 1, 0, 0);
     const largX = largura * Math.cos(ang) * (q.parede === "x" ? 1 : -1);
@@ -345,16 +363,20 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
   const sobe = eixo === "x";
   const p0 = sobe ? { x: 0, y: alt } : { x: MAPA_TW / 2, y: alt };
   const p1 = sobe ? { x: MAPA_TW / 2, y: alt + MAPA_TH / 2 } : { x: 0, y: alt + MAPA_TH / 2 };
-  g.fillStyle = cor ? (sobe ? "#2b2d36" : "#22242c") : sobe ? "#1c1d22" : "#131418";
+  // Base da parede na cor da sala (escurecida), não num cinza fixo: onde o
+  // painel não cobre, aparece a cor dela e não uma faixa preta.
+  g.fillStyle = cor ? mapaTom(cor, sobe ? 0.55 : 0.42) : sobe ? "#2c2e36" : "#23252c";
   g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.fill();
   const tex = cor && textura ? MAPA_TEXTURAS_PAREDE.get(textura) : null;
   if (tex) {
     // Painel de n ladrilhos: o trecho k mostra a sua fatia do desenho, com a
-    // base do painel na base da parede (o que passa do topo fica recortado).
-    const arte = tex[sobe ? 4 : 2], n = tex.n, k = (((sobe ? x : y) % n) + n) % n, h = arte.height;
+    // base do painel na base da parede e repetido para cima até o topo. Conta
+    // só a parte desenhada da arte (as margens transparentes ficam de fora).
+    const arte = tex[sobe ? 4 : 2], n = tex.n, k = (((sobe ? x : y) % n) + n) % n;
+    const r = tex.recorte?.[sobe ? 4 : 2] || { y0: 0, y1: arte.height }, h = r.y1, passo = Math.max(8, r.y1 - r.y0 - 16 * n);
     g.save();
     g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip();
-    for (let v = 0; v < alt + 40; v += h - 16 * n) {
+    for (let v = 0; v < alt + 40; v += passo) {
       if (sobe) g.drawImage(arte, 3 - 32 * k, alt - (h - 16 * n + 16 * k) - v);
       else g.drawImage(arte, 35 - 32 * (n - k), alt - h + 16 * (n - k) - v);
     }
@@ -410,7 +432,9 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
     if (f.u1 >= 0.999) { g.moveTo(B.x, B.y - base); g.lineTo(B.x, B.y - base - H); }
     g.stroke();
   }
-  g.fillStyle = cor || "#4a4d57";
+  // Topo fino e claro (a parede é uma lâmina, não um bloco): a cor da sala
+  // clareada, ou um cinza claro nas divisórias sem dono.
+  g.fillStyle = cor ? mapaTom(cor, 1.35) : "#6a6d78";
   g.beginPath(); g.moveTo(p0.x + 3, p0.y - alt); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p1.x + 3, p1.y - alt - 3); g.lineTo(p0.x + 3, p0.y - alt - 3); g.closePath(); g.fill();
   return { canvas: c, ox: sobe ? -3 : -MAPA_TW / 2 - 3, oy: -alt };
 }
@@ -650,31 +674,23 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     for (let x = a.x0; x < a.x1; x++) for (let y = a.y0; y < a.y1; y++) { const p = mapaTela(x + 0.5, y + 0.5, origem); g.fillRect(p.x - 1, p.y - 1, 2, 2); }
     palco.append(gradeNo);
   }
-  // Fundo em vídeo (a Vybelândia animada): fica no palco, embaixo de tudo, e
-  // anda com a câmera; a praça vazia do vídeo é alinhada com o mapa (canto de
-  // cima e canto da esquerda). Para quando a aba sai da frente ou com
-  // "reduzir movimento" (fica o quadro parado).
+  // Fundo: a praça da Vybelândia (imagem parada) no palco, embaixo de tudo,
+  // andando com a câmera. A praça vazia da imagem (quatro cantos, em pixels)
+  // recebe o mapa inteiro: mesma altura de cima a baixo e o mesmo centro.
   let videoNo = null;
-  if (P.fundoVideo) {
-    // A praça vazia do vídeo (quatro cantos, em pixels do vídeo) recebe o
-    // mapa inteiro: mesma altura de cima a baixo e o mesmo centro.
-    const V = P.fundoVideo, q = V.praca, cima = mapaTela(0, 0, origem), baixo = mapaTela(P.W, P.H, origem), meio = mapaTela(P.W / 2, P.H / 2, origem);
+  if (P.fundo) {
+    const V = P.fundo, q = V.praca, cima = mapaTela(0, 0, origem), baixo = mapaTela(P.W, P.H, origem), meio = mapaTela(P.W / 2, P.H / 2, origem);
     const escala = (baixo.y - cima.y) / (q.baixo[1] - q.topo[1]);
     const cx = (q.esq[0] + q.dir[0] + q.topo[0] + q.baixo[0]) / 4, cy = (q.esq[1] + q.dir[1] + q.topo[1] + q.baixo[1]) / 4;
-    const topo = meio;
-    V.topo = [cx, cy];
-    videoNo = document.createElement("video");
-    Object.assign(videoNo, { src: V.url, muted: true, loop: true, playsInline: true, autoplay: !reduzMovFundo(), preload: "auto" });
-    // Fundo é só imagem: sem som em nenhum navegador (o arquivo também não tem áudio).
-    videoNo.defaultMuted = true; videoNo.volume = 0; videoNo.setAttribute("muted", "");
+    videoNo = document.createElement("img");
+    videoNo.src = V.url;
+    videoNo.alt = "";
+    videoNo.decoding = "async";
     videoNo.setAttribute("aria-hidden", "true");
-    videoNo.className = "mapa-video-fundo";
-    Object.assign(videoNo.style, { left: topo.x - V.topo[0] * escala + "px", top: topo.y - V.topo[1] * escala + "px", width: V.largura * escala + "px", height: V.altura * escala + "px" });
+    videoNo.className = "mapa-fundo-cidade";
+    Object.assign(videoNo.style, { left: meio.x - cx * escala + "px", top: meio.y - cy * escala + "px", width: V.largura * escala + "px", height: V.altura * escala + "px" });
     palco.prepend(videoNo);
-    const aoMudarAba = () => { if (document.hidden || reduzMovFundo()) videoNo.pause(); else videoNo.play().catch(() => {}); };
-    document.addEventListener("visibilitychange", aoMudarAba);
-    videoNo.desligar = () => { document.removeEventListener("visibilitychange", aoMudarAba); videoNo.pause(); videoNo.removeAttribute("src"); videoNo.load(); };
-    videoNo.addEventListener("loadeddata", () => { if (reduzMovFundo()) { videoNo.currentTime = 2; videoNo.pause(); } }, { once: true });
+    videoNo.desligar = () => { videoNo.removeAttribute("src"); };
   }
   const zonaCanvas = document.createElement("canvas");
   zonaCanvas.width = largura; zonaCanvas.height = altura; zonaCanvas.className = "mapa-zona";
@@ -753,7 +769,10 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     try {
       const m = await mapaCarregarMovel(c), n = Math.max(1, Math.round(m.dados.logic?.model?.dimensions?.x || 1));
       const d4 = mapaDesenharMovel(m, 4, 0, 0), d2 = mapaDesenharMovel(m, 2, 0, 0);
-      if (d4 && d2) MAPA_TEXTURAS_PAREDE.set(c, { 4: d4.canvas, 2: d2.canvas, n });
+      // Só a parte desenhada do painel ladrilha a parede (as margens
+      // transparentes da arte deixavam faixas da base escura aparecendo nas
+      // paredes mais altas que o painel).
+      if (d4 && d2) MAPA_TEXTURAS_PAREDE.set(c, { 4: d4.canvas, 2: d2.canvas, n, recorte: { 4: mapaRecorteOpaco(d4.canvas), 2: mapaRecorteOpaco(d2.canvas) } });
     } catch {}
   })).then(() => { try { pintarParedes(true); } catch {} });
   // Altura da parede num trecho (para os itens pendurados): a do muro da
@@ -1026,16 +1045,16 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   }
   for (const a of P.ambientes) {
     if (a.semRotulo) continue;
-    // Sala individual: letreiro na porta (a faixa que fica sempre livre), sem
-    // cobrir os móveis do fundo; espaços comuns: no centro.
-    const t = a.pessoal ? mapaTela((a.x0 + a.x1) / 2, a.porta === "baixo" ? a.y1 - 0.4 : a.y0 + 0.4, origem) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
+    // Sala individual: letreiro em neon (cor da sala) acima da porta, como
+    // uma placa sobre a entrada, sem cobrir a porta de vidro nem os móveis;
+    // espaços comuns: no centro.
+    const t = a.pessoal ? mapaTela((a.x0 + a.x1) / 2, a.porta === "baixo" ? a.y1 : a.y0, origem) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
     const r = document.createElement("span");
-    // Sala individual: letreiro em neon (cor da sala) no fundo dela.
     r.className = "mapa-rotulo" + (a.pessoal ? " neon" : "");
     if (a.pessoal && a.cor) r.style.setProperty("--neon", a.cor);
     r.dataset.ambiente = a.id;
     r.textContent = a.nome;
-    r.style.left = t.x + "px"; r.style.top = t.y + "px";
+    r.style.left = t.x + "px"; r.style.top = t.y - (a.pessoal ? 104 : 0) + "px";
     palco.append(r);
   }
 

@@ -167,7 +167,17 @@ Após login do responsável na Cloudflare, foi confirmado:
   corpo) e boas-vindas. Cada pessoa vê uma vez por versão (`ESCRITORIO_ABERTURA`,
   guardada em `perfil.abertura`); para todos verem de novo, troque a data.
 - Salas individuais têm as duas paredes do fundo altas, na cor da sala
-  (`divisorias` com 5º campo de cor em `vybe-escritorio-planta.js`).
+  (`divisorias` com 5º campo de cor em `vybe-escritorio-planta.js`). O painel
+  do acervo ladrilha só a parte desenhada da arte (`mapaRecorteOpaco`); a base
+  e o topo da parede seguem a cor da sala, não um cinza fixo. Antes, parede
+  pintada de "alta" mostrava uma faixa escura acima do painel.
+- Fundo do mapa (17/10/2026, decisão do Paulo): a praça da Vybelândia é uma
+  imagem parada, `assets/escritorio-fundo.webp` (1672×941), com os cantos da
+  praça em `escritorioPlantaComMesas` (`fundo.praca`). O vídeo da cidade ficou
+  só na abertura: no mapa chegava borrado, disputava atenção e gastava CPU.
+- Corredores do prédio usam a calçada clara da praça (`texturaCorredor`), cada
+  porta tem soleira própria no piso e o letreiro em neon da sala fica acima da
+  porta, não em cima dela.
 - Quadros e tapetes da equipe (`migrations/2026-10-17-escritorio-imagens.sql`,
   tabela `vybe_escritorio_imagens`): PNG/JPG/WEBP até 1,5 MB, tipo conferido
   pelos bytes no servidor. O dono da sala (ou administrador) envia pelo editor,

@@ -70,9 +70,11 @@ for (const m of moveis) {
   }
 }
 // Apoiado: o que tem altura precisa de um móvel embaixo, e na altura do
-// tampo dele (nem flutuando, nem afundado na mesa).
+// tampo dele (nem flutuando, nem afundado na mesa). Exceção: arte de teto
+// (globo de espelhos), que pende do alto sem móvel embaixo.
+const DE_TETO = /discoball|chandelier|hanging_?lamp|ceiling/;
 for (const it of itens) {
-  if (!it.altura) continue;
+  if (!it.altura || DE_TETO.test(it.classe)) continue;
   if (!ocup.has(`${it.x},${it.y}`)) { problemas.push(`${it.classe} (${it.x},${it.y}) flutuando`); continue; }
   const base = itens.find((o) => o !== it && !o.altura && !o.plano && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
   const tampo = base ? ctx.__tampos[base.classe] ?? (arte(base.classe)?.d.z || 0) : 0;
