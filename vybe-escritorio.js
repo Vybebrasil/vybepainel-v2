@@ -63,9 +63,9 @@ function escritorioAvatar(perfil = {}, nome = "") {
   const url = mapaBonecoGuardado(mapaFigura(perfil), 2);
   return `<img class="office-avatar" src="${url}" alt="Personagem de ${safeText(nome)}" width="64" height="110" loading="lazy">`;
 }
-async function escritorioApi(acao, corpo) {
+async function escritorioApi(acao, corpo, consulta = null) {
   const r = await fetch(
-    "/api/painel?area=escritorio&acao=" + encodeURIComponent(acao),
+    "/api/painel?area=escritorio&acao=" + encodeURIComponent(acao) + (consulta ? "&" + new URLSearchParams(consulta) : ""),
     {
       credentials: "same-origin",
       cache: "no-store",

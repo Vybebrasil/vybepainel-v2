@@ -2,35 +2,10 @@
 // duas vezes), o fechamento do dia e da semana e a reconstrução do histórico.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {conexao} from './postgres.mjs';
+import {bancoEscritorio as banco} from './escritorio-esquema.mjs';
 import {carregarEconomia} from '../server/escritorio-economia.js';
 import {fecharPontosEscritorio,metaDaSemana,nivelPorXp,inicioDaSemana,diaBahia} from '../server/escritorio-pontos.js';
 const BAHIA='T15:00:00-03:00';
-// `historico` entra antes da loja (como em produção: marcado sem moedas);
-// `semMarcas` apaga as marcas de instalação para fechar datas do passado no teste.
-async function banco(t,{historico=async()=>{},semMarcas=false}={}) {
- const {db,sql}=conexao();t.after(()=>db.close());
- await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,monday_user_id text,ativo boolean DEFAULT true,pode_entrar boolean DEFAULT true);
- INSERT INTO vybe_pessoas(id,nome,monday_user_id) VALUES(1,'Paulo Martins','68035537'),(2,'Reriston Souza Silva','68036697'),(3,'Vinícius Damascena','68035653'),
-  (4,'Deivid Oliveira Ribeiro','68997024'),(5,'Tainara Sodré','80146924'),(6,'Jady Amynne Oliveira Lima','100482777'),(7,'Beatriz Rocha Cardoso','71130408'),
-  (24,'Ewerton Luis Souza da Silva','68036687'),(28,'Ademir Dourado Santana','78158742');
- CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true,responsavel text);
- INSERT INTO vybe_clientes VALUES(1,'Cliente laranja',true,'Vinícius'),(2,'Cliente azul',true,'Ewerton'),(3,'Sem carteira',true,NULL);
- CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,status_chave text,prazo date,veiculacao date,briefing text,removido_em timestamptz);
- CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean DEFAULT false);
- INSERT INTO vybe_status VALUES(8385559107,'feito','Feito',true),(8385559107,'pode_fazer','Pode Fazer',false),(8385559107,'alteracao','Alteração',false),
-  (7829537690,'pode_fazer','Pode Fazer',false),(7829537690,'em_andamento','Em andamento',false),(7829537690,'para_aprovacao','Para aprovação',false),
-  (7829537690,'alteracao','Alteração',false),(7829537690,'para_agendar','Para agendar',true),(7829537690,'agendado','Agendado',true),(7829537690,'finalizado','Finalizado',true),(7829537690,'segurar_post','Segurar Post',false);
- CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint,ordem int DEFAULT 0,PRIMARY KEY(conteudo_id,pessoa_id));
- CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint,PRIMARY KEY(conteudo_id,cliente_id));
- CREATE TABLE vybe_conteudo_eventos(id bigserial PRIMARY KEY,conteudo_id bigint,tipo text,de text,para text,autor_id bigint,texto text,em timestamptz NOT NULL DEFAULT now());`);
- for(const f of ['2026-10-15-escritorio.sql','2026-10-16-escritorio-mapa.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
- await historico(db,sql);
- for(const f of ['2026-10-17-escritorio-vybecoins.sql','2026-10-17-escritorio-pontos.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
- if(semMarcas) await db.exec('DELETE FROM vybe_escritorio_fechamentos');
- return {db,sql};
-}
 const saldo=async(sql,p)=>{const [c]=await sql`SELECT saldo,xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${p}`;return c?[Number(c.saldo),Number(c.xp)]:[0,0];};
 const evento=(db,conteudo,tipo,para,autor=null,de=null,em=null)=>db.query(`INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,de,para,autor_id,em) VALUES($1,$2,$3,$4,$5,COALESCE($6::timestamptz,now()))`,[conteudo,tipo,de,para,autor,em]);
 const hoje=diaBahia(new Date());
@@ -41,18 +16,18 @@ test('Solicitações: entrega, prazo e carteira uma vez por demanda; sem prazo n
  await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,prazo) VALUES(10,8385559107,'pode_fazer','${dias(hoje,1)}'),(11,8385559107,'pode_fazer','${dias(hoje,-1)}'),(12,8385559107,'pode_fazer',NULL);
   INSERT INTO vybe_conteudo_responsaveis VALUES(10,4,0),(11,4,0),(12,4,0);INSERT INTO vybe_conteudo_clientes VALUES(10,1),(10,3);`);
  await evento(db,10,'status','Feito',4,'Pode Fazer');
- assert.deepEqual(await saldo(sql,4),[65,65]);           // 10 entrega + 5 prazo + 50 conquista (1ª demanda)
+ assert.deepEqual(await saldo(sql,4),[15,15]);           // 10 entrega + 5 prazo (a 1ª entrega é marco do servidor, não do gatilho)
  assert.deepEqual(await saldo(sql,3),[5,5]);             // carteira laranja (Vinícius)
  assert.deepEqual(await saldo(sql,24),[0,0]);
  await evento(db,10,'status','Feito',4,'Alteração');     // reabrir e fechar de novo não credita
- assert.deepEqual(await saldo(sql,4),[65,65]);assert.deepEqual(await saldo(sql,3),[5,5]);
+ assert.deepEqual(await saldo(sql,4),[15,15]);assert.deepEqual(await saldo(sql,3),[5,5]);
  await evento(db,11,'status','Feito',4);                 // atrasada: só a entrega
  await evento(db,12,'status','Feito',4);                 // sem prazo: só a entrega
- assert.deepEqual(await saldo(sql,4),[85,85]);
+ assert.deepEqual(await saldo(sql,4),[35,35]);
  const entregas=await sql`SELECT origem,regra FROM vybe_escritorio_entregas WHERE pessoa_id=4 ORDER BY origem`;
  assert.deepEqual(entregas.map(e=>e.origem),['demanda:10','demanda:11','demanda:12']);
- const e=await carregarEconomia(sql,4);
- assert.equal(e.pontos.nivel,2);assert.equal(e.pontos.xpTotal,85);assert.equal(e.pontos.funcao,'criacao');
+ const e=await carregarEconomia(sql,4);                   // abrir a ficha concede o marco da 1ª entrega (+50/+50)
+ assert.equal(e.pontos.nivel,2);assert.equal(e.pontos.xpTotal,85);assert.ok(e.marcos.find(m=>m.id==='primeira').ok);assert.equal(e.pontos.funcao,'criacao');
  assert.equal(e.pontos.meta.entregas,3);assert.equal(e.pontos.meta.meta,1);
  assert.ok(e.pontos.extrato.some(l=>l.descricao==='Entrega dentro do prazo'&&Number(l.moedas)===5));
 });

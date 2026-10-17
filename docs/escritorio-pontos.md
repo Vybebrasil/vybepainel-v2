@@ -155,8 +155,9 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
    semana e os últimos ganhos/perdas. Testes em PGlite para cada regra e para
    repetição (nenhum evento credita duas vezes). Nada aplicado em produção sem
    "Aprovado".
-2. **Fase 2**: loja com raridade, preço por faixa, estoque e vitrine semanal;
-   itens só por marco; marcos calculados no servidor.
+2. **Fase 2** (implementada em 17/10/2026, seção abaixo): loja com raridade,
+   preço por faixa, estoque e vitrine semanal; itens só por marco; marcos
+   calculados no servidor.
 3. **Fase 3**: metas do dia na tela e extrato completo.
 
 ## Como garantir que não duplica nem some
@@ -174,3 +175,112 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
 - A instalação marca os 7 dias e as 2 semanas anteriores como fechados: o
   primeiro ciclo não cobra nem premia o passado; o histórico entra só pela
   chegada.
+
+## Fase 2 — loja com raridade, estoque e vitrine (17/10/2026)
+
+Plano aprovado pelo Paulo em 17/10/2026 ("pode seguir como está") e
+implementado: migração `migrations/2026-10-17-escritorio-loja.sql` (faixas em
+`vybe_escritorio_raridades`, móveis limitados em `vybe_escritorio_catalogo`,
+marcos em `vybe_escritorio_marcos`, gatilho sem as conquistas antigas), loja em
+`server/escritorio-economia.js`, marcos em `server/escritorio-marcos.js`
+(conferidos ao abrir ficha/loja e no ciclo diário), lista de faixas gerada por
+`scripts/escritorio-raridades.mjs`, testes em `tests/escritorio-loja.test.mjs`.
+Tudo abaixo fica em tabela no banco: preço, estoque e vitrine mudam com um
+`UPDATE`, sem deploy. Migração não aplicada em produção nesta revisão.
+
+### Faixas de raridade
+
+O catálogo tem 3.726 móveis. Cada um entra numa faixa pelo tipo de peça
+(a lista exata vai na migração, revisável; depois pode ser trocada na tabela):
+
+| Faixa | O que entra | Quantos | Preço | Estoque por móvel |
+|-------|-------------|--------:|------:|------------------:|
+| Comum | Todo o resto: mesas, cadeiras, estantes, plantas, tapetes, luzes simples, cozinha, parede | ~2.630 | 25 | sem limite |
+| Raro | Móveis animados (luz, água, fogo, neon), jogos, música, festa, cidade, escola, Brasil, sinuca, pebolim, fliperama, jukebox | ~750 | 120 | 10 |
+| Muito raro | Linha HC (Habbo Club), dourados, Bling, cristal, lustres, fontes, estátuas, cinema, executivo | ~290 | 500 | 3 |
+| Lendário | Tronos, "Solid Gold", peças "Rare", troféus, LTD, carro de luxo, farol, casa na árvore | ~60 | 1.500 | 1 |
+
+Os quatro essenciais (mesa, cadeira, cacto, computador) continuam grátis.
+
+Com os saldos de chegada: Tainara (3.522) compra 2 lendários ou 7 muito raros;
+Bia (1.450) chega perto de 1 lendário; Reriston (784) leva 1 muito raro e 2
+raros; Deivid (348) 2 raros; Ademir (122) 1 raro. Pelo ritmo atual, a Criação
+ganha de 300 a 450 moedas por semana e Tainara e Paulo de 250 a 320: um
+lendário custa 4 a 5 semanas de trabalho; um muito raro, uma a duas.
+
+### Estoque
+
+- O estoque é da equipe toda: quem comprar primeiro leva. Com estoque 1, só uma
+  pessoa no escritório terá aquele trono.
+- Quem já tem o móvel no inventário pode colocá-lo sempre, esteja ou não à venda.
+
+### Vitrine da semana
+
+- Comum e raro ficam sempre à venda.
+- Muito raro e lendário só se compram quando estão na vitrine da semana:
+  6 muito raros e 2 lendários, sorteados de forma fixa pela chave da semana
+  (a mesma segunda-feira do fechamento semanal), entre os que ainda têm
+  estoque. Todo mundo vê a mesma vitrine; ela troca na segunda à meia-noite da
+  Bahia. Fora da vitrine, o móvel aparece no catálogo com a etiqueta
+  "Volta à vitrine em outra semana".
+
+### Compra sem saldo negativo nem duplicação
+
+Na mesma transação: tranca a carteira, tranca a linha do móvel, confere saldo e
+estoque, desconta, registra no razão com a chave única da compra e soma ao
+inventário. Repetir a mesma compra (clique duplo, internet caindo) devolve o
+mesmo resultado sem cobrar de novo. Duas pessoas no último exemplar: a segunda
+recebe "Esgotado". Se qualquer passo falhar, nada fica gravado.
+
+### Marcos no servidor
+
+Hoje a ficha calcula os marcos no navegador e eles não dão nada. Passam a ser
+calculados no servidor a partir das entregas e do XP, e cada marco conquistado
+dá a conquista de sempre (50 moedas e 50 XP), uma vez só, na mesma transação.
+São conferidos quando a pessoa abre a ficha ou a loja e no fechamento do dia.
+
+| Marco | Como conta | Móvel só por marco (vai direto ao inventário) |
+|-------|------------|-----------------------------------------------|
+| Primeira entrega | 1 entrega | — |
+| 10, 50, 100, 250 entregas | contagem de entregas (de qualquer função) | 250: troféu de ouro "Monster Plant" |
+| 500 entregas | idem | troféu "Signature Edition Stone" |
+| Embalado / Maratona | 5 / 15 dias úteis seguidos com entrega | Maratona: troféu de basquete |
+| Mês sem furo | 10 ou mais entregas no mês, todas no prazo | troféu de prata "Monster Plant" |
+| Muitos clientes | 5 clientes diferentes no mês | — |
+| Fila em dia | 1 entrega ou mais e nenhuma vencida agora | — |
+| Nível 5, 10, 20, 30 | pelo XP | 20: sofá "Signature Edition HC" |
+| Meta em dia | bateu a meta da semana 4 vezes | "Rare Gilded Desk" |
+| Meu quarto | já existe (montar o quarto) | — |
+
+Os marcos de contagem passam a contar toda entrega (Solicitações e Produção),
+não só o quadro de Solicitações; o gatilho deixa de conceder as conquistas
+antigas de 1ª, 5ª e 10ª demanda (quem já tem, mantém). Como a chegada deu
+muito XP, vários marcos de nível já saem conquistados no primeiro dia.
+
+### O que muda na tela
+
+- Loja: saldo, vitrine da semana em destaque, etiqueta de raridade e preço em
+  cada móvel, "x restantes" nos limitados, "Esgotado" e "Só por marco".
+- Ficha: marcos vindos do servidor, com a data em que foram conquistados e o
+  móvel que cada um dá.
+
+### Decididas pelo Paulo em 17/10/2026
+
+1. Preços 25 / 120 / 500 / 1.500.
+2. Estoque da equipe toda (raro 10, muito raro 3, lendário 1).
+3. Vitrine só para muito raro e lendário (6 + 2 por semana); comum e raro
+   sempre à venda.
+4. Móveis por marco como na tabela acima.
+5. Marcos de contagem valem para toda entrega; o gatilho deixa de dar as
+   conquistas antigas de 1ª/5ª/10ª demanda (quem já tem, mantém).
+
+### Como mudar sem deploy
+
+- Preço ou estoque de uma faixa: `UPDATE vybe_escritorio_raridades SET preco=…,
+  estoque=… WHERE chave='raro'`. Vagas na vitrine: coluna `vitrine` (0 = sempre
+  à venda).
+- Um móvel: `UPDATE vybe_escritorio_catalogo SET raridade=…, estoque=…,
+  preco=… WHERE classe='…'`; móvel que não está na tabela é comum. Para tirar
+  um móvel da venda e deixá-lo só por marco: `marco='maratona'` (ids em
+  `server/escritorio-marcos.js`).
+- Valor da conquista dos marcos: regra `conquista` em `vybe_escritorio_regras`.

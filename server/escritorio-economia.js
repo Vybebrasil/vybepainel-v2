@@ -1,29 +1,93 @@
+// Loja do Escritório: saldo, inventário, compra e, desde a fase 2
+// (docs/escritorio-pontos.md), raridade, estoque e vitrine da semana. Faixas e
+// móveis limitados ficam em vybe_escritorio_raridades/vybe_escritorio_catalogo
+// (migrations/2026-10-17-escritorio-loja.sql); quem não está na tabela é comum.
 import { readFileSync } from 'node:fs';
-import { resumoPontos } from './escritorio-pontos.js';
+import { resumoPontos, diaBahia, inicioDaSemana } from './escritorio-pontos.js';
+import { conferirMarcos } from './escritorio-marcos.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
 export const MOVEIS_ESSENCIAIS = quartos.essenciais;
 const classes = new Set([...catalogo.map(m => m.classe),'computer_laptop','uni_laptop','computer_old','steampunk_computer','easter_c23_solarpunkcomputer']);
+// Sem a tabela de faixas (antes da migração da fase 2) vale o preço único.
+export const PRECO_COMUM = 25;
 export function precoMovel(classe) {
  if (!classes.has(classe)) throw Object.assign(new Error('Este móvel ainda não está disponível na loja.'), {status:400});
- return MOVEIS_ESSENCIAIS.includes(classe) ? 0 : 25;
+ return MOVEIS_ESSENCIAIS.includes(classe) ? 0 : PRECO_COMUM;
 }
 export async function economiaPronta(sql) {
  const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_carteiras') IS NOT NULL AS existe`;
  return Boolean(r?.existe);
 }
-export async function carregarEconomia(sql, pessoaId) {
+export async function lojaPronta(sql) {
+ const [r] = await sql`SELECT (to_regclass('public.vybe_escritorio_catalogo') IS NOT NULL AND to_regclass('public.vybe_escritorio_raridades') IS NOT NULL) AS existe`;
+ return Boolean(r?.existe);
+}
+// Sorteio fixo da vitrine: o mesmo número para a mesma semana e o mesmo móvel
+// em qualquer servidor (FNV-1a), sem nada aleatório na hora da compra.
+export function sorteioVitrine(semana, classe) {
+ let h = 0x811c9dc5;
+ for (const ch of `${semana}:${classe}`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; }
+ return h;
+}
+// Vitrine da semana: por faixa com vagas, os móveis sem marco que ainda têm
+// estoque (ou que esgotaram nesta mesma semana, para a vitrine não mudar no
+// meio), ordenados pelo sorteio da semana.
+export function vitrineDaSemana({ semana, raridades, itens, vendidosNaSemana = [] }) {
+ const recentes = new Set(vendidosNaSemana);
+ const vitrine = [];
+ for (const r of raridades) {
+  if (!r.vitrine) continue;
+  const candidatos = itens.filter(i => i.raridade === r.chave && !i.marco && (i.restante === null || i.restante > 0 || recentes.has(i.classe)));
+  candidatos.sort((a, b) => sorteioVitrine(semana, a.classe) - sorteioVitrine(semana, b.classe) || (a.classe < b.classe ? -1 : 1));
+  vitrine.push(...candidatos.slice(0, r.vitrine).map(i => i.classe));
+ }
+ return vitrine;
+}
+// Faixas, móveis limitados e a vitrine, como a loja mostra. `restante` null =
+// sem limite. Comuns não aparecem em `itens`.
+export async function carregarLoja(sql, agora = new Date()) {
+ if (!await lojaPronta(sql)) return null;
+ const semana = inicioDaSemana(diaBahia(agora));
+ const raridades = (await sql`SELECT chave,nome,ordem,preco,estoque,vitrine FROM vybe_escritorio_raridades ORDER BY ordem`)
+  .map(r => ({ chave: r.chave, nome: r.nome, preco: Number(r.preco), estoque: r.estoque === null ? null : Number(r.estoque), vitrine: Number(r.vitrine) }));
+ const porChave = Object.fromEntries(raridades.map(r => [r.chave, r]));
+ const linhas = await sql`SELECT classe,raridade,estoque,vendidos,preco,marco FROM vybe_escritorio_catalogo ORDER BY classe`;
+ const itens = linhas.map(l => {
+  const faixa = porChave[l.raridade], estoque = l.estoque === null ? faixa?.estoque ?? null : Number(l.estoque);
+  return { classe: l.classe, raridade: l.raridade, preco: l.preco === null ? faixa?.preco ?? PRECO_COMUM : Number(l.preco),
+   restante: estoque === null ? null : Math.max(0, estoque - Number(l.vendidos)), marco: l.marco || null };
+ });
+ const vendidosNaSemana = (await sql`SELECT DISTINCT substring(origem from '^compra:[^:]+:(.*)$') AS classe FROM vybe_escritorio_moedas
+  WHERE origem LIKE 'compra:%' AND vybe_dia_bahia(criado_em) >= ${semana}::date`).map(v => v.classe);
+ return { semana, raridades, itens, vitrine: vitrineDaSemana({ semana, raridades, itens, vendidosNaSemana }) };
+}
+// O que a loja sabe de um móvel: faixa, preço, quantos restam e se pode ser
+// comprado nesta semana. Sem a tabela (ou móvel comum), preço único.
+export function infoMovel(loja, classe) {
+ const comum = { classe, raridade: 'comum', nome: 'Comum', preco: precoMovel(classe), restante: null, marco: null, naVitrine: true, exigeVitrine: false };
+ if (!loja) return comum;
+ const item = loja.itens.find(i => i.classe === classe);
+ if (!item) return { ...comum, preco: MOVEIS_ESSENCIAIS.includes(classe) ? 0 : loja.raridades.find(r => r.chave === 'comum')?.preco ?? PRECO_COMUM };
+ const faixa = loja.raridades.find(r => r.chave === item.raridade);
+ const exigeVitrine = Boolean(faixa?.vitrine);
+ return { ...item, nome: faixa?.nome || item.raridade, exigeVitrine, naVitrine: !exigeVitrine || loja.vitrine.includes(classe) };
+}
+export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja = true, marcos = true } = {}) {
  if (!await economiaPronta(sql)) return {disponivel:false, motivo:'A loja aguarda a migração revisada do banco.'};
+ // Marcos primeiro: o móvel de um marco recém-conquistado já aparece no inventário.
+ const lista = marcos ? await conferirMarcos(sql, pessoaId, agora) : null;
  const [carteira] = await sql`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
  const inventario = await sql`SELECT classe,quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId}`;
  const conquistas = await sql`SELECT origem,criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%' ORDER BY criado_em`;
  // Pontos (XP, meta e extrato) chegam depois da migração própria; sem ela, null.
- return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:25,pontos:await resumoPontos(sql,pessoaId)};
+ return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,
+  pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, loja: loja ? await carregarLoja(sql, agora) : undefined};
 }
-export async function comprarMovel(sql, pessoaId, {classe,chave}={}) {
- const preco = precoMovel(classe);
+export async function comprarMovel(sql, pessoaId, {classe,chave}={}, agora = new Date()) {
+ const precoBase = precoMovel(classe);
  if (!/^[a-f0-9-]{36}$/i.test(String(chave || ''))) throw Object.assign(new Error('Identificador da compra inválido.'),{status:400});
- if (!preco) throw Object.assign(new Error('Os móveis essenciais já são gratuitos.'),{status:400});
+ if (!precoBase) throw Object.assign(new Error('Os móveis essenciais já são gratuitos.'),{status:400});
  if (!await economiaPronta(sql)) throw Object.assign(new Error('Loja indisponível: migração pendente.'),{status:503});
  return sql.comTransacao(async tx => {
   await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
@@ -33,12 +97,25 @@ export async function comprarMovel(sql, pessoaId, {classe,chave}={}) {
   const [anterior] = await tx`SELECT origem FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE ${'compra:'+chave+':%'}`;
   if (anterior && anterior.origem !== origem) throw Object.assign(new Error('Identificador de compra já utilizado.'),{status:409});
   if (!anterior) {
+   // Sempre nesta ordem (carteira, depois o móvel) para duas compras ao mesmo
+   // tempo não travarem uma à outra. A linha do móvel, trancada, é relida
+   // com as vendas já feitas: o último exemplar vai para uma pessoa só.
+   let limitado = false, preco = precoBase;
+   if (await lojaPronta(tx)) {
+    await tx`SELECT classe FROM vybe_escritorio_catalogo WHERE classe=${classe} FOR UPDATE`;
+    const info = infoMovel(await carregarLoja(tx, agora), classe);
+    if (info.marco) throw Object.assign(new Error('Este móvel não se compra: vem com um marco da ficha.'),{status:400});
+    if (info.restante === 0) throw Object.assign(new Error('Esgotado: todos os exemplares já foram comprados.'),{status:409});
+    if (!info.naVitrine) throw Object.assign(new Error('Este móvel não está na vitrine desta semana.'),{status:409});
+    limitado = info.restante !== null; preco = info.preco;
+   }
    if (Number(c.saldo)<preco) throw Object.assign(new Error('VybeCoins insuficientes.'),{status:409});
    await tx`UPDATE vybe_escritorio_carteiras SET saldo=saldo-${preco} WHERE pessoa_id=${pessoaId}`;
    await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${pessoaId},${origem},${-preco})`;
    await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${classe},1)
     ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
+   if (limitado) await tx`UPDATE vybe_escritorio_catalogo SET vendidos=vendidos+1 WHERE classe=${classe}`;
   }
-  return carregarEconomia(tx,pessoaId);
+  return carregarEconomia(tx,pessoaId,{ agora });
  });
 }
