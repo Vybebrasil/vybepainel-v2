@@ -487,9 +487,12 @@ function escritorioNomeDaSala(a) {
 // padrão do código. Nas salas, os itens ficam relativos ao canto da sala.
 function escritorioItensDaCamada(camada) {
   const guardada = escritorio.base?.mapa?.camadas?.[camada];
-  // Mapa geral salvo antes da planta atual era de outra planta (coordenadas
-  // de outro desenho): vale o padrão; a versão antiga fica no histórico.
-  const antiga = camada === "geral" && guardada && !(new Date(guardada.em || 0) >= new Date(ESCRITORIO_PLANTA_DESDE));
+  // Camada salva antes da planta atual era de outra planta (o mapa geral tinha
+  // outro desenho e as salas tinham outro tamanho): vale o padrão; a versão
+  // antiga fica no histórico. Antes isso só valia para o mapa geral, e a sala
+  // de quem já tinha arrumado a sua aparecia com os móveis de 10×10 dentro da
+  // de 8×8, sem janela e com estante no corredor.
+  const antiga = guardada && !(new Date(guardada.em || 0) >= new Date(ESCRITORIO_PLANTA_DESDE));
   const salvo = escritorio.edicao?.camada === camada ? escritorio.edicao.itens : antiga ? null : guardada?.itens;
   if (salvo) return salvo;
   if (camada === "geral") return ESCRITORIO_PLANTA.moveis;
