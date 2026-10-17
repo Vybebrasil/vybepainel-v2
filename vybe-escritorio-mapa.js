@@ -589,7 +589,7 @@ function mapaDirecaoDoPasso(dx, dy) {
 // arestas entre ladrilhos vizinhos.
 const MAPA_ASSENTOS = new Set(["chair_polyfon","hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
   "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
-  "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair"]);
+  "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair", "paris_c15_chair"]);
 function mapaMontarGrade(P, moveis) {
   const W = P.W, H = P.H;
   const bloqueado = new Uint8Array(W * H);
@@ -605,6 +605,8 @@ function mapaMontarGrade(P, moveis) {
   }
   const pi = P.piscina;
   if (pi) for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) bloqueado[ind(x, y)] = 1;
+  // Lago do jardim (piso de água): não se anda por cima.
+  for (const r of P.texturas || []) if (r.agua) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) bloqueado[ind(x, y)] = 1;
   // Atrás do prédio (jardim do fundo) não se anda: as paredes do prédio são
   // desenhadas no fundo e não entram na grade.
   const B = P.PREDIO;

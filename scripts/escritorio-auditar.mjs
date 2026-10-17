@@ -130,6 +130,7 @@ function auditar(cena, P, moveis, avisos) {
   }
   const pi = P.piscina;
   if (pi) for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) solido.add(`${x},${y}`);
+  for (const r of P.texturas || []) if (r.agua) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) solido.add(`${x},${y}`);
   // Atrás do prédio não se anda (mesma regra da grade do mapa); no quarto,
   // só o piso dele e a soleira; as fachadas são fechadas, menos a entrada.
   for (let x = 0; x < P.W; x++) for (let y = 0; y < P.H; y++) {
