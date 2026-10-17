@@ -235,17 +235,18 @@ const ESCRITORIO_PLANTA = (() => {
   // Saguão da esquerda (na frente da Produção): máquinas, mesas e árvores.
   p("olympics_r16_vendingmchn", 4, 42, 2); p("olympics_r16_vendingmchn", 4, 43, 2);
   for (const [x, y] of [[8, 44], [13, 44], [18, 44]]) { p("paris_c15_table", x, y, 0); p("paris_c15_chair", x - 1, y, 2); p("paris_c15_chair", x + 1, y, 6); }
-  for (const [x, y] of [[4, 46], [22, 46], [10, 47], [16, 47]]) p("olympus_c25_olivetree", x, y, 2);
+  for (const [x, y] of [[4, 46], [22, 46], [10, 46], [16, 46]]) p("bohogarden_c21_fanpalm", x, y, 0);
   // Saguão da direita (na frente do Lounge, saída para o terraço).
   for (const [x, y] of [[38, 44], [52, 44]]) { p("greek_c15_bench", x, y, 4); p("greek_c15_bench", x, y + 2, 0); }
-  for (const [x, y] of [[41, 45], [50, 45], [58, 42], [36, 47]]) p("olympus_c25_olivetree", x, y, 2);
+  for (const [x, y] of [[41, 45], [50, 45], [58, 42], [37, 47]]) p("bohogarden_c21_fanpalm", x, y, 0);
   p("nyc_c23_starterstall", 55, 43, 0);
 
   // Recepção (x 24…35, y 38…47): balcão e espera; eixo da entrada livre.
   p("lodge_dark_desk",27,42,2); p("modern_c17_chair",26,43,2);
-  p("computer_flatscreen",27,44,2,1,1.25);
-  p("js_exe_sofa",31,42,4); p("modern_c17_lowtable",31,43,2);
-  p("mafia_c26_planter_white",34,39,0);
+  p("computer_flatscreen",27,44,2,1,1.25); p("exe_c15_telephone",27,42,2,0,1.25);
+  p("exe_rug",31,41,0); p("js_exe_sofa",31,42,4); p("modern_c17_lowtable",31,43,2); p("js_exe_sofa",31,44,0);
+  p("mafia_c26_planter_white",34,39,0); p("mafia_c26_planter_white",34,46,0); p("matic_water_dispenser",25,39,2);
+  p("modern_c17_floorlamp",34,42,0);
 
   // Portas de verdade nos vãos (abrem quando alguém chega perto; a sala
   // trancada fica com a porta fechada). Ficam na linha da parede:
@@ -434,13 +435,13 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // candelabro, mapa-múndi e TV no fundo; lareira e frigobar na lateral;
   // mesa de dez lugares no tapete, com telefone e notebooks; espera à direita.
   reuniao: () => [
-    ["lodge_dark_bookcase", 0, 0, 0], ["lodge_dark_candle", 2, 0, 0],
+    ["shelves_silo", 0, 0, 4], ["lodge_dark_candle", 2, 0, 0],
     ["lodge_dark_endtable", 3, 0, 0], ["exe_globe", 3, 0, 0, 0, 0.9],
     ["exe_map", 3, 0, 4, 0, 1.4], ["lodge_dark_tv", 5, 0, 0],
-    ["lodge_dark_bookcase", 7, 0, 0], ["exe_wfall", 9, 0, 4, 0, 0.6],
+    ["shelves_silo", 7, 0, 4], ["exe_wfall", 9, 0, 4, 0, 0.6],
     ["mafia_c26_planter_dark", 10, 0, 0], ["uni_c23_whiteboard", 11, 0, 0],
     ["lodge_dark_fireplace", 0, 2, 2], ["lodge_dark_minibar", 0, 5, 2], ["mafia_c26_drinktray", 0, 5, 0, 0, 1],
-    ["lodge_dark_bookcase", 0, 7, 2],
+    ["shelves_silo", 0, 7, 2],
     ["exe_rug", 4, 3, 0], ["exe_table", 4, 4, 0],
     ...[4, 5, 6].flatMap((x) => [["exe_chair", x, 3, 4], ["exe_chair", x, 6, 0]]),
     ["exe_chair", 3, 4, 2], ["exe_chair", 3, 5, 2], ["exe_chair", 7, 4, 6], ["exe_chair", 7, 5, 6],
@@ -497,16 +498,18 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["rainyday_c20_retrogames", 0, 7, 2], ["rainyday_c20_retrogames", 0, 8, 2],
     ["cubie_beanbag_b", 2, 7, 6], ["cubie_beanbag_p", 2, 8, 6],
     ["gaming_c18_rigpro", 8, 8, 0], ["studio_chair", 8, 9, 0], ["studio_chair", 10, 9, 0],
+    ["computer_flatscreen", 8, 8, 4, 0, 1.15], ["computer_flatscreen", 10, 8, 4, 0, 1.15],
     ["cubie_beanbag_b", 8, 6, 0], ["cubie_beanbag_p", 9, 6, 0],
   ],
   // Foco: biblioteca silenciosa. Estantes na lateral, prateleiras de
   // parede e mesas de estudo com luminária no fundo, mesa de leitura no meio
   // e um canto de poltronas.
   foco: () => [
-    // Estantes da altura da parede (a da biblioteca clássica passava do teto).
-    ["lodge_dark_bookcase", 0, 0, 2], ["lodge_dark_bookcase", 0, 2, 2], ["lodge_dark_bookcase", 0, 4, 2],
+    // Estantes cheias de livros, da altura da parede (a da biblioteca
+    // clássica passava do teto; a de madeira escura é vazia).
+    ["shelves_silo", 0, 0, 2], ["shelves_silo", 0, 2, 2], ["shelves_silo", 0, 4, 2],
     ...[2, 4, 6].flatMap((x) => [["uni_libraryshelf", x, 0, 4, 0, 0.3], ["rainyday_c20_woodendesk", x, 0, 4], ["hygge_c25_desklamp", x, 0, 0, 0, 1], ["classic9_chair", x, 1, 0]]),
-    ["exe_globe", 8, 0, 0], ["lodge_dark_bookcase", 9, 0, 0],
+    ["exe_globe", 8, 0, 0], ["shelves_silo", 9, 0, 4],
     ["classic9_table", 4, 4, 0], ["classic9_light", 4, 4, 0, 0, 0.7], ["bookpile", 5, 5, 0, 0, 0.7],
     ["classic9_chair", 3, 4, 2], ["classic9_chair", 3, 5, 2], ["classic9_chair", 6, 4, 6], ["classic9_chair", 6, 5, 6],
     ["hygge_c25_carpet", 8, 4, 0], ["hygge_c18_chair", 8, 5, 2], ["lodge_dark_endtable", 9, 5, 0], ["bookpile", 9, 5, 0, 0, 0.9], ["hygge_c18_chair", 10, 5, 6],
@@ -523,9 +526,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["olympics_c16_weightrack", 0, 3, 2], ["uni_dumbells", 0, 4, 2], ["uni_dumbells", 0, 5, 2], ["olympics_c16_sofa", 0, 7, 2],
     ["olympics_c16_softmat", 2, 3, 0], ["olympics_c16_softmat", 2, 6, 0],
     ["olympics_c16_trampoline", 6, 4, 0], ["olympics_c16_trampoline", 7, 4, 0],
-    ["olympics_c16_softmat", 5, 6, 0], ["uni_dumbells", 7, 7, 0], ["matic_tree_green", 11, 6, 0],
+    ["olympics_c16_softmat", 5, 6, 0], ["uni_dumbells", 7, 7, 0],
     ["olympics_c16_counter", 9, 7, 4], ["uni_brotein", 9, 7, 0, 0, 1.2], ["olympics_c16_chair", 9, 6, 4],
-    ["matic_tree_green", 0, 9, 0], ["matic_tree_green", 11, 9, 0],
+    ["matic_tree_green", 0, 9, 0], ["theatre_plant", 11, 5, 0],
   ],
   // Produção: estúdio. Set de entrevista no piso iluminado com câmera e
   // luzes; ilha de edição no fundo; mesa de som com banquetas; caixas de
@@ -539,6 +542,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["studio_mixingdesk", 8, 4, 0], ...[8, 9, 10, 11, 12].map((x) => ["studio_stool", x, 5, 0]),
     ["gaming_c18_rigpro", 9, 8, 0], ["studio_chair", 10, 9, 0],
     ["army_c15_crate", 13, 9, 4], ["army_c15_crate", 13, 10, 4], ["army_c15_crate", 13, 9, 4, 0, 1],
+    // Espera de clientes e convidados, encostada na parede da esquerda.
+    ["mafia_c26_sofa_dark", 0, 7, 2], ["mafia_c26_coffeetable_dark", 1, 7, 0], ["mafia_c26_drinktray", 1, 8, 0, 0, 0.84],
     ["theatre_plant", 0, 10, 0], ["theatre_plant", 13, 2, 0],
   ],
 };

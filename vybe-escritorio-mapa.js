@@ -927,7 +927,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     const prof = Math.round((f.x1 + f.y1 - 1) * 10) + 3;
     c.style.left = l - 1 + "px"; c.style.top = t - 1 + "px"; c.style.zIndex = prof;
     palco.append(c);
-    muros.push({ no: c, prof, caixa: null, l, t, r, b, quem: new Set(), telhado: true });
+    // Caixa do prédio inteiro, no alto: fica à frente das paredes do fundo
+    // dele e atrás das da frente e de quem está na calçada.
+    muros.push({ no: c, prof, caixa: { x0: f.x0, x1: f.x1, y0: f.y0, y1: f.y1, altura: alt / 32 }, l, t, r, b, quem: new Set(), telhado: true });
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
   const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
