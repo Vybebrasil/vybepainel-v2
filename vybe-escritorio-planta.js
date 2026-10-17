@@ -354,6 +354,7 @@ const ESCRITORIO_PLANTA = (() => {
   for (const [x,y] of [[13,50],[24,50]]) p("santorini_c17_pottedplants",x,y,0);
   for (const x of [10,11,12,13,14,15,22,23,24,25,26,27]) p("bc_flowerhedge_recolorable",x,66,0);
   p("nyc_c23_mailbox",26,62,6); p("classic2_trashcan",12,62,2);
+  p("paris_c15_flowerstl",17,50,4); p("greek_c15_bench",20,50,4);
   for (const [x,y] of [[13,56],[24,59]]) p("olympus_c25_narcissusflowers",x,y,0);
   // Caminho da entrada: postes dos dois lados até a calçada.
   for (const y of [53,59,65]) { p("suncity_c19_streetlight",28,y,0,1); p("suncity_c19_streetlight",31,y,0,1); }
@@ -392,6 +393,8 @@ const ESCRITORIO_PLANTA = (() => {
   for (const [x,y] of [[53,61],[57,64],[65,61],[68,64],[52,65]]) p("env_tree1",x,y,2);
   for (const [x,y] of [[55,62],[63,64],[67,60]]) p("garden_lupin3",x,y,0);
   p("ducket_c26_flowerbench",56,60,4); p("garden_birdbath",63,61,0);
+  for (const [x,y] of [[63,55],[67,-8],[64,-3]]) p("olympus_c25_olivetree",x,y,2);
+  for (const [x,y] of [[66,57],[62,-6],[68,-1]]) p("garden_lupin3",x,y,0);
   // Fundo e esquerda (não se anda, atrás das paredes altas): copas para dar
   // profundidade.
   for (const [x,y] of [[-6,6],[-3,16],[-7,26],[-4,36],[-6,44],[6,-6],[18,-9],[40,-6],[52,-9],[58,-4]]) p("olympus_c25_olivetree",x,y,2);

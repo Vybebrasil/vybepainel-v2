@@ -244,8 +244,18 @@ function auditar(cena, P, moveis, avisos) {
       if (alto) { problemas.push(`${nome} atrás de ${alto.classe} (${alto.x},${alto.y})`); break; }
     }
   }
-  // A área comum agora é contida (decisão do Paulo, 17/10). Animação é
-  // pontual; não exigir objetos extras em todos os ambientes para preencher quota.
+  // Área externa sem deserto (pedido do Paulo, 17/10/2026, com as
+  // referências de quartos do Habbo): cada trecho de 6 × 6 por onde se anda
+  // fora do prédio tem pelo menos um objeto. Não mede beleza (isso só se vê
+  // no zoom), só pega gramado vazio esquecido.
+  if (B) for (let x0 = 0; x0 + 6 <= P.W; x0 += 6) for (let y0 = 0; y0 + 6 <= P.H; y0 += 6) {
+    const fora = x0 >= B.x1 || y0 >= B.y1;
+    if (!fora) continue;
+    const algum = itens.some((o) => !o.plano && o.x + o.w > x0 && o.x < x0 + 6 && o.y + o.h > y0 && o.y < y0 + 6)
+      || (P.texturas || []).some((r) => r.agua && r.x1 > x0 && r.x0 < x0 + 6 && r.y1 > y0 && r.y0 < y0 + 6)
+      || (pi && pi.x1 > x0 && pi.x0 < x0 + 6 && pi.y1 > y0 && pi.y0 < y0 + 6);
+    if (!algum) problemas.push(`área externa vazia em (${x0},${y0})–(${x0 + 5},${y0 + 5})`);
+  }
   // Dois itens pendurados no mesmo trecho de parede (um cobre o outro).
   const trechos = new Map();
   for (const q of pendurados) for (let k = 0; k < q.w; k++) {
