@@ -1443,8 +1443,10 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     if (!r.width || !r.height) return;
     const w = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TW / 2 + 48;
     const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100;
+    // Prévia (cartão da criação do quarto): sem a folga da barra e do dock.
+    const [mw, mh] = P.previa ? [8, 8] : [32, 180];
     centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
-      Math.max(0.35, Math.min(1.35, (r.width - 32) / w, (r.height - 180) / h)));
+      Math.max(P.previa ? 0.2 : 0.35, Math.min(1.35, (r.width - mw) / w, (r.height - mh) / h)));
     // O centro visual inclui as paredes e o patamar alto, acima do piso.
     alvo.y += (MAPA_PAREDE + (P.nivelEm ? 48 : 0)) * alvo.z / 2;
     cam.y=alvo.y; aplicar();

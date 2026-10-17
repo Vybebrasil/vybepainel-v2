@@ -288,10 +288,24 @@ executor não recompensa de novo. Demandas já finalizadas antes da migração s
 marcadas sem crédito retroativo. Conquistas únicas: montar o quarto, primeira,
 quinta e décima demanda concluída. Não há moedas por mera presença.
 
-Migração não aplicada a produção. Persistência foi verificada com PGlite isolado. A demo
-simula somente o estado visual em memória e não comprova banco remoto, presença
-ou mídia. A ativação depende de revisar/aplicar a migração e verificar o preview
-antes da promoção.
+As duas migrações (`2026-10-17-escritorio-vybecoins.sql` e
+`2026-10-17-escritorio-mapa-versoes.sql`) foram aplicadas em produção em
+17/10/2026 com autorização do Paulo, em transação única cada, depois de
+conferir no próprio banco as tabelas e colunas usadas pelo gatilho (346
+demandas antigas marcadas sem crédito). Persistência foi verificada com PGlite
+isolado. A demo simula somente o estado visual em memória e não comprova banco
+remoto, presença ou mídia.
+
+Telas de criação (17/10/2026, depois do primeiro uso do Paulo): cada planta,
+modelo e o acabamento são desenhados pelo próprio renderizador do escritório
+(`criadorMontarPrevias`, `planta.previa`), com o piso e a cor de parede
+escolhidos e o boneco da pessoa na porta; piso e parede são amostras (as mesmas
+listas que o servidor aceita), não listas de texto. A regra "a decoração atual
+cabe nesta planta?" é conferida no navegador (`criadorDecoracaoCabe`, espelho de
+`validarPisoQuarto` sem medidas) e aparece em cada planta; quando não cabe, a
+opção "Manter minha decoração" fica desligada com o motivo e a pessoa começa de
+um modelo (os móveis vão para o inventário). Se o servidor ainda recusar, a
+pessoa volta ao passo da mobília com a mensagem, em vez de ficar presa no fim.
 
 Validação local: `npm run check` passou com 383 testes; as regressões adicionais
 verificaram a preservação do inventário ao recomeçar a decoração e todos os modelos
