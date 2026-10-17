@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {conexao} from './postgres.mjs';
+test('reinício arquiva decoração e perfil, arquiva o inventário e restaura a planta geral e não repete',async t=>{
+ const {db,sql}=conexao(); t.after(()=>db.close());
+ await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY); INSERT INTO vybe_pessoas VALUES(1);
+ CREATE TABLE vybe_escritorio_inventario(pessoa_id bigint,classe text,quantidade int);
+ INSERT INTO vybe_escritorio_inventario VALUES(1,'shelves_norja',2);`);
+ for(const f of ['2026-10-15-escritorio.sql','2026-10-16-escritorio-mapa.sql','2026-10-17-escritorio-mapa-versoes.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
+ await db.exec(`INSERT INTO vybe_escritorio_perfis VALUES(1,'{"figura":"hd-180-1","quarto_configurado":true,"sala_planta":"ele","sala_pisos":"abc","sala_parede":"#123456"}',now());
+ INSERT INTO vybe_escritorio_mapa(camada,itens,versao) VALUES('sala-0','[["shelves_norja",1,1,2]]',3),('geral','[]',7);`);
+ const script=readFileSync('migrations/2026-10-17-escritorio-quartos-reinicio.sql','utf8');
+ await db.exec(script);await db.exec(script);
+ const [p]=await sql`SELECT preferencias FROM vybe_escritorio_perfis`;
+ assert.equal(p.preferencias.figura,'hd-180-1');assert.equal(p.preferencias.quarto_configurado,false);assert.equal(p.preferencias.sala_planta,undefined);
+ const mapas=await sql`SELECT camada,itens,versao FROM vybe_escritorio_mapa ORDER BY camada`;
+ assert.deepEqual(mapas.map(x=>[x.camada,x.versao,x.itens.length]),[['sala-0',4,0]]);
+ const [backup]=await sql`SELECT perfis,camadas,inventario FROM vybe_escritorio_quartos_reinicio`;
+ assert.equal(backup.perfis[0].preferencias.sala_planta,'ele');assert.equal(backup.camadas.find(m=>m.camada==='sala-0').itens.length,1);
+ assert.equal((await sql`SELECT * FROM vybe_escritorio_mapa_versoes`).length,2);
+ assert.equal((await sql`SELECT * FROM vybe_escritorio_inventario`).length,0);
+ assert.equal(backup.inventario[0].quantidade,2);
+});

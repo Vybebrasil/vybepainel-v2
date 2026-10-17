@@ -36,7 +36,6 @@ const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
 const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill/;
 const FRENTE = /arcade|pinball|retrogames|jukebox|bookcase|bookshelf|shelve|_shelf|tv$|screen|projector|fireplace|wrkdesk|minibar|fridge|stove|sink|counter|cabinet|cupboard|dispenser|mixingdesk|lectern|whiteboard|coffeemachine|microwave|printer|hc25_6|bardesk|rigpro/;
 const ALTO = 92; // px de desenho: acima disso o móvel cobre a parte de baixo do item
-const VIVOS_MINIMO = 3;
 
 // Confere uma cena: a planta (mapa geral ou quarto) e os móveis dela
 // ([classe, x, y, dir, estado, altura]). Devolve os problemas encontrados.
@@ -244,12 +243,8 @@ function auditar(cena, P, moveis, avisos) {
       if (alto) { problemas.push(`${nome} atrás de ${alto.classe} (${alto.x},${alto.y})`); break; }
     }
   }
-  // Cenário com vida: cada ambiente precisa de pelo menos 3 objetos que se
-  // mexem de verdade (no estado em que foram colocados).
-  for (const amb of P.ambientes) {
-    const vivos = moveis.filter(([classe, x, y, , estado = 0]) => x >= amb.x0 && x < amb.x1 && y >= amb.y0 && y < amb.y1 && arte(classe)?.anima.has(Number(estado))).length;
-    if (vivos < VIVOS_MINIMO) problemas.push(`${amb.nome || amb.id} com só ${vivos} objeto(s) animado(s) (mínimo ${VIVOS_MINIMO})`);
-  }
+  // A área comum agora é contida (decisão do Paulo, 17/10). Animação é
+  // pontual; não exigir objetos extras em todos os ambientes para preencher quota.
   // Dois itens pendurados no mesmo trecho de parede (um cobre o outro).
   const trechos = new Map();
   for (const q of pendurados) for (let k = 0; k < q.w; k++) {

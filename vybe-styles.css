@@ -6158,8 +6158,11 @@ body.no-escritorio {overflow:hidden}
 @media(max-width:700px) { .abr-acabamentos { grid-template-columns:1fr; } }
 .abr-acabamentos label { display:grid; gap:8px; flex:1; min-width:160px; }
 .abr-acabamentos select { padding:10px; background:#272830; color:#fff; border:1px solid #ffffff40; border-radius:8px; }
-.ofc-moedas { display:grid; gap:8px; padding:12px; border-radius:12px; background:#ff8a3514; margin:12px 0; }
-.ofc-moedas button { justify-self:start; padding:7px 10px; border:1px solid #ffffff30; border-radius:8px; background:#ffffff0b; color:inherit; cursor:pointer; }
+/* Saldo no topo do catálogo do próprio quarto (Meus móveis / Loja). */
+.ofc-carteira { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:10px 12px; border-radius:12px; background:#ff8a3514; border:1px solid #ff8a3533; margin:12px 0 8px; }
+.ofc-carteira b { font:700 15px var(--mac-ui); color:#ffb067; }
+.ofc-carteira small { color:#c6c6cf; font-size:12px; line-height:1.35; }
+.ofc-movel .ofc-preco { color:#ffd6ad; }
 @media(max-width:600px) { .abr-quartos { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .abr-quarto { padding:20px; } }
 
 @keyframes abr-painel {from{opacity:0;transform:translate(-50%,-46%) scale(.98)}}
@@ -6764,3 +6767,13 @@ body.no-escritorio {overflow:hidden}
 /* Elevador do escritório: um botão por andar, quebrando linha no celular. */
 .workflow-actions.ofc-elevador { flex-wrap: wrap; gap: 8px; }
 .workflow-actions.ofc-elevador .workflow-primary { flex: 1 1 140px; }
+
+/* Criação do quarto: tamanho do formato escolhido (Pequeno a Enorme). */
+.abr-tamanhos { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-8px 0 20px; }
+.abr-tamanhos h3 { flex-basis:100%; margin:0 0 2px; font:700 13px var(--mac-ui); color:#c6c6cf; }
+.abr-tamanhos button { display:flex; flex-direction:column; gap:2px; min-width:118px; padding:10px 14px; border:1px solid #ffffff26; border-radius:12px; color:inherit; background:#24252be6; cursor:pointer; text-align:left; }
+.abr-tamanhos button[aria-checked=true] { border-color:#ff913e; background:#513324; box-shadow:0 0 0 2px #ff913e44; }
+.abr-tamanhos button:focus-visible { outline:2px solid #ff913e; outline-offset:2px; }
+.abr-tamanhos b { font:700 14px var(--mac-ui); }
+.abr-tamanhos small { color:#c6c6cf; font-size:12px; }
+@media(max-width:600px) { .abr-tamanhos button { flex:1 1 calc(50% - 8px); min-width:0; } }

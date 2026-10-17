@@ -184,14 +184,14 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
   const mesa = escritorioMinhaMesa(), pin = escritorioPincel();
   // Só de dentro do próprio quarto (as coordenadas são as dele).
   if (!mesa || escritorio.quarto !== mesa.ambiente.id) return false;
-  const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0, L = ESCRITORIO_SALA_LADO;
-  if (lx < 0 || ly < 0 || lx >= L || ly >= L) return false;
+  const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0, L = ESCRITORIO_QUARTO_MAX, { w, h } = escritorioDimQuarto(a);
+  if (lx < 0 || ly < 0 || lx >= w || ly >= h) return false;
   const p = escritorio.perfil;
   if (pin.ferramenta === "parede") {
     // Parede mais perto do ponto clicado, entre as que encostam no ladrilho
     // (fundo, esquerda, frente, direita) e que existem no mapa.
     const ux = fx - a.x0, uy = fy - a.y0;
-    const lados = [[0, uy, ly === 0], [1, ux, lx === 0], [2, L - uy, ly === L - 1], [3, L - ux, lx === L - 1]]
+    const lados = [[0, uy, ly === 0], [1, ux, lx === 0], [2, h - uy, ly === h - 1], [3, w - ux, lx === w - 1]]
       .filter(([lado, , encosta]) => encosta && escritorioTrechoExiste(a, lado * L + (lado % 2 ? ly : lx)))
       .sort((m, n) => m[1] - n[1]);
     if (!lados.length) return false;
@@ -213,7 +213,7 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
     escritorioEditorMudou();
     return true;
   } else if (pin.ferramenta === "piso") {
-    const i = ly * 10 + lx;
+    const i = ly * L + lx;
     const atual = String(p.sala_pisos || "").length === L * L ? p.sala_pisos : "0".repeat(L * L);
     const cod = Math.max(0, ESCRITORIO_PISOS_SALA.findIndex(([id]) => id === pin.piso)).toString(16);
     if (atual[i] === cod) return true;
@@ -227,7 +227,7 @@ function pintarTodasParedesEscritorio() {
   const a = escritorioMinhaMesa()?.ambiente;
   if (!a) return;
   const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
-  escritorio.perfil = { ...escritorio.perfil, sala_paredes: Array.from({ length: ESCRITORIO_SALA_LADO * 4 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("") };
+  escritorio.perfil = { ...escritorio.perfil, sala_paredes: Array.from({ length: ESCRITORIO_QUARTO_MAX * 4 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("") };
   escritorioPinturaMudou();
 }
 function limparPinturaEscritorio(campo) {

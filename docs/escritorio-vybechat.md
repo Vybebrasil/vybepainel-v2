@@ -390,3 +390,27 @@ Resumo:
   marco, marcos idempotentes, conquistas antigas não pagas duas vezes,
   repetição da chave). Loja e ficha conferidas na demo em desktop e 375×812.
   Migração não aplicada em produção nesta revisão.
+
+### Plantas por formato, área comum e reinício (17/10/2026)
+
+- Catálogo único com 26 plantas (8 formatos; 6×6 até 12×12) e seis plantas
+  legadas preservadas para leitura. Porta, escada e modelos iniciais seguem
+  cada tamanho. Criador: formato/tamanho → mobília → acabamento → confirmação.
+- Editor reúne Meus móveis e Loja; inventário mostra unidades livres; loja
+  conserva preços, raridade, estoque, vitrine semanal e marcos do servidor.
+- A área comum mantém as mesmas zonas e portas, com menos móveis, materiais
+  coordenados e lounge aberto. Não muda salas de voz nem o Worker.
+- Decisão explícita de Paulo: começar os quartos E os inventários do zero,
+  preservando moedas, XP e conquistas. Operação revisável em
+  `migrations/2026-10-17-escritorio-quartos-reinicio.sql`, fora do build e sem
+  aplicação automática. A transação guarda perfis completos, inventário e
+  camadas em `vybe_escritorio_quartos_reinicio` e decoração no histórico;
+  limpa os inventários e pintura, marca o quarto não configurado e remove a
+  camada geral salva para usar o novo padrão. A chave única evita repetir.
+- Recuperação: primeiro exportar a linha `formatos-2026-10-17` da tabela de
+  reinício. `perfis`, `camadas` e `inventario` contêm as linhas originais com
+  IDs, versões e datas. Restaurar em transação somente após conferir mudanças
+  feitas depois do reset; não sobrescrever compras ou decoração posteriores.
+- Validação local: suíte completa e auditoria de circulação; regressões de
+  reinício idempotente com backup e da integração inventário/loja em PGlite/VM.
+  A demo não comprova escrita em produção nem funcionamento de voz/vídeo.

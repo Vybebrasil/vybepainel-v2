@@ -235,7 +235,8 @@ function abrirAberturaEscritorio(etapa = "cena") {
   // Quem acabou de passar pela Vybelândia no login vai direto ao personagem.
   criador.etapa = etapa === "cena" && window.VYBELANDIA_VISTA ? "personagem" : etapa;
   if(etapa === "cena" && escritorio.perfil?.abertura === ESCRITORIO_ABERTURA && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) criador.etapa="planta";
-  criador.planta=escritorio.perfil?.sala_planta || "amplo";
+  // Planta da primeira versão (legado) ou nenhuma: começa no Quadrado médio.
+  criador.planta=escritorio.base?.quartos?.plantas?.some((p)=>p.id===escritorio.perfil?.sala_planta && !p.legado) ? escritorio.perfil.sala_planta : "quadrado-m";
   criador.modelo="trabalho";
   // Mantém a decoração atual só se ela couber na planta (regra do servidor).
   criador.preservar=criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(criador.planta);
@@ -324,7 +325,7 @@ function renderAberturaEscritorio() {
   <li><b>Suas demandas</b> ficam no botão Painel, na barra de baixo: modo Gestor, Minhas tarefas, Foco e os outros módulos. "Voltar ao escritório" traz você de volta ao mapa.</li>
   <li><b>Entrou numa sala, está na conversa dela</b>, com o microfone ligado: quem está ali ouve você. Clique no microfone para silenciar. A câmera começa desligada.</li>
  </ul>
- <p>Ganhe <b>VybeCoins e XP pelo que entrega</b>: cada função tem suas regras, e a sua ficha mostra a meta da semana e os últimos pontos. Os essenciais são gratuitos. Extras custam 25 moedas por unidade na loja do editor. Montar seu primeiro quarto desbloqueia 50 moedas.</p>
+ <p>Ganhe <b>VybeCoins e XP pelo que entrega</b>: cada função tem suas regras, e a sua ficha mostra a meta da semana e os últimos pontos. Os essenciais são gratuitos. A loja do editor mostra preços, raridades e a vitrine da semana. Montar seu primeiro quarto desbloqueia 50 moedas.</p>
  <p class="abr-erro" role="alert" id="abr-erro"></p>
  <div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa=escritorioMinhaMesa()&&!escritorio.perfil.quarto_configurado?'acabamento':'personagem';renderAberturaEscritorio()">Revisar escolhas</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio(true)">Entrar no escritório</button></div></div>
 </section>`;
@@ -344,7 +345,7 @@ async function salvarPersonagemEscritorio(entrar) {
       let resultado;
       if(escritorio.base.demo) {
         const camada=escritorioMinhaMesa().ambiente.id;
-        const itens=escritorio.base.quartos.modelos.find(m=>m.id===criador.modelo).itens;
+        const itens=criadorItensDaOpcao(criador.modelo, criador.planta);
         resultado={perfil:{...perfil,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,quarto_configurado:true},camada,mapa:{itens,versao:1,em:new Date().toISOString()},economia:{...escritorio.base.economia,saldo:50,conquistas:[{origem:"conquista:meu-quarto"}]}};
       } else resultado=await escritorioApi("quarto",{perfil:{...perfil,sala_piso:criador.piso,sala_parede:criador.parede},planta:criador.planta,modelo:criador.modelo,preservar:criador.preservar});
       salvo=resultado.perfil;
@@ -476,19 +477,23 @@ function criadorDecoracaoCabe(plantaId, itens = criadorDecoracaoAtual()) {
   return itens.every(([, x, y]) => {
     const tx = Math.floor(x), ty = Math.floor(y);
     if ((p.celdas[ty]?.[tx] ?? -1) < 0) return false;
-    return !(plantaId === "niveis" && ty === 3 && (tx === 3 || tx === 4));
+    return !(p.escada || []).some(([ex, ey]) => ex === tx && ey === ty);
   });
 }
 // O quarto como vai ficar: a própria sala com a planta, o piso e a cor
 // escolhidos, desenhada pelo mesmo renderizador do escritório.
 function criadorAmbientePrevia(plantaId, piso, parede) {
   const base = escritorioMinhaMesa()?.ambiente || ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal);
-  return { ...base, planta: plantaId, piso: ESCRITORIO_PLANTA.PISO[piso] ? piso : base.pisoPadrao || base.piso,
+  const dim = escritorioDimQuarto({ planta: plantaId });
+  return { ...base, planta: plantaId, x1: base.x0 + dim.w, y1: base.y0 + dim.h, piso: ESCRITORIO_PLANTA.PISO[piso] ? piso : base.pisoPadrao || base.piso,
     cor: /^#[0-9a-f]{6}$/i.test(String(parede || "")) ? parede : base.corPadrao || base.cor, pintura: null };
 }
-function criadorItensDaOpcao(modeloId) {
+// Modelo inicial na planta escolhida: feito para 8 × 8 e levado ao canto de
+// baixo à direita de cada tamanho (o mesmo "deslocamento" do servidor).
+function criadorItensDaOpcao(modeloId, plantaId = criador.planta) {
   if (modeloId === "atual") return criadorDecoracaoAtual();
-  return escritorio.base?.quartos?.modelos?.find((m) => m.id === modeloId)?.itens || [];
+  const [dx, dy] = escritorio.base?.quartos?.plantas?.find((p) => p.id === plantaId)?.deslocamento || [0, 0];
+  return (escritorio.base?.quartos?.modelos?.find((m) => m.id === modeloId)?.itens || []).map(([c, x, y, ...r]) => [c, x + dx, y + dy, ...r]);
 }
 // Marcador de prévia no HTML: data-previa="planta|modelo|piso|parede[|boneco]".
 function criadorPreviaHtml(plantaId, modeloId, { grande = false, boneco = false } = {}) {
@@ -501,7 +506,7 @@ function criadorMontarPrevias(raiz) {
   for (const el of raiz.querySelectorAll("[data-previa]")) {
     const [plantaId, modeloId, piso, parede, boneco] = el.dataset.previa.split("|");
     const a = criadorAmbientePrevia(plantaId, piso, parede);
-    const planta = { ...escritorioPlantaDoQuarto(a), moveis: criadorItensDaOpcao(modeloId).map((it) => [...it.slice(0, 6)]), rotulos: [], imagens: [], previa: true };
+    const planta = { ...escritorioPlantaDoQuarto(a), moveis: criadorItensDaOpcao(modeloId, plantaId).map((it) => [...it.slice(0, 6)]), rotulos: [], imagens: [], previa: true };
     try {
       const mapa = criarMapaEscritorio(el, { planta, logo: "", eu: null });
       if (boneco) mapa.atualizarPessoas([{ id: "previa", nome: criador.nome, perfil: { figura: criadorFigura(criador.f) }, status: "disponivel", corStatus: "#3fbf7f",
@@ -513,6 +518,17 @@ function criadorMontarPrevias(raiz) {
 function criadorDestruirPrevias() {
   for (const m of criador.previas || []) { try { m.destruir(); } catch {} }
   criador.previas = [];
+}
+// Escolha em dois níveis: o formato (Quadrado, Em L…) e o tamanho dele
+// (Pequeno a Enorme). Trocar de formato mantém o tamanho quando ele existe.
+function criadorPlantasDoFormato(formato) {
+  return (escritorio.base?.quartos?.plantas || []).filter((p) => !p.legado && p.formato === formato);
+}
+function criadorEscolherFormato(formato) {
+  const opcoes = criadorPlantasDoFormato(formato);
+  if (!opcoes.length) return;
+  const tamanho = escritorio.base.quartos.plantas.find((p) => p.id === criador.planta)?.tamanho;
+  criadorQuartoEscolher("planta", (opcoes.find((p) => p.tamanho === tamanho) || opcoes.find((p) => p.tamanho === "M") || opcoes[0]).id);
 }
 function criadorQuartoEscolher(campo,valor) {
   const catalogo=escritorio.base.quartos;
@@ -536,10 +552,16 @@ function criadorQuartoHtml() {
  let titulo,conteudo,anterior,proxima,nota="";
  if(etapa==="planta") {
   titulo="Qual é o formato do seu quarto?";anterior="personagem";proxima="mobilia";
-  nota = temAtual ? "Você já tem uma decoração salva. Nas plantas em que ela cabe, você pode mantê-la; nas outras, ela fica guardada no histórico e você começa com um modelo." : "Cada planta é desenhada como o quarto vai ficar, com o seu piso e a sua cor de parede. Dá para trocar os dois no último passo.";
-  conteudo=`<p class="abr-nota">${nota}</p><div class="abr-quartos plantas">${catalogo.plantas.map(p=>{
+  nota = temAtual ? "Você já tem uma decoração salva. Nas plantas em que ela cabe, você pode mantê-la; nas outras, ela fica guardada no histórico e você começa com um modelo." : "Escolha o formato e depois o tamanho. Cada planta é desenhada como o quarto vai ficar, com o seu piso e a sua cor de parede (dá para trocar os dois no último passo).";
+  const formatos=[...new Map(catalogo.plantas.filter(p=>!p.legado).map(p=>[p.formato,p])).values()];
+  const formatoAtual=planta?.formato || "quadrado";
+  const tamanhos=criadorPlantasDoFormato(formatoAtual);
+  conteudo=`<p class="abr-nota">${nota}</p><div class="abr-quartos plantas">${formatos.map(f=>{
+   // Prévia de cada formato no tamanho escolhido (ou no médio).
+   const opcoes=criadorPlantasDoFormato(f.formato), p=f.formato===formatoAtual ? planta : (opcoes.find(o=>o.tamanho===planta?.tamanho) || opcoes.find(o=>o.tamanho==="M") || opcoes[0]);
    const ok = temAtual && criadorDecoracaoCabe(p.id);
-   return `<button type="button" aria-pressed="${p.id===criador.planta}" onclick="criadorQuartoEscolher('planta','${p.id}')">${criadorPreviaHtml(p.id, ok ? "atual" : "vazio")}<b>${safeText(p.nome)}</b><small>${safeText(p.dica)}</small>${temAtual ? `<em class="abr-cabe ${ok ? "sim" : "nao"}">${ok ? "Sua decoração cabe aqui" : "Sua decoração não cabe aqui"}</em>` : ""}</button>`;}).join("")}</div>`;
+   return `<button type="button" aria-pressed="${f.formato===formatoAtual}" onclick="criadorEscolherFormato('${f.formato}')">${criadorPreviaHtml(p.id, ok ? "atual" : "vazio")}<b>${safeText(f.nome)}</b><small>${safeText(f.dica)}</small>${temAtual ? `<em class="abr-cabe ${ok ? "sim" : "nao"}">${ok ? "Sua decoração cabe aqui" : "Sua decoração não cabe aqui"}</em>` : ""}</button>`;}).join("")}</div>
+<div class="abr-tamanhos" role="radiogroup" aria-label="Tamanho do quarto"><h3>Tamanho</h3>${tamanhos.map(p=>`<button type="button" role="radio" aria-checked="${p.id===criador.planta}" onclick="criadorQuartoEscolher('planta','${p.id}')"><b>${safeText(p.tamanhoNome)}</b><small>${safeText(p.medidas)}</small></button>`).join("")}</div>`;
  } else if(etapa==="mobilia") {
   titulo="Em branco ou com o básico pronto?";anterior="planta";proxima="acabamento";
   const opcoes = [];

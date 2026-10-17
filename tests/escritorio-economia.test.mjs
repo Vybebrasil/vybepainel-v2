@@ -112,13 +112,39 @@ test('todos os modelos iniciais cabem nas seis plantas e deixam passagem pelas d
  const vm=await import('node:vm');const {QUARTOS}=await import('../server/escritorio-quartos.js');
  const c=vm.createContext({console,escritorio:{base:{quartos:QUARTOS}}});
  vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
- for(const planta of QUARTOS.plantas) for(const modelo of QUARTOS.modelos) {
+ for(const planta of QUARTOS.plantas.filter(p=>p.legado)) for(const modelo of QUARTOS.modelos) {
   const dimensoes=new Map(modelo.itens.map(([classe])=>[classe,JSON.parse(readFileSync('assets/escritorio/habbo/'+classe+'.json','utf8')).logic.model.dimensions]));
   validarPisoQuarto(planta.id,modelo.itens,dimensoes);
   c.itens=modelo.itens.map(([classe,x,y,dir,,altura=0])=>{const d=dimensoes.get(classe);return {classe,x,y,altura,dir,dim:dir===2||dir===6?{x:d.y,y:d.x}:d};});c.modelo=planta.id;
   for(const porta of ['baixo','direita']) {
    c.porta=porta;
    assert.ok(vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:modelo,porta};const p=escritorioPlantaDoQuarto(a);return mapaCaminho(mapaMontarGrade(p,itens),p.entrada,{x:3,y:2});})()`,c),planta.id+'/'+modelo.id+'/'+porta);
+  }
+ }
+});
+
+// Plantas por formato e tamanho (scripts/quartos-plantas.mjs): o modelo vai
+// para o canto de baixo à direita de cada tamanho; com ele montado, as duas
+// portas continuam no piso e todo ladrilho livre do quarto (inclusive o
+// mezanino, pela escada) é alcançável a pé a partir da entrada.
+test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto inteiro é alcançável',async()=>{
+ const vm=await import('node:vm');const {QUARTOS,itensDoModelo}=await import('../server/escritorio-quartos.js');
+ const novas=QUARTOS.plantas.filter(p=>!p.legado);
+ assert.ok(novas.length>=20,'há formatos e tamanhos para escolher');
+ assert.ok(new Set(novas.map(p=>p.tamanho)).size===4 && new Set(novas.map(p=>p.formato)).size>=8);
+ const c=vm.createContext({console,escritorio:{base:{quartos:QUARTOS}}});
+ vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
+ for(const planta of novas) for(const modelo of QUARTOS.modelos) {
+  const itens=itensDoModelo(planta.id,modelo);
+  const dimensoes=new Map(itens.map(([classe])=>[classe,JSON.parse(readFileSync('assets/escritorio/habbo/'+classe+'.json','utf8')).logic.model.dimensions]));
+  validarPisoQuarto(planta.id,itens,dimensoes);
+  c.itens=itens.map(([classe,x,y,dir,,altura=0])=>{const d=dimensoes.get(classe);return {classe,x,y,altura,dir,dim:dir===2||dir===6?{x:d.y,y:d.x}:d};});c.modelo=planta.id;
+  for(const porta of ['baixo','direita']) {
+   c.porta=porta;
+   const faltam=vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:modelo,porta};const p=escritorioPlantaDoQuarto(a);const g=mapaMontarGrade(p,itens);
+    if(!mapaCaminho(g,p.entrada,p.saida)) return ['porta'];
+    const r=[];for(let x=0;x<p.W-1;x++)for(let y=0;y<p.H-1;y++){if(!p.andavel(x,y)||g.bloqueado[g.ind(x,y)]||g.assento.has(g.ind(x,y)))continue;if(!(x===p.entrada.x&&y===p.entrada.y)&&!mapaCaminho(g,p.entrada,{x,y}))r.push(x+','+y);}return r;})()`,c);
+   assert.deepEqual([...faltam],[],planta.id+'/'+modelo.id+'/'+porta);
   }
  }
 });

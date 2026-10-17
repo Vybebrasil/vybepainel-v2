@@ -28,7 +28,8 @@ export function salasDoEscritorio(equipe = []) {
   });
 }
 
-export const LADO_SALA = 8;
+// Maior quarto (12 × 12): cada planta usa o canto dela (de 6 × 6 a 12 × 12).
+export const LADO_SALA = 12;
 const LIMITE = { geral: { x: 80, y: 80, itens: 900 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 80 } };
 // Item: [classe, x, y, direção, estado, altura]. Nas salas, x/y são relativos à
 // sala e o item inteiro fica dentro dela (o tamanho real é conferido no mapa).
