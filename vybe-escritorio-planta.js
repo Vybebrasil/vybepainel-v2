@@ -46,7 +46,7 @@ const ESCRITORIO_ESTADO_ANIMADO = {
 };
 // Quando esta planta entrou no ar: o mapa geral salvo antes disso é da planta
 // anterior e não vale mais (as salas individuais continuam, são relativas).
-const ESCRITORIO_PLANTA_DESDE = "2026-10-17T06:00:00Z";
+const ESCRITORIO_PLANTA_DESDE = "2026-10-17T12:30:00Z";
 const ESCRITORIO_PLANTA = (() => {
   // O mapa é quadrado, do tamanho da praça da imagem de fundo; o prédio
   // (60 × 48) fica no meio, com jardim atrás e dos lados e a frente para a
@@ -210,7 +210,7 @@ const ESCRITORIO_PLANTA = (() => {
   {
     const q = em("recepcao");
     q("lodge_dark_desk", 3, 4, 2); q("modern_c17_chair", 2, 5, 2);
-    q("hygge_c25_desklamp", 3, 4, 2, 1, 1.25); q("computer_flatscreen", 3, 6, 6, 1, 1.25); q("giftflowers", 3, 5, 2, 0, 1.25);
+    q("hygge_c25_desklamp", 3, 4, 2, 1, 1.25); q("computer_flatscreen", 3, 6, 2, 1, 1.25); q("giftflowers", 3, 5, 2, 0, 1.25);
     q("js_exe_rug", 7, 4, 0); q("js_exe_sofa", 7, 4, 4); q("modern_c17_lowtable", 7, 5, 2); q("js_exe_sofa", 7, 6, 0);
     q("darkmodern_c20_reads", 8, 5, 2, 0, 0.95);
     q("modern_c17_floorlamp", 10, 4, 2, 1); q("darkmodern_c20_pug", 10, 7, 2, 1);
@@ -509,8 +509,10 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
   const naParede = (classe, lx, estado, altura) => item(classe, lx, 0, 4, estado, altura, true);
   const base = [
     item("exe_table", 2, 2, 0),
-    // O monitor olha para a cadeira do dono (atrás da mesa), não para a sala.
-    item("computer_flatscreen", 3, 2, 0, 1, 0.95),
+    // Padrão do Habbo: a frente de todo móvel vira para quem olha o mapa
+    // (direções 4 e 2). Monitor com a tela à mostra; quem senta fica atrás
+    // da mesa, também de frente para quem olha.
+    item("computer_flatscreen", 3, 2, 4, 1, 0.95),
     item("darkmodern_c20_folder", 2, 3, 2, 0, 0.95),
     // Visitas de frente para a mesa, sobre o tapete; planta no canto do fundo.
     item("exe_rug", 2, 4, 0),
@@ -524,7 +526,9 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     // impressora e a planta grande.
     atendimento: [
       item("hc_exe_chair2", 3, 1, 4), item("js_exe_chair", 2, 5, 0), item("js_exe_chair", 4, 5, 0),
-      item("exe_sofa", 7, 2, 6), item("exe_globe", 6, 0, 0), item("exe_c15_telephone", 4, 3, 2, 1, 0.95),
+      // Sofá encostado no fundo, de frente para a sala (de costas, só se via o
+      // encosto); globo junto da parede da esquerda.
+      item("exe_sofa", 5, 0, 4), item("exe_globe", 0, 5, 0), item("exe_c15_telephone", 4, 3, 2, 1, 0.95),
       item("exe_c15_printer", 0, 6, 2, 1), item("bohogarden_c21_snakeplant", 7, 6, 2),
     ],
     // Criação: cadeira moderna, mesa digitalizadora e tela, pufes, sofá
@@ -532,8 +536,8 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     criacao: [
       item("modern_c17_chair", 3, 1, 4), item("cubie_beanbag_b", 2, 5, 0), item("cubie_beanbag_p", 4, 5, 0),
       item("art_c20_drawingtablet", 4, 2, 0, 2, 0.95),
-      item("icedblk_c16_sofa", 7, 2, 6), item("cubie_shelf_2_p", 6, 0, 0), item("darkmodern_c20_floorlight", 0, 6, 2, 7),
-      item("modern_c17_plant", 7, 6, 2), item("darkmodern_c20_neonlight", 6, 7, 0),
+      item("icedblk_c16_sofa", 5, 0, 4), item("cubie_shelf_2_p", 0, 6, 0), item("darkmodern_c20_floorlight", 7, 5, 2, 7),
+      item("modern_c17_plant", 7, 7, 2), item("darkmodern_c20_neonlight", 6, 7, 0),
     ],
     // Produção: cadeira de estúdio, segundo monitor, câmera no tripé, caixas
     // de som, rádio na prateleira e o aparador.
