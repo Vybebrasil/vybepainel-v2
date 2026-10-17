@@ -499,7 +499,8 @@ function escritorioItensDaCamada(camada) {
   const salvo = escritorio.edicao?.camada === camada ? escritorio.edicao.itens : antiga ? null : guardada?.itens;
   if (salvo) return salvo;
   if (camada === "geral") return ESCRITORIO_PLANTA.moveis;
-  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === camada);
+  const a = escritorioAmbienteDoQuarto(camada);
+  if(!a || camada.endsWith("-andar-1")) return [];
   return escritorioMoveisDaSala(a).map(([c, x, y, ...r]) => [c, x - a.x0, y - a.y0, ...r]);
 }
 // Móveis da cena atual: no mapa geral, só a camada geral (as salas são
@@ -508,8 +509,33 @@ function escritorioMoveisAtuais() {
   const camada = escritorio.quarto || "geral";
   return escritorioItensDaCamada(camada).map((it, i) => [...it.slice(0, 6), { camada, i }]);
 }
+function escritorioRaizQuarto(id) { return String(id || '').replace(/-andar-1$/,''); }
+function escritorioPerfilDecoracao(id=escritorio.quarto || escritorioMinhaMesa()?.ambiente.id) {
+  const raiz=escritorioRaizQuarto(id), dono=escritorio.base?.salas?.find(s=>s.id===raiz)?.pessoa_id;
+  const perfil=String(dono)===String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find(p=>String(p.id)===String(dono))?.perfil;
+  return String(id).endsWith('-andar-1') ? perfil?.sala_andares?.find(a=>a.andar===1) : perfil;
+}
+function escritorioAlterarDecoracao(patch) {
+  if(escritorio.quarto?.endsWith('-andar-1')) escritorio.perfil={...escritorio.perfil,sala_andares:[{...escritorioPerfilDecoracao(),...patch,andar:1}]};
+  else escritorio.perfil={...escritorio.perfil,...patch};
+}
+function escritorioPayloadDecoracao() { return {...escritorioPerfilDecoracao(), ...(escritorio.quarto?.endsWith('-andar-1') ? {andar:1} : {})}; }
 function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
-  return id ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === id && a.pessoal) || null : null;
+  const a=id && ESCRITORIO_PLANTA.ambientes.find(a=>a.id===escritorioRaizQuarto(id) && a.pessoal);
+  if(!a || !String(id).endsWith('-andar-1')) return a || null;
+  const perfil=escritorioPerfilDecoracao(id);
+  if(!perfil?.quarto_configurado) return null;
+  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao};
+  const dim=escritorioDimQuarto(r);r.x1=r.x0+dim.w;r.y1=r.y0+dim.h;
+  const L=ESCRITORIO_QUARTO_MAX,pisos=new Map(),paredes=new Map();
+  if(perfil.sala_pisos?.length===L*L) for(let i=0;i<L*L;i++) {const k=ESCRITORIO_PISOS_SALA[parseInt(perfil.sala_pisos[i],16)]?.[0];if(k)pisos.set(`${i%L},${Math.floor(i/L)}`,k);}
+  if(perfil.sala_paredes?.length===L*12) for(let i=0;i<L*4;i++){const [estilo,c,h]=perfil.sala_paredes.slice(i*3,i*3+3);if(estilo!=='-')paredes.set(escritorioChaveTrecho(r,i),{estilo,cor:ESCRITORIO_PAREDES_SALA[parseInt(c,16)] || r.cor,alt:[46,82,118][Number(h)]});}
+  r.pintura={pisos,paredes}; return r;
+}
+function escritorioAndaresHtml() {
+  const id=escritorio.quarto;if(!id) return '';
+  const raiz=escritorioRaizQuarto(id), superior=escritorioPerfilDecoracao(raiz+'-andar-1');
+  return `<nav class="ofc-andares" aria-label="Andares do escritório"><button type="button" aria-pressed="${id===raiz}" onclick="escritorioEntrarNoQuarto('${raiz}')">Térreo</button>${superior?.quarto_configurado ? `<button type="button" aria-pressed="${id!==raiz}" onclick="escritorioEntrarNoQuarto('${raiz}-andar-1')">Segundo andar</button>` : ''}${escritorioNoMeuQuarto() ? `<button type="button" onclick="personalizarEscritorio()">Gerenciar meu espaço</button>` : ''}</nav>`;
 }
 // Planta da cena atual para o renderizador: o quarto (com a pintura do dono,
 // lida na hora de desenhar) ou o mapa geral com as fachadas.
@@ -590,14 +616,15 @@ function escritorioNaCena(p) {
 }
 function escritorioNoMeuQuarto() {
   const mesa = escritorioMinhaMesa();
-  return Boolean(mesa && escritorio.quarto === mesa.ambiente.id);
+  return Boolean(mesa && escritorioRaizQuarto(escritorio.quarto) === escritorioRaizQuarto(mesa.ambiente.id));
 }
 // Entra no quarto de uma sala (a cena troca; a pessoa aparece logo depois da
 // porta). Sala trancada: só quem foi deixado entrar.
 function escritorioEntrarNoQuarto(id) {
   const a = escritorioAmbienteDoQuarto(id);
   if (!a || escritorio.quarto === id) return false;
-  if (escritorioZonaBloqueada(id)) { avisarTrancadaEscritorio(id, true); return false; }
+  if (escritorioZonaBloqueada(id) || escritorioZonaBloqueada(escritorioRaizQuarto(id))) { avisarTrancadaEscritorio(id, true); return false; }
+  if(escritorio.edicao) {escritorioAviso("Salve ou cancele a decoração antes de trocar de andar.");return false;}
   const e = escritorioEntradaDaSala(a);
   escritorioTrocarCena(id, e, a.porta === "direita" ? 6 : 0);
   return true;
@@ -635,7 +662,8 @@ function escritorioTrocarCena(quarto, lugar, dir) {
   escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); atualizarAcaoProximaEscritorio(true); depois?.(); });
 }
 function escritorioMinhaMesa() {
-  const a = escritorioDonos().get(escritorio.base?.eu);
+  let a = escritorioDonos().get(escritorio.base?.eu);
+  if(a && escritorio.quarto?.endsWith("-andar-1") && escritorioRaizQuarto(escritorio.quarto)===a.id) a=escritorioAmbienteDoQuarto();
   if(!a) return null;
   if(escritorio.perfil?.quarto_configurado) {
     const itens=escritorioItensDaCamada(a.id);
@@ -906,7 +934,7 @@ function renderEscritorio() {
  <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
 </aside>
 <main class="ofc-principal">
- <div class="ofc-topo"><div class="ofc-topo-esq">${escritorio.quarto ? `<button type="button" class="ofc-voltar-mapa" onclick="escritorioSairDoQuarto()" title="Sair pela porta e voltar ao mapa do escritório">${escritorioIcone("voltar")}<span>Voltar ao mapa</span></button>` : ""}<div class="ofc-sala-atual" style="--sala:${escritorioAmbienteDoQuarto()?.cor || ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
+ <div class="ofc-topo"><div class="ofc-topo-esq">${escritorio.quarto ? `<button type="button" class="ofc-voltar-mapa" onclick="escritorioSairDoQuarto()" title="Sair pela porta e voltar ao mapa do escritório">${escritorioIcone("voltar")}<span>Voltar ao mapa</span></button>` : ""}${escritorioAndaresHtml()}<div class="ofc-sala-atual" style="--sala:${escritorioAmbienteDoQuarto()?.cor || ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
  <details class="ofc-onde" ${escritorio.ondeFechado ? "" : "open"} ontoggle="escritorio.ondeFechado=!this.open" ${modo === "mapa" ? "" : "hidden"}><summary>${escritorioIcone("pessoas")}<span>Quem está onde</span></summary><div id="office-onde"></div></details>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div id="office-mesa-card" class="ofc-mesa-card" role="dialog" aria-label="Sua mesa" hidden onmouseleave="this.hidden=true"></div>
@@ -1952,7 +1980,7 @@ async function iniciarNoEscritorio() {
 }
 // "Meu espaço" abre o criador de personagem da abertura.
 function personalizarEscritorio() {
-  abrirAberturaEscritorio("personagem");
+  abrirAberturaEscritorio("espaco");
 }
 // Clientes: a lista do cadastro (o mesmo da aba Clientes) com dois atalhos por
 // cliente: a ficha dele na aba Clientes (com tudo do cliente) e o VybeHub

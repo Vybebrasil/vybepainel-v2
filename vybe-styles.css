@@ -6154,6 +6154,13 @@ body.no-escritorio {overflow:hidden}
 .abr-acabamentos .abr-cor { width:30px; height:30px; }
 @media(max-width:600px) { .abr-previa-quarto { height:120px; } .abr-quartos.plantas,.abr-quartos.modelos { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .abr-quarto button:focus-visible,.abr-acabamentos select:focus-visible { outline:3px solid #ffb475; outline-offset:3px; }
+.abr-paletas { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+.abr-paletas button { display:flex; gap:9px; align-items:center; text-align:left; padding:10px; border:1px solid #ffffff24; border-radius:12px; background:#ffffff08; color:#f2f2f2; cursor:pointer; }
+.abr-paletas button[aria-pressed=true] { border-color:#ff8a35; background:#ff8a351a; }
+.abr-paletas i { width:30px; height:30px; border-radius:7px; flex-shrink:0; }
+.abr-paletas span { display:grid; gap:3px; }
+.abr-paletas b { font:700 12px var(--mac-ui); }
+.abr-paletas small { font:400 11px/1.3 var(--mac-ui); color:#cdb9a7; }
 .abr-acabamentos { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:20px; margin:16px 0; }
 @media(max-width:700px) { .abr-acabamentos { grid-template-columns:1fr; } }
 .abr-acabamentos label { display:grid; gap:8px; flex:1; min-width:160px; }
@@ -6788,3 +6795,12 @@ body.no-escritorio {overflow:hidden}
 .abr-tamanhos b { font:700 14px var(--mac-ui); }
 .abr-tamanhos small { color:#c6c6cf; font-size:12px; }
 @media(max-width:600px) { .abr-tamanhos button { flex:1 1 calc(50% - 8px); min-width:0; } }
+
+/* Os andares são cenas do mesmo escritório, fora dos comandos de mídia. */
+/* Andares do quarto e "Gerenciar meu espaço": na barra do topo, ao lado de
+   "Voltar ao mapa" (antes ficavam por cima dele e do aviso da direita). */
+.ofc-andares {display:flex;gap:4px;align-items:center;padding:3px;border:1px solid var(--ofc-borda);border-radius:14px;background:var(--ofc-vidro);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-andares button {border:1px solid transparent;border-radius:11px;background:transparent;color:var(--ofc-suave);padding:6px 11px;font:600 12px var(--mac-ui);cursor:pointer;white-space:nowrap}
+.ofc-andares button[aria-pressed=true] {background:#ff8a351c;border-color:#ff8a3555;color:var(--ofc-texto)}
+.ofc-andares button:focus-visible {outline:2px solid #ffb475;outline-offset:2px}
+@media(max-width:760px){.ofc-topo-esq{flex-wrap:wrap}}
