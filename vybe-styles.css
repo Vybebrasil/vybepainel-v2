@@ -6653,3 +6653,7 @@ body.no-escritorio {overflow:hidden}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
 .mapa-video-fundo {position:absolute;z-index:0;pointer-events:none;object-fit:fill;image-rendering:pixelated}
+
+/* Elevador do escritório: um botão por andar, quebrando linha no celular. */
+.workflow-actions.ofc-elevador { flex-wrap: wrap; gap: 8px; }
+.workflow-actions.ofc-elevador .workflow-primary { flex: 1 1 140px; }

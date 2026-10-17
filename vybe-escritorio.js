@@ -653,6 +653,7 @@ function atualizarPessoasEscritorio() {
     const A = ESCRITORIO_PLANTA.ambientes;
     salas.innerHTML = `<h5>Salas individuais</h5>${A.filter((a) => a.pessoal).map(linha).join("")}<h5>Espaços</h5>${A.filter((a) => !a.pessoal).map(linha).join("")}`;
   }
+  escritorioAtualizarPortas();
   const lote = document.getElementById("office-lista-salas");
   if (lote) lote.innerHTML = escritorioListaSalasHtml();
   const lugar = document.getElementById("office-lugar");
@@ -822,7 +823,7 @@ function montarMapaEscritorio() {
     escritorio.mapa.marcarZona(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorio.zona) || null);
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); });
+    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -1005,6 +1006,10 @@ function escritorioQuadro(agora) {
   if (naPista !== escritorio.naPista) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
   escritorioEnviarPosicao(!andando);
   atualizarAcaoProximaEscritorio();
+  // Chegou ao lado do móvel que foi clicado: usa (andar com as teclas cancela).
+  escritorioAtualizarPortas();
+  if (teclado) escritorio.usarAoChegar = null;
+  else if (!andando && escritorio.usarAoChegar) { const alvo = escritorio.usarAoChegar; escritorio.usarAoChegar = null; escritorioAcaoDoMovel(alvo)?.fazer(); }
   desenharMinimapaEscritorio();
   // Com tecla presa (ainda no tempo de só virar), o ciclo continua esperando.
   if (andando || escritorioTeclas.size) movimento.quadro = requestAnimationFrame(escritorioQuadro);
@@ -1179,6 +1184,7 @@ function escritorioLadoLivre(r) {
 function cliqueNoMapaEscritorio(x, y) {
   if (escritorio.edicao) { cliqueEditorEscritorio(x, y); return; }
   escritorio.seguindoId = null;
+  escritorio.usarAoChegar = null;
   if (!escritorio.conectado && !escritorio.base?.demo) {
     escritorioAviso("Entre no escritório para andar pelo mapa.");
     return;
@@ -1189,6 +1195,7 @@ function cliqueNoMapaEscritorio(x, y) {
     const lado = escritorioLadoLivre(mesa);
     if (lado) { escritorioIrPara(lado.x, lado.y); return; }
   }
+  if (escritorioUsarAoClicar(x, y)) return;
   escritorioIrPara(x, y);
 }
 // Trancar/destrancar a zona onde a pessoa está; bater na porta; deixar entrar.
@@ -1303,7 +1310,7 @@ const ESCRITORIO_LIGAVEIS = [
   [/arcade|retrogames/, "o fliperama"], [/fireplace/, "a lareira"],
   [/floorlight|cine_light|lamp/, "a luz"],
 ];
-const ESCRITORIO_BEBIDA = /fridge|water_dispenser|minibar/;
+const ESCRITORIO_BEBIDA = /fridge|water_dispenser|minibar|vending|vendingmchn|drinkmach|bubblejuicerack|cooler/;
 const ESCRITORIO_LANCHE = /stove|microwave|school_c22_cafe/;
 const ESCRITORIO_JOGOS = [[/pooltable/, "sinuca"], [/footballtable/, "pebolim"]];
 function alternarMovelEscritorio(item) {
@@ -1330,6 +1337,79 @@ function usarAparelhoEscritorio(item, pose) {
   movimento.x = x; movimento.y = y; movimento.dir = lugar.dir;
   escritorioEnviarPosicao(true);
   definirPoseEscritorio(pose);
+}
+// Portas dos vãos: abertas quando alguém está a até um ladrilho e meio
+// delas. Sala trancada só abre para quem está liberado nela. Cada navegador
+// calcula sozinho (presença já tem as posições), sem mensagem a mais.
+function escritorioAtualizarPortas() {
+  const P = ESCRITORIO_PLANTA, mapa = escritorio.mapa;
+  if (!mapa || !P.portas?.length) return;
+  const eu = String(escritorio.base?.eu);
+  const gente = [{ id: eu, ...(movimento.quadro ? { x: movimento.x, y: movimento.y } : escritorioPosicao(escritorio.perfil || {})) }];
+  for (const o of escritorio.conectado ? escritorio.online || [] : []) if (String(o.id) !== eu) gente.push({ id: String(o.id), ...escritorioPosicao(o) });
+  escritorio.portasAbertas ||= new Map();
+  const mudou = [];
+  for (const d of P.portas) {
+    const cx = d.x + d.w / 2, cy = d.y + d.h / 2, tranca = escritorio.trancas?.get(d.zona);
+    const aberta = gente.some((q) => Math.abs(q.x + 0.5 - cx) <= 1.6 && Math.abs(q.y + 0.5 - cy) <= 1.6 && (!tranca || tranca.has(q.id)));
+    const chave = `${d.classe}@${Math.floor(d.x)},${Math.floor(d.y)}`;
+    if (escritorio.portasAbertas.get(chave) !== aberta) { escritorio.portasAbertas.set(chave, aberta); mudou.push([chave, aberta ? 1 : 0]); }
+  }
+  if (mudou.length) mapa.estadosMoveis(mudou);
+}
+// Elevador: escolhe o andar (outro elevador) e sai na frente dele.
+function abrirElevadorEscritorio(item) {
+  const lista = ESCRITORIO_PLANTA.elevadores || [];
+  const aqui = lista.find((e) => e.x === Math.floor(item.x) && e.y === Math.floor(item.y));
+  const destinos = lista.filter((e) => e !== aqui);
+  openWorkflowModal(`<div class="workflow-kicker">Elevador</div><h2 class="workflow-title">Para onde?</h2><p>Você sai na frente do elevador escolhido.</p><div class="workflow-actions ofc-elevador">${destinos.map((e) => `<button type="button" class="workflow-primary" onclick="closeWorkflowModal();viajarElevadorEscritorio('${safeText(e.nome)}')">${safeText(e.nome)}</button>`).join("")}<button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Ficar aqui</button></div>`);
+}
+function viajarElevadorEscritorio(nome) {
+  const d = (ESCRITORIO_PLANTA.elevadores || []).find((e) => e.nome === nome);
+  if (!d || !escritorio.mapa) return;
+  const zona = escritorioZonaEm(d.sai.x, d.sai.y);
+  if (escritorioZonaBloqueada(zona)) { avisarTrancadaEscritorio(zona, true); return; }
+  const chave = `exe_elevator@${d.x},${d.y}`;
+  escritorio.mapa.estadosMoveis([[chave, 1]]);
+  setTimeout(() => escritorio.mapa?.estadosMoveis([[chave, 0]]), 1600);
+  escritorioTocar(880, 0.1, 0.05);
+  if (escritorio.pose) definirPoseEscritorio("");
+  movimento.rota = []; movimento.x = d.sai.x; movimento.y = d.sai.y;
+  const pc = escritorioParaPorcentagem(d.sai.x, d.sai.y);
+  escritorio.perfil = { ...escritorio.perfil, x: pc.x, y: pc.y };
+  escritorio.mapa.mover(escritorio.base.eu, d.sai.x, d.sai.y, 4, "std");
+  escritorio.mapa.seguir(d.sai.x, d.sai.y, true);
+  escritorioMudouLugar(d.sai.x, d.sai.y);
+  escritorioEnviarPosicao(true);
+  escritorioAtualizarPortas();
+  atualizarAcaoProximaEscritorio(true);
+}
+// O que um móvel faz quando a pessoa está ao lado dele (o mesmo da tecla E).
+function escritorioAcaoDoMovel(m) {
+  if (!m) return null;
+  if (m.classe === "exe_elevator") return { item: m, fazer: () => abrirElevadorEscritorio(m) };
+  if (ESCRITORIO_CAFE.test(m.classe)) return { item: m, fazer: () => definirPoseEscritorio(escritorio.pose === "cafe" ? "" : "cafe") };
+  if (ESCRITORIO_BEBIDA.test(m.classe) || ESCRITORIO_LANCHE.test(m.classe)) {
+    const tipo = ESCRITORIO_BEBIDA.test(m.classe) ? "bebida" : "lanche";
+    return { item: m, fazer: () => definirPoseEscritorio(escritorio.pose === tipo ? "" : tipo) };
+  }
+  if (/treadmill|bicycle/.test(m.classe)) return { item: m, fazer: () => usarAparelhoEscritorio(m, /bicycle/.test(m.classe) ? "bicicleta" : "exercicio") };
+  if (/jukebox|^hc25_6$/.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
+  if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
+  return null;
+}
+// Clique num móvel que se usa (luz, jukebox, geladeira, esteira, fliperama…):
+// anda até o ladrilho livre ao lado dele e usa ao chegar.
+function escritorioUsarAoClicar(x, y) {
+  const m = (escritorio.mapa?.moveisEm(x, y) || []).find((i) => !i.plano && !i.altura && !i.parede && escritorioAcaoDoMovel(i));
+  if (!m) return false;
+  const lado = escritorioLadoLivre({ x: Math.floor(m.x), y: Math.floor(m.y), w: Math.max(1, Math.round(m.dim.x)), h: Math.max(1, Math.round(m.dim.y)) });
+  if (!lado) return false;
+  escritorio.usarAoChegar = m;
+  escritorioIrPara(lado.x, lado.y);
+  // Já está ao lado: usa na hora.
+  if (!movimento.rota.length && Math.round(movimento.x) === lado.x && Math.round(movimento.y) === lado.y) { escritorio.usarAoChegar = null; escritorioAcaoDoMovel(m)?.fazer(); }
+  return true;
 }
 function escritorioAcoesPerto() {
   if (!escritorio.mapa || escritorio.edicao || (escritorio.modo || "mapa") !== "mapa") return null;
@@ -1374,6 +1454,8 @@ function escritorioAcoesPerto() {
     const pose = /bicycle/.test(aparelho.classe) ? "bicicleta" : "exercicio";
     return { item: aparelho, texto: pose === "bicicleta" ? "Pedalar" : "Correr na esteira", fazer: () => usarAparelhoEscritorio(aparelho, pose) };
   }
+  const elev = perto.find((m) => m.classe === "exe_elevator");
+  if (elev) return { item: elev, texto: "Pegar o elevador", fazer: () => abrirElevadorEscritorio(elev) };
   const tela = escritorio.mapa.moveisPerto(p.x, p.y, 2).find((m) => ESCRITORIO_TELAS.test(m.classe));
   if (tela && escritorio.zona && escritorio.zona !== "foco")
     return { item: tela, texto: "Mostrar minha tela aqui", fazer: mostrarTelaEscritorio };
@@ -2512,6 +2594,7 @@ globalThis.document?.addEventListener?.("keydown", (e) => {
     if (k === "1") { e.preventDefault(); definirPoseEscritorio(escritorio.pose === "acenar" ? "" : "acenar"); return; }
     if (k === "2") { e.preventDefault(); deitarEscritorio(); return; }
     if (k === "3") { e.preventDefault(); definirPoseEscritorio(escritorio.pose === "cafe" ? "" : "cafe"); return; }
+    if (k === "m" && escritorioMinhaMesa()) { e.preventDefault(); irParaMinhaMesaEscritorio(); return; }
   }
   tecladoEscritorio(e);
 });

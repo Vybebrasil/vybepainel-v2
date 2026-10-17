@@ -330,6 +330,8 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
 // Paredes com os painéis do acervo (tijolo, madeira, concreto, azulejo…):
 // a arte do painel de parede do Habbo, recortada em cada trecho. Os estilos
 // do pincel da sala usam os mesmos painéis; "b" (lisa) fica só na cor.
+// Portas que ficam nos vãos: abrem e fecham, e o boneco passa por elas.
+const MAPA_PORTAS = /^(val14_gate|ktchn_gate|wildwest_saloondr)$/;
 const MAPA_ESTILO_TEXTURA = { c: "urban_wall", d: "gardenshed_wall", e: "sb_wall", f: "exe_c15_wall", g: "hygge_c25_wallpaper1", h: "bathroom_wall4" };
 const MAPA_TEXTURA_SALA = "art_c20_wall"; // padrão das salas, tingido na cor do dono
 const MAPA_TEXTURAS_PAREDE = new Map(); // classe → { 2: {canvas}, 4: {canvas}, n }
@@ -493,7 +495,7 @@ function mapaMontarGrade(P, moveis) {
   const B = P.PREDIO;
   if (B) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if ((y < B.y0 && x < B.x1 + 1) || (x < B.x0 && y < B.y1 + 1)) bloqueado[ind(x, y)] = 1;
   for (const m of moveis) {
-    if (m.altura || m.plano) continue; // em cima de mesa ou rente ao piso
+    if (m.altura || m.plano || MAPA_PORTAS.test(m.classe)) continue; // em cima de mesa, rente ao piso ou porta (se atravessa)
     const senta = MAPA_ASSENTOS.has(m.classe);
     for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
       const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;

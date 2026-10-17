@@ -6,7 +6,7 @@ import vm from "node:vm";
 
 const ctx = { console };
 vm.createContext(ctx);
-vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__sala = escritorioMoveisDaSala;", ctx);
+vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS;", ctx);
 const P = ctx.__P;
 const arte = (c) => {
   const f = `assets/escritorio/habbo/${c}.json`;
@@ -36,6 +36,7 @@ for (const [x0, y0, x1, y1] of P.divisorias) {
 }
 const temParede = (ax, ay, bx, by) => parede.has(`${ax},${ay}|${bx},${by}`) || parede.has(`${bx},${by}|${ax},${ay}`);
 const itens = [], pendurados = [];
+const PORTAS = /^(val14_gate|ktchn_gate|wildwest_saloondr)$/;
 for (const m of moveis) {
   const [classe, x, y, dir0, , altura = 0, camada = "geral"] = m;
   const a = arte(classe);
@@ -51,7 +52,9 @@ for (const m of moveis) {
     avisos.push(`${classe} (${x},${y}) pedido na direção ${dir0}, desenhado na ${dir}`);
   }
   const w = Math.max(1, dir === 2 || dir === 6 ? a.d.y : a.d.x), h = Math.max(1, dir === 2 || dir === 6 ? a.d.x : a.d.y);
-  const plano = !(a.d.z > 0.05) && a.alto <= (w + h) * 16 + 12;
+  // Porta (de vidro, de cozinha, de saloon): fica na linha da parede e se
+  // atravessa; não ocupa o piso.
+  const plano = PORTAS.test(classe) || (!(a.d.z > 0.05) && a.alto <= (w + h) * 16 + 12);
   const it = { classe, x: Math.floor(x), y: Math.floor(y), w: Math.round(w) || 1, h: Math.round(h) || 1, dir, altura, plano, camada, assento: ASSENTOS.test(classe) };
   itens.push(it);
   const nome = `${classe} (${it.x},${it.y})${camada !== "geral" ? " em " + camada : ""}`;
@@ -72,8 +75,8 @@ for (const it of itens) {
   if (!it.altura) continue;
   if (!ocup.has(`${it.x},${it.y}`)) { problemas.push(`${it.classe} (${it.x},${it.y}) flutuando`); continue; }
   const base = itens.find((o) => o !== it && !o.altura && !o.plano && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
-  const tampo = base ? arte(base.classe)?.d.z || 0 : 0;
-  if (base && Math.abs(tampo - it.altura) > 0.3) problemas.push(`${it.classe} (${it.x},${it.y}) na altura ${it.altura}, mas o tampo de ${base.classe} fica em ${Math.round(tampo * 100) / 100}`);
+  const tampo = base ? ctx.__tampos[base.classe] ?? (arte(base.classe)?.d.z || 0) : 0;
+  if (base && Math.abs(tampo - it.altura) > 0.12) problemas.push(`${it.classe} (${it.x},${it.y}) na altura ${it.altura}, mas o tampo de ${base.classe} fica em ${Math.round(tampo * 100) / 100}`);
 }
 // Assento: precisa de um ladrilho livre ao lado, sem parede no meio, para chegar.
 const livre = (x, y) => x >= 0 && y >= 0 && x < P.W && y < P.H && !ocup.has(`${x},${y}`);
