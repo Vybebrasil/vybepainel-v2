@@ -2,7 +2,8 @@
 // a arte deles vem sob demanda pelo servidor (arteRemotaEscritorio), então o
 // pacote do site não cresce. Mantém os do catálogo atual e acrescenta os de
 // escritório, casa, área externa e decoração (sem linhas temáticas).
-// node scripts/habbo-catalogo-amplo.mjs <pasta do acervo>
+// node scripts/habbo-catalogo-amplo.mjs <pasta do acervo> [--complemento]
+// --complemento preserva o catálogo e incorpora a curadoria abaixo, com arte local.
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import { inflateSync } from "node:zlib";
 import { join } from "node:path";
@@ -14,7 +15,8 @@ const oficial = JSON.parse(await readFile(join(pasta, "indice-oficial.json"), "u
 const nomes = Object.fromEntries(JSON.parse(await readFile(join(pasta, "indice.json"), "utf8")).map((i) => [i.classe, i.nome]));
 const temArquivo = new Set((await readdir(pasta)).filter((f) => f.endsWith(".nitro")).map((f) => f.slice(0, -6)));
 // Recomeça dos móveis que ficam no painel (rodar de novo não duplica).
-const atual = JSON.parse(await readFile("assets/escritorio/habbo/catalogo.json", "utf8")).filter((m) => !m.remoto && !m.parede);
+const catalogoAnterior = JSON.parse(await readFile("assets/escritorio/habbo/catalogo.json", "utf8"));
+const atual = catalogoAnterior.filter((m) => (!m.remoto && !m.parede) || m.curadoria);
 // Itens de parede que o mapa padrão usa ficam no painel (arte local).
 const local = new Set((await readdir("assets/escritorio/habbo")).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)));
 const jaTem = new Set(atual.map((m) => m.classe));
@@ -39,19 +41,84 @@ const DECOR = [
 const POR_LINHA = 70;
 const porLinha = new Map();
 const novos = [];
-const ler = async (classe) => {
+const ler = async (classe, completo = false) => {
   const buf = await readFile(join(pasta, classe + ".nitro"));
   let p = 0;
   const qtd = buf.readUInt16BE(p); p += 2;
+  let json, png;
   for (let i = 0; i < qtd; i++) {
     const n = buf.readUInt16BE(p); p += 2;
     const nome = buf.subarray(p, p + n).toString(); p += n;
     const t = buf.readUInt32BE(p); p += 4;
-    if (nome.endsWith(".json")) return JSON.parse(inflateSync(buf.subarray(p, p + t)).toString());
+    if (nome.endsWith(".json")) { json=inflateSync(buf.subarray(p,p+t)); if(!completo) return JSON.parse(json); }
+    else if(completo && nome.endsWith(".png")) png=inflateSync(buf.subarray(p,p+t));
     p += t;
   }
-  return null;
+  return completo ? {json,png,dados:json && JSON.parse(json)} : null;
 };
+// Peças complementares escolhidas para os ambientes de trabalho: estrutura,
+// materiais e objetos de uso. Não importa sistema, teleporte, roupas ou brindes.
+// A arte local evita que estes detalhes dependam do acervo remoto ao decorar.
+const COMPLEMENTO = [
+  ["Blocos e materiais", [
+    ["bc_block_0_recolorable", "Bloco compacto"], ["bc_block_1_recolorable", "Bloco inteiro"],
+    ["bc_block_redbrick_recolorable", "Bloco de tijolos"], ["bc_block_glass_recolorable", "Bloco de vidro"],
+    ["bc_block_marble_recolorable", "Bloco de mármore"], ["bc_block_industrial_recolorable", "Bloco industrial"],
+    ["bc_block_metalgrip_recolorable", "Bloco de metal"], ["bc_block_grass_recolorable", "Bloco de grama"],
+    ["bc_block_artdeco1_recolorable", "Bloco art déco"], ["bc_wood_recolorable", "Bloco de madeira"],
+    ["bc_stone_recolorable", "Bloco de pedra"], ["bc_tile_recolorable", "Bloco ladrilhado"],
+    ["bc_panel_recolorable", "Painel arquitetônico"], ["bc_glasspanel_recolorable", "Painel de vidro"],
+    ["bc_cylinder_recolorable", "Cilindro"], ["bc_halfcylinder_recolorable", "Meio cilindro"],
+    ["bc_round_recolorable", "Bloco arredondado"], ["bc_quartercircle_recolorable", "Canto circular"],
+    ["bc_wedge_recolorable", "Bloco em diagonal"], ["bc_wedgecrnr_recolorable", "Canto em diagonal"],
+    ["bc_flowerhedge_recolorable", "Cerca viva com flores"],
+  ]],
+  ["Objetos de estúdio", [
+    ["modern_c17_creative", "Material de desenho"], ["modern_c17_photos", "Fotos decorativas"],
+    ["modern_c17_display", "Painel de ideias"], ["modern_c17_incense", "Incenso de estúdio"],
+    ["modern_c17_reads", "Livros de arte"], ["modern_c17_folder", "Pastas de estúdio"],
+    ["modern_c17_pictures", "Gravuras decorativas"], ["magazines", "Revistas"], ["pencils", "Porta-lápis"],
+  ]],
+  ["Detalhes de cozinha", [
+    ["ktchn_c15_bread", "Porta-pão"], ["ktchn_c15_chopboard", "Tábua de corte"],
+    ["ktchn_c15_cereal", "Potes de cereais"], ["ktchn_c15_dishwasher", "Lava-louças"],
+    ["ktchn_c15_drinks", "Bebidas geladas"], ["hygge_c25_tumbler", "Copo térmico"],
+    ["hygge_c25_soap", "Saboneteira"], ["hygge_c25_papertowel", "Porta-papel"],
+    ["hygge_c25_waffleiron", "Máquina de waffles"], ["hygge_c25_airfryer", "Air fryer"],
+    ["hygge_c25_sponges", "Esponjas de cozinha"], ["hygge_c25_washyduck", "Detergente"],
+    ["classic2_tray", "Bandeja"], ["classic2_drinkcup", "Copos empilhados"],
+    ["classic2_napkin", "Porta-guardanapos"], ["classic2_trashcan", "Lixeira de cozinha"],
+  ]],
+  ["Acabamentos", [
+    ["hygge_c25_wallpaper1", "Painel de madeira", true],
+    ["hygge_c25_wallpaper2", "Revestimento de metrô", true],
+    ["hygge_c25_window1", "Janela iluminada"],
+    ["hygge_c25_featherdeco", "Arranjo de plumas"],
+    ["hygge_c25_shower", "Box de banheiro"],
+  ]],
+];
+if (process.argv.includes("--complemento")) {
+  const mapa = new Map(catalogoAnterior.map((m) => [m.classe, m]));
+  let bytes = 0;
+  for (const [categoria, entradas] of COMPLEMENTO) for (const [classe, nome, parede] of entradas) {
+    if (!temArquivo.has(classe)) throw new Error(`Arte ausente: ${classe}`);
+    const {json,png,dados}=await ler(classe,true);
+    const v=dados?.visualizations?.find(v=>v.size===64);
+    const d = dados?.logic?.model?.dimensions;
+    if (!png || !v || !d || d.x > 6 || d.y > 6 || !Object.keys(v.directions || {}).length)
+      throw new Error(`Arte incompatível: ${classe}`);
+    if (parede && (!v.directions[2] || !v.directions[4] || d.y > 0.3)) throw new Error(`Parede incompatível: ${classe}`);
+    await writeFile(`assets/escritorio/habbo/${classe}.json`, json);
+    await writeFile(`assets/escritorio/habbo/${classe}.png`, png);
+    bytes += json.length + png.length;
+    const anima = Object.values(v.animations || {}).some((a) => Object.values(a.layers || {}).some((l) => new Set(Object.values(l.frameSequences?.[0]?.frames || {}).map((f) => f.id)).size > 1));
+    mapa.set(classe, { classe, nome, categoria, giros: parede ? 1 : Object.keys(v.directions).length,
+      curadoria: "construcao-2026-10", ...(parede ? {parede: true} : {}), ...(anima ? {anima: true} : {}) });
+  }
+  await writeFile("assets/escritorio/habbo/catalogo.json", JSON.stringify([...mapa.values()]));
+  console.log(`Curadoria: ${mapa.size - catalogoAnterior.length} novos; ${mapa.size} no catálogo; ${bytes} bytes de arte local.`);
+  process.exit(0);
+}
 // Itens de parede (janelas, quadros, luminárias, prateleiras de parede).
 const PAREDE = new Set(["wall", "window", "wall_decoration"]);
 const porLinhaParede = new Map();

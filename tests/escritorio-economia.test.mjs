@@ -148,3 +148,41 @@ test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto
   }
  }
 });
+
+test('reforma exige versão, guarda decoração e pintura e não altera saldo ou inventário',async t=>{
+ const {db,sql}=await banco(t);
+ for(const f of ['2026-10-17-escritorio-mapa-versoes.sql','2026-10-17-escritorio-andares.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
+ const p={id:1}, r=await configurarQuarto(sql,p,{sala_piso:'madeira',sala_paredes:'c02'.repeat(48)},{planta:'quadrado-m',modelo:'trabalho'});
+ const antes=await carregarEconomia(sql,1);
+ await assert.rejects(configurarQuarto(sql,p,{},{planta:'galeria-g',modelo:'vazio',reformar:true,versao:99,preservar:false}),/mudou/);
+ const novo=await configurarQuarto(sql,p,{sala_piso:'clara'},{planta:'galeria-g',modelo:'vazio',reformar:true,versao:r.mapa.versao,preservar:false,limparPintura:true});
+ assert.equal(novo.perfil.sala_planta,'galeria-g');assert.equal(novo.perfil.sala_paredes,'');assert.equal(novo.mapa.itens.length,0);
+ const [backup]=await sql`SELECT itens,quarto FROM vybe_escritorio_mapa_versoes WHERE camada='sala-0'`;
+ assert.equal(backup.quarto.sala_planta,'quadrado-m');assert.equal(backup.quarto.sala_paredes,'c02'.repeat(48));assert.ok(backup.itens.length>0);
+ assert.equal(novo.economia.saldo,antes.saldo);assert.deepEqual(novo.economia.inventario,antes.inventario);
+ await assert.rejects(configurarQuarto(sql,p,{},{planta:'galeria-g',modelo:'vazio',reformar:true,versao:r.mapa.versao,preservar:false}),/mudou/);
+});
+
+test('segundo andar tem planta própria, preserva térreo e compartilha unidades do inventário',async t=>{
+ const {db,sql}=await banco(t);
+ for(const f of ['2026-10-17-escritorio-mapa-versoes.sql','2026-10-17-escritorio-andares.sql','2026-10-17-escritorio-andares.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
+ await assert.rejects(configurarQuarto(sql,{id:2},{},{planta:'quadrado-m',modelo:'vazio',andar:1,reformar:true,versao:0}),/térreo/);
+ const p={id:1},root=await configurarQuarto(sql,p,{sala_piso:'madeira'},{planta:'quadrado-m',modelo:'vazio'});
+ const top=await configurarQuarto(sql,p,{sala_piso:'clara'},{planta:'terracos-g',modelo:'dupla',andar:1,reformar:true,versao:0});
+ assert.equal(top.camada,'sala-0-andar-1');assert.equal(top.perfil.sala_planta,'quadrado-m');assert.equal(top.perfil.sala_andares[0].sala_planta,'terracos-g');assert.equal(top.economia.saldo,root.economia.saldo);
+ assert.deepEqual((await sql`SELECT itens FROM vybe_escritorio_mapa WHERE camada='sala-0'`)[0].itens,root.mapa.itens);
+ const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
+ await comprarMovel(sql,1,{classe:'shelves_norja',chave:crypto.randomUUID()});
+ const baixo=await salvarCamadaEscritorio(sql,p,salas,{camada:'sala-0',itens:[['shelves_norja',1,1,0]],versao:root.mapa.versao});
+ await assert.rejects(salvarCamadaEscritorio(sql,p,salas,{camada:top.camada,itens:[['shelves_norja',1,1,0]],versao:top.mapa.versao}),/Compre/);
+ await assert.rejects(salvarCamadaEscritorio(sql,{id:2},salas,{camada:top.camada,itens:[],versao:top.mapa.versao}),/sua sala/);
+ await salvarCamadaEscritorio(sql,p,salas,{camada:'sala-0',itens:[],versao:baixo.versao});
+ await salvarCamadaEscritorio(sql,p,salas,{camada:top.camada,itens:[['shelves_norja',1,1,0]],versao:top.mapa.versao});
+ const {salvarPerfilEscritorio}=await import('../server/escritorio.js');
+ const pintura=await salvarPerfilEscritorio(sql,1,{andar:1,sala_piso:'nogueira',sala_planta:'quadrado-p'});
+ assert.equal(pintura.sala_piso,'madeira');assert.equal(pintura.sala_andares[0].sala_piso,'nogueira');assert.equal(pintura.sala_andares[0].sala_planta,'terracos-g');
+ const malicioso=await salvarPerfilEscritorio(sql,1,{sala_andares:[{andar:1,sala_planta:'quadrado-p',quarto_configurado:false}]});
+ assert.equal(malicioso.sala_andares[0].sala_planta,'terracos-g');assert.equal(malicioso.sala_andares[0].quarto_configurado,true);
+ await assert.rejects(configurarQuarto(sql,p,{},{planta:'quadrado-m',modelo:'vazio',andar:2}),/inválido/);
+});

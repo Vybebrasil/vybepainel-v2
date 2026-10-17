@@ -175,7 +175,7 @@ ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostr
 <h4>Altura</h4><div class="ofc-cats ofc-ferramentas">${[["0", "Baixa"], ["1", "Média"], ["2", "Alta"]].map(([h, n]) => `<button type="button" aria-pressed="${pin.altura === h}" onclick="escritorioPincel().altura='${h}';renderEscritorio()">${n}</button>`).join("")}</div>
 <h4>Cor (Padrão, Lisa e Listrada)</h4><div class="ofc-amostras cores">${ESCRITORIO_PAREDES_SALA.map((c) => `<button type="button" aria-pressed="${pin.cor === c}" onclick="escritorioPincel().cor='${c}';renderEscritorio()" aria-label="${c ? "Cor " + c : "Cor da sala"}"><i style="background:${c || a.corPadrao}"></i>${c ? "" : "<span>Da sala</span>"}</button>`).join("")}</div>
 <div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="pintarTodasParedesEscritorio()">Aplicar em todas as paredes</button><button type="button" class="ofc-secundario" onclick="limparPinturaEscritorio('sala_paredes')">Paredes como eram</button></div>`
-  : `${pin.ferramenta === "piso" ? escritorioPisosAcervoHtml() : ""}<h4>Piso</h4><div class="ofc-amostras">${ESCRITORIO_PISOS_SALA.map(([id, nome]) => `<button type="button" aria-pressed="${pin.ferramenta === "balde" ? (escritorio.perfil.sala_piso || "") === id : pin.piso === id}" onclick="${pin.ferramenta === "balde" ? `estiloSalaEscritorio('sala_piso','${id}',true)` : `escritorioPincel().piso='${id}';renderEscritorio()`}" aria-label="Piso ${nome}"><i style="background:${piso(id)}"></i><span>${nome}</span></button>`).join("")}</div>
+  : `${pin.ferramenta === "piso" ? escritorioPisosAcervoHtml() : ""}<h4>Piso</h4><div class="ofc-amostras">${ESCRITORIO_PISOS_SALA.map(([id, nome]) => `<button type="button" aria-pressed="${pin.ferramenta === "balde" ? (escritorioPerfilDecoracao()?.sala_piso || "") === id : pin.piso === id}" onclick="${pin.ferramenta === "balde" ? `estiloSalaEscritorio('sala_piso','${id}',true)` : `escritorioPincel().piso='${id}';renderEscritorio()`}" aria-label="Piso ${nome}"><i style="background:${piso(id)}"></i><span>${nome}</span></button>`).join("")}</div>
 <div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="limparPinturaEscritorio('sala_pisos')">Tirar a pintura do piso</button></div>`}
 <p class="ofc-erro" id="office-estilo-erro" role="alert"></p>`;
 }
@@ -186,7 +186,7 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
   if (!mesa || escritorio.quarto !== mesa.ambiente.id) return false;
   const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0, L = ESCRITORIO_QUARTO_MAX, { w, h } = escritorioDimQuarto(a);
   if (lx < 0 || ly < 0 || lx >= w || ly >= h) return false;
-  const p = escritorio.perfil;
+  const p = escritorioPerfilDecoracao();
   if (pin.ferramenta === "parede") {
     // Parede mais perto do ponto clicado, entre as que encostam no ladrilho
     // (fundo, esquerda, frente, direita) e que existem no mapa.
@@ -199,7 +199,7 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
     const atual = String(p.sala_paredes || "").length === L * 12 ? p.sala_paredes : "-00".repeat(L * 4);
     const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
     if (atual.slice(i * 3, i * 3 + 3) === cod) return true;
-    escritorio.perfil = { ...p, sala_paredes: atual.slice(0, i * 3) + cod + atual.slice(i * 3 + 3) };
+    escritorioAlterarDecoracao({sala_paredes: atual.slice(0, i * 3) + cod + atual.slice(i * 3 + 3)});
   } else if (pin.ferramenta === "piso" && pin.movel) {
     // Piso do acervo (água, pedras, mosaico…): é um móvel rente ao chão, um
     // por ladrilho; troca o que já estiver ali. Vale ao clicar em Salvar.
@@ -217,7 +217,7 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
     const atual = String(p.sala_pisos || "").length === L * L ? p.sala_pisos : "0".repeat(L * L);
     const cod = Math.max(0, ESCRITORIO_PISOS_SALA.findIndex(([id]) => id === pin.piso)).toString(16);
     if (atual[i] === cod) return true;
-    escritorio.perfil = { ...p, sala_pisos: atual.slice(0, i) + cod + atual.slice(i + 1) };
+    escritorioAlterarDecoracao({sala_pisos: atual.slice(0, i) + cod + atual.slice(i + 1)});
   } else return false;
   escritorioPinturaMudou();
   return true;
@@ -227,11 +227,11 @@ function pintarTodasParedesEscritorio() {
   const a = escritorioMinhaMesa()?.ambiente;
   if (!a) return;
   const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
-  escritorio.perfil = { ...escritorio.perfil, sala_paredes: Array.from({ length: ESCRITORIO_QUARTO_MAX * 4 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("") };
+  escritorioAlterarDecoracao({sala_paredes: Array.from({ length: ESCRITORIO_QUARTO_MAX * 4 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("")});
   escritorioPinturaMudou();
 }
 function limparPinturaEscritorio(campo) {
-  escritorio.perfil = { ...escritorio.perfil, [campo]: "" };
+  escritorioAlterarDecoracao({[campo]: ""});
   escritorioPinturaMudou();
 }
 // Redesenha logo e salva um pouco depois (arrastando, junta vários ladrilhos).
@@ -240,12 +240,13 @@ function escritorioPinturaMudou() {
   clearTimeout(escritorio.timerPintura);
   escritorio.timerPintura = setTimeout(() => (escritorio.mapa?.repintar ? escritorio.mapa.repintar() : escritorioRedesenharMapa()), 40);
   clearTimeout(escritorio.timerSalvarPintura);
-  escritorio.timerSalvarPintura = setTimeout(salvarPinturaEscritorio, 900);
+  const payload=escritorioPayloadDecoracao();
+  escritorio.timerSalvarPintura = setTimeout(()=>salvarPinturaEscritorio(payload), 900);
 }
-async function salvarPinturaEscritorio() {
+async function salvarPinturaEscritorio(payload=escritorioPayloadDecoracao()) {
   if (escritorio.base.demo) return;
   try {
-    const r = await escritorioApi("perfil", { perfil: escritorio.perfil });
+    const r = await escritorioApi("perfil", { perfil: payload });
     const eu = escritorio.base.equipe.find((x) => String(x.id) === String(escritorio.base.eu));
     if (eu) eu.perfil = { ...eu.perfil, ...r.perfil };
   } catch (e) {
@@ -270,20 +271,20 @@ function abrirEstiloSalaEscritorio() {
   escritorio.mapa?.centralizar((mesa.ambiente.x0 + mesa.ambiente.x1) / 2, (mesa.ambiente.y0 + mesa.ambiente.y1) / 2);
 }
 async function estiloSalaEscritorio(campo, valor, limparLadrilhos = false) {
-  const antes = escritorio.perfil[campo] || "";
-  escritorio.perfil = { ...escritorio.perfil, [campo]: valor, ...(limparLadrilhos ? { sala_pisos: "" } : {}) };
+  const antes=structuredClone(escritorioPerfilDecoracao());
+  escritorioAlterarDecoracao({[campo]:valor,...(limparLadrilhos ? {sala_pisos:""} : {})});
   escritorioAplicarSalas();
   escritorioRedesenharMapa();
   try {
     if (!escritorio.base.demo) {
-      const r = await escritorioApi("perfil", { perfil: escritorio.perfil });
+      const r = await escritorioApi("perfil", { perfil: escritorioPayloadDecoracao() });
       escritorio.perfil = { ...escritorio.perfil, ...r.perfil };
       const eu = escritorio.base.equipe.find((x) => String(x.id) === String(escritorio.base.eu));
       if (eu) eu.perfil = { ...eu.perfil, ...r.perfil };
     }
   } catch (e) {
     // Não salvou: volta como estava e diz o porquê.
-    escritorio.perfil = { ...escritorio.perfil, [campo]: antes };
+    escritorioAlterarDecoracao(antes);
     escritorioAplicarSalas();
     escritorioRedesenharMapa();
     const erro = document.getElementById("office-estilo-erro");

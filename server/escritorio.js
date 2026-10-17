@@ -1,4 +1,4 @@
-import { QUARTOS, configurarQuarto } from "./escritorio-quartos.js";
+import { QUARTOS, configurarQuarto, perfilDoAndar } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel } from "./escritorio-economia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
@@ -16,7 +16,7 @@ export const SALAS_ESCRITORIO = [
 ];
 // Zonas de conversa do mapa: cada sala individual e cada espaço tem a sua.
 export const ZONAS_ESCRITORIO = [
-  ...Array.from({ length: 9 }, (_, i) => "sala-" + i),
+  ...Array.from({ length: 9 }, (_, i) => ["sala-" + i,"sala-" + i+"-andar-1"]).flat(),
   "auditorio", "reuniao", "recepcao", "cafe", "academia", "foco", "jogos", "producao", "lounge",
 ];
 export const CORES_ESCRITORIO = [
@@ -49,6 +49,10 @@ export function perfilEscritorio(valor = {}) {
   return {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
+    sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','quarto_configurado'].includes(k))));
+      return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
+    }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
     pele: opcao("pele", ["clara", "media", "escura"], "media"),
     cabelo: opcao("cabelo", ["curto", "longo", "cacheado", "sem"], "curto"),
@@ -133,7 +137,13 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor) {
   return sql.comTransacao(async tx => {
     await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
     const [atual] = await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} FOR UPDATE`;
-    const perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, quarto_configurado:atual.preferencias.quarto_configurado});
+    let perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares});
+    if(valor.andar===1) {
+      const andar=perfilDoAndar(atual.preferencias,1);
+      if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
+      const pintura=perfilEscritorio(valor);
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes'].map(k=>[k,pintura[k]]))}]};
+    }
     await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(perfil)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${pessoaId}`;
     return perfil;
   });

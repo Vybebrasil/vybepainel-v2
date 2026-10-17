@@ -231,7 +231,8 @@ function escritorioPrecisaAbertura() {
 function abrirAberturaEscritorio(etapa = "cena") {
   const eu = escritorio.base?.equipe.find((p) => p.id === escritorio.base.eu);
   // "Meu espaço" pede só o criador; a abertura completa termina nas boas-vindas.
-  criador.so = etapa === "personagem";
+  criador.so = ["personagem","espaco"].includes(etapa);
+  criador.reforma=false; criador.andar=0; criador.limparPintura=false;
   // Quem acabou de passar pela Vybelândia no login vai direto ao personagem.
   criador.etapa = etapa === "cena" && window.VYBELANDIA_VISTA ? "personagem" : etapa;
   if(etapa === "cena" && escritorio.perfil?.abertura === ESCRITORIO_ABERTURA && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) criador.etapa="planta";
@@ -271,6 +272,23 @@ function abrirAberturaEscritorio(etapa = "cena") {
   clearTimeout(criador.timerGarantia);
   criador.timerGarantia = setTimeout(() => el.classList.add("abr-pronta"), 3500);
 }
+function abrirReformaEscritorio(andar=0,branco=false) {
+  if(escritorio.edicao) {escritorioAviso('Salve ou cancele a decoração antes de reformar.');return;}
+  abrirAberturaEscritorio('planta');
+  const raiz=escritorioRaizQuarto(escritorioMinhaMesa()?.ambiente.id), camada=raiz+(andar?'-andar-1':'');
+  const perfil=escritorioPerfilDecoracao(camada);
+  criador.reforma=true;criador.so=true;criador.andar=andar;
+  criador.versao=escritorio.base.mapa?.camadas?.[camada]?.versao || 0;
+  criador.planta=perfil?.sala_planta || 'quadrado-m';
+  criador.piso=perfil?.sala_piso || 'madeira';criador.parede=perfil?.sala_parede || '#ff8a35';
+  criador.modelo=branco?'vazio':'trabalho';criador.limparPintura=branco;
+  criador.preservar=!branco && criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(criador.planta);
+  renderAberturaEscritorio();
+}
+function criadorMeuEspacoHtml() {
+  const existe=escritorio.perfil.sala_andares?.some(a=>a.andar===1 && a.quarto_configurado);
+  return `<section class="abr-painel abr-quarto"><span class="abr-kicker">Meu espaço</span><h2>Seu escritório, do seu jeito</h2><p class="abr-nota">Mude seu personagem, reforme a planta ou comece de novo. Seu inventário, moedas, XP e conquistas continuam com você.</p><div class="ofc-modelos"><button type="button" onclick="criador.etapa='personagem';renderAberturaEscritorio()"><b>Personalizar personagem</b><small>Roupas, cabelo e aparência</small></button><button type="button" onclick="abrirReformaEscritorio(0)"><b>Reformar térreo</b><small>Formato, tamanho, mezaninos e acabamento</small></button><button type="button" onclick="abrirReformaEscritorio(1)"><b>${existe?'Reformar segundo andar':'Criar segundo andar'}</b><small>Uma cena própria com formato e decoração independentes</small></button><button type="button" onclick="abrirReformaEscritorio(${escritorio.quarto?.endsWith('-andar-1')?1:0},true)"><b>Começar este andar em branco</b><small>Guarda a mobília no inventário e limpa a pintura, após sua confirmação</small></button></div><div class="abr-acoes"><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Fechar</button></div></section>`;
+}
 function fecharAberturaEscritorio() {
   criadorDestruirPrevias();
   document.getElementById("ofc-abertura")?.remove();
@@ -281,6 +299,11 @@ function renderAberturaEscritorio() {
   const fundo = document.getElementById("vybelandia-img")?.getAttribute("href") || "/assets/vybelandia.webp";
   el.style.setProperty("--vybelandia", `url("${fundo}")`);
   el.dataset.etapa = criador.etapa;
+  if(criador.etapa === "espaco") {el.innerHTML=criadorMeuEspacoHtml();return;}
+  if(criador.reforma && criador.etapa === "boas") {
+    const planta=escritorio.base.quartos.plantas.find(p=>p.id===criador.planta);
+    el.innerHTML=`<section class="abr-painel abr-quarto"><span class="abr-kicker">Revisar reforma · ${criador.andar?'segundo andar':'térreo'}</span><h2>Confirmar seu novo espaço</h2>${criadorPreviaHtml(criador.planta,criador.preservar?'atual':criador.modelo,{grande:true})}<p>${safeText(planta?.nome)} · ${safeText(planta?.medidas)}</p><p class="abr-nota">${criador.preservar?'Sua decoração será mantida nesta planta.':'A decoração anterior fica no histórico e os móveis comprados continuam no inventário.'} ${criador.limparPintura?'A pintura deste andar será limpa.':'O acabamento escolhido será aplicado.'} Moedas, XP, conquistas e o outro andar ficam preservados.</p><p class="abr-erro" role="alert" id="abr-erro"></p><div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='acabamento';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio(false)">Confirmar reforma</button></div></section>`;criadorMontarPrevias(el);return;
+  }
   if (criador.etapa === "cena") {
     const faiscas = Array.from({ length: 28 }, (_, i) =>
       `<i style="--x:${(i * 37) % 100}%;--d:${4 + (i % 5)}s;--a:${(i * 0.31) % 4}s;--s:${2 + (i % 3)}px"></i>`).join("");
@@ -341,13 +364,14 @@ async function salvarPersonagemEscritorio(entrar) {
   const perfil = { ...escritorio.perfil, figura: criadorFigura(criador.f), ...(criador.so ? {} : { abertura: ESCRITORIO_ABERTURA }) };
   try {
     let salvo = perfil;
-    if(!criador.so && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) {
+    if(escritorioMinhaMesa() && (criador.reforma || !criador.so && !escritorio.perfil.quarto_configurado)) {
       let resultado;
       if(escritorio.base.demo) {
-        const camada=escritorioMinhaMesa().ambiente.id;
-        const itens=criadorItensDaOpcao(criador.modelo, criador.planta);
-        resultado={perfil:{...perfil,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,quarto_configurado:true},camada,mapa:{itens,versao:1,em:new Date().toISOString()},economia:{...escritorio.base.economia,saldo:50,conquistas:[{origem:"conquista:meu-quarto"}]}};
-      } else resultado=await escritorioApi("quarto",{perfil:{...perfil,sala_piso:criador.piso,sala_parede:criador.parede},planta:criador.planta,modelo:criador.modelo,preservar:criador.preservar});
+        const camada=escritorioRaizQuarto(escritorioMinhaMesa().ambiente.id)+(criador.andar?"-andar-1":"");
+        const itens=criador.preservar ? criadorDecoracaoAtual() : criadorItensDaOpcao(criador.modelo, criador.planta);
+        resultado={perfil:{...perfil,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,quarto_configurado:true},camada,mapa:{itens,versao:1,em:new Date().toISOString()},economia:escritorio.base.economia};
+        if(criador.andar) resultado.perfil={...perfil,sala_andares:[{andar:1,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,quarto_configurado:true}]};
+      } else resultado=await escritorioApi("quarto",{perfil:{...perfil,sala_piso:criador.piso,sala_parede:criador.parede},planta:criador.planta,modelo:criador.modelo,preservar:criador.preservar,reformar:criador.reforma===true,versao:criador.versao,andar:criador.andar || 0,limparPintura:criador.limparPintura===true});
       salvo=resultado.perfil;
       if(resultado.camada) escritorio.base.mapa.camadas[resultado.camada]=resultado.mapa;
       escritorio.base.economia=resultado.economia;
@@ -357,7 +381,9 @@ async function salvarPersonagemEscritorio(entrar) {
     const eu = escritorio.base.equipe.find((p) => p.id === escritorio.base.eu);
     if (eu) eu.perfil = { ...eu.perfil, ...salvo };
     escritorioAplicarSalas();
+    const reformada=criador.reforma ? escritorioRaizQuarto(escritorioMinhaMesa()?.ambiente.id)+(criador.andar?'-andar-1':'') : null;
     fecharAberturaEscritorio();
+    if(reformada) {escritorio.quarto=null;escritorioEntrarNoQuarto(reformada);escritorioAviso('Reforma salva. Seu inventário e suas conquistas foram preservados.');return;}
     // Fim da abertura: ao entrar, o tutorial mostra o básico (e onde ficam as demandas).
     if (entrar && !criador.so) escritorio.tutorialPendente = true;
     renderEscritorio();
@@ -377,7 +403,7 @@ async function salvarPersonagemEscritorio(entrar) {
   } catch (e) {
     // O quarto não foi criado (decoração fora da planta, histórico ausente…):
     // volta para a escolha da mobília com o motivo, em vez de só avisar no fim.
-    if (!criador.so && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) {
+    if (escritorioMinhaMesa() && (criador.reforma || !criador.so && !escritorio.perfil.quarto_configurado)) {
       criador.erro = e.message;
       criador.etapa = "mobilia";
       criador.salvando = false;
@@ -465,7 +491,8 @@ function renderTutorialEscritorio() {
 // A planta e os modelos vêm do mesmo catálogo validado pelo servidor.
 // Decoração atual da própria sala (a camada salva, como o servidor a lê).
 function criadorDecoracaoAtual() {
-  const camada = escritorioMinhaMesa()?.ambiente.id;
+  const minha=escritorioMinhaMesa()?.ambiente.id;
+  const camada=minha && escritorioRaizQuarto(minha)+(criador.reforma && criador.andar ? "-andar-1" : "");
   return camada ? escritorio.base?.mapa?.camadas?.[camada]?.itens || [] : [];
 }
 // Espelho da regra do servidor ao preservar a decoração (validarPisoQuarto
@@ -541,6 +568,14 @@ function criadorQuartoEscolher(campo,valor) {
   criador.erro="";
   renderAberturaEscritorio();
 }
+// Atalhos de acabamento usam as mesmas escolhas e a mesma confirmação final.
+function criadorAplicarPaleta(id) {
+  const paleta = escritorio.base?.quartos?.paletas?.find((p) => p.id === id);
+  if (!paleta) return;
+  criador.piso = paleta.piso;
+  criador.parede = paleta.parede;
+  renderAberturaEscritorio();
+}
 function criadorQuartoHtml() {
  const catalogo=escritorio.base.quartos;
  if(!catalogo) return '<section class="abr-painel"><h2>Catálogo de quartos indisponível</h2><p>Recarregue o escritório para tentar novamente.</p></section>';
@@ -551,7 +586,7 @@ function criadorQuartoHtml() {
  const amostraPiso = (id) => { const c = ESCRITORIO_PLANTA.PISO[id]; return c ? `repeating-conic-gradient(${c[0]} 0 25%,${c[1]} 0 50%) 0 0/16px 16px` : "#333"; };
  let titulo,conteudo,anterior,proxima,nota="";
  if(etapa==="planta") {
-  titulo="Qual é o formato do seu quarto?";anterior="personagem";proxima="mobilia";
+  titulo="Qual é o formato do seu quarto?";anterior=criador.reforma?"espaco":"personagem";proxima="mobilia";
   nota = temAtual ? "Você já tem uma decoração salva. Nas plantas em que ela cabe, você pode mantê-la; nas outras, ela fica guardada no histórico e você começa com um modelo." : "Escolha o formato e depois o tamanho. Cada planta é desenhada como o quarto vai ficar, com o seu piso e a sua cor de parede (dá para trocar os dois no último passo).";
   const formatos=[...new Map(catalogo.plantas.filter(p=>!p.legado).map(p=>[p.formato,p])).values()];
   const formatoAtual=planta?.formato || "quadrado";
@@ -571,6 +606,7 @@ function criadorQuartoHtml() {
  } else {
   titulo="Dê a sua cara ao espaço";anterior="mobilia";proxima="boas";
   conteudo=`${criadorPreviaHtml(criador.planta, criador.preservar ? "atual" : criador.modelo, { grande: true, boneco: true })}
+<div class="abr-paletas" role="group" aria-label="Combinações de acabamento">${(catalogo.paletas || []).map(p=>`<button type="button" aria-pressed="${criador.piso===p.piso && criador.parede===p.parede}" onclick="criadorAplicarPaleta('${p.id}')"><i aria-hidden="true" style="background:linear-gradient(135deg,${p.parede} 50%,${ESCRITORIO_PLANTA.PISO[p.piso]?.[0]} 50%)"></i><span><b>${safeText(p.nome)}</b><small>${safeText(p.dica)}</small></span></button>`).join("")}</div>
 <div class="abr-acabamentos"><div class="abr-grupo"><h3>Piso</h3><div class="abr-amostras">${pisos.map(([id,nome])=>`<button type="button" aria-pressed="${criador.piso===id}" onclick="criador.piso='${id}';renderAberturaEscritorio()" aria-label="Piso ${safeText(nome)}"><i style="background:${amostraPiso(id)}"></i><span>${safeText(nome)}</span></button>`).join("")}</div></div>
 <div class="abr-grupo"><h3>Paredes</h3><div class="abr-linha">${paredes.map((c)=>`<button type="button" class="abr-cor" style="--c:${c}" aria-pressed="${criador.parede===c}" onclick="criador.parede='${c}';renderAberturaEscritorio()" aria-label="Parede ${c}"></button>`).join("")}</div></div></div>
 <p class="abr-nota">Depois de entrar, use <b>Decorar</b> no seu quarto para arrastar móveis, pintar cada ladrilho e abrir a loja. Sua escolha só é salva na confirmação final.</p>`;

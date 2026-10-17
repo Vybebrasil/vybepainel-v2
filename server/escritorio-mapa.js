@@ -1,5 +1,5 @@
 import { carregarEconomia } from "./escritorio-economia.js";
-import { validarPisoQuarto } from "./escritorio-quartos.js";
+import { validarPisoQuarto, partesDaCamada, perfilDoAndar } from "./escritorio-quartos.js";
 // Mapa editável e salas individuais do escritório. O servidor é a autoridade:
 // quem é dono de cada sala, quem pode editar cada camada e o que é um item válido.
 import { readFileSync } from "node:fs";
@@ -67,7 +67,7 @@ export async function carregarMapaEscritorio(sql) {
 }
 // Quem edita cada camada: 'geral' só administrador; sala, o dono ou administrador.
 function conferirEdicao(pessoa, salas, camada) {
-  const sala = salas.find((s) => s.id === camada);
+  const sala = salas.find((s) => s.id === partesDaCamada(camada)?.raiz);
   if (camada !== "geral" && !sala) throw Object.assign(new Error("Camada inválida."), { status: 400 });
   const admin = Boolean(pessoa.admin);
   if (camada === "geral" ? !admin : !admin && sala.pessoa_id !== String(pessoa.id))
@@ -83,11 +83,12 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
   if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
   const limpos = itensValidos(camada, itens);
   if (camada !== "geral") {
-    const dono = salas.find(s => s.id === camada)?.pessoa_id;
+    const dono = salas.find(s => s.id === partesDaCamada(camada)?.raiz)?.pessoa_id;
     const economia = await carregarEconomia(sql, dono);
     if (economia.disponivel) {
       const [p] = await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${dono} FOR UPDATE`;
-      if (!p?.preferencias?.quarto_configurado) throw new Error("Configure seu quarto antes de decorar.");
+      const decoracao=perfilDoAndar(p?.preferencias,partesDaCamada(camada)?.andar);
+      if (!decoracao?.quarto_configurado) throw new Error("Configure seu quarto antes de decorar.");
       const dimensoes=new Map();
       for(const [classe] of limpos) {
         if(IMAGEM_ITEM.test(classe) || dimensoes.has(classe)) continue;
@@ -96,9 +97,11 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
         catch {dados=JSON.parse((await arteRemotaEscritorio(classe,'json')).toString());}
         dimensoes.set(classe,dados.logic?.model?.dimensions || {x:1,y:1});
       }
-      validarPisoQuarto(p.preferencias.sala_planta,limpos,dimensoes);
+      validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes);
       const usados = new Map();
-      for (const it of limpos) {
+      const raiz=partesDaCamada(camada).raiz;
+      const outras=await sql`SELECT itens FROM vybe_escritorio_mapa WHERE camada<>${camada} AND (camada=${raiz} OR camada=${raiz+'-andar-1'})`;
+      for (const it of [...limpos,...outras.flatMap(m=>m.itens)]) {
         if (IMAGEM_ITEM.test(it[0]) || economia.essenciais.includes(it[0])) continue;
         usados.set(it[0],(usados.get(it[0]) || 0)+1);
       }

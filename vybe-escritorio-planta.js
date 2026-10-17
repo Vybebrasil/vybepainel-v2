@@ -389,6 +389,7 @@ function escritorioQuartoAtual() {
 // (as salas pessoais são fachadas fechadas); dentro de um quarto, só ele.
 function escritorioAmbienteEm(x, y) {
   const q = ESCRITORIO_QUARTO;
+  if(q && typeof escritorioAmbienteDoQuarto === "function") {const a=escritorioAmbienteDoQuarto(q);return a && x>=a.x0 && y>=a.y0 && x<a.x1 && y<a.y1 ? a : null;}
   return ESCRITORIO_PLANTA.ambientes.find((a) => (q ? a.id === q : !a.pessoal) && x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1) || null;
 }
 // Fachada (no mapa geral) que ocupa o ladrilho, e a que tem ali um dos
@@ -429,6 +430,20 @@ function escritorioNivelQuarto(a, x, y) {
   if (x < 0 || y < 0 || x >= w || y >= h) return -1;
   return escritorioModeloPlanta(a)?.celdas[Math.floor(y)]?.[Math.floor(x)] ?? 0;
 }
+// A escada ocupa um ladrilho no percurso, mas tem quatro degraus visíveis.
+// A direção é derivada do patamar alto, inclusive nas alas laterais.
+function escritorioEscadaQuarto(a,x,y) {
+  const p=escritorioModeloPlanta(a), ix=Math.floor(x), iy=Math.floor(y);
+  if(!p?.escada?.some(([ex,ey])=>ex===ix && ey===iy)) return null;
+  const alto=[[0,-1],[0,1],[-1,0],[1,0]].find(([dx,dy])=>escritorioNivelQuarto(a,ix+dx,iy+dy)===2);
+  return alto ? {x:ix,y:iy,dx:alto[0],dy:alto[1]} : null;
+}
+function escritorioAlturaQuarto(a,x,y) {
+  const e=escritorioEscadaQuarto(a,x,y);
+  if(!e) return Math.max(0,escritorioNivelQuarto(a,x,y));
+  const f=e.dx ? x-Math.floor(x) : y-Math.floor(y);
+  return 2*((e.dx || e.dy)>0 ? f : 1-f);
+}
 function escritorioParedesDoQuarto(a) {
   const lista = [], { w, h } = escritorioDimQuarto(a), pt = escritorioPortaQuarto(a);
   const por = (x0,y0,x1,y1,alta) => {
@@ -440,8 +455,8 @@ function escritorioParedesDoQuarto(a) {
     if(escritorioNivelQuarto(a,x,y)<0) continue;
     if(escritorioNivelQuarto(a,x,y-1)<0) por(x,y,x+1,y,true);
     if(escritorioNivelQuarto(a,x-1,y)<0) por(x,y,x,y+1,true);
-    if(escritorioNivelQuarto(a,x,y+1)<0 && !(pt.lado==="baixo" && y===pt.y && x>=pt.x && x<pt.x+2)) por(x,y+1,x+1,y+1,false);
-    if(escritorioNivelQuarto(a,x+1,y)<0 && !(pt.lado==="direita" && x===pt.x && y>=pt.y && y<pt.y+2)) por(x+1,y,x+1,y+1,false);
+    if(!escritorioModeloPlanta(a)?.bordaAberta && escritorioNivelQuarto(a,x,y+1)<0 && !(pt.lado==="baixo" && y===pt.y && x>=pt.x && x<pt.x+2)) por(x,y+1,x+1,y+1,false);
+    if(!escritorioModeloPlanta(a)?.bordaAberta && escritorioNivelQuarto(a,x+1,y)<0 && !(pt.lado==="direita" && x===pt.x && y>=pt.y && y<pt.y+2)) por(x+1,y,x+1,y+1,false);
   }
   const grupos=new Map();
   for(const r of lista) {
@@ -475,6 +490,7 @@ function escritorioPlantaDoQuarto(a) {
     // Só se anda dentro do quarto e na soleira.
     andavel: (x, y) => escritorioNivelQuarto(a,x,y) >= 0 || naSoleira(x, y),
     nivelEm: (x,y) => Math.max(0,escritorioNivelQuarto(a,x,y)),
+    alturaEm: (x,y) => escritorioAlturaQuarto(a,x,y), escadaEm: (x,y) => escritorioEscadaQuarto(a,x,y),
   };
 }
 // Corredores e área externa são convivência.

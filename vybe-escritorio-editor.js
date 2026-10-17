@@ -20,7 +20,7 @@ function escritorioCamadaParaEditar() {
   return escritorio.base?.admin ? "geral" : null;
 }
 function escritorioNomeCamada(camada) {
-  return camada === "geral" ? "o mapa" : ESCRITORIO_PLANTA.ambientes.find((a) => a.id === camada)?.nome || camada;
+  return camada === "geral" ? "o mapa" : escritorioAmbienteDoQuarto(camada)?.nome || camada;
 }
 function escritorioCameraEditor() {
   return Boolean(escritorio.edicao && (escritorio.edicao.ferramenta === "camera" || escritorio.espacoEditor));
@@ -85,7 +85,7 @@ async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
   renderEscritorio();
   gradeEditorEscritorio();
   atualizarFerramentaEditorEscritorio();
-  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === camada);
+  const a = escritorioAmbienteDoQuarto(camada);
   if (a) escritorio.mapa?.centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2);
 }
 function sairEditorEscritorio() {
@@ -125,7 +125,8 @@ async function salvarEditorEscritorio() {
 }
 // Converte ladrilho do mapa ↔ coordenadas da camada.
 function escritorioCantoCamada(camada) {
-  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === camada);
+  const quarto=escritorioAmbienteDoQuarto(camada);
+  const a = quarto?.x1 != null ? quarto : ESCRITORIO_PLANTA.ambientes.find(a=>a.id===camada);
   return a ? { x: a.x0, y: a.y0, w: a.x1 - a.x0, h: a.y1 - a.y0 } : { x: 0, y: 0, w: ESCRITORIO_PLANTA.W, h: ESCRITORIO_PLANTA.H };
 }
 // O móvel inteiro precisa caber na área que a pessoa pode editar e, se for
@@ -520,7 +521,11 @@ const ESCRITORIO_GRUPOS_CATALOGO = [
   ["Plantas", (m) => m.categoria === "Jardim" && /plant|flower|tree|bush|palm|cactus|bonsai|pot/.test(m.classe)],
   ["Jardim e área externa", (m) => m.categoria === "Jardim" && !/plant|flower|tree|bush|palm|cactus|bonsai|pot/.test(m.classe)],
   ["Divisórias", (m) => m.categoria === "Divisórias"],
-  ["Construção e arquitetura", (m) => /pillar|column|railing|stair|wall|fence|block|divider/.test(m.classe)],
+  ["Construção e arquitetura", (m) => m.categoria === "Blocos e materiais" || /pillar|column|railing|stair|wall|fence|block|divider/.test(m.classe)],
+  ["Blocos e materiais", (m) => m.categoria === "Blocos e materiais"],
+  ["Objetos de estúdio", (m) => m.categoria === "Objetos de estúdio"],
+  ["Detalhes de cozinha", (m) => m.categoria === "Detalhes de cozinha"],
+  ["Acabamentos", (m) => m.categoria === "Acabamentos"],
   ["Janelas e portas", (m) => /window|door|gate/.test(m.classe)],
   ["Jogos e música", (m) => ["Jogos", "Música", "Festa"].includes(m.categoria)],
   ["Cozinha e bar", (m) => m.categoria === "Cozinha" || /bardesk|bartable|minibar|fridge|drinks/.test(m.classe)],
@@ -761,7 +766,7 @@ function escritorioUrlImagem(id) {
 // esquerda (lx 0). Fica inteiro na sala, fora da porta e sem cobrir outro.
 function escritorioLugarQuadro(classe, lx, ly, ignorar = -1, dirFixa = null) {
   const e = escritorio.edicao, img = escritorioImagemDe(classe);
-  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === e.camada);
+  const a = escritorioAmbienteDoQuarto(e.camada);
   if (!img || !a?.pessoal) return { erro: "Quadro só nas salas individuais." };
   const L = a.x1 - a.x0;
   let dir = dirFixa;
@@ -1003,7 +1008,7 @@ async function duplicarSelecionadoEscritorio() {
 function restaurarPadraoEditorEscritorio() {
   const e = escritorio.edicao;
   if (!e || !confirm("Voltar " + escritorioNomeCamada(e.camada) + " ao desenho original? Você ainda pode desfazer antes de salvar.")) return;
-  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === e.camada);
+  const a = escritorioAmbienteDoQuarto(e.camada);
   if(escritorio.perfil?.quarto_configurado && e.camada!=="geral") {aplicarModeloSalaEscritorio("trabalho");return;}
   e.itens = e.camada === "geral" ? ESCRITORIO_PLANTA.moveis.map((it) => [...it.slice(0, 6)]) : escritorioMoveisDaSala(a).map(([cl, x, y, ...r]) => [cl, x - a.x0, y - a.y0, ...r]);
   e.sel = null;
@@ -1115,12 +1120,12 @@ function escritorioModelosHtml() {
   return `<p class="ofc-nota">Escolha um modelo: a mobília da sala é trocada por ele. Dá para desfazer antes de salvar.</p><div class="ofc-modelos">${ESCRITORIO_MODELOS_SALA.map(([id, nome, dica]) => `<button type="button" onclick="aplicarModeloSalaEscritorio('${id}')"><b>${nome}</b><small>${dica}</small></button>`).join("")}</div>`;
 }
 function aplicarModeloSalaEscritorio(tema) {
-  const e = escritorio.edicao, a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === e?.camada);
+  const e = escritorio.edicao, a = escritorioAmbienteDoQuarto(e?.camada);
   if (!a?.pessoal) return;
   if(escritorio.perfil?.quarto_configurado) {
     const modelo=escritorio.base.quartos.modelos.find(m=>m.id===tema);
     if(!modelo) return escritorioAviso("Escolha um modelo gratuito do seu quarto.");
-    e.itens=structuredClone(modelo.itens); e.sel=null;e.selVarios=new Set();escritorioEditorMudou();return;
+    e.itens=criadorItensDaOpcao(modelo.id, escritorioPerfilDecoracao()?.sala_planta); e.sel=null;e.selVarios=new Set();escritorioEditorMudou();return;
   }
   // Imagens (quadros e tapetes da pessoa) continuam.
   const imagens = e.itens.filter((it) => escritorioImagemDe(it[0]));
@@ -1318,12 +1323,21 @@ function escritorioMeusMoveis() {
   return todos.filter((m) => !vistos.has(m.classe) && vistos.add(m.classe) && escritorioQuantidadeMovel(m.classe) > 0 && !escritorioImagemDe(m.classe));
 }
 // Selo do cartão no próprio quarto: grátis, quantos estão livres ou o preço.
+function escritorioOutrosAndares() {
+  const camada=escritorio.edicao?.camada;
+  if(!camada || camada==='geral') return [];
+  const raiz=camada.replace(/-andar-1$/,'');
+  return Object.entries(escritorio.base.mapa?.camadas || {}).filter(([id])=>id!==camada && (id===raiz || id===raiz+'-andar-1')).flatMap(([,m])=>m.itens || []);
+}
+function escritorioUnidadesColocadas(classe) {
+  return [...(escritorio.edicao?.itens || []),...escritorioOutrosAndares()].filter(it=>it[0]===classe).length;
+}
 function escritorioSeloQuarto(classe) {
   const tem = escritorioQuantidadeMovel(classe);
   if (tem === Infinity) return "Grátis";
-  const usados = (escritorio.edicao?.itens || []).filter((it) => it[0] === classe).length;
+  const usados = escritorioUnidadesColocadas(classe);
   const livres = Math.max(0, tem - usados);
-  return livres ? `${livres} de ${tem} para colocar` : `Os ${tem} já estão no quarto`;
+  return livres ? `${livres} de ${tem} para colocar` : `Os ${tem} já estão colocados`;
 }
 function escritorioQuantidadeMovel(classe) {
  if(escritorio.base.quartos?.essenciais.includes(classe) || escritorioImagemDe(classe)) return Infinity;
@@ -1336,7 +1350,7 @@ function escritorioInventarioPara(novos) {
  if (!e) return false;
  if (e.camada === "geral") return true;
  const usados = new Map();
- for (const [classe] of [...e.itens, ...novos]) usados.set(classe,(usados.get(classe)||0)+1);
+ for (const [classe] of [...e.itens, ...escritorioOutrosAndares(), ...novos]) usados.set(classe,(usados.get(classe)||0)+1);
  for (const [classe,n] of usados) if (n > escritorioQuantidadeMovel(classe)) {
   escritorioAviso("Você não tem unidades livres deste móvel. Compre mais na Loja ou use uma unidade que já está no quarto.");
   return false;
@@ -1346,7 +1360,7 @@ function escritorioInventarioPara(novos) {
 function escritorioPodeColocarMovel(classe) {
  if(escritorio.edicao?.camada === "geral") return true;
  const n=escritorioQuantidadeMovel(classe);
- return n > (escritorio.edicao?.itens || []).filter(it=>it[0]===classe).length;
+ return n > escritorioUnidadesColocadas(classe);
 }
 // Na Loja o clique compra (e já deixa o móvel na mão para colocar); em Meus
 // móveis o clique só coloca o que você tem.
