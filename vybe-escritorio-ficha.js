@@ -50,21 +50,17 @@ function escritorioNumerosDe(pessoa) {
     total, mes: doMes.length, emDia: comPrazo.length ? Math.round((emDia / comPrazo.length) * 100) : null,
     abertas: abertas.length, atrasadas, clientes: clientes.size, seq,
     dia: { feitas: feitasHoje, total: doDia.length }, nivel, xp: total - base, xpProximo: passo,
-    semAtrasoNoMes: comPrazo.length >= 10 && emDia === comPrazo.length,
   };
 }
-const ESCRITORIO_MARCOS = [
-  { id: "primeira", nome: "Primeira entrega", dica: "Concluiu a primeira demanda", ok: (n) => n.total >= 1 },
-  { id: "dez", nome: "10 entregas", dica: "10 demandas concluídas", ok: (n) => n.total >= 10 },
-  { id: "cinquenta", nome: "50 entregas", dica: "50 demandas concluídas", ok: (n) => n.total >= 50 },
-  { id: "cem", nome: "100 entregas", dica: "100 demandas concluídas", ok: (n) => n.total >= 100 },
-  { id: "duzentas", nome: "250 entregas", dica: "250 demandas concluídas", ok: (n) => n.total >= 250 },
-  { id: "semfuro", nome: "Mês sem furo", dica: "10 ou mais entregas no mês, todas dentro do prazo", ok: (n) => n.semAtrasoNoMes },
-  { id: "embalo", nome: "Embalado", dica: "5 dias úteis seguidos com entrega", ok: (n) => n.seq >= 5 },
-  { id: "maratona", nome: "Maratona", dica: "15 dias úteis seguidos com entrega", ok: (n) => n.seq >= 15 },
-  { id: "carteira", nome: "Muitos clientes", dica: "Entregou para 5 clientes diferentes no mês", ok: (n) => n.clientes >= 5 },
-  { id: "zerado", nome: "Fila em dia", dica: "Nenhuma demanda atrasada agora", ok: (n) => n.total >= 1 && n.atrasadas === 0 },
-];
+// Marcos calculados no servidor (server/escritorio-marcos.js): cada um diz se
+// foi conquistado, quando, e o móvel que dá. Nome do móvel pelo catálogo do editor.
+function escritorioMarcosHtml(marcos) {
+  if (!marcos?.length) return "";
+  const data = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }); };
+  const nomeMovel = (classe) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return m ? escritorioNomeMovel(m) : classe.replace(/_/g, " "); };
+  const feitos = marcos.filter((m) => m.ok).length;
+  return `<h4>Marcos <small>(${feitos} de ${marcos.length} · cada um dá 50 moedas e 50 XP)</small></h4><ul class="ofc-marcos">${marcos.map((m) => `<li class="${m.ok ? "ok" : ""}" title="${safeText(m.dica)}"><i aria-hidden="true">${m.ok ? "★" : "☆"}</i><span><b>${safeText(m.nome)}</b><small>${m.ok ? "Conquistado" + (m.em ? " em " + data(m.em) : "") : safeText(m.dica)}${m.moveis?.length ? ` · ${m.ok ? "ganhou" : "dá"} ${m.moveis.map((c) => safeText(nomeMovel(c))).join(", ")}` : ""}</small></span></li>`).join("")}</ul>`;
+}
 // Barra do dia, em cima da barra de baixo: só a da própria pessoa.
 function atualizarBarraDiaEscritorio() {
   const principal = document.querySelector(".ofc-principal");
@@ -116,7 +112,11 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
     document.body.append(d);
   }
   const n = veNumeros ? escritorioNumerosDe(pessoa) : null;
-  const pontos = eu ? escritorio.base?.economia?.pontos || null : null;
+  // Economia da pessoa: a própria vem na entrada; a de outra pessoa (quem
+  // administra) é buscada ao abrir e guardada para a próxima abertura.
+  const economia = eu ? escritorio.base?.economia : escritorio.fichas?.[String(id)];
+  const pontos = eu ? economia?.pontos || null : null;
+  const marcos = veNumeros ? economia?.marcos || null : null;
   const img = "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: "3", head_direction: "3", size: "l", gesture: "sml" });
   const lugar = online ? escritorioLugarDe(online).nome : "Fora do escritório";
   const [status, cor] = ESCRITORIO_STATUS[online?.status || "ausente"] || ESCRITORIO_STATUS.ausente;
@@ -128,15 +128,24 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
       ? `${nivel}<p class="ofc-nota">Carregando as demandas do Painel…</p>`
       : `${nivel}
 <dl class="ofc-ficha-numeros">${numero("Hoje", `${n.dia.feitas}/${n.dia.total}`, "Entregas de hoje / o que vence hoje")}${numero("No mês", n.mes, "Demandas concluídas neste mês")}${numero("No prazo", n.emDia === null ? "–" : n.emDia + "%", "Entregas do mês concluídas até o prazo")}${numero("Sequência", n.seq + (n.seq === 1 ? " dia" : " dias"), "Dias úteis seguidos com pelo menos uma entrega")}${numero("Clientes", n.clientes, "Clientes diferentes atendidos no mês")}${numero("Na fila", n.abertas + (n.atrasadas ? ` <em>· ${n.atrasadas} atrasada${n.atrasadas > 1 ? "s" : ""}</em>` : ""), "Demandas abertas agora")}</dl>
-<h4>Marcos</h4><ul class="ofc-marcos">${ESCRITORIO_MARCOS.map((m) => { const ok = m.ok(n); return `<li class="${ok ? "ok" : ""}" title="${safeText(m.dica)}"><i aria-hidden="true">${ok ? "★" : "☆"}</i><span><b>${m.nome}</b><small>${ok ? "Conquistado" : m.dica}</small></span></li>`; }).join("")}</ul>
-<p class="ofc-nota">Contado pelas demandas do Painel em que você é responsável (${n.total} concluídas no total).</p>`;
+${marcos ? escritorioMarcosHtml(marcos) : b.demo || escritorio.fichas?.[String(id)] === null ? "" : '<p class="ofc-nota">Carregando os marcos…</p>'}
+<p class="ofc-nota">Contado pelas demandas do Painel em que ${eu ? "você é" : "a pessoa é"} responsável (${n.total} concluídas no total).</p>`;
   d.innerHTML = `<div class="ofc-ficha-topo"><img src="${img}" alt="" width="64" height="110" referrerpolicy="no-referrer"><div><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3><small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}</small></div><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
 ${corpo}
 <div class="ofc-ficha-acoes">${eu ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirRecadosEscritorio('${safeText(String(id))}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();escritorioIrAte('${safeText(String(id))}')">Ir até</button>` : ""}`}</div>`;
   if (!d.open) d.showModal();
-  // Pontos mudam com o trabalho do dia: a própria ficha busca o saldo atual ao abrir.
-  if (eu && !semAtualizar && !b.demo && typeof escritorioApi === "function")
-    escritorioApi("economia").then((r) => { if (r?.economia) { escritorio.base.economia = r.economia; if (d.open) abrirFichaEscritorio(id, true); } }).catch(() => {});
+  // Pontos e marcos mudam com o trabalho do dia: a ficha busca o estado atual
+  // ao abrir (a própria pessoa; ou outra, para quem administra).
+  if (veNumeros && !semAtualizar && !b.demo && typeof escritorioApi === "function")
+    escritorioApi("economia", null, eu ? null : { pessoa: String(id) }).then((r) => {
+      if (!r?.economia) return;
+      if (eu) escritorio.base.economia = { ...r.economia, loja: r.economia.loja || escritorio.base.economia?.loja };
+      else (escritorio.fichas ||= {})[String(id)] = r.economia;
+      if (d.open) abrirFichaEscritorio(id, true);
+    }).catch(() => { if (!eu) (escritorio.fichas ||= {})[String(id)] = null; if (d.open) abrirFichaEscritorio(id, true); });
+  // Nomes dos móveis dos marcos vêm do catálogo do editor; carrega na primeira vez.
+  if (marcos?.some((m) => m.moveis?.length) && typeof escritorioCatalogo !== "undefined" && !escritorioCatalogo && typeof carregarCatalogoEscritorio === "function")
+    carregarCatalogoEscritorio().then(() => { if (d.open) abrirFichaEscritorio(id, true); });
 }
 // Piso e paredes da própria sala: guardados no perfil do dono (o servidor só
 // aceita os valores desta lista).

@@ -155,8 +155,9 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
    semana e os últimos ganhos/perdas. Testes em PGlite para cada regra e para
    repetição (nenhum evento credita duas vezes). Nada aplicado em produção sem
    "Aprovado".
-2. **Fase 2**: loja com raridade, preço por faixa, estoque e vitrine semanal;
-   itens só por marco; marcos calculados no servidor.
+2. **Fase 2** (implementada em 17/10/2026, seção abaixo): loja com raridade,
+   preço por faixa, estoque e vitrine semanal; itens só por marco; marcos
+   calculados no servidor.
 3. **Fase 3**: metas do dia na tela e extrato completo.
 
 ## Como garantir que não duplica nem some
@@ -175,10 +176,17 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
   primeiro ciclo não cobra nem premia o passado; o histórico entra só pela
   chegada.
 
-## Fase 2 — loja com raridade, estoque e vitrine (plano, 17/10/2026)
+## Fase 2 — loja com raridade, estoque e vitrine (17/10/2026)
 
-Escrito para confirmação do Paulo antes de implementar. Tudo abaixo fica em
-tabela no banco: preço, estoque e vitrine mudam com um `UPDATE`, sem deploy.
+Plano aprovado pelo Paulo em 17/10/2026 ("pode seguir como está") e
+implementado: migração `migrations/2026-10-17-escritorio-loja.sql` (faixas em
+`vybe_escritorio_raridades`, móveis limitados em `vybe_escritorio_catalogo`,
+marcos em `vybe_escritorio_marcos`, gatilho sem as conquistas antigas), loja em
+`server/escritorio-economia.js`, marcos em `server/escritorio-marcos.js`
+(conferidos ao abrir ficha/loja e no ciclo diário), lista de faixas gerada por
+`scripts/escritorio-raridades.mjs`, testes em `tests/escritorio-loja.test.mjs`.
+Tudo abaixo fica em tabela no banco: preço, estoque e vitrine mudam com um
+`UPDATE`, sem deploy. Migração não aplicada em produção nesta revisão.
 
 ### Faixas de raridade
 
@@ -256,12 +264,23 @@ muito XP, vários marcos de nível já saem conquistados no primeiro dia.
 - Ficha: marcos vindos do servidor, com a data em que foram conquistados e o
   móvel que cada um dá.
 
-### Perguntas para o Paulo
+### Decididas pelo Paulo em 17/10/2026
 
-1. Preços 25 / 120 / 500 / 1.500 estão bons?
-2. Estoque da equipe toda (raro 10, muito raro 3, lendário 1)?
-3. Vitrine só para muito raro e lendário (6 + 2 por semana), com comum e raro
-   sempre à venda?
-4. A lista de móveis por marco acima pode ser essa?
-5. Os marcos de contagem passam a valer para toda entrega, e o gatilho para de
-   dar as conquistas antigas de 1ª/5ª/10ª demanda?
+1. Preços 25 / 120 / 500 / 1.500.
+2. Estoque da equipe toda (raro 10, muito raro 3, lendário 1).
+3. Vitrine só para muito raro e lendário (6 + 2 por semana); comum e raro
+   sempre à venda.
+4. Móveis por marco como na tabela acima.
+5. Marcos de contagem valem para toda entrega; o gatilho deixa de dar as
+   conquistas antigas de 1ª/5ª/10ª demanda (quem já tem, mantém).
+
+### Como mudar sem deploy
+
+- Preço ou estoque de uma faixa: `UPDATE vybe_escritorio_raridades SET preco=…,
+  estoque=… WHERE chave='raro'`. Vagas na vitrine: coluna `vitrine` (0 = sempre
+  à venda).
+- Um móvel: `UPDATE vybe_escritorio_catalogo SET raridade=…, estoque=…,
+  preco=… WHERE classe='…'`; móvel que não está na tabela é comum. Para tirar
+  um móvel da venda e deixá-lo só por marco: `marco='maratona'` (ids em
+  `server/escritorio-marcos.js`).
+- Valor da conquista dos marcos: regra `conquista` em `vybe_escritorio_regras`.

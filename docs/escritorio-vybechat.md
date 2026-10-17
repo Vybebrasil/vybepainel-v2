@@ -354,3 +354,39 @@ Plano, valores e decisões do Paulo em `docs/escritorio-pontos.md`. Resumo:
 - Validação: `tests/escritorio-pontos.test.mjs` cobre cada regra, repetição,
   rollback, regra desligada, fechamento do dia e da semana e a reconstrução do
   histórico em PGlite. Migração não aplicada em produção nesta revisão.
+
+### Loja com raridade, estoque, vitrine e marcos — fase 2 (17/10/2026)
+
+Plano e decisões do Paulo em `docs/escritorio-pontos.md` (seção "Fase 2").
+Resumo:
+
+- Faixas em `vybe_escritorio_raridades` (comum 25, raro 120, muito raro 500,
+  lendário 1.500; estoque por móvel 10/3/1; vitrine 6 + 2) e os móveis que não
+  são comuns em `vybe_escritorio_catalogo` (lista gerada por
+  `scripts/escritorio-raridades.mjs`; a tabela é a autoridade depois de
+  aplicada). Essenciais continuam grátis. Estoque é da equipe toda.
+- Vitrine da semana (`vitrineDaSemana`): sorteio fixo pela chave da semana
+  (mesma segunda do fechamento) e pelo móvel, entre os que ainda têm estoque
+  ou esgotaram na própria semana; muito raro e lendário só se compram quando
+  estão nela. `carregarEconomia` devolve `loja` (faixas, itens limitados,
+  vitrine) para o editor; a entrada não carrega a loja.
+- Compra (`comprarMovel`): tranca a carteira e depois a linha do móvel,
+  confere marco, estoque, vitrine e saldo, grava razão com a chave única e
+  soma `vendidos`. Repetição da chave devolve o mesmo resultado sem cobrar.
+- Marcos (`server/escritorio-marcos.js`): calculados pelas entregas, XP, metas
+  e fila; concedidos ao abrir a ficha ou a loja e no ciclo diário
+  (`conferirMarcosDaEquipe` em `/api/mirror-reconcile`); registro em
+  `vybe_escritorio_marcos`, conquista pela regra `conquista` (origens antigas
+  `conquista:primeira-demanda`/`dez-demandas`/`meu-quarto` reaproveitadas) e
+  o móvel do marco no inventário, na mesma transação. O gatilho deixou de dar
+  as conquistas de 1ª/5ª/10ª demanda. Quem administra vê os marcos de outra
+  pessoa (`acao=economia&pessoa=ID`).
+- Tela: loja mostra saldo, faixas, vitrine da semana, etiqueta de raridade,
+  "restam N", "Esgotado", "Fora da vitrine" e "Só por marco"; grupos "Vitrine
+  da semana", "Raros", "Muito raros" e "Lendários". A ficha lista os marcos do
+  servidor com data e o móvel que cada um dá; o cálculo no navegador saiu.
+- Validação: `tests/escritorio-loja.test.mjs` (preço por faixa e por móvel,
+  estoque esgotado com compras concorrentes, vitrine por semana, móvel só por
+  marco, marcos idempotentes, conquistas antigas não pagas duas vezes,
+  repetição da chave). Loja e ficha conferidas na demo em desktop e 375×812.
+  Migração não aplicada em produção nesta revisão.

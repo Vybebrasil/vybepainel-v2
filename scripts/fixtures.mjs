@@ -2,6 +2,23 @@ import { QUARTOS } from '../server/escritorio-quartos.js';
 // Exclusivo do servidor local. Nenhuma consulta ou gravação externa.
 import { readFileSync } from 'node:fs';
 import { salasDoEscritorio } from '../server/escritorio-mapa.js';
+import { vitrineDaSemana } from '../server/escritorio-economia.js';
+import { MARCOS } from '../server/escritorio-marcos.js';
+import { diaBahia, inicioDaSemana } from '../server/escritorio-pontos.js';
+import { raridadesDoCatalogo } from './escritorio-raridades.mjs';
+// Loja de demonstração: as mesmas faixas da migração da fase 2, estoque cheio,
+// vitrine sorteada pela semana corrente; os marcos só ilustram a ficha.
+const RARIDADES_DEMO=[{chave:'comum',nome:'Comum',ordem:1,preco:25,estoque:null,vitrine:0},{chave:'raro',nome:'Raro',ordem:2,preco:120,estoque:10,vitrine:0},
+  {chave:'muito_raro',nome:'Muito raro',ordem:3,preco:500,estoque:3,vitrine:6},{chave:'lendario',nome:'Lendário',ordem:4,preco:1500,estoque:1,vitrine:2}];
+const MOVEIS_DE_MARCO_DEMO={duzentas:'trophy_ltd23_goldmonsterplant',quinhentas:'se_trophyS',maratona:'legotrophy',semfuro:'trophy_ltd23_silvermonsterplant',nivel20:'se_trophyG',meta4:'school_consolegold'};
+function lojaDemo(){
+  const semana=inicioDaSemana(diaBahia());
+  const itens=Object.entries(raridadesDoCatalogo()).map(([classe,raridade])=>{const f=RARIDADES_DEMO.find(r=>r.chave===raridade);
+    return {classe,raridade,preco:f.preco,restante:f.estoque,marco:Object.keys(MOVEIS_DE_MARCO_DEMO).find(k=>MOVEIS_DE_MARCO_DEMO[k]===classe)||null};});
+  return {semana,raridades:RARIDADES_DEMO,itens,vitrine:vitrineDaSemana({semana,raridades:RARIDADES_DEMO,itens})};
+}
+const marcosDemo=()=>MARCOS.map(m=>({id:m.id,nome:m.nome,dica:m.dica,ok:['primeira','dez','embalo','zerado','quarto'].includes(m.id),
+  em:['primeira','dez','embalo','zerado','quarto'].includes(m.id)?new Date(Date.now()-3*864e5).toISOString():null,moveis:MOVEIS_DE_MARCO_DEMO[m.id]?[MOVEIS_DE_MARCO_DEMO[m.id]]:[]}));
 import { GRUPOS_PADRAO, CORES_DE_GRUPO } from '../server/grupos.js';
 const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
 // As Notas gravam na demonstração: são um caderno em memória, sem banco nem
@@ -104,7 +121,7 @@ export async function demoApi(req,res,url,body) {
       if(url.searchParams.get('acao')==='boneco'){const r=await fetch('https://www.habboassets.com/imaging/avatar.png?'+new URLSearchParams({figure:url.searchParams.get('figura')||'',direction:url.searchParams.get('dir')||'2',size:'n'})).catch(()=>null);if(!r?.ok)return reply(404,{error:'Boneco indisponível.'});res.writeHead(200,{'Content-Type':'image/png'});return res.end(Buffer.from(await r.arrayBuffer()));}
       if(url.searchParams.get('acao')==='arte'){const arquivo=url.searchParams.get('arquivo')||'';if(!/^[a-z0-9_]+\.(png|json)$/.test(arquivo))return reply(400,{error:'Arquivo inválido.'});try{const dados=readFileSync(new URL('../assets/escritorio/habbo/'+arquivo,import.meta.url));res.writeHead(200,{'Content-Type':arquivo.endsWith('.png')?'image/png':'application/json; charset=utf-8'});return res.end(dados);}catch{/* Fora do painel: igual à produção, busca no catálogo do Habbo. */return import('../server/escritorio-mapa.js').then(({arteRemotaEscritorio})=>arteRemotaEscritorio(arquivo.replace(/\.(png|json)$/,''),arquivo.endsWith('.png')?'png':'json')).then((dados)=>{res.writeHead(200,{'Content-Type':arquivo.endsWith('.png')?'image/png':'application/json; charset=utf-8'});res.end(dados);}).catch(()=>reply(404,{error:'Arte não encontrada.'}));}}
       const equipeDemo=['Operador de teste','Design demonstração','Edição demonstração','Atendimento demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul','verde','roxo'][i],pele:'media',cabelo:['curto','longo','cacheado','curto'][i],mesa:['grafite','azul','verde','roxo'][i],objeto:['planta','livros','luminaria','planta'][i],sala:'convivencia',x:50,y:70}}));
-      return reply(200,{ok:true,demo:true,quartos:QUARTOS,economia:{disponivel:true,saldo:0,inventario:[],essenciais:QUARTOS.essenciais,preco:25,conquistas:[],
+      return reply(200,{ok:true,demo:true,quartos:QUARTOS,economia:{disponivel:true,saldo:700,inventario:[],essenciais:QUARTOS.essenciais,preco:25,conquistas:[],loja:lojaDemo(),marcos:marcosDemo(),
         // Pontos de demonstração, só para a ficha: nada disso vem de banco.
         pontos:{nivel:3,xp:40,xpProximo:140,xpTotal:200,funcao:'gestao',carteira:null,meta:{inicio:new Date().toISOString().slice(0,10),fim:new Date().toISOString().slice(0,10),funcao:'gestao',entregas:3,meta:4,semanas:6,media:3.8},
          extrato:[{origem:'dia:hoje:sem-furo',regra:'dia_sem_furo',descricao:'Dia fechado sem furo de veiculação',moedas:10,pontos:10,criado_em:new Date().toISOString()},
