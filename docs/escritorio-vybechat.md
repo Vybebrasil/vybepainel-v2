@@ -282,7 +282,8 @@ Regra confirmada por Paulo: 10 moedas por demanda finalizada e 50 por conquista.
 A migração `2026-10-17-escritorio-vybecoins.sql` adiciona carteiras, razão,
 inventário e recibo global da demanda. O trigger acompanha o evento de status na
 mesma transação, antes das automações retirarem responsáveis. Cada executor
-recebe 10 apenas na primeira finalização da atividade. Reabrir ou trocar de
+recebe 10 apenas na primeira finalização da atividade (`Finalizado` ou `Feito`,
+conforme a equivalência já usada nas automações). Reabrir ou trocar de
 executor não recompensa de novo. Demandas já finalizadas antes da migração são
 marcadas sem crédito retroativo. Conquistas únicas: montar o quarto, primeira,
 quinta e décima demanda concluída. Não há moedas por mera presença.

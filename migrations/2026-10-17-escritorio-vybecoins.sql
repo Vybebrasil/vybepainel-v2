@@ -24,8 +24,8 @@ LOCK TABLE vybe_conteudo_eventos IN SHARE ROW EXCLUSIVE MODE;
 INSERT INTO vybe_escritorio_demandas_premiadas(conteudo_id)
  SELECT DISTINCT c.id FROM vybe_conteudos c
  LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
- WHERE c.board_id=8385559107 AND (lower(trim(s.rotulo))='finalizado' OR EXISTS(
- SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='status' AND lower(trim(e.para))='finalizado'))
+ WHERE c.board_id=8385559107 AND (lower(trim(s.rotulo)) IN ('finalizado','feito') OR EXISTS(
+ SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='status' AND lower(trim(e.para)) IN ('finalizado','feito')))
  ON CONFLICT DO NOTHING;
 CREATE OR REPLACE FUNCTION vybe_creditar_moedas(p bigint, origem_evento text, valor integer)
  RETURNS boolean LANGUAGE plpgsql AS $$
@@ -41,7 +41,7 @@ END $$;
 CREATE OR REPLACE FUNCTION vybe_premiar_demanda() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE recibo bigint; executor bigint; total integer;
 BEGIN
- IF NEW.tipo IS DISTINCT FROM 'status' OR lower(trim(NEW.para)) IS DISTINCT FROM 'finalizado' OR NOT EXISTS(
+ IF NEW.tipo IS DISTINCT FROM 'status' OR COALESCE(lower(trim(NEW.para)),'') NOT IN ('finalizado','feito') OR NOT EXISTS(
  SELECT 1 FROM vybe_conteudos WHERE id=NEW.conteudo_id AND board_id=8385559107) THEN RETURN NEW; END IF;
  INSERT INTO vybe_escritorio_demandas_premiadas(conteudo_id) VALUES(NEW.conteudo_id)
  ON CONFLICT DO NOTHING RETURNING conteudo_id INTO recibo;

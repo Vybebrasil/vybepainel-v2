@@ -12,9 +12,9 @@ async function banco(t) {
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);
  CREATE TABLE vybe_conteudo_eventos(id bigserial PRIMARY KEY,conteudo_id bigint,tipo text,para text);
- INSERT INTO vybe_conteudos VALUES(1,8385559107,'aberta'),(2,7829537690,'aberta'),(3,8385559107,'final');
- INSERT INTO vybe_status VALUES(8385559107,'final','Finalizado');
- INSERT INTO vybe_conteudo_responsaveis VALUES(1,1),(2,1),(3,1);`);
+ INSERT INTO vybe_conteudos VALUES(1,8385559107,'aberta'),(2,7829537690,'aberta'),(3,8385559107,'final'),(4,8385559107,'aberta'),(5,8385559107,'feito');
+ INSERT INTO vybe_status VALUES(8385559107,'final','Finalizado'),(8385559107,'feito','Feito');
+ INSERT INTO vybe_conteudo_responsaveis VALUES(1,1),(2,1),(3,1),(4,1),(5,1);`);
  for(const f of ['2026-10-15-escritorio.sql','2026-10-16-escritorio-mapa.sql','2026-10-17-escritorio-vybecoins.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
  return {db,sql};
 }
@@ -24,6 +24,8 @@ test('finalização premia só demandas e uma vez, com conquista única; produç
  assert.equal((await carregarEconomia(sql,1)).saldo,0);
  await db.exec(`INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para) VALUES(1,'status','Finalizado'),(1,'status','Finalizado'),(2,'status','Finalizado'),(3,'status','Finalizado');`);
  assert.equal((await carregarEconomia(sql,1)).saldo,60);
+ await db.exec(`INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para) VALUES(4,'status','Feito'),(5,'status','Feito');`);
+ assert.equal((await carregarEconomia(sql,1)).saldo,70);
  await db.exec(`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=1;INSERT INTO vybe_conteudo_responsaveis VALUES(1,2);INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para) VALUES(1,'status','Finalizado');`);
  assert.equal((await carregarEconomia(sql,2)).saldo,0);
 });
