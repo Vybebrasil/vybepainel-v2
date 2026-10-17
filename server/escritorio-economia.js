@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resumoPontos } from './escritorio-pontos.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
 export const MOVEIS_ESSENCIAIS = quartos.essenciais;
@@ -16,7 +17,8 @@ export async function carregarEconomia(sql, pessoaId) {
  const [carteira] = await sql`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
  const inventario = await sql`SELECT classe,quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId}`;
  const conquistas = await sql`SELECT origem,criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%' ORDER BY criado_em`;
- return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:25};
+ // Pontos (XP, meta e extrato) chegam depois da migração própria; sem ela, null.
+ return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:25,pontos:await resumoPontos(sql,pessoaId)};
 }
 export async function comprarMovel(sql, pessoaId, {classe,chave}={}) {
  const preco = precoMovel(classe);

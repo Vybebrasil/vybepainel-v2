@@ -1,6 +1,7 @@
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 import { varrerAgenda, recalcularPrioridades } from '../vybe_automacoes.js';
 import { registrarSnapshotOperacional, registrarSaude } from '../vybe_observabilidade.js';
+import { fecharPontosEscritorio } from '../server/escritorio-pontos.js';
 
 function isCronAuthorized(req) {
   const secret = process.env.CRON_SECRET;
@@ -27,7 +28,14 @@ export default async function handler(req, res) {
     try { prioridades = await recalcularPrioridades(sql); }
     catch (erro) { console.error('Recalculo de prioridades falhou:', erro.message); prioridades = { erro: erro.message }; }
 
+    // Pontos do Escritório: fecha o dia que acabou (e a semana, na segunda).
+    // Idempotente; sem a migração responde disponivel:false e segue.
+    let escritorio = null;
+    try { escritorio = await fecharPontosEscritorio(sql); }
+    catch (erro) { console.error('Fechamento dos pontos do Escritório falhou:', erro.message); escritorio = { erro: erro.message }; }
+
     await registrarSaude(sql, 'automacoes', agenda?.erro ? 'erro' : 'ok', agenda || {});
+    await registrarSaude(sql, 'escritorio', escritorio?.erro ? 'erro' : 'ok', escritorio || {});
     await registrarSaude(sql, 'prioridades', prioridades?.erro ? 'erro' : 'ok', prioridades || {});
     const snapshot = await registrarSnapshotOperacional(sql, 'cron_integridade');
 
@@ -35,6 +43,7 @@ export default async function handler(req, res) {
       ok: true,
       agenda,
       prioridades,
+      escritorio,
       snapshot: { id: snapshot.id, data_referencia: snapshot.data_referencia, atualizado_em: snapshot.atualizado_em },
       autoridade: 'vybe',
     });

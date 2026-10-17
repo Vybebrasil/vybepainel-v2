@@ -6669,6 +6669,15 @@ body.no-escritorio {overflow:hidden}
 .ofc-ficha-numeros dt {font-size:11px;color:#a3a9b7}
 .ofc-ficha-numeros dd {margin:2px 0 0;font:700 18px var(--mac-ui);font-variant-numeric:tabular-nums}
 .ofc-ficha-numeros dd em {font-style:normal;font-size:11px;font-weight:600;color:#ffb4a8}
+.ofc-ficha-meta {display:grid;gap:6px;margin-top:10px;padding:12px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff14}
+.ofc-ficha-meta b {font:700 14px var(--mac-ui)}
+.ofc-ficha-meta small {color:#a3a9b7;font-size:11px}
+.ofc-extrato {list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
+.ofc-extrato li {display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:#ffffff06;font-size:12px}
+.ofc-extrato li small {color:#a3a9b7;font-size:11px}
+.ofc-extrato li b {font-variant-numeric:tabular-nums;color:#ffc79a;white-space:nowrap}
+.ofc-extrato li b.perda {color:#ffb4a8}
+.ofc-extrato li b i {font-style:normal;font-weight:500;color:#a3a9b7}
 .ofc-marcos {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
 .ofc-marcos li {display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:#ffffff06;opacity:.55}
 .ofc-marcos li.ok {opacity:1;background:#ffd16614;outline:1px solid #ffd16640}

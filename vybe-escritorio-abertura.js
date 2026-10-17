@@ -324,7 +324,7 @@ function renderAberturaEscritorio() {
   <li><b>Suas demandas</b> ficam no botão Painel, na barra de baixo: modo Gestor, Minhas tarefas, Foco e os outros módulos. "Voltar ao escritório" traz você de volta ao mapa.</li>
   <li><b>Entrou numa sala, está na conversa dela</b>, com o microfone ligado: quem está ali ouve você. Clique no microfone para silenciar. A câmera começa desligada.</li>
  </ul>
- <p>Ganhe <b>10 VybeCoins por demanda finalizada</b> e <b>50 por conquista</b>. Os essenciais são gratuitos. Extras custam 25 moedas por unidade na loja do editor. Montar seu primeiro quarto desbloqueia 50 moedas.</p>
+ <p>Ganhe <b>VybeCoins e XP pelo que entrega</b>: cada função tem suas regras, e a sua ficha mostra a meta da semana e os últimos pontos. Os essenciais são gratuitos. Extras custam 25 moedas por unidade na loja do editor. Montar seu primeiro quarto desbloqueia 50 moedas.</p>
  <p class="abr-erro" role="alert" id="abr-erro"></p>
  <div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa=escritorioMinhaMesa()&&!escritorio.perfil.quarto_configurado?'acabamento':'personagem';renderAberturaEscritorio()">Revisar escolhas</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio(true)">Entrar no escritório</button></div></div>
 </section>`;
