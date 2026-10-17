@@ -155,7 +155,8 @@ ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostr
 // Pinta um ladrilho ou trecho de parede da própria sala (x, y do mapa).
 function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
   const mesa = escritorioMinhaMesa(), pin = escritorioPincel();
-  if (!mesa) return false;
+  // Só de dentro do próprio quarto (as coordenadas são as dele).
+  if (!mesa || escritorio.quarto !== mesa.ambiente.id) return false;
   const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0, L = ESCRITORIO_SALA_LADO;
   if (lx < 0 || ly < 0 || lx >= L || ly >= L) return false;
   const p = escritorio.perfil;
@@ -278,11 +279,11 @@ function escritorioRedesenharMapa() {
 if (typeof window !== "undefined" && typeof setInterval === "function")
   setInterval(() => { if (typeof activeBoard !== "undefined" && activeBoard === "escritorio") atualizarBarraDiaEscritorio(); }, 60000);
 
-// O trecho existe como parede no mapa (portas são vãos, sem parede)?
+// O trecho existe como parede no quarto (a porta é um vão, sem parede)?
 function escritorioTrechoExiste(a, i) {
   const [eixo, resto] = escritorioChaveTrecho(a, i).split(":");
   const [x, y] = resto.split(",").map(Number);
-  return ESCRITORIO_PLANTA.divisorias.some(([x0, y0, x1, y1]) => eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1);
+  return escritorioParedesDoQuarto(a).some(([x0, y0, x1, y1]) => eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1);
 }
 
 // Pisos do acervo (com animação, como água e grama): escolha um e pinte.

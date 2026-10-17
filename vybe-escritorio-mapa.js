@@ -32,9 +32,16 @@ function mapaCarregarMovel(classe) {
 }
 // Ladrilho → tela: vértice de cima do ladrilho.
 function mapaTela(x, y, origem) {
-  return { x: origem.x + (x - y) * (MAPA_TW / 2), y: origem.y + (x + y) * (MAPA_TH / 2) };
+  return { x: origem.x + (x - y) * (MAPA_TW / 2), y: origem.y + (x + y) * (MAPA_TH / 2) - (origem.alturaAtual ?? origem.nivelEm?.(x,y) ?? 0)*24 };
 }
 function mapaLadrilho(sx, sy, origem) {
+  if (origem.nivelEm) {
+    // Testa cada patamar projetado: o clique deve atingir o chão elevado.
+    for(let n=2;n>=0;n--) {
+      const t=mapaLadrilho(sx,sy+n*24,{...origem,nivelEm:null});
+      if(origem.nivelEm(t.x,t.y)===n) return t;
+    }
+  }
   const a = (sx - origem.x) / (MAPA_TW / 2), b = (sy - origem.y) / (MAPA_TH / 2);
   return { x: (a + b) / 2, y: (b - a) / 2 };
 }
@@ -178,14 +185,15 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(c.x, c.y); g.lineTo(d.x, d.y); g.closePath();
   };
   const cor = (piso, x, y) => { const p = planta.PISO[piso] || planta.PISO.corredor; return p[(Math.floor(x) + Math.floor(y)) % 2]; };
-  const P = planta.PREDIO;
+  // Quarto (cena própria): sem prédio, cidade nem praça em volta.
+  const P = planta.PREDIO || { x0: 0, y0: 0, x1: 0, y1: 0 };
   // Vybelândia: a cidade ao fundo, com janelas acesas, atrás das paredes.
   const topoEsq = mapaTela(0, P.y1, origem), topoMeio = mapaTela(0, 0, origem), topoDir = mapaTela(P.x1, 0, origem);
   let semente = 7;
   const sorte = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
   // Com a imagem da praça da Vybelândia de fundo, a cidade, o céu e a praça
   // vêm dela; o desenho abaixo é só o reserva (sem a imagem).
-  const video = Boolean(planta.fundo);
+  const video = Boolean(planta.fundo) || Boolean(planta.quarto);
   for (let x = topoEsq.x - 120; !video && x < topoDir.x + 160; x += 34 + sorte() * 40) {
     const t = x < topoMeio.x ? (x - topoEsq.x) / (topoMeio.x - topoEsq.x) : (topoDir.x - x) / (topoDir.x - topoMeio.x);
     const base = topoMeio.y - MAPA_PAREDE + (1 - Math.max(0, Math.min(1, t))) * (topoEsq.y - topoMeio.y) + 40;
@@ -231,55 +239,90 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.restore();
     return true;
   };
+  // Ambiente do ladrilho nesta planta (a cena: o mapa geral ou um quarto).
+  const ambienteEm = (x, y) => (planta.ambientes || []).find((a) => x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1) || null;
+  // Ladrilho de sala pessoal (quarto ou o que o dono pintou): a cor dela com
+  // o veio da madeira por cima; corredores e espaços comuns: o piso do acervo.
+  const ladrilho = (x, y, a, extra = null) => {
+    if(planta.quarto) origem.alturaAtual=planta.nivelEm?.(x,y) || 0;
+    const pintado = planta.pisoLadrilho?.(x, y);
+    losango(x, y); g.fillStyle = cor(pintado || (extra ? extra.piso : a ? a.piso : "corredor"), x, y); g.fill();
+    if (pintado || a?.pessoal) textura(x, y, planta.texturaSalas, a?.x0 || 0, a?.y0 || 0, "soft-light");
+    else textura(x, y, extra?.textura || a?.textura || (a ? "" : planta.texturaCorredor), extra?.x0 ?? a?.x0 ?? 0, extra?.y0 ?? a?.y0 ?? 0);
+    g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
+    if(planta.quarto) {
+      const n=origem.alturaAtual;
+      for(const [dx,dy] of [[1,0],[0,1]]) {
+        const viz=planta.andavel(x+dx,y+dy) ? planta.nivelEm(x+dx,y+dy) : -0.4;
+        if(n<=viz) continue;
+        const p=mapaTela(x+dx,y+dy,origem),q=mapaTela(x+1,y+1,origem);
+        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+(n-viz)*24);g.lineTo(p.x,p.y+(n-viz)*24);g.closePath();g.fillStyle=dx?"#36333c":"#49424b";g.fill();
+      }
+      delete origem.alturaAtual;
+    }
+  };
+  // Soleira sob cada porta: o vão ganha um piso próprio, mais claro, para a
+  // porta de vidro ter chão embaixo em vez de parecer solta no corredor.
+  const soleiras = () => {
+    for (const pt of [...(planta.portas || []), ...(planta.soleiras || [])]) for (let i = 0; i < pt.w; i++) for (let j = 0; j < pt.h; j++) {
+      losango(pt.x + i, pt.y + j);
+      g.fillStyle = "#8c8e99"; g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
+      g.strokeStyle = "#00000040"; g.lineWidth = 1; g.stroke();
+    }
+  };
+  // Espessura do piso nas bordas da frente (o chão é uma laje, não um papel).
+  const borda = (x0, y0, x1, y1, tom) => {
+    const a = mapaTela(x0, y0, origem), b = mapaTela(x1, y1, origem);
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(b.x, b.y + 10); g.lineTo(a.x, a.y + 10); g.closePath();
+    g.fillStyle = tom; g.fill();
+  };
+  // Quarto (cena própria): só o piso dele e a soleira da porta, sobre o
+  // escuro, como um quarto do Habbo. O resto desta função é o prédio.
+  if (planta.quarto) {
+    const a = planta.ambientes[0];
+    for (let soma=0;soma<16;soma++) for(let x=0;x<8;x++) {const y=soma-x;if(y>=0&&y<8&&planta.andavel(x,y)) ladrilho(x,y,a);}
+    soleiras();
+    borda(a.x0, a.y1, a.x1, a.y1, "#1b1c20"); borda(a.x1, a.y0, a.x1, a.y1, "#25262b");
+    return;
+  }
   // Lá fora: gramados, calçadas e deck desenhados por cima da praça do vídeo.
   for (const r of planta.texturas || []) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) {
     if (!textura(x, y, r.textura, r.x0, r.y0)) { losango(x, y); g.fillStyle = cor(r.piso || "praca", x, y); g.fill(); }
   }
   for (let x = P.x0; x < P.x1; x++) for (let y = P.y0; y < P.y1; y++) {
-    const a = escritorioAmbienteEm(x + 0.5, y + 0.5);
+    // Dentro de uma fachada: chão escuro (o quarto fica em outra cena).
+    if ((planta.fachadas || []).some((f) => x >= f.x0 && x < f.x1 && y >= f.y0 && y < f.y1)) {
+      losango(x, y); g.fillStyle = (x + y) % 2 ? "#15161c" : "#181920"; g.fill();
+      g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
+      continue;
+    }
     // Piso de um espaço dentro do ambiente (os quatro do Lounge).
     const extra = (planta.pisos || []).find((q) => x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
-    // Ladrilho pintado pelo dono da sala.
-    const pintado = planta.pisoLadrilho?.(x, y);
-    losango(x, y); g.fillStyle = cor(pintado || (extra ? extra.piso : a ? a.piso : "corredor"), x, y); g.fill();
-    // Sala individual (e o que o dono pintou): a cor dela com o veio da
-    // madeira por cima; espaços comuns e corredores: o piso do acervo.
-    if (pintado || a?.pessoal) textura(x, y, planta.texturaSalas, a?.x0 || 0, a?.y0 || 0, "soft-light");
-    else textura(x, y, extra?.textura || a?.textura || (a ? "" : planta.texturaCorredor), extra?.x0 ?? a?.x0 ?? 0, extra?.y0 ?? a?.y0 ?? 0);
-    g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
+    ladrilho(x, y, ambienteEm(x + 0.5, y + 0.5), extra);
   }
-  // Soleira sob cada porta: o vão ganha um piso próprio, mais claro, para a
-  // porta de vidro ter chão embaixo em vez de parecer solta no corredor.
-  for (const pt of [...(planta.portas || []), ...(planta.soleiras || [])]) for (let i = 0; i < pt.w; i++) for (let j = 0; j < pt.h; j++) {
-    losango(pt.x + i, pt.y + j);
-    g.fillStyle = "#8c8e99"; g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
-    g.strokeStyle = "#00000040"; g.lineWidth = 1; g.stroke();
-  }
+  soleiras();
   // Faixa laranja no meio dos corredores, como as ruas da Vybelândia.
   g.strokeStyle = "#ff7a1a55"; g.lineWidth = 2; g.setLineDash([10, 8]);
   // Corredor: y (de ponta a ponta do prédio) ou [y, x0, x1] (um trecho).
   for (const c of planta.corredores || []) { const [y, cx0, cx1] = Array.isArray(c) ? c : [c, P.x0, P.x1]; const a = mapaTela(cx0, y, origem), b = mapaTela(cx1, y, origem); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
   g.setLineDash([]);
   const pi = planta.piscina;
-  for (let x = pi.x0 - 1; x < pi.x1 + 1; x++) for (let y = pi.y0 - 1; y < pi.y1 + 2; y++) if (!textura(x, y, planta.texturaDeck, pi.x0 - 1, pi.y0 - 1)) { losango(x, y); g.fillStyle = cor("deck", x, y); g.fill(); }
-  // Água da piscina: azul com reflexos e a borda interna mais escura.
-  losango(pi.x0, pi.y0, pi.x1 - pi.x0, pi.y1 - pi.y0);
-  const ag = mapaTela(pi.x0, pi.y0, origem), ab = mapaTela(pi.x1, pi.y1, origem);
-  const grad = g.createLinearGradient(ag.x, ag.y, ab.x, ab.y);
-  grad.addColorStop(0, "#1f8fd6"); grad.addColorStop(1, "#4cc3f0");
-  g.fillStyle = grad; g.fill();
-  g.strokeStyle = "#0e5f96"; g.lineWidth = 4; g.stroke();
-  g.strokeStyle = "#ffffff55"; g.lineWidth = 2;
-  for (let i = 1; i < pi.x1 - pi.x0; i += 2) {
-    const a = mapaTela(pi.x0 + i, pi.y0 + 0.6, origem), b = mapaTela(pi.x0 + i + 0.8, pi.y0 + 0.6, origem);
-    g.beginPath(); g.moveTo(a.x, a.y + 6); g.lineTo(b.x, b.y + 6); g.stroke();
+  if (pi) {
+    for (let x = pi.x0 - 1; x < pi.x1 + 1; x++) for (let y = pi.y0 - 1; y < pi.y1 + 2; y++) if (!textura(x, y, planta.texturaDeck, pi.x0 - 1, pi.y0 - 1)) { losango(x, y); g.fillStyle = cor("deck", x, y); g.fill(); }
+    // Água da piscina: azul com reflexos e a borda interna mais escura.
+    losango(pi.x0, pi.y0, pi.x1 - pi.x0, pi.y1 - pi.y0);
+    const ag = mapaTela(pi.x0, pi.y0, origem), ab = mapaTela(pi.x1, pi.y1, origem);
+    const grad = g.createLinearGradient(ag.x, ag.y, ab.x, ab.y);
+    grad.addColorStop(0, "#1f8fd6"); grad.addColorStop(1, "#4cc3f0");
+    g.fillStyle = grad; g.fill();
+    g.strokeStyle = "#0e5f96"; g.lineWidth = 4; g.stroke();
+    g.strokeStyle = "#ffffff55"; g.lineWidth = 2;
+    for (let i = 1; i < pi.x1 - pi.x0; i += 2) {
+      const a = mapaTela(pi.x0 + i, pi.y0 + 0.6, origem), b = mapaTela(pi.x0 + i + 0.8, pi.y0 + 0.6, origem);
+      g.beginPath(); g.moveTo(a.x, a.y + 6); g.lineTo(b.x, b.y + 6); g.stroke();
+    }
   }
   // Espessura do piso do prédio nas bordas da frente
-  const borda = (x0, y0, x1, y1, tom) => {
-    const a = mapaTela(x0, y0, origem), b = mapaTela(x1, y1, origem);
-    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(b.x, b.y + 10); g.lineTo(a.x, a.y + 10); g.closePath();
-    g.fillStyle = tom; g.fill();
-  };
   borda(P.x0, P.y1, P.x1, P.y1, "#1b1c20"); borda(P.x1, P.y0, P.x1, P.y1, "#25262b");
   // Paredes do fundo: eixo x (cima-direita) e eixo y (cima-esquerda)
   const parede = (x0, y0, x1, y1, tom) => {
@@ -534,7 +577,7 @@ function mapaDirecaoDoPasso(dx, dy) {
 // Mecânica do Habbo: anda de ladrilho em ladrilho, desvia de paredes e móveis
 // e senta quando para num assento. A grade marca o que bloqueia; paredes são
 // arestas entre ladrilhos vizinhos.
-const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
+const MAPA_ASSENTOS = new Set(["chair_polyfon","hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
   "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
   "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair"]);
 function mapaMontarGrade(P, moveis) {
@@ -556,6 +599,12 @@ function mapaMontarGrade(P, moveis) {
   // desenhadas no fundo e não entram na grade.
   const B = P.PREDIO;
   if (B) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if ((y < B.y0 && x < B.x1 + 1) || (x < B.x0 && y < B.y1 + 1)) bloqueado[ind(x, y)] = 1;
+  // Quarto: só se anda dentro dele e na soleira (P.andavel).
+  if (P.andavel) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (!P.andavel(x, y)) bloqueado[ind(x, y)] = 1;
+  // Fachada de sala no mapa geral: fechada, menos os ladrilhos atrás da
+  // porta (pisar neles entra no quarto).
+  for (const f of P.fachadas || []) for (let x = f.x0; x < f.x1; x++) for (let y = f.y0; y < f.y1; y++)
+    if (!f.entrada.some((e) => e.x === x && e.y === y)) bloqueado[ind(x, y)] = 1;
   for (const m of moveis) {
     if (m.altura || m.plano || MAPA_PORTAS.test(m.classe)) continue; // em cima de mesa, rente ao piso ou porta (se atravessa)
     const senta = MAPA_ASSENTOS.has(m.classe);
@@ -566,13 +615,14 @@ function mapaMontarGrade(P, moveis) {
       else bloqueado[ind(x, y)] = 1;
     }
   }
-  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta };
+  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta, nivelEm:P.nivelEm };
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
 // caminhos retos também passam (não corta quina de parede).
 function mapaPassa(g, x, y, dx, dy) {
   const nx = x + dx, ny = y + dy;
   if (nx < 0 || ny < 0 || nx >= g.W || ny >= g.H || g.bloqueado[g.ind(nx, ny)]) return false;
+  if (g.nivelEm && Math.abs(g.nivelEm(x,y)-g.nivelEm(nx,ny))>1) return false;
   if (dx && dy) return mapaPassa(g, x, y, dx, 0) && mapaPassa(g, x + dx, y, 0, dy) && mapaPassa(g, x, y, 0, dy) && mapaPassa(g, x, y + dy, dx, 0);
   return !g.paredes.has(g.aresta(g.ind(x, y), g.ind(nx, ny)));
 }
@@ -664,11 +714,13 @@ function mapaOrdenar(objetos) {
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
-function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar }) {
+function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoClicarFachada, aoClicarSaida }) {
   const P = planta;
+  // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
+  el.dataset.cena = P.quarto ? "quarto" : "mapa";
   const largura = (P.W + P.H) * (MAPA_TW / 2) + 80;
   const altura = (P.W + P.H) * (MAPA_TH / 2) + MAPA_PAREDE + 140;
-  const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60 };
+  const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60, nivelEm:P.nivelEm };
   const palco = document.createElement("div");
   palco.className = "mapa-palco";
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
@@ -1077,27 +1129,54 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     return { ...mapaDimensoes(m.dados, d), dir: d, direcoes: Object.keys(m.dados.visualizations.find((v) => v.size === 64)?.directions || { 0: 1 }).map(Number) };
   }
 
-  // Rótulos dos ambientes
+  // Rótulos dos ambientes. Os clicáveis (porta de saída do quarto) são botões.
   for (const q of P.rotulos || []) {
-    const t = mapaTela(q.x, q.y, origem), r = document.createElement("span");
-    r.className = "mapa-rotulo";
+    const t = mapaTela(q.x, q.y, origem), r = document.createElement(q.saida ? "button" : "span");
+    r.className = "mapa-rotulo" + (q.saida ? " saida" : "");
+    if (q.saida) { r.type = "button"; r.addEventListener("click", (e) => { e.stopPropagation(); aoClicarSaida?.(); }); r.addEventListener("pointerdown", (e) => e.stopPropagation()); }
     r.textContent = q.texto;
     r.style.left = t.x + "px"; r.style.top = t.y + "px";
     palco.append(r);
   }
   for (const a of P.ambientes) {
-    if (a.semRotulo) continue;
-    // Sala individual: letreiro em neon (cor da sala) acima da porta, como
-    // uma placa sobre a entrada, sem cobrir a porta de vidro nem os móveis;
-    // espaços comuns: no centro.
-    const t = a.pessoal ? (a.porta === "direita" ? mapaTela(a.x1, (a.y0 + a.y1) / 2, origem) : mapaTela((a.x0 + a.x1) / 2, a.y1, origem)) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
+    if (a.semRotulo || a.pessoal) continue;
+    const t = mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
     const r = document.createElement("span");
-    r.className = "mapa-rotulo" + (a.pessoal ? " neon" : "");
-    if (a.pessoal && a.cor) r.style.setProperty("--neon", a.cor);
+    r.className = "mapa-rotulo";
     r.dataset.ambiente = a.id;
     r.textContent = a.nome;
-    r.style.left = t.x + "px"; r.style.top = t.y - (a.pessoal ? 104 : 0) + "px";
+    r.style.left = t.x + "px"; r.style.top = t.y + "px";
     palco.append(r);
+  }
+  // Fachadas das salas: letreiro em neon (cor da sala) acima da porta, com
+  // quantos estão dentro do quarto; clicar leva até a porta.
+  const fachadaNos = new Map();
+  for (const f of P.fachadas || []) {
+    const t = f.porta === "direita" ? mapaTela(f.x1, (f.y0 + f.y1) / 2, origem) : mapaTela((f.x0 + f.x1) / 2, f.y1, origem);
+    const r = document.createElement("button");
+    r.type = "button";
+    r.className = "mapa-rotulo neon fachada";
+    if (f.cor) r.style.setProperty("--neon", f.cor);
+    r.dataset.ambiente = f.id;
+    r.innerHTML = "<span></span><b class=\"mapa-dentro\" hidden></b>";
+    r.querySelector("span").textContent = f.nome;
+    r.setAttribute("aria-label", f.nome + ": ir até a porta");
+    r.style.left = t.x + "px"; r.style.top = t.y - 104 + "px";
+    r.addEventListener("click", (e) => { e.stopPropagation(); aoClicarFachada?.(f.id); });
+    r.addEventListener("pointerdown", (e) => e.stopPropagation());
+    palco.append(r);
+    fachadaNos.set(f.id, r);
+  }
+  // Quantos estão dentro de cada quarto: [{ id, n, nomes }].
+  function marcarFachadas(lista) {
+    for (const { id, n, nomes } of lista || []) {
+      const r = fachadaNos.get(id);
+      if (!r) continue;
+      const b = r.querySelector(".mapa-dentro");
+      b.hidden = !n;
+      b.textContent = n > 9 ? "9+" : String(n || "");
+      r.title = n ? `${n} ${n === 1 ? "pessoa" : "pessoas"} dentro${nomes ? ": " + nomes : ""}` : "Ninguém dentro";
+    }
   }
 
   // Personagens
@@ -1350,12 +1429,29 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     else ultimoCam = 0;
   };
   const mexerCam = () => { if (!quadroCam) quadroCam = requestAnimationFrame(animarCam); };
-  function centralizar(x, y) {
+  function centralizar(x, y, z) {
+    if (z) alvo.z = Math.max(0.35, Math.min(2.2, z));
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
     alvo.x = cam.x = r.width / 2 - t.x * alvo.z; alvo.y = cam.y = r.height / 2 - t.y * alvo.z;
     zoom = alvo.z; inercia = null;
     aplicar();
   }
+  // O quarto cabe na área disponível, inclusive após abrir a lateral ou girar o celular.
+  function enquadrarQuarto() {
+    if (!P.quarto) return;
+    const a = P.ambientes[0], r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const w = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TW / 2 + 48;
+    const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100;
+    centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
+      Math.max(0.35, Math.min(1.35, (r.width - 32) / w, (r.height - 180) / h)));
+    // O centro visual inclui as paredes e o patamar alto, acima do piso.
+    alvo.y += (MAPA_PAREDE + (P.nivelEm ? 48 : 0)) * alvo.z / 2;
+    cam.y=alvo.y; aplicar();
+  }
+  const tamanhoQuarto = P.quarto && typeof ResizeObserver !== "undefined"
+    ? new ResizeObserver(enquadrarQuarto) : null;
+  tamanhoQuarto?.observe(el);
   // Zoom em volta de um ponto da tela (o cursor; sem ponto, o centro).
   function mudarZoom(fator, cx, cy) {
     const r = el.getBoundingClientRect();
@@ -1444,6 +1540,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   // Câmera que acompanha a pessoa: só muda o alvo; arrastar o mapa solta,
   // voltar a andar prende de novo.
   function seguir(x, y, retomar) {
+    // Quarto: cabe inteiro na tela; a câmera fica parada.
+    if (P.fixa) return;
     if (retomar) seguindo = true;
     if (!seguindo) return;
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
@@ -1612,7 +1710,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Ponto da janela de um ladrilho (para pôr a barrinha do editor ao lado do móvel).
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
-    registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
+    registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona, marcarFachadas,
     balao, reagir, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
@@ -1620,6 +1718,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     bloqueadoEm: (x, y) => Boolean(grade) && (x < 0 || y < 0 || x >= grade.W || y >= grade.H || Boolean(grade.bloqueado[grade.ind(x, y)])),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { videoNo?.desligar?.(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { tamanhoQuarto?.disconnect(); videoNo?.desligar?.(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }

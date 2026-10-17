@@ -1,14 +1,16 @@
 // Planta do escritório (3ª versão, 17 de outubro de 2026): prédio de 60 × 48
 // ladrilhos em volta de um pátio central. Da calçada se entra na Recepção;
 // dela sai o pátio (12 ladrilhos de largura) até a parede do fundo, com a
-// fonte no meio. Ao fundo, as salas da equipe em 8 × 8: Atendimento (Paulo,
-// Vinícius, Ewerton) à esquerda e Criação (Deivid, Bia, Jady) à direita, com
-// a porta para o corredor; na lateral esquerda, Produção (Mizinho, Taynara,
-// Reriston), com a porta para o corredor lateral. Em volta do pátio, Sala de
-// reunião e Auditório à esquerda, Café, Jogos, Foco e Academia à direita. Na
-// frente, Produção, Recepção e Lounge, aberto para o terraço com a piscina.
-// Só a parede do prédio e a parede do fundo de cada sala são altas; o resto
-// é baixo, para se ver o escritório inteiro de uma vez.
+// fonte no meio. Ao fundo, as fachadas das salas da equipe: Atendimento
+// (Paulo, Vinícius, Ewerton) à esquerda e Criação (Deivid, Bia, Jady) à
+// direita, com a porta para o corredor; na lateral esquerda, Produção
+// (Mizinho, Taynara, Reriston), com a porta para o corredor lateral. Cada
+// sala é um quarto próprio (cena separada, 8 × 8): a porta da fachada leva
+// para dentro dele. Em volta do pátio, Sala de reunião e Auditório à
+// esquerda, Café, Jogos, Foco e Academia à direita. Na frente, Produção,
+// Recepção e Lounge, aberto para o terraço com a piscina. Só a parede do
+// prédio e as fachadas são altas; o resto é baixo, para se ver o
+// escritório inteiro de uma vez.
 // Unidade: ladrilho do Habbo (64×32 px). x desce para a direita na tela, y
 // desce para a esquerda. Direções do Habbo: 0 olha para −y, 2 para +x,
 // 4 para +y, 6 para −x; medidas valem em 0/4 e giram em 2/6.
@@ -73,19 +75,38 @@ const ESCRITORIO_PLANTA = (() => {
   const ambientes = [];
   const ambiente = (id, nome, sala, x0, y0, x1, y1, piso, extra = {}) =>
     ambientes.push({ id, nome, sala, x0: x0 + OX, y0: y0 + OY, x1: x1 + OX, y1: y1 + OY, piso, ...extra });
-  // Salas individuais, na ordem do servidor (sala-0 … sala-8). "porta": lado
-  // em que fica a porta (baixo = parede da frente, direita = parede da
-  // direita). "alta": paredes altas da sala (as do prédio); as outras são
-  // baixas, para se ver dentro.
+  // Salas individuais, na ordem do servidor (sala-0 … sala-8). Cada uma é um
+  // quarto próprio (decisão do Paulo, 17/10/2026): uma cena separada, em
+  // coordenadas locais (0 … L), com as duas paredes do fundo altas. No mapa
+  // geral fica só a fachada: uma caixa de FACHADA_FUNDO ladrilhos de fundo
+  // encostada na parede do prédio, no lugar onde a sala ficava, com as quatro
+  // paredes altas na cor da sala, a porta de vidro (2 ladrilhos) no lado
+  // "porta" (baixo = frente, direita = lado direito) e o letreiro. Pisar nos
+  // ladrilhos atrás da porta ("entrada") entra no quarto; quem sai aparece na
+  // soleira ("saida"). "alta": paredes altas do quarto (as do fundo).
   const LUGAR_SALAS = [
-    [0, 0, "baixo", ["y0", "x0"]], [8, 0, "baixo", ["y0"]], [16, 0, "baixo", ["y0"]],
-    [36, 0, "baixo", ["y0"]], [44, 0, "baixo", ["y0"]], [52, 0, "baixo", ["y0"]],
-    [0, 12, "direita", ["x0"]], [0, 21, "direita", ["x0"]], [0, 30, "direita", ["x0"]],
+    [0, 0, "baixo"], [8, 0, "baixo"], [16, 0, "baixo"],
+    [36, 0, "baixo"], [44, 0, "baixo"], [52, 0, "baixo"],
+    [0, 12, "direita"], [0, 21, "direita"], [0, 30, "direita"],
   ];
+  const FACHADA_FUNDO = 3;
   // Chat escrito de cada sala: o da ala em que ela fica.
   const ALA_SALAS = ["atendimento", "atendimento", "atendimento", "criacao", "criacao", "criacao", "producao", "producao", "producao"];
-  LUGAR_SALAS.forEach(([x0, y0, porta, alta], i) => ambiente("sala-" + i, "Sala livre", ALA_SALAS[i], x0, y0, x0 + L, y0 + L,
-    "sala" + i, { pessoal: true, porta, alta, cor: CORES_SALAS[i] }));
+  LUGAR_SALAS.forEach(([x0, y0, porta], i) => {
+    const baixo = porta === "baixo";
+    const f = baixo ? { x0, y0, x1: x0 + L, y1: y0 + FACHADA_FUNDO } : { x0, y0, x1: x0 + FACHADA_FUNDO, y1: y0 + L };
+    const m = baixo ? { x: x0 + L / 2 - 1, y: f.y1 } : { x: f.x1, y: y0 + L / 2 - 1 };
+    const fachada = {
+      x0: f.x0 + OX, y0: f.y0 + OY, x1: f.x1 + OX, y1: f.y1 + OY, porta,
+      soleira: { x: m.x + OX, y: m.y + OY, w: baixo ? 2 : 1, h: baixo ? 1 : 2 },
+      entrada: baixo
+        ? [{ x: m.x + OX, y: f.y1 - 1 + OY }, { x: m.x + 1 + OX, y: f.y1 - 1 + OY }]
+        : [{ x: f.x1 - 1 + OX, y: m.y + OY }, { x: f.x1 - 1 + OX, y: m.y + 1 + OY }],
+      saida: { x: m.x + OX, y: m.y + OY, dir: baixo ? 4 : 2 },
+    };
+    ambientes.push({ id: "sala-" + i, nome: "Sala livre", sala: ALA_SALAS[i], x0: 0, y0: 0, x1: L, y1: L, piso: "sala" + i,
+      pessoal: true, porta, alta: ["y0", "x0"], cor: CORES_SALAS[i], fachada });
+  });
   // Espaços comuns: cor e estilo das paredes altas de cada um.
   // "textura": o piso do acervo de cada espaço (a cor fica enquanto carrega).
   ambiente("reuniao", "Sala de reunião", "reuniao", 12, 12, 24, 21, "carpete", { cor: "#5aa9ff", estilo: "f", textura: "lodge_dark_floor", texturaParede: "army_c15_wall" });
@@ -133,15 +154,17 @@ const ESCRITORIO_PLANTA = (() => {
   };
   const amb = (id) => ambientes.find((x) => x.id === id);
   const rel = (a) => ({ x0: a.x0 - OX, x1: a.x1 - OX, y0: a.y0 - OY, y1: a.y1 - OY });
-  // Salas individuais: a parede do fundo (e, no canto, a da esquerda) alta na
-  // cor da sala; as outras baixas, com a porta de 2 ladrilhos no meio.
+  // Fachadas das salas: caixa fechada com as quatro paredes altas na cor da
+  // sala e o vão da porta (2 ladrilhos) no lado da entrada. A parede lateral
+  // partilhada com a fachada vizinha é desenhada uma vez só.
+  const fachadas = ambientes.filter((x) => x.pessoal).map((x) => x.fachada);
   for (const s of ambientes.filter((x) => x.pessoal)) {
-    const a = rel(s), opc = { sala: s };
+    const a = rel(s.fachada), opc = { sala: s };
     const m = { x: a.x0 + L / 2 - 1, y: a.y0 + L / 2 - 1 };
-    parede(a.x0, a.y0, a.x1, a.y0, [], s.alta.includes("y0") ? opc : {});
-    parede(a.x0, a.y0, a.x0, a.y1, [], s.alta.includes("x0") ? opc : {});
-    parede(a.x0, a.y1, a.x1, a.y1, s.porta === "baixo" ? [[m.x, m.x + 2]] : []);
-    parede(a.x1, a.y0, a.x1, a.y1, s.porta === "direita" ? [[m.y, m.y + 2]] : []);
+    parede(a.x0, a.y0, a.x1, a.y0, [], opc);
+    if (!fachadas.some((o) => o.x1 === s.fachada.x0 && o.y0 === s.fachada.y0)) parede(a.x0, a.y0, a.x0, a.y1, [], opc);
+    parede(a.x0, a.y1, a.x1, a.y1, s.porta === "baixo" ? [[m.x, m.x + 2]] : [], opc);
+    parede(a.x1, a.y0, a.x1, a.y1, s.porta === "direita" ? [[m.y, m.y + 2]] : [], opc);
   }
   // Espaços comuns. Fundo (y0) e esquerda (x0) médios quando dão para
   // corredor ou pátio; baixos quando são a parede de outro espaço.
@@ -368,14 +391,15 @@ const ESCRITORIO_PLANTA = (() => {
     for (const x of [19, 22]) { q("vwave_c21_bartable", x, 7, 0); q("vwave_c21_barstool", x - 1, 7, 2); q("vwave_c21_barstool", x + 1, 8, 6); }
     q("uni_fairylights", 20, 0, 4, 0, 2); q("modern_c17_floorlamp", 23, 0, 2, 1);
     // Estante de livros junto da lareira; neon e caixas de som na pista.
-    q("lodge_dark_bookcase", 4, 0, 0); q("bookpile", 0, 6, 0);
+    // (A pilha de livros saiu da soleira da porta da Recepção.)
+    q("lodge_dark_bookcase", 4, 0, 0); q("bookpile", 2, 9, 0);
     q("tokyo_c18_neonsign1", 13, 0, 0, 1); q("darkmodern_c20_speakers", 12, 0, 0); q("darkmodern_c20_speakers", 15, 0, 0);
   }
 
-  // Corredores: plantas nos cantos, longe das portas; vasos nas vielas entre
-  // as salas da Produção (ninguém entra ali).
+  // Corredores: plantas nos cantos, longe das portas; canteiros nas vielas
+  // entre as fachadas da Produção (ninguém entra ali).
   for (const [x, y] of [[8, 8], [23, 8], [36, 8], [59, 8], [8, 36], [59, 36], [12, 22], [59, 22], [36, 22]]) p("theatre_plant", x, y, 2);
-  for (const y of [20, 29]) for (const x of [0, 2, 4, 6]) p("stone_flowerbed", x, y, 0, 1);
+  for (const y of [20, 29]) for (const x of [0, 2]) p("stone_flowerbed", x, y, 0, 1);
   p("hblooza14_hedgediv", 10, 9, 0); p("hblooza14_hedgediv", 48, 9, 0);
 
   // Portas de verdade nos vãos (abrem quando alguém chega perto; a sala
@@ -389,14 +413,17 @@ const ESCRITORIO_PLANTA = (() => {
   const porta = (classe, x, y, dir, zona) => { p(classe, x, y, dir, 0); portas.push({ classe, x: x + OX, y: y + OY, dir, zona, w: dir === 2 ? 1 : 2, h: dir === 2 ? 2 : 1 }); };
   porta("val14_gate", 53, 24, 0, "academia"); porta("val14_gate", 10, 38, 0, "producao");
   porta("val14_gate", 40, 38, 0, "lounge"); porta("val14_gate", 49, 38, 0, "lounge");
+  // Porta de cada fachada: na linha da parede, com a zona da sala (trancada,
+  // fica fechada; aberta, pisar atrás dela entra no quarto).
+  for (const s of ambientes.filter((x) => x.pessoal)) {
+    const a = rel(s.fachada);
+    if (s.porta === "baixo") porta("val14_gate", a.x0 + L / 2 - 1, a.y1, 0, s.id);
+    else porta("val14_gate", a.x1, a.y0 + L / 2 - 1, 2, s.id);
+  }
   // Vãos sem porta (soleira no piso): [x, y, w, h] do trecho de piso do vão.
   const soleiras = [];
   const soleira = (x, y, dir) => soleiras.push({ x: x + OX, y: y + OY, w: dir === 2 ? 1 : 2, h: dir === 2 ? 2 : 1 });
-  for (const s of ambientes.filter((x) => x.pessoal)) {
-    const a = rel(s);
-    if (s.porta === "baixo") soleira(a.x0 + L / 2 - 1, a.y1, 0);
-    else soleira(a.x1, a.y0 + L / 2 - 1, 2);
-  }
+  for (const s of ambientes.filter((x) => x.pessoal)) soleiras.push({ ...s.fachada.soleira });
   soleira(24, 15, 2); soleira(36, 15, 2); soleira(53, 21, 0); soleira(24, 28, 2); soleira(36, 28, 2); soleira(24, 42, 2);
   soleira(28, 48, 0); soleira(30, 48, 0); soleira(36, 43, 2); soleira(44, 48, 0); soleira(56, 48, 0);
   // Elevadores (teletransporte): da Recepção para o fundo do pátio e para a Produção.
@@ -469,7 +496,9 @@ const ESCRITORIO_PLANTA = (() => {
     // entre as salas lê como piso, não como vazio.
     texturas, texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement", texturaDeck: "country_patio", portas, soleiras, elevadores };
 })();
-// Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho.
+// Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho. A
+// escala é sempre a do mapa geral (80 × 80): dentro de um quarto a posição
+// é local (0 … L) e vai com a mesma conta, e a zona diz em que quarto é.
 function escritorioParaMapa(px, py) {
   const P = ESCRITORIO_PLANTA;
   return { x: ((Number(px) - 6) / 88) * P.W, y: ((Number(py) - 6) / 88) * P.H };
@@ -478,16 +507,100 @@ function escritorioParaPorcentagem(x, y) {
   const P = ESCRITORIO_PLANTA, lim = (n) => Math.max(6, Math.min(94, n));
   return { x: lim(6 + (x / P.W) * 88), y: lim(6 + (y / P.H) * 88) };
 }
+// Cena em que a pessoa está: null no mapa geral; o id do quarto (sala-N)
+// dentro de um quarto. O cliente define ao entrar e sair.
+let ESCRITORIO_QUARTO = null;
+function escritorioDefinirQuarto(id) {
+  ESCRITORIO_QUARTO = id || null;
+}
+function escritorioQuartoAtual() {
+  return ESCRITORIO_QUARTO;
+}
+// Ambiente do ladrilho na cena atual: no mapa geral só os espaços comuns
+// (as salas pessoais são fachadas fechadas); dentro de um quarto, só ele.
 function escritorioAmbienteEm(x, y) {
-  return ESCRITORIO_PLANTA.ambientes.find((a) => x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1) || null;
+  const q = ESCRITORIO_QUARTO;
+  return ESCRITORIO_PLANTA.ambientes.find((a) => (q ? a.id === q : !a.pessoal) && x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1) || null;
+}
+// Fachada (no mapa geral) que ocupa o ladrilho, e a que tem ali um dos
+// ladrilhos de entrada (atrás da porta): pisar nele entra no quarto.
+function escritorioFachadaEm(x, y) {
+  if (ESCRITORIO_QUARTO) return null;
+  return ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal && x >= a.fachada.x0 && x < a.fachada.x1 && y >= a.fachada.y0 && y < a.fachada.y1) || null;
+}
+function escritorioFachadaEntradaEm(x, y) {
+  if (ESCRITORIO_QUARTO) return null;
+  return ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal && a.fachada.entrada.some((e) => e.x === x && e.y === y)) || null;
+}
+// Mapa geral: a planta sem o interior das salas (elas viram fachadas).
+function escritorioPlantaGeral() {
+  const P = ESCRITORIO_PLANTA;
+  return { ...P, ambientes: P.ambientes.filter((a) => !a.pessoal), fachadas: P.ambientes.filter((a) => a.pessoal).map((a) => ({ ...a.fachada, id: a.id, nome: a.nome, cor: a.cor })) };
+}
+// Paredes do quarto (cena própria, coordenadas locais): as duas do fundo
+// altas na cor da sala; as da frente baixas, de vidro, com o vão da porta.
+function escritorioModeloPlanta(a) {
+  return typeof escritorio !== "undefined" ? escritorio.base?.quartos?.plantas?.find(p => p.id === a.planta) : null;
+}
+function escritorioNivelQuarto(a, x, y) {
+  if (x < 0 || y < 0 || x >= 8 || y >= 8) return -1;
+  return escritorioModeloPlanta(a)?.celdas[Math.floor(y)]?.[Math.floor(x)] ?? 0;
+}
+function escritorioParedesDoQuarto(a) {
+  const lista = [], L = ESCRITORIO_SALA_LADO, m=L/2-1;
+  const por = (x0,y0,x1,y1,alta) => {
+    const r=[x0,y0,x1,y1];
+    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=118;} else r.baixa=true;
+    lista.push(r);
+  };
+  for(let x=0;x<L;x++) for(let y=0;y<L;y++) {
+    if(escritorioNivelQuarto(a,x,y)<0) continue;
+    if(escritorioNivelQuarto(a,x,y-1)<0) por(x,y,x+1,y,true);
+    if(escritorioNivelQuarto(a,x-1,y)<0) por(x,y,x,y+1,true);
+    if(escritorioNivelQuarto(a,x,y+1)<0 && !(a.porta==="baixo" && y===L-1 && x>=m && x<m+2)) por(x,y+1,x+1,y+1,false);
+    if(escritorioNivelQuarto(a,x+1,y)<0 && !(a.porta!=="baixo" && x===L-1 && y>=m && y<m+2)) por(x+1,y,x+1,y+1,false);
+  }
+  const grupos=new Map();
+  for(const r of lista) {
+    const horizontal=r[1]===r[3],chave=[horizontal,horizontal?r[1]:r[0],Boolean(r.baixa)].join(":");
+    if(!grupos.has(chave)) grupos.set(chave,[]);grupos.get(chave).push(r);
+  }
+  const unidas=[];
+  for(const grupo of grupos.values()) {
+    const h=grupo[0][1]===grupo[0][3];grupo.sort((a,b)=>a[h?0:1]-b[h?0:1]);
+    for(const r of grupo) {
+      const ultimo=unidas.at(-1);
+      if(ultimo && grupo.includes(ultimo) && ultimo[h?2:3]===r[h?0:1]) ultimo[h?2:3]=r[h?2:3];
+      else unidas.push(r);
+    }
+  }
+  for(const trecho of escritorioModeloPlanta(a)?.divisorias || []) {const r=[...trecho];r.baixa=true;unidas.push(r);}
+  return unidas;
+}
+// Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;
+// pisar nela volta ao mapa) e o escuro em volta, como num quarto do Habbo.
+function escritorioPlantaDoQuarto(a) {
+  const L = ESCRITORIO_SALA_LADO, m = L / 2 - 1;
+  const soleira = a.porta === "baixo" ? { x: m, y: L, w: 2, h: 1 } : { x: L, y: m, w: 1, h: 2 };
+  const naSoleira = (x, y) => x >= soleira.x && x < soleira.x + soleira.w && y >= soleira.y && y < soleira.y + soleira.h;
+  return {
+    W: L + 1, H: L + 1, PREDIO: null, PISO: ESCRITORIO_PLANTA.PISO, quarto: a.id, fixa: true,
+    ambientes: [a], divisorias: escritorioParedesDoQuarto(a), moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
+    pisos: [], texturas: [], texturaSalas: ESCRITORIO_PLANTA.texturaSalas, portas: [], elevadores: [], fundo: null, vistas: {},
+    rotulos: [{ texto: "Porta · voltar ao mapa", x: soleira.x + soleira.w / 2, y: soleira.y + soleira.h / 2, saida: true }],
+    soleiras: [soleira], entrada: escritorioEntradaDaSala(a), saida: { x: soleira.x, y: soleira.y },
+    // Só se anda dentro do quarto e na soleira.
+    andavel: (x, y) => escritorioNivelQuarto(a,x,y) >= 0 || naSoleira(x, y),
+    nivelEm: (x,y) => Math.max(0,escritorioNivelQuarto(a,x,y)),
+  };
 }
 // Corredores e área externa são convivência.
 function escritorioSalaEm(x, y) {
   return escritorioAmbienteEm(x, y)?.sala || "convivencia";
 }
-// Coordenadas locais da sala: lx/ly contam do canto do fundo (x0, y0). A
-// mobília é desenhada no mesmo sentido em todas as salas; só a porta muda de
-// lado (embaixo ou à direita).
+// Coordenadas locais da sala: lx/ly contam do canto do fundo (x0, y0; hoje
+// 0, 0, porque o quarto é uma cena própria). A mobília é desenhada no mesmo
+// sentido em todas as salas; só a porta muda de lado (embaixo ou à direita).
 function escritorioNaSala(a, lx, ly) {
   return { x: a.x0 + lx, y: a.y0 + ly };
 }
@@ -510,9 +623,9 @@ function escritorioMesaDaSala(a) {
 // E abre o painel), o resto acompanha a ala. A ordem segue DONOS_ESCRITORIO
 // em server/escritorio-mapa.js: Paulo, Vinícius e Ewerton atendem clientes;
 // Deivid, Bia e Jady criam; Mizinho, Taynara e Reriston produzem.
-// Regras: itens de parede só na parede alta (a do prédio); móveis com a
-// frente para dentro da sala; a faixa da porta livre; pelo menos três
-// objetos animados por sala.
+// Regras: itens de parede só nas paredes altas (as duas do fundo do quarto);
+// móveis com a frente para dentro da sala; a faixa da porta livre; pelo
+// menos três objetos animados por sala.
 const ESCRITORIO_TEMAS_SALAS = ["atendimento", "atendimento", "atendimento", "criacao", "criacao", "criacao", "producao", "producao", "producao"];
 function escritorioMoveisDaSala(a, temaEscolhido) {
   const tema = temaEscolhido || ESCRITORIO_TEMAS_SALAS[Number(String(a.id).split("-")[1])] || "atendimento";

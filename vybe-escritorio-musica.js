@@ -26,7 +26,7 @@ const ESCRITORIO_MUSICA_ESPACOS = ["pista", "bar"];
 function escritorioNaPista() {
   const pos = escritorioPosicao(escritorio.perfil || {});
   const x = typeof movimento !== "undefined" && movimento.quadro ? movimento.x : pos.x, y = typeof movimento !== "undefined" && movimento.quadro ? movimento.y : pos.y;
-  return escritorio.conectado && (ESCRITORIO_PLANTA.pisos || []).some((q) => ESCRITORIO_MUSICA_ESPACOS.includes(q.piso) && x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
+  return escritorio.conectado && !escritorio.quarto && (ESCRITORIO_PLANTA.pisos || []).some((q) => ESCRITORIO_MUSICA_ESPACOS.includes(q.piso) && x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
 }
 function escritorioPosicaoMusica(m, agora = Date.now()) {
   return Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));

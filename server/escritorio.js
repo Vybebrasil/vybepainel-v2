@@ -1,3 +1,5 @@
+import { QUARTOS, configurarQuarto } from "./escritorio-quartos.js";
+import { carregarEconomia, comprarMovel } from "./escritorio-economia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
@@ -36,6 +38,8 @@ export function perfilEscritorio(valor = {}) {
       ? Math.min(94, Math.max(6, Number(valor[campo])))
       : padrao;
   return {
+    sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "amplo"),
+    quarto_configurado: valor.quarto_configurado === true,
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
     pele: opcao("pele", ["clara", "media", "escura"], "media"),
     cabelo: opcao("cabelo", ["curto", "longo", "cacheado", "sem"], "curto"),
@@ -105,6 +109,8 @@ export async function carregarEscritorio(sql, pessoa) {
     perfil: perfilEscritorio(p.preferencias),
   }));
   return {
+    quartos: QUARTOS,
+    economia: await carregarEconomia(sql, pessoa.id),
     eu: String(pessoa.id),
     admin: Boolean(pessoa.admin),
     equipe: lista,
@@ -114,10 +120,13 @@ export async function carregarEscritorio(sql, pessoa) {
   };
 }
 export async function salvarPerfilEscritorio(sql, pessoaId, valor) {
-  const perfil = perfilEscritorio(valor);
-  await sql`INSERT INTO vybe_escritorio_perfis(pessoa_id,preferencias) VALUES(${pessoaId},${JSON.stringify(perfil)}::jsonb)
-    ON CONFLICT(pessoa_id) DO UPDATE SET preferencias=EXCLUDED.preferencias,atualizado_em=NOW()`;
-  return perfil;
+  return sql.comTransacao(async tx => {
+    await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
+    const [atual] = await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} FOR UPDATE`;
+    const perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, quarto_configurado:atual.preferencias.quarto_configurado});
+    await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(perfil)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${pessoaId}`;
+    return perfil;
+  });
 }
 export async function mensagensEscritorio(sql, sala) {
   if (!SALAS_ESCRITORIO.includes(sala)) throw new Error("Sala inválida.");
@@ -251,6 +260,7 @@ export async function areaEscritorio(req, res, quem, sql) {
   const pessoa = quem.pessoa;
   const acao = req.query?.acao || req.body?.acao || "entrada";
   if (req.method === "GET") {
+    if (acao === "economia") return res.status(200).json({ok:true,economia:await carregarEconomia(sql,pessoa.id)});
     if (acao === "recados" || acao === "recados-resumo")
       try {
         return res.status(200).json(acao === "recados"
@@ -314,6 +324,13 @@ export async function areaEscritorio(req, res, quem, sql) {
       // responde com o status e o código do erro (o painel mostra o motivo).
       return res.status(e.status || 400).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
     }
+  if (acao === "quarto" || acao === "comprar") {
+    try {
+      const resultado = acao === "comprar" ? {economia: await comprarMovel(sql, pessoa.id, req.body)}
+        : await configurarQuarto(sql, pessoa, perfilEscritorio(req.body?.perfil), req.body);
+      return res.status(200).json({ok:true,...resultado});
+    } catch(e) { return res.status(e.status || 400).json({error:e.message}); }
+  }
   if (acao === "perfil")
     return res.status(200).json({
       ok: true,

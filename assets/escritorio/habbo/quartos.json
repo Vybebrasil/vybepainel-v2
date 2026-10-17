@@ -1,0 +1,184 @@
+{
+  "plantas": [
+    {
+      "id": "compacto",
+      "nome": "Compacto",
+      "dica": "36 ladrilhos, fácil de organizar",
+      "celdas": [
+        [-1, -1, -1, -1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1, -1, -1, -1],
+        [-1, -1, 0, 0, 0, 0, 0, 0],
+        [-1, -1, 0, 0, 0, 0, 0, 0],
+        [-1, -1, 0, 0, 0, 0, 0, 0],
+        [-1, -1, 0, 0, 0, 0, 0, 0],
+        [-1, -1, 0, 0, 0, 0, 0, 0],
+        [-1, -1, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    {
+      "id": "retangular",
+      "nome": "Retangular",
+      "dica": "48 ladrilhos para trabalhar e receber",
+      "celdas": [
+        [-1, -1, -1, -1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1, -1, -1, -1],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    {
+      "id": "amplo",
+      "nome": "Amplo",
+      "dica": "64 ladrilhos para criar livremente",
+      "celdas": [
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    {
+      "id": "ele",
+      "nome": "Em L",
+      "dica": "Dois ambientes conectados",
+      "celdas": [
+        [-1, -1, -1, 0, 0, 0, 0, 0],
+        [-1, -1, -1, 0, 0, 0, 0, 0],
+        [-1, -1, -1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    {
+      "id": "dividido",
+      "nome": "Dois ambientes",
+      "dica": "Divisória com passagem para receber e trabalhar",
+      "celdas": [
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+      ],
+      "divisorias": [
+        [4, 0, 4, 3],
+        [4, 5, 4, 8]
+      ]
+    },
+    {
+      "id": "niveis",
+      "nome": "Com níveis",
+      "dica": "Mezanino e escada para circular",
+      "celdas": [
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 1, 1, 2, 2, 2],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    }
+  ],
+  "essenciais": [
+    "exe_table",
+    "hc26_10",
+    "plant_small_cactus",
+    "computer_flatscreen"
+  ],
+  "modelos": [
+    {
+      "id": "vazio",
+      "nome": "Em branco",
+      "dica": "A planta vazia, pronta para suas ideias",
+      "itens": []
+    },
+    {
+      "id": "trabalho",
+      "nome": "Essencial",
+      "dica": "Mesa com computador, cadeira e uma planta — grátis",
+      "itens": [
+        [
+          "exe_table",
+          4,
+          4,
+          0
+        ],
+        [
+          "hc26_10",
+          5,
+          6,
+          0
+        ],
+        [
+          "plant_small_cactus",
+          7,
+          7,
+          2
+        ],
+        [
+          "computer_flatscreen",
+          5,
+          4,
+          4,
+          1,
+          0.95
+        ]
+      ]
+    },
+    {
+      "id": "encontro",
+      "nome": "Boas conversas",
+      "dica": "Mesa com computador, duas cadeiras e uma planta — grátis",
+      "itens": [
+        [
+          "exe_table",
+          4,
+          4,
+          0
+        ],
+        [
+          "hc26_10",
+          5,
+          6,
+          0
+        ],
+        [
+          "hc26_10",
+          6,
+          6,
+          0
+        ],
+        [
+          "plant_small_cactus",
+          7,
+          7,
+          2
+        ],
+        [
+          "computer_flatscreen",
+          5,
+          4,
+          4,
+          1,
+          0.95
+        ]
+      ]
+    }
+  ]
+}

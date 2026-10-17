@@ -221,12 +221,12 @@ function criadorPainelHtml() {
   ${total > 1 ? `<nav class="cri-paginas" aria-label="Páginas"><button type="button" class="abr-secundario" onclick="criadorPagina(-1)" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${total}</span><button type="button" class="abr-secundario" onclick="criadorPagina(1)" ${pag < total - 1 ? "" : "disabled"} aria-label="Próxima página">›</button></nav>` : ""}`;
   })()}`}
   <p class="abr-erro" role="alert" id="abr-erro"></p>
-  <div class="abr-acoes">${criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='boas';renderAberturaEscritorio()">Continuar</button>`}</div>
+  <div class="abr-acoes">${criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa=escritorioMinhaMesa()&&!escritorio.perfil.quarto_configurado?'planta':'boas';renderAberturaEscritorio()">Continuar</button>`}</div>
  </div>
 </section>`;
 }
 function escritorioPrecisaAbertura() {
-  return Boolean(escritorio.base) && escritorio.perfil?.abertura !== ESCRITORIO_ABERTURA;
+  return Boolean(escritorio.base) && (escritorio.perfil?.abertura !== ESCRITORIO_ABERTURA || Boolean(escritorioMinhaMesa()) && !escritorio.perfil?.quarto_configurado);
 }
 function abrirAberturaEscritorio(etapa = "cena") {
   const eu = escritorio.base?.equipe.find((p) => p.id === escritorio.base.eu);
@@ -234,6 +234,12 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.so = etapa === "personagem";
   // Quem acabou de passar pela Vybelândia no login vai direto ao personagem.
   criador.etapa = etapa === "cena" && window.VYBELANDIA_VISTA ? "personagem" : etapa;
+  if(etapa === "cena" && escritorio.perfil?.abertura === ESCRITORIO_ABERTURA && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) criador.etapa="planta";
+  criador.planta=escritorio.perfil?.sala_planta || "amplo";
+  criador.modelo="trabalho";
+  criador.preservar=true;
+  criador.piso=escritorio.perfil?.sala_piso || "madeira";
+  criador.parede=escritorio.perfil?.sala_parede || "#ff8a35";
   criador.f = criadorDaFigura(escritorio.perfil?.figura || mapaFigura(escritorio.perfil || {}));
   criador.nome = String(eu?.nome || "").split(" ")[0] || "equipe";
   criadorCarregarCatalogo();
@@ -245,7 +251,14 @@ function abrirAberturaEscritorio(etapa = "cena") {
     el.setAttribute("role", "dialog");
     el.setAttribute("aria-modal", "true");
     el.setAttribute("aria-label", "Boas-vindas à Vybelândia");
-    el.addEventListener("keydown", (e) => { if (e.key === "Escape" && criador.so) fecharAberturaEscritorio(); });
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && criador.so) fecharAberturaEscritorio();
+      if(e.key !== "Tab") return;
+      const alvos=[...el.querySelectorAll('button:not(:disabled),select,input,a[href]')].filter(n=>n.offsetParent);
+      const primeiro=alvos[0],ultimo=alvos.at(-1);
+      if(e.shiftKey && document.activeElement===primeiro) {e.preventDefault();ultimo?.focus();}
+      else if(!e.shiftKey && document.activeElement===ultimo) {e.preventDefault();primeiro?.focus();}
+    });
     document.body.append(el);
   }
   renderAberturaEscritorio();
@@ -278,6 +291,11 @@ function renderAberturaEscritorio() {
     requestAnimationFrame(criadorMedirPagina);
     return;
   }
+  if(["planta","mobilia","acabamento"].includes(criador.etapa)) {
+    el.innerHTML=criadorQuartoHtml();
+    el.querySelector(".abr-primario")?.focus({preventScroll:true});
+    return;
+  }
   // Saiu do escritório: volta para a entrada da Vybelândia (a tela inicial),
   // que pergunta se quer entrar de novo.
   if (criador.etapa === "saida") {
@@ -294,15 +312,16 @@ function renderAberturaEscritorio() {
   el.innerHTML = `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel abr-boas" aria-labelledby="abr-titulo">
  <img class="abr-boneco" src="${criadorImagem(criadorFigura(criador.f), 4)}" alt="" width="128" height="220">
- <div><span class="abr-kicker">Passo 2 de 2</span><h2 id="abr-titulo">Bem-vindo à Vybelândia, ${safeText(criador.nome)}!</h2>
+ <div><span class="abr-kicker">Tudo pronto para entrar</span><h2 id="abr-titulo">Bem-vindo à Vybelândia, ${safeText(criador.nome)}!</h2>
  <ul class="abr-dicas">
   <li><b>${mesa ? safeText(mesa.ambiente.nome) : "Sua sala"}</b> ${mesa ? "é sua: você chega pela porta dela, e o computador da mesa abre o painel." : "ainda não foi definida; você chega pela recepção."}</li>
   <li><b>Clique no piso</b> para andar. Arraste para mover o mapa e use a roda do mouse para o zoom.</li>
   <li><b>Suas demandas</b> ficam no botão Painel, na barra de baixo: modo Gestor, Minhas tarefas, Foco e os outros módulos. "Voltar ao escritório" traz você de volta ao mapa.</li>
   <li><b>Entrou numa sala, está na conversa dela</b>, com o microfone ligado: quem está ali ouve você. Clique no microfone para silenciar. A câmera começa desligada.</li>
  </ul>
+ <p>Ganhe <b>10 VybeCoins por demanda finalizada</b> e <b>50 por conquista</b>. Os essenciais são gratuitos. Extras custam 25 moedas por unidade na loja do editor. Montar seu primeiro quarto desbloqueia 50 moedas.</p>
  <p class="abr-erro" role="alert" id="abr-erro"></p>
- <div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='personagem';renderAberturaEscritorio()">Ajustar personagem</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio(true)">Entrar no escritório</button></div></div>
+ <div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa=escritorioMinhaMesa()&&!escritorio.perfil.quarto_configurado?'acabamento':'personagem';renderAberturaEscritorio()">Revisar escolhas</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio(true)">Entrar no escritório</button></div></div>
 </section>`;
   el.querySelector(".abr-primario")?.focus({ preventScroll: true });
 }
@@ -316,10 +335,22 @@ async function salvarPersonagemEscritorio(entrar) {
   const perfil = { ...escritorio.perfil, figura: criadorFigura(criador.f), ...(criador.so ? {} : { abertura: ESCRITORIO_ABERTURA }) };
   try {
     let salvo = perfil;
-    if (!escritorio.base.demo) salvo = (await escritorioApi("perfil", { perfil })).perfil;
-    escritorio.perfil = { ...escritorio.perfil, figura: salvo.figura, abertura: salvo.abertura };
+    if(!criador.so && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) {
+      let resultado;
+      if(escritorio.base.demo) {
+        const camada=escritorioMinhaMesa().ambiente.id;
+        const itens=escritorio.base.quartos.modelos.find(m=>m.id===criador.modelo).itens;
+        resultado={perfil:{...perfil,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,quarto_configurado:true},camada,mapa:{itens,versao:1,em:new Date().toISOString()},economia:{...escritorio.base.economia,saldo:50,conquistas:[{origem:"conquista:meu-quarto"}]}};
+      } else resultado=await escritorioApi("quarto",{perfil:{...perfil,sala_piso:criador.piso,sala_parede:criador.parede},planta:criador.planta,modelo:criador.modelo,preservar:criador.preservar});
+      salvo=resultado.perfil;
+      if(resultado.camada) escritorio.base.mapa.camadas[resultado.camada]=resultado.mapa;
+      escritorio.base.economia=resultado.economia;
+      escritorio.mapa?.destruir(); escritorio.mapa=null;
+    } else if (!escritorio.base.demo) salvo = (await escritorioApi("perfil", { perfil })).perfil;
+    escritorio.perfil = { ...escritorio.perfil, ...salvo };
     const eu = escritorio.base.equipe.find((p) => p.id === escritorio.base.eu);
-    if (eu) eu.perfil = { ...eu.perfil, figura: salvo.figura, abertura: salvo.abertura };
+    if (eu) eu.perfil = { ...eu.perfil, ...salvo };
+    escritorioAplicarSalas();
     fecharAberturaEscritorio();
     // Fim da abertura: ao entrar, o tutorial mostra o básico (e onde ficam as demandas).
     if (entrar && !criador.so) escritorio.tutorialPendente = true;
@@ -414,4 +445,45 @@ function renderTutorialEscritorio() {
   }
   c.style.cssText = `width:${cw}px;left:${x}px;top:${Math.max(16, y)}px`;
   el.querySelector(".abr-primario")?.focus({ preventScroll: true });
+}
+
+// A planta e os modelos vêm do mesmo catálogo validado pelo servidor.
+function criadorPlantaPrevia(planta,modelo) {
+  if(!planta) return "";
+  const itens=escritorio.base.quartos.modelos.find(m=>m.id===modelo)?.itens || [];
+  let desenho="";
+  for(let y=0;y<8;y++) for(let x=0;x<8;x++) {
+    const n=planta.celdas[y][x];if(n<0) continue;
+    const px=128+(x-y)*13,py=30+(x+y)*6.5-n*8;
+    desenho+=`<path d="M${px} ${py}l13 6.5 -13 6.5 -13 -6.5Z" fill="${n?'#ffc58e':'#b78967'}" stroke="#382c2e" stroke-width=".6"/>`;
+    if(itens.some(it=>Math.floor(it[1])===x&&Math.floor(it[2])===y)) desenho+=`<rect x="${px-5}" y="${py-8}" width="10" height="13" rx="2" fill="#f58232" stroke="#fff1d7"/>`;
+  }
+  for(const [x0,y0,x1,y1] of planta.divisorias || []) {
+    desenho+=`<path d="M${128+(x0-y0)*13} ${30+(x0+y0)*6.5}L${128+(x1-y1)*13} ${30+(x1+y1)*6.5}" stroke="#ffe1b5" stroke-width="4"/>`;
+  }
+  return `<svg viewBox="0 0 256 155" role="img" aria-label="Prévia da planta ${safeText(planta.nome)}">${desenho}</svg>`;
+}
+function criadorQuartoEscolher(campo,valor) {
+  const catalogo=escritorio.base.quartos;
+  if(campo==="planta"&&!catalogo.plantas.some(p=>p.id===valor)) return;
+  if(campo==="modelo"&&!catalogo.modelos.some(p=>p.id===valor)) return;
+  criador[campo]=valor;
+  renderAberturaEscritorio();
+}
+function criadorQuartoHtml() {
+ const catalogo=escritorio.base.quartos;
+ if(!catalogo) return '<section class="abr-painel"><h2>Catálogo de quartos indisponível</h2><p>Recarregue o escritório para tentar novamente.</p></section>';
+ const etapa=criador.etapa,planta=catalogo.plantas.find(p=>p.id===criador.planta);
+ let titulo,conteudo,anterior,proxima;
+ if(etapa==="planta") {
+  titulo="Qual é o formato do seu quarto?";anterior="personagem";proxima="mobilia";
+  conteudo=`<div class="abr-quartos">${catalogo.plantas.map(p=>`<button type="button" aria-pressed="${p.id===criador.planta}" onclick="criadorQuartoEscolher('planta','${p.id}')">${criadorPlantaPrevia(p)}<b>${safeText(p.nome)}</b><small>${safeText(p.dica)}</small></button>`).join("")}</div>`;
+ } else if(etapa==="mobilia") {
+  titulo="Em branco ou com o básico pronto?";anterior="planta";proxima="acabamento";
+  conteudo=`${escritorio.base.mapa?.camadas?.[escritorioMinhaMesa()?.ambiente.id]?.itens?.length ? `<label><input type="checkbox" ${criador.preservar?"checked":""} onchange="criador.preservar=this.checked"> Preservar minha decoração atual. Desmarque para usar o modelo escolhido e guardar a anterior no histórico.</label>` : ""}<p>Todos os modelos iniciais são gratuitos. Se você já decorou um quarto, os móveis salvos serão preservados; escolha uma planta em que eles caibam.</p><div class="abr-quartos">${catalogo.modelos.map(m=>`<button type="button" aria-pressed="${m.id===criador.modelo}" onclick="criadorQuartoEscolher('modelo','${m.id}')">${criadorPlantaPrevia(planta,m.id)}<b>${safeText(m.nome)}</b><small>${safeText(m.dica)}</small></button>`).join("")}</div>`;
+ } else {
+  titulo="Dê a sua cara ao espaço";anterior="mobilia";proxima="boas";
+  conteudo=`${criadorPlantaPrevia(planta,criador.modelo)}<div class="abr-acabamentos"><label>Piso<select onchange="criador.piso=this.value">${["madeira","clara","concreto","carpete","preto","verde","marmore","nogueira"].map(p=>`<option value="${p}"${criador.piso===p?' selected':''}>${p}</option>`).join("")}</select></label><label>Paredes<select onchange="criador.parede=this.value">${[["#ff8a35","Laranja"],["#5aa9ff","Azul"],["#7ee08a","Verde"],["#b48cff","Lilás"],["#e8e8ee","Clara"],["#8a8f9c","Grafite"]].map(([v,n])=>`<option value="${v}"${criador.parede===v?' selected':''}>${n}</option>`).join("")}</select></label></div><p>Depois de entrar, use <b>Decorar</b> no seu quarto para arrastar móveis, pintar cada ladrilho e abrir a loja. Sua escolha só será salva na confirmação final.</p>`;
+ }
+ return `<section class="abr-painel abr-quarto" aria-labelledby="abr-titulo"><span class="abr-kicker">Seu espaço · ${etapa==="planta"?'1 de 3':etapa==="mobilia"?'2 de 3':'3 de 3'}</span><h2 id="abr-titulo">${titulo}</h2>${conteudo}<div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='${anterior}';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='${proxima}';renderAberturaEscritorio()">Continuar</button></div></section>`;
 }
