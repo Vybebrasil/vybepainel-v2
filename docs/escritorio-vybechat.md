@@ -332,8 +332,8 @@ Plano, valores e decisões do Paulo em `docs/escritorio-pontos.md`. Resumo:
 - Histórico: `vybe_escritorio_entregas` é reconstruída na migração (Solicitações:
   responsáveis atuais → último registro de responsáveis → quem marcou; Produção:
   quem mandou aprovar se for da Criação, senão responsáveis da Criação; agendou;
-  captação; carteira) e recebe o bônus de chegada (2 moedas por entrega, teto
-  200; 10 XP por entrega, sem teto).
+  captação; carteira) e recebe o bônus de chegada (2 moedas e 10 XP por
+  entrega, sem teto).
 - A ficha mostra nível pelo XP do servidor, meta da semana e os últimos
   lançamentos só para a própria pessoa; para quem administra, os números das
   demandas continuam como antes.

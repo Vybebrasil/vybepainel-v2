@@ -38,7 +38,7 @@ INSERT INTO vybe_escritorio_regras(chave,funcao,descricao,moedas,pontos,teto,ent
  ('dia_ativo',NULL,'Dia com ação no painel',0,2,NULL,false),
  ('meta_semanal',NULL,'Meta da semana batida',50,50,NULL,false),
  ('conquista',NULL,'Conquista',50,50,NULL,false),
- ('chegada',NULL,'Bônus de chegada pelo histórico, por entrega',2,10,200,false)
+ ('chegada',NULL,'Bônus de chegada pelo histórico, por entrega',2,10,NULL,false)
  ON CONFLICT (chave) DO NOTHING;
 -- XP na carteira; no razão, pontos, regra e peça. Perda com saldo zero grava
 -- quantidade 0 (fica registrada), por isso a verificação antiga muda.
@@ -233,7 +233,7 @@ INSERT INTO vybe_escritorio_fechamentos(chave)
  SELECT 'dia:'||to_char(vybe_dia_bahia(now())-n,'YYYY-MM-DD') FROM generate_series(1,7) n
  UNION ALL SELECT 'semana:'||to_char(date_trunc('week',vybe_dia_bahia(now())::timestamp)::date-7*n,'YYYY-MM-DD') FROM generate_series(1,2) n
  ON CONFLICT DO NOTHING;
--- Bônus de chegada: por entrega histórica, com teto nas moedas e sem teto no XP.
+-- Bônus de chegada: por entrega histórica, sem teto (decisão do Paulo); `teto` na regra limitaria se preenchido.
 DO $$
 DECLARE r vybe_escritorio_regras; p record;
 BEGIN

@@ -1,9 +1,9 @@
 # Pontos (XP) e VybeCoins por função — plano
 
-Plano escrito em 17/10/2026 e aprovado pelo Paulo no mesmo dia ("Aprovado:
-funções como listadas, Produção conta para a Criação, valores de partida,
-atraso uma vez por pessoa por dia, chegada 2 moedas/entrega com teto 200 e
-10 XP/entrega"). A fase 1 está implementada: migração
+Plano escrito em 17/10/2026 e aprovado pelo Paulo no mesmo dia (funções como
+listadas; "tem que contar tudo, não só o quadro de solicitações"; valores de
+partida ok; atraso uma vez por pessoa por dia ok; chegada "ok mas sem limite":
+2 moedas e 10 XP por entrega histórica, sem teto e sem limite diário de ganhos). A fase 1 está implementada: migração
 `migrations/2026-10-17-escritorio-pontos.sql`, fechamento em
 `server/escritorio-pontos.js`, testes em `tests/escritorio-pontos.test.mjs`.
 Os valores ficam na tabela `vybe_escritorio_regras` e as funções em
@@ -80,11 +80,12 @@ O bônus é igual para todo mundo: ganha quem supera a própria média.
 
 | # | Evento | Quem | Moedas | XP |
 |---|--------|------|-------:|---:|
-| 16 | Histórico já registrado no painel | todos | 2 por entrega, teto 200 | 10 por entrega, sem teto |
+| 16 | Histórico já registrado no painel | todos | 2 por entrega, sem teto | 10 por entrega, sem teto |
 
 As 346 demandas antigas foram marcadas sem moedas na instalação da loja. O
 bônus de chegada reconhece esse histórico: o nível já começa fiel ao que a
-pessoa entregou e as moedas dão um saldo inicial sem inflar a loja. Quem
+pessoa entregou e as moedas dão o saldo inicial (sem teto, decisão do Paulo;
+a coluna `teto` da regra existe para limitar se um dia for preciso). Quem
 entregou uma demanda antiga é descoberto assim, nessa ordem: responsáveis que
 ainda estão na demanda; se a automação limpou, os nomes do último registro de
 "Responsáveis" antes da finalização; por último, quem marcou o status.
@@ -94,7 +95,7 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
 - XP nunca cai; penalidades só em moedas; saldo nunca negativo.
 - Meta semanal por pessoa a partir da média das últimas 8 semanas; bônus igual
   para quem bate a própria meta.
-- Bônus de chegada pelo histórico, com teto.
+- Bônus de chegada pelo histórico, sem teto; sem limite diário de ganhos.
 - Loja com raridade (comum, raro, muito raro, lendário), estoque limitado e
   vitrine semanal; alguns itens só por marco, sem compra.
 - Não premiar horas online; premiar dias ativos.
@@ -106,7 +107,8 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
    "Para agendar" sem alteração = aprovada).
 3. **Valores** das tabelas acima como ponto de partida.
 4. **Atraso**: uma perda por pessoa por dia útil, para no zero.
-5. **Chegada**: 2 moedas por entrega histórica (teto 200) e 10 XP por entrega.
+5. **Chegada**: 2 moedas e 10 XP por entrega histórica, sem teto ("quem
+   entregar muito no dia ganha muito"; também não há limite diário).
 6. Leitura do banco de produção autorizada (só leitura), feita antes da migração.
 
 ## O que a leitura de produção mostrou (17/10/2026)

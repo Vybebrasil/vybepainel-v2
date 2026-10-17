@@ -173,7 +173,7 @@ test('semana: meta pela média das últimas 8 semanas, bônus igual para quem ba
  const de=await fecharPontosEscritorio(sql,new Date('2026-10-20T03:10:00Z'));
  assert.equal(de.semanas.length,0);assert.equal((await metas(7)).length,2);
 });
-test('chegada reconstrói o histórico (responsáveis, registro de responsáveis, autor) com teto nas moedas',async t=>{
+test('chegada reconstrói o histórico (responsáveis, registro de responsáveis, autor) sem teto; o teto da regra vale se preenchido',async t=>{
  const {db,sql}=await banco(t,{historico:async db=>{
   await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave) VALUES(50,8385559107,'feito'),(51,8385559107,'feito'),(52,8385559107,'feito'),(53,7829537690,'finalizado'),(54,7829537690,'finalizado'),(55,7829537690,'finalizado'),(56,7829537690,'finalizado'),(57,7829537690,'finalizado');
    INSERT INTO vybe_conteudos(id,board_id,status_chave) SELECT 100+n,7829537690,'finalizado' FROM generate_series(1,120) n;
@@ -199,7 +199,7 @@ test('chegada reconstrói o histórico (responsáveis, registro de responsáveis
  assert.deepEqual(await conta(28),['captacao']);
  assert.deepEqual(await conta(1),[]);
  assert.equal((await conta(6)).length,121);
- assert.deepEqual(await saldo(sql,6),[200,1210]);                    // teto de 200 moedas; XP sem teto
+ assert.deepEqual(await saldo(sql,6),[242,1210]);                    // 121 entregas × 2 moedas e × 10 XP, sem teto
  assert.deepEqual(await saldo(sql,7),[4,20]);
  assert.equal((await sql`SELECT TO_CHAR(dia,'YYYY-MM-DD') AS dia FROM vybe_escritorio_entregas WHERE pessoa_id=4`)[0].dia,'2026-09-01');
  await evento(db,50,'status','Feito',4);                             // já premiada na instalação: nada
@@ -211,6 +211,10 @@ test('chegada reconstrói o histórico (responsáveis, registro de responsáveis
  assert.equal(marcas.filter(m=>m.chave.startsWith('dia:')).length,7);assert.equal(marcas.filter(m=>m.chave.startsWith('semana:')).length,2);
  assert.ok(marcas.some(m=>m.chave==='dia:'+dias(hoje,-1)));
  assert.equal((await fecharPontosEscritorio(sql)).dias.length,0);
+ // Se um dia a regra ganhar teto, ele limita só as moedas.
+ await db.exec("DELETE FROM vybe_escritorio_moedas WHERE origem='chegada:historico' AND pessoa_id=6;UPDATE vybe_escritorio_carteiras SET saldo=0,xp=0 WHERE pessoa_id=6;UPDATE vybe_escritorio_regras SET teto=200 WHERE chave='chegada'");
+ await sql`SELECT vybe_lancar_pontos(6,'chegada:historico','chegada',NULL,LEAST(200,121*2),121*10)`;
+ assert.deepEqual(await saldo(sql,6),[200,1210]);
 });
 test('nível pelo XP e início da semana',()=>{
  assert.deepEqual(nivelPorXp(0),{nivel:1,xp:0,xpProximo:50,xpTotal:0});
