@@ -156,19 +156,19 @@ ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostr
 function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
   const mesa = escritorioMinhaMesa(), pin = escritorioPincel();
   if (!mesa) return false;
-  const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0;
-  if (lx < 0 || ly < 0 || lx >= 10 || ly >= 10) return false;
+  const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0, L = ESCRITORIO_SALA_LADO;
+  if (lx < 0 || ly < 0 || lx >= L || ly >= L) return false;
   const p = escritorio.perfil;
   if (pin.ferramenta === "parede") {
     // Parede mais perto do ponto clicado, entre as que encostam no ladrilho
     // (fundo, esquerda, frente, direita) e que existem no mapa.
     const ux = fx - a.x0, uy = fy - a.y0;
-    const lados = [[0, uy, ly === 0], [1, ux, lx === 0], [2, 10 - uy, ly === 9], [3, 10 - ux, lx === 9]]
-      .filter(([lado, , encosta]) => encosta && escritorioTrechoExiste(a, lado * 10 + (lado % 2 ? ly : lx)))
+    const lados = [[0, uy, ly === 0], [1, ux, lx === 0], [2, L - uy, ly === L - 1], [3, L - ux, lx === L - 1]]
+      .filter(([lado, , encosta]) => encosta && escritorioTrechoExiste(a, lado * L + (lado % 2 ? ly : lx)))
       .sort((m, n) => m[1] - n[1]);
     if (!lados.length) return false;
-    const lado = lados[0][0], i = lado * 10 + (lado % 2 ? ly : lx);
-    const atual = String(p.sala_paredes || "").length === 120 ? p.sala_paredes : "-00".repeat(40);
+    const lado = lados[0][0], i = lado * L + (lado % 2 ? ly : lx);
+    const atual = String(p.sala_paredes || "").length === L * 12 ? p.sala_paredes : "-00".repeat(L * 4);
     const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
     if (atual.slice(i * 3, i * 3 + 3) === cod) return true;
     escritorio.perfil = { ...p, sala_paredes: atual.slice(0, i * 3) + cod + atual.slice(i * 3 + 3) };
@@ -186,7 +186,7 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
     return true;
   } else if (pin.ferramenta === "piso") {
     const i = ly * 10 + lx;
-    const atual = String(p.sala_pisos || "").length === 100 ? p.sala_pisos : "0".repeat(100);
+    const atual = String(p.sala_pisos || "").length === L * L ? p.sala_pisos : "0".repeat(L * L);
     const cod = Math.max(0, ESCRITORIO_PISOS_SALA.findIndex(([id]) => id === pin.piso)).toString(16);
     if (atual[i] === cod) return true;
     escritorio.perfil = { ...p, sala_pisos: atual.slice(0, i) + cod + atual.slice(i + 1) };
@@ -199,7 +199,7 @@ function pintarTodasParedesEscritorio() {
   const a = escritorioMinhaMesa()?.ambiente;
   if (!a) return;
   const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
-  escritorio.perfil = { ...escritorio.perfil, sala_paredes: Array.from({ length: 40 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("") };
+  escritorio.perfil = { ...escritorio.perfil, sala_paredes: Array.from({ length: ESCRITORIO_SALA_LADO * 4 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("") };
   escritorioPinturaMudou();
 }
 function limparPinturaEscritorio(campo) {

@@ -449,11 +449,12 @@ test("clique no mapa volta para o mesmo ladrilho e a presença ida e volta", () 
 
 test("cada ambiente do mapa leva à sala de conversa certa", () => {
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
-  assert.equal(vm.runInContext("escritorioSalaEm(4, 40)", c), "reuniao"); // auditório
-  assert.equal(vm.runInContext("escritorioSalaEm(72, 26)", c), "foco");
-  assert.equal(vm.runInContext("escritorioSalaEm(22, 36)", c), "convivencia"); // corredor
-  assert.equal(vm.runInContext("escritorioSalaEm(57, 65)", c), "convivencia"); // piscina
-  assert.equal(vm.runInContext("escritorioAmbienteEm(35, 57).id", c), "recepcao"); // entrada
+  assert.equal(vm.runInContext("escritorioSalaEm(26, 40)", c), "reuniao"); // auditório
+  assert.equal(vm.runInContext("escritorioSalaEm(50, 40)", c), "foco");
+  assert.equal(vm.runInContext("escritorioSalaEm(30, 22)", c), "convivencia"); // corredor do fundo
+  assert.equal(vm.runInContext("escritorioSalaEm(40, 20)", c), "convivencia"); // pátio
+  assert.equal(vm.runInContext("escritorioAmbienteEm(58, 64).id", c), "lounge"); // terraço com a piscina
+  assert.equal(vm.runInContext("escritorioAmbienteEm(40, 57).id", c), "recepcao"); // entrada
   // Chat escrito das salas individuais: o da ala em que ficam.
   const salaDe = (id) => vm.runInContext(`ESCRITORIO_PLANTA.ambientes.find((a) => a.id === "${id}").sala`, c);
   assert.equal(salaDe("sala-0"), "atendimento");
@@ -479,11 +480,16 @@ test("planta nova passa na auditoria (colisões, portas, acessos)", () => {
   assert.equal(r.status, 0, r.stdout + r.stderr);
 });
 
-test("salas individuais: 12 iguais de 10×10 e o dono vem do servidor", () => {
+test("salas individuais: 9 iguais de 8×8, porta embaixo ou à direita, e o dono vem do servidor", () => {
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
-  const salas = vm.runInContext("ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.x1 - a.x0, a.y1 - a.y0])", c);
-  assert.equal(salas.length, 12);
-  assert.ok(salas.every(([w, h]) => w === 10 && h === 10));
+  const salas = vm.runInContext("ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.x1 - a.x0, a.y1 - a.y0, a.porta])", c);
+  assert.equal(salas.length, 9);
+  assert.ok(salas.every(([w, h, porta]) => w === 8 && h === 8 && ["baixo", "direita"].includes(porta)));
+  // A entrada de cada sala fica dentro dela, do lado da porta.
+  for (let i = 0; i < 9; i++) {
+    const r = vm.runInContext(`(() => { const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === "sala-${i}"); const e = escritorioEntradaDaSala(a); return [e.x >= a.x0 && e.x < a.x1 && e.y >= a.y0 && e.y < a.y1, a.porta === "direita" ? e.x === a.x1 - 2 : e.y === a.y1 - 2]; })()`, c);
+    assert.deepEqual([...r], [true, true], "sala-" + i); // array da sandbox: compara pelos valores
+  }
   vm.runInContext('escritorio.base = { eu: "1", equipe: [], salas: [{ id: "sala-3", dono: "Deivid", pessoa_id: "1" }] }; escritorioAplicarSalas();', c);
   assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.id", c), "sala-3");
   assert.equal(vm.runInContext('ESCRITORIO_PLANTA.ambientes.find((a) => a.id === "sala-3").nome', c), "Sala de Deivid");
@@ -581,12 +587,12 @@ test("salas: dono pelo primeiro nome ou apelido do cadastro; livres sem dono", (
   const salas = salasDoEscritorio([
     { id: 1, nome: "Paulo Martins" }, { id: 2, nome: "Beatriz Rocha" }, { id: 3, nome: "Ademir Dourado" }, { id: 4, nome: "Breno Fernandes" },
   ]);
-  assert.equal(salas.length, 12);
+  assert.equal(salas.length, 9);
   assert.equal(salas[0].pessoa_id, "1");
   assert.equal(salas.find((s) => s.dono === "Bia").pessoa_id, "2");
   assert.equal(salas.find((s) => s.dono === "Mizinho").pessoa_id, "3");
   assert.ok(!salas.some((s) => s.pessoa_id === "4"));
-  assert.equal(salas.filter((s) => !s.dono).length, 3);
+  assert.equal(salas.filter((s) => !s.dono).length, 0);
 });
 
 test("itens: fora da área, classe estranha ou direção inválida são recusados", () => {
@@ -911,10 +917,12 @@ test("perfil: piso e parede da sala só com valores conhecidos", () => {
 });
 
 test("perfil: piso pintado e paredes só no formato certo", () => {
-  const ok = perfilEscritorio({ sala_pisos: "0".repeat(99) + "b", sala_paredes: "c02".repeat(39) + "hd0" });
-  assert.equal(ok.sala_pisos.length, 100);
-  assert.equal(ok.sala_paredes.length, 120);
-  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(100), sala_paredes: "c03".repeat(40) });
+  // Sala 8×8: 64 ladrilhos e 32 trechos de parede (8 por lado).
+  const ok = perfilEscritorio({ sala_pisos: "0".repeat(63) + "b", sala_paredes: "c02".repeat(31) + "hd0" });
+  assert.equal(ok.sala_pisos.length, 64);
+  assert.equal(ok.sala_paredes.length, 96);
+  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(64), sala_paredes: "c03".repeat(32) });
+  assert.equal(perfilEscritorio({ sala_pisos: "0".repeat(100), sala_paredes: "c02".repeat(40) }).sala_pisos, "", "o formato antigo de 10×10 não vale mais");
   assert.equal(ruim.sala_pisos, "");
   assert.equal(ruim.sala_paredes, "");
 });

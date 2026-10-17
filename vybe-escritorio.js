@@ -538,11 +538,12 @@ function escritorioAplicarSalas() {
     const dono = donos.get(a.id);
     const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
     const lp = String(perfil?.sala_pisos || ""), lw = String(perfil?.sala_paredes || "");
-    if (lp.length === 100) for (let i = 0; i < 100; i++) {
+    const L = ESCRITORIO_SALA_LADO;
+    if (lp.length === L * L) for (let i = 0; i < L * L; i++) {
       const k = typeof ESCRITORIO_PISOS_SALA !== "undefined" ? ESCRITORIO_PISOS_SALA[parseInt(lp[i], 16)]?.[0] : "";
-      if (k) pisos.set(`${a.x0 + (i % 10)},${a.y0 + Math.floor(i / 10)}`, k);
+      if (k) pisos.set(`${a.x0 + (i % L)},${a.y0 + Math.floor(i / L)}`, k);
     }
-    if (lw.length === 120) for (let i = 0; i < 40; i++) {
+    if (lw.length === L * 12) for (let i = 0; i < L * 4; i++) {
       const [estilo, c, h] = lw.slice(i * 3, i * 3 + 3);
       if (estilo === "-") continue;
       const cor = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA[parseInt(c, 16)] : "";
@@ -560,7 +561,7 @@ function escritorioChegar() {
   const mesa = escritorioMinhaMesa();
   // Chega pela porta da própria sala (a cadeira fica atrás da mesa, num canto
   // fechado); sem sala, pela recepção.
-  const lugar = mesa ? escritorioNaSala(mesa.ambiente, 5, 8) : ESCRITORIO_PLANTA.entrada;
+  const lugar = mesa ? escritorioEntradaDaSala(mesa.ambiente) : ESCRITORIO_PLANTA.entrada;
   Object.assign(escritorio.perfil, escritorioParaPorcentagem(lugar.x, lugar.y));
   escritorio.sala = escritorioSalaEm(lugar.x, lugar.y);
   escritorio.zona = escritorioZonaEm(lugar.x, lugar.y);
@@ -2837,7 +2838,7 @@ function escritorioMarcarRecados() {
 // 10–19 esquerda (x0), 20–29 frente (y1), 30–39 direita (x1). Chave igual à
 // que o mapa usa para cada pedaço de divisória.
 function escritorioChaveTrecho(a, i) {
-  const k = i % 10, lado = Math.floor(i / 10);
+  const L = ESCRITORIO_SALA_LADO, k = i % L, lado = Math.floor(i / L);
   return [`x:${a.x0 + k},${a.y0}`, `y:${a.x0},${a.y0 + k}`, `x:${a.x0 + k},${a.y1}`, `y:${a.x1},${a.y0 + k}`][lado];
 }
 
