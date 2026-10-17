@@ -50,7 +50,9 @@ const ESCRITORIO_ESTADO_ANIMADO = {
 // anterior e não vale mais (as salas individuais continuam, são relativas).
 const ESCRITORIO_PLANTA_DESDE = "2026-10-17T12:30:00Z";
 // A reorganização comum não invalida as coordenadas locais dos quartos.
-const ESCRITORIO_GERAL_DESDE = "2026-10-17T18:51:05Z";
+// 17/10/2026, noite: espaços comuns viraram cenas próprias e o mapa geral
+// ganhou prédios com telhado; o mapa geral salvo antes disso não vale mais.
+const ESCRITORIO_GERAL_DESDE = "2026-10-17T22:51:08Z";
 const ESCRITORIO_PLANTA = (() => {
   // O mapa é quadrado, do tamanho da praça da imagem de fundo; o prédio
   // (60 × 48) fica no meio, com jardim atrás e dos lados e a frente para a
@@ -109,19 +111,40 @@ const ESCRITORIO_PLANTA = (() => {
     ambientes.push({ id: "sala-" + i, nome: "Sala livre", sala: ALA_SALAS[i], x0: 0, y0: 0, x1: L, y1: L, piso: "sala" + i,
       pessoal: true, porta, alta: ["y0", "x0"], cor: CORES_SALAS[i], fachada });
   });
-  // Espaços comuns: cor e estilo das paredes altas de cada um.
-  // "textura": o piso do acervo de cada espaço (a cor fica enquanto carrega).
-  ambiente("reuniao", "Sala de reunião", "reuniao", 12, 12, 24, 21, "carpete", { cor: "#5aa9ff", estilo: "f", textura: "lodge_dark_floor", texturaParede: "attic15_wall" });
-  ambiente("cafe", "Café", "convivencia", 36, 12, 48, 21, "cafe", { cor: "#d9a066", estilo: "h", textura: "rainyday_c20_woodenfloor", texturaParede: "attic15_wall" });
-  ambiente("jogos", "Jogos", "convivencia", 48, 12, 60, 21, "verde", { cor: "#3fae7a", estilo: "g", textura: "rainyday_c20_woodenfloor", texturaParede: "attic15_wall" });
-  ambiente("auditorio", "Auditório", "reuniao", 12, 24, 24, 34, "carpete", { cor: "#6b4fa0", estilo: "b", textura: "rainyday_c20_woodenfloor", texturaParede: "attic15_wall" });
-  ambiente("foco", "Foco", "foco", 36, 24, 48, 34, "clara", { cor: "#8b6b4a", estilo: "d", textura: "rainyday_c20_woodenfloor", texturaParede: "gardenshed_wall" });
-  ambiente("academia", "Academia", "convivencia", 48, 24, 60, 34, "academia", { cor: "#7a8494", estilo: "e", textura: "rainyday_c20_woodenfloor", texturaParede: "attic15_wall" });
-  ambiente("producao", "Produção", "producao", 0, 38, 24, 48, "concreto", { cor: "#4a5560", estilo: "e", textura: "rainyday_c20_woodenfloor", texturaParede: "attic15_wall" });
+  // Espaços comuns (decisão do Paulo, 17/10/2026, com as referências de
+  // quartos do Habbo): cada um é uma cena própria, como os quartos das salas,
+  // com as paredes do fundo altas e forradas, preenchida do chão à parede.
+  // No mapa geral fica a fachada (prédio com telhado, porta de vidro de 2
+  // ladrilhos no meio da frente e o letreiro). O id é a zona de conversa que
+  // o Worker já aceita: entrar na cena é entrar na conversa daquele espaço.
+  // [id, nome, sala de conversa, fachada no prédio [x0,y0,x1,y1], cor,
+  //  largura × fundo da cena, piso, papel de parede]
+  const CENAS = [
+    ["reuniao", "Sala de reunião", "reuniao", [8, 7, 22, 14], "#5aa9ff", 12, 10, "lodge_c15_floor", "lodge_dark_brickwall"],
+    ["auditorio", "Auditório", "reuniao", [8, 19, 22, 27], "#6b4fa0", 14, 12, "cine_tile", "attic15_wall"],
+    ["producao", "Produção", "producao", [8, 32, 22, 40], "#4a5560", 14, 11, "rainyday_c20_woodenfloor", "attic15_wall"],
+    ["cafe", "Café", "convivencia", [37, 7, 48, 14], "#d9a066", 12, 10, "bathroom_floortile1", "art_c20_wall"],
+    ["jogos", "Jogos", "convivencia", [49, 7, 59, 14], "#3fae7a", 12, 10, "tokyo_c18_floor", "attic15_wall"],
+    ["foco", "Foco", "foco", [37, 19, 48, 27], "#8b6b4a", 11, 9, "rainyday_c20_woodenfloor", "gardenshed_wall"],
+    ["academia", "Academia", "convivencia", [49, 19, 59, 27], "#7a8494", 12, 10, "sb_tile", "attic15_wall"],
+    ["lounge", "Lounge", "convivencia", [37, 32, 59, 40], "#b4583a", 14, 12, "lodge_dark_floor", "lodge_dark_brickwall"],
+  ];
+  for (const [id, nome, sala, [x0, y0, x1, y1], cor, w, h, textura, texturaParede] of CENAS) {
+    const mx = x0 + Math.floor((x1 - x0) / 2) - 1;
+    const fachada = {
+      x0: x0 + OX, y0: y0 + OY, x1: x1 + OX, y1: y1 + OY, porta: "baixo",
+      soleira: { x: mx + OX, y: y1 + OY, w: 2, h: 1 },
+      entrada: [{ x: mx + OX, y: y1 - 1 + OY }, { x: mx + 1 + OX, y: y1 - 1 + OY }],
+      saida: { x: mx + OX, y: y1 + OY, dir: 4 },
+    };
+    // A planta da cena vem junto (não do catálogo dos quartos): retângulo de
+    // piso, porta no meio da frente.
+    // Sem parede na frente (bordaAberta), como os quartos do Habbo.
+    const modelo = { id: "cena-" + id, celdas: Array.from({ length: h }, () => Array(w).fill(0)), portas: { baixo: Math.floor(w / 2) - 1 }, escada: [], bordaAberta: true };
+    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, fachada });
+  }
+  // Recepção: o saguão aberto da entrada, no mapa geral.
   ambiente("recepcao", "Recepção", "convivencia", 24, 38, 36, 48, "marmore", { cor: "#ff8a35", estilo: "d", textura: "greek_c15_floor", texturaParede: "attic15_wall" });
-  // O Lounge é uma zona só (uma conversa): quatro espaços dentro do prédio e
-  // o terraço com a piscina, aberto na frente.
-  ambiente("lounge", "Lounge", "convivencia", 36, 38, 60, 58, "madeira", { semRotulo: false, cor: "#b4583a", estilo: "c", texturaParede: "attic15_wall" });
   const pisos = [
     {x0:24,y0:0,x1:36,y1:38,piso:"patio",textura:"greek_c15_floor"},
   ].map(q=>({...q,x0:q.x0+OX,x1:q.x1+OX,y0:q.y0+OY,y1:q.y1+OY}));
@@ -153,55 +176,16 @@ const ESCRITORIO_PLANTA = (() => {
   // Fachadas das salas: caixa fechada com as quatro paredes altas na cor da
   // sala e o vão da porta (2 ladrilhos) no lado da entrada. A parede lateral
   // partilhada com a fachada vizinha é desenhada uma vez só.
-  const fachadas = ambientes.filter((x) => x.pessoal).map((x) => x.fachada);
-  for (const s of ambientes.filter((x) => x.pessoal)) {
+  const comFachada = ambientes.filter((x) => x.fachada);
+  const fachadas = comFachada.map((x) => x.fachada);
+  for (const s of comFachada) {
     const a = rel(s.fachada), opc = { sala: s };
-    const m = { x: a.x0 + L / 2 - 1, y: a.y0 + L / 2 - 1 };
+    const m = { x: a.x0 + Math.floor((a.x1 - a.x0) / 2) - 1, y: a.y0 + Math.floor((a.y1 - a.y0) / 2) - 1 };
     parede(a.x0, a.y0, a.x1, a.y0, [], opc);
     if (!fachadas.some((o) => o.x1 === s.fachada.x0 && o.y0 === s.fachada.y0)) parede(a.x0, a.y0, a.x0, a.y1, [], opc);
     parede(a.x0, a.y1, a.x1, a.y1, s.porta === "baixo" ? [[m.x, m.x + 2]] : [], opc);
     parede(a.x1, a.y0, a.x1, a.y1, s.porta === "direita" ? [[m.y, m.y + 2]] : [], opc);
   }
-  // Espaços comuns. Fundo (y0) e esquerda (x0) médios quando dão para
-  // corredor ou pátio; baixos quando são a parede de outro espaço.
-  const R = Object.fromEntries(["reuniao", "cafe", "jogos", "auditorio", "foco", "academia", "producao", "recepcao", "lounge"].map((id) => [id, rel(amb(id))]));
-  // Reunião: painel escuro no fundo e na esquerda; porta para o pátio.
-  parede(R.reuniao.x0, R.reuniao.y0, R.reuniao.x1, R.reuniao.y0, [], { amb: amb("reuniao") });
-  parede(R.reuniao.x0, R.reuniao.y0, R.reuniao.x0, R.reuniao.y1, [], { amb: amb("reuniao") });
-  parede(R.reuniao.x1, R.reuniao.y0, R.reuniao.x1, R.reuniao.y1, [[15, 17]]);
-  parede(R.reuniao.x0, R.reuniao.y1, R.reuniao.x1, R.reuniao.y1);
-  // Café: azulejo no fundo; a esquerda dá para o pátio, baixa, com a porta.
-  parede(R.cafe.x0, R.cafe.y0, R.cafe.x1, R.cafe.y0, [], { amb: amb("cafe") });
-  parede(R.cafe.x0, R.cafe.y0, R.cafe.x0, R.cafe.y1, [[15, 17]]);
-  parede(R.cafe.x0, R.cafe.y1, R.cafe.x1, R.cafe.y1);
-  // Jogos: fundo médio; a esquerda é a parede do Café (baixa); porta embaixo.
-  parede(R.jogos.x0, R.jogos.y0, R.jogos.x1, R.jogos.y0, [], { amb: amb("jogos") });
-  parede(R.jogos.x0, R.jogos.y0, R.jogos.x0, R.jogos.y1);
-  parede(R.jogos.x0, R.jogos.y1, R.jogos.x1, R.jogos.y1, [[53, 55]]);
-  // Auditório: fundo e esquerda médios; porta para o pátio.
-  parede(R.auditorio.x0, R.auditorio.y0, R.auditorio.x1, R.auditorio.y0, [], { amb: amb("auditorio") });
-  parede(R.auditorio.x0, R.auditorio.y0, R.auditorio.x0, R.auditorio.y1, [], { amb: amb("auditorio") });
-  parede(R.auditorio.x1, R.auditorio.y0, R.auditorio.x1, R.auditorio.y1, [[28, 30]]);
-  parede(R.auditorio.x0, R.auditorio.y1, R.auditorio.x1, R.auditorio.y1);
-  // Foco: fundo médio; esquerda baixa para o pátio, com a porta.
-  parede(R.foco.x0, R.foco.y0, R.foco.x1, R.foco.y0, [], { amb: amb("foco") });
-  parede(R.foco.x0, R.foco.y0, R.foco.x0, R.foco.y1, [[28, 30]]);
-  parede(R.foco.x0, R.foco.y1, R.foco.x1, R.foco.y1);
-  // Academia: fundo médio com a porta; esquerda é a parede do Foco (baixa).
-  parede(R.academia.x0, R.academia.y0, R.academia.x1, R.academia.y0, [[53, 55]], { amb: amb("academia") });
-  parede(R.academia.x0, R.academia.y0, R.academia.x0, R.academia.y1);
-  parede(R.academia.x0, R.academia.y1, R.academia.x1, R.academia.y1);
-  // Produção: fundo médio com a porta para o corredor; a direita dá na
-  // Recepção (baixa, com porta); estúdio separado da edição por divisória baixa.
-  parede(R.producao.x0, R.producao.y0, R.producao.x1, R.producao.y0, [[10, 12]], { amb: amb("producao") });
-  parede(R.producao.x1, R.producao.y0, R.producao.x1, R.producao.y1, [[42, 44]]);
-  parede(9, 38, 9, 44);
-  // Recepção: aberta para o pátio (sem parede no fundo); a direita dá no
-  // Lounge (baixa, com porta).
-  parede(R.recepcao.x1, R.recepcao.y0, R.recepcao.x1, R.recepcao.y0 + 10, [[43, 45]]);
-  // Lounge: fundo com duas portas e frente aberta para o terraço.
-  parede(R.lounge.x0, R.lounge.y0, R.lounge.x1, R.lounge.y0, [[40, 42], [49, 51]], { amb: amb("lounge") });
-  // Lounge sem divisórias internas: circulação e leitura em um único ambiente.
   // Fachada e lateral direita do prédio (baixas): porta da rua na Recepção,
   // saídas do Lounge para o terraço.
   parede(0, 48, 24, 48); parede(24, 48, 36, 48, [[28, 32]]); parede(36, 48, 60, 48, [[44, 46], [56, 58]]);
@@ -210,8 +194,6 @@ const ESCRITORIO_PLANTA = (() => {
   // Móveis: [classe, x, y, direção, estado, altura (em cima de mesa / na parede)]
   const m = [];
   const p = (classe, x, y, dir = 2, estado = 0, altura = 0) => m.push([classe, x + OX, y + OY, dir, ESCRITORIO_ESTADO_ANIMADO[classe] ?? estado, altura]);
-  // Dentro de um espaço comum: coordenadas locais ao canto dele.
-  const em = (id) => { const a = R[id]; return (classe, lx, ly, dir = 2, estado = 0, altura = 0) => p(classe, a.x0 + lx, a.y0 + ly, dir, estado, altura); };
 
   // Pátio (x 24…35): a fonte no meio, bancos virados para ela e, nas bordas,
   // canteiros, postes e vasos ladeando as portas. O eixo central (x 28…31)
@@ -227,77 +209,44 @@ const ESCRITORIO_PLANTA = (() => {
   for(const [x,y] of [[27,19],[32,19],[27,26],[32,26]]) p("olympus_c25_narcissusflowers",x,y,0);
   for(const [x,y] of [[24,3],[35,3],[24,12],[35,12]]) p("olympus_c25_olivetree",x,y,2);
 
-  // Recepção: balcão e uma espera; eixo central da entrada desimpedido.
-  {
-    const q=em("recepcao");
-    q("lodge_dark_desk",3,4,2);q("modern_c17_chair",2,5,2);
-    q("computer_flatscreen",3,6,2,1,1.25);
-    q("js_exe_sofa",7,4,4);q("modern_c17_lowtable",7,5,2);
-    q("mafia_c26_planter_white",10,1,0);
+  // Calçada dos prédios: na frente (y1) e na lateral direita (x1) de cada
+  // espaço comum, um ritmo de vaso, banco virado para a rua e poste, como as
+  // ruas das praças do Habbo. A porta (e um ladrilho de cada lado) fica livre.
+  // Atrás dos prédios não se decora: o telhado cobre aquela faixa.
+  const ocupadoRua = new Set();
+  const altosRua = new Set();
+  const rua = (classe, x, y, dir, w = 1, h = 1, estado = 0) => {
+    for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) if (ocupadoRua.has(`${x + i},${y + j}`)) return;
+    for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) { ocupadoRua.add(`${x + i},${y + j}`); if (classe !== "greek_c15_bench") altosRua.add(`${x + i},${y + j}`); }
+    p(classe, x, y, dir, estado);
+  };
+  for (const [, , , [x0, y0, x1, y1]] of CENAS) {
+    const mx = x0 + Math.floor((x1 - x0) / 2) - 1;
+    // Vaso na ponta esquerda, poste na direita e um de cada lado da porta;
+    // no meio, bancos virados para a rua com uma janela acima de cada um.
+    rua("mafia_c26_planter_white", x0, y1, 0); rua("suncity_c19_streetlight", x1 - 1, y1, 0, 1, 1, 1);
+    rua("suncity_c19_streetlight", mx - 2, y1, 0, 1, 1, 1); rua("mafia_c26_planter_white", mx + 3, y1, 0);
+    for (const [a, b] of [[x0 + 1, mx - 2], [mx + 4, x1 - 1]])
+      for (let x = a; x + 2 <= b; x += 3) { rua("greek_c15_bench", x, y1, 4, 2); p("window_basic", x, y1, 4, 0, 0.9); }
+    // Lateral direita, se houver rua (não outro prédio colado).
+    if (x1 <= 57 && !CENAS.some(([, , , [ox0, oy0, , oy1]]) => ox0 > x1 && ox0 - x1 < 2 && oy0 < y1 && oy1 > y0))
+      for (let y = y0 + 1; y < y1; y += 3) rua(y % 2 ? "theatre_plant" : "suncity_c19_streetlight", x1, y, 2, 1, 1, 1);
   }
-  // Produção: um set e duas estações de revisão.
-  {
-    const q=em("producao");
-    q("mafia_c26_armchair_white",1,2,2);q("hc26_3",2,2,2);q("mafia_c26_armchair_white",4,2,6);
-    q("spotlight",6,1,6);q("studio_camera",7,4,6);
-    for(const x of [13,18]) {q("hc_exe_wrkdesk",x,1,4);q("army_c15_leatherchr",x,2,0);}
-    q("theatre_plant",23,9,2);
-  }
-  // Reunião: seis lugares e uma tela, sem objetos espalhados sobre a mesa.
-  {
-    const q=em("reuniao");
-    q("army_c15_contable2",4,4,0);q("army_c15_contable",5,4,0);q("army_c15_contable2",7,4,0);
-    for(const x of [4,5,7]) {q("army_c15_leatherchr",x,3,4);q("army_c15_leatherchr",x,5,0);}
-    q("army15_largescreen",7,0,4,1,1);q("plant_yukka",0,0,0);
-  }
-  // Café: bancada curta e uma mesa coletiva.
-  {
-    const q=em("cafe");
-    q("mode_fridge",0,0,0);q("hygge_c25_counter1",2,0,0);q("hygge_c25_kitchensink",4,0,4);
-    q("sunsetcafe_c20_coffeemachine",2,0,2,1,1.2);
-    q("hc25_12",5,4,0);
-    for(const dx of [0,1]) {q("hc26_10",5+dx,3,4);q("hc26_10",5+dx,5,0);}
-    q("bohogarden_c21_snakeplant",11,8,2);
-  }
-  // Jogos: duas máquinas e sinuca; o restante fica para a loja pessoal.
-  {
-    const q=em("jogos");
-    q("tokyo_c18_retroarcade",2,0,4,1);q("arcade_c23_pinball",7,0,0,1);
-    q("bling15_pooltable",5,4,4);q("theatre_plant",11,8,2);
-  }
-  // Auditório: oito assentos, com corredor central até o telão.
-  {
-    const q=em("auditorio");
-    q("uni_projector",0,3,2);q("uni_lectern",1,7,2);
-    for(const x of [5,8]) for(const y of [2,3,6,7]) q("theatre_seat",x,y,6);
-    q("bohogarden_c21_snakeplant",11,0,2);
-  }
-  // Foco: duas mesas, sem ruído decorativo ou objetos no caminho.
-  {
-    const q=em("foco");
-    q("purablk_c16_shelve",2,0,4);q("purablk_c16_shelve",8,0,4);
-    for(const x of [2,7]) {q("classic9_table",x,3,0);q("classic9_chair",x-1,3,2);q("classic9_chair",x+2,3,6);}
-    q("theatre_plant",0,9,2);
-  }
-  // Academia: duas esteiras e uma área de alongamento.
-  {
-    const q=em("academia");
-    for(const x of [2,9]) q("olympics_c16_treadmill",x,0,4);
-    q("olympics_c16_weightrack",0,4,2);q("usva_rug",5,5,0);
-    q("matic_water_dispenser",11,0,4);
-  }
-  // Lounge aberto: conversa, música e uma bancada; um só piso, sem baias.
-  {
-    const q=em("lounge");
-    q("lodge_dark_fireplace",1,0,0,1);
-    q("mafia_c26_sofa_dark",1,5,0);q("darkmodern_c20_lowtable",2,3,2);
-    q("mafia_c26_armchair_dark",5,3,6);
-    q("disco_c26_jukebox",12,1,2,1);
-    for(const x of [19,21]) {q("js_exe_bardesk",x,4,0);q("vwave_c21_barstool",x,5,0);}
-    q("theatre_plant",23,0,2);
-  }
-  // Paisagismo pontual; os corredores permanecem vazios.
-  for(const [x,y] of [[8,8],[59,8],[8,36],[59,36]]) p("theatre_plant",x,y,2);
+  // Saguão da esquerda (na frente da Produção): máquinas, mesas e árvores.
+  p("olympics_r16_vendingmchn", 4, 42, 2); p("olympics_r16_vendingmchn", 4, 43, 2);
+  for (const [x, y] of [[8, 44], [13, 44], [18, 44]]) { p("paris_c15_table", x, y, 0); p("paris_c15_chair", x - 1, y, 2); p("paris_c15_chair", x + 1, y, 6); }
+  for (const [x, y] of [[4, 46], [22, 46], [10, 46], [16, 46]]) p("bohogarden_c21_fanpalm", x, y, 0);
+  // Saguão da direita (na frente do Lounge, saída para o terraço).
+  for (const [x, y] of [[38, 44], [52, 44]]) { p("greek_c15_bench", x, y, 4); p("greek_c15_bench", x, y + 2, 0); }
+  for (const [x, y] of [[41, 45], [50, 45], [58, 42], [37, 47]]) p("bohogarden_c21_fanpalm", x, y, 0);
+  p("nyc_c23_starterstall", 55, 43, 0);
+
+  // Recepção (x 24…35, y 38…47): balcão e espera; eixo da entrada livre.
+  p("lodge_dark_desk",27,42,2); p("modern_c17_chair",26,43,2);
+  p("computer_flatscreen",27,44,2,1,1.25); p("exe_c15_telephone",27,42,2,0,1.25);
+  p("exe_rug",31,41,0); p("js_exe_sofa",31,42,4); p("modern_c17_lowtable",31,43,2); p("js_exe_sofa",31,44,0);
+  p("mafia_c26_planter_white",34,39,0); p("mafia_c26_planter_white",34,46,0); p("matic_water_dispenser",25,39,2);
+  p("modern_c17_floorlamp",34,42,0);
 
   // Portas de verdade nos vãos (abrem quando alguém chega perto; a sala
   // trancada fica com a porta fechada). Ficam na linha da parede:
@@ -308,21 +257,18 @@ const ESCRITORIO_PLANTA = (() => {
   // de altura numa parede de 1,5 parecia solta, e o portão baixo virava caixa.
   const portas = [];
   const porta = (classe, x, y, dir, zona) => { p(classe, x, y, dir, 0); portas.push({ classe, x: x + OX, y: y + OY, dir, zona, w: dir === 2 ? 1 : 2, h: dir === 2 ? 2 : 1 }); };
-  porta("val14_gate", 53, 24, 0, "academia"); porta("val14_gate", 10, 38, 0, "producao");
-  porta("val14_gate", 40, 38, 0, "lounge"); porta("val14_gate", 49, 38, 0, "lounge");
-  // Porta de cada fachada: na linha da parede, com a zona da sala (trancada,
-  // fica fechada; aberta, pisar atrás dela entra no quarto).
-  for (const s of ambientes.filter((x) => x.pessoal)) {
+  // Porta de cada fachada (salas e espaços comuns): na linha da parede, com
+  // a zona da cena (sala trancada fica fechada; aberta, pisar atrás dela entra).
+  for (const s of comFachada) {
     const a = rel(s.fachada);
-    if (s.porta === "baixo") porta("val14_gate", a.x0 + L / 2 - 1, a.y1, 0, s.id);
-    else porta("val14_gate", a.x1, a.y0 + L / 2 - 1, 2, s.id);
+    if (s.porta === "baixo") porta("val14_gate", a.x0 + Math.floor((a.x1 - a.x0) / 2) - 1, a.y1, 0, s.id);
+    else porta("val14_gate", a.x1, a.y0 + Math.floor((a.y1 - a.y0) / 2) - 1, 2, s.id);
   }
   // Vãos sem porta (soleira no piso): [x, y, w, h] do trecho de piso do vão.
   const soleiras = [];
   const soleira = (x, y, dir) => soleiras.push({ x: x + OX, y: y + OY, w: dir === 2 ? 1 : 2, h: dir === 2 ? 2 : 1 });
-  for (const s of ambientes.filter((x) => x.pessoal)) soleiras.push({ ...s.fachada.soleira });
-  soleira(24, 15, 2); soleira(36, 15, 2); soleira(53, 21, 0); soleira(24, 28, 2); soleira(36, 28, 2); soleira(24, 42, 2);
-  soleira(28, 48, 0); soleira(30, 48, 0); soleira(36, 43, 2); soleira(44, 48, 0); soleira(56, 48, 0);
+  for (const s of comFachada) soleiras.push({ ...s.fachada.soleira });
+  soleira(28, 48, 0); soleira(30, 48, 0); soleira(44, 48, 0); soleira(56, 48, 0);
   // Elevadores (teletransporte): da Recepção para o fundo do pátio e para a Produção.
   const elevadores = [];
   const elevador = (nome, x, y, dir, sai) => { p("exe_elevator", x, y, dir, 0); elevadores.push({ nome, x: x + OX, y: y + OY, sai: { x: sai[0] + OX, y: sai[1] + OY } }); };
@@ -405,15 +351,15 @@ const ESCRITORIO_PLANTA = (() => {
     { tipo: "logo", parede: "x", de: 24, ate: 36 },
     { tipo: "texto", texto: "TÔ NA VYBE", cor: "#ff3b2f", parede: "y", de: 39, ate: 47 },
   ].map((q) => ({ ...q, de: q.de + (q.parede === "x" ? OX : OY), ate: q.ate + (q.parede === "x" ? OX : OY) }));
-  // Corredores (linha laranja no meio): o do fundo, os do meio e o da frente.
-  const corredores = [[10, 0, 60], [22.5, 12, 24], [22.5, 36, 60], [36, 8, 60]].map(([y, a, b]) => [y + OY, a + OX, b + OX]);
+  // Sem linha de corredor: o piso das ruas internas já marca a circulação.
+  const corredores = [];
   // Postes (só sem a imagem de fundo) e o letreiro da Vybelândia.
   const postes = [];
   const letreiro = { texto: "VYBELÂNDIA", de: 36 + OX, ate: 58 + OX };
   // Onde se chega sem sala própria (e de onde o mapa confere a circulação).
   const entrada = { x: 30 + OX, y: 45 + OY };
   // Atalhos de câmera ("Ir para").
-  const vistas = { salas: [30 + OX, 6 + OY, 0.7], reunioes: [18 + OX, 24 + OY, 0.9], lazer: [48 + OX, 42 + OY, 0.75], externa: [46 + OX, 54 + OY, 0.85] };
+  const vistas = { salas: [30 + OX, 6 + OY, 0.7], reunioes: [15 + OX, 22 + OY, 0.9], lazer: [48 + OX, 26 + OY, 0.8], externa: [46 + OX, 54 + OY, 0.85] };
   piscina.x0 += OX; piscina.x1 += OX; piscina.y0 += OY; piscina.y1 += OY;
   // Pisos do acervo de fora do prédio (por cima da praça da imagem): gramado,
   // calçada da entrada, deck do terraço e a calçada da rua na frente.
@@ -439,6 +385,168 @@ const ESCRITORIO_PLANTA = (() => {
     // entre as salas lê como piso, não como vazio.
     texturas, texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement", texturaDeck: "country_patio", portas, soleiras, elevadores };
 })();
+// Móveis de cada espaço comum, em coordenadas da cena (0,0 = canto do
+// fundo). Montados como os quartos de referência do Habbo: cada cena com uma
+// linha de móveis só, parede do fundo ocupada, peças empilhadas (o que fica
+// em cima leva a altura do topo de baixo) e o caminho da porta livre.
+// [classe, x, y, direção, estado, altura]
+const ESCRITORIO_MOVEIS_CENAS = {
+  // Café: a cozinha moderna do vídeo de referência. Bancada preta no fundo
+  // com geladeira, fogão com coifa, pia e armários na parede; ilha com
+  // banquetas no meio; mesa de jantar com luminária pendente à direita.
+  cafe: () => [
+    ["mode_fridge", 0, 0, 0],
+    ["hygge_c25_counter1", 1, 0, 0], ["hygge_c25_microwave", 1, 0, 0, 0, 1.2],
+    ["hygge_c25_counter1", 2, 0, 0], ["ktchn15_coffeemaker", 2, 0, 4, 0, 1.2],
+    ["hygge_c25_stove", 3, 0, 0],
+    ["hygge_c25_counter1", 4, 0, 0], ["hygge_c25_airfryer", 4, 0, 0, 0, 1.2],
+    ["hygge_c25_counter1", 5, 0, 0], ["hygge_c25_kitchensink", 5, 0, 4, 0, 1.2],
+    ["hygge_c25_counter1", 6, 0, 0], ["hygge_c25_papertowel", 6, 0, 0, 0, 1.2],
+    ["ktchn_c15_dishwasher", 7, 0, 4],
+    ["hygge_c25_counter1", 8, 0, 0], ["hygge_c25_waffleiron", 8, 0, 0, 0, 1.2],
+    ["ktchn15_cabinet", 9, 0, 4],
+    ["sunsetcafe_c20_plant", 11, 0, 0],
+    // Armários de parede sobre a bancada.
+    ...[1, 2, 4, 6, 8].map((x) => ["ktchn_c15_cupboard", x, 0, 4, 0, 2.2]),
+    // Lateral esquerda: janela, adega e planta.
+    ["hygge_c25_window2", 0, 2, 0],
+    ["ktchn15_bubblejuicerack", 0, 5, 2],
+    ["bohogarden_c21_snakeplant", 0, 8, 2],
+    // Ilha com tampo cheio e banquetas.
+    ...[2, 3, 4].flatMap((x) => [["hygge_c25_counter1", x, 4, 0], ["hygge_c25_barstool", x, 5, 0]]),
+    ["hygge_c25_tumbler", 2, 4, 0, 0, 1.2], ["ktchn_c15_bread", 3, 4, 4, 0, 1.2], ["ktchn_c15_chopboard", 4, 4, 4, 0, 1.2],
+    ["ktchn_c15_cupboard", 0, 4, 2, 0, 2.2],
+    // Mesa de jantar de madeira escura no tapete, seis lugares e o pendente.
+    ["hygge_c25_carpet", 7, 3, 2],
+    ["lodge_dark_diningtable", 8, 4, 0],
+    ["hc26_10", 8, 3, 4], ["hc26_10", 9, 3, 4], ["hc26_10", 8, 6, 0], ["hc26_10", 9, 6, 0],
+    ["hc26_10", 7, 5, 2], ["hc26_10", 10, 4, 6],
+    ["ktchn10_tea", 9, 5, 0, 0, 0.9],
+    // Canto do café: tapete, poltronas em volta da mesinha, luminária e plantas.
+    ["hygge_c25_carpet", 1, 6, 0],
+    ["hygge_c25_armchair", 1, 7, 2], ["hygge_c25_armchair", 1, 8, 2],
+    ["hygge_c25_coffeetable", 2, 7, 0], ["hygge_c25_armchair", 3, 8, 6],
+    ["ktchn10_tea", 2, 7, 0, 0, 0.6], ["mm_lamp", 0, 7, 2],
+    // Lateral direita: cadeira suspensa no fundo e vaso de plumas.
+    ["hygge_c25_hangingchair", 11, 2, 6], ["hygge_c25_featherdeco", 11, 4, 0],
+    ["bohogarden_c21_snakeplant", 11, 8, 2],
+  ],
+  // Sala de reunião: escritório executivo em madeira escura. Estante,
+  // candelabro, mapa-múndi e TV no fundo; lareira e frigobar na lateral;
+  // mesa de dez lugares no tapete, com telefone e notebooks; espera à direita.
+  reuniao: () => [
+    ["shelves_silo", 0, 0, 4], ["lodge_dark_candle", 2, 0, 0],
+    ["lodge_dark_endtable", 3, 0, 0], ["exe_globe", 3, 0, 0, 0, 0.9],
+    ["exe_map", 3, 0, 4, 0, 1.4], ["lodge_dark_tv", 5, 0, 0],
+    ["shelves_silo", 7, 0, 4], ["exe_wfall", 9, 0, 4, 0, 0.6],
+    ["mafia_c26_planter_dark", 10, 0, 0], ["uni_c23_whiteboard", 11, 0, 0],
+    ["lodge_dark_fireplace", 0, 2, 2], ["lodge_dark_minibar", 0, 5, 2], ["mafia_c26_drinktray", 0, 5, 0, 0, 1],
+    ["shelves_silo", 0, 7, 2],
+    ["exe_rug", 4, 3, 0], ["exe_table", 4, 4, 0],
+    ...[4, 5, 6].flatMap((x) => [["exe_chair", x, 3, 4], ["exe_chair", x, 6, 0]]),
+    ["exe_chair", 3, 4, 2], ["exe_chair", 3, 5, 2], ["exe_chair", 7, 4, 6], ["exe_chair", 7, 5, 6],
+    ["exe_c15_telephone", 4, 4, 0, 0, 0.95], ["uni_laptop", 5, 4, 4, 0, 0.95], ["exe_c15_desktidy", 6, 4, 0, 0, 0.95],
+    ["mafia_c26_drinktray", 4, 5, 0, 0, 0.95], ["uni_laptop", 5, 5, 0, 0, 0.95], ["uni_laptop", 6, 5, 0, 0, 0.95],
+    ["mafia_c26_armchair_dark", 9, 4, 2], ["mafia_c26_armchair_dark", 9, 5, 2],
+    ["mafia_c26_coffeetable_dark", 10, 4, 0], ["exe_sofa", 11, 4, 6],
+    ["exe_artlamp", 11, 2, 0], ["mafia_c26_planter_dark", 11, 9, 0], ["mafia_c26_planter_dark", 0, 9, 0],
+  ],
+  // Lounge: clube de madeira e tijolo. Bar com prateleiras e banquetas no
+  // fundo, lareira com sofá e poltronas, pista com globo e DJ à direita,
+  // mesas altas na frente.
+  lounge: () => [
+    ["ktchn15_bubblejuicerack", 0, 0, 4], ["lodge_dark_minibar", 2, 0, 4], ["ktchn15_cabinet", 3, 0, 4], ["lodge_dark_minibar", 5, 0, 4],
+    ["hc_wall_lamp", 6, 0, 4, 0, 1.6], ["hc_wall_lamp", 7, 0, 4, 0, 1.6],
+    ["lodge_dark_bardesk", 1, 2, 2], ["lodge_dark_bardesk", 4, 2, 2],
+    ...[1, 2, 3, 4, 5, 6].map((x) => ["lodge_dark_stool", x, 3, 0]),
+    ["mafia_c26_drinktray", 2, 2, 0, 0, 1.4], ["mafia_c26_drinktray", 5, 2, 0, 0, 1.4],
+    ["jukebox_big", 8, 0, 0], ["vwave_r21_jukebox", 10, 0, 4], ["tokyo_c18_neonsign1", 11, 0, 0], ["tokyo_c18_neonsign2", 12, 0, 0],
+    ["mafia_c26_planter_dark", 13, 0, 0],
+    ["lodge_dark_candle", 0, 4, 2], ["lodge_dark_fireplace", 0, 6, 2], ["lodge_dark_candle", 0, 9, 2],
+    ["exe_rug", 1, 5, 0], ["mafia_c26_armchair_dark", 2, 5, 4], ["mafia_c26_coffeetable_dark", 2, 6, 0],
+    ["mafia_c26_armchair_dark", 2, 8, 0], ["mafia_c26_sofa_dark", 3, 5, 6], ["mafia_c26_drinktray", 2, 6, 0, 0, 0.84],
+    ...[[9, 4], [11, 4], [9, 6], [11, 6]].map(([x, y]) => ["disco_c26_floor", x, y, 0]),
+    ["disco_c26_discoball", 10, 5, 0, 0, 0.01], ["fest_c19_dj", 10, 2, 4],
+    ["vwave_c21_bartable", 8, 9, 0], ["vwave_c21_barstool", 7, 9, 2], ["vwave_c21_barstool", 9, 10, 6],
+    ["vwave_c21_bartable", 11, 9, 0], ["vwave_c21_barstool", 10, 9, 2], ["vwave_c21_barstool", 12, 10, 6],
+    ["hygge_c25_carpet", 3, 8, 2], ["mafia_c26_armchair_dark", 3, 9, 2], ["mafia_c26_coffeetable_dark", 4, 9, 0],
+    ["mafia_c26_armchair_dark", 5, 9, 6], ["mafia_c26_armchair_dark", 5, 10, 6], ["mafia_c26_drinktray", 4, 10, 0, 0, 0.84],
+    ["mafia_c26_planter_dark", 0, 11, 0], ["mafia_c26_planter_dark", 13, 11, 0], ["lodge_dark_candle", 8, 4, 0],
+  ],
+  // Auditório: cinema. Telão com palco e púlpito, holofotes, cartazes e
+  // arandelas nas paredes, plateia em dois blocos com corredor no meio,
+  // bilheteria e pipoca na entrada.
+  auditorio: () => [
+    ["cine_screen", 4, 0, 0], ["cine_light1", 1, 0, 4, 0, 1.2], ["cine_light1", 12, 0, 4, 0, 1.2],
+    ["cine_platform", 5, 2, 0], ["uni_lectern", 8, 2, 0, 0, 1.4],
+    ["spotlight", 3, 1, 2], ["spotlight", 10, 1, 6],
+    ["cine_pstr_1", 0, 3, 2, 0, 0.6], ["cine_pstr_6", 0, 7, 2, 0, 0.6],
+    ["cine_light2", 0, 1, 2, 0, 1], ["cine_light2", 0, 5, 2, 0, 1], ["cine_light2", 0, 9, 2, 0, 1],
+    ...[5, 6, 8, 9].flatMap((y) => [2, 3, 4, 5, 8, 9, 10, 11].map((x) => ["theatre_seat", x, y, 0])),
+    ["cine_ticket_booth", 1, 10, 0], ["cine_popcorn", 12, 10, 4], ["cine_vipsign", 13, 8, 0],
+    ["cine_projector", 13, 6, 6], ["theatre_plant", 0, 11, 0], ["theatre_plant", 13, 11, 0],
+  ],
+  // Jogos: fliperama. Máquinas lado a lado no fundo e na lateral, sinuca e
+  // pebolim no meio, sofá de pufes com videogame, máquinas de lanche.
+  jogos: () => [
+    ["tokyo_c18_retroarcade", 0, 0, 4], ["tokyo_c18_racearcade", 1, 0, 0], ["arcade_c23_space", 2, 0, 4], ["arcade_c23_cyberpunk", 3, 0, 4],
+    ["graffiti_r24_arcademachine", 4, 0, 0], ["arcade_c23_vrmachine", 5, 0, 0], ["arcade_c23_pinball", 6, 0, 0],
+    ["rainyday_c20_retrogames", 8, 0, 0], ["vwave_r21_jukebox", 9, 0, 4],
+    ["olympics_r16_vendingmchn", 10, 0, 4], ["olympics_r16_vendingmchn", 11, 0, 4],
+    ["arcade_c23_pinball", 0, 2, 2], ["tokyo_c18_retroarcade", 0, 4, 2], ["arcade_c23_space", 0, 5, 2],
+    ["bling15_pooltable", 3, 4, 4], ["ads_aftv_footballtable", 7, 3, 0],
+    ["rainyday_c20_retrogames", 0, 7, 2], ["rainyday_c20_retrogames", 0, 8, 2],
+    ["cubie_beanbag_b", 2, 7, 6], ["cubie_beanbag_p", 2, 8, 6],
+    ["gaming_c18_rigpro", 8, 8, 0], ["studio_chair", 8, 9, 0], ["studio_chair", 10, 9, 0],
+    ["computer_flatscreen", 8, 8, 4, 0, 1.15], ["computer_flatscreen", 10, 8, 4, 0, 1.15],
+    ["cubie_beanbag_b", 8, 6, 0], ["cubie_beanbag_p", 9, 6, 0],
+  ],
+  // Foco: biblioteca silenciosa. Estantes na lateral, prateleiras de
+  // parede e mesas de estudo com luminária no fundo, mesa de leitura no meio
+  // e um canto de poltronas.
+  foco: () => [
+    // Estantes cheias de livros, da altura da parede (a da biblioteca
+    // clássica passava do teto; a de madeira escura é vazia).
+    ["shelves_silo", 0, 0, 2], ["shelves_silo", 0, 2, 2], ["shelves_silo", 0, 4, 2],
+    ...[2, 4, 6].flatMap((x) => [["uni_libraryshelf", x, 0, 4, 0, 0.3], ["rainyday_c20_woodendesk", x, 0, 4], ["hygge_c25_desklamp", x, 0, 0, 0, 1], ["classic9_chair", x, 1, 0]]),
+    ["exe_globe", 8, 0, 0], ["shelves_silo", 9, 0, 4],
+    ["classic9_table", 4, 4, 0], ["classic9_light", 4, 4, 0, 0, 0.7], ["bookpile", 5, 5, 0, 0, 0.7],
+    ["classic9_chair", 3, 4, 2], ["classic9_chair", 3, 5, 2], ["classic9_chair", 6, 4, 6], ["classic9_chair", 6, 5, 6],
+    ["hygge_c25_carpet", 8, 4, 0], ["hygge_c18_chair", 8, 5, 2], ["lodge_dark_endtable", 9, 5, 0], ["bookpile", 9, 5, 0, 0, 0.9], ["hygge_c18_chair", 10, 5, 6],
+    ["rainyday_c19_lamp", 10, 3, 0],
+    ["classic9_plant", 0, 8, 0], ["bookpile", 1, 8, 0], ["classic9_plant", 10, 8, 0],
+  ],
+  // Academia: esteiras viradas para a parede, armários, halteres e
+  // anilhas, colchonetes e cama elástica, balcão com suplementos.
+  academia: () => [
+    ["matic_water_dispenser", 0, 0, 4],
+    ...[1, 2, 3, 4].map((x) => ["olympics_c16_treadmill", x, 0, 0]),
+    ...[6, 7, 8].map((x) => ["school_locker_b_nosale", x, 0, 4]), ["school_locker_r_nosale", 9, 0, 4], ["school_locker_r_nosale", 10, 0, 4],
+    ["olympics_c16_weightrack", 11, 0, 0],
+    ["olympics_c16_weightrack", 0, 3, 2], ["uni_dumbells", 0, 4, 2], ["uni_dumbells", 0, 5, 2], ["olympics_c16_sofa", 0, 7, 2],
+    ["olympics_c16_softmat", 2, 3, 0], ["olympics_c16_softmat", 2, 6, 0],
+    ["olympics_c16_trampoline", 6, 4, 0], ["olympics_c16_trampoline", 7, 4, 0],
+    ["olympics_c16_softmat", 5, 6, 0], ["uni_dumbells", 7, 7, 0],
+    ["olympics_c16_counter", 9, 7, 4], ["uni_brotein", 9, 7, 0, 0, 1.2], ["olympics_c16_chair", 9, 6, 4],
+    ["matic_tree_green", 0, 9, 0], ["theatre_plant", 11, 5, 0],
+  ],
+  // Produção: estúdio. Set de entrevista no piso iluminado com câmera e
+  // luzes; ilha de edição no fundo; mesa de som com banquetas; caixas de
+  // equipamento.
+  producao: () => [
+    ["studio_floorlight", 1, 1, 0],
+    ["mafia_c26_armchair_white", 1, 2, 2], ["hc26_3", 2, 2, 0], ["mafia_c26_armchair_white", 4, 2, 6],
+    // Refletores de chão (as treliças de luz do acervo passavam do teto).
+    ["studio_camera", 2, 6, 0], ["spotlight", 0, 5, 2], ["spotlight", 5, 5, 6], ["spotlight", 5, 0, 6], ["spotlight", 0, 0, 2],
+    ...[8, 10, 12].flatMap((x) => [["hc_exe_wrkdesk", x, 0, 4], ["army_c15_leatherchr", x, 1, 0]]),
+    ["studio_mixingdesk", 8, 4, 0], ...[8, 9, 10, 11, 12].map((x) => ["studio_stool", x, 5, 0]),
+    ["gaming_c18_rigpro", 9, 8, 0], ["studio_chair", 10, 9, 0],
+    ["army_c15_crate", 13, 9, 4], ["army_c15_crate", 13, 10, 4], ["army_c15_crate", 13, 9, 4, 0, 1],
+    // Espera de clientes e convidados, encostada na parede da esquerda.
+    ["mafia_c26_sofa_dark", 0, 7, 2], ["mafia_c26_coffeetable_dark", 1, 7, 0], ["mafia_c26_drinktray", 1, 8, 0, 0, 0.84],
+    ["theatre_plant", 0, 10, 0], ["theatre_plant", 13, 2, 0],
+  ],
+};
 // Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho. A
 // escala é sempre a do mapa geral (80 × 80): dentro de um quarto a posição
 // é local (0 … L) e vai com a mesma conta, e a zona diz em que quarto é.
@@ -464,26 +572,38 @@ function escritorioQuartoAtual() {
 function escritorioAmbienteEm(x, y) {
   const q = ESCRITORIO_QUARTO;
   if(q && typeof escritorioAmbienteDoQuarto === "function") {const a=escritorioAmbienteDoQuarto(q);return a && x>=a.x0 && y>=a.y0 && x<a.x1 && y<a.y1 ? a : null;}
-  return ESCRITORIO_PLANTA.ambientes.find((a) => (q ? a.id === q : !a.pessoal) && x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1) || null;
+  return ESCRITORIO_PLANTA.ambientes.find((a) => (q ? a.id === q : !a.fachada) && x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1) || null;
 }
 // Fachada (no mapa geral) que ocupa o ladrilho, e a que tem ali um dos
 // ladrilhos de entrada (atrás da porta): pisar nele entra no quarto.
 function escritorioFachadaEm(x, y) {
   if (ESCRITORIO_QUARTO) return null;
-  return ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal && x >= a.fachada.x0 && x < a.fachada.x1 && y >= a.fachada.y0 && y < a.fachada.y1) || null;
+  return ESCRITORIO_PLANTA.ambientes.find((a) => a.fachada && x >= a.fachada.x0 && x < a.fachada.x1 && y >= a.fachada.y0 && y < a.fachada.y1) || null;
 }
 function escritorioFachadaEntradaEm(x, y) {
   if (ESCRITORIO_QUARTO) return null;
-  return ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal && a.fachada.entrada.some((e) => e.x === x && e.y === y)) || null;
+  return ESCRITORIO_PLANTA.ambientes.find((a) => a.fachada && a.fachada.entrada.some((e) => e.x === x && e.y === y)) || null;
 }
 // Mapa geral: a planta sem o interior das salas (elas viram fachadas).
 function escritorioPlantaGeral() {
   const P = ESCRITORIO_PLANTA;
-  return { ...P, ambientes: P.ambientes.filter((a) => !a.pessoal), fachadas: P.ambientes.filter((a) => a.pessoal).map((a) => ({ ...a.fachada, id: a.id, nome: a.nome, cor: a.cor })) };
+  return { ...P, ambientes: P.ambientes.filter((a) => !a.fachada), fachadas: P.ambientes.filter((a) => a.fachada).map((a) => ({ ...a.fachada, id: a.id, nome: a.nome, cor: a.cor })) };
+}
+// Móveis de um espaço comum (coordenadas locais da cena). Definidos em
+// ESCRITORIO_MOVEIS_CENAS, mais abaixo; a cena sem lista fica vazia.
+function escritorioMoveisDaCena(a) {
+  const f = typeof ESCRITORIO_MOVEIS_CENAS !== "undefined" && ESCRITORIO_MOVEIS_CENAS[a.id];
+  return f ? f().map(([classe, x, y, dir = 2, estado = 0, altura = 0]) => [classe, x, y, dir, ESCRITORIO_ESTADO_ANIMADO[classe] ?? estado, altura]) : [];
+}
+// Espaço comum com cena própria (Café, Lounge…), pelo id da zona.
+function escritorioCenaComum(id) {
+  return ESCRITORIO_PLANTA.ambientes.find((a) => a.cena && a.id === id) || null;
 }
 // Paredes do quarto (cena própria, coordenadas locais): as duas do fundo
 // altas na cor da sala; as da frente baixas, de vidro, com o vão da porta.
 function escritorioModeloPlanta(a) {
+  // Cena de espaço comum: a planta vem no próprio ambiente.
+  if (a?.modelo) return a.modelo;
   return typeof escritorio !== "undefined" ? escritorio.base?.quartos?.plantas?.find(p => p.id === a.planta) : null;
 }
 // Tamanho do quarto (a planta escolhida: de 6 × 6 a 12 × 12); sem planta,
@@ -525,7 +645,7 @@ function escritorioParedesDoQuarto(a) {
   const lista = [], { w, h } = escritorioDimQuarto(a), pt = escritorioPortaQuarto(a);
   const por = (x0,y0,x1,y1,alta) => {
     const r=[x0,y0,x1,y1];
-    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=118;} else r.baixa=true;
+    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=118; if(a.cena) {r.textura=a.texturaParede; r.semTinta=true;}} else r.baixa=true;
     lista.push(r);
   };
   for(let x=0;x<w;x++) for(let y=0;y<h;y++) {

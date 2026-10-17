@@ -460,11 +460,17 @@ test("clique no mapa volta para o mesmo ladrilho e a presença ida e volta", () 
 
 test("cada ambiente do mapa leva à sala de conversa certa", () => {
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
-  assert.equal(vm.runInContext("escritorioSalaEm(26, 40)", c), "reuniao"); // auditório
-  assert.equal(vm.runInContext("escritorioSalaEm(50, 40)", c), "foco");
+  // Espaços comuns são cenas próprias: a zona é o id (que o Worker aceita) e
+  // a sala de conversa vem do ambiente.
+  const cena = (id) => vm.runInContext(`escritorioCenaComum("${id}")?.sala`, c);
+  assert.equal(cena("auditorio"), "reuniao");
+  assert.equal(cena("reuniao"), "reuniao");
+  assert.equal(cena("foco"), "foco");
+  assert.equal(cena("producao"), "producao");
+  assert.equal(cena("lounge"), "convivencia");
   assert.equal(vm.runInContext("escritorioSalaEm(30, 22)", c), "convivencia"); // corredor do fundo
   assert.equal(vm.runInContext("escritorioSalaEm(40, 20)", c), "convivencia"); // pátio
-  assert.equal(vm.runInContext("escritorioAmbienteEm(58, 64).id", c), "lounge"); // terraço com a piscina
+  assert.equal(vm.runInContext("escritorioAmbienteEm(58, 64)", c), null); // terraço com a piscina: área externa
   assert.equal(vm.runInContext("escritorioAmbienteEm(40, 57).id", c), "recepcao"); // entrada
   // Chat escrito das salas individuais: o da ala em que ficam.
   const salaDe = (id) => vm.runInContext(`ESCRITORIO_PLANTA.ambientes.find((a) => a.id === "${id}").sala`, c);
@@ -484,17 +490,17 @@ test("cada ambiente do mapa leva à sala de conversa certa", () => {
 
 // Quartos próprios (fase 1): cada sala é uma cena separada; no mapa geral
 // fica só a fachada, com a porta que leva para dentro.
-test("planta: mapa geral com 9 fachadas fechadas (entrada atrás da porta) e nenhum interior de sala", () => {
+test("planta: mapa geral com as fachadas fechadas (9 salas e 8 espaços comuns) e nenhum interior", () => {
   const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
   const geral = vm.runInContext("escritorioPlantaGeral()", c);
-  assert.equal(geral.fachadas.length, 9);
-  assert.ok(geral.ambientes.every((a) => !a.pessoal), "as salas não são ambientes do mapa geral");
+  assert.equal(geral.fachadas.length, 17);
+  assert.ok(geral.ambientes.every((a) => !a.pessoal && !a.cena), "salas e espaços comuns não são ambientes do mapa geral");
   for (const f of geral.fachadas) {
     const dentro = (t) => t.x >= f.x0 && t.x < f.x1 && t.y >= f.y0 && t.y < f.y1;
     assert.ok(f.entrada.every(dentro), f.id + ": a entrada fica dentro da fachada");
     assert.ok(!dentro(f.saida), f.id + ": a saída fica fora da fachada (na soleira)");
-    // A fachada é uma caixa pequena de 3 ladrilhos de fundo encostada no prédio.
-    assert.ok(Math.min(f.x1 - f.x0, f.y1 - f.y0) === 3, f.id + ": 3 ladrilhos de fundo");
+    // Sala: caixa pequena de 3 ladrilhos de fundo encostada no prédio.
+    if (/^sala-/.test(f.id)) assert.ok(Math.min(f.x1 - f.x0, f.y1 - f.y0) === 3, f.id + ": 3 ladrilhos de fundo");
     // As quatro paredes da fachada são altas, na cor da sala.
     assert.ok(geral.divisorias.some((d) => d.sala === f.id && d.alt === 118), f.id + ": paredes altas");
     // Pisar atrás da porta é a entrada; o resto da fachada não é ambiente.
@@ -504,6 +510,7 @@ test("planta: mapa geral com 9 fachadas fechadas (entrada atrás da porta) e nen
   }
   // Porta de vidro em cada fachada, com a zona da sala (tranca fecha a porta).
   assert.equal(geral.portas.filter((p) => /^sala-/.test(p.zona)).length, 9);
+  assert.equal(geral.portas.filter((p) => vm.runInContext(`Boolean(escritorioCenaComum("${p.zona}"))`, c)).length, 8);
 });
 
 test("planta: o quarto é uma cena própria 8×8 com as duas paredes do fundo altas e a porta para a soleira", () => {
@@ -625,6 +632,34 @@ test("quartos: pisar atrás da porta da fachada entra; pisar na soleira de dentr
   assert.equal(r("escritorio.quarto"), null);
 });
 
+// Espaços comuns como cenas (decisão do Paulo, 17/10/2026): a porta da
+// fachada leva para dentro, a zona de conversa é o id do espaço e quem está
+// lá dentro some do mapa geral (e aparece na contagem da fachada).
+test("espaços comuns: o Café é uma cena própria com zona, móveis locais e saída pela fachada", () => {
+  const { r } = cenaDoEscritorio();
+  r("escritorioSairDoQuarto()");
+  const f = r('escritorioCenaComum("cafe").fachada');
+  r(`movimento.x = ${f.entrada[0].x}; movimento.y = ${f.entrada[0].y};`);
+  assert.equal(r("escritorioConferirPortal()"), true);
+  assert.equal(r("escritorio.quarto"), "cafe");
+  assert.equal(r("escritorio.zona"), "cafe");
+  assert.equal(r("escritorioLugarDe(escritorio.perfil).nome"), "Café");
+  const moveis = r("escritorioMoveisAtuais()");
+  const a = r('escritorioCenaComum("cafe")');
+  assert.ok(moveis.length > 20, "o Café vem montado");
+  assert.ok(moveis.every((m) => m[1] >= 0 && m[1] < a.x1 && m[2] >= 0 && m[2] < a.y1), "coordenadas da cena");
+  // Sem andares nem "Gerenciar meu espaço" (não é sala de ninguém).
+  assert.equal(r("escritorioAndaresHtml()"), "");
+  // Quem está no Café não aparece no mapa geral; dentro do Café, aparece.
+  r('escritorio.online = [{ id: "2", nome: "Deivid Lima", zona: "cafe", x: 9, y: 12, status: "disponivel" }]');
+  assert.equal(r('escritorioNaCena(escritorio.online[0])'), true);
+  assert.ok(r("escritorioSairDoQuarto()"));
+  assert.equal(r("escritorio.quarto"), null);
+  assert.equal(r('escritorioNaCena(escritorio.online[0])'), false);
+  assert.equal(r('escritorioLugarDe(escritorio.online[0]).id'), "cafe");
+  assert.equal(r("[Math.round(escritorioPosicao(escritorio.perfil).x), Math.round(escritorioPosicao(escritorio.perfil).y)].join()"), `${f.saida.x},${f.saida.y}`);
+});
+
 test("quartos: cada cena mostra só quem está nela; a fachada conta quem está dentro; a lista diz o quarto", () => {
   const { r } = cenaDoEscritorio();
   r('escritorio.online = [{ id: "1", nome: "Paulo Martins", zona: "sala-0", x: 9, y: 12, status: "disponivel" }, { id: "2", nome: "Deivid Lima", zona: "sala-3", x: 9, y: 12, status: "disponivel" }, { id: "3", nome: "Bia Rocha", zona: "", x: 50, y: 70, status: "disponivel" }, { id: "4", nome: "Jady Souza", zona: "sala-0", x: 10, y: 10, status: "foco" }]');
@@ -653,7 +688,7 @@ test("quartos: a camada de cada cena é a dela, em coordenadas locais; a pintura
   assert.ok(geral.every((m) => m[6].camada === "geral"));
   assert.equal(geral.length, r("ESCRITORIO_PLANTA.moveis.length"));
   assert.equal(r("escritorioPlantaDaCena().quarto"), undefined);
-  assert.equal(r("escritorioPlantaDaCena().fachadas.length"), 9);
+  assert.equal(r("escritorioPlantaDaCena().fachadas.length"), 17);
   // No quarto do Deivid: a arrumação salva dele (uma planta), em coordenadas locais,
   // e o piso pintado por ele (código 5 em todos os ladrilhos) é lido pela cena.
   r('escritorioEntrarNoQuarto("sala-3")');

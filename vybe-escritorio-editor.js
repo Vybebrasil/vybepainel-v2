@@ -317,11 +317,11 @@ function alturaSelecionadoEscritorio() {
 // em cima dela, centrada no tampo, e a altura do tampo.
 function escritorioEmCimaDe(x, y, ignorar = -1) {
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
-  // Superfícies: mesas, balcões, estantes, caixas… e o que já está em cima
-  // delas (empilhar: vaso sobre livros sobre a estante). Fica no topo mais alto.
-  const SUPERFICIE = /table|desk|counter|shelf|shelve|cabinet|bookcase|bar|stand|box|crate|block|cube|dresser|drawer|chest|trunk|pedestal|plinth|nightstand/i;
+  // Empilhar como no Habbo: qualquer móvel sólido (menos assento) serve de
+  // base, e o que já está em cima dele também (vaso sobre livros sobre a
+  // estante, armário sobre balcão). Fica no topo mais alto.
   const candidatos = escritorio.mapa.moveisEm(x, y).filter((m) => !m.plano && !(m.origem?.camada === e.camada && m.origem?.i === ignorar) && !MAPA_ASSENTOS.has(m.classe)
-    && (m.altura || (SUPERFICIE.test(m.classe) && m.dim.z > 0.3 && m.dim.z <= 3.4)));
+    && (m.altura || (m.dim.z > 0.3 && m.dim.z <= 3.4)));
   if (!candidatos.length) return null;
   // Altura do tampo medida no desenho (ESCRITORIO_TAMPOS), senão a da ficha.
   const topo = (m) => (m.altura || 0) + ((typeof ESCRITORIO_TAMPOS !== "undefined" && ESCRITORIO_TAMPOS[m.classe]) || m.dim.z || 0);

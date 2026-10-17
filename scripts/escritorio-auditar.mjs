@@ -9,7 +9,7 @@ import vm from "node:vm";
 
 const ctx = { console };
 vm.createContext(ctx);
-vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__geral = escritorioPlantaGeral; globalThis.__quarto = escritorioPlantaDoQuarto; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS;", ctx);
+vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__geral = escritorioPlantaGeral; globalThis.__quarto = escritorioPlantaDoQuarto; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS; globalThis.__cenaMoveis = escritorioMoveisDaCena;", ctx);
 const arte = (c) => {
   const f = `assets/escritorio/habbo/${c}.json`;
   if (!existsSync(f)) return null;
@@ -87,12 +87,16 @@ function auditar(cena, P, moveis, avisos) {
   // Apoiado: o que tem altura precisa de um móvel embaixo, e na altura do
   // tampo dele (nem flutuando, nem afundado na mesa). Exceção: arte de teto
   // (globo de espelhos), que pende do alto sem móvel embaixo.
+  // Pilhas (como no Habbo): a peça apoia no topo mais alto que fica abaixo
+  // dela no ladrilho, seja a mesa no chão ou outra peça já empilhada.
+  const topoDe = (o) => (o.altura || 0) + (ctx.__tampos[o.classe] ?? (arte(o.classe)?.d.z || 0));
   for (const it of itens) {
     if (!it.altura || DE_TETO.test(it.classe)) continue;
     if (!ocup.has(`${it.x},${it.y}`)) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) flutuando`)); continue; }
-    const base = itens.find((o) => o !== it && !o.altura && !o.plano && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
-    const tampo = base ? ctx.__tampos[base.classe] ?? (arte(base.classe)?.d.z || 0) : 0;
-    if (base && Math.abs(tampo - it.altura) > 0.12) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) na altura ${it.altura}, mas o tampo de ${base.classe} fica em ${Math.round(tampo * 100) / 100}`));
+    const abaixo = itens.filter((o) => o !== it && !o.plano && (o.altura || 0) < it.altura && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
+    if (!abaixo.length) continue;
+    const base = abaixo.reduce((a, b) => (topoDe(b) > topoDe(a) ? b : a)), tampo = topoDe(base);
+    if (Math.abs(tampo - it.altura) > 0.12) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) na altura ${it.altura}, mas o topo de ${base.classe} fica em ${Math.round(tampo * 100) / 100}`));
   }
   // Assento: precisa de um ladrilho livre ao lado, sem parede no meio, para chegar.
   const livre = (x, y) => x >= 0 && y >= 0 && x < P.W && y < P.H && !ocup.has(`${x},${y}`);
@@ -267,7 +271,9 @@ function auditar(cena, P, moveis, avisos) {
   // duas paredes altas do fundo. Em parede de dentro ela mostra a própria parede.
   for (const q of pendurados) {
     if (!/window/.test(q.classe)) continue;
-    const fora = quarto ? (q.dir === 4 ? q.y === quarto.y0 : q.x === quarto.x0) : B && (q.dir === 4 ? q.y === B.y0 : q.x === B.x0);
+    // Fachada de sala ou de espaço comum também é parede de fora (a frente do prédio).
+    const naFachada = (P.fachadas || []).some((f) => q.dir === 4 ? q.y === f.y1 && q.x >= f.x0 && q.x < f.x1 : q.x === f.x1 && q.y >= f.y0 && q.y < f.y1);
+    const fora = naFachada || (quarto ? (q.dir === 4 ? q.y === quarto.y0 : q.x === quarto.x0) : B && (q.dir === 4 ? q.y === B.y0 : q.x === B.x0));
     if (!fora) problemas.push(nomeCena(`${q.classe} (${q.x},${q.y}) é janela em parede de dentro`));
   }
   return problemas;
@@ -276,6 +282,11 @@ function auditar(cena, P, moveis, avisos) {
 const avisos = [], problemas = [];
 const geral = ctx.__geral();
 problemas.push(...auditar("mapa geral", geral, geral.moveis, avisos));
+// Espaços comuns que viraram cena própria (Café, Lounge…).
+for (const a of ctx.__P.ambientes) if (a.cena) {
+  const P = ctx.__quarto(a);
+  problemas.push(...auditar(a.id, P, ctx.__cenaMoveis(a), avisos));
+}
 for (const a of ctx.__P.ambientes) if (a.pessoal) {
   const P = ctx.__quarto(a);
   problemas.push(...auditar(a.id, P, ctx.__sala(a), avisos));

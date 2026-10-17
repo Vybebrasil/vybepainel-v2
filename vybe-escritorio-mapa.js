@@ -880,15 +880,56 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
       const est = P.paredeEm?.(x, y, eixo);
-      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt ?? dv.alt, texturaDe(est), Boolean(dv.sala) && !dv.janela);
+      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt ?? dv.alt, texturaDe(est), Boolean(dv.sala) && !dv.janela && !dv.semTinta);
       d.canvas.className = "mapa-obj mapa-muro";
       const prof = Math.round((x + y) * 10) + 2;
       colocar(d.canvas, x, y, d, prof);
       palco.append(d.canvas);
       const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
-      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt ?? dv.alt, altBase: dv.alt, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela });
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt ?? dv.alt, altBase: dv.alt, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela && !dv.semTinta });
     }
+  }
+  // Telhado das fachadas (salas e espaços comuns): a caixa de paredes altas
+  // vira um prédio fechado, como os blocos das praças do Habbo, em vez de
+  // uma caixa oca. Entra nos muros: fica transparente com alguém atrás.
+  for (const f of P.fachadas || []) {
+    const alt = 118, cs = [[f.x0, f.y0], [f.x1, f.y0], [f.x1, f.y1], [f.x0, f.y1]].map(([x, y]) => mapaTela(x, y, origem));
+    const l = Math.min(...cs.map((c) => c.x)), r = Math.max(...cs.map((c) => c.x)), t = Math.min(...cs.map((c) => c.y)) - alt, b = Math.max(...cs.map((c) => c.y)) - alt;
+    const c = document.createElement("canvas");
+    c.width = Math.ceil(r - l) + 2; c.height = Math.ceil(b - t) + 2;
+    const k = c.getContext("2d"), p = cs.map((q) => [q.x - l + 1, q.y - alt - t + 1]);
+    k.beginPath(); p.forEach(([x, y], i) => (i ? k.lineTo(x, y) : k.moveTo(x, y))); k.closePath();
+    k.fillStyle = "#23242b"; k.fill();
+    k.save(); k.clip();
+    // Faixas do telhado (chapas) e a cor da sala por cima, bem escura.
+    k.globalAlpha = 0.22; k.fillStyle = f.cor || "#888"; k.fillRect(0, 0, c.width, c.height); k.globalAlpha = 1;
+    k.strokeStyle = "#ffffff10"; k.lineWidth = 1;
+    for (let i = 1; i < f.x1 - f.x0; i++) { const a0 = mapaTela(f.x0 + i, f.y0, origem), a1 = mapaTela(f.x0 + i, f.y1, origem); k.beginPath(); k.moveTo(a0.x - l + 1, a0.y - alt - t + 1); k.lineTo(a1.x - l + 1, a1.y - alt - t + 1); k.stroke(); }
+    // Mureta (borda interna mais clara) e caixas de ar-condicionado: o
+    // telhado lê como laje de prédio, não como um buraco escuro.
+    const q = (x, y) => { const o = mapaTela(x, y, origem); return [o.x - l + 1, o.y - alt - t + 1]; };
+    const borda = 0.35, mur = [q(f.x0 + borda, f.y0 + borda), q(f.x1 - borda, f.y0 + borda), q(f.x1 - borda, f.y1 - borda), q(f.x0 + borda, f.y1 - borda)];
+    k.strokeStyle = "#ffffff22"; k.lineWidth = 1.5; k.beginPath(); mur.forEach(([x, y], i) => (i ? k.lineTo(x, y) : k.moveTo(x, y))); k.closePath(); k.stroke();
+    const caixa = (cx, cy) => {
+      const [x, y] = q(cx, cy), w = 14, h = 9;
+      k.fillStyle = "#4a4d57"; k.beginPath(); k.moveTo(x, y - h); k.lineTo(x + w, y - h + 7); k.lineTo(x, y - h + 14); k.lineTo(x - w, y - h + 7); k.closePath(); k.fill();
+      k.fillStyle = "#33353d"; k.beginPath(); k.moveTo(x - w, y - h + 7); k.lineTo(x, y - h + 14); k.lineTo(x, y + 14); k.lineTo(x - w, y + 7); k.closePath(); k.fill();
+      k.fillStyle = "#2a2c33"; k.beginPath(); k.moveTo(x, y - h + 14); k.lineTo(x + w, y - h + 7); k.lineTo(x + w, y + 7); k.lineTo(x, y + 14); k.closePath(); k.fill();
+      k.strokeStyle = "#ffffff18"; k.beginPath(); k.arc(x, y - h + 7, 4, 0, 7); k.stroke();
+    };
+    const W = f.x1 - f.x0, H = f.y1 - f.y0;
+    if (W >= 6 && H >= 4) { caixa(f.x0 + W * 0.3, f.y0 + H * 0.35); caixa(f.x0 + W * 0.42, f.y0 + H * 0.35); }
+    if (W >= 10 && H >= 6) caixa(f.x0 + W * 0.75, f.y0 + H * 0.6);
+    k.restore();
+    k.strokeStyle = f.cor || "#888"; k.lineWidth = 2; k.beginPath(); p.forEach(([x, y], i) => (i ? k.lineTo(x, y) : k.moveTo(x, y))); k.closePath(); k.stroke();
+    c.className = "mapa-obj mapa-muro mapa-telhado";
+    const prof = Math.round((f.x1 + f.y1 - 1) * 10) + 3;
+    c.style.left = l - 1 + "px"; c.style.top = t - 1 + "px"; c.style.zIndex = prof;
+    palco.append(c);
+    // Caixa do prédio inteiro, no alto: fica à frente das paredes do fundo
+    // dele e atrás das da frente e de quem está na calçada.
+    muros.push({ no: c, prof, caixa: { x0: f.x0, x1: f.x1, y0: f.y0, y1: f.y1, altura: alt / 32 }, l, t, r, b, quem: new Set(), telhado: true });
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
   const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
@@ -1051,7 +1092,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       const plano = !altura && !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12;
       // Em cima de uma mesa (até 3×3), fica à frente dela: a mesa termina até
       // 4 ladrilhos (40 de profundidade) adiante da peça apoiada.
-      const prof = plano ? 1 : Math.round((x + dim.x - 1 + y + dim.y - 1) * 10) + 4 + (altura ? 45 : 0);
+      // Empilhado: quanto mais alto, mais à frente (o de cima cobre o de baixo).
+      const prof = plano ? 1 : Math.round((x + dim.x - 1 + y + dim.y - 1) * 10) + 4 + (altura ? 45 + Math.round(altura * 4) : 0);
       desenho.canvas.className = "mapa-obj";
       desenho.canvas.dataset.classe = classe;
       // A peça de escada fica apoiada no piso de baixo (a rampa de quem anda
@@ -1748,6 +1790,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     repintar: () => {
       fundoPronto?.();
       for (const m of muros) {
+        if (m.telhado) continue;
         const est = P.paredeEm?.(m.x, m.y, m.eixo);
         if (m.corBase === undefined) m.corBase = m.cor || "";
         const salaCor = P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4];
