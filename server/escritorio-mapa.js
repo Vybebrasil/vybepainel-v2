@@ -104,12 +104,17 @@ export async function arteRemotaEscritorio(classe, extensao, buscar = fetch) {
       const buf = Buffer.from(await r.arrayBuffer());
       let p = 0;
       const arquivos = {};
-      const qtd = buf.readUInt16BE(p); p += 2;
-      for (let i = 0; i < qtd; i++) {
-        const n = buf.readUInt16BE(p); p += 2;
-        const nome = buf.subarray(p, p + n).toString(); p += n;
-        const t = buf.readUInt32BE(p); p += 4;
-        arquivos[nome] = inflateSync(buf.subarray(p, p + t)); p += t;
+      // Arquivo truncado ou de outro formato: 502 com motivo, não 500 genérico.
+      try {
+        const qtd = buf.readUInt16BE(p); p += 2;
+        for (let i = 0; i < qtd; i++) {
+          const n = buf.readUInt16BE(p); p += 2;
+          const nome = buf.subarray(p, p + n).toString(); p += n;
+          const t = buf.readUInt32BE(p); p += 4;
+          arquivos[nome] = inflateSync(buf.subarray(p, p + t)); p += t;
+        }
+      } catch {
+        throw Object.assign(new Error("A arte do móvel veio corrompida do acervo."), { status: 502 });
       }
       const json = Object.entries(arquivos).find(([n]) => n.endsWith(".json"))?.[1];
       const png = Object.entries(arquivos).find(([n]) => n.endsWith(".png"))?.[1];

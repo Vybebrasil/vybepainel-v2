@@ -3,13 +3,20 @@
 ## Escopo implementado nesta revisão
 
 O módulo Escritório usa sessão individual da Vybe. Seis espaços comuns, avatar
-em SVG, mesa por pessoa, prévia de aparência, chat por sala, presença e convites
-por proximidade compõem a primeira versão. O catálogo inicial permite roupa,
+em SVG, mesa por pessoa, prévia de aparência, chat escrito por ala, presença e
+convites por proximidade compõem a primeira versão. O chat escrito tem seis
+grupos (Convivência, Criação, Atendimento, Produção, Reunião e Foco), não um por
+sala do mapa: cada sala individual usa o grupo da ala em que fica, e o cabeçalho
+da aba Conversa diz onde a pessoa está e com quem divide o chat. O catálogo inicial permite roupa,
 pele, cabelo, cor da mesa e um objeto decorativo. Não é um editor livre de pisos,
 paredes e móveis como o SoWork.
 
-A movimentação é por clique ou setas. Aproximar-se permite enviar convite à
-conversa da sala; só Disponível recebe convites. Ficar numa sala
+A movimentação é por clique ou setas; o caminho do clique desvia de sala
+trancada e de quem está parado, e clicar num móvel leva ao chão ao lado dele.
+Aproximar-se permite enviar convite à conversa da sala; só Disponível recebe
+convites. No corredor e no Foco, onde não há voz, o convite marca a conversa
+numa sala (a de quem convida ou a Recepção) e os dois vão até lá; o Worker
+repassa essa sala no convite (17/10/2026, exige novo deploy do Worker). Ficar numa sala
 (1,2 s) entra na conversa dela com o microfone ligado; sair da sala sai da conversa
 (decisão do Paulo, 16/10/2026). A câmera começa desligada. A conversa é
 compartilhada com quem está na mesma sala; não é áudio espacial privado por

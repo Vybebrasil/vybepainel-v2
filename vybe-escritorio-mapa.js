@@ -515,9 +515,12 @@ function mapaPassa(g, x, y, dx, dy) {
   return !g.paredes.has(g.aresta(g.ind(x, y), g.ind(nx, ny)));
 }
 // A* em 8 direções. Devolve os ladrilhos do caminho (sem o de partida) ou null.
-function mapaCaminho(g, de, para) {
+// "evitar(x, y)": obstáculos de agora (sala trancada, outra pessoa), que não
+// estão na grade. "limite": custo máximo; passou dele, desiste (busca curta).
+function mapaCaminho(g, de, para, evitar = null, limite = Infinity) {
   const sx = Math.round(de.x), sy = Math.round(de.y), tx = Math.floor(para.x), ty = Math.floor(para.y);
   if (tx < 0 || ty < 0 || tx >= g.W || ty >= g.H || g.bloqueado[g.ind(tx, ty)]) return null;
+  if (evitar && evitar(tx, ty)) return null;
   if (sx === tx && sy === ty) return [];
   const inicio = g.ind(Math.max(0, Math.min(g.W - 1, sx)), Math.max(0, Math.min(g.H - 1, sy))), alvo = g.ind(tx, ty);
   const custo = new Map([[inicio, 0]]), veio = new Map(), aberto = [[0, inicio]], fechado = new Set();
@@ -535,7 +538,9 @@ function mapaCaminho(g, de, para) {
       const viz = g.ind(x + dx, y + dy);
       // Assento só serve de destino: ninguém atravessa sofá ou cadeira.
       if (g.assento.has(viz) && viz !== alvo) continue;
+      if (evitar && viz !== alvo && evitar(x + dx, y + dy)) continue;
       const c = custo.get(atual) + (dx && dy ? 1.414 : 1);
+      if (c > limite) continue;
       if (c < (custo.get(viz) ?? Infinity)) { custo.set(viz, c); veio.set(viz, atual); aberto.push([c + h(viz), viz]); }
     }
   }
@@ -1500,8 +1505,10 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona,
     balao, reagir, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
-    caminho: (de, para) => (grade ? mapaCaminho(grade, de, para) : null),
+    caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
+    // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
+    bloqueadoEm: (x, y) => Boolean(grade) && (x < 0 || y < 0 || x >= grade.W || y >= grade.H || Boolean(grade.bloqueado[grade.ind(x, y)])),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
     destruir() { videoNo?.desligar?.(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },

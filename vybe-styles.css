@@ -809,6 +809,9 @@
     .day-scroll-card .day-pending-tabs button { flex:1;justify-content:center;padding:6px 7px;font-size:11px;gap:5px;white-space:nowrap; }
     .day-scroll-card .day-pending-tabs span { font-size:10px;padding:1px 5px; }
     .day-scroll-card .client-progress { padding-top:4px;padding-bottom:8px; }
+    /* Dia sem atividade: cartão curto, sem barra de 0% nem texto repetido longo. */
+    .day-scroll-card.day-empty .client-progress { display:none; }
+    .day-scroll-card.day-empty .day-activity-scroll .day-pending-note { padding:6px 14px 10px;font-size:11px;opacity:.75; }
     .day-activity-scroll:focus-visible { outline:2px solid var(--accent2,#ff9d00);outline-offset:-3px; }
     .day-expansion-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px; }
     @media(min-width:769px) {
@@ -6048,6 +6051,14 @@ body.no-escritorio {overflow:hidden}
 .office-dock-team summary {cursor:pointer;padding:8px}
 .office-dock-team>div {position:absolute;bottom:calc(100% + 14px);right:0;min-width:230px;max-height:250px;overflow:auto;padding:12px;background:#23242b;border:1px solid #ffffff20;border-radius:12px;box-shadow:0 8px 25px #0005}
 .office-dock-team p {padding:5px 0}
+/* Celular: o dock vira uma barra rente ao rodapé e o painel ganha a folga
+   dele embaixo, para o fim das listas não ficar escondido atrás. */
+@media(max-width:760px){
+  .office-dock {left:8px;right:8px;bottom:8px;max-width:none;justify-content:center;gap:2px;padding:4px}
+  .office-dock button {padding:7px 8px;font-size:11px}
+  .office-dock-team>div {right:auto;left:0}
+  body:has(#office-dock:not([hidden])) .container {padding-bottom:84px!important}
+}
 .office-avatar-preview {display:flex;justify-content:center;padding:12px;background:#ffffff06;border-radius:12px;margin-bottom:14px}
 .office-avatar-preview .office-avatar {width:76px;height:96px}
 @media(max-width:1100px){.ofc{grid-template-columns:64px 260px minmax(0,1fr)}.ofc-dock-btn span{display:none}.ofc-dock-btn{padding:10px}}
@@ -6538,7 +6549,9 @@ body.no-escritorio {overflow:hidden}
   /* A lista rola até o fim sem ficar escondida atrás da coluna. */
   .ofc-lista {padding-bottom:calc(40vh + 170px)}
   /* Player compacto: vídeo pequeno à esquerda, controles à direita. */
-  .ofc-coluna .ofc-musica {display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px;padding:10px}
+  /* :not([hidden]) — sem isso o display:grid vencia o [hidden] e o player
+     aparecia vazio ("Fila vazia") fora da Pista. */
+  .ofc-coluna .ofc-musica:not([hidden]) {display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px;padding:10px}
   .ofc-coluna .ofc-musica-topo {grid-column:1/-1}
   .ofc-coluna .ofc-musica-player {align-self:start}
   .ofc-coluna .ofc-musica-info .ofc-secundario {padding:6px}

@@ -8,6 +8,26 @@
 // antes (o Prazo de Ouro). Fim de semana não é pulado — a data é a que a conta
 // dá. O limite de 60 é trava contra um zero a mais digitado sem querer.
 const CADASTRO_ESCALA_MAX = 60;
+
+// Cor de cada status nas etiquetas do cadastro (uma tabela só, usada pelos
+// seletores, pela prévia e pelas listas). Os valores seguem o vocabulário de
+// cores compartilhado com o quadro; o que não está aqui vem de
+// MONDAY_STATUS_COLORS, e o resto fica cinza.
+const FC_CORES_STATUS = {
+  'Captação Agendada': { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' },
+  'Captação Feita': { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' },
+  'Feito': { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' },
+  'Agendar Captação': { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' },
+  'Editado': { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' },
+  'A fazer': { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' },
+  'Captação em Andamento': { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' },
+  'Aguardo Redação': { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' },
+};
+function fcCorDeStatus(s) {
+  if (FC_CORES_STATUS[s]) return FC_CORES_STATUS[s];
+  const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
+  return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+}
 function cadastroDatasEmEscala(inicio, quantidade, intervalo) {
   const q = Number(quantidade), passo = Number(intervalo);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(inicio || ''))) throw new Error('Informe a primeira veiculação.');
@@ -81,12 +101,12 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-main-col { flex:1; display:flex; flex-direction:column; min-width:0; border-right:1px solid rgba(255,255,255,0.06); }
       
       .fc-header { position:relative; padding:28px 32px 20px; display:flex; flex-direction:column; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
-      .fc-kicker { font:800 11px monospace; color:#00f0ff; letter-spacing:1px; text-transform:uppercase; }
+      .fc-kicker { font:800 11px monospace; color:#ffb000; letter-spacing:1px; text-transform:uppercase; }
       .fc-sazonal-btn { align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
-        background:rgba(0,240,255,.1); border:1px solid rgba(0,240,255,.32); color:#7fe8f5;
+        background:rgba(255,176,0,.1); border:1px solid rgba(255,176,0,.32); color:#ffd9a6;
         border-radius:999px; padding:6px 14px; font:600 12px var(--mac-ui, sans-serif); cursor:pointer;
         transition:background .15s, color .15s; }
-      .fc-sazonal-btn:hover { background:rgba(0,240,255,.2); color:#fff; }
+      .fc-sazonal-btn:hover { background:rgba(255,176,0,.2); color:#fff; }
       .fc-title-input { background:transparent; border:none; color:#fff; font:800 32px/1.2 var(--mac-ui, sans-serif); width:100%; outline:none; letter-spacing:-0.5px; }
       .fc-title-input::placeholder { color:rgba(255,255,255,0.2); }
 
@@ -117,7 +137,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-input-wrap { flex:1; min-width:0; }
       .fc-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:14px; font-weight:500; padding:12px 16px; border-radius:12px; outline:none; transition:all 0.2s; font-family:var(--mac-ui, sans-serif); }
       .fc-input:hover { background:rgba(0,0,0,0.4); border-color:rgba(255,255,255,0.15); }
-      .fc-input:focus { border-color:#00f0ff; background:rgba(0,0,0,0.5); box-shadow:0 0 0 3px rgba(0,240,255,0.1); }
+      .fc-input:focus { border-color:#ffb000; background:rgba(0,0,0,0.5); box-shadow:0 0 0 3px rgba(255,176,0,0.1); }
       
       select.fc-input { appearance:none; cursor:pointer; }
       select.fc-input option { background:#151a21; color:#fff; }
@@ -125,12 +145,12 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-persons { display:flex; gap:8px; flex-wrap:wrap; }
       .fc-person-btn { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:30px; padding:6px 14px 6px 6px; display:flex; align-items:center; gap:8px; color:#b8d7df; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
       .fc-person-btn:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.2); }
-      .fc-person-btn.active { background:rgba(0,240,255,0.1); border-color:#00f0ff; color:#fff; box-shadow:0 4px 12px rgba(0,240,255,0.2); }
+      .fc-person-btn.active { background:rgba(255,176,0,0.1); border-color:#ffb000; color:#fff; box-shadow:0 4px 12px rgba(255,176,0,0.2); }
       /* Quem a regra escolheu ja nasce ligado. O selo explica por que, e deixa
          claro que tirar dali e uma excecao consciente, nao um descuido. */
       .fc-person-regra, .fc-person-tirado { font-style:normal; font-size:9.5px; font-weight:700;
         letter-spacing:0.06em; text-transform:uppercase; padding:2px 6px; border-radius:999px; }
-      .fc-person-regra { background:rgba(0,240,255,0.16); color:#8fe9f5; }
+      .fc-person-regra { background:rgba(255,176,0,0.16); color:#8fe9f5; }
       .fc-person-tirado { background:rgba(255,159,169,0.14); color:#ff9fa9; }
       .fc-person-btn.tirado { border-style:dashed; border-color:rgba(255,159,169,0.32); }
       .fc-person-btn.tirado:hover { border-color:rgba(255,159,169,0.6); }
@@ -140,8 +160,8 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-footer { padding:24px 32px; display:flex; justify-content:flex-end; gap:16px; border-top:1px solid rgba(255,255,255,0.06); background:rgba(0,0,0,0.2); flex-shrink:0; }
       .fc-btn-cancel { background:transparent; border:none; color:#849aa6; font-size:14px; font-weight:600; cursor:pointer; padding:12px 20px; transition:color 0.2s; }
       .fc-btn-cancel:hover { color:#fff; }
-      .fc-btn-create { background:linear-gradient(135deg, #00f0ff, #0074e0); color:#000; border:none; padding:12px 28px; border-radius:12px; font-size:14px; font-weight:800; cursor:pointer; transition:all 0.2s; box-shadow:0 10px 20px rgba(0,240,255,0.2); }
-      .fc-btn-create:hover { transform:translateY(-2px); box-shadow:0 15px 25px rgba(0,240,255,0.3); }
+      .fc-btn-create { background:linear-gradient(135deg, #ffb000, #ff6b00); color:#120902; border:none; padding:12px 28px; border-radius:12px; font-size:14px; font-weight:800; cursor:pointer; transition:all 0.2s; box-shadow:0 10px 20px rgba(255,176,0,0.2); }
+      .fc-btn-create:hover { transform:translateY(-2px); box-shadow:0 15px 25px rgba(255,176,0,0.3); }
       .fc-btn-create:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
       
       textarea.fc-input { resize:vertical; min-height:80px; line-height:1.5; }
@@ -149,7 +169,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-checkbox-group { display:flex; flex-direction:column; gap:12px; margin-top:12px; }
       .fc-checkbox-row { display:flex; align-items:center; gap:12px; cursor:pointer; background:rgba(0,0,0,0.2); padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); transition:all 0.2s; }
       .fc-checkbox-row:hover { background:rgba(0,0,0,0.3); border-color:rgba(255,255,255,0.1); }
-      .fc-checkbox-row input { accent-color:#00f0ff; width:18px; height:18px; cursor:pointer; }
+      .fc-checkbox-row input { accent-color:#ffb000; width:18px; height:18px; cursor:pointer; }
       .fc-checkbox-row span { color:#d9e2e5; font-size:13px; font-weight:500; }
       
       .fc-custom-dropdown { position:relative; width:100%; font-family:var(--mac-ui, sans-serif); }
@@ -182,7 +202,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-prev-item { display:flex; flex-direction:column; gap:4px; }
       .fc-prev-item small { font:800 10px monospace; color:#627885; text-transform:uppercase; letter-spacing:0.5px; }
       .fc-prev-item div { color:#eef8fc; font:500 13px var(--mac-ui, sans-serif); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-      .fc-prev-tag { background:rgba(0,240,255,0.1); color:#00f0ff; border:1px solid rgba(0,240,255,0.2); font:800 10px monospace; padding:2px 8px; border-radius:4px; text-transform:uppercase; }
+      .fc-prev-tag { background:rgba(255,176,0,0.1); color:#ffb000; border:1px solid rgba(255,176,0,0.2); font:800 10px monospace; padding:2px 8px; border-radius:4px; text-transform:uppercase; }
       
       .fc-prev-users { display:flex; gap:6px; flex-wrap:wrap; }
       .fc-prev-users .fc-avatar { width:20px; height:20px; border:1px solid rgba(255,255,255,0.1); }
@@ -210,8 +230,8 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         background:rgba(255,255,255,.05); color:#7d8b96; font:600 10.5px var(--mac-ui,system-ui);
         transition:background-color .14s var(--curva), color .14s var(--curva); }
       .fc-trilha-passo:disabled { opacity:.4; cursor:default; }
-      .fc-trilha-passo.feito { background:rgba(0,240,255,.10); color:#7fd8e8; }
-      .fc-trilha-passo.agora { background:#00f0ff; color:#061016; }
+      .fc-trilha-passo.feito { background:rgba(255,176,0,.10); color:#ffcf8a; }
+      .fc-trilha-passo.agora { background:#ffb000; color:#061016; }
       .fc-pergunta { margin:0 0 5px; color:#fff; font:700 27px/1.15 var(--mac-ui,system-ui); letter-spacing:-.02em; }
       .fc-sub { margin:0 0 22px; color:#7d8b96; font:500 13px/1.45 var(--mac-ui,system-ui); }
       .fc-resposta { min-height:230px; }
@@ -223,8 +243,8 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         background:rgba(255,255,255,.03); color:#dfe6ec; cursor:pointer;
         font:600 13px var(--mac-ui,system-ui); text-align:left;
         transition:border-color .14s var(--curva), background-color .14s var(--curva); }
-      .fc-escolha:hover { border-color:rgba(0,240,255,.5); background:rgba(0,240,255,.07); }
-      .fc-escolha.marcada { border-color:#00f0ff; background:rgba(0,240,255,.13); color:#fff; }
+      .fc-escolha:hover { border-color:rgba(255,176,0,.5); background:rgba(255,176,0,.07); }
+      .fc-escolha.marcada { border-color:#ffb000; background:rgba(255,176,0,.13); color:#fff; }
       .fc-escolha.grande { display:block; width:100%; padding:16px 18px; margin-bottom:9px; }
       .fc-escolha.grande b { display:block; font:700 16px var(--mac-ui,system-ui); }
       .fc-escolha.grande small { display:block; margin-top:3px; color:#7d8b96; font:500 12px var(--mac-ui,system-ui); }
@@ -237,7 +257,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-campo-grande { font:700 22px var(--mac-ui,system-ui); padding:14px; }
       .fc-campo-texto { min-height:130px; resize:vertical; font:500 14px/1.65 var(--mac-ui,system-ui); }
       .fc-busca:focus, .fc-campo:focus, .fc-campo-grande:focus, .fc-campo-texto:focus {
-        border-color:#00f0ff; outline:none; }
+        border-color:#ffb000; outline:none; }
       .fc-dica { margin:11px 0 0; color:#7d8b96; font:500 12px var(--mac-ui,system-ui); }
       .fc-dica b { color:#bfe9f2; }
 
@@ -251,8 +271,8 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         border:1px solid rgba(255,255,255,.10); border-radius:10px; cursor:pointer;
         color:#dfe6ec; font:600 13px var(--mac-ui,system-ui);
         transition:border-color .14s var(--curva), background-color .14s var(--curva); }
-      .fc-atalho:hover { border-color:rgba(0,240,255,.4); background:rgba(0,240,255,.05); }
-      .fc-atalho input { margin-top:2px; accent-color:#00f0ff; }
+      .fc-atalho:hover { border-color:rgba(255,176,0,.4); background:rgba(255,176,0,.05); }
+      .fc-atalho input { margin-top:2px; accent-color:#ffb000; }
       .fc-atalho small { display:block; color:#7d8b96; font:500 11.5px var(--mac-ui,system-ui); }
       .fc-bloco-equipe { margin-top:20px; }
       .fc-bloco-equipe .fc-dica { margin:0 0 10px; }
@@ -264,10 +284,10 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-item input, .fc-item textarea { min-width:0; max-width:100%; box-sizing:border-box; }
       .fc-item { display:grid; gap:8px; padding:12px; border:1px solid rgba(255,255,255,.10);
         border-radius:12px; background:rgba(255,255,255,.02); }
-      .fc-item:focus-within { border-color:rgba(0,240,255,.42); }
+      .fc-item:focus-within { border-color:rgba(255,176,0,.42); }
       .fc-item-topo { display:flex; align-items:center; gap:10px; }
       .fc-item-topo b { display:grid; place-items:center; width:20px; height:20px; flex:none;
-        border-radius:50%; background:rgba(0,240,255,.14); color:#7fd8e8;
+        border-radius:50%; background:rgba(255,176,0,.14); color:#ffcf8a;
         font:700 10px var(--mac-ui,system-ui); }
       .fc-item-topo span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
         color:#7d8b96; font:600 11.5px var(--mac-ui,system-ui); }
@@ -279,18 +299,18 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
 
       /* Arquivos de referencia: a area inteira do cartao aceita o arraste, e a
          faixa abaixo do briefing e o alvo visivel para quem prefere clicar. */
-      .fc-item.arrastando { border-color:rgba(0,240,255,.6); background:rgba(0,240,255,.06); }
+      .fc-item.arrastando { border-color:rgba(255,176,0,.6); background:rgba(255,176,0,.06); }
       .fc-arqs { display:flex; align-items:center; gap:9px; width:100%; box-sizing:border-box;
         border:1px dashed rgba(255,255,255,.18); border-radius:10px; padding:9px 12px;
         background:rgba(255,255,255,.02); color:#7d8b96; cursor:pointer;
         font:500 12px var(--mac-ui,system-ui); text-align:left;
         transition:border-color .15s, color .15s, background .15s; }
-      .fc-arqs:hover { border-color:rgba(0,240,255,.45); color:#7fe8f5; background:rgba(0,240,255,.05); }
-      .fc-arqs b { font:700 14px var(--mac-ui,system-ui); color:#7fe8f5; }
+      .fc-arqs:hover { border-color:rgba(255,176,0,.45); color:#ffd9a6; background:rgba(255,176,0,.05); }
+      .fc-arqs b { font:700 14px var(--mac-ui,system-ui); color:#ffd9a6; }
       .fc-arqs small { margin-left:auto; color:#5c6b76; font-size:11px; }
       .fc-arq-lista { display:flex; flex-wrap:wrap; gap:6px; }
       .fc-arq { display:inline-flex; align-items:center; gap:7px; max-width:100%;
-        background:rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.28); border-radius:999px;
+        background:rgba(255,176,0,.08); border:1px solid rgba(255,176,0,.28); border-radius:999px;
         padding:4px 5px 4px 11px; color:#cfeef5; font:500 12px var(--mac-ui,system-ui); }
       .fc-arq span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:210px; }
       .fc-arq small { color:#6f8590; font-size:10px; font-variant-numeric:tabular-nums; }
@@ -298,10 +318,10 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         background:rgba(255,255,255,.1); color:#9fb4bf; cursor:pointer; font-size:12px; line-height:1; }
       .fc-arq button:hover { background:rgba(255,92,124,.25); color:#fff; }
       .fc-itens-acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-      .fc-mais { border:1px dashed rgba(0,240,255,.34); border-radius:10px; padding:8px 12px;
-        background:transparent; color:#7fd8e8; cursor:pointer; font:600 12px var(--mac-ui,system-ui);
+      .fc-mais { border:1px dashed rgba(255,176,0,.34); border-radius:10px; padding:8px 12px;
+        background:transparent; color:#ffcf8a; cursor:pointer; font:600 12px var(--mac-ui,system-ui);
         transition:background-color .14s var(--curva), border-color .14s var(--curva); }
-      .fc-mais:hover { background:rgba(0,240,255,.08); border-color:#00f0ff; }
+      .fc-mais:hover { background:rgba(255,176,0,.08); border-color:#ffb000; }
       .fc-nova-opcao { display:grid; gap:12px; padding:18px; margin-top:16px;
         border:1px solid var(--mac-border,rgba(255,255,255,.16)); border-radius:16px;
         background:var(--mac-surface,rgba(255,255,255,.04)); }
@@ -311,14 +331,14 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-nova-opcao input { width:100%; min-width:0; box-sizing:border-box; }
       .fc-resposta > .fc-mais { margin-top:14px; }
       .fc-auto-col > .fc-mais { align-self:flex-start; }
-      .fc-escala { display:grid; gap:12px; margin:0 0 14px; padding:16px; border:1px solid rgba(0,240,255,.28);
-        border-radius:14px; background:rgba(0,240,255,.05); }
+      .fc-escala { display:grid; gap:12px; margin:0 0 14px; padding:16px; border:1px solid rgba(255,176,0,.28);
+        border-radius:14px; background:rgba(255,176,0,.05); }
       .fc-escala b { color:#e7ecf5; font:600 14px var(--mac-ui, system-ui); }
       .fc-escala small { color:#9da4b4; font:400 12px/1.45 var(--mac-ui, system-ui); }
       .fc-escala-campos { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
       .fc-escala-campos label { display:grid; gap:6px; color:#9da4b4; font:500 12px var(--mac-ui, system-ui); }
       .fc-escala-acoes { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-      .fc-escala-previa { color:#a8efff; font:500 12.5px var(--mac-ui, system-ui); }
+      .fc-escala-previa { color:#ffe4b7; font:500 12.5px var(--mac-ui, system-ui); }
       .fc-item-data { margin-left:auto; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.07);
         color:#e7ecf5; font:600 12px var(--mac-ui, system-ui); font-variant-numeric:tabular-nums; white-space:nowrap; }
       @media (max-width:640px) { .fc-escala-campos { grid-template-columns:1fr; } }
@@ -333,11 +353,11 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         padding:8px 10px; border:0; border-radius:9px; background:transparent; color:#c3cad6; text-align:left; cursor:pointer;
         font:500 12.5px var(--mac-ui, system-ui); }
       .fc-lista-linha:hover { background:rgba(255,255,255,.06); }
-      .fc-lista-linha.ativa { background:rgba(0,240,255,.12); color:#fff; }
+      .fc-lista-linha.ativa { background:rgba(255,176,0,.12); color:#fff; }
       .fc-lista-linha i { font-style:normal; font-size:10px; color:#ff9aa8; }
       .fc-lista-linha.pronta i { color:#6ee7a8; font-size:12px; }
       .fc-lista-data { color:#9da4b4; font-variant-numeric:tabular-nums; white-space:nowrap; }
-      .fc-lista-linha.ativa .fc-lista-data { color:#a8efff; }
+      .fc-lista-linha.ativa .fc-lista-data { color:#ffe4b7; }
       .fc-lista-titulo { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
       .fc-lista-acoes { display:flex; flex-wrap:wrap; gap:6px; }
       .fc-editor { display:flex; flex-direction:column; gap:10px; min-width:0; padding:14px; border:1px solid rgba(255,255,255,.08);
@@ -347,7 +367,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-editor-topo .icone-btn { margin-left:auto; }
       .fc-editor-briefing { min-height:min(34vh, 300px) !important; }
       .fc-editor-nav { display:flex; flex-wrap:wrap; gap:8px; }
-      .fc-editor-nav .primario { margin-left:auto; border-style:solid; background:rgba(0,240,255,.12); color:#e7fdff; }
+      .fc-editor-nav .primario { margin-left:auto; border-style:solid; background:rgba(255,176,0,.12); color:#fff4e8; }
       .fc-editor-nav button:disabled { opacity:.4; cursor:default; }
       .fc-editor-dica { color:#7d8594; font:500 11.5px var(--mac-ui, system-ui); }
       .fc-lista-select { display:none; }
@@ -612,18 +632,7 @@ function fcGrupoDoQuadro(grupo) {
      
      {
          const statusAtual = state.manualStatus !== undefined ? state.manualStatus : fcStatusSugerido(dest.status);
-         const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-         const getCol = (s) => {
-         // Custom overrides matching the exact Monday board screenshot
-         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
-         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
-         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
-         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
-         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
-         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
-         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
-     };
+         const getCol = fcCorDeStatus;
          const col = getCol(statusAtual).color;
          fcSelectDropdown('manualStatus', statusAtual, statusAtual, {color: col}, false);
      }
@@ -631,18 +640,7 @@ function fcGrupoDoQuadro(grupo) {
      {
          const capVal = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
          const capText = capVal || '- Nenhuma -';
-         const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-         const getCol = (s) => {
-         // Custom overrides matching the exact Monday board screenshot
-         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
-         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
-         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
-         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
-         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
-         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
-         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
-     };
+         const getCol = fcCorDeStatus;
          const col = capVal ? getCol(capVal).color : null;
          fcSelectDropdown('manualCap', capVal, capText, col ? {color: col} : null, false);
      }
@@ -678,18 +676,7 @@ function fcGrupoDoQuadro(grupo) {
      
      groupEl.textContent = finalGroupLabel;
      
-     const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-     const getCol = (s) => {
-         // Custom overrides matching the exact Monday board screenshot
-         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
-         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
-         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
-         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
-         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
-         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
-         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
-     };
+     const getCol = fcCorDeStatus;
      const stObj = getCol(finalStatus);
      const bgStatus = stObj.bg;
      const txtStatus = stObj.color;
@@ -805,22 +792,10 @@ function fcGrupoDoQuadro(grupo) {
   // Cria UM conteudo. O laco de fora repete isto para cada cartao da lista.
   async function fcCriarUm(item, dest, finalGroup, finalStatus, finalCap) {
      const normalized = `${state.format} - ${String(item.titulo).trim()}`;
-     const values = {
-        lista_suspensa_mkmqnjbv: {labels:state.clients?.length ? state.clients : [state.client]},
-        lista_suspensa0__1: {labels:[state.format]},
-        lista_suspensa__1: {ids:[3]},
-        data__1: {date:item.veic},
-        data: {date:item.prazo},
-        status: {label:finalStatus},
-        person: {personsAndTeams:fcEquipeFinal(dest).map(id=>({id:Number(id),kind:'person'}))}
-     };
-     if(finalCap) values.status_1__1 = {label:finalCap};
 
      try {
-        // Grava no banco da Vybe e replica no Monday. O id do Monday só existe
-        // depois de criar lá, então o servidor grava aqui primeiro, sem id, e
-        // liga os dois em seguida — criar no Monday primeiro para ter o id seria
-        // devolver a ele o papel de fonte da verdade.
+        // Grava no banco da Vybe, que é a fonte da verdade. O id devolvido
+        // (externo legado ou "vybe:<id>") já deixa o conteúdo operável.
         let itemId = null;
         const pelaEscritaDupla = await tentarEscritaDupla({ id: '' }, {
            acao: 'criar', board: fcQuadro().id,
@@ -843,12 +818,8 @@ function fcGrupoDoQuadro(grupo) {
           itemId = `vybe:${pelaEscritaDupla.conteudo_id}`;
           showToast('✓ Criado no Vybe · cópia de contingência enfileirada', 'info', 7000);
         }
-        if (!itemId && !pelaEscritaDupla?.conteudo_id) {
-          const create = `mutation($board: ID!, $group: String!, $name: String!, $values: JSON!) { create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id } }`;
-          const response = await mondayQuery(create, {board:String(fcQuadro().id), group:finalGroup, name:normalized, values:JSON.stringify(values)});
-          itemId = response?.create_item?.id;
-        }
-        if(!itemId && !pelaEscritaDupla?.conteudo_id) throw new Error('Falha ao obter ID');
+        // Sem id do banco não há para onde recorrer: o Monday está encerrado.
+        if(!itemId && !pelaEscritaDupla?.conteudo_id) throw new Error('O banco não devolveu o ID do conteúdo criado.');
 
         const hellen = state.client.toLowerCase().includes('hellen rocha') ? '<li>✅ Validar informações jurídicas com a Hellen antes de publicar</li>' : '';
         const captureLine = finalCap ? `<li>📸 Agendar e confirmar captação externa</li>` : '';
@@ -1712,18 +1683,7 @@ function fcGrupoDoQuadro(grupo) {
     // terceira coluna — e ela mora dentro desta função.
     window.renderCustomDropdownsGlobal = () => renderCustomDropdowns();
     function renderCustomDropdowns() {
-        const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-        const getCol = (s) => {
-         // Custom overrides matching the exact Monday board screenshot
-         if (s === 'Captação Agendada') return { color: '#ffcb00', bg: 'rgba(255,203,0,0.15)', border: 'rgba(255,203,0,0.3)' }; // yellow
-         if (s === 'Captação Feita' || s === 'Feito') return { color: '#00c875', bg: 'rgba(0,200,117,0.15)', border: 'rgba(0,200,117,0.3)' }; // light green
-         if (s === 'Agendar Captação') return { color: '#df2f4a', bg: 'rgba(226,68,92,0.15)', border: 'rgba(226,68,92,0.3)' }; // red/pink
-         if (s === 'Editado') return { color: '#037f4c', bg: 'rgba(3,127,76,0.15)', border: 'rgba(3,127,76,0.3)' }; // dark green
-         if (s === 'A fazer') return { color: '#c4c4c4', bg: 'rgba(196,196,196,0.15)', border: 'rgba(196,196,196,0.3)' }; // gray
-         if (s === 'Captação em Andamento') return { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' }; // blue
-         if (s === 'Aguardo Redação') return { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' }; // pink
-         return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
-     };
+        const getCol = fcCorDeStatus;
         
         const quadro = fcQuadro();
         const groups = quadro.grupos;

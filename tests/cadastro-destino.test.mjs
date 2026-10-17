@@ -7,7 +7,9 @@ import vm from 'node:vm';
 // mesmo que o seletor tenha acabado de ser criado com o texto padrão.
 function desenhar(state) {
   const fonte=fs.readFileSync('cadastros_governed_v2.js','utf8');
-  const trecho=fonte.slice(fonte.indexOf('  function updateDestinyUI()'),fonte.indexOf('  window.fcHandleInput ='));
+  // A tabela de cores é compartilhada (fcCorDeStatus) e mora no topo do arquivo.
+  const cores=fonte.slice(fonte.indexOf('const FC_CORES_STATUS'),fonte.indexOf('function cadastroDatasEmEscala'));
+  const trecho=cores+fonte.slice(fonte.indexOf('  function updateDestinyUI()'),fonte.indexOf('  window.fcHandleInput ='));
   const elementos=new Map(); const seletores={};
   const contexto={state,document:{getElementById(id){if(!elementos.has(id))elementos.set(id,{});return elementos.get(id);}},
     cadastrosDestiny:()=>({group:'entrada',status:'A Fazer',capture:false}),

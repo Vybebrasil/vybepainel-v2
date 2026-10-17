@@ -300,14 +300,20 @@ export async function areaEscritorio(req, res, quem, sql) {
   }
   // Identidade vem exclusivamente da sessão; o corpo nunca escolhe pessoa/admin.
   if (acao === "chamada")
-    return res.status(200).json({
-      ok: true,
-      ...(await prepararChamadaEscritorio(
-        sql,
-        pessoa,
-        String(req.body?.sala || ""),
-      )),
-    });
+    try {
+      return res.status(200).json({
+        ok: true,
+        ...(await prepararChamadaEscritorio(
+          sql,
+          pessoa,
+          String(req.body?.sala || ""),
+        )),
+      });
+    } catch (e) {
+      // Sala inválida é 400; RealtimeKit sem configuração ou fora do ar
+      // responde com o status e o código do erro (o painel mostra o motivo).
+      return res.status(e.status || 400).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
+    }
   if (acao === "perfil")
     return res.status(200).json({
       ok: true,

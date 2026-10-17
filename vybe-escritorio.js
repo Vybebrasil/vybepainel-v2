@@ -71,9 +71,11 @@ async function escritorioApi(acao, corpo) {
       body: corpo ? JSON.stringify({ ...corpo, acao }) : undefined,
     },
   );
-  const d = await r.json();
+  // Resposta sem JSON (página de erro da hospedagem, envio grande demais):
+  // avisa em português, em vez de "Unexpected token".
+  const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.ok)
-    throw new Error(d.error || "Não foi possível acessar o escritório.");
+    throw new Error(d.error || (r.status === 413 ? "O envio é grande demais para o servidor." : `Não foi possível acessar o escritório (${r.status}).`));
   return d;
 }
 // Aviso no canto: some sozinho depois de alguns segundos (erros ficam mais).
@@ -403,10 +405,20 @@ function convidarConversaEscritorio(id) {
     escritorioAviso("Essa pessoa não está disponível para conversa agora.");
     return;
   }
-  escritorioEmitir("conversation:invite", { id });
-  escritorioAviso(
-    "Convite para a conversa da sala enviado para " + outro.nome + ".",
-  );
+  // Onde não há voz (corredor, Foco), o convite marca a conversa numa sala:
+  // a sua, se tiver; senão a Recepção. Quem convida vai para lá também.
+  const zona = escritorioZonaDeConversa();
+  escritorioEmitir("conversation:invite", { id, zona });
+  const primeiro = String(outro.nome).split(" ")[0];
+  if (zona !== escritorio.zona) {
+    const nome = ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona)?.nome || "a sala";
+    escritorioAviso(`Convite enviado para ${primeiro}. A conversa é em ${nome}: indo para lá.`);
+    escritorioIrParaAmbiente(zona);
+  } else escritorioAviso("Convite para a conversa da sala enviado para " + primeiro + ".");
+}
+function escritorioZonaDeConversa() {
+  if (escritorioCanal()) return escritorio.zona;
+  return escritorioMinhaMesa()?.ambiente.id || "recepcao";
 }
 // Chamar alguém de qualquer lugar para a sala onde você está.
 function chamarParaSalaEscritorio(id) {
@@ -419,8 +431,11 @@ function chamarParaSalaEscritorio(id) {
 function aceitarConviteEscritorio() {
   const convite = escritorio.convite;
   if (!convite) return;
+  // Convite sem sala (Worker antigo, do corredor): a conversa é na Recepção.
+  const zona = ESCRITORIO_PLANTA.ambientes.some((a) => a.id === convite.zona && a.id !== "foco") ? convite.zona : "recepcao";
+  const nome = ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona)?.nome || "outra sala";
   openWorkflowModal(
-    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} ${convite.chamado ? "chamou você" : "convidou você"}</h2><p>A conversa é em ${safeText(ESCRITORIO_PLANTA.ambientes.find((a) => a.id === convite.zona)?.nome || ESCRITORIO_SALAS[convite.sala] || "outra sala")}. Ao chegar, você entra na conversa com o microfone ligado.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));escritorioIrParaAmbiente('${safeText(convite.zona || "")}');escritorioAviso('Ao chegar na sala, você entra na conversa com o microfone ligado.')">Ir até a conversa</button></div>`,
+    `<div class="workflow-kicker">Conversa da equipe</div><h2 class="workflow-title">${safeText(convite.nome)} ${convite.chamado ? "chamou você" : "convidou você"}</h2><p>A conversa é em ${safeText(nome)}. Ao chegar, você entra na conversa com o microfone ligado.</p><div class="workflow-actions"><button class="workflow-secondary" onclick="escritorio.convite=null;atualizarDockEscritorio();closeWorkflowModal()">Agora não</button><button class="workflow-primary" onclick="escritorio.convite=null;closeWorkflowModal();switchBoard('escritorio',document.getElementById('btn-board-escritorio'));escritorioIrParaAmbiente('${safeText(zona)}');escritorioAviso('Ao chegar na sala, você entra na conversa com o microfone ligado.')">Ir até a conversa</button></div>`,
   );
 }
 
@@ -570,7 +585,7 @@ function escritorioIrAte(id) {
   const x0 = Math.round(alvo.x), y0 = Math.round(alvo.y);
   for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
     if (escritorio.mapa.assentoEm(x0 + dx, y0 + dy) !== undefined) continue;
-    if (escritorio.mapa.caminho(de, { x: x0 + dx, y: y0 + dy })) { escritorioIrPara(x0 + dx, y0 + dy); movimento.turbo = true; return; }
+    if (escritorio.mapa.caminho(de, { x: x0 + dx, y: y0 + dy }, escritorioEvitarNoCaminho)) { escritorioIrPara(x0 + dx, y0 + dy); movimento.turbo = true; return; }
   }
   escritorioAviso("Não achei caminho até " + o.nome + ".");
 }
@@ -586,7 +601,7 @@ function escritorioIrParaAmbiente(id, manterLista = false, alvo = null) {
     const x = cx + dx, y = cy + dy;
     if (x < a.x0 || y < a.y0 || x >= a.x1 || y >= a.y1) continue;
     if (escritorio.mapa.assentoEm(x, y) !== undefined) continue;
-    if (escritorio.mapa.caminho(de, { x, y })) { escritorioIrPara(x, y); movimento.turbo = true; return; }
+    if (escritorio.mapa.caminho(de, { x, y }, escritorioEvitarNoCaminho)) { escritorioIrPara(x, y); movimento.turbo = true; return; }
   }
   escritorioAviso("Não achei caminho até " + a.nome + ".");
 }
@@ -607,7 +622,7 @@ function atualizarPessoasEscritorio() {
   // Desconectado, só a sua prévia aparece: ninguém vê você antes de entrar.
   const visiveis = escritorio.conectado
     ? pessoas
-    : [{ id: eu, nome: "Você · fora do escritório", perfil: escritorio.perfil, sala, status: "ausente", x: escritorio.perfil.x || 50, y: escritorio.perfil.y || 75 }];
+    : [{ id: eu, nome: escritorio.base?.equipe?.find((p) => p.id === eu)?.nome || "Você", perfil: escritorio.perfil, sala, status: "ausente", x: escritorio.perfil.x || 50, y: escritorio.perfil.y || 75 }];
   if (escritorio.mapa) {
     escritorio.mapa.atualizarPessoas(visiveis.map((p) => {
       const voce = p.id === eu;
@@ -621,8 +636,10 @@ function atualizarPessoasEscritorio() {
       const sentado = dirAssento !== undefined;
       const [nomeStatus, corStatus] = ESCRITORIO_STATUS[p.status] || ESCRITORIO_STATUS.disponivel;
       return {
-        id: p.id, nome: voce && escritorio.conectado ? "Você" : escritorioNomeCurto(p.nome), perfil: perfilDe, status: p.status, corStatus,
-        rotulo: `${p.nome}${voce ? " (você)" : ""} · ${nomeStatus}`,
+        // O próprio boneco é sempre "Você" (fora do escritório também: o nome
+        // completo passava pelo encurtador e virava "Você E.").
+        id: p.id, nome: voce ? "Você" : escritorioNomeCurto(p.nome), perfil: perfilDe, status: p.status, corStatus,
+        rotulo: `${p.nome}${voce ? " (você)" : ""} · ${voce && !escritorio.conectado ? "fora do escritório" : nomeStatus}`,
         statusTexto: p.status && p.status !== "disponivel" ? nomeStatus : "",
         x: Math.round(pos.x), y: Math.round(pos.y),
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado),
@@ -694,11 +711,11 @@ function atualizarControlesEscritorio() {
       botao("alternarMidiaEscritorio('video')", "camera", s.videoEnabled ? "Câmera ligada" : "Câmera desligada", `aria-pressed="${Boolean(s.videoEnabled)}"`) +
       botao("abrirAjustesAudioEscritorio()", "ajustes", "Ajustes de áudio", 'id="ofc-btn-audio"') +
       botao("alternarMidiaEscritorio('screen')", "tela", s.screenShareEnabled ? "Parar de mostrar" : "Mostrar tela", `aria-pressed="${Boolean(s.screenShareEnabled)}"`) +
-      `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>${escritorioCanal() ? "Na conversa da sala" : escritorio.zona === "foco" ? "Foco: sem voz" : "Sem voz no corredor"}</span></span>`
+      `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>${escritorioEstadoVozTexto()}</span></span>`
     // A conversa é automática: sem botão de entrar. Mostra a etapa e, se
     // falhou, o motivo com "Tentar agora" (ela também tenta sozinha).
     : !escritorio.conectado || (!escritorioCanal() && !escritorio.entrandoChamada && !escritorio.falhaConversa)
-      ? `<span class="ofc-voz-estado">${escritorioIcone("fone")}<span>${escritorio.zona === "foco" ? "Foco: sem voz" : "Sem voz no corredor"}</span></span>`
+      ? `<span class="ofc-voz-estado">${escritorioIcone("fone")}<span>${escritorioEstadoVozTexto()}</span></span>`
       : escritorio.falhaConversa && !escritorio.entrandoChamada
         ? botao("escritorio.falhaConversa='';escritorio.tentativasVoz=0;escritorioConversaAutomatica()", "fone", "Voz não conectou · tentar agora", `title="${safeText(escritorio.falhaConversa)} (tentando de novo sozinho)"`, { texto: true, classe: "perigo" })
         : `<span class="ofc-voz-estado" role="status">${escritorioIcone("fone")}<span>Conectando a voz${escritorio.etapaVoz ? ": " + safeText(escritorio.etapaVoz) : ""}…</span></span>`;
@@ -747,7 +764,7 @@ function renderEscritorio() {
  <div class="ofc-abas" role="tablist"${escritorio.edicao ? ' style="grid-template-columns:repeat(4,1fr)"' : ' style="grid-template-columns:repeat(3,1fr)"'}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Catálogo</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button><button role="tab" aria-selected="${aba === "recados"}" onclick="alternarAbaEscritorio('recados',true)">Recados${escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : ""}</button></div>
  ${escritorio.edicao ? `<div class="ofc-aba ofc-catalogo" ${aba === "catalogo" ? "" : "hidden"}>${escritorioCatalogoHtml()}</div>` : ""}
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><h4>Salas</h4><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div><p class="ofc-nota">Online indica presença, não produtividade.</p></div>
- <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><h3>${safeText(ESCRITORIO_SALAS[sala])}</h3><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para esta sala" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
+ <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><div><h3 id="office-chat-titulo">${safeText(escritorioTituloChat(sala))}</h3><small id="office-chat-nota" class="ofc-nota">${safeText(escritorioNotaChat(sala))}</small></div><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para este chat" id="office-message" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala] || "Convivência")}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
  <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
 </aside>
@@ -850,13 +867,25 @@ function alternarModoEscritorio(modo) {
   renderEscritorio();
 }
 // Ir para uma sala de conversa: anda até o primeiro ambiente dela.
-function mudarSalaEscritorio(sala, verMapa) {
-  if (!Object.hasOwn(ESCRITORIO_SALAS, sala)) return;
-  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.sala === sala && !x.pessoal);
-  if (verMapa) escritorio.modo = "mapa";
-  escritorioIrPara(a ? (a.x0 + a.x1) / 2 : 30, a ? a.y1 - 1.5 : 18);
-  movimento.turbo = true;
-  if (verMapa) renderEscritorio();
+// Chat escrito: um por ala (Atendimento, Criação, Produção, Reunião, Foco e
+// Convivência), não por sala do mapa. O cabeçalho diz com quem a pessoa
+// divide o chat de onde está.
+function escritorioTituloChat(sala = escritorio.sala) {
+  return "Conversa · " + (ESCRITORIO_SALAS[sala] || "Convivência");
+}
+function escritorioNotaChat(sala = escritorio.sala) {
+  const aqui = escritorioLugarDe(escritorio.perfil);
+  const outros = [...new Set(ESCRITORIO_PLANTA.ambientes.filter((a) => a.sala === sala && a.id !== aqui.id).map((a) => a.nome))];
+  if (sala === "convivencia") outros.push("corredores");
+  return outros.length ? `Você está em ${aqui.nome}. Chat escrito dividido com ${outros.join(", ")}.` : `Chat escrito de quem está em ${aqui.nome}.`;
+}
+// Mudou de ala: cabeçalho e mensagens passam para o chat de lá.
+function atualizarChatEscritorio(salaAntes) {
+  const titulo = document.getElementById("office-chat-titulo"), nota = document.getElementById("office-chat-nota"), campo = document.getElementById("office-message");
+  if (titulo) titulo.textContent = escritorioTituloChat();
+  if (nota) nota.textContent = escritorioNotaChat();
+  if (campo) campo.placeholder = "Mensagem para " + (ESCRITORIO_SALAS[escritorio.sala] || "Convivência");
+  if (salaAntes !== escritorio.sala) carregarChatEscritorio();
 }
 // Movimento contínuo (como em jogo): a posição anda em frações de ladrilho a
 // cada quadro, com colisão na grade do mapa. Clique segue o caminho livre
@@ -872,7 +901,10 @@ function escritorioMudouLugar(x, y) {
   x = Math.round(x); y = Math.round(y);
   const sala = escritorioSalaEm(x, y), zona = escritorioZonaEm(x, y);
   if (zona === escritorio.zona && sala === escritorio.sala) return;
-  const saiuDaZona = zona !== escritorio.zona;
+  const saiuDaZona = zona !== escritorio.zona, salaAntes = escritorio.sala;
+  // O perfil acompanha o ladrilho novo já aqui: cabeçalho e chat leem o
+  // lugar dele (a presença enviada à equipe segue o seu próprio ritmo).
+  escritorio.perfil = { ...escritorio.perfil, ...escritorioParaPorcentagem(x, y) };
   escritorio.sala = sala;
   escritorio.zona = zona;
   escritorio.mapa?.marcarZona(zona ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === zona) : null);
@@ -890,13 +922,21 @@ function escritorioMudouLugar(x, y) {
   }
   atualizarCabecalhoEscritorio();
   atualizarControlesEscritorio();
+  atualizarChatEscritorio(salaAntes);
 }
 function atualizarCabecalhoEscritorio() {
   const lugar = document.getElementById("office-lugar"), dica = document.getElementById("office-lugar-dica");
   if (lugar) lugar.textContent = escritorioLugarDe(escritorio.perfil).nome;
   if (dica) dica.textContent = escritorio.zona
-    ? (escritorio.zona === "foco" ? "Zona silenciosa: sem conversa por voz." : "Zona de conversa: quem está aqui pode falar com você.")
+    ? (escritorio.zona === "foco" ? "Zona silenciosa: sem conversa por voz." : escritorio.conectado ? "Zona de conversa: quem está aqui pode falar com você." : "Zona de conversa: entre no escritório para falar com quem está aqui.")
     : "Corredor · entre numa sala para conversar";
+}
+// Estado da voz no dock, com as mesmas palavras do cabeçalho do lugar.
+function escritorioEstadoVozTexto() {
+  if (escritorio.zona === "foco") return "Foco: sem voz";
+  if (!escritorio.zona) return "Sem voz no corredor";
+  if (!escritorio.conectado) return "Zona de conversa · entre para falar";
+  return escritorio.chamada && escritorioCanal() ? "Na conversa da sala" : "Zona de conversa";
 }
 function escritorioEnviarPosicao(forcar) {
   const agora = performance.now();
@@ -982,12 +1022,6 @@ function escritorioQuadro(agora) {
     if (escritorioPodeIr(movimento.x, movimento.y, ax, ay)) movimento.rota.push({ x: ax, y: ay });
     else if (escritorioPodeIr(movimento.x, movimento.y, cx, cy)) movimento.rota.push({ x: cx, y: cy });
   }
-  // Soltou a tecla no meio do ladrilho: termina o passo até o centro dele
-  // (como no Habbo), em vez de pular para lá.
-  if (!teclado && !movimento.rota.length && (movimento.x % 1 || movimento.y % 1)) {
-    const cx = Math.round(movimento.x), cy = Math.round(movimento.y);
-    if (escritorioPodeIr(movimento.x, movimento.y, cx, cy)) movimento.rota.push({ x: cx, y: cy });
-  }
   const andando = teclado || movimento.rota.length > 0;
   if (!andando) movimento.turbo = false;
   // Ao andar, acenar e deitar acabam (o café continua na mão).
@@ -1005,7 +1039,9 @@ function escritorioQuadro(agora) {
   const naPista = escritorioNaPista();
   if (naPista !== escritorio.naPista) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
   escritorioEnviarPosicao(!andando);
-  atualizarAcaoProximaEscritorio();
+  // A ação do E é recalculada no máximo 8 vezes por segundo (e ao parar): ela
+  // procura caminho até cada pessoa perto, o que pesava a cada quadro.
+  if (!andando || agora - (movimento.acaoEm || 0) > 120) { movimento.acaoEm = agora; atualizarAcaoProximaEscritorio(); }
   // Chegou ao lado do móvel que foi clicado: usa (andar com as teclas cancela).
   escritorioAtualizarPortas();
   if (teclado) escritorio.usarAoChegar = null;
@@ -1022,14 +1058,26 @@ function escritorioAnimarMovimento() {
   movimento.ultimo = 0;
   movimento.quadro = requestAnimationFrame(escritorioQuadro);
 }
+// No caminho do clique, sala trancada e ladrilho de outra pessoa são obstáculos
+// (como já são para quem anda com as teclas).
+function escritorioEvitarNoCaminho(x, y) {
+  return escritorioZonaBloqueada(escritorioZonaEm(x, y)) || escritorioOcupado(x, y);
+}
 function escritorioIrPara(x, y) {
   const de = { x: Math.round(movimento.quadro ? movimento.x : escritorioPosicao(escritorio.perfil || {}).x), y: Math.round(movimento.quadro ? movimento.y : escritorioPosicao(escritorio.perfil || {}).y) };
-  const destino = escritorioZonaEm(Math.floor(x), Math.floor(y));
+  const tx = Math.floor(x), ty = Math.floor(y);
+  const destino = escritorioZonaEm(tx, ty);
   if (escritorioZonaBloqueada(destino)) { avisarTrancadaEscritorio(destino, true); return; }
-  const passos = escritorio.mapa?.caminho(de, { x, y });
-  if (passos === null || passos === undefined) {
-    // Sem mapa pronto (ou destino sem caminho): não teleporta.
-    if (escritorio.mapa) escritorioAviso("Não dá para chegar aí: há parede ou móvel no caminho.");
+  // Sem mapa pronto: não teleporta.
+  if (!escritorio.mapa) return;
+  if (escritorioOcupado(tx, ty)) { escritorioAviso("Esse lugar está ocupado: clique num ladrilho ao lado."); return; }
+  const passos = escritorio.mapa.caminho(de, { x, y }, escritorioEvitarNoCaminho);
+  if (!passos) {
+    // O aviso diz o motivo certo: móvel no destino, sala trancada ou alguém
+    // parado no único caminho, ou parede sem passagem.
+    if (escritorio.mapa.bloqueadoEm(tx, ty)) escritorioAviso(escritorio.mapa.moveisEm(x, y).some((i) => !i.plano && !i.altura && !i.parede) ? "Aí tem um móvel: clique no chão ao lado dele." : "Aí não se anda: clique no piso do escritório.");
+    else if (escritorio.mapa.caminho(de, { x, y })) escritorioAviso("O único caminho passa por uma sala trancada ou por alguém parado.");
+    else escritorioAviso("Não dá para chegar aí: há parede ou móvel no caminho.");
     return;
   }
   if (!movimento.quadro) { const p = escritorioPosicao(escritorio.perfil || {}); movimento.x = p.x; movimento.y = p.y; }
@@ -1176,7 +1224,7 @@ function escritorioLadoLivre(r) {
   for (let x = r.x - 1; x <= r.x + r.w; x++) for (let y = r.y - 1; y <= r.y + r.h; y++) {
     if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) continue;
     if (escritorioOcupado(x, y)) continue;
-    const passos = escritorio.mapa?.caminho(de, { x, y });
+    const passos = escritorio.mapa?.caminho(de, { x, y }, escritorioEvitarNoCaminho);
     if (passos) candidatos.push({ x, y, n: passos.length });
   }
   return candidatos.sort((a, b) => a.n - b.n)[0] || null;
@@ -1196,6 +1244,14 @@ function cliqueNoMapaEscritorio(x, y) {
     if (lado) { escritorioIrPara(lado.x, lado.y); return; }
   }
   if (escritorioUsarAoClicar(x, y)) return;
+  // Clicou num móvel que não se usa (mesa dos outros, estante…): anda até o
+  // chão livre mais perto dele, como já faz com a própria mesa.
+  const tx = Math.floor(x), ty = Math.floor(y);
+  if (escritorio.mapa?.bloqueadoEm(tx, ty) && !escritorioZonaBloqueada(escritorioZonaEm(tx, ty))) {
+    const solido = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.plano && !i.altura && !i.parede);
+    const lado = solido && escritorioLadoLivre({ x: Math.floor(solido.x), y: Math.floor(solido.y), w: Math.max(1, Math.round(solido.dim.x)), h: Math.max(1, Math.round(solido.dim.y)) });
+    if (lado) { escritorioIrPara(lado.x, lado.y); return; }
+  }
   escritorioIrPara(x, y);
 }
 // Trancar/destrancar a zona onde a pessoa está; bater na porta; deixar entrar.
@@ -1424,12 +1480,17 @@ function escritorioAcoesPerto() {
     if (String(o.id) === eu) return false;
     const q = escritorioPosicao(o), qx = Math.round(q.x), qy = Math.round(q.y);
     if (Math.max(Math.abs(qx - p.x), Math.abs(qy - p.y)) > 2) return false;
-    const passos = escritorio.mapa.caminho(p, { x: qx, y: qy });
+    // Busca limitada a 3 passos: sem caminho curto, para logo (não varre o mapa).
+    const passos = escritorio.mapa.caminho(p, { x: qx, y: qy }, null, 3);
     return Boolean(passos && passos.length <= 3);
   });
-  // Numa sala com voz, todos ali já estão na mesma conversa: sem convite.
+  // Numa sala com voz, todos ali já estão na mesma conversa: sem convite. No
+  // corredor ou no Foco, o convite leva os dois até uma sala para conversar.
   const salaComVoz = escritorio.zona && escritorio.zona !== "foco";
-  if (vizinho && !salaComVoz) return { texto: "Conversar com " + String(vizinho.nome).split(" ")[0], fazer: () => convidarConversaEscritorio(vizinho.id) };
+  if (vizinho && !salaComVoz) {
+    const destino = ESCRITORIO_PLANTA.ambientes.find((a) => a.id === escritorioZonaDeConversa())?.nome || "uma sala";
+    return { texto: `Chamar ${String(vizinho.nome).split(" ")[0]} para ${destino}`, fazer: () => convidarConversaEscritorio(vizinho.id) };
+  }
   // Sala trancada ao lado
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
     const z = escritorioZonaEm(p.x + dx, p.y + dy);
@@ -1898,7 +1959,7 @@ async function carregarChatEscritorio() {
         encodeURIComponent(sala),
       { credentials: "same-origin", cache: "no-store" },
     );
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.ok) throw new Error(d.error || "Falha ao ler mensagens.");
     if (seq !== escritorio.chatSeq) return;
     el.innerHTML = d.mensagens.length
@@ -2326,7 +2387,7 @@ function renderMidiaEscritorio() {
   if (fora.length) {
     const p = document.createElement("p");
     p.className = "office-call-fora";
-    p.textContent = `Na sala, mas fora da conversa: ${fora.map((o) => String(o.nome).split(" ")[0]).join(", ")}. ${fora.length > 1 ? "Elas ainda não ouvem" : "Ainda não ouve"} você. Peça para atualizar a página (Ctrl ou Cmd + Shift + R).`;
+    p.textContent = `Na sala, mas fora da conversa: ${fora.map((o) => String(o.nome).split(" ")[0]).join(", ")}. ${fora.length > 1 ? "Elas ainda não ouvem" : "Ainda não ouve"} você. A voz tenta reconectar sozinha; se não voltar, a pessoa usa "Tentar agora" na barra de baixo.`;
     el.append(p);
   }
   if (escritorio.somBloqueado) {

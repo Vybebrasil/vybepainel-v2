@@ -17,12 +17,10 @@ function realtimeKitConfig(env) {
 
 async function realtimeKitRequest(env, pathname, init = {}) {
   const config = realtimeKitConfig(env);
+  // Error() ignora o segundo argumento: status e código vão como propriedades,
+  // para a rota responder 503/502 em vez de 500 genérico.
   if (!config.ready) {
-    throw new Error(
-      "O RealtimeKit ainda não foi configurado no Worker.",
-      503,
-      "realtimekit_unconfigured",
-    );
+    throw Object.assign(new Error("O RealtimeKit ainda não foi configurado no Worker."), { status: 503, code: "realtimekit_unconfigured" });
   }
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.accountId)}/realtime/kit/${encodeURIComponent(config.appId)}${pathname}`,
@@ -42,13 +40,10 @@ async function realtimeKitRequest(env, pathname, init = {}) {
       payload?.errors?.[0]?.message ||
       payload?.messages?.[0]?.message ||
       "A Cloudflare não conseguiu preparar a chamada.";
-    throw new Error(detail, response.status || 502);
+    throw Object.assign(new Error(detail), { status: response.status >= 400 ? response.status : 502, code: "realtimekit_error" });
   }
   if (!payload?.data)
-    throw new Error(
-      "A Cloudflare devolveu uma resposta de chamada inválida.",
-      502,
-    );
+    throw Object.assign(new Error("A Cloudflare devolveu uma resposta de chamada inválida."), { status: 502, code: "realtimekit_error" });
   return payload.data;
 }
 export async function prepararChamadaEscritorio(
