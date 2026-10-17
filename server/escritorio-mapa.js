@@ -2,8 +2,8 @@
 // quem é dono de cada sala, quem pode editar cada camada e o que é um item válido.
 import { inflateSync } from "node:zlib";
 
-// Ordem das salas individuais no mapa (sala-0 … sala-11): nove com dono e três livres.
-export const DONOS_ESCRITORIO = ["Paulo", "Vinícius", "Ewerton", "Deivid", "Bia", "Jady", "Mizinho", "Taynara", "Reriston", "", "", ""];
+// Ordem das salas individuais no mapa (sala-0 … sala-8), uma por pessoa.
+export const DONOS_ESCRITORIO = ["Paulo", "Vinícius", "Ewerton", "Deivid", "Bia", "Jady", "Mizinho", "Taynara", "Reriston"];
 // Como cada um está no cadastro quando o nome da sala é apelido ou outra grafia.
 const DONOS_CADASTRO = { Bia: ["Beatriz"], Taynara: ["Tainara"], Mizinho: ["Ademir"] };
 const semAcento = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
@@ -25,7 +25,7 @@ export function salasDoEscritorio(equipe = []) {
   });
 }
 
-export const LADO_SALA = 10;
+export const LADO_SALA = 8;
 const LIMITE = { geral: { x: 80, y: 80, itens: 900 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 80 } };
 // Item: [classe, x, y, direção, estado, altura]. Nas salas, x/y são relativos à
 // sala e o item inteiro fica dentro dela (o tamanho real é conferido no mapa).

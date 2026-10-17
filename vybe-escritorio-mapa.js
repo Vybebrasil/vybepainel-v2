@@ -505,7 +505,7 @@ function mapaDirecaoDoPasso(dx, dy) {
 // Mecânica do Habbo: anda de ladrilho em ladrilho, desvia de paredes e móveis
 // e senta quando para num assento. A grade marca o que bloqueia; paredes são
 // arestas entre ladrilhos vizinhos.
-const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair",
+const MAPA_ASSENTOS = new Set(["hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
   "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
   "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair"]);
 function mapaMontarGrade(P, moveis) {
@@ -762,14 +762,14 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
       const est = P.paredeEm?.(x, y, eixo);
-      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt, texturaDe(est), Boolean(dv.sala) && !dv.janela);
+      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt ?? dv.alt, texturaDe(est), Boolean(dv.sala) && !dv.janela);
       d.canvas.className = "mapa-obj mapa-muro";
       const prof = Math.round((x + y) * 10) + 2;
       colocar(d.canvas, x, y, d, prof);
       palco.append(d.canvas);
       const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
-      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela });
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt ?? dv.alt, altBase: dv.alt, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela });
     }
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
@@ -1057,7 +1057,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Sala individual: letreiro em neon (cor da sala) acima da porta, como
     // uma placa sobre a entrada, sem cobrir a porta de vidro nem os móveis;
     // espaços comuns: no centro.
-    const t = a.pessoal ? mapaTela((a.x0 + a.x1) / 2, a.porta === "baixo" ? a.y1 : a.y0, origem) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
+    const t = a.pessoal ? (a.porta === "direita" ? mapaTela(a.x1, (a.y0 + a.y1) / 2, origem) : mapaTela((a.x0 + a.x1) / 2, a.y1, origem)) : mapaTela((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, origem);
     const r = document.createElement("span");
     r.className = "mapa-rotulo" + (a.pessoal ? " neon" : "");
     if (a.pessoal && a.cor) r.style.setProperty("--neon", a.cor);
@@ -1524,7 +1524,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         if (m.corBase === undefined) m.corBase = m.cor || "";
         const salaCor = P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4];
         m.cor = est?.cor || salaCor || m.corBase;
-        m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt; m.textura = m.texturaDe(est);
+        m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt ?? m.altBase; m.textura = m.texturaDe(est);
       }
       pintarParedes(true);
     },

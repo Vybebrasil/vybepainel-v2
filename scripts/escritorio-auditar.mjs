@@ -6,7 +6,7 @@ import vm from "node:vm";
 
 const ctx = { console };
 vm.createContext(ctx);
-vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS;", ctx);
+vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS; globalThis.__entrada = escritorioEntradaDaSala;", ctx);
 const P = ctx.__P;
 const arte = (c) => {
   const f = `assets/escritorio/habbo/${c}.json`;
@@ -136,7 +136,7 @@ for (const a of P.ambientes) {
   if (!ok) problemas.push(`não dá para chegar em ${a.nome || a.id}`);
 }
 for (const a of P.ambientes) if (a.pessoal) {
-  const porta = { x: a.x0 + 5, y: a.porta === "cima" ? a.y0 + 1 : a.y0 + 8 };
+  const porta = ctx.__entrada(a);
   if (!chega.has(`${porta.x},${porta.y}`)) problemas.push(`a entrada de ${a.id} (${porta.x},${porta.y}) não tem caminho`);
 }
 // Assentos e móveis com ação do E precisam de um ladrilho alcançável ao lado.

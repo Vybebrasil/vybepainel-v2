@@ -152,8 +152,15 @@ Após login do responsável na Cloudflare, foi confirmado:
   `vybe-escritorio-mapa.js`: piso e paredes em canvas; cada móvel, divisória e
   personagem é um elemento com z-index pela profundidade. A presença continua em
   porcentagem no Worker; a sala de conversa é a do ambiente onde a pessoa está.
-- Doze salas individuais de 10×10 (Paulo, Vinícius, Ewerton, Deivid, Bia, Jady,
-  Mizinho, Taynara, Reriston e três livres), ligadas pelo primeiro nome.
+- Nove salas individuais de 8×8 (Paulo, Vinícius, Ewerton, Deivid, Bia, Jady,
+  Mizinho, Taynara, Reriston), ligadas pelo primeiro nome. Planta de
+  17/10/2026 (decisão do Paulo): prédio 60×48 em volta de um pátio central,
+  Atendimento e Criação ao fundo com a porta para o corredor, Produção na
+  lateral esquerda com a porta para a direita; só a parede do prédio e a do
+  fundo de cada sala são altas (`alta` no ambiente), o resto é baixo. A pintura
+  da sala passou a ter 64 ladrilhos e 32 trechos de parede (formato antigo de
+  10×10 é descartado pelo servidor). O desenho de cada sala é o mesmo em todas
+  (`escritorioMoveisDaSala`), espelhado na diagonal nas salas de porta à direita.
 - A arte é do Habbo (Sulake), obtida pelo habboassets.com. **Uso interno**,
   autorizado pelo Paulo em 16/10/2026, ciente de que não há licença: não usar em
   material público, comercial ou de cliente.

@@ -620,11 +620,14 @@ function escritorioLugarQuadro(classe, lx, ly, ignorar = -1, dirFixa = null) {
   if (!img || !a?.pessoal) return { erro: "Quadro só nas salas individuais." };
   const L = a.x1 - a.x0;
   let dir = dirFixa;
-  if (dir == null) dir = ly === 0 ? 4 : lx === 0 && a.x0 > 0 ? 2 : null;
-  if (dir == null) return { erro: a.x0 > 0 ? "Clique no piso encostado na parede alta (a de trás ou a da esquerda)." : "Clique no piso encostado na parede alta de trás." };
+  // Quadro só na parede alta da sala (a do prédio): a de trás nas salas de
+  // cima, a da esquerda nas da lateral.
+  const altas = a.alta || ["y0", "x0"];
+  if (dir == null) dir = ly === 0 && altas.includes("y0") ? 4 : lx === 0 && altas.includes("x0") ? 2 : null;
+  if (dir == null) return { erro: altas.includes("y0") ? "Clique no piso encostado na parede alta de trás." : "Clique no piso encostado na parede alta da esquerda." };
   const ini = dir === 4 ? lx : ly;
   if (ini < 0 || ini + img.largura > L) return { erro: "O quadro não cabe aí: chegue mais para o canto." };
-  if (dir === 4 && a.porta === "cima" && ini < 6 && ini + img.largura > 4) return { erro: "Ali é a porta. Escolha outro trecho da parede." };
+  if (!altas.includes(dir === 4 ? "y0" : "x0")) return { erro: "Essa parede é baixa: o quadro vai na parede alta." };
   const outro = e.itens.findIndex((it, i) => {
     if (i === ignorar || it[3] !== dir) return false;
     const o = escritorioImagemDe(it[0]);
