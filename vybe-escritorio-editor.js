@@ -264,7 +264,8 @@ function escritorioEmCimaDe(x, y, ignorar = -1) {
   const candidatos = escritorio.mapa.moveisEm(x, y).filter((m) => !m.plano && !(m.origem?.camada === e.camada && m.origem?.i === ignorar) && !MAPA_ASSENTOS.has(m.classe)
     && (m.altura || (SUPERFICIE.test(m.classe) && m.dim.z > 0.3 && m.dim.z <= 3.4)));
   if (!candidatos.length) return null;
-  const topo = (m) => (m.altura || 0) + (m.dim.z || 0);
+  // Altura do tampo medida no desenho (ESCRITORIO_TAMPOS), senão a da ficha.
+  const topo = (m) => (m.altura || 0) + ((typeof ESCRITORIO_TAMPOS !== "undefined" && ESCRITORIO_TAMPOS[m.classe]) || m.dim.z || 0);
   const alto = candidatos.reduce((a, b) => (topo(b) > topo(a) ? b : a));
   const base = candidatos.filter((m) => !m.altura).sort((a, b) => b.dim.x * b.dim.y - a.dim.x * a.dim.y)[0] || alto;
   const w = Math.max(1, Math.round(base.dim.x)), h = Math.max(1, Math.round(base.dim.y));
