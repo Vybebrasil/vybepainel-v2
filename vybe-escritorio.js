@@ -568,8 +568,8 @@ function escritorioAplicarSalas() {
 // depois da porta; sem sala, na recepção do mapa geral.
 function escritorioChegar() {
   const base = escritorio.base;
-  escritorioAplicarSalas();
   escritorio.perfil = { ...(base.equipe.find((p) => p.id === base.eu)?.perfil || {}) };
+  escritorioAplicarSalas();
   const mesa = escritorioMinhaMesa();
   escritorio.quarto = mesa ? mesa.ambiente.id : null;
   escritorioDefinirQuarto(escritorio.quarto);

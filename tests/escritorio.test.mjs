@@ -410,6 +410,17 @@ function inicioDoEscritorio({ celular = false, preferencia = null, entrada }) {
 }
 const baseConfigurada = () => Promise.resolve({ eu: "1", worker: "https://w.test", equipe: [{ id: "1", nome: "Bia Santos", perfil: { sala: "foco" } }], salas: [{ id: "sala-4", dono: "Bia", pessoa_id: "1" }] });
 
+test("recarga aplica planta e acabamento do perfil salvo antes de montar o quarto", async () => {
+  const quartos=JSON.parse(readFileSync("assets/escritorio/habbo/quartos.json","utf8"));
+  const entrada=Promise.resolve({eu:"1",worker:"https://w.test",quartos,
+    equipe:[{id:"1",nome:"Paulo",perfil:{quarto_configurado:true,sala_planta:"compacto",sala_piso:"clara",sala_parede:"#5aa9ff"}}],
+    salas:[{id:"sala-0",dono:"Paulo",pessoa_id:"1"}],mapa:{camadas:{"sala-0":{itens:[],em:"2027-01-01T00:00:00Z"}}}});
+  const {c}=inicioDoEscritorio({entrada});await c.iniciarNoEscritorio();
+  assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.planta",c),"compacto");
+  assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.cor",c),"#5aa9ff");
+  assert.equal(vm.runInContext("escritorioPlantaDaCena().andavel(0,0)",c),false);
+});
+
 test("computador abre no escritório configurado", async () => {
   const { c, trocas } = inicioDoEscritorio({ entrada: baseConfigurada() });
   await c.iniciarNoEscritorio();
