@@ -200,7 +200,9 @@ O catálogo tem 3.726 móveis. Cada um entra numa faixa pelo tipo de peça
 | Muito raro | Linha HC (Habbo Club), dourados, Bling, cristal, lustres, fontes, estátuas, cinema, executivo | ~290 | 500 | 3 |
 | Lendário | Tronos, "Solid Gold", peças "Rare", troféus, LTD, carro de luxo, farol, casa na árvore | ~60 | 1.500 | 1 |
 
-Os quatro essenciais (mesa, cadeira, cacto, computador) continuam grátis.
+Os essenciais continuam grátis: mesa, cadeira, cacto e computador e, desde
+17/10/2026 (decisão do Paulo, para os modelos iniciais do quarto), tapete,
+estante baixa e luminária. A lista fica em `quartos.json` (`essenciais`).
 
 Com os saldos de chegada: Tainara (3.522) compra 2 lendários ou 7 muito raros;
 Bia (1.450) chega perto de 1 lendário; Reriston (784) leva 1 muito raro e 2

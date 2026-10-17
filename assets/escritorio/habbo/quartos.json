@@ -5503,7 +5503,10 @@
     "exe_table",
     "hc26_10",
     "plant_small_cactus",
-    "computer_flatscreen"
+    "computer_flatscreen",
+    "hygge_c25_carpet",
+    "mm_lamp",
+    "hygge_c18_shelf"
   ],
   "modelos": [
     {
@@ -5515,8 +5518,14 @@
     {
       "id": "trabalho",
       "nome": "Essencial",
-      "dica": "Mesa com computador, cadeira e uma planta — grátis",
+      "dica": "Mesa com computador, cadeira, tapete, estante, luminária e planta — grátis",
       "itens": [
+        [
+          "hygge_c25_carpet",
+          4,
+          4,
+          0
+        ],
         [
           "exe_table",
           4,
@@ -5542,14 +5551,32 @@
           4,
           1,
           0.95
+        ],
+        [
+          "hygge_c18_shelf",
+          7,
+          6,
+          0
+        ],
+        [
+          "mm_lamp",
+          7,
+          5,
+          0
         ]
       ]
     },
     {
       "id": "encontro",
       "nome": "Boas conversas",
-      "dica": "Mesa com computador, duas cadeiras e uma planta — grátis",
+      "dica": "Mesa com computador, duas cadeiras, tapete, estante, luminária e planta — grátis",
       "itens": [
+        [
+          "hygge_c25_carpet",
+          4,
+          4,
+          0
+        ],
         [
           "exe_table",
           4,
@@ -5581,14 +5608,32 @@
           4,
           1,
           0.95
+        ],
+        [
+          "hygge_c18_shelf",
+          7,
+          6,
+          0
+        ],
+        [
+          "mm_lamp",
+          7,
+          5,
+          0
         ]
       ]
     },
     {
       "id": "dupla",
       "nome": "Mesa compartilhada",
-      "dica": "Dois computadores, duas cadeiras e uma planta — grátis",
+      "dica": "Dois computadores, duas cadeiras, tapete, estante, luminária e planta — grátis",
       "itens": [
+        [
+          "hygge_c25_carpet",
+          4,
+          4,
+          0
+        ],
         [
           "exe_table",
           4,
@@ -5628,14 +5673,32 @@
           4,
           1,
           0.95
+        ],
+        [
+          "hygge_c18_shelf",
+          7,
+          6,
+          0
+        ],
+        [
+          "mm_lamp",
+          7,
+          5,
+          0
         ]
       ]
     },
     {
       "id": "reuniao",
       "nome": "Mesa de ideias",
-      "dica": "Três lugares para conversar e planejar — grátis",
+      "dica": "Três lugares para conversar, tapete, estante, luminária e planta — grátis",
       "itens": [
+        [
+          "hygge_c25_carpet",
+          4,
+          4,
+          0
+        ],
         [
           "exe_table",
           4,
@@ -5665,6 +5728,18 @@
           7,
           7,
           2
+        ],
+        [
+          "hygge_c18_shelf",
+          7,
+          6,
+          0
+        ],
+        [
+          "mm_lamp",
+          7,
+          5,
+          0
         ]
       ]
     }

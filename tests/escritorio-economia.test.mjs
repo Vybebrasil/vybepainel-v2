@@ -136,9 +136,18 @@ test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto
  vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
  for(const planta of novas) for(const modelo of QUARTOS.modelos) {
   const itens=itensDoModelo(planta.id,modelo);
-  const dimensoes=new Map(itens.map(([classe])=>[classe,JSON.parse(readFileSync('assets/escritorio/habbo/'+classe+'.json','utf8')).logic.model.dimensions]));
+  const fichas=new Map(itens.map(([classe])=>[classe,JSON.parse(readFileSync('assets/escritorio/habbo/'+classe+'.json','utf8'))]));
+  const dimensoes=new Map([...fichas].map(([classe,j])=>[classe,j.logic.model.dimensions]));
+  // Altura do desenho (maior quadro): mesma regra de "rente ao piso" do mapa.
+  const alto=(classe)=>Math.max(0,...Object.values(fichas.get(classe).spritesheet?.frames||{}).map(f=>f.frame?.h||0));
   validarPisoQuarto(planta.id,itens,dimensoes);
-  c.itens=itens.map(([classe,x,y,dir,,altura=0])=>{const d=dimensoes.get(classe);return {classe,x,y,altura,dir,dim:dir===2||dir===6?{x:d.y,y:d.x}:d};});c.modelo=planta.id;
+  // Tapete (sem altura) é rente ao piso, como no mapa: passa-se por cima.
+  c.itens=itens.map(([classe,x,y,dir,,altura=0])=>{const d=dimensoes.get(classe);return {classe,x,y,altura,dir,plano:!altura&&!(d.z>0.05)&&alto(classe)<=(d.x+d.y)*16+12,dim:dir===2||dir===6?{x:d.y,y:d.x}:d};});c.modelo=planta.id;
+  // Dois móveis sólidos no mesmo ladrilho (a luminária em cima da cadeira).
+  const ocupado=new Map();
+  for(const it of c.itens) if(!it.plano&&!it.altura) for(let i=0;i<it.dim.x;i++) for(let j=0;j<it.dim.y;j++) {
+   const k=(it.x+i)+','+(it.y+j);assert.ok(!ocupado.has(k),planta.id+'/'+modelo.id+': '+it.classe+' em cima de '+ocupado.get(k));ocupado.set(k,it.classe);
+  }
   for(const porta of ['baixo','direita']) {
    c.porta=porta;
    const faltam=vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:modelo,porta};const p=escritorioPlantaDoQuarto(a);const g=mapaMontarGrade(p,itens);
