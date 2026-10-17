@@ -70,7 +70,10 @@ const ESCRITORIO_PLANTA = (() => {
   // a porta para baixo; embaixo, Mizinho e Taynara (perto da Produção),
   // Reriston (de frente para a Criação) e as livres, com a porta para cima.
   const LUGAR_SALAS = [[0, 0], [10, 0], [20, 0], [36, 0], [46, 0], [56, 0], [0, 14], [10, 14], [36, 14], [20, 14], [46, 14], [56, 14]];
-  LUGAR_SALAS.forEach(([x0, y0], i) => ambiente("sala-" + i, "Sala livre", "criacao", x0, y0, x0 + L, y0 + L,
+  // Chat escrito de cada sala: o da ala em que ela fica (esquerda em cima,
+  // Atendimento; direita, Criação; embaixo à esquerda, Produção).
+  const ALA_SALAS = ["atendimento", "atendimento", "atendimento", "criacao", "criacao", "criacao", "producao", "producao", "criacao", "producao", "criacao", "criacao"];
+  LUGAR_SALAS.forEach(([x0, y0], i) => ambiente("sala-" + i, "Sala livre", ALA_SALAS[i], x0, y0, x0 + L, y0 + L,
     "sala" + i, { pessoal: true, porta: y0 ? "cima" : "baixo", cor: CORES_SALAS[i] }));
   // Espaços comuns: cor e estilo das paredes altas de cada um.
   // "textura": o piso do acervo de cada espaço (a cor fica enquanto carrega).

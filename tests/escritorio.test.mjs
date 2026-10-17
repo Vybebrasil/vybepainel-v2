@@ -265,6 +265,18 @@ test("convites exigem proximidade, mesma sala e pessoa disponível", async () =>
   b.a.sala = "reuniao";
   await invite();
   assert.equal(b.messages.length, 0);
+  // No corredor (sem zona), quem convida escolhe a sala do encontro; zona
+  // inventada é descartada. Dentro de uma sala com voz, vale a sala.
+  b.a.sala = "criacao";
+  const convidar = async (zonaDeA, zonaPedida) => {
+    a.a.last = 0; a.a.zona = zonaDeA; b.a.zona = zonaDeA; b.messages = [];
+    await room.webSocketMessage(a, JSON.stringify({ type: "conversation:invite", payload: { id: "2", zona: zonaPedida } }));
+    return b.messages[0]?.payload;
+  };
+  assert.equal((await convidar("", "recepcao")).zona, "recepcao");
+  assert.equal((await convidar("", "recepcao")).id, "1");
+  assert.equal((await convidar("", "<x>")).zona, "");
+  assert.equal((await convidar("cafe", "recepcao")).zona, "cafe");
 });
 
 test("resposta atrasada de entrada não abre WebSocket depois de desconectar", async () => {
@@ -356,9 +368,10 @@ test("abrir o escritório carrega a base e não estoura erro", async () => {
   await c.abrirEscritorio();
   assert.ok(!/not defined/.test(painel.innerHTML), painel.innerHTML);
   assert.equal(vm.runInContext("escritorio.base.eu", c), "1");
-  // Chega sentado na própria sala, que fica na área escolhida (criação).
-  assert.equal(vm.runInContext("escritorio.sala", c), "criacao");
-  assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.sala", c), "criacao");
+  // Chega sentado na própria sala (sala-0), na ala de Atendimento: o chat
+  // escrito é o da ala, não o da preferência antiga do perfil.
+  assert.equal(vm.runInContext("escritorio.sala", c), "atendimento");
+  assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.sala", c), "atendimento");
   // Quem ainda não viu a abertura desta versão vê a cena ao entrar.
   assert.equal(vm.runInContext("globalThis.abertura", c), 1);
 });
@@ -441,6 +454,15 @@ test("cada ambiente do mapa leva à sala de conversa certa", () => {
   assert.equal(vm.runInContext("escritorioSalaEm(22, 36)", c), "convivencia"); // corredor
   assert.equal(vm.runInContext("escritorioSalaEm(57, 65)", c), "convivencia"); // piscina
   assert.equal(vm.runInContext("escritorioAmbienteEm(35, 57).id", c), "recepcao"); // entrada
+  // Chat escrito das salas individuais: o da ala em que ficam.
+  const salaDe = (id) => vm.runInContext(`ESCRITORIO_PLANTA.ambientes.find((a) => a.id === "${id}").sala`, c);
+  assert.equal(salaDe("sala-0"), "atendimento");
+  assert.equal(salaDe("sala-3"), "criacao");
+  assert.equal(salaDe("sala-6"), "producao");
+  // O cabeçalho do chat diz onde a pessoa está e com quem divide o chat.
+  vm.runInContext('escritorio.base = { eu: "1", equipe: [], salas: [{ id: "sala-0", dono: "Paulo", pessoa_id: "1" }, { id: "sala-1", dono: "Vinícius", pessoa_id: "2" }] }; escritorioAplicarSalas(); escritorio.perfil = escritorioParaPorcentagem(5 + ESCRITORIO_PLANTA.ambientes[0].x0, 5 + ESCRITORIO_PLANTA.ambientes[0].y0); escritorio.sala = "atendimento";', c);
+  assert.equal(vm.runInContext("escritorioTituloChat()", c), "Conversa · Atendimento");
+  assert.match(vm.runInContext("escritorioNotaChat()", c), /^Você está em Sala de Paulo\. Chat escrito dividido com Sala de Vinícius, Sala livre\.$/);
 });
 
 test("planta nova: mapa geral salvo sobre a planta antiga não vale; o salvo depois vale", () => {
@@ -491,8 +513,29 @@ function gradeDeTeste(moveis = [], divisorias = []) {
   c.P = { W: 8, H: 6, divisorias, piscina: null };
   c.moveis = moveis;
   vm.runInContext("g = mapaMontarGrade(P, moveis)", c);
-  return (de, para) => { c.de = de; c.para = para; return vm.runInContext("mapaCaminho(g, de, para)", c); };
+  return (de, para, evitar = null, limite = Infinity) => { c.de = de; c.para = para; c.evitar = evitar; c.limite = limite; return vm.runInContext("mapaCaminho(g, de, para, evitar, limite)", c); };
 }
+
+test("caminho do clique desvia de sala trancada e de pessoa parada; busca curta desiste no limite", () => {
+  // Corredor de uma linha (y=1) fechado por paredes em y=1|2: só dá para
+  // passar reto. Uma pessoa em (3,1) bloqueia; sem ela, passa.
+  const caminho = gradeDeTeste([], [[0, 2, 8, 2]]);
+  {
+    const livre = caminho({ x: 1, y: 1 }, { x: 6, y: 1 });
+    assert.ok(livre && livre.length === 5);
+    const pessoa = (x, y) => x === 3 && y === 1;
+    const desvio = caminho({ x: 1, y: 1 }, { x: 6, y: 1 }, pessoa);
+    assert.ok(desvio && desvio.length >= 5, "dá a volta por cima (em diagonal, sem passo a mais)");
+    assert.ok(!desvio.some((p) => p.x === 3 && p.y === 1), "não pisa na pessoa");
+    // Linha de cima também ocupada: não há caminho.
+    assert.equal(caminho({ x: 1, y: 1 }, { x: 6, y: 1 }, (x, y) => x === 3 && y <= 1), null);
+    // Destino sobre o obstáculo também não.
+    assert.equal(caminho({ x: 1, y: 1 }, { x: 3, y: 1 }, pessoa), null);
+    // Limite de custo: 3 passos não chegam a 5 ladrilhos de distância.
+    assert.equal(caminho({ x: 1, y: 1 }, { x: 6, y: 1 }, null, 3), null);
+    assert.ok(caminho({ x: 1, y: 1 }, { x: 3, y: 1 }, null, 3));
+  }
+});
 
 test("caminho desvia da parede pela porta e nunca cruza aresta bloqueada", () => {
   // Parede vertical em x=4 com porta (vão) em y=5.
@@ -647,6 +690,8 @@ test("Worker: trancar sala, bater, deixar entrar, reação e balão", async () =
   assert.ok(!fora.msgs.some((m) => m.type === "zone:knock"));
   await ev(fora, "zone:admit", { zona: "sala-0", id: "3" });
   assert.ok(!room.trancas.get("sala-0").has("3"), "quem está fora não se deixa entrar");
+  await ev(dona, "zone:admit", { zona: "sala-0", id: "<x>" });
+  assert.ok(!room.trancas.get("sala-0").has("<x>"), "só id numérico de pessoa entra na lista");
   await ev(dona, "zone:admit", { zona: "sala-0", id: "3" });
   assert.ok(room.trancas.get("sala-0").has("3"));
   await ev(fora, "reaction", { tipo: "coracao" });
@@ -893,6 +938,28 @@ test("chamada: conversa única do escritório e a mesma pessoa reaproveita o par
   assert.equal((await prepararChamadaEscritorio(sql, pessoa, "escritorio", env)).authToken, "renovado");
   assert.deepEqual(chamadas.map(([u, m]) => m + " " + u), ["POST /meetings", "POST /meetings/reuniao-1/participants", "POST /meetings/reuniao-1/participants/part-1/token"]);
   await assert.rejects(prepararChamadaEscritorio(sql, pessoa, "<x>", env), /Sala inválida/);
+  // Sem RealtimeKit configurado, o erro carrega status e código (a rota
+  // responde 503, não 500 genérico).
+  await assert.rejects(prepararChamadaEscritorio(sql, pessoa, "escritorio", {}), (e) => e.status === 503 && e.code === "realtimekit_unconfigured");
+  // Cloudflare recusou: o status dela vai junto.
+  globalThis.fetch = async () => ({ ok: false, status: 429, json: async () => ({ success: false, errors: [{ message: "Limite" }] }) });
+  await assert.rejects(prepararChamadaEscritorio(sql, { id: 2, nome: "Jady" }, "cafe", env), (e) => e.status === 429 && /Limite/.test(e.message));
+});
+
+test("API: pedir chamada sem RealtimeKit responde 503 com o código do erro", async (t) => {
+  const { db, sql } = await banco();
+  t.after(() => db.close());
+  let status, body;
+  const res = { status(n) { status = n; return this; }, json(d) { body = d; return d; } };
+  const antes = { ...process.env };
+  delete process.env.CLOUDFLARE_ACCOUNT_ID; delete process.env.REALTIMEKIT_APP_ID; delete process.env.CLOUDFLARE_REALTIME_API_TOKEN;
+  t.after(() => { Object.assign(process.env, antes); });
+  await areaEscritorio({ method: "POST", body: { acao: "chamada", sala: "escritorio" } }, res, { tipo: "sessao", pessoa: { id: 1, nome: "Paulo" } }, sql);
+  assert.equal(status, 503);
+  assert.equal(body.code, "realtimekit_unconfigured");
+  await areaEscritorio({ method: "POST", body: { acao: "chamada", sala: "<x>" } }, res, { tipo: "sessao", pessoa: { id: 1, nome: "Paulo" } }, sql);
+  assert.equal(status, 400);
+  assert.match(body.error, /Sala inválida/);
 });
 
 test("mapa: cada salvamento guarda a versão anterior e só quem edita vê o histórico", async (t) => {

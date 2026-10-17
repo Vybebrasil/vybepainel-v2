@@ -259,6 +259,9 @@ export class EscritorioRoom {
       a.status = p.status;
     } else if (evento.type === "conversation:invite") {
       if (a.status !== "disponivel") return;
+      // Onde não há voz (corredor, Foco), quem convida escolhe a sala do
+      // encontro; dentro de uma sala com voz, a conversa é a dela.
+      const zona = a.zona && a.zona !== "foco" ? a.zona : zonaValida(p.zona);
       for (const target of this.ativos()) {
         const outro = this.estado(target);
         if (
@@ -270,9 +273,10 @@ export class EscritorioRoom {
           Math.hypot(outro.x - a.x, outro.y - a.y) <= 25
         )
           this.send(target, "conversation:invite", {
+            id: a.sub,
             nome: a.nome,
             sala: a.sala,
-            zona: a.zona || "",
+            zona,
           });
       }
       s.serializeAttachment(a);
@@ -300,8 +304,8 @@ export class EscritorioRoom {
       return;
     } else if (evento.type === "zone:admit") {
       const zona = zonaValida(p.zona);
-      if (!zona || a.zona !== zona || !this.trancas.has(zona) || typeof p.id !== "string") return;
-      this.trancas.get(zona).add(p.id.slice(0, 40));
+      if (!zona || a.zona !== zona || !this.trancas.has(zona) || typeof p.id !== "string" || !/^\d{1,18}$/.test(p.id)) return;
+      this.trancas.get(zona).add(p.id);
       this.broadcast("zone:locks", this.listaTrancas());
       return;
     } else if (evento.type === "recado:novo") {

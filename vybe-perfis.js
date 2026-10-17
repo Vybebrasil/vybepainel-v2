@@ -1840,6 +1840,9 @@ function applyPanelMode() {
   // dizer duas vezes a mesma coisa.
   document.getElementById('btn-voltar-menu')?.classList.toggle('focus-hidden', !isDedicatedMode);
   document.getElementById('compact-summary')?.classList.toggle('focus-hidden', isDedicatedMode);
+  // O título "Painel de trabalho" e o filtro de carteira são do Gestor: nos
+  // modos dedicados ficavam soltos embaixo do painel do modo.
+  document.querySelector('.workspace-heading')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.querySelector('.ops-command-bar')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('ops-action-panel')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('manager-intelligence')?.classList.toggle('focus-hidden', isDedicatedMode);
