@@ -1204,3 +1204,41 @@ test("mapa: cada salvamento guarda a versão anterior e só quem edita vê o his
   await assert.rejects(versoesDaCamada(sql, jady, salas, "geral"), /administra/);
   await assert.rejects(itensDaVersao(sql, jady, salas, versoes[0].id), /administra/);
 });
+
+// Criação do quarto: a regra "a decoração atual cabe na planta?" do navegador
+// é um espelho da do servidor (ao preservar, sem medidas). Divergir deixaria
+// a pessoa presa no fim com "há móveis fora da planta".
+test("criação do quarto: o aviso de 'cabe' do navegador bate com a regra do servidor e decide se preserva", async () => {
+  const { QUARTOS, validarPisoQuarto } = await import("../server/escritorio-quartos.js");
+  const c = vm.createContext({
+    window: { addEventListener() {}, matchMedia: () => ({ matches: false }) }, document: { getElementById: () => null, querySelector: () => null, createElement: () => ({ style: {}, classList: { add() {} }, setAttribute() {}, addEventListener() {}, append() {}, querySelector: () => null, querySelectorAll: () => [] }), body: { append() {} } },
+    location: { search: "" }, URLSearchParams, localStorage: { getItem: () => null, setItem() {} }, safeText: (v) => String(v),
+    setTimeout() { return 0; }, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {}, requestAnimationFrame() { return 0; }, cancelAnimationFrame() {},
+  });
+  for (const f of ["vybe-escritorio-planta.js", "vybe-escritorio-mapa.js", "vybe-escritorio.js", "vybe-escritorio-ficha.js", "vybe-escritorio-abertura.js"]) vm.runInContext(readFileSync(f, "utf8"), c);
+  const layouts = {
+    canto: [["exe_plant", 0, 0, 0, 0, 0]], meio: [["exe_table", 4, 4, 0, 0, 0]], escada: [["hc26_10", 3, 3, 0, 0, 0]],
+    espalhado: [["exe_table", 2, 2, 0], ["hc26_10", 7, 7, 0], ["books_0", 0, 7, 2, 0, 1]],
+  };
+  for (const [nome, itens] of Object.entries(layouts)) for (const p of QUARTOS.plantas) {
+    c.base = { eu: "1", equipe: [{ id: "1", nome: "Paulo", perfil: {} }], salas: [{ id: "sala-0", dono: "Paulo", pessoa_id: "1" }], quartos: QUARTOS, mapa: { camadas: { "sala-0": { itens, versao: 1, em: "2027-01-01T00:00:00Z" } } } };
+    vm.runInContext("escritorio.base = base; escritorio.perfil = {}; escritorioAplicarSalas();", c);
+    let servidor = true;
+    try { validarPisoQuarto(p.id, itens); } catch { servidor = false; }
+    assert.equal(vm.runInContext(`criadorDecoracaoCabe("${p.id}")`, c), servidor, `${nome} em ${p.id}`);
+    // Ao abrir o criador, "manter a decoração" só vem marcado quando cabe.
+    vm.runInContext(`escritorio.perfil = { sala_planta: "${p.id}" }; criador.etapa = "planta"; criador.planta = "${p.id}"; criador.preservar = criadorDecoracaoAtual().length > 0 && criadorDecoracaoCabe(criador.planta);`, c);
+    assert.equal(vm.runInContext("criador.preservar", c), servidor, `preservar: ${nome} em ${p.id}`);
+  }
+  // Trocar de planta recalcula; escolher um modelo desliga a preservação.
+  c.base = { eu: "1", equipe: [{ id: "1", nome: "Paulo", perfil: {} }], salas: [{ id: "sala-0", dono: "Paulo", pessoa_id: "1" }], quartos: QUARTOS, mapa: { camadas: { "sala-0": { itens: layouts.canto, versao: 1, em: "2027-01-01T00:00:00Z" } } } };
+  vm.runInContext("escritorio.base = base; escritorio.perfil = {}; escritorioAplicarSalas(); renderAberturaEscritorio = () => {};", c);
+  vm.runInContext("criadorQuartoEscolher('planta', 'amplo')", c);
+  assert.equal(vm.runInContext("criador.preservar", c), true);
+  vm.runInContext("criadorQuartoEscolher('planta', 'compacto')", c);
+  assert.equal(vm.runInContext("criador.preservar", c), false, "o canto (0,0) não existe na planta compacta");
+  vm.runInContext("criadorQuartoEscolher('planta', 'amplo'); criadorQuartoEscolher('modelo', 'trabalho')", c);
+  assert.deepEqual([vm.runInContext("criador.preservar", c), vm.runInContext("criador.modelo", c)], [false, "trabalho"]);
+  vm.runInContext("criadorQuartoEscolher('modelo', 'atual')", c);
+  assert.equal(vm.runInContext("criador.preservar", c), true);
+});

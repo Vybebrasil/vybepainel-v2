@@ -237,7 +237,9 @@ function abrirAberturaEscritorio(etapa = "cena") {
   if(etapa === "cena" && escritorio.perfil?.abertura === ESCRITORIO_ABERTURA && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) criador.etapa="planta";
   criador.planta=escritorio.perfil?.sala_planta || "amplo";
   criador.modelo="trabalho";
-  criador.preservar=true;
+  // Mantém a decoração atual só se ela couber na planta (regra do servidor).
+  criador.preservar=criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(criador.planta);
+  criador.erro="";
   criador.piso=escritorio.perfil?.sala_piso || "madeira";
   criador.parede=escritorio.perfil?.sala_parede || "#ff8a35";
   criador.f = criadorDaFigura(escritorio.perfil?.figura || mapaFigura(escritorio.perfil || {}));
@@ -269,6 +271,7 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.timerGarantia = setTimeout(() => el.classList.add("abr-pronta"), 3500);
 }
 function fecharAberturaEscritorio() {
+  criadorDestruirPrevias();
   document.getElementById("ofc-abertura")?.remove();
 }
 function renderAberturaEscritorio() {
@@ -291,8 +294,10 @@ function renderAberturaEscritorio() {
     requestAnimationFrame(criadorMedirPagina);
     return;
   }
+  criadorDestruirPrevias();
   if(["planta","mobilia","acabamento"].includes(criador.etapa)) {
     el.innerHTML=criadorQuartoHtml();
+    criadorMontarPrevias(el);
     el.querySelector(".abr-primario")?.focus({preventScroll:true});
     return;
   }
@@ -369,6 +374,15 @@ async function salvarPersonagemEscritorio(entrar) {
       await conectarEscritorio();
     }
   } catch (e) {
+    // O quarto não foi criado (decoração fora da planta, histórico ausente…):
+    // volta para a escolha da mobília com o motivo, em vez de só avisar no fim.
+    if (!criador.so && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) {
+      criador.erro = e.message;
+      criador.etapa = "mobilia";
+      criador.salvando = false;
+      renderAberturaEscritorio();
+      return;
+    }
     if (erro) erro.textContent = e.message + " Tente de novo.";
     if (botao) botao.disabled = false;
   } finally {
@@ -448,42 +462,96 @@ function renderTutorialEscritorio() {
 }
 
 // A planta e os modelos vêm do mesmo catálogo validado pelo servidor.
-function criadorPlantaPrevia(planta,modelo) {
-  if(!planta) return "";
-  const itens=escritorio.base.quartos.modelos.find(m=>m.id===modelo)?.itens || [];
-  let desenho="";
-  for(let y=0;y<8;y++) for(let x=0;x<8;x++) {
-    const n=planta.celdas[y][x];if(n<0) continue;
-    const px=128+(x-y)*13,py=30+(x+y)*6.5-n*8;
-    desenho+=`<path d="M${px} ${py}l13 6.5 -13 6.5 -13 -6.5Z" fill="${n?'#ffc58e':'#b78967'}" stroke="#382c2e" stroke-width=".6"/>`;
-    if(itens.some(it=>Math.floor(it[1])===x&&Math.floor(it[2])===y)) desenho+=`<rect x="${px-5}" y="${py-8}" width="10" height="13" rx="2" fill="#f58232" stroke="#fff1d7"/>`;
+// Decoração atual da própria sala (a camada salva, como o servidor a lê).
+function criadorDecoracaoAtual() {
+  const camada = escritorioMinhaMesa()?.ambiente.id;
+  return camada ? escritorio.base?.mapa?.camadas?.[camada]?.itens || [] : [];
+}
+// Espelho da regra do servidor ao preservar a decoração (validarPisoQuarto
+// sem medidas): cada móvel precisa estar num ladrilho da planta e fora da
+// escada. Conferido aqui para avisar antes, não só na confirmação final.
+function criadorDecoracaoCabe(plantaId, itens = criadorDecoracaoAtual()) {
+  const p = escritorio.base?.quartos?.plantas?.find((q) => q.id === plantaId);
+  if (!p) return false;
+  return itens.every(([, x, y]) => {
+    const tx = Math.floor(x), ty = Math.floor(y);
+    if ((p.celdas[ty]?.[tx] ?? -1) < 0) return false;
+    return !(plantaId === "niveis" && ty === 3 && (tx === 3 || tx === 4));
+  });
+}
+// O quarto como vai ficar: a própria sala com a planta, o piso e a cor
+// escolhidos, desenhada pelo mesmo renderizador do escritório.
+function criadorAmbientePrevia(plantaId, piso, parede) {
+  const base = escritorioMinhaMesa()?.ambiente || ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal);
+  return { ...base, planta: plantaId, piso: ESCRITORIO_PLANTA.PISO[piso] ? piso : base.pisoPadrao || base.piso,
+    cor: /^#[0-9a-f]{6}$/i.test(String(parede || "")) ? parede : base.corPadrao || base.cor, pintura: null };
+}
+function criadorItensDaOpcao(modeloId) {
+  if (modeloId === "atual") return criadorDecoracaoAtual();
+  return escritorio.base?.quartos?.modelos?.find((m) => m.id === modeloId)?.itens || [];
+}
+// Marcador de prévia no HTML: data-previa="planta|modelo|piso|parede[|boneco]".
+function criadorPreviaHtml(plantaId, modeloId, { grande = false, boneco = false } = {}) {
+  return `<div class="abr-previa-quarto ofc-mapa${grande ? " grande" : ""}" data-previa="${safeText([plantaId, modeloId, criador.piso, criador.parede, boneco ? "eu" : ""].join("|"))}" aria-hidden="true"></div>`;
+}
+function criadorMontarPrevias(raiz) {
+  criadorDestruirPrevias();
+  if (typeof criarMapaEscritorio !== "function" || !escritorio.base?.quartos) return;
+  criador.previas = [];
+  for (const el of raiz.querySelectorAll("[data-previa]")) {
+    const [plantaId, modeloId, piso, parede, boneco] = el.dataset.previa.split("|");
+    const a = criadorAmbientePrevia(plantaId, piso, parede);
+    const planta = { ...escritorioPlantaDoQuarto(a), moveis: criadorItensDaOpcao(modeloId).map((it) => [...it.slice(0, 6)]), rotulos: [], imagens: [], previa: true };
+    try {
+      const mapa = criarMapaEscritorio(el, { planta, logo: "", eu: null });
+      if (boneco) mapa.atualizarPessoas([{ id: "previa", nome: criador.nome, perfil: { figura: criadorFigura(criador.f) }, status: "disponivel", corStatus: "#3fbf7f",
+        rotulo: criador.nome, statusTexto: "", x: planta.entrada.x, y: planta.entrada.y, acao: "std", mao: "", dir: a.porta === "direita" ? 2 : 4 }]);
+      criador.previas.push(mapa);
+    } catch (e) { console.warn("prévia do quarto:", e.message); }
   }
-  for(const [x0,y0,x1,y1] of planta.divisorias || []) {
-    desenho+=`<path d="M${128+(x0-y0)*13} ${30+(x0+y0)*6.5}L${128+(x1-y1)*13} ${30+(x1+y1)*6.5}" stroke="#ffe1b5" stroke-width="4"/>`;
-  }
-  return `<svg viewBox="0 0 256 155" role="img" aria-label="Prévia da planta ${safeText(planta.nome)}">${desenho}</svg>`;
+}
+function criadorDestruirPrevias() {
+  for (const m of criador.previas || []) { try { m.destruir(); } catch {} }
+  criador.previas = [];
 }
 function criadorQuartoEscolher(campo,valor) {
   const catalogo=escritorio.base.quartos;
   if(campo==="planta"&&!catalogo.plantas.some(p=>p.id===valor)) return;
-  if(campo==="modelo"&&!catalogo.modelos.some(p=>p.id===valor)) return;
-  criador[campo]=valor;
+  if(campo==="modelo"&&valor!=="atual"&&!catalogo.modelos.some(p=>p.id===valor)) return;
+  if(campo==="modelo") { criador.preservar = valor === "atual"; if (valor !== "atual") criador.modelo = valor; }
+  else criador[campo]=valor;
+  // Trocou de planta: a decoração atual só continua se couber na nova.
+  if(campo==="planta") criador.preservar = criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(valor);
+  criador.erro="";
   renderAberturaEscritorio();
 }
 function criadorQuartoHtml() {
  const catalogo=escritorio.base.quartos;
  if(!catalogo) return '<section class="abr-painel"><h2>Catálogo de quartos indisponível</h2><p>Recarregue o escritório para tentar novamente.</p></section>';
  const etapa=criador.etapa,planta=catalogo.plantas.find(p=>p.id===criador.planta);
- let titulo,conteudo,anterior,proxima;
+ const atual=criadorDecoracaoAtual(), temAtual=atual.length>0, cabe=temAtual&&criadorDecoracaoCabe(criador.planta);
+ const pisos = typeof ESCRITORIO_PISOS_SALA !== "undefined" ? ESCRITORIO_PISOS_SALA.filter(([id]) => id) : [["madeira","Madeira escura"],["clara","Madeira clara"],["concreto","Concreto"],["carpete","Carpete azul"],["preto","Preto"],["verde","Verde"],["marmore","Mármore"],["nogueira","Nogueira"]];
+ const paredes = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA.filter(Boolean) : ["#ff8a35","#5aa9ff","#7ee08a","#b48cff","#e8e8ee","#8a8f9c"];
+ const amostraPiso = (id) => { const c = ESCRITORIO_PLANTA.PISO[id]; return c ? `repeating-conic-gradient(${c[0]} 0 25%,${c[1]} 0 50%) 0 0/16px 16px` : "#333"; };
+ let titulo,conteudo,anterior,proxima,nota="";
  if(etapa==="planta") {
   titulo="Qual é o formato do seu quarto?";anterior="personagem";proxima="mobilia";
-  conteudo=`<div class="abr-quartos">${catalogo.plantas.map(p=>`<button type="button" aria-pressed="${p.id===criador.planta}" onclick="criadorQuartoEscolher('planta','${p.id}')">${criadorPlantaPrevia(p)}<b>${safeText(p.nome)}</b><small>${safeText(p.dica)}</small></button>`).join("")}</div>`;
+  nota = temAtual ? "Você já tem uma decoração salva. Nas plantas em que ela cabe, você pode mantê-la; nas outras, ela fica guardada no histórico e você começa com um modelo." : "Cada planta é desenhada como o quarto vai ficar, com o seu piso e a sua cor de parede. Dá para trocar os dois no último passo.";
+  conteudo=`<p class="abr-nota">${nota}</p><div class="abr-quartos plantas">${catalogo.plantas.map(p=>{
+   const ok = temAtual && criadorDecoracaoCabe(p.id);
+   return `<button type="button" aria-pressed="${p.id===criador.planta}" onclick="criadorQuartoEscolher('planta','${p.id}')">${criadorPreviaHtml(p.id, ok ? "atual" : "vazio")}<b>${safeText(p.nome)}</b><small>${safeText(p.dica)}</small>${temAtual ? `<em class="abr-cabe ${ok ? "sim" : "nao"}">${ok ? "Sua decoração cabe aqui" : "Sua decoração não cabe aqui"}</em>` : ""}</button>`;}).join("")}</div>`;
  } else if(etapa==="mobilia") {
   titulo="Em branco ou com o básico pronto?";anterior="planta";proxima="acabamento";
-  conteudo=`${escritorio.base.mapa?.camadas?.[escritorioMinhaMesa()?.ambiente.id]?.itens?.length ? `<label><input type="checkbox" ${criador.preservar?"checked":""} onchange="criador.preservar=this.checked"> Preservar minha decoração atual. Desmarque para usar o modelo escolhido e guardar a anterior no histórico.</label>` : ""}<p>Todos os modelos iniciais são gratuitos. Se você já decorou um quarto, os móveis salvos serão preservados; escolha uma planta em que eles caibam.</p><div class="abr-quartos">${catalogo.modelos.map(m=>`<button type="button" aria-pressed="${m.id===criador.modelo}" onclick="criadorQuartoEscolher('modelo','${m.id}')">${criadorPlantaPrevia(planta,m.id)}<b>${safeText(m.nome)}</b><small>${safeText(m.dica)}</small></button>`).join("")}</div>`;
+  const opcoes = [];
+  if (temAtual) opcoes.push(`<button type="button" aria-pressed="${criador.preservar}" ${cabe ? `onclick="criadorQuartoEscolher('modelo','atual')"` : "disabled"}>${criadorPreviaHtml(criador.planta, cabe ? "atual" : "vazio")}<b>Manter minha decoração</b><small>${cabe ? `Seus ${atual.length} móveis continuam onde estão.` : `Não cabe na planta ${safeText(planta?.nome || "")}: ela fica guardada no histórico e você começa com um modelo.`}</small></button>`);
+  for (const m of catalogo.modelos) opcoes.push(`<button type="button" aria-pressed="${!criador.preservar && m.id===criador.modelo}" onclick="criadorQuartoEscolher('modelo','${m.id}')">${criadorPreviaHtml(criador.planta, m.id)}<b>${safeText(m.nome)}</b><small>${safeText(m.dica)}</small></button>`);
+  conteudo=`${criador.erro ? `<p class="abr-erro abr-erro-quarto" role="alert">${safeText(criador.erro)}</p>` : ""}<p class="abr-nota">Os modelos iniciais são gratuitos${temAtual && !cabe ? ". Seus móveis de hoje vão para o seu inventário, para usar de novo no editor" : ""}.</p><div class="abr-quartos modelos">${opcoes.join("")}</div>`;
  } else {
   titulo="Dê a sua cara ao espaço";anterior="mobilia";proxima="boas";
-  conteudo=`${criadorPlantaPrevia(planta,criador.modelo)}<div class="abr-acabamentos"><label>Piso<select onchange="criador.piso=this.value">${["madeira","clara","concreto","carpete","preto","verde","marmore","nogueira"].map(p=>`<option value="${p}"${criador.piso===p?' selected':''}>${p}</option>`).join("")}</select></label><label>Paredes<select onchange="criador.parede=this.value">${[["#ff8a35","Laranja"],["#5aa9ff","Azul"],["#7ee08a","Verde"],["#b48cff","Lilás"],["#e8e8ee","Clara"],["#8a8f9c","Grafite"]].map(([v,n])=>`<option value="${v}"${criador.parede===v?' selected':''}>${n}</option>`).join("")}</select></label></div><p>Depois de entrar, use <b>Decorar</b> no seu quarto para arrastar móveis, pintar cada ladrilho e abrir a loja. Sua escolha só será salva na confirmação final.</p>`;
+  conteudo=`${criadorPreviaHtml(criador.planta, criador.preservar ? "atual" : criador.modelo, { grande: true, boneco: true })}
+<div class="abr-acabamentos"><div class="abr-grupo"><h3>Piso</h3><div class="abr-amostras">${pisos.map(([id,nome])=>`<button type="button" aria-pressed="${criador.piso===id}" onclick="criador.piso='${id}';renderAberturaEscritorio()" aria-label="Piso ${safeText(nome)}"><i style="background:${amostraPiso(id)}"></i><span>${safeText(nome)}</span></button>`).join("")}</div></div>
+<div class="abr-grupo"><h3>Paredes</h3><div class="abr-linha">${paredes.map((c)=>`<button type="button" class="abr-cor" style="--c:${c}" aria-pressed="${criador.parede===c}" onclick="criador.parede='${c}';renderAberturaEscritorio()" aria-label="Parede ${c}"></button>`).join("")}</div></div></div>
+<p class="abr-nota">Depois de entrar, use <b>Decorar</b> no seu quarto para arrastar móveis, pintar cada ladrilho e abrir a loja. Sua escolha só é salva na confirmação final.</p>`;
  }
  return `<section class="abr-painel abr-quarto" aria-labelledby="abr-titulo"><span class="abr-kicker">Seu espaço · ${etapa==="planta"?'1 de 3':etapa==="mobilia"?'2 de 3':'3 de 3'}</span><h2 id="abr-titulo">${titulo}</h2>${conteudo}<div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='${anterior}';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='${proxima}';renderAberturaEscritorio()">Continuar</button></div></section>`;
 }
