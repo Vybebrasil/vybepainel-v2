@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 function contexto() {
  const avisos=[], eventos={}, classes=[];
  const c=vm.createContext({avisos,eventos,classes,console,window:{addEventListener(k,f){eventos[k]=f;}},document:{addEventListener(k,f){eventos[k]=f;},getElementById(){return {classList:{toggle:(...a)=>classes.push(a)}}}},safeText:String,localStorage:{getItem:()=>null},setTimeout(){},clearTimeout(){},setInterval(){},clearInterval(){},requestAnimationFrame(){},cancelAnimationFrame(){}});
- vm.runInContext(`var escritorio={base:{eu:'1',quartos:{essenciais:['gratis']},economia:{inventario:[{classe:'limitado',quantidade:1}]}},edicao:{camada:'sala-0',sel:0,novo:null,itens:[['limitado',1,1,2]]},mapa:{medidas:async()=>({x:1,y:1,z:1,dir:2}),moveisEm:()=>[],previa(){},grade(a){this.ultimaGrade=a;}}};
+ vm.runInContext(`var escritorio={base:{eu:'1',quartos:{essenciais:['gratis']},economia:{inventario:[{classe:'limitado',quantidade:1}]}},edicao:{camada:'sala-0',sel:0,novo:null,itens:[['limitado',1,1,2]]},mapa:{medidas:async()=>({x:1,y:1,z:1,dir:2}),moveisEm:()=>[],previa(){},destacar(){},grade(a){this.ultimaGrade=a;}}};
  var ESCRITORIO_PLANTA={W:8,H:8,ambientes:[{id:'sala-0',x0:0,y0:0,x1:8,y1:8}]},MAPA_ASSENTOS=new Set();
  function escritorioImagemDe(){return null}function escritorioAviso(x){avisos.push(x)}function escritorioAmbienteDoQuarto(){return null}function escritorioModeloPlanta(){return null}function escritorioNivelQuarto(){return 0}`,c);
  vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
@@ -48,4 +48,9 @@ test('prévia sobre a mesa usa a mesma posição e altura da colocação',async(
  const {c,r}=contexto();c.previa=[];r(`escritorio.edicao.novo='gratis';escritorio.edicao.sel=null;escritorio.mapa.previa=(...p)=>previa.push(p);escritorioEmCimaDe=()=>({lx:3.5,ly:2,altura:1.25})`);
  await r('previaEditorEscritorio(3,2)');assert.deepEqual(Array.from(c.previa.at(-1)),['gratis',3.5,2,2,true,1.25]);
  await r('cliqueEditorEscritorio(3,2)');assert.deepEqual(Array.from(r('escritorio.edicao.itens.at(-1)')),['gratis',3.5,2,2,0,1.25]);
+});
+
+test('escolher móvel volta da câmera para a colocação',()=>{
+ const {r}=contexto();r(`escritorio.edicao.ferramenta='camera';escolherMovelEscritorio('gratis')`);
+ assert.equal(r('escritorioCameraEditor()'),false);assert.equal(r('escritorio.edicao.novo'),'gratis');
 });
