@@ -110,7 +110,8 @@ export async function carregarEscritorio(sql, pessoa) {
   }));
   return {
     quartos: QUARTOS,
-    economia: await carregarEconomia(sql, pessoa.id),
+    // A loja (faixas, estoque e vitrine) chega quando o editor abre; a entrada fica leve.
+    economia: await carregarEconomia(sql, pessoa.id, { loja: false }),
     eu: String(pessoa.id),
     admin: Boolean(pessoa.admin),
     equipe: lista,
@@ -260,7 +261,13 @@ export async function areaEscritorio(req, res, quem, sql) {
   const pessoa = quem.pessoa;
   const acao = req.query?.acao || req.body?.acao || "entrada";
   if (req.method === "GET") {
-    if (acao === "economia") return res.status(200).json({ok:true,economia:await carregarEconomia(sql,pessoa.id)});
+    if (acao === "economia") {
+      // Quem administra pode ver os marcos de outra pessoa (a ficha dela); a loja é só a própria.
+      const outra = req.query?.pessoa && String(req.query.pessoa) !== String(pessoa.id) ? String(req.query.pessoa) : null;
+      if (outra && !pessoa.admin) return res.status(403).json({ error: "Só quem administra vê a ficha de outra pessoa." });
+      if (outra && !/^\d+$/.test(outra)) return res.status(400).json({ error: "Pessoa inválida." });
+      return res.status(200).json({ok:true,economia:await carregarEconomia(sql,outra ? Number(outra) : pessoa.id,{loja:!outra})});
+    }
     if (acao === "recados" || acao === "recados-resumo")
       try {
         return res.status(200).json(acao === "recados"

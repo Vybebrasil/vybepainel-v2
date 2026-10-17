@@ -2,6 +2,7 @@ import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 import { varrerAgenda, recalcularPrioridades } from '../vybe_automacoes.js';
 import { registrarSnapshotOperacional, registrarSaude } from '../vybe_observabilidade.js';
 import { fecharPontosEscritorio } from '../server/escritorio-pontos.js';
+import { conferirMarcosDaEquipe } from '../server/escritorio-marcos.js';
 
 function isCronAuthorized(req) {
   const secret = process.env.CRON_SECRET;
@@ -31,8 +32,8 @@ export default async function handler(req, res) {
     // Pontos do Escritório: fecha o dia que acabou (e a semana, na segunda).
     // Idempotente; sem a migração responde disponivel:false e segue.
     let escritorio = null;
-    try { escritorio = await fecharPontosEscritorio(sql); }
-    catch (erro) { console.error('Fechamento dos pontos do Escritório falhou:', erro.message); escritorio = { erro: erro.message }; }
+    try { escritorio = await fecharPontosEscritorio(sql); escritorio.marcos = await conferirMarcosDaEquipe(sql); }
+    catch (erro) { console.error('Fechamento dos pontos do Escritório falhou:', erro.message); escritorio = { ...(escritorio || {}), erro: erro.message }; }
 
     await registrarSaude(sql, 'automacoes', agenda?.erro ? 'erro' : 'ok', agenda || {});
     await registrarSaude(sql, 'escritorio', escritorio?.erro ? 'erro' : 'ok', escritorio || {});

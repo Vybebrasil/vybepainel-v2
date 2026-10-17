@@ -117,6 +117,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   VybeCoins: 10 por primeira finalização de demanda, 50 por conquista única.
   Créditos acompanham o evento na transação; compras bloqueiam a carteira e são
   idempotentes. Nunca conceda saldo/inventário a partir de valores do navegador.
+  Loja (fase 2): faixas, preço, estoque e vitrine ficam em tabela
+  (`vybe_escritorio_raridades`, `vybe_escritorio_catalogo`); a vitrine é
+  derivada da chave da semana, nunca sorteada na hora; marcos são calculados
+  no servidor (`server/escritorio-marcos.js`) e concedidos uma vez, com o
+  móvel do marco na mesma transação. Consulte `docs/escritorio-pontos.md`.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
   17/10/2026): XP nunca cai; perda só em moedas e nunca abaixo de zero; valores
   e funções ficam nas tabelas `vybe_escritorio_regras` e `vybe_escritorio_funcoes`
