@@ -272,8 +272,8 @@ responsável pelos móveis. A configuração é transacional e idempotente. Móv
 já salvos são preservados, desde que caibam na planta, e entram no inventário.
 O endpoint de perfil não permite forjar configuração nem trocar a planta.
 
-O editor existente distingue loja e inventário. Mesa, cadeira, computador básico
-e cacto são gratuitos; cada unidade extra custa 25 moedas. A compra bloqueia a
+O editor existente distingue loja e inventário. Mesa, cadeira, computador básico,
+cacto, tapete, estante baixa e luminária são gratuitos; cada unidade extra custa 25 moedas. A compra bloqueia a
 carteira e usa chave idempotente. Salvamento verifica inventário do dono, número
 de unidades, medidas reais, patamares e escada livre; cópia e histórico não
 concedem móveis. A loja não concede acesso a salas de outra pessoa.
