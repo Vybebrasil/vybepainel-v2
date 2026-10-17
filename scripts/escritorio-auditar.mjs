@@ -66,8 +66,15 @@ for (const m of moveis) {
     else ocup.set(k, nome);
   }
 }
-// Apoiado: o que tem altura precisa de um móvel embaixo.
-for (const it of itens) if (it.altura && !ocup.has(`${it.x},${it.y}`)) problemas.push(`${it.classe} (${it.x},${it.y}) flutuando`);
+// Apoiado: o que tem altura precisa de um móvel embaixo, e na altura do
+// tampo dele (nem flutuando, nem afundado na mesa).
+for (const it of itens) {
+  if (!it.altura) continue;
+  if (!ocup.has(`${it.x},${it.y}`)) { problemas.push(`${it.classe} (${it.x},${it.y}) flutuando`); continue; }
+  const base = itens.find((o) => o !== it && !o.altura && !o.plano && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
+  const tampo = base ? arte(base.classe)?.d.z || 0 : 0;
+  if (base && Math.abs(tampo - it.altura) > 0.3) problemas.push(`${it.classe} (${it.x},${it.y}) na altura ${it.altura}, mas o tampo de ${base.classe} fica em ${Math.round(tampo * 100) / 100}`);
+}
 // Assento: precisa de um ladrilho livre ao lado, sem parede no meio, para chegar.
 const livre = (x, y) => x >= 0 && y >= 0 && x < P.W && y < P.H && !ocup.has(`${x},${y}`);
 for (const it of itens) {
@@ -212,6 +219,19 @@ const VIVOS_MINIMO = 3;
 for (const amb of P.ambientes) {
   const vivos = moveis.filter(([classe, x, y, , estado = 0]) => x >= amb.x0 && x < amb.x1 && y >= amb.y0 && y < amb.y1 && arte(classe)?.anima.has(Number(estado))).length;
   if (vivos < VIVOS_MINIMO) problemas.push(`${amb.nome || amb.id} com só ${vivos} objeto(s) animado(s) (mínimo ${VIVOS_MINIMO})`);
+}
+// Dois itens pendurados no mesmo trecho de parede (um cobre o outro).
+const trechos = new Map();
+for (const q of pendurados) for (let k = 0; k < q.w; k++) {
+  const chave = q.dir === 4 ? `x:${q.x + k},${q.y}` : `y:${q.x},${q.y + k}`;
+  if (trechos.has(chave)) problemas.push(`${q.classe} (${q.x},${q.y}) em cima de ${trechos.get(chave)} na parede`);
+  else trechos.set(chave, `${q.classe} (${q.x},${q.y})`);
+}
+// Janela só em parede que dá para fora (a do prédio ou o fundo das salas
+// encostado nela); em parede de dentro ela mostra a própria parede.
+for (const q of pendurados) {
+  if (!/window/.test(q.classe)) continue;
+  if (!(q.dir === 4 ? q.y === P.PREDIO.y0 : q.x === P.PREDIO.x0)) problemas.push(`${q.classe} (${q.x},${q.y}) é janela em parede de dentro`);
 }
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));

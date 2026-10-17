@@ -327,9 +327,16 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
 // ({ img, u0, u1, h }: a faixa da imagem, em fração da largura, e a altura em
 // ladrilhos de parede).
 // altura: em px (46 baixa, 64 média, 82 alta); sem ela, alta se tem cor.
-function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0) {
+// Paredes com os painéis do acervo (tijolo, madeira, concreto, azulejo…):
+// a arte do painel de parede do Habbo, recortada em cada trecho. Os estilos
+// do pincel da sala usam os mesmos painéis; "b" (lisa) fica só na cor.
+const MAPA_ESTILO_TEXTURA = { c: "urban_wall", d: "gardenshed_wall", e: "sb_wall", f: "exe_c15_wall", g: "hygge_c25_wallpaper1", h: "bathroom_wall4" };
+const MAPA_TEXTURA_SALA = "art_c20_wall"; // padrão das salas, tingido na cor do dono
+const MAPA_TEXTURAS_PAREDE = new Map(); // classe → { 2: {canvas}, 4: {canvas}, n }
+function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, textura = null, tingir = false) {
   const c = document.createElement("canvas");
-  const alt = altura || (cor ? 82 : 46);
+  // Parede alta tem a altura da parede de fora do prédio.
+  const alt = altura || (cor ? MAPA_PAREDE : 46);
   c.width = MAPA_TW / 2 + 6; c.height = MAPA_TH / 2 + alt + 6;
   const g = c.getContext("2d");
   // eixo "x": a aresta vai para baixo-direita; "y": para baixo-esquerda
@@ -338,9 +345,27 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0) {
   const p1 = sobe ? { x: MAPA_TW / 2, y: alt + MAPA_TH / 2 } : { x: 0, y: alt + MAPA_TH / 2 };
   g.fillStyle = cor ? (sobe ? "#2b2d36" : "#22242c") : sobe ? "#1c1d22" : "#131418";
   g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.fill();
-  // Estilo do trecho (escolhido pelo dono da sala): desenhado na face da
-  // parede em coordenadas da própria face (u ao longo, v para cima).
-  if (cor && estilo && estilo !== "a") {
+  const tex = cor && textura ? MAPA_TEXTURAS_PAREDE.get(textura) : null;
+  if (tex) {
+    // Painel de n ladrilhos: o trecho k mostra a sua fatia do desenho, com a
+    // base do painel na base da parede (o que passa do topo fica recortado).
+    const arte = tex[sobe ? 4 : 2], n = tex.n, k = (((sobe ? x : y) % n) + n) % n, h = arte.height;
+    g.save();
+    g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip();
+    for (let v = 0; v < alt + 40; v += h - 16 * n) {
+      if (sobe) g.drawImage(arte, 3 - 32 * k, alt - (h - 16 * n + 16 * k) - v);
+      else g.drawImage(arte, 35 - 32 * (n - k), alt - h + 16 * (n - k) - v);
+    }
+    // Sala individual: o painel ganha a cor do dono.
+    if (tingir) { g.globalCompositeOperation = "multiply"; g.globalAlpha = 0.7; g.fillStyle = cor; g.fillRect(0, 0, c.width, c.height); }
+    g.globalCompositeOperation = "source-over";
+    // A parede da esquerda recebe menos luz; rodapé escuro em todas.
+    if (!sobe) { g.globalAlpha = 0.16; g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); }
+    g.globalAlpha = 1;
+    g.restore();
+    const faixa = (de, ate, estilo) => { g.fillStyle = estilo; g.beginPath(); g.moveTo(p0.x + 3, p0.y - de); g.lineTo(p1.x + 3, p1.y - de); g.lineTo(p1.x + 3, p1.y - ate); g.lineTo(p0.x + 3, p0.y - ate); g.closePath(); g.fill(); };
+    faixa(0, 5, "#00000066"); faixa(alt - 4, alt, cor);
+  } else if (cor && estilo && estilo !== "a") {
     g.save();
     g.setTransform(p1.x - p0.x, p1.y - p0.y, 0, -alt, p0.x + 3, p0.y);
     const ret = (x0, y0, w, h, c) => { g.fillStyle = c; g.fillRect(x0, y0, w, h); };
@@ -698,27 +723,38 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   for (const dv of P.divisorias) {
     // 6º campo: estilo padrão do trecho (vidro na reunião, tijolo no Lounge…).
     const [x0, y0, x1, y1, cor] = dv, estiloBase = dv.estilo;
+    // Painel do acervo: o que o dono pintou, senão o do espaço (ou o padrão da sala).
+    const texturaDe = (est) => (est?.estilo ? (est.estilo === "a" ? MAPA_TEXTURA_SALA : MAPA_ESTILO_TEXTURA[est.estilo] || null) : dv.textura || (dv.sala ? MAPA_TEXTURA_SALA : null));
     const eixo = y0 === y1 ? "x" : "y";
     const n = eixo === "x" ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
       const est = P.paredeEm?.(x, y, eixo);
-      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt);
+      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt, texturaDe(est), Boolean(dv.sala) && !dv.janela);
       d.canvas.className = "mapa-obj mapa-muro";
       const prof = Math.round((x + y) * 10) + 2;
       colocar(d.canvas, x, y, d, prof);
       palco.append(d.canvas);
       const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
-      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt });
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela });
     }
   }
+  // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
+  const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
+  Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c)).map(async (c) => {
+    try {
+      const m = await mapaCarregarMovel(c), n = Math.max(1, Math.round(m.dados.logic?.model?.dimensions?.x || 1));
+      const d4 = mapaDesenharMovel(m, 4, 0, 0), d2 = mapaDesenharMovel(m, 2, 0, 0);
+      if (d4 && d2) MAPA_TEXTURAS_PAREDE.set(c, { 4: d4.canvas, 2: d2.canvas, n });
+    } catch {}
+  })).then(() => { try { pintarParedes(true); } catch {} });
   // Altura da parede num trecho (para os itens pendurados): a do muro da
   // planta, ou a do prédio nas paredes de fora.
   const mapaAlturaParede = (x, y, eixo) => {
     const m = muros.find((w) => w.eixo === eixo && w.x === x && w.y === y);
-    if (m) return m.alt || (m.cor ? 82 : 46);
-    return (eixo === "x" && y === P.PREDIO?.y0) || (eixo === "y" && x === P.PREDIO?.x0) ? MAPA_PAREDE : 82;
+    if (m) return m.alt || (m.cor ? MAPA_PAREDE : 46);
+    return (eixo === "x" && y === P.PREDIO?.y0) || (eixo === "y" && x === P.PREDIO?.x0) ? MAPA_PAREDE : 46;
   };
   // Móveis (animados ficam numa lista para trocar de quadro)
   const animados = [];
@@ -782,7 +818,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         }
       }
       if (!fatias.length && !m.pintado && !forcar) continue;
-      const d = mapaDivisoria(m.x, m.y, m.eixo, m.cor, fatias, m.estilo, m.alt);
+      const d = mapaDivisoria(m.x, m.y, m.eixo, m.cor, fatias, m.estilo, m.alt, m.textura, m.tingir);
       // A altura pode ter mudado: o canvas e a posição acompanham.
       if (m.no.height !== d.canvas.height) { m.no.width = d.canvas.width; m.no.height = d.canvas.height; colocar(m.no, m.x, m.y, d, m.prof); m.t = parseFloat(m.no.style.top); m.b = m.t + m.no.height; }
       const g = m.no.getContext("2d");
@@ -1453,7 +1489,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         if (m.corBase === undefined) m.corBase = m.cor || "";
         const salaCor = P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4];
         m.cor = est?.cor || salaCor || m.corBase;
-        m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt;
+        m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt; m.textura = m.texturaDe(est);
       }
       pintarParedes(true);
     },

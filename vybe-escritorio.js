@@ -530,7 +530,7 @@ function escritorioAplicarSalas() {
       const [estilo, c, h] = lw.slice(i * 3, i * 3 + 3);
       if (estilo === "-") continue;
       const cor = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA[parseInt(c, 16)] : "";
-      paredes.set(escritorioChaveTrecho(a, i), { estilo, cor: cor || a.cor, alt: [46, 64, 82][Number(h)] });
+      paredes.set(escritorioChaveTrecho(a, i), { estilo, cor: cor || a.cor, alt: [46, 82, 118][Number(h)] });
     }
   }
   ESCRITORIO_PLANTA.pisoLadrilho = (x, y) => pisos.get(x + "," + y);
