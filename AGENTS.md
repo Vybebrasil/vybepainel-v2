@@ -122,6 +122,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   derivada da chave da semana, nunca sorteada na hora; marcos são calculados
   no servidor (`server/escritorio-marcos.js`) e concedidos uma vez, com o
   móvel do marco na mesma transação. Consulte `docs/escritorio-pontos.md`.
+- Reinício autorizado por Paulo em 17/10/2026: zerar decoração, pintura e
+  inventários para escolher novamente formato/tamanho/modelo; preservar saldo,
+  XP e conquistas. A operação única guarda perfis, camadas e inventário antes
+  de limpar (`2026-10-17-escritorio-quartos-reinicio.sql`); não repetir nem
+  transformar em reset automático no carregamento.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
   17/10/2026): XP nunca cai; perda só em moedas e nunca abaixo de zero; valores
   e funções ficam nas tabelas `vybe_escritorio_regras` e `vybe_escritorio_funcoes`

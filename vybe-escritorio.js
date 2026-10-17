@@ -495,7 +495,7 @@ function escritorioItensDaCamada(camada) {
   // antiga fica no histórico. Antes isso só valia para o mapa geral, e a sala
   // de quem já tinha arrumado a sua aparecia com os móveis de 10×10 dentro da
   // de 8×8, sem janela e com estante no corredor.
-  const antiga = guardada && !(new Date(guardada.em || 0) >= new Date(ESCRITORIO_PLANTA_DESDE));
+  const antiga = guardada && !(new Date(guardada.em || 0) >= new Date(camada === "geral" ? ESCRITORIO_GERAL_DESDE : ESCRITORIO_PLANTA_DESDE));
   const salvo = escritorio.edicao?.camada === camada ? escritorio.edicao.itens : antiga ? null : guardada?.itens;
   if (salvo) return salvo;
   if (camada === "geral") return ESCRITORIO_PLANTA.moveis;

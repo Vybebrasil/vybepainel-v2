@@ -37,6 +37,15 @@ export function perfilEscritorio(valor = {}) {
     Number.isFinite(Number(valor[campo]))
       ? Math.min(94, Math.max(6, Number(valor[campo])))
       : padrao;
+  // Amplia pinturas legadas 8×8 sem apagar as escolhas já salvas.
+  const piso = String(valor.sala_pisos || "");
+  const paredes = String(valor.sala_paredes || "");
+  const pisoAtual = /^[0-9a-f]{64}$/.test(piso)
+    ? Array.from({length:12}, (_,y) => y < 8 ? piso.slice(y*8,y*8+8) + "0000" : "0".repeat(12)).join("")
+    : piso;
+  const paredesAtuais = /^([a-h-][0-9a-d][0-2]){32}$/.test(paredes)
+    ? Array.from({length:4}, (_,lado) => paredes.slice(lado*24,lado*24+24) + "-00".repeat(4)).join("")
+    : paredes;
   return {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
@@ -56,12 +65,12 @@ export function perfilEscritorio(valor = {}) {
     // Piso e cor das paredes da própria sala (só valores conhecidos).
     sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
-    // Piso pintado ladrilho a ladrilho (10×10, um código por ladrilho; 0 =
+    // Piso pintado ladrilho a ladrilho (12×12, um código por ladrilho; 0 =
     // o piso da sala) e cada trecho das duas paredes altas (estilo + cor).
-    sala_pisos: /^[0-9a-f]{144}$/.test(String(valor.sala_pisos || "")) ? String(valor.sala_pisos) : "",
-    // 40 trechos (10 por lado: fundo, esquerda, frente, direita), cada um com
+    sala_pisos: /^[0-9a-f]{144}$/.test(pisoAtual) ? pisoAtual : "",
+    // 48 trechos (12 por lado: fundo, esquerda, frente, direita), cada um com
     // estilo, cor e altura (0 baixa, 1 média, 2 alta).
-    sala_paredes: /^([a-h-][0-9a-d][0-2]){48}$/.test(String(valor.sala_paredes || "")) ? String(valor.sala_paredes) : "",
+    sala_paredes: /^([a-h-][0-9a-d][0-2]){48}$/.test(paredesAtuais) ? paredesAtuais : "",
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
   };

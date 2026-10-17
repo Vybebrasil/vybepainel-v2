@@ -295,3 +295,21 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - Demais status pendentes, como Pode Fazer e Segurar Post, mantêm rótulo e contagem próprios. Antecipação dos próximos dias mantém as mesmas categorias. Finalizados continuam fora das filas pendentes e do risco de furo.
 - Regressão com 21 conteúdos (3 Finalizados, 9 Para agendar e 9 pendentes) e 18 Finalizados ontem; grafia normalizada e virada de ano cobertas. `npm run check` aprovou 305 testes e build. `git diff --check` aprovado.
 - Demonstração local conferida: rótulos separados, orientação corrigida e console sem erros. Sem alteração dos status reais, sem escrita em produção. Ainda não publicado.
+
+## Escritório — formatos e área geral (17/10/2026)
+
+- Integração da branch de quartos com a loja de `origin/main` (PR #187), mantendo
+  preços, estoque, vitrine e marcos vindos do servidor.
+- Demo local sem upstream: criador, formato com níveis 12×12, modelo essencial,
+  acabamento, confirmação, entrada/saída do quarto, editor, abas Meus móveis/Loja
+  e mapa geral. Screenshots inspecionadas em desktop; console sem erros nessa sessão.
+- Auditoria da planta passou: acesso a portas, assentos e áreas, apoio e colisões.
+- Escrita e reset testados em PGlite, incluindo arquivo das linhas anteriores,
+  preservação de identidade e repetição sem nova limpeza.
+- A tentativa de viewport móvel da ferramenta manteve `innerWidth=1280`; por isso
+  esta revisão não afirma inspeção visual real em celular. Voz/vídeo e persistência
+  de UI em produção não foram testados por demonstração.
+- Migrações de histórico, pontos e loja confirmadas por consulta somente leitura
+  no Neon, branch `main`, projeto `bold-silence-70503527`, banco `neondb`.
+- O reinício autorizado de decoração/inventário é uma operação separada, fora do
+  deploy. A conclusão da publicação não implica que o SQL tenha sido executado.

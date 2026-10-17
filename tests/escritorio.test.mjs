@@ -1137,7 +1137,9 @@ test("perfil: piso pintado e paredes só no formato certo", () => {
   assert.equal(ok.sala_pisos.length, 144);
   assert.equal(ok.sala_paredes.length, 144);
   const ruim = perfilEscritorio({ sala_pisos: "z".repeat(144), sala_paredes: "c03".repeat(48) });
-  assert.equal(perfilEscritorio({ sala_pisos: "0".repeat(64), sala_paredes: "c02".repeat(32) }).sala_pisos, "", "o formato antigo de 8×8 não vale mais");
+  const legado=perfilEscritorio({sala_pisos:"1".repeat(8)+"2".repeat(56),sala_paredes:"c02".repeat(8)+"hd0".repeat(24)});
+  assert.equal(legado.sala_pisos,"111111110000"+"222222220000".repeat(7)+"0".repeat(48));
+  assert.equal(legado.sala_paredes,"c02".repeat(8)+"-00".repeat(4)+("hd0".repeat(8)+"-00".repeat(4)).repeat(3));
   assert.equal(ruim.sala_pisos, "");
   assert.equal(ruim.sala_paredes, "");
 });
