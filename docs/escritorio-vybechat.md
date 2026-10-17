@@ -301,3 +301,42 @@ saldo, inventário e compra simulada foram conferidos no navegador em desktop e
 50 moedas apenas em memória. A faixa da demo intercepta o centro de alguns
 botões da navegação móvel; a conferência usou a parte descoberta dos controles.
 Checks do commit final devem ser confirmados no PR antes de promover.
+
+### Pontos (XP) e VybeCoins por função — fase 1 (17/10/2026)
+
+Plano, valores e decisões do Paulo em `docs/escritorio-pontos.md`. Resumo:
+
+- Duas contas na carteira: `saldo` (VybeCoins, compram na loja e podem cair por
+  atraso ou alteração, nunca abaixo de zero) e `xp` (só sobe; define o nível).
+  O razão `vybe_escritorio_moedas` ganhou `pontos`, `regra` e `conteudo_id`; a
+  perda com saldo zero fica registrada com quantidade 0.
+- `vybe_escritorio_funcoes` diz quem é Criação, Atendimento (com a carteira
+  azul/laranja), Agendamento, Produção ou Gestão; `vybe_escritorio_regras`
+  guarda moedas, XP, teto, se conta como entrega e se está ativa. Mudar valor
+  ou desligar regra é um `UPDATE`, sem deploy.
+- Instantâneo (gatilho `vybe_demanda_moedas`, função `vybe_pontuar_evento`):
+  Solicitações finalizada (+prazo, +carteira), Produção enviada para aprovação
+  (primeira vez), aprovada sem alteração (+carteira), volta para alteração (uma
+  perda por peça por dia), agendou (saiu de Para agendar/Agendado para
+  Agendado/Finalizado, por quem é do Agendamento), captação feita ou material
+  bruto (primeira vez), criada com briefing (Gestão).
+- Fechamento (`server/escritorio-pontos.js`, chamado por `/api/mirror-reconcile`
+  às 00:00 da Bahia): dia útil sem demanda vencida ou com vencida (só status em
+  que a peça está na mão de quem executa, `STATUS_NA_MAO`), nada "Para agendar"
+  vencido, dia sem furo (veicula hoje e ainda aberta), dia ativo (só XP); na
+  segunda, a semana: meta = média de entregas da função nas últimas 8 semanas
+  completas desde a primeira entrega (mínimo 1), bônus igual para quem bate.
+  Dias que ficaram para trás fecham com o estado atual (até 7); a instalação
+  marca os 7 dias e as 2 semanas anteriores para o primeiro ciclo não fechar o
+  passado.
+- Histórico: `vybe_escritorio_entregas` é reconstruída na migração (Solicitações:
+  responsáveis atuais → último registro de responsáveis → quem marcou; Produção:
+  quem mandou aprovar se for da Criação, senão responsáveis da Criação; agendou;
+  captação; carteira) e recebe o bônus de chegada (2 moedas por entrega, teto
+  200; 10 XP por entrega, sem teto).
+- A ficha mostra nível pelo XP do servidor, meta da semana e os últimos
+  lançamentos só para a própria pessoa; para quem administra, os números das
+  demandas continuam como antes.
+- Validação: `tests/escritorio-pontos.test.mjs` cobre cada regra, repetição,
+  rollback, regra desligada, fechamento do dia e da semana e a reconstrução do
+  histórico em PGlite. Migração não aplicada em produção nesta revisão.

@@ -1,7 +1,13 @@
 # Pontos (XP) e VybeCoins por função — plano
 
-Plano escrito em 17/10/2026 para o Paulo decidir. Nada daqui está implementado
-ainda. As regras finais ficam no banco, em tabela, para mudar sem deploy.
+Plano escrito em 17/10/2026 e aprovado pelo Paulo no mesmo dia ("Aprovado:
+funções como listadas, Produção conta para a Criação, valores de partida,
+atraso uma vez por pessoa por dia, chegada 2 moedas/entrega com teto 200 e
+10 XP/entrega"). A fase 1 está implementada: migração
+`migrations/2026-10-17-escritorio-pontos.sql`, fechamento em
+`server/escritorio-pontos.js`, testes em `tests/escritorio-pontos.test.mjs`.
+Os valores ficam na tabela `vybe_escritorio_regras` e as funções em
+`vybe_escritorio_funcoes`: mudar lá vale na hora, sem deploy.
 
 ## Como está hoje
 
@@ -93,21 +99,49 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
   vitrine semanal; alguns itens só por marco, sem compra.
 - Não premiar horas online; premiar dias ativos.
 
-## Decisões abertas (precisam de resposta)
+## Decididas pelo Paulo em 17/10/2026
 
-1. **Funções**: a lista acima está certa? Paulo é só Gestão (e não Atendimento)?
-2. **Quadro de Produção**: a Criação ganha também pelas peças de Produção
-   ("Para aprovação" = entrega; "Para agendar/Agendado" sem alteração =
-   aprovada), ou só pelo quadro de Solicitações, como hoje?
-3. **Valores**: as tabelas acima servem como ponto de partida? (Dá para ajustar
-   depois na tabela do banco, sem deploy.)
-4. **Atraso**: a perda é uma por pessoa por dia (não por demanda), só em dia
-   útil, e para no zero. Confirma?
-5. **Chegada**: 2 moedas por entrega histórica com teto de 200, e XP de 10 por
-   entrega sem teto. Confirma?
-6. **Leitura do banco de produção**: posso consultar, só leitura, os rótulos de
-   status reais e quantas entregas cada pessoa fez por semana, para conferir os
-   valores antes de escrever a migração?
+1. **Funções**: como listadas; Paulo é Gestão.
+2. **Quadro de Produção** conta para a Criação ("Para aprovação" = entrega;
+   "Para agendar" sem alteração = aprovada).
+3. **Valores** das tabelas acima como ponto de partida.
+4. **Atraso**: uma perda por pessoa por dia útil, para no zero.
+5. **Chegada**: 2 moedas por entrega histórica (teto 200) e 10 XP por entrega.
+6. Leitura do banco de produção autorizada (só leitura), feita antes da migração.
+
+## O que a leitura de produção mostrou (17/10/2026)
+
+- A Criação entrega quase tudo no quadro de Produção: 50 a 90 peças por
+  semana vão para "Para aprovação" (Bia ~23, Jady ~22, Reriston ~9 por semana,
+  nas últimas 8). Solicitações finalizadas são raras (2 a 5 por semana, quase
+  todas do Deivid). Sem a decisão 2, Criação não teria meta nem pontos de fato.
+- A Tainara quase não usa "Agendado": ela leva a peça de "Para agendar" direto
+  para "Finalizado" (399 vezes em 8 semanas, contra 18 "Agendado"). Por isso a
+  regra 7 conta as duas saídas, só para quem é do Agendamento (Paulo também
+  finaliza, 76 vezes, e não ganha por isso).
+- Quem aprova (manda para "Para agendar") é Bia (395) e Deivid (166), Paulo (74).
+  50 de 620 aprovações tiveram alteração antes.
+- Captação feita e material bruto são sempre registrados pelo Paulo (31 e 35
+  peças); por isso a regra 8 credita quem é da Produção, não quem clicou.
+- Paulo cria ~80 peças por semana, todas com briefing (o cadastro exige): a
+  regra 9 a +2 rende ~160 moedas por semana para ele. Se ficar alto, basta
+  mudar o valor na tabela.
+- Atrasadas hoje (prazo passado, ainda com responsável): Paulo 38, Bia 19,
+  Deivid 11, Vinícius 11, Ewerton 9, Tainara 6, Jady 6, Reriston 5. A perda
+  diária só olha status em que a peça está na mão de quem executa (A Fazer,
+  Pode Fazer, Em andamento, Alteração, Nova Demanda, Em execução).
+- As automações apagam os responsáveis ao marcar "Feito" sem registrar o
+  evento de responsáveis; a reconstrução do histórico usa o último registro
+  da tela ou quem marcou o status. 14 das 33 demandas finalizadas ainda tinham
+  responsável; outras 14 tinham registro; o resto foi por quem marcou.
+
+## Ainda não decidido (fica para depois)
+
+- Deivid aprova 166 peças em 8 semanas como direção de arte e não ganha por
+  aprovar. Se o Paulo quiser, vira uma regra nova ("aprovou como D.A.") na
+  tabela, sem mexer no resto.
+- Com a janela de 7 dias, se o ciclo diário ficar parado mais de uma semana, os
+  dias mais antigos não fecham (sem perda nem bônus); a semana ainda fecha.
 
 ## Fases
 
@@ -133,4 +167,8 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
   gravar, o ponto também não.
 - O ciclo diário fecha os dias ainda não fechados (até 7 para trás): se um dia
   a rotina falhar, o próximo fecha o que ficou.
-- A penalidade usa `GREATEST(0, saldo - valor)`: nunca deixa saldo negativo.
+- A perda para no zero: com saldo 3 e perda de 5, o razão registra −3; com
+  saldo 0, registra 0 (fica anotado que aconteceu, sem dívida).
+- A instalação marca os 7 dias e as 2 semanas anteriores como fechados: o
+  primeiro ciclo não cobra nem premia o passado; o histórico entra só pela
+  chegada.

@@ -85,7 +85,20 @@ function atualizarBarraDiaEscritorio() {
   el.innerHTML = `<span class="ofc-dia-texto"><b>Hoje</b> ${n.dia.feitas} de ${n.dia.total} ${n.dia.total === 1 ? "entrega" : "entregas"}${n.atrasadas ? ` · <em>${n.atrasadas} ${n.atrasadas === 1 ? "atrasada" : "atrasadas"}</em>` : ""}</span><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Entregas de hoje"><i style="width:${pct}%"></i></span><span class="ofc-dia-pct">${pct}%</span>`;
   el.title = "Abrir sua ficha";
 }
-function abrirFichaEscritorio(id) {
+// Nível, meta da semana e extrato vêm do servidor (XP nunca cai; a meta é a
+// média da própria pessoa nas últimas semanas). Só a própria pessoa recebe
+// esses dados; quem administra vê os números das demandas como antes.
+function escritorioNivelHtml(p) {
+  const m = p.meta || {}, pct = Math.round((p.xp / p.xpProximo) * 100);
+  const pctMeta = m.meta ? Math.min(100, Math.round(((m.entregas || 0) / m.meta) * 100)) : 0;
+  const funcao = { criacao: "Criação", atendimento: "Atendimento", agendamento: "Agendamento", producao: "Produção", gestao: "Gestão" }[p.funcao] || "";
+  const data = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }); };
+  const sinal = (v) => (v > 0 ? "+" + v : String(v));
+  return `<div class="ofc-ficha-nivel"><b>Nível ${p.nivel}${funcao ? ` · ${funcao}` : ""}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total. XP nunca cai.</small></div>
+<div class="ofc-ficha-meta"><b>Meta da semana</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${m.meta || 1}" aria-valuenow="${m.entregas || 0}" aria-label="Meta da semana"><i style="width:${pctMeta}%"></i></span><small>${m.entregas || 0} de ${m.meta || 1} ${m.meta === 1 ? "entrega" : "entregas"}${m.semanas ? ` · sua média nas últimas ${m.semanas} ${m.semanas === 1 ? "semana" : "semanas"}: ${m.media}` : " · primeira semana com meta"}. Quem bate a própria meta ganha o bônus da semana.</small></div>
+${p.extrato?.length ? `<h4>Últimos pontos</h4><ul class="ofc-extrato">${p.extrato.map((l) => `<li><span>${safeText(l.descricao)}</span><small>${data(l.criado_em)}</small><b class="${Number(l.moedas) < 0 ? "perda" : ""}">${sinal(Number(l.moedas))} <i>moedas</i> · +${Number(l.pontos)} <i>XP</i></b></li>`).join("")}</ul>` : ""}`;
+}
+function abrirFichaEscritorio(id, semAtualizar = false) {
   const b = escritorio.base;
   const pessoa = b?.equipe.find((p) => String(p.id) === String(id));
   if (!pessoa) return;
@@ -103,15 +116,17 @@ function abrirFichaEscritorio(id) {
     document.body.append(d);
   }
   const n = veNumeros ? escritorioNumerosDe(pessoa) : null;
+  const pontos = eu ? escritorio.base?.economia?.pontos || null : null;
   const img = "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: "3", head_direction: "3", size: "l", gesture: "sml" });
   const lugar = online ? escritorioLugarDe(online).nome : "Fora do escritório";
   const [status, cor] = ESCRITORIO_STATUS[online?.status || "ausente"] || ESCRITORIO_STATUS.ausente;
   const numero = (rotulo, valor, dica = "") => `<div title="${safeText(dica)}"><dt>${rotulo}</dt><dd>${valor}</dd></div>`;
+  const nivel = pontos ? escritorioNivelHtml(pontos) : n ? `<div class="ofc-ficha-nivel"><b>Nível ${n.nivel}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${n.xpProximo}" aria-valuenow="${n.xp}" aria-label="Progresso até o próximo nível"><i style="width:${Math.round((n.xp / n.xpProximo) * 100)}%"></i></span><small>${n.xp} de ${n.xpProximo} entregas para o nível ${n.nivel + 1}</small></div>` : "";
   const corpo = !veNumeros
     ? `<p class="ofc-nota">Os números e marcos de cada pessoa ficam na ficha dela e com quem administra.</p>`
     : !n
-      ? `<p class="ofc-nota">Carregando as demandas do Painel…</p>`
-      : `<div class="ofc-ficha-nivel"><b>Nível ${n.nivel}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${n.xpProximo}" aria-valuenow="${n.xp}" aria-label="Progresso até o próximo nível"><i style="width:${Math.round((n.xp / n.xpProximo) * 100)}%"></i></span><small>${n.xp} de ${n.xpProximo} entregas para o nível ${n.nivel + 1}</small></div>
+      ? `${nivel}<p class="ofc-nota">Carregando as demandas do Painel…</p>`
+      : `${nivel}
 <dl class="ofc-ficha-numeros">${numero("Hoje", `${n.dia.feitas}/${n.dia.total}`, "Entregas de hoje / o que vence hoje")}${numero("No mês", n.mes, "Demandas concluídas neste mês")}${numero("No prazo", n.emDia === null ? "–" : n.emDia + "%", "Entregas do mês concluídas até o prazo")}${numero("Sequência", n.seq + (n.seq === 1 ? " dia" : " dias"), "Dias úteis seguidos com pelo menos uma entrega")}${numero("Clientes", n.clientes, "Clientes diferentes atendidos no mês")}${numero("Na fila", n.abertas + (n.atrasadas ? ` <em>· ${n.atrasadas} atrasada${n.atrasadas > 1 ? "s" : ""}</em>` : ""), "Demandas abertas agora")}</dl>
 <h4>Marcos</h4><ul class="ofc-marcos">${ESCRITORIO_MARCOS.map((m) => { const ok = m.ok(n); return `<li class="${ok ? "ok" : ""}" title="${safeText(m.dica)}"><i aria-hidden="true">${ok ? "★" : "☆"}</i><span><b>${m.nome}</b><small>${ok ? "Conquistado" : m.dica}</small></span></li>`; }).join("")}</ul>
 <p class="ofc-nota">Contado pelas demandas do Painel em que você é responsável (${n.total} concluídas no total).</p>`;
@@ -119,6 +134,9 @@ function abrirFichaEscritorio(id) {
 ${corpo}
 <div class="ofc-ficha-acoes">${eu ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirRecadosEscritorio('${safeText(String(id))}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();escritorioIrAte('${safeText(String(id))}')">Ir até</button>` : ""}`}</div>`;
   if (!d.open) d.showModal();
+  // Pontos mudam com o trabalho do dia: a própria ficha busca o saldo atual ao abrir.
+  if (eu && !semAtualizar && !b.demo && typeof escritorioApi === "function")
+    escritorioApi("economia").then((r) => { if (r?.economia) { escritorio.base.economia = r.economia; if (d.open) abrirFichaEscritorio(id, true); } }).catch(() => {});
 }
 // Piso e paredes da própria sala: guardados no perfil do dono (o servidor só
 // aceita os valores desta lista).
