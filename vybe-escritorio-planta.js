@@ -542,23 +542,37 @@ function escritorioPlantaGeral() {
 function escritorioModeloPlanta(a) {
   return typeof escritorio !== "undefined" ? escritorio.base?.quartos?.plantas?.find(p => p.id === a.planta) : null;
 }
+// Tamanho do quarto (a planta escolhida: de 6 × 6 a 12 × 12); sem planta,
+// o 8 × 8 da primeira versão.
+const ESCRITORIO_QUARTO_MAX = 12;
+function escritorioDimQuarto(a) {
+  const c = escritorioModeloPlanta(a)?.celdas;
+  return c ? { w: c[0].length, h: c.length } : { w: ESCRITORIO_SALA_LADO, h: ESCRITORIO_SALA_LADO };
+}
+// Vão da porta (2 ladrilhos): embaixo, no meio da última linha; à direita,
+// no trecho de piso da última coluna. Vem da planta; sem ela, o meio.
+function escritorioPortaQuarto(a) {
+  const { w, h } = escritorioDimQuarto(a), p = escritorioModeloPlanta(a)?.portas;
+  return a.porta === "direita" ? { x: w - 1, y: p?.direita ?? h / 2 - 1, lado: "direita" } : { x: p?.baixo ?? w / 2 - 1, y: h - 1, lado: "baixo" };
+}
 function escritorioNivelQuarto(a, x, y) {
-  if (x < 0 || y < 0 || x >= 8 || y >= 8) return -1;
+  const { w, h } = escritorioDimQuarto(a);
+  if (x < 0 || y < 0 || x >= w || y >= h) return -1;
   return escritorioModeloPlanta(a)?.celdas[Math.floor(y)]?.[Math.floor(x)] ?? 0;
 }
 function escritorioParedesDoQuarto(a) {
-  const lista = [], L = ESCRITORIO_SALA_LADO, m=L/2-1;
+  const lista = [], { w, h } = escritorioDimQuarto(a), pt = escritorioPortaQuarto(a);
   const por = (x0,y0,x1,y1,alta) => {
     const r=[x0,y0,x1,y1];
     if(alta) {r.push(a.cor); r.sala=a.id; r.alt=118;} else r.baixa=true;
     lista.push(r);
   };
-  for(let x=0;x<L;x++) for(let y=0;y<L;y++) {
+  for(let x=0;x<w;x++) for(let y=0;y<h;y++) {
     if(escritorioNivelQuarto(a,x,y)<0) continue;
     if(escritorioNivelQuarto(a,x,y-1)<0) por(x,y,x+1,y,true);
     if(escritorioNivelQuarto(a,x-1,y)<0) por(x,y,x,y+1,true);
-    if(escritorioNivelQuarto(a,x,y+1)<0 && !(a.porta==="baixo" && y===L-1 && x>=m && x<m+2)) por(x,y+1,x+1,y+1,false);
-    if(escritorioNivelQuarto(a,x+1,y)<0 && !(a.porta!=="baixo" && x===L-1 && y>=m && y<m+2)) por(x+1,y,x+1,y+1,false);
+    if(escritorioNivelQuarto(a,x,y+1)<0 && !(pt.lado==="baixo" && y===pt.y && x>=pt.x && x<pt.x+2)) por(x,y+1,x+1,y+1,false);
+    if(escritorioNivelQuarto(a,x+1,y)<0 && !(pt.lado==="direita" && x===pt.x && y>=pt.y && y<pt.y+2)) por(x+1,y,x+1,y+1,false);
   }
   const grupos=new Map();
   for(const r of lista) {
@@ -580,12 +594,12 @@ function escritorioParedesDoQuarto(a) {
 // Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;
 // pisar nela volta ao mapa) e o escuro em volta, como num quarto do Habbo.
 function escritorioPlantaDoQuarto(a) {
-  const L = ESCRITORIO_SALA_LADO, m = L / 2 - 1;
-  const soleira = a.porta === "baixo" ? { x: m, y: L, w: 2, h: 1 } : { x: L, y: m, w: 1, h: 2 };
+  const { w, h } = escritorioDimQuarto(a), pt = escritorioPortaQuarto(a);
+  const soleira = pt.lado === "baixo" ? { x: pt.x, y: h, w: 2, h: 1 } : { x: w, y: pt.y, w: 1, h: 2 };
   const naSoleira = (x, y) => x >= soleira.x && x < soleira.x + soleira.w && y >= soleira.y && y < soleira.y + soleira.h;
   return {
-    W: L + 1, H: L + 1, PREDIO: null, PISO: ESCRITORIO_PLANTA.PISO, quarto: a.id, fixa: true,
-    ambientes: [a], divisorias: escritorioParedesDoQuarto(a), moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
+    W: w + 1, H: h + 1, PREDIO: null, PISO: ESCRITORIO_PLANTA.PISO, quarto: a.id, fixa: true,
+    ambientes: [{ ...a, x1: a.x0 + w, y1: a.y0 + h }], divisorias: escritorioParedesDoQuarto(a), moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], texturas: [], texturaSalas: ESCRITORIO_PLANTA.texturaSalas, portas: [], elevadores: [], fundo: null, vistas: {},
     rotulos: [{ texto: "Porta · voltar ao mapa", x: soleira.x + soleira.w / 2, y: soleira.y + soleira.h / 2, saida: true }],
     soleiras: [soleira], entrada: escritorioEntradaDaSala(a), saida: { x: soleira.x, y: soleira.y },
@@ -609,8 +623,8 @@ function escritorioDirNaSala(a, dir) {
 }
 // Ladrilho logo depois da porta, dentro da sala (onde se chega ao entrar).
 function escritorioEntradaDaSala(a) {
-  const L = ESCRITORIO_SALA_LADO;
-  return a.porta === "direita" ? { x: a.x1 - 2, y: a.y0 + L / 2 - 1 } : { x: a.x0 + L / 2 - 1, y: a.y1 - 2 };
+  const pt = escritorioPortaQuarto(a);
+  return pt.lado === "direita" ? { x: pt.x - 1, y: pt.y } : { x: pt.x, y: pt.y - 1 };
 }
 // Mesa de trabalho: no meio do fundo da sala, com o dono sentado atrás dela,
 // virado para a sala (e para quem olha o mapa). Na sala com porta à direita

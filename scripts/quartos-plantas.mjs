@@ -1,0 +1,88 @@
+// Gera as plantas dos quartos (formato × tamanho) no catálogo único
+// assets/escritorio/habbo/quartos.json. As seis plantas da primeira versão
+// continuam lá como "legado" (quartos já configurados seguem válidos), mas
+// não aparecem mais para escolher.
+// node scripts/quartos-plantas.mjs
+//
+// Regras de cada planta gerada (conferidas nos testes):
+// - celdas[y][x]: -1 fora do quarto, 0 piso, 1 escada, 2 mezanino;
+// - a última linha e a última coluna são piso (as portas ficam nelas);
+// - o canto de baixo à direita (4 × 4) é sempre piso: é onde os modelos
+//   iniciais ("Essencial", "Boas conversas") ficam, deslocados por
+//   "deslocamento" (feitos para 8 × 8);
+// - "portas": onde fica o vão de 2 ladrilhos de cada lado possível;
+// - "escada": ladrilhos que ficam livres para circular entre os patamares.
+import { readFile, writeFile } from "node:fs/promises";
+
+const ARQUIVO = "assets/escritorio/habbo/quartos.json";
+const TAMANHOS = { P: "Pequeno", M: "Médio", G: "Grande", GG: "Enorme" };
+const vazio = (w, h, v = 0) => Array.from({ length: h }, () => Array(w).fill(v));
+
+const FORMATOS = [
+  { id: "quadrado", nome: "Quadrado", dica: "Simples e fácil de organizar", medidas: { P: [6, 6], M: [8, 8], G: [10, 10], GG: [12, 12] }, celdas: (w, h) => vazio(w, h) },
+  { id: "largo", nome: "Largo", dica: "Mais frente, para receber", medidas: { P: [8, 6], M: [10, 7], G: [12, 8], GG: [12, 10] }, celdas: (w, h) => vazio(w, h) },
+  { id: "fundo", nome: "Profundo", dica: "Mais fundo, para trabalhar", medidas: { P: [6, 8], M: [7, 10], G: [8, 12], GG: [10, 12] }, celdas: (w, h) => vazio(w, h) },
+  {
+    id: "ele", nome: "Em L", dica: "Dois cantos que se encontram", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    celdas: (w, h) => { const c = vazio(w, h), a = Math.round(w * 0.4), b = Math.round(h * 0.4); for (let y = 0; y < b; y++) for (let x = 0; x < a; x++) c[y][x] = -1; return c; },
+  },
+  {
+    id: "u", nome: "Em U", dica: "Um recorte no fundo, dois braços", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    celdas: (w, h) => {
+      const c = vazio(w, h), m = Math.round(w * 0.35), fundo = { 8: 2, 10: 4, 12: 5 }[h];
+      for (let y = 0; y < fundo; y++) for (let x = m; x < w - m; x++) c[y][x] = -1;
+      return c;
+    },
+  },
+  {
+    id: "chanfrado", nome: "Chanfrado", dica: "Canto do fundo cortado em diagonal", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    celdas: (w, h) => { const c = vazio(w, h), k = w / 2; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x + y < k) c[y][x] = -1; return c; },
+  },
+  {
+    id: "dividido", nome: "Dois ambientes", dica: "Divisória com passagem: receber e trabalhar", medidas: { G: [10, 8], GG: [12, 10] },
+    celdas: (w, h) => vazio(w, h),
+    divisorias: (w, h) => { const d = w - 6, g = Math.floor(h / 2) - 1; return [[d, 0, d, g], [d, g + 2, d, h]]; },
+  },
+  {
+    id: "niveis", nome: "Com níveis", dica: "Mezanino no fundo e escada", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    celdas: (w, h) => {
+      const c = vazio(w, h), fundo = { 8: 3, 10: 4, 12: 6 }[h], ex = Math.floor(w / 2) - 1;
+      for (let y = 0; y < fundo; y++) for (let x = 0; x < w; x++) c[y][x] = 2;
+      c[fundo - 1][ex] = 1; c[fundo - 1][ex + 1] = 1;
+      return c;
+    },
+  },
+];
+
+// Vão de cada porta: embaixo, no meio da última linha; à direita, nas linhas
+// h-5 e h-4 da última coluna (a mesma faixa do 8 × 8 da primeira versão). Ali
+// a porta nunca fica atrás da mesa dos modelos iniciais, que ocupa as linhas
+// h-4 e h-3 longe da parede da direita.
+function portasDe(celdas) {
+  const h = celdas.length, w = celdas[0].length;
+  return { baixo: Math.floor(w / 2) - 1, direita: h - 5 };
+}
+function escadaDe(celdas) {
+  const r = [];
+  celdas.forEach((linha, y) => linha.forEach((n, x) => { if (n === 1) r.push([x, y]); }));
+  return r;
+}
+
+const catalogo = JSON.parse(await readFile(ARQUIVO, "utf8"));
+const legado = catalogo.plantas.filter((p) => !p.formato).map((p) => ({
+  ...p, legado: true, portas: portasDe(p.celdas), escada: escadaDe(p.celdas), deslocamento: [p.celdas[0].length - 8, p.celdas.length - 8],
+}));
+const novas = [];
+for (const f of FORMATOS) for (const [tam, [w, h]] of Object.entries(f.medidas)) {
+  const celdas = f.celdas(w, h);
+  const n = celdas.flat().filter((v) => v >= 0).length;
+  novas.push({
+    id: `${f.id}-${tam.toLowerCase()}`, nome: f.nome, formato: f.id, tamanho: tam, tamanhoNome: TAMANHOS[tam],
+    dica: f.dica, medidas: `${w} × ${h} · ${n} ladrilhos`, celdas,
+    ...(f.divisorias ? { divisorias: f.divisorias(w, h) } : {}),
+    portas: portasDe(celdas), escada: escadaDe(celdas), deslocamento: [w - 8, h - 8],
+  });
+}
+catalogo.plantas = [...legado, ...novas];
+await writeFile(ARQUIVO, JSON.stringify(catalogo, null, 2) + "\n");
+console.log(`Plantas: ${novas.length} novas (${FORMATOS.length} formatos) + ${legado.length} de legado.`);

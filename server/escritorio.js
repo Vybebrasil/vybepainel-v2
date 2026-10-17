@@ -38,7 +38,7 @@ export function perfilEscritorio(valor = {}) {
       ? Math.min(94, Math.max(6, Number(valor[campo])))
       : padrao;
   return {
-    sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "amplo"),
+    sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
     pele: opcao("pele", ["clara", "media", "escura"], "media"),
@@ -58,10 +58,10 @@ export function perfilEscritorio(valor = {}) {
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
     // Piso pintado ladrilho a ladrilho (10×10, um código por ladrilho; 0 =
     // o piso da sala) e cada trecho das duas paredes altas (estilo + cor).
-    sala_pisos: /^[0-9a-f]{64}$/.test(String(valor.sala_pisos || "")) ? String(valor.sala_pisos) : "",
+    sala_pisos: /^[0-9a-f]{144}$/.test(String(valor.sala_pisos || "")) ? String(valor.sala_pisos) : "",
     // 40 trechos (10 por lado: fundo, esquerda, frente, direita), cada um com
     // estilo, cor e altura (0 baixa, 1 média, 2 alta).
-    sala_paredes: /^([a-h-][0-9a-d][0-2]){32}$/.test(String(valor.sala_paredes || "")) ? String(valor.sala_paredes) : "",
+    sala_paredes: /^([a-h-][0-9a-d][0-2]){48}$/.test(String(valor.sala_paredes || "")) ? String(valor.sala_paredes) : "",
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
   };

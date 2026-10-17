@@ -280,7 +280,9 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
   // escuro, como um quarto do Habbo. O resto desta função é o prédio.
   if (planta.quarto) {
     const a = planta.ambientes[0];
-    for (let soma=0;soma<16;soma++) for(let x=0;x<8;x++) {const y=soma-x;if(y>=0&&y<8&&planta.andavel(x,y)) ladrilho(x,y,a);}
+    // Do fundo para a frente (a lateral de um patamar cobre o de trás).
+    const qw = planta.W - 1, qh = planta.H - 1;
+    for (let soma=0;soma<qw+qh;soma++) for(let x=0;x<qw;x++) {const y=soma-x;if(y>=0&&y<qh&&planta.andavel(x,y)) ladrilho(x,y,a);}
     soleiras();
     borda(a.x0, a.y1, a.x1, a.y1, "#1b1c20"); borda(a.x1, a.y0, a.x1, a.y1, "#25262b");
     return;
@@ -748,6 +750,29 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   function mostrarGrade(a) {
     gradeNo?.remove(); gradeNo = null;
     if (!a) return;
+    // No quarto: só os ladrilhos de piso (o formato escolhido), cada um na
+    // altura do patamar. A grade retangular cortava o escuro e as paredes.
+    if (P.quarto && P.andavel) {
+      const celulas = [];
+      for (let x = a.x0; x < a.x1; x++) for (let y = a.y0; y < a.y1; y++) if (P.andavel(x, y) && P.nivelEm) celulas.push([x, y]);
+      // Os quatro cantos de cada ladrilho na altura do patamar dele.
+      const cantos = (x, y) => { const o = { ...origem, alturaAtual: P.nivelEm(x, y) || 0 }; return [mapaTela(x, y, o), mapaTela(x + 1, y, o), mapaTela(x + 1, y + 1, o), mapaTela(x, y + 1, o)]; };
+      const pts = celulas.flatMap(([x, y]) => cantos(x, y));
+      if (!pts.length) return;
+      const l = Math.min(...pts.map((t) => t.x)) - 2, t0 = Math.min(...pts.map((t) => t.y)) - 2;
+      gradeNo = document.createElement("canvas");
+      gradeNo.width = Math.max(...pts.map((t) => t.x)) - l + 4; gradeNo.height = Math.max(...pts.map((t) => t.y)) - t0 + 4;
+      gradeNo.className = "mapa-grade";
+      gradeNo.style.left = l + "px"; gradeNo.style.top = t0 + "px";
+      const g = gradeNo.getContext("2d");
+      g.translate(-l, -t0); g.strokeStyle = "#ffffff40"; g.lineWidth = 1;
+      for (const [x, y] of celulas) {
+        const c = cantos(x, y);
+        g.beginPath(); c.forEach((t, i) => (i ? g.lineTo(t.x, t.y) : g.moveTo(t.x, t.y))); g.closePath(); g.stroke();
+      }
+      palco.append(gradeNo);
+      return;
+    }
     const cantos = [mapaTela(a.x0, a.y0, origem), mapaTela(a.x1, a.y0, origem), mapaTela(a.x1, a.y1, origem), mapaTela(a.x0, a.y1, origem)];
     const l = Math.min(...cantos.map((t) => t.x)) - 2, t0 = Math.min(...cantos.map((t) => t.y)) - 2;
     const w = Math.max(...cantos.map((t) => t.x)) - l + 4, h = Math.max(...cantos.map((t) => t.y)) - t0 + 4;
@@ -788,7 +813,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   function marcarZona(a) {
     const g = zonaCanvas.getContext("2d");
     g.clearRect(0, 0, largura, altura);
-    if (!a) return;
+    // No quarto a cena inteira é a zona: a borda retangular passava fora do
+    // formato do quarto (a "linha azul" atravessando o escuro).
+    if (!a || P.quarto) return;
     const cor = (typeof ESCRITORIO_COR_SALA !== "undefined" && ESCRITORIO_COR_SALA[a.sala]) || "#ff8a35";
     const pts = [mapaTela(a.x0, a.y0, origem), mapaTela(a.x1, a.y0, origem), mapaTela(a.x1, a.y1, origem), mapaTela(a.x0, a.y1, origem)];
     g.beginPath(); pts.forEach((t, i) => (i ? g.lineTo(t.x, t.y) : g.moveTo(t.x, t.y))); g.closePath();

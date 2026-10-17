@@ -537,6 +537,8 @@ function escritorioAplicarSalas() {
     const dono = donos.get(a.id);
     const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
     a.planta = perfil?.sala_planta || "amplo";
+    // O quarto tem o tamanho da planta escolhida (coordenadas locais).
+    const dim = escritorioDimQuarto(a); a.x1 = a.x0 + dim.w; a.y1 = a.y0 + dim.h;
     a.piso = perfil?.sala_piso && ESCRITORIO_PLANTA.PISO[perfil.sala_piso] ? perfil.sala_piso : a.pisoPadrao;
     a.cor = /^#[0-9a-f]{6}$/i.test(perfil?.sala_parede || "") ? perfil.sala_parede : a.corPadrao;
   }
@@ -550,7 +552,8 @@ function escritorioAplicarSalas() {
     const dono = donos.get(a.id);
     const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
     const lp = String(perfil?.sala_pisos || ""), lw = String(perfil?.sala_paredes || "");
-    const L = ESCRITORIO_SALA_LADO;
+    // Pintura em grade de 12 × 12 (o maior quarto); cada planta usa o canto dela.
+    const L = ESCRITORIO_QUARTO_MAX;
     if (lp.length === L * L) for (let i = 0; i < L * L; i++) {
       const k = typeof ESCRITORIO_PISOS_SALA !== "undefined" ? ESCRITORIO_PISOS_SALA[parseInt(lp[i], 16)]?.[0] : "";
       if (k) pisos.set(`${a.x0 + (i % L)},${a.y0 + Math.floor(i / L)}`, k);
@@ -637,7 +640,7 @@ function escritorioMinhaMesa() {
   if(escritorio.perfil?.quarto_configurado) {
     const itens=escritorioItensDaCamada(a.id);
     const computador=itens.find(it=>/computer|laptop/.test(it[0]));
-    const cadeira=itens.find(it=>/chair/.test(it[0]));
+    const cadeira=itens.find(it=>/chair|stool|seat|hc26_10|sofa/.test(it[0]));
     if(computador) return {ambiente:a,x:computador[1],y:computador[2],w:1,h:1,cadeira:cadeira?{x:cadeira[1],y:cadeira[2],dir:cadeira[3]}:escritorioEntradaDaSala(a)};
   }
   return { ambiente:a, ...escritorioMesaDaSala(a) };
@@ -3020,7 +3023,7 @@ function escritorioMarcarRecados() {
 // 10–19 esquerda (x0), 20–29 frente (y1), 30–39 direita (x1). Chave igual à
 // que o mapa usa para cada pedaço de divisória.
 function escritorioChaveTrecho(a, i) {
-  const L = ESCRITORIO_SALA_LADO, k = i % L, lado = Math.floor(i / L);
+  const L = ESCRITORIO_QUARTO_MAX, k = i % L, lado = Math.floor(i / L);
   return [`x:${a.x0 + k},${a.y0}`, `y:${a.x0},${a.y0 + k}`, `x:${a.x0 + k},${a.y1}`, `y:${a.x1},${a.y0 + k}`][lado];
 }
 

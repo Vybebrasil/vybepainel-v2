@@ -548,7 +548,7 @@ function cenaDoEscritorio() {
   });
   for (const f of ["vybe-escritorio-planta.js", "vybe-escritorio-mapa.js", "vybe-escritorio.js", "vybe-escritorio-editor.js", "vybe-escritorio-ficha.js"]) vm.runInContext(readFileSync(f, "utf8"), c);
   c.enviados = enviados;
-  vm.runInContext(`escritorio.base = { eu: "1", admin: false, worker: "https://w.test", equipe: [{ id: "1", nome: "Paulo Martins", perfil: {} }, { id: "2", nome: "Deivid Lima", perfil: { sala_pisos: "5".repeat(64) } }],
+  vm.runInContext(`escritorio.base = { eu: "1", admin: false, worker: "https://w.test", equipe: [{ id: "1", nome: "Paulo Martins", perfil: {} }, { id: "2", nome: "Deivid Lima", perfil: { sala_pisos: "5".repeat(144) } }],
     salas: [{ id: "sala-0", dono: "Paulo", pessoa_id: "1" }, { id: "sala-3", dono: "Deivid", pessoa_id: "2" }], mapa: { editavel: true, camadas: { "sala-3": { itens: [["exe_plant", 1, 1, 2, 0, 0]], versao: 2, em: "2027-01-01T00:00:00Z" } } } };
     escritorioChegar(); escritorio.conectado = true; escritorio.socket = { readyState: 1, send: (m) => enviados.push(JSON.parse(m)) };
     // A voz (RealtimeKit) fica fora deste teste: só registra que a troca de cena a chamou.
@@ -661,14 +661,14 @@ test("quartos: a camada de cada cena é a dela, em coordenadas locais; a pintura
   const P = r("escritorioPlantaDaCena()");
   assert.equal(P.quarto, "sala-3");
   assert.equal(P.pisoLadrilho(2, 2), "preto");
-  assert.equal(P.pisoLadrilho(9, 9), undefined);
+  assert.equal(P.pisoLadrilho(12, 12), undefined);
   // O editor da sala trabalha no canto (0, 0) do quarto; os trechos de parede
   // existem no fundo e na esquerda e não no vão da porta.
   assert.deepEqual({ ...r('escritorioCantoCamada("sala-3")') }, { x: 0, y: 0, w: 8, h: 8 });
   assert.ok(r('escritorioTemParede(0, 0, "x") && escritorioTemParede(0, 0, "y")'));
   const a = r('ESCRITORIO_PLANTA.ambientes.find((q) => q.id === "sala-3")');
   assert.ok(r("escritorioTrechoExiste(ESCRITORIO_PLANTA.ambientes.find((q) => q.id === 'sala-3'), 0)"), "fundo");
-  assert.ok(!r(`escritorioTrechoExiste(ESCRITORIO_PLANTA.ambientes.find((q) => q.id === 'sala-3'), ${a.porta === "baixo" ? 16 + 3 : 24 + 3})`), "o vão da porta não é parede");
+  assert.ok(!r(`escritorioTrechoExiste(ESCRITORIO_PLANTA.ambientes.find((q) => q.id === 'sala-3'), ${a.porta === "baixo" ? 2 * 12 + 3 : 3 * 12 + 3})`), "o vão da porta não é parede (trechos em grade de 12)");
 });
 
 test("planta nova: mapa geral salvo sobre a planta antiga não vale; o salvo depois vale", () => {
@@ -810,7 +810,7 @@ test("salas: dono pelo primeiro nome ou apelido do cadastro; livres sem dono", (
 });
 
 test("itens: fora da área, classe estranha ou direção inválida são recusados", () => {
-  assert.throws(() => itensValidos("sala-0", [["exe_table", 10, 2, 0]]), /fora/);
+  assert.throws(() => itensValidos("sala-0", [["exe_table", 12, 2, 0]]), /fora/);
   assert.throws(() => itensValidos("geral", [["<script>", 1, 1, 0]]), /inválido/);
   assert.throws(() => itensValidos("geral", [["exe_table", 1, 1, 3]]), /Direção/);
   assert.deepEqual(itensValidos("sala-0", [["exe_table", 4, 1, 0]]), [["exe_table", 4, 1, 0, 0, 0]]);
@@ -1132,11 +1132,12 @@ test("perfil: piso e parede da sala só com valores conhecidos", () => {
 
 test("perfil: piso pintado e paredes só no formato certo", () => {
   // Sala 8×8: 64 ladrilhos e 32 trechos de parede (8 por lado).
-  const ok = perfilEscritorio({ sala_pisos: "0".repeat(63) + "b", sala_paredes: "c02".repeat(31) + "hd0" });
-  assert.equal(ok.sala_pisos.length, 64);
-  assert.equal(ok.sala_paredes.length, 96);
-  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(64), sala_paredes: "c03".repeat(32) });
-  assert.equal(perfilEscritorio({ sala_pisos: "0".repeat(100), sala_paredes: "c02".repeat(40) }).sala_pisos, "", "o formato antigo de 10×10 não vale mais");
+  // Grade de 12 × 12 (o maior quarto): 144 ladrilhos e 48 trechos de parede.
+  const ok = perfilEscritorio({ sala_pisos: "0".repeat(143) + "b", sala_paredes: "c02".repeat(47) + "hd0" });
+  assert.equal(ok.sala_pisos.length, 144);
+  assert.equal(ok.sala_paredes.length, 144);
+  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(144), sala_paredes: "c03".repeat(48) });
+  assert.equal(perfilEscritorio({ sala_pisos: "0".repeat(64), sala_paredes: "c02".repeat(32) }).sala_pisos, "", "o formato antigo de 8×8 não vale mais");
   assert.equal(ruim.sala_pisos, "");
   assert.equal(ruim.sala_paredes, "");
 });

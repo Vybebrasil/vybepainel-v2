@@ -504,15 +504,24 @@ function escritorioCatalogoHtml() {
   const abaImagens = `<button type="button" aria-pressed="${filtro === "Imagens"}" onclick="escritorio.catalogoCategoria='Imagens';renderEscritorio()">Imagens · ${escritorioImagensDaCamada().length}</button>`;
   // Abas do topo: Móveis, Imagens e, na própria sala, Piso e paredes.
   const minha = escritorio.edicao?.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === escritorio.edicao?.camada;
-  const abas = `<div class="ofc-cats ofc-cats-topo"><button type="button" aria-pressed="${!["Imagens", "Sala", "Modelos", "Conjuntos"].includes(filtro)}" onclick="escritorio.catalogoCategoria='';renderEscritorio()">Móveis</button><button type="button" aria-pressed="${filtro === "Imagens"}" onclick="escritorio.catalogoCategoria='Imagens';renderEscritorio()">Imagens · ${escritorioImagensDaCamada().length}</button>${minha ? `<button type="button" aria-pressed="${filtro === "Sala"}" onclick="escritorio.catalogoCategoria='Sala';renderEscritorio()">Piso e paredes</button>` : ""}${escritorio.edicao?.camada !== "geral" ? `<button type="button" aria-pressed="${filtro === "Modelos"}" onclick="escritorio.catalogoCategoria='Modelos';renderEscritorio()">Modelos de sala</button>` : ""}${`<button type="button" aria-pressed="${filtro === "Conjuntos"}" onclick="escritorio.catalogoCategoria='Conjuntos';renderEscritorio()">Meus conjuntos</button>`}</div>`;
+  // No próprio quarto, os móveis se dividem em duas abas claras: o que é seu
+  // (essenciais grátis + inventário) e a loja. O saldo fica sempre à vista.
+  const ehMoveis = !["Imagens", "Sala", "Modelos", "Conjuntos"].includes(filtro);
+  const aba = minha ? (escritorio.abaQuarto || "meus") : "";
+  const botao = (ativo, acao, rotulo) => `<button type="button" aria-pressed="${ativo}" onclick="${acao}">${rotulo}</button>`;
   const carteira = escritorio.base.economia;
-  const loja = minha ? `<div class="ofc-moedas"><b>${carteira?.disponivel ? Number(carteira.saldo)+" VybeCoins" : "Loja indisponível"}</b><p>Essenciais grátis · extras 25 moedas por unidade.</p><button type="button" onclick="escritorio.soInventario=!escritorio.soInventario;renderEscritorio()" aria-pressed="${Boolean(escritorio.soInventario)}">${escritorio.soInventario?"Ver loja completa":"Ver meu inventário"}</button><small>Conquistas: ${(carteira?.conquistas || []).map(c=>safeText(c.origem.replace("conquista:","").replaceAll("-"," "))).join(", ") || "ainda nenhuma"}</small></div>` : "";
+  const meusTotal = minha ? escritorioMeusMoveis().length : 0;
+  const abas = `<div class="ofc-cats ofc-cats-topo">${minha
+    ? botao(ehMoveis && aba === "meus", "escritorio.abaQuarto='meus';escritorio.catalogoCategoria='';escritorio.catalogoPagina=0;renderEscritorio()", `Meus móveis · ${meusTotal}`)
+      + botao(ehMoveis && aba === "loja", "escritorio.abaQuarto='loja';escritorio.catalogoCategoria='';escritorio.catalogoPagina=0;renderEscritorio()", "Loja")
+    : botao(ehMoveis, "escritorio.catalogoCategoria='';renderEscritorio()", "Móveis")}${minha ? botao(filtro === "Sala", "escritorio.catalogoCategoria='Sala';renderEscritorio()", "Piso e paredes") : ""}${botao(filtro === "Imagens", "escritorio.catalogoCategoria='Imagens';renderEscritorio()", `Imagens · ${escritorioImagensDaCamada().length}`)}${escritorio.edicao?.camada !== "geral" && !minha ? botao(filtro === "Modelos", "escritorio.catalogoCategoria='Modelos';renderEscritorio()", "Modelos de sala") : ""}${botao(filtro === "Conjuntos", "escritorio.catalogoCategoria='Conjuntos';renderEscritorio()", "Meus conjuntos")}</div>`;
+  const loja = minha ? `<div class="ofc-carteira" role="status"><b>${carteira?.disponivel ? Number(carteira.saldo) + " VybeCoins" : "Loja indisponível"}</b><small>${aba === "loja" ? "Cada móvel extra custa 25. O que você compra vai para Meus móveis." : "Mesa, cadeira, computador e cacto são grátis; o resto vem da Loja."}</small></div>` : "";
   if (filtro === "Imagens") return loja + abas + escritorioImagensHtml();
   if (filtro === "Modelos") return abas + escritorioModelosHtml();
   if (filtro === "Conjuntos") return abas + escritorioConjuntosHtml();
   if (filtro === "Sala") return abas + escritorioEstiloSalaHtml();
   return `${loja}${abas}<div class="ofc-busca"><input id="office-catalogo-busca" type="search" placeholder="Buscar: mesa, sofá, planta, luz…" aria-label="Buscar móvel" autocomplete="off" value="${safeText(escritorio.catalogoBusca || "")}" oninput="escritorio.catalogoBusca=this.value;escritorio.catalogoPagina=0;desenharCatalogoEscritorio()"></div>
-<label class="ofc-cat-escolha" ${escritorio.soInventario?"hidden":""}><span>Categoria</span><select onchange="escritorio.catalogoCategoria=this.value;escritorio.catalogoPagina=0;escritorio.catalogoBusca='';renderEscritorio()">${ESCRITORIO_GRUPOS_CATALOGO.map(([nome]) => `<option value="${safeText(nome)}"${((filtro && !["Imagens", "Sala", "Modelos", "Conjuntos"].includes(filtro) ? filtro : "") || (escritorioRecentes().length ? "Recentes" : "Do escritório")) === nome ? " selected" : ""}>${safeText(nome)} · ${escritorioListaCatalogo(nome).length}</option>`).join("")}</select></label>
+<label class="ofc-cat-escolha" ${minha && aba === "meus" ? "hidden" : ""}><span>Categoria</span><select onchange="escritorio.catalogoCategoria=this.value;escritorio.catalogoPagina=0;escritorio.catalogoBusca='';renderEscritorio()">${ESCRITORIO_GRUPOS_CATALOGO.map(([nome]) => `<option value="${safeText(nome)}"${((filtro && !["Imagens", "Sala", "Modelos", "Conjuntos"].includes(filtro) ? filtro : "") || (escritorioRecentes().length ? "Recentes" : "Do escritório")) === nome ? " selected" : ""}>${safeText(nome)} · ${escritorioListaCatalogo(nome).length}</option>`).join("")}</select></label>
 <div id="office-catalogo-lista"></div>
 <p class="ofc-nota">Clique num móvel e depois no piso, ou arraste direto para o mapa. Não achou? <button type="button" class="office-text-button" onclick="buscarMovelEscritorio(document.getElementById('office-catalogo-busca').value)">Buscar no catálogo completo do Habbo</button> (em inglês).</p>
 <div id="office-busca-resultados" class="ofc-moveis"></div>`;
@@ -536,16 +545,18 @@ function desenharCatalogoEscritorio() {
     const sem = (t) => String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
     lista = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES].filter((m) => !vistos.has(m.classe) && vistos.add(m.classe) && (sem(escritorioNomeMovel(m)).includes(busca) || sem(m.nome).includes(busca) || m.classe.includes(busca)));
   } else lista = escritorioListaCatalogo(grupo);
-  if(escritorio.soInventario && escritorio.edicao?.camada !== "geral") {
-    const todos=busca?lista:[...escritorioCatalogo,...ESCRITORIO_COMPUTADORES],vistos=new Set();
-    lista=todos.filter(m=>!vistos.has(m.classe)&&vistos.add(m.classe)&&escritorioQuantidadeMovel(m.classe)>0);
+  const minha = escritorio.edicao?.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === escritorio.edicao?.camada;
+  const aba = minha ? (escritorio.abaQuarto || "meus") : "";
+  if (aba === "meus") {
+    const meus = escritorioMeusMoveis(), cl = new Set(lista.map((m) => m.classe));
+    lista = busca ? meus.filter((m) => cl.has(m.classe)) : meus;
   }
   const paginas = Math.max(1, Math.ceil(lista.length / ESCRITORIO_POR_PAGINA));
   const pag = Math.min(paginas - 1, escritorio.catalogoPagina || 0);
-  const cartao = (m) => `<button type="button" class="ofc-movel" draggable="${escritorioPodeColocarMovel(m.classe)}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escritorioAcaoMovel('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${escritorio.edicao?.camada !== "geral" ? `<em class="ofc-giro">${escritorioQuantidadeMovel(m.classe)===Infinity?"Grátis":`${escritorioQuantidadeMovel(m.classe)} no inventário · ${escritorioPodeColocarMovel(m.classe)?"Colocar":"Comprar por 25"}`}</em>` : ""}${m.parede ? '<em class="ofc-giro">na parede</em>' : escritorioSeloGiro(m.giros)}${m.anima ? '<em class="ofc-giro animado">animado</em>' : ""}</button>`;
+  const cartao = (m) => `<button type="button" class="ofc-movel" draggable="${escritorioPodeColocarMovel(m.classe)}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escritorioAcaoMovel('${safeText(m.classe)}', ${aba === "loja"})" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${minha ? `<em class="ofc-giro ofc-preco">${escritorioSeloQuarto(m.classe, aba)}</em>` : ""}${m.parede ? '<em class="ofc-giro">na parede</em>' : escritorioSeloGiro(m.giros)}${m.anima ? '<em class="ofc-giro animado">animado</em>' : ""}</button>`;
   el.innerHTML = !lista.length
-    ? `<p class="ofc-nota">${busca ? "Nada com esse nome no catálogo do painel." : grupo === "Recentes" ? "Os móveis que você usar aparecem aqui." : "Nada nesta categoria."}</p>`
-    : `<h4>${busca ? `${lista.length} encontrados` : escritorio.soInventario ? "Meu inventário" : safeText(grupo)}</h4><div class="ofc-moveis">${lista.slice(pag * ESCRITORIO_POR_PAGINA, (pag + 1) * ESCRITORIO_POR_PAGINA).map(cartao).join("")}</div>${paginas > 1 ? `<div class="ofc-paginas"><button type="button" onclick="escritorio.catalogoPagina=${pag - 1};desenharCatalogoEscritorio()" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${paginas}</span><button type="button" onclick="escritorio.catalogoPagina=${pag + 1};desenharCatalogoEscritorio()" ${pag + 1 < paginas ? "" : "disabled"} aria-label="Próxima página">›</button></div>` : ""}`;
+    ? `<p class="ofc-nota">${aba === "meus" ? (busca ? "Nenhum móvel seu com esse nome." : "Você ainda não tem móveis extras.") + ' <button type="button" class="office-text-button" onclick="escritorio.abaQuarto=\'loja\';renderEscritorio()">Abrir a Loja</button>' : busca ? "Nada com esse nome no catálogo do painel." : grupo === "Recentes" ? "Os móveis que você usar aparecem aqui." : "Nada nesta categoria."}</p>`
+    : `<h4>${busca ? `${lista.length} encontrados` : aba === "meus" ? "Meus móveis" : safeText(grupo)}</h4><div class="ofc-moveis">${lista.slice(pag * ESCRITORIO_POR_PAGINA, (pag + 1) * ESCRITORIO_POR_PAGINA).map(cartao).join("")}</div>${paginas > 1 ? `<div class="ofc-paginas"><button type="button" onclick="escritorio.catalogoPagina=${pag - 1};desenharCatalogoEscritorio()" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${paginas}</span><button type="button" onclick="escritorio.catalogoPagina=${pag + 1};desenharCatalogoEscritorio()" ${pag + 1 < paginas ? "" : "disabled"} aria-label="Próxima página">›</button></div>` : ""}`;
 }
 async function buscarMovelEscritorio(q) {
   const el = document.getElementById("office-busca-resultados");
@@ -1178,6 +1189,19 @@ function escritorioLugarParede(x, y, fx = x + 0.5, fy = y + 0.5) {
   return { lx: x - c.x, ly: y - c.y, dir };
 }
 
+// Meus móveis: os essenciais (grátis) e o que está no inventário do dono.
+function escritorioMeusMoveis() {
+  const todos = [...(escritorioCatalogo || []), ...ESCRITORIO_COMPUTADORES], vistos = new Set();
+  return todos.filter((m) => !vistos.has(m.classe) && vistos.add(m.classe) && escritorioQuantidadeMovel(m.classe) > 0 && !escritorioImagemDe(m.classe));
+}
+// Selo do cartão no próprio quarto: grátis, quantos estão livres ou o preço.
+function escritorioSeloQuarto(classe, aba) {
+  const tem = escritorioQuantidadeMovel(classe);
+  if (tem === Infinity) return "Grátis";
+  const usados = (escritorio.edicao?.itens || []).filter((it) => it[0] === classe).length, livres = Math.max(0, tem - usados);
+  if (aba === "meus") return livres ? `${livres} de ${tem} para colocar` : `Os ${tem} já estão no quarto`;
+  return tem ? `Você tem ${tem} · comprar mais: 25` : "Comprar: 25 VybeCoins";
+}
 function escritorioQuantidadeMovel(classe) {
  if(escritorio.base.quartos?.essenciais.includes(classe) || escritorioImagemDe(classe)) return Infinity;
  return Number(escritorio.base.economia?.inventario?.find(i=>i.classe===classe)?.quantidade || 0);
@@ -1187,8 +1211,11 @@ function escritorioPodeColocarMovel(classe) {
  const n=escritorioQuantidadeMovel(classe);
  return n > (escritorio.edicao?.itens || []).filter(it=>it[0]===classe).length;
 }
-async function escritorioAcaoMovel(classe) {
- if(escritorioPodeColocarMovel(classe)) return escolherMovelEscritorio(classe);
+// Na Loja o clique compra (e já deixa o móvel na mão para colocar); em Meus
+// móveis o clique só coloca o que você tem.
+async function escritorioAcaoMovel(classe, comprar = false) {
+ if(escritorioQuantidadeMovel(classe)===Infinity || (!comprar && escritorioPodeColocarMovel(classe))) return escolherMovelEscritorio(classe);
+ if(!comprar) return escritorioAviso("Todas as unidades deste móvel já estão no quarto. Compre outra na Loja.");
  if(escritorio.edicao?.camada!==escritorioMinhaMesa()?.ambiente.id) return escritorioAviso("A loja é pessoal. Abra seu próprio quarto para comprar móveis.");
  if(escritorio.comprando) return;
  escritorio.comprando=true;
