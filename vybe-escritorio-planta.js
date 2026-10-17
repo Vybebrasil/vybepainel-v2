@@ -213,11 +213,19 @@ const ESCRITORIO_PLANTA = (() => {
   // Dentro de um espaço comum: coordenadas locais ao canto dele.
   const em = (id) => { const a = R[id]; return (classe, lx, ly, dir = 2, estado = 0, altura = 0) => p(classe, a.x0 + lx, a.y0 + ly, dir, estado, altura); };
 
-  // Área comum: um ponto de encontro por ambiente, circulação livre e
-  // poucos objetos de apoio. Não espalhar coleções do catálogo pelo mapa.
+  // Pátio (x 24…35): a fonte no meio, bancos virados para ela e, nas bordas,
+  // canteiros, postes e vasos ladeando as portas. O eixo central (x 28…31)
+  // fica livre da Recepção até o elevador do fundo.
   p("bazaar_r17_fountain",29,22,4);
   p("greek_c15_bench",26,22,2); p("greek_c15_bench",33,22,6);
   for(const [x,y] of [[25,1],[34,1],[25,36],[34,36]]) p("suncity_c19_plantpillar",x,y,0);
+  for(const [x,y] of [[24,14],[24,17],[35,14],[35,17],[24,27],[24,30],[35,27],[35,30]]) p("mafia_c26_planter_white",x,y,0);
+  for(const [x,y] of [[25,5],[33,5],[25,33],[33,33]]) p("stone_flowerbed",x,y,0);
+  for(const [x,y] of [[24,8],[35,8],[24,21],[35,21],[24,35],[35,35]]) p("greek_c15_lamp",x,y,0,1);
+  p("br_c25_stonebench",25,10,2); p("br_c25_stonebench",34,10,6);
+  p("br_c25_stonebench",25,24,2); p("br_c25_stonebench",34,24,6);
+  for(const [x,y] of [[27,19],[32,19],[27,26],[32,26]]) p("olympus_c25_narcissusflowers",x,y,0);
+  for(const [x,y] of [[24,3],[35,3],[24,12],[35,12]]) p("olympus_c25_olivetree",x,y,2);
 
   // Recepção: balcão e uma espera; eixo central da entrada desimpedido.
   {
@@ -321,14 +329,75 @@ const ESCRITORIO_PLANTA = (() => {
   // O elevador do fundo fica no canto do pátio, fora da frente do logo da Vybe.
   elevador("Recepção", 24, 38, 2, [25, 38]); elevador("Salas", 35, 0, 4, [35, 1]); elevador("Produção", 0, 47, 2, [1, 47]);
 
-  // Terraço: piscina e um par de espreguiçadeiras, sem sobrepor a vista.
+  // Área externa (decisão do Paulo, 17/10/2026): cenas completas, como os
+  // quartos de referência do Habbo, cada uma com borda (sebe, floreira,
+  // cerca) e chão próprio. Da esquerda para a direita, na frente do prédio:
+  // estacionamento, praça da fonte, caminho da entrada, café ao ar livre,
+  // deck da piscina com bar; à direita, o jardim com o lago.
   const piscina = {x0:42,y0:50,x1:56,y1:55};
-  p("js_c16_lounger",38,50,2);p("js_c16_lounger",38,54,2);
-  p("lido_parasol",37,49,0);p("vwave_c21_palm",59,53,2);
-  // Entrada clara e jardim contido nas bordas.
-  for(const y of [50,62]) {p("suncity_c19_streetlight",27,y,0,1);p("suncity_c19_streetlight",32,y,0,1);}
-  p("br_c25_stonebench",25,56,2);p("br_c25_stonebench",34,56,6);
-  for(const [x,y] of [[4,54],[17,63],[4,-3],[54,-3]]) p("olympus_c25_olivetree",x,y,2);
+  // Estacionamento (x −9…8): duas fileiras de carros, faixa de manobra no
+  // meio, bicicletário e sebe com passagem para a praça.
+  // O desenho do carro passa da área dele: um ladrilho livre entre um e outro.
+  for (const x of [-9,-5,-1,3]) { p("mafia_c26_car",x,51,0); p("mafia_c26_car",x,61,0); }
+  for (const y of [51,53,61,63]) { p("paris15_bicycle",7,y,0); }
+  for (const y of [50,52,54,58,60,62,64]) p("hblooza14_hedgediv",9,y,2);
+  for (const [x,y] of [[-9,50],[-9,58],[-9,65],[8,57]]) p("urban_lamp",x,y,2,1);
+  p("nyc_c23_signs",8,65,0); p("classic2_trashcan",8,55,2);
+  for (const x of [-9,-7,5]) p("olympics_c16_plantdvdr",x,66,0);
+  // Praça da fonte (x 10…27): fonte no meio do mosaico, bancos virados para
+  // ela, canteiros nos cantos, postes e floreira na beira da calçada.
+  p("bazaar_r17_fountain",18,57,0);
+  p("greek_c15_bench",18,54,4); p("greek_c15_bench",18,60,0); p("greek_c15_bench",15,57,2); p("greek_c15_bench",22,57,6);
+  for (const [x,y] of [[15,54],[21,54],[15,60],[21,60]]) p("stone_flowerbed",x,y,0);
+  for (const [x,y] of [[11,51],[26,51],[11,64],[26,64]]) p("suncity_c19_streetlight",x,y,0,1);
+  for (const [x,y] of [[10,50],[27,50],[10,58]]) p("olympus_c25_olivetree",x,y,2);
+  for (const [x,y] of [[13,50],[24,50]]) p("santorini_c17_pottedplants",x,y,0);
+  for (const x of [10,11,12,13,14,15,22,23,24,25,26,27]) p("bc_flowerhedge_recolorable",x,66,0);
+  p("nyc_c23_mailbox",26,62,6); p("classic2_trashcan",12,62,2);
+  p("paris_c15_flowerstl",17,50,4); p("greek_c15_bench",20,50,4);
+  for (const [x,y] of [[13,56],[24,59]]) p("olympus_c25_narcissusflowers",x,y,0);
+  // Caminho da entrada: postes dos dois lados até a calçada.
+  for (const y of [53,59,65]) { p("suncity_c19_streetlight",28,y,0,1); p("suncity_c19_streetlight",31,y,0,1); }
+  // Café ao ar livre (x 33…50, y 59…65): quiosque, mesas com cadeiras e
+  // guarda-sóis; floreiras separam do deck e da calçada.
+  p("nyc_c23_starterstall",33,59,0); p("paris_c15_flowerpot",33,61,0); p("classic2_trashcan",33,64,2);
+  for (const x of [37,42,47]) for (const y of [60,63]) {
+    p("paris_c15_table",x,y,0); p("paris_c15_chair",x-1,y,2); p("paris_c15_chair",x+1,y,6);
+  }
+  // Um guarda-sol por trio de mesas, no corredor entre as fileiras.
+  for (const x of [39,44,49]) p("lido_parasol",x,61,0);
+  // Atrás das espreguiçadeiras fica aberto: é por ali que se chega a elas.
+  for (const x of [33,37,39,41,56,58]) p("olympics_c16_plantdvdr",x,58,0);
+  for (const x of [35,39,43,49]) p("olympics_c16_plantdvdr",x,66,0);
+  // Deck da piscina (x 36…59, y 48…57): bar de palha com banquetas,
+  // espreguiçadeiras viradas para a água entre guarda-sóis, palmeiras e boia.
+  for (const x of [37,38,39]) { p("tiki_bardesk",x,50,4); p("vwave_c21_barstool",x,51,0); }
+  p("tiki_torch",36,49,2); p("tiki_torch",40,49,2); p("tiki_corner",36,52,2);
+  // A espreguiçadeira já traz o guarda-sol dela: duas colunas livres entre uma e outra.
+  for (const x of [43,46,49,52]) p("js_c16_lounger",x,55,0);
+  for (const [x,y] of [[59,49],[59,56],[41,56]]) p("vwave_c21_palm",x,y,2);
+  p("summer_c22_lifering",57,52,2); p("bohogarden_c21_fanpalm",57,50,0); p("bohogarden_c21_fanpalm",57,54,0);
+  for (const y of [49,50,51,52,53]) p("bc_flowerhedge_recolorable",60,y,0);
+  // Jardim da direita (x 60…69): trilha de pedrinhas junto ao prédio, mesas
+  // de piquenique, canteiros, o lago com pedras e plantas aquáticas e um
+  // pomar na frente.
+  for (const y of [8,16]) p("summer_c22_picnictable",64,y,0);
+  for (const [x,y] of [[68,3],[68,11],[68,19],[64,25],[61,28],[69,28],[61,46],[69,46]]) p("olympus_c25_olivetree",x,y,2);
+  for (const [x,y] of [[69,7],[69,15],[65,5],[65,13],[65,21]]) p("garden_lupin3",x,y,0);
+  for (const y of [4,12,20,30,40,50]) p("suncity_c19_streetlight",62,y,0,1);
+  for (const y of [31,34,38,41]) p("rela_rock",62,y,0);
+  for (const x of [64,67]) { p("lt_stone2",x,30,0); p("lt_stone2",x,44,0); }
+  for (const [x,y] of [[69,32],[69,36],[69,41]]) p("zengarden_c18_spikeyplant",x,y,0);
+  for (const [x,y] of [[65,35],[66,39],[64,41]]) p("br_c25_lilies3",x,y,0);
+  p("br_c25_stonebench",62,36,2); p("garden_birdbath",62,45,0);
+  for (const [x,y] of [[53,61],[57,64],[65,61],[68,64],[52,65]]) p("env_tree1",x,y,2);
+  for (const [x,y] of [[55,62],[63,64],[67,60]]) p("garden_lupin3",x,y,0);
+  p("ducket_c26_flowerbench",56,60,4); p("garden_birdbath",63,61,0);
+  for (const [x,y] of [[63,55],[67,-8],[64,-3]]) p("olympus_c25_olivetree",x,y,2);
+  for (const [x,y] of [[66,57],[62,-6],[68,-1]]) p("garden_lupin3",x,y,0);
+  // Fundo e esquerda (não se anda, atrás das paredes altas): copas para dar
+  // profundidade.
+  for (const [x,y] of [[-6,6],[-3,16],[-7,26],[-4,36],[-6,44],[6,-6],[18,-9],[40,-6],[52,-9],[58,-4]]) p("olympus_c25_olivetree",x,y,2);
 
   // Textos e logo pintados nas paredes do prédio: o logo no fim do pátio
   // (quem entra vê de longe) e a frase na parede da esquerda, atrás da Produção.
@@ -352,12 +421,17 @@ const ESCRITORIO_PLANTA = (() => {
     { x0: -10, y0: -12, x1: 70, y1: 0, textura: "country_grass", piso: "grama" },
     { x0: -10, y0: 0, x1: 0, y1: 48, textura: "country_grass", piso: "grama" },
     { x0: 60, y0: 0, x1: 70, y1: 48, textura: "country_grass", piso: "grama" },
-    { x0: -10, y0: 48, x1: 28, y1: 66, textura: "country_grass", piso: "grama" },
-    { x0: 32, y0: 48, x1: 36, y1: 66, textura: "country_grass", piso: "grama" },
-    { x0: 36, y0: 58, x1: 70, y1: 66, textura: "country_grass", piso: "grama" },
-    { x0: 60, y0: 48, x1: 70, y1: 58, textura: "country_grass", piso: "grama" },
-    { x0: 36, y0: 48, x1: 60, y1: 58, textura: "country_patio", piso: "deck" },
+    { x0: -10, y0: 48, x1: 70, y1: 66, textura: "country_grass", piso: "grama" },
+    // Estacionamento (asfalto), praça (calçamento com mosaico no meio da fonte),
+    // caminho da entrada, café (deck de madeira), deck da piscina e a trilha.
+    { x0: -10, y0: 49, x1: 9, y1: 66, textura: "cpunk_c15_road", piso: "praca" },
+    { x0: 10, y0: 49, x1: 28, y1: 66, textura: "mexico_c24_cobbledstreet", piso: "praca" },
+    { x0: 14, y0: 53, x1: 24, y1: 62, textura: "santorini_c17_mosaicfloor", piso: "praca" },
     { x0: 28, y0: 48, x1: 32, y1: 66, textura: "paris_c15_pavement", piso: "praca" },
+    { x0: 33, y0: 59, x1: 51, y1: 66, textura: "paris_c15_floor", piso: "praca" },
+    { x0: 36, y0: 48, x1: 60, y1: 58, textura: "country_patio", piso: "deck" },
+    { x0: 60, y0: -12, x1: 62, y1: 66, textura: "santorini_c17_pebblefloor", piso: "praca" },
+    { x0: 63, y0: 31, x1: 69, y1: 44, textura: "jungle_c16_watertile", piso: "verde", agua: true },
     { x0: -10, y0: 66, x1: 70, y1: 68, textura: "urban_sidewalk", piso: "praca" },
   ].map((r) => ({ ...r, x0: r.x0 + OX, x1: r.x1 + OX, y0: r.y0 + OY, y1: r.y1 + OY }));
   return { W, H, PREDIO, PISO, ambientes, divisorias, moveis: m, piscina, quadros, corredores, postes, letreiro, pisos, rotulos, entrada, vistas,
@@ -435,7 +509,10 @@ function escritorioNivelQuarto(a, x, y) {
 function escritorioEscadaQuarto(a,x,y) {
   const p=escritorioModeloPlanta(a), ix=Math.floor(x), iy=Math.floor(y);
   if(!p?.escada?.some(([ex,ey])=>ex===ix && ey===iy)) return null;
-  const alto=[[0,-1],[0,1],[-1,0],[1,0]].find(([dx,dy])=>escritorioNivelQuarto(a,ix+dx,iy+dy)===2);
+  // O patamar alto de um lado e o piso do outro: o vizinho alto que fica ao
+  // lado da escada (o canto do mezanino) não define o sentido da subida.
+  const lados=[[0,-1],[0,1],[-1,0],[1,0]].filter(([dx,dy])=>escritorioNivelQuarto(a,ix+dx,iy+dy)===2);
+  const alto=lados.find(([dx,dy])=>escritorioNivelQuarto(a,ix-dx,iy-dy)===0) || lados[0];
   return alto ? {x:ix,y:iy,dx:alto[0],dy:alto[1]} : null;
 }
 function escritorioAlturaQuarto(a,x,y) {
@@ -475,6 +552,29 @@ function escritorioParedesDoQuarto(a) {
   for(const trecho of escritorioModeloPlanta(a)?.divisorias || []) {const r=[...trecho];r.baixa=true;unidas.push(r);}
   return unidas;
 }
+// Peças fixas da planta (não são do dono, não entram no inventário nem no
+// editor): a escada do acervo em cada ladrilho de escada, subindo para o
+// mezanino, e a balaustrada na borda do mezanino onde há queda para o piso.
+// [classe, x, y, dir, estado, altura]. As duas se atravessam (MAPA_PASSAVEIS).
+const ESCRITORIO_PECA_ESCADA = "bc_stairs_recolorable", ESCRITORIO_PECA_GUARDA = "hotel_c18_rail";
+// Direção da peça de escada pelo lado em que fica o patamar alto.
+const ESCRITORIO_DIR_ESCADA = { "0,-1": 4, "0,1": 0, "-1,0": 2, "1,0": 6 };
+function escritorioPecasDoQuarto(a) {
+  const { w, h } = escritorioDimQuarto(a), pecas = [];
+  for (const [x, y] of escritorioModeloPlanta(a)?.escada || []) {
+    const e = escritorioEscadaQuarto(a, x, y);
+    if (e) pecas.push([ESCRITORIO_PECA_ESCADA, x, y, ESCRITORIO_DIR_ESCADA[e.dx + "," + e.dy] ?? 4, 0, 0]);
+  }
+  // Borda da frente (+y) e da direita (+x) do mezanino: ali o patamar cai
+  // para o piso de baixo e a queda fica à vista de quem olha.
+  const alto = (x, y) => escritorioNivelQuarto(a, x, y) === 2;
+  const cai = (x, y) => { const n = escritorioNivelQuarto(a, x, y); return n === 0; };
+  for (let y = 0; y < h; y++) for (let x = 0; x + 1 < w; x++)
+    if (alto(x, y) && alto(x + 1, y) && cai(x, y + 1) && cai(x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x, y + 0.5, 4, 0, 0]); x++; }
+  for (let x = 0; x < w; x++) for (let y = 0; y + 1 < h; y++)
+    if (alto(x, y) && alto(x, y + 1) && cai(x + 1, y) && cai(x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x + 0.5, y, 2, 0, 0]); y++; }
+  return pecas;
+}
 // Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;
 // pisar nela volta ao mapa) e o escuro em volta, como num quarto do Habbo.
 function escritorioPlantaDoQuarto(a) {
@@ -483,7 +583,7 @@ function escritorioPlantaDoQuarto(a) {
   const naSoleira = (x, y) => x >= soleira.x && x < soleira.x + soleira.w && y >= soleira.y && y < soleira.y + soleira.h;
   return {
     W: w + 1, H: h + 1, PREDIO: null, PISO: ESCRITORIO_PLANTA.PISO, quarto: a.id, fixa: true,
-    ambientes: [{ ...a, x1: a.x0 + w, y1: a.y0 + h }], divisorias: escritorioParedesDoQuarto(a), moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
+    ambientes: [{ ...a, x1: a.x0 + w, y1: a.y0 + h }], divisorias: escritorioParedesDoQuarto(a), moveis: [], fixos: escritorioPecasDoQuarto(a), piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], texturas: [], texturaSalas: ESCRITORIO_PLANTA.texturaSalas, portas: [], elevadores: [], fundo: null, vistas: {},
     rotulos: [{ texto: "Porta · voltar ao mapa", x: soleira.x + soleira.w / 2, y: soleira.y + soleira.h / 2, saida: true }],
     soleiras: [soleira], entrada: escritorioEntradaDaSala(a), saida: { x: soleira.x, y: soleira.y },

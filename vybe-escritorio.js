@@ -542,8 +542,8 @@ function escritorioAndaresHtml() {
 function escritorioPlantaDaCena() {
   const imagens = escritorio.base?.mapa?.imagens || [];
   const a = escritorioAmbienteDoQuarto();
-  if (a) return { ...escritorioPlantaDoQuarto(a), moveis: escritorioMoveisAtuais(), imagens,
-    pisoLadrilho: (x, y) => a.pintura?.pisos.get(x + "," + y), paredeEm: (x, y, eixo) => a.pintura?.paredes.get(`${eixo}:${x},${y}`) };
+  if (a) { const pq = escritorioPlantaDoQuarto(a); return { ...pq, moveis: [...escritorioMoveisAtuais(), ...pq.fixos], imagens,
+    pisoLadrilho: (x, y) => a.pintura?.pisos.get(x + "," + y), paredeEm: (x, y, eixo) => a.pintura?.paredes.get(`${eixo}:${x},${y}`) }; }
   // Praça da Vybelândia (imagem parada, 1672×941): os quatro cantos da praça
   // vazia, onde o mapa quadrado se encaixa. O vídeo ficou só na abertura: no
   // mapa ele chegava borrado, disputava atenção e gastava CPU o dia inteiro.
