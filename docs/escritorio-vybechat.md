@@ -161,6 +161,15 @@ Após login do responsável na Cloudflare, foi confirmado:
   da sala passou a ter 64 ladrilhos e 32 trechos de parede (formato antigo de
   10×10 é descartado pelo servidor). O desenho de cada sala é o mesmo em todas
   (`escritorioMoveisDaSala`), espelhado na diagonal nas salas de porta à direita.
+  Arrumação de sala salva antes de `ESCRITORIO_PLANTA_DESDE` também é
+  descartada (mesma regra do mapa geral): as salas mudaram de tamanho e lugar.
+- Divisórias baixas sem dono são de vidro (translúcidas): o lado de dentro da
+  sala vizinha não some atrás delas. Nos vãos de parede baixa não há porta,
+  só a soleira; a porta de vidro fica nos vãos de parede média.
+- Animação dos móveis: um tique a cada 100 ms, com `frameRepeat` da arte e uma
+  sequência por móvel quando há várias. Com "reduzir movimento" o cenário
+  continua animado, só na metade do ritmo; a preferência desliga a inércia da
+  câmera, o fundo e os pulsos de aviso.
 - A arte é do Habbo (Sulake), obtida pelo habboassets.com. **Uso interno**,
   autorizado pelo Paulo em 16/10/2026, ciente de que não há licença: não usar em
   material público, comercial ou de cliente.

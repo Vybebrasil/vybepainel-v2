@@ -25,7 +25,7 @@ const ESCRITORIO_TAMPOS = {
   exe_table: 0.95, hc25_12: 1.25, hc_exe_table: 1.1, classic9_table: 0.7, army_c15_contable: 1.05, army_c15_contable2: 1.05,
   darkmodern_c20_lowtable: 0.95, modern_c17_lowtable: 0.95, hygge_c25_counter1: 1.25, lodge_dark_desk: 1.25,
   js_exe_bardesk: 0.9, hc26_3: 0.25, hygge_c25_coffeetable: 0.55, gaming_c18_rigpro: 1.15, vwave_c21_bartable: 1,
-  cubie_shelf_2_p: 1.05, hygge_c18_shelf: 1.2, modern_c17_endtable: 1.3,
+  cubie_shelf_2_p: 1.05, hygge_c18_shelf: 1.2, modern_c17_endtable: 1.3, purablk_c16_shelve: 1,
 };
 // Estado em que cada móvel se mexe (tela ligada, fogo aceso, fliperama
 // rodando, água correndo). Na arte do Habbo isso muda de um móvel para outro:
@@ -539,9 +539,11 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     // de som, rádio na prateleira e o aparador.
     producao: [
       item("studio_chair", 3, 1, 4), item("studio_chair", 2, 5, 0), item("studio_chair", 4, 5, 0),
-      // Câmera no tripé apontada para a cadeira do dono (mesma linha, y = 1).
-      item("hygge_c25_desklamp", 4, 3, 2, 1, 0.95), item("studio_camera", 6, 1, 6, 2),
-      item("hygge_c18_shelf", 6, 0, 0, 1), item("hc_radio", 6, 0, 4, 1, 1.2),
+      // Prateleira baixa no fundo com o rádio em cima; caixas de som na parede
+      // da direita com a frente para a sala. (A grua de câmera saiu: o braço
+      // dela cruzava a janela e a mesa numa sala de 8×8.)
+      item("hygge_c25_desklamp", 4, 3, 2, 1, 0.95), item("uni_laptop", 2, 2, 0, 0, 0.95),
+      item("cubie_shelf_2_p", 6, 0, 0), item("hc_radio", 6, 0, 4, 1, 1.05),
       item("darkmodern_c20_speakers", 7, 3, 0), item("darkmodern_c20_speakers", 7, 5, 0),
       item("bohogarden_c21_snakeplant", 0, 6, 2),
     ],

@@ -64,12 +64,19 @@ function mapaQuadros(dados, estado) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const camadas = v?.animations?.[estado]?.layers || {};
   let n = 1;
-  for (const c of Object.values(camadas)) n = Math.max(n, Object.keys(c.frameSequences?.[0]?.frames || {}).length);
+  for (const c of Object.values(camadas)) for (const s of Object.values(c.frameSequences || {})) {
+    const ids = new Set(Object.values(s.frames || {}).map((f) => f.id));
+    if (ids.size > 1) n = Math.max(n, Object.keys(s.frames).length * Math.max(1, Number(c.frameRepeat) || 1));
+  }
   return n;
 }
 // Desenha um móvel num canvas próprio; devolve o deslocamento até o vértice
 // de cima do ladrilho de origem.
-function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro) {
+// quadro: tique da animação (um a cada 100 ms, como o Habbo). semente: escolhe
+// a sequência de quadros quando a arte tem várias (o Habbo sorteia uma a cada
+// volta; aqui cada móvel fica com a sua, para dois iguais não se mexerem em
+// sincronia). frameRepeat da arte vale: um quadro fica N tiques na tela.
+function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro, semente = 0) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const nome = dados.name;
   const partes = [];
@@ -77,9 +84,12 @@ function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro) {
   if (dados.assets[sombra]) partes.push({ asset: sombra, z: -1e6, alpha: 0.18 });
   for (let i = 0; i < (v.layerCount || 1); i++) {
     const L = { ...(v.layers?.[i] || {}), ...(v.directions?.[dir]?.layers?.[i] || {}) };
-    const seq = v.animations?.[estado]?.layers?.[i]?.frameSequences?.[0]?.frames;
+    const anim = v.animations?.[estado]?.layers?.[i];
+    const seqs = anim?.frameSequences ? Object.values(anim.frameSequences) : [];
+    const seq = seqs.length ? seqs[semente % seqs.length]?.frames : null;
     const lista = seq ? Object.values(seq) : null;
-    const id = lista ? lista[quadro % lista.length].id : 0;
+    const repete = Math.max(1, Number(anim?.frameRepeat) || 1);
+    const id = lista ? lista[Math.floor(quadro / repete) % lista.length].id : 0;
     const asset = `${nome}_64_${String.fromCharCode(97 + i)}_${dir}_${id}`;
     if (!dados.assets[asset]) continue;
     partes.push({ asset, z: L.z || 0, ink: L.ink, alpha: L.alpha != null ? L.alpha / 255 : 1, ordem: i });
@@ -373,9 +383,22 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
   const p0 = sobe ? { x: 0, y: alt } : { x: MAPA_TW / 2, y: alt };
   const p1 = sobe ? { x: MAPA_TW / 2, y: alt + MAPA_TH / 2 } : { x: 0, y: alt + MAPA_TH / 2 };
   // Base da parede na cor da sala (escurecida), não num cinza fixo: onde o
-  // painel não cobre, aparece a cor dela e não uma faixa preta.
-  g.fillStyle = cor ? mapaTom(cor, sobe ? 0.55 : 0.42) : sobe ? "#2c2e36" : "#23252c";
+  // painel não cobre, aparece a cor dela e não uma faixa preta. Divisória
+  // baixa sem dono é de vidro: translúcida, para o lado de dentro da sala
+  // vizinha não sumir atrás dela (numa parede opaca, 1,5 ladrilho de altura
+  // escondia três ladrilhos de piso).
+  const vidro = !cor;
+  g.fillStyle = cor ? mapaTom(cor, sobe ? 0.55 : 0.42) : sobe ? "#9cc3e6" : "#7fa9d2";
+  if (vidro) g.globalAlpha = 0.34;
   g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.fill();
+  if (vidro) {
+    // Reflexo e rodapé fino, para o vidro não virar um retângulo chapado.
+    g.globalAlpha = 0.5; g.fillStyle = "#ffffff";
+    g.beginPath(); g.moveTo(p0.x + 3, p0.y - alt + 6); g.lineTo(p1.x + 3, p1.y - alt + 6); g.lineTo(p1.x + 3, p1.y - alt + 9); g.lineTo(p0.x + 3, p0.y - alt + 9); g.closePath(); g.fill();
+    g.globalAlpha = 0.9; g.fillStyle = "#3a3f4b";
+    g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - 4); g.lineTo(p0.x + 3, p0.y - 4); g.closePath(); g.fill();
+    g.globalAlpha = 1;
+  }
   const tex = cor && textura ? MAPA_TEXTURAS_PAREDE.get(textura) : null;
   if (tex) {
     // Painel de n ladrilhos: o trecho k mostra a sua fatia do desenho, com a
@@ -443,7 +466,7 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
   }
   // Topo fino e claro (a parede é uma lâmina, não um bloco): a cor da sala
   // clareada, ou um cinza claro nas divisórias sem dono.
-  g.fillStyle = cor ? mapaTom(cor, 1.35) : "#6a6d78";
+  g.fillStyle = cor ? mapaTom(cor, 1.35) : "#dbe9f6";
   g.beginPath(); g.moveTo(p0.x + 3, p0.y - alt); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p1.x + 3, p1.y - alt - 3); g.lineTo(p0.x + 3, p0.y - alt - 3); g.closePath(); g.fill();
   return { canvas: c, ox: sobe ? -3 : -MAPA_TW / 2 - 3, oy: -alt };
 }
@@ -794,14 +817,18 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   // Móveis (animados ficam numa lista para trocar de quadro)
   const animados = [];
   const moveis = [];
+  // Fogo, água, telas e máquinas são o cenário, não efeito de interface: com
+  // "reduzir movimento" eles continuam, só mais devagar (metade dos tiques).
+  // O que a preferência desliga é a câmera com inércia, o fundo e os pulsos.
   const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const semente = (x, y) => (Math.floor(x) * 7 + Math.floor(y) * 13) % 97;
   // Móveis ligados/desligados pela equipe ("classe@x,y" → estado), inclusive
   // os que chegam antes de o móvel terminar de carregar.
   const estadosForcados = new Map();
   const chaveMovel = (m) => `${m.classe}@${Math.floor(m.x)},${Math.floor(m.y)}`;
   const aplicarEstado = (item, estado) => {
     if (item.estado === estado) return;
-    const d = mapaDesenharMovel(item.m, item.dir, estado, 0);
+    const d = mapaDesenharMovel(item.m, item.dir, estado, 0, item.semente || 0);
     if (!d) return;
     item.ligadoPadrao ??= item.estado || 1;
     item.estado = estado;
@@ -815,7 +842,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     } else colocar(item.no, ...mapaPosicaoPorta(item.classe, item.x, item.y, item.dir), { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 }, item.prof);
     const i = animados.indexOf(item);
     if (i >= 0) animados.splice(i, 1);
-    if (item.quadros > 1 && !reduzido) animados.push(item);
+    if (item.quadros > 1) animados.push(item);
   };
   function estadosMoveis(lista) {
     for (const [chave, estado] of lista || []) {
@@ -917,9 +944,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
         no.style.top = topo + "px";
         no.style.zIndex = Math.round((Math.floor(x) + Math.floor(y)) * 10) + 3;
         palco.append(no);
-        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: Number(no.style.zIndex), caixa: null, origem: origemItem };
+        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: Number(no.style.zIndex), caixa: null, origem: origemItem, semente: semente(x, y) };
         moveis.push(item);
-        if (item.quadros > 1 && !reduzido) animados.push(item);
+        if (item.quadros > 1) animados.push(item);
         if (estadosForcados.has(chaveMovel(item))) aplicarEstado(item, estadosForcados.get(chaveMovel(item)));
         return;
       }
@@ -935,9 +962,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       colocar(desenho.canvas, ...mapaPosicaoPorta(classe, x, y, d0), { ...desenho, oy: desenho.oy + MAPA_MOVEL_Y - altura * 32 }, prof);
       palco.append(desenho.canvas);
       const caixa = { x0: Math.floor(x), x1: Math.floor(x) + Math.max(1, Math.round(dim.x)), y0: Math.floor(y), y1: Math.floor(y) + Math.max(1, Math.round(dim.y)), altura };
-      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof, caixa, origem: origemItem };
+      const item = { classe, x, y, dir: d0, estado, m, no: desenho.canvas, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof, caixa, origem: origemItem, semente: semente(x, y) };
       moveis.push(item);
-      if (item.quadros > 1 && !reduzido) animados.push(item);
+      if (item.quadros > 1) animados.push(item);
       if (estadosForcados.has(chaveMovel(item))) aplicarEstado(item, estadosForcados.get(chaveMovel(item)));
     } catch (e) {
       console.warn(e.message);
@@ -1504,7 +1531,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Quem está andando troca o quadro do passo mesmo entre um passo e outro.
     for (const p of pessoas.values()) if (p.acao === "wlk") trocarImagem(p);
     for (const item of animados) {
-      const d = mapaDesenharMovel(item.m, item.dir, item.estado, quadro);
+      const d = mapaDesenharMovel(item.m, item.dir, item.estado, quadro, item.semente || 0);
       if (!d) continue;
       const g = item.no.getContext("2d");
       if (item.no.width !== d.canvas.width || item.no.height !== d.canvas.height) { item.no.width = d.canvas.width; item.no.height = d.canvas.height; }
@@ -1512,7 +1539,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       g.drawImage(d.canvas, 0, 0);
     }
   };
-  prontos.then(() => { relogio = setInterval(animar, 125); });
+  prontos.then(() => { relogio = setInterval(animar, reduzido ? 200 : 100); });
 
   return {
     origem, prontos, carga, atualizarPessoas, ladrilhoEm, grade: mostrarGrade,

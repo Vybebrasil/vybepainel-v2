@@ -475,6 +475,15 @@ test("planta nova: mapa geral salvo sobre a planta antiga não vale; o salvo dep
   assert.equal(vm.runInContext('escritorioItensDaCamada("geral").length', c), 1);
 });
 
+test("planta nova: arrumação da sala salva antes dela também não vale; a salva depois vale", () => {
+  const { c } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  vm.runInContext('escritorio.base = { ...(escritorio.base || {}), mapa: { camadas: { "sala-0": { itens: [["exe_plant", 9, 9, 0]], versao: 2, em: "2026-10-16T12:00:00Z" } } } }', c);
+  const padrao = vm.runInContext("escritorioMoveisDaSala(ESCRITORIO_PLANTA.ambientes[0]).length", c);
+  assert.equal(vm.runInContext('escritorioItensDaCamada("sala-0").length', c), padrao);
+  vm.runInContext('escritorio.base.mapa.camadas["sala-0"].em = "2027-01-01T00:00:00Z"', c);
+  assert.equal(vm.runInContext('escritorioItensDaCamada("sala-0").length', c), 1);
+});
+
 test("planta nova passa na auditoria (colisões, portas, acessos)", () => {
   const r = spawnSync(process.execPath, ["scripts/escritorio-auditar.mjs"], { encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout + r.stderr);
