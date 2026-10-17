@@ -25,7 +25,7 @@ const ESCRITORIO_TAMPOS = {
   exe_table: 0.95, hc25_12: 1.25, hc_exe_table: 1.1, classic9_table: 0.7, army_c15_contable: 1.05, army_c15_contable2: 1.05,
   darkmodern_c20_lowtable: 0.95, modern_c17_lowtable: 0.95, hygge_c25_counter1: 1.25, lodge_dark_desk: 1.25,
   js_exe_bardesk: 0.9, hc26_3: 0.25, hygge_c25_coffeetable: 0.55, gaming_c18_rigpro: 1.15, vwave_c21_bartable: 1,
-  cubie_shelf_2_p: 1.05, hygge_c18_shelf: 1.2, modern_c17_endtable: 1.3, purablk_c16_shelve: 1,
+  cubie_shelf_2_p: 1.05, hygge_c18_shelf: 1.2, modern_c17_endtable: 1.3, purablk_c16_shelve: 1, jp_drawer: 1,
 };
 // Estado em que cada móvel se mexe (tela ligada, fogo aceso, fliperama
 // rodando, água correndo). Na arte do Habbo isso muda de um móvel para outro:
@@ -46,7 +46,7 @@ const ESCRITORIO_ESTADO_ANIMADO = {
 };
 // Quando esta planta entrou no ar: o mapa geral salvo antes disso é da planta
 // anterior e não vale mais (as salas individuais continuam, são relativas).
-const ESCRITORIO_PLANTA_DESDE = "2026-10-17T06:00:00Z";
+const ESCRITORIO_PLANTA_DESDE = "2026-10-17T12:30:00Z";
 const ESCRITORIO_PLANTA = (() => {
   // O mapa é quadrado, do tamanho da praça da imagem de fundo; o prédio
   // (60 × 48) fica no meio, com jardim atrás e dos lados e a frente para a
@@ -210,13 +210,15 @@ const ESCRITORIO_PLANTA = (() => {
   {
     const q = em("recepcao");
     q("lodge_dark_desk", 3, 4, 2); q("modern_c17_chair", 2, 5, 2);
-    q("hygge_c25_desklamp", 3, 4, 2, 1, 1.25); q("computer_flatscreen", 3, 6, 6, 1, 1.25); q("giftflowers", 3, 5, 2, 0, 1.25);
+    q("hygge_c25_desklamp", 3, 4, 2, 1, 1.25); q("computer_flatscreen", 3, 6, 2, 1, 1.25); q("giftflowers", 3, 5, 2, 0, 1.25);
     q("js_exe_rug", 7, 4, 0); q("js_exe_sofa", 7, 4, 4); q("modern_c17_lowtable", 7, 5, 2); q("js_exe_sofa", 7, 6, 0);
     q("darkmodern_c20_reads", 8, 5, 2, 0, 0.95);
     q("modern_c17_floorlamp", 10, 4, 2, 1); q("darkmodern_c20_pug", 10, 7, 2, 1);
     q("mafia_c26_planter_white", 1, 8, 0); q("mafia_c26_planter_white", 10, 1, 0);
     q("bohogarden_c21_snakeplant", 2, 9, 2); q("bohogarden_c21_snakeplant", 9, 9, 2);
     q("waasa_aquarium", 10, 8, 4); q("hygge_r25_toastcat", 11, 6, 4); q("lc_medusa1", 1, 9, 0);
+    // Revisteiro ao lado da espera e lixeira atrás do balcão.
+    q("tokyo_c18_magazinerack", 10, 5, 2); q("ktchn_trash", 1, 1, 2);
   }
 
   // Produção (0–24 × 38–48). Estúdio (0–9): set de entrevista sobre a luz
@@ -239,6 +241,8 @@ const ESCRITORIO_PLANTA = (() => {
     q("uni_vinyl", 17, 0, 4, 0, 1.6); q("pixel_painting_red", 20, 0, 4, 0, 1.2);
     q("fxbox_fx16", 3, 3, 2);
     q("books_1", 15, 5, 2, 0, 1.1); q("darkmodern_c20_folder", 16, 5, 2, 0, 1.1);
+    // Arte na parede do estúdio, arandela no canto da edição, lixeira e tapete.
+    q("hc3_walldeco", 3, 0, 4, 0, 1.2); q("hc_wall_lamp", 23, 0, 4, 1, 1.3); q("ktchn_trash", 22, 9, 0); q("usva_rug", 15, 6, 0);
   }
 
   // Sala de reunião (12–24 × 12–21), paredes escuras: mesa comprida no
@@ -252,6 +256,8 @@ const ESCRITORIO_PLANTA = (() => {
     q("plant_yukka", 0, 0, 0); q("plant_yukka", 11, 8, 0); q("plant_yukka", 11, 0, 0);
     q("army15_largescreen", 7, 0, 4, 1, 1); q("pixel_clock_black", 10, 0, 4, 0, 1.4);
     q("army_c15_deskcomp", 5, 4, 4, 0, 1.05); q("ktchn10_tea", 7, 4, 2, 0, 1.05); q("books_1", 8, 4, 2, 0, 1.05); q("army_c15_deskcomp", 9, 4, 4, 0, 1.05);
+    // Tapete sob a mesa; quadro e arandela na parede da esquerda; lixeira no canto.
+    q("carpet_standard", 5, 3, 2); q("attic15_painting", 0, 2, 2, 0, 1.2); q("hc_wall_lamp", 0, 7, 2, 1, 1.3); q("ktchn_trash", 11, 1, 2);
   }
 
   // Café (36–48 × 12–21): bancada com geladeiras, fogão, pia e café no
@@ -271,6 +277,9 @@ const ESCRITORIO_PLANTA = (() => {
     }
     q("diner_tray_6", 2.5, 4, 2, 0, 1.25); q("diner_tray_6", 7.5, 4, 2, 0, 1.25);
     q("bohogarden_c21_fanpalm", 11, 8, 2); q("bohogarden_c21_snakeplant", 0, 8, 2);
+    // Lixeira junto da geladeira, quadro em cima dela e tapete sob as mesas.
+    q("ktchn_trash", 9, 0, 0); q("pixel_painting_red", 9, 0, 4, 0, 1.3);
+    q("usva_rug", 2, 3.5, 0); q("usva_rug", 7, 3.5, 0);
   }
 
   // Jogos (48–60 × 12–21): fliperamas e pinball no fundo, jukebox e
@@ -284,6 +293,8 @@ const ESCRITORIO_PLANTA = (() => {
     q("tokyo_c18_racearcade", 11, 3, 6, 1); q("tokyo_c18_racearcade", 11, 4, 6, 1);
     q("theatre_plant", 11, 8, 2); q("army_c15_plant", 0, 8);
     q("uni_vinyl", 5, 0, 4, 0, 1.4);
+    // Letreiro de neon piscando no canto e caixas de som junto da jukebox.
+    q("tokyo_c18_neonsign1", 11, 0, 0, 1); q("darkmodern_c20_speakers", 0, 2, 2); q("darkmodern_c20_speakers", 0, 4, 2);
   }
 
   // Auditório (12–24 × 24–34): telão na parede da esquerda, púlpito ao lado,
@@ -296,6 +307,8 @@ const ESCRITORIO_PLANTA = (() => {
     for (const x of [5, 7, 9]) for (const y of [1, 2, 3, 6, 7, 8]) q("theatre_seat", x, y, 6);
     q("bohogarden_c21_snakeplant", 11, 0, 2); q("bohogarden_c21_snakeplant", 11, 9, 2); q("cine_popcorn", 11, 8, 4);
     q("cine_pstr_1", 3, 0, 4, 0, 1); q("cine_pstr_6", 6, 0, 4, 0, 1); q("cine_pstr_8", 9, 0, 4, 0, 1);
+    // Passadeira no corredor do meio e arandela na parede da esquerda.
+    q("cubie_rug_b", 6, 4, 2); q("hc_wall_lamp", 0, 8, 2, 1, 1.4);
   }
 
   // Foco (36–48 × 24–34): biblioteca silenciosa. Estantes no fundo, duas
@@ -313,6 +326,8 @@ const ESCRITORIO_PLANTA = (() => {
     q("hygge_c25_hangingchair", 11, 8, 6); q("modern_c17_floorlamp", 11, 0, 2, 1);
     q("attic15_clock", 0, 0, 2); q("hygge_r25_toastcat", 5, 8, 4);
     q("theatre_plant", 0, 9, 2); q("bohogarden_c21_fanpalm", 11, 9, 2);
+    // Livros espalhados, como numa biblioteca de verdade.
+    q("bookpile", 4, 8, 0); q("books_0", 9, 8, 2); q("bookpile", 10, 6, 2);
   }
 
   // Academia (48–60 × 24–34): esteiras no fundo dos dois lados da porta,
@@ -327,6 +342,8 @@ const ESCRITORIO_PLANTA = (() => {
     q("olympics_c16_trampoline", 8, 6, 2); q("olympics_c16_trampoline", 8, 8, 2);
     q("bohogarden_c21_snakeplant", 0, 9, 2); q("modern_c17_floorlamp", 11, 9, 2, 1);
     q("hc_wall_lamp", 4, 0, 4, 1, 1.4); q("hc_wall_lamp", 7, 0, 4, 1, 1.4);
+    // Armários no canto do fundo e tapete de alongamento.
+    q("school_locker_b_nosale", 0, 0, 4); q("school_locker_r_nosale", 0, 1, 2); q("usva_rug", 4, 6, 0);
   }
 
   // Lounge (36–60 × 38–48), da esquerda para a direita: Lareira (sofá e
@@ -350,6 +367,9 @@ const ESCRITORIO_PLANTA = (() => {
     q("ktchn15_bubblejuicerack", 18, 0, 4, 1); q("lodge_dark_minibar", 21, 0, 4, 1); q("lodge_dark_minibar", 22, 0, 4, 1);
     for (const x of [19, 22]) { q("vwave_c21_bartable", x, 7, 0); q("vwave_c21_barstool", x - 1, 7, 2); q("vwave_c21_barstool", x + 1, 8, 6); }
     q("uni_fairylights", 20, 0, 4, 0, 2); q("modern_c17_floorlamp", 23, 0, 2, 1);
+    // Estante de livros junto da lareira; neon e caixas de som na pista.
+    q("lodge_dark_bookcase", 4, 0, 0); q("bookpile", 0, 6, 0);
+    q("tokyo_c18_neonsign1", 13, 0, 0, 1); q("darkmodern_c20_speakers", 12, 0, 0); q("darkmodern_c20_speakers", 15, 0, 0);
   }
 
   // Corredores: plantas nos cantos, longe das portas; vasos nas vielas entre
@@ -507,36 +527,59 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
   };
   // Na parede alta do fundo (dir 4; vira a da esquerda na sala espelhada).
   const naParede = (classe, lx, estado, altura) => item(classe, lx, 0, 4, estado, altura, true);
+  // Uma sala do Habbo é cheia: a mobília encosta nas paredes do fundo e da
+  // esquerda (as que aparecem por trás), o meio fica livre para andar, e os
+  // detalhes pequenos (xícara fumegando, livros, lixeira, abajur) dão vida.
+  // A faixa da porta (3–4, 6–7) e os corredores de cada lado da mesa
+  // (coluna 1 e coluna 5) ficam livres.
   const base = [
     item("exe_table", 2, 2, 0),
-    // O monitor olha para a cadeira do dono (atrás da mesa), não para a sala.
-    item("computer_flatscreen", 3, 2, 0, 1, 0.95),
+    // Padrão do Habbo: a frente de todo móvel vira para quem olha o mapa
+    // (direções 4 e 2). Monitor com a tela à mostra; quem senta fica atrás
+    // da mesa, também de frente para quem olha.
+    item("computer_flatscreen", 3, 2, 4, 1, 0.95),
     item("darkmodern_c20_folder", 2, 3, 2, 0, 0.95),
+    // Xícara de chá fumegando na mesa (animada) e a lixeira de papel ao lado.
+    item("ktchn10_tea", 3, 3, 2, 1, 0.95),
+    item("ktchn_trash", 4, 1, 0),
     // Visitas de frente para a mesa, sobre o tapete; planta no canto do fundo.
     item("exe_rug", 2, 4, 0),
     item("exe_plant", 0, 0, 0),
+    // Gaveteiro com livros embaixo da janela; estante baixa na parede da
+    // esquerda com cacto e livros em cima; luminária de chão ao lado.
+    item("jp_drawer", 1, 0, 4), item("books_0", 1, 0, 2, 0, 1),
+    item("cubie_shelf_2_p", 0, 1, 2), item("plant_small_cactus", 0, 1, 0, 0, 1.05), item("books_1", 0, 2, 2, 0, 1.05),
+    item("modern_c17_floorlamp", 0, 3, 2, 1),
+    // Mesinha de canto na direita (cada ala põe uma coisa em cima).
+    item("modern_c17_endtable", 7, 2, 0),
     naParede("window_double_default", 1, 0, 1.0),
     naParede("hc_wall_lamp", 5, 1, 1.3),
-    naParede("pixel_clock_black", 7, 0, 1.4),
   ];
   const temas = {
     // Executivo: poltrona alta, visitas de couro, sofá, globo, telefone,
-    // impressora e a planta grande.
+    // impressora, flores na mesinha, quadro e relógio na parede.
     atendimento: [
       item("hc_exe_chair2", 3, 1, 4), item("js_exe_chair", 2, 5, 0), item("js_exe_chair", 4, 5, 0),
-      item("exe_sofa", 7, 2, 6), item("exe_globe", 6, 0, 0), item("exe_c15_telephone", 4, 3, 2, 1, 0.95),
+      // Sofá encostado no fundo, de frente para a sala (de costas, só se via o
+      // encosto); globo junto da parede da esquerda.
+      item("exe_sofa", 5, 0, 4), item("exe_globe", 0, 5, 0), item("exe_c15_telephone", 4, 3, 2, 1, 0.95),
       item("exe_c15_printer", 0, 6, 2, 1), item("bohogarden_c21_snakeplant", 7, 6, 2),
+      item("giftflowers", 7, 2, 2, 0, 1.3),
+      naParede("pixel_clock_black", 6, 0, 1.4), naParede("attic15_painting", 7, 0, 1.1),
     ],
-    // Criação: cadeira moderna, mesa digitalizadora e tela, pufes, sofá
-    // compacto, luz de chão e prateleira baixa.
+    // Criação: cadeira moderna, mesa digitalizadora, pufes, sofá compacto,
+    // tela inteligente, letreiro de neon, luz de chão e abajur na mesinha.
     criacao: [
       item("modern_c17_chair", 3, 1, 4), item("cubie_beanbag_b", 2, 5, 0), item("cubie_beanbag_p", 4, 5, 0),
       item("art_c20_drawingtablet", 4, 2, 0, 2, 0.95),
-      item("icedblk_c16_sofa", 7, 2, 6), item("cubie_shelf_2_p", 6, 0, 0), item("darkmodern_c20_floorlight", 0, 6, 2, 7),
-      item("modern_c17_plant", 7, 6, 2), item("darkmodern_c20_neonlight", 6, 7, 0),
+      item("icedblk_c16_sofa", 5, 0, 4), item("modern_c17_iscreen", 7, 0, 0, 1),
+      item("tokyo_c18_neonsign1", 0, 6, 2, 1), item("darkmodern_c20_floorlight", 7, 5, 2, 7),
+      item("modern_c17_plant", 7, 7, 2), item("darkmodern_c20_neonlight", 6, 7, 0),
+      item("modern_c17_lamp", 7, 2, 0, 1, 1.3),
+      naParede("pixel_clock_black", 6, 0, 1.4), naParede("pixel_painting_red", 7, 0, 1.2),
     ],
-    // Produção: cadeira de estúdio, segundo monitor, câmera no tripé, caixas
-    // de som, rádio na prateleira e o aparador.
+    // Produção: cadeira de estúdio, segundo monitor, caixas de som, rádio na
+    // prateleira, revistas na mesinha, pilha de livros e o disco na parede.
     producao: [
       item("studio_chair", 3, 1, 4), item("studio_chair", 2, 5, 0), item("studio_chair", 4, 5, 0),
       // Prateleira baixa no fundo com o rádio em cima; caixas de som na parede
@@ -545,7 +588,9 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
       item("hygge_c25_desklamp", 4, 3, 2, 1, 0.95), item("uni_laptop", 2, 2, 0, 0, 0.95),
       item("cubie_shelf_2_p", 6, 0, 0), item("hc_radio", 6, 0, 4, 1, 1.05),
       item("darkmodern_c20_speakers", 7, 3, 0), item("darkmodern_c20_speakers", 7, 5, 0),
+      item("darkmodern_c20_reads", 7, 2, 0, 0, 1.3), item("bookpile", 0, 5, 0),
       item("bohogarden_c21_snakeplant", 0, 6, 2),
+      naParede("uni_vinyl", 7, 0, 1.6),
     ],
   };
   return [...base, ...(temas[tema] || temas.atendimento)];

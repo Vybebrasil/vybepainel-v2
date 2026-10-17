@@ -497,8 +497,10 @@ const MAPA_SELOS = {
   reuniao: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
 };
 // quadro: andando, o Habbo tem 4 quadros de passo (frame_num 0–3).
-function mapaAvatarUrl(figura, dir, acao, mao, quadro) {
-  const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: dir, action: mao ? `${acao},${mao}` : acao, gesture: "sml", size: "n" });
+// gesto: expressão do rosto (sml sorrindo, spk falando, eyb olhos fechados);
+// cabeca: para onde a cabeça olha (pode virar até 90° em relação ao corpo).
+function mapaAvatarUrl(figura, dir, acao, mao, quadro, gesto = "sml", cabeca = dir) {
+  const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: cabeca, action: mao ? `${acao},${mao}` : acao, gesture: gesto, size: "n" });
   if (acao === "wlk") q.set("frame_num", String(quadro || 0));
   return "https://www.habbo.com/habbo-imaging/avatarimage?" + q;
 }
@@ -517,7 +519,11 @@ function mapaBonecoPronto(url, aoCarregar) {
   img.addEventListener("load", aoCarregar, { once: true });
   return false;
 }
-const MAPA_QUADRO_PASSO = 85; // ms por quadro de passo, no ritmo da velocidade normal
+// Ritmo do passo como no Habbo: um ladrilho por passada, com os 4 quadros da
+// passada cabendo no tempo de um ladrilho (antes o boneco deslizava: cada
+// ladrilho levava 172 ms e só dois quadros apareciam).
+const MAPA_PASSO_MS = 240; // ms por ladrilho (≈ 4 ladrilhos por segundo)
+const MAPA_QUADRO_PASSO = MAPA_PASSO_MS / 4; // ms por quadro de passo
 // Direção do Habbo (0–7) para um passo na grade.
 function mapaDirecaoDoPasso(dx, dy) {
   const a = Math.atan2(dy, dx);
@@ -1172,9 +1178,20 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       }
     });
   };
+  // Vida do boneco parado, como no Habbo: pisca de vez em quando, mexe a
+  // boca enquanto o balão de fala está aberto, acena com o braço subindo e
+  // descendo, vira a cabeça para quem está perto e fecha os olhos quando a
+  // pessoa está ausente.
   const trocarImagem = (p) => {
-    const quadro = p.acao === "wlk" ? Math.floor(performance.now() / MAPA_QUADRO_PASSO) % 4 : 0;
-    const url = mapaAvatarUrl(p.figura, p.dir, p.acao, p.mao, quadro);
+    const agora = performance.now();
+    const quadro = p.acao === "wlk" ? Math.floor(agora / MAPA_QUADRO_PASSO) % 4 : 0;
+    // O imager tem um quadro só de aceno; alternando com "em pé" o braço se mexe.
+    const acao = p.acao === "wav" && Math.floor(agora / 320) % 2 ? "std" : p.acao;
+    let gesto = "sml";
+    if (p.falaAte > agora) gesto = Math.floor(agora / 240) % 2 ? "spk" : "sml"; // quem fala acordou
+    else if (p.dormindo || p.piscaAte > agora) gesto = "eyb";
+    const cabeca = acao === "wlk" || acao === "lay" ? p.dir : (p.cabeca ?? p.dir);
+    const url = mapaAvatarUrl(p.figura, p.dir, acao, p.mao, quadro, gesto, cabeca);
     if (p.img.dataset.url === url) return;
     p.img.dataset.url = url;
     const aplicar = () => { if (p.img.dataset.url === url) { delete p.img.dataset.reserva; p.img.src = url; } };
@@ -1182,6 +1199,31 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // estar baixadas para trocar, e os 4 passos da direção já vão sendo pedidos.
     if (!p.img.getAttribute("src") || mapaBonecoPronto(url, aplicar)) aplicar();
     if (p.acao === "wlk") for (let i = 0; i < 4; i++) mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, "wlk", p.mao, i), () => {});
+    // Parado: a piscada e o quadro de "em pé" do aceno já ficam baixados.
+    else {
+      mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, acao, p.mao, 0, "eyb", cabeca), () => {});
+      if (p.acao === "wav") mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, "std", p.mao, 0, "sml", cabeca), () => {});
+    }
+  };
+  // Para onde cada boneco parado olha: quem está falando perto, senão a
+  // pessoa mais próxima (até 4 ladrilhos), se estiver até 90° do corpo.
+  const virarCabecas = () => {
+    const agora = performance.now(), lista = [...pessoas.values()];
+    for (const p of lista) {
+      if (p.acao === "wlk" || p.acao === "lay") { p.cabeca = p.dir; continue; }
+      let alvo = null, melhor = Infinity;
+      for (const o of lista) {
+        if (o === p) continue;
+        const d = Math.hypot(o.x - p.x, o.y - p.y);
+        if (d > 4 || d < 0.3) continue;
+        const peso = o.falaAte > agora ? d - 10 : d;
+        if (peso < melhor) { melhor = peso; alvo = o; }
+      }
+      if (!alvo) { p.cabeca = p.dir; continue; }
+      const para = mapaDirecaoDoPasso(alvo.x - p.x, alvo.y - p.y);
+      const giro = ((para - p.dir) % 8 + 12) % 8 - 4; // −4…3
+      p.cabeca = Math.abs(giro) <= 2 ? para : p.dir;
+    }
   };
   const caminhar = (p, alvo) => {
     cancelAnimationFrame(p.passo);
@@ -1191,7 +1233,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y);
     p.acao = "wlk"; trocarImagem(p);
     // Passos curtos (vindos da presença a cada 150 ms) emendam sem trancos.
-    const dur = Math.min(4000, dist < 1.5 ? 150 : dist * 172), ini = performance.now();
+    const dur = Math.min(4000, dist < 1.5 ? 150 : dist * MAPA_PASSO_MS), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
@@ -1257,6 +1299,9 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       p.etiqueta.querySelector("b").textContent = q.nome;
       if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
       p.no.classList.toggle("distante", q.status === "foco" || q.status === "ausente");
+      // Ausente: o boneco "dorme" (olhos fechados), como o Habbo faz com quem
+      // fica parado muito tempo.
+      p.dormindo = q.status === "ausente";
       p.no.setAttribute("aria-label", q.rotulo || q.nome);
       p.no.dataset.status = q.status || "";
       // O próprio boneco, enquanto este navegador o guia, não é puxado pela
@@ -1428,6 +1473,10 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   function balao(id, texto) {
     const p = pessoas.get(String(id));
     if (!p) return;
+    // Enquanto fala, a boca abre e fecha (quadro "spk" já baixado).
+    p.falaAte = performance.now() + Math.min(4000, 900 + texto.length * 45);
+    mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, p.acao === "wlk" ? "std" : p.acao, p.mao, 0, "spk", p.cabeca ?? p.dir), () => {});
+    trocarImagem(p);
     p.no.querySelector(".mapa-balao")?.remove();
     const b = document.createElement("span");
     b.className = "mapa-balao";
@@ -1528,8 +1577,13 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   const animar = () => {
     if (document.hidden || !el.isConnected || !el.offsetParent) return;
     quadro++;
-    // Quem está andando troca o quadro do passo mesmo entre um passo e outro.
-    for (const p of pessoas.values()) if (p.acao === "wlk") trocarImagem(p);
+    // Bonecos: passo de quem anda; piscada, fala, aceno e cabeça de quem está parado.
+    if (quadro % 5 === 0) virarCabecas();
+    const agora = performance.now();
+    for (const p of pessoas.values()) {
+      if (p.acao !== "wlk" && (!p.piscaEm || agora > p.piscaEm)) { p.piscaEm = agora + 2800 + Math.random() * 4200; p.piscaAte = agora + 170; }
+      trocarImagem(p);
+    }
     for (const item of animados) {
       const d = mapaDesenharMovel(item.m, item.dir, item.estado, quadro, item.semente || 0);
       if (!d) continue;

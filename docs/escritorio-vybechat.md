@@ -170,6 +170,18 @@ Após login do responsável na Cloudflare, foi confirmado:
   sequência por móvel quando há várias. Com "reduzir movimento" o cenário
   continua animado, só na metade do ritmo; a preferência desliga a inércia da
   câmera, o fundo e os pulsos de aviso.
+- Vida dos bonecos (como no Habbo): parado, pisca de vez em quando (gesto `eyb`
+  do imager), mexe a boca enquanto o balão de fala está aberto (`spk`), acena
+  alternando o quadro de aceno com o de pé, vira a cabeça para quem está perto
+  (até 90° do corpo, de preferência para quem está falando) e fecha os olhos
+  quando a pessoa está ausente. O passo tem o ritmo do Habbo: uma passada de 4
+  quadros por ladrilho (`MAPA_PASSO_MS`, 240 ms), e a velocidade do próprio
+  boneco segue a mesma conta.
+- Salas pessoais cheias como no Habbo: mobília encostada nas paredes do fundo
+  e da esquerda (as que aparecem por trás), meio livre para andar, faixa da
+  porta e os corredores dos dois lados da mesa sem móvel, e detalhes pequenos
+  animados (xícara fumegando, impressora, globo, neon, tela). A frente de todo
+  móvel vira para quem olha o mapa (direções 4 e 2).
 - A arte é do Habbo (Sulake), obtida pelo habboassets.com. **Uso interno**,
   autorizado pelo Paulo em 16/10/2026, ciente de que não há licença: não usar em
   material público, comercial ou de cliente.

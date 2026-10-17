@@ -895,7 +895,9 @@ function atualizarChatEscritorio(salaAntes) {
 // Movimento contínuo (como em jogo): a posição anda em frações de ladrilho a
 // cada quadro, com colisão na grade do mapa. Clique segue o caminho livre
 // (A*); WASD/setas dirigem direto. A presença vai para a equipe a cada 150 ms.
-const ESCRITORIO_VELOCIDADE = 5.8; // ladrilhos por segundo (o antigo "correr" virou o normal)
+// Ladrilhos por segundo, no ritmo do passo desenhado pelo mapa (MAPA_PASSO_MS:
+// uma passada de 4 quadros por ladrilho). Fora do navegador o mapa não carrega.
+const ESCRITORIO_VELOCIDADE = 1000 / (typeof MAPA_PASSO_MS === "number" ? MAPA_PASSO_MS : 240);
 const movimento = { x: 0, y: 0, rota: [], quadro: null, ultimo: 0, envio: 0, dir: 2, andando: false };
 function escritorioZonaEm(x, y) {
   return escritorioAmbienteEm(x, y)?.id || "";
