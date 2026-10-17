@@ -27,6 +27,14 @@ function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
     escritorioAviso(escritorio.base?.mapa?.editavel === false && !escritorio.base?.demo ? "O mapa editável aguarda a mudança no banco." : "Você pode editar a sua sala; o mapa, só quem administra.");
     return;
   }
+  // Uma sala só se edita de dentro do quarto dela: entra primeiro (direto
+  // pela porta) e abre o editor quando o quarto estiver desenhado. O mapa
+  // geral se edita de fora dos quartos.
+  if ((camada === "geral" ? escritorio.quarto : escritorio.quarto !== camada) && typeof escritorioEntrarNoQuarto === "function") {
+    escritorio.aoChegarNaCena = () => abrirEditorEscritorio(camada);
+    if (camada === "geral") escritorioSairDoQuarto(); else if (!escritorioEntrarNoQuarto(camada)) escritorio.aoChegarNaCena = null;
+    return;
+  }
   const salvo = escritorio.base.mapa?.camadas?.[camada];
   escritorio.edicao = {
     camada,
@@ -1129,10 +1137,12 @@ function escritorioEhParede(classe) {
   return Boolean((escritorioCatalogo || []).find((m) => m.classe === classe)?.parede);
 }
 function escritorioTemParede(x, y, eixo) {
-  const P = ESCRITORIO_PLANTA;
-  if (eixo === "x" && y === P.PREDIO.y0) return true;
-  if (eixo === "y" && x === P.PREDIO.x0) return true;
-  return P.divisorias.some(([x0, y0, x1, y1]) => (eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1));
+  const P = ESCRITORIO_PLANTA, quarto = escritorioAmbienteDoQuarto();
+  if (!quarto && eixo === "x" && y === P.PREDIO.y0) return true;
+  if (!quarto && eixo === "y" && x === P.PREDIO.x0) return true;
+  // Dentro do quarto valem as paredes dele; no mapa geral, as da planta.
+  const paredes = quarto ? escritorioParedesDoQuarto(quarto) : P.divisorias;
+  return paredes.some(([x0, y0, x1, y1]) => (eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1));
 }
 function escritorioLugarParede(x, y, fx = x + 0.5, fy = y + 0.5) {
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);

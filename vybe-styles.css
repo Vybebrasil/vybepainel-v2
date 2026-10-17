@@ -6286,6 +6286,42 @@ body.no-escritorio {overflow:hidden}
 
 /* Letreiro em neon das salas individuais */
 .mapa-rotulo.neon {background:#0b0a10d9;color:var(--neon,#ff8a35);border:1px solid color-mix(in srgb,var(--neon,#ff8a35) 55%,transparent);font:800 12px var(--mac-ui);letter-spacing:.04em;text-shadow:0 0 6px color-mix(in srgb,var(--neon,#ff8a35) 70%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--neon,#ff8a35) 35%,transparent);opacity:1}
+/* Quartos próprios: fachada clicável no mapa (letreiro + quantos estão dentro), porta de saída do quarto e o fundo escuro da cena do quarto */
+.mapa-rotulo.fachada {display:inline-flex;align-items:center;gap:6px;pointer-events:auto;cursor:pointer;border-radius:8px}
+.mapa-rotulo.fachada:hover {box-shadow:0 0 18px color-mix(in srgb,var(--neon,#ff8a35) 55%,transparent)}
+.mapa-rotulo.fachada:focus-visible {outline:2px solid #fff;outline-offset:2px}
+.mapa-dentro {display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--neon,#ff8a35);color:#140d08;font:800 10px var(--mac-ui);letter-spacing:0;text-shadow:none}
+.mapa-dentro[hidden] {display:none}
+.mapa-rotulo.saida {pointer-events:auto;cursor:pointer;background:#1d1610ee;color:#ffe7d2;border:1px solid #ff8a3566;box-shadow:0 10px 30px #0007;opacity:1}
+.mapa-rotulo.saida:hover {border-color:#ff8a35}
+.mapa-rotulo.saida:focus-visible {outline:2px solid #fff;outline-offset:2px}
+.ofc-mapa[data-cena=quarto] {background:radial-gradient(120% 90% at 50% 40%,#2a2430 0%,#171420 55%,#0d0b12 100%)}
+.ofc-mapa[data-cena=quarto]::after {background:radial-gradient(120% 80% at 50% 0%,transparent 60%,#06040888 100%)}
+.ofc-topo-esq {display:flex;align-items:center;gap:8px;pointer-events:auto}
+.ofc-voltar-mapa {display:flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid var(--ofc-borda);border-radius:14px;background:var(--ofc-vidro);color:var(--ofc-texto);font:600 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-voltar-mapa:hover {background:#2a2d38}
+.ofc-voltar-mapa:focus-visible {outline:2px solid var(--ofc-laranja)}
+.ofc-voltar-mapa svg {width:16px;height:16px}
+/* "Quem está onde": cartão à esquerda, embaixo do nome do lugar; lista cada lugar ocupado com os nomes */
+.ofc-onde {position:absolute;z-index:5;top:70px;left:16px;width:232px;max-height:min(44vh,360px);display:flex;flex-direction:column;border-radius:14px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow:hidden}
+.ofc-onde[hidden] {display:none}
+.ofc-onde summary {display:flex;align-items:center;gap:6px;padding:8px 12px;color:var(--ofc-texto);font:650 12px var(--mac-ui);cursor:pointer;list-style:none;user-select:none}
+.ofc-onde summary::-webkit-details-marker {display:none}
+.ofc-onde summary::after {content:"";margin-left:auto;width:7px;height:7px;border-right:1.5px solid var(--ofc-suave);border-bottom:1.5px solid var(--ofc-suave);transform:rotate(45deg);transition:transform .15s}
+.ofc-onde:not([open]) summary::after {transform:rotate(-45deg)}
+.ofc-onde summary:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
+.ofc-onde summary svg {width:16px;height:16px}
+.ofc-onde > div {overflow-y:auto;padding:0 6px 6px}
+.ofc-onde ul {list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.ofc-onde-lugar {display:grid;grid-template-columns:10px 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;width:100%;padding:6px 8px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:550 12px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-onde-lugar:hover:not(:disabled) {background:#ffffff0b}
+.ofc-onde-lugar:disabled {cursor:default;background:color-mix(in srgb,var(--sala) 14%,transparent)}
+.ofc-onde-lugar:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
+.ofc-onde-lugar i {grid-row:1/3;width:10px;height:10px;border-radius:3px;background:var(--sala)}
+.ofc-onde-lugar b {font-weight:650}
+.ofc-onde-lugar span {color:var(--ofc-suave);font-size:11px;white-space:normal}
+.ofc-onde-nota {margin:6px 8px 2px;color:var(--ofc-suave);font:500 11px var(--mac-ui)}
+@media(max-width:760px){.ofc-onde{display:none}}
 /* Conversa compacta: barra com rostos; clique abre a lista */
 .office-call {padding:0;overflow:hidden}
 .office-call-actions {display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
