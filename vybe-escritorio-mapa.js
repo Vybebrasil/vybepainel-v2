@@ -716,7 +716,7 @@ function mapaOrdenar(objetos) {
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
-function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoClicarFachada, aoClicarSaida }) {
+function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarFachada, aoClicarSaida }) {
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
@@ -1126,8 +1126,8 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
   // Prévia do editor: o móvel meio transparente no ladrilho do mouse (verde
   // se cabe, vermelho se não). null tira a prévia.
   let previaNo = null, previaChave = "";
-  async function previa(classe, x, y, dir, cabe = true) {
-    const chave = classe ? `${classe}|${x}|${y}|${dir}|${cabe}` : "";
+  async function previa(classe, x, y, dir, cabe = true, altura = 0) {
+    const chave = classe ? `${classe}|${x}|${y}|${dir}|${cabe}|${altura}` : "";
     if (chave === previaChave) return;
     previaChave = chave;
     if (!classe || classe.startsWith("vybeimg_")) { previaNo?.remove(); previaNo = null; return; }
@@ -1140,7 +1140,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       previaNo?.remove();
       previaNo = desenho.canvas;
       previaNo.className = "mapa-obj mapa-previa" + (cabe ? "" : " nao-cabe");
-      colocar(previaNo, x, y, { ...desenho, oy: desenho.oy + MAPA_MOVEL_Y }, 99990);
+      colocar(previaNo, x, y, { ...desenho, oy: desenho.oy + MAPA_MOVEL_Y - altura * 32 }, 99990);
       palco.append(previaNo);
     } catch {}
   }
@@ -1548,6 +1548,13 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
     if (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H) aoClicar?.(t.x, t.y);
   });
+  const cancelarPonteiro = () => {
+    const a = arrasto; arrasto = null; inercia = null;
+    if (a?.item) aoCancelar?.();
+    aoPassar?.(-1,-1);
+  };
+  el.addEventListener("pointercancel", cancelarPonteiro);
+  el.addEventListener("lostpointercapture", () => { if (arrasto) cancelarPonteiro(); });
   el.addEventListener("pointerleave", () => aoPassar?.(-1, -1));
   el.addEventListener("wheel", (e) => {
     e.preventDefault();

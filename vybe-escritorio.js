@@ -974,6 +974,7 @@ function montarMapaEscritorio() {
       aoPegar: (x, y, fx, fy) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y, fx, fy),
       aoArrastar: (x, y, fx, fy) => arrastarNoEditorEscritorio(x, y, fx, fy),
       aoSoltar: (x, y, moveu) => soltarNoEditorEscritorio(x, y, moveu),
+      aoCancelar: () => cancelarArrastoEditorEscritorio(),
       aoClicarFachada: (id) => escritorioIrParaAmbiente(id),
       aoClicarSaida: () => planta.saida && escritorioIrPara(planta.saida.x, planta.saida.y),
     });

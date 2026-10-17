@@ -6182,9 +6182,9 @@ body.no-escritorio {overflow:hidden}
 
 /* Editor do mapa */
 .mapa-obj.mapa-selecionado {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35cc)}
-.ofc-editor {position:absolute;z-index:7;top:64px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;flex-wrap:wrap;max-width:calc(100% - 32px);padding:10px 12px;border-radius:16px;background:#1d1610ee;border:1px solid #ff8a3566;box-shadow:0 14px 40px #0008;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-editor {position:absolute;z-index:7;top:64px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;width:900px;max-width:calc(100% - 32px);padding:10px 12px;border-radius:16px;background:#1d1610ee;border:1px solid #ff8a3566;box-shadow:0 14px 40px #0008;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .ofc-editor[hidden] {display:none}
-.ofc-editor-info {display:grid;gap:2px}
+.ofc-editor-info {display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;width:100%}
 .ofc-editor-info b {font:700 13px var(--mac-ui);color:#ffd2b0}
 .ofc-editor-info span {font-size:12px;color:var(--ofc-suave)}
 .ofc-editor-sel,.ofc-editor-acoes {display:flex;gap:6px}
@@ -6700,6 +6700,17 @@ body.no-escritorio {overflow:hidden}
 
 /* Editor: desfazer/refazer e a barrinha ao lado do móvel selecionado. */
 .ofc-editor-hist {display:flex;gap:6px}
+.ofc-editor-ferramentas {display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1}
+.ofc-editor-ferramentas details {position:relative;margin-left:auto;font:12px var(--mac-ui);color:var(--ofc-suave)}
+.ofc-editor-ferramentas summary,.ofc-editor-menu summary {cursor:pointer;padding:8px;font:12px var(--mac-ui);color:var(--ofc-suave)}
+.ofc-editor-menu {position:relative}
+.ofc-editor-menu>div {position:absolute;right:0;top:100%;z-index:9;display:grid;gap:6px;min-width:160px;padding:10px;border-radius:12px;border:1px solid var(--ofc-borda);background:#202127}
+.ofc-editor-acoes {margin-left:auto}
+.ofc-editor-ferramentas details p {position:absolute;right:0;top:100%;z-index:9;width:min(300px,70vw);margin:4px 0;padding:12px;border:1px solid var(--ofc-borda);border-radius:12px;background:var(--ofc-fundo,#202127);color:var(--ofc-texto);line-height:1.6}
+#office-map.ofc-camera-editor {cursor:grab}
+#office-map.ofc-camera-editor:active {cursor:grabbing}
+.ofc-editor-ferramentas summary:focus-visible,.ofc-editor-menu summary:focus-visible {outline:2px solid var(--ofc-laranja);border-radius:8px}
+
 .ofc-editor-hist button:disabled {opacity:.4;cursor:default}
 .ofc-editor-flutua {position:absolute;z-index:8;display:flex;gap:4px;padding:5px;border-radius:12px;background:#1d1610f2;border:1px solid #ff8a3566;box-shadow:0 10px 26px #0009}
 .ofc-editor-flutua button {padding:6px 10px;border-radius:8px;border:1px solid #ffffff22;background:#ffffff10;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;white-space:nowrap}
