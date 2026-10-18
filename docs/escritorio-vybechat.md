@@ -558,3 +558,22 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
 - Correções: duas trocas de móveis seguidas desenhavam tudo em dobro (agora
   em fila); "Ir para Convivência" aparecia encostado em qualquer parede (agora
   só na soleira).
+
+### Física pela ficha oficial do Habbo (18/10/2026)
+
+- `assets/escritorio/habbo/fisica.json` sai da furnidata oficial
+  (`scripts/habbo-fisica.mjs <furnidata.json>`, baixada de
+  `https://www.habbo.com.br/gamedata/furnidata_json/1`): para cada móvel, se
+  dá para pisar (canstandon), sentar (cansiton), deitar (canlayon), pôr coisas
+  em cima (canputstuffon) e a altura. Ao trocar o catálogo, gere de novo.
+- Grade igual à do servidor do Habbo (Arcturus `Room.canWalkAt/canSitAt/
+  canLayAt`): em cada ladrilho vale o móvel mais alto; degrau até 1,5 e queda
+  livre (`RoomLayout.MAXIMUM_STEP_HEIGHT`); deita na linha da cabeceira; o
+  portão (0 fechado, 1 aberto) não muda com alguém em cima; empilhar no editor
+  só em cima do que aceita coisas (a altura livre continua para o resto).
+- Com a ficha, 14 assentos que estavam como parede passaram a sentar
+  (poltronas da Reunião, cadeiras do Auditório, banquetas da Produção…). O
+  palco do Auditório virou `classic7_stage` (no Habbo o `cine_platform` é
+  assento); a bandeja que estava em cima do minibar saiu.
+- O verificador (`scripts/escritorio-auditar.mjs`) usa a mesma ficha e a
+  mesma grade do mapa e acusa móvel empilhado no que não aceita nada em cima.

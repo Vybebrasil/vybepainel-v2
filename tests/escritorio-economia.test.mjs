@@ -251,7 +251,7 @@ test('física do Habbo: portão fechado bloqueia, cama deita, esteira/gelo/placa
    m('sf_roller',0,4,{dim:{x:1,y:1,z:0.45}}),m('es_skating_ice',3,4,{dim:{x:2,y:2,z:0},plano:true}),m('wf_pressureplate',7,0,{dim:{x:1,y:1,z:0.2}}),
    m('bc_block_0_recolorable',6,4),m('mm_lamp',6,4,{altura:1,dim:{x:1,y:1,z:2}}),m('exe_table',7,4),m('computer_flatscreen',7,4,{altura:1,dim:{x:1,y:1,z:0.5}})]);
   const b=(x,y)=>g.bloqueado[g.ind(x,y)];
-  return {fechado:b(2,1),aberto:b(2,3),cama:g.cama.get(g.ind(5,2)),camaLivre:b(5,2),esteira:g.piso.get(g.ind(0,4))?.tipo,alturaEsteira:Math.round(g.subida[g.ind(0,4)]*100)/100,
+  return {fechado:b(2,1),aberto:b(2,3),cama:g.cama.get(g.ind(5,2))?.dir,camaLivre:b(5,2),esteira:g.piso.get(g.ind(0,4))?.tipo,alturaEsteira:Math.round(g.subida[g.ind(0,4)]*100)/100,
    gelo:g.piso.get(g.ind(4,5))?.tipo,placa:g.piso.get(g.ind(7,0))?.tipo,lampadaNoBloco:b(6,4),mesa:b(7,4)};})()`,c);
  assert.deepEqual(JSON.parse(JSON.stringify(r)),{fechado:1,aberto:0,cama:2,camaLivre:0,esteira:'esteira',alturaEsteira:0.45,gelo:'gelo',placa:'placa',lampadaNoBloco:1,mesa:1});
  // A mesa de centro ("coffee table") não serve café; a cafeteira serve.
@@ -302,4 +302,21 @@ test('porta do quarto muda de lado só com o vão livre',async t=>{
  await salvarCamadaEscritorio(sql,pessoa,salas,{camada:sala,itens:[['hc26_10',2,2,0]],versao:r.versao});
  const p=await salvarPerfilEscritorio(sql,1,{sala_porta:'direita'},async()=>sala);
  assert.equal(p.sala_porta,'direita');
+});
+test('física vem da ficha oficial do Habbo: assentos, cama na cabeceira, degrau de 1,5 e empilhar só no que aceita',async()=>{
+ const vm=await import('node:vm');
+ const ficha=JSON.parse(readFileSync('assets/escritorio/habbo/fisica.json','utf8'));
+ // Ficha gerada da furnidata: poltrona e cadeira de cinema sentam, cama deita, mesa aceita coisas em cima.
+ assert.ok(ficha.exe_chair[0]&2 && ficha.theatre_seat[0]&2 && ficha.bed_polyfon_one[0]&4 && ficha.exe_table[0]&8);
+ assert.ok(!(ficha.lodge_dark_minibar[0]&8),'o minibar não aceita nada em cima');
+ const c=vm.createContext({console,window:{},document:{},__ficha:ficha});
+ vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8')+'\nMAPA_FISICA=__ficha;',c);
+ const r=vm.runInContext(`(()=>{const P={W:8,H:6,divisorias:[]};
+  const m=(classe,x,y,extra={})=>({classe,x,y,dir:0,altura:0,estado:0,dim:{x:1,y:1,z:1},plano:false,prof:0,...extra});
+  const g=mapaMontarGrade(P,[m('exe_chair',1,1),m('theatre_seat',2,1),m('bed_polyfon_one',4,0,{dim:{x:1,y:3,z:1.7}}),m('greek_block',6,0,{dim:{x:2,y:1,z:0.5}}),
+   m('bc_block_0_recolorable',0,4),m('bc_block_0_recolorable',1,4),m('bc_block_0_recolorable',1,4,{altura:1})]);
+  const cab=g.cama.get(g.ind(4,2));
+  return {poltrona:g.assento.has(g.ind(1,1)),cinema:g.assento.has(g.ind(2,1)),cabeceira:[cab.x,cab.y],greek:g.bloqueado[g.ind(6,0)],
+   degrauUm:mapaPassa(g,0,5,0,-1),degrauDois:mapaPassa(g,1,5,0,-1),deUmParaDois:mapaPassa(g,0,4,1,0),degrau:MAPA_DEGRAU};})()`,c);
+ assert.deepEqual(JSON.parse(JSON.stringify(r)),{poltrona:true,cinema:true,cabeceira:[4,0],greek:1,degrauUm:true,degrauDois:false,deUmParaDois:true,degrau:1.5});
 });

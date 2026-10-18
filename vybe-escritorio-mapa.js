@@ -445,13 +445,32 @@ const MAPA_ASSENTOS = new Set(["vybe_assento_invisivel", "chair_polyfon","hc26_1
   "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
   "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair", "paris_c15_chair"]);
 // Blocos, palcos e plataformas baixos: dá para subir neles, como no Habbo.
-// Quem anda sobe até MAPA_DEGRAU de altura de um ladrilho para o vizinho
-// (escada de blocos); mais que isso é parede. Desce de qualquer altura.
-const MAPA_SUBIVEIS = /^(bc_block_\w+|bc_tile_recolorable|vybe_bloco_invisivel|\w+_stage|cine_platform|greek_block|ktchn10_block|disco_c26_block)$/;
-const MAPA_DEGRAU = 1.3;
-// Física do Habbo: portão (fechado bloqueia; estado 1 é aberto), cama (deita),
-// esteira rolante (leva quem para em cima), gelo (desliza), água rasa
-// (respingo), trampolim (pula) e placa de pressão (abre os portões da sala).
+// Física dos móveis vem da ficha oficial do Habbo (furnidata), gerada em
+// assets/escritorio/habbo/fisica.json por scripts/habbo-fisica.mjs: pisar
+// (canstandon), sentar (cansiton), deitar (canlayon), pôr coisas em cima
+// (canputstuffon) e a altura de empilhar. Sem a ficha (móvel fora dela), vale
+// a lista antiga de assentos e o nome.
+let MAPA_FISICA = null;
+async function mapaCarregarFisica() {
+  if (MAPA_FISICA) return MAPA_FISICA;
+  try {
+    const r = await fetch(mapaArquivo("fisica.json"), { credentials: "same-origin" });
+    MAPA_FISICA = r.ok ? await r.json() : {};
+  } catch { MAPA_FISICA = {}; }
+  return MAPA_FISICA;
+}
+const MAPA_SUBIVEIS = /^(bc_block_\w+|bc_tile_recolorable|vybe_bloco_invisivel|\w+_stage|greek_block|ktchn10_block|disco_c26_block)$/;
+function mapaFisica(classe) {
+  const f = MAPA_FISICA?.[classe];
+  if (f) return { pisa: Boolean(f[0] & 1), senta: Boolean(f[0] & 2), deita: Boolean(f[0] & 4), poe: Boolean(f[0] & 8), altura: f[1] };
+  const senta = MAPA_ASSENTOS.has(classe), deita = mapaEhCama(classe), pisa = MAPA_SUBIVEIS.test(classe);
+  return { pisa, senta, deita, poe: pisa, altura: null };
+}
+// Degrau do Habbo (servidor Arcturus: MAXIMUM_STEP_HEIGHT = 1,5): sobe-se até
+// 1,5 de um ladrilho para o vizinho; descer, de qualquer altura.
+const MAPA_DEGRAU = 1.5;
+// Portão (fechado = 0 bloqueia; aberto = 1 se atravessa), cama (deita na
+// cabeceira), esteira rolante, gelo, água rasa, trampolim e placa de pressão.
 const MAPA_PORTOES = /gate/;
 const MAPA_CAMAS = /bed/;
 const MAPA_NAO_CAMA = /flowerbed|bedside|^mystics_/;
@@ -464,11 +483,19 @@ function mapaPisoEspecial(classe) {
   if (/pressureplate/.test(classe)) return "placa";
   return null;
 }
-function mapaEhPortao(classe) { return MAPA_PORTOES.test(classe) && !MAPA_PORTAS.test(classe); }
-function mapaEhCama(classe) { return MAPA_CAMAS.test(classe) && !MAPA_NAO_CAMA.test(classe); }
-function mapaTopoMovel(m) {
-  return (m.altura || 0) + ((typeof ESCRITORIO_TAMPOS !== "undefined" && ESCRITORIO_TAMPOS[m.classe]) ?? m.dim.z ?? 1);
+// Portão: o nome diz "gate", ninguém pisa nele pela ficha (abre e fecha) e não
+// é porta de vidro (essas abrem sozinhas).
+function mapaEhPortao(classe) { return MAPA_PORTOES.test(classe) && !MAPA_PORTAS.test(classe) && !mapaFisica(classe).pisa && !mapaFisica(classe).senta; }
+function mapaEhCama(classe) {
+  const f = MAPA_FISICA?.[classe];
+  return f ? Boolean(f[0] & 4) : MAPA_CAMAS.test(classe) && !MAPA_NAO_CAMA.test(classe);
 }
+// Altura de empilhar: a medida no desenho (ESCRITORIO_TAMPOS), senão a da
+// ficha do Habbo, senão a do modelo do móvel.
+function mapaAlturaMovel(m) {
+  return (typeof ESCRITORIO_TAMPOS !== "undefined" && ESCRITORIO_TAMPOS[m.classe]) ?? mapaFisica(m.classe).altura ?? m.dim.z ?? 1;
+}
+function mapaTopoMovel(m) { return (m.altura || 0) + mapaAlturaMovel(m); }
 function mapaMontarGrade(P, moveis) {
   const W = P.W, H = P.H;
   const bloqueado = new Uint8Array(W * H);
@@ -476,9 +503,9 @@ function mapaMontarGrade(P, moveis) {
   const profAssento = new Map(); // índice → profundidade do assento (quem senta fica à frente)
   const desvioAssento = new Map(); // índice → quanto o assento saiu do ladrilho (ajuste fino)
   const paredes = new Set(); // "x,y|x,y" entre vizinhos
-  const subida = new Float32Array(W * H); // altura de quem pisa em cima de um bloco
+  const subida = new Float32Array(W * H); // altura de quem pisa, senta ou deita ali
   const piso = new Map(); // índice → { tipo, dir } (esteira, gelo, água, trampolim, placa)
-  const cama = new Map(); // índice → direção de quem deita
+  const cama = new Map(); // índice → { dir, x, y } (direção e cabeceira da cama)
   const ind = (x, y) => y * W + x;
   const aresta = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
   for (const [x0, y0, x1, y1] of P.divisorias) {
@@ -489,55 +516,42 @@ function mapaMontarGrade(P, moveis) {
   for (const r of P.texturas || []) if (r.agua) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) bloqueado[ind(x, y)] = 1;
   // Quarto: só se anda dentro dele e na soleira (P.andavel).
   if (P.andavel) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (!P.andavel(x, y)) bloqueado[ind(x, y)] = 1;
-  const cada = (m, fn) => {
-    for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
-      const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
-      if (x >= 0 && y >= 0 && x < W && y < H) fn(ind(x, y));
-    }
-  };
-  const apoiados = [];
+  // Como no Habbo (Room.canWalkAt/canSitAt/canLayAt): em cada ladrilho vale o
+  // que está mais alto. Pisável, assento ou cama deixam passar (o boneco fica
+  // na altura dele); qualquer outro móvel no topo bloqueia. Na mesma altura,
+  // basta um que não se pise para bloquear.
+  const topo = new Map(); // índice → móveis na maior altura
   for (const m of moveis) {
-    const especial = mapaPisoEspecial(m.classe);
-    if (especial) {
-      cada(m, (i) => piso.set(i, { tipo: especial, dir: m.dir }));
-      // Esteira, trampolim e placa têm altura: quem pisa fica em cima.
-      if (especial !== "gelo" && especial !== "agua") cada(m, (i) => { subida[i] = Math.max(subida[i], mapaTopoMovel(m)); });
-      continue;
-    }
-    // Portão aberto se atravessa; fechado é parede (mesmo rente ao piso).
-    if (mapaEhPortao(m.classe) && !m.altura) {
-      if (!(m.estado >= 1)) cada(m, (i) => { bloqueado[i] = 1; });
-      continue;
-    }
-    // Cama: deita-se em qualquer ladrilho dela; o boneco fica na frente dela.
-    if (mapaEhCama(m.classe) && !m.altura) { cada(m, (i) => { cama.set(i, m.dir); profAssento.set(i, m.prof); }); continue; }
-    if (MAPA_SUBIVEIS.test(m.classe) && mapaTopoMovel(m) <= 4) {
-      for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
-        const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
-        if (x >= 0 && y >= 0 && x < W && y < H) subida[ind(x, y)] = Math.max(subida[ind(x, y)], mapaTopoMovel(m));
-      }
-      continue;
-    }
-    const senta = MAPA_ASSENTOS.has(m.classe);
-    if (m.plano || MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // rente ao piso ou porta (se atravessa)
-    // Em cima de mesa não bloqueia; assento em cima de bloco ou patamar
-    // continua sendo assento, e quem senta fica na altura dele.
-    if (m.altura && !senta) { apoiados.push(m); continue; }
-    if (senta && m.altura) cada(m, (i) => { subida[i] = Math.max(subida[i], m.altura); });
+    if (MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // porta e escada se atravessam
     for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
       const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      if (senta) { assento.set(ind(x, y), m.dir); profAssento.set(ind(x, y), m.prof); desvioAssento.set(ind(x, y), { dx: m.x - Math.floor(m.x), dy: m.y - Math.floor(m.y) }); }
-      else bloqueado[ind(x, y)] = 1;
+      const i = ind(x, y), t = topo.get(i), z = m.altura || 0;
+      if (!t || z > t.z + 0.001) topo.set(i, { z, lista: [m] });
+      else if (Math.abs(z - t.z) <= 0.001) t.lista.push(m);
     }
   }
-  // Em cima de um bloco ou palco (onde se pisa), um móvel alto bloqueia o
-  // ladrilho; em cima de mesa, a mesa já bloqueia.
-  for (const m of apoiados) {
-    if (m.plano || !(m.dim.z > 0.3)) continue;
-    let pisavel = true;
-    cada(m, (i) => { if (subida[i] < m.altura - 0.05) pisavel = false; });
-    if (pisavel) cada(m, (i) => { bloqueado[i] = 1; });
+  for (const [i, { z, lista }] of topo) {
+    for (const m of lista) { const especial = mapaPisoEspecial(m.classe); if (especial) piso.set(i, { tipo: especial, dir: m.dir }); }
+    const portao = lista.find((m) => mapaEhPortao(m.classe));
+    if (portao) { if (!(portao.estado >= 1)) bloqueado[i] = 1; continue; }
+    const fis = lista.map((m) => [m, mapaFisica(m.classe)]);
+    const senta = fis.find(([, f]) => f.senta)?.[0], deita = fis.find(([, f]) => f.deita)?.[0];
+    if (senta) {
+      assento.set(i, senta.dir); profAssento.set(i, senta.prof);
+      desvioAssento.set(i, { dx: senta.x - Math.floor(senta.x), dy: senta.y - Math.floor(senta.y) });
+      subida[i] = z;
+      continue;
+    }
+    if (deita) { cama.set(i, { dir: deita.dir, x: Math.floor(deita.x), y: Math.floor(deita.y) }); profAssento.set(i, deita.prof); subida[i] = z; continue; }
+    // Rente ao piso (tapete, piso do acervo) também se pisa, na altura dele.
+    if (fis.every(([m, f]) => f.pisa || m.plano || mapaPisoEspecial(m.classe))) {
+      subida[i] = z + Math.max(0, ...fis.map(([m, f]) => (f.pisa || mapaPisoEspecial(m.classe) && !["gelo", "agua"].includes(mapaPisoEspecial(m.classe)) ? mapaAlturaMovel(m) : 0)));
+      // Pisável alto demais (torre) não é chão: bloqueia.
+      if (subida[i] > 4) bloqueado[i] = 1;
+      continue;
+    }
+    bloqueado[i] = 1;
   }
   return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, subida, piso, cama, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
 }
@@ -987,7 +1001,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // isso, quem chegou antes dos móveis carregarem ficava atrás das paredes).
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
-  const prontos = Promise.all(P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
+  // A grade só é montada com a ficha de física do Habbo carregada.
+  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   // Uma troca por vez: duas seguidas (editar e salvar) desenhavam os móveis
   // em dobro, porque a segunda limpava enquanto a primeira ainda montava.
@@ -1117,6 +1132,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     p.no.classList.toggle("na-agua", especial === "agua");
     // A imagem de quem deita é deitada (110 × 64), não em pé (64 × 110).
     p.no.classList.toggle("deitado", p.acao === "lay");
+    // Na direção 2 a cabeça fica à esquerda da imagem (deitado ao longo de x);
+    // nas outras, à direita (ao longo de y). A cabeça vai no ladrilho da cabeceira.
+    if (p.acao === "lay") p.no.dataset.deitado = p.dir === 2 ? "x" : "y";
     p.no.classList.toggle("pulando", especial === "trampolim" && p.acao !== "wlk");
     t.y -= subiu;
     p.no.style.left = t.x + "px";
@@ -1719,7 +1737,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
     bloqueadoEm: (x, y) => Boolean(grade) && (x < 0 || y < 0 || x >= grade.W || y >= grade.H || Boolean(grade.bloqueado[grade.ind(x, y)])),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
-    camaEm: (x, y) => (grade ? grade.cama.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
+    camaEm: (x, y) => (grade ? grade.cama.get(grade.ind(Math.round(x), Math.round(y)))?.dir : undefined),
+    // Onde se deita (como o Habbo): na linha da cabeceira, na mesma coluna.
+    cabeceiraEm: (x, y) => {
+      const c = grade?.cama.get(grade.ind(Math.round(x), Math.round(y)));
+      if (!c) return null;
+      return c.dir === 0 || c.dir === 4 ? { x: Math.round(x), y: c.y } : { x: c.x, y: Math.round(y) };
+    },
     pisoEm: (x, y) => (grade ? grade.piso.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     portoes: () => moveis.filter((m) => mapaEhPortao(m.classe) && !m.altura),
     tela: (x, y) => mapaTela(x, y, origem),

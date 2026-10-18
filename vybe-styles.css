@@ -6004,6 +6004,8 @@ body.no-escritorio {overflow:hidden}
 /* Física do Habbo: no trampolim o boneco pula; na água rasa, respingo nos pés;
    dormindo (ausente), um "zZz" sobe da cabeça. */
 .mapa-pessoa.deitado img {width:110px;height:64px;margin:46px 0 0 -23px}
+.mapa-pessoa.deitado[data-deitado=x] img {margin:76px 0 0 -18px}
+.mapa-pessoa.deitado[data-deitado=y] img {margin:47px 0 0 -54px}
 .mapa-pessoa.pulando img {animation:mapa-pulo .62s cubic-bezier(.3,0,.7,1) infinite}
 @keyframes mapa-pulo {0%,100% {transform:translateY(0)} 50% {transform:translateY(-26px)}}
 .mapa-pessoa.na-agua::after {content:"";position:absolute;left:12px;bottom:-4px;width:40px;height:14px;border-radius:50%;border:2px solid #bfe9ffcc;animation:mapa-respingo 1.4s ease-out infinite;pointer-events:none}

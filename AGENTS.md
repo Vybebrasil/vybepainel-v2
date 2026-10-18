@@ -124,7 +124,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma
   transação do salvamento da camada; porta e escada da planta base não mudam.
-  Física do Habbo (portão, cama, esteira, gelo, placa) roda no navegador de
+  Pisar, sentar, deitar, empilhar e altura vêm da ficha oficial do Habbo
+  (`assets/escritorio/habbo/fisica.json`, gerada por `scripts/habbo-fisica.mjs`);
+  não reintroduza listas de assentos à mão. Física do Habbo (portão, cama, esteira, gelo, placa) roda no navegador de
   quem anda; estados de móvel vão pelo `furni:toggle`. Post-its e presentes
   ficam em `server/escritorio-social.js`: presente só de unidade guardada,
   numa transação, com chave idempotente.

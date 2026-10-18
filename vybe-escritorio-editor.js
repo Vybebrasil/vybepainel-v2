@@ -369,14 +369,14 @@ function noChaoEscritorio() {
 // em cima dela, centrada no tampo, e a altura do tampo.
 function escritorioEmCimaDe(x, y, ignorar = -1) {
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
-  // Empilhar como no Habbo: qualquer móvel sólido (menos assento) serve de
-  // base, e o que já está em cima dele também (vaso sobre livros sobre a
-  // estante, armário sobre balcão). Fica no topo mais alto.
-  const candidatos = escritorio.mapa.moveisEm(x, y).filter((m) => !m.plano && !(m.origem?.camada === e.camada && m.origem?.i === ignorar) && !MAPA_ASSENTOS.has(m.classe)
-    && (m.altura || (m.dim.z > 0.3 && m.dim.z <= 3.4)));
+  // Empilhar como no Habbo: só em cima do que a ficha deixa pôr coisas
+  // (canputstuffon: mesa, balcão, estante, bloco), e o que já está em cima
+  // dele também. Fica no topo mais alto. Para pôr em cima de qualquer coisa
+  // há a altura livre (− / +), como o ladrilho de empilhar do Habbo.
+  const candidatos = escritorio.mapa.moveisEm(x, y).filter((m) => !m.plano && !(m.origem?.camada === e.camada && m.origem?.i === ignorar) && mapaFisica(m.classe).poe
+    && mapaTopoMovel(m) <= 10);
   if (!candidatos.length) return null;
-  // Altura do tampo medida no desenho (ESCRITORIO_TAMPOS), senão a da ficha.
-  const topo = (m) => (m.altura || 0) + ((typeof ESCRITORIO_TAMPOS !== "undefined" && ESCRITORIO_TAMPOS[m.classe]) || m.dim.z || 0);
+  const topo = mapaTopoMovel;
   const alto = candidatos.reduce((a, b) => (topo(b) > topo(a) ? b : a));
   const base = candidatos.filter((m) => !m.altura).sort((a, b) => b.dim.x * b.dim.y - a.dim.x * a.dim.y)[0] || alto;
   const w = Math.max(1, Math.round(base.dim.x)), h = Math.max(1, Math.round(base.dim.y));
