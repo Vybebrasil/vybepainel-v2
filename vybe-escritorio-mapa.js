@@ -1271,17 +1271,25 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   function pintarLuzes() {
     for (const n of luzes) n.remove();
     luzes.length = 0;
-    const forca = { noite: 1, madrugada: 1, "por-do-sol": 0.7, manha: 0.3, tarde: 0.25 }[el.dataset.ceu] ?? 0.5;
+    // Sala na penumbra (luz "bar", como o regulador de luz baixo do Habbo):
+    // as luzes valem a noite toda, sem depender do horário de Irecê.
+    const penumbra = palco.dataset.luz === "bar";
+    const forca = penumbra ? 1 : { noite: 1, madrugada: 1, "por-do-sol": 0.7, manha: 0.3, tarde: 0.25 }[el.dataset.ceu] ?? 0.5;
+    const brilho = (x, y, classe, extra) => {
+      const n = document.createElement("i");
+      n.className = "mapa-luz" + (extra ? " " + extra : "");
+      n.style.left = x + "px"; n.style.top = y + "px";
+      n.style.setProperty("--forca", String(forca));
+      if (/fireplace|candle|torch/.test(classe)) n.classList.add("fogo");
+      palco.append(n);
+      luzes.push(n);
+    };
     for (const m of moveis) {
       if (!LUZ.test(m.classe) || m.estado === 0 && !/fireplace|candle|torch/.test(m.classe)) continue;
       const t = mapaTela(Math.floor(m.x) + m.dim.x / 2, Math.floor(m.y) + m.dim.y / 2, origem);
-      const n = document.createElement("i");
-      n.className = "mapa-luz";
-      n.style.left = t.x + "px"; n.style.top = t.y + "px";
-      n.style.setProperty("--forca", String(forca));
-      if (/fireplace|candle|torch/.test(m.classe)) n.classList.add("fogo");
-      palco.append(n);
-      luzes.push(n);
+      brilho(t.x, t.y, m.classe);
+      // Lâmpada pendurada: além da luz no chão, o halo em volta da lâmpada.
+      if (m.pendurado && m.altura > 1) brilho(t.x, t.y - m.altura * 32 + 4, m.classe, "no-alto");
     }
   }
   // Profundidade de paredes e móveis (os tapetes ficam rente ao piso, embaixo).

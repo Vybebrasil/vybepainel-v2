@@ -5993,6 +5993,8 @@ body.no-escritorio {overflow:hidden}
 .mapa-palco[data-luz=roxa] {--mapa-luz:sepia(.4) hue-rotate(220deg) saturate(1.4) brightness(.88)}
 .mapa-palco[data-luz=verde] {--mapa-luz:sepia(.3) hue-rotate(60deg) saturate(1.25) brightness(.95)}
 .mapa-palco[data-luz=noite] {--mapa-luz:sepia(.25) hue-rotate(185deg) saturate(.9) brightness(.62)}
+/* Penumbra de bar (Lounge): tudo mais escuro e quente; as luzes (.mapa-luz) ficam fora do filtro e acendem as áreas. */
+.mapa-palco[data-luz=bar] {--mapa-luz:sepia(.2) saturate(1.1) brightness(.62)}
 .mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
 /* Móvel do mapa: contêiner sem z-index nem filtro (sem contexto de
    empilhamento), com uma camada por canvas; cada camada tem o z-index da sua
@@ -6859,6 +6861,7 @@ body.no-escritorio {overflow:hidden}
 /* Luz das luminárias no chão (mais forte à noite). */
 .mapa-luz {position:absolute;z-index:1;width:220px;height:110px;margin:-55px 0 0 -110px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(255,214,150,calc(.34 * var(--forca,.5))),rgba(255,190,110,calc(.12 * var(--forca,.5))) 55%,transparent);mix-blend-mode:screen}
 .mapa-luz.fogo {background:radial-gradient(closest-side,rgba(255,150,70,calc(.42 * var(--forca,.5))),rgba(255,110,40,calc(.14 * var(--forca,.5))) 55%,transparent);animation:mapa-luz-fogo 2.4s ease-in-out infinite}
+.mapa-luz.no-alto {width:90px;height:90px;margin:-45px 0 0 -45px;z-index:90000;background:radial-gradient(closest-side,rgba(255,226,170,calc(.5 * var(--forca,.5))),rgba(255,200,120,calc(.16 * var(--forca,.5))) 60%,transparent)}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
 
