@@ -1543,10 +1543,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
 
   // Câmera suave: um alvo (posição e zoom) e um único quadro de animação que
   // aproxima a câmera dele com amortecimento exponencial (independe da taxa de
-  // quadros). Roda do mouse e pinça do trackpad dão zoom contínuo no ponto do
+  // quadros). Roda do mouse e pinça do trackpad trocam o nível de zoom no ponto do
   // cursor; arrastar segue o dedo na hora e solta com inércia; acompanhar a
   // pessoa só muda o alvo. Sem movimento de sobra, o laço para.
   let zoom = 1, cam = { x: 0, y: 0 };
+  // Zoom do Habbo: só 0,5×, 1× e 2× (escala quebrada borra a pixel art; o
+  // jogo desenha a arte de 64 px em 1× e afasta pela metade). A prévia do
+  // cartão de criação continua livre, por ser miniatura.
+  const NIVEIS = [0.5, 1, 2];
+  const nivel = (z) => (P.previa ? z : NIVEIS.reduce((m, n) => (Math.abs(Math.log(n / z)) < Math.abs(Math.log(m / z)) ? n : m)));
   const alvo = { x: 0, y: 0, z: 1 };
   let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true;
   const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -1571,16 +1576,17 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     zoom += (alvo.z - zoom) * k;
     cam.x += (alvo.x - cam.x) * k; cam.y += (alvo.y - cam.y) * k;
     const parado = !inercia && Math.abs(alvo.z - zoom) < 0.0005 && Math.hypot(alvo.x - cam.x, alvo.y - cam.y) < 0.3;
-    if (parado) { zoom = alvo.z; cam.x = alvo.x; cam.y = alvo.y; }
+    // Parada em pixel inteiro: a arte não fica meio pixel deslocada.
+    if (parado) { zoom = alvo.z; cam.x = alvo.x = Math.round(alvo.x); cam.y = alvo.y = Math.round(alvo.y); }
     aplicar();
     if (!parado) quadroCam = requestAnimationFrame(animarCam);
     else ultimoCam = 0;
   };
   const mexerCam = () => { if (!quadroCam) quadroCam = requestAnimationFrame(animarCam); };
   function centralizar(x, y, z) {
-    if (z) alvo.z = Math.max(0.35, Math.min(2.2, z));
+    if (z) alvo.z = nivel(Math.max(0.35, Math.min(2.2, z)));
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
-    alvo.x = cam.x = r.width / 2 - t.x * alvo.z; alvo.y = cam.y = r.height / 2 - t.y * alvo.z;
+    alvo.x = cam.x = Math.round(r.width / 2 - t.x * alvo.z); alvo.y = cam.y = Math.round(r.height / 2 - t.y * alvo.z);
     zoom = alvo.z; inercia = null;
     aplicar();
   }
@@ -1593,8 +1599,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100;
     // Prévia (cartão da criação do quarto): sem a folga da barra e do dock.
     const [mw, mh] = P.previa ? [8, 8] : [32, 180];
+    // Como no Habbo, 1× sempre que o quarto quase cabe (o resto se vê
+    // arrastando); 0,5× só em tela pequena. A prévia segue livre.
+    const cabe = Math.min((r.width - mw) / w, (r.height - mh) / h);
     centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
-      Math.max(P.previa ? 0.2 : 0.35, Math.min(1.35, (r.width - mw) / w, (r.height - mh) / h)));
+      P.previa ? Math.max(0.2, Math.min(1.35, cabe)) : cabe >= 0.8 ? 1 : 0.5);
     // O centro visual inclui as paredes e o patamar alto, acima do piso.
     alvo.y += (MAPA_PAREDE + (P.nivelEm ? 48 : 0)) * alvo.z / 2;
     cam.y=alvo.y; aplicar();
@@ -1606,12 +1615,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   function mudarZoom(fator, cx, cy) {
     const r = el.getBoundingClientRect();
     cx ??= r.width / 2; cy ??= r.height / 2;
-    const novo = Math.max(0.35, Math.min(2.2, alvo.z * fator));
+    // Um nível por vez (0,5× → 1× → 2×).
+    const i = NIVEIS.indexOf(nivel(alvo.z));
+    const novo = P.previa ? Math.max(0.35, Math.min(2.2, alvo.z * fator)) : NIVEIS[Math.max(0, Math.min(NIVEIS.length - 1, i + (fator > 1 ? 1 : fator < 1 ? -1 : 0)))];
+    if (novo === alvo.z) return;
     alvo.x = cx - ((cx - alvo.x) / alvo.z) * novo; alvo.y = cy - ((cy - alvo.y) / alvo.z) * novo;
     alvo.z = novo;
     mexerCam();
   }
-  let arrasto = null;
+  let arrasto = null, rodaAcumulada = 0;
   // Ladrilho sob um ponto da janela (mouse, dedo, arrastar do catálogo).
   const ladrilhoEm = (cx, cy) => {
     const r = palco.getBoundingClientRect();
@@ -1688,14 +1700,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const r = el.getBoundingClientRect();
     // Trackpad manda passos pequenos (e ctrl na pinça); roda, passos grandes.
     const passo = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-    const fator = Math.exp(-Math.max(-60, Math.min(60, passo)) * (e.ctrlKey ? 0.012 : 0.0022));
+    // Níveis do Habbo: a roda (ou a pinça) acumula até um "dente" e só então troca de nível.
+    rodaAcumulada += passo * (e.ctrlKey ? 4 : 1);
+    if (Math.abs(rodaAcumulada) < 90) return;
+    const fator = rodaAcumulada < 0 ? 2 : 0.5;
+    rodaAcumulada = 0;
     mudarZoom(fator, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
 
   // Leva a câmera, suave, até um ponto com outro zoom (atalhos de área).
   function olhar(x, y, z) {
     const r = el.getBoundingClientRect(), t = mapaTela(x, y, origem);
-    alvo.z = Math.max(0.35, Math.min(2.2, z || alvo.z));
+    alvo.z = nivel(Math.max(0.35, Math.min(2.2, z || alvo.z)));
     alvo.x = r.width / 2 - t.x * alvo.z; alvo.y = r.height / 2 - t.y * alvo.z;
     seguindo = false; inercia = null;
     mexerCam();

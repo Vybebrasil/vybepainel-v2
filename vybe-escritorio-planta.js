@@ -501,11 +501,11 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["antique_c21_armchair", 2, 6, 4], ["lodge_dark_endtable", 2, 7, 0], ["antique_c21_teaset", 2, 7, 0, 0, 0.9], ["antique_c21_armchair", 2, 8, 0],
     ["antique_c21_lamp", 3, 6, 0], ["mafia_c26_walllamp_dark", 0, 7.4, 2, 0, 1],
     ["hween_c22_gothicbookshelf", 0, 9, 0], ["antique_c21_birdcage", 0, 11, 2], ["vikings_wallshield_r", 0, 12.2, 2, 0, 1.4], ["mafia_c26_planter_dark", 0, 14, 0],
-    // Salão: mesas de barril com banquetas e chope, lustres por cima.
+    // Salão: mesas de barril com banquetas e chope.
     ...[[5, 8], [5, 11]].flatMap(([x, y]) => [["wildwest_table", x, y, 0], ["room_hcl15_barchair", x - 1, y, 2], ["room_hcl15_barchair", x + 1, y, 6],
-      ["fantasy_c22_frothydrink", x, y, 0, 0, 1.4], ["lodge_dark_chandelier", x, y, 0]]),
+      ["fantasy_c22_frothydrink", x, y, 0, 0, 1.4]]),
     ["wildwest_table", 10, 9, 0], ["room_hcl15_barchair", 10, 8, 4], ["room_hcl15_barchair", 10, 10, 0],
-    ["fantasy_c22_frothydrink", 10, 9, 0, 0, 1.4], ["lodge_dark_chandelier", 10, 9, 0],
+    ["fantasy_c22_frothydrink", 10, 9, 0, 0, 1.4],
     // Canto dos sofás vermelhos, atrás dos canteiros de flores.
     ["garden_flowerbed", 12, 6, 0], ["garden_flowerbed", 14, 6, 0], ["garden_flowerbed", 16, 6, 0],
     ["hc_crpt", 12, 7, 0],
