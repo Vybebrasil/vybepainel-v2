@@ -243,7 +243,7 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["exe_map", 3, 0, 4, 0, 1.4], ["lodge_dark_tv", 5, 0, 0],
     ["shelves_silo", 7, 0, 4], ["exe_wfall", 9, 0, 4, 0, 0.6],
     ["mafia_c26_planter_dark", 10, 0, 0], ["uni_c23_whiteboard", 11, 0, 0],
-    ["lodge_dark_fireplace", 0, 2, 2], ["lodge_dark_minibar", 0, 5, 2], ["mafia_c26_drinktray", 0, 5, 0, 0, 1],
+    ["lodge_dark_fireplace", 0, 2, 2], ["lodge_dark_minibar", 0, 5, 2],
     ["shelves_silo", 0, 7, 2],
     ["exe_rug", 4, 3, 0], ["exe_table", 4, 4, 0],
     ...[4, 5, 6].flatMap((x) => [["exe_chair", x, 3, 4], ["exe_chair", x, 6, 0]]),
@@ -281,8 +281,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // bilheteria e pipoca na entrada.
   auditorio: () => [
     ["cine_screen", 4, 0, 0], ["cine_light2", 1, 0, 4, 0, 0.4], ["cine_light2", 12, 0, 4, 0, 0.4],
-    // Degraus na frente do palco: sobe-se como no Habbo (até 1,3 por passo).
-    ["cine_platform", 5, 2, 0], ["uni_lectern", 8, 2, 0, 0, 1.4], ["greek_block", 5, 3, 0], ["greek_block", 7, 3, 0],
+    // Palco onde se pisa e se põe coisas (no Habbo o cine_platform é assento):
+    // altura 1,15, que se sobe direto do chão (degrau do Habbo: até 1,5).
+    ["classic7_stage", 5, 1, 0], ["classic7_stage", 7, 1, 0], ["uni_lectern", 8, 2, 0, 0, 1.15],
     ["spotlight", 3, 1, 2], ["spotlight", 10, 1, 6],
     ["cine_pstr_1", 0, 3, 2, 0, 0.6], ["cine_pstr_6", 0, 7, 2, 0, 0.6],
     ["cine_light2", 0, 1, 2, 0, 0.4], ["cine_light2", 0, 5, 2, 0, 0.4], ["cine_light2", 0, 9, 2, 0, 0.4],

@@ -1235,6 +1235,15 @@ function escritorioFisicaDoPiso(andando) {
   }
   clearTimeout(escritorio.timerEsteira);
   if (andando) return;
+  // Parou numa cama: deita na linha da cabeceira, na mesma coluna (como o
+  // servidor do Habbo faz), em vez de deitar no meio do colchão.
+  const cabeceira = m.cabeceiraEm?.(x, y);
+  if (cabeceira && (cabeceira.x !== x || cabeceira.y !== y) && !escritorioOcupado(cabeceira.x, cabeceira.y)) {
+    movimento.x = cabeceira.x; movimento.y = cabeceira.y; movimento.ladrilho = cabeceira.x + "," + cabeceira.y;
+    m.mover(escritorio.base.eu, movimento.x, movimento.y, m.camaEm(movimento.x, movimento.y) ?? movimento.dir, "lay");
+    escritorioEnviarPosicao(true);
+    return;
+  }
   const piso = m.pisoEm(x, y);
   const seguir = (dx, dy) => {
     if (!(dx || dy) || !escritorioPodeIr(x, y, x + dx, y + dy) || !m.caminho({ x, y }, { x: x + dx, y: y + dy }, null, 2)) return;
@@ -1260,7 +1269,7 @@ function escritorioPisouEm(x, y) {
 function escritorioPortoes(estado) {
   const m = escritorio.mapa;
   if (!m?.portoes) return;
-  const mudou = m.portoes().filter((g) => (g.estado || 0) !== estado).map((g) => [m.chaveMovel(g), estado]);
+  const mudou = m.portoes().filter((g) => (g.estado || 0) !== estado && !escritorioPortaoOcupado(g)).map((g) => [m.chaveMovel(g), estado]);
   if (!mudou.length) return;
   m.estadosMoveis(mudou);
   for (const [chave] of mudou) escritorioEmitir("furni:toggle", { chave, estado });
@@ -1560,7 +1569,15 @@ function darItemEscritorio(id) {
   escritorioAviso(`Você deu ${ESCRITORIO_NOME_MAO[pose]} para ${nome || "a pessoa"}.`);
 }
 // Portão: abre e fecha no clique ou no E; a alavanca vira todos os portões.
+// No Habbo o portão não abre nem fecha com alguém em cima dele.
+function escritorioPortaoOcupado(g) {
+  const eu = escritorioPosicao(escritorio.perfil || {});
+  const gente = [{ x: Math.round(movimento.quadro ? movimento.x : eu.x), y: Math.round(movimento.quadro ? movimento.y : eu.y) },
+    ...(escritorio.online || []).filter((o) => String(o.id) !== String(escritorio.base.eu) && escritorioNaCena(o)).map((o) => { const q = escritorioPosicao(o); return { x: Math.round(q.x), y: Math.round(q.y) }; })];
+  return gente.some((q) => q.x >= Math.floor(g.x) && q.x < Math.floor(g.x) + Math.max(1, Math.round(g.dim.x)) && q.y >= Math.floor(g.y) && q.y < Math.floor(g.y) + Math.max(1, Math.round(g.dim.y)));
+}
 function alternarPortaoEscritorio(g) {
+  if (escritorioPortaoOcupado(g)) return escritorioAviso("Tem alguém no portão: ele não fecha com gente em cima.");
   const m = escritorio.mapa, estado = g.estado ? 0 : 1, chave = m.chaveMovel(g);
   m.estadosMoveis([[chave, estado]]);
   escritorioEmitir("furni:toggle", { chave, estado });

@@ -12,6 +12,9 @@ vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalTh
 // O motor de caminhada do mapa (mesma grade e mesmo passo do boneco): blocos
 // pisáveis, portões, camas, assentos em cima de bloco, pisos especiais.
 vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8") + "\n;globalThis.__grade = mapaMontarGrade; globalThis.__passa = mapaPassa;", ctx);
+// A mesma ficha de física do Habbo que o mapa carrega.
+ctx.__ficha = JSON.parse(readFileSync("assets/escritorio/habbo/fisica.json", "utf8"));
+vm.runInContext("MAPA_FISICA = globalThis.__ficha;", ctx);
 const arte = (c) => {
   const f = `assets/escritorio/habbo/${c}.json`;
   if (!existsSync(f)) return null;
@@ -28,14 +31,13 @@ const arte = (c) => {
 };
 // Mesma lista de assentos do mapa (lida do código, para não divergir).
 const fonteMapa = readFileSync("vybe-escritorio-mapa.js", "utf8");
-const ASSENTOS_LISTA = new Set(JSON.parse(fonteMapa.match(/MAPA_ASSENTOS = new Set\((\[[^\]]*\])/)[1].replace(/\s+/g, " ")));
-const ASSENTOS = { test: (c) => ASSENTOS_LISTA.has(c) };
+const ASSENTOS = { test: (c) => ctx.mapaFisica(c).senta };
 const PORTAS = /^(val14_gate|exe_gate|ktchn_gate|wildwest_saloondr)$/;
 const DE_TETO = /discoball|chandelier|hanging_?lamp|ceiling/;
 const INTERATIVOS = /coffee|fridge|water_dispenser|minibar|stove|microwave|school_c22_cafe|treadmill|bicycle|jukebox|hc25_6|pinball|arcade|retrogames|fireplace|floorlight|pooltable|projector|largescreen|_tv$|exe_table/;
 const FOCO = /table|desk|rigpro|hc26_2|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
 const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
-const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill/;
+const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill|lifering|rela_rock|olympics_c16_sofa|racearcade/;
 const FRENTE = /arcade|pinball|retrogames|jukebox|bookcase|bookshelf|shelve|_shelf|tv$|screen|projector|fireplace|wrkdesk|minibar|fridge|stove|sink|counter|cabinet|cupboard|dispenser|mixingdesk|lectern|whiteboard|coffeemachine|microwave|printer|hc25_6|bardesk|rigpro/;
 const ALTO = 92; // px de desenho: acima disso o móvel cobre a parte de baixo do item
 
@@ -91,13 +93,16 @@ function auditar(cena, P, moveis, avisos) {
   // (globo de espelhos), que pende do alto sem móvel embaixo.
   // Pilhas (como no Habbo): a peça apoia no topo mais alto que fica abaixo
   // dela no ladrilho, seja a mesa no chão ou outra peça já empilhada.
-  const topoDe = (o) => (o.altura || 0) + (ctx.__tampos[o.classe] ?? (arte(o.classe)?.d.z || 0));
+  const topoDe = (o) => (o.altura || 0) + (ctx.__tampos[o.classe] ?? ctx.mapaFisica(o.classe).altura ?? (arte(o.classe)?.d.z || 0));
   for (const it of itens) {
     if (!it.altura || DE_TETO.test(it.classe)) continue;
     if (!ocup.has(`${it.x},${it.y}`)) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) flutuando`)); continue; }
     const abaixo = itens.filter((o) => o !== it && !o.plano && (o.altura || 0) < it.altura && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
     if (!abaixo.length) continue;
     const base = abaixo.reduce((a, b) => (topoDe(b) > topoDe(a) ? b : a)), tampo = topoDe(base);
+    // Como no Habbo: só se empilha em cima do que a ficha deixa pôr coisas
+    // (canputstuffon). Cadeira, cama, planta e luminária não são base.
+    if (!ctx.mapaFisica(base.classe).poe) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) empilhado em cima de ${base.classe}, que no Habbo não aceita nada em cima`));
     if (Math.abs(tampo - it.altura) > 0.12) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) na altura ${it.altura}, mas o topo de ${base.classe} fica em ${Math.round(tampo * 100) / 100}`));
   }
   // Assento: precisa de um ladrilho livre ao lado, sem parede no meio, para chegar.
