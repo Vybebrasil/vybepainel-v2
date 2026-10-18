@@ -53,8 +53,9 @@ export default function reuniao() {
   s.por("lodge_dark_lamp", 15, 2);
   s.por("bohogarden_c21_snakeplant", 17, 2);
 
-  // O tablado tem um nível: no Habbo sobe-se direto (até 1,5), a beira do
-  // piso é o degrau. Sem escada aqui.
+  // Escadinha de varanda na beira do tablado: uma peça só, que no desenho
+  // sobe o nível inteiro (pisa-se nela a 0,5 e dali ao tablado).
+  s.escada("hween_c20_porchstairs", 14, 4, [0, -1]);
 
   // --- Salão: mesa longa ---
   s.canto("mesa de reunião", { funcao: "reunir a equipe com cliente", destaque: "army15_ltddesk" });

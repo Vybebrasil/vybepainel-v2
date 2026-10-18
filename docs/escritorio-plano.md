@@ -143,10 +143,17 @@ Eles viraram regras conferidas contra o Habbo:
 - **Caminho do Habbo** (Arcturus `MAXIMUM_STEP_HEIGHT = 1,5`; até 2 para entrar
   em assento; assento se atravessa; desce livre; diagonal só barrada com os
   dois lados fechados): da porta, a pessoa chega a todo assento, canto e andar.
-- **Escada só onde o desnível passa de 1,5.** Patamar de um nível se sobe
-  direto, e a beira do piso já é o degrau (por isso a Reunião ficou sem
-  escada). Cada escada tem tipo conferido: "degrau" (empilha) ou "inteira"
-  (com mureta, vai sozinha). O último degrau chega rente (folga 0,15).
+- **Escada pela subida do desenho.** Cada escada tem tipo conferido na
+  vitrine:
+  - "degrau": o desenho tem a altura da ficha e empilha até chegar rente
+    (folga 0,15);
+  - escada inteira: o desenho sobe um andar numa peça só, com corrimão.
+    Exemplo: a escadinha da varanda pisa a 0,5 e mostra a subida de 1. Vai
+    sozinha, nunca empilhada.
+
+  A escada não precisa existir pela física (no Habbo sobe-se direto até 1,5),
+  mas tem de fazer sentido no desenho. Na Reunião, uma escadinha de varanda
+  vence o tablado de 1 nível. (Tirar a escada não era solução, Paulo.)
 
 ## Desenho do motor: arquiteto + designer de interiores (Paulo, 18/10/2026)
 

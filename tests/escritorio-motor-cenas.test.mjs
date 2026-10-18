@@ -219,15 +219,18 @@ test("sentido: frente conferida na arte, tela olha para quem usa e assento na fr
   assert.equal(s.moveis.find((m) => m[0] === "computer_flatscreen" && m[1] === 9)[3], 0, "tela para o norte, onde está a cadeira");
 });
 
-test("altura da escada: só acima de 1,5, degrau empilha, escada com mureta vai sozinha e o topo chega rente", () => {
-  const baixo = novaCena("reuniao", { acabamento: false });
-  baixo.escada("bc_stairs_recolorable", 14, 5, [0, -1]);
-  assert.match(baixo.erros.join("\n"), /para subir só 1: no Habbo sobe-se direto até 1,5/);
+test("altura da escada: pela subida do desenho; escada inteira vai sozinha e degrau empilha rente", () => {
+  // A escadinha da varanda pisa a 0,5 mas o desenho sobe um nível: uma peça
+  // só vence o tablado de 1 (dali ao tablado é um passo do Habbo).
+  const r = novaCena("reuniao", { acabamento: false });
+  r.escada("hween_c20_porchstairs", 14, 4, [0, -1]);
+  assert.deepEqual(r.erros, []);
+  assert.deepEqual(r.moveis.filter((m) => m[0] === "hween_c20_porchstairs").map((m) => [m[1], m[2], m[3], m[5]]), [[14, 4, 0, 0]], "uma peça, no chão, de frente para o salão");
   const mez = (s) => s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 3, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [], lados: ["frente"], abertura: [12, 14] });
   const s = novaCena("recepcao", { acabamento: false });
   mez(s);
   s.escada("hween_c20_porchstairs", 12, 10, [0, -1]);
-  assert.match(s.erros.join("\n"), /escada inteira \(tem mureta\): não se empilha/);
+  assert.match(s.erros.join("\n"), /mostra uma subida de 1 e o desnível é 3: escada inteira não se empilha/);
   const t = novaCena("recepcao", { acabamento: false });
   mez(t);
   t.escada("bc_stairs_recolorable", 12, 10, [0, -1], { largura: 2, estado: 185 });
@@ -238,7 +241,7 @@ test("altura da escada: só acima de 1,5, degrau empilha, escada com mureta vai 
   const u = novaCena("recepcao", { acabamento: false });
   mez(u);
   u.escada("wintercabin_c19_stairs", 12, 9, [0, -1]);
-  assert.match(u.erros.join("\n"), /não chega a 3/);
+  assert.match(u.erros.join("\n"), /subida do desenho não foi conferida/);
 });
 
 test("caminho como o do Habbo: da porta a todo assento e andar, subindo até 1,5 (2 para sentar)", () => {

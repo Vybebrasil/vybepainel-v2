@@ -119,14 +119,19 @@
   "bc_stairs_recolorable": "regra",
   "classic5_stairs": "regra"
  },
- "_escadas": "Escadas conferidas na vitrine (18/10/2026): \"degrau\" é peça sem mureta, que se empilha para subir mais de um degrau; \"inteira\" é escada com mureta ou corrimão, usada sozinha (empilhada, a mureta sobra acima do piso de cima).",
+ "_escadas": "Escadas conferidas na vitrine (18/10/2026). \"degrau\": peça sem mureta, desenhada da altura da ficha; empilha para subir mais. {tipo: \"inteira\", sobe}: escada com corrimão desenhada para subir \"sobe\" níveis numa peça só (a ficha pode ser menor: a escadinha da varanda tem 0,5 de pisar e sobe 1 no desenho); vai sozinha, nunca empilhada.",
  "escadas": {
   "xmas_c18_stagestairs": "degrau",
   "bc_stairs_recolorable": "degrau",
   "classic5_stairs": "degrau",
   "classic8_stairs": "degrau",
   "hs_stairs_black": "degrau",
-  "hween_c20_porchstairs": "inteira",
-  "wintercabin_c19_stairs": "inteira"
+  "hween_c20_porchstairs": {
+   "tipo": "inteira",
+   "sobe": 1
+  },
+  "wintercabin_c19_stairs": {
+   "tipo": "inteira"
+  }
  }
 }

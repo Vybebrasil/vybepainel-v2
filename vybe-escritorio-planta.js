@@ -686,6 +686,7 @@ const ESCRITORIO_CENAS_COMPOSTAS = {
       ["lodge_dark_candle",12,2,0,0,0.9],
       ["lodge_dark_lamp",15,2,0,0,0],
       ["bohogarden_c21_snakeplant",17,2,0,0,0],
+      ["hween_c20_porchstairs",14,4,0,0,0],
       ["army15_ltddesk",5,6,0,0,0],
       ["army15_ltddesk",8,6,0,0,0],
       ["exe_chair2",5,5,4,0,0],

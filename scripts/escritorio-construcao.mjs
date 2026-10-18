@@ -491,19 +491,27 @@ export function novaCena(id, o = {}) {
       const p = peca(classe);
       if (!p.pisa) return falha(`escada ${classe} não é pisável na ficha do Habbo`);
       const hd = p.topo || 0.5, alvo = ate ?? niveis.get(1)?.base ?? 1;
-      const n = Math.max(1, Math.round(alvo / hd));
-      // O último degrau chega rente ao andar de cima (sobra vira degrau torto).
-      if (Math.abs(n * hd - alvo) > 0.15) return falha(`escada ${classe} (degrau ${hd}) não chega a ${alvo}: ficaria em ${Math.round(n * hd * 100) / 100}`);
-      // Peça de degrau empilha; escada inteira (com mureta ou corrimão) vai
-      // sozinha: empilhada, a mureta sobra acima do piso de cima (a escadinha
-      // da varanda da Reunião, Paulo, 18/10/2026). Conferido na vitrine.
-      // Escada só onde a subida passa do degrau do Habbo (1,5): até isso a
-      // pessoa sobe direto, e a beira do piso já é o degrau.
       const desnivel = alvo - nivelPlanta(x, y);
-      if (desnivel <= 1.5 + 1e-6) return falha(`escada ${classe} para subir só ${desnivel}: no Habbo sobe-se direto até 1,5 (a beira do piso já é o degrau)`);
-      const tipo = ESCADAS[classe];
+      if (desnivel < 0.9) return falha(`escada ${classe} para subir só ${desnivel}: não há andar para chegar`);
+      // Tipo conferido na vitrine (frentes.json). Degrau: o desenho tem a altura
+      // da ficha e empilha. Escada inteira: o desenho sobe "sobe" níveis numa
+      // peça só, com corrimão (a escadinha da varanda: pisa a 0,5 e mostra a
+      // subida de 1); vai sozinha, nunca empilhada (a mureta sobraria acima do
+      // piso de cima, Paulo, 18/10/2026).
+      const info = ESCADAS[classe], tipo = typeof info === "object" ? info.tipo : info;
       if (!tipo) return falha(`escada ${classe} sem tipo conferido na vitrine ("degrau" ou "inteira" em frentes.json)`);
-      if (tipo === "inteira" && n > 1) return falha(`escada ${classe} é escada inteira (tem mureta): não se empilha para vencer ${alvo}; use peça de degrau`);
+      let n;
+      if (tipo === "inteira") {
+        if (!(info.sobe > 0)) return falha(`escada ${classe} é inteira mas a subida do desenho não foi conferida (sobe em frentes.json)`);
+        if (Math.abs(info.sobe - desnivel) > 0.15) return falha(`escada ${classe} mostra uma subida de ${info.sobe} e o desnível é ${desnivel}: escada inteira não se empilha; use peça de degrau ou outra escada`);
+        // Quem pisa nela fica a hd; daí ao andar de cima é um passo do Habbo.
+        if (desnivel - hd > 1.5 + 1e-6) return falha(`escada ${classe}: do degrau (${hd}) ao andar de cima (${desnivel}) passa de 1,5`);
+        n = 1;
+      } else {
+        n = Math.max(1, Math.round(desnivel / hd));
+        // O último degrau chega rente ao andar de cima (sobra vira degrau torto).
+        if (Math.abs(n * hd - desnivel) > 0.15) return falha(`escada ${classe} (degrau ${hd}) não chega a ${alvo}: ficaria em ${Math.round(n * hd * 100) / 100}`);
+      }
       const d = dir ?? dirPara(p, -para[0], -para[1]);
       const [ew, eh] = pegada(p, d);
       // Escada é onde dá escada (Paulo, 18/10/2026): o último degrau chega
