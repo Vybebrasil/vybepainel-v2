@@ -1,11 +1,17 @@
 // Editor do mapa do escritório. Quem administra edita o mapa geral (e qualquer
 // sala); cada pessoa edita a própria sala. O servidor confere de novo ao salvar.
 // Camadas: "geral" em coordenadas do mapa; "sala-N" relativas ao canto da sala.
+// Camada comum: a Praça ("geral") ou uma sala comum com cena própria (Lounge,
+// Café…). Só quem administra edita, sem inventário nem loja (decisão do
+// Paulo, 18/10/2026: as salas comuns se constroem no editor, vendo).
+function escritorioCamadaComum(camada) {
+  return camada === "geral" || Boolean(typeof escritorioCenaComum === "function" && escritorioCenaComum(camada));
+}
 function escritorioPodeEditar(camada) {
   const b = escritorio.base;
   if (!b?.mapa?.editavel && !b?.demo) return false;
   if (b.admin) return true;
-  return camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === camada;
+  return !escritorioCamadaComum(camada) && escritorioMinhaMesa()?.ambiente.id === camada;
 }
 // O que o botão "Editar" abre: a sala onde a pessoa está (se puder), a própria
 // sala, ou o mapa geral para quem administra.
@@ -14,6 +20,8 @@ function escritorioCamadaParaEditar() {
   if (aqui?.pessoal && escritorioPodeEditar(aqui.id)) return aqui.id;
   // Quem administra, fora de uma sala individual, edita o mapa geral (onde
   // está: Lounge, Recepção…); antes abria a própria sala e nada do resto mexia.
+  // Numa sala comum, quem administra edita a própria sala comum.
+  if (escritorio.base?.admin && aqui?.cena && escritorioCamadaComum(aqui.id) && escritorioPodeEditar(aqui.id)) return aqui.id;
   if (escritorio.base?.admin && !aqui?.pessoal && escritorioPodeEditar("geral")) return "geral";
   const minha = escritorioMinhaMesa()?.ambiente.id;
   if (minha && escritorioPodeEditar(minha)) return minha;
@@ -59,7 +67,7 @@ async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
     if (camada === "geral") escritorioIrParaPraca(); else if (!escritorioEntrarNoQuarto(camada)) escritorio.aoChegarNaCena = null;
     return;
   }
-  if(camada!=="geral" && !escritorio.base.demo) {
+  if(!escritorioCamadaComum(camada) && !escritorio.base.demo) {
     try { escritorio.base.economia=(await escritorioApi("economia")).economia; }
     catch(e) {escritorioAviso(e.message);return;}
   }
@@ -361,7 +369,7 @@ function apagarSelecionadoEscritorio() {
 // inventário; os quadros e tapetes de imagem ficam. Desfazer traz de volta.
 function guardarTudoEscritorio() {
   const e = escritorio.edicao;
-  if (!e || e.camada === "geral") return;
+  if (!e || escritorioCamadaComum(e.camada)) return;
   const n = e.itens.filter((it) => !escritorioImagemDe(it[0])).length;
   if (!n || !confirm(`Guardar os ${n} móveis desta sala no inventário? Você ainda pode desfazer antes de salvar.`)) return;
   e.itens = e.itens.filter((it) => escritorioImagemDe(it[0]));
@@ -571,7 +579,7 @@ function renderBarraEditorEscritorio() {
   cancelAnimationFrame(escritorio.selQuadro || 0);
   acompanharSelecaoEditorEscritorio();
   // Quem administra escolhe a área a editar (mapa geral ou qualquer sala).
-  const areas = escritorio.base?.admin ? [["geral", "Praça"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])] : [];
+  const areas = escritorio.base?.admin ? [["geral", "Praça"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.cena).map((a) => [a.id, a.nome]), ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])] : [];
   const escolha = areas.length ? `<select aria-label="Área que você está editando" onchange="trocarCamadaEditorEscritorio(this.value)">${areas.map(([id, nome]) => `<option value="${id}"${id === e.camada ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select>` : `<b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b>`;
   const minhaSala = e.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === e.camada;
   el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.alvos != null ? `Clique nos móveis que o gatilho usa (até 5); clique de novo para tirar · <button type="button" onclick="terminarAlvosGatilhoEscritorio()">Pronto</button>` : e.ferramenta === "camera" ? "Arraste para mover a visão sem mexer nos móveis" : e.trocar != null ? "Escolha no catálogo o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.colar ? `Clique no piso para colar ${e.colar.length} ${e.colar.length === 1 ? "móvel" : "móveis"} · Esc cancela` : e.novo ? `Clique no piso para colocar · R gira · Alt + setas ajusta fino${e.novoAjuste && (e.novoAjuste.dx || e.novoAjuste.dy) ? " (ajustado)" : ""} · Esc cancela` : it ? "Arraste para mudar de lugar · Alt + setas: ajuste fino · R gira · Ctrl+Z desfaz" : "Escolha no catálogo ou selecione um móvel"}</span></div>
@@ -731,7 +739,7 @@ function escritorioListaCatalogo(grupo) {
 function escritorioCartaoMovel(m) {
   const minha = escritorio.edicao?.camada === escritorioMinhaMesa()?.ambiente.id;
   const comprar = minha && escritorio.abaQuarto === "loja";
-  const i = escritorio.edicao?.camada !== "geral" ? escritorioInfoLoja(m.classe) : null;
+  const i = !escritorioCamadaComum(escritorio.edicao?.camada) ? escritorioInfoLoja(m.classe) : null;
   const indisponivel = i && (comprar || !escritorioPodeColocarMovel(m.classe)) && (i.marco || i.restante === 0 || !i.naVitrine);
   return `<button type="button" class="ofc-movel${indisponivel ? " indisponivel" : ""}" draggable="${escritorioPodeColocarMovel(m.classe)}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escritorioAcaoMovel('${safeText(m.classe)}', ${comprar})" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${minha && !comprar ? `<em class="ofc-giro">${escritorioSeloQuarto(m.classe)}</em>` : i ? escritorioSeloLoja(m.classe, i, comprar) : ""}${m.parede ? '<em class="ofc-giro">na parede</em>' : escritorioSeloGiro(m.giros)}${m.anima ? '<em class="ofc-giro animado">animado</em>' : ""}</button>`;
 }
@@ -1186,8 +1194,9 @@ function restaurarPadraoEditorEscritorio() {
   const e = escritorio.edicao;
   if (!e || !confirm("Voltar " + escritorioNomeCamada(e.camada) + " ao desenho original? Você ainda pode desfazer antes de salvar.")) return;
   const a = escritorioAmbienteDoQuarto(e.camada);
-  if(escritorio.perfil?.quarto_configurado && e.camada!=="geral") {aplicarModeloSalaEscritorio("trabalho");return;}
-  e.itens = e.camada === "geral" ? escritorioMoveisDaCena(ESCRITORIO_PRACA) : escritorioMoveisDaSala(a).map(([cl, x, y, ...r]) => [cl, x - a.x0, y - a.y0, ...r]);
+  if(escritorio.perfil?.quarto_configurado && !escritorioCamadaComum(e.camada)) {aplicarModeloSalaEscritorio("trabalho");return;}
+  // Sala comum: volta aos móveis padrão do código (o que estava antes do editor).
+  e.itens = e.camada === "geral" ? escritorioMoveisDaCena(ESCRITORIO_PRACA) : a?.cena ? escritorioMoveisDaCena(a) : escritorioMoveisDaSala(a).map(([cl, x, y, ...r]) => [cl, x - a.x0, y - a.y0, ...r]);
   e.sel = null;
   escritorio.mapa?.destacar(null);
   escritorioEditorMudou();
@@ -1552,7 +1561,7 @@ function escritorioQuantidadeMovel(classe) {
 function escritorioInventarioPara(novos) {
  const e = escritorio.edicao;
  if (!e) return false;
- if (e.camada === "geral") return true;
+ if (escritorioCamadaComum(e.camada)) return true;
  const usados = new Map();
  for (const [classe] of [...e.itens, ...escritorioOutrosAndares(), ...novos]) usados.set(classe,(usados.get(classe)||0)+1);
  for (const [classe,n] of usados) if (n > escritorioQuantidadeMovel(classe)) {
@@ -1562,7 +1571,7 @@ function escritorioInventarioPara(novos) {
  return true;
 }
 function escritorioPodeColocarMovel(classe) {
- if(escritorio.edicao?.camada === "geral") return true;
+ if(escritorioCamadaComum(escritorio.edicao?.camada)) return true;
  const n=escritorioQuantidadeMovel(classe);
  return n > escritorioUnidadesColocadas(classe);
 }

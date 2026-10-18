@@ -354,3 +354,20 @@ test('construção como no Habbo: 1.500 móveis, altura até 40, cor do bloco no
  const r=vm.runInContext(`({cor:mapaCorDoEstado(dados,100+7*5+3),sem:mapaCorDoEstado(dados,2),paredes:escritorioParedesDoQuarto({...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),semParedes:true}).length})`,c);
  assert.deepEqual(JSON.parse(JSON.stringify(r)),{cor:{estado:3,cor:'#ffd23f'},sem:{estado:2,cor:null},paredes:0});
 });
+
+test('salas comuns: só quem administra salva a camada da cena, sem inventário; o banco aceita o id da zona',async t=>{
+ const {db,sql}=await banco(t);
+ for(const f of ['2026-10-17-escritorio-mapa-versoes.sql','2026-10-17-escritorio-andares.sql','2026-10-18-escritorio-cenas-editaveis.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
+ const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
+ await assert.rejects(salvarCamadaEscritorio(sql,{id:2},salas,{camada:'lounge',itens:[['shelves_norja',1,1,0]],versao:0}),/administra/);
+ // Sem compra: sala comum não usa inventário.
+ const r=await salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'lounge',itens:[['shelves_norja',1,1,0],['val_c20_tablecounter',4,2,0,0,0]],versao:0});
+ assert.equal(r.versao,1);assert.equal(r.itens.length,2);
+ const [linha]=await sql`SELECT itens FROM vybe_escritorio_mapa WHERE camada='lounge'`;
+ assert.equal(linha.itens.length,2);
+ // Planta desenhada não vale nas salas comuns (o formato fica no código).
+ await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'lounge',itens:[],versao:1,celdas:'p'.repeat(400)}),/Planta/);
+ // Nome fora da lista continua recusado pelo banco e pelo servidor.
+ await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'cozinha',itens:[],versao:0}),/inválida/);
+});

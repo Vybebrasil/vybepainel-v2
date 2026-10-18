@@ -854,6 +854,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
+  // Fundo próprio da sala comum (a cor do vazio em volta, como nas referências).
+  const fundoCena = P.quarto && P.ambientes?.[0]?.fundo;
+  if (fundoCena && /^#[0-9a-f]{6}$/i.test(fundoCena)) el.style.setProperty("--fundo-cena", `radial-gradient(120% 90% at 50% 40%, ${fundoCena} 0%, ${mapaTom(fundoCena, 0.55)} 100%)`);
+  else el.style.removeProperty("--fundo-cena");
   const largura = (P.W + P.H) * (MAPA_TW / 2) + 80;
   const altura = (P.W + P.H) * (MAPA_TH / 2) + MAPA_PAREDE + 140 + (P.nivelMax || 0) * MAPA_NIVEL_PX;
   const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60 + (P.nivelMax || 0) * MAPA_NIVEL_PX, nivelEm:P.nivelEm, alturaEm:P.alturaEm, nivelMax:P.nivelMax };

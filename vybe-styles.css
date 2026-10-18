@@ -6401,7 +6401,8 @@ body.no-escritorio {overflow:hidden}
 .mapa-rotulo.saida {pointer-events:auto;cursor:pointer;background:#1d1610ee;color:#ffe7d2;border:1px solid #ff8a3566;box-shadow:0 10px 30px #0007;opacity:1}
 .mapa-rotulo.saida:hover {border-color:#ff8a35}
 .mapa-rotulo.saida:focus-visible {outline:2px solid #fff;outline-offset:2px}
-.ofc-mapa[data-cena=quarto] {background:radial-gradient(120% 90% at 50% 40%,#2a2430 0%,#171420 55%,#0d0b12 100%)}
+/* Sala comum pode ter o próprio fundo (como os quartos do Habbo, onde o vazio em volta combina com a sala). */
+.ofc-mapa[data-cena=quarto] {background:var(--fundo-cena,radial-gradient(120% 90% at 50% 40%,#2a2430 0%,#171420 55%,#0d0b12 100%))}
 .ofc-mapa[data-cena=quarto]::after {background:radial-gradient(120% 80% at 50% 0%,transparent 60%,#06040888 100%)}
 .ofc-topo-esq {display:flex;align-items:center;gap:8px;pointer-events:auto}
 .ofc-voltar-mapa {display:flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid var(--ofc-borda);border-radius:14px;background:var(--ofc-vidro);color:var(--ofc-texto);font:600 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
