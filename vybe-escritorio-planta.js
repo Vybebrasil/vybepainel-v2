@@ -152,6 +152,12 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["greek_c15_bench", 10, 7, 2], ["greek_c15_bench", 13, 7, 6], ["greek_c15_bench", 11, 9, 0],
     ["olympus_c25_narcissusflowers", 10, 9, 0], ["olympus_c25_narcissusflowers", 13, 9, 0],
     ...[[2, 9], [4, 11]].flatMap(([x, y]) => [["paris_c15_table", x, y, 0], ["paris_c15_chair", x - 1, y, 2], ["paris_c15_chair", x + 1, y, 6]]),
+    // Acabamento como nos quartos dos construtores do Habbo: vigas com hera e
+    // lâmpadas no fundo, plantas e lanterna penduradas, hera e varal de
+    // luzinhas na parede da esquerda (pisáveis: passa-se por baixo).
+    ["easter_c18_ivylight", 3, 0, 2, 1], ["easter_c18_ivybeam", 11, 1, 2, 1], ["bohogarden_c21_hanginglantern", 14, 0, 4, 1],
+    ["easter_c18_hangingplant", 8, 0, 0, 1], ["easter_c18_hangingplant", 8, 1, 0, 1],
+    ["easter_c22_hangingvines", 0, 4, 2, 1], ["easter_c22_hangingvines", 0, 6, 2, 1], ["xmas_c22_hangingwalllights", 0, 11, 2, 1],
     // Garrafa giratória na mesinha (como no Habbo: gira e aponta para alguém).
     ["bottle", 2, 9, 0, 0, 0.95],
     ["mafia_c26_planter_white", 6, 12, 0], ["mafia_c26_planter_white", 9, 12, 0], ["mafia_c26_planter_white", 15, 12, 0],
