@@ -1241,7 +1241,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       // Rente ao piso (tapete): altura zero E desenho baixo. Muita arte do Habbo
       // declara altura zero mesmo sendo alta (sinuca, TV, bebedouro): essa é sólida.
       // Em cima de mesa nunca é "rente ao piso" (notebook, papéis).
-      const plano = !altura && !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12;
+      // Na ficha do Habbo, o que não se pisa nunca é rente ao piso, mesmo com
+      // altura zero e desenho baixo (mesa de carretel): senão as cadeiras em
+      // volta são desenhadas por cima dela.
+      const plano = !altura && !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12 && (!MAPA_FISICA?.[classe] || mapaFisica(classe).pisa);
       const no = document.createElement("div");
       no.className = "mapa-obj mapa-movel";
       no.dataset.classe = classe;

@@ -5,6 +5,7 @@
 // node scripts/escritorio-auditar.mjs  (sai com erro se achar algo)
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
+import { silhueta, emComum } from "./escritorio-desenho.mjs";
 
 const ctx = { console, window: {}, document: {} };
 vm.createContext(ctx);
@@ -40,12 +41,22 @@ const FOCO = /table|desk|rigpro|hc26_2|tv|screen|lectern|stage|fireplace|project
 const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
 const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill|lifering|rela_rock|olympics_c16_sofa|racearcade/;
 const FRENTE = /arcade|pinball|retrogames|jukebox|bookcase|bookshelf|shelve|_shelf|tv$|screen|projector|fireplace|wrkdesk|minibar|fridge|stove|sink|counter|cabinet|cupboard|dispenser|mixingdesk|lectern|whiteboard|coffeemachine|microwave|printer|hc25_6|bardesk|rigpro/;
-const ALTO = 92; // px de desenho: acima disso o móvel cobre a parte de baixo do item
+// Peça que se usa de pé na frente (máquina, armário, estante): a frente
+// precisa dar para chão livre. Balcão, tela e púlpito ficam de frente para
+// banqueta ou palco de propósito.
+const ABRE = /arcade|pinball|retrogames|jukebox|fridge|vending|minibar|cabinet|cupboard|bookcase|bookshelf|_shelf|locker|_tv$|dispenser|stove|sink|microwave|coffeemachine/;
+const ALTO = 92;
+// Salas já refeitas com a regra de desenho (o que um móvel cobre do outro e
+// a frente das máquinas): nelas é erro; nas outras, aviso até serem refeitas
+// (node scripts/escritorio-auditar.mjs --desenho lista os avisos).
+const DESENHO_CONFERIDO = new Set(["lounge"]);
+const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte de baixo do item
 
 // Confere uma cena: a planta (mapa geral ou quarto) e os móveis dela
 // ([classe, x, y, dir, estado, altura]). Devolve os problemas encontrados.
 function auditar(cena, P, moveis, avisos) {
   const problemas = [], ocup = new Map();
+  const desenho = { push: (t) => (DESENHO_CONFERIDO.has(cena) ? problemas : avisosDesenho).push(t) };
   const nomeCena = (t) => (cena === "mapa geral" ? t : `${t} em ${cena}`);
   const B = P.PREDIO, quarto = P.quarto ? P.ambientes[0] : null;
   const parede = new Set();
@@ -61,7 +72,7 @@ function auditar(cena, P, moveis, avisos) {
     if (!a) { problemas.push(nomeCena(`${classe} (${x},${y}) sem arte no painel`)); continue; }
     if (a.parede) {
       if (![2, 4].includes(dir0)) problemas.push(nomeCena(`${classe} (${x},${y}) de parede com direção ${dir0}`));
-      pendurados.push({ classe, x: Math.floor(x), y: Math.floor(y), dir: dir0, w: Math.max(1, Math.round(a.d.x || 1)), alto: a.alto });
+      pendurados.push({ classe, x: Math.floor(x), y: Math.floor(y), rx: x, ry: y, altura, estado: m[4] || 0, dir: dir0, w: Math.max(1, Math.round(a.d.x || 1)), alto: a.alto });
       continue;
     }
     let dir = dir0;
@@ -75,8 +86,8 @@ function auditar(cena, P, moveis, avisos) {
     // Peça de passar por baixo (pisável e de altura zero na ficha do Habbo:
     // escada de mão, hera, luzinhas) divide o ladrilho com outra, como no Habbo.
     const fis = ctx.mapaFisica?.(classe);
-    const plano = PORTAS.test(classe) || (!(a.d.z > 0.05) && a.alto <= (w + h) * 16 + 12) || Boolean(fis?.pisa && !fis.senta && (fis.altura ?? 1) <= 0.01 && !ctx.mapaPisoEspecial?.(classe));
-    const it = { classe, x: Math.floor(x), y: Math.floor(y), w: Math.round(w) || 1, h: Math.round(h) || 1, dir, altura, estado: m[4] || 0, plano, assento: ASSENTOS.test(classe) };
+    const plano = PORTAS.test(classe) || (!(a.d.z > 0.05) && a.alto <= (w + h) * 16 + 12 && (fis?.altura == null || fis.pisa)) || Boolean(fis?.pisa && !fis.senta && (fis.altura ?? 1) <= 0.01 && !ctx.mapaPisoEspecial?.(classe));
+    const it = { classe, x: Math.floor(x), y: Math.floor(y), rx: x, ry: y, w: Math.round(w) || 1, h: Math.round(h) || 1, dir, altura, estado: m[4] || 0, plano, assento: ASSENTOS.test(classe) };
     itens.push(it);
     const nome = nomeCena(`${classe} (${it.x},${it.y})`);
     if (it.x < 0 || it.y < 0 || it.x + it.w > P.W || it.y + it.h > P.H) problemas.push(`${nome} sai do mapa`);
@@ -201,7 +212,9 @@ function auditar(cena, P, moveis, avisos) {
         if (k > 1 && temParede(x - dx, y - dy, x, y)) continue;
         if (pi && x >= pi.x0 && x < pi.x1 && y >= pi.y0 && y < pi.y1) { achou = true; break; }
         const alvo = itens.find((o) => o !== it && !o.plano && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
-        if (alvo && (FOCO.test(alvo.classe) || (alvo.assento && OLHA[alvo.dir] && ((OLHA[alvo.dir][0] === -dx && OLHA[alvo.dir][1] === -dy) || alvo.dir === it.dir)))) achou = true;
+        // Também vale o que tem tampo no Habbo (balcão de caixotes, bancada):
+        // senta-se de frente para onde se apoia o copo.
+        if (alvo && (FOCO.test(alvo.classe) || (!alvo.assento && ctx.mapaFisica?.(alvo.classe)?.poe && ctx.mapaFisica(alvo.classe).altura != null) || (alvo.assento && OLHA[alvo.dir] && ((OLHA[alvo.dir][0] === -dx && OLHA[alvo.dir][1] === -dy) || alvo.dir === it.dir)))) achou = true;
       }
     }
     if (!achou) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) virado para o nada (direção ${it.dir})`));
@@ -332,6 +345,18 @@ function auditar(cena, P, moveis, avisos) {
       }
     }
     if (total && contra === total) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) de frente para a parede (direção ${it.dir})`));
+    // De frente para um móvel ou para um degrau: a frente (tela, porta,
+    // prateleira) precisa abrir para o chão onde a pessoa fica, no mesmo nível.
+    else if (total && ABRE.test(it.classe)) {
+      let fechada = 0;
+      for (let i = 0; i < it.w; i++) for (let j = 0; j < it.h; j++) {
+        if (!((fx && (i + fx < 0 || i + fx >= it.w)) || (fy && (j + fy < 0 || j + fy >= it.h)))) continue;
+        const nx = it.x + i + fx, ny = it.y + j + fy;
+        const outro = itens.find((o) => o !== it && !o.plano && !o.altura && nx >= o.x && nx < o.x + o.w && ny >= o.y && ny < o.y + o.h);
+        if (outro || (P.alturaEm && P.alturaEm(nx, ny) !== P.alturaEm(it.x + i, it.y + j))) fechada++;
+      }
+      if (fechada === total) desenho.push(nomeCena(`${it.classe} (${it.x},${it.y}) de frente para um móvel ou degrau (direção ${it.dir})`));
+    }
   }
   // Postes (desenhados à parte) não ficam em cima de móvel nem dentro da piscina.
   for (const [x, y] of P.postes || []) {
@@ -394,6 +419,56 @@ function auditar(cena, P, moveis, avisos) {
     const fora = naFachada || vazioAtras || (quarto ? (q.dir === 4 ? q.y === quarto.y0 : q.x === quarto.x0) : B && (q.dir === 4 ? q.y === B.y0 : q.x === B.x0));
     if (!fora) problemas.push(nomeCena(`${q.classe} (${q.x},${q.y}) é janela em parede de dentro`));
   }
+  // O que um móvel cobre do outro na tela (a grade de ladrilhos não mostra:
+  // no Habbo a arte passa do ladrilho). Cada silhueta é posta com a mesma
+  // conta do mapa; a de trás é a de parede ou a de ladrilho mais ao fundo.
+  // Peça empilhada em cima de outra e tapete não contam.
+  const nivel = (x, y) => P.alturaEm?.(x, y) ?? P.nivelEm?.(x, y) ?? 0;
+  const naTela = [];
+  const PENDE = /grungelamp|hanginglight|chandelier|ceiling_lamp|lantern/;
+  for (const it of itens) {
+    // Lâmpada pendurada se atravessa por baixo (plana para quem anda), mas
+    // o desenho dela fica no alto e conta.
+    if (it.plano && !PENDE.test(it.classe)) continue;
+    let s = silhueta(it.classe, it.dir, it.estado, PENDE.test(it.classe));
+    if (!s) continue;
+    // Da lâmpada pendurada conta só a ponta (lâmpada e bocal): o fio fino
+    // sobe até o teto e cruza o que estiver atrás, como nas referências.
+    if (PENDE.test(it.classe) && s.h > 60) {
+      const corte = s.h - 60, m = s.m.slice(corte * s.w);
+      s = { ...s, y: s.y + corte, h: 60, m, n: m.reduce((a, b) => a + b, 0) };
+    }
+    naTela.push({ it, s, sx: (it.rx - it.ry) * 32 + s.x, sy: (it.rx + it.ry) * 16 - nivel(it.x, it.y) * 32 + s.y + 16 - it.altura * 32,
+      fundo: it.x + it.w - 1 + it.y + it.h - 1, nome: `${it.classe} (${it.x},${it.y})` });
+  }
+  for (const q of pendurados) {
+    const s = silhueta(q.classe, q.dir === 2 ? 2 : 4, q.estado);
+    if (!s) continue;
+    const [ax, ay] = q.dir === 2 ? [q.x, q.ry + 0.5] : [q.rx + 0.5, q.y];
+    naTela.push({ it: q, s, parede: true, sx: (ax - ay) * 32 + s.x, sy: (ax + ay) * 16 - nivel(q.x, q.y) * 32 + s.y - 46 - (q.altura || 0) * 32,
+      fundo: -1e3, nome: `${q.classe} (${q.x},${q.y})` });
+  }
+  const empilhado = (a, b) => (a.altura || 0) > 0 && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1);
+  for (let i = 0; i < naTela.length; i++) for (let j = i + 1; j < naTela.length; j++) {
+    let f = naTela[i], t = naTela[j];
+    if (f.fundo === t.fundo) continue;
+    if (f.fundo < t.fundo) [f, t] = [t, f];
+    if (f.parede || empilhado(f.it, t.it) || empilhado(t.it, f.it)) continue;
+    const n = emComum(f, t);
+    if (!n) continue;
+    // Lâmpada pendurada pode passar na frente de prateleira e balcão (como
+    // nas referências), mas não de coluna (peça empilhada) nem do que está
+    // pendurado na parede.
+    if (PENDE.test(f.it.classe) || PENDE.test(t.it.classe)) {
+      const atras = PENDE.test(f.it.classe) ? t : f;
+      const coluna = itens.some((o) => o !== atras.it && o.classe === atras.it.classe && o.x === atras.it.x && o.y === atras.it.y);
+      if (n > 40 && (atras.parede || coluna)) desenho.push(nomeCena(`${PENDE.test(f.it.classe) ? f.nome : t.nome} pendurada na frente de ${PENDE.test(f.it.classe) ? t.nome : f.nome}`));
+      continue;
+    }
+    // Item de parede (janela, quadro) aparece inteiro ou quase: tapar um
+    // quinto já parece peça mal posta.
+    if (n > 300 && n > t.s.n * (t.parede ? 0.2 : 0.4)) desenho.push(nomeCena(`${f.nome} esconde ${Math.round((n / t.s.n) * 100)}% de ${t.nome}`));
+  }
   return problemas;
 }
 
@@ -412,5 +487,7 @@ for (const a of ctx.__P.ambientes) if (a.pessoal) {
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));
 if (process.argv.includes("--ilhas")) console.log([...new Set(avisosIlhas)].join("\n"));
+if (process.argv.includes("--desenho")) console.log([...new Set(avisosDesenho)].join("\n"));
+else if (avisosDesenho.length) console.error(`${new Set(avisosDesenho).size} avisos de desenho nas salas ainda não refeitas (--desenho para ver).`);
 console.log(unicos.length ? unicos.join("\n") : "Planta sem problemas.");
 process.exitCode = unicos.length ? 1 : 0;
