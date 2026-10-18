@@ -220,6 +220,20 @@ function auditar(cena, P, moveis, avisos) {
     return { 0: [0, 1], 2: [1, 0], 4: [0, 1] }[it.dir];
   };
   const contraParede = (x, y, nx, ny) => temParede(x, y, nx, ny) || nx < 0 || ny < 0 || nx >= P.W || ny >= P.H || (P.andavel && !P.andavel(nx, ny));
+  // Tela de costas: computador, notebook ou monitor perto de assento precisa
+  // olhar para ele (no Habbo a direção do móvel é para onde a tela aponta).
+  // Pega o computador da recepção virado para o visitante, não para quem senta.
+  const TELA = /computer|laptop|monitor|imac|_pc$|desktop_pc|flatscreen/;
+  for (const it of itens) {
+    if (!TELA.test(it.classe)) continue;
+    const a = arte(it.classe);
+    const f = a.dirs.length >= 4 ? OLHA[it.dir] : frenteDe(it, a.dirs);
+    if (!f) continue;
+    const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
+    const perto = itens.filter((o) => o.assento && Math.abs(o.x + 0.5 - cx) <= 2.1 && Math.abs(o.y + 0.5 - cy) <= 2.1);
+    if (!perto.length) continue;
+    if (!perto.some((o) => (o.x + 0.5 - cx) * f[0] + (o.y + 0.5 - cy) * f[1] > 0.2)) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) com a tela de costas para quem senta (direção ${it.dir})`));
+  }
   // De lado na parede: peça alta e comprida com a ponta encostada numa
   // parede e as costas soltas (no Habbo quem constrói gira até encostar as
   // costas; o número da direção que faz isso muda de peça para peça).

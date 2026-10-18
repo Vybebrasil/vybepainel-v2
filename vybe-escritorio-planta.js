@@ -92,7 +92,7 @@ const ESCRITORIO_PLANTA = (() => {
     ["jogos", "Jogos", "convivencia", "#3fae7a", 20, 12, "tokyo_c18_floor", "attic15_wall"],
     ["foco", "Foco", "foco", "#8b6b4a", 12, 16, "rainyday_c20_woodenfloor", "gardenshed_wall"],
     ["academia", "Academia", "convivencia", "#7a8494", 20, 16, "sb_tile", "attic15_wall"],
-    ["lounge", "Lounge", "convivencia", "#b4583a", 20, 16, "rainyday_c20_woodenfloor", "lodge_dark_brickwall"],
+    ["lounge", "Lounge", "convivencia", "#b4583a", 18, 15, "rainyday_c20_woodenfloor", "lodge_dark_brickwall"],
   ];
   // Planta de cada cena, linha a linha (y = 0 é a parede do fundo): "x" sem
   // piso, "0" chão, "1" e "2" patamares de um e dois degraus (o degrau do
@@ -251,25 +251,35 @@ const ESCRITORIO_PLANTA = (() => {
       "00000000000000000000",
       "00000000000000000000",
     ] },
-    // Clube: bar no patamar do fundo, palco e sofá no fundo à direita, lareira
-    // à esquerda e mesas altas na frente.
+    // Taverna em L (referência do Paulo, 18/10/2026): recorte no fundo à
+    // esquerda (seguro: não esconde piso), bar no fundo com piso xadrez,
+    // palco do bardo dois degraus acima no fundo à direita (degrau de pedra
+    // na frente; o corrimão sai sozinho na lateral), salão de tapete vermelho
+    // e chanfro na frente à direita.
     lounge: { corDegrau: "#4a2a1c", planta: [
-      "11111111111100000000",
-      "11111111111100000000",
-      "11111111111100000000",
-      "11111111111100000000",
-      "11111111111100000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
-      "00000000000000000000",
+      "xxx000000000222222",
+      "xxx000000000222222",
+      "xxx000000000222222",
+      "xxx000000000222222",
+      "000000000000111111",
+      "000000000000000000",
+      "000000000000000000",
+      "000000000000000000",
+      "000000000000000000",
+      "000000000000000000",
+      "000000000000000000",
+      "000000000000000000",
+      "000000000000000000",
+      "00000000000000000x",
+      "0000000000000000xx",
+    ], texturas: [
+      // Salão: tapete vermelho do bar até a porta.
+      { x0: 3, y0: 5, x1: 12, y1: 15, textura: "theatre_carpet" },
+      // Bar: xadrez preto e vermelho.
+      ...Array.from({ length: 9 * 5 }, (_, k) => {
+        const x = 3 + (k % 9), y = Math.floor(k / 9);
+        return { x0: x, y0: y, x1: x + 1, y1: y + 1, textura: (x + y) % 2 ? "steampunk_floor1" : "theatre_carpet" };
+      }),
     ] },
   };
   for (const [id, nome, sala, cor, w0, h0, textura, texturaParede] of CENAS) {
@@ -279,7 +289,7 @@ const ESCRITORIO_PLANTA = (() => {
     const celdas = def ? def.planta.map((linha) => [...linha].map((c) => (c === "x" ? -1 : Number(c)))) : Array.from({ length: h0 }, () => Array(w0).fill(0));
     const w = celdas[0].length, h = celdas.length;
     const modelo = { id: "cena-" + id, celdas, portas: { baixo: Math.floor(w / 2) - 1 }, escada: def?.escada || [], bordaAberta: true };
-    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau });
+    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau, texturas: def?.texturas || [] });
   }
   return { W, H, PREDIO: null, PISO, ambientes, divisorias: [], moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], rotulos: [], vistas: {}, texturas: [], texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement",
@@ -332,7 +342,7 @@ const ESCRITORIO_MOVEIS_CENAS = {
     // Recepção: janela com arandelas, balcão com computador e telefone, malas.
     ["mafia_c26_planter_white", 7, 0, 0], ["window_double_default", 9, 0, 4, 0, 0.9], ["mafia_c26_planter_white", 13, 0, 0],
     ["lodge_dark_desk", 9, 2, 0], ["modern_c17_chair", 10, 1, 4],
-    ["computer_flatscreen", 9, 2, 4, 0, 1.25], ["exe_c15_desktidy", 10, 2, 0, 0, 1.25], ["exe_c15_telephone", 11, 2, 0, 0, 1.25],
+    ["computer_flatscreen", 9, 2, 0, 0, 1.25], ["exe_c15_desktidy", 10, 2, 0, 0, 1.25], ["exe_c15_telephone", 11, 2, 0, 0, 1.25],
     ["hc_luggage", 12, 2, 0], ["br_c25_festivallanterns", 10, 3, 0],
     // Fundo à direita: lanches, água e as cabines de teleporte (a escura forma par com a da Praça).
     ["olympics_r16_vendingmchn", 14, 0, 4], ["matic_water_dispenser", 15, 0, 4],
@@ -462,63 +472,47 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["js_exe_rug", 10, 2, 0], ["darkelegant_c20_carpet", 5, 7, 0],
     ["lodge_dark_chandelier", 2, 2, 0], ["lodge_dark_chandelier", 6, 7, 0],
   ],
-  // Lustres, ervas e prateleiras de vidro do acervo já são desenhados no alto
-  // (vão no chão, altura 0, e passa-se por baixo).
-  // Lounge: taverna, no nível dos quartos de construtor do Habbo. Bar no
-  // patamar do fundo: cristaleira, adega e estante de garrafas na parede,
-  // prateleiras de vidro e ervas penduradas, balcão com caixa registradora,
-  // chope e boleira, banquetas vermelhas e lustres. Palco do bardo com piano
-  // e gramofone; janelas com neve no fundo recuado sobre o sofá chesterfield;
-  // lareira com poltronas e relógio de pêndulo; mesas de barril na frente.
+  // Lounge: a taverna da referência do Paulo. Uma linha só (madeira escura,
+  // tijolo, couro e vermelho). Bar no fundo: cristaleira, adega e armário de
+  // garrafas na parede, balcão comprido com caixa registradora, boleira e
+  // chope em cima e banquetas vermelhas em fila; samovar no barril. Palco
+  // elevado: piano na parede, bardo, gramofone e discos.
+  // Estar da lareira com poltronas de couro, jornal e chá. Salão com mesas
+  // de barril e lustres. Canto dos sofás vermelhos com pudim na mesa,
+  // separado por canteiros de flores. Lustres, ervas e prateleiras do acervo
+  // já vêm desenhados no alto (altura 0).
   lounge: () => [
-    // Parede do bar.
-    ["mafia_c26_drinkcabinet", 0, 0, 4], ["val_c19_bottlewall", 3, 0, 4], ["wildwest_cabinet", 5, 0, 4], ["exe_drinks_cabinet", 8, 0, 4],
-    ["antique_c21_lamp", 10, 0, 0],
-    ["vwave_c21_drinkshelf", 5, 1, 2], ["vwave_c21_drinkshelf", 8, 1, 2],
-    ["fantasy_c22_herbs", 3, 1, 0], ["fantasy_c22_herbs", 9, 2, 0],
-    // Balcão: caixa registradora, chope, boleira e canecas; banquetas.
-    ["lodge_dark_bardesk", 2, 2, 2], ["lodge_dark_bardesk", 6, 2, 2],
-    ["fantasy_c22_frothydrink", 2, 2, 0, 0, 1.4], ["val_c21_cashier", 3, 2, 0, 0, 1.4],
-    ["fantasy_c22_frothydrink", 6, 2, 0, 0, 1.4], ["val_c20_cakestand", 7, 2, 0, 0, 1.4], ["xmas_c24_mugs", 8, 2, 0, 0, 1.4],
-    ...[2, 3, 4, 6, 7, 8].map((x) => ["room_hcl15_barchair", x, 3, 0]),
-    ["xmas_c19_chandelier", 5, 3, 2], ["xmas_c19_chandelier", 9, 3, 2],
-    ["pirate_barrel2", 0, 2, 0], ["fantasy_c22_barrel", 0, 3, 0],
-    ["garden_flowerbed", 0, 4, 0], ["garden_flowerbed", 10, 4, 0],
-    // Palco do bardo no recanto do fundo: só peças baixas atrás da parede
-    // recuada (no Habbo toda parede fica atrás de todo móvel; peça alta ali
-    // aparece por cima dela). O piano fica na frente, de costas para o recanto.
-    ["classic8_rug", 12, 1, 0], ["fantasy_c22_bard", 13, 2, 0, 0, 0.1], ["classic8_records", 12, 1, 0, 0, 0.1],
-    ["xmas_c18_piano", 12, 4, 0], ["steampunk_gramophone", 11, 5, 0], ["stories_oldmusic_guitarcase", 14, 5, 4],
-    // Canto do fundo à direita: janelas com neve sobre o sofá chesterfield
-    // (sem recorte na planta: parede recuada ali esconderia o recanto).
-    ["xmas_c24_snowywindows", 16, 0, 4, 0, 0.8], ["xmas_c24_snowywindows", 18, 0, 4, 0, 0.8],
-    ["exe_rug", 15, 1, 0], ["xmas11_luxsofa2", 16, 1, 4], ["xmas11_luxchair2", 15, 3, 2], ["xmas11_luxchair2", 18, 3, 6],
-    ["mafia_c26_coffeetable_dark", 16, 3, 2], ["xmas_c23_deluxecake1", 16, 3, 0, 0, 0.84], ["xmas_c24_teapot", 17, 3, 0, 0, 0.84],
-    ["antique_c21_lamp", 19, 1, 0], ["lodge_chandelier", 16, 2, 0],
-    ["pirate_barrel2", 19, 6, 0], ["wildwest_crate", 19, 7, 0], ["fantasy_c22_barrel", 18, 7, 0],
-    // Lareira: sofá virado para o fogo, mesinha com chá, poltronas, relógio e gaiola.
-    ["antique_c21_wallclock", 0, 5, 2], ["lodge_dark_fireplace", 0, 7, 2], ["antique_c21_lamp", 0, 9, 0],
-    ["antique_c21_oldenrug", 1, 6, 0], ["xmas11_luxsofa2", 3, 7, 6], ["lodge_dark_endtable", 2, 7, 0], ["antique_c21_teaset", 2, 7, 0, 0, 0.9],
-    ["antique_c21_armchair", 2, 5, 4], ["antique_c21_armchair", 2, 9, 0],
-    ["antique_c21_birdcage", 0, 10, 2], ["hween_c22_gothicbookshelf", 0, 11, 0], ["val_c20_blackboard", 0, 13, 2],
-    // Mesas de barril com banquetas e chope; lustres por cima.
-    ...[[7, 9], [11, 11], [14, 9]].flatMap(([x, y]) => [["wildwest_table", x, y, 0], ["room_hcl15_barchair", x - 1, y, 2], ["room_hcl15_barchair", x + 1, y, 6],
-      ["fantasy_c22_frothydrink", x, y, 0, 0, 1.4]]),
-    // Canto dos caixotes e barris; canteiros de flores na frente.
-    ["wildwest_crate", 19, 12, 0], ["wildwest_crate", 19, 13, 0], ["pirate_barrel2", 18, 13, 0], ["fantasy_c22_barrel", 19, 14, 0],
-    ["garden_flowerbed", 3, 15, 0], ["garden_flowerbed", 14, 15, 0], ["mafia_c26_planter_dark", 0, 15, 0], ["mafia_c26_planter_dark", 19, 10, 0],
-    // Camada de construtor: parede da esquerda cheia (quadros, armas,
-    // arandelas e prateleira), tapetes sobrepostos no salão, lustres e
-    // ervas penduradas sobre as mesas e velas nos tampos.
-    ["mafia_c26_walllamp_dark", 0, 6.4, 2, 0, 1.8], ["mafia_c26_walllamp_dark", 0, 9.2, 2, 0, 1.8],
-    ["attic15_painting", 0, 3, 2, 0, 1.2], ["vikings_wallshield_r", 0, 14.2, 2, 0, 1.4],
-    ["waasa_wall_shelf1", 0, 1.2, 2, 0, 1.6],
-    ["darkelegant_c20_carpet", 6, 8, 0], ["hc_crpt", 10, 10, 0], ["classic6_mat", 13, 8, 0],
-    // Lustres já desenhados no alto (altura 0); as bandeirolas, rentes ao
-    // chão na arte, sobem até perto do teto, como faz o empilhador.
-    ["lodge_dark_chandelier", 7, 9, 0], ["wintercabin_c19_antlerlight", 11, 11, 0], ["lodge_dark_chandelier", 14, 9, 0],
-    ["fantasy_c22_herbs", 1, 6, 0], ["fantasy_c22_hangingflags", 13, 2, 0, 0, 2.6],
-    ["rcandle", 7, 9, 0, 0, 1.4], ["rcandle", 14, 9, 0, 0, 1.4], ["lamp2_armas", 11, 11, 0, 0, 1.4],
+    // Bar (xadrez): parede de garrafas, balcão e banquetas.
+    ["mafia_c26_drinkcabinet", 3, 0, 4], ["val_c19_bottlewall", 6, 0, 4], ["wildwest_cabinet", 8, 0, 4], ["antique_c21_lamp", 11, 0, 0],
+    ["antique_c21_wallclock", 3, 2, 2],
+    ["lodge_dark_bardesk", 4, 2, 2], ["lodge_dark_bardesk", 7, 2, 2],
+    ["val_c21_cashier", 4, 2, 0, 0, 1.4], ["val_c20_cakestand", 6, 2, 0, 0, 1.4],
+    ["fantasy_c22_frothydrink", 7, 2, 0, 0, 1.4], ["fantasy_c22_frothydrink", 8, 2, 0, 0, 1.4], ["xmas_c24_mugs", 9, 2, 0, 0, 1.4],
+    ...[4, 5, 6, 7, 8, 9].map((x) => ["room_hcl15_barchair", x, 3, 0]),
+    ["fantasy_c22_herbs", 4, 1, 0], ["fantasy_c22_herbs", 8, 1, 0], ["xmas_c19_chandelier", 6, 3, 2],
+    ["wildwest_crate", 11, 3, 0], ["samovar", 11, 3, 0, 0, 1.23],
+    // Palco do bardo (dois degraus acima): piano, bardo, gramofone, discos, pilares.
+    ["xmas_c18_piano", 13, 0, 0], ["xmas_c24_snowywindows", 16, 0, 4, 0, 0.8],
+    ["classic8_rug", 14, 2, 0], ["fantasy_c22_bard", 15, 2, 0, 0, 0.1], ["classic8_records", 14, 2, 0, 0, 0.1],
+    ["steampunk_gramophone", 12, 0, 0], ["stories_oldmusic_guitarcase", 17, 2, 4],
+    // Estar da lareira: poltronas de couro de frente uma para a outra, mesinha com chá e jornal.
+    ["mafia_c26_walllamp_dark", 0.2, 4, 4, 0, 1], ["attic15_painting", 1.4, 4, 4, 0, 1.2],
+    ["lodge_dark_fireplace", 0, 5, 2], ["antique_c21_oldenrug", 1, 6, 0],
+    ["antique_c21_armchair", 2, 6, 4], ["lodge_dark_endtable", 2, 7, 0], ["antique_c21_teaset", 2, 7, 0, 0, 0.9], ["antique_c21_armchair", 2, 8, 0],
+    ["antique_c21_lamp", 3, 6, 0], ["mafia_c26_walllamp_dark", 0, 7.4, 2, 0, 1],
+    ["hween_c22_gothicbookshelf", 0, 9, 0], ["antique_c21_birdcage", 0, 11, 2], ["vikings_wallshield_r", 0, 12.2, 2, 0, 1.4], ["mafia_c26_planter_dark", 0, 14, 0],
+    // Salão: mesas de barril com banquetas e chope, lustres por cima.
+    ...[[5, 8], [5, 11]].flatMap(([x, y]) => [["wildwest_table", x, y, 0], ["room_hcl15_barchair", x - 1, y, 2], ["room_hcl15_barchair", x + 1, y, 6],
+      ["fantasy_c22_frothydrink", x, y, 0, 0, 1.4], ["lodge_dark_chandelier", x, y, 0]]),
+    ["wildwest_table", 10, 9, 0], ["room_hcl15_barchair", 10, 8, 4], ["room_hcl15_barchair", 10, 10, 0],
+    ["fantasy_c22_frothydrink", 10, 9, 0, 0, 1.4], ["lodge_dark_chandelier", 10, 9, 0],
+    // Canto dos sofás vermelhos, atrás dos canteiros de flores.
+    ["garden_flowerbed", 12, 6, 0], ["garden_flowerbed", 14, 6, 0], ["garden_flowerbed", 16, 6, 0],
+    ["hc_crpt", 12, 7, 0],
+    ["xmas11_luxsofa2", 13, 7, 4], ["xmas11_luxchair2", 12, 9, 2], ["mafia_c26_coffeetable_dark", 13, 9, 2], ["xmas11_luxchair2", 15, 9, 6], ["xmas11_luxsofa2", 13, 11, 0],
+    ["xmas_c23_deluxecake1", 13, 9, 0, 0, 0.84], ["xmas_c24_teapot", 14, 9, 0, 0, 0.84], ["antique_c21_lamp", 16, 8, 0], ["lodge_chandelier", 14, 10, 0],
+    // Frente à direita: caixotes e barris.
+    ["wildwest_crate", 16, 13, 0], ["pirate_barrel2", 17, 12, 0], ["fantasy_c22_barrel", 17, 11, 0],
   ],
   // Auditório: cinema. Tela com palco e púlpito entre os cantos recolhidos,
   // refletores, plateia em três degraus com corredor no meio e o saguão da
@@ -611,11 +605,10 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["mafia_c26_sofa_dark", 12, 13, 0], ["mafia_c26_coffeetable_dark", 13, 11, 2], ["mafia_c26_drinktray", 13, 11, 0, 0, 0.84], ["theatre_plant", 7, 13, 0],
     // Camada de construtor: pôsteres de filme nas paredes, tapete sob o
     // sofá dos clientes, canto da banda (bateria, guitarra e amplificadores)
-    // na frente à esquerda e monitores de retorno no palco das entrevistas.
+    // na frente à esquerda.
     ["cine_pstr_1", 6, 2, 2, 0, 0.6], ["cine_pstr_12", 0, 7, 2, 0, 0.6], ["cine_pstr_5", 15, 0, 4, 0, 0.6], ["cine_pstr_19", 17, 0, 4, 0, 0.6],
     ["js_exe_rug", 12, 10, 0],
     ["studio_drums", 2, 12, 0], ["studio_guitar", 1, 12, 2], ["studio_amp1", 5, 12, 0], ["studio_amp2", 5, 10, 0],
-    ["studio_monitor", 13, 3, 0], ["studio_monitor", 15, 3, 0],
   ],
 };
 // Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho. A
@@ -909,10 +902,11 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
   // (coluna 1 e coluna 5) ficam livres.
   const base = [
     item("exe_table", 2, 2, 0),
-    // Padrão do Habbo: a frente de todo móvel vira para quem olha o mapa
-    // (direções 4 e 2). Monitor com a tela à mostra; quem senta fica atrás
-    // da mesa, também de frente para quem olha.
-    item("computer_flatscreen", 3, 2, 4, 1, 0.95),
+    // A tela olha para quem senta (no Habbo a direção do monitor é para
+    // onde a tela aponta): o dono fica atrás da mesa, de frente para as
+    // visitas, e o monitor vira para ele (direção 0; o verificador acusa
+    // "tela de costas para quem senta").
+    item("computer_flatscreen", 3, 2, 0, 1, 0.95),
     item("darkmodern_c20_folder", 2, 3, 2, 0, 0.95),
     // Xícara de chá fumegando na mesa (animada) e a lixeira de papel ao lado.
     item("ktchn10_tea", 3, 3, 2, 1, 0.95),
