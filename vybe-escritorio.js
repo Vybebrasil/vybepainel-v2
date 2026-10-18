@@ -1254,7 +1254,7 @@ function escritorioFisicaDoPiso(andando) {
   else if (piso?.tipo === "esteira") escritorio.timerEsteira = setTimeout(() => {
     if (movimento.rota.length || Math.round(movimento.x) !== x || Math.round(movimento.y) !== y) return;
     seguir(...(ESCRITORIO_PASSO_ESTEIRA[piso.dir] || [0, 0]));
-  }, 550);
+  }, 500); // a esteira do Habbo anda um ladrilho a cada meio segundo
 }
 function escritorioPisouEm(x, y) {
   const naPlaca = escritorio.mapa?.pisoEm(x, y)?.tipo === "placa";
@@ -1569,6 +1569,35 @@ function darItemEscritorio(id) {
   escritorioAviso(`Você deu ${ESCRITORIO_NOME_MAO[pose]} para ${nome || "a pessoa"}.`);
 }
 // Portão: abre e fecha no clique ou no E; a alavanca vira todos os portões.
+// Catraca (portão de mão única do Habbo, InteractionOneWayGate): fechada para
+// todos; quem está no ladrilho da frente dela (para onde está virada) passa,
+// atravessa e sai do outro lado. Na volta, não abre.
+const ESCRITORIO_MAO_UNICA = /^one_?way_?door|^onewaydoor/;
+function escritorioFrenteDoMovel(m, sentido = 1) {
+  // Arte de duas direções (0 e 2, ou 2 e 4): a frente é sempre para quem olha
+  // o mapa; a direção 0 dela olha para +y, não para a parede.
+  const dirs = Object.keys(m.m?.dados?.visualizations?.find((v) => v.size === 64)?.directions || {}).map(Number);
+  const [dx, dy] = dirs.length && dirs.length < 4 && m.dir === 0 ? [0, 1] : ESCRITORIO_PASSO_ESTEIRA[m.dir] || [0, 1];
+  return { x: Math.floor(m.x) + dx * sentido, y: Math.floor(m.y) + dy * sentido };
+}
+function passarMaoUnicaEscritorio(m) {
+  const mapa = escritorio.mapa, frente = escritorioFrenteDoMovel(m), atras = escritorioFrenteDoMovel(m, -1);
+  const eu = { x: Math.round(movimento.quadro ? movimento.x : escritorioPosicao(escritorio.perfil || {}).x), y: Math.round(movimento.quadro ? movimento.y : escritorioPosicao(escritorio.perfil || {}).y) };
+  if (eu.x !== frente.x || eu.y !== frente.y) {
+    // Do outro lado ela não abre; da frente, vai até lá e passa ao chegar.
+    if (eu.x === atras.x && eu.y === atras.y) return escritorioAviso("A catraca só passa num sentido.");
+    escritorio.usarAoChegar = m;
+    return escritorioIrPara(frente.x, frente.y);
+  }
+  if (escritorioOcupado(Math.floor(m.x), Math.floor(m.y)) || escritorioOcupado(atras.x, atras.y)) return escritorioAviso("Tem alguém na catraca. Espere passar.");
+  const chave = mapa.chaveMovel(m);
+  mapa.estadosMoveis([[chave, 1]]);
+  escritorioEmitir("furni:toggle", { chave, estado: 1 });
+  escritorioTocar(520, 0.06, 0.05);
+  movimento.rota = [{ x: Math.floor(m.x), y: Math.floor(m.y) }, atras];
+  escritorioAnimarMovimento();
+  setTimeout(() => { mapa.estadosMoveis([[chave, 0]]); escritorioEmitir("furni:toggle", { chave, estado: 0 }); }, 1400);
+}
 // No Habbo o portão não abre nem fecha com alguém em cima dele.
 function escritorioPortaoOcupado(g) {
   const eu = escritorioPosicao(escritorio.perfil || {});
@@ -1665,7 +1694,28 @@ function escritorioDadosRolaram(antes, depois) {
 }
 // Teleporte do Habbo: a cabine leva direto a outra sala (a tranca vale).
 const ESCRITORIO_TELEPORTE = /teleport|_tele$/;
+// Teleporte em par (como no Habbo, onde as cabines vêm ligadas duas a duas):
+// nos espaços comuns, duas cabines do mesmo modelo levam uma à outra. Sem par
+// (ou com três ou mais), a cabine abre a lista de salas.
+function escritorioParDoTeleporte(m) {
+  const cenas = [["praca", "geral"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.cena).map((a) => [a.id, a.id])];
+  const lista = cenas.flatMap(([cena, camada]) => escritorioItensDaCamada(camada).filter((it) => it[0] === m.classe).map((it) => ({ cena, x: Math.floor(it[1]), y: Math.floor(it[2]), dir: it[3] })));
+  if (lista.length !== 2) return null;
+  const aqui = lista.find((t) => t.cena === (escritorio.quarto || "praca") && t.x === Math.floor(m.x) && t.y === Math.floor(m.y));
+  return aqui ? lista.find((t) => t !== aqui) : null;
+}
+function teletransportarParEscritorio(m, par) {
+  const mapa = escritorio.mapa, chave = mapa.chaveMovel(m);
+  if (par.cena !== "praca" && escritorioZonaBloqueada(par.cena)) { avisarTrancadaEscritorio(par.cena, true); return; }
+  mapa.estadosMoveis([[chave, 2]]);
+  escritorioTocar(880, 0.1, 0.05);
+  // Sai pela frente da outra cabine (o ladrilho para onde ela está virada).
+  const [dx, dy] = ESCRITORIO_PASSO_ESTEIRA[par.dir] || [0, 1];
+  setTimeout(() => { mapa.estadosMoveis([[chave, 0]]); escritorioTrocarCena(par.cena === "praca" ? null : par.cena, { x: par.x + dx, y: par.y + dy }, par.dir); }, 700);
+}
 function abrirTeleporteEscritorio(m) {
+  const par = escritorioParDoTeleporte(m);
+  if (par) return teletransportarParEscritorio(m, par);
   const lugares = [...ESCRITORIO_PLANTA.ambientes, ESCRITORIO_PRACA].filter((a) => a.id !== (escritorio.quarto || "praca"));
   escritorio.teleporte = m;
   openWorkflowModal(`<div class="workflow-kicker">Teleporte</div><h2 class="workflow-title">Para onde?</h2><p>A cabine leva direto para a sala escolhida.</p><div class="workflow-actions ofc-teleporte">${lugares.map((a) => `<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();teletransportarEscritorio('${safeText(a.id)}')">${safeText(a.nome)}</button>`).join("")}</div>`);
@@ -1837,6 +1887,7 @@ function escritorioAcaoDoMovel(m) {
   if (ESCRITORIO_DADO.test(m.classe)) return { item: m, texto: "Jogar o dado", fazer: () => rolarDadoEscritorio(m) };
   if (mapaEhPortao(m.classe) && !m.altura) return { item: m, texto: m.estado ? "Fechar o portão" : "Abrir o portão", fazer: () => alternarPortaoEscritorio(m) };
   if (/floor_switch/.test(m.classe)) return { item: m, texto: "Puxar a alavanca", fazer: () => puxarAlavancaEscritorio(m) };
+  if (ESCRITORIO_MAO_UNICA.test(m.classe)) return { item: m, texto: "Passar pela catraca", fazer: () => passarMaoUnicaEscritorio(m) };
   if (ESCRITORIO_TELEPORTE.test(m.classe)) return { item: m, texto: "Teletransportar", fazer: () => abrirTeleporteEscritorio(m) };
   if (/jukebox|^hc25_6$/.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
@@ -1848,7 +1899,11 @@ function escritorioUsarAoClicar(x, y) {
   // (o dado pode estar em cima de uma mesa)
   const m = (escritorio.mapa?.moveisEm(x, y) || []).find((i) => !i.plano && (!i.altura || ESCRITORIO_DADO.test(i.classe)) && !i.parede && escritorioAcaoDoMovel(i));
   if (!m) return false;
-  const lado = escritorioLadoLivre({ x: Math.floor(m.x), y: Math.floor(m.y), w: Math.max(1, Math.round(m.dim.x)), h: Math.max(1, Math.round(m.dim.y)) });
+  // Máquina de café, geladeira e afins: como no Habbo, usa-se pela frente
+  // (o ladrilho para onde ela está virada), se ele estiver livre.
+  const frente = (ESCRITORIO_CAFE.test(m.classe) || ESCRITORIO_BEBIDA.test(m.classe) || ESCRITORIO_LANCHE.test(m.classe)) && escritorioFrenteDoMovel(m);
+  const frenteLivre = frente && escritorio.mapa.caminho({ x: Math.round(movimento.quadro ? movimento.x : escritorioPosicao(escritorio.perfil || {}).x), y: Math.round(movimento.quadro ? movimento.y : escritorioPosicao(escritorio.perfil || {}).y) }, frente) && !escritorioOcupado(frente.x, frente.y);
+  const lado = frenteLivre ? frente : escritorioLadoLivre({ x: Math.floor(m.x), y: Math.floor(m.y), w: Math.max(1, Math.round(m.dim.x)), h: Math.max(1, Math.round(m.dim.y)) });
   if (!lado) return false;
   escritorio.usarAoChegar = m;
   escritorioIrPara(lado.x, lado.y);
@@ -1904,7 +1959,8 @@ function escritorioAcoesPerto() {
     return { item: comida, texto: escritorio.pose === tipo ? (tipo === "bebida" ? "Largar a bebida" : "Largar o lanche") : (tipo === "bebida" ? "Pegar uma bebida" : "Pegar um lanche"),
       fazer: () => definirPoseEscritorio(escritorio.pose === tipo ? "" : tipo) };
   }
-  const usavel = perto.find((m) => ESCRITORIO_DADO.test(m.classe) || ESCRITORIO_TELEPORTE.test(m.classe) || mapaEhPortao(m.classe) && !m.altura || /floor_switch/.test(m.classe));
+  const usavel = perto.find((m) => ESCRITORIO_DADO.test(m.classe) || ESCRITORIO_TELEPORTE.test(m.classe) || mapaEhPortao(m.classe) && !m.altura || /floor_switch/.test(m.classe)
+    || ESCRITORIO_MAO_UNICA.test(m.classe) && (() => { const f = escritorioFrenteDoMovel(m); return f.x === p.x && f.y === p.y; })());
   if (usavel) return escritorioAcaoDoMovel(usavel);
   const aparelho = perto.find((m) => /treadmill|bicycle/.test(m.classe));
   if (aparelho) {

@@ -320,3 +320,15 @@ test('física vem da ficha oficial do Habbo: assentos, cama na cabeceira, degrau
    degrauUm:mapaPassa(g,0,5,0,-1),degrauDois:mapaPassa(g,1,5,0,-1),deUmParaDois:mapaPassa(g,0,4,1,0),degrau:MAPA_DEGRAU};})()`,c);
  assert.deepEqual(JSON.parse(JSON.stringify(r)),{poltrona:true,cinema:true,cabeceira:[4,0],greek:1,degrauUm:true,degrauDois:false,deUmParaDois:true,degrau:1.5});
 });
+test('catraca de mão única fica fechada na grade; cabines do mesmo modelo nas cenas comuns formam par',async()=>{
+ const vm=await import('node:vm');
+ const ficha=JSON.parse(readFileSync('assets/escritorio/habbo/fisica.json','utf8'));
+ const c=vm.createContext({console,window:{},document:{},__ficha:ficha});
+ vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8')+'\nMAPA_FISICA=__ficha;',c);
+ const r=vm.runInContext(`(()=>{const P={W:6,H:6,divisorias:[]};
+  const g=mapaMontarGrade(P,[{classe:'onewaydoor_c22_rosegold',x:2,y:2,dir:2,altura:0,estado:1,dim:{x:1,y:1,z:0},plano:true,prof:0}]);
+  const pares=[["praca",ESCRITORIO_PRACA],...ESCRITORIO_PLANTA.ambientes.filter(a=>a.cena).map(a=>[a.id,a])].flatMap(([id,a])=>escritorioMoveisDaCena(a).filter(it=>it[0]==='mafia_c26_teleport_dark').map(it=>id));
+  return {catraca:g.bloqueado[g.ind(2,2)],pares};})()`,c);
+ assert.equal(r.catraca,1,'mesmo aberta, a catraca não é caminho para quem não passa por ela');
+ assert.deepEqual(JSON.parse(JSON.stringify(r.pares)).sort(),['praca','recepcao']);
+});

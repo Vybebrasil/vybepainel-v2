@@ -155,7 +155,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["mafia_c26_planter_white", 6, 12, 0], ["mafia_c26_planter_white", 9, 12, 0], ["mafia_c26_planter_white", 15, 12, 0],
     ["mafia_c26_planter_white", 15, 4, 0], ["modern_c17_floorlamp", 9, 0, 0],
     // Teleportes (levam direto a qualquer sala) e um dado (tem pedestal próprio).
-    ["mafia_c26_teleport_white", 15, 1, 6], ["mafia_c26_teleport_white", 15, 2, 6],
+    // A cabine escura forma par com a da Praça (teleporte ligado, como no
+    // Habbo); a branca, sem par, abre a lista de salas.
+    ["mafia_c26_teleport_white", 15, 1, 6], ["mafia_c26_teleport_dark", 15, 2, 6],
     ["edice", 7, 9, 0, 1],
   ],
   // Praça: a área de fora, compacta. Deck da piscina com bar de palha no

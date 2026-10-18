@@ -6008,7 +6008,9 @@ body.no-escritorio {overflow:hidden}
 .mapa-pessoa.deitado[data-deitado=y] img {margin:47px 0 0 -54px}
 .mapa-pessoa.pulando img {animation:mapa-pulo .62s cubic-bezier(.3,0,.7,1) infinite}
 @keyframes mapa-pulo {0%,100% {transform:translateY(0)} 50% {transform:translateY(-26px)}}
-.mapa-pessoa.na-agua::after {content:"";position:absolute;left:12px;bottom:-4px;width:40px;height:14px;border-radius:50%;border:2px solid #bfe9ffcc;animation:mapa-respingo 1.4s ease-out infinite;pointer-events:none}
+/* Na água o boneco nada: afunda até a cintura (como o efeito de nadar do Habbo). */
+.mapa-pessoa.na-agua img {clip-path:inset(0 0 42% 0);transform:translateY(30px)}
+.mapa-pessoa.na-agua::after {content:"";position:absolute;left:12px;bottom:12px;width:40px;height:14px;border-radius:50%;border:2px solid #bfe9ffcc;animation:mapa-respingo 1.4s ease-out infinite;pointer-events:none}
 @keyframes mapa-respingo {from {transform:scale(.45);opacity:.9} to {transform:scale(1.25);opacity:0}}
 .mapa-zzz {position:absolute;left:60%;bottom:calc(100% - 34px);font:700 12px var(--mac-ui);color:#e8ecff;text-shadow:0 1px 2px #0009;pointer-events:none;animation:mapa-zzz 2.6s ease-out infinite}
 @keyframes mapa-zzz {0% {transform:translate(0,0) scale(.7);opacity:0} 25% {opacity:1} 100% {transform:translate(12px,-26px) scale(1.1);opacity:0}}
