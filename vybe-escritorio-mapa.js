@@ -144,12 +144,20 @@ const MAPA_DIGITOS = {
   seconds_sprite: (n) => (n % 60) % 10, ten_seconds_sprite: (n) => Math.floor((n % 60) / 10), minutes_sprite: (n) => Math.floor(n / 60) % 10, ten_minutes_sprite: (n) => Math.floor(n / 600) % 10,
 };
 const MAPA_COM_DIGITOS = /^furniture_(score_board|counter_clock|vote_counter|vote_majority)$/;
+// Quebrável (InteractionCrackable): o estado é o número de golpes; a etapa da
+// arte acompanha a proporção até o total (no Habbo, da tabela do servidor).
+const MAPA_GOLPES_QUEBRAVEL = 10;
+function mapaEtapaQuebravel(dados, golpes) {
+  const n = Object.keys(dados.visualizations.find((v) => v.size === 64)?.animations || {}).filter((k) => Number(k) < 100).length || 1;
+  return Math.min(n - 1, Math.floor((Math.max(0, golpes) * (n - 1)) / MAPA_GOLPES_QUEBRAVEL));
+}
 function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const digitos = MAPA_COM_DIGITOS.test(dados.visualizationType || "");
   const numero = Math.max(0, Math.round(Number(estadoSalvo) || 0));
   // O relógio de partida anima sempre a animação 0 (o número fica nos dígitos).
-  const { estado, cor } = digitos ? { estado: dados.visualizationType === "furniture_counter_clock" ? 0 : Math.min(1, numero), cor: null } : mapaCorDoEstado(dados, estadoSalvo);
+  const { estado, cor } = digitos ? { estado: dados.visualizationType === "furniture_counter_clock" ? 0 : Math.min(1, numero), cor: null }
+    : dados.logicType === "furniture_crackable" ? { estado: mapaEtapaQuebravel(dados, numero), cor: null } : mapaCorDoEstado(dados, estadoSalvo);
   const nome = dados.name;
   const partes = [];
   const sombra = `${nome}_64_sd_${dir}_0`;
@@ -230,6 +238,41 @@ function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   if (d.grupos.length <= 1) return { ...d, camadas: [{ canvas: d.canvas, prof: d.grupos[0]?.prof || 0, luz: d.grupos[0]?.luz }] };
   const camadas = d.grupos.map((g) => ({ canvas: mapaDesenharMovel(m, dir, estado, quadro, semente, (p) => mapaGrupoCamada(p) === g.chave)?.canvas, prof: g.prof, luz: g.luz })).filter((c) => c.canvas);
   return { ...d, camadas };
+}
+// Paisagem vista pela janela, como no Habbo (FurnitureWindow: a máscara da
+// arte recorta a parede e mostra a paisagem do quarto atrás). A nossa é o céu
+// de Irecê na hora do dia: chapada baixa, caatinga, sol, lua e estrelas.
+const MAPA_CEUS = {
+  madrugada: ["#0b1026", "#1d2350", "#2c2f55"], manha: ["#7ec8f5", "#bfe6fb", "#f3e9c6"], tarde: ["#4fa3e6", "#9fd2f5", "#e8f1d8"],
+  "por-do-sol": ["#3b2a6b", "#e0703a", "#f7c46a"], noite: ["#070b1d", "#141b3d", "#252a4a"],
+};
+function mapaPintarPaisagem(c, momento) {
+  const g = c.getContext("2d"), w = c.width, h = c.height, [alto, meio, baixo] = MAPA_CEUS[momento] || MAPA_CEUS.tarde;
+  const ceu = g.createLinearGradient(0, 0, 0, h);
+  ceu.addColorStop(0, alto); ceu.addColorStop(0.6, meio); ceu.addColorStop(1, baixo);
+  g.fillStyle = ceu; g.fillRect(0, 0, w, h);
+  const noite = momento === "noite" || momento === "madrugada";
+  if (noite) { g.fillStyle = "#ffffffcc"; for (let i = 0; i < w * h / 160; i++) g.fillRect((i * 37) % w, (i * 53) % Math.max(1, h * 0.6), 1, 1); }
+  g.fillStyle = noite ? "#f4f1d0" : momento === "por-do-sol" ? "#ffd27a" : "#fff6c8";
+  g.beginPath(); g.arc(w * 0.72, h * (momento === "por-do-sol" ? 0.62 : 0.26), Math.max(3, Math.min(w, h) * 0.09), 0, Math.PI * 2); g.fill();
+  // Chapada ao longe e a caatinga mais perto.
+  g.fillStyle = noite ? "#1a1f33" : momento === "por-do-sol" ? "#5b3a4a" : "#8a9a7a";
+  g.beginPath(); g.moveTo(0, h * 0.78); for (let x = 0; x <= w; x += 6) g.lineTo(x, h * (0.72 + 0.04 * Math.sin(x / 17))); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+  g.fillStyle = noite ? "#10141f" : momento === "por-do-sol" ? "#3d2a2e" : "#6f7d4f";
+  g.beginPath(); g.moveTo(0, h * 0.9); for (let x = 0; x <= w; x += 4) g.lineTo(x, h * (0.86 + 0.03 * Math.sin(x / 7 + 1))); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+}
+// Máscara do vidro da janela (o asset "_mask"), na mesma conta de posição das camadas.
+function mapaMascaraJanela({ dados, imagem }, dir) {
+  const nome = dados.name, a = dados.assets[`${nome}_64_${dir}_mask`];
+  if (!a) return null;
+  const f = dados.spritesheet.frames[`${nome}_${a.source || nome + "_64_" + dir + "_mask"}`]?.frame;
+  if (!f) return null;
+  const c = document.createElement("canvas");
+  c.width = f.w; c.height = f.h;
+  const g = c.getContext("2d");
+  if (a.flipH) { g.translate(f.w, 0); g.scale(-1, 1); }
+  g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+  return { canvas: c, x: a.flipH ? a.x - f.w : -a.x, y: -a.y };
 }
 const MAPA_LUZES_CACHE = new WeakMap();
 function mapaLuzSemPreto(imagem, f) {
@@ -737,12 +780,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
   let fundoPronto = null;
   var luzesLigadas = false; // vira true quando os móveis terminam de carregar
+  const paisagens = []; // janelas com o céu atrás (criarPaisagem)
   const ceu = () => {
     const h = new Date(Date.now() - 3 * 3600e3).getUTCHours();
     const agora = h < 5 ? "madrugada" : h < 11 ? "manha" : h < 16 ? "tarde" : h < 19 ? "por-do-sol" : "noite";
     if (el.dataset.ceu === agora) return;
     el.dataset.ceu = agora;
     fundoPronto?.(); // redesenha a cidade (dia claro / noite acesa)
+    for (const p of paisagens) pintarPaisagem(p);
     if (luzesLigadas) pintarLuzes();
   };
   ceu();
@@ -874,6 +919,28 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     if (m) return m.alt || (m.cor ? MAPA_PAREDE : 46);
     return (eixo === "x" && y === P.PREDIO?.y0) || (eixo === "y" && x === P.PREDIO?.x0) ? MAPA_PAREDE : 46;
   };
+  // Janelas: a paisagem atrás do vidro, logo atrás da janela.
+  function criarPaisagem(item, desenho) {
+    const mascara = mapaMascaraJanela(item.m, item.dir);
+    if (!mascara) return;
+    const c = document.createElement("canvas");
+    c.width = mascara.canvas.width; c.height = mascara.canvas.height;
+    c.className = "mapa-obj mapa-paisagem";
+    c.style.left = parseFloat(item.no.style.left) - desenho.ox + mascara.x + "px";
+    c.style.top = parseFloat(item.no.style.top) - desenho.oy + mascara.y + "px";
+    c.style.zIndex = String(Number(item.no.style.zIndex) - 1);
+    const p = { c, mascara, item };
+    pintarPaisagem(p);
+    palco.append(c);
+    paisagens.push(p);
+  }
+  function pintarPaisagem(p) {
+    const g = p.c.getContext("2d");
+    g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, p.c.width, p.c.height);
+    mapaPintarPaisagem(p.c, el.dataset.ceu);
+    g.globalCompositeOperation = "destination-in"; g.drawImage(p.mascara.canvas, 0, 0);
+    g.globalCompositeOperation = "source-over";
+  }
   // Móveis (animados ficam numa lista para trocar de quadro)
   const animados = [];
   const moveis = [];
@@ -1073,6 +1140,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         palco.append(no);
         const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: 0, caixa: null, origem: origemItem, semente: semente(x, y) };
         ordenarMovel(item);
+        if (m.dados.logicType === "furniture_window") criarPaisagem(item, desenho);
         moveis.push(item);
         if (item.quadros > 1) animados.push(item);
         if (estadosForcados.has(chaveMovel(item))) aplicarEstado(item, estadosForcados.get(chaveMovel(item)), false);
@@ -1157,6 +1225,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   }
   async function trocarMoveisAgora(lista) {
     for (const item of moveis) item.no.remove();
+    for (const p of paisagens) p.c.remove();
+    paisagens.length = 0;
     moveis.length = 0;
     animados.length = 0;
     quadrosParede.length = 0;

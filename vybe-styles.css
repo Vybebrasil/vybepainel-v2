@@ -6858,3 +6858,11 @@ body.no-escritorio {overflow:hidden}
 .ofc-andares button[aria-pressed=true] {background:#ff8a351c;border-color:#ff8a3555;color:var(--ofc-texto)}
 .ofc-andares button:focus-visible {outline:2px solid #ffb475;outline-offset:2px}
 @media(max-width:760px){.ofc-topo-esq{flex-wrap:wrap}}
+/* TV do espaço (furniture_youtube): janela de vídeo flutuante sobre o mapa,
+   como o player de TV do Habbo; fecha só para quem fechou. */
+.ofc-tv {position:absolute;right:16px;top:72px;z-index:60;width:min(420px,calc(100% - 32px));border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:0 12px 32px #0007}
+.ofc .ofc-tv > header {display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:6px 10px;font:600 12px var(--mac-ui);color:var(--text)}
+.ofc-tv header button {border:0;background:none;color:inherit;font-size:18px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.ofc-tv header button:focus-visible {outline:2px solid #ff8a35}
+.ofc-tv iframe {display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+.mapa-paisagem {image-rendering:auto}

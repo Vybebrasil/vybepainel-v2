@@ -50,7 +50,7 @@ export function itensValidos(camada, itens) {
     if (!num(estado, 0, 200) || !num(altura, 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
     const item = [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
-    const cfg = configGatilho(classe, it[6], lim);
+    const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]);
     return cfg ? [...item, cfg] : item;
   });
 }
@@ -58,6 +58,18 @@ export function itensValidos(camada, itens) {
 // móveis escolhidos (m, origem e classe), um texto curto (t) e segundos (s).
 // Só nos móveis de gatilho; nos outros o campo é descartado.
 export const GATILHO = /^wf_(trg|cnd|act)_[a-z0-9_]+$/;
+// Troféu (furniture_trophy): dedicatória gravada, como no Habbo — nome (até
+// 40), texto (até 100) e data (AAAA-MM-DD).
+export const TROFEU = /(^|_)(prize)?troph(y|ies)|^cine_star$|^xm09_trophy$/i;
+function configTrofeu(classe, cfg) {
+  if (!TROFEU.test(classe) || cfg == null) return null;
+  if (typeof cfg !== "object" || Array.isArray(cfg)) throw new Error("Dedicatória do troféu inválida.");
+  const saida = {};
+  if (cfg.n != null) { if (typeof cfg.n !== "string" || cfg.n.length > 40) throw new Error("Nome do troféu com até 40 letras."); saida.n = cfg.n.trim(); }
+  if (cfg.t != null) { if (typeof cfg.t !== "string" || cfg.t.length > 100) throw new Error("Dedicatória com até 100 letras."); saida.t = cfg.t.trim(); }
+  if (cfg.d != null) { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(cfg.d))) throw new Error("Data do troféu inválida."); saida.d = String(cfg.d); }
+  return Object.keys(saida).length ? saida : null;
+}
 function configGatilho(classe, cfg, lim) {
   if (!GATILHO.test(classe) || cfg == null) return null;
   if (typeof cfg !== "object" || Array.isArray(cfg)) throw new Error("Configuração do gatilho inválida.");

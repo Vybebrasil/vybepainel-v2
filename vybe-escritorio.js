@@ -1669,6 +1669,8 @@ function escritorioAplicarComando(id, cmd) {
   // Alguém salvou a decoração (móveis, piso, paredes, luz ou planta): quem
   // está naquela cena relê do servidor e redesenha.
   else if (k === "dec") escritorioDecoracaoMudou(id, v);
+  // TV: quem está no mesmo espaço vê o vídeo passado (vazio desliga).
+  else if (k === "tv") { const [cena, video] = String(v || "").split(":"); if (cena === (escritorio.quarto || "praca") && String(id) !== String(escritorio.base?.eu)) mostrarTvEscritorio(escritorioIdYoutube(video) || "", id); }
   // Bola chutada: cada navegador roda o mesmo caminho (mesma grade).
   else if (k === "bol" && String(id) !== String(escritorio.base?.eu)) escritorioRolarBola(v);
   // Post-it colado ou tirado: quem está na sala relê a parede.
@@ -2102,9 +2104,73 @@ function funilEscritorio(m) {
   const par = outros[Math.floor(Math.random() * outros.length)];
   teletransportarParEscritorio(m, par);
 }
+// Quebrável: cada clique é um golpe, para todos; no último ela abre.
+function quebrarEscritorio(m) {
+  const golpes = (m.estado || 0) + 1;
+  if ((m.estado || 0) >= MAPA_GOLPES_QUEBRAVEL) return escritorioAviso("Já está aberto.");
+  escritorioMudarEstado(m, golpes);
+  escritorioTocar(golpes >= MAPA_GOLPES_QUEBRAVEL ? 990 : 300 + golpes * 30, 0.08, 0.05);
+  if (golpes >= MAPA_GOLPES_QUEBRAVEL) escritorioAviso("Abriu!");
+  else escritorioAviso(`Faltam ${MAPA_GOLPES_QUEBRAVEL - golpes} ${MAPA_GOLPES_QUEBRAVEL - golpes === 1 ? "golpe" : "golpes"} para abrir.`);
+}
+// TV e projetor (furniture_youtube): quem usa escolhe passar um vídeo do
+// YouTube para quem está no espaço ou compartilhar a própria tela na
+// conversa da sala. O vídeo vai a todos por comando no chat (tv=cena:id).
+function abrirTvEscritorio(m) {
+  // A tela vai pela conversa do espaço (mostrarTelaEscritorio entra nela se
+  // preciso); Foco e Praça não têm conversa.
+  const comConversa = Boolean(escritorio.zona && escritorio.zona !== "foco");
+  escritorio.tvAtual = m;
+  openWorkflowModal(`<div class="workflow-kicker">TV</div><h2 class="workflow-title">O que passar?</h2>
+<form class="ofc-gatilho" onsubmit="event.preventDefault();passarVideoEscritorio(this.elements.url.value)">
+<label>Vídeo do YouTube (link)<input name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required></label>
+<div class="workflow-actions"><button type="submit" class="workflow-primary">Passar o vídeo</button>
+<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}>Compartilhar minha tela</button>
+<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();passarVideoEscritorio('')">Desligar</button></div>
+${comConversa ? "" : '<p class="ofc-nota">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}</form>`);
+}
+function escritorioIdYoutube(url) {
+  const m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(String(url || "").trim());
+  return m ? m[1] : /^[A-Za-z0-9_-]{11}$/.test(String(url || "").trim()) ? String(url).trim() : null;
+}
+function passarVideoEscritorio(url) {
+  const id = url ? escritorioIdYoutube(url) : "";
+  if (url && !id) return escritorioAviso("Esse link não é de um vídeo do YouTube.");
+  closeWorkflowModal();
+  const cena = escritorio.quarto || "praca";
+  if (escritorio.tvAtual && escritorioEstadosDoMovel(escritorio.tvAtual).length > 1) escritorioMudarEstado(escritorio.tvAtual, id ? 1 : 0);
+  mostrarTvEscritorio(id, String(escritorio.base?.eu));
+  escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "tv=" + cena + ":" + id });
+}
+async function compartilharTelaNaTvEscritorio() {
+  if (escritorio.tvAtual && escritorioEstadosDoMovel(escritorio.tvAtual).length > 1) escritorioMudarEstado(escritorio.tvAtual, 1);
+  await mostrarTelaEscritorio();
+}
+function mostrarTvEscritorio(id, quem) {
+  document.getElementById("office-tv")?.remove();
+  if (!id) return;
+  const nome = String((escritorio.online || []).find((o) => String(o.id) === String(quem))?.nome || (String(quem) === String(escritorio.base?.eu) ? "Você" : "Alguém")).split(" ")[0];
+  const caixa = document.createElement("section");
+  caixa.id = "office-tv"; caixa.className = "ofc-tv"; caixa.setAttribute("aria-label", "TV do espaço");
+  caixa.innerHTML = `<header><span>TV · ${safeText(nome)} passou</span><button type="button" aria-label="Fechar a TV" onclick="document.getElementById('office-tv')?.remove()">×</button></header>
+<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0" title="Vídeo do YouTube" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  (document.querySelector(".ofc") || document.body).append(caixa);
+}
+// Troféu (furniture_trophy): mostra a dedicatória gravada (quem, quando e o
+// texto), como no Habbo; quem decora grava no editor (Configurar).
+function verTrofeuEscritorio(m) {
+  const it = escritorioItensDaCamada(escritorio.quarto || "geral")[m.origem?.i];
+  const cfg = it?.[6] && typeof it[6] === "object" ? it[6] : {};
+  openWorkflowModal(`<div class="workflow-kicker">Troféu</div><h2 class="workflow-title">${safeText(cfg.n || "Sem nome gravado")}</h2>
+${cfg.d ? `<p class="ofc-nota">${safeText(cfg.d.split("-").reverse().join("/"))}</p>` : ""}<p>${safeText(cfg.t || "Este troféu ainda não tem dedicatória.")}</p>
+<div class="workflow-actions"><button type="button" class="workflow-primary" onclick="closeWorkflowModal()">Fechar</button></div>`);
+}
 // Peças que se usam pela lógica oficial (antes de cair nas regras pelo nome).
 function escritorioAcaoPelaLogica(m) {
   const l = escritorioLogica(m);
+  if (l === "quebravel") return { item: m, texto: "Dar um golpe", fazer: () => quebrarEscritorio(m) };
+  if (l === "tv" || ESCRITORIO_TELAS.test(m.classe)) return { item: m, texto: "Usar a TV", fazer: () => abrirTvEscritorio(m) };
+  if (l === "trofeu") return { item: m, texto: "Ler a dedicatória", fazer: () => verTrofeuEscritorio(m) };
   if (l === "relogio") return { item: m, texto: escritorioRelogios.has(escritorio.mapa.chaveMovel(m)) ? "Pausar o relógio" : "Iniciar o relógio", fazer: () => relogioEscritorio(m) };
   if (l === "voto") return { item: m, texto: "Votar", fazer: () => contarEscritorio(m) };
   if (l === "placar") return { item: m, texto: "Somar um ponto", fazer: () => contarEscritorio(m) };
@@ -2229,8 +2295,7 @@ function escritorioAcoesPerto() {
     return { item: aparelho, texto: pose === "bicicleta" ? "Pedalar" : "Correr na esteira", fazer: () => usarAparelhoEscritorio(aparelho, pose) };
   }
   const tela = escritorio.mapa.moveisPerto(p.x, p.y, 2).find((m) => ESCRITORIO_TELAS.test(m.classe));
-  if (tela && escritorio.zona && escritorio.zona !== "foco")
-    return { item: tela, texto: "Mostrar minha tela aqui", fazer: mostrarTelaEscritorio };
+  if (tela) return { item: tela, texto: "Usar a TV", fazer: () => abrirTvEscritorio(tela) };
   // No Lounge, a jukebox e a cabine do DJ são o bot de música da sala.
   const som = escritorioNaPista() && perto.find((m) => /jukebox|^hc25_6$/.test(m.classe));
   if (som) return { item: som, texto: "Abrir a música", fazer: abrirMusicaEscritorio };
