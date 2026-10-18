@@ -531,7 +531,7 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   if(!a || !String(id).endsWith('-andar-1')) return a || null;
   const perfil=escritorioPerfilDecoracao(id);
   if(!perfil?.quarto_configurado) return null;
-  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao};
+  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:perfil.sala_celdas || ''};
   const dim=escritorioDimQuarto(r);r.x1=r.x0+dim.w;r.y1=r.y0+dim.h;
   const L=ESCRITORIO_QUARTO_MAX,pisos=new Map(),paredes=new Map();
   if(perfil.sala_pisos?.length===L*L) for(let i=0;i<L*L;i++) {const k=ESCRITORIO_PISOS_SALA[parseInt(perfil.sala_pisos[i],16)]?.[0];if(k)pisos.set(`${i%L},${Math.floor(i/L)}`,k);}
@@ -569,6 +569,8 @@ function escritorioAplicarSalas() {
     const dim = escritorioDimQuarto(a); a.x1 = a.x0 + dim.w; a.y1 = a.y0 + dim.h;
     a.piso = perfil?.sala_piso && ESCRITORIO_PLANTA.PISO[perfil.sala_piso] ? perfil.sala_piso : a.pisoPadrao;
     a.cor = /^#[0-9a-f]{6}$/i.test(perfil?.sala_parede || "") ? perfil.sala_parede : a.corPadrao;
+    a.luz = ESCRITORIO_LUZES_SALA.some(([id]) => id === perfil?.sala_luz) ? perfil.sala_luz : "";
+    a.celdasLivres = perfil?.sala_celdas || "";
   }
   // As fachadas do mapa geral ganham a cor escolhida pelo dono.
   for (const d of ESCRITORIO_PLANTA.divisorias) if (d.sala) d[4] = ESCRITORIO_PLANTA.ambientes.find((a) => a.id === d.sala)?.cor || d[4];
@@ -889,7 +891,7 @@ function renderEscritorio() {
   // A entrada também aparece enquanto conecta (inclusive vindo da abertura),
   // com as etapas e o erro no próprio cartão.
   const lobby = (!escritorio.conectado && (!escritorio.lobbyFechado || escritorio.entrada)) || escritorio.carregandoMapa;
-  painel.innerHTML = `<section class="ofc" data-modo="${modo}" data-lateral="${lateral}">
+  painel.innerHTML = `<section class="ofc" data-modo="${modo}" data-lateral="${lateral}" data-editando="${Boolean(escritorio.edicao)}">
 <nav class="ofc-rail" aria-label="Escritório">
  <img class="ofc-logo" src="${safeText(document.querySelector(".logo img")?.getAttribute("src") || "/assets/vybe-branca.png")}" alt="Vybe">
  ${rail("mapa", "mapa", "Mapa", "alternarModoEscritorio('mapa')", modo === "mapa")}

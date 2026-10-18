@@ -502,3 +502,25 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
 - Dado do Habbo (rola e cai de 1 a 6, todos veem) na Convivência e no
   Jogos; cabines de teleporte na Convivência e na Praça levam a qualquer sala.
 - Dançar não entrou: o gerador de bonecos do Habbo não desenha as danças.
+
+### Construção livre e inventário (17/10/2026, noite)
+
+- Altura livre (como o ladrilho de empilhar do Habbo): na barra da peça
+  selecionada, "−"/"+" mudam 0,1 nível; Page Up/Page Down (Shift: 0,5);
+  "No topo" apoia no que está embaixo, "No chão" volta. O servidor aceita até
+  10 níveis.
+- Blocos, palcos e plataformas baixos (`MAPA_SUBIVEIS`) são pisáveis: o boneco
+  sobe até 1,3 nível de um ladrilho para o vizinho e desce de qualquer altura.
+  Uma torre mais alta continua sendo parede.
+- Bloco e assento invisíveis (`vybe_bloco_invisivel`, `vybe_assento_invisivel`)
+  são essenciais grátis; só aparecem, translúcidos, durante a edição.
+- Luz do quarto (`sala_luz`: quente, fria, rosa, roxa, verde, noite) em
+  Piso e paredes → Luz. Tinge piso, paredes, móveis e bonecos; nomes e balões
+  ficam normais. Salva como a pintura, na hora.
+- Planta desenhada (`sala_celdas`, 12 × 12 códigos sobre a planta escolhida:
+  `0` mantém, `v` sem piso, `p` piso, `1`/`2` patamares). Porta e escada não
+  mudam. Vai junto com os móveis no Salvar, na mesma transação, e o servidor
+  confere que nenhum móvel ficou fora do piso. Trocar de planta recomeça.
+- Meus móveis: filtros Todos/Colocados/Guardados e por tipo; cada cartão diz
+  quantos estão aqui, no outro andar e guardados. "Guardar tudo" (Opções)
+  devolve ao inventário tudo o que está no quarto.

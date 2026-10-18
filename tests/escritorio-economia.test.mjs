@@ -195,3 +195,48 @@ test('segundo andar tem planta própria, preserva térreo e compartilha unidades
  assert.equal(malicioso.sala_andares[0].sala_planta,'terracos-g');assert.equal(malicioso.sala_andares[0].quarto_configurado,true);
  await assert.rejects(configurarQuarto(sql,p,{},{planta:'quadrado-m',modelo:'vazio',andar:2}),/inválido/);
 });
+test('planta desenhada salva junto com os móveis; porta e escada não mudam; móvel não fica sem piso',async t=>{
+ const {sql}=await banco(t);
+ const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const {plantaQuarto}=await import('../server/escritorio-quartos.js');
+ const pessoa={id:1};
+ const setup=await configurarQuarto(sql,pessoa,{},{planta:'amplo',modelo:'vazio'});
+ const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
+ // Tira o ladrilho (0,0), sobe (1,0) a patamar e tenta mexer na porta (3,7).
+ const celdas=[...'0'.repeat(144)];celdas[0]='v';celdas[1]='1';celdas[7*12+3]='v';
+ const livres=celdas.join('');
+ const p=plantaQuarto('amplo',livres);
+ assert.equal(p.celdas[0][0],-1);assert.equal(p.celdas[0][1],1);assert.equal(p.celdas[7][3],0,'porta fica');
+ assert.equal(plantaQuarto('amplo').celdas[0][0],0,'a planta original não muda');
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',0,0,2]],versao:setup.mapa.versao,celdas:livres}),/fora/);
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[],versao:setup.mapa.versao,celdas:'x'}),/inválida/);
+ const r=await salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',4,4,2]],versao:setup.mapa.versao,celdas:livres});
+ assert.equal(r.celdas,livres);
+ const [perfil]=await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=1`;
+ assert.equal(perfil.preferencias.sala_celdas,livres);
+ // Salvar só os móveis (sem celdas) mantém a planta e continua conferindo o piso.
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',0,0,2]],versao:r.versao}),/fora/);
+});
+test('perfil aceita luz conhecida e não muda a planta desenhada pelo salvamento de pintura',async t=>{
+ const {sql}=await banco(t);
+ const {perfilEscritorio,salvarPerfilEscritorio}=await import('../server/escritorio.js');
+ assert.equal(perfilEscritorio({sala_luz:'roxa'}).sala_luz,'roxa');
+ assert.equal(perfilEscritorio({sala_luz:'url(x)'}).sala_luz,'');
+ assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(144)}).sala_celdas,'v'.repeat(144));
+ assert.equal(perfilEscritorio({sala_celdas:'z'.repeat(144)}).sala_celdas,'');
+ sql.comTransacao ??= (fn)=>fn(sql);
+ const salvo=await salvarPerfilEscritorio(sql,1,{sala_luz:'noite',sala_celdas:'v'.repeat(144)});
+ assert.equal(salvo.sala_luz,'noite');assert.equal(salvo.sala_celdas,'');
+});
+test('blocos baixos sobem como no Habbo; torre alta é parede; bloco invisível é grátis',async()=>{
+ const vm=await import('node:vm');
+ const {QUARTOS}=await import('../server/escritorio-quartos.js');
+ assert.ok(QUARTOS.essenciais.includes('vybe_bloco_invisivel') && QUARTOS.essenciais.includes('vybe_assento_invisivel'));
+ const c=vm.createContext({console,escritorio:{base:{quartos:QUARTOS}}});
+ vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
+ const r=vm.runInContext(`(()=>{const P={W:8,H:6,divisorias:[]};
+  const b=(x,y,altura=0,classe='bc_block_0_recolorable')=>({classe,x,y,dir:0,altura,dim:{x:1,y:1,z:1},plano:false});
+  const g=mapaMontarGrade(P,[b(2,1),b(3,1),b(3,1,1),b(5,1),b(5,1,1),b(5,1,2),b(1,4,0,'vybe_assento_invisivel')]);
+  return {sobe:mapaPassa(g,1,1,1,0),degrau:mapaPassa(g,2,1,1,0),desce:mapaPassa(g,3,1,1,0),torre:mapaPassa(g,4,1,1,0),altura:g.subida[g.ind(3,1)],assento:g.assento.has(g.ind(1,4))};})()`,c);
+ assert.deepEqual(JSON.parse(JSON.stringify(r)),{sobe:true,degrau:true,desce:true,torre:false,altura:2,assento:true});
+});

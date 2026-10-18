@@ -441,9 +441,17 @@ function mapaDirecaoDoPasso(dx, dy) {
 // Mecânica do Habbo: anda de ladrilho em ladrilho, desvia de paredes e móveis
 // e senta quando para num assento. A grade marca o que bloqueia; paredes são
 // arestas entre ladrilhos vizinhos.
-const MAPA_ASSENTOS = new Set(["chair_polyfon","hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
+const MAPA_ASSENTOS = new Set(["vybe_assento_invisivel", "chair_polyfon","hc26_10", "army_c15_leatherchr", "mafia_c26_armchair_dark", "hygge_c25_armchair", "js_exe_chair", "hc_exe_chair2", "exe_sofa", "js_exe_sofa", "icedblk_c16_sofa", "greek_c15_bench",
   "hygge_c25_barstool", "vwave_c21_barstool", "hc26_5", "mafia_c26_sofa_dark", "js_c16_lounger", "br_c25_stonebench", "hygge_c25_hangingchair",
   "modern_c17_sofa", "modern_c17_chair", "mafia_c26_armchair_white", "cubie_beanbag_b", "cubie_beanbag_p", "classic9_chair", "studio_chair", "hc23_6", "ducket_c26_seachair", "paris_c15_chair"]);
+// Blocos, palcos e plataformas baixos: dá para subir neles, como no Habbo.
+// Quem anda sobe até MAPA_DEGRAU de altura de um ladrilho para o vizinho
+// (escada de blocos); mais que isso é parede. Desce de qualquer altura.
+const MAPA_SUBIVEIS = /^(bc_block_\w+|bc_tile_recolorable|vybe_bloco_invisivel|\w+_stage|cine_platform|greek_block|ktchn10_block|disco_c26_block)$/;
+const MAPA_DEGRAU = 1.3;
+function mapaTopoMovel(m) {
+  return (m.altura || 0) + ((typeof ESCRITORIO_TAMPOS !== "undefined" && ESCRITORIO_TAMPOS[m.classe]) ?? m.dim.z ?? 1);
+}
 function mapaMontarGrade(P, moveis) {
   const W = P.W, H = P.H;
   const bloqueado = new Uint8Array(W * H);
@@ -451,6 +459,7 @@ function mapaMontarGrade(P, moveis) {
   const profAssento = new Map(); // índice → profundidade do assento (quem senta fica à frente)
   const desvioAssento = new Map(); // índice → quanto o assento saiu do ladrilho (ajuste fino)
   const paredes = new Set(); // "x,y|x,y" entre vizinhos
+  const subida = new Float32Array(W * H); // altura de quem pisa em cima de um bloco
   const ind = (x, y) => y * W + x;
   const aresta = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
   for (const [x0, y0, x1, y1] of P.divisorias) {
@@ -462,6 +471,13 @@ function mapaMontarGrade(P, moveis) {
   // Quarto: só se anda dentro dele e na soleira (P.andavel).
   if (P.andavel) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (!P.andavel(x, y)) bloqueado[ind(x, y)] = 1;
   for (const m of moveis) {
+    if (MAPA_SUBIVEIS.test(m.classe) && mapaTopoMovel(m) <= 4) {
+      for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
+        const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
+        if (x >= 0 && y >= 0 && x < W && y < H) subida[ind(x, y)] = Math.max(subida[ind(x, y)], mapaTopoMovel(m));
+      }
+      continue;
+    }
     if (m.altura || m.plano || MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // em cima de mesa, rente ao piso ou porta (se atravessa)
     const senta = MAPA_ASSENTOS.has(m.classe);
     for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
@@ -471,7 +487,8 @@ function mapaMontarGrade(P, moveis) {
       else bloqueado[ind(x, y)] = 1;
     }
   }
-  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
+  // Um móvel comum em cima do bloco continua bloqueando o ladrilho.
+  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, subida, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
 // caminhos retos também passam (não corta quina de parede).
@@ -479,6 +496,7 @@ function mapaPassa(g, x, y, dx, dy) {
   const nx = x + dx, ny = y + dy;
   if (nx < 0 || ny < 0 || nx >= g.W || ny >= g.H || g.bloqueado[g.ind(nx, ny)]) return false;
   if (g.nivelEm && Math.abs(g.nivelEm(x,y)-g.nivelEm(nx,ny))>1) return false;
+  if (g.subida && g.subida[g.ind(nx, ny)] - (g.subida[g.ind(x, y)] || 0) > MAPA_DEGRAU) return false;
   if (dx && dy) return mapaPassa(g, x, y, dx, 0) && mapaPassa(g, x + dx, y, 0, dy) && mapaPassa(g, x, y, 0, dy) && mapaPassa(g, x, y + dy, dx, 0);
   return !g.paredes.has(g.aresta(g.ind(x, y), g.ind(nx, ny)));
 }
@@ -579,6 +597,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
   const palco = document.createElement("div");
   palco.className = "mapa-palco";
+  if (P.luz) palco.dataset.luz = P.luz;
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
   let fundoPronto = null;
   var luzesLigadas = false; // vira true quando os móveis terminam de carregar
@@ -1017,6 +1036,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     // Sentado numa cadeira posta fora do ladrilho (ajuste fino), acompanha a cadeira.
     const desvio = p.acao === "sit" && grade ? grade.desvioAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : null;
     const t = mapaTela(p.x + (desvio?.dx || 0), p.y + (desvio?.dy || 0), origem);
+    // Em cima de um bloco: o boneco sobe (32 px por nível de altura).
+    const subiu = grade ? (grade.subida[grade.ind(Math.round(p.x), Math.round(p.y))] || 0) * 32 : 0;
+    t.y -= subiu;
     p.no.style.left = t.x + "px";
     p.no.style.top = t.y + MAPA_TH / 2 + "px";
     // O nome fica numa camada acima dos móveis (antes um monitor ou cadeira

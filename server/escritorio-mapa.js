@@ -1,5 +1,5 @@
 import { carregarEconomia } from "./escritorio-economia.js";
-import { validarPisoQuarto, partesDaCamada, perfilDoAndar } from "./escritorio-quartos.js";
+import { validarPisoQuarto, partesDaCamada, perfilDoAndar, CELDAS_LIVRES } from "./escritorio-quartos.js";
 // Mapa editável e salas individuais do escritório. O servidor é a autoridade:
 // quem é dono de cada sala, quem pode editar cada camada e o que é um item válido.
 import { readFileSync } from "node:fs";
@@ -44,7 +44,8 @@ export function itensValidos(camada, itens) {
     const num = (v, min, max) => Number.isFinite(Number(v)) && Number(v) >= min && Number(v) <= max;
     if (!num(x, 0, lim.x - 0.01) || !num(y, 0, lim.y - 0.01)) throw new Error("Móvel fora da área que você pode editar.");
     if (![0, 2, 4, 6].includes(Number(dir))) throw new Error("Direção inválida.");
-    if (!num(estado, 0, 200) || !num(altura, 0, 5)) throw new Error("Estado ou altura inválidos.");
+    // Altura livre até 10 níveis (como o ladrilho de empilhar do Habbo).
+    if (!num(estado, 0, 200) || !num(altura, 0, 10)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
     return [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
   });
@@ -75,13 +76,16 @@ function conferirEdicao(pessoa, salas, camada) {
 }
 // Salva uma camada inteira. Permissão: 'geral' só administrador; sala, o dono
 // ou administrador. A versão evita apagar o que outra pessoa salvou antes.
-export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens, versao }) {
-  return sql.comTransacao(async tx => salvarCamadaTransacional(tx, pessoa, salas, {camada,itens,versao}));
+// "celdas" (opcional): a planta desenhada do quarto, salva junto com os móveis.
+export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens, versao, celdas }) {
+  return sql.comTransacao(async tx => salvarCamadaTransacional(tx, pessoa, salas, {camada,itens,versao,celdas}));
 }
-async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao}) {
+async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao,celdas}) {
   conferirEdicao(pessoa, salas, camada);
   if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
   const limpos = itensValidos(camada, itens);
+  if (celdas !== undefined && (camada === "geral" || !CELDAS_LIVRES.test(String(celdas)))) throw Object.assign(new Error("Planta do quarto inválida."), { status: 400 });
+  let novaPlanta = null, conferiuPlanta = false;
   if (camada !== "geral") {
     const dono = salas.find(s => s.id === partesDaCamada(camada)?.raiz)?.pessoa_id;
     const economia = await carregarEconomia(sql, dono);
@@ -97,7 +101,10 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
         catch {dados=JSON.parse((await arteRemotaEscritorio(classe,'json')).toString());}
         dimensoes.set(classe,dados.logic?.model?.dimensions || {x:1,y:1});
       }
-      validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes);
+      const livres = celdas !== undefined ? celdas : decoracao.sala_celdas;
+      conferiuPlanta = true;
+      validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes,livres);
+      if (celdas !== undefined && celdas !== (decoracao.sala_celdas || "")) novaPlanta = { preferencias: p.preferencias, andar: partesDaCamada(camada)?.andar };
       const usados = new Map();
       const raiz=partesDaCamada(camada).raiz;
       const outras=await sql`SELECT itens FROM vybe_escritorio_mapa WHERE camada<>${camada} AND (camada=${raiz} OR camada=${raiz+'-andar-1'})`;
@@ -108,6 +115,13 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
       for (const [classe,n] of usados) if ((economia.inventario.find(i=>i.classe===classe)?.quantidade || 0)<n)
         throw Object.assign(new Error("Compre os móveis no inventário antes de colocá-los no quarto."),{status:409});
     }
+  }
+  // Sem a loja não há validação de piso: a planta só muda com ela.
+  if (celdas !== undefined && !conferiuPlanta) throw Object.assign(new Error("A planta do quarto aguarda a loja do escritório."), { status: 503 });
+  if (novaPlanta) {
+    const { preferencias: atual, andar } = novaPlanta, dono = salas.find(s => s.id === partesDaCamada(camada)?.raiz)?.pessoa_id;
+    const salvo = andar ? { ...atual, sala_andares: (atual.sala_andares || []).map((a) => a.andar === andar ? { ...a, sala_celdas: celdas } : a) } : { ...atual, sala_celdas: celdas };
+    await sql`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(salvo)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${dono}`;
   }
   await conferirImagensDaCamada(sql, camada, limpos);
   // Guarda a versão que vai ser trocada (se o histórico já existe no banco).
@@ -120,7 +134,7 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
     WHERE vybe_escritorio_mapa.versao = ${esperada}
     RETURNING versao`;
   if (!r) throw Object.assign(new Error("Alguém salvou esta área antes. Recarregue para ver a versão nova."), { status: 409 });
-  return { camada, versao: r.versao, itens: limpos };
+  return { camada, versao: r.versao, itens: limpos, ...(celdas !== undefined ? { celdas } : {}) };
 }
 
 // Móvel do catálogo que ainda não está no painel: busca o .nitro no

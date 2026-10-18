@@ -29,6 +29,8 @@ export const CORES_ESCRITORIO = [
 ];
 export const PISOS_SALA_ESCRITORIO = ["", "madeira", "clara", "concreto", "carpete", "preto", "cafe", "verde", "deck", "lareira", "cinema", "pista", "marmore", "gramado", "nogueira", "vinho"];
 export const PAREDES_SALA_ESCRITORIO = ["", "#ff8a35", "#ffb347", "#ffd166", "#ff6fa8", "#e05a5a", "#b48cff", "#7c6cff", "#5aa9ff", "#5ad1e6", "#7ee08a", "#3fb68b", "#e8e8ee", "#8a8f9c"];
+// Luz ambiente do quarto (como o regulador de luz do Habbo): só nomes conhecidos.
+export const LUZES_SALA_ESCRITORIO = ["", "quente", "fria", "rosa", "roxa", "verde", "noite"];
 export function perfilEscritorio(valor = {}) {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) valor = {};
   const opcao = (campo, lista, padrao) =>
@@ -50,7 +52,7 @@ export function perfilEscritorio(valor = {}) {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
-      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','quarto_configurado'].includes(k))));
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','quarto_configurado'].includes(k))));
       return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
     }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
@@ -69,6 +71,9 @@ export function perfilEscritorio(valor = {}) {
     // Piso e cor das paredes da própria sala (só valores conhecidos).
     sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
+    sala_luz: opcao("sala_luz", LUZES_SALA_ESCRITORIO, ""),
+    // Planta desenhada pelo dono (ver plantaQuarto); muda só ao salvar a decoração.
+    sala_celdas: /^[0vp12]{144}$/.test(String(valor.sala_celdas || "")) ? String(valor.sala_celdas) : "",
     // Piso pintado ladrilho a ladrilho (12×12, um código por ladrilho; 0 =
     // o piso da sala) e cada trecho das duas paredes altas (estilo + cor).
     sala_pisos: /^[0-9a-f]{144}$/.test(pisoAtual) ? pisoAtual : "",
@@ -137,12 +142,12 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor) {
   return sql.comTransacao(async tx => {
     await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
     const [atual] = await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} FOR UPDATE`;
-    let perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares});
+    let perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, sala_celdas:atual.preferencias.sala_celdas, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares});
     if(valor.andar===1) {
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
       const pintura=perfilEscritorio(valor);
-      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes'].map(k=>[k,pintura[k]]))}]};
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz'].map(k=>[k,pintura[k]]))}]};
     }
     await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(perfil)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${pessoaId}`;
     return perfil;
