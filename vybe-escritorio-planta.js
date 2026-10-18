@@ -207,6 +207,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // com geladeira, fogão com coifa, pia e armários na parede; ilha com
   // banquetas no meio; mesa de jantar com luminária pendente à direita.
   cafe: () => [
+    // Plantas penduradas, viga com hera e luz sobre o balcão, hera na parede.
+    ["easter_c18_hangingplant", 2, 1, 0, 1], ["easter_c18_ivylight", 4, 1, 2, 1], ["easter_c18_hangingplant", 9, 1, 0, 1],
+    ["easter_c22_hangingvines", 0, 4, 2, 1],
     ["mode_fridge", 0, 0, 0],
     ["hygge_c25_counter1", 1, 0, 0], ["hygge_c25_microwave", 1, 0, 0, 0, 1.2],
     ["hygge_c25_counter1", 2, 0, 0], ["ktchn15_coffeemaker", 2, 0, 4, 0, 1.2],
@@ -248,6 +251,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // candelabro, mapa-múndi e TV no fundo; lareira e frigobar na lateral;
   // mesa de dez lugares no tapete, com telefone e notebooks; espera à direita.
   reuniao: () => [
+    // Acabamento de construtor: plantas penduradas e hera na parede.
+    ["easter_c18_hangingplant", 4, 1, 0, 1], ["easter_c18_hangingplant", 6, 1, 0, 1], ["easter_c18_hangingplant", 9, 1, 0, 1],
+    ["easter_c22_hangingvines", 0, 1, 2, 1], ["easter_c22_hangingvines", 0, 6, 2, 1],
     ["shelves_silo", 0, 0, 4], ["lodge_dark_candle", 2, 0, 0],
     ["lodge_dark_endtable", 3, 0, 0], ["exe_globe", 3, 0, 0, 0, 0.9],
     // Roleta para sortear quem fala primeiro na reunião.
@@ -270,6 +276,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // fundo, lareira com sofá e poltronas, pista com globo e DJ à direita,
   // mesas altas na frente.
   lounge: () => [
+    // Varal de luzinhas no fundo, fios de lâmpadas e lanterna.
+    ["xmas_c22_hangingwalllights", 6, 1, 0, 1], ["circus_c24_hanginglights", 0, 1, 2, 1], ["circus_c24_hanginglights", 0, 3, 2, 1],
+    ["bohogarden_c21_hanginglantern", 13, 1, 0, 1],
     ["ktchn15_bubblejuicerack", 0, 0, 4], ["lodge_dark_minibar", 2, 0, 4], ["ktchn15_cabinet", 3, 0, 4], ["lodge_dark_minibar", 5, 0, 4],
     ["hc_wall_lamp", 6, 0, 4, 0, 1.6], ["hc_wall_lamp", 7, 0, 4, 0, 1.6],
     ["lodge_dark_bardesk", 1, 2, 2], ["lodge_dark_bardesk", 4, 2, 2],
@@ -292,6 +301,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // arandelas nas paredes, plateia em dois blocos com corredor no meio,
   // bilheteria e pipoca na entrada.
   auditorio: () => [
+    // Fios de lâmpadas nos cantos do fundo e na parede da esquerda.
+    ["circus_c24_hanginglights", 1, 0, 0, 1], ["circus_c24_hanginglights", 12, 0, 0, 1],
+    ["circus_c24_hanginglights", 0, 3, 2, 1], ["circus_c24_hanginglights", 0, 7, 2, 1],
     ["cine_screen", 4, 0, 0], ["cine_light2", 1, 0, 4, 0, 0.4], ["cine_light2", 12, 0, 4, 0, 0.4],
     // Palco onde se pisa e se põe coisas (no Habbo o cine_platform é assento):
     // altura 1,15, que se sobe direto do chão (degrau do Habbo: até 1,5).
@@ -306,6 +318,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // Jogos: fliperama. Máquinas lado a lado no fundo e na lateral, sinuca e
   // pebolim no meio, sofá de pufes com videogame, máquinas de lanche.
   jogos: () => [
+    // Fios de lâmpadas de parque sobre as máquinas.
+    ["circus_c24_hanginglights", 2, 1, 0, 1], ["circus_c24_hanginglights", 6, 1, 0, 1], ["circus_c24_hanginglights", 10, 1, 0, 1],
+    ["circus_c24_hanginglights", 0, 6, 2, 1],
     ["tokyo_c18_retroarcade", 0, 0, 4], ["tokyo_c18_racearcade", 1, 0, 0], ["arcade_c23_space", 2, 0, 4], ["arcade_c23_cyberpunk", 3, 0, 4],
     ["graffiti_r24_arcademachine", 4, 0, 0], ["arcade_c23_vrmachine", 5, 0, 0], ["arcade_c23_pinball", 6, 0, 0],
     ["rainyday_c20_retrogames", 8, 0, 0], ["vwave_r21_jukebox", 9, 0, 4],
@@ -323,6 +338,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // parede e mesas de estudo com luminária no fundo, mesa de leitura no meio
   // e um canto de poltronas.
   foco: () => [
+    // Plantas penduradas entre as mesas, viga com hera e hera na parede.
+    ["easter_c18_hangingplant", 1, 1, 0, 1], ["easter_c18_hangingplant", 5, 1, 0, 1], ["easter_c18_ivybeam", 8, 1, 2, 1],
+    ["easter_c22_hangingvines", 0, 6, 2, 1], ["easter_c22_hangingvines", 0, 7, 2, 1],
     // Estantes cheias de livros, da altura da parede (a da biblioteca
     // clássica passava do teto; a de madeira escura é vazia).
     ["shelves_silo", 0, 0, 2], ["shelves_silo", 0, 2, 2], ["shelves_silo", 0, 4, 2],
@@ -340,6 +358,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // Academia: esteiras viradas para a parede, armários, halteres e
   // anilhas, colchonetes e cama elástica, balcão com suplementos.
   academia: () => [
+    // Hera na parede da esquerda.
+    ["easter_c22_hangingvines", 0, 1, 2, 1], ["easter_c22_hangingvines", 0, 2, 2, 1],
     ["matic_water_dispenser", 0, 0, 4],
     ...[1, 2, 3, 4].map((x) => ["olympics_c16_treadmill", x, 0, 0]),
     ...[6, 7, 8].map((x) => ["school_locker_b_nosale", x, 0, 4]), ["school_locker_r_nosale", 9, 0, 4], ["school_locker_r_nosale", 10, 0, 4],
@@ -359,6 +379,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // luzes; ilha de edição no fundo; mesa de som com banquetas; caixas de
   // equipamento.
   producao: () => [
+    // Fios de lâmpadas no fundo e varal de luzinhas na parede da esquerda.
+    ["circus_c24_hanginglights", 2, 0, 0, 1], ["circus_c24_hanginglights", 6, 0, 0, 1], ["xmas_c22_hangingwalllights", 0, 2, 2, 1],
     ["studio_floorlight", 1, 1, 0],
     ["mafia_c26_armchair_white", 1, 2, 2], ["hc26_3", 2, 2, 0], ["mafia_c26_armchair_white", 4, 2, 6],
     // Refletores de chão (as treliças de luz do acervo passavam do teto).
