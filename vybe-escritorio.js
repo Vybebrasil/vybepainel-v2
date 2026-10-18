@@ -1167,7 +1167,9 @@ function escritorioQuadro(agora) {
   if (!teclado && movimento.rota.length) {
     const alvo = movimento.rota[0];
     const dx = alvo.x - movimento.x, dy = alvo.y - movimento.y, d = Math.hypot(dx, dy);
-    const passo = velocidade * dt;
+    // Passo na diagonal leva o mesmo meio segundo do passo reto (Arcturus: um
+    // passo por ciclo do quarto); antes demorava 41% a mais e parecia arrastar.
+    const passo = velocidade * dt * (Math.abs(dx) > 0.01 && Math.abs(dy) > 0.01 ? Math.SQRT2 : 1);
     if (d <= passo) {
       movimento.x = alvo.x; movimento.y = alvo.y;
       movimento.rota.shift();

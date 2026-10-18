@@ -1479,12 +1479,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Habbo faz depois de uns minutos sem mexer).
   const mostrarZzz = (p) => {
     let zzz = p.no.querySelector(".mapa-zzz");
-    const dorme = p.dormindo || p.cochilo;
+    // Como no Habbo: ocioso acorda ao andar (o zZz só aparece parado).
+    const dorme = (p.dormindo || p.cochilo) && p.acao !== "wlk";
     if (dorme && !zzz) { zzz = document.createElement("span"); zzz.className = "mapa-zzz"; zzz.setAttribute("aria-hidden", "true"); zzz.textContent = "z Z z"; p.no.append(zzz); }
     else if (!dorme && zzz) zzz.remove();
   };
   const trocarImagem = (p) => {
     const agora = performance.now();
+    mostrarZzz(p);
     const quadro = p.acao === "wlk" ? Math.floor(agora / MAPA_QUADRO_PASSO) % 4 : 0;
     // O imager tem um quadro só de aceno; alternando com "em pé" o braço se mexe.
     let acao = p.acao === "wav" && Math.floor(agora / 320) % 2 ? "std" : p.acao;
@@ -1500,7 +1502,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     let gesto = "sml";
     if (p.falaAte > agora) gesto = Math.floor(agora / 240) % 2 ? "spk" : "sml"; // quem fala acordou
     else if (p.expressaoAte > agora) gesto = p.expressao;
-    else if (p.dormindo || p.cochilo || p.piscaAte > agora) gesto = "eyb";
+    else if (((p.dormindo || p.cochilo) && p.acao !== "wlk") || p.piscaAte > agora) gesto = "eyb";
     const cabeca = acao === "wlk" || acao === "lay" ? p.dir : (p.cabeca ?? p.dir);
     const url = mapaAvatarUrl(p.figura, p.dir, acao, mao, quadro, gesto, cabeca);
     if (p.img.dataset.url === url) return;
@@ -1544,7 +1546,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y);
     p.acao = "wlk"; trocarImagem(p);
     // Passos curtos (vindos da presença a cada 150 ms) emendam sem trancos.
-    const dur = Math.min(4000, dist < 1.5 ? 150 : dist * MAPA_PASSO_MS), ini = performance.now();
+    // Como no Habbo (Arcturus: um passo por ciclo de 500 ms, reto ou na
+    // diagonal), o tempo conta pelos passos (o maior eixo), não pela distância.
+    const passos = Math.max(Math.abs(alvo.x - de.x), Math.abs(alvo.y - de.y));
+    const dur = Math.min(4000, dist < 1.5 ? 150 : passos * MAPA_PASSO_MS), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
