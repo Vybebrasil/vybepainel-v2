@@ -27,7 +27,7 @@ montagem. Também precisam funcionar como o Habbo: sentar, subir escada, empilha
    - **Foco**: biblioteca com mezanino e escada. Montada em 18/10 (ver "Foco").
    - **Auditório**: teatro com balcão. Montado em 18/10 (ver "Auditório").
    - **Produção**: estúdio de foto e vídeo. Montada em 18/10 (ver "Produção").
-   - **Jogos**: fliperama escuro com neon. A fazer.
+   - **Jogos**: fliperama escuro com neon. Montado em 18/10 (ver "Jogos").
    - **Academia**: moderna, com tijolo vermelho e vidro. A fazer.
    - **Lounge**: por último, também do zero. Não remendar a versão antiga.
 3. Depois, detalhar mais os ambientes.
@@ -343,6 +343,26 @@ caber.
   - **Acervo de equipamentos.**
   - **Mesa de pauta no meio,** com quadro de avisos.
   - **Espera do cliente.**
+
+## Jogos (montado em 18/10/2026)
+
+- **Luz:** "noite" do mapa (`MAPA_LUZES_RGB.noite`). Ela escurece a sala, e o
+  neon e as telas brilham; a parede subiu para 4 níveis.
+- **O que não serve como parede escura:**
+  - o papel `pixel_wall_black` é uma parede clara com pixels pretos, e não
+    serve;
+  - as paredes oficiais do Habbo vão só até tons médios;
+  - a parede cyberpunk (`cpunk_c15_wall`) é item de parede, não papel, e
+    ficaria atrás das máquinas.
+- **Cantos:**
+  - **Fileira de fliperamas** na parede do fundo, com neon entre as máquinas
+    (sem encostar uma na outra) e quadrinhos de pixel acima.
+  - **Pinballs** na parede da esquerda.
+  - **Sinuca e pebolim** sob as luzes neon.
+  - **Canto do gamer,** com tela virada para a cadeira.
+  - **Sala do videogame,** com pufes virados para o console, sobre o tapete
+    neon.
+  - **Lanchonete** perto da porta.
 
 ## Decisões do Paulo que valem
 
