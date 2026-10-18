@@ -1298,3 +1298,18 @@ test("criação do quarto: o aviso de 'cabe' do navegador bate com a regra do se
   vm.runInContext("criadorQuartoEscolher('modelo', 'atual')", c);
   assert.equal(vm.runInContext("criador.preservar", c), true);
 });
+
+// Camadas como no Nitro: a da frente de quem senta é a de profundidade menor
+// que a do boneco sentado (−0,01). Cadeira norja virada para o fundo (0): o
+// encosto (z 30) cobre quem senta; virada para a frente (2, z −31), não.
+test("camada do móvel na frente de quem senta segue a profundidade do Nitro", () => {
+  const c = vm.createContext({ window: {}, document: {} });
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
+  const prof = (z, i) => vm.runInContext(`mapaProfCamada(${z}, ${i})`, c);
+  const sentado = vm.runInContext("MAPA_PROF_SENTADO", c);
+  const norja = JSON.parse(readFileSync("assets/escritorio/habbo/chair_norja.json", "utf8")).visualizations.find((v) => v.size === 64);
+  assert.ok(prof(norja.directions[0].layers[0].z, 0) < sentado, "de costas: encosto na frente");
+  assert.ok(prof(norja.directions[2].layers[0].z, 0) > sentado, "de frente: encosto atrás");
+  const exe = JSON.parse(readFileSync("assets/escritorio/habbo/exe_chair.json", "utf8")).visualizations.find((v) => v.size === 64);
+  assert.ok(prof(exe.layers[1].z, 1) < sentado && prof(0, 0) > sentado, "poltrona executiva: braços na frente, assento atrás");
+});

@@ -631,3 +631,18 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
   (escritorioPisosDoPerfil/…), sem perder nada.
 - Convivência: mezanino montado com blocos de madeira (altura 2), degrau na
   altura 1, poltrona e planta em cima.
+
+### Camadas do móvel com o boneco, como no Nitro (18/10/2026)
+
+- A profundidade de cada camada segue o renderizador aberto do Habbo (Nitro,
+  `FurnitureVisualization`/`AvatarVisualization`): `(z / −1000 − camada × 0,001) × √½`.
+  Quem senta fica em −0,01 (menos 0,00713 por nível de altura do assento) e
+  quem deita em −0,409. As camadas abaixo desse valor (encosto virado para o
+  fundo, braços da poltrona executiva, cobertor da cama) são redesenhadas num
+  canvas próprio por cima de quem está no móvel (`mapaProfCamada`, `.mapa-frente`).
+- A ordem dos móveis tem folga de 20 por posição: móvel em `prof`, quem senta
+  em `prof+1…+9`, camadas da frente em `prof+10` e quem passa na frente de
+  `prof+11` em diante.
+- Sala de reunião: poltronas executivas a cada dois ladrilhos (largas, lado a
+  lado entravam uma na outra), três peças espaçadas na mesa e a cerca do
+  patamar sem duas peças no mesmo canto.
