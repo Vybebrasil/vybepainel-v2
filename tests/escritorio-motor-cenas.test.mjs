@@ -255,3 +255,28 @@ test("caminho como o do Habbo: da porta a todo assento e andar, subindo até 1,5
   assert.match(e, /exe_chair \(9,9\) sem caminho da porta/);
   assert.doesNotMatch(e, /nenhuma escada/, "o tablado de um nível se sobe direto");
 });
+
+test("receitas do designer: lareira simétrica, mesa de reunião completa e coleção da sala", async () => {
+  const { estarLareira, mesaReuniao } = await import("../scripts/escritorio-receitas.mjs");
+  const s = novaCena("t", { w: 18, h: 12, acabamento: false });
+  s.colecao({ lareira: "lodge_dark_fireplace", poltrona: "exe_chair", abajur: "lodge_dark_lamp", mesa: "army15_ltddesk", cadeira: "exe_chair2", lustre: "lodge_dark_chandelier", tela: "computer_flatscreen" },
+    { acentos: ["attic15_painting", "room_cof15_cup2"] });
+  estarLareira(s, { x: 8, tapete: false, arte: ["attic15_painting"] });
+  const quadros = s.moveis.filter((m) => m[0] === "attic15_painting").map((m) => m[1]);
+  assert.equal(quadros.length, 2);
+  assert.ok(Math.abs((quadros[0] + quadros[1]) / 2 - 8.5) < 0.6, "quadros espelhados em volta do meio da lareira");
+  const polt = s.moveis.filter((m) => m[0] === "exe_chair").map((m) => [m[1], m[2], m[3]]);
+  assert.deepEqual(polt, [[7, 1, 2], [10, 1, 6]], "uma de cada lado, viradas para o fogo");
+  const lugares = mesaReuniao(s, { x: 5, y: 6, telas: [0], porLugar: ["room_cof15_cup2"] });
+  assert.equal(lugares.length, 12);
+  assert.equal(s.moveis.filter((m) => m[0] === "exe_chair2").length, 14, "seis de cada lado e as duas cabeceiras");
+  assert.equal(s.moveis.find((m) => m[0] === "computer_flatscreen")[3], 0, "tela virada para o primeiro lugar, ao norte");
+  s.por("plant_rose", 15, 10);
+  s.fechar();
+  assert.deepEqual(s.erros, []);
+  const t = novaCena("t", { w: 12, h: 12 });
+  t.colecao({ sofa: "mafia_c26_sofa_white" });
+  t.canto("x", { funcao: "teste", destaque: "plant_rose" });
+  t.por("plant_rose", 5, 5);
+  assert.match(t.fechar().erros.join("\n"), /plant_rose fora da coleção da sala/);
+});

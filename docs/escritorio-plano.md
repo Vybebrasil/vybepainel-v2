@@ -183,6 +183,28 @@ contrário do que a fórmula supunha, enquanto `xmas_c18_stagestairs` e as
 cadeiras seguem a rosa do Habbo (0 norte, 2 leste, 4 sul, 6 oeste; quem senta
 fica na direção do móvel, como no Arcturus).
 
+## Camada do designer: receitas e coleção (18/10/2026, feito)
+
+- **`scripts/escritorio-receitas.mjs`** tem as receitas. Cada uma monta um
+  canto com relações feitas por construção e passa pelas regras do motor.
+  - `estarLareira`: lareira centrada; poltronas na frente, uma de cada lado;
+    abajur junto de cada uma; o mesmo grupo de itens de parede espelhado dos
+    dois lados.
+  - `mesaReuniao`: tampos lado a lado; cadeiras nos lados e nas cabeceiras;
+    lustre no centro; telas viradas para lugares escolhidos; o que cada
+    pessoa usa na frente do lugar.
+  - `recepcao`: balcão virado para a porta; atendente atrás; tela para ele;
+    plantas iguais dos dois lados.
+  - `s.estar` (no motor): estar de sofá no esquadro.
+- **`s.colecao(papeis, { acentos })`:** a coleção da sala diz a peça de cada
+  papel (sofá, poltrona, lustre…). Declarada a coleção, peça que não está nela
+  nem nos acentos é recusada: um estilo por sala. As receitas pedem pelo papel
+  (`s.de("poltrona")`).
+- **A Reunião já usa** a coleção e as receitas da lareira e da mesa.
+- **Próximo:** receitas de bar, biblioteca, oficina e espera, e o projeto da
+  Convivência para o Paulo aprovar, com zonas, receita de cada canto, coleção
+  e peças vistas na arte.
+
 ## Decisões do Paulo que valem
 
 - **Segundo reinício** (decisão de 18/10/2026):
@@ -206,6 +228,6 @@ fica na direção do móvel, como no Arcturus).
 - **Branch:** `codex/escritorio-proximo`, com commits locais ainda não
   publicados (`git log origin/main..HEAD`).
 - **Verificação:**
-  - `npm run check` (460 testes passando em 18/10);
+  - `npm run check` (461 testes passando em 18/10);
   - `node scripts/escritorio-compor.mjs` (gera as cenas e roda o verificador);
   - conferir no navegador: `npm run dev`, depois Escritório → sala.

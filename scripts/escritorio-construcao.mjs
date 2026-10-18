@@ -75,6 +75,10 @@ function dirPara(p, dx, dy) {
   if (d === undefined) throw new Error(`${p.classe}: a arte não tem frente para (${quer}); direções ${p.dirs.join(", ")}`);
   return d;
 }
+// Para as receitas (scripts/escritorio-receitas.mjs): tamanho no chão e a
+// direção em que a frente da peça olha para [dx, dy].
+export const pegadaDe = (classe, dir) => pegada(peca(classe), dir);
+export const dirDaFrente = (classe, dx, dy) => dirPara(peca(classe), dx, dy);
 const pegada = (p, dir) => (dir === 2 || dir === 6 ? [Math.max(1, p.d.y | 0 || 1), Math.max(1, p.d.x | 0 || 1)] : [Math.max(1, p.d.x | 0 || 1), Math.max(1, p.d.y | 0 || 1)]);
 
 // Tamanho da sala e topo da parede vêm da planta (a mesma conta do mapa:
@@ -104,10 +108,11 @@ export function novaCena(id, o = {}) {
   // Cantos (projeto de interiores, Paulo em 18/10/2026): toda peça que não é
   // obra (piso, casca, mezanino, escada, revestimento) pertence a um canto
   // com função e ponto de destaque, declarado com canto() antes das peças.
-  const cantos = new Map(), semCanto = [];
-  let cantoAtual = null, obra = 0;
+  const cantos = new Map(), semCanto = [], foraDaColecao = new Set();
+  let cantoAtual = null, obra = 0, colecaoSala = null;
   const doCanto = (nomePeca, classe) => {
     if (obra) return;
+    if (colecaoSala && !colecaoSala.aceitas.has(classe)) foraDaColecao.add(classe);
     if (!cantoAtual) { semCanto.push(nomePeca); return; }
     cantos.get(cantoAtual).pecas.push(classe);
   };
@@ -164,6 +169,18 @@ export function novaCena(id, o = {}) {
         c.solido = { nome: nome(coluna, x, y1 - 1), classe: coluna };
         for (let k = 0; k < n; k++) moveis.push([coluna, x, y1 - 1, 0, 0, k * (pc.topo || 1)]);
       }
+    },
+    // Coleção da sala (designer de interiores): cada papel (sofá, poltrona,
+    // mesa de centro, lustre…) tem a peça da sala, e as receitas pedem pelo
+    // papel. Declarada a coleção, peça que não está nela nem nos acentos é
+    // recusada: a sala tem um estilo só.
+    colecao(papeis, { acentos = [] } = {}) {
+      colecaoSala = { papeis, aceitas: new Set([...Object.values(papeis).flat(), ...acentos]) };
+    },
+    de(papel) {
+      const c = colecaoSala?.papeis?.[papel];
+      if (!c) { falha(`a coleção da sala não tem peça para o papel "${papel}"`); return null; }
+      return c;
     },
     canto(nome, { funcao, destaque } = {}) {
       if (!funcao) return falha(`canto "${nome}" sem função (para que serve este canto?)`);
@@ -580,6 +597,7 @@ export function novaCena(id, o = {}) {
         // coisas aleatórias", Paulo, 18/10/2026). No lugar, composição:
         // toda peça num canto com função e destaque; mesinha com no máximo
         // dois objetos; a mesma peça de acabamento repetida pouco.
+        for (const c of foraDaColecao) falha(`${c} fora da coleção da sala: troque pela peça do papel ou declare como acento`);
         for (const p of semCanto) falha(`${p} fora de canto: declare o canto dela (s.canto) com função e destaque`);
         for (const [nomeC, c] of cantos) if (c.pecas.length && !c.pecas.includes(c.destaque)) falha(`canto "${nomeC}": o destaque ${c.destaque} não está nele`);
         const porBase = new Map();
