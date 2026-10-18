@@ -115,7 +115,8 @@ export default function cafe() {
   // na entrada; relógio de chão e árvore no cesto no canto.
   s.parede("esquerda", { de: 4, ate: 8, altura: 1.6 }, ["school_chalkboard"]);
   s.parede("esquerda", { de: 9, ate: 11, altura: 2.6 }, ["waasa_wall_shelf1"]);
-  s.assento("antique_c21_pennyfarthing", 0, 8, [3, 8]);
+  // Bicicleta antiga de enfeite (o selim fica a 2,45: no Habbo ninguém sobe).
+  s.por("antique_c21_pennyfarthing", 0, 8, { olha: [3, 8] });
   s.por("antique_c21_doorteleport", 0, 9, { dir: 2 });
   s.por("doormat_plain", 1, 9);
   s.por("attic15_clock", 0, 11, { dir: 2 });

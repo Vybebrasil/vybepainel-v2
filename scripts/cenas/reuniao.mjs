@@ -27,36 +27,34 @@ export default function reuniao() {
 
   // --- Patamar do fundo ---
   s.canto("lareira", { funcao: "conversa informal perto do fogo", destaque: "lodge_dark_fireplace" });
-  // Lareira no meio, poltronas de frente para o fogo; quadros, arandelas e
-  // relógio cuco dos dois lados dela.
+  // Lareira no meio da parede, duas poltronas na frente dela, uma de cada
+  // lado, viradas para o fogo; quadros, arandelas e relógio cuco dos dois lados.
   s.por("lodge_dark_fireplace", 8, 0, { dir: 0 });
-  s.assento("exe_chair", 7, 0, [8, 0]);
-  s.assento("exe_chair", 10, 0, [9, 0]);
+  s.assento("exe_chair", 7, 1, [8, 0]);
+  s.assento("exe_chair", 10, 1, [9, 0]);
   const arandela = { classe: "mafia_c26_walllamp_dark", estado: 1, altura: 1.9 };
   s.parede("fundo", { de: 5, ate: 8, altura: 1.2 }, [arandela, "attic15_painting", arandela]);
   s.parede("fundo", { de: 10, ate: 13, altura: 1.2 }, ["attic15_painting", { classe: "xmas11_cuckoo", altura: 1.5 }]);
 
   s.canto("biblioteca do patamar", { funcao: "consultar livros e esperar a reunião", destaque: "lodge_dark_bookcase" });
-  // Estantes nas pontas, jardim vertical ao lado delas, sofá de couro de
-  // frente para o salão entre abajures, globo e mesinha com vela.
+  // Estantes nas pontas, jardim vertical ao lado delas, abajures, globo e
+  // mesinha com vela (o patamar fica livre em volta da lareira).
   s.por("lodge_dark_bookcase", 0, 0, { dir: 0 });
   s.por("lodge_dark_bookcase", 16, 0, { dir: 0 });
   s.por("garden_r21_plantwall", 3, 0, { dir: 2 });
   s.por("garden_r21_plantwall", 13, 0, { dir: 2 });
   s.parede("fundo", { de: 14, ate: 16, altura: 1.8 }, [{ classe: "mafia_c26_walllamp_dark", estado: 1 }]);
   s.parede("fundo", { de: 2, ate: 3, altura: 1.8 }, [{ classe: "mafia_c26_walllamp_dark", estado: 1 }]);
-  s.assento("exe_sofa", 5, 2, [6, 6]);
   s.por("lodge_dark_lamp", 4, 2);
   s.por("lodge_dark_lamp", 13, 2);
-  s.por("exe_globe", 2, 2);
-  s.assento("exe_chair", 11, 2, [12, 2]);
+  s.por("exe_globe", 5, 2);
   s.por("lodge_dark_endtable", 12, 2);
   s.emCima(12, 2, "lodge_dark_candle");
   s.por("lodge_dark_lamp", 15, 2);
   s.por("bohogarden_c21_snakeplant", 17, 2);
 
-  // Escadinha de varanda do salão para o tablado (dois degraus).
-  s.escada("hween_c20_porchstairs", 14, 5, [0, -1]);
+  // O tablado tem um nível: no Habbo sobe-se direto (até 1,5), a beira do
+  // piso é o degrau. Sem escada aqui.
 
   // --- Salão: mesa longa ---
   s.canto("mesa de reunião", { funcao: "reunir a equipe com cliente", destaque: "army15_ltddesk" });
@@ -71,10 +69,13 @@ export default function reuniao() {
   s.figurante({ figura: FIGURAS.diretora, sentado: lados[2] });
   s.figurante({ figura: FIGURAS.socio, sentado: lados[7] });
   s.figurante({ figura: FIGURAS.cliente, sentado: lados[9] });
-  s.pendente("exe_light", 6, 6);
+  s.pendente("lodge_dark_chandelier", 7, 6);
   // Na mesa, o que uma reunião usa: computadores, papéis, livros-caixa,
   // bandeja de bebidas e a xícara ou o copo de quem está sentado.
-  for (const [x, y, c] of [[5, 6, "exe_c15_desktidy"], [6, 6, "computer_flatscreen"], [9, 7, "computer_flatscreen"], [6, 7, "mafia_c26_ledger"],
+  // Os computadores olham para quem está sentado do lado deles da mesa.
+  s.emCima(6, 6, "computer_flatscreen", { olha: [6, 5] });
+  s.emCima(9, 7, "computer_flatscreen", { olha: [9, 8] });
+  for (const [x, y, c] of [[5, 6, "exe_c15_desktidy"], [6, 7, "mafia_c26_ledger"],
     [8, 7, "mafia_c26_drinktray"], [10, 6, "exe_c15_desktidy"], [5, 7, "antique_c21_books"], [7, 7, "room_cof15_cup2"], [9, 6, "room_cof15_cup2"], [10, 7, "classic2_drinkcup"]]) s.emCima(x, y, c);
 
   // --- Parede da esquerda: apoio de bebidas e conversa a dois ---

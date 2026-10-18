@@ -123,29 +123,30 @@ Convivência ainda espera o projeto novo, que precisa da aprovação do Paulo.
   - item de parede não fica em cima de outro no mesmo ladrilho;
   - nem atrás de móvel alto encostado.
 
-## Defeitos apontados pelo Paulo em 18/10/2026 (noite), ainda abertos
+## Conferência geral do motor (18/10/2026, noite)
 
-Na Reunião:
-- os computadores da mesa olham para o lado errado;
-- a escadinha do patamar sobe ao contrário;
-- as poltronas da lareira ficam ao lado dela, encostadas na parede, em vez de
-  na frente do fogo.
+Os defeitos de sentido que o Paulo apontou na Reunião:
+- computador virado ao contrário;
+- escada ao contrário e com a mureta sobrando;
+- poltronas ao lado da lareira.
 
-**Causa:** o motor confere a física (apoio, ocupação, visibilidade), mas não
-o sentido. A frente de cada peça é deduzida por fórmula, sem conferir na
-arte; objeto em cima da mesa não precisa dizer para onde olha; "assento
-virado para a lareira" aceita ficar do lado dela.
-
-**Correção proposta:**
-- **Tabela de frentes conferidas** (`frentes.json`): para cada peça usada,
-  conferir vendo a arte para onde fica a frente em cada direção, a subida de
-  cada escada e o lado da tela de cada computador. Peça com frente fora da
-  tabela é recusada.
-- **Objeto com tela ou frente** em cima de mesa olha para quem está sentado.
-- **Assento virado para algo** fica na frente dele, no cone da frente, e não
-  do lado.
-- **Antes de mostrar ao Paulo,** foto em 2× de cada canto, conferida peça
-  por peça.
+Eles viraram regras conferidas contra o Habbo:
+- **Frentes conferidas na arte** (`assets/escritorio/habbo/frentes.json`): as 98
+  peças das cenas foram vistas na vitrine (`node scripts/escritorio-vitrine.mjs`
+  e o trecho no console do painel). A rosa do Habbo vale para 97; a escadinha
+  da varanda tem mapa próprio. Usar a frente de peça fora da lista é erro.
+- **Quem senta** fica na direção do móvel (Arcturus: `setRotation(item.getRotation())`).
+- **Tela, computador e caixa** em cima da mesa olham para um assento, ou para o
+  chão livre de quem fica em pé (atendente).
+- **Assento virado para ponto focal** (lareira, TV, palco, fliperama) fica na
+  frente dele, nunca do lado.
+- **Caminho do Habbo** (Arcturus `MAXIMUM_STEP_HEIGHT = 1,5`; até 2 para entrar
+  em assento; assento se atravessa; desce livre; diagonal só barrada com os
+  dois lados fechados): da porta, a pessoa chega a todo assento, canto e andar.
+- **Escada só onde o desnível passa de 1,5.** Patamar de um nível se sobe
+  direto, e a beira do piso já é o degrau (por isso a Reunião ficou sem
+  escada). Cada escada tem tipo conferido: "degrau" (empilha) ou "inteira"
+  (com mureta, vai sozinha). O último degrau chega rente (folga 0,15).
 
 ## Desenho do motor: arquiteto + designer de interiores (Paulo, 18/10/2026)
 
@@ -198,6 +199,6 @@ fica na direção do móvel, como no Arcturus).
 - **Branch:** `codex/escritorio-proximo`, com commits locais ainda não
   publicados (`git log origin/main..HEAD`).
 - **Verificação:**
-  - `npm run check` (457 testes passando em 18/10);
+  - `npm run check` (460 testes passando em 18/10);
   - `node scripts/escritorio-compor.mjs` (gera as cenas e roda o verificador);
   - conferir no navegador: `npm run dev`, depois Escritório → sala.

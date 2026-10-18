@@ -258,7 +258,7 @@ function auditar(cena, P, moveis, avisos) {
   // Na arte de duas direções o número não diz a frente (no armário gótico,
   // a direção 0 já fica comprida ao longo da parede da esquerda): vale a
   // forma. Comprida em x olha para +y; comprida em y olha para +x.
-  const frenteDe = (it, dirs) => frenteDaPeca(dirs, it.w, it.h, it.dir);
+  const frenteDe = (it, dirs) => frenteDaPeca(dirs, it.w, it.h, it.dir, it.classe);
   const contraParede = (x, y, nx, ny) => temParede(x, y, nx, ny) || nx < 0 || ny < 0 || nx >= P.W || ny >= P.H || (P.andavel && !P.andavel(nx, ny));
   // Tela de costas: computador, notebook ou monitor perto de assento precisa
   // olhar para ele (no Habbo a direção do móvel é para onde a tela aponta).

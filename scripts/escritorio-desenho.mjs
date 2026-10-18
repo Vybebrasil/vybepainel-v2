@@ -149,7 +149,14 @@ export function camadasDesenho(classe, dir, estado = 0) {
 // espelho): na "0 e 2" a 0 olha para +x e a 2 para +y; na "2 e 4", a 2 olha
 // para +x e a 4 para +y (conferido no fliperama pichado, 18/10/2026).
 const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
-export function frenteDaPeca(dirs, w, h, dir) {
+// Frentes conferidas na arte (vitrine): a peça cuja arte foge da regra tem o
+// mapa dela; a que não está na lista não teve a frente conferida.
+const FICHA_FRENTES = existsSync("assets/escritorio/habbo/frentes.json") ? JSON.parse(readFileSync("assets/escritorio/habbo/frentes.json", "utf8")) : {};
+export const FRENTES = FICHA_FRENTES.conferidas || {};
+export const ESCADAS = FICHA_FRENTES.escadas || {};
+export function frenteDaPeca(dirs, w, h, dir, classe) {
+  const f = classe && FRENTES[classe];
+  if (f && typeof f === "object") return f[dir] || null;
   // "0 e 6" (divisória, banqueta de corrida) segue a rosa de quatro direções.
   if (dirs.length >= 4 || dirs.includes(6)) return OLHA[dir];
   if (w > h) return [0, 1];

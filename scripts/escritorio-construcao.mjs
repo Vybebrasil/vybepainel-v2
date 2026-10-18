@@ -16,7 +16,7 @@
 // Gerar as cenas: node scripts/escritorio-compor.mjs (ver lá).
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
-import { silhueta, emComum, frenteDaPeca } from "./escritorio-desenho.mjs";
+import { silhueta, emComum, frenteDaPeca, FRENTES, ESCADAS } from "./escritorio-desenho.mjs";
 
 const PASTA = "assets/escritorio/habbo";
 const FICHA = JSON.parse(readFileSync(`${PASTA}/fisica.json`, "utf8"));
@@ -60,10 +60,14 @@ export function alturaNaParede(classe, dir, estado = 0) {
   return s ? (s.h - s.w / 2) / 32 : 1;
 }
 export const revestimento = (p) => ctx.__reveste(p.d, p.parede);
+// Peça de tela ou de atendimento: tem lado de usar, então olha para alguém.
+const TELA = /computer|screen|monitor|laptop|_tv\b|tv$|till|register|typewriter/;
+// Ponto focal com frente: quem senta virado para ele fica na frente dele.
+const FOCO = /fireplace|firepit|_tv\b|tv$|projector|stage|piano|screen|arcade/;
 // Para onde a frente olha: a mesma regra do verificador (escritorio-desenho.mjs).
 export function frente(p, dir) {
   const [w, h] = pegada(p, dir);
-  return frenteDaPeca(p.dirs, w, h, dir);
+  return frenteDaPeca(p.dirs, w, h, dir, p.classe);
 }
 function dirPara(p, dx, dy) {
   const quer = Math.abs(dx) >= Math.abs(dy) ? [Math.sign(dx), 0] : [0, Math.sign(dy)];
@@ -215,7 +219,19 @@ export function novaCena(id, o = {}) {
       const p = peca(classe), n = o.nivel || 0, nv = niveis.get(n);
       if (p.parede) return falha(`${classe} é de parede: use parede()`);
       let dir = o.dir;
-      if (o.olha) dir = dirPara(p, o.olha[0] - x, o.olha[1] - y);
+      // Para onde a peça olha só vale com a frente conferida na arte
+      // (frentes.json, pela vitrine): a fórmula já errou a escada da varanda.
+      if ((o.olha || o.degrau) && p.dirs.length > 1 && !FRENTES[classe]) return falha(`${nome(classe, x, y)}: frente não conferida na arte; confira na vitrine e anote em frentes.json`);
+      // Tela, caixa ou telefone em cima da mesa olha para quem está sentado.
+      if (o.sobre && TELA.test(classe) && p.dirs.length > 1) {
+        if (!o.olha) return falha(`${nome(classe, x, y)} em cima da mesa sem dizer para quem olha (olha: o assento de quem usa)`);
+        // Para quem usa: um assento, ou chão livre onde a pessoa fica em pé
+        // (atrás do balcão, do lado do cliente).
+        const alvo = at(o.olha[0], o.olha[1], n).solido, [ox, oy] = o.olha;
+        const dentro = ox >= 0 && oy >= 0 && ox < w && oy < h && (celdas?.[oy]?.[ox] ?? 0) !== -1;
+        if (!dentro || (alvo && !alvo.senta)) return falha(`${nome(classe, x, y)} olha para ${o.olha}, onde ninguém senta nem fica em pé`);
+      }
+      if (o.olha) { try { dir = dirPara(p, o.olha[0] - x, o.olha[1] - y); } catch { return falha(`${nome(classe, x, y)}: a arte não vira para ${o.olha} (direções ${p.dirs.join(", ")})`); } }
       dir ??= p.dirs.includes(0) ? 0 : p.dirs[0] ?? 0;
       if (p.dirs.length && !p.dirs.includes(dir)) return falha(`${nome(classe, x, y)}: a arte não tem a direção ${dir} (tem ${p.dirs.join(", ")})`);
       const [pw, ph] = pegada(p, dir);
@@ -288,7 +304,19 @@ export function novaCena(id, o = {}) {
     assento(classe, x, y, alvo, o = {}) {
       const p = peca(classe);
       if (!p.senta) return falha(`${nome(classe, x, y)}: a ficha do Habbo não deixa sentar`);
-      return api.por(classe, x, y, { ...o, olha: alvo });
+      // Virado para um ponto focal (lareira, TV, palco): fica na frente dele,
+      // nunca do lado (as poltronas encostadas na lareira da Reunião).
+      const foco = at(alvo[0], alvo[1], o.nivel || 0).solido;
+      if (foco && FOCO.test(foco.classe) && !foco.senta) {
+        const pf = peca(foco.classe), f = frente(pf, foco.dir);
+        if (f) {
+          const cx = foco.x + foco.pw / 2 - 0.5, cy = foco.y + foco.ph / 2 - 0.5;
+          if ((x - cx) * f[0] + (y - cy) * f[1] < 1) return falha(`${nome(classe, x, y)} virado para ${foco.nome} mas do lado dele: assento fica na frente do ponto focal`);
+        }
+      }
+      const it = api.por(classe, x, y, { ...o, olha: alvo });
+      if (it) it.paraSentar = true;
+      return it;
     },
     // Coisa em cima de outra, na ordem (prato, depois o bolo).
     emCima(x, y, classes, o = {}) {
@@ -457,19 +485,32 @@ export function novaCena(id, o = {}) {
     // mezanino ou o patamar da planta). Cada degrau é a mesma peça repetida
     // na pilha até a altura dele, como os construtores fazem no Habbo.
     escada(...a) { obra++; try { return api._escada(...a); } finally { obra--; } },
-    _escada(classe, x, y, para, { ate, dir } = {}) {
+    // largura: quantas peças lado a lado (degrau de 1 ladrilho em escada larga);
+    // estado: cor da peça recolorível.
+    _escada(classe, x, y, para, { ate, dir, largura: lado = 1, estado = 0 } = {}) {
       const p = peca(classe);
       if (!p.pisa) return falha(`escada ${classe} não é pisável na ficha do Habbo`);
       const hd = p.topo || 0.5, alvo = ate ?? niveis.get(1)?.base ?? 1;
       const n = Math.max(1, Math.round(alvo / hd));
-      if (Math.abs(n * hd - alvo) > 0.35) return falha(`escada ${classe} (degrau ${hd}) não chega a ${alvo}: ficaria em ${Math.round(n * hd * 100) / 100}`);
+      // O último degrau chega rente ao andar de cima (sobra vira degrau torto).
+      if (Math.abs(n * hd - alvo) > 0.15) return falha(`escada ${classe} (degrau ${hd}) não chega a ${alvo}: ficaria em ${Math.round(n * hd * 100) / 100}`);
+      // Peça de degrau empilha; escada inteira (com mureta ou corrimão) vai
+      // sozinha: empilhada, a mureta sobra acima do piso de cima (a escadinha
+      // da varanda da Reunião, Paulo, 18/10/2026). Conferido na vitrine.
+      // Escada só onde a subida passa do degrau do Habbo (1,5): até isso a
+      // pessoa sobe direto, e a beira do piso já é o degrau.
+      const desnivel = alvo - nivelPlanta(x, y);
+      if (desnivel <= 1.5 + 1e-6) return falha(`escada ${classe} para subir só ${desnivel}: no Habbo sobe-se direto até 1,5 (a beira do piso já é o degrau)`);
+      const tipo = ESCADAS[classe];
+      if (!tipo) return falha(`escada ${classe} sem tipo conferido na vitrine ("degrau" ou "inteira" em frentes.json)`);
+      if (tipo === "inteira" && n > 1) return falha(`escada ${classe} é escada inteira (tem mureta): não se empilha para vencer ${alvo}; use peça de degrau`);
       const d = dir ?? dirPara(p, -para[0], -para[1]);
       const [ew, eh] = pegada(p, d);
       // Escada é onde dá escada (Paulo, 18/10/2026): o último degrau chega
       // no andar de cima, num ladrilho livre (no vão do guarda-corpo, se for
       // mezanino); o pé tem chão livre no mesmo nível; os lados ficam livres
       // (nada encostado escondendo a escada nem sendo escondido por ela).
-      const largura = para[0] ? eh : ew, passo = para[0] ? ew : eh;
+      const largura = (para[0] ? eh : ew) * lado, passo = para[0] ? ew : eh;
       if (passo !== 1) return falha(`escada ${classe} tem degrau de ${passo} ladrilhos na direção da subida`);
       const ao = (i, l) => (para[0] ? [x + para[0] * i, y + l] : [x + l, y + para[1] * i]);
       const m = niveis.get(1), dentro = (tx, ty) => tx >= 0 && ty >= 0 && tx < w && ty < h && (celdas?.[ty]?.[tx] ?? 0) !== -1;
@@ -496,11 +537,12 @@ export function novaCena(id, o = {}) {
         if (at(sx, sy, 0).solido) return falha(`${at(sx, sy, 0).solido.nome} encostado na lateral da escada: o lado da escada fica livre`);
         at(sx, sy, 0).reservado = "lado da escada";
       }
-      for (let i = 0; i < n; i++) {
-        const [tx, ty] = ao(i, 0);
+      const passoLado = para[0] ? eh : ew;
+      for (let l = 0; l < lado; l++) for (let i = 0; i < n; i++) {
+        const [tx, ty] = ao(i, l * passoLado);
         for (let k = 0; k <= i; k++) {
-          if (k === 0) api.por(classe, tx, ty, { dir: d, degrau: true });
-          else api.por(classe, tx, ty, { dir: d, sobre: true, empilhador: true });
+          if (k === 0) api.por(classe, tx, ty, { dir: d, degrau: true, estado });
+          else api.por(classe, tx, ty, { dir: d, sobre: true, empilhador: true, estado });
         }
       }
       escadas.push({ classe, x, y, para, n });
@@ -541,7 +583,9 @@ export function novaCena(id, o = {}) {
         for (const [c, n] of vezes) if (n > maxRep) falha(`${c} repetido ${n} vezes em cima dos móveis (máximo ${maxRep}): varie ou tire`);
         const niveisPlanta = new Set((celdas || []).flat().filter((c) => c !== -1).map(Number));
         // Sobe-se por escada; porta-teleporte só onde o Paulo aprovou assim (Café).
-        if ((niveis.has(1) || niveisPlanta.size > 1) && !escadas.length && !o.subidaPorTeleporte) falha("tem mais de um nível e nenhuma escada para subir");
+        void niveisPlanta;
+        // (Subir de nível agora é conferido pelo caminho, logo abaixo: no
+        // Habbo sobe-se direto até 1,5; escada só onde o desnível passa disso.)
         const pisoPorNivel = new Map();
         for (const k of pisos) { const [c, e, n] = k.split("|"); if (!pisoPorNivel.has(n)) pisoPorNivel.set(n, new Set()); pisoPorNivel.get(n).add(`${c}|${e}`); }
         const nivs = [...pisoPorNivel.keys()];
@@ -631,7 +675,82 @@ export function novaCena(id, o = {}) {
           if (emComum(A, B) > 40) falha(`${nome(l.classe, l.x, l.y)} pendurada cruza ${q.classe} na parede`);
         }
       }
+      // Caminho como o do Habbo (Arcturus: MAXIMUM_STEP_HEIGHT = 1,5; até 2
+      // para chegar a um assento; desce livre; diagonal só se um dos lados
+      // retos passa). Da porta, a pessoa tem de chegar a todo assento, a todo
+      // canto e a todo andar, com as alturas reais do piso e dos móveis.
+      if (o.acabamento !== false && process.env.ACABAMENTO !== "0" && celdas) api._caminho();
       return { moveis, figurantes, erros };
+    },
+    _caminho() {
+      const porta = ctx.__planta?.ambientes?.find((q) => q.id === id)?.modelo?.portas?.baixo;
+      if (porta == null) return;
+      // Altura de cada ladrilho: o que está mais alto nele (piso da planta,
+      // piso de obra, mezanino, degrau). Peça que não se pisa bloqueia; assento
+      // é destino. Fora: o que é de parede, pendurado e a casca.
+      const H = new Map(), bloq = new Set(), assentos = new Map(), portais = [];
+      const k = (x, y) => `${x},${y}`;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if ((celdas[y]?.[x] ?? 0) !== -1) H.set(k(x, y), { z: nivelPlanta(x, y), pisa: true });
+      const pend = new Set(api._lampadas.map((l) => `${l.classe},${l.x},${l.y}`));
+      for (const m of moveis) {
+        const [c, x, y, d, , alt] = m, p = peca(c);
+        if (p.parede || daCasca.has(m) || pend.has(`${c},${x},${y}`)) continue;
+        if (p.plana && !p.pisa) continue;
+        const [pw, ph] = pegada(p, d), topo = (alt || 0) + (p.plana ? 0 : p.topo || 0);
+        for (let i = 0; i < pw; i++) for (let j = 0; j < ph; j++) {
+          const t = H.get(k(x + i, y + j));
+          if (!t || topo + 1e-6 < t.topoPeca) continue;
+          t.topoPeca = topo; t.classe = c;
+          t.pisa = p.pisa; t.senta = p.senta; t.z = Math.max(nivelPlanta(x + i, y + j), topo);
+          if (/teleport/.test(c)) portais.push(k(x + i, y + j));
+        }
+      }
+      for (const [kk, t] of H) { if (t.senta) assentos.set(kk, t); else if (!t.pisa && !/teleport/.test(t.classe || "")) bloq.add(kk); }
+      const visto = new Set(), fila = [];
+      const entra = (kk) => { if (!visto.has(kk)) { visto.add(kk); fila.push(kk); } };
+      for (const x of [porta, porta + 1]) if (H.has(k(x, h - 1))) entra(k(x, h - 1));
+      // Assento se atravessa (no Arcturus só BLOCKED e INVALID barram), com
+      // subida de até 2 para entrar nele.
+      const passa = (a, b) => {
+        const ta = H.get(a), tb = H.get(b);
+        return Boolean(tb) && !bloq.has(b) && tb.z - ta.z <= (assentos.has(b) ? 2 : 1.5) + 1e-6;
+      };
+      const andavel = (kk) => H.has(kk) && !bloq.has(kk);
+      let teleportou = false;
+      while (fila.length) {
+        const a = fila.shift(), [x, y] = a.split(",").map(Number);
+        if (portais.includes(a) && !teleportou) { teleportou = true; for (const p of portais) entra(p); }
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+          const b = k(x + dx, y + dy);
+          if (visto.has(b) || !passa(a, b)) continue;
+          // Diagonal: barrada só quando os dois lados retos não se pisam.
+          if (dx && dy && !andavel(k(x + dx, y)) && !andavel(k(x, y + dy))) continue;
+          entra(b);
+        }
+      }
+      const vizinhoAlcanca = (x, y, z, sobe) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const v = k(x + dx, y + dy); return visto.has(v) && z - H.get(v).z <= sobe + 1e-6; });
+      const avisados = new Set();
+      const paraSentar = new Set();
+      for (const it of postos) if (it.paraSentar) for (let i = 0; i < it.pw; i++) for (let j = 0; j < it.ph; j++) paraSentar.add(k(it.x + i, it.y + j));
+      for (const [kk, t] of assentos) {
+        if (!paraSentar.has(kk)) continue;
+        const [x, y] = kk.split(",").map(Number);
+        if (!visto.has(kk) && !vizinhoAlcanca(x, y, t.z, 2) && !avisados.has(t.classe + kk)) { avisados.add(t.classe + kk); falha(`${t.classe} (${kk}) sem caminho da porta: ninguém chega para sentar (no Habbo sobe-se até 1,5 por passo)`); }
+      }
+      const m1 = niveis.get(1);
+      if (m1) {
+        let algum = false;
+        for (let y = m1.y0; y < m1.y1; y++) for (let x = m1.x0; x < m1.x1; x++) if (visto.has(k(x, y))) algum = true;
+        if (!algum) falha("mezanino sem caminho da porta: o desnível passa de 1,5 e não há escada (nem teleporte) que chegue lá");
+      }
+      for (const [nomeC, c] of cantos) {
+        if (!c.pecas.length) continue;
+        const alvo = postos.find((it) => it.classe === c.destaque);
+        if (!alvo) continue;
+        let perto = false;
+        for (let i = -1; i <= alvo.pw; i++) for (let j = -1; j <= alvo.ph; j++) if (visto.has(k(alvo.x + i, alvo.y + j))) perto = true;
+        if (!perto) falha(`canto "${nomeC}" sem caminho da porta até ${alvo.nome}`);
+      }
     },
   };
   return api;

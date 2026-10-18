@@ -69,7 +69,8 @@ export default function recepcao() {
   s.canto("recepção", { funcao: "receber quem chega", destaque: "room_info15_counter2" });
   // --- Recepção de frente para a porta ---
   s.por("room_info15_counter2", 8, 7, { olha: [9, 12] });
-  s.emCima(8, 7, "computer_flatscreen");
+  // Computador virado para a recepcionista, atrás do balcão; telefone ao lado.
+  s.emCima(8, 7, "computer_flatscreen", { olha: [8, 6] });
   s.emCima(9, 7, "exe_c15_telephone");
   s.emCima(10, 7, "mafia_c26_ledger");
   s.figurante({ figura: FIGURAS.recepcionista, x: 9, y: 6, dir: 4 });
