@@ -130,6 +130,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   quem anda; estados de móvel vão pelo `furni:toggle`. Post-its e presentes
   ficam em `server/escritorio-social.js`: presente só de unidade guardada,
   numa transação, com chave idempotente.
+  Ordem de desenho é a do Nitro (profundidade por ladrilho, altura e z de
+  cada camada da arte; `mapaProfundidade`/`mapaZ`): não volte a ordenar
+  móveis por regra própria nem ponha filtro/z-index no contêiner `.mapa-movel`.
+  Gatilhos e efeitos (Wired) ficam em `vybe-escritorio-gatilhos.js`; a
+  configuração vai no 7º campo do item, validada no servidor só para `wf_*`.
   VybeCoins: 10 por primeira finalização de demanda, 50 por conquista única.
   Créditos acompanham o evento na transação; compras bloqueiam a carteira e são
   idempotentes. Nunca conceda saldo/inventário a partir de valores do navegador.
