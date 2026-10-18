@@ -71,7 +71,10 @@ function auditar(cena, P, moveis, avisos) {
     const w = Math.max(1, dir === 2 || dir === 6 ? a.d.y : a.d.x), h = Math.max(1, dir === 2 || dir === 6 ? a.d.x : a.d.y);
     // Porta (de vidro, de cozinha, de saloon): fica na linha da parede e se
     // atravessa; não ocupa o piso.
-    const plano = PORTAS.test(classe) || (!(a.d.z > 0.05) && a.alto <= (w + h) * 16 + 12);
+    // Peça de passar por baixo (pisável e de altura zero na ficha do Habbo:
+    // escada de mão, hera, luzinhas) divide o ladrilho com outra, como no Habbo.
+    const fis = ctx.mapaFisica?.(classe);
+    const plano = PORTAS.test(classe) || (!(a.d.z > 0.05) && a.alto <= (w + h) * 16 + 12) || Boolean(fis?.pisa && !fis.senta && (fis.altura ?? 1) <= 0.01 && !ctx.mapaPisoEspecial?.(classe));
     const it = { classe, x: Math.floor(x), y: Math.floor(y), w: Math.round(w) || 1, h: Math.round(h) || 1, dir, altura, estado: m[4] || 0, plano, assento: ASSENTOS.test(classe) };
     itens.push(it);
     const nome = nomeCena(`${classe} (${it.x},${it.y})`);
