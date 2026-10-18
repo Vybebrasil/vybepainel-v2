@@ -424,7 +424,7 @@ async function escritorioPousoHabbo(classe, lx, ly, dir, ignorar = null) {
   const a = escritorioAmbienteDoQuarto(e.camada), porta = a && escritorioPortaQuarto(a);
   const naPorta = (x, y) => porta && (porta.lado === "direita" ? x === porta.x && (y === porta.y || y === porta.y + 1) : y === porta.y && (x === porta.x || x === porta.x + 1));
   const eu = escritorioPosicao(escritorio.perfil || {});
-  let altura = 0;
+  let altura = 0, ladrilhoAltura = null;
   for (let i = 0; i < Math.max(1, Math.round(d.x)); i++) for (let j = 0; j < Math.max(1, Math.round(d.y)); j++) {
     const tx = Math.floor(lx) + i, ty = Math.floor(ly) + j;
     if (solida && naPorta(tx, ty)) return { erro: "A porta fica livre, como no Habbo." };
@@ -432,11 +432,17 @@ async function escritorioPousoHabbo(classe, lx, ly, dir, ignorar = null) {
       return { erro: "Tem alguém nesse lugar. Espere sair para pôr um móvel ali." };
     const aqui = (escritorio.mapa.moveisEm(c.x + tx, c.y + ty) || []).filter((m) => !m.parede && !m.pendurado
       && !(ignorar && m.origem?.camada === e.camada && (m.origem?.i === ignorar.i || ignorar.grupo?.has(m.origem?.i))));
+    // Ladrilho de altura (InteractionStackHelper): a peça fica na altura dele,
+    // seja o que for que está embaixo.
+    const magico = aqui.find((m) => mapaFisica(m.classe).logica === "altura");
+    if (magico && magico.classe !== classe) { ladrilhoAltura = Math.max(ladrilhoAltura ?? 0, magico.altura || 0); continue; }
     if (!aqui.length) continue;
     const topo = aqui.reduce((x1, x2) => (mapaTopoMovel(x2) > mapaTopoMovel(x1) ? x2 : x1));
     if (!mapaFisica(topo.classe).poe && !topo.plano) return { erro: "Não dá para pôr em cima disso (no Habbo esse móvel não aceita nada em cima)." };
     altura = Math.max(altura, mapaFisica(topo.classe).senta ? topo.altura || 0 : mapaTopoMovel(topo));
   }
+  if (ladrilhoAltura != null) altura = ladrilhoAltura;
+  if (mapaFisica(classe).logica === "altura") altura = 0; // o próprio ladrilho fica no chão; a altura dele se escolhe com − / +
   if (altura > ESCRITORIO_ALTURA_MAX) return { erro: "Passaria da altura máxima do Habbo (40)." };
   return { altura: Math.round(altura * 100) / 100 };
 }
@@ -644,6 +650,9 @@ const ESCRITORIO_GRUPOS_CATALOGO = [
   ["Divisórias", (m) => m.categoria === "Divisórias"],
   ["Física (esteira, gelo, portão, trampolim)", (m) => m.categoria === "Física"],
   ["Gatilhos e efeitos (Wired)", (m) => m.categoria === "Gatilhos"],
+  ["Ferramentas (relógio, votos, placar, altura)", (m) => m.categoria === "Ferramentas"],
+  ["Barracas e veículos", (m) => m.categoria === "Barracas e veículos"],
+  ["Troféus", (m) => m.categoria === "Troféus"],
   ["Camas", (m) => mapaEhCama(m.classe)],
   ["Construção e arquitetura", (m) => m.categoria === "Blocos e materiais" || /pillar|column|railing|stair|wall|fence|block|divider/.test(m.classe)],
   ["Blocos e materiais", (m) => m.categoria === "Blocos e materiais"],

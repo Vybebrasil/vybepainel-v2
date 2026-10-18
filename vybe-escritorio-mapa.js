@@ -135,9 +135,21 @@ function mapaZPlano(prof) { return 1000 + Math.max(0, Math.min(899, Math.round((
 const mapaGrupoCamada = (p) => (p.sombra ? "sd" : String(p.z));
 // filtro(parte): desenha só essas camadas, no mesmo tamanho e posição do
 // desenho inteiro (para as camadas se sobreporem certinho). Sem nenhuma, null.
+// Números desenhados por camada, como no Nitro (FurnitureScoreBoard-,
+// FurnitureCounterClock- e FurnitureVoteCounterVisualization): a camada com
+// a marca de dígito mostra o quadro do dígito do estado (placar e votos:
+// unidades, dezenas, centenas; relógio de partida: segundos e minutos).
+const MAPA_DIGITOS = {
+  ones_sprite: (n) => n % 10, tens_sprite: (n) => Math.floor(n / 10) % 10, hundreds_sprite: (n) => Math.floor(n / 100) % 10, thousands_sprite: (n) => Math.floor(n / 1000) % 10,
+  seconds_sprite: (n) => (n % 60) % 10, ten_seconds_sprite: (n) => Math.floor((n % 60) / 10), minutes_sprite: (n) => Math.floor(n / 60) % 10, ten_minutes_sprite: (n) => Math.floor(n / 600) % 10,
+};
+const MAPA_COM_DIGITOS = /^furniture_(score_board|counter_clock|vote_counter|vote_majority)$/;
 function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro) {
   const v = dados.visualizations.find((v) => v.size === 64);
-  const { estado, cor } = mapaCorDoEstado(dados, estadoSalvo);
+  const digitos = MAPA_COM_DIGITOS.test(dados.visualizationType || "");
+  const numero = Math.max(0, Math.round(Number(estadoSalvo) || 0));
+  // O relógio de partida anima sempre a animação 0 (o número fica nos dígitos).
+  const { estado, cor } = digitos ? { estado: dados.visualizationType === "furniture_counter_clock" ? 0 : Math.min(1, numero), cor: null } : mapaCorDoEstado(dados, estadoSalvo);
   const nome = dados.name;
   const partes = [];
   const sombra = `${nome}_64_sd_${dir}_0`;
@@ -150,7 +162,7 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
     const seq = seqs.length ? seqs[semente % seqs.length]?.frames : null;
     const lista = seq ? Object.values(seq) : null;
     const repete = Math.max(1, Number(anim?.frameRepeat) || 1);
-    const id = lista ? lista[Math.floor(quadro / repete) % lista.length].id : 0;
+    const id = digitos && MAPA_DIGITOS[L.tag] ? MAPA_DIGITOS[L.tag](numero) : lista ? lista[Math.floor(quadro / repete) % lista.length].id : 0;
     const asset = `${nome}_64_${String.fromCharCode(97 + i)}_${dir}_${id}`;
     if (!dados.assets[asset]) continue;
     partes.push({ asset, z: L.z || 0, ink: L.ink, alpha: L.alpha != null ? L.alpha / 255 : 1, ordem: i, cor: L.tag === "recolorable" ? cor : null });
@@ -551,7 +563,9 @@ async function mapaCarregarFisica() {
 const MAPA_SUBIVEIS = /^(bc_block_\w+|bc_tile_recolorable|vybe_bloco_invisivel|\w+_stage|greek_block|ktchn10_block|disco_c26_block)$/;
 function mapaFisica(classe) {
   const f = MAPA_FISICA?.[classe];
-  if (f) return { pisa: Boolean(f[0] & 1), senta: Boolean(f[0] & 2), deita: Boolean(f[0] & 4), poe: Boolean(f[0] & 8), altura: f[1], alturas: f[2] || null };
+  // logica: o logicType oficial do móvel (pisar, relogio, placar, altura,
+  // funil, link, voto, trofeu, quebravel, tv…), de scripts/habbo-fisica.mjs.
+  if (f) return { pisa: Boolean(f[0] & 1), senta: Boolean(f[0] & 2), deita: Boolean(f[0] & 4), poe: Boolean(f[0] & 8), altura: f[1], alturas: f[2] || null, logica: f[3] || null };
   const senta = MAPA_ASSENTOS.has(classe), deita = mapaEhCama(classe), pisa = MAPA_SUBIVEIS.test(classe);
   return { pisa, senta, deita, poe: pisa, altura: null };
 }

@@ -1374,3 +1374,15 @@ test("planta de alturas e caminho seguem o Habbo", () => {
   vm.runInContext("g.assento.set(g.ind(1, 0), 4)", c);
   assert.equal(vm.runInContext("mapaPassa(g, 0, 0, 1, 0)", c), true, "chega ao assento 2 blocos acima");
 });
+
+// Números por camada como no Nitro: relógio de partida em minutos:segundos,
+// placar e votos em unidades, dezenas e centenas.
+test("dígitos do relógio, do placar e dos votos seguem o Nitro", () => {
+  const c = vm.createContext({ window: {}, document: {} });
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
+  const d = (tag, n) => vm.runInContext(`MAPA_DIGITOS[${JSON.stringify(tag)}](${n})`, c);
+  assert.deepEqual([d("ten_minutes_sprite", 125), d("minutes_sprite", 125), d("ten_seconds_sprite", 125), d("seconds_sprite", 125)], [0, 2, 0, 5]);
+  assert.deepEqual([d("hundreds_sprite", 437), d("tens_sprite", 437), d("ones_sprite", 437)], [4, 3, 7]);
+  const f = JSON.parse(readFileSync("assets/escritorio/habbo/fisica.json", "utf8"));
+  assert.equal(f.tent_blue[3], "pisar"); assert.equal(f.fball_counter[3], "relogio"); assert.equal(f.tile_stackmagic[3], "altura");
+});

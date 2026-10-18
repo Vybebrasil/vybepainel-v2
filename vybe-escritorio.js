@@ -1281,7 +1281,21 @@ function escritorioFisicaDoPiso(andando) {
     seguir(...(ESCRITORIO_PASSO_ESTEIRA[piso.dir] || [0, 0]));
   }, 500); // a esteira do Habbo anda um ladrilho a cada meio segundo
 }
+// Barraca, van e cabana (FurnitureChangeStateWhenStepOnLogic): abrem (estado
+// 1) enquanto o próprio boneco está em cima e fecham quando sai; só na tela
+// de quem pisou, como no Habbo.
+function escritorioPisarMuda(x, y) {
+  const mapa = escritorio.mapa;
+  if (!mapa?.moveisEm) return;
+  const aqui = new Set((mapa.moveisEm(x, y) || []).filter((m) => escritorioLogica(m) === "pisar").map((m) => mapa.chaveMovel(m)));
+  const mudar = [];
+  for (const k of escritorio.pisandoEm || []) if (!aqui.has(k)) mudar.push([k, 0]);
+  for (const k of aqui) if (!escritorio.pisandoEm?.has(k)) mudar.push([k, 1]);
+  escritorio.pisandoEm = aqui;
+  if (mudar.length) mapa.estadosMoveis(mudar);
+}
 function escritorioPisouEm(x, y) {
+  escritorioPisarMuda(x, y);
   // Futebol do Habbo: passar pela bola conduz (1 ladrilho); terminar o passo
   // em cima dela chuta (6 ladrilhos), na direção em que se andava.
   const r = movimento.rota;
@@ -1883,9 +1897,12 @@ function teletransportarEscritorio(id) {
 // para o próximo estado, e todos veem (como no Habbo).
 function alternarComDuploCliqueEscritorio(x, y) {
   if (escritorio.edicao || !escritorio.mapa) return;
-  const m = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.parede && !ESCRITORIO_DADO.test(i.classe) && !ESCRITORIO_TELEPORTE.test(i.classe) && !MAPA_PORTAS.test(i.classe) && escritorioEstadosDoMovel(i).length > 1);
+  const m = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.parede && !ESCRITORIO_DADO.test(i.classe) && !ESCRITORIO_TELEPORTE.test(i.classe) && !MAPA_PORTAS.test(i.classe) && (escritorioEstadosDoMovel(i).length > 1 || ["relogio", "voto", "placar"].includes(escritorioLogica(i))));
   if (!m) return;
   if (/floor_switch/.test(m.classe)) return puxarAlavancaEscritorio(m);
+  // Dois cliques: o relógio troca o tempo; contador e placar zeram.
+  if (escritorioLogica(m) === "relogio") return tempoRelogioEscritorio(m);
+  if (escritorioLogica(m) === "voto" || escritorioLogica(m) === "placar") { escritorioVotei.delete(escritorio.mapa.chaveMovel(m)); return escritorioMudarEstado(m, 0); }
   if (ESCRITORIO_GARRAFA.test(m.classe)) return girarGarrafaEscritorio(m);
   if (ESCRITORIO_ROLETA.test(m.classe)) return girarRoletaEscritorio(m);
   if (mapaEhPortao(m.classe) && !m.altura) return alternarPortaoEscritorio(m);
@@ -2027,6 +2044,74 @@ function escritorioAtualizarPortas() {
   }
   if (mudou.length) mapa.estadosMoveis(mudou);
 }
+// Lógicas oficiais do Habbo (logicType da arte, em fisica.json).
+// Relógio de partida (FurnitureCounterClockLogic): clique inicia ou pausa;
+// dois cliques trocam o tempo (30 s a 10 min, a lista da ficha do Habbo). O
+// de contagem para cima (…up) sobe de zero. Quem inicia mantém o relógio e
+// manda o número a cada segundo para todos.
+const ESCRITORIO_TEMPOS_RELOGIO = [30, 60, 120, 180, 300, 600];
+const escritorioRelogios = new Map();
+const escritorioLogica = (m) => (typeof mapaFisica === "function" ? mapaFisica(m.classe).logica : null);
+const escritorioSobe = (m) => /up$/.test(m.classe);
+function escritorioMudarEstado(m, estado) {
+  const chave = escritorio.mapa.chaveMovel(m);
+  escritorio.mapa.estadosMoveis([[chave, estado]]);
+  escritorioEmitir("furni:toggle", { chave, estado });
+}
+function relogioEscritorio(m) {
+  const chave = escritorio.mapa.chaveMovel(m), r = escritorioRelogios.get(chave);
+  if (r) { clearInterval(r.timer); escritorioRelogios.delete(chave); escritorioTocar(330, 0.08, 0.05); return; }
+  if (!escritorioSobe(m) && !(m.estado > 0)) escritorioMudarEstado(m, ESCRITORIO_TEMPOS_RELOGIO[0]);
+  const timer = setInterval(() => {
+    const atual = escritorio.mapa?.moveisDaClasse?.(new RegExp("^" + m.classe + "$")).find((x) => escritorio.mapa.chaveMovel(x) === chave);
+    if (!atual) { clearInterval(timer); escritorioRelogios.delete(chave); return; }
+    const n = escritorioSobe(m) ? Math.min(5999, (atual.estado || 0) + 1) : Math.max(0, (atual.estado || 0) - 1);
+    escritorioMudarEstado(atual, n);
+    if (!escritorioSobe(m) && n === 0) { clearInterval(timer); escritorioRelogios.delete(chave); escritorioTocar(880, 0.3, 0.08); escritorioAviso("O tempo acabou."); }
+  }, 1000);
+  escritorioRelogios.set(chave, { timer });
+  escritorioTocar(660, 0.08, 0.05);
+}
+function tempoRelogioEscritorio(m) {
+  const chave = escritorio.mapa.chaveMovel(m), r = escritorioRelogios.get(chave);
+  if (r) { clearInterval(r.timer); escritorioRelogios.delete(chave); }
+  if (escritorioSobe(m)) return escritorioMudarEstado(m, 0);
+  const i = ESCRITORIO_TEMPOS_RELOGIO.indexOf(m.estado || 0);
+  escritorioMudarEstado(m, ESCRITORIO_TEMPOS_RELOGIO[(i + 1) % ESCRITORIO_TEMPOS_RELOGIO.length]);
+}
+// Contador de votos e placar (FurnitureVoteCounter/Score): clique soma um;
+// dois cliques zeram. No contador de votos cada pessoa vota uma vez.
+const escritorioVotei = new Set();
+function contarEscritorio(m) {
+  const chave = escritorio.mapa.chaveMovel(m);
+  if (escritorioLogica(m) === "voto") {
+    if (escritorioVotei.has(chave)) return escritorioAviso("Você já votou neste contador.");
+    escritorioVotei.add(chave);
+  }
+  escritorioMudarEstado(m, Math.min(999, (m.estado || 0) + 1));
+  escritorioTocar(660, 0.06, 0.04);
+}
+// Funil (FurnitureRandomTeleportLogic): leva a outro funil, sorteado, de
+// qualquer espaço comum ou da Praça.
+function funilEscritorio(m) {
+  const cenas = [["praca", "geral"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.cena).map((a) => [a.id, a.id])];
+  const aqui = escritorio.quarto || "praca";
+  const outros = cenas.flatMap(([cena, camada]) => escritorioItensDaCamada(camada).filter((it) => escritorioLogica({ classe: it[0] }) === "funil")
+    .map((it) => ({ cena, x: Math.floor(it[1]), y: Math.floor(it[2]), dir: it[3] }))).filter((t) => !(t.cena === aqui && t.x === Math.floor(m.x) && t.y === Math.floor(m.y)));
+  if (!outros.length) return escritorioAviso("Não há outro funil para onde ir.");
+  const par = outros[Math.floor(Math.random() * outros.length)];
+  teletransportarParEscritorio(m, par);
+}
+// Peças que se usam pela lógica oficial (antes de cair nas regras pelo nome).
+function escritorioAcaoPelaLogica(m) {
+  const l = escritorioLogica(m);
+  if (l === "relogio") return { item: m, texto: escritorioRelogios.has(escritorio.mapa.chaveMovel(m)) ? "Pausar o relógio" : "Iniciar o relógio", fazer: () => relogioEscritorio(m) };
+  if (l === "voto") return { item: m, texto: "Votar", fazer: () => contarEscritorio(m) };
+  if (l === "placar") return { item: m, texto: "Somar um ponto", fazer: () => contarEscritorio(m) };
+  if (l === "funil") return { item: m, texto: "Entrar no funil", fazer: () => funilEscritorio(m) };
+  if (l === "link") return { item: m, texto: "Abrir o painel", fazer: () => abrirPainelDoEscritorio() };
+  return null;
+}
 // Regulador de luz do Habbo (roomdimmer e interruptores de parede): no
 // próprio quarto abre a Luz do quarto (sala_luz, que tinge tudo); fica aceso
 // quando o quarto tem uma luz escolhida.
@@ -2047,6 +2132,8 @@ function escritorioAcenderReguladores() {
 // O que um móvel faz quando a pessoa está ao lado dele (o mesmo da tecla E).
 function escritorioAcaoDoMovel(m) {
   if (!m) return null;
+  const pelaLogica = escritorioAcaoPelaLogica(m);
+  if (pelaLogica) return pelaLogica;
   if (ESCRITORIO_CAFE.test(m.classe)) return { item: m, fazer: () => definirPoseEscritorio(escritorio.pose === "cafe" ? "" : "cafe") };
   if (ESCRITORIO_BEBIDA.test(m.classe) || ESCRITORIO_LANCHE.test(m.classe)) {
     const tipo = ESCRITORIO_BEBIDA.test(m.classe) ? "bebida" : "lanche";
