@@ -43,11 +43,13 @@ export default function cafe() {
   // ponta direita, colunas no térreo.
   s.mezanino({ x0: 0, y0: 0, x1: 14, y1: 4, altura: MEZ, piso: "hween_c26_wornfloorboards", guarda: "lodge_dark_divider",
     coluna: "lodge_dark_cornerplinth", colunas: [5, 9, 13], lados: ["frente", "direita"] });
+  s.canto("beira do mezanino", { funcao: "enfeitar a passagem embaixo do mezanino", destaque: "hween_c25_weed2" });
   // Hera subindo pela coluna da ponta (nas do meio ela taparia o balcão).
   s.por("hween_c25_weed2", 13, 4);
   s.revestir("fundo", { de: 0, ate: 14, nivel: 1, classe: "hygge_c25_wallpaper1", estado: 4 });
   s.revestir("esquerda", { de: 0, ate: 4, nivel: 1, classe: "hygge_c25_wallpaper1", estado: 4 });
 
+  s.canto("leitura do mezanino", { funcao: "ler tomando chá", destaque: "hween_c26_bookshelf" });
   // --- Andar de cima ---
   // Estante encostada na parede da esquerda; cantinho de leitura com chá e
   // um leitor na poltrona.
@@ -58,6 +60,7 @@ export default function cafe() {
   s.assento("antique_c21_armchair", 3, 1, [2, 1], { nivel: 1 });
   s.figurante({ figura: FIGURAS.leitor, sentado: leitura });
   s.por("antique_c21_lamp", 2, 0, { nivel: 1 });
+  s.canto("mesas do mezanino", { funcao: "comer doce lá em cima", destaque: "val_c20_cake" });
   // Duas mesas: uma com bolo, outra com livros antigos.
   const doce = s.mesa({ nivel: 1, x: 6, y: 1, tampo: "paris_c15_table", cadeira: "paris_c15_chair", sobre: ["xmas_c24_plate", "val_c20_cake"] });
   s.figurante({ figura: FIGURAS.amiga, sentado: doce.direita });
@@ -66,6 +69,7 @@ export default function cafe() {
   // Porta do mezanino na parede da esquerda, em cima da do térreo (as duas
   // são o mesmo teleporte).
   s.por("antique_c21_doorteleport", 0, 2, { nivel: 1, dir: 2 });
+  s.canto("paredes do mezanino", { funcao: "luz e janela do andar de cima", destaque: "lodge_dark_window" });
   // Parede do fundo do mezanino: janelas com o quadro entre elas.
   const arandela = { classe: "mafia_c26_walllamp_dark", estado: 1, altura: 0.9 };
   s.parede("fundo", { de: 3, ate: 13, nivel: 1, altura: 0.3 }, ["lodge_dark_window", arandela, "attic15_painting", arandela, "lodge_dark_window"]);
@@ -76,16 +80,18 @@ export default function cafe() {
   // Plantas penduradas na beira do mezanino, por cima do balcão.
   for (const x of [3, 12]) s.pendente("easter_c18_hangingplant", x, 4, { estado: 0 });
 
+  s.canto("balcão de trás", { funcao: "preparar café e doces", destaque: "sunsetcafe_c20_coffeemachine" });
   // --- Térreo, embaixo da beira (balcão de trás) ---
-  s.por("val_c20_cakedisplay", 1, 3, { olha: [1, 8], sobMezanino: true });
-  s.por("val_c20_tablecounter", 7, 3, { sobMezanino: true });
+  s.por("val_c20_cakedisplay", 1, 3, { olha: [1, 8] });
+  s.por("val_c20_tablecounter", 7, 3);
   s.emCima(7, 3, "sunsetcafe_c20_coffeemachine");
   s.emCima(8, 3, "ducket_c26_honeypot");
-  s.por("val_c20_tablecounter", 11, 3, { sobMezanino: true });
+  s.por("val_c20_tablecounter", 11, 3);
   s.emCima(11, 3, "ducket_c26_charcuterie");
   s.figurante({ figura: FIGURAS.cozinheira, x: 5, y: 4, dir: 4 });
   s.figurante({ figura: FIGURAS.barista, x: 10, y: 4, dir: 4 });
 
+  s.canto("balcão da frente", { funcao: "vender e servir", destaque: "wildwest_till" });
   // Balcão da frente: caixa antiga, doces, pão, biscoitos e canecas.
   for (const x of [1, 3, 5, 7]) s.por("val_c20_tablecounter", x, 5);
   s.emCima(1, 5, "wildwest_till", { olha: [1, 9] });
@@ -103,6 +109,7 @@ export default function cafe() {
   s.por("xmas12_barrel", 11, 5, { dir: 4 });
   s.por("jungle_c16_sacks", 12, 5);
 
+  s.canto("entrada e cardápio", { funcao: "receber quem chega e mostrar o cardápio", destaque: "school_chalkboard" });
   // Parede da esquerda do térreo: lousa do cardápio e prateleira de livros
   // sobre a bicicleta e a porta para o mezanino; capacho e cavalete de giz
   // na entrada; relógio de chão e árvore no cesto no canto.
@@ -114,6 +121,7 @@ export default function cafe() {
   s.por("attic15_clock", 0, 11, { dir: 2 });
   s.por("paris_c15_menu", 2, 11, { dir: 2 });
 
+  s.canto("salão", { funcao: "comer sentado", destaque: "val_c20_lights" });
   // --- Salão ---
   s.mesa({ x: 3, y: 7, tampo: "paris_c15_table", cadeira: "paris_c15_chair", lados: ["esquerda", "direita", "frente"], tapete: "antique_c21_oldenrug", sobre: ["xmas_c24_plate", "classic2_drinkcup"],
     figurante: { lado: "esquerda", figura: FIGURAS.cliente } });
@@ -127,6 +135,7 @@ export default function cafe() {
   s.pendente("val_c20_lights", 8, 9);
   s.pendente("val_c20_lights", 13, 11);
 
+  s.canto("estar da frente", { funcao: "conversar com chá", destaque: "antique_c21_teaset" });
   // Canto de estar (frente à direita): poltrona antiga e poltrona de chalé
   // em volta da mesa de centro com chá e abajur; plantas e árvore no cesto
   // no canto e na ponta do balcão de doces.
@@ -139,6 +148,7 @@ export default function cafe() {
   s.por("recycler_baskettree", 15, 7);
   s.por("classic9_plant", 9, 5);
 
+  s.canto("recanto da lareira", { funcao: "se aquecer perto do fogo", destaque: "wintercabin_c19_fireplace" });
   // Recanto da lareira (fundo à direita): lareira, tapete e duas poltronas
   // de frente para o fogo, abajur de pé e lustre de chalé.
   s.por("wintercabin_c19_fireplace", 14, 0, { dir: 4 });

@@ -95,8 +95,18 @@ export function novaCena(id, o = {}) {
   const paredes = []; // itens de parede já postos: { lado, a, b, y0, y1 (px), nome }
   const altos = []; // móveis encostados na parede (para não pendurar quadro atrás)
   const revestidos = []; // trechos de parede já revestidos
-  const pisos = new Set(), escadas = [], daCasca = new Set(), postos = [];
+  const pisos = new Set(), escadas = [], daCasca = new Set(), postos = [], acessorios = [];
   let cascaFeita = false;
+  // Cantos (projeto de interiores, Paulo em 18/10/2026): toda peça que não é
+  // obra (piso, casca, mezanino, escada, revestimento) pertence a um canto
+  // com função e ponto de destaque, declarado com canto() antes das peças.
+  const cantos = new Map(), semCanto = [];
+  let cantoAtual = null, obra = 0;
+  const doCanto = (nomePeca, classe) => {
+    if (obra) return;
+    if (!cantoAtual) { semCanto.push(nomePeca); return; }
+    cantos.get(cantoAtual).pecas.push(classe);
+  };
   const falha = (m) => { erros.push(`${id}: ${m}`); return null; };
   const nome = (c, x, y) => `${c} (${x},${y})`;
 
@@ -105,7 +115,10 @@ export function novaCena(id, o = {}) {
     // Andar elevado de construtor: tábuas finas no alto, guarda-corpo nos
     // lados abertos e colunas empilhadas até a beira. Vira o nível 1.
     // abertura: [xa, xb) da frente sem guarda-corpo, onde chega a escada.
-    mezanino({ x0, y0, x1, y1, altura, piso, estadoPiso = 0, guarda, coluna, colunas = [], lados = ["frente"], abertura = null }) {
+    mezanino(o) { obra++; try { return api._mezanino(o); } finally { obra--; } },
+    // enfeite: { classes, cada } põe em cima do guarda-corpo da frente, a cada
+    // "cada" peças, alternando as classes (ritmo; nunca peça avulsa ali).
+    _mezanino({ x0, y0, x1, y1, altura, piso, estadoPiso = 0, guarda, coluna, colunas = [], lados = ["frente"], abertura = null, enfeite = null }) {
       const pp = peca(piso), [pw, ph] = pegada(pp, 0);
       pisos.add(`${piso}|${estadoPiso}|1`);
       for (let x = x0; x < x1; x += pw) for (let y = y0; y < y1; y += ph) {
@@ -119,9 +132,16 @@ export function novaCena(id, o = {}) {
       if (pg.pisa) return falha(`guarda-corpo ${guarda} é pisável na ficha do Habbo: não segura ninguém na beira do mezanino`);
       if (lados.includes("frente")) {
         const [gw] = pegada(pg, 0);
+        let k = 0;
         for (let x = x0; x < x1; x += gw) {
           if (abertura && x < abertura[1] && x + gw > abertura[0]) continue;
-          api.por(guarda, x, y1 - 1, { dir: 0, nivel: 1, beira: true });
+          const g = api.por(guarda, x, y1 - 1, { dir: 0, nivel: 1, beira: true });
+          if (g) g.guarda = true;
+          if (g && enfeite && k % (enfeite.cada || 1) === 0) {
+            const c = [enfeite.classes].flat()[(k / (enfeite.cada || 1)) % [enfeite.classes].flat().length];
+            obra--; try { api.por(c, x, y1 - 1, { nivel: 1, sobre: true, ritmo: true }); } finally { obra++; }
+          }
+          k++;
         }
       }
       const pc = peca(coluna);
@@ -129,7 +149,7 @@ export function novaCena(id, o = {}) {
         // Lado direito até a esquina; o ladrilho que sobra fecha com um pilar.
         const [, gh] = pegada(pg, 6);
         let y = y0;
-        for (; y + gh <= y1 - 1; y += gh) api.por(guarda, x1 - 1, y, { dir: 6, nivel: 1, beira: true });
+        for (; y + gh <= y1 - 1; y += gh) { const g = api.por(guarda, x1 - 1, y, { dir: 6, nivel: 1, beira: true }); if (g) g.guarda = true; }
         for (; y < y1 - 1; y++) api.por(coluna, x1 - 1, y, { nivel: 1 });
       }
       // Colunas do térreo até a beira: peças iguais empilhadas, uma por nível.
@@ -140,6 +160,13 @@ export function novaCena(id, o = {}) {
         c.solido = { nome: nome(coluna, x, y1 - 1), classe: coluna };
         for (let k = 0; k < n; k++) moveis.push([coluna, x, y1 - 1, 0, 0, k * (pc.topo || 1)]);
       }
+    },
+    canto(nome, { funcao, destaque } = {}) {
+      if (!funcao) return falha(`canto "${nome}" sem função (para que serve este canto?)`);
+      if (!destaque) return falha(`canto "${nome}" sem ponto de destaque`);
+      if (cantos.has(nome)) return falha(`canto "${nome}" declarado duas vezes`);
+      cantos.set(nome, { funcao, destaque, pecas: [] });
+      cantoAtual = nome;
     },
     // Casca da sala: forro e cornija no topo das paredes, com a mesma função
     // da planta (escritorioCascaDoQuarto). Cada peça da cornija entra na
@@ -221,6 +248,7 @@ export function novaCena(id, o = {}) {
         // Empilhador do Habbo (peça de obra, como degrau de escada): empilha
         // mesmo onde a ficha não deixa pôr coisas em cima.
         if (!base.poe && !(o.empilhador && base.classe === classe)) return falha(`${nome(classe, x, y)}: ${base.classe} não aceita nada em cima (ficha do Habbo)`);
+        if (base.guarda && !o.ritmo) return falha(`${nome(classe, x, y)} avulso no guarda-corpo: enfeite ali só com ritmo (mezanino({ enfeite }))`);
         altura = base.topo;
       } else if (p.plana) {
         for (let i = 0; i < pw; i++) for (let j = 0; j < ph; j++) {
@@ -252,6 +280,8 @@ export function novaCena(id, o = {}) {
       if ((!p.plana || o.flutuante != null || decoracao) && !o.sobre && (y === 0 || x === 0)) altos.push({ it, n, p, decor: decoracao || o.flutuante != null });
       if (!o.sobre) postos.push(it);
       moveis.push([classe, x, y, dir, o.estado || 0, Math.round(altura * 1000) / 1000]);
+      if (o.sobre && !o.empilhador) { it.acessorio = true; it.base = at(x, y, n).pilha.find((q) => !q.acessorio && q !== it); acessorios.push(it); }
+      doCanto(it.nome, classe);
       return it;
     },
     // Assento virado para um alvo (mesa, lareira, palco).
@@ -363,6 +393,7 @@ export function novaCena(id, o = {}) {
       }
       moveis.push([classe, x, y, dir, estado, alt]);
       api._lampadas.push({ classe, x, y, nivel, estado, dir, alt });
+      doCanto(nome(classe, x, y), classe);
     },
     lampada(classe, x, y, nivel = 0, estado = 1) { api.pendente(classe, x, y, { nivel, estado }); },
     _lampadas: [],
@@ -405,6 +436,7 @@ export function novaCena(id, o = {}) {
         for (const q of paredes) if (q.lado === lado && a < q.b && b > q.a && y0 < q.y1 && y1 > q.y0) falha(`${i.classe} tapa ${q.nome} na parede`);
         paredes.push({ lado, a, b, y0, y1, nome: i.classe, classe: i.classe, x: lado === "fundo" ? pos : 0, y: lado === "fundo" ? 0 : pos, dir, estado: i.estado || 0, altura: alt });
         moveis.push([i.classe, lado === "fundo" ? pos : 0, lado === "fundo" ? 0 : pos, dir, i.estado || 0, alt]);
+        doCanto(`${i.classe} na parede`, i.classe);
         px += i.s.w + folga;
       }
     },
@@ -424,7 +456,8 @@ export function novaCena(id, o = {}) {
     // subindo na direção dada ([dx, dy]) até a altura do nível de cima (o
     // mezanino ou o patamar da planta). Cada degrau é a mesma peça repetida
     // na pilha até a altura dele, como os construtores fazem no Habbo.
-    escada(classe, x, y, para, { ate, dir } = {}) {
+    escada(...a) { obra++; try { return api._escada(...a); } finally { obra--; } },
+    _escada(classe, x, y, para, { ate, dir } = {}) {
       const p = peca(classe);
       if (!p.pisa) return falha(`escada ${classe} não é pisável na ficha do Habbo`);
       const hd = p.topo || 0.5, alvo = ate ?? niveis.get(1)?.base ?? 1;
@@ -492,7 +525,20 @@ export function novaCena(id, o = {}) {
         const solto = (m) => { const p = peca(m[0]); return !p.parede && !p.senta && !p.poe && !LUZ.test(m[0]) && !(m[5] > 0.05) && pegada(p, m[3])[0] * pegada(p, m[3])[1] === 1 && (p.topo ?? 1) <= 2.2 && m[1] !== 0 && m[2] !== 0; };
         const soltos = conta.filter(solto).length, riqueza = conta.length - soltos + Math.min(soltos, Math.floor(area / 15));
         if (soltos > area / 10) falha(`enfeite solto demais: ${soltos} jarros, vasos ou plantas soltos no chão (máximo ${Math.floor(area / 10)}); faça conjuntos`);
-        if (riqueza < area * 0.45) falha(`sala pobre: ${riqueza} peças de detalhe para ${area} ladrilhos (mínimo ${Math.ceil(area * 0.45)}, o padrão do Café; enfeite solto conta pouco)`);
+        void riqueza;
+        // Sem cota de quantidade ("deixar a cena viva e rica virou empilhar
+        // coisas aleatórias", Paulo, 18/10/2026). No lugar, composição:
+        // toda peça num canto com função e destaque; mesinha com no máximo
+        // dois objetos; a mesma peça de acabamento repetida pouco.
+        for (const p of semCanto) falha(`${p} fora de canto: declare o canto dela (s.canto) com função e destaque`);
+        for (const [nomeC, c] of cantos) if (c.pecas.length && !c.pecas.includes(c.destaque)) falha(`canto "${nomeC}": o destaque ${c.destaque} não está nele`);
+        const porBase = new Map();
+        for (const a of acessorios) if (a.base) { const k = a.base; porBase.set(k, (porBase.get(k) || 0) + 1); }
+        for (const [b, n] of porBase) if (b.pw * b.ph === 1 && n > 2) falha(`${b.nome} com ${n} objetos em cima: mesinha leva no máximo dois, que façam sentido para o uso`);
+        const vezes = new Map();
+        for (const a of acessorios) vezes.set(a.classe, (vezes.get(a.classe) || 0) + 1);
+        const maxRep = 3 + Math.floor(area / 100);
+        for (const [c, n] of vezes) if (n > maxRep) falha(`${c} repetido ${n} vezes em cima dos móveis (máximo ${maxRep}): varie ou tire`);
         const niveisPlanta = new Set((celdas || []).flat().filter((c) => c !== -1).map(Number));
         // Sobe-se por escada; porta-teleporte só onde o Paulo aprovou assim (Café).
         if ((niveis.has(1) || niveisPlanta.size > 1) && !escadas.length && !o.subidaPorTeleporte) falha("tem mais de um nível e nenhuma escada para subir");

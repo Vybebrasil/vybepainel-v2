@@ -86,14 +86,20 @@ Peças: `scripts/escritorio-construcao.mjs`. Verificador:
   - pelo menos 3 tipos de item;
   - 60% do comprimento ocupado.
 
+**Feito em 18/10/2026: a cota de "riqueza" saiu.** No lugar entraram regras
+de composição em `fechar()`:
+- toda peça que não é obra pertence a um canto, declarado com
+  `s.canto(nome, { funcao, destaque })`, e o destaque precisa estar nele;
+- mesinha (1×1) leva no máximo dois objetos;
+- o mesmo acessório em cima de móveis se repete no máximo 3 + área/100 vezes;
+- no guarda-corpo, enfeite só com ritmo, via `mezanino({ enfeite: { classes, cada } })`.
+
+O Café recebeu os cantos sem mudar nenhuma peça. A Reunião e a Convivência
+foram limpas (sem plantas e velas espalhadas, sem guarda-corpo entulhado). A
+Convivência ainda espera o projeto novo, que precisa da aprovação do Paulo.
+
 **A fazer, aprovado:**
-1. **Tirar a cota de "riqueza"** (peças ≥ 0,45 × área em `fechar()`) e trocar
-   por regras de composição:
-   - toda peça pertence a um canto declarado, com função e ponto de destaque;
-   - mesinha leva no máximo um ou dois objetos que façam sentido para o uso;
-   - há limite para repetir a mesma peça;
-   - guarda-corpo leva decoração com ritmo, ou nenhuma.
-2. **Ensinar o motor a fazer quartos como a garagem:**
+1. **Ensinar o motor a fazer quartos como a garagem:**
    - peça de chão montada na parede na altura certa (moto, guitarra),
      conferindo que encosta nela;
    - "composição intencional": dentro do mesmo conjunto uma peça pode tapar
@@ -103,7 +109,7 @@ Peças: `scripts/escritorio-construcao.mjs`. Verificador:
      um canto, e não espalhada;
    - parede dividida em vãos por pilares, cada vão com um tema;
    - extrair as peças que faltarem do acervo, já permitido (`scripts/habbo-extrair.mjs`).
-3. **Refazer a Convivência** pelo processo novo, levando o projeto ao Paulo
+2. **Refazer a Convivência** pelo processo novo, levando o projeto ao Paulo
    antes de montar; depois revisar o Café e a Reunião com o mesmo olhar.
 
 **Lições que viraram regra (não repetir):**
@@ -140,6 +146,6 @@ Peças: `scripts/escritorio-construcao.mjs`. Verificador:
 - **Branch:** `codex/escritorio-proximo`, com commits locais ainda não
   publicados (`git log origin/main..HEAD`).
 - **Verificação:**
-  - `npm run check` (456 testes passando em 18/10);
+  - `npm run check` (457 testes passando em 18/10);
   - `node scripts/escritorio-compor.mjs` (gera as cenas e roda o verificador);
   - conferir no navegador: `npm run dev`, depois Escritório → sala.

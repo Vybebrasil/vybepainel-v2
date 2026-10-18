@@ -32,6 +32,7 @@ export default function recepcao() {
     coluna: "greek_corner", colunas: [1, 5, 8], lados: ["frente", "direita"], abertura: [12, 14] });
   s.escada("xmas_c18_stagestairs", 12, 9, [0, -1]);
 
+  s.canto("mezanino", { funcao: "ler e conversar no andar de cima", destaque: "hween_c26_bookshelf" });
   // --- Mezanino ---
   const arandela = { classe: "mafia_c26_walllamp_white", altura: 1.6 };
   // Parede do fundo: janelas duplas com arandelas entre elas.
@@ -45,7 +46,7 @@ export default function recepcao() {
   const cima = s.estar({ nivel: 1, x: 5, y: 1, sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white",
     poltronas: [],
     criado: "mafia_c26_sidetable_white", criados: ["depois"], sobreMesa: ["mafia_c26_magazinesb", "room_cof15_cup2"],
-    sobreCriado: { depois: ["antique_c21_books", "wcandle"] } });
+    sobreCriado: { depois: "mafia_c26_vase_white" } });
   s.figurante({ figura: FIGURAS.amiga, sentado: cima.sofa });
   // Mesinha de café perto da escada e plantas nos cantos.
   s.mesa({ nivel: 1, x: 11, y: 2, tampo: "mafia_c26_sidetable_white", cadeira: "mafia_c26_armchair_white", lados: ["esquerda", "tras"], sobre: ["antique_c21_books", "classic2_drinkcup"] });
@@ -54,12 +55,9 @@ export default function recepcao() {
   s.por("hc_bigvase", 14, 3, { nivel: 1 });
   s.por("room_info15_statue1", 1, 3, { nivel: 1 });
   s.por("hc_bigvase", 4, 3, { nivel: 1 });
-  for (const y of [1, 3]) s.emCima(15, y, "wcandle", { nivel: 1 });
-  for (const y of [0, 2]) s.emCima(15, y, "greek_c19_vase1", { nivel: 1 });
   s.por("mafia_c26_planter_white", 13, 1, { nivel: 1 });
-  // Acabamento no guarda-corpo: vasos gregos e velas em cima dos blocos.
-  for (const [x, c] of [[0, "greek_c19_vase1"], [2, "wcandle"], [4, "greek_c19_vase2"], [6, "wcandle"], [8, "greek_c19_vase1"], [10, "wcandle"], [14, "greek_c19_vase2"], [1, "plant_rose"], [5, "plant_rose"], [9, "plant_rose"], [3, "greek_c19_vase2"], [7, "greek_c19_vase2"], [11, "greek_c19_vase1"]]) s.emCima(x, 4, c, { nivel: 1 });
 
+  s.canto("canto das máquinas", { funcao: "lanche e passagem para a Praça", destaque: "mafia_c26_teleport_dark" });
   // --- Canto do fundo à direita (pé-direito alto): máquinas e teleporte ---
   s.por("mafia_c26_teleport_dark", 16, 0, { dir: 4 });
   // Prateleira com vasos e relógio em cima, no canto, ao lado da máquina.
@@ -68,6 +66,7 @@ export default function recepcao() {
   s.mesa({ x: 17, y: 3, tampo: "mafia_c26_sidetable_white", cadeira: "mafia_c26_armchair_white", sobre: ["antique_c21_books", "room_cof15_cup2"] });
   s.por("mafia_c26_firepit_white", 19, 3);
 
+  s.canto("recepção", { funcao: "receber quem chega", destaque: "room_info15_counter2" });
   // --- Recepção de frente para a porta ---
   s.por("room_info15_counter2", 8, 7, { olha: [9, 12] });
   s.emCima(8, 7, "computer_flatscreen");
@@ -80,6 +79,7 @@ export default function recepcao() {
   s.emCima(10, 7, "magazines");
   s.por("elegant_c17_flowerpot", 12, 1, { nivel: 1 });
 
+  s.canto("estar da esquerda", { funcao: "conversar perto dos aquários", destaque: "mafia_c26_sofa_white" });
   // --- Estar na parede da esquerda ---
   const estar = s.estar({ x: 0, y: 7, olha: "direita", sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white",
     criado: "mafia_c26_sidetable_white", criados: ["depois"], tapete: "js_exe_rug", sobreMesa: ["magazines", "wcandle"],
@@ -91,15 +91,17 @@ export default function recepcao() {
   s.por("hc_bigvase", 0, 16);
   s.parede("esquerda", { de: 14, ate: 16, altura: 2.8 }, ["attic15_painting"]);
 
+  s.canto("espera", { funcao: "esperar perto da porta", destaque: "room_info15_sofa2" });
   // --- Espera perto da porta ---
   const espera = s.estar({ x: 3, y: 13, sofa: "room_info15_sofa2", mesa: "mafia_c26_coffeetable_white", poltrona: "room_info15_sofa1",
     criado: "mafia_c26_sidetable_white", criados: ["depois"], tapete: "js_exe_rug", sobreMesa: ["mafia_c26_magazinesb", "classic2_drinkcup"],
-    sobreCriado: { depois: ["antique_c21_books", "wcandle"] } });
+    sobreCriado: { depois: "mafia_c26_drinktray" } });
   s.figurante({ figura: FIGURAS.amiga.replace("ch-3030-73", "ch-665-1323"), sentado: espera.sofa });
   s.por("hc_luggage", 2, 15);
   s.por("modern_c17_floorlamp", 6, 14);
   s.por("modern_c17_floorlamp", 1, 14);
 
+  s.canto("canteiro", { funcao: "verde no meio do saguão", destaque: "room_wl15_tree" });
   // --- Canteiro no meio, com bancos virados para ele ---
   // Árvores atrás, arbustos e rosas na frente (o mais baixo na frente).
   s.por("room_wl15_tree", 4, 9);
@@ -109,11 +111,12 @@ export default function recepcao() {
   s.por("room_info15_shrub1", 6, 10);
   s.assento("greek_c15_bench", 8, 10, [5, 10]);
   s.por("mafia_c26_sidetable_white", 8, 9);
-  s.emCima(8, 9, ["antique_c21_books", "wcandle"]);
+  s.emCima(8, 9, "mafia_c26_vase_white");
 
   // Jardineiras baixas com rosas dos dois lados do corredor da porta.
   for (const x of [7, 11]) { s.por("room_cof15_planter", x, 13); s.emCima(x, 13, "plant_rose"); s.emCima(x + 1, 13, "plant_rose"); }
 
+  s.canto("jogos", { funcao: "jogar fliperama e sinuca", destaque: "tokyo_c18_retroarcade" });
   // --- Jogos à direita ---
   for (const x of [16, 18]) s.por("tokyo_c18_retroarcade", x, 7, { dir: 4 });
   s.figurante({ figura: FIGURAS.jogador, x: 17, y: 8, dir: 0 });
@@ -124,12 +127,14 @@ export default function recepcao() {
   s.pendente("gothic_c15_chandelier", 16, 10);
   s.por("modern_c17_floorlamp", 19, 9);
 
+  s.canto("estar da direita", { funcao: "conversar sob o lustre", destaque: "mafia_c26_sofa_white" });
   // --- Estar da frente à direita ---
   s.estar({ x: 14, y: 12, sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white",
     criado: "mafia_c26_sidetable_white", criados: ["depois"], tapete: "js_exe_rug", sobreMesa: ["mafia_c26_magazinesb", "room_cof15_cup2"],
-    sobreCriado: { depois: ["antique_c21_books", "wcandle"] } });
+    sobreCriado: { depois: "modern_c17_plant" } });
   s.pendente("gothic_c15_chandelier", 15, 14);
 
+  s.canto("entrada", { funcao: "marcar a porta", destaque: "doormat_plain" });
   // --- Entrada: capacho na porta e jardineiras dos lados ---
   s.por("doormat_plain", 9, 16);
   s.por("doormat_plain", 10, 16);

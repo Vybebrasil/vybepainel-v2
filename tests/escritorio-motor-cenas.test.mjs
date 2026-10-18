@@ -115,12 +115,12 @@ test("escada empilha degraus até o mezanino e passa pelo vão do guarda-corpo",
   assert.deepEqual(s.erros, []);
 });
 
-test("acabamento do Café é exigido: cornija, luz, detalhe e escada", () => {
+test("acabamento do Café é exigido: cornija, luz e escada", () => {
   const s = novaCena("recepcao");
   s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 7, altura: 3, piso: "val12_marble1", guarda: "greek_block", coluna: "greek_corner", colunas: [], lados: ["frente"] });
   s.piso("val12_marble1", { x0: 0, y0: 8, x1: 16, y1: 18 });
   const { erros } = s.fechar();
-  for (const r of [/cornija/, /pouca luz/, /sala pobre/, /nenhuma escada/, /parecem um só/]) assert.ok(erros.some((e) => r.test(e)), String(r));
+  for (const r of [/cornija/, /pouca luz/, /nenhuma escada/, /parecem um só/]) assert.ok(erros.some((e) => r.test(e)), String(r));
 });
 
 test("escada é onde dá escada: chega no vão, pé e lados livres; nada embaixo do mezanino", () => {
@@ -170,4 +170,29 @@ test("parede rica: quantidade, variedade e trecho ocupado", () => {
   s.parede("fundo", { de: 2, ate: 4 }, ["attic15_painting"]);
   const { erros } = s.fechar();
   for (const r of [/parede do fundo pobre/, /parede do fundo repetitiva/, /parede da esquerda vazia/]) assert.ok(erros.some((e) => r.test(e)), String(r));
+});
+
+test("composição em vez de cota: canto com função, mesinha com até dois objetos, pouca repetição e guarda-corpo com ritmo", () => {
+  const s = novaCena("recepcao");
+  s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 3, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [], lados: ["frente"] });
+  s.por("mafia_c26_planter_white", 18, 10);
+  s.canto("estar", { funcao: "conversar", destaque: "mafia_c26_sofa_white" });
+  s.por("mafia_c26_sidetable_white", 5, 10);
+  s.emCima(5, 10, ["antique_c21_books", "antique_c21_books", "wcandle"]);
+  for (const x of [6, 8, 10, 12, 14, 16, 18]) { s.por("mafia_c26_sidetable_white", x, 12); s.emCima(x, 12, "magazines"); }
+  s.emCima(0, 4, "wcandle", { nivel: 1 });
+  s.canto("vazio", { funcao: "nada" });
+  const { erros } = s.fechar();
+  const e = erros.join("\n");
+  assert.match(e, /mafia_c26_planter_white \(18,10\) fora de canto/);
+  assert.match(e, /canto "estar": o destaque mafia_c26_sofa_white não está nele/);
+  assert.match(e, /com 3 objetos em cima: mesinha leva no máximo dois/);
+  assert.match(e, /magazines repetido 7 vezes/);
+  assert.match(e, /wcandle \(0,4\) avulso no guarda-corpo/);
+  assert.match(e, /canto "vazio" sem ponto de destaque/);
+  assert.doesNotMatch(e, /sala pobre/, "sem cota de quantidade");
+  const r = novaCena("recepcao", { acabamento: false });
+  r.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 3, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [], lados: ["frente"], enfeite: { classes: ["greek_c19_vase1", "wcandle"], cada: 2 } });
+  assert.deepEqual(r.erros, []);
+  assert.deepEqual(r.moveis.filter((m) => /vase1|wcandle/.test(m[0])).map((m) => [m[0], m[1]]), [["greek_c19_vase1", 0], ["wcandle", 4], ["greek_c19_vase1", 8], ["wcandle", 12]], "um a cada dois blocos, alternando");
 });
