@@ -104,3 +104,70 @@ test("parede do Habbo: posição em pixels e topo da sala vindo da planta", () =
   s.pendente("jungle_c16_pot", 6, 6);
   assert.match(s.erros.join("\n"), /parede acaba em 7\.6/);
 });
+
+test("escada empilha degraus até o mezanino e passa pelo vão do guarda-corpo", () => {
+  const s = novaCena("recepcao", { acabamento: false });
+  s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 7, altura: 3, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [], lados: ["frente"], abertura: [14, 16] });
+  assert.ok(!s.moveis.some((m) => m[0] === "greek_block" && m[1] === 14), "sem guarda-corpo no vão");
+  s.escada("xmas_c18_stagestairs", 14, 11, [0, -1]);
+  const topo = Math.max(...s.moveis.filter((m) => m[0] === "xmas_c18_stagestairs" && m[2] === 7).map((m) => m[5])) + 0.6;
+  assert.ok(Math.abs(topo - 3) < 0.05, "o último degrau chega à altura do mezanino");
+  assert.deepEqual(s.erros, []);
+});
+
+test("acabamento do Café é exigido: cornija, luz, detalhe e escada", () => {
+  const s = novaCena("recepcao");
+  s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 7, altura: 3, piso: "val12_marble1", guarda: "greek_block", coluna: "greek_corner", colunas: [], lados: ["frente"] });
+  s.piso("val12_marble1", { x0: 0, y0: 8, x1: 16, y1: 18 });
+  const { erros } = s.fechar();
+  for (const r of [/cornija/, /pouca luz/, /sala pobre/, /nenhuma escada/, /parecem um só/]) assert.ok(erros.some((e) => r.test(e)), String(r));
+});
+
+test("escada é onde dá escada: chega no vão, pé e lados livres; nada embaixo do mezanino", () => {
+  const mez = (s) => s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 3, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [], lados: ["frente"], abertura: [12, 14] });
+  const fora = novaCena("recepcao", { acabamento: false });
+  mez(fora);
+  fora.escada("xmas_c18_stagestairs", 4, 9, [0, -1]);
+  assert.match(fora.erros.join("\n"), /fora do vão/);
+  const s = novaCena("recepcao", { acabamento: false });
+  mez(s);
+  s.escada("xmas_c18_stagestairs", 12, 9, [0, -1]);
+  assert.deepEqual(s.erros, []);
+  s.por("mafia_c26_sidetable_white", 12, 10);
+  s.por("mafia_c26_sidetable_white", 14, 7);
+  s.por("js_exe_bardesk", 7, 2);
+  s.por("js_exe_bardesk", 7, 4);
+  const e = s.erros.join("\n");
+  assert.match(e, /no pé da escada/);
+  assert.match(e, /no lado da escada/);
+  assert.match(e, /js_exe_bardesk \(7,2\) fica embaixo do mezanino, longe da beira/);
+  assert.doesNotMatch(e, /js_exe_bardesk \(7,4\)/, "na fileira da beira pode (o balcão do Café)");
+});
+
+test("conjunto de estar no esquadro: mesa centrada, criado ao lado e tapete sem peça pela metade", () => {
+  const s = novaCena("t", { w: 12, h: 12, acabamento: false });
+  const a = s.estar({ x: 3, y: 3, sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white", criado: "mafia_c26_sidetable_white", criados: ["depois"], tapete: "js_exe_rug", sobreMesa: ["magazines"] });
+  assert.deepEqual(s.erros, []);
+  assert.ok(a.sofa && a.antes && a.depois);
+  const mesa = s.moveis.find((m) => m[0] === "mafia_c26_coffeetable_white");
+  assert.deepEqual([mesa[1], mesa[2]], [4, 4], "mesa no meio do sofá, colada na frente");
+  assert.deepEqual(s.moveis.find((m) => m[0] === "magazines").slice(1, 3), [4, 5], "revista no ladrilho longe do sofá");
+  assert.deepEqual(s.moveis.find((m) => m[0] === "mafia_c26_sidetable_white").slice(1, 3), [6, 3], "criado na ponta do sofá");
+  const t = novaCena("t", { w: 12, h: 12 });
+  t.estar({ x: 3, y: 3, sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white", criado: "mafia_c26_sidetable_white", criados: ["antes"] });
+  assert.match(t.erros.join("\n"), /lado "antes" fica escondido/);
+  const u = novaCena("t", { w: 12, h: 12, acabamento: false });
+  u.tapete("usva_rug", 2, 2, 3, 3);
+  u.assento("mafia_c26_sofa_white", 1, 2, [2, 5]);
+  u.por("mafia_c26_sidetable_white", 1, 1);
+  u.fechar();
+  assert.match(u.erros.join("\n"), /metade em cima do tapete/);
+  assert.match(u.erros.join("\n"), /criado-mudo .* atrás do encosto/);
+});
+
+test("parede rica: quantidade, variedade e trecho ocupado", () => {
+  const s = novaCena("reuniao");
+  s.parede("fundo", { de: 2, ate: 4 }, ["attic15_painting"]);
+  const { erros } = s.fechar();
+  for (const r of [/parede do fundo pobre/, /parede do fundo repetitiva/, /parede da esquerda vazia/]) assert.ok(erros.some((e) => r.test(e)), String(r));
+});

@@ -20,7 +20,8 @@ const FIGURAS = {
 };
 
 export default function cafe() {
-  const s = novaCena("cafe");
+  // Sobe-se ao mezanino pelas portas-teleporte (aprovado pelo Paulo assim).
+  const s = novaCena("cafe", { subidaPorTeleporte: true });
   const MEZ = 3.125;
   // Casca: cornija de madeira no topo das paredes.
   s.casca(null, 1, ["xmas_c16_woodtile", 0]);
@@ -66,7 +67,12 @@ export default function cafe() {
   // são o mesmo teleporte).
   s.por("antique_c21_doorteleport", 0, 2, { nivel: 1, dir: 2 });
   // Parede do fundo do mezanino: janelas com o quadro entre elas.
-  s.parede("fundo", { de: 2, ate: 12, nivel: 1, altura: 0.3 }, ["lodge_dark_window", "attic15_painting", "lodge_dark_window"]);
+  const arandela = { classe: "mafia_c26_walllamp_dark", estado: 1, altura: 0.9 };
+  s.parede("fundo", { de: 3, ate: 13, nivel: 1, altura: 0.3 }, ["lodge_dark_window", arandela, "attic15_painting", arandela, "lodge_dark_window"]);
+  // Arandelas no alto da parede da esquerda, por cima da bicicleta e do relógio.
+  s.parede("esquerda", { de: 3, ate: 4, nivel: 1, altura: 1.4 }, [{ ...arandela, altura: 1.4 }]);
+  // Prateleira com vasos e livros no canto do térreo, sobre o papel de parede.
+  s.parede("fundo", { de: 14, ate: 16, altura: 3.6 }, ["waasa_wall_shelf2"]);
   // Plantas penduradas na beira do mezanino, por cima do balcão.
   for (const x of [3, 12]) s.pendente("easter_c18_hangingplant", x, 4, { estado: 0 });
 

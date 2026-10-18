@@ -139,6 +139,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `ESCRITORIO_CENAS_COMPOSTAS` no `vybe-escritorio-planta.js` e roda o
   verificador. Não edite o bloco gerado nem escreva coordenadas de sala à mão;
   defeito novo vira regra no motor ou no verificador. O Café é a sala modelo.
+  Plano em andamento, estado de cada sala e decisões recentes do Escritório
+  ficam em `docs/escritorio-plano.md`: leia antes de mexer e atualize-o no
+  mesmo commit ao terminar uma etapa. Riqueza de sala vem de projeto (conceito,
+  zonas, cantos com história, peças curadas), nunca de cota de quantidade.
   O verificador tira a "foto" da cena com a profundidade do mapa (Nitro: ladrilho
   de origem, altura e z da camada; piso e revestimento em faixas próprias) e
   cobra que cada peça apareça (metade no chão, 80% na parede). Peça pendurada

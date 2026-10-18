@@ -575,7 +575,9 @@ function auditar(cena, P, moveis, avisos) {
       for (const c of ordem) if (!grupo.has(c.z)) grupo.set(c.z, ctx.mapaProfCamada(c.z, c.i));
       // Superfície (piso de obra, tapete alto na ficha, tábua): existe para
       // ficar embaixo; não se cobra que apareça.
-      const superficie = plano || PISO_DE_OBRA_FOTO.test(it.classe) || alto <= ((a.d.x || 1) + (a.d.y || 1)) * 16 + 12;
+      // Degrau de escada empilhada também é estrutura: o da frente cobre o
+      // espelho do de trás, como numa escada de verdade.
+      const superficie = plano || PISO_DE_OBRA_FOTO.test(it.classe) || /stairs|steps/.test(it.classe) || alto <= ((a.d.x || 1) + (a.d.y || 1)) * 16 + 12;
       const d = { it, nome: `${it.classe} (${it.x},${it.y})`, plano, superficie, pende: pende(it), parede: false, total: 0, visto: 0, por: new Map() };
       donos.push(d);
       for (const c of cs) camadasFoto.push({ d, c, x: sx + c.x, y: sy + c.y, z: zDe(base + grupo.get(c.z), plano) });
@@ -633,7 +635,11 @@ function auditar(cena, P, moveis, avisos) {
       // como parte dela.
       // Gente passa na frente do móvel sem ser defeito de montagem; quem está
       // sentado é encoberto pelo encosto da própria cadeira.
-      const mesmo = (d, o) => o === d || (o.pessoa && !d.pessoa) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
+      // Cadeira à mesa: a mesa ao lado dela e o que está em cima da mesa a
+      // encobrem, como em qualquer mesa de reunião (não é defeito de montagem).
+      const daMesa = (assento, o) => !o.parede && !o.pessoa && [o.it, ...itens.filter((b) => empilhadoSobre(o.it, b))].some((b) => b !== assento
+        && b.x - 1 <= assento.x && assento.x <= b.x + (b.w || 1) && b.y - 1 <= assento.y && assento.y <= b.y + (b.h || 1) && ctx.mapaFisica(b.classe).poe);
+      const mesmo = (d, o) => o === d || (o.pessoa && !d.pessoa) || (!d.pessoa && !d.parede && d.it.assento && daMesa(d.it, o)) || (d.pessoa && d.assento && daMesa(d.assento, o)) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
       for (const d of donos) {
         if (d.superficie) continue;
         const ks = camadasFoto.filter((k) => k.d === d && !k.c.luz);
@@ -668,6 +674,10 @@ function auditar(cena, P, moveis, avisos) {
       }
     }
   }
+  // A peça está em cima de uma mesa (pode-pôr) encostada ao assento?
+  const empilhadoEmMesaAo = (o, assento) => (o.altura || 0) > 0 && itens.some((b) => b !== assento && b !== o && ctx.mapaFisica(b.classe).poe
+    && o.x >= b.x && o.x < b.x + (b.w || 1) && o.y >= b.y && o.y < b.y + (b.h || 1)
+    && b.x - 1 <= assento.x && assento.x <= b.x + (b.w || 1) && b.y - 1 <= assento.y && assento.y <= b.y + (b.h || 1));
   // Empilhado de verdade: apoiado no topo do de baixo (não só no mesmo ladrilho;
   // um poste que fura o guarda-corpo não é base dele).
   const empilhado = (a, b) => (a.altura || 0) > 0 && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1) && Math.abs(topoDe(b) - a.altura) <= 0.15;
@@ -684,7 +694,11 @@ function auditar(cena, P, moveis, avisos) {
     if (Math.abs(f.fundo - t.fundo) < 1e-6 || (!f.parede && !t.parede && (f.plano || t.plano))) continue;
     // Piso de construtor (no chão ou no alto) é superfície: existe para ficar embaixo.
     if (!f.parede && !t.parede && (PISO_DE_OBRA.test(f.it.classe) || PISO_DE_OBRA.test(t.it.classe))) continue;
+    // Degrau de escada é estrutura, como o piso (a foto confere o que ele tapa).
     if (f.fundo > t.fundo) [f, t] = [t, f];
+    if (!f.parede && !t.parede && /stairs|steps/.test(t.it.classe)) continue;
+    // Cadeira à mesa encoberta pelo que está em cima da própria mesa: normal.
+    if (!f.parede && !t.parede && t.it.assento && empilhadoEmMesaAo(f.it, t.it)) continue;
     if (empilhado(f.it, t.it) || empilhado(t.it, f.it)) continue;
     const n = emComum(f, t);
     if (!n && !pende(f.it) && !pende(t.it)) continue;
