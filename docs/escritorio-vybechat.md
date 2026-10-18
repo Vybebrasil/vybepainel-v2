@@ -577,3 +577,19 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
   assento); a bandeja que estava em cima do minibar saiu.
 - O verificador (`scripts/escritorio-auditar.mjs`) usa a mesma ficha e a
   mesma grade do mapa e acusa móvel empilhado no que não aceita nada em cima.
+
+### Mais física do Habbo (18/10/2026, noite)
+
+- Catraca de mão única (`onewaydoor_c22_rosegold`, Arcturus
+  `InteractionOneWayGate`): fechada na grade; quem está no ladrilho da frente
+  (para onde ela está virada) passa e sai do outro lado; do outro lado não abre.
+- Teleporte em par: nos espaços comuns, duas cabines do mesmo modelo levam uma
+  à outra (a escura da Convivência e a da Praça); sem par, abre a lista.
+- Na água o boneco nada (afunda até a cintura); no gelo desliza sem dar passos.
+- Esteira a cada 500 ms; máquina de café, geladeira e afins se usam pela frente.
+- Fora do escopo por enquanto, com o motivo:
+  - esteira levando móveis: no Habbo o móvel muda de lugar no banco a cada
+    passo; aqui a decoração só muda pelo editor, numa transação com versão;
+  - móveis de várias alturas: a lista de alturas fica no banco do servidor do
+    Habbo (items_base.multiheight), não na furnidata pública;
+  - Wired: precisa de tela para ligar gatilho a efeito e de onde guardar isso.

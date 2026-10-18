@@ -535,6 +535,8 @@ function mapaMontarGrade(P, moveis) {
     for (const m of lista) { const especial = mapaPisoEspecial(m.classe); if (especial) piso.set(i, { tipo: especial, dir: m.dir }); }
     const portao = lista.find((m) => mapaEhPortao(m.classe));
     if (portao) { if (!(portao.estado >= 1)) bloqueado[i] = 1; continue; }
+    // Catraca de mão única: fechada na grade; quem passa vai pela rota dela.
+    if (lista.some((m) => /^one_?way_?door|^onewaydoor/.test(m.classe))) { bloqueado[i] = 1; continue; }
     const fis = lista.map((m) => [m, mapaFisica(m.classe)]);
     const senta = fis.find(([, f]) => f.senta)?.[0], deita = fis.find(([, f]) => f.deita)?.[0];
     if (senta) {
@@ -1204,6 +1206,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     let acao = p.acao === "wav" && Math.floor(agora / 320) % 2 ? "std" : p.acao;
     // Sentado no chão (":sit" do Habbo): parado em pé vira sentado.
     if (p.chao && acao === "std") acao = "sit";
+    // No gelo o boneco desliza parado, como quem patina (sem dar passos).
+    if (acao === "wlk" && grade?.piso.get(grade.ind(Math.round(p.x), Math.round(p.y)))?.tipo === "gelo") acao = "std";
     // Placa erguida por alguns segundos ocupa a mão; quem segura café ou
     // bebida leva o copo à boca de vez em quando, como no Habbo.
     let mao = p.mao;
