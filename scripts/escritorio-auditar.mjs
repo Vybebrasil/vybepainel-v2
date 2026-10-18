@@ -230,7 +230,11 @@ function auditar(cena, P, moveis, avisos) {
     if (dirs.length >= 4) return OLHA[it.dir];
     if (it.w > it.h) return [0, 1];
     if (it.h > it.w) return [1, 0];
-    return { 0: [0, 1], 2: [1, 0], 4: [0, 1] }[it.dir];
+    // Peça quadrada de duas direções: depende da família da arte (a outra
+    // direção é o espelho). Na "0 e 2" a 0 olha para +x (encosta na parede
+    // da esquerda) e a 2 para +y; na "2 e 4", a 2 olha para +x e a 4 para +y.
+    // Conferido no fliperama pichado (graffiti_r24_arcademachine), 18/10/2026.
+    return (dirs.includes(0) ? { 0: [1, 0], 2: [0, 1] } : { 2: [1, 0], 4: [0, 1] })[it.dir];
   };
   const contraParede = (x, y, nx, ny) => temParede(x, y, nx, ny) || nx < 0 || ny < 0 || nx >= P.W || ny >= P.H || (P.andavel && !P.andavel(nx, ny));
   // Tela de costas: computador, notebook ou monitor perto de assento precisa
@@ -473,11 +477,18 @@ function auditar(cena, P, moveis, avisos) {
   const empilhado = (a, b) => (a.altura || 0) > 0 && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1);
   for (let i = 0; i < naTela.length; i++) for (let j = i + 1; j < naTela.length; j++) {
     let f = naTela[i], t = naTela[j];
-    if (f.fundo === t.fundo || f.plano || t.plano) continue;
+    if (f.fundo === t.fundo || (!f.parede && !t.parede && (f.plano || t.plano))) continue;
     if (f.fundo < t.fundo) [f, t] = [t, f];
-    if (f.parede || empilhado(f.it, t.it) || empilhado(t.it, f.it)) continue;
+    if (empilhado(f.it, t.it) || empilhado(t.it, f.it)) continue;
     const n = emComum(f, t);
     if (!n) continue;
+    // Peça de chão encostada e coisa pendurada no mesmo trecho de parede se
+    // misturam (neon do palco atrás do reboco): uma das duas sai dali.
+    if (f.parede || t.parede) {
+      const menor = Math.min(f.s.n, t.s.n);
+      if (n > 150 && n > menor * 0.15) desenho.push(nomeCena(`${f.nome} e ${t.nome} se cobrem na parede`));
+      continue;
+    }
     // Lâmpada pendurada pode passar na frente de prateleira e balcão (como
     // nas referências), mas não de coluna (peça empilhada) nem do que está
     // pendurado na parede.
