@@ -101,7 +101,17 @@ function mapaCorDoEstado(dados, estado) {
   return { estado: n % 5, cor: MAPA_CORES_BLOCO[Math.floor(n / 5)] || null };
 }
 const MAPA_TINTA = typeof document !== "undefined" && document.createElement ? document.createElement("canvas") : null;
-function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0) {
+// Profundidade de cada camada como no Nitro (FurnitureVisualization): o z da
+// camada na arte vale z/−1000, menos 0,001 por camada, vezes √½. Quanto menor,
+// mais à frente. O boneco sentado fica em −0,01 (menos a altura do assento,
+// 0,00713 por nível) e o deitado em −0,409 (AvatarVisualization): a camada
+// abaixo desse valor (encosto virado para o fundo, braço da poltrona,
+// cobertor) é desenhada por cima de quem está no móvel.
+const MAPA_PROF_SENTADO = -0.01, MAPA_PROF_DEITADO = -0.409, MAPA_PROF_ALTURA = 0.00713;
+function mapaProfCamada(z, i) { return (-(z || 0) / 1000 - i * 0.001) * Math.SQRT1_2; }
+// limite: só as camadas à frente de quem está no móvel (mesmo tamanho e
+// posição do desenho inteiro, para sobrepor certinho). Sem nenhuma, null.
+function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, limite) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const { estado, cor } = mapaCorDoEstado(dados, estadoSalvo);
   const nome = dados.name;
@@ -118,8 +128,9 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
     const id = lista ? lista[Math.floor(quadro / repete) % lista.length].id : 0;
     const asset = `${nome}_64_${String.fromCharCode(97 + i)}_${dir}_${id}`;
     if (!dados.assets[asset]) continue;
-    partes.push({ asset, z: L.z || 0, ink: L.ink, alpha: L.alpha != null ? L.alpha / 255 : 1, ordem: i, cor: L.tag === "recolorable" ? cor : null });
+    partes.push({ asset, z: L.z || 0, ink: L.ink, alpha: L.alpha != null ? L.alpha / 255 : 1, ordem: i, cor: L.tag === "recolorable" ? cor : null, frente: limite != null && mapaProfCamada(L.z, i) < limite });
   }
+  if (limite != null && !partes.some((p) => p.frente)) return null;
   partes.sort((a, b) => a.z - b.z || (a.ordem || 0) - (b.ordem || 0));
   const caixas = partes.map((p) => {
     const a = dados.assets[p.asset];
@@ -139,6 +150,7 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
   const g = canvas.getContext("2d");
   g.imageSmoothingEnabled = false;
   for (const c of caixas) {
+    if (limite != null && !c.frente) continue;
     g.save();
     g.globalAlpha = c.alpha;
     // Camada "ADD" (luz, brilho): no Habbo o preto não soma nada. Num canvas
@@ -253,7 +265,8 @@ function mapaDesenharFundo(canvas, planta, origem) {
         // Lateral do patamar na cor da parede da sala (antes era o próprio
         // piso escurecido e o mezanino lia como uma faixa fina), com a borda
         // clara no alto e a junta de cada ladrilho.
-        const h=(n-viz)*MAPA_NIVEL_PX, base=/^#[0-9a-f]{6}$/i.test(a?.cor||"") ? a.cor : cor(a?.piso || "madeira",x,y);
+        // Cena comum pode escolher a cor da lateral (madeira do chalé, pedra…).
+        const h=(n-viz)*MAPA_NIVEL_PX, base=/^#[0-9a-f]{6}$/i.test(a?.corDegrau||"") ? a.corDegrau : /^#[0-9a-f]{6}$/i.test(a?.cor||"") ? a.cor : cor(a?.piso || "madeira",x,y);
         g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+h);g.lineTo(p.x,p.y+h);g.closePath();g.fillStyle=mapaTom(base,dx?0.5:0.68);g.fill();
         g.strokeStyle="#ffffff55";g.lineWidth=2;g.beginPath();g.moveTo(p.x,p.y+1);g.lineTo(q.x,q.y+1);g.stroke();
         g.strokeStyle="#00000040";g.lineWidth=1;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(p.x,p.y+h);g.stroke();
@@ -534,6 +547,7 @@ function mapaMontarGrade(P, moveis) {
   const subida = new Float32Array(W * H); // altura de quem pisa, senta ou deita ali
   const piso = new Map(); // índice → { tipo, dir } (esteira, gelo, água, trampolim, placa)
   const cama = new Map(); // índice → { dir, x, y } (direção e cabeceira da cama)
+  const movelAssento = new Map(); // índice → móvel em que se senta ou deita
   const ind = (x, y) => y * W + x;
   const aresta = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
   for (const [x0, y0, x1, y1] of P.divisorias) {
@@ -568,12 +582,12 @@ function mapaMontarGrade(P, moveis) {
     const fis = lista.map((m) => [m, mapaFisica(m.classe)]);
     const senta = fis.find(([, f]) => f.senta)?.[0], deita = fis.find(([, f]) => f.deita)?.[0];
     if (senta) {
-      assento.set(i, senta.dir); profAssento.set(i, senta.prof);
+      assento.set(i, senta.dir); profAssento.set(i, senta.prof); movelAssento.set(i, senta);
       desvioAssento.set(i, { dx: senta.x - Math.floor(senta.x), dy: senta.y - Math.floor(senta.y) });
       subida[i] = z;
       continue;
     }
-    if (deita) { cama.set(i, { dir: deita.dir, x: Math.floor(deita.x), y: Math.floor(deita.y) }); profAssento.set(i, deita.prof); subida[i] = z; continue; }
+    if (deita) { cama.set(i, { dir: deita.dir, x: Math.floor(deita.x), y: Math.floor(deita.y) }); profAssento.set(i, deita.prof); movelAssento.set(i, deita); subida[i] = z; continue; }
     // Rente ao piso (tapete, piso do acervo) também se pisa, na altura dele.
     if (fis.every(([m, f]) => f.pisa || m.plano || mapaPisoEspecial(m.classe))) {
       subida[i] = z + Math.max(0, ...fis.map(([m, f]) => (f.pisa || mapaPisoEspecial(m.classe) && !["gelo", "agua"].includes(mapaPisoEspecial(m.classe)) ? mapaAlturaMovel(m) : 0)));
@@ -583,7 +597,7 @@ function mapaMontarGrade(P, moveis) {
     }
     bloqueado[i] = 1;
   }
-  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, subida, piso, cama, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
+  return { W, H, bloqueado, assento, profAssento, movelAssento, desvioAssento, paredes, subida, piso, cama, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
 // caminhos retos também passam (não corta quina de parede).
@@ -645,7 +659,8 @@ function mapaDiagonal(a, b) {
   return (a.x1 <= b.x0 || a.y1 <= b.y0) && (b.x1 <= a.x0 || b.y1 <= a.y0);
 }
 // Ordena paredes e móveis que se cruzam na tela (ordem topológica) e dá a
-// cada um uma profundidade com folga de 10, para os bonecos caberem entre eles.
+// cada um uma profundidade com folga de 20, para os bonecos caberem entre eles
+// (e, logo acima do móvel, as camadas da frente de quem senta ou deita nele).
 // A fórmula antiga (soma do canto da frente) empatava ou invertia móveis
 // compridos com os vizinhos: mesa e cadeira, sofá e mesinha.
 function mapaOrdenar(objetos) {
@@ -676,7 +691,7 @@ function mapaOrdenar(objetos) {
     const i = livres.splice(m, 1)[0];
     if (feito[i]) { cont--; continue; }
     feito[i] = true;
-    objetos[i].prof = 10 + (rank++) * 10;
+    objetos[i].prof = 10 + (rank++) * 20;
     objetos[i].no.style.zIndex = objetos[i].prof;
     for (const j of depois[i]) if (--grau[j] === 0 && !feito[j]) livres.push(j);
   }
@@ -865,6 +880,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       item.no.style.left = anc.x + d.ox + MAPA_PAREDE_AJUSTE[item.dir].x + "px";
       item.no.style.top = anc.y + d.oy + MAPA_PAREDE_AJUSTE[item.dir].y - item.altura * 32 + "px";
     } else colocar(item.no, ...mapaPosicaoPorta(item.classe, item.x, item.y, item.dir), { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 + (item.classe === "bc_stairs_recolorable" ? (P.alturaEm?.(item.x, item.y) || 0) * MAPA_NIVEL_PX : 0) }, item.prof);
+    if (frentes.has(item)) pintarFrente(item, frentes.get(item));
     const i = animados.indexOf(item);
     if (i >= 0) animados.splice(i, 1);
     if (item.quadros > 1) animados.push(item);
@@ -1059,6 +1075,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   }
   async function trocarMoveisAgora(lista) {
     for (const item of moveis) item.no.remove();
+    for (const f of frentes.values()) f.no.remove();
+    frentes.clear();
+    for (const p of pessoas.values()) p.noMovel = null;
     moveis.length = 0;
     animados.length = 0;
     quadrosParede.length = 0;
@@ -1154,6 +1173,44 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       lista.forEach((q, i) => { q.no.style.zIndex = Math.min(Math.max(ini, fim), ini + i * passo); });
     }
   };
+  // Camadas da frente do móvel em que alguém está sentado ou deitado: um
+  // desenho só com elas, logo acima de quem está no móvel (prof + 10) e atrás
+  // do próximo móvel e de quem passa na frente (prof + 11 em diante).
+  const frentes = new Map(); // móvel → { no, quem: Set de ids, limite }
+  const pintarFrente = (m, f, q = 0) => {
+    const d = mapaDesenharMovel(m.m, m.dir, m.estado, q, m.semente || 0, f.limite);
+    if (!d) { f.no.width = 0; return; }
+    f.no.width = d.canvas.width; f.no.height = d.canvas.height;
+    f.no.getContext("2d").drawImage(d.canvas, 0, 0);
+    f.no.style.left = m.no.style.left; f.no.style.top = m.no.style.top;
+    f.no.style.zIndex = m.prof + 10;
+  };
+  const soltarFrente = (p) => {
+    const m = p.noMovel;
+    p.noMovel = null;
+    const f = m && frentes.get(m);
+    if (!f) return;
+    f.quem.delete(p.id);
+    if (!f.quem.size) { f.no.remove(); frentes.delete(m); }
+  };
+  const cobrirComFrente = (p, m) => {
+    if (p.noMovel === m) { const f = frentes.get(m); if (f) pintarFrente(m, f); return; }
+    soltarFrente(p);
+    if (!m?.m) return;
+    p.noMovel = m;
+    let f = frentes.get(m);
+    if (!f) {
+      const deitado = mapaEhCama(m.classe) && p.acao === "lay";
+      const limite = deitado ? MAPA_PROF_DEITADO : MAPA_PROF_SENTADO - MAPA_PROF_ALTURA * (mapaFisica(m.classe).altura || 0);
+      const no = document.createElement("canvas");
+      no.className = "mapa-obj mapa-frente";
+      f = { no, quem: new Set(), limite };
+      frentes.set(m, f);
+      pintarFrente(m, f);
+      if (no.width) palco.append(no);
+    }
+    f.quem.add(p.id);
+  };
   const alturaNoPiso = (x, y) => {
     if (!grade) return 0;
     const h = (i, j) => (i < 0 || j < 0 || i >= grade.W || j >= grade.H ? 0 : grade.subida[grade.ind(i, j)] || 0);
@@ -1186,6 +1243,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     p.etiqueta.style.top = t.y + MAPA_TH / 2 - 104 + "px";
     // Sentado, fica à frente do assento (sofá longo tem profundidade maior).
     const sobre = (p.acao === "sit" || p.acao === "lay") && grade ? grade.profAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : undefined;
+    cobrirComFrente(p, sobre !== undefined ? grade.movelAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : null);
     // Ladrilho em que está (o arredondado) e a regra das caixas isométricas:
     // à frente de um móvel se passou do lado de baixo ou da direita dele;
     // atrás se está antes dele. Assim sofá e mesa compridos não cobrem quem
@@ -1205,7 +1263,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       if (mapaDiagonal(m.caixa, eu)) continue;
       // Em cima do móvel (esteira, bicicleta): o boneco fica à frente dele.
       const dentro = rx >= m.caixa.x0 && rx < m.caixa.x1 && ry >= m.caixa.y0 && ry < m.caixa.y1;
-      if (dentro || mapaAtras(m.caixa, eu)) max = Math.max(max, m.prof); else min = Math.min(min, m.prof);
+      if (dentro || mapaAtras(m.caixa, eu)) max = Math.max(max, m.prof + (frentes.has(m) ? 10 : 0)); else min = Math.min(min, m.prof);
     }
     // Entre os móveis o boneco vai para o vão (max, min). A ordem entre bonecos
     // no mesmo vão é feita depois, por quem está mais à frente (x+y).
@@ -1387,7 +1445,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01 || p.acao !== (q.acao || "std")) caminhar(p, q);
       else trocarImagem(p);
     }
-    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); p.etiqueta.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
+    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); soltarFrente(p); p.no.remove(); p.etiqueta.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
     separarEtiquetas();
   }
 
@@ -1730,6 +1788,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       if (item.no.width !== d.canvas.width || item.no.height !== d.canvas.height) { item.no.width = d.canvas.width; item.no.height = d.canvas.height; }
       else g.clearRect(0, 0, item.no.width, item.no.height);
       g.drawImage(d.canvas, 0, 0);
+      const f = frentes.get(item);
+      if (f) pintarFrente(item, f, quadro);
     }
   };
   prontos.then(() => { relogio = setInterval(animar, reduzido ? 200 : 100); });

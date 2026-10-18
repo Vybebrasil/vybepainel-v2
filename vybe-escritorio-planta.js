@@ -85,7 +85,7 @@ const ESCRITORIO_PLANTA = (() => {
   // [id, nome, sala de conversa, cor, largura × fundo, piso, papel de parede]
   const CENAS = [
     ["recepcao", "Convivência", "convivencia", "#ff8a35", 16, 13, "greek_c15_floor", "art_c20_wall"],
-    ["reuniao", "Sala de reunião", "reuniao", "#5aa9ff", 12, 10, "lodge_c15_floor", "lodge_dark_brickwall"],
+    ["reuniao", "Sala de reunião", "reuniao", "#5aa9ff", 14, 12, "lodge_c15_floor", "lodge_dark_brickwall"],
     ["auditorio", "Auditório", "reuniao", "#6b4fa0", 14, 12, "cine_tile", "attic15_wall"],
     ["producao", "Produção", "producao", "#4a5560", 14, 11, "rainyday_c20_woodenfloor", "attic15_wall"],
     ["cafe", "Café", "convivencia", "#d9a066", 12, 10, "bathroom_floortile1", "art_c20_wall"],
@@ -94,11 +94,19 @@ const ESCRITORIO_PLANTA = (() => {
     ["academia", "Academia", "convivencia", "#7a8494", 12, 10, "sb_tile", "attic15_wall"],
     ["lounge", "Lounge", "convivencia", "#b4583a", 14, 12, "lodge_dark_floor", "lodge_dark_brickwall"],
   ];
+  // Desníveis de cada cena (como a sala de jantar elevada dos chalés do
+  // Habbo): [x0, y0, x1, y1, nível] (nível 1 = um degrau; 2 = mezanino, que
+  // pede escada) e os ladrilhos de escada entre 0 e 2.
+  const NIVEIS_CENAS = {
+    reuniao: { niveis: [[8, 0, 14, 6, 1]], escada: [], corDegrau: "#6b4428" },
+  };
   for (const [id, nome, sala, cor, w, h, textura, texturaParede] of CENAS) {
     // A planta da cena vem junto (não do catálogo dos quartos): retângulo de
     // piso, porta no meio da frente, sem parede na frente, como no Habbo.
-    const modelo = { id: "cena-" + id, celdas: Array.from({ length: h }, () => Array(w).fill(0)), portas: { baixo: Math.floor(w / 2) - 1 }, escada: [], bordaAberta: true };
-    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo });
+    const celdas = Array.from({ length: h }, () => Array(w).fill(0));
+    for (const [x0, y0, x1, y1, n] of NIVEIS_CENAS[id]?.niveis || []) for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) celdas[y][x] = n;
+    const modelo = { id: "cena-" + id, celdas, portas: { baixo: Math.floor(w / 2) - 1 }, escada: NIVEIS_CENAS[id]?.escada || [], bordaAberta: true };
+    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: NIVEIS_CENAS[id]?.corDegrau });
   }
   return { W, H, PREDIO: null, PISO, ambientes, divisorias: [], moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], rotulos: [], vistas: {}, texturas: [], texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement",
@@ -259,27 +267,46 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // Sala de reunião: escritório executivo em madeira escura. Estante,
   // candelabro, mapa-múndi e TV no fundo; lareira e frigobar na lateral;
   // mesa de dez lugares no tapete, com telefone e notebooks; espera à direita.
+  // Sala de reunião como os chalés do Habbo: patamar elevado no fundo à
+  // direita para a mesa de reunião (com cerca e passagem na frente), estar
+  // mais baixo em volta da lareira, bar no canto e a roleta na parede.
   reuniao: () => [
-    // Acabamento de construtor: plantas penduradas e hera na parede.
-    ["easter_c18_hangingplant", 4, 1, 0, 1], ["easter_c18_hangingplant", 6, 1, 0, 1], ["easter_c18_hangingplant", 9, 1, 0, 1],
-    ["easter_c22_hangingvines", 0, 1, 2, 1], ["easter_c22_hangingvines", 0, 6, 2, 1],
-    ["shelves_silo", 0, 0, 4], ["lodge_dark_candle", 2, 0, 0],
-    ["lodge_dark_endtable", 3, 0, 0], ["exe_globe", 3, 0, 0, 0, 0.9],
-    // Roleta para sortear quem fala primeiro na reunião.
-    ["arcade_c23_spinthewheel", 0, 4, 2],
-    ["exe_map", 3, 0, 4, 0, 1.4], ["lodge_dark_tv", 5, 0, 0],
-    ["shelves_silo", 7, 0, 4], ["exe_wfall", 9, 0, 4, 0, 0.6],
-    ["mafia_c26_planter_dark", 10, 0, 0], ["uni_c23_whiteboard", 11, 0, 0],
-    ["lodge_dark_fireplace", 0, 2, 2], ["lodge_dark_minibar", 0, 5, 2],
-    ["shelves_silo", 0, 7, 2],
-    ["exe_rug", 4, 3, 0], ["exe_table", 4, 4, 0],
-    ...[4, 5, 6].flatMap((x) => [["exe_chair", x, 3, 4], ["exe_chair", x, 6, 0]]),
-    ["exe_chair", 3, 4, 2], ["exe_chair", 3, 5, 2], ["exe_chair", 7, 4, 6], ["exe_chair", 7, 5, 6],
-    ["exe_c15_telephone", 4, 4, 0, 0, 0.95], ["uni_laptop", 5, 4, 4, 0, 0.95], ["exe_c15_desktidy", 6, 4, 0, 0, 0.95],
-    ["mafia_c26_drinktray", 4, 5, 0, 0, 0.95], ["uni_laptop", 5, 5, 0, 0, 0.95], ["uni_laptop", 6, 5, 0, 0, 0.95],
-    ["mafia_c26_armchair_dark", 9, 4, 2], ["mafia_c26_armchair_dark", 9, 5, 2],
-    ["mafia_c26_coffeetable_dark", 10, 4, 0], ["exe_sofa", 11, 4, 6],
-    ["exe_artlamp", 11, 2, 0], ["mafia_c26_planter_dark", 11, 9, 0], ["mafia_c26_planter_dark", 0, 9, 0],
+    // Patamar (nível 1): estantes, quadro branco, mesa com 10 cadeiras e lustre.
+    ["uni_c23_whiteboard", 8, 0, 0], ["mafia_c26_planter_dark", 9, 0, 0], ["shelves_silo", 12, 0, 4],
+    // A poltrona executiva é larga: uma a cada dois ladrilhos (lado a lado,
+    // uma entrava na outra), e uma em cada ponta, em diagonal.
+    ["exe_table", 10, 2, 0],
+    ...[10, 12].flatMap((x) => [["exe_chair", x, 1, 4], ["exe_chair", x, 4, 0]]),
+    ["exe_chair", 9, 2, 2], ["exe_chair", 13, 3, 6],
+    // Na mesa, só o essencial e espaçado: notebook, telefone e bandeja.
+    ["uni_laptop", 10, 2, 4, 0, 0.95], ["exe_c15_telephone", 11, 3, 0, 0, 0.95], ["mafia_c26_drinktray", 12, 2, 0, 0, 0.95],
+    ["lodge_dark_chandelier", 11, 2, 0, 1],
+    // Cerca na borda do patamar, sem duas peças no mesmo canto (o canto leva
+    // um vaso) e com a passagem no ladrilho 11.
+    ["ranch_c26_darkfence", 8, 1, 2], ["ranch_c26_darkfence", 8, 3, 2], ["mafia_c26_planter_dark", 8, 5, 0],
+    ["ranch_c26_darkfence", 9, 5, 0], ["ranch_c26_darkfence", 12, 5, 0],
+    // Estar em volta da lareira (nível 0).
+    ["shelves_silo", 0, 0, 4], ["lodge_dark_candle", 2, 0, 0], ["lodge_dark_tv", 3, 0, 0],
+    ["exe_map", 4, 0, 4, 0, 1.4], ["lodge_dark_endtable", 6, 0, 0], ["exe_globe", 6, 0, 0, 0, 0.9],
+    ["lodge_dark_fireplace", 0, 2, 2],
+    ["exe_rug", 2, 2, 0], ["mafia_c26_coffeetable_dark", 2, 3, 0],
+    ["mafia_c26_armchair_dark", 2, 2, 4], ["mafia_c26_armchair_dark", 2, 5, 0], ["mafia_c26_sofa_dark", 4, 2, 6],
+    ["lodge_dark_chandelier", 2, 4, 0, 1],
+    // Roleta (sorteia quem fala primeiro) e o bar com banquetas.
+    ["arcade_c23_spinthewheel", 0, 5, 2],
+    ["lodge_dark_minibar", 0, 7, 2], ["lodge_dark_bardesk", 2, 7, 0],
+    ["lodge_dark_stool", 3, 7, 6], ["lodge_dark_stool", 3, 8, 6], ["lodge_dark_stool", 3, 9, 6],
+    ["shelves_silo", 0, 9, 2], ["mafia_c26_drinktray", 2, 8, 0, 0, 1.4],
+    // Passagem central: tapete grande, banco de frente para o patamar e luz.
+    ["hygge_c25_carpet", 5, 5, 0], ["lodge_dark_bench", 5, 6, 0], ["exe_artlamp", 7, 5, 0],
+    ["exe_rug", 9, 7, 0],
+    // Espera na frente, à direita.
+    ["mafia_c26_armchair_dark", 9, 8, 2], ["mafia_c26_armchair_dark", 9, 9, 2], ["mafia_c26_coffeetable_dark", 10, 8, 0],
+    ["mafia_c26_armchair_dark", 11, 8, 6], ["mafia_c26_armchair_dark", 11, 9, 6],
+    ["exe_artlamp", 13, 7, 0], ["mafia_c26_planter_dark", 13, 11, 0], ["mafia_c26_planter_dark", 0, 11, 0],
+    ["mafia_c26_planter_dark", 7, 0, 0],
+    // Acabamento: plantas penduradas e hera na parede.
+    ["easter_c18_hangingplant", 5, 1, 0, 1], ["easter_c22_hangingvines", 0, 1, 2, 1], ["easter_c18_hangingplant", 12, 7, 0, 1],
   ],
   // Lounge: clube de madeira e tijolo. Bar com prateleiras e banquetas no
   // fundo, lareira com sofá e poltronas, pista com globo e DJ à direita,
