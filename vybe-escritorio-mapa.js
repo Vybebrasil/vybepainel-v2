@@ -178,9 +178,9 @@ function mapaRecorteOpaco(canvas) {
   while (y1 > y0 + 1 && !opaca(y1 - 1)) y1--;
   return { y0, y1 };
 }
-// Piso, borda do prédio, paredes do fundo e textos/logo pintados nelas.
-function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
-  const dia = ceu === "manha" || ceu === "tarde";
+// Piso da cena (sala, espaço comum ou Praça) e a soleira da porta, sobre o
+// escuro, como um quarto do Habbo.
+function mapaDesenharFundo(canvas, planta, origem) {
   const g = canvas.getContext("2d");
   g.imageSmoothingEnabled = false;
   const losango = (x, y, w = 1, h = 1) => {
@@ -188,43 +188,6 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(c.x, c.y); g.lineTo(d.x, d.y); g.closePath();
   };
   const cor = (piso, x, y) => { const p = planta.PISO[piso] || planta.PISO.corredor; return p[(Math.floor(x) + Math.floor(y)) % 2]; };
-  // Quarto (cena própria): sem prédio, cidade nem praça em volta.
-  const P = planta.PREDIO || { x0: 0, y0: 0, x1: 0, y1: 0 };
-  // Vybelândia: a cidade ao fundo, com janelas acesas, atrás das paredes.
-  const topoEsq = mapaTela(0, P.y1, origem), topoMeio = mapaTela(0, 0, origem), topoDir = mapaTela(P.x1, 0, origem);
-  let semente = 7;
-  const sorte = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
-  // Com a imagem da praça da Vybelândia de fundo, a cidade, o céu e a praça
-  // vêm dela; o desenho abaixo é só o reserva (sem a imagem).
-  const video = Boolean(planta.fundo) || Boolean(planta.quarto);
-  for (let x = topoEsq.x - 120; !video && x < topoDir.x + 160; x += 34 + sorte() * 40) {
-    const t = x < topoMeio.x ? (x - topoEsq.x) / (topoMeio.x - topoEsq.x) : (topoDir.x - x) / (topoDir.x - topoMeio.x);
-    const base = topoMeio.y - MAPA_PAREDE + (1 - Math.max(0, Math.min(1, t))) * (topoEsq.y - topoMeio.y) + 40;
-    const w = 30 + sorte() * 46, h = 120 + sorte() * 260;
-    // De dia, prédios azulados com vidros claros; à noite, escuros e acesos.
-    g.fillStyle = dia ? (sorte() > 0.5 ? "#4a5a78" : "#5a6a88") : sorte() > 0.5 ? "#15121a" : "#1c1720";
-    g.fillRect(x, base - h, w, h + 40);
-    for (let wy = base - h + 10; wy < base - 8; wy += 14) for (let wx = x + 6; wx < x + w - 6; wx += 10) {
-      const acesa = sorte() > 0.55, quente = sorte() > 0.3, alfa = 0.55 + sorte() * 0.45;
-      if (dia) { if (acesa) { g.fillStyle = "#cfe3ff"; g.globalAlpha = 0.35 + alfa * 0.3; g.fillRect(wx, wy, 4, 6); g.globalAlpha = 1; } }
-      else if (acesa) { g.fillStyle = quente ? "#ffb35c" : "#ff7a1a"; g.globalAlpha = alfa; g.fillRect(wx, wy, 4, 6); g.globalAlpha = 1; }
-    }
-  }
-  if (dia && !video) {
-    // Nuvens leves no céu do dia.
-    g.fillStyle = "#ffffff";
-    for (let i = 0; i < 7; i++) {
-      const cx = topoEsq.x + sorte() * (topoDir.x - topoEsq.x), cy = topoMeio.y - MAPA_PAREDE - 260 - sorte() * 220;
-      g.globalAlpha = 0.5 + sorte() * 0.3;
-      for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(cx + k * 34, cy + (k % 2) * 8, 46, 20, 0, 0, Math.PI * 2); g.fill(); }
-    }
-    g.globalAlpha = 1;
-  }
-  // Praça escura em volta (como as calçadas da Vybelândia), com gramados nos cantos.
-  for (let x = 0; !video && x < planta.W; x++) for (let y = 0; y < planta.H; y++) {
-    const gramado = (x >= P.x1 + 3 && y > P.y1) || (y >= P.y1 + 7 && x < 22);
-    losango(x, y); g.fillStyle = gramado ? cor("grama", x, y) : (x + y) % 6 === 0 ? "#34323a" : cor("praca", x, y); g.fill();
-  }
   // Pisos do acervo (madeira, mármore, carpete, grama…): o desenho do móvel
   // de piso repetido no ladrilho, recortado no losango. Enquanto a arte não
   // chega (ou se faltar), fica a cor lisa.
@@ -242,12 +205,10 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     g.restore();
     return true;
   };
-  // Ambiente do ladrilho nesta planta (a cena: o mapa geral ou um quarto).
-  const ambienteEm = (x, y) => (planta.ambientes || []).find((a) => x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1) || null;
   // Ladrilho de sala pessoal (quarto ou o que o dono pintou): a cor dela com
   // o veio da madeira por cima; corredores e espaços comuns: o piso do acervo.
   const ladrilho = (x, y, a, extra = null) => {
-    if(planta.quarto) origem.alturaAtual=planta.nivelEm?.(x,y) || 0;
+    origem.alturaAtual=planta.nivelEm?.(x,y) || 0;
     // Escada: o chão do ladrilho fica embaixo; a peça do acervo sobe por cima
     // dela (escritorioPecasDoQuarto). Antes era um desenho de listras.
     if (planta.escadaEm?.(x,y)) origem.alturaAtual = 0;
@@ -256,13 +217,19 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
     if (pintado || a?.pessoal) textura(x, y, planta.texturaSalas, a?.x0 || 0, a?.y0 || 0, "soft-light");
     else textura(x, y, extra?.textura || a?.textura || (a ? "" : planta.texturaCorredor), extra?.x0 ?? a?.x0 ?? 0, extra?.y0 ?? a?.y0 ?? 0);
     g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
-    if(planta.quarto) {
+    {
       const n=origem.alturaAtual;
       for(const [dx,dy] of [[1,0],[0,1]]) {
         const viz=planta.andavel(x+dx,y+dy) ? planta.nivelEm(x+dx,y+dy) : -0.4;
         if(n<=viz) continue;
         const p=mapaTela(x+dx,y+dy,origem),q=mapaTela(x+1,y+1,origem);
-        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+(n-viz)*MAPA_NIVEL_PX);g.lineTo(p.x,p.y+(n-viz)*MAPA_NIVEL_PX);g.closePath();g.fillStyle=mapaTom(cor(a?.piso || "madeira",x,y),dx?0.55:0.7);g.fill();
+        // Lateral do patamar na cor da parede da sala (antes era o próprio
+        // piso escurecido e o mezanino lia como uma faixa fina), com a borda
+        // clara no alto e a junta de cada ladrilho.
+        const h=(n-viz)*MAPA_NIVEL_PX, base=/^#[0-9a-f]{6}$/i.test(a?.cor||"") ? a.cor : cor(a?.piso || "madeira",x,y);
+        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+h);g.lineTo(p.x,p.y+h);g.closePath();g.fillStyle=mapaTom(base,dx?0.5:0.68);g.fill();
+        g.strokeStyle="#ffffff55";g.lineWidth=2;g.beginPath();g.moveTo(p.x,p.y+1);g.lineTo(q.x,q.y+1);g.stroke();
+        g.strokeStyle="#00000040";g.lineWidth=1;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(p.x,p.y+h);g.stroke();
       }
       delete origem.alturaAtual;
     }
@@ -276,127 +243,14 @@ function mapaDesenharFundo(canvas, planta, origem, logo, ceu = "noite") {
       g.strokeStyle = "#00000040"; g.lineWidth = 1; g.stroke();
     }
   };
-  // Espessura do piso nas bordas da frente (o chão é uma laje, não um papel).
-  const borda = (x0, y0, x1, y1, tom) => {
-    const a = mapaTela(x0, y0, origem), b = mapaTela(x1, y1, origem);
-    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(b.x, b.y + 10); g.lineTo(a.x, a.y + 10); g.closePath();
-    g.fillStyle = tom; g.fill();
-  };
-  // Quarto (cena própria): só o piso dele e a soleira da porta, sobre o
-  // escuro, como um quarto do Habbo. O resto desta função é o prédio.
-  if (planta.quarto) {
-    const a = planta.ambientes[0];
-    // Do fundo para a frente (a lateral de um patamar cobre o de trás).
-    const qw = planta.W - 1, qh = planta.H - 1;
-    for (let soma=0;soma<qw+qh;soma++) for(let x=0;x<qw;x++) {const y=soma-x;if(y>=0&&y<qh&&planta.andavel(x,y)) ladrilho(x,y,a);}
-    soleiras();
-    return;
-  }
-  // Lá fora: gramados, calçadas e deck desenhados por cima da praça do vídeo.
-  for (const r of planta.texturas || []) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) {
-    if (!textura(x, y, r.textura, r.x0, r.y0)) { losango(x, y); g.fillStyle = cor(r.piso || "praca", x, y); g.fill(); }
-  }
-  for (let x = P.x0; x < P.x1; x++) for (let y = P.y0; y < P.y1; y++) {
-    // Dentro de uma fachada: chão escuro (o quarto fica em outra cena).
-    if ((planta.fachadas || []).some((f) => x >= f.x0 && x < f.x1 && y >= f.y0 && y < f.y1)) {
-      losango(x, y); g.fillStyle = (x + y) % 2 ? "#15161c" : "#181920"; g.fill();
-      g.strokeStyle = "#0000001a"; g.lineWidth = 1; losango(x, y); g.stroke();
-      continue;
-    }
-    // Piso de um espaço dentro do ambiente (os quatro do Lounge).
-    const extra = (planta.pisos || []).find((q) => x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
-    ladrilho(x, y, ambienteEm(x + 0.5, y + 0.5), extra);
-  }
+  const a = planta.ambientes[0];
+  // Do fundo para a frente (a lateral de um patamar cobre o de trás).
+  const qw = planta.W - 1, qh = planta.H - 1;
+  // Trechos de piso do acervo (Praça: gramado, calçamento, deck, lago); o
+  // último que cobre o ladrilho vale.
+  const trecho = (x, y) => { let r = null; for (const t of planta.texturas || []) if (x >= t.x0 && x < t.x1 && y >= t.y0 && y < t.y1) r = t; return r; };
+  for (let soma=0;soma<qw+qh;soma++) for(let x=0;x<qw;x++) {const y=soma-x;if(y>=0&&y<qh&&planta.andavel(x,y)) ladrilho(x,y,a,trecho(x,y));}
   soleiras();
-  // Faixa laranja no meio dos corredores, como as ruas da Vybelândia.
-  g.strokeStyle = "#ff7a1a55"; g.lineWidth = 2; g.setLineDash([10, 8]);
-  // Corredor: y (de ponta a ponta do prédio) ou [y, x0, x1] (um trecho).
-  for (const c of planta.corredores || []) { const [y, cx0, cx1] = Array.isArray(c) ? c : [c, P.x0, P.x1]; const a = mapaTela(cx0, y, origem), b = mapaTela(cx1, y, origem); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
-  g.setLineDash([]);
-  const pi = planta.piscina;
-  if (pi) {
-    for (let x = pi.x0 - 1; x < pi.x1 + 1; x++) for (let y = pi.y0 - 1; y < pi.y1 + 2; y++) if (!textura(x, y, planta.texturaDeck, pi.x0 - 1, pi.y0 - 1)) { losango(x, y); g.fillStyle = cor("deck", x, y); g.fill(); }
-    // Água da piscina: azul com reflexos e a borda interna mais escura.
-    losango(pi.x0, pi.y0, pi.x1 - pi.x0, pi.y1 - pi.y0);
-    const ag = mapaTela(pi.x0, pi.y0, origem), ab = mapaTela(pi.x1, pi.y1, origem);
-    const grad = g.createLinearGradient(ag.x, ag.y, ab.x, ab.y);
-    grad.addColorStop(0, "#1f8fd6"); grad.addColorStop(1, "#4cc3f0");
-    g.fillStyle = grad; g.fill();
-    g.strokeStyle = "#0e5f96"; g.lineWidth = 4; g.stroke();
-    g.strokeStyle = "#ffffff55"; g.lineWidth = 2;
-    for (let i = 1; i < pi.x1 - pi.x0; i += 2) {
-      const a = mapaTela(pi.x0 + i, pi.y0 + 0.6, origem), b = mapaTela(pi.x0 + i + 0.8, pi.y0 + 0.6, origem);
-      g.beginPath(); g.moveTo(a.x, a.y + 6); g.lineTo(b.x, b.y + 6); g.stroke();
-    }
-  }
-  // Espessura do piso do prédio nas bordas da frente
-  borda(P.x0, P.y1, P.x1, P.y1, "#1b1c20"); borda(P.x1, P.y0, P.x1, P.y1, "#25262b");
-  // Paredes do fundo: eixo x (cima-direita) e eixo y (cima-esquerda)
-  const parede = (x0, y0, x1, y1, tom) => {
-    const a = mapaTela(x0, y0, origem), b = mapaTela(x1, y1, origem);
-    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(b.x, b.y - MAPA_PAREDE); g.lineTo(a.x, a.y - MAPA_PAREDE); g.closePath();
-    g.fillStyle = tom; g.fill();
-  };
-  parede(P.x0, P.y0, P.x1, P.y0, "#1d1e23"); parede(P.x0, P.y0, P.x0, P.y1, "#16171b");
-  const topo = (x0, y0, x1, y1) => {
-    const a = mapaTela(x0, y0, origem), b = mapaTela(x1, y1, origem);
-    g.fillStyle = "#3a3c44";
-    g.beginPath(); g.moveTo(a.x, a.y - MAPA_PAREDE); g.lineTo(b.x, b.y - MAPA_PAREDE); g.lineTo(b.x, b.y - MAPA_PAREDE - 6); g.lineTo(a.x, a.y - MAPA_PAREDE - 6); g.closePath(); g.fill();
-  };
-  topo(P.x0, P.y0, P.x1, P.y0); topo(P.x0, P.y0, P.x0, P.y1);
-  // Faixa laranja da Vybe no rodapé
-  g.strokeStyle = "#ff6b1a"; g.lineWidth = 3;
-  for (const [x0, y0, x1, y1] of [[P.x0, P.y0, P.x1, P.y0], [P.x0, P.y0, P.x0, P.y1]]) {
-    const a = mapaTela(x0, y0, origem), b = mapaTela(x1, y1, origem);
-    g.beginPath(); g.moveTo(a.x, a.y - 4); g.lineTo(b.x, b.y - 4); g.stroke();
-  }
-  for (const q of planta.quadros) {
-    const a = q.parede === "x" ? mapaTela(q.de, P.y0, origem) : mapaTela(P.x0, q.de, origem);
-    const b = q.parede === "x" ? mapaTela(q.ate, P.y0, origem) : mapaTela(P.x0, q.ate, origem);
-    const largura = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
-    g.save();
-    // No alto da parede, acima dos móveis encostados nela (o "É A VYBE"
-    // ficava escondido atrás do estúdio da Produção).
-    g.translate(a.x, a.y - MAPA_PAREDE * 0.8);
-    // Inclinação da parede sem girar o texto na vertical
-    g.transform(1, Math.tan(ang), 0, 1, 0, 0);
-    const largX = largura * Math.cos(ang) * (q.parede === "x" ? 1 : -1);
-    if (q.tipo === "logo" && logo?.complete) {
-      const h = 44, w = (logo.naturalWidth / logo.naturalHeight) * h;
-      g.filter = "drop-shadow(0 0 6px #ff6b1aaa)";
-      g.drawImage(logo, (largX - w) / 2, -h / 2, w, h);
-    } else if (q.tipo === "texto") {
-      g.font = "700 22px 'Arial Black', Arial, sans-serif";
-      g.fillStyle = q.cor; g.textAlign = "center"; g.textBaseline = "middle";
-      g.shadowColor = q.cor; g.shadowBlur = 8;
-      g.fillText(q.texto, largX / 2, 0, Math.abs(largX) - 8);
-    }
-    g.restore();
-  }
-  // Postes com luz laranja na praça.
-  for (const [x, y] of video ? [] : planta.postes || []) {
-    const t = mapaTela(x + 0.5, y + 0.5, origem);
-    const brilho = g.createRadialGradient(t.x, t.y, 4, t.x, t.y, 120);
-    brilho.addColorStop(0, "#ffb05c66"); brilho.addColorStop(1, "#ff7a1a00");
-    g.fillStyle = brilho; g.beginPath(); g.ellipse(t.x, t.y, 120, 60, 0, 0, Math.PI * 2); g.fill();
-    g.fillStyle = "#1b1b20"; g.fillRect(t.x - 2, t.y - 92, 4, 92);
-    g.fillStyle = "#ffd29a"; g.shadowColor = "#ff8a2a"; g.shadowBlur = 18; g.beginPath(); g.arc(t.x, t.y - 96, 6, 0, Math.PI * 2); g.fill(); g.shadowBlur = 0;
-  }
-  // Letreiro em neon sobre a parede do fundo.
-  if (planta.letreiro && !video) {
-    const a = mapaTela(planta.letreiro.de, P.y0, origem), b = mapaTela(planta.letreiro.ate, P.y0, origem);
-    const ang = Math.atan2(b.y - a.y, b.x - a.x);
-    g.save();
-    g.translate(a.x, a.y - MAPA_PAREDE - 58);
-    g.transform(1, Math.tan(ang), 0, 1, 0, 0);
-    const larg = (b.x - a.x);
-    g.fillStyle = "#121116"; g.fillRect(-10, -44, larg + 20, 66);
-    g.font = "900 46px 'Arial Black', Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.shadowColor = "#ff7a1a"; g.shadowBlur = 22; g.fillStyle = "#ff8a2a";
-    g.fillText(planta.letreiro.texto, larg / 2, -10, larg);
-    g.shadowBlur = 0; g.lineWidth = 1.5; g.strokeStyle = "#ffd29a"; g.strokeText(planta.letreiro.texto, larg / 2, -10, larg);
-    g.restore();
-  }
 }
 // Divisória entre ambientes: um bloco escuro baixo por ladrilho de aresta.
 // Divisória baixa (corredores, espaços comuns) ou parede alta de sala
@@ -603,20 +457,10 @@ function mapaMontarGrade(P, moveis) {
     if (y0 === y1) for (let x = x0; x < x1; x++) paredes.add(aresta(ind(x, y0 - 1), ind(x, y0)));
     else for (let y = y0; y < y1; y++) paredes.add(aresta(ind(x0 - 1, y), ind(x0, y)));
   }
-  const pi = P.piscina;
-  if (pi) for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) bloqueado[ind(x, y)] = 1;
-  // Lago do jardim (piso de água): não se anda por cima.
+  // Água (piscina e lago da Praça): não se anda por cima.
   for (const r of P.texturas || []) if (r.agua) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) bloqueado[ind(x, y)] = 1;
-  // Atrás do prédio (jardim do fundo) não se anda: as paredes do prédio são
-  // desenhadas no fundo e não entram na grade.
-  const B = P.PREDIO;
-  if (B) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if ((y < B.y0 && x < B.x1 + 1) || (x < B.x0 && y < B.y1 + 1)) bloqueado[ind(x, y)] = 1;
   // Quarto: só se anda dentro dele e na soleira (P.andavel).
   if (P.andavel) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (!P.andavel(x, y)) bloqueado[ind(x, y)] = 1;
-  // Fachada de sala no mapa geral: fechada, menos os ladrilhos atrás da
-  // porta (pisar neles entra no quarto).
-  for (const f of P.fachadas || []) for (let x = f.x0; x < f.x1; x++) for (let y = f.y0; y < f.y1; y++)
-    if (!f.entrada.some((e) => e.x === x && e.y === y)) bloqueado[ind(x, y)] = 1;
   for (const m of moveis) {
     if (m.altura || m.plano || MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // em cima de mesa, rente ao piso ou porta (se atravessa)
     const senta = MAPA_ASSENTOS.has(m.classe);
@@ -726,7 +570,7 @@ function mapaOrdenar(objetos) {
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
-function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarFachada, aoClicarSaida }) {
+function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarSaida }) {
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
@@ -799,49 +643,10 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     for (let x = a.x0; x < a.x1; x++) for (let y = a.y0; y < a.y1; y++) { const p = mapaTela(x + 0.5, y + 0.5, origem); g.fillRect(p.x - 1, p.y - 1, 2, 2); }
     palco.append(gradeNo);
   }
-  // Fundo: a praça da Vybelândia (imagem parada) no palco, embaixo de tudo,
-  // andando com a câmera. A praça vazia da imagem (quatro cantos, em pixels)
-  // recebe o mapa inteiro: mesma altura de cima a baixo e o mesmo centro.
-  let videoNo = null;
-  if (P.fundo) {
-    const V = P.fundo, q = V.praca, cima = mapaTela(0, 0, origem), baixo = mapaTela(P.W, P.H, origem), meio = mapaTela(P.W / 2, P.H / 2, origem);
-    const escala = (baixo.y - cima.y) / (q.baixo[1] - q.topo[1]);
-    const cx = (q.esq[0] + q.dir[0] + q.topo[0] + q.baixo[0]) / 4, cy = (q.esq[1] + q.dir[1] + q.topo[1] + q.baixo[1]) / 4;
-    videoNo = document.createElement("img");
-    videoNo.src = V.url;
-    videoNo.alt = "";
-    videoNo.decoding = "async";
-    videoNo.setAttribute("aria-hidden", "true");
-    videoNo.className = "mapa-fundo-cidade";
-    Object.assign(videoNo.style, { left: meio.x - cx * escala + "px", top: meio.y - cy * escala + "px", width: V.largura * escala + "px", height: V.altura * escala + "px" });
-    palco.prepend(videoNo);
-    videoNo.desligar = () => { videoNo.removeAttribute("src"); };
-  }
-  const zonaCanvas = document.createElement("canvas");
-  zonaCanvas.width = largura; zonaCanvas.height = altura; zonaCanvas.className = "mapa-zona";
-  palco.append(zonaCanvas);
-  function marcarZona(a) {
-    const g = zonaCanvas.getContext("2d");
-    g.clearRect(0, 0, largura, altura);
-    // No quarto a cena inteira é a zona: a borda retangular passava fora do
-    // formato do quarto (a "linha azul" atravessando o escuro).
-    if (!a || P.quarto) return;
-    const cor = (typeof ESCRITORIO_COR_SALA !== "undefined" && ESCRITORIO_COR_SALA[a.sala]) || "#ff8a35";
-    const pts = [mapaTela(a.x0, a.y0, origem), mapaTela(a.x1, a.y0, origem), mapaTela(a.x1, a.y1, origem), mapaTela(a.x0, a.y1, origem)];
-    g.beginPath(); pts.forEach((t, i) => (i ? g.lineTo(t.x, t.y) : g.moveTo(t.x, t.y))); g.closePath();
-    // Só um véu leve: o piso escolhido continua com a cor de verdade.
-    g.fillStyle = cor + "12"; g.fill();
-    g.shadowColor = cor; g.shadowBlur = 14;
-    g.setLineDash([16, 8]); g.lineWidth = 5; g.strokeStyle = cor; g.stroke();
-    g.shadowBlur = 0;
-  }
   el.replaceChildren(palco);
-  const imgLogo = new Image();
-  imgLogo.src = logo;
-  const pintarFundo = () => { fundo.getContext("2d").clearRect(0, 0, fundo.width, fundo.height); mapaDesenharFundo(fundo, P, origem, imgLogo, el.dataset.ceu); };
+  const pintarFundo = () => { fundo.getContext("2d").clearRect(0, 0, fundo.width, fundo.height); mapaDesenharFundo(fundo, P, origem); };
   pintarFundo();
   fundoPronto = pintarFundo;
-  imgLogo.onload = pintarFundo;
   // Pisos do acervo: carrega a arte de cada um uma vez e redesenha o fundo.
   const classesPiso = [...new Set([P.texturaSalas, P.texturaCorredor, P.texturaDeck, ...(P.texturas || []).map((r) => r.textura),
     ...(P.ambientes || []).map((a) => a.textura), ...(P.pisos || []).map((q) => q.textura)].filter(Boolean))];
@@ -889,47 +694,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
       muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt ?? dv.alt, altBase: dv.alt, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela && !dv.semTinta });
     }
-  }
-  // Telhado das fachadas (salas e espaços comuns): a caixa de paredes altas
-  // vira um prédio fechado, como os blocos das praças do Habbo, em vez de
-  // uma caixa oca. Entra nos muros: fica transparente com alguém atrás.
-  for (const f of P.fachadas || []) {
-    const alt = 118, cs = [[f.x0, f.y0], [f.x1, f.y0], [f.x1, f.y1], [f.x0, f.y1]].map(([x, y]) => mapaTela(x, y, origem));
-    const l = Math.min(...cs.map((c) => c.x)), r = Math.max(...cs.map((c) => c.x)), t = Math.min(...cs.map((c) => c.y)) - alt, b = Math.max(...cs.map((c) => c.y)) - alt;
-    const c = document.createElement("canvas");
-    c.width = Math.ceil(r - l) + 2; c.height = Math.ceil(b - t) + 2;
-    const k = c.getContext("2d"), p = cs.map((q) => [q.x - l + 1, q.y - alt - t + 1]);
-    k.beginPath(); p.forEach(([x, y], i) => (i ? k.lineTo(x, y) : k.moveTo(x, y))); k.closePath();
-    k.fillStyle = "#23242b"; k.fill();
-    k.save(); k.clip();
-    // Faixas do telhado (chapas) e a cor da sala por cima, bem escura.
-    k.globalAlpha = 0.22; k.fillStyle = f.cor || "#888"; k.fillRect(0, 0, c.width, c.height); k.globalAlpha = 1;
-    k.strokeStyle = "#ffffff10"; k.lineWidth = 1;
-    for (let i = 1; i < f.x1 - f.x0; i++) { const a0 = mapaTela(f.x0 + i, f.y0, origem), a1 = mapaTela(f.x0 + i, f.y1, origem); k.beginPath(); k.moveTo(a0.x - l + 1, a0.y - alt - t + 1); k.lineTo(a1.x - l + 1, a1.y - alt - t + 1); k.stroke(); }
-    // Mureta (borda interna mais clara) e caixas de ar-condicionado: o
-    // telhado lê como laje de prédio, não como um buraco escuro.
-    const q = (x, y) => { const o = mapaTela(x, y, origem); return [o.x - l + 1, o.y - alt - t + 1]; };
-    const borda = 0.35, mur = [q(f.x0 + borda, f.y0 + borda), q(f.x1 - borda, f.y0 + borda), q(f.x1 - borda, f.y1 - borda), q(f.x0 + borda, f.y1 - borda)];
-    k.strokeStyle = "#ffffff22"; k.lineWidth = 1.5; k.beginPath(); mur.forEach(([x, y], i) => (i ? k.lineTo(x, y) : k.moveTo(x, y))); k.closePath(); k.stroke();
-    const caixa = (cx, cy) => {
-      const [x, y] = q(cx, cy), w = 14, h = 9;
-      k.fillStyle = "#4a4d57"; k.beginPath(); k.moveTo(x, y - h); k.lineTo(x + w, y - h + 7); k.lineTo(x, y - h + 14); k.lineTo(x - w, y - h + 7); k.closePath(); k.fill();
-      k.fillStyle = "#33353d"; k.beginPath(); k.moveTo(x - w, y - h + 7); k.lineTo(x, y - h + 14); k.lineTo(x, y + 14); k.lineTo(x - w, y + 7); k.closePath(); k.fill();
-      k.fillStyle = "#2a2c33"; k.beginPath(); k.moveTo(x, y - h + 14); k.lineTo(x + w, y - h + 7); k.lineTo(x + w, y + 7); k.lineTo(x, y + 14); k.closePath(); k.fill();
-      k.strokeStyle = "#ffffff18"; k.beginPath(); k.arc(x, y - h + 7, 4, 0, 7); k.stroke();
-    };
-    const W = f.x1 - f.x0, H = f.y1 - f.y0;
-    if (W >= 6 && H >= 4) { caixa(f.x0 + W * 0.3, f.y0 + H * 0.35); caixa(f.x0 + W * 0.42, f.y0 + H * 0.35); }
-    if (W >= 10 && H >= 6) caixa(f.x0 + W * 0.75, f.y0 + H * 0.6);
-    k.restore();
-    k.strokeStyle = f.cor || "#888"; k.lineWidth = 2; k.beginPath(); p.forEach(([x, y], i) => (i ? k.lineTo(x, y) : k.moveTo(x, y))); k.closePath(); k.stroke();
-    c.className = "mapa-obj mapa-muro mapa-telhado";
-    const prof = Math.round((f.x1 + f.y1 - 1) * 10) + 3;
-    c.style.left = l - 1 + "px"; c.style.top = t - 1 + "px"; c.style.zIndex = prof;
-    palco.append(c);
-    // Caixa do prédio inteiro, no alto: fica à frente das paredes do fundo
-    // dele e atrás das da frente e de quem está na calçada.
-    muros.push({ no: c, prof, caixa: { x0: f.x0, x1: f.x1, y0: f.y0, y1: f.y1, altura: alt / 32 }, l, t, r, b, quem: new Set(), telhado: true });
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
   const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
@@ -1229,36 +993,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     r.textContent = a.nome;
     r.style.left = t.x + "px"; r.style.top = t.y + "px";
     palco.append(r);
-  }
-  // Fachadas das salas: letreiro em neon (cor da sala) acima da porta, com
-  // quantos estão dentro do quarto; clicar leva até a porta.
-  const fachadaNos = new Map();
-  for (const f of P.fachadas || []) {
-    const t = f.porta === "direita" ? mapaTela(f.x1, (f.y0 + f.y1) / 2, origem) : mapaTela((f.x0 + f.x1) / 2, f.y1, origem);
-    const r = document.createElement("button");
-    r.type = "button";
-    r.className = "mapa-rotulo neon fachada";
-    if (f.cor) r.style.setProperty("--neon", f.cor);
-    r.dataset.ambiente = f.id;
-    r.innerHTML = "<span></span><b class=\"mapa-dentro\" hidden></b>";
-    r.querySelector("span").textContent = f.nome;
-    r.setAttribute("aria-label", f.nome + ": ir até a porta");
-    r.style.left = t.x + "px"; r.style.top = t.y - 104 + "px";
-    r.addEventListener("click", (e) => { e.stopPropagation(); aoClicarFachada?.(f.id); });
-    r.addEventListener("pointerdown", (e) => e.stopPropagation());
-    palco.append(r);
-    fachadaNos.set(f.id, r);
-  }
-  // Quantos estão dentro de cada quarto: [{ id, n, nomes }].
-  function marcarFachadas(lista) {
-    for (const { id, n, nomes } of lista || []) {
-      const r = fachadaNos.get(id);
-      if (!r) continue;
-      const b = r.querySelector(".mapa-dentro");
-      b.hidden = !n;
-      b.textContent = n > 9 ? "9+" : String(n || "");
-      r.title = n ? `${n} ${n === 1 ? "pessoa" : "pessoas"} dentro${nomes ? ": " + nomes : ""}` : "Ninguém dentro";
-    }
   }
 
   // Personagens
@@ -1790,7 +1524,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     repintar: () => {
       fundoPronto?.();
       for (const m of muros) {
-        if (m.telhado) continue;
         const est = P.paredeEm?.(m.x, m.y, m.eixo);
         if (m.corBase === undefined) m.corBase = m.cor || "";
         const salaCor = P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4];
@@ -1802,7 +1535,7 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     // Ponto da janela de um ladrilho (para pôr a barrinha do editor ao lado do móvel).
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
-    registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir, marcarZona, marcarFachadas,
+    registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
     balao, reagir, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
@@ -1810,6 +1543,6 @@ function criarMapaEscritorio(el, { planta, logo, aoClicar, aoPassar, eu, aoPegar
     bloqueadoEm: (x, y) => Boolean(grade) && (x < 0 || y < 0 || x >= grade.W || y >= grade.H || Boolean(grade.bloqueado[grade.ind(x, y)])),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { tamanhoQuarto?.disconnect(); videoNo?.desligar?.(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }

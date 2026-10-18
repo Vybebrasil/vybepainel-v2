@@ -20,7 +20,7 @@ function escritorioCamadaParaEditar() {
   return escritorio.base?.admin ? "geral" : null;
 }
 function escritorioNomeCamada(camada) {
-  return camada === "geral" ? "o mapa" : escritorioAmbienteDoQuarto(camada)?.nome || camada;
+  return camada === "geral" ? "a Praça" : escritorioAmbienteDoQuarto(camada)?.nome || camada;
 }
 function escritorioCameraEditor() {
   return Boolean(escritorio.edicao && (escritorio.edicao.ferramenta === "camera" || escritorio.espacoEditor));
@@ -52,11 +52,11 @@ async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
     return;
   }
   // Uma sala só se edita de dentro do quarto dela: entra primeiro (direto
-  // pela porta) e abre o editor quando o quarto estiver desenhado. O mapa
-  // geral se edita de fora dos quartos.
+  // pela porta) e abre o editor quando o quarto estiver desenhado. A camada
+  // "geral" é a Praça.
   if ((camada === "geral" ? escritorio.quarto : escritorio.quarto !== camada) && typeof escritorioEntrarNoQuarto === "function") {
     escritorio.aoChegarNaCena = () => abrirEditorEscritorio(camada);
-    if (camada === "geral") escritorioSairDoQuarto(); else if (!escritorioEntrarNoQuarto(camada)) escritorio.aoChegarNaCena = null;
+    if (camada === "geral") escritorioIrParaPraca(); else if (!escritorioEntrarNoQuarto(camada)) escritorio.aoChegarNaCena = null;
     return;
   }
   if(camada!=="geral" && !escritorio.base.demo) {
@@ -127,7 +127,9 @@ async function salvarEditorEscritorio() {
 function escritorioCantoCamada(camada) {
   const quarto=escritorioAmbienteDoQuarto(camada);
   const a = quarto?.x1 != null ? quarto : ESCRITORIO_PLANTA.ambientes.find(a=>a.id===camada);
-  return a ? { x: a.x0, y: a.y0, w: a.x1 - a.x0, h: a.y1 - a.y0 } : { x: 0, y: 0, w: ESCRITORIO_PLANTA.W, h: ESCRITORIO_PLANTA.H };
+  // A camada "geral" é a Praça.
+  const r = a || ESCRITORIO_PRACA;
+  return { x: r.x0, y: r.y0, w: r.x1 - r.x0, h: r.y1 - r.y0 };
 }
 // O móvel inteiro precisa caber na área que a pessoa pode editar e, se for
 // sólido (não tapete), não pode cair em cima de outro móvel sólido.
@@ -1010,7 +1012,7 @@ function restaurarPadraoEditorEscritorio() {
   if (!e || !confirm("Voltar " + escritorioNomeCamada(e.camada) + " ao desenho original? Você ainda pode desfazer antes de salvar.")) return;
   const a = escritorioAmbienteDoQuarto(e.camada);
   if(escritorio.perfil?.quarto_configurado && e.camada!=="geral") {aplicarModeloSalaEscritorio("trabalho");return;}
-  e.itens = e.camada === "geral" ? ESCRITORIO_PLANTA.moveis.map((it) => [...it.slice(0, 6)]) : escritorioMoveisDaSala(a).map(([cl, x, y, ...r]) => [cl, x - a.x0, y - a.y0, ...r]);
+  e.itens = e.camada === "geral" ? escritorioMoveisDaCena(ESCRITORIO_PRACA) : escritorioMoveisDaSala(a).map(([cl, x, y, ...r]) => [cl, x - a.x0, y - a.y0, ...r]);
   e.sel = null;
   escritorio.mapa?.destacar(null);
   escritorioEditorMudou();
@@ -1299,9 +1301,7 @@ function escritorioEhParede(classe) {
 }
 function escritorioTemParede(x, y, eixo) {
   const P = ESCRITORIO_PLANTA, quarto = escritorioAmbienteDoQuarto();
-  if (!quarto && eixo === "x" && y === P.PREDIO.y0) return true;
-  if (!quarto && eixo === "y" && x === P.PREDIO.x0) return true;
-  // Dentro do quarto valem as paredes dele; no mapa geral, as da planta.
+  // Dentro da sala valem as paredes dela; a Praça é ao ar livre.
   const paredes = quarto ? escritorioParedesDoQuarto(quarto) : P.divisorias;
   return paredes.some(([x0, y0, x1, y1]) => (eixo === "x" ? y0 === y1 && y0 === y && x >= x0 && x < x1 : x0 === x1 && x0 === x && y >= y0 && y < y1));
 }

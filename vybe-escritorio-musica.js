@@ -1,8 +1,8 @@
-// Sala da música: a Pista do Lounge tem um "bot" de música como o do VybeChat.
+// Sala da música: o Lounge tem um "bot" de música como o do VybeChat.
 // Qualquer pessoa no Lounge cola um link do YouTube (vídeo ou playlist) na fila
 // pela jukebox; o Worker guarda a fila e desde quando a música toca, e cada
 // navegador toca o próprio player do YouTube, no mesmo ponto, só enquanto a
-// pessoa está na Pista. Volume é de cada um.
+// pessoa está no Lounge. Volume é de cada um.
 const ESCRITORIO_MUSICA_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtu.be"]);
 // Link (ou id) do YouTube → { kind: "video", videoId } ou { kind: "playlist", playlistId }.
 function escritorioFonteMusica(texto) {
@@ -21,12 +21,10 @@ function escritorioFonteMusica(texto) {
   const video = host.endsWith("youtu.be") ? partes[0] : url.searchParams.get("v") || (["embed", "shorts", "live"].includes(partes[0]) ? partes[1] : null);
   return video && video.length === 11 && id.test(video) ? { kind: "video", videoId: video } : null;
 }
-// A música toca na Pista e no Bar (os dois espaços da direita do Lounge).
-const ESCRITORIO_MUSICA_ESPACOS = ["pista", "bar"];
+// A música toca no Lounge (a cena inteira: bar, lareira e pista). Antes era
+// só em cima de dois pisos do mapa geral, e parou quando o Lounge virou cena.
 function escritorioNaPista() {
-  const pos = escritorioPosicao(escritorio.perfil || {});
-  const x = typeof movimento !== "undefined" && movimento.quadro ? movimento.x : pos.x, y = typeof movimento !== "undefined" && movimento.quadro ? movimento.y : pos.y;
-  return escritorio.conectado && !escritorio.quarto && (ESCRITORIO_PLANTA.pisos || []).some((q) => ESCRITORIO_MUSICA_ESPACOS.includes(q.piso) && x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
+  return Boolean(escritorio.conectado && escritorio.quarto === "lounge");
 }
 function escritorioPosicaoMusica(m, agora = Date.now()) {
   return Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));
@@ -42,14 +40,14 @@ function volumeMusicaEscritorio(v) {
   escritorio.player?.setVolume?.(Number(v));
   escritorio.player?.unMute?.();
 }
-// Silenciar a música só para você (o resto da Pista continua ouvindo).
+// Silenciar a música só para você (o resto do Lounge continua ouvindo).
 function silenciarMusicaEscritorio() {
   const muda = !escritorioMusicaMuda();
   try { muda ? localStorage.setItem("vybe-escritorio-musica-muda", "1") : localStorage.removeItem("vybe-escritorio-musica-muda"); } catch {}
   muda ? escritorio.player?.mute?.() : escritorio.player?.unMute?.();
   desenharInfoMusicaEscritorio();
 }
-// API do player do YouTube: carrega só quando alguém entra na Pista com música.
+// API do player do YouTube: carrega só quando alguém entra no Lounge com música.
 function escritorioCarregarYoutube() {
   if (window.YT?.Player) return Promise.resolve();
   if (escritorio.carregandoYoutube) return escritorio.carregandoYoutube;
@@ -68,7 +66,7 @@ function escritorioElementoMusica() {
   if (escritorio.musicaEl) return escritorio.musicaEl;
   const el = document.createElement("section");
   el.className = "ofc-musica";
-  el.setAttribute("aria-label", "Música da Pista e do Bar");
+  el.setAttribute("aria-label", "Música do Lounge");
   el.hidden = true;
   el.innerHTML = `<div class="ofc-musica-topo" title="Arraste para mudar de lugar"><b>${escritorioIcone("musica")}Música</b><span><button type="button" class="ofc-x ofc-encaixar" onclick="encaixarMusicaEscritorio()" aria-label="Voltar o player para a coluna" title="Voltar para a coluna da direita">↘</button><button type="button" class="ofc-x" onclick="minimizarMusicaEscritorio()" aria-label="Minimizar o player" title="Minimizar">–</button></span></div><div class="ofc-musica-player"><div id="office-yt"></div></div><div class="ofc-musica-info"></div>`;
   escritorio.musicaEl = el;
@@ -155,8 +153,8 @@ function abrirMusicaEscritorio() {
     d.setAttribute("aria-labelledby", "office-musica-titulo");
     document.body.append(d);
   }
-  d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-musica-titulo">Música da Pista</h3><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
-<p class="ofc-nota">Quem está na Pista ou no Bar ouve junto. O volume é só seu.</p>
+  d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-musica-titulo">Música do Lounge</h3><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
+<p class="ofc-nota">Quem está no Lounge ouve junto. O volume é só seu.</p>
 <form class="ofc-musica-form" onsubmit="event.preventDefault();adicionarMusicaEscritorio(this)"><input name="link" placeholder="Cole um link do YouTube (vídeo ou playlist)" aria-label="Link do YouTube" autocomplete="off" required><button class="workflow-primary">Pôr na fila</button></form>
 <p class="ofc-erro" id="office-musica-erro" role="alert"></p>
 <div id="office-musica-fila"></div>`;
@@ -244,8 +242,7 @@ function encaixarMusicaEscritorio() {
   try { localStorage.removeItem("vybe-escritorio-musica-pos"); } catch {}
 }
 
-// Atalho (lista do celular): anda até a Pista para ouvir.
+// Atalho (lista do celular): vai para o Lounge, onde a música toca.
 function irParaMusicaEscritorio() {
-  const pista = (ESCRITORIO_PLANTA.pisos || []).find((q) => q.piso === "pista");
-  if (pista) escritorioIrParaAmbiente("lounge", true, { ...pista, nome: "a Pista" });
+  escritorioIrParaAmbiente("lounge", true);
 }

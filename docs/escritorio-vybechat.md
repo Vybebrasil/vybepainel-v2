@@ -465,3 +465,26 @@ deixava tudo miúdo e vazio.
 - O verificador confere cada cena; janela em fachada conta como parede de fora.
 - Cenas comuns não são editáveis pelo editor (a camada continua só `geral` e
   salas); o mapa geral salvo antes desta mudança deixa de valer.
+
+### Sem mapa geral: Convivência e Praça (17/10/2026, noite)
+
+Decisão do Paulo depois de ver os espaços comuns como cenas: o mapa geral
+deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
+
+- A Recepção e o Pátio viraram a **Convivência** (zona `recepcao`, que o
+  Worker já aceitava): balcão, sala de estar sob a janela, mural, bebedouro,
+  máquinas, estantes, fonte com bancos e mesinhas de café.
+- A área de fora virou a **Praça**, compacta e ao ar livre (sem paredes, chão
+  por trechos: gramado, deck, calçamento, lago e piscina que não se pisam): é
+  a cena de abertura e a camada `geral` do editor de quem administra. Sem
+  zona, como era o corredor, e por isso sem voz. Para ter voz na Praça basta
+  incluir `praca` na lista do Worker (`zonaValida`) e usar essa zona, o que
+  exige publicar o Worker.
+- A porta de cada sala leva à Convivência; a da Convivência leva à Praça e a
+  da Praça volta. A lista de salas (inclusive a Praça) leva direto, com a
+  tranca valendo. Chegada: no próprio quarto; sem quarto, na Convivência.
+- Saíram o prédio, as fachadas com telhado, o minimapa, os atalhos "Ir para"
+  e os elevadores; o motor de desenho ficou só com o caminho das cenas.
+- A música do Lounge passou a tocar na cena inteira (antes dependia de dois
+  pisos do mapa geral e tinha parado quando o Lounge virou cena).
+- Paredes do mezanino dos quartos com a cor da sala e borda clara no alto.
