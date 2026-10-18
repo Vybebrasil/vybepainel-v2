@@ -26,7 +26,7 @@ montagem. Também precisam funcionar como o Habbo: sentar, subir escada, empilha
      processo novo.
    - **Foco**: biblioteca com mezanino e escada. Montada em 18/10 (ver "Foco").
    - **Auditório**: teatro com balcão. Montado em 18/10 (ver "Auditório").
-   - **Produção**: estúdio de foto e vídeo. A fazer.
+   - **Produção**: estúdio de foto e vídeo. Montada em 18/10 (ver "Produção").
    - **Jogos**: fliperama escuro com neon. A fazer.
    - **Academia**: moderna, com tijolo vermelho e vidro. A fazer.
    - **Lounge**: por último, também do zero. Não remendar a versão antiga.
@@ -324,6 +324,25 @@ caber.
 - **Lição:** a tela (6×1) na direção errada ficava ao longo da parede da
   esquerda. Peça de parede do fundo se orienta por `olha` (frente conferida),
   não por número de direção.
+
+## Produção (montada em 18/10/2026)
+
+- **Planta em L, mantida;** parede subiu para 3 níveis (luz de teto do
+  estúdio, `army_c15_light`).
+- **Coleções:** a linha Studio do Habbo (`modern_c17_*`), a moderna `hc26`,
+  equipamento `studio_*` e as caixas e estantes `army_c15`.
+- **Cantos:**
+  - **Set de gravação no patamar:** parede de tijolo como fundo, sofá e
+    poltronas de entrevista, refletores e luz de chão.
+  - **Câmera de grua:** filma o set de lado, do recuo, porque a arte só vira
+    para leste ou sul.
+  - **Ilha de edição no recuo:** três estações com tela virada para a cadeira.
+  - **Podcast:** mesa de som e mesa comprida com as duas cadeiras do mesmo
+    lado (a mesa cobriria quem sentasse do outro lado), cada uma com o seu
+    microfone.
+  - **Acervo de equipamentos.**
+  - **Mesa de pauta no meio,** com quadro de avisos.
+  - **Espera do cliente.**
 
 ## Decisões do Paulo que valem
 
