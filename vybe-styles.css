@@ -5978,6 +5978,20 @@ body.no-escritorio {overflow:hidden}
 .ofc-mapa::after {content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 50% 0%,transparent 50%,#0a060c88 100%)}
 .ofc-mapa:active {cursor:grabbing}
 .mapa-palco {position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:pixelated}
+/* Bloco e assento invisíveis: servem para construir e sentar; só aparecem
+   (translúcidos) enquanto alguém edita a sala. */
+.mapa-obj[data-classe$="_invisivel"] {opacity:0}
+.ofc[data-editando=true] .mapa-obj[data-classe$="_invisivel"] {opacity:.38;filter:sepia(1) hue-rotate(160deg) saturate(3)}
+.ofc[data-editando=true] .mapa-obj[data-classe="vybe_assento_invisivel"] {filter:sepia(1) hue-rotate(80deg) saturate(3)}
+/* Luz ambiente do quarto (regulador de luz do Habbo): tinge piso, paredes,
+   móveis e bonecos; balões, nomes e rótulos ficam com a cor normal. */
+.mapa-palco[data-luz] :is(.mapa-fundo,.mapa-obj,.mapa-pessoa > img) {filter:var(--mapa-luz)}
+.mapa-palco[data-luz=quente] {--mapa-luz:sepia(.35) saturate(1.25) brightness(.95)}
+.mapa-palco[data-luz=fria] {--mapa-luz:sepia(.3) hue-rotate(175deg) saturate(1.2) brightness(.93)}
+.mapa-palco[data-luz=rosa] {--mapa-luz:sepia(.35) hue-rotate(285deg) saturate(1.4) brightness(.95)}
+.mapa-palco[data-luz=roxa] {--mapa-luz:sepia(.4) hue-rotate(220deg) saturate(1.4) brightness(.88)}
+.mapa-palco[data-luz=verde] {--mapa-luz:sepia(.3) hue-rotate(60deg) saturate(1.25) brightness(.95)}
+.mapa-palco[data-luz=noite] {--mapa-luz:sepia(.25) hue-rotate(185deg) saturate(.9) brightness(.62)}
 .mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
 /* Parede com alguém logo atrás: fica translúcida para o boneco aparecer. */
 .mapa-muro {transition:opacity .2s}
@@ -6747,6 +6761,10 @@ body.no-escritorio {overflow:hidden}
 .clients-grid.dias-encaixados > .day-scroll-card {margin-bottom:0}
 .ofc-fino {display:inline-grid;grid-template-columns:repeat(2,22px);gap:2px}
 .ofc-editor-flutua .ofc-fino button {padding:0;width:22px;height:16px;font-size:11px;line-height:1}
+.ofc-altura {display:inline-flex;align-items:center;gap:2px}
+.ofc-altura > span {min-width:30px;text-align:center;font:600 11px var(--mac-ui);font-variant-numeric:tabular-nums;color:var(--ofc-suave)}
+.ofc-filtro-meus {margin:6px 0}
+.ofc-filtro-meus + .ofc-filtro-meus {margin-top:0}
 /* Nome das pessoas numa camada acima dos móveis. */
 .mapa-etiqueta.solta {z-index:99500;left:0;top:0;bottom:auto;transform:translate(-50%,calc(-100% + 4px - var(--sobe,0px)));cursor:pointer}
 .mapa-etiqueta.solta.foco {outline:2px solid var(--ofc-laranja)}

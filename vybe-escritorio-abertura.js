@@ -513,7 +513,9 @@ function criadorAmbientePrevia(plantaId, piso, parede) {
   const base = escritorioMinhaMesa()?.ambiente || ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal);
   const dim = escritorioDimQuarto({ planta: plantaId });
   return { ...base, planta: plantaId, x1: base.x0 + dim.w, y1: base.y0 + dim.h, piso: ESCRITORIO_PLANTA.PISO[piso] ? piso : base.pisoPadrao || base.piso,
-    cor: /^#[0-9a-f]{6}$/i.test(String(parede || "")) ? parede : base.corPadrao || base.cor, pintura: null };
+    cor: /^#[0-9a-f]{6}$/i.test(String(parede || "")) ? parede : base.corPadrao || base.cor, pintura: null,
+    // A planta desenhada só continua valendo sobre a mesma planta base (como no servidor).
+    celdasLivres: plantaId === base.planta ? base.celdasLivres || "" : "" };
 }
 // Modelo inicial na planta escolhida: feito para 8 × 8 e levado ao canto de
 // baixo à direita de cada tamanho (o mesmo "deslocamento" do servidor).

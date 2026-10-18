@@ -403,7 +403,31 @@ function escritorioCenaComum(id) {
 function escritorioModeloPlanta(a) {
   // Cena de espaço comum: a planta vem no próprio ambiente.
   if (a?.modelo) return a.modelo;
-  return typeof escritorio !== "undefined" ? escritorio.base?.quartos?.plantas?.find(p => p.id === a.planta) : null;
+  const p = typeof escritorio !== "undefined" ? escritorio.base?.quartos?.plantas?.find(p => p.id === a.planta) : null;
+  // Planta desenhada pelo dono: a da edição em curso ou a salva no perfil.
+  const e = typeof escritorio !== "undefined" ? escritorio.edicao : null;
+  return escritorioPlantaLivre(p, e && e.camada === a.id && e.celdas !== undefined ? e.celdas : a.celdasLivres);
+}
+// Mesma regra do servidor (plantaQuarto): 12 × 12 códigos sobre a planta;
+// "0" mantém, "v" tira o piso, "p" piso no chão, "1"/"2" patamares. Porta
+// e escada ficam como na planta.
+const ESCRITORIO_CELDAS_LIVRES = /^[0vp12]{144}$/;
+const escritorioPlantasLivres = new Map();
+function escritorioLadrilhoFixo(p, x, y) {
+  const h = p.celdas.length, w = p.celdas[0].length;
+  return (p.escada || []).some(([ex, ey]) => ex === x && ey === y)
+    || (y === h - 1 && x >= p.portas.baixo && x <= p.portas.baixo + 1)
+    || (x === w - 1 && y >= p.portas.direita && y <= p.portas.direita + 1);
+}
+function escritorioPlantaLivre(p, livres) {
+  if (!p || !ESCRITORIO_CELDAS_LIVRES.test(String(livres || "")) || !/[^0]/.test(livres)) return p;
+  const chave = p.id + ":" + livres;
+  if (!escritorioPlantasLivres.has(chave)) {
+    if (escritorioPlantasLivres.size > 40) escritorioPlantasLivres.clear();
+    const cod = { v: -1, p: 0, 1: 1, 2: 2 };
+    escritorioPlantasLivres.set(chave, { ...p, celdas: p.celdas.map((linha, y) => linha.map((n, x) => { const c = livres[y * 12 + x]; return c === "0" || escritorioLadrilhoFixo(p, x, y) ? n : cod[c]; })) });
+  }
+  return escritorioPlantasLivres.get(chave);
 }
 // Tamanho do quarto (a planta escolhida: de 6 × 6 a 12 × 12); sem planta,
 // o 8 × 8 da primeira versão.
@@ -498,6 +522,9 @@ function escritorioPecasDoQuarto(a) {
 }
 // Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;
 // pisar nela volta ao mapa) e o escuro em volta, como num quarto do Habbo.
+// Luz ambiente do quarto, como o regulador de luz do Habbo. Os ids batem com
+// LUZES_SALA_ESCRITORIO do servidor; a cor da amostra é só para o botão.
+const ESCRITORIO_LUZES_SALA = [["", "Normal", "#f4f1e8"], ["quente", "Quente", "#ffc27a"], ["fria", "Fria", "#9cc8ff"], ["rosa", "Rosa", "#ff9ccd"], ["roxa", "Roxa", "#b79cff"], ["verde", "Verde", "#9be3a8"], ["noite", "Noite", "#3b4a7a"]];
 function escritorioPlantaDoQuarto(a) {
   const { w, h } = escritorioDimQuarto(a), pt = escritorioPortaQuarto(a);
   const soleira = pt.lado === "baixo" ? { x: pt.x, y: h, w: 2, h: 1 } : { x: w, y: pt.y, w: 1, h: 2 };
@@ -507,6 +534,8 @@ function escritorioPlantaDoQuarto(a) {
     ambientes: [{ ...a, x1: a.x0 + w, y1: a.y0 + h }], divisorias: escritorioParedesDoQuarto(a), moveis: [], fixos: escritorioPecasDoQuarto(a), piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     // Trechos de piso do acervo (só a Praça tem: gramado, deck, lago…).
     pisos: [], texturas: a.texturas || [], texturaSalas: ESCRITORIO_PLANTA.texturaSalas, portas: [], elevadores: [], fundo: null, vistas: {},
+    // Luz ambiente escolhida pelo dono (tinge piso, paredes, móveis e bonecos).
+    luz: a.luz || "",
     rotulos: [{ texto: "Porta · " + escritorioDestinoDaPorta(a.id).nome, x: soleira.x + soleira.w / 2, y: soleira.y + soleira.h / 2, saida: true }],
     soleiras: [soleira], entrada: escritorioEntradaDaSala(a), saida: { x: soleira.x, y: soleira.y },
     // Só se anda dentro do quarto e na soleira.

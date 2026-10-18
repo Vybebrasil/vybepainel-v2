@@ -2,15 +2,26 @@ import { readFileSync } from 'node:fs';
 import { salasDoEscritorio, salvarCamadaEscritorio, versoesProntas } from './escritorio-mapa.js';
 import { economiaPronta, carregarEconomia } from './escritorio-economia.js';
 export const QUARTOS = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json',import.meta.url),'utf8'));
-export function plantaQuarto(id) { return QUARTOS.plantas.find(p=>p.id===id); }
+// Planta desenhada pelo dono (editor de planta livre): 12 × 12 códigos sobre
+// a planta escolhida. "0" mantém o ladrilho da planta, "v" tira o piso, "p"
+// é piso no nível do chão, "1" e "2" são patamares. Porta e escada não mudam.
+export const CELDAS_LIVRES = /^[0vp12]{144}$/;
+export function plantaQuarto(id, livres = "") {
+ const p=QUARTOS.plantas.find(p=>p.id===id);
+ if(!p || !CELDAS_LIVRES.test(String(livres || "")) || !/[^0]/.test(livres)) return p;
+ const h=p.celdas.length,w=p.celdas[0].length,fixos=new Set((p.escada || []).map(([x,y])=>x+','+y));
+ for(const d of [0,1]) {fixos.add((p.portas.baixo+d)+','+(h-1));fixos.add((w-1)+','+(p.portas.direita+d));}
+ const cod={v:-1,p:0,1:1,2:2};
+ return {...p,celdas:p.celdas.map((linha,y)=>linha.map((n,x)=>{const c=livres[y*12+x];return c==='0' || fixos.has(x+','+y) ? n : cod[c];}))};
+}
 // Os modelos iniciais são desenhados para 8 × 8, no canto de baixo à direita;
 // em cada planta vão para o mesmo canto dela ("deslocamento").
 export function itensDoModelo(planta,modelo) {
  const p=plantaQuarto(planta),[dx,dy]=p?.deslocamento || [0,0];
  return (modelo?.itens || []).map(([c,x,y,...r])=>[c,x+dx,y+dy,...r]);
 }
-export function validarPisoQuarto(planta,itens,dimensoes=new Map()) {
- const p=plantaQuarto(planta);
+export function validarPisoQuarto(planta,itens,dimensoes=new Map(),livres='') {
+ const p=plantaQuarto(planta,livres);
  if (!p) throw Object.assign(new Error('Escolha uma planta válida.'),{status:400});
  for (const it of itens) {
   const d=dimensoes.get(it[0]) || {x:1,y:1};
@@ -61,12 +72,14 @@ export async function configurarQuarto(sql,pessoa,perfil,{planta,modelo,preserva
   const decoracao={...anterior,...perfil,sala_planta:planta,quarto_configurado:true};
   delete decoracao.sala_andares;
   if(limparPintura===true || andar && !anterior?.quarto_configurado) {decoracao.sala_pisos='';decoracao.sala_paredes='';}
+  // A planta desenhada só vale sobre a mesma planta base; trocar de planta recomeça.
+  decoracao.sala_celdas=limparPintura!==true && planta===anterior?.sala_planta ? anterior?.sala_celdas || '' : '';
   const salvo=andar ? {...atual.preferencias,sala_andares:[{...Object.fromEntries(Object.entries(decoracao).filter(([k])=>k.startsWith('sala_') || k==='quarto_configurado')),andar}]} : {...atual.preferencias,...decoracao,sala_andares:atual.preferencias.sala_andares || []};
   const inicial=itensDoModelo(planta,m);
-  validarPisoQuarto(planta,inicial);
+  validarPisoQuarto(planta,inicial,undefined,decoracao.sala_celdas);
   await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(salvo)}::jsonb,atualizado_em=now() WHERE pessoa_id=${pessoa.id}`;
   if (existente?.itens?.length) {
-   if(preservar !== false) validarPisoQuarto(planta,existente.itens);
+   if(preservar !== false) validarPisoQuarto(planta,existente.itens,undefined,decoracao.sala_celdas);
    // Compatibilidade com decorações anteriores à loja só na configuração inicial.
    // Reformar não concede unidades: elas já estão no inventário compartilhado.
    if(!anterior?.quarto_configurado) {

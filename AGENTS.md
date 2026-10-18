@@ -122,6 +122,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Os móveis ficam em `ESCRITORIO_MOVEIS_CENAS` (`vybe-escritorio-planta.js`).
 - Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
+  A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma
+  transação do salvamento da camada; porta e escada da planta base não mudam.
   VybeCoins: 10 por primeira finalização de demanda, 50 por conquista única.
   Créditos acompanham o evento na transação; compras bloqueiam a carteira e são
   idempotentes. Nunca conceda saldo/inventário a partir de valores do navegador.
