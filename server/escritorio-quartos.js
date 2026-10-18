@@ -2,17 +2,38 @@ import { readFileSync } from 'node:fs';
 import { salasDoEscritorio, salvarCamadaEscritorio, versoesProntas } from './escritorio-mapa.js';
 import { economiaPronta, carregarEconomia } from './escritorio-economia.js';
 export const QUARTOS = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json',import.meta.url),'utf8'));
-// Planta desenhada pelo dono (editor de planta livre): 12 × 12 códigos sobre
-// a planta escolhida. "0" mantém o ladrilho da planta, "v" tira o piso, "p"
-// é piso no nível do chão, "1" e "2" são patamares. Porta e escada não mudam.
-export const CELDAS_LIVRES = /^[0vp12]{144}$/;
+// Lado máximo do quarto (desde 18/10/2026: 20 × 20, para construções grandes
+// como as dos construtores do Habbo). As grades guardadas no perfil (pintura
+// do piso, planta desenhada) têm esse lado; as antigas, de 8 e de 12, são
+// ampliadas ao ler, sem perder nada.
+export const LADO_QUARTO = 20;
+export function ampliarGrade(s, de, vazio, casa = 1) {
+ const linhas = Array.from({ length: LADO_QUARTO }, (_, y) => (y < de ? s.slice(y * de * casa, (y + 1) * de * casa) : "") .padEnd(LADO_QUARTO * casa, vazio));
+ return linhas.join("");
+}
+// Trechos de parede (estilo, cor, altura: 3 caracteres) por lado: amplia cada
+// um dos 4 lados de 8 ou 12 trechos para LADO_QUARTO.
+export function ampliarParedes(s) {
+ const t = String(s || "").length / 3 / 4;
+ if (![8, 12, LADO_QUARTO].includes(t) || t === LADO_QUARTO) return String(s || "");
+ return Array.from({ length: 4 }, (_, lado) => s.slice(lado * t * 3, (lado + 1) * t * 3) + "-00".repeat(LADO_QUARTO - t)).join("");
+}
+export function ampliarCeldas(s) {
+ s = String(s || "");
+ return /^[0vp12]{144}$/.test(s) ? ampliarGrade(s, 12, "0") : s;
+}
+// Planta desenhada pelo dono (editor de planta livre): LADO_QUARTO² códigos
+// sobre a planta escolhida. "0" mantém o ladrilho da planta, "v" tira o piso,
+// "p" é piso no nível do chão, "1" e "2" são patamares. Porta e escada não mudam.
+export const CELDAS_LIVRES = new RegExp(`^[0vp12]{${LADO_QUARTO * LADO_QUARTO}}$`);
 export function plantaQuarto(id, livres = "") {
  const p=QUARTOS.plantas.find(p=>p.id===id);
+ livres = ampliarCeldas(livres);
  if(!p || !CELDAS_LIVRES.test(String(livres || "")) || !/[^0]/.test(livres)) return p;
  const h=p.celdas.length,w=p.celdas[0].length,fixos=new Set((p.escada || []).map(([x,y])=>x+','+y));
  for(const d of [0,1]) {fixos.add((p.portas.baixo+d)+','+(h-1));fixos.add((w-1)+','+(p.portas.direita+d));}
  const cod={v:-1,p:0,1:1,2:2};
- return {...p,celdas:p.celdas.map((linha,y)=>linha.map((n,x)=>{const c=livres[y*12+x];return c==='0' || fixos.has(x+','+y) ? n : cod[c];}))};
+ return {...p,celdas:p.celdas.map((linha,y)=>linha.map((n,x)=>{const c=livres[y*LADO_QUARTO+x];return c==='0' || fixos.has(x+','+y) ? n : cod[c];}))};
 }
 // Os modelos iniciais são desenhados para 8 × 8, no canto de baixo à direita;
 // em cada planta vão para o mesmo canto dela ("deslocamento").

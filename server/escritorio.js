@@ -1,4 +1,4 @@
-import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto } from "./escritorio-quartos.js";
+import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel } from "./escritorio-economia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente } from "./escritorio-social.js";
@@ -40,15 +40,13 @@ export function perfilEscritorio(valor = {}) {
     Number.isFinite(Number(valor[campo]))
       ? Math.min(94, Math.max(6, Number(valor[campo])))
       : padrao;
-  // Amplia pinturas legadas 8×8 sem apagar as escolhas já salvas.
+  // Amplia pinturas legadas (8×8 e 12×12) para o lado atual do quarto sem
+  // apagar as escolhas já salvas.
   const piso = String(valor.sala_pisos || "");
   const paredes = String(valor.sala_paredes || "");
-  const pisoAtual = /^[0-9a-f]{64}$/.test(piso)
-    ? Array.from({length:12}, (_,y) => y < 8 ? piso.slice(y*8,y*8+8) + "0000" : "0".repeat(12)).join("")
-    : piso;
-  const paredesAtuais = /^([a-h-][0-9a-d][0-2]){32}$/.test(paredes)
-    ? Array.from({length:4}, (_,lado) => paredes.slice(lado*24,lado*24+24) + "-00".repeat(4)).join("")
-    : paredes;
+  const pisoAtual = /^[0-9a-f]{64}$/.test(piso) ? ampliarGrade(piso, 8, "0") : /^[0-9a-f]{144}$/.test(piso) ? ampliarGrade(piso, 12, "0") : piso;
+  const paredesAtuais = /^([a-h-][0-9a-d][0-2])+$/.test(paredes) ? ampliarParedes(paredes) : paredes;
+  const celdas = ampliarCeldas(valor.sala_celdas);
   return {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
@@ -78,13 +76,13 @@ export function perfilEscritorio(valor = {}) {
     // Quarto "maquete": sem as paredes do quarto (o dono constrói as suas).
     sala_sem_paredes: valor.sala_sem_paredes === true,
     // Planta desenhada pelo dono (ver plantaQuarto); muda só ao salvar a decoração.
-    sala_celdas: /^[0vp12]{144}$/.test(String(valor.sala_celdas || "")) ? String(valor.sala_celdas) : "",
-    // Piso pintado ladrilho a ladrilho (12×12, um código por ladrilho; 0 =
+    sala_celdas: CELDAS_LIVRES.test(celdas) ? celdas : "",
+    // Piso pintado ladrilho a ladrilho (LADO_QUARTO², um código por ladrilho; 0 =
     // o piso da sala) e cada trecho das duas paredes altas (estilo + cor).
-    sala_pisos: /^[0-9a-f]{144}$/.test(pisoAtual) ? pisoAtual : "",
-    // 48 trechos (12 por lado: fundo, esquerda, frente, direita), cada um com
+    sala_pisos: new RegExp(`^[0-9a-f]{${LADO_QUARTO * LADO_QUARTO}}$`).test(pisoAtual) ? pisoAtual : "",
+    // LADO_QUARTO trechos por lado (fundo, esquerda, frente, direita), cada um com
     // estilo, cor e altura (0 baixa, 1 média, 2 alta).
-    sala_paredes: /^([a-h-][0-9a-d][0-2]){48}$/.test(paredesAtuais) ? paredesAtuais : "",
+    sala_paredes: new RegExp(`^([a-h-][0-9a-d][0-2]){${LADO_QUARTO * 4}}$`).test(paredesAtuais) ? paredesAtuais : "",
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
   };

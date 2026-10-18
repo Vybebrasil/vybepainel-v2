@@ -29,7 +29,7 @@ export function salasDoEscritorio(equipe = []) {
 }
 
 // Maior quarto (12 × 12): cada planta usa o canto dela (de 6 × 6 a 12 × 12).
-export const LADO_SALA = 12;
+export const LADO_SALA = 20; // = LADO_QUARTO (escritorio-quartos.js)
 // Limites como os do Habbo (construções de 1.000+ móveis num quarto); o mapa
 // foi medido com 1.188 blocos empilhados a 60 quadros por segundo.
 const LIMITE = { geral: { x: 80, y: 80, itens: 1500 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 1500 } };

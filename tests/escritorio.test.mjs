@@ -719,7 +719,7 @@ test("quartos: a camada de cada cena é a dela, em coordenadas locais; a pintura
   assert.ok(r('escritorioTemParede(0, 0, "x") && escritorioTemParede(0, 0, "y")'));
   const a = r('ESCRITORIO_PLANTA.ambientes.find((q) => q.id === "sala-3")');
   assert.ok(r("escritorioTrechoExiste(ESCRITORIO_PLANTA.ambientes.find((q) => q.id === 'sala-3'), 0)"), "fundo");
-  assert.ok(!r(`escritorioTrechoExiste(ESCRITORIO_PLANTA.ambientes.find((q) => q.id === 'sala-3'), ${a.porta === "baixo" ? 2 * 12 + 3 : 3 * 12 + 3})`), "o vão da porta não é parede (trechos em grade de 12)");
+  assert.ok(!r(`escritorioTrechoExiste(ESCRITORIO_PLANTA.ambientes.find((q) => q.id === 'sala-3'), ${a.porta === "baixo" ? 2 * 20 + 3 : 3 * 20 + 3})`), "o vão da porta não é parede (trechos em grade de 20)");
 });
 
 test("planta nova: a Praça salva antes dela não vale; a salva depois vale", () => {
@@ -861,7 +861,7 @@ test("salas: dono pelo primeiro nome ou apelido do cadastro; livres sem dono", (
 });
 
 test("itens: fora da área, classe estranha ou direção inválida são recusados", () => {
-  assert.throws(() => itensValidos("sala-0", [["exe_table", 12, 2, 0]]), /fora/);
+  assert.throws(() => itensValidos("sala-0", [["exe_table", 20, 2, 0]]), /fora/);
   assert.throws(() => itensValidos("geral", [["<script>", 1, 1, 0]]), /inválido/);
   assert.throws(() => itensValidos("geral", [["exe_table", 1, 1, 3]]), /Direção/);
   assert.deepEqual(itensValidos("sala-0", [["exe_table", 4, 1, 0]]), [["exe_table", 4, 1, 0, 0, 0]]);
@@ -1182,15 +1182,17 @@ test("perfil: piso e parede da sala só com valores conhecidos", () => {
 });
 
 test("perfil: piso pintado e paredes só no formato certo", () => {
-  // Sala 8×8: 64 ladrilhos e 32 trechos de parede (8 por lado).
-  // Grade de 12 × 12 (o maior quarto): 144 ladrilhos e 48 trechos de parede.
-  const ok = perfilEscritorio({ sala_pisos: "0".repeat(143) + "b", sala_paredes: "c02".repeat(47) + "hd0" });
-  assert.equal(ok.sala_pisos.length, 144);
-  assert.equal(ok.sala_paredes.length, 144);
-  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(144), sala_paredes: "c03".repeat(48) });
+  // Grade de 20 × 20 (o maior quarto): 400 ladrilhos e 80 trechos de parede
+  // (20 por lado). As antigas, de 8 × 8 e de 12 × 12, valem ampliadas.
+  const ok = perfilEscritorio({ sala_pisos: "0".repeat(399) + "b", sala_paredes: "c02".repeat(79) + "hd0" });
+  assert.equal(ok.sala_pisos.length, 400);
+  assert.equal(ok.sala_paredes.length, 240);
+  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(400), sala_paredes: "c03".repeat(80) });
   const legado=perfilEscritorio({sala_pisos:"1".repeat(8)+"2".repeat(56),sala_paredes:"c02".repeat(8)+"hd0".repeat(24)});
-  assert.equal(legado.sala_pisos,"111111110000"+"222222220000".repeat(7)+"0".repeat(48));
-  assert.equal(legado.sala_paredes,"c02".repeat(8)+"-00".repeat(4)+("hd0".repeat(8)+"-00".repeat(4)).repeat(3));
+  assert.equal(legado.sala_pisos,"1".repeat(8)+"0".repeat(12)+("2".repeat(8)+"0".repeat(12)).repeat(7)+"0".repeat(240));
+  assert.equal(legado.sala_paredes,"c02".repeat(8)+"-00".repeat(12)+("hd0".repeat(8)+"-00".repeat(12)).repeat(3));
+  const doze=perfilEscritorio({sala_pisos:"3".repeat(144)});
+  assert.equal(doze.sala_pisos,("3".repeat(12)+"0".repeat(8)).repeat(12)+"0".repeat(160));
   assert.equal(ruim.sala_pisos, "");
   assert.equal(ruim.sala_paredes, "");
 });

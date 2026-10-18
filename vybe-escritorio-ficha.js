@@ -199,7 +199,7 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
       .sort((m, n) => m[1] - n[1]);
     if (!lados.length) return false;
     const lado = lados[0][0], i = lado * L + (lado % 2 ? ly : lx);
-    const atual = String(p.sala_paredes || "").length === L * 12 ? p.sala_paredes : "-00".repeat(L * 4);
+    const paredes = escritorioParedesDoPerfil(p.sala_paredes), atual = paredes.length === L * 12 ? paredes : "-00".repeat(L * 4);
     const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
     if (atual.slice(i * 3, i * 3 + 3) === cod) return true;
     escritorioAlterarDecoracao({sala_paredes: atual.slice(0, i * 3) + cod + atual.slice(i * 3 + 3)});
@@ -217,7 +217,7 @@ function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
     return true;
   } else if (pin.ferramenta === "piso") {
     const i = ly * L + lx;
-    const atual = String(p.sala_pisos || "").length === L * L ? p.sala_pisos : "0".repeat(L * L);
+    const pisos = escritorioPisosDoPerfil(p.sala_pisos), atual = pisos.length === L * L ? pisos : "0".repeat(L * L);
     const cod = Math.max(0, ESCRITORIO_PISOS_SALA.findIndex(([id]) => id === pin.piso)).toString(16);
     if (atual[i] === cod) return true;
     escritorioAlterarDecoracao({sala_pisos: atual.slice(0, i) + cod + atual.slice(i + 1)});
@@ -235,8 +235,8 @@ function formaNaSalaEscritorio(a, lx, ly, forma, x, y) {
   if (!base) return false;
   const erro = (texto) => { const el = document.getElementById("office-estilo-erro"); if (el) el.textContent = texto; return true; };
   if (escritorioLadrilhoFixo(base, lx, ly)) return erro("A porta e a escada não mudam de lugar.");
-  const atual = e.celdas !== undefined ? e.celdas : (ESCRITORIO_CELDAS_LIVRES.test(a.celdasLivres || "") ? a.celdasLivres : "0".repeat(144));
-  const i = ly * 12 + lx;
+  const L = ESCRITORIO_QUARTO_MAX, atual = e.celdas !== undefined ? e.celdas : (ESCRITORIO_CELDAS_LIVRES.test(a.celdasLivres || "") ? a.celdasLivres : "0".repeat(L * L));
+  const i = ly * L + lx;
   if (atual[i] === forma) return true;
   const novo = atual.slice(0, i) + forma + atual.slice(i + 1);
   // Um móvel em cima do ladrilho precisa sair antes (senão ficaria no ar).
@@ -267,7 +267,7 @@ function mudarPortaEscritorio(lado) {
 function plantaOriginalEscritorio() {
   const e = escritorio.edicao, a = escritorioMinhaMesa()?.ambiente;
   if (!e || !a || e.camada !== a.id) return;
-  e.celdas = "0".repeat(144);
+  e.celdas = "0".repeat(ESCRITORIO_QUARTO_MAX * ESCRITORIO_QUARTO_MAX);
   if (e.itens.some((it) => escritorioNivelQuarto(a, it[1], it[2]) < 0)) { e.celdas = undefined; return escritorioAviso("Tire os móveis dos ladrilhos que somem antes de voltar à planta."); }
   escritorioEditorMudou();
   escritorioRedesenharMapa();

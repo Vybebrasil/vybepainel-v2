@@ -131,7 +131,7 @@ test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto
  const vm=await import('node:vm');const {QUARTOS,itensDoModelo}=await import('../server/escritorio-quartos.js');
  const novas=QUARTOS.plantas.filter(p=>!p.legado);
  assert.ok(novas.length>=20,'há formatos e tamanhos para escolher');
- assert.ok(new Set(novas.map(p=>p.tamanho)).size===4 && new Set(novas.map(p=>p.formato)).size>=8);
+ assert.ok(new Set(novas.map(p=>p.tamanho)).size===6 && new Set(novas.map(p=>p.formato)).size>=8);
  const c=vm.createContext({console,escritorio:{base:{quartos:QUARTOS}}});
  vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
  for(const planta of novas) for(const modelo of QUARTOS.modelos) {
@@ -203,7 +203,7 @@ test('planta desenhada salva junto com os móveis; porta e escada não mudam; m�
  const setup=await configurarQuarto(sql,pessoa,{},{planta:'amplo',modelo:'vazio'});
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
  // Tira o ladrilho (0,0), sobe (1,0) a patamar e tenta mexer na porta (3,7).
- const celdas=[...'0'.repeat(144)];celdas[0]='v';celdas[1]='1';celdas[7*12+3]='v';
+ const celdas=[...'0'.repeat(400)];celdas[0]='v';celdas[1]='1';celdas[7*20+3]='v';
  const livres=celdas.join('');
  const p=plantaQuarto('amplo',livres);
  assert.equal(p.celdas[0][0],-1);assert.equal(p.celdas[0][1],1);assert.equal(p.celdas[7][3],0,'porta fica');
@@ -222,10 +222,12 @@ test('perfil aceita luz conhecida e não muda a planta desenhada pelo salvamento
  const {perfilEscritorio,salvarPerfilEscritorio}=await import('../server/escritorio.js');
  assert.equal(perfilEscritorio({sala_luz:'roxa'}).sala_luz,'roxa');
  assert.equal(perfilEscritorio({sala_luz:'url(x)'}).sala_luz,'');
- assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(144)}).sala_celdas,'v'.repeat(144));
- assert.equal(perfilEscritorio({sala_celdas:'z'.repeat(144)}).sala_celdas,'');
+ assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(400)}).sala_celdas,'v'.repeat(400));
+ // Planta desenhada antiga (12 × 12) vale ampliada para 20 × 20.
+ assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(144)}).sala_celdas,('v'.repeat(12)+'0'.repeat(8)).repeat(12)+'0'.repeat(160));
+ assert.equal(perfilEscritorio({sala_celdas:'z'.repeat(400)}).sala_celdas,'');
  sql.comTransacao ??= (fn)=>fn(sql);
- const salvo=await salvarPerfilEscritorio(sql,1,{sala_luz:'noite',sala_celdas:'v'.repeat(144)});
+ const salvo=await salvarPerfilEscritorio(sql,1,{sala_luz:'noite',sala_celdas:'v'.repeat(400)});
  assert.equal(salvo.sala_luz,'noite');assert.equal(salvo.sala_celdas,'');
 });
 test('blocos baixos sobem como no Habbo; torre alta é parede; bloco invisível é grátis',async()=>{
