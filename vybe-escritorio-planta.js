@@ -162,8 +162,11 @@ const ESCRITORIO_MOVEIS_CENAS = {
     // madeira na altura 2 (dois blocos por ladrilho), degrau na altura 1 para
     // subir (degrau do Habbo: até 1,5), poltrona e planta lá em cima.
     ...[[14, 9], [15, 9], [14, 10], [15, 10]].flatMap(([x, y]) => [["bc_block_1_recolorable", x, y, 0, 185, 0], ["bc_block_1_recolorable", x, y, 0, 185, 1]]),
-    ["bc_block_1_recolorable", 14, 11, 0, 190, 0],
-    ["hygge_c25_armchair", 15, 9, 6, 0, 2], ["plant_small_cactus", 14, 9, 0, 0, 2],
+    // Escada de mão (com um bloco invisível por baixo, que é o degrau de verdade)
+    // e cerca de madeira na borda do patamar, como o mezanino da kitnet.
+    ["vybe_bloco_invisivel", 14, 11, 0, 0, 0], ["hygge_c25_ladder", 14, 11, 0, 0, 0],
+    ["ranch_c26_darkfence", 15, 9, 2, 0, 2],
+    ["hygge_c25_armchair", 14, 9, 6, 0, 2],
     // Garrafa giratória na mesinha (como no Habbo: gira e aponta para alguém).
     ["bottle", 2, 9, 0, 0, 0.95],
     ["mafia_c26_planter_white", 6, 12, 0], ["mafia_c26_planter_white", 9, 12, 0], ["mafia_c26_planter_white", 15, 12, 0],
