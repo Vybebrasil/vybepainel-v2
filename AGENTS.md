@@ -125,7 +125,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (sem inventário; o formato da planta continua no código). Paredes e pisos
   oficiais do Habbo (`plano:parede:<id>`, `plano:piso:<id>`) e zoom só em
   0,5×/1×/2×. Cenas novas: montar por conjuntos conferidos de perto antes de
-  compor a sala; uma coleção de móveis por sala.
+  compor a sala; uma coleção de móveis por sala. Antes de mobiliar: uma
+  referência por sala, planta com zonas, caminho livre e ponto de destaque, e
+  peças escolhidas vendo a arte. O verificador (`scripts/escritorio-auditar.mjs`)
+  também confere o desenho (`scripts/escritorio-desenho.mjs`): o que um móvel
+  cobre do outro e a frente das máquinas; é erro nas salas refeitas
+  (`DESENHO_CONFERIDO`) e aviso nas demais até serem refeitas.
 - Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma

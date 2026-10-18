@@ -92,7 +92,7 @@ const ESCRITORIO_PLANTA = (() => {
     ["jogos", "Jogos", "convivencia", "#3fae7a", 20, 12, "tokyo_c18_floor", "attic15_wall"],
     ["foco", "Foco", "foco", "#8b6b4a", 12, 16, "rainyday_c20_woodenfloor", "gardenshed_wall"],
     ["academia", "Academia", "convivencia", "#7a8494", 20, 16, "sb_tile", "attic15_wall"],
-    ["lounge", "Lounge", "convivencia", "#b4583a", 16, 13, "rainyday_c20_woodenfloor", "plano:parede:1901"],
+    ["lounge", "Lounge", "convivencia", "#b4583a", 16, 12, "rainyday_c20_woodenfloor", "plano:parede:1901"],
   ];
   // Planta de cada cena, linha a linha (y = 0 é a parede do fundo): "x" sem
   // piso, "0" chão, "1" e "2" patamares de um e dois degraus (o degrau do
@@ -255,13 +255,20 @@ const ESCRITORIO_PLANTA = (() => {
     // um a um em 1×: retângulo simples; o único degrau é o palco do bardo no
     // fundo à direita. Piso por zona: xadrez no bar, carpete vermelho do
     // Habbo no salão, madeira no estar e nos sofás.
-    lounge: { corDegrau: "#4a2a1c", fundo: "#3a1612", planta: [
+    // Lounge: bar-garagem grunge, referência escolhida pelo Paulo em
+    // 18/10/2026 (quarto "Garage 93 Vinyl"). Retângulo; o piso diz a zona:
+    // terracota no bar (esquerda), ladrilho verde-escuro na garagem (fundo),
+    // concreto no meio e tábuas no canto do DJ, no fundo à direita.
+    // Lounge: bar-garagem grunge, referência escolhida pelo Paulo em
+    // 18/10/2026 (quarto "Garage 93 Vinyl"). O piso diz a zona: terracota no
+    // bar (esquerda), ladrilho verde-escuro na garagem (fundo), concreto no
+    // salão e o palco do DJ, um degrau acima, de tábuas, no fundo à direita.
+    lounge: { corDegrau: "#4a3322", fundo: "#0d0a09", alturaParede: 1, planta: [
       "0000000000011111",
       "0000000000011111",
       "0000000000011111",
-      "0000000000000000",
-      "0000000000000000",
-      "0000000000000000",
+      "0000000000011111",
+      "0000000000011111",
       "0000000000000000",
       "0000000000000000",
       "0000000000000000",
@@ -270,8 +277,10 @@ const ESCRITORIO_PLANTA = (() => {
       "0000000000000000",
       "0000000000000000",
     ], texturas: [
-      { x0: 3, y0: 4, x1: 11, y1: 13, textura: "plano:piso:205" },
-      { x0: 0, y0: 0, x1: 11, y1: 4, textura: "xmas_c23_checkerfloor" },
+      { x0: 0, y0: 0, x1: 16, y1: 12, textura: "plano:piso:401" },
+      { x0: 0, y0: 0, x1: 5, y1: 12, textura: "plano:piso:505" },
+      { x0: 5, y0: 0, x1: 11, y1: 4, textura: "plano:piso:601" },
+      { x0: 11, y0: 0, x1: 16, y1: 5, textura: "plano:piso:208" },
     ] },
   };
   for (const [id, nome, sala, cor, w0, h0, textura, texturaParede] of CENAS) {
@@ -281,7 +290,7 @@ const ESCRITORIO_PLANTA = (() => {
     const celdas = def ? def.planta.map((linha) => [...linha].map((c) => (c === "x" ? -1 : Number(c)))) : Array.from({ length: h0 }, () => Array(w0).fill(0));
     const w = celdas[0].length, h = celdas.length;
     const modelo = { id: "cena-" + id, celdas, portas: { baixo: Math.floor(w / 2) - 1 }, escada: def?.escada || [], bordaAberta: true };
-    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau, texturas: def?.texturas || [], fundo: def?.fundo });
+    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau, texturas: def?.texturas || [], fundo: def?.fundo, semParedes: def?.semParedes === true, alturaParedeFixa: def?.alturaParede ?? -1 });
   }
   return { W, H, PREDIO: null, PISO, ambientes, divisorias: [], moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], rotulos: [], vistas: {}, texturas: [], texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement",
@@ -315,6 +324,36 @@ const ESCRITORIO_PRACA = (() => {
 // linha de móveis só, parede do fundo ocupada, peças empilhadas (o que fica
 // em cima leva a altura do topo de baixo) e o caminho da porta livre.
 // [classe, x, y, direção, estado, altura]
+// Casca do quarto como a dos construtores do Habbo: a parede inteira
+// forrada com um item de parede (variantes alternadas) e a cornija, uma
+// fileira de ladrilho fino na primeira linha de ladrilhos, na altura do
+// topo da parede (o mesmo para o quarto todo, como no Habbo).
+function escritorioCascaDoQuarto(id, forro, variantes, [cornija, estadoCornija], colunas = []) {
+  const a = ESCRITORIO_PLANTA.ambientes.find((x) => x.id === id);
+  if (!a) return [];
+  const r = [];
+  const topo = escritorioTopoDaParede(a);
+  for (const [x0, y0, x1, y1] of escritorioParedesDoQuarto(a).filter((p) => !p.baixa)) {
+    const horizontal = y0 === y1;
+    for (let i = horizontal ? x0 : y0; i < (horizontal ? x1 : y1); i++) {
+      const x = horizontal ? i : x0, y = horizontal ? y0 : i;
+      if (forro) r.push([forro, x, y, horizontal ? 4 : 2, i % variantes, 0]);
+      if (!colunas.some(([cx, cy]) => cx === x && cy === y)) r.push([cornija, x, y, 0, estadoCornija, topo - escritorioAlturaQuarto(a, x, y)]);
+    }
+  }
+  return r;
+}
+// Topo da parede, o mesmo no quarto todo (RoomPlaneParser do Habbo).
+function escritorioTopoDaParede(a) {
+  return 3.6 + Math.max(0, a.alturaParedeFixa ?? -1) + Math.max(0, ...a.modelo.celdas.flat());
+}
+// Coluna de construtor: peças empilhadas, uma apoiada no topo da outra, até
+// passar da cornija (a coluna corta a cornija, como nas referências).
+function escritorioColunaAteCornija(id, classe, x, y) {
+  const a = ESCRITORIO_PLANTA.ambientes.find((q) => q.id === id), f = mapaFisica(classe).altura || 1;
+  const n = a ? Math.ceil((escritorioTopoDaParede(a) - escritorioAlturaQuarto(a, x, y)) / f) : 4;
+  return Array.from({ length: n }, (_, i) => [classe, x, y, 0, 0, Math.round(i * f * 100) / 100]);
+}
 const ESCRITORIO_MOVEIS_CENAS = {
   // Convivência: o saguão de todos, com a cara da Bahia em São João.
   // Estar da lareira no patamar do fundo à esquerda; recepção no meio do
@@ -464,40 +503,65 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["js_exe_rug", 10, 2, 0], ["darkelegant_c20_carpet", 5, 7, 0],
     ["lodge_dark_chandelier", 2, 2, 0], ["lodge_dark_chandelier", 6, 7, 0],
   ],
-  // Lounge: o pub da referência do Paulo, montado com conjuntos conferidos
-  // um a um em 1× na bancada (bar, estar da lareira, canto dos sofás) e
-  // uma linha só: madeira escura, tijolo, couro e xadrez verde.
+  // Lounge: bar-garagem grunge (referência "Garage 93 Vinyl", escolhida
+  // pelo Paulo em 18/10/2026). A história: oficina de um mecânico que vira
+  // bar de vinil à noite. Da porta (meio da frente) o olhar vai à moto da
+  // garagem, no fundo; o caminho da porta ao balcão e ao DJ fica livre.
+  // Camadas: piso por zona, móvel grande encostado, peça em cima, coisa na
+  // parede e lâmpada pendurada em cada zona. Colunas de caixotes até a
+  // cornija nas duas pontas das paredes e entre a garagem e o DJ (nada
+  // na frente da moto nem no canto mais perto de quem olha).
   lounge: () => [
-    // Bar: adega e cristaleira na parede, prateleira de vidro com garrafas,
-    // balcão contínuo de mármore preto com caixa registradora, cafeteira de
-    // sifão, boleira e chopes; seis banquetas em fila; o busto na ponta.
-    ["val_c19_bottlewall", 3, 0, 4], ["mafia_c26_drinkcabinet", 5, 0, 4], ["val_c19_bottlewall", 8, 0, 4],
-    ["xmas_c23_shelf", 3, 1, 2], ["pirate_bottle_1", 3, 1, 0, 0, 2.2], ["pirate_bottle_3", 4, 1, 0, 0, 2.2],
-    ["hween_c23_pharaohbust", 3, 2, 0],
-    ["val_c20_tablecounter", 4, 2, 0], ["val_c20_tablecounter", 6, 2, 0], ["val_c20_tablecounter", 8, 2, 0],
-    ["wildwest_till", 4, 2, 0, 0, 1.5], ["rare_r21_coffeesiphon", 6, 2, 2, 0, 1.5], ["val_c20_cakestand", 7, 2, 0, 0, 1.5],
-    ["fantasy_c22_frothydrink", 8, 2, 0, 0, 1.5], ["xmas_c23_hotchocolate", 9, 2, 0, 0, 1.5],
-    ...[4, 5, 6, 7, 8, 9].map((x) => ["room_hcl15_barchair", x, 3, 0]),
-    // Canto do fundo à esquerda: samovar no caixote e planta.
-    ["wildwest_crate", 0, 0, 0], ["samovar", 0, 0, 0, 0, 1.23], ["mafia_c26_planter_dark", 1, 0, 0],
-    // Palco do bardo (um degrau): piano encostado, bardo, gramofone, arandelas.
-    ["xmas_c18_piano", 12, 0, 0], ["fantasy_c22_bard", 13, 2, 0], ["steampunk_gramophone", 15, 0, 0],
-    ["mafia_c26_walllamp_dark", 11.2, 0, 4, 0, 1.2], ["stories_oldmusic_guitarcase", 15, 2, 4],
-    // Estar da lareira: poltronas de couro de frente, mesa de barril com revistas e caneca.
-    ["lodge_dark_fireplace", 0, 6, 2], ["antique_c21_lamp", 1, 5, 0],
-    ["antique_c21_armchair", 2, 5, 4], ["wildwest_table", 2, 6, 0], ["mafia_c26_magazines", 2, 6, 0, 0, 1.4], ["xmas_c24_mugs", 2, 6, 0, 0, 1.4], ["antique_c21_armchair", 2, 7, 0],
-    ["xmas_c24_snowywindows", 0, 2, 2, 0, 0.8], ["antique_c21_birdcage", 0, 9, 2], ["hween_c22_gothicbookshelf", 0, 10, 0], ["mafia_c26_planter_dark", 0, 12, 0],
-    // Canto dos sofás: sofás de madeira e xadrez verde em volta da mesa com
-    // petiscos e caixa de música, abajur, canteiros de flores na frente do palco.
-    ["xmas_c24_rug", 12, 7, 0],
-    ["xmas_c24_doublesofa", 13, 7, 4], ["xmas_c24_singlesofa", 12, 9, 2], ["xmas_c24_coffeetable", 13, 8, 0], ["xmas_c24_singlesofa", 15, 9, 6], ["xmas_c24_doublesofa", 13, 11, 0],
-    ["xmas_c24_snacks1", 13, 8, 0, 0, 0.75], ["xmas_r17_musicbox", 13, 9, 2, 0, 0.75], ["antique_c21_lamp", 15, 7, 0],
-    ["garden_flowerbed", 12, 5, 0], ["garden_flowerbed", 14, 5, 0],
-    // Salão: uma mesa de barril com banquetas e chopes; barris perto da porta.
-    // Corredor livre da porta (colunas 7 e 8) até o bar; mesas dos dois lados.
-    ...[[5, 7], [5, 10], [10, 8]].flatMap(([x, y]) => [["wildwest_table", x, y, 0], ["room_hcl15_barchair", x - 1, y, 2], ["room_hcl15_barchair", x, y + 1, 0],
-      ["fantasy_c22_frothydrink", x, y, 0, 0, 1.4]]),
-    ["pirate_barrel2", 11, 12, 0], ["fantasy_c22_barrel", 4, 12, 0],
+    ...escritorioCascaDoQuarto("lounge", null, 1, ["xmas_c16_woodtile", 0], [[0, 11], [10, 0], [15, 0]]),
+    ...[[0, 11], [10, 0], [15, 0]].flatMap(([x, y]) => escritorioColunaAteCornija("lounge", "wildwest_crate", x, y)),
+    // Regras da planta: peça alta só encostada nas paredes (fundo e
+    // esquerda); nas bordas da frente, só coisa baixa, para não tapar a sala.
+    // A frente do palco fica aberta (é a plateia) e nada fica na frente da
+    // moto. Caminho livre da porta (colunas 7 e 8) até o bar e o palco.
+    //
+    // Bar (parede da esquerda): máquina de bebida, geladeira de vidro,
+    // prateleira de tijolo com garrafas e estante de vidro;
+    // corredor do barman; balcão de caixotes com garrafas, velas, cafeteira e
+    // canecas; banquetas do lado do cliente; pichação na parede.
+    ["olympics_r16_vendingmchn", 0, 0, 2], ["ads_711shelf", 0, 1, 0], ["grunge_shelf", 0, 3, 2], ["glass_shelf", 0, 6, 2],
+    ["sb_tag1", 0, 6, 2, 0, 1.9],
+    ...[2, 3, 4, 5, 6, 7].map((y) => ["wildwest_crate", 2, y, 0]),
+    ["pirate_bottle_1", 2, 2, 0, 0, 1.23], ["grunge_candle", 2, 3, 0, 0, 1.23], ["sunsetcafe_c20_coffeemachine", 2, 4, 2, 0, 1.23],
+    ["pirate_bottle_3", 2, 5, 0, 0, 1.23], ["xmas_c24_mugs", 2, 6, 0, 0, 1.23], ["grunge_candle", 2, 7, 0, 0, 1.23],
+    ...[2, 3, 4, 5, 6].map((y) => ["studio_stool", 3, y, 6]),
+    ["grungelamp", 2, 3, 0, 1, 2.5], ["grungelamp", 2, 6, 0, 1, 2.5], ["hween_c17_rat", 1, 8, 2],
+    // Canto de jogos (parede da esquerda, junto da porta): fliperama e
+    // jukebox pichados de costas para a parede, sinuca baixa na frente e
+    // lâmpada.
+    ["graffiti_r24_arcademachine", 0, 9, 2], ["vwave_r21_jukebox", 0, 10, 2],
+    ["bling15_pooltable", 2, 10, 4], ["grungelamp", 3, 10, 0, 1, 2.5],
+    // Garagem (fundo): armário, carrinho de ferramentas sob a janela velha,
+    // a moto encostada na parede com a guitarra pendurada em cima (o
+    // destaque da sala, com lâmpada), ferramentas, placa, cone e pneus nos
+    // cantos, longe da frente da moto.
+    ["uni_c23_locker", 5, 0, 4], ["ads_ontrackgp_tools", 6, 0, 4], ["window_grunge", 6.4, 0, 4, 0, 1.4],
+    ["tokyo_c18_motorbike", 7, 0, 2], ["guitar_skull", 8, 0, 4, 0, 2],
+    ["ranch_c26_farmtools", 5, 1, 0], ["grunge_sign", 5, 2, 0], ["bump_tires", 5, 3, 0], ["fball_c26_trainingcone", 6, 3, 0], ["lt_spider", 9, 3, 0],
+    ["grungelamp", 8, 1, 0, 1, 2.5],
+    // Palco do DJ (fundo à direita, um degrau): mesa de DJ de frente para a
+    // plateia, caixa de som e disco na parede, neon, violão encostado e o
+    // microfone e caixas de som de chão na beira do palco; lâmpada.
+    ["fest_c19_dj", 13, 1, 0], ["boutique_speakers", 11, 0, 4, 0, 2], ["uni_vinyl", 12, 0, 4, 0, 1.4],
+    ["disco_c26_neonlight1", 13, 0, 0, 1, 1.6], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
+    ["grungelamp", 14, 2, 0, 1, 2.5],
+    // Plateia (frente do palco): chão livre para ficar de pé; a mesa alta
+    // fica na lateral direita, com duas banquetas, sem tapar o palco.
+    ["vwave_c21_bartable", 14, 6, 0], ["studio_stool", 15, 6, 6], ["studio_stool", 15, 7, 6], ["grungelamp", 14, 6, 0, 1, 2.5],
+    // Salão: mesa de carretel com cadeiras de caixote à esquerda do caminho;
+    // na frente à direita, outra mesa com o sofá pichado (peças baixas).
+    ["grunge_table", 5, 7, 0], ["recycler_cratechairdark", 4, 8, 2], ["recycler_cratechairdark", 5, 6, 4], ["recycler_cratechairdark", 6, 9, 0],
+    ["grungelamp", 6, 8, 0, 1, 2.5],
+    ["grunge_table", 12, 9, 0], ["grunge_chair", 11, 9, 2], ["recycler_cratechairdark", 14, 10, 6], ["graffiti_r24_sofa", 12, 11, 0],
+    ["grungelamp", 13, 10, 0, 1, 2.5],
+    // No chão: alçapão no caminho, papel amassado, lixo, pneus e balde de
+    // tinta.
+    ["hween_c26_hatchteleport", 8, 5, 0], ["uni_c23_toiletpaper", 9, 10, 0], ["vwave_c21_trash", 4, 4, 0],
+    ["graffiti_c24_paintbucket", 15, 9, 0], ["bump_tires", 10, 11, 0],
   ],
   // Auditório: cinema. Tela com palco e púlpito entre os cantos recolhidos,
   // refletores, plateia em três degraus com corredor no meio e o saguão da
