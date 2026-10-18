@@ -147,6 +147,34 @@ virado para a lareira" aceita ficar do lado dela.
 - **Antes de mostrar ao Paulo,** foto em 2× de cada canto, conferida peça
   por peça.
 
+## Desenho do motor: arquiteto + designer de interiores (Paulo, 18/10/2026)
+
+O Paulo quer que as salas sejam pensadas como por um arquiteto e um designer
+de interiores, "e não só vários objetos jogados na sala". O motor fica em três
+camadas:
+
+1. **Arquiteto (estrutura):**
+   - programa da sala: uso e lotação;
+   - circulação: caminho livre da porta a cada canto;
+   - níveis: mezanino e escada onde fazem sentido;
+   - eixo com ponto focal.
+
+   O motor confere caminho, escada e eixo.
+2. **Designer (composições):** cada canto é uma receita testada ("estar com
+   lareira", "mesa de reunião", "recepção", "bar", "biblioteca", "oficina"),
+   com relações entre as peças: na frente de, ladeando, simétrico, virado
+   para. Cada receita é conferida no zoom uma vez. Cada sala tem uma coleção
+   de móveis e uma paleta, e a receita usa a coleção da sala.
+3. **Acabamento:** o detalhe vem da receita (o que faz sentido naquele uso),
+   com limite por superfície e sem repetir à toa.
+
+Por baixo das três camadas: a tabela de frentes conferidas na arte
+(`assets/escritorio/habbo/frentes.json`). A vitrine do navegador mostrou que a
+convenção de direção muda de peça para peça: `hween_c20_porchstairs` sobe ao
+contrário do que a fórmula supunha, enquanto `xmas_c18_stagestairs` e as
+cadeiras seguem a rosa do Habbo (0 norte, 2 leste, 4 sul, 6 oeste; quem senta
+fica na direção do móvel, como no Arcturus).
+
 ## Decisões do Paulo que valem
 
 - **Segundo reinício** (decisão de 18/10/2026):
