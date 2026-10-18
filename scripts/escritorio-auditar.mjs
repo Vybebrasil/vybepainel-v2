@@ -24,7 +24,8 @@ const arte = (c) => {
   const alto = Math.max(0, ...Object.values(j.spritesheet?.frames || {}).filter((_, i) => i < 400).map((f) => f.frame?.h || 0));
   const d = j.logic?.model?.dimensions || { x: 1, y: 1, z: 1 }, dirs = Object.keys(v?.directions || {}).map(Number);
   // Item de parede (mesma regra do mapa): não ocupa o piso.
-  const parede = dirs.length > 0 && dirs.every((x) => x === 2 || x === 4) && (d.y ?? 1) <= 0.3;
+  const ficha = ctx.__ficha[c];
+  const parede = ficha ? Boolean(ficha[0] & 16) : dirs.length > 0 && dirs.every((x) => x === 2 || x === 4) && (d.y ?? 1) <= 0.3;
   // Estados em que o desenho se mexe (mais de um quadro na animação).
   const anima = new Set(Object.entries(v?.animations || {}).filter(([, an]) => Object.values(an.layers || {}).some((l) => new Set(Object.values(l.frameSequences?.[0]?.frames || {}).map((f) => f.id)).size > 1)).map(([e]) => Number(e)));
   return { d, dirs, alto, parede, anima };
@@ -209,10 +210,97 @@ function auditar(cena, P, moveis, avisos) {
   // na de duas (0 e 2, ou 2 e 4), a frente é sempre para quem olha o mapa:
   // 0 e 4 para +y, 2 para +x. Móvel com frente (estante, fliperama, TV…) não
   // pode ficar de frente para uma parede encostada nele.
+  // Na arte de duas direções o número não diz a frente (no armário gótico,
+  // a direção 0 já fica comprida ao longo da parede da esquerda): vale a
+  // forma. Comprida em x olha para +y; comprida em y olha para +x.
   const frenteDe = (it, dirs) => {
     if (dirs.length >= 4) return OLHA[it.dir];
+    if (it.w > it.h) return [0, 1];
+    if (it.h > it.w) return [1, 0];
     return { 0: [0, 1], 2: [1, 0], 4: [0, 1] }[it.dir];
   };
+  const contraParede = (x, y, nx, ny) => temParede(x, y, nx, ny) || nx < 0 || ny < 0 || nx >= P.W || ny >= P.H || (P.andavel && !P.andavel(nx, ny));
+  // De lado na parede: peça alta e comprida com a ponta encostada numa
+  // parede e as costas soltas (no Habbo quem constrói gira até encostar as
+  // costas; o número da direção que faz isso muda de peça para peça).
+  for (const it of itens) {
+    const a = arte(it.classe);
+    // Só onde há parede (a Praça é ao ar livre: a borda não é parede).
+    if (!P.divisorias.length || it.altura || it.plano || a.parede || it.w === it.h || (a.d.z || 0) < 1.5) continue;
+    const [fx, fy] = frenteDe(it, a.dirs) || [0, 0];
+    const bx = -fx, by = -fy;
+    let costas = 0, ponta = 0;
+    for (let i = 0; i < it.w; i++) for (let j = 0; j < it.h; j++) {
+      const x = it.x + i, y = it.y + j;
+      if ((bx && i + bx >= 0 && i + bx < it.w) || (by && j + by >= 0 && j + by < it.h)) continue;
+      if (contraParede(x, y, x + bx, y + by)) costas++;
+    }
+    // Ponta: o lado curto (perpendicular à frente) encostado na parede.
+    const lados = fx ? [[0, -1], [0, 1]] : [[-1, 0], [1, 0]];
+    for (const [sx, sy] of lados) for (let i = 0; i < it.w; i++) for (let j = 0; j < it.h; j++) {
+      const x = it.x + i, y = it.y + j;
+      if ((sx && i + sx >= 0 && i + sx < it.w) || (sy && j + sy >= 0 && j + sy < it.h)) continue;
+      if (contraParede(x, y, x + sx, y + sy)) ponta++;
+    }
+    if (!costas && ponta) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) de lado na parede (direção ${it.dir}): gire para encostar as costas`));
+  }
+  // Piso escondido atrás de parede: olhando o mapa (linha de visão +x +y),
+  // um trecho de parede de fundo mais à frente cobre o ladrilho (recorte no
+  // fundo à direita ou na frente à esquerda da planta). Quem anda ali ou o
+  // que se põe ali aparece por cima da parede, porque no Habbo toda parede
+  // fica atrás de todo móvel e de todo boneco.
+  if (P.andavel && P.quarto) {
+    const escondidos = [];
+    for (let x = 0; x < P.W; x++) for (let y = 0; y < P.H; y++) {
+      if (!P.andavel(x, y) || (P.soleiras || []).some((q) => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h)) continue;
+      const n = P.nivelEm ? P.nivelEm(x, y) : 0;
+      const cobre = P.divisorias.some((dv) => {
+        const [x0, y0, x1, y1] = dv, alt = dv.alt ?? 118, horiz = y0 === y1;
+        const t = horiz ? y0 - (y + 0.5) : x0 - (x + 0.5);
+        if (t <= 0 || (horiz ? y0 === 0 : x0 === 0)) return false;
+        const onde = horiz ? x + 0.5 + t : y + 0.5 + t;
+        if (onde < (horiz ? x0 : y0) || onde > (horiz ? x1 : y1)) return false;
+        const fx = horiz ? Math.min(x1 - 1, Math.floor(onde)) : x0, fy = horiz ? y0 : Math.min(y1 - 1, Math.floor(onde));
+        if (!P.andavel(fx, fy)) return false;
+        const nv = P.nivelEm ? P.nivelEm(fx, fy) : 0;
+        // Um boneco (uns 90 px) no ladrilho já encosta na parede da frente.
+        return 32 * t + (n - nv) * 32 < alt + 90;
+      });
+      if (cobre) escondidos.push(`${x},${y}`);
+    }
+    if (escondidos.length) problemas.push(nomeCena(`piso escondido atrás de parede recuada: ${escondidos.join(" ")}`));
+  }
+  // Atrás de uma parede da frente: no Habbo (Nitro, ROOM_DEPTH_OFFSET) toda
+  // parede fica atrás de todo móvel. Peça num recanto, atrás de um trecho de
+  // parede mais à frente, aparece desenhada por cima dele, como se estivesse
+  // pregada na parede (o piano no fundo recuado do Lounge).
+  const tela = (x, y, n = 0) => ({ sx: (x - y) * 32, sy: (x + y) * 16 - n * 32 });
+  for (const it of itens) {
+    const a = arte(it.classe);
+    if (it.plano || a.parede || it.pendurado) continue;
+    const n = P.nivelEm ? P.nivelEm(it.x, it.y) : 0;
+    const esq = tela(it.x, it.y + it.h).sx, dir = tela(it.x + it.w, it.y).sx;
+    const baixo = tela(it.x + it.w, it.y + it.h, n).sy, alto = baixo - a.alto - (it.altura || 0) * 32;
+    for (const dv of P.divisorias) {
+      const [x0, y0, x1, y1] = dv;
+      const horiz = y0 === y1;
+      if (horiz ? y0 < it.y + it.h || x1 <= it.x - 8 : x0 < it.x + it.w || y1 <= it.y - 8) continue;
+      // Só o trecho que fica mesmo à frente (a parede do fundo do próprio canto não conta).
+      if (horiz ? y0 === 0 : x0 === 0) continue;
+      // Parede de fundo de verdade: com piso logo na frente dela (as bordas
+      // da frente e da direita do quarto não são desenhadas na frente).
+      const meio = horiz ? [Math.max(x0, Math.min(x1 - 1, it.x)), y0] : [x0, Math.max(y0, Math.min(y1 - 1, it.y))];
+      if (P.andavel && !P.andavel(meio[0], meio[1])) continue;
+      const nv = P.nivelEm ? P.nivelEm(horiz ? x0 : x0, horiz ? y0 : y0) : 0;
+      const alt = dv.alt ?? (dv.baixa ? 46 : 118);
+      const l = horiz ? tela(x0, y0).sx : tela(x0, y1).sx, r = horiz ? tela(x1, y0).sx : tela(x0, y0).sx;
+      const de = Math.max(esq, l) + 4, ate = Math.min(dir, r) - 4;
+      if (de >= ate) continue;
+      const piso = (sx) => (horiz ? (sx / 32 + 2 * y0) * 16 : (2 * x0 - sx / 32) * 16) - nv * 32;
+      const cruza = [de, ate].some((sx) => Math.min(piso(sx), baixo) - Math.max(piso(sx) - alt, alto) > 8);
+      if (cruza) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) atrás da parede (${x0},${y0})–(${x1},${y1}): aparece por cima dela`)); break; }
+    }
+  }
   const limite = quarto || B || { x0: 0, y0: 0, x1: P.W, y1: P.H };
   for (const it of itens) {
     if (!FRENTE.test(it.classe) || it.altura) continue;

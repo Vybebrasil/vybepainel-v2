@@ -16,7 +16,8 @@ const ficha = new Map(fd.roomitemtypes.furnitype.map((f) => [f.classname, f]));
 const catalogo = JSON.parse(await readFile("assets/escritorio/habbo/catalogo.json", "utf8"));
 const locais = (await readdir("assets/escritorio/habbo")).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5));
 const classes = [...new Set([...catalogo.map((m) => m.classe), ...locais])].sort();
-// [bits, altura, alturas?]: 1 pisa, 2 senta, 4 deita, 8 põe coisas em cima.
+// [bits, altura, alturas?]: 1 pisa, 2 senta, 4 deita, 8 põe coisas em cima,
+// 16 é de parede.
 // "alturas": a altura em cada estado, para os móveis de altura ajustável
 // (InteractionMultiHeight), quando a ficha traz a lista em customparams
 // (números decimais de 0 a 4, um por estado, como a caixa es_box).
@@ -36,6 +37,9 @@ for (const c of classes) {
   const alturas = /ball|puck/.test(c) ? null : alturasPorEstado(f.customparams);
   if (alturas) saida[c].push(alturas);
 }
+// Itens de parede (wallitemtypes da ficha): marca 16, para o mapa não
+// adivinhar pela forma da arte (quadros e escudos têm profundidade 1).
+for (const f of fd.wallitemtypes?.furnitype || []) if (classes.includes(f.classname) && !saida[f.classname]) saida[f.classname] = [16, 0];
 // Lógica oficial (logicType) e tipo de desenho (visualizationType) de cada
 // móvel: da arte do painel e, se houver, do acervo.
 const LOGICAS = { furniture_change_state_when_step_on: "pisar", furniture_counter_clock: "relogio", furniture_score: "placar",

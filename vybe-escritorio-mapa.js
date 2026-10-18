@@ -57,7 +57,10 @@ function mapaDimensoes(dados, dir) {
 // direções 2 (parede da esquerda) e 4 (parede do fundo) e quase não tem fundo.
 // Ajuste do ponto de registro do Habbo para a nossa parede (por direção).
 const MAPA_PAREDE_AJUSTE = { 2: { x: 0, y: -46 }, 4: { x: 0, y: -46 } };
-function mapaEhDeParede(dados) {
+function mapaEhDeParede(dados, classe) {
+  // A ficha oficial diz (wallitemtypes, marca 16); sem ficha, pela arte.
+  const f = classe && MAPA_FISICA?.[classe];
+  if (f) return Boolean(f[0] & 16);
   const v = dados.visualizations.find((x) => x.size === 64);
   const dirs = Object.keys(v?.directions || {}).map(Number);
   const d = dados.logic?.model?.dimensions || {};
@@ -1115,7 +1118,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const m = await mapaCarregarMovel(classe);
       // Item de parede: "dir" diz a parede (4 = fundo, que desce para a
       // direita; 2 = esquerda, que desce para a esquerda), igual à arte do Habbo.
-      const deParede = mapaEhDeParede(m.dados);
+      const deParede = mapaEhDeParede(m.dados, classe);
       const d0 = deParede ? (dir === 2 ? 2 : 4) : mapaDirecaoValida(m.dados, dir);
       const desenho = mapaCamadasMovel(m, d0, estado, 0);
       if (!desenho) return;

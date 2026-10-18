@@ -1397,3 +1397,16 @@ test("manequim guarda um visual válido e o cadeado do amor aceita dedicatória"
   const [s] = itensValidos("sala-1", [["chair_norja", 1, 1, 2, 0, 0, { f: "hd-180-1" }]]);
   assert.equal(s.length, 6, "cadeira não guarda visual");
 });
+
+test("peça de parede vem da ficha do Habbo (wallitemtypes), não da forma da arte", () => {
+  const c = vm.createContext({ console });
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
+  vm.runInContext(`MAPA_FISICA = ${readFileSync("assets/escritorio/habbo/fisica.json", "utf8")};`, c);
+  const quadro = JSON.parse(readFileSync("assets/escritorio/habbo/attic15_painting.json", "utf8"));
+  const escudo = { visualizations: [{ size: 64, directions: { 2: {}, 4: {} } }], logic: { model: { dimensions: { x: 2, y: 1, z: 1 } } } };
+  c.quadro = quadro; c.escudo = escudo;
+  assert.equal(vm.runInContext("mapaEhDeParede(quadro, 'attic15_painting')", c), true);
+  // Profundidade 1 enganava a regra antiga (só ≤ 0,3 contava como parede).
+  assert.equal(vm.runInContext("mapaEhDeParede(escudo, 'vikings_wallshield_r')", c), true);
+  assert.equal(vm.runInContext("mapaEhDeParede(escudo, 'chair_norja')", c), false, "na ficha como móvel de chão");
+});
