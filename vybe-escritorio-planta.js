@@ -154,6 +154,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ...[[2, 9], [4, 11]].flatMap(([x, y]) => [["paris_c15_table", x, y, 0], ["paris_c15_chair", x - 1, y, 2], ["paris_c15_chair", x + 1, y, 6]]),
     ["mafia_c26_planter_white", 6, 12, 0], ["mafia_c26_planter_white", 9, 12, 0], ["mafia_c26_planter_white", 15, 12, 0],
     ["mafia_c26_planter_white", 15, 4, 0], ["modern_c17_floorlamp", 9, 0, 0],
+    // Teleportes (levam direto a qualquer sala) e um dado (tem pedestal próprio).
+    ["mafia_c26_teleport_white", 15, 1, 6], ["mafia_c26_teleport_white", 15, 2, 6],
+    ["edice", 7, 9, 0, 1],
   ],
   // Praça: a área de fora, compacta. Deck da piscina com bar de palha no
   // fundo à esquerda; café ao ar livre no fundo à direita; fonte no meio do
@@ -185,6 +188,7 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["hblooza14_hedgediv", 17, 12, 0], ["hblooza14_hedgediv", 19, 12, 0], ["garden_lupin3", 21, 12, 0], ["garden_lupin3", 21, 9, 0],
     // Frente à esquerda: piquenique, bicicletário, árvores e flores.
     ["summer_c22_picnictable", 2, 11, 0], ["summer_c22_picnictable", 2, 14, 0],
+    ["mafia_c26_teleport_dark", 13, 16, 6],
     ["paris15_bicycle", 7, 13, 0], ["paris15_bicycle", 7, 15, 0], ["classic2_trashcan", 8, 12, 2], ["nyc_c23_mailbox", 8, 17, 2],
     ["olympus_c25_olivetree", 0, 9, 2], ["bohogarden_c21_fanpalm", 1, 17, 0], ["bohogarden_c21_fanpalm", 5, 10, 0],
     ...[[0, 12], [0, 14], [5, 13], [4, 16]].map(([x, y]) => ["garden_lupin3", x, y, 0]),
@@ -299,6 +303,7 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["gaming_c18_rigpro", 8, 8, 0], ["studio_chair", 8, 9, 0], ["studio_chair", 10, 9, 0],
     ["computer_flatscreen", 8, 8, 4, 0, 1.15], ["computer_flatscreen", 10, 8, 4, 0, 1.15],
     ["cubie_beanbag_b", 8, 6, 0], ["cubie_beanbag_p", 9, 6, 0],
+    ["edice", 6, 6, 0, 1], ["edicehc", 7, 7, 0, 1],
   ],
   // Foco: biblioteca silenciosa. Estantes na lateral, prateleiras de
   // parede e mesas de estudo com luminária no fundo, mesa de leitura no meio

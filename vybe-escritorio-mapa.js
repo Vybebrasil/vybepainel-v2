@@ -570,7 +570,7 @@ function mapaOrdenar(objetos) {
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
-function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarSaida }) {
+function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarSaida }) {
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
@@ -1081,12 +1081,20 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoAr
     const agora = performance.now();
     const quadro = p.acao === "wlk" ? Math.floor(agora / MAPA_QUADRO_PASSO) % 4 : 0;
     // O imager tem um quadro só de aceno; alternando com "em pé" o braço se mexe.
-    const acao = p.acao === "wav" && Math.floor(agora / 320) % 2 ? "std" : p.acao;
+    let acao = p.acao === "wav" && Math.floor(agora / 320) % 2 ? "std" : p.acao;
+    // Sentado no chão (":sit" do Habbo): parado em pé vira sentado.
+    if (p.chao && acao === "std") acao = "sit";
+    // Placa erguida por alguns segundos ocupa a mão; quem segura café ou
+    // bebida leva o copo à boca de vez em quando, como no Habbo.
+    let mao = p.mao;
+    if (p.placaAte > agora) mao = "sig=" + p.placa;
+    else if (/^crr=/.test(mao) && p.acao !== "wlk" && (agora + (p.fase ||= Math.random() * 7000)) % 7000 < 1300) mao = "drk=" + mao.slice(4);
     let gesto = "sml";
     if (p.falaAte > agora) gesto = Math.floor(agora / 240) % 2 ? "spk" : "sml"; // quem fala acordou
+    else if (p.expressaoAte > agora) gesto = p.expressao;
     else if (p.dormindo || p.piscaAte > agora) gesto = "eyb";
     const cabeca = acao === "wlk" || acao === "lay" ? p.dir : (p.cabeca ?? p.dir);
-    const url = mapaAvatarUrl(p.figura, p.dir, acao, p.mao, quadro, gesto, cabeca);
+    const url = mapaAvatarUrl(p.figura, p.dir, acao, mao, quadro, gesto, cabeca);
     if (p.img.dataset.url === url) return;
     p.img.dataset.url = url;
     const aplicar = () => { if (p.img.dataset.url === url) { delete p.img.dataset.reserva; p.img.src = url; } };
@@ -1202,6 +1210,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoAr
       // O próprio boneco, enquanto este navegador o guia, não é puxado pela
       // posição (atrasada) que volta do servidor.
       if (q.local && performance.now() - (p.guiado || 0) < 400) { trocarImagem(p); continue; }
+      // Saiu do lugar: levanta do chão.
+      if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01) p.chao = false;
       if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01 || p.acao !== (q.acao || "std")) caminhar(p, q);
       else trocarImagem(p);
     }
@@ -1337,6 +1347,12 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoAr
     const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
     if (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H) aoClicar?.(t.x, t.y);
   });
+  // Dois cliques num ladrilho: liga/desliga o móvel dali (como no Habbo).
+  el.addEventListener("dblclick", (e) => {
+    const r = palco.getBoundingClientRect();
+    const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
+    if (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H) aoDuploClique?.(t.x, t.y);
+  });
   const cancelarPonteiro = () => {
     const a = arrasto; arrasto = null; inercia = null;
     if (a?.item) aoCancelar?.();
@@ -1401,11 +1417,37 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoAr
     mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, p.acao === "wlk" ? "std" : p.acao, p.mao, 0, "spk", p.cabeca ?? p.dir), () => {});
     trocarImagem(p);
     p.no.querySelector(".mapa-balao")?.remove();
+    // Falou: o "digitando…" some.
+    clearTimeout(p.digitandoFim); p.no.querySelector(".mapa-digitando")?.remove();
     const b = document.createElement("span");
     b.className = "mapa-balao";
     b.textContent = texto;
     p.no.append(b);
     setTimeout(() => b.remove(), Math.min(9000, 3500 + texto.length * 60));
+  }
+  // Estado passageiro do boneco, como os comandos do Habbo: expressão do
+  // rosto (sad, srp, agr), placa erguida, sentado no chão e "digitando…".
+  // Vale até a pessoa andar (chão) ou até o tempo acabar (rosto e placa).
+  function estadoBoneco(id, { expressao, placa, chao, digitando } = {}) {
+    const p = pessoas.get(String(id));
+    if (!p) return;
+    const agora = performance.now();
+    if (expressao) { p.expressao = expressao; p.expressaoAte = agora + 4000; }
+    if (placa != null) { p.placa = placa; p.placaAte = agora + 6000; }
+    if (chao != null) p.chao = Boolean(chao);
+    if (digitando != null) {
+      clearTimeout(p.digitandoFim);
+      p.no.querySelector(".mapa-digitando")?.remove();
+      if (digitando) {
+        const d = document.createElement("span");
+        d.className = "mapa-digitando";
+        d.setAttribute("aria-label", "digitando");
+        d.innerHTML = "<i></i><i></i><i></i>";
+        p.no.append(d);
+        p.digitandoFim = setTimeout(() => d.remove(), 8000);
+      }
+    }
+    trocarImagem(p);
   }
   // Reação rápida: sobe e some acima do boneco.
   const REACAO = { aplauso: "👏", coracao: "❤️", risada: "😂", joinha: "👍", fogo: "🔥", festa: "🎉" };
@@ -1491,6 +1533,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoAr
     if (!p) return;
     cancelAnimationFrame(p.passo); clearTimeout(p.parar);
     p.guiado = performance.now();
+    if (Math.abs(p.x - x) > 0.01 || Math.abs(p.y - y) > 0.01) p.chao = false;
     p.x = x; p.y = y; p.dir = dir; p.acao = acao;
     trocarImagem(p); posicionarPessoa(p);
   }
@@ -1536,7 +1579,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoPassar, eu, aoPegar, aoAr
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    balao, reagir, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
+    balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
