@@ -107,6 +107,9 @@ export function novaCena(id, o = {}) {
       }
       niveis.set(1, { base: altura + pp.topo, x0, y0, x1, y1 });
       const pg = peca(guarda);
+      // Guarda-corpo segura: a ficha do Habbo não pode deixar pisar nele
+      // (a divisória de vidro da mansão é pisável e deixaria cair da beira).
+      if (pg.pisa) return falha(`guarda-corpo ${guarda} é pisável na ficha do Habbo: não segura ninguém na beira do mezanino`);
       if (lados.includes("frente")) {
         const [gw] = pegada(pg, 0);
         for (let x = x0; x < x1; x += gw) api.por(guarda, x, y1 - 1, { dir: 0, nivel: 1, beira: true });

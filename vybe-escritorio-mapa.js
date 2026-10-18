@@ -909,7 +909,10 @@ function mapaFiltroDaLuz(luz) {
   return id;
 }
 // Peças de piso que os construtores põem no alto para fazer andar de cima.
-const MAPA_PISO_DE_OBRA = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmfloor|_deck$|parquet/;
+const MAPA_PISO_DE_OBRA = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmfloor|_deck$|parquet|marble\d*$/;
+// Piso de construtor (tábua, ladrilho, mármore posto no alto): é chão, não
+// peça pendurada. Uma regra só, usada também pelo verificador.
+function mapaEhPisoDeObra(classe) { return MAPA_PISO_DE_OBRA.test(classe); }
 // Refletor de festa do Habbo: cada foco anda num vaivém dentro de uma área de
 // 31 px (no tamanho 64), com subida e descida em seno que encolhe perto das
 // pontas; ao chegar à ponta, volta; a amplitude muda quando a curva zera.
@@ -1502,7 +1505,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       // Só peça fina (altura ~0 na ficha do Habbo): bloco e ponte no alto continuam chão.
       // Piso de construtor no alto (assoalho, tábua, ladrilho: o mezanino do
       // Café) é chão, como no Habbo; pendurado é só a decoração (hera, luzes).
-      if (m.parede || !(m.altura > 0) || mapaAlturaMovel(m) > 0.05 || MAPA_PISO_DE_OBRA.test(m.classe)) { m.pendurado = false; continue; }
+      if (m.parede || !(m.altura > 0) || mapaAlturaMovel(m) > 0.05 || mapaEhPisoDeObra(m.classe)) { m.pendurado = false; continue; }
       const x0 = Math.floor(m.x), y0 = Math.floor(m.y), x1 = x0 + Math.max(1, Math.round(m.dim.x)), y1 = y0 + Math.max(1, Math.round(m.dim.y));
       m.pendurado = !moveis.some((o) => o !== m && !o.parede && Math.floor(o.x) < x1 && Math.floor(o.x) + Math.max(1, Math.round(o.dim.x)) > x0 && Math.floor(o.y) < y1 && Math.floor(o.y) + Math.max(1, Math.round(o.dim.y)) > y0 && (o.altura || 0) < m.altura && mapaTopoMovel(o) >= m.altura - 0.15);
       for (const c of m.camadas || []) if (c.prof === MAPA_PROF_SOMBRA) c.no.hidden = m.pendurado;

@@ -54,7 +54,7 @@ const ALTO = 92;
 // Salas já refeitas com a regra de desenho (o que um móvel cobre do outro e
 // a frente das máquinas): nelas é erro; nas outras, aviso até serem refeitas
 // (node scripts/escritorio-auditar.mjs --desenho lista os avisos).
-const DESENHO_CONFERIDO = new Set(["cafe"]);
+const DESENHO_CONFERIDO = new Set(["cafe", "recepcao"]);
 // Foto da cena (quanto de cada peça aparece): desligável para depurar.
 const FOTO = !process.argv.includes("--sem-foto");
 const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte de baixo do item
@@ -121,7 +121,7 @@ function auditar(cena, P, moveis, avisos) {
   const topoDe = (o) => (o.altura || 0) + (ctx.__tampos[o.classe] ?? ctx.mapaFisica(o.classe).altura ?? (arte(o.classe)?.d.z || 0));
   // Pendurado (mesma regra do mapa, marcarPendurados): peça fina no alto sem
   // nada embaixo na altura dela; passa-se por baixo e não precisa de apoio.
-  const PISO_DE_OBRA = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmfloor|_deck$|parquet/;
+  const PISO_DE_OBRA = { test: (c) => ctx.mapaEhPisoDeObra(c) };
   for (const it of itens) it.pendurado = Boolean(it.altura > 0) && !PISO_DE_OBRA.test(it.classe) && !(topoDe({ ...it, altura: 0 }) > 0.05) &&
     !itens.some((o) => o !== it && !o.parede && o.x < it.x + it.w && o.x + o.w > it.x && o.y < it.y + it.h && o.y + o.h > it.y && (o.altura || 0) < it.altura && topoDe(o) >= it.altura - 0.15);
   for (const it of itens) {
@@ -131,10 +131,14 @@ function auditar(cena, P, moveis, avisos) {
     // Base: o que está embaixo no ladrilho, inclusive piso de construtor
     // (tábua fina posta no alto, como o mezanino do Café): no Habbo a peça
     // apoia no topo do que estiver embaixo, em qualquer altura.
-    const abaixo = itens.filter((o) => o !== it && (!o.plano || (o.altura || 0) > 0) && (o.altura || 0) < it.altura && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
+    // Piso de obra de espessura zero (mármore posto no alto) é base na mesma
+    // altura da peça: ela fica rente ao piso, como no chão.
+    const abaixo = itens.filter((o) => o !== it && (!o.plano || (o.altura || 0) > 0) && ((o.altura || 0) < it.altura || (PISO_DE_OBRA.test(o.classe) && (o.altura || 0) <= it.altura)) && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
     if (!ocup.has(`${it.x},${it.y}`) && !abaixo.some((o) => Math.abs(topoDe(o) - it.altura) <= 0.12)) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) flutuando`)); continue; }
     if (!abaixo.length) continue;
-    const base = abaixo.reduce((a, b) => (topoDe(b) > topoDe(a) ? b : a)), tampo = topoDe(base);
+    // No empate, a base é o piso de obra (a coluna embaixo da beira não é
+    // onde o guarda-corpo apoia: ele apoia no piso do mezanino).
+    const base = abaixo.reduce((a, b) => (topoDe(b) > topoDe(a) + 1e-6 || (Math.abs(topoDe(b) - topoDe(a)) <= 1e-6 && PISO_DE_OBRA.test(b.classe)) ? b : a)), tampo = topoDe(base);
     // Como no Habbo: só se empilha em cima do que a ficha deixa pôr coisas
     // (canputstuffon). Cadeira, cama, planta e luminária não são base.
     // Peça de obra (escada, pedestal, bloco, caixote, coluna, piso) se empilha
@@ -558,7 +562,7 @@ function auditar(cena, P, moveis, avisos) {
   // Pega o que as regras de par não pegam: peça cortada, sumida atrás de
   // outra ou desenhada fora do lugar, seja qual for o motivo.
   if (FOTO) {
-    const PISO_DE_OBRA_FOTO = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmfloor|_deck$|parquet|woodtile/;
+    const PISO_DE_OBRA_FOTO = { test: (c) => ctx.mapaEhPisoDeObra(c) || /woodtile/.test(c) };
     // Apoiada em cima (em qualquer altura da pilha, no ladrilho da de baixo).
     const empilhadoSobre = (a, b) => (a.altura || 0) > (b.altura || 0) && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1) && !pende(a);
     const camadasFoto = [];
@@ -687,6 +691,8 @@ function auditar(cena, P, moveis, avisos) {
       continue;
     }
     if (Math.abs(f.fundo - t.fundo) < 1e-6 || (!f.parede && !t.parede && (f.plano || t.plano))) continue;
+    // Piso de construtor (no chão ou no alto) é superfície: existe para ficar embaixo.
+    if (!f.parede && !t.parede && (PISO_DE_OBRA.test(f.it.classe) || PISO_DE_OBRA.test(t.it.classe))) continue;
     if (f.fundo > t.fundo) [f, t] = [t, f];
     if (empilhado(f.it, t.it) || empilhado(t.it, f.it)) continue;
     const n = emComum(f, t);
