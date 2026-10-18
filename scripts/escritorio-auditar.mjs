@@ -427,10 +427,10 @@ function auditar(cena, P, moveis, avisos) {
   const naTela = [];
   const PENDE = /grungelamp|hanginglight|chandelier|ceiling_lamp|lantern/;
   for (const it of itens) {
-    // Lâmpada pendurada se atravessa por baixo (plana para quem anda), mas
-    // o desenho dela fica no alto e conta.
-    if (it.plano && !PENDE.test(it.classe)) continue;
-    let s = silhueta(it.classe, it.dir, it.estado, PENDE.test(it.classe));
+    // Peça plana (tapete, lâmpada pendurada, neon) entra também: não conta
+    // para esconder outra (exceto a lâmpada), mas conta no topo da parede.
+    // Neon e luz: o brilho (camada de luz) é o que mais aparece; conta.
+    let s = silhueta(it.classe, it.dir, it.estado, PENDE.test(it.classe) || /neon/.test(it.classe));
     if (!s) continue;
     // Da lâmpada pendurada conta só a ponta (lâmpada e bocal): o fio fino
     // sobe até o teto e cruza o que estiver atrás, como nas referências.
@@ -439,7 +439,7 @@ function auditar(cena, P, moveis, avisos) {
       s = { ...s, y: s.y + corte, h: 60, m, n: m.reduce((a, b) => a + b, 0) };
     }
     naTela.push({ it, s, sx: (it.rx - it.ry) * 32 + s.x, sy: (it.rx + it.ry) * 16 - nivel(it.x, it.y) * 32 + s.y + 16 - it.altura * 32,
-      fundo: it.x + it.w - 1 + it.y + it.h - 1, nome: `${it.classe} (${it.x},${it.y})` });
+      fundo: it.x + it.w - 1 + it.y + it.h - 1, nome: `${it.classe} (${it.x},${it.y})`, plano: it.plano && !PENDE.test(it.classe) });
   }
   for (const q of pendurados) {
     const s = silhueta(q.classe, q.dir === 2 ? 2 : 4, q.estado);
@@ -448,10 +448,32 @@ function auditar(cena, P, moveis, avisos) {
     naTela.push({ it: q, s, parede: true, sx: (ax - ay) * 32 + s.x, sy: (ax + ay) * 16 - nivel(q.x, q.y) * 32 + s.y - 46 - (q.altura || 0) * 32,
       fundo: -1e3, nome: `${q.classe} (${q.x},${q.y})` });
   }
+  // Peça encostada na parede não pode passar do topo dela: o que sobra
+  // aparece por trás da cornija (neon do palco do Lounge, 18/10/2026).
+  // Coluna (peças iguais empilhadas) e cornija cortam o topo de propósito.
+  if (quarto) {
+    const topo = 3.6 + Math.max(0, quarto.alturaParedeFixa ?? -1) + Math.max(0, ...(quarto.modelo?.celdas || [[0]]).flat());
+    for (const t of naTela) {
+      const o = t.it;
+      if (t.parede || PENDE.test(o.classe) || (o.altura || 0) + nivel(o.x, o.y) >= topo - 0.6) continue;
+      if (itens.some((q) => q !== o && q.classe === o.classe && q.x === o.x && q.y === o.y)) continue;
+      const fundo = o.y === quarto.y0, esquerda = o.x === quarto.x0;
+      if (!fundo && !esquerda) continue;
+      // Topo da parede na tela, coluna a coluna (desce ao longo da parede):
+      // fundo, y = x/2 − topo; esquerda, y = −x/2 − topo (mesma conta do mapa).
+      const sx = Math.round(t.sx), sy = Math.round(t.sy);
+      let acima = 0;
+      for (let i = 0; i < t.s.w; i++) {
+        const X = sx + i, linha = Math.min(fundo ? X / 2 : Infinity, esquerda ? -X / 2 : Infinity) - topo * 32;
+        for (let j = 0; j < t.s.h && sy + j < linha - 2; j++) if (t.s.m[j * t.s.w + i]) acima++;
+      }
+      if (acima > 30) desenho.push(nomeCena(`${t.nome} passa do topo da parede: aparece por trás dela`));
+    }
+  }
   const empilhado = (a, b) => (a.altura || 0) > 0 && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1);
   for (let i = 0; i < naTela.length; i++) for (let j = i + 1; j < naTela.length; j++) {
     let f = naTela[i], t = naTela[j];
-    if (f.fundo === t.fundo) continue;
+    if (f.fundo === t.fundo || f.plano || t.plano) continue;
     if (f.fundo < t.fundo) [f, t] = [t, f];
     if (f.parede || empilhado(f.it, t.it) || empilhado(t.it, f.it)) continue;
     const n = emComum(f, t);

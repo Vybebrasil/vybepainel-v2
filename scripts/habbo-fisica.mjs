@@ -45,7 +45,8 @@ for (const f of fd.wallitemtypes?.furnitype || []) if (classes.includes(f.classn
 const LOGICAS = { furniture_change_state_when_step_on: "pisar", furniture_counter_clock: "relogio", furniture_score: "placar",
   furniture_custom_stack_height: "altura", furniture_random_teleport: "funil", furniture_internal_link: "link", furniture_multiheight: "multialtura",
   furniture_vote_counter: "voto", furniture_trophy: "trofeu", furniture_window: "janela", furniture_crackable: "quebravel", furniture_badge_display: "selo",
-  furniture_youtube: "tv", furniture_mannequin: "manequim", furniture_floor_hole: "buraco", furniture_lovelock: "cadeado" };
+  furniture_youtube: "tv", furniture_mannequin: "manequim", furniture_floor_hole: "buraco", furniture_lovelock: "cadeado",
+  furniture_background_color: "fundo" };
 const DESENHOS = { furniture_score_board: "placar", furniture_counter_clock: "relogio" };
 const anotar = (c, d) => { if (!saida[c]) return; const l = LOGICAS[d.logicType], v = DESENHOS[d.visualizationType]; if (l || v) { while (saida[c].length < 3) saida[c].push(null); saida[c][3] = l || null; if (v) saida[c][4] = v; } };
 for (const c of locais) { try { anotar(c, JSON.parse(await readFile(`assets/escritorio/habbo/${c}.json`, "utf8"))); } catch {} }

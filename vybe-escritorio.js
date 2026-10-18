@@ -511,7 +511,9 @@ function escritorioItensDaCamada(camada) {
 // fachadas fechadas); dentro de um quarto, só a camada dele (coordenadas locais).
 function escritorioMoveisAtuais() {
   const camada = escritorio.quarto || "geral";
-  return escritorioItensDaCamada(camada).map((it, i) => [...it.slice(0, 6), { camada, i }]);
+  // A configuração do item (7º campo: cor do fundo colorido, troféu…) vai
+  // junto da origem, para o mapa desenhar o que depende dela.
+  return escritorioItensDaCamada(camada).map((it, i) => [...it.slice(0, 6), { camada, i, ...(it[6] && typeof it[6] === "object" && !Array.isArray(it[6]) ? { cfg: it[6] } : {}) }]);
 }
 function escritorioRaizQuarto(id) { return String(id || '').replace(/-andar-1$/,''); }
 function escritorioPerfilDecoracao(id=escritorio.quarto || escritorioMinhaMesa()?.ambiente.id) {

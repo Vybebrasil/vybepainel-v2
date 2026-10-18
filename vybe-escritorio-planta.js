@@ -548,9 +548,10 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["grungelamp", 8, 1, 0, 1, 2.5], ["hween_c25_tools", 9, 2, 0],
     // Palco do DJ (fundo à direita, um degrau): mesa de DJ de frente para a
     // plateia, caixa de som e disco na parede, neon, violão encostado e o
-    // microfone e caixas de som de chão na beira do palco; lâmpada.
+    // microfone e caixas de som de chão na beira do palco; lâmpada e o
+    // refletor de festa varrendo o palco.
     ["fest_c19_dj", 13, 1, 0], ["boutique_speakers", 11, 0, 4, 0, 2], ["uni_vinyl", 12, 0, 4, 0, 1.4],
-    ["disco_c26_neonlight1", 13, 0, 0, 1, 1.6], ["grungewall", 14, 0, 4, 0, 0.2], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
+    ["disco_c26_neonlight1", 13, 0, 0, 1, 0.9], ["grungewall", 14, 0, 4, 0, 0.2], ["party_beamer", 11, 1, 4, 1], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
     ["grungelamp", 14, 2, 0, 1, 2.5],
     // Plateia (frente do palco): chão livre para ficar de pé; a mesa alta
     // fica na lateral direita, com duas banquetas, sem tapar o palco.
@@ -701,7 +702,8 @@ function escritorioPlantaGeral() {
 function escritorioMoveisDaCena(a) {
   const f = typeof ESCRITORIO_MOVEIS_CENAS !== "undefined" && ESCRITORIO_MOVEIS_CENAS[a.id];
   // (a Praça também tem a sua lista: é o padrão da camada "geral")
-  return f ? f().map(([classe, x, y, dir = 2, estado = 0, altura = 0]) => [classe, x, y, dir, ESCRITORIO_ESTADO_ANIMADO[classe] ?? estado, altura]) : [];
+  // O 7º campo (configuração: cor do fundo colorido, troféu…) segue junto.
+  return f ? f().map(([classe, x, y, dir = 2, estado = 0, altura = 0, cfg]) => [classe, x, y, dir, ESCRITORIO_ESTADO_ANIMADO[classe] ?? estado, altura, ...(cfg && typeof cfg === "object" ? [cfg] : [])]) : [];
 }
 // Espaço comum com cena própria (Café, Lounge…), pelo id da zona.
 function escritorioCenaComum(id) {

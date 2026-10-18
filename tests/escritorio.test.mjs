@@ -1398,6 +1398,13 @@ test("manequim guarda um visual válido e o cadeado do amor aceita dedicatória"
   assert.equal(s.length, 6, "cadeira não guarda visual");
 });
 
+test("fundo colorido guarda só uma cor válida", async () => {
+  const { itensValidos } = await import("../server/escritorio-mapa.js");
+  const [t] = itensValidos("lounge", [["roombg_color", 1, 1, 0, 1, 0, { c: "#3A1050", x: 1 }]]);
+  assert.deepEqual(t[6], { c: "#3a1050" });
+  assert.throws(() => itensValidos("lounge", [["roombg_color", 1, 1, 0, 1, 0, { c: "red;background:url(x)" }]]), /fundo/);
+});
+
 test("peça de parede vem da ficha do Habbo (wallitemtypes), não da forma da arte", () => {
   const c = vm.createContext({ console });
   vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
