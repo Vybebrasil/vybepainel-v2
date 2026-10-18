@@ -503,7 +503,9 @@ export function novaCena(id, o = {}) {
         figurantes.push({ figura, x: sentado.x, y: sentado.y, dir: sentado.dir, acao: "sit" });
         return;
       }
-      if (at(x, y, 0).solido) return falha(`figurante de pé em ${x},${y}, em cima de ${at(x, y, 0).solido.nome}`);
+      // Em pé só em chão ou em peça onde se pisa (esteira, colchonete, palco).
+      const sob = at(x, y, 0).solido;
+      if (sob && !peca(sob.classe).pisa) return falha(`figurante de pé em ${x},${y}, em cima de ${sob.nome}`);
       figurantes.push({ figura, x, y, dir });
     },
     // Confere o que só dá para ver com tudo posto: item de parede atrás de

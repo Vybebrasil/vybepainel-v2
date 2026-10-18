@@ -28,7 +28,7 @@ montagem. Também precisam funcionar como o Habbo: sentar, subir escada, empilha
    - **Auditório**: teatro com balcão. Montado em 18/10 (ver "Auditório").
    - **Produção**: estúdio de foto e vídeo. Montada em 18/10 (ver "Produção").
    - **Jogos**: fliperama escuro com neon. Montado em 18/10 (ver "Jogos").
-   - **Academia**: moderna, com tijolo vermelho e vidro. A fazer.
+   - **Academia**: moderna, com tijolo vermelho e vidro. Montada em 18/10 (ver "Academia").
    - **Lounge**: por último, também do zero. Não remendar a versão antiga.
 3. Depois, detalhar mais os ambientes.
 4. Levar as regras do motor para o editor do painel (quem administra monta as
@@ -363,6 +363,26 @@ caber.
   - **Sala do videogame,** com pufes virados para o console, sobre o tapete
     neon.
   - **Lanchonete** perto da porta.
+
+## Academia (montada em 18/10/2026)
+
+- **Tijolo:** é a parede oficial do Habbo `plano:parede:1901` (tijolo
+  vermelho). As outras texturas de tijolo enganam: 1801 é tijolo branco, que
+  com luz fria fica azulado, e 1902 é bege. O "bloco de tijolo vermelho da
+  cidade" (`nyc_c23_buildingred`) aparece cinza.
+- **Ambiente:** luz quente, parede de 4 níveis.
+- **Paredes:** janelas altas (`window_skyscraper`), ventiladores industriais e
+  arandelas.
+- **Cantos:**
+  - esteiras no patamar;
+  - pesos com espelhos;
+  - colchonetes e cama elástica;
+  - bar de sucos;
+  - vestiário com armários, banco e divisória de blocos de vidro;
+  - luz industrial de teto (`army_c15_light`). As luzes verdes HabboLympix
+    pareciam cápsulas soltas.
+- **Regra nova:** figurante pode ficar de pé em peça onde se pisa (esteira,
+  colchonete).
 
 ## Decisões do Paulo que valem
 
