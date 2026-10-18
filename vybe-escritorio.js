@@ -786,7 +786,7 @@ function atualizarPessoasEscritorio() {
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado, dirCama !== undefined && !(voce && escritorio.emMovimento)),
         mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || "",
         dir: sentado ? dirAssento : dirCama !== undefined ? dirCama : ESCRITORIO_APARELHOS[voce ? escritorio.pose : p.pose] ? escritorioNoAparelho(Math.round(pos.x), Math.round(pos.y))?.dir : undefined, local: voce,
-        aoClicar: (id) => { fecharFichaMovelEscritorio(); abrirFichaEscritorio(id); },
+        aoClicar: (id) => abrirMenuPessoaEscritorio(id),
       };
     }));
   }
@@ -936,7 +936,8 @@ function renderEscritorio() {
  <details class="ofc-onde" ${escritorio.ondeFechado ? "" : "open"} ontoggle="escritorio.ondeFechado=!this.open" ${modo === "mapa" ? "" : "hidden"}><summary>${escritorioIcone("pessoas")}<span>Quem está onde</span></summary><div id="office-onde"></div></details>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div id="office-mesa-card" class="ofc-mesa-card" role="dialog" aria-label="Sua mesa" hidden onmouseleave="this.hidden=true"></div>
- <div id="office-movel-card" class="ofc-mesa-card ofc-ficha-movel" role="dialog" aria-label="Móvel selecionado" hidden></div>
+ <div id="office-movel-card" class="ofc-mesa-card ofc-ficha-movel" role="dialog" aria-label="Selecionado" hidden></div>
+ <div id="office-menu-pessoa" class="ofc-menu-pessoa" role="menu" aria-label="Ações" hidden></div>
  <div id="office-info-card" class="ofc-mesa-card ofc-info-card" role="status" hidden onmouseleave="this.hidden=true"></div>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
@@ -1166,7 +1167,9 @@ function escritorioQuadro(agora) {
   if (!teclado && movimento.rota.length) {
     const alvo = movimento.rota[0];
     const dx = alvo.x - movimento.x, dy = alvo.y - movimento.y, d = Math.hypot(dx, dy);
-    const passo = velocidade * dt;
+    // Passo na diagonal leva o mesmo meio segundo do passo reto (Arcturus: um
+    // passo por ciclo do quarto); antes demorava 41% a mais e parecia arrastar.
+    const passo = velocidade * dt * (Math.abs(dx) > 0.01 && Math.abs(dy) > 0.01 ? Math.SQRT2 : 1);
     if (d <= passo) {
       movimento.x = alvo.x; movimento.y = alvo.y;
       movimento.rota.shift();
@@ -1613,8 +1616,45 @@ function abrirFichaMovelEscritorio(m) {
 }
 function fecharFichaMovelEscritorio() {
   escritorio.movelSelecionado = null;
+  escritorio.pessoaSelecionada = null;
   const card = document.getElementById("office-movel-card");
   if (card) card.hidden = true;
+  const menu = document.getElementById("office-menu-pessoa");
+  if (menu) menu.hidden = true;
+}
+// Clique em alguém (AvatarInfoWidget do Nitro): a seta de seleção em cima,
+// um menu curto sobre a cabeça com as ações e a ficha lateral (nome, onde
+// está, status). A ficha completa (pontos, conquistas) fica a um clique.
+function abrirMenuPessoaEscritorio(id) {
+  fecharFichaMovelEscritorio();
+  const b = escritorio.base, pessoa = b?.equipe.find((p) => String(p.id) === String(id));
+  if (!pessoa) return;
+  escritorio.pessoaSelecionada = String(id);
+  const eu = String(id) === String(b.eu), online = (escritorio.online || []).find((o) => String(o.id) === String(id));
+  const perfil = eu ? escritorio.perfil : pessoa.perfil || {};
+  const st = ESCRITORIO_STATUS[eu ? escritorio.status : online?.status] || null;
+  const lugar = online || eu ? escritorioLugarDe(eu ? null : online)?.nome : "";
+  const sid = safeText(String(id));
+  const card = document.getElementById("office-movel-card");
+  if (card) {
+    card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorioAvatar(perfil, pessoa.nome)}</div><b>${safeText(pessoa.nome)}</b><small>${online || eu ? `${st ? `<span style="color:${st[1]}">${safeText(st[0])}</span>` : ""}${lugar ? ` · ${safeText(lugar)}` : ""}` : "Fora do escritório"}</small><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirFichaEscritorio('${sid}')">Ficha completa</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null)" aria-label="Fechar">Fechar</button></div>`;
+    card.hidden = false;
+  }
+  const acoes = eu
+    ? [["Acenar", "definirPoseEscritorio('acenar')"], ["Sentar no chão", "sentarNoChaoEscritorio()"], ["Personalizar", "personalizarEscritorio()"]]
+    : [...(online ? [["Ir até", `escritorioIrAte('${sid}')`]] : []), ["Deixar recado", `abrirRecadosEscritorio('${sid}')`], ["Dar presente", `abrirPresenteEscritorio('${sid}')`]];
+  const menu = document.getElementById("office-menu-pessoa");
+  if (!menu) return;
+  menu.innerHTML = `<b>${safeText(pessoa.nome.split(" ")[0])}</b>${acoes.map(([t, f]) => `<button type="button" role="menuitem" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null);${f}">${safeText(t)}</button>`).join("")}`;
+  menu.hidden = false;
+  // Sobre a cabeça do boneco, dentro da área do mapa.
+  const alvo = escritorio.mapa?.noDaPessoa?.(id);
+  const caixa = menu.parentElement.getBoundingClientRect(), r = alvo?.getBoundingClientRect();
+  if (r) {
+    const w = menu.offsetWidth, h = menu.offsetHeight;
+    menu.style.left = Math.max(8, Math.min(caixa.width - w - 8, r.left - caixa.left + r.width / 2 - w / 2)) + "px";
+    menu.style.top = Math.max(8, r.top - caixa.top - h - 34) + "px";
+  }
 }
 function usarMovelSelecionadoEscritorio() {
   const m = escritorio.movelSelecionado;

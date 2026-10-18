@@ -1479,12 +1479,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Habbo faz depois de uns minutos sem mexer).
   const mostrarZzz = (p) => {
     let zzz = p.no.querySelector(".mapa-zzz");
-    const dorme = p.dormindo || p.cochilo;
+    // Como no Habbo: ocioso acorda ao andar (o zZz só aparece parado).
+    const dorme = (p.dormindo || p.cochilo) && p.acao !== "wlk";
     if (dorme && !zzz) { zzz = document.createElement("span"); zzz.className = "mapa-zzz"; zzz.setAttribute("aria-hidden", "true"); zzz.textContent = "z Z z"; p.no.append(zzz); }
     else if (!dorme && zzz) zzz.remove();
   };
   const trocarImagem = (p) => {
     const agora = performance.now();
+    mostrarZzz(p);
     const quadro = p.acao === "wlk" ? Math.floor(agora / MAPA_QUADRO_PASSO) % 4 : 0;
     // O imager tem um quadro só de aceno; alternando com "em pé" o braço se mexe.
     let acao = p.acao === "wav" && Math.floor(agora / 320) % 2 ? "std" : p.acao;
@@ -1500,7 +1502,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     let gesto = "sml";
     if (p.falaAte > agora) gesto = Math.floor(agora / 240) % 2 ? "spk" : "sml"; // quem fala acordou
     else if (p.expressaoAte > agora) gesto = p.expressao;
-    else if (p.dormindo || p.cochilo || p.piscaAte > agora) gesto = "eyb";
+    else if (((p.dormindo || p.cochilo) && p.acao !== "wlk") || p.piscaAte > agora) gesto = "eyb";
     const cabeca = acao === "wlk" || acao === "lay" ? p.dir : (p.cabeca ?? p.dir);
     const url = mapaAvatarUrl(p.figura, p.dir, acao, mao, quadro, gesto, cabeca);
     if (p.img.dataset.url === url) return;
@@ -1544,7 +1546,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y);
     p.acao = "wlk"; trocarImagem(p);
     // Passos curtos (vindos da presença a cada 150 ms) emendam sem trancos.
-    const dur = Math.min(4000, dist < 1.5 ? 150 : dist * MAPA_PASSO_MS), ini = performance.now();
+    // Como no Habbo (Arcturus: um passo por ciclo de 500 ms, reto ou na
+    // diagonal), o tempo conta pelos passos (o maior eixo), não pela distância.
+    const passos = Math.max(Math.abs(alvo.x - de.x), Math.abs(alvo.y - de.y));
+    const dur = Math.min(4000, dist < 1.5 ? 150 : passos * MAPA_PASSO_MS), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
@@ -1744,7 +1749,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         const r = palco.getBoundingClientRect();
         const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
         aoPassar?.(Math.floor(t.x), Math.floor(t.y), e.clientX, e.clientY);
-        passarPonteiro(e.clientX, e.clientY, t);
+        // Sobre um boneco: o próprio botão mostra a mão; o cursor de ladrilho some.
+        if (e.target.closest?.(".mapa-pessoa")) { if (cursor) cursor.hidden = true; el.classList.remove("mapa-sobre-objeto"); }
+        else passarPonteiro(e.clientX, e.clientY, t);
       }
       return;
     }
@@ -1857,13 +1864,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         candidatos.push({ z: Number(c.style.zIndex || m.no.style.zIndex || 0), teste: () => alfaEm(c, rect, cx, cy, c.width, c.height) > 64, objeto: { tipo: "movel", item: m } });
       }
     }
-    for (const [id, q] of pessoas) {
-      const img = q.no?.querySelector("img");
-      if (!img || !img.naturalWidth) continue;
-      const rect = img.getBoundingClientRect();
-      if (cx < rect.left || cx >= rect.right || cy < rect.top || cy >= rect.bottom) continue;
-      candidatos.push({ z: Number(q.no.style.zIndex || 0), teste: () => alfaEm(img, rect, cx, cy, img.naturalWidth, img.naturalHeight) > 64, objeto: { tipo: "pessoa", id } });
-    }
+    // Pessoas não entram aqui: o boneco vem do servidor de imagens do Habbo
+    // (outro domínio) e testar o pixel dele contaminaria o canvas de amostra;
+    // cada boneco é um botão com o próprio clique.
     candidatos.sort((a, b) => b.z - a.z);
     return candidatos.find((c) => c.teste())?.objeto || null;
   }
@@ -1951,14 +1954,56 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     p.falaAte = performance.now() + Math.min(4000, 900 + texto.length * 45);
     mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, p.acao === "wlk" ? "std" : p.acao, p.mao, 0, "spk", p.cabeca ?? p.dir), () => {});
     trocarImagem(p);
-    p.no.querySelector(".mapa-balao")?.remove();
     // Falou: o "digitando…" some.
     clearTimeout(p.digitandoFim); p.no.querySelector(".mapa-digitando")?.remove();
-    const b = document.createElement("span");
-    b.className = "mapa-balao";
-    b.textContent = texto;
-    p.no.append(b);
-    setTimeout(() => b.remove(), Math.min(9000, 3500 + texto.length * 60));
+    // Balão do Habbo (ChatWidget do Nitro): sai logo acima da cabeça, com o
+    // rosto e o nome de quem falou, e sobe em fila; o mais novo empurra para
+    // cima os que encostam nele; de tempos em tempos todos sobem 15 px e somem
+    // ao passar do topo. O histórico fica na aba Conversa.
+    const faixa = faixaConversa(), er = el.getBoundingClientRect(), pr = p.img.getBoundingClientRect();
+    const b = document.createElement("div");
+    b.className = "mapa-chat";
+    const rosto = new Image();
+    rosto.alt = ""; rosto.referrerPolicy = "no-referrer";
+    rosto.src = "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: p.figura, headonly: "1", direction: "2", head_direction: "3", gesture: "spk", size: "s" });
+    rosto.onerror = () => rosto.remove();
+    const nome = document.createElement("b"), fala = document.createElement("span");
+    nome.textContent = (p.etiqueta.querySelector("b")?.textContent || "").split(" ")[0] + ":";
+    fala.textContent = " " + texto;
+    b.append(rosto, nome, fala);
+    faixa.append(b);
+    const w = b.offsetWidth, h = b.offsetHeight;
+    const item = { b, h, w, x: Math.max(4, Math.min(er.width - w - 4, pr.left - er.left + pr.width / 2 - w / 2)), y: Math.max(4, pr.top - er.top - h + 6), pular: true };
+    b.style.left = item.x + "px";
+    // Empurra para cima, em cascata, os balões que encostam no novo.
+    const empurrar = (novo) => {
+      for (const o of baloesConversa) {
+        if (o === novo || o.y >= novo.y + novo.h || o.y + o.h <= novo.y - 2 || o.x >= novo.x + novo.w || o.x + o.w <= novo.x) continue;
+        o.y = novo.y - o.h - 2; o.b.style.top = o.y + "px"; empurrar(o);
+      }
+    };
+    baloesConversa.push(item);
+    b.style.top = item.y + "px";
+    empurrar(item);
+    limparConversa();
+    relogioConversa ??= setInterval(subirConversa, 3000);
+  }
+  const baloesConversa = [];
+  let faixaFalas = null, relogioConversa = null;
+  function faixaConversa() {
+    if (!faixaFalas) { faixaFalas = document.createElement("div"); faixaFalas.className = "mapa-conversa"; faixaFalas.setAttribute("aria-hidden", "true"); el.append(faixaFalas); }
+    return faixaFalas;
+  }
+  function limparConversa() {
+    for (let i = baloesConversa.length - 1; i >= 0; i--) {
+      const o = baloesConversa[i];
+      if (o.y + o.h < 0) { o.b.remove(); baloesConversa.splice(i, 1); }
+    }
+    if (!baloesConversa.length) { clearInterval(relogioConversa); relogioConversa = null; }
+  }
+  function subirConversa() {
+    for (const o of baloesConversa) { if (o.pular) { o.pular = false; continue; } o.y -= 15; o.b.style.top = o.y + "px"; }
+    limparConversa();
   }
   // Estado passageiro do boneco, como os comandos do Habbo: expressão do
   // rosto (sad, srp, agr), placa erguida, sentado no chão e "digitando…".
@@ -2162,7 +2207,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    objetoEm, selecionarPessoa, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
@@ -2187,6 +2232,6 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       return !moveis.some((m) => !/^fball_ball|^fball_goal/.test(m.classe) && !m.plano && !m.parede && nx >= Math.floor(m.x) && nx < Math.floor(m.x) + m.dim.x && ny >= Math.floor(m.y) && ny < Math.floor(m.y) + m.dim.y && !mapaFisica(m.classe).poe && !mapaFisica(m.classe).pisa);
     },
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { clearInterval(setaRelogio); tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { clearInterval(setaRelogio); clearInterval(relogioConversa); tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }
