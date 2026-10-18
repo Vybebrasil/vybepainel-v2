@@ -6581,7 +6581,24 @@
     "bc_tile_recolorable",
     "bc_wedge_recolorable",
     "bc_wedgecrnr_recolorable",
-    "bc_wood_recolorable"
+    "bc_wood_recolorable",
+    "roomdimmer",
+    "dimmer_buttn",
+    "dimmer_swtch",
+    "dimmer_fuse2",
+    "wf_trg_walks_on_furni",
+    "wf_trg_walks_off_furni",
+    "wf_trg_click_furni",
+    "wf_trg_state_changed",
+    "wf_trg_says_something",
+    "wf_trg_enter_room",
+    "wf_trg_periodically",
+    "wf_cnd_trggrer_on_frn",
+    "wf_cnd_furnis_hv_avtrs",
+    "wf_act_toggle_state",
+    "wf_act_toggle_to_rnd",
+    "wf_act_show_message",
+    "wf_act_teleport_to"
   ],
   "modelos": [
     {

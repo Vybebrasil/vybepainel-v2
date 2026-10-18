@@ -49,8 +49,39 @@ export function itensValidos(camada, itens) {
     // Altura livre até 40 níveis (Room.MAXIMUM_FURNI_HEIGHT do servidor do Habbo).
     if (!num(estado, 0, 200) || !num(altura, 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
-    return [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
+    const item = [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
+    const cfg = configGatilho(classe, it[6], lim);
+    return cfg ? [...item, cfg] : item;
   });
+}
+// Gatilhos, condições e efeitos (o Wired do Habbo): 7º campo com até 5
+// móveis escolhidos (m, origem e classe), um texto curto (t) e segundos (s).
+// Só nos móveis de gatilho; nos outros o campo é descartado.
+export const GATILHO = /^wf_(trg|cnd|act)_[a-z0-9_]+$/;
+function configGatilho(classe, cfg, lim) {
+  if (!GATILHO.test(classe) || cfg == null) return null;
+  if (typeof cfg !== "object" || Array.isArray(cfg)) throw new Error("Configuração do gatilho inválida.");
+  const saida = {};
+  if (cfg.m != null) {
+    if (!Array.isArray(cfg.m) || cfg.m.length > 5) throw new Error("No máximo 5 móveis por gatilho.");
+    // [x, y, classe]: a origem do móvel escolhido e qual é (a classe é opcional).
+    saida.m = cfg.m.map((p) => {
+      if (!Array.isArray(p) || p.length < 2 || p.length > 3 || ![p[0], p[1]].every((v) => Number.isInteger(Number(v)))) throw new Error("Móvel do gatilho inválido.");
+      if (p.length === 3 && (typeof p[2] !== "string" || !/^[a-z0-9_]{1,64}$/i.test(p[2]))) throw new Error("Móvel do gatilho inválido.");
+      const [x, y] = [Number(p[0]), Number(p[1])];
+      if (x < 0 || y < 0 || x >= lim.x || y >= lim.y) throw new Error("Móvel do gatilho fora da área.");
+      return p.length === 3 ? [x, y, p[2]] : [x, y];
+    });
+  }
+  if (cfg.t != null) {
+    if (typeof cfg.t !== "string" || cfg.t.length > 100) throw new Error("Texto do gatilho com até 100 letras.");
+    saida.t = cfg.t.trim();
+  }
+  if (cfg.s != null) {
+    if (!Number.isInteger(Number(cfg.s)) || Number(cfg.s) < 1 || Number(cfg.s) > 60) throw new Error("Tempo do gatilho entre 1 e 60 segundos.");
+    saida.s = Number(cfg.s);
+  }
+  return Object.keys(saida).length ? saida : null;
 }
 
 export async function mapaPronto(sql) {

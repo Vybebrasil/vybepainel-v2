@@ -5981,11 +5981,12 @@ body.no-escritorio {overflow:hidden}
 /* Bloco e assento invisíveis: servem para construir e sentar; só aparecem
    (translúcidos) enquanto alguém edita a sala. */
 .mapa-obj[data-classe$="_invisivel"] {opacity:0}
-.ofc[data-editando=true] .mapa-obj[data-classe$="_invisivel"] {opacity:.38;filter:sepia(1) hue-rotate(160deg) saturate(3)}
-.ofc[data-editando=true] .mapa-obj[data-classe="vybe_assento_invisivel"] {filter:sepia(1) hue-rotate(80deg) saturate(3)}
+.ofc[data-editando=true] .mapa-obj[data-classe$="_invisivel"] {opacity:.38}
+.ofc[data-editando=true] .mapa-obj[data-classe$="_invisivel"] > canvas {filter:sepia(1) hue-rotate(160deg) saturate(3)}
+.ofc[data-editando=true] .mapa-obj[data-classe="vybe_assento_invisivel"] > canvas {filter:sepia(1) hue-rotate(80deg) saturate(3)}
 /* Luz ambiente do quarto (regulador de luz do Habbo): tinge piso, paredes,
    móveis e bonecos; balões, nomes e rótulos ficam com a cor normal. */
-.mapa-palco[data-luz] :is(.mapa-fundo,.mapa-obj,.mapa-pessoa > img) {filter:var(--mapa-luz)}
+.mapa-palco[data-luz] :is(.mapa-fundo,canvas.mapa-obj,.mapa-movel > canvas,.mapa-pessoa > img) {filter:var(--mapa-luz)}
 .mapa-palco[data-luz=quente] {--mapa-luz:sepia(.35) saturate(1.25) brightness(.95)}
 .mapa-palco[data-luz=fria] {--mapa-luz:sepia(.3) hue-rotate(175deg) saturate(1.2) brightness(.93)}
 .mapa-palco[data-luz=rosa] {--mapa-luz:sepia(.35) hue-rotate(285deg) saturate(1.4) brightness(.95)}
@@ -5993,6 +5994,10 @@ body.no-escritorio {overflow:hidden}
 .mapa-palco[data-luz=verde] {--mapa-luz:sepia(.3) hue-rotate(60deg) saturate(1.25) brightness(.95)}
 .mapa-palco[data-luz=noite] {--mapa-luz:sepia(.25) hue-rotate(185deg) saturate(.9) brightness(.62)}
 .mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
+/* Móvel do mapa: contêiner sem z-index nem filtro (sem contexto de
+   empilhamento), com uma camada por canvas; cada camada tem o z-index da sua
+   profundidade, como no Habbo. Efeitos vão nas camadas, nunca no contêiner. */
+.mapa-movel > canvas {position:absolute;left:0;top:0;image-rendering:pixelated}
 /* Parede com alguém logo atrás: fica translúcida para o boneco aparecer. */
 .mapa-muro {transition:opacity .2s}
 .mapa-muro.recortado {opacity:.28}
@@ -6216,7 +6221,7 @@ body.no-escritorio {overflow:hidden}
 @media(prefers-reduced-motion:reduce){#login-gate.login-vybelandia .login-caixa{animation:none}}
 
 /* Editor do mapa */
-.mapa-obj.mapa-selecionado {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35cc)}
+:is(canvas.mapa-obj.mapa-selecionado,.mapa-selecionado > canvas) {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35cc)}
 .ofc-editor {position:absolute;z-index:7;top:64px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;width:900px;max-width:calc(100% - 32px);padding:10px 12px;border-radius:16px;background:#1d1610ee;border:1px solid #ff8a3566;box-shadow:0 14px 40px #0008;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .ofc-editor[hidden] {display:none}
 .ofc-editor-info {display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;width:100%}
@@ -6287,7 +6292,7 @@ body.no-escritorio {overflow:hidden}
 .ofc-reacoes>div {position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);display:flex;gap:4px;padding:6px;border-radius:14px;background:var(--ofc-vidro,#1c1e27ee);border:1px solid #ffffff22;box-shadow:0 10px 30px #0007}
 .ofc-reacoes>div button {width:40px;height:40px;border:0;border-radius:10px;background:transparent;font-size:22px;cursor:pointer}
 .ofc-reacoes>div button:hover {background:#ffffff18}
-.mapa-obj.mapa-interativo {filter:drop-shadow(0 0 3px #ffd29a) drop-shadow(0 0 8px #ff8a35aa)}
+:is(canvas.mapa-obj.mapa-interativo,.mapa-interativo > canvas) {filter:drop-shadow(0 0 3px #ffd29a) drop-shadow(0 0 8px #ff8a35aa)}
 .mapa-pessoa.distante img {opacity:.55}
 .mapa-etiqueta small {color:#ffd29a;font-weight:600;margin-left:2px}
 .ofc-acao {position:absolute;z-index:7;left:50%;bottom:86px;transform:translateX(-50%)}
@@ -6358,9 +6363,9 @@ body.no-escritorio {overflow:hidden}
 
 /* Avisos no escritório: botão Painel com contagem e computador da mesa aceso. */
 .ofc-dock-btn[data-avisos=true] {background:#ff8a3526;color:#ffc79a}
-.mapa-obj.mapa-aviso {animation:mapa-aviso 1.6s ease-in-out infinite}
+:is(canvas.mapa-obj.mapa-aviso,.mapa-aviso > canvas) {animation:mapa-aviso 1.6s ease-in-out infinite}
 @keyframes mapa-aviso {0%,100% {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35aa)} 50% {filter:drop-shadow(0 0 4px #ffb36b) drop-shadow(0 0 14px #ff8a35)}}
-@media(prefers-reduced-motion:reduce){.mapa-obj.mapa-aviso {animation:none;filter:drop-shadow(0 0 3px #ff8a35) drop-shadow(0 0 8px #ff8a35aa)}}
+@media(prefers-reduced-motion:reduce){:is(canvas.mapa-obj.mapa-aviso,.mapa-aviso > canvas) {animation:none;filter:drop-shadow(0 0 3px #ff8a35) drop-shadow(0 0 8px #ff8a35aa)}}
 
 .ofc-voz-estado {display:flex;align-items:center;gap:6px;min-height:34px;padding:7px 9px;color:var(--ofc-suave,#c9bfb4);font:600 12px var(--mac-ui);white-space:nowrap}
 

@@ -113,6 +113,8 @@ async function abrirEscritorio() {
   }
 }
 function escritorioEmitir(type, payload) {
+  // Mudar o estado de um móvel pode disparar um gatilho da equipe (Wired).
+  if (type === "furni:toggle" && typeof gatilhoEstadoEscritorio === "function") gatilhoEstadoEscritorio(payload?.chave);
   if (escritorio.socket?.readyState === WebSocket.OPEN)
     escritorio.socket.send(JSON.stringify({ type, payload }));
 }
@@ -675,7 +677,7 @@ function escritorioTrocarCena(quarto, lugar, dir) {
   escritorioEnviarPosicao(true);
   const depois = escritorio.aoChegarNaCena;
   escritorio.aoChegarNaCena = null;
-  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); atualizarAcaoProximaEscritorio(true); depois?.(); });
+  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); depois?.(); });
   // Entrou ou saiu do Lounge: a música toca ou para na hora.
   const naPista = typeof escritorioNaPista === "function" && escritorioNaPista();
   if (naPista !== Boolean(escritorio.naPista)) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
@@ -993,7 +995,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); carregarPostitsEscritorio(); });
+    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -1242,9 +1244,11 @@ function escritorioFisicaDoPiso(andando) {
   if (!m?.pisoEm || escritorio.edicao) return;
   const x = Math.round(movimento.x), y = Math.round(movimento.y), chave = x + "," + y;
   if (chave !== movimento.ladrilho) {
+    const antes = movimento.ladrilho;
     if (movimento.ladrilho) { const [lx, ly] = movimento.ladrilho.split(",").map(Number); movimento.ultimoPasso = [Math.sign(x - lx), Math.sign(y - ly)]; }
     movimento.ladrilho = chave;
     escritorioPisouEm(x, y);
+    if (typeof gatilhoPassoEscritorio === "function") gatilhoPassoEscritorio(antes, x, y);
   }
   clearTimeout(escritorio.timerEsteira);
   if (andando) return;
@@ -1576,6 +1580,7 @@ function cliqueNoMapaEscritorio(x, y) {
     const lado = escritorioLadoLivre(mesa);
     if (lado) { escritorioIrPara(lado.x, lado.y); return; }
   }
+  if (typeof gatilhoCliqueEscritorio === "function") gatilhoCliqueEscritorio(x, y);
   if (escritorioUsarAoClicar(x, y)) return;
   // Clicou num móvel que não se usa (mesa dos outros, estante…): anda até o
   // chão livre mais perto dele, como já faz com a própria mesa.
@@ -2014,6 +2019,23 @@ function escritorioAtualizarPortas() {
   }
   if (mudou.length) mapa.estadosMoveis(mudou);
 }
+// Regulador de luz do Habbo (roomdimmer e interruptores de parede): no
+// próprio quarto abre a Luz do quarto (sala_luz, que tinge tudo); fica aceso
+// quando o quarto tem uma luz escolhida.
+const ESCRITORIO_REGULADOR = /^(roomdimmer|dimmer_(buttn|swtch|fuse2|fuse6|steampunk))$/;
+function regularLuzEscritorio() {
+  const mesa = escritorioMinhaMesa();
+  if (!mesa || escritorio.quarto !== mesa.ambiente.id) return escritorioAviso("Só o dono do quarto regula a luz dele.");
+  escritorioPincel().ferramenta = "luz";
+  abrirEstiloSalaEscritorio();
+}
+function escritorioAcenderReguladores() {
+  const mapa = escritorio.mapa;
+  if (!mapa?.moveisDaClasse) return;
+  const acesa = Boolean(document.querySelector(".mapa-palco")?.dataset.luz);
+  const lista = mapa.moveisDaClasse(ESCRITORIO_REGULADOR).map((m) => [mapa.chaveMovel(m), acesa ? 1 : 0]);
+  if (lista.length) mapa.estadosMoveis(lista);
+}
 // O que um móvel faz quando a pessoa está ao lado dele (o mesmo da tecla E).
 function escritorioAcaoDoMovel(m) {
   if (!m) return null;
@@ -2037,6 +2059,8 @@ function escritorioAcaoDoMovel(m) {
 // Clique num móvel que se usa (luz, jukebox, geladeira, esteira, fliperama…):
 // anda até o ladrilho livre ao lado dele e usa ao chegar.
 function escritorioUsarAoClicar(x, y) {
+  // Regulador de luz na parede: como no Habbo, abre direto, sem andar até ele.
+  if ((escritorio.mapa?.moveisEm(x, y) || []).some((i) => ESCRITORIO_REGULADOR.test(i.classe))) { regularLuzEscritorio(); return true; }
   // (o dado pode estar em cima de uma mesa)
   const m = (escritorio.mapa?.moveisEm(x, y) || []).find((i) => !i.plano && (!i.altura || ESCRITORIO_DADO.test(i.classe)) && !i.parede && escritorioAcaoDoMovel(i));
   if (!m) return false;
@@ -2560,6 +2584,7 @@ async function enviarChatEscritorio(form) {
     delete form.dataset.chave;
     escritorioEmitir("chat:changed", { sala });
     escritorioEmitir("chat:bubble", { texto });
+    if (typeof gatilhoFalaEscritorio === "function") gatilhoFalaEscritorio(texto);
     await carregarChatEscritorio();
   } catch (e) {
     escritorioAviso(e.message);

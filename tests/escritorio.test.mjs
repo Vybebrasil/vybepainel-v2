@@ -1313,3 +1313,42 @@ test("camada do móvel na frente de quem senta segue a profundidade do Nitro", (
   const exe = JSON.parse(readFileSync("assets/escritorio/habbo/exe_chair.json", "utf8")).visualizations.find((v) => v.size === 64);
   assert.ok(prof(exe.layers[1].z, 1) < sentado && prof(0, 0) > sentado, "poltrona executiva: braços na frente, assento atrás");
 });
+
+// Wired do Habbo: a configuração (7º campo) só vale nos móveis de gatilho e
+// tem limites conferidos no servidor.
+test("gatilho guarda móveis, texto e tempo só nos móveis de gatilho", async () => {
+  const { itensValidos } = await import("../server/escritorio-mapa.js");
+  const [g] = itensValidos("sala-0", [["wf_trg_walks_on_furni", 1, 1, 0, 0, 0, { m: [[2, 3]], t: " oi ", s: 10, x: "ignorado" }]]);
+  assert.deepEqual(g[6], { m: [[2, 3]], t: "oi", s: 10 });
+  assert.deepEqual(itensValidos("sala-0", [["wf_act_toggle_state", 1, 1, 0, 0, 0, { m: [[2, 3, "hc_lmp"]] }]])[0][6], { m: [[2, 3, "hc_lmp"]] });
+  assert.throws(() => itensValidos("sala-0", [["wf_act_toggle_state", 1, 1, 0, 0, 0, { m: [[2, 3, "<x>"]] }]]), /inválido/);
+  assert.equal(itensValidos("sala-0", [["exe_table", 1, 1, 0, 0, 0, { m: [[2, 3]] }]])[0].length, 6, "móvel comum descarta o campo");
+  assert.throws(() => itensValidos("sala-0", [["wf_act_toggle_state", 1, 1, 0, 0, 0, { m: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]] }]]), /No máximo 5/);
+  assert.throws(() => itensValidos("sala-0", [["wf_act_toggle_state", 1, 1, 0, 0, 0, { m: [[25, 0]] }]]), /fora da área/);
+  assert.throws(() => itensValidos("sala-0", [["wf_trg_periodically", 1, 1, 0, 0, 0, { s: 0 }]]), /entre 1 e 60/);
+  assert.throws(() => itensValidos("sala-0", [["wf_act_show_message", 1, 1, 0, 0, 0, { t: "x".repeat(101) }]]), /100 letras/);
+});
+
+// Pilha do Wired: pisar no móvel escolhido alterna o móvel escolhido (a
+// luminária, não a mesa do mesmo ladrilho); a
+// condição "quem disparou está no móvel" barra quando não está.
+test("pilha de gatilho, condição e efeito roda como no Habbo", () => {
+  const trocas = [];
+  const moveis = [{ classe: "exe_table", x: 5, y: 5, estado: 0, dim: { x: 1, y: 1 } }, { classe: "hc_lmp", x: 5, y: 5, estado: 0, dim: { x: 1, y: 1 } }, { classe: "rug", x: 2, y: 2, dim: { x: 1, y: 1 } }];
+  const c = vm.createContext({
+    console, Math, Date, String, Number, Boolean, setInterval() {}, setTimeout() {}, document: undefined,
+    movimento: { quadro: 0, x: 2, y: 2, rota: [] },
+    escritorio: { base: { eu: "1" }, online: [], mapa: { moveisEm: (x, y) => moveis.filter((m) => m.x === x && m.y === y), chaveMovel: (m) => m.classe + "@" + m.x + "," + m.y, estadosMoveis: (l) => trocas.push(...l) } },
+    escritorioItensDaCamada: () => itens,
+    escritorioPosicao: () => ({ x: 2, y: 2 }), escritorioNaCena: () => true, escritorioEstadosDoMovel: () => [0, 1],
+    escritorioEmitir() {}, escritorioAviso() {}, escritorioTocar() {}, escritorioEnviarPosicao() {},
+  });
+  let itens = [["wf_trg_walks_on_furni", 0, 0, 0, 0, 0, { m: [[2, 2]] }], ["wf_act_toggle_state", 0, 0, 0, 0, 0.65, { m: [[5, 5, "hc_lmp"]] }]];
+  vm.runInContext(readFileSync("vybe-escritorio-gatilhos.js", "utf8"), c);
+  vm.runInContext("gatilhoPassoEscritorio('1,2', 2, 2)", c);
+  assert.equal(JSON.stringify(trocas.filter(([k]) => k.startsWith("hc_lmp"))), JSON.stringify([["hc_lmp@5,5", 1]]));
+  trocas.length = 0;
+  itens = [...itens, ["wf_cnd_trggrer_on_frn", 0, 0, 0, 0, 1.3, { m: [[9, 9]] }]];
+  vm.runInContext("gatilhoPassoEscritorio('1,2', 2, 2)", c);
+  assert.equal(trocas.filter(([k]) => k.startsWith("hc_lmp")).length, 0, "condição barra");
+});

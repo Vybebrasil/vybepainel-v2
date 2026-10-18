@@ -632,17 +632,51 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
 - Convivência: mezanino montado com blocos de madeira (altura 2), degrau na
   altura 1, poltrona e planta em cima.
 
+### Ordem de desenho do Habbo (Nitro) e Wired (18/10/2026)
+
+- Cada móvel é um contêiner sem z-index (`.mapa-movel`) com um canvas por
+  grupo de camadas da arte (mesmo z) e a sombra à parte. A profundidade segue
+  o renderizador aberto do Habbo (RoomGeometry, RoomSpriteCanvas,
+  FurnitureVisualization): −0,70708 por ladrilho em x ou y, −0,00713 por nível
+  de altura e, por camada, `(z/−1000 − camada × 0,001) × √½` (`mapaProfundidade`,
+  `mapaProfCamada`, `mapaZ`). É assim que a arte do Habbo fatia móveis grandes
+  (a mesa executiva tem fatias com z 1000, 2000, 3000) e põe encosto, braço e
+  cobertor na frente de quem está no móvel.
+- Boneco: profundidade do ladrilho arredondado na altura do piso, −0,01
+  (deitado −0,409); o próprio fica 0,001 à frente. Item de parede: no plano
+  da parede, meio ladrilho para trás. Paredes do fundo ficam atrás de tudo
+  (planos do Habbo); mureta da frente, no plano dela. Tapetes rente ao piso
+  têm faixa própria. Efeitos (seleção, luz) vão nas camadas, nunca no
+  contêiner (filtro criaria contexto de empilhamento).
+- Sombra com a transparência fixa do Nitro (48/255). Camadas de luz (ADD)
+  somam com o que está atrás (`mix-blend-mode: plus-lighter`).
+- Passagem entre estados (transitionFrom/transitionTo da arte) toca uma vez
+  ao trocar de estado, como no `FurnitureAnimatedVisualization`.
+- Item de parede: a posição ao longo da parede é livre (o ajuste fino de ¼
+  agora aparece no desenho), como no `LegacyWallGeometry`.
+- Regulador de luz do Habbo (`roomdimmer` e interruptores, essenciais): no
+  próprio quarto abre a Luz do quarto (`sala_luz`); aceso quando há luz.
+- Gatilhos e efeitos (Wired) em `vybe-escritorio-gatilhos.js`, com os móveis
+  originais (essenciais, categoria Gatilhos). Pilha = itens `wf_*` no mesmo
+  ladrilho. Gatilhos: pisar, sair, clicar, estado mudou, dizer palavra,
+  entrar no quarto, a cada N segundos (só o navegador de menor id no quarto
+  roda). Condições: quem disparou está no móvel; tem gente nos móveis.
+  Efeitos: alternar estado, estado aleatório, mensagem, teletransportar.
+  Pisar/sair valem ao entrar/deixar o móvel; efeito não dispara "estado
+  mudou" (sem laço). Configuração no 7º campo do item
+  (`{ m: [[x, y, classe]…], t, s }`), validada em `server/escritorio-mapa.js`
+  (só em `wf_*`, até 5 móveis, texto até 100, 1–60 s). No editor: Configurar →
+  Escolher móveis no mapa → Pronto.
+
 ### Camadas do móvel com o boneco, como no Nitro (18/10/2026)
 
 - A profundidade de cada camada segue o renderizador aberto do Habbo (Nitro,
   `FurnitureVisualization`/`AvatarVisualization`): `(z / −1000 − camada × 0,001) × √½`.
   Quem senta fica em −0,01 (menos 0,00713 por nível de altura do assento) e
   quem deita em −0,409. As camadas abaixo desse valor (encosto virado para o
-  fundo, braços da poltrona executiva, cobertor da cama) são redesenhadas num
-  canvas próprio por cima de quem está no móvel (`mapaProfCamada`, `.mapa-frente`).
-- A ordem dos móveis tem folga de 20 por posição: móvel em `prof`, quem senta
-  em `prof+1…+9`, camadas da frente em `prof+10` e quem passa na frente de
-  `prof+11` em diante.
+  fundo, braços da poltrona executiva, cobertor da cama) ficam por cima de quem
+  está no móvel (`mapaProfCamada`; desde o motor por camadas, na mesma conta
+  de todos os móveis — ver a seção acima).
 - Sala de reunião: poltronas executivas a cada dois ladrilhos (largas, lado a
   lado entravam uma na outra), três peças espaçadas na mesa e a cerca do
   patamar sem duas peças no mesmo canto.
