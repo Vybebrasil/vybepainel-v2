@@ -469,6 +469,36 @@ function auditar(cena, P, moveis, avisos) {
     // quinto já parece peça mal posta.
     if (n > 300 && n > t.s.n * (t.parede ? 0.2 : 0.4)) desenho.push(nomeCena(`${f.nome} esconde ${Math.round((n / t.s.n) * 100)}% de ${t.nome}`));
   }
+  // Regras de interiores (decisão do Paulo, 18/10/2026: "fliperama na
+  // frente do palco?"). Peça alta tapa a sala: só encostada nas paredes do
+  // fundo e da esquerda, nunca na borda aberta da frente; e a frente de um
+  // palco (dois ladrilhos) fica livre para a plateia.
+  if (quarto) {
+    const ALTA = 110, alta = (o) => !o.plano && !o.altura && (arte(o.classe)?.alto || 0) > ALTA;
+    const nv = (x, y) => (P.alturaEm ? P.alturaEm(x, y) : 0);
+    const dentro = (x, y) => x >= quarto.x0 && y >= quarto.y0 && x < quarto.x1 && y < quarto.y1 && nv(x, y) >= 0;
+    for (const o of itens.filter(alta)) {
+      let naFrente = false, encostada = false;
+      for (let i = 0; i < o.w; i++) for (let j = 0; j < o.h; j++) {
+        const x = o.x + i, y = o.y + j;
+        if (!dentro(x + 1, y) || !dentro(x, y + 1)) naFrente = true;
+        if (temParede(x, y, x, y - 1) || temParede(x, y, x - 1, y) || x === quarto.x0 || y === quarto.y0) encostada = true;
+      }
+      if (naFrente && !encostada) desenho.push(nomeCena(`${o.classe} (${o.x},${o.y}) é peça alta na borda da frente: tapa a sala`));
+    }
+    for (let x = quarto.x0; x < quarto.x1; x++) for (let y = quarto.y0; y < quarto.y1; y++) {
+      const h = nv(x, y);
+      if (!(h > 0)) continue;
+      for (const [dx, dy] of [[1, 0], [0, 1]]) {
+        if (!dentro(x + dx, y + dy) || nv(x + dx, y + dy) >= h) continue;
+        for (let k = 1; k <= 2; k++) {
+          const tx = x + dx * k, ty = y + dy * k;
+          const o = itens.find((q) => alta(q) && tx >= q.x && tx < q.x + q.w && ty >= q.y && ty < q.y + q.h);
+          if (o) desenho.push(nomeCena(`${o.classe} (${o.x},${o.y}) na frente do palco: tapa quem está nele`));
+        }
+      }
+    }
+  }
   return problemas;
 }
 

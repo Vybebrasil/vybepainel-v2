@@ -263,7 +263,8 @@ const ESCRITORIO_PLANTA = (() => {
     // 18/10/2026 (quarto "Garage 93 Vinyl"). O piso diz a zona: terracota no
     // bar (esquerda), ladrilho verde-escuro na garagem (fundo), concreto no
     // salão e o palco do DJ, um degrau acima, de tábuas, no fundo à direita.
-    lounge: { corDegrau: "#4a3322", fundo: "#0d0a09", alturaParede: 1, planta: [
+    // Luz "bar": sala na penumbra e cada lâmpada acesa com a sua área quente.
+    lounge: { corDegrau: "#4a3322", fundo: "#0d0a09", alturaParede: 1, luz: "bar", planta: [
       "0000000000011111",
       "0000000000011111",
       "0000000000011111",
@@ -290,7 +291,7 @@ const ESCRITORIO_PLANTA = (() => {
     const celdas = def ? def.planta.map((linha) => [...linha].map((c) => (c === "x" ? -1 : Number(c)))) : Array.from({ length: h0 }, () => Array(w0).fill(0));
     const w = celdas[0].length, h = celdas.length;
     const modelo = { id: "cena-" + id, celdas, portas: { baixo: Math.floor(w / 2) - 1 }, escada: def?.escada || [], bordaAberta: true };
-    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau, texturas: def?.texturas || [], fundo: def?.fundo, semParedes: def?.semParedes === true, alturaParedeFixa: def?.alturaParede ?? -1 });
+    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau, texturas: def?.texturas || [], fundo: def?.fundo, semParedes: def?.semParedes === true, alturaParedeFixa: def?.alturaParede ?? -1, luz: def?.luz || "" });
   }
   return { W, H, PREDIO: null, PISO, ambientes, divisorias: [], moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], rotulos: [], vistas: {}, texturas: [], texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement",
@@ -530,6 +531,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["pirate_bottle_3", 2, 5, 0, 0, 1.23], ["xmas_c24_mugs", 2, 6, 0, 0, 1.23], ["grunge_candle", 2, 7, 0, 0, 1.23],
     ...[2, 3, 4, 5, 6].map((y) => ["studio_stool", 3, y, 6]),
     ["grungelamp", 2, 3, 0, 1, 2.5], ["grungelamp", 2, 6, 0, 1, 2.5], ["hween_c17_rat", 1, 8, 2],
+    // Parede do fundo do bar: mural de pôsteres de show e a placa de lata.
+    ["nyc_c23_wallposters", 3, 0, 2], ["md_can", 1.4, 0, 4, 0, 0.7],
     // Canto de jogos (parede da esquerda, junto da porta): fliperama e
     // jukebox pichados de costas para a parede, sinuca baixa na frente e
     // lâmpada.
@@ -542,12 +545,12 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["uni_c23_locker", 5, 0, 4], ["ads_ontrackgp_tools", 6, 0, 4], ["window_grunge", 6.4, 0, 4, 0, 1.4],
     ["tokyo_c18_motorbike", 7, 0, 2], ["guitar_skull", 8, 0, 4, 0, 2],
     ["ranch_c26_farmtools", 5, 1, 0], ["grunge_sign", 5, 2, 0], ["bump_tires", 5, 3, 0], ["fball_c26_trainingcone", 6, 3, 0], ["lt_spider", 9, 3, 0],
-    ["grungelamp", 8, 1, 0, 1, 2.5],
+    ["grungelamp", 8, 1, 0, 1, 2.5], ["hween_c25_tools", 9, 2, 0],
     // Palco do DJ (fundo à direita, um degrau): mesa de DJ de frente para a
     // plateia, caixa de som e disco na parede, neon, violão encostado e o
     // microfone e caixas de som de chão na beira do palco; lâmpada.
     ["fest_c19_dj", 13, 1, 0], ["boutique_speakers", 11, 0, 4, 0, 2], ["uni_vinyl", 12, 0, 4, 0, 1.4],
-    ["disco_c26_neonlight1", 13, 0, 0, 1, 1.6], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
+    ["disco_c26_neonlight1", 13, 0, 0, 1, 1.6], ["grungewall", 14, 0, 4, 0, 0.2], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
     ["grungelamp", 14, 2, 0, 1, 2.5],
     // Plateia (frente do palco): chão livre para ficar de pé; a mesa alta
     // fica na lateral direita, com duas banquetas, sem tapar o palco.
