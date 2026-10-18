@@ -456,7 +456,8 @@ function mapaBonecoPronto(url, aoCarregar) {
 // Ritmo do passo como no Habbo: um ladrilho por passada, com os 4 quadros da
 // passada cabendo no tempo de um ladrilho (antes o boneco deslizava: cada
 // ladrilho levava 172 ms e só dois quadros apareciam).
-const MAPA_PASSO_MS = 240; // ms por ladrilho (≈ 4 ladrilhos por segundo)
+// No Habbo o boneco anda um ladrilho a cada 500 ms (o ciclo do quarto).
+const MAPA_PASSO_MS = 500; // ms por ladrilho (2 ladrilhos por segundo)
 const MAPA_QUADRO_PASSO = MAPA_PASSO_MS / 4; // ms por quadro de passo
 // Direção do Habbo (0–7) para um passo na grade.
 function mapaDirecaoDoPasso(dx, dy) {
@@ -1237,6 +1238,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // boca enquanto o balão de fala está aberto, acena com o braço subindo e
   // descendo, vira a cabeça para quem está perto e fecha os olhos quando a
   // pessoa está ausente.
+  // "zZz" de quem cochila: marcou Ausente ou ficou parado (cochilo, como o
+  // Habbo faz depois de uns minutos sem mexer).
+  const mostrarZzz = (p) => {
+    let zzz = p.no.querySelector(".mapa-zzz");
+    const dorme = p.dormindo || p.cochilo;
+    if (dorme && !zzz) { zzz = document.createElement("span"); zzz.className = "mapa-zzz"; zzz.setAttribute("aria-hidden", "true"); zzz.textContent = "z Z z"; p.no.append(zzz); }
+    else if (!dorme && zzz) zzz.remove();
+  };
   const trocarImagem = (p) => {
     const agora = performance.now();
     const quadro = p.acao === "wlk" ? Math.floor(agora / MAPA_QUADRO_PASSO) % 4 : 0;
@@ -1254,7 +1263,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     let gesto = "sml";
     if (p.falaAte > agora) gesto = Math.floor(agora / 240) % 2 ? "spk" : "sml"; // quem fala acordou
     else if (p.expressaoAte > agora) gesto = p.expressao;
-    else if (p.dormindo || p.piscaAte > agora) gesto = "eyb";
+    else if (p.dormindo || p.cochilo || p.piscaAte > agora) gesto = "eyb";
     const cabeca = acao === "wlk" || acao === "lay" ? p.dir : (p.cabeca ?? p.dir);
     const url = mapaAvatarUrl(p.figura, p.dir, acao, mao, quadro, gesto, cabeca);
     if (p.img.dataset.url === url) return;
@@ -1367,10 +1376,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       // Ausente: o boneco "dorme" (olhos fechados), como o Habbo faz com quem
       // fica parado muito tempo.
       p.dormindo = q.status === "ausente";
-      // "zZz" de quem cochila (ausente e parado).
-      let zzz = p.no.querySelector(".mapa-zzz");
-      if (p.dormindo && !zzz) { zzz = document.createElement("span"); zzz.className = "mapa-zzz"; zzz.setAttribute("aria-hidden", "true"); zzz.textContent = "z Z z"; p.no.append(zzz); }
-      else if (!p.dormindo && zzz) zzz.remove();
+      mostrarZzz(p);
       p.no.setAttribute("aria-label", q.rotulo || q.nome);
       p.no.dataset.status = q.status || "";
       // O próprio boneco, enquanto este navegador o guia, não é puxado pela
@@ -1594,10 +1600,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Estado passageiro do boneco, como os comandos do Habbo: expressão do
   // rosto (sad, srp, agr), placa erguida, sentado no chão e "digitando…".
   // Vale até a pessoa andar (chão) ou até o tempo acabar (rosto e placa).
-  function estadoBoneco(id, { expressao, placa, chao, digitando } = {}) {
+  function estadoBoneco(id, { expressao, placa, chao, digitando, cochilo } = {}) {
     const p = pessoas.get(String(id));
     if (!p) return;
     const agora = performance.now();
+    if (cochilo != null) { p.cochilo = Boolean(cochilo); mostrarZzz(p); }
     if (expressao) { p.expressao = expressao; p.expressaoAte = agora + 4000; }
     if (placa != null) { p.placa = placa; p.placaAte = agora + 6000; }
     if (chao != null) p.chao = Boolean(chao);

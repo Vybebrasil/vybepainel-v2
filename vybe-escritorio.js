@@ -999,6 +999,16 @@ function montarMapaEscritorio() {
     if (!escritorio.base.demo) setTimeout(() => mapaGuardarBoneco(mapaFigura(escritorio.perfil)), 4000);
   }
   atualizarPessoasEscritorio();
+  escritorioMedirDock();
+}
+// A altura da barra de baixo vira variável de CSS (o botão de ação e a barra
+// do dia ficam logo acima dela, mesmo quando ela quebra em linhas no celular).
+function escritorioMedirDock() {
+  const dock = document.querySelector(".ofc-dock"), ofc = document.querySelector(".ofc");
+  if (!dock || !ofc || typeof ResizeObserver === "undefined") return;
+  if (escritorio.dockObservado === dock) return;
+  escritorio.dockObservado = dock;
+  new ResizeObserver(() => ofc.style.setProperty("--altura-dock", dock.offsetHeight + "px")).observe(dock);
 }
 function centralizarEmMimEscritorio() {
   const pos = escritorioPosicao(escritorio.perfil || {});
@@ -1185,6 +1195,7 @@ function escritorioQuadro(agora) {
   if (andando && (escritorio.pose === "acenar" || escritorio.pose === "deitar")) definirPoseEscritorio("");
   if (andando && escritorio.noChao) { escritorio.noChao = false; atualizarControlesEscritorio(); }
   escritorioSomDePasso(andando);
+  if (andando) escritorioAtividade();
   if (vx || vy) movimento.dir = mapaDirecaoDoPasso(vx, vy);
   // Parou: encaixa no centro do ladrilho (como no Habbo).
   if (!andando) { movimento.x = Math.round(movimento.x); movimento.y = Math.round(movimento.y); }
@@ -1626,6 +1637,7 @@ function escritorioAplicarComando(id, cmd) {
   else if (k === "sig" && Object.values(ESCRITORIO_PLACAS).includes(Number(v))) m.estadoBoneco(id, { placa: Number(v) });
   else if (k === "sit") m.estadoBoneco(id, { chao: v === "1" });
   else if (k === "dig") m.estadoBoneco(id, { digitando: v === "1" });
+  else if (k === "zzz") m.estadoBoneco(id, { cochilo: v === "1" });
   // Alguém salvou a decoração (móveis, piso, paredes, luz ou planta): quem
   // está naquela cena relê do servidor e redesenha.
   else if (k === "dec") escritorioDecoracaoMudou(id, v);
@@ -1724,6 +1736,24 @@ function puxarAlavancaEscritorio(a) {
   escritorioEmitir("furni:toggle", { chave, estado });
   const primeiro = m.portoes()[0];
   escritorioPortoes(primeiro?.estado ? 0 : 1);
+}
+// Cochilo do Habbo: 5 minutos sem mexer (tecla, mouse, toque ou andar), o
+// boneco cochila (olhos fechados e "z Z z"); qualquer movimento acorda. Todos
+// veem. Não muda o status nem vale como ausência.
+const ESCRITORIO_COCHILO_MS = 5 * 60 * 1000;
+function escritorioAtividade() {
+  escritorio.ultimaAtividade = Date.now();
+  if (escritorio.cochilando) { escritorio.cochilando = false; escritorioComandoBoneco("zzz=0"); }
+}
+function escritorioConferirCochilo() {
+  if (!escritorio.mapa || escritorio.cochilando || !escritorio.conectado) return;
+  if (Date.now() - (escritorio.ultimaAtividade || Date.now()) < ESCRITORIO_COCHILO_MS) return;
+  escritorio.cochilando = true;
+  escritorioComandoBoneco("zzz=1");
+}
+if (typeof window !== "undefined" && window.addEventListener && typeof setInterval === "function" && typeof document !== "undefined" && document.body) {
+  for (const ev of ["keydown", "pointerdown", "wheel"]) window.addEventListener(ev, escritorioAtividade, { passive: true });
+  setInterval(escritorioConferirCochilo, 30000);
 }
 function escritorioComandoBoneco(cmd) {
   escritorioAplicarComando(escritorio.base?.eu, cmd);

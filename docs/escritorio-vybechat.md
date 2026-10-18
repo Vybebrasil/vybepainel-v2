@@ -609,3 +609,13 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
   como o Builders Club do Habbo.
 - Quarto "maquete": Piso e paredes → Planta → Sem paredes, para construir as
   paredes com móveis.
+
+### Movimento, cochilo e celular (18/10/2026)
+
+- Passo no ritmo do Habbo: um ladrilho a cada 500 ms (antes 240 ms); a
+  viagem longa pela lista continua 3× mais rápida.
+- Cochilo: 5 minutos sem tecla, clique, toque ou passo, o boneco cochila
+  (olhos fechados e "z Z z") e todos veem; qualquer movimento acorda. Não
+  muda o status.
+- Celular: o botão de ação (E) e a barra do dia ficam acima da barra de baixo
+  pela altura real dela (antes cobriam o status quando a barra quebrava).
