@@ -30,7 +30,9 @@ export function salasDoEscritorio(equipe = []) {
 
 // Maior quarto (12 × 12): cada planta usa o canto dela (de 6 × 6 a 12 × 12).
 export const LADO_SALA = 12;
-const LIMITE = { geral: { x: 80, y: 80, itens: 900 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 80 } };
+// Limites como os do Habbo (construções de 1.000+ móveis num quarto); o mapa
+// foi medido com 1.188 blocos empilhados a 60 quadros por segundo.
+const LIMITE = { geral: { x: 80, y: 80, itens: 1500 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 1500 } };
 // Item: [classe, x, y, direção, estado, altura]. Nas salas, x/y são relativos à
 // sala e o item inteiro fica dentro dela (o tamanho real é conferido no mapa).
 export function itensValidos(camada, itens) {
@@ -44,8 +46,8 @@ export function itensValidos(camada, itens) {
     const num = (v, min, max) => Number.isFinite(Number(v)) && Number(v) >= min && Number(v) <= max;
     if (!num(x, 0, lim.x - 0.01) || !num(y, 0, lim.y - 0.01)) throw new Error("Móvel fora da área que você pode editar.");
     if (![0, 2, 4, 6].includes(Number(dir))) throw new Error("Direção inválida.");
-    // Altura livre até 10 níveis (como o ladrilho de empilhar do Habbo).
-    if (!num(estado, 0, 200) || !num(altura, 0, 10)) throw new Error("Estado ou altura inválidos.");
+    // Altura livre até 40 níveis (Room.MAXIMUM_FURNI_HEIGHT do servidor do Habbo).
+    if (!num(estado, 0, 200) || !num(altura, 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
     return [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
   });
