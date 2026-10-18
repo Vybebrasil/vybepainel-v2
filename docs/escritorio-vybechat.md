@@ -632,6 +632,35 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
 - Convivência: mezanino montado com blocos de madeira (altura 2), degrau na
   altura 1, poltrona e planta em cima.
 
+### Regras do servidor e do cliente do Habbo (18/10/2026, noite)
+
+Conferidas no código aberto (Arcturus: Room, RoomLayout, PathfinderImpl,
+AdjacentTileFinder; Nitro: RoomSpriteCanvas, RoomPlaneParser,
+RoomVisualizationSettingsParser, RoomUnitStatusParser, AvatarVisualization) e
+reescritas no nosso motor, sem copiar código (decisão do Paulo: opção 1).
+
+- Planta de alturas: "p" chão, "1"–"9" e "A"–"Z" alturas 1 a 35, "v" sem
+  piso (`escritorioNivelDoCodigo`, `CELDAS_LIVRES`). Um nível = um bloco =
+  32 px (`MAPA_NIVEL_PX`), a mesma unidade dos móveis. A escada é um degrau
+  de altura 1 (sem rampa); guarda-corpo onde a queda é de 2 ou mais.
+- Caminho: sobe até 1,5 (até 2 para chegar a assento ou cama), desce de
+  qualquer altura, diagonal barrada só com os dois lados retos fechados.
+  A altura é a do piso mais a do móvel (`mapaAlturaTotal`) e acompanha o
+  passo entre ladrilhos.
+- Ladrilho vale pelo móvel de maior topo; cama no ladrilho vale sempre.
+- Construção: pousa no topo mais alto de todos os ladrilhos ocupados; recusa
+  sobre o que não aceita peça, acima de 40, móvel sólido sobre gente e na
+  porta; girar confere o mesmo (`escritorioPousoHabbo`).
+- Paredes: topo único no quarto, 3,6 blocos (115 px) acima do piso mais
+  alto; opções do quarto `sala_espessura_parede`, `sala_espessura_piso`
+  (−2 a 1, vale 2^x: 2, 4, 8 ou 16 px) e `sala_altura_parede` (+0 a +15).
+- Altura por estado (InteractionMultiHeight): a lista de `customparams` da
+  ficha vai no 3º campo de `fisica.json`; hoje só os elevadores
+  `newbie_eleblock*` do catálogo têm.
+- Sentado ou deitado: base do móvel + altura dele − 1 bloco; no chão (:sit),
+  −0,5. Sombra no chão sob o boneco em pé ou andando.
+- Animação dos móveis a 24 quadros por segundo.
+
 ### Ordem de desenho do Habbo (Nitro) e Wired (18/10/2026)
 
 - Cada móvel é um contêiner sem z-index (`.mapa-movel`) com um canvas por

@@ -6005,6 +6005,10 @@ body.no-escritorio {overflow:hidden}
 .mapa-fundo {left:0;top:0;z-index:0}
 .mapa-rotulo {position:absolute;z-index:99000;transform:translate(-50%,-50%) scale(var(--contra,1));padding:3px 9px;border-radius:8px;background:#11131acc;color:#eef0f5;font:650 12px var(--mac-ui);white-space:nowrap;pointer-events:none;opacity:.85}
 .mapa-pessoa {position:absolute;width:64px;height:110px;margin:-104px 0 0 -32px;border:0;padding:0;background:none;cursor:pointer}
+/* Sombra no chão sob quem está em pé ou andando, como a do Habbo (h_std_sd,
+   transparência 50 de 255); sentado e deitado não têm. */
+.mapa-sombra-boneco {position:absolute;left:15px;bottom:-2px;width:34px;height:14px;border-radius:50%;background:radial-gradient(closest-side,#000000 0,#00000000 100%);opacity:.32;pointer-events:none;display:none}
+.mapa-pessoa.sombra:not(.deitado):not(.na-agua) > .mapa-sombra-boneco {display:block}
 .mapa-pessoa img {display:block;width:64px;height:110px;image-rendering:pixelated;pointer-events:none}
 /* Física do Habbo: no trampolim o boneco pula; na água rasa, respingo nos pés;
    dormindo (ausente), um "zZz" sobe da cabeça. */
@@ -6854,3 +6858,11 @@ body.no-escritorio {overflow:hidden}
 .ofc-andares button[aria-pressed=true] {background:#ff8a351c;border-color:#ff8a3555;color:var(--ofc-texto)}
 .ofc-andares button:focus-visible {outline:2px solid #ffb475;outline-offset:2px}
 @media(max-width:760px){.ofc-topo-esq{flex-wrap:wrap}}
+/* TV do espaço (furniture_youtube): janela de vídeo flutuante sobre o mapa,
+   como o player de TV do Habbo; fecha só para quem fechou. */
+.ofc-tv {position:absolute;right:16px;top:72px;z-index:60;width:min(420px,calc(100% - 32px));border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:0 12px 32px #0007}
+.ofc .ofc-tv > header {display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:6px 10px;font:600 12px var(--mac-ui);color:var(--text)}
+.ofc-tv header button {border:0;background:none;color:inherit;font-size:18px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.ofc-tv header button:focus-visible {outline:2px solid #ff8a35}
+.ofc-tv iframe {display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+.mapa-paisagem {image-rendering:auto}

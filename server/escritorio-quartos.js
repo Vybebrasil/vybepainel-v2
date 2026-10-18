@@ -20,20 +20,21 @@ export function ampliarParedes(s) {
 }
 export function ampliarCeldas(s) {
  s = String(s || "");
- return /^[0vp12]{144}$/.test(s) ? ampliarGrade(s, 12, "0") : s;
+ return /^[0vp1-9A-Z]{144}$/.test(s) ? ampliarGrade(s, 12, "0") : s;
 }
 // Planta desenhada pelo dono (editor de planta livre): LADO_QUARTO² códigos
 // sobre a planta escolhida. "0" mantém o ladrilho da planta, "v" tira o piso,
 // "p" é piso no nível do chão, "1" e "2" são patamares. Porta e escada não mudam.
-export const CELDAS_LIVRES = new RegExp(`^[0vp12]{${LADO_QUARTO * LADO_QUARTO}}$`);
+// Como a planta de alturas do Habbo: "1"–"9" e "A"–"Z" são as alturas 1 a 35.
+export const CELDAS_LIVRES = new RegExp(`^[0vp1-9A-Z]{${LADO_QUARTO * LADO_QUARTO}}$`);
+export function nivelDoCodigo(c) { return c === "v" ? -1 : c === "p" ? 0 : /^[1-9]$/.test(c) ? Number(c) : /^[A-Z]$/.test(c) ? 10 + c.charCodeAt(0) - 65 : null; }
 export function plantaQuarto(id, livres = "") {
  const p=QUARTOS.plantas.find(p=>p.id===id);
  livres = ampliarCeldas(livres);
  if(!p || !CELDAS_LIVRES.test(String(livres || "")) || !/[^0]/.test(livres)) return p;
  const h=p.celdas.length,w=p.celdas[0].length,fixos=new Set((p.escada || []).map(([x,y])=>x+','+y));
  for(const d of [0,1]) {fixos.add((p.portas.baixo+d)+','+(h-1));fixos.add((w-1)+','+(p.portas.direita+d));}
- const cod={v:-1,p:0,1:1,2:2};
- return {...p,celdas:p.celdas.map((linha,y)=>linha.map((n,x)=>{const c=livres[y*LADO_QUARTO+x];return c==='0' || fixos.has(x+','+y) ? n : cod[c];}))};
+ return {...p,celdas:p.celdas.map((linha,y)=>linha.map((n,x)=>{const c=livres[y*LADO_QUARTO+x];return c==='0' || fixos.has(x+','+y) ? n : nivelDoCodigo(c);}))};
 }
 // Os modelos iniciais são desenhados para 8 × 8, no canto de baixo à direita;
 // em cada planta vão para o mesmo canto dela ("deslocamento").

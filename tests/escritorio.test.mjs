@@ -510,7 +510,8 @@ test("planta: o quarto é uma cena própria 8×8 com as duas paredes do fundo al
     assert.deepEqual([a.x0, a.y0, a.x1, a.y1], [0, 0, 8, 8]);
     assert.equal(P.W, 9); assert.equal(P.H, 9);
     assert.equal(P.PREDIO, null);
-    const altas = P.divisorias.filter((d) => d.alt === 118);
+    // Parede do Habbo: 3,6 blocos (115 px) acima do piso mais alto.
+    const altas = P.divisorias.filter((d) => d.alt === 115);
     assert.equal(altas.length, 2, "fundo e esquerda altas");
     assert.ok(altas.some((d) => d[1] === 0 && d[3] === 0) && altas.some((d) => d[0] === 0 && d[2] === 0));
     // Só se anda dentro do quarto e na soleira; a soleira fica fora do piso.
@@ -1351,4 +1352,48 @@ test("pilha de gatilho, condição e efeito roda como no Habbo", () => {
   itens = [...itens, ["wf_cnd_trggrer_on_frn", 0, 0, 0, 0, 1.3, { m: [[9, 9]] }]];
   vm.runInContext("gatilhoPassoEscritorio('1,2', 2, 2)", c);
   assert.equal(trocas.filter(([k]) => k.startsWith("hc_lmp")).length, 0, "condição barra");
+});
+
+// Planta de alturas e caminho como no Habbo: alturas 1–35 nos códigos da
+// planta, sobe-se até 1,5 (até 2 para um assento), desce-se de qualquer
+// altura, e a diagonal passa rente a um móvel (só barra com os dois lados fechados).
+test("planta de alturas e caminho seguem o Habbo", () => {
+  const c = vm.createContext({ window: {}, document: {} });
+  vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8"), c);
+  assert.equal(vm.runInContext('[escritorioNivelDoCodigo("p"), escritorioNivelDoCodigo("9"), escritorioNivelDoCodigo("A"), escritorioNivelDoCodigo("Z"), escritorioNivelDoCodigo("v")].join()', c), "0,9,10,35,-1");
+  assert.equal(vm.runInContext('escritorioCodigoDoNivel(12)', c), "C");
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
+  const niveis = [[0, 2, 0], [0, 0, 0], [0, 0, 0]];
+  c.g = { W: 3, H: 3, ind: (x, y) => y * 3 + x, bloqueado: new Uint8Array(9), subida: new Float32Array(9), paredes: new Set(), aresta: () => "", assento: new Map(), cama: new Map(), nivelEm: (x, y) => niveis[y][x], alturaEm: (x, y) => niveis[y][x] };
+  assert.equal(vm.runInContext("mapaPassa(g, 0, 0, 1, 0)", c), false, "não sobe 2 blocos de uma vez");
+  assert.equal(vm.runInContext("mapaPassa(g, 1, 0, -1, 0)", c), true, "desce de qualquer altura");
+  vm.runInContext("g.bloqueado[g.ind(1, 1)] = 1", c);
+  assert.equal(vm.runInContext("mapaPassa(g, 0, 1, 1, 1)", c), true, "diagonal rente a um móvel");
+  vm.runInContext("g.bloqueado[g.ind(0, 2)] = 1", c);
+  assert.equal(vm.runInContext("mapaPassa(g, 0, 1, 1, 1)", c), false, "com os dois lados fechados, não");
+  vm.runInContext("g.assento.set(g.ind(1, 0), 4)", c);
+  assert.equal(vm.runInContext("mapaPassa(g, 0, 0, 1, 0)", c), true, "chega ao assento 2 blocos acima");
+});
+
+// Números por camada como no Nitro: relógio de partida em minutos:segundos,
+// placar e votos em unidades, dezenas e centenas.
+test("dígitos do relógio, do placar e dos votos seguem o Nitro", () => {
+  const c = vm.createContext({ window: {}, document: {} });
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
+  const d = (tag, n) => vm.runInContext(`MAPA_DIGITOS[${JSON.stringify(tag)}](${n})`, c);
+  assert.deepEqual([d("ten_minutes_sprite", 125), d("minutes_sprite", 125), d("ten_seconds_sprite", 125), d("seconds_sprite", 125)], [0, 2, 0, 5]);
+  assert.deepEqual([d("hundreds_sprite", 437), d("tens_sprite", 437), d("ones_sprite", 437)], [4, 3, 7]);
+  const f = JSON.parse(readFileSync("assets/escritorio/habbo/fisica.json", "utf8"));
+  assert.equal(f.tent_blue[3], "pisar"); assert.equal(f.fball_counter[3], "relogio"); assert.equal(f.tile_stackmagic[3], "altura");
+});
+
+test("manequim guarda um visual válido e o cadeado do amor aceita dedicatória", async () => {
+  const { itensValidos } = await import("../server/escritorio-mapa.js");
+  const [m] = itensValidos("sala-1", [["boutique_mannequin1", 1, 1, 2, 0, 0, { f: "hd-180-1.hr-100-61", x: 1 }]]);
+  assert.deepEqual(m[6], { f: "hd-180-1.hr-100-61" });
+  assert.throws(() => itensValidos("sala-1", [["boutique_mannequin1", 1, 1, 2, 0, 0, { f: "<script>" }]]), /manequim/);
+  const [c] = itensValidos("sala-1", [["val14_lovelock1", 1, 1, 2, 0, 0, { n: "Ana e Bia", t: "Pra sempre", d: "2026-10-18" }]]);
+  assert.equal(c[6].n, "Ana e Bia");
+  const [s] = itensValidos("sala-1", [["chair_norja", 1, 1, 2, 0, 0, { f: "hd-180-1" }]]);
+  assert.equal(s.length, 6, "cadeira não guarda visual");
 });

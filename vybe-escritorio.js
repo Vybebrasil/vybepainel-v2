@@ -523,6 +523,13 @@ function escritorioAlterarDecoracao(patch) {
   if(escritorio.quarto?.endsWith('-andar-1')) escritorio.perfil={...escritorio.perfil,sala_andares:[{...escritorioPerfilDecoracao(),...patch,andar:1}]};
   else escritorio.perfil={...escritorio.perfil,...patch};
 }
+// Opções do quarto do Habbo, do perfil para o ambiente: espessuras (2 elevado
+// à escolha, −2 a 1) e altura fixa da parede (−1 = a padrão).
+function escritorioOpcoesDoQuarto(perfil) {
+  const esp = (v) => ([-2, -1, 0, 1].includes(Number(v)) && v !== "" && v != null ? Math.pow(2, Number(v)) : 1);
+  const v = perfil?.sala_altura_parede, alt = v === "" || v == null ? -1 : Number(v);
+  return { espessuraParede: esp(perfil?.sala_espessura_parede), espessuraPiso: esp(perfil?.sala_espessura_piso), alturaParedeFixa: Number.isInteger(alt) && alt >= 0 && alt <= 15 ? alt : -1 };
+}
 function escritorioPayloadDecoracao() { return {...escritorioPerfilDecoracao(), ...(escritorio.quarto?.endsWith('-andar-1') ? {andar:1} : {})}; }
 function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   // Cena própria: o quarto de uma sala (sala-N, com o segundo andar) ou um
@@ -533,7 +540,7 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   if(!a || !String(id).endsWith('-andar-1')) return a || null;
   const perfil=escritorioPerfilDecoracao(id);
   if(!perfil?.quarto_configurado) return null;
-  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:escritorioCeldasDoPerfil(perfil.sala_celdas),semParedes:perfil.sala_sem_paredes===true,porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
+  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:escritorioCeldasDoPerfil(perfil.sala_celdas),semParedes:perfil.sala_sem_paredes===true,...escritorioOpcoesDoQuarto(perfil),porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
   const dim=escritorioDimQuarto(r);r.x1=r.x0+dim.w;r.y1=r.y0+dim.h;
   const L=ESCRITORIO_QUARTO_MAX,pisos=new Map(),paredes=new Map();
   const lp=escritorioPisosDoPerfil(perfil.sala_pisos), lw=escritorioParedesDoPerfil(perfil.sala_paredes);
@@ -575,6 +582,7 @@ function escritorioAplicarSalas() {
     a.luz = ESCRITORIO_LUZES_SALA.some(([id]) => id === perfil?.sala_luz) ? perfil.sala_luz : "";
     a.celdasLivres = escritorioCeldasDoPerfil(perfil?.sala_celdas);
     a.semParedes = perfil?.sala_sem_paredes === true;
+    Object.assign(a, escritorioOpcoesDoQuarto(perfil));
     // Lado da porta: o escolhido pelo dono ou o padrão da sala.
     a.portaPadrao ??= a.porta;
     a.porta = ["baixo", "direita"].includes(perfil?.sala_porta) ? perfil.sala_porta : a.portaPadrao;
@@ -1273,7 +1281,21 @@ function escritorioFisicaDoPiso(andando) {
     seguir(...(ESCRITORIO_PASSO_ESTEIRA[piso.dir] || [0, 0]));
   }, 500); // a esteira do Habbo anda um ladrilho a cada meio segundo
 }
+// Barraca, van e cabana (FurnitureChangeStateWhenStepOnLogic): abrem (estado
+// 1) enquanto o próprio boneco está em cima e fecham quando sai; só na tela
+// de quem pisou, como no Habbo.
+function escritorioPisarMuda(x, y) {
+  const mapa = escritorio.mapa;
+  if (!mapa?.moveisEm) return;
+  const aqui = new Set((mapa.moveisEm(x, y) || []).filter((m) => escritorioLogica(m) === "pisar").map((m) => mapa.chaveMovel(m)));
+  const mudar = [];
+  for (const k of escritorio.pisandoEm || []) if (!aqui.has(k)) mudar.push([k, 0]);
+  for (const k of aqui) if (!escritorio.pisandoEm?.has(k)) mudar.push([k, 1]);
+  escritorio.pisandoEm = aqui;
+  if (mudar.length) mapa.estadosMoveis(mudar);
+}
 function escritorioPisouEm(x, y) {
+  escritorioPisarMuda(x, y);
   // Futebol do Habbo: passar pela bola conduz (1 ladrilho); terminar o passo
   // em cima dela chuta (6 ladrilhos), na direção em que se andava.
   const r = movimento.rota;
@@ -1647,6 +1669,8 @@ function escritorioAplicarComando(id, cmd) {
   // Alguém salvou a decoração (móveis, piso, paredes, luz ou planta): quem
   // está naquela cena relê do servidor e redesenha.
   else if (k === "dec") escritorioDecoracaoMudou(id, v);
+  // TV: quem está no mesmo espaço vê o vídeo passado (vazio desliga).
+  else if (k === "tv") { const [cena, video] = String(v || "").split(":"); if (cena === (escritorio.quarto || "praca") && String(id) !== String(escritorio.base?.eu)) mostrarTvEscritorio(escritorioIdYoutube(video) || "", id); }
   // Bola chutada: cada navegador roda o mesmo caminho (mesma grade).
   else if (k === "bol" && String(id) !== String(escritorio.base?.eu)) escritorioRolarBola(v);
   // Post-it colado ou tirado: quem está na sala relê a parede.
@@ -1875,9 +1899,12 @@ function teletransportarEscritorio(id) {
 // para o próximo estado, e todos veem (como no Habbo).
 function alternarComDuploCliqueEscritorio(x, y) {
   if (escritorio.edicao || !escritorio.mapa) return;
-  const m = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.parede && !ESCRITORIO_DADO.test(i.classe) && !ESCRITORIO_TELEPORTE.test(i.classe) && !MAPA_PORTAS.test(i.classe) && escritorioEstadosDoMovel(i).length > 1);
+  const m = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.parede && !ESCRITORIO_DADO.test(i.classe) && !ESCRITORIO_TELEPORTE.test(i.classe) && !MAPA_PORTAS.test(i.classe) && (escritorioEstadosDoMovel(i).length > 1 || ["relogio", "voto", "placar"].includes(escritorioLogica(i))));
   if (!m) return;
   if (/floor_switch/.test(m.classe)) return puxarAlavancaEscritorio(m);
+  // Dois cliques: o relógio troca o tempo; contador e placar zeram.
+  if (escritorioLogica(m) === "relogio") return tempoRelogioEscritorio(m);
+  if (escritorioLogica(m) === "voto" || escritorioLogica(m) === "placar") { escritorioVotei.delete(escritorio.mapa.chaveMovel(m)); return escritorioMudarEstado(m, 0); }
   if (ESCRITORIO_GARRAFA.test(m.classe)) return girarGarrafaEscritorio(m);
   if (ESCRITORIO_ROLETA.test(m.classe)) return girarRoletaEscritorio(m);
   if (mapaEhPortao(m.classe) && !m.altura) return alternarPortaoEscritorio(m);
@@ -2019,6 +2046,158 @@ function escritorioAtualizarPortas() {
   }
   if (mudou.length) mapa.estadosMoveis(mudou);
 }
+// Lógicas oficiais do Habbo (logicType da arte, em fisica.json).
+// Relógio de partida (FurnitureCounterClockLogic): clique inicia ou pausa;
+// dois cliques trocam o tempo (30 s a 10 min, a lista da ficha do Habbo). O
+// de contagem para cima (…up) sobe de zero. Quem inicia mantém o relógio e
+// manda o número a cada segundo para todos.
+const ESCRITORIO_TEMPOS_RELOGIO = [30, 60, 120, 180, 300, 600];
+const escritorioRelogios = new Map();
+const escritorioLogica = (m) => (typeof mapaFisica === "function" ? mapaFisica(m.classe).logica : null);
+const escritorioSobe = (m) => /up$/.test(m.classe);
+function escritorioMudarEstado(m, estado) {
+  const chave = escritorio.mapa.chaveMovel(m);
+  escritorio.mapa.estadosMoveis([[chave, estado]]);
+  escritorioEmitir("furni:toggle", { chave, estado });
+}
+function relogioEscritorio(m) {
+  const chave = escritorio.mapa.chaveMovel(m), r = escritorioRelogios.get(chave);
+  if (r) { clearInterval(r.timer); escritorioRelogios.delete(chave); escritorioTocar(330, 0.08, 0.05); return; }
+  if (!escritorioSobe(m) && !(m.estado > 0)) escritorioMudarEstado(m, ESCRITORIO_TEMPOS_RELOGIO[0]);
+  const timer = setInterval(() => {
+    const atual = escritorio.mapa?.moveisDaClasse?.(new RegExp("^" + m.classe + "$")).find((x) => escritorio.mapa.chaveMovel(x) === chave);
+    if (!atual) { clearInterval(timer); escritorioRelogios.delete(chave); return; }
+    const n = escritorioSobe(m) ? Math.min(5999, (atual.estado || 0) + 1) : Math.max(0, (atual.estado || 0) - 1);
+    escritorioMudarEstado(atual, n);
+    if (!escritorioSobe(m) && n === 0) { clearInterval(timer); escritorioRelogios.delete(chave); escritorioTocar(880, 0.3, 0.08); escritorioAviso("O tempo acabou."); }
+  }, 1000);
+  escritorioRelogios.set(chave, { timer });
+  escritorioTocar(660, 0.08, 0.05);
+}
+function tempoRelogioEscritorio(m) {
+  const chave = escritorio.mapa.chaveMovel(m), r = escritorioRelogios.get(chave);
+  if (r) { clearInterval(r.timer); escritorioRelogios.delete(chave); }
+  if (escritorioSobe(m)) return escritorioMudarEstado(m, 0);
+  const i = ESCRITORIO_TEMPOS_RELOGIO.indexOf(m.estado || 0);
+  escritorioMudarEstado(m, ESCRITORIO_TEMPOS_RELOGIO[(i + 1) % ESCRITORIO_TEMPOS_RELOGIO.length]);
+}
+// Contador de votos e placar (FurnitureVoteCounter/Score): clique soma um;
+// dois cliques zeram. No contador de votos cada pessoa vota uma vez.
+const escritorioVotei = new Set();
+function contarEscritorio(m) {
+  const chave = escritorio.mapa.chaveMovel(m);
+  if (escritorioLogica(m) === "voto") {
+    if (escritorioVotei.has(chave)) return escritorioAviso("Você já votou neste contador.");
+    escritorioVotei.add(chave);
+  }
+  escritorioMudarEstado(m, Math.min(999, (m.estado || 0) + 1));
+  escritorioTocar(660, 0.06, 0.04);
+}
+// Funil (FurnitureRandomTeleportLogic): leva a outro funil, sorteado, de
+// qualquer espaço comum ou da Praça.
+function funilEscritorio(m) {
+  const cenas = [["praca", "geral"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.cena).map((a) => [a.id, a.id])];
+  const aqui = escritorio.quarto || "praca";
+  const outros = cenas.flatMap(([cena, camada]) => escritorioItensDaCamada(camada).filter((it) => escritorioLogica({ classe: it[0] }) === "funil")
+    .map((it) => ({ cena, x: Math.floor(it[1]), y: Math.floor(it[2]), dir: it[3] }))).filter((t) => !(t.cena === aqui && t.x === Math.floor(m.x) && t.y === Math.floor(m.y)));
+  if (!outros.length) return escritorioAviso("Não há outro funil para onde ir.");
+  const par = outros[Math.floor(Math.random() * outros.length)];
+  teletransportarParEscritorio(m, par);
+}
+// Quebrável: cada clique é um golpe, para todos; no último ela abre.
+function quebrarEscritorio(m) {
+  const golpes = (m.estado || 0) + 1;
+  if ((m.estado || 0) >= MAPA_GOLPES_QUEBRAVEL) return escritorioAviso("Já está aberto.");
+  escritorioMudarEstado(m, golpes);
+  escritorioTocar(golpes >= MAPA_GOLPES_QUEBRAVEL ? 990 : 300 + golpes * 30, 0.08, 0.05);
+  if (golpes >= MAPA_GOLPES_QUEBRAVEL) escritorioAviso("Abriu!");
+  else escritorioAviso(`Faltam ${MAPA_GOLPES_QUEBRAVEL - golpes} ${MAPA_GOLPES_QUEBRAVEL - golpes === 1 ? "golpe" : "golpes"} para abrir.`);
+}
+// TV e projetor (furniture_youtube): quem usa escolhe passar um vídeo do
+// YouTube para quem está no espaço ou compartilhar a própria tela na
+// conversa da sala. O vídeo vai a todos por comando no chat (tv=cena:id).
+function abrirTvEscritorio(m) {
+  // A tela vai pela conversa do espaço (mostrarTelaEscritorio entra nela se
+  // preciso); Foco e Praça não têm conversa.
+  const comConversa = Boolean(escritorio.zona && escritorio.zona !== "foco");
+  escritorio.tvAtual = m;
+  openWorkflowModal(`<div class="workflow-kicker">TV</div><h2 class="workflow-title">O que passar?</h2>
+<form class="ofc-gatilho" onsubmit="event.preventDefault();passarVideoEscritorio(this.elements.url.value)">
+<label>Vídeo do YouTube (link)<input name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required></label>
+<div class="workflow-actions"><button type="submit" class="workflow-primary">Passar o vídeo</button>
+<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}>Compartilhar minha tela</button>
+<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();passarVideoEscritorio('')">Desligar</button></div>
+${comConversa ? "" : '<p class="ofc-nota">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}</form>`);
+}
+function escritorioIdYoutube(url) {
+  const m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(String(url || "").trim());
+  return m ? m[1] : /^[A-Za-z0-9_-]{11}$/.test(String(url || "").trim()) ? String(url).trim() : null;
+}
+function passarVideoEscritorio(url) {
+  const id = url ? escritorioIdYoutube(url) : "";
+  if (url && !id) return escritorioAviso("Esse link não é de um vídeo do YouTube.");
+  closeWorkflowModal();
+  const cena = escritorio.quarto || "praca";
+  if (escritorio.tvAtual && escritorioEstadosDoMovel(escritorio.tvAtual).length > 1) escritorioMudarEstado(escritorio.tvAtual, id ? 1 : 0);
+  mostrarTvEscritorio(id, String(escritorio.base?.eu));
+  escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "tv=" + cena + ":" + id });
+}
+async function compartilharTelaNaTvEscritorio() {
+  if (escritorio.tvAtual && escritorioEstadosDoMovel(escritorio.tvAtual).length > 1) escritorioMudarEstado(escritorio.tvAtual, 1);
+  await mostrarTelaEscritorio();
+}
+function mostrarTvEscritorio(id, quem) {
+  document.getElementById("office-tv")?.remove();
+  if (!id) return;
+  const nome = String((escritorio.online || []).find((o) => String(o.id) === String(quem))?.nome || (String(quem) === String(escritorio.base?.eu) ? "Você" : "Alguém")).split(" ")[0];
+  const caixa = document.createElement("section");
+  caixa.id = "office-tv"; caixa.className = "ofc-tv"; caixa.setAttribute("aria-label", "TV do espaço");
+  caixa.innerHTML = `<header><span>TV · ${safeText(nome)} passou</span><button type="button" aria-label="Fechar a TV" onclick="document.getElementById('office-tv')?.remove()">×</button></header>
+<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0" title="Vídeo do YouTube" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  (document.querySelector(".ofc") || document.body).append(caixa);
+}
+// Troféu (furniture_trophy): mostra a dedicatória gravada (quem, quando e o
+// texto), como no Habbo; quem decora grava no editor (Configurar).
+function verTrofeuEscritorio(m) {
+  const it = escritorioItensDaCamada(escritorio.quarto || "geral")[m.origem?.i];
+  const cfg = it?.[6] && typeof it[6] === "object" ? it[6] : {};
+  openWorkflowModal(`<div class="workflow-kicker">${escritorioLogica(m) === "cadeado" ? "Cadeado do amor" : "Troféu"}</div><h2 class="workflow-title">${safeText(cfg.n || "Sem nome gravado")}</h2>
+${cfg.d ? `<p class="ofc-nota">${safeText(cfg.d.split("-").reverse().join("/"))}</p>` : ""}<p>${safeText(cfg.t || "Este troféu ainda não tem dedicatória.")}</p>
+<div class="workflow-actions"><button type="button" class="workflow-primary" onclick="closeWorkflowModal()">Fechar</button></div>`);
+}
+// Manequim (furniture_mannequin): quem decora guarda nele o próprio visual
+// (no editor); qualquer um veste o visual guardado, como no Habbo.
+async function vestirManequimEscritorio(m) {
+  const it = escritorioItensDaCamada(escritorio.quarto || "geral")[m.origem?.i];
+  const f = it?.[6]?.f;
+  if (!f) return escritorioAviso("Este manequim ainda não tem um visual guardado.");
+  if (!confirm("Vestir o visual do manequim? Seu personagem muda para todos.")) return;
+  const perfil = { ...escritorio.perfil, figura: f };
+  try {
+    const salvo = escritorio.base.demo ? perfil : (await escritorioApi("perfil", { perfil })).perfil;
+    escritorio.perfil = { ...escritorio.perfil, ...salvo };
+    const eu = escritorio.base.equipe.find((p) => p.id === escritorio.base.eu);
+    if (eu) eu.perfil = { ...eu.perfil, ...salvo };
+    escritorioAplicarSalas();
+    renderEscritorio();
+    if (!escritorio.base.demo) mapaGuardarBoneco(salvo.figura);
+    escritorioAviso("Visual trocado.");
+  } catch (e) { escritorioAviso("Não deu para trocar o visual: " + e.message); }
+}
+// Peças que se usam pela lógica oficial (antes de cair nas regras pelo nome).
+function escritorioAcaoPelaLogica(m) {
+  const l = escritorioLogica(m);
+  if (l === "quebravel") return { item: m, texto: "Dar um golpe", fazer: () => quebrarEscritorio(m) };
+  if (l === "tv" || ESCRITORIO_TELAS.test(m.classe)) return { item: m, texto: "Usar a TV", fazer: () => abrirTvEscritorio(m) };
+  if (l === "trofeu" || l === "cadeado") return { item: m, texto: l === "cadeado" ? "Ler o cadeado" : "Ler a dedicatória", fazer: () => verTrofeuEscritorio(m) };
+  if (l === "manequim") return { item: m, texto: "Vestir este visual", fazer: () => vestirManequimEscritorio(m) };
+  if (l === "relogio") return { item: m, texto: escritorioRelogios.has(escritorio.mapa.chaveMovel(m)) ? "Pausar o relógio" : "Iniciar o relógio", fazer: () => relogioEscritorio(m) };
+  if (l === "voto") return { item: m, texto: "Votar", fazer: () => contarEscritorio(m) };
+  if (l === "placar") return { item: m, texto: "Somar um ponto", fazer: () => contarEscritorio(m) };
+  if (l === "funil") return { item: m, texto: "Entrar no funil", fazer: () => funilEscritorio(m) };
+  if (l === "link") return { item: m, texto: "Abrir o painel", fazer: () => abrirPainelDoEscritorio() };
+  return null;
+}
 // Regulador de luz do Habbo (roomdimmer e interruptores de parede): no
 // próprio quarto abre a Luz do quarto (sala_luz, que tinge tudo); fica aceso
 // quando o quarto tem uma luz escolhida.
@@ -2039,6 +2218,8 @@ function escritorioAcenderReguladores() {
 // O que um móvel faz quando a pessoa está ao lado dele (o mesmo da tecla E).
 function escritorioAcaoDoMovel(m) {
   if (!m) return null;
+  const pelaLogica = escritorioAcaoPelaLogica(m);
+  if (pelaLogica) return pelaLogica;
   if (ESCRITORIO_CAFE.test(m.classe)) return { item: m, fazer: () => definirPoseEscritorio(escritorio.pose === "cafe" ? "" : "cafe") };
   if (ESCRITORIO_BEBIDA.test(m.classe) || ESCRITORIO_LANCHE.test(m.classe)) {
     const tipo = ESCRITORIO_BEBIDA.test(m.classe) ? "bebida" : "lanche";
@@ -2134,8 +2315,7 @@ function escritorioAcoesPerto() {
     return { item: aparelho, texto: pose === "bicicleta" ? "Pedalar" : "Correr na esteira", fazer: () => usarAparelhoEscritorio(aparelho, pose) };
   }
   const tela = escritorio.mapa.moveisPerto(p.x, p.y, 2).find((m) => ESCRITORIO_TELAS.test(m.classe));
-  if (tela && escritorio.zona && escritorio.zona !== "foco")
-    return { item: tela, texto: "Mostrar minha tela aqui", fazer: mostrarTelaEscritorio };
+  if (tela) return { item: tela, texto: "Usar a TV", fazer: () => abrirTvEscritorio(tela) };
   // No Lounge, a jukebox e a cabine do DJ são o bot de música da sala.
   const som = escritorioNaPista() && perto.find((m) => /jukebox|^hc25_6$/.test(m.classe));
   if (som) return { item: som, texto: "Abrir a música", fazer: abrirMusicaEscritorio };

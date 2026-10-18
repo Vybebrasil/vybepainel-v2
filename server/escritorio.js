@@ -51,7 +51,7 @@ export function perfilEscritorio(valor = {}) {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
-      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','quarto_configurado'].includes(k))));
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede','quarto_configurado'].includes(k))));
       return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
     }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
@@ -75,6 +75,12 @@ export function perfilEscritorio(valor = {}) {
     sala_porta: opcao("sala_porta", ["", "baixo", "direita"], ""),
     // Quarto "maquete": sem as paredes do quarto (o dono constrói as suas).
     sala_sem_paredes: valor.sala_sem_paredes === true,
+    // Opções do quarto do Habbo (RoomSettings): espessura da parede e do piso
+    // (−2 a 1; vale 2 elevado a isso) e altura fixa da parede (0 a 15 blocos
+    // a mais; vazio = a altura padrão).
+    sala_espessura_parede: [-2, -1, 0, 1].includes(Number(valor.sala_espessura_parede)) && valor.sala_espessura_parede !== "" && valor.sala_espessura_parede != null ? Number(valor.sala_espessura_parede) : 0,
+    sala_espessura_piso: [-2, -1, 0, 1].includes(Number(valor.sala_espessura_piso)) && valor.sala_espessura_piso !== "" && valor.sala_espessura_piso != null ? Number(valor.sala_espessura_piso) : 0,
+    sala_altura_parede: Number.isInteger(Number(valor.sala_altura_parede)) && Number(valor.sala_altura_parede) >= 0 && Number(valor.sala_altura_parede) <= 15 && valor.sala_altura_parede !== "" && valor.sala_altura_parede != null ? Number(valor.sala_altura_parede) : -1,
     // Planta desenhada pelo dono (ver plantaQuarto); muda só ao salvar a decoração.
     sala_celdas: CELDAS_LIVRES.test(celdas) ? celdas : "",
     // Piso pintado ladrilho a ladrilho (LADO_QUARTO², um código por ladrilho; 0 =
@@ -152,7 +158,7 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = 
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
       const pintura=perfilEscritorio(valor);
-      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes'].map(k=>[k,pintura[k]]))}]};
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
     }
     const andarNovo=perfilDoAndar(perfil,valor.andar===1 ? 1 : 0), andarAntes=perfilDoAndar(atual.preferencias,valor.andar===1 ? 1 : 0);
     if((andarNovo?.sala_porta || '')!==(andarAntes?.sala_porta || '') && andarNovo?.sala_porta) {

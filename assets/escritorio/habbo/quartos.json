@@ -6598,7 +6598,25 @@
     "wf_act_toggle_state",
     "wf_act_toggle_to_rnd",
     "wf_act_show_message",
-    "wf_act_teleport_to"
+    "wf_act_teleport_to",
+    "fball_counter",
+    "bb_counter",
+    "es_counter",
+    "fball_c26_counterup",
+    "fball_c26_standlesscounter",
+    "fball_c26_standlesscounterup",
+    "tile_stackmagic",
+    "tile_stackmagic1",
+    "tile_stackmagic2",
+    "tile_stackmagic4x4",
+    "tile_stackmagic6x6",
+    "info_terminal",
+    "vote_count_add",
+    "vote_majority",
+    "bb_score_b",
+    "bb_score_g",
+    "bb_score_r",
+    "bb_score_y"
   ],
   "modelos": [
     {
