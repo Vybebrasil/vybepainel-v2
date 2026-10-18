@@ -100,7 +100,7 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   conserva apenas presença/posição transitórias. O motor RealtimeKit do VybeChat
   é reaproveitado para mídia, com credenciais exclusivamente no servidor.
 - Voz por sala (decisão do Paulo, 16/10/2026): numa sala a pessoa fala e ouve
-  quem está nela, com o microfone ligado; Foco e corredor não têm voz. Desde
+  quem está nela, com o microfone ligado; Foco e Praça não têm voz. Desde
   17/10/2026 (decisão do Paulo) os espaços abertos usam uma conversa única do
   RealtimeKit e o painel só toca quem está na mesma sala, para trocar de sala
   sem reconectar; o som das outras salas chega ao navegador sem tocar. Sala
@@ -108,14 +108,15 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e silenciar é um clique. Presença não é comprovação de produtividade. Não publique nem afirme validação de mídia
   apenas por abrir a demonstração. Consulte `docs/escritorio-vybechat.md`.
 
-- Quartos pessoais (fase 1, 17/10/2026) são cenas 8×8 separadas, com coordenadas
-  locais e zona explícita `sala-N`. No mapa geral ficam as fachadas e suas portas.
-  Preserve entrada/saída, trancas e a mesma identidade de sala para voz e editor.
-  Não transforme coordenadas locais do quarto em posições do mapa geral.
-- Espaços comuns (decisão do Paulo, 17/10/2026) também são cenas próprias,
-  como os quartos: Reunião, Auditório, Produção, Café, Jogos, Foco, Academia
-  e Lounge. No mapa geral ficam como prédios com telhado, porta e letreiro;
-  o id do espaço é a zona de conversa (a mesma que o Worker já aceita).
+- Não há mapa geral (decisão do Paulo, 17/10/2026): cada lugar é uma cena,
+  como os quartos do Habbo, e a troca é pela lista de salas. Quartos pessoais
+  são cenas com coordenadas locais e zona `sala-N`; espaços comuns
+  (Convivência = zona `recepcao`, Reunião, Auditório, Produção, Café, Jogos,
+  Foco, Academia, Lounge) têm o id como zona de conversa (a mesma que o
+  Worker já aceita). A Praça (área de fora) é a cena de abertura, sem zona e
+  sem voz, e é a camada `geral` do editor. A porta das salas leva à
+  Convivência; a da Convivência leva à Praça e volta. Preserve trancas e a
+  mesma identidade de sala para voz e editor; coordenadas são sempre locais.
   Cada cena segue as referências de quartos do Habbo: uma linha de móveis,
   parede do fundo ocupada, peças empilhadas apoiadas no topo da de baixo.
   Os móveis ficam em `ESCRITORIO_MOVEIS_CENAS` (`vybe-escritorio-planta.js`).

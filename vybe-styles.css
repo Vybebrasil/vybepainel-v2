@@ -5982,8 +5982,6 @@ body.no-escritorio {overflow:hidden}
 /* Parede com alguém logo atrás: fica translúcida para o boneco aparecer. */
 .mapa-muro {transition:opacity .2s}
 .mapa-muro.recortado {opacity:.28}
-/* Telhado com alguém atrás: continua lendo como laje (bem transparente, o prédio parecia oco). */
-.mapa-telhado.recortado {opacity:.6}
 @media(prefers-reduced-motion:reduce){.mapa-muro {transition:none}}
 .mapa-fundo {left:0;top:0;z-index:0}
 .mapa-rotulo {position:absolute;z-index:99000;transform:translate(-50%,-50%) scale(var(--contra,1));padding:3px 9px;border-radius:8px;background:#11131acc;color:#eef0f5;font:650 12px var(--mac-ui);white-space:nowrap;pointer-events:none;opacity:.85}
@@ -6215,7 +6213,6 @@ body.no-escritorio {overflow:hidden}
 .ofc-cats {display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}
 .ofc-cats button {padding:5px 9px;border-radius:999px;border:1px solid #ffffff1c;background:#ffffff08;color:var(--ofc-suave);font:600 11px var(--mac-ui);cursor:pointer}
 .ofc-cats button[aria-pressed=true] {border-color:#ff8a35;background:#ff8a3524;color:#ffd2b0}
-.mapa-zona {position:absolute;left:0;top:0;z-index:0;pointer-events:none}
 /* Balão de fala, reações e vídeo em bolha sobre o boneco; sala trancada. */
 .mapa-balao {position:absolute;left:50%;bottom:calc(100% + 26px);transform:translateX(-50%);width:max-content;max-width:220px;padding:7px 11px;border-radius:14px;background:#fff;color:#16171c;font:600 12px/1.35 var(--mac-ui);box-shadow:0 6px 18px #0006;white-space:normal;overflow-wrap:anywhere;animation:mapa-balao .25s ease-out;pointer-events:none;z-index:2}
 .mapa-balao::after {content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:#fff}
@@ -6243,9 +6240,6 @@ body.no-escritorio {overflow:hidden}
 .ofc-reacoes>div.ofc-poses button {width:auto;height:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;font:600 13px var(--mac-ui);color:#fff}
 .ofc-avisos {position:absolute;z-index:8;top:64px;left:50%;transform:translateX(-50%);display:grid;gap:6px;justify-items:center;pointer-events:none}
 .ofc-avisos p {padding:7px 12px;border-radius:10px;background:#171a22e6;border:1px solid #ffffff1c;color:#e8eaf0;font:600 12px var(--mac-ui);animation:mapa-balao .25s ease-out}
-.ofc-minimapa {position:absolute;z-index:6;left:16px;bottom:16px;width:232px;height:168px;border-radius:14px;background:#0f1015d9;border:1px solid #ffffff1c;box-shadow:0 10px 30px #0007;cursor:pointer}
-.ofc-minimapa[hidden] {display:none}
-@media(max-width:1100px){.ofc-minimapa{display:none}}
 /* Criador de personagem (abas, grade de peças, cores reais) */
 .abr-painel.cri {width:min(1180px,calc(100vw - 32px));grid-template-columns:300px minmax(0,1fr);height:min(760px,calc(100vh - 40px))}
 .cri .abr-previa {position:relative;padding:18px 12px}
@@ -6336,12 +6330,7 @@ body.no-escritorio {overflow:hidden}
 
 /* Letreiro em neon das salas individuais */
 .mapa-rotulo.neon {background:#0b0a10d9;color:var(--neon,#ff8a35);border:1px solid color-mix(in srgb,var(--neon,#ff8a35) 55%,transparent);font:800 12px var(--mac-ui);letter-spacing:.04em;text-shadow:0 0 6px color-mix(in srgb,var(--neon,#ff8a35) 70%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--neon,#ff8a35) 35%,transparent);opacity:1}
-/* Quartos próprios: fachada clicável no mapa (letreiro + quantos estão dentro), porta de saída do quarto e o fundo escuro da cena do quarto */
-.mapa-rotulo.fachada {display:inline-flex;align-items:center;gap:6px;pointer-events:auto;cursor:pointer;border-radius:8px}
-.mapa-rotulo.fachada:hover {box-shadow:0 0 18px color-mix(in srgb,var(--neon,#ff8a35) 55%,transparent)}
-.mapa-rotulo.fachada:focus-visible {outline:2px solid #fff;outline-offset:2px}
-.mapa-dentro {display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--neon,#ff8a35);color:#140d08;font:800 10px var(--mac-ui);letter-spacing:0;text-shadow:none}
-.mapa-dentro[hidden] {display:none}
+/* Cenas (salas, espaços comuns, Praça): porta de saída e o fundo escuro em volta */
 .mapa-rotulo.saida {pointer-events:auto;cursor:pointer;background:#1d1610ee;color:#ffe7d2;border:1px solid #ff8a3566;box-shadow:0 10px 30px #0007;opacity:1}
 .mapa-rotulo.saida:hover {border-color:#ff8a35}
 .mapa-rotulo.saida:focus-visible {outline:2px solid #fff;outline-offset:2px}
@@ -6392,18 +6381,6 @@ body.no-escritorio {overflow:hidden}
 .mapa-selo {position:absolute;left:44px;top:14px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#14121bee;border:1px solid #ffffff2a;pointer-events:none}
 .mapa-selo[data-status=foco] {color:#b9a8ff}
 .mapa-selo[data-status=reuniao] {color:#ffb27a}
-/* Atalhos de área */
-.ofc-areas {position:absolute;z-index:6;right:16px;bottom:200px;display:grid;justify-items:end;gap:4px}
-.ofc-areas[hidden] {display:none}
-.ofc-areas summary {display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:12px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);color:var(--ofc-texto);font:600 12px var(--mac-ui);cursor:pointer;list-style:none;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.ofc-areas summary::-webkit-details-marker {display:none}
-.ofc-areas summary:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
-.ofc-areas summary svg {width:16px;height:16px}
-.ofc-areas nav {order:-1;display:grid;gap:2px;padding:4px;border-radius:12px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.ofc-areas nav button {padding:6px 10px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:600 12px var(--mac-ui);text-align:right;cursor:pointer;white-space:nowrap}
-.ofc-areas nav button:hover {background:#ffffff12}
-.ofc-areas nav button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
-@media(max-width:760px){.ofc-areas {display:none}}
 /* Céu no horário de Irecê */
 .ofc-mapa[data-cena=mapa][data-ceu=madrugada] {background:linear-gradient(180deg,#06060f 0%,#0e1028 45%,#1c1838 80%,#2a2140 100%)}
 .ofc-mapa[data-cena=mapa][data-ceu=manha] {background:linear-gradient(180deg,#3d6fb0 0%,#6f9fd6 40%,#f2b98a 85%,#ffd7a1 100%)}
@@ -6782,11 +6759,7 @@ body.no-escritorio {overflow:hidden}
 .mapa-luz.fogo {background:radial-gradient(closest-side,rgba(255,150,70,calc(.42 * var(--forca,.5))),rgba(255,110,40,calc(.14 * var(--forca,.5))) 55%,transparent);animation:mapa-luz-fogo 2.4s ease-in-out infinite}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
-.mapa-fundo-cidade {position:absolute;z-index:0;pointer-events:none;object-fit:fill;image-rendering:pixelated}
 
-/* Elevador do escritório: um botão por andar, quebrando linha no celular. */
-.workflow-actions.ofc-elevador { flex-wrap: wrap; gap: 8px; }
-.workflow-actions.ofc-elevador .workflow-primary { flex: 1 1 140px; }
 
 /* Criação do quarto: tamanho do formato escolhido (Pequeno a Enorme). */
 .abr-tamanhos { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-8px 0 20px; }

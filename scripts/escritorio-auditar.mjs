@@ -1,15 +1,14 @@
 // Confere a planta do escritório sem abrir o navegador: móveis sobrepostos,
 // móvel atravessando divisória, apoiado no vazio, assento sem acesso e porta
-// bloqueada. Cada cena é conferida separada: o mapa geral (espaços comuns e
-// as fachadas das salas, com a entrada de cada uma alcançável) e o quarto
-// de cada sala, com a mobília padrão dela.
+// bloqueada. Cada cena é conferida separada: a Praça, cada espaço comum e o
+// quarto de cada sala, com a mobília padrão dela.
 // node scripts/escritorio-auditar.mjs  (sai com erro se achar algo)
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
 
 const ctx = { console };
 vm.createContext(ctx);
-vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__geral = escritorioPlantaGeral; globalThis.__quarto = escritorioPlantaDoQuarto; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS; globalThis.__cenaMoveis = escritorioMoveisDaCena;", ctx);
+vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__geral = escritorioPlantaGeral; globalThis.__quarto = escritorioPlantaDoQuarto; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS; globalThis.__cenaMoveis = escritorioMoveisDaCena; globalThis.__praca = ESCRITORIO_PRACA;", ctx);
 const arte = (c) => {
   const f = `assets/escritorio/habbo/${c}.json`;
   if (!existsSync(f)) return null;
@@ -289,8 +288,8 @@ function auditar(cena, P, moveis, avisos) {
 }
 
 const avisos = [], problemas = [];
-const geral = ctx.__geral();
-problemas.push(...auditar("mapa geral", geral, geral.moveis, avisos));
+// A Praça (cena de abertura, camada "geral" do editor).
+problemas.push(...auditar("praca", ctx.__geral(), ctx.__cenaMoveis(ctx.__praca), avisos));
 // Espaços comuns que viraram cena própria (Café, Lounge…).
 for (const a of ctx.__P.ambientes) if (a.cena) {
   const P = ctx.__quarto(a);
