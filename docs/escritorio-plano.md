@@ -205,6 +205,48 @@ fica na direção do móvel, como no Arcturus).
   Convivência para o Paulo aprovar, com zonas, receita de cada canto, coleção
   e peças vistas na arte.
 
+## Projeto da Convivência (proposto em 18/10/2026, aguardando aprovação do Paulo)
+
+**Conceito:** saguão do Hotel Vybelândia, de mármore branco com dourado e
+azul-claro. Quem entra pela porta (que vem da Praça) vê, no mesmo eixo, a
+fonte e, atrás dela, a recepção.
+
+**Zonas** (ladrilhos x,y; sala de 20×18; porta em x 9–10 no fundo da tela):
+- **Mezanino** (x 0–15, y 0–4): mármore preto, biblioteca e estar elegante,
+  janelas e arandelas na parede do fundo. A escada de palco sobe em x 13–14
+  até o vão do guarda-corpo.
+- **Recepção** (balcão em x 9–11, y 7): no eixo da porta, com atendente atrás.
+- **Fonte** (x 9–11, y 11–13): `paris15_ltdfountain`, o ponto focal.
+- **Estar dos aquários:** na parede da esquerda.
+- **Chegada:** perto da porta, à esquerda (banco, malas, relógio de pé,
+  cabideiro).
+- **Estar azul:** à direita, sob o lustre.
+- **Café do saguão:** à direita, com mesinhas.
+- **Máquinas e teleporte da Praça:** no canto do fundo à direita.
+- **Entrada:** ciprestes dos dois lados da porta.
+
+**Coleção** (coleção Elegant do Habbo, creme, dourado e azul):
+- sofá `elegant_c17_sofa`;
+- poltrona `elegant_c17_chair`;
+- mesa de centro `elegant_c17_table`;
+- criado `elegant_c17_smalltable`;
+- tapete `elegant_c17_carpet`;
+- armário `elegant_c17_cupboard`;
+- fonte `paris15_ltdfountain`;
+- coluna `bling11_pillar`;
+- estátua `bling11_statue1`;
+- ciprestes `hotel_c18_cypress`;
+- árvore `hotel_c18_tree`;
+- relógio `romantique_clock`;
+- flores `wed_plant`.
+
+O lustre Bling (`bling_c15_chandalier`) só cabe com a parede 1 nível mais
+alta.
+
+**Perguntas ao Paulo:**
+1. Trocar os fliperamas (que já têm a sala Jogos) pelo café do saguão?
+2. Aprovar a coleção azul-dourada ou manter o branco da mansão.
+
 ## Decisões do Paulo que valem
 
 - **Segundo reinício** (decisão de 18/10/2026):
