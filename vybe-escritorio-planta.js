@@ -84,7 +84,7 @@ const ESCRITORIO_PLANTA = (() => {
   // conversa daquele espaço. A Convivência usa a zona "recepcao".
   // [id, nome, sala de conversa, cor, largura × fundo, piso, papel de parede]
   const CENAS = [
-    ["recepcao", "Convivência", "convivencia", "#ff8a35", 20, 18, "greek_c15_floor", "art_c20_wall"],
+    ["recepcao", "Convivência", "convivencia", "#ff8a35", 20, 18, "suncity_c19_floor", "ducket_c25_wall"],
     ["reuniao", "Sala de reunião", "reuniao", "#5aa9ff", 18, 14, "lodge_c15_floor", "lodge_dark_brickwall"],
     ["auditorio", "Auditório", "reuniao", "#6b4fa0", 20, 16, "cine_tile", "attic15_wall"],
     ["producao", "Produção", "producao", "#4a5560", 20, 14, "rainyday_c20_woodenfloor", "attic15_wall"],
@@ -314,42 +314,55 @@ const ESCRITORIO_PRACA = (() => {
 // em cima leva a altura do topo de baixo) e o caminho da porta livre.
 // [classe, x, y, direção, estado, altura]
 const ESCRITORIO_MOVEIS_CENAS = {
-  // Convivência: o saguão de todos. Estar elevado com lareira no canto do
-  // fundo, balcão de atendimento sob a janela, cabines de teleporte no fundo
-  // recuado, fonte com bancos no meio, café na frente à esquerda e espera à
-  // direita, com corredores largos entre os grupos. A porta leva à Praça.
+  // Convivência: o saguão de todos, com a cara da Bahia em São João.
+  // Estar da lareira no patamar do fundo à esquerda; recepção no meio do
+  // fundo, sob a janela, com malas e o vira-lata caramelo; teleportes no
+  // fundo à direita; fonte no centro sobre a pedra portuguesa em ondas, com
+  // cactos e orquídeas; café na frente à esquerda (doces brasileiros nas
+  // mesas); espera à direita. Bandeirinhas e lanternas de São João cruzam o
+  // salão (desenhadas no alto: passa-se por baixo). O corredor da porta até
+  // a recepção fica livre. A porta leva à Praça.
   recepcao: () => [
-    // Estar elevado (um degrau): sofá de frente para as poltronas, mesa baixa com chá.
-    ["mafia_c26_planter_white", 0, 0, 0], ["exe_map", 1, 0, 4, 0, 1.2], ["lodge_dark_candle", 6, 0, 0],
-    ["lodge_dark_fireplace", 0, 2, 2], ["modern_c17_floorlamp", 0, 4, 0], ["exe_globe", 6, 1, 0], ["mafia_c26_planter_white", 6, 4, 0],
+    // Estar elevado (um degrau): sofá de frente para as poltronas, lareira.
+    ["mafia_c26_planter_white", 0, 0, 0], ["exe_map", 1, 0, 4, 0, 1.2],
+    ["lodge_dark_fireplace", 0, 2, 2], ["mafia_c26_walllamp_white", 0, 4.2, 2, 0, 0.6],
     ["exe_rug", 2, 1, 0], ["hc_exe_sofa", 2, 1, 4], ["modern_c17_lowtable", 2, 2, 2], ["ktchn10_tea", 3, 2, 4, 0, 1],
-    ["mafia_c26_armchair_white", 2, 3, 0], ["mafia_c26_armchair_white", 4, 3, 0],
-    // Atendimento: mural, janela e balcão com computador e telefone.
-    ["uni_c23_whiteboard", 7, 0, 0], ["mafia_c26_planter_white", 8, 0, 0], ["window_double_default", 9, 0, 4, 0, 0.9], ["mafia_c26_planter_white", 13, 0, 0],
-    ["lodge_dark_desk", 10, 2, 0], ["modern_c17_chair", 11, 1, 4],
-    ["computer_flatscreen", 10, 2, 4, 0, 1.25], ["exe_c15_desktidy", 11, 2, 0, 0, 1.25], ["exe_c15_telephone", 12, 2, 0, 0, 1.25],
+    ["mafia_c26_armchair_white", 2, 3, 0], ["mafia_c26_armchair_white", 4, 3, 0], ["br_c25_caramelodog", 1, 3, 2],
+    ["hween_c16_lamp", 5, 1, 0], ["exe_globe", 6, 1, 0], ["mafia_c26_planter_white", 6, 4, 0],
+    // Recepção: janela com arandelas, balcão com computador e telefone, malas.
+    ["mafia_c26_planter_white", 7, 0, 0], ["window_double_default", 9, 0, 4, 0, 0.9], ["mafia_c26_planter_white", 13, 0, 0],
+    ["lodge_dark_desk", 9, 2, 0], ["modern_c17_chair", 10, 1, 4],
+    ["computer_flatscreen", 9, 2, 4, 0, 1.25], ["exe_c15_desktidy", 10, 2, 0, 0, 1.25], ["exe_c15_telephone", 11, 2, 0, 0, 1.25],
+    ["hc_luggage", 12, 2, 0], ["br_c25_festivallanterns", 10, 3, 0],
+    // Fundo à direita: lanches, água e as cabines de teleporte (a escura forma par com a da Praça).
     ["olympics_r16_vendingmchn", 14, 0, 4], ["matic_water_dispenser", 15, 0, 4],
-    // Canto do fundo à direita: as cabines de teleporte (a escura forma par com a da Praça).
-    ["mafia_c26_teleport_white", 16, 0, 4], ["mafia_c26_planter_white", 17, 0, 0], ["mafia_c26_teleport_dark", 18, 0, 4], ["olympics_r16_vendingmchn", 19, 0, 4],
-    // Fonte no meio, com três bancos virados para ela e flores.
+    ["mafia_c26_teleport_white", 16, 0, 4], ["mafia_c26_planter_white", 17, 0, 0], ["mafia_c26_teleport_dark", 18, 0, 4], ["bohogarden_c21_fanpalm", 19, 0, 0],
+    // Fonte no meio da pedra portuguesa em ondas, três bancos virados para ela, cactos e orquídeas.
+    ...[[7, 6], [9, 6], [11, 6], [7, 8], [9, 8], [11, 8], [7, 10], [9, 10], [11, 10]].map(([x, y]) => ["br_c25_wavymosaicfloor", x, y, 0]),
     ["bazaar_r17_fountain", 9, 8, 4], ["greek_c15_bench", 9, 11, 0], ["greek_c15_bench", 6, 8, 2], ["greek_c15_bench", 13, 8, 6],
-    ["olympus_c25_narcissusflowers", 8, 7, 0], ["olympus_c25_narcissusflowers", 11, 7, 0],
-    // Café na frente à esquerda (a garrafa gira na mesinha) e o dado.
+    ["plant_big_cactus", 7, 6, 0], ["plant_big_cactus", 12, 6, 0], ["br_c25_orchids2", 8, 7, 0], ["br_c25_orchids", 11, 7, 0],
+    // Café na frente à esquerda: mesinhas nos tapetes, doces e xícaras; o dado.
+    ["dessertcafe_c17_rug", 1, 9, 0], ["dessertcafe_c17_rug", 1, 10, 0], ["dessertcafe_c17_rug", 1, 12, 0], ["dessertcafe_c17_rug", 1, 13, 0],
     ...[[2, 9], [2, 12], [5, 15]].flatMap(([x, y]) => [["paris_c15_table", x, y, 0], ["paris_c15_chair", x - 1, y, 2], ["paris_c15_chair", x + 1, y, 6]]),
-    ["bottle", 2, 9, 0, 0, 0.95], ["edice", 7, 13, 0, 1],
+    ["br_c25_sweetfood", 2, 9, 0, 0, 0.95], ["room_cof15_cup2", 2, 12, 0, 0, 0.95], ["br_c25_sweetfood", 5, 15, 0, 0, 0.95], ["edice", 7, 13, 0, 1],
     ["shelves_silo", 0, 6, 2], ["mafia_c26_planter_white", 0, 15, 0], ["exe_globe", 0, 17, 0],
-    // Espera à direita: sofá, mesinha e poltrona de frente.
-    ["hc_exe_sofa", 18, 8, 6], ["mafia_c26_coffeetable_white", 17, 8, 0], ["mafia_c26_armchair_white", 15, 9, 2],
-    ["modern_c17_floorlamp", 18, 7, 0], ["mafia_c26_planter_white", 18, 12, 0], ["mafia_c26_planter_white", 13, 16, 0],
-    // Penduradas (passa-se por baixo): hera e varal de luzinhas na parede.
-    ["easter_c22_hangingvines", 0, 9, 2, 1], ["easter_c22_hangingvines", 0, 10, 2, 1], ["xmas_c22_hangingwalllights", 0, 12, 2, 1],
-    // Camada de construtor: arandelas, quadro e espelho na parede da
-    // esquerda; prateleira na do fundo; tapetes sob os cafés e a espera;
-    // lustres (desenhados no alto) sobre a fonte e os grupos; flores nas mesas.
     ["mafia_c26_walllamp_white", 0, 8.2, 2, 0, 0.6], ["mafia_c26_walllamp_white", 0, 11.2, 2, 0, 0.6],
     ["attic15_painting", 0, 13.4, 2, 0, 1], ["wallmirror", 0, 16, 2, 0, 1.4],
-    ["dessertcafe_c17_rug", 1, 9, 0], ["dessertcafe_c17_rug", 1, 10, 0], ["dessertcafe_c17_rug", 1, 12, 0], ["dessertcafe_c17_rug", 1, 13, 0], ["js_exe_rug", 15, 8, 0],
-    ["bling_c15_chandalier", 10, 10, 0],
+    ["easter_c22_hangingvines", 0, 9, 2, 1], ["easter_c22_hangingvines", 0, 10, 2, 1],
+    // Espera à direita: sofá, mesinha com revistas, poltrona, abajur e a arara.
+    ["js_exe_rug", 15, 8, 0], ["hc_exe_sofa", 18, 8, 6], ["mafia_c26_coffeetable_white", 17, 8, 0], ["mafia_c26_armchair_white", 15, 9, 2],
+    ["magazines", 17, 8, 0, 0, 0.84], ["modern_c17_floorlamp", 18, 7, 0], ["br_c25_parrot4", 18, 11, 6],
+    ["bohogarden_c21_fanpalm", 19, 6, 0], ["mafia_c26_planter_white", 18, 12, 0], ["mafia_c26_planter_white", 13, 16, 0],
+    // Perto da porta: tapete de boas-vindas, vaso e orquídeas.
+    ["carpet_soft_tut", 9, 15, 0], ["mafia_c26_planter_white", 7, 16, 0], ["br_c25_orchids2", 12, 16, 0],
+    // Bandeirinhas de São João cruzando o salão (duas fileiras) e lanternas.
+    ...[2, 4, 6, 8, 10, 12, 14, 16].map((x) => ["br_c25_festivalflags", x, 6, 2]),
+    ...[2, 4, 6, 8, 10, 12, 14, 16].map((x) => ["br_c25_festivalflags", x, 13, 2]),
+    ["br_c25_festivallanterns", 4, 10, 0], ["br_c25_festivallanterns", 16, 10, 0],
+    // Fruteira de feira na frente à direita, banco de concreto com arara
+    // entre os teleportes e a espera, arandelas ao lado da janela.
+    ["br_c25_fruitstore", 15, 13, 4], ["br_c25_stonebench", 15, 4, 0], ["br_c25_parrot2", 17, 4, 4],
+    ["mafia_c26_walllamp_white", 8.2, 0, 4, 0, 0.6], ["mafia_c26_walllamp_white", 12.2, 0, 4, 0, 0.6],
   ],
   // Praça: a área de fora, compacta. Deck da piscina com bar de palha no
   // fundo à esquerda; café ao ar livre no fundo à direita; fonte no meio do
