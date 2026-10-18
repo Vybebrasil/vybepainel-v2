@@ -619,3 +619,15 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
   muda o status.
 - Celular: o botão de ação (E) e a barra do dia ficam acima da barra de baixo
   pela altura real dela (antes cobriam o status quando a barra quebrava).
+
+### Quarto até 20 × 20 e mezanino de blocos (18/10/2026)
+
+- Lado máximo do quarto: 20 (LADO_QUARTO no servidor, ESCRITORIO_QUARTO_MAX no
+  painel). Plantas novas: Quadrado Gigante (16 × 16), Quadrado Maquete
+  (20 × 20) e Largo Gigante (20 × 12).
+- Pintura do piso, trechos de parede e planta desenhada passam a ter o lado 20;
+  as grades antigas (8 e 12) valem ampliadas ao ler, no servidor
+  (ampliarGrade/ampliarParedes/ampliarCeldas) e no painel
+  (escritorioPisosDoPerfil/…), sem perder nada.
+- Convivência: mezanino montado com blocos de madeira (altura 2), degrau na
+  altura 1, poltrona e planta em cima.

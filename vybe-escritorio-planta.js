@@ -158,6 +158,12 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["easter_c18_ivylight", 3, 0, 2, 1], ["easter_c18_ivybeam", 11, 1, 2, 1], ["bohogarden_c21_hanginglantern", 14, 0, 4, 1],
     ["easter_c18_hangingplant", 8, 0, 0, 1], ["easter_c18_hangingplant", 8, 1, 0, 1],
     ["easter_c22_hangingvines", 0, 4, 2, 1], ["easter_c22_hangingvines", 0, 6, 2, 1], ["xmas_c22_hangingwalllights", 0, 11, 2, 1],
+    // Mezanino montado com blocos, como os construtores do Habbo: patamar de
+    // madeira na altura 2 (dois blocos por ladrilho), degrau na altura 1 para
+    // subir (degrau do Habbo: até 1,5), poltrona e planta lá em cima.
+    ...[[14, 9], [15, 9], [14, 10], [15, 10]].flatMap(([x, y]) => [["bc_block_1_recolorable", x, y, 0, 185, 0], ["bc_block_1_recolorable", x, y, 0, 185, 1]]),
+    ["bc_block_1_recolorable", 14, 11, 0, 190, 0],
+    ["hygge_c25_armchair", 15, 9, 6, 0, 2], ["plant_small_cactus", 14, 9, 0, 0, 2],
     // Garrafa giratória na mesinha (como no Habbo: gira e aponta para alguém).
     ["bottle", 2, 9, 0, 0, 0.95],
     ["mafia_c26_planter_white", 6, 12, 0], ["mafia_c26_planter_white", 9, 12, 0], ["mafia_c26_planter_white", 15, 12, 0],
@@ -451,7 +457,7 @@ function escritorioModeloPlanta(a) {
 // Mesma regra do servidor (plantaQuarto): 12 × 12 códigos sobre a planta;
 // "0" mantém, "v" tira o piso, "p" piso no chão, "1"/"2" patamares. Porta
 // e escada ficam como na planta.
-const ESCRITORIO_CELDAS_LIVRES = /^[0vp12]{144}$/;
+const ESCRITORIO_CELDAS_LIVRES = /^[0vp12]{400}$/; // ESCRITORIO_QUARTO_MAX²
 const escritorioPlantasLivres = new Map();
 function escritorioLadrilhoFixo(p, x, y) {
   const h = p.celdas.length, w = p.celdas[0].length;
@@ -465,13 +471,34 @@ function escritorioPlantaLivre(p, livres) {
   if (!escritorioPlantasLivres.has(chave)) {
     if (escritorioPlantasLivres.size > 40) escritorioPlantasLivres.clear();
     const cod = { v: -1, p: 0, 1: 1, 2: 2 };
-    escritorioPlantasLivres.set(chave, { ...p, celdas: p.celdas.map((linha, y) => linha.map((n, x) => { const c = livres[y * 12 + x]; return c === "0" || escritorioLadrilhoFixo(p, x, y) ? n : cod[c]; })) });
+    escritorioPlantasLivres.set(chave, { ...p, celdas: p.celdas.map((linha, y) => linha.map((n, x) => { const c = livres[y * ESCRITORIO_QUARTO_MAX + x]; return c === "0" || escritorioLadrilhoFixo(p, x, y) ? n : cod[c]; })) });
   }
   return escritorioPlantasLivres.get(chave);
 }
 // Tamanho do quarto (a planta escolhida: de 6 × 6 a 12 × 12); sem planta,
 // o 8 × 8 da primeira versão.
-const ESCRITORIO_QUARTO_MAX = 12;
+// Lado máximo do quarto (= LADO_QUARTO do servidor): 20 × 20 desde 18/10/2026.
+const ESCRITORIO_QUARTO_MAX = 20;
+// Grades do perfil guardadas com o lado antigo (8 ou 12) valem ampliadas,
+// como o servidor faz (ampliarGrade/ampliarParedes/ampliarCeldas).
+function escritorioAmpliarGrade(s, de, vazio) {
+  const L = ESCRITORIO_QUARTO_MAX;
+  return Array.from({ length: L }, (_, y) => (y < de ? s.slice(y * de, (y + 1) * de) : "").padEnd(L, vazio)).join("");
+}
+function escritorioPisosDoPerfil(s) {
+  s = String(s || "");
+  return s.length === 64 ? escritorioAmpliarGrade(s, 8, "0") : s.length === 144 ? escritorioAmpliarGrade(s, 12, "0") : s;
+}
+function escritorioCeldasDoPerfil(s) {
+  s = String(s || "");
+  return s.length === 144 ? escritorioAmpliarGrade(s, 12, "0") : s;
+}
+function escritorioParedesDoPerfil(s) {
+  s = String(s || "");
+  const t = s.length / 12, L = ESCRITORIO_QUARTO_MAX;
+  if (t !== 8 && t !== 12) return s;
+  return Array.from({ length: 4 }, (_, lado) => s.slice(lado * t * 3, (lado + 1) * t * 3) + "-00".repeat(L - t)).join("");
+}
 function escritorioDimQuarto(a) {
   const c = escritorioModeloPlanta(a)?.celdas;
   return c ? { w: c[0].length, h: c.length } : { w: ESCRITORIO_SALA_LADO, h: ESCRITORIO_SALA_LADO };

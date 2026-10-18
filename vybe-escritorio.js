@@ -531,11 +531,12 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   if(!a || !String(id).endsWith('-andar-1')) return a || null;
   const perfil=escritorioPerfilDecoracao(id);
   if(!perfil?.quarto_configurado) return null;
-  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:perfil.sala_celdas || '',semParedes:perfil.sala_sem_paredes===true,porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
+  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:escritorioCeldasDoPerfil(perfil.sala_celdas),semParedes:perfil.sala_sem_paredes===true,porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
   const dim=escritorioDimQuarto(r);r.x1=r.x0+dim.w;r.y1=r.y0+dim.h;
   const L=ESCRITORIO_QUARTO_MAX,pisos=new Map(),paredes=new Map();
-  if(perfil.sala_pisos?.length===L*L) for(let i=0;i<L*L;i++) {const k=ESCRITORIO_PISOS_SALA[parseInt(perfil.sala_pisos[i],16)]?.[0];if(k)pisos.set(`${i%L},${Math.floor(i/L)}`,k);}
-  if(perfil.sala_paredes?.length===L*12) for(let i=0;i<L*4;i++){const [estilo,c,h]=perfil.sala_paredes.slice(i*3,i*3+3);if(estilo!=='-')paredes.set(escritorioChaveTrecho(r,i),{estilo,cor:ESCRITORIO_PAREDES_SALA[parseInt(c,16)] || r.cor,alt:[46,82,118][Number(h)]});}
+  const lp=escritorioPisosDoPerfil(perfil.sala_pisos), lw=escritorioParedesDoPerfil(perfil.sala_paredes);
+  if(lp.length===L*L) for(let i=0;i<L*L;i++) {const k=ESCRITORIO_PISOS_SALA[parseInt(lp[i],16)]?.[0];if(k)pisos.set(`${i%L},${Math.floor(i/L)}`,k);}
+  if(lw.length===L*12) for(let i=0;i<L*4;i++){const [estilo,c,h]=lw.slice(i*3,i*3+3);if(estilo!=='-')paredes.set(escritorioChaveTrecho(r,i),{estilo,cor:ESCRITORIO_PAREDES_SALA[parseInt(c,16)] || r.cor,alt:[46,82,118][Number(h)]});}
   r.pintura={pisos,paredes}; return r;
 }
 function escritorioAndaresHtml() {
@@ -570,7 +571,7 @@ function escritorioAplicarSalas() {
     a.piso = perfil?.sala_piso && ESCRITORIO_PLANTA.PISO[perfil.sala_piso] ? perfil.sala_piso : a.pisoPadrao;
     a.cor = /^#[0-9a-f]{6}$/i.test(perfil?.sala_parede || "") ? perfil.sala_parede : a.corPadrao;
     a.luz = ESCRITORIO_LUZES_SALA.some(([id]) => id === perfil?.sala_luz) ? perfil.sala_luz : "";
-    a.celdasLivres = perfil?.sala_celdas || "";
+    a.celdasLivres = escritorioCeldasDoPerfil(perfil?.sala_celdas);
     a.semParedes = perfil?.sala_sem_paredes === true;
     // Lado da porta: o escolhido pelo dono ou o padrão da sala.
     a.portaPadrao ??= a.porta;
@@ -585,8 +586,8 @@ function escritorioAplicarSalas() {
     const pisos = new Map(), paredes = new Map();
     const dono = donos.get(a.id);
     const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
-    const lp = String(perfil?.sala_pisos || ""), lw = String(perfil?.sala_paredes || "");
-    // Pintura em grade de 12 × 12 (o maior quarto); cada planta usa o canto dela.
+    const lp = escritorioPisosDoPerfil(perfil?.sala_pisos), lw = escritorioParedesDoPerfil(perfil?.sala_paredes);
+    // Pintura em grade de ESCRITORIO_QUARTO_MAX² (o maior quarto); cada planta usa o canto dela.
     const L = ESCRITORIO_QUARTO_MAX;
     if (lp.length === L * L) for (let i = 0; i < L * L; i++) {
       const k = typeof ESCRITORIO_PISOS_SALA !== "undefined" ? ESCRITORIO_PISOS_SALA[parseInt(lp[i], 16)]?.[0] : "";
