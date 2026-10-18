@@ -194,12 +194,19 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
   // Guarda a versão que vai ser trocada (se o histórico já existe no banco).
   if (await versoesProntas(sql)) await guardarVersaoAnterior(sql, camada, Number(versao) || 0);
   const esperada = Number(versao) || 0;
-  const [r] = await sql`INSERT INTO vybe_escritorio_mapa(camada, itens, versao, atualizado_por)
-    VALUES(${camada}, ${JSON.stringify(limpos)}::jsonb, 1, ${pessoa.id})
-    ON CONFLICT(camada) DO UPDATE SET itens = EXCLUDED.itens, versao = vybe_escritorio_mapa.versao + 1,
-      atualizado_por = EXCLUDED.atualizado_por, atualizado_em = NOW()
-    WHERE vybe_escritorio_mapa.versao = ${esperada}
-    RETURNING versao`;
+  let r;
+  try {
+    [r] = await sql`INSERT INTO vybe_escritorio_mapa(camada, itens, versao, atualizado_por)
+      VALUES(${camada}, ${JSON.stringify(limpos)}::jsonb, 1, ${pessoa.id})
+      ON CONFLICT(camada) DO UPDATE SET itens = EXCLUDED.itens, versao = vybe_escritorio_mapa.versao + 1,
+        atualizado_por = EXCLUDED.atualizado_por, atualizado_em = NOW()
+      WHERE vybe_escritorio_mapa.versao = ${esperada}
+      RETURNING versao`;
+  } catch (e) {
+    // Sala comum antes da migração das cenas: o banco ainda não aceita a chave.
+    if (e?.code === "23514" && CENAS_COMUNS.has(camada)) throw Object.assign(new Error("Salvar as salas comuns aguarda a migração do banco (2026-10-18-escritorio-cenas-editaveis.sql)."), { status: 503 });
+    throw e;
+  }
   if (!r) throw Object.assign(new Error("Alguém salvou esta área antes. Recarregue para ver a versão nova."), { status: 409 });
   return { camada, versao: r.versao, itens: limpos, ...(celdas !== undefined ? { celdas } : {}) };
 }
