@@ -378,12 +378,24 @@ function mapaDesenharFundo(canvas, planta, origem) {
         const viz=planta.andavel(x+dx,y+dy) ? (planta.escadaEm?.(x+dx,y+dy) ? 0 : planta.nivelEm(x+dx,y+dy)) : -espessuraPiso;
         if(n<=viz) continue;
         const p=mapaTela(x+dx,y+dy,origem),q=mapaTela(x+1,y+1,origem);
-        // Lateral do patamar na cor da parede da sala (antes era o próprio
-        // piso escurecido e o mezanino lia como uma faixa fina), com a borda
-        // clara no alto e a junta de cada ladrilho.
+        // Lateral do patamar: com piso oficial do Habbo, o próprio piso (abaixo);
+        // sem ele, a cor da parede da sala, com a borda clara no alto e a
+        // junta de cada ladrilho.
         // Cena comum pode escolher a cor da lateral (madeira do chalé, pedra…).
         const h=(n-viz)*MAPA_NIVEL_PX, base=/^#[0-9a-f]{6}$/i.test(a?.corDegrau||"") ? a.corDegrau : /^#[0-9a-f]{6}$/i.test(a?.cor||"") ? a.cor : cor(a?.piso || "madeira",x,y);
         g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+h);g.lineTo(p.x,p.y+h);g.closePath();g.fillStyle=mapaTom(base,dx?0.5:0.68);g.fill();
+        // Piso oficial do Habbo: como no Nitro (RoomPlaneParser.addFloor), a
+        // lateral é um plano do próprio piso, com a sombra do lado (o da
+        // direita mais escuro), e não uma cor à parte.
+        const piso = extra?.textura || a?.textura, tex = mapaEhPlano(piso) && mapaTexturaPlano(piso);
+        if (tex) {
+          g.save(); g.clip();
+          g.transform((q.x-p.x)/32,(q.y-p.y)/32,0,1,p.x,p.y);
+          g.fillStyle=g.createPattern(tex,"repeat"); g.fillRect(0,0,32,h);
+          g.restore();
+          g.fillStyle=dx?"rgba(0,0,0,.42)":"rgba(0,0,0,.24)";
+          g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+h);g.lineTo(p.x,p.y+h);g.closePath();g.fill();
+        }
         g.strokeStyle="#ffffff55";g.lineWidth=2;g.beginPath();g.moveTo(p.x,p.y+1);g.lineTo(q.x,q.y+1);g.stroke();
         g.strokeStyle="#00000040";g.lineWidth=1;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(p.x,p.y+h);g.stroke();
       }
@@ -853,6 +865,42 @@ function mapaCaminho(g, de, para, evitar = null, limite = Infinity) {
 }
 
 // Cria o mapa dentro de `el`. Devolve controles para pessoas, câmera e zoom.
+// Cor de cada luz do quarto como multiplicador de vermelho, verde e azul
+// (o regulador do Habbo: cor clara tinge pouco; "noite" e "bar" escurecem).
+const MAPA_LUZES_RGB = {
+  quente: [1, 0.9, 0.74], fria: [0.8, 0.9, 1], rosa: [1, 0.8, 0.92], roxa: [0.8, 0.72, 1], verde: [0.82, 1, 0.84],
+  noite: [0.46, 0.52, 0.72], bar: [0.72, 0.6, 0.48],
+};
+function mapaFiltroDaLuz(luz) {
+  const id = "mapa-luz-" + luz;
+  if (!document.getElementById(id)) {
+    let svg = document.getElementById("mapa-luzes-svg");
+    if (!svg) {
+      svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.id = "mapa-luzes-svg"; svg.setAttribute("aria-hidden", "true");
+      svg.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+      document.body.append(svg);
+    }
+    const [r, g, b] = MAPA_LUZES_RGB[luz];
+    svg.insertAdjacentHTML("beforeend", `<filter id="${id}" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${r} 0 0 0 0 0 ${g} 0 0 0 0 0 ${b} 0 0 0 0 0 1 0"/></filter>`);
+  }
+  return id;
+}
+// Refletor de festa do Habbo: cada foco anda num vaivém dentro de uma área de
+// 31 px (no tamanho 64), com subida e descida em seno que encolhe perto das
+// pontas; ao chegar à ponta, volta; a amplitude muda quando a curva zera.
+const MAPA_FEIXE_AREA = 31;
+function mapaFatorFeixe() { return 0.15 + Math.random() * 0.35; }
+function mapaPassoFeixe(f) {
+  const D = MAPA_FEIXE_AREA, prox = f.fase + f.sentido * f.vel;
+  if (Math.abs(prox) >= D) { f.fase -= f.sentido > 0 ? prox - D : prox + D; f.sentido = -f.sentido; }
+  const amp = (D - Math.abs(f.fase)) * f.fator;
+  let y = f.sentido * Math.sin(Math.abs(f.fase / 4)) * amp;
+  y += f.sentido > 0 ? -amp : amp;
+  f.fase += f.sentido * f.vel;
+  if (Math.trunc(y) === 0) f.fator = mapaFatorFeixe();
+  return [f.fase, y];
+}
 function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarSaida }) {
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
@@ -867,6 +915,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const palco = document.createElement("div");
   palco.className = "mapa-palco";
   if (P.luz) palco.dataset.luz = P.luz;
+  // Regulador de luz como no Habbo (nitro-react, updateRoomFilter): a cor do
+  // regulador multiplica cada pixel do quarto, canal por canal (um filtro de
+  // matriz de cor em piso, móveis e bonecos; o fundo em volta não muda).
+  if (MAPA_LUZES_RGB[P.luz]) palco.style.setProperty("--mapa-luz", `url(#${mapaFiltroDaLuz(P.luz)})`);
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
   let fundoPronto = null;
   var luzesLigadas = false; // vira true quando os móveis terminam de carregar
@@ -1067,7 +1119,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // não tem z-index nem filtro (não cria contexto de empilhamento): as camadas
   // se intercalam com as dos outros móveis e com os bonecos pela profundidade.
   // width/height do contêiner guardam as medidas, como num canvas.
+  // Cada quadro da animação tem o seu recorte (o vapor aparece e some): a
+  // posição segue o ponto de registro do quadro, como no Nitro; senão a peça
+  // "descia" para dentro do que está embaixo a cada quadro menor.
+  const seguirRegistro = (m, d) => {
+    if (m.ox === undefined) { m.ox = d.ox; m.oy = d.oy; return; }
+    if (d.ox === m.ox && d.oy === m.oy) return;
+    m.no.style.left = parseFloat(m.no.style.left) + d.ox - m.ox + "px";
+    m.no.style.top = parseFloat(m.no.style.top) + d.oy - m.oy + "px";
+    m.ox = d.ox; m.oy = d.oy;
+  };
   const pintarMovel = (m, d) => {
+    seguirRegistro(m, d);
     const no = m.no;
     no.width = d.canvas.width; no.height = d.canvas.height;
     no.style.width = no.width + "px"; no.style.height = no.height + "px";
@@ -1209,7 +1272,23 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       // direita; 2 = esquerda, que desce para a esquerda), igual à arte do Habbo.
       const deParede = mapaEhDeParede(m.dados, classe);
       const d0 = deParede ? (dir === 2 ? 2 : 4) : mapaDirecaoValida(m.dados, dir);
-      const desenho = mapaCamadasMovel(m, d0, estado, 0);
+      // Refletor de festa (furniture_party_beamer): as camadas 2 e 3 são os
+      // focos de luz, desenhados à parte para varrer o quarto.
+      const feixe = m.dados.visualizationType === "furniture_party_beamer";
+      const semFocos = feixe ? (p) => p.ordem !== 2 && p.ordem !== 3 : undefined;
+      const desenhoFeixe = feixe && mapaDesenharMovel(m, d0, estado, 0, 0, semFocos);
+      const desenho = desenhoFeixe ? { ...desenhoFeixe, camadas: [{ canvas: desenhoFeixe.canvas, prof: 0 }] } : mapaCamadasMovel(m, d0, estado, 0);
+      // Focos do refletor por cima de tudo (luz somada), no mesmo registro da peça.
+      const criarFocos = (no, z) => {
+        for (const k of [2, 3]) {
+          const f = mapaDesenharMovel(m, d0, estado, 0, 0, (p) => p.ordem === k);
+          if (!f) continue;
+          f.canvas.className = "mapa-obj mapa-feixe";
+          f.canvas.style.left = no.style.left; f.canvas.style.top = no.style.top; f.canvas.style.zIndex = String(z);
+          palco.append(f.canvas);
+          focos.push({ no: f.canvas, x: parseFloat(no.style.left), y: parseFloat(no.style.top), fase: Math.random() * MAPA_FEIXE_AREA * 1.5, sentido: k === 2 ? 1 : -1, vel: k === 2 ? 2 : 1, fator: mapaFatorFeixe() });
+        }
+      };
       if (!desenho) return;
       const dim = mapaDimensoes(m.dados, d0);
       // De parede: pendurado no trecho de parede do ladrilho, a "altura"
@@ -1230,8 +1309,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         if (topo + h > ancora.y + 2) topo = Math.max(teto, ancora.y + 2 - h);
         no.style.top = topo + "px";
         palco.append(no);
-        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: 0, caixa: null, origem: origemItem, semente: semente(x, y) };
+        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: 0, caixa: null, origem: origemItem, semente: semente(x, y), ox: desenho.ox, oy: desenho.oy };
         ordenarMovel(item);
+        if (feixe) { item.filtro = semFocos; criarFocos(no, Number(no.style.zIndex || 0) + 1); }
         if (m.dados.logicType === "furniture_window") criarPaisagem(item, desenho);
         moveis.push(item);
         if (item.quadros > 1) animados.push(item);
@@ -1256,6 +1336,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const caixa = { x0: Math.floor(x), x1: Math.floor(x) + Math.max(1, Math.round(dim.x)), y0: Math.floor(y), y1: Math.floor(y) + Math.max(1, Math.round(dim.y)), altura };
       const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim, altura, plano, prof: 0, caixa, origem: origemItem, semente: semente(x, y) };
       pintarMovel(item, desenho);
+      if (feixe) { item.filtro = semFocos; item.quadros = 1; criarFocos(no, 90000); }
       moveis.push(item);
       if (item.quadros > 1) animados.push(item);
       if (estadosForcados.has(chaveMovel(item))) aplicarEstado(item, estadosForcados.get(chaveMovel(item)), false);
@@ -1264,6 +1345,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     }
   };
   let grade = null, selecionado = null;
+  // Fundo colorido do Habbo (furniture_background_color): a peça ligada pinta
+  // o vazio em volta do quarto com a cor gravada nela (nitro-react tinge o
+  // fundo, não o quarto). Sem ela, vale o fundo da cena.
+  function aplicarFundoColorido() {
+    const cor = (m) => m.origem?.cfg?.c || "";
+    const toner = moveis.find((m) => mapaFisica(m.classe).logica === "fundo" && m.estado >= 1 && /^#[0-9a-f]{6}$/i.test(cor(m)));
+    if (toner) el.style.setProperty("--fundo-cena", cor(toner));
+  }
   // Luz das luminárias no chão: um brilho suave em volta de cada luz ligada,
   // mais forte à noite (o céu segue o horário de Irecê).
   const LUZ = /lamp|light|lantern|candle|torch|chandelier|neon|spotlight|fireplace|jukebox|bump_lights|floornutlight/i;
@@ -1312,7 +1401,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
   // A grade só é montada com a ficha de física do Habbo carregada.
-  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
+  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   // Uma troca por vez: duas seguidas (editar e salvar) desenhavam os móveis
   // em dobro, porque a segunda limpava enquanto a primeira ainda montava.
@@ -2135,6 +2224,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // frameRepeat vezes; redesenha só o móvel cujo quadro mudou. Com "reduzir
   // movimento", metade disso. Só com o mapa visível na tela.
   let quadro = 0, relogio = null, pulsoBonecos = 0;
+  const focos = [];
   const animar = () => {
     if (document.hidden || !el.isConnected || !el.offsetParent) return;
     quadro++;
@@ -2149,6 +2239,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         trocarImagem(p);
       }
     }
+    // Focos do refletor de festa: a cada dois quadros, como no Nitro.
+    if (focos.length && quadro % 2 === 0) for (const f of focos) { const [dx, dy] = mapaPassoFeixe(f); f.no.style.left = f.x + dx + "px"; f.no.style.top = f.y + dy + "px"; }
     for (const item of [...animados]) {
       // Passagem entre estados: do primeiro quadro dela até o fim; depois, o estado novo.
       let estado = item.estado, q = quadro;
@@ -2162,8 +2254,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         if (d) pintarMovel(item, d);
         continue;
       }
-      const d = mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0);
+      const d = mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, item.filtro);
       if (!d) continue;
+      seguirRegistro(item, d);
       const g = item.no.getContext("2d");
       if (item.no.width !== d.canvas.width || item.no.height !== d.canvas.height) { item.no.width = d.canvas.width; item.no.height = d.canvas.height; }
       else g.clearRect(0, 0, item.no.width, item.no.height);

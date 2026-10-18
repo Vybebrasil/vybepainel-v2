@@ -536,7 +536,7 @@ const ESCRITORIO_MOVEIS_CENAS = {
     // Canto de jogos (parede da esquerda, junto da porta): fliperama e
     // jukebox pichados de costas para a parede, sinuca baixa na frente e
     // lâmpada.
-    ["graffiti_r24_arcademachine", 0, 9, 2], ["vwave_r21_jukebox", 0, 10, 2],
+    ["graffiti_r24_arcademachine", 0, 9, 0], ["vwave_r21_jukebox", 0, 10, 2],
     ["bling15_pooltable", 2, 10, 4], ["grungelamp", 3, 10, 0, 1, 2.5],
     // Garagem (fundo): armário, carrinho de ferramentas sob a janela velha,
     // a moto encostada na parede com a guitarra pendurada em cima (o
@@ -548,9 +548,10 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["grungelamp", 8, 1, 0, 1, 2.5], ["hween_c25_tools", 9, 2, 0],
     // Palco do DJ (fundo à direita, um degrau): mesa de DJ de frente para a
     // plateia, caixa de som e disco na parede, neon, violão encostado e o
-    // microfone e caixas de som de chão na beira do palco; lâmpada.
-    ["fest_c19_dj", 13, 1, 0], ["boutique_speakers", 11, 0, 4, 0, 2], ["uni_vinyl", 12, 0, 4, 0, 1.4],
-    ["disco_c26_neonlight1", 13, 0, 0, 1, 1.6], ["grungewall", 14, 0, 4, 0, 0.2], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
+    // microfone e caixas de som de chão na beira do palco; lâmpada e o
+    // refletor de festa varrendo o palco.
+    ["fest_c19_dj", 13, 1, 0], ["boutique_speakers", 11.6, 0, 4, 0, 2], ["uni_vinyl", 12, 0, 4, 0, 1.4],
+    ["disco_c26_neonlight1", 13, 0, 0, 1, 0.9], ["party_beamer", 11, 1, 4, 1], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
     ["grungelamp", 14, 2, 0, 1, 2.5],
     // Plateia (frente do palco): chão livre para ficar de pé; a mesa alta
     // fica na lateral direita, com duas banquetas, sem tapar o palco.
@@ -701,7 +702,8 @@ function escritorioPlantaGeral() {
 function escritorioMoveisDaCena(a) {
   const f = typeof ESCRITORIO_MOVEIS_CENAS !== "undefined" && ESCRITORIO_MOVEIS_CENAS[a.id];
   // (a Praça também tem a sua lista: é o padrão da camada "geral")
-  return f ? f().map(([classe, x, y, dir = 2, estado = 0, altura = 0]) => [classe, x, y, dir, ESCRITORIO_ESTADO_ANIMADO[classe] ?? estado, altura]) : [];
+  // O 7º campo (configuração: cor do fundo colorido, troféu…) segue junto.
+  return f ? f().map(([classe, x, y, dir = 2, estado = 0, altura = 0, cfg]) => [classe, x, y, dir, ESCRITORIO_ESTADO_ANIMADO[classe] ?? estado, altura, ...(cfg && typeof cfg === "object" ? [cfg] : [])]) : [];
 }
 // Espaço comum com cena própria (Café, Lounge…), pelo id da zona.
 function escritorioCenaComum(id) {
@@ -993,7 +995,7 @@ function escritorioMoveisDaSala(a, temaEscolhido) {
     criacao: [
       item("modern_c17_chair", 3, 1, 4), item("cubie_beanbag_b", 2, 5, 0), item("cubie_beanbag_p", 4, 5, 0),
       item("art_c20_drawingtablet", 4, 2, 0, 2, 0.95),
-      item("icedblk_c16_sofa", 5, 0, 4), item("modern_c17_iscreen", 7, 0, 0, 1),
+      item("icedblk_c16_sofa", 5, 0, 4), item("modern_c17_iscreen", 7, 0, 2, 1),
       item("tokyo_c18_neonsign1", 0, 6, 2, 1), item("darkmodern_c20_floorlight", 7, 5, 2, 7),
       item("modern_c17_plant", 7, 7, 2), item("darkmodern_c20_neonlight", 6, 7, 0),
       item("modern_c17_lamp", 7, 2, 0, 1, 1.3),

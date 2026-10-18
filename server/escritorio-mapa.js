@@ -53,7 +53,7 @@ export function itensValidos(camada, itens) {
     if (!num(estado, 0, 200) || !num(altura, 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
     const item = [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
-    const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]) || configManequim(classe, it[6]);
+    const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]) || configManequim(classe, it[6]) || configFundo(classe, it[6]);
     return cfg ? [...item, cfg] : item;
   });
 }
@@ -68,6 +68,14 @@ export const TROFEU = /(^|_)(prize)?troph(y|ies)|^cine_star$|^xm09_trophy$|lovel
 // figura do perfil).
 export const MANEQUIM = /mannequin/i;
 const FIGURA = /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/;
+// Cor de fundo do quarto (furniture_background_color, o "toner" do Habbo):
+// pinta o vazio em volta do quarto; guarda só a cor ({ c: "#rrggbb" }).
+const FUNDO = /^(roombg_color|background_color|room_info15_bg)$/;
+function configFundo(classe, cfg) {
+  if (!FUNDO.test(classe) || cfg == null) return null;
+  if (typeof cfg !== "object" || !/^#[0-9a-f]{6}$/i.test(String(cfg.c || ""))) throw new Error("Cor de fundo inválida.");
+  return { c: String(cfg.c).toLowerCase() };
+}
 function configManequim(classe, cfg) {
   if (!MANEQUIM.test(classe) || cfg == null) return null;
   if (typeof cfg !== "object" || !FIGURA.test(String(cfg.f || ""))) throw new Error("Visual do manequim inválido.");
