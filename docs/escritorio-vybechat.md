@@ -709,3 +709,29 @@ reescritas no nosso motor, sem copiar código (decisão do Paulo: opção 1).
 - Sala de reunião: poltronas executivas a cada dois ladrilhos (largas, lado a
   lado entravam uma na outra), três peças espaçadas na mesa e a cerca do
   patamar sem duas peças no mesmo canto.
+
+### Paredes na frente, giro pelas costas e peça de parede pela ficha (18/10/2026)
+
+O Paulo apontou um armário "de lado na parede" e um piano "pregado" na parede
+das janelas no Lounge e pediu a causa, não um remendo. Foram três:
+
+- **Toda parede fica atrás de todo móvel e boneco** (Nitro: `ROOM_DEPTH_OFFSET`
+  soma 1000 à profundidade das paredes). Recorte no fundo à direita (ou na
+  frente à esquerda) da planta cria um trecho de parede mais à frente do piso
+  ao lado dele: o que fica ali aparece pintado por cima da parede. As plantas
+  das cenas não têm mais esse recorte (Convivência, Auditório, Academia e
+  Lounge); recorte no fundo à esquerda e chanfro na frente não têm o problema.
+  O verificador acusa "piso escondido atrás de parede recuada" e "atrás da
+  parede … aparece por cima dela".
+- **Giro de peça com duas direções:** o número não diz a frente (o armário
+  gótico, na direção 0, já fica comprido ao longo da parede da esquerda). O
+  verificador lê a frente pela forma (comprida em x olha para +y; em y, para
+  +x) e acusa "de lado na parede" quando a ponta encosta e as costas não.
+- **Peça de parede pela ficha:** `scripts/habbo-fisica.mjs` grava os
+  `wallitemtypes` da furnidata com a marca 16 em `fisica.json`, e
+  `mapaEhDeParede` usa essa marca; a forma da arte (profundidade ≤ 0,3) só
+  vale para peça fora da ficha. Antes, quadros e escudos de profundidade 1
+  iam para o chão.
+- Lustres e ervas do acervo: a arte de muitos já vem desenhada no alto
+  (ficam na altura 0); os desenhados rente ao chão sobem com altura.
+  Meça a base do desenho (sprite acima do ponto do ladrilho) antes de pendurar.
