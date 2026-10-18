@@ -1257,6 +1257,11 @@ function escritorioFisicaDoPiso(andando) {
   }, 500); // a esteira do Habbo anda um ladrilho a cada meio segundo
 }
 function escritorioPisouEm(x, y) {
+  // Futebol do Habbo: passar pela bola conduz (1 ladrilho); terminar o passo
+  // em cima dela chuta (6 ladrilhos), na direção em que se andava.
+  const r = movimento.rota;
+  const final = !escritorioTeclas.size && (!r.length || r.length === 1 && r[0].x === x && r[0].y === y);
+  escritorioChutarBola(x, y, final ? 6 : 1);
   const naPlaca = escritorio.mapa?.pisoEm(x, y)?.tipo === "placa";
   if (naPlaca === Boolean(escritorio.naPlaca)) return;
   escritorio.naPlaca = naPlaca;
@@ -1264,6 +1269,104 @@ function escritorioPisouEm(x, y) {
   // Saiu da placa: fecha só se mais ninguém está em cima de uma.
   const outro = (escritorio.online || []).some((o) => String(o.id) !== String(escritorio.base.eu) && escritorioNaCena(o) && (() => { const q = escritorioPosicao(o); return escritorio.mapa.pisoEm(q.x, q.y)?.tipo === "placa"; })());
   if (!outro) escritorioPortoes(0);
+}
+// Futebol (servidor do Habbo, InteractionFootball): a bola rola pelo chão e
+// passa só onde dá para empilhar; bate e volta (ou desvia na diagonal); os 4
+// primeiros ladrilhos de um chute longo são rápidos (125 ms), o resto 500 ms.
+// Gol vale entrando pela frente da trave; o placar da cor da trave sobe.
+const ESCRITORIO_BOLA = /^fball_ball\d*$/;
+const ESCRITORIO_GOL = /^fball_goal_([a-z])$/;
+const ESCRITORIO_ROTACAO = { "0,-1": 0, "1,-1": 1, "1,0": 2, "1,1": 3, "0,1": 4, "-1,1": 5, "-1,0": 6, "-1,-1": 7 };
+function escritorioChutarBola(x, y, vel) {
+  const m = escritorio.mapa;
+  const bola = m?.moveisDaClasse?.(ESCRITORIO_BOLA).find((b) => Math.floor(b.x) === x && Math.floor(b.y) === y);
+  if (!bola || !movimento.ultimoPasso) return;
+  const [dx, dy] = movimento.ultimoPasso;
+  if (!dx && !dy) return;
+  const v = `${m.chaveMovel(bola)}|${x},${y}|${dx},${dy}|${vel}`;
+  escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "bol=" + v });
+  escritorioRolarBola(v);
+}
+function escritorioGolValido(gol, dx, dy) {
+  const d = ESCRITORIO_ROTACAO[dx + "," + dy];
+  return { 0: d > 2 && d < 6, 2: d > 4, 4: d > 6 || d < 2, 6: d > 0 && d < 4 }[gol.dir] ?? false;
+}
+function escritorioRolarBola(v) {
+  const m = escritorio.mapa, [chave, pos, dir, velTxt] = String(v).split("|");
+  let [x, y] = String(pos).split(",").map(Number), [dx, dy] = String(dir).split(",").map(Number);
+  const vel = Math.min(6, Math.max(1, Number(velTxt) || 1));
+  const bola = m?.moveisDaClasse?.(ESCRITORIO_BOLA).find((b) => m.chaveMovel(b) === chave);
+  if (!bola || ![x, y, dx, dy].every(Number.isInteger) || Math.abs(dx) > 1 || Math.abs(dy) > 1) return;
+  clearTimeout(bola.timerRolar);
+  m.deslocarMovel(bola, x, y);
+  let passo = 0;
+  const parar = () => m.estadosMoveis([[chave, 0]]);
+  const andar = () => {
+    if (passo >= vel || escritorio.mapa !== m) return parar();
+    passo++;
+    if (!m.bolaPassa(x, y, x + dx, y + dy)) {
+      if (dx && dy) { if (m.bolaPassa(x, y, x - dx, y + dy)) dx = -dx; else if (m.bolaPassa(x, y, x + dx, y - dy)) dy = -dy; else { dx = -dx; dy = -dy; } }
+      else { dx = -dx; dy = -dy; }
+      if (!m.bolaPassa(x, y, x + dx, y + dy)) return parar();
+    }
+    const gol = m.moveisDaClasse(ESCRITORIO_GOL).find((g) => x + dx >= Math.floor(g.x) && x + dx < Math.floor(g.x) + g.dim.x && y + dy >= Math.floor(g.y) && y + dy < Math.floor(g.y) + g.dim.y);
+    if (gol && !escritorioGolValido(gol, dx, dy)) return parar();
+    x += dx; y += dy;
+    m.deslocarMovel(bola, x, y);
+    m.estadosMoveis([[chave, 1 + (passo % 6)]]);
+    if (gol) { parar(); return escritorioGol(gol); }
+    bola.timerRolar = setTimeout(andar, vel > 4 && passo <= 4 ? 125 : 500);
+  };
+  andar();
+}
+function escritorioGol(gol) {
+  const cor = ESCRITORIO_GOL.exec(gol.classe)[1], m = escritorio.mapa;
+  for (const p of m.moveisDaClasse(new RegExp("^fball_score_" + cor + "$"))) m.estadosMoveis([[m.chaveMovel(p), ((p.estado || 0) + 1) % 100]]);
+  escritorioTocar(990, 0.12, 0.06);
+  escritorioAviso("Gol!");
+}
+// Garrafa (gira e para apontando para alguém) e roleta (sorteia quem começa):
+// quem gira escolhe o resultado e todos veem o mesmo.
+const ESCRITORIO_GARRAFA = /^bottle$/, ESCRITORIO_ROLETA = /spinthewheel/;
+const ESCRITORIO_DIRECAO_GARRAFA = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+function escritorioGenteNaCena() {
+  const eu = escritorioPosicao(escritorio.perfil || {});
+  return [{ id: escritorio.base.eu, nome: "você", x: Math.round(movimento.quadro ? movimento.x : eu.x), y: Math.round(movimento.quadro ? movimento.y : eu.y) },
+    ...(escritorio.online || []).filter((o) => String(o.id) !== String(escritorio.base.eu) && escritorioNaCena(o)).map((o) => { const q = escritorioPosicao(o); return { id: o.id, nome: String(o.nome).split(" ")[0], x: Math.round(q.x), y: Math.round(q.y) }; })];
+}
+function girarGarrafaEscritorio(m) {
+  const mapa = escritorio.mapa, chave = mapa.chaveMovel(m);
+  if (escritorio.rolando?.has(chave)) return;
+  (escritorio.rolando ||= new Set()).add(chave);
+  mapa.estadosMoveis([[chave, -1]]);
+  escritorioTocar(520, 0.06, 0.04);
+  setTimeout(() => {
+    escritorio.rolando.delete(chave);
+    const n = Math.floor(Math.random() * 8);
+    mapa.estadosMoveis([[chave, n]]);
+    escritorioEmitir("furni:toggle", { chave, estado: n });
+    // Para quem ela aponta: a pessoa mais perto nessa direção.
+    const [dx, dy] = ESCRITORIO_DIRECAO_GARRAFA[n], bx = Math.floor(m.x), by = Math.floor(m.y);
+    const alvo = escritorioGenteNaCena().map((q) => ({ ...q, ax: q.x - bx, ay: q.y - by })).filter((q) => (q.ax || q.ay) && q.ax * dx + q.ay * dy > 0)
+      .sort((a, b) => (Math.abs(a.ax * dy - a.ay * dx) - Math.abs(b.ax * dy - b.ay * dx)) || (Math.hypot(a.ax, a.ay) - Math.hypot(b.ax, b.ay)))[0];
+    if (alvo) { const texto = `A garrafa parou em ${alvo.nome}!`; escritorioEmitir("chat:bubble", { texto }); escritorio.mapa?.balao(escritorio.base.eu, texto); }
+  }, 1600);
+}
+function girarRoletaEscritorio(m) {
+  const mapa = escritorio.mapa, chave = mapa.chaveMovel(m);
+  if (escritorio.rolando?.has(chave)) return;
+  (escritorio.rolando ||= new Set()).add(chave);
+  mapa.estadosMoveis([[chave, 1]]);
+  escritorioEmitir("furni:toggle", { chave, estado: 1 });
+  setTimeout(() => {
+    escritorio.rolando.delete(chave);
+    mapa.estadosMoveis([[chave, 0]]);
+    escritorioEmitir("furni:toggle", { chave, estado: 0 });
+    const gente = escritorioGenteNaCena(), sorteado = gente[Math.floor(Math.random() * gente.length)];
+    const texto = `Roleta: ${sorteado.nome === "você" ? "eu" : sorteado.nome} começa!`;
+    escritorioEmitir("chat:bubble", { texto });
+    escritorio.mapa?.balao(escritorio.base.eu, texto);
+  }, 3000);
 }
 // Abre (1) ou fecha (0) todos os portões da cena; todos veem.
 function escritorioPortoes(estado) {
@@ -1525,6 +1628,8 @@ function escritorioAplicarComando(id, cmd) {
   // Alguém salvou a decoração (móveis, piso, paredes, luz ou planta): quem
   // está naquela cena relê do servidor e redesenha.
   else if (k === "dec") escritorioDecoracaoMudou(id, v);
+  // Bola chutada: cada navegador roda o mesmo caminho (mesma grade).
+  else if (k === "bol" && String(id) !== String(escritorio.base?.eu)) escritorioRolarBola(v);
   // Post-it colado ou tirado: quem está na sala relê a parede.
   else if (k === "pst" && v === escritorio.quarto && String(id) !== String(escritorio.base?.eu)) carregarPostitsEscritorio();
   // Presente de móvel: quem recebe relê o inventário.
@@ -1687,8 +1792,8 @@ function rolarDadoEscritorio(m) {
 function escritorioDadosRolaram(antes, depois) {
   const velho = new Map(antes || []);
   for (const [chave, estado] of depois || []) {
-    if (!/^edice/.test(chave) || velho.get(chave) === estado || escritorio.rolando?.has(chave)) continue;
-    escritorio.mapa?.estadosMoveis([[chave, 100]]);
+    if (!/^edice|^bottle@/.test(chave) || velho.get(chave) === estado || escritorio.rolando?.has(chave)) continue;
+    escritorio.mapa?.estadosMoveis([[chave, /^bottle@/.test(chave) ? -1 : 100]]);
     setTimeout(() => escritorio.mapa?.estadosMoveis([[chave, estado]]), 1200);
   }
 }
@@ -1736,6 +1841,8 @@ function alternarComDuploCliqueEscritorio(x, y) {
   const m = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.parede && !ESCRITORIO_DADO.test(i.classe) && !ESCRITORIO_TELEPORTE.test(i.classe) && !MAPA_PORTAS.test(i.classe) && escritorioEstadosDoMovel(i).length > 1);
   if (!m) return;
   if (/floor_switch/.test(m.classe)) return puxarAlavancaEscritorio(m);
+  if (ESCRITORIO_GARRAFA.test(m.classe)) return girarGarrafaEscritorio(m);
+  if (ESCRITORIO_ROLETA.test(m.classe)) return girarRoletaEscritorio(m);
   if (mapaEhPortao(m.classe) && !m.altura) return alternarPortaoEscritorio(m);
   const estados = escritorioEstadosDoMovel(m), i = estados.indexOf(m.estado || 0);
   const estado = estados[(i + 1) % estados.length];
@@ -1888,6 +1995,8 @@ function escritorioAcaoDoMovel(m) {
   if (mapaEhPortao(m.classe) && !m.altura) return { item: m, texto: m.estado ? "Fechar o portão" : "Abrir o portão", fazer: () => alternarPortaoEscritorio(m) };
   if (/floor_switch/.test(m.classe)) return { item: m, texto: "Puxar a alavanca", fazer: () => puxarAlavancaEscritorio(m) };
   if (ESCRITORIO_MAO_UNICA.test(m.classe)) return { item: m, texto: "Passar pela catraca", fazer: () => passarMaoUnicaEscritorio(m) };
+  if (ESCRITORIO_GARRAFA.test(m.classe)) return { item: m, texto: "Girar a garrafa", fazer: () => girarGarrafaEscritorio(m) };
+  if (ESCRITORIO_ROLETA.test(m.classe)) return { item: m, texto: "Girar a roleta", fazer: () => girarRoletaEscritorio(m) };
   if (ESCRITORIO_TELEPORTE.test(m.classe)) return { item: m, texto: "Teletransportar", fazer: () => abrirTeleporteEscritorio(m) };
   if (/jukebox|^hc25_6$/.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
@@ -1960,6 +2069,7 @@ function escritorioAcoesPerto() {
       fazer: () => definirPoseEscritorio(escritorio.pose === tipo ? "" : tipo) };
   }
   const usavel = perto.find((m) => ESCRITORIO_DADO.test(m.classe) || ESCRITORIO_TELEPORTE.test(m.classe) || mapaEhPortao(m.classe) && !m.altura || /floor_switch/.test(m.classe)
+    || ESCRITORIO_GARRAFA.test(m.classe) || ESCRITORIO_ROLETA.test(m.classe)
     || ESCRITORIO_MAO_UNICA.test(m.classe) && (() => { const f = escritorioFrenteDoMovel(m); return f.x === p.x && f.y === p.y; })());
   if (usavel) return escritorioAcaoDoMovel(usavel);
   const aparelho = perto.find((m) => /treadmill|bicycle/.test(m.classe));

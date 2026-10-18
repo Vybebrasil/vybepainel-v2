@@ -152,6 +152,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["greek_c15_bench", 10, 7, 2], ["greek_c15_bench", 13, 7, 6], ["greek_c15_bench", 11, 9, 0],
     ["olympus_c25_narcissusflowers", 10, 9, 0], ["olympus_c25_narcissusflowers", 13, 9, 0],
     ...[[2, 9], [4, 11]].flatMap(([x, y]) => [["paris_c15_table", x, y, 0], ["paris_c15_chair", x - 1, y, 2], ["paris_c15_chair", x + 1, y, 6]]),
+    // Garrafa giratória na mesinha (como no Habbo: gira e aponta para alguém).
+    ["bottle", 2, 9, 0, 0, 0.95],
     ["mafia_c26_planter_white", 6, 12, 0], ["mafia_c26_planter_white", 9, 12, 0], ["mafia_c26_planter_white", 15, 12, 0],
     ["mafia_c26_planter_white", 15, 4, 0], ["modern_c17_floorlamp", 9, 0, 0],
     // Teleportes (levam direto a qualquer sala) e um dado (tem pedestal próprio).
@@ -242,6 +244,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
   reuniao: () => [
     ["shelves_silo", 0, 0, 4], ["lodge_dark_candle", 2, 0, 0],
     ["lodge_dark_endtable", 3, 0, 0], ["exe_globe", 3, 0, 0, 0, 0.9],
+    // Roleta para sortear quem fala primeiro na reunião.
+    ["arcade_c23_spinthewheel", 0, 4, 2],
     ["exe_map", 3, 0, 4, 0, 1.4], ["lodge_dark_tv", 5, 0, 0],
     ["shelves_silo", 7, 0, 4], ["exe_wfall", 9, 0, 4, 0, 0.6],
     ["mafia_c26_planter_dark", 10, 0, 0], ["uni_c23_whiteboard", 11, 0, 0],
@@ -337,6 +341,10 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["olympics_c16_weightrack", 0, 3, 2], ["uni_dumbells", 0, 4, 2], ["uni_dumbells", 0, 5, 2], ["olympics_c16_sofa", 0, 7, 2],
     ["olympics_c16_softmat", 2, 3, 0], ["olympics_c16_softmat", 2, 6, 0],
     ["olympics_c16_trampoline", 6, 4, 0], ["olympics_c16_trampoline", 7, 4, 0],
+    // Campinho de futebol do Habbo: chute parando em cima da bola, gol pela
+    // frente da trave, placar da cor da trave.
+    ["fball_goal_b", 4, 1, 2], ["fball_goal_r", 11, 1, 6], ["fball_ball", 8, 2, 0],
+    ["fball_score_b", 5, 0, 4], ["fball_score_r", 11, 4, 4],
     ["olympics_c16_softmat", 5, 6, 0], ["uni_dumbells", 7, 7, 0],
     ["olympics_c16_counter", 9, 7, 4], ["uni_brotein", 9, 7, 0, 0, 1.2], ["olympics_c16_chair", 9, 6, 4],
     ["matic_tree_green", 0, 9, 0], ["theatre_plant", 11, 5, 0],

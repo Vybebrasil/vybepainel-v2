@@ -811,7 +811,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Móveis ligados/desligados pela equipe ("classe@x,y" → estado), inclusive
   // os que chegam antes de o móvel terminar de carregar.
   const estadosForcados = new Map();
-  const chaveMovel = (m) => `${m.classe}@${Math.floor(m.x)},${Math.floor(m.y)}`;
+  // A chave é do lugar onde o móvel foi posto (a bola rola e continua a mesma).
+  const chaveMovel = (m) => m.chaveFixa || `${m.classe}@${Math.floor(m.x)},${Math.floor(m.y)}`;
+  // Move só o desenho de um móvel (a bola chutada), sem mexer na decoração salva.
+  function deslocarMovel(m, x, y) {
+    m.chaveFixa ||= chaveMovel(m);
+    const a = mapaTela(m.x, m.y, origem), b = mapaTela(x, y, origem);
+    m.no.style.left = parseFloat(m.no.style.left) + b.x - a.x + "px";
+    m.no.style.top = parseFloat(m.no.style.top) + b.y - a.y + "px";
+    m.x = x; m.y = y;
+    if (m.caixa) m.caixa = { ...m.caixa, x0: Math.floor(x), x1: Math.floor(x) + (m.caixa.x1 - m.caixa.x0), y0: Math.floor(y), y1: Math.floor(y) + (m.caixa.y1 - m.caixa.y0) };
+    m.no.style.zIndex = m.prof = Math.round((Math.floor(x) + Math.floor(y)) * 10) + 4;
+  }
   const aplicarEstado = (item, estado) => {
     if (item.estado === estado) return;
     const d = mapaDesenharMovel(item.m, item.dir, estado, 0, item.semente || 0);
@@ -1750,6 +1761,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     },
     pisoEm: (x, y) => (grade ? grade.piso.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
     portoes: () => moveis.filter((m) => mapaEhPortao(m.classe) && !m.altura),
+    deslocarMovel, moveisDaClasse: (re) => moveis.filter((m) => re.test(m.classe)),
+    // O ladrilho aceita a bola? Dentro da cena, sem móvel que não se empilha
+    // (como no Habbo: validMove) e sem parede entre os dois.
+    bolaPassa: (x, y, nx, ny) => {
+      if (!grade || nx < 0 || ny < 0 || nx >= grade.W || ny >= grade.H) return false;
+      if (P.andavel && !P.andavel(nx, ny)) return false;
+      if (Math.abs(nx - x) + Math.abs(ny - y) === 1 && grade.paredes.has(grade.aresta(grade.ind(x, y), grade.ind(nx, ny)))) return false;
+      return !moveis.some((m) => !/^fball_ball|^fball_goal/.test(m.classe) && !m.plano && !m.parede && nx >= Math.floor(m.x) && nx < Math.floor(m.x) + m.dim.x && ny >= Math.floor(m.y) && ny < Math.floor(m.y) + m.dim.y && !mapaFisica(m.classe).poe && !mapaFisica(m.classe).pisa);
+    },
     tela: (x, y) => mapaTela(x, y, origem),
     destruir() { tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
