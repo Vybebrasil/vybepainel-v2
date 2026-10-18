@@ -6219,6 +6219,16 @@ body.no-escritorio {overflow:hidden}
 .mapa-reacao {position:absolute;bottom:90px;font-size:28px;animation:mapa-reacao 2.4s ease-out forwards;pointer-events:none;z-index:3}
 .mapa-video {position:absolute;left:50%;bottom:calc(100% + 26px);transform:translateX(-50%);width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--ofc-laranja,#ff8a35);background:#000;box-shadow:0 8px 20px #0007;pointer-events:none}
 .mapa-pessoa:has(.mapa-video) .mapa-balao {bottom:calc(100% + 118px)}
+/* Teleporte: um botão por sala, quebrando linha. */
+.workflow-actions.ofc-teleporte {flex-wrap:wrap;gap:8px}
+.workflow-actions.ofc-teleporte .workflow-secondary {flex:1 1 150px}
+/* "Digitando…" sobre a cabeça, como o balão de três pontos do Habbo. */
+.mapa-digitando {position:absolute;left:50%;bottom:calc(100% + 26px);transform:translateX(-50%);display:flex;gap:4px;padding:7px 10px;border-radius:14px;background:#fff;box-shadow:0 6px 18px #0006;pointer-events:none;z-index:2}
+.mapa-digitando i {width:6px;height:6px;border-radius:50%;background:#5c5f6b;animation:mapa-digitando 1s infinite ease-in-out}
+.mapa-digitando i:nth-child(2) {animation-delay:.15s}
+.mapa-digitando i:nth-child(3) {animation-delay:.3s}
+@keyframes mapa-digitando {0%,60%,100% {transform:translateY(0);opacity:.5} 30% {transform:translateY(-3px);opacity:1}}
+@media (prefers-reduced-motion: reduce) {.mapa-digitando i {animation:none;opacity:.8}}
 .mapa-rotulo.trancada::before {content:"Trancada · ";color:#ffb27a}
 @keyframes mapa-balao {from{opacity:0;transform:translateX(-50%) translateY(6px)}}
 @keyframes mapa-reacao {0%{opacity:0;transform:translateY(10px) scale(.6)}15%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(1)}}

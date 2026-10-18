@@ -652,6 +652,31 @@ test("espaços comuns: o Café é uma cena própria com zona e móveis locais, e
   assert.equal(r("escritorio.quarto"), null);
 });
 
+// Comandos do boneco (rosto, placa, sentar no chão, "digitando…") vão pelo
+// balão com um marcador invisível: quem recebe aplica e não mostra o balão.
+test("boneco: comandos do balão viram estado, não texto; o rosto acompanha o que foi escrito", () => {
+  const { r, enviados } = cenaDoEscritorio();
+  r(`registro = { baloes: [], estados: [] }; escritorio.mapa = { destruir() {}, balao: (id, t) => registro.baloes.push([id, t]), estadoBoneco: (id, e) => registro.estados.push([id, e]), assentoEm: () => undefined };`);
+  r('escritorioReceberBalao("2", "\u2063sig=11")');
+  r('escritorioReceberBalao("2", "\u2063exp=agr")');
+  r('escritorioReceberBalao("2", "\u2063sit=1")');
+  r('escritorioReceberBalao("2", "\u2063sig=99")'); // placa que não existe: ignorada
+  assert.equal(r("registro.baloes.length"), 0, "comando não vira balão");
+  assert.equal(r("JSON.stringify(registro.estados)"), JSON.stringify([["2", { placa: 11 }], ["2", { expressao: "agr" }], ["2", { chao: true }]]));
+  // Texto comum vira balão; ":(" deixa o rosto triste, "nossa!!" surpreso.
+  r('registro.estados = []; escritorioReceberBalao("2", "poxa :(")');
+  r('escritorioReceberBalao("2", "nossa!!")');
+  r('escritorioReceberBalao("2", "bom dia")');
+  assert.equal(r("registro.baloes.length"), 3);
+  assert.equal(r("JSON.stringify(registro.estados)"), JSON.stringify([["2", { expressao: "sad" }], ["2", { expressao: "srp" }]]));
+  // Enviar: o próprio boneco já aplica e o comando sai pelo balão.
+  r('placaEscritorio("coracao")');
+  assert.equal(enviados.filter((m) => m.type === "chat:bubble").at(-1).payload.texto, "\u2063sig=11");
+  r("sentarNoChaoEscritorio()");
+  assert.equal(r("escritorio.noChao"), true);
+  assert.equal(enviados.filter((m) => m.type === "chat:bubble").at(-1).payload.texto, "\u2063sit=1");
+});
+
 test("quartos: cada cena mostra só quem está nela; a lista diz o lugar", () => {
   const { r } = cenaDoEscritorio();
   r('escritorio.online = [{ id: "1", nome: "Paulo Martins", zona: "sala-0", x: 9, y: 12, status: "disponivel" }, { id: "2", nome: "Deivid Lima", zona: "sala-3", x: 9, y: 12, status: "disponivel" }, { id: "3", nome: "Bia Rocha", zona: "", x: 50, y: 70, status: "disponivel" }, { id: "4", nome: "Jady Souza", zona: "sala-0", x: 10, y: 10, status: "foco" }]');

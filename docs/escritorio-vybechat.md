@@ -488,3 +488,17 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
 - A música do Lounge passou a tocar na cena inteira (antes dependia de dois
   pisos do mapa geral e tinha parado quando o Lounge virou cena).
 - Paredes do mezanino dos quartos com a cor da sala e borda clara no alto.
+
+### Mecânicas do Habbo no boneco e nas salas (17/10/2026, noite)
+
+- Rosto (triste, surpreso, bravo; teclas 5–7), placa (coração, exclamação,
+  sorriso, números; 8–9 e menu "Mais"), sentar no chão (tecla 4 ou ":sit"
+  no chat) e "digitando…" no chat. Vão pelo balão de fala com o marcador
+  invisível U+2063 na frente: o Worker já repassa o balão a todos, então não
+  foi preciso publicar outra versão dele; quem recebe aplica e não mostra
+  balão. O rosto também acompanha o texto do balão (":(", "nossa!!", ">:(").
+- Quem segura café ou bebida leva o copo à boca de tempos em tempos.
+- Dois cliques num móvel com estados passam para o próximo (todos veem).
+- Dado do Habbo (rola e cai de 1 a 6, todos veem) na Convivência e no
+  Jogos; cabines de teleporte na Convivência e na Praça levam a qualquer sala.
+- Dançar não entrou: o gerador de bonecos do Habbo não desenha as danças.
