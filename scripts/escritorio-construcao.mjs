@@ -27,7 +27,7 @@ vm.createContext(ctx);
 vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__tampos = ESCRITORIO_TAMPOS; globalThis.__planta = ESCRITORIO_PLANTA; globalThis.__topo = escritorioTopoDaParede;", ctx);
 const TAMPOS = ctx.__tampos;
 // Regras de desenho do mapa que a construção precisa seguir igual.
-vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8") + "\n;globalThis.__reveste = mapaEhRevestimento;", ctx);
+vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8") + "\n;globalThis.__reveste = mapaEhRevestimento; globalThis.__passaveis = MAPA_PASSAVEIS; globalThis.__portas = MAPA_PORTAS;", ctx);
 const artes = new Map();
 export function peca(classe) {
   if (artes.has(classe)) return artes.get(classe);
@@ -110,11 +110,12 @@ export function novaCena(id, o = {}) {
   // com função e ponto de destaque, declarado com canto() antes das peças.
   const cantos = new Map(), semCanto = [], foraDaColecao = new Set();
   let cantoAtual = null, obra = 0, colecaoSala = null;
-  const doCanto = (nomePeca, classe) => {
+  const doCanto = (nomePeca, classe, it = null) => {
     if (obra) return;
     if (colecaoSala && !colecaoSala.aceitas.has(classe)) foraDaColecao.add(classe);
     if (!cantoAtual) { semCanto.push(nomePeca); return; }
     cantos.get(cantoAtual).pecas.push(classe);
+    if (it) cantos.get(cantoAtual).itens.push(it);
   };
   const falha = (m) => { erros.push(`${id}: ${m}`); return null; };
   const nome = (c, x, y) => `${c} (${x},${y})`;
@@ -178,6 +179,7 @@ export function novaCena(id, o = {}) {
     colecao(papeis, { acentos = [] } = {}) {
       colecaoSala = { papeis, aceitas: new Set([...Object.values(papeis).flat(), ...acentos]) };
     },
+    tem(papel) { return Boolean(colecaoSala?.papeis?.[papel]); },
     de(papel) {
       const c = colecaoSala?.papeis?.[papel];
       if (!c) { falha(`a coleção da sala não tem peça para o papel "${papel}"`); return null; }
@@ -187,7 +189,7 @@ export function novaCena(id, o = {}) {
       if (!funcao) return falha(`canto "${nome}" sem função (para que serve este canto?)`);
       if (!destaque) return falha(`canto "${nome}" sem ponto de destaque`);
       if (cantos.has(nome)) return falha(`canto "${nome}" declarado duas vezes`);
-      cantos.set(nome, { funcao, destaque, pecas: [] });
+      cantos.set(nome, { funcao, destaque, pecas: [], itens: [] });
       cantoAtual = nome;
     },
     // Casca da sala: forro e cornija no topo das paredes, com a mesma função
@@ -315,7 +317,7 @@ export function novaCena(id, o = {}) {
       if (!o.sobre) postos.push(it);
       moveis.push([classe, x, y, dir, o.estado || 0, Math.round(altura * 1000) / 1000]);
       if (o.sobre && !o.empilhador && !o.ritmo) { it.acessorio = true; it.base = at(x, y, n).pilha.find((q) => !q.acessorio && q !== it); acessorios.push(it); }
-      doCanto(it.nome, classe);
+      doCanto(it.nome, classe, it);
       return it;
     },
     // Assento virado para um alvo (mesa, lareira, palco).
@@ -519,6 +521,9 @@ export function novaCena(id, o = {}) {
       // peça só, com corrimão (a escadinha da varanda: pisa a 0,5 e mostra a
       // subida de 1); vai sozinha, nunca empilhada (a mureta sobraria acima do
       // piso de cima, Paulo, 18/10/2026).
+      // No mapa, a escada de construtor dos quartos se atravessa sem dar altura
+      // (ela veste a escada da planta): numa sala de piso plano ninguém sobe.
+      if (ctx.__passaveis.test(classe)) return falha(`escada ${classe} se atravessa no mapa sem dar altura (é a dos quartos, sobre a escada da planta): use peça de degrau que dê altura`);
       const info = ESCADAS[classe], tipo = typeof info === "object" ? info.tipo : info;
       if (!tipo) return falha(`escada ${classe} sem tipo conferido na vitrine ("degrau" ou "inteira" em frentes.json)`);
       let n;
@@ -668,8 +673,12 @@ export function novaCena(id, o = {}) {
         const L = (() => { let n = 0; const T = lado === "fundo" ? w : h; for (let i = 0; i < T; i++) if ((celdas?.[lado === "fundo" ? 0 : i]?.[lado === "fundo" ? i : 0] ?? 0) !== -1) n++; return n; })();
         // Peça larga conta pelo tamanho: um item a cada 2 ladrilhos de largura
         // (a lousa de 4 ladrilhos vale 2 quadros).
+        // Móvel alto encostado (estante, armário, lareira: 1,5 nível ou mais)
+        // também veste a parede: a parede forrada de estantes da biblioteca.
         const deParede = [...paredes.filter((q) => q.lado === lado).map((q) => ({ classe: q.classe, larg: (q.b - q.a) / 32 })),
-          ...altos.filter((a) => a.decor && (lado === "fundo" ? a.it.y === 0 : a.it.x === 0)).map((a) => ({ classe: a.it.classe, larg: 1 }))];
+          ...altos.filter((a) => a.decor && (lado === "fundo" ? a.it.y === 0 : a.it.x === 0)).map((a) => ({ classe: a.it.classe, larg: 1 })),
+          ...altos.filter((a) => !a.decor && !a.p.plana && (a.p.topo || 0) >= 1.5 && (lado === "fundo" ? a.it.y === 0 : a.it.x === 0) && !daCasca.has(a.it))
+            .map((a) => ({ classe: a.it.classe, larg: lado === "fundo" ? a.it.pw : a.it.ph }))];
         const nomes = deParede.map((q) => q.classe), pontos = deParede.reduce((t, q) => t + Math.max(1, Math.round(q.larg / 2)), 0);
         const ocupa = new Array(lado === "fundo" ? w : h).fill(false);
         const marca = (i0, i1) => { for (let i = Math.max(0, Math.floor(i0)); i < Math.min(ocupa.length, Math.ceil(i1)); i++) ocupa[i] = true; };
@@ -725,6 +734,9 @@ export function novaCena(id, o = {}) {
       for (const m of moveis) {
         const [c, x, y, d, , alt] = m, p = peca(c);
         if (p.parede || daCasca.has(m) || pend.has(`${c},${x},${y}`)) continue;
+        // Igual ao mapa (mapaMontarGrade): porta e peça atravessável (a escada
+        // de construtor dos quartos, a balaustrada) não dão altura nem barram.
+        if (ctx.__passaveis.test(c) || ctx.__portas.test(c)) continue;
         if (p.plana && !p.pisa) continue;
         const [pw, ph] = pegada(p, d), topo = (alt || 0) + (p.plana ? 0 : p.topo || 0);
         for (let i = 0; i < pw; i++) for (let j = 0; j < ph; j++) {
@@ -775,7 +787,7 @@ export function novaCena(id, o = {}) {
       }
       for (const [nomeC, c] of cantos) {
         if (!c.pecas.length) continue;
-        const alvo = postos.find((it) => it.classe === c.destaque);
+        const alvo = c.itens.find((it) => it.classe === c.destaque);
         if (!alvo) continue;
         let perto = false;
         for (let i = -1; i <= alvo.pw; i++) for (let j = -1; j <= alvo.ph; j++) if (visto.has(k(alvo.x + i, alvo.y + j))) perto = true;

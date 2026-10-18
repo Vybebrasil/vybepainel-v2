@@ -24,7 +24,7 @@ montagem. Também precisam funcionar como o Habbo: sentar, subir escada, empilha
      novo (ver "Processo").
    - **Reunião**: madeira escura com patamar. Montada; falta revisar no
      processo novo.
-   - **Foco**: biblioteca com mezanino e escada. A fazer.
+   - **Foco**: biblioteca com mezanino e escada. Montada em 18/10 (ver "Foco").
    - **Auditório**: teatro com balcão. A fazer.
    - **Produção**: estúdio de foto e vídeo. A fazer.
    - **Jogos**: fliperama escuro com neon. A fazer.
@@ -272,6 +272,32 @@ fliperamas) e a coleção azul e dourada.
 tem corrente e lê como pendurado. Os sem corrente parecem candelabro em pé, e
 o gótico tem caveira, já reprovada. A parede subiu para 5 níveis para ele
 caber.
+
+## Foco (montada em 18/10/2026)
+
+- **Planta e mezanino:** a planta ficou plana. O patamar de 1 nível deu lugar
+  a um mezanino de construtor a 3, no fundo (y 0–4), com tábuas
+  `classic9_floor2`. O térreo é de pedra (`classic9_floor1`). A parede subiu
+  para 6 níveis.
+- **Coleção:** Library do Habbo (`classic9_*`) e peças antigas
+  (`antique_c21_*`), com a lareira de chalé escuro.
+- **Galeria de estantes no mezanino:** janela entre arandelas, globo, busto e
+  relógio.
+- **Térreo:**
+  - mesa de estudo no eixo da porta, com abajur antigo de mesa (a luminária
+    da biblioteca é de pé e em cima da mesa parecia poste);
+  - lustre Dark Elegant;
+  - estantes e lareira de leitura na parede da esquerda (a receita da lareira
+    agora serve à parede da esquerda; as poltronas olham ao longo da parede);
+  - balcão da bibliotecária perto da porta.
+- **Escada de palco** (`xmas_c18_stagestairs`) até o vão em x 10–11.
+- **Lição:** no mapa, a escada de construtor dos quartos
+  (`bc_stairs_recolorable`, em `MAPA_PASSAVEIS`) se atravessa sem dar altura;
+  ela só veste a escada da planta dos quartos pessoais. O caminho do motor
+  agora usa a mesma regra do mapa, e `escada()` recusa essa peça para subir
+  andar.
+- **Regra de parede rica:** passou a contar móvel alto encostado (1,5 nível ou
+  mais: estante, armário, lareira) pela largura.
 
 ## Decisões do Paulo que valem
 

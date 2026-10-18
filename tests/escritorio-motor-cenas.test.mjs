@@ -234,10 +234,13 @@ test("altura da escada: pela subida do desenho; escada inteira vai sozinha e deg
   const t = novaCena("recepcao", { acabamento: false });
   mez(t);
   t.escada("bc_stairs_recolorable", 12, 10, [0, -1], { largura: 2, estado: 185 });
-  assert.deepEqual(t.erros, []);
-  const degraus = t.moveis.filter((m) => m[0] === "bc_stairs_recolorable");
-  assert.equal(degraus.length, 42, "dois de largura, de 1 a 6 peças empilhadas");
-  assert.ok(degraus.every((m) => m[4] === 185), "a cor vai em todas as peças");
+  assert.match(t.erros.join("\n"), /se atravessa no mapa sem dar altura/, "a escada dos quartos não sobe andar em sala de piso plano");
+  const v = novaCena("recepcao", { acabamento: false });
+  mez(v);
+  v.escada("xmas_c18_stagestairs", 12, 9, [0, -1]);
+  assert.deepEqual(v.erros, []);
+  const degraus = v.moveis.filter((m) => m[0] === "xmas_c18_stagestairs");
+  assert.equal(degraus.length, 15, "de 1 a 5 peças empilhadas até 3");
   const u = novaCena("recepcao", { acabamento: false });
   mez(u);
   u.escada("wintercabin_c19_stairs", 12, 9, [0, -1]);

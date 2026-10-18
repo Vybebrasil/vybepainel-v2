@@ -7,27 +7,34 @@
 // (scripts/escritorio-construcao.mjs): apoio, frente conferida, caminho.
 import { pegadaDe, dirDaFrente } from "./escritorio-construcao.mjs";
 
-// Lareira no meio de um trecho da parede do fundo, duas poltronas na frente
-// dela, uma de cada lado, viradas para o fogo; tapete no eixo; abajur de pé
-// junto de cada poltrona e o mesmo item de parede dos dois lados (simétrico).
-// x: primeiro ladrilho da lareira (encostada em y = 0).
-export function estarLareira(s, { nome = "lareira", funcao = "conversar perto do fogo", x, tapete = true, abajures = true, arte = null, alturaArte = 1.2, folga = 1 }) {
+// Lareira no meio de um trecho de parede (fundo, y = 0, ou esquerda, x = 0),
+// duas poltronas na frente dela, uma de cada lado, viradas para o fogo;
+// tapete no eixo; abajur de pé junto de cada poltrona e o mesmo grupo de
+// itens de parede dos dois lados (espelhado). em: primeiro ladrilho da
+// lareira ao longo da parede.
+export function estarLareira(s, { nome = "lareira", funcao = "conversar perto do fogo", x, em = x, parede = "fundo", tapete = true, abajures = true, arte = null, alturaArte = 1.2, folga = 1 }) {
   const lareira = s.de("lareira"), poltrona = s.de("poltrona");
   if (!lareira || !poltrona) return null;
   s.canto(nome, { funcao, destaque: lareira });
-  const d = dirDaFrente(lareira, 0, 1), [lw] = pegadaDe(lareira, d);
-  if (tapete && s.de("tapete")) s.tapete(s.de("tapete"), x - 1, 1, x + lw, 2);
-  s.por(lareira, x, 0, { dir: d });
-  const esq = s.assento(poltrona, x - 1, 1, [x, 0]);
-  const dir = s.assento(poltrona, x + lw, 1, [x + lw - 1, 0]);
-  if (abajures && s.de("abajur")) { s.por(s.de("abajur"), x - 2, 1); s.por(s.de("abajur"), x + lw + 1, 1); }
+  // ao(a, b): a ao longo da parede, b saindo dela para a sala.
+  const ao = (a, b) => (parede === "fundo" ? [a, b] : [b, a]);
+  const fora = parede === "fundo" ? [0, 1] : [1, 0];
+  const d = dirDaFrente(lareira, fora[0], fora[1]), [pw, ph] = pegadaDe(lareira, d), lw = parede === "fundo" ? pw : ph;
+  if (tapete && s.tem("tapete")) { const [ax, ay] = ao(em - 1, 1), [bx, by] = ao(em + lw, 2); s.tapete(s.de("tapete"), Math.min(ax, bx), Math.min(ay, by), Math.max(ax, bx), Math.max(ay, by)); }
+  s.por(lareira, ...ao(em, 0), { dir: d });
+  // Cada poltrona olha ao longo da parede, para a frente da lareira (na
+  // parede da esquerda, olhar para o canto da lareira virava para a parede).
+  const esq = s.assento(poltrona, ...ao(em - 1, 1), ao(em, 1));
+  const dir = s.assento(poltrona, ...ao(em + lw, 1), ao(em + lw - 1, 1));
+  if (abajures && s.tem("abajur")) { s.por(s.de("abajur"), ...ao(em - 2, 1)); s.por(s.de("abajur"), ...ao(em + lw + 1, 1)); }
   // Parede: o mesmo grupo de itens dos dois lados, em trechos de 3 ladrilhos
   // a "folga" ladrilhos da lareira (o desenho dela passa do ladrilho),
   // espelhado: o de dentro fica perto do fogo.
   if (arte) {
     const grupo = [arte].flat();
-    s.parede("fundo", { de: x - 3 - folga, ate: x - folga, altura: alturaArte }, grupo);
-    s.parede("fundo", { de: x + lw + folga, ate: x + lw + 3 + folga, altura: alturaArte }, [...grupo].reverse());
+    const antes = parede === "fundo" ? grupo : [...grupo].reverse(), depois = parede === "fundo" ? [...grupo].reverse() : grupo;
+    s.parede(parede, { de: em - 3 - folga, ate: em - folga, altura: alturaArte }, antes);
+    s.parede(parede, { de: em + lw + folga, ate: em + lw + 3 + folga, altura: alturaArte }, depois);
   }
   return { esq, dir };
 }
@@ -50,7 +57,7 @@ export function mesaReuniao(s, { nome = "mesa de reunião", funcao = "reunir a e
   }
   s.assento(cadeira, x - 1, y, [x, y]);
   s.assento(cadeira, x + comp, y + mh - 1, [x + comp - 1, y + mh - 1]);
-  if (s.de("lustre")) s.pendente(s.de("lustre"), x + Math.floor((comp - 1) / 2), y);
+  if (s.tem("lustre")) s.pendente(s.de("lustre"), x + Math.floor((comp - 1) / 2), y);
   telas.forEach((i) => { const l = lugares[i]; s.emCima(l.mesa[0], l.mesa[1], s.de("tela"), { olha: [l.cad.x, l.cad.y] }); });
   const usados = new Set(telas.map((i) => lugares[i].mesa.join(",")));
   for (const [cx, cy, c] of centro) if (!usados.has(`${cx},${cy}`)) { usados.add(`${cx},${cy}`); s.emCima(cx, cy, c); }
@@ -75,9 +82,9 @@ export function recepcao(s, { nome = "recepção", funcao = "receber quem chega"
   let larg = 0, it = null;
   for (let i = 0; i < pecas; i++) { it = s.por(balcao, x + larg, y, { olha: porta }); if (!it) return null; larg += it.pw; }
   const meio = x + Math.floor((larg - 1) / 2);
-  if (s.de("tela")) s.emCima(meio, y, s.de("tela"), { olha: [meio, y - 1] });
+  if (s.tem("tela")) s.emCima(meio, y, s.de("tela"), { olha: [meio, y - 1] });
   sobre.forEach(([dx, c]) => s.emCima(x + dx, y, c));
   if (atendente) s.figurante({ figura: atendente, x: meio, y: y - 1, dir: 4 });
-  if (s.de("planta")) { s.por(s.de("planta"), x - 1, y); s.por(s.de("planta"), x + larg, y); }
+  if (s.tem("planta")) { s.por(s.de("planta"), x - 1, y); s.por(s.de("planta"), x + larg, y); }
   return it;
 }
