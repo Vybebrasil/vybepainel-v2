@@ -70,6 +70,18 @@ function mapaDirecaoValida(dados, dir) {
   return dirs.includes((dir + 4) % 8) ? (dir + 4) % 8 : dirs[0];
 }
 // Quantos quadros a animação do estado tem (o maior entre as camadas).
+// Quadro de cada camada animada num instante (a mesma conta do desenho):
+// igual ao anterior, nada a redesenhar.
+function mapaChaveQuadro(dados, estado, quadro, semente = 0) {
+  const camadas = dados.visualizations.find((v) => v.size === 64)?.animations?.[mapaCorDoEstado(dados, estado).estado]?.layers || {};
+  let chave = "";
+  for (const [i, anim] of Object.entries(camadas)) {
+    const seqs = anim?.frameSequences ? Object.values(anim.frameSequences) : [];
+    const lista = seqs.length ? Object.values(seqs[semente % seqs.length]?.frames || {}) : [];
+    if (lista.length > 1) chave += i + "=" + Math.floor(quadro / Math.max(1, Number(anim.frameRepeat) || 1)) % lista.length + ";";
+  }
+  return chave;
+}
 function mapaQuadros(dados, estado) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const camadas = v?.animations?.[estado]?.layers || {};
@@ -1732,23 +1744,33 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     trocarImagem(p); posicionarPessoa(p);
   }
 
-  // Animação dos móveis: 8 quadros/s, só com o mapa visível na tela.
-  let quadro = 0, relogio = null;
+  // Animação dos móveis no ritmo do Habbo: 24 quadros por segundo
+  // (RoomSpriteCanvas, system.fps.animation), cada quadro da arte repetido
+  // frameRepeat vezes; redesenha só o móvel cujo quadro mudou. Com "reduzir
+  // movimento", metade disso. Só com o mapa visível na tela.
+  let quadro = 0, relogio = null, pulsoBonecos = 0;
   const animar = () => {
     if (document.hidden || !el.isConnected || !el.offsetParent) return;
     quadro++;
-    // Bonecos: passo de quem anda; piscada, fala, aceno e cabeça de quem está parado.
-    if (quadro % 5 === 0) virarCabecas();
+    // Bonecos (10 vezes por segundo): piscada, fala, aceno e cabeça de quem está parado.
     const agora = performance.now();
-    for (const p of pessoas.values()) {
-      if (p.acao !== "wlk" && (!p.piscaEm || agora > p.piscaEm)) { p.piscaEm = agora + 2800 + Math.random() * 4200; p.piscaAte = agora + 170; }
-      trocarImagem(p);
+    const pulso = Math.floor(agora / 100);
+    if (pulso !== pulsoBonecos) {
+      pulsoBonecos = pulso;
+      if (pulso % 5 === 0) virarCabecas();
+      for (const p of pessoas.values()) {
+        if (p.acao !== "wlk" && (!p.piscaEm || agora > p.piscaEm)) { p.piscaEm = agora + 2800 + Math.random() * 4200; p.piscaAte = agora + 170; }
+        trocarImagem(p);
+      }
     }
     for (const item of [...animados]) {
       // Passagem entre estados: do primeiro quadro dela até o fim; depois, o estado novo.
       let estado = item.estado, q = quadro;
       if (item.transicao && quadro < item.transicao.fim) { estado = item.transicao.chave; q = quadro - item.transicao.inicio; }
-      else if (item.transicao) { item.transicao = null; if (item.quadros <= 1) animados.splice(animados.indexOf(item), 1); }
+      else if (item.transicao) { item.transicao = null; item.chaveQuadro = null; if (item.quadros <= 1) animados.splice(animados.indexOf(item), 1); }
+      const chave = estado + ":" + mapaChaveQuadro(item.m.dados, estado, q, item.semente || 0);
+      if (chave === item.chaveQuadro) continue;
+      item.chaveQuadro = chave;
       if (!item.parede) {
         const d = mapaCamadasMovel(item.m, item.dir, estado, q, item.semente || 0);
         if (d) pintarMovel(item, d);
@@ -1762,7 +1784,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       g.drawImage(d.canvas, 0, 0);
     }
   };
-  prontos.then(() => { relogio = setInterval(animar, reduzido ? 200 : 100); });
+  prontos.then(() => { relogio = setInterval(animar, 1000 / (reduzido ? 12 : 24)); });
 
   // Post-its nas paredes do fundo (lado 0) e da esquerda (lado 1), como os
   // recados do Habbo: um quadradinho colorido inclinado no plano da parede.
