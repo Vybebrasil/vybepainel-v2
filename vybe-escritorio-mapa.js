@@ -1119,7 +1119,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // não tem z-index nem filtro (não cria contexto de empilhamento): as camadas
   // se intercalam com as dos outros móveis e com os bonecos pela profundidade.
   // width/height do contêiner guardam as medidas, como num canvas.
+  // Cada quadro da animação tem o seu recorte (o vapor aparece e some): a
+  // posição segue o ponto de registro do quadro, como no Nitro; senão a peça
+  // "descia" para dentro do que está embaixo a cada quadro menor.
+  const seguirRegistro = (m, d) => {
+    if (m.ox === undefined) { m.ox = d.ox; m.oy = d.oy; return; }
+    if (d.ox === m.ox && d.oy === m.oy) return;
+    m.no.style.left = parseFloat(m.no.style.left) + d.ox - m.ox + "px";
+    m.no.style.top = parseFloat(m.no.style.top) + d.oy - m.oy + "px";
+    m.ox = d.ox; m.oy = d.oy;
+  };
   const pintarMovel = (m, d) => {
+    seguirRegistro(m, d);
     const no = m.no;
     no.width = d.canvas.width; no.height = d.canvas.height;
     no.style.width = no.width + "px"; no.style.height = no.height + "px";
@@ -1298,7 +1309,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         if (topo + h > ancora.y + 2) topo = Math.max(teto, ancora.y + 2 - h);
         no.style.top = topo + "px";
         palco.append(no);
-        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: 0, caixa: null, origem: origemItem, semente: semente(x, y) };
+        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: 0, caixa: null, origem: origemItem, semente: semente(x, y), ox: desenho.ox, oy: desenho.oy };
         ordenarMovel(item);
         if (feixe) { item.filtro = semFocos; criarFocos(no, Number(no.style.zIndex || 0) + 1); }
         if (m.dados.logicType === "furniture_window") criarPaisagem(item, desenho);
@@ -2245,6 +2256,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       }
       const d = mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, item.filtro);
       if (!d) continue;
+      seguirRegistro(item, d);
       const g = item.no.getContext("2d");
       if (item.no.width !== d.canvas.width || item.no.height !== d.canvas.height) { item.no.width = d.canvas.width; item.no.height = d.canvas.height; }
       else g.clearRect(0, 0, item.no.width, item.no.height);
