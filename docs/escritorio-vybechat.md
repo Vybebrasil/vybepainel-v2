@@ -735,3 +735,32 @@ das janelas no Lounge e pediu a causa, não um remendo. Foram três:
 - Lustres e ervas do acervo: a arte de muitos já vem desenhada no alto
   (ficam na altura 0); os desenhados rente ao chão sobem com altura.
   Meça a base do desenho (sprite acima do ponto do ladrilho) antes de pendurar.
+
+### Escala e paredes/pisos oficiais do Habbo (18/10/2026)
+
+- Zoom só em 0,5×, 1× e 2× (`NIVEIS` em `vybe-escritorio-mapa.js`), com a
+  câmera parada em pixel inteiro: escala quebrada borrava a pixel art. O
+  quarto abre em 1× quando quase cabe; a roda acumula até trocar de nível.
+- Papéis de parede, pisos e paisagens oficiais vêm do `room.nitro` do Nitro
+  (repositório j1slc/nitro-assets, autorizado pelo Paulo), em
+  `assets/escritorio/habbo/habbo_quarto_planos.{json,png}`. Textura
+  `plano:parede:<id>` ou `plano:piso:<id>` (id do Habbo: textura × cor, ex.
+  1901 tijolo vermelho, 1401 madeira, 205 carpete vermelho, 405 ladrilho
+  vinho); 32 px de textura por aresta de ladrilho, tingida pela cor do plano.
+- Cenas aceitam trechos de piso (`texturas` na planta), como a Praça.
+
+### Salas comuns construídas no editor (18/10/2026)
+
+- Camada com o id da zona (`recepcao`, `reuniao`, `auditorio`, `producao`,
+  `cafe`, `jogos`, `foco`, `academia`, `lounge`): só quem administra salva
+  (`CENAS_COMUNS` em `server/escritorio-mapa.js`), sem inventário e sem planta
+  desenhada; até 1500 itens. Migração `2026-10-18-escritorio-cenas-editaveis.sql`
+  só amplia as chaves aceitas. Sem camada salva, vale o padrão do código;
+  "Restaurar" no editor volta a ele.
+- Fundo próprio da sala comum (`fundo` na planta da cena), como o vazio em
+  volta dos quartos do Habbo.
+- Desempenho medido na demonstração: 600 peças carregam em ~0,5 s (arte em
+  cache) e ficam em 60 quadros/s parado e trocando o zoom.
+- Método das cenas: bancada (a cena trocada só na página) para montar cada
+  conjunto — bar, estar, sofás — e conferir de perto em 2× antes de compor a
+  sala; uma coleção de móveis por sala.

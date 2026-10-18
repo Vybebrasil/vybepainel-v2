@@ -32,12 +32,15 @@ export function salasDoEscritorio(equipe = []) {
 export const LADO_SALA = 20; // = LADO_QUARTO (escritorio-quartos.js)
 // Limites como os do Habbo (construções de 1.000+ móveis num quarto); o mapa
 // foi medido com 1.188 blocos empilhados a 60 quadros por segundo.
-const LIMITE = { geral: { x: 80, y: 80, itens: 1500 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 1500 } };
+const LIMITE = { geral: { x: 80, y: 80, itens: 1500 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 1500 }, cena: { x: 30, y: 30, itens: 1500 } };
+// Salas comuns com cena própria: camada com o id da zona (a mesma do Worker),
+// editada só por quem administra, sem inventário (decisão do Paulo, 18/10/2026).
+export const CENAS_COMUNS = new Set(["recepcao", "reuniao", "auditorio", "producao", "cafe", "jogos", "foco", "academia", "lounge"]);
 // Item: [classe, x, y, direção, estado, altura]. Nas salas, x/y são relativos à
 // sala e o item inteiro fica dentro dela (o tamanho real é conferido no mapa).
 export function itensValidos(camada, itens) {
   if (!Array.isArray(itens)) throw new Error("Itens inválidos.");
-  const lim = camada === "geral" ? LIMITE.geral : LIMITE.sala;
+  const lim = camada === "geral" ? LIMITE.geral : CENAS_COMUNS.has(camada) ? LIMITE.cena : LIMITE.sala;
   if (itens.length > lim.itens) throw new Error(`No máximo ${lim.itens} itens.`);
   return itens.map((it) => {
     if (!Array.isArray(it) || it.length < 4) throw new Error("Item inválido.");
@@ -122,6 +125,10 @@ export async function carregarMapaEscritorio(sql) {
 }
 // Quem edita cada camada: 'geral' só administrador; sala, o dono ou administrador.
 function conferirEdicao(pessoa, salas, camada) {
+  if (CENAS_COMUNS.has(camada)) {
+    if (!pessoa.admin) throw Object.assign(new Error("Só quem administra edita as salas comuns."), { status: 403 });
+    return;
+  }
   const sala = salas.find((s) => s.id === partesDaCamada(camada)?.raiz);
   if (camada !== "geral" && !sala) throw Object.assign(new Error("Camada inválida."), { status: 400 });
   const admin = Boolean(pessoa.admin);
@@ -150,9 +157,10 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
   conferirEdicao(pessoa, salas, camada);
   if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
   const limpos = itensValidos(camada, itens);
-  if (celdas !== undefined && (camada === "geral" || !CELDAS_LIVRES.test(String(celdas)))) throw Object.assign(new Error("Planta do quarto inválida."), { status: 400 });
+  const comum = camada === "geral" || CENAS_COMUNS.has(camada);
+  if (celdas !== undefined && (comum || !CELDAS_LIVRES.test(String(celdas)))) throw Object.assign(new Error("Planta do quarto inválida."), { status: 400 });
   let novaPlanta = null, conferiuPlanta = false;
-  if (camada !== "geral") {
+  if (!comum) {
     const dono = salas.find(s => s.id === partesDaCamada(camada)?.raiz)?.pessoa_id;
     const economia = await carregarEconomia(sql, dono);
     if (economia.disponivel) {
@@ -186,12 +194,19 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
   // Guarda a versão que vai ser trocada (se o histórico já existe no banco).
   if (await versoesProntas(sql)) await guardarVersaoAnterior(sql, camada, Number(versao) || 0);
   const esperada = Number(versao) || 0;
-  const [r] = await sql`INSERT INTO vybe_escritorio_mapa(camada, itens, versao, atualizado_por)
-    VALUES(${camada}, ${JSON.stringify(limpos)}::jsonb, 1, ${pessoa.id})
-    ON CONFLICT(camada) DO UPDATE SET itens = EXCLUDED.itens, versao = vybe_escritorio_mapa.versao + 1,
-      atualizado_por = EXCLUDED.atualizado_por, atualizado_em = NOW()
-    WHERE vybe_escritorio_mapa.versao = ${esperada}
-    RETURNING versao`;
+  let r;
+  try {
+    [r] = await sql`INSERT INTO vybe_escritorio_mapa(camada, itens, versao, atualizado_por)
+      VALUES(${camada}, ${JSON.stringify(limpos)}::jsonb, 1, ${pessoa.id})
+      ON CONFLICT(camada) DO UPDATE SET itens = EXCLUDED.itens, versao = vybe_escritorio_mapa.versao + 1,
+        atualizado_por = EXCLUDED.atualizado_por, atualizado_em = NOW()
+      WHERE vybe_escritorio_mapa.versao = ${esperada}
+      RETURNING versao`;
+  } catch (e) {
+    // Sala comum antes da migração das cenas: o banco ainda não aceita a chave.
+    if (e?.code === "23514" && CENAS_COMUNS.has(camada)) throw Object.assign(new Error("Salvar as salas comuns aguarda a migração do banco (2026-10-18-escritorio-cenas-editaveis.sql)."), { status: 503 });
+    throw e;
+  }
   if (!r) throw Object.assign(new Error("Alguém salvou esta área antes. Recarregue para ver a versão nova."), { status: 409 });
   return { camada, versao: r.versao, itens: limpos, ...(celdas !== undefined ? { celdas } : {}) };
 }

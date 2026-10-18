@@ -334,6 +334,19 @@ function mapaDesenharFundo(canvas, planta, origem) {
   // chega (ou se faltar), fica a cor lisa.
   const texturas = planta.texturasProntas;
   const textura = (x, y, classe, x0 = 0, y0 = 0, modo = "") => {
+    if (mapaEhPlano(classe)) {
+      // Piso do Habbo: a textura do plano inclinada em losango, contínua pelo chão.
+      const t = mapaTexturaPlano(classe);
+      if (!t) return false;
+      const q = mapaTela(x, y, origem);
+      g.save(); losango(x, y); g.clip();
+      if (modo) { g.globalCompositeOperation = modo; g.globalAlpha = 0.55; }
+      g.transform(1, 0.5, -1, 0.5, q.x, q.y);
+      g.translate(-x * 32, -y * 32);
+      g.fillStyle = g.createPattern(t, "repeat"); g.fillRect(x * 32 - 1, y * 32 - 1, 34, 34);
+      g.restore();
+      return true;
+    }
     const t = classe && texturas?.get(classe);
     if (!t) return false;
     const ax = x - (((x - x0) % t.dw) + t.dw) % t.dw, ay = y - (((y - y0) % t.dh) + t.dh) % t.dh, q = mapaTela(ax, ay, origem);
@@ -422,6 +435,58 @@ function mapaPosicaoPorta(classe, x, y, dir) {
 const MAPA_ESTILO_TEXTURA = { c: "urban_wall", d: "gardenshed_wall", e: "sb_wall", f: "exe_c15_wall", g: "hygge_c25_wallpaper1", h: "bathroom_wall4" };
 const MAPA_TEXTURA_SALA = "art_c20_wall"; // padrão das salas, tingido na cor do dono
 const MAPA_TEXTURAS_PAREDE = new Map(); // classe → { 2: {canvas}, 4: {canvas}, n }
+// Papéis de parede e pisos oficiais do quarto do Habbo (room.nitro do Nitro:
+// wallData e floorData). Textura "plano:parede:1801" ou "plano:piso:205": o
+// número é o do Habbo (textura × cor). A textura se repete no plano inteiro,
+// tingida pela cor do plano e inclinada como no Nitro: 32 px de textura por
+// aresta de ladrilho, na parede de pé e no chão em losango.
+let MAPA_PLANOS = null, MAPA_PLANOS_PRONTOS = null;
+const MAPA_PLANOS_TEXTURAS = new Map();
+function mapaEhPlano(textura) { return typeof textura === "string" && textura.startsWith("plano:"); }
+function mapaCarregarPlanos() {
+  MAPA_PLANOS ??= (async () => {
+    const r = await fetch(mapaArquivo("habbo_quarto_planos.json"), { credentials: "same-origin" });
+    if (!r.ok) throw new Error("Paredes e pisos do Habbo indisponíveis.");
+    const dados = await r.json();
+    const imagem = new Image();
+    imagem.src = mapaArquivo("habbo_quarto_planos.png");
+    await imagem.decode();
+    MAPA_PLANOS_PRONTOS = { dados, imagem };
+    return MAPA_PLANOS_PRONTOS;
+  })();
+  return MAPA_PLANOS;
+}
+// A textura de um plano (canvas tingido), ou null enquanto não carregou.
+function mapaTexturaPlano(textura) {
+  if (!mapaEhPlano(textura) || !MAPA_PLANOS_PRONTOS) return null;
+  if (MAPA_PLANOS_TEXTURAS.has(textura)) return MAPA_PLANOS_TEXTURAS.get(textura);
+  const [, tipo, id] = textura.split(":");
+  const { dados, imagem } = MAPA_PLANOS_PRONTOS, bloco = dados.roomVisualization?.[tipo === "piso" ? "floorData" : "wallData"];
+  let canvas = null;
+  try {
+    const plano = bloco.planes.find((q) => q.id === id), vis = plano?.visualizations.find((v) => v.size === 64);
+    const camada = (vis?.allLayers || vis?.layers || [])[0];
+    const material = bloco.materials.find((m) => m.id === camada?.materialId);
+    const texId = material?.matrices?.[0]?.columns?.[0]?.cells?.[0]?.textureId;
+    const nome = bloco.textures.find((t) => t.id === texId)?.bitmaps?.[0]?.assetName;
+    const asset = dados.assets[nome], fonte = asset?.source || nome;
+    const f = dados.spritesheet.frames["room_" + fonte]?.frame;
+    if (f) {
+      canvas = document.createElement("canvas");
+      canvas.width = f.w; canvas.height = f.h;
+      const g = canvas.getContext("2d");
+      g.imageSmoothingEnabled = false;
+      g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+      const cor = camada.color ?? 0xffffff;
+      if (cor !== 0xffffff) {
+        g.globalCompositeOperation = "multiply"; g.fillStyle = "#" + cor.toString(16).padStart(6, "0"); g.fillRect(0, 0, f.w, f.h);
+        g.globalCompositeOperation = "destination-in"; g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+      }
+    }
+  } catch { canvas = null; }
+  MAPA_PLANOS_TEXTURAS.set(textura, canvas);
+  return canvas;
+}
 // espessura: a da parede do quarto (multiplicador do Habbo: 0,25 a 2), que
 // aparece na faixa do topo.
 function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, textura = null, tingir = false, espessura = 1) {
@@ -452,8 +517,23 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
     g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - 4); g.lineTo(p0.x + 3, p0.y - 4); g.closePath(); g.fill();
     g.globalAlpha = 1;
   }
-  const tex = cor && textura ? MAPA_TEXTURAS_PAREDE.get(textura) : null;
-  if (tex) {
+  const plano = cor && mapaEhPlano(textura) ? mapaTexturaPlano(textura) : null;
+  const tex = cor && textura && !plano ? MAPA_TEXTURAS_PAREDE.get(textura) : null;
+  if (plano) {
+    // Papel de parede do Habbo: a textura corre ao longo da parede (32 px por
+    // ladrilho, contínua de um trecho para o outro) e de cima para baixo.
+    const k = sobe ? x : y;
+    g.save();
+    g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip();
+    g.transform((p1.x - p0.x) / 32, (p1.y - p0.y) / 32, 0, 1, p0.x + 3, p0.y - alt);
+    g.translate(-k * 32, 0);
+    g.fillStyle = g.createPattern(plano, "repeat"); g.fillRect(k * 32, 0, 32, alt);
+    g.restore();
+    // Luz do Habbo: a parede da esquerda um pouco mais escura; rodapé e topo.
+    if (!sobe) { g.save(); g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip(); g.globalAlpha = 0.14; g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); g.restore(); }
+    const faixa = (de, ate, estilo) => { g.fillStyle = estilo; g.beginPath(); g.moveTo(p0.x + 3, p0.y - de); g.lineTo(p1.x + 3, p1.y - de); g.lineTo(p1.x + 3, p1.y - ate); g.lineTo(p0.x + 3, p0.y - ate); g.closePath(); g.fill(); };
+    faixa(0, 4, "#00000055"); faixa(alt - topo, alt, cor);
+  } else if (tex) {
     // Painel de n ladrilhos: o trecho k mostra a sua fatia do desenho, com a
     // base do painel na base da parede e repetido para cima até o topo. Conta
     // só a parte desenhada da arte (as margens transparentes ficam de fora).
@@ -774,6 +854,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
+  // Fundo próprio da sala comum (a cor do vazio em volta, como nas referências).
+  const fundoCena = P.quarto && P.ambientes?.[0]?.fundo;
+  if (fundoCena && /^#[0-9a-f]{6}$/i.test(fundoCena)) el.style.setProperty("--fundo-cena", `radial-gradient(120% 90% at 50% 40%, ${fundoCena} 0%, ${mapaTom(fundoCena, 0.55)} 100%)`);
+  else el.style.removeProperty("--fundo-cena");
   const largura = (P.W + P.H) * (MAPA_TW / 2) + 80;
   const altura = (P.W + P.H) * (MAPA_TH / 2) + MAPA_PAREDE + 140 + (P.nivelMax || 0) * MAPA_NIVEL_PX;
   const origem = { x: P.H * (MAPA_TW / 2) + 40, y: MAPA_PAREDE + 60 + (P.nivelMax || 0) * MAPA_NIVEL_PX, nivelEm:P.nivelEm, alturaEm:P.alturaEm, nivelMax:P.nivelMax };
@@ -853,7 +937,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Pisos do acervo: carrega a arte de cada um uma vez e redesenha o fundo.
   const classesPiso = [...new Set([P.texturaSalas, P.texturaCorredor, P.texturaDeck, ...(P.texturas || []).map((r) => r.textura),
     ...(P.ambientes || []).map((a) => a.textura), ...(P.pisos || []).map((q) => q.textura)].filter(Boolean))];
-  if (classesPiso.length) Promise.all(classesPiso.map(async (c) => {
+  if (classesPiso.some(mapaEhPlano) || P.divisorias.some((d) => mapaEhPlano(d.textura)))
+    mapaCarregarPlanos().then(() => { pintarFundo(); try { pintarParedes(true); } catch {} }).catch((e) => console.warn(e.message));
+  if (classesPiso.length) Promise.all(classesPiso.filter((c) => !mapaEhPlano(c)).map(async (c) => {
     try {
       const m = await mapaCarregarMovel(c), dim = m.dados.logic?.model?.dimensions || {};
       const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 0), 0, 0);
@@ -905,7 +991,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
   const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
-  Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c)).map(async (c) => {
+  Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c) && !mapaEhPlano(c)).map(async (c) => {
     try {
       const m = await mapaCarregarMovel(c), n = Math.max(1, Math.round(m.dados.logic?.model?.dimensions?.x || 1));
       const d4 = mapaDesenharMovel(m, 4, 0, 0), d2 = mapaDesenharMovel(m, 2, 0, 0);
@@ -1543,10 +1629,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
 
   // Câmera suave: um alvo (posição e zoom) e um único quadro de animação que
   // aproxima a câmera dele com amortecimento exponencial (independe da taxa de
-  // quadros). Roda do mouse e pinça do trackpad dão zoom contínuo no ponto do
+  // quadros). Roda do mouse e pinça do trackpad trocam o nível de zoom no ponto do
   // cursor; arrastar segue o dedo na hora e solta com inércia; acompanhar a
   // pessoa só muda o alvo. Sem movimento de sobra, o laço para.
   let zoom = 1, cam = { x: 0, y: 0 };
+  // Zoom do Habbo: só 0,5×, 1× e 2× (escala quebrada borra a pixel art; o
+  // jogo desenha a arte de 64 px em 1× e afasta pela metade). A prévia do
+  // cartão de criação continua livre, por ser miniatura.
+  const NIVEIS = [0.5, 1, 2];
+  const nivel = (z) => (P.previa ? z : NIVEIS.reduce((m, n) => (Math.abs(Math.log(n / z)) < Math.abs(Math.log(m / z)) ? n : m)));
   const alvo = { x: 0, y: 0, z: 1 };
   let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true;
   const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -1571,16 +1662,17 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     zoom += (alvo.z - zoom) * k;
     cam.x += (alvo.x - cam.x) * k; cam.y += (alvo.y - cam.y) * k;
     const parado = !inercia && Math.abs(alvo.z - zoom) < 0.0005 && Math.hypot(alvo.x - cam.x, alvo.y - cam.y) < 0.3;
-    if (parado) { zoom = alvo.z; cam.x = alvo.x; cam.y = alvo.y; }
+    // Parada em pixel inteiro: a arte não fica meio pixel deslocada.
+    if (parado) { zoom = alvo.z; cam.x = alvo.x = Math.round(alvo.x); cam.y = alvo.y = Math.round(alvo.y); }
     aplicar();
     if (!parado) quadroCam = requestAnimationFrame(animarCam);
     else ultimoCam = 0;
   };
   const mexerCam = () => { if (!quadroCam) quadroCam = requestAnimationFrame(animarCam); };
   function centralizar(x, y, z) {
-    if (z) alvo.z = Math.max(0.35, Math.min(2.2, z));
+    if (z) alvo.z = nivel(Math.max(0.35, Math.min(2.2, z)));
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
-    alvo.x = cam.x = r.width / 2 - t.x * alvo.z; alvo.y = cam.y = r.height / 2 - t.y * alvo.z;
+    alvo.x = cam.x = Math.round(r.width / 2 - t.x * alvo.z); alvo.y = cam.y = Math.round(r.height / 2 - t.y * alvo.z);
     zoom = alvo.z; inercia = null;
     aplicar();
   }
@@ -1593,8 +1685,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100;
     // Prévia (cartão da criação do quarto): sem a folga da barra e do dock.
     const [mw, mh] = P.previa ? [8, 8] : [32, 180];
+    // Como no Habbo, 1× sempre que o quarto quase cabe (o resto se vê
+    // arrastando); 0,5× só em tela pequena. A prévia segue livre.
+    const cabe = Math.min((r.width - mw) / w, (r.height - mh) / h);
     centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
-      Math.max(P.previa ? 0.2 : 0.35, Math.min(1.35, (r.width - mw) / w, (r.height - mh) / h)));
+      P.previa ? Math.max(0.2, Math.min(1.35, cabe)) : cabe >= 0.8 ? 1 : 0.5);
     // O centro visual inclui as paredes e o patamar alto, acima do piso.
     alvo.y += (MAPA_PAREDE + (P.nivelEm ? 48 : 0)) * alvo.z / 2;
     cam.y=alvo.y; aplicar();
@@ -1606,12 +1701,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   function mudarZoom(fator, cx, cy) {
     const r = el.getBoundingClientRect();
     cx ??= r.width / 2; cy ??= r.height / 2;
-    const novo = Math.max(0.35, Math.min(2.2, alvo.z * fator));
+    // Um nível por vez (0,5× → 1× → 2×).
+    const i = NIVEIS.indexOf(nivel(alvo.z));
+    const novo = P.previa ? Math.max(0.35, Math.min(2.2, alvo.z * fator)) : NIVEIS[Math.max(0, Math.min(NIVEIS.length - 1, i + (fator > 1 ? 1 : fator < 1 ? -1 : 0)))];
+    if (novo === alvo.z) return;
     alvo.x = cx - ((cx - alvo.x) / alvo.z) * novo; alvo.y = cy - ((cy - alvo.y) / alvo.z) * novo;
     alvo.z = novo;
     mexerCam();
   }
-  let arrasto = null;
+  let arrasto = null, rodaAcumulada = 0;
   // Ladrilho sob um ponto da janela (mouse, dedo, arrastar do catálogo).
   const ladrilhoEm = (cx, cy) => {
     const r = palco.getBoundingClientRect();
@@ -1688,14 +1786,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const r = el.getBoundingClientRect();
     // Trackpad manda passos pequenos (e ctrl na pinça); roda, passos grandes.
     const passo = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-    const fator = Math.exp(-Math.max(-60, Math.min(60, passo)) * (e.ctrlKey ? 0.012 : 0.0022));
+    // Níveis do Habbo: a roda (ou a pinça) acumula até um "dente" e só então troca de nível.
+    rodaAcumulada += passo * (e.ctrlKey ? 4 : 1);
+    if (Math.abs(rodaAcumulada) < 90) return;
+    const fator = rodaAcumulada < 0 ? 2 : 0.5;
+    rodaAcumulada = 0;
     mudarZoom(fator, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
 
   // Leva a câmera, suave, até um ponto com outro zoom (atalhos de área).
   function olhar(x, y, z) {
     const r = el.getBoundingClientRect(), t = mapaTela(x, y, origem);
-    alvo.z = Math.max(0.35, Math.min(2.2, z || alvo.z));
+    alvo.z = nivel(Math.max(0.35, Math.min(2.2, z || alvo.z)));
     alvo.x = r.width / 2 - t.x * alvo.z; alvo.y = r.height / 2 - t.y * alvo.z;
     seguindo = false; inercia = null;
     mexerCam();

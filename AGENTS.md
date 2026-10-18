@@ -119,7 +119,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   mesma identidade de sala para voz e editor; coordenadas são sempre locais.
   Cada cena segue as referências de quartos do Habbo: uma linha de móveis,
   parede do fundo ocupada, peças empilhadas apoiadas no topo da de baixo.
-  Os móveis ficam em `ESCRITORIO_MOVEIS_CENAS` (`vybe-escritorio-planta.js`).
+  Os móveis padrão ficam em `ESCRITORIO_MOVEIS_CENAS` (`vybe-escritorio-planta.js`);
+  desde 18/10/2026 (decisão do Paulo) quem administra constrói cada sala comum
+  no editor, vendo, e a camada salva com o id da zona vale no lugar do padrão
+  (sem inventário; o formato da planta continua no código). Paredes e pisos
+  oficiais do Habbo (`plano:parede:<id>`, `plano:piso:<id>`) e zoom só em
+  0,5×/1×/2×. Cenas novas: montar por conjuntos conferidos de perto antes de
+  compor a sala; uma coleção de móveis por sala.
 - Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma
