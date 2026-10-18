@@ -594,6 +594,7 @@ function mapaMontarGrade(P, moveis) {
   const topo = new Map(); // índice → móveis na maior altura
   for (const m of moveis) {
     if (MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // porta e escada se atravessam
+    if (m.pendurado) continue; // pendurado: passa-se por baixo, no piso
     for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
       const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
@@ -876,6 +877,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       return { no: cv, prof: c.prof };
     });
     for (const c of antigas.slice(m.camadas.length)) c.no.remove();
+    for (const c of m.camadas) if (c.prof === MAPA_PROF_SOMBRA) c.no.hidden = Boolean(m.pendurado);
     ordenarMovel(m);
   };
   function deslocarMovel(m, x, y) {
@@ -1073,7 +1075,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Profundidade de paredes e móveis (os tapetes ficam rente ao piso, embaixo).
   // Profundidade de cada móvel e camada pela fórmula do Habbo (as paredes
   // ganham a delas ao serem criadas).
-  const ordenar = () => { for (const m of moveis) ordenarMovel(m); };
+  // Peça fina no alto sem nada embaixo (planta, hera, luz e viga penduradas): sem
+  // sombra no ar e sem virar chão (passa-se por baixo dela, no piso).
+  const marcarPendurados = () => {
+    for (const m of moveis) {
+      // Só peça fina (altura ~0 na ficha do Habbo): bloco e ponte no alto continuam chão.
+      if (m.parede || !(m.altura > 0) || mapaAlturaMovel(m) > 0.05) { m.pendurado = false; continue; }
+      const x0 = Math.floor(m.x), y0 = Math.floor(m.y), x1 = x0 + Math.max(1, Math.round(m.dim.x)), y1 = y0 + Math.max(1, Math.round(m.dim.y));
+      m.pendurado = !moveis.some((o) => o !== m && !o.parede && Math.floor(o.x) < x1 && Math.floor(o.x) + Math.max(1, Math.round(o.dim.x)) > x0 && Math.floor(o.y) < y1 && Math.floor(o.y) + Math.max(1, Math.round(o.dim.y)) > y0 && (o.altura || 0) < m.altura && mapaTopoMovel(o) >= m.altura - 0.15);
+      for (const c of m.camadas || []) if (c.prof === MAPA_PROF_SOMBRA) c.no.hidden = m.pendurado;
+    }
+  };
+  const ordenar = () => { for (const m of moveis) ordenarMovel(m); marcarPendurados(); };
   // Depois de ordenar, quem já estava no mapa ganha a profundidade nova (sem
   // isso, quem chegou antes dos móveis carregarem ficava atrás das paredes).
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).

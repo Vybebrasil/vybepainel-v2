@@ -97,8 +97,12 @@ function auditar(cena, P, moveis, avisos) {
   // Pilhas (como no Habbo): a peça apoia no topo mais alto que fica abaixo
   // dela no ladrilho, seja a mesa no chão ou outra peça já empilhada.
   const topoDe = (o) => (o.altura || 0) + (ctx.__tampos[o.classe] ?? ctx.mapaFisica(o.classe).altura ?? (arte(o.classe)?.d.z || 0));
+  // Pendurado (mesma regra do mapa, marcarPendurados): peça fina no alto sem
+  // nada embaixo na altura dela; passa-se por baixo e não precisa de apoio.
+  for (const it of itens) it.pendurado = Boolean(it.altura > 0) && !(topoDe({ ...it, altura: 0 }) > 0.05) &&
+    !itens.some((o) => o !== it && !o.parede && o.x < it.x + it.w && o.x + o.w > it.x && o.y < it.y + it.h && o.y + o.h > it.y && (o.altura || 0) < it.altura && topoDe(o) >= it.altura - 0.15);
   for (const it of itens) {
-    if (!it.altura || DE_TETO.test(it.classe)) continue;
+    if (!it.altura || DE_TETO.test(it.classe) || it.pendurado) continue;
     if (!ocup.has(`${it.x},${it.y}`)) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) flutuando`)); continue; }
     const abaixo = itens.filter((o) => o !== it && !o.plano && (o.altura || 0) < it.altura && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
     if (!abaixo.length) continue;
@@ -140,7 +144,7 @@ function auditar(cena, P, moveis, avisos) {
   // parede). Assim o verificador nunca diverge da física do boneco.
   const pi = P.piscina;
   const naGrade = itens.map((it) => ({ classe: it.classe, x: it.x, y: it.y, dir: it.dir, altura: it.altura, estado: it.estado,
-    dim: { x: it.w, y: it.h, z: arte(it.classe)?.d.z ?? 1 }, plano: it.plano, prof: 0 }));
+    dim: { x: it.w, y: it.h, z: arte(it.classe)?.d.z ?? 1 }, plano: it.plano, prof: 0, pendurado: it.pendurado }));
   const g = ctx.__grade(P, naGrade);
   const E = P.entrada;
   const chega = new Set([`${E.x},${E.y}`]), fila = [[E.x, E.y]];
@@ -283,7 +287,9 @@ function auditar(cena, P, moveis, avisos) {
     if (!/window/.test(q.classe)) continue;
     // Fachada de sala ou de espaço comum também é parede de fora (a frente do prédio).
     const naFachada = (P.fachadas || []).some((f) => q.dir === 4 ? q.y === f.y1 && q.x >= f.x0 && q.x < f.x1 : q.x === f.x1 && q.y >= f.y0 && q.y < f.y1);
-    const fora = naFachada || (quarto ? (q.dir === 4 ? q.y === quarto.y0 : q.x === quarto.x0) : B && (q.dir === 4 ? q.y === B.y0 : q.x === B.x0));
+    // Parede com o vazio atrás (fundo recuado de uma planta em L) também dá para fora.
+    const vazioAtras = P.andavel && (q.dir === 4 ? !P.andavel(q.x, q.y - 1) : !P.andavel(q.x - 1, q.y));
+    const fora = naFachada || vazioAtras || (quarto ? (q.dir === 4 ? q.y === quarto.y0 : q.x === quarto.x0) : B && (q.dir === 4 ? q.y === B.y0 : q.x === B.x0));
     if (!fora) problemas.push(nomeCena(`${q.classe} (${q.x},${q.y}) é janela em parede de dentro`));
   }
   return problemas;
