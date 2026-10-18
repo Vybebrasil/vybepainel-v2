@@ -6,9 +6,12 @@
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
 
-const ctx = { console };
+const ctx = { console, window: {}, document: {} };
 vm.createContext(ctx);
 vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8") + "\n;globalThis.__P = ESCRITORIO_PLANTA; globalThis.__geral = escritorioPlantaGeral; globalThis.__quarto = escritorioPlantaDoQuarto; globalThis.__sala = escritorioMoveisDaSala; globalThis.__tampos = ESCRITORIO_TAMPOS; globalThis.__cenaMoveis = escritorioMoveisDaCena; globalThis.__praca = ESCRITORIO_PRACA;", ctx);
+// O motor de caminhada do mapa (mesma grade e mesmo passo do boneco): blocos
+// pisáveis, portões, camas, assentos em cima de bloco, pisos especiais.
+vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8") + "\n;globalThis.__grade = mapaMontarGrade; globalThis.__passa = mapaPassa;", ctx);
 const arte = (c) => {
   const f = `assets/escritorio/habbo/${c}.json`;
   if (!existsSync(f)) return null;
@@ -67,7 +70,7 @@ function auditar(cena, P, moveis, avisos) {
     // Porta (de vidro, de cozinha, de saloon): fica na linha da parede e se
     // atravessa; não ocupa o piso.
     const plano = PORTAS.test(classe) || (!(a.d.z > 0.05) && a.alto <= (w + h) * 16 + 12);
-    const it = { classe, x: Math.floor(x), y: Math.floor(y), w: Math.round(w) || 1, h: Math.round(h) || 1, dir, altura, plano, assento: ASSENTOS.test(classe) };
+    const it = { classe, x: Math.floor(x), y: Math.floor(y), w: Math.round(w) || 1, h: Math.round(h) || 1, dir, altura, estado: m[4] || 0, plano, assento: ASSENTOS.test(classe) };
     itens.push(it);
     const nome = nomeCena(`${classe} (${it.x},${it.y})`);
     if (it.x < 0 || it.y < 0 || it.x + it.w > P.W || it.y + it.h > P.H) problemas.push(`${nome} sai do mapa`);
@@ -124,38 +127,29 @@ function auditar(cena, P, moveis, avisos) {
     const [dx, dy] = quarto.porta === "baixo" ? [0, -1] : [-1, 0];
     if (!livre(x + dx, y + dy)) problemas.push(nomeCena(`porta (${x + dx},${y + dy}) bloqueada por ${ocup.get(`${x + dx},${y + dy}`)}`));
   }
-  // Circulação: a partir da entrada da cena, andando como o boneco (8
-  // direções, sem cortar quina, sem passar por móvel sólido nem por assento).
-  const solido = new Set(), assento = new Set();
-  for (const it of itens) {
-    if (it.plano || it.altura) continue;
-    for (let i = 0; i < it.w; i++) for (let j = 0; j < it.h; j++) (it.assento ? assento : solido).add(`${it.x + i},${it.y + j}`);
-  }
+  // Circulação: a partir da entrada da cena, com a grade e o passo do próprio
+  // mapa (8 direções, sem cortar quina, degrau de até 1,3, portão fechado é
+  // parede). Assim o verificador nunca diverge da física do boneco.
   const pi = P.piscina;
-  if (pi) for (let x = pi.x0; x < pi.x1; x++) for (let y = pi.y0; y < pi.y1; y++) solido.add(`${x},${y}`);
-  for (const r of P.texturas || []) if (r.agua) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) solido.add(`${x},${y}`);
-  // Atrás do prédio não se anda (mesma regra da grade do mapa); no quarto,
-  // só o piso dele e a soleira; as fachadas são fechadas, menos a entrada.
-  for (let x = 0; x < P.W; x++) for (let y = 0; y < P.H; y++) {
-    if (B && ((y < B.y0 && x < B.x1 + 1) || (x < B.x0 && y < B.y1 + 1))) solido.add(`${x},${y}`);
-    if (P.andavel && !P.andavel(x, y)) solido.add(`${x},${y}`);
-  }
-  for (const f of P.fachadas || []) for (let x = f.x0; x < f.x1; x++) for (let y = f.y0; y < f.y1; y++) if (!f.entrada.some((e) => e.x === x && e.y === y)) solido.add(`${x},${y}`);
-  const anda = (x, y) => x >= 0 && y >= 0 && x < P.W && y < P.H && !solido.has(`${x},${y}`) && !assento.has(`${x},${y}`);
-  const passo = (x, y, dx, dy) => {
-    if (!anda(x + dx, y + dy)) return false;
-    if (dx && dy) return passo(x, y, dx, 0) && passo(x + dx, y, 0, dy) && passo(x, y, 0, dy) && passo(x, y + dy, dx, 0);
-    return !temParede(x, y, x + dx, y + dy);
-  };
+  const naGrade = itens.map((it) => ({ classe: it.classe, x: it.x, y: it.y, dir: it.dir, altura: it.altura, estado: it.estado,
+    dim: { x: it.w, y: it.h, z: arte(it.classe)?.d.z ?? 1 }, plano: it.plano, prof: 0 }));
+  const g = ctx.__grade(P, naGrade);
   const E = P.entrada;
   const chega = new Set([`${E.x},${E.y}`]), fila = [[E.x, E.y]];
   while (fila.length) {
     const [x, y] = fila.shift();
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
       const k = `${x + dx},${y + dy}`;
-      if (!chega.has(k) && passo(x, y, dx, dy)) { chega.add(k); fila.push([x + dx, y + dy]); }
+      if (!chega.has(k) && ctx.__passa(g, x, y, dx, dy)) { chega.add(k); fila.push([x + dx, y + dy]); }
     }
   }
+  // Ilhas: piso por onde se anda que ninguém alcança a partir da porta.
+  const ilhas = [];
+  for (let x = 0; x < P.W; x++) for (let y = 0; y < P.H; y++) {
+    if (g.bloqueado[g.ind(x, y)] || chega.has(`${x},${y}`) || (P.andavel && !P.andavel(x, y))) continue;
+    if (quarto ? x >= quarto.x0 && y >= quarto.y0 && x < quarto.x1 && y < quarto.y1 : true) ilhas.push(`${x},${y}`);
+  }
+  if (ilhas.length) avisosIlhas.push(nomeCena(`piso sem acesso: ${ilhas.join(" ")}`));
   const alcancavel = (it) => {
     for (let x = it.x - 1; x <= it.x + it.w; x++) for (let y = it.y - 1; y <= it.y + it.h; y++)
       if (chega.has(`${x},${y}`)) return true;
@@ -176,7 +170,7 @@ function auditar(cena, P, moveis, avisos) {
   // Assentos e móveis com ação do E precisam de um ladrilho alcançável ao lado.
   for (const it of itens) {
     // Em cima de mesa (xícara, notebook) é enfeite: quem senta à mesa alcança.
-    if (!(it.assento || INTERATIVOS.test(it.classe)) || it.altura) continue;
+    if (!(it.assento || INTERATIVOS.test(it.classe) || ctx.mapaEhCama?.(it.classe) || ctx.mapaPisoEspecial?.(it.classe)) || it.altura && !it.assento) continue;
     if (!alcancavel(it)) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) sem acesso a pé`));
   }
   // Assento virado para algo: na frente dele (até 5 ladrilhos, na direção em que
@@ -287,7 +281,7 @@ function auditar(cena, P, moveis, avisos) {
   return problemas;
 }
 
-const avisos = [], problemas = [];
+const avisos = [], problemas = [], avisosIlhas = [];
 // A Praça (cena de abertura, camada "geral" do editor).
 problemas.push(...auditar("praca", ctx.__geral(), ctx.__cenaMoveis(ctx.__praca), avisos));
 // Espaços comuns que viraram cena própria (Café, Lounge…).
@@ -301,5 +295,6 @@ for (const a of ctx.__P.ambientes) if (a.pessoal) {
 }
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));
+if (process.argv.includes("--ilhas")) console.log([...new Set(avisosIlhas)].join("\n"));
 console.log(unicos.length ? unicos.join("\n") : "Planta sem problemas.");
 process.exitCode = unicos.length ? 1 : 0;

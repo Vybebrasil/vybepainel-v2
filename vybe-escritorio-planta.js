@@ -140,7 +140,7 @@ const ESCRITORIO_MOVEIS_CENAS = {
   recepcao: () => [
     ["mafia_c26_planter_white", 0, 0, 0],
     ["modern_c17_chair", 2, 0, 4], ["lodge_dark_desk", 1, 1, 0],
-    ["computer_flatscreen", 2, 1, 4, 0, 1.25], ["exe_c15_telephone", 3, 1, 4, 0, 1.25], ["exe_c15_desktidy", 1, 1, 4, 0, 1.25],
+    ["computer_flatscreen", 2, 1, 4, 0, 1.25], ["exe_c15_telephone", 3, 1, 0, 0, 1.25], ["exe_c15_desktidy", 1, 1, 0, 0, 1.25],
     ["window_double_default", 5, 0, 4, 0, 0.9],
     ["exe_rug", 5, 1, 0], ["hc_exe_sofa", 5, 0, 4], ["modern_c17_lowtable", 5, 2, 2],
     ["mafia_c26_armchair_white", 5, 3, 0], ["mafia_c26_armchair_white", 7, 3, 0],
