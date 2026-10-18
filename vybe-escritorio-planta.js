@@ -343,6 +343,13 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["modern_c17_floorlamp", 18, 7, 0], ["mafia_c26_planter_white", 18, 12, 0], ["mafia_c26_planter_white", 13, 16, 0],
     // Penduradas (passa-se por baixo): hera e varal de luzinhas na parede.
     ["easter_c22_hangingvines", 0, 9, 2, 1], ["easter_c22_hangingvines", 0, 10, 2, 1], ["xmas_c22_hangingwalllights", 0, 12, 2, 1],
+    // Camada de construtor: arandelas, quadro e espelho na parede da
+    // esquerda; prateleira na do fundo; tapetes sob os cafés e a espera;
+    // lustres (desenhados no alto) sobre a fonte e os grupos; flores nas mesas.
+    ["mafia_c26_walllamp_white", 0, 8.2, 2, 0, 0.6], ["mafia_c26_walllamp_white", 0, 11.2, 2, 0, 0.6],
+    ["attic15_painting", 0, 13.4, 2, 0, 1], ["wallmirror", 0, 16, 2, 0, 1.4],
+    ["dessertcafe_c17_rug", 1, 9, 0], ["dessertcafe_c17_rug", 1, 10, 0], ["dessertcafe_c17_rug", 1, 12, 0], ["dessertcafe_c17_rug", 1, 13, 0], ["js_exe_rug", 15, 8, 0],
+    ["bling_c15_chandalier", 10, 10, 0],
   ],
   // Praça: a área de fora, compacta. Deck da piscina com bar de palha no
   // fundo à esquerda; café ao ar livre no fundo à direita; fonte no meio do
