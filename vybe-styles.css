@@ -6745,6 +6745,12 @@ body.no-escritorio {overflow:hidden}
 /* Editor: desfazer/refazer e a barrinha ao lado do móvel selecionado. */
 .ofc-editor-hist {display:flex;gap:6px}
 .ofc-editor-ferramentas {display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1}
+.ofc-construtor {display:inline-flex;align-items:center;gap:6px}
+.ofc-cores-bloco {display:inline-grid;grid-template-columns:repeat(10,14px);gap:2px}
+.ofc-editor-flutua .ofc-cores-bloco button {width:14px;height:14px;padding:0;border-radius:3px;border:1px solid #0006;background:var(--cor)}
+.ofc-editor-flutua .ofc-cores-bloco button[aria-pressed=true] {outline:2px solid #fff;outline-offset:1px}
+.ofc-construtor label {display:inline-flex;align-items:center;gap:4px;font:600 11px var(--mac-ui);color:var(--ofc-suave)}
+.ofc-construtor input {width:58px;padding:5px 6px;border-radius:8px;border:1px solid #ffffff26;background:#0000002e;color:inherit;font:600 12px var(--mac-ui);font-variant-numeric:tabular-nums}
 .ofc-editor-ferramentas details {position:relative;margin-left:auto;font:12px var(--mac-ui);color:var(--ofc-suave)}
 .ofc-editor-ferramentas summary,.ofc-editor-menu summary {cursor:pointer;padding:8px;font:12px var(--mac-ui);color:var(--ofc-suave)}
 .ofc-editor-menu {position:relative}

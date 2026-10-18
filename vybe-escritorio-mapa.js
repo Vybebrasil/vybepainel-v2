@@ -86,8 +86,24 @@ function mapaQuadros(dados, estado) {
 // a sequência de quadros quando a arte tem várias (o Habbo sorteia uma a cada
 // volta; aqui cada móvel fica com a sua, para dois iguais não se mexerem em
 // sincronia). frameRepeat da arte vale: um quadro fica N tiques na tela.
-function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro, semente = 0) {
+// Cor dos blocos de construção do Habbo (arte "recolorable": a camada marcada
+// recebe a cor por cima do desenho em cinza). A cor vai no estado do móvel,
+// que já é salvo e sincronizado: estado = 100 + cor × 5 + variante (0–4).
+const MAPA_CORES_BLOCO = ["#f4f4f4", "#c9c9c9", "#8d8d8d", "#4f4f4f", "#1d1d1f", "#e23b3b", "#ff8a35", "#ffd23f", "#9ad94a", "#3fae55",
+  "#2bb5a0", "#46c8e8", "#5aa0ff", "#2f5bd6", "#1e2a6b", "#8b5cf6", "#ff6fa8", "#8a5a3c", "#e6cfa3", "#b07a45"];
+function mapaEhRecoloravel(dados) {
+  const v = dados?.visualizations?.find((v) => v.size === 64);
+  return Boolean(v && Object.values(v.layers || {}).some((l) => l.tag === "recolorable"));
+}
+function mapaCorDoEstado(dados, estado) {
+  if (!(estado >= 100) || !mapaEhRecoloravel(dados)) return { estado, cor: null };
+  const n = Math.round(estado) - 100;
+  return { estado: n % 5, cor: MAPA_CORES_BLOCO[Math.floor(n / 5)] || null };
+}
+const MAPA_TINTA = typeof document !== "undefined" && document.createElement ? document.createElement("canvas") : null;
+function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0) {
   const v = dados.visualizations.find((v) => v.size === 64);
+  const { estado, cor } = mapaCorDoEstado(dados, estadoSalvo);
   const nome = dados.name;
   const partes = [];
   const sombra = `${nome}_64_sd_${dir}_0`;
@@ -102,7 +118,7 @@ function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro, semente = 0) 
     const id = lista ? lista[Math.floor(quadro / repete) % lista.length].id : 0;
     const asset = `${nome}_64_${String.fromCharCode(97 + i)}_${dir}_${id}`;
     if (!dados.assets[asset]) continue;
-    partes.push({ asset, z: L.z || 0, ink: L.ink, alpha: L.alpha != null ? L.alpha / 255 : 1, ordem: i });
+    partes.push({ asset, z: L.z || 0, ink: L.ink, alpha: L.alpha != null ? L.alpha / 255 : 1, ordem: i, cor: L.tag === "recolorable" ? cor : null });
   }
   partes.sort((a, b) => a.z - b.z || (a.ordem || 0) - (b.ordem || 0));
   const caixas = partes.map((p) => {
@@ -129,6 +145,17 @@ function mapaDesenharMovel({ dados, imagem }, dir, estado, quadro, semente = 0) 
     // transparente o preto aparecia como uma caixa preta; vira transparência.
     let fonte = imagem, sx = c.f.x, sy = c.f.y;
     if (c.ink === "ADD") { fonte = mapaLuzSemPreto(imagem, c.f); sx = 0; sy = 0; g.globalCompositeOperation = "lighter"; }
+    // Camada recolorível: o desenho multiplicado pela cor, com o mesmo recorte.
+    if (c.cor && MAPA_TINTA) {
+      const t = MAPA_TINTA, tg = t.getContext("2d");
+      t.width = c.f.w; t.height = c.f.h;
+      tg.imageSmoothingEnabled = false;
+      tg.drawImage(fonte, sx, sy, c.f.w, c.f.h, 0, 0, c.f.w, c.f.h);
+      tg.globalCompositeOperation = "multiply"; tg.fillStyle = c.cor; tg.fillRect(0, 0, c.f.w, c.f.h);
+      tg.globalCompositeOperation = "destination-in"; tg.drawImage(fonte, sx, sy, c.f.w, c.f.h, 0, 0, c.f.w, c.f.h);
+      tg.globalCompositeOperation = "source-over";
+      fonte = t; sx = 0; sy = 0;
+    }
     const dx = c.x - minX, dy = c.y - minY;
     if (c.flip) {
       g.translate(dx + c.f.w, dy);
@@ -549,8 +576,8 @@ function mapaMontarGrade(P, moveis) {
     // Rente ao piso (tapete, piso do acervo) também se pisa, na altura dele.
     if (fis.every(([m, f]) => f.pisa || m.plano || mapaPisoEspecial(m.classe))) {
       subida[i] = z + Math.max(0, ...fis.map(([m, f]) => (f.pisa || mapaPisoEspecial(m.classe) && !["gelo", "agua"].includes(mapaPisoEspecial(m.classe)) ? mapaAlturaMovel(m) : 0)));
-      // Pisável alto demais (torre) não é chão: bloqueia.
-      if (subida[i] > 4) bloqueado[i] = 1;
+      // Acima da altura máxima do Habbo (40) não é chão.
+      if (subida[i] > 40) bloqueado[i] = 1;
       continue;
     }
     bloqueado[i] = 1;

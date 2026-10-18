@@ -53,7 +53,7 @@ export function perfilEscritorio(valor = {}) {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
-      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','quarto_configurado'].includes(k))));
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','quarto_configurado'].includes(k))));
       return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
     }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
@@ -75,6 +75,8 @@ export function perfilEscritorio(valor = {}) {
     sala_luz: opcao("sala_luz", LUZES_SALA_ESCRITORIO, ""),
     // Lado da porta do quarto, escolhido pelo dono (vazio: o padrão da sala).
     sala_porta: opcao("sala_porta", ["", "baixo", "direita"], ""),
+    // Quarto "maquete": sem as paredes do quarto (o dono constrói as suas).
+    sala_sem_paredes: valor.sala_sem_paredes === true,
     // Planta desenhada pelo dono (ver plantaQuarto); muda só ao salvar a decoração.
     sala_celdas: /^[0vp12]{144}$/.test(String(valor.sala_celdas || "")) ? String(valor.sala_celdas) : "",
     // Piso pintado ladrilho a ladrilho (12×12, um código por ladrilho; 0 =
@@ -152,7 +154,7 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = 
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
       const pintura=perfilEscritorio(valor);
-      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_porta'].map(k=>[k,pintura[k]]))}]};
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes'].map(k=>[k,pintura[k]]))}]};
     }
     const andarNovo=perfilDoAndar(perfil,valor.andar===1 ? 1 : 0), andarAntes=perfilDoAndar(atual.preferencias,valor.andar===1 ? 1 : 0);
     if((andarNovo?.sala_porta || '')!==(andarAntes?.sala_porta || '') && andarNovo?.sala_porta) {

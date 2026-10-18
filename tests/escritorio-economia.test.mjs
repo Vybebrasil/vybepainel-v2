@@ -332,3 +332,23 @@ test('catraca de mão única fica fechada na grade; cabines do mesmo modelo nas 
  assert.equal(r.catraca,1,'mesmo aberta, a catraca não é caminho para quem não passa por ela');
  assert.deepEqual(JSON.parse(JSON.stringify(r.pares)).sort(),['praca','recepcao']);
 });
+test('construção como no Habbo: 1.500 móveis, altura até 40, cor do bloco no estado e quarto sem paredes',async()=>{
+ const {itensValidos}=await import('../server/escritorio-mapa.js');
+ const {perfilEscritorio}=await import('../server/escritorio.js');
+ const {QUARTOS}=await import('../server/escritorio-quartos.js');
+ const muitos=Array.from({length:1500},(_,i)=>['bc_block_0_recolorable',i%12,Math.floor(i/12)%12,0,100+(i%20)*5,Math.floor(i/144)]);
+ assert.equal(itensValidos('sala-0',muitos).length,1500);
+ assert.throws(()=>itensValidos('sala-0',[...muitos,muitos[0]]),/No máximo 1500/);
+ assert.equal(itensValidos('sala-0',[['bc_block_0_recolorable',1,1,0,0,39.5]])[0][5],39.5);
+ assert.throws(()=>itensValidos('sala-0',[['bc_block_0_recolorable',1,1,0,0,41]]),/altura/);
+ assert.ok(QUARTOS.essenciais.includes('bc_block_0_recolorable'),'blocos de construção grátis, como o Builders Club');
+ assert.equal(perfilEscritorio({sala_sem_paredes:true}).sala_sem_paredes,true);
+ assert.equal(perfilEscritorio({sala_sem_paredes:'sim'}).sala_sem_paredes,false);
+ const vm=await import('node:vm');
+ const c=vm.createContext({console,window:{}});
+ vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
+ const dados=JSON.parse(readFileSync('assets/escritorio/habbo/bc_block_0_recolorable.json','utf8'));
+ c.dados=dados;
+ const r=vm.runInContext(`({cor:mapaCorDoEstado(dados,100+7*5+3),sem:mapaCorDoEstado(dados,2),paredes:escritorioParedesDoQuarto({...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),semParedes:true}).length})`,c);
+ assert.deepEqual(JSON.parse(JSON.stringify(r)),{cor:{estado:3,cor:'#ffd23f'},sem:{estado:2,cor:null},paredes:0});
+});

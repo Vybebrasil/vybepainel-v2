@@ -477,8 +477,10 @@ function escritorioAlturaQuarto(a,x,y) {
   return 2*((e.dx || e.dy)>0 ? f : 1-f);
 }
 function escritorioParedesDoQuarto(a) {
-  // Ao ar livre (Praça): sem paredes; as bordas são sebes e floreiras.
-  if (escritorioModeloPlanta(a)?.semParedes) return [];
+  // Ao ar livre (Praça): sem paredes; as bordas são sebes e floreiras. Quarto
+  // "maquete" (escolha do dono): sem paredes, para construir as suas com
+  // móveis, como os construtores do Habbo fazem.
+  if (escritorioModeloPlanta(a)?.semParedes || a.semParedes) return [];
   const lista = [], { w, h } = escritorioDimQuarto(a), pt = escritorioPortaQuarto(a);
   const por = (x0,y0,x1,y1,alta) => {
     const r=[x0,y0,x1,y1];

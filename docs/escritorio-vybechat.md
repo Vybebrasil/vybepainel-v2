@@ -508,7 +508,7 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
 - Altura livre (como o ladrilho de empilhar do Habbo): na barra da peça
   selecionada, "−"/"+" mudam 0,1 nível; Page Up/Page Down (Shift: 0,5);
   "No topo" apoia no que está embaixo, "No chão" volta. O servidor aceita até
-  10 níveis.
+  40 níveis (desde 18/10/2026, como o Habbo).
 - Blocos, palcos e plataformas baixos (`MAPA_SUBIVEIS`) são pisáveis: o boneco
   sobe até 1,3 nível de um ladrilho para o vizinho e desce de qualquer altura.
   Uma torre mais alta continua sendo parede.
@@ -593,3 +593,19 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
   - móveis de várias alturas: a lista de alturas fica no banco do servidor do
     Habbo (items_base.multiheight), não na furnidata pública;
   - Wired: precisa de tela para ligar gatilho a efeito e de onde guardar isso.
+
+### Construção no nível do Habbo (18/10/2026)
+
+- Até 1.500 móveis por sala e altura até 40 (o mapa foi medido com 1.188
+  blocos empilhados: 60 quadros por segundo no computador). No celular ainda
+  não foi medido.
+- Modo construtor no editor (botão Construtor ou tecla B): o móvel vai por cima
+  de qualquer coisa, sem bloqueio; com Altura preenchida, toda peça vai nela
+  (como o ":setsh" do Habbo); vazio, no topo do que estiver embaixo.
+- Cor dos blocos de construção (arte "recolorable"): 20 cores, no estado do
+  móvel (100 + cor × 5 + variante), sem mudar o banco. Vale para vários blocos
+  selecionados e fica para os próximos.
+- Blocos de construção (bc_*_recolorable) são essenciais grátis e ilimitados,
+  como o Builders Club do Habbo.
+- Quarto "maquete": Piso e paredes → Planta → Sem paredes, para construir as
+  paredes com móveis.
