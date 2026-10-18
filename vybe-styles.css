@@ -6001,6 +6001,16 @@ body.no-escritorio {overflow:hidden}
 .mapa-rotulo {position:absolute;z-index:99000;transform:translate(-50%,-50%) scale(var(--contra,1));padding:3px 9px;border-radius:8px;background:#11131acc;color:#eef0f5;font:650 12px var(--mac-ui);white-space:nowrap;pointer-events:none;opacity:.85}
 .mapa-pessoa {position:absolute;width:64px;height:110px;margin:-104px 0 0 -32px;border:0;padding:0;background:none;cursor:pointer}
 .mapa-pessoa img {display:block;width:64px;height:110px;image-rendering:pixelated;pointer-events:none}
+/* Física do Habbo: no trampolim o boneco pula; na água rasa, respingo nos pés;
+   dormindo (ausente), um "zZz" sobe da cabeça. */
+.mapa-pessoa.deitado img {width:110px;height:64px;margin:46px 0 0 -23px}
+.mapa-pessoa.pulando img {animation:mapa-pulo .62s cubic-bezier(.3,0,.7,1) infinite}
+@keyframes mapa-pulo {0%,100% {transform:translateY(0)} 50% {transform:translateY(-26px)}}
+.mapa-pessoa.na-agua::after {content:"";position:absolute;left:12px;bottom:-4px;width:40px;height:14px;border-radius:50%;border:2px solid #bfe9ffcc;animation:mapa-respingo 1.4s ease-out infinite;pointer-events:none}
+@keyframes mapa-respingo {from {transform:scale(.45);opacity:.9} to {transform:scale(1.25);opacity:0}}
+.mapa-zzz {position:absolute;left:60%;bottom:calc(100% - 34px);font:700 12px var(--mac-ui);color:#e8ecff;text-shadow:0 1px 2px #0009;pointer-events:none;animation:mapa-zzz 2.6s ease-out infinite}
+@keyframes mapa-zzz {0% {transform:translate(0,0) scale(.7);opacity:0} 25% {opacity:1} 100% {transform:translate(12px,-26px) scale(1.1);opacity:0}}
+@media (prefers-reduced-motion: reduce) {.mapa-pessoa.pulando img,.mapa-pessoa.na-agua::after,.mapa-zzz {animation:none}}
 .mapa-pessoa.voce::before {content:"";position:absolute;left:12px;bottom:-2px;width:40px;height:14px;border-radius:50%;border:2px solid var(--ofc-laranja);opacity:.9}
 .mapa-etiqueta {position:absolute;left:50%;bottom:100%;transform:translate(-50%,calc(4px - var(--sobe,0px)));transition:transform .15s;display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:9px;background:#171a22e6;border:1px solid #ffffff22;color:#fff;font:650 11px var(--mac-ui);white-space:nowrap}
 .mapa-pessoa:focus-visible .mapa-etiqueta {outline:2px solid var(--ofc-laranja)}
@@ -6236,6 +6246,26 @@ body.no-escritorio {overflow:hidden}
 /* Teleporte: um botão por sala, quebrando linha. */
 .workflow-actions.ofc-teleporte {flex-wrap:wrap;gap:8px}
 .workflow-actions.ofc-teleporte .workflow-secondary {flex:1 1 150px}
+/* Post-it na parede: inclinado no plano da parede do fundo (desce para a
+   direita) ou da esquerda (desce para a esquerda). */
+.mapa-postit {--postit:#ffe27a;position:absolute;width:18px;height:18px;margin:0 0 0 -9px;padding:0;border:0;border-radius:1px;background:var(--postit);box-shadow:1px 2px 0 #0003, inset 0 3px 0 #00000012;cursor:pointer}
+.mapa-postit::before {content:"";position:absolute;inset:6px 3px auto;height:6px;background:repeating-linear-gradient(#0003 0 1px,transparent 1px 3px)}
+.mapa-postit.fundo {transform:skewY(26.57deg)}
+.mapa-postit.esquerda {transform:skewY(-26.57deg)}
+.mapa-postit:hover,.mapa-postit:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:1px}
+:is(.mapa-postit,.ofc-postit-cor,.ofc-postit-lido)[data-cor=rosa] {--postit:#ffb3d1}
+:is(.mapa-postit,.ofc-postit-cor,.ofc-postit-lido)[data-cor=azul] {--postit:#a9d4ff}
+:is(.mapa-postit,.ofc-postit-cor,.ofc-postit-lido)[data-cor=verde] {--postit:#b6eda8}
+:is(.mapa-postit,.ofc-postit-cor,.ofc-postit-lido)[data-cor=amarelo] {--postit:#ffe27a}
+.ofc-postit-form {display:grid;gap:12px}
+.ofc-postit-form label {display:grid;gap:6px;font-weight:600}
+.ofc-postit-form textarea {font:inherit;padding:10px;border-radius:10px;border:1px solid #ffffff26;background:#0000002e;color:inherit;resize:vertical}
+.ofc-postit-form fieldset {display:flex;flex-wrap:wrap;gap:8px;border:0;padding:0;margin:0}
+.ofc-postit-form legend {font-weight:600;margin-bottom:6px}
+.ofc-postit-form .ofc-postit-cor {display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--postit);color:#2a2410;font-weight:600;cursor:pointer}
+.ofc-postit-cor:has(input:checked) {outline:2px solid var(--ofc-laranja)}
+.ofc-postit-cor:has(input:focus-visible) {outline:3px solid #fff}
+.ofc-postit-lido {--postit:#ffe27a;background:var(--postit);color:#2a2410;padding:18px;border-radius:4px;box-shadow:2px 4px 0 #0003;font:500 16px/1.45 var(--mac-ui);white-space:pre-wrap;overflow-wrap:anywhere}
 /* "Digitando…" sobre a cabeça, como o balão de três pontos do Habbo. */
 .mapa-digitando {position:absolute;left:50%;bottom:calc(100% + 26px);transform:translateX(-50%);display:flex;gap:4px;padding:7px 10px;border-radius:14px;background:#fff;box-shadow:0 6px 18px #0006;pointer-events:none;z-index:2}
 .mapa-digitando i {width:6px;height:6px;border-radius:50%;background:#5c5f6b;animation:mapa-digitando 1s infinite ease-in-out}

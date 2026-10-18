@@ -524,3 +524,37 @@ deixou de existir, como no Habbo (um quarto por vez, troca pelo navegador).
 - Meus móveis: filtros Todos/Colocados/Guardados e por tipo; cada cartão diz
   quantos estão aqui, no outro andar e guardados. "Guardar tudo" (Opções)
   devolve ao inventário tudo o que está no quarto.
+
+### Física do Habbo e social (18/10/2026)
+
+- Portões (`classic1_gate`, `plant_mazegate`, `bb_gate_g`…): fechado bloqueia,
+  aberto (estado 1) se atravessa; abre e fecha com E, clique duplo, a
+  alavanca (`wf_floor_switch1`) ou a placa de pressão (`wf_pressureplate`,
+  abre enquanto alguém está em cima). Todos veem pelo `furni:toggle`.
+- Cama: deita em qualquer ladrilho dela, virado para onde ela aponta. A
+  imagem deitada do Habbo é 110 × 64 (antes saía esticada em pé, inclusive
+  no "Deitar").
+- Esteira rolante (`*_roller`) leva quem para em cima; gelo
+  (`es_skating_ice`) faz deslizar até sair dele; água rasa (`bw_water_*`) tem
+  respingo; trampolim faz pular. A física roda no navegador de quem anda; os
+  outros veem pela posição.
+- Subir em bloco é suave (a altura acompanha o passo); cadeira em cima de
+  bloco ou patamar é assento; móvel alto em cima de bloco bloqueia. O palco do
+  Auditório ganhou degraus.
+- Café na mão se entrega a quem está ao lado (E). A mesa de centro ("coffee
+  table") não serve mais café.
+- Ausente: o boneco cochila com "z Z z".
+- Decoração salva (móveis, piso, paredes, luz, planta, porta) chega na hora a
+  quem está na mesma cena (comando `dec=` no balão; quem recebe relê do
+  servidor).
+- Porta do quarto embaixo ou à direita (`sala_porta`), em Piso e paredes →
+  Planta; o servidor recusa se houver móvel no vão novo. A altura das paredes
+  já era por trecho (Pintar parede → Altura).
+- Post-its nas paredes das salas e presentes de móveis entre colegas dependem
+  de `migrations/2026-10-18-escritorio-postits-presentes.sql`. Sem a migração,
+  a parede fica sem post-its e o pedido responde "aguardam a migração".
+  Presente só de unidade guardada (fora de qualquer andar), nunca essencial,
+  imagem ou móvel de marco; a chave do pedido evita dar duas vezes.
+- Correções: duas trocas de móveis seguidas desenhavam tudo em dobro (agora
+  em fila); "Ir para Convivência" aparecia encostado em qualquer parede (agora
+  só na soleira).
