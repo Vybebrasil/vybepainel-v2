@@ -600,7 +600,19 @@ function escritorioModeloPlanta(a) {
 // Mesma regra do servidor (plantaQuarto): 12 × 12 códigos sobre a planta;
 // "0" mantém, "v" tira o piso, "p" piso no chão, "1"/"2" patamares. Porta
 // e escada ficam como na planta.
-const ESCRITORIO_CELDAS_LIVRES = /^[0vp12]{400}$/; // ESCRITORIO_QUARTO_MAX²
+// Planta desenhada: um código por ladrilho, como a planta de alturas do
+// Habbo (RoomLayout.parse): "0" mantém o da planta escolhida, "v" tira o
+// piso, "p" é o chão, "1"–"9" e "A"–"Z" são as alturas 1 a 35 (1 = um bloco).
+const ESCRITORIO_CELDAS_LIVRES = /^[0vp1-9A-Z]{400}$/; // ESCRITORIO_QUARTO_MAX²
+const ESCRITORIO_ALTURA_PLANTA_MAX = 35;
+function escritorioNivelDoCodigo(c) {
+  if (c === "v") return -1;
+  if (c === "p") return 0;
+  if (/^[1-9]$/.test(c)) return Number(c);
+  if (/^[A-Z]$/.test(c)) return 10 + c.charCodeAt(0) - 65;
+  return null;
+}
+function escritorioCodigoDoNivel(n) { return n < 0 ? "v" : n === 0 ? "p" : n <= 9 ? String(n) : String.fromCharCode(65 + Math.min(25, n - 10)); }
 const escritorioPlantasLivres = new Map();
 function escritorioLadrilhoFixo(p, x, y) {
   const h = p.celdas.length, w = p.celdas[0].length;
@@ -613,8 +625,7 @@ function escritorioPlantaLivre(p, livres) {
   const chave = p.id + ":" + livres;
   if (!escritorioPlantasLivres.has(chave)) {
     if (escritorioPlantasLivres.size > 40) escritorioPlantasLivres.clear();
-    const cod = { v: -1, p: 0, 1: 1, 2: 2 };
-    escritorioPlantasLivres.set(chave, { ...p, celdas: p.celdas.map((linha, y) => linha.map((n, x) => { const c = livres[y * ESCRITORIO_QUARTO_MAX + x]; return c === "0" || escritorioLadrilhoFixo(p, x, y) ? n : cod[c]; })) });
+    escritorioPlantasLivres.set(chave, { ...p, celdas: p.celdas.map((linha, y) => linha.map((n, x) => { const c = livres[y * ESCRITORIO_QUARTO_MAX + x]; return c === "0" || escritorioLadrilhoFixo(p, x, y) ? n : escritorioNivelDoCodigo(c); })) });
   }
   return escritorioPlantasLivres.get(chave);
 }
@@ -668,11 +679,11 @@ function escritorioEscadaQuarto(a,x,y) {
   const alto=lados.find(([dx,dy])=>escritorioNivelQuarto(a,ix-dx,iy-dy)===0) || lados[0];
   return alto ? {x:ix,y:iy,dx:alto[0],dy:alto[1]} : null;
 }
+// Altura do piso (em blocos do Habbo, 1 = 32 px). A escada é um degrau de
+// altura 1 entre o chão e o mezanino (no Habbo não há rampa: sobe-se um
+// degrau de cada vez, até 1,5).
 function escritorioAlturaQuarto(a,x,y) {
-  const e=escritorioEscadaQuarto(a,x,y);
-  if(!e) return Math.max(0,escritorioNivelQuarto(a,x,y));
-  const f=e.dx ? x-Math.floor(x) : y-Math.floor(y);
-  return 2*((e.dx || e.dy)>0 ? f : 1-f);
+  return Math.max(0,escritorioNivelQuarto(a,x,y));
 }
 function escritorioParedesDoQuarto(a) {
   // Ao ar livre (Praça): sem paredes; as bordas são sebes e floreiras. Quarto
@@ -680,9 +691,14 @@ function escritorioParedesDoQuarto(a) {
   // móveis, como os construtores do Habbo fazem.
   if (escritorioModeloPlanta(a)?.semParedes || a.semParedes) return [];
   const lista = [], { w, h } = escritorioDimQuarto(a), pt = escritorioPortaQuarto(a);
+  // Como no Habbo (RoomPlaneParser): o topo da parede é o mesmo no quarto
+  // todo, 3,6 blocos (ou a altura fixa escolhida + 3,6) acima do piso mais
+  // alto (até 20); cada trecho desce até o piso do seu ladrilho.
+  const celdas = escritorioModeloPlanta(a)?.celdas || [], maxPiso = Math.min(20, Math.max(0, ...celdas.flat()));
+  const altoParede = ((a.alturaParedeFixa ?? -1) >= 0 ? a.alturaParedeFixa + 3.6 : 3.6) + maxPiso;
   const por = (x0,y0,x1,y1,alta) => {
     const r=[x0,y0,x1,y1];
-    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=118; if(a.cena) {r.textura=a.texturaParede; r.semTinta=true;}} else r.baixa=true;
+    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=Math.round((altoParede - Math.max(0, escritorioNivelQuarto(a,x0,y0))) * 32); r.espessura=a.espessuraParede ?? 1; if(a.cena) {r.textura=a.texturaParede; r.semTinta=true;}} else r.baixa=true;
     lista.push(r);
   };
   for(let x=0;x<w;x++) for(let y=0;y<h;y++) {
@@ -694,7 +710,7 @@ function escritorioParedesDoQuarto(a) {
   }
   const grupos=new Map();
   for(const r of lista) {
-    const horizontal=r[1]===r[3],chave=[horizontal,horizontal?r[1]:r[0],Boolean(r.baixa)].join(":");
+    const horizontal=r[1]===r[3],chave=[horizontal,horizontal?r[1]:r[0],Boolean(r.baixa),r.alt||0].join(":");
     if(!grupos.has(chave)) grupos.set(chave,[]);grupos.get(chave).push(r);
   }
   const unidas=[];
@@ -722,14 +738,14 @@ function escritorioPecasDoQuarto(a) {
     const e = escritorioEscadaQuarto(a, x, y);
     if (e) pecas.push([ESCRITORIO_PECA_ESCADA, x, y, ESCRITORIO_DIR_ESCADA[e.dx + "," + e.dy] ?? 4, 0, 0]);
   }
-  // Borda da frente (+y) e da direita (+x) do mezanino: ali o patamar cai
-  // para o piso de baixo e a queda fica à vista de quem olha.
-  const alto = (x, y) => escritorioNivelQuarto(a, x, y) === 2;
-  const cai = (x, y) => { const n = escritorioNivelQuarto(a, x, y); return n === 0; };
+  // Guarda-corpo na borda da frente (+y) e da direita (+x) onde o patamar
+  // cai dois blocos ou mais para o piso de baixo (queda à vista).
+  const n = (x, y) => escritorioNivelQuarto(a, x, y);
+  const cai = (xa, ya, xb, yb) => n(xb, yb) >= 0 && n(xa, ya) - n(xb, yb) >= 2;
   for (let y = 0; y < h; y++) for (let x = 0; x + 1 < w; x++)
-    if (alto(x, y) && alto(x + 1, y) && cai(x, y + 1) && cai(x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x, y + 0.5, 4, 0, 0]); x++; }
+    if (n(x, y) === n(x + 1, y) && cai(x, y, x, y + 1) && cai(x + 1, y, x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x, y + 0.5, 4, 0, 0]); x++; }
   for (let x = 0; x < w; x++) for (let y = 0; y + 1 < h; y++)
-    if (alto(x, y) && alto(x, y + 1) && cai(x + 1, y) && cai(x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x + 0.5, y, 2, 0, 0]); y++; }
+    if (n(x, y) === n(x, y + 1) && cai(x, y, x + 1, y) && cai(x, y + 1, x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x + 0.5, y, 2, 0, 0]); y++; }
   return pecas;
 }
 // Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;
@@ -754,6 +770,9 @@ function escritorioPlantaDoQuarto(a) {
     andavel: (x, y) => escritorioNivelQuarto(a,x,y) >= 0 || naSoleira(x, y),
     nivelEm: (x,y) => Math.max(0,escritorioNivelQuarto(a,x,y)),
     alturaEm: (x,y) => escritorioAlturaQuarto(a,x,y), escadaEm: (x,y) => escritorioEscadaQuarto(a,x,y),
+    nivelMax: Math.max(0, ...(escritorioModeloPlanta(a)?.celdas || []).flat()),
+    // Opções do quarto do Habbo: espessuras (multiplicador) da parede e do piso.
+    espessuraParede: a.espessuraParede ?? 1, espessuraPiso: a.espessuraPiso ?? 1,
   };
 }
 // Aonde leva a porta de cada cena: das salas para a Convivência; da

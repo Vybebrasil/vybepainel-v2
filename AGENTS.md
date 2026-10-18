@@ -135,6 +135,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   móveis por regra própria nem ponha filtro/z-index no contêiner `.mapa-movel`.
   Gatilhos e efeitos (Wired) ficam em `vybe-escritorio-gatilhos.js`; a
   configuração vai no 7º campo do item, validada no servidor só para `wf_*`.
+  Regras do Habbo portadas (sem colar código GPL, decisão do Paulo em
+  18/10/2026): planta de alturas 0–35 com 1 nível = 32 px, caminho do
+  Arcturus (sobe 1,5, desce livre, diagonal rente), pouso de construção pelo
+  topo de todos os ladrilhos, paredes com topo único e opções de espessura.
+  Ver docs/escritorio-vybechat.md antes de mudar física, planta ou editor.
   VybeCoins: 10 por primeira finalização de demanda, 50 por conquista única.
   Créditos acompanham o evento na transação; compras bloqueiam a carteira e são
   idempotentes. Nunca conceda saldo/inventário a partir de valores do navegador.

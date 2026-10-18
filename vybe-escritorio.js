@@ -523,6 +523,13 @@ function escritorioAlterarDecoracao(patch) {
   if(escritorio.quarto?.endsWith('-andar-1')) escritorio.perfil={...escritorio.perfil,sala_andares:[{...escritorioPerfilDecoracao(),...patch,andar:1}]};
   else escritorio.perfil={...escritorio.perfil,...patch};
 }
+// Opções do quarto do Habbo, do perfil para o ambiente: espessuras (2 elevado
+// à escolha, −2 a 1) e altura fixa da parede (−1 = a padrão).
+function escritorioOpcoesDoQuarto(perfil) {
+  const esp = (v) => ([-2, -1, 0, 1].includes(Number(v)) && v !== "" && v != null ? Math.pow(2, Number(v)) : 1);
+  const v = perfil?.sala_altura_parede, alt = v === "" || v == null ? -1 : Number(v);
+  return { espessuraParede: esp(perfil?.sala_espessura_parede), espessuraPiso: esp(perfil?.sala_espessura_piso), alturaParedeFixa: Number.isInteger(alt) && alt >= 0 && alt <= 15 ? alt : -1 };
+}
 function escritorioPayloadDecoracao() { return {...escritorioPerfilDecoracao(), ...(escritorio.quarto?.endsWith('-andar-1') ? {andar:1} : {})}; }
 function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   // Cena própria: o quarto de uma sala (sala-N, com o segundo andar) ou um
@@ -533,7 +540,7 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   if(!a || !String(id).endsWith('-andar-1')) return a || null;
   const perfil=escritorioPerfilDecoracao(id);
   if(!perfil?.quarto_configurado) return null;
-  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:escritorioCeldasDoPerfil(perfil.sala_celdas),semParedes:perfil.sala_sem_paredes===true,porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
+  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:escritorioCeldasDoPerfil(perfil.sala_celdas),semParedes:perfil.sala_sem_paredes===true,...escritorioOpcoesDoQuarto(perfil),porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
   const dim=escritorioDimQuarto(r);r.x1=r.x0+dim.w;r.y1=r.y0+dim.h;
   const L=ESCRITORIO_QUARTO_MAX,pisos=new Map(),paredes=new Map();
   const lp=escritorioPisosDoPerfil(perfil.sala_pisos), lw=escritorioParedesDoPerfil(perfil.sala_paredes);
@@ -575,6 +582,7 @@ function escritorioAplicarSalas() {
     a.luz = ESCRITORIO_LUZES_SALA.some(([id]) => id === perfil?.sala_luz) ? perfil.sala_luz : "";
     a.celdasLivres = escritorioCeldasDoPerfil(perfil?.sala_celdas);
     a.semParedes = perfil?.sala_sem_paredes === true;
+    Object.assign(a, escritorioOpcoesDoQuarto(perfil));
     // Lado da porta: o escolhido pelo dono ou o padrão da sala.
     a.portaPadrao ??= a.porta;
     a.porta = ["baixo", "direita"].includes(perfil?.sala_porta) ? perfil.sala_porta : a.portaPadrao;
