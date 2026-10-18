@@ -412,6 +412,15 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["hygge_c25_armchair", 1, 11, 2], ["hygge_c25_coffeetable", 2, 11, 0], ["hygge_c25_armchair", 3, 12, 6], ["rainyday_c19_lamp", 0, 13, 0],
     ...[[6, 10], [8, 13]].flatMap(([x, y]) => [["paris_c15_table", x, y, 0], ["paris_c15_chair", x - 1, y, 2], ["paris_c15_chair", x + 1, y, 6]]),
     ["sunsetcafe_c20_plant", 0, 15, 0], ["sunsetcafe_c20_plant", 13, 10, 0],
+    // Camada de construtor: lousa do cardápio e relógio no fundo, prateleira
+    // e caixotes com plantas na parede da esquerda, luminárias de cozinha
+    // sobre a ilha e a mesa, tapetes sob o estar e as mesinhas, xícaras e bolo.
+    ["waasa_wall_shelf2", 10.2, 0, 4, 0, 1.4],
+    ["waasa_wall_shelf2", 0, 4.4, 2, 0, 1.4], ["recycler_crateplantslight", 0, 10.6, 2, 0, 1.4], ["recycler_crateplantslight", 0, 11.8, 2, 0, 1.4],
+    ["ktchn_light", 4, 4, 0], ["ktchn_c15_lamp_g", 8, 5, 0], ["ktchn_c15_lamp_g", 9, 6, 0],
+    ["icecream_c21_light", 6, 10, 0], ["icecream_c21_light", 8, 13, 0],
+    ["hc25_2", 1, 11, 0], ["dessertcafe_c17_rug", 5, 10, 0], ["dessertcafe_c17_rug", 7, 13, 0],
+    ["room_cof15_cup2", 6, 10, 0, 0, 0.95], ["paris15_cake", 8, 13, 0, 0, 0.95], ["room_cof15_cup2", 2, 11, 0, 0, 0.6],
   ],
   // Sala de reunião em L: mesa de dez lugares no patamar do fundo, com mural,
   // mapa e lustre; embaixo a lareira com sofá, o bar com banquetas, a roleta
@@ -428,11 +437,17 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["mafia_c26_sofa_dark", 3, 1, 6], ["mafia_c26_armchair_dark", 2, 4, 0],
     // Bar no canto e a roleta.
     ["lodge_dark_minibar", 0, 7, 2], ["lodge_dark_bardesk", 1, 7, 0], ["mafia_c26_drinktray", 1, 8, 0, 0, 1.4],
-    ["lodge_dark_stool", 2, 7, 6], ["lodge_dark_stool", 2, 9, 6], ["arcade_c23_spinthewheel", 0, 11, 2], ["mafia_c26_planter_dark", 0, 13, 0],
+    ["lodge_dark_stool", 2, 7, 6], ["lodge_dark_stool", 2, 9, 6], ["hween_c22_gothicbookshelf", 0, 11, 0], ["mafia_c26_planter_dark", 0, 13, 0],
     // Espera: duas poltronas de frente, com a mesinha no meio.
     // (poltrona larga: uma de cada lado da mesa comprida, no mesmo eixo)
     ["mafia_c26_armchair_dark", 6, 6, 4], ["mafia_c26_coffeetable_dark", 6, 7, 0], ["mafia_c26_armchair_dark", 6, 9, 0],
     ["exe_artlamp", 8, 6, 0], ["mafia_c26_planter_dark", 11, 8, 0], ["mafia_c26_planter_dark", 4, 12, 0],
+    // Camada de construtor: arandelas escuras e quadro nas paredes, tapetes
+    // sob a mesa de reunião e a espera, lustres sobre o estar e a espera.
+    ["mafia_c26_walllamp_dark", 0, 4.4, 2, 0, 0.8], ["attic15_painting", 0, 5.4, 2, 0, 1.2], ["mafia_c26_walllamp_dark", 0, 9.6, 2, 0, 0.8],
+    ["mafia_c26_walllamp_dark", 8.6, 0, 4, 0, 0.6],
+    ["js_exe_rug", 10, 2, 0], ["darkelegant_c20_carpet", 5, 7, 0],
+    ["lodge_dark_chandelier", 2, 2, 0], ["lodge_dark_chandelier", 6, 7, 0],
   ],
   // Lustres, ervas e prateleiras de vidro do acervo já são desenhados no alto
   // (vão no chão, altura 0, e passa-se por baixo).
@@ -506,6 +521,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["cine_projector", 19, 9, 0],
     ["cine_ticket_booth", 6, 13, 0], ["cine_popcorn", 18, 13, 4], ["cine_vipsign", 14, 14, 0],
     ["lodge_dark_bench", 4, 14, 0], ["theatre_plant", 0, 15, 0], ["theatre_plant", 19, 15, 0],
+    // Camada de construtor: tapete vermelho no corredor da plateia, da
+    // entrada até a frente do palco.
+    ...[9, 10].flatMap((x) => [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((y) => ["theatre_carpet", x, y, 0])),
   ],
   // Jogos: fliperama largo. Máquinas lado a lado no fundo e na lateral,
   // sinuca e pebolim no meio, mesa de gamer com duas cadeiras, pufes com o
@@ -522,6 +540,12 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["cubie_beanbag_b", 2, 9, 2], ["edice", 3, 9, 0, 1], ["cubie_beanbag_p", 4, 9, 6], ["edicehc", 9, 8, 0, 1],
     ["theatre_plant", 13, 7, 0], ["theatre_plant", 0, 11, 0],
     ["circus_c24_hanginglights", 4, 1, 0, 1], ["circus_c24_hanginglights", 9, 1, 0, 1], ["circus_c24_hanginglights", 15, 1, 0, 1],
+    // Camada de construtor: pôster e luminária neon na parede da esquerda,
+    // tapete neon no canto dos pufes e varais de luz neon sobre a sinuca, o
+    // pebolim e os pufes (desenhados no alto).
+    ["pixel_poster2", 0, 4, 2, 0, 1], ["cubie_decklight_p", 0, 9.2, 2, 0, 1.2],
+    ["neonpunk_c20_carpet", 1, 8, 0],
+    ["neonpunk_c20_lights", 4, 5, 0], ["neonpunk_c20_lights", 9, 5, 0], ["neonpunk_c20_stardeco", 3, 8, 0],
   ],
   // Foco: biblioteca funda. Galeria de leitura no patamar do fundo, entre
   // estantes; embaixo, escrivaninhas com luminária na parede, duas mesas de
@@ -535,6 +559,11 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ...[[5, 7], [8, 10]].flatMap(([x, y]) => [["classic9_table", x, y, 0], ["classic9_light", x, y, 0, 0, 0.7], ["bookpile", x + 1, y + 1, 0, 0, 0.7],
       ["classic9_chair", x - 1, y, 2], ["classic9_chair", x + 2, y + 1, 6], ["classic9_chair", x + 1, y - 1, 4], ["classic9_chair", x, y + 2, 0]]),
     ["classic9_plant", 0, 15, 0], ["bookpile", 1, 14, 0], ["classic9_plant", 8, 15, 0],
+    // Camada de construtor: tapetes de biblioteca sob as mesas de leitura,
+    // lustres de velas por cima, mapa antigo e quadro na parede da esquerda.
+    ["classic9_carpet", 4, 6, 0], ["classic9_carpet", 7, 9, 0],
+    ["lodge_chandelier", 5, 7, 0], ["lodge_chandelier", 8, 10, 0], ["lodge_chandelier", 6, 2, 0],
+    ["steampunk_map", 0, 11.6, 2, 0, 0.8], ["attic15_painting", 0, 5, 2, 0, 1.2],
   ],
   // Academia: aparelhos no patamar do fundo (esteiras viradas para a parede,
   // armários, halteres e camas elásticas), colchonetes e bancada de
@@ -550,6 +579,9 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["fball_score_b", 16, 0, 4], ["fball_score_r", 18, 0, 4],
     ["fball_goal_b", 8, 9, 2], ["fball_goal_r", 19, 9, 6], ["fball_ball", 13, 10, 0],
     ["matic_tree_green", 0, 15, 0], ["theatre_plant", 6, 15, 0],
+    // Camada de construtor: espelho e relógio de academia nas paredes,
+    // e adesivo olímpico.
+    ["wallmirror", 0, 10, 2, 0, 1.2], ["wallmirror", 0, 11, 2, 0, 1.2], ["pixel_clock_red", 7, 0, 4, 0, 2.2], ["olympics_c16_walldecal", 0, 3, 2, 0, 0.6],
   ],
   // Produção: estúdio em L. Ilha de edição no recuo do fundo, set de
   // entrevista iluminado no patamar com refletores e câmera, mesa de som na
@@ -564,6 +596,13 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["gaming_c18_rigpro", 0, 9, 2], ["studio_chair", 1, 10, 6], ["theatre_plant", 0, 13, 0],
     ["army_c15_crate", 19, 12, 4], ["army_c15_crate", 19, 13, 4], ["army_c15_crate", 19, 12, 4, 0, 1], ["army_c15_crate", 18, 13, 4],
     ["mafia_c26_sofa_dark", 12, 13, 0], ["mafia_c26_coffeetable_dark", 13, 11, 2], ["mafia_c26_drinktray", 13, 11, 0, 0, 0.84], ["theatre_plant", 7, 13, 0],
+    // Camada de construtor: pôsteres de filme nas paredes, tapete sob o
+    // sofá dos clientes, canto da banda (bateria, guitarra e amplificadores)
+    // na frente à esquerda e monitores de retorno no palco das entrevistas.
+    ["cine_pstr_1", 6, 2, 2, 0, 0.6], ["cine_pstr_12", 0, 7, 2, 0, 0.6], ["cine_pstr_5", 15, 0, 4, 0, 0.6], ["cine_pstr_19", 17, 0, 4, 0, 0.6],
+    ["js_exe_rug", 12, 10, 0],
+    ["studio_drums", 2, 12, 0], ["studio_guitar", 1, 12, 2], ["studio_amp1", 5, 12, 0], ["studio_amp2", 5, 10, 0],
+    ["studio_monitor", 13, 3, 0], ["studio_monitor", 15, 3, 0],
   ],
 };
 // Presença trafega em porcentagem (6–94) no Worker; aqui vira ladrilho. A
