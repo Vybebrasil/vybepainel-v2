@@ -17,7 +17,7 @@ export default function reuniao() {
   const s = novaCena("reuniao");
   // Coleção da sala: chalé escuro e executivo (madeira escura, couro verde).
   s.colecao({ lareira: "lodge_dark_fireplace", poltrona: "exe_chair", abajur: "lodge_dark_lamp", mesa: "army15_ltddesk", cadeira: "exe_chair2",
-    lustre: "lodge_dark_chandelier", tela: "computer_flatscreen", sofa: "mafia_c26_sofa_dark", mesaCentro: "mafia_c26_coffeetable_dark", criado: "lodge_dark_endtable",
+    lustre: "darkelegant_c20_light", tela: "computer_flatscreen", sofa: "mafia_c26_sofa_dark", mesaCentro: "mafia_c26_coffeetable_dark", criado: "lodge_dark_endtable",
     tapete: "exe_rug", estante: "lodge_dark_bookcase", vela: "lodge_dark_candle" }, {
     // Acentos escolhidos para a sala: o que dá vida a cada canto.
     acentos: ["attic15_painting", "mafia_c26_walllamp_dark", "xmas11_cuckoo", "garden_r21_plantwall", "easter_c23_plantwall", "exe_globe",

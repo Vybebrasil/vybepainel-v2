@@ -67,16 +67,17 @@ export function mesaReuniao(s, { nome = "mesa de reunião", funcao = "reunir a e
 // Recepção de frente para a porta: balcão com a frente virada para quem
 // chega, atendente em pé atrás, tela virada para o atendente, plantas iguais
 // dos dois lados do balcão (simétrico).
-export function recepcao(s, { nome = "recepção", funcao = "receber quem chega", x, y, porta, atendente, sobre = [] }) {
+// pecas: quantas peças de balcão lado a lado (balcão de módulos de 1).
+export function recepcao(s, { nome = "recepção", funcao = "receber quem chega", x, y, porta, atendente, sobre = [], pecas = 1 }) {
   const balcao = s.de("balcao");
   if (!balcao) return null;
   s.canto(nome, { funcao, destaque: balcao });
-  const it = s.por(balcao, x, y, { olha: porta });
-  if (!it) return null;
-  const meio = x + Math.floor((it.pw - 1) / 2);
-  if (s.de("tela")) s.emCima(meio - (it.pw > 1 ? 1 : 0), y, s.de("tela"), { olha: [meio - (it.pw > 1 ? 1 : 0), y - 1] });
+  let larg = 0, it = null;
+  for (let i = 0; i < pecas; i++) { it = s.por(balcao, x + larg, y, { olha: porta }); if (!it) return null; larg += it.pw; }
+  const meio = x + Math.floor((larg - 1) / 2);
+  if (s.de("tela")) s.emCima(meio, y, s.de("tela"), { olha: [meio, y - 1] });
   sobre.forEach(([dx, c]) => s.emCima(x + dx, y, c));
   if (atendente) s.figurante({ figura: atendente, x: meio, y: y - 1, dir: 4 });
-  if (s.de("planta")) { s.por(s.de("planta"), x - 1, y); s.por(s.de("planta"), x + it.pw, y); }
+  if (s.de("planta")) { s.por(s.de("planta"), x - 1, y); s.por(s.de("planta"), x + larg, y); }
   return it;
 }

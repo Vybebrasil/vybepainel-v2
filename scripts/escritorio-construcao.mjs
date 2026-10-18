@@ -148,7 +148,8 @@ export function novaCena(id, o = {}) {
           if (g) g.guarda = true;
           if (g && enfeite && k % (enfeite.cada || 1) === 0) {
             const c = [enfeite.classes].flat()[(k / (enfeite.cada || 1)) % [enfeite.classes].flat().length];
-            obra--; try { api.por(c, x, y1 - 1, { nivel: 1, sobre: true, ritmo: true }); } finally { obra++; }
+            // O enfeite com ritmo é parte do desenho do mezanino (obra).
+            api.por(c, x, y1 - 1, { nivel: 1, sobre: true, ritmo: true });
           }
           k++;
         }
@@ -313,7 +314,7 @@ export function novaCena(id, o = {}) {
       if ((!p.plana || o.flutuante != null || decoracao) && !o.sobre && (y === 0 || x === 0)) altos.push({ it, n, p, decor: decoracao || o.flutuante != null });
       if (!o.sobre) postos.push(it);
       moveis.push([classe, x, y, dir, o.estado || 0, Math.round(altura * 1000) / 1000]);
-      if (o.sobre && !o.empilhador) { it.acessorio = true; it.base = at(x, y, n).pilha.find((q) => !q.acessorio && q !== it); acessorios.push(it); }
+      if (o.sobre && !o.empilhador && !o.ritmo) { it.acessorio = true; it.base = at(x, y, n).pilha.find((q) => !q.acessorio && q !== it); acessorios.push(it); }
       doCanto(it.nome, classe);
       return it;
     },
@@ -380,6 +381,9 @@ export function novaCena(id, o = {}) {
       // Na câmera do Habbo o sofá (desenhado depois) cobre o ladrilho do lado
       // "antes" dele: o criado-mudo ali some. Só no lado "depois".
       if (criados.includes("antes")) return falha(`estar em ${x},${y}: criado-mudo do lado "antes" fica escondido atrás do sofá na tela; use o lado "depois"`);
+      // A poltrona "depois" na ponta do sofá fica bem na frente do criado
+      // (mesmo ladrilho de largura, uma fileira à frente): ele some.
+      if (criados.includes("depois") && poltronas.includes("depois") && m0 + ml === sl) return falha(`estar em ${x},${y}: a poltrona do lado "depois" fica na frente do criado-mudo (a mesa tem a largura do sofá); tire um dos dois`);
       const pontas = criados.map((l) => [l, l === "antes" ? -1 : sl]);
       if (tapete) {
         // O tapete é do sofá, da mesa e das poltronas; o criado fica fora, inteiro.

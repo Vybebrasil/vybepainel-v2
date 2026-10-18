@@ -8,9 +8,11 @@
   "antique_c21_teaset": "regra",
   "army15_ltddesk": "regra",
   "attic15_clock": "regra",
+  "bc_stairs_recolorable": "regra",
   "bling15_pooltable": "regra",
   "bohogarden_c21_snakeplant": "regra",
   "classic2_drinkcup": "regra",
+  "classic5_stairs": "regra",
   "classic9_chair": "regra",
   "classic9_plant": "regra",
   "computer_flatscreen": "regra",
@@ -18,7 +20,12 @@
   "dessertcafe_c17_teaplant": "regra",
   "ducket_c26_charcuterie": "regra",
   "ducket_c26_honeypot": "regra",
+  "elegant_c17_chair": "regra",
+  "elegant_c17_cupboard": "regra",
   "elegant_c17_flowerpot": "regra",
+  "elegant_c17_smalltable": "regra",
+  "elegant_c17_sofa": "regra",
+  "elegant_c17_table": "regra",
   "exe_c15_desktidy": "regra",
   "exe_c15_telephone": "regra",
   "exe_chair": "regra",
@@ -35,6 +42,8 @@
   "hc_bigvase": "regra",
   "hc_lmpst": "regra",
   "hc_luggage": "regra",
+  "hotel_c18_cypress": "regra",
+  "hotel_c18_tree": "regra",
   "hween_c20_porchstairs": {
    "0": [
     0,
@@ -54,6 +63,7 @@
    ]
   },
   "hween_c26_bookshelf": "regra",
+  "js_exe_bardesk": "regra",
   "jungle_c16_sacks": "regra",
   "ktchn_c15_bread": "regra",
   "lodge_dark_barrelstool": "regra",
@@ -82,6 +92,7 @@
   "mafia_c26_vase_white": "regra",
   "magazines": "regra",
   "modern_c17_plant": "regra",
+  "paris15_ltdfountain": "regra",
   "paris_c15_chair": "regra",
   "paris_c15_menu": "regra",
   "paris_c15_table": "regra",
@@ -116,8 +127,7 @@
   "xmas_c24_mugs": "regra",
   "xmas_c24_plate": "regra",
   "xmas_c24_snacks1": "regra",
-  "bc_stairs_recolorable": "regra",
-  "classic5_stairs": "regra"
+  "classic1_lamp": "regra"
  },
  "_escadas": "Escadas conferidas na vitrine (18/10/2026). \"degrau\": peça sem mureta, desenhada da altura da ficha; empilha para subir mais. {tipo: \"inteira\", sobe}: escada com corrimão desenhada para subir \"sobe\" níveis numa peça só (a ficha pode ser menor: a escadinha da varanda tem 0,5 de pisar e sobe 1 no desenho); vai sozinha, nunca empilhada.",
  "escadas": {

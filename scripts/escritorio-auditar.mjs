@@ -404,7 +404,9 @@ function auditar(cena, P, moveis, avisos) {
       const x = q.dir === 4 ? q.x + k : q.x, y = q.dir === 4 ? q.y : q.y + k;
       if (!paredeEm(x, y, q.dir === 4 ? "x" : "y")) { problemas.push(`${nome} pendurado sem parede atrás`); break; }
       if (q.reveste) break;
-      const alto = itens.find((o) => !o.plano && !o.altura && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h && (arte(o.classe)?.alto || 0) > ALTO);
+      // Na sala com a foto conferida, quanto o item de parede aparece é medido
+      // nela (80% à vista); a regra por ladrilho barrava até quadro acima do sofá.
+      const alto = FOTO && DESENHO_CONFERIDO.has(cena) ? null : itens.find((o) => !o.plano && !o.altura && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h && (arte(o.classe)?.alto || 0) > ALTO);
       if (alto) { problemas.push(`${nome} atrás de ${alto.classe} (${alto.x},${alto.y})`); break; }
     }
   }
@@ -446,7 +448,10 @@ function auditar(cena, P, moveis, avisos) {
     // Revestimento só conflita com outro na mesma faixa de altura (lambri
     // embaixo e papel em cima são duas faixas da mesma parede).
     const chave = (q.reveste ? `r${q.altura}:` : "") + (q.dir === 4 ? `x:${q.x + k},${q.y}` : `y:${q.x},${q.y + k}`);
-    if (trechos.has(chave)) problemas.push(nomeCena(`${q.classe} (${q.x},${q.y}) em cima de ${trechos.get(chave)} na parede`));
+    // Na sala com foto conferida, dois itens no mesmo trecho em alturas
+    // diferentes (prateleira com relógio em cima) valem: a foto cobra que um
+    // não tape o outro ("se cobrem na parede").
+    if (trechos.has(chave) && !(FOTO && DESENHO_CONFERIDO.has(cena) && !q.reveste)) problemas.push(nomeCena(`${q.classe} (${q.x},${q.y}) em cima de ${trechos.get(chave)} na parede`));
     else trechos.set(chave, `${q.classe} (${q.x},${q.y})`);
   }
   // Janela só em parede que dá para fora: no mapa, a do prédio; no quarto, as

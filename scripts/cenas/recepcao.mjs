@@ -1,149 +1,112 @@
-// Convivência: saguão branco de mármore (referência aprovada pelo Paulo em
-// 18/10/2026, sem enfeite de São João). Mezanino de mármore preto no fundo,
-// raso (x 0–15, y 0–4), sobre colunas gregas: nada embaixo dele além das
-// colunas, para o andar de cima não invadir o térreo. Escada de palco do
-// salão até o vão do guarda-corpo, com pé e lados livres. Recepção de frente
-// para a porta; estar na parede da esquerda; espera perto da porta; canteiro
-// no meio; jogos e estar à direita; máquinas e teleporte da Praça no canto
-// do fundo. Cada peça passa pelo motor (scripts/escritorio-construcao.mjs).
+// Convivência: saguão do Hotel Vybelândia (projeto aprovado pelo Paulo em
+// 18/10/2026): mármore branco com dourado e azul-claro, coleção Elegant do
+// Habbo. Quem entra pela porta (que vem da Praça) vê, no mesmo eixo, a fonte
+// e, atrás dela, a recepção. Mezanino de mármore preto no fundo, com
+// biblioteca e estar; escada de palco até o vão do guarda-corpo. Estar dos
+// aquários na parede da esquerda, chegada perto da porta, estar azul e café
+// do saguão à direita, máquinas e teleporte da Praça no canto do fundo.
+// Montado por receitas (scripts/escritorio-receitas.mjs) e pelo motor.
 import { novaCena } from "../escritorio-construcao.mjs";
+import { recepcao } from "../escritorio-receitas.mjs";
 
 const FIGURAS = {
   recepcionista: "hd-600-1.hr-515-61.ch-665-1323.lg-700-110.sh-725-110",
   leitor: "hr-170-45.hd-190-2.ch-215-66.lg-280-110.sh-305-62.ea-1406-62",
   amiga: "hr-890-45.hd-605-2.ch-3030-73.lg-3116-1408.sh-735-62",
   amigo: "hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110",
-  jogador: "hr-3163-45.hd-180-1.ch-3030-1408.lg-275-1408.sh-290-62",
+  hospede: "hr-3163-45.hd-180-1.ch-3030-1408.lg-275-1408.sh-290-62",
 };
 
-export default function recepcao() {
+export default function convivencia() {
   const s = novaCena("recepcao");
-  // Casca: cornija de plataforma branca no topo das paredes (fina, como a do Café).
+  s.colecao({
+    sofa: "elegant_c17_sofa", poltrona: "elegant_c17_chair", mesaCentro: "elegant_c17_table", criado: "elegant_c17_smalltable",
+    tapete: "waasa_rug1", armario: "elegant_c17_cupboard", fonte: "paris15_ltdfountain", balcao: "js_exe_bardesk", tela: "computer_flatscreen",
+    planta: "hotel_c18_tree", flores: "wed_plant", abajur: "classic1_lamp", banco: "greek_c15_bench",
+  }, {
+    // Acentos escolhidos: obra do saguão, parede, miudezas de cada canto.
+    acentos: ["eleblock4", "val12_marble1", "val12_marble2", "greek_block", "greek_corner", "xmas_c18_stagestairs", "window_double_default",
+      "mafia_c26_walllamp_white", "wallmirror", "attic15_painting", "elegant_c17_walldecor", "uni_coatrack", "waasa_wall_shelf2", "pixel_clock_black",
+      "romantique_clock", "hc_luggage", "waasa_aquarium", "mafia_c26_teleport_dark", "olympics_r16_vendingmchn", "matic_water_dispenser",
+      "room_cof15_cup2", "classic2_drinkcup", "antique_c21_books", "magazines", "wcandle", "mafia_c26_vase_white",
+      "doormat_plain", "greek_c15_lamp", "bling11_pillar", "bling11_statue1"],
+  });
   s.casca(null, 1, ["eleblock4", 0]);
-
-  // Piso de mármore branco em placas no térreo.
   s.piso("val12_marble1", { x0: 0, y0: 0, x1: 16, y1: 18 });
   s.piso("val12_marble1", { x0: 16, y0: 0, x1: 20, y1: 14 });
   s.piso("val12_marble1", { x0: 16, y0: 14, x1: 18, y1: 16 });
 
-  // Mezanino de mármore preto, guarda-corpo de bloco grego na frente e na
-  // ponta direita, vão onde chega a escada, colunas gregas no térreo.
-  s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 3, piso: "val12_marble2", guarda: "greek_block",
-    coluna: "greek_corner", colunas: [1, 5, 8], lados: ["frente", "direita"], abertura: [12, 14] });
-  s.escada("xmas_c18_stagestairs", 12, 9, [0, -1]);
+  // Mezanino de mármore preto; flores no guarda-corpo, uma a cada dois
+  // blocos (ritmo); colunas gregas no térreo; vão para a escada em x 14–15.
+  s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 3, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [1, 5, 9],
+    lados: ["frente", "direita"], abertura: [14, 16], enfeite: { classes: ["wed_plant", "wcandle"], cada: 2 } });
+  s.escada("xmas_c18_stagestairs", 14, 9, [0, -1]);
 
-  s.canto("mezanino", { funcao: "ler e conversar no andar de cima", destaque: "hween_c26_bookshelf" });
-  // --- Mezanino ---
-  const arandela = { classe: "mafia_c26_walllamp_white", altura: 1.6 };
-  // Parede do fundo: janelas duplas com arandelas entre elas.
-  s.parede("fundo", { de: 2, ate: 15, nivel: 1, altura: 0.6 }, [{ ...arandela, altura: 1.4 }, "window_double_default", { ...arandela, altura: 1.4 }, "window_double_default", { ...arandela, altura: 1.4 }]);
-  // Biblioteca no canto: estante na parede da esquerda, poltronas e mesinha.
-  s.por("hween_c26_bookshelf", 0, 0, { nivel: 1, dir: 2 });
-  s.parede("esquerda", { de: 2, ate: 4, nivel: 1, altura: 1.2 }, ["wallmirror"]);
-  const leitura = s.mesa({ nivel: 1, x: 2, y: 2, tampo: "mafia_c26_sidetable_white", cadeira: "mafia_c26_armchair_white", lados: ["esquerda", "direita"], sobre: ["antique_c21_books", "wcandle"] });
+  // --- Mezanino: biblioteca e estar ---
+  s.canto("biblioteca do mezanino", { funcao: "ler com calma acima do saguão", destaque: "elegant_c17_cupboard" });
+  s.por("elegant_c17_cupboard", 0, 0, { nivel: 1, dir: 2 });
+  const leitura = s.mesa({ nivel: 1, x: 2, y: 2, tampo: "elegant_c17_smalltable", cadeira: "elegant_c17_chair", lados: ["esquerda", "direita"], sobre: ["antique_c21_books", "wcandle"] });
   s.figurante({ figura: FIGURAS.leitor, sentado: leitura.esquerda });
-  // Estar do mezanino: sofá de frente para a beira, mesa de centro, poltronas.
-  const cima = s.estar({ nivel: 1, x: 5, y: 1, sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white",
-    poltronas: [],
-    criado: "mafia_c26_sidetable_white", criados: ["depois"], sobreMesa: ["mafia_c26_magazinesb", "room_cof15_cup2"],
-    sobreCriado: { depois: "mafia_c26_vase_white" } });
+  s.parede("esquerda", { de: 2, ate: 4, nivel: 1, altura: 1.2 }, ["wallmirror"]);
+  s.canto("estar do mezanino", { funcao: "conversar olhando o saguão", destaque: "elegant_c17_sofa" });
+  const cima = s.estar({ nivel: 1, x: 7, y: 1, sofa: "elegant_c17_sofa", mesa: "elegant_c17_table", poltrona: "elegant_c17_chair",
+    sobreMesa: ["wed_plant"] });
+  s.emCima(8, 2, "wcandle", { nivel: 1 });
   s.figurante({ figura: FIGURAS.amiga, sentado: cima.sofa });
-  // Mesinha de café perto da escada e plantas nos cantos.
-  s.mesa({ nivel: 1, x: 11, y: 2, tampo: "mafia_c26_sidetable_white", cadeira: "mafia_c26_armchair_white", lados: ["esquerda", "tras"], sobre: ["antique_c21_books", "classic2_drinkcup"] });
-  s.por("mafia_c26_planter_white", 14, 1, { nivel: 1 });
-  s.por("mafia_c26_planter_white", 0, 3, { nivel: 1 });
-  s.por("hc_bigvase", 14, 3, { nivel: 1 });
-  s.por("room_info15_statue1", 1, 3, { nivel: 1 });
-  s.por("hc_bigvase", 4, 3, { nivel: 1 });
-  s.por("mafia_c26_planter_white", 13, 1, { nivel: 1 });
+  const arandela = { classe: "mafia_c26_walllamp_white", altura: 1.4 };
+  s.parede("fundo", { de: 3, ate: 15, nivel: 1, altura: 0.8 }, [arandela, "window_double_default", arandela, "window_double_default", arandela]);
 
-  s.canto("canto das máquinas", { funcao: "lanche e passagem para a Praça", destaque: "mafia_c26_teleport_dark" });
-  // --- Canto do fundo à direita (pé-direito alto): máquinas e teleporte ---
-  s.por("mafia_c26_teleport_dark", 16, 0, { dir: 4 });
-  // Prateleira com vasos e relógio em cima, no canto, ao lado da máquina.
-  s.parede("fundo", { de: 17, ate: 20, altura: 1.6 }, ["waasa_wall_shelf2", { classe: "pixel_clock_black", altura: 2.2 }]);
-  // Mesinha de café no canto, com lareira de mármore ao lado.
-  s.mesa({ x: 17, y: 3, tampo: "mafia_c26_sidetable_white", cadeira: "mafia_c26_armchair_white", sobre: ["antique_c21_books", "room_cof15_cup2"] });
-  s.por("mafia_c26_firepit_white", 19, 3);
+  // --- Recepção no eixo da porta ---
+  recepcao(s, { x: 9, y: 7, pecas: 2, porta: [10, 17], atendente: FIGURAS.recepcionista });
 
-  s.canto("recepção", { funcao: "receber quem chega", destaque: "room_info15_counter2" });
-  // --- Recepção de frente para a porta ---
-  s.por("room_info15_counter2", 8, 7, { olha: [9, 12] });
-  // Computador virado para a recepcionista, atrás do balcão; telefone ao lado.
-  s.emCima(8, 7, "computer_flatscreen", { olha: [8, 6] });
-  s.emCima(9, 7, "exe_c15_telephone");
-  s.emCima(10, 7, "mafia_c26_ledger");
-  s.figurante({ figura: FIGURAS.recepcionista, x: 9, y: 6, dir: 4 });
-  s.por("room_info15_lamp1", 6, 7);
-  s.por("room_info15_counter1", 10, 6);
-  s.emCima(10, 6, "modern_c17_plant");
-  s.emCima(10, 7, "magazines");
-  s.por("elegant_c17_flowerpot", 12, 1, { nivel: 1 });
+  // --- Fonte: o destaque do saguão, com bancos de mármore dos dois lados ---
+  s.canto("fonte", { funcao: "receber e marcar o centro do saguão", destaque: "paris15_ltdfountain" });
+  s.por("paris15_ltdfountain", 9, 11);
+  s.assento("greek_c15_bench", 8, 13, [9, 13]);
+  s.assento("greek_c15_bench", 12, 13, [11, 13]);
 
-  s.canto("estar da esquerda", { funcao: "conversar perto dos aquários", destaque: "mafia_c26_sofa_white" });
-  // --- Estar na parede da esquerda ---
-  const estar = s.estar({ x: 0, y: 7, olha: "direita", sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white",
-    criado: "mafia_c26_sidetable_white", criados: ["depois"], tapete: "js_exe_rug", sobreMesa: ["magazines", "wcandle"],
-    sobreCriado: { depois: ["antique_c21_books", "wcandle"] } });
+  // --- Estar dos aquários, na parede da esquerda ---
+  s.canto("estar dos aquários", { funcao: "esperar sentado com calma", destaque: "elegant_c17_sofa" });
+  const estar = s.estar({ x: 0, y: 7, olha: "direita", sofa: "elegant_c17_sofa", mesa: "elegant_c17_table", poltrona: "elegant_c17_chair",
+    tapete: "waasa_rug1", sobreMesa: ["wed_plant"] });
+  s.emCima(1, 8, "classic1_lamp");
   s.figurante({ figura: FIGURAS.amigo, sentado: estar.antes });
-  s.parede("esquerda", { de: 6, ate: 11, altura: 1.6 }, [arandela, { classe: "attic15_painting", altura: 1.9 }, arandela]);
-  s.por("waasa_aquarium", 0, 12, { dir: 2 });
-  s.por("mafia_c26_planter_white", 0, 14);
-  s.por("hc_bigvase", 0, 16);
-  s.parede("esquerda", { de: 14, ate: 16, altura: 2.8 }, ["attic15_painting"]);
+  s.parede("esquerda", { de: 6, ate: 10, altura: 1.6 }, [{ classe: "mafia_c26_walllamp_white", altura: 1.6 }, "attic15_painting", { classe: "mafia_c26_walllamp_white", altura: 1.6 }]);
+  s.por("waasa_aquarium", 0, 11, { dir: 2 });
+  s.parede("esquerda", { de: 11, ate: 13, altura: 2.6 }, [{ classe: "mafia_c26_walllamp_white", altura: 2.6 }]);
+  s.parede("esquerda", { de: 13, ate: 14, altura: 2.4 }, [{ classe: "mafia_c26_walllamp_white", altura: 2.4 }]);
 
-  s.canto("espera", { funcao: "esperar perto da porta", destaque: "room_info15_sofa2" });
-  // --- Espera perto da porta ---
-  const espera = s.estar({ x: 3, y: 13, sofa: "room_info15_sofa2", mesa: "mafia_c26_coffeetable_white", poltrona: "room_info15_sofa1",
-    criado: "mafia_c26_sidetable_white", criados: ["depois"], tapete: "js_exe_rug", sobreMesa: ["mafia_c26_magazinesb", "classic2_drinkcup"],
-    sobreCriado: { depois: "mafia_c26_drinktray" } });
-  s.figurante({ figura: FIGURAS.amiga.replace("ch-3030-73", "ch-665-1323"), sentado: espera.sofa });
+  // --- Chegada, perto da porta: relógio, cabideiro, malas e duas poltronas ---
+  s.canto("chegada", { funcao: "chegar, deixar o casaco e esperar", destaque: "romantique_clock" });
+  s.por("romantique_clock", 0, 14, { dir: 2 });
+  s.parede("esquerda", { de: 15, ate: 17, altura: 1.8 }, ["uni_coatrack"]);
   s.por("hc_luggage", 2, 15);
-  s.por("modern_c17_floorlamp", 6, 14);
-  s.por("modern_c17_floorlamp", 1, 14);
+  s.mesa({ x: 4, y: 14, tampo: "elegant_c17_smalltable", cadeira: "elegant_c17_chair", lados: ["esquerda", "direita"], sobre: ["magazines", "wcandle"] });
 
-  s.canto("canteiro", { funcao: "verde no meio do saguão", destaque: "room_wl15_tree" });
-  // --- Canteiro no meio, com bancos virados para ele ---
-  // Árvores atrás, arbustos e rosas na frente (o mais baixo na frente).
-  s.por("room_wl15_tree", 4, 9);
-  s.por("room_wl15_tree", 6, 9);
-  s.por("room_info15_shrub1", 4, 10);
-  s.por("plant_rose", 5, 10);
-  s.por("room_info15_shrub1", 6, 10);
-  s.assento("greek_c15_bench", 8, 10, [5, 10]);
-  s.por("mafia_c26_sidetable_white", 8, 9);
-  s.emCima(8, 9, "mafia_c26_vase_white");
-
-  // Jardineiras baixas com rosas dos dois lados do corredor da porta.
-  for (const x of [7, 11]) { s.por("room_cof15_planter", x, 13); s.emCima(x, 13, "plant_rose"); s.emCima(x + 1, 13, "plant_rose"); }
-
-  s.canto("jogos", { funcao: "jogar fliperama e sinuca", destaque: "tokyo_c18_retroarcade" });
-  // --- Jogos à direita ---
-  for (const x of [16, 18]) s.por("tokyo_c18_retroarcade", x, 7, { dir: 4 });
-  s.figurante({ figura: FIGURAS.jogador, x: 17, y: 8, dir: 0 });
-  s.por("bling15_pooltable", 16, 10, { dir: 4 });
-  s.assento("room_info15_bench", 18, 10, [16, 10]);
-  s.por("mafia_c26_sidetable_white", 18, 12);
-  s.emCima(18, 12, ["antique_c21_books", "classic2_drinkcup"]);
-  s.pendente("gothic_c15_chandelier", 16, 10);
-  s.por("modern_c17_floorlamp", 19, 9);
-
-  s.canto("estar da direita", { funcao: "conversar sob o lustre", destaque: "mafia_c26_sofa_white" });
-  // --- Estar da frente à direita ---
-  s.estar({ x: 14, y: 12, sofa: "mafia_c26_sofa_white", mesa: "mafia_c26_coffeetable_white", poltrona: "mafia_c26_armchair_white",
-    criado: "mafia_c26_sidetable_white", criados: ["depois"], tapete: "js_exe_rug", sobreMesa: ["mafia_c26_magazinesb", "room_cof15_cup2"],
-    sobreCriado: { depois: "modern_c17_plant" } });
-  s.pendente("gothic_c15_chandelier", 15, 14);
-
-  s.canto("entrada", { funcao: "marcar a porta", destaque: "doormat_plain" });
-  // --- Entrada: capacho na porta e jardineiras dos lados ---
+  // --- Entrada: capacho e tochas de mármore dos dois lados da porta ---
+  s.canto("entrada", { funcao: "marcar a porta", destaque: "greek_c15_lamp" });
   s.por("doormat_plain", 9, 16);
   s.por("doormat_plain", 10, 16);
-  s.por("mafia_c26_planter_white", 8, 16);
-  s.por("mafia_c26_planter_white", 11, 16);
-  s.por("greek_c15_lamp", 7, 16, { dir: 2 });
-  s.por("greek_c15_lamp", 12, 16, { dir: 2 });
-  s.por("hc_lmpst", 13, 16);
-  s.por("elegant_c17_walldecor", 0, 17, { dir: 0 });
+  s.por("greek_c15_lamp", 8, 16, { dir: 2 });
+  s.por("greek_c15_lamp", 11, 16, { dir: 2 });
+
+  // --- Estar azul, à direita, sob o lustre ---
+  s.canto("estar azul", { funcao: "conversar em grupo", destaque: "elegant_c17_sofa" });
+  s.estar({ x: 15, y: 12, sofa: "elegant_c17_sofa", mesa: "elegant_c17_table", poltrona: "elegant_c17_chair",
+    tapete: "waasa_rug1", sobreMesa: ["wed_plant"] });
+  s.emCima(16, 13, "wcandle");
+
+  // --- Café do saguão, à direita: duas mesinhas ---
+  s.canto("café do saguão", { funcao: "tomar um café rápido", destaque: "elegant_c17_smalltable" });
+  const cafe = s.mesa({ x: 18, y: 6, tampo: "elegant_c17_smalltable", cadeira: "elegant_c17_chair", lados: ["esquerda", "direita"], sobre: ["classic1_lamp"] });
+  s.figurante({ figura: FIGURAS.hospede, sentado: cafe.esquerda });
+  s.mesa({ x: 18, y: 9, tampo: "elegant_c17_smalltable", cadeira: "elegant_c17_chair", lados: ["esquerda", "direita"], sobre: ["wcandle"] });
+
+  // --- Máquinas e teleporte da Praça, no canto do fundo ---
+  s.canto("máquinas e Praça", { funcao: "lanche e passagem para a Praça", destaque: "mafia_c26_teleport_dark" });
+  s.por("olympics_r16_vendingmchn", 16, 0, { dir: 4 });
+  s.por("mafia_c26_teleport_dark", 17, 0, { dir: 4 });
+  s.parede("fundo", { de: 18, ate: 20, altura: 1.6 }, ["waasa_wall_shelf2"]);
+  s.parede("fundo", { de: 18, ate: 20, altura: 5.4 }, ["pixel_clock_black"]);
   return s.fechar();
 }

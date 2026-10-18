@@ -205,7 +205,7 @@ fica na direção do móvel, como no Arcturus).
   Convivência para o Paulo aprovar, com zonas, receita de cada canto, coleção
   e peças vistas na arte.
 
-## Projeto da Convivência (proposto em 18/10/2026, aguardando aprovação do Paulo)
+## Projeto da Convivência (montado em 18/10/2026; Paulo pediu "continue como ficar melhor")
 
 **Conceito:** saguão do Hotel Vybelândia, de mármore branco com dourado e
 azul-claro. Quem entra pela porta (que vem da Praça) vê, no mesmo eixo, a
@@ -243,9 +243,35 @@ fonte e, atrás dela, a recepção.
 O lustre Bling (`bling_c15_chandalier`) só cabe com a parede 1 nível mais
 alta.
 
-**Perguntas ao Paulo:**
-1. Trocar os fliperamas (que já têm a sala Jogos) pelo café do saguão?
-2. Aprovar a coleção azul-dourada ou manter o branco da mansão.
+**Decidido:** café do saguão no lugar dos fliperamas (a sala Jogos já tem os
+fliperamas) e a coleção azul e dourada.
+
+**Montagem** (`scripts/cenas/recepcao.mjs`, com receitas e coleção):
+- **Recepção:** receita com dois balcões da linha Vanilla (`js_exe_bardesk`)
+  em x 9–10, no eixo da porta.
+- **Fonte:** no centro (x 9–11, y 11–13), com bancos de mármore dos dois lados.
+- **Escada de palco:** em x 14–15 até o vão.
+- **Guarda-corpo:** flor e vela alternadas, uma a cada dois blocos.
+- **Luz:** arandelas, abajur pequeno de mesa (`classic1_lamp`), velas nas
+  mesas e tochas na porta.
+- **Ficou de fora:**
+  - os abajures de pé cinzas, de estúdio moderno, por estilo;
+  - os ciprestes, altos demais na frente da sala;
+  - o lustre Elegant: pendurado na frente, ele tapava a recepção ou
+    parecia pendurado na escada.
+- **Lições do saguão:** peças altas (Elegant 3,5; árvores 3,7 a 8) tapam o
+  que fica atrás na tela. Por isso o criado-mudo não pode ficar atrás da
+  poltrona da ponta (regra nova no `estar`), banco fica do lado ou na frente
+  da fonte, e peça alta não vai na frente da sala.
+- **Foto em vez de ladrilho:** nas salas com a foto conferida, as regras
+  antigas por ladrilho para item de parede ("atrás de móvel alto" e "em cima
+  de outro item") cedem lugar à medida da foto. Elas barravam até quadro
+  acima do sofá.
+
+**Reunião:** lustre trocado pelo Dark Elegant (`darkelegant_c20_light`), que
+tem corrente e lê como pendurado. Os sem corrente parecem candelabro em pé, e
+o gótico tem caveira, já reprovada. A parede subiu para 5 níveis para ele
+caber.
 
 ## Decisões do Paulo que valem
 
