@@ -123,6 +123,30 @@ Convivência ainda espera o projeto novo, que precisa da aprovação do Paulo.
   - item de parede não fica em cima de outro no mesmo ladrilho;
   - nem atrás de móvel alto encostado.
 
+## Defeitos apontados pelo Paulo em 18/10/2026 (noite), ainda abertos
+
+Na Reunião:
+- os computadores da mesa olham para o lado errado;
+- a escadinha do patamar sobe ao contrário;
+- as poltronas da lareira ficam ao lado dela, encostadas na parede, em vez de
+  na frente do fogo.
+
+**Causa:** o motor confere a física (apoio, ocupação, visibilidade), mas não
+o sentido. A frente de cada peça é deduzida por fórmula, sem conferir na
+arte; objeto em cima da mesa não precisa dizer para onde olha; "assento
+virado para a lareira" aceita ficar do lado dela.
+
+**Correção proposta:**
+- **Tabela de frentes conferidas** (`frentes.json`): para cada peça usada,
+  conferir vendo a arte para onde fica a frente em cada direção, a subida de
+  cada escada e o lado da tela de cada computador. Peça com frente fora da
+  tabela é recusada.
+- **Objeto com tela ou frente** em cima de mesa olha para quem está sentado.
+- **Assento virado para algo** fica na frente dele, no cone da frente, e não
+  do lado.
+- **Antes de mostrar ao Paulo,** foto em 2× de cada canto, conferida peça
+  por peça.
+
 ## Decisões do Paulo que valem
 
 - **Segundo reinício** (decisão de 18/10/2026):
