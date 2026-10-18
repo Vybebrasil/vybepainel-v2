@@ -599,40 +599,44 @@ function mapaMontarGrade(P, moveis) {
   for (const r of P.texturas || []) if (r.agua) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) bloqueado[ind(x, y)] = 1;
   // Quarto: só se anda dentro dele e na soleira (P.andavel).
   if (P.andavel) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (!P.andavel(x, y)) bloqueado[ind(x, y)] = 1;
-  // Como no Habbo (Room.canWalkAt/canSitAt/canLayAt): em cada ladrilho vale o
-  // que está mais alto. Pisável, assento ou cama deixam passar (o boneco fica
-  // na altura dele); qualquer outro móvel no topo bloqueia. Na mesma altura,
+  // Como no Habbo (Room.calculateTileState): em cada ladrilho vale o móvel
+  // mais alto pelo topo (base + altura), e uma cama no ladrilho vale sempre
+  // (estado LAY). Pisável, assento ou cama deixam passar (o boneco fica na
+  // altura dele); qualquer outro móvel no topo bloqueia. Com o mesmo topo,
   // basta um que não se pise para bloquear.
-  const topo = new Map(); // índice → móveis na maior altura
+  const topo = new Map(); // índice → móveis com o maior topo
+  const camaNoLadrilho = new Map(); // índice → cama (vale mesmo com algo mais alto)
   for (const m of moveis) {
     if (MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // porta e escada se atravessam
     if (m.pendurado) continue; // pendurado: passa-se por baixo, no piso
     for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
       const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      const i = ind(x, y), t = topo.get(i), z = m.altura || 0;
-      if (!t || z > t.z + 0.001) topo.set(i, { z, lista: [m] });
-      else if (Math.abs(z - t.z) <= 0.001) t.lista.push(m);
+      const i = ind(x, y), t = topo.get(i), alto = mapaTopoMovel(m);
+      if (mapaFisica(m.classe).deita && !camaNoLadrilho.has(i)) camaNoLadrilho.set(i, m);
+      if (!t || alto > t.alto + 0.001) topo.set(i, { alto, lista: [m] });
+      else if (Math.abs(alto - t.alto) <= 0.001) t.lista.push(m);
     }
   }
-  for (const [i, { z, lista }] of topo) {
+  for (const [i, { lista }] of topo) {
     for (const m of lista) { const especial = mapaPisoEspecial(m.classe); if (especial) piso.set(i, { tipo: especial, dir: m.dir }); }
     const portao = lista.find((m) => mapaEhPortao(m.classe));
     if (portao) { if (!(portao.estado >= 1)) bloqueado[i] = 1; continue; }
     // Catraca de mão única: fechada na grade; quem passa vai pela rota dela.
     if (lista.some((m) => /^one_?way_?door|^onewaydoor/.test(m.classe))) { bloqueado[i] = 1; continue; }
     const fis = lista.map((m) => [m, mapaFisica(m.classe)]);
-    const senta = fis.find(([, f]) => f.senta)?.[0], deita = fis.find(([, f]) => f.deita)?.[0];
+    const deita = camaNoLadrilho.get(i), senta = deita ? null : fis.find(([, f]) => f.senta)?.[0];
     if (senta) {
+      const z = senta.altura || 0;
       assento.set(i, senta.dir); profAssento.set(i, senta.prof); movelAssento.set(i, senta);
       desvioAssento.set(i, { dx: senta.x - Math.floor(senta.x), dy: senta.y - Math.floor(senta.y) });
       subida[i] = z;
       continue;
     }
-    if (deita) { cama.set(i, { dir: deita.dir, x: Math.floor(deita.x), y: Math.floor(deita.y) }); profAssento.set(i, deita.prof); movelAssento.set(i, deita); subida[i] = z; continue; }
+    if (deita) { cama.set(i, { dir: deita.dir, x: Math.floor(deita.x), y: Math.floor(deita.y) }); profAssento.set(i, deita.prof); movelAssento.set(i, deita); subida[i] = deita.altura || 0; continue; }
     // Rente ao piso (tapete, piso do acervo) também se pisa, na altura dele.
     if (fis.every(([m, f]) => f.pisa || m.plano || mapaPisoEspecial(m.classe))) {
-      subida[i] = z + Math.max(0, ...fis.map(([m, f]) => (f.pisa || mapaPisoEspecial(m.classe) && !["gelo", "agua"].includes(mapaPisoEspecial(m.classe)) ? mapaAlturaMovel(m) : 0)));
+      subida[i] = Math.max(0, ...fis.map(([m, f]) => (m.altura || 0) + (f.pisa || mapaPisoEspecial(m.classe) && !["gelo", "agua"].includes(mapaPisoEspecial(m.classe)) ? mapaAlturaMovel(m) : 0)));
       // Acima da altura máxima do Habbo (40) não é chão.
       if (subida[i] > 40) bloqueado[i] = 1;
       continue;

@@ -255,22 +255,24 @@ async function cliqueEditorEscritorio(x, y) {
     const d = await escritorio.mapa.medidas(classe, e.novoDir ?? 2);
     if (escritorio.edicao !== e || e.novo !== classe) return;
     const aj = e.novoAjuste || { dx:0, dy:0 }, rd = v => Math.round(v*100)/100;
-    // Peça pequena (computador, telefone, abajur…) solta numa mesa, balcão ou
-    // estante baixa: vai para cima dela, no meio, na altura do tampo.
+    // Como no Habbo: pousa onde se clicou, no topo mais alto do que está
+    // embaixo (mesa, balcão, bloco); o modo construtor escolhe a altura livre.
     const construtor = escritorioAlturaConstrutor(Math.floor(x), Math.floor(y));
-    const sobre = construtor == null && d.x <= 1 && d.y <= 1 ? escritorioEmCimaDe(Math.floor(x), Math.floor(y)) : null;
-    const nx = rd((sobre?.lx ?? lx)+aj.dx), ny = rd((sobre?.ly ?? ly)+aj.dy);
-    if (!(await escritorioCabe(classe, nx, ny, d.dir, null, !sobre)))
-      return escritorioAviso("Esse móvel não cabe aí (ou já tem outro no lugar). Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
+    const nx = rd(lx+aj.dx), ny = rd(ly+aj.dy);
+    const pouso = construtor == null ? await escritorioPousoHabbo(classe, nx, ny, d.dir) : { altura: construtor };
+    if (pouso.erro) return escritorioAviso(pouso.erro);
+    if (!(await escritorioCabe(classe, nx, ny, d.dir, null, false)))
+      return escritorioAviso("Esse móvel não cabe aí. Escolha outro lugar dentro de " + escritorioNomeCamada(e.camada) + ".");
     if (escritorio.edicao !== e || e.novo !== classe) return;
-    const item = [classe,nx,ny,d.dir,/_recolorable$/.test(classe) && escritorio.corBloco != null ? 100 + escritorio.corBloco * 5 : 0,construtor ?? sobre?.altura ?? 0];
+    const sobre = pouso.altura > 0;
+    const item = [classe,nx,ny,d.dir,/_recolorable$/.test(classe) && escritorio.corBloco != null ? 100 + escritorio.corBloco * 5 : 0,pouso.altura];
     if (!escritorioInventarioPara([item])) return;
     e.itens.push(item);
     e.novoAjuste = null;
     escritorio.mapa?.previa(null);
     e.sel = e.itens.length - 1;
     e.novo = null;
-    escritorioAviso(sobre ? "Colocado em cima, no meio. Alt + setas ajusta fino; R gira." : "Móvel colocado. Arraste para ajustar; R gira.");
+    escritorioAviso(sobre ? "Colocado em cima. Alt + setas ajusta fino; R gira." : "Móvel colocado. Arraste para ajustar; R gira.");
     return escritorioEditorMudou();
   }
   if (escritorioSelecionarNoClique(x, y, lx, ly)) return;
@@ -334,8 +336,11 @@ async function girarSelecionadoEscritorio() {
   if (lista.length < 2) return escritorioAviso("Esse móvel não gira no Habbo.");
   const prox = lista[(lista.indexOf(it[3]) + 1) % lista.length];
   // A peça não pode bater nela mesma (antes isso travava o girar de tudo).
-  if (!(await escritorioCabe(it[0], it[1], it[2], prox, { i: e.sel }, !it[5]))) return escritorioAviso("Girado, ele bateria em outro móvel ou sairia da área. Arraste para um lugar livre e gire de novo.");
-  it[3] = prox;
+  // Como no Habbo (moveFurniTo ao girar): girado, ele precisa caber na área e
+  // o que fica embaixo dele precisa aceitar peça em cima; senão não gira.
+  const pouso = escritorio.construtor?.ligado ? { altura: it[5] || 0 } : await escritorioPousoHabbo(it[0], it[1], it[2], prox, { i: e.sel });
+  if (pouso.erro || !(await escritorioCabe(it[0], it[1], it[2], prox, { i: e.sel }, false))) return escritorioAviso(pouso.erro || "Girado, ele sairia da área. Arraste para um lugar livre e gire de novo.");
+  it[3] = prox; it[5] = pouso.altura;
   escritorioEditorMudou();
 }
 function apagarSelecionadoEscritorio() {
@@ -406,6 +411,35 @@ function noChaoEscritorio() {
 }
 // Mesa (ou balcão, estante baixa) sob um ladrilho do mapa: onde a peça fica
 // em cima dela, centrada no tampo, e a altura do tampo.
+// Onde a peça pousa, pelas regras do servidor do Habbo (Room.furnitureFitsAt
+// e moveFurniTo): no topo mais alto de TODOS os ladrilhos que ela ocupa; não
+// pousa se o de cima de qualquer um deles não aceita peça em cima
+// (canputstuffon), se passaria da altura 40, se for sólida e houver alguém
+// num desses ladrilhos, ou no ladrilho da porta. Sobre assento que aceita
+// peça (sofá-cama), fica na base dele. Devolve { altura } ou { erro }.
+async function escritorioPousoHabbo(classe, lx, ly, dir, ignorar = null) {
+  const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
+  const d = await escritorio.mapa.medidas(classe, dir);
+  const fis = mapaFisica(classe), solida = !(fis.pisa || fis.senta || fis.deita);
+  const a = escritorioAmbienteDoQuarto(e.camada), porta = a && escritorioPortaQuarto(a);
+  const naPorta = (x, y) => porta && (porta.lado === "direita" ? x === porta.x && (y === porta.y || y === porta.y + 1) : y === porta.y && (x === porta.x || x === porta.x + 1));
+  const eu = escritorioPosicao(escritorio.perfil || {});
+  let altura = 0;
+  for (let i = 0; i < Math.max(1, Math.round(d.x)); i++) for (let j = 0; j < Math.max(1, Math.round(d.y)); j++) {
+    const tx = Math.floor(lx) + i, ty = Math.floor(ly) + j;
+    if (solida && naPorta(tx, ty)) return { erro: "A porta fica livre, como no Habbo." };
+    if (solida && (escritorioOcupado(c.x + tx, c.y + ty) || (Math.round(eu.x) === c.x + tx && Math.round(eu.y) === c.y + ty)))
+      return { erro: "Tem alguém nesse lugar. Espere sair para pôr um móvel ali." };
+    const aqui = (escritorio.mapa.moveisEm(c.x + tx, c.y + ty) || []).filter((m) => !m.parede && !m.pendurado
+      && !(ignorar && m.origem?.camada === e.camada && (m.origem?.i === ignorar.i || ignorar.grupo?.has(m.origem?.i))));
+    if (!aqui.length) continue;
+    const topo = aqui.reduce((x1, x2) => (mapaTopoMovel(x2) > mapaTopoMovel(x1) ? x2 : x1));
+    if (!mapaFisica(topo.classe).poe && !topo.plano) return { erro: "Não dá para pôr em cima disso (no Habbo esse móvel não aceita nada em cima)." };
+    altura = Math.max(altura, mapaFisica(topo.classe).senta ? topo.altura || 0 : mapaTopoMovel(topo));
+  }
+  if (altura > ESCRITORIO_ALTURA_MAX) return { erro: "Passaria da altura máxima do Habbo (40)." };
+  return { altura: Math.round(altura * 100) / 100 };
+}
 function escritorioEmCimaDe(x, y, ignorar = -1) {
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
   // Empilhar como no Habbo: só em cima do que a ficha deixa pôr coisas
@@ -790,11 +824,11 @@ async function previaEditorEscritorio(x, y) {
   try {
     const d = await escritorio.mapa.medidas(classe,dir);
     if (escritorio.edicao !== e) return;
-    const construtor = e.novo ? escritorioAlturaConstrutor(x, y) : null;
-    const sobre = construtor == null && e.novo && d.x<=1 && d.y<=1 ? escritorioEmCimaDe(x,y) : null;
-    if (sobre) { px=sobre.lx+aj.dx; py=sobre.ly+aj.dy; altura=sobre.altura; }
-    if (construtor != null) altura = construtor;
-    cabe = await escritorioCabe(classe,px,py,dir,e.sel !== null ? {i:e.sel} : null,!altura);
+    // A mesma regra do Habbo de quando solta (escritorioPousoHabbo).
+    const construtor = escritorioAlturaConstrutor(x, y);
+    const pouso = construtor != null ? { altura: construtor } : d.imagem ? { altura: 0 } : await escritorioPousoHabbo(classe, px, py, dir, e.novo ? null : { i: e.sel });
+    altura = pouso.altura ?? altura;
+    cabe = !pouso.erro && await escritorioCabe(classe,px,py,dir,e.sel !== null ? {i:e.sel} : null,false);
   } catch {}
   if (escritorio.edicao !== e || escritorioCameraEditor() || escritorio.ultimoPasso?.x !== x || escritorio.ultimoPasso?.y !== y || (e.novo || e.itens[e.sel]?.[0]) !== classe) return;
   escritorio.mapa?.previa(classe, px+c.x, py+c.y, dir, cabe, altura);
@@ -1065,12 +1099,15 @@ async function soltarNoEditorEscritorio(x, y, moveu) {
   // (armário sobre bancada, como no Habbo); no chão, volta ao chão.
   let imagem = false;
   try { imagem = Boolean((await escritorio.mapa.medidas(it[0], it[3])).imagem); } catch {}
-  const apoio = imagem ? null : escritorioApoioPara(nx, ny, a.i);
-  if (apoio != null && !MAPA_ASSENTOS.has(it[0])) { it[1] = nx; it[2] = ny; it[5] = apoio; return escritorioEditorMudou(); }
-  try { cabe = await escritorioCabe(it[0], nx, ny, it[3], { i: a.i }); } catch {}
-  if (!cabe) return escritorioAviso("Não cabe aí, ou já tem outro móvel no lugar. Solte dentro de " + escritorioNomeCamada(e.camada) + ".");
+  // Como no Habbo (moveFurniTo): assenta no topo mais alto do que fica
+  // embaixo, ou volta ao chão; recusa onde não dá para empilhar.
+  const construtor = escritorioAlturaConstrutor(Math.floor(x), Math.floor(y));
+  const pouso = imagem ? { altura: 0 } : construtor != null ? { altura: construtor } : await escritorioPousoHabbo(it[0], nx, ny, it[3], { i: a.i });
+  if (pouso.erro) return escritorioAviso(pouso.erro);
+  try { cabe = await escritorioCabe(it[0], nx, ny, it[3], { i: a.i }, false); } catch {}
+  if (!cabe) return escritorioAviso("Não cabe aí. Solte dentro de " + escritorioNomeCamada(e.camada) + ".");
   const ox = it[1], oy = it[2], estavaEmCima = it[5];
-  it[1] = nx; it[2] = ny; it[5] = 0;
+  it[1] = nx; it[2] = ny; it[5] = pouso.altura;
   if (!estavaEmCima) await escritorioLevarOQueEstaEmCima(a.i, ox, oy, nx - ox, ny - oy);
   escritorioEditorMudou();
 }
