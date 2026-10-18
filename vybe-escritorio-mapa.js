@@ -657,7 +657,10 @@ function mapaBonecoPronto(url, aoCarregar) {
 // ladrilho levava 172 ms e só dois quadros apareciam).
 // No Habbo o boneco anda um ladrilho a cada 500 ms (o ciclo do quarto).
 const MAPA_PASSO_MS = 500; // ms por ladrilho (2 ladrilhos por segundo)
-const MAPA_QUADRO_PASSO = MAPA_PASSO_MS / 4; // ms por quadro de passo
+// Quadro da animação do boneco no ritmo do Nitro (AvatarVisualization:
+// atualiza a cada 41 ms e troca o quadro a cada 2 atualizações = 82 ms, uns
+// 12 por segundo). Antes eram 125 ms e as pernas pareciam travadas.
+const MAPA_QUADRO_PASSO = 82; // ms por quadro de passo
 // Direção do Habbo (0–7) para um passo na grade.
 function mapaDirecaoDoPasso(dx, dy) {
   const a = Math.atan2(dy, dx);
@@ -1436,6 +1439,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     // na frente cobria a etiqueta).
     p.etiqueta.style.left = t.x + "px";
     p.etiqueta.style.top = t.y + MAPA_TH / 2 - 104 + "px";
+    if (setaId === String(p.id)) posicionarSeta(p);
     // Profundidade do Habbo (AvatarVisualization): a do ladrilho em que está
     // (o arredondado, como o Nitro faz no meio do passo), na altura do piso,
     // menos 0,01 (deitado, 0,409). Sentado numa cadeira com ajuste fino, a da
@@ -1575,14 +1579,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         const etiqueta = document.createElement("span");
         etiqueta.className = "mapa-etiqueta solta" + (q.id === eu ? " voce" : "");
         etiqueta.setAttribute("aria-hidden", "true");
-        etiqueta.addEventListener("click", (e) => { e.stopPropagation(); q.aoClicar?.(q.id); });
+        etiqueta.addEventListener("click", (e) => { e.stopPropagation(); selecionarPessoa(q.id); q.aoClicar?.(q.id); });
         etiqueta.addEventListener("pointerdown", (e) => e.stopPropagation());
         // Sombra no chão de quem está em pé ou andando (h_std_sd do Habbo, 50 de 255).
         const sombra = document.createElement("i");
         sombra.className = "mapa-sombra-boneco";
         no.append(sombra, img);
         palco.append(etiqueta);
-        no.addEventListener("click", (e) => { e.stopPropagation(); q.aoClicar?.(q.id); });
+        // Como no Habbo: clicar em alguém põe a seta de seleção em cima dele.
+        no.addEventListener("click", (e) => { e.stopPropagation(); selecionarPessoa(q.id); q.aoClicar?.(q.id); });
         no.addEventListener("focus", () => etiqueta.classList.add("foco"));
         no.addEventListener("blur", () => etiqueta.classList.remove("foco"));
         palco.append(no);
@@ -1735,10 +1740,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   el.addEventListener("pointermove", (e) => {
     if (!arrasto) {
       // Mouse passando (sem arrastar): avisa o ladrilho, para o cartão da mesa.
-      if (aoPassar && e.pointerType !== "touch") {
+      if (e.pointerType !== "touch") {
         const r = palco.getBoundingClientRect();
         const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
-        aoPassar(Math.floor(t.x), Math.floor(t.y), e.clientX, e.clientY);
+        aoPassar?.(Math.floor(t.x), Math.floor(t.y), e.clientX, e.clientY);
+        passarPonteiro(e.clientX, e.clientY, t);
       }
       return;
     }
@@ -1765,13 +1771,16 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     }
     const r = palco.getBoundingClientRect();
     const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
-    if (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H) aoClicar?.(t.x, t.y);
+    // O objeto sob o pixel vai junto (pessoa ou móvel); o ladrilho segue para andar.
+    const objeto = objetoEm(e.clientX, e.clientY);
+    if (objeto || (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H)) aoClicar?.(t.x, t.y, objeto && !(objeto.tipo === "movel" && ehChao(objeto.item)) ? objeto : null);
   });
   // Dois cliques num ladrilho: liga/desliga o móvel dali (como no Habbo).
   el.addEventListener("dblclick", (e) => {
     const r = palco.getBoundingClientRect();
     const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
-    if (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H) aoDuploClique?.(t.x, t.y);
+    const objeto = objetoEm(e.clientX, e.clientY);
+    if (t.x >= 0 && t.y >= 0 && t.x < P.W && t.y < P.H) aoDuploClique?.(t.x, t.y, objeto);
   });
   const cancelarPonteiro = () => {
     const a = arrasto; arrasto = null; inercia = null;
@@ -1780,7 +1789,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   };
   el.addEventListener("pointercancel", cancelarPonteiro);
   el.addEventListener("lostpointercapture", () => { if (arrasto) cancelarPonteiro(); });
-  el.addEventListener("pointerleave", () => aoPassar?.(-1, -1));
+  el.addEventListener("pointerleave", () => { aoPassar?.(-1, -1); if (cursor) cursor.hidden = true; el.classList.remove("mapa-sobre-objeto"); });
   el.addEventListener("wheel", (e) => {
     e.preventDefault();
     const r = el.getBoundingClientRect();
@@ -1823,6 +1832,101 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const dy = Math.max(Math.floor(m.y) - y, 0, y - (Math.floor(m.y) + h - 1));
       return Math.max(dx, dy) <= raio;
     });
+  }
+  // Interface do Habbo (cliente Nitro): o que está sob o mouse é escolhido
+  // pelo pixel desenhado (RoomSpriteCanvas testa o alpha de cada sprite, do
+  // mais à frente para o de trás), não pelo ladrilho do chão; o cursor de
+  // ladrilho oficial (tile_cursor) marca onde se pisa, na altura da pilha; a
+  // seta de seleção (selection_arrow) pula sobre a pessoa escolhida.
+  const amostra = document.createElement("canvas");
+  amostra.width = amostra.height = 1;
+  const amostraG = amostra.getContext("2d", { willReadFrequently: true });
+  const alfaEm = (fonte, rect, cx, cy, largura, altura) => {
+    const px = Math.floor(((cx - rect.left) * largura) / rect.width), py = Math.floor(((cy - rect.top) * altura) / rect.height);
+    if (px < 0 || py < 0 || px >= largura || py >= altura) return 0;
+    try { amostraG.clearRect(0, 0, 1, 1); amostraG.drawImage(fonte, px, py, 1, 1, 0, 0, 1, 1); return amostraG.getImageData(0, 0, 1, 1).data[3]; } catch { return 0; }
+  };
+  function objetoEm(cx, cy) {
+    const candidatos = [];
+    for (const m of moveis) {
+      const telas = m.no?.tagName === "CANVAS" ? [m.no] : [...(m.no?.querySelectorAll?.("canvas") || [])];
+      for (const c of telas) {
+        if (c.classList.contains("mapa-sombra")) continue;
+        const rect = c.getBoundingClientRect();
+        if (cx < rect.left || cx >= rect.right || cy < rect.top || cy >= rect.bottom) continue;
+        candidatos.push({ z: Number(c.style.zIndex || m.no.style.zIndex || 0), teste: () => alfaEm(c, rect, cx, cy, c.width, c.height) > 64, objeto: { tipo: "movel", item: m } });
+      }
+    }
+    for (const [id, q] of pessoas) {
+      const img = q.no?.querySelector("img");
+      if (!img || !img.naturalWidth) continue;
+      const rect = img.getBoundingClientRect();
+      if (cx < rect.left || cx >= rect.right || cy < rect.top || cy >= rect.bottom) continue;
+      candidatos.push({ z: Number(q.no.style.zIndex || 0), teste: () => alfaEm(img, rect, cx, cy, img.naturalWidth, img.naturalHeight) > 64, objeto: { tipo: "pessoa", id } });
+    }
+    candidatos.sort((a, b) => b.z - a.z);
+    return candidatos.find((c) => c.teste())?.objeto || null;
+  }
+  // Móvel que conta como chão para o clique e para o cursor (tapete, bloco de
+  // pisar, assento: no Habbo clicar nele leva até ele).
+  const ehChao = (m) => m.plano || mapaFisica(m.classe).pisa;
+  let cursor = null, cursorArte = null;
+  mapaCarregarMovel("tile_cursor").then((m) => { cursorArte = mapaDesenharMovel(m, 0, 0, 0); }).catch(() => {});
+  function mostrarCursor(x, y) {
+    if (!cursorArte || P.previa || x < 0 || y < 0 || !P.andavel?.(x, y)) { if (cursor) cursor.hidden = true; return; }
+    if (!cursor) {
+      cursor = cursorArte.canvas.cloneNode();
+      cursor.getContext("2d").drawImage(cursorArte.canvas, 0, 0);
+      cursor.className = "mapa-obj mapa-cursor";
+      // Acima do chão, dos tapetes e das paredes; abaixo de móveis e bonecos.
+      cursor.style.zIndex = 47999;
+      palco.append(cursor);
+    }
+    const t = mapaTela(x, y, { ...origem, alturaAtual: 0 });
+    cursor.style.left = t.x + cursorArte.ox + "px";
+    cursor.style.top = t.y + MAPA_TH / 2 + cursorArte.oy - alturaNoPiso(x, y) * MAPA_NIVEL_PX + "px";
+    cursor.hidden = false;
+  }
+  let passando = null, quadroPassar = null;
+  function passarPonteiro(cx, cy, t) {
+    passando = { cx, cy, t };
+    if (quadroPassar) return;
+    quadroPassar = requestAnimationFrame(() => {
+      quadroPassar = null;
+      const { cx, cy, t } = passando;
+      const o = objetoEm(cx, cy);
+      const naoChao = o && !(o.tipo === "movel" && ehChao(o.item));
+      el.classList.toggle("mapa-sobre-objeto", Boolean(naoChao));
+      if (naoChao) { if (cursor) cursor.hidden = true; }
+      else mostrarCursor(o?.tipo === "movel" ? Math.floor(o.item.x) : Math.floor(t.x), o?.tipo === "movel" ? Math.floor(o.item.y) : Math.floor(t.y));
+    });
+  }
+  let seta = null, setaArte = null, setaQuadro = 0, setaId = null, setaRelogio = null;
+  mapaCarregarMovel("selection_arrow").then((m) => { setaArte = m; }).catch(() => {});
+  function selecionarPessoa(id) {
+    setaId = id == null ? null : String(id);
+    clearInterval(setaRelogio);
+    if (!setaId || !setaArte) { seta?.remove(); seta = null; return; }
+    if (!seta) { seta = document.createElement("canvas"); seta.className = "mapa-obj mapa-seta"; seta.style.zIndex = 99500; palco.append(seta); }
+    const desenhar = () => {
+      const d = mapaDesenharMovel(setaArte, 0, 0, setaQuadro++);
+      if (!d) return;
+      seta.width = d.canvas.width; seta.height = d.canvas.height;
+      const g = seta.getContext("2d"); g.imageSmoothingEnabled = false; g.drawImage(d.canvas, 0, 0);
+      seta.dataset.ox = d.ox; seta.dataset.oy = d.oy;
+      const q = pessoas.get(setaId);
+      if (q) posicionarSeta(q);
+    };
+    desenhar();
+    // 4 quadros, cada um 3 ticks a 24 por segundo (frameRepeat do Nitro).
+    if (!reduzMov) setaRelogio = setInterval(desenhar, 125);
+  }
+  function posicionarSeta(q) {
+    if (!seta || String(q.id) !== setaId) return;
+    // A arte do Habbo já traz o deslocamento a partir dos pés do boneco (y = 140).
+    seta.style.left = parseFloat(q.no.style.left) + Number(seta.dataset.ox || 0) + "px";
+    // (14 px acima, para não cobrir a etiqueta do nome, que o Habbo não tem fixa).
+    seta.style.top = parseFloat(q.no.style.top) + Number(seta.dataset.oy || 0) - 14 + "px";
   }
   let realcado = null;
   function realcar(item) {
@@ -2058,7 +2162,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    objetoEm, selecionarPessoa, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
@@ -2083,6 +2187,6 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       return !moveis.some((m) => !/^fball_ball|^fball_goal/.test(m.classe) && !m.plano && !m.parede && nx >= Math.floor(m.x) && nx < Math.floor(m.x) + m.dim.x && ny >= Math.floor(m.y) && ny < Math.floor(m.y) + m.dim.y && !mapaFisica(m.classe).poe && !mapaFisica(m.classe).pisa);
     },
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() { clearInterval(setaRelogio); tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
 }

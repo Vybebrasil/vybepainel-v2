@@ -786,7 +786,7 @@ function atualizarPessoasEscritorio() {
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado, dirCama !== undefined && !(voce && escritorio.emMovimento)),
         mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || "",
         dir: sentado ? dirAssento : dirCama !== undefined ? dirCama : ESCRITORIO_APARELHOS[voce ? escritorio.pose : p.pose] ? escritorioNoAparelho(Math.round(pos.x), Math.round(pos.y))?.dir : undefined, local: voce,
-        aoClicar: abrirFichaEscritorio,
+        aoClicar: (id) => { fecharFichaMovelEscritorio(); abrirFichaEscritorio(id); },
       };
     }));
   }
@@ -936,6 +936,7 @@ function renderEscritorio() {
  <details class="ofc-onde" ${escritorio.ondeFechado ? "" : "open"} ontoggle="escritorio.ondeFechado=!this.open" ${modo === "mapa" ? "" : "hidden"}><summary>${escritorioIcone("pessoas")}<span>Quem está onde</span></summary><div id="office-onde"></div></details>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div id="office-mesa-card" class="ofc-mesa-card" role="dialog" aria-label="Sua mesa" hidden onmouseleave="this.hidden=true"></div>
+ <div id="office-movel-card" class="ofc-mesa-card ofc-ficha-movel" role="dialog" aria-label="Móvel selecionado" hidden></div>
  <div id="office-info-card" class="ofc-mesa-card ofc-info-card" role="status" hidden onmouseleave="this.hidden=true"></div>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
@@ -990,8 +991,8 @@ function montarMapaEscritorio() {
     escritorio.mapa = criarMapaEscritorio(el, {
       planta,
       eu: escritorio.base.eu,
-      aoClicar: (x, y) => cliqueNoMapaEscritorio(x, y),
-      aoDuploClique: (x, y) => alternarComDuploCliqueEscritorio(x, y),
+      aoClicar: (x, y, objeto) => cliqueNoMapaEscritorio(x, y, objeto),
+      aoDuploClique: (x, y, objeto) => alternarComDuploCliqueEscritorio(x, y, objeto),
       aoPassar: (x, y, cx, cy) => passarNoMapaEscritorio(x, y, cx, cy),
       aoPegar: (x, y, fx, fy) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y, fx, fy),
       aoArrastar: (x, y, fx, fy) => arrastarNoEditorEscritorio(x, y, fx, fy),
@@ -1587,8 +1588,66 @@ function escritorioLadoLivre(r) {
   }
   return candidatos.sort((a, b) => a.n - b.n)[0] || null;
 }
-function cliqueNoMapaEscritorio(x, y) {
+// Ficha do móvel (infostand do Habbo): o clique num móvel o seleciona e
+// mostra nome e ações, sem andar. Usar fica no botão e no duplo clique.
+function abrirFichaMovelEscritorio(m) {
+  const card = document.getElementById("office-movel-card");
+  if (!card || !m) return;
+  escritorio.movelSelecionado = m;
+  const cat = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === m.classe);
+  const nome = cat ? escritorioNomeMovel(cat) : m.classe.replace(/_/g, " ");
+  const acao = escritorioAcaoDoMovel(m) || (ESCRITORIO_REGULADOR.test(m.classe) ? { texto: "Regular a luz" } : null);
+  const camada = m.origem?.camada, edita = camada && escritorioPodeEditar(camada);
+  card.innerHTML = `<div class="ofc-ficha-movel-arte"></div><b>${safeText(nome)}</b>${cat?.categoria ? `<small>${safeText(cat.categoria)}</small>` : ""}<div>${acao ? `<button type="button" class="ofc-mini" onclick="usarMovelSelecionadoEscritorio()">${safeText(acao.texto || "Usar")}</button>` : ""}${edita ? `<button type="button" class="ofc-mini" onclick="editarMovelSelecionadoEscritorio()">Editar</button>` : ""}<button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()" aria-label="Fechar">Fechar</button></div>`;
+  // A arte do próprio móvel, como na ficha do Habbo.
+  const fonte = m.no?.tagName === "CANVAS" ? m.no : m.no?.querySelector("canvas");
+  if (fonte) {
+    const c = document.createElement("canvas"), k = Math.min(1, 96 / Math.max(fonte.width, fonte.height));
+    c.width = Math.round(fonte.width * k); c.height = Math.round(fonte.height * k);
+    const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
+    for (const parte of m.no?.tagName === "CANVAS" ? [m.no] : m.no.querySelectorAll("canvas")) g.drawImage(parte, 0, 0, c.width, c.height);
+    card.querySelector(".ofc-ficha-movel-arte").append(c);
+  }
+  card.hidden = false;
+  if (!escritorioCatalogo) carregarCatalogoEscritorio().then(() => { if (escritorio.movelSelecionado === m && !card.hidden) abrirFichaMovelEscritorio(m); });
+}
+function fecharFichaMovelEscritorio() {
+  escritorio.movelSelecionado = null;
+  const card = document.getElementById("office-movel-card");
+  if (card) card.hidden = true;
+}
+function usarMovelSelecionadoEscritorio() {
+  const m = escritorio.movelSelecionado;
+  if (!m) return;
+  fecharFichaMovelEscritorio();
+  if (!escritorioUsarAoClicar(Math.floor(m.x), Math.floor(m.y))) escritorioAcaoDoMovel(m)?.fazer?.();
+}
+function editarMovelSelecionadoEscritorio() {
+  const m = escritorio.movelSelecionado;
+  if (!m?.origem) return;
+  fecharFichaMovelEscritorio();
+  abrirEditorEscritorio(m.origem.camada);
+  const e = escritorio.edicao;
+  if (e && e.itens[m.origem.i]) { e.sel = m.origem.i; escritorioEditorMudou?.(); }
+}
+function cliqueNoMapaEscritorio(x, y, objeto = null) {
   if (escritorio.edicao) { cliqueEditorEscritorio(x, y); return; }
+  // Como no Habbo: clicar em alguém seleciona (seta em cima e a ficha); num
+  // móvel que não é assento nem cama, seleciona e mostra a ficha, sem andar.
+  if (objeto?.tipo === "pessoa") {
+    fecharFichaMovelEscritorio();
+    escritorio.mapa?.selecionarPessoa(objeto.id);
+    abrirFichaEscritorio(objeto.id);
+    return;
+  }
+  escritorio.mapa?.selecionarPessoa(null);
+  if (objeto?.tipo === "movel") {
+    const m = objeto.item, f = mapaFisica(m.classe);
+    if (!(f.senta || f.deita) && !ESCRITORIO_REGULADOR.test(m.classe)) { abrirFichaMovelEscritorio(m); return; }
+    // Assento ou cama: anda até ele (pelo ladrilho do móvel, não o de trás).
+    x = Math.floor(m.x) + 0.5; y = Math.floor(m.y) + 0.5;
+  }
+  fecharFichaMovelEscritorio();
   escritorio.seguindoId = null;
   escritorio.usarAoChegar = null;
   escritorio.aoChegarNaCena = null;
@@ -1897,8 +1956,10 @@ function teletransportarEscritorio(id) {
 }
 // Dois cliques num móvel com estados (luminária, TV, lareira, fonte): passa
 // para o próximo estado, e todos veem (como no Habbo).
-function alternarComDuploCliqueEscritorio(x, y) {
+function alternarComDuploCliqueEscritorio(x, y, objeto = null) {
   if (escritorio.edicao || !escritorio.mapa) return;
+  // O móvel sob o pixel vale mais que o ladrilho do chão (Nitro).
+  if (objeto?.tipo === "movel") { x = Math.floor(objeto.item.x); y = Math.floor(objeto.item.y); fecharFichaMovelEscritorio(); }
   const m = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.parede && !ESCRITORIO_DADO.test(i.classe) && !ESCRITORIO_TELEPORTE.test(i.classe) && !MAPA_PORTAS.test(i.classe) && (escritorioEstadosDoMovel(i).length > 1 || ["relogio", "voto", "placar"].includes(escritorioLogica(i))));
   if (!m) return;
   if (/floor_switch/.test(m.classe)) return puxarAlavancaEscritorio(m);

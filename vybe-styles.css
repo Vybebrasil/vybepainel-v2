@@ -6390,6 +6390,13 @@ body.no-escritorio {overflow:hidden}
 .ofc-mesa-card b {font:700 13px var(--mac-ui)}
 .ofc-mesa-card small {font:500 12px var(--mac-ui);color:var(--ofc-suave,#c9bfb4)}
 .ofc-mesa-card div {display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+/* Ficha do móvel selecionado (infostand do Habbo): fixa no canto, com a arte. */
+.ofc-ficha-movel {right:72px;bottom:96px;justify-items:center;text-align:center}
+.ofc-ficha-movel .ofc-ficha-movel-arte {display:grid;place-items:center;min-height:56px;margin:0}
+.ofc-ficha-movel .ofc-ficha-movel-arte canvas {image-rendering:pixelated}
+/* Sobre pessoa ou móvel o ponteiro vira mão; o cursor de ladrilho do Habbo marca o chão. */
+.ofc-mapa.mapa-sobre-objeto {cursor:pointer}
+.mapa-cursor,.mapa-seta {pointer-events:none}
 
 /* Prévia do móvel no editor */
 .mapa-previa {opacity:.62;filter:drop-shadow(0 0 4px #4fd18b);pointer-events:none}
