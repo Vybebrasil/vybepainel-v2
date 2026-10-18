@@ -140,3 +140,19 @@ export function camadasDesenho(classe, dir, estado = 0) {
   camadasCache.set(chave, r);
   return r;
 }
+
+// Para onde a frente da peça olha (vetor no piso), uma regra só para o motor
+// de construção e o verificador. Arte de quatro direções: 0 → −y, 2 → +x,
+// 4 → +y, 6 → −x. De duas: peça comprida olha perpendicular ao lado
+// comprido, para quem vê a sala (+x ou +y), como a estante e a lareira da
+// cabana; peça quadrada depende da família da arte (a outra direção é o
+// espelho): na "0 e 2" a 0 olha para +x e a 2 para +y; na "2 e 4", a 2 olha
+// para +x e a 4 para +y (conferido no fliperama pichado, 18/10/2026).
+const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
+export function frenteDaPeca(dirs, w, h, dir) {
+  // "0 e 6" (divisória, banqueta de corrida) segue a rosa de quatro direções.
+  if (dirs.length >= 4 || dirs.includes(6)) return OLHA[dir];
+  if (w > h) return [0, 1];
+  if (h > w) return [1, 0];
+  return (dirs.includes(0) ? { 0: [1, 0], 2: [0, 1] } : { 2: [1, 0], 4: [0, 1] })[dir];
+}

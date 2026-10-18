@@ -5,7 +5,7 @@
 // node scripts/escritorio-auditar.mjs  (sai com erro se achar algo)
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
-import { silhueta, emComum, camadasDesenho } from "./escritorio-desenho.mjs";
+import { silhueta, emComum, camadasDesenho, frenteDaPeca } from "./escritorio-desenho.mjs";
 
 const ctx = { console, window: {}, document: {} };
 vm.createContext(ctx);
@@ -54,7 +54,7 @@ const ALTO = 92;
 // Salas já refeitas com a regra de desenho (o que um móvel cobre do outro e
 // a frente das máquinas): nelas é erro; nas outras, aviso até serem refeitas
 // (node scripts/escritorio-auditar.mjs --desenho lista os avisos).
-const DESENHO_CONFERIDO = new Set(["cafe", "recepcao"]);
+const DESENHO_CONFERIDO = new Set(["cafe", "recepcao", "reuniao"]);
 // Foto da cena (quanto de cada peça aparece): desligável para depurar.
 const FOTO = !process.argv.includes("--sem-foto");
 const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte de baixo do item
@@ -258,16 +258,7 @@ function auditar(cena, P, moveis, avisos) {
   // Na arte de duas direções o número não diz a frente (no armário gótico,
   // a direção 0 já fica comprida ao longo da parede da esquerda): vale a
   // forma. Comprida em x olha para +y; comprida em y olha para +x.
-  const frenteDe = (it, dirs) => {
-    if (dirs.length >= 4) return OLHA[it.dir];
-    if (it.w > it.h) return [0, 1];
-    if (it.h > it.w) return [1, 0];
-    // Peça quadrada de duas direções: depende da família da arte (a outra
-    // direção é o espelho). Na "0 e 2" a 0 olha para +x (encosta na parede
-    // da esquerda) e a 2 para +y; na "2 e 4", a 2 olha para +x e a 4 para +y.
-    // Conferido no fliperama pichado (graffiti_r24_arcademachine), 18/10/2026.
-    return (dirs.includes(0) ? { 0: [1, 0], 2: [0, 1] } : { 2: [1, 0], 4: [0, 1] })[it.dir];
-  };
+  const frenteDe = (it, dirs) => frenteDaPeca(dirs, it.w, it.h, it.dir);
   const contraParede = (x, y, nx, ny) => temParede(x, y, nx, ny) || nx < 0 || ny < 0 || nx >= P.W || ny >= P.H || (P.andavel && !P.andavel(nx, ny));
   // Tela de costas: computador, notebook ou monitor perto de assento precisa
   // olhar para ele (no Habbo a direção do móvel é para onde a tela aponta).

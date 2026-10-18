@@ -16,7 +16,7 @@
 // Gerar as cenas: node scripts/escritorio-compor.mjs (ver lá).
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
-import { silhueta, emComum } from "./escritorio-desenho.mjs";
+import { silhueta, emComum, frenteDaPeca } from "./escritorio-desenho.mjs";
 
 const PASTA = "assets/escritorio/habbo";
 const FICHA = JSON.parse(readFileSync(`${PASTA}/fisica.json`, "utf8"));
@@ -60,12 +60,10 @@ export function alturaNaParede(classe, dir, estado = 0) {
   return s ? (s.h - s.w / 2) / 32 : 1;
 }
 export const revestimento = (p) => ctx.__reveste(p.d, p.parede);
-// Para onde a frente da peça olha em cada direção (vetor no piso). Arte de
-// quatro direções: 0 → −y, 2 → +x, 4 → +y, 6 → −x. Arte de duas: "0 e 2"
-// (0 olha +x, 2 olha +y) ou "2 e 4" (2 olha +x, 4 olha +y).
+// Para onde a frente olha: a mesma regra do verificador (escritorio-desenho.mjs).
 export function frente(p, dir) {
-  if (p.dirs.length >= 4 || p.dirs.includes(6)) return { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] }[dir];
-  return (p.dirs.includes(0) ? { 0: [1, 0], 2: [0, 1] } : { 2: [1, 0], 4: [0, 1] })[dir];
+  const [w, h] = pegada(p, dir);
+  return frenteDaPeca(p.dirs, w, h, dir);
 }
 function dirPara(p, dx, dy) {
   const quer = Math.abs(dx) >= Math.abs(dy) ? [Math.sign(dx), 0] : [0, Math.sign(dy)];
@@ -83,6 +81,11 @@ export function novaCena(id, o = {}) {
   const w = o.w ?? (a ? a.x1 - a.x0 : undefined), h = o.h ?? (a ? a.y1 - a.y0 : undefined);
   const topoParede = o.topoParede ?? (a?.modelo ? ctx.__topo(a) : Infinity);
   if (!w || !h) throw new Error(`${id}: sala sem tamanho (nem na planta, nem na cena)`);
+  // Degraus da planta (nível de cada ladrilho): piso e tapete não atravessam
+  // degrau (a placa cobriria o desnível e o patamar sumiria).
+  const celdas = a?.modelo?.celdas;
+  const nivelPlanta = (x, y) => Number(celdas?.[y]?.[x] ?? 0) || 0;
+  const mesmoNivel = (x, y, pw, ph) => { const n = nivelPlanta(x, y); for (let i = 0; i < pw; i++) for (let j = 0; j < ph; j++) if (nivelPlanta(x + i, y + j) !== n) return false; return true; };
   const moveis = [], figurantes = [], erros = [];
   // Camadas por ladrilho: "piso" (piso de obra), "tapete", "solido" (móvel
   // no chão de um nível), "pilha" (lista do que está empilhado, com topo).
@@ -146,8 +149,13 @@ export function novaCena(id, o = {}) {
     // Piso de obra (tábuas, ladrilho) cobrindo um retângulo do térreo.
     piso(classe, { x0, y0, x1, y1, estado = 0 }) {
       const p = peca(classe), [pw, ph] = pegada(p, 0);
+      // Piso tem que ser pisável e rente (no Habbo, o que vai em cima de um
+      // piso com altura sobe junto; as tábuas da cabana têm 0,1).
+      if (!p.pisa) return falha(`piso ${classe} não é pisável na ficha do Habbo`);
+      if (p.topo > 0.01) return falha(`piso ${classe} tem altura ${p.topo} na ficha: o que vai em cima teria de subir junto; use um piso rente`);
       if ((x1 - x0) % pw || (y1 - y0) % ph) return falha(`piso ${classe} (${pw}×${ph}) não fecha o retângulo ${x0},${y0}–${x1},${y1}`);
       for (let x = x0; x < x1; x += pw) for (let y = y0; y < y1; y += ph) {
+        if (!mesmoNivel(x, y, pw, ph)) return falha(`piso ${classe} em ${x},${y} atravessa um degrau da planta`);
         moveis.push([classe, x, y, 0, estado, 0]);
         for (let i = 0; i < pw; i++) for (let j = 0; j < ph; j++) {
           const c = at(x + i, y + j, 0);
@@ -247,11 +255,14 @@ export function novaCena(id, o = {}) {
     // escolhe a direção que cobre e recusa o que não cobre.
     tapete(classe, x0, y0, x1, y1, nivel = 0) {
       const p = peca(classe), bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+      // Tapete rente: com altura na ficha, o que vai em cima teria de subir.
+      if (p.topo > 0.01) return falha(`tapete ${classe} tem altura ${p.topo} na ficha: o que vai em cima teria de subir junto; use um tapete rente`);
       // Sobra igual dos dois lados (senão o tapete fica torto, puxado para um lado).
       const op = p.dirs.map((d) => [d, ...pegada(p, d)]).filter(([, a, b]) => a >= bw && b >= bh && (a - bw) % 2 === 0 && (b - bh) % 2 === 0)
         .sort((u, v) => u[1] * u[2] - v[1] * v[2] || Math.abs(u[1] - bw) + Math.abs(u[2] - bh) - Math.abs(v[1] - bw) - Math.abs(v[2] - bh));
       if (!op.length) return falha(`tapete ${classe} não cobre o conjunto ${bw}×${bh} em ${x0},${y0} com a mesma sobra dos dois lados`);
       const [d, a, b] = op[0];
+      if (!mesmoNivel(x0 - (a - bw) / 2, y0 - (b - bh) / 2, a, b)) return falha(`tapete ${classe} em ${x0},${y0} atravessa um degrau da planta`);
       return api.por(classe, x0 - (a - bw) / 2, y0 - (b - bh) / 2, { dir: d, nivel });
     },
     // Peça pendurada do teto sobre o ladrilho (lâmpada, lustre, vaso de
@@ -267,7 +278,9 @@ export function novaCena(id, o = {}) {
       const m = niveis.get(1);
       if (!nivel && m && x >= m.x0 && x < m.x1 && y >= m.y0 && y < m.y1) return falha(`${nome(classe, x, y)} pendurada embaixo do mezanino`);
       const base = niveis.get(nivel).base, alt = Math.round((base + altura) * 1000) / 1000;
-      const sl = silhueta(classe, dir, estado, true);
+      // A altura conta pela peça, sem o facho da camada de luz (o lustre
+      // executivo tem um cone de luz que desce até o chão).
+      const sl = silhueta(classe, dir, estado) || silhueta(classe, dir, estado, true);
       if (sl) {
         const baixo = (16 - (sl.y + sl.h)) / 32 + alt, alto = (16 - sl.y) / 32 + alt;
         if (baixo < base + 3) return falha(`${nome(classe, x, y)} pendurada baixa demais: o desenho desce até ${baixo.toFixed(1)} (quem passa bate a cabeça)`);
