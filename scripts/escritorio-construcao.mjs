@@ -484,6 +484,11 @@ export function novaCena(id, o = {}) {
         const a = lado === "fundo" ? de * 32 + px : (ate * 32 - px - i.s.w), b = a + i.s.w;
         const y0 = -alt * 32 + i.s.y, y1 = y0 + i.s.h;
         if (alt + alturaNaParede(i.classe, dir, i.estado || 0) > topoParede + 0.05) falha(`${i.classe} na altura ${alt} passa do topo da parede (${topoParede})`);
+        // Só onde a parede existe: ladrilho recortado da planta não tem parede.
+        for (let t = Math.floor(pos); t <= Math.floor(pos + i.s.w / 32 - 1e-6) && t < (lado === "fundo" ? w : h); t++) {
+          const c = lado === "fundo" ? celdas?.[0]?.[t] : celdas?.[t]?.[0];
+          if (t < 0 || c === -1) { falha(`${i.classe} na parede ${lado} em ${pos}: ali não há parede (canto recortado da planta)`); break; }
+        }
         for (const q of paredes) if (q.lado === lado && a < q.b && b > q.a && y0 < q.y1 && y1 > q.y0) falha(`${i.classe} tapa ${q.nome} na parede`);
         paredes.push({ lado, a, b, y0, y1, nome: i.classe, classe: i.classe, x: lado === "fundo" ? pos : 0, y: lado === "fundo" ? 0 : pos, dir, estado: i.estado || 0, altura: alt });
         moveis.push([i.classe, lado === "fundo" ? pos : 0, lado === "fundo" ? 0 : pos, dir, i.estado || 0, alt]);

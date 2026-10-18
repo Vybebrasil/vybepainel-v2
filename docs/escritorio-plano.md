@@ -25,7 +25,7 @@ montagem. Também precisam funcionar como o Habbo: sentar, subir escada, empilha
    - **Reunião**: madeira escura com patamar. Montada; falta revisar no
      processo novo.
    - **Foco**: biblioteca com mezanino e escada. Montada em 18/10 (ver "Foco").
-   - **Auditório**: teatro com balcão. A fazer.
+   - **Auditório**: teatro com balcão. Montado em 18/10 (ver "Auditório").
    - **Produção**: estúdio de foto e vídeo. A fazer.
    - **Jogos**: fliperama escuro com neon. A fazer.
    - **Academia**: moderna, com tijolo vermelho e vidro. A fazer.
@@ -299,6 +299,32 @@ caber.
 - **Regra de parede rica:** passou a contar móvel alto encostado (1,5 nível ou
   mais: estante, armário, lareira) pela largura.
 
+## Auditório (montado em 18/10/2026)
+
+- **Planta nova**, em degraus de 1 nível (o Habbo sobe direto):
+  - palco no nível 1, no fundo;
+  - fosso no nível 0;
+  - quatro fileiras de plateia nos níveis 0 a 3, cada uma no seu degrau;
+  - foyer no nível 4, junto da porta;
+  - camarote no nível 5, na parede da esquerda (x 0–2), um degrau acima do
+    foyer.
+- **Peças:**
+  - tela de cinema e estrutura de luz pendurada sobre o palco;
+  - refletores e púlpito no canto esquerdo do palco, que dá vista ao camarote;
+  - poltronas vermelhas na plateia, com passadeira no corredor do eixo da
+    porta, e pretas no camarote;
+  - no foyer: bilheteria, pipoca, banco e dois projetores apontando para a
+    tela.
+- **Regras novas:**
+  - "Composição intencional" de plateia: assentos iguais virados para o
+    mesmo lado formam fileira, e a de trás pode cobrir um pouco a da frente
+    (na foto e no par).
+  - A bilheteria (cabine) não precisa de foco.
+  - Item de parede só onde a parede existe (canto recortado da planta).
+- **Lição:** a tela (6×1) na direção errada ficava ao longo da parede da
+  esquerda. Peça de parede do fundo se orienta por `olha` (frente conferida),
+  não por número de direção.
+
 ## Decisões do Paulo que valem
 
 - **Segundo reinício** (decisão de 18/10/2026):
@@ -322,6 +348,6 @@ caber.
 - **Branch:** `codex/escritorio-proximo`, com commits locais ainda não
   publicados (`git log origin/main..HEAD`).
 - **Verificação:**
-  - `npm run check` (461 testes passando em 18/10);
+  - `npm run check` (462 testes passando em 18/10);
   - `node scripts/escritorio-compor.mjs` (gera as cenas e roda o verificador);
   - conferir no navegador: `npm run dev`, depois Escritório → sala.

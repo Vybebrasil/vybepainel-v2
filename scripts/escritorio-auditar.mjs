@@ -44,7 +44,8 @@ const DE_TETO = /discoball|chandelier|hanging_?lamp|ceiling/;
 const INTERATIVOS = /coffee|fridge|water_dispenser|minibar|stove|microwave|school_c22_cafe|treadmill|bicycle|jukebox|hc25_6|pinball|arcade|retrogames|fireplace|floorlight|pooltable|projector|largescreen|_tv$|exe_table/;
 const FOCO = /table|desk|rigpro|hc26_2|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
 const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
-const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill|lifering|rela_rock|olympics_c16_sofa|racearcade/;
+// Cabine (bilheteria) é assento na ficha, mas quem está nela atende quem chega.
+const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill|lifering|rela_rock|olympics_c16_sofa|racearcade|ticket_booth/;
 const FRENTE = /arcade|pinball|retrogames|jukebox|bookcase|bookshelf|shelve|_shelf|tv$|screen|projector|fireplace|wrkdesk|minibar|fridge|stove|sink|counter|cabinet|cupboard|dispenser|mixingdesk|lectern|whiteboard|coffeemachine|microwave|printer|hc25_6|bardesk|rigpro/;
 // Peça que se usa de pé na frente (máquina, armário, estante): a frente
 // precisa dar para chão livre. Balcão, tela e púlpito ficam de frente para
@@ -54,7 +55,7 @@ const ALTO = 92;
 // Salas já refeitas com a regra de desenho (o que um móvel cobre do outro e
 // a frente das máquinas): nelas é erro; nas outras, aviso até serem refeitas
 // (node scripts/escritorio-auditar.mjs --desenho lista os avisos).
-const DESENHO_CONFERIDO = new Set(["cafe", "recepcao", "reuniao", "foco"]);
+const DESENHO_CONFERIDO = new Set(["cafe", "recepcao", "reuniao", "foco", "auditorio"]);
 // Foto da cena (quanto de cada peça aparece): desligável para depurar.
 const FOTO = !process.argv.includes("--sem-foto");
 const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte de baixo do item
@@ -644,7 +645,11 @@ function auditar(cena, P, moveis, avisos) {
       // encobrem, como em qualquer mesa de reunião (não é defeito de montagem).
       const daMesa = (assento, o) => !o.parede && !o.pessoa && [o.it, ...itens.filter((b) => empilhadoSobre(o.it, b))].some((b) => b !== assento
         && b.x - 1 <= assento.x && assento.x <= b.x + (b.w || 1) && b.y - 1 <= assento.y && assento.y <= b.y + (b.h || 1) && ctx.mapaFisica(b.classe).poe);
-      const mesmo = (d, o) => o === d || (o.pessoa && !d.pessoa) || (!d.pessoa && !d.parede && d.it.assento && daMesa(d.it, o)) || (d.pessoa && d.assento && daMesa(d.assento, o)) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
+      // Composição intencional: assentos iguais, virados para o mesmo lado,
+      // formam a fileira de uma plateia; na plateia em degraus a fileira de
+      // trás sempre cobre um pouco a da frente, como num teatro.
+      const fileira = (d, o) => !d.parede && !o.parede && !d.pessoa && !o.pessoa && d.it.assento && o.it.assento && d.it.classe === o.it.classe && d.it.dir === o.it.dir;
+      const mesmo = (d, o) => o === d || fileira(d, o) || (o.pessoa && !d.pessoa) || (!d.pessoa && !d.parede && d.it.assento && daMesa(d.it, o)) || (d.pessoa && d.assento && daMesa(d.assento, o)) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
       for (const d of donos) {
         if (d.superficie) continue;
         const ks = camadasFoto.filter((k) => k.d === d && !k.c.luz);
@@ -754,6 +759,9 @@ function auditar(cena, P, moveis, avisos) {
     // Peças de obra lado a lado (degraus, blocos, pedestais) se encaixam umas
     // nas outras; não é uma escondendo a outra.
     if (OBRA_DESENHO.test(f.it.classe) && OBRA_DESENHO.test(t.it.classe)) continue;
+    // Fileira de plateia (assentos iguais virados para o mesmo lado): a de
+    // trás cobre um pouco a da frente, como num teatro em degraus.
+    if (f.it.assento && t.it.assento && f.it.classe === t.it.classe && f.it.dir === t.it.dir) continue;
     if (n > 300 && n > t.s.n * (t.parede ? 0.2 : 0.4)) desenho.push(nomeCena(`${f.nome} esconde ${Math.round((n / t.s.n) * 100)}% de ${t.nome}`));
   }
   // Regras de interiores (decisão do Paulo, 18/10/2026: "fliperama na

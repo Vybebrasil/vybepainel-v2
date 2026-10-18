@@ -283,3 +283,12 @@ test("receitas do designer: lareira simétrica, mesa de reunião completa e cole
   t.por("plant_rose", 5, 5);
   assert.match(t.fechar().erros.join("\n"), /plant_rose fora da coleção da sala/);
 });
+
+test("item de parede só onde a parede existe (canto recortado da planta não tem parede)", () => {
+  const s = novaCena("auditorio", { acabamento: false });
+  s.parede("fundo", { de: 0, ate: 2, altura: 1.6 }, ["cine_light2"]);
+  assert.match(s.erros.join("\n"), /ali não há parede/);
+  const t = novaCena("auditorio", { acabamento: false });
+  t.parede("fundo", { de: 2.5, ate: 4.5, altura: 1.6 }, ["cine_light2"]);
+  assert.deepEqual(t.erros, []);
+});
