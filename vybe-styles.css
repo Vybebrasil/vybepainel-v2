@@ -6253,6 +6253,14 @@ body.no-escritorio {overflow:hidden}
 /* Balão de fala, reações e vídeo em bolha sobre o boneco; sala trancada. */
 .mapa-balao {position:absolute;left:50%;bottom:calc(100% + 26px);transform:translateX(-50%);width:max-content;max-width:220px;padding:7px 11px;border-radius:14px;background:#fff;color:#16171c;font:600 12px/1.35 var(--mac-ui);box-shadow:0 6px 18px #0006;white-space:normal;overflow-wrap:anywhere;animation:mapa-balao .25s ease-out;pointer-events:none;z-index:2}
 .mapa-balao::after {content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:#fff}
+/* Conversa no estilo do Habbo (ChatWidget do Nitro): faixa por cima do mapa;
+   cada fala com o rosto e o nome de quem falou, subindo em fila. */
+.mapa-conversa {position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3}
+.mapa-chat {position:absolute;display:flex;align-items:center;gap:4px;max-width:340px;min-height:26px;padding:3px 10px 3px 4px;border-radius:9px;background:#fff;color:#16171c;font:500 12px/1.3 var(--mac-ui);box-shadow:0 2px 0 #0000002e,0 0 0 1px #00000026;white-space:normal;overflow-wrap:anywhere;transition:top .45s ease-out;animation:mapa-fala-entra .2s ease-out}
+@keyframes mapa-fala-entra {from{opacity:0;transform:translateY(6px)}}
+.mapa-chat img {flex:none;width:27px;height:30px;margin:-6px 0 -4px;object-fit:cover;object-position:50% 0;image-rendering:pixelated}
+.mapa-chat b {flex:none;font-weight:700}
+@media(prefers-reduced-motion:reduce){.mapa-chat{transition:none;animation:none}}
 .mapa-reacao {position:absolute;bottom:90px;font-size:28px;animation:mapa-reacao 2.4s ease-out forwards;pointer-events:none;z-index:3}
 .mapa-video {position:absolute;left:50%;bottom:calc(100% + 26px);transform:translateX(-50%);width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--ofc-laranja,#ff8a35);background:#000;box-shadow:0 8px 20px #0007;pointer-events:none}
 .mapa-pessoa:has(.mapa-video) .mapa-balao {bottom:calc(100% + 118px)}
@@ -6396,6 +6404,13 @@ body.no-escritorio {overflow:hidden}
 .ofc-ficha-movel .ofc-ficha-movel-arte canvas {image-rendering:pixelated}
 /* Sobre pessoa ou móvel o ponteiro vira mão; o cursor de ladrilho do Habbo marca o chão. */
 .ofc-mapa.mapa-sobre-objeto {cursor:pointer}
+/* Menu sobre a cabeça de quem foi clicado (AvatarInfoWidget do Nitro). */
+.ofc-menu-pessoa {position:absolute;z-index:9;display:grid;min-width:132px;padding:6px;border-radius:12px;background:var(--ofc-vidro,#1d2029f0);border:1px solid var(--ofc-borda,#ffffff1f);box-shadow:0 12px 30px #0009;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:var(--ofc-texto,#fff)}
+.ofc-menu-pessoa[hidden] {display:none}
+.ofc-menu-pessoa b {padding:2px 8px 6px;font:700 12px var(--mac-ui);text-align:center}
+.ofc-menu-pessoa button {padding:6px 10px;border:0;border-radius:8px;background:none;color:inherit;font:500 12px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-menu-pessoa button:hover,.ofc-menu-pessoa button:focus-visible {background:#ffffff1a;outline:none}
+.ofc-ficha-movel .office-avatar {width:48px;height:auto}
 .mapa-cursor,.mapa-seta {pointer-events:none}
 
 /* Prévia do móvel no editor */
