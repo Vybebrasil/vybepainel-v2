@@ -104,3 +104,39 @@ export function emComum(a, b) {
     if (a.s.m[(y - a.sy) * a.s.w + (x - a.sx)] && b.s.m[(y - b.sy) * b.s.w + (x - b.sx)]) n++;
   return n;
 }
+
+// Cada camada do desenho com a sua máscara e o z da arte (para a foto da
+// cena, que põe camada por camada na profundidade do mapa). Mesma escolha
+// de quadro e de ponto de registro da silhueta. A sombra fica de fora; a
+// luz (ADD) e o que é quase transparente vêm marcados, para não taparem.
+const camadasCache = new Map();
+export function camadasDesenho(classe, dir, estado = 0) {
+  const chave = `${classe}|${dir}|${estado}`;
+  if (camadasCache.has(chave)) return camadasCache.get(chave);
+  const r = [];
+  const f0 = folha(classe);
+  if (f0?.png) {
+    const { dados, png } = f0, nome = dados.name, v = dados.visualizations.find((x) => x.size === 64);
+    const anim = v?.animations?.[estado] ? estado : 0;
+    for (let i = 0; i < (v?.layerCount || 1); i++) {
+      const L = { ...(v?.layers?.[i] || {}), ...(v?.directions?.[dir]?.layers?.[i] || {}) };
+      const seq = Object.values(v?.animations?.[anim]?.layers?.[i]?.frameSequences || {})[0]?.frames;
+      const id = seq ? Object.values(seq)[0]?.id ?? 0 : 0;
+      const asset = `${nome}_64_${String.fromCharCode(97 + i)}_${dir}_${id}`, a = dados.assets[asset];
+      if (!a) continue;
+      const f = dados.spritesheet.frames[`${nome}_${a.source || asset}`]?.frame;
+      if (!f) continue;
+      const flip = Boolean(a.flipH), x = flip ? a.x - f.w : -a.x, y = -a.y;
+      const m = new Uint8Array(f.w * f.h);
+      let n = 0;
+      for (let j = 0; j < f.h; j++) for (let k = 0; k < f.w; k++) {
+        const sx = f.x + (flip ? f.w - 1 - k : k), sy = f.y + j;
+        if (sx >= png.w || sy >= png.h || png.alfa[sy * png.w + sx] < 128) continue;
+        m[j * f.w + k] = 1; n++;
+      }
+      if (n) r.push({ i, z: L.z || 0, luz: L.ink === "ADD" || (L.alpha != null && L.alpha < 128), x, y, w: f.w, h: f.h, m, n });
+    }
+  }
+  camadasCache.set(chave, r);
+  return r;
+}

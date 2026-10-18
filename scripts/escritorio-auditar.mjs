@@ -5,7 +5,7 @@
 // node scripts/escritorio-auditar.mjs  (sai com erro se achar algo)
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
-import { silhueta, emComum } from "./escritorio-desenho.mjs";
+import { silhueta, emComum, camadasDesenho } from "./escritorio-desenho.mjs";
 
 const ctx = { console, window: {}, document: {} };
 vm.createContext(ctx);
@@ -16,6 +16,11 @@ vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8") + "\n;globalThis
 // A mesma ficha de física do Habbo que o mapa carrega.
 ctx.__ficha = JSON.parse(readFileSync("assets/escritorio/habbo/fisica.json", "utf8"));
 vm.runInContext("MAPA_FISICA = globalThis.__ficha;", ctx);
+const folhas = new Map();
+const folhaArte = (c) => {
+  if (!folhas.has(c)) { const f = `assets/escritorio/habbo/${c}.json`; folhas.set(c, existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null); }
+  return folhas.get(c);
+};
 const arte = (c) => {
   const f = `assets/escritorio/habbo/${c}.json`;
   if (!existsSync(f)) return null;
@@ -49,7 +54,9 @@ const ALTO = 92;
 // Salas já refeitas com a regra de desenho (o que um móvel cobre do outro e
 // a frente das máquinas): nelas é erro; nas outras, aviso até serem refeitas
 // (node scripts/escritorio-auditar.mjs --desenho lista os avisos).
-const DESENHO_CONFERIDO = new Set(["lounge"]);
+const DESENHO_CONFERIDO = new Set(["cafe"]);
+// Foto da cena (quanto de cada peça aparece): desligável para depurar.
+const FOTO = !process.argv.includes("--sem-foto");
 const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte de baixo do item
 
 // Confere uma cena: a planta (mapa geral ou quarto) e os móveis dela
@@ -72,7 +79,10 @@ function auditar(cena, P, moveis, avisos) {
     if (!a) { problemas.push(nomeCena(`${classe} (${x},${y}) sem arte no painel`)); continue; }
     if (a.parede) {
       if (![2, 4].includes(dir0)) problemas.push(nomeCena(`${classe} (${x},${y}) de parede com direção ${dir0}`));
-      pendurados.push({ classe, x: Math.floor(x), y: Math.floor(y), rx: x, ry: y, altura, estado: m[4] || 0, dir: dir0, w: Math.max(1, Math.round(a.d.x || 1)), alto: a.alto });
+      // Revestimento (papel de parede, lambri): fica por baixo dos quadros e
+      // atrás dos móveis, de propósito (a regra é a do mapa, mapaEhRevestimento).
+      const reveste = ctx.mapaEhRevestimento(a.d, true);
+      pendurados.push({ classe, x: Math.floor(x), y: Math.floor(y), rx: x, ry: y, altura, estado: m[4] || 0, dir: dir0, w: Math.max(1, Math.round(a.d.x || 1)), alto: a.alto, reveste });
       continue;
     }
     let dir = dir0;
@@ -111,17 +121,26 @@ function auditar(cena, P, moveis, avisos) {
   const topoDe = (o) => (o.altura || 0) + (ctx.__tampos[o.classe] ?? ctx.mapaFisica(o.classe).altura ?? (arte(o.classe)?.d.z || 0));
   // Pendurado (mesma regra do mapa, marcarPendurados): peça fina no alto sem
   // nada embaixo na altura dela; passa-se por baixo e não precisa de apoio.
-  for (const it of itens) it.pendurado = Boolean(it.altura > 0) && !(topoDe({ ...it, altura: 0 }) > 0.05) &&
+  const PISO_DE_OBRA = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmfloor|_deck$|parquet/;
+  for (const it of itens) it.pendurado = Boolean(it.altura > 0) && !PISO_DE_OBRA.test(it.classe) && !(topoDe({ ...it, altura: 0 }) > 0.05) &&
     !itens.some((o) => o !== it && !o.parede && o.x < it.x + it.w && o.x + o.w > it.x && o.y < it.y + it.h && o.y + o.h > it.y && (o.altura || 0) < it.altura && topoDe(o) >= it.altura - 0.15);
   for (const it of itens) {
-    if (!it.altura || DE_TETO.test(it.classe) || it.pendurado) continue;
-    if (!ocup.has(`${it.x},${it.y}`)) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) flutuando`)); continue; }
-    const abaixo = itens.filter((o) => o !== it && !o.plano && (o.altura || 0) < it.altura && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
+    // Piso de obra no alto fica onde o construtor pôs (no Habbo, pelo
+    // empilhador), sobre vigas e colunas; o que vai em cima dele é conferido.
+    if (!it.altura || DE_TETO.test(it.classe) || it.pendurado || PISO_DE_OBRA.test(it.classe)) continue;
+    // Base: o que está embaixo no ladrilho, inclusive piso de construtor
+    // (tábua fina posta no alto, como o mezanino do Café): no Habbo a peça
+    // apoia no topo do que estiver embaixo, em qualquer altura.
+    const abaixo = itens.filter((o) => o !== it && (!o.plano || (o.altura || 0) > 0) && (o.altura || 0) < it.altura && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
+    if (!ocup.has(`${it.x},${it.y}`) && !abaixo.some((o) => Math.abs(topoDe(o) - it.altura) <= 0.12)) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) flutuando`)); continue; }
     if (!abaixo.length) continue;
     const base = abaixo.reduce((a, b) => (topoDe(b) > topoDe(a) ? b : a)), tampo = topoDe(base);
     // Como no Habbo: só se empilha em cima do que a ficha deixa pôr coisas
     // (canputstuffon). Cadeira, cama, planta e luminária não são base.
-    if (!ctx.mapaFisica(base.classe).poe) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) empilhado em cima de ${base.classe}, que no Habbo não aceita nada em cima`));
+    // Peça de obra (escada, pedestal, bloco, caixote, coluna, piso) se empilha
+    // como no empilhador do Habbo; o resto só onde a ficha deixa pôr coisas.
+    const OBRA = /stairs|hc25_8|plinth|crate|block|woodtile|pillar|floorboards|_floor\d*$|plankfloor|stackmagic/;
+    if (!ctx.mapaFisica(base.classe).poe && !(OBRA.test(base.classe) && OBRA.test(it.classe))) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) empilhado em cima de ${base.classe}, que no Habbo não aceita nada em cima`));
     if (Math.abs(tampo - it.altura) > 0.12) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) na altura ${it.altura}, mas o topo de ${base.classe} fica em ${Math.round(tampo * 100) / 100}`));
   }
   // Assento: precisa de um ladrilho livre ao lado, sem parede no meio, para chegar.
@@ -160,8 +179,17 @@ function auditar(cena, P, moveis, avisos) {
   const g = ctx.__grade(P, naGrade);
   const E = P.entrada;
   const chega = new Set([`${E.x},${E.y}`]), fila = [[E.x, E.y]];
+  // Teleporte em par (duas cabines do mesmo modelo na cena): quem chega ao
+  // lado de uma sai na frente da outra, como no mapa (andar de cima do Café).
+  const teles = itens.filter((o) => /teleport|_tele$/.test(o.classe));
+  const pares = teles.filter((o) => teles.filter((q) => q.classe === o.classe).length === 2);
   while (fila.length) {
     const [x, y] = fila.shift();
+    for (const a of pares) {
+      if (Math.abs(a.x - x) > 1 || Math.abs(a.y - y) > 1) continue;
+      const b = pares.find((q) => q !== a && q.classe === a.classe), [fx, fy] = OLHA[b.dir] || [0, 1], k = `${b.x + fx},${b.y + fy}`;
+      if (!chega.has(k)) { chega.add(k); fila.push([b.x + fx, b.y + fy]); }
+    }
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
       const k = `${x + dx},${y + dy}`;
       if (!chega.has(k) && ctx.__passa(g, x, y, dx, dy)) { chega.add(k); fila.push([x + dx, y + dy]); }
@@ -211,7 +239,7 @@ function auditar(cena, P, moveis, avisos) {
         const x = it.x + i + dx * k + (dy ? l : 0), y = it.y + j + dy * k + (dx ? l : 0);
         if (k > 1 && temParede(x - dx, y - dy, x, y)) continue;
         if (pi && x >= pi.x0 && x < pi.x1 && y >= pi.y0 && y < pi.y1) { achou = true; break; }
-        const alvo = itens.find((o) => o !== it && !o.plano && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
+        const alvo = itens.find((o) => o !== it && (!o.plano || FOCO.test(o.classe)) && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
         // Também vale o que tem tampo no Habbo (balcão de caixotes, bancada):
         // senta-se de frente para onde se apoia o copo.
         if (alvo && (FOCO.test(alvo.classe) || (!alvo.assento && ctx.mapaFisica?.(alvo.classe)?.poe && ctx.mapaFisica(alvo.classe).altura != null) || (alvo.assento && OLHA[alvo.dir] && ((OLHA[alvo.dir][0] === -dx && OLHA[alvo.dir][1] === -dy) || alvo.dir === it.dir)))) achou = true;
@@ -380,6 +408,7 @@ function auditar(cena, P, moveis, avisos) {
     for (let k = 0; k < q.w; k++) {
       const x = q.dir === 4 ? q.x + k : q.x, y = q.dir === 4 ? q.y : q.y + k;
       if (!paredeEm(x, y, q.dir === 4 ? "x" : "y")) { problemas.push(`${nome} pendurado sem parede atrás`); break; }
+      if (q.reveste) break;
       const alto = itens.find((o) => !o.plano && !o.altura && x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h && (arte(o.classe)?.alto || 0) > ALTO);
       if (alto) { problemas.push(`${nome} atrás de ${alto.classe} (${alto.x},${alto.y})`); break; }
     }
@@ -399,7 +428,18 @@ function auditar(cena, P, moveis, avisos) {
   // Item de parede mais alto que a parede: o desenho é empurrado para baixo
   // e a peça aparece rente ao chão (arandela do cinema, por exemplo). A
   // altura que conta é a do desenho menos a inclinação da largura.
+  // Na cena (quarto), a parede é a do Habbo: 3,6 níveis mais o acréscimo da
+  // sala e o nível mais alto da planta (escritorioTopoDaParede). O item tem
+  // que caber da altura em que foi posto até o topo, medido pelo desenho.
+  const topoCena = quarto ? 3.6 + Math.max(0, quarto.alturaParedeFixa ?? -1) + Math.max(0, ...(quarto.modelo?.celdas || [[0]]).flat()) : null;
   for (const q of pendurados) {
+    if (topoCena != null) {
+      const s = silhueta(q.classe, q.dir === 2 ? 2 : 4, q.estado);
+      if (!s) continue;
+      const ate = (q.altura || 0) + (P.alturaEm?.(q.x, q.y) ?? P.nivelEm?.(q.x, q.y) ?? 0) + (s.h - s.w / 2) / 32;
+      if (ate > topoCena + 0.3) desenho.push(nomeCena(`${q.classe} (${q.x},${q.y}) não cabe na parede (o desenho vai até ${ate.toFixed(1)}, a parede acaba em ${topoCena})`));
+      continue;
+    }
     const dv = P.divisorias.find(([x0, y0, x1, y1]) => (q.dir === 4 ? y0 === y1 && y0 === q.y && q.x >= x0 && q.x < x1 : x0 === x1 && x0 === q.x && q.y >= y0 && q.y < y1));
     const alt = dv?.alt ?? (dv?.baixa ? 46 : 118);
     const util = q.alto - q.w * 16;
@@ -408,7 +448,9 @@ function auditar(cena, P, moveis, avisos) {
   // Dois itens pendurados no mesmo trecho de parede (um cobre o outro).
   const trechos = new Map();
   for (const q of pendurados) for (let k = 0; k < q.w; k++) {
-    const chave = q.dir === 4 ? `x:${q.x + k},${q.y}` : `y:${q.x},${q.y + k}`;
+    // Revestimento só conflita com outro na mesma faixa de altura (lambri
+    // embaixo e papel em cima são duas faixas da mesma parede).
+    const chave = (q.reveste ? `r${q.altura}:` : "") + (q.dir === 4 ? `x:${q.x + k},${q.y}` : `y:${q.x},${q.y + k}`);
     if (trechos.has(chave)) problemas.push(nomeCena(`${q.classe} (${q.x},${q.y}) em cima de ${trechos.get(chave)} na parede`));
     else trechos.set(chave, `${q.classe} (${q.x},${q.y})`);
   }
@@ -429,28 +471,63 @@ function auditar(cena, P, moveis, avisos) {
   // Peça empilhada em cima de outra e tapete não contam.
   const nivel = (x, y) => P.alturaEm?.(x, y) ?? P.nivelEm?.(x, y) ?? 0;
   const naTela = [];
+  // Quem fica na frente: a mesma conta do mapa (a do Nitro): ladrilho de
+  // origem, altura e a camada mais da frente da arte (z do Habbo). Antes era
+  // uma conta própria (soma dos ladrilhos) que discordava do mapa: o vaso
+  // pendurado do Café ficava atrás do guarda-corpo e o verificador dizia
+  // que estava na frente. Maior = mais atrás.
+  const profNitro = (it) => {
+    const j = folhaArte(it.classe), v = j?.visualizations?.find((x) => x.size === 64), zs = [];
+    for (let i = 0; i < (v?.layerCount || 1); i++) {
+      const L = { ...(v?.layers?.[i] || {}), ...(v?.directions?.[it.dir]?.layers?.[i] || {}) };
+      if (L.ink === "ADD" || /_sd_/.test(`_${L.tag || ""}_`)) continue;
+      zs.push(L.z || 0);
+    }
+    return ctx.mapaProfundidade(it.rx, it.ry, it.altura || 0) + ctx.mapaProfCamada(zs.length ? Math.max(...zs) : 0, 0);
+  };
   const PENDE = /grungelamp|hanginglight|chandelier|ceiling_lamp|lantern/;
+  // Pendurada é a peça que o mapa pendura (fina, no alto, sem nada embaixo:
+  // lustre, vaso de planta, viga), não só a que tem "lamp" no nome; o vaso
+  // atrás do lustre do Café passava porque o nome era outro (18/10/2026).
+  // A arte do Habbo de lustre e vaso pendurado já vem no alto com altura
+  // zero: conta como pendurada a peça fina e pisável cujo desenho começa
+  // acima da cabeça (2 níveis ou mais).
+  const pende = (it) => {
+    if (it.pende != null) return it.pende;
+    let r = PENDE.test(it.classe) || Boolean(it.pendurado);
+    if (!r && !it.parede && !/door|teleport|gate/.test(it.classe) && ctx.mapaFisica(it.classe).pisa && (ctx.mapaFisica(it.classe).altura ?? 1) <= 0.11) {
+      const s = silhueta(it.classe, it.dir, it.estado, true);
+      r = Boolean(s) && (16 - (s.y + s.h)) / 32 + (it.altura || 0) >= 2;
+    }
+    return (it.pende = r);
+  };
+  const OBRA_DESENHO = /stairs|hc25_8|plinth|crate|block|woodtile|floorboards|_floor\d*$/;
   for (const it of itens) {
     // Peça plana (tapete, lâmpada pendurada, neon) entra também: não conta
     // para esconder outra (exceto a lâmpada), mas conta no topo da parede.
     // Neon e luz: o brilho (camada de luz) é o que mais aparece; conta.
-    let s = silhueta(it.classe, it.dir, it.estado, PENDE.test(it.classe) || /neon/.test(it.classe));
+    let s = silhueta(it.classe, it.dir, it.estado, pende(it) || /neon/.test(it.classe));
     if (!s) continue;
     // Da lâmpada pendurada conta só a ponta (lâmpada e bocal): o fio fino
     // sobe até o teto e cruza o que estiver atrás, como nas referências.
-    if (PENDE.test(it.classe) && s.h > 60) {
+    const inteira = s;
+    if (pende(it) && s.h > 60) {
       const corte = s.h - 60, m = s.m.slice(corte * s.w);
       s = { ...s, y: s.y + corte, h: 60, m, n: m.reduce((a, b) => a + b, 0) };
     }
-    naTela.push({ it, s, sx: (it.rx - it.ry) * 32 + s.x, sy: (it.rx + it.ry) * 16 - nivel(it.x, it.y) * 32 + s.y + 16 - it.altura * 32,
-      fundo: it.x + it.w - 1 + it.y + it.h - 1, nome: `${it.classe} (${it.x},${it.y})`, plano: it.plano && !PENDE.test(it.classe) });
+    naTela.push({ it, s, inteira, sx: (it.rx - it.ry) * 32 + s.x, sy: (it.rx + it.ry) * 16 - nivel(it.x, it.y) * 32 + s.y + 16 - it.altura * 32,
+      fundo: profNitro(it), nome: `${it.classe} (${it.x},${it.y})`,
+      // Para o desenho, "rente ao piso" é pela arte: poste que a ficha deixa
+      // pisar (altura zero) continua alto e pode atravessar outra peça.
+      plano: it.plano && !pende(it) && (arte(it.classe)?.alto || 0) <= (it.w + it.h) * 16 + 12 });
   }
   for (const q of pendurados) {
+    if (q.reveste) continue;
     const s = silhueta(q.classe, q.dir === 2 ? 2 : 4, q.estado);
     if (!s) continue;
     const [ax, ay] = q.dir === 2 ? [q.x, q.ry + 0.5] : [q.rx + 0.5, q.y];
     naTela.push({ it: q, s, parede: true, sx: (ax - ay) * 32 + s.x, sy: (ax + ay) * 16 - nivel(q.x, q.y) * 32 + s.y - 46 - (q.altura || 0) * 32,
-      fundo: -1e3, nome: `${q.classe} (${q.x},${q.y})` });
+      fundo: 1e3, nome: `${q.classe} (${q.x},${q.y})` });
   }
   // Peça encostada na parede não pode passar do topo dela: o que sobra
   // aparece por trás da cornija (neon do palco do Lounge, 18/10/2026).
@@ -459,7 +536,7 @@ function auditar(cena, P, moveis, avisos) {
     const topo = 3.6 + Math.max(0, quarto.alturaParedeFixa ?? -1) + Math.max(0, ...(quarto.modelo?.celdas || [[0]]).flat());
     for (const t of naTela) {
       const o = t.it;
-      if (t.parede || PENDE.test(o.classe) || (o.altura || 0) + nivel(o.x, o.y) >= topo - 0.6) continue;
+      if (t.parede || pende(o) || (o.altura || 0) + nivel(o.x, o.y) >= topo - 0.6) continue;
       if (itens.some((q) => q !== o && q.classe === o.classe && q.x === o.x && q.y === o.y)) continue;
       const fundo = o.y === quarto.y0, esquerda = o.x === quarto.x0;
       if (!fundo && !esquerda) continue;
@@ -474,32 +551,193 @@ function auditar(cena, P, moveis, avisos) {
       if (acima > 30) desenho.push(nomeCena(`${t.nome} passa do topo da parede: aparece por trás dela`));
     }
   }
-  const empilhado = (a, b) => (a.altura || 0) > 0 && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1);
+  // Foto da cena: cada camada de cada peça posta na tela com a mesma
+  // posição e a mesma profundidade do mapa (Nitro: ladrilho de origem,
+  // altura e z da camada; tapete na faixa do piso; revestimento na faixa
+  // do fundo da parede), e a conta de quanto de cada peça fica à vista.
+  // Pega o que as regras de par não pegam: peça cortada, sumida atrás de
+  // outra ou desenhada fora do lugar, seja qual for o motivo.
+  if (FOTO) {
+    const PISO_DE_OBRA_FOTO = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmfloor|_deck$|parquet|woodtile/;
+    // Apoiada em cima (em qualquer altura da pilha, no ladrilho da de baixo).
+    const empilhadoSobre = (a, b) => (a.altura || 0) > (b.altura || 0) && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1) && !pende(a);
+    const camadasFoto = [];
+    const donos = [];
+    const pos = (it, parede) => parede
+      ? (() => { const [ax, ay] = it.dir === 2 ? [it.x, it.ry + 0.5] : [it.rx + 0.5, it.y]; return { sx: (ax - ay) * 32, sy: (ax + ay) * 16 - nivel(it.x, it.y) * 32 - 46 - (it.altura || 0) * 32 }; })()
+      : { sx: (it.rx - it.ry) * 32, sy: (it.rx + it.ry) * 16 - nivel(it.x, it.y) * 32 + 16 - (it.altura || 0) * 32 };
+    const zDe = (prof, plano) => (plano ? ctx.mapaZPlano(prof) : ctx.mapaZ(prof));
+    for (const it of itens) {
+      const cs = camadasDesenho(it.classe, it.dir, it.estado);
+      if (!cs.length) continue;
+      const a = arte(it.classe), alto = Math.max(...cs.map((c) => c.y + c.h)) - Math.min(...cs.map((c) => c.y));
+      const fis = ctx.mapaFisica(it.classe);
+      // Mesma regra do mapa para "rente ao piso".
+      const plano = !it.altura && !(a.d.z > 0.05) && alto <= ((a.d.x || 1) + (a.d.y || 1)) * 16 + 12 && (!ctx.__ficha[it.classe] || fis.pisa);
+      const base = ctx.mapaProfundidade(it.rx, it.ry, it.altura || 0), { sx, sy } = pos(it, false);
+      const ordem = [...cs].sort((u, v) => u.z - v.z || u.i - v.i);
+      const grupo = new Map();
+      for (const c of ordem) if (!grupo.has(c.z)) grupo.set(c.z, ctx.mapaProfCamada(c.z, c.i));
+      // Superfície (piso de obra, tapete alto na ficha, tábua): existe para
+      // ficar embaixo; não se cobra que apareça.
+      const superficie = plano || PISO_DE_OBRA_FOTO.test(it.classe) || alto <= ((a.d.x || 1) + (a.d.y || 1)) * 16 + 12;
+      const d = { it, nome: `${it.classe} (${it.x},${it.y})`, plano, superficie, pende: pende(it), parede: false, total: 0, visto: 0, por: new Map() };
+      donos.push(d);
+      for (const c of cs) camadasFoto.push({ d, c, x: sx + c.x, y: sy + c.y, z: zDe(base + grupo.get(c.z), plano) });
+    }
+    for (const q of pendurados) {
+      const dir = q.dir === 2 ? 2 : 4, cs = camadasDesenho(q.classe, dir, q.estado);
+      if (!cs.length) continue;
+      // Como no mapa: revestimento inteiro na faixa do fundo da parede; o
+      // resto, cada camada na profundidade do z dela (Nitro).
+      const baseP = q.dir === 2 ? ctx.mapaProfundidade(q.x - 0.5, q.ry, q.altura || 0) : ctx.mapaProfundidade(q.rx, q.y - 0.5, q.altura || 0);
+      const grupoP = new Map();
+      for (const c of [...cs].sort((u, v) => u.z - v.z || u.i - v.i)) if (!grupoP.has(c.z)) grupoP.set(c.z, ctx.mapaProfCamada(c.z, c.i));
+      const zDaCamada = (c) => (q.reveste ? ctx.mapaZRevestimento(ctx.mapaProfFundoParede(folhaArte(q.classe), dir)) : ctx.mapaZ(baseP + grupoP.get(c.z)));
+      const { sx, sy } = pos(q, true);
+      const d = { it: q, nome: `${q.classe} (${q.x},${q.y})`, plano: q.reveste, superficie: q.reveste, pende: false, parede: true, total: 0, visto: 0, por: new Map() };
+      donos.push(d);
+      for (const c of cs) camadasFoto.push({ d, c, x: sx + c.x, y: sy + c.y, z: zDaCamada(c) });
+    }
+    // Figurantes: a arte do boneco vem do servidor do Habbo e não está
+    // aqui; entra uma silhueta do tamanho dele (em pé 28 × 100 px, sentado
+    // 28 × 80), no ponto e na profundidade que o mapa dá às pessoas
+    // (posicionarPessoa: ladrilho, altura do assento, menos 0,01). Da pessoa
+    // conta a cabeça (as 32 linhas de cima): é o que precisa aparecer, e
+    // quase inteira (o lustre cobrindo um quarto dela já tapava o rosto).
+    for (const f of P.figurantes || []) {
+      const sentado = f.acao === "sit";
+      const assento = sentado ? itens.find((o) => o.assento && f.x >= o.x && f.x < o.x + o.w && f.y >= o.y && f.y < o.y + o.h) : null;
+      const sobe = (P.alturaEm?.(f.x, f.y) ?? 0) + (assento ? (assento.altura || 0) + (ctx.mapaFisica(assento.classe).altura ?? 1) - 1 : 0);
+      const w = 28, h = sentado ? 80 : 100, m = new Uint8Array(w * h).fill(1);
+      const c = { i: 0, z: 0, luz: false, x: -w / 2, y: -h - 4, w, h, m, n: w * h };
+      const d = { it: { classe: "figurante", x: f.x, y: f.y }, assento, nome: `figurante em (${f.x},${f.y})`, plano: false, superficie: false, pende: false, parede: false, pessoa: true, total: 0, visto: 0, por: new Map() };
+      donos.push(d);
+      camadasFoto.push({ d, c, x: (f.x - f.y) * 32 + c.x, y: (f.x + f.y) * 16 + 16 - sobe * 32 + c.y, z: ctx.mapaZ(ctx.mapaProfundidade(f.x, f.y, sobe) - 0.01) });
+    }
+    if (camadasFoto.length) {
+      const X0 = Math.floor(Math.min(...camadasFoto.map((k) => k.x))), Y0 = Math.floor(Math.min(...camadasFoto.map((k) => k.y)));
+      const W = Math.ceil(Math.max(...camadasFoto.map((k) => k.x + k.c.w))) - X0 + 1, H = Math.ceil(Math.max(...camadasFoto.map((k) => k.y + k.c.h))) - Y0 + 1;
+      const zbuf = new Float64Array(W * H).fill(-Infinity), dono = new Int32Array(W * H).fill(-1);
+      const idx = new Map(donos.map((d, i) => [d, i]));
+      // Desenha na ordem do mapa: maior z na frente (empate: a que veio depois, como no DOM).
+      camadasFoto.forEach((k, ordem) => { k.ordem = ordem; });
+      for (const k of camadasFoto) {
+        if (k.c.luz) continue;
+        const ox = Math.round(k.x) - X0, oy = Math.round(k.y) - Y0;
+        for (let j = 0; j < k.c.h; j++) for (let i = 0; i < k.c.w; i++) {
+          if (!k.c.m[j * k.c.w + i]) continue;
+          const p = (oy + j) * W + ox + i, zz = k.z + k.ordem * 1e-9;
+          if (zz > zbuf[p]) { zbuf[p] = zz; dono[p] = idx.get(k.d); }
+        }
+      }
+      // Conta: de cada peça, os pixels dela que ficaram por cima (a pendurada
+      // conta só o vaso ou a lâmpada: as 60 linhas de baixo do desenho).
+      // O que está em cima de uma peça (prato na mesa, bolo no prato) e a
+      // mesma peça empilhada (coluna, cornija) cobrem de propósito: contam
+      // como parte dela.
+      // Gente passa na frente do móvel sem ser defeito de montagem; quem está
+      // sentado é encoberto pelo encosto da própria cadeira.
+      const mesmo = (d, o) => o === d || (o.pessoa && !d.pessoa) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
+      for (const d of donos) {
+        if (d.superficie) continue;
+        const ks = camadasFoto.filter((k) => k.d === d && !k.c.luz);
+        if (!ks.length) continue;
+        const fundoY = Math.max(...ks.map((k) => Math.round(k.y) + k.c.h));
+        const vistos = new Set();
+        for (const k of ks) {
+          const ox = Math.round(k.x) - X0, oy = Math.round(k.y) - Y0;
+          for (let j = 0; j < k.c.h; j++) {
+            if (d.pende && Math.round(k.y) + j < fundoY - 60) continue;
+            if (d.pessoa && j >= 32) continue;
+            for (let i = 0; i < k.c.w; i++) {
+              if (!k.c.m[j * k.c.w + i]) continue;
+              const p = (oy + j) * W + ox + i;
+              if (vistos.has(p)) continue;
+              vistos.add(p);
+              d.total++;
+              const o = dono[p];
+              if (o >= 0 && mesmo(d, donos[o])) d.visto++;
+              else if (o >= 0) d.por.set(o, (d.por.get(o) || 0) + 1);
+            }
+          }
+        }
+      }
+      for (const d of donos) {
+        if (d.superficie || d.total < 120) continue;
+        const parte = d.visto / d.total, minimo = d.parede ? 0.8 : d.pessoa ? 0.85 : 0.5;
+        if (parte >= minimo) continue;
+        const [quem] = [...d.por.entries()].sort((a, b) => b[1] - a[1]);
+        const culpa = quem ? ` (tapada por ${donos[quem[0]].nome})` : "";
+        desenho.push(nomeCena(`${d.nome} quase não aparece: só ${Math.round(parte * 100)}% à vista${culpa}`));
+      }
+    }
+  }
+  // Empilhado de verdade: apoiado no topo do de baixo (não só no mesmo ladrilho;
+  // um poste que fura o guarda-corpo não é base dele).
+  const empilhado = (a, b) => (a.altura || 0) > 0 && a.x >= b.x && a.x < b.x + (b.w || 1) && a.y >= b.y && a.y < b.y + (b.h || 1) && Math.abs(topoDe(b) - a.altura) <= 0.15;
   for (let i = 0; i < naTela.length; i++) for (let j = i + 1; j < naTela.length; j++) {
     let f = naTela[i], t = naTela[j];
-    if (f.fundo === t.fundo || (!f.parede && !t.parede && (f.plano || t.plano))) continue;
-    if (f.fundo < t.fundo) [f, t] = [t, f];
+    // Duas peças penduradas na mesma parede: nenhuma pode tapar a outra (a
+    // lousa do Café cobria metade do quadro, 18/10/2026).
+    if (f.parede && t.parede) {
+      if (f.it.dir !== t.it.dir) continue;
+      const n = emComum(f, t);
+      if (n > 40) desenho.push(nomeCena(`${f.nome} e ${t.nome} se cobrem na parede`));
+      continue;
+    }
+    if (Math.abs(f.fundo - t.fundo) < 1e-6 || (!f.parede && !t.parede && (f.plano || t.plano))) continue;
+    if (f.fundo > t.fundo) [f, t] = [t, f];
     if (empilhado(f.it, t.it) || empilhado(t.it, f.it)) continue;
     const n = emComum(f, t);
-    if (!n) continue;
+    if (!n && !pende(f.it) && !pende(t.it)) continue;
+    // Lâmpada pendurada pode passar na frente de prateleira e balcão (como
+    // nas referências), mas não de coluna (peça empilhada) nem do que está
+    // pendurado na parede (lâmpada na frente da lousa do Café). Na frente
+    // de quadro e janela, nem o fio pode cruzar.
+    if (pende(f.it) || pende(t.it)) {
+      // Duas penduradas: a da frente não pode tapar o vaso ou a lâmpada da de trás.
+      if (pende(f.it) && pende(t.it)) {
+        if (n > 100 && n > t.s.n * 0.3) desenho.push(nomeCena(`${f.nome} tapa ${t.nome} no alto`));
+        continue;
+      }
+      // A pendurada atrás de um móvel (vaso atrás do guarda-corpo): vale a
+      // regra comum, pelo vaso ou pela lâmpada, não pelo fio.
+      if (!pende(f.it)) {
+        if (n > 40 && n > t.s.n * 0.4) desenho.push(nomeCena(`${f.nome} esconde ${Math.round((n / t.s.n) * 100)}% de ${t.nome}`));
+        continue;
+      }
+      const atras = t, lampada = f;
+      if (atras.parede) {
+        // O fio só conta perto da parede (até 4 ladrilhos): de longe ele
+        // passa bem na frente, como nas referências.
+        const longe = atras.it.dir === 4 ? lampada.it.y - atras.it.y > 4 : lampada.it.x - atras.it.x > 4;
+        const toda = longe ? lampada : { ...lampada, s: lampada.inteira, sx: lampada.sx - lampada.s.x + lampada.inteira.x, sy: lampada.sy - lampada.s.y + lampada.inteira.y };
+        if (emComum(toda, atras) > 40) desenho.push(nomeCena(`${lampada.nome} pendurada na frente de ${atras.nome}`));
+        continue;
+      }
+      const coluna = itens.some((o) => o !== atras.it && o.classe === atras.it.classe && o.x === atras.it.x && o.y === atras.it.y);
+      // Na frente de balcão e prateleira pode passar, mas não tapar a metade da peça.
+      if (n > 300 && n > atras.s.n * 0.5) { desenho.push(nomeCena(`${lampada.nome} pendurada tapa ${Math.round((n / atras.s.n) * 100)}% de ${atras.nome}`)); continue; }
+      if (n > 40 && (atras.parede || coluna)) desenho.push(nomeCena(`${lampada.nome} pendurada na frente de ${atras.nome}`));
+      continue;
+    }
     // Peça de chão encostada e coisa pendurada no mesmo trecho de parede se
     // misturam (neon do palco atrás do reboco): uma das duas sai dali.
     if (f.parede || t.parede) {
+      // Só vale para a peça encostada na mesma parede (fileira 0 para a do
+      // fundo, coluna 0 para a da esquerda); a da frente só tapa, por profundidade.
+      const pend = f.parede ? f.it : t.it, chao = f.parede ? t.it : f.it;
+      if (!(pend.dir === 4 ? chao.y === (quarto?.y0 ?? 0) : chao.x === (quarto?.x0 ?? 0))) continue;
       const menor = Math.min(f.s.n, t.s.n);
       if (n > 150 && n > menor * 0.15) desenho.push(nomeCena(`${f.nome} e ${t.nome} se cobrem na parede`));
       continue;
     }
-    // Lâmpada pendurada pode passar na frente de prateleira e balcão (como
-    // nas referências), mas não de coluna (peça empilhada) nem do que está
-    // pendurado na parede.
-    if (PENDE.test(f.it.classe) || PENDE.test(t.it.classe)) {
-      const atras = PENDE.test(f.it.classe) ? t : f;
-      const coluna = itens.some((o) => o !== atras.it && o.classe === atras.it.classe && o.x === atras.it.x && o.y === atras.it.y);
-      if (n > 40 && (atras.parede || coluna)) desenho.push(nomeCena(`${PENDE.test(f.it.classe) ? f.nome : t.nome} pendurada na frente de ${PENDE.test(f.it.classe) ? t.nome : f.nome}`));
-      continue;
-    }
     // Item de parede (janela, quadro) aparece inteiro ou quase: tapar um
     // quinto já parece peça mal posta.
+    // Peças de obra lado a lado (degraus, blocos, pedestais) se encaixam umas
+    // nas outras; não é uma escondendo a outra.
+    if (OBRA_DESENHO.test(f.it.classe) && OBRA_DESENHO.test(t.it.classe)) continue;
     if (n > 300 && n > t.s.n * (t.parede ? 0.2 : 0.4)) desenho.push(nomeCena(`${f.nome} esconde ${Math.round((n / t.s.n) * 100)}% de ${t.nome}`));
   }
   // Regras de interiores (decisão do Paulo, 18/10/2026: "fliperama na
@@ -523,7 +761,9 @@ function auditar(cena, P, moveis, avisos) {
       const h = nv(x, y);
       if (!(h > 0)) continue;
       for (const [dx, dy] of [[1, 0], [0, 1]]) {
-        if (!dentro(x + dx, y + dy) || nv(x + dx, y + dy) >= h) continue;
+        // Patamar alto (mezanino, mais de 2 níveis) é parede para quem está
+        // embaixo: só o palco baixo tem plateia na frente.
+        if (!dentro(x + dx, y + dy) || nv(x + dx, y + dy) >= h || h - nv(x + dx, y + dy) > 2) continue;
         for (let k = 1; k <= 2; k++) {
           const tx = x + dx * k, ty = y + dy * k;
           const o = itens.find((q) => alta(q) && tx >= q.x && tx < q.x + q.w && ty >= q.y && ty < q.y + q.h);

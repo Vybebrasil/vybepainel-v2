@@ -22,5 +22,5 @@ test("o verificador cobra a regra de desenho nas salas refeitas", () => {
   const saida = execFileSync("node", ["scripts/escritorio-auditar.mjs"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   assert.match(saida, /Planta sem problemas\./);
   const avisos = execFileSync("node", ["scripts/escritorio-auditar.mjs", "--desenho"], { encoding: "utf8" });
-  assert.doesNotMatch(avisos, / em lounge$/m);
+  assert.doesNotMatch(avisos, / em cafe$/m);
 });

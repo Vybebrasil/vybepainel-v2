@@ -131,6 +131,20 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   também confere o desenho (`scripts/escritorio-desenho.mjs`): o que um móvel
   cobre do outro e a frente das máquinas; é erro nas salas refeitas
   (`DESENHO_CONFERIDO`) e aviso nas demais até serem refeitas.
+  Desde 18/10/2026 (decisão do Paulo) as salas comuns refeitas são montadas
+  pelo motor de construção: a descrição peça a peça fica em `scripts/cenas/<id>.mjs`,
+  as regras em `scripts/escritorio-construcao.mjs` (apoio pela ficha, direção do
+  assento, tapete centrado, espaço na parede medido pela arte, figurante só em
+  assento) e `node scripts/escritorio-compor.mjs` gera o bloco
+  `ESCRITORIO_CENAS_COMPOSTAS` no `vybe-escritorio-planta.js` e roda o
+  verificador. Não edite o bloco gerado nem escreva coordenadas de sala à mão;
+  defeito novo vira regra no motor ou no verificador. O Café é a sala modelo.
+  O verificador tira a "foto" da cena com a profundidade do mapa (Nitro: ladrilho
+  de origem, altura e z da camada; piso e revestimento em faixas próprias) e
+  cobra que cada peça apareça (metade no chão, 80% na parede). Peça pendurada
+  do Habbo já vem desenhada no teto: altura zero, medida pela arte (acima da
+  cabeça, abaixo do topo da parede, nunca sob o mezanino). Papel de parede e
+  lambri (`mapaEhRevestimento`) ficam atrás de tudo o que se pendura na parede.
 - Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma

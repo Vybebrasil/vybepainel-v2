@@ -14,6 +14,226 @@
 // Cada ambiente pertence a uma sala de conversa do servidor (os ids são os
 // que o Worker aceita). Quem é dono de cada sala vem do servidor.
 const ESCRITORIO_SALA_LADO = 8;
+// Cenas montadas pelo motor de construção (scripts/cenas/<id>.mjs): cada
+// peça conferida com a ficha e a arte do Habbo antes de entrar aqui.
+// <cenas-compostas> (gerado por scripts/escritorio-compor.mjs; não edite à mão)
+const ESCRITORIO_CENAS_COMPOSTAS = {
+  cafe: {
+    moveis: [
+      ["xmas_c16_woodtile",0,0,0,0,7.6],
+      ["xmas_c16_woodtile",1,0,0,0,7.6],
+      ["xmas_c16_woodtile",2,0,0,0,7.6],
+      ["xmas_c16_woodtile",3,0,0,0,7.6],
+      ["xmas_c16_woodtile",4,0,0,0,7.6],
+      ["xmas_c16_woodtile",5,0,0,0,7.6],
+      ["xmas_c16_woodtile",6,0,0,0,7.6],
+      ["xmas_c16_woodtile",7,0,0,0,7.6],
+      ["xmas_c16_woodtile",8,0,0,0,7.6],
+      ["xmas_c16_woodtile",9,0,0,0,7.6],
+      ["xmas_c16_woodtile",10,0,0,0,7.6],
+      ["xmas_c16_woodtile",11,0,0,0,7.6],
+      ["xmas_c16_woodtile",12,0,0,0,7.6],
+      ["xmas_c16_woodtile",13,0,0,0,7.6],
+      ["xmas_c16_woodtile",14,0,0,0,7.6],
+      ["xmas_c16_woodtile",15,0,0,0,7.6],
+      ["xmas_c16_woodtile",0,0,0,0,7.6],
+      ["xmas_c16_woodtile",0,1,0,0,7.6],
+      ["xmas_c16_woodtile",0,2,0,0,7.6],
+      ["xmas_c16_woodtile",0,3,0,0,7.6],
+      ["xmas_c16_woodtile",0,4,0,0,7.6],
+      ["xmas_c16_woodtile",0,5,0,0,7.6],
+      ["xmas_c16_woodtile",0,6,0,0,7.6],
+      ["xmas_c16_woodtile",0,7,0,0,7.6],
+      ["xmas_c16_woodtile",0,8,0,0,7.6],
+      ["xmas_c16_woodtile",0,9,0,0,7.6],
+      ["xmas_c16_woodtile",0,10,0,0,7.6],
+      ["xmas_c16_woodtile",0,11,0,0,7.6],
+      ["xmas_c22_woodenfloor",0,0,0,0,0],
+      ["xmas_c22_woodenfloor",0,2,0,0,0],
+      ["xmas_c22_woodenfloor",2,0,0,0,0],
+      ["xmas_c22_woodenfloor",2,2,0,0,0],
+      ["xmas_c22_woodenfloor",4,0,0,0,0],
+      ["xmas_c22_woodenfloor",4,2,0,0,0],
+      ["xmas_c22_woodenfloor",6,0,0,0,0],
+      ["xmas_c22_woodenfloor",6,2,0,0,0],
+      ["xmas_c22_woodenfloor",8,0,0,0,0],
+      ["xmas_c22_woodenfloor",8,2,0,0,0],
+      ["xmas_c22_woodenfloor",10,0,0,0,0],
+      ["xmas_c22_woodenfloor",10,2,0,0,0],
+      ["xmas_c22_woodenfloor",12,0,0,0,0],
+      ["xmas_c22_woodenfloor",12,2,0,0,0],
+      ["rainyday_c20_woodenfloor",0,4,0,1,0],
+      ["rainyday_c20_woodenfloor",2,4,0,1,0],
+      ["rainyday_c20_woodenfloor",4,4,0,1,0],
+      ["rainyday_c20_woodenfloor",6,4,0,1,0],
+      ["rainyday_c20_woodenfloor",8,4,0,1,0],
+      ["rainyday_c20_woodenfloor",10,4,0,1,0],
+      ["rainyday_c20_woodenfloor",14,0,0,1,0],
+      ["rainyday_c20_woodenfloor",14,2,0,1,0],
+      ["xmas_c22_woodenfloor",12,4,0,0,0],
+      ["xmas_c22_woodenfloor",14,4,0,0,0],
+      ["xmas_c22_woodenfloor",0,6,0,0,0],
+      ["xmas_c22_woodenfloor",0,8,0,0,0],
+      ["xmas_c22_woodenfloor",0,10,0,0,0],
+      ["xmas_c22_woodenfloor",2,6,0,0,0],
+      ["xmas_c22_woodenfloor",2,8,0,0,0],
+      ["xmas_c22_woodenfloor",2,10,0,0,0],
+      ["xmas_c22_woodenfloor",4,6,0,0,0],
+      ["xmas_c22_woodenfloor",4,8,0,0,0],
+      ["xmas_c22_woodenfloor",4,10,0,0,0],
+      ["xmas_c22_woodenfloor",6,6,0,0,0],
+      ["xmas_c22_woodenfloor",6,8,0,0,0],
+      ["xmas_c22_woodenfloor",6,10,0,0,0],
+      ["xmas_c22_woodenfloor",8,6,0,0,0],
+      ["xmas_c22_woodenfloor",8,8,0,0,0],
+      ["xmas_c22_woodenfloor",8,10,0,0,0],
+      ["xmas_c22_woodenfloor",10,6,0,0,0],
+      ["xmas_c22_woodenfloor",10,8,0,0,0],
+      ["xmas_c22_woodenfloor",10,10,0,0,0],
+      ["xmas_c22_woodenfloor",12,6,0,0,0],
+      ["xmas_c22_woodenfloor",12,8,0,0,0],
+      ["xmas_c22_woodenfloor",12,10,0,0,0],
+      ["xmas_c22_woodenfloor",14,6,0,0,0],
+      ["xmas_c22_woodenfloor",14,8,0,0,0],
+      ["xmas_c22_woodenfloor",14,10,0,0,0],
+      ["wildwest_wallpaper",0,4,2,1,0],
+      ["wildwest_wallpaper",0,6,2,1,0],
+      ["wildwest_wallpaper",0,8,2,1,0],
+      ["wildwest_wallpaper",0,10,2,1,0],
+      ["wildwest_wallpaper",14,0,4,1,0],
+      ["hween_c26_wornfloorboards",0,0,0,0,3.125],
+      ["hween_c26_wornfloorboards",0,2,0,0,3.125],
+      ["hween_c26_wornfloorboards",2,0,0,0,3.125],
+      ["hween_c26_wornfloorboards",2,2,0,0,3.125],
+      ["hween_c26_wornfloorboards",4,0,0,0,3.125],
+      ["hween_c26_wornfloorboards",4,2,0,0,3.125],
+      ["hween_c26_wornfloorboards",6,0,0,0,3.125],
+      ["hween_c26_wornfloorboards",6,2,0,0,3.125],
+      ["hween_c26_wornfloorboards",8,0,0,0,3.125],
+      ["hween_c26_wornfloorboards",8,2,0,0,3.125],
+      ["hween_c26_wornfloorboards",10,0,0,0,3.125],
+      ["hween_c26_wornfloorboards",10,2,0,0,3.125],
+      ["hween_c26_wornfloorboards",12,0,0,0,3.125],
+      ["hween_c26_wornfloorboards",12,2,0,0,3.125],
+      ["lodge_dark_divider",0,3,0,0,3.175],
+      ["lodge_dark_divider",2,3,0,0,3.175],
+      ["lodge_dark_divider",4,3,0,0,3.175],
+      ["lodge_dark_divider",6,3,0,0,3.175],
+      ["lodge_dark_divider",8,3,0,0,3.175],
+      ["lodge_dark_divider",10,3,0,0,3.175],
+      ["lodge_dark_divider",12,3,0,0,3.175],
+      ["lodge_dark_divider",13,0,6,0,3.175],
+      ["lodge_dark_cornerplinth",13,2,0,0,3.175],
+      ["lodge_dark_cornerplinth",5,3,0,0,0],
+      ["lodge_dark_cornerplinth",5,3,0,0,1],
+      ["lodge_dark_cornerplinth",5,3,0,0,2],
+      ["lodge_dark_cornerplinth",9,3,0,0,0],
+      ["lodge_dark_cornerplinth",9,3,0,0,1],
+      ["lodge_dark_cornerplinth",9,3,0,0,2],
+      ["lodge_dark_cornerplinth",13,3,0,0,0],
+      ["lodge_dark_cornerplinth",13,3,0,0,1],
+      ["lodge_dark_cornerplinth",13,3,0,0,2],
+      ["hween_c25_weed2",13,4,0,0,0],
+      ["hygge_c25_wallpaper1",0,0,4,4,3.175],
+      ["hygge_c25_wallpaper1",2,0,4,4,3.175],
+      ["hygge_c25_wallpaper1",4,0,4,4,3.175],
+      ["hygge_c25_wallpaper1",6,0,4,4,3.175],
+      ["hygge_c25_wallpaper1",8,0,4,4,3.175],
+      ["hygge_c25_wallpaper1",10,0,4,4,3.175],
+      ["hygge_c25_wallpaper1",12,0,4,4,3.175],
+      ["hygge_c25_wallpaper1",0,0,2,4,3.175],
+      ["hygge_c25_wallpaper1",0,2,2,4,3.175],
+      ["hween_c26_bookshelf",0,0,0,0,3.175],
+      ["mafia_c26_sidetable_dark",2,1,0,0,3.175],
+      ["antique_c21_teaset",2,1,0,0,4.167],
+      ["antique_c21_armchair",1,1,2,0,3.175],
+      ["antique_c21_armchair",3,1,6,0,3.175],
+      ["antique_c21_lamp",2,0,0,0,3.175],
+      ["paris_c15_table",6,1,0,0,3.175],
+      ["xmas_c24_plate",6,1,0,0,4.125],
+      ["val_c20_cake",6,1,0,0,4.225],
+      ["paris_c15_chair",5,1,2,0,3.175],
+      ["paris_c15_chair",7,1,6,0,3.175],
+      ["rainyday_c20_woodentable",10,1,0,0,3.175],
+      ["antique_c21_books",10,1,0,0,4.175],
+      ["classic9_chair",9,1,2,0,3.175],
+      ["classic9_chair",11,1,6,0,3.175],
+      ["classic9_plant",12,2,0,0,3.175],
+      ["antique_c21_doorteleport",0,2,2,0,3.175],
+      ["lodge_dark_window",3.5625,0,4,0,3.46875],
+      ["attic15_painting",6.5625,0,4,0,3.46875],
+      ["lodge_dark_window",9.28125,0,4,0,3.46875],
+      ["easter_c18_hangingplant",3,4,0,0,0],
+      ["easter_c18_hangingplant",12,4,0,0,0],
+      ["val_c20_cakedisplay",1,3,4,0,0],
+      ["val_c20_tablecounter",7,3,0,0,0],
+      ["sunsetcafe_c20_coffeemachine",7,3,0,0,1.5],
+      ["ducket_c26_honeypot",8,3,0,0,1.5],
+      ["val_c20_tablecounter",11,3,0,0,0],
+      ["ducket_c26_charcuterie",11,3,0,0,1.5],
+      ["val_c20_tablecounter",1,5,0,0,0],
+      ["val_c20_tablecounter",3,5,0,0,0],
+      ["val_c20_tablecounter",5,5,0,0,0],
+      ["val_c20_tablecounter",7,5,0,0,0],
+      ["wildwest_till",1,5,4,0,1.5],
+      ["ktchn_c15_bread",3,5,4,0,1.5],
+      ["xmas_c23_choccake",4,5,0,0,1.5],
+      ["gift_c18_cookiejar",5,5,0,0,1.5],
+      ["xmas_c24_mugs",6,5,0,0,1.5],
+      ["dessertcafe_c17_creamrolls",7,5,0,0,1.5],
+      ["xmas_c24_snacks1",8,5,0,0,1.5],
+      ["dessertcafe_c17_teaplant",2,5,0,0,1.5],
+      ["lodge_dark_barrelstool",5,6,0,0,0],
+      ["lodge_dark_barrelstool",7,6,0,0,0],
+      ["xmas12_barrel",11,5,4,0,0],
+      ["jungle_c16_sacks",12,5,0,0,0],
+      ["school_chalkboard",0,5.5,2,0,1.59375],
+      ["waasa_wall_shelf1",0,9.53125,2,0,2.59375],
+      ["antique_c21_pennyfarthing",0,8,2,0,0],
+      ["antique_c21_doorteleport",0,9,2,0,0],
+      ["doormat_plain",1,9,0,0,0],
+      ["attic15_clock",0,11,2,0,0],
+      ["paris_c15_menu",2,11,2,0,0],
+      ["antique_c21_oldenrug",2,7,2,0,0],
+      ["paris_c15_table",3,7,0,0,0],
+      ["xmas_c24_plate",3,7,0,0,0.95],
+      ["classic2_drinkcup",3,7,0,0,1.05],
+      ["paris_c15_chair",2,7,2,0,0],
+      ["paris_c15_chair",4,7,6,0,0],
+      ["paris_c15_chair",3,8,0,0,0],
+      ["antique_c21_oldenrug",7,9,2,0,0],
+      ["rainyday_c20_woodentable",8,9,0,0,0],
+      ["gift_vase",8,9,0,0,1],
+      ["classic9_chair",7,9,2,0,0],
+      ["classic9_chair",9,9,6,0,0],
+      ["classic9_chair",8,10,0,0,0],
+      ["antique_c21_oldenrug",10,7,2,0,0],
+      ["paris_c15_table",11,7,0,0,0],
+      ["rcandle",11,7,0,0,0.95],
+      ["steampunk_chair",10,7,2,0,0],
+      ["steampunk_chair",12,7,6,0,0],
+      ["steampunk_chair",11,8,0,0,0],
+      ["val_c20_lights",8,9,0,1,0],
+      ["val_c20_lights",13,11,0,1,0],
+      ["antique_c21_oldenrug",12,10,2,0,0],
+      ["mafia_c26_coffeetable_dark",13,10,0,0,0],
+      ["antique_c21_teaset",13,10,0,0,0.837],
+      ["antique_c21_armchair",12,10,2,0,0],
+      ["wintercabin_c19_cabinchair",14,10,6,0,0],
+      ["antique_c21_lamp",15,10,0,0,0],
+      ["recycler_baskettree",15,7,0,0,0],
+      ["classic9_plant",9,5,0,0,0],
+      ["wintercabin_c19_fireplace",14,0,4,0,0],
+      ["antique_c21_oldenrug",14,1,0,0,0],
+      ["antique_c21_armchair",14,2,0,0,0],
+      ["wintercabin_c19_cabinchair",15,2,0,0,0],
+      ["lodge_dark_lamp",14,5,0,0,0],
+      ["wintercabin_c19_antlerlight",15,2,0,1,0],
+    ],
+    figurantes: [{"figura":"hr-170-45.hd-190-2.ch-215-66.lg-280-110.sh-305-62.ea-1406-62","x":1,"y":1,"dir":2,"acao":"sit"},{"figura":"hd-600-1.hr-515-61.ch-665-1323.lg-700-110.sh-725-110","x":7,"y":1,"dir":6,"acao":"sit"},{"figura":"hr-515-45.hd-600-1.ch-635-1408.lg-695-1408.sh-725-62","x":5,"y":4,"dir":4},{"figura":"hr-3163-45.hd-180-1.ch-3030-1408.lg-275-1408.sh-290-62","x":10,"y":4,"dir":4},{"figura":"hd-180-1.hr-828-61.ch-210-66.lg-280-110.sh-305-110","x":7,"y":6,"dir":0,"acao":"sit"},{"figura":"hr-890-45.hd-605-2.ch-3030-73.lg-3116-1408.sh-735-62","x":2,"y":7,"dir":2,"acao":"sit"},{"figura":"hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110","x":12,"y":7,"dir":6,"acao":"sit"},{"figura":"hr-828-61.hd-180-2.ch-210-1408.lg-270-110.sh-290-62","x":9,"y":6,"dir":2}],
+  },
+};
+// </cenas-compostas>
 // Altura real do tampo (em ladrilhos de altura, 32 px), medida no desenho
 // de cada móvel. A altura que vem na ficha do Habbo erra em vários (balcão,
 // mesa da recepção): o que ia em cima afundava ou flutuava. O editor e o
@@ -88,7 +308,7 @@ const ESCRITORIO_PLANTA = (() => {
     ["reuniao", "Sala de reunião", "reuniao", "#5aa9ff", 18, 14, "lodge_c15_floor", "lodge_dark_brickwall"],
     ["auditorio", "Auditório", "reuniao", "#6b4fa0", 20, 16, "cine_tile", "attic15_wall"],
     ["producao", "Produção", "producao", "#4a5560", 20, 14, "rainyday_c20_woodenfloor", "attic15_wall"],
-    ["cafe", "Café", "convivencia", "#d9a066", 14, 16, "bathroom_floortile1", "art_c20_wall"],
+    ["cafe", "Café", "convivencia", "#d9a066", 16, 12, "plano:piso:208", "plano:parede:1301"],
     ["jogos", "Jogos", "convivencia", "#3fae7a", 20, 12, "tokyo_c18_floor", "attic15_wall"],
     ["foco", "Foco", "foco", "#8b6b4a", 12, 16, "rainyday_c20_woodenfloor", "gardenshed_wall"],
     ["academia", "Academia", "convivencia", "#7a8494", 20, 16, "sb_tile", "attic15_wall"],
@@ -178,24 +398,27 @@ const ESCRITORIO_PLANTA = (() => {
       "00000000000000000000",
       "00000000000000000000",
     ] },
-    // Cafeteria funda, com a frente recolhida à direita.
-    cafe: { planta: [
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "00000000000000",
-      "0000000000xxxx",
-      "0000000000xxxx",
-      "0000000000xxxx",
-      "0000000000xxxx",
-      "0000000000xxxx",
+    // Café (referência escolhida pelo Paulo em 18/10/2026: café de madeira em
+    // dois andares). O mezanino é de construtor (tábuas suspensas sobre
+    // colunas), para o térreo continuar embaixo da beira; sobe-se pela porta.
+    // Piso por zona: ladrilho de barro no balcão, vinho no recanto da lareira.
+    // Raio de sol pelas janelas; cozinheira, garçom e uma cliente de figurantes.
+    cafe: { corDegrau: "#5a3a24", fundo: "#140c08", luz: "quente", alturaParede: 4, raiosDeSol: true, figurantes: ESCRITORIO_CENAS_COMPOSTAS.cafe?.figurantes || [], planta: [
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+      "0000000000000000",
+    ], texturas: [
+      { x0: 1, y0: 3, x1: 11, y1: 7, textura: "plano:piso:502" },
+      { x0: 14, y0: 0, x1: 16, y1: 5, textura: "plano:piso:405" },
     ] },
     // Fliperama largo, com a frente recolhida à direita.
     jogos: { planta: [
@@ -291,7 +514,7 @@ const ESCRITORIO_PLANTA = (() => {
     const celdas = def ? def.planta.map((linha) => [...linha].map((c) => (c === "x" ? -1 : Number(c)))) : Array.from({ length: h0 }, () => Array(w0).fill(0));
     const w = celdas[0].length, h = celdas.length;
     const modelo = { id: "cena-" + id, celdas, portas: { baixo: Math.floor(w / 2) - 1 }, escada: def?.escada || [], bordaAberta: true };
-    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau, texturas: def?.texturas || [], fundo: def?.fundo, semParedes: def?.semParedes === true, alturaParedeFixa: def?.alturaParede ?? -1, luz: def?.luz || "" });
+    ambientes.push({ id, nome, sala, cena: true, semRotulo: true, x0: 0, y0: 0, x1: w, y1: h, piso: "madeira", porta: "baixo", cor, textura, texturaParede, modelo, corDegrau: def?.corDegrau, texturas: def?.texturas || [], fundo: def?.fundo, semParedes: def?.semParedes === true, alturaParedeFixa: def?.alturaParede ?? -1, luz: def?.luz || "", figurantes: def?.figurantes || [], raiosDeSol: def?.raiosDeSol === true });
   }
   return { W, H, PREDIO: null, PISO, ambientes, divisorias: [], moveis: [], piscina: null, quadros: [], corredores: [], postes: [], letreiro: null,
     pisos: [], rotulos: [], vistas: {}, texturas: [], texturaSalas: "rainyday_c20_woodenfloor", texturaCorredor: "paris_c15_pavement",
@@ -355,6 +578,10 @@ function escritorioColunaAteCornija(id, classe, x, y) {
   const n = a ? Math.ceil((escritorioTopoDaParede(a) - escritorioAlturaQuarto(a, x, y)) / f) : 4;
   return Array.from({ length: n }, (_, i) => [classe, x, y, 0, 0, Math.round(i * f * 100) / 100]);
 }
+// Café em dois andares, montado como os construtores do Habbo (referência
+// escolhida pelo Paulo em 18/10/2026). O mezanino é de tábuas suspensas sobre
+// colunas de pedestal, com guarda-corpo; sobe-se pela porta-teleporte (a
+// referência não mostra escada: os construtores ligam os andares por porta).
 const ESCRITORIO_MOVEIS_CENAS = {
   // Convivência: o saguão de todos, com a cara da Bahia em São João.
   // Estar da lareira no patamar do fundo à esquerda; recepção no meio do
@@ -444,39 +671,11 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // Café: cafeteria funda. Cozinha no fundo (geladeira, bancada com
   // eletrodomésticos e armários de parede), ilha com banquetas, mesa de
   // jantar no tapete, estar e mesinhas na frente.
-  cafe: () => [
-    ["mode_fridge", 0, 0, 0],
-    ["hygge_c25_counter1", 1, 0, 0], ["hygge_c25_microwave", 1, 0, 0, 0, 1.2],
-    ["hygge_c25_counter1", 2, 0, 0], ["ktchn15_coffeemaker", 2, 0, 4, 0, 1.2],
-    ["hygge_c25_stove", 3, 0, 0],
-    ["hygge_c25_counter1", 4, 0, 0], ["hygge_c25_airfryer", 4, 0, 0, 0, 1.2],
-    ["hygge_c25_counter1", 5, 0, 0], ["hygge_c25_kitchensink", 5, 0, 4, 0, 1.2],
-    ["hygge_c25_counter1", 6, 0, 0], ["hygge_c25_papertowel", 6, 0, 0, 0, 1.2],
-    ["ktchn_c15_dishwasher", 7, 0, 4], ["ktchn15_cabinet", 8, 0, 4], ["sunsetcafe_c20_plant", 11, 0, 0], ["ktchn15_bubblejuicerack", 12, 0, 4],
-    ...[1, 2, 4, 6].map((x) => ["ktchn_c15_cupboard", x, 0, 4, 0, 2.2]),
-    ["hygge_c25_window2", 0, 2, 0], ["bohogarden_c21_snakeplant", 0, 6, 2], ["hygge_c25_window2", 0, 8, 0],
-    // Ilha com tampo arrumado e três banquetas.
-    ...[3, 4, 5].flatMap((x) => [["hygge_c25_counter1", x, 4, 0], ["hygge_c25_barstool", x, 5, 0]]),
-    ["hygge_c25_tumbler", 3, 4, 0, 0, 1.2], ["ktchn_c15_bread", 4, 4, 4, 0, 1.2], ["ktchn_c15_chopboard", 5, 4, 4, 0, 1.2],
-    ["easter_c18_hangingplant", 4, 3, 0, 1],
-    // Mesa de jantar de seis lugares no tapete.
-    ["hygge_c25_carpet", 8, 4, 0], ["lodge_dark_diningtable", 8, 5, 0], ["ktchn10_tea", 9, 5, 0, 0, 0.9],
-    ["hc26_10", 8, 4, 4], ["hc26_10", 9, 4, 4], ["hc26_10", 8, 7, 0], ["hc26_10", 9, 7, 0], ["hc26_10", 7, 6, 2], ["hc26_10", 10, 5, 6],
-    ["classic2_trashcan", 13, 9, 4],
-    // Frente: poltronas de frente uma para a outra e mesinhas de dois.
-    ["hygge_c25_armchair", 1, 11, 2], ["hygge_c25_coffeetable", 2, 11, 0], ["hygge_c25_armchair", 3, 12, 6], ["rainyday_c19_lamp", 0, 13, 0],
-    ...[[6, 10], [8, 13]].flatMap(([x, y]) => [["paris_c15_table", x, y, 0], ["paris_c15_chair", x - 1, y, 2], ["paris_c15_chair", x + 1, y, 6]]),
-    ["sunsetcafe_c20_plant", 0, 15, 0], ["sunsetcafe_c20_plant", 13, 10, 0],
-    // Camada de construtor: lousa do cardápio e relógio no fundo, prateleira
-    // e caixotes com plantas na parede da esquerda, luminárias de cozinha
-    // sobre a ilha e a mesa, tapetes sob o estar e as mesinhas, xícaras e bolo.
-    ["waasa_wall_shelf2", 10.2, 0, 4, 0, 1.4],
-    ["waasa_wall_shelf2", 0, 4.4, 2, 0, 1.4], ["recycler_crateplantslight", 0, 10.6, 2, 0, 1.4], ["recycler_crateplantslight", 0, 11.8, 2, 0, 1.4],
-    ["ktchn_light", 4, 4, 0], ["ktchn_c15_lamp_g", 8, 5, 0], ["ktchn_c15_lamp_g", 9, 6, 0],
-    ["icecream_c21_light", 6, 10, 0], ["icecream_c21_light", 8, 13, 0],
-    ["hc25_2", 1, 11, 0], ["dessertcafe_c17_rug", 5, 10, 0], ["dessertcafe_c17_rug", 7, 13, 0],
-    ["room_cof15_cup2", 6, 10, 0, 0, 0.95], ["paris15_cake", 8, 13, 0, 0, 0.95], ["room_cof15_cup2", 2, 11, 0, 0, 0.6],
-  ],
+  // Café: madeira escura, bolos e plantas. Regras da planta: peça alta só
+  // encostada; o caminho da porta (colunas 7 e 8) até o balcão e a escada
+  // livre; a frente do mezanino é a parede do térreo (o balcão encosta nela).
+  // Café: madeira escura, bolos e plantas, como obra de construtor.
+  cafe: () => ESCRITORIO_CENAS_COMPOSTAS.cafe.moveis,
   // Sala de reunião em L: mesa de dez lugares no patamar do fundo, com mural,
   // mapa e lustre; embaixo a lareira com sofá, o bar com banquetas, a roleta
   // (sorteia quem fala primeiro) e a espera.
@@ -547,11 +746,11 @@ const ESCRITORIO_MOVEIS_CENAS = {
     ["ranch_c26_farmtools", 5, 1, 0], ["grunge_sign", 5, 2, 0], ["bump_tires", 5, 3, 0], ["fball_c26_trainingcone", 6, 3, 0], ["lt_spider", 9, 3, 0],
     ["grungelamp", 8, 1, 0, 1, 2.5], ["hween_c25_tools", 9, 2, 0],
     // Palco do DJ (fundo à direita, um degrau): mesa de DJ de frente para a
-    // plateia, caixa de som e disco na parede, neon, violão encostado e o
+    // plateia, disco e neon na parede, violão encostado e o
     // microfone e caixas de som de chão na beira do palco; lâmpada e o
     // refletor de festa varrendo o palco.
-    ["fest_c19_dj", 13, 1, 0], ["boutique_speakers", 11.6, 0, 4, 0, 2], ["uni_vinyl", 12, 0, 4, 0, 1.4],
-    ["disco_c26_neonlight1", 13, 0, 0, 1, 0.9], ["party_beamer", 11, 1, 4, 1], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
+    ["fest_c19_dj", 13, 1, 0], ["uni_vinyl", 12, 0, 4, 0, 1.4],
+    ["disco_c26_neonlight1", 12, 0, 0, 1, 0.9], ["party_beamer", 11, 1, 4, 1], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
     ["grungelamp", 14, 2, 0, 1, 2.5],
     // Plateia (frente do palco): chão livre para ficar de pé; a mesa alta
     // fica na lateral direita, com duas banquetas, sem tapar o palco.
@@ -886,6 +1085,9 @@ function escritorioPlantaDoQuarto(a) {
     pisos: [], texturas: a.texturas || [], texturaSalas: ESCRITORIO_PLANTA.texturaSalas, portas: [], elevadores: [], fundo: null, vistas: {},
     // Luz ambiente escolhida pelo dono (tinge piso, paredes, móveis e bonecos).
     luz: a.luz || "",
+    // Figurantes (cozinheiro, garçom): bonecos parados da cena, só cenário —
+    // não entram na lista de quem está no escritório. Raio de sol pelas janelas.
+    figurantes: a.figurantes || [], raiosDeSol: Boolean(a.raiosDeSol),
     rotulos: [{ texto: "Porta · " + escritorioDestinoDaPorta(a.id).nome, x: soleira.x + soleira.w / 2, y: soleira.y + soleira.h / 2, saida: true }],
     soleiras: [soleira], entrada: escritorioEntradaDaSala(a), saida: { x: soleira.x, y: soleira.y },
     // Só se anda dentro do quarto e na soleira.
