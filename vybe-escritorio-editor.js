@@ -77,7 +77,7 @@ async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
     sel: null, novo: null, mudou: false,
   };
   // Histórico para desfazer/refazer (fotos da lista de itens).
-  escritorio.edicao.passos = [JSON.stringify(escritorio.edicao.itens)];
+  escritorio.edicao.passos = [escritorioFotoEdicao(escritorio.edicao)];
   escritorio.edicao.futuro = [];
   escritorio.modo = "mapa";
   escritorio.aba = "catalogo";
@@ -126,6 +126,7 @@ async function salvarEditorEscritorio() {
     if (r.celdas !== undefined) { escritorioAplicarSalas(); escritorioRedesenharMapa(); }
     else await escritorio.mapa?.definirMoveis(escritorioMoveisAtuais());
     renderEscritorio();
+    escritorioAvisarDecoracao(r.camada);
     escritorioAviso("Mudanças salvas em " + escritorioNomeCamada(r.camada) + ".");
   } catch (erro) {
     e.salvando = false;
@@ -164,7 +165,7 @@ function escritorioEditorMudou(semPasso = false) {
   const ed = escritorio.edicao;
   if (!ed) return;
   if (!semPasso && ed.passos) {
-    const foto = JSON.stringify(ed.itens);
+    const foto = escritorioFotoEdicao(ed);
     if (foto !== ed.passos.at(-1)) { ed.passos.push(foto); ed.futuro = []; if (ed.passos.length > 80) ed.passos.shift(); }
   }
   escritorio.edicao.mudou = true;
@@ -567,6 +568,8 @@ const ESCRITORIO_GRUPOS_CATALOGO = [
   ["Plantas", (m) => m.categoria === "Jardim" && /plant|flower|tree|bush|palm|cactus|bonsai|pot/.test(m.classe)],
   ["Jardim e área externa", (m) => m.categoria === "Jardim" && !/plant|flower|tree|bush|palm|cactus|bonsai|pot/.test(m.classe)],
   ["Divisórias", (m) => m.categoria === "Divisórias"],
+  ["Física (esteira, gelo, portão, trampolim)", (m) => m.categoria === "Física"],
+  ["Camas", (m) => mapaEhCama(m.classe)],
   ["Construção e arquitetura", (m) => m.categoria === "Blocos e materiais" || /pillar|column|railing|stair|wall|fence|block|divider/.test(m.classe)],
   ["Blocos e materiais", (m) => m.categoria === "Blocos e materiais"],
   ["Objetos de estúdio", (m) => m.categoria === "Objetos de estúdio"],
@@ -1026,14 +1029,20 @@ async function soltarNoEditorEscritorio(x, y, moveu) {
   if (!estavaEmCima) await escritorioLevarOQueEstaEmCima(a.i, ox, oy, nx - ox, ny - oy);
   escritorioEditorMudou();
 }
+// Foto de um passo da edição: os móveis e a planta desenhada (desfazer volta os dois).
+function escritorioFotoEdicao(e) { return JSON.stringify({ itens: e.itens, celdas: e.celdas ?? null }); }
 function escritorioVoltarPasso(de, para) {
   const e = escritorio.edicao;
   if (!e || de.length < (de === e.passos ? 2 : 1)) return;
-  if (de === e.passos) { e.futuro.push(e.passos.pop()); e.itens = JSON.parse(e.passos.at(-1)); }
-  else { const foto = e.futuro.pop(); e.passos.push(foto); e.itens = JSON.parse(foto); }
+  let foto;
+  if (de === e.passos) { e.futuro.push(e.passos.pop()); foto = e.passos.at(-1); }
+  else { foto = e.futuro.pop(); e.passos.push(foto); }
+  const f = JSON.parse(foto), celdas = f.celdas ?? undefined, plantaMudou = celdas !== e.celdas;
+  e.itens = f.itens; e.celdas = celdas;
   e.sel = null;
   escritorio.mapa?.destacar(null);
   escritorioEditorMudou(true);
+  if (plantaMudou) escritorioRedesenharMapa();
 }
 function desfazerEditorEscritorio() { const e = escritorio.edicao; if (e) escritorioVoltarPasso(e.passos, e.futuro); }
 function refazerEditorEscritorio() { const e = escritorio.edicao; if (e) escritorioVoltarPasso(e.futuro, e.passos); }

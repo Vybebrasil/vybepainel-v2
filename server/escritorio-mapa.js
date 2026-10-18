@@ -76,6 +76,18 @@ function conferirEdicao(pessoa, salas, camada) {
 }
 // Salva uma camada inteira. Permissão: 'geral' só administrador; sala, o dono
 // ou administrador. A versão evita apagar o que outra pessoa salvou antes.
+// Medidas no chão de cada móvel (da arte local ou, se faltar, do Habbo).
+export async function dimensoesDosMoveis(itens) {
+  const dimensoes=new Map();
+  for(const [classe] of itens) {
+    if(IMAGEM_ITEM.test(classe) || dimensoes.has(classe)) continue;
+    let dados;
+    try {dados=JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/'+classe+'.json',import.meta.url),'utf8'));}
+    catch {dados=JSON.parse((await arteRemotaEscritorio(classe,'json')).toString());}
+    dimensoes.set(classe,dados.logic?.model?.dimensions || {x:1,y:1});
+  }
+  return dimensoes;
+}
 // "celdas" (opcional): a planta desenhada do quarto, salva junto com os móveis.
 export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens, versao, celdas }) {
   return sql.comTransacao(async tx => salvarCamadaTransacional(tx, pessoa, salas, {camada,itens,versao,celdas}));
@@ -93,14 +105,7 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
       const [p] = await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${dono} FOR UPDATE`;
       const decoracao=perfilDoAndar(p?.preferencias,partesDaCamada(camada)?.andar);
       if (!decoracao?.quarto_configurado) throw new Error("Configure seu quarto antes de decorar.");
-      const dimensoes=new Map();
-      for(const [classe] of limpos) {
-        if(IMAGEM_ITEM.test(classe) || dimensoes.has(classe)) continue;
-        let dados;
-        try {dados=JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/'+classe+'.json',import.meta.url),'utf8'));}
-        catch {dados=JSON.parse((await arteRemotaEscritorio(classe,'json')).toString());}
-        dimensoes.set(classe,dados.logic?.model?.dimensions || {x:1,y:1});
-      }
+      const dimensoes=await dimensoesDosMoveis(limpos);
       const livres = celdas !== undefined ? celdas : decoracao.sala_celdas;
       conferiuPlanta = true;
       validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes,livres);

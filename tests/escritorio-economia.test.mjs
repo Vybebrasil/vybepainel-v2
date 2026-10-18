@@ -240,3 +240,66 @@ test('blocos baixos sobem como no Habbo; torre alta é parede; bloco invisível 
   return {sobe:mapaPassa(g,1,1,1,0),degrau:mapaPassa(g,2,1,1,0),desce:mapaPassa(g,3,1,1,0),torre:mapaPassa(g,4,1,1,0),altura:g.subida[g.ind(3,1)],assento:g.assento.has(g.ind(1,4))};})()`,c);
  assert.deepEqual(JSON.parse(JSON.stringify(r)),{sobe:true,degrau:true,desce:true,torre:false,altura:2,assento:true});
 });
+test('física do Habbo: portão fechado bloqueia, cama deita, esteira/gelo/placa marcam o piso, móvel em cima de bloco bloqueia',async()=>{
+ const vm=await import('node:vm');
+ const {QUARTOS}=await import('../server/escritorio-quartos.js');
+ const c=vm.createContext({console,escritorio:{base:{quartos:QUARTOS}}});
+ vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
+ const r=vm.runInContext(`(()=>{const P={W:8,H:6,divisorias:[]};
+  const m=(classe,x,y,extra={})=>({classe,x,y,dir:2,altura:0,estado:0,dim:{x:1,y:1,z:1},plano:false,...extra});
+  const g=mapaMontarGrade(P,[m('classic1_gate',2,1),m('classic1_gate',2,3,{estado:1}),m('bed_polyfon_one',5,1,{dim:{x:1,y:3,z:1.7}}),
+   m('sf_roller',0,4,{dim:{x:1,y:1,z:0.45}}),m('es_skating_ice',3,4,{dim:{x:2,y:2,z:0},plano:true}),m('wf_pressureplate',7,0,{dim:{x:1,y:1,z:0.2}}),
+   m('bc_block_0_recolorable',6,4),m('mm_lamp',6,4,{altura:1,dim:{x:1,y:1,z:2}}),m('exe_table',7,4),m('computer_flatscreen',7,4,{altura:1,dim:{x:1,y:1,z:0.5}})]);
+  const b=(x,y)=>g.bloqueado[g.ind(x,y)];
+  return {fechado:b(2,1),aberto:b(2,3),cama:g.cama.get(g.ind(5,2)),camaLivre:b(5,2),esteira:g.piso.get(g.ind(0,4))?.tipo,alturaEsteira:Math.round(g.subida[g.ind(0,4)]*100)/100,
+   gelo:g.piso.get(g.ind(4,5))?.tipo,placa:g.piso.get(g.ind(7,0))?.tipo,lampadaNoBloco:b(6,4),mesa:b(7,4)};})()`,c);
+ assert.deepEqual(JSON.parse(JSON.stringify(r)),{fechado:1,aberto:0,cama:2,camaLivre:0,esteira:'esteira',alturaEsteira:0.45,gelo:'gelo',placa:'placa',lampadaNoBloco:1,mesa:1});
+ // A mesa de centro ("coffee table") não serve café; a cafeteira serve.
+ const fonte=readFileSync('vybe-escritorio.js','utf8');
+ const cafe=new RegExp(fonte.match(/const ESCRITORIO_CAFE = \/(.+)\/;/)[1]);
+ assert.ok(!cafe.test('hygge_c25_coffeetable') && !cafe.test('mafia_c26_coffeetable_dark'));
+ assert.ok(cafe.test('ktchn15_coffeemaker') && cafe.test('hc2_coffee') && cafe.test('sunsetcafe_c20_coffeemachine'));
+});
+test('post-its: qualquer um cola, só autor, dono da sala ou admin tira; presente passa uma unidade guardada uma vez só',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-18-escritorio-postits-presentes.sql','utf8'));
+ const {colarPostit,apagarPostit,listarPostits,darPresente}=await import('../server/escritorio-social.js');
+ const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
+ const sala=salas.find(s=>s.pessoa_id==='1').id;
+ const id=await colarPostit(sql,{id:2},{camada:sala,lado:0,posicao:3,cor:'rosa',texto:'  Reunião  às 15h '});
+ await assert.rejects(colarPostit(sql,{id:2},{camada:'geral',lado:0,posicao:3,cor:'rosa',texto:'x'}),/Sala inválida/);
+ await assert.rejects(colarPostit(sql,{id:2},{camada:sala,lado:0,posicao:3,cor:'roxo',texto:'x'}),/Cor/);
+ const lista=await listarPostits(sql,sala);assert.equal(lista.length,1);assert.equal(lista[0].texto,'Reunião às 15h');assert.equal(lista[0].nome,'Jady');
+ const outro=await colarPostit(sql,{id:1},{camada:'cafe',lado:1,posicao:2,cor:'amarelo',texto:'Café novo'});
+ await assert.rejects(apagarPostit(sql,{id:2},salas,outro),/Só quem escreveu/);
+ assert.equal(await apagarPostit(sql,{id:1},salas,id),sala,'o dono da sala tira o recado de outra pessoa');
+ // Presente: só unidade guardada, idempotente pela chave.
+ await sql`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(1,0),(2,0) ON CONFLICT DO NOTHING`;
+ await sql`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(1,'shelves_norja',1)`;
+ await sql`INSERT INTO vybe_escritorio_mapa(camada,itens,versao) VALUES(${sala},${JSON.stringify([['shelves_norja',1,1,2,0,0]])}::jsonb,1)`;
+ await assert.rejects(darPresente(sql,{id:1},salas,{para:'2',classe:'shelves_norja',chave:'presente-0001'}),/Guarde/);
+ await sql`UPDATE vybe_escritorio_mapa SET itens='[]'::jsonb WHERE camada=${sala}`;
+ await assert.rejects(darPresente(sql,{id:1},salas,{para:'1',classe:'shelves_norja',chave:'presente-0001'}),/outra pessoa/);
+ await assert.rejects(darPresente(sql,{id:1},salas,{para:'2',classe:'exe_table',chave:'presente-0001'}),/não se dá/);
+ const r1=await darPresente(sql,{id:1},salas,{para:'2',classe:'shelves_norja',chave:'presente-0001'});
+ const r2=await darPresente(sql,{id:1},salas,{para:'2',classe:'shelves_norja',chave:'presente-0001'});
+ assert.equal(r1.repetido,false);assert.equal(r2.repetido,true);
+ const inv=await sql`SELECT pessoa_id,quantidade FROM vybe_escritorio_inventario WHERE classe='shelves_norja' ORDER BY pessoa_id`;
+ assert.deepEqual(inv.map(i=>[String(i.pessoa_id),Number(i.quantidade)]),[['2',1]]);
+});
+test('porta do quarto muda de lado só com o vão livre',async t=>{
+ const {sql}=await banco(t);
+ const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const {salvarPerfilEscritorio}=await import('../server/escritorio.js');
+ const pessoa={id:1};
+ const setup=await configurarQuarto(sql,pessoa,{},{planta:'amplo',modelo:'vazio'});
+ const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
+ const sala=salas.find(s=>s.pessoa_id==='1').id;
+ // A porta da direita do "amplo" fica em x=7, y=3 e 4: uma cadeira ali impede.
+ const r=await salvarCamadaEscritorio(sql,pessoa,salas,{camada:sala,itens:[['hc26_10',7,3,0]],versao:setup.mapa.versao});
+ await assert.rejects(salvarPerfilEscritorio(sql,1,{sala_porta:'direita'},async()=>sala),/porta nova/);
+ await salvarCamadaEscritorio(sql,pessoa,salas,{camada:sala,itens:[['hc26_10',2,2,0]],versao:r.versao});
+ const p=await salvarPerfilEscritorio(sql,1,{sala_porta:'direita'},async()=>sala);
+ assert.equal(p.sala_porta,'direita');
+});

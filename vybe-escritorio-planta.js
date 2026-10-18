@@ -281,7 +281,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
   // bilheteria e pipoca na entrada.
   auditorio: () => [
     ["cine_screen", 4, 0, 0], ["cine_light2", 1, 0, 4, 0, 0.4], ["cine_light2", 12, 0, 4, 0, 0.4],
-    ["cine_platform", 5, 2, 0], ["uni_lectern", 8, 2, 0, 0, 1.4],
+    // Degraus na frente do palco: sobe-se como no Habbo (até 1,3 por passo).
+    ["cine_platform", 5, 2, 0], ["uni_lectern", 8, 2, 0, 0, 1.4], ["greek_block", 5, 3, 0], ["greek_block", 7, 3, 0],
     ["spotlight", 3, 1, 2], ["spotlight", 10, 1, 6],
     ["cine_pstr_1", 0, 3, 2, 0, 0.6], ["cine_pstr_6", 0, 7, 2, 0, 0.6],
     ["cine_light2", 0, 1, 2, 0, 0.4], ["cine_light2", 0, 5, 2, 0, 0.4], ["cine_light2", 0, 9, 2, 0, 0.4],

@@ -132,7 +132,7 @@ ${marcos ? escritorioMarcosHtml(marcos) : b.demo || escritorio.fichas?.[String(i
 <p class="ofc-nota">Contado pelas demandas do Painel em que ${eu ? "você é" : "a pessoa é"} responsável (${n.total} concluídas no total).</p>`;
   d.innerHTML = `<div class="ofc-ficha-topo"><img src="${img}" alt="" width="64" height="110" referrerpolicy="no-referrer"><div><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3><small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}</small></div><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
 ${corpo}
-<div class="ofc-ficha-acoes">${eu ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirRecadosEscritorio('${safeText(String(id))}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();escritorioIrAte('${safeText(String(id))}')">Ir até</button>` : ""}`}</div>`;
+<div class="ofc-ficha-acoes">${eu ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirRecadosEscritorio('${safeText(String(id))}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();escritorioIrAte('${safeText(String(id))}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirPresenteEscritorio('${safeText(String(id))}')">Dar um móvel de presente</button>`}</div>`;
   if (!d.open) d.showModal();
   // Pontos e marcos mudam com o trabalho do dia: a ficha busca o estado atual
   // ao abrir (a própria pessoa; ou outra, para quem administra).
@@ -170,7 +170,7 @@ function escritorioEstiloSalaHtml() {
   const amostraParede = (e) => ({ a: `linear-gradient(${a.corPadrao} 0 12%,#2b2d36 12%)`, b: pin.cor || a.corPadrao, c: "repeating-linear-gradient(#8a4733 0 7px,#3b1f17 7px 8px)", d: "repeating-linear-gradient(90deg,#7a5235 0 9px,#4a2f1c 9px 10px)", e: "#6e7077", f: "linear-gradient(135deg,#cfeaff,#7fb6e0)", g: `repeating-linear-gradient(90deg,${pin.cor || a.corPadrao} 0 6px,#00000040 6px 12px)`, h: "repeating-linear-gradient(#e9edf2 0 9px,#b8c0ca 9px 10px),#e9edf2" }[e]);
   const ferr = (id, nome, dica) => `<button type="button" aria-pressed="${pin.ferramenta === id}" onclick="escritorioPincel().ferramenta='${id}';renderEscritorio()" title="${dica}">${nome}</button>`;
   return `<div class="ofc-cats ofc-ferramentas">${ferr("piso", "Pintar piso", "Clique ou arraste nos ladrilhos da sua sala")}${ferr("balde", "Piso inteiro", "Troca o piso da sala toda de uma vez")}${ferr("parede", "Pintar parede", "Clique nos trechos das paredes altas")}${ferr("planta", "Planta", "Desenhe o formato do quarto: tire piso ou crie patamares")}${ferr("luz", "Luz", "Luz ambiente do quarto, como o regulador de luz do Habbo")}</div>
-${pin.ferramenta === "planta" ? `<p class="ofc-nota">Clique ou arraste nos ladrilhos para mudar o formato do quarto, como no editor de planta do Habbo. A porta e a escada ficam onde estão. Vale ao clicar em Salvar.</p><h4>Ladrilho</h4><div class="ofc-cats ofc-ferramentas">${ESCRITORIO_FORMAS_PLANTA.map(([id, nome, dica]) => `<button type="button" aria-pressed="${(pin.forma || "p") === id}" onclick="escritorioPincel().forma='${id}';renderEscritorio()" title="${dica}">${nome}</button>`).join("")}</div><div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="plantaOriginalEscritorio()">Voltar à planta escolhida</button></div><p class="ofc-erro" id="office-estilo-erro" role="alert"></p>` : pin.ferramenta === "luz" ? `<p class="ofc-nota">A luz tinge o quarto inteiro, como o regulador de luz do Habbo. Muda na hora para todos, sem precisar de Salvar.</p><h4>Luz do quarto</h4><div class="ofc-amostras">${ESCRITORIO_LUZES_SALA.map(([id, nome, cor]) => `<button type="button" aria-pressed="${(escritorioPerfilDecoracao()?.sala_luz || "") === id}" onclick="estiloSalaEscritorio('sala_luz','${id}')"><i style="background:${cor}"></i><span>${nome}</span></button>`).join("")}</div><p class="ofc-erro" id="office-estilo-erro" role="alert"></p>` : `
+${pin.ferramenta === "planta" ? `<p class="ofc-nota">Clique ou arraste nos ladrilhos para mudar o formato do quarto, como no editor de planta do Habbo. A porta e a escada ficam onde estão. Vale ao clicar em Salvar.</p><h4>Ladrilho</h4><div class="ofc-cats ofc-ferramentas">${ESCRITORIO_FORMAS_PLANTA.map(([id, nome, dica]) => `<button type="button" aria-pressed="${(pin.forma || "p") === id}" onclick="escritorioPincel().forma='${id}';renderEscritorio()" title="${dica}">${nome}</button>`).join("")}</div><div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="plantaOriginalEscritorio()">Voltar à planta escolhida</button></div><h4>Porta</h4><div class="ofc-cats ofc-ferramentas">${[["baixo", "Embaixo"], ["direita", "À direita"]].map(([id, nome]) => `<button type="button" aria-pressed="${a.porta === id}" onclick="mudarPortaEscritorio('${id}')">${nome}</button>`).join("")}</div><p class="ofc-nota">A altura das paredes muda em Pintar parede → Altura.</p><p class="ofc-erro" id="office-estilo-erro" role="alert"></p>` : pin.ferramenta === "luz" ? `<p class="ofc-nota">A luz tinge o quarto inteiro, como o regulador de luz do Habbo. Muda na hora para todos, sem precisar de Salvar.</p><h4>Luz do quarto</h4><div class="ofc-amostras">${ESCRITORIO_LUZES_SALA.map(([id, nome, cor]) => `<button type="button" aria-pressed="${(escritorioPerfilDecoracao()?.sala_luz || "") === id}" onclick="estiloSalaEscritorio('sala_luz','${id}')"><i style="background:${cor}"></i><span>${nome}</span></button>`).join("")}</div><p class="ofc-erro" id="office-estilo-erro" role="alert"></p>` : `
 <p class="ofc-nota">${pin.ferramenta === "parede" ? "Escolha estilo, altura e cor e clique no piso encostado em qualquer parede da sua sala (fundo, lados ou frente) para trocar aquele trecho. Arraste para fazer vários." : pin.ferramenta === "balde" ? "Toque num piso: a sala inteira muda (os ladrilhos pintados à mão saem)." : "Escolha o piso e clique ou arraste nos ladrilhos da sua sala."} Muda na hora para todos, sem precisar de Salvar.</p>
 ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostras">${ESCRITORIO_ESTILOS_PAREDE.map(([id, nome]) => `<button type="button" aria-pressed="${pin.estilo === id}" onclick="escritorioPincel().estilo='${id}';renderEscritorio()"><i style="background:${amostraParede(id)}"></i><span>${nome}</span></button>`).join("")}</div>
 <h4>Altura</h4><div class="ofc-cats ofc-ferramentas">${[["0", "Baixa"], ["1", "Média"], ["2", "Alta"]].map(([h, n]) => `<button type="button" aria-pressed="${pin.altura === h}" onclick="escritorioPincel().altura='${h}';renderEscritorio()">${n}</button>`).join("")}</div>
@@ -251,6 +251,19 @@ function formaNaSalaEscritorio(a, lx, ly, forma, x, y) {
   escritorio.timerPintura = setTimeout(() => escritorioRedesenharMapa(), 40);
   return true;
 }
+// Porta embaixo ou à direita (o vão da planta já existe nos dois lados).
+// Salva na hora, como a pintura; o servidor confere que o vão está livre.
+function mudarPortaEscritorio(lado) {
+  const a = escritorioMinhaMesa()?.ambiente, base = a && escritorio.base?.quartos?.plantas?.find((p) => p.id === a.planta);
+  if (!a || !base || a.porta === lado) return;
+  const { w, h } = escritorioDimQuarto(a);
+  const vao = lado === "direita" ? [[w - 1, base.portas.direita], [w - 1, base.portas.direita + 1]] : [[base.portas.baixo, h - 1], [base.portas.baixo + 1, h - 1]];
+  const ocupado = vao.some(([x, y]) => (escritorio.mapa?.moveisEm(a.x0 + x, a.y0 + y) || []).some((m) => !m.plano && !MAPA_PASSAVEIS.test(m.classe)));
+  const erro = document.getElementById("office-estilo-erro");
+  if (ocupado) { if (erro) erro.textContent = "Tire os móveis do lugar da porta nova antes de mudar."; return; }
+  if (escritorio.edicao?.mudou) { if (erro) erro.textContent = "Salve ou desfaça a decoração antes de mudar a porta."; return; }
+  estiloSalaEscritorio("sala_porta", lado);
+}
 function plantaOriginalEscritorio() {
   const e = escritorio.edicao, a = escritorioMinhaMesa()?.ambiente;
   if (!e || !a || e.camada !== a.id) return;
@@ -286,6 +299,7 @@ async function salvarPinturaEscritorio(payload=escritorioPayloadDecoracao()) {
     const r = await escritorioApi("perfil", { perfil: payload });
     const eu = escritorio.base.equipe.find((x) => String(x.id) === String(escritorio.base.eu));
     if (eu) eu.perfil = { ...eu.perfil, ...r.perfil };
+    escritorioAvisarDecoracao(escritorio.quarto);
   } catch (e) {
     const erro = document.getElementById("office-estilo-erro");
     if (erro) erro.textContent = "Não salvou: " + e.message;
@@ -318,6 +332,7 @@ async function estiloSalaEscritorio(campo, valor, limparLadrilhos = false) {
       escritorio.perfil = { ...escritorio.perfil, ...r.perfil };
       const eu = escritorio.base.equipe.find((x) => String(x.id) === String(escritorio.base.eu));
       if (eu) eu.perfil = { ...eu.perfil, ...r.perfil };
+      escritorioAvisarDecoracao(escritorio.quarto);
     }
   } catch (e) {
     // Não salvou: volta como estava e diz o porquê.
@@ -329,7 +344,7 @@ async function estiloSalaEscritorio(campo, valor, limparLadrilhos = false) {
     return;
   }
   if (escritorio.edicao && escritorio.catalogoCategoria === "Sala") renderEscritorio();
-  escritorioAviso(campo === "sala_piso" ? "Piso da sala trocado." : campo === "sala_luz" ? "Luz do quarto trocada." : "Cor das paredes trocada.");
+  escritorioAviso(campo === "sala_piso" ? "Piso da sala trocado." : campo === "sala_luz" ? "Luz do quarto trocada." : campo === "sala_porta" ? "Porta trocada de lugar." : "Cor das paredes trocada.");
 }
 // Recria o mapa (piso e paredes são desenhados uma vez), mantendo a câmera.
 function escritorioRedesenharMapa() {
@@ -358,4 +373,127 @@ function escritorioPisosAcervoHtml() {
   if (!lista.length) { carregarCatalogoEscritorio?.(); return ""; }
   return `<h4>Pisos do acervo <small>(${lista.length}; ficam ao clicar em Salvar)</small></h4><div class="ofc-moveis ofc-pisos-acervo">${lista.map((m) => `<button type="button" class="ofc-movel" aria-pressed="${pin.movel === m.classe}" onclick="escritorioPincel().movel=escritorioPincel().movel==='${safeText(m.classe)}'?'':'${safeText(m.classe)}';renderEscritorio()" title="${safeText(escritorioNomeMovel(m))}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${m.anima ? '<em class="ofc-giro">animado</em>' : ""}</button>`).join("")}</div>
 ${pin.movel ? '<p class="ofc-nota">Clique ou arraste nos ladrilhos da sala. Para voltar aos pisos de cor, clique de novo no piso escolhido.</p>' : ""}`;
+}
+
+// Post-its nas paredes da sala (como os recados do Habbo). Qualquer pessoa
+// cola; quem escreveu, o dono da sala ou quem administra tira.
+const ESCRITORIO_CORES_POSTIT = [["amarelo", "Amarelo"], ["rosa", "Rosa"], ["azul", "Azul"], ["verde", "Verde"]];
+async function carregarPostitsEscritorio() {
+  const camada = escritorio.quarto, mapa = escritorio.mapa;
+  if (!mapa?.postits) return;
+  if (!camada) return mapa.postits([]);
+  let lista = (escritorio.postitsDemo ||= {})[camada] || [];
+  if (!escritorio.base.demo) {
+    try { lista = (await escritorioApi("postits", null, { camada })).postits; } catch { return; }
+  }
+  if (escritorio.quarto === camada && escritorio.mapa === mapa) { escritorio.postits = lista; mapa.postits(lista, abrirPostitEscritorio); }
+}
+function abrirNovoPostitEscritorio() {
+  if (!escritorio.quarto) return escritorioAviso("Na Praça não há parede: entre numa sala para colar um post-it.");
+  openWorkflowModal(`<div class="workflow-kicker">Post-it</div><h2 class="workflow-title">Colar na parede</h2>
+<form class="ofc-postit-form" onsubmit="event.preventDefault();colarPostitEscritorio(this)">
+<label>Recado<textarea name="texto" maxlength="280" rows="4" required placeholder="Ex.: reunião com o cliente às 15h"></textarea></label>
+<fieldset><legend>Cor</legend>${ESCRITORIO_CORES_POSTIT.map(([id, nome], i) => `<label class="ofc-postit-cor" data-cor="${id}"><input type="radio" name="cor" value="${id}"${i ? "" : " checked"}><span>${nome}</span></label>`).join("")}</fieldset>
+<p class="ofc-nota">Vai para a parede mais perto de você. Todos que entrarem na sala veem.</p>
+<p class="ofc-erro" id="office-postit-erro" role="alert"></p>
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button class="workflow-primary">Colar</button></div></form>`);
+  setTimeout(() => document.querySelector(".ofc-postit-form textarea")?.focus(), 50);
+}
+async function colarPostitEscritorio(form) {
+  const camada = escritorio.quarto, a = escritorioAmbienteDoQuarto();
+  if (!camada || !a) return;
+  const p = escritorioPosicao(escritorio.perfil || {}), x = p.x - a.x0, y = p.y - a.y0;
+  // A parede mais perto: o fundo (lado 0) ou a esquerda (lado 1).
+  const lado = y <= x ? 0 : 1, posicao = Math.max(0.3, Math.min((lado ? a.y1 - a.y0 : a.x1 - a.x0) - 0.3, (lado ? y : x) + 0.5));
+  const vizinhos = (escritorio.postits || []).filter((q) => q.lado === lado && Math.abs(q.posicao - posicao) < 0.6).length;
+  const corpo = { camada, lado, posicao, altura: [0.55, 0.3, 0.8][vizinhos % 3], cor: form.cor.value, texto: form.texto.value };
+  const botao = form.querySelector(".workflow-primary");
+  botao.disabled = true;
+  try {
+    if (escritorio.base.demo) ((escritorio.postitsDemo ||= {})[camada] ||= []).push({ ...corpo, id: String(Date.now()), pessoa_id: String(escritorio.base.eu), nome: "Você", texto: corpo.texto.replace(/\s+/g, " ").trim(), criado_em: new Date().toISOString() });
+    else await escritorioApi("postit", corpo);
+    closeWorkflowModal();
+    escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "pst=" + camada });
+    await carregarPostitsEscritorio();
+    escritorioAviso("Post-it colado na parede.");
+  } catch (e) {
+    botao.disabled = false;
+    const erro = document.getElementById("office-postit-erro");
+    if (erro) erro.textContent = e.message;
+  }
+}
+function abrirPostitEscritorio(q) {
+  const eu = String(escritorio.base.eu), dono = escritorio.base.salas?.find((s) => s.id === escritorioRaizQuarto(escritorio.quarto))?.pessoa_id;
+  const pode = String(q.pessoa_id) === eu || String(dono) === eu || escritorio.base.admin;
+  const quando = q.criado_em ? new Date(q.criado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "";
+  escritorio.postitAberto = q;
+  openWorkflowModal(`<div class="workflow-kicker">Post-it</div><div class="ofc-postit-lido" data-cor="${safeText(q.cor)}"><p>${safeText(q.texto)}</p></div><p class="ofc-nota">${safeText(q.nome)}${quando ? " · " + safeText(quando) : ""}</p>
+<p class="ofc-erro" id="office-postit-erro" role="alert"></p>
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button>${pode ? '<button type="button" class="workflow-secondary perigo" onclick="tirarPostitEscritorio()">Tirar da parede</button>' : ""}</div>`);
+}
+async function tirarPostitEscritorio() {
+  const q = escritorio.postitAberto, camada = escritorio.quarto;
+  if (!q || !camada) return;
+  try {
+    if (escritorio.base.demo) (escritorio.postitsDemo ||= {})[camada] = (escritorio.postitsDemo[camada] || []).filter((p) => p.id !== q.id);
+    else await escritorioApi("postit-apagar", { id: q.id });
+    closeWorkflowModal();
+    escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "pst=" + camada });
+    await carregarPostitsEscritorio();
+  } catch (e) {
+    const erro = document.getElementById("office-postit-erro");
+    if (erro) erro.textContent = e.message;
+  }
+}
+
+// Presente: uma unidade guardada do seu inventário vai para outra pessoa
+// (o servidor confere e faz a troca numa transação só).
+function escritorioMeusGuardados() {
+  const sala = escritorioDonos().get(escritorio.base?.eu)?.id;
+  const camadas = escritorio.base.mapa?.camadas || {};
+  const colocados = (classe) => [sala, sala + "-andar-1"].flatMap((c) => camadas[c]?.itens || []).filter((it) => it[0] === classe).length;
+  const essenciais = escritorio.base.quartos?.essenciais || [];
+  return (escritorio.base.economia?.inventario || [])
+    .filter((i) => !essenciais.includes(i.classe) && !String(i.classe).startsWith("vybeimg_"))
+    .map((i) => ({ classe: i.classe, livres: Number(i.quantidade) - colocados(i.classe) }))
+    .filter((i) => i.livres > 0);
+}
+function abrirPresenteEscritorio(id) {
+  const pessoa = escritorio.base.equipe.find((p) => String(p.id) === String(id));
+  if (!pessoa) return;
+  const lista = escritorioMeusGuardados();
+  const nome = (classe) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return m ? escritorioNomeMovel(m) : classe; };
+  openWorkflowModal(`<div class="workflow-kicker">Presente</div><h2 class="workflow-title">Dar um móvel para ${safeText(String(pessoa.nome).split(" ")[0])}</h2>
+${lista.length ? `<p>Escolha um móvel guardado (fora do quarto). Ele sai do seu inventário e vai para o da pessoa.</p><div class="workflow-actions ofc-teleporte">${lista.map((i) => `<button type="button" class="workflow-secondary" onclick="darPresenteEscritorio('${safeText(String(id))}','${safeText(i.classe)}',this)">${safeText(nome(i.classe))}${i.livres > 1 ? ` · ${i.livres} guardados` : ""}</button>`).join("")}</div>`
+    : `<p class="ofc-nota">Você não tem móveis guardados para dar. Os essenciais grátis não contam; para dar um móvel que está no quarto, guarde-o antes (editor → Guardar).</p>`}
+<p class="ofc-erro" id="office-presente-erro" role="alert"></p>
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button></div>`);
+  if (typeof carregarCatalogoEscritorio === "function" && !escritorioCatalogo) carregarCatalogoEscritorio();
+}
+async function darPresenteEscritorio(para, classe, botao) {
+  if (botao) botao.disabled = true;
+  try {
+    if (escritorio.base.demo) throw new Error("A demonstração não grava presentes.");
+    const chave = (crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9_-]/g, "");
+    const r = await escritorioApi("presente", { para, classe, chave });
+    escritorio.base.economia = { ...escritorio.base.economia, ...r.economia };
+    closeWorkflowModal();
+    escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "pre=" + para + ":" + classe });
+    escritorioAviso("Presente entregue.");
+  } catch (e) {
+    if (botao) botao.disabled = false;
+    const erro = document.getElementById("office-presente-erro");
+    if (erro) erro.textContent = e.message;
+  }
+}
+async function presenteChegouEscritorio(id, v) {
+  const [para] = String(v || "").split(":");
+  if (para !== String(escritorio.base?.eu) || String(id) === para || escritorio.base?.demo) return;
+  const nome = String((escritorio.online || []).find((o) => String(o.id) === String(id))?.nome || "Alguém").split(" ")[0];
+  try {
+    const b = await escritorioApi("entrada");
+    escritorio.base.economia = { ...escritorio.base.economia, ...b.economia, loja: escritorio.base.economia?.loja };
+  } catch {}
+  escritorioAviso(`${nome} te deu um móvel de presente. Está em Meus móveis.`);
+  if (escritorio.edicao) renderEscritorio();
 }

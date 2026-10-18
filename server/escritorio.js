@@ -1,7 +1,8 @@
-import { QUARTOS, configurarQuarto, perfilDoAndar } from "./escritorio-quartos.js";
+import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel } from "./escritorio-economia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
-import { salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
+import { listarPostits, colarPostit, apagarPostit, darPresente } from "./escritorio-social.js";
+import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -52,7 +53,7 @@ export function perfilEscritorio(valor = {}) {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
-      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','quarto_configurado'].includes(k))));
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','quarto_configurado'].includes(k))));
       return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
     }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
@@ -72,6 +73,8 @@ export function perfilEscritorio(valor = {}) {
     sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
     sala_luz: opcao("sala_luz", LUZES_SALA_ESCRITORIO, ""),
+    // Lado da porta do quarto, escolhido pelo dono (vazio: o padrão da sala).
+    sala_porta: opcao("sala_porta", ["", "baixo", "direita"], ""),
     // Planta desenhada pelo dono (ver plantaQuarto); muda só ao salvar a decoração.
     sala_celdas: /^[0vp12]{144}$/.test(String(valor.sala_celdas || "")) ? String(valor.sala_celdas) : "",
     // Piso pintado ladrilho a ladrilho (12×12, um código por ladrilho; 0 =
@@ -138,7 +141,9 @@ export async function carregarEscritorio(sql, pessoa) {
     mapa: await carregarMapaEscritorio(sql),
   };
 }
-export async function salvarPerfilEscritorio(sql, pessoaId, valor) {
+// "buscarSala" só é chamada se a porta mudar: devolve a sala da pessoa, para
+// conferir que nenhum móvel ficou no vão da porta nova.
+export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = null) {
   return sql.comTransacao(async tx => {
     await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
     const [atual] = await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} FOR UPDATE`;
@@ -147,7 +152,21 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor) {
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
       const pintura=perfilEscritorio(valor);
-      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz'].map(k=>[k,pintura[k]]))}]};
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_porta'].map(k=>[k,pintura[k]]))}]};
+    }
+    const andarNovo=perfilDoAndar(perfil,valor.andar===1 ? 1 : 0), andarAntes=perfilDoAndar(atual.preferencias,valor.andar===1 ? 1 : 0);
+    if((andarNovo?.sala_porta || '')!==(andarAntes?.sala_porta || '') && andarNovo?.sala_porta) {
+      const sala=buscarSala ? await buscarSala() : '';
+      if(!sala) throw Object.assign(new Error('Abra o seu quarto para mudar a porta.'),{status:409});
+      const camada=valor.andar===1 ? sala+'-andar-1' : sala;
+      const [m]=await tx`SELECT itens FROM vybe_escritorio_mapa WHERE camada=${camada}`;
+      const p=plantaQuarto(andarNovo.sala_planta,andarNovo.sala_celdas), h=p?.celdas.length, w=p?.celdas[0].length;
+      const vao=andarNovo.sala_porta==='direita' ? [[w-1,p.portas.direita],[w-1,p.portas.direita+1]] : [[p.portas.baixo,h-1],[p.portas.baixo+1,h-1]];
+      const itens=(m?.itens || []).filter(it=>!/^vybeimg_/.test(it[0]));
+      const dims=await dimensoesDosMoveis(itens);
+      const cobre=itens.some(it=>{const d=dims.get(it[0]) || {x:1,y:1},gira=it[3]===2||it[3]===6,dw=gira?d.y:d.x,dh=gira?d.x:d.y;
+        return (d.z ?? 1)>0.05 && vao.some(([x,y])=>x>=Math.floor(it[1]) && x<Math.floor(it[1])+dw && y>=Math.floor(it[2]) && y<Math.floor(it[2])+dh);});
+      if(cobre) throw Object.assign(new Error('Tire os móveis do lugar da porta nova antes de mudar.'),{status:409});
     }
     await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(perfil)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${pessoaId}`;
     return perfil;
@@ -309,6 +328,12 @@ export async function areaEscritorio(req, res, quem, sql) {
       } catch (e) {
         return res.status(e.status || 400).json({ error: e.message });
       }
+    if (acao === "postits")
+      try {
+        return res.status(200).json({ ok: true, postits: await listarPostits(sql, String(req.query.camada || "")) });
+      } catch (e) {
+        return res.status(e.status || 400).json({ error: e.message });
+      }
     if (acao === "mensagens")
       return res.status(200).json({
         ok: true,
@@ -363,10 +388,14 @@ export async function areaEscritorio(req, res, quem, sql) {
     } catch(e) { return res.status(e.status || 400).json({error:e.message}); }
   }
   if (acao === "perfil")
-    return res.status(200).json({
-      ok: true,
-      perfil: await salvarPerfilEscritorio(sql, pessoa.id, req.body?.perfil),
-    });
+    try {
+      return res.status(200).json({
+        ok: true,
+        perfil: await salvarPerfilEscritorio(sql, pessoa.id, req.body?.perfil, async () => (await carregarEscritorio(sql, pessoa)).salas.find((s) => s.pessoa_id === String(pessoa.id))?.id || ""),
+      });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
   if (acao === "mapa") {
     const { salas } = await carregarEscritorio(sql, pessoa);
     try {
@@ -394,6 +423,16 @@ export async function areaEscritorio(req, res, quem, sql) {
     } catch (e) {
       return res.status(e.status || 400).json({ error: e.message });
     }
+  if (acao === "postit" || acao === "postit-apagar" || acao === "presente") {
+    try {
+      if (acao === "postit") return res.status(200).json({ ok: true, id: await colarPostit(sql, pessoa, req.body || {}) });
+      const { salas } = await carregarEscritorio(sql, pessoa);
+      if (acao === "postit-apagar") return res.status(200).json({ ok: true, camada: await apagarPostit(sql, pessoa, salas, String(req.body?.id || "")) });
+      return res.status(200).json({ ok: true, ...(await darPresente(sql, pessoa, salas, req.body || {})) });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+  }
   if (acao === "mensagem")
     return res.status(200).json({
       ok: true,

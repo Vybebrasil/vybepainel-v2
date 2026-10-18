@@ -449,6 +449,23 @@ const MAPA_ASSENTOS = new Set(["vybe_assento_invisivel", "chair_polyfon","hc26_1
 // (escada de blocos); mais que isso é parede. Desce de qualquer altura.
 const MAPA_SUBIVEIS = /^(bc_block_\w+|bc_tile_recolorable|vybe_bloco_invisivel|\w+_stage|cine_platform|greek_block|ktchn10_block|disco_c26_block)$/;
 const MAPA_DEGRAU = 1.3;
+// Física do Habbo: portão (fechado bloqueia; estado 1 é aberto), cama (deita),
+// esteira rolante (leva quem para em cima), gelo (desliza), água rasa
+// (respingo), trampolim (pula) e placa de pressão (abre os portões da sala).
+const MAPA_PORTOES = /gate/;
+const MAPA_CAMAS = /bed/;
+const MAPA_NAO_CAMA = /flowerbed|bedside|^mystics_/;
+const MAPA_ALTURA_CAMA = 0.55;
+function mapaPisoEspecial(classe) {
+  if (/roller$/.test(classe)) return "esteira";
+  if (/^es_skating_ice$|icerink/.test(classe)) return "gelo";
+  if (/^bw_water_\d|watertile|waterfloor/.test(classe)) return "agua";
+  if (/trampoline/.test(classe)) return "trampolim";
+  if (/pressureplate/.test(classe)) return "placa";
+  return null;
+}
+function mapaEhPortao(classe) { return MAPA_PORTOES.test(classe) && !MAPA_PORTAS.test(classe); }
+function mapaEhCama(classe) { return MAPA_CAMAS.test(classe) && !MAPA_NAO_CAMA.test(classe); }
 function mapaTopoMovel(m) {
   return (m.altura || 0) + ((typeof ESCRITORIO_TAMPOS !== "undefined" && ESCRITORIO_TAMPOS[m.classe]) ?? m.dim.z ?? 1);
 }
@@ -460,6 +477,8 @@ function mapaMontarGrade(P, moveis) {
   const desvioAssento = new Map(); // índice → quanto o assento saiu do ladrilho (ajuste fino)
   const paredes = new Set(); // "x,y|x,y" entre vizinhos
   const subida = new Float32Array(W * H); // altura de quem pisa em cima de um bloco
+  const piso = new Map(); // índice → { tipo, dir } (esteira, gelo, água, trampolim, placa)
+  const cama = new Map(); // índice → direção de quem deita
   const ind = (x, y) => y * W + x;
   const aresta = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
   for (const [x0, y0, x1, y1] of P.divisorias) {
@@ -470,7 +489,28 @@ function mapaMontarGrade(P, moveis) {
   for (const r of P.texturas || []) if (r.agua) for (let x = r.x0; x < r.x1; x++) for (let y = r.y0; y < r.y1; y++) bloqueado[ind(x, y)] = 1;
   // Quarto: só se anda dentro dele e na soleira (P.andavel).
   if (P.andavel) for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (!P.andavel(x, y)) bloqueado[ind(x, y)] = 1;
+  const cada = (m, fn) => {
+    for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
+      const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
+      if (x >= 0 && y >= 0 && x < W && y < H) fn(ind(x, y));
+    }
+  };
+  const apoiados = [];
   for (const m of moveis) {
+    const especial = mapaPisoEspecial(m.classe);
+    if (especial) {
+      cada(m, (i) => piso.set(i, { tipo: especial, dir: m.dir }));
+      // Esteira, trampolim e placa têm altura: quem pisa fica em cima.
+      if (especial !== "gelo" && especial !== "agua") cada(m, (i) => { subida[i] = Math.max(subida[i], mapaTopoMovel(m)); });
+      continue;
+    }
+    // Portão aberto se atravessa; fechado é parede (mesmo rente ao piso).
+    if (mapaEhPortao(m.classe) && !m.altura) {
+      if (!(m.estado >= 1)) cada(m, (i) => { bloqueado[i] = 1; });
+      continue;
+    }
+    // Cama: deita-se em qualquer ladrilho dela; o boneco fica na frente dela.
+    if (mapaEhCama(m.classe) && !m.altura) { cada(m, (i) => { cama.set(i, m.dir); profAssento.set(i, m.prof); }); continue; }
     if (MAPA_SUBIVEIS.test(m.classe) && mapaTopoMovel(m) <= 4) {
       for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
         const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
@@ -478,8 +518,12 @@ function mapaMontarGrade(P, moveis) {
       }
       continue;
     }
-    if (m.altura || m.plano || MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // em cima de mesa, rente ao piso ou porta (se atravessa)
     const senta = MAPA_ASSENTOS.has(m.classe);
+    if (m.plano || MAPA_PORTAS.test(m.classe) || MAPA_PASSAVEIS.test(m.classe)) continue; // rente ao piso ou porta (se atravessa)
+    // Em cima de mesa não bloqueia; assento em cima de bloco ou patamar
+    // continua sendo assento, e quem senta fica na altura dele.
+    if (m.altura && !senta) { apoiados.push(m); continue; }
+    if (senta && m.altura) cada(m, (i) => { subida[i] = Math.max(subida[i], m.altura); });
     for (let dx = 0; dx < m.dim.x; dx++) for (let dy = 0; dy < m.dim.y; dy++) {
       const x = Math.floor(m.x) + dx, y = Math.floor(m.y) + dy;
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
@@ -487,8 +531,15 @@ function mapaMontarGrade(P, moveis) {
       else bloqueado[ind(x, y)] = 1;
     }
   }
-  // Um móvel comum em cima do bloco continua bloqueando o ladrilho.
-  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, subida, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
+  // Em cima de um bloco ou palco (onde se pisa), um móvel alto bloqueia o
+  // ladrilho; em cima de mesa, a mesa já bloqueia.
+  for (const m of apoiados) {
+    if (m.plano || !(m.dim.z > 0.3)) continue;
+    let pisavel = true;
+    cada(m, (i) => { if (subida[i] < m.altura - 0.05) pisavel = false; });
+    if (pisavel) cada(m, (i) => { bloqueado[i] = 1; });
+  }
+  return { W, H, bloqueado, assento, profAssento, desvioAssento, paredes, subida, piso, cama, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Diagonal só se os dois
 // caminhos retos também passam (não corta quina de parede).
@@ -764,11 +815,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     if (item.quadros > 1) animados.push(item);
   };
   function estadosMoveis(lista) {
+    let portao = false;
     for (const [chave, estado] of lista || []) {
       estadosForcados.set(chave, estado);
-      for (const m of moveis) if (chaveMovel(m) === chave) aplicarEstado(m, estado);
+      for (const m of moveis) if (chaveMovel(m) === chave) { aplicarEstado(m, estado); if (mapaEhPortao(m.classe)) portao = true; }
     }
     if (luzesLigadas) pintarLuzes();
+    // Portão abriu ou fechou: a passagem muda para todos.
+    if (portao && grade) grade = mapaMontarGrade(P, moveis);
   }
   // Imagens da equipe ("vybeimg_<id>"): quadro pintado na parede alta da
   // sala; tapete desenhado no piso (rente ao chão, dá para andar por cima).
@@ -935,7 +989,19 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
   const prontos = Promise.all(P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
-  async function definirMoveis(lista) {
+  // Uma troca por vez: duas seguidas (editar e salvar) desenhavam os móveis
+  // em dobro, porque a segunda limpava enquanto a primeira ainda montava.
+  let filaMoveis = prontos;
+  function definirMoveis(lista) {
+    filaMoveis = filaMoveis.catch(() => {}).then(() => trocarMoveis(lista));
+    return filaMoveis;
+  }
+  async function trocarMoveis(lista) {
+    await trocarMoveisAgora(lista);
+    // A ordem das paredes pode ter mudado: os post-its voltam para a frente delas.
+    if (postitsAtuais) postits(...postitsAtuais);
+  }
+  async function trocarMoveisAgora(lista) {
     for (const item of moveis) item.no.remove();
     moveis.length = 0;
     animados.length = 0;
@@ -1032,12 +1098,26 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       lista.forEach((q, i) => { q.no.style.zIndex = Math.min(Math.max(ini, fim), ini + i * passo); });
     }
   };
+  const alturaNoPiso = (x, y) => {
+    if (!grade) return 0;
+    const h = (i, j) => (i < 0 || j < 0 || i >= grade.W || j >= grade.H ? 0 : grade.subida[grade.ind(i, j)] || 0);
+    const rx = Math.round(x), ry = Math.round(y), ux = x - rx, uy = y - ry, ax = Math.abs(ux), ay = Math.abs(uy);
+    const nx = rx + Math.sign(ux), ny = ry + Math.sign(uy);
+    return h(rx, ry) * (1 - ax) * (1 - ay) + h(nx, ry) * ax * (1 - ay) + h(rx, ny) * (1 - ax) * ay + h(nx, ny) * ax * ay;
+  };
   const posicionarPessoa = (p) => {
     // Sentado numa cadeira posta fora do ladrilho (ajuste fino), acompanha a cadeira.
     const desvio = p.acao === "sit" && grade ? grade.desvioAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : null;
     const t = mapaTela(p.x + (desvio?.dx || 0), p.y + (desvio?.dy || 0), origem);
-    // Em cima de um bloco: o boneco sobe (32 px por nível de altura).
-    const subiu = grade ? (grade.subida[grade.ind(Math.round(p.x), Math.round(p.y))] || 0) * 32 : 0;
+    // Em cima de um bloco: o boneco sobe (32 px por nível de altura). Entre
+    // dois ladrilhos a altura acompanha o passo (sobe o degrau aos poucos).
+    let subiu = alturaNoPiso(p.x, p.y) * 32;
+    const especial = grade?.piso.get(grade.ind(Math.round(p.x), Math.round(p.y)))?.tipo;
+    if (p.acao === "lay" && grade?.cama.has(grade.ind(Math.round(p.x), Math.round(p.y)))) subiu += MAPA_ALTURA_CAMA * 32;
+    p.no.classList.toggle("na-agua", especial === "agua");
+    // A imagem de quem deita é deitada (110 × 64), não em pé (64 × 110).
+    p.no.classList.toggle("deitado", p.acao === "lay");
+    p.no.classList.toggle("pulando", especial === "trampolim" && p.acao !== "wlk");
     t.y -= subiu;
     p.no.style.left = t.x + "px";
     p.no.style.top = t.y + MAPA_TH / 2 + "px";
@@ -1046,7 +1126,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     p.etiqueta.style.left = t.x + "px";
     p.etiqueta.style.top = t.y + MAPA_TH / 2 - 104 + "px";
     // Sentado, fica à frente do assento (sofá longo tem profundidade maior).
-    const sobre = p.acao === "sit" && grade ? grade.profAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : undefined;
+    const sobre = (p.acao === "sit" || p.acao === "lay") && grade ? grade.profAssento.get(grade.ind(Math.round(p.x), Math.round(p.y))) : undefined;
     // Ladrilho em que está (o arredondado) e a regra das caixas isométricas:
     // à frente de um móvel se passou do lado de baixo ou da direita dele;
     // atrás se está antes dele. Assim sofá e mesa compridos não cobrem quem
@@ -1227,6 +1307,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       // Ausente: o boneco "dorme" (olhos fechados), como o Habbo faz com quem
       // fica parado muito tempo.
       p.dormindo = q.status === "ausente";
+      // "zZz" de quem cochila (ausente e parado).
+      let zzz = p.no.querySelector(".mapa-zzz");
+      if (p.dormindo && !zzz) { zzz = document.createElement("span"); zzz.className = "mapa-zzz"; zzz.setAttribute("aria-hidden", "true"); zzz.textContent = "z Z z"; p.no.append(zzz); }
+      else if (!p.dormindo && zzz) zzz.remove();
       p.no.setAttribute("aria-label", q.rotulo || q.nome);
       p.no.dataset.status = q.status || "";
       // O próprio boneco, enquanto este navegador o guia, não é puxado pela
@@ -1583,8 +1667,36 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   };
   prontos.then(() => { relogio = setInterval(animar, reduzido ? 200 : 100); });
 
+  // Post-its nas paredes do fundo (lado 0) e da esquerda (lado 1), como os
+  // recados do Habbo: um quadradinho colorido inclinado no plano da parede.
+  const postitsNos = [];
+  let postitsAtuais = null;
+  function postits(lista, aoClicar) {
+    for (const n of postitsNos) n.remove();
+    postitsNos.length = 0;
+    postitsAtuais = [lista, aoClicar];
+    if (!P.quarto || !P.divisorias.length) return;
+    for (const q of lista || []) {
+      const t = q.lado ? mapaTela(0, q.posicao, origem) : mapaTela(q.posicao, 0, origem);
+      const n = document.createElement("button");
+      n.type = "button";
+      n.className = "mapa-postit " + (q.lado ? "esquerda" : "fundo");
+      n.dataset.cor = q.cor;
+      n.style.left = t.x + "px";
+      n.style.top = t.y - 24 - q.altura * (MAPA_PAREDE - 48) + "px";
+      // Na frente do trecho de parede onde está (como os quadros), atrás do resto.
+      const eixo = q.lado ? "y" : "x", linha = muros.filter((w) => w.eixo === eixo && (eixo === "x" ? w.y === 0 : w.x === 0) && w.r > t.x - 9 && w.l < t.x + 9);
+      n.style.zIndex = String((linha.length ? Math.max(...linha.map((w) => w.prof)) : Math.round(q.posicao * 10)) + 2);
+      n.setAttribute("aria-label", `Post-it de ${q.nome}: ${q.texto}`);
+      n.title = q.texto;
+      n.addEventListener("pointerdown", (e) => e.stopPropagation());
+      n.addEventListener("click", (e) => { e.stopPropagation(); aoClicar?.(q); });
+      palco.append(n);
+      postitsNos.push(n);
+    }
+  }
   return {
-    origem, prontos, carga, atualizarPessoas, ladrilhoEm, grade: mostrarGrade,
+    origem, prontos, carga, atualizarPessoas, ladrilhoEm, grade: mostrarGrade, postits,
     // Piso e paredes pintados mudaram: redesenha só o fundo e as paredes.
     repintar: () => {
       fundoPronto?.();
@@ -1607,6 +1719,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
     bloqueadoEm: (x, y) => Boolean(grade) && (x < 0 || y < 0 || x >= grade.W || y >= grade.H || Boolean(grade.bloqueado[grade.ind(x, y)])),
     assentoEm: (x, y) => (grade ? grade.assento.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
+    camaEm: (x, y) => (grade ? grade.cama.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
+    pisoEm: (x, y) => (grade ? grade.piso.get(grade.ind(Math.round(x), Math.round(y))) : undefined),
+    portoes: () => moveis.filter((m) => mapaEhPortao(m.classe) && !m.altura),
     tela: (x, y) => mapaTela(x, y, origem),
     destruir() { tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
   };
