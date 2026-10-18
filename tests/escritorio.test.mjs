@@ -1410,3 +1410,15 @@ test("peça de parede vem da ficha do Habbo (wallitemtypes), não da forma da ar
   assert.equal(vm.runInContext("mapaEhDeParede(escudo, 'vikings_wallshield_r')", c), true);
   assert.equal(vm.runInContext("mapaEhDeParede(escudo, 'chair_norja')", c), false, "na ficha como móvel de chão");
 });
+
+test("papéis de parede e pisos oficiais do Habbo: número do plano resolve a textura e a cor", () => {
+  const planos = JSON.parse(readFileSync("assets/escritorio/habbo/habbo_quarto_planos.json", "utf8"));
+  const c = vm.createContext({ console });
+  vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8"), c);
+  assert.equal(vm.runInContext("mapaEhPlano('plano:parede:1901') && !mapaEhPlano('lodge_dark_brickwall')", c), true);
+  // Sem os planos carregados, nada é desenhado (o piso do acervo segue).
+  assert.equal(vm.runInContext("mapaTexturaPlano('plano:piso:205')", c), null);
+  // O tijolo vermelho (1901) e o carpete vermelho (205) existem no arquivo oficial.
+  const temPlano = (bloco, id) => planos.roomVisualization[bloco].planes.some((p) => p.id === id);
+  assert.ok(temPlano("wallData", "1901") && temPlano("floorData", "205"));
+});

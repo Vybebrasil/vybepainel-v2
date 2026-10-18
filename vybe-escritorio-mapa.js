@@ -334,6 +334,19 @@ function mapaDesenharFundo(canvas, planta, origem) {
   // chega (ou se faltar), fica a cor lisa.
   const texturas = planta.texturasProntas;
   const textura = (x, y, classe, x0 = 0, y0 = 0, modo = "") => {
+    if (mapaEhPlano(classe)) {
+      // Piso do Habbo: a textura do plano inclinada em losango, contínua pelo chão.
+      const t = mapaTexturaPlano(classe);
+      if (!t) return false;
+      const q = mapaTela(x, y, origem);
+      g.save(); losango(x, y); g.clip();
+      if (modo) { g.globalCompositeOperation = modo; g.globalAlpha = 0.55; }
+      g.transform(1, 0.5, -1, 0.5, q.x, q.y);
+      g.translate(-x * 32, -y * 32);
+      g.fillStyle = g.createPattern(t, "repeat"); g.fillRect(x * 32 - 1, y * 32 - 1, 34, 34);
+      g.restore();
+      return true;
+    }
     const t = classe && texturas?.get(classe);
     if (!t) return false;
     const ax = x - (((x - x0) % t.dw) + t.dw) % t.dw, ay = y - (((y - y0) % t.dh) + t.dh) % t.dh, q = mapaTela(ax, ay, origem);
@@ -422,6 +435,58 @@ function mapaPosicaoPorta(classe, x, y, dir) {
 const MAPA_ESTILO_TEXTURA = { c: "urban_wall", d: "gardenshed_wall", e: "sb_wall", f: "exe_c15_wall", g: "hygge_c25_wallpaper1", h: "bathroom_wall4" };
 const MAPA_TEXTURA_SALA = "art_c20_wall"; // padrão das salas, tingido na cor do dono
 const MAPA_TEXTURAS_PAREDE = new Map(); // classe → { 2: {canvas}, 4: {canvas}, n }
+// Papéis de parede e pisos oficiais do quarto do Habbo (room.nitro do Nitro:
+// wallData e floorData). Textura "plano:parede:1801" ou "plano:piso:205": o
+// número é o do Habbo (textura × cor). A textura se repete no plano inteiro,
+// tingida pela cor do plano e inclinada como no Nitro: 32 px de textura por
+// aresta de ladrilho, na parede de pé e no chão em losango.
+let MAPA_PLANOS = null, MAPA_PLANOS_PRONTOS = null;
+const MAPA_PLANOS_TEXTURAS = new Map();
+function mapaEhPlano(textura) { return typeof textura === "string" && textura.startsWith("plano:"); }
+function mapaCarregarPlanos() {
+  MAPA_PLANOS ??= (async () => {
+    const r = await fetch(mapaArquivo("habbo_quarto_planos.json"), { credentials: "same-origin" });
+    if (!r.ok) throw new Error("Paredes e pisos do Habbo indisponíveis.");
+    const dados = await r.json();
+    const imagem = new Image();
+    imagem.src = mapaArquivo("habbo_quarto_planos.png");
+    await imagem.decode();
+    MAPA_PLANOS_PRONTOS = { dados, imagem };
+    return MAPA_PLANOS_PRONTOS;
+  })();
+  return MAPA_PLANOS;
+}
+// A textura de um plano (canvas tingido), ou null enquanto não carregou.
+function mapaTexturaPlano(textura) {
+  if (!mapaEhPlano(textura) || !MAPA_PLANOS_PRONTOS) return null;
+  if (MAPA_PLANOS_TEXTURAS.has(textura)) return MAPA_PLANOS_TEXTURAS.get(textura);
+  const [, tipo, id] = textura.split(":");
+  const { dados, imagem } = MAPA_PLANOS_PRONTOS, bloco = dados.roomVisualization?.[tipo === "piso" ? "floorData" : "wallData"];
+  let canvas = null;
+  try {
+    const plano = bloco.planes.find((q) => q.id === id), vis = plano?.visualizations.find((v) => v.size === 64);
+    const camada = (vis?.allLayers || vis?.layers || [])[0];
+    const material = bloco.materials.find((m) => m.id === camada?.materialId);
+    const texId = material?.matrices?.[0]?.columns?.[0]?.cells?.[0]?.textureId;
+    const nome = bloco.textures.find((t) => t.id === texId)?.bitmaps?.[0]?.assetName;
+    const asset = dados.assets[nome], fonte = asset?.source || nome;
+    const f = dados.spritesheet.frames["room_" + fonte]?.frame;
+    if (f) {
+      canvas = document.createElement("canvas");
+      canvas.width = f.w; canvas.height = f.h;
+      const g = canvas.getContext("2d");
+      g.imageSmoothingEnabled = false;
+      g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+      const cor = camada.color ?? 0xffffff;
+      if (cor !== 0xffffff) {
+        g.globalCompositeOperation = "multiply"; g.fillStyle = "#" + cor.toString(16).padStart(6, "0"); g.fillRect(0, 0, f.w, f.h);
+        g.globalCompositeOperation = "destination-in"; g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+      }
+    }
+  } catch { canvas = null; }
+  MAPA_PLANOS_TEXTURAS.set(textura, canvas);
+  return canvas;
+}
 // espessura: a da parede do quarto (multiplicador do Habbo: 0,25 a 2), que
 // aparece na faixa do topo.
 function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, textura = null, tingir = false, espessura = 1) {
@@ -452,8 +517,23 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
     g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - 4); g.lineTo(p0.x + 3, p0.y - 4); g.closePath(); g.fill();
     g.globalAlpha = 1;
   }
-  const tex = cor && textura ? MAPA_TEXTURAS_PAREDE.get(textura) : null;
-  if (tex) {
+  const plano = cor && mapaEhPlano(textura) ? mapaTexturaPlano(textura) : null;
+  const tex = cor && textura && !plano ? MAPA_TEXTURAS_PAREDE.get(textura) : null;
+  if (plano) {
+    // Papel de parede do Habbo: a textura corre ao longo da parede (32 px por
+    // ladrilho, contínua de um trecho para o outro) e de cima para baixo.
+    const k = sobe ? x : y;
+    g.save();
+    g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip();
+    g.transform((p1.x - p0.x) / 32, (p1.y - p0.y) / 32, 0, 1, p0.x + 3, p0.y - alt);
+    g.translate(-k * 32, 0);
+    g.fillStyle = g.createPattern(plano, "repeat"); g.fillRect(k * 32, 0, 32, alt);
+    g.restore();
+    // Luz do Habbo: a parede da esquerda um pouco mais escura; rodapé e topo.
+    if (!sobe) { g.save(); g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip(); g.globalAlpha = 0.14; g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); g.restore(); }
+    const faixa = (de, ate, estilo) => { g.fillStyle = estilo; g.beginPath(); g.moveTo(p0.x + 3, p0.y - de); g.lineTo(p1.x + 3, p1.y - de); g.lineTo(p1.x + 3, p1.y - ate); g.lineTo(p0.x + 3, p0.y - ate); g.closePath(); g.fill(); };
+    faixa(0, 4, "#00000055"); faixa(alt - topo, alt, cor);
+  } else if (tex) {
     // Painel de n ladrilhos: o trecho k mostra a sua fatia do desenho, com a
     // base do painel na base da parede e repetido para cima até o topo. Conta
     // só a parte desenhada da arte (as margens transparentes ficam de fora).
@@ -853,7 +933,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Pisos do acervo: carrega a arte de cada um uma vez e redesenha o fundo.
   const classesPiso = [...new Set([P.texturaSalas, P.texturaCorredor, P.texturaDeck, ...(P.texturas || []).map((r) => r.textura),
     ...(P.ambientes || []).map((a) => a.textura), ...(P.pisos || []).map((q) => q.textura)].filter(Boolean))];
-  if (classesPiso.length) Promise.all(classesPiso.map(async (c) => {
+  if (classesPiso.some(mapaEhPlano) || P.divisorias.some((d) => mapaEhPlano(d.textura)))
+    mapaCarregarPlanos().then(() => { pintarFundo(); try { pintarParedes(true); } catch {} }).catch((e) => console.warn(e.message));
+  if (classesPiso.length) Promise.all(classesPiso.filter((c) => !mapaEhPlano(c)).map(async (c) => {
     try {
       const m = await mapaCarregarMovel(c), dim = m.dados.logic?.model?.dimensions || {};
       const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 0), 0, 0);
@@ -905,7 +987,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
   const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
-  Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c)).map(async (c) => {
+  Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c) && !mapaEhPlano(c)).map(async (c) => {
     try {
       const m = await mapaCarregarMovel(c), n = Math.max(1, Math.round(m.dados.logic?.model?.dimensions?.x || 1));
       const d4 = mapaDesenharMovel(m, 4, 0, 0), d2 = mapaDesenharMovel(m, 2, 0, 0);

@@ -92,7 +92,7 @@ const ESCRITORIO_PLANTA = (() => {
     ["jogos", "Jogos", "convivencia", "#3fae7a", 20, 12, "tokyo_c18_floor", "attic15_wall"],
     ["foco", "Foco", "foco", "#8b6b4a", 12, 16, "rainyday_c20_woodenfloor", "gardenshed_wall"],
     ["academia", "Academia", "convivencia", "#7a8494", 20, 16, "sb_tile", "attic15_wall"],
-    ["lounge", "Lounge", "convivencia", "#b4583a", 18, 15, "rainyday_c20_woodenfloor", "lodge_dark_brickwall"],
+    ["lounge", "Lounge", "convivencia", "#b4583a", 18, 15, "rainyday_c20_woodenfloor", "plano:parede:1901"],
   ];
   // Planta de cada cena, linha a linha (y = 0 é a parede do fundo): "x" sem
   // piso, "0" chão, "1" e "2" patamares de um e dois degraus (o degrau do
@@ -273,13 +273,10 @@ const ESCRITORIO_PLANTA = (() => {
       "00000000000000000x",
       "0000000000000000xx",
     ], texturas: [
-      // Salão: tapete vermelho do bar até a porta.
-      { x0: 3, y0: 5, x1: 12, y1: 15, textura: "theatre_carpet" },
-      // Bar: xadrez preto e vermelho.
-      ...Array.from({ length: 9 * 5 }, (_, k) => {
-        const x = 3 + (k % 9), y = Math.floor(k / 9);
-        return { x0: x, y0: y, x1: x + 1, y1: y + 1, textura: (x + y) % 2 ? "steampunk_floor1" : "theatre_carpet" };
-      }),
+      // Salão: carpete felpudo vermelho do Habbo, do bar até a porta.
+      { x0: 3, y0: 5, x1: 12, y1: 15, textura: "plano:piso:205" },
+      // Bar: ladrilho vinho do Habbo.
+      { x0: 3, y0: 0, x1: 12, y1: 5, textura: "plano:piso:405" },
     ] },
   };
   for (const [id, nome, sala, cor, w0, h0, textura, texturaParede] of CENAS) {
