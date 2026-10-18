@@ -6689,14 +6689,16 @@ body.no-escritorio {overflow:hidden}
 .ofc-editor-info select {font:700 13px var(--mac-ui);color:var(--ofc-texto);background:#ffffff12;border:1px solid var(--ofc-borda);border-radius:8px;padding:4px 6px;max-width:260px}
 
 /* Barra do dia: em cima da barra de baixo, só a da própria pessoa. */
-.ofc-dia {position:absolute;z-index:6;left:50%;bottom:76px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;min-width:min(380px,calc(100% - 32px));padding:6px 12px;border-radius:12px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);color:var(--ofc-texto);font:500 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-dia {position:absolute;z-index:6;left:50%;bottom:calc(var(--altura-dock, 56px) + 20px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;min-width:min(380px,calc(100% - 32px));padding:6px 12px;border-radius:12px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);color:var(--ofc-texto);font:500 12px var(--mac-ui);cursor:pointer;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .ofc-dia:focus-visible {outline:2px solid var(--ofc-laranja)}
 .ofc-dia-texto {white-space:nowrap}
 .ofc-dia-texto em {font-style:normal;color:#ffb4a8}
 .ofc-dia-barra {flex:1;min-width:60px;height:7px;border-radius:99px;background:#ffffff14;overflow:hidden}
 .ofc-dia-barra i {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff7a1a,#ffd166);transition:width .5s ease}
 .ofc-dia-pct {font-weight:700;font-variant-numeric:tabular-nums}
-.ofc-acao {bottom:118px}
+/* Acima da barra de baixo, na altura real dela (no celular ela quebra em
+   várias linhas e o botão de ação cobria o status). */
+.ofc-acao {bottom:calc(var(--altura-dock, 56px) + 62px)}
 @media (prefers-reduced-motion: reduce) {.ofc-dia-barra i {transition:none}}
 /* Ficha do herói. */
 .ofc-ficha {margin:auto;width:min(460px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;padding:18px;border-radius:20px;color:#eef0f5;background:#1d2029;border:1px solid #ffffff17;box-shadow:0 30px 80px #000a}
