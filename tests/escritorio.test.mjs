@@ -1386,3 +1386,14 @@ test("dígitos do relógio, do placar e dos votos seguem o Nitro", () => {
   const f = JSON.parse(readFileSync("assets/escritorio/habbo/fisica.json", "utf8"));
   assert.equal(f.tent_blue[3], "pisar"); assert.equal(f.fball_counter[3], "relogio"); assert.equal(f.tile_stackmagic[3], "altura");
 });
+
+test("manequim guarda um visual válido e o cadeado do amor aceita dedicatória", async () => {
+  const { itensValidos } = await import("../server/escritorio-mapa.js");
+  const [m] = itensValidos("sala-1", [["boutique_mannequin1", 1, 1, 2, 0, 0, { f: "hd-180-1.hr-100-61", x: 1 }]]);
+  assert.deepEqual(m[6], { f: "hd-180-1.hr-100-61" });
+  assert.throws(() => itensValidos("sala-1", [["boutique_mannequin1", 1, 1, 2, 0, 0, { f: "<script>" }]]), /manequim/);
+  const [c] = itensValidos("sala-1", [["val14_lovelock1", 1, 1, 2, 0, 0, { n: "Ana e Bia", t: "Pra sempre", d: "2026-10-18" }]]);
+  assert.equal(c[6].n, "Ana e Bia");
+  const [s] = itensValidos("sala-1", [["chair_norja", 1, 1, 2, 0, 0, { f: "hd-180-1" }]]);
+  assert.equal(s.length, 6, "cadeira não guarda visual");
+});

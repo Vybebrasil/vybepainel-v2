@@ -50,7 +50,7 @@ export function itensValidos(camada, itens) {
     if (!num(estado, 0, 200) || !num(altura, 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
     const item = [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
-    const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]);
+    const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]) || configManequim(classe, it[6]);
     return cfg ? [...item, cfg] : item;
   });
 }
@@ -60,7 +60,16 @@ export function itensValidos(camada, itens) {
 export const GATILHO = /^wf_(trg|cnd|act)_[a-z0-9_]+$/;
 // Troféu (furniture_trophy): dedicatória gravada, como no Habbo — nome (até
 // 40), texto (até 100) e data (AAAA-MM-DD).
-export const TROFEU = /(^|_)(prize)?troph(y|ies)|^cine_star$|^xm09_trophy$/i;
+export const TROFEU = /(^|_)(prize)?troph(y|ies)|^cine_star$|^xm09_trophy$|lovelock/i;
+// Manequim (furniture_mannequin): o visual guardado nele (mesmo formato da
+// figura do perfil).
+export const MANEQUIM = /mannequin/i;
+const FIGURA = /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/;
+function configManequim(classe, cfg) {
+  if (!MANEQUIM.test(classe) || cfg == null) return null;
+  if (typeof cfg !== "object" || !FIGURA.test(String(cfg.f || ""))) throw new Error("Visual do manequim inválido.");
+  return { f: String(cfg.f) };
+}
 function configTrofeu(classe, cfg) {
   if (!TROFEU.test(classe) || cfg == null) return null;
   if (typeof cfg !== "object" || Array.isArray(cfg)) throw new Error("Dedicatória do troféu inválida.");

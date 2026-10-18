@@ -2161,16 +2161,36 @@ function mostrarTvEscritorio(id, quem) {
 function verTrofeuEscritorio(m) {
   const it = escritorioItensDaCamada(escritorio.quarto || "geral")[m.origem?.i];
   const cfg = it?.[6] && typeof it[6] === "object" ? it[6] : {};
-  openWorkflowModal(`<div class="workflow-kicker">Troféu</div><h2 class="workflow-title">${safeText(cfg.n || "Sem nome gravado")}</h2>
+  openWorkflowModal(`<div class="workflow-kicker">${escritorioLogica(m) === "cadeado" ? "Cadeado do amor" : "Troféu"}</div><h2 class="workflow-title">${safeText(cfg.n || "Sem nome gravado")}</h2>
 ${cfg.d ? `<p class="ofc-nota">${safeText(cfg.d.split("-").reverse().join("/"))}</p>` : ""}<p>${safeText(cfg.t || "Este troféu ainda não tem dedicatória.")}</p>
 <div class="workflow-actions"><button type="button" class="workflow-primary" onclick="closeWorkflowModal()">Fechar</button></div>`);
+}
+// Manequim (furniture_mannequin): quem decora guarda nele o próprio visual
+// (no editor); qualquer um veste o visual guardado, como no Habbo.
+async function vestirManequimEscritorio(m) {
+  const it = escritorioItensDaCamada(escritorio.quarto || "geral")[m.origem?.i];
+  const f = it?.[6]?.f;
+  if (!f) return escritorioAviso("Este manequim ainda não tem um visual guardado.");
+  if (!confirm("Vestir o visual do manequim? Seu personagem muda para todos.")) return;
+  const perfil = { ...escritorio.perfil, figura: f };
+  try {
+    const salvo = escritorio.base.demo ? perfil : (await escritorioApi("perfil", { perfil })).perfil;
+    escritorio.perfil = { ...escritorio.perfil, ...salvo };
+    const eu = escritorio.base.equipe.find((p) => p.id === escritorio.base.eu);
+    if (eu) eu.perfil = { ...eu.perfil, ...salvo };
+    escritorioAplicarSalas();
+    renderEscritorio();
+    if (!escritorio.base.demo) mapaGuardarBoneco(salvo.figura);
+    escritorioAviso("Visual trocado.");
+  } catch (e) { escritorioAviso("Não deu para trocar o visual: " + e.message); }
 }
 // Peças que se usam pela lógica oficial (antes de cair nas regras pelo nome).
 function escritorioAcaoPelaLogica(m) {
   const l = escritorioLogica(m);
   if (l === "quebravel") return { item: m, texto: "Dar um golpe", fazer: () => quebrarEscritorio(m) };
   if (l === "tv" || ESCRITORIO_TELAS.test(m.classe)) return { item: m, texto: "Usar a TV", fazer: () => abrirTvEscritorio(m) };
-  if (l === "trofeu") return { item: m, texto: "Ler a dedicatória", fazer: () => verTrofeuEscritorio(m) };
+  if (l === "trofeu" || l === "cadeado") return { item: m, texto: l === "cadeado" ? "Ler o cadeado" : "Ler a dedicatória", fazer: () => verTrofeuEscritorio(m) };
+  if (l === "manequim") return { item: m, texto: "Vestir este visual", fazer: () => vestirManequimEscritorio(m) };
   if (l === "relogio") return { item: m, texto: escritorioRelogios.has(escritorio.mapa.chaveMovel(m)) ? "Pausar o relógio" : "Iniciar o relógio", fazer: () => relogioEscritorio(m) };
   if (l === "voto") return { item: m, texto: "Votar", fazer: () => contarEscritorio(m) };
   if (l === "placar") return { item: m, texto: "Somar um ponto", fazer: () => contarEscritorio(m) };
