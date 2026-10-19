@@ -124,10 +124,9 @@ export async function demoApi(req,res,url,body) {
     if(area==='conta')return reply(200,{ok:true,pessoa});
     if(area==='escritorio') {
       if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
-      // Perfil e ranking de demonstração (números fictícios, só para a tela).
+      // Perfil de demonstração (números fictícios, só para a tela).
       if(url.searchParams.get('acao')==='perfil-publico'){const id=url.searchParams.get('pessoa')||'1';const n=Number(id)||1;return reply(200,{ok:true,perfil:{disponivel:true,saldo:700-n*90,nivel:4-n%3,xp:20*n,xpProximo:140,xpTotal:300-n*40,conquistas:5-n,inventario:[{classe:'hygge_c25_carpet',quantidade:1},{classe:'plant_small_cactus',quantidade:2},{classe:'exe_table',quantidade:1}].slice(0,4-n%3)}});}
       if(url.searchParams.get('acao')==='trocas')return reply(200,{ok:true,trocas:{disponivel:true,recebidas:[{id:'7',de_pessoa:'2',para_pessoa:'1',oferece:[['bling_sofa_mu',1]],pede:[['shelves_norja',1]],estado:'aberta',criado_em:new Date().toISOString()}],enviadas:[]}});
-      if(url.searchParams.get('acao')==='ranking')return reply(200,{ok:true,ranking:{disponivel:true,pessoas:[1,2,3,4].map(n=>({pessoa:String(n),saldo:700-n*90,xpTotal:300-n*40,nivel:4-n%3,moveis:6-n,conquistas:5-n}))}});
       // Recados de demonstração (a demo não grava).
       if(url.searchParams.get('acao')==='recados-resumo')return reply(200,{ok:true,resumo:[{de:'2',nao_lidos:1,ultimo:new Date().toISOString()}]});
       if(url.searchParams.get('acao')==='recados')return reply(200,{ok:true,recados:url.searchParams.get('com')==='2'?[{id:'1',de:'2',para:'1',texto:'Oi! Deixei o briefing do post na sua fila.',criado_em:new Date(Date.now()-3600e3).toISOString(),lido_em:null}]:[]});

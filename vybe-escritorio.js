@@ -500,7 +500,6 @@ function escritorioIcone(nome) {
     avancar: '<path d="M6 6l8 6-8 6zM18 6v12"/>',
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
-    ranking: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5a3 3 0 003 3M16 6h3a3 3 0 01-3 3M12 13v4M8 20h8M10 17h4"/>',
     inventario: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 016 0v2"/>',
   }[nome] || "";
   return `<svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -975,7 +974,6 @@ function renderEscritorio() {
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
  ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
  ${rail("inventario", "inventario", "Inventário", "alternarAbaEscritorio('inventario')", lateral && aba === "inventario")}
- ${rail("ranking", "ranking", "Ranking", "alternarAbaEscritorio('ranking')", lateral && aba === "ranking")}
  <span class="ofc-rail-fim"></span>
  ${escritorioCamadaParaEditar() ? rail("editar", "editar", escritorio.base.admin ? "Editar" : "Minha sala", escritorio.edicao ? "sairEditorEscritorio()" : "abrirEditorEscritorio()", Boolean(escritorio.edicao)) : ""}
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
@@ -990,7 +988,6 @@ function renderEscritorio() {
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><div><h3 id="office-chat-titulo">${safeText(escritorioTituloChat(sala))}</h3><small id="office-chat-nota" class="ofc-nota">${safeText(escritorioNotaChat(sala))}</small></div><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para este chat" id="office-message" name="texto" oninput="delete this.form.dataset.chave;escritorioDigitando(Boolean(this.value))" onblur="escritorioDigitando(false)" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala] || "Convivência")}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
  <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
- <section class="ofc-aba ofc-ranking" id="office-ranking" ${aba === "ranking" ? "" : "hidden"}>${escritorioRankingHtml()}</section>
  <section class="ofc-aba ofc-inventario" id="office-inventario" ${aba === "inventario" ? "" : "hidden"}>${escritorioInventarioHtml()}</section>
 </aside>
 <main class="ofc-principal">
@@ -1098,7 +1095,6 @@ function alternarAbaEscritorio(aba, manter) {
   renderEscritorio();
   if (aba === "recados") atualizarRecadosEscritorio();
   if (aba === "clientes") carregarClientesEscritorio();
-  if (aba === "ranking") carregarRankingEscritorio();
   if (aba === "inventario") carregarTrocasEscritorio();
 }
 function alternarModoEscritorio(modo) {

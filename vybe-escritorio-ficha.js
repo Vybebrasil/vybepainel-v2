@@ -523,63 +523,9 @@ async function presenteChegouEscritorio(id, v) {
 }
 
 // ---------------------------------------------------------------------------
-// Ranking e perfil do jogo, abertos a toda a equipe (decisão do Paulo,
-// 19/10/2026): VybeCoins, nível/XP, conquistas e móveis de cada um, pela rota
-// "perfil-publico"/"ranking" do servidor. Desempenho no trabalho continua na
-// ficha da própria pessoa e com quem administra.
-const ESCRITORIO_RANKING_ORDENS = [
-  ["xpTotal", "XP", (p) => `${p.xpTotal} XP`],
-  ["saldo", "VybeCoins", (p) => `${p.saldo} moedas`],
-  ["moveis", "Móveis", (p) => `${p.moveis} ${p.moveis === 1 ? "móvel" : "móveis"}`],
-  ["conquistas", "Conquistas", (p) => `${p.conquistas} ${p.conquistas === 1 ? "conquista" : "conquistas"}`],
-];
-async function carregarRankingEscritorio(forcar = false) {
-  const r = (escritorio.ranking ||= { ordem: "xpTotal" });
-  if (r.carregando || (!forcar && r.pessoas && Date.now() - (r.em || 0) < 60e3)) return;
-  r.carregando = true; r.erro = "";
-  atualizarRankingEscritorio();
-  try {
-    const d = await escritorioApi("ranking");
-    r.pessoas = d?.ranking?.pessoas || [];
-    r.indisponivel = d?.ranking?.disponivel === false;
-    r.em = Date.now();
-  } catch (e) {
-    r.erro = e?.message || "Não deu para carregar o ranking.";
-  }
-  r.carregando = false;
-  atualizarRankingEscritorio();
-}
-function atualizarRankingEscritorio() {
-  const el = document.getElementById("office-ranking");
-  if (el) el.innerHTML = escritorioRankingHtml();
-}
-function ordenarRankingEscritorio(ordem) {
-  (escritorio.ranking ||= {}).ordem = ordem;
-  atualizarRankingEscritorio();
-}
-function escritorioRankingHtml() {
-  const r = escritorio.ranking || { ordem: "xpTotal" };
-  const equipe = escritorio.base?.equipe || [];
-  const [chave, , rotulo] = ESCRITORIO_RANKING_ORDENS.find((o) => o[0] === r.ordem) || ESCRITORIO_RANKING_ORDENS[0];
-  const abas = `<div class="ofc-ranking-ordem" role="tablist" aria-label="Ordenar o ranking por">${ESCRITORIO_RANKING_ORDENS.map(([k, nome]) => `<button type="button" role="tab" aria-selected="${k === chave}" onclick="ordenarRankingEscritorio('${k}')">${nome}</button>`).join("")}</div>`;
-  const topo = `<div class="ofc-ranking-topo"><h4>Ranking da equipe</h4><button type="button" class="ofc-mini" onclick="carregarRankingEscritorio(true)" ${r.carregando ? "disabled" : ""}>${r.carregando ? "Atualizando…" : "Atualizar"}</button></div>${abas}`;
-  if (r.erro) return `${topo}<p class="ofc-nota" role="alert">${safeText(r.erro)}</p><button type="button" class="ofc-mini" onclick="carregarRankingEscritorio(true)">Tentar de novo</button>`;
-  if (!r.pessoas) return `${topo}<p class="ofc-nota">Carregando o ranking…</p>`;
-  if (r.indisponivel) return `${topo}<p class="ofc-nota">O ranking aparece quando a loja do escritório estiver ativa.</p>`;
-  // Toda a equipe entra, inclusive quem ainda não tem moedas (fica com zero).
-  const por = new Map(r.pessoas.map((p) => [String(p.pessoa), p]));
-  const linhas = equipe.map((p) => ({ ...{ saldo: 0, xpTotal: 0, nivel: 1, moveis: 0, conquistas: 0 }, ...por.get(String(p.id)), id: String(p.id), nome: p.nome, perfil: String(p.id) === String(escritorio.base?.eu) ? escritorio.perfil : p.perfil }))
-    .sort((a, b) => b[chave] - a[chave] || b.xpTotal - a.xpTotal || a.nome.localeCompare(b.nome));
-  if (!linhas.length) return `${topo}<p class="ofc-nota">Ninguém na equipe ainda.</p>`;
-  const online = new Set((escritorio.online || []).map((o) => String(o.id)));
-  let pos = 0, anterior = null;
-  const itens = linhas.map((p, i) => {
-    if (p[chave] !== anterior) { pos = i + 1; anterior = p[chave]; }
-    const eu = p.id === String(escritorio.base?.eu);
-    return `<li class="${eu ? "eu" : ""}"><button type="button" onclick="abrirFichaEscritorio('${safeText(p.id)}')" aria-label="${safeText(p.nome)}, ${pos}º lugar, ${safeText(rotulo(p))}. Abrir perfil"><span class="ofc-ranking-pos${pos <= 3 ? " p" + pos : ""}">${pos}º</span>${escritorioAvatar(p.perfil, p.nome)}<span class="ofc-ranking-nome"><b>${safeText(p.nome)}${eu ? " · você" : ""}</b><small>${online.has(p.id) ? '<i class="ofc-ponto" style="--st:#3fbf7f"></i>online · ' : ""}Nível ${p.nivel}</small></span><span class="ofc-ranking-valor">${safeText(rotulo(p))}</span></button></li>`;
-  }).join("");
-  return `${topo}<ol class="ofc-ranking-lista">${itens}</ol><p class="ofc-nota">XP vem do trabalho e nunca cai; moedas sobem e descem com as compras e o dia a dia.</p>`;
-}
+// Perfil do jogo aberto a toda a equipe (decisão do Paulo, 19/10/2026): cada
+// um vê o personagem do outro "upando" (nível, XP, moedas, marcos e móveis),
+// sem ranking comparativo, para não virar competição (Paulo, 19/10/2026).
 // Parte do jogo na ficha de qualquer pessoa: moedas, nível, conquistas e o
 // inventário de móveis.
 function escritorioPerfilJogoHtml(id) {
@@ -597,6 +543,7 @@ function escritorioPerfilJogoHtml(id) {
   return `<section class="ofc-ficha-jogo" aria-label="Moedas, nível e inventário">
 <dl class="ofc-ficha-numeros"><div><dt>VybeCoins</dt><dd>${p.saldo}</dd></div><div><dt>Nível</dt><dd>${p.nivel}</dd></div><div><dt>Conquistas</dt><dd>${p.conquistas}</dd></div><div><dt>Móveis</dt><dd>${total}</dd></div></dl>
 <div class="ofc-ficha-nivel"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total</small></div>
+${(p.marcos || []).length ? `<h4>Marcos conquistados</h4><ul class="ofc-ficha-marcos-publicos">${p.marcos.map((m) => `<li title="${safeText(m.dica || "")}"><i aria-hidden="true">★</i><span>${safeText(m.nome)}</span></li>`).join("")}</ul>` : ""}
 <h4>Inventário</h4>${inv ? `<ul class="ofc-ficha-inventario">${inv}</ul>${(p.inventario || []).length > 30 ? `<p class="ofc-nota">E mais ${(p.inventario || []).length - 30} tipos de móvel.</p>` : ""}` : '<p class="ofc-nota">Nenhum móvel guardado ainda.</p>'}</section>`;
 }
 function carregarPerfilJogoEscritorio(id, aoTerminar) {
