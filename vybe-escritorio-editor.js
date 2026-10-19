@@ -758,7 +758,8 @@ function escritorioCartaoMovel(m) {
   const comprar = minha && escritorio.abaQuarto === "loja";
   const i = !escritorioCamadaComum(escritorio.edicao?.camada) ? escritorioInfoLoja(m.classe) : null;
   const indisponivel = i && (comprar || !escritorioPodeColocarMovel(m.classe)) && (i.marco || i.restante === 0 || !i.naVitrine);
-  return `<button type="button" class="ofc-movel${indisponivel ? " indisponivel" : ""}" draggable="${escritorioPodeColocarMovel(m.classe)}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="escritorioAcaoMovel('${safeText(m.classe)}', ${comprar})" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${minha && !comprar ? `<em class="ofc-giro">${escritorioSeloQuarto(m.classe)}</em>` : i ? escritorioSeloLoja(m.classe, i, comprar) : ""}${comprar && i && i.preco > Number(escritorio.base.economia?.saldo || 0) && !indisponivel ? '<em class="ofc-giro nao">Saldo insuficiente</em>' : ""}${m.parede ? '<em class="ofc-giro">na parede</em>' : escritorioSeloGiro(m.giros)}${m.anima ? '<em class="ofc-giro animado">animado</em>' : ""}</button>`;
+  // Na loja, o clique abre a prévia (animação, faixa, preço); comprar é lá.
+  return `<button type="button" class="ofc-movel${indisponivel ? " indisponivel" : ""}${i && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${escritorioPodeColocarMovel(m.classe)}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="${comprar ? `abrirPreviaMovelEscritorio('${safeText(m.classe)}')` : `escritorioAcaoMovel('${safeText(m.classe)}', false)`}" title="${safeText(escritorioNomeMovel(m))} · clique ou arraste para o mapa"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span>${minha && !comprar ? `<em class="ofc-giro">${escritorioSeloQuarto(m.classe)}</em>` : i ? escritorioSeloLoja(m.classe, i, comprar) : ""}${comprar && i && i.preco > Number(escritorio.base.economia?.saldo || 0) && !indisponivel ? '<em class="ofc-giro nao">Saldo insuficiente</em>' : ""}${m.parede ? '<em class="ofc-giro">na parede</em>' : escritorioSeloGiro(m.giros)}${m.anima ? '<em class="ofc-giro animado">animado</em>' : ""}</button>`;
 }
 function escritorioSeloLoja(classe, i, comprar = false) {
   const q = escritorioQuantidadeMovel(classe);
@@ -1647,6 +1648,79 @@ async function escritorioAcaoMovel(classe, comprar = false) {
   renderEscritorio(); escolherMovelEscritorio(classe);
  } catch(e) { escritorioAviso(e.message); }
  finally {escritorio.comprando=false;}
+}
+
+// Prévia de um móvel (Paulo, 19/10/2026): a arte animada, girando nos lados
+// que ele tem, com faixa de raridade, preço, estoque, o que se faz com ele e o
+// botão de comprar. A animação para quando a prévia fecha; com "reduzir
+// movimento", o móvel fica parado (as setas giram à mão).
+function abrirPreviaMovelEscritorio(classe) {
+  const m = (escritorioCatalogo || []).find((x) => x.classe === classe) || ESCRITORIO_COMPUTADORES.find((x) => x.classe === classe) || { classe };
+  const i = escritorioInfoLoja(classe);
+  let d = document.getElementById("office-previa-movel");
+  if (!d) {
+    d = document.createElement("dialog");
+    d.id = "office-previa-movel";
+    d.className = "ofc-dialogo ofc-previa-movel";
+    d.setAttribute("aria-labelledby", "office-previa-titulo");
+    d.addEventListener("close", () => { cancelAnimationFrame(d.quadro); d.quadro = 0; });
+    document.body.append(d);
+  }
+  const saldo = Number(escritorio.base?.economia?.saldo || 0), q = escritorioQuantidadeMovel(classe);
+  const bloqueio = i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Fora da vitrine" : i.preco > saldo ? "Saldo insuficiente" : "";
+  const ficha = typeof mapaFisica === "function" ? mapaFisica(classe) : {};
+  const usos = [ficha.senta && "senta", ficha.deita && "deita", ficha.pisa && "pisa em cima", ficha.poe && !ficha.pisa && "empilha"].filter(Boolean);
+  const linhas = [
+    ["Faixa", `<em class="ofc-raridade ${safeText(i.raridade)}">${safeText(i.nome)}</em>`],
+    ["Preço", i.preco ? `${i.preco.toLocaleString("pt-BR")} moedas` : "Grátis"],
+    ["Estoque", i.restante === null ? "Sem limite" : i.restante === 0 ? "Esgotado" : i.restante === 1 ? "Resta 1" : `Restam ${i.restante}`],
+    ["Categoria", safeText(m.categoria || "—")],
+    ["Lados", m.parede ? "Na parede" : m.giros ? (m.giros < 2 ? "Não gira" : `${m.giros} lados`) : "—"],
+    ["Uso", usos.length ? usos.join(", ") : "Decoração"],
+    ["No inventário", q === Infinity ? "Grátis" : String(q || 0)],
+  ];
+  d.dataset.raridade = i.raridade;
+  d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-previa-titulo">${safeText(escritorioNomeMovel(m))}</h3><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
+<div class="ofc-previa-palco r-${safeText(i.raridade)}"><canvas width="240" height="200" aria-label="Arte do móvel${m.anima ? ", animada" : ""}" role="img"></canvas>
+<div class="ofc-previa-giro"><button type="button" aria-label="Girar para a esquerda" onclick="girarPreviaMovelEscritorio(-1)">↺</button><button type="button" aria-label="Girar para a direita" onclick="girarPreviaMovelEscritorio(1)">↻</button></div></div>
+${m.anima ? '<p class="ofc-nota">Móvel animado.</p>' : ""}
+<dl class="ofc-previa-ficha">${linhas.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+${i.marco ? `<p class="ofc-nota">Vem com o marco "${safeText(escritorio.base.economia?.marcos?.find((x) => x.id === i.marco)?.nome || i.marco)}" da sua ficha.</p>` : ""}
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="this.closest('dialog').close()">Fechar</button>
+<button type="button" class="workflow-primary" ${bloqueio ? "disabled" : ""} onclick="this.closest('dialog').close();escritorioAcaoMovel('${safeText(classe)}', true)">${bloqueio || `Comprar · ${i.preco.toLocaleString("pt-BR")} moedas`}</button></div>`;
+  if (!d.open) d.showModal();
+  d.previa = { classe, dirs: m.parede ? [2, 4] : [2, 4, 6, 0].slice(0, Math.max(1, m.giros || 4)), lado: 0, inicio: performance.now() };
+  desenharPreviaMovelEscritorio(d);
+}
+function girarPreviaMovelEscritorio(passo) {
+  const d = document.getElementById("office-previa-movel");
+  if (!d?.previa) return;
+  d.previa.lado = (d.previa.lado + passo + d.previa.dirs.length) % d.previa.dirs.length;
+  if (!d.quadro) desenharPreviaMovelEscritorio(d);
+}
+async function desenharPreviaMovelEscritorio(d) {
+  const p = d.previa, cv = d.querySelector("canvas");
+  let arte;
+  try { arte = await mapaCarregarMovel(p.classe); } catch { cv.replaceWith(Object.assign(document.createElement("p"), { className: "ofc-nota", textContent: "A arte deste móvel não carregou." })); return; }
+  if (d.previa !== p || !d.open) return;
+  const vis = arte.dados.visualizations?.find((v) => v.size === 64);
+  const estado = Object.keys(vis?.animations || {}).map(Number).find((k) => k < 100 && mapaQuadros(arte.dados, k) > 1) ?? 0;
+  const parado = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const g = cv.getContext("2d");
+  const pintar = (agora) => {
+    if (d.previa !== p || !d.open) return;
+    const quadro = parado ? 0 : Math.floor((agora - p.inicio) / 100);
+    const r = mapaDesenharMovel(arte, p.dirs[p.lado], estado, quadro);
+    g.clearRect(0, 0, cv.width, cv.height);
+    if (r) {
+      const esc = Math.min(2, (cv.width - 20) / r.canvas.width, (cv.height - 20) / r.canvas.height);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(r.canvas, (cv.width - r.canvas.width * esc) / 2, (cv.height - r.canvas.height * esc) / 2, r.canvas.width * esc, r.canvas.height * esc);
+    }
+    d.quadro = parado || mapaQuadros(arte.dados, estado) < 2 ? 0 : requestAnimationFrame(pintar);
+  };
+  if (typeof mapaCarregarFisica === "function") mapaCarregarFisica();
+  pintar(performance.now());
 }
 
 // A coleção vem das peças já escolhidas para esta sala, sem uma segunda lista.
