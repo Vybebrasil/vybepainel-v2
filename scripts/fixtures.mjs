@@ -6,6 +6,7 @@ import { vitrineDaSemana } from '../server/escritorio-economia.js';
 import { MARCOS } from '../server/escritorio-marcos.js';
 import { diaBahia, inicioDaSemana } from '../server/escritorio-pontos.js';
 import { raridadesDoCatalogo } from './escritorio-raridades.mjs';
+import { documentoHtml } from '../server/planejamento-documento.js';
 // Loja de demonstração: as mesmas faixas da migração da fase 2, estoque cheio,
 // vitrine sorteada pela semana corrente; os marcos só ilustram a ficha.
 const RARIDADES_DEMO=[{chave:'comum',nome:'Comum',ordem:1,preco:25,estoque:null,vitrine:0},{chave:'raro',nome:'Raro',ordem:2,preco:120,estoque:10,vitrine:0},
@@ -157,6 +158,26 @@ export async function demoApi(req,res,url,body) {
         {tipo:'status',de:null,para:'Pode Fazer',em:h(5,8),autor:'',do_monday:true},
         {tipo:'criacao',para:'Card fictício',em:h(6,9),autor:'Operador de teste'},
       ]});
+    }
+    // Planejamento fictício, só leitura: a demonstração não grava.
+    if(area==='planejamentos'){
+      const proximo=new Date();proximo.setUTCDate(1);proximo.setUTCMonth(proximo.getUTCMonth()+1);
+      const mes=proximo.toISOString().slice(0,8)+'01';const dia=(d)=>mes.slice(0,8)+String(d).padStart(2,'0');
+      const plano={id:'1',cliente_id:'1',cliente:'Cliente demonstração',cliente_email:'cliente@example.test',mes,titulo:'Planejamento de conteúdo',estado:'ajustes',versao:2,origem:'agente',pode_editar:true,
+        resposta_nome:'Cliente fictício',resposta_texto:'Podemos trocar o tema do dia 12 por um Reels?',identidade:{cor:'#2f7d5b',cor_apoio:'#1d2227',fonte:'Montserrat'},
+        conteudo:{resumo:'Mês de reforçar a presença da marca com bastidores e prova social.',numeros:[],linhas:[{titulo:'Bastidores',texto:'Mostrar quem faz o trabalho.'},{titulo:'Prova social',texto:'Depoimentos reais de clientes.'}],
+          datas:[{data:'02/'+mes.slice(5,7),nome:'Data fictícia',texto:'Só para ilustrar a tela.'}],
+          pecas:[{data:dia(5),formato:'Card',tema:'Apresentação da equipe',legenda:'Legenda de exemplo.',referencia:'',observacao:''},{data:dia(12),formato:'Carrossel',tema:'Três dúvidas comuns',legenda:'Legenda de exemplo.',referencia:'',observacao:''},{data:dia(19),formato:'Reels',tema:'Bastidores',legenda:'Roteiro de exemplo.',referencia:'',observacao:''}],
+          observacoes:'Confirmar as fotos com o cliente.'},
+        eventos:[{tipo:'ajustes',texto:'Podemos trocar o tema do dia 12 por um Reels?',autor_externo:'Cliente fictício',em:new Date().toISOString(),versao:2},{tipo:'publicado',em:new Date(Date.now()-864e5).toISOString(),versao:1}]};
+      const acao=url.searchParams.get('acao');
+      if(acao==='previa'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml(plano));}
+      if(acao==='detalhe')return reply(200,{ok:true,planejamento:plano});
+      if(acao==='pendentes')return reply(200,{ok:true,pendentes:[plano]});
+      if(acao==='operacao')return reply(200,{ok:true,postos:[{cliente_id:'1',cliente:'Cliente demonstração',meu:true,planejamento:{id:'1',estado:'ajustes',mes,versao:2}},
+        ...['Cliente B','Cliente C','Cliente D','Cliente E'].map((n,i)=>({cliente_id:String(i+2),cliente:n+' (fictício)',meu:false,planejamento:i%2?{id:String(i+2),estado:['enviado','aprovado'][i%2],mes,versao:1}:null}))]});
+      if(req.method==='POST')return reply(403,{error:'A demonstração não grava.'});
+      return reply(200,{ok:true,disponivel:true,email:false,planejamentos:[plano]});
     }
     if(area==='notificacoes')return reply(200,{ok:true,notificacoes:[],nao_lidas:0});
     return reply(200,{ok:true,pessoas:[],clientes:[],acessos:[],automacoes:[],snapshots:[],colunas:[],opcoes:[],captacao:[],catalogos:{status:[],captacao:[],grupos:[],pessoas:[],formatos:[]}});

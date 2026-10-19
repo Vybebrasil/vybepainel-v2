@@ -30,8 +30,9 @@ export function fonteMusica(f) {
   return null;
 }
 const musicaVazia = () => ({ fila: [], indice: 0, tocando: false, posicao: 0, atualizado: Date.now(), revisao: 0, por: null });
+const chaveMusica = (zona) => (zona === "lounge" ? "musica" : "musica:" + zona);
 const posicaoAgora = (m, agora = Date.now()) => Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));
-const zonaValida = (z) => (/^(sala-([0-9]|1[01])(-andar-1)?|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge)$/.test(String(z || "")) ? String(z) : "");
+const zonaValida = (z) => (/^(sala-([0-9]|1[01])(-andar-1)?|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge|operacao)$/.test(String(z || "")) ? String(z) : "");
 export async function verificarEntrada(token, segredo, agora = Date.now()) {
   try {
     if (
@@ -144,17 +145,22 @@ export class EscritorioRoom {
   listaMoveis() {
     return [...this.moveis];
   }
-  async musica() {
-    if (!this._musica) this._musica = (await this.ctx.storage?.get?.("musica")) || musicaVazia();
-    return this._musica;
+  // Uma fila de música por sala (Paulo, 19/10/2026: toda jukebox ou aparelho
+  // de som abre o player). O Lounge guarda a fila na chave antiga "musica".
+  // Quem está na sala ouve e mexe; o estado vai só para quem está nela.
+  async musica(zona) {
+    if (!this._musicas) this._musicas = new Map();
+    if (!this._musicas.has(zona)) this._musicas.set(zona, (await this.ctx.storage?.get?.(chaveMusica(zona))) || musicaVazia());
+    return { ...this._musicas.get(zona), zona };
   }
-  async mudarMusica(m, a) {
+  async mudarMusica(m, a, zona) {
     m.revisao++;
     m.atualizado = Date.now();
     m.por = a ? { id: a.sub, nome: a.nome } : null;
-    this._musica = m;
-    await this.ctx.storage?.put?.("musica", m);
-    this.broadcast("music:state", m);
+    m.zona = zona;
+    this._musicas.set(zona, m);
+    await this.ctx.storage?.put?.(chaveMusica(zona), m);
+    for (const t of this.naZona(zona)) this.send(t, "music:state", m);
   }
   listaTrancas() {
     return [...this.trancas].map(([zona, permitidos]) => ({ zona, permitidos: [...permitidos] }));
@@ -321,12 +327,13 @@ export class EscritorioRoom {
       this.broadcast("furni:states", this.listaMoveis());
       return;
     } else if (evento.type === "music:get") {
-      this.send(s, "music:state", await this.musica());
+      if (!a.zona) return;
+      this.send(s, "music:state", await this.musica(a.zona));
       return;
     } else if (evento.type === "music:enqueue" || evento.type === "music:control" || evento.type === "music:ended") {
-      // Mexe na fila só quem está no Lounge (a Pista é lá); autoria da sessão.
-      if (a.zona !== "lounge") return;
-      const m = { ...(await this.musica()) };
+      // Mexe na fila da sala só quem está nela; autoria da sessão.
+      if (!a.zona) return;
+      const m = await this.musica(a.zona);
       m.fila = [...m.fila];
       if (evento.type === "music:enqueue") {
         const fonte = fonteMusica(p.fonte);
@@ -361,7 +368,7 @@ export class EscritorioRoom {
         } else if (acao === "limpar") { Object.assign(m, musicaVazia(), { revisao: m.revisao }); }
         else return;
       }
-      await this.mudarMusica(m, a);
+      await this.mudarMusica(m, a, a.zona);
       return;
     } else if (evento.type === "screen:quality") {
       // Quem assiste pede outra qualidade a quem mostra a tela (mesma zona).

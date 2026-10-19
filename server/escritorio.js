@@ -18,7 +18,7 @@ export const SALAS_ESCRITORIO = [
 // Zonas de conversa do mapa: cada sala individual e cada espaço tem a sua.
 export const ZONAS_ESCRITORIO = [
   ...Array.from({ length: 9 }, (_, i) => ["sala-" + i,"sala-" + i+"-andar-1"]).flat(),
-  "auditorio", "reuniao", "recepcao", "cafe", "academia", "foco", "jogos", "producao", "lounge",
+  "auditorio", "reuniao", "recepcao", "cafe", "academia", "foco", "jogos", "producao", "lounge", "operacao",
 ];
 export const CORES_ESCRITORIO = [
   "laranja",

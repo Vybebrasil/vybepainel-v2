@@ -1260,23 +1260,46 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // para num assento); sem assento no ladrilho, fica de pé. Assim um móvel
   // tirado do lugar não deixa ninguém sentado no chão. Remonta do zero
   // quando a grade muda (portão), sem duplicar.
+  // Postos (Centro de Operação): o figurante com "posto" só aparece quando o
+  // painel põe ali o agente de um cliente, com o nome e a situação em cima;
+  // o clique abre o planejamento daquele cliente. Posto que sobra fica vazio.
+  let postos = new Map();
   function montarFigurantes() {
-    for (const n of palco.querySelectorAll(".mapa-pessoa.figurante")) n.remove();
+    for (const n of palco.querySelectorAll(".mapa-pessoa.figurante, .mapa-etiqueta.agente")) n.remove();
     for (const [i, f0] of (P.figurantes || []).entries()) {
+      const agente = f0.posto === undefined ? null : postos.get(f0.posto);
+      if (f0.posto !== undefined && !agente) continue;
       const dirAssento = grade?.assento.get(grade.ind(f0.x, f0.y));
       const f = f0.acao === "sit" ? (dirAssento === undefined ? { ...f0, acao: "std" } : { ...f0, dir: dirAssento }) : f0;
-      const no = document.createElement("div");
-      no.className = "mapa-pessoa figurante";
-      no.setAttribute("aria-hidden", "true");
+      const no = document.createElement(agente ? "button" : "div");
+      no.className = "mapa-pessoa figurante" + (agente ? " agente" : "");
+      const etiqueta = document.createElement("span");
+      if (agente) {
+        no.type = "button";
+        no.setAttribute("aria-label", `Agente de ${agente.nome}: ${agente.situacao}`);
+        etiqueta.className = "mapa-etiqueta solta agente" + (agente.alerta ? " alerta" : "");
+        etiqueta.setAttribute("aria-hidden", "true");
+        etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b><small></small>`;
+        etiqueta.querySelector("b").textContent = agente.nome;
+        etiqueta.querySelector("small").textContent = agente.situacao;
+        const abrir = (e) => { e.stopPropagation(); agente.aoClicar?.(); };
+        for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }
+        palco.append(etiqueta);
+      } else no.setAttribute("aria-hidden", "true");
       const img = document.createElement("img");
       img.alt = ""; img.draggable = false; img.referrerPolicy = "no-referrer";
       no.append(img);
       palco.append(no);
-      const p = { id: "figurante-" + i, no, img, etiqueta: document.createElement("span"), x: f.x, y: f.y, dir: f.dir ?? 4, acao: f.acao || "std", figura: f.figura, mao: f.mao || "" };
+      const p = { id: "figurante-" + i, no, img, etiqueta, x: f.x, y: f.y, dir: f.dir ?? 4, acao: f.acao || "std", figura: agente?.figura || f.figura, mao: f.mao || "" };
       posicionarPessoa(p);
       trocarImagem(p);
     }
   }
+  function ocuparPostos(lista) {
+    postos = new Map((lista || []).map((a, i) => [a.posto ?? i, a]));
+    if (montarFigurantesDepois) montarFigurantes();
+  }
+  const numeroDePostos = () => (P.figurantes || []).filter((f) => f.posto !== undefined).length;
   function pintarPaisagem(p) {
     const g = p.c.getContext("2d");
     g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, p.c.width, p.c.height);
@@ -2580,7 +2603,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    ocuparPostos, numeroDePostos, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.

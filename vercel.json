@@ -39,6 +39,9 @@
       ]
     }
   ],
+  "rewrites": [
+    { "source": "/aprovar/:t", "destination": "/api/painel?area=aprovar&t=:t" }
+  ],
   "fluid": true,
   "functions": {
     "api/*.js": {

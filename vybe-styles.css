@@ -7027,3 +7027,84 @@ body.no-escritorio {overflow:hidden}
 .ofc-ficha-marcos-publicos {display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
 .ofc-ficha-marcos-publicos li {display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;background:#ffd16614;border:1px solid #ffd16633;font:600 11px var(--mac-ui)}
 .ofc-ficha-marcos-publicos i {color:#ffd166;font-style:normal}
+
+/* ── Planejamentos dos clientes (vybe-planejamentos.js) ─────────────────────
+   Cartão no detalhe do cliente, janela de revisão e aviso do head. A situação
+   vem sempre escrita no selo; a cor só reforça. */
+.client-master-detail-card.plj-cartao{grid-column:1/-1}
+.plj-meses{list-style:none;margin:10px 0;padding:0;display:grid;gap:6px}
+.plj-mes{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:10px;width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.025);color:#e7ecf5;text-align:left;cursor:pointer;font-family:var(--mac-ui)}
+.plj-mes:hover,.plj-mes:focus-visible{border-color:rgba(255,151,21,.55);background:rgba(255,107,0,.08);outline:none}
+.plj-mes b{font:700 12px var(--mac-ui)}
+.plj-mes small{grid-column:1;color:#8f98a9;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plj-mes .plj-selo{grid-column:2;grid-row:1/3;align-self:center}
+.plj-vazio{color:#8f98a9;font-size:11px;line-height:1.45}
+.plj-selo{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);color:#cbd3df;font:700 9.5px var(--mac-ui);white-space:nowrap}
+.plj-selo::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.plj-selo.revisar{color:#ffc46b;border-color:rgba(255,196,107,.4)}
+.plj-selo.enviado{color:#8cc8ff;border-color:rgba(140,200,255,.4)}
+.plj-selo.aprovado{color:#6fe3a8;border-color:rgba(111,227,168,.4)}
+.plj-selo.ajustes{color:#ff8f8f;border-color:rgba(255,143,143,.45)}
+.plj-selo.cadastrado{color:#b9c2d0}
+.workflow-modal.plj-janela{width:min(980px,calc(100vw - 32px));height:min(860px,calc(100vh - 40px));display:flex;flex-direction:column}
+.plj-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.plj-topo .workflow-title{margin:6px 0}
+.plj-topo small{color:#8f98a9;font-size:10px}
+.plj-drive{display:inline-flex;gap:6px;margin-left:auto}
+.plj-pedido{margin:8px 0;padding:10px 12px;border:1px solid rgba(255,143,143,.4);border-radius:10px;background:rgba(255,90,90,.08)}
+.plj-pedido b{color:#ffb3b3;font:700 11px var(--mac-ui)}
+.plj-pedido p{margin:4px 0 0;color:#e7ecf5;font-size:12px;line-height:1.45;white-space:pre-wrap}
+.plj-abas{display:flex;gap:4px;margin:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.plj-abas button{border:0;border-bottom:2px solid transparent;background:none;color:#9da4b4;padding:7px 10px;font:700 11px var(--mac-ui);cursor:pointer}
+.plj-abas button.ativa{color:#ffe0a6;border-bottom-color:#ff9d00}
+.plj-abas button:focus-visible{outline:2px solid #ff9d00;outline-offset:-2px}
+.plj-corpo{flex:1;min-height:0;overflow:auto}
+.plj-previa{width:100%;height:100%;min-height:420px;border:0;border-radius:10px;background:#fff}
+.plj-editor{display:grid;gap:4px}
+.plj-grupo{margin:10px 0 0;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:10px}
+.plj-grupo legend{padding:0 6px;color:#ffb451;font:700 10px var(--mac-ui)}
+.plj-linha{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin-bottom:8px;padding:8px 30px 8px 8px;border-radius:8px;background:rgba(255,255,255,.025)}
+.plj-linha label{display:grid;gap:3px;min-width:0}
+.plj-linha[data-lista=datas]{grid-template-columns:minmax(90px,.8fr) minmax(0,1.2fr) minmax(0,2fr)}
+.plj-linha[data-lista=pecas]{grid-template-columns:150px 140px minmax(0,1fr)}
+.plj-linha[data-lista=pecas] label:nth-child(n+5){grid-column:span 1}
+.plj-linha[data-lista=pecas] label:nth-child(5){grid-column:1/3}
+.plj-linha label:has(textarea){grid-column:1/-1}
+@media(max-width:640px){.plj-linha[data-lista=datas],.plj-linha[data-lista=pecas]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.plj-linha[data-lista=pecas] label:nth-child(3),.plj-linha[data-lista=pecas] label:nth-child(n+5),.plj-linha[data-lista=datas] label:nth-child(3){grid-column:1/-1}}
+.plj-linha span{color:#b7c3d2;font:700 9.5px var(--mac-ui)}
+.plj-linha input,.plj-linha select,.plj-linha textarea{box-sizing:border-box;width:100%;border:1px solid rgba(255,174,51,.2);border-radius:6px;background:#07101b;color:#e7ecf5;padding:6px 7px;font:11px var(--mac-ui);resize:vertical}
+.plj-linha input:focus,.plj-linha select:focus,.plj-linha textarea:focus{border-color:#ff9d00;outline:none}
+.plj-tirar{position:absolute;top:6px;right:6px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(255,255,255,.06);color:#c3cad6;cursor:pointer}
+.plj-tirar:hover,.plj-tirar:focus-visible{background:rgba(255,90,90,.25);color:#fff}
+.plj-historico{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.plj-historico li{padding:8px 10px;border-left:2px solid rgba(255,151,21,.45);background:rgba(255,255,255,.02)}
+.plj-historico b{color:#e7ecf5;font:700 11px var(--mac-ui)}
+.plj-historico small{display:block;color:#8f98a9;font-size:10px}
+.plj-historico p{margin:4px 0 0;color:#c3cad6;font-size:11px;line-height:1.45;white-space:pre-wrap}
+.plj-identidade{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+.plj-identidade input[type=color]{height:34px;padding:2px}
+.plj-acoes{flex-wrap:wrap}
+.plj-check{display:inline-flex;align-items:center;gap:6px;margin-right:auto;color:#c3cad6;font-size:11px}
+.plj-check input{accent-color:#ff850d}
+.plj-link{margin:8px 0;padding:10px 12px;border:1px solid rgba(111,227,168,.4);border-radius:10px;background:rgba(40,190,120,.08)}
+.plj-link b{color:#a8f0cb;font:700 11px var(--mac-ui)}
+.plj-link-linha{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.plj-link-linha input{flex:1 1 240px;min-width:0;border:1px solid rgba(255,255,255,.14);border-radius:6px;background:#07101b;color:#e7ecf5;padding:6px 8px;font:11px var(--mac-ui)}
+.plj-link-linha .cli-porta{padding:5px 11px;cursor:pointer;font-family:var(--mac-ui)}
+.plj-link small{color:#8f98a9;font-size:10px}
+.plj-aviso-falha{margin:6px 0 0;color:#ffc46b;font-size:11px}
+.plj-aviso{position:fixed;z-index:830;right:18px;bottom:18px;display:flex;align-items:center;gap:10px;max-width:min(340px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(255,151,21,.6);border-radius:14px;background:linear-gradient(145deg,rgba(40,24,8,.94),rgba(10,14,22,.94));box-shadow:0 12px 36px rgba(0,0,0,.45);color:#ffe0a6;text-align:left;cursor:pointer;font-family:var(--mac-ui)}
+.plj-aviso:focus-visible{outline:2px solid #ff9d00;outline-offset:2px}
+.plj-aviso b{display:block;font:700 12px var(--mac-ui)}
+.plj-aviso small{display:block;color:#c9b38f;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.plj-aviso-ponto{flex:none;width:10px;height:10px;border-radius:50%;background:#ff9d00;box-shadow:0 0 0 0 rgba(255,157,0,.6);animation:plj-pulso 2s ease-out infinite}
+@keyframes plj-pulso{to{box-shadow:0 0 0 10px rgba(255,157,0,0)}}
+@media(prefers-reduced-motion:reduce){.plj-aviso-ponto{animation:none}}
+@media(max-width:560px){.workflow-modal.plj-janela{width:calc(100vw - 16px);height:calc(100vh - 16px)}.plj-aviso{right:12px;bottom:76px}.plj-drive{margin-left:0}}
+
+/* Centro de Operação: agentes dos clientes nas mesas (vybe-escritorio.js). */
+.mapa-pessoa.figurante.agente {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
+.mapa-pessoa.figurante.agente:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
+.mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8}
+.mapa-etiqueta.agente.alerta {border-color:#ffb451;box-shadow:0 0 0 2px #ff9d0044}
+.ofc-sala .ofc-sala-alerta {display:block;grid-column:1/-1;margin-top:2px;color:#ffc46b;font:700 10px var(--mac-ui)}

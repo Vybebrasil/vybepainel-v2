@@ -1,8 +1,10 @@
-// Sala da música: o Lounge tem um "bot" de música como o do VybeChat.
-// Qualquer pessoa no Lounge cola um link do YouTube (vídeo ou playlist) na fila
-// pela jukebox; o Worker guarda a fila e desde quando a música toca, e cada
-// navegador toca o próprio player do YouTube, no mesmo ponto, só enquanto a
-// pessoa está no Lounge. Volume é de cada um.
+// Música das salas: como o "bot" de música do VybeChat. Toda jukebox ou
+// aparelho de som (rádio, vitrola, toca-discos, DJ, caixas…) abre o nosso
+// player do YouTube (Paulo, 19/10/2026; antes era só no Lounge). Cada sala tem
+// a sua fila no Worker: quem está na sala cola um link (vídeo ou playlist),
+// ouve junto e mexe na fila; cada navegador toca o próprio player, no mesmo
+// ponto, só enquanto a pessoa está na sala. Volume é de cada um.
+const ESCRITORIO_SOM = /jukebox|^hc25_6$|^hc_radio$|gramophone|recordplayer|turntable|vinyltable|_vinyl\d*$|^uni_vinyl$|^fest_c19_dj$|mixingdesk|speakers$|^trax(bronze|silver|gold)$|musicbox|^classic8_records$/;
 const ESCRITORIO_MUSICA_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtu.be"]);
 // Link (ou id) do YouTube → { kind: "video", videoId } ou { kind: "playlist", playlistId }.
 function escritorioFonteMusica(texto) {
@@ -21,10 +23,25 @@ function escritorioFonteMusica(texto) {
   const video = host.endsWith("youtu.be") ? partes[0] : url.searchParams.get("v") || (["embed", "shorts", "live"].includes(partes[0]) ? partes[1] : null);
   return video && video.length === 11 && id.test(video) ? { kind: "video", videoId: video } : null;
 }
-// A música toca no Lounge (a cena inteira: bar, lareira e pista). Antes era
-// só em cima de dois pisos do mapa geral, e parou quando o Lounge virou cena.
+// A música toca na sala inteira que tem aparelho de som (o Lounge sempre).
+function escritorioSalaTemSom() {
+  return escritorio.quarto === "lounge" || Boolean(escritorio.mapa?.moveisDaClasse?.(ESCRITORIO_SOM).length);
+}
 function escritorioNaPista() {
-  return Boolean(escritorio.conectado && escritorio.quarto === "lounge");
+  return Boolean(escritorio.conectado && escritorio.zona && escritorioSalaTemSom());
+}
+function escritorioNomeDaSalaMusica() {
+  return escritorioAmbienteDoQuarto?.(escritorio.quarto)?.nome || "sala";
+}
+// Mudou de sala: a fila mostrada passa a ser a da sala nova.
+function escritorioMusicaDaSala() {
+  if (escritorio.musicaZona !== escritorio.zona) {
+    escritorio.musicaZona = escritorio.zona;
+    escritorio.musica = null;
+    if (escritorioNaPista()) escritorioEmitir("music:get", {});
+  } else if (escritorioNaPista() && !escritorio.musica) escritorioEmitir("music:get", {});
+  escritorio.naPista = escritorioNaPista();
+  sincronizarMusicaEscritorio();
 }
 function escritorioPosicaoMusica(m, agora = Date.now()) {
   return Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));
@@ -66,7 +83,7 @@ function escritorioElementoMusica() {
   if (escritorio.musicaEl) return escritorio.musicaEl;
   const el = document.createElement("section");
   el.className = "ofc-musica";
-  el.setAttribute("aria-label", "Música do Lounge");
+  el.setAttribute("aria-label", "Música da sala");
   el.hidden = true;
   el.innerHTML = `<div class="ofc-musica-topo" title="Arraste para mudar de lugar"><b>${escritorioIcone("musica")}Música</b><span><button type="button" class="ofc-x ofc-encaixar" onclick="encaixarMusicaEscritorio()" aria-label="Voltar o player para a coluna" title="Voltar para a coluna da direita">↘</button><button type="button" class="ofc-x" onclick="minimizarMusicaEscritorio()" aria-label="Minimizar o player" title="Minimizar">–</button></span></div><div class="ofc-musica-player"><div id="office-yt"></div></div><div class="ofc-musica-info"></div>`;
   escritorio.musicaEl = el;
@@ -132,10 +149,12 @@ ${escritorio.musicaBloqueada ? '<button type="button" class="ofc-primario" oncli
 <button type="button" class="ofc-secundario" onclick="abrirMusicaEscritorio()">Fila e link</button>`;
 }
 function controleMusicaEscritorio(acao, id) {
-  if (escritorio.zona !== "lounge") return escritorioAviso("Vá até o Lounge para mexer na música.");
+  if (!escritorioNaPista()) return escritorioAviso("Esta sala não tem aparelho de som. A música toca nas salas com jukebox, rádio ou vitrola.");
   escritorioEmitir("music:control", { acao, ...(id ? { id } : {}) });
 }
 function receberMusicaEscritorio(estado) {
+  // Estado de outra sala (chegou depois da troca de sala): não vale aqui.
+  if (estado?.zona && estado.zona !== escritorio.zona) return;
   escritorio.musica = estado;
   sincronizarMusicaEscritorio();
   const lista = document.getElementById("office-lista-salas");
@@ -145,6 +164,7 @@ function receberMusicaEscritorio(estado) {
 // Painel da jukebox: colar link, ver a fila, tocar uma, tirar uma.
 function abrirMusicaEscritorio() {
   if (!escritorio.conectado) return escritorioAviso("Entre no escritório para usar a música.");
+  if (!escritorioNaPista()) return escritorioAviso("Esta sala não tem aparelho de som. A música toca nas salas com jukebox, rádio ou vitrola.");
   let d = document.getElementById("office-musica-painel");
   if (!d) {
     d = document.createElement("dialog");
@@ -153,8 +173,8 @@ function abrirMusicaEscritorio() {
     d.setAttribute("aria-labelledby", "office-musica-titulo");
     document.body.append(d);
   }
-  d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-musica-titulo">Música do Lounge</h3><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
-<p class="ofc-nota">Quem está no Lounge ouve junto. O volume é só seu.</p>
+  d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-musica-titulo">Música · ${safeText(escritorioNomeDaSalaMusica())}</h3><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
+<p class="ofc-nota">Quem está nesta sala ouve junto. O volume é só seu.</p>
 <form class="ofc-musica-form" onsubmit="event.preventDefault();adicionarMusicaEscritorio(this)"><input name="link" placeholder="Cole um link do YouTube (vídeo ou playlist)" aria-label="Link do YouTube" autocomplete="off" required><button class="workflow-primary">Pôr na fila</button></form>
 <p class="ofc-erro" id="office-musica-erro" role="alert"></p>
 <div id="office-musica-fila"></div>`;
@@ -176,7 +196,7 @@ function adicionarMusicaEscritorio(form) {
   const erro = document.getElementById("office-musica-erro");
   const fonte = escritorioFonteMusica(form.link.value);
   if (!fonte) { erro.textContent = "Esse link não é de um vídeo ou playlist do YouTube."; return; }
-  if (escritorio.zona !== "lounge") { erro.textContent = "Vá até o Lounge para pôr música na fila."; return; }
+  if (!escritorioNaPista()) { erro.textContent = "Esta sala não tem aparelho de som."; return; }
   erro.textContent = "";
   escritorioEmitir("music:enqueue", { fonte });
   form.reset();

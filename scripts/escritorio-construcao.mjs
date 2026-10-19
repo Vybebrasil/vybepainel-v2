@@ -513,10 +513,12 @@ export function novaCena(id, o = {}) {
       }
     },
     // Figurante: de pé num ladrilho livre ou sentado num assento já posto.
-    figurante({ figura, x, y, dir = 4, sentado }) {
+    // posto: número do lugar de um agente (Centro de Operação); o navegador
+    // põe ali o agente de um cliente e esconde o posto que sobra.
+    figurante({ figura, x, y, dir = 4, sentado, posto }) {
       if (sentado) {
         if (!sentado.senta) return falha(`figurante em ${sentado.nome}, que não é assento`);
-        figurantes.push({ figura, x: sentado.x, y: sentado.y, dir: sentado.dir, acao: "sit" });
+        figurantes.push({ figura, x: sentado.x, y: sentado.y, dir: sentado.dir, acao: "sit", ...(posto !== undefined ? { posto } : {}) });
         return;
       }
       // Em pé só em chão ou em peça onde se pisa (esteira, colchonete, palco).

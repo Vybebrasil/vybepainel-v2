@@ -56,7 +56,7 @@ const ALTO = 92;
 // Salas já refeitas com a regra de desenho (o que um móvel cobre do outro e
 // a frente das máquinas): nelas é erro; nas outras, aviso até serem refeitas
 // (node scripts/escritorio-auditar.mjs --desenho lista os avisos).
-const DESENHO_CONFERIDO = new Set(["cafe", "recepcao", "reuniao", "foco", "auditorio", "producao", "jogos", "academia", "lounge"]);
+const DESENHO_CONFERIDO = new Set(["cafe", "recepcao", "reuniao", "foco", "auditorio", "producao", "jogos", "academia", "lounge", "operacao"]);
 // Foto da cena (quanto de cada peça aparece): desligável para depurar.
 const FOTO = !process.argv.includes("--sem-foto");
 const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte de baixo do item

@@ -268,7 +268,10 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         setTimeout(() => escritorioMotorVoz().catch(() => {}), 1500);
         escritorioConversaAutomatica();
-        escritorioEmitir("music:get", {});
+        // Fila de música da sala em que entrou (se ela tiver aparelho de som).
+        escritorio.musicaZona = undefined;
+        escritorioMusicaDaSala();
+        escritorio.mapa?.prontos.then(() => escritorioMusicaDaSala());
         carregarResumoRecados();
         escritorio.ping = setInterval(
           () => escritorioEmitir("system:ping", {}),
@@ -680,6 +683,50 @@ function escritorioEntrarNoQuarto(id) {
   escritorioTrocarCena(id, e, a.porta === "direita" ? 6 : 0);
   return true;
 }
+// Centro de Operação (docs/planejamentos-plano.md): um agente por cliente
+// ativo em cada mesa, com o nome do cliente e a situação do planejamento em
+// cima. O clique abre o planejamento (vybe-planejamentos.js). O head vê, na
+// lista de salas e no aviso da tela, quanto está esperando por ele.
+const ESCRITORIO_SITUACAO_PLANO = { revisar: ["Para revisar", "#ffc46b"], enviado: ["Com o cliente", "#8cc8ff"], aprovado: ["Aprovado", "#6fe3a8"],
+  ajustes: ["Ajustes pedidos", "#ff8f8f"], cadastrado: ["Cadastrado", "#b9c2d0"] };
+async function escritorioOcuparOperacao() {
+  if (escritorio.quarto !== "operacao" || !escritorio.mapa?.ocuparPostos) return;
+  const mapa = escritorio.mapa;
+  let postos;
+  try {
+    const r = await fetch("/api/painel?area=planejamentos&acao=operacao", { credentials: "same-origin", cache: "no-store" });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || "o painel não respondeu");
+    postos = d.postos || [];
+  } catch (e) { escritorioAviso("Não foi possível chamar os agentes: " + e.message); return; }
+  if (mapa !== escritorio.mapa) return;
+  const n = mapa.numeroDePostos();
+  mapa.ocuparPostos(postos.slice(0, n).map((a, i) => {
+    const p = a.planejamento;
+    const [situacao, cor] = p ? ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado, "#8f98a9"] : ["Sem planejamento", "#8f98a9"];
+    return { posto: i, nome: a.cliente, situacao, cor, alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
+      aoClicar: () => (p && typeof abrirPlanejamento === "function" ? abrirPlanejamento(p.id) : escritorioAviso(`O agente de ${a.cliente} ainda não publicou um planejamento.`)) };
+  }));
+  if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
+}
+// Chamado por vybe-planejamentos.js sempre que a lista do head muda.
+function escritorioPlanejamentosPendentes(lista) {
+  const antes = (escritorio.planosPendentes || []).map((p) => p.id + p.estado).join();
+  escritorio.planosPendentes = lista || [];
+  if (antes === escritorio.planosPendentes.map((p) => p.id + p.estado).join()) return;
+  if (document.getElementById("office-rooms")) atualizarPessoasEscritorio();
+  escritorioOcuparOperacao();
+}
+// Leva ao Centro de Operação de qualquer tela (aviso do head).
+function irParaSalaEscritorio(id) {
+  const botao = document.getElementById("btn-board-escritorio");
+  if (typeof switchBoard === "function") switchBoard("escritorio", botao);
+  const tentar = (vezes) => {
+    if (escritorio.mapa) return escritorioIrParaAmbiente(id);
+    if (vezes > 0) setTimeout(() => tentar(vezes - 1), 400);
+  };
+  tentar(25);
+}
 // Sai pela porta: das salas para a Convivência; da Convivência para a
 // Praça; da Praça de volta para a Convivência (escritorioDestinoDaPorta).
 function escritorioSairDoQuarto() {
@@ -717,10 +764,11 @@ function escritorioTrocarCena(quarto, lugar, dir) {
   escritorioEnviarPosicao(true);
   const depois = escritorio.aoChegarNaCena;
   escritorio.aoChegarNaCena = null;
-  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); depois?.(); });
-  // Entrou ou saiu do Lounge: a música toca ou para na hora.
-  const naPista = typeof escritorioNaPista === "function" && escritorioNaPista();
-  if (naPista !== Boolean(escritorio.naPista)) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
+  // Trocou de sala: a música da sala nova (se tiver aparelho de som) toca na
+  // hora; a da antiga para. Confere de novo quando os móveis terminam de
+  // carregar (só aí se sabe se a sala tem jukebox).
+  if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala();
+  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); depois?.(); });
 }
 function escritorioMinhaMesa() {
   let a = escritorioDonos().get(escritorio.base?.eu);
@@ -825,7 +873,7 @@ function atualizarPessoasEscritorio() {
   // As listas laterais só mudam quando alguém troca de lugar, status ou
   // entra/sai; a presença chega a cada passo, então refazê-las sempre
   // (com as imagens dos bonecos) travava o painel com a equipe andando.
-  const assinatura = JSON.stringify([escritorio.conectado, escritorioLugarDe(escritorio.perfil).id, escritorio.recadosResumo || {}, (escritorio.base?.equipe || []).length, escritorio.musica?.tocando ? [escritorio.musica.indice, escritorio.musica.fila?.length] : 0, pessoas.map((p) => [p.id, p.zona, p.status, p.nome])]);
+  const assinatura = JSON.stringify([escritorio.conectado, escritorioLugarDe(escritorio.perfil).id, escritorio.recadosResumo || {}, (escritorio.base?.equipe || []).length, escritorio.musica?.tocando ? [escritorio.musica.indice, escritorio.musica.fila?.length] : 0, (escritorio.planosPendentes || []).length, pessoas.map((p) => [p.id, p.zona, p.status, p.nome])]);
   const mudou = (el) => el && el.dataset.assinatura !== assinatura && (el.dataset.assinatura = assinatura, true);
   const lista = document.getElementById("office-roster");
   if (mudou(lista)) {
@@ -846,7 +894,8 @@ function atualizarPessoasEscritorio() {
     const linha = (a) => {
       const aqui = pessoas.filter((p) => escritorioLugarDe(p).id === a.id);
       const nomes = aqui.map((p) => (String(p.id) === String(eu) ? "você" : escritorioNomeCurto(p.nome))).join(", ");
-      return `<button type="button" class="ofc-sala${aqui.length ? " ocupada" : ""}" aria-pressed="${a.id === meu}" style="--sala:${ESCRITORIO_COR_SALA[a.sala] || a.cor || "#8a93a3"}" onclick="escritorioIrParaAmbiente('${a.id}')"><i></i><span>${safeText(a.nome)}</span>${aqui.length ? `<small>${aqui.length}</small><em>${safeText(nomes)}</em>` : ""}</button>`;
+      return `<button type="button" class="ofc-sala${aqui.length ? " ocupada" : ""}" aria-pressed="${a.id === meu}" style="--sala:${ESCRITORIO_COR_SALA[a.sala] || a.cor || "#8a93a3"}" onclick="escritorioIrParaAmbiente('${a.id}')"><i></i><span>${safeText(a.nome)}</span>${aqui.length ? `<small>${aqui.length}</small><em>${safeText(nomes)}</em>` : ""}${
+        a.id === "operacao" && escritorio.planosPendentes?.length ? `<b class="ofc-sala-alerta">${escritorio.planosPendentes.length} para você revisar</b>` : ""}</button>`;
     };
     const A = ESCRITORIO_PLANTA.ambientes;
     // Espaços comuns primeiro (onde a equipe se encontra), Praça no topo por
@@ -905,7 +954,7 @@ function escritorioListaSalasHtml() {
   const pessoas = escritorio.conectado ? escritorio.online : [];
   const meu = escritorioLugarDe(escritorio.perfil).id;
   const m = escritorio.musica, tocando = m?.tocando && m.fila?.[m.indice];
-  const musica = tocando ? `<article class="ofc-cartao ofc-cartao-musica" style="--sala:#b48cff"><div class="ofc-cartao-topo"><i></i><h3>Música no Lounge</h3><small>${m.fila.length} na fila</small></div><p class="ofc-nota">De ${safeText(String(tocando.por || "").split(" ")[0])}. Quem está no Lounge ouve junto.</p><button type="button" class="ofc-mini" onclick="irParaMusicaEscritorio()">${escritorioNaPista() ? "Você está ouvindo" : "Ir ouvir"}</button></article>` : "";
+  const musica = tocando ? `<article class="ofc-cartao ofc-cartao-musica" style="--sala:#b48cff"><div class="ofc-cartao-topo"><i></i><h3>Música · ${safeText(escritorioNomeDaSalaMusica())}</h3><small>${m.fila.length} na fila</small></div><p class="ofc-nota">De ${safeText(String(tocando.por || "").split(" ")[0])}. Quem está nesta sala ouve junto.</p><button type="button" class="ofc-mini" onclick="abrirMusicaEscritorio()">Fila e link</button></article>` : "";
   const cartao = (a) => {
     const aqui = pessoas.filter((p) => escritorioLugarDe(p).id === a.id);
     return `<article class="ofc-cartao" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}"><div class="ofc-cartao-topo"><i></i><h3>${safeText(a.nome)}</h3><small>${aqui.length} ${aqui.length === 1 ? "pessoa" : "pessoas"}</small></div><ul>${aqui.map((p) => `<li>${escritorioAvatar(p.perfil, p.nome)}<span><b>${safeText(p.nome)}</b><small>${escritorioStatusHtml(p.status)}</small></span></li>`).join("")}</ul><button type="button" class="ofc-mini" onclick="escritorioIrParaAmbiente('${a.id}',true)" ${a.id === meu ? "disabled" : ""}>${a.id === meu ? "Você está aqui" : "Ir para cá"}</button></article>`;
@@ -1064,7 +1113,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); });
+    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -1284,9 +1333,9 @@ function escritorioQuadro(agora) {
   // Pisou na porta de um quarto (atrás da porta da fachada) ou na soleira de
   // saída: a cena troca e este ciclo acaba aqui.
   if (escritorioConferirPortal()) return;
-  // Entrou ou saiu do Lounge: a música toca ou para (só para esta pessoa).
+  // Entrou ou saiu de sala com som: a música toca ou para (só para esta pessoa).
   const naPista = typeof escritorioNaPista === "function" && escritorioNaPista();
-  if (naPista !== Boolean(escritorio.naPista)) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
+  if (naPista !== Boolean(escritorio.naPista) || (naPista && escritorio.musicaZona !== escritorio.zona)) escritorioMusicaDaSala();
   escritorioEnviarPosicao(!andando);
   // A ação do E é recalculada no máximo 8 vezes por segundo (e ao parar): ela
   // procura caminho até cada pessoa perto, o que pesava a cada quadro.
@@ -2396,7 +2445,7 @@ function escritorioAcaoDoMovel(m) {
   if (ESCRITORIO_GARRAFA.test(m.classe)) return { item: m, texto: "Girar a garrafa", fazer: () => girarGarrafaEscritorio(m) };
   if (ESCRITORIO_ROLETA.test(m.classe)) return { item: m, texto: "Girar a roleta", fazer: () => girarRoletaEscritorio(m) };
   if (ESCRITORIO_TELEPORTE.test(m.classe)) return { item: m, texto: "Teletransportar", fazer: () => abrirTeleporteEscritorio(m) };
-  if (/jukebox|^hc25_6$/.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
+  if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
   return null;
 }
@@ -2479,8 +2528,8 @@ function escritorioAcoesPerto() {
   }
   const tela = escritorio.mapa.moveisPerto(p.x, p.y, 2).find((m) => ESCRITORIO_TELAS.test(m.classe));
   if (tela) return { item: tela, texto: "Usar a TV", fazer: () => abrirTvEscritorio(tela) };
-  // No Lounge, a jukebox e a cabine do DJ são o bot de música da sala.
-  const som = escritorioNaPista() && perto.find((m) => /jukebox|^hc25_6$/.test(m.classe));
+  // Jukebox, rádio, vitrola, DJ: o bot de música da sala.
+  const som = escritorioNaPista() && perto.find((m) => ESCRITORIO_SOM.test(m.classe));
   if (som) return { item: som, texto: "Abrir a música", fazer: abrirMusicaEscritorio };
   for (const m of perto) {
     const nome = ESCRITORIO_LIGAVEIS.find(([re]) => re.test(m.classe))?.[1];

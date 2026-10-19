@@ -30,6 +30,7 @@ montagem. Também precisam funcionar como o Habbo: sentar, subir escada, empilha
    - **Jogos**: fliperama escuro com neon. Montado em 18/10 (ver "Jogos").
    - **Academia**: moderna, com tijolo vermelho e vidro. Montada em 18/10 (ver "Academia").
    - **Lounge**: bar-garagem "Garage 93 Vinyl". Refeito do zero em 18/10 (ver "Lounge").
+   - **Centro de Operação**: sala de controle com os agentes dos clientes. Montada em 19/10 (ver "Centro de Operação").
 3. Depois, detalhar mais os ambientes.
 4. Levar as regras do motor para o editor do painel (quem administra monta as
    salas vendo).
@@ -797,3 +798,36 @@ decoração inicial "bem feito".
 - 19/10/2026: o ranking saiu (decisão do Paulo: sem comparação, sem
   estrelismo). O perfil de cada pessoa mostra nível, XP, moedas, marcos
   conquistados e inventário.
+
+### Centro de Operação — 19/10/2026 (noite)
+
+- Pedido do Paulo: os agentes de conteúdo de cada cliente viram NPCs, cada um
+  na sua mesa com o nome do cliente. Sala comum nova `operacao` (22 × 15),
+  montada pelo motor (`scripts/cenas/operacao.mjs`), na lista
+  `DESENHO_CONFERIDO`, chat escrito da Convivência.
+- Conceito: sala de controle. Fundo com telão (monitores e mapas) e relógios;
+  duas fileiras de 8 estações dos dois lados do corredor da porta (16
+  postos); na frente, a mesa de aprovação dos heads (esquerda) e a espera com
+  café (direita). Mesma coleção da ilha de edição da Produção; telas variadas
+  (`army_c15_deskcomp` e `computer_laptop` conferidos na vitrine em 19/10).
+- Postos: o figurante com `posto` só aparece quando o painel põe ali um
+  cliente ativo (`acao=operacao` de `area=planejamentos`; quem tem planejamento
+  vem primeiro). Etiqueta com o nome do cliente e a situação; clique abre o
+  planejamento. Para o head, a sala mostra na lista "N para você revisar".
+- Zona `operacao` aceita no servidor, no editor, nos post-its e no Worker. As
+  regras do banco são ampliadas pela migração
+  `2026-10-20-planejamentos.sql` (aplicada em 19/10/2026). O Worker precisa ser
+  publicado de novo (`npx wrangler deploy`, em `services/escritorio`) para
+  presença e voz valerem na sala nova; até lá, quem entra nela aparece sem
+  zona de conversa.
+- Pendente: Paulo conferir a sala no zoom; com mais de 16 clientes ativos, os
+  que sobram ficam sem mesa (o Escritório avisa).
+
+### Música em toda jukebox — 19/10/2026 (noite)
+
+- Pedido do Paulo: toda jukebox ou objeto que faz música abre o nosso player
+  do YouTube, não só no Lounge. Fila por sala no Worker (`musica:<zona>`; o
+  Lounge mantém a fila guardada). A lista de aparelhos é `ESCRITORIO_SOM`.
+  Instrumentos (piano, guitarra, bateria) ficaram de fora, porque não tocam
+  gravação. Teste no `tests/escritorio.test.mjs` (Worker com filas
+  separadas). Vale depois de publicar o Worker de novo.
