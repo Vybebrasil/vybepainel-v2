@@ -206,6 +206,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Ver docs/escritorio-vybechat.md antes de mudar física, planta ou editor.
   VybeCoins e preços seguem a economia de 20/10/2026 (`docs/escritorio-pontos.md`):
   moedas mais raras que XP, preço por tempo de trabalho, valores só nas tabelas.
+  Regras por peça pagam pelo peso do formato (`vybe_escritorio_complexidade`);
+  as missões e os alertas dos agentes usam a mesma conta do banco.
   Créditos acompanham o evento na transação; compras bloqueiam a carteira e são
   idempotentes. Nunca conceda saldo/inventário a partir de valores do navegador.
   Loja (fase 2): faixas, preço, estoque e vitrine ficam em tabela

@@ -221,6 +221,44 @@ Regra nova (decisão do Paulo: "equilibrar de acordo com a logística nova"):
 - Migração `migrations/2026-10-20-escritorio-economia.sql`, marcador
   `economia-2026-10-20`. Teste: `tests/escritorio-economia-nova.test.mjs`.
 
+## Complexidade e missões (19/10/2026)
+
+- **Peso por formato** (`vybe_escritorio_complexidade`; mude lá, sem deploy):
+
+  | Formato | Peso |
+  | --- | --- |
+  | Texto, Story | 0,5 |
+  | Card, Feed, Post, Fotografia, Capa de vídeo, Avulso | 1 |
+  | Design, Digital, Feed/Story | 1,5 |
+  | Carrossel, Implementação, Planejamento | 2 |
+  | Reels | 2,5 |
+  | Vídeo, Motion, Impresso | 3 |
+
+  Peça com mais de um formato soma os pesos, no máximo 5. Formato vazio ou
+  desconhecido vale 1.
+- As regras marcadas `por_complexidade` multiplicam moedas e XP pelo peso:
+  `entrega`, `criacao_aprovacao`, `criacao_aprovada` e `captacao`. Penalidades
+  e regras por pessoa ou por dia não mudam. Só vale para eventos novos.
+  Migração `2026-10-20-escritorio-complexidade.sql`.
+- **Missões** (`missoesDaPessoa`, rota `escritorio/missoes`): as peças abertas
+  em que a pessoa é responsável, com o valor pela regra da função dela e o
+  peso do formato.
+  - Solicitações: entrega, mais o bônus de prazo.
+  - Criação: enviada para aprovação, mais o bônus de aprovada sem alteração.
+  - Produção: captação. Agendamento: agendamento.
+
+  O valor mostrado é uma promessa calculada com a mesma tabela; quem paga é o
+  gatilho, no evento.
+- **Alertas dos agentes** (`server/alertas-clientes.js`): por cliente, nas
+  peças em aberto vinculadas a ele.
+  - Sem informação: status de falta de informação, sem briefing, sem prazo ou
+    sem responsável.
+  - Muito atrasadas: prazo vencido há mais de 2 dias.
+  - Para aprovar: status de aprovação interna ou do cliente.
+
+  Aparecem na etiqueta do agente no Centro de Operação e no aviso do head,
+  só com os clientes dele.
+
 ## Ainda não decidido (fica para depois)
 
 - Deivid aprova 166 peças em 8 semanas como direção de arte e não ganha por

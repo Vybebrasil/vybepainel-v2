@@ -3,6 +3,7 @@
 // head revisa e edita, manda para o cliente por um link e o cliente aprova ou
 // pede ajustes. Identidade e permissão vêm da sessão; o link do cliente é um
 // segredo de uso externo (só o hash fica no banco).
+import { alertasDosClientes } from './alertas-clientes.js';
 import { createHash, randomBytes } from 'node:crypto';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
@@ -99,7 +100,9 @@ export async function postosDaOperacao(sql, pessoa) {
  const heads = await sql`SELECT cliente_id FROM vybe_cliente_pessoas WHERE pessoa_id=${pessoa?.id ?? null}`;
  const meus = new Set(heads.map((h) => String(h.cliente_id)));
  const porCliente = new Map(planos.map((p) => [String(p.cliente_id), publico({ ...p, cliente_id: p.cliente_id })]));
- return clientes.map((c) => ({ cliente_id: String(c.id), cliente: c.nome, segmento: c.segmento || null, meu: meus.has(String(c.id)), planejamento: porCliente.get(String(c.id)) || null }))
+ const alertas = await alertasDosClientes(sql);
+ return clientes.map((c) => ({ cliente_id: String(c.id), cliente: c.nome, segmento: c.segmento || null, meu: meus.has(String(c.id)), planejamento: porCliente.get(String(c.id)) || null,
+  alertas: alertas.get(String(c.id)) || { sem_info: [], atrasadas: [], aprovar: [], total: 0 } }))
   .sort((a, b) => Number(Boolean(b.planejamento)) - Number(Boolean(a.planejamento)) || a.cliente.localeCompare(b.cliente, 'pt-BR'));
 }
 
@@ -242,3 +245,14 @@ export async function responderDoCliente(sql, token, { acao, nome, texto: t }) {
  });
 }
 export { ESTADOS };
+
+// Aviso do head: alertas das peças dos clientes em que a pessoa é head (quem
+// administra vê todos), por cliente, só onde há algo.
+export async function alertasDoHead(sql, pessoa) {
+ const ids = pessoa?.admin ? null : (await sql`SELECT cliente_id FROM vybe_cliente_pessoas WHERE pessoa_id=${pessoa?.id ?? null}`).map((h) => String(h.cliente_id));
+ if (ids && !ids.length) return [];
+ const por = await alertasDosClientes(sql, { clienteIds: ids });
+ const nomes = new Map((await sql`SELECT id,nome FROM vybe_clientes`).map((c) => [String(c.id), c.nome]));
+ return [...por.entries()].filter(([, a]) => a.total).map(([id, a]) => ({ cliente_id: id, cliente: nomes.get(id) || '', ...a }))
+  .sort((x, y) => y.total - x.total);
+}

@@ -19,6 +19,7 @@ const PLJ_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', '
 let PLJ_ABERTO = null;   // planejamento na janela (detalhe do servidor)
 let PLJ_RASCUNHO = null; // conteúdo em edição
 let PLJ_PENDENTES = [];
+let PLJ_ALERTAS = []; // alertas das peças dos clientes do head (alertas-clientes.js)
 
 const pljEsc = (v) => (typeof safeText === 'function' ? safeText(String(v ?? '')) : String(v ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`));
 const pljMes = (iso) => { const m = /^(\d{4})-(\d{2})/.exec(String(iso || '')); if (!m) return ''; const n = PLJ_MESES[Number(m[2]) - 1]; return `${n[0].toUpperCase()}${n.slice(1)} de ${m[1]}`; };
@@ -319,13 +320,15 @@ async function vigiarPlanejamentosPendentes(agora) {
     if (!r.ok) return;
     const d = await r.json();
     PLJ_PENDENTES = Array.isArray(d.pendentes) ? d.pendentes : [];
+    PLJ_ALERTAS = Array.isArray(d.alertas) ? d.alertas : [];
   } catch { return; }
   pintarAvisoPlanejamentos();
   if (typeof escritorioPlanejamentosPendentes === 'function') escritorioPlanejamentosPendentes(PLJ_PENDENTES);
 }
 function pintarAvisoPlanejamentos() {
   let el = document.getElementById('plj-aviso');
-  if (!PLJ_PENDENTES.length) { el?.remove(); return; }
+  const avisos = PLJ_ALERTAS.reduce((t, a) => t + (a.total || 0), 0);
+  if (!PLJ_PENDENTES.length && !avisos) { el?.remove(); return; }
   if (!el) {
     el = document.createElement('button');
     el.id = 'plj-aviso';
@@ -336,16 +339,21 @@ function pintarAvisoPlanejamentos() {
   }
   const n = PLJ_PENDENTES.length;
   const ajustes = PLJ_PENDENTES.filter((p) => p.estado === 'ajustes').length;
-  el.innerHTML = `<span class="plj-aviso-ponto" aria-hidden="true"></span><span><b>${n} planejamento${n > 1 ? 's' : ''} esperando você</b>
-    <small>${ajustes ? `${ajustes} com ajustes do cliente · ` : ''}${pljEsc([...new Set(PLJ_PENDENTES.map((p) => p.cliente))].slice(0, 3).join(', '))}</small></span>`;
+  const titulo = [n && `${n} planejamento${n > 1 ? 's' : ''} esperando você`, avisos && `${avisos} aviso${avisos > 1 ? 's' : ''} nos seus clientes`].filter(Boolean).join(' · ');
+  const clientes = [...new Set([...PLJ_PENDENTES.map((p) => p.cliente), ...PLJ_ALERTAS.map((a) => a.cliente)])].slice(0, 3).join(', ');
+  el.innerHTML = `<span class="plj-aviso-ponto" aria-hidden="true"></span><span><b>${pljEsc(titulo)}</b>
+    <small>${ajustes ? `${ajustes} com ajustes do cliente · ` : ''}${pljEsc(clientes)}</small></span>`;
+  el.title = PLJ_ALERTAS.map((a) => `${a.cliente}: ${[a.atrasadas_total && `${a.atrasadas_total} muito atrasada(s)`, a.aprovar_total && `${a.aprovar_total} para aprovar`, a.sem_info_total && `${a.sem_info_total} sem informação`].filter(Boolean).join(', ')}`).join('\n');
 }
 function abrirPendentesPlanejamento() {
   openWorkflowModal(`<div class="workflow-kicker"><span>Planejamentos · Centro de Operação</span>
       <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
     <h2 class="workflow-title">Esperando você</h2>
-    <p class="workflow-copy">Planejamentos dos seus clientes para revisar e mandar, ou com ajustes pedidos pelo cliente.</p>
-    <ul class="plj-meses">${PLJ_PENDENTES.map((p) => `<li><button type="button" class="plj-mes" onclick="abrirPlanejamento('${pljEsc(p.id)}')">
-      <b>${pljEsc(p.cliente)}</b><small>${pljEsc(pljMes(p.mes))} · ${pljEsc(p.titulo)}</small>${pljSelo(p.estado)}</button></li>`).join('')}</ul>
+    <p class="workflow-copy">Planejamentos para revisar e o que pede atenção nas peças dos seus clientes.</p>
+    ${PLJ_PENDENTES.length ? `<ul class="plj-meses">${PLJ_PENDENTES.map((p) => `<li><button type="button" class="plj-mes" onclick="abrirPlanejamento('${pljEsc(p.id)}')">
+      <b>${pljEsc(p.cliente)}</b><small>${pljEsc(pljMes(p.mes))} · ${pljEsc(p.titulo)}</small>${pljSelo(p.estado)}</button></li>`).join('')}</ul>` : ''}
+    ${PLJ_ALERTAS.length ? `<h3 class="plj-avisos-titulo">Avisos nos seus clientes</h3><ul class="plj-avisos">${PLJ_ALERTAS.map((a) => `<li><b>${pljEsc(a.cliente)}</b>
+      ${[['Muito atrasadas', a.atrasadas, a.atrasadas_total, 'status'], ['Para aprovar', a.aprovar, a.aprovar_total, 'status'], ['Sem informação', a.sem_info, a.sem_info_total, 'motivo']].filter(([, , t]) => t).map(([rot, itens, t, campo]) => `<details><summary>${rot} · ${t}</summary><ul>${itens.map((x) => `<li><button type="button" onclick="closeWorkflowModal();pljAbrirPeca('${pljEsc(x.ref)}','${x.quadro}')"><span>${pljEsc(x.titulo)}</span><small>${pljEsc([x.prazo ? x.prazo.split('-').reverse().join('/') : '', x[campo]].filter(Boolean).join(' · '))}</small></button></li>`).join('')}</ul></details>`).join('')}</li>`).join('')}</ul>` : ''}
     ${typeof irParaSalaEscritorio === 'function' ? `<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal();irParaSalaEscritorio('operacao')">Ir ao Centro de Operação</button></div>` : ''}`);
 }
 function iniciarVigiaPlanejamentos() {
@@ -353,4 +361,10 @@ function iniciarVigiaPlanejamentos() {
   vigiarPlanejamentosPendentes(true);
   PLJ_RELOGIO = setInterval(() => vigiarPlanejamentosPendentes(false), 3 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) vigiarPlanejamentosPendentes(true); });
+}
+
+// Abre uma peça no painel lateral de sempre (Solicitações ou Produção).
+function pljAbrirPeca(ref, quadro) {
+  const abrir = quadro === 'demandas' ? window.openDemandaWorkspace : window.openItemWorkspace;
+  if (typeof abrir === 'function') abrir(String(ref));
 }
