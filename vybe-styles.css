@@ -7174,3 +7174,17 @@ body.no-escritorio {overflow:hidden}
 .plj-avisos > li > b {color:#e7ecf5;font:700 12px var(--mac-ui)}
 .plj-avisos details {margin-top:4px}
 .plj-avisos summary {cursor:pointer;color:#c3cad6;font-size:11px}
+
+/* Clientes cobrando no quarto (vybe-escritorio-missoes.js): nome e fala; a cor
+   reforça o tom, o texto diz tudo. */
+.mapa-pessoa.figurante.visitante {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
+.mapa-pessoa.figurante.visitante:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
+.mapa-etiqueta.visitante {flex-direction:column;align-items:flex-start;gap:1px;max-width:210px;white-space:normal;cursor:pointer;padding:3px 8px;border-width:1.5px}
+.mapa-etiqueta.visitante b {font:700 10px var(--mac-ui)}
+.mapa-etiqueta.visitante .mapa-reclama {font:600 11px/1.3 var(--mac-ui);color:#fff}
+.mapa-etiqueta.visitante.cobra {border-color:#ff6b6b;background:#2a1215ee}
+.mapa-etiqueta.visitante.avisa {border-color:#ffc46b;background:#2a2112ee}
+.mapa-etiqueta.visitante.lembra {border-color:#6fb6ff;background:#121c2aee}
+.mapa-etiqueta.visitante.agradece {border-color:#6fe3a8;background:#122a1eee}
+.mapa-etiqueta.visitante:not(.grita) .mapa-reclama {display:none}
+.mapa-etiqueta.visitante.grita {z-index:99990}

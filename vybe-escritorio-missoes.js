@@ -87,3 +87,55 @@ function abrirMissaoEscritorio(ref, quadro) {
   const abrir = quadro === "demandas" ? window.openDemandaWorkspace : window.openItemWorkspace;
   if (typeof abrir === "function") abrir(String(ref));
 }
+
+// ── Clientes cobrando no quarto (brincadeira do Paulo, 19/10/2026) ───────────
+// Quem entra num quarto vê os clientes das demandas que pedem ação do dono:
+// atrasadas, do dia depois do meio-dia, vencendo sem começar, para agendar.
+// Quando a demanda espera o próprio cliente, ele vai ao quarto do head pedir
+// para ser lembrado. Resolvida, o cliente agradece e vai embora.
+const COBRANCA_TOM = { atrasada: "cobra", hoje: "cobra", vence: "avisa", agendar: "cobra", lembrar_cliente: "lembra" };
+function falasDaCobranca(c, dono) {
+  const t = `"${c.titulo.length > 38 ? c.titulo.slice(0, 36) + "…" : c.titulo}"`, d = c.dias;
+  if (c.tipo === "lembrar_cliente") return [`Tô devendo coisa do ${t}. Me cobra!`, `Me lembra de mandar o que falta do ${t}?`];
+  if (c.tipo === "agendar") return d > 0 ? [`O ${t} já devia estar no ar!`, `Ninguém postou o ${t}? Faz ${d} dia${d > 1 ? "s" : ""}!`] : [`Hoje é dia do ${t} ir ao ar!`, `${dono}, não esquece de agendar o ${t}!`];
+  if (c.tipo === "vence") return [`Amanhã vence o ${t}. Já dá pra começar?`, `${dono}, o ${t} é pra amanhã, hein!`];
+  if (c.tipo === "hoje") return [`${dono}, o ${t} é pra hoje!`, `Já passou do meio-dia e o ${t} não saiu…`];
+  const aprovar = /aprova/i.test(c.status);
+  if (d >= 4) return [`${d} DIAS, ${dono}! Cadê o ${t}?!`, aprovar ? `Aprova logo o ${t}, por favor!` : `Vou chamar o Paulo! ${t} atrasado!`, `Protesto! ${t} parado há ${d} dias!`];
+  if (d >= 2) return [`Já são ${d} dias esperando o ${t}!`, aprovar ? `${dono}, aprova o ${t} pra mim?` : `${dono}, meu ${t} ainda não saiu?`];
+  return [aprovar ? `${dono}, falta aprovar o ${t}…` : `${dono}, o ${t} era pra ontem…`, `Ei, cadê o ${t}?`];
+}
+function escritorioDonoDoQuarto() {
+  const q = escritorio.quarto;
+  if (!q || !/^sala-/.test(q)) return null;
+  const raiz = typeof escritorioRaizQuarto === "function" ? escritorioRaizQuarto(q) : q.replace(/-andar-1$/, "");
+  const sala = (escritorio.base?.salas || []).find((s) => s.id === raiz);
+  return sala?.pessoa_id ? String(sala.pessoa_id) : null;
+}
+async function carregarCobrancasEscritorio() {
+  const mapa = escritorio.mapa, quarto = escritorio.quarto, dono = escritorioDonoDoQuarto();
+  if (!mapa?.definirVisitantes) return;
+  if (!dono) { mapa.definirVisitantes([]); escritorio.cobrancasAntes = null; return; }
+  let lista;
+  try { lista = (await escritorioApi("cobrancas", null, { pessoa: dono })).cobrancas || []; } catch { return; }
+  if (mapa !== escritorio.mapa || quarto !== escritorio.quarto) return;
+  const pessoa = (escritorio.base?.equipe || []).find((p) => String(p.id) === dono);
+  const nomeDono = String(pessoa?.nome || "").split(" ")[0] || "pessoal";
+  // Resolvidas desde a última olhada neste quarto: o cliente agradece e vai embora.
+  const agora = new Set(lista.map((c) => c.ref + "|" + c.cliente_id));
+  const antes = escritorio.cobrancasAntes?.quarto === quarto ? escritorio.cobrancasAntes.itens : [];
+  const resolvidas = antes.filter((c) => !agora.has(c.ref + "|" + c.cliente_id) && c.tipo !== "lembrar_cliente");
+  escritorio.cobrancasAntes = { quarto, itens: lista };
+  const visitante = (c, i, falas, tom) => ({ nome: c.cliente, figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(c, i) : undefined,
+    falas, tom, dica: `${c.cliente} · ${c.titulo}${c.status ? ` · ${c.status}` : ""}`, aoClicar: () => abrirMissaoEscritorio(c.ref, c.quadro) });
+  // Quem agradece fala primeiro (o rodízio começa por ele).
+  mapa.definirVisitantes([...resolvidas.map((c, i) => visitante(c, lista.length + i, [`Valeu, ${nomeDono}! Ficou ótimo.`], "agradece")),
+    ...lista.map((c, i) => visitante(c, i, falasDaCobranca(c, nomeDono), COBRANCA_TOM[c.tipo] || "cobra"))]);
+  if (resolvidas.length) setTimeout(() => { if (mapa === escritorio.mapa && quarto === escritorio.quarto) mapa.definirVisitantes(lista.map((c, i) => visitante(c, i, falasDaCobranca(c, nomeDono), COBRANCA_TOM[c.tipo] || "cobra"))); }, 8000);
+}
+let RELOGIO_COBRANCAS = 0;
+function vigiarCobrancasEscritorio() {
+  carregarCobrancasEscritorio();
+  clearInterval(RELOGIO_COBRANCAS);
+  RELOGIO_COBRANCAS = setInterval(() => { if (!document.hidden && escritorio.mapa) carregarCobrancasEscritorio(); }, 2 * 60 * 1000);
+}
