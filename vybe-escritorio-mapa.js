@@ -1335,6 +1335,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       etiqueta.querySelector("b").textContent = v.nome;
       etiqueta.querySelector(".mapa-reclama").textContent = v.falas?.[0] || "";
       etiqueta.classList.toggle("grita", k === 0);
+      etiqueta.style.setProperty("--sobe", (k % 2) * 20 + "px");
       etiqueta.title = v.dica || "";
       const abrir = (e) => { e.stopPropagation(); v.aoClicar?.(); };
       for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }

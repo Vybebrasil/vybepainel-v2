@@ -690,21 +690,33 @@ function escritorioEntrarNoQuarto(id) {
 // Fantasia de cada agente pelo segmento do cliente (Paulo, 19/10/2026:
 // "Copirecê um fazendeiro, Brussolo e Gonzalez cozinheiros"). Peças escolhidas
 // vendo a arte do Habbo; cada peça troca a do mesmo tipo no uniforme laranja.
-// Cores: 1323 laranja Vybe, 1408 branco, 110 preto, 64 cinza, 66 amarelo.
+// Cores: 1323 laranja Vybe, 1408 branco, 110 preto, 64 cinza, 66 dourado, 71 rosa,
+// 76 roxo, 82 azul, 84 verde. Óculos em preto viram óculos escuros: use 1408.
 const ESCRITORIO_FANTASIAS = [
+  // Por cliente, pelo que cada um é (títulos das demandas, 19/10/2026).
+  [/\bvoa\b/, "ch-3005-71.lg-3116-76.ha-3305-1408", "F"],
+  [/lions/, "ch-215-1323.ha-5379-66"],
+  [/gonzalez/, "ch-215-1408.cc-3289-110.ha-4197-1408"],
+  [/alpha ?1/, "ch-215-82.ea-3108-1408"],
+  [/mangaba/, "ch-215-1408.cc-3389-76.ea-3108-1408"],
+  [/serra grande/, "ch-215-84.ha-3300-82"],
+  [/antonov/, "ch-215-84.ha-3130-1408"],
+  [/experimente/, "ch-3005-72.lg-3116-82.cc-3289-1408.ea-3108-1408", "F"],
+  [/hellen/, "ch-3005-1408.cc-3008-110.ea-3108-1408", "F"],
+  // Pelo segmento do cadastro (clientes novos).
   [/cooperativ|coperativ|agro|fazend|rural/, "lg-280-64.ha-5221-1408"],
   [/restaurant|gastronom|ristorante|lanch|pizz|cozinh/, "ch-215-1408.cc-3398-1408.ha-4197-1408"],
   [/pet|veterin/, "cc-3827-1408.ha-3544-64"],
-  [/laborat|dialab/, "cc-3827-1408.ea-3108-110"],
+  [/laborat|dialab/, "cc-3827-1408.ea-3108-1408"],
   [/cl[ií]nica|sa[uú]de|m[eé]dic|odonto/, "ch-215-1408.cc-3827-1408.ha-4301-1408"],
   [/academia|fitness|esporte|crossfit/, "ha-3130-1408"],
   [/provedor|internet|telecom|fibra/, "ha-4325-66"],
-  [/sistema|software|\bai\b|tecnolog/, "ch-215-1408.ha-3440-1408"],
-  [/advoca|jur[ií]dic|direito/, "ch-3005-1408.cc-3008-110.ea-3108-110", "F"],
-  [/bebida|distribuidor/, "cc-3289-110.ha-3300-110"],
-  [/papelaria|varejo|loja/, "cc-3289-1408.ea-3108-110"],
-  [/moda|roupa|boutique/, "ch-215-110.ha-3209-110.ea-3083-110"],
-  [/empresa|consultor|solu[cç]/, "ch-215-1408.cc-3002-110"],
+  [/sistema|software|\bai\b|tecnolog/, "ch-215-1408.cc-3389-76.ea-3108-1408"],
+  [/advoca|jur[ií]dic|direito/, "ch-3005-1408.cc-3008-110.ea-3108-1408", "F"],
+  [/bebida|distribuidor/, "ch-215-84.ha-3300-82"],
+  [/papelaria|varejo|loja/, "cc-3289-1408.ea-3108-1408"],
+  [/moda|roupa|boutique/, "ch-3005-71.lg-3116-76.ha-3305-1408", "F"],
+  [/empresa|consultor|solu[cç]/, "ch-215-82.ea-3108-1408"],
 ];
 const ESCRITORIO_AGENTE_BASE = { M: "hr-828-61.hd-180-1.ch-215-1323.lg-280-110.sh-305-110", F: "hr-890-45.hd-605-2.ch-3005-1323.lg-3116-110.sh-735-110" };
 function escritorioFiguraDoAgente(a, i) {
@@ -1094,6 +1106,7 @@ function renderEscritorio() {
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <div class="ofc-coluna" id="office-coluna">
+ <section id="office-cobrancas" class="ofc-missoes ofc-cobrancas" aria-label="Clientes cobrando neste quarto" hidden></section>
  <section id="office-missoes" class="ofc-missoes" aria-label="Missões" hidden></section>
  <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b id="office-call-titulo">${safeText(escritorioTituloChamada())}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
  <div id="office-musica-lugar"></div>
@@ -1108,7 +1121,7 @@ function renderEscritorio() {
   document.body.classList.add("no-escritorio");
   atualizarPessoasEscritorio();
   atualizarControlesEscritorio();
-  if (typeof pintarMissoesEscritorio === "function") { pintarMissoesEscritorio(); carregarMissoesEscritorio(); }
+  if (typeof pintarMissoesEscritorio === "function") { pintarMissoesEscritorio(); carregarMissoesEscritorio(); pintarCobrancasEscritorio(escritorio.cobrancasGrupos || [], null); }
   carregarChatEscritorio();
   if (escritorio.chamada) renderMidiaEscritorio();
   montarMapaEscritorio();

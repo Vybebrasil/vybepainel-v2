@@ -138,6 +138,8 @@ export async function demoApi(req,res,url,body) {
       if(url.searchParams.get('acao')==='cobrancas')return reply(200,{ok:true,cobrancas:[
         {ref:'vybe:1',quadro:'producao',titulo:'Card de promoção',status:'Em andamento',cliente_id:'1',cliente:'Cliente demonstração',segmento:'Cooperativa',tipo:'atrasada',data:'2026-10-14',dias:5},
         {ref:'vybe:1',quadro:'producao',titulo:'Cardápio novo',status:'Para aprovação',cliente_id:'2',cliente:'Cliente B (fictício)',segmento:'Restaurante',tipo:'atrasada',data:'2026-10-18',dias:1},
+        {ref:'vybe:1',quadro:'producao',titulo:'Story da promoção',status:'Pode Fazer',cliente_id:'1',cliente:'Cliente demonstração',segmento:'Cooperativa',tipo:'vence',data:'2026-10-21',dias:-1},
+        {ref:'vybe:1',quadro:'producao',titulo:'Look da semana',status:'Em andamento',cliente_id:'5',cliente:'VOA',segmento:'Moda',tipo:'atrasada',data:'2026-10-17',dias:2},
         {ref:'vybe:1',quadro:'producao',titulo:'Reels do dia',status:'Pode Fazer',cliente_id:'3',cliente:'Cliente C (fictício)',segmento:'Clinica',tipo:'hoje',data:'2026-10-19',dias:0},
         {ref:'vybe:2',quadro:'demandas',titulo:'Fotos da fachada',status:'Ag. Info Cliente',cliente_id:'4',cliente:'Cliente D (fictício)',segmento:'PetShop',tipo:'lembrar_cliente',data:'2026-10-19',dias:0}]});
       if(url.searchParams.get('acao')==='trocas')return reply(200,{ok:true,trocas:{disponivel:true,recebidas:[{id:'7',de_pessoa:'2',para_pessoa:'1',oferece:[['bling_sofa_mu',1]],pede:[['shelves_norja',1]],estado:'aberta',criado_em:new Date().toISOString()}],enviadas:[]}});
