@@ -792,8 +792,13 @@ function atualizarPessoasEscritorio() {
       };
     }));
   }
+  // As listas laterais só mudam quando alguém troca de lugar, status ou
+  // entra/sai; a presença chega a cada passo, então refazê-las sempre
+  // (com as imagens dos bonecos) travava o painel com a equipe andando.
+  const assinatura = JSON.stringify([escritorio.conectado, escritorioLugarDe(escritorio.perfil).id, escritorio.recadosResumo || {}, (escritorio.base?.equipe || []).length, escritorio.musica?.tocando ? [escritorio.musica.indice, escritorio.musica.fila?.length] : 0, pessoas.map((p) => [p.id, p.zona, p.status, p.nome])]);
+  const mudou = (el) => el && el.dataset.assinatura !== assinatura && (el.dataset.assinatura = assinatura, true);
   const lista = document.getElementById("office-roster");
-  if (lista) {
+  if (mudou(lista)) {
     const online = escritorio.base.equipe.filter((p) => pessoas.some((o) => o.id === p.id));
     const fora = escritorio.base.equipe.filter((p) => !pessoas.some((o) => o.id === p.id));
     const linha = (p) => {
@@ -803,21 +808,27 @@ function atualizarPessoasEscritorio() {
     lista.innerHTML = `<h4>Online agora · ${online.length}</h4><ul>${online.map(linha).join("") || '<li class="ofc-vazio">Ninguém conectado ainda.</li>'}</ul><h4>Fora do escritório · ${fora.length}</h4><ul>${fora.map(linha).join("")}</ul>`;
   }
   const salas = document.getElementById("office-rooms");
-  if (salas) {
+  if (mudou(salas)) {
     const meu = escritorioLugarDe(escritorio.perfil).id;
     const contar = (id) => pessoas.filter((p) => escritorioLugarDe(p).id === id).length;
+    // Cada linha diz quem está na sala (não só quantos); assim o cartão
+    // flutuante "Quem está onde" pode ficar recolhido sem esconder nada.
     const linha = (a) => {
-      const aqui = contar(a.id);
-      return `<button type="button" class="ofc-sala" aria-pressed="${a.id === meu}" style="--sala:${ESCRITORIO_COR_SALA[a.sala]}" onclick="escritorioIrParaAmbiente('${a.id}')"><i></i><span>${safeText(a.nome)}</span><small>${aqui ? aqui + (aqui > 1 ? " pessoas" : " pessoa") : a.id === meu ? "você" : ""}</small></button>`;
+      const aqui = pessoas.filter((p) => escritorioLugarDe(p).id === a.id);
+      const nomes = aqui.map((p) => (String(p.id) === String(eu) ? "você" : escritorioNomeCurto(p.nome))).join(", ");
+      return `<button type="button" class="ofc-sala${aqui.length ? " ocupada" : ""}" aria-pressed="${a.id === meu}" style="--sala:${ESCRITORIO_COR_SALA[a.sala] || a.cor || "#8a93a3"}" onclick="escritorioIrParaAmbiente('${a.id}')"><i></i><span>${safeText(a.nome)}</span>${aqui.length ? `<small>${aqui.length}</small><em>${safeText(nomes)}</em>` : ""}</button>`;
     };
     const A = ESCRITORIO_PLANTA.ambientes;
-    salas.innerHTML = `<h5>Salas individuais</h5>${A.filter((a) => a.pessoal).map(linha).join("")}<h5>Espaços</h5>${[...A.filter((a) => !a.pessoal), ESCRITORIO_PRACA].map(linha).join("")}`;
+    // Espaços comuns primeiro (onde a equipe se encontra), Praça no topo por
+    // ser a entrada; quartos individuais em grupo recolhível.
+    const pessoais = A.filter((a) => a.pessoal), ocupados = pessoais.filter((a) => contar(a.id)).length;
+    salas.innerHTML = `<h5>Espaços</h5>${[ESCRITORIO_PRACA, ...A.filter((a) => !a.pessoal)].map(linha).join("")}<details class="ofc-salas-grupo" ${escritorio.quartosFechados ? "" : "open"} ontoggle="escritorio.quartosFechados=!this.open"><summary><h5>Salas individuais</h5><small>${ocupados ? `${ocupados} com gente` : "vazias"}</small></summary>${pessoais.map(linha).join("")}</details>`;
   }
   escritorioAtualizarPortas();
   const onde = document.getElementById("office-onde");
-  if (onde) onde.innerHTML = escritorioOndeHtml();
+  if (mudou(onde)) onde.innerHTML = escritorioOndeHtml();
   const lote = document.getElementById("office-lista-salas");
-  if (lote) lote.innerHTML = escritorioListaSalasHtml();
+  if (mudou(lote)) lote.innerHTML = escritorioListaSalasHtml();
   const lugar = document.getElementById("office-lugar");
   if (lugar) lugar.textContent = escritorioLugarDe(escritorio.perfil).nome;
   const contador = document.getElementById("office-online");
@@ -935,7 +946,7 @@ function renderEscritorio() {
 </aside>
 <main class="ofc-principal">
  <div class="ofc-topo"><div class="ofc-topo-esq">${`<button type="button" class="ofc-voltar-mapa" onclick="escritorioSairDoQuarto()" title="Sair pela porta">${escritorioIcone("voltar")}<span>${safeText(escritorioDestinoDaPorta(escritorio.quarto).nome)}</span></button>`}${escritorioAndaresHtml()}<div class="ofc-sala-atual" style="--sala:${escritorioAmbienteDoQuarto()?.cor || ESCRITORIO_COR_SALA[sala]}"><i></i><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></div></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
- <details class="ofc-onde" ${escritorio.ondeFechado ? "" : "open"} ontoggle="escritorio.ondeFechado=!this.open" ${modo === "mapa" ? "" : "hidden"}><summary>${escritorioIcone("pessoas")}<span>Quem está onde</span></summary><div id="office-onde"></div></details>
+ <details class="ofc-onde" ${escritorio.ondeFechado === false ? "open" : ""} ontoggle="escritorio.ondeFechado=!this.open" ${modo === "mapa" ? "" : "hidden"}><summary>${escritorioIcone("pessoas")}<span>Quem está onde</span></summary><div id="office-onde"></div></details>
  <div id="office-map-lugar" ${modo === "mapa" ? "" : "hidden"}></div>
  <div id="office-mesa-card" class="ofc-mesa-card" role="dialog" aria-label="Sua mesa" hidden onmouseleave="this.hidden=true"></div>
  <div id="office-movel-card" class="ofc-mesa-card ofc-ficha-movel" role="dialog" aria-label="Selecionado" hidden></div>
@@ -944,7 +955,7 @@ function renderEscritorio() {
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <div class="ofc-coluna" id="office-coluna">
- <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b>Conversa · ${safeText(escritorio.salaChamada || "")}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
+ <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b id="office-call-titulo">${safeText(escritorioTituloChamada())}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
  <div id="office-musica-lugar"></div>
  </div>
  <div class="ofc-editor" id="office-editor" role="toolbar" aria-label="Editor do mapa" hidden></div>
@@ -1101,6 +1112,7 @@ function escritorioMudouLugar(x, y, forcar = false) {
     else escritorio.timerSaidaZona = setTimeout(escritorioConversaAutomatica, 1200);
   }
   atualizarCabecalhoEscritorio();
+  atualizarTituloChamadaEscritorio();
   atualizarControlesEscritorio();
   atualizarChatEscritorio(salaAntes);
 }
@@ -2954,7 +2966,6 @@ async function escritorioSincronizarVoz() {
     if (ativa) { escritorio.erroMic = await escritorioDiagnosticarMic(); escritorio.callAberta = true; }
   }
   if (!ativa && m.self.screenShareEnabled) await m.self.disableScreenShare().catch(() => {});
-  escritorio.salaChamada = ativa ? escritorioLugarDe(escritorio.perfil).nome : "sem voz aqui";
   escritorioTocarVozes();
   renderMidiaEscritorio();
   atualizarControlesEscritorio();
@@ -3015,7 +3026,6 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     escritorio.tentativasVoz = 0;
     escritorio.etapaVoz = "";
     escritorio.falhaConversa = "";
-    escritorio.salaChamada = escritorioLugarDe(escritorio.perfil).nome;
     for (const evento of [
       "participantJoined",
       "participantLeft",
@@ -3245,7 +3255,18 @@ async function alternarMidiaEscritorio(tipo) {
     escritorioAviso("Não foi possível ativar o dispositivo: " + e.message);
   }
 }
+// O título da conversa sai sempre do lugar atual (antes ficava com o nome da
+// sala anterior até o painel inteiro ser redesenhado).
+function escritorioTituloChamada() {
+  const lugar = escritorioLugarDe(escritorio.perfil).nome;
+  return escritorioCanal() ? `Conversa · ${lugar}` : `${lugar} · sem voz aqui`;
+}
+function atualizarTituloChamadaEscritorio() {
+  const t = document.getElementById("office-call-titulo");
+  if (t) t.textContent = escritorioTituloChamada();
+}
 function renderMidiaEscritorio() {
+  atualizarTituloChamadaEscritorio();
   const meeting = escritorio.chamada,
     el = document.getElementById("office-call-media");
   if (!meeting || !el) return;

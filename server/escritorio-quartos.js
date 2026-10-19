@@ -36,10 +36,19 @@ export function plantaQuarto(id, livres = "") {
  for(const d of [0,1]) {fixos.add((p.portas.baixo+d)+','+(h-1));fixos.add((w-1)+','+(p.portas.direita+d));}
  return {...p,celdas:p.celdas.map((linha,y)=>linha.map((n,x)=>{const c=livres[y*LADO_QUARTO+x];return c==='0' || fixos.has(x+','+y) ? n : nivelDoCodigo(c);}))};
 }
-// Os modelos iniciais são desenhados para 8 × 8, no canto de baixo à direita;
-// em cada planta vão para o mesmo canto dela ("deslocamento").
+// Cada planta guarda onde cada modelo inicial fica ("ancoras", calculadas por
+// scripts/escritorio-quartos-modelos.mjs: mesa encostada no fundo, caminho
+// livre da porta às cadeiras e à escada). Plantas antigas usam o
+// "deslocamento" de antes. Modelo sem âncora não cabe naquela planta.
+export function ancoraDoModelo(p,modeloId) {
+ if(!p) return null;
+ if(p.ancoras) return p.ancoras[modeloId] || null;
+ return p.deslocamento || [0,0];
+}
 export function itensDoModelo(planta,modelo) {
- const p=plantaQuarto(planta),[dx,dy]=p?.deslocamento || [0,0];
+ const a=ancoraDoModelo(plantaQuarto(planta),modelo?.id);
+ if(!a) return null;
+ const [dx,dy]=a;
  return (modelo?.itens || []).map(([c,x,y,...r])=>[c,x+dx,y+dy,...r]);
 }
 export function validarPisoQuarto(planta,itens,dimensoes=new Map(),livres='') {
@@ -98,6 +107,7 @@ export async function configurarQuarto(sql,pessoa,perfil,{planta,modelo,preserva
   decoracao.sala_celdas=limparPintura!==true && planta===anterior?.sala_planta ? anterior?.sala_celdas || '' : '';
   const salvo=andar ? {...atual.preferencias,sala_andares:[{...Object.fromEntries(Object.entries(decoracao).filter(([k])=>k.startsWith('sala_') || k==='quarto_configurado')),andar}]} : {...atual.preferencias,...decoracao,sala_andares:atual.preferencias.sala_andares || []};
   const inicial=itensDoModelo(planta,m);
+  if(!inicial) throw Object.assign(new Error('Esse modelo não cabe nessa planta. Escolha outro modelo.'),{status:400});
   validarPisoQuarto(planta,inicial,undefined,decoracao.sala_celdas);
   await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(salvo)}::jsonb,atualizado_em=now() WHERE pessoa_id=${pessoa.id}`;
   if (existente?.itens?.length) {

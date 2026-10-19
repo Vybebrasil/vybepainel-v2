@@ -1966,16 +1966,35 @@ function escritorioParedesDoQuarto(a) {
 // geometria do piso, desenhada pelo mapa com a altura real de seus extremos.
 // [classe, x, y, dir, estado, altura]. Guarda-corpos usam MAPA_PASSAVEIS.
 const ESCRITORIO_PECA_GUARDA = "hotel_c18_rail";
+// Estado 1 da peça é o trecho reto; o 0 tem as pontas viradas para trás, que
+// apareciam como um "cotoco" no meio de cada trecho de guarda-corpo.
+const ESCRITORIO_GUARDA_RETA = 1;
 function escritorioPecasDoQuarto(a) {
   const { w, h } = escritorioDimQuarto(a), pecas = [];
   // Guarda-corpo na borda da frente (+y) e da direita (+x) onde o patamar
   // cai dois blocos ou mais para o piso de baixo (queda à vista).
   const n = (x, y) => escritorioNivelQuarto(a, x, y);
   const cai = (xa, ya, xb, yb) => n(xb, yb) >= 0 && n(xa, ya) - n(xb, yb) >= 2;
-  for (let y = 0; y < h; y++) for (let x = 0; x + 1 < w; x++)
-    if (n(x, y) === n(x + 1, y) && cai(x, y, x, y + 1) && cai(x + 1, y, x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x, y + 0.5, 4, 0, 0]); x++; }
-  for (let x = 0; x < w; x++) for (let y = 0; y + 1 < h; y++)
-    if (n(x, y) === n(x, y + 1) && cai(x, y, x + 1, y) && cai(x, y + 1, x + 1, y + 1)) { pecas.push([ESCRITORIO_PECA_GUARDA, x + 0.5, y, 2, 0, 0]); y++; }
+  // A peça tem 2 ladrilhos e pontas com pilar: sobrepor duas criava um pilar
+  // duplo no meio. Num trecho ímpar, o ladrilho que sobra fica aberto do lado
+  // da escada (a passagem natural) ou, sem escada ao lado, junto da parede.
+  const escada = (x, y) => Boolean(escritorioEscadaQuarto(a, x, y));
+  const cobrir = (inicio, fim, antes, depois, por) => {
+    if ((fim - inicio) % 2) { if (escada(...depois) || !escada(...antes) && n(...depois) >= 0) fim--; else inicio++; }
+    for (let i = inicio; i + 2 <= fim; i += 2) por(i);
+  };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!cai(x, y, x, y + 1)) continue;
+    let fim = x; while (fim < w && n(fim, y) === n(x, y) && cai(fim, y, fim, y + 1)) fim++;
+    cobrir(x, fim, [x - 1, y], [fim, y], (i) => pecas.push([ESCRITORIO_PECA_GUARDA, i, y + 0.5, 4, ESCRITORIO_GUARDA_RETA, 0]));
+    x = fim - 1;
+  }
+  for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) {
+    if (!cai(x, y, x + 1, y)) continue;
+    let fim = y; while (fim < h && n(x, fim) === n(x, y) && cai(x, fim, x + 1, fim)) fim++;
+    cobrir(y, fim, [x, y - 1], [x, fim], (i) => pecas.push([ESCRITORIO_PECA_GUARDA, x + 0.5, i, 2, ESCRITORIO_GUARDA_RETA, 0]));
+    y = fim - 1;
+  }
   return pecas;
 }
 // Planta do quarto de uma sala: só o quarto, a soleira da porta (fora dele;

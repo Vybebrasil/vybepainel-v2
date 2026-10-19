@@ -684,3 +684,36 @@ Estado exato:
   guardado removido, 1 compra ainda não devolvida (120 VybeCoins) devolvida.
   XP total igual antes e depois; salas comuns sem camada salva, intactas.
   Marcador `quartos-criacao-2026-10-19` gravado. Não repetir.
+
+### Melhorias gerais após o vídeo do Paulo — 19/10/2026 (em andamento)
+
+Branch `codex/escritorio-melhorias-gerais`. Pedido: cenários travando e
+"mal feitos", melhorar a lista de salas, recriar os quartos iniciais e a
+decoração inicial "bem feito".
+
+- **Painel de conversa:** o título vem sempre do lugar atual
+  (`escritorioTituloChamada`); antes ficava com o nome da sala anterior.
+- **Lista de salas (lateral):** Espaços primeiro (Praça no topo), cada linha
+  mostra quem está lá; quartos individuais num grupo recolhível. O cartão
+  flutuante "Quem está onde" começa recolhido (não cobre a cena). Botões de
+  quem está online quebram linha em vez de cortar.
+- **Lentidão:** listas laterais só são refeitas quando muda lugar, status ou
+  quem está online (a presença chega a cada passo); etiquetas dos bonecos
+  idem. Móveis animados guardam cada quadro desenhado (`MAPA_CACHE_CAMADAS`,
+  e `cacheDesenho` nos de parede) e o canvas só muda de tamanho quando precisa
+  (eram ~170 redimensionamentos por segundo na Convivência).
+- **Escada da planta:** degraus dentro do próprio ladrilho, com a madeira do
+  piso (`mapaFaceDePiso`), lateral escondida ao lado do mezanino. Laterais do
+  desnível em quarto pessoal usam o piso, não a cor da parede.
+- **Guarda-corpo:** estado 1 da `hotel_c18_rail` (reto, sem pontas viradas),
+  sem peças sobrepostas; trecho ímpar fica aberto do lado da escada.
+- **Plantas:** Terraços e Loft com mirante perderam o vão escuro no piso.
+- **Decoração inicial:** modelos redesenhados (mesa encostada, luminária e
+  planta de um lado, estante do outro). `scripts/escritorio-quartos-modelos.mjs`
+  calcula `ancoras` por planta (mesa no fundo, mesmo patamar, porta chega às
+  cadeiras e a todo o quarto, pé da escada livre) e grava em `quartos.json`;
+  servidor (`ancoraDoModelo`) e criador usam a mesma âncora. Modelo que não
+  cabe numa planta não é oferecido nela (hoje só `niveis`/`niveis-m` ficam
+  só com Em branco e Essencial). Teste: `tests/escritorio-quartos-modelos.test.mjs`.
+- Falta: revisão cena por cena das salas comuns (vídeo do Paulo: Reunião
+  apertada, Auditório, escada de blocos no Foco, Academia vazia) e publicar.

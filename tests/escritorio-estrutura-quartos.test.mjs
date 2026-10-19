@@ -21,7 +21,10 @@ test('escada da planta encontra os extremos, chega no patamar e não duplica uma
    assert.equal(e.meio,(e.alto+e.baixo)/2);
    const pisos=r.geometrias[i].flatMap(d=>d.piso);
    assert.equal(Math.max(...pisos.map(p=>p.z)),e.alto,modelo.id+': último degrau toca o alto');
-   assert.ok(pisos.some(p=>Math.abs((p.x-e.x-.5)*e.dx+(p.y-e.y-.5)*e.dy-1)<1e-6));
+   // Os degraus terminam na borda do próprio ladrilho, encostados no
+   // patamar (antes iam até o meio do ladrilho alto e invadiam o mezanino).
+   const ao=pisos.map(p=>(p.x-e.x-.5)*e.dx+(p.y-e.y-.5)*e.dy);
+   assert.ok(ao.some(t=>Math.abs(t-.5)<1e-6)&&ao.every(t=>t>=-.5-1e-6&&t<=.5+1e-6),modelo.id+': degraus dentro do ladrilho da escada');
   });
  }
 });
@@ -36,7 +39,8 @@ test('subida real continua alcançável em todos os formatos com patamar',()=>{
 });
 test('recorte em U fica aberto à vista e paredes de fundo mantêm topo alinhado',()=>{
  const c=contexto();
- for(const id of ['u-m','u-g','u-gg','terracos-g','terracos-gg','mirante-g','mirante-gg']) {
+ // Terraços e Mirante perderam o vão no piso (parecia buraco); só o U tem recorte.
+  for(const id of ['u-m','u-g','u-gg']) {
   c.id=id;
   const r=vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:id};const paredes=escritorioParedesDoQuarto(a);return {recortes:paredes.filter(p=>p.recorte).map(p=>({alt:p.alt,baixa:p.baixa})),topos:paredes.filter(p=>p.sala&&!p.recorte).map(p=>escritorioAlturaQuarto(a,p[0],p[1])+p.alt/32)};})()`,c);
   assert.ok(r.recortes.length,id+': parede no meio da vista vira seção baixa');

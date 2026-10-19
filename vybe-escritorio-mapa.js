@@ -257,7 +257,22 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
 }
 // Camadas de um móvel para desenhar separadas, cada uma com a sua
 // profundidade. Móvel de um grupo só reaproveita o desenho inteiro.
+// Os quadros de uma animação se repetem em ciclo: guardar cada desenho evita
+// criar e compor canvases novos 24 vezes por segundo para cada móvel animado
+// (era o que mais pesava nas salas cheias). Os canvases guardados só são lidos.
+const MAPA_CACHE_CAMADAS = new WeakMap();
 function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
+  if (!m?.dados) return mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
+  let cache = MAPA_CACHE_CAMADAS.get(m.dados);
+  if (!cache) MAPA_CACHE_CAMADAS.set(m.dados, (cache = new Map()));
+  const chave = `${dir}|${estado}|${semente}|${mapaChaveQuadro(m.dados, estado, quadro, semente)}`;
+  if (cache.has(chave)) return cache.get(chave);
+  const d = mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
+  if (cache.size >= 96) cache.delete(cache.keys().next().value);
+  cache.set(chave, d);
+  return d;
+}
+function mapaCamadasMovelNovo(m, dir, estado, quadro, semente = 0) {
   const d = mapaDesenharMovel(m, dir, estado, quadro, semente);
   if (!d) return null;
   if (d.grupos.length <= 1) return { ...d, camadas: [{ canvas: d.canvas, prof: d.grupos[0]?.prof || 0, luz: d.grupos[0]?.luz }] };
@@ -347,28 +362,63 @@ function mapaDegrausDaPlanta(e) {
   const n=Math.max(1,Math.ceil((e.alto-e.baixo)*4)), r=[];
   const ponto=(t,s,z)=>({x:e.x+.5+e.dx*t-e.dy*s,y:e.y+.5+e.dy*t+e.dx*s,z});
   for(let i=0;i<n;i++) {
-    const de=-1+2*i/n, ate=-1+2*(i+1)/n, z=e.baixo+(e.alto-e.baixo)*(i+1)/n;
+    // Os degraus cabem no próprio ladrilho da escada (como no Nitro, 4 por
+    // nível): antes iam do meio do piso de baixo ao meio do patamar e a
+    // escada parecia um bloco gigante saindo pela frente e pelo mezanino.
+    const de=-.5+i/n, ate=-.5+(i+1)/n, z=e.baixo+(e.alto-e.baixo)*(i+1)/n;
     const piso=[ponto(de,-.5,z),ponto(ate,-.5,z),ponto(ate,.5,z),ponto(de,.5,z)];
     r.push({piso,base:e.baixo});
   }
   return r.sort((a,b)=>a.piso.reduce((s,p)=>s+p.x+p.y,0)-b.piso.reduce((s,p)=>s+p.x+p.y,0));
 }
-function mapaDesenharEscadas(g,planta,origem) {
-  const pintar=(pontos,cor)=>{
+// Tábuas numa face vertical (lateral do patamar ou espelho do degrau), como
+// a lateral do piso no Habbo: o mesmo material do chão, mais escuro, com as
+// juntas das tábuas na horizontal. p→q é a aresta de cima; h, a altura em px.
+function mapaFaceDePiso(g,p,q,h,cor,tom) {
+  g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+h);g.lineTo(p.x,p.y+h);g.closePath();
+  g.fillStyle=mapaTom(cor,tom);g.fill();
+  g.save();g.clip();
+  // Uma tábua a cada 8 px (4 por nível, o mesmo passo dos degraus).
+  for(let y=8;y<h;y+=8) { g.strokeStyle=mapaTom(cor,tom*0.72);g.lineWidth=1;g.beginPath();g.moveTo(p.x,p.y+y+.5);g.lineTo(q.x,q.y+y+.5);g.stroke(); }
+  for(let y=0;y<h;y+=8) { g.strokeStyle=mapaTom(cor,Math.min(1.15,tom*1.18));g.lineWidth=1;g.beginPath();g.moveTo(p.x,p.y+y+1.5);g.lineTo(q.x,q.y+y+1.5);g.stroke(); }
+  g.restore();
+}
+// Degraus da escada da planta com o piso do quarto: piso do degrau na cor do
+// chão (com o veio), espelho e lateral em tábuas mais escuras, quina clara.
+function mapaDesenharEscadas(g,planta,origem,corPiso=()=>"#b08458") {
+  const caminho=(pontos)=>{
     const ps=pontos.map(p=>mapaTela(p.x,p.y,{...origem,alturaAtual:p.z}));
     g.beginPath();g.moveTo(Math.round(ps[0].x),Math.round(ps[0].y));
     for(const p of ps.slice(1)) g.lineTo(Math.round(p.x),Math.round(p.y));
-    g.closePath();g.fillStyle=cor;g.fill();g.strokeStyle='#656b73';g.lineWidth=1;g.stroke();
+    g.closePath();
+    return ps;
   };
-  for(const e of planta.escadas || []) for(const d of mapaDegrausDaPlanta(e)) {
-    for(let i=0;i<4;i++) {
-      const a=d.piso[i],b=d.piso[(i+1)%4];
-      const cx=d.piso.reduce((s,p)=>s+p.x,0)/4,cy=d.piso.reduce((s,p)=>s+p.y,0)/4;
-      // Só as faces voltadas para a câmera; o lado de trás não invade o piso.
-      if((a.x===b.x && a.x>cx)||(a.y===b.y && a.y>cy))
-        pintar([a,b,{...b,z:d.base},{...a,z:d.base}],a.x===b.x?'#9299a2':'#b2b8c0');
+  for(const e of planta.escadas || []) {
+    const cor=corPiso(e.x,e.y);
+    for(const d of mapaDegrausDaPlanta(e)) {
+      for(let i=0;i<4;i++) {
+        const a=d.piso[i],b=d.piso[(i+1)%4];
+        const cx=d.piso.reduce((s,p)=>s+p.x,0)/4,cy=d.piso.reduce((s,p)=>s+p.y,0)/4;
+        // Só as faces voltadas para a câmera; o lado de trás não invade o piso.
+        // A lateral desce só até o piso vizinho: ao lado do mezanino (mais
+        // alto) ela fica escondida, como no Habbo, em vez de pintar por cima.
+        if((a.x===b.x && a.x>cx)||(a.y===b.y && a.y>cy)) {
+          const vx=a.x===b.x ? Math.floor(a.x) : Math.floor(cx), vy=a.x===b.x ? Math.floor(cy) : Math.floor(a.y);
+          // Face no meio do ladrilho (espelho de um degrau) vai até a base.
+          const borda=Number.isInteger(a.x===b.x ? a.x : a.y);
+          const viz=!borda ? -Infinity : planta.escadaEm?.(vx,vy) ? Infinity : planta.andavel?.(vx,vy) ? planta.nivelEm(vx,vy) : -Infinity;
+          const chao=Math.max(d.base,viz);
+          if(chao>=a.z) continue;
+          const pa=mapaTela(a.x,a.y,{...origem,alturaAtual:a.z}),pb=mapaTela(b.x,b.y,{...origem,alturaAtual:b.z});
+          mapaFaceDePiso(g,{x:Math.round(pa.x),y:Math.round(pa.y)},{x:Math.round(pb.x),y:Math.round(pb.y)},Math.round((a.z-chao)*MAPA_NIVEL_PX),cor,a.x===b.x?0.5:0.68);
+        }
+      }
+      const ps=caminho(d.piso);g.fillStyle=mapaTom(cor,1.08);g.fill();
+      g.strokeStyle="#00000022";g.lineWidth=1;g.stroke();
+      // Quina do degrau, mais clara (a luz bate na borda da frente).
+      const frente=ps.map((p,i)=>[p,ps[(i+1)%4]]).sort((u,v)=>(v[0].y+v[1].y)-(u[0].y+u[1].y))[0];
+      g.strokeStyle=mapaTom(cor,1.22);g.lineWidth=1.5;g.beginPath();g.moveTo(frente[0].x,frente[0].y);g.lineTo(frente[1].x,frente[1].y);g.stroke();
     }
-    pintar(d.piso,'#e0e4e9');
   }
 }
 function mapaDesenharFundo(canvas, planta, origem) {
@@ -435,8 +485,11 @@ function mapaDesenharFundo(canvas, planta, origem) {
         // sem ele, a cor da parede da sala, com a borda clara no alto e a
         // junta de cada ladrilho.
         // Cena comum pode escolher a cor da lateral (madeira do chalé, pedra…).
-        const h=(n-viz)*MAPA_NIVEL_PX, base=/^#[0-9a-f]{6}$/i.test(a?.corDegrau||"") ? a.corDegrau : /^#[0-9a-f]{6}$/i.test(a?.cor||"") ? a.cor : cor(a?.piso || "madeira",x,y);
-        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+h);g.lineTo(p.x,p.y+h);g.closePath();g.fillStyle=mapaTom(base,dx?0.5:0.68);g.fill();
+        // Quarto pessoal: a lateral é o próprio piso (antes, a cor da parede
+        // chapada, laranja no tijolo), com as tábuas desenhadas.
+        const h=(n-viz)*MAPA_NIVEL_PX, base=/^#[0-9a-f]{6}$/i.test(a?.corDegrau||"") ? a.corDegrau : !(pintado || a?.pessoal) && /^#[0-9a-f]{6}$/i.test(a?.cor||"") ? a.cor : cor(pintado || a?.piso || "madeira",x,y);
+        mapaFaceDePiso(g,p,q,h,base,dx?0.5:0.68);
+        g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.lineTo(q.x,q.y+h);g.lineTo(p.x,p.y+h);g.closePath();
         // Piso oficial do Habbo: como no Nitro (RoomPlaneParser.addFloor), a
         // lateral é um plano do próprio piso, com a sombra do lado (o da
         // direita mais escuro), e não uma cor à parte.
@@ -471,7 +524,7 @@ function mapaDesenharFundo(canvas, planta, origem) {
   // último que cobre o ladrilho vale.
   const trecho = (x, y) => { let r = null; for (const t of planta.texturas || []) if (x >= t.x0 && x < t.x1 && y >= t.y0 && y < t.y1) r = t; return r; };
   for (let soma=0;soma<qw+qh;soma++) for(let x=0;x<qw;x++) {const y=soma-x;if(y>=0&&y<qh&&planta.andavel(x,y)) ladrilho(x,y,a,trecho(x,y));}
-  mapaDesenharEscadas(g,planta,origem);
+  mapaDesenharEscadas(g,planta,origem,(x,y)=>cor(planta.pisoLadrilho?.(x,y) || a?.piso || "madeira",x,y));
   soleiras();
 }
 // Divisória entre ambientes: um bloco escuro baixo por ladrilho de aresta.
@@ -1226,7 +1279,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     let ref = null;
     for (const a of alvos) {
       const filtro = a.chave == null ? item.filtro : (p) => mapaGrupoCamada(p) === a.chave && (!item.filtro || item.filtro(p));
-      const d = mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro);
+      // Mesmo ciclo dos móveis de chão: cada quadro desenhado uma vez só.
+      const cache = (item.cacheDesenho ??= new Map()), chave = `${a.chave}|${item.dir}|${estado}|${mapaChaveQuadro(item.m.dados, estado, q, item.semente || 0)}`;
+      if (!cache.has(chave)) { if (cache.size >= 96) cache.delete(cache.keys().next().value); cache.set(chave, mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro)); }
+      const d = cache.get(chave);
       const g = a.no.getContext("2d");
       if (!d) { g.clearRect(0, 0, a.no.width, a.no.height); continue; }
       ref ??= d;
@@ -1269,8 +1325,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const pintarMovel = (m, d) => {
     seguirRegistro(m, d);
     const no = m.no;
-    no.width = d.canvas.width; no.height = d.canvas.height;
-    no.style.width = no.width + "px"; no.style.height = no.height + "px";
+    // Redimensionar um canvas descarta a imagem dele e a textura na placa de
+    // vídeo; na animação (24 quadros/s) o tamanho quase nunca muda, então só
+    // mexe quando muda (antes eram ~170 redimensionamentos por segundo).
+    if (no.width !== d.canvas.width || no.height !== d.canvas.height) {
+      no.width = d.canvas.width; no.height = d.canvas.height;
+      no.style.width = no.width + "px"; no.style.height = no.height + "px";
+    }
     const antigas = m.camadas || [];
     m.camadas = d.camadas.map((c, i) => {
       const cv = antigas[i]?.no || document.createElement("canvas");
@@ -1868,7 +1929,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       p.mao = q.mao || "";
       // Status escrito quando não está disponível; em foco ou ausente, o
       // boneco fica meio transparente (não é hora de chamar).
-      p.etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
+      // A presença chega a cada passo de qualquer pessoa: só refaz a
+      // etiqueta quando nome ou status mudaram (antes refazia sempre).
+      const rotulo = [q.corStatus, q.nome, q.statusTexto || ""].join("|");
+      if (p.rotulo !== rotulo) {
+        p.rotulo = rotulo;
+        p.etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
+        p.etiqueta.querySelector("b").textContent = q.nome;
+        if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
+      }
       // Selo de status sobre a cabeça, visível de longe (foco: fone; reunião: balão).
       let selo = p.no.querySelector(".mapa-selo");
       const icone = MAPA_SELOS[q.status];
@@ -1877,8 +1946,6 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         if (!selo) { selo = document.createElement("span"); selo.className = "mapa-selo"; selo.setAttribute("aria-hidden", "true"); p.no.append(selo); }
         if (selo.dataset.status !== q.status) { selo.dataset.status = q.status; selo.innerHTML = icone; }
       }
-      p.etiqueta.querySelector("b").textContent = q.nome;
-      if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
       p.no.classList.toggle("distante", q.status === "foco" || q.status === "ausente");
       // Ausente: o boneco "dorme" (olhos fechados), como o Habbo faz com quem
       // fica parado muito tempo.

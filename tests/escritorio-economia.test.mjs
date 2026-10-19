@@ -108,23 +108,32 @@ test('trocar decoração legada exige histórico e preserva os móveis no invent
  const [v]=await sql`SELECT itens FROM vybe_escritorio_mapa_versoes WHERE camada='sala-0'`;
  assert.equal(v.itens[0][0],'shelves_norja');assert.equal(r.economia.saldo,50);
 });
-test('todos os modelos iniciais cabem nas seis plantas e deixam passagem pelas duas portas',async()=>{
- const vm=await import('node:vm');const {QUARTOS}=await import('../server/escritorio-quartos.js');
+test('modelos iniciais nas seis plantas antigas: onde são oferecidos, deixam passagem pelas duas portas',async()=>{
+ const vm=await import('node:vm');const {QUARTOS,itensDoModelo}=await import('../server/escritorio-quartos.js');
  const c=vm.createContext({console,escritorio:{base:{quartos:QUARTOS}}});
  vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
  for(const planta of QUARTOS.plantas.filter(p=>p.legado)) for(const modelo of QUARTOS.modelos) {
-  const dimensoes=new Map(modelo.itens.map(([classe])=>[classe,JSON.parse(readFileSync('assets/escritorio/habbo/'+classe+'.json','utf8')).logic.model.dimensions]));
-  validarPisoQuarto(planta.id,modelo.itens,dimensoes);
-  c.itens=modelo.itens.map(([classe,x,y,dir,,altura=0])=>{const d=dimensoes.get(classe);return {classe,x,y,altura,dir,dim:dir===2||dir===6?{x:d.y,y:d.x}:d};});c.modelo=planta.id;
+  const itens=itensDoModelo(planta.id,modelo);
+  if(!itens) { assert.ok(!['vazio','trabalho'].includes(modelo.id),planta.id+' sem '+modelo.id); continue; }
+  const fichas=new Map(itens.map(([classe])=>[classe,JSON.parse(readFileSync('assets/escritorio/habbo/'+classe+'.json','utf8'))]));
+  const dimensoes=new Map([...fichas].map(([classe,j])=>[classe,j.logic.model.dimensions]));
+  const alto=(classe)=>Math.max(0,...Object.values(fichas.get(classe).spritesheet?.frames||{}).map(f=>f.frame?.h||0));
+  validarPisoQuarto(planta.id,itens,dimensoes);
+  // Tapete é rente ao piso (passa-se por cima), como no mapa.
+  c.itens=itens.map(([classe,x,y,dir,,altura=0])=>{const d=dimensoes.get(classe);return {classe,x,y,altura,dir,plano:!altura&&!(d.z>0.05)&&alto(classe)<=(d.x+d.y)*16+12,dim:dir===2||dir===6?{x:d.y,y:d.x}:d};});c.modelo=planta.id;
   for(const porta of ['baixo','direita']) {
    c.porta=porta;
-   assert.ok(vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:modelo,porta};const p=escritorioPlantaDoQuarto(a);return mapaCaminho(mapaMontarGrade(p,itens),p.entrada,{x:3,y:2});})()`,c),planta.id+'/'+modelo.id+'/'+porta);
+   // Da porta até cada cadeira do modelo (antes, até um ladrilho fixo que
+   // agora pode estar sob a mesa encostada no fundo).
+   const alvos=itens.filter(([classe])=>classe==='hc26_10').map(([,x,y])=>({x,y}));
+   for(const alvo of alvos.length ? alvos : [{x:3,y:6}]) {c.alvo=alvo;
+   assert.ok(vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:modelo,porta};const p=escritorioPlantaDoQuarto(a);return mapaCaminho(mapaMontarGrade(p,itens),p.entrada,alvo);})()`,c),planta.id+'/'+modelo.id+'/'+porta);}
   }
  }
 });
 
 // Plantas por formato e tamanho (scripts/quartos-plantas.mjs): o modelo vai
-// para o canto de baixo à direita de cada tamanho; com ele montado, as duas
+// para a âncora da planta (scripts/escritorio-quartos-modelos.mjs); com ele montado, as duas
 // portas continuam no piso e todo ladrilho livre do quarto (inclusive o
 // mezanino, pela escada) é alcançável a pé a partir da entrada.
 test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto inteiro é alcançável',async()=>{
@@ -136,6 +145,8 @@ test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto
  vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
  for(const planta of novas) for(const modelo of QUARTOS.modelos) {
   const itens=itensDoModelo(planta.id,modelo);
+  // Toda planta oferece ao menos o em branco e o Essencial; os outros só onde cabem.
+  if(!itens) { assert.ok(!['vazio','trabalho'].includes(modelo.id),planta.id+' sem '+modelo.id); continue; }
   const fichas=new Map(itens.map(([classe])=>[classe,JSON.parse(readFileSync('assets/escritorio/habbo/'+classe+'.json','utf8'))]));
   const dimensoes=new Map([...fichas].map(([classe,j])=>[classe,j.logic.model.dimensions]));
   // Altura do desenho (maior quadro): mesma regra de "rente ao piso" do mapa.
