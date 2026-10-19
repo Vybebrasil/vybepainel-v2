@@ -7226,3 +7226,346 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-cobranca:hover, .ofc-cobranca:focus-visible {border-color:#ff954866;outline:none}
 .ofc-cobranca span {font:600 11.5px/1.3 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ofc-cobranca .ofc-missao-prazo {justify-self:start}
+
+/* ══ Interface de jogo do Escritório (pedido do Paulo, 19/10/2026: "mais
+   moderna, fluida, parecida com um joguinho… TUDO") ═════════════════════════
+   Uma camada só, no fim do arquivo, com o mesmo material para todas as telas
+   do Escritório (lateral, barra, inventário, loja, editor, missões, janelas e
+   criador). Fica aqui, e não espalhada nas regras antigas, porque é um tema
+   único: muda tudo junto e se ajusta num lugar. Limitada a .ofc, às janelas
+   do Escritório (.ofc-dialogo) e à abertura (.abr-*); o resto do painel não muda.
+   Material: painel escuro com relevo (luz no topo, sombra embaixo), botões com
+   volume que afundam no clique, laranja da Vybe para o que está ativo.        */
+:root {
+  --jg-fundo:#101219; --jg-painel:linear-gradient(180deg,#232634 0%,#1a1c27 100%);
+  --jg-painel-2:linear-gradient(180deg,#1d2030,#171925); --jg-slot:linear-gradient(180deg,#2a2d3c,#1e2130);
+  --jg-borda:#ffffff17; --jg-borda-forte:#ffffff26; --jg-relevo:inset 0 1px 0 #ffffff14, inset 0 -1px 0 #00000059;
+  --jg-sombra:0 10px 28px #00000080; --jg-sombra-leve:0 4px 12px #00000059;
+  --jg-laranja:#ff8a35; --jg-laranja-2:#ffb15c; --jg-laranja-fundo:linear-gradient(180deg,#ff9a48,#ff6f1d);
+  --jg-ativo:linear-gradient(180deg,#ff8a3533,#ff6b1a1f); --jg-raio:14px; --jg-raio-p:10px;
+  --jg-mov:160ms cubic-bezier(.2,.8,.2,1);
+}
+
+/* Barra da esquerda: peças com relevo; a ativa acende em laranja. */
+.ofc-rail {gap:6px;padding:14px 8px;background:linear-gradient(180deg,#141621,#0e1017);box-shadow:inset -1px 0 0 #ffffff0d}
+.ofc-rail-btn {position:relative;border-radius:var(--jg-raio);transition:background var(--jg-mov),color var(--jg-mov),transform var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-rail-btn:hover {background:#ffffff0f;color:var(--ofc-texto);transform:translateY(-1px)}
+.ofc-rail-btn:active {transform:translateY(1px)}
+.ofc-rail-btn[aria-pressed=true] {background:var(--jg-ativo);color:#ffc89a;box-shadow:inset 0 0 0 1px #ff8a3566,0 6px 18px #ff6b1a26}
+.ofc-rail-btn[aria-pressed=true]::before {content:"";position:absolute;left:-8px;top:22%;bottom:22%;width:3px;border-radius:0 3px 3px 0;background:var(--jg-laranja);box-shadow:0 0 10px var(--jg-laranja)}
+.ofc-rail-btn:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:2px}
+
+/* Lateral: painel com relevo; abas em pílula com o ativo laranja. */
+.ofc-lateral {background:var(--jg-painel-2);box-shadow:inset -1px 0 0 #ffffff0d}
+.ofc-lateral-topo b {font:800 17px var(--mac-ui);letter-spacing:-.01em}
+.ofc-abas {padding:4px;border-radius:12px;background:#0c0e15;box-shadow:inset 0 1px 3px #0009,0 1px 0 #ffffff0a}
+.ofc-abas button {border-radius:9px;transition:background var(--jg-mov),color var(--jg-mov)}
+.ofc-abas button:hover {color:var(--ofc-texto)}
+.ofc-abas button[aria-selected=true] {background:var(--jg-slot);color:#fff;box-shadow:var(--jg-relevo),0 2px 6px #0006}
+.ofc-aba h4, .ofc-salas h5 {display:flex;align-items:center;gap:8px;color:#9aa1b2;font:800 10.5px var(--mac-ui);letter-spacing:.12em}
+.ofc-aba h4::after, .ofc-salas > h5::after {content:"";flex:1;height:1px;background:linear-gradient(90deg,#ffffff1f,transparent)}
+
+/* Botões do Escritório: volume, brilho no topo e clique que afunda. */
+.ofc .ofc-mini, .ofc-dialogo .ofc-mini, .ofc .ofc-secundario, .ofc-dialogo .ofc-secundario {background:var(--jg-slot);border:1px solid var(--jg-borda-forte);box-shadow:var(--jg-relevo),0 2px 0 #0007;transition:transform var(--jg-mov),filter var(--jg-mov),border-color var(--jg-mov)}
+.ofc .ofc-mini:hover:not(:disabled), .ofc-dialogo .ofc-mini:hover:not(:disabled), .ofc .ofc-secundario:hover:not(:disabled), .ofc-dialogo .ofc-secundario:hover:not(:disabled) {filter:brightness(1.15);border-color:#ff8a3566}
+.ofc .ofc-mini:active:not(:disabled), .ofc-dialogo .ofc-mini:active:not(:disabled), .ofc .ofc-secundario:active:not(:disabled), .ofc-dialogo .ofc-secundario:active:not(:disabled), .ofc .ofc-primario:active:not(:disabled), .ofc-dialogo .ofc-primario:active:not(:disabled) {transform:translateY(1px);box-shadow:var(--jg-relevo)}
+.ofc .ofc-mini:disabled, .ofc-dialogo .ofc-mini:disabled {opacity:.45;cursor:not-allowed}
+.ofc .ofc-primario, .ofc-dialogo .ofc-primario {background:var(--jg-laranja-fundo);color:#241104;border:0;box-shadow:inset 0 1px 0 #ffffff70,inset 0 -2px 0 #0000002e,0 3px 0 #a3420f,0 8px 18px #ff6b1a40;transition:transform var(--jg-mov),filter var(--jg-mov)}
+.ofc .ofc-primario:hover:not(:disabled), .ofc-dialogo .ofc-primario:hover:not(:disabled) {filter:brightness(1.07);background:var(--jg-laranja-fundo)}
+.ofc .ofc-mini:focus-visible, .ofc .ofc-primario:focus-visible, .ofc .ofc-secundario:focus-visible, .ofc-dialogo button:focus-visible {outline:2px solid var(--jg-laranja-2);outline-offset:2px}
+.ofc-badge {display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e5484d;color:#fff;font:800 9.5px var(--mac-ui);vertical-align:1px}
+
+/* Salas: cada espaço é uma peça; a cor da sala fica num ícone quadrado. */
+.ofc-salas {gap:4px}
+.ofc-sala {grid-template-columns:28px 1fr auto;padding:7px 10px 7px 7px;border:1px solid transparent;border-radius:12px;transition:background var(--jg-mov),border-color var(--jg-mov),transform var(--jg-mov)}
+.ofc-sala i {width:28px;height:28px;border-radius:9px;background:linear-gradient(180deg,color-mix(in srgb,var(--sala) 90%,#fff 10%),color-mix(in srgb,var(--sala) 70%,#000 30%));box-shadow:inset 0 1px 0 #ffffff55,0 2px 6px #0006}
+.ofc-sala:hover {background:#ffffff0a;border-color:#ffffff12;transform:translateX(2px)}
+.ofc-sala[aria-pressed=true] {background:linear-gradient(90deg,color-mix(in srgb,var(--sala) 24%,transparent),transparent);border-color:color-mix(in srgb,var(--sala) 45%,transparent)}
+.ofc-sala small {padding:2px 7px;border-radius:99px;background:color-mix(in srgb,var(--sala) 30%,#000);color:#fff;font:800 10.5px var(--mac-ui)}
+.ofc-sala em {padding-left:0}
+.ofc-sala .ofc-sala-alerta {display:inline-block;justify-self:start;margin-top:3px;padding:1px 7px;border-radius:6px;background:#ffc46b26;color:#ffd79a}
+
+/* Quartos da equipe: o boneco num pedestal com a cor do quarto. */
+.ofc-quartos {gap:8px}
+.ofc-quarto {padding:8px 4px 7px;border:1px solid var(--jg-borda);border-radius:var(--jg-raio);background:radial-gradient(70% 45% at 50% 72%,color-mix(in srgb,var(--sala) 30%,transparent),transparent 70%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-quarto:hover {transform:translateY(-2px);border-color:color-mix(in srgb,var(--sala) 60%,transparent);box-shadow:var(--jg-relevo),0 10px 20px #0007}
+.ofc-quarto:active {transform:translateY(0)}
+.ofc-quarto.aqui {border-color:var(--jg-laranja);box-shadow:var(--jg-relevo),0 0 0 2px #ff8a3540,0 8px 18px #ff6b1a26}
+.ofc-quarto > .office-avatar {transition:transform var(--jg-mov)}
+.ofc-quarto:hover > .office-avatar {transform:scale(1.08)}
+.ofc-quarto.online > .ofc-ponto {box-shadow:0 0 0 2px #14161d,0 0 8px var(--st)}
+.ofc-quarto b, .ofc-quarto > span {font-weight:700}
+
+/* Pessoas online: cartão com o boneco; ações numa linha, sem quebrar. */
+.office-member {display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:6px 10px;margin-bottom:6px;padding:8px 10px;border:1px solid var(--jg-borda);border-radius:var(--jg-raio);background:var(--jg-slot);box-shadow:var(--jg-relevo)}
+.office-member.fora {opacity:1;background:#ffffff05;box-shadow:none}
+.office-member.fora > .office-avatar, .office-member.fora > div:not(.ofc-membro-acoes) {opacity:.55}
+.office-member > div:not(.ofc-membro-acoes) {flex:none}
+.ofc-membro-acoes {grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px}
+.ofc-membro-acoes .ofc-mini {flex:1 0 auto;padding:5px 8px;text-align:center}
+
+/* Inventário: espaços quadrados como num jogo, com quantidade no canto. */
+.ofc-inv-grade {display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
+.ofc-inv-grade li button {position:relative;display:grid;justify-items:center;align-content:start;gap:4px;width:100%;aspect-ratio:1/1.15;padding:8px 5px 6px;border:1px solid var(--jg-borda);border-radius:var(--jg-raio);background:radial-gradient(60% 40% at 50% 45%,#ffffff12,transparent 70%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov);cursor:pointer;color:var(--ofc-texto)}
+.ofc-inv-grade li button:hover {transform:translateY(-2px);border-color:#ff8a3566}
+.ofc-inv-grade li button[aria-pressed=true] {border-color:var(--jg-laranja);box-shadow:var(--jg-relevo),0 0 0 2px #ff8a3545,0 0 18px #ff6b1a40}
+.ofc-inv-grade li button img {width:52px;height:52px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 4px 4px #0008);transition:transform var(--jg-mov)}
+.ofc-inv-grade li button:hover img {transform:scale(1.08)}
+.ofc-inv-grade li button span {width:100%;font:650 10.5px/1.25 var(--mac-ui);text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ofc-inv-grade li button em {position:absolute;top:5px;right:6px;padding:0 5px;border-radius:6px;background:#000a;color:#ffd79a;font:800 10px var(--mac-ui);font-style:normal}
+.ofc-inv-grade li button small {position:absolute;top:5px;left:6px;padding:0 5px;border-radius:6px;background:#6fe3a826;color:#a8f0cb;font:700 9px var(--mac-ui)}
+.ofc-inv-acoes {margin-top:10px;padding:10px 12px;border:1px solid #ff8a3555;border-radius:var(--jg-raio);background:var(--jg-painel);box-shadow:var(--jg-relevo),var(--jg-sombra-leve)}
+.ofc-inv-acoes > div {display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+/* Catálogo e loja: mesmo espaço de inventário; selos pequenos e legíveis. */
+.ofc-movel {gap:5px;padding:9px 6px 7px;border-radius:var(--jg-raio);border:1px solid var(--jg-borda);background:radial-gradient(60% 40% at 50% 38%,#ffffff12,transparent 70%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-movel:hover:not(.indisponivel) {transform:translateY(-2px);border-color:#ff8a3566}
+.ofc-movel:active:not(.indisponivel) {transform:translateY(0)}
+.ofc-movel img {filter:drop-shadow(0 4px 4px #0008);transition:transform var(--jg-mov)}
+.ofc-movel:hover img {transform:scale(1.08)}
+.ofc-movel span {font:650 11px/1.25 var(--mac-ui);color:var(--ofc-texto)}
+.ofc-movel .ofc-giro {max-width:100%;padding:1px 6px;border-radius:6px;background:#ffffff10;color:#c9cfdb;font:700 9px/1.4 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-movel .ofc-giro.nao {background:#ffffff08;color:#8c93a3}
+.ofc-movel .ofc-giro.animado {background:#c39bff22;color:#dcc6ff}
+.ofc-movel.r-incomum {background:radial-gradient(60% 40% at 50% 38%,#7ee08a22,transparent 70%),var(--jg-slot)}
+.ofc-movel.r-raro {background:radial-gradient(60% 40% at 50% 38%,#6fb6ff26,transparent 70%),var(--jg-slot)}
+.ofc-movel.r-epico {background:radial-gradient(60% 40% at 50% 38%,#c39bff2e,transparent 70%),var(--jg-slot)}
+.ofc-movel.r-lendario {background:radial-gradient(60% 40% at 50% 38%,#ffd16633,transparent 70%),var(--jg-slot)}
+
+/* Seções da edição (Inventário · Loja · Carteira · Decorar): pílulas iguais,
+   com o saldo dentro da Carteira sem invadir a aba vizinha. */
+.ofc-secoes {display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:3px;padding:4px;border-radius:12px;background:#0c0e15;box-shadow:inset 0 1px 3px #0009,0 1px 0 #ffffff0a}
+.ofc-secoes button {display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;padding:7px 4px;border:0;border-radius:9px;background:transparent;color:var(--ofc-suave);font:700 11.5px var(--mac-ui);white-space:nowrap;cursor:pointer;transition:background var(--jg-mov),color var(--jg-mov)}
+.ofc-secoes button[aria-selected=true], .ofc-secoes button[aria-pressed=true] {background:var(--jg-slot);color:#fff;box-shadow:var(--jg-relevo),0 2px 6px #0006}
+.ofc-secoes button small {padding:0 5px;border-radius:6px;background:#ffd16626;color:#ffe08a;font:800 9.5px var(--mac-ui)}
+
+/* Barra do editor: grupos de ferramentas como uma barra de jogo. */
+.ofc-editor {border:1px solid var(--jg-borda-forte);border-radius:18px;background:var(--jg-painel);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(10px)}
+.ofc-editor button, .ofc-editor summary {border-radius:var(--jg-raio-p);transition:transform var(--jg-mov),filter var(--jg-mov),background var(--jg-mov)}
+.ofc-editor button:not(.ofc-primario):not(:disabled), .ofc-editor summary {background:var(--jg-slot);box-shadow:var(--jg-relevo),0 2px 0 #0007}
+.ofc-editor button:not(:disabled):active {transform:translateY(1px)}
+.ofc-editor button[aria-pressed=true] {background:var(--jg-ativo);color:#ffd0a8;box-shadow:inset 0 0 0 1px #ff8a3588,0 2px 0 #0007}
+.ofc-editor-ferramentas, .ofc-editor-hist, .ofc-editor-acoes {gap:6px}
+.ofc-editor select {border-radius:var(--jg-raio-p);background:#0c0e15;box-shadow:inset 0 1px 3px #0009}
+
+/* Cartões flutuantes (sala atual, quem está onde, missões, cobranças, música,
+   conversa) e o dock: o mesmo vidro com relevo. */
+.ofc-sala-atual, .ofc-missoes, .ofc-musica, .office-call, .ofc-dock, .ofc-zoom, .ofc-info-card, .ofc-mesa-card {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634eb,#191b26eb);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(14px)}
+.ofc-dock {border-radius:18px;padding:5px}
+.ofc-dock-btn {border-radius:12px;transition:background var(--jg-mov),transform var(--jg-mov)}
+.ofc-dock-btn:hover {background:#ffffff12}
+.ofc-dock-btn:active {transform:translateY(1px)}
+.ofc-dock-btn[aria-pressed=true] {background:var(--jg-ativo);color:#ffd0a8}
+.ofc-missao, .ofc-cobranca {background:var(--jg-slot);box-shadow:var(--jg-relevo);transition:transform var(--jg-mov),border-color var(--jg-mov)}
+.ofc-missao:hover, .ofc-cobranca:hover {transform:translateY(-1px)}
+.ofc-missoes-filtros button {box-shadow:var(--jg-relevo);transition:background var(--jg-mov),color var(--jg-mov)}
+.ofc-missoes-filtros button.ativo {background:var(--jg-ativo);box-shadow:inset 0 0 0 1px #ff8a3588}
+
+/* "Meu espaço": cada opção é um botão de menu com ícone e seta. */
+.ofc-modelos {display:grid;gap:10px}
+.ofc-modelos > button:has(> .ofc-ico) {display:grid;grid-template-columns:44px minmax(0,1fr) 14px;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--jg-borda);border-radius:16px;background:var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);color:var(--ofc-texto,#eef0f5);text-align:left;cursor:pointer;transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-modelos > button:has(> .ofc-ico):hover {transform:translateY(-2px);border-color:#ff8a3577;box-shadow:var(--jg-relevo),0 12px 24px #0007}
+.ofc-modelos > button:has(> .ofc-ico):active {transform:translateY(0)}
+.ofc-modelos > button > .ofc-ico {width:44px;height:44px;padding:10px;border-radius:13px;background:var(--jg-laranja-fundo);color:#241104;stroke-width:2;box-shadow:inset 0 1px 0 #ffffff70,0 3px 0 #a3420f}
+.ofc-modelos > button:last-child > .ofc-ico {background:linear-gradient(180deg,#3a3e50,#2a2d3c);color:#ffb4b4;box-shadow:inset 0 1px 0 #ffffff24,0 3px 0 #0008}
+.ofc-modelo-texto {display:grid;gap:3px;min-width:0}
+.ofc-modelo-texto b {font:750 15px var(--mac-ui)}
+.ofc-modelo-texto small {color:#a9b0bf;font:500 12.5px/1.4 var(--mac-ui)}
+.ofc-modelo-seta {width:9px;height:9px;border-top:2px solid #ffffff55;border-right:2px solid #ffffff55;transform:rotate(45deg);transition:transform var(--jg-mov),border-color var(--jg-mov)}
+.ofc-modelos > button:hover .ofc-modelo-seta {transform:translateX(3px) rotate(45deg);border-color:var(--jg-laranja-2)}
+
+/* Criador de personagem: opções como espaços de inventário; cores com brilho. */
+.abr-painel {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#1f2230f2,#14161ff2);box-shadow:var(--jg-relevo),0 30px 80px #000c}
+.abr-estilo {border-radius:11px;background:var(--jg-slot);box-shadow:var(--jg-relevo),0 2px 0 #0007;transition:transform var(--jg-mov),border-color var(--jg-mov)}
+.abr-estilo:hover {border-color:#ff8a3566}
+.abr-estilo:active {transform:translateY(1px)}
+.abr-estilo[aria-pressed=true] {background:var(--jg-laranja-fundo);border-color:transparent;color:#241104;box-shadow:inset 0 1px 0 #ffffff70,0 2px 0 #a3420f}
+.abr-cor {transition:transform var(--jg-mov)}
+.abr-cor:hover {transform:scale(1.15)}
+.abr-secundario {background:var(--jg-slot);box-shadow:var(--jg-relevo),0 3px 0 #0008;transition:transform var(--jg-mov),filter var(--jg-mov)}
+.abr-secundario:hover:not(:disabled) {filter:brightness(1.15)}
+.abr-primario {box-shadow:inset 0 1px 0 #ffffff70,0 3px 0 #a3420f,0 10px 26px #ff6b1a55;transition:transform var(--jg-mov),filter var(--jg-mov)}
+.abr-primario:active:not(:disabled), .abr-secundario:active:not(:disabled) {transform:translateY(2px)}
+
+/* Janelas do Escritório (música, prévia do móvel, recados…): o mesmo painel. */
+.ofc-dialogo {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634,#181a25);box-shadow:var(--jg-relevo),0 30px 80px #000c}
+.ofc-dialogo[open] {animation:jg-surgir .18s cubic-bezier(.2,.8,.2,1)}
+@keyframes jg-surgir {from {opacity:0;transform:translateY(8px) scale(.98)} to {opacity:1;transform:none}}
+
+/* Quem pede menos movimento: sem deslocamentos nem surgimento animado. */
+@media (prefers-reduced-motion: reduce) {
+  .ofc-rail-btn, .ofc-sala, .ofc-quarto, .ofc-quarto > .office-avatar, .ofc-inv-grade li button, .ofc-inv-grade li button img, .ofc-movel, .ofc-movel img,
+  .ofc-modelos > button, .ofc-modelo-seta, .ofc-missao, .ofc-cobranca, .ofc-editor button, .ofc-dock-btn, .abr-estilo, .abr-cor, .abr-primario, .abr-secundario,
+  .ofc .ofc-mini, .ofc .ofc-primario, .ofc .ofc-secundario {transition:none}
+  .ofc-rail-btn:hover, .ofc-sala:hover, .ofc-quarto:hover, .ofc-inv-grade li button:hover, .ofc-movel:hover:not(.indisponivel), .ofc-modelos > button:hover, .ofc-missao:hover, .ofc-cobranca:hover {transform:none}
+  .ofc-quarto:hover > .office-avatar, .ofc-inv-grade li button:hover img, .ofc-movel:hover img, .abr-cor:hover {transform:none}
+  .ofc-dialogo[open] {animation:none}
+}
+
+/* Navegador de salas (HUD): a sala principal em destaque e os espaços em
+   cartões de jogo, cada um com o emblema e a cor dele. */
+.ofc-destaque {position:relative;display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-areas:"emb txt" "num num" "btn btn";gap:10px 12px;width:100%;margin:2px 0 12px;padding:14px;border:1px solid #ff8a3577;border-radius:18px;
+  background:radial-gradient(120% 90% at 0% 0%,#ff8a3540,transparent 55%),radial-gradient(90% 80% at 100% 100%,#6f3cff26,transparent 60%),linear-gradient(160deg,#2b2233,#1a1b27);
+  box-shadow:var(--jg-relevo),0 0 0 1px #ff8a3522,0 14px 30px #0009,0 0 26px #ff6b1a22;color:var(--ofc-texto);text-align:left;cursor:pointer;overflow:hidden;transition:transform var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-destaque::after {content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,#ffffff12 45%,transparent 60%) -120% 0/250% 100% no-repeat;pointer-events:none;animation:jg-brilho 6s ease-in-out infinite}
+@keyframes jg-brilho {0%,70% {background-position:-120% 0} 100% {background-position:220% 0}}
+.ofc-destaque:hover {transform:translateY(-2px);box-shadow:var(--jg-relevo),0 0 0 1px #ff8a3566,0 18px 34px #000a,0 0 34px #ff6b1a40}
+.ofc-destaque:active {transform:translateY(0)}
+.ofc-destaque:focus-visible {outline:2px solid var(--jg-laranja-2);outline-offset:3px}
+.ofc-destaque-emblema {grid-area:emb;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--jg-laranja-fundo);color:#241104;box-shadow:inset 0 1px 0 #ffffff80,0 4px 0 #a3420f,0 8px 20px #ff6b1a55}
+.ofc-destaque-emblema .ofc-ico {width:28px;height:28px;stroke-width:2}
+.ofc-destaque-texto {grid-area:txt;display:grid;gap:2px;min-width:0;align-content:center}
+.ofc-destaque-texto small {color:#ffb27a;font:800 10px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
+.ofc-destaque-texto b {font:800 17px/1.15 var(--mac-ui);letter-spacing:-.01em}
+.ofc-destaque-texto span {color:#b8bdca;font-size:11.5px}
+.ofc-destaque-numeros {grid-area:num;display:flex;gap:6px}
+.ofc-destaque-numeros em {flex:1;display:grid;justify-items:center;padding:6px 4px;border-radius:11px;background:#0000004d;box-shadow:inset 0 1px 2px #0008,0 1px 0 #ffffff0d;color:#aeb4c2;font:700 10px var(--mac-ui);font-style:normal}
+.ofc-destaque-numeros em b {color:#fff;font:800 16px var(--mac-ui)}
+.ofc-destaque-numeros em.laranja b {color:#ffb15c}
+.ofc-destaque-numeros em.vermelho b {color:#ff8f8f}
+.ofc-destaque-entrar {grid-area:btn;display:grid;place-items:center;padding:9px;border-radius:12px;background:var(--jg-laranja-fundo);color:#241104;font:800 13px var(--mac-ui);box-shadow:inset 0 1px 0 #ffffff70,0 3px 0 #a3420f}
+.ofc-destaque[aria-pressed=true] .ofc-destaque-entrar {background:#ffffff14;color:#ffd0a8;box-shadow:inset 0 0 0 1px #ff8a3566}
+
+.ofc-espacos {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:6px}
+.ofc-espaco {position:relative;display:grid;grid-template-rows:auto auto 1fr;gap:6px;min-height:104px;padding:10px;border:1px solid var(--jg-borda);border-radius:16px;
+  background:radial-gradient(90% 70% at 100% 0%,color-mix(in srgb,var(--sala) 34%,transparent),transparent 65%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);color:var(--ofc-texto);text-align:left;cursor:pointer;overflow:hidden;transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-espaco:hover {transform:translateY(-2px);border-color:color-mix(in srgb,var(--sala) 65%,transparent);box-shadow:var(--jg-relevo),0 12px 22px #0008}
+.ofc-espaco:active {transform:translateY(0)}
+.ofc-espaco:focus-visible {outline:2px solid var(--jg-laranja-2);outline-offset:2px}
+.ofc-espaco[aria-pressed=true] {border-color:var(--jg-laranja);box-shadow:var(--jg-relevo),0 0 0 2px #ff8a3540}
+.ofc-espaco-emblema {display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:linear-gradient(180deg,color-mix(in srgb,var(--sala) 92%,#fff 8%),color-mix(in srgb,var(--sala) 62%,#000 38%));color:#fff;box-shadow:inset 0 1px 0 #ffffff60,0 3px 0 #0007}
+.ofc-espaco-emblema .ofc-ico {width:20px;height:20px;stroke-width:2}
+.ofc-espaco > b {font:750 12.5px/1.2 var(--mac-ui)}
+.ofc-espaco-gente {display:flex;align-items:flex-end;gap:2px;align-self:end}
+.ofc-espaco-gente small {margin-left:4px;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--sala) 40%,#000);color:#fff;font:800 10px var(--mac-ui)}
+.ofc-espaco-gente small.vazio {margin-left:0;background:#ffffff0a;color:#8c93a3;font-weight:600}
+.ofc-espaco-rosto {display:block;width:20px;height:22px;margin-right:-6px;border-radius:50%;overflow:hidden;background:#0006;box-shadow:0 0 0 2px #1e2130}
+.ofc-espaco-rosto .office-avatar {width:28px;height:52px;margin:-4px 0 0 -4px;object-fit:cover;object-position:top}
+.ofc-espaco-aqui {position:absolute;top:8px;right:8px;padding:1px 6px;border-radius:6px;background:#ff8a3533;color:#ffd0a8;font:700 9px var(--mac-ui);font-style:normal}
+.ofc-espaco.ocupada .ofc-espaco-emblema {box-shadow:inset 0 1px 0 #ffffff60,0 3px 0 #0007,0 0 14px color-mix(in srgb,var(--sala) 70%,transparent)}
+@media (prefers-reduced-motion: reduce) {
+  .ofc-destaque::after {animation:none}
+  .ofc-destaque, .ofc-espaco {transition:none}
+  .ofc-destaque:hover, .ofc-espaco:hover {transform:none}
+}
+
+/* Topo do mapa (HUD): a placa da sala com emblema; voltar e andares como peças;
+   o aviso fica pequeno no canto, sem espremer a placa. */
+.ofc-topo-esq {flex-wrap:nowrap;min-width:0;flex:1 1 auto}
+.ofc-topo-esq > .ofc-voltar-mapa, .ofc-topo-esq > .ofc-andares {flex:none}
+.ofc-topo-esq > .ofc-sala-atual {flex:0 1 auto}
+.ofc-voltar-mapa, .ofc-andares {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634eb,#191b26eb);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);transition:filter var(--jg-mov),transform var(--jg-mov)}
+.ofc-voltar-mapa:hover {background:linear-gradient(180deg,#2b2f40,#1f2230);filter:brightness(1.1)}
+.ofc-voltar-mapa:active {transform:translateY(1px)}
+.ofc-andares button[aria-pressed=true] {background:var(--jg-ativo);border-color:#ff8a3588;color:#ffd0a8}
+.ofc-sala-atual {min-width:0;max-width:min(420px,100%);gap:10px;padding:6px 14px 6px 6px;border-radius:16px}
+.ofc-sala-emblema {display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--sala) 92%,#fff 8%),color-mix(in srgb,var(--sala) 62%,#000 38%));color:#fff;box-shadow:inset 0 1px 0 #ffffff60,0 3px 0 #0007}
+.ofc-sala-emblema .ofc-ico {width:21px;height:21px;stroke-width:2}
+.ofc-sala-nome {display:grid;min-width:0}
+.ofc-sala-atual h2 {font:800 16px/1.15 var(--mac-ui);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-sala-atual .ofc-sala-nome span {max-width:300px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-topo > .ofc-aviso {flex:0 1 240px;min-width:0;margin:0;padding:6px 10px;border:1px solid var(--jg-borda);border-radius:12px;background:#0000008c;color:#c3c9d6;font-size:11px;line-height:1.35;pointer-events:auto}
+.ofc-topo > .ofc-aviso:empty {display:none}
+.ofc-onde > summary {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634eb,#191b26eb);box-shadow:var(--jg-relevo),var(--jg-sombra-leve)}
+/* Emblema com a arte do jogo: o móvel no ladrilho colorido, saindo um pouco
+   da moldura; o traço só aparece enquanto a arte não chega. */
+.ofc-espaco-emblema, .ofc-destaque-emblema, .ofc-sala-emblema {position:relative;overflow:visible}
+.ofc-arte {position:absolute;left:50%;bottom:4px;max-width:150%;max-height:150%;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 3px 2px #0009);display:none}
+.ofc-arte.pronta {display:block}
+.ofc-arte.pronta ~ .ofc-ico, .ofc-ico:has(+ .ofc-arte.pronta) {visibility:hidden}
+.ofc-espaco-emblema {width:46px;height:40px}
+.ofc-destaque-emblema {width:60px;height:56px}
+.ofc-espaco:hover .ofc-arte.pronta, .ofc-destaque:hover .ofc-arte.pronta {transform:translateX(-50%) translateY(-2px) scale(1.06);transition:transform var(--jg-mov)}
+@media (prefers-reduced-motion: reduce) {.ofc-espaco:hover .ofc-arte.pronta, .ofc-destaque:hover .ofc-arte.pronta {transform:translateX(-50%)}}
+/* Vitrine do espaço: a arte do jogo centralizada sobre um chão na cor da sala. */
+.ofc-espaco {grid-template-rows:auto auto 1fr;min-height:0;padding:8px}
+.ofc-espaco-emblema {width:100%;height:70px;border-radius:12px;align-items:end;justify-items:center;padding-bottom:6px;
+  background:radial-gradient(60% 26% at 50% 86%,#00000070,transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--sala) 38%,#0000) 0%,color-mix(in srgb,var(--sala) 70%,#000 30%) 100%);
+  box-shadow:inset 0 1px 0 #ffffff40,inset 0 -10px 18px #0000004d}
+.ofc-espaco-emblema .ofc-arte, .ofc-destaque-emblema .ofc-arte, .ofc-sala-emblema .ofc-arte {position:static;transform:none;max-width:88%;max-height:88%;width:auto;height:auto;object-fit:contain}
+.ofc-espaco-emblema .ofc-ico {position:absolute;inset:0;margin:auto;width:24px;height:24px}
+.ofc-espaco:hover .ofc-arte.pronta, .ofc-destaque:hover .ofc-arte.pronta {transform:translateY(-3px) scale(1.06)}
+.ofc-destaque-emblema, .ofc-sala-emblema {align-items:end;justify-items:center;padding:4px}
+.ofc-destaque-emblema .ofc-ico, .ofc-sala-emblema .ofc-ico {position:absolute;inset:0;margin:auto}
+@media (prefers-reduced-motion: reduce) {.ofc-espaco:hover .ofc-arte.pronta, .ofc-destaque:hover .ofc-arte.pronta {transform:none}}
+/* Topo em tela estreita: a placa da sala é o mais importante e não some. */
+.ofc-topo-esq > .ofc-sala-atual {min-width:180px}
+@media (max-width:1280px) {
+  .ofc-voltar-mapa span {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .ofc-topo > .ofc-aviso {flex-basis:170px;font-size:10.5px}
+}
+.ofc-espaco-emblema .ofc-arte {max-width:90%;max-height:60px}
+.ofc-destaque-emblema .ofc-arte {max-width:52px;max-height:50px}
+.ofc-sala-emblema .ofc-arte {max-width:34px;max-height:34px}
+
+/* Navegador por hierarquia (19/10/2026, retorno do Paulo): 1) a sala
+   principal numa faixa; 2) onde a galera está agora; 3) espaços em grade
+   pequena; 4) quartos. Estas regras substituem o tamanho grande de antes. */
+.ofc-destaque {grid-template-columns:46px minmax(0,1fr) auto;grid-template-areas:"emb txt num";align-items:center;gap:10px;margin:0 0 10px;padding:9px 10px;border-radius:16px}
+.ofc-destaque-emblema {width:46px;height:42px;border-radius:13px}
+.ofc-destaque-emblema .ofc-arte {max-width:40px;max-height:38px}
+.ofc-destaque-texto b {font-size:14px}
+.ofc-destaque-numeros {gap:4px}
+.ofc-destaque-numeros em {flex:none;min-width:42px;padding:4px 6px;font-size:9px}
+.ofc-destaque-numeros em b {font-size:14px}
+
+.ofc-rodas {display:grid;gap:6px;margin:0 0 6px;padding:0;list-style:none}
+.ofc-roda {display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px 8px 8px;border:1px solid color-mix(in srgb,var(--sala) 45%,transparent);border-radius:14px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--sala) 22%,transparent),transparent 70%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve)}
+.ofc-roda-emblema {position:relative;display:grid;place-items:end center;width:40px;height:40px;padding:3px;border-radius:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--sala) 50%,#0000),color-mix(in srgb,var(--sala) 70%,#000 30%));box-shadow:inset 0 1px 0 #ffffff40}
+.ofc-roda-emblema .ofc-ico {position:absolute;inset:0;margin:auto;width:20px;height:20px}
+.ofc-roda-emblema .ofc-arte {position:static;transform:none;max-width:36px;max-height:34px}
+.ofc-roda-texto {display:grid;gap:4px;min-width:0}
+.ofc-roda-texto > b {font:750 13px var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-roda-gente {display:flex;flex-wrap:wrap;gap:4px}
+.ofc-roda-pessoa {display:inline-flex;align-items:center;gap:4px;padding:1px 7px 1px 1px;border-radius:99px;background:#00000059;box-shadow:inset 0 0 0 1px #ffffff14}
+.ofc-roda-pessoa .office-avatar {width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:50% 12%;background:#0006}
+.ofc-roda-pessoa small {font:650 10.5px var(--mac-ui);color:#e4e7ee}
+.ofc-roda-entrar {flex:none;padding:6px 12px;border-radius:10px;font:800 11.5px var(--mac-ui)}
+.ofc-roda-aqui {padding:3px 8px;border-radius:8px;background:#ff8a3526;color:#ffd0a8;font:700 10px var(--mac-ui);font-style:normal;white-space:nowrap}
+.ofc-agora-vazio {margin:0 0 8px;padding:10px 12px;border:1px dashed #ffffff22;border-radius:12px;color:#a3a9b7;font-size:12px}
+
+.ofc-espacos {grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ofc-espaco {grid-template-rows:auto auto;gap:4px;padding:6px 6px 7px;border-radius:13px;text-align:center}
+.ofc-espaco-emblema {height:46px;border-radius:10px;padding-bottom:3px}
+.ofc-espaco-emblema .ofc-arte {max-width:86%;max-height:40px}
+.ofc-espaco > b {font:700 10.5px/1.2 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-espaco-conta {position:absolute;top:4px;right:4px;min-width:18px;padding:1px 5px;border-radius:9px;background:#3ddc84;color:#062a16;font:800 10px var(--mac-ui);box-shadow:0 0 10px #3ddc8488}
+.ofc-espaco:not(.ocupada) {background:var(--jg-slot)}
+.ofc-espaco:not(.ocupada) .ofc-espaco-emblema {filter:saturate(.55) brightness(.85)}
+.ofc-espaco:not(.ocupada) > b {color:#b6bcc9}
+.ofc-espaco:hover .ofc-espaco-emblema {filter:none}
+.ofc-espaco.ocupada {border-color:color-mix(in srgb,var(--sala) 55%,transparent)}
+
+.ofc-fora > summary {list-style:none;cursor:pointer}
+.ofc-fora > summary::-webkit-details-marker {display:none}
+.ofc-fora > summary h4::before {content:"";display:inline-block;width:6px;height:6px;margin-right:2px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform var(--jg-mov)}
+.ofc-fora[open] > summary h4::before {transform:rotate(45deg)}
+.ofc-fora > summary:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:2px;border-radius:6px}
+.ofc-destaque {grid-template-columns:46px minmax(0,1fr);grid-template-areas:"emb txt" "emb num";row-gap:5px}
+.ofc-destaque-texto {gap:0}
+.ofc-destaque-texto b {white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-destaque-numeros {justify-content:flex-start}
+.ofc-destaque-numeros em {display:inline-flex;align-items:baseline;gap:4px;min-width:0;padding:2px 8px;border-radius:8px}
+.ofc-destaque-numeros:empty {display:none}
+.ofc-roda-pessoa small {max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Seções da edição: quatro do mesmo tamanho; o saldo vai embaixo de "Carteira". */
+.ofc-secoes {grid-template-columns:repeat(4,minmax(0,1fr))}
+.ofc-secoes:has(> button:nth-child(2):last-child) {grid-template-columns:repeat(2,minmax(0,1fr))}
+.ofc-secoes button {overflow:hidden;text-overflow:ellipsis}
+.ofc-secoes button:has(small) {flex-direction:column;gap:1px;padding:4px 2px}
+.ofc-secoes button small {line-height:14px}
+/* Abas do topo com quatro opções (modo edição): cabem sem cortar. */
+.ofc-abas[style*="repeat(4"] button {padding:7px 2px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Barra do editor compacta: em telas médias a dica some e as ferramentas cabem numa linha só. */
+.ofc-editor button {padding:6px 10px;white-space:nowrap}
+.ofc-editor-ferramentas summary {padding:6px 8px;white-space:nowrap}
+@media(max-width:1180px){
+  .ofc-editor {display:flex;flex-wrap:wrap;gap:6px 8px}
+  .ofc-editor-info span {display:none}
+  .ofc-editor-acoes {order:9;margin-left:auto}
+  .ofc-editor-ferramentas details {margin-left:0}
+  .ofc-editor > .ofc-conferencia {flex:1 0 100%}
+}
+/* Construindo, a coluna de cobranças e missões sai da frente da sala e volta ao salvar ou cancelar. */
+.ofc-principal:has(> .ofc-editor:not([hidden])) > .ofc-coluna {display:none}
