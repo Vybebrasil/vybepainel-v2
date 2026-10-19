@@ -1,8 +1,8 @@
-// Editor do mapa do escritório. Quem administra edita o mapa geral (e qualquer
-// sala); cada pessoa edita a própria sala. O servidor confere de novo ao salvar.
+// Editor do escritório: cada pessoa edita apenas a própria sala; Paulo
+// edita também os ambientes públicos. O servidor confere ao salvar.
 // Camadas: "geral" em coordenadas do mapa; "sala-N" relativas ao canto da sala.
 // Camada comum: a Praça ("geral") ou uma sala comum com cena própria (Lounge,
-// Café…). Só quem administra edita, sem inventário nem loja (decisão do
+// Café…). Só Paulo edita, sem inventário nem loja (decisão do
 // Paulo, 18/10/2026: as salas comuns se constroem no editor, vendo).
 function escritorioCamadaComum(camada) {
   return camada === "geral" || Boolean(typeof escritorioCenaComum === "function" && escritorioCenaComum(camada));
@@ -10,8 +10,8 @@ function escritorioCamadaComum(camada) {
 function escritorioPodeEditar(camada) {
   const b = escritorio.base;
   if (!b?.mapa?.editavel && !b?.demo) return false;
-  if (b.admin) return true;
-  return !escritorioCamadaComum(camada) && escritorioMinhaMesa()?.ambiente.id === camada;
+  if (escritorioCamadaComum(camada)) return Boolean(b.admin && b.salas?.some(s=>s.id === "sala-0" && String(s.pessoa_id) === String(b.eu)));
+  return escritorioMinhaMesa()?.ambiente.id === camada;
 }
 // O que o botão "Editar" abre: a sala onde a pessoa está (se puder), a própria
 // sala, ou o mapa geral para quem administra.
@@ -25,7 +25,7 @@ function escritorioCamadaParaEditar() {
   if (escritorio.base?.admin && !aqui?.pessoal && escritorioPodeEditar("geral")) return "geral";
   const minha = escritorioMinhaMesa()?.ambiente.id;
   if (minha && escritorioPodeEditar(minha)) return minha;
-  return escritorio.base?.admin ? "geral" : null;
+  return escritorioPodeEditar("geral") ? "geral" : null;
 }
 function escritorioNomeCamada(camada) {
   return camada === "geral" ? "a Praça" : escritorioAmbienteDoQuarto(camada)?.nome || camada;
@@ -584,7 +584,7 @@ function renderBarraEditorEscritorio() {
   cancelAnimationFrame(escritorio.selQuadro || 0);
   acompanharSelecaoEditorEscritorio();
   // Quem administra escolhe a área a editar (mapa geral ou qualquer sala).
-  const areas = escritorio.base?.admin ? [["geral", "Praça"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.cena).map((a) => [a.id, a.nome]), ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])] : [];
+  const areas = escritorio.base?.admin ? [["geral", "Praça"], ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.cena).map((a) => [a.id, a.nome]), ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal).map((a) => [a.id, a.nome])].filter(([id])=>escritorioPodeEditar(id)) : [];
   const escolha = areas.length ? `<select aria-label="Área que você está editando" onchange="trocarCamadaEditorEscritorio(this.value)">${areas.map(([id, nome]) => `<option value="${id}"${id === e.camada ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select>` : `<b>Editando ${safeText(escritorioNomeCamada(e.camada))}</b>`;
   const minhaSala = e.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === e.camada;
   el.innerHTML = `<div class="ofc-editor-info">${escolha}<span>${e.alvos != null ? `Clique nos móveis que o gatilho usa (até 5); clique de novo para tirar · <button type="button" onclick="terminarAlvosGatilhoEscritorio()">Pronto</button>` : e.ferramenta === "camera" ? "Arraste para mover a visão sem mexer nos móveis" : e.trocar != null ? "Escolha no catálogo o novo modelo · Esc cancela" : e.novo && escritorioImagemDe(e.novo)?.tipo === "quadro" ? "Clique no piso encostado na parede alta do fundo · Esc cancela" : e.colar ? `Clique no piso para colar ${e.colar.length} ${e.colar.length === 1 ? "móvel" : "móveis"} · Esc cancela` : e.novo ? `Clique no piso para colocar · R gira · Alt + setas ajusta fino${e.novoAjuste && (e.novoAjuste.dx || e.novoAjuste.dy) ? " (ajustado)" : ""} · Esc cancela` : it ? "Arraste para mudar de lugar · Alt + setas: ajuste fino · R gira · Ctrl+Z desfaz" : "Escolha um móvel na lateral ou selecione na sala"}</span></div>

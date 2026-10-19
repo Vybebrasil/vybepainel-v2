@@ -6885,7 +6885,11 @@ body.no-escritorio {overflow:hidden}
 
 
 /* Criação do quarto: tamanho do formato escolhido (Pequeno a Enorme). */
-.abr-tamanhos { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-8px 0 20px; }
+.abr-tamanhos { display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:12px 0 24px; }
+.abr-escolha-atual {display:grid;gap:6px;padding:14px 16px;border:1px solid #ff913e55;border-radius:12px;background:#ff913e12;margin:12px 0}
+.abr-escolha-atual b {font-size:16px;color:var(--ofc-texto)}
+.abr-escolha-atual span {font-size:13px;color:#ffd2b0}
+.abr-escolha-atual small {font-size:12px;color:var(--ofc-suave);line-height:1.5}
 .abr-tamanhos h3 { flex-basis:100%; margin:0 0 2px; font:700 13px var(--mac-ui); color:#c6c6cf; }
 .abr-tamanhos button { display:flex; flex-direction:column; gap:2px; min-width:118px; padding:10px 14px; border:1px solid #ffffff26; border-radius:12px; color:inherit; background:#24252be6; cursor:pointer; text-align:left; }
 .abr-tamanhos button[aria-checked=true] { border-color:#ff913e; background:#513324; box-shadow:0 0 0 2px #ff913e44; }

@@ -1,14 +1,13 @@
 // Conferência consultiva do editor: reutiliza o verificador das cenas.
 // Não salva nem concede inventário; permissões e planta vêm do servidor.
-import { itensValidos, CENAS_COMUNS } from './escritorio-mapa.js';
+import { itensValidos, CENAS_COMUNS, conferirEdicao } from './escritorio-mapa.js';
 import { partesDaCamada, perfilDoAndar, plantaQuarto, CELDAS_LIVRES } from './escritorio-quartos.js';
 
 export async function conferirEditorEscritorio(sql, pessoa, salas, { camada, itens, celdas } = {}) {
   const comum = camada === 'geral' || CENAS_COMUNS.has(camada);
   const partes = partesDaCamada(camada);
   const sala = salas.find(s => s.id === partes?.raiz);
-  if (comum ? !pessoa.admin : !sala || (!pessoa.admin && sala.pessoa_id !== String(pessoa.id)))
-    throw Object.assign(new Error('Você não pode conferir esta sala.'), {status:403});
+  conferirEdicao(pessoa, salas, camada);
   const limpos = itensValidos(camada, itens);
   if (celdas !== undefined && (comum || !CELDAS_LIVRES.test(String(celdas))))
     throw Object.assign(new Error('Planta do quarto inválida.'), {status:400});

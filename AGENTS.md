@@ -94,6 +94,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 
 ## Escritório integrado
 
+- Edição de decoração (decisão do Paulo, 19/10/2026): cada pessoa edita
+  somente seu próprio quarto, inclusive quem administra. Ambientes comuns
+  e Praça são exclusivos de Paulo, pela identidade da sessão vinculada à
+  sala-0 no servidor. Não autorizar só por `admin` nem por nome do navegador.
 - O Escritório usa identidade individual da sessão Vybe. Nunca reintroduza código
   compartilhado, identidade por nome livre, OAuth Manus ou consulta ao Monday.
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
@@ -120,7 +124,7 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Cada cena segue as referências de quartos do Habbo: uma linha de móveis,
   parede do fundo ocupada, peças empilhadas apoiadas no topo da de baixo.
   Os móveis padrão ficam em `ESCRITORIO_MOVEIS_CENAS` (`vybe-escritorio-planta.js`);
-  desde 18/10/2026 (decisão do Paulo) quem administra constrói cada sala comum
+  desde 18/10/2026 (decisão do Paulo) Paulo constrói cada sala comum
   no editor, vendo, e a camada salva com o id da zona vale no lugar do padrão
   (sem inventário; o formato da planta continua no código). Paredes e pisos
   oficiais do Habbo (`plano:parede:<id>`, `plano:piso:<id>`) e zoom só em
