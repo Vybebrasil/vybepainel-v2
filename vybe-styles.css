@@ -6001,7 +6001,9 @@ body.no-escritorio {overflow:hidden}
 /* Luz ambiente do quarto (regulador de luz do Habbo): tinge piso, paredes,
    móveis e bonecos; balões, nomes e rótulos ficam com a cor normal. */
 /* Regulador de luz (quarto e cena): filtro que multiplica as cores (mapaFiltroDaLuz), como o do Habbo. */
-.mapa-palco[data-luz] :is(.mapa-fundo,canvas.mapa-obj,.mapa-movel > canvas,.mapa-pessoa > img) {filter:var(--mapa-luz)}
+/* Móveis e paredes já vêm pintados com a luz (tingir, em vybe-escritorio-mapa.js):
+   filtro por elemento em centenas de canvases derrubava o FPS. */
+.mapa-palco[data-luz] :is(.mapa-fundo,canvas.mapa-paisagem,canvas.mapa-obj[data-classe^="vybeimg_"],.mapa-pessoa > img) {filter:var(--mapa-luz)}
 .mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
 /* Móvel do mapa: contêiner sem z-index nem filtro (sem contexto de
    empilhamento), com uma camada por canvas; cada camada tem o z-index da sua
@@ -6890,7 +6892,7 @@ body.no-escritorio {overflow:hidden}
 .mapa-luz {position:absolute;z-index:1;width:220px;height:110px;margin:-55px 0 0 -110px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(255,214,150,calc(.34 * var(--forca,.5))),rgba(255,190,110,calc(.12 * var(--forca,.5))) 55%,transparent);mix-blend-mode:screen}
 .mapa-luz.fogo {background:radial-gradient(closest-side,rgba(255,150,70,calc(.42 * var(--forca,.5))),rgba(255,110,40,calc(.14 * var(--forca,.5))) 55%,transparent);animation:mapa-luz-fogo 2.4s ease-in-out infinite}
 .mapa-luz.no-alto {width:90px;height:90px;margin:-45px 0 0 -45px;z-index:90000;background:radial-gradient(closest-side,rgba(255,226,170,calc(.5 * var(--forca,.5))),rgba(255,200,120,calc(.16 * var(--forca,.5))) 60%,transparent)}
-.mapa-feixe {mix-blend-mode:screen;pointer-events:none}
+.mapa-feixe {mix-blend-mode:screen;pointer-events:none;will-change:transform}
 /* Raio de sol da janela: luz quente e suave, acima do piso e dos móveis, abaixo dos rótulos. */
 .mapa-raio-sol {position:absolute;z-index:90000;pointer-events:none;mix-blend-mode:screen;background:linear-gradient(170deg,rgba(255,226,160,.30),rgba(255,214,140,.12) 55%,rgba(255,210,130,0))}
 .mapa-pessoa.figurante {pointer-events:none}
