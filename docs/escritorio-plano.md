@@ -869,3 +869,24 @@ decoração inicial "bem feito".
     motorista, Antonov atleta, Mangaba dev de moletom, Alpha1 técnico de TI;
     o segmento fica de reserva;
   - óculos em preto viram óculos escuros: usar a cor 1408.
+
+### Interface de jogo — 19/10/2026 (noite)
+
+- Pedido do Paulo: todas as telas do Escritório com cara de jogo, fluidas e
+  com hierarquia. As áreas comuns servem para explorar e bater papo, então quem
+  está online aparece sem precisar rolar.
+- Camada visual única no fim de `vybe-styles.css` (tokens `--jg-*`): trilho,
+  lateral, abas, botões com relevo, inventário em slots, cartões da loja com o
+  brilho da raridade, barra do editor, missões, Meu espaço, criador e diálogos.
+  Respeita `prefers-reduced-motion`.
+- Navegador de salas (`vybe-escritorio.js`), em ordem de importância:
+  1. faixa do Centro de Operação (sala principal), com contadores;
+  2. "Agora no escritório": só as salas e os quartos ocupados, com rostos,
+     nomes e Entrar;
+  3. "Espaços", em grade de 3 com a arte do Habbo de cada sala
+     (`ESCRITORIO_ARTE_SALA`, desenhada pelo próprio motor do mapa);
+  4. "Quartos da equipe".
+- "Fora do escritório" vira uma lista que abre e fecha. A placa do topo ganha
+  o emblema da sala.
+- Ao construir, a coluna de cobranças e missões sai da frente da sala. Em telas
+  médias a barra do editor esconde a dica.
