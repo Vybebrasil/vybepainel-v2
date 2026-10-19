@@ -317,6 +317,7 @@ function auditar(cena, P, moveis, avisos, avisosDesenho = [], avisosIlhas = []) 
       if (!P.andavel(x, y) || (P.soleiras || []).some((q) => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h)) continue;
       const n = P.nivelEm ? P.nivelEm(x, y) : 0;
       const cobre = P.divisorias.some((dv) => {
+        if(dv.baixa) return false; // seção baixa intencional não esconde o braço do quarto
         const [x0, y0, x1, y1] = dv, alt = dv.alt ?? 118, horiz = y0 === y1;
         const t = horiz ? y0 - (y + 0.5) : x0 - (x + 0.5);
         if (t <= 0 || (horiz ? y0 === 0 : x0 === 0)) return false;
@@ -344,6 +345,7 @@ function auditar(cena, P, moveis, avisos, avisosDesenho = [], avisosIlhas = []) 
     const esq = tela(it.x, it.y + it.h).sx, dir = tela(it.x + it.w, it.y).sx;
     const baixo = tela(it.x + it.w, it.y + it.h, n).sy, alto = baixo - a.alto - (it.altura || 0) * 32;
     for (const dv of P.divisorias) {
+      if(dv.baixa) continue;
       const [x0, y0, x1, y1] = dv;
       const horiz = y0 === y1;
       if (horiz ? y0 < it.y + it.h || x1 <= it.x - 8 : x0 < it.x + it.w || y1 <= it.y - 8) continue;

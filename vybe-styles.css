@@ -6221,16 +6221,16 @@ body.no-escritorio {overflow:hidden}
 
 /* Editor do mapa */
 :is(canvas.mapa-obj.mapa-selecionado,.mapa-selecionado > canvas) {filter:drop-shadow(0 0 2px #ff8a35) drop-shadow(0 0 6px #ff8a35cc)}
-.ofc-editor {position:absolute;z-index:7;top:64px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;width:900px;max-width:calc(100% - 32px);padding:10px 12px;border-radius:16px;background:#1d1610ee;border:1px solid #ff8a3566;box-shadow:0 14px 40px #0008;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ofc-editor {position:absolute;z-index:7;top:64px;left:50%;transform:translateX(-50%);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 12px;width:960px;max-width:calc(100% - 32px);padding:10px 12px;border-radius:14px;background:var(--ofc-fundo,#202127);border:1px solid var(--ofc-borda);box-shadow:0 14px 40px #0008;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .ofc-editor[hidden] {display:none}
-.ofc-editor-info {display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;width:100%}
+.ofc-editor-info {grid-column:1;grid-row:1;display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;width:100%}
 .ofc-editor-info b {font:700 13px var(--mac-ui);color:#ffd2b0}
-.ofc-editor-info span {font-size:12px;color:var(--ofc-suave)}
+.ofc-editor-info span {font-size:12px;color:var(--ofc-suave);flex:1;min-width:160px}
 .ofc-editor-sel,.ofc-editor-acoes {display:flex;gap:6px}
 .ofc-editor button {padding:8px 12px;border-radius:10px;border:1px solid #ffffff22;background:#ffffff10;color:#fff;font:600 12px var(--mac-ui);cursor:pointer}
 .ofc-editor button[aria-pressed=true] {border-color:#ff8a35;background:#ff8a3529}
 .ofc-editor button.perigo {color:#ff9b9b}
-.ofc-editor .ofc-primario {flex:none;padding:8px 16px}
+.ofc-editor .ofc-primario {flex:none;padding:8px 16px;background:var(--ofc-laranja);border-color:transparent;color:#211207}
 .ofc-busca {display:flex;gap:6px;margin:8px 0}
 .ofc-busca input {flex:1;min-width:0;background:#ffffff0b;border:1px solid var(--ofc-borda);border-radius:10px;padding:9px;color:var(--ofc-texto);font:13px var(--mac-ui)}
 .ofc-moveis {display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px}
@@ -6772,8 +6772,8 @@ body.no-escritorio {overflow:hidden}
 @media (max-width: 760px) {.ofc-ficha-numeros {grid-template-columns:repeat(2,minmax(0,1fr))} .ofc-marcos {grid-template-columns:1fr} .ofc-dia {bottom:132px}}
 
 /* Editor: desfazer/refazer e a barrinha ao lado do móvel selecionado. */
-.ofc-editor-hist {display:flex;gap:6px}
-.ofc-editor-ferramentas {display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1}
+.ofc-editor-hist {grid-column:2;grid-row:2;display:flex;align-items:center;gap:4px}
+.ofc-editor-ferramentas {grid-column:1;grid-row:2;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
 .ofc-construtor {display:inline-flex;align-items:center;gap:6px}
 .ofc-cores-bloco {display:inline-grid;grid-template-columns:repeat(10,14px);gap:2px}
 .ofc-editor-flutua .ofc-cores-bloco button {width:14px;height:14px;padding:0;border-radius:3px;border:1px solid #0006;background:var(--cor)}
@@ -6784,7 +6784,8 @@ body.no-escritorio {overflow:hidden}
 .ofc-editor-ferramentas summary,.ofc-editor-menu summary {cursor:pointer;padding:8px;font:12px var(--mac-ui);color:var(--ofc-suave)}
 .ofc-editor-menu {position:relative}
 .ofc-editor-menu>div {position:absolute;right:0;top:100%;z-index:9;display:grid;gap:6px;min-width:160px;padding:10px;border-radius:12px;border:1px solid var(--ofc-borda);background:#202127}
-.ofc-editor-acoes {margin-left:auto}
+.ofc-editor-acoes {grid-column:2;grid-row:1;margin-left:auto}
+.ofc-editor > .ofc-conferencia {grid-column:1/-1}
 .ofc-editor-ferramentas details p {position:absolute;right:0;top:100%;z-index:9;width:min(300px,70vw);margin:4px 0;padding:12px;border:1px solid var(--ofc-borda);border-radius:12px;background:var(--ofc-fundo,#202127);color:var(--ofc-texto);line-height:1.6}
 #office-map.ofc-camera-editor {cursor:grab}
 #office-map.ofc-camera-editor:active {cursor:grabbing}
@@ -6797,13 +6798,27 @@ body.no-escritorio {overflow:hidden}
 .ofc-editor-flutua button.perigo {color:#ff9b9b}
 .ofc-editor-flutua button:focus-visible, .ofc-editor-hist button:focus-visible {outline:2px solid var(--ofc-laranja)}
 .ofc-editor-sel[hidden] {display:none}
-.ofc-cat-escolha:not([hidden]) {display:grid;gap:4px;margin:4px 0 8px;font-size:11px;color:var(--ofc-suave)}
-.ofc-cat-escolha select {font:600 13px var(--mac-ui);color:var(--ofc-texto);background:#ffffff0d;border:1px solid var(--ofc-borda);border-radius:10px;padding:8px}
+.ofc-cat-escolha:not([hidden]) {min-width:0;display:grid;gap:4px;margin:4px 0 8px;font-size:11px;color:var(--ofc-suave)}
+.ofc-cat-escolha select {width:100%;min-width:0;max-width:100%;font:600 13px var(--mac-ui);color:var(--ofc-texto);background:#ffffff0d;border:1px solid var(--ofc-borda);border-radius:10px;padding:8px}
 .ofc-paginas {display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0;font-size:12px;color:var(--ofc-suave)}
 .ofc-paginas button {width:34px;height:30px;border-radius:9px;border:1px solid var(--ofc-borda);background:#ffffff10;color:var(--ofc-texto);font:700 16px var(--mac-ui);cursor:pointer}
 .ofc-paginas button:disabled {opacity:.35;cursor:default}
-.ofc-cats-topo {margin:2px 0 10px}
-.ofc-cats-topo button {font-size:12px;padding:7px 12px}
+.ofc-cats-topo {margin:8px 0 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ofc-cats-topo button {font-size:12px;padding:9px 8px;border-radius:9px;min-width:0}
+.ofc-cats-topo button:nth-child(-n+2) {font-size:14px;font-weight:700;min-height:42px}
+.ofc-cats-topo button small {font-size:11px;opacity:.8;margin-left:4px}
+.ofc-catalogo-contexto {font-size:12px;line-height:1.5;color:var(--ofc-suave);margin:8px 0}
+.ofc-moedas {position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;margin:0 0 8px;border:1px solid var(--ofc-borda);border-radius:12px;background:var(--ofc-fundo,#202127);box-shadow:0 4px 16px #0002}
+.ofc-moedas > div {display:grid;grid-template-columns:auto auto;align-items:baseline;column-gap:6px}
+.ofc-moedas span {grid-column:1/-1;font-size:11px;color:var(--ofc-suave)}
+.ofc-moedas b {font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--ofc-texto)}
+.ofc-moedas small {font-size:11px;color:var(--ofc-suave)}
+.ofc-moedas button {font-size:11px;max-width:85px;white-space:normal;text-align:right}
+.ofc-precos {margin:6px 0;font-size:12px;color:var(--ofc-suave)}
+.ofc-precos summary {cursor:pointer;padding:6px 0}
+.ofc-precos p {line-height:1.5}
+.ofc-cats-topo button:focus-visible,.ofc-cat-escolha select:focus-visible,.ofc-moedas button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
+@media(max-width:700px){.ofc-editor {max-width:calc(100% - 16px);gap:6px;padding:8px}.ofc-editor-info span {display:none}.ofc-editor-info,.ofc-editor-acoes,.ofc-editor-ferramentas,.ofc-editor-hist {grid-column:1/-1;grid-row:auto}.ofc-editor-acoes {width:100%;justify-content:flex-end}.ofc-editor button {padding:7px 9px}.ofc-editor-acoes {flex-wrap:wrap}.ofc-editor-ferramentas {padding-top:6px}}
 .ofc-catalogo .ofc-amostras {grid-template-columns:repeat(3,minmax(0,1fr))}
 .ofc-catalogo .ofc-amostras.cores {grid-template-columns:repeat(5,minmax(0,1fr))}
 .ofc-catalogo .ofc-amostras i {height:40px}

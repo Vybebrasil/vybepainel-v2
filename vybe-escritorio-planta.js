@@ -1884,22 +1884,38 @@ function escritorioNivelQuarto(a, x, y) {
   if (x < 0 || y < 0 || x >= w || y >= h) return -1;
   return escritorioModeloPlanta(a)?.celdas[Math.floor(y)]?.[Math.floor(x)] ?? 0;
 }
-// A escada ocupa um ladrilho no percurso, mas tem quatro degraus visíveis.
-// A direção é derivada do patamar alto, inclusive nas alas laterais.
+// A circulação continua na planta: piso baixo → ladrilho intermediário → alto.
+// O desenho usa os dois extremos reais; não confunde uma peça de 0,5 com
+// uma subida de dois níveis nem adivinha a direção pelo canto da sala.
 function escritorioEscadaQuarto(a,x,y) {
   const p=escritorioModeloPlanta(a), ix=Math.floor(x), iy=Math.floor(y);
   if(!p?.escada?.some(([ex,ey])=>ex===ix && ey===iy)) return null;
-  // O patamar alto de um lado e o piso do outro: o vizinho alto que fica ao
-  // lado da escada (o canto do mezanino) não define o sentido da subida.
-  const lados=[[0,-1],[0,1],[-1,0],[1,0]].filter(([dx,dy])=>escritorioNivelQuarto(a,ix+dx,iy+dy)===2);
-  const alto=lados.find(([dx,dy])=>escritorioNivelQuarto(a,ix-dx,iy-dy)===0) || lados[0];
-  return alto ? {x:ix,y:iy,dx:alto[0],dy:alto[1]} : null;
+  const meio=escritorioNivelQuarto(a,ix,iy);
+  const lados=[[0,-1],[0,1],[-1,0],[1,0]].map(([dx,dy])=>({dx,dy,
+    alto:escritorioNivelQuarto(a,ix+dx,iy+dy), baixo:escritorioNivelQuarto(a,ix-dx,iy-dy)}));
+  const e=lados.find(e=>e.baixo>=0 && e.baixo<meio && e.alto>meio
+    && e.alto-meio<=1.5 && meio-e.baixo<=1.5);
+  return e ? {x:ix,y:iy,...e,meio} : null;
 }
 // Altura do piso (em blocos do Habbo, 1 = 32 px). A escada é um degrau de
 // altura 1 entre o chão e o mezanino (no Habbo não há rampa: sobe-se um
 // degrau de cada vez, até 1,5).
 function escritorioAlturaQuarto(a,x,y) {
   return Math.max(0,escritorioNivelQuarto(a,x,y));
+}
+// Mesma linha de visão do verificador (+x,+y). Só reduz parede que ficaria
+// entre a câmera e piso de outro braço da planta; não elimina o formato.
+function escritorioParedeCobreQuarto(a,x0,y0,x1,y1) {
+  const horizontal=y0===y1;
+  if (horizontal ? y0===0 : x0===0) return false;
+  const {w,h}=escritorioDimQuarto(a);
+  for(let x=0;x<w;x++) for(let y=0;y<h;y++) {
+    if(escritorioNivelQuarto(a,x,y)<0) continue;
+    const t=horizontal ? y0-y-.5 : x0-x-.5;
+    const onde=horizontal ? x+.5+t : y+.5+t;
+    if(t>0 && onde>=(horizontal?x0:y0) && onde<=(horizontal?x1:y1)) return true;
+  }
+  return false;
 }
 function escritorioParedesDoQuarto(a) {
   // Ao ar livre (Praça): sem paredes; as bordas são sebes e floreiras. Quarto
@@ -1914,7 +1930,12 @@ function escritorioParedesDoQuarto(a) {
   const altoParede = ((a.alturaParedeFixa ?? -1) >= 0 ? a.alturaParedeFixa + 3.6 : 3.6) + maxPiso;
   const por = (x0,y0,x1,y1,alta) => {
     const r=[x0,y0,x1,y1];
+    // Recorte interno: uma parede alta na frente de outro braço do quarto
+    // cruza a vista dele. Mostra só a seção baixa da parede (cutaway), sem
+    // mudar a máscara, o piso, a colisão ou o ponto de pendurar das demais.
+    const recorte = alta && !a.cena && escritorioParedeCobreQuarto(a,x0,y0,x1,y1);
     if(alta) {r.push(a.cor); r.sala=a.id; r.alt=Math.round((altoParede - Math.max(0, escritorioNivelQuarto(a,x0,y0))) * 32); r.espessura=a.espessuraParede ?? 1; if(a.cena) {r.textura=a.texturaParede; r.semTinta=true;}} else r.baixa=true;
+    if (recorte) { r.baixa=true; r.recorte=true; r.alt=16; }
     lista.push(r);
   };
   for(let x=0;x<w;x++) for(let y=0;y<h;y++) {
@@ -1941,19 +1962,12 @@ function escritorioParedesDoQuarto(a) {
   for(const trecho of escritorioModeloPlanta(a)?.divisorias || []) {const r=[...trecho];r.baixa=true;unidas.push(r);}
   return unidas;
 }
-// Peças fixas da planta (não são do dono, não entram no inventário nem no
-// editor): a escada do acervo em cada ladrilho de escada, subindo para o
-// mezanino, e a balaustrada na borda do mezanino onde há queda para o piso.
-// [classe, x, y, dir, estado, altura]. As duas se atravessam (MAPA_PASSAVEIS).
-const ESCRITORIO_PECA_ESCADA = "bc_stairs_recolorable", ESCRITORIO_PECA_GUARDA = "hotel_c18_rail";
-// Direção da peça de escada pelo lado em que fica o patamar alto.
-const ESCRITORIO_DIR_ESCADA = { "0,-1": 4, "0,1": 0, "-1,0": 2, "1,0": 6 };
+// Peças fixas da planta: balaustrada na borda do mezanino. A escada é
+// geometria do piso, desenhada pelo mapa com a altura real de seus extremos.
+// [classe, x, y, dir, estado, altura]. Guarda-corpos usam MAPA_PASSAVEIS.
+const ESCRITORIO_PECA_GUARDA = "hotel_c18_rail";
 function escritorioPecasDoQuarto(a) {
   const { w, h } = escritorioDimQuarto(a), pecas = [];
-  for (const [x, y] of escritorioModeloPlanta(a)?.escada || []) {
-    const e = escritorioEscadaQuarto(a, x, y);
-    if (e) pecas.push([ESCRITORIO_PECA_ESCADA, x, y, ESCRITORIO_DIR_ESCADA[e.dx + "," + e.dy] ?? 4, 0, 0]);
-  }
   // Guarda-corpo na borda da frente (+y) e da direita (+x) onde o patamar
   // cai dois blocos ou mais para o piso de baixo (queda à vista).
   const n = (x, y) => escritorioNivelQuarto(a, x, y);
@@ -1989,6 +2003,7 @@ function escritorioPlantaDoQuarto(a) {
     andavel: (x, y) => escritorioNivelQuarto(a,x,y) >= 0 || naSoleira(x, y),
     nivelEm: (x,y) => Math.max(0,escritorioNivelQuarto(a,x,y)),
     alturaEm: (x,y) => escritorioAlturaQuarto(a,x,y), escadaEm: (x,y) => escritorioEscadaQuarto(a,x,y),
+    escadas: (escritorioModeloPlanta(a)?.escada || []).map(([x,y])=>escritorioEscadaQuarto(a,x,y)).filter(Boolean),
     nivelMax: Math.max(0, ...(escritorioModeloPlanta(a)?.celdas || []).flat()),
     // Opções do quarto do Habbo: espessuras (multiplicador) da parede e do piso.
     espessuraParede: a.espessuraParede ?? 1, espessuraPiso: a.espessuraPiso ?? 1,

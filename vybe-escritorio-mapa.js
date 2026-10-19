@@ -340,6 +340,37 @@ function mapaRecorteOpaco(canvas) {
 }
 // Piso da cena (sala, espaço comum ou Praça) e a soleira da porta, sobre o
 // escuro, como um quarto do Habbo.
+// Degraus da própria planta (não móveis): cada extremidade encosta na altura
+// real do piso vizinho. A faixa vai do centro do piso baixo ao centro do alto,
+// com o ladrilho de nível intermediário no meio. Não estica arte de móvel.
+function mapaDegrausDaPlanta(e) {
+  const n=Math.max(1,Math.ceil((e.alto-e.baixo)*4)), r=[];
+  const ponto=(t,s,z)=>({x:e.x+.5+e.dx*t-e.dy*s,y:e.y+.5+e.dy*t+e.dx*s,z});
+  for(let i=0;i<n;i++) {
+    const de=-1+2*i/n, ate=-1+2*(i+1)/n, z=e.baixo+(e.alto-e.baixo)*(i+1)/n;
+    const piso=[ponto(de,-.5,z),ponto(ate,-.5,z),ponto(ate,.5,z),ponto(de,.5,z)];
+    r.push({piso,base:e.baixo});
+  }
+  return r.sort((a,b)=>a.piso.reduce((s,p)=>s+p.x+p.y,0)-b.piso.reduce((s,p)=>s+p.x+p.y,0));
+}
+function mapaDesenharEscadas(g,planta,origem) {
+  const pintar=(pontos,cor)=>{
+    const ps=pontos.map(p=>mapaTela(p.x,p.y,{...origem,alturaAtual:p.z}));
+    g.beginPath();g.moveTo(Math.round(ps[0].x),Math.round(ps[0].y));
+    for(const p of ps.slice(1)) g.lineTo(Math.round(p.x),Math.round(p.y));
+    g.closePath();g.fillStyle=cor;g.fill();g.strokeStyle='#656b73';g.lineWidth=1;g.stroke();
+  };
+  for(const e of planta.escadas || []) for(const d of mapaDegrausDaPlanta(e)) {
+    for(let i=0;i<4;i++) {
+      const a=d.piso[i],b=d.piso[(i+1)%4];
+      const cx=d.piso.reduce((s,p)=>s+p.x,0)/4,cy=d.piso.reduce((s,p)=>s+p.y,0)/4;
+      // Só as faces voltadas para a câmera; o lado de trás não invade o piso.
+      if((a.x===b.x && a.x>cx)||(a.y===b.y && a.y>cy))
+        pintar([a,b,{...b,z:d.base},{...a,z:d.base}],a.x===b.x?'#9299a2':'#b2b8c0');
+    }
+    pintar(d.piso,'#e0e4e9');
+  }
+}
 function mapaDesenharFundo(canvas, planta, origem) {
   // Espessura do piso na borda, como no Habbo (RoomPlaneParser): 0,25 bloco
   // vezes 2 elevado à escolha do quarto (−2 a 1): 2, 4, 8 ou 16 px.
@@ -440,6 +471,7 @@ function mapaDesenharFundo(canvas, planta, origem) {
   // último que cobre o ladrilho vale.
   const trecho = (x, y) => { let r = null; for (const t of planta.texturas || []) if (x >= t.x0 && x < t.x1 && y >= t.y0 && y < t.y1) r = t; return r; };
   for (let soma=0;soma<qw+qh;soma++) for(let x=0;x<qw;x++) {const y=soma-x;if(y>=0&&y<qh&&planta.andavel(x,y)) ladrilho(x,y,a,trecho(x,y));}
+  mapaDesenharEscadas(g,planta,origem);
   soleiras();
 }
 // Divisória entre ambientes: um bloco escuro baixo por ladrilho de aresta.
@@ -467,7 +499,7 @@ function mapaPosicaoPorta(classe, x, y, dir) {
   return dir === 2 || dir === 6 ? [x - 0.5, y] : [x, y - 0.5];
 }
 const MAPA_ESTILO_TEXTURA = { c: "urban_wall", d: "gardenshed_wall", e: "sb_wall", f: "exe_c15_wall", g: "hygge_c25_wallpaper1", h: "bathroom_wall4" };
-const MAPA_TEXTURA_SALA = "art_c20_wall"; // padrão das salas, tingido na cor do dono
+const MAPA_TEXTURA_SALA = "plano:parede:1901"; // padrão das salas, tingido na cor do dono
 const MAPA_TEXTURAS_PAREDE = new Map(); // classe → { 2: {canvas}, 4: {canvas}, n }
 // Papéis de parede e pisos oficiais do quarto do Habbo (room.nitro do Nitro:
 // wallData e floorData). Textura "plano:parede:1801" ou "plano:piso:205": o
@@ -563,6 +595,8 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
     g.translate(-k * 32, 0);
     g.fillStyle = g.createPattern(plano, "repeat"); g.fillRect(k * 32, 0, 32, alt);
     g.restore();
+    // A cor escolhida pelo dono também vale no material contínuo do quarto.
+    if (tingir) { g.save(); g.globalCompositeOperation='multiply'; g.globalAlpha=.7; g.fillStyle=cor; g.beginPath();g.moveTo(p0.x+3,p0.y);g.lineTo(p1.x+3,p1.y);g.lineTo(p1.x+3,p1.y-alt);g.lineTo(p0.x+3,p0.y-alt);g.closePath();g.fill();g.restore(); }
     // Luz do Habbo: a parede da esquerda um pouco mais escura; rodapé e topo.
     if (!sobe) { g.save(); g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip(); g.globalAlpha = 0.14; g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); g.restore(); }
     const faixa = (de, ate, estilo) => { g.fillStyle = estilo; g.beginPath(); g.moveTo(p0.x + 3, p0.y - de); g.lineTo(p1.x + 3, p1.y - de); g.lineTo(p1.x + 3, p1.y - ate); g.lineTo(p0.x + 3, p0.y - ate); g.closePath(); g.fill(); };
@@ -1019,7 +1053,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Pisos do acervo: carrega a arte de cada um uma vez e redesenha o fundo.
   const classesPiso = [...new Set([P.texturaSalas, P.texturaCorredor, P.texturaDeck, ...(P.texturas || []).map((r) => r.textura),
     ...(P.ambientes || []).map((a) => a.textura), ...(P.pisos || []).map((q) => q.textura)].filter(Boolean))];
-  if (classesPiso.some(mapaEhPlano) || P.divisorias.some((d) => mapaEhPlano(d.textura)))
+  if (classesPiso.some(mapaEhPlano) || P.divisorias.some((d) => mapaEhPlano(d.textura) || d.sala && mapaEhPlano(MAPA_TEXTURA_SALA)))
     mapaCarregarPlanos().then(() => { pintarFundo(); try { pintarParedes(true); } catch {} }).catch((e) => console.warn(e.message));
   if (classesPiso.length) Promise.all(classesPiso.filter((c) => !mapaEhPlano(c)).map(async (c) => {
     try {
@@ -1057,7 +1091,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     // 6º campo: estilo padrão do trecho (vidro na reunião, tijolo no Lounge…).
     const [x0, y0, x1, y1, cor] = dv, estiloBase = dv.estilo;
     // Painel do acervo: o que o dono pintou, senão o do espaço (ou o padrão da sala).
-    const texturaDe = (est) => (est?.estilo ? (est.estilo === "a" ? MAPA_TEXTURA_SALA : MAPA_ESTILO_TEXTURA[est.estilo] || null) : dv.textura || (dv.sala ? MAPA_TEXTURA_SALA : null));
+    const texturaDe = (est) => dv.recorte ? null : (est?.estilo ? (est.estilo === "a" ? MAPA_TEXTURA_SALA : MAPA_ESTILO_TEXTURA[est.estilo] || null) : dv.textura || (dv.sala ? MAPA_TEXTURA_SALA : null));
     const eixo = y0 === y1 ? "x" : "y";
     const n = eixo === "x" ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) {
