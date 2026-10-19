@@ -6936,3 +6936,66 @@ body.no-escritorio {overflow:hidden}
 .ofc-conferencia summary { cursor: pointer; font-weight: 600; }
 .ofc-conferencia p { margin: .5rem 0; }
 .ofc-conferencia li { margin: .4rem 0; overflow-wrap: anywhere; }
+
+/* Quartos da equipe pelo rosto do dono, ranking e parte do jogo na ficha (19/10/2026). */
+.ofc-salas {position:relative}
+.ofc-quartos {display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px;padding:4px 4px 6px}
+.ofc-quarto {position:relative;display:grid;justify-items:center;gap:2px;padding:6px 4px 6px;border:1px solid transparent;border-radius:12px;background:color-mix(in srgb,var(--sala) 8%,transparent);color:var(--ofc-texto);font:600 11px var(--mac-ui);cursor:pointer}
+.ofc-quarto:hover {background:color-mix(in srgb,var(--sala) 18%,transparent)}
+.ofc-quarto:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:1px}
+.ofc-quarto.aqui {border-color:color-mix(in srgb,var(--sala) 60%,transparent)}
+.ofc-quarto > .office-avatar {width:36px;height:44px;object-fit:cover;object-position:50% 12%;border-radius:10px;background:#00000022}
+.ofc-quarto:not(.online) > .office-avatar {opacity:.6;filter:grayscale(.35)}
+.ofc-quarto > .ofc-ponto {position:absolute;top:6px;left:calc(50% + 10px);width:9px;height:9px;box-shadow:0 0 0 2px #1d2029}
+.ofc-quarto > small {position:absolute;top:4px;right:6px;min-width:16px;padding:0 4px;border-radius:99px;background:var(--sala);color:#111;font:700 10px/16px var(--mac-ui);text-align:center}
+.ofc-quarto > span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-menu-quarto {min-width:170px}
+.ofc-menu-quarto small {padding:0 8px 6px;color:var(--ofc-suave);font:500 11px var(--mac-ui);text-align:center}
+
+.ofc-ranking {display:grid;align-content:start;gap:10px;padding:4px 2px 12px}
+.ofc-ranking-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ofc-ranking-topo h4 {margin:0}
+.ofc-ranking-ordem {display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:3px;border-radius:10px;background:#ffffff0a}
+.ofc-ranking-ordem button {padding:6px 4px;border:0;border-radius:8px;background:none;color:var(--ofc-suave);font:600 11px var(--mac-ui);cursor:pointer}
+.ofc-ranking-ordem button[aria-selected=true] {background:#ffffff1a;color:var(--ofc-texto)}
+.ofc-ranking-ordem button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
+.ofc-ranking-lista {display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.ofc-ranking-lista button {display:grid;grid-template-columns:30px 32px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:10px;background:#ffffff06;color:var(--ofc-texto);text-align:left;cursor:pointer}
+.ofc-ranking-lista li.eu button {background:color-mix(in srgb,var(--ofc-laranja) 14%,transparent)}
+.ofc-ranking-lista button:hover {background:#ffffff12}
+.ofc-ranking-lista button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
+.ofc-ranking-lista .office-avatar {width:32px;height:40px;object-fit:cover;object-position:50% 12%}
+.ofc-ranking-pos {font:800 13px var(--mac-ui);color:var(--ofc-suave);text-align:center;font-variant-numeric:tabular-nums}
+.ofc-ranking-pos.p1 {color:#ffd166}.ofc-ranking-pos.p2 {color:#d6dbe4}.ofc-ranking-pos.p3 {color:#e0a070}
+.ofc-ranking-nome {min-width:0;display:grid}
+.ofc-ranking-nome b {font:650 13px var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-ranking-nome small {display:flex;align-items:center;gap:4px;color:var(--ofc-suave);font-size:11px}
+.ofc-ranking-valor {font:700 12px var(--mac-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.ofc-ficha-jogo .ofc-ficha-numeros {grid-template-columns:repeat(4,minmax(0,1fr))}
+.ofc-ficha-jogo h4 {margin:14px 0 6px}
+.ofc-ficha-inventario {display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.ofc-ficha-inventario li {position:relative;display:grid;justify-items:center;gap:4px;padding:6px 4px;border-radius:10px;background:#ffffff08;font:500 10px var(--mac-ui);color:#cfd3dc;text-align:center}
+.ofc-ficha-inventario img {width:48px;height:48px;object-fit:contain;image-rendering:pixelated}
+.ofc-ficha-inventario span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-ficha-inventario em {position:absolute;top:4px;right:6px;font:700 10px var(--mac-ui);font-style:normal;color:#ffc79a}
+@media(max-width:480px){.ofc-ficha-jogo .ofc-ficha-numeros{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ofc-quarto-inicial {display:grid;place-items:center;width:36px;height:44px;border-radius:10px;background:color-mix(in srgb,var(--sala) 30%,#00000033);color:var(--ofc-texto);font:700 16px var(--mac-ui);font-style:normal}
+
+/* Edição em seções separadas: Inventário, Loja, Carteira e Decorar (19/10/2026). */
+.ofc-secoes {display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:2px;margin:0 0 10px;padding:3px;border-radius:12px;background:#ffffff0a}
+.ofc-secoes button {display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 4px;border:0;border-radius:9px;background:none;color:var(--ofc-suave);font:650 12px var(--mac-ui);cursor:pointer;white-space:nowrap}
+.ofc-secoes button small {padding:0 5px;border-radius:99px;background:#ffd16626;color:#ffd166;font:700 10px/16px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-secoes button[aria-selected=true] {background:#ffffff1c;color:var(--ofc-texto);box-shadow:0 1px 0 #ffffff10 inset}
+.ofc-secoes button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
+.ofc-moedas.compacta {padding:8px 12px}
+.ofc-moedas.compacta b {font-size:18px}
+.ofc-carteira {display:grid;gap:12px}
+.ofc-carteira-saldo {display:grid;gap:2px;padding:16px;border-radius:16px;background:linear-gradient(135deg,#ffd16622,#ff8a3518);border:1px solid #ffd16640}
+.ofc-carteira-saldo span {color:var(--ofc-suave);font:600 11px var(--mac-ui);letter-spacing:.04em;text-transform:uppercase}
+.ofc-carteira-saldo b {font:800 32px/1.1 var(--mac-ui);color:#ffd166;font-variant-numeric:tabular-nums}
+.ofc-carteira-saldo small {color:var(--ofc-suave)}
+.ofc-carteira h4 {margin:4px 0 0}
+.ofc-carteira .ofc-precos ul {margin:6px 0 0;padding-left:18px;color:var(--ofc-suave);font-size:12px}
+.ofc-carteira-acoes {display:flex;flex-wrap:wrap;gap:8px}
+.ofc-ficha-secao {margin:18px 0 0;padding-top:12px;border-top:1px solid #ffffff14;color:#a3a9b7;font:650 11px var(--mac-ui);letter-spacing:.05em;text-transform:uppercase}

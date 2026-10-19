@@ -756,3 +756,20 @@ decoração inicial "bem feito".
   Teste: "luz da sala não vira filtro de CSS em cada móvel".
 - Medição de FPS ao vivo não foi possível (aba do navegador em segundo
   plano); conferido o número de elementos filtrados e a aparência.
+
+### Pessoas, ranking, perfil e edição — 19/10/2026
+
+- Lateral: "Quartos da equipe" em cartões com o rosto do dono, ponto de status
+  e quantas pessoas estão lá; clicar abre ver perfil, entrar no quarto,
+  chamar para cá, convidar para conversar, ir até e recado
+  (`abrirMenuQuartoEscritorio`).
+- Barra da esquerda: "Ranking" (aba `ranking`) por XP, VybeCoins, móveis ou
+  conquistas; clicar abre o perfil.
+- Perfil de qualquer pessoa: VybeCoins, nível/XP, conquistas e inventário
+  (`escritorioPerfilJogoHtml`); números de trabalho em seção à parte, só
+  para a própria pessoa e quem administra.
+- Edição do próprio quarto em quatro seções: Inventário, Loja (saldo
+  compacto), Carteira (saldo, nível, marcos, preços) e Decorar (piso e
+  paredes, imagens, conjuntos). A aba lateral virou "Edição".
+- Teste: `tests/escritorio-perfil-ranking.test.mjs`. Conferência visual
+  pendente pela prévia da Vercel (a aba local ficou em segundo plano).

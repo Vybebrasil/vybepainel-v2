@@ -1,5 +1,5 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
-import { carregarEconomia, comprarMovel } from "./escritorio-economia.js";
+import { carregarEconomia, comprarMovel, perfilPublico, rankingEscritorio } from "./escritorio-economia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
@@ -317,6 +317,15 @@ export async function areaEscritorio(req, res, quem, sql) {
       if (outra && !/^\d+$/.test(outra)) return res.status(400).json({ error: "Pessoa inválida." });
       return res.status(200).json({ok:true,economia:await carregarEconomia(sql,outra ? Number(outra) : pessoa.id,{loja:!outra})});
     }
+    // Perfil e ranking do jogo, abertos a toda a equipe (decisão do Paulo,
+    // 19/10/2026): moedas, nível, conquistas e móveis. Desempenho no
+    // trabalho continua na rota "economia", restrita.
+    if (acao === "perfil-publico") {
+      const alvo = String(req.query?.pessoa || pessoa.id);
+      if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
+      return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo)) });
+    }
+    if (acao === "ranking") return res.status(200).json({ ok: true, ranking: await rankingEscritorio(sql) });
     if (acao === "recados" || acao === "recados-resumo")
       try {
         return res.status(200).json(acao === "recados"

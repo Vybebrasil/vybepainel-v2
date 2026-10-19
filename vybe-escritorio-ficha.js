@@ -130,10 +130,15 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
 <dl class="ofc-ficha-numeros">${numero("Hoje", `${n.dia.feitas}/${n.dia.total}`, "Entregas de hoje / o que vence hoje")}${numero("No mês", n.mes, "Demandas concluídas neste mês")}${numero("No prazo", n.emDia === null ? "–" : n.emDia + "%", "Entregas do mês concluídas até o prazo")}${numero("Sequência", n.seq + (n.seq === 1 ? " dia" : " dias"), "Dias úteis seguidos com pelo menos uma entrega")}${numero("Clientes", n.clientes, "Clientes diferentes atendidos no mês")}${numero("Na fila", n.abertas + (n.atrasadas ? ` <em>· ${n.atrasadas} atrasada${n.atrasadas > 1 ? "s" : ""}</em>` : ""), "Demandas abertas agora")}</dl>
 ${marcos ? escritorioMarcosHtml(marcos) : b.demo || escritorio.fichas?.[String(id)] === null ? "" : '<p class="ofc-nota">Carregando os marcos…</p>'}
 <p class="ofc-nota">Contado pelas demandas do Painel em que ${eu ? "você é" : "a pessoa é"} responsável (${n.total} concluídas no total).</p>`;
+  const quarto = escritorioQuartoDe(id);
+  const sid = safeText(String(id));
+  const fechar = "document.getElementById('office-ficha').close();";
   d.innerHTML = `<div class="ofc-ficha-topo"><img src="${img}" alt="" width="64" height="110" referrerpolicy="no-referrer"><div><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3><small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}</small></div><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
-${corpo}
-<div class="ofc-ficha-acoes">${eu ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirRecadosEscritorio('${safeText(String(id))}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();escritorioIrAte('${safeText(String(id))}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirPresenteEscritorio('${safeText(String(id))}')">Dar um móvel de presente</button>`}</div>`;
+${escritorioPerfilJogoHtml(id)}
+${veNumeros ? `<h4 class="ofc-ficha-secao">Trabalho no Painel${eu ? "" : " · visto por quem administra"}</h4>` : ""}${corpo}
+<div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirRecadosEscritorio('${safeText(String(id))}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();escritorioIrAte('${safeText(String(id))}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirPresenteEscritorio('${safeText(String(id))}')">Dar um móvel de presente</button>`}</div>`;
   if (!d.open) d.showModal();
+  if (!semAtualizar) carregarPerfilJogoEscritorio(id, () => { if (d.open) abrirFichaEscritorio(id, true); });
   // Pontos e marcos mudam com o trabalho do dia: a ficha busca o estado atual
   // ao abrir (a própria pessoa; ou outra, para quem administra).
   if (veNumeros && !semAtualizar && !b.demo && typeof escritorioApi === "function")
@@ -510,4 +515,97 @@ async function presenteChegouEscritorio(id, v) {
   } catch {}
   escritorioAviso(`${nome} te deu um móvel de presente. Está em Meus móveis.`);
   if (escritorio.edicao) renderEscritorio();
+}
+
+// ---------------------------------------------------------------------------
+// Ranking e perfil do jogo, abertos a toda a equipe (decisão do Paulo,
+// 19/10/2026): VybeCoins, nível/XP, conquistas e móveis de cada um, pela rota
+// "perfil-publico"/"ranking" do servidor. Desempenho no trabalho continua na
+// ficha da própria pessoa e com quem administra.
+const ESCRITORIO_RANKING_ORDENS = [
+  ["xpTotal", "XP", (p) => `${p.xpTotal} XP`],
+  ["saldo", "VybeCoins", (p) => `${p.saldo} moedas`],
+  ["moveis", "Móveis", (p) => `${p.moveis} ${p.moveis === 1 ? "móvel" : "móveis"}`],
+  ["conquistas", "Conquistas", (p) => `${p.conquistas} ${p.conquistas === 1 ? "conquista" : "conquistas"}`],
+];
+async function carregarRankingEscritorio(forcar = false) {
+  const r = (escritorio.ranking ||= { ordem: "xpTotal" });
+  if (r.carregando || (!forcar && r.pessoas && Date.now() - (r.em || 0) < 60e3)) return;
+  r.carregando = true; r.erro = "";
+  atualizarRankingEscritorio();
+  try {
+    const d = await escritorioApi("ranking");
+    r.pessoas = d?.ranking?.pessoas || [];
+    r.indisponivel = d?.ranking?.disponivel === false;
+    r.em = Date.now();
+  } catch (e) {
+    r.erro = e?.message || "Não deu para carregar o ranking.";
+  }
+  r.carregando = false;
+  atualizarRankingEscritorio();
+}
+function atualizarRankingEscritorio() {
+  const el = document.getElementById("office-ranking");
+  if (el) el.innerHTML = escritorioRankingHtml();
+}
+function ordenarRankingEscritorio(ordem) {
+  (escritorio.ranking ||= {}).ordem = ordem;
+  atualizarRankingEscritorio();
+}
+function escritorioRankingHtml() {
+  const r = escritorio.ranking || { ordem: "xpTotal" };
+  const equipe = escritorio.base?.equipe || [];
+  const [chave, , rotulo] = ESCRITORIO_RANKING_ORDENS.find((o) => o[0] === r.ordem) || ESCRITORIO_RANKING_ORDENS[0];
+  const abas = `<div class="ofc-ranking-ordem" role="tablist" aria-label="Ordenar o ranking por">${ESCRITORIO_RANKING_ORDENS.map(([k, nome]) => `<button type="button" role="tab" aria-selected="${k === chave}" onclick="ordenarRankingEscritorio('${k}')">${nome}</button>`).join("")}</div>`;
+  const topo = `<div class="ofc-ranking-topo"><h4>Ranking da equipe</h4><button type="button" class="ofc-mini" onclick="carregarRankingEscritorio(true)" ${r.carregando ? "disabled" : ""}>${r.carregando ? "Atualizando…" : "Atualizar"}</button></div>${abas}`;
+  if (r.erro) return `${topo}<p class="ofc-nota" role="alert">${safeText(r.erro)}</p><button type="button" class="ofc-mini" onclick="carregarRankingEscritorio(true)">Tentar de novo</button>`;
+  if (!r.pessoas) return `${topo}<p class="ofc-nota">Carregando o ranking…</p>`;
+  if (r.indisponivel) return `${topo}<p class="ofc-nota">O ranking aparece quando a loja do escritório estiver ativa.</p>`;
+  // Toda a equipe entra, inclusive quem ainda não tem moedas (fica com zero).
+  const por = new Map(r.pessoas.map((p) => [String(p.pessoa), p]));
+  const linhas = equipe.map((p) => ({ ...{ saldo: 0, xpTotal: 0, nivel: 1, moveis: 0, conquistas: 0 }, ...por.get(String(p.id)), id: String(p.id), nome: p.nome, perfil: String(p.id) === String(escritorio.base?.eu) ? escritorio.perfil : p.perfil }))
+    .sort((a, b) => b[chave] - a[chave] || b.xpTotal - a.xpTotal || a.nome.localeCompare(b.nome));
+  if (!linhas.length) return `${topo}<p class="ofc-nota">Ninguém na equipe ainda.</p>`;
+  const online = new Set((escritorio.online || []).map((o) => String(o.id)));
+  let pos = 0, anterior = null;
+  const itens = linhas.map((p, i) => {
+    if (p[chave] !== anterior) { pos = i + 1; anterior = p[chave]; }
+    const eu = p.id === String(escritorio.base?.eu);
+    return `<li class="${eu ? "eu" : ""}"><button type="button" onclick="abrirFichaEscritorio('${safeText(p.id)}')" aria-label="${safeText(p.nome)}, ${pos}º lugar, ${safeText(rotulo(p))}. Abrir perfil"><span class="ofc-ranking-pos${pos <= 3 ? " p" + pos : ""}">${pos}º</span>${escritorioAvatar(p.perfil, p.nome)}<span class="ofc-ranking-nome"><b>${safeText(p.nome)}${eu ? " · você" : ""}</b><small>${online.has(p.id) ? '<i class="ofc-ponto" style="--st:#3fbf7f"></i>online · ' : ""}Nível ${p.nivel}</small></span><span class="ofc-ranking-valor">${safeText(rotulo(p))}</span></button></li>`;
+  }).join("");
+  return `${topo}<ol class="ofc-ranking-lista">${itens}</ol><p class="ofc-nota">XP vem do trabalho e nunca cai; moedas sobem e descem com as compras e o dia a dia.</p>`;
+}
+// Parte do jogo na ficha de qualquer pessoa: moedas, nível, conquistas e o
+// inventário de móveis.
+function escritorioPerfilJogoHtml(id) {
+  const p = escritorio.perfisPublicos?.[String(id)];
+  if (p === undefined) return '<section class="ofc-ficha-jogo"><p class="ofc-nota">Carregando moedas e inventário…</p></section>';
+  if (p === null) return '<section class="ofc-ficha-jogo"><p class="ofc-nota" role="alert">Não deu para carregar moedas e inventário agora.</p></section>';
+  if (!p.disponivel) return "";
+  const total = (p.inventario || []).reduce((s, i) => s + Number(i.quantidade || 0), 0);
+  const nome = (classe) => {
+    const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe);
+    return typeof escritorioNomeMovel === "function" ? escritorioNomeMovel(m || { classe, nome: classe }) : classe;
+  };
+  const pct = Math.round((p.xp / (p.xpProximo || 1)) * 100);
+  const inv = (p.inventario || []).slice(0, 30).map((i) => `<li title="${safeText(nome(i.classe))}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(i.classe)}.png?size=64" alt="" onerror="typeof miniaturaLocalEscritorio==='function'&&miniaturaLocalEscritorio(this,'${safeText(i.classe)}')"><span>${safeText(nome(i.classe))}</span>${Number(i.quantidade) > 1 ? `<em>×${Number(i.quantidade)}</em>` : ""}</li>`).join("");
+  return `<section class="ofc-ficha-jogo" aria-label="Moedas, nível e inventário">
+<dl class="ofc-ficha-numeros"><div><dt>VybeCoins</dt><dd>${p.saldo}</dd></div><div><dt>Nível</dt><dd>${p.nivel}</dd></div><div><dt>Conquistas</dt><dd>${p.conquistas}</dd></div><div><dt>Móveis</dt><dd>${total}</dd></div></dl>
+<div class="ofc-ficha-nivel"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total</small></div>
+<h4>Inventário</h4>${inv ? `<ul class="ofc-ficha-inventario">${inv}</ul>${(p.inventario || []).length > 30 ? `<p class="ofc-nota">E mais ${(p.inventario || []).length - 30} tipos de móvel.</p>` : ""}` : '<p class="ofc-nota">Nenhum móvel guardado ainda.</p>'}</section>`;
+}
+function carregarPerfilJogoEscritorio(id, aoTerminar) {
+  const k = String(id);
+  (escritorio.perfisPublicos ||= {});
+  if (escritorio.perfisPublicos[k] && Date.now() - (escritorio.perfisPublicos[k].em || 0) < 30e3) return;
+  escritorioApi("perfil-publico", null, { pessoa: k })
+    .then((r) => { escritorio.perfisPublicos[k] = { ...(r?.perfil || { disponivel: false }), em: Date.now() }; })
+    .catch(() => { escritorio.perfisPublicos[k] = null; })
+    .finally(() => aoTerminar?.());
+}
+
+// Quarto individual de uma pessoa (o dono vem do servidor, em base.salas).
+function escritorioQuartoDe(id) {
+  const sala = (escritorio.base?.salas || []).find((s) => String(s.pessoa_id) === String(id));
+  return sala ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === sala.id) || null : null;
 }

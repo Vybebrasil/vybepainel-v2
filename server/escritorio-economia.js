@@ -3,7 +3,7 @@
 // móveis limitados ficam em vybe_escritorio_raridades/vybe_escritorio_catalogo
 // (migrations/2026-10-17-escritorio-loja.sql); quem não está na tabela é comum.
 import { readFileSync } from 'node:fs';
-import { resumoPontos, diaBahia, inicioDaSemana } from './escritorio-pontos.js';
+import { resumoPontos, diaBahia, inicioDaSemana, nivelPorXp } from './escritorio-pontos.js';
 import { conferirMarcos } from './escritorio-marcos.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
@@ -118,4 +118,35 @@ export async function comprarMovel(sql, pessoaId, {classe,chave}={}, agora = new
   }
   return carregarEconomia(tx,pessoaId,{ agora });
  });
+}
+// Perfil e ranking abertos a toda a equipe (decisão do Paulo, 19/10/2026):
+// saldo de VybeCoins, nível/XP, conquistas e os móveis de cada um. Números de
+// desempenho no trabalho (entregas, prazo) continuam só na ficha da própria
+// pessoa e com quem administra; o extrato do razão também.
+export async function perfilPublico(sql, pessoaId) {
+ if (!await economiaPronta(sql)) return { disponivel: false };
+ const comXp = await pontosProntosEconomia(sql);
+ const [c] = comXp ? await sql`SELECT saldo,xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`
+  : await sql`SELECT saldo,0 AS xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
+ const inventario = await sql`SELECT classe,quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} ORDER BY quantidade DESC, classe`;
+ const [q] = await sql`SELECT count(*)::int AS n FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%'`;
+ return { disponivel: true, saldo: Number(c?.saldo || 0), ...nivelPorXp(c?.xp || 0), conquistas: q?.n || 0, inventario };
+}
+export async function rankingEscritorio(sql) {
+ if (!await economiaPronta(sql)) return { disponivel: false, pessoas: [] };
+ const comXp = await pontosProntosEconomia(sql);
+ const carteiras = comXp ? await sql`SELECT pessoa_id,saldo,xp FROM vybe_escritorio_carteiras`
+  : await sql`SELECT pessoa_id,saldo,0 AS xp FROM vybe_escritorio_carteiras`;
+ const moveis = await sql`SELECT pessoa_id,sum(quantidade)::int AS n FROM vybe_escritorio_inventario GROUP BY pessoa_id`;
+ const conquistas = await sql`SELECT pessoa_id,count(*)::int AS n FROM vybe_escritorio_moedas WHERE origem LIKE 'conquista:%' GROUP BY pessoa_id`;
+ const por = new Map();
+ const de = (id) => { const k = String(id); if (!por.has(k)) por.set(k, { pessoa: k, saldo: 0, xpTotal: 0, nivel: 1, moveis: 0, conquistas: 0 }); return por.get(k); };
+ for (const c of carteiras) Object.assign(de(c.pessoa_id), { saldo: Number(c.saldo || 0), xpTotal: Number(c.xp || 0), nivel: nivelPorXp(c.xp || 0).nivel });
+ for (const m of moveis) de(m.pessoa_id).moveis = Number(m.n || 0);
+ for (const q of conquistas) de(q.pessoa_id).conquistas = Number(q.n || 0);
+ return { disponivel: true, pessoas: [...por.values()] };
+}
+async function pontosProntosEconomia(sql) {
+ const [r] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_escritorio_carteiras' AND column_name='xp') AS existe`;
+ return Boolean(r?.existe);
 }
