@@ -890,3 +890,40 @@ decoração inicial "bem feito".
   o emblema da sala.
 - Ao construir, a coluna de cobranças e missões sai da frente da sala. Em telas
   médias a barra do editor esconde a dica.
+
+### Zoom e catálogo — 19/10/2026 (noite)
+
+- Zoom: cada troca de nível (0,5×/1×/2×) leva 220 ms, com o ponto sob o
+  cursor parado na tela. Um gesto do trackpad troca um nível só; o embalo não
+  pula outro. A variável `--contra` dos letreiros só muda em passos de 5%:
+  mudar a cada quadro recalculava o estilo de todos e travava a animação.
+- Catálogo (botão na barra, fora da construção): todos os móveis com filtro
+  por raridade (com contagem), ordem por preço ou raridade, categoria, busca
+  e "Só o que dá para comprar". O clique abre a mesma prévia da loja.
+  Comprar fora do editor manda o móvel para o Inventário; os essenciais
+  grátis continuam no editor do quarto.
+- Agentes do Centro de Operação (Paulo: "não precisa supor nada"): cada
+  fantasia vem da marca real, conferida no Instagram de cada cliente (lista
+  "Seguindo" da @asuavybe, bio e logo), nas contas de anúncio da Vybe e no
+  Drive. Roupa nas cores da marca e peça que diz o que o cliente é. O Alpha1
+  é o lobo do mascote (máscara `fa-3771`). Cada agente tem um bordão do
+  próprio perfil; um fala por vez. Use as cores comuns da paleta: as do clube
+  não pegam no top feminino nem no blazer.
+- Pendente: redesenhar o Centro de Operação com espaço livre para a equipe
+  trabalhar.
+
+### Construção e catálogo mais claros — 19/10/2026 (noite)
+
+- Um catálogo só, com as mesmas peças na construção (Inventário, Loja,
+  acervo) e no Catálogo da barra. Tem categorias em seções (Atalhos, Móveis,
+  Decoração, Ambientes, Construção, Jogos e efeitos, Estilos e coleções) e as
+  faixas de raridade como filtro à parte, com contagem.
+- A Vitrine da semana é uma categoria (a padrão da Loja), não um bloco fixo
+  no topo, que escondia a troca de categoria.
+- Cartão compacto, 3 por linha: nome e uma linha com faixa e preço (ou
+  quantos são seus, no Inventário). O clique sempre abre a ficha (animação,
+  onde fica, uso) com Comprar e/ou Colocar. Arrastar continua colocando direto.
+- Barra do editor numa linha (área, ferramentas, ajudas, histórico, Mais e
+  Salvar). A instrução do momento ("Estante na mão · clique no piso…") fica
+  numa faixa abaixo, com Cancelar. Peça de parede pede o piso junto da parede.
+- A Carteira cabe na lateral.
