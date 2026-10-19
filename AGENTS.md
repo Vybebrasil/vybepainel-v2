@@ -131,6 +131,24 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   também confere o desenho (`scripts/escritorio-desenho.mjs`): o que um móvel
   cobre do outro e a frente das máquinas; é erro nas salas refeitas
   (`DESENHO_CONFERIDO`) e aviso nas demais até serem refeitas.
+  Desde 18/10/2026 (decisão do Paulo) as salas comuns refeitas são montadas
+  pelo motor de construção: a descrição peça a peça fica em `scripts/cenas/<id>.mjs`,
+  as regras em `scripts/escritorio-construcao.mjs` (apoio pela ficha, direção do
+  assento, tapete centrado, espaço na parede medido pela arte, figurante só em
+  assento) e `node scripts/escritorio-compor.mjs` gera o bloco
+  `ESCRITORIO_CENAS_COMPOSTAS` no `vybe-escritorio-planta.js` e roda o
+  verificador. Não edite o bloco gerado nem escreva coordenadas de sala à mão;
+  defeito novo vira regra no motor ou no verificador. O Café é a sala modelo.
+  Plano em andamento, estado de cada sala e decisões recentes do Escritório
+  ficam em `docs/escritorio-plano.md`: leia antes de mexer e atualize-o no
+  mesmo commit ao terminar uma etapa. Riqueza de sala vem de projeto (conceito,
+  zonas, cantos com história, peças curadas), nunca de cota de quantidade.
+  O verificador tira a "foto" da cena com a profundidade do mapa (Nitro: ladrilho
+  de origem, altura e z da camada; piso e revestimento em faixas próprias) e
+  cobra que cada peça apareça (metade no chão, 80% na parede). Peça pendurada
+  do Habbo já vem desenhada no teto: altura zero, medida pela arte (acima da
+  cabeça, abaixo do topo da parede, nunca sob o mezanino). Papel de parede e
+  lambri (`mapaEhRevestimento`) ficam atrás de tudo o que se pendura na parede.
 - Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma
@@ -164,6 +182,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   XP e conquistas. A operação única guarda perfis, camadas e inventário antes
   de limpar (`2026-10-17-escritorio-quartos-reinicio.sql`); não repetir nem
   transformar em reset automático no carregamento.
+- Segundo reinício autorizado por Paulo em 18/10/2026: após esta publicação,
+  zerar decoração, pintura, andares e inventários pessoais, sem nova cópia;
+  devolver o preço de cada compra pelo razão, uma vez por compra, sem XP.
+  Preservar saldo anterior, XP, conquistas e salas comuns. Usar a migração
+  `2026-10-18-escritorio-reinicio-reembolso.sql`; não repetir o reset antigo.
+  As salas comuns ainda precisam de melhorias visuais individuais; Paulo
+  autorizou esta publicação sem considerá-las visualmente aprovadas.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
   17/10/2026): XP nunca cai; perda só em moedas e nunca abaixo de zero; valores
   e funções ficam nas tabelas `vybe_escritorio_regras` e `vybe_escritorio_funcoes`

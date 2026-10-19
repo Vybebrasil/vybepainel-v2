@@ -104,3 +104,62 @@ export function emComum(a, b) {
     if (a.s.m[(y - a.sy) * a.s.w + (x - a.sx)] && b.s.m[(y - b.sy) * b.s.w + (x - b.sx)]) n++;
   return n;
 }
+
+// Cada camada do desenho com a sua máscara e o z da arte (para a foto da
+// cena, que põe camada por camada na profundidade do mapa). Mesma escolha
+// de quadro e de ponto de registro da silhueta. A sombra fica de fora; a
+// luz (ADD) e o que é quase transparente vêm marcados, para não taparem.
+const camadasCache = new Map();
+export function camadasDesenho(classe, dir, estado = 0) {
+  const chave = `${classe}|${dir}|${estado}`;
+  if (camadasCache.has(chave)) return camadasCache.get(chave);
+  const r = [];
+  const f0 = folha(classe);
+  if (f0?.png) {
+    const { dados, png } = f0, nome = dados.name, v = dados.visualizations.find((x) => x.size === 64);
+    const anim = v?.animations?.[estado] ? estado : 0;
+    for (let i = 0; i < (v?.layerCount || 1); i++) {
+      const L = { ...(v?.layers?.[i] || {}), ...(v?.directions?.[dir]?.layers?.[i] || {}) };
+      const seq = Object.values(v?.animations?.[anim]?.layers?.[i]?.frameSequences || {})[0]?.frames;
+      const id = seq ? Object.values(seq)[0]?.id ?? 0 : 0;
+      const asset = `${nome}_64_${String.fromCharCode(97 + i)}_${dir}_${id}`, a = dados.assets[asset];
+      if (!a) continue;
+      const f = dados.spritesheet.frames[`${nome}_${a.source || asset}`]?.frame;
+      if (!f) continue;
+      const flip = Boolean(a.flipH), x = flip ? a.x - f.w : -a.x, y = -a.y;
+      const m = new Uint8Array(f.w * f.h);
+      let n = 0;
+      for (let j = 0; j < f.h; j++) for (let k = 0; k < f.w; k++) {
+        const sx = f.x + (flip ? f.w - 1 - k : k), sy = f.y + j;
+        if (sx >= png.w || sy >= png.h || png.alfa[sy * png.w + sx] < 128) continue;
+        m[j * f.w + k] = 1; n++;
+      }
+      if (n) r.push({ i, z: L.z || 0, luz: L.ink === "ADD" || (L.alpha != null && L.alpha < 128), x, y, w: f.w, h: f.h, m, n });
+    }
+  }
+  camadasCache.set(chave, r);
+  return r;
+}
+
+// Para onde a frente da peça olha (vetor no piso), uma regra só para o motor
+// de construção e o verificador. Arte de quatro direções: 0 → −y, 2 → +x,
+// 4 → +y, 6 → −x. De duas: peça comprida olha perpendicular ao lado
+// comprido, para quem vê a sala (+x ou +y), como a estante e a lareira da
+// cabana; peça quadrada depende da família da arte (a outra direção é o
+// espelho): na "0 e 2" a 0 olha para +x e a 2 para +y; na "2 e 4", a 2 olha
+// para +x e a 4 para +y (conferido no fliperama pichado, 18/10/2026).
+const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
+// Frentes conferidas na arte (vitrine): a peça cuja arte foge da regra tem o
+// mapa dela; a que não está na lista não teve a frente conferida.
+const FICHA_FRENTES = existsSync("assets/escritorio/habbo/frentes.json") ? JSON.parse(readFileSync("assets/escritorio/habbo/frentes.json", "utf8")) : {};
+export const FRENTES = FICHA_FRENTES.conferidas || {};
+export const ESCADAS = FICHA_FRENTES.escadas || {};
+export function frenteDaPeca(dirs, w, h, dir, classe) {
+  const f = classe && FRENTES[classe];
+  if (f && typeof f === "object") return f[dir] || null;
+  // "0 e 6" (divisória, banqueta de corrida) segue a rosa de quatro direções.
+  if (dirs.length >= 4 || dirs.includes(6)) return OLHA[dir];
+  if (w > h) return [0, 1];
+  if (h > w) return [1, 0];
+  return (dirs.includes(0) ? { 0: [1, 0], 2: [0, 1] } : { 2: [1, 0], 4: [0, 1] })[dir];
+}

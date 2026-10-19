@@ -127,6 +127,28 @@ const MAPA_TINTA = typeof document !== "undefined" && document.createElement ? d
 const MAPA_PROF_LADRILHO = 0.70708, MAPA_PROF_ALTURA = 0.00713;
 const MAPA_PROF_SENTADO = -0.01, MAPA_PROF_DEITADO = -0.409, MAPA_PROF_SOMBRA = 1;
 function mapaProfCamada(z, i) { return (-(z || 0) / 1000 - i * 0.001) * Math.SQRT1_2; }
+// Revestimento de parede (papel, lambri do Habbo): item de parede largo
+// (2 ladrilhos ou mais) e da altura da parede. É o fundo da parede: fica por
+// baixo de tudo o que se pendura nela, em qualquer ponto (a lousa do Café
+// aparecia cortada pelo papel do trecho seguinte). Mesma regra no
+// verificador e no motor de construção (que carregam este arquivo).
+function mapaEhRevestimento(dim, parede) { return Boolean(parede) && (dim?.x ?? 0) >= 2 && (dim?.z ?? 0) >= 2.9; }
+// Faixa própria: acima da parede (2000…) e do piso (1000…), abaixo de todo
+// móvel e item de parede (mapaZ, 10000 ou mais); mais fundo na arte, mais atrás.
+function mapaZRevestimento(profArte) { return 9500 - Math.round((profArte || 0) * 100); }
+// Item de parede desenhado num canvas só: fica na profundidade da camada
+// mais funda da arte (z do Habbo). Papel de parede (z −5000 a −2000) vai
+// atrás de lousa, quadro, janela e prateleira postos na frente dele, como
+// no Nitro; antes ele cobria o que estivesse no trecho ao lado.
+function mapaProfFundoParede(dados, dir) {
+  const v = dados?.visualizations?.find((x) => x.size === 64);
+  const zs = [];
+  for (let i = 0; i < (v?.layerCount || 1); i++) {
+    const z = v?.directions?.[dir]?.layers?.[i]?.z ?? v?.layers?.[i]?.z;
+    if (z != null) zs.push(z);
+  }
+  return zs.length ? mapaProfCamada(Math.min(...zs), 0) : 0;
+}
 function mapaProfundidade(x, y, z = 0) { return -MAPA_PROF_LADRILHO * (x + y) - MAPA_PROF_ALTURA * z; }
 // z-index da profundidade (resolução de 0,001). Faixas: tapetes (1000+)
 // rente ao piso; paredes do fundo (2000+) atrás de tudo, como os planos do
@@ -886,6 +908,11 @@ function mapaFiltroDaLuz(luz) {
   }
   return id;
 }
+// Peças de piso que os construtores põem no alto para fazer andar de cima.
+const MAPA_PISO_DE_OBRA = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmfloor|_deck$|parquet|marble\d*$/;
+// Piso de construtor (tábua, ladrilho, mármore posto no alto): é chão, não
+// peça pendurada. Uma regra só, usada também pelo verificador.
+function mapaEhPisoDeObra(classe) { return MAPA_PISO_DE_OBRA.test(classe); }
 // Refletor de festa do Habbo: cada foco anda num vaivém dentro de uma área de
 // 31 px (no tamanho 64), com subida e descida em seno que encolhe perto das
 // pontas; ao chegar à ponta, volta; a amplitude muda quando a curva zera.
@@ -1005,10 +1032,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Ponto do item na parede. Como no Habbo (LegacyWallGeometry), a posição
   // ao longo da parede é livre: o ajuste fino (¼ de ladrilho) desliza o item.
   const mapaAncoraParede = (x, y, dir) => (dir === 2 ? mapaTela(Math.floor(x), y + 0.5, origem) : mapaTela(x + 0.5, Math.floor(y), origem));
+  // Como no Nitro (RoomObjectLocationCacheItem), a posição na tela é
+  // arredondada para o pixel antes de somar o deslocamento da arte: sem
+  // isso, peça em meio ladrilho ou altura quebrada saía borrada e meio
+  // pixel fora da vizinha.
   const colocar = (no, x, y, desenho, prof) => {
     const t = mapaTela(x, y, origem);
-    no.style.left = t.x + desenho.ox + "px";
-    no.style.top = t.y + desenho.oy + "px";
+    no.style.left = Math.round(t.x + desenho.ox) + "px";
+    no.style.top = Math.round(t.y + desenho.oy) + "px";
     if (prof != null) no.style.zIndex = prof;
   };
   // Divisórias. Parede na frente de alguém fica transparente (recorte), para
@@ -1078,6 +1109,46 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     palco.append(c);
     paisagens.push(p);
   }
+  // Raio de sol entrando pela janela (como a luz desenhada das referências de
+  // construtores): um feixe quente e suave da borda de baixo da janela até o
+  // chão, inclinado para dentro do quarto. Só nas cenas que pedem (raiosDeSol).
+  function criarRaioDeSol(item) {
+    const L = parseFloat(item.no.style.left), T = parseFloat(item.no.style.top), W = item.no.width, H = item.no.height;
+    const fundo = item.dir !== 2, B = T + H * 0.82;
+    const a = fundo ? [L, B] : [L, B + W / 2], b = fundo ? [L + W, B + W / 2] : [L + W, B];
+    const v = fundo ? [-70, 170] : [70, 170];
+    const pts = [a, b, [b[0] + v[0], b[1] + v[1]], [a[0] + v[0], a[1] + v[1]]];
+    const x0 = Math.min(...pts.map((p) => p[0])), y0 = Math.min(...pts.map((p) => p[1]));
+    const x1 = Math.max(...pts.map((p) => p[0])), y1 = Math.max(...pts.map((p) => p[1]));
+    const n = document.createElement("i");
+    n.className = "mapa-raio-sol";
+    n.style.left = x0 + "px"; n.style.top = y0 + "px"; n.style.width = x1 - x0 + "px"; n.style.height = y1 - y0 + "px";
+    n.style.clipPath = `polygon(${pts.map(([x, y]) => `${x - x0}px ${y - y0}px`).join(",")})`;
+    palco.append(n);
+  }
+  // Figurantes da cena (cozinheiro, garçom): boneco do Habbo parado, com a
+  // mesma posição e profundidade de quem anda, mas fora da lista de pessoas.
+  // Figurante senta só num assento de verdade, na direção dele (como quem
+  // para num assento); sem assento no ladrilho, fica de pé. Assim um móvel
+  // tirado do lugar não deixa ninguém sentado no chão. Remonta do zero
+  // quando a grade muda (portão), sem duplicar.
+  function montarFigurantes() {
+    for (const n of palco.querySelectorAll(".mapa-pessoa.figurante")) n.remove();
+    for (const [i, f0] of (P.figurantes || []).entries()) {
+      const dirAssento = grade?.assento.get(grade.ind(f0.x, f0.y));
+      const f = f0.acao === "sit" ? (dirAssento === undefined ? { ...f0, acao: "std" } : { ...f0, dir: dirAssento }) : f0;
+      const no = document.createElement("div");
+      no.className = "mapa-pessoa figurante";
+      no.setAttribute("aria-hidden", "true");
+      const img = document.createElement("img");
+      img.alt = ""; img.draggable = false; img.referrerPolicy = "no-referrer";
+      no.append(img);
+      palco.append(no);
+      const p = { id: "figurante-" + i, no, img, etiqueta: document.createElement("span"), x: f.x, y: f.y, dir: f.dir ?? 4, acao: f.acao || "std", figura: f.figura, mao: f.mao || "" };
+      posicionarPessoa(p);
+      trocarImagem(p);
+    }
+  }
   function pintarPaisagem(p) {
     const g = p.c.getContext("2d");
     g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, p.c.width, p.c.height);
@@ -1102,12 +1173,37 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Profundidade de um móvel (Nitro): ladrilho de origem e altura; o de
   // parede fica no plano da parede, meio ladrilho para trás.
   const profMovel = (m) => (m.parede
-    ? (m.dir === 2 ? mapaProfundidade(Math.floor(m.x) - 0.5, m.y, m.altura || 0) : mapaProfundidade(m.x, Math.floor(m.y) - 0.5, m.altura || 0))
+    ? (m.dir === 2 ? mapaProfundidade(Math.floor(m.x) - 0.5, m.y, m.altura || 0) : mapaProfundidade(m.x, Math.floor(m.y) - 0.5, m.altura || 0)) + (m.profArte || 0)
     : mapaProfundidade(m.x, m.y, m.altura || 0));
+  // Camadas extras do item de parede seguem a principal (posição e destaque).
+  const juntarCamadasParede = (m) => {
+    for (const e of m.extras || []) { e.no.style.left = m.no.style.left; e.no.style.top = m.no.style.top; }
+  };
+  // Redesenha o item de parede, camada a camada (ou inteiro, se for uma só).
+  const redesenharParede = (item, estado, q) => {
+    const alvos = item.grupos ? [{ no: item.no, chave: item.grupos[0].chave }, ...(item.extras || [])] : [{ no: item.no }];
+    let ref = null;
+    for (const a of alvos) {
+      const filtro = a.chave == null ? item.filtro : (p) => mapaGrupoCamada(p) === a.chave && (!item.filtro || item.filtro(p));
+      const d = mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro);
+      const g = a.no.getContext("2d");
+      if (!d) { g.clearRect(0, 0, a.no.width, a.no.height); continue; }
+      ref ??= d;
+      if (a.no.width !== d.canvas.width || a.no.height !== d.canvas.height) { a.no.width = d.canvas.width; a.no.height = d.canvas.height; }
+      else g.clearRect(0, 0, a.no.width, a.no.height);
+      g.drawImage(d.canvas, 0, 0);
+    }
+    return ref;
+  };
   const ordenarMovel = (m) => {
+    if (m.revestimento) { m.no.style.zIndex = m.prof = mapaZRevestimento(m.profArte); return; }
     const base = profMovel(m);
     const z = (prof) => (m.plano && !m.parede ? mapaZPlano(prof) : mapaZ(prof));
-    if (!m.camadas) { m.no.style.zIndex = m.prof = z(base); return; }
+    if (!m.camadas) {
+      m.no.style.zIndex = m.prof = z(base);
+      for (const e of m.extras || []) e.no.style.zIndex = z(base - (m.profArte || 0) + e.prof);
+      return;
+    }
     let frente = Infinity;
     for (const c of m.camadas) {
       c.no.style.zIndex = z(base + c.prof);
@@ -1177,14 +1273,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     item.ligadoPadrao ??= item.estado || 1;
     item.estado = estado;
     item.quadros = mapaQuadros(item.m.dados, estado);
-    if (item.parede) {
-      item.no.width = d.canvas.width; item.no.height = d.canvas.height;
-      item.no.getContext("2d").drawImage(d.canvas, 0, 0);
-    } else pintarMovel(item, d);
+    if (item.parede) redesenharParede(item, passagem ? Number(passagem) : estado, 0);
+    else pintarMovel(item, d);
     if (item.parede) {
       const anc = mapaAncoraParede(item.x, item.y, item.dir);
-      item.no.style.left = anc.x + d.ox + MAPA_PAREDE_AJUSTE[item.dir].x + "px";
-      item.no.style.top = anc.y + d.oy + MAPA_PAREDE_AJUSTE[item.dir].y - item.altura * 32 + "px";
+      item.no.style.left = Math.round(anc.x) + d.ox + MAPA_PAREDE_AJUSTE[item.dir].x + "px";
+      item.no.style.top = Math.round(anc.y - item.altura * 32) + d.oy + MAPA_PAREDE_AJUSTE[item.dir].y + "px";
+      juntarCamadasParede(item);
     } else colocar(item.no, ...mapaPosicaoPorta(item.classe, item.x, item.y, item.dir), { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 + (item.classe === "bc_stairs_recolorable" ? (P.alturaEm?.(item.x, item.y) || 0) * MAPA_NIVEL_PX : 0) });
     const i = animados.indexOf(item);
     if (i >= 0) animados.splice(i, 1);
@@ -1199,7 +1294,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     }
     if (luzesLigadas) pintarLuzes();
     // Portão abriu ou fechou: a passagem muda para todos.
-    if (portao && grade) { grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); }
+    if (portao && grade) { grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) montarFigurantes(); }
   }
   // Imagens da equipe ("vybeimg_<id>"): quadro pintado na parede alta da
   // sala; tapete desenhado no piso (rente ao chão, dá para andar por cima).
@@ -1295,24 +1390,43 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       // (em ladrilhos de parede, 1 = 32 px) acima do chão. Não bloqueia o piso.
       if (deParede) {
         const ancora = mapaAncoraParede(x, y, d0);
-        const no = desenho.canvas;
+        // Como no Nitro, cada camada da arte do item de parede fica na sua
+        // profundidade (z do Habbo): a moldura pode passar na frente de um
+        // item vizinho e o fundo dela atrás. O revestimento fica inteiro na
+        // faixa do fundo da parede; o refletor tem os focos à parte.
+        // Medidas da ficha, sem girar (na parede da esquerda as medidas do
+        // mapa vêm trocadas e o papel deixava de ser revestimento).
+        const revest = mapaEhRevestimento(m.dados.logic?.model?.dimensions, true);
+        const grupos = !feixe && !revest && desenho.grupos?.length > 1 ? desenho.grupos : null;
+        const doGrupo = (g) => mapaDesenharMovel(m, d0, estado, 0, 0, (p) => mapaGrupoCamada(p) === g.chave)?.canvas;
+        const no = (grupos && doGrupo(grupos[0])) || desenho.canvas;
         no.className = "mapa-obj mapa-de-parede";
         no.dataset.classe = classe;
-        no.style.left = ancora.x + desenho.ox + MAPA_PAREDE_AJUSTE[d0].x + "px";
+        no.style.left = Math.round(ancora.x) + desenho.ox + MAPA_PAREDE_AJUSTE[d0].x + "px";
         // A parede tem altura própria (prédio 118, sala 82 ou a que o dono
         // pintou, divisória baixa 46): o item fica sempre dentro dela, sem
         // passar do topo (antes as janelas "flutuavam" acima das paredes das salas).
-        let topo = ancora.y + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y - altura * 32;
+        let topo = Math.round(ancora.y - altura * 32) + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y;
         const altParede = mapaAlturaParede(Math.floor(x), Math.floor(y), d0 === 2 ? "y" : "x");
         const teto = ancora.y - altParede + 4, h = no.height;
         if (topo < teto) topo = teto;
         if (topo + h > ancora.y + 2) topo = Math.max(teto, ancora.y + 2 - h);
         no.style.top = topo + "px";
         palco.append(no);
-        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: 0, caixa: null, origem: origemItem, semente: semente(x, y), ox: desenho.ox, oy: desenho.oy };
+        const extras = (grupos || []).slice(1).map((g) => {
+          const c = doGrupo(g);
+          if (!c) return null;
+          c.className = no.className; c.dataset.classe = classe;
+          if (g.luz) c.style.mixBlendMode = "plus-lighter";
+          palco.append(c);
+          return { no: c, chave: g.chave, prof: g.prof };
+        }).filter(Boolean);
+        const item = { classe, x, y, dir: d0, estado, m, no, quadros: mapaQuadros(m.dados, estado), dim: { x: 1, y: 1, z: 0 }, altura, plano: true, parede: true, lado: dir === 2 ? 2 : 4, prof: 0, profArte: grupos ? grupos[0].prof : mapaProfFundoParede(m.dados, d0), revestimento: revest, grupos, extras, caixa: null, origem: origemItem, semente: semente(x, y), ox: desenho.ox, oy: desenho.oy };
+        juntarCamadasParede(item);
         ordenarMovel(item);
         if (feixe) { item.filtro = semFocos; criarFocos(no, Number(no.style.zIndex || 0) + 1); }
         if (m.dados.logicType === "furniture_window") criarPaisagem(item, desenho);
+        if (P.raiosDeSol && /window/.test(classe)) criarRaioDeSol(item);
         moveis.push(item);
         if (item.quadros > 1) animados.push(item);
         if (estadosForcados.has(chaveMovel(item))) aplicarEstado(item, estadosForcados.get(chaveMovel(item)), false);
@@ -1344,7 +1458,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       console.warn(e.message);
     }
   };
-  let grade = null, selecionado = null;
+  let grade = null, selecionado = null, montarFigurantesDepois = false;
   // Fundo colorido do Habbo (furniture_background_color): a peça ligada pinta
   // o vazio em volta do quarto com a cor gravada nela (nitro-react tinge o
   // fundo, não o quarto). Sem ela, vale o fundo da cena.
@@ -1389,7 +1503,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const marcarPendurados = () => {
     for (const m of moveis) {
       // Só peça fina (altura ~0 na ficha do Habbo): bloco e ponte no alto continuam chão.
-      if (m.parede || !(m.altura > 0) || mapaAlturaMovel(m) > 0.05) { m.pendurado = false; continue; }
+      // Piso de construtor no alto (assoalho, tábua, ladrilho: o mezanino do
+      // Café) é chão, como no Habbo; pendurado é só a decoração (hera, luzes).
+      if (m.parede || !(m.altura > 0) || mapaAlturaMovel(m) > 0.05 || mapaEhPisoDeObra(m.classe)) { m.pendurado = false; continue; }
       const x0 = Math.floor(m.x), y0 = Math.floor(m.y), x1 = x0 + Math.max(1, Math.round(m.dim.x)), y1 = y0 + Math.max(1, Math.round(m.dim.y));
       m.pendurado = !moveis.some((o) => o !== m && !o.parede && Math.floor(o.x) < x1 && Math.floor(o.x) + Math.max(1, Math.round(o.dim.x)) > x0 && Math.floor(o.y) < y1 && Math.floor(o.y) + Math.max(1, Math.round(o.dim.y)) > y0 && (o.altura || 0) < m.altura && mapaTopoMovel(o) >= m.altura - 0.15);
       for (const c of m.camadas || []) if (c.prof === MAPA_PROF_SOMBRA) c.no.hidden = m.pendurado;
@@ -1401,7 +1517,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
   // A grade só é montada com a ficha de física do Habbo carregada.
-  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); carga.pronto = true; });
+  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); montarFigurantesDepois = true; grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) montarFigurantes(); carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   // Uma troca por vez: duas seguidas (editar e salvar) desenhavam os móveis
   // em dobro, porque a segunda limpava enquanto a primeira ainda montava.
@@ -1416,7 +1532,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     if (postitsAtuais) postits(...postitsAtuais);
   }
   async function trocarMoveisAgora(lista) {
-    for (const item of moveis) item.no.remove();
+    for (const item of moveis) { item.no.remove(); for (const e of item.extras || []) e.no.remove(); }
     for (const p of paisagens) p.c.remove();
     paisagens.length = 0;
     moveis.length = 0;
@@ -1440,7 +1556,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   function destacar(origem) {
     selecionado = origem;
     const lista = Array.isArray(origem) ? origem : origem ? [origem] : [];
-    for (const m of moveis) m.no.classList.toggle("mapa-selecionado", lista.some((o) => m.origem?.camada === o.camada && m.origem?.i === o.i));
+    for (const m of moveis) {
+      const sel = lista.some((o) => m.origem?.camada === o.camada && m.origem?.i === o.i);
+      m.no.classList.toggle("mapa-selecionado", sel);
+      for (const e of m.extras || []) e.no.classList.toggle("mapa-selecionado", sel);
+    }
   }
   // Medidas no chão de um móvel numa direção (carrega o modelo se precisar).
   // Prévia do editor: o móvel meio transparente no ladrilho do mouse (verde
@@ -2254,13 +2374,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         if (d) pintarMovel(item, d);
         continue;
       }
-      const d = mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, item.filtro);
+      const d = redesenharParede(item, estado, q);
       if (!d) continue;
       seguirRegistro(item, d);
-      const g = item.no.getContext("2d");
-      if (item.no.width !== d.canvas.width || item.no.height !== d.canvas.height) { item.no.width = d.canvas.width; item.no.height = d.canvas.height; }
-      else g.clearRect(0, 0, item.no.width, item.no.height);
-      g.drawImage(d.canvas, 0, 0);
+      juntarCamadasParede(item);
     }
   };
   prontos.then(() => { relogio = setInterval(animar, 1000 / (reduzido ? 12 : 24)); });

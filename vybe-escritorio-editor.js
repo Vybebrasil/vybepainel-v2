@@ -80,7 +80,7 @@ async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
   clearInterval(escritorio.timerSeguir);
   escritorio.edicao = {
     camada,
-    itens: escritorioItensDaCamada(camada).map((it) => [...it.slice(0, 6)]),
+    itens: escritorioItensDaCamada(camada).map((it) => structuredClone(it)),
     versao: salvo?.versao || 0,
     sel: null, novo: null, mudou: false,
   };
@@ -116,6 +116,11 @@ async function salvarEditorEscritorio() {
   e.salvando = true;
   renderBarraEditorEscritorio();
   try {
+    const conferencia = await conferirConstrucaoEditorEscritorio();
+    if (!conferencia) { e.salvando = false; renderBarraEditorEscritorio(); return; }
+    if (conferencia.problemas.length && !confirm(`A conferência encontrou ${conferencia.problemas.length} pontos na construção. Salvar assim mesmo? Você pode consultar a lista em Conferir construção.`)) {
+      e.salvando = false; renderBarraEditorEscritorio(); return;
+    }
     // A planta desenhada vai junto com os móveis (o servidor confere os dois).
     const planta = e.celdas !== undefined ? { celdas: e.celdas } : {};
     let r = { camada: e.camada, itens: e.itens, versao: e.versao + 1, ...planta };
@@ -586,7 +591,8 @@ function renderBarraEditorEscritorio() {
 <div class="ofc-editor-ferramentas" role="group" aria-label="Ferramentas de construção"><button type="button" aria-pressed="${e.ferramenta !== 'camera'}" onclick="ferramentaEditorEscritorio('selecionar')">Selecionar</button><button type="button" aria-pressed="${e.ferramenta === 'camera'}" onclick="ferramentaEditorEscritorio('camera')" title="Segure Espaço para mover a visão temporariamente">Mover visão</button><button type="button" aria-pressed="${e.grade !== false}" onclick="gradeEditorEscritorio(true)">Grade</button><span class="ofc-construtor" role="group" aria-label="Modo construtor"><button type="button" aria-pressed="${Boolean(escritorio.construtor?.ligado)}" onclick="alternarConstrutorEscritorio()" title="Como o ladrilho de empilhar do Habbo: põe móvel em cima de qualquer coisa, sem bloqueio (B)">Construtor</button>${escritorio.construtor?.ligado ? `<label>Altura <input type="number" min="0" max="${ESCRITORIO_ALTURA_MAX}" step="0.1" inputmode="decimal" value="${escritorio.construtor.altura ?? ""}" placeholder="auto" aria-label="Altura de empilhar (vazio: em cima do que estiver embaixo)" onchange="alturaConstrutorEscritorio(this.value)"></label>` : ""}</span><details><summary>Atalhos</summary><p>Espaço: mover visão · R: girar · Alt + setas: ajuste fino · Page Up/Down: altura · Shift + clique: seleção múltipla · Ctrl/⌘ + D: duplicar · Ctrl/⌘ + Z: desfazer · Esc: cancelar colocação · B: modo construtor.</p></details></div>
 <div class="ofc-editor-hist"><button type="button" onclick="desfazerEditorEscritorio()" ${e.passos?.length > 1 ? "" : "disabled"} title="Desfazer (Ctrl+Z)">Desfazer</button><button type="button" onclick="refazerEditorEscritorio()" ${e.futuro?.length ? "" : "disabled"} title="Refazer (Ctrl+Shift+Z)">Refazer</button><details class="ofc-editor-menu"><summary>Opções</summary><div><button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${e.camada !== "geral" ? '<button type="button" onclick="guardarTudoEscritorio()" title="Guarda todos os móveis desta sala no inventário (dá para desfazer antes de salvar)">Guardar tudo</button>' : ""}<button type="button" onclick="abrirVersoesEscritorio()" title="Versões salvas antes (para voltar atrás)">Versões</button>${minhaSala ? '<button type="button" onclick="abrirEstiloSalaEscritorio()">Piso e paredes</button>' : ""}</div></details></div>
 ${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel" hidden><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel" hidden><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
-<div class="ofc-editor-acoes"><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
+${escritorioConferenciaHtml(e)}
+<div class="ofc-editor-acoes"><button type="button" onclick="conferirConstrucaoEditorEscritorio()">Conferir construção</button><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>`;
 }
 // Catálogo: os móveis do painel por categoria e a busca no catálogo do Habbo.
 // A lista do catálogo do painel vem pela API na primeira vez que o editor abre.
@@ -637,6 +643,7 @@ function escritorioNomeMovel(m) {
 // Categorias por uso (as do Habbo misturavam 299 cadeiras e sofás numa só).
 const ESCRITORIO_GRUPOS_CATALOGO = [
   ["Recentes", null],
+  ["Da sala", (m) => escritorioClassesDaSala().has(m.classe)],
   ["Do escritório", (m) => m.categoria === "Do escritório"],
   ["Vitrine da semana", (m) => (escritorio.base?.economia?.loja?.vitrine || []).includes(m.classe)],
   ["Raros", (m) => escritorioInfoLoja(m.classe).raridade === "raro"],
@@ -1622,4 +1629,36 @@ async function escritorioAcaoMovel(classe, comprar = false) {
   renderEscritorio(); escolherMovelEscritorio(classe);
  } catch(e) { escritorioAviso(e.message); }
  finally {escritorio.comprando=false;}
+}
+
+// A coleção vem das peças já escolhidas para esta sala, sem uma segunda lista.
+function escritorioClassesDaSala() {
+  const e = escritorio.edicao;
+  if (!e) return new Set();
+  const base = typeof ESCRITORIO_CENAS_COMPOSTAS !== "undefined" ? ESCRITORIO_CENAS_COMPOSTAS[e.camada]?.moveis || [] : [];
+  return new Set([...base, ...e.itens].map(it => it[0]));
+}
+function escritorioConferenciaHtml(e) {
+  const c = e.conferencia;
+  if (!c) return '';
+  const pendentes = JSON.stringify(e.itens) !== c.foto || e.celdas !== c.celdas;
+  const lista = [...c.problemas, ...c.avisos];
+  return `<details class="ofc-conferencia" open><summary>Conferência da construção${pendentes ? ' · alterada, confira novamente' : ''}</summary><p>Frente, apoio, circulação, escadas e composição. A conferência orienta; você decide a decoração.</p>${lista.length ? `<ul>${lista.slice(0, 100).map(t => `<li>${safeText(t)}</li>`).join('')}</ul>${lista.length > 100 ? `<p>Mais ${lista.length - 100} pontos. Corrija os primeiros e confira novamente.</p>` : ''}` : '<p>Nenhum problema encontrado pelas regras atuais. Confira também o desenho em 1× e 2×.</p>'}</details>`;
+}
+async function conferirConstrucaoEditorEscritorio() {
+  const e = escritorio.edicao;
+  if (!e || e.conferindo) return null;
+  e.conferindo = true;
+  escritorioAviso('Conferindo a construção…');
+  try {
+    const foto = JSON.stringify(e.itens), celdas = e.celdas;
+    const r = await escritorioApi('construcao-conferir', { camada:e.camada, itens:JSON.parse(foto), ...(celdas !== undefined ? {celdas} : {}) });
+    if (escritorio.edicao !== e) return null;
+    if (JSON.stringify(e.itens) !== foto || e.celdas !== celdas) { escritorioAviso('A sala mudou durante a conferência. Confira novamente.'); return null; }
+    e.conferencia = { problemas:r.problemas, avisos:r.avisos, foto, celdas };
+    renderBarraEditorEscritorio();
+    escritorioAviso(`${r.problemas.length} pontos e ${r.avisos.length} avisos na construção.`);
+    return r;
+  } catch (erro) { escritorioAviso('Não foi possível conferir: ' + erro.message); return null; }
+  finally { e.conferindo = false; }
 }

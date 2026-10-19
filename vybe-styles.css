@@ -6856,6 +6856,9 @@ body.no-escritorio {overflow:hidden}
 .mapa-luz.fogo {background:radial-gradient(closest-side,rgba(255,150,70,calc(.42 * var(--forca,.5))),rgba(255,110,40,calc(.14 * var(--forca,.5))) 55%,transparent);animation:mapa-luz-fogo 2.4s ease-in-out infinite}
 .mapa-luz.no-alto {width:90px;height:90px;margin:-45px 0 0 -45px;z-index:90000;background:radial-gradient(closest-side,rgba(255,226,170,calc(.5 * var(--forca,.5))),rgba(255,200,120,calc(.16 * var(--forca,.5))) 60%,transparent)}
 .mapa-feixe {mix-blend-mode:screen;pointer-events:none}
+/* Raio de sol da janela: luz quente e suave, acima do piso e dos móveis, abaixo dos rótulos. */
+.mapa-raio-sol {position:absolute;z-index:90000;pointer-events:none;mix-blend-mode:screen;background:linear-gradient(170deg,rgba(255,226,160,.30),rgba(255,214,140,.12) 55%,rgba(255,210,130,0))}
+.mapa-pessoa.figurante {pointer-events:none}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
 
@@ -6886,3 +6889,9 @@ body.no-escritorio {overflow:hidden}
 .ofc-tv header button:focus-visible {outline:2px solid #ff8a35}
 .ofc-tv iframe {display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
 .mapa-paisagem {image-rendering:auto}
+
+/* Resultado consultivo do mesmo verificador usado pelas cenas. */
+.ofc-conferencia { max-width: 40rem; max-height: 15rem; overflow: auto; padding: .65rem; background: var(--bg, #202128); border-radius: .65rem; font-size: .85rem; }
+.ofc-conferencia summary { cursor: pointer; font-weight: 600; }
+.ofc-conferencia p { margin: .5rem 0; }
+.ofc-conferencia li { margin: .4rem 0; overflow-wrap: anywhere; }
