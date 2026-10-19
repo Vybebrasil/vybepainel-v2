@@ -135,7 +135,7 @@ export async function resumoPontos(sql, pessoaId, agora = new Date()) {
   const [f] = await sql`SELECT funcao,carteira FROM vybe_escritorio_funcoes WHERE pessoa_id=${pessoaId}`;
   const meta = await metaDaSemana(sql, pessoaId, inicioDaSemana(diaBahia(agora)));
   const extrato = await sql`SELECT m.origem,m.regra,m.quantidade AS moedas,m.pontos,m.criado_em,
-      COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compra na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquista' ELSE m.origem END) AS descricao
+      COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compra na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquista' WHEN m.origem LIKE 'reembolso:%' THEN 'Devolução de compra' WHEN m.origem LIKE 'ajuste:economia%' THEN 'Ajuste da nova economia' ELSE m.origem END) AS descricao
     FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
     WHERE m.pessoa_id=${pessoaId} ORDER BY m.criado_em DESC, m.id DESC LIMIT 12`;
   return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora) };

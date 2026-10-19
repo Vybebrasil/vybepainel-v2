@@ -204,7 +204,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Arcturus (sobe 1,5, desce livre, diagonal rente), pouso de construção pelo
   topo de todos os ladrilhos, paredes com topo único e opções de espessura.
   Ver docs/escritorio-vybechat.md antes de mudar física, planta ou editor.
-  VybeCoins: 10 por primeira finalização de demanda, 50 por conquista única.
+  VybeCoins e preços seguem a economia de 20/10/2026 (`docs/escritorio-pontos.md`):
+  moedas mais raras que XP, preço por tempo de trabalho, valores só nas tabelas.
   Créditos acompanham o evento na transação; compras bloqueiam a carteira e são
   idempotentes. Nunca conceda saldo/inventário a partir de valores do navegador.
   Loja (fase 2): faixas, preço, estoque e vitrine ficam em tabela
@@ -243,6 +244,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e o briefing conta como entrega; migração
   `2026-10-19-escritorio-gestao-pontos.sql` já aplicada em 19/10/2026.
   Tabela de trocas (`2026-10-19-escritorio-trocas.sql`) aplicada no mesmo dia.
+  Economia de 20/10/2026 (`2026-10-20-escritorio-economia.sql`, marcador
+  `economia-2026-10-20`): saldo recalculado uma vez pela regra nova; não repetir.
 
 ## Direção visual
 
