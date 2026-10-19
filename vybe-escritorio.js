@@ -687,6 +687,33 @@ function escritorioEntrarNoQuarto(id) {
 // ativo em cada mesa, com o nome do cliente e a situação do planejamento em
 // cima. O clique abre o planejamento (vybe-planejamentos.js). O head vê, na
 // lista de salas e no aviso da tela, quanto está esperando por ele.
+// Fantasia de cada agente pelo segmento do cliente (Paulo, 19/10/2026:
+// "Copirecê um fazendeiro, Brussolo e Gonzalez cozinheiros"). Peças escolhidas
+// vendo a arte do Habbo; cada peça troca a do mesmo tipo no uniforme laranja.
+// Cores: 1323 laranja Vybe, 1408 branco, 110 preto, 64 cinza, 66 amarelo.
+const ESCRITORIO_FANTASIAS = [
+  [/cooperativ|coperativ|agro|fazend|rural/, "lg-280-64.ha-5221-1408"],
+  [/restaurant|gastronom|ristorante|lanch|pizz|cozinh/, "ch-215-1408.cc-3398-1408.ha-4197-1408"],
+  [/pet|veterin/, "cc-3827-1408.ha-3544-64"],
+  [/laborat|dialab/, "cc-3827-1408.ea-3108-110"],
+  [/cl[ií]nica|sa[uú]de|m[eé]dic|odonto/, "ch-215-1408.cc-3827-1408.ha-4301-1408"],
+  [/academia|fitness|esporte|crossfit/, "ha-3130-1408"],
+  [/provedor|internet|telecom|fibra/, "ha-4325-66"],
+  [/sistema|software|\bai\b|tecnolog/, "ch-215-1408.ha-3440-1408"],
+  [/advoca|jur[ií]dic|direito/, "ch-3005-1408.cc-3008-110.ea-3108-110", "F"],
+  [/bebida|distribuidor/, "cc-3289-110.ha-3300-110"],
+  [/papelaria|varejo|loja/, "cc-3289-1408.ea-3108-110"],
+  [/moda|roupa|boutique/, "ch-215-110.ha-3209-110.ea-3083-110"],
+  [/empresa|consultor|solu[cç]/, "ch-215-1408.cc-3002-110"],
+];
+const ESCRITORIO_AGENTE_BASE = { M: "hr-828-61.hd-180-1.ch-215-1323.lg-280-110.sh-305-110", F: "hr-890-45.hd-605-2.ch-3005-1323.lg-3116-110.sh-735-110" };
+function escritorioFiguraDoAgente(a, i) {
+  const texto = `${a.segmento || ""} ${a.cliente || ""}`.toLowerCase();
+  const [, roupa = "", corpo = i % 4 === 1 ? "F" : "M"] = ESCRITORIO_FANTASIAS.find(([re]) => re.test(texto)) || [];
+  const partes = new Map(ESCRITORIO_AGENTE_BASE[corpo].split(".").map((p) => [p.split("-")[0], p]));
+  for (const p of roupa.split(".").filter(Boolean)) partes.set(p.split("-")[0], p);
+  return [...partes.values()].join(".");
+}
 const ESCRITORIO_SITUACAO_PLANO = { revisar: ["Para revisar", "#ffc46b"], enviado: ["Com o cliente", "#8cc8ff"], aprovado: ["Aprovado", "#6fe3a8"],
   ajustes: ["Ajustes pedidos", "#ff8f8f"], cadastrado: ["Cadastrado", "#b9c2d0"] };
 async function escritorioOcuparOperacao() {
@@ -704,7 +731,7 @@ async function escritorioOcuparOperacao() {
   mapa.ocuparPostos(postos.slice(0, n).map((a, i) => {
     const p = a.planejamento;
     const [situacao, cor] = p ? ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado, "#8f98a9"] : ["Sem planejamento", "#8f98a9"];
-    return { posto: i, nome: a.cliente, situacao, cor, alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
+    return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
       aoClicar: () => (p && typeof abrirPlanejamento === "function" ? abrirPlanejamento(p.id) : escritorioAviso(`O agente de ${a.cliente} ainda não publicou um planejamento.`)) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
