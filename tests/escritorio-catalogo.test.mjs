@@ -35,16 +35,20 @@ test('curadoria tem arte local completa, dimensões válidas e não concede móv
  for(const m of quartos.modelos) for(const [c] of m.itens) assert.ok(quartos.essenciais.includes(c),m.id+'/'+c);
 });
 
-test('categorias vêm em seções, sem as faixas de raridade misturadas',()=>{
+test('categorias em seções e fichas, sem as faixas de raridade misturadas',()=>{
  const c=vm.createContext({window:{},document:{},safeText:String,localStorage:{getItem:()=>null}});
  vm.runInContext(`var escritorio={base:{eu:'1',quartos:{essenciais:[]},economia:{disponivel:true,saldo:0,inventario:[],loja:{raridades:[{chave:'raro',nome:'Raro',preco:120}],itens:[{classe:'cad_raro',raridade:'raro',preco:120,restante:null}],vitrine:[]}}},edicao:null};function escritorioMinhaMesa(){return null}function escritorioImagemDe(){return null}`,c);
  vm.runInContext(readFileSync('vybe-escritorio-mapa.js','utf8'),c);
  vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
- vm.runInContext(`escritorioCatalogo=[{classe:'cad_raro',nome:'Chair',categoria:'Cadeiras'},{classe:'mesa_x',nome:'Table',categoria:'Mesas'}]`,c);
- const html=vm.runInContext(`escritorioSelectCategoriasHtml('Mesas','x()')`,c);
- assert.match(html,/<optgroup label="Móveis">/);
+ vm.runInContext(`escritorioCatalogo=[{classe:'cad_raro',nome:'Shelf',categoria:'Estantes'},{classe:'mesa_x',nome:'Table',categoria:'Mesas'}]`,c);
+ const html=vm.runInContext(`escritorioNavCategoriasHtml('Mesas',"ir('%')")`,c);
+ assert.match(html,/aria-pressed="true" onclick="ir\('secao:Móveis'\)">Móveis/,'a seção da categoria fica marcada');
+ assert.match(html,/aria-pressed="true" onclick="ir\('Mesas'\)">Mesas <small>1<\/small>/,'a categoria aparece com a contagem');
  assert.doesNotMatch(html,/Incomuns|Raros|Épicos|Lendários/,'raridade é filtro, não categoria');
- assert.match(html,/value="Mesas" selected/);
+ const moveis=vm.runInContext(`escritorioListaCatalogo('secao:Móveis').map(m=>m.classe)`,c);
+ assert.ok(moveis.includes('cad_raro') && moveis.includes('mesa_x'),'a seção junta as categorias dela');
+ assert.equal(new Set(moveis).size,moveis.length,'sem repetir o móvel que está em duas categorias');
+ assert.equal(vm.runInContext(`escritorioListaCatalogo('*').length`,c),2+ vm.runInContext(`ESCRITORIO_COMPUTADORES.length`,c));
  const chips=vm.runInContext(`escritorioChipsRaridadeHtml(escritorioCatalogo,'','f()')`,c);
  assert.match(chips,/Raro <small>1<\/small>/);
 });

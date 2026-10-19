@@ -948,3 +948,8 @@ decoração inicial "bem feito".
 - Clientes visitantes folgados (Paulo): metade senta nos assentos livres e os
   outros ficam de pé com folga. A cada 4 s um deles anda pelo caminho do mapa
   até outro lugar ou senta. Só se amontoam no meio quando falta lugar.
+- Filtros do catálogo: a entrada do escritório traz a carteira sem a tabela da
+  loja; ao abrir o Catálogo ela é buscada (`garantirLojaEscritorio`). Antes,
+  no site, tudo parecia comum a 25 moedas e as faixas sumiam. A lista longa de
+  categorias virou duas fileiras de fichas (seção e categorias dela, com
+  contagem). "Dá para comprar" vira ficha, e a ordem fica no topo da lista.
