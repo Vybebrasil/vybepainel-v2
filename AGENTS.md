@@ -167,7 +167,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   não reintroduza listas de assentos à mão. Física do Habbo (portão, cama, esteira, gelo, placa) roda no navegador de
   quem anda; estados de móvel vão pelo `furni:toggle`. Post-its e presentes
   ficam em `server/escritorio-social.js`: presente só de unidade guardada,
-  numa transação, com chave idempotente.
+  numa transação, com chave idempotente. Troca de móveis (decisão do Paulo,
+  19/10/2026, como no Habbo) no mesmo arquivo: proposta com chave, só
+  unidades guardadas, quem recebe aceita ou recusa, a aceitação confere de
+  novo e troca numa transação (`migrations/2026-10-19-escritorio-trocas.sql`).
+  O inventário é uma aba própria (ícone na barra), separada da edição.
   Ordem de desenho é a do Nitro (profundidade por ladrilho, altura e z de
   cada camada da arte; `mapaProfundidade`/`mapaZ`): não volte a ordenar
   móveis por regra própria nem ponha filtro/z-index no contêiner `.mapa-movel`.

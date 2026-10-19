@@ -111,25 +111,30 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
     d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
     document.body.append(d);
   }
-  const n = veNumeros ? escritorioNumerosDe(pessoa) : null;
   // Economia da pessoa: a própria vem na entrada; a de outra pessoa (quem
   // administra) é buscada ao abrir e guardada para a próxima abertura.
   const economia = eu ? escritorio.base?.economia : escritorio.fichas?.[String(id)];
-  const pontos = eu ? economia?.pontos || null : null;
+  const pontos = veNumeros ? economia?.pontos || null : null;
   const marcos = veNumeros ? economia?.marcos || null : null;
+  const t = pontos?.trabalho || null;
   const img = "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: "3", head_direction: "3", size: "l", gesture: "sml" });
   const lugar = online ? escritorioLugarDe(online).nome : "Fora do escritório";
   const [status, cor] = ESCRITORIO_STATUS[online?.status || "ausente"] || ESCRITORIO_STATUS.ausente;
   const numero = (rotulo, valor, dica = "") => `<div title="${safeText(dica)}"><dt>${rotulo}</dt><dd>${valor}</dd></div>`;
-  const nivel = pontos ? escritorioNivelHtml(pontos) : n ? `<div class="ofc-ficha-nivel"><b>Nível ${n.nivel}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${n.xpProximo}" aria-valuenow="${n.xp}" aria-label="Progresso até o próximo nível"><i style="width:${Math.round((n.xp / n.xpProximo) * 100)}%"></i></span><small>${n.xp} de ${n.xpProximo} entregas para o nível ${n.nivel + 1}</small></div>` : "";
+  // Entregas pela mesma regra do XP e da meta: cada função nos quadros dela
+  // (a Criação pelo quadro de Produção também). Antes contava só Solicitações.
+  const oQue = { criacao: "peças enviadas para aprovação e demandas finalizadas", atendimento: "peças dos seus clientes aprovadas ou finalizadas", agendamento: "peças agendadas", producao: "captações e materiais brutos entregues", gestao: "dias sem furo" }[t?.funcao] || "entregas";
+  const meta = pontos ? escritorioNivelHtml(pontos).replace(/<div class="ofc-ficha-nivel">[\s\S]*?<\/div>\n/, "") : "";
   const corpo = !veNumeros
-    ? `<p class="ofc-nota">Os números e marcos de cada pessoa ficam na ficha dela e com quem administra.</p>`
-    : !n
-      ? `${nivel}<p class="ofc-nota">Carregando as demandas do Painel…</p>`
-      : `${nivel}
-<dl class="ofc-ficha-numeros">${numero("Hoje", `${n.dia.feitas}/${n.dia.total}`, "Entregas de hoje / o que vence hoje")}${numero("No mês", n.mes, "Demandas concluídas neste mês")}${numero("No prazo", n.emDia === null ? "–" : n.emDia + "%", "Entregas do mês concluídas até o prazo")}${numero("Sequência", n.seq + (n.seq === 1 ? " dia" : " dias"), "Dias úteis seguidos com pelo menos uma entrega")}${numero("Clientes", n.clientes, "Clientes diferentes atendidos no mês")}${numero("Na fila", n.abertas + (n.atrasadas ? ` <em>· ${n.atrasadas} atrasada${n.atrasadas > 1 ? "s" : ""}</em>` : ""), "Demandas abertas agora")}</dl>
+    ? ""
+    : !economia
+      ? '<p class="ofc-nota">Carregando os números de trabalho…</p>'
+      : !t
+        ? '<p class="ofc-nota">Os números de trabalho aparecem quando a contagem de pontos estiver ativa.</p>'
+        : `<dl class="ofc-ficha-numeros">${numero("Hoje", t.hoje, "Entregas registradas hoje")}${numero("Na semana", t.semana, "Entregas desde segunda")}${numero("No mês", t.mes, "Entregas neste mês")}${numero("Sequência", t.sequencia + (t.sequencia === 1 ? " dia" : " dias"), "Dias úteis seguidos com entrega")}${numero("No total", t.total, "Todas as entregas registradas")}${numero("Meta", pontos.meta ? `${pontos.meta.entregas || 0}/${pontos.meta.meta || 1}` : "–", "Entregas da semana / meta da semana")}</dl>
+${meta}
 ${marcos ? escritorioMarcosHtml(marcos) : b.demo || escritorio.fichas?.[String(id)] === null ? "" : '<p class="ofc-nota">Carregando os marcos…</p>'}
-<p class="ofc-nota">Contado pelas demandas do Painel em que ${eu ? "você é" : "a pessoa é"} responsável (${n.total} concluídas no total).</p>`;
+<p class="ofc-nota">Contado pelas ${safeText(oQue)} — as mesmas entregas que dão XP e contam na meta.</p>`;
   const quarto = escritorioQuartoDe(id);
   const sid = safeText(String(id));
   const fechar = "document.getElementById('office-ficha').close();";
@@ -608,4 +613,174 @@ function carregarPerfilJogoEscritorio(id, aoTerminar) {
 function escritorioQuartoDe(id) {
   const sala = (escritorio.base?.salas || []).find((s) => String(s.pessoa_id) === String(id));
   return sala ? ESCRITORIO_PLANTA.ambientes.find((a) => a.id === sala.id) || null : null;
+}
+
+// ---------------------------------------------------------------------------
+// Inventário (como o do Habbo): os seus móveis a qualquer hora, fora da
+// edição, com colocar no quarto, dar de presente e trocar com um colega.
+// Trocas pelo servidor (server/escritorio-social.js): só unidades guardadas.
+function escritorioNomeDaClasse(classe) {
+  const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe);
+  return typeof escritorioNomeMovel === "function" ? escritorioNomeMovel(m || { classe, nome: classe }) : classe;
+}
+function escritorioMiniaturaHtml(classe) {
+  return `<img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" onerror="typeof miniaturaLocalEscritorio==='function'&&miniaturaLocalEscritorio(this,'${safeText(classe)}')">`;
+}
+// Cada móvel seu: quantos tem, quantos estão no quarto e quantos guardados.
+function escritorioMeuInventario() {
+  const sala = escritorioDonos().get(escritorio.base?.eu)?.id;
+  const camadas = escritorio.base?.mapa?.camadas || {};
+  const colocados = new Map();
+  for (const c of [sala, sala + "-andar-1"]) for (const it of camadas[c]?.itens || []) colocados.set(it[0], (colocados.get(it[0]) || 0) + 1);
+  const essenciais = escritorio.base?.quartos?.essenciais || [];
+  return (escritorio.base?.economia?.inventario || [])
+    .filter((i) => !essenciais.includes(i.classe) && !String(i.classe).startsWith("vybeimg_") && Number(i.quantidade) > 0)
+    .map((i) => { const total = Number(i.quantidade), noQuarto = Math.min(total, colocados.get(i.classe) || 0); return { classe: i.classe, total, noQuarto, guardados: total - noQuarto }; })
+    .sort((a, b) => escritorioNomeDaClasse(a.classe).localeCompare(escritorioNomeDaClasse(b.classe), "pt-BR"));
+}
+async function carregarTrocasEscritorio(forcar = false) {
+  const t = (escritorio.trocas ||= {});
+  if (typeof carregarCatalogoEscritorio === "function" && typeof escritorioCatalogo !== "undefined" && !escritorioCatalogo) carregarCatalogoEscritorio().then(atualizarInventarioEscritorio);
+  if (t.carregando || (!forcar && t.em && Date.now() - t.em < 20e3)) return;
+  t.carregando = true; t.erro = "";
+  try {
+    const r = await escritorioApi("trocas");
+    Object.assign(t, r.trocas || {}, { em: Date.now() });
+  } catch (e) { t.erro = e.message || "Não deu para carregar as trocas."; }
+  t.carregando = false;
+  atualizarInventarioEscritorio();
+}
+function atualizarInventarioEscritorio() {
+  const el = document.getElementById("office-inventario");
+  if (el) el.innerHTML = escritorioInventarioHtml();
+}
+function escritorioListaTrocaHtml(itens) {
+  return (itens || []).map(([c, n]) => `<li>${escritorioMiniaturaHtml(c)}<span>${safeText(escritorioNomeDaClasse(c))}${n > 1 ? ` ×${n}` : ""}</span></li>`).join("") || "<li><span>nada</span></li>";
+}
+function escritorioInventarioHtml() {
+  if (!escritorio.base) return "";
+  const eco = escritorio.base.economia;
+  if (eco && eco.disponivel === false) return `<p class="ofc-nota">${safeText(eco.motivo || "O inventário aparece quando a loja do escritório estiver ativa.")}</p>`;
+  const meus = escritorioMeuInventario();
+  const sel = escritorio.inventarioSel;
+  const t = escritorio.trocas || {};
+  const nomeDe = (id) => String((escritorio.base.equipe || []).find((p) => String(p.id) === String(id))?.nome || "Alguém").split(" ")[0];
+  const recebidas = (t.recebidas || []).filter((x) => x.estado === "aberta");
+  const enviadas = (t.enviadas || []).filter((x) => x.estado === "aberta");
+  const recentes = [...(t.recebidas || []), ...(t.enviadas || [])].filter((x) => x.estado !== "aberta").slice(0, 5);
+  const totalGuardados = meus.reduce((s, i) => s + i.guardados, 0), totalNoQuarto = meus.reduce((s, i) => s + i.noQuarto, 0);
+  const grade = meus.length ? `<ul class="ofc-inv-grade">${meus.map((i) => `<li><button type="button" aria-pressed="${sel === i.classe}" onclick="escritorio.inventarioSel=escritorio.inventarioSel==='${safeText(i.classe)}'?null:'${safeText(i.classe)}';atualizarInventarioEscritorio()" title="${safeText(escritorioNomeDaClasse(i.classe))}">${escritorioMiniaturaHtml(i.classe)}<span>${safeText(escritorioNomeDaClasse(i.classe))}</span>${i.total > 1 ? `<em>×${i.total}</em>` : ""}${i.noQuarto ? `<small>${i.noQuarto === i.total ? "no quarto" : `${i.noQuarto} no quarto`}</small>` : ""}</button></li>`).join("")}</ul>`
+    : `<p class="ofc-nota">Você ainda não tem móveis além dos essenciais grátis. Compre na Loja (Editar → Loja) ou ganhe de presente e em trocas.</p>`;
+  const item = sel && meus.find((i) => i.classe === sel);
+  const acoes = item ? `<div class="ofc-inv-acoes" role="group" aria-label="${safeText(escritorioNomeDaClasse(item.classe))}"><b>${safeText(escritorioNomeDaClasse(item.classe))}</b><small>${item.guardados} guardado${item.guardados === 1 ? "" : "s"} · ${item.noQuarto} no quarto</small><div><button type="button" class="ofc-mini" onclick="colocarDoInventarioEscritorio('${safeText(item.classe)}')">Colocar no quarto</button><button type="button" class="ofc-mini" ${item.guardados ? "" : "disabled title=\"Guarde uma unidade antes (tire do quarto)\""} onclick="abrirTrocaEscritorio(null,'${safeText(item.classe)}')">Trocar</button><button type="button" class="ofc-mini" ${item.guardados ? "" : "disabled"} onclick="escolherPresenteEscritorio('${safeText(item.classe)}')">Dar de presente</button></div></div>` : "";
+  const cartao = (x, recebida) => `<li class="ofc-troca"><div class="ofc-troca-topo"><b>${recebida ? `${safeText(nomeDe(x.de_pessoa))} propõe` : `Para ${safeText(nomeDe(x.para_pessoa))}`}</b><small>${new Date(x.criado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" })}</small></div>
+<div class="ofc-troca-lados"><div><small>${recebida ? "Você recebe" : "Você dá"}</small><ul>${escritorioListaTrocaHtml(x.oferece)}</ul></div><div><small>${recebida ? "Você dá" : "Você recebe"}</small><ul>${escritorioListaTrocaHtml(x.pede)}</ul></div></div>
+<div class="ofc-troca-acoes">${recebida ? `<button type="button" class="ofc-primario" onclick="responderTrocaEscritorio('${x.id}','aceitar',this)">Aceitar</button><button type="button" class="ofc-secundario" onclick="responderTrocaEscritorio('${x.id}','recusar',this)">Recusar</button>` : `<button type="button" class="ofc-secundario" onclick="responderTrocaEscritorio('${x.id}','cancelar',this)">Cancelar proposta</button>`}</div></li>`;
+  const estado = { aceita: "Aceita", recusada: "Recusada", cancelada: "Cancelada" };
+  return `<div class="ofc-inv-topo"><h4>Inventário</h4><button type="button" class="ofc-mini" onclick="abrirTrocaEscritorio()">Propor troca</button></div>
+<p class="ofc-nota">${totalGuardados} guardado${totalGuardados === 1 ? "" : "s"} · ${totalNoQuarto} no quarto · os essenciais grátis ficam no editor.</p>
+${grade}${acoes}
+<h4 class="ofc-inv-secao">Trocas${recebidas.length ? ` <span class="ofc-badge">${recebidas.length}</span>` : ""}</h4>
+${t.erro ? `<p class="ofc-nota" role="alert">${safeText(t.erro)}</p>` : t.disponivel === false ? '<p class="ofc-nota">A troca de móveis aguarda a atualização do banco.</p>' : t.em ? "" : '<p class="ofc-nota">Carregando trocas…</p>'}
+${recebidas.length ? `<ul class="ofc-trocas">${recebidas.map((x) => cartao(x, true)).join("")}</ul>` : t.em ? '<p class="ofc-nota">Nenhuma proposta para você agora.</p>' : ""}
+${enviadas.length ? `<h5>Suas propostas</h5><ul class="ofc-trocas">${enviadas.map((x) => cartao(x, false)).join("")}</ul>` : ""}
+${recentes.length ? `<h5>Últimos dias</h5><ul class="ofc-trocas-recentes">${recentes.map((x) => `<li>${estado[x.estado]} · ${String(x.de_pessoa) === String(escritorio.base.eu) ? `para ${safeText(nomeDe(x.para_pessoa))}` : `de ${safeText(nomeDe(x.de_pessoa))}`}</li>`).join("")}</ul>` : ""}`;
+}
+function colocarDoInventarioEscritorio(classe) {
+  const camada = escritorioMinhaMesa()?.ambiente.id;
+  if (!camada) return escritorioAviso("Você ainda não tem um quarto para decorar.");
+  if (escritorio.edicao?.camada === camada) return escolherMovelEscritorio(classe);
+  escritorio.colocarAoAbrir = classe;
+  abrirEditorEscritorio(camada);
+}
+function escolherPresenteEscritorio(classe) {
+  const equipe = (escritorio.base.equipe || []).filter((p) => String(p.id) !== String(escritorio.base.eu));
+  openWorkflowModal(`<div class="workflow-kicker">Presente</div><h2 class="workflow-title">Dar ${safeText(escritorioNomeDaClasse(classe))} para quem?</h2>
+<div class="workflow-actions ofc-teleporte">${equipe.map((p) => `<button type="button" class="workflow-secondary" onclick="darPresenteEscritorio('${safeText(String(p.id))}','${safeText(classe)}',this).then(()=>{carregarTrocasEscritorio(true);atualizarInventarioEscritorio();})">${safeText(p.nome)}</button>`).join("")}</div>
+<p class="ofc-erro" id="office-presente-erro" role="alert"></p>
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button></div>`);
+}
+// Montar uma proposta: com quem, o que você dá (guardados) e o que pede (o
+// inventário da pessoa, do perfil público; o servidor confere o guardado).
+async function abrirTrocaEscritorio(para = null, classe = null) {
+  const equipe = (escritorio.base.equipe || []).filter((p) => String(p.id) !== String(escritorio.base.eu));
+  const f = (escritorio.trocaNova = { para: para || escritorio.trocaNova?.para || "", oferece: new Map(classe ? [[classe, 1]] : []), pede: new Map() });
+  desenharTrocaEscritorio(equipe);
+  if (f.para) await carregarInventarioDoOutroEscritorio(f.para, equipe);
+}
+async function carregarInventarioDoOutroEscritorio(id, equipe) {
+  const f = escritorio.trocaNova;
+  if (!f) return;
+  f.para = String(id); f.pede = new Map(); f.deles = null;
+  desenharTrocaEscritorio(equipe);
+  await new Promise((r) => carregarPerfilJogoEscritorio(id, r));
+  f.deles = (escritorio.perfisPublicos?.[String(id)]?.inventario || []).filter((i) => !(escritorio.base.quartos?.essenciais || []).includes(i.classe));
+  desenharTrocaEscritorio(equipe);
+}
+function desenharTrocaEscritorio(equipe = (escritorio.base.equipe || []).filter((p) => String(p.id) !== String(escritorio.base.eu))) {
+  const f = escritorio.trocaNova;
+  if (!f) return;
+  const meus = escritorioMeuInventario().filter((i) => i.guardados > 0);
+  const linha = (lado, c, max) => { const n = f[lado].get(c) || 0; return `<li class="${n ? "sim" : ""}">${escritorioMiniaturaHtml(c)}<span>${safeText(escritorioNomeDaClasse(c))}</span><div class="ofc-qtd"><button type="button" aria-label="Menos" onclick="mudarItemTrocaEscritorio('${lado}','${safeText(c)}',-1,${max})" ${n ? "" : "disabled"}>−</button><b>${n}</b><button type="button" aria-label="Mais" onclick="mudarItemTrocaEscritorio('${lado}','${safeText(c)}',1,${max})" ${n >= max ? "disabled" : ""}>+</button></div></li>`; };
+  const html = `<div class="workflow-kicker">Troca</div><h2 class="workflow-title">Propor troca</h2>
+<label class="ofc-troca-com"><span>Com quem</span><select onchange="carregarInventarioDoOutroEscritorio(this.value)"><option value="">Escolha uma pessoa</option>${equipe.map((p) => `<option value="${safeText(String(p.id))}"${String(p.id) === f.para ? " selected" : ""}>${safeText(p.nome)}</option>`).join("")}</select></label>
+<div class="ofc-troca-montar"><section><h3>Você dá</h3>${meus.length ? `<ul>${meus.map((i) => linha("oferece", i.classe, i.guardados)).join("")}</ul>` : '<p class="ofc-nota">Nenhum móvel guardado. Tire do quarto o que quiser trocar.</p>'}</section>
+<section><h3>Você pede</h3>${!f.para ? '<p class="ofc-nota">Escolha com quem trocar.</p>' : !f.deles ? '<p class="ofc-nota">Carregando o inventário…</p>' : f.deles.length ? `<ul>${f.deles.map((i) => linha("pede", i.classe, Number(i.quantidade))).join("")}</ul>` : '<p class="ofc-nota">Essa pessoa ainda não tem móveis para trocar. Você pode só dar.</p>'}</section></div>
+<p class="ofc-nota">A pessoa recebe a proposta no inventário dela e aceita ou recusa. Só vale com os móveis guardados (fora do quarto) dos dois lados.</p>
+<p class="ofc-erro" id="office-troca-erro" role="alert"></p>
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="escritorio.trocaNova=null;closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="enviarTrocaEscritorio(this)" ${f.para && (f.oferece.size || f.pede.size) ? "" : "disabled"}>Enviar proposta</button></div>`;
+  // Redesenha no mesmo diálogo (sem piscar o fundo nem perder a rolagem).
+  const modal = document.getElementById("workflow-modal");
+  if (modal?.querySelector(".ofc-troca-montar")) { const y = modal.scrollTop; modal.innerHTML = html; modal.scrollTop = y; }
+  else openWorkflowModal(html);
+}
+function mudarItemTrocaEscritorio(lado, classe, delta, max) {
+  const f = escritorio.trocaNova;
+  if (!f) return;
+  const n = Math.max(0, Math.min(max, (f[lado].get(classe) || 0) + delta));
+  if (n) f[lado].set(classe, n); else f[lado].delete(classe);
+  desenharTrocaEscritorio();
+}
+async function enviarTrocaEscritorio(botao) {
+  const f = escritorio.trocaNova;
+  if (!f) return;
+  botao.disabled = true;
+  try {
+    if (escritorio.base.demo) throw new Error("A demonstração não grava trocas.");
+    const chave = (crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9_-]/g, "");
+    const r = await escritorioApi("troca", { para: f.para, oferece: [...f.oferece], pede: [...f.pede], chave });
+    Object.assign((escritorio.trocas ||= {}), r.trocas || {}, { em: Date.now() });
+    escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "trc=" + r.id + ":" + f.para });
+    escritorio.trocaNova = null;
+    closeWorkflowModal();
+    escritorioAviso("Proposta enviada. Ela aparece no inventário da pessoa.");
+    atualizarInventarioEscritorio();
+  } catch (e) {
+    botao.disabled = false;
+    const erro = document.getElementById("office-troca-erro");
+    if (erro) erro.textContent = e.message;
+  }
+}
+async function responderTrocaEscritorio(id, acao, botao) {
+  if (acao !== "aceitar" && acao !== "recusar" && acao !== "cancelar") return;
+  if (botao) botao.disabled = true;
+  try {
+    const r = await escritorioApi("troca-responder", { id, acao });
+    Object.assign((escritorio.trocas ||= {}), r.trocas || {}, { em: Date.now() });
+    if (r.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia, loja: escritorio.base.economia?.loja };
+    escritorioAviso(r.estado === "aceita" ? "Troca feita: os móveis já estão no seu inventário." : r.estado === "recusada" ? "Proposta recusada." : "Proposta cancelada.");
+  } catch (e) {
+    escritorioAviso(e.message);
+    carregarTrocasEscritorio(true);
+  }
+  atualizarInventarioEscritorio();
+}
+
+// Alguém propôs uma troca para você (aviso pelo balão do chat, como o presente).
+function trocaChegouEscritorio(id, v) {
+  const [, para] = String(v || "").split(":");
+  if (para !== String(escritorio.base?.eu) || escritorio.base?.demo) return;
+  const nome = String((escritorio.online || []).find((o) => String(o.id) === String(id))?.nome || "Alguém").split(" ")[0];
+  escritorioAviso(`${nome} propôs uma troca de móveis. Abra o Inventário para responder.`);
+  carregarTrocasEscritorio(true);
 }

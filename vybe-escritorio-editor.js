@@ -95,6 +95,8 @@ async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
   atualizarFerramentaEditorEscritorio();
   const a = escritorioAmbienteDoQuarto(camada);
   if (a) escritorio.mapa?.centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2);
+  // Veio do inventário com um móvel escolhido: já entra pronto para colocar.
+  if (escritorio.colocarAoAbrir) { const c = escritorio.colocarAoAbrir; escritorio.colocarAoAbrir = null; escolherMovelEscritorio(c); }
 }
 function sairEditorEscritorio() {
   if (escritorio.edicao?.mudou && !confirm("Descartar as mudanças desta edição?")) return;

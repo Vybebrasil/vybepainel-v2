@@ -138,5 +138,26 @@ export async function resumoPontos(sql, pessoaId, agora = new Date()) {
       COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compra na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquista' ELSE m.origem END) AS descricao
     FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
     WHERE m.pessoa_id=${pessoaId} ORDER BY m.criado_em DESC, m.id DESC LIMIT 12`;
-  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato };
+  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora) };
+}
+// Números de trabalho da ficha pelas mesmas entregas que valem XP e meta
+// (regras com "entrega", da função da pessoa, nos dois quadros). Antes a
+// ficha contava só o quadro de Solicitações no navegador e a Criação, que
+// entrega pelo quadro de Produção, aparecia "sem demanda".
+export async function resumoTrabalho(sql, pessoaId, funcao, agora = new Date()) {
+  const hoje = diaBahia(agora), mes = hoje.slice(0, 7), semana = inicioDaSemana(hoje);
+  const dias = await sql`SELECT TO_CHAR(e.dia,'YYYY-MM-DD') AS dia, count(*)::int AS n FROM vybe_escritorio_entregas e
+    JOIN vybe_escritorio_regras g ON g.chave=e.regra
+    WHERE e.pessoa_id=${pessoaId} AND g.entrega AND (g.funcao IS NULL OR g.funcao=${funcao}) GROUP BY 1`;
+  const por = new Map(dias.map((d) => [d.dia, Number(d.n)]));
+  const soma = (f) => dias.filter((d) => f(d.dia)).reduce((t, d) => t + Number(d.n), 0);
+  // Sequência: dias úteis seguidos com entrega (hoje conta se já houve).
+  let seq = 0, dia = por.has(hoje) ? hoje : diaUtilAntes(hoje);
+  while (por.has(dia) && seq < 400) { seq++; dia = diaUtilAntes(dia); }
+  return { total: soma(() => true), hoje: por.get(hoje) || 0, semana: soma((d) => d >= semana && d <= hoje), mes: soma((d) => d.startsWith(mes)), sequencia: seq, funcao };
+}
+function diaUtilAntes(iso) {
+  let d = somarDias(iso, -1);
+  while ([6, 7].includes(diaDaSemana(d))) d = somarDias(d, -1);
+  return d;
 }

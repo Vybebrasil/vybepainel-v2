@@ -773,3 +773,24 @@ decoração inicial "bem feito".
   paredes, imagens, conjuntos). A aba lateral virou "Edição".
 - Teste: `tests/escritorio-perfil-ranking.test.mjs`. Conferência visual
   pendente pela prévia da Vercel (a aba local ficou em segundo plano).
+
+### Inventário, troca e números da ficha — 19/10/2026 (noite)
+
+- Inventário como o do Habbo: aba própria na barra da esquerda (sacola),
+  fora da edição. Cada móvel mostra guardados e no quarto; ações colocar no
+  quarto, trocar e dar de presente. Trocas: proposta (o que dá, o que pede),
+  quem recebe aceita ou recusa, quem propôs cancela; aviso pelo balão
+  (`trc=`). Servidor em `server/escritorio-social.js`, migração
+  `2026-10-19-escritorio-trocas.sql` (**ainda não aplicada**), teste
+  `tests/escritorio-trocas.test.mjs`.
+- Ficha: números de trabalho vêm do servidor (`resumoTrabalho`), com as
+  mesmas entregas do XP e da meta. Antes contavam só Solicitações no
+  navegador e a Criação aparecia "sem demanda".
+- XP da Gestão (pergunta do Paulo): a leitura do banco mostrou que a Gestão
+  só tem como "entrega" o dia sem furo, então o bônus de chegada deu 1
+  entrega ao Paulo (10 XP), enquanto Atendimento recebeu pela carteira
+  (Vinícius 1.110, Ewerton 757) e Agendamento por 1.772 agendamentos. Desde
+  a instalação (17/10, sábado) ainda não houve fechamento de dia útil, por
+  isso dia sem furo e dia sem vencida ainda não apareceram (o primeiro é na
+  virada de 19 para 20/10). Paulo criou 650 demandas com briefing desde
+  31/08. Decisão pendente do Paulo: como a Gestão passa a ganhar.
