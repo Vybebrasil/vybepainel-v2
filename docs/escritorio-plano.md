@@ -666,3 +666,16 @@ Estado exato:
   `git diff --check` limpo. O teste antigo de gravação por administrador foi
   atualizado para a nova regra e também passou isoladamente. Entrega local
   em `codex/quartos-criacao-permissoes`, sem publicar ou alterar salas reais.
+
+### Terceiro reinício dos quartos — 19/10/2026
+
+- Pedido do Paulo: antes de publicar, todos refazem o quarto no novo
+  criador e os quartos atuais são limpos.
+- Migração `2026-10-19-escritorio-quartos-recriar.sql` (marcador
+  `quartos-criacao-2026-10-19`): esvazia quartos pessoais e andares,
+  inventário e pintura, marca `quarto_configurado=false` e devolve o preço
+  das compras ainda não devolvidas (as já devolvidas em 18/10 ficam como
+  estão). XP, conquistas, saldo anterior, salas comuns e Praça intactos.
+  Teste: `tests/escritorio-quartos-recriar.test.mjs`.
+- Ordem: publicar esta branch, conferir o site no ar e só então aplicar a
+  migração uma vez em produção, com "Aprovado" do Paulo.

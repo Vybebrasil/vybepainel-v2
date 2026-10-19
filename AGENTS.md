@@ -193,6 +193,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `2026-10-18-escritorio-reinicio-reembolso.sql`; **já executada em
   18/10/2026, com marcador `salas-motor-2026-10-18`**. Não repetir nenhum
   dos resets nem apagar compras/decoração posteriores.
+- Terceiro reinício autorizado por Paulo em 19/10/2026, para todos refazerem
+  o quarto no novo criador: mesma regra do segundo (sem cópia, devolve só
+  compras ainda não devolvidas, preserva XP, conquistas e salas comuns), pela
+  migração `2026-10-19-escritorio-quartos-recriar.sql`, marcador
+  `quartos-criacao-2026-10-19`. Aplicar uma vez, depois da publicação de
+  `codex/quartos-criacao-permissoes` e com o "Aprovado" do Paulo.
   As salas comuns ainda precisam de melhorias visuais individuais; Paulo
   autorizou esta publicação sem considerá-las visualmente aprovadas.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
