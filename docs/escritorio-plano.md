@@ -740,3 +740,19 @@ decoração inicial "bem feito".
     comuns primeiro).
 - Não verificado: título da conversa com chamada real (a demonstração não
   conecta voz) e desempenho com a equipe inteira online.
+
+### Física e FPS — 19/10/2026 (tarde)
+
+- Vídeo do Paulo no próprio quarto: dava para pular do mezanino atravessando
+  o guarda-corpo e cortar na diagonal pela quina do patamar. `mapaPassa`
+  agora não desce mais de 1,5 da borda de um patamar da planta (exceto para
+  a soleira da porta) e não anda na diagonal quando os quatro ladrilhos não
+  têm o mesmo nível. Pular de móvel empilhado continua livre.
+- Auditório travando: a luz da sala era um filtro de CSS em cada canvas
+  (289 no Auditório, 555 na Convivência) e o feixe do refletor andava por
+  left/top. Agora móveis e paredes são pintados com a cor da luz uma vez
+  (`tingir` em `vybe-escritorio-mapa.js`); o filtro ficou só no chão, nos
+  bonecos, na paisagem e nas imagens da equipe; o feixe anda por transform.
+  Teste: "luz da sala não vira filtro de CSS em cada móvel".
+- Medição de FPS ao vivo não foi possível (aba do navegador em segundo
+  plano); conferido o número de elementos filtrados e a aparência.

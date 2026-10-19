@@ -917,7 +917,9 @@ function mapaMontarGrade(P, moveis) {
     }
     bloqueado[i] = 1;
   }
-  return { W, H, bloqueado, assento, profAssento, movelAssento, desvioAssento, paredes, subida, piso, cama, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm };
+  // Soleira da porta: fica fora da planta; sair por ela não conta como pular do patamar.
+  const naSoleira = (x, y) => (P.soleiras || []).some((t) => x >= t.x && x < t.x + (t.w || 1) && y >= t.y && y < t.y + (t.h || 1));
+  return { W, H, bloqueado, assento, profAssento, movelAssento, desvioAssento, paredes, subida, piso, cama, ind, aresta, nivelEm:P.nivelEm, alturaEm:P.alturaEm, naSoleira };
 }
 // Altura de quem está no ladrilho: o piso da planta mais o móvel em que pisa,
 // senta ou deita (RoomTile.getStackHeight do Habbo).
@@ -926,15 +928,28 @@ function mapaAlturaTotal(g, x, y) {
 }
 // Pode ir de (x,y) para o vizinho (x+dx,y+dy)? Como o caminho do servidor do
 // Habbo (PathfinderImpl/AdjacentTileFinder): sobe até 1,5 (até 2 para chegar
-// a um assento ou cama), desce de qualquer altura, e a diagonal só é barrada
-// quando os dois lados retos estão fechados (passa rente a um móvel). Parede
-// de divisória não se atravessa.
+// a um assento ou cama), desce de qualquer altura de móvel (mas não pula da
+// borda de um patamar da planta), e a diagonal só é barrada quando os dois
+// lados retos estão fechados (passa rente a um móvel) ou na quina de um
+// desnível. Parede de divisória não se atravessa.
 function mapaPassa(g, x, y, dx, dy) {
   const nx = x + dx, ny = y + dy;
   if (nx < 0 || ny < 0 || nx >= g.W || ny >= g.H || g.bloqueado[g.ind(nx, ny)]) return false;
   const i = g.ind(nx, ny), limite = g.assento?.has(i) || g.cama?.has(i) ? 2 : MAPA_DEGRAU;
   if (mapaAlturaTotal(g, nx, ny) - mapaAlturaTotal(g, x, y) > limite) return false;
-  if (dx && dy) return (mapaPassa(g, x, y, dx, 0) && mapaPassa(g, x + dx, y, 0, dy)) || (mapaPassa(g, x, y, 0, dy) && mapaPassa(g, x, y + dy, dx, 0));
+  // A borda do patamar da planta (mezanino, plateia) tem guarda-corpo: não
+  // se pula dela para baixo, desce-se pela escada (Paulo, 19/10/2026: dava
+  // para cair dois níveis atravessando o guarda-corpo). Pular de móvel
+  // empilhado continua livre, como no Habbo.
+  // Altura do piso da planta.
+  const nivel = (i, j) => (g.alturaEm?.(i, j) ?? g.nivelEm?.(i, j) ?? 0);
+  if (g.nivelEm && !g.naSoleira?.(nx, ny) && nivel(x, y) - nivel(nx, ny) > MAPA_DEGRAU) return false;
+  if (dx && dy) {
+    // Na quina de um desnível a diagonal cortaria por dentro do bloco do
+    // patamar: só se anda na diagonal com os quatro ladrilhos no mesmo nível.
+    if (g.nivelEm && new Set([nivel(x, y), nivel(nx, ny), nivel(nx, y), nivel(x, ny)]).size > 1) return false;
+    return (mapaPassa(g, x, y, dx, 0) && mapaPassa(g, x + dx, y, 0, dy)) || (mapaPassa(g, x, y, 0, dy) && mapaPassa(g, x, y + dy, dx, 0));
+  }
   return !g.paredes.has(g.aresta(g.ind(x, y), g.ind(nx, ny)));
 }
 // A* em 8 direções. Devolve os ladrilhos do caminho (sem o de partida) ou null.
@@ -1040,6 +1055,24 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // regulador multiplica cada pixel do quarto, canal por canal (um filtro de
   // matriz de cor em piso, móveis e bonecos; o fundo em volta não muda).
   if (MAPA_LUZES_RGB[P.luz]) palco.style.setProperty("--mapa-luz", `url(#${mapaFiltroDaLuz(P.luz)})`);
+  // A mesma cor, pintada direto no desenho de móveis e paredes (uma vez por
+  // desenho). Antes o filtro ia em cada um dos centenas de canvases da cena,
+  // e o navegador refazia todos a cada passo de quem andava ou de um feixe de
+  // luz (era o que mais derrubava o FPS no Auditório e na Convivência). O
+  // filtro de CSS ficou só no chão, nos bonecos e na paisagem das janelas.
+  const corLuz = MAPA_LUZES_RGB[P.luz] && `rgb(${MAPA_LUZES_RGB[P.luz].map((v) => Math.round(v * 255)).join(",")})`;
+  const copiaLuz = document.createElement("canvas");
+  const tingir = (cv) => {
+    if (!corLuz || !cv?.width || !cv.height) return;
+    copiaLuz.width = cv.width; copiaLuz.height = cv.height;
+    const t = copiaLuz.getContext("2d"); t.clearRect(0, 0, cv.width, cv.height); t.drawImage(cv, 0, 0);
+    const g = cv.getContext("2d");
+    g.save();
+    g.globalCompositeOperation = "multiply"; g.fillStyle = corLuz; g.fillRect(0, 0, cv.width, cv.height);
+    // Devolve a transparência original (o multiply pintaria o fundo vazio).
+    g.globalCompositeOperation = "destination-in"; g.drawImage(copiaLuz, 0, 0);
+    g.restore();
+  };
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
   let fundoPronto = null;
   var luzesLigadas = false; // vira true quando os móveis terminam de carregar
@@ -1159,6 +1192,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const est = P.paredeEm?.(x, y, eixo);
       const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt ?? dv.alt, texturaDe(est), Boolean(dv.sala) && !dv.janela && !dv.semTinta, dv.espessura ?? 1);
       d.canvas.className = "mapa-obj mapa-muro";
+      tingir(d.canvas);
       // Parede do fundo: atrás de tudo, como os planos do Habbo. Mureta da
       // frente (baixa): no plano dela, meio ladrilho atrás do ladrilho (Nitro).
       const prof = dv.baixa ? mapaZ(mapaProfundidade(x, y - 0.5)) : 2000 + Math.round((x + y) * 10) + 2;
@@ -1289,6 +1323,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       if (a.no.width !== d.canvas.width || a.no.height !== d.canvas.height) { a.no.width = d.canvas.width; a.no.height = d.canvas.height; }
       else g.clearRect(0, 0, a.no.width, a.no.height);
       g.drawImage(d.canvas, 0, 0);
+      tingir(a.no);
     }
     return ref;
   };
@@ -1339,6 +1374,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       if (cv.width !== c.canvas.width || cv.height !== c.canvas.height) { cv.width = c.canvas.width; cv.height = c.canvas.height; }
       else g.clearRect(0, 0, cv.width, cv.height);
       g.drawImage(c.canvas, 0, 0);
+      tingir(cv);
       // Camada de luz (ADD): soma com o que está atrás, como no Habbo.
       cv.style.mixBlendMode = c.luz ? "plus-lighter" : "";
       if (!cv.parentNode) no.append(cv);
@@ -1504,6 +1540,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         const no = (grupos && doGrupo(grupos[0])) || desenho.canvas;
         no.className = "mapa-obj mapa-de-parede";
         no.dataset.classe = classe;
+        tingir(no);
         no.style.left = Math.round(ancora.x) + desenho.ox + MAPA_PAREDE_AJUSTE[d0].x + "px";
         // A parede tem altura própria (prédio 118, sala 82 ou a que o dono
         // pintou, divisória baixa 46): o item fica sempre dentro dela, sem
@@ -1519,6 +1556,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
           const c = doGrupo(g);
           if (!c) return null;
           c.className = no.className; c.dataset.classe = classe;
+          tingir(c);
           if (g.luz) c.style.mixBlendMode = "plus-lighter";
           palco.append(c);
           return { no: c, chave: g.chave, prof: g.prof };
@@ -2471,7 +2509,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       }
     }
     // Focos do refletor de festa: a cada dois quadros, como no Nitro.
-    if (focos.length && quadro % 2 === 0) for (const f of focos) { const [dx, dy] = mapaPassoFeixe(f); f.no.style.left = f.x + dx + "px"; f.no.style.top = f.y + dy + "px"; }
+    // O feixe anda por transform (a placa de vídeo só desloca a camada): com
+    // left/top, cada passo refazia o layout e redesenhava a cena inteira
+    // atrás da luz (Paulo, 19/10/2026: o Auditório caía de FPS).
+    if (focos.length && quadro % 2 === 0) for (const f of focos) { const [dx, dy] = mapaPassoFeixe(f); f.no.style.transform = `translate(${Math.round(dx)}px,${Math.round(dy)}px)`; }
     for (const item of [...animados]) {
       // Passagem entre estados: do primeiro quadro dela até o fim; depois, o estado novo.
       let estado = item.estado, q = quadro;

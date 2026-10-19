@@ -1356,8 +1356,9 @@ test("pilha de gatilho, condição e efeito roda como no Habbo", () => {
 });
 
 // Planta de alturas e caminho como no Habbo: alturas 1–35 nos códigos da
-// planta, sobe-se até 1,5 (até 2 para um assento), desce-se de qualquer
-// altura, e a diagonal passa rente a um móvel (só barra com os dois lados fechados).
+// planta, sobe-se até 1,5 (até 2 para um assento), desce-se de móvel de
+// qualquer altura mas não se pula da borda do patamar, e a diagonal passa
+// rente a um móvel (só barra com os dois lados fechados ou na quina de desnível).
 test("planta de alturas e caminho seguem o Habbo", () => {
   const c = vm.createContext({ window: {}, document: {} });
   vm.runInContext(readFileSync("vybe-escritorio-planta.js", "utf8"), c);
@@ -1367,7 +1368,13 @@ test("planta de alturas e caminho seguem o Habbo", () => {
   const niveis = [[0, 2, 0], [0, 0, 0], [0, 0, 0]];
   c.g = { W: 3, H: 3, ind: (x, y) => y * 3 + x, bloqueado: new Uint8Array(9), subida: new Float32Array(9), paredes: new Set(), aresta: () => "", assento: new Map(), cama: new Map(), nivelEm: (x, y) => niveis[y][x], alturaEm: (x, y) => niveis[y][x] };
   assert.equal(vm.runInContext("mapaPassa(g, 0, 0, 1, 0)", c), false, "não sobe 2 blocos de uma vez");
-  assert.equal(vm.runInContext("mapaPassa(g, 1, 0, -1, 0)", c), true, "desce de qualquer altura");
+  // Da borda de um patamar da planta não se pula (tem guarda-corpo); de móvel
+  // empilhado, desce-se de qualquer altura, como no Habbo.
+  assert.equal(vm.runInContext("mapaPassa(g, 1, 0, -1, 0)", c), false, "não pula da borda do patamar");
+  vm.runInContext("g.subida[g.ind(2, 1)] = 3", c);
+  assert.equal(vm.runInContext("mapaPassa(g, 2, 1, -1, 0)", c), true, "desce de móvel de qualquer altura");
+  vm.runInContext("g.subida[g.ind(2, 1)] = 0", c);
+  assert.equal(vm.runInContext("mapaPassa(g, 0, 1, 1, -1)", c), false, "diagonal não corta a quina do patamar");
   vm.runInContext("g.bloqueado[g.ind(1, 1)] = 1", c);
   assert.equal(vm.runInContext("mapaPassa(g, 0, 1, 1, 1)", c), true, "diagonal rente a um móvel");
   vm.runInContext("g.bloqueado[g.ind(0, 2)] = 1", c);
@@ -1429,4 +1436,14 @@ test("papéis de parede e pisos oficiais do Habbo: número do plano resolve a te
   // O tijolo vermelho (1901) e o carpete vermelho (205) existem no arquivo oficial.
   const temPlano = (bloco, id) => planos.roomVisualization[bloco].planes.some((p) => p.id === id);
   assert.ok(temPlano("wallData", "1901") && temPlano("floorData", "205"));
+});
+
+// Desempenho: a luz da sala vem pintada nos desenhos dos móveis e paredes;
+// filtro de CSS por canvas (centenas por cena) derrubava o FPS.
+test("luz da sala não vira filtro de CSS em cada móvel", () => {
+  const css = readFileSync("vybe-styles.css", "utf8");
+  const regra = css.split("\n").find((l) => l.includes("filter:var(--mapa-luz)"));
+  assert.ok(regra, "a regra da luz existe");
+  assert.ok(!/\.mapa-movel > canvas|canvas\.mapa-obj[,)]/.test(regra), "sem filtro em cada móvel: " + regra);
+  assert.match(readFileSync("vybe-escritorio-mapa.js", "utf8"), /const tingir = \(cv\) =>/);
 });
