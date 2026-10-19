@@ -268,7 +268,10 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         if (escritorio.tutorialPendente) { escritorio.tutorialPendente = false; setTimeout(iniciarTutorialEscritorio, 900); }
         setTimeout(() => escritorioMotorVoz().catch(() => {}), 1500);
         escritorioConversaAutomatica();
-        escritorioEmitir("music:get", {});
+        // Fila de música da sala em que entrou (se ela tiver aparelho de som).
+        escritorio.musicaZona = undefined;
+        escritorioMusicaDaSala();
+        escritorio.mapa?.prontos.then(() => escritorioMusicaDaSala());
         carregarResumoRecados();
         escritorio.ping = setInterval(
           () => escritorioEmitir("system:ping", {}),
@@ -761,10 +764,11 @@ function escritorioTrocarCena(quarto, lugar, dir) {
   escritorioEnviarPosicao(true);
   const depois = escritorio.aoChegarNaCena;
   escritorio.aoChegarNaCena = null;
-  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); depois?.(); });
-  // Entrou ou saiu do Lounge: a música toca ou para na hora.
-  const naPista = typeof escritorioNaPista === "function" && escritorioNaPista();
-  if (naPista !== Boolean(escritorio.naPista)) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
+  // Trocou de sala: a música da sala nova (se tiver aparelho de som) toca na
+  // hora; a da antiga para. Confere de novo quando os móveis terminam de
+  // carregar (só aí se sabe se a sala tem jukebox).
+  if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala();
+  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); depois?.(); });
 }
 function escritorioMinhaMesa() {
   let a = escritorioDonos().get(escritorio.base?.eu);
@@ -950,7 +954,7 @@ function escritorioListaSalasHtml() {
   const pessoas = escritorio.conectado ? escritorio.online : [];
   const meu = escritorioLugarDe(escritorio.perfil).id;
   const m = escritorio.musica, tocando = m?.tocando && m.fila?.[m.indice];
-  const musica = tocando ? `<article class="ofc-cartao ofc-cartao-musica" style="--sala:#b48cff"><div class="ofc-cartao-topo"><i></i><h3>Música no Lounge</h3><small>${m.fila.length} na fila</small></div><p class="ofc-nota">De ${safeText(String(tocando.por || "").split(" ")[0])}. Quem está no Lounge ouve junto.</p><button type="button" class="ofc-mini" onclick="irParaMusicaEscritorio()">${escritorioNaPista() ? "Você está ouvindo" : "Ir ouvir"}</button></article>` : "";
+  const musica = tocando ? `<article class="ofc-cartao ofc-cartao-musica" style="--sala:#b48cff"><div class="ofc-cartao-topo"><i></i><h3>Música · ${safeText(escritorioNomeDaSalaMusica())}</h3><small>${m.fila.length} na fila</small></div><p class="ofc-nota">De ${safeText(String(tocando.por || "").split(" ")[0])}. Quem está nesta sala ouve junto.</p><button type="button" class="ofc-mini" onclick="abrirMusicaEscritorio()">Fila e link</button></article>` : "";
   const cartao = (a) => {
     const aqui = pessoas.filter((p) => escritorioLugarDe(p).id === a.id);
     return `<article class="ofc-cartao" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}"><div class="ofc-cartao-topo"><i></i><h3>${safeText(a.nome)}</h3><small>${aqui.length} ${aqui.length === 1 ? "pessoa" : "pessoas"}</small></div><ul>${aqui.map((p) => `<li>${escritorioAvatar(p.perfil, p.nome)}<span><b>${safeText(p.nome)}</b><small>${escritorioStatusHtml(p.status)}</small></span></li>`).join("")}</ul><button type="button" class="ofc-mini" onclick="escritorioIrParaAmbiente('${a.id}',true)" ${a.id === meu ? "disabled" : ""}>${a.id === meu ? "Você está aqui" : "Ir para cá"}</button></article>`;
@@ -1329,9 +1333,9 @@ function escritorioQuadro(agora) {
   // Pisou na porta de um quarto (atrás da porta da fachada) ou na soleira de
   // saída: a cena troca e este ciclo acaba aqui.
   if (escritorioConferirPortal()) return;
-  // Entrou ou saiu do Lounge: a música toca ou para (só para esta pessoa).
+  // Entrou ou saiu de sala com som: a música toca ou para (só para esta pessoa).
   const naPista = typeof escritorioNaPista === "function" && escritorioNaPista();
-  if (naPista !== Boolean(escritorio.naPista)) { escritorio.naPista = naPista; sincronizarMusicaEscritorio(); }
+  if (naPista !== Boolean(escritorio.naPista) || (naPista && escritorio.musicaZona !== escritorio.zona)) escritorioMusicaDaSala();
   escritorioEnviarPosicao(!andando);
   // A ação do E é recalculada no máximo 8 vezes por segundo (e ao parar): ela
   // procura caminho até cada pessoa perto, o que pesava a cada quadro.
@@ -2441,7 +2445,7 @@ function escritorioAcaoDoMovel(m) {
   if (ESCRITORIO_GARRAFA.test(m.classe)) return { item: m, texto: "Girar a garrafa", fazer: () => girarGarrafaEscritorio(m) };
   if (ESCRITORIO_ROLETA.test(m.classe)) return { item: m, texto: "Girar a roleta", fazer: () => girarRoletaEscritorio(m) };
   if (ESCRITORIO_TELEPORTE.test(m.classe)) return { item: m, texto: "Teletransportar", fazer: () => abrirTeleporteEscritorio(m) };
-  if (/jukebox|^hc25_6$/.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
+  if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
   return null;
 }
@@ -2524,8 +2528,8 @@ function escritorioAcoesPerto() {
   }
   const tela = escritorio.mapa.moveisPerto(p.x, p.y, 2).find((m) => ESCRITORIO_TELAS.test(m.classe));
   if (tela) return { item: tela, texto: "Usar a TV", fazer: () => abrirTvEscritorio(tela) };
-  // No Lounge, a jukebox e a cabine do DJ são o bot de música da sala.
-  const som = escritorioNaPista() && perto.find((m) => /jukebox|^hc25_6$/.test(m.classe));
+  // Jukebox, rádio, vitrola, DJ: o bot de música da sala.
+  const som = escritorioNaPista() && perto.find((m) => ESCRITORIO_SOM.test(m.classe));
   if (som) return { item: som, texto: "Abrir a música", fazer: abrirMusicaEscritorio };
   for (const m of perto) {
     const nome = ESCRITORIO_LIGAVEIS.find(([re]) => re.test(m.classe))?.[1];

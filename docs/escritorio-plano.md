@@ -822,3 +822,12 @@ decoração inicial "bem feito".
   zona de conversa.
 - Pendente: Paulo conferir a sala no zoom; com mais de 16 clientes ativos, os
   que sobram ficam sem mesa (o Escritório avisa).
+
+### Música em toda jukebox — 19/10/2026 (noite)
+
+- Pedido do Paulo: toda jukebox ou objeto que faz música abre o nosso player
+  do YouTube, não só no Lounge. Fila por sala no Worker (`musica:<zona>`; o
+  Lounge mantém a fila guardada). A lista de aparelhos é `ESCRITORIO_SOM`.
+  Instrumentos (piano, guitarra, bateria) ficaram de fora, porque não tocam
+  gravação. Teste no `tests/escritorio.test.mjs` (Worker com filas
+  separadas). Vale depois de publicar o Worker de novo.
