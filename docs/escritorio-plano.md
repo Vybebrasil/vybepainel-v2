@@ -861,3 +861,11 @@ decoração inicial "bem feito".
   protesto); sem exceção de foco.
 - Um cliente grita por vez, em rodízio. Clique abre a demanda. Resolvida, o
   cliente agradece e vai embora.
+- 19/10 (noite, depois do teste do Paulo):
+  - um boneco por cliente, com a quantidade de demandas no nome, e o quadro
+    "Cobrando neste quarto" na coluna, com cada demanda e o motivo;
+  - fantasia por cliente, pelo que cada um é (títulos das demandas): VOA
+    estilista, Lions leão (`ha-5379`), Gonzalez chef de avental, Serra Grande
+    motorista, Antonov atleta, Mangaba dev de moletom, Alpha1 técnico de TI;
+    o segmento fica de reserva;
+  - óculos em preto viram óculos escuros: usar a cor 1408.

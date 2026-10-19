@@ -134,26 +134,75 @@ function escritorioDonoDoQuarto() {
   const sala = (escritorio.base?.salas || []).find((s) => s.id === raiz);
   return sala?.pessoa_id ? String(sala.pessoa_id) : null;
 }
+// Gravidade para ordenar e dar o tom do cliente (o pior pedido manda).
+const COBRANCA_PESO = { atrasada: 4, agendar: 3, hoje: 2, vence: 1, lembrar_cliente: 0 };
+// Um cliente por boneco (com quantas demandas ele cobra no nome) e o quadro
+// "Cobrando neste quarto" na coluna, com cada demanda clicável: com um boneco
+// por demanda, os nomes se empilhavam e não dava para ver quem cobrava o quê.
+function agruparCobrancas(lista) {
+  const por = new Map();
+  for (const c of lista) {
+    if (!por.has(c.cliente_id)) por.set(c.cliente_id, { cliente_id: c.cliente_id, cliente: c.cliente, segmento: c.segmento, itens: [] });
+    por.get(c.cliente_id).itens.push(c);
+  }
+  const grupos = [...por.values()];
+  for (const g of grupos) {
+    g.itens.sort((x, y) => COBRANCA_PESO[y.tipo] - COBRANCA_PESO[x.tipo] || y.dias - x.dias);
+    g.pior = g.itens[0];
+    g.cobra = g.itens.filter((c) => c.tipo !== "lembrar_cliente").length;
+  }
+  return grupos.sort((x, y) => COBRANCA_PESO[y.pior.tipo] - COBRANCA_PESO[x.pior.tipo] || y.itens.length - x.itens.length);
+}
+function cobrancaRotulo(c) {
+  if (c.tipo === "atrasada") return `${c.dias} dia${c.dias > 1 ? "s" : ""} de atraso`;
+  if (c.tipo === "hoje") return "É pra hoje";
+  if (c.tipo === "vence") return "Vence amanhã";
+  if (c.tipo === "agendar") return c.dias > 0 ? `Postagem atrasada ${c.dias} dia${c.dias > 1 ? "s" : ""}` : "Postar hoje";
+  return "Esperando o cliente";
+}
+function pintarCobrancasEscritorio(grupos, dono) {
+  const el = document.getElementById("office-cobrancas");
+  if (!el) return;
+  if (!grupos.length) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const total = grupos.reduce((t, g) => t + g.itens.length, 0);
+  let aberto = true;
+  try { aberto = localStorage.getItem("vybe-escritorio-cobrancas") !== "fechado"; } catch {}
+  el.innerHTML = `<button type="button" class="ofc-missoes-topo" aria-expanded="${aberto}" onclick="alternarCobrancasEscritorio()">
+      <b>Cobrando neste quarto</b><small>${grupos.length} cliente${grupos.length > 1 ? "s" : ""} · ${total} demanda${total > 1 ? "s" : ""}</small><i class="ofc-missoes-seta" aria-hidden="true"></i></button>
+    ${aberto ? `<ul class="ofc-cobrancas-lista">${grupos.map((g) => `<li><span class="ofc-cobranca-cliente ${COBRANCA_TOM[g.pior.tipo] || "cobra"}"><b>${safeText(g.cliente)}</b><small>${g.itens.length}</small></span>
+      <ul>${g.itens.map((c) => `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')" title="${safeText(`${c.titulo}${c.status ? ` · ${c.status}` : ""}\nClique para abrir a demanda`)}">
+        <em class="ofc-missao-prazo ${c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : ""}">${safeText(cobrancaRotulo(c))}</em><span>${safeText(c.titulo)}</span></button></li>`).join("")}</ul></li>`).join("")}</ul>` : ""}`;
+}
+function alternarCobrancasEscritorio() {
+  let aberto = true;
+  try { aberto = localStorage.getItem("vybe-escritorio-cobrancas") !== "fechado"; localStorage.setItem("vybe-escritorio-cobrancas", aberto ? "fechado" : "aberto"); } catch {}
+  pintarCobrancasEscritorio(escritorio.cobrancasGrupos || [], null);
+}
 async function carregarCobrancasEscritorio() {
   const mapa = escritorio.mapa, quarto = escritorio.quarto, dono = escritorioDonoDoQuarto();
   if (!mapa?.definirVisitantes) return;
-  if (!dono) { mapa.definirVisitantes([]); escritorio.cobrancasAntes = null; return; }
+  if (!dono) { mapa.definirVisitantes([]); escritorio.cobrancasAntes = null; escritorio.cobrancasGrupos = []; pintarCobrancasEscritorio([], null); return; }
   let lista;
   try { lista = (await escritorioApi("cobrancas", null, { pessoa: dono })).cobrancas || []; } catch { return; }
   if (mapa !== escritorio.mapa || quarto !== escritorio.quarto) return;
   const pessoa = (escritorio.base?.equipe || []).find((p) => String(p.id) === dono);
   const nomeDono = String(pessoa?.nome || "").split(" ")[0] || "pessoal";
-  // Resolvidas desde a última olhada neste quarto: o cliente agradece e vai embora.
-  const agora = new Set(lista.map((c) => c.ref + "|" + c.cliente_id));
-  const antes = escritorio.cobrancasAntes?.quarto === quarto ? escritorio.cobrancasAntes.itens : [];
-  const resolvidas = antes.filter((c) => !agora.has(c.ref + "|" + c.cliente_id) && c.tipo !== "lembrar_cliente");
-  escritorio.cobrancasAntes = { quarto, itens: lista };
-  const visitante = (c, i, falas, tom) => ({ nome: c.cliente, figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(c, i) : undefined,
-    falas, tom, dica: `${c.cliente} · ${c.titulo}${c.status ? ` · ${c.status}` : ""}`, aoClicar: () => abrirMissaoEscritorio(c.ref, c.quadro) });
-  // Quem agradece fala primeiro (o rodízio começa por ele).
-  mapa.definirVisitantes([...resolvidas.map((c, i) => visitante(c, lista.length + i, [`Valeu, ${nomeDono}! Ficou ótimo.`], "agradece")),
-    ...lista.map((c, i) => visitante(c, i, falasDaCobranca(c, nomeDono), COBRANCA_TOM[c.tipo] || "cobra"))]);
-  if (resolvidas.length) setTimeout(() => { if (mapa === escritorio.mapa && quarto === escritorio.quarto) mapa.definirVisitantes(lista.map((c, i) => visitante(c, i, falasDaCobranca(c, nomeDono), COBRANCA_TOM[c.tipo] || "cobra"))); }, 8000);
+  const grupos = agruparCobrancas(lista);
+  escritorio.cobrancasGrupos = grupos;
+  pintarCobrancasEscritorio(grupos, nomeDono);
+  // Clientes que pararam de cobrar desde a última olhada neste quarto: agradecem e vão embora.
+  const agora = new Set(grupos.filter((g) => g.cobra).map((g) => g.cliente_id));
+  const antes = escritorio.cobrancasAntes?.quarto === quarto ? escritorio.cobrancasAntes.grupos : [];
+  const resolvidos = antes.filter((g) => g.cobra && !agora.has(g.cliente_id));
+  escritorio.cobrancasAntes = { quarto, grupos };
+  const visitante = (g, i, falas, tom) => ({ nome: g.itens.length > 1 ? `${g.cliente} · ${g.itens.length}` : g.cliente,
+    figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(g, i) : undefined, falas, tom,
+    dica: g.itens.map((c) => `${cobrancaRotulo(c)}: ${c.titulo}`).join("\n"), aoClicar: () => abrirMissaoEscritorio(g.pior.ref, g.pior.quadro) });
+  const deles = (g) => g.itens.flatMap((c) => falasDaCobranca(c, nomeDono).slice(0, 2));
+  const ativos = grupos.map((g, i) => visitante(g, i, deles(g), COBRANCA_TOM[g.pior.tipo] || "cobra"));
+  mapa.definirVisitantes([...resolvidos.map((g, i) => visitante(g, grupos.length + i, [`Valeu, ${nomeDono}! Ficou ótimo.`], "agradece")), ...ativos]);
+  if (resolvidos.length) setTimeout(() => { if (mapa === escritorio.mapa && quarto === escritorio.quarto) mapa.definirVisitantes(ativos); }, 8000);
 }
 let RELOGIO_COBRANCAS = 0;
 function vigiarCobrancasEscritorio() {
