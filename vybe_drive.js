@@ -340,3 +340,35 @@ export async function conferirDrive() {
 
   throw new Error(`${dica} | conta: ${c.client_email} | ${tentativas.join(' | ')} | visíveis: ${JSON.stringify(visiveis)}`);
 }
+
+// Planejamentos do cliente (docs/planejamentos-plano.md): Cliente / Planejamentos / ano.
+export async function pastaDePlanejamento({ cliente, mes }) {
+  const raiz = process.env.DRIVE_PASTA_RAIZ;
+  if (!raiz) throw new Error('DRIVE_PASTA_RAIZ não configurada.');
+  const nomeCliente = ALIAS_CLIENTE[semSinais(cliente)] || cliente || 'Sem cliente';
+  let id = await pasta(nomeCliente, raiz);
+  id = await pasta('Planejamentos', id);
+  return pasta(String(mes || '').slice(0, 4) || String(new Date().getUTCFullYear()), id);
+}
+// HTML vira Documento Google (editável no Drive) e, dele, o PDF do mesmo
+// conteúdo. Os dois ficam na pasta indicada; devolve os ids e os links.
+export async function salvarDocumentoEPdf({ html, nome, pastaId }) {
+  exigirIntegracoesAtivas();
+  const limite = '-----vybe' + Date.now();
+  const meta = JSON.stringify({ name: nome, parents: [pastaId], mimeType: 'application/vnd.google-apps.document' });
+  const corpo = Buffer.concat([
+    Buffer.from(`--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`),
+    Buffer.from(`--${limite}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n`),
+    Buffer.from(String(html), 'utf8'),
+    Buffer.from(`\r\n--${limite}--\r\n`),
+  ]);
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink',
+    { method: 'POST', headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': `multipart/related; boundary=${limite}` }, body: corpo });
+  const doc = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(`Drive recusou o documento: ${doc?.error?.message || r.status}`);
+  const exp = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(doc.id)}/export?mimeType=application/pdf`,
+    { headers: { Authorization: `Bearer ${await token()}` } });
+  if (!exp.ok) throw new Error(`Drive não gerou o PDF (${exp.status}).`);
+  const pdf = await enviarParaDrive({ conteudo: Buffer.from(await exp.arrayBuffer()), nome: nome + '.pdf', mime: 'application/pdf', pastaId });
+  return { docId: doc.id, docLink: doc.webViewLink, pdfId: pdf.id, pdfLink: pdf.link };
+}

@@ -6,6 +6,7 @@ import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
+import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes } from '../server/planejamentos-api.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
 // Roteador, e não um arquivo por assunto, por um motivo concreto: o plano da
@@ -1582,7 +1583,8 @@ async function areaAgendaProducao(req,res,quem) {
 }
 
 const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
-                conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar };
+                conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar,
+                planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()) };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');
@@ -1591,6 +1593,15 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Sem sessão do painel: a página do cliente (o segredo é o link) e o
+  // conector dos agentes (chave própria). docs/planejamentos-plano.md.
+  const areaPublica = String(req.query?.area || '');
+  if (areaPublica === 'aprovar') return paginaDeAprovacao(req, res, sql());
+  if (areaPublica === 'agentes') {
+    try { return await conectorAgentes(req, res, sql()); }
+    catch (erro) { return res.status(500).json({ error: erro.message }); }
+  }
 
   const enviado = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
   const manutencao = process.env.CUTOVER_MIGRATION_KEY && enviado && enviado === String(process.env.CUTOVER_MIGRATION_KEY).trim();
