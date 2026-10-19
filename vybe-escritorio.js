@@ -812,7 +812,7 @@ function escritorioTrocarCena(quarto, lugar, dir) {
   // hora; a da antiga para. Confere de novo quando os móveis terminam de
   // carregar (só aí se sabe se a sala tem jukebox).
   if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala();
-  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); depois?.(); });
+  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); if (typeof carregarCobrancasEscritorio === "function") carregarCobrancasEscritorio(); depois?.(); });
 }
 function escritorioMinhaMesa() {
   let a = escritorioDonos().get(escritorio.base?.eu);
@@ -1159,7 +1159,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); });
+    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.

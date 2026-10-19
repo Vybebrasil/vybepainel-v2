@@ -48,14 +48,16 @@ test('peso do formato multiplica as regras por peça, soma formatos até 5 e vaz
 
 test('missões: peças abertas da pessoa, com o valor da regra da função e o peso do formato',async t=>{
  const {db,sql}=await bancoEscritorio(t);
- await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN formato text, ADD COLUMN titulo text, ADD COLUMN clientes_texto text, ADD COLUMN monday_item_id text;
+ await db.exec(readFileSync('migrations/2026-10-19-escritorio-gestao-pontos.sql','utf8'));
+ await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN formato text, ADD COLUMN titulo text, ADD COLUMN clientes_texto text, ADD COLUMN monday_item_id text, ADD COLUMN etapa text;
   INSERT INTO vybe_conteudos(id,board_id,status_chave,prazo,formato,titulo,clientes_texto,monday_item_id) VALUES
    (11,7829537690,'pode_fazer','2026-10-15','Impresso','Cardápio','Brussolo','900'),
    (12,7829537690,'em_andamento','2026-10-25','Card','Card de domingo','Gonzalez',NULL),
    (13,7829537690,'finalizado','2026-10-10','Card','Já entregue','Gonzalez',NULL),
    (14,8385559107,'pode_fazer','2026-10-22','Design','Arte da fachada','DiaLab',NULL),
    (15,7829537690,'pode_fazer','2026-10-25','Card','De outra pessoa','VOA',NULL);
-  INSERT INTO vybe_conteudo_responsaveis VALUES(11,2,0),(12,2,0),(13,2,0),(14,2,0),(15,4,0);`);
+  INSERT INTO vybe_conteudo_responsaveis VALUES(11,2,0),(12,2,0),(13,2,0),(14,2,0),(15,4,0),(11,1,1);
+  UPDATE vybe_conteudos SET etapa='Criação' WHERE id=11;`);
  await db.exec(readFileSync('migrations/2026-10-20-escritorio-complexidade.sql','utf8'));
  const r=await missoesDaPessoa(sql,2,new Date('2026-10-20T15:00:00Z'));
  assert.equal(r.funcao,'criacao');
@@ -68,4 +70,10 @@ test('missões: peças abertas da pessoa, com o valor da regra da função e o p
  assert.equal(domingo.ref,'vybe:12');assert.deepEqual([domingo.recompensa.moedas,domingo.recompensa.pontos],[card.moedas,card.pontos]);
  const fachada=r.missoes[1];
  assert.equal(fachada.quadro,'demandas');assert.ok(fachada.recompensa&&fachada.bonus,'solicitação paga a entrega e o bônus de prazo');
+ assert.equal(cardapio.grupo,'Criação');assert.ok(cardapio.status);
+ // Gestão (Paulo) vê o que ganha pela agência, não zero.
+ const gestao=await missoesDaPessoa(sql,1,new Date('2026-10-20T15:00:00Z'));
+ const [ag]=await sql`SELECT moedas,pontos FROM vybe_escritorio_regras WHERE chave='agencia'`;
+ assert.equal(gestao.funcao,'gestao');
+ assert.deepEqual([gestao.missoes[0].recompensa.moedas,gestao.missoes[0].recompensa.pontos],[ag.moedas,ag.pontos]);
 });

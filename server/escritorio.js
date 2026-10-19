@@ -1,6 +1,7 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, perfilPublico } from "./escritorio-economia.js";
 import { missoesDaPessoa } from "./escritorio-pontos.js";
+import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
@@ -328,6 +329,13 @@ export async function areaEscritorio(req, res, quem, sql) {
     }
     if (acao === "trocas") return res.status(200).json({ ok: true, trocas: await listarTrocas(sql, pessoa) });
     if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
+    // Clientes cobrando no quarto de alguém: todos que estão no quarto veem
+    // (decisão do Paulo, 19/10/2026); a equipe já vê todas as demandas.
+    if (acao === "cobrancas") {
+      const alvo = String(req.query?.pessoa || pessoa.id);
+      if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
+      return res.status(200).json({ ok: true, cobrancas: await cobrancasDaPessoa(sql, Number(alvo)) });
+    }
     if (acao === "recados" || acao === "recados-resumo")
       try {
         return res.status(200).json(acao === "recados"

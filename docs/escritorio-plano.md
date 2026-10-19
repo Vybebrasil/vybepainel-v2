@@ -839,3 +839,25 @@ decoração inicial "bem feito".
 - Publicar o Worker: o login da Cloudflare pelo Terminal falhou neste Mac; o
   caminho que funcionou foi colar `worker.js` (arquivo único) em Workers →
   vybe-escritorio → Editar código → Implantar. Conferir com `/health`.
+
+### Clientes cobrando nos quartos — 19/10/2026 (noite)
+
+- Brincadeira pedida pelo Paulo: o cliente da demanda que pede ação vai ao
+  quarto de quem deve agir e reclama em balão (`server/escritorio-cobrancas.js`,
+  rota `escritorio/cobrancas`, `vybe-escritorio-missoes.js`).
+- Quem é cobrado:
+
+  | Situação da demanda | Quem é cobrado |
+  | --- | --- |
+  | Atrasada ou vencendo | o responsável |
+  | Aprovação interna ou Falta D.A. | o Deivid |
+  | Para agendar com a veiculação chegando ou passada | o agendamento |
+  | Sem responsável | o head do cliente |
+  | Esperando o próprio cliente | o cliente vai ao quarto do head pedir "me cobra" |
+
+- Quando cobra: 1 dia de atraso; demanda do dia depois do meio-dia (Bahia);
+  prazo amanhã sem ter começado.
+- Decisões do Paulo: todos no quarto veem; sem limite (muita coisa vira
+  protesto); sem exceção de foco.
+- Um cliente grita por vez, em rodízio. Clique abre a demanda. Resolvida, o
+  cliente agradece e vai embora.

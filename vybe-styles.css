@@ -5908,6 +5908,10 @@ body:has(.status-context-dialog){overflow:hidden}
    sem laço de renderização. Móveis: Furniture Kit da Kenney (CC0). */
 body.no-escritorio {overflow:hidden}
 #painel-escritorio {position:fixed;inset:0;z-index:600;padding:0;background:#12141a}
+/* A gaveta da demanda (camada 500/501) abre a partir das missões, dos agentes e
+   dos clientes no quarto: com o Escritório aberto (camada 600), ela sobe acima dele. */
+body.no-escritorio .workspace-backdrop {z-index:700}
+body.no-escritorio .workspace-drawer {z-index:701}
 .ofc {--ofc-vidro:rgba(28,30,39,.86);--ofc-borda:#ffffff17;--ofc-texto:#eef0f5;--ofc-suave:#a3a9b7;--ofc-laranja:#ff9548;
   height:100%;display:grid;grid-template-columns:68px 300px minmax(0,1fr);color:var(--ofc-texto);font-family:var(--mac-ui);
   background:radial-gradient(1200px 700px at 70% 30%,#2a2433 0%,transparent 60%),radial-gradient(900px 600px at 20% 90%,#1d2b31 0%,transparent 55%),#14161d}
@@ -7174,3 +7178,38 @@ body.no-escritorio {overflow:hidden}
 .plj-avisos > li > b {color:#e7ecf5;font:700 12px var(--mac-ui)}
 .plj-avisos details {margin-top:4px}
 .plj-avisos summary {cursor:pointer;color:#c3cad6;font-size:11px}
+
+/* Clientes cobrando no quarto (vybe-escritorio-missoes.js): nome e fala; a cor
+   reforça o tom, o texto diz tudo. */
+.mapa-pessoa.figurante.visitante {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
+.mapa-pessoa.figurante.visitante:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
+.mapa-etiqueta.visitante {flex-direction:column;align-items:flex-start;gap:1px;max-width:210px;white-space:normal;cursor:pointer;padding:3px 8px;border-width:1.5px}
+.mapa-etiqueta.visitante b {font:700 10px var(--mac-ui)}
+.mapa-etiqueta.visitante .mapa-reclama {font:600 11px/1.3 var(--mac-ui);color:#fff}
+.mapa-etiqueta.visitante.cobra {border-color:#ff6b6b;background:#2a1215ee}
+.mapa-etiqueta.visitante.avisa {border-color:#ffc46b;background:#2a2112ee}
+.mapa-etiqueta.visitante.lembra {border-color:#6fb6ff;background:#121c2aee}
+.mapa-etiqueta.visitante.agradece {border-color:#6fe3a8;background:#122a1eee}
+.mapa-etiqueta.visitante:not(.grita) .mapa-reclama {display:none}
+.mapa-etiqueta.visitante.grita {z-index:99990}
+
+/* Missões: filtros, título em linha própria, status e grupo da demanda. */
+.ofc-missoes {width:252px}
+.ofc-missoes-filtros {display:flex;gap:4px;flex-wrap:wrap}
+.ofc-missoes-filtros button {display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;border:1px solid #ffffff17;background:#ffffff08;color:var(--ofc-suave);font:600 10.5px var(--mac-ui);cursor:pointer}
+.ofc-missoes-filtros button span {padding:0 5px;border-radius:6px;background:#ffffff14;color:var(--ofc-texto);font-size:9.5px}
+.ofc-missoes-filtros button.ativo {border-color:#ff954888;background:#ff954822;color:#ffd0a8}
+.ofc-missoes-filtros button.alerta span {background:#ff5a5a40;color:#ffd0d0}
+.ofc-missoes-filtros button:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:1px}
+.ofc-missao {gap:4px}
+.ofc-missao.hoje {border-color:#ffc46b55}
+.ofc-missao-linha {justify-content:space-between}
+.ofc-missao-titulo {font:600 12.5px/1.3 var(--mac-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ofc-missao-cliente {color:var(--ofc-suave);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-missao-estado {justify-content:flex-start;flex-wrap:wrap;gap:4px}
+.ofc-missao-status, .ofc-missao-grupo {max-width:100%;padding:1px 6px;border-radius:6px;font:600 9.5px var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-missao-status {background:#6fb6ff1f;color:#b9dcff}
+.ofc-missao-grupo {background:#ffffff10;color:var(--ofc-suave)}
+.ofc-missao-grupo::before {content:"Grupo: "}
+/* Com uma demanda aberta, o aviso do head sai da frente (voltaria por cima do rodapé da gaveta). */
+body:has(#workspace-drawer) .plj-aviso {display:none}

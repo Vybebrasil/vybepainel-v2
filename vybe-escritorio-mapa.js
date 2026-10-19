@@ -1265,7 +1265,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // o clique abre o planejamento daquele cliente. Posto que sobra fica vazio.
   let postos = new Map();
   function montarFigurantes() {
-    for (const n of palco.querySelectorAll(".mapa-pessoa.figurante, .mapa-etiqueta.agente")) n.remove();
+    for (const n of palco.querySelectorAll(".mapa-pessoa.figurante:not(.visitante), .mapa-etiqueta.agente")) n.remove();
     for (const [i, f0] of (P.figurantes || []).entries()) {
       const agente = f0.posto === undefined ? null : postos.get(f0.posto);
       if (f0.posto !== undefined && !agente) continue;
@@ -1298,6 +1298,68 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       posicionarPessoa(p);
       trocarImagem(p);
     }
+  }
+  // Clientes visitantes (cobrança no quarto, vybe-escritorio.js): de pé nos
+  // ladrilhos livres mais perto do meio do quarto, virados para o centro, com
+  // o nome e um balão que troca de frase a cada 5 s. Sem limite: muita coisa
+  // atrasada vira protesto. Se faltar ladrilho, dividem o lugar.
+  let visitantes = [], relogioFalas = 0;
+  function montarVisitantes() {
+    for (const n of palco.querySelectorAll(".mapa-pessoa.visitante, .mapa-etiqueta.visitante")) n.remove();
+    clearInterval(relogioFalas); relogioFalas = 0;
+    if (!grade || !visitantes.length) return;
+    const livres = [];
+    for (let x = 0; x < grade.W; x++) for (let y = 0; y < grade.H; y++) {
+      const i = grade.ind(x, y);
+      if (!grade.bloqueado[i] && !grade.assento.has(i) && !grade.cama.has(i)) livres.push([x, y]);
+    }
+    if (!livres.length) return;
+    const cx = (grade.W - 1) / 2, cy = (grade.H - 1) / 2;
+    livres.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
+    const falando = [];
+    visitantes.forEach((v, k) => {
+      const [x0, y0] = livres[k % livres.length], volta = Math.floor(k / livres.length);
+      const x = x0 + (volta ? ((volta * 37) % 7 - 3) * 0.08 : 0), y = y0 + (volta ? ((volta * 53) % 7 - 3) * 0.08 : 0);
+      const dir = Math.abs(cx - x) > Math.abs(cy - y) ? (cx > x ? 2 : 6) : (cy > y ? 4 : 0);
+      const no = document.createElement("button");
+      no.type = "button";
+      no.className = "mapa-pessoa figurante visitante";
+      no.setAttribute("aria-label", `${v.nome}: ${v.falas?.[0] || ""}`);
+      const img = document.createElement("img");
+      img.alt = ""; img.draggable = false; img.referrerPolicy = "no-referrer";
+      no.append(img);
+      const etiqueta = document.createElement("span");
+      etiqueta.className = "mapa-etiqueta solta visitante " + (v.tom || "cobra");
+      etiqueta.setAttribute("aria-hidden", "true");
+      etiqueta.innerHTML = "<b></b><span class=\"mapa-reclama\"></span>";
+      etiqueta.querySelector("b").textContent = v.nome;
+      etiqueta.querySelector(".mapa-reclama").textContent = v.falas?.[0] || "";
+      etiqueta.classList.toggle("grita", k === 0);
+      etiqueta.title = v.dica || "";
+      const abrir = (e) => { e.stopPropagation(); v.aoClicar?.(); };
+      for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }
+      palco.append(etiqueta, no);
+      const p = { id: "visitante-" + k, no, img, etiqueta, x, y, dir, acao: "std", figura: v.figura, mao: "" };
+      posicionarPessoa(p);
+      trocarImagem(p);
+      falando.push({ v, etiqueta, alvo: etiqueta.querySelector(".mapa-reclama"), i: 0 });
+    });
+    // Um de cada vez reclama (o balão de todos juntos virava um borrão); cada
+    // vez que volta a falar, troca de frase.
+    let vez = 0;
+    if (falando.length > 1 || (falando[0]?.v.falas || []).length > 1) relogioFalas = setInterval(() => {
+      if (!palco.isConnected) { clearInterval(relogioFalas); return; }
+      falando[vez].etiqueta.classList.remove("grita");
+      vez = (vez + 1) % falando.length;
+      const f = falando[vez];
+      f.i = (f.i + 1) % (f.v.falas?.length || 1);
+      f.alvo.textContent = f.v.falas?.[f.i] || "";
+      f.etiqueta.classList.add("grita");
+    }, 4000);
+  }
+  function definirVisitantes(lista) {
+    visitantes = lista || [];
+    if (montarFigurantesDepois) montarVisitantes();
   }
   function ocuparPostos(lista) {
     postos = new Map((lista || []).map((a, i) => [a.posto ?? i, a]));
@@ -1684,7 +1746,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
   // A grade só é montada com a ficha de física do Habbo carregada.
-  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); montarFigurantesDepois = true; grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) montarFigurantes(); carga.pronto = true; });
+  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); montarFigurantesDepois = true; grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) { montarFigurantes(); montarVisitantes(); } carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   // Uma troca por vez: duas seguidas (editar e salvar) desenhavam os móveis
   // em dobro, porque a segunda limpava enquanto a primeira ainda montava.
@@ -2607,7 +2669,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    ocuparPostos, numeroDePostos, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    ocuparPostos, numeroDePostos, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
