@@ -448,6 +448,29 @@ Estado exato:
 
 ## Próximos passos (depois das salas comuns)
 
+### Conferência inicial no Codex — 18/10/2026
+
+- Retomado o commit `1eebaa9`, na branch `codex/escritorio-proximo`, sem
+  modificar as cenas deixadas pelo Claude. São 52 commits locais em relação
+  ao `origin/main` disponível; o remoto ainda precisa ser atualizado antes
+  de qualquer integração.
+- Regeneração das cenas sem alteração de fonte; `npm run check` aprovado:
+  463 testes, sintaxe, ordem global e build. O verificador não encontrou
+  erros nas nove salas comuns. Os 56 avisos de desenho são dos padrões
+  pessoais `sala-0` a `sala-8`, não das salas comuns refeitas.
+- Conferência inicial em desktop (1280×720) de Foco, Auditório, Produção,
+  Jogos, Academia e Lounge em 1× e detalhes em 2×. Navegação e zoom funcionaram,
+  sem erros no console durante a sessão. Ainda não é uma aprovação visual
+  do Paulo nem uma revisão exaustiva de cada canto ou do celular.
+- Galeria local com composição e detalhes em:
+  `/Users/paulomartins/.codex/visualizations/2026/09/07/01a07dec-ba57-7d53-a027-0b53cc92bfba/revisao-escritorio-2026-10-18/index.html`.
+  Demonstração desta conferência: `http://127.0.0.1:4362/`.
+- As 256 classes usadas pelo bloco composto têm JSON e PNG rastreados;
+  nenhum dos arquivos extraídos não rastreados precisou ser adicionado.
+- Não houve push, publicação, teste de mídia real ou escrita no banco.
+  Continuam pendentes a revisão do Paulo, o transporte das regras ao editor
+  e a decisão de devolução das moedas antes do segundo reinício.
+
 1. **Paulo revisar as salas no navegador.** Todas as salas comuns já estão no
    motor: Café, Convivência, Reunião, Foco, Auditório, Produção, Jogos,
    Academia e Lounge. Corrigir o que ele apontar, sempre como regra no motor
@@ -469,8 +492,11 @@ Estado exato:
   - preservar saldo, XP e conquistas;
   - fazer em migração nova e revisável, aplicada só com o "Aprovado" dele (a
     de 17/10 não se repete).
-  - **Falta decidir:** as VybeCoins gastas em móveis voltam ou não? Perguntar
-    antes de preparar.
+  - **Decidido em 18/10/2026:** devolver as moedas gastas em móveis pelo valor
+    de cada compra no razão. Paulo autorizou levar as regras ao editor,
+    publicar e seguir o fluxo; melhorias visuais individuais das salas ficam
+    para depois. O reinício usa migração nova, sem backup novo de decoração,
+    preservando saldo anterior, XP e conquistas.
 - **Segurança:**
   - nunca entrar em conta do Paulo (Habbo, Gmail), digitar senha nem
     automatizar a conta dele;
@@ -487,3 +513,29 @@ Estado exato:
   - `npm run check` (463 testes passando em 18/10);
   - `node scripts/escritorio-compor.mjs` (gera as cenas e roda o verificador);
   - conferir no navegador: `npm run dev`, depois Escritório → sala.
+
+## Continuação autorizada — editor e devolução (18/10/2026)
+
+- Paulo revisou e apontou que as salas ainda têm problemas visuais. Pediu
+  publicar esta etapa e deixar melhorias individuais para depois; não registrar
+  as salas como visualmente aprovadas.
+- `origin/main` atualizado e integrado no merge `8718603`: publicação #217 do
+  Claude preservada, mantendo o motor, as nove cenas e as regras posteriores.
+- O editor usa o mesmo verificador `scripts/escritorio-auditar.mjs`, agora
+  importável sem executar a CLI. A ação consultiva `construcao-conferir` no
+  endpoint existente valida permissão, camada e planta pelo servidor. Mostra
+  apoio, frente, acesso, sobreposição e desenho; antes de salvar, pede revisão
+  se houver problemas. Não bloqueia uma escolha visual intencional.
+- Categoria **Da sala** reaproveita as classes da composição e da edição, sem
+  catálogo paralelo. A edição preserva também o sétimo campo dos móveis
+  (fundo, Wired, troféu e manequim), antes perdido ao abrir o editor.
+- Migração `2026-10-18-escritorio-reinicio-reembolso.sql`: recibo único por
+  compra (`reembolso:compra:<id>`), devolução do valor pago sem XP, inventários
+  vazios, decoração/pintura/andares pessoais reiniciados, sem cópia nova.
+  Salas comuns e seus históricos são preservados. O marcador impede repetir
+  o reset e apagar compras posteriores.
+- Testes isolados confirmaram reembolso, idempotência, preservação de XP,
+  conquistas e cenas comuns. A verificação completa passou com 467 testes
+  antes do ajuste final da posição do botão de conferência.
+- Publicação e execução da migração ainda pendentes nesta anotação; atualizar
+  com PR, commit, deployment e totais reais ao concluir.

@@ -402,6 +402,13 @@ export async function areaEscritorio(req, res, quem, sql) {
     } catch (e) {
       return res.status(e.status || 400).json({ error: e.message });
     }
+  if (acao === "construcao-conferir") {
+    try {
+      const { salas } = await carregarEscritorio(sql, pessoa);
+      const { conferirEditorEscritorio } = await import('./escritorio-construcao.js');
+      return res.status(200).json({ ok: true, ...(await conferirEditorEscritorio(sql, pessoa, salas, req.body)) });
+    } catch (e) { return res.status(e.status || 400).json({ error: e.message }); }
+  }
   if (acao === "mapa") {
     const { salas } = await carregarEscritorio(sql, pessoa);
     try {

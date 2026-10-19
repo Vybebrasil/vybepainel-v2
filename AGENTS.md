@@ -182,6 +182,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   XP e conquistas. A operação única guarda perfis, camadas e inventário antes
   de limpar (`2026-10-17-escritorio-quartos-reinicio.sql`); não repetir nem
   transformar em reset automático no carregamento.
+- Segundo reinício autorizado por Paulo em 18/10/2026: após esta publicação,
+  zerar decoração, pintura, andares e inventários pessoais, sem nova cópia;
+  devolver o preço de cada compra pelo razão, uma vez por compra, sem XP.
+  Preservar saldo anterior, XP, conquistas e salas comuns. Usar a migração
+  `2026-10-18-escritorio-reinicio-reembolso.sql`; não repetir o reset antigo.
+  As salas comuns ainda precisam de melhorias visuais individuais; Paulo
+  autorizou esta publicação sem considerá-las visualmente aprovadas.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
   17/10/2026): XP nunca cai; perda só em moedas e nunca abaixo de zero; valores
   e funções ficam nas tabelas `vybe_escritorio_regras` e `vybe_escritorio_funcoes`

@@ -6889,3 +6889,9 @@ body.no-escritorio {overflow:hidden}
 .ofc-tv header button:focus-visible {outline:2px solid #ff8a35}
 .ofc-tv iframe {display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
 .mapa-paisagem {image-rendering:auto}
+
+/* Resultado consultivo do mesmo verificador usado pelas cenas. */
+.ofc-conferencia { max-width: 40rem; max-height: 15rem; overflow: auto; padding: .65rem; background: var(--bg, #202128); border-radius: .65rem; font-size: .85rem; }
+.ofc-conferencia summary { cursor: pointer; font-weight: 600; }
+.ofc-conferencia p { margin: .5rem 0; }
+.ofc-conferencia li { margin: .4rem 0; overflow-wrap: anywhere; }

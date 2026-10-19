@@ -86,6 +86,15 @@ export async function demoApi(req,res,url,body) {
   // Os grupos de partida, os mesmos que a conferência do banco semeia.
   if(url.pathname==='/api/painel' && url.searchParams.get('area')==='grupos' && req.method==='GET')
     return reply(200,{ok:true,pronto:true,grupos:GRUPOS_PADRAO,cores:CORES_DE_GRUPO});
+  // Conferência é leitura mesmo por POST; não libera as gravações da demo.
+  if(req.method==='POST' && url.pathname==='/api/painel' && url.searchParams.get('area')==='escritorio' && url.searchParams.get('acao')==='construcao-conferir') {
+    try {
+      const { conferirEditorEscritorio } = await import('../server/escritorio-construcao.js');
+      const entrada=JSON.parse(body.toString());
+      const sql=()=>Promise.resolve([{preferencias:{sala_planta:'amplo'}}]);
+      return reply(200,{ok:true,...await conferirEditorEscritorio(sql,{id:1,admin:true},salasDoEscritorio([{id:1,nome:'Paulo'}]),entrada)});
+    } catch(e) { return reply(e.status || 400,{error:e.message}); }
+  }
   if(req.method!=='GET')return reply(403,{error:'Demonstração de interface somente leitura. As gravações são testadas no PostgreSQL em memória.'});
   if(url.pathname==='/api/conteudos') {
     const demanda=url.searchParams.get('board')==='demandas';

@@ -5,6 +5,7 @@
 // node scripts/escritorio-auditar.mjs  (sai com erro se achar algo)
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
+import { pathToFileURL } from "node:url";
 import { silhueta, emComum, camadasDesenho, frenteDaPeca } from "./escritorio-desenho.mjs";
 
 const ctx = { console, window: {}, document: {} };
@@ -62,7 +63,7 @@ const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte d
 
 // Confere uma cena: a planta (mapa geral ou quarto) e os móveis dela
 // ([classe, x, y, dir, estado, altura]). Devolve os problemas encontrados.
-function auditar(cena, P, moveis, avisos) {
+function auditar(cena, P, moveis, avisos, avisosDesenho = [], avisosIlhas = []) {
   const problemas = [], ocup = new Map();
   const desenho = { push: (t) => (DESENHO_CONFERIDO.has(cena) ? problemas : avisosDesenho).push(t) };
   const nomeCena = (t) => (cena === "mapa geral" ? t : `${t} em ${cena}`);
@@ -807,17 +808,31 @@ function auditar(cena, P, moveis, avisos) {
   return problemas;
 }
 
+// O editor chama exatamente as mesmas regras da conferência de linha de comando.
+// Sem SQL, rede nem escrita. A planta pessoal já vem validada pelo servidor.
+export function conferirConstrucao(camada, moveis, modelo = null, opcoes = {}) {
+  const raiz = camada.replace(/-andar-1$/, "");
+  const original = camada === "geral" ? ctx.__praca : ctx.__P.ambientes.find(a => a.id === raiz);
+  if (!original) throw new Error("Sala inválida para conferir construção.");
+  const a = { ...original, ...opcoes, id: camada, ...(modelo ? { modelo } : {}) };
+  const P = camada === "geral" ? ctx.__geral() : ctx.__quarto(a);
+  const direcoes = [], desenho = [], ilhas = [];
+  const erros = auditar(camada, P, [...moveis, ...(P.fixos || [])], direcoes, desenho, ilhas);
+  return { problemas: [...new Set(erros)], avisos: [...new Set([...direcoes, ...desenho, ...ilhas])] };
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
 const avisos = [], problemas = [], avisosIlhas = [];
 // A Praça (cena de abertura, camada "geral" do editor).
-problemas.push(...auditar("praca", ctx.__geral(), ctx.__cenaMoveis(ctx.__praca), avisos));
+problemas.push(...auditar("praca", ctx.__geral(), ctx.__cenaMoveis(ctx.__praca), avisos, avisosDesenho, avisosIlhas));
 // Espaços comuns que viraram cena própria (Café, Lounge…).
 for (const a of ctx.__P.ambientes) if (a.cena) {
   const P = ctx.__quarto(a);
-  problemas.push(...auditar(a.id, P, ctx.__cenaMoveis(a), avisos));
+  problemas.push(...auditar(a.id, P, ctx.__cenaMoveis(a), avisos, avisosDesenho, avisosIlhas));
 }
 for (const a of ctx.__P.ambientes) if (a.pessoal) {
   const P = ctx.__quarto(a);
-  problemas.push(...auditar(a.id, P, ctx.__sala(a), avisos));
+  problemas.push(...auditar(a.id, P, ctx.__sala(a), avisos, avisosDesenho, avisosIlhas));
 }
 const unicos = [...new Set(problemas)];
 if (process.argv.includes("--direcoes")) console.log([...new Set(avisos)].join("\n"));
@@ -826,3 +841,5 @@ if (process.argv.includes("--desenho")) console.log([...new Set(avisosDesenho)].
 else if (avisosDesenho.length) console.error(`${new Set(avisosDesenho).size} avisos de desenho nas salas ainda não refeitas (--desenho para ver).`);
 console.log(unicos.length ? unicos.join("\n") : "Planta sem problemas.");
 process.exitCode = unicos.length ? 1 : 0;
+
+}
