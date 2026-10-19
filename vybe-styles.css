@@ -6999,3 +6999,46 @@ body.no-escritorio {overflow:hidden}
 .ofc-carteira .ofc-precos ul {margin:6px 0 0;padding-left:18px;color:var(--ofc-suave);font-size:12px}
 .ofc-carteira-acoes {display:flex;flex-wrap:wrap;gap:8px}
 .ofc-ficha-secao {margin:18px 0 0;padding-top:12px;border-top:1px solid #ffffff14;color:#a3a9b7;font:650 11px var(--mac-ui);letter-spacing:.05em;text-transform:uppercase}
+
+/* Inventário (como o do Habbo) e troca de móveis (19/10/2026). */
+.ofc-inventario {display:grid;align-content:start;gap:10px;padding:4px 2px 14px}
+.ofc-inv-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ofc-inv-topo h4,.ofc-inv-secao {margin:0}
+.ofc-inv-secao {display:flex;align-items:center;gap:6px;margin-top:6px}
+.ofc-inv-grade {display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.ofc-inv-grade button {position:relative;display:grid;justify-items:center;gap:3px;width:100%;padding:8px 4px 6px;border:1px solid transparent;border-radius:12px;background:#ffffff08;color:var(--ofc-texto);font:550 10px var(--mac-ui);cursor:pointer}
+.ofc-inv-grade button:hover {background:#ffffff12}
+.ofc-inv-grade button[aria-pressed=true] {border-color:var(--ofc-laranja);background:color-mix(in srgb,var(--ofc-laranja) 12%,transparent)}
+.ofc-inv-grade button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:1px}
+.ofc-inv-grade img {width:48px;height:48px;object-fit:contain;image-rendering:pixelated}
+.ofc-inv-grade span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-inv-grade em {position:absolute;top:4px;right:6px;font:700 10px var(--mac-ui);font-style:normal;color:#ffc79a}
+.ofc-inv-grade small {color:var(--ofc-suave);font-size:9px}
+.ofc-inv-acoes {display:grid;gap:6px;padding:10px;border-radius:12px;background:#ffffff0c;border:1px solid var(--ofc-borda)}
+.ofc-inv-acoes small {color:var(--ofc-suave);font-size:11px}
+.ofc-inv-acoes > div {display:flex;flex-wrap:wrap;gap:6px}
+.ofc-trocas {display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.ofc-troca {display:grid;gap:8px;padding:10px;border-radius:12px;background:#ffffff08;border:1px solid var(--ofc-borda)}
+.ofc-troca-topo {display:flex;justify-content:space-between;gap:8px}
+.ofc-troca-topo small {color:var(--ofc-suave)}
+.ofc-troca-lados {display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ofc-troca-lados small {color:var(--ofc-suave);font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.ofc-troca-lados ul {display:grid;gap:4px;margin:4px 0 0;padding:0;list-style:none}
+.ofc-troca-lados li {display:flex;align-items:center;gap:6px;font-size:11px}
+.ofc-troca-lados img {width:28px;height:28px;object-fit:contain;image-rendering:pixelated}
+.ofc-troca-acoes {display:flex;flex-wrap:wrap;gap:6px}
+.ofc-trocas-recentes {margin:0;padding-left:16px;color:var(--ofc-suave);font-size:11px}
+.ofc-troca-com {display:grid;gap:4px;margin:8px 0}
+.ofc-troca-com select {padding:8px;border-radius:10px;border:1px solid #ffffff22;background:#ffffff0a;color:inherit;font:inherit}
+.ofc-troca-montar {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ofc-troca-montar h3 {margin:0 0 6px;font:700 13px var(--mac-ui)}
+.ofc-troca-montar ul {display:grid;gap:4px;max-height:320px;overflow:auto;margin:0;padding:0;list-style:none}
+.ofc-troca-montar li {display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:6px;padding:4px 6px;border-radius:10px;background:#ffffff06;font-size:12px}
+.ofc-troca-montar li.sim {background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 16%,transparent)}
+.ofc-troca-montar li img {width:32px;height:32px;object-fit:contain;image-rendering:pixelated}
+.ofc-troca-montar li span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-qtd {display:flex;align-items:center;gap:4px}
+.ofc-qtd button {width:24px;height:24px;border:1px solid #ffffff22;border-radius:8px;background:#ffffff0a;color:inherit;cursor:pointer}
+.ofc-qtd button:disabled {opacity:.4;cursor:default}
+.ofc-qtd b {min-width:16px;text-align:center;font-variant-numeric:tabular-nums}
+@media(max-width:620px){.ofc-troca-montar,.ofc-troca-lados{grid-template-columns:1fr}}

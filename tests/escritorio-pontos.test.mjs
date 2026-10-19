@@ -197,3 +197,16 @@ test('nível pelo XP e início da semana',()=>{
  assert.equal(nivelPorXp(160).nivel,3);
  assert.equal(inicioDaSemana('2026-10-18'),'2026-10-12');assert.equal(inicioDaSemana('2026-10-12'),'2026-10-12');
 });
+// Ficha: os números de trabalho contam as mesmas entregas do XP (a Criação
+// pelo quadro de Produção), não só as demandas de Solicitações.
+test('números de trabalho da ficha contam as entregas da função nos dois quadros',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,prazo) VALUES(40,7829537690,'em_andamento',NULL),(41,7829537690,'em_andamento',NULL),(42,8385559107,'pode_fazer',NULL);
+  INSERT INTO vybe_conteudo_responsaveis VALUES(40,4,0),(41,4,0),(42,4,0);`);
+ await evento(db,40,'status','Para aprovação',4,'Em andamento');
+ await evento(db,41,'status','Para aprovação',4,'Em andamento');
+ await evento(db,42,'status','Feito',4,'Pode Fazer');
+ const e=await carregarEconomia(sql,4);
+ assert.equal(e.pontos.trabalho.hoje,3);assert.equal(e.pontos.trabalho.total,3);assert.equal(e.pontos.trabalho.semana,3);
+ assert.ok(e.pontos.trabalho.sequencia>=1||[0,6].includes(new Date().getUTCDay()));
+});

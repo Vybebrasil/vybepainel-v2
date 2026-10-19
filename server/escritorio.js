@@ -1,7 +1,7 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, perfilPublico, rankingEscritorio } from "./escritorio-economia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
-import { listarPostits, colarPostit, apagarPostit, darPresente } from "./escritorio-social.js";
+import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -326,6 +326,7 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo)) });
     }
     if (acao === "ranking") return res.status(200).json({ ok: true, ranking: await rankingEscritorio(sql) });
+    if (acao === "trocas") return res.status(200).json({ ok: true, trocas: await listarTrocas(sql, pessoa) });
     if (acao === "recados" || acao === "recados-resumo")
       try {
         return res.status(200).json(acao === "recados"
@@ -445,6 +446,15 @@ export async function areaEscritorio(req, res, quem, sql) {
     } catch (e) {
       return res.status(e.status || 400).json({ error: e.message });
     }
+  if (acao === "troca" || acao === "troca-responder") {
+    try {
+      const { salas } = await carregarEscritorio(sql, pessoa);
+      const r = acao === "troca" ? await proporTroca(sql, pessoa, salas, req.body || {}) : await responderTroca(sql, pessoa, salas, req.body || {});
+      return res.status(200).json({ ok: true, ...r, trocas: await listarTrocas(sql, pessoa) });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+  }
   if (acao === "postit" || acao === "postit-apagar" || acao === "presente") {
     try {
       if (acao === "postit") return res.status(200).json({ ok: true, id: await colarPostit(sql, pessoa, req.body || {}) });
