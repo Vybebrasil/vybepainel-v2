@@ -195,9 +195,20 @@ Regra nova (decisão do Paulo: "equilibrar de acordo com a logística nova"):
   | Faixa | Preço | Tempo de trabalho |
   | --- | --- | --- |
   | comum | 40 | cerca de 2 dias |
-  | raro | 250 | 2 a 3 semanas |
-  | muito raro | 900 | cerca de 2 meses |
-  | lendário | 2.500 | cerca de 6 meses |
+  | incomum | 120 | cerca de 1 semana |
+  | raro | 300 (estoque 10) | cerca de 3 semanas |
+  | épico | 900 (estoque 3, na vitrine) | cerca de 2 meses |
+  | lendário | 2.500 (estoque 1, na vitrine) | cerca de 6 meses |
+
+- **Cinco faixas** (Paulo, 19/10/2026): comum, incomum, raro, épico e lendário.
+  O antigo "muito raro" virou épico. Incomum são as luzes e as peças temáticas
+  (jogos, música, festa, cidade, escola, Brasil). Raro são os animados, os
+  neons, os jogos de salão, as jukeboxes e as TVs. Épico é HC, ouro, cristal,
+  fontes, estátuas e pianos. Lendário são tronos, troféus e edições limitadas.
+  A classificação está em `scripts/escritorio-raridades.mjs`, e a migração
+  sincroniza o catálogo inteiro com ela. Móveis de marco, preço e estoque
+  próprios e o que já foi vendido não mudam. Depois disso, a tabela volta a
+  ser a autoridade.
 
 - **Saldo recalculado uma vez**, como se a regra nova valesse desde o começo:
   - cada lançamento pelo valor novo da regra;

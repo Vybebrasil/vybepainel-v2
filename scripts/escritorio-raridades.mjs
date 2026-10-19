@@ -1,4 +1,5 @@
-// Faixas de raridade da loja do Escritório (fase 2, docs/escritorio-pontos.md).
+// Faixas de raridade da loja do Escritório (docs/escritorio-pontos.md): comum,
+// incomum, raro, épico e lendário (cinco faixas desde 20/10/2026).
 // Classifica o catálogo do painel por tipo de peça e imprime os INSERTs que a
 // migração 2026-10-17-escritorio-loja.sql carrega em vybe_escritorio_catalogo.
 // Comum não entra na tabela (é o padrão). A tabela é a autoridade depois de
@@ -11,15 +12,18 @@ const quartos = JSON.parse(readFileSync(new URL("../assets/escritorio/habbo/quar
 const texto = (m) => (m.classe + " " + m.nome).toLowerCase();
 const BRINDES = /plush|plushy|box|bag|envelope|egg|pillow|sack|chest/;
 const LENDARIO = /throne|solid gold|(^|[^a-z])rare([^a-z]|$)|trophy|(^|[^a-z])ltd([^a-z]|$)|signature edition|luxury car|gold fountain|pot o. gold|lighthouse|treehouse|boulevard fountain|gold leaf/;
-const MUITO_RARO = /^hc_|^hc\b|hcsohva|(^|[^a-z])hc([^a-z]|$)|gold|golden|bling|crystal|^mode_gold|jacuzzi|chandelier|vegas|marble pillar|waterfall|fountain|statue|aquarium|piano|grand|executive/;
+const EPICO = /^hc_|^hc\b|hcsohva|(^|[^a-z])hc([^a-z]|$)|gold|golden|bling|crystal|^mode_gold|jacuzzi|chandelier|vegas|marble pillar|waterfall|fountain|statue|aquarium|piano|grand|executive/;
 const RARO = /neon|billiard|football|arcade|jukebox|tv set|hot tub|pool/;
-const CATEGORIAS_RARAS = ["Jogos", "Música", "Festa", "Cidade", "Escola", "Brasil"];
+// Incomum (20/10/2026, cinco faixas pedidas pelo Paulo): peças temáticas e
+// as luzes, que dão clima à sala sem ser o básico.
+const CATEGORIAS_INCOMUNS = ["Jogos", "Música", "Festa", "Cidade", "Escola", "Brasil", "Luzes"];
 export function raridadeDe(m) {
   if (quartos.essenciais.includes(m.classe)) return "comum";
   const t = texto(m);
   if (LENDARIO.test(t) && !BRINDES.test(t)) return "lendario";
-  if (MUITO_RARO.test(t) || m.categoria === "Cinema") return "muito_raro";
-  if (CATEGORIAS_RARAS.includes(m.categoria) || (m.anima && m.categoria !== "Pisos do acervo") || RARO.test(t)) return "raro";
+  if (EPICO.test(t) || m.categoria === "Cinema") return "epico";
+  if ((m.anima && m.categoria !== "Pisos do acervo") || RARO.test(t)) return "raro";
+  if (CATEGORIAS_INCOMUNS.includes(m.categoria)) return "incomum";
   return "comum";
 }
 export function raridadesDoCatalogo() {
@@ -30,7 +34,7 @@ export function raridadesDoCatalogo() {
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {
   const mapa = raridadesDoCatalogo();
   if (process.argv.includes("--json")) { console.log(JSON.stringify(mapa, null, 1)); }
-  else for (const r of ["raro", "muito_raro", "lendario"]) {
+  else for (const r of ["incomum", "raro", "epico", "lendario"]) {
     const classes = Object.keys(mapa).filter((c) => mapa[c] === r).sort();
     const linhas = [];
     for (let i = 0; i < classes.length; i += 12) linhas.push(" " + classes.slice(i, i + 12).map((c) => `'${c}'`).join(","));

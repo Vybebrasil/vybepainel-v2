@@ -17,6 +17,9 @@ test('economia nova: regras e preços na tabela, saldo recalculado uma vez, XP i
  await db.exec(`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(1,'compra:x:shelves',-120); UPDATE vybe_escritorio_carteiras SET saldo=saldo-120 WHERE pessoa_id=1`);
  await sql`SELECT vybe_lancar_pontos(2,'chegada:2','chegada',NULL,100,500)`;
  await sql`SELECT vybe_lancar_pontos(2,'aprov:1','criacao_aprovacao',1,10,10)`;
+ const marcosAntes=await sql`SELECT classe,raridade,marco FROM vybe_escritorio_catalogo WHERE marco IS NOT NULL ORDER BY classe`;
+ assert.ok(marcosAntes.length>0);
+ assert.ok((await sql`SELECT count(*)::int n FROM vybe_escritorio_catalogo WHERE raridade='muito_raro'`)[0].n>0);
  const antes=Object.fromEntries((await sql`SELECT pessoa_id,saldo,xp FROM vybe_escritorio_carteiras`).map(c=>[c.pessoa_id,c]));
  assert.equal(Number(antes[1].saldo),4000+150+5-120);
  await db.exec(MIGRACAO);
@@ -29,7 +32,16 @@ test('economia nova: regras e preços na tabela, saldo recalculado uma vez, XP i
  const [aj]=await sql`SELECT quantidade,pontos FROM vybe_escritorio_moedas WHERE pessoa_id=1 AND origem='ajuste:economia-2026-10-20'`;
  assert.equal(Number(aj.quantidade),Number(depois[1].saldo)-Number(antes[1].saldo));assert.equal(aj.pontos,0);
  const preco=Object.fromEntries((await sql`SELECT chave,preco FROM vybe_escritorio_raridades`).map(r=>[r.chave,r.preco]));
- assert.deepEqual(preco,{comum:40,raro:250,muito_raro:900,lendario:2500});
+ assert.deepEqual(preco,{comum:40,incomum:120,raro:300,epico:900,lendario:2500});
+ // Cinco faixas na ordem; muito raro virou épico; marcos intactos; catálogo pelo script.
+ assert.deepEqual((await sql`SELECT chave FROM vybe_escritorio_raridades ORDER BY ordem`).map(r=>r.chave),['comum','incomum','raro','epico','lendario']);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_catalogo WHERE raridade='muito_raro'`)[0].n,0);
+ assert.deepEqual(await sql`SELECT classe,raridade,marco FROM vybe_escritorio_catalogo WHERE marco IS NOT NULL ORDER BY classe`,marcosAntes);
+ const {raridadesDoCatalogo}=await import('../scripts/escritorio-raridades.mjs');
+ const mapa=raridadesDoCatalogo();
+ const fora=(await sql`SELECT classe,raridade FROM vybe_escritorio_catalogo WHERE marco IS NULL`).filter(r=>(mapa[r.classe]||'comum')!==r.raridade);
+ assert.deepEqual(fora,[]);
+ await assert.rejects(db.exec(`INSERT INTO vybe_escritorio_raridades(chave,nome,ordem,preco) VALUES('muito_raro','x',9,1)`));
  const [conq]=await sql`SELECT moedas,pontos FROM vybe_escritorio_regras WHERE chave='conquista'`;
  assert.equal(conq.moedas,25);assert.equal(conq.pontos,50);
  // Conquista nova paga pela tabela, mesmo quem chama passando 50.

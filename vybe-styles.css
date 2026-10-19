@@ -6849,8 +6849,9 @@ body.no-escritorio {overflow:hidden}
 .ofc-giro.nao {background:#ffffff14;color:var(--ofc-suave)}
 /* Loja: faixa de raridade (texto e cor), vitrine da semana e móvel que não dá para comprar agora. */
 .ofc-raridade {padding:1px 6px;border-radius:6px;font:700 9px var(--mac-ui);font-style:normal;color:#1d2029;letter-spacing:.02em}
-.ofc-raridade.raro {background:#7ee08a}
-.ofc-raridade.muito_raro {background:#5ad1e6}
+.ofc-raridade.incomum {background:#7ee08a}
+.ofc-raridade.raro {background:#6fb6ff}
+.ofc-raridade.epico {background:#c39bff}
 .ofc-raridade.lendario {background:linear-gradient(90deg,#ffd166,#ff8a35)}
 .ofc-vitrine {margin:0 0 10px;padding:10px;border-radius:12px;background:linear-gradient(135deg,#ffd16614,#ff8a3510);border:1px solid #ffd16633}
 .ofc-vitrine summary {cursor:pointer;font:700 12px var(--mac-ui);color:#ffd166}
