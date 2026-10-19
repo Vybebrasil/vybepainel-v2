@@ -186,7 +186,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   zerar decoração, pintura, andares e inventários pessoais, sem nova cópia;
   devolver o preço de cada compra pelo razão, uma vez por compra, sem XP.
   Preservar saldo anterior, XP, conquistas e salas comuns. Usar a migração
-  `2026-10-18-escritorio-reinicio-reembolso.sql`; não repetir o reset antigo.
+  `2026-10-18-escritorio-reinicio-reembolso.sql`; **já executada em
+  18/10/2026, com marcador `salas-motor-2026-10-18`**. Não repetir nenhum
+  dos resets nem apagar compras/decoração posteriores.
   As salas comuns ainda precisam de melhorias visuais individuais; Paulo
   autorizou esta publicação sem considerá-las visualmente aprovadas.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
