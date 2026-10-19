@@ -629,3 +629,17 @@ Estado exato:
   barra fora da peça e console sem erros. Regressão verifica contagens e
   filtro de adquiridos. `npm run check` (473 testes e build) e diff aprovados.
   Sem escrita real; entrega local. Celular físico ainda não conferido.
+
+### Cursor dos pisos públicos — gravação de 08h05 de 19/10/2026
+
+- A gravação revela um defeito diferente da grade: `passarPonteiro` escolhia
+  a origem do móvel sob o pixel, inclusive dos pisos decorativos 2×2. O
+  cursor parecia saltar casas porque seguia a peça inteira, não o tile.
+- `mapaAlvoCursor` mantém o tile do mouse para pisos/tapetes e preserva o
+  alvo de interação dos outros móveis. Sem alterar física ou coordenadas
+  salvas; não há mudança de escala ou de passo no editor.
+- Navegador local na Convivência: quatro casas vizinhas produziram posições
+  distintas (456,351), (488,367), (456,383), (424,367), um tile por vez.
+  Regressões cobrem os quatro tiles do piso, chão vazio e móvel interativo.
+  `npm run check`: 475 testes e build aprovados; diff limpo. Correção local
+  em `codex/cursor-tiles-piso`, com a publicação #221 preservada na base.
