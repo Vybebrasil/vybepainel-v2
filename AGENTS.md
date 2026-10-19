@@ -217,6 +217,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   gatilho `vybe_demanda_moedas`, fechamento do dia e da semana no ciclo diário
   `/api/mirror-reconcile`; toda concessão tem origem única por pessoa no razão.
   Não premie tempo online nem invente outro razão, carteira ou gatilho.
+  Gestão ganha pela agência (regra `agencia`, decisão do Paulo em 19/10/2026)
+  e o briefing conta como entrega; migração
+  `2026-10-19-escritorio-gestao-pontos.sql` já aplicada em 19/10/2026.
+  Tabela de trocas (`2026-10-19-escritorio-trocas.sql`) aplicada no mesmo dia.
 
 ## Direção visual
 

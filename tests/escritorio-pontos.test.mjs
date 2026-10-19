@@ -210,3 +210,39 @@ test('números de trabalho da ficha contam as entregas da função nos dois quad
  assert.equal(e.pontos.trabalho.hoje,3);assert.equal(e.pontos.trabalho.total,3);assert.equal(e.pontos.trabalho.semana,3);
  assert.ok(e.pontos.trabalho.sequencia>=1||[0,6].includes(new Date().getUTCDay()));
 });
+// Gestão (decisão do Paulo, 19/10/2026, opção C): ganha por peça da agência e a
+// demanda com briefing conta como entrega; histórico antes de 17/10 vira
+// chegada, depois disso a regra normal, sem pagar nada duas vezes.
+test('Gestão: peça da agência e briefing contam; histórico vira chegada uma vez só',async t=>{
+ const {readFileSync}=await import('node:fs');
+ const {db,sql}=await banco(t,{historico:async(db)=>{
+  await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,briefing) VALUES(60,7829537690,'para_agendar','Post da semana'),(61,8385559107,'feito','Pedido'),(62,7829537690,'alteracao','x');
+   INSERT INTO vybe_conteudo_clientes VALUES(60,3),(61,3);`);
+  await evento(db,60,'criacao',null,1,null,'2026-10-10T12:00:00Z');
+  await evento(db,60,'status','Para agendar',7,'Para aprovação','2026-10-11T12:00:00Z');
+  await evento(db,61,'status','Feito',4,'Pode Fazer','2026-10-12T12:00:00Z');
+  await evento(db,62,'status','Alteração',7,'Para aprovação','2026-10-12T12:00:00Z');
+  await evento(db,62,'status','Para agendar',7,'Alteração','2026-10-13T12:00:00Z');
+ }});
+ const antes=await saldo(sql,1);
+ // Depois da instalação dos pontos e antes da migração: peça aprovada sem alteração.
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave) VALUES(63,7829537690,'para_aprovacao')`);
+ await evento(db,63,'status','Para agendar',7,'Para aprovação','2026-10-18T12:00:00Z');
+ const migracao=readFileSync('migrations/2026-10-19-escritorio-gestao-pontos.sql','utf8');
+ await db.exec(migracao);
+ const [m1,x1]=await saldo(sql,1);
+ // Chegada: 60 (aprovada) + 61 (finalizada) + briefing de 60 = 3 entregas → 6 moedas, 30 XP; 62 teve alteração.
+ // Depois de 17/10: 63 pela regra normal → +5/+5.
+ assert.deepEqual([m1-antes[0],x1-antes[1]],[6+5,30+5]);
+ await db.exec(migracao);
+ assert.deepEqual(await saldo(sql,1),[m1,x1],'aplicar de novo não credita');
+ // Daqui para frente: peça aprovada sem alteração paga a Gestão e o head da carteira.
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave) VALUES(64,7829537690,'para_aprovacao');INSERT INTO vybe_conteudo_clientes VALUES(64,1);`);
+ await evento(db,64,'status','Para agendar',7,'Para aprovação');
+ assert.deepEqual(await saldo(sql,1),[m1+5,x1+5]);
+ // Briefing novo conta como entrega da Gestão.
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,briefing) VALUES(65,7829537690,'pode_fazer','Roteiro')`);
+ await evento(db,65,'criacao',null,1);
+ const r=await sql`SELECT regra FROM vybe_escritorio_entregas WHERE pessoa_id=1 AND conteudo_id=65`;
+ assert.deepEqual(r.map(x=>x.regra),['briefing']);
+});
