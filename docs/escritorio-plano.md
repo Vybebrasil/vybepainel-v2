@@ -942,3 +942,9 @@ decoração inicial "bem feito".
   chão ao lado das cadeiras e de pendentes na frente das fileiras.
 - Se houver camada salva da sala `operacao` no banco, ela vale no lugar deste
   padrão (regra das salas comuns).
+- Caminhada: o imager do Habbo só troca o passo com o parâmetro `frame`; com
+  `frame_num` os 4 quadros vinham iguais e o boneco deslizava. Corrigido, com
+  teste (`tests/escritorio-boneco.test.mjs`).
+- Clientes visitantes folgados (Paulo): metade senta nos assentos livres e os
+  outros ficam de pé com folga. A cada 4 s um deles anda pelo caminho do mapa
+  até outro lugar ou senta. Só se amontoam no meio quando falta lugar.
