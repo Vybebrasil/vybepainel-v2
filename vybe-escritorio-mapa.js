@@ -1264,8 +1264,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // painel põe ali o agente de um cliente, com o nome e a situação em cima;
   // o clique abre o planejamento daquele cliente. Posto que sobra fica vazio.
   let postos = new Map();
+  // Agentes do Centro de Operação falam o bordão do cliente, um de cada vez
+  // (todos juntos virava um borrão), com outra frase a cada vez que voltam.
+  let relogioAgentes = 0;
   function montarFigurantes() {
     for (const n of palco.querySelectorAll(".mapa-pessoa.figurante:not(.visitante), .mapa-etiqueta.agente")) n.remove();
+    clearInterval(relogioAgentes); relogioAgentes = 0;
+    const falantes = [];
     for (const [i, f0] of (P.figurantes || []).entries()) {
       const agente = f0.posto === undefined ? null : postos.get(f0.posto);
       if (f0.posto !== undefined && !agente) continue;
@@ -1284,6 +1289,12 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${agente.alerta ? "<small></small>" : ""}${agente.avisos ? `<em class="mapa-avisos-agente">${agente.avisos > 99 ? "99+" : agente.avisos}</em>` : ""}`;
         etiqueta.querySelector("b").textContent = agente.nome;
         if (agente.alerta) etiqueta.querySelector("small").textContent = agente.situacao;
+        if (agente.falas?.length) {
+          const fala = document.createElement("span");
+          fala.className = "mapa-reclama";
+          etiqueta.append(fala);
+          falantes.push({ etiqueta, fala, falas: agente.falas, i: -1 });
+        }
         etiqueta.title = `${agente.nome}: ${agente.situacao}${agente.resumoAvisos ? "\n" + agente.resumoAvisos : ""}`;
         no.title = etiqueta.title;
         const abrir = (e) => { e.stopPropagation(); agente.aoClicar?.(); };
@@ -1298,6 +1309,20 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       posicionarPessoa(p);
       trocarImagem(p);
     }
+    if (!falantes.length) return;
+    // Ordem embaralhada pela semente da sala; o primeiro fala logo.
+    let vez = -1;
+    const falar = () => {
+      if (!palco.isConnected) { clearInterval(relogioAgentes); return; }
+      if (vez >= 0) falantes[vez].etiqueta.classList.remove("grita");
+      vez = (vez + 1 + Math.floor(Math.random() * Math.max(1, falantes.length - 1))) % falantes.length;
+      const f = falantes[vez];
+      f.i = (f.i + 1) % f.falas.length;
+      f.fala.textContent = f.falas[f.i];
+      f.etiqueta.classList.add("grita");
+    };
+    setTimeout(falar, 1200);
+    relogioAgentes = setInterval(falar, window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 9000 : 5500);
   }
   // Clientes visitantes (cobrança no quarto, vybe-escritorio.js): de pé nos
   // ladrilhos livres mais perto do meio do quarto, virados para o centro, com

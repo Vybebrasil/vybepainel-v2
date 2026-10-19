@@ -902,6 +902,12 @@ decoração inicial "bem feito".
   e "Só o que dá para comprar". O clique abre a mesma prévia da loja.
   Comprar fora do editor manda o móvel para o Inventário; os essenciais
   grátis continuam no editor do quarto.
-- Pendente: a fantasia dos agentes do Centro de Operação deve seguir as cores
-  e o mascote de cada cliente (Paulo: o Alpha1 tem um lobinho). Também falta
-  redesenhar a sala com espaço livre para a equipe trabalhar.
+- Agentes do Centro de Operação (Paulo: "não precisa supor nada"): cada
+  fantasia vem da marca real, conferida no Instagram de cada cliente (lista
+  "Seguindo" da @asuavybe, bio e logo), nas contas de anúncio da Vybe e no
+  Drive. Roupa nas cores da marca e peça que diz o que o cliente é. O Alpha1
+  é o lobo do mascote (máscara `fa-3771`). Cada agente tem um bordão do
+  próprio perfil; um fala por vez. Use as cores comuns da paleta: as do clube
+  não pegam no top feminino nem no blazer.
+- Pendente: redesenhar o Centro de Operação com espaço livre para a equipe
+  trabalhar.
