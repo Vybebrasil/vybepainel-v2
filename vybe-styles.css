@@ -6792,7 +6792,11 @@ body.no-escritorio {overflow:hidden}
 .ofc-editor-ferramentas summary:focus-visible,.ofc-editor-menu summary:focus-visible {outline:2px solid var(--ofc-laranja);border-radius:8px}
 
 .ofc-editor-hist button:disabled {opacity:.4;cursor:default}
-.ofc-editor-flutua {position:absolute;z-index:8;display:flex;gap:4px;padding:5px;border-radius:12px;background:#1d1610f2;border:1px solid #ff8a3566;box-shadow:0 10px 26px #0009}
+.ofc-editor-flutua {position:absolute;z-index:8;bottom:100px;left:12px;right:12px;display:flex;align-items:center;gap:4px;padding:8px;max-width:calc(100% - 24px);overflow-x:auto;border-radius:12px;background:#1d1610f2;border:1px solid #ff8a3566;box-shadow:0 10px 26px #0009}
+.ofc-editor-flutua::before {content:attr(data-movel);flex:0 0 110px;white-space:normal;font:600 11px var(--mac-ui);color:var(--ofc-texto);line-height:1.4}
+.ofc-inventario-resumo {font-size:12px;line-height:1.6;color:var(--ofc-texto)}
+.ofc-inventario-resumo span {color:var(--ofc-suave)}
+.ofc-editor-flutua > * {flex-shrink:0}
 .ofc-editor-flutua button {padding:6px 10px;border-radius:8px;border:1px solid #ffffff22;background:#ffffff10;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;white-space:nowrap}
 .ofc-editor-flutua button[aria-pressed=true] {border-color:#ff8a35;background:#ff8a3529}
 .ofc-editor-flutua button.perigo {color:#ff9b9b}
