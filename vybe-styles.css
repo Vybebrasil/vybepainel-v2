@@ -6952,25 +6952,6 @@ body.no-escritorio {overflow:hidden}
 .ofc-menu-quarto {min-width:170px}
 .ofc-menu-quarto small {padding:0 8px 6px;color:var(--ofc-suave);font:500 11px var(--mac-ui);text-align:center}
 
-.ofc-ranking {display:grid;align-content:start;gap:10px;padding:4px 2px 12px}
-.ofc-ranking-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
-.ofc-ranking-topo h4 {margin:0}
-.ofc-ranking-ordem {display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:3px;border-radius:10px;background:#ffffff0a}
-.ofc-ranking-ordem button {padding:6px 4px;border:0;border-radius:8px;background:none;color:var(--ofc-suave);font:600 11px var(--mac-ui);cursor:pointer}
-.ofc-ranking-ordem button[aria-selected=true] {background:#ffffff1a;color:var(--ofc-texto)}
-.ofc-ranking-ordem button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
-.ofc-ranking-lista {display:grid;gap:4px;margin:0;padding:0;list-style:none}
-.ofc-ranking-lista button {display:grid;grid-template-columns:30px 32px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:10px;background:#ffffff06;color:var(--ofc-texto);text-align:left;cursor:pointer}
-.ofc-ranking-lista li.eu button {background:color-mix(in srgb,var(--ofc-laranja) 14%,transparent)}
-.ofc-ranking-lista button:hover {background:#ffffff12}
-.ofc-ranking-lista button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
-.ofc-ranking-lista .office-avatar {width:32px;height:40px;object-fit:cover;object-position:50% 12%}
-.ofc-ranking-pos {font:800 13px var(--mac-ui);color:var(--ofc-suave);text-align:center;font-variant-numeric:tabular-nums}
-.ofc-ranking-pos.p1 {color:#ffd166}.ofc-ranking-pos.p2 {color:#d6dbe4}.ofc-ranking-pos.p3 {color:#e0a070}
-.ofc-ranking-nome {min-width:0;display:grid}
-.ofc-ranking-nome b {font:650 13px var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ofc-ranking-nome small {display:flex;align-items:center;gap:4px;color:var(--ofc-suave);font-size:11px}
-.ofc-ranking-valor {font:700 12px var(--mac-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
 
 .ofc-ficha-jogo .ofc-ficha-numeros {grid-template-columns:repeat(4,minmax(0,1fr))}
 .ofc-ficha-jogo h4 {margin:14px 0 6px}
@@ -7042,3 +7023,7 @@ body.no-escritorio {overflow:hidden}
 .ofc-qtd button:disabled {opacity:.4;cursor:default}
 .ofc-qtd b {min-width:16px;text-align:center;font-variant-numeric:tabular-nums}
 @media(max-width:620px){.ofc-troca-montar,.ofc-troca-lados{grid-template-columns:1fr}}
+
+.ofc-ficha-marcos-publicos {display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.ofc-ficha-marcos-publicos li {display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;background:#ffd16614;border:1px solid #ffd16633;font:600 11px var(--mac-ui)}
+.ofc-ficha-marcos-publicos i {color:#ffd166;font-style:normal}

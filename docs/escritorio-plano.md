@@ -794,3 +794,6 @@ decoração inicial "bem feito".
   isso dia sem furo e dia sem vencida ainda não apareceram (o primeiro é na
   virada de 19 para 20/10). Paulo criou 650 demandas com briefing desde
   31/08. Decisão pendente do Paulo: como a Gestão passa a ganhar.
+- 19/10/2026: o ranking saiu (decisão do Paulo: sem comparação, sem
+  estrelismo). O perfil de cada pessoa mostra nível, XP, moedas, marcos
+  conquistados e inventário.
