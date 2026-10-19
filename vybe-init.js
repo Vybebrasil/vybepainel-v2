@@ -47,6 +47,7 @@ function iniciarPainel() {
   document.body.classList.remove('auth-pending');
   // Depois de garantirSessao(), então já se sabe de quem são os avisos.
   if (typeof iniciarNotificacoes === 'function') iniciarNotificacoes();
+  if (typeof iniciarVigiaPlanejamentos === 'function') iniciarVigiaPlanejamentos();
   if (typeof ajustarAbasPorPapel === 'function') ajustarAbasPorPapel();
   if (typeof pintarQuemSou === 'function') pintarQuemSou();
   const legacyKpi = document.getElementById('kpi-grid');

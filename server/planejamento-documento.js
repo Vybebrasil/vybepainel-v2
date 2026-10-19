@@ -35,7 +35,7 @@ export function documentoHtml(p, { paraCliente = false, token = '', aviso = '' }
  for (const x of pecas) contagem[x.formato] = (contagem[x.formato] || 0) + 1;
  const numeros = c.numeros?.length ? c.numeros : [{ rotulo: 'publicações no mês', valor: String(pecas.length) }, ...Object.entries(contagem).map(([f, n]) => ({ rotulo: f, valor: String(n) }))];
  const resposta = p.estado === 'aprovado' ? `<div class="resposta ok">Aprovado por ${esc(p.resposta_nome || 'cliente')}${p.respondido_em ? ` em ${new Date(p.respondido_em).toLocaleDateString('pt-BR', { timeZone: 'America/Bahia' })}` : ''}. Obrigado!</div>`
-  : p.estado === 'ajustes' ? `<div class="resposta">Ajustes pedidos por ${esc(p.resposta_nome || 'cliente')}: ${esc(p.resposta_texto || '')}. A Vybe vai revisar e mandar de novo.</div>` : '';
+  : p.estado === 'ajustes' ? `<div class="resposta">Ajustes pedidos por ${esc(p.resposta_nome || 'cliente')}: ${esc(String(p.resposta_texto || '').replace(/[.!?…]*\s*$/, (f) => f.trim() || '.'))} A Vybe vai revisar e mandar de novo.</div>` : '';
  const formulario = paraCliente && p.estado === 'enviado' ? `<section class="aprovar" id="aprovar"><h2>Sua resposta</h2>
 <form method="post" action="/aprovar/${esc(token)}"><label>Seu nome<input name="nome" required maxlength="80" autocomplete="name"></label>
 <label>Comentário (obrigatório para pedir ajustes)<textarea name="texto" rows="4" maxlength="4000"></textarea></label>

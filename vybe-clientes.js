@@ -278,7 +278,8 @@ function renderClientMasterDetail(cli) {
         ${campo('Solicitações em aberto', String(record.requests.filter((d) =>
           !['Feito','Finalizado','feito','finalizado','Concluídas'].includes(String(d.status||''))).length))}
       </div>
-    </div>`;
+    </div>${typeof planejamentosDoClienteHtml === 'function' ? planejamentosDoClienteHtml() : ''}`;
+  if (typeof carregarPlanejamentosDoCliente === 'function') carregarPlanejamentosDoCliente(id, nome);
 }
 // A ficha usa os mesmos editores da tabela; so precisa saber se quem olha pode
 // mexer. Fica numa funcao propria porque a ficha e desenhada antes da tabela
