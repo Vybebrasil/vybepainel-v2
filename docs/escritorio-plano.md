@@ -629,3 +629,53 @@ Estado exato:
   barra fora da peça e console sem erros. Regressão verifica contagens e
   filtro de adquiridos. `npm run check` (473 testes e build) e diff aprovados.
   Sem escrita real; entrega local. Celular físico ainda não conferido.
+
+### Cursor dos pisos públicos — gravação de 08h05 de 19/10/2026
+
+- A gravação revela um defeito diferente da grade: `passarPonteiro` escolhia
+  a origem do móvel sob o pixel, inclusive dos pisos decorativos 2×2. O
+  cursor parecia saltar casas porque seguia a peça inteira, não o tile.
+- `mapaAlvoCursor` mantém o tile do mouse para pisos/tapetes e preserva o
+  alvo de interação dos outros móveis. Sem alterar física ou coordenadas
+  salvas; não há mudança de escala ou de passo no editor.
+- Navegador local na Convivência: quatro casas vizinhas produziram posições
+  distintas (456,351), (488,367), (456,383), (424,367), um tile por vez.
+  Regressões cobrem os quatro tiles do piso, chão vazio e móvel interativo.
+  `npm run check`: 475 testes e build aprovados; diff limpo. Correção local
+  em `codex/cursor-tiles-piso`, com a publicação #221 preservada na base.
+
+### Criação e permissão dos quartos — 19/10/2026
+
+- Decisão do Paulo: decoração privada só pelo dono (inclusive se quem visita
+  administra); ambientes públicos e Praça só por Paulo. O servidor usa a
+  identidade da sessão vinculada à sala-0, nunca um nome enviado pelo cliente.
+  A checagem compartilhada protege salvar, imagens, histórico/restauração e
+  conferência do editor; seletor visual também filtra as áreas permitidas.
+- Tamanho vem antes dos formatos, com medidas, escolha atual e custo zero
+  explícitos. Cartões mostram a descrição do tamanho exibido (antes herdavam
+  a descrição da última/maior opção). Botão confirma o tamanho escolhido.
+  Meu espaço mostra a planta atual e “Aumentar ou reformar meu quarto”.
+- Modelo Essencial simplificado para mesa, computador, cadeira e tapete;
+  os outros essenciais continuam disponíveis no inventário. Não alteramos
+  quartos já salvos nem aumentamos a sala de Tainara automaticamente.
+- Revisão local: Médio e Grande na criação, modelo Essencial no Pequeno,
+  seletor de Paulo só com áreas públicas e próprio quarto. Regressões de
+  autorização recusam administrador no quarto alheio e em áreas públicas.
+  Persistência/contas reais, mídia e celular físico não foram testados.
+- Verificação final: `npm run check` aprovado com 477 testes e build;
+  `git diff --check` limpo. O teste antigo de gravação por administrador foi
+  atualizado para a nova regra e também passou isoladamente. Entrega local
+  em `codex/quartos-criacao-permissoes`, sem publicar ou alterar salas reais.
+
+### Terceiro reinício dos quartos — 19/10/2026
+
+- Pedido do Paulo: antes de publicar, todos refazem o quarto no novo
+  criador e os quartos atuais são limpos.
+- Migração `2026-10-19-escritorio-quartos-recriar.sql` (marcador
+  `quartos-criacao-2026-10-19`): esvazia quartos pessoais e andares,
+  inventário e pintura, marca `quarto_configurado=false` e devolve o preço
+  das compras ainda não devolvidas (as já devolvidas em 18/10 ficam como
+  estão). XP, conquistas, saldo anterior, salas comuns e Praça intactos.
+  Teste: `tests/escritorio-quartos-recriar.test.mjs`.
+- Ordem: publicar esta branch, conferir o site no ar e só então aplicar a
+  migração uma vez em produção, com "Aprovado" do Paulo.

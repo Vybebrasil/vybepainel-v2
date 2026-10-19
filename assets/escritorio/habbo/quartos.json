@@ -6628,7 +6628,7 @@
     {
       "id": "trabalho",
       "nome": "Essencial",
-      "dica": "Mesa com computador, cadeira, tapete, estante, luminária e planta — grátis",
+      "dica": "Mesa, computador, cadeira e tapete — grátis. Decore o restante no editor.",
       "itens": [
         [
           "hygge_c25_carpet",
@@ -6649,30 +6649,12 @@
           0
         ],
         [
-          "plant_small_cactus",
-          7,
-          7,
-          2
-        ],
-        [
           "computer_flatscreen",
           5,
           4,
           4,
           1,
           0.95
-        ],
-        [
-          "hygge_c18_shelf",
-          7,
-          6,
-          0
-        ],
-        [
-          "mm_lamp",
-          7,
-          5,
-          0
         ]
       ]
     },

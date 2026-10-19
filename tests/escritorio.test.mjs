@@ -884,7 +884,8 @@ test("permissões e versão ao salvar camadas do mapa", async (t) => {
   assert.equal(r1.versao, 1);
   // Alguém salvou antes: a versão antiga não sobrescreve.
   await assert.rejects(salvarCamadaEscritorio(sql, jady, salas, { camada: salaJady, itens: [], versao: 0 }), /antes/);
-  const r2 = await salvarCamadaEscritorio(sql, paulo, salas, { camada: salaJady, itens: [], versao: 1 });
+  await assert.rejects(salvarCamadaEscritorio(sql, paulo, salas, { camada: salaJady, itens: [], versao: 1 }), /sua sala/);
+  const r2 = await salvarCamadaEscritorio(sql, jady, salas, { camada: salaJady, itens: [], versao: 1 });
   assert.equal(r2.versao, 2);
   const r3 = await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [["exe_plant", 70, 50, 2]], versao: 0 });
   assert.equal(r3.versao, 1);

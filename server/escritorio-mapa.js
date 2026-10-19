@@ -131,20 +131,21 @@ export async function carregarMapaEscritorio(sql) {
   if (await imagensProntas(sql)) mapa.imagens = await listarImagensEscritorio(sql);
   return mapa;
 }
-// Quem edita cada camada: 'geral' só administrador; sala, o dono ou administrador.
-function conferirEdicao(pessoa, salas, camada) {
-  if (CENAS_COMUNS.has(camada)) {
-    if (!pessoa.admin) throw Object.assign(new Error("Só quem administra edita as salas comuns."), { status: 403 });
+// Cada pessoa edita somente o próprio quarto. Ambientes públicos e Praça
+// são exclusivos da identidade de Paulo, vinculada à sala-0 pelo servidor.
+export function conferirEdicao(pessoa, salas, camada) {
+  if (camada === "geral" || CENAS_COMUNS.has(camada)) {
+    const paulo = salas.find(s=>s.id === "sala-0")?.pessoa_id;
+    if (!pessoa.admin || !paulo || String(pessoa.id) !== String(paulo))
+      throw Object.assign(new Error("Só Paulo administra a edição das salas comuns."), {status:403});
     return;
   }
-  const sala = salas.find((s) => s.id === partesDaCamada(camada)?.raiz);
-  if (camada !== "geral" && !sala) throw Object.assign(new Error("Camada inválida."), { status: 400 });
-  const admin = Boolean(pessoa.admin);
-  if (camada === "geral" ? !admin : !admin && sala.pessoa_id !== String(pessoa.id))
-    throw Object.assign(new Error(camada === "geral" ? "Só quem administra edita o mapa." : "Você só edita a sua sala."), { status: 403 });
+  const sala = salas.find(s=>s.id === partesDaCamada(camada)?.raiz);
+  if (!sala) throw Object.assign(new Error("Camada inválida."), {status:400});
+  if (String(sala.pessoa_id) !== String(pessoa.id))
+    throw Object.assign(new Error("Você só edita a sua sala."), {status:403});
 }
-// Salva uma camada inteira. Permissão: 'geral' só administrador; sala, o dono
-// ou administrador. A versão evita apagar o que outra pessoa salvou antes.
+// Salva uma camada inteira. Permissão conferida acima, inclusive no histórico. A versão evita apagar o que outra pessoa salvou antes.
 // Medidas no chão de cada móvel (da arte local ou, se faltar, do Habbo).
 export async function dimensoesDosMoveis(itens) {
   const dimensoes=new Map();

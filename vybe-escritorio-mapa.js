@@ -947,6 +947,13 @@ const MAPA_PISO_DE_OBRA = /floorboards|_floor\d*$|plankfloor|woodenfloor|warmflo
 // Piso de construtor (tábua, ladrilho, mármore posto no alto): é chão, não
 // peça pendurada. Uma regra só, usada também pelo verificador.
 function mapaEhPisoDeObra(classe) { return MAPA_PISO_DE_OBRA.test(classe); }
+// O piso decorativo pode ocupar 2×2 ou mais ladrilhos. O cursor aponta o
+// ladrilho sob o mouse, não a origem da peça inteira. Outros móveis mantêm
+// o alvo de interação próprio (assento, bloco etc.).
+function mapaAlvoCursor(t, item) {
+  const alvo = item && !item.plano && !mapaEhPisoDeObra(item.classe) ? item : t;
+  return { x: Math.floor(alvo.x), y: Math.floor(alvo.y) };
+}
 // Refletor de festa do Habbo: cada foco anda num vaivém dentro de uma área de
 // 31 px (no tamanho 64), com subida e descida em seno que encolhe perto das
 // pontas; ao chegar à ponta, volta; a amplitude muda quando a curva zera.
@@ -2155,7 +2162,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const naoChao = o && !(o.tipo === "movel" && ehChao(o.item));
       el.classList.toggle("mapa-sobre-objeto", Boolean(naoChao));
       if (naoChao) { if (cursor) cursor.hidden = true; }
-      else mostrarCursor(o?.tipo === "movel" ? Math.floor(o.item.x) : Math.floor(t.x), o?.tipo === "movel" ? Math.floor(o.item.y) : Math.floor(t.y));
+      else { const alvo = mapaAlvoCursor(t, o?.tipo === "movel" ? o.item : null); mostrarCursor(alvo.x, alvo.y); }
     });
   }
   let seta = null, setaArte = null, setaQuadro = 0, setaId = null, setaRelogio = null;

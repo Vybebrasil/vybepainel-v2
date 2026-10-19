@@ -94,6 +94,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 
 ## Escritório integrado
 
+- Edição de decoração (decisão do Paulo, 19/10/2026): cada pessoa edita
+  somente seu próprio quarto, inclusive quem administra. Ambientes comuns
+  e Praça são exclusivos de Paulo, pela identidade da sessão vinculada à
+  sala-0 no servidor. Não autorizar só por `admin` nem por nome do navegador.
 - O Escritório usa identidade individual da sessão Vybe. Nunca reintroduza código
   compartilhado, identidade por nome livre, OAuth Manus ou consulta ao Monday.
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
@@ -120,7 +124,7 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Cada cena segue as referências de quartos do Habbo: uma linha de móveis,
   parede do fundo ocupada, peças empilhadas apoiadas no topo da de baixo.
   Os móveis padrão ficam em `ESCRITORIO_MOVEIS_CENAS` (`vybe-escritorio-planta.js`);
-  desde 18/10/2026 (decisão do Paulo) quem administra constrói cada sala comum
+  desde 18/10/2026 (decisão do Paulo) Paulo constrói cada sala comum
   no editor, vendo, e a camada salva com o id da zona vale no lugar do padrão
   (sem inventário; o formato da planta continua no código). Paredes e pisos
   oficiais do Habbo (`plano:parede:<id>`, `plano:piso:<id>`) e zoom só em
@@ -189,6 +193,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `2026-10-18-escritorio-reinicio-reembolso.sql`; **já executada em
   18/10/2026, com marcador `salas-motor-2026-10-18`**. Não repetir nenhum
   dos resets nem apagar compras/decoração posteriores.
+- Terceiro reinício autorizado por Paulo em 19/10/2026, para todos refazerem
+  o quarto no novo criador: mesma regra do segundo (sem cópia, devolve só
+  compras ainda não devolvidas, preserva XP, conquistas e salas comuns), pela
+  migração `2026-10-19-escritorio-quartos-recriar.sql`, marcador
+  `quartos-criacao-2026-10-19`. Aplicar uma vez, depois da publicação de
+  `codex/quartos-criacao-permissoes` e com o "Aprovado" do Paulo.
   As salas comuns ainda precisam de melhorias visuais individuais; Paulo
   autorizou esta publicação sem considerá-las visualmente aprovadas.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
