@@ -154,7 +154,8 @@ function controleMusicaEscritorio(acao, id) {
 }
 function receberMusicaEscritorio(estado) {
   // Estado de outra sala (chegou depois da troca de sala): não vale aqui.
-  if (estado?.zona && estado.zona !== escritorio.zona) return;
+  // Estado sem sala vem do Worker antigo, que só tinha a fila do Lounge.
+  if (estado?.zona ? estado.zona !== escritorio.zona : escritorio.zona !== "lounge") return;
   escritorio.musica = estado;
   sincronizarMusicaEscritorio();
   const lista = document.getElementById("office-lista-salas");

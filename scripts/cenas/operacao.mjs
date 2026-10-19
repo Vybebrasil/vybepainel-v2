@@ -7,21 +7,22 @@
 // à direita, a espera com café. Mesma coleção da ilha de edição da Produção.
 import { novaCena } from "../escritorio-construcao.mjs";
 
-// Agentes: mesmo uniforme laranja da Vybe com fone; muda o rosto e o cabelo.
+// Agentes: uniforme laranja da Vybe (1323). O navegador veste cada um com a
+// fantasia do segmento do cliente (ESCRITORIO_FANTASIAS em vybe-escritorio.js).
 const AGENTES = [
-  "hr-3163-45.hd-180-1.ch-3030-73.lg-275-1408.sh-290-62.ea-1406-62",
-  "hr-890-45.hd-605-2.ch-3030-73.lg-3116-1408.sh-735-62.ea-1406-62",
-  "hr-828-61.hd-180-2.ch-3030-73.lg-280-110.sh-305-62.ea-1406-62",
-  "hr-515-61.hd-600-1.ch-3030-73.lg-700-110.sh-725-62.ea-1406-62",
+  "hr-828-61.hd-180-1.ch-215-1323.lg-280-110.sh-305-110",
+  "hr-890-45.hd-605-2.ch-3005-1323.lg-3116-110.sh-735-110",
+  "hr-3163-45.hd-180-2.ch-215-1323.lg-280-110.sh-305-110",
+  "hr-515-61.hd-600-1.ch-215-1323.lg-280-110.sh-305-110",
 ];
 
 export default function operacao() {
   const s = novaCena("operacao");
-  s.colecao({ mesa: "modern_c17_desk", tela: "modern_c17_iscreen", cadeira: "modern_c17_chair", mesaReuniao: "army_c15_contable",
+  s.colecao({ mesa: "modern_c17_desk", tela: "computer_flatscreen", cadeira: "modern_c17_chair", mesaReuniao: "army_c15_contable",
     cadeiraReuniao: "army_c15_leatherchr", sofa: "modern_c17_sofa", luz: "army_c15_light" }, {
     acentos: ["xmas_c16_woodtile", "modern_c17_lamp", "modern_c17_floorlamp", "modern_c17_folder", "modern_c17_reads", "modern_c17_lowtable",
       "studio_monitor", "army_c15_plant", "army_c15_notice", "pixel_clock_black", "waasa_wall_shelf1", "hc26_3", "hc26_10",
-      "doormat_plain", "room_cof15_cup2", "classic2_drinkcup", "computer_flatscreen", "army_c15_deskcomp", "computer_laptop",
+      "doormat_plain", "room_cof15_cup2", "classic2_drinkcup", "computer_flatscreen", "computer_laptop", "computer_old", "uni_laptop",
       "cubie_lamp_b", "exe_c15_telephone", "exe_c15_desktidy", "army15_largescreen", "steampunk_map", "pixel_clock_red"],
   });
   s.casca(null, 1, ["xmas_c16_woodtile", 0]);
@@ -36,21 +37,23 @@ export default function operacao() {
   // --- Estações dos agentes: duas fileiras, dos dois lados do corredor ---
   // Cada mesa tem a tela virada para a cadeira; o posto é o número do lugar.
   // Telas e acessórios variam de mesa em mesa, como numa sala de verdade.
-  const TELAS = ["modern_c17_iscreen", "computer_flatscreen", "army_c15_deskcomp", "computer_laptop"];
+  const TELAS = ["computer_flatscreen", "computer_laptop", "computer_old", "uni_laptop"];
   const AO_LADO = ["modern_c17_lamp", "exe_c15_telephone", "cubie_lamp_b", "exe_c15_desktidy"];
   s.canto("estações dos agentes", { funcao: "cada agente produz o planejamento do seu cliente", destaque: "modern_c17_desk" });
   let posto = 0;
-  for (const y of [3, 7]) {
+  for (const y of [3, 8]) {
     for (const x of [1, 3, 5, 7, 13, 15, 17, 19]) {
+      // Agente atrás da mesa, de frente para quem entra (a fantasia do
+      // cliente aparece); a tela vira para ele.
       s.por("modern_c17_desk", x, y, { dir: 2 });
-      const cad = s.assento("modern_c17_chair", x, y + 1, [x, y]);
-      s.emCima(x, y, TELAS[posto % 4], { olha: [x, y + 1] });
+      const cad = s.assento("modern_c17_chair", x, y - 1, [x, y]);
+      s.emCima(x, y, TELAS[posto % 4], { olha: [x, y - 1] });
       s.emCima(x + 1, y, AO_LADO[(posto + Math.floor(posto / 4)) % 4]);
       s.figurante({ figura: AGENTES[posto % AGENTES.length], sentado: cad, posto });
       posto++;
     }
   }
-  for (const [x, y] of [[4, 5], [16, 5], [4, 9], [16, 9]]) s.pendente("army_c15_light", x, y, { dir: 2, altura: 1.2 });
+  for (const [x, y] of [[10, 4], [11, 9], [5, 11], [17, 11]]) s.pendente("army_c15_light", x, y, { dir: 2, altura: 1.2 });
 
   s.parede("esquerda", { de: 1, ate: 14, altura: 2.2 }, ["army15_largescreen", "pixel_clock_red", "waasa_wall_shelf1", "pixel_clock_black", "waasa_wall_shelf1"]);
 

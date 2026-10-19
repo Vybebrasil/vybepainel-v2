@@ -1279,9 +1279,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         no.setAttribute("aria-label", `Agente de ${agente.nome}: ${agente.situacao}`);
         etiqueta.className = "mapa-etiqueta solta agente" + (agente.alerta ? " alerta" : "");
         etiqueta.setAttribute("aria-hidden", "true");
-        etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b><small></small>`;
+        // No nome só o ponto da situação (16 etiquetas lado a lado se
+        // empilhavam); o texto aparece quando pede ação e ao passar o mouse.
+        etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${agente.alerta ? "<small></small>" : ""}`;
         etiqueta.querySelector("b").textContent = agente.nome;
-        etiqueta.querySelector("small").textContent = agente.situacao;
+        if (agente.alerta) etiqueta.querySelector("small").textContent = agente.situacao;
+        etiqueta.title = `${agente.nome}: ${agente.situacao}`;
+        no.title = etiqueta.title;
         const abrir = (e) => { e.stopPropagation(); agente.aoClicar?.(); };
         for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }
         palco.append(etiqueta);

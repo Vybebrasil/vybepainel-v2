@@ -6684,7 +6684,8 @@ body.no-escritorio {overflow:hidden}
 .ofc-musica-topo .ofc-ico {width:14px;height:14px}
 /* Minimizado: o vídeo continua no tamanho mínimo que o YouTube pede, só some a parte de controles. */
 .ofc-musica.mini {width:200px}
-.ofc-musica.mini .ofc-musica-info small, .ofc-musica.mini .ofc-musica-vol, .ofc-musica.mini .ofc-musica-info > .ofc-secundario {display:none}
+/* Minimizado esconde só o texto: volume, silenciar e fila continuam à mão (Paulo, 19/10/2026). */
+.ofc-musica.mini .ofc-musica-info small {display:none}
 
 /* Coluna da direita: conversa, música e a tela que você mostra, uma embaixo
    da outra (antes eram janelas soltas que se cobriam). */
@@ -7106,7 +7107,7 @@ body.no-escritorio {overflow:hidden}
 /* Centro de Operação: agentes dos clientes nas mesas (vybe-escritorio.js). */
 .mapa-pessoa.figurante.agente {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
 .mapa-pessoa.figurante.agente:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
-.mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8}
+.mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8;padding:1px 7px;font-size:10px;gap:4px}
 .mapa-etiqueta.agente.alerta {border-color:#ffb451;box-shadow:0 0 0 2px #ff9d0044}
 .ofc-sala .ofc-sala-alerta {display:block;grid-column:1/-1;margin-top:2px;color:#ffc46b;font:700 10px var(--mac-ui)}
 

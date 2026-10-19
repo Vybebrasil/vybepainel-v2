@@ -12,7 +12,7 @@ async function banco(t){
  const {db,sql}=conexao();t.after(()=>db.close());
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true);
  INSERT INTO vybe_pessoas VALUES(1,'Paulo',true),(3,'Vinícius',true),(24,'Ewerton',true);
- CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true,email text,responsavel text);
+ CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true,email text,responsavel text,segmento text);
  INSERT INTO vybe_clientes(id,nome,email) VALUES(10,'Serra Grande','contato@serra.example'),(11,'Mangaba',NULL),(12,'Mangaba Kids',NULL);
  CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint,ordem int DEFAULT 0);
  INSERT INTO vybe_cliente_pessoas VALUES(10,3,0),(11,24,0);`);
@@ -93,7 +93,7 @@ test('Centro de Operação: um agente por cliente ativo, com planejamento primei
  await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo});
  const postos=await P.postosDaOperacao(sql,{id:3});
  assert.deepEqual(postos.map(p=>p.cliente),['Serra Grande','Mangaba'],'cliente inativo fica fora; quem tem planejamento vem primeiro');
- assert.equal(postos[0].meu,true);assert.equal(postos[0].planejamento.estado,'revisar');
+ assert.equal(postos[0].meu,true);assert.equal(postos[0].segmento,null);assert.equal(postos[0].planejamento.estado,'revisar');
  assert.equal(postos[1].meu,false);assert.equal(postos[1].planejamento,null);
 });
 test('Centro de Operação: a cena tem um posto por mesa, sentado, e a zona vale no servidor, no Worker e no banco',async()=>{
