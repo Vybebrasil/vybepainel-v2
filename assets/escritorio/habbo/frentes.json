@@ -261,7 +261,8 @@
   "xmas_c23_choccake": "regra",
   "xmas_c24_mugs": "regra",
   "xmas_c24_plate": "regra",
-  "xmas_c24_snacks1": "regra"
+  "xmas_c24_snacks1": "regra",
+  "hotel_c18_stairs": "regra"
  },
  "_escadas": "Escadas conferidas na vitrine (18/10/2026). \"degrau\": peça sem mureta, desenhada da altura da ficha; empilha para subir mais. {tipo: \"inteira\", sobe}: escada com corrimão desenhada para subir \"sobe\" níveis numa peça só (a ficha pode ser menor: a escadinha da varanda tem 0,5 de pisar e sobe 1 no desenho); vai sozinha, nunca empilhada.",
  "escadas": {
@@ -276,6 +277,7 @@
   },
   "wintercabin_c19_stairs": {
    "tipo": "inteira"
-  }
+  },
+  "hotel_c18_stairs": "degrau"
  }
 }

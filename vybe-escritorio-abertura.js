@@ -522,8 +522,16 @@ function criadorAmbientePrevia(plantaId, piso, parede) {
 // baixo à direita de cada tamanho (o mesmo "deslocamento" do servidor).
 function criadorItensDaOpcao(modeloId, plantaId = criador.planta) {
   if (modeloId === "atual") return criadorDecoracaoAtual();
-  const [dx, dy] = escritorio.base?.quartos?.plantas?.find((p) => p.id === plantaId)?.deslocamento || [0, 0];
+  const a = criadorAncoraModelo(modeloId, plantaId);
+  if (!a) return [];
+  const [dx, dy] = a;
   return (escritorio.base?.quartos?.modelos?.find((m) => m.id === modeloId)?.itens || []).map(([c, x, y, ...r]) => [c, x + dx, y + dy, ...r]);
+}
+// Mesma regra do servidor (ancoraDoModelo): posição calculada por planta.
+function criadorAncoraModelo(modeloId, plantaId = criador.planta) {
+  const p = escritorio.base?.quartos?.plantas?.find((p) => p.id === plantaId);
+  if (!p) return null;
+  return p.ancoras ? p.ancoras[modeloId] || null : p.deslocamento || [0, 0];
 }
 // Marcador de prévia no HTML: data-previa="planta|modelo|piso|parede[|boneco]".
 function criadorPreviaHtml(plantaId, modeloId, { grande = false, boneco = false } = {}) {
@@ -602,9 +610,11 @@ function criadorQuartoHtml() {
    return `<button type="button" aria-pressed="${f.formato===formatoAtual}" onclick="criadorEscolherFormato('${f.formato}')">${criadorPreviaHtml(p.id, ok ? "atual" : "vazio")}<b>${safeText(p.nome)}</b><small>${safeText(p.medidas)} · ${safeText(p.dica)}</small>${temAtual ? `<em class="abr-cabe ${ok ? "sim" : "nao"}">${ok ? "Sua decoração cabe aqui" : "Sua decoração não cabe aqui"}</em>` : ""}</button>`;}).join("")}</div>`;
  } else if(etapa==="mobilia") {
   titulo="Em branco ou com o básico pronto?";anterior="planta";proxima="acabamento";
+  // Trocou para uma planta onde o modelo escolhido não cabe: volta ao Essencial.
+  if (!criador.preservar && !criadorAncoraModelo(criador.modelo)) criador.modelo = "trabalho";
   const opcoes = [];
   if (temAtual) opcoes.push(`<button type="button" aria-pressed="${criador.preservar}" ${cabe ? `onclick="criadorQuartoEscolher('modelo','atual')"` : "disabled"}>${criadorPreviaHtml(criador.planta, cabe ? "atual" : "vazio")}<b>Manter minha decoração</b><small>${cabe ? `Seus ${atual.length} móveis continuam onde estão.` : `Não cabe na planta ${safeText(planta?.nome || "")}: ela fica guardada no histórico e você começa com um modelo.`}</small></button>`);
-  for (const m of catalogo.modelos) opcoes.push(`<button type="button" aria-pressed="${!criador.preservar && m.id===criador.modelo}" onclick="criadorQuartoEscolher('modelo','${m.id}')">${criadorPreviaHtml(criador.planta, m.id)}<b>${safeText(m.nome)}</b><small>${safeText(m.dica)}</small></button>`);
+  for (const m of catalogo.modelos.filter((m) => criadorAncoraModelo(m.id))) opcoes.push(`<button type="button" aria-pressed="${!criador.preservar && m.id===criador.modelo}" onclick="criadorQuartoEscolher('modelo','${m.id}')">${criadorPreviaHtml(criador.planta, m.id)}<b>${safeText(m.nome)}</b><small>${safeText(m.dica)}</small></button>`);
   conteudo=`${criador.erro ? `<p class="abr-erro abr-erro-quarto" role="alert">${safeText(criador.erro)}</p>` : ""}<p class="abr-nota">Os modelos iniciais são gratuitos${temAtual && !cabe ? ". Seus móveis de hoje vão para o seu inventário, para usar de novo no editor" : ""}.</p><div class="abr-quartos modelos">${opcoes.join("")}</div>`;
  } else {
   titulo="Dê a sua cara ao espaço";anterior="mobilia";proxima="boas";

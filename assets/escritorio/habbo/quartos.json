@@ -95,7 +95,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -2
+        ],
+        "encontro": [
+          -1,
+          -2
+        ],
+        "dupla": [
+          -1,
+          -2
+        ],
+        "reuniao": [
+          -1,
+          -2
+        ]
+      }
     },
     {
       "id": "retangular",
@@ -192,7 +214,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -2
+        ],
+        "encontro": [
+          -2,
+          -2
+        ],
+        "dupla": [
+          -2,
+          -2
+        ],
+        "reuniao": [
+          -2,
+          -2
+        ]
+      }
     },
     {
       "id": "amplo",
@@ -289,7 +333,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -4
+        ],
+        "encontro": [
+          -2,
+          -4
+        ],
+        "dupla": [
+          -2,
+          -4
+        ],
+        "reuniao": [
+          -2,
+          -4
+        ]
+      }
     },
     {
       "id": "ele",
@@ -386,7 +452,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -4
+        ],
+        "encontro": [
+          0,
+          -4
+        ],
+        "dupla": [
+          0,
+          -4
+        ],
+        "reuniao": [
+          0,
+          -4
+        ]
+      }
     },
     {
       "id": "dividido",
@@ -497,7 +585,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -4
+        ],
+        "encontro": [
+          -2,
+          -4
+        ],
+        "dupla": [
+          -2,
+          -4
+        ],
+        "reuniao": [
+          -2,
+          -4
+        ]
+      }
     },
     {
       "id": "niveis",
@@ -603,7 +713,17 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -4,
+          0
+        ]
+      }
     },
     {
       "id": "quadrado-p",
@@ -671,7 +791,29 @@
       "deslocamento": [
         -2,
         -2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -3,
+          -4
+        ],
+        "encontro": [
+          -3,
+          -4
+        ],
+        "dupla": [
+          -3,
+          -4
+        ],
+        "reuniao": [
+          -3,
+          -4
+        ]
+      }
     },
     {
       "id": "quadrado-m",
@@ -771,7 +913,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -4
+        ],
+        "encontro": [
+          -2,
+          -4
+        ],
+        "dupla": [
+          -2,
+          -4
+        ],
+        "reuniao": [
+          -2,
+          -4
+        ]
+      }
     },
     {
       "id": "quadrado-g",
@@ -911,7 +1075,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -4
+        ],
+        "encontro": [
+          -1,
+          -4
+        ],
+        "dupla": [
+          -1,
+          -4
+        ],
+        "reuniao": [
+          -1,
+          -4
+        ]
+      }
     },
     {
       "id": "quadrado-gg",
@@ -1099,7 +1285,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -4
+        ],
+        "encontro": [
+          0,
+          -4
+        ],
+        "dupla": [
+          0,
+          -4
+        ],
+        "reuniao": [
+          0,
+          -4
+        ]
+      }
     },
     {
       "id": "quadrado-xg",
@@ -1407,7 +1615,29 @@
       "deslocamento": [
         8,
         8
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          2,
+          -4
+        ],
+        "encontro": [
+          2,
+          -4
+        ],
+        "dupla": [
+          2,
+          -4
+        ],
+        "reuniao": [
+          2,
+          -4
+        ]
+      }
     },
     {
       "id": "quadrado-xxg",
@@ -1867,7 +2097,29 @@
       "deslocamento": [
         12,
         12
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          4,
+          -4
+        ],
+        "encontro": [
+          4,
+          -4
+        ],
+        "dupla": [
+          4,
+          -4
+        ],
+        "reuniao": [
+          4,
+          -4
+        ]
+      }
     },
     {
       "id": "largo-p",
@@ -1947,7 +2199,29 @@
       "deslocamento": [
         0,
         -2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -4
+        ],
+        "encontro": [
+          -2,
+          -4
+        ],
+        "dupla": [
+          -2,
+          -4
+        ],
+        "reuniao": [
+          -2,
+          -4
+        ]
+      }
     },
     {
       "id": "largo-m",
@@ -2051,7 +2325,29 @@
       "deslocamento": [
         2,
         -1
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -4
+        ],
+        "encontro": [
+          -1,
+          -4
+        ],
+        "dupla": [
+          -1,
+          -4
+        ],
+        "reuniao": [
+          -1,
+          -4
+        ]
+      }
     },
     {
       "id": "largo-g",
@@ -2183,7 +2479,29 @@
       "deslocamento": [
         4,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -4
+        ],
+        "encontro": [
+          0,
+          -4
+        ],
+        "dupla": [
+          0,
+          -4
+        ],
+        "reuniao": [
+          0,
+          -4
+        ]
+      }
     },
     {
       "id": "largo-gg",
@@ -2343,7 +2661,29 @@
       "deslocamento": [
         4,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -4
+        ],
+        "encontro": [
+          0,
+          -4
+        ],
+        "dupla": [
+          0,
+          -4
+        ],
+        "reuniao": [
+          0,
+          -4
+        ]
+      }
     },
     {
       "id": "largo-xg",
@@ -2627,7 +2967,29 @@
       "deslocamento": [
         12,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          4,
+          -4
+        ],
+        "encontro": [
+          4,
+          -4
+        ],
+        "dupla": [
+          4,
+          -4
+        ],
+        "reuniao": [
+          4,
+          -4
+        ]
+      }
     },
     {
       "id": "fundo-p",
@@ -2711,7 +3073,29 @@
       "deslocamento": [
         -2,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -3,
+          -4
+        ],
+        "encontro": [
+          -3,
+          -4
+        ],
+        "dupla": [
+          -3,
+          -4
+        ],
+        "reuniao": [
+          -3,
+          -4
+        ]
+      }
     },
     {
       "id": "fundo-m",
@@ -2821,7 +3205,29 @@
       "deslocamento": [
         -1,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -4
+        ],
+        "encontro": [
+          -2,
+          -4
+        ],
+        "dupla": [
+          -2,
+          -4
+        ],
+        "reuniao": [
+          -2,
+          -4
+        ]
+      }
     },
     {
       "id": "fundo-g",
@@ -2961,7 +3367,29 @@
       "deslocamento": [
         0,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          -4
+        ],
+        "encontro": [
+          -2,
+          -4
+        ],
+        "dupla": [
+          -2,
+          -4
+        ],
+        "reuniao": [
+          -2,
+          -4
+        ]
+      }
     },
     {
       "id": "fundo-gg",
@@ -3125,7 +3553,29 @@
       "deslocamento": [
         2,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -4
+        ],
+        "encontro": [
+          -1,
+          -4
+        ],
+        "dupla": [
+          -1,
+          -4
+        ],
+        "reuniao": [
+          -1,
+          -4
+        ]
+      }
     },
     {
       "id": "ele-m",
@@ -3225,7 +3675,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -4
+        ],
+        "encontro": [
+          0,
+          -4
+        ],
+        "dupla": [
+          0,
+          -4
+        ],
+        "reuniao": [
+          0,
+          -4
+        ]
+      }
     },
     {
       "id": "ele-g",
@@ -3365,7 +3837,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -4
+        ],
+        "encontro": [
+          1,
+          -4
+        ],
+        "dupla": [
+          1,
+          -4
+        ],
+        "reuniao": [
+          1,
+          -4
+        ]
+      }
     },
     {
       "id": "ele-gg",
@@ -3553,7 +4047,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          1,
+          -4
+        ],
+        "encontro": [
+          2,
+          -4
+        ],
+        "dupla": [
+          2,
+          -4
+        ],
+        "reuniao": [
+          2,
+          -4
+        ]
+      }
     },
     {
       "id": "u-m",
@@ -3653,7 +4169,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -4,
+          -4
+        ],
+        "encontro": [
+          -2,
+          -2
+        ],
+        "dupla": [
+          -2,
+          -2
+        ],
+        "reuniao": [
+          -2,
+          -2
+        ]
+      }
     },
     {
       "id": "u-g",
@@ -3793,7 +4331,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -3,
+          -4
+        ],
+        "encontro": [
+          -1,
+          0
+        ],
+        "dupla": [
+          -1,
+          0
+        ],
+        "reuniao": [
+          -1,
+          0
+        ]
+      }
     },
     {
       "id": "u-gg",
@@ -3981,7 +4541,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -3,
+          -4
+        ],
+        "encontro": [
+          0,
+          1
+        ],
+        "dupla": [
+          0,
+          1
+        ],
+        "reuniao": [
+          0,
+          1
+        ]
+      }
     },
     {
       "id": "chanfrado-m",
@@ -4081,7 +4663,29 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -4
+        ],
+        "encontro": [
+          -1,
+          -2
+        ],
+        "dupla": [
+          -1,
+          -2
+        ],
+        "reuniao": [
+          -1,
+          -2
+        ]
+      }
     },
     {
       "id": "chanfrado-g",
@@ -4221,7 +4825,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          1,
+          -4
+        ],
+        "encontro": [
+          2,
+          -4
+        ],
+        "dupla": [
+          2,
+          -4
+        ],
+        "reuniao": [
+          2,
+          -4
+        ]
+      }
     },
     {
       "id": "chanfrado-gg",
@@ -4409,7 +5035,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          2,
+          -4
+        ],
+        "encontro": [
+          3,
+          -4
+        ],
+        "dupla": [
+          3,
+          -4
+        ],
+        "reuniao": [
+          3,
+          -4
+        ]
+      }
     },
     {
       "id": "dividido-g",
@@ -4539,7 +5187,29 @@
       "deslocamento": [
         2,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -4
+        ],
+        "encontro": [
+          -1,
+          -4
+        ],
+        "dupla": [
+          -1,
+          -4
+        ],
+        "reuniao": [
+          -1,
+          -4
+        ]
+      }
     },
     {
       "id": "dividido-gg",
@@ -4713,7 +5383,29 @@
       "deslocamento": [
         4,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -4
+        ],
+        "encontro": [
+          0,
+          -4
+        ],
+        "dupla": [
+          0,
+          -4
+        ],
+        "reuniao": [
+          0,
+          -4
+        ]
+      }
     },
     {
       "id": "niveis-m",
@@ -4822,7 +5514,17 @@
       "deslocamento": [
         0,
         0
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -4,
+          -1
+        ]
+      }
     },
     {
       "id": "niveis-g",
@@ -4971,7 +5673,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -3,
+          0
+        ],
+        "encontro": [
+          -3,
+          2
+        ],
+        "dupla": [
+          -3,
+          2
+        ],
+        "reuniao": [
+          -3,
+          2
+        ]
+      }
     },
     {
       "id": "niveis-gg",
@@ -5168,7 +5892,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -2,
+          2
+        ],
+        "encontro": [
+          -3,
+          2
+        ],
+        "dupla": [
+          -3,
+          2
+        ],
+        "reuniao": [
+          -3,
+          2
+        ]
+      }
     },
     {
       "id": "galeria-g",
@@ -5309,7 +6055,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -3,
+          -4
+        ],
+        "encontro": [
+          0,
+          -1
+        ],
+        "dupla": [
+          0,
+          -1
+        ],
+        "reuniao": [
+          0,
+          -1
+        ]
+      }
     },
     {
       "id": "galeria-gg",
@@ -5498,7 +6266,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -3,
+          -4
+        ],
+        "encontro": [
+          0,
+          -1
+        ],
+        "dupla": [
+          0,
+          -1
+        ],
+        "reuniao": [
+          0,
+          -1
+        ]
+      }
     },
     {
       "id": "alas-g",
@@ -5639,7 +6429,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -4
+        ],
+        "encontro": [
+          -1,
+          -4
+        ],
+        "dupla": [
+          -1,
+          -4
+        ],
+        "reuniao": [
+          -1,
+          -4
+        ]
+      }
     },
     {
       "id": "alas-gg",
@@ -5828,7 +6640,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -4
+        ],
+        "encontro": [
+          0,
+          -4
+        ],
+        "dupla": [
+          0,
+          -4
+        ],
+        "reuniao": [
+          0,
+          -4
+        ]
+      }
     },
     {
       "id": "terracos-g",
@@ -5836,8 +6670,8 @@
       "formato": "terracos",
       "tamanho": "G",
       "tamanhoNome": "Grande",
-      "dica": "Ala elevada e dois espaços abertos ligados por escada",
-      "medidas": "10 × 10 · 94 ladrilhos",
+      "dica": "Ala elevada no fundo, com duas escadas para o salão",
+      "medidas": "10 × 10 · 100 ladrilhos",
       "celdas": [
         [
           2,
@@ -5880,20 +6714,8 @@
           0,
           0,
           0,
-          -1,
-          -1,
           0,
           0,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          -1,
-          -1,
           0,
           0,
           0,
@@ -5904,8 +6726,20 @@
           0,
           0,
           0,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
           0,
           0,
           0,
@@ -5986,7 +6820,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          -1,
+          -1
+        ],
+        "encontro": [
+          -1,
+          1
+        ],
+        "dupla": [
+          -1,
+          1
+        ],
+        "reuniao": [
+          -1,
+          1
+        ]
+      }
     },
     {
       "id": "terracos-gg",
@@ -5994,8 +6850,8 @@
       "formato": "terracos",
       "tamanho": "GG",
       "tamanhoNome": "Enorme",
-      "dica": "Ala elevada e dois espaços abertos ligados por escada",
-      "medidas": "12 × 12 · 124 ladrilhos",
+      "dica": "Ala elevada no fundo, com duas escadas para o salão",
+      "medidas": "12 × 12 · 144 ladrilhos",
       "celdas": [
         [
           2,
@@ -6044,10 +6900,10 @@
           0,
           0,
           0,
-          -1,
-          -1,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
           0,
           0,
           0,
@@ -6058,10 +6914,10 @@
           0,
           0,
           0,
-          -1,
-          -1,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
           0,
           0,
           0,
@@ -6072,10 +6928,10 @@
           0,
           0,
           0,
-          -1,
-          -1,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
           0,
           0,
           0,
@@ -6086,10 +6942,10 @@
           0,
           0,
           0,
-          -1,
-          -1,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
           0,
           0,
           0,
@@ -6100,10 +6956,10 @@
           0,
           0,
           0,
-          -1,
-          -1,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
           0,
           0,
           0,
@@ -6192,7 +7048,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          0,
+          -1
+        ],
+        "encontro": [
+          0,
+          -1
+        ],
+        "dupla": [
+          0,
+          -1
+        ],
+        "reuniao": [
+          0,
+          -1
+        ]
+      }
     },
     {
       "id": "mirante-g",
@@ -6200,28 +7078,16 @@
       "formato": "mirante",
       "tamanho": "G",
       "tamanhoNome": "Grande",
-      "dica": "Mezanino lateral, escada larga e salão em recuo",
-      "medidas": "10 × 10 · 94 ladrilhos",
+      "dica": "Mezanino lateral com escada larga e salão aberto",
+      "medidas": "10 × 10 · 100 ladrilhos",
       "celdas": [
         [
           2,
           2,
           2,
           2,
-          -1,
-          -1,
           0,
           0,
-          0,
-          0
-        ],
-        [
-          2,
-          2,
-          2,
-          2,
-          -1,
-          -1,
           0,
           0,
           0,
@@ -6232,8 +7098,20 @@
           2,
           2,
           2,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          2,
+          0,
+          0,
           0,
           0,
           0,
@@ -6346,7 +7224,29 @@
       "deslocamento": [
         2,
         2
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          2,
+          -4
+        ],
+        "encontro": [
+          2,
+          -4
+        ],
+        "dupla": [
+          2,
+          -4
+        ],
+        "reuniao": [
+          2,
+          -4
+        ]
+      }
     },
     {
       "id": "mirante-gg",
@@ -6354,32 +7254,18 @@
       "formato": "mirante",
       "tamanho": "GG",
       "tamanhoNome": "Enorme",
-      "dica": "Mezanino lateral, escada larga e salão em recuo",
-      "medidas": "12 × 12 · 132 ladrilhos",
+      "dica": "Mezanino lateral com escada larga e salão aberto",
+      "medidas": "12 × 12 · 144 ladrilhos",
       "celdas": [
         [
           2,
           2,
           2,
           2,
-          -1,
-          -1,
-          -1,
-          -1,
           0,
           0,
           0,
-          0
-        ],
-        [
-          2,
-          2,
-          2,
-          2,
-          -1,
-          -1,
-          -1,
-          -1,
+          0,
           0,
           0,
           0,
@@ -6390,10 +7276,24 @@
           2,
           2,
           2,
-          -1,
-          -1,
-          -1,
-          -1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
           0,
           0,
           0,
@@ -6548,7 +7448,29 @@
       "deslocamento": [
         4,
         4
-      ]
+      ],
+      "ancoras": {
+        "vazio": [
+          0,
+          0
+        ],
+        "trabalho": [
+          2,
+          -4
+        ],
+        "encontro": [
+          2,
+          -4
+        ],
+        "dupla": [
+          2,
+          -4
+        ],
+        "reuniao": [
+          2,
+          -4
+        ]
+      }
     }
   ],
   "essenciais": [
@@ -6688,12 +7610,6 @@
           0
         ],
         [
-          "plant_small_cactus",
-          7,
-          7,
-          2
-        ],
-        [
           "computer_flatscreen",
           5,
           4,
@@ -6702,14 +7618,20 @@
           0.95
         ],
         [
-          "hygge_c18_shelf",
-          7,
-          6,
+          "mm_lamp",
+          3,
+          4,
           0
         ],
         [
-          "mm_lamp",
+          "hygge_c18_shelf",
           7,
+          4,
+          0
+        ],
+        [
+          "plant_small_cactus",
+          3,
           5,
           0
         ]
@@ -6745,12 +7667,6 @@
           0
         ],
         [
-          "plant_small_cactus",
-          7,
-          7,
-          2
-        ],
-        [
           "computer_flatscreen",
           4,
           4,
@@ -6765,16 +7681,22 @@
           4,
           1,
           0.95
+        ],
+        [
+          "mm_lamp",
+          3,
+          4,
+          0
         ],
         [
           "hygge_c18_shelf",
           7,
-          6,
+          4,
           0
         ],
         [
-          "mm_lamp",
-          7,
+          "plant_small_cactus",
+          3,
           5,
           0
         ]
@@ -6816,20 +7738,20 @@
           0
         ],
         [
-          "plant_small_cactus",
-          7,
-          7,
-          2
+          "mm_lamp",
+          3,
+          4,
+          0
         ],
         [
           "hygge_c18_shelf",
           7,
-          6,
+          4,
           0
         ],
         [
-          "mm_lamp",
-          7,
+          "plant_small_cactus",
+          3,
           5,
           0
         ]

@@ -684,3 +684,59 @@ Estado exato:
   guardado removido, 1 compra ainda não devolvida (120 VybeCoins) devolvida.
   XP total igual antes e depois; salas comuns sem camada salva, intactas.
   Marcador `quartos-criacao-2026-10-19` gravado. Não repetir.
+
+### Melhorias gerais após o vídeo do Paulo — 19/10/2026 (em andamento)
+
+Branch `codex/escritorio-melhorias-gerais`. Pedido: cenários travando e
+"mal feitos", melhorar a lista de salas, recriar os quartos iniciais e a
+decoração inicial "bem feito".
+
+- **Painel de conversa:** o título vem sempre do lugar atual
+  (`escritorioTituloChamada`); antes ficava com o nome da sala anterior.
+- **Lista de salas (lateral):** Espaços primeiro (Praça no topo), cada linha
+  mostra quem está lá; quartos individuais num grupo recolhível. O cartão
+  flutuante "Quem está onde" começa recolhido (não cobre a cena). Botões de
+  quem está online quebram linha em vez de cortar.
+- **Lentidão:** listas laterais só são refeitas quando muda lugar, status ou
+  quem está online (a presença chega a cada passo); etiquetas dos bonecos
+  idem. Móveis animados guardam cada quadro desenhado (`MAPA_CACHE_CAMADAS`,
+  e `cacheDesenho` nos de parede) e o canvas só muda de tamanho quando precisa
+  (eram ~170 redimensionamentos por segundo na Convivência).
+- **Escada da planta:** degraus dentro do próprio ladrilho, com a madeira do
+  piso (`mapaFaceDePiso`), lateral escondida ao lado do mezanino. Laterais do
+  desnível em quarto pessoal usam o piso, não a cor da parede.
+- **Guarda-corpo:** estado 1 da `hotel_c18_rail` (reto, sem pontas viradas),
+  sem peças sobrepostas; trecho ímpar fica aberto do lado da escada.
+- **Plantas:** Terraços e Loft com mirante perderam o vão escuro no piso.
+- **Decoração inicial:** modelos redesenhados (mesa encostada, luminária e
+  planta de um lado, estante do outro). `scripts/escritorio-quartos-modelos.mjs`
+  calcula `ancoras` por planta (mesa no fundo, mesmo patamar, porta chega às
+  cadeiras e a todo o quarto, pé da escada livre) e grava em `quartos.json`;
+  servidor (`ancoraDoModelo`) e criador usam a mesma âncora. Modelo que não
+  cabe numa planta não é oferecido nela (hoje só `niveis`/`niveis-m` ficam
+  só com Em branco e Essencial). Teste: `tests/escritorio-quartos-modelos.test.mjs`.
+- **Salas comuns (mesma branch):**
+  - Foco: mezanino a 2 níveis e escada `hotel_c18_stairs` (pedra clara,
+    3 degraus, conferida na vitrine e anotada em `frentes.json`) no lugar
+    da pilha de `xmas_c18_stagestairs`; saiu o lustre de corrente longa.
+  - Reunião: `mesaReuniao` ganhou `passo` (cadeira a cada 2 ladrilhos);
+    8 lugares em vez de 14 e sem lustre sobre a mesa.
+  - Academia: planta de 20 × 16 para 14 × 12; esteiras em duas fileiras,
+    luz industrial só sobre os pontos de uso (1,2 nível mais alta).
+  - Enquadramento: a altura dos patamares entra na conta e a 1× só abre
+    quando cabe 92% (antes 80%; o Auditório abria cortado).
+- Revisão das outras salas (pedido "revisa tudo antes de publicar"):
+  - Café: saíram os dois lustres pendurados no salão (na altura do rosto
+    ou tapando o balcão) e o garçom parado no corredor.
+  - Auditório: saíram as treliças de luz na frente da tela e os
+    projetores soltos no corredor.
+  - Produção e Academia: luz industrial 1,2 nível mais alta.
+  - Convivência: mezanino a 2 níveis e a mesma `hotel_c18_stairs` do Foco.
+  - Praça: tocha tiki (com caveira, já reprovada) trocada por luminária de jardim.
+  - Jogos e Lounge: revistos, sem mudança.
+  - Regra nova no motor: peça pendurada desce no máximo até 3,5 níveis
+    (antes 3; o boneco em pé tem ~3,4 e a luz ficava no rosto).
+  - Celular: a lista em cartões segue a ordem da lateral (Praça e espaços
+    comuns primeiro).
+- Não verificado: título da conversa com chamada real (a demonstração não
+  conecta voz) e desempenho com a equipe inteira online.

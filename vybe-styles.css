@@ -5935,15 +5935,29 @@ body.no-escritorio {overflow:hidden}
 .ofc-aba ul {list-style:none;margin:0;padding:0}
 .ofc-salas {display:grid;gap:2px}
 .ofc-salas h5 {margin:10px 0 2px;padding:0 10px;color:var(--ofc-suave);font:600 10px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
-.ofc-sala {display:grid;grid-template-columns:10px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:550 13px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-sala {display:grid;grid-template-columns:10px 1fr auto;align-items:center;column-gap:10px;padding:6px 10px;border:0;border-radius:9px;background:transparent;color:var(--ofc-texto);font:550 13px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-sala:not(.ocupada) span {color:color-mix(in srgb,var(--ofc-texto) 72%,transparent)}
+.ofc-sala.ocupada span {font-weight:650}
+.ofc-sala small {min-width:18px;padding:1px 6px;border-radius:99px;background:color-mix(in srgb,var(--sala) 22%,transparent);text-align:center;font-variant-numeric:tabular-nums}
+.ofc-sala em {grid-column:2/4;font-style:normal;color:var(--ofc-suave);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-sala:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
+.ofc-salas-grupo summary {display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-right:10px;cursor:pointer;list-style:none;user-select:none}
+.ofc-salas-grupo summary::-webkit-details-marker {display:none}
+.ofc-salas-grupo summary h5::after {content:"";display:inline-block;margin-left:6px;width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.ofc-salas-grupo:not([open]) summary h5::after {transform:translateY(-1px) rotate(-45deg)}
+.ofc-salas-grupo summary small {color:var(--ofc-suave);font:500 11px var(--mac-ui)}
+.ofc-salas-grupo summary:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px;border-radius:6px}
+.ofc-salas-grupo {display:grid;gap:2px}
 .ofc-sala i,.ofc-sala-atual i,.ofc-cartao-topo i {width:10px;height:10px;border-radius:3px;background:var(--sala)}
 .ofc-sala small {color:var(--ofc-suave);font-size:11px}
 .ofc-sala:hover {background:#ffffff0b}
 .ofc-sala[aria-pressed=true] {background:color-mix(in srgb,var(--sala) 16%,transparent)}
-.office-member {display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:9px}
+.office-member {display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:7px 4px;border-radius:9px}
+.office-member>.ofc-mini {padding:4px 8px}
+.office-member>.ofc-mini:first-of-type {margin-left:40px}
 .office-member.fora {opacity:.55}
 .office-member>.office-avatar {width:30px;height:38px;flex-shrink:0}
-.office-member>div {min-width:0;flex:1}
+.office-member>div {min-width:0;flex:1 1 calc(100% - 50px)}
 .office-member b {display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .office-member small {display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ofc-suave)}
 .ofc-ponto {display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--st);box-shadow:0 0 0 2px #0006;flex-shrink:0}
