@@ -63,3 +63,18 @@ test('escolher móvel volta da câmera para a colocação',()=>{
  const {r}=contexto();r(`escritorio.edicao.ferramenta='camera';escolherMovelEscritorio('gratis')`);
  assert.equal(r('escritorioCameraEditor()'),false);assert.equal(r('escritorio.edicao.novo'),'gratis');
 });
+
+test('conferência atrasada não aplica resultado a uma edição alterada',async()=>{
+ const {c,r,avisos}=contexto();let liberar;c.resposta=new Promise(ok=>liberar=ok);
+ r(`escritorioApi=()=>resposta;escritorio.edicao.celdas=undefined;`);
+ const chamada=r('conferirConstrucaoEditorEscritorio()');
+ r(`escritorio.edicao.itens.push(['gratis',2,2,2])`);
+ liberar({problemas:[],avisos:[]});
+ assert.equal(await chamada,null);assert.equal(r('escritorio.edicao.conferencia'),undefined);
+ assert.match(avisos.at(-1),/mudou durante/);
+});
+test('falha da API de conferência permanece erro e libera nova tentativa',async()=>{
+ const {r,avisos}=contexto();r(`escritorioApi=async()=>{throw new Error('Indisponível')}`);
+ assert.equal(await r('conferirConstrucaoEditorEscritorio()'),null);
+ assert.equal(r('escritorio.edicao.conferindo'),false);assert.match(avisos.at(-1),/Não foi possível conferir: Indisponível/);
+});
