@@ -1,8 +1,7 @@
 # Planejamentos dos clientes e Centro de Operação — plano
 
-Pedido do Paulo em 19/10/2026. Status: **construído** (branch
-`codex/planejamentos-plano`); falta aplicar a migração com o "Aprovado" do
-Paulo, configurar e-mail e chave dos agentes na Vercel e publicar.
+Pedido do Paulo em 19/10/2026. Status: **construído**. Migração aplicada em 19/10/2026 com o "Aprovado" do
+Paulo. Falta o Paulo configurar o e-mail e a chave dos agentes na Vercel.
 
 Decisões do Paulo (19/10/2026): e-mail pelo **Gmail da Vybe**; agentes
 publicam **direto pelo conector**; editar e mandar é do **head do cliente e do

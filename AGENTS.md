@@ -109,7 +109,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   vai pelo Gmail da Vybe (`GMAIL_USUARIO`, `GMAIL_SENHA_APP`, só na Vercel).
   Falha de Drive ou de e-mail aparece como aviso e não segura o link.
 - Cadastrar as peças continua no formulário existente; "Cadastrado" só depois
-  de aprovado. Consulte `docs/planejamentos-plano.md`.
+  de aprovado. Migração `2026-10-20-planejamentos.sql` já aplicada em
+  19/10/2026. Consulte `docs/planejamentos-plano.md`.
 
 ## Escritório integrado
 

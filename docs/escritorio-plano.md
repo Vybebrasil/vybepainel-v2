@@ -816,7 +816,7 @@ decoração inicial "bem feito".
   planejamento. Para o head, a sala mostra na lista "N para você revisar".
 - Zona `operacao` aceita no servidor, no editor, nos post-its e no Worker. As
   regras do banco são ampliadas pela migração
-  `2026-10-20-planejamentos.sql` (**ainda não aplicada**). O Worker precisa ser
+  `2026-10-20-planejamentos.sql` (aplicada em 19/10/2026). O Worker precisa ser
   publicado de novo (`npx wrangler deploy`, em `services/escritorio`) para
   presença e voz valerem na sala nova; até lá, quem entra nela aparece sem
   zona de conversa.
