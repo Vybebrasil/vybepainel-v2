@@ -55,7 +55,7 @@ const ALTO = 92;
 // Salas já refeitas com a regra de desenho (o que um móvel cobre do outro e
 // a frente das máquinas): nelas é erro; nas outras, aviso até serem refeitas
 // (node scripts/escritorio-auditar.mjs --desenho lista os avisos).
-const DESENHO_CONFERIDO = new Set(["cafe", "recepcao", "reuniao", "foco", "auditorio", "producao", "jogos", "academia"]);
+const DESENHO_CONFERIDO = new Set(["cafe", "recepcao", "reuniao", "foco", "auditorio", "producao", "jogos", "academia", "lounge"]);
 // Foto da cena (quanto de cada peça aparece): desligável para depurar.
 const FOTO = !process.argv.includes("--sem-foto");
 const avisosDesenho = []; // px de desenho: acima disso o móvel cobre a parte de baixo do item
@@ -135,6 +135,12 @@ function auditar(cena, P, moveis, avisos) {
     // Piso de obra de espessura zero (mármore posto no alto) é base na mesma
     // altura da peça: ela fica rente ao piso, como no chão.
     const abaixo = itens.filter((o) => o !== it && (!o.plano || (o.altura || 0) > 0) && ((o.altura || 0) < it.altura || (PISO_DE_OBRA.test(o.classe) && (o.altura || 0) <= it.altura)) && it.x >= o.x && it.x < o.x + o.w && it.y >= o.y && it.y < o.y + o.h);
+    // Montada na parede (o empilhador dos construtores do Habbo): peça
+    // encostada na parede do fundo ou da esquerda, com o lado comprido rente
+    // a ela (uma fileira de fundo) e nada embaixo — a moto e a guitarra da
+    // garagem. Só vale assim; fora da parede é peça flutuando.
+    const naParede = !abaixo.length && ((it.y === (quarto?.y0 ?? 0) && it.h === 1) || (it.x === (quarto?.x0 ?? 0) && it.w === 1));
+    if (naParede) continue;
     if (!ocup.has(`${it.x},${it.y}`) && !abaixo.some((o) => Math.abs(topoDe(o) - it.altura) <= 0.12)) { problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) flutuando`)); continue; }
     if (!abaixo.length) continue;
     // No empate, a base é o piso de obra (a coluna embaixo da beira não é
@@ -648,7 +654,9 @@ function auditar(cena, P, moveis, avisos) {
       // Composição intencional: assentos iguais, virados para o mesmo lado,
       // formam a fileira de uma plateia; na plateia em degraus a fileira de
       // trás sempre cobre um pouco a da frente, como num teatro.
-      const fileira = (d, o) => !d.parede && !o.parede && !d.pessoa && !o.pessoa && d.it.assento && o.it.assento && d.it.classe === o.it.classe && d.it.dir === o.it.dir;
+      const fileira = (d, o) => !d.parede && !o.parede && !d.pessoa && !o.pessoa && d.it.classe === o.it.classe && d.it.dir === o.it.dir
+        && ((d.it.assento && o.it.assento) || (ctx.mapaFisica(d.it.classe).poe && Math.abs(d.it.x - o.it.x) + Math.abs(d.it.y - o.it.y) === 1));
+      // (Também o balcão de módulos iguais lado a lado: os caixotes do bar formam uma peça só.)
       const mesmo = (d, o) => o === d || fileira(d, o) || (o.pessoa && !d.pessoa) || (!d.pessoa && !d.parede && d.it.assento && daMesa(d.it, o)) || (d.pessoa && d.assento && daMesa(d.assento, o)) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
       for (const d of donos) {
         if (d.superficie) continue;

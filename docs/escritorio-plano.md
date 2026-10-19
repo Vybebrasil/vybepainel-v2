@@ -29,7 +29,7 @@ montagem. Também precisam funcionar como o Habbo: sentar, subir escada, empilha
    - **Produção**: estúdio de foto e vídeo. Montada em 18/10 (ver "Produção").
    - **Jogos**: fliperama escuro com neon. Montado em 18/10 (ver "Jogos").
    - **Academia**: moderna, com tijolo vermelho e vidro. Montada em 18/10 (ver "Academia").
-   - **Lounge**: por último, também do zero. Não remendar a versão antiga.
+   - **Lounge**: bar-garagem "Garage 93 Vinyl". Refeito do zero em 18/10 (ver "Lounge").
 3. Depois, detalhar mais os ambientes.
 4. Levar as regras do motor para o editor do painel (quem administra monta as
    salas vendo).
@@ -384,6 +384,46 @@ caber.
 - **Regra nova:** figurante pode ficar de pé em peça onde se pisa (esteira,
   colchonete).
 
+## Lounge (refeito em 18/10/2026)
+
+- **Referência:** bar-garagem "Garage 93 Vinyl", a oficina que vira bar de
+  vinil.
+- **Ambiente:** parede de tijolo `plano:parede:1901`, luz de bar, parede de 3
+  níveis (para as lâmpadas de bulbo).
+- **Cantos:**
+  - **Bar de caixotes** na parede da esquerda, com garrafas, velas, cafeteira
+    e canecas; banquetas de barril; geladeira, máquina de lanche e estantes;
+    pichação.
+  - **Garagem no fundo,** com destaque para a moto montada na parede e a
+    guitarra ao lado; armário, carrinho de ferramentas, pôsteres, placa de
+    lata, pneus empilhados, cone laranja (cor 130 da peça recolorível),
+    ferramentas no chão e o mecânico.
+  - **Palco do DJ,** um degrau acima, com escadinha de varanda, mesa de DJ,
+    neon, disco na parede, violão, microfone, caixas e refletor.
+  - **Salão,** com mesa de carretel e cadeiras de caixote, e sofá pichado.
+  - **Jogos perto da porta:** fliperama, jukebox, sinuca, ratoeira e rato.
+- **Regras novas:**
+  - **Peça montada na parede** (`por(..., { naParede: altura })`, o
+    empilhador do Habbo): encostada, com o lado comprido rente e acima do
+    chão. O verificador só aceita "sem nada embaixo" nessa condição.
+  - **Balcão de módulos iguais lado a lado** (caixotes do bar) é composição
+    intencional na foto.
+
+## Próximos passos (depois das salas comuns)
+
+1. **Paulo revisar as salas no navegador.** Todas as salas comuns já estão no
+   motor: Café, Convivência, Reunião, Foco, Auditório, Produção, Jogos,
+   Academia e Lounge. Corrigir o que ele apontar, sempre como regra no motor
+   ou no verificador.
+2. **Publicar** quando ele autorizar (PR, checks e preview, como diz o
+   `CHECKLIST-DEPLOY.md`). Hoje está tudo só em commits locais na branch
+   `codex/escritorio-proximo`.
+3. **Levar as regras do motor para o editor do painel,** onde quem administra
+   monta as salas vendo: frente conferida, caminho do Habbo, altura da
+   escada, composição e coleção.
+4. **Segundo reinício dos escritórios pessoais** (ver "Decisões"). Antes,
+   perguntar se as VybeCoins gastas em móveis voltam.
+
 ## Decisões do Paulo que valem
 
 - **Segundo reinício** (decisão de 18/10/2026):
@@ -407,6 +447,6 @@ caber.
 - **Branch:** `codex/escritorio-proximo`, com commits locais ainda não
   publicados (`git log origin/main..HEAD`).
 - **Verificação:**
-  - `npm run check` (462 testes passando em 18/10);
+  - `npm run check` (463 testes passando em 18/10);
   - `node scripts/escritorio-compor.mjs` (gera as cenas e roda o verificador);
   - conferir no navegador: `npm run dev`, depois Escritório → sala.

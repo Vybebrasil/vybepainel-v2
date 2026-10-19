@@ -711,6 +711,102 @@ const ESCRITORIO_CENAS_COMPOSTAS = {
     ],
     figurantes: [{"figura":"hr-3163-45.hd-180-1.ch-3030-1408.lg-275-1408.sh-290-62","x":3,"y":1,"dir":0},{"figura":"hr-890-45.hd-605-2.ch-3030-73.lg-3116-1408.sh-735-62","x":2,"y":5,"dir":6},{"figura":"hr-170-45.hd-190-2.ch-215-66.lg-280-110.sh-305-62.ea-1406-62","x":15,"y":1,"dir":0,"acao":"sit"},{"figura":"hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110","x":3,"y":8,"dir":6,"acao":"sit"}],
   },
+  lounge: {
+    moveis: [
+      ["xmas_c16_woodtile",0,0,0,0,7.6],
+      ["xmas_c16_woodtile",1,0,0,0,7.6],
+      ["xmas_c16_woodtile",2,0,0,0,7.6],
+      ["xmas_c16_woodtile",3,0,0,0,7.6],
+      ["xmas_c16_woodtile",4,0,0,0,7.6],
+      ["xmas_c16_woodtile",5,0,0,0,7.6],
+      ["xmas_c16_woodtile",6,0,0,0,7.6],
+      ["xmas_c16_woodtile",7,0,0,0,7.6],
+      ["xmas_c16_woodtile",8,0,0,0,7.6],
+      ["xmas_c16_woodtile",9,0,0,0,7.6],
+      ["xmas_c16_woodtile",10,0,0,0,7.6],
+      ["xmas_c16_woodtile",0,0,0,0,7.6],
+      ["xmas_c16_woodtile",0,1,0,0,7.6],
+      ["xmas_c16_woodtile",0,2,0,0,7.6],
+      ["xmas_c16_woodtile",0,3,0,0,7.6],
+      ["xmas_c16_woodtile",0,4,0,0,7.6],
+      ["xmas_c16_woodtile",0,5,0,0,7.6],
+      ["xmas_c16_woodtile",0,6,0,0,7.6],
+      ["xmas_c16_woodtile",0,7,0,0,7.6],
+      ["xmas_c16_woodtile",0,8,0,0,7.6],
+      ["xmas_c16_woodtile",0,9,0,0,7.6],
+      ["xmas_c16_woodtile",0,10,0,0,7.6],
+      ["xmas_c16_woodtile",0,11,0,0,7.6],
+      ["xmas_c16_woodtile",11,0,0,0,6.6],
+      ["xmas_c16_woodtile",12,0,0,0,6.6],
+      ["xmas_c16_woodtile",13,0,0,0,6.6],
+      ["xmas_c16_woodtile",14,0,0,0,6.6],
+      ["xmas_c16_woodtile",15,0,0,0,6.6],
+      ["olympics_r16_vendingmchn",0,0,2,0,0],
+      ["ads_711shelf",0,1,0,0,0],
+      ["grunge_shelf",0,3,2,0,0],
+      ["glass_shelf",0,6,2,0,0],
+      ["sb_tag1",0,7.15625,2,0,2.1875],
+      ["wildwest_crate",2,2,0,0,0],
+      ["wildwest_crate",2,3,0,0,0],
+      ["wildwest_crate",2,4,0,0,0],
+      ["wildwest_crate",2,5,0,0,0],
+      ["wildwest_crate",2,6,0,0,0],
+      ["wildwest_crate",2,7,0,0,0],
+      ["pirate_bottle_1",2,2,0,0,1.23],
+      ["grunge_candle",2,3,0,0,1.23],
+      ["sunsetcafe_c20_coffeemachine",2,4,0,0,1.23],
+      ["pirate_bottle_3",2,5,0,0,1.23],
+      ["xmas_c24_mugs",2,6,0,0,1.23],
+      ["grunge_candle",2,7,0,0,1.23],
+      ["lodge_dark_barrelstool",3,3,6,0,0],
+      ["lodge_dark_barrelstool",3,5,6,0,0],
+      ["lodge_dark_barrelstool",3,7,6,0,0],
+      ["grungelamp",3,4,0,1,0],
+      ["grungelamp",3,6,0,1,0],
+      ["uni_c23_locker",3,0,4,0,0],
+      ["nyc_c23_wallposters",4,0,2,0,0],
+      ["ads_ontrackgp_tools",5,0,2,0,0],
+      ["tokyo_c18_motorbike",6,0,2,0,1.4],
+      ["band_c19_guitar",9,0,4,0,1.6],
+      ["md_can",7.03125,0,4,0,3.40625],
+      ["bump_tires",4,2,0,0,0],
+      ["bump_tires",4,2,0,0,0.7],
+      ["bump_tires",4,2,0,0,1.4],
+      ["bc_cone_recolorable",6,3,0,130,0],
+      ["ranch_c26_farmtools",9,1,0,0,0],
+      ["hween_c25_tools",7,2,0,0,0],
+      ["grungelamp",7,2,0,1,0],
+      ["fest_c19_dj",12,1,4,0,0],
+      ["disco_c26_neonlight1",14,0,0,0,0],
+      ["uni_vinyl",11.1875,0,4,0,2],
+      ["studio_guitar",15,1,2,0,0],
+      ["darkmodern_c20_speakers",11,4,0,0,0],
+      ["darkmodern_c20_speakers",15,4,0,0,0],
+      ["party_beamer",11,1,2,0,0],
+      ["ads_idol_mic",14,3,4,0,0],
+      ["hween_c20_porchstairs",13,5,0,0,0],
+      ["grungelamp",13,2,0,1,0],
+      ["grunge_table",6,6,0,0,0],
+      ["recycler_cratechairdark",5,6,2,0,0],
+      ["recycler_cratechairdark",8,7,6,0,0],
+      ["grunge_chair",6,8,0,0,0],
+      ["grungelamp",7,6,0,1,0],
+      ["graffiti_r24_sofa",12,9,0,0,0],
+      ["vwave_c21_trash",14,9,0,0,0],
+      ["graffiti_c24_paintbucket",15,11,0,0,0],
+      ["grungelamp",13,7,0,1,0],
+      ["graffiti_r24_arcademachine",0,9,0,0,0],
+      ["vwave_r21_jukebox",0,10,2,0,0],
+      ["bling15_pooltable",2,10,4,0,0],
+      ["grungelamp",4,9,0,1,0],
+      ["attic15_mousetrap",1,8,2,0,0],
+      ["hween_c17_rat",1,11,0,0,0],
+      ["doormat_plain",7,10,0,0,0],
+      ["doormat_plain",8,10,0,0,0],
+      ["uni_c23_toiletpaper",10,10,0,0,0],
+    ],
+    figurantes: [{"figura":"hr-3163-45.hd-180-1.ch-3030-1408.lg-275-1408.sh-290-62","x":1,"y":4,"dir":2},{"figura":"hr-890-45.hd-605-2.ch-3030-73.lg-3116-1408.sh-735-62","x":3,"y":5,"dir":6,"acao":"sit"},{"figura":"hd-600-1.hr-515-61.ch-665-1323.lg-700-110.sh-725-110","x":8,"y":2,"dir":0},{"figura":"hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110.ea-1406-62","x":12,"y":0,"dir":4},{"figura":"hr-170-45.hd-190-2.ch-215-66.lg-280-110.sh-305-62","x":6,"y":8,"dir":0,"acao":"sit"}],
+  },
   producao: {
     moveis: [
       ["xmas_c16_woodtile",0,5,0,0,7.6],
@@ -1506,7 +1602,7 @@ const ESCRITORIO_PLANTA = (() => {
     // bar (esquerda), ladrilho verde-escuro na garagem (fundo), concreto no
     // salão e o palco do DJ, um degrau acima, de tábuas, no fundo à direita.
     // Luz "bar": sala na penumbra e cada lâmpada acesa com a sua área quente.
-    lounge: { corDegrau: "#4a3322", fundo: "#0d0a09", alturaParede: 1, luz: "bar", planta: [
+    lounge: { corDegrau: "#4a3322", fundo: "#0d0a09", alturaParede: 3, luz: "bar", figurantes: ESCRITORIO_CENAS_COMPOSTAS.lounge?.figurantes || [], planta: [
       "0000000000011111",
       "0000000000011111",
       "0000000000011111",
@@ -1649,69 +1745,8 @@ const ESCRITORIO_MOVEIS_CENAS = {
   cafe: () => ESCRITORIO_CENAS_COMPOSTAS.cafe.moveis,
   // Sala de reunião montada pelo motor (scripts/cenas/reuniao.mjs).
   reuniao: () => ESCRITORIO_CENAS_COMPOSTAS.reuniao.moveis,
-  // Lounge: bar-garagem grunge (referência "Garage 93 Vinyl", escolhida
-  // pelo Paulo em 18/10/2026). A história: oficina de um mecânico que vira
-  // bar de vinil à noite. Da porta (meio da frente) o olhar vai à moto da
-  // garagem, no fundo; o caminho da porta ao balcão e ao DJ fica livre.
-  // Camadas: piso por zona, móvel grande encostado, peça em cima, coisa na
-  // parede e lâmpada pendurada em cada zona. Colunas de caixotes até a
-  // cornija nas duas pontas das paredes e entre a garagem e o DJ (nada
-  // na frente da moto nem no canto mais perto de quem olha).
-  lounge: () => [
-    ...escritorioCascaDoQuarto("lounge", null, 1, ["xmas_c16_woodtile", 0], [[0, 11], [10, 0], [15, 0]]),
-    ...[[0, 11], [10, 0], [15, 0]].flatMap(([x, y]) => escritorioColunaAteCornija("lounge", "wildwest_crate", x, y)),
-    // Regras da planta: peça alta só encostada nas paredes (fundo e
-    // esquerda); nas bordas da frente, só coisa baixa, para não tapar a sala.
-    // A frente do palco fica aberta (é a plateia) e nada fica na frente da
-    // moto. Caminho livre da porta (colunas 7 e 8) até o bar e o palco.
-    //
-    // Bar (parede da esquerda): máquina de bebida, geladeira de vidro,
-    // prateleira de tijolo com garrafas e estante de vidro;
-    // corredor do barman; balcão de caixotes com garrafas, velas, cafeteira e
-    // canecas; banquetas do lado do cliente; pichação na parede.
-    ["olympics_r16_vendingmchn", 0, 0, 2], ["ads_711shelf", 0, 1, 0], ["grunge_shelf", 0, 3, 2], ["glass_shelf", 0, 6, 2],
-    ["sb_tag1", 0, 6, 2, 0, 1.9],
-    ...[2, 3, 4, 5, 6, 7].map((y) => ["wildwest_crate", 2, y, 0]),
-    ["pirate_bottle_1", 2, 2, 0, 0, 1.23], ["grunge_candle", 2, 3, 0, 0, 1.23], ["sunsetcafe_c20_coffeemachine", 2, 4, 2, 0, 1.23],
-    ["pirate_bottle_3", 2, 5, 0, 0, 1.23], ["xmas_c24_mugs", 2, 6, 0, 0, 1.23], ["grunge_candle", 2, 7, 0, 0, 1.23],
-    ...[2, 3, 4, 5, 6].map((y) => ["studio_stool", 3, y, 6]),
-    ["grungelamp", 2, 3, 0, 1, 2.5], ["grungelamp", 2, 6, 0, 1, 2.5], ["hween_c17_rat", 1, 8, 2],
-    // Parede do fundo do bar: mural de pôsteres de show e a placa de lata.
-    ["nyc_c23_wallposters", 3, 0, 2], ["md_can", 1.4, 0, 4, 0, 0.7],
-    // Canto de jogos (parede da esquerda, junto da porta): fliperama e
-    // jukebox pichados de costas para a parede, sinuca baixa na frente e
-    // lâmpada.
-    ["graffiti_r24_arcademachine", 0, 9, 0], ["vwave_r21_jukebox", 0, 10, 2],
-    ["bling15_pooltable", 2, 10, 4], ["grungelamp", 3, 10, 0, 1, 2.5],
-    // Garagem (fundo): armário, carrinho de ferramentas sob a janela velha,
-    // a moto encostada na parede com a guitarra pendurada em cima (o
-    // destaque da sala, com lâmpada), ferramentas, placa, cone e pneus nos
-    // cantos, longe da frente da moto.
-    ["uni_c23_locker", 5, 0, 4], ["ads_ontrackgp_tools", 6, 0, 4], ["window_grunge", 6.4, 0, 4, 0, 1.4],
-    ["tokyo_c18_motorbike", 7, 0, 2], ["guitar_skull", 8, 0, 4, 0, 2],
-    ["ranch_c26_farmtools", 5, 1, 0], ["grunge_sign", 5, 2, 0], ["bump_tires", 5, 3, 0], ["fball_c26_trainingcone", 6, 3, 0], ["lt_spider", 9, 3, 0],
-    ["grungelamp", 8, 1, 0, 1, 2.5], ["hween_c25_tools", 9, 2, 0],
-    // Palco do DJ (fundo à direita, um degrau): mesa de DJ de frente para a
-    // plateia, disco e neon na parede, violão encostado e o
-    // microfone e caixas de som de chão na beira do palco; lâmpada e o
-    // refletor de festa varrendo o palco.
-    ["fest_c19_dj", 13, 1, 0], ["uni_vinyl", 12, 0, 4, 0, 1.4],
-    ["disco_c26_neonlight1", 12, 0, 0, 1, 0.9], ["party_beamer", 11, 1, 4, 1], ["studio_guitar", 12, 1, 4], ["stories_oldmusic_mike", 13, 4, 4], ["darkmodern_c20_speakers", 11, 4, 4], ["darkmodern_c20_speakers", 15, 4, 4],
-    ["grungelamp", 14, 2, 0, 1, 2.5],
-    // Plateia (frente do palco): chão livre para ficar de pé; a mesa alta
-    // fica na lateral direita, com duas banquetas, sem tapar o palco.
-    ["vwave_c21_bartable", 14, 6, 0], ["studio_stool", 15, 6, 6], ["studio_stool", 15, 7, 6], ["grungelamp", 14, 6, 0, 1, 2.5],
-    // Salão: mesa de carretel com cadeiras de caixote à esquerda do caminho;
-    // na frente à direita, outra mesa com o sofá pichado (peças baixas).
-    ["grunge_table", 5, 7, 0], ["recycler_cratechairdark", 4, 8, 2], ["recycler_cratechairdark", 5, 6, 4], ["recycler_cratechairdark", 6, 9, 0],
-    ["grungelamp", 6, 8, 0, 1, 2.5],
-    ["grunge_table", 12, 9, 0], ["grunge_chair", 11, 9, 2], ["recycler_cratechairdark", 14, 10, 6], ["graffiti_r24_sofa", 12, 11, 0],
-    ["grungelamp", 13, 10, 0, 1, 2.5],
-    // No chão: alçapão no caminho, papel amassado, lixo, pneus e balde de
-    // tinta.
-    ["hween_c26_hatchteleport", 8, 5, 0], ["uni_c23_toiletpaper", 9, 10, 0], ["vwave_c21_trash", 4, 4, 0],
-    ["graffiti_c24_paintbucket", 15, 9, 0], ["bump_tires", 10, 11, 0],
-  ],
+  // Lounge: montado pelo motor de construção (scripts/cenas/lounge.mjs).
+  lounge: () => ESCRITORIO_CENAS_COMPOSTAS.lounge.moveis,
   // Auditório: montado pelo motor de construção (scripts/cenas/auditorio.mjs).
   auditorio: () => ESCRITORIO_CENAS_COMPOSTAS.auditorio.moveis,
   // Jogos: montado pelo motor de construção (scripts/cenas/jogos.mjs).

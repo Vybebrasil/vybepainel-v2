@@ -274,6 +274,20 @@ export function novaCena(id, o = {}) {
         if (r && !(o.empilhador || o.degrau)) return falha(`${nome(classe, x, y)} no ${r}: tem de ficar livre`);
       }
       let altura = nv.base;
+      // Montada na parede (empilhador do Habbo): encostada na parede do fundo
+      // ou da esquerda, com o lado comprido rente a ela, na altura dada, sem
+      // nada embaixo (a moto e a guitarra da garagem).
+      if (o.naParede != null) {
+        const rente = (y === 0 && ph === 1) || (x === 0 && pw === 1);
+        if (!rente) return falha(`${nome(classe, x, y)} montada na parede precisa ficar encostada nela, com o lado comprido rente (uma fileira de fundo)`);
+        if (o.naParede < 0.5) return falha(`${nome(classe, x, y)} montada na parede: altura ${o.naParede} é o chão; ponha no chão`);
+        altura = nv.base + o.naParede;
+        const it = { classe, nome: nome(classe, x, y), x, y, n, dir, pw, ph, estado: o.estado || 0, altura, poe: p.poe, senta: false, frente: null, topo: Math.round((altura + (p.topo || 0)) * 1000) / 1000 };
+        altos.push({ it, n, p, decor: true });
+        moveis.push([classe, x, y, dir, o.estado || 0, Math.round(altura * 1000) / 1000]);
+        doCanto(it.nome, classe, it);
+        return it;
+      }
       if (o.flutuante != null) {
         if (!p.plana) return falha(`${nome(classe, x, y)} não é fina para ficar presa na parede`);
         if (x !== 0 && y !== 0) return falha(`${nome(classe, x, y)} flutuante longe da parede`);

@@ -292,3 +292,14 @@ test("item de parede só onde a parede existe (canto recortado da planta não te
   t.parede("fundo", { de: 2.5, ate: 4.5, altura: 1.6 }, ["cine_light2"]);
   assert.deepEqual(t.erros, []);
 });
+
+test("peça montada na parede: encostada, lado comprido rente e acima do chão", () => {
+  const s = novaCena("lounge", { acabamento: false });
+  const moto = s.por("tokyo_c18_motorbike", 6, 0, { dir: 2, naParede: 1.4 });
+  assert.ok(moto && moto.altura === 1.4);
+  s.por("tokyo_c18_motorbike", 6, 4, { dir: 2, naParede: 1.4 });
+  s.por("band_c19_guitar", 9, 0, { dir: 4, naParede: 0.2 });
+  const e = s.erros.join("\n");
+  assert.match(e, /tokyo_c18_motorbike \(6,4\) montada na parede precisa ficar encostada nela/);
+  assert.match(e, /band_c19_guitar \(9,0\) montada na parede: altura 0.2 é o chão/);
+});
