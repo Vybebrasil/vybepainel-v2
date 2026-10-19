@@ -1029,7 +1029,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       gradeNo.className = "mapa-grade";
       gradeNo.style.left = l + "px"; gradeNo.style.top = t0 + "px";
       const g = gradeNo.getContext("2d");
-      g.translate(-l, -t0); g.strokeStyle = "#ffffff40"; g.lineWidth = 1;
+      g.translate(-l, -t0); g.strokeStyle = "#ffffff99"; g.lineWidth = 1; g.shadowColor = "#10151bcc"; g.shadowBlur = 2;
       for (const [x, y] of celulas) {
         const c = cantos(x, y);
         g.beginPath(); c.forEach((t, i) => (i ? g.lineTo(t.x, t.y) : g.moveTo(t.x, t.y))); g.closePath(); g.stroke();
