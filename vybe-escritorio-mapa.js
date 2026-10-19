@@ -750,12 +750,14 @@ const MAPA_SELOS = {
   foco: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 15v-3a8 8 0 0116 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>',
   reuniao: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
 };
-// quadro: andando, o Habbo tem 4 quadros de passo (frame_num 0–3).
+// quadro: andando, o Habbo tem 4 quadros de passo (parâmetro frame, 0–3).
+// O imager ignora "frame_num" e devolvia sempre o mesmo quadro: o boneco
+// deslizava em vez de andar (Paulo, 19/10/2026). Conferido nos 4 quadros.
 // gesto: expressão do rosto (sml sorrindo, spk falando, eyb olhos fechados);
 // cabeca: para onde a cabeça olha (pode virar até 90° em relação ao corpo).
 function mapaAvatarUrl(figura, dir, acao, mao, quadro, gesto = "sml", cabeca = dir) {
   const q = new URLSearchParams({ figure: figura, direction: dir, head_direction: cabeca, action: mao ? `${acao},${mao}` : acao, gesture: gesto, size: "n" });
-  if (acao === "wlk") q.set("frame_num", String(quadro || 0));
+  if (acao === "wlk") q.set("frame", String(quadro || 0));
   return "https://www.habbo.com/habbo-imaging/avatarimage?" + q;
 }
 // Quadros já baixados: a troca só acontece com a imagem pronta, sem piscar.
@@ -1325,27 +1327,64 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     relogioAgentes = setInterval(falar, window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 9000 : 5500);
   }
   // Clientes visitantes (cobrança no quarto, vybe-escritorio.js): de pé nos
-  // ladrilhos livres mais perto do meio do quarto, virados para o centro, com
-  // o nome e um balão que troca de frase a cada 5 s. Sem limite: muita coisa
-  // atrasada vira protesto. Se faltar ladrilho, dividem o lugar.
-  let visitantes = [], relogioFalas = 0;
+  // como hóspedes folgados (Paulo, 19/10/2026): com espaço, metade senta nos
+  // assentos livres e o resto fica de pé com folga um do outro; de tempos em
+  // tempos um levanta e anda pela sala (caminho do mapa, passo do Habbo) ou
+  // senta. Só se amontoam no meio quando não há mais lugar. Nome e um balão
+  // que troca de frase; sem limite: muita coisa atrasada vira protesto.
+  let visitantes = [], relogioFalas = 0, relogioPasseio = 0, noMapa = [];
+  // Anda ladrilho a ladrilho no ritmo do Habbo e termina em pé ou sentado.
+  const andarVisitante = (p, passos, fim) => {
+    cancelAnimationFrame(p.passo);
+    if (!passos.length) { p.acao = fim.acao; if (fim.dir != null) p.dir = fim.dir; trocarImagem(p); posicionarPessoa(p); return; }
+    const [alvo, ...resto] = passos, de = { x: p.x, y: p.y }, ini = performance.now();
+    p.dir = mapaDirecaoDoPasso(alvo.x - de.x, alvo.y - de.y); p.acao = "wlk";
+    const passo = (agora) => {
+      if (!palco.isConnected) return;
+      const k = Math.min(1, (agora - ini) / MAPA_PASSO_MS);
+      p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
+      trocarImagem(p); posicionarPessoa(p);
+      if (k < 1) p.passo = requestAnimationFrame(passo); else andarVisitante(p, resto, fim);
+    };
+    p.passo = requestAnimationFrame(passo);
+  };
   function montarVisitantes() {
+    for (const v of noMapa) cancelAnimationFrame(v.p.passo);
+    noMapa = [];
     for (const n of palco.querySelectorAll(".mapa-pessoa.visitante, .mapa-etiqueta.visitante")) n.remove();
     clearInterval(relogioFalas); relogioFalas = 0;
+    clearInterval(relogioPasseio); relogioPasseio = 0;
     if (!grade || !visitantes.length) return;
-    const livres = [];
+    // Ocupado: quem está na sala e os figurantes.
+    const ocupado = new Set([...pessoas.values()].map((p) => grade.ind(Math.round(p.x), Math.round(p.y))));
+    for (const f of P.figurantes || []) ocupado.add(grade.ind(Math.round(f.x), Math.round(f.y)));
+    const livres = [], assentos = [];
     for (let x = 0; x < grade.W; x++) for (let y = 0; y < grade.H; y++) {
       const i = grade.ind(x, y);
-      if (!grade.bloqueado[i] && !grade.assento.has(i) && !grade.cama.has(i)) livres.push([x, y]);
+      if (grade.bloqueado[i] || grade.cama.has(i) || ocupado.has(i)) continue;
+      if (grade.assento.has(i)) assentos.push([x, y, grade.assento.get(i)]); else livres.push([x, y]);
     }
-    if (!livres.length) return;
+    if (!livres.length && !assentos.length) return;
+    const embaralhar = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    embaralhar(livres); embaralhar(assentos);
     const cx = (grade.W - 1) / 2, cy = (grade.H - 1) / 2;
-    livres.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
+    const usados = [];
+    const comFolga = (x, y) => usados.every(([a, b]) => Math.max(Math.abs(a - x), Math.abs(b - y)) >= 2);
+    const lugarDe = (k) => {
+      if (k % 2 === 0 && assentos.length) { const [x, y, dir] = assentos.pop(); return { x, y, dir, acao: "sit" }; }
+      const i = livres.findIndex(([x, y]) => comFolga(x, y));
+      if (i >= 0) { const [x, y] = livres.splice(i, 1)[0]; return { x, y, acao: "std" }; }
+      if (assentos.length) { const [x, y, dir] = assentos.pop(); return { x, y, dir, acao: "sit" }; }
+      if (livres.length) { const [x, y] = livres.shift(); return { x, y, acao: "std" }; }
+      return null;
+    };
     const falando = [];
     visitantes.forEach((v, k) => {
-      const [x0, y0] = livres[k % livres.length], volta = Math.floor(k / livres.length);
-      const x = x0 + (volta ? ((volta * 37) % 7 - 3) * 0.08 : 0), y = y0 + (volta ? ((volta * 53) % 7 - 3) * 0.08 : 0);
-      const dir = Math.abs(cx - x) > Math.abs(cy - y) ? (cx > x ? 2 : 6) : (cy > y ? 4 : 0);
+      // Sem lugar: o protesto se amontoa no meio, dividindo os ladrilhos.
+      const l = lugarDe(k) || { x: cx + ((k * 37) % 7 - 3) * 0.12, y: cy + ((k * 53) % 7 - 3) * 0.12, acao: "std" };
+      usados.push([Math.round(l.x), Math.round(l.y)]);
+      const { x, y } = l;
+      const dir = l.dir ?? (Math.abs(cx - x) > Math.abs(cy - y) ? (cx > x ? 2 : 6) : (cy > y ? 4 : 0));
       const no = document.createElement("button");
       no.type = "button";
       no.className = "mapa-pessoa figurante visitante";
@@ -1365,11 +1404,36 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const abrir = (e) => { e.stopPropagation(); v.aoClicar?.(); };
       for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }
       palco.append(etiqueta, no);
-      const p = { id: "visitante-" + k, no, img, etiqueta, x, y, dir, acao: "std", figura: v.figura, mao: "" };
+      const p = { id: "visitante-" + k, no, img, etiqueta, x, y, dir, acao: l.acao, figura: v.figura, mao: "" };
       posicionarPessoa(p);
       trocarImagem(p);
+      noMapa.push({ p });
       falando.push({ v, etiqueta, alvo: etiqueta.querySelector(".mapa-reclama"), i: 0 });
     });
+    // Passeio: a cada 4 s um visitante muda de lugar, para um ladrilho com
+    // folga ou um assento livre, desviando dos outros.
+    if (livres.length + assentos.length) relogioPasseio = setInterval(() => {
+      if (!palco.isConnected) { clearInterval(relogioPasseio); return; }
+      if (document.hidden || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+      const quem = noMapa[Math.floor(Math.random() * noMapa.length)]?.p;
+      if (!quem || quem.acao === "wlk") return;
+      const aqui = (o) => [Math.round(o.x), Math.round(o.y)];
+      const outros = new Set([...noMapa.map((v) => v.p), ...pessoas.values()].filter((o) => o !== quem).map((o) => grade.ind(...aqui(o))));
+      for (const f of P.figurantes || []) outros.add(grade.ind(Math.round(f.x), Math.round(f.y)));
+      const vagos = (lista) => lista.filter(([x, y]) => !outros.has(grade.ind(x, y)));
+      const sentar = Math.random() < 0.4 && vagos(assentos).length;
+      const opcoes = sentar ? vagos(assentos) : vagos(livres).filter(([x, y]) => [...outros].every((i) => Math.max(Math.abs((i % grade.W) - x), Math.abs(Math.floor(i / grade.W) - y)) >= 2));
+      if (!opcoes.length) return;
+      const [tx, ty, tdir] = opcoes[Math.floor(Math.random() * opcoes.length)];
+      const [sx, sy] = aqui(quem);
+      // Quem estava sentado devolve o assento; o novo lugar sai da lista.
+      if (quem.acao === "sit") assentos.push([sx, sy, quem.dir]); else livres.push([sx, sy]);
+      const lista = sentar ? assentos : livres, j = lista.findIndex(([x, y]) => x === tx && y === ty);
+      if (j >= 0) lista.splice(j, 1);
+      const passos = mapaCaminho(grade, quem, { x: tx, y: ty }, (x, y) => outros.has(grade.ind(x, y)), 40);
+      if (!passos) { (sentar ? assentos : livres).push([tx, ty, tdir]); return; }
+      andarVisitante(quem, passos, { acao: sentar ? "sit" : "std", dir: sentar ? tdir : undefined });
+    }, 4000);
     // Um de cada vez reclama (o balão de todos juntos virava um borrão); cada
     // vez que volta a falar, troca de frase.
     let vez = 0;

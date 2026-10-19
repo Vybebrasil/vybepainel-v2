@@ -7623,3 +7623,21 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-movel.compacto.r-raro .ofc-movel-linha {color:#a9d3ff}
 .ofc-movel.compacto.r-epico .ofc-movel-linha {color:#d9c2ff}
 .ofc-movel.compacto.r-lendario .ofc-movel-linha {color:#ffe08a}
+/* Navegação do catálogo em duas fileiras de fichas: a seção e as categorias
+   dela. Rolam de lado (sem barra) e cabem no celular. */
+.ofc-nav-cat {display:grid;gap:6px;min-width:0}
+.ofc-trilho {display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px 1px 3px;mask-image:linear-gradient(90deg,#000 90%,transparent)}
+.ofc-trilho::-webkit-scrollbar {display:none}
+.ofc-nav-ficha {flex:none;display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;border:1px solid var(--jg-borda);background:var(--jg-slot);color:var(--ofc-texto);font:650 12px var(--mac-ui);cursor:pointer;box-shadow:var(--jg-relevo);transition:background var(--jg-mov),transform var(--jg-mov)}
+.ofc-nav-ficha small {color:var(--ofc-suave);font-weight:600;font-variant-numeric:tabular-nums}
+.ofc-nav-ficha[aria-pressed=true] {background:var(--jg-ativo);border-color:#ff8a3599;color:#ffe0c4}
+.ofc-nav-ficha[aria-pressed=true] small {color:#ffd2a6}
+.ofc-nav-ficha:active {transform:translateY(1px)}
+.ofc-nav-ficha:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
+.ofc-trilho.sub .ofc-nav-ficha {padding:4px 9px;font-size:11px;background:#0c0e15;box-shadow:none}
+.ofc-trilho.sub .ofc-nav-ficha[aria-pressed=true] {background:var(--jg-ativo)}
+.ofc-lista-topo {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 6px}
+.ofc-lista-topo b {font:700 12px var(--mac-ui);color:var(--ofc-suave);letter-spacing:.02em}
+.ofc-ordem select {padding:4px 8px;border-radius:var(--jg-raio-p);border:1px solid var(--jg-borda);background:#0c0e15;color:var(--ofc-texto);font:600 12px var(--mac-ui)}
+.ofc-sr {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ofc-cat-chip[aria-pressed=true]:not([class*=" r-"]) {background:var(--jg-ativo);border-color:#ff8a3599}

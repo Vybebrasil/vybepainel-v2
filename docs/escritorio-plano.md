@@ -927,3 +927,29 @@ decoração inicial "bem feito".
   Salvar). A instrução do momento ("Estante na mão · clique no piso…") fica
   numa faixa abaixo, com Cancelar. Peça de parede pede o piso junto da parede.
 - A Carteira cabe na lateral.
+
+### Centro de Operação com lugar para o time — 19/10/2026 (noite)
+
+- A sala cresceu para 26×18 e foi redesenhada (`scripts/cenas/operacao.mjs`):
+  - os 16 agentes ficam à esquerda;
+  - à direita, 6 mesas livres do time, separadas do corredor por canteiros;
+  - a parede de servidores fica no fundo à direita;
+  - na frente: a mesa de aprovação com estante e globo, o balcão iluminado
+    para conversar em pé e a espera com aquário.
+- Nada alto em cima das mesas: as luminárias tapavam o rosto de quem está
+  sentado. O verificador agora cobra isso. A mesa pode cobrir o corpo, mas o
+  que está em cima dela não pode tapar o rosto. A luz vem de luminárias de
+  chão ao lado das cadeiras e de pendentes na frente das fileiras.
+- Se houver camada salva da sala `operacao` no banco, ela vale no lugar deste
+  padrão (regra das salas comuns).
+- Caminhada: o imager do Habbo só troca o passo com o parâmetro `frame`; com
+  `frame_num` os 4 quadros vinham iguais e o boneco deslizava. Corrigido, com
+  teste (`tests/escritorio-boneco.test.mjs`).
+- Clientes visitantes folgados (Paulo): metade senta nos assentos livres e os
+  outros ficam de pé com folga. A cada 4 s um deles anda pelo caminho do mapa
+  até outro lugar ou senta. Só se amontoam no meio quando falta lugar.
+- Filtros do catálogo: a entrada do escritório traz a carteira sem a tabela da
+  loja; ao abrir o Catálogo ela é buscada (`garantirLojaEscritorio`). Antes,
+  no site, tudo parecia comum a 25 moedas e as faixas sumiam. A lista longa de
+  categorias virou duas fileiras de fichas (seção e categorias dela, com
+  contagem). "Dá para comprar" vira ficha, e a ordem fica no topo da lista.

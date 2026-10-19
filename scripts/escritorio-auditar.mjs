@@ -652,6 +652,9 @@ function auditar(cena, P, moveis, avisos, avisosDesenho = [], avisosIlhas = []) 
       // sentado é encoberto pelo encosto da própria cadeira.
       // Cadeira à mesa: a mesa ao lado dela e o que está em cima da mesa a
       // encobrem, como em qualquer mesa de reunião (não é defeito de montagem).
+      // Quem está sentado, não: o tampo pode cobrir o corpo, mas o que está em
+      // cima da mesa (luminária, tela alta) na frente do rosto é defeito
+      // (Paulo, 19/10/2026: "as luminárias das mesas cobrem os rostos").
       const daMesa = (assento, o) => !o.parede && !o.pessoa && [o.it, ...itens.filter((b) => empilhadoSobre(o.it, b))].some((b) => b !== assento
         && b.x - 1 <= assento.x && assento.x <= b.x + (b.w || 1) && b.y - 1 <= assento.y && assento.y <= b.y + (b.h || 1) && ctx.mapaFisica(b.classe).poe);
       // Composição intencional: assentos iguais, virados para o mesmo lado,
@@ -660,7 +663,7 @@ function auditar(cena, P, moveis, avisos, avisosDesenho = [], avisosIlhas = []) 
       const fileira = (d, o) => !d.parede && !o.parede && !d.pessoa && !o.pessoa && d.it.classe === o.it.classe && d.it.dir === o.it.dir
         && ((d.it.assento && o.it.assento) || (ctx.mapaFisica(d.it.classe).poe && Math.abs(d.it.x - o.it.x) + Math.abs(d.it.y - o.it.y) === 1));
       // (Também o balcão de módulos iguais lado a lado: os caixotes do bar formam uma peça só.)
-      const mesmo = (d, o) => o === d || fileira(d, o) || (o.pessoa && !d.pessoa) || (!d.pessoa && !d.parede && d.it.assento && daMesa(d.it, o)) || (d.pessoa && d.assento && daMesa(d.assento, o)) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
+      const mesmo = (d, o) => o === d || fileira(d, o) || (o.pessoa && !d.pessoa) || (!d.pessoa && !d.parede && d.it.assento && daMesa(d.it, o)) || (d.pessoa && d.assento && daMesa(d.assento, o) && !((o.it?.altura || 0) > 0)) || (d.pessoa && d.assento && o.it === d.assento) || (!d.parede && !o.pessoa && !d.pessoa && !o.parede && ((o.it.classe === d.it.classe && o.it.x === d.it.x && o.it.y === d.it.y) || empilhadoSobre(o.it, d.it)));
       for (const d of donos) {
         if (d.superficie) continue;
         const ks = camadasFoto.filter((k) => k.d === d && !k.c.luz);
