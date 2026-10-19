@@ -598,3 +598,20 @@ Estado exato:
 - `npm run check`: 473 testes e build aprovados; `git diff --check` limpo.
   Também conferido o editor da Convivência e console sem erros. Entrega
   local, sem publicação ou alteração de dados reais.
+
+### Grade de construção — revisão da gravação de 19/10/2026
+
+- A comparação anterior de deslocamento não verificou a sobreposição visual:
+  a grade (z=2) ficava sob os pisos decorativos, na faixa 1000–1899. O piso
+  claro ainda reduzia o contraste. A gravação mostra a diferença entre a
+  Convivência e o quarto pessoal mesmo com Grade ligada.
+- Correção local em `codex/grade-construcao`: grade na faixa 1900, abaixo
+  das paredes/móveis, traço mais legível com sombra de contraste. Nenhuma
+  mudança na física, encaixe, classificação de móveis ou ordem Nitro.
+- Prévia conferida na Convivência em 1×; os móveis continuam cobrindo a
+  grade corretamente. Plataformas feitas com móveis mantêm sua profundidade;
+  esta correção mostra a grade do piso base, não cria grade sobre mesas ou
+  pisos suspensos. Não houve gravação em produção.
+- Conferidos também o quarto individual e o console (sem erros nessa
+  revisão). `npm run check`: 473 testes e build aprovados;
+  `git diff --check` limpo. Ainda local, sem publicar esta correção.
