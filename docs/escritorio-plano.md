@@ -537,5 +537,27 @@ Estado exato:
 - Testes isolados confirmaram reembolso, idempotência, preservação de XP,
   conquistas e cenas comuns. A verificação completa passou com 467 testes
   antes do ajuste final da posição do botão de conferência.
-- Publicação e execução da migração ainda pendentes nesta anotação; atualizar
-  com PR, commit, deployment e totais reais ao concluir.
+- **Concluído em 18/10/2026, 21h53 (Bahia):** PR #218 integrado em
+  `26c4963cb0b2ad011146a54bc1200896c0a4f9ec`; Vercel
+  `dpl_3C1HeMnhMw8u7fWNSygSMSHp4YT1` READY. Domínio oficial
+  `https://vybepainel-v2.vercel.app` serve `7a23bafc3c66`, a mesma versão
+  do preview `vybepainel-v2-jnpg4az3c-vybe-hub.vercel.app`.
+- **Migração executada uma vez:** 8 perfis reiniciados, 5 camadas pessoais
+  limpas, 16 unidades de inventário removidas. Não havia nenhum débito de
+  compra no razão, portanto reembolso efetivo = 0; saldo total permaneceu
+  14.897. Releitura confirmou inventário vazio, nenhuma camada pessoal com
+  móveis, 58.787 XP, 78 conquistas e um marcador de reinício. Nunca repetir.
+- **Validação final:** 469 testes passaram localmente, no CI do PR, no CI de
+  main e no build da Vercel. Corrigidos dois pares de artes usados pelos
+  testes do motor que o Claude havia deixado só no Mac (`xmas_c24_wallpaper`
+  e `recycler_mantelbooks`); os demais extraídos continuam não rastreados.
+  `git diff --check` aprovado. Preview e produção: versão HTTP 200,
+  Escritório sem sessão HTTP 401, Monday HTTP 410. No navegador, entrada do
+  preview e editor local com conferência do Café e filtro Da sala.
+- **Limites:** a conferência no editor reaproveita o verificador consultivo;
+  não é o gerador automático de receitas. Mídia real, revisão completa de
+  celular e uso autenticado do editor no deployment não foram validados
+  nesta etapa. Não houve escrita fictícia em produção.
+- **Próximo trabalho:** melhorar cada sala individualmente a partir dos
+  defeitos apontados pelo Paulo. O editor e o segundo reinício com regra de
+  reembolso estão entregues; não repetir a limpeza ao continuar.

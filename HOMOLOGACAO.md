@@ -313,3 +313,26 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
   no Neon, branch `main`, projeto `bold-silence-70503527`, banco `neondb`.
 - O reinício autorizado de decoração/inventário é uma operação separada, fora do
   deploy. A conclusão da publicação não implica que o SQL tenha sido executado.
+
+
+## Escritório — publicação e reinício de 18/10/2026
+
+- PR #218; produção `26c4963cb0b2ad011146a54bc1200896c0a4f9ec`, Vercel
+  `dpl_3C1HeMnhMw8u7fWNSygSMSHp4YT1` READY; domínio oficial e preview
+  servem versão `7a23bafc3c66`.
+- `npm ci`, `npm run check`: 469 testes, sintaxe, ordem global e build
+  aprovados. CI do PR e de main aprovados. `git diff --check` aprovado.
+- Editor local: conferência do Café pelo mesmo verificador das cenas e
+  categoria Da sala. Preview: entrada/carregamento, sem login com senha.
+  Versão HTTP 200, Escritório sem sessão HTTP 401, Monday HTTP 410 em preview
+  e produção. Sem validação de mídia real ou revisão geral de celular.
+- Migração explícita `2026-10-18-escritorio-reinicio-reembolso.sql` aplicada
+  uma vez após publicação: 8 perfis, 5 camadas pessoais e 16 unidades de
+  inventário reiniciados. Nenhuma compra debitada registrada; reembolso 0.
+  Saldo total preservado (14.897), 58.787 XP e 78 conquistas preservados.
+  Releitura confirmou zero móveis nas camadas pessoais e inventário vazio.
+  As salas comuns não foram limpas. Sem nova cópia da decoração, conforme
+  decisão do Paulo. Testes de escrita foram feitos somente em PGlite.
+- A revisão visual do Paulo encontrou problemas nas salas; a publicação foi
+  autorizada com melhorias individuais pendentes. Não tratar a aprovação
+  técnica do verificador como aprovação estética.
