@@ -74,7 +74,7 @@ export default function academia() {
   // Luz industrial pendurada só sobre os pontos de uso (pesos, colchonetes,
   // cama elástica e bar), em vez de uma grade de hastes pela sala inteira.
   s.canto("luz do teto", { funcao: "iluminar os aparelhos", destaque: "army_c15_light" });
-  for (const [x, y] of [[3, 6], [6, 6], [10, 6], [12, 10]]) s.pendente("army_c15_light", x, y, { dir: 2 });
+  for (const [x, y] of [[4, 7], [6, 6], [10, 6], [12, 10]]) s.pendente("army_c15_light", x, y, { dir: 2, altura: 1.2 });
 
   s.canto("entrada", { funcao: "chegar à academia", destaque: "doormat_plain" });
   s.por("doormat_plain", 6, 10);

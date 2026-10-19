@@ -715,5 +715,15 @@ decoração inicial "bem feito".
   servidor (`ancoraDoModelo`) e criador usam a mesma âncora. Modelo que não
   cabe numa planta não é oferecido nela (hoje só `niveis`/`niveis-m` ficam
   só com Em branco e Essencial). Teste: `tests/escritorio-quartos-modelos.test.mjs`.
-- Falta: revisão cena por cena das salas comuns (vídeo do Paulo: Reunião
-  apertada, Auditório, escada de blocos no Foco, Academia vazia) e publicar.
+- **Salas comuns (mesma branch):**
+  - Foco: mezanino a 2 níveis e escada `hotel_c18_stairs` (pedra clara,
+    3 degraus, conferida na vitrine e anotada em `frentes.json`) no lugar
+    da pilha de `xmas_c18_stagestairs`; saiu o lustre de corrente longa.
+  - Reunião: `mesaReuniao` ganhou `passo` (cadeira a cada 2 ladrilhos);
+    8 lugares em vez de 14 e sem lustre sobre a mesa.
+  - Academia: planta de 20 × 16 para 14 × 12; esteiras em duas fileiras,
+    luz industrial só sobre os pontos de uso (1,2 nível mais alta).
+  - Enquadramento: a altura dos patamares entra na conta e a 1× só abre
+    quando cabe 92% (antes 80%; o Auditório abria cortado).
+- Falta: Paulo revisar no navegador; Café, Auditório, Produção, Jogos,
+  Lounge e Convivência ainda sem revisão nova cena por cena; publicar.
