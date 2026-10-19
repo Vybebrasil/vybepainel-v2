@@ -679,3 +679,8 @@ Estado exato:
   Teste: `tests/escritorio-quartos-recriar.test.mjs`.
 - Ordem: publicar esta branch, conferir o site no ar e só então aplicar a
   migração uma vez em produção, com "Aprovado" do Paulo.
+- **Executada em 19/10/2026**, depois da publicação #222 (site oficial
+  conferido): 7 quartos configurados e 7 camadas pessoais esvaziadas, 1 móvel
+  guardado removido, 1 compra ainda não devolvida (120 VybeCoins) devolvida.
+  XP total igual antes e depois; salas comuns sem camada salva, intactas.
+  Marcador `quartos-criacao-2026-10-19` gravado. Não repetir.
