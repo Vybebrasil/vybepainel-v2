@@ -561,3 +561,20 @@ Estado exato:
 - **Próximo trabalho:** melhorar cada sala individualmente a partir dos
   defeitos apontados pelo Paulo. O editor e o segundo reinício com regra de
   reembolso estão entregues; não repetir a limpeza ao continuar.
+
+### Correção das plantas pessoais — 18/10, após revisão das escadas
+
+- Em trabalho local na branch `codex/quartos-escadas-paredes`: as escadas da
+  estrutura passam a ser desenhadas pela diferença real entre os pisos. A
+  peça fixa de mobília não representava a subida inteira. Prévia e quarto
+  usam a mesma geometria, sem alterar máscaras, portas ou móveis salvos.
+- Paredes reentrantes que encobriam outro braço do quarto viram cortes baixos;
+  os limites físicos continuam iguais. A parede padrão usa material oficial
+  contínuo, evitando a faixa escura repetida em paredes mais altas.
+- Regressões cobrem todos os modelos com escada, caminho até o patamar,
+  quatro direções e recortes das plantas U, terraços e mirante.
+- Conferência visual local: grade de prévias, quarto Terraços e Loft com
+  mirante; console sem erros nessa conferência. `npm run check` aprovado
+  (testes e build), assim como `git diff --check`. Não houve
+  escrita em produção nem repetição do reset. Validação de caminhada aqui
+  é automatizada; mídia não faz parte desta correção.
