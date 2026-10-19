@@ -154,6 +154,73 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
   27.147 XP e de 172 para 5.657 VybeCoins. Não repetir (origens únicas, mas a
   decisão já está aplicada).
 
+## Economia de 20/10/2026 (pedido do Paulo: itens baratos, dinheiro demais)
+
+Leitura de produção em 19/10/2026:
+- O ritmo normal dava de 150 a 550 moedas por semana por pessoa (Paulo cerca
+  de 550 pela agência e pelos briefings; Criação de 80 a 320; Atendimento e
+  Agendamento de 150 a 260).
+- O bônus de chegada pôs de 122 a 5.372 moedas de uma vez, e as conquistas
+  cerca de 600 por pessoa nos dois primeiros dias.
+- Com o comum a 25, dava de 6 a 20 móveis por semana.
+
+Regra nova (decisão do Paulo: "equilibrar de acordo com a logística nova"):
+- **XP não muda.** Continua premiando todo o trabalho e nunca cai.
+- **Moedas por ação** (tabela `vybe_escritorio_regras`):
+
+  | Regra | Moedas |
+  | --- | --- |
+  | `entrega` | 5 |
+  | `entrega_prazo` | 2 |
+  | `criacao_aprovacao` | 4 |
+  | `criacao_aprovada` | 2 |
+  | `criacao_alteracao` | −2 |
+  | `carteira` | 2 |
+  | `agendamento` | 2 |
+  | `captacao` | 8 |
+  | `agencia` | 1 |
+  | `briefing` | 0 (só XP) |
+  | `dia_sem_vencida` | 3 |
+  | `dia_vencida` | −3 |
+  | `dia_agendamento` | 3 |
+  | `dia_sem_furo` | 5 |
+  | `meta_semanal` | 30 |
+  | `conquista` | 25 |
+
+  Isso dá cerca de 100 moedas por semana de trabalho normal em cada função.
+  A conquista passa a pagar o valor da tabela (`vybe_creditar_moedas`); antes
+  era 50 fixo no código.
+- **Preço por tempo de trabalho** (`vybe_escritorio_raridades`):
+
+  | Faixa | Preço | Tempo de trabalho |
+  | --- | --- | --- |
+  | comum | 40 | cerca de 2 dias |
+  | incomum | 120 | cerca de 1 semana |
+  | raro | 300 (estoque 10) | cerca de 3 semanas |
+  | épico | 900 (estoque 3, na vitrine) | cerca de 2 meses |
+  | lendário | 2.500 (estoque 1, na vitrine) | cerca de 6 meses |
+
+- **Cinco faixas** (Paulo, 19/10/2026): comum, incomum, raro, épico e lendário.
+  O antigo "muito raro" virou épico. Incomum são as luzes e as peças temáticas
+  (jogos, música, festa, cidade, escola, Brasil). Raro são os animados, os
+  neons, os jogos de salão, as jukeboxes e as TVs. Épico é HC, ouro, cristal,
+  fontes, estátuas e pianos. Lendário são tronos, troféus e edições limitadas.
+  A classificação está em `scripts/escritorio-raridades.mjs`, e a migração
+  sincroniza o catálogo inteiro com ela. Móveis de marco, preço e estoque
+  próprios e o que já foi vendido não mudam. Depois disso, a tabela volta a
+  ser a autoridade.
+
+- **Saldo recalculado uma vez**, como se a regra nova valesse desde o começo:
+  - cada lançamento pelo valor novo da regra;
+  - chegada a 1/4, no máximo 500;
+  - compras e devoluções como foram;
+  - nunca abaixo de zero.
+
+  Um lançamento `ajuste:economia-2026-10-20` por pessoa explica a diferença no
+  extrato. Prévia em 19/10: os saldos passam a ficar entre 237 e 882 moedas.
+- Migração `migrations/2026-10-20-escritorio-economia.sql`, marcador
+  `economia-2026-10-20`. Teste: `tests/escritorio-economia-nova.test.mjs`.
+
 ## Ainda não decidido (fica para depois)
 
 - Deivid aprova 166 peças em 8 semanas como direção de arte e não ganha por

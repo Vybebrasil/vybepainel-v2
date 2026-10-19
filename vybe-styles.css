@@ -6648,11 +6648,11 @@ body.no-escritorio {overflow:hidden}
 .ofc-musica-ctl .ofc-ico {width:16px;height:16px}
 .ofc-musica-vol {display:flex;align-items:center;gap:8px;color:var(--ofc-suave)}
 .ofc-musica-vol input {flex:1;accent-color:var(--ofc-laranja)}
-.ofc-musica-painel {margin:auto;width:min(520px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 48px));padding:18px;border-radius:18px;color:var(--ofc-texto,#eef0f5);background:#1d2029;border:1px solid #ffffff17;box-shadow:0 30px 80px #000a}
-.ofc-musica-painel::backdrop {background:#0008}
-.ofc-musica-painel .ofc-dialogo-topo {display:flex;align-items:center;justify-content:space-between;gap:12px}
-.ofc-musica-painel h3 {margin:0;font:700 17px var(--mac-ui)}
-.ofc-musica-painel .ofc-nota {color:#a3a9b7;font-size:12px}
+.ofc-musica-painel, .ofc-previa-movel {margin:auto;width:min(520px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 48px));padding:18px;border-radius:18px;color:var(--ofc-texto,#eef0f5);background:#1d2029;border:1px solid #ffffff17;box-shadow:0 30px 80px #000a}
+.ofc-musica-painel::backdrop, .ofc-previa-movel::backdrop {background:#0008}
+.ofc-musica-painel .ofc-dialogo-topo, .ofc-previa-movel .ofc-dialogo-topo {display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ofc-musica-painel h3, .ofc-previa-movel h3 {margin:0;font:700 17px var(--mac-ui)}
+.ofc-musica-painel .ofc-nota, .ofc-previa-movel .ofc-nota {color:#a3a9b7;font-size:12px}
 .ofc-musica-form {display:flex;gap:8px}
 .ofc-musica-form input {flex:1;min-width:0;font:inherit;font-size:13px;color:inherit;background:#ffffff0d;border:1px solid #ffffff17;border-radius:9px;padding:9px 10px}
 .ofc-erro {min-height:1em;margin:6px 0;color:#ffb4a8;font-size:12px}
@@ -6849,8 +6849,9 @@ body.no-escritorio {overflow:hidden}
 .ofc-giro.nao {background:#ffffff14;color:var(--ofc-suave)}
 /* Loja: faixa de raridade (texto e cor), vitrine da semana e móvel que não dá para comprar agora. */
 .ofc-raridade {padding:1px 6px;border-radius:6px;font:700 9px var(--mac-ui);font-style:normal;color:#1d2029;letter-spacing:.02em}
-.ofc-raridade.raro {background:#7ee08a}
-.ofc-raridade.muito_raro {background:#5ad1e6}
+.ofc-raridade.incomum {background:#7ee08a}
+.ofc-raridade.raro {background:#6fb6ff}
+.ofc-raridade.epico {background:#c39bff}
 .ofc-raridade.lendario {background:linear-gradient(90deg,#ffd166,#ff8a35)}
 .ofc-vitrine {margin:0 0 10px;padding:10px;border-radius:12px;background:linear-gradient(135deg,#ffd16614,#ff8a3510);border:1px solid #ffd16633}
 .ofc-vitrine summary {cursor:pointer;font:700 12px var(--mac-ui);color:#ffd166}
@@ -7108,3 +7109,24 @@ body.no-escritorio {overflow:hidden}
 .mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8}
 .mapa-etiqueta.agente.alerta {border-color:#ffb451;box-shadow:0 0 0 2px #ff9d0044}
 .ofc-sala .ofc-sala-alerta {display:block;grid-column:1/-1;margin-top:2px;color:#ffc46b;font:700 10px var(--mac-ui)}
+
+/* Raridade no cartão da loja (borda na cor da faixa; o nome da faixa vem
+   escrito no selo) e prévia do móvel. */
+.ofc-movel.r-incomum {border-color:#7ee08a88}
+.ofc-movel.r-raro {border-color:#6fb6ff99}
+.ofc-movel.r-epico {border-color:#c39bffaa;box-shadow:inset 0 0 0 1px #c39bff33}
+.ofc-movel.r-lendario {border-color:#ffd166cc;box-shadow:inset 0 0 0 1px #ff8a3544,0 0 10px #ffd16633}
+.ofc-musica-painel.ofc-previa-movel, .ofc-dialogo.ofc-previa-movel {width:min(380px,calc(100vw - 32px))}
+.ofc-previa-palco {position:relative;display:grid;place-items:center;margin:8px 0;border-radius:14px;border:2px solid #ffffff1f;background:radial-gradient(circle at 50% 60%,#ffffff12,#00000033)}
+.ofc-previa-palco canvas {max-width:100%;height:auto;image-rendering:pixelated}
+.ofc-previa-palco.r-incomum {border-color:#7ee08a88}
+.ofc-previa-palco.r-raro {border-color:#6fb6ff99}
+.ofc-previa-palco.r-epico {border-color:#c39bffaa}
+.ofc-previa-palco.r-lendario {border-color:#ffd166cc;box-shadow:0 0 18px #ffd16633}
+.ofc-previa-giro {position:absolute;right:8px;bottom:8px;display:flex;gap:4px}
+.ofc-previa-giro button {width:30px;height:30px;border-radius:50%;border:1px solid #ffffff2a;background:#171a22d9;color:#fff;cursor:pointer;font:700 14px var(--mac-ui)}
+.ofc-previa-giro button:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00)}
+.ofc-previa-ficha {display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:8px 0}
+.ofc-previa-ficha div {min-width:0}
+.ofc-previa-ficha dt {color:var(--ofc-suave);font:600 10px var(--mac-ui)}
+.ofc-previa-ficha dd {margin:2px 0 0;color:var(--ofc-texto,#fff);font:600 12px var(--mac-ui);overflow-wrap:anywhere}

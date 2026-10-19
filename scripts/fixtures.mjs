@@ -9,8 +9,8 @@ import { raridadesDoCatalogo } from './escritorio-raridades.mjs';
 import { documentoHtml } from '../server/planejamento-documento.js';
 // Loja de demonstração: as mesmas faixas da migração da fase 2, estoque cheio,
 // vitrine sorteada pela semana corrente; os marcos só ilustram a ficha.
-const RARIDADES_DEMO=[{chave:'comum',nome:'Comum',ordem:1,preco:25,estoque:null,vitrine:0},{chave:'raro',nome:'Raro',ordem:2,preco:120,estoque:10,vitrine:0},
-  {chave:'muito_raro',nome:'Muito raro',ordem:3,preco:500,estoque:3,vitrine:6},{chave:'lendario',nome:'Lendário',ordem:4,preco:1500,estoque:1,vitrine:2}];
+const RARIDADES_DEMO=[{chave:'comum',nome:'Comum',ordem:1,preco:40,estoque:null,vitrine:0},{chave:'incomum',nome:'Incomum',ordem:2,preco:120,estoque:null,vitrine:0},
+  {chave:'raro',nome:'Raro',ordem:3,preco:300,estoque:10,vitrine:0},{chave:'epico',nome:'Épico',ordem:4,preco:900,estoque:3,vitrine:6},{chave:'lendario',nome:'Lendário',ordem:5,preco:2500,estoque:1,vitrine:2}];
 const MOVEIS_DE_MARCO_DEMO={duzentas:'trophy_ltd23_goldmonsterplant',quinhentas:'se_trophyS',maratona:'legotrophy',semfuro:'trophy_ltd23_silvermonsterplant',nivel20:'se_trophyG',meta4:'school_consolegold'};
 function lojaDemo(){
   const semana=inicioDaSemana(diaBahia());
