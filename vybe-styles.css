@@ -6792,7 +6792,11 @@ body.no-escritorio {overflow:hidden}
 .ofc-editor-ferramentas summary:focus-visible,.ofc-editor-menu summary:focus-visible {outline:2px solid var(--ofc-laranja);border-radius:8px}
 
 .ofc-editor-hist button:disabled {opacity:.4;cursor:default}
-.ofc-editor-flutua {position:absolute;z-index:8;display:flex;gap:4px;padding:5px;border-radius:12px;background:#1d1610f2;border:1px solid #ff8a3566;box-shadow:0 10px 26px #0009}
+.ofc-editor-flutua {position:absolute;z-index:8;bottom:100px;left:12px;right:12px;display:flex;align-items:center;gap:4px;padding:8px;max-width:calc(100% - 24px);overflow-x:auto;border-radius:12px;background:#1d1610f2;border:1px solid #ff8a3566;box-shadow:0 10px 26px #0009}
+.ofc-editor-flutua::before {content:attr(data-movel);flex:0 0 110px;white-space:normal;font:600 11px var(--mac-ui);color:var(--ofc-texto);line-height:1.4}
+.ofc-inventario-resumo {font-size:12px;line-height:1.6;color:var(--ofc-texto)}
+.ofc-inventario-resumo span {color:var(--ofc-suave)}
+.ofc-editor-flutua > * {flex-shrink:0}
 .ofc-editor-flutua button {padding:6px 10px;border-radius:8px;border:1px solid #ffffff22;background:#ffffff10;color:#fff;font:600 12px var(--mac-ui);cursor:pointer;white-space:nowrap}
 .ofc-editor-flutua button[aria-pressed=true] {border-color:#ff8a35;background:#ff8a3529}
 .ofc-editor-flutua button.perigo {color:#ff9b9b}
@@ -6865,7 +6869,9 @@ body.no-escritorio {overflow:hidden}
 .ofc-pisos-acervo {max-height:260px;overflow:auto}
 .ofc-movel[aria-pressed="true"] {outline:2px solid #ff9548;background:#ff8a3514}
 .ofc-ficha h4 small, .ofc-catalogo h4 small {text-transform:none;letter-spacing:0;font-weight:500}
-.mapa-grade {position:absolute;z-index:2;pointer-events:none}
+/* Planos decorativos usam mapaZPlano (1000–1899). A grade do editor fica
+   sobre eles, mas abaixo das paredes e dos móveis, sem alterar a ordem Nitro. */
+.mapa-grade {position:absolute;z-index:1900;pointer-events:none}
 /* Luz das luminárias no chão (mais forte à noite). */
 .mapa-luz {position:absolute;z-index:1;width:220px;height:110px;margin:-55px 0 0 -110px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(255,214,150,calc(.34 * var(--forca,.5))),rgba(255,190,110,calc(.12 * var(--forca,.5))) 55%,transparent);mix-blend-mode:screen}
 .mapa-luz.fogo {background:radial-gradient(closest-side,rgba(255,150,70,calc(.42 * var(--forca,.5))),rgba(255,110,40,calc(.14 * var(--forca,.5))) 55%,transparent);animation:mapa-luz-fogo 2.4s ease-in-out infinite}

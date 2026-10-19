@@ -598,3 +598,34 @@ Estado exato:
 - `npm run check`: 473 testes e build aprovados; `git diff --check` limpo.
   Também conferido o editor da Convivência e console sem erros. Entrega
   local, sem publicação ou alteração de dados reais.
+
+### Grade de construção — revisão da gravação de 19/10/2026
+
+- A comparação anterior de deslocamento não verificou a sobreposição visual:
+  a grade (z=2) ficava sob os pisos decorativos, na faixa 1000–1899. O piso
+  claro ainda reduzia o contraste. A gravação mostra a diferença entre a
+  Convivência e o quarto pessoal mesmo com Grade ligada.
+- Correção local em `codex/grade-construcao`: grade na faixa 1900, abaixo
+  das paredes/móveis, traço mais legível com sombra de contraste. Nenhuma
+  mudança na física, encaixe, classificação de móveis ou ordem Nitro.
+- Prévia conferida na Convivência em 1×; os móveis continuam cobrindo a
+  grade corretamente. Plataformas feitas com móveis mantêm sua profundidade;
+  esta correção mostra a grade do piso base, não cria grade sobre mesas ou
+  pisos suspensos. Não houve gravação em produção.
+- Conferidos também o quarto individual e o console (sem erros nessa
+  revisão). `npm run check`: 473 testes e build aprovados;
+  `git diff --check` limpo. Ainda local, sem publicar esta correção.
+
+### Inventário e seleção — continuação de 19/10/2026
+
+- Retirado o número ambíguo da aba Inventário. O resumo distingue modelos
+  gratuitos, unidades próprias e unidades guardadas (sem somar o estoque
+  ilimitado dos essenciais). Filtro de origem: todos, essenciais e adquiridos;
+  busca, localização e tipo continuam combinados no mesmo fluxo.
+- A barra do móvel selecionado fica no rodapé acima dos controles de voz,
+  com nome da peça e rolagem horizontal se necessário; não acompanha mais o
+  móvel nem precisa de um loop de animação permanente para se posicionar.
+- Navegador local: seleção de origem vazia, essenciais e colocação de cacto;
+  barra fora da peça e console sem erros. Regressão verifica contagens e
+  filtro de adquiridos. `npm run check` (473 testes e build) e diff aprovados.
+  Sem escrita real; entrega local. Celular físico ainda não conferido.
