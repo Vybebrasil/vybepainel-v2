@@ -44,14 +44,18 @@ export function estarLareira(s, { nome = "lareira", funcao = "conversar perto do
 // mesa; lustre no centro; na frente de cada lugar, o que a pessoa usa
 // (alternando o que se pede em "porLugar"); telas viradas para os lugares
 // pedidos (índice do lugar).
-export function mesaReuniao(s, { nome = "mesa de reunião", funcao = "reunir a equipe", x, y, tampos = 2, porLugar = [], telas = [], centro = [] }) {
+// passo: de quantos em quantos ladrilhos vai uma cadeira (2 deixa folga entre
+// os lugares; com cadeira executiva larga, 1 virava uma parede de encostos).
+export function mesaReuniao(s, { nome = "mesa de reunião", funcao = "reunir a equipe", x, y, tampos = 2, porLugar = [], telas = [], centro = [], passo = 1 }) {
   const mesa = s.de("mesa"), cadeira = s.de("cadeira");
   if (!mesa || !cadeira) return null;
   s.canto(nome, { funcao, destaque: mesa });
   const [mw, mh] = pegadaDe(mesa, 0), comp = mw * tampos;
   for (let i = 0; i < tampos; i++) s.por(mesa, x + i * mw, y);
   const lugares = [];
-  for (let i = 0; i < comp; i++) {
+  // Lugares centrados no comprimento da mesa.
+  const sobra = (comp - 1) % passo, ini = Math.floor(sobra / 2);
+  for (let i = ini; i < comp; i += passo) {
     lugares.push({ cad: s.assento(cadeira, x + i, y - 1, [x + i, y]), mesa: [x + i, y] });
     lugares.push({ cad: s.assento(cadeira, x + i, y + mh, [x + i, y + mh - 1]), mesa: [x + i, y + mh - 1] });
   }

@@ -1,6 +1,6 @@
 // Sala de reunião: madeira escura e verde (referência aprovada pelo Paulo em
 // 18/10/2026). Patamar do fundo com lareira, retratos, estantes e poltronas;
-// mesa longa de mogno no salão, sobre tapete vermelho, sob lustres; apoio
+// mesa longa de mogno no salão, sobre tapete vermelho; apoio
 // com bebidas e jardim vertical na parede da esquerda; canto de leitura à
 // direita. Cada peça passa pelo motor (scripts/escritorio-construcao.mjs).
 import { novaCena } from "../escritorio-construcao.mjs";
@@ -17,7 +17,7 @@ export default function reuniao() {
   const s = novaCena("reuniao");
   // Coleção da sala: chalé escuro e executivo (madeira escura, couro verde).
   s.colecao({ lareira: "lodge_dark_fireplace", poltrona: "exe_chair", abajur: "lodge_dark_lamp", mesa: "army15_ltddesk", cadeira: "exe_chair2",
-    lustre: "darkelegant_c20_light", tela: "computer_flatscreen", sofa: "mafia_c26_sofa_dark", mesaCentro: "mafia_c26_coffeetable_dark", criado: "lodge_dark_endtable",
+    tela: "computer_flatscreen", sofa: "mafia_c26_sofa_dark", mesaCentro: "mafia_c26_coffeetable_dark", criado: "lodge_dark_endtable",
     tapete: "exe_rug", estante: "lodge_dark_bookcase", vela: "lodge_dark_candle" }, {
     // Acentos escolhidos para a sala: o que dá vida a cada canto.
     acentos: ["attic15_painting", "mafia_c26_walllamp_dark", "xmas11_cuckoo", "garden_r21_plantwall", "easter_c23_plantwall", "exe_globe",
@@ -59,11 +59,14 @@ export default function reuniao() {
   // Receita: tampos lado a lado, cadeiras dos dois lados e nas cabeceiras,
   // lustre no centro; computador virado para dois lugares; bandeja de
   // bebidas no meio e, na frente de cada lugar, xícara, papéis ou copo.
-  const lugares = mesaReuniao(s, { x: 5, y: 6, telas: [2, 9], centro: [[8, 7, "mafia_c26_drinktray"], [5, 7, "antique_c21_books"]],
+  // Cadeiras de dois em dois ladrilhos (Paulo, 19/10/2026: as cadeiras
+  // grudadas formavam um bloco); sem lustre de corrente longa sobre a mesa,
+  // que tapava o patamar. A luz vem das arandelas e dos abajures.
+  const lugares = mesaReuniao(s, { x: 5, y: 6, passo: 2, telas: [0, 5], centro: [[8, 7, "mafia_c26_drinktray"], [5, 7, "antique_c21_books"]],
     porLugar: ["room_cof15_cup2", "exe_c15_desktidy", "classic2_drinkcup", "mafia_c26_ledger"] });
-  s.figurante({ figura: FIGURAS.diretora, sentado: lugares[4].cad });
-  s.figurante({ figura: FIGURAS.socio, sentado: lugares[7].cad });
-  s.figurante({ figura: FIGURAS.cliente, sentado: lugares[9].cad });
+  s.figurante({ figura: FIGURAS.diretora, sentado: lugares[2].cad });
+  s.figurante({ figura: FIGURAS.socio, sentado: lugares[3].cad });
+  s.figurante({ figura: FIGURAS.cliente, sentado: lugares[4].cad });
 
   // --- Parede da esquerda: apoio de bebidas e conversa a dois ---
   s.canto("apoio de bebidas", { funcao: "servir bebida e conversar a dois", destaque: "exe_drinks_cabinet" });

@@ -2020,14 +2020,17 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const a = P.ambientes[0], r = el.getBoundingClientRect();
     if (!r.width || !r.height) return;
     const w = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TW / 2 + 48;
-    const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100;
+    // Patamares altos (plateia em degraus, mezanino da planta) também ocupam
+    // a tela: sem eles o Auditório abria a 1× cortado.
+    const h = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TH / 2 + MAPA_PAREDE + 100 + (P.nivelMax || 0) * MAPA_NIVEL_PX;
     // Prévia (cartão da criação do quarto): sem a folga da barra e do dock.
     const [mw, mh] = P.previa ? [8, 8] : [32, 180];
-    // Como no Habbo, 1× sempre que o quarto quase cabe (o resto se vê
-    // arrastando); 0,5× só em tela pequena. A prévia segue livre.
+    // Como no Habbo, 1× quando o quarto cabe quase inteiro (até 8% se vê
+    // arrastando; antes eram 20% e salas grandes abriam cortadas); senão 0,5×.
+    // A prévia segue livre.
     const cabe = Math.min((r.width - mw) / w, (r.height - mh) / h);
     centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
-      P.previa ? Math.max(0.2, Math.min(1.35, cabe)) : cabe >= 0.8 ? 1 : 0.5);
+      P.previa ? Math.max(0.2, Math.min(1.35, cabe)) : cabe >= 0.92 ? 1 : 0.5);
     // O centro visual inclui as paredes e o patamar alto, acima do piso.
     alvo.y += (MAPA_PAREDE + (P.nivelEm ? 48 : 0)) * alvo.z / 2;
     cam.y=alvo.y; aplicar();

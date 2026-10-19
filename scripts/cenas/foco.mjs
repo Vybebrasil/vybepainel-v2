@@ -1,7 +1,7 @@
 // Foco: biblioteca de dois andares em madeira escura (plano do Paulo,
 // 18/10/2026: "biblioteca com mezanino e escada"). Coleção Library do Habbo
 // (classic9) com peças antigas para a leitura. Galeria de estantes no
-// mezanino do fundo; embaixo, a mesa de estudo no eixo da porta, sob o lustre;
+// mezanino do fundo; embaixo, a mesa de estudo no eixo da porta, com abajures;
 // estantes e lareira de leitura na parede da esquerda; balcão da
 // bibliotecária perto da porta, à direita. Sala sem
 // voz: silêncio para estudar. Montada por receitas e pelo motor.
@@ -18,9 +18,9 @@ export default function foco() {
   const s = novaCena("foco");
   s.colecao({
     estante: "classic9_bookshelf", mesa: "classic9_table", cadeira: "classic9_chair", abajur: "classic9_light", balcao: "classic9_counter",
-    lareira: "lodge_dark_fireplace", poltrona: "antique_c21_armchair", lustre: "darkelegant_c20_light", livros: "classic9_books", busto: "classic9_statue",
+    lareira: "lodge_dark_fireplace", poltrona: "antique_c21_armchair", livros: "classic9_books", busto: "classic9_statue",
   }, {
-    acentos: ["xmas_c16_woodtile", "classic9_floor1", "classic9_floor2", "lodge_dark_divider", "lodge_dark_cornerplinth", "xmas_c18_stagestairs",
+    acentos: ["xmas_c16_woodtile", "classic9_floor1", "classic9_floor2", "lodge_dark_divider", "lodge_dark_cornerplinth", "hotel_c18_stairs",
       "antique_c21_books", "antique_c21_lamp", "steampunk_globe", "classic9_plant", "mafia_c26_window_dark", "mafia_c26_walllamp_dark",
       "steampunk_map", "uni_libraryshelf", "attic15_painting", "antique_c21_wallclock", "lodge_dark_candle", "doormat_plain"],
   });
@@ -32,9 +32,11 @@ export default function foco() {
 
   // Mezanino de tábuas no fundo (y 0–4), guarda-corpo de madeira escura,
   // colunas de madeira empilhadas; vão em x 10–11 para a escada.
-  s.mezanino({ x0: 0, y0: 0, x1: 12, y1: 5, altura: 3, piso: "classic9_floor2", guarda: "lodge_dark_divider", coluna: "lodge_dark_cornerplinth",
+  s.mezanino({ x0: 0, y0: 0, x1: 12, y1: 5, altura: 2, piso: "classic9_floor2", guarda: "lodge_dark_divider", coluna: "lodge_dark_cornerplinth",
     colunas: [0, 6], lados: ["frente"], abertura: [10, 12] });
-  s.escada("xmas_c18_stagestairs", 10, 9, [0, -1]);
+  // Escada de pedra clara, três degraus até a galeria (Paulo, 19/10/2026: a
+  // pilha de blocos com tapete vermelho, subindo três níveis, dominava a sala).
+  s.escada("hotel_c18_stairs", 10, 7, [0, -1]);
 
   // --- Galeria de estantes no mezanino ---
   s.canto("galeria de estantes", { funcao: "procurar e ler os livros de cima", destaque: "classic9_bookshelf" });
@@ -50,14 +52,13 @@ export default function foco() {
   s.por("steampunk_globe", 8, 1, { nivel: 1 });
   s.por("classic9_statue", 11, 0, { nivel: 1 });
 
-  // --- Mesa de estudo no eixo da porta, sob o lustre ---
+  // --- Mesa de estudo no eixo da porta (lustre de corrente longa saiu: com o mezanino mais baixo ele tapava a galeria) ---
   s.canto("mesa de estudo", { funcao: "estudar em silêncio", destaque: "classic9_table" });
   const fundoMesa = s.mesa({ x: 5, y: 6, tampo: "classic9_table", cadeira: "classic9_chair", lados: ["esquerda", "direita", "tras"], sobre: ["antique_c21_lamp"] });
   s.mesa({ x: 5, y: 8, tampo: "classic9_table", cadeira: "classic9_chair", lados: ["esquerda", "direita", "frente"], sobre: ["antique_c21_lamp"] });
   s.emCima(6, 7, "classic9_books");
   s.emCima(5, 9, "antique_c21_books");
   s.figurante({ figura: FIGURAS.estudante, sentado: fundoMesa.esquerda });
-  s.pendente("darkelegant_c20_light", 6, 7);
 
   // --- Parede da esquerda: estantes e lareira de leitura ---
   s.canto("estantes da esquerda", { funcao: "guardar o acervo do térreo", destaque: "classic9_bookshelf" });
