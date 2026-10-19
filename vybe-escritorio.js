@@ -867,7 +867,8 @@ function escritorioListaSalasHtml() {
     const aqui = pessoas.filter((p) => escritorioLugarDe(p).id === a.id);
     return `<article class="ofc-cartao" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}"><div class="ofc-cartao-topo"><i></i><h3>${safeText(a.nome)}</h3><small>${aqui.length} ${aqui.length === 1 ? "pessoa" : "pessoas"}</small></div><ul>${aqui.map((p) => `<li>${escritorioAvatar(p.perfil, p.nome)}<span><b>${safeText(p.nome)}</b><small>${escritorioStatusHtml(p.status)}</small></span></li>`).join("")}</ul><button type="button" class="ofc-mini" onclick="escritorioIrParaAmbiente('${a.id}',true)" ${a.id === meu ? "disabled" : ""}>${a.id === meu ? "Você está aqui" : "Ir para cá"}</button></article>`;
   };
-  const A = [...ESCRITORIO_PLANTA.ambientes, ESCRITORIO_PRACA];
+  // Mesma ordem da lateral: Praça e espaços comuns primeiro, depois os quartos.
+  const A = [ESCRITORIO_PRACA, ...ESCRITORIO_PLANTA.ambientes.filter((a) => !a.pessoal), ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal)];
   const comGente = A.filter((a) => a.id === meu || pessoas.some((p) => escritorioLugarDe(p).id === a.id));
   const vazios = A.filter((a) => !comGente.includes(a));
   return `${musica}${comGente.map(cartao).join("")}<section class="ofc-vazios"><h4>Outros lugares</h4><div>${vazios.map((a) => `<button type="button" class="ofc-mini" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}" onclick="escritorioIrParaAmbiente('${a.id}',true)">${safeText(a.nome)}</button>`).join("")}</div></section>`;

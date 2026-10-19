@@ -16,7 +16,7 @@ const FIGURAS = {
 export default function auditorio() {
   const s = novaCena("auditorio");
   s.colecao({ poltrona: "theatre_seat", camarote: "theatre_seat_b", tela: "cine_screen", refletor: "spotlight",
-pulpito: "uni_lectern", bilheteria: "cine_ticket_booth", pipoca: "cine_popcorn", projetor: "cine_projector" }, {
+pulpito: "uni_lectern", bilheteria: "cine_ticket_booth", pipoca: "cine_popcorn" }, {
     acentos: ["xmas_c16_woodtile", "theatre_carpet", "theatre_plant", "cine_light1", "cine_light2", "studio_lights1", "lodge_dark_divider", "doormat_plain", "habw_mirror", "cine_bench"],
   });
   s.casca(null, 1, ["xmas_c16_woodtile", 0]);
@@ -29,8 +29,8 @@ pulpito: "uni_lectern", bilheteria: "cine_ticket_booth", pipoca: "cine_popcorn",
   s.figurante({ figura: FIGURAS.palestrante, x: 3, y: 2, dir: 4 });
   s.por("spotlight", 6, 3, { olha: [9, 1] });
   s.por("spotlight", 13, 3, { olha: [10, 1] });
-  s.pendente("studio_lights1", 8, 3);
-  s.pendente("studio_lights1", 11, 3);
+  // Sem treliças de luz penduradas na frente da tela (Paulo, 19/10/2026:
+  // dominavam o palco); a luz vem dos refletores e das arandelas.
   s.parede("fundo", { de: 2.5, ate: 4.5, altura: 1.6 }, ["cine_light2", "cine_light1", "cine_light2"]);
   s.parede("fundo", { de: 15.5, ate: 18, altura: 1.6 }, ["cine_light2", "cine_light1", "cine_light2"]);
   s.parede("fundo", { de: 18, ate: 20, altura: 1 }, ["habw_mirror"]);
@@ -65,8 +65,6 @@ pulpito: "uni_lectern", bilheteria: "cine_ticket_booth", pipoca: "cine_popcorn",
   s.por("theatre_plant", 3, 15);
   s.parede("esquerda", { de: 14, ate: 16, altura: 1 }, ["habw_mirror"]);
   s.por("theatre_plant", 16, 15);
-  s.canto("cabine de projeção", { funcao: "projetar na tela", destaque: "cine_projector" });
-  s.por("cine_projector", 12, 13, { olha: [12, 0] });
-  s.por("cine_projector", 7, 13, { olha: [7, 0] });
+  // Projetores soltos no chão do corredor saíram: pareciam largados ali.
   return s.fechar();
 }

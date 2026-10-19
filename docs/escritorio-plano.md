@@ -725,5 +725,18 @@ decoração inicial "bem feito".
     luz industrial só sobre os pontos de uso (1,2 nível mais alta).
   - Enquadramento: a altura dos patamares entra na conta e a 1× só abre
     quando cabe 92% (antes 80%; o Auditório abria cortado).
-- Falta: Paulo revisar no navegador; Café, Auditório, Produção, Jogos,
-  Lounge e Convivência ainda sem revisão nova cena por cena; publicar.
+- Revisão das outras salas (pedido "revisa tudo antes de publicar"):
+  - Café: saíram os dois lustres pendurados no salão (na altura do rosto
+    ou tapando o balcão) e o garçom parado no corredor.
+  - Auditório: saíram as treliças de luz na frente da tela e os
+    projetores soltos no corredor.
+  - Produção e Academia: luz industrial 1,2 nível mais alta.
+  - Convivência: mezanino a 2 níveis e a mesma `hotel_c18_stairs` do Foco.
+  - Praça: tocha tiki (com caveira, já reprovada) trocada por luminária de jardim.
+  - Jogos e Lounge: revistos, sem mudança.
+  - Regra nova no motor: peça pendurada desce no máximo até 3,5 níveis
+    (antes 3; o boneco em pé tem ~3,4 e a luz ficava no rosto).
+  - Celular: a lista em cartões segue a ordem da lateral (Praça e espaços
+    comuns primeiro).
+- Não verificado: título da conversa com chamada real (a demonstração não
+  conecta voz) e desempenho com a equipe inteira online.

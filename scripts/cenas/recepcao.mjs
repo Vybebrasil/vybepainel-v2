@@ -2,7 +2,7 @@
 // 18/10/2026): mármore branco com dourado e azul-claro, coleção Elegant do
 // Habbo. Quem entra pela porta (que vem da Praça) vê, no mesmo eixo, a fonte
 // e, atrás dela, a recepção. Mezanino de mármore preto no fundo, com
-// biblioteca e estar; escada de palco até o vão do guarda-corpo. Estar dos
+// biblioteca e estar; escada de pedra até o vão do guarda-corpo. Estar dos
 // aquários na parede da esquerda, chegada perto da porta, estar azul e café
 // do saguão à direita, máquinas e teleporte da Praça no canto do fundo.
 // Montado por receitas (scripts/escritorio-receitas.mjs) e pelo motor.
@@ -25,7 +25,7 @@ export default function convivencia() {
     planta: "hotel_c18_tree", flores: "wed_plant", abajur: "classic1_lamp", banco: "greek_c15_bench",
   }, {
     // Acentos escolhidos: obra do saguão, parede, miudezas de cada canto.
-    acentos: ["eleblock4", "val12_marble1", "val12_marble2", "greek_block", "greek_corner", "xmas_c18_stagestairs", "window_double_default",
+    acentos: ["eleblock4", "val12_marble1", "val12_marble2", "greek_block", "greek_corner", "hotel_c18_stairs", "window_double_default",
       "mafia_c26_walllamp_white", "wallmirror", "attic15_painting", "elegant_c17_walldecor", "uni_coatrack", "waasa_wall_shelf2", "pixel_clock_black",
       "romantique_clock", "hc_luggage", "waasa_aquarium", "mafia_c26_teleport_dark", "olympics_r16_vendingmchn", "matic_water_dispenser",
       "room_cof15_cup2", "classic2_drinkcup", "antique_c21_books", "magazines", "wcandle", "mafia_c26_vase_white",
@@ -38,9 +38,11 @@ export default function convivencia() {
 
   // Mezanino de mármore preto; flores no guarda-corpo, uma a cada dois
   // blocos (ritmo); colunas gregas no térreo; vão para a escada em x 14–15.
-  s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 3, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [1, 5, 9],
+  s.mezanino({ x0: 0, y0: 0, x1: 16, y1: 5, altura: 2, piso: "val12_marble2", guarda: "greek_block", coluna: "greek_corner", colunas: [1, 5, 9],
     lados: ["frente", "direita"], abertura: [14, 16], enfeite: { classes: ["wed_plant", "wcandle"], cada: 2 } });
-  s.escada("xmas_c18_stagestairs", 14, 9, [0, -1]);
+  // Mesma escada de pedra do Foco, três degraus até a galeria (Paulo,
+  // 19/10/2026: a pilha de blocos com tapete vermelho dominava a sala).
+  s.escada("hotel_c18_stairs", 14, 7, [0, -1]);
 
   // --- Mezanino: biblioteca e estar ---
   s.canto("biblioteca do mezanino", { funcao: "ler com calma acima do saguão", destaque: "elegant_c17_cupboard" });

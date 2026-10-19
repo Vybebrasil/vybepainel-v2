@@ -50,7 +50,7 @@ export default function producao() {
     s.emCima(x + 1, 0, x === 8 ? "modern_c17_folder" : "modern_c17_lamp");
     if (x === 8) s.figurante({ figura: FIGURAS.editor, sentado: cad });
   }
-  s.pendente("army_c15_light", 8, 2, { dir: 2 });
+  s.pendente("army_c15_light", 8, 2, { dir: 2, altura: 1.2 });
   s.parede("fundo", { de: 6, ate: 12, altura: 2.4 }, ["waasa_wall_shelf1", "pixel_clock_black", "waasa_wall_shelf1"]);
 
   // --- Podcast, à esquerda (x 0–5, y 5–9) ---
@@ -63,7 +63,7 @@ export default function producao() {
   s.emCima(2, 7, "ads_drsports_microphone2");
   s.emCima(2, 9, "ads_drsports_microphone2");
   s.figurante({ figura: FIGURAS.podcaster, sentado: mesaPod.direita });
-  s.pendente("army_c15_light", 2, 8, { dir: 2 });
+  s.pendente("army_c15_light", 2, 8, { dir: 2, altura: 1.2 });
   s.por("modern_c17_floorlamp", 5, 6);
   s.parede("esquerda", { de: 6, ate: 8, altura: 2.2 }, ["waasa_wall_shelf1"]);
   s.por("modern_c17_photos", 0, 8, { dir: 2 });
@@ -88,7 +88,7 @@ export default function producao() {
   s.figurante({ figura: FIGURAS.cliente, sentado: espera.sofa });
   s.por("modern_c17_floorlamp", 18, 10);
   s.por("army_c15_plant", 19, 12);
-  s.pendente("army_c15_light", 12, 9, { dir: 2 });
+  s.pendente("army_c15_light", 12, 9, { dir: 2, altura: 1.2 });
 
   // --- Entrada ---
   s.canto("entrada", { funcao: "chegar ao estúdio", destaque: "doormat_plain" });

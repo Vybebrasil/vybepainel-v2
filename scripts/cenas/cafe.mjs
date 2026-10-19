@@ -78,7 +78,7 @@ export default function cafe() {
   // Prateleira com vasos e livros no canto do térreo, sobre o papel de parede.
   s.parede("fundo", { de: 14, ate: 16, altura: 3.6 }, ["waasa_wall_shelf2"]);
   // Plantas penduradas na beira do mezanino, por cima do balcão.
-  for (const x of [3, 12]) s.pendente("easter_c18_hangingplant", x, 4, { estado: 0 });
+  for (const x of [3, 12]) s.pendente("easter_c18_hangingplant", x, 4, { estado: 0, altura: 0.5 });
 
   s.canto("balcão de trás", { funcao: "preparar café e doces", destaque: "sunsetcafe_c20_coffeemachine" });
   // --- Térreo, embaixo da beira (balcão de trás) ---
@@ -122,7 +122,7 @@ export default function cafe() {
   s.por("attic15_clock", 0, 11, { dir: 2 });
   s.por("paris_c15_menu", 2, 11, { dir: 2 });
 
-  s.canto("salão", { funcao: "comer sentado", destaque: "val_c20_lights" });
+  s.canto("salão", { funcao: "comer sentado", destaque: "paris_c15_table" });
   // --- Salão ---
   s.mesa({ x: 3, y: 7, tampo: "paris_c15_table", cadeira: "paris_c15_chair", lados: ["esquerda", "direita", "frente"], tapete: "antique_c21_oldenrug", sobre: ["xmas_c24_plate", "classic2_drinkcup"],
     figurante: { lado: "esquerda", figura: FIGURAS.cliente } });
@@ -130,11 +130,9 @@ export default function cafe() {
     sobre: ["gift_vase"] });
   const vela = s.mesa({ x: 11, y: 7, tampo: "paris_c15_table", cadeira: "steampunk_chair", lados: ["esquerda", "direita", "frente"], tapete: "antique_c21_oldenrug", sobre: ["rcandle"] });
   s.figurante({ figura: FIGURAS.amigo, sentado: vela.direita });
-  s.figurante({ figura: FIGURAS.garcom, x: 9, y: 6, dir: 2 });
-  // Lustres de ferro sobre a mesa do meio e o canto de estar (onde não
-  // ficam na frente dos balcões).
-  s.pendente("val_c20_lights", 8, 9);
-  s.pendente("val_c20_lights", 13, 11);
+  // Sem lustres pendurados no salão (Paulo, 19/10/2026: na altura do rosto
+  // pareciam soltos no meio; mais altos, tapavam o balcão). Saiu também o
+  // garçom parado no corredor: já havia gente demais em pé.
 
   s.canto("estar da frente", { funcao: "conversar com chá", destaque: "antique_c21_teaset" });
   // Canto de estar (frente à direita): poltrona antiga e poltrona de chalé

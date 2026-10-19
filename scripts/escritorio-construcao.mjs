@@ -453,7 +453,9 @@ export function novaCena(id, o = {}) {
       const sl = silhueta(classe, dir, estado) || silhueta(classe, dir, estado, true);
       if (sl) {
         const baixo = (16 - (sl.y + sl.h)) / 32 + alt, alto = (16 - sl.y) / 32 + alt;
-        if (baixo < base + 3) return falha(`${nome(classe, x, y)} pendurada baixa demais: o desenho desce até ${baixo.toFixed(1)} (quem passa bate a cabeça)`);
+        // Boneco do Habbo em pé tem ~3,4 níveis: abaixo de 3,5 a luz fica na
+        // altura do rosto e o fio parece um poste (Paulo, 19/10/2026).
+        if (baixo < base + 3.5) return falha(`${nome(classe, x, y)} pendurada baixa demais: o desenho desce até ${baixo.toFixed(1)} (fica na altura do rosto de quem passa)`);
         if (alto > topoParede + 1.5) return falha(`${nome(classe, x, y)} pendurada alta demais: o desenho vai até ${alto.toFixed(1)}, a parede acaba em ${topoParede}`);
       }
       moveis.push([classe, x, y, dir, estado, alt]);
