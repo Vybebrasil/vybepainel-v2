@@ -911,3 +911,19 @@ decoração inicial "bem feito".
   não pegam no top feminino nem no blazer.
 - Pendente: redesenhar o Centro de Operação com espaço livre para a equipe
   trabalhar.
+
+### Construção e catálogo mais claros — 19/10/2026 (noite)
+
+- Um catálogo só, com as mesmas peças na construção (Inventário, Loja,
+  acervo) e no Catálogo da barra. Tem categorias em seções (Atalhos, Móveis,
+  Decoração, Ambientes, Construção, Jogos e efeitos, Estilos e coleções) e as
+  faixas de raridade como filtro à parte, com contagem.
+- A Vitrine da semana é uma categoria (a padrão da Loja), não um bloco fixo
+  no topo, que escondia a troca de categoria.
+- Cartão compacto, 3 por linha: nome e uma linha com faixa e preço (ou
+  quantos são seus, no Inventário). O clique sempre abre a ficha (animação,
+  onde fica, uso) com Comprar e/ou Colocar. Arrastar continua colocando direto.
+- Barra do editor numa linha (área, ferramentas, ajudas, histórico, Mais e
+  Salvar). A instrução do momento ("Estante na mão · clique no piso…") fica
+  numa faixa abaixo, com Cancelar. Peça de parede pede o piso junto da parede.
+- A Carteira cabe na lateral.
