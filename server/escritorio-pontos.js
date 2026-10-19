@@ -145,7 +145,7 @@ export async function resumoPontos(sql, pessoaId, agora = new Date()) {
 // função da pessoa e o peso de cada formato (2026-10-20-escritorio-complexidade).
 // Sem a migração, as regras valem sem peso. A conta de verdade é do banco.
 // Regras que nascem de uma peça (as que a missão pode prometer).
-const REGRAS_DE_MISSAO = ['entrega', 'entrega_prazo', 'criacao_aprovacao', 'criacao_aprovada', 'captacao', 'carteira', 'agendamento'];
+const REGRAS_DE_MISSAO = ['entrega', 'entrega_prazo', 'criacao_aprovacao', 'criacao_aprovada', 'captacao', 'carteira', 'agendamento', 'agencia'];
 export async function tabelaDasMissoes(sql, funcao) {
   const [m] = await sql`SELECT to_regclass('public.vybe_escritorio_complexidade') IS NOT NULL AS existe`;
   const regras = m?.existe
@@ -181,7 +181,9 @@ function diaUtilAntes(iso) {
 // do formato. É uma promessa calculada com a mesma tabela do banco; quem paga
 // de verdade continua sendo o gatilho, no evento.
 const QUADRO_DEMANDAS = '8385559107', QUADRO_PRODUCAO = '7829537690';
-const REGRA_DA_MISSAO = { criacao: ['criacao_aprovacao', 'criacao_aprovada'], producao: ['captacao'], agendamento: ['agendamento'] };
+// Regra que paga cada função pela peça (a de Gestão e Atendimento paga quando
+// a peça do cliente/da agência é finalizada ou aprovada).
+const REGRA_DA_MISSAO = { criacao: ['criacao_aprovacao', 'criacao_aprovada'], producao: ['captacao'], agendamento: ['agendamento'], gestao: ['agencia'], atendimento: ['carteira'] };
 export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
   if (!await pontosProntos(sql)) return { disponivel: false, missoes: [] };
   const [f] = await sql`SELECT funcao FROM vybe_escritorio_funcoes WHERE pessoa_id=${pessoaId}`;
@@ -190,12 +192,12 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
   const regra = new Map(regras.map((r) => [r.chave, r]));
   const [comPeso] = await sql`SELECT to_regprocedure('vybe_peso_conteudo(bigint)') IS NOT NULL AS existe`;
   const linhas = comPeso?.existe
-    ? await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,vybe_peso_conteudo(c.id) AS peso
+    ? await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.etapa,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,vybe_peso_conteudo(c.id) AS peso
         FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id=c.id AND r.pessoa_id=${pessoaId}
         LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
         WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
         ORDER BY COALESCE(c.prazo,c.veiculacao) NULLS LAST, c.id LIMIT 40`
-    : await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,1 AS peso
+    : await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.etapa,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,1 AS peso
         FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id=c.id AND r.pessoa_id=${pessoaId}
         LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
         WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
@@ -209,7 +211,7 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
     const quando = l.prazo || l.veiculacao || null;
     return {
       ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: demanda ? 'demandas' : 'producao',
-      titulo: l.titulo || 'Sem título', cliente: l.clientes_texto || '', formato: l.formato || '', peso, status: l.status || '',
+      titulo: l.titulo || 'Sem título', cliente: l.clientes_texto || '', formato: l.formato || '', peso, status: l.status || '', grupo: l.etapa || '',
       prazo: quando, atrasada: Boolean(quando && quando < hoje), hoje: quando === hoje,
       recompensa: valor(regra.get(principal), peso),
       bonus: extra && regra.get(extra) ? { ...valor(regra.get(extra), peso), descricao: regra.get(extra).descricao } : null,

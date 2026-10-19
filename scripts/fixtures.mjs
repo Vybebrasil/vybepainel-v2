@@ -130,9 +130,9 @@ export async function demoApi(req,res,url,body) {
       // Missões de demonstração (fictícias): mesma forma da rota de verdade.
       if(url.searchParams.get('acao')==='missoes'){const d=(n)=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
         return reply(200,{ok:true,disponivel:true,funcao:'criacao',missoes:[
-          {ref:'vybe:1',quadro:'producao',titulo:'Cardápio impresso fictício',cliente:'Cliente demonstração',formato:'Impresso',peso:3,status:'Pode Fazer',prazo:d(-2),atrasada:true,hoje:false,recompensa:{moedas:12,pontos:30},bonus:{moedas:6,pontos:15,descricao:'Peça aprovada sem alteração'}},
-          {ref:'vybe:1',quadro:'producao',titulo:'Carrossel de três dúvidas',cliente:'Cliente B (fictício)',formato:'Carrossel',peso:2,status:'Em andamento',prazo:d(0),atrasada:false,hoje:true,recompensa:{moedas:8,pontos:20},bonus:null},
-          {ref:'vybe:1',quadro:'producao',titulo:'Card de domingo',cliente:'Cliente C (fictício)',formato:'Card',peso:1,status:'Pode Fazer',prazo:d(3),atrasada:false,hoje:false,recompensa:{moedas:4,pontos:10},bonus:null},
+          {ref:'vybe:1',quadro:'producao',titulo:'Cardápio impresso fictício',cliente:'Cliente demonstração',formato:'Impresso',peso:3,status:'Pode Fazer',grupo:'Criação',prazo:d(-2),atrasada:true,hoje:false,recompensa:{moedas:12,pontos:30},bonus:{moedas:6,pontos:15,descricao:'Peça aprovada sem alteração'}},
+          {ref:'vybe:1',quadro:'producao',titulo:'Carrossel de três dúvidas',cliente:'Cliente B (fictício)',formato:'Carrossel',peso:2,status:'Em andamento',grupo:'Redação',prazo:d(0),atrasada:false,hoje:true,recompensa:{moedas:8,pontos:20},bonus:null},
+          {ref:'vybe:1',quadro:'producao',titulo:'Card de domingo',cliente:'Cliente C (fictício)',formato:'Card',peso:1,status:'Pode Fazer',grupo:'Criação',prazo:d(3),atrasada:false,hoje:false,recompensa:{moedas:4,pontos:10},bonus:null},
           {ref:'vybe:2',quadro:'demandas',titulo:'Reels de bastidores',cliente:'Cliente D (fictício)',formato:'Reels',peso:2.5,status:'Pode Fazer',prazo:d(5),atrasada:false,hoje:false,recompensa:{moedas:13,pontos:25},bonus:null}]});}
       // Cobranças de demonstração (fictícias) para o quarto de qualquer pessoa.
       if(url.searchParams.get('acao')==='cobrancas')return reply(200,{ok:true,cobrancas:[
