@@ -98,6 +98,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   somente seu próprio quarto, inclusive quem administra. Ambientes comuns
   e Praça são exclusivos de Paulo, pela identidade da sessão vinculada à
   sala-0 no servidor. Não autorizar só por `admin` nem por nome do navegador.
+- Perfil e ranking do jogo (decisão do Paulo, 19/10/2026): VybeCoins, nível/XP,
+  conquistas e inventário de cada pessoa ficam visíveis para toda a equipe
+  (rotas `perfil-publico` e `ranking`, `server/escritorio-economia.js`). Números
+  de trabalho (entregas, prazo) e o extrato do razão continuam só na ficha da
+  própria pessoa e com quem administra.
 - O Escritório usa identidade individual da sessão Vybe. Nunca reintroduza código
   compartilhado, identidade por nome livre, OAuth Manus ou consulta ao Monday.
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
