@@ -137,6 +137,23 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
   da tela ou quem marcou o status. 14 das 33 demandas finalizadas ainda tinham
   responsável; outras 14 tinham registro; o resto foi por quem marcou.
 
+## Gestão pela agência — decisão do Paulo em 19/10/2026 (opção C)
+
+- A Gestão só tinha o dia sem furo como entrega: a chegada deu 1 entrega ao
+  Paulo (10 XP), enquanto Atendimento ganhou pela carteira e Agendamento
+  pelos agendamentos. Paulo escolheu as duas correções juntas:
+  - **A**: regra `agencia` (Gestão, +5 moedas e +5 XP, conta como entrega)
+    por peça de qualquer cliente finalizada em Solicitações ou aprovada sem
+    alteração na Produção, paga pela mesma `vybe_pontuar_carteira` dos heads;
+  - **B**: `briefing` (+2/+2) passa a contar como entrega da Gestão.
+- Histórico como o das outras funções: antes de 17/10 virou chegada
+  (`chegada:gestao-2026-10-19`, 2 moedas e 10 XP por entrega); de 17/10 até a
+  aplicação, a regra normal por peça. Migração
+  `migrations/2026-10-19-escritorio-gestao-pontos.sql`, **aplicada em
+  19/10/2026**: 2.068 peças da agência e 650 briefings; Paulo foi de 182 para
+  27.147 XP e de 172 para 5.657 VybeCoins. Não repetir (origens únicas, mas a
+  decisão já está aplicada).
+
 ## Ainda não decidido (fica para depois)
 
 - Deivid aprova 166 peças em 8 semanas como direção de arte e não ganha por
