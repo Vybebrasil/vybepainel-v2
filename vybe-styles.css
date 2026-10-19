@@ -7131,3 +7131,46 @@ body.no-escritorio {overflow:hidden}
 .ofc-previa-ficha div {min-width:0}
 .ofc-previa-ficha dt {color:var(--ofc-suave);font:600 10px var(--mac-ui)}
 .ofc-previa-ficha dd {margin:2px 0 0;color:var(--ofc-texto,#fff);font:600 12px var(--mac-ui);overflow-wrap:anywhere}
+
+/* Missões do jogador (vybe-escritorio-missoes.js): cartão na coluna da direita. */
+.ofc-missoes {display:grid;gap:8px;width:224px;padding:10px 12px;border-radius:16px;background:var(--ofc-vidro);border:1px solid var(--ofc-borda);box-shadow:0 18px 40px #0008;backdrop-filter:blur(14px);color:var(--ofc-texto)}
+.ofc-missoes[hidden] {display:none}
+.ofc-coluna .ofc-missoes {width:auto}
+.ofc-missoes-topo {display:flex;align-items:baseline;gap:8px;width:100%;padding:0;border:0;background:none;color:inherit;cursor:pointer;text-align:left;font-family:var(--mac-ui)}
+.ofc-missoes-topo b {font:700 13px var(--mac-ui)}
+.ofc-missoes-topo small {flex:1;color:var(--ofc-suave);font-size:11px}
+.ofc-missoes-seta {width:7px;height:7px;border-right:2px solid var(--ofc-suave);border-bottom:2px solid var(--ofc-suave);transform:rotate(45deg);transition:transform .15s}
+.ofc-missoes-topo[aria-expanded="true"] .ofc-missoes-seta {transform:rotate(-135deg)}
+.ofc-missoes-topo:focus-visible, .ofc-missao:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px;border-radius:8px}
+.ofc-missoes-corpo {display:grid;gap:6px}
+.ofc-missoes-total {margin:0;color:var(--ofc-suave);font-size:11px}
+.ofc-missoes-lista {display:grid;gap:4px;margin:0;padding:0;list-style:none;max-height:42vh;overflow:auto}
+.ofc-missao {display:grid;gap:3px;width:100%;padding:7px 8px;border-radius:10px;border:1px solid #ffffff12;background:#ffffff08;color:inherit;text-align:left;cursor:pointer;font-family:var(--mac-ui)}
+.ofc-missao:hover {background:#ff954814;border-color:#ff954855}
+.ofc-missao.atrasada {border-color:#ff8f8f55}
+.ofc-missao-linha {display:flex;align-items:center;gap:6px;min-width:0}
+.ofc-missao-linha b {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 12px var(--mac-ui)}
+.ofc-missao-linha small {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ofc-suave);font-size:10px}
+.ofc-missao-prazo {flex:none;padding:1px 6px;border-radius:6px;background:#ffffff12;color:var(--ofc-suave);font:700 9.5px var(--mac-ui);font-style:normal}
+.ofc-missao-prazo.atrasada {background:#ff5a5a2e;color:#ffb4b4}
+.ofc-missao-prazo.hoje {background:#ffc46b2e;color:#ffd79a}
+.ofc-missao-valor {display:flex;gap:4px;flex:none}
+.ofc-missao-xp, .ofc-missao-moeda {padding:0 5px;border-radius:5px;font:700 9.5px var(--mac-ui);white-space:nowrap}
+.ofc-missao-xp {background:#6fb6ff26;color:#a8d4ff}
+.ofc-missao-moeda {background:#ffd16626;color:#ffe08a}
+.ofc-missao-moeda::after {content:" moedas"}
+
+/* Alertas dos agentes (contagem na etiqueta) e lista no aviso do head. */
+.mapa-avisos-agente {min-width:16px;padding:0 4px;border-radius:8px;background:#e5484d;color:#fff;font:700 9.5px/16px var(--mac-ui);font-style:normal;text-align:center}
+.ofc-agente-plano {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 10px;color:#c3cad6;font-size:12px}
+.ofc-agente-grupo h4 {margin:12px 0 6px;color:#ffb451;font:700 11px var(--mac-ui)}
+.ofc-agente-grupo ul, .plj-avisos, .plj-avisos ul {list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ofc-agente-grupo button, .plj-avisos li li button {display:grid;width:100%;padding:7px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);color:#e7ecf5;text-align:left;cursor:pointer;font-family:var(--mac-ui)}
+.ofc-agente-grupo button:hover, .plj-avisos li li button:hover, .ofc-agente-grupo button:focus-visible, .plj-avisos li li button:focus-visible {border-color:rgba(255,151,21,.55);outline:none}
+.ofc-agente-grupo b, .plj-avisos li li span {font:600 12px var(--mac-ui)}
+.ofc-agente-grupo small, .plj-avisos small {color:#8f98a9;font-size:10px}
+.plj-avisos-titulo {margin:14px 0 6px;color:#ffb451;font:700 12px var(--mac-ui)}
+.plj-avisos > li {padding:8px 10px;border:1px solid rgba(255,255,255,.08);border-radius:10px}
+.plj-avisos > li > b {color:#e7ecf5;font:700 12px var(--mac-ui)}
+.plj-avisos details {margin-top:4px}
+.plj-avisos summary {cursor:pointer;color:#c3cad6;font-size:11px}

@@ -15,7 +15,11 @@ async function banco(t){
  CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true,email text,responsavel text,segmento text);
  INSERT INTO vybe_clientes(id,nome,email) VALUES(10,'Serra Grande','contato@serra.example'),(11,'Mangaba',NULL),(12,'Mangaba Kids',NULL);
  CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint,ordem int DEFAULT 0);
- INSERT INTO vybe_cliente_pessoas VALUES(10,3,0),(11,24,0);`);
+ INSERT INTO vybe_cliente_pessoas VALUES(10,3,0),(11,24,0);
+ CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,status_chave text,prazo date,briefing text,removido_em timestamptz,monday_item_id text);
+ CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean DEFAULT false);
+ CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
+ CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint,ordem int DEFAULT 0);`);
  return {db,sql};
 }
 const conteudo={resumo:'Novembro com presença constante',pecas:[{data:'2026-11-03',formato:'card',tema:'Finados',legenda:'Respeito à data'},{data:'2026-11-20',formato:'Carrossel',tema:'Consciência Negra'}]};
@@ -104,4 +108,33 @@ test('Centro de Operação: a cena tem um posto por mesa, sentado, e a zona vale
  assert.equal(postos.length,16);assert.ok(postos.every(f=>f.acao==='sit'));
  assert.deepEqual(postos.map(f=>f.posto),[...Array(16).keys()]);
  for(const arq of ['server/escritorio-social.js','services/escritorio/worker.js','server/escritorio-mapa.js','server/escritorio.js','migrations/2026-10-20-planejamentos.sql'])assert.match(readFileSync(arq,'utf8'),/operacao/,arq);
+});
+
+test('alertas dos agentes: sem informação, muito atrasadas e para aprovar, por cliente; o head vê só os dele',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ await db.exec(`INSERT INTO vybe_status VALUES(7829537690,'pode_fazer','Pode Fazer',false),(7829537690,'para_aprovacao','Para aprovação',false),(7829537690,'finalizado','Finalizado',true),(7829537690,'falta_info','Falta Info',false);
+  INSERT INTO vybe_conteudos(id,board_id,titulo,status_chave,prazo,briefing) VALUES
+   (1,7829537690,'Atrasada demais','pode_fazer','2026-10-10','ok'),
+   (2,7829537690,'Atrasada só ontem','pode_fazer','2026-10-19','ok'),
+   (3,7829537690,'Esperando aprovação','para_aprovacao','2026-10-25','ok'),
+   (4,7829537690,'Sem briefing','pode_fazer','2026-10-25',''),
+   (5,7829537690,'Falta info','falta_info','2026-10-25','ok'),
+   (6,7829537690,'Finalizada atrasada','finalizado','2026-10-01',''),
+   (7,7829537690,'De dois clientes','para_aprovacao','2026-10-25','ok');
+  INSERT INTO vybe_conteudo_clientes VALUES(1,10),(2,10),(3,10),(4,10),(5,10),(6,10),(7,10),(7,11);
+  INSERT INTO vybe_conteudo_responsaveis VALUES(1,3),(2,3),(3,3),(4,3),(6,3),(7,3);`);
+ const {alertasDosClientes}=await import('../server/alertas-clientes.js');
+ const a=(await alertasDosClientes(sql,{agora:new Date('2026-10-20T15:00:00Z')})).get('10');
+ assert.deepEqual(a.atrasadas.map(x=>x.titulo),['Atrasada demais'],'só mais de 2 dias; finalizada não conta');
+ assert.deepEqual(a.aprovar.map(x=>x.titulo).sort(),['De dois clientes','Esperando aprovação']);
+ assert.deepEqual(a.sem_info.map(x=>x.titulo).sort(),['Falta info','Sem briefing']);
+ assert.match(a.sem_info.find(x=>x.titulo==='Falta info').motivo,/Falta Info.*sem responsável/);
+ assert.equal(a.total,5);
+ // Peça de dois clientes aparece nos dois.
+ assert.equal((await alertasDosClientes(sql)).get('11').aprovar.length,1);
+ // Vinícius é head só da Serra Grande (10); Ewerton, da Mangaba (11).
+ assert.deepEqual((await P.alertasDoHead(sql,{id:3})).map(x=>x.cliente),['Serra Grande']);
+ assert.deepEqual((await P.alertasDoHead(sql,{id:24})).map(x=>x.cliente),['Mangaba']);
+ assert.equal((await P.postosDaOperacao(sql,{id:3}))[0].alertas.total>0,true);
 });

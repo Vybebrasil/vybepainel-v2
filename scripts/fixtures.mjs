@@ -127,6 +127,13 @@ export async function demoApi(req,res,url,body) {
       if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
       // Perfil de demonstração (números fictícios, só para a tela).
       if(url.searchParams.get('acao')==='perfil-publico'){const id=url.searchParams.get('pessoa')||'1';const n=Number(id)||1;return reply(200,{ok:true,perfil:{disponivel:true,saldo:700-n*90,nivel:4-n%3,xp:20*n,xpProximo:140,xpTotal:300-n*40,conquistas:5-n,inventario:[{classe:'hygge_c25_carpet',quantidade:1},{classe:'plant_small_cactus',quantidade:2},{classe:'exe_table',quantidade:1}].slice(0,4-n%3)}});}
+      // Missões de demonstração (fictícias): mesma forma da rota de verdade.
+      if(url.searchParams.get('acao')==='missoes'){const d=(n)=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+        return reply(200,{ok:true,disponivel:true,funcao:'criacao',missoes:[
+          {ref:'vybe:1',quadro:'producao',titulo:'Cardápio impresso fictício',cliente:'Cliente demonstração',formato:'Impresso',peso:3,status:'Pode Fazer',prazo:d(-2),atrasada:true,hoje:false,recompensa:{moedas:12,pontos:30},bonus:{moedas:6,pontos:15,descricao:'Peça aprovada sem alteração'}},
+          {ref:'vybe:1',quadro:'producao',titulo:'Carrossel de três dúvidas',cliente:'Cliente B (fictício)',formato:'Carrossel',peso:2,status:'Em andamento',prazo:d(0),atrasada:false,hoje:true,recompensa:{moedas:8,pontos:20},bonus:null},
+          {ref:'vybe:1',quadro:'producao',titulo:'Card de domingo',cliente:'Cliente C (fictício)',formato:'Card',peso:1,status:'Pode Fazer',prazo:d(3),atrasada:false,hoje:false,recompensa:{moedas:4,pontos:10},bonus:null},
+          {ref:'vybe:2',quadro:'demandas',titulo:'Reels de bastidores',cliente:'Cliente D (fictício)',formato:'Reels',peso:2.5,status:'Pode Fazer',prazo:d(5),atrasada:false,hoje:false,recompensa:{moedas:13,pontos:25},bonus:null}]});}
       if(url.searchParams.get('acao')==='trocas')return reply(200,{ok:true,trocas:{disponivel:true,recebidas:[{id:'7',de_pessoa:'2',para_pessoa:'1',oferece:[['bling_sofa_mu',1]],pede:[['shelves_norja',1]],estado:'aberta',criado_em:new Date().toISOString()}],enviadas:[]}});
       // Recados de demonstração (a demo não grava).
       if(url.searchParams.get('acao')==='recados-resumo')return reply(200,{ok:true,resumo:[{de:'2',nao_lidos:1,ultimo:new Date().toISOString()}]});
@@ -173,8 +180,9 @@ export async function demoApi(req,res,url,body) {
       const acao=url.searchParams.get('acao');
       if(acao==='previa'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml(plano));}
       if(acao==='detalhe')return reply(200,{ok:true,planejamento:plano});
-      if(acao==='pendentes')return reply(200,{ok:true,pendentes:[plano]});
-      if(acao==='operacao')return reply(200,{ok:true,postos:[{cliente_id:'1',cliente:'Cliente demonstração',segmento:'Restaurante',meu:true,planejamento:{id:'1',estado:'ajustes',mes,versao:2}},
+      const alertasDemo={sem_info:[{ref:'vybe:1',quadro:'producao',titulo:'Card sem briefing',status:'Pode Fazer',prazo:dia(22),motivo:'sem briefing'}],atrasadas:[{ref:'vybe:1',quadro:'producao',titulo:'Reels atrasado',status:'Em andamento',prazo:dia(2)}],aprovar:[{ref:'vybe:2',quadro:'demandas',titulo:'Cardápio para aprovar',status:'Para aprovação',prazo:dia(25)}],sem_info_total:1,atrasadas_total:1,aprovar_total:1,total:3};
+      if(acao==='pendentes')return reply(200,{ok:true,pendentes:[plano],alertas:[{cliente_id:'1',cliente:'Cliente demonstração',...alertasDemo}]});
+      if(acao==='operacao')return reply(200,{ok:true,postos:[{cliente_id:'1',cliente:'Cliente demonstração',segmento:'Restaurante',meu:true,planejamento:{id:'1',estado:'ajustes',mes,versao:2},alertas:alertasDemo},
         ...['Cooperativa','Clinica','PetShop','Academia','Provedor de Internet','Sistema','Advocacia','Distribuidora de Bebidas','Varejo','Moda','Soluções empresariais','Gastronomia','Clinica laboratório',null].map((seg,i)=>({cliente_id:String(i+2),cliente:`Cliente ${String.fromCharCode(66+i)} (fictício)`,segmento:seg,meu:false,planejamento:i%3===0?null:{id:String(i+2),estado:['enviado','aprovado'][i%2],mes,versao:1}}))]});
       if(req.method==='POST')return reply(403,{error:'A demonstração não grava.'});
       return reply(200,{ok:true,disponivel:true,email:false,planejamentos:[plano]});

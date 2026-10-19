@@ -138,7 +138,21 @@ export async function resumoPontos(sql, pessoaId, agora = new Date()) {
       COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compra na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquista' WHEN m.origem LIKE 'reembolso:%' THEN 'Devolução de compra' WHEN m.origem LIKE 'ajuste:economia%' THEN 'Ajuste da nova economia' ELSE m.origem END) AS descricao
     FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
     WHERE m.pessoa_id=${pessoaId} ORDER BY m.criado_em DESC, m.id DESC LIMIT 12`;
-  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora) };
+  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora),
+    missoes: await tabelaDasMissoes(sql, f?.funcao || null) };
+}
+// O que cada missão vale, para a tela das missões: as regras por peça da
+// função da pessoa e o peso de cada formato (2026-10-20-escritorio-complexidade).
+// Sem a migração, as regras valem sem peso. A conta de verdade é do banco.
+// Regras que nascem de uma peça (as que a missão pode prometer).
+const REGRAS_DE_MISSAO = ['entrega', 'entrega_prazo', 'criacao_aprovacao', 'criacao_aprovada', 'captacao', 'carteira', 'agendamento'];
+export async function tabelaDasMissoes(sql, funcao) {
+  const [m] = await sql`SELECT to_regclass('public.vybe_escritorio_complexidade') IS NOT NULL AS existe`;
+  const regras = m?.existe
+    ? await sql`SELECT chave,descricao,moedas,pontos,por_complexidade FROM vybe_escritorio_regras WHERE ativa AND chave = ANY(${REGRAS_DE_MISSAO}) AND (funcao IS NULL OR funcao=${funcao})`
+    : await sql`SELECT chave,descricao,moedas,pontos,false AS por_complexidade FROM vybe_escritorio_regras WHERE ativa AND chave = ANY(${REGRAS_DE_MISSAO}) AND (funcao IS NULL OR funcao=${funcao})`;
+  const complexidade = m?.existe ? await sql`SELECT chave,nome,peso FROM vybe_escritorio_complexidade ORDER BY peso, nome` : [];
+  return { regras: regras.map((r) => ({ ...r, moedas: Number(r.moedas), pontos: Number(r.pontos) })), complexidade: complexidade.map((c) => ({ ...c, peso: Number(c.peso) })) };
 }
 // Números de trabalho da ficha pelas mesmas entregas que valem XP e meta
 // (regras com "entrega", da função da pessoa, nos dois quadros). Antes a
@@ -160,4 +174,46 @@ function diaUtilAntes(iso) {
   let d = somarDias(iso, -1);
   while ([6, 7].includes(diaDaSemana(d))) d = somarDias(d, -1);
   return d;
+}
+
+// Missões (Paulo, 19/10/2026): as peças abertas em que a pessoa é
+// responsável, com o que cada uma vale pela regra da função dela e pelo peso
+// do formato. É uma promessa calculada com a mesma tabela do banco; quem paga
+// de verdade continua sendo o gatilho, no evento.
+const QUADRO_DEMANDAS = '8385559107', QUADRO_PRODUCAO = '7829537690';
+const REGRA_DA_MISSAO = { criacao: ['criacao_aprovacao', 'criacao_aprovada'], producao: ['captacao'], agendamento: ['agendamento'] };
+export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
+  if (!await pontosProntos(sql)) return { disponivel: false, missoes: [] };
+  const [f] = await sql`SELECT funcao FROM vybe_escritorio_funcoes WHERE pessoa_id=${pessoaId}`;
+  const funcao = f?.funcao || null;
+  const { regras } = await tabelaDasMissoes(sql, funcao);
+  const regra = new Map(regras.map((r) => [r.chave, r]));
+  const [comPeso] = await sql`SELECT to_regprocedure('vybe_peso_conteudo(bigint)') IS NOT NULL AS existe`;
+  const linhas = comPeso?.existe
+    ? await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,vybe_peso_conteudo(c.id) AS peso
+        FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id=c.id AND r.pessoa_id=${pessoaId}
+        LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
+        WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
+        ORDER BY COALESCE(c.prazo,c.veiculacao) NULLS LAST, c.id LIMIT 40`
+    : await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,1 AS peso
+        FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id=c.id AND r.pessoa_id=${pessoaId}
+        LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
+        WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
+        ORDER BY COALESCE(c.prazo,c.veiculacao) NULLS LAST, c.id LIMIT 40`;
+  const hoje = diaBahia(agora);
+  const valor = (r, peso) => (r ? { moedas: Math.round(r.moedas * (r.por_complexidade ? peso : 1)), pontos: Math.round(r.pontos * (r.por_complexidade ? peso : 1)) } : null);
+  const missoes = linhas.map((l) => {
+    const demanda = String(l.board_id) === QUADRO_DEMANDAS;
+    const peso = Number(l.peso) || 1;
+    const [principal, extra] = demanda ? ['entrega', 'entrega_prazo'] : (REGRA_DA_MISSAO[funcao] || []);
+    const quando = l.prazo || l.veiculacao || null;
+    return {
+      ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: demanda ? 'demandas' : 'producao',
+      titulo: l.titulo || 'Sem título', cliente: l.clientes_texto || '', formato: l.formato || '', peso, status: l.status || '',
+      prazo: quando, atrasada: Boolean(quando && quando < hoje), hoje: quando === hoje,
+      recompensa: valor(regra.get(principal), peso),
+      bonus: extra && regra.get(extra) ? { ...valor(regra.get(extra), peso), descricao: regra.get(extra).descricao } : null,
+    };
+  });
+  return { disponivel: true, funcao, missoes };
 }

@@ -731,10 +731,27 @@ async function escritorioOcuparOperacao() {
   mapa.ocuparPostos(postos.slice(0, n).map((a, i) => {
     const p = a.planejamento;
     const [situacao, cor] = p ? ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado, "#8f98a9"] : ["Sem planejamento", "#8f98a9"];
+    const al = a.alertas || {};
+    const resumoAvisos = [al.atrasadas_total && `${al.atrasadas_total} muito atrasada${al.atrasadas_total > 1 ? "s" : ""}`, al.aprovar_total && `${al.aprovar_total} para aprovar`,
+      al.sem_info_total && `${al.sem_info_total} sem informação`].filter(Boolean).join(" · ");
     return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
-      aoClicar: () => (p && typeof abrirPlanejamento === "function" ? abrirPlanejamento(p.id) : escritorioAviso(`O agente de ${a.cliente} ainda não publicou um planejamento.`)) };
+      avisos: al.total || 0, resumoAvisos, aoClicar: () => abrirAgenteOperacaoEscritorio(a) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
+}
+// Painel do agente: o planejamento do mês e o que pede atenção no cliente,
+// cada peça abre no painel lateral de sempre.
+function abrirAgenteOperacaoEscritorio(a) {
+  const p = a.planejamento, al = a.alertas || {};
+  const [situacao] = p ? ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado] : ["Sem planejamento"];
+  const lista = (titulo, itens, total, campo) => (total ? `<section class="ofc-agente-grupo"><h4>${titulo} · ${total}</h4><ul>${itens.map((x) => `<li><button type="button" onclick="closeWorkflowModal();abrirMissaoEscritorio('${safeText(x.ref)}','${x.quadro}')">
+      <b>${safeText(x.titulo)}</b><small>${safeText([x.prazo ? x.prazo.split("-").reverse().join("/") : "", campo ? x[campo] : x.status].filter(Boolean).join(" · "))}</small></button></li>`).join("")}</ul>${total > itens.length ? `<small>e mais ${total - itens.length}</small>` : ""}</section>` : "");
+  openWorkflowModal(`<div class="workflow-kicker"><span>Centro de Operação · agente</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">${safeText(a.cliente)}</h2>
+    <div class="ofc-agente-plano"><span>Planejamento: <b>${safeText(situacao)}</b></span>${p && typeof abrirPlanejamento === "function" ? `<button type="button" class="workflow-secondary" onclick="abrirPlanejamento('${safeText(p.id)}')">Abrir planejamento</button>` : ""}</div>
+    ${al.total ? `${lista("Muito atrasadas", al.atrasadas || [], al.atrasadas_total)}${lista("Para aprovar", al.aprovar || [], al.aprovar_total)}${lista("Sem informação", al.sem_info || [], al.sem_info_total, "motivo")}`
+      : '<p class="workflow-copy">Nada pedindo atenção neste cliente agora.</p>'}`);
+  document.getElementById("workflow-modal")?.classList.add("ofc-agente-janela");
 }
 // Chamado por vybe-planejamentos.js sempre que a lista do head muda.
 function escritorioPlanejamentosPendentes(lista) {
@@ -1077,6 +1094,7 @@ function renderEscritorio() {
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <div class="ofc-coluna" id="office-coluna">
+ <section id="office-missoes" class="ofc-missoes" aria-label="Missões" hidden></section>
  <section id="office-call" class="office-call${escritorio.callAberta ? " aberta" : ""}" ${escritorio.chamada ? "" : "hidden"} aria-label="Conversa por voz"><button type="button" class="office-call-actions" aria-expanded="${Boolean(escritorio.callAberta)}" onclick="escritorio.callAberta=!escritorio.callAberta;this.parentElement.classList.toggle('aberta',escritorio.callAberta);this.setAttribute('aria-expanded',escritorio.callAberta)"><b id="office-call-titulo">${safeText(escritorioTituloChamada())}</b><span id="office-call-rostos" class="office-call-rostos"></span><i class="office-call-seta" aria-hidden="true"></i></button><div id="office-call-media" class="office-call-media"></div></section>
  <div id="office-musica-lugar"></div>
  </div>
@@ -1090,6 +1108,7 @@ function renderEscritorio() {
   document.body.classList.add("no-escritorio");
   atualizarPessoasEscritorio();
   atualizarControlesEscritorio();
+  if (typeof pintarMissoesEscritorio === "function") { pintarMissoesEscritorio(); carregarMissoesEscritorio(); }
   carregarChatEscritorio();
   if (escritorio.chamada) renderMidiaEscritorio();
   montarMapaEscritorio();

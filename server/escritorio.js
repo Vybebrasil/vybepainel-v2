@@ -1,5 +1,6 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, perfilPublico } from "./escritorio-economia.js";
+import { missoesDaPessoa } from "./escritorio-pontos.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
@@ -326,6 +327,7 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo)) });
     }
     if (acao === "trocas") return res.status(200).json({ ok: true, trocas: await listarTrocas(sql, pessoa) });
+    if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
     if (acao === "recados" || acao === "recados-resumo")
       try {
         return res.status(200).json(acao === "recados"
