@@ -816,10 +816,9 @@ decoração inicial "bem feito".
   planejamento. Para o head, a sala mostra na lista "N para você revisar".
 - Zona `operacao` aceita no servidor, no editor, nos post-its e no Worker. As
   regras do banco são ampliadas pela migração
-  `2026-10-20-planejamentos.sql` (aplicada em 19/10/2026). O Worker precisa ser
-  publicado de novo (`npx wrangler deploy`, em `services/escritorio`) para
-  presença e voz valerem na sala nova; até lá, quem entra nela aparece sem
-  zona de conversa.
+  `2026-10-20-planejamentos.sql` (aplicada em 19/10/2026). Worker publicado em
+  19/10/2026 (código colado pelo Paulo no editor da Cloudflare, versão de
+  `services/escritorio/worker.js` do #230).
 - Pendente: Paulo conferir a sala no zoom; com mais de 16 clientes ativos, os
   que sobram ficam sem mesa (o Escritório avisa).
 
@@ -830,4 +829,13 @@ decoração inicial "bem feito".
   Lounge mantém a fila guardada). A lista de aparelhos é `ESCRITORIO_SOM`.
   Instrumentos (piano, guitarra, bateria) ficaram de fora, porque não tocam
   gravação. Teste no `tests/escritorio.test.mjs` (Worker com filas
-  separadas). Vale depois de publicar o Worker de novo.
+  separadas). Worker publicado em 19/10/2026.
+
+### Agentes fantasiados — 19/10/2026 (noite)
+
+- Cada agente do Centro de Operação veste a fantasia do segmento do cliente
+  (`ESCRITORIO_FANTASIAS`, peças escolhidas vendo a arte do Habbo) e senta de
+  frente para quem entra. Etiqueta com nome e ponto; situação no hover.
+- Publicar o Worker: o login da Cloudflare pelo Terminal falhou neste Mac; o
+  caminho que funcionou foi colar `worker.js` (arquivo único) em Workers →
+  vybe-escritorio → Editar código → Implantar. Conferir com `/health`.
