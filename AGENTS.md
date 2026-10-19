@@ -197,8 +197,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   o quarto no novo criador: mesma regra do segundo (sem cópia, devolve só
   compras ainda não devolvidas, preserva XP, conquistas e salas comuns), pela
   migração `2026-10-19-escritorio-quartos-recriar.sql`, marcador
-  `quartos-criacao-2026-10-19`. Aplicar uma vez, depois da publicação de
-  `codex/quartos-criacao-permissoes` e com o "Aprovado" do Paulo.
+  `quartos-criacao-2026-10-19`; **já executada em 19/10/2026, após a
+  publicação #222**. Não repetir.
   As salas comuns ainda precisam de melhorias visuais individuais; Paulo
   autorizou esta publicação sem considerá-las visualmente aprovadas.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
