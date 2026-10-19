@@ -174,6 +174,8 @@ export async function demoApi(req,res,url,body) {
       if(acao==='previa'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml(plano));}
       if(acao==='detalhe')return reply(200,{ok:true,planejamento:plano});
       if(acao==='pendentes')return reply(200,{ok:true,pendentes:[plano]});
+      if(acao==='operacao')return reply(200,{ok:true,postos:[{cliente_id:'1',cliente:'Cliente demonstração',meu:true,planejamento:{id:'1',estado:'ajustes',mes,versao:2}},
+        ...['Cliente B','Cliente C','Cliente D','Cliente E'].map((n,i)=>({cliente_id:String(i+2),cliente:n+' (fictício)',meu:false,planejamento:i%2?{id:String(i+2),estado:['enviado','aprovado'][i%2],mes,versao:1}:null}))]});
       if(req.method==='POST')return reply(403,{error:'A demonstração não grava.'});
       return reply(200,{ok:true,disponivel:true,email:false,planejamentos:[plano]});
     }

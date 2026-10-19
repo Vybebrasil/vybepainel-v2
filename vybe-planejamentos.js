@@ -70,14 +70,22 @@ function novoPlanejamento(clienteId, nome) {
     <p class="workflow-copy">Normalmente o agente do cliente publica e você só revisa. Use isto quando for montar o mês à mão.</p>
     <label class="workflow-field"><span>Mês</span><input id="plj-novo-mes" type="month" value="${mes}"></label>
     <label class="workflow-field"><span>Título</span><input id="plj-novo-titulo" type="text" maxlength="160" value="Planejamento de conteúdo"></label>
+    <label class="workflow-field"><span>Conteúdo que o agente entregou (opcional)</span>
+      <textarea id="plj-novo-json" rows="4" spellcheck="false" placeholder="Cole aqui o JSON do agente, se ele não conseguiu publicar sozinho."></textarea></label>
     <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
       <button type="button" class="workflow-primary" onclick="criarPlanejamento('${pljEsc(clienteId)}', this)">Criar e editar →</button></div>`);
 }
 async function criarPlanejamento(clienteId, botao) {
+  const bruto = document.getElementById('plj-novo-json')?.value.trim();
+  let conteudo = {};
+  if (bruto) {
+    try { conteudo = JSON.parse(bruto.replace(/^```(?:json)?\s*|\s*```$/g, '')); conteudo = conteudo.conteudo || conteudo; }
+    catch { showToast('O conteúdo colado não é um JSON válido. Copie de novo a resposta do agente.', 'error', 6000); return; }
+  }
   botao.disabled = true;
   try {
     const d = await pljPedir('', { acao: 'criar', cliente_id: clienteId, mes: document.getElementById('plj-novo-mes')?.value,
-      titulo: document.getElementById('plj-novo-titulo')?.value, conteudo: {} });
+      titulo: document.getElementById('plj-novo-titulo')?.value, conteudo });
     await abrirPlanejamento(d.planejamento.id, 'editar');
     pljAtualizarFora();
   } catch (e) { botao.disabled = false; showToast(e.message, 'error', 5000); }

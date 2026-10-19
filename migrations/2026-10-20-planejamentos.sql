@@ -43,4 +43,15 @@ CREATE TABLE IF NOT EXISTS vybe_planejamento_eventos (
  em timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS vybe_planejamento_eventos_plan ON vybe_planejamento_eventos(planejamento_id, em);
+
+-- Centro de Operação: sala comum nova do Escritório, com camada própria no
+-- editor (só Paulo) e post-its, como as outras. Só amplia as chaves aceitas.
+ALTER TABLE IF EXISTS vybe_escritorio_mapa DROP CONSTRAINT IF EXISTS vybe_escritorio_mapa_andares;
+ALTER TABLE IF EXISTS vybe_escritorio_mapa ADD CONSTRAINT vybe_escritorio_mapa_andares CHECK(camada='geral' OR camada ~ '^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$');
+ALTER TABLE IF EXISTS vybe_escritorio_mapa_versoes DROP CONSTRAINT IF EXISTS vybe_escritorio_mapa_versoes_andares;
+ALTER TABLE IF EXISTS vybe_escritorio_mapa_versoes ADD CONSTRAINT vybe_escritorio_mapa_versoes_andares CHECK(camada='geral' OR camada ~ '^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$');
+ALTER TABLE IF EXISTS vybe_escritorio_imagens DROP CONSTRAINT IF EXISTS vybe_escritorio_imagens_andares;
+ALTER TABLE IF EXISTS vybe_escritorio_imagens ADD CONSTRAINT vybe_escritorio_imagens_andares CHECK(camada='geral' OR camada ~ '^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$');
+ALTER TABLE IF EXISTS vybe_escritorio_postits DROP CONSTRAINT IF EXISTS vybe_escritorio_postits_camada_check;
+ALTER TABLE IF EXISTS vybe_escritorio_postits ADD CONSTRAINT vybe_escritorio_postits_camada_check CHECK (camada ~ '^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$');
 COMMIT;

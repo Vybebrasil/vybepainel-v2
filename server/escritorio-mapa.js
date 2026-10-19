@@ -35,7 +35,7 @@ export const LADO_SALA = 20; // = LADO_QUARTO (escritorio-quartos.js)
 const LIMITE = { geral: { x: 80, y: 80, itens: 1500 }, sala: { x: LADO_SALA, y: LADO_SALA, itens: 1500 }, cena: { x: 30, y: 30, itens: 1500 } };
 // Salas comuns com cena própria: camada com o id da zona (a mesma do Worker),
 // editada só por quem administra, sem inventário (decisão do Paulo, 18/10/2026).
-export const CENAS_COMUNS = new Set(["recepcao", "reuniao", "auditorio", "producao", "cafe", "jogos", "foco", "academia", "lounge"]);
+export const CENAS_COMUNS = new Set(["recepcao", "reuniao", "auditorio", "producao", "cafe", "jogos", "foco", "academia", "lounge", "operacao"]);
 // Item: [classe, x, y, direção, estado, altura]. Nas salas, x/y são relativos à
 // sala e o item inteiro fica dentro dela (o tamanho real é conferido no mapa).
 export function itensValidos(camada, itens) {

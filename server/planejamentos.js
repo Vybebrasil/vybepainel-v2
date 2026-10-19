@@ -89,6 +89,20 @@ export async function pendentesDoHead(sql, pessoa) {
  return linhas.map(publico);
 }
 
+// Centro de Operação: um agente por cliente ativo, com o planejamento mais
+// recente de cada um (os que têm planejamento vêm primeiro). Vale para todos
+// da equipe; o que cada um pode fazer continua conferido ao abrir.
+export async function postosDaOperacao(sql, pessoa) {
+ const pronto = await planejamentosProntos(sql);
+ const clientes = await sql`SELECT id,nome FROM vybe_clientes WHERE ativo IS NOT FALSE ORDER BY nome`;
+ const planos = pronto ? await sql`SELECT DISTINCT ON (cliente_id) id,cliente_id,mes,estado,versao FROM vybe_planejamentos WHERE estado<>'arquivado' ORDER BY cliente_id, mes DESC` : [];
+ const heads = await sql`SELECT cliente_id FROM vybe_cliente_pessoas WHERE pessoa_id=${pessoa?.id ?? null}`;
+ const meus = new Set(heads.map((h) => String(h.cliente_id)));
+ const porCliente = new Map(planos.map((p) => [String(p.cliente_id), publico({ ...p, cliente_id: p.cliente_id })]));
+ return clientes.map((c) => ({ cliente_id: String(c.id), cliente: c.nome, meu: meus.has(String(c.id)), planejamento: porCliente.get(String(c.id)) || null }))
+  .sort((a, b) => Number(Boolean(b.planejamento)) - Number(Boolean(a.planejamento)) || a.cliente.localeCompare(b.cliente, 'pt-BR'));
+}
+
 // --- Agente publica ----------------------------------------------------------
 // Cliente pelo id ou pelo nome (sem acento, sem caixa). Publicar de novo no
 // mesmo mês vira nova versão enquanto não foi enviado; depois de enviado ou

@@ -7101,3 +7101,10 @@ body.no-escritorio {overflow:hidden}
 @keyframes plj-pulso{to{box-shadow:0 0 0 10px rgba(255,157,0,0)}}
 @media(prefers-reduced-motion:reduce){.plj-aviso-ponto{animation:none}}
 @media(max-width:560px){.workflow-modal.plj-janela{width:calc(100vw - 16px);height:calc(100vh - 16px)}.plj-aviso{right:12px;bottom:76px}.plj-drive{margin-left:0}}
+
+/* Centro de Operação: agentes dos clientes nas mesas (vybe-escritorio.js). */
+.mapa-pessoa.figurante.agente {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
+.mapa-pessoa.figurante.agente:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
+.mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8}
+.mapa-etiqueta.agente.alerta {border-color:#ffb451;box-shadow:0 0 0 2px #ff9d0044}
+.ofc-sala .ofc-sala-alerta {display:block;grid-column:1/-1;margin-top:2px;color:#ffc46b;font:700 10px var(--mac-ui)}

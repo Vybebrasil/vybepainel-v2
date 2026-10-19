@@ -1,6 +1,12 @@
 # Planejamentos dos clientes e Centro de Operação — plano
 
-Pedido do Paulo em 19/10/2026. Status: **plano para aprovação**; nada construído ainda.
+Pedido do Paulo em 19/10/2026. Status: **construído** (branch
+`codex/planejamentos-plano`); falta aplicar a migração com o "Aprovado" do
+Paulo, configurar e-mail e chave dos agentes na Vercel e publicar.
+
+Decisões do Paulo (19/10/2026): e-mail pelo **Gmail da Vybe**; agentes
+publicam **direto pelo conector**; editar e mandar é do **head do cliente e do
+Paulo** (quem administra); todos da equipe veem.
 
 ## O que o Paulo pediu
 
@@ -76,3 +82,41 @@ Os agentes vivem no Claude, fora do painel. Duas formas:
 - **Banco:** tabelas novas (planejamentos, peças do planejamento, histórico,
   links de aprovação) e campos de identidade no cliente, por migração
   revisável aplicada com "Aprovado".
+
+## O que foi construído
+
+- Banco: `migrations/2026-10-20-planejamentos.sql` — `vybe_clientes.identidade`,
+  `vybe_planejamentos` (um ativo por cliente e mês, versão, estado, arquivos do
+  Drive, hash do link) e `vybe_planejamento_eventos` (histórico). Também abre a
+  camada `operacao` do Escritório.
+- Servidor: `server/planejamentos.js` (regras e permissões),
+  `server/planejamento-documento.js` (documento padrão),
+  `server/planejamentos-api.js` (rotas), `server/email.js` (Gmail),
+  `vybe_drive.js` (`pastaDePlanejamento`, `salvarDocumentoEPdf`).
+- Rotas, todas em `api/painel.js`:
+  - `area=planejamentos`: listar, detalhe, prévia, pendentes, operacao,
+    criar, editar, estado, comentar, identidade, enviar;
+  - `/aprovar/<token>`: página pública do cliente (rewrite em `vercel.json`).
+    O link vale 30 dias e o banco guarda só o hash. Editar depois de enviado
+    invalida o link;
+  - `area=agentes&chave=…`: conector MCP dos agentes, com `listar_clientes`,
+    `formato_do_planejamento`, `publicar_planejamento` e `ver_planejamento`.
+- Tela: `vybe-planejamentos.js`. Cartão "Planejamentos" no detalhe do cliente;
+  janela com Documento, Editar, Histórico e Identidade. O envio gera o link,
+  salva doc e PDF em `Cliente/Planejamentos/<ano>` no Drive e manda a cópia
+  por e-mail. Drive e e-mail não seguram o link e, quando falham, aparece o
+  aviso. O botão abre o WhatsApp.
+- Aviso do head: botão fixo "N planejamentos esperando você" no painel inteiro,
+  e no Escritório a linha da sala Centro de Operação.
+- Skill dos agentes: `skills/planejamento-vybe/SKILL.md` (estrutura padrão e
+  como publicar pelo conector).
+- Testes: `tests/planejamentos.test.mjs`, `tests/planejamentos-escritorio.test.mjs`.
+
+## Para ligar em produção (Paulo, na Vercel)
+
+- `GMAIL_USUARIO` (o Gmail da Vybe) e `GMAIL_SENHA_APP` (senha de app criada na
+  conta Google, com verificação em duas etapas). Sem elas, o link funciona e o
+  painel avisa que o e-mail não foi.
+- `AGENTES_CHAVE`: segredo de 24+ caracteres. O conector de cada agente é
+  `https://vybepainel-v2.vercel.app/api/painel?area=agentes&chave=<AGENTES_CHAVE>`.
+- Opcional: `PAINEL_URL`, se o domínio do link for outro.

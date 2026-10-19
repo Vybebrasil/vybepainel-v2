@@ -86,3 +86,22 @@ test('conector dos agentes (MCP): chave, ferramentas e publicação; página do 
  assert.match((await rpc('tools/call',{name:'ver_planejamento',arguments:{cliente:'Serra Grande',mes:'2026-11'}})).corpo.result.content[0].text,/aprovado/);
  r=resposta();await paginaDeAprovacao({method:'GET',query:{t:'x'.repeat(30)}},r,sql);assert.equal(r.codigo,404);
 });
+test('Centro de Operação: um agente por cliente ativo, com planejamento primeiro e marca do head',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ await db.exec(`UPDATE vybe_clientes SET ativo=false WHERE id=12`);
+ await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo});
+ const postos=await P.postosDaOperacao(sql,{id:3});
+ assert.deepEqual(postos.map(p=>p.cliente),['Serra Grande','Mangaba'],'cliente inativo fica fora; quem tem planejamento vem primeiro');
+ assert.equal(postos[0].meu,true);assert.equal(postos[0].planejamento.estado,'revisar');
+ assert.equal(postos[1].meu,false);assert.equal(postos[1].planejamento,null);
+});
+test('Centro de Operação: a cena tem um posto por mesa, sentado, e a zona vale no servidor, no Worker e no banco',async()=>{
+ const {default:operacao}=await import('../scripts/cenas/operacao.mjs');
+ const r=operacao();
+ assert.deepEqual(r.erros,[]);
+ const postos=r.figurantes.filter(f=>f.posto!==undefined);
+ assert.equal(postos.length,16);assert.ok(postos.every(f=>f.acao==='sit'));
+ assert.deepEqual(postos.map(f=>f.posto),[...Array(16).keys()]);
+ for(const arq of ['server/escritorio-social.js','services/escritorio/worker.js','server/escritorio-mapa.js','server/escritorio.js','migrations/2026-10-20-planejamentos.sql'])assert.match(readFileSync(arq,'utf8'),/operacao/,arq);
+});

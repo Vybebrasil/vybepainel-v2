@@ -22,6 +22,7 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   if (req.method === 'GET') {
    if (acao === 'detalhe') return res.status(200).json({ ok: true, planejamento: await P.detalhePlanejamento(sql, pessoa, String(req.query.id || '')) });
    if (acao === 'pendentes') return res.status(200).json({ ok: true, pendentes: await P.pendentesDoHead(sql, pessoa) });
+   if (acao === 'operacao') return res.status(200).json({ ok: true, postos: await P.postosDaOperacao(sql, pessoa) });
    if (acao === 'previa') {
     const p = await P.detalhePlanejamento(sql, pessoa, String(req.query.id || ''));
     res.setHeader('Content-Type', 'text/html; charset=utf-8');

@@ -680,6 +680,50 @@ function escritorioEntrarNoQuarto(id) {
   escritorioTrocarCena(id, e, a.porta === "direita" ? 6 : 0);
   return true;
 }
+// Centro de Operação (docs/planejamentos-plano.md): um agente por cliente
+// ativo em cada mesa, com o nome do cliente e a situação do planejamento em
+// cima. O clique abre o planejamento (vybe-planejamentos.js). O head vê, na
+// lista de salas e no aviso da tela, quanto está esperando por ele.
+const ESCRITORIO_SITUACAO_PLANO = { revisar: ["Para revisar", "#ffc46b"], enviado: ["Com o cliente", "#8cc8ff"], aprovado: ["Aprovado", "#6fe3a8"],
+  ajustes: ["Ajustes pedidos", "#ff8f8f"], cadastrado: ["Cadastrado", "#b9c2d0"] };
+async function escritorioOcuparOperacao() {
+  if (escritorio.quarto !== "operacao" || !escritorio.mapa?.ocuparPostos) return;
+  const mapa = escritorio.mapa;
+  let postos;
+  try {
+    const r = await fetch("/api/painel?area=planejamentos&acao=operacao", { credentials: "same-origin", cache: "no-store" });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || "o painel não respondeu");
+    postos = d.postos || [];
+  } catch (e) { escritorioAviso("Não foi possível chamar os agentes: " + e.message); return; }
+  if (mapa !== escritorio.mapa) return;
+  const n = mapa.numeroDePostos();
+  mapa.ocuparPostos(postos.slice(0, n).map((a, i) => {
+    const p = a.planejamento;
+    const [situacao, cor] = p ? ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado, "#8f98a9"] : ["Sem planejamento", "#8f98a9"];
+    return { posto: i, nome: a.cliente, situacao, cor, alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
+      aoClicar: () => (p && typeof abrirPlanejamento === "function" ? abrirPlanejamento(p.id) : escritorioAviso(`O agente de ${a.cliente} ainda não publicou um planejamento.`)) };
+  }));
+  if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
+}
+// Chamado por vybe-planejamentos.js sempre que a lista do head muda.
+function escritorioPlanejamentosPendentes(lista) {
+  const antes = (escritorio.planosPendentes || []).map((p) => p.id + p.estado).join();
+  escritorio.planosPendentes = lista || [];
+  if (antes === escritorio.planosPendentes.map((p) => p.id + p.estado).join()) return;
+  if (document.getElementById("office-rooms")) atualizarPessoasEscritorio();
+  escritorioOcuparOperacao();
+}
+// Leva ao Centro de Operação de qualquer tela (aviso do head).
+function irParaSalaEscritorio(id) {
+  const botao = document.getElementById("btn-board-escritorio");
+  if (typeof switchBoard === "function") switchBoard("escritorio", botao);
+  const tentar = (vezes) => {
+    if (escritorio.mapa) return escritorioIrParaAmbiente(id);
+    if (vezes > 0) setTimeout(() => tentar(vezes - 1), 400);
+  };
+  tentar(25);
+}
 // Sai pela porta: das salas para a Convivência; da Convivência para a
 // Praça; da Praça de volta para a Convivência (escritorioDestinoDaPorta).
 function escritorioSairDoQuarto() {
@@ -825,7 +869,7 @@ function atualizarPessoasEscritorio() {
   // As listas laterais só mudam quando alguém troca de lugar, status ou
   // entra/sai; a presença chega a cada passo, então refazê-las sempre
   // (com as imagens dos bonecos) travava o painel com a equipe andando.
-  const assinatura = JSON.stringify([escritorio.conectado, escritorioLugarDe(escritorio.perfil).id, escritorio.recadosResumo || {}, (escritorio.base?.equipe || []).length, escritorio.musica?.tocando ? [escritorio.musica.indice, escritorio.musica.fila?.length] : 0, pessoas.map((p) => [p.id, p.zona, p.status, p.nome])]);
+  const assinatura = JSON.stringify([escritorio.conectado, escritorioLugarDe(escritorio.perfil).id, escritorio.recadosResumo || {}, (escritorio.base?.equipe || []).length, escritorio.musica?.tocando ? [escritorio.musica.indice, escritorio.musica.fila?.length] : 0, (escritorio.planosPendentes || []).length, pessoas.map((p) => [p.id, p.zona, p.status, p.nome])]);
   const mudou = (el) => el && el.dataset.assinatura !== assinatura && (el.dataset.assinatura = assinatura, true);
   const lista = document.getElementById("office-roster");
   if (mudou(lista)) {
@@ -846,7 +890,8 @@ function atualizarPessoasEscritorio() {
     const linha = (a) => {
       const aqui = pessoas.filter((p) => escritorioLugarDe(p).id === a.id);
       const nomes = aqui.map((p) => (String(p.id) === String(eu) ? "você" : escritorioNomeCurto(p.nome))).join(", ");
-      return `<button type="button" class="ofc-sala${aqui.length ? " ocupada" : ""}" aria-pressed="${a.id === meu}" style="--sala:${ESCRITORIO_COR_SALA[a.sala] || a.cor || "#8a93a3"}" onclick="escritorioIrParaAmbiente('${a.id}')"><i></i><span>${safeText(a.nome)}</span>${aqui.length ? `<small>${aqui.length}</small><em>${safeText(nomes)}</em>` : ""}</button>`;
+      return `<button type="button" class="ofc-sala${aqui.length ? " ocupada" : ""}" aria-pressed="${a.id === meu}" style="--sala:${ESCRITORIO_COR_SALA[a.sala] || a.cor || "#8a93a3"}" onclick="escritorioIrParaAmbiente('${a.id}')"><i></i><span>${safeText(a.nome)}</span>${aqui.length ? `<small>${aqui.length}</small><em>${safeText(nomes)}</em>` : ""}${
+        a.id === "operacao" && escritorio.planosPendentes?.length ? `<b class="ofc-sala-alerta">${escritorio.planosPendentes.length} para você revisar</b>` : ""}</button>`;
     };
     const A = ESCRITORIO_PLANTA.ambientes;
     // Espaços comuns primeiro (onde a equipe se encontra), Praça no topo por
@@ -1064,7 +1109,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); });
+    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
