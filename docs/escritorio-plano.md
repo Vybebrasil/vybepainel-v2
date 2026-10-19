@@ -409,6 +409,43 @@ caber.
   - **Balcão de módulos iguais lado a lado** (caixotes do bar) é composição
     intencional na foto.
 
+## Para continuar no Codex (passagem de 18/10/2026)
+
+O Paulo continua a partir daqui no Codex, porque o crédito do Claude acabou.
+Estado exato:
+
+- **Branch:** `codex/escritorio-proximo`, com cerca de 51 commits locais à
+  frente de `origin/main`. Nada foi publicado nem enviado. Antes de publicar,
+  comparar com `origin/main` atualizado (regra do `AGENTS.md`).
+- **Árvore de trabalho:** limpa nos arquivos do motor. Existem centenas de
+  `assets/escritorio/habbo/*.png/json` não rastreados, extraídos do acervo e
+  não usados. Não adicionar em massa: só os usados pelas cenas, com o script
+  de "usados" (ler o bloco `ESCRITORIO_CENAS_COMPOSTAS` e adicionar
+  `assets/escritorio/habbo/<classe>.json/png`).
+- **Para mexer numa sala comum:** editar `scripts/cenas/<id>.mjs`, rodar
+  `node scripts/escritorio-compor.mjs` (gera o bloco e roda o verificador;
+  tem de sair sem erro), depois `npm run check` e `git diff --check`.
+- **Peça nova:**
+  1. extrair do acervo: `node scripts/habbo-extrair.mjs ~/Downloads/Vybe-acervo-habbo <classe>`;
+  2. conferir a frente na vitrine (`node scripts/escritorio-vitrine.mjs <classe>` e
+     colar o trecho no console do painel);
+  3. anotar a peça em `assets/escritorio/habbo/frentes.json`, como "regra" ou
+     com o mapa; escada também precisa do tipo em `escadas`.
+- **Ver no navegador:** `npm run dev`, abrir `http://localhost:4321`, entrar
+  no Escritório e escolher a sala. Conferir em 1× e em 2×, canto por canto,
+  antes de mostrar ao Paulo. Build e verificador aprovados não provam beleza.
+- **Pendências:** os quatro itens de "Próximos passos" abaixo. O Paulo ainda
+  não revisou Foco, Auditório, Produção, Jogos, Academia e Lounge, que foram
+  montados com "continue".
+- **Jeito de trabalhar que o Paulo pediu:**
+  - **Projeto antes de montar:** arquiteto e designer, com receitas, coleção
+    e cantos com história.
+  - **Detalhe:** nunca encher a sala para bater número.
+  - **Defeito que ele apontar:** vira regra no motor ou no verificador, com
+    teste, e não remendo de coordenada.
+  - **Linguagem:** responder em português simples (ele não é desenvolvedor).
+  - **Passagem:** atualizar este documento a cada etapa.
+
 ## Próximos passos (depois das salas comuns)
 
 1. **Paulo revisar as salas no navegador.** Todas as salas comuns já estão no
