@@ -548,6 +548,7 @@ function escritorioIcone(nome) {
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
     inventario: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 016 0v2"/>',
+    loja: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0A2.7 2.7 0 0020 9"/><path d="M5.5 11.5V20h13v-8.5M10 20v-5h4v5"/>',
   }[nome] || "";
   return `<svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 }
@@ -1156,6 +1157,7 @@ function renderEscritorio() {
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
  ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
  ${rail("inventario", "inventario", "Inventário", "alternarAbaEscritorio('inventario')", lateral && aba === "inventario")}
+ ${rail("loja", "loja", "Catálogo", "alternarAbaEscritorio('loja')", lateral && aba === "loja")}
  <span class="ofc-rail-fim"></span>
  ${escritorioCamadaParaEditar() ? rail("editar", "editar", escritorio.base.admin ? "Editar" : "Minha sala", escritorio.edicao ? "sairEditorEscritorio()" : "abrirEditorEscritorio()", Boolean(escritorio.edicao)) : ""}
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
@@ -1171,6 +1173,7 @@ function renderEscritorio() {
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
  <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
  <section class="ofc-aba ofc-inventario" id="office-inventario" ${aba === "inventario" ? "" : "hidden"}>${escritorioInventarioHtml()}</section>
+ <section class="ofc-aba ofc-catalogo ofc-loja" id="office-loja" aria-label="Catálogo de móveis" ${aba === "loja" ? "" : "hidden"}>${aba === "loja" ? escritorioCatalogoGeralHtml() : ""}</section>
 </aside>
 <main class="ofc-principal">
  <div class="ofc-topo"><div class="ofc-topo-esq">${`<button type="button" class="ofc-voltar-mapa" onclick="escritorioSairDoQuarto()" title="Sair pela porta: ${safeText(escritorioDestinoDaPorta(escritorio.quarto).nome)}">${escritorioIcone("voltar")}<span>${safeText(escritorioDestinoDaPorta(escritorio.quarto).nome)}</span></button>`}${escritorioAndaresHtml()}<div class="ofc-sala-atual" style="--sala:${escritorioAmbienteDoQuarto()?.cor || ESCRITORIO_COR_SALA[sala]}"><span class="ofc-sala-emblema" aria-hidden="true">${escritorioEmblemaSala(/^sala-/.test(escritorio.quarto || "") ? "quarto" : escritorio.quarto || "praca")}</span><span class="ofc-sala-nome"><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></span></div></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
@@ -1224,6 +1227,7 @@ function montarMapaEscritorio() {
   el.hidden = lugar.hidden;
   lugar.replaceWith(el);
   if (escritorio.edicao && typeof desenharCatalogoEscritorio === "function") desenharCatalogoEscritorio();
+  if (escritorio.aba === "loja" && typeof desenharCatalogoGeralEscritorio === "function") desenharCatalogoGeralEscritorio();
   // A música fica fora do redesenho: recriar o player cortaria a música.
   const lugarMusica = document.getElementById("office-musica-lugar");
   if (lugarMusica) {

@@ -607,6 +607,7 @@ async function carregarCatalogoEscritorio() {
     escritorioCatalogo = r.ok ? await r.json() : [];
   } catch {}
   if (escritorio.edicao) renderEscritorio();
+  else if (escritorio.aba === "loja") atualizarCatalogoGeralEscritorio();
 }
 // Computadores que vêm com o painel (para "Editar computador"); entram no
 // catálogo como uma categoria própria.
@@ -755,7 +756,8 @@ function escritorioListaCatalogo(grupo) {
 // (grátis, no inventário, preço, restantes, esgotado, fora da vitrine, só por marco).
 function escritorioCartaoMovel(m) {
   const minha = escritorio.edicao?.camada === escritorioMinhaMesa()?.ambiente.id;
-  const comprar = minha && escritorio.abaQuarto === "loja";
+  // Fora da construção (aba Catálogo) o cartão também só abre a prévia.
+  const comprar = (minha && escritorio.abaQuarto === "loja") || !escritorio.edicao;
   const i = !escritorioCamadaComum(escritorio.edicao?.camada) ? escritorioInfoLoja(m.classe) : null;
   const indisponivel = i && (comprar || !escritorioPodeColocarMovel(m.classe)) && (i.marco || i.restante === 0 || !i.naVitrine);
   // Na loja, o clique abre a prévia (animação, faixa, preço); comprar é lá.
@@ -799,6 +801,67 @@ function escritorioVitrineHtml() {
   if (!loja?.vitrine?.length || !escritorioCatalogo) return "";
   const cartoes = loja.vitrine.map((c) => escritorioCatalogo.find((m) => m.classe === c) || { classe: c, nome: c.replace(/_/g, " "), categoria: "" }).map(escritorioCartaoMovel).join("");
   return `<details class="ofc-vitrine" ${escritorio.vitrineFechada ? "" : "open"} ontoggle="escritorio.vitrineFechada=!this.open"><summary>Vitrine da semana <small>${loja.vitrine.length} móveis · troca na segunda</small></summary><div class="ofc-moveis">${cartoes}</div></details>`;
+}
+// Catálogo de consulta (pedido do Paulo, 19/10/2026): todos os móveis por
+// raridade, preço e categoria sem entrar na construção. Usa a mesma ficha da
+// loja (escritorioInfoLoja) e a mesma prévia; comprar manda para o inventário.
+const ESCRITORIO_ORDEM_RARIDADE = { comum: 0, incomum: 1, raro: 2, epico: 3, lendario: 4 };
+function escritorioCatalogoGeralHtml() {
+  if (!escritorioCatalogo) { carregarCatalogoEscritorio(); return '<p class="ofc-nota">Carregando catálogo…</p>'; }
+  const eco = escritorio.base?.economia, loja = eco?.loja, f = (escritorio.cat ||= { raridade: "", ordem: "preco", categoria: "", busca: "", posso: false, ver: 48 });
+  const faixas = loja?.raridades?.length ? loja.raridades : [{ chave: "comum", nome: "Comum" }];
+  const todos = escritorioCatalogoGeralLista({ ...f, raridade: "" });
+  const conta = (r) => todos.filter((m) => escritorioInfoLoja(m.classe).raridade === r).length;
+  const chip = (chave, nome, n) => `<button type="button" class="ofc-cat-chip${chave ? " r-" + safeText(chave) : ""}" aria-pressed="${f.raridade === chave}" onclick="escritorio.cat.raridade='${safeText(chave)}';escritorio.cat.ver=48;atualizarCatalogoGeralEscritorio()">${safeText(nome)} <small>${n.toLocaleString("pt-BR")}</small></button>`;
+  const grupos = ESCRITORIO_GRUPOS_CATALOGO.filter(([n, fn]) => fn && !["Da sala", "Incomuns", "Raros", "Épicos", "Lendários"].includes(n));
+  return `<div class="ofc-catgeral">
+<section class="ofc-moedas compacta" aria-label="Seu saldo"><div><span>Seu saldo</span><b>${eco?.disponivel ? Number(eco.saldo).toLocaleString("pt-BR") : "Indisponível"}</b><small>VybeCoins</small></div><button type="button" class="office-text-button" onclick="alternarAbaEscritorio('inventario',true)">Inventário</button></section>
+<div class="ofc-busca"><input type="search" placeholder="Buscar: mesa, sofá, planta, luz…" aria-label="Buscar no catálogo" autocomplete="off" value="${safeText(f.busca)}" oninput="escritorio.cat.busca=this.value;escritorio.cat.ver=48;desenharCatalogoGeralEscritorio()"></div>
+<div class="ofc-cat-chips" role="group" aria-label="Raridade">${chip("", "Todas", todos.length)}${faixas.map((r) => chip(r.chave, r.nome, conta(r.chave))).join("")}</div>
+<div class="ofc-cat-filtros"><label><span>Ordem</span><select onchange="escritorio.cat.ordem=this.value;desenharCatalogoGeralEscritorio()">${[["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "Nome"]].map(([v, n]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+<label><span>Categoria</span><select onchange="escritorio.cat.categoria=this.value;escritorio.cat.ver=48;atualizarCatalogoGeralEscritorio()"><option value="">Todas</option>${grupos.map(([n]) => `<option value="${safeText(n)}"${f.categoria === n ? " selected" : ""}>${safeText(n)}</option>`).join("")}</select></label>
+<label class="ofc-cat-posso"><input type="checkbox" ${f.posso ? "checked" : ""} onchange="escritorio.cat.posso=this.checked;escritorio.cat.ver=48;atualizarCatalogoGeralEscritorio()"><span>Só o que dá para comprar</span></label></div>
+${!f.raridade && !f.categoria && !f.busca && !f.posso ? escritorioVitrineHtml() : ""}
+<div id="office-catgeral-lista"></div></div>`;
+}
+function escritorioCatalogoGeralLista(f) {
+  const busca = String(f.busca || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const grupo = f.categoria && ESCRITORIO_GRUPOS_CATALOGO.find(([n]) => n === f.categoria)?.[1];
+  const saldo = Number(escritorio.base?.economia?.saldo || 0), vistos = new Set();
+  return [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES].filter((m) => {
+    if (vistos.has(m.classe)) return false;
+    vistos.add(m.classe);
+    if (grupo && !grupo(m)) return false;
+    if (busca && !(escritorioNomeMovel(m) + " " + m.nome + " " + m.classe).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(busca)) return false;
+    const i = escritorioInfoLoja(m.classe);
+    if (f.raridade && i.raridade !== f.raridade) return false;
+    if (f.posso && (!i.preco || i.marco || i.restante === 0 || !i.naVitrine || i.preco > saldo)) return false;
+    return true;
+  });
+}
+function desenharCatalogoGeralEscritorio() {
+  const el = document.getElementById("office-catgeral-lista");
+  if (!el || !escritorioCatalogo) return;
+  const f = escritorio.cat, info = new Map();
+  const de = (m) => info.get(m.classe) || (info.set(m.classe, escritorioInfoLoja(m.classe)), info.get(m.classe));
+  const nome = (a, b) => escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR");
+  const ordem = { preco: (a, b) => de(a).preco - de(b).preco || nome(a, b), caro: (a, b) => de(b).preco - de(a).preco || nome(a, b),
+    raridade: (a, b) => (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || de(b).preco - de(a).preco || nome(a, b), nome }[f.ordem] || nome;
+  const lista = escritorioCatalogoGeralLista(f).sort(ordem);
+  if (!lista.length) { el.innerHTML = '<p class="ofc-nota">Nenhum móvel com esses filtros. Tire um filtro ou busque outra palavra.</p>'; return; }
+  const cartao = (m) => {
+    const i = de(m), q = escritorioQuantidadeMovel(m.classe);
+    const preco = q === Infinity || !i.preco ? "Grátis" : `${i.preco.toLocaleString("pt-BR")} moedas`;
+    const trava = q === Infinity ? "" : i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Fora da vitrine" : i.restante ? (i.restante === 1 ? "Resta 1" : `Restam ${i.restante}`) : "";
+    return `<button type="button" class="ofc-movel${i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}${/^(Só|Esg|Fora)/.test(trava) ? " indisponivel" : ""}" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · ver detalhes">${escritorioMiniaturaHtml(m.classe)}<span>${safeText(escritorioNomeMovel(m))}</span><em class="ofc-raridade ${safeText(i.raridade)}">${safeText(i.nome)}</em><em class="ofc-giro ofc-preco">${q && q !== Infinity ? `${q} seu · ` : ""}${preco}</em>${trava ? `<em class="ofc-giro${/^(Só|Esg|Fora)/.test(trava) ? " nao" : ""}">${trava}</em>` : ""}</button>`;
+  };
+  el.innerHTML = `<p class="ofc-catalogo-contexto">${lista.length.toLocaleString("pt-BR")} móveis · clique para ver a animação, a ficha e comprar.</p><div class="ofc-moveis">${lista.slice(0, f.ver).map(cartao).join("")}</div>${lista.length > f.ver ? `<button type="button" class="ofc-secundario ofc-cat-mais" onclick="escritorio.cat.ver+=48;desenharCatalogoGeralEscritorio()">Mostrar mais (${(lista.length - f.ver).toLocaleString("pt-BR")} restantes)</button>` : ""}`;
+}
+function atualizarCatalogoGeralEscritorio() {
+  const el = document.getElementById("office-loja");
+  if (!el) return;
+  el.innerHTML = escritorioCatalogoGeralHtml();
+  desenharCatalogoGeralEscritorio();
 }
 // Lista com páginas (sem rolar sem fim) e busca enquanto digita.
 function desenharCatalogoEscritorio() {
@@ -1624,9 +1687,13 @@ function escritorioPodeColocarMovel(classe) {
 // Na Loja o clique compra (e já deixa o móvel na mão para colocar); em Meus
 // móveis o clique só coloca o que você tem.
 async function escritorioAcaoMovel(classe, comprar = false) {
+ if(!escritorio.edicao&&escritorioQuantidadeMovel(classe)===Infinity) return escritorioAviso("Este é um essencial grátis: aparece no editor do seu quarto.");
  if(escritorioQuantidadeMovel(classe)===Infinity || (!comprar && escritorioPodeColocarMovel(classe))) return escolherMovelEscritorio(classe);
  if(!comprar) return escritorioAviso("Todas as unidades deste móvel já estão no quarto. Compre outra na Loja.");
- if(escritorio.edicao?.camada!==escritorioMinhaMesa()?.ambiente.id) return escritorioAviso("A loja é pessoal. Abra seu próprio quarto para comprar móveis.");
+ // Do catálogo (fora da construção) a compra vai para o inventário; no editor do próprio quarto, já fica pronta para colocar.
+ const meuQuarto=escritorioMinhaMesa()?.ambiente.id, noEditor=Boolean(meuQuarto)&&escritorio.edicao?.camada===meuQuarto;
+ if(!meuQuarto) return escritorioAviso("A loja é pessoal: escolha seu quarto em Meu espaço para comprar móveis.");
+ if(escritorio.edicao&&!noEditor) return escritorioAviso("A loja é pessoal. Abra seu próprio quarto para comprar móveis.");
  const info=escritorioInfoLoja(classe);
  if(info.marco) return escritorioAviso(`Este móvel não se compra: vem com o marco "${escritorio.base.economia?.marcos?.find(m=>m.id===info.marco)?.nome || info.marco}" da sua ficha.`);
  if(info.restante===0) return escritorioAviso("Esgotado: todos os exemplares já foram comprados.");
@@ -1645,7 +1712,9 @@ async function escritorioAcaoMovel(classe, comprar = false) {
    if(limitado && limitado.restante!==null) limitado.restante--;
   } else escritorio.base.economia=(await escritorioApi("comprar",compra)).economia;
   escritorio.compraPendente=null;
-  renderEscritorio(); escolherMovelEscritorio(classe);
+  renderEscritorio();
+  if(noEditor) escolherMovelEscritorio(classe);
+  else { atualizarCatalogoGeralEscritorio(); escritorioAviso(`Comprado: ${escritorioNomeDaClasse(classe)} está no seu Inventário. Coloque pelo Inventário ou pelo editor do quarto.`); }
  } catch(e) { escritorioAviso(e.message); }
  finally {escritorio.comprando=false;}
 }
@@ -1667,7 +1736,7 @@ function abrirPreviaMovelEscritorio(classe) {
     document.body.append(d);
   }
   const saldo = Number(escritorio.base?.economia?.saldo || 0), q = escritorioQuantidadeMovel(classe);
-  const bloqueio = i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Fora da vitrine" : i.preco > saldo ? "Saldo insuficiente" : "";
+  const bloqueio = !escritorio.edicao && q === Infinity ? "Grátis no editor do quarto" : i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Fora da vitrine" : i.preco > saldo ? "Saldo insuficiente" : "";
   const ficha = typeof mapaFisica === "function" ? mapaFisica(classe) : {};
   const usos = [ficha.senta && "senta", ficha.deita && "deita", ficha.pisa && "pisa em cima", ficha.poe && !ficha.pisa && "empilha"].filter(Boolean);
   const linhas = [

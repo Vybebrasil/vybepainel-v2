@@ -7569,3 +7569,23 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 }
 /* Construindo, a coluna de cobranças e missões sai da frente da sala e volta ao salvar ou cancelar. */
 .ofc-principal:has(> .ofc-editor:not([hidden])) > .ofc-coluna {display:none}
+/* Catálogo fora da construção: faixas de raridade em fichas com a cor da faixa, ordem e categoria lado a lado. */
+.ofc-catgeral {display:grid;gap:10px}
+.ofc-cat-chips {display:flex;flex-wrap:wrap;gap:6px}
+.ofc-cat-chip {--cor:#c8ccd8;display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--cor) 45%,transparent);background:var(--jg-slot);color:var(--ofc-texto);font:650 12px var(--mac-ui);cursor:pointer;box-shadow:var(--jg-relevo);transition:transform var(--jg-mov),background var(--jg-mov)}
+.ofc-cat-chip::before {content:"";width:8px;height:8px;border-radius:50%;background:var(--cor)}
+.ofc-cat-chip small {font-weight:600;color:var(--ofc-suave);font-variant-numeric:tabular-nums}
+.ofc-cat-chip.r-incomum {--cor:#7ee08a}
+.ofc-cat-chip.r-raro {--cor:#6fb6ff}
+.ofc-cat-chip.r-epico {--cor:#c39bff}
+.ofc-cat-chip.r-lendario {--cor:#ffd166}
+.ofc-cat-chip[aria-pressed=true] {background:color-mix(in srgb,var(--cor) 22%,var(--jg-slot));border-color:var(--cor)}
+.ofc-cat-chip:active {transform:translateY(1px)}
+.ofc-cat-chip:focus-visible, .ofc-cat-mais:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
+.ofc-cat-filtros {display:grid;grid-template-columns:1fr 1fr;gap:6px 8px}
+.ofc-cat-filtros label {display:grid;gap:3px;font:600 11px var(--mac-ui);color:var(--ofc-suave);min-width:0}
+.ofc-cat-filtros select {width:100%;min-width:0;padding:6px 8px;border-radius:var(--jg-raio-p);border:1px solid var(--jg-borda);background:#0c0e15;color:var(--ofc-texto);font:600 12px var(--mac-ui)}
+.ofc-cat-filtros .ofc-cat-posso {grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ofc-texto);cursor:pointer}
+.ofc-cat-mais {width:100%;margin-top:8px}
+.ofc-loja .ofc-movel .ofc-raridade {justify-self:center}
+.ofc-loja .ofc-movel .ofc-preco {color:#ffd2a6;font-weight:700}

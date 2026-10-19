@@ -2105,7 +2105,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const NIVEIS = [0.5, 1, 2];
   const nivel = (z) => (P.previa ? z : NIVEIS.reduce((m, n) => (Math.abs(Math.log(n / z)) < Math.abs(Math.log(m / z)) ? n : m)));
   const alvo = { x: 0, y: 0, z: 1 };
-  let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true;
+  let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true, salto = null, contra = 0;
   const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Sem will-change/translate3d: o palco tem ~4500×2400 px e virar uma camada
   // de GPU inteira deixava trechos pretos e bonecos sumindo em placas fracas.
@@ -2113,7 +2113,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // na mesma proporção em que o mapa diminui.
   const aplicar = () => {
     palco.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${zoom})`;
-    palco.style.setProperty("--contra", Math.max(1, 0.9 / zoom).toFixed(3));
+    // A variável recalcula o estilo de todos os letreiros: só muda em passos
+    // de 5%, e não a cada quadro do zoom (era o que travava a animação).
+    const c = Math.round(Math.max(1, 0.9 / zoom) * 20) / 20;
+    if (c !== contra) { contra = c; palco.style.setProperty("--contra", c.toFixed(2)); }
   };
   const animarCam = (agora) => {
     quadroCam = null;
@@ -2125,9 +2128,17 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       if (Math.hypot(inercia.vx, inercia.vy) < 0.02) inercia = null;
     }
     const k = reduzMov ? 1 : 1 - Math.exp(-dt / 85);
-    zoom += (alvo.z - zoom) * k;
-    cam.x += (alvo.x - cam.x) * k; cam.y += (alvo.y - cam.y) * k;
-    const parado = !inercia && Math.abs(alvo.z - zoom) < 0.0005 && Math.hypot(alvo.x - cam.x, alvo.y - cam.y) < 0.3;
+    if (salto) {
+      // Troca de nível com duração fixa e o ponto do cursor parado na tela.
+      const p = reduzMov ? 1 : Math.min(1, (agora - salto.t0) / 220), e = 1 - (1 - p) ** 3;
+      zoom = salto.z0 + (alvo.z - salto.z0) * e;
+      cam.x = salto.cx - ((salto.cx - salto.x0) / salto.z0) * zoom; cam.y = salto.cy - ((salto.cy - salto.y0) / salto.z0) * zoom;
+      if (p >= 1) { salto = null; zoom = alvo.z; }
+    } else {
+      zoom += (alvo.z - zoom) * k;
+      cam.x += (alvo.x - cam.x) * k; cam.y += (alvo.y - cam.y) * k;
+    }
+    const parado = !inercia && !salto && Math.abs(alvo.z - zoom) < 0.0005 && Math.hypot(alvo.x - cam.x, alvo.y - cam.y) < 0.3;
     // Parada em pixel inteiro: a arte não fica meio pixel deslocada.
     if (parado) { zoom = alvo.z; cam.x = alvo.x = Math.round(alvo.x); cam.y = alvo.y = Math.round(alvo.y); }
     aplicar();
@@ -2139,7 +2150,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     if (z) alvo.z = nivel(Math.max(0.35, Math.min(2.2, z)));
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
     alvo.x = cam.x = Math.round(r.width / 2 - t.x * alvo.z); alvo.y = cam.y = Math.round(r.height / 2 - t.y * alvo.z);
-    zoom = alvo.z; inercia = null;
+    zoom = alvo.z; inercia = null; salto = null;
     aplicar();
   }
   // O quarto cabe na área disponível, inclusive após abrir a lateral ou girar o celular.
@@ -2174,11 +2185,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const i = NIVEIS.indexOf(nivel(alvo.z));
     const novo = P.previa ? Math.max(0.35, Math.min(2.2, alvo.z * fator)) : NIVEIS[Math.max(0, Math.min(NIVEIS.length - 1, i + (fator > 1 ? 1 : fator < 1 ? -1 : 0)))];
     if (novo === alvo.z) return;
-    alvo.x = cx - ((cx - alvo.x) / alvo.z) * novo; alvo.y = cy - ((cy - alvo.y) / alvo.z) * novo;
+    // Parte de onde a câmera está agora (mesmo no meio de outra animação).
+    inercia = null;
+    salto = { t0: performance.now(), z0: zoom, x0: cam.x, y0: cam.y, cx, cy };
+    alvo.x = cx - ((cx - cam.x) / zoom) * novo; alvo.y = cy - ((cy - cam.y) / zoom) * novo;
     alvo.z = novo;
     mexerCam();
   }
-  let arrasto = null, rodaAcumulada = 0;
+  let arrasto = null, rodaAcumulada = 0, rodaUltima = 0, rodaTrava = 0;
   // Ladrilho sob um ponto da janela (mouse, dedo, arrastar do catálogo).
   const ladrilhoEm = (cx, cy) => {
     const r = palco.getBoundingClientRect();
@@ -2197,7 +2211,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       return;
     }
     // Pega a câmera de onde ela está agora (mesmo no meio de uma animação).
-    alvo.x = cam.x; alvo.y = cam.y; alvo.z = zoom;
+    salto = null; alvo.x = cam.x; alvo.y = cam.y; alvo.z = zoom;
     arrasto = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moveu: false, ult: [{ t: performance.now(), x: e.clientX, y: e.clientY }] };
     el.setPointerCapture?.(e.pointerId);
   });
@@ -2260,12 +2274,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     e.preventDefault();
     const r = el.getBoundingClientRect();
     // Trackpad manda passos pequenos (e ctrl na pinça); roda, passos grandes.
-    const passo = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-    // Níveis do Habbo: a roda (ou a pinça) acumula até um "dente" e só então troca de nível.
+    const passo = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, agora = performance.now();
+    // Níveis do Habbo: a roda (ou a pinça) acumula até um "dente" e só então
+    // troca de nível. O embalo do trackpad depois da troca não pula outro
+    // nível; uma pausa zera o que sobrou.
+    if (agora - rodaUltima > 180) rodaAcumulada = 0;
+    rodaUltima = agora;
+    // Enquanto o mesmo gesto continua, a trava se estende: um gesto, um nível.
+    if (agora < rodaTrava) { rodaTrava = Math.max(rodaTrava, agora + 140); return; }
     rodaAcumulada += passo * (e.ctrlKey ? 4 : 1);
-    if (Math.abs(rodaAcumulada) < 90) return;
+    if (Math.abs(rodaAcumulada) < 60) return;
     const fator = rodaAcumulada < 0 ? 2 : 0.5;
-    rodaAcumulada = 0;
+    rodaAcumulada = 0; rodaTrava = agora + 320;
     mudarZoom(fator, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
 
@@ -2274,7 +2294,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const r = el.getBoundingClientRect(), t = mapaTela(x, y, origem);
     alvo.z = nivel(Math.max(0.35, Math.min(2.2, z || alvo.z)));
     alvo.x = r.width / 2 - t.x * alvo.z; alvo.y = r.height / 2 - t.y * alvo.z;
-    seguindo = false; inercia = null;
+    seguindo = false; inercia = null; salto = null;
     mexerCam();
   }
   // Câmera que acompanha a pessoa: só muda o alvo; arrastar o mapa solta,

@@ -890,3 +890,18 @@ decoração inicial "bem feito".
   o emblema da sala.
 - Ao construir, a coluna de cobranças e missões sai da frente da sala. Em telas
   médias a barra do editor esconde a dica.
+
+### Zoom e catálogo — 19/10/2026 (noite)
+
+- Zoom: cada troca de nível (0,5×/1×/2×) leva 220 ms, com o ponto sob o
+  cursor parado na tela. Um gesto do trackpad troca um nível só; o embalo não
+  pula outro. A variável `--contra` dos letreiros só muda em passos de 5%:
+  mudar a cada quadro recalculava o estilo de todos e travava a animação.
+- Catálogo (botão na barra, fora da construção): todos os móveis com filtro
+  por raridade (com contagem), ordem por preço ou raridade, categoria, busca
+  e "Só o que dá para comprar". O clique abre a mesma prévia da loja.
+  Comprar fora do editor manda o móvel para o Inventário; os essenciais
+  grátis continuam no editor do quarto.
+- Pendente: a fantasia dos agentes do Centro de Operação deve seguir as cores
+  e o mascote de cada cliente (Paulo: o Alpha1 tem um lobinho). Também falta
+  redesenhar a sala com espaço livre para a equipe trabalhar.
