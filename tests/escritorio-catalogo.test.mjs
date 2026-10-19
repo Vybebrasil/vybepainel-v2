@@ -10,7 +10,7 @@ test('abas preservam preço e estoque da loja; inventário só coloca, vitrine c
  assert.match(card,/1 aqui · 1 guardado/);assert.match(card,/escritorioAcaoMovel\('raro_teste', false\)/);
  vm.runInContext(`escritorio.abaQuarto='loja'`,c);
  card=vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c);
- assert.match(card,/Comprar por 120/);assert.match(card,/escritorioAcaoMovel\('raro_teste', true\)/);assert.match(card,/resta 1/);
+ assert.match(card,/Comprar · 120 moedas/);assert.match(card,/escritorioAcaoMovel\('raro_teste', true\)/);assert.match(card,/resta 1/);
  vm.runInContext(`escritorio.base.economia.loja.mapa.get('raro_teste').restante=0`,c);
  assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c),/Esgotado/);
 });

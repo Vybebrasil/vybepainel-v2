@@ -578,3 +578,23 @@ Estado exato:
   (testes e build), assim como `git diff --check`. Não houve
   escrita em produção nem repetição do reset. Validação de caminhada aqui
   é automatizada; mídia não faz parte desta correção.
+
+### Menus de construção e loja — 19/10/2026
+
+- Branch `codex/editor-loja-clareza`, derivada da correção das escadas:
+  Inventário e Loja são as entradas principais; saldo em carteira fixa na
+  rolagem, categorias do inventário em seletor e filtros de localização
+  preservados. Acervo compartilhado explica que não usa saldo pessoal.
+- Barra de edição em duas linhas no desktop, ações de salvar/cancelar
+  separadas das ferramentas, Salvar destacado e “Empilhar livre” no lugar
+  do rótulo genérico Construtor. Reaproveita os mesmos handlers e permissões.
+- Cartões da loja explicitam Comprar e preço por unidade; falta de saldo
+  aparece no cartão. Preços por raridade ficam em detalhes recolhidos.
+  Compras continuam no endpoint transacional existente, sem nova carteira.
+- Revisão local do inventário, filtro Plantas e Loja. Compra fictícia de
+  500 reduziu saldo de 700 para 200 e adicionou o móvel ao inventário; isto
+  verifica a UI da demonstração, não persistência no banco de produção.
+  Revisão de celular físico e mídia não realizadas nesta etapa.
+- `npm run check`: 473 testes e build aprovados; `git diff --check` limpo.
+  Também conferido o editor da Convivência e console sem erros. Entrega
+  local, sem publicação ou alteração de dados reais.
