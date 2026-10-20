@@ -59,7 +59,7 @@ function escritorioNumerosDe(pessoa) {
 function escritorioComoFuncionaHtml(bolo, regras) {
   const pct = (n) => (n ? `${Math.round(n * 1000) / 10}%`.replace(".", ",") : "—");
   const papeis = [["producao", "Produção (quem grava e fotografa)"], ["criacao", "Criação (quem faz a peça)"], ["atendimento", "Atendimento (head da carteira)"], ["agendamento", "Agendamento (quem agenda)"], ["gestao", "Gestão"]];
-  const tabela = bolo ? `<table class="ofc-hud-bolo"><thead><tr><th>Quem</th><th>Foto e vídeo</th><th>Outras peças</th></tr></thead><tbody>${papeis.map(([k, nome]) => `<tr><td>${nome}</td><td>${pct(bolo[k]?.captada)}</td><td>${pct(bolo[k]?.normal)}</td></tr>`).join("")}</tbody></table>
+  const tabela = bolo ? `<table class="ofc-hud-bolo"><thead><tr><th>Quem</th><th>Foto</th><th>Vídeo e reels</th><th>Outras peças</th></tr></thead><tbody>${papeis.map(([k, nome]) => `<tr><td>${nome}</td><td>${pct(bolo[k]?.foto ?? bolo[k]?.captada)}</td><td>${pct(bolo[k]?.video ?? bolo[k]?.captada)}</td><td>${pct(bolo[k]?.normal)}</td></tr>`).join("")}</tbody></table>
 <p class="ofc-nota">Quando o DA aprova a peça de outra pessoa, fica com ${pct(bolo.direcao_arte?.normal)} da parte da Criação. Se várias pessoas fazem a mesma peça, dividem a parte.</p>` : "";
   const ganha = [...new Set(regras.filter((r) => r.moedas > 0).map((r) => r.descricao))];
   const perde = [...new Set(regras.filter((r) => r.moedas < 0).map((r) => r.descricao))];
@@ -75,7 +75,7 @@ ${bolo ? `<p>Cada peça concluída vira um <b>bolo</b> de moedas e XP do tamanho
 // Bolo por peça: a parte da pessoa em foto/vídeo e nas outras peças.
 function escritorioParteDoBoloTexto(parte) {
   const pct = (n) => `${Math.round(n * 1000) / 10}%`.replace(".", ",");
-  const t = [parte.captada ? `${pct(parte.captada)} do bolo em foto e vídeo` : "", parte.normal ? `${pct(parte.normal)} nas outras peças` : ""].filter(Boolean).join(" e ");
+  const t = [parte.foto ? `${pct(parte.foto)} nas fotos` : "", parte.video ? `${pct(parte.video)} nos vídeos e reels` : "", parte.normal ? `${pct(parte.normal)} nas outras peças` : ""].filter(Boolean).join(", ");
   return `Sua parte: ${t}. O bolo cresce com o formato (Reels, Carrossel…); o valor ao lado é de uma peça simples.`;
 }
 // Conquistas em níveis (Paulo, 20/10/2026): cada escada mostra o nível
@@ -916,7 +916,8 @@ function abrirDetalheRankingEscritorio(id) {
 // mostra todas as conquistas e o que cada uma dá"): cada escada com os quatro
 // níveis, a meta, o troféu e as moedas e o XP de cada um, e o seu progresso.
 const ESCRITORIO_GRUPOS_CONQUISTA = [
-  ["Entregas por tipo", "Contam as peças que você fez ou captou.", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos"]],
+  ["Entregas por tipo", "As peças que você fez.", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos"]],
+  ["Produção", "Gravações e o que foi captado.", ["gravacoes", "fotos_captadas", "videos_captados"]],
   ["Ritmo e qualidade", "Prazo, aprovação de primeira, sequência e meta.", ["adiantado", "deprimeira", "embalo", "semana", "filaemdia", "meta", "clientes", "nivel"]],
   ["Agendamento", "Peças agendadas, por tipo.", ["agendamento", "agendados_cards", "agendados_carrosseis", "agendados_reels", "agendados_stories", "agendados_fotografias"]],
   ["Atendimento", "Peças dos clientes da sua carteira, por tipo.", ["carteira", "carteira_cards", "carteira_carrosseis", "carteira_reels", "carteira_stories", "carteira_fotografias", "planejamentos"]],
@@ -943,10 +944,29 @@ function pintarConquistasEscritorio() {
   // Respondeu sem as escadas (tabela ainda não ativada): diz isso, não gira para sempre.
   if (!marcos && escritorio.conquistasLidas && !escritorio.conquistasErro) { el.innerHTML = topo + '<p class="ofc-nota">As conquistas em níveis estão sendo ativadas. Abra de novo em alguns minutos.</p>'; return; }
   if (!marcos) { el.innerHTML = topo + (escritorio.conquistasErro ? `<p class="ofc-nota" role="alert">Não deu para carregar: ${safeText(escritorio.conquistasErro)}</p>` : '<div class="ofc-rk-corpo"><p class="ofc-rk-legenda">Carregando as suas conquistas…</p><div class="ofc-fm-carregando"><i></i><i></i><i></i></div></div>'); return; }
+  // "1 entregas" → "1 entrega": tira o s de cada palavra quando o número é 1.
+  const qtd = (n, unidade) => `${Number(n).toLocaleString("pt-BR")} ${n === 1 ? unidade.split(" ").map((w) => w.replace(/s$/, "")).join(" ") : unidade}`;
+  const pct = (x) => { if (!x.proximo) return 100; const antes = x.degraus.filter((d) => d.ok).at(-1)?.meta || 0; return Math.max(0, Math.min(100, Math.round(((x.valor - antes) / Math.max(1, x.proximo.meta - antes)) * 100))); };
+  // Uma escada numa linha: troféu atual (ou o próximo, apagado), nível, barra
+  // até o próximo e os quatro níveis abertos ao clicar.
+  const linha = (x, aberta = false) => {
+    const atual = x.degraus.filter((d) => d.ok).at(-1), mostra = atual || x.proximo || x.degraus.at(-1);
+    const prox = x.proximo;
+    return `<details class="ofc-cq${x.nivel ? " ok" : ""}"${aberta ? " open" : ""}><summary><span class="ofc-cq-arte${atual ? "" : " falta"}">${escritorioMiniaturaHtml(mostra.classe)}</span>
+<span class="ofc-cq-txt"><b>${safeText(x.nome)}${x.nomeNivel ? ` <em class="ofc-escada-nivel n${x.nivel}">${safeText(x.nomeNivel)}</em>` : ""}</b>
+<small>${prox ? `${qtd(x.valor, x.unidade)} · faltam <b>${(prox.meta - x.valor).toLocaleString("pt-BR")}</b> para ${safeText(prox.nome)}` : x.social ? "Conquistado" : "Nível máximo alcançado"}</small>
+${prox && !x.social ? `<span class="ofc-escada-barra"><i style="width:${pct(x)}%"></i></span>` : ""}</span>
+${x.social ? "" : `<span class="ofc-escada-degraus" aria-hidden="true">${x.degraus.map((d) => `<i class="n${d.nivel}${d.ok ? " ok" : ""}"></i>`).join("")}</span>`}</summary>
+<ol class="ofc-cq-degraus">${x.degraus.map((d) => `<li class="n${d.nivel}${d.ok ? " ok" : ""}" title="${safeText(d.nome)}: ${safeText(qtd(d.meta, x.unidade))} · +${d.moedas} moedas e +${d.pontos} XP"><span class="ofc-cq-arte">${escritorioMiniaturaHtml(d.classe)}</span><b>${safeText(d.nome)}</b><small>${d.meta.toLocaleString("pt-BR")}</small><em>+${d.moedas} moedas · +${d.pontos} XP</em>${d.ok ? '<i class="ofc-cq-ok">Seu</i>' : ""}</li>`).join("")}</ol></details>`;
+  };
   const niveis = marcos.reduce((t, x) => t + x.nivel, 0), total = marcos.reduce((t, x) => t + x.degraus.length, 0);
-  const nomeMovel = (c) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === c); return m ? escritorioNomeMovel(m) : c.replace(/_/g, " "); };
-  const escada = (x) => `<article class="ofc-cq${x.nivel ? " ok" : ""}"><div class="ofc-cq-topo"><b>${safeText(x.nome)}</b>${x.nomeNivel ? `<em class="ofc-escada-nivel n${x.nivel}">${safeText(x.nomeNivel)}</em>` : ""}<small>${x.valor.toLocaleString("pt-BR")} ${safeText(x.unidade)}</small></div>
-<ol class="ofc-cq-degraus">${x.degraus.map((d) => `<li class="n${d.nivel}${d.ok ? " ok" : ""}" title="${safeText(nomeMovel(d.classe))}"><span class="ofc-cq-arte">${escritorioMiniaturaHtml(d.classe)}</span><b>${safeText(d.nome)}</b><small>${d.meta.toLocaleString("pt-BR")}</small><em>+${d.moedas} moedas · +${d.pontos} XP</em>${d.ok ? '<i class="ofc-cq-ok">Conquistado</i>' : ""}</li>`).join("")}</ol></article>`;
-  const grupos = ESCRITORIO_GRUPOS_CONQUISTA.map(([titulo, dica, ids]) => { const l = ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean); return l.length ? `<section class="ofc-cq-grupo"><h3>${titulo}</h3><small>${dica}</small>${l.map(escada).join("")}</section>` : ""; }).join("");
-  el.innerHTML = topo + `<div class="ofc-rk-corpo"><p class="ofc-rk-legenda">Você tem <b>${niveis} de ${total}</b> níveis. Você fica com todos os troféus de cada escada, do Bronze ao Diamante, para expor a sua evolução no quarto. O Diamante vale 4 vezes o Bronze.</p>${grupos}</div>`;
+  const andamento = marcos.filter((x) => x.proximo && x.valor > 0 && !x.social).sort((a, b) => pct(b) - pct(a));
+  const conquistadas = marcos.filter((x) => x.nivel > 0).sort((a, b) => b.nivel - a.nivel || a.nome.localeCompare(b.nome, "pt-BR"));
+  const proximoTrofeu = andamento[0];
+  const resumo = `<div class="ofc-cq-resumo"><div><b>${niveis}</b><small>níveis de ${total}</small></div><div><b>${conquistadas.length}</b><small>escadas com troféu</small></div><div><b>${marcos.filter((x) => x.nivel >= 3).length}</b><small>no Ouro ou acima</small></div>${proximoTrofeu ? `<div class="ofc-cq-proximo"><small>Mais perto agora</small><b>${safeText(proximoTrofeu.nome)} ${safeText(proximoTrofeu.proximo.nome)}</b><small>faltam ${(proximoTrofeu.proximo.meta - proximoTrofeu.valor).toLocaleString("pt-BR")}</small></div>` : ""}</div>`;
+  const todas = ESCRITORIO_GRUPOS_CONQUISTA.map(([titulo, dica, ids]) => { const l = ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean); return l.length ? `<details class="ofc-cq-grupo"><summary><b>${titulo}</b><small>${dica} · ${l.filter((x) => x.nivel).length} de ${l.length} com troféu</small></summary>${l.map((x) => linha(x)).join("")}</details>` : ""; }).join("");
+  el.innerHTML = topo + `<div class="ofc-rk-corpo">${resumo}
+${andamento.length ? `<section class="ofc-cq-sec"><h3>Em andamento</h3><small>As que você está mais perto de subir.</small>${andamento.slice(0, 8).map((x, k) => linha(x, k === 0)).join("")}</section>` : ""}
+${conquistadas.length ? `<section class="ofc-cq-sec"><h3>Suas conquistas</h3><small>Você fica com todos os troféus da escada, do Bronze ao Diamante, para expor no quarto.</small>${conquistadas.map((x) => linha(x)).join("")}</section>` : ""}
+<section class="ofc-cq-sec"><h3>Todas as conquistas</h3><small>Clique num grupo para ver as escadas, as metas e o que cada nível dá. O Diamante vale 4 vezes o Bronze.</small>${todas}</section></div>`;
 }

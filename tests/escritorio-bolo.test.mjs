@@ -68,10 +68,10 @@ test('ficha e missões mostram a parte de cada um no bolo',async t=>{
  const {regrasDaFuncao,missoesDaPessoa}=await import('../server/escritorio-pontos.js');
  const regras=await regrasDaFuncao(sql,'criacao');
  const peca=regras.find(r=>r.chave==='peca_criacao');
- assert.deepEqual(peca.parte,{captada:.53,normal:.7});
+ assert.deepEqual(peca.parte,{foto:.53,video:.53,normal:.7});
  assert.equal(peca.moedas,7);                                          // peça simples de peso 1: 70% de 10
  assert.ok(!regras.some(r=>r.chave==='historico'||r.chave==='criacao_aprovacao'));
- assert.deepEqual(regras.find(r=>r.chave==='peca_da').parte,{captada:.053,normal:.07});
+ assert.deepEqual(regras.find(r=>r.chave==='peca_da').parte,{foto:.053,video:.053,normal:.07});
  await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,formato) VALUES(200,7829537690,'em_andamento','Reels'),(201,7829537690,'em_andamento','Card');
   INSERT INTO vybe_conteudo_responsaveis VALUES(200,2,0),(201,2,0);`);
  const {missoes}=await missoesDaPessoa(sql,2);
@@ -108,4 +108,27 @@ test('quem cadastra a demanda ganha, e mais com briefing, seja de qual função 
  assert.deepEqual(await ganho(sql,3,'briefing:300'),[1,2]);          // Vinícius cadastrou com briefing
  assert.deepEqual(await ganho(sql,1,'cadastro:301'),[1,2]);
  assert.equal(await ganho(sql,1,'briefing:301'),null);              // sem briefing, só o cadastro
+});
+test('Produção por tipo: foto paga 12% a quem gravou e 66% a quem fez; vídeo 20% e 58%; o histórico é refeito uma vez',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,formato) VALUES(400,7829537690,'para_agendar','Fotografia'),(401,7829537690,'para_agendar','Reels');
+  INSERT INTO vybe_conteudo_responsaveis VALUES(400,7,0),(401,2,0);
+  INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,de,para,autor_id) VALUES(400,'status','Para aprovação','Para agendar',1),(401,'status','Para aprovação','Para agendar',1);`);
+ await db.exec(BOLO);
+ // Pela regra de antes: foto 25% e 53%.
+ assert.deepEqual(await ganho(sql,28,'peca:400:producao'),[3,5]);
+ assert.deepEqual(await ganho(sql,7,'peca:400:criacao'),[5,11]);
+ await db.exec(ler('2026-10-20-escritorio-bolo-producao.sql'));
+ assert.deepEqual(await ganho(sql,28,'peca:400:producao'),[1,2],'foto: 12%');
+ assert.deepEqual(await ganho(sql,7,'peca:400:criacao'),[6,14],'foto: 66% a quem fez (refeito pela razão nova ÷ antiga; ±1 de arredondamento)');
+ assert.deepEqual(await ganho(sql,28,'peca:401:producao'),[5,10],'reels: 20%');
+ const soma=async()=>(await sql`SELECT sum(saldo)::int s, sum(xp)::int x FROM vybe_escritorio_carteiras`)[0];
+ const [r]=await sql`SELECT sum(quantidade)::int s, sum(pontos)::int x FROM vybe_escritorio_moedas`;
+ assert.deepEqual(await soma(),{s:r.s,x:r.x},'carteiras batem com o razão');
+ // Peça nova já pela fatia nova; aplicar de novo não refaz.
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,formato) VALUES(402,7829537690,'para_agendar','Fotografia');
+  INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,de,para,autor_id) VALUES(402,'status','Para aprovação','Para agendar',1);`);
+ assert.deepEqual(await ganho(sql,28,'peca:402:producao'),[1,2]);
+ await db.exec(ler('2026-10-20-escritorio-bolo-producao.sql'));
+ assert.deepEqual(await ganho(sql,28,'peca:400:producao'),[1,2]);
 });
