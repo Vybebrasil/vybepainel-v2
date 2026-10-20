@@ -598,36 +598,25 @@ async function carregarTrocasEscritorio(forcar = false) {
   atualizarInventarioEscritorio();
 }
 function atualizarInventarioEscritorio() {
-  const el = document.getElementById("office-inventario");
-  if (el) el.innerHTML = escritorioInventarioHtml();
+  if (typeof redesenharCatalogoJanelaEscritorio === "function") redesenharCatalogoJanelaEscritorio();
 }
 function escritorioListaTrocaHtml(itens) {
   return (itens || []).map(([c, n]) => `<li>${escritorioMiniaturaHtml(c)}<span>${safeText(escritorioNomeDaClasse(c))}${n > 1 ? ` ×${n}` : ""}</span></li>`).join("") || "<li><span>nada</span></li>";
 }
-function escritorioInventarioHtml() {
+// Trocas de móveis (propostas recebidas, enviadas e as últimas), mostradas na
+// aba Inventário da janela do catálogo.
+function escritorioTrocasHtml() {
   if (!escritorio.base) return "";
-  const eco = escritorio.base.economia;
-  if (eco && eco.disponivel === false) return `<p class="ofc-nota">${safeText(eco.motivo || "O inventário aparece quando a loja do escritório estiver ativa.")}</p>`;
-  const meus = escritorioMeuInventario();
-  const sel = escritorio.inventarioSel;
   const t = escritorio.trocas || {};
   const nomeDe = (id) => String((escritorio.base.equipe || []).find((p) => String(p.id) === String(id))?.nome || "Alguém").split(" ")[0];
   const recebidas = (t.recebidas || []).filter((x) => x.estado === "aberta");
   const enviadas = (t.enviadas || []).filter((x) => x.estado === "aberta");
   const recentes = [...(t.recebidas || []), ...(t.enviadas || [])].filter((x) => x.estado !== "aberta").slice(0, 5);
-  const totalGuardados = meus.reduce((s, i) => s + i.guardados, 0), totalNoQuarto = meus.reduce((s, i) => s + i.noQuarto, 0);
-  const grade = meus.length ? `<ul class="ofc-inv-grade">${meus.map((i) => `<li><button type="button" aria-pressed="${sel === i.classe}" onclick="escritorio.inventarioSel=escritorio.inventarioSel==='${safeText(i.classe)}'?null:'${safeText(i.classe)}';atualizarInventarioEscritorio()" title="${safeText(escritorioNomeDaClasse(i.classe))}">${escritorioMiniaturaHtml(i.classe)}<span>${safeText(escritorioNomeDaClasse(i.classe))}</span>${i.total > 1 ? `<em>×${i.total}</em>` : ""}${i.noQuarto ? `<small>${i.noQuarto === i.total ? "no quarto" : `${i.noQuarto} no quarto`}</small>` : ""}</button></li>`).join("")}</ul>`
-    : `<p class="ofc-nota">Você ainda não tem móveis além dos essenciais grátis. Compre na Loja (Editar → Loja) ou ganhe de presente e em trocas.</p>`;
-  const item = sel && meus.find((i) => i.classe === sel);
-  const acoes = item ? `<div class="ofc-inv-acoes" role="group" aria-label="${safeText(escritorioNomeDaClasse(item.classe))}"><b>${safeText(escritorioNomeDaClasse(item.classe))}</b><small>${item.guardados} guardado${item.guardados === 1 ? "" : "s"} · ${item.noQuarto} no quarto</small><div><button type="button" class="ofc-mini" onclick="colocarDoInventarioEscritorio('${safeText(item.classe)}')">Colocar no quarto</button><button type="button" class="ofc-mini" ${item.guardados ? "" : "disabled title=\"Guarde uma unidade antes (tire do quarto)\""} onclick="abrirTrocaEscritorio(null,'${safeText(item.classe)}')">Trocar</button><button type="button" class="ofc-mini" ${item.guardados ? "" : "disabled"} onclick="escolherPresenteEscritorio('${safeText(item.classe)}')">Dar de presente</button></div></div>` : "";
   const cartao = (x, recebida) => `<li class="ofc-troca"><div class="ofc-troca-topo"><b>${recebida ? `${safeText(nomeDe(x.de_pessoa))} propõe` : `Para ${safeText(nomeDe(x.para_pessoa))}`}</b><small>${new Date(x.criado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" })}</small></div>
 <div class="ofc-troca-lados"><div><small>${recebida ? "Você recebe" : "Você dá"}</small><ul>${escritorioListaTrocaHtml(x.oferece)}</ul></div><div><small>${recebida ? "Você dá" : "Você recebe"}</small><ul>${escritorioListaTrocaHtml(x.pede)}</ul></div></div>
 <div class="ofc-troca-acoes">${recebida ? `<button type="button" class="ofc-primario" onclick="responderTrocaEscritorio('${x.id}','aceitar',this)">Aceitar</button><button type="button" class="ofc-secundario" onclick="responderTrocaEscritorio('${x.id}','recusar',this)">Recusar</button>` : `<button type="button" class="ofc-secundario" onclick="responderTrocaEscritorio('${x.id}','cancelar',this)">Cancelar proposta</button>`}</div></li>`;
   const estado = { aceita: "Aceita", recusada: "Recusada", cancelada: "Cancelada" };
-  return `<div class="ofc-inv-topo"><h4>Inventário</h4><button type="button" class="ofc-mini" onclick="abrirTrocaEscritorio()">Propor troca</button></div>
-<p class="ofc-nota">${totalGuardados} guardado${totalGuardados === 1 ? "" : "s"} · ${totalNoQuarto} no quarto · os essenciais grátis ficam no editor.</p>
-${grade}${acoes}
-<h4 class="ofc-inv-secao">Trocas${recebidas.length ? ` <span class="ofc-badge">${recebidas.length}</span>` : ""}</h4>
+  return `<div class="ofc-inv-topo"><h4>Trocas</h4><button type="button" class="ofc-mini" onclick="abrirTrocaEscritorio()">Propor troca</button></div>
 ${t.erro ? `<p class="ofc-nota" role="alert">${safeText(t.erro)}</p>` : t.disponivel === false ? '<p class="ofc-nota">A troca de móveis aguarda a atualização do banco.</p>' : t.em ? "" : '<p class="ofc-nota">Carregando trocas…</p>'}
 ${recebidas.length ? `<ul class="ofc-trocas">${recebidas.map((x) => cartao(x, true)).join("")}</ul>` : t.em ? '<p class="ofc-nota">Nenhuma proposta para você agora.</p>' : ""}
 ${enviadas.length ? `<h5>Suas propostas</h5><ul class="ofc-trocas">${enviadas.map((x) => cartao(x, false)).join("")}</ul>` : ""}

@@ -854,12 +854,34 @@ function pintarAgenteOperacaoEscritorio() {
    <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></header>
   ${reg ? `<div class="ofc-agente-nums" aria-label="Números do cliente">${numero(reg.activeCount, "ativas")}${numero(reg.content.length, "conteúdos")}${numero(reg.requests.length, "solicitações")}${numero(al.total || 0, "pedem atenção", al.total ? "ruim" : "")}</div>` : ""}
   <div class="ofc-agente-grade">
-   ${typeof planejamentosDoClienteHtml === "function" ? planejamentosDoClienteHtml() : ""}
+   <div class="ofc-agente-col">${typeof planejamentosDoClienteHtml === "function" ? planejamentosDoClienteHtml() : ""}${escritorioMiniAgendaHtml(nome)}</div>
    <section class="ofc-agente-bloco" aria-label="Pede atenção"><div class="ofc-agente-bloco-topo"><h4>Pede atenção${al.total ? ` · ${al.total}` : ""}</h4></div>
     ${linhas ? `<ul class="ofc-agente-lista">${linhas}</ul>${mais ? '<small class="ofc-nota">e mais na ficha do cliente</small>' : ""}` : '<p class="ofc-nota">Nada pedindo atenção neste cliente agora.</p>'}
    </section>
   </div>`;
   if (typeof carregarPlanejamentosDoCliente === "function") carregarPlanejamentosDoCliente(a.cliente_id, a.cliente, el);
+}
+// Resumo da Agenda mensal do cliente (Paulo, 19/10/2026: "uma cópia do
+// calendário ali, nem que seja resumida"). Só o desenho é daqui: as peças,
+// a data (veiculação ou prazo, como a Agenda estiver), a regra do feed, o mês
+// e as cores vêm das funções da própria Agenda (vybe-agenda.js), e o clique
+// abre a peça como lá (managerCalendarOpen).
+function escritorioMiniAgendaHtml(nome) {
+  if (typeof managerCalendarItems !== "function" || typeof managerCalendarMonthMeta !== "function") return "";
+  const meta = managerCalendarMonthMeta();
+  const itens = managerCalendarItems({ ignorarCliente: true }).filter((it) => itemTemCliente(it, nome));
+  const porDia = new Map();
+  for (const it of itens) { if (!porDia.has(it.calendarDateIso)) porDia.set(it.calendarDateIso, []); porDia.get(it.calendarDateIso).push(it); }
+  const hoje = managerCalendarDateIso(new Date()), dia = escritorio.agenteAberto?.dia;
+  const celulas = meta.cells.map((c) => {
+    const lista = porDia.get(c.iso) || [];
+    return `<button type="button" class="ofc-mini-dia${c.inMonth ? "" : " fora"}${c.iso === hoje ? " hoje" : ""}${lista.length ? " tem" : ""}" aria-pressed="${dia === c.iso}" ${lista.length ? "" : "disabled"} onclick="escritorio.agenteAberto.dia=escritorio.agenteAberto.dia==='${c.iso}'?null:'${c.iso}';pintarAgenteOperacaoEscritorio()" aria-label="${c.date.getDate()}: ${lista.length} ${lista.length === 1 ? "peça" : "peças"}"><span>${c.date.getDate()}</span>${lista.length ? `<em>${lista.slice(0, 3).map((it) => `<i style="--c:${managerCalendarStatusColor(it)}"></i>`).join("")}</em>` : ""}</button>`;
+  }).join("");
+  const doDia = dia ? porDia.get(dia) || [] : [];
+  const noMes = itens.filter((it) => meta.cells.some((c) => c.inMonth && c.iso === it.calendarDateIso)).length;
+  return `<section class="ofc-agente-bloco" aria-label="Calendário do cliente"><div class="ofc-agente-bloco-topo"><h4>${safeText(managerCalendarLabel(meta))} · ${noMes} ${noMes === 1 ? "peça" : "peças"}</h4>${typeof alternarPainelDaBarra === "function" ? `<button type="button" class="office-text-button" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Abrir na Agenda</button>` : ""}</div>
+  <div class="ofc-mini-agenda">${["S", "T", "Q", "Q", "S", "S", "D"].map((d) => `<span class="ofc-mini-sem">${d}</span>`).join("")}${celulas}</div>
+  ${dia ? `<ul class="ofc-agente-lista">${doDia.map((it) => `<li><button type="button" class="ofc-agente-peca" onclick="closeWorkflowModal();managerCalendarOpen('${it.calendarSource}','${safeText(it.id)}',event)"><i class="ofc-ponto" style="--st:${managerCalendarStatusColor(it)}"></i><span><b>${safeText(it.nome || "Sem título")}</b><small>${safeText([it.status, it.calendarType].filter(Boolean).join(" · "))}</small></span></button></li>`).join("")}</ul>` : '<p class="ofc-nota">Clique num dia com pontos para ver as peças.</p>'}</section>`;
 }
 // Portas para o painel: a ficha do cliente e a Agenda mensal já filtrada nele
 // (o mesmo caminho do botão da agenda, managerCalendarOpenClientMaster).
@@ -1209,6 +1231,8 @@ function renderEscritorio() {
   const eu = b.equipe.find((p) => p.id === b.eu);
   const celular = window.matchMedia?.("(max-width: 760px)").matches;
   const modo = escritorio.modo || (celular ? "lista" : "mapa");
+  // Catálogo e Inventário viraram a janela própria: as abas antigas da lateral voltam para Pessoas.
+  if (escritorio.aba === "loja" || escritorio.aba === "inventario") escritorio.aba = "pessoas";
   const aba = escritorio.aba || "pessoas";
   // No celular o painel lateral cobre o mapa: começa recolhido.
   const lateral = escritorio.lateral ?? !celular;
@@ -1225,8 +1249,8 @@ function renderEscritorio() {
  ${rail("pessoas", "pessoas", "Pessoas", "alternarAbaEscritorio('pessoas')", lateral && aba === "pessoas")}
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
  ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
- ${rail("inventario", "inventario", "Inventário", "alternarAbaEscritorio('inventario')", lateral && aba === "inventario")}
- ${rail("loja", "loja", "Catálogo", "alternarAbaEscritorio('loja')", lateral && aba === "loja")}
+ ${rail("inventario", "inventario", "Inventário", "abrirCatalogoEscritorio('inventario')", false)}
+ ${rail("loja", "loja", "Catálogo", "abrirCatalogoEscritorio()", false)}
  <span class="ofc-rail-fim"></span>
  ${escritorioCamadaParaEditar() ? rail("editar", "editar", escritorio.base.admin ? "Editar" : "Minha sala", escritorio.edicao ? "sairEditorEscritorio()" : "abrirEditorEscritorio()", Boolean(escritorio.edicao)) : ""}
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
@@ -1241,8 +1265,6 @@ function renderEscritorio() {
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><div><h3 id="office-chat-titulo">${safeText(escritorioTituloChat(sala))}</h3><small id="office-chat-nota" class="ofc-nota">${safeText(escritorioNotaChat(sala))}</small></div><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para este chat" id="office-message" name="texto" oninput="delete this.form.dataset.chave;escritorioDigitando(Boolean(this.value))" onblur="escritorioDigitando(false)" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala] || "Convivência")}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
  <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
- <section class="ofc-aba ofc-inventario" id="office-inventario" ${aba === "inventario" ? "" : "hidden"}>${escritorioInventarioHtml()}</section>
- <section class="ofc-aba ofc-catalogo ofc-loja" id="office-loja" aria-label="Catálogo de móveis" ${aba === "loja" ? "" : "hidden"}>${aba === "loja" ? escritorioCatalogoGeralHtml() : ""}</section>
 </aside>
 <main class="ofc-principal">
  <div class="ofc-topo"><div class="ofc-topo-esq">${`<button type="button" class="ofc-voltar-mapa" onclick="escritorioSairDoQuarto()" title="Sair pela porta: ${safeText(escritorioDestinoDaPorta(escritorio.quarto).nome)}">${escritorioIcone("voltar")}<span>${safeText(escritorioDestinoDaPorta(escritorio.quarto).nome)}</span></button>`}${escritorioAndaresHtml()}<div class="ofc-sala-atual" style="--sala:${escritorioAmbienteDoQuarto()?.cor || ESCRITORIO_COR_SALA[sala]}"><span class="ofc-sala-emblema" aria-hidden="true">${escritorioEmblemaSala(/^sala-/.test(escritorio.quarto || "") ? "quarto" : escritorio.quarto || "praca")}</span><span class="ofc-sala-nome"><h2 id="office-lugar">${safeText(escritorioLugarDe(escritorio.perfil).nome)}</h2><span id="office-lugar-dica"></span></span></div></div><p id="office-feedback" class="ofc-aviso" role="status">${safeText(b.demo ? "Demonstração local: presença e chamadas não se conectam." : b.aviso || "")}</p></div>
@@ -1296,7 +1318,6 @@ function montarMapaEscritorio() {
   el.hidden = lugar.hidden;
   lugar.replaceWith(el);
   if (escritorio.edicao && typeof desenharCatalogoEscritorio === "function") desenharCatalogoEscritorio();
-  if (escritorio.aba === "loja" && typeof desenharCatalogoGeralEscritorio === "function") desenharCatalogoGeralEscritorio();
   // A música fica fora do redesenho: recriar o player cortaria a música.
   const lugarMusica = document.getElementById("office-musica-lugar");
   if (lugarMusica) {

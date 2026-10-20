@@ -628,7 +628,7 @@ async function carregarCatalogoEscritorio() {
     escritorioCatalogo = r.ok ? await r.json() : [];
   } catch {}
   if (escritorio.edicao) renderEscritorio();
-  else if (escritorio.aba === "loja") atualizarCatalogoGeralEscritorio();
+  else redesenharCatalogoJanelaEscritorio();
 }
 // Computadores que vêm com o painel (para "Editar computador"); entram no
 // catálogo como uma categoria própria.
@@ -640,10 +640,6 @@ const ESCRITORIO_COMPUTADORES = [
 function escritorioGirosDe(classe) {
   const m = (escritorioCatalogo || []).find((x) => x.classe === classe) || ESCRITORIO_COMPUTADORES.find((x) => x.classe === classe);
   return m?.giros || 0;
-}
-function escritorioSeloGiro(giros) {
-  if (!giros) return "";
-  return giros < 2 ? '<em class="ofc-giro nao" title="Este móvel não gira">Não gira</em>' : `<em class="ofc-giro" title="Gira para ${giros} lados (R)">↻ ${giros} lados</em>`;
 }
 // Nome em português: o catálogo do Habbo vem em inglês. Traduz as palavras
 // mais comuns e põe o substantivo na frente ("Gray Sofa" → "Sofá cinza").
@@ -729,15 +725,6 @@ const ESCRITORIO_SECOES_CATALOGO = [
   ["Construção", ["Construção e arquitetura", "Blocos e materiais", "Divisórias", "Janelas e portas", "Acabamentos", "Pisos do acervo"]],
   ["Jogos e efeitos", ["Física (esteira, gelo, portão, trampolim)", "Gatilhos e efeitos (Wired)", "Ferramentas (relógio, votos, placar, altura)", "Barracas e veículos"]],
 ];
-// Faixas de raridade com a contagem da lista atual; a cor vem com o nome.
-function escritorioChipsRaridadeHtml(lista, ativa, aoEscolher) {
-  const faixas = escritorio.base?.economia?.loja?.raridades;
-  if (!faixas?.length || !lista.length) return "";
-  const conta = new Map();
-  for (const m of lista) { const r = escritorioInfoLoja(m.classe).raridade; conta.set(r, (conta.get(r) || 0) + 1); }
-  const chip = (chave, nome, n) => `<button type="button" class="ofc-cat-chip${chave ? " r-" + safeText(chave) : ""}" aria-pressed="${ativa === chave}" ${n || !chave ? "" : "disabled"} onclick="${aoEscolher.replace("%", chave)}">${safeText(nome)} <small>${n.toLocaleString("pt-BR")}</small></button>`;
-  return `<div class="ofc-cat-chips" role="group" aria-label="Raridade">${chip("", "Todas", lista.length)}${faixas.map((r) => chip(r.chave, r.nome, conta.get(r.chave) || 0)).join("")}</div>`;
-}
 function escritorioTipoAssento(m) {
   if (m.categoria !== "Cadeiras e sofás" && !/armchair|beanbag|lounger|hangingchair/.test(m.classe)) return "";
   const n = String(m.nome).toLowerCase() + " " + m.classe;
@@ -782,7 +769,8 @@ function escritorioCatalogoHtml() {
   }
   const loja = minha && aba === "loja" ? escritorioLojaHtml("loja", false) : "";
   return `${abas}${loja}${minha ? "" : '<p class="ofc-catalogo-contexto">Acervo da sala · decoração compartilhada, sem usar seu saldo.</p>'}<div class="ofc-busca"><input id="office-catalogo-busca" type="search" placeholder="Buscar: mesa, sofá, planta, luz…" aria-label="Buscar móvel" autocomplete="off" value="${safeText(escritorio.catalogoBusca || "")}" oninput="escritorio.catalogoBusca=this.value;escritorio.catalogoPagina=0;desenharCatalogoEscritorio()"></div>
-<div id="office-catalogo-nav" ${minha && aba === "meus" ? "hidden" : ""}>${escritorioNavCategoriasHtml(escritorioGrupoCatalogo(), "escritorio.catalogoCategoria='%';escritorio.catalogoPagina=0;escritorio.catalogoBusca='';escritorio.catalogoRaridade='';escritorioRedesenharNav();desenharCatalogoEscritorio()")}</div>
+<div class="ofc-cat-linha" id="office-catalogo-nav" ${minha && aba === "meus" ? "hidden" : ""}>${escritorioSelectCategoriasHtml(escritorioGrupoCatalogo(), "escritorio.catalogoCategoria='%';escritorio.catalogoPagina=0;escritorio.catalogoBusca='';desenharCatalogoEscritorio()")}${escritorioCamadaComum(escritorio.edicao?.camada) ? "" : escritorioSelectRaridadeHtml(escritorio.catalogoRaridade || "", "escritorio.catalogoRaridade=this.value;escritorio.catalogoPagina=0;desenharCatalogoEscritorio()")}</div>
+<button type="button" class="ofc-secundario ofc-abrir-catalogo" onclick="abrirCatalogoEscritorio()">Abrir o catálogo completo</button>
 <div id="office-catalogo-lista"></div>
 <p class="ofc-nota">Clique num móvel para ver a ficha e colocar, ou arraste direto para o mapa. Não achou? <button type="button" class="office-text-button" onclick="buscarMovelEscritorio(document.getElementById('office-catalogo-busca').value)">Buscar no catálogo completo do Habbo</button> (em inglês).</p>
 <div id="office-busca-resultados" class="ofc-moveis"></div>`;
@@ -805,17 +793,30 @@ function escritorioCategoriasDaSecao(secao) {
   }
   return ESCRITORIO_SECOES_CATALOGO.find(([t]) => t === secao)?.[1] || [];
 }
-// Navegação em duas fileiras (Paulo, 19/10/2026: a lista longa de categorias
-// era ruim de usar): a seção e, embaixo, as categorias dela com a contagem.
-// "acao" leva % no lugar do valor escolhido.
-function escritorioNavCategoriasHtml(ativo, acao, { tudo = true } = {}) {
-  const secoes = [...ESCRITORIO_SECOES_CATALOGO.map(([t]) => t), "Estilos e coleções"];
-  const secaoAtiva = ativo.startsWith("secao:") ? ativo.slice(6) : secoes.find((t) => escritorioCategoriasDaSecao(t).includes(ativo)) || "";
-  const ficha = (valor, rotulo, ligado, n) => `<button type="button" class="ofc-nav-ficha" aria-pressed="${ligado}" onclick="${acao.replace("%", safeText(valor))}">${safeText(rotulo)}${n != null ? ` <small>${n.toLocaleString("pt-BR")}</small>` : ""}</button>`;
-  const linha1 = (tudo ? ficha("*", "Tudo", ativo === "*" || !ativo) : "") + secoes.map((t) => ficha(`secao:${t}`, t, secaoAtiva === t)).join("");
-  const subs = secaoAtiva ? escritorioCategoriasDaSecao(secaoAtiva).map((n) => [n, escritorioListaCatalogo(n).length]).filter(([n, q]) => q || n === "Recentes") : [];
-  const linha2 = subs.length ? ficha(`secao:${secaoAtiva}`, "Todas", ativo === `secao:${secaoAtiva}`) + subs.map(([n, q]) => ficha(n, n.replace(/^Coleção · /, "").replace(/ \(.*\)$/, ""), ativo === n, q)).join("") : "";
-  return `<nav class="ofc-nav-cat" aria-label="Categorias"><div class="ofc-trilho" role="group" aria-label="Seção">${linha1}</div>${linha2 ? `<div class="ofc-trilho sub" role="group" aria-label="Categoria">${linha2}</div>` : ""}</nav>`;
+// Categorias como no catálogo do Habbo (Paulo, 19/10/2026: as fileiras de
+// fichas eram ruins de usar): na janela, uma árvore de seções que abre e
+// fecha; na lateral da construção, uma caixa agrupada. "acao" leva % no lugar
+// do valor escolhido.
+const ESCRITORIO_SECOES_TODAS = () => [...ESCRITORIO_SECOES_CATALOGO.map(([t]) => t), "Estilos e coleções"];
+const escritorioRotuloCategoria = (n) => n.replace(/^Coleção · /, "").replace(/ \(.*\)$/, "");
+function escritorioArvoreCategoriasHtml(ativo, acao) {
+  const item = (valor, rotulo, n, extra = "") => `<button type="button" class="ofc-catj-item${extra}" aria-pressed="${ativo === valor}" onclick="${acao.replace("%", safeText(valor))}"><span>${safeText(rotulo)}</span>${n != null ? `<small>${n.toLocaleString("pt-BR")}</small>` : ""}</button>`;
+  const total = escritorioListaCatalogo("*").length, vitrine = escritorioListaCatalogo("Vitrine da semana").length;
+  const secoes = ESCRITORIO_SECOES_TODAS().filter((t) => t !== "Atalhos").map((t) => {
+    const cats = escritorioCategoriasDaSecao(t).map((n) => [n, escritorioListaCatalogo(n).length]).filter(([, q]) => q);
+    if (!cats.length) return "";
+    const aberta = ativo === `secao:${t}` || cats.some(([n]) => n === ativo);
+    return `<details class="ofc-catj-secao"${aberta ? " open" : ""}><summary>${safeText(t)}</summary>${item(`secao:${t}`, `Tudo de ${t.toLowerCase()}`, null, " todos")}${cats.map(([n, q]) => item(n, escritorioRotuloCategoria(n), q)).join("")}</details>`;
+  }).join("");
+  return `${item("*", "Todos os móveis", total, " forte")}${vitrine ? item("Vitrine da semana", "Vitrine da semana", vitrine, " vitrine") : ""}${item("Recentes", "Usados por você", escritorioRecentes().length)}${secoes}`;
+}
+function escritorioSelectCategoriasHtml(ativo, acao) {
+  const opcao = (valor, rotulo, q) => `<option value="${safeText(valor)}"${valor === ativo ? " selected" : ""}>${safeText(rotulo)}${q != null ? ` · ${q.toLocaleString("pt-BR")}` : ""}</option>`;
+  const grupos = ESCRITORIO_SECOES_TODAS().map((t) => {
+    const ops = escritorioCategoriasDaSecao(t).map((n) => [n, escritorioListaCatalogo(n).length]).filter(([n, q]) => q || n === "Recentes").map(([n, q]) => opcao(n, escritorioRotuloCategoria(n), q)).join("");
+    return ops ? `<optgroup label="${safeText(t)}">${t !== "Atalhos" ? opcao(`secao:${t}`, `Tudo de ${t.toLowerCase()}`) : ""}${ops}</optgroup>` : "";
+  }).join("");
+  return `<select aria-label="Categoria" onchange="${acao.replace("'%'", "this.value")}">${grupos}</select>`;
 }
 function escritorioListaCatalogo(grupo) {
   const todas = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES];
@@ -826,29 +827,22 @@ function escritorioListaCatalogo(grupo) {
 }
 // Cartão de um móvel no catálogo: miniatura, nome, faixa e o que a loja diz
 // (grátis, no inventário, preço, restantes, esgotado, fora da vitrine, só por marco).
-function escritorioCartaoMovel(m) {
-  const comum = escritorioCamadaComum(escritorio.edicao?.camada);
+function escritorioCartaoMovel(m, opcoes) {
+  const meu = opcoes && typeof opcoes === "object" ? opcoes.inventario : null;
+  const comum = !meu && escritorioCamadaComum(escritorio.edicao?.camada);
   const i = escritorioInfoLoja(m.classe), q = escritorioQuantidadeMovel(m.classe);
   const nome = escritorioNomeMovel(m);
   // Uma linha só: faixa (nome, não só a cor) e o que importa para decidir.
   // No Inventário, quantos são seus; na Loja e no Catálogo, o preço (e quantos restam).
-  const inventario = escritorio.edicao && escritorio.abaQuarto !== "loja" && escritorioMinhaMesa()?.ambiente.id === escritorio.edicao.camada;
+  const inventario = Boolean(meu) || (escritorio.edicao && escritorio.abaQuarto !== "loja" && escritorioMinhaMesa()?.ambiente.id === escritorio.edicao.camada);
   const restam = i.restante > 0 ? ` · ${i.restante === 1 ? "resta 1" : `restam ${i.restante}`}` : "";
-  const estado = comum ? (m.parede ? "Na parede" : "Acervo da sala") : q === Infinity ? "Grátis"
-    : inventario && q > 0 ? `${q} seu${q > 1 ? "s" : ""}` : i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Fora da vitrine" : `${i.preco.toLocaleString("pt-BR")} moedas${restam}`;
-  const travado = /^(Só|Esgotado|Fora)/.test(estado);
+  const estado = meu ? (meu.noQuarto ? `${meu.total} seu${meu.total > 1 ? "s" : ""} · ${meu.noQuarto === meu.total ? "no quarto" : meu.noQuarto + " no quarto"}` : `${meu.total} guardado${meu.total > 1 ? "s" : ""}`)
+    : comum ? (m.parede ? "Na parede" : "Acervo da sala") : q === Infinity ? "Grátis"
+    : inventario && q > 0 ? `${q} seu${q > 1 ? "s" : ""}` : i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Só na vitrine" : `${i.preco.toLocaleString("pt-BR")} moedas${restam}`;
+  const travado = /^(Só|Esgotado)/.test(estado);
   const faixa = !comum && i.raridade !== "comum" ? `${safeText(i.nome)} · ` : "";
   const arrasta = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(m.classe);
   return `<button type="button" class="ofc-movel compacto${travado ? " indisponivel" : ""}${!comum && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${arrasta}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)} · clique para ver a ficha${arrasta ? " ou arraste para o mapa" : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha${travado ? " nao" : ""}">${faixa}${safeText(estado)}</em></button>`;
-}
-function escritorioSeloLoja(classe, i, comprar = false) {
-  const q = escritorioQuantidadeMovel(classe);
-  if (q === Infinity) return '<em class="ofc-giro">Grátis</em>';
-  const faixa = i.raridade !== "comum" ? `<em class="ofc-raridade ${safeText(i.raridade)}">${safeText(i.nome)}</em>` : "";
-  const tem = q ? `${q} no inventário · ` : "";
-  const acao = !comprar && escritorioPodeColocarMovel(classe) ? "Colocar" : i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Fora da vitrine" : `Comprar · ${i.preco.toLocaleString("pt-BR")} moedas`;
-  const restam = i.restante !== null && i.restante > 0 && !i.marco ? ` · ${i.restante === 1 ? "resta 1" : "restam " + i.restante}` : "";
-  return `${faixa}<em class="ofc-giro${["Só por marco", "Esgotado", "Fora da vitrine"].includes(acao) ? " nao" : ""}">${tem}${acao}${restam}</em>`;
 }
 // O que a loja sabe do móvel: faixa, preço, restantes, se está na vitrine e se
 // vem só por marco. Quem não está na tabela é comum (preço único); sem a tabela
@@ -878,15 +872,103 @@ function escritorioLojaHtml(aba = "loja", mostrarVitrine = true) {
 // raridade, preço e categoria sem entrar na construção. Usa a mesma ficha da
 // loja (escritorioInfoLoja) e a mesma prévia; comprar manda para o inventário.
 const ESCRITORIO_ORDEM_RARIDADE = { comum: 0, incomum: 1, raro: 2, epico: 3, lendario: 4 };
-function escritorioCatalogoGeralHtml() {
-  if (!escritorioCatalogo) { carregarCatalogoEscritorio(); return '<p class="ofc-nota">Carregando catálogo…</p>'; }
+// Janela do catálogo, como a do Habbo: árvore de categorias à esquerda e, no
+// meio, a busca, a raridade, "à venda agora", a ordem e a grade. O clique abre
+// a ficha (comprar e/ou colocar). Na construção, "Colocar" deixa na mão.
+function escritorioSelectRaridadeHtml(ativa, aoMudar) {
+  const faixas = escritorio.base?.economia?.loja?.raridades || [];
+  if (!faixas.length) return "";
+  return `<select aria-label="Raridade" onchange="${aoMudar}"><option value="">Todas as raridades</option>${faixas.map((r) => `<option value="${safeText(r.chave)}"${ativa === r.chave ? " selected" : ""}>${safeText(r.nome)}</option>`).join("")}</select>`;
+}
+function abrirCatalogoEscritorio(aba) {
+  if (!escritorioCatalogo) { carregarCatalogoEscritorio().then(() => abrirCatalogoEscritorio(aba)); return; }
   garantirLojaEscritorio();
-  const eco = escritorio.base?.economia, f = (escritorio.cat ||= { raridade: "", ordem: "preco", categoria: "*", busca: "", posso: false, ver: 48 });
-  return `<div class="ofc-catgeral">
-<section class="ofc-moedas compacta" aria-label="Seu saldo"><div><span>Seu saldo</span><b>${eco?.disponivel ? Number(eco.saldo).toLocaleString("pt-BR") : "Indisponível"}</b><small>VybeCoins</small></div><button type="button" class="office-text-button" onclick="alternarAbaEscritorio('inventario',true)">Inventário</button></section>
-<div class="ofc-busca"><input type="search" placeholder="Buscar: mesa, sofá, planta, luz…" aria-label="Buscar no catálogo" autocomplete="off" value="${safeText(f.busca)}" oninput="escritorio.cat.busca=this.value;escritorio.cat.ver=48;desenharCatalogoGeralEscritorio()"></div>
-<div id="office-catgeral-nav">${escritorioNavCategoriasHtml(f.categoria || "*", "escritorio.cat.categoria='%';escritorio.cat.ver=48;escritorioRedesenharNav();desenharCatalogoGeralEscritorio()")}</div>
-<div id="office-catgeral-lista"></div></div>`;
+  escritorio.cat ||= { raridade: "", ordem: "preco", categoria: "*", busca: "", posso: false, ver: 60, aba: "loja", inv: "todos" };
+  if (aba) escritorio.cat.aba = aba;
+  if (escritorio.cat.aba === "inventario" && typeof carregarTrocasEscritorio === "function") carregarTrocasEscritorio();
+  let d = document.getElementById("office-catalogo");
+  if (!d) {
+    d = document.createElement("dialog");
+    d.id = "office-catalogo";
+    d.className = "ofc-dialogo ofc-catjanela";
+    d.setAttribute("aria-label", "Catálogo de móveis");
+    document.body.append(d);
+  }
+  const f = escritorio.cat;
+  // Topo em div: o <header> do painel tem estilo global (fundo, coluna).
+  d.innerHTML = `<div class="ofc-catj-topo"><div class="ofc-catj-abas" role="tablist" id="office-catj-abas"></div><span class="ofc-catj-saldo" id="office-catj-saldo"></span><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
+<div class="ofc-catj-corpo"><nav class="ofc-catj-arvore" id="office-catj-arvore" aria-label="Categorias"></nav>
+<section class="ofc-catj-main"><div class="ofc-catj-barra"><input type="search" class="ofc-catj-busca" placeholder="Buscar: mesa, sofá, planta, luz…" aria-label="Buscar no catálogo" autocomplete="off" value="${safeText(f.busca)}" oninput="escritorio.cat.busca=this.value;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()">
+<div class="ofc-catj-faixas" id="office-catj-faixas" role="group" aria-label="Raridade"></div></div>
+<div class="ofc-catj-info" id="office-catj-info"></div><div class="ofc-moveis ofc-catj-grade" id="office-catj-grade"></div></section></div>`;
+  if (!d.open) d.showModal();
+  redesenharCatalogoJanelaEscritorio();
+  d.querySelector(".ofc-catj-busca")?.focus();
+}
+// Árvore, faixas e grade (a busca não é refeita: o cursor fica onde está).
+function redesenharCatalogoJanelaEscritorio() {
+  const d = document.getElementById("office-catalogo");
+  if (!d?.open) return;
+  const f = escritorio.cat, eco = escritorio.base?.economia;
+  d.querySelector("#office-catj-saldo").innerHTML = eco?.disponivel ? `<b>${Number(eco.saldo).toLocaleString("pt-BR")}</b> VybeCoins` : "";
+  const trocasNovas = (escritorio.trocas?.recebidas || []).filter((x) => x.estado === "aberta").length;
+  const aba = (rotulo, chave, extra = "") => `<button type="button" role="tab" aria-selected="${f.aba === chave}" onclick="escritorio.cat.aba='${chave}';escritorio.cat.ver=60;${chave === "inventario" ? "carregarTrocasEscritorio();" : ""}redesenharCatalogoJanelaEscritorio()">${rotulo}${extra}</button>`;
+  d.querySelector("#office-catj-abas").innerHTML = aba("Loja", "loja") + aba("Inventário", "inventario", trocasNovas ? ` <span class="ofc-badge">${trocasNovas}</span>` : "");
+  d.querySelector("#office-catj-arvore").innerHTML = f.aba === "inventario" ? escritorioArvoreInventarioHtml()
+    : escritorioArvoreCategoriasHtml(f.categoria || "*", "escritorio.cat.categoria='%';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()");
+  d.querySelector(".ofc-catj-busca").placeholder = f.aba === "inventario" ? "Buscar nos seus móveis…" : "Buscar: mesa, sofá, planta, luz…";
+  desenharCatalogoJanelaEscritorio();
+}
+// Inventário na mesma janela: os seus móveis (sem os essenciais grátis, que
+// ficam no editor), onde estão e as trocas. O clique abre a mesma ficha, com
+// Colocar no quarto, Trocar e Dar de presente.
+function escritorioArvoreInventarioHtml() {
+  const meus = typeof escritorioMeuInventario === "function" ? escritorioMeuInventario() : [];
+  const f = escritorio.cat, trocas = (escritorio.trocas?.recebidas || []).filter((x) => x.estado === "aberta").length;
+  const item = (chave, rotulo, n) => `<button type="button" class="ofc-catj-item" aria-pressed="${f.inv === chave}" onclick="escritorio.cat.inv='${chave}';redesenharCatalogoJanelaEscritorio()"><span>${rotulo}</span>${n != null ? `<small>${n}</small>` : ""}</button>`;
+  return item("todos", "Todos os seus", meus.reduce((t, i) => t + i.total, 0)) + item("guardados", "Guardados", meus.reduce((t, i) => t + i.guardados, 0))
+    + item("quarto", "No quarto", meus.reduce((t, i) => t + i.noQuarto, 0)) + item("trocas", "Trocas", trocas || null);
+}
+function desenharInventarioJanelaEscritorio(d) {
+  const f = escritorio.cat;
+  d.querySelector("#office-catj-faixas").innerHTML = "";
+  if (f.inv === "trocas") {
+    d.querySelector("#office-catj-info").innerHTML = "";
+    d.querySelector("#office-catj-grade").innerHTML = `<div class="ofc-catj-trocas">${typeof escritorioTrocasHtml === "function" ? escritorioTrocasHtml() : ""}</div>`;
+    return;
+  }
+  const busca = String(f.busca || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const meus = (typeof escritorioMeuInventario === "function" ? escritorioMeuInventario() : [])
+    .filter((i) => f.inv === "guardados" ? i.guardados : f.inv === "quarto" ? i.noQuarto : true)
+    .filter((i) => !busca || escritorioNomeDaClasse(i.classe).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(busca));
+  const todos = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES];
+  d.querySelector("#office-catj-info").innerHTML = `<b>${meus.length} ${meus.length === 1 ? "móvel" : "móveis"}</b><span>os essenciais grátis ficam no editor do quarto</span><button type="button" class="office-text-button" onclick="abrirTrocaEscritorio()">Propor troca</button>`;
+  d.querySelector("#office-catj-grade").innerHTML = meus.length ? meus.map((i) => escritorioCartaoMovel(todos.find((m) => m.classe === i.classe) || { classe: i.classe, nome: i.classe.replace(/_/g, " ") }, { inventario: i })).join("")
+    : `<p class="ofc-nota">${f.inv === "todos" ? 'Você ainda não tem móveis além dos essenciais grátis. Compre na <button type="button" class="office-text-button" onclick="escritorio.cat.aba=\'loja\';redesenharCatalogoJanelaEscritorio()">Loja</button> ou ganhe em presentes e trocas.' : "Nada aqui."}</p>`;
+}
+function desenharCatalogoJanelaEscritorio() {
+  const d = document.getElementById("office-catalogo");
+  if (!d?.open || !escritorioCatalogo) return;
+  if (escritorio.cat.aba === "inventario") return desenharInventarioJanelaEscritorio(d);
+  const f = escritorio.cat, info = new Map();
+  const de = (m) => info.get(m.classe) || (info.set(m.classe, escritorioInfoLoja(m.classe)), info.get(m.classe));
+  const nome = (a, b) => escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR");
+  const ordem = { preco: (a, b) => de(a).preco - de(b).preco || nome(a, b), caro: (a, b) => de(b).preco - de(a).preco || nome(a, b),
+    raridade: (a, b) => (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || de(b).preco - de(a).preco || nome(a, b), nome }[f.ordem] || nome;
+  const semFaixa = escritorioCatalogoGeralLista({ ...f, raridade: "" });
+  const conta = new Map();
+  for (const m of semFaixa) conta.set(de(m).raridade, (conta.get(de(m).raridade) || 0) + 1);
+  const faixas = escritorio.base?.economia?.loja?.raridades || [];
+  // Faixa clicada de novo volta para todas; a cor vem com o nome escrito.
+  d.querySelector("#office-catj-faixas").innerHTML = `${faixas.map((r) => `<button type="button" class="ofc-cat-chip r-${safeText(r.chave)}" aria-pressed="${f.raridade === r.chave}" ${conta.get(r.chave) ? "" : "disabled"} onclick="escritorio.cat.raridade=escritorio.cat.raridade==='${safeText(r.chave)}'?'':'${safeText(r.chave)}';escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()">${safeText(r.nome)} <small>${(conta.get(r.chave) || 0).toLocaleString("pt-BR")}</small></button>`).join("")}
+<button type="button" class="ofc-cat-chip venda" aria-pressed="${f.posso}" onclick="escritorio.cat.posso=!escritorio.cat.posso;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Só o que está à venda esta semana e cabe no seu saldo">À venda agora</button>
+<label class="ofc-ordem"><span class="ofc-sr">Ordem</span><select onchange="escritorio.cat.ordem=this.value;desenharCatalogoJanelaEscritorio()">${[["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "A–Z"]].map(([v, n]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>`;
+  const lista = (f.raridade ? semFaixa.filter((m) => de(m).raridade === f.raridade) : semFaixa).sort(ordem);
+  const onde = f.categoria && f.categoria !== "*" ? escritorioRotuloCategoria(f.categoria.replace(/^secao:/, "")) : "todo o catálogo";
+  const ativos = [f.raridade && (faixas.find((r) => r.chave === f.raridade)?.nome || f.raridade), f.posso && "à venda agora", f.busca && `“${f.busca}”`].filter(Boolean);
+  d.querySelector("#office-catj-info").innerHTML = `<b>${lista.length.toLocaleString("pt-BR")} móveis</b><span>em ${safeText(onde)}${ativos.length ? ` · ${safeText(ativos.join(" · "))}` : ""}</span>${ativos.length || (f.categoria && f.categoria !== "*") ? `<button type="button" class="office-text-button" onclick="escritorio.cat={...escritorio.cat,raridade:'',posso:false,busca:'',categoria:'*',ver:60};abrirCatalogoEscritorio()">Limpar filtros</button>` : ""}`;
+  d.querySelector("#office-catj-grade").innerHTML = lista.length ? lista.slice(0, f.ver).map(escritorioCartaoMovel).join("") + (lista.length > f.ver ? `<button type="button" class="ofc-secundario ofc-cat-mais" onclick="escritorio.cat.ver+=60;desenharCatalogoJanelaEscritorio()">Mostrar mais (${(lista.length - f.ver).toLocaleString("pt-BR")})</button>` : "")
+    : '<p class="ofc-nota">Nenhum móvel com esses filtros. Tire um filtro ou busque outra palavra.</p>';
 }
 function escritorioCatalogoGeralLista(f) {
   const busca = String(f.busca || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -903,23 +985,6 @@ function escritorioCatalogoGeralLista(f) {
     return true;
   });
 }
-function desenharCatalogoGeralEscritorio() {
-  const el = document.getElementById("office-catgeral-lista");
-  if (!el || !escritorioCatalogo) return;
-  const f = escritorio.cat, info = new Map();
-  const de = (m) => info.get(m.classe) || (info.set(m.classe, escritorioInfoLoja(m.classe)), info.get(m.classe));
-  const nome = (a, b) => escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR");
-  const ordem = { preco: (a, b) => de(a).preco - de(b).preco || nome(a, b), caro: (a, b) => de(b).preco - de(a).preco || nome(a, b),
-    raridade: (a, b) => (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || de(b).preco - de(a).preco || nome(a, b), nome }[f.ordem] || nome;
-  const semFaixa = escritorioCatalogoGeralLista({ ...f, raridade: "" });
-  const chips = escritorioChipsRaridadeHtml(semFaixa, f.raridade, "escritorio.cat.raridade='%';escritorio.cat.ver=48;desenharCatalogoGeralEscritorio()");
-  const lista = (f.raridade ? semFaixa.filter((m) => de(m).raridade === f.raridade) : semFaixa).sort(ordem);
-  const posso = `<button type="button" class="ofc-cat-chip" aria-pressed="${f.posso}" onclick="escritorio.cat.posso=!escritorio.cat.posso;escritorio.cat.ver=48;desenharCatalogoGeralEscritorio()">Dá para comprar</button>`;
-  const faixas = chips.replace('</div>', posso + '</div>') || `<div class="ofc-cat-chips">${posso}</div>`;
-  const ordem2 = `<label class="ofc-ordem"><span class="ofc-sr">Ordem</span><select onchange="escritorio.cat.ordem=this.value;desenharCatalogoGeralEscritorio()">${[["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "A–Z"]].map(([v, n]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>`;
-  if (!lista.length) { el.innerHTML = faixas + '<p class="ofc-nota">Nenhum móvel com esses filtros. Tire um filtro ou busque outra palavra.</p>'; return; }
-  el.innerHTML = `${faixas}<div class="ofc-lista-topo"><b>${lista.length.toLocaleString("pt-BR")} móveis</b>${ordem2}</div><div class="ofc-moveis">${lista.slice(0, f.ver).map(escritorioCartaoMovel).join("")}</div>${lista.length > f.ver ? `<button type="button" class="ofc-secundario ofc-cat-mais" onclick="escritorio.cat.ver+=48;desenharCatalogoGeralEscritorio()">Mostrar mais (${(lista.length - f.ver).toLocaleString("pt-BR")} restantes)</button>` : ""}`;
-}
 // A entrada do escritório traz a carteira sem a tabela da loja (abre mais
 // rápido); sem ela todo móvel parecia comum, a 25 moedas, e as faixas sumiam.
 let escritorioCarregandoLoja = null;
@@ -929,29 +994,8 @@ function garantirLojaEscritorio() {
   if (!eco?.disponivel || "loja" in eco || escritorio.lojaFalhou || escritorio.base?.demo || escritorioCarregandoLoja) return;
   escritorioCarregandoLoja = escritorioApi("economia").then((r) => {
     if (r?.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia };
-    if (escritorio.aba === "loja") atualizarCatalogoGeralEscritorio();
+    redesenharCatalogoJanelaEscritorio();
   }).catch((e) => { escritorio.lojaFalhou = true; escritorioAviso("Não foi possível carregar os preços da loja: " + e.message); }).finally(() => { escritorioCarregandoLoja = null; });
-}
-function atualizarCatalogoGeralEscritorio() {
-  const el = document.getElementById("office-loja");
-  if (!el) return;
-  el.innerHTML = escritorioCatalogoGeralHtml();
-  desenharCatalogoGeralEscritorio();
-}
-// Lista com páginas (sem rolar sem fim) e busca enquanto digita.
-// A ficha escolhida fica à vista na fileira (as fileiras rolam de lado).
-function escritorioMostrarFichasAtivas() {
-  for (const b of document.querySelectorAll(".ofc-trilho [aria-pressed=true]")) {
-    const t = b.parentElement, r = b.offsetLeft - t.offsetLeft;
-    if (r < t.scrollLeft || r + b.offsetWidth > t.scrollLeft + t.clientWidth) t.scrollLeft = r - 24;
-  }
-}
-function escritorioRedesenharNav() {
-  const el = document.getElementById("office-catalogo-nav");
-  if (el) el.innerHTML = escritorioNavCategoriasHtml(escritorioGrupoCatalogo(), "escritorio.catalogoCategoria='%';escritorio.catalogoPagina=0;escritorio.catalogoBusca='';escritorio.catalogoRaridade='';escritorioRedesenharNav();desenharCatalogoEscritorio()");
-  const geral = document.getElementById("office-catgeral-nav");
-  if (geral && escritorio.cat) geral.innerHTML = escritorioNavCategoriasHtml(escritorio.cat.categoria || "*", "escritorio.cat.categoria='%';escritorio.cat.ver=48;escritorioRedesenharNav();desenharCatalogoGeralEscritorio()");
-  escritorioMostrarFichasAtivas();
 }
 // Categoria em uso: a escolhida; senão, na Loja a vitrine da semana e, nas
 // outras telas, os recentes (ou os do escritório, para quem ainda não usou).
@@ -962,6 +1006,7 @@ function escritorioGrupoCatalogo() {
   if (naLoja && escritorio.base?.economia?.loja?.vitrine?.length) return "Vitrine da semana";
   return escritorioRecentes().length ? "Recentes" : "Do escritório";
 }
+// Lista com páginas (sem rolar sem fim) e busca enquanto digita.
 function desenharCatalogoEscritorio() {
   const el = document.getElementById("office-catalogo-lista");
   if (!el || !escritorioCatalogo) return;
@@ -982,11 +1027,8 @@ function desenharCatalogoEscritorio() {
   let filtros = "";
   if (aba === "meus" && lista.length) ({ lista, html: filtros } = escritorioFiltrarMeus(lista));
   // Faixas de raridade (só onde há loja: o acervo das salas comuns é livre).
-  if (!escritorioCamadaComum(escritorio.edicao?.camada) && aba !== "meus") {
-    const r = escritorio.catalogoRaridade || "";
-    filtros += escritorioChipsRaridadeHtml(lista, r, "escritorio.catalogoRaridade='%';escritorio.catalogoPagina=0;desenharCatalogoEscritorio()");
-    if (r) lista = lista.filter((m) => escritorioInfoLoja(m.classe).raridade === r);
-  }
+  if (!escritorioCamadaComum(escritorio.edicao?.camada) && aba !== "meus" && escritorio.catalogoRaridade)
+    lista = lista.filter((m) => escritorioInfoLoja(m.classe).raridade === escritorio.catalogoRaridade);
   const paginas = Math.max(1, Math.ceil(lista.length / ESCRITORIO_POR_PAGINA));
   const pag = Math.min(paginas - 1, escritorio.catalogoPagina || 0);
   const cartao = escritorioCartaoMovel;
@@ -1732,16 +1774,6 @@ function escritorioOndeEstaMovel(classe) {
   const outro = escritorioOutrosAndares().filter((it) => it[0] === classe).length;
   return { tem, aqui, outro, guardados: tem === Infinity ? Infinity : Math.max(0, tem - aqui - outro) };
 }
-function escritorioSeloQuarto(classe) {
-  const { tem, aqui, outro, guardados } = escritorioOndeEstaMovel(classe);
-  const partes = [];
-  if (aqui) partes.push(`${aqui} aqui`);
-  if (outro) partes.push(`${outro} no outro andar`);
-  if (tem === Infinity) partes.push("Grátis · colocar");
-  else if (guardados) partes.push(`${guardados} ${guardados === 1 ? "guardado" : "guardados"}`);
-  else if (!partes.length) partes.push(`Os ${tem} já estão colocados`);
-  return partes.join(" · ");
-}
 // Filtros da aba Meus móveis: por tipo (os grupos do catálogo) e por onde estão.
 const ESCRITORIO_FILTROS_ONDE = [["todos", "Todos"], ["colocados", "Colocados"], ["guardados", "Guardados"]];
 function escritorioFiltrarMeus(meus) {
@@ -1820,7 +1852,7 @@ async function escritorioAcaoMovel(classe, comprar = false) {
   escritorio.compraPendente=null;
   renderEscritorio();
   if(noEditor) escolherMovelEscritorio(classe);
-  else { atualizarCatalogoGeralEscritorio(); escritorioAviso(`Comprado: ${escritorioNomeDaClasse(classe)} está no seu Inventário. Coloque pelo Inventário ou pelo editor do quarto.`); }
+  else { redesenharCatalogoJanelaEscritorio(); escritorioAviso(`Comprado: ${escritorioNomeDaClasse(classe)} está no seu Inventário. Coloque pelo Inventário ou pelo editor do quarto.`); }
  } catch(e) { escritorioAviso(e.message); }
  finally {escritorio.comprando=false;}
 }
@@ -1847,7 +1879,8 @@ function abrirPreviaMovelEscritorio(classe) {
   const comum = escritorioCamadaComum(escritorio.edicao?.camada);
   const colocar = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(classe);
   const comprar = !comum && q !== Infinity && i.preco > 0;
-  const bloqueio = i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Fora da vitrine" : i.preco > saldo ? "Saldo insuficiente" : "";
+  // Épicos e lendários só se compram na semana em que estão na vitrine (8 móveis, troca na segunda).
+  const bloqueio = i.marco ? "Só por marco" : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Não está à venda esta semana" : i.preco > saldo ? "Saldo insuficiente" : "";
   const ficha = typeof mapaFisica === "function" ? mapaFisica(classe) : {};
   const usos = [ficha.senta && "senta", ficha.deita && "deita", ficha.pisa && "pisa em cima", ficha.poe && !ficha.pisa && "empilha"].filter(Boolean);
   const linhas = [
@@ -1855,6 +1888,7 @@ function abrirPreviaMovelEscritorio(classe) {
     ["Preço", comum || q === Infinity || !i.preco ? "Grátis" : `${i.preco.toLocaleString("pt-BR")} moedas`],
     ["Onde fica", m.parede ? "Na parede" : "No chão"],
     ["Estoque", i.restante === null ? "Sem limite" : i.restante === 0 ? "Esgotado" : i.restante === 1 ? "Resta 1" : `Restam ${i.restante}`],
+    ...(i.exigeVitrine ? [["Venda", i.naVitrine ? "Na vitrine desta semana" : "Só quando entra na vitrine da semana (troca na segunda)"]] : []),
     ["Categoria", safeText(m.categoria || "—")],
     ["Lados", m.parede ? "Na parede" : m.giros ? (m.giros < 2 ? "Não gira" : `${m.giros} lados`) : "—"],
     ["Uso", m.categoria === "Gatilhos" ? "Wired: depois de colocar, clique nele para configurar" : m.categoria === "Física" ? "Física do Habbo: muda como a pessoa anda" : m.categoria === "Ferramentas" ? "Ferramenta: clique duas vezes para usar" : usos.length ? usos.join(", ") : m.anima ? "Decoração animada" : "Decoração"],
@@ -1870,7 +1904,8 @@ ${i.marco ? `<p class="ofc-nota">Vem com o marco "${safeText(escritorio.base.eco
 ${!escritorio.edicao && q === Infinity ? '<p class="ofc-nota">Essencial grátis: aparece no editor do seu quarto, em Inventário.</p>' : ""}
 <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="this.closest('dialog').close()">Fechar</button>
 ${comprar ? `<button type="button" class="${colocar ? "workflow-secondary" : "workflow-primary"}" ${bloqueio ? "disabled" : ""} onclick="this.closest('dialog').close();escritorioAcaoMovel('${safeText(classe)}', true)">${bloqueio || `Comprar · ${i.preco.toLocaleString("pt-BR")} moedas`}</button>` : ""}
-${colocar ? `<button type="button" class="workflow-primary" onclick="this.closest('dialog').close();escolherMovelEscritorio('${safeText(classe)}')">Colocar ${comum ? "na sala" : "no quarto"}</button>` : ""}</div>`;
+${!escritorio.edicao && q > 0 && q !== Infinity ? `${escritorioOndeEstaMovel(classe).guardados ? `<button type="button" class="workflow-secondary" onclick="this.closest('dialog').close();abrirTrocaEscritorio(null,'${safeText(classe)}')">Trocar</button><button type="button" class="workflow-secondary" onclick="this.closest('dialog').close();escolherPresenteEscritorio('${safeText(classe)}')">Dar de presente</button>` : ""}<button type="button" class="workflow-primary" onclick="this.closest('dialog').close();document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
+${colocar ? `<button type="button" class="workflow-primary" onclick="this.closest('dialog').close();document.getElementById('office-catalogo')?.close();escolherMovelEscritorio('${safeText(classe)}')">Colocar ${comum ? "na sala" : "no quarto"}</button>` : ""}</div>`;
   if (!d.open) d.showModal();
   d.previa = { classe, dirs: m.parede ? [2, 4] : [2, 4, 6, 0].slice(0, Math.max(1, m.giros || 4)), lado: 0, inicio: performance.now() };
   desenharPreviaMovelEscritorio(d);

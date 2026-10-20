@@ -967,3 +967,22 @@ decoração inicial "bem feito".
     cliente (onde há a visão do quadro).
 - Regra (Paulo): demandas, contagens e calendário usam o que o painel já tem.
   Não escrever outro calendário nem outra leitura de status no Escritório.
+
+### Janela do catálogo, inventário, zoom contínuo e agenda do cliente — 19/10/2026 (noite)
+
+- Catálogo e Inventário viram uma janela só, como no Habbo: abas Loja e
+  Inventário. A Loja tem árvore de categorias, busca, faixas de raridade,
+  "À venda agora" e ordem. O Inventário mostra os seus, os guardados, os no
+  quarto e as Trocas (`escritorioTrocasHtml`). O clique abre a ficha
+  (comprar, colocar, trocar, dar de presente). As abas antigas da lateral
+  saíram. Na construção, a lateral tem caixa de categoria agrupada e
+  raridade, mais "Abrir o catálogo completo".
+- "Fora da vitrine" virou "Só na vitrine". A ficha explica que épicos e
+  lendários só se compram na semana em que entram na vitrine (troca na
+  segunda).
+- Zoom contínuo entre 0,5× e 2× durante o gesto, ancorado no cursor. O ímã
+  encaixa em 0,5×/1×/2× ao soltar perto deles. Os botões vão de nível em
+  nível. AGENTS.md atualizado.
+- Painel do agente: resumo da Agenda mensal do cliente com as funções da
+  própria Agenda (`managerCalendarItems`, `managerCalendarMonthMeta`, cores
+  e `managerCalendarOpen`). Só o desenho é do Escritório.

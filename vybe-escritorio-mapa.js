@@ -2273,7 +2273,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     // Um nível por vez (0,5× → 1× → 2×).
     const i = NIVEIS.indexOf(nivel(alvo.z));
     const novo = P.previa ? Math.max(0.35, Math.min(2.2, alvo.z * fator)) : NIVEIS[Math.max(0, Math.min(NIVEIS.length - 1, i + (fator > 1 ? 1 : fator < 1 ? -1 : 0)))];
-    if (novo === alvo.z) return;
+    irParaZoom(novo, cx, cy);
+  }
+  // Transição de 220 ms até um zoom, com o ponto (cx, cy) parado na tela.
+  function irParaZoom(novo, cx, cy) {
+    if (Math.abs(novo - alvo.z) < 1e-4) return;
     // Parte de onde a câmera está agora (mesmo no meio de outra animação).
     inercia = null;
     salto = { t0: performance.now(), z0: zoom, x0: cam.x, y0: cam.y, cx, cy };
@@ -2281,7 +2285,26 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     alvo.z = novo;
     mexerCam();
   }
-  let arrasto = null, rodaAcumulada = 0, rodaUltima = 0, rodaTrava = 0;
+  // Zoom contínuo (Paulo, 19/10/2026: "dando zoom de acordo como vai dando"):
+  // durante o gesto a escala acompanha o dedo, ancorada no cursor; ao soltar,
+  // se parou perto de 0,5×, 1× ou 2× (onde a arte de 64 px fica nítida), o
+  // ímã encaixa nesse nível.
+  const ZOOM_MIN = 0.5, ZOOM_MAX = 2, IMA = 1.12;
+  let imaRelogio = 0, imaPonto = null;
+  function zoomContinuo(fator, cx, cy) {
+    const novo = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * fator));
+    if (Math.abs(novo - zoom) < 1e-4) return;
+    salto = null; inercia = null;
+    cam.x = cx - ((cx - cam.x) / zoom) * novo; cam.y = cy - ((cy - cam.y) / zoom) * novo; zoom = novo;
+    alvo.x = cam.x; alvo.y = cam.y; alvo.z = zoom;
+    aplicar();
+  }
+  function imantarZoom() {
+    if (P.previa || !imaPonto) return;
+    const n = nivel(alvo.z);
+    if (n !== alvo.z && Math.abs(Math.log(n / alvo.z)) < Math.log(IMA)) irParaZoom(n, imaPonto.x, imaPonto.y);
+  }
+  let arrasto = null;
   // Ladrilho sob um ponto da janela (mouse, dedo, arrastar do catálogo).
   const ladrilhoEm = (cx, cy) => {
     const r = palco.getBoundingClientRect();
@@ -2363,19 +2386,16 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     e.preventDefault();
     const r = el.getBoundingClientRect();
     // Trackpad manda passos pequenos (e ctrl na pinça); roda, passos grandes.
-    const passo = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, agora = performance.now();
-    // Níveis do Habbo: a roda (ou a pinça) acumula até um "dente" e só então
-    // troca de nível. O embalo do trackpad depois da troca não pula outro
-    // nível; uma pausa zera o que sobrou.
-    if (agora - rodaUltima > 180) rodaAcumulada = 0;
-    rodaUltima = agora;
-    // Enquanto o mesmo gesto continua, a trava se estende: um gesto, um nível.
-    if (agora < rodaTrava) { rodaTrava = Math.max(rodaTrava, agora + 140); return; }
-    rodaAcumulada += passo * (e.ctrlKey ? 4 : 1);
-    if (Math.abs(rodaAcumulada) < 60) return;
-    const fator = rodaAcumulada < 0 ? 2 : 0.5;
-    rodaAcumulada = 0; rodaTrava = agora + 320;
-    mudarZoom(fator, e.clientX - r.left, e.clientY - r.top);
+    const passo = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    imaPonto = { x: cx, y: cy };
+    clearTimeout(imaRelogio); imaRelogio = setTimeout(imantarZoom, 240);
+    // Pinça do trackpad (ctrl) e rolagem com dois dedos: contínuo, quadro a
+    // quadro. Dente de roda de mouse (passo grande): a mesma escala, com
+    // transição curta para não dar tranco.
+    const fator = Math.exp(-passo * (e.ctrlKey ? 0.012 : 0.003));
+    if (Math.abs(passo) >= 50 && !e.ctrlKey) irParaZoom(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, alvo.z * fator)), cx, cy);
+    else zoomContinuo(fator, cx, cy);
   }, { passive: false });
 
   // Leva a câmera, suave, até um ponto com outro zoom (atalhos de área).
