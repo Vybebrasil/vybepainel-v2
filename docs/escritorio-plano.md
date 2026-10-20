@@ -1065,3 +1065,17 @@ decoração inicial "bem feito".
   objeto de mão; salva em `vybe_clientes.identidade.personagem`
   (`area=planejamentos&acao=personagem`). Salvar a identidade preserva o
   personagem. Vale para o agente e para o cliente que visita os quartos.
+
+### Objeto de mão, rolagem com chamada e conquistas com objeto — 20/10/2026
+
+- Jogadores escolhem o objeto de mão no criador (perfil `mao`, só `crr=N`);
+  café/lanche da pose vale por cima (#263).
+- `renderEscritorio` só põe `body.no-escritorio` com o painel na tela: com a
+  chamada ligada ele se redesenhava por trás e travava a rolagem do painel
+  (Deivid, duas telas; #264).
+- Toda conquista dá um móvel (tabela em `docs/escritorio-pontos.md`), com dez
+  conquistas novas por fazer as coisas (adiantado, de primeira, semana sem
+  atraso, planejamento aprovado, presente, troca, segundo andar, post-its).
+  `2026-10-20-escritorio-conquistas.sql` (marcador `conquistas-2026-10-20`)
+  devolve, uma vez, o móvel a quem já tinha a conquista: os reinícios de
+  18 e 19/10 apagaram os troféus.

@@ -59,7 +59,7 @@ function escritorioMarcosHtml(marcos) {
   const data = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }); };
   const nomeMovel = (classe) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return m ? escritorioNomeMovel(m) : classe.replace(/_/g, " "); };
   const feitos = marcos.filter((m) => m.ok).length;
-  return `<h4>Marcos <small>(${feitos} de ${marcos.length} · cada um dá 50 moedas e 50 XP)</small></h4><ul class="ofc-marcos">${marcos.map((m) => `<li class="${m.ok ? "ok" : ""}" title="${safeText(m.dica)}"><i aria-hidden="true">${m.ok ? "★" : "☆"}</i><span><b>${safeText(m.nome)}</b><small>${m.ok ? "Conquistado" + (m.em ? " em " + data(m.em) : "") : safeText(m.dica)}${m.moveis?.length ? ` · ${m.ok ? "ganhou" : "dá"} ${m.moveis.map((c) => safeText(nomeMovel(c))).join(", ")}` : ""}</small></span></li>`).join("")}</ul>`;
+  return `<h4>Marcos <small>(${feitos} de ${marcos.length} · cada um dá moedas, XP e um móvel)</small></h4><ul class="ofc-marcos">${marcos.map((m) => `<li class="${m.ok ? "ok" : ""}" title="${safeText(m.dica)}"><i aria-hidden="true">${m.ok ? "★" : "☆"}</i><span><b>${safeText(m.nome)}</b><small>${m.ok ? "Conquistado" + (m.em ? " em " + data(m.em) : "") : safeText(m.dica)}${m.moveis?.length ? ` · ${m.ok ? "ganhou" : "dá"} ${m.moveis.map((c) => safeText(nomeMovel(c))).join(", ")}` : ""}</small></span></li>`).join("")}</ul>`;
 }
 // Barra do dia, em cima da barra de baixo: só a da própria pessoa.
 function atualizarBarraDiaEscritorio() {
