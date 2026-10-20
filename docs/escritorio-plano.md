@@ -1051,3 +1051,17 @@ decoração inicial "bem feito".
   (`regrasDaFuncao`, tabela `vybe_escritorio_regras`): a ficha explica de onde
   vem cada coisa sem valor no código. Cada regra cai num grupo só.
 - Conquistas mostram o móvel de prêmio como medalha.
+
+### Fantasias dos clientes e avatar editável — 20/10/2026
+
+- Fantasias refeitas (Paulo): Copirecê é a Zene (foto em Drive/FOTOS ZENE:
+  cachos, óculos, vestido longo laranja florido, pipoca); Serra Grande é
+  motorista no estilo Heineken (boné e camisa verdes, lata verde); VÖA e
+  Antonov com roupa de academia e garrafinha; ConectaSim técnico com fone e
+  tablet. Cada fantasia tem um objeto de mão (5º campo, "crr" do Habbo,
+  conferido no gerador de imagens).
+- "Editar avatar" no painel do agente (head do cliente e quem administra):
+  abre o mesmo criador dos jogadores com destino no cliente e escolha do
+  objeto de mão; salva em `vybe_clientes.identidade.personagem`
+  (`area=planejamentos&acao=personagem`). Salvar a identidade preserva o
+  personagem. Vale para o agente e para o cliente que visita os quartos.

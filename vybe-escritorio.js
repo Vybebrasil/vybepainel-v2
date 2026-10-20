@@ -772,35 +772,42 @@ function escritorioEntrarNoQuarto(id) {
 // Cliente novo sem persona: fantasia pelo segmento do cadastro, abaixo.
 const ESCRITORIO_FANTASIAS = [
   // @alpha1consultoria_: consultoria; mascote lobo de polo azul e botas (Drive, LOGO + MASCOTE).
-  [/alpha ?1/, "hr-828-61.hd-180-1.ch-215-1424.lg-280-110.sh-305-1325.fa-3771-64", "M", ["Aqui sua empresa não navega: ela voa!", "Soluções inteligentes para a sua empresa.", "Auuu! Cadê o post da semana?"]],
-  // @copirece: cooperativa do milho, cuscuz e derivados; marca magenta.
-  [/copirec/, "hr-3163-45.hd-180-8.ch-215-1415.lg-280-82.sh-305-1325.ha-4133-66", "M", ["Cuscuz de Irecê para o mundo!", "Milho puro, não transgênico.", "Hoje tem receita com cuscuz?"]],
+  [/alpha ?1/, "hr-828-61.hd-180-1.ch-215-1424.lg-280-110.sh-305-1325.fa-3771-64", "M", ["Aqui sua empresa não navega: ela voa!", "Soluções inteligentes para a sua empresa.", "Auuu! Cadê o post da semana?"], "crr=87"],
+  // @copirece: cooperativa do milho, cuscuz e derivados. A Zene representa a
+  // marca (Paulo, 20/10/2026; foto em Drive/FOTOS ZENE): cachos escuros na
+  // altura do ombro, óculos, vestido longo laranja florido; pipoca é milho.
+  [/copirec/, "hd-600-1370.hr-3870-61.ea-3727-110.ch-4275-1411.sh-735-110", "F", ["Cuscuz de Irecê para o mundo!", "Milho puro, não transgênico.", "Hoje tem receita com cuscuz?"], "crr=73"],
   // @brussoloristorante: gastronomia de raiz, menu de chef; creme e oliva.
-  [/brussolo/, "hr-3011-31.hd-180-1.ch-215-1408.cc-3289-1429.lg-280-110.sh-305-110.ha-1024-1408", "M", ["Gastronomia de raiz, técnica e alma.", "Tavola per Due na vitrine!", "Reserva aberta para hoje."]],
+  [/brussolo/, "hr-3011-31.hd-180-1.ch-215-1408.cc-3289-1429.lg-280-110.sh-305-110.ha-1024-1408", "M", ["Gastronomia de raiz, técnica e alma.", "Tavola per Due na vitrine!", "Reserva aberta para hoje."], "crr=66"],
   // @gonzalezgastronomia (Alecrim Gonzalez): almoço e jantar; verde-escuro.
-  [/gonzalez/, "hr-3162-61.hd-180-10.ch-215-109.cc-3289-1408.lg-280-110.sh-305-110.ha-5510-1408", "M", ["Viva Ser Gonzalez!", "Almoço e jantar todos os dias.", "Delivery saindo!"]],
+  [/gonzalez/, "hr-3162-61.hd-180-10.ch-215-109.cc-3289-1408.lg-280-110.sh-305-110.ha-5510-1408", "M", ["Viva Ser Gonzalez!", "Almoço e jantar todos os dias.", "Delivery saindo!"], "crr=105"],
   // @academialionstop: academia há mais de 10 anos; leão prateado.
-  [/lions/, "hr-828-61.hd-180-8.ch-215-110.lg-280-110.sh-305-110.ha-5379-1427", "M", ["Mais de 10 anos transformando vidas!", "FitDance, ritbox e funcional.", "100% climatizada, bora treinar!"]],
-  // @antonovcenter: academia de treino e tecnologia; preto e laranja.
-  [/antonov/, "hr-165-45.hd-180-2.ch-215-110.lg-280-110.sh-305-94.ha-3130-94", "M", ["Treino, tecnologia e estilo de vida.", "Estrutura que acelera o seu desempenho.", "Faça sua matrícula!"]],
+  [/lions/, "hr-828-61.hd-180-8.ch-215-110.lg-280-110.sh-305-110.ha-5379-1427", "M", ["Mais de 10 anos transformando vidas!", "FitDance, ritbox e funcional.", "100% climatizada, bora treinar!"], "crr=185"],
+  // @antonovcenter: academia de treino e tecnologia; preto e laranja. Roupa
+  // de academia (Paulo, 20/10/2026): regata, short e tênis laranja, garrafinha.
+  [/antonov/, "hr-165-45.hd-180-2.ch-3429-110.lg-5547-1323.sh-305-1323", "M", ["Treino, tecnologia e estilo de vida.", "Estrutura que acelera o seu desempenho.", "Faça sua matrícula!"], "crr=185"],
   // @mangaba_ai: IA colaborativa, agentes e automação; amarelo-manga.
-  [/mangaba/, "hr-828-61.hd-180-1.ch-215-1408.cc-3389-66.lg-280-110.sh-305-94.ha-5004-1408", "M", ["Automação, agentes, resultados.", "Bip bop: agente pronto.", "IA colaborativa para o time."]],
-  // @conectasimprovedor: provedor de internet; vinho.
-  [/conecta ?sim/, "hr-3090-61.hd-180-14.ch-215-100.lg-280-82.sh-305-110.ha-4325-66", "M", ["O melhor provedor de internet da Bahia!", "Atendimento 100% humanizado.", "Sinal cheio, post no ar?"]],
-  // Grupo Serra Grande: água mineral; rosa.
-  [/serra grande/, "hr-115-61.hd-180-8.ch-215-1414.lg-280-82.sh-305-1408", "M", ["Para uma vida mais leve!", "Água fresquinha saindo!", "Seja um revendedor!"]],
+  [/mangaba/, "hr-828-61.hd-180-1.ch-215-1408.cc-3389-66.lg-280-110.sh-305-94.ha-5004-1408", "M", ["Automação, agentes, resultados.", "Bip bop: agente pronto.", "IA colaborativa para o time."], "crr=112"],
+  // @conectasimprovedor: provedor de internet; vinho. Técnico de internet:
+  // camisa com logo, fone com microfone e tablet na mão (Paulo, 20/10/2026).
+  [/conecta ?sim/, "hr-3090-61.hd-180-14.ch-5091-100.lg-280-82.sh-305-110.he-3324-110", "M", ["O melhor provedor de internet da Bahia!", "Atendimento 100% humanizado.", "Sinal cheio, post no ar?"], "crr=282"],
+  // Grupo Serra Grande Bebidas: distribuidora. Motorista de entrega no estilo
+  // de quem trabalha na Heineken (Paulo, 20/10/2026): boné e camisa verdes,
+  // lata verde na mão.
+  [/serra grande/, "hr-828-61.hd-180-8.ha-6076-1430.ch-5091-1430.lg-280-110.sh-305-62", "M", ["Para uma vida mais leve!", "Entrega saindo agora!", "Seja um revendedor!"], "crr=42"],
   // @voasportswear (VÖA Sportswear, no Antonov Center): moda fitness; bege.
-  [/\bv[oö]a\b/, "hr-890-45.hd-605-2.ch-3005-89.lg-3116-89.sh-735-1408.ha-3300-89", "F", ["Feita para voar!", "Legging nova no feed?", "Top, short e legging na vitrine."]],
+  // Look de academia (Paulo, 20/10/2026): top, legging e garrafinha.
+  [/\bv[oö]a\b/, "hr-890-45.hd-605-2.ch-3135-89.lg-3116-110.sh-735-1408", "F", ["Feita para voar!", "Legging nova no feed?", "Top, short e legging na vitrine."], "crr=185"],
   // @experimentepapelaria: papelaria; roxo.
-  [/experimente/, "hr-890-61.hd-605-1.ch-3005-76.lg-3116-110.sh-735-110.ea-3108-1408", "F", ["Toda descoberta começa com experimentação!", "Material escolar chegando!", "Compre também pelo WhatsApp."]],
+  [/experimente/, "hr-890-61.hd-605-1.ch-3005-76.lg-3116-110.sh-735-110.ea-3108-1408", "F", ["Toda descoberta começa com experimentação!", "Material escolar chegando!", "Compre também pelo WhatsApp."], "crr=230"],
   // @hebravetoficial: clínica veterinária e pet shop; preto e verde-limão.
   [/hebravet/, "hr-3012-45.hd-180-2.ch-215-101.cc-3827-1408.lg-280-110.sh-305-110", "M", ["A evolução do cuidado animal!", "Internação 24h, viu?", "Pet com consulta em dia?"]],
   // @hellenrochax: advogada previdenciarista (INSS); azul.
-  [/hellen/, "hr-890-31.hd-605-1.ch-3005-1408.cc-3008-1424.lg-3116-1424.sh-735-110.ea-3108-1408", "F", ["Benefício do INSS é direito!", "Cuidado com o golpe do INSS.", "Mais de 10 anos de previdenciário."]],
+  [/hellen/, "hr-890-31.hd-605-1.ch-3005-1408.cc-3008-1424.lg-3116-1424.sh-735-110.ea-3108-1408", "F", ["Benefício do INSS é direito!", "Cuidado com o golpe do INSS.", "Mais de 10 anos de previdenciário."], "crr=79"],
   // @diacenterbahia: clínica de hemodiálise; verde-água.
   [/dia ?center/, "hr-3043-45.hd-180-1.ch-215-104.cc-3827-1408.lg-280-104.sh-305-1408.ha-4301-1408", "M", ["Bem-estar do paciente renal.", "Irecê, Seabra e em breve Porto Seguro!", "10 anos de terapia renal."]],
   // @laboratorio_dialaboficial: análises clínicas; azul.
-  [/dia ?lab/, "hr-3161-45.hd-605-14.ch-3005-1424.cc-3827-1408.lg-3116-1424.sh-735-110.ea-3108-1408", "F", ["Agende seu exame!", "Há mais de 20 anos cuidando da sua saúde.", "Resultado saindo do laboratório."]],
+  [/dia ?lab/, "hr-3161-45.hd-605-14.ch-3005-1424.cc-3827-1408.lg-3116-1424.sh-735-110.ea-3108-1408", "F", ["Agende seu exame!", "Há mais de 20 anos cuidando da sua saúde.", "Resultado saindo do laboratório."], "crr=109"],
   // Pelo segmento do cadastro (clientes novos, até ganharem a persona da marca).
   [/cooperativ|coperativ|agro|fazend|rural/, "lg-280-64.ha-5221-1408"],
   [/restaurant|gastronom|ristorante|lanch|pizz|cozinh/, "ch-215-1408.cc-3289-1408.ha-5510-1408"],
@@ -821,11 +828,20 @@ function escritorioFantasiaDoAgente(a) {
   const texto = `${a.cliente || ""} ${a.segmento || ""}`.toLowerCase();
   return ESCRITORIO_FANTASIAS.find(([re]) => re.test(texto));
 }
+// O avatar editado no painel do agente (identidade do cliente) vence a
+// fantasia padrão da marca; sem ele, a fantasia; sem fantasia, o uniforme.
 function escritorioFiguraDoAgente(a, i) {
+  if (a?.personagem?.figura) return a.personagem.figura;
   const [, roupa = "", corpo = i % 4 === 1 ? "F" : "M"] = escritorioFantasiaDoAgente(a) || [];
   const partes = new Map(ESCRITORIO_AGENTE_BASE[corpo].split(".").map((p) => [p.split("-")[0], p]));
   for (const p of roupa.split(".").filter(Boolean)) partes.set(p.split("-")[0], p);
   return [...partes.values()].join(".");
+}
+// Objeto de mão do agente (o "crr" do Habbo): o do avatar editado ou o da
+// fantasia da marca.
+function escritorioMaoDoAgente(a) {
+  if (a?.personagem?.figura) return a.personagem.mao || "";
+  return escritorioFantasiaDoAgente(a)?.[4] || "";
 }
 const ESCRITORIO_SITUACAO_PLANO = { revisar: ["Para revisar", "#ffc46b"], enviado: ["Com o cliente", "#8cc8ff"], aprovado: ["Aprovado", "#6fe3a8"],
   ajustes: ["Ajustes pedidos", "#ff8f8f"], cadastrado: ["Cadastrado", "#b9c2d0"] };
@@ -847,7 +863,7 @@ async function escritorioOcuparOperacao() {
     const al = a.alertas || {};
     const resumoAvisos = [al.atrasadas_total && `${al.atrasadas_total} muito atrasada${al.atrasadas_total > 1 ? "s" : ""}`, al.aprovar_total && `${al.aprovar_total} para aprovar`,
       al.sem_info_total && `${al.sem_info_total} sem informação`].filter(Boolean).join(" · ");
-    return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
+    return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), mao: escritorioMaoDoAgente(a), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
       avisos: al.total || 0, resumoAvisos, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
@@ -924,7 +940,7 @@ function pintarAgenteOperacaoEscritorio() {
   const tituloLista = qual === "proximas" ? "Próximas peças" : ESCRITORIO_AGENTE_LISTAS.find(([k]) => k === qual)?.[1].replace(/^./, (c) => c.toUpperCase());
   el.innerHTML = `<div class="workflow-kicker"><span>Agente de ${safeText(a.cliente)}</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
   <div class="ofc-agente-topo">${boneco}<div class="ofc-agente-nome"><h2 class="workflow-title">${safeText(a.cliente)}</h2><span>${tag}${a.segmento ? `<small>${safeText(a.segmento)}</small>` : ""}</span></div>
-   <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></div>
+   <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}${escritorio.base?.admin || a.meu ? `<button type="button" class="workflow-secondary" onclick="abrirAvatarDoClienteEscritorio()" title="Trocar roupa, cabelo e objeto de mão do agente deste cliente">Editar avatar</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></div>
   <div class="ofc-agente-nums" role="group" aria-label="Trabalho do cliente: clique para ver a lista">${abas}</div>
   <div class="ofc-agente-grade">
    <div class="ofc-agente-col">${typeof planejamentosDoClienteHtml === "function" ? planejamentosDoClienteHtml() : ""}${escritorioMiniAgendaHtml(nome)}</div>

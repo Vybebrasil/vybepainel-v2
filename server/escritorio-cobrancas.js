@@ -30,7 +30,7 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
   const hoje = diaBahia(agora), amanha = somarDias(hoje, 1), tarde = horaBahia(agora) >= 12;
   const linhas = await sql`SELECT c.id, c.monday_item_id, c.board_id, c.titulo, c.status_chave, s.rotulo AS status, COALESCE(s.final,false) AS final,
       TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo, TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,
-      cl.id AS cliente_id, cl.nome AS cliente, cl.segmento,
+      cl.id AS cliente_id, cl.nome AS cliente, cl.segmento, cl.identidade->'personagem' AS personagem,
       COALESCE(ARRAY(SELECT r.pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=c.id), '{}') AS responsaveis,
       COALESCE(ARRAY(SELECT h.pessoa_id::text FROM vybe_cliente_pessoas h WHERE h.cliente_id=cl.id), '{}') AS heads,
       COALESCE(ARRAY(SELECT p.nome FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id=r.pessoa_id WHERE r.conteudo_id=c.id ORDER BY r.ordem), '{}') AS com
@@ -49,7 +49,7 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
   const cobrar = (ids, item) => { for (const id of new Set(ids)) { if (!por.has(id)) por.set(id, []); if (!por.get(id).some((x) => x.ref === item.ref && x.cliente_id === item.cliente_id)) por.get(id).push(item); } };
   for (const l of linhas) {
     const base = { ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: String(l.board_id) === '8385559107' ? 'demandas' : 'producao',
-      titulo: l.titulo || 'Sem título', status: l.status || '', status_chave: l.status_chave || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null, com: l.com || [] };
+      titulo: l.titulo || 'Sem título', status: l.status || '', status_chave: l.status_chave || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null, personagem: l.personagem || null, com: l.com || [] };
     const heads = l.heads.length ? l.heads : gestao;
     if (l.status_chave === 'para_agendar') {
       if (l.veiculacao && l.veiculacao <= hoje) cobrar(agendamento, { ...base, tipo: 'agendar', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje) });

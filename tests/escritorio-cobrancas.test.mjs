@@ -7,7 +7,7 @@ import {cobrancasDaEquipe} from '../server/escritorio-cobrancas.js';
 test('cada demanda que pede ação manda o cliente para o quarto de quem deve agir',async t=>{
  const {db,sql}=await bancoEscritorio(t);
  await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN titulo text, ADD COLUMN monday_item_id text;
-  ALTER TABLE vybe_clientes ADD COLUMN segmento text;
+  ALTER TABLE vybe_clientes ADD COLUMN segmento text, ADD COLUMN identidade jsonb NOT NULL DEFAULT '{}'::jsonb;
   CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint,ordem int DEFAULT 0);
   INSERT INTO vybe_cliente_pessoas VALUES(1,3),(2,24);
   INSERT INTO vybe_status VALUES(7829537690,'ag_info_cliente','Ag. Info Cliente',false),(7829537690,'a_fazer','A Fazer',false);
