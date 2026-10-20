@@ -146,7 +146,7 @@ export async function resumoPontos(sql, pessoaId, agora = new Date()) {
     FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
     WHERE m.pessoa_id=${pessoaId} AND m.criado_em >= ${agora}::timestamptz - interval '7 days'
     GROUP BY 1 ORDER BY 4 DESC, 3 DESC, 2 DESC LIMIT 15`;
-  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, ganhos, regras: await regrasDaFuncao(sql, f?.funcao || null),
+  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, ganhos, regras: await regrasDaFuncao(sql, f?.funcao || null), bolo: await fatiasDoBolo(sql),
     trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora), missoes: await tabelaDasMissoes(sql, f?.funcao || null) };
 }
 // Todas as regras que valem para a função (e as de todo mundo), com o valor

@@ -54,6 +54,24 @@ function escritorioNumerosDe(pessoa) {
 }
 // Marcos calculados no servidor (server/escritorio-marcos.js): cada um diz se
 // foi conquistado, quando, e o móvel que dá. Nome do móvel pelo catálogo do editor.
+// Regras gerais na ficha (Paulo, 20/10/2026): o que dá e o que tira XP e
+// moedas, e como o bolo de cada peça é dividido. Tudo vem das tabelas.
+function escritorioComoFuncionaHtml(bolo, regras) {
+  const pct = (n) => (n ? `${Math.round(n * 1000) / 10}%`.replace(".", ",") : "—");
+  const papeis = [["producao", "Produção (quem grava e fotografa)"], ["criacao", "Criação (quem faz a peça)"], ["atendimento", "Atendimento (head da carteira)"], ["agendamento", "Agendamento (quem agenda)"], ["gestao", "Gestão"]];
+  const tabela = bolo ? `<table class="ofc-hud-bolo"><thead><tr><th>Quem</th><th>Foto e vídeo</th><th>Outras peças</th></tr></thead><tbody>${papeis.map(([k, nome]) => `<tr><td>${nome}</td><td>${pct(bolo[k]?.captada)}</td><td>${pct(bolo[k]?.normal)}</td></tr>`).join("")}</tbody></table>
+<p class="ofc-nota">Quando o DA aprova a peça de outra pessoa, fica com ${pct(bolo.direcao_arte?.normal)} da parte da Criação. Se várias pessoas fazem a mesma peça, dividem a parte.</p>` : "";
+  const ganha = [...new Set(regras.filter((r) => r.moedas > 0).map((r) => r.descricao))];
+  const perde = [...new Set(regras.filter((r) => r.moedas < 0).map((r) => r.descricao))];
+  return `<section class="ofc-hud-bloco ofc-hud-como"><div class="ofc-hud-bloco-topo"><h4>Como funciona</h4><small>Moedas compram móveis; XP sobe o nível.</small></div>
+${bolo ? `<p>Cada peça concluída vira um <b>bolo</b> de moedas e XP do tamanho do formato (um Reels vale 2,5 vezes um Card). O bolo é dividido entre quem trabalhou nela:</p>${tabela}` : ""}
+<ul class="ofc-hud-como-lista">
+<li><b>Dá XP:</b> tudo o que dá moedas também dá XP, além das conquistas e do fechamento do dia e da semana.</li>
+<li><b>Tira XP:</b> nada. O XP nunca cai.</li>
+<li><b>Dá moedas:</b> ${ganha.length ? safeText(ganha.join("; ")) : "as entregas"}; e cada conquista.</li>
+<li><b>Tira moedas:</b> ${perde.length ? safeText(perde.join("; ")) + "; e" : ""} as compras na loja. O saldo nunca fica negativo.</li>
+</ul></section>`;
+}
 // Bolo por peça: a parte da pessoa em foto/vídeo e nas outras peças.
 function escritorioParteDoBoloTexto(parte) {
   const pct = (n) => `${Math.round(n * 1000) / 10}%`.replace(".", ",");
@@ -176,7 +194,7 @@ ${!veNumeros && jogo?.marcos?.length ? `<section class="ofc-hud-bloco"><h4>Últi
     const grupoDe = new Map(regras.map((r) => [r, grupos.findIndex(([, , f]) => f(r))]));
     const ordem = [3, 4, 1, 2, 0];
     corpo = !economia ? carregando("Carregando as regras…") : !regras.length ? '<p class="ofc-nota">As regras aparecem quando a contagem de pontos estiver ativa.</p>'
-      : `<p class="ofc-nota">${funcao ? `Regras de <b>${funcao}</b> e as que valem para todo mundo.` : "Regras que valem para todo mundo."} Os valores são os da tabela da Vybe e podem mudar.</p>
+      : `${escritorioComoFuncionaHtml(pontos?.bolo, regras)}<p class="ofc-nota">${funcao ? `Regras de <b>${funcao}</b> e as que valem para todo mundo.` : "Regras que valem para todo mundo."} Os valores são os da tabela da Vybe e podem mudar.</p>
 ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) => grupoDe.get(r) === gi); return l.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>${titulo}</h4><small>${dica}</small></div><ul class="ofc-hud-regras">${l.map((r) => `<li><span><b>${safeText(r.descricao)}</b>${r.parte ? `<small>${escritorioParteDoBoloTexto(r.parte)}</small>` : r.por_complexidade ? "<small>Vale mais conforme o formato da peça (Reels, Carrossel…).</small>" : ""}${r.entrega && gi !== 3 ? "<small>Conta na meta da semana.</small>" : ""}</span><span class="ofc-hud-chips">${chips(r.moedas, r.pontos)}</span></li>`).join("")}</ul></section>` : ""; }).join("")}`;
   } else if (aba === "conquistas") {
     if (veNumeros && marcos) {
