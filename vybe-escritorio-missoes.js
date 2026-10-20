@@ -53,12 +53,14 @@ function verTodasMissoesEscritorio() {
   pintarMissoesEscritorio();
 }
 
+// Toda data de demanda diz se é prazo ou veiculação (Paulo, 19/10/2026).
 function missaoPrazoHtml(m) {
-  if (!m.prazo) return '<em class="ofc-missao-prazo">Sem data</em>';
+  if (!m.prazo) return '<em class="ofc-missao-prazo">Sem prazo nem veiculação</em>';
+  const tipo = m.tipo_data === "veiculacao" ? "Veiculação" : "Prazo";
   const dm = `${m.prazo.slice(8, 10)}/${m.prazo.slice(5, 7)}`;
-  if (m.atrasada) return `<em class="ofc-missao-prazo atrasada">Atrasada · ${dm}</em>`;
-  if (m.hoje) return '<em class="ofc-missao-prazo hoje">Hoje</em>';
-  return `<em class="ofc-missao-prazo">${dm}</em>`;
+  if (m.atrasada) return `<em class="ofc-missao-prazo atrasada">${m.tipo_data === "veiculacao" ? "Veiculação vencida" : "Prazo vencido"} · ${dm}</em>`;
+  if (m.hoje) return `<em class="ofc-missao-prazo hoje">${tipo} hoje</em>`;
+  return `<em class="ofc-missao-prazo">${tipo} ${dm}</em>`;
 }
 function missaoValorHtml(v) {
   if (!v || (!v.pontos && !v.moedas)) return "";
@@ -96,8 +98,7 @@ function pintarMissoesEscritorio() {
           onclick="abrirMissaoEscritorio('${safeText(m.ref)}','${m.quadro}')">
           <span class="ofc-missao-linha">${missaoPrazoHtml(m)}<span class="ofc-missao-valor">${missaoValorHtml(m.recompensa)}</span></span>
           <b class="ofc-missao-titulo">${safeText(m.titulo)}</b>
-          <small class="ofc-missao-cliente">${safeText(m.cliente || "Sem cliente")}${m.formato ? ` · ${safeText(m.formato)}` : ""}</small>
-          <span class="ofc-missao-linha ofc-missao-estado">${m.status ? `<span class="ofc-missao-status">${safeText(m.status)}</span>` : ""}${m.grupo ? `<span class="ofc-missao-grupo">${safeText(m.grupo)}</span>` : ""}</span>
+          ${missaoEtiquetasHtml(m)}
         </button></li>`).join("")}</ol>` : `<p class="ofc-nota">Nada em "${MISSOES_FILTROS.find(([k]) => k === filtro)[1]}".</p>`}
       ${filtradas.length > MISSOES_VISIVEIS ? `<button type="button" class="ofc-mini" onclick="verTodasMissoesEscritorio()">${escritorio.missoesTodas ? "Mostrar menos" : `Ver todas (${filtradas.length})`}</button>` : ""}`
       : '<p class="ofc-nota">Nenhuma tarefa aberta com você. Quando uma demanda chegar, ela aparece aqui com o que vale.</p>'}
@@ -153,12 +154,14 @@ function agruparCobrancas(lista) {
   }
   return grupos.sort((x, y) => COBRANCA_PESO[y.pior.tipo] - COBRANCA_PESO[x.pior.tipo] || y.itens.length - x.itens.length);
 }
+// Sempre diz de qual data se trata: prazo (entrega) ou veiculação (postagem).
 function cobrancaRotulo(c) {
-  if (c.tipo === "atrasada") return `${c.dias} dia${c.dias > 1 ? "s" : ""} de atraso`;
-  if (c.tipo === "hoje") return "É pra hoje";
-  if (c.tipo === "vence") return "Vence amanhã";
-  if (c.tipo === "agendar") return c.dias > 0 ? `Postagem atrasada ${c.dias} dia${c.dias > 1 ? "s" : ""}` : "Postar hoje";
-  return "Esperando o cliente";
+  const dm = c.data ? ` (${c.data.slice(8, 10)}/${c.data.slice(5, 7)})` : "";
+  if (c.tipo === "atrasada") return `Prazo vencido há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm}`;
+  if (c.tipo === "hoje") return "Prazo é hoje";
+  if (c.tipo === "vence") return `Prazo amanhã${dm}`;
+  if (c.tipo === "agendar") return c.dias > 0 ? `Veiculação atrasada há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm}` : "Veiculação é hoje";
+  return `Esperando o cliente · prazo${dm || " sem data"}`;
 }
 function pintarCobrancasEscritorio(grupos, dono) {
   const el = document.getElementById("office-cobrancas");
@@ -201,6 +204,22 @@ function abrirCobrancaClienteEscritorio(g, e) {
   pop.style.left = Math.max(8, Math.min(r.width - w - 8, x + 14)) + "px";
   pop.style.top = Math.max(60, Math.min(r.height - h - 8, y - 20)) + "px";
   pop.querySelector(".ofc-cobranca")?.focus();
+}
+// Cliente, status e grupo com o padrão de cor do painel (Paulo, 19/10/2026:
+// "cadê o padrão de cor do status, do grupo e do cliente?"): a etiqueta do
+// cliente é a da carteira (tagClienteHtml), o status é a pílula do quadro com a
+// cor do item (pillHtmlDemanda) e o grupo leva a cor que ele tem no quadro.
+function missaoEtiquetasHtml(m) {
+  const item = typeof findOperationalItem === "function" ? findOperationalItem(m.ref) : null;
+  const clientes = item && typeof clientesDoItem === "function" ? clientesDoItem(item) : (m.cliente ? [m.cliente] : []);
+  const tag = (nome) => typeof tagClienteHtml === "function" ? tagClienteHtml(nome, { dentroDeBotao: true }) : `<span>${safeText(nome)}</span>`;
+  const status = item?.status || m.status;
+  const pilula = status ? (typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(status, item?.status_color || "", item?.status_border || "") : `<span class="ofc-missao-status">${safeText(status)}</span>`) : "";
+  const grupoId = item?.group_id, grupoNome = item?.grupo || m.grupo;
+  const corGrupo = (grupoId && ((typeof CORES_DOS_GRUPOS !== "undefined" && CORES_DOS_GRUPOS[grupoId]) || (typeof CORES_GRUPOS_DEMANDAS !== "undefined" && CORES_GRUPOS_DEMANDAS[grupoId])))
+    || (typeof GRUPOS_DO_PAINEL !== "undefined" && GRUPOS_DO_PAINEL.lista.find((g) => g.titulo === grupoNome)?.cor) || "";
+  return `<span class="ofc-missao-linha ofc-missao-clientes">${clientes.length ? clientes.map(tag).join("") : '<small class="ofc-missao-cliente">Sem cliente</small>'}${m.formato ? `<small class="ofc-missao-cliente">${safeText(m.formato)}</small>` : ""}</span>
+          <span class="ofc-missao-linha ofc-missao-estado">${pilula}${grupoNome ? `<span class="ofc-missao-grupo"${corGrupo ? ` style="--grupo:${safeText(corGrupo)}"` : ""}><i aria-hidden="true"></i>${safeText(grupoNome)}</span>` : ""}</span>`;
 }
 function alternarCobrancasEscritorio() {
   let aberto = true;

@@ -7780,3 +7780,10 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .day-scroll-card .day-pending-tabs button {padding:4px 6px}
 .day-scroll-card > .client-progress {padding:2px 12px 6px}
 .day-scroll-card .day-expansion-footer {padding:6px 12px}
+/* Missões com o padrão do painel: etiqueta do cliente da carteira, pílula do
+   status e o grupo com a bolinha na cor que ele tem no quadro. */
+.ofc-missao-clientes {display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.ofc-missao-clientes .cliente-carteira {padding:1px 6px;font-size:10.5px;line-height:1.35;border-radius:6px}
+.ofc-missao-estado .status-pill, .ofc-missao-estado .pill {font-size:10.5px}
+.ofc-missao-grupo {display:inline-flex;align-items:center;gap:5px}
+.ofc-missao-grupo i {width:8px;height:8px;border-radius:2px;background:var(--grupo,#7c8797);flex:none}
