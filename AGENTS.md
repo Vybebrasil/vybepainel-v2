@@ -245,7 +245,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Não premie tempo online nem invente outro razão, carteira ou gatilho.
   Desde 20/10/2026 (decisão do Paulo) cada peça é um bolo dividido por quem
   trabalhou nela (`vybe_escritorio_fatias`: Produção/Mizinho em toda foto e
-  vídeo, Criação com 10% para o DA, Atendimento, Agendamento, Gestão), na
+  vídeo, Criação com 10% para o DA, Atendimento, Agendamento e pouco para a
+  Gestão; quem cadastra a demanda e escreve o briefing ganha por isso), na
   migração `2026-10-20-escritorio-bolo-por-peca.sql`; não volte a pagar cada
   função por uma regra solta. O briefing conta como entrega; migração
   `2026-10-19-escritorio-gestao-pontos.sql` já aplicada em 19/10/2026.

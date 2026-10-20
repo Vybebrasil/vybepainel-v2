@@ -182,7 +182,7 @@ export function parteDoBolo(fatias, regra, captada) {
   const papel = PAPEL_DA_REGRA[regra];
   if (!papel || !fatias?.[papel]) return null;
   const da = regra === 'peca_da' ? fatias.direcao_arte || {} : null;
-  const de = (k) => (fatias[papel][k] || 0) * (da ? da[k] || 0 : 1);
+  const de = (k) => Math.round((fatias[papel][k] || 0) * (da ? da[k] || 0 : 1) * 10000) / 10000;
   if (captada === undefined) return { captada: de('captada'), normal: de('normal') };
   return de(captada ? 'captada' : 'normal');
 }

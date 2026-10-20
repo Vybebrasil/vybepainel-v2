@@ -2,9 +2,11 @@
 -- bolo de moedas e XP do tamanho do formato (peso de vybe_escritorio_complexidade)
 -- e o bolo é dividido por quem trabalhou nela, pelas fatias da tabela
 -- vybe_escritorio_fatias:
---   foto, reels e vídeo (captados): Produção 25%, Criação 50%, Atendimento 10%,
---     Agendamento 10%, Gestão 5%;
---   as demais peças: Criação 65%, Atendimento 15%, Agendamento 12%, Gestão 8%.
+--   foto, reels e vídeo (captados): Produção 25%, Criação 53%, Atendimento 10%,
+--     Agendamento 10%, Gestão 2%;
+--   as demais peças: Criação 70%, Atendimento 15%, Agendamento 12%, Gestão 3%.
+-- A Gestão leva pouco de cada peça; quem cadastra a demanda (e escreve o
+-- briefing) ganha por isso, seja quem for (Paulo, 20/10/2026).
 -- Toda foto e todo vídeo é do Mizinho (Produção), mesmo sem o evento de
 -- captação. O DA (Deivid) que aprova a peça de outra pessoa fica com 10% da
 -- fatia da Criação; quem executou fica com o resto. Quem fez é quem está como
@@ -34,8 +36,8 @@ CREATE TABLE IF NOT EXISTS vybe_escritorio_fatias (
 );
 -- direcao_arte é a parte da fatia da Criação que vai para o DA.
 INSERT INTO vybe_escritorio_fatias(papel,captada,fatia) VALUES
- ('producao',true,.25),('criacao',true,.50),('atendimento',true,.10),('agendamento',true,.10),('gestao',true,.05),
- ('producao',false,0),('criacao',false,.65),('atendimento',false,.15),('agendamento',false,.12),('gestao',false,.08),
+ ('producao',true,.25),('criacao',true,.53),('atendimento',true,.10),('agendamento',true,.10),('gestao',true,.02),
+ ('producao',false,0),('criacao',false,.70),('atendimento',false,.15),('agendamento',false,.12),('gestao',false,.03),
  ('direcao_arte',true,.10),('direcao_arte',false,.10)
 ON CONFLICT (papel,captada) DO NOTHING;
 
@@ -50,6 +52,11 @@ INSERT INTO vybe_escritorio_regras(chave,funcao,descricao,moedas,pontos,teto,ent
  -- Percentuais do histórico de antes de 17/10: moedas 20%, XP 100%.
  ('historico',NULL,'Peças de antes de 17/10 (parte das moedas)',20,100,NULL,false,true,false)
 ON CONFLICT (chave) DO NOTHING;
+-- Cadastrar a demanda e escrever o briefing pagam quem fez, de qualquer função.
+INSERT INTO vybe_escritorio_regras(chave,funcao,descricao,moedas,pontos,teto,entrega,ativa,por_complexidade) VALUES
+ ('cadastro',NULL,'Demanda cadastrada',1,2,NULL,false,true,false)
+ON CONFLICT (chave) DO NOTHING;
+UPDATE vybe_escritorio_regras SET funcao=NULL, moedas=1, pontos=2, descricao='Briefing escrito no cadastro', entrega=true WHERE chave='briefing';
 -- As regras antigas por função saem: o bolo paga cada uma delas.
 UPDATE vybe_escritorio_regras SET ativa=false
  WHERE chave IN ('entrega','criacao_aprovacao','captacao','carteira','agendamento','agencia','chegada');
@@ -226,8 +233,12 @@ BEGIN
   FOR executor IN SELECT pessoa_id FROM vybe_escritorio_funcoes WHERE funcao='producao' ORDER BY 1 LOOP
    PERFORM vybe_pagar_fatia(executor,'peca_producao','peca:'||c.id||':producao',c.id,dia,1.0/(SELECT count(*) FROM vybe_escritorio_funcoes WHERE funcao='producao'));
   END LOOP;
- ELSIF ev.tipo='criacao' AND NULLIF(trim(COALESCE(c.briefing,'')),'') IS NOT NULL THEN
-  PERFORM vybe_aplicar_regra(ev.autor_id,'briefing','briefing:'||c.id,c.id,dia);
+ ELSIF ev.tipo='criacao' THEN
+  -- Quem cadastrou a demanda; com briefing, ganha também por ele.
+  PERFORM vybe_aplicar_regra(ev.autor_id,'cadastro','cadastro:'||c.id,c.id,dia);
+  IF NULLIF(trim(COALESCE(c.briefing,'')),'') IS NOT NULL THEN
+   PERFORM vybe_aplicar_regra(ev.autor_id,'briefing','briefing:'||c.id,c.id,dia);
+  END IF;
  END IF;
 END $$;
 CREATE OR REPLACE FUNCTION vybe_pontuar_evento() RETURNS trigger LANGUAGE plpgsql AS $$

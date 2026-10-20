@@ -430,8 +430,11 @@ trabalhou na peça, pelas fatias de `vybe_escritorio_fatias`:
 
 | Peça | Produção | Criação | Atendimento | Agendamento | Gestão |
 |---|---|---|---|---|---|
-| Foto, reels, vídeo (`captada`) | 25% | 50% | 10% | 10% | 5% |
-| Demais | — | 65% | 15% | 12% | 8% |
+| Foto, reels, vídeo (`captada`) | 25% | 53% | 10% | 10% | 2% |
+| Demais | — | 70% | 15% | 12% | 3% |
+
+A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
+(regra `cadastro`) e mais pelo briefing escrito (`briefing`), de qualquer função.
 
 - Toda foto e todo vídeo é do Mizinho (Produção), pelo formato ou pela captação.
 - O DA (`vybe_escritorio_funcoes.direcao_arte`, Deivid) que tira de "Para
