@@ -1576,7 +1576,12 @@ async function areaGrupos(req, res, quem) {
 
 async function areaAgendaProducao(req,res,quem) {
   if(req.method!=='GET') return res.status(405).json({error:'Método não permitido.'});
-  if(quem.tipo!=='servico' && !quem.pessoa?.admin) return res.status(403).json({error:'Só quem administra consulta a agenda de produção.'});
+  // A equipe toda lê a agenda da Vybe (Paulo, 20/10/2026: ícone Agenda no
+  // Escritório; estações abertas). Evento privado, pessoal, folga, férias e
+  // aniversário continuam fora (gravacoesDaAgenda). O diagnóstico da conta
+  // de serviço segue só com quem administra.
+  if(quem.tipo!=='servico' && !quem.pessoa) return res.status(403).json({error:'Entre com a sua conta para ver a agenda.'});
+  if(req.query?.diagnostico==='1' && quem.tipo!=='servico' && !quem.pessoa?.admin) return res.status(403).json({error:'Só quem administra vê o diagnóstico da agenda.'});
   if(req.query?.diagnostico==='1') return res.status(200).json({ok:true,...configuracaoAgenda()});
   try { return res.status(200).json(await listarAgendaProducao(req.query?.dia)); }
   catch(erro) { return res.status(erro.status || 502).json({error:erro.status===400 || erro.publica===true ? erro.message : 'Agenda de produção indisponível. Confira o acesso da conta de serviço ao Google Agenda e tente novamente.'}); }

@@ -1003,3 +1003,22 @@ decoração inicial "bem feito".
   - Embaixo: "Comprar mais na loja" e "Trocas e presentes".
   - A Carteira saiu da construção: é a terceira aba da janela (Loja ·
     Inventário · Carteira), e o saldo no topo leva até ela.
+
+### Painel do agente, Agenda e demandas editáveis — 20/10/2026
+
+- **Painel do agente** (`pintarAgenteOperacaoEscritorio`): cabeçalho numa faixa
+  com o boneco do agente na fantasia do cliente e a etiqueta da carteira. Os
+  números viram abas que trocam a lista da direita: atrasadas
+  (`prazo_atrasado`), para aprovar, esta semana (`dataDoCartaoDia`) e
+  esperando o cliente (`riskActionOwner`). O padrão é "Próximas peças".
+  "Pede atenção" vazio vira uma linha. O calendário ganhou legenda.
+- **Agenda** na barra lateral (`abrirAgendaEscritorio`): a semana do Google
+  Agenda da Vybe, só leitura. Usa a mesma consulta da Produção
+  (`area=agenda_producao`), agora aberta a toda a equipe com sessão (estações
+  abertas). Evento privado, pessoal, folga, férias e aniversário continuam
+  fora; o diagnóstico da conta de serviço segue só com quem administra.
+- **Demandas no jogo abrem o cartão rápido do painel** (`abrirMissaoEscritorio`
+  → `abrirCartaoRapido`): status, datas, responsável, prioridade, renomear e
+  "…" com Arquivar; "Abrir detalhes" leva à gaveta. Vale para missões,
+  cobranças, painel do agente e calendário. Sem a peça carregada, abre a
+  gaveta como antes.

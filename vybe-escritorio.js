@@ -548,6 +548,7 @@ function escritorioIcone(nome) {
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
     inventario: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 016 0v2"/>',
+    agenda: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17h2M11 17h2"/>',
     loja: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0A2.7 2.7 0 0020 9"/><path d="M5.5 11.5V20h13v-8.5M10 20v-5h4v5"/>',
   }[nome] || "";
   return `<svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -819,21 +820,60 @@ async function escritorioOcuparOperacao() {
     const resumoAvisos = [al.atrasadas_total && `${al.atrasadas_total} muito atrasada${al.atrasadas_total > 1 ? "s" : ""}`, al.aprovar_total && `${al.aprovar_total} para aprovar`,
       al.sem_info_total && `${al.sem_info_total} sem informação`].filter(Boolean).join(" · ");
     return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean(a.meu && p && ["revisar", "ajustes"].includes(p.estado)),
-      avisos: al.total || 0, resumoAvisos, aoClicar: () => abrirAgenteOperacaoEscritorio(a) };
+      avisos: al.total || 0, resumoAvisos, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
 }
 // Painel do agente: um resumo que leva ao que o painel já tem (Paulo,
-// 19/10/2026: "não sair duplicando regra de nada"). Os números vêm de
-// clientMasterRecords (a mesma conta da tela de Clientes), o quadro de
+// 19/10/2026: "não sair duplicando regra de nada"). Os números são listas
+// com as regras do painel (escritorioListasDoAgente), o quadro de
 // planejamentos é o da ficha do cliente (documento para revisar e mandar ao
 // cliente), o calendário é a Agenda mensal filtrada no cliente e "pede
 // atenção" são os avisos do servidor (server/alertas-clientes.js), uma linha
 // por peça. Cada peça abre na gaveta de sempre.
-function abrirAgenteOperacaoEscritorio(a) {
-  escritorio.agenteAberto = { a };
+function abrirAgenteOperacaoEscritorio(a, figura) {
+  escritorio.agenteAberto = { a, figura, lista: "proximas" };
   openWorkflowModal(`<div class="ofc-agente" id="ofc-agente"></div>`);
   document.getElementById("workflow-modal")?.classList.add("ofc-agente-janela");
+  pintarAgenteOperacaoEscritorio();
+}
+// Listas do painel do agente com as regras do painel (Paulo, 20/10/2026:
+// números que levam ao trabalho): atraso é o mesmo prazo_atrasado do painel;
+// "esperando o cliente" é a próxima ação do radar de risco (riskActionOwner);
+// "esta semana" usa a data do quadro dos dias (prazo ou veiculação, como o
+// painel estiver). Só a escolha das listas é daqui.
+const ESCRITORIO_AGENTE_LISTAS = [
+  ["atrasadas", "atrasadas", "ruim"], ["aprovar", "para aprovar", "aviso"], ["semana", "esta semana", ""], ["cliente", "esperando o cliente", ""],
+];
+function escritorioListasDoAgente(nome) {
+  const itens = (typeof unifiedOperationalItems === "function" ? unifiedOperationalItems() : []).filter((d) => itemTemCliente(d, nome));
+  const fechada = (d) => typeof isFinishedItem === "function" ? isFinishedItem(d) : /final|feito|conclu/i.test(d.status || "");
+  const abertas = itens.filter((d) => !fechada(d));
+  const hoje = typeof hojeDeVerdade === "function" ? hojeDeVerdade() : new Date().toISOString().slice(0, 10);
+  const fim = new Date(hoje + "T12:00:00"); fim.setDate(fim.getDate() + 6);
+  const ate = fim.toISOString().slice(0, 10);
+  const dataDe = (d) => (typeof dataDoCartaoDia === "function" ? dataDoCartaoDia(d) : "") || d.prazo_iso || d.veiculacao_iso || "";
+  const doCliente = (d) => typeof riskActionOwner === "function" && riskActionOwner(d).source === "cliente";
+  const porData = (l) => l.sort((x, y) => (dataDe(x) || "9999").localeCompare(dataDe(y) || "9999"));
+  return {
+    atrasadas: porData(abertas.filter((d) => d.prazo_atrasado || (d.prazo_iso && d.prazo_iso < hoje))),
+    aprovar: porData(abertas.filter((d) => /aprova/i.test(d.status || "") && !doCliente(d))),
+    semana: porData(abertas.filter((d) => { const x = dataDe(d); return x && x >= hoje && x <= ate; })),
+    cliente: porData(abertas.filter(doCliente)),
+    proximas: porData(abertas.filter((d) => dataDe(d) >= hoje)),
+  };
+}
+// Uma peça: título, as datas sempre nomeadas (prazo e veiculação) e a pílula
+// do status com a cor do quadro; abre no cartão rápido do painel.
+function escritorioPecaDoAgenteHtml(d) {
+  const dm = (iso) => iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "";
+  const datas = [d.prazo_iso && `Prazo ${dm(d.prazo_iso)}`, d.veiculacao_iso && `Veiculação ${dm(d.veiculacao_iso)}`].filter(Boolean).join(" · ") || "Sem data";
+  const pilula = d.status && typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(d.status, d.status_color || "", d.status_border || "") : "";
+  return `<li><button type="button" class="ofc-agente-peca" onclick="abrirMissaoEscritorio('${safeText(String(d.id))}','${typeof isRequestItem === "function" && isRequestItem(d) ? "demandas" : "producao"}',event);closeWorkflowModal()"><span><b>${safeText(d.nome || "Sem título")}</b><span class="ofc-agente-peca-linha"><small${d.prazo_atrasado ? ' class="vencida"' : ""}>${safeText(datas)}</small>${pilula}</span></span></button></li>`;
+}
+function escolherListaDoAgenteEscritorio(qual) {
+  if (!escritorio.agenteAberto) return;
+  escritorio.agenteAberto.lista = escritorio.agenteAberto.lista === qual ? "proximas" : qual;
   pintarAgenteOperacaoEscritorio();
 }
 function pintarAgenteOperacaoEscritorio() {
@@ -841,23 +881,31 @@ function pintarAgenteOperacaoEscritorio() {
   if (!el || !a) return;
   const al = a.alertas || {};
   const nome = typeof clientMasterResolveName === "function" ? clientMasterResolveName(a.cliente) : a.cliente;
-  const reg = typeof clientMasterRecords === "function" ? clientMasterRecords().find((r) => r.name === nome) : null;
-  const numero = (n, rotulo, tom = "") => `<div class="ofc-agente-num ${tom}"><b>${n}</b><span>${rotulo}</span></div>`;
   const atencao = new Map();
   const juntar = (lista, rotulo, tom) => { for (const x of lista || []) { if (!atencao.has(x.ref)) atencao.set(x.ref, { ...x, motivos: [] }); atencao.get(x.ref).motivos.push([x.motivo ? `${rotulo}: ${x.motivo}` : rotulo, tom]); } };
   juntar(al.atrasadas, "muito atrasada", "atrasada"); juntar(al.aprovar, "para aprovar", "hoje"); juntar(al.sem_info, "sem informação", "");
-  const linhas = [...atencao.values()].map((x) => `<li><button type="button" class="ofc-agente-peca" onclick="closeWorkflowModal();abrirMissaoEscritorio('${safeText(x.ref)}','${x.quadro}')"><span><b>${safeText(x.titulo)}</b><small>${safeText([x.prazo ? "prazo " + x.prazo.split("-").reverse().slice(0, 2).join("/") : "", x.status].filter(Boolean).join(" · "))}</small><span class="ofc-agente-tags">${x.motivos.map(([t, tom]) => `<em class="ofc-missao-prazo ${tom}">${safeText(t)}</em>`).join("")}</span></span></button></li>`).join("");
+  const linhas = [...atencao.values()].map((x) => `<li><button type="button" class="ofc-agente-peca" onclick="abrirMissaoEscritorio('${safeText(x.ref)}','${x.quadro}',event);closeWorkflowModal()"><span><b>${safeText(x.titulo)}</b><small>${safeText([x.prazo ? "prazo " + x.prazo.split("-").reverse().slice(0, 2).join("/") : "", x.status].filter(Boolean).join(" · "))}</small><span class="ofc-agente-tags">${x.motivos.map(([t, tom]) => `<em class="ofc-missao-prazo ${tom}">${safeText(t)}</em>`).join("")}</span></span></button></li>`).join("");
   const mais = ["atrasadas", "aprovar", "sem_info"].some((k) => (al[k + "_total"] || 0) > (al[k] || []).length);
   const calendario = typeof modoComVisoesDoQuadro === "function" && modoComVisoesDoQuadro() && typeof alternarPainelDaBarra === "function";
-  el.innerHTML = `<div class="workflow-kicker"><span>Centro de Operação · agente</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-  <header class="ofc-agente-topo"><h2 class="workflow-title">${safeText(a.cliente)}</h2>${a.segmento ? `<small>${safeText(a.segmento)}</small>` : ""}
-   <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></header>
-  ${reg ? `<div class="ofc-agente-nums" aria-label="Números do cliente">${numero(reg.activeCount, "ativas")}${numero(reg.content.length, "conteúdos")}${numero(reg.requests.length, "solicitações")}${numero(al.total || 0, "pedem atenção", al.total ? "ruim" : "")}</div>` : ""}
+  const listas = escritorioListasDoAgente(nome), qual = escritorio.agenteAberto.lista || "proximas";
+  const figura = escritorio.agenteAberto.figura;
+  const boneco = figura && typeof mapaAvatarUrl === "function" ? `<img class="ofc-agente-boneco" src="${safeText(mapaAvatarUrl(figura, 3, "std", "", 0))}" alt="" referrerpolicy="no-referrer">` : "";
+  const tag = typeof tagClienteHtml === "function" ? tagClienteHtml(nome, { dentroDeBotao: true }) : "";
+  const abas = ESCRITORIO_AGENTE_LISTAS.map(([k, rotulo, tom]) => `<button type="button" class="ofc-agente-num ${listas[k].length && tom ? tom : ""}" aria-pressed="${qual === k}" onclick="escolherListaDoAgenteEscritorio('${k}')"><b>${listas[k].length}</b><span>${rotulo}</span></button>`).join("");
+  const lista = listas[qual] || [];
+  const tituloLista = qual === "proximas" ? "Próximas peças" : ESCRITORIO_AGENTE_LISTAS.find(([k]) => k === qual)?.[1].replace(/^./, (c) => c.toUpperCase());
+  el.innerHTML = `<div class="workflow-kicker"><span>Agente de ${safeText(a.cliente)}</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+  <div class="ofc-agente-topo">${boneco}<div class="ofc-agente-nome"><h2 class="workflow-title">${safeText(a.cliente)}</h2><span>${tag}${a.segmento ? `<small>${safeText(a.segmento)}</small>` : ""}</span></div>
+   <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></div>
+  <div class="ofc-agente-nums" role="group" aria-label="Trabalho do cliente: clique para ver a lista">${abas}</div>
   <div class="ofc-agente-grade">
    <div class="ofc-agente-col">${typeof planejamentosDoClienteHtml === "function" ? planejamentosDoClienteHtml() : ""}${escritorioMiniAgendaHtml(nome)}</div>
-   <section class="ofc-agente-bloco" aria-label="Pede atenção"><div class="ofc-agente-bloco-topo"><h4>Pede atenção${al.total ? ` · ${al.total}` : ""}</h4></div>
-    ${linhas ? `<ul class="ofc-agente-lista">${linhas}</ul>${mais ? '<small class="ofc-nota">e mais na ficha do cliente</small>' : ""}` : '<p class="ofc-nota">Nada pedindo atenção neste cliente agora.</p>'}
-   </section>
+   <div class="ofc-agente-col">
+    ${linhas ? `<section class="ofc-agente-bloco" aria-label="Pede atenção"><div class="ofc-agente-bloco-topo"><h4>Pede atenção · ${al.total}</h4></div><ul class="ofc-agente-lista">${linhas}</ul>${mais ? '<small class="ofc-nota">e mais na ficha do cliente</small>' : ""}</section>` : '<p class="ofc-agente-calmo">Nada pedindo atenção neste cliente agora.</p>'}
+    <section class="ofc-agente-bloco" aria-label="${safeText(tituloLista)}"><div class="ofc-agente-bloco-topo"><h4>${safeText(tituloLista)} · ${lista.length}</h4>${qual !== "proximas" ? `<button type="button" class="office-text-button" onclick="escolherListaDoAgenteEscritorio('proximas')">Ver próximas</button>` : ""}</div>
+     ${lista.length ? `<ul class="ofc-agente-lista">${lista.slice(0, 8).map(escritorioPecaDoAgenteHtml).join("")}</ul>${lista.length > 8 ? `<small class="ofc-nota">e mais ${lista.length - 8} na ficha do cliente</small>` : ""}` : `<p class="ofc-nota">${qual === "proximas" ? "Nenhuma peça com data daqui para frente." : "Nada nesta lista agora."}</p>`}
+    </section>
+   </div>
   </div>`;
   if (typeof carregarPlanejamentosDoCliente === "function") carregarPlanejamentosDoCliente(a.cliente_id, a.cliente, el);
 }
@@ -881,7 +929,71 @@ function escritorioMiniAgendaHtml(nome) {
   const noMes = itens.filter((it) => meta.cells.some((c) => c.inMonth && c.iso === it.calendarDateIso)).length;
   return `<section class="ofc-agente-bloco" aria-label="Calendário do cliente"><div class="ofc-agente-bloco-topo"><h4>${safeText(managerCalendarLabel(meta))} · ${noMes} ${noMes === 1 ? "peça" : "peças"} <small>${typeof dateMode !== "undefined" && dateMode === "prazo" ? "por prazo" : "por veiculação"}</small></h4>${typeof alternarPainelDaBarra === "function" ? `<button type="button" class="office-text-button" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Abrir na Agenda</button>` : ""}</div>
   <div class="ofc-mini-agenda">${["S", "T", "Q", "Q", "S", "S", "D"].map((d) => `<span class="ofc-mini-sem">${d}</span>`).join("")}${celulas}</div>
-  ${dia ? `<ul class="ofc-agente-lista">${doDia.map((it) => `<li><button type="button" class="ofc-agente-peca" onclick="closeWorkflowModal();managerCalendarOpen('${it.calendarSource}','${safeText(it.id)}',event)"><i class="ofc-ponto" style="--st:${managerCalendarStatusColor(it)}"></i><span><b>${safeText(it.nome || "Sem título")}</b><small>${safeText([it.status, it.calendarType].filter(Boolean).join(" · "))}</small></span></button></li>`).join("")}</ul>` : '<p class="ofc-nota">Clique num dia com pontos para ver as peças.</p>'}</section>`;
+  ${dia ? `<ul class="ofc-agente-lista">${doDia.map((it) => `<li><button type="button" class="ofc-agente-peca" onclick="abrirMissaoEscritorio('${safeText(it.id)}','${it.calendarSource === "request" ? "demandas" : "producao"}',event);closeWorkflowModal()"><i class="ofc-ponto" style="--st:${managerCalendarStatusColor(it)}"></i><span><b>${safeText(it.nome || "Sem título")}</b><small>${safeText([it.status, it.calendarType].filter(Boolean).join(" · "))}</small></span></button></li>`).join("")}</ul>` : '<p class="ofc-nota">Cada ponto é uma peça, na cor do status dela. Clique num dia com pontos para ver as peças.</p>'}</section>`;
+}
+// Agenda da Vybe no Escritório (Paulo, 20/10/2026: "aproveitar a integração
+// e ter o ícone da agenda com nosso Google Agenda"). Só leitura: a mesma
+// consulta da Produção (/api/painel?area=agenda_producao, server/
+// agenda-producao.js), que traz 7 dias a partir do dia pedido e já deixa de
+// fora o que é privado, pessoal, folga, férias e aniversário. Gravação e
+// captação ficam em destaque; o resto vem como evento da agenda.
+const escritorioAgenda = { inicio: null, eventos: null, erro: null, carregando: false };
+function escritorioAgendaSegunda(iso) {
+  const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+function escritorioAgendaSomar(iso, dias) { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + dias); return d.toISOString().slice(0, 10); }
+function abrirAgendaEscritorio(inicio) {
+  const hoje = typeof hojeDeVerdade === "function" ? hojeDeVerdade() : new Date().toISOString().slice(0, 10);
+  escritorioAgenda.inicio = inicio || escritorioAgendaSegunda(hoje);
+  if (!document.getElementById("ofc-agenda")) {
+    openWorkflowModal(`<div class="ofc-agenda" id="ofc-agenda"></div>`);
+    document.getElementById("workflow-modal")?.classList.add("ofc-agenda-janela");
+  }
+  carregarAgendaEscritorio();
+}
+async function carregarAgendaEscritorio() {
+  const inicio = escritorioAgenda.inicio;
+  Object.assign(escritorioAgenda, { eventos: null, erro: null, carregando: true });
+  pintarAgendaEscritorio();
+  try {
+    const r = await fetch(`/api/painel?area=agenda_producao&dia=${encodeURIComponent(inicio)}`, { credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(25000) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok || !Array.isArray(d.eventos)) throw new Error(d.error || "a agenda não respondeu");
+    if (escritorioAgenda.inicio !== inicio) return;
+    escritorioAgenda.eventos = d.eventos;
+  } catch (e) {
+    if (escritorioAgenda.inicio !== inicio) return;
+    escritorioAgenda.erro = e.name === "TimeoutError" ? "a agenda demorou para responder" : e.message;
+  }
+  escritorioAgenda.carregando = false;
+  pintarAgendaEscritorio();
+}
+function pintarAgendaEscritorio() {
+  const el = document.getElementById("ofc-agenda");
+  if (!el) return;
+  const { inicio, eventos, erro, carregando } = escritorioAgenda;
+  const hoje = typeof hojeDeVerdade === "function" ? hojeDeVerdade() : new Date().toISOString().slice(0, 10);
+  const fim = escritorioAgendaSomar(inicio, 6);
+  const dm = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7);
+  const nomeDia = (iso) => new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(new Date(iso + "T12:00:00")).replace(/-feira$/, "");
+  let corpo;
+  if (carregando) corpo = '<p class="ofc-nota ofc-agenda-estado">Consultando o Google Agenda da Vybe…</p>';
+  else if (erro) corpo = `<div class="ofc-agenda-estado"><p class="ofc-nota">Não foi possível ler a agenda: ${safeText(erro)}.</p><button type="button" class="workflow-secondary" onclick="carregarAgendaEscritorio()">Tentar de novo</button></div>`;
+  else {
+    const dias = Array.from({ length: 7 }, (_, i) => escritorioAgendaSomar(inicio, i));
+    const total = (eventos || []).length;
+    corpo = total ? `<ol class="ofc-agenda-dias">${dias.map((dia) => {
+      const doDia = eventos.filter((e) => e.dia === dia);
+      return `<li class="ofc-agenda-dia${dia === hoje ? " hoje" : ""}${doDia.length ? "" : " vazio"}"><div class="ofc-agenda-data"><b>${dm(dia)}</b><span>${safeText(nomeDia(dia))}</span>${dia === hoje ? "<em>Hoje</em>" : ""}</div>
+        ${doDia.length ? `<ul>${doDia.map((e) => `<li class="ofc-agenda-evento${e.ambiguo ? "" : " gravacao"}"><span class="ofc-agenda-hora">${safeText(e.horario)}</span><b>${safeText(e.titulo || "Sem título")}</b>${e.local ? `<small>${safeText(e.local)}</small>` : ""}${e.ambiguo ? "" : '<i class="ofc-agenda-selo">Gravação</i>'}</li>`).join("")}</ul>` : '<p class="ofc-nota">Nada na agenda.</p>'}</li>`;
+    }).join("")}</ol>` : '<p class="ofc-nota ofc-agenda-estado">Nada na agenda da Vybe nesta semana.</p>';
+  }
+  el.innerHTML = `<div class="workflow-kicker"><span>Google Agenda da Vybe</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+  <div class="ofc-agenda-topo"><h2 class="workflow-title">Agenda da semana</h2>
+   <div class="ofc-agenda-nav" role="group" aria-label="Semana"><button type="button" class="workflow-secondary" aria-label="Semana anterior" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, -7)}')">‹</button><span>${dm(inicio)} a ${dm(fim)}</span><button type="button" class="workflow-secondary" aria-label="Próxima semana" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, 7)}')">›</button>${inicio !== escritorioAgendaSegunda(hoje) ? `<button type="button" class="office-text-button" onclick="abrirAgendaEscritorio()">Esta semana</button>` : ""}</div></div>
+  ${corpo}
+  <p class="ofc-nota">Só leitura. Para criar ou mudar um evento, use o Google Agenda. Eventos privados e pessoais não aparecem aqui.</p>`;
 }
 // Portas para o painel: a ficha do cliente e a Agenda mensal já filtrada nele
 // (o mesmo caminho do botão da agenda, managerCalendarOpenClientMaster).
@@ -1249,6 +1361,7 @@ function renderEscritorio() {
  ${rail("pessoas", "pessoas", "Pessoas", "alternarAbaEscritorio('pessoas')", lateral && aba === "pessoas")}
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
  ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
+ ${rail("agenda", "agenda", "Agenda", "abrirAgendaEscritorio()", false)}
  ${rail("inventario", "inventario", "Inventário", "abrirCatalogoEscritorio('inventario')", false)}
  ${rail("loja", "loja", "Catálogo", "abrirCatalogoEscritorio()", false)}
  <span class="ofc-rail-fim"></span>

@@ -95,7 +95,7 @@ function pintarMissoesEscritorio() {
       ${lista.length ? `${total.pontos || total.moedas ? `<p class="ofc-missoes-total">Concluir tudo vale ${missaoValorHtml(total)}</p>` : ""}
       <div class="ofc-missoes-filtros" role="tablist" aria-label="Filtrar missões">${MISSOES_FILTROS.map(([k, rot]) => `<button type="button" role="tab" aria-selected="${k === filtro}" class="${k === filtro ? "ativo" : ""}${k === "atrasadas" && conta[k] ? " alerta" : ""}" onclick="filtrarMissoesEscritorio('${k}')">${rot}<span>${conta[k]}</span></button>`).join("")}</div>
       ${filtradas.length ? `<ol class="ofc-missoes-lista">${mostradas.map((m) => `<li><button type="button" class="ofc-missao${m.atrasada ? " atrasada" : m.hoje ? " hoje" : ""}" title="${safeText(missaoDicaTexto(m))}"
-          onclick="abrirMissaoEscritorio('${safeText(m.ref)}','${m.quadro}')">
+          onclick="abrirMissaoEscritorio('${safeText(m.ref)}','${m.quadro}',event)">
           <span class="ofc-missao-linha">${missaoPrazoHtml(m)}<span class="ofc-missao-valor">${missaoValorHtml(m.recompensa)}</span></span>
           <b class="ofc-missao-titulo">${safeText(m.titulo)}</b>
           ${missaoEtiquetasHtml(m)}
@@ -106,9 +106,22 @@ function pintarMissoesEscritorio() {
 }
 
 // Abre a demanda no mesmo painel lateral de sempre (Solicitações ou Produção).
-function abrirMissaoEscritorio(ref, quadro) {
-  const abrir = quadro === "demandas" ? window.openDemandaWorkspace : window.openItemWorkspace;
-  if (typeof abrir === "function") abrir(String(ref));
+// Abrir uma demanda no jogo é o cartão rápido do painel (Paulo, 20/10/2026:
+// "não era pra mudar a data? arquivar? alterar algo?"): status, datas,
+// responsável, prioridade, renomear e o menu "…" (arquivar), com "Abrir
+// detalhes" para a gaveta. O mesmo cartão das linhas do quadro
+// (abrirCartaoRapido), ancorado onde se clicou. Sem o clique ou sem a peça
+// carregada no painel, abre a gaveta como antes.
+function abrirMissaoEscritorio(ref, quadro, ev) {
+  const id = String(ref), pedido = quadro === "demandas";
+  const carregada = pedido ? (typeof DADOS_DEMANDAS !== "undefined" ? DADOS_DEMANDAS : []).some((d) => String(d.id) === id) : typeof findOperationalItem === "function" && Boolean(findOperationalItem(id));
+  const alvo = ev?.currentTarget || ev?.target;
+  if (typeof abrirCartaoRapido === "function" && carregada && alvo?.getBoundingClientRect) {
+    const r = alvo.getBoundingClientRect();
+    return abrirCartaoRapido(id, { currentTarget: { getBoundingClientRect: () => r } }, pedido ? "request" : "content");
+  }
+  const abrir = pedido ? window.openDemandaWorkspace : window.openItemWorkspace;
+  if (typeof abrir === "function") abrir(id);
 }
 
 // ── Clientes cobrando no quarto (brincadeira do Paulo, 19/10/2026) ───────────
@@ -171,7 +184,7 @@ function cobrancaItemHtml(c, aoAbrir = "") {
   const status = item?.status || c.status;
   const pilula = status && typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(status, item?.status_color || "", item?.status_border || "") : status ? `<small>${safeText(status)}</small>` : "";
   const tom = c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : "";
-  return `<li><button type="button" class="ofc-cobranca" onclick="${aoAbrir}abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')" title="Abrir a demanda">
+  return `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}',event);${aoAbrir}" title="Abrir a demanda">
   <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}</span></button></li>`;
 }
 // Cabeçalho do cliente: a etiqueta da carteira (cor do painel), quantas
