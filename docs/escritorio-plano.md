@@ -1038,3 +1038,6 @@ decoração inicial "bem feito".
   quarto do head (sem head, gestão), dizendo quem está com a peça (`com`), para
   o head cobrar. Uma peça aparece uma vez por pessoa; "vence" agora exige
   prazo amanhã de forma explícita.
+- `postar_parada` vai também a quem tem as funções agendamento e gestão
+  (`vybe_escritorio_funcoes`; hoje Tainara e Paulo), além dos heads do cliente
+  (Paulo, 20/10/2026: eles cuidam do dia a dia do que posta e entrega).

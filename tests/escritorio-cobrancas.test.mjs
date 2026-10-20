@@ -36,7 +36,7 @@ test('cada demanda que pede ação manda o cliente para o quarto de quem deve ag
  assert.deepEqual(titulos(tarde,4),['Card para aprovar:atrasada'],'aprovação interna atrasada cobra o Deivid');
  assert.deepEqual(titulos(tarde,7),['Card do dia:hoje','Dois clientes:atrasada','Dois clientes:atrasada'],'do dia depois do meio-dia; peça de dois clientes manda os dois');
  assert.deepEqual(titulos(tarde,6),['Vence amanhã sem começar:vence'],'vencendo amanhã só se não começou');
- assert.deepEqual(titulos(tarde,5),['Para agendar hoje:agendar'],'veiculação chegando cobra o agendamento');
+ assert.deepEqual(titulos(tarde,5),['Para agendar hoje:agendar','Posta hoje sem começar:postar_parada'],'veiculação chegando cobra o agendamento; a que nem começou também');
  assert.deepEqual(titulos(tarde,3),['Esperando a gravação:marcar_gravacao','Esperando o cliente:lembrar_cliente','Posta hoje sem começar:postar_parada'],'esperando o cliente vira lembrete no quarto do head; Aguardo é marcar a gravação (Paulo, 20/10/2026)');
  assert.deepEqual(titulos(tarde,24),['Sem responsável:atrasada'],'sem responsável cobra o head do cliente');
  // Veiculação chegou e a peça nem começou: o head do cliente é avisado de quem
@@ -45,6 +45,7 @@ test('cada demanda que pede ação manda o cliente para o quarto de quem deve ag
  assert.deepEqual(posta.com,['Reriston Souza Silva']);
  assert.equal(posta.data,'2026-10-20');
  assert.ok(!(tarde.get('3')||[]).some(c=>c.titulo==='Posta hoje em andamento'));
+ assert.ok((tarde.get('1')||[]).some(c=>c.tipo==='postar_parada'),'a gestão também acompanha o dia a dia do que posta');
  assert.ok(!(tarde.get('2')||[]).some(c=>/Finalizado|Em dia/.test(c.titulo)));
  assert.equal(tarde.get('2')[0].dias,1,'um dia de atraso já cobra');
  assert.deepEqual(tarde.get('2')[0].com,['Reriston Souza Silva'],'toda cobrança diz com quem está a peça');

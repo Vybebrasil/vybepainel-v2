@@ -10,8 +10,9 @@
 //   lembrar_cliente: a demanda espera o cliente; ele vai ao quarto do head
 //                    pedir para ser lembrado (não é cobrança ao time)
 //   postar_parada: a veiculação chegou (hoje ou já passou) e a peça nem
-//                  começou; o cliente vai ao quarto do head dizer quem está
-//                  com ela, para o head ir cobrar (Paulo, 20/10/2026)
+//                  começou; o cliente vai ao quarto do head e de quem tem as
+//                  funções agendamento e gestão dizer quem está com ela, para
+//                  irem cobrar (Paulo, 20/10/2026)
 //   marcar_gravacao: em "Aguardo", que é esperar marcar a gravação com o
 //                    cliente (Paulo, 20/10/2026: "não é que ele tem que
 //                    mandar algo"); o cliente lembra o head de marcar
@@ -68,7 +69,10 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
     };
     peloPrazo();
     if (!l.final && l.veiculacao && l.veiculacao <= hoje && NAO_COMECOU.includes(l.status_chave)) {
-      cobrar(heads, { ...base, tipo: 'postar_parada', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje), sem_responsavel: !l.responsaveis.length });
+      // Também vai a quem cuida do dia a dia do que posta e entrega: as
+      // funções agendamento e gestão da tabela (Paulo, 20/10/2026: Tainara e
+      // Paulo), além do head do cliente.
+      cobrar([...heads, ...agendamento, ...gestao], { ...base, tipo: 'postar_parada', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje), sem_responsavel: !l.responsaveis.length });
     }
   }
   for (const lista of por.values()) lista.sort((a, b) => b.dias - a.dias || a.titulo.localeCompare(b.titulo, 'pt-BR'));
