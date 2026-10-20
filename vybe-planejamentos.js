@@ -313,13 +313,20 @@ async function enviarPlanejamento(botao) {
     const d = await pljPedir('', { acao: 'enviar', id: PLJ_ABERTO.id, email: document.getElementById('plj-email')?.checked !== false });
     PLJ_ABERTO = { ...d.planejamento };
     pintarPlanejamento('documento');
-    const texto = `Olá! Segue o planejamento de conteúdo de ${pljMes(PLJ_ABERTO.mes).toLowerCase()} para você aprovar: ${d.link}`;
+    // O cliente aprova pelo VybeHub dele (Paulo, 20/10/2026); o link direto
+    // continua para quem não entrou no portal.
+    const portal = typeof ESCRITORIO_VYBEHUB !== 'undefined' && typeof escritorioSlugCliente === 'function'
+      ? `${ESCRITORIO_VYBEHUB}/cliente/${escritorioSlugCliente(PLJ_ABERTO.cliente)}/planejamentos` : '';
+    const texto = portal
+      ? `Olá! O planejamento de conteúdo de ${pljMes(PLJ_ABERTO.mes).toLowerCase()} está no seu VybeHub para aprovar: ${portal}\n\nSe preferir, aprove direto por aqui: ${d.link}`
+      : `Olá! Segue o planejamento de conteúdo de ${pljMes(PLJ_ABERTO.mes).toLowerCase()} para você aprovar: ${d.link}`;
     const m = document.getElementById('workflow-modal');
     m?.querySelector('.plj-topo')?.insertAdjacentHTML('afterend', `<div class="plj-link">
       <b>Link pronto. Mande para o cliente no WhatsApp:</b>
       <div class="plj-link-linha"><input type="text" readonly value="${pljEsc(d.link)}" aria-label="Link de aprovação" onclick="this.select()">
         <button type="button" class="cli-porta" onclick="pljCopiar(this, '${pljEsc(d.link)}')">Copiar</button>
         <a class="cli-porta" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}">Abrir no WhatsApp ↗</a></div>
+      ${portal ? `<small>A mensagem do WhatsApp leva o cliente ao VybeHub dele (${pljEsc(portal.replace(/^https:\/\//, ''))}) e traz o link direto como reserva.</small>` : ''}
       <small>O link vale 30 dias. Se você editar o planejamento, ele deixa de valer.</small>
       ${(d.avisos || []).map((a) => `<p class="plj-aviso-falha">${pljEsc(a)}</p>`).join('')}</div>`);
     pljAtualizarFora();

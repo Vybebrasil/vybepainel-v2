@@ -314,29 +314,67 @@ export async function planejamentoDoLink(sql, token) {
 }
 // ajustesPecas: { índice da peça: texto } — o cliente pode pedir ajuste peça a
 // peça (Paulo, 20/10/2026). Qualquer peça com ajuste devolve o planejamento
-// inteiro ao head; o cadastro continua só depois de tudo aprovado.
-export async function responderDoCliente(sql, token, { acao, nome, texto: t, ajustesPecas = {} }) {
- await exigir(sql);
+// inteiro ao head; o cadastro continua só depois de tudo aprovado. A mesma
+// regra vale para o link e para o VybeHub (responderDoPortal).
+function lerResposta({ acao, nome, texto: t, ajustesPecas = {} }) {
  if (!['aprovar', 'ajustes'].includes(acao)) throw erro('Resposta inválida.');
  const quem = texto(nome, 80), geral = texto(t, 4000);
  const porPeca = Object.entries(ajustesPecas && typeof ajustesPecas === 'object' ? ajustesPecas : {})
   .map(([i, v]) => [Number(i), texto(v, 1500)]).filter(([i, v]) => Number.isInteger(i) && i >= 0 && i < 200 && v);
  if (!quem) throw erro('Escreva seu nome.');
  if (acao === 'ajustes' && !geral && !porPeca.length) throw erro('Conte o que precisa mudar.');
+ return { acao, quem, geral, porPeca };
+}
+async function aplicarResposta(tx, p, { acao, quem, geral, porPeca }, origem = '') {
+ const conteudo = normalizarConteudo(p.conteudo);
+ const validos = porPeca.filter(([i]) => conteudo.pecas[i]);
+ for (const [i, v] of validos) conteudo.pecas[i].ajuste_cliente = v;
+ const estado = acao === 'aprovar' && !validos.length ? 'aprovado' : 'ajustes';
+ const dia = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data');
+ const comentario = [geral, ...validos.map(([i, v]) => { const x = conteudo.pecas[i]; return `Peça ${i + 1} (${x.formato}, ${dia(x.data)}${x.tema ? ` · ${x.tema}` : ''}): ${v}`; })].filter(Boolean).join('\n') || null;
+ const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,estado=${estado},respondido_em=now(),resposta_nome=${quem},resposta_texto=${comentario},atualizado_em=now() WHERE id=${p.id} RETURNING *`;
+ await registrar(tx, p.id, estado === 'aprovado' ? 'aprovado' : 'ajustes', { externo: quem + origem, texto: comentario, versao: n.versao });
+ return n;
+}
+export async function responderDoCliente(sql, token, corpo) {
+ await exigir(sql);
+ const r = lerResposta(corpo);
  return sql.comTransacao(async (tx) => {
   const [p] = await tx`SELECT * FROM vybe_planejamentos WHERE link_hash=${hashDoLink(token)} FOR UPDATE`;
   if (!p) throw erro('Este link não vale mais. Peça um novo à Vybe.', 404);
   if (p.estado !== 'enviado') return { ...publico(p), repetido: true };
   if (p.link_expira_em && new Date(p.link_expira_em) < new Date()) throw erro('Este link expirou. Peça um novo à Vybe.', 410);
-  const conteudo = normalizarConteudo(p.conteudo);
-  const validos = porPeca.filter(([i]) => conteudo.pecas[i]);
-  for (const [i, v] of validos) conteudo.pecas[i].ajuste_cliente = v;
-  const estado = acao === 'aprovar' && !validos.length ? 'aprovado' : 'ajustes';
-  const dia = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data');
-  const comentario = [geral, ...validos.map(([i, v]) => { const x = conteudo.pecas[i]; return `Peça ${i + 1} (${x.formato}, ${dia(x.data)}${x.tema ? ` · ${x.tema}` : ''}): ${v}`; })].filter(Boolean).join('\n') || null;
-  const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,estado=${estado},respondido_em=now(),resposta_nome=${quem},resposta_texto=${comentario},atualizado_em=now() WHERE id=${p.id} RETURNING *`;
-  await registrar(tx, p.id, estado === 'aprovado' ? 'aprovado' : 'ajustes', { externo: quem, texto: comentario || null, versao: n.versao });
-  return publico(n);
+  return publico(await aplicarResposta(tx, p, r));
+ });
+}
+
+// --- VybeHub (portal do cliente) --------------------------------------------------
+// Paulo, 20/10/2026: o cliente aprova pelo VybeHub dele. O portal chama o
+// painel com a chave PORTAL_CHAVE (planejamentos-api.js) e o nome do cliente
+// logado; as regras continuam só aqui. O cliente vê o que já foi mandado a
+// ele (enviado, ajustes, aprovado, cadastrado), nunca o rascunho do head.
+const VISIVEL_AO_CLIENTE = ['enviado', 'ajustes', 'aprovado', 'cadastrado'];
+const doPortal = (p) => ({ id: String(p.id), mes: publico(p).mes, titulo: p.titulo, versao: p.versao, estado: p.estado,
+ conteudo: normalizarConteudo(p.conteudo), resposta_nome: p.resposta_nome, resposta_texto: p.resposta_texto,
+ respondido_em: p.respondido_em, enviado_em: p.enviado_em, logo: p.identidade?.logo || null });
+export async function planejamentosDoPortal(sql, { cliente }) {
+ if (!await planejamentosProntos(sql)) return { cliente: null, planejamentos: [] };
+ const c = await clientePorNomeOuId(sql, cliente);
+ const linhas = await sql`SELECT p.*,cl.identidade FROM vybe_planejamentos p JOIN vybe_clientes cl ON cl.id=p.cliente_id
+  WHERE p.cliente_id=${c.id} AND p.estado = ANY(${VISIVEL_AO_CLIENTE}) ORDER BY p.mes DESC LIMIT 12`;
+ return { cliente: c.nome, planejamentos: linhas.map(doPortal) };
+}
+export async function responderDoPortal(sql, { cliente, id, versao, ...corpo }) {
+ await exigir(sql);
+ const r = lerResposta(corpo);
+ const c = await clientePorNomeOuId(sql, cliente);
+ return sql.comTransacao(async (tx) => {
+  const [p] = await tx`SELECT p.*,cl.identidade FROM vybe_planejamentos p JOIN vybe_clientes cl ON cl.id=p.cliente_id WHERE p.id=${id} AND p.cliente_id=${c.id} FOR UPDATE OF p`;
+  if (!p) throw erro('Planejamento não encontrado.', 404);
+  if (p.estado !== 'enviado') throw erro(p.estado === 'revisar' ? 'A Vybe está ajustando este planejamento. Ele volta para você em breve.' : 'Este planejamento já foi respondido.', 409);
+  if (Number(versao) !== Number(p.versao)) throw erro('A Vybe mandou uma versão nova. Recarregue a página para ver.', 409);
+  const n = await aplicarResposta(tx, p, r, ' (VybeHub)');
+  return doPortal({ ...n, identidade: p.identidade });
  });
 }
 export { ESTADOS };

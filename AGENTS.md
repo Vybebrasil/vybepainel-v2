@@ -103,6 +103,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `skills/planejamento-vybe`). Desde 20/10/2026 (decisão do Paulo) o desenho é
   o padrão Vybe para todos; do cliente entram o nome, o logo e o tom de voz.
   Não crie um segundo formato nem um gerador de documento paralelo.
+- O cliente aprova pelo VybeHub dele (decisão do Paulo, 20/10/2026): o portal
+  (`Vybebrasil/vybehub`) chama `area=portal` com a chave `PORTAL_CHAVE` (a mesma
+  nos dois projetos da Vercel) e só mostra e repassa a resposta; as regras ficam
+  em `planejamentosDoPortal`/`responderDoPortal`, iguais às do link direto.
 - O cliente pode pedir ajuste peça a peça pelo link; qualquer ajuste devolve o
   planejamento inteiro ao head (`ajuste_cliente` na peça, limpo ao mandar de
   novo). O agente do cliente e o head veem o pedido.

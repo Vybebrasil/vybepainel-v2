@@ -109,6 +109,29 @@ export async function paginaDeAprovacao(req, res, sql) {
  }
 }
 
+// ── VybeHub (portal do cliente) ─────────────────────────────────────────────
+// O servidor do VybeHub chama com a chave PORTAL_CHAVE (cabeçalho
+// Authorization: Bearer) e o nome do cliente logado lá. Sem a chave
+// configurada, recusa tudo.
+const chavePortalConfere = (req) => {
+ const certa = String(process.env.PORTAL_CHAVE || '');
+ const enviada = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
+ if (certa.length < 24) return false;
+ const a = Buffer.from(enviada), b = Buffer.from(certa);
+ return a.length === b.length && timingSafeEqual(a, b);
+};
+export async function portalDoCliente(req, res, sql) {
+ if (!chavePortalConfere(req)) return res.status(401).json({ error: 'Chave do portal inválida.' });
+ if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
+ const b = corpoDe(req);
+ try {
+  // rota escolhe o que fazer; acao é a resposta do cliente (aprovar/ajustes).
+  if (b.rota === 'planejamentos') return res.status(200).json({ ok: true, ...(await P.planejamentosDoPortal(sql, { cliente: b.cliente })) });
+  if (b.rota === 'responder') return res.status(200).json({ ok: true, planejamento: await P.responderDoPortal(sql, b) });
+  return res.status(400).json({ error: 'Ação inválida.' });
+ } catch (e) { return falha(res, e); }
+}
+
 // ── Conector dos agentes (MCP por HTTP, JSON-RPC) ───────────────────────────
 // Os agentes de conteúdo (projetos no Claude) adicionam o painel como conector
 // personalizado: <painel>/api/painel?area=agentes&chave=<AGENTES_CHAVE>.

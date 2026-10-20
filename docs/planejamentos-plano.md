@@ -169,6 +169,28 @@ Pedido do Paulo depois do primeiro planejamento publicado (Hellen Rocha).
   - peças em cartões que abrem e fecham, com o pedido do cliente marcado;
   - histórico em linha do tempo com os comentários como conversa;
   - aba "Marca do cliente" só com o logo (com prévia) e o tom de voz.
-- **VybeHub:** em aberto. O portal (`Vybebrasil/vybehub`) é outro sistema, com
-  login próprio, e ainda lê o Monday. Levar a aprovação para lá é um projeto à
-  parte, a decidir com o Paulo.
+- **VybeHub:** ver a seção seguinte.
+
+## Aprovação pelo VybeHub (20/10/2026)
+
+Decisão do Paulo: o cliente aprova pelo VybeHub dele. O portal já lê o banco
+da Vybe.
+
+- **Painel:**
+  - A rota `area=portal`, sem sessão, exige o cabeçalho `Authorization:
+    Bearer <PORTAL_CHAVE>`.
+  - O campo `rota` escolhe entre `planejamentos` (lista o que foi mandado ao
+    cliente: enviado, ajustes, aprovado, cadastrado; nunca o rascunho) e
+    `responder` (a mesma regra do link: ajuste por peça, versão conferida,
+    registro "Nome (VybeHub)").
+- **VybeHub:**
+  - `server/integrations/painelPlanejamentos.ts` faz as chamadas.
+  - Os procedimentos `portal.planejamentos` e `portal.responderPlanejamento`
+    usam o cliente da sessão.
+  - A página `Planejamentos`, com contador no menu e aviso na Visão Geral, fica
+    em `/cliente/<slug>/planejamentos`.
+- **WhatsApp:** a mensagem leva o cliente ao VybeHub e traz o link direto como
+  reserva.
+- **Para ligar:** Paulo cria `PORTAL_CHAVE`, com 24 caracteres ou mais, e põe o
+  mesmo valor nos dois projetos da Vercel (vybepainel-v2 e vybehub). Depois,
+  Redeploy nos dois.

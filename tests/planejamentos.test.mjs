@@ -234,3 +234,21 @@ test('cliente pede ajuste numa peça: volta ao head com a peça marcada; mandar 
  assert.equal((await P.planejamentoDoLink(sql,novo.token)).conteudo.pecas[1].ajuste_cliente,undefined,'nova rodada começa sem os pedidos antigos');
  await assert.rejects(P.responderDoCliente(sql,novo.token,{acao:'ajustes',nome:'Ana'}),/o que precisa mudar/);
 });
+
+// Paulo, 20/10/2026: o cliente aprova pelo VybeHub; as regras são as mesmas do link.
+test('VybeHub: o cliente só vê o que foi mandado a ele e responde com as mesmas regras',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas:[{data:'2026-11-03',formato:'Card',tema:'Um'},{data:'2026-11-05',formato:'Reels',tema:'Dois'}]}});
+ assert.equal((await P.planejamentosDoPortal(sql,{cliente:'Serra Grande'})).planejamentos.length,0,'rascunho do head não aparece');
+ const env=await P.enviarAoCliente(sql,{id:3},{id:p.id});
+ const lista=await P.planejamentosDoPortal(sql,{cliente:'serra grande'});
+ assert.equal(lista.planejamentos.length,1);assert.equal(lista.planejamentos[0].estado,'enviado');assert.equal(lista.planejamentos[0].conteudo.pecas.length,2);
+ await assert.rejects(P.responderDoPortal(sql,{cliente:'Mangaba Kids',id:p.id,versao:env.versao,acao:'aprovar',nome:'Ana'}),/não encontrado/,'outro cliente não responde');
+ await assert.rejects(P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:env.versao+1,acao:'aprovar',nome:'Ana'}),/versão nova/);
+ const r=await P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:env.versao,acao:'aprovar',nome:'Ana',ajustesPecas:{0:'Outra foto'}});
+ assert.equal(r.estado,'ajustes');assert.equal(r.conteudo.pecas[0].ajuste_cliente,'Outra foto');
+ const ev=(await P.detalhePlanejamento(sql,{id:3},p.id)).eventos[0];assert.equal(ev.autor_externo,'Ana (VybeHub)');
+ await assert.rejects(P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:r.versao,acao:'aprovar',nome:'Ana'}),/já foi respondido/);
+ await assert.rejects(P.responderDoCliente(sql,env.token,{acao:'aprovar',nome:'Ana'}).then(x=>{if(x.repetido)throw new Error('repetido');}),/repetido/,'o link também vê que já respondeu');
+});
