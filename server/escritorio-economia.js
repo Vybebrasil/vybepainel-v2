@@ -227,7 +227,10 @@ export async function perfilPublico(sql, pessoaId) {
  // Marcos já conquistados (só leitura: conceder fica com a ficha da própria pessoa).
  const [tm] = await sql`SELECT to_regclass('public.vybe_escritorio_marcos') IS NOT NULL AS existe`;
  const feitos = tm?.existe ? await sql`SELECT marco,em FROM vybe_escritorio_marcos WHERE pessoa_id=${pessoaId} ORDER BY em` : [];
- const marcos = feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco), m = MARCOS.find((x) => x.id === marco); return m ? { id: f.marco, nome: nomeDoMarco(f.marco), nivel, dica: m.unidade, em: f.em } : null; }).filter(Boolean);
+ // O troféu de cada nível, para a vitrine do perfil de quem visita.
+ const [tt] = await sql`SELECT to_regclass('public.vybe_escritorio_trofeus') IS NOT NULL AS existe`;
+ const trofeus = tt?.existe ? await sql`SELECT marco||':'||nivel AS chave, classe FROM vybe_escritorio_trofeus` : [];
+ const marcos = feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco), m = MARCOS.find((x) => x.id === marco); return m ? { id: f.marco, nome: nomeDoMarco(f.marco), nivel, dica: m.unidade, em: f.em, classe: trofeus.find((t) => t.chave === f.marco)?.classe || null } : null; }).filter(Boolean);
  return { disponivel: true, saldo: Number(c?.saldo || 0), ...nivelPorXp(c?.xp || 0), conquistas: q?.n || 0, inventario, marcos };
 }
 async function pontosProntosEconomia(sql) {

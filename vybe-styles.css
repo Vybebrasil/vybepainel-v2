@@ -8446,3 +8446,53 @@ details.ofc-cq-grupo > summary b {font:700 13px var(--mac-ui)}
 details.ofc-cq-grupo > summary small {font:500 11.5px var(--mac-ui);color:#a3a9b7}
 details.ofc-cq-grupo[open] {display:grid;gap:6px;padding-bottom:8px}
 details.ofc-cq-grupo[open] > details.ofc-cq {margin:0 8px}
+/* Perfil na barra do jogo com cara de botão (Paulo, 20/10/2026). */
+.ofc-dock-btn.ofc-eu-perfil {gap:8px;padding:4px 12px 4px 4px;border-radius:999px;background:#ffffff0d;box-shadow:inset 0 0 0 1px #ffffff1f}
+.ofc-dock-btn.ofc-eu-perfil:hover {background:#ff95481f;box-shadow:inset 0 0 0 1px #ff954866}
+.ofc-eu-rosto {position:relative;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#ff954855,#2a2e3b 70%);box-shadow:0 0 0 2px #ff9548aa}
+.ofc-eu-rosto img {width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 30%}
+.ofc-eu-rosto .office-avatar {width:26px;height:auto}
+.ofc-eu-nivel {position:absolute;right:-6px;bottom:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:linear-gradient(135deg,#ffd166,#ff8a35);color:#2a1606;font:800 10px/18px var(--mac-ui);font-style:normal;text-align:center;box-shadow:0 0 0 2px #1d2029}
+.ofc-eu-rotulo {font:700 12.5px var(--mac-ui)}
+@media (max-width:1100px) {.ofc-dock-btn.ofc-eu-perfil .ofc-eu-rotulo {display:inline}}
+@media (max-width:620px) {.ofc-dock-btn.ofc-eu-perfil .ofc-eu-rotulo {display:none}.ofc-dock-btn.ofc-eu-perfil {padding:4px}}
+/* Perfil como HUD de jogo (Paulo, 20/10/2026): palco com ladrilho, vitrine de troféus, chips com rótulo. */
+.ofc-hud-palco {position:relative;overflow:visible;background:none}
+.ofc-hud-palco .ofc-lobby-luz {inset:0 4px 8px}
+.ofc-hud-palco .ofc-lobby-ladrilho {width:66px;height:66px;bottom:4px}
+.ofc-hud-palco img {position:relative;z-index:1;margin-bottom:14px}
+.ofc-hud-moedas span {flex-direction:row}
+.ofc-hud-moedas small {font:600 11px var(--mac-ui);color:var(--mac-text-secondary,#ffffffa0)}
+.ofc-hud-moedas .rk {cursor:pointer;background:#ffd16622;border-color:#ffd16655}
+.ofc-hud-moedas .rk:hover, .ofc-hud-moedas .rk:focus-visible {background:#ffd16638;outline:none;box-shadow:0 0 0 2px #ffd16688}
+.ofc-hud-vitrine, .ofc-ficha .ofc-hud-abas {flex:none}
+.ofc-hud-vitrine {display:flex;gap:6px;padding:8px 20px;overflow-x:auto;background:linear-gradient(180deg,#1e2029,#23252f);border-bottom:1px solid #ffffff10}
+.ofc-hud-vitrine span {flex:none;display:grid;place-items:end center;width:46px;height:46px;border-radius:10px;background:linear-gradient(180deg,transparent 60%,#ffffff12 60%,#ffffff12 66%,transparent 66%),#00000030;box-shadow:inset 0 0 0 1px #ffffff14}
+.ofc-hud-vitrine span img {max-width:40px;max-height:40px;image-rendering:pixelated}
+.ofc-hud-vitrine .n2 {box-shadow:inset 0 0 0 1px #c9d3e066}
+.ofc-hud-vitrine .n3 {box-shadow:inset 0 0 0 1px #ffd16688,0 0 10px #ffd16630}
+.ofc-hud-vitrine .n4 {box-shadow:inset 0 0 0 1px #7fe3ffaa,0 0 12px #7fe3ff40}
+.ofc-hud-proximos {list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ofc-hud-proximos li {display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:#ffffff08}
+.ofc-hud-proximos li > span:last-child {display:grid;gap:3px;min-width:0}
+.ofc-hud-proximos b {font:700 13px var(--mac-ui);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ofc-hud-proximos small {font:500 12px var(--mac-ui);color:var(--mac-text-secondary,#ffffffa0)}
+.ofc-hud-porpeca {list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.ofc-hud-porpeca li {display:grid;grid-template-columns:1fr auto auto;grid-template-rows:auto auto;column-gap:4px;align-items:baseline;padding:8px 10px;border-radius:10px;background:#ffffff08}
+.ofc-hud-porpeca li > span {grid-row:1 / span 2;align-self:center;font:700 13px var(--mac-ui)}
+.ofc-hud-porpeca b {font:800 13px var(--mac-ui);font-variant-numeric:tabular-nums;text-align:right}
+.ofc-hud-porpeca li.extra {grid-column:span 2;background:#ff95480f}
+.ofc-hud-porpeca li.extra > span {font-weight:600;font-size:12px}
+.ofc-hud-porpeca small {font:500 11px var(--mac-ui);color:var(--mac-text-secondary,#ffffffa0)}
+.ofc-hud-bolo {width:100%;table-layout:fixed;border-collapse:collapse}
+.ofc-hud-bolo th:first-child, .ofc-hud-bolo td:first-child {width:42%;text-align:left}
+.ofc-hud-bolo th, .ofc-hud-bolo td {padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid #ffffff10}
+.ofc-hud-sub {display:flex;gap:6px;align-items:baseline;margin:6px 0 8px;font:700 13px var(--mac-ui)}
+.ofc-hud-sub small {color:var(--mac-text-secondary,#ffffffa0);font-weight:600}
+.ofc-hud-inventario li.trofeu {background:#ffd16610}
+.ofc-hud-inventario {grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+.ofc-hud-inventario li em.ofc-escada-nivel {position:static;font-size:10px}
+.ofc-hud-inventario li span {white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2}
+.ofc-cq-na-ficha .ofc-rk-corpo, .ofc-cq-na-ficha {display:grid;gap:10px}
+@media (prefers-reduced-motion:no-preference) {.ofc-hud-palco img {animation:ofc-hud-respira 3.2s ease-in-out infinite}}
+@keyframes ofc-hud-respira {50% {transform:translateY(-3px)}}
