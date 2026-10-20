@@ -768,6 +768,39 @@ function pendenciasSolicitacoesDoDia(iso, filter) {
     }).sort((a,b) => (dataDoCartaoDia(a) || '9999').localeCompare(dataDoCartaoDia(b) || '9999'));
 }
 
+// Dias em colunas lado a lado, rolando para o lado (Paulo, 19/10/2026:
+// "estilo um Trello, só que melhor"): cada dia é uma coluna com a altura da
+// tela e a própria rolagem, e cabe muito mais por dia. "Ver em grade" volta
+// ao mosaico de antes; a escolha fica guardada neste navegador.
+let DIAS_EM_COLUNAS = (() => { try { return localStorage.getItem('vybeDiasLayout') !== 'grade'; } catch { return true; } })();
+const DIAS_COLUNAS_POSICIONADOS = new Set();
+function alternarDiasEmColunas() {
+  DIAS_EM_COLUNAS = !DIAS_EM_COLUNAS;
+  try { localStorage.setItem('vybeDiasLayout', DIAS_EM_COLUNAS ? 'colunas' : 'grade'); } catch { /* sem storage */ }
+  DIAS_COLUNAS_POSICIONADOS.clear();
+  for (let s = 1; s <= (META.weeks?.length || 4); s++) renderWeek(s, currentFilter, currentDayFilter);
+}
+function aplicarLayoutDosDias(grid, sem, emDias) {
+  const colunas = emDias && DIAS_EM_COLUNAS && grid.querySelectorAll(':scope > .day-scroll-card').length > 1;
+  grid.classList.toggle('dias-colunas', colunas);
+  const titulo = grid.previousElementSibling?.classList.contains('section-title') ? grid.previousElementSibling : null;
+  let botao = titulo?.querySelector('.dias-layout-btn');
+  if (titulo && !botao && emDias) {
+    botao = document.createElement('button');
+    botao.type = 'button'; botao.className = 'dias-layout-btn';
+    botao.addEventListener('click', alternarDiasEmColunas);
+    titulo.append(botao);
+  }
+  if (botao) { botao.hidden = !emDias; botao.textContent = DIAS_EM_COLUNAS ? 'Ver em grade' : 'Ver em colunas'; }
+  if (!colunas) return false;
+  grid.classList.remove('dias-encaixados');
+  // Abre na coluna de hoje uma vez por semana mostrada (sem pular a cada atualização).
+  if (!DIAS_COLUNAS_POSICIONADOS.has(sem)) {
+    const hoje = grid.querySelector(':scope > .day-is-today');
+    if (hoje && grid.offsetParent) { grid.scrollLeft = Math.max(0, hoje.offsetLeft - grid.offsetLeft - 12); DIAS_COLUNAS_POSICIONADOS.add(sem); }
+  }
+  return true;
+}
 function renderByDay(sem, filter, dayFilter) {
   const items=itensDaSemanaGestor(sem);
   const fi=filtrarItensDoDia(items,filter);
@@ -823,7 +856,7 @@ function renderByDay(sem, filter, dayFilter) {
     </div>`;
   }).join('');
   ORDEM_VISIVEL_DO_DIA=ordemVisivel;
-  encaixarCartoesDoDia(grid);
+  if(!aplicarLayoutDosDias(grid,sem,true)) encaixarCartoesDoDia(grid);
 }
 // Cartões de dia com alturas diferentes deixavam buracos na grade (a linha
 // toda esperava o cartão mais alto). Cada cartão ocupa só as linhas finas
@@ -983,6 +1016,7 @@ function renderWeek(sem, filter, dayFilter) {
   const dias = getDiasSemana(sem);
   const grid = document.getElementById(`grid-s${sem}`);
   if (!grid) return;
+  aplicarLayoutDosDias(grid, sem, false);
   let clientes = Object.keys(porCliente).sort();
   // Sempre: pendentes primeiro, finalizados depois
   clientes = clientes.sort((a,b) => {

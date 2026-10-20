@@ -7780,6 +7780,21 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .day-scroll-card .day-pending-tabs button {padding:4px 6px}
 .day-scroll-card > .client-progress {padding:2px 12px 6px}
 .day-scroll-card .day-expansion-footer {padding:6px 12px}
+/* Agenda em colunas (estilo quadro): os dias lado a lado, rolando para o lado;
+   cada coluna tem a altura da tela e rola por dentro, então cabe muito mais por
+   dia e o "Ver todas" some. No celular, uma coluna por vez, com encaixe. */
+.clients-grid.dias-colunas {display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;align-items:stretch;scroll-snap-type:x proximity;padding:2px 2px 14px;scrollbar-width:thin;overscroll-behavior-x:contain}
+.clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(290px,23vw,350px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 220px);min-height:440px}
+.clients-grid.dias-colunas > .day-scroll-card .day-activity-scroll,
+.clients-grid.dias-colunas > .day-scroll-card:not(.day-expanded) .day-activity-scroll {flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior-y:contain}
+.clients-grid.dias-colunas > .day-scroll-card .day-expansion-footer {display:none}
+.clients-grid.dias-colunas > .day-scroll-card.day-empty {opacity:.75}
+.clients-grid.dias-colunas > .day-scroll-card .day-activity-content {gap:8px}
+.section-title .dias-layout-btn {margin-left:auto;padding:4px 10px;border-radius:8px;border:1px solid var(--border,#ffffff1f);background:#ffffff0a;color:var(--text-muted,#aab);font:600 11.5px var(--mac-ui,system-ui);cursor:pointer}
+.section-title .dias-layout-btn:hover {color:var(--text,#fff);background:#ffffff14}
+.section-title .dias-layout-btn:focus-visible {outline:2px solid var(--accent2,#ff9d00);outline-offset:2px}
+.section-title:has(.dias-layout-btn) {display:flex;align-items:center;gap:8px}
+@media (max-width:760px){.clients-grid.dias-colunas > .day-scroll-card {flex-basis:86vw;height:calc(100vh - 180px)}}
 /* Missões com o padrão do painel: etiqueta do cliente da carteira, pílula do
    status e o grupo com a bolinha na cor que ele tem no quadro. */
 .ofc-missao-clientes {display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
