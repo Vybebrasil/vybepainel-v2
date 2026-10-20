@@ -7755,3 +7755,22 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
   .ofc-catj-topo {flex-wrap:wrap}
 }
 .ofc-catj-corpo {position:relative}
+/* Cartões do dia mais compactos (Paulo, 19/10/2026: "tudo meio grandão",
+   "lembra como era antes"): a linha volta a caber em ~44px, com a etiqueta do
+   cliente menor, e cabeçalho, abas e barra do dia mais justos. Só desenho:
+   nada da regra das listas muda. */
+.day-scroll-card .item-row.day-activity-row {padding:6px 12px;gap:6px}
+.day-scroll-card .day-activity-content {gap:10px}
+.day-scroll-card .day-activity-row .item-name {font-size:12.5px;line-height:1.3}
+.day-scroll-card .day-activity-caption {margin-top:2px;gap:2px 6px;font-size:10.5px;line-height:1.3}
+.day-scroll-card .day-activity-caption > span+span::before {margin-right:6px}
+.day-scroll-card .day-activity-clients .cliente-carteira {padding:1px 6px;font-size:10.5px;line-height:1.35;border-radius:6px}
+.day-scroll-card .day-activity-actions .manager-owner-trigger {transform:scale(.9)}
+/* A aparência fixa o espaço do cabeçalho com !important pela variável; ajusta-se a variável. */
+.day-scroll-card {--day-header-padding:8px 12px}
+.day-scroll-card .day-heading {gap:1px}
+.day-scroll-card .day-date-context {font-size:10.5px}
+.day-scroll-card .day-pending-tabs {padding:5px 12px}
+.day-scroll-card .day-pending-tabs button {padding:4px 6px}
+.day-scroll-card > .client-progress {padding:2px 12px 6px}
+.day-scroll-card .day-expansion-footer {padding:6px 12px}
