@@ -365,16 +365,29 @@ São conferidos quando a pessoa abre a ficha ou a loja e no fechamento do dia.
 
 | Marco | Como conta | Móvel só por marco (vai direto ao inventário) |
 |-------|------------|-----------------------------------------------|
-| Primeira entrega | 1 entrega | — |
-| 10, 50, 100, 250 entregas | contagem de entregas (de qualquer função) | 250: troféu de ouro "Monster Plant" |
-| 500 entregas | idem | troféu "Signature Edition Stone" |
-| Embalado / Maratona | 5 / 15 dias úteis seguidos com entrega | Maratona: troféu de basquete |
+| Primeira, 10, 50, 100 entregas | contagem de entregas | Troféu de bronze, de prata, de ouro, Taça de campeão |
+| 250 / 500 entregas | idem | troféu de ouro "Monster Plant" / "Signature Edition Stone" |
+| Embalado / Maratona | 5 / 15 dias úteis seguidos com entrega | Troféu tocha / troféu de basquete |
 | Mês sem furo | 10 ou mais entregas no mês, todas no prazo | troféu de prata "Monster Plant" |
-| Muitos clientes | 5 clientes diferentes no mês | — |
-| Fila em dia | 1 entrega ou mais e nenhuma vencida agora | — |
-| Nível 5, 10, 20, 30 | pelo XP | 20: sofá "Signature Edition HC" |
+| Muitos clientes | 5 clientes diferentes no mês | Globo executivo |
+| Fila em dia | 1 entrega ou mais e nenhuma vencida agora | Troféu joinha |
+| Nível 5, 10, 20, 30 | pelo XP | troféu 20 anos bronze, prata, sofá "Signature Edition HC", troféu 20 anos ouro |
 | Meta em dia | bateu a meta da semana 4 vezes | "Rare Gilded Desk" |
-| Meu quarto | já existe (montar o quarto) | — |
+| Meu quarto | montou o quarto | Troféu Arquitetos em Ação |
+| Adiantado / Sempre adiantado | 10 / 100 entregas antes do prazo | Estátua dragão de bronze / de ouro |
+| De primeira / Mão certeira | 10 / 50 peças aprovadas sem alteração | Troféu fotografia prata / ouro |
+| Semana sem atraso | 3 ou mais entregas nos últimos 7 dias, todas no prazo | Troféu do equilíbrio |
+| Planejamento aprovado | enviou um planejamento que o cliente aprovou | Troféu dos vencedores |
+| Presenteador / Negociante | deu o primeiro presente / fez a primeira troca | Capivara de Natal / Troféu comercial |
+| Segundo andar / Recadeiro | montou o segundo andar / colou 10 post-its | Troféu Clube do Arquiteto / Troféu tagarela bronze |
+
+Desde 20/10/2026 (decisão do Paulo) toda conquista dá um móvel; as dez
+últimas linhas são as conquistas por fazer as coisas. Tempo online e presença
+não contam. A migração `2026-10-20-escritorio-conquistas.sql` liga cada móvel
+ao seu marco (sai da venda e da vitrine) e, uma vez só (marcador
+`conquistas-2026-10-20`), devolve o móvel a quem já tinha a conquista: os
+reinícios de 18 e 19/10 apagaram os inventários e o marco, registrado uma
+vez, não devolvia o objeto.
 
 Os marcos de contagem passam a contar toda entrega (Solicitações e Produção),
 não só o quadro de Solicitações; o gatilho deixa de conceder as conquistas

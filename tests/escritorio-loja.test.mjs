@@ -2,6 +2,7 @@
 // por marco e marcos idempotentes (docs/escritorio-pontos.md).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {bancoEscritorio as banco} from './escritorio-esquema.mjs';
 import {comprarMovel,carregarEconomia,carregarLoja,infoMovel,vitrineDaSemana} from '../server/escritorio-economia.js';
 import {conferirMarcos,conferirMarcosDaEquipe,MARCOS} from '../server/escritorio-marcos.js';
@@ -138,4 +139,43 @@ test('compra pela metade (falha) não deixa venda nem móvel; repetição da mes
  const [v]=await sql`SELECT vendidos FROM vybe_escritorio_catalogo WHERE classe=${raro}`;assert.equal(Number(v.vendidos),1);
  await assert.rejects(comprarMovel(sql,1,{classe:raro,chave:crypto.randomUUID()},AGORA),/insuficientes/);
  const [v2]=await sql`SELECT vendidos FROM vybe_escritorio_catalogo WHERE classe=${raro}`;assert.equal(Number(v2.vendidos),1);
+});
+// A migração das conquistas vem depois da economia de 20/10 (em produção, nessa ordem).
+const MIGRACAO_CONQUISTAS=readFileSync('migrations/2026-10-20-escritorio-conquistas.sql','utf8');
+test('conquistas por fazer as coisas: entregas adiantadas, semana sem atraso e segundo andar, cada uma com seu móvel',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(MIGRACAO_CONQUISTAS);
+ const hoje=diaBahia(AGORA), depois=somarDias(hoje,5);
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,prazo) SELECT n,8385559107,'pode_fazer','${depois}' FROM generate_series(40,49) n;
+  INSERT INTO vybe_conteudo_responsaveis SELECT n,3,0 FROM generate_series(40,49) n;
+  INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para,autor_id) SELECT n,'status','Feito',3 FROM generate_series(40,49) n;
+  INSERT INTO vybe_escritorio_perfis(pessoa_id,preferencias) VALUES(3,'{"sala_andares":[{"andar":1,"quarto_configurado":true}]}')
+  ON CONFLICT (pessoa_id) DO UPDATE SET preferencias=EXCLUDED.preferencias;`);
+ const lista=await conferirMarcos(sql,3,AGORA);
+ const ok=lista.filter(m=>m.ok).map(m=>m.id);
+ for (const id of ['adiantado10','semana','andar2']) assert.ok(ok.includes(id),id);
+ assert.ok(!ok.includes('adiantado100') && !ok.includes('presente'));
+ assert.equal(await inventario(sql,3,'trophy_snowstorm_bronze'),1);
+ assert.equal(await inventario(sql,3,'bc_blocktrophy_1'),1);
+ // Toda conquista da lista tem um móvel.
+ assert.ok(lista.every(m=>m.moveis.length>=1),lista.filter(m=>!m.moveis.length).map(m=>m.id).join());
+ // Móvel de conquista não se compra.
+ await creditar(sql,3,5000);
+ await assert.rejects(comprarMovel(sql,3,{classe:'prize3',chave:crypto.randomUUID()},AGORA),/marco/);
+});
+test('devolução única: quem já tinha a conquista recebe o móvel que sumiu, e rodar de novo não duplica',async t=>{
+ const {db,sql}=await banco(t);
+ const migracao=MIGRACAO_CONQUISTAS;
+ await db.exec(migracao);
+ // Conquistas registradas antes dos reinícios, inventário vazio; uma pessoa já tem o troféu.
+ await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(4,'duzentas'),(4,'primeira'),(5,'duzentas');
+  INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(5,'trophy_ltd23_goldmonsterplant',1);
+  DELETE FROM vybe_escritorio_reinicios WHERE chave='conquistas-2026-10-20';`);
+ await db.exec(migracao);
+ assert.equal(await inventario(sql,4,'trophy_ltd23_goldmonsterplant'),1);
+ assert.equal(await inventario(sql,4,'prize3'),1);
+ assert.equal(await inventario(sql,5,'trophy_ltd23_goldmonsterplant'),1);
+ await db.exec(`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=4`);
+ await db.exec(migracao);                                    // marcador: não devolve outra vez
+ assert.equal(await inventario(sql,4,'prize3'),0);
 });

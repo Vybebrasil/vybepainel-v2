@@ -22,6 +22,18 @@ export const MARCOS = [
   { id: 'nivel30', nome: 'Nível 30', dica: 'Chegou ao nível 30 pelo XP', ok: n => n.nivel >= 30 },
   { id: 'meta4', nome: 'Meta em dia', dica: 'Bateu a meta da semana 4 vezes', ok: n => n.metas >= 4 },
   { id: 'quarto', nome: 'Meu quarto', dica: 'Montou o próprio quarto', origem: 'conquista:meu-quarto', ok: n => n.quarto },
+  // Conquistas por fazer as coisas (Paulo, 20/10/2026). Tempo online e
+  // presença não contam (docs/escritorio-pontos.md).
+  { id: 'adiantado10', nome: 'Adiantado', dica: '10 entregas antes do prazo', ok: n => n.antes >= 10 },
+  { id: 'adiantado100', nome: 'Sempre adiantado', dica: '100 entregas antes do prazo', ok: n => n.antes >= 100 },
+  { id: 'deprimeira10', nome: 'De primeira', dica: '10 peças aprovadas sem alteração', ok: n => n.deprimeira >= 10 },
+  { id: 'deprimeira50', nome: 'Mão certeira', dica: '50 peças aprovadas sem alteração', ok: n => n.deprimeira >= 50 },
+  { id: 'semana', nome: 'Semana sem atraso', dica: '3 ou mais entregas nos últimos 7 dias, todas dentro do prazo', ok: n => n.semanaComPrazo >= 3 && n.semanaEmDia === n.semanaComPrazo },
+  { id: 'planejamento', nome: 'Planejamento aprovado', dica: 'Enviou um planejamento que o cliente aprovou', ok: n => n.planejamentos >= 1 },
+  { id: 'presente', nome: 'Presenteador', dica: 'Deu o primeiro presente a alguém da equipe', ok: n => n.presentes >= 1 },
+  { id: 'troca', nome: 'Negociante', dica: 'Fez a primeira troca de móveis', ok: n => n.trocas >= 1 },
+  { id: 'andar2', nome: 'Segundo andar', dica: 'Montou o segundo andar do quarto', ok: n => n.andar2 },
+  { id: 'postits', nome: 'Recadeiro', dica: 'Colou 10 post-its', ok: n => n.postits >= 10 },
 ];
 export async function marcosProntos(sql) {
   const [r] = await sql`SELECT (to_regclass('public.vybe_escritorio_marcos') IS NOT NULL AND to_regclass('public.vybe_escritorio_entregas') IS NOT NULL) AS existe`;
@@ -52,8 +64,29 @@ export async function numerosDosMarcos(sql, pessoaId, agora = new Date()) {
   const [c] = await sql`SELECT xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
   const [g] = await sql`SELECT count(*) FILTER (WHERE regra='meta_semanal') AS metas, bool_or(origem='conquista:meu-quarto') AS quarto
     FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId}`;
+  const [a] = await sql`SELECT count(*) FILTER (WHERE e.dia < c.prazo) AS antes,
+      count(*) FILTER (WHERE e.dia >= ${somarDias(hoje, -6)}::date) AS semana_com_prazo,
+      count(*) FILTER (WHERE e.dia >= ${somarDias(hoje, -6)}::date AND e.dia <= c.prazo) AS semana_em_dia
+    FROM vybe_escritorio_entregas e JOIN vybe_conteudos c ON c.id=e.conteudo_id
+    WHERE e.pessoa_id=${pessoaId} AND c.prazo IS NOT NULL`;
+  const [d] = await sql`SELECT count(DISTINCT origem) AS n FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND regra='criacao_aprovada'`;
+  // Tabelas que podem não existir (instalação antiga ou banco de teste): contam zero.
+  const [tem] = await sql`SELECT to_regclass('public.vybe_escritorio_presentes') IS NOT NULL AS presentes,
+    to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS trocas, to_regclass('public.vybe_escritorio_postits') IS NOT NULL AS postits,
+    to_regclass('public.vybe_planejamento_eventos') IS NOT NULL AS planejamentos`;
+  const contar = async (existe, consulta) => existe ? Number((await consulta())[0]?.n || 0) : 0;
+  const presentes = await contar(tem.presentes, () => sql`SELECT count(*) AS n FROM vybe_escritorio_presentes WHERE de_pessoa=${pessoaId}`);
+  const trocas = await contar(tem.trocas, () => sql`SELECT count(*) AS n FROM vybe_escritorio_trocas WHERE estado='aceita' AND (de_pessoa=${pessoaId} OR para_pessoa=${pessoaId})`);
+  const postits = await contar(tem.postits, () => sql`SELECT count(*) AS n FROM vybe_escritorio_postits WHERE pessoa_id=${pessoaId}`);
+  const planejamentos = await contar(tem.planejamentos, () => sql`SELECT count(DISTINCT p.id) AS n FROM vybe_planejamentos p
+    JOIN vybe_planejamento_eventos ev ON ev.planejamento_id=p.id AND ev.tipo='enviado' AND ev.autor_id=${pessoaId}
+    WHERE p.estado IN ('aprovado','cadastrado')`);
+  const [pf] = await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId}`;
+  const andar2 = (pf?.preferencias?.sala_andares || []).some(x => x?.andar === 1 && x.quarto_configurado === true);
   return { hoje, total: Number(t.n), seq, comPrazo: Number(m.com_prazo), emDia: Number(m.em_dia), clientes: Number(cl.n), vencidas: Number(v.n),
-    nivel: nivelPorXp(c?.xp || 0).nivel, metas: Number(g?.metas || 0), quarto: Boolean(g?.quarto) };
+    nivel: nivelPorXp(c?.xp || 0).nivel, metas: Number(g?.metas || 0), quarto: Boolean(g?.quarto),
+    antes: Number(a.antes), semanaComPrazo: Number(a.semana_com_prazo), semanaEmDia: Number(a.semana_em_dia), deprimeira: Number(d.n),
+    planejamentos, presentes, trocas, postits, andar2 };
 }
 // Lista dos marcos da pessoa (conquistado, quando, e o móvel que dá),
 // concedendo os novos: registro em vybe_escritorio_marcos, conquista no razão
