@@ -1521,6 +1521,11 @@ body.vybe-desktop {
 .agenda-navigation #week-tabs-container .tab-btn {font-size:12px;padding:10px 12px}
 .agenda-navigation #week-tabs-container .tab-btn.active {background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:transparent;color:var(--accent);box-shadow:inset 0 -2px var(--accent);border-radius:8px 8px 0 0}
 .agenda-navigation #btn-view-day {margin-left:auto;border:0;background:transparent;color:var(--text-muted);font-size:11px}
+/* A navegação abre o cartão (cantos só em cima) e a semana mostrada o fecha:
+   antes o painel da semana não tinha fundo, e o título "Clientes — Semana" e
+   as colunas ficavam soltos, saindo do quadro (Paulo, 19/10/2026). */
+.agenda-navigation ~ .week-panel.active {background:var(--surface);border:1px solid var(--border);border-top:0;border-radius:0 0 18px 18px;padding:12px 18px 16px;margin-bottom:24px}
+.agenda-navigation ~ .week-panel.active > .section-title {margin-top:2px}
 .app-header :is(button,summary):focus-visible,.team-load-disclosure summary:focus-visible {outline:2px solid currentColor;outline-offset:3px}
 @media(max-width:760px) {
  .vybe-desktop > .app-header .header-row1 {display:block}
