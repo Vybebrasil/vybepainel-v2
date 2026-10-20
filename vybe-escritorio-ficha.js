@@ -640,12 +640,12 @@ function escritorioMiniaturaHtml(classe) {
 function escritorioMeuInventario() {
   const sala = escritorioDonos().get(escritorio.base?.eu)?.id;
   const camadas = escritorio.base?.mapa?.camadas || {};
-  const colocados = new Map();
-  for (const c of [sala, sala + "-andar-1"]) for (const it of camadas[c]?.itens || []) colocados.set(it[0], (colocados.get(it[0]) || 0) + 1);
+  const colocados = new Map(), andar1 = new Map();
+  for (const c of [sala, sala + "-andar-1"]) for (const it of camadas[c]?.itens || []) { colocados.set(it[0], (colocados.get(it[0]) || 0) + 1); if (c.endsWith("-andar-1")) andar1.set(it[0], (andar1.get(it[0]) || 0) + 1); }
   const essenciais = escritorio.base?.quartos?.essenciais || [];
   return (escritorio.base?.economia?.inventario || [])
     .filter((i) => !essenciais.includes(i.classe) && !String(i.classe).startsWith("vybeimg_") && Number(i.quantidade) > 0)
-    .map((i) => { const total = Number(i.quantidade), noQuarto = Math.min(total, colocados.get(i.classe) || 0); return { classe: i.classe, total, noQuarto, guardados: total - noQuarto }; })
+    .map((i) => { const total = Number(i.quantidade), noQuarto = Math.min(total, colocados.get(i.classe) || 0), segundo = Math.min(noQuarto, andar1.get(i.classe) || 0); return { classe: i.classe, total, noQuarto, terreo: noQuarto - segundo, segundo, guardados: total - noQuarto }; })
     .sort((a, b) => escritorioNomeDaClasse(a.classe).localeCompare(escritorioNomeDaClasse(b.classe), "pt-BR"));
 }
 async function carregarTrocasEscritorio(forcar = false) {

@@ -481,3 +481,18 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   XP para todos. Pagos no fechamento da semana pelo ciclo diário, uma vez
   (`ranking:<semana>` em fechamentos, origens únicas no razão).
 - O % da meta e as entregas da semana aparecem para toda a equipe.
+
+## Loja, carteira e inventário (Paulo, 20/10/2026)
+
+- Loja: vitrine da semana em destaque com a contagem até trocar; **kits** com
+  desconto (`vybe_escritorio_kits`, `2026-10-20-escritorio-kits.sql`; preço =
+  soma dos preços atuais menos o desconto; compra tudo ou nada em
+  `comprarKit`, origem `kit:<chave>:<kit>:<classes>`); lista de desejos (só no
+  navegador) com aviso quando dá para comprar; "faltam N moedas, cerca de D
+  dias no seu ritmo"; "Experimentar no quarto" (não salva sem comprar).
+- Carteira: moedas e XP dos últimos 7 dias, de onde vieram, e a previsão até
+  a próxima faixa de preço. Ritmo = moedas dos últimos 7 dias ÷ 7 (sem compras).
+- Inventário: filtros Prêmios, Comprados, Presentes e Trocas (`origens` em
+  `carregarEconomia` com a loja), ordem por raridade, térreo/2º andar no cartão.
+- Editor: "Guardar tudo" tira os móveis não essenciais do andar.
+- Busca entende sinônimos e o nome em inglês do catálogo (`escritorioBuscaCombina`).

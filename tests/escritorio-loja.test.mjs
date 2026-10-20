@@ -198,3 +198,22 @@ test('ficha do móvel diz de quem é a sala e como o dono conseguiu: compra, con
  assert.equal((await origemDoMovel(sql,salas,{camada:'cafe',classe:'exe_table'})).tipo,'sala_comum');
  await assert.rejects(origemDoMovel(sql,salas,{camada:sala,classe:"x'; drop"}),/inválido/);
 });
+test('kit da loja: soma dos preços com desconto, tudo ou nada, repetir a chave não cobra de novo; inventário diz de onde veio',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-escritorio-kits.sql','utf8'));
+ const {comprarKit,kitsDaLoja}=await import('../server/escritorio-economia.js');
+ const kit=(await kitsDaLoja(sql,AGORA)).find(k=>k.chave==='madeira');
+ assert.ok(kit.disponivel);assert.equal(kit.preco,Math.round(kit.cheio*0.85));
+ await creditar(sql,1,kit.preco-1);
+ await assert.rejects(comprarKit(sql,1,{kit:'madeira',chave:crypto.randomUUID()},AGORA),/insuficientes/);
+ assert.equal(await inventario(sql,1,'waasa_desk'),0,'nada entra se não pagou');
+ await creditar(sql,1,1);
+ const chave=crypto.randomUUID();
+ const e=await comprarKit(sql,1,{kit:'madeira',chave},AGORA);
+ assert.equal(e.saldo,0);
+ for (const c of kit.classes) assert.equal(await inventario(sql,1,c),1);
+ await comprarKit(sql,1,{kit:'madeira',chave},AGORA);
+ assert.equal(await inventario(sql,1,'waasa_desk'),1,'repetição não cobra nem dá de novo');
+ assert.deepEqual(e.origens.waasa_desk,['compra']);
+ assert.equal(e.ritmo.dias.length,7);
+});

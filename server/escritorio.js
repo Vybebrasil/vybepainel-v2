@@ -1,5 +1,5 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
-import { carregarEconomia, comprarMovel, perfilPublico } from "./escritorio-economia.js";
+import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./escritorio-economia.js";
 import { missoesDaPessoa, rankingEscritorio } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
@@ -415,9 +415,10 @@ export async function areaEscritorio(req, res, quem, sql) {
       // responde com o status e o código do erro (o painel mostra o motivo).
       return res.status(e.status || 400).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
     }
-  if (acao === "quarto" || acao === "comprar") {
+  if (acao === "quarto" || acao === "comprar" || acao === "comprar-kit") {
     try {
       const resultado = acao === "comprar" ? {economia: await comprarMovel(sql, pessoa.id, req.body)}
+        : acao === "comprar-kit" ? {economia: await comprarKit(sql, pessoa.id, req.body)}
         : await configurarQuarto(sql, pessoa, perfilEscritorio(req.body?.perfil), req.body);
       return res.status(200).json({ok:true,...resultado});
     } catch(e) { return res.status(e.status || 400).json({error:e.message}); }

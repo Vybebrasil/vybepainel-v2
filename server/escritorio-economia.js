@@ -3,7 +3,7 @@
 // móveis limitados ficam em vybe_escritorio_raridades/vybe_escritorio_catalogo
 // (migrations/2026-10-17-escritorio-loja.sql); quem não está na tabela é comum.
 import { readFileSync } from 'node:fs';
-import { resumoPontos, diaBahia, inicioDaSemana, nivelPorXp } from './escritorio-pontos.js';
+import { resumoPontos, diaBahia, inicioDaSemana, nivelPorXp, somarDias } from './escritorio-pontos.js';
 import { conferirMarcos, MARCOS } from './escritorio-marcos.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
@@ -84,7 +84,97 @@ export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja
  const conquistas = await sql`SELECT origem,criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%' ORDER BY criado_em`;
  // Pontos (XP, meta e extrato) chegam depois da migração própria; sem ela, null.
  return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,
-  pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, loja: loja ? await carregarLoja(sql, agora) : undefined};
+  pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, ...(loja ? await extrasDaLoja(sql, pessoaId, agora) : {})};
+}
+// Só com a loja (janela do catálogo, compras): a entrada do escritório fica leve.
+async function extrasDaLoja(sql, pessoaId, agora) {
+ const loja = await carregarLoja(sql, agora);
+ return { loja, origens: await origensDoInventario(sql, pessoaId), ritmo: await ritmoDeMoedas(sql, pessoaId, agora), kits: await kitsDaLoja(sql, agora, loja) };
+}
+// Como a pessoa conseguiu cada móvel (para os filtros do inventário):
+// compra, kit, presente, troca ou prêmio (Paulo, 20/10/2026).
+async function origensDoInventario(sql, pessoaId) {
+ const [ex] = await sql`SELECT to_regclass('public.vybe_escritorio_presentes') IS NOT NULL AS presentes, to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS trocas,
+   to_regclass('public.vybe_escritorio_catalogo') IS NOT NULL AS catalogo`;
+ const o = {};
+ const por = (classe, tipo) => { if (classe) (o[classe] ||= new Set()).add(tipo); };
+ for (const r of await sql`SELECT substring(origem from '^compra:[^:]+:(.*)$') AS classe FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'compra:%'`) por(r.classe, 'compra');
+ for (const r of await sql`SELECT origem FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'kit:%'`) for (const c of String(r.origem).split(':').slice(3)) por(c, 'compra');
+ if (ex?.presentes) for (const r of await sql`SELECT classe FROM vybe_escritorio_presentes WHERE para_pessoa=${pessoaId}`) por(r.classe, 'presente');
+ if (ex?.trocas) for (const r of await sql`SELECT oferece, pede, de_pessoa FROM vybe_escritorio_trocas WHERE estado='aceita' AND (de_pessoa=${pessoaId} OR para_pessoa=${pessoaId})`) {
+  const recebeu = String(r.de_pessoa) === String(pessoaId) ? r.pede : r.oferece;
+  for (const it of Array.isArray(recebeu) ? recebeu : []) por(Array.isArray(it) ? it[0] : it?.classe, 'troca');
+ }
+ if (ex?.catalogo) for (const r of await sql`SELECT i.classe FROM vybe_escritorio_inventario i JOIN vybe_escritorio_catalogo c ON c.classe=i.classe AND c.marco IS NOT NULL WHERE i.pessoa_id=${pessoaId}`) por(r.classe, 'premio');
+ return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, [...v]]));
+}
+// Moedas e XP por dia nos últimos 7 dias (sem compras) e a média de moedas
+// por dia: o "no seu ritmo" da loja e o gráfico da carteira.
+async function ritmoDeMoedas(sql, pessoaId, agora = new Date()) {
+ const hoje = diaBahia(agora), desde = somarDias(hoje, -6);
+ // Antes da migração dos pontos o razão não tem XP: só as moedas.
+ if (!await pontosProntosEconomia(sql)) {
+  const so = await sql`SELECT TO_CHAR((criado_em AT TIME ZONE 'America/Bahia')::date,'YYYY-MM-DD') AS dia, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas
+    FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' GROUP BY 1`;
+  const dias = Array.from({ length: 7 }, (_, k) => { const dia = somarDias(desde, k), l = so.find((x) => x.dia === dia); return { dia, moedas: Number(l?.moedas || 0), xp: 0 }; });
+  return { dias, porDia: Math.round((dias.reduce((t, d) => t + d.moedas, 0) / 7) * 10) / 10 };
+ }
+ const linhas = await sql`SELECT TO_CHAR((criado_em AT TIME ZONE 'America/Bahia')::date,'YYYY-MM-DD') AS dia, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas, COALESCE(sum(pontos),0)::int AS xp
+   FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' GROUP BY 1`;
+ const dias = Array.from({ length: 7 }, (_, k) => { const dia = somarDias(desde, k), l = linhas.find((x) => x.dia === dia); return { dia, moedas: Number(l?.moedas || 0), xp: Number(l?.xp || 0) }; });
+ const total = dias.reduce((t, d) => t + d.moedas, 0);
+ return { dias, porDia: Math.round((total / 7) * 10) / 10 };
+}
+// Kits da loja (Paulo, 20/10/2026): conjuntos prontos com desconto, na tabela
+// vybe_escritorio_kits. O preço é a soma dos preços atuais menos o desconto.
+export async function kitsDaLoja(sql, agora = new Date(), lojaCarregada = null) {
+ const [ex] = await sql`SELECT to_regclass('public.vybe_escritorio_kits') IS NOT NULL AS existe`;
+ if (!ex?.existe) return [];
+ const loja = lojaCarregada || await carregarLoja(sql, agora);
+ const kits = await sql`SELECT chave, nome, descricao, classes, desconto FROM vybe_escritorio_kits WHERE ativo ORDER BY ordem, chave`;
+ return kits.map((k) => {
+  const itens = k.classes.map((c) => infoMovel(loja, c));
+  const cheio = itens.reduce((t, i) => t + Number(i.preco || 0), 0);
+  const disponivel = itens.every((i) => !i.marco && i.restante !== 0 && i.naVitrine && i.preco > 0);
+  return { chave: k.chave, nome: k.nome, descricao: k.descricao, classes: k.classes, desconto: Number(k.desconto), cheio, preco: Math.round(cheio * (1 - Number(k.desconto))), disponivel };
+ });
+}
+// Compra de um kit: tudo ou nada, na mesma transação e com a mesma trava da
+// compra avulsa; repetir a mesma chave não cobra de novo.
+export async function comprarKit(sql, pessoaId, { kit, chave } = {}, agora = new Date()) {
+ if (!/^[a-f0-9-]{36}$/i.test(String(chave || ''))) throw Object.assign(new Error('Identificador da compra inválido.'),{status:400});
+ if (!/^[a-z0-9_-]{1,40}$/.test(String(kit || ''))) throw Object.assign(new Error('Kit inválido.'),{status:400});
+ return sql.comTransacao(async tx => {
+  const [k] = await tx`SELECT chave, classes, desconto FROM vybe_escritorio_kits WHERE chave=${kit} AND ativo`;
+  if (!k) throw Object.assign(new Error('Este kit não está à venda.'),{status:404});
+  await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
+  const [c] = await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId} FOR UPDATE`;
+  const origem = ['kit', chave, kit, ...k.classes].join(':');
+  const [anterior] = await tx`SELECT origem FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE ${'kit:' + chave + ':%'}`;
+  if (anterior && anterior.origem !== origem) throw Object.assign(new Error('Identificador de compra já utilizado.'),{status:409});
+  if (!anterior) {
+   for (const classe of [...k.classes].sort()) await tx`SELECT classe FROM vybe_escritorio_catalogo WHERE classe=${classe} FOR UPDATE`;
+   const loja = await carregarLoja(tx, agora);
+   let cheio = 0;
+   for (const classe of k.classes) {
+    const info = infoMovel(loja, classe);
+    if (info.marco || !info.preco) throw Object.assign(new Error('Este kit tem um móvel que não se compra.'),{status:409});
+    if (info.restante === 0) throw Object.assign(new Error('Um móvel do kit esgotou.'),{status:409});
+    if (!info.naVitrine) throw Object.assign(new Error('Um móvel do kit não está à venda esta semana.'),{status:409});
+    cheio += info.preco;
+   }
+   const preco = Math.round(cheio * (1 - Number(k.desconto)));
+   if (Number(c.saldo) < preco) throw Object.assign(new Error('VybeCoins insuficientes.'),{status:409});
+   await tx`UPDATE vybe_escritorio_carteiras SET saldo=saldo-${preco} WHERE pessoa_id=${pessoaId}`;
+   await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${pessoaId},${origem},${-preco})`;
+   for (const classe of k.classes) {
+    await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${classe},1)
+     ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
+    if (infoMovel(loja, classe).restante !== null) await tx`UPDATE vybe_escritorio_catalogo SET vendidos=vendidos+1 WHERE classe=${classe}`;
+   }
+  }
+  return carregarEconomia(tx, pessoaId, { agora });
+ });
 }
 export async function comprarMovel(sql, pessoaId, {classe,chave}={}, agora = new Date()) {
  const precoBase = precoMovel(classe);
