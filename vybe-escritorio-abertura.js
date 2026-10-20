@@ -148,8 +148,50 @@ function criadorMiniatura(t, id, cabeca) {
   if (cabeca) q.set("headonly", "1");
   return "https://www.habbo.com/habbo-imaging/avatarimage?" + q;
 }
-function criadorImagem(fig, dir = 2, tamanho = "l") {
-  return "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: fig, direction: dir, head_direction: dir, size: tamanho, gesture: "sml" });
+function criadorImagem(fig, dir = 2, tamanho = "l", mao = "") {
+  return "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: fig, direction: dir, head_direction: dir, size: tamanho, gesture: "sml", ...(mao ? { action: mao } : {}) });
+}
+// Avatar do agente de um cliente (Paulo, 20/10/2026: "editar o avatar do
+// cliente quando clicar nele"): o mesmo criador dos jogadores, com o destino
+// no cliente, a escolha do objeto de mão e o "voltar à fantasia da marca".
+// Salva na identidade do cliente (area=planejamentos, acao=personagem).
+// Objetos conferidos um a um no gerador do Habbo (o número é o "crr").
+const CRIADOR_MAOS = [["", "Nada"], ["crr=6", "Café"], ["crr=1", "Bebida"], ["crr=67", "Refrigerante"], ["crr=42", "Lata verde"], ["crr=62", "Garrafa"], ["crr=126", "Caneca de chope"],
+  ["crr=185", "Garrafinha de academia"], ["crr=73", "Pipoca"], ["crr=248", "Tigela de pipoca"], ["crr=66", "Tigela de comida"], ["crr=105", "Coxa de frango"], ["crr=106", "Pão"], ["crr=220", "Baguete"],
+  ["crr=178", "Fatia de bolo"], ["crr=191", "Rosquinha"], ["crr=2", "Cenoura"], ["crr=87", "Prancheta"], ["crr=79", "Livro"], ["crr=230", "Lápis"], ["crr=282", "Tablet"], ["crr=112", "Robozinho"], ["crr=109", "Frasco"]];
+function abrirAvatarDoClienteEscritorio() {
+  const ag = escritorio.agenteAberto;
+  if (!ag?.a) return;
+  const a = ag.a;
+  if (typeof closeWorkflowModal === "function") closeWorkflowModal();
+  abrirAberturaEscritorio("personagem");
+  criador.destino = { agente: a, cliente_id: a.cliente_id, nome: a.cliente, mao: escritorioMaoDoAgente(a) };
+  criador.f = criadorDaFigura(ag.figura || escritorioFiguraDoAgente(a, 0));
+  criador.nome = a.cliente;
+  criadorCarregarCatalogo();
+  renderAberturaEscritorio();
+}
+async function salvarAvatarDoClienteEscritorio(padrao = false) {
+  const d = criador.destino;
+  if (!d || criador.salvando) return;
+  criador.salvando = true;
+  const erro = document.getElementById("abr-erro");
+  const figura = padrao ? "" : criadorFigura(criador.f), mao = padrao ? "" : d.mao || "";
+  try {
+    if (!escritorio.base?.demo) {
+      const r = await fetch("/api/painel?area=planejamentos&acao=personagem", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "personagem", cliente_id: d.cliente_id, figura, mao }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || "Não foi possível salvar o avatar.");
+    }
+    d.agente.personagem = figura ? { figura, mao: mao || null } : null;
+    fecharAberturaEscritorio();
+    if (typeof escritorioAviso === "function") escritorioAviso(padrao ? `${d.nome} voltou à fantasia da marca.` : `Avatar de ${d.nome} salvo.`);
+    if (typeof escritorioOcuparOperacao === "function") escritorioOcuparOperacao();
+  } catch (e) {
+    if (erro) erro.textContent = e.message + " Tente de novo.";
+  } finally {
+    criador.salvando = false;
+  }
 }
 function criadorPagina(d) {
   criador.pagina = Math.max(0, (criador.pagina || 0) + d);
@@ -196,12 +238,13 @@ function criadorPainelHtml() {
   return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel cri" aria-labelledby="abr-titulo">
  <div class="abr-previa">
-  <img src="${criadorImagem(fig, criador.direcao)}" alt="Prévia do seu personagem" width="128" height="220">
+  <img src="${criadorImagem(fig, criador.direcao, "l", criador.destino?.mao || "")}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220">
   <div class="cri-corpo" role="group" aria-label="Corpo">${["M", "F"].map((g) => `<button type="button" class="abr-estilo" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div>
   <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div>
  </div>
  <div class="abr-opcoes cri-opcoes">
-  <span class="abr-kicker">${criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">Seu personagem</h2>
+  <span class="abr-kicker">${criador.destino ? "Avatar do cliente no Escritório" : criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">${criador.destino ? `Agente de ${safeText(criador.destino.nome)}` : "Seu personagem"}</h2>
+  ${criador.destino ? `<label class="cri-mao">Objeto na mão <select onchange="criador.destino.mao=this.value;renderAberturaEscritorio()">${CRIADOR_MAOS.map(([v, r]) => `<option value="${v}" ${v === (criador.destino.mao || "") ? "selected" : ""}>${r}</option>`).join("")}</select></label>` : ""}
   ${(() => {
     const grupo = CRIADOR_GRUPOS.find((g) => g[2].includes(aba.t)) || CRIADOR_GRUPOS[0];
     return `<nav class="cri-grupos" aria-label="Região">${CRIADOR_GRUPOS.map(([id, nome, abas]) => `<button type="button" aria-pressed="${id === grupo[0]}" onclick="criador.aba='${abas.includes(criador.aba) ? criador.aba : abas[id === "cabeca" ? 1 : 0]}';criador.pagina=0;criador.corAtiva=0;renderAberturaEscritorio()">${nome}</button>`).join("")}</nav>
@@ -221,7 +264,7 @@ function criadorPainelHtml() {
   ${total > 1 ? `<nav class="cri-paginas" aria-label="Páginas"><button type="button" class="abr-secundario" onclick="criadorPagina(-1)" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${total}</span><button type="button" class="abr-secundario" onclick="criadorPagina(1)" ${pag < total - 1 ? "" : "disabled"} aria-label="Próxima página">›</button></nav>` : ""}`;
   })()}`}
   <p class="abr-erro" role="alert" id="abr-erro"></p>
-  <div class="abr-acoes">${criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa=escritorioMinhaMesa()&&!escritorio.perfil.quarto_configurado?'planta':'boas';renderAberturaEscritorio()">Continuar</button>`}</div>
+  <div class="abr-acoes">${criador.destino ? '<button type="button" class="abr-secundario" onclick="salvarAvatarDoClienteEscritorio(true)" title="Volta à fantasia da marca definida pela Vybe">Voltar ao padrão</button><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarAvatarDoClienteEscritorio()">Salvar avatar</button>' : criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa=escritorioMinhaMesa()&&!escritorio.perfil.quarto_configurado?'planta':'boas';renderAberturaEscritorio()">Continuar</button>`}</div>
  </div>
 </section>`;
 }
@@ -232,6 +275,7 @@ function abrirAberturaEscritorio(etapa = "cena") {
   const eu = escritorio.base?.equipe.find((p) => p.id === escritorio.base.eu);
   // "Meu espaço" pede só o criador; a abertura completa termina nas boas-vindas.
   criador.so = ["personagem","espaco"].includes(etapa);
+  criador.destino = null;
   criador.reforma=false; criador.andar=0; criador.limparPintura=false;
   // Quem acabou de passar pela Vybelândia no login vai direto ao personagem.
   criador.etapa = etapa === "cena" && window.VYBELANDIA_VISTA ? "personagem" : etapa;
@@ -291,6 +335,7 @@ function criadorMeuEspacoHtml() {
   return `<section class="abr-painel abr-quarto"><span class="abr-kicker">Meu espaço</span><h2>Seu escritório, do seu jeito</h2><p class="abr-nota">Mude seu personagem, reforme a planta ou comece de novo. Seu inventário, moedas, XP e conquistas continuam com você.</p><div class="ofc-modelos"><button type="button" onclick="criador.etapa='personagem';renderAberturaEscritorio()">${escritorioIcone("espaco")}<span class="ofc-modelo-texto"><b>Personalizar personagem</b><small>Roupas, cabelo e aparência</small></span><i class="ofc-modelo-seta" aria-hidden="true"></i></button><button type="button" onclick="abrirReformaEscritorio(0)">${escritorioIcone("editar")}<span class="ofc-modelo-texto"><b>Aumentar ou reformar meu quarto</b><small>${plantaAtual ? `Atual: ${safeText(plantaAtual.nome)} · ${safeText(plantaAtual.medidas)}. ` : ""}Troque tamanho, formato e acabamento sem gastar moedas.</small></span><i class="ofc-modelo-seta" aria-hidden="true"></i></button><button type="button" onclick="abrirReformaEscritorio(1)">${escritorioIcone("mapa")}<span class="ofc-modelo-texto"><b>${existe?'Reformar segundo andar':'Criar segundo andar'}</b><small>Uma cena própria com formato e decoração independentes</small></span><i class="ofc-modelo-seta" aria-hidden="true"></i></button><button type="button" onclick="abrirReformaEscritorio(${escritorio.quarto?.endsWith('-andar-1')?1:0},true)">${escritorioIcone("sair")}<span class="ofc-modelo-texto"><b>Começar este andar em branco</b><small>Guarda a mobília no inventário e limpa a pintura, após sua confirmação</small></span><i class="ofc-modelo-seta" aria-hidden="true"></i></button></div><div class="abr-acoes"><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Fechar</button></div></section>`;
 }
 function fecharAberturaEscritorio() {
+  criador.destino = null;
   criadorDestruirPrevias();
   document.getElementById("ofc-abertura")?.remove();
 }
@@ -357,6 +402,7 @@ function renderAberturaEscritorio() {
 }
 // Salva o boneco (e que a abertura foi vista). Ao fim da abertura, entra.
 async function salvarPersonagemEscritorio(entrar) {
+  if (criador.destino) return salvarAvatarDoClienteEscritorio();
   if (criador.salvando) return;
   criador.salvando = true;
   const botao = document.querySelector("#ofc-abertura .abr-primario");

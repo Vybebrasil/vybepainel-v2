@@ -177,7 +177,7 @@ const COBRANCA_LEMBRETE = new Set(["lembrar_cliente", "marcar_gravacao"]);
 function agruparCobrancas(lista) {
   const por = new Map();
   for (const c of lista) {
-    if (!por.has(c.cliente_id)) por.set(c.cliente_id, { cliente_id: c.cliente_id, cliente: c.cliente, segmento: c.segmento, itens: [] });
+    if (!por.has(c.cliente_id)) por.set(c.cliente_id, { cliente_id: c.cliente_id, cliente: c.cliente, segmento: c.segmento, personagem: c.personagem || null, itens: [] });
     por.get(c.cliente_id).itens.push(c);
   }
   const grupos = [...por.values()];
@@ -339,7 +339,7 @@ async function carregarCobrancasEscritorio() {
   const resolvidos = antes.filter((g) => g.cobra && !agora.has(g.cliente_id));
   escritorio.cobrancasAntes = { quarto, grupos };
   const visitante = (g, i, falas, tom) => ({ nome: g.itens.length > 1 ? `${g.cliente} · ${g.itens.length}` : g.cliente,
-    figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(g, i) : undefined, falas, tom,
+    figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(g, i) : undefined, mao: typeof escritorioMaoDoAgente === "function" ? escritorioMaoDoAgente(g) : "", falas, tom,
     dica: g.itens.map((c) => `${c.titulo}\n  ${cobrancaRotulo(c)}${c.tipo === "postar_parada" ? "" : " · " + cobrancaCom(c)}`).join("\n"), aoClicar: (e) => abrirCobrancaClienteEscritorio(g, e) });
   const deles = (g) => g.itens.flatMap((c) => falasDaCobranca(c, nomeDono).slice(0, 2));
   // Cor de cada fala: o status da demanda de que ela fala, como no quadro.

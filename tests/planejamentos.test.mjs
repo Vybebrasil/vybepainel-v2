@@ -138,3 +138,23 @@ test('alertas dos agentes: sem informação, muito atrasadas e para aprovar, por
  assert.deepEqual((await P.alertasDoHead(sql,{id:24})).map(x=>x.cliente),['Mangaba']);
  assert.equal((await P.postosDaOperacao(sql,{id:3}))[0].alertas.total>0,true);
 });
+
+// Avatar do agente do cliente (Paulo, 20/10/2026): head e quem administra
+// editam; fica na identidade do cliente; salvar as cores não o apaga.
+test('avatar do agente: permissão, validação, identidade preservada e volta ao padrão',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const {areaPlanejamentos}=await import('../server/planejamentos-api.js');
+ const chamar=async(pessoa,corpo)=>{let st=0,js=null;const res={status(c){st=c;return this},json(j){js=j;return this},setHeader(){}};await areaPlanejamentos({method:'POST',query:{acao:corpo.acao},body:corpo},res,{pessoa},sql);return [st,js];};
+ const fig='hd-600-1370.hr-3870-61.ch-4275-1411';
+ assert.equal((await chamar({id:24},{acao:'personagem',cliente_id:10,figura:fig}))[0],403,'quem não é head nem administra não muda');
+ assert.equal((await chamar({id:3},{acao:'personagem',cliente_id:10,figura:'<script>'}))[0],400);
+ assert.equal((await chamar({id:3},{acao:'personagem',cliente_id:10,figura:fig,mao:'crr=73'}))[0],200,'o head muda');
+ await chamar({id:1,admin:true},{acao:'identidade',cliente_id:10,cor:'#ff8800'});
+ const [c]=await sql`SELECT identidade FROM vybe_clientes WHERE id=10`;
+ assert.equal(c.identidade.cor,'#ff8800');assert.deepEqual(c.identidade.personagem,{figura:fig,mao:'crr=73'},'cores salvas sem apagar o avatar');
+ assert.deepEqual((await P.postosDaOperacao(sql,{id:3})).find(p=>p.cliente==='Serra Grande').personagem,{figura:fig,mao:'crr=73'});
+ await chamar({id:3},{acao:'personagem',cliente_id:10,figura:''});
+ const [d]=await sql`SELECT identidade FROM vybe_clientes WHERE id=10`;
+ assert.equal(d.identidade.personagem,undefined,'vazio volta à fantasia padrão');assert.equal(d.identidade.cor,'#ff8800');
+});

@@ -1337,7 +1337,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       img.alt = ""; img.draggable = false; img.referrerPolicy = "no-referrer";
       no.append(img);
       palco.append(no);
-      const p = { id: "figurante-" + i, no, img, etiqueta, x: f.x, y: f.y, dir: f.dir ?? 4, acao: f.acao || "std", figura: agente?.figura || f.figura, mao: f.mao || "" };
+      const p = { id: "figurante-" + i, no, img, etiqueta, x: f.x, y: f.y, dir: f.dir ?? 4, acao: f.acao || "std", figura: agente?.figura || f.figura, mao: agente?.mao || f.mao || "" };
       posicionarPessoa(p);
       trocarImagem(p);
     }
@@ -1442,7 +1442,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const abrir = (e) => { e.stopPropagation(); v.aoClicar?.(e); };
       for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }
       palco.append(etiqueta, no);
-      const p = { id: "visitante-" + k, no, img, etiqueta, x, y, dir, acao: l.acao, figura: v.figura, mao: "" };
+      const p = { id: "visitante-" + k, no, img, etiqueta, x, y, dir, acao: l.acao, figura: v.figura, mao: v.mao || "" };
       posicionarPessoa(p);
       trocarImagem(p);
       noMapa.push({ p });

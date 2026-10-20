@@ -41,8 +41,24 @@ export async function areaPlanejamentos(req, res, quem, sql) {
    if (!await P.podeEditarCliente(sql, pessoa, b.cliente_id)) return res.status(403).json({ error: 'Só o head do cliente e quem administra mudam a identidade.' });
    const limpa = { cor: /^#[0-9a-f]{6}$/i.test(b.cor || '') ? b.cor : null, cor_apoio: /^#[0-9a-f]{6}$/i.test(b.cor_apoio || '') ? b.cor_apoio : null,
     logo: /^https:\/\/\S{4,500}$/.test(b.logo || '') ? b.logo : null, fonte: /^[A-Za-z0-9 ]{2,40}$/.test(b.fonte || '') ? b.fonte : null, tom: String(b.tom || '').slice(0, 400) || null };
-   await sql`UPDATE vybe_clientes SET identidade=${JSON.stringify(limpa)}::jsonb WHERE id=${b.cliente_id}`;
+   // O personagem do agente (Escritório) mora na mesma identidade: salvar as
+   // cores não pode apagá-lo.
+   await sql`UPDATE vybe_clientes SET identidade=${JSON.stringify(limpa)}::jsonb || CASE WHEN identidade ? 'personagem' THEN jsonb_build_object('personagem', identidade->'personagem') ELSE '{}'::jsonb END WHERE id=${b.cliente_id}`;
    return res.status(200).json({ ok: true, identidade: limpa });
+  }
+  // Avatar do agente do cliente no Escritório (Paulo, 20/10/2026: "editar o
+  // avatar do cliente quando clicar nele"). Mesma permissão da identidade.
+  // figura vazia volta à fantasia padrão da marca.
+  if (acao === 'personagem') {
+   if (!await P.podeEditarCliente(sql, pessoa, b.cliente_id)) return res.status(403).json({ error: 'Só o head do cliente e quem administra mudam o avatar do cliente.' });
+   const figura = String(b.figura || '');
+   if (figura && (figura.length > 400 || !/^[a-z]{2}-\d+(-\d+){0,2}(\.[a-z]{2}-\d+(-\d+){0,2})*$/.test(figura))) return res.status(400).json({ error: 'Visual do personagem inválido.' });
+   const mao = String(b.mao || '');
+   if (!/^(crr=\d{1,3})?$/.test(mao)) return res.status(400).json({ error: 'Objeto de mão inválido.' });
+   const personagem = figura ? { figura, mao: mao || null } : null;
+   if (personagem) await sql`UPDATE vybe_clientes SET identidade=COALESCE(identidade,'{}'::jsonb) || jsonb_build_object('personagem', ${JSON.stringify(personagem)}::jsonb) WHERE id=${b.cliente_id}`;
+   else await sql`UPDATE vybe_clientes SET identidade=COALESCE(identidade,'{}'::jsonb) - 'personagem' WHERE id=${b.cliente_id}`;
+   return res.status(200).json({ ok: true, personagem });
   }
   if (acao === 'enviar') {
    const env = await P.enviarAoCliente(sql, pessoa, { id: b.id });
