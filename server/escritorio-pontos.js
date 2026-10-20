@@ -166,7 +166,7 @@ export async function regrasDaFuncao(sql, funcao) {
   return linhas.filter((r) => r.chave !== 'historico').map((r) => {
     const parte = fatias && PAPEL_DA_REGRA[r.chave] ? parteDoBolo(fatias, r.chave) : null;
     // Regra do bolo: o valor mostrado é a parte da pessoa numa peça de peso 1.
-    const f = parte ? (parte.normal || parte.captada) : 1;
+    const f = parte ? (parte.normal || parte.video || parte.foto) : 1;
     return { ...r, moedas: Math.round(Number(r.moedas) * f), pontos: Math.round(Number(r.pontos) * f), ...(parte ? { parte } : {}) };
   });
 }
@@ -178,18 +178,25 @@ const PAPEL_DA_FUNCAO = { criacao: 'peca_criacao', producao: 'peca_producao', at
 export async function fatiasDoBolo(sql) {
   const [m] = await sql`SELECT to_regclass('public.vybe_escritorio_fatias') IS NOT NULL AS existe`;
   if (!m?.existe) return null;
-  const linhas = await sql`SELECT papel,captada,fatia FROM vybe_escritorio_fatias`;
+  // Com a coluna tipo (foto, video, normal); antes dela, captada vira vídeo e foto.
+  const [comTipo] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_escritorio_fatias' AND column_name='tipo') AS existe`;
   const f = {};
-  for (const l of linhas) (f[l.papel] ||= {})[l.captada ? 'captada' : 'normal'] = Number(l.fatia);
+  if (comTipo?.existe) for (const l of await sql`SELECT papel,tipo,fatia FROM vybe_escritorio_fatias`) (f[l.papel] ||= {})[l.tipo] = Number(l.fatia);
+  else for (const l of await sql`SELECT papel,captada,fatia FROM vybe_escritorio_fatias`) {
+    const x = (f[l.papel] ||= {});
+    if (l.captada) { x.video = Number(l.fatia); x.foto ??= Number(l.fatia); } else x.normal = Number(l.fatia);
+  }
   return f;
 }
-export function parteDoBolo(fatias, regra, captada) {
+// tipo: 'foto', 'video' ou 'normal' (true/false de antes valem vídeo/normal).
+export function parteDoBolo(fatias, regra, tipo) {
+  if (tipo === true) tipo = 'video'; else if (tipo === false) tipo = 'normal';
   const papel = PAPEL_DA_REGRA[regra];
   if (!papel || !fatias?.[papel]) return null;
   const da = regra === 'peca_da' ? fatias.direcao_arte || {} : null;
   const de = (k) => Math.round((fatias[papel][k] || 0) * (da ? da[k] || 0 : 1) * 10000) / 10000;
-  if (captada === undefined) return { captada: de('captada'), normal: de('normal') };
-  return de(captada ? 'captada' : 'normal');
+  if (tipo === undefined) return { foto: de('foto'), video: de('video'), normal: de('normal') };
+  return de(tipo);
 }
 // O que cada missão vale, para a tela das missões: as regras por peça da
 // função da pessoa e o peso de cada formato (2026-10-20-escritorio-complexidade).
@@ -254,9 +261,13 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
         WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
         ORDER BY COALESCE(c.prazo,c.veiculacao) NULLS LAST, c.id LIMIT 40`;
   // Foto ou vídeo (a Produção entra no bolo e a fatia da Criação muda).
-  const captadas = fatias && linhas.length
-    ? new Set((await sql`SELECT id FROM unnest(${linhas.map((l) => l.id)}::bigint[]) AS id WHERE vybe_peca_captada(id)`).map((r) => String(r.id)))
-    : new Set();
+  // Foto, vídeo ou normal (muda a fatia de cada papel).
+  const [comTipo] = fatias ? await sql`SELECT to_regprocedure('vybe_tipo_captacao(bigint)') IS NOT NULL AS existe` : [null];
+  const tipos = new Map(fatias && linhas.length
+    ? (comTipo?.existe
+      ? await sql`SELECT id, vybe_tipo_captacao(id) AS tipo FROM unnest(${linhas.map((l) => l.id)}::bigint[]) AS id`
+      : (await sql`SELECT id, CASE WHEN vybe_peca_captada(id) THEN 'video' ELSE 'normal' END AS tipo FROM unnest(${linhas.map((l) => l.id)}::bigint[]) AS id`)).map((r) => [String(r.id), r.tipo])
+    : []);
   const hoje = diaBahia(agora);
   // Regra do bolo: a fatia do papel da pessoa (com ou sem captação) entra na conta.
   const valor = (r, peso, captada) => {
@@ -267,7 +278,7 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
   const missoes = linhas.map((l) => {
     const demanda = String(l.board_id) === QUADRO_DEMANDAS;
     const peso = Number(l.peso) || 1;
-    const captada = captadas.has(String(l.id));
+    const captada = tipos.get(String(l.id)) || 'normal';
     // Com o bolo, a regra é a parte da função; sem a migração, a regra antiga.
     const bolo = fatias && PAPEL_DA_FUNCAO[funcao] && regra.has(PAPEL_DA_FUNCAO[funcao]);
     const [principal, extra] = demanda ? [fatias && regra.has('peca_criacao') ? 'peca_criacao' : 'entrega', 'entrega_prazo']

@@ -186,3 +186,25 @@ test('kit da loja: soma dos preços com desconto, tudo ou nada, repetir a chave 
  assert.deepEqual(e.origens.waasa_desk,['compra']);
  assert.equal(e.ritmo.dias.length,7);
 });
+test('Produção tem escadas próprias (gravações, fotos e vídeos captados) e não conta nas da Criação; a revisão tira o que não vale mais',async t=>{
+ const {db,sql}=await bancoNiveis(t);
+ await db.exec(readFileSync('migrations/2026-10-20-escritorio-conquistas-producao.sql','utf8'));
+ const {revisarNiveisEscritorio}=await import('../server/escritorio-marcos.js');
+ // Mizinho (28): 200 fotos captadas em 20 dias.
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,formato) SELECT n,7829537690,'Fotografia' FROM generate_series(1,200) n;
+  INSERT INTO vybe_escritorio_entregas(pessoa_id,origem,regra,conteudo_id,dia) SELECT 28,'peca:'||n||':producao','peca_producao',n,current_date-(n%20) FROM generate_series(1,200) n;`);
+ // Um nível antigo, contado pela regra de antes (fotos de quem captou valiam como da Criação).
+ await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(28,'fotografias:1');
+  INSERT INTO vybe_escritorio_inventario VALUES(28,'trophy_photographer_bronze',1);`);
+ await sql`SELECT vybe_lancar_pontos(28,'conquista:fotografias:1','conquista',NULL,25,50)`;
+ const r=await revisarNiveisEscritorio(sql,'teste-revisao');
+ assert.equal(r.tirados,1);
+ assert.equal(await inventario(sql,28,'trophy_photographer_bronze'),0,'o troféu guardado sai');
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_moedas WHERE origem='conquista:fotografias:1'`)[0].n,0);
+ assert.equal((await revisarNiveisEscritorio(sql,'teste-revisao')).repetida,true,'não repete');
+ const lista=await conferirMarcos(sql,28,AGORA);
+ assert.equal(lista.find(m=>m.id==='fotos_captadas').nivel,1,'200 fotos captadas: Bronze');
+ assert.equal(lista.find(m=>m.id==='gravacoes').nivel,1,'20 dias de gravação: Bronze');
+ assert.equal(lista.find(m=>m.id==='fotografias').nivel,0,'não conta na escada da Criação');
+ assert.equal(await inventario(sql,28,'lt_statue'),1);
+});

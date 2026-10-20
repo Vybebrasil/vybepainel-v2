@@ -517,3 +517,17 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
 - Reavaliação única (marcador `conquistas-niveis-2026-10-20`): as conquistas
   antigas saem com cópia (registro, moedas e XP delas, troféus do inventário e
   dos quartos; saldo nunca negativo) e os níveis são refeitos pelo histórico.
+
+## Produção por tipo de captação (decisão do Paulo, 20/10/2026)
+
+- Uma gravação gera muitas fotos: a fatia passa a depender do tipo
+  (`vybe_tipo_captacao`: foto, video, normal; coluna `tipo` em
+  `vybe_escritorio_fatias`). Foto: Produção 12%, Criação 66%; vídeo e reels:
+  Produção 20%, Criação 58%; Atendimento 10%, Agendamento 10%, Gestão 2% nos
+  dois. `2026-10-20-escritorio-bolo-producao.sql` refaz uma vez as linhas já
+  pagas pela razão nova ÷ antiga (marcador `bolo-producao-2026-10-20`).
+- Conquistas: a Produção tem escadas próprias (Dias de gravação, Fotos
+  captadas, Vídeos captados; `2026-10-20-escritorio-conquistas-producao.sql`)
+  e as peças captadas não contam nas escadas da Criação. Os níveis que a conta
+  nova não sustenta saem uma vez (`revisarNiveisEscritorio`, chave
+  `conquistas-producao-2026-10-20`).

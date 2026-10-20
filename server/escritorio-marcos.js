@@ -14,7 +14,10 @@ export const NIVEIS = ['', 'Bronze', 'Prata', 'Ouro', 'Diamante'];
 // Entregas de quem executou a peça (Criação e Produção): as escadas de entrega,
 // ritmo e qualidade contam só elas. Gestão, Atendimento e Agendamento sobem
 // pela escada da própria função (Paulo, 20/10/2026: "conquistas mais difíceis").
-const EXECUCAO = ['peca_criacao', 'peca_producao'];
+// Desde 20/10/2026 (Paulo: "o Mizinho não devia ganhar uma parcela?") a
+// Produção tem escadas próprias, contadas por dia de gravação e por peça
+// captada, e as peças dela não contam nas escadas da Criação.
+const EXECUCAO = ['peca_criacao'];
 // Formatos de cada escada de entrega (chave de vybe_escritorio_complexidade).
 const FORMATOS = {
   cards: ['card', 'feed', 'post', 'avulso', 'feed/story'], carrosseis: ['carrossel'], reels: ['reels'],
@@ -47,6 +50,9 @@ export const MARCOS = [
     { id: 'agendados_' + f, nome: `${NOME_TIPO[f]} agendados`, unidade: `${NOME_TIPO[f].toLowerCase()} agendados`, valor: (n) => n.porRegra.peca_agendamento?.[f] || 0 },
     { id: 'carteira_' + f, nome: `${NOME_TIPO[f]} da carteira`, unidade: `${NOME_TIPO[f].toLowerCase()} da carteira`, valor: (n) => n.porRegra.peca_atendimento?.[f] || 0 },
   ]),
+  { id: 'gravacoes', nome: 'Dias de gravação', unidade: 'dias com captação', valor: (n) => n.diasCaptacao },
+  { id: 'fotos_captadas', nome: 'Fotos captadas', unidade: 'fotos captadas', valor: (n) => n.porRegra.peca_producao?.fotografias || 0 },
+  { id: 'videos_captados', nome: 'Vídeos captados', unidade: 'vídeos e reels captados', valor: (n) => (n.porRegra.peca_producao?.videos || 0) + (n.porRegra.peca_producao?.reels || 0) },
   { id: 'briefings', nome: 'Briefings', unidade: 'briefings escritos', valor: (n) => n.regras.briefing || 0 },
   { id: 'agencia', nome: 'Peças da agência', unidade: 'peças da agência acompanhadas', valor: (n) => n.regras.peca_gestao || 0 },
   { id: 'planejamentos', nome: 'Planejamentos', unidade: 'planejamentos aprovados', valor: (n) => n.planejamentos },
@@ -86,7 +92,7 @@ export async function numerosDosMarcos(sql, pessoaId) {
     to_regclass('public.vybe_planejamento_eventos') IS NOT NULL AS planejamentos, to_regprocedure('vybe_formato_chave(text)') IS NOT NULL AS formato,
     EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='formato') AS colformato`]);
   const contar = (existe, consulta) => existe ? consulta().then((r) => Number(r[0]?.n || 0)) : Promise.resolve(0);
-  const [[t], diasLinhas, [cl], [c], regrasLinhas, [a], semanas, formatos, presentes, trocas, postits, planejamentos, [pf], [quarto]] = await Promise.all([
+  const [[t], diasLinhas, [cl], [c], regrasLinhas, [a], semanas, formatos, presentes, trocas, postits, planejamentos, [pf], [captacao], [quarto]] = await Promise.all([
     sql`SELECT count(*) AS n FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId} AND regra = ANY(${EXECUCAO}::text[])`,
     sql`SELECT DISTINCT TO_CHAR(dia,'YYYY-MM-DD') AS dia FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId} AND regra = ANY(${EXECUCAO}::text[])`,
     sql`SELECT COALESCE(max(n),0) AS n FROM (SELECT date_trunc('month', e.dia) m, count(DISTINCT cc.cliente_id) n FROM vybe_escritorio_entregas e
@@ -108,6 +114,7 @@ export async function numerosDosMarcos(sql, pessoaId) {
       JOIN vybe_planejamento_eventos ev ON ev.planejamento_id=p.id AND ev.tipo='enviado' AND ev.autor_id=${pessoaId}
       WHERE p.estado IN ('aprovado','cadastrado')`),
     sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId}`,
+    sql`SELECT count(DISTINCT dia)::int AS n FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId} AND regra='peca_producao'`,
     sql`SELECT EXISTS(SELECT 1 FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem='conquista:meu-quarto') OR EXISTS(
       SELECT 1 FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} AND preferencias->>'quarto_configurado'='true') AS sim`,
   ]);
@@ -123,9 +130,9 @@ export async function numerosDosMarcos(sql, pessoaId) {
   const regras = Object.fromEntries(regrasLinhas.map((r) => [r.regra, Number(r.n)]));
   const somar = (linhas) => Object.fromEntries(Object.keys(FORMATOS).map((k) => [k, linhas.filter((f) => FORMATOS[k].includes(f.f)).reduce((s, f) => s + Number(f.n), 0)]));
   const porFormato = somar(formatos.filter((f) => EXECUCAO.includes(f.regra)));
-  const porRegra = Object.fromEntries(['peca_agendamento', 'peca_atendimento'].map((r) => [r, somar(formatos.filter((f) => f.regra === r))]));
+  const porRegra = Object.fromEntries(['peca_agendamento', 'peca_atendimento', 'peca_producao'].map((r) => [r, somar(formatos.filter((f) => f.regra === r))]));
   return { hoje: diaBahia(), total: Number(t.n), seqMax, clientesMax: Number(cl.n), nivel: nivelPorXp(c?.xp || 0).nivel, regras, antes: Number(a.antes),
-    deprimeira: regras.criacao_aprovada || 0, semanasLimpas: Number(semanas[0]?.n || 0), formatos: porFormato, porRegra, presentes, trocas, postits, planejamentos,
+    diasCaptacao: Number(captacao?.n || 0), deprimeira: regras.criacao_aprovada || 0, semanasLimpas: Number(semanas[0]?.n || 0), formatos: porFormato, porRegra, presentes, trocas, postits, planejamentos,
     quarto: Boolean(quarto?.sim), andar2: (pf?.preferencias?.sala_andares || []).some((x) => x?.andar === 1 && x.quarto_configurado === true) };
 }
 function proximoUtil(iso, passo) {
@@ -180,6 +187,46 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
     });
   }
   return lista;
+}
+// Revisão única quando as regras de contagem mudam: tira os níveis que a
+// pessoa não alcança mais pela conta nova (registro, conquista do razão e uma
+// unidade guardada do troféu; o que está num quarto fica). O saldo para no
+// zero e o razão recebe o ajuste. Repetir com a mesma chave não faz nada.
+export async function revisarNiveisEscritorio(sql, chave) {
+  if (!await marcosProntos(sql)) return { disponivel: false };
+  const [ja] = await sql`SELECT 1 FROM vybe_escritorio_reinicios WHERE chave=${chave}`;
+  if (ja) return { disponivel: true, repetida: true, tirados: 0 };
+  const trofeus = await sql`SELECT marco, nivel, meta, classe FROM vybe_escritorio_trofeus`;
+  const pessoas = await sql`SELECT DISTINCT pessoa_id FROM vybe_escritorio_marcos ORDER BY 1`;
+  let tirados = 0;
+  for (const { pessoa_id: p } of pessoas) {
+    const n = await numerosDosMarcos(sql, p);
+    for (const f of await sql`SELECT marco FROM vybe_escritorio_marcos WHERE pessoa_id=${p}`) {
+      const { marco, nivel } = partesDoMarco(f.marco), m = MARCOS.find((x) => x.id === marco), t = trofeus.find((x) => x.marco === marco && Number(x.nivel) === nivel);
+      if (m && t && Number(m.valor(n) || 0) >= Number(t.meta)) continue;
+      await sql.comTransacao(async (tx) => {
+        await tx`DELETE FROM vybe_escritorio_marcos WHERE pessoa_id=${p} AND marco=${f.marco}`;
+        const origem = nivel === 1 && m?.origem ? m.origem : 'conquista:' + f.marco;
+        const [l] = await tx`DELETE FROM vybe_escritorio_moedas WHERE pessoa_id=${p} AND origem=${origem} RETURNING quantidade, pontos`;
+        if (l) {
+          const [c] = await tx`UPDATE vybe_escritorio_carteiras SET saldo=GREATEST(0, saldo-${Number(l.quantidade)}), xp=GREATEST(0, xp-${Number(l.pontos)}) WHERE pessoa_id=${p} RETURNING saldo`;
+          const [r] = await tx`SELECT COALESCE(sum(quantidade),0)::int AS s FROM vybe_escritorio_moedas WHERE pessoa_id=${p}`;
+          if (c && Number(c.saldo) !== Number(r.s)) await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade,pontos) VALUES(${p},${'ajuste:' + chave + ':' + f.marco},${Number(c.saldo) - Number(r.s)},0)`;
+        }
+        if (t?.classe) {
+          const [i] = await tx`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${p} AND classe=${t.classe} FOR UPDATE`;
+          const [noQuarto] = await tx`SELECT count(*)::int AS n FROM vybe_escritorio_mapa m, jsonb_array_elements(m.itens) it WHERE m.camada ~ '^sala-[0-9]+(-andar-1)?$' AND it->>0=${t.classe} AND m.atualizado_por=${p}`;
+          if (i && Number(i.quantidade) > Number(noQuarto?.n || 0)) {
+            if (Number(i.quantidade) <= 1) await tx`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=${p} AND classe=${t.classe}`;
+            else await tx`UPDATE vybe_escritorio_inventario SET quantidade=quantidade-1 WHERE pessoa_id=${p} AND classe=${t.classe}`;
+          }
+        }
+      });
+      tirados++;
+    }
+  }
+  await sql`INSERT INTO vybe_escritorio_reinicios(chave) VALUES(${chave})`;
+  return { disponivel: true, tirados };
 }
 // No fechamento do dia: confere todo mundo que tem função, para o nível não
 // esperar a pessoa abrir a ficha.
