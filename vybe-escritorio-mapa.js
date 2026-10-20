@@ -1320,7 +1320,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         // empilhavam); o texto aparece quando pede ação e ao passar o mouse.
         etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${agente.alerta ? "<small></small>" : ""}${agente.avisos ? `<em class="mapa-avisos-agente">${agente.avisos > 99 ? "99+" : agente.avisos}</em>` : ""}`;
         etiqueta.querySelector("b").textContent = agente.nome;
-        if (agente.alerta) etiqueta.querySelector("small").textContent = agente.situacao;
+        if (agente.alerta) { etiqueta.querySelector("small").textContent = agente.acao || agente.situacao; no.classList.add("alerta"); }
         if (agente.falas?.length) {
           const fala = document.createElement("span");
           fala.className = "mapa-reclama";

@@ -7093,7 +7093,8 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-topo small{color:#8f98a9;font-size:10px}
 .plj-drive{display:inline-flex;gap:6px;margin-left:auto}
 .plj-pedido{margin:8px 0;padding:10px 12px;border:1px solid rgba(255,143,143,.4);border-radius:10px;background:rgba(255,90,90,.08)}
-.plj-pedido b{color:#ffb3b3;font:700 11px var(--mac-ui)}
+.plj-pedido b{color:#ffb3b3;font:700 12px var(--mac-ui)}
+.plj-pedido small{display:block;margin-top:4px;color:#c3cad6;font-size:11.5px}
 /* Cadastrar as peças do planejamento aprovado (Paulo, 20/10/2026). */
 .plj-cadastro{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
 .plj-cadastro li{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
@@ -7105,7 +7106,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-criadas ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;max-height:220px;overflow:auto}
 .plj-criadas li{display:flex;gap:8px;align-items:center;justify-content:space-between}
 .plj-criadas li small{flex:none;color:var(--mac-text-secondary,#a3a9b7)}
-.plj-pedido p{margin:4px 0 0;color:#e7ecf5;font-size:12px;line-height:1.45;white-space:pre-wrap}
+.plj-pedido p{margin:4px 0 0;color:#e7ecf5;font-size:13px;line-height:1.45;white-space:pre-wrap}
 .plj-abas{display:flex;gap:4px;margin:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .plj-abas button{border:0;border-bottom:2px solid transparent;background:none;color:#9da4b4;padding:7px 10px;font:700 11px var(--mac-ui);cursor:pointer}
 .plj-abas button.ativa{color:#ffe0a6;border-bottom-color:#ff9d00}
@@ -7118,23 +7119,65 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-linha{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin-bottom:8px;padding:8px 30px 8px 8px;border-radius:8px;background:rgba(255,255,255,.025)}
 .plj-linha label{display:grid;gap:3px;min-width:0}
 .plj-linha[data-lista=datas]{grid-template-columns:minmax(90px,.8fr) minmax(0,1.2fr) minmax(0,2fr)}
-.plj-linha[data-lista=pecas]{grid-template-columns:150px 140px minmax(0,1fr)}
-.plj-linha[data-lista=pecas] label:nth-child(n+5){grid-column:span 1}
-.plj-linha[data-lista=pecas] label:nth-child(5){grid-column:1/3}
 .plj-linha label:has(textarea){grid-column:1/-1}
-@media(max-width:640px){.plj-linha[data-lista=datas],.plj-linha[data-lista=pecas]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.plj-linha[data-lista=pecas] label:nth-child(3),.plj-linha[data-lista=pecas] label:nth-child(n+5),.plj-linha[data-lista=datas] label:nth-child(3){grid-column:1/-1}}
-.plj-linha span{color:#b7c3d2;font:700 9.5px var(--mac-ui)}
-.plj-linha input,.plj-linha select,.plj-linha textarea{box-sizing:border-box;width:100%;border:1px solid rgba(255,174,51,.2);border-radius:6px;background:#07101b;color:#e7ecf5;padding:6px 7px;font:11px var(--mac-ui);resize:vertical}
+@media(max-width:640px){.plj-linha[data-lista=datas]{grid-template-columns:minmax(0,1fr)}.plj-peca-campos{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.plj-peca-campos label:nth-child(3){grid-column:1/-1}}
+.plj-linha span{color:#b7c3d2;font:700 11px var(--mac-ui)}
+.plj-linha input,.plj-linha select,.plj-linha textarea{box-sizing:border-box;width:100%;border:1px solid rgba(255,174,51,.2);border-radius:6px;background:#07101b;color:#e7ecf5;padding:8px 10px;font:13px/1.45 var(--mac-ui);resize:vertical}
 .plj-linha input:focus,.plj-linha select:focus,.plj-linha textarea:focus{border-color:#ff9d00;outline:none}
 .plj-tirar{position:absolute;top:6px;right:6px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(255,255,255,.06);color:#c3cad6;cursor:pointer}
 .plj-tirar:hover,.plj-tirar:focus-visible{background:rgba(255,90,90,.25);color:#fff}
-.plj-historico{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
-.plj-historico li{padding:8px 10px;border-left:2px solid rgba(255,151,21,.45);background:rgba(255,255,255,.02)}
-.plj-historico b{color:#e7ecf5;font:700 11px var(--mac-ui)}
-.plj-historico small{display:block;color:#8f98a9;font-size:10px}
-.plj-historico p{margin:4px 0 0;color:#c3cad6;font-size:11px;line-height:1.45;white-space:pre-wrap}
-.plj-identidade{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
-.plj-identidade input[type=color]{height:34px;padding:2px}
+.plj-comentar{display:flex;gap:8px;align-items:flex-end;margin:4px 0 14px}
+.plj-comentar textarea{flex:1;min-width:0;border:1px solid rgba(255,174,51,.2);border-radius:10px;background:#07101b;color:#e7ecf5;padding:10px 12px;font:13px/1.45 var(--mac-ui);resize:vertical}
+.plj-comentar textarea:focus{border-color:#ff9d00;outline:none}
+/* Histórico como linha do tempo (Paulo, 20/10/2026). */
+.plj-tempo{list-style:none;margin:0;padding:0 0 0 6px;display:grid;gap:0}
+.plj-tempo li{position:relative;display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:0 0 14px}
+.plj-tempo li::before{content:"";position:absolute;left:10px;top:18px;bottom:0;width:2px;background:rgba(255,255,255,.08)}
+.plj-tempo li:last-child::before{display:none}
+.plj-tempo li > i{width:14px;height:14px;margin:3px 0 0 3px;border-radius:50%;background:#ff9d00;box-shadow:0 0 0 4px rgba(255,157,0,.15)}
+.plj-tempo li.ok > i{background:#6fe3a8;box-shadow:0 0 0 4px rgba(111,227,168,.15)}
+.plj-tempo li.ruim > i{background:#ff8f8f;box-shadow:0 0 0 4px rgba(255,143,143,.15)}
+.plj-tempo li.azul > i{background:#8cc8ff;box-shadow:0 0 0 4px rgba(140,200,255,.15)}
+.plj-tempo li.agente > i{background:#c39bff;box-shadow:0 0 0 4px rgba(195,155,255,.15)}
+.plj-tempo li.fala > i{background:#e7ecf5}
+.plj-tempo b{color:#e7ecf5;font:700 13px var(--mac-ui)}
+.plj-tempo small{display:block;color:#8f98a9;font-size:11.5px}
+.plj-tempo p{margin:6px 0 0;color:#dfe4ec;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.plj-tempo li.com-fala p{padding:10px 12px;border-radius:4px 14px 14px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.plj-tempo li.ruim.com-fala p{background:rgba(255,90,90,.08);border-color:rgba(255,143,143,.3)}
+/* Peças no editor: cartões que abrem e fecham. */
+.plj-linha.plj-peca{display:block;padding:0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px}
+.plj-peca > summary{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;list-style:none;min-width:0}
+.plj-peca > summary::-webkit-details-marker{display:none}
+.plj-peca > summary b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e7ecf5;font:700 13px var(--mac-ui)}
+.plj-peca > summary em{flex:none;padding:2px 8px;border-radius:99px;background:rgba(255,90,90,.18);color:#ffb3b3;font:700 10.5px var(--mac-ui);font-style:normal}
+.plj-peca[open] > summary{border-bottom:1px solid rgba(255,255,255,.07)}
+.plj-peca.com-pedido{border-color:rgba(255,143,143,.45)}
+.plj-peca-num{flex:none;color:#ffb451;font:800 13px var(--mac-ui);font-variant-numeric:tabular-nums}
+.plj-peca-dia{flex:none;color:#9da4b4;font:600 12px var(--mac-ui);font-variant-numeric:tabular-nums}
+.plj-peca-tag{flex:none;padding:2px 8px;border-radius:99px;background:#6b7280;color:#fff;font:700 10.5px var(--mac-ui)}
+.plj-peca-tag.f-Card{background:#d9534f}.plj-peca-tag.f-Carrossel{background:#c98a12}.plj-peca-tag.f-Reels{background:#7b4bd6}.plj-peca-tag.f-Fotografia{background:#2f8f5b}.plj-peca-tag.f-Video{background:#2c6fb3}.plj-peca-tag.f-Stories{background:#d1497a}
+.plj-peca > .plj-pedido, .plj-peca > label, .plj-peca-campos, .plj-peca-rodape{margin:10px 12px}
+.plj-peca > label{display:grid;gap:4px}
+.plj-peca-campos{display:grid;grid-template-columns:160px 150px minmax(0,1fr);gap:8px}
+.plj-peca-rodape{display:flex;justify-content:flex-end}
+.plj-tirar-texto{border:0;background:none;color:#ff9a9a;font:700 12px var(--mac-ui);cursor:pointer;padding:4px 6px;border-radius:6px}
+.plj-tirar-texto:hover,.plj-tirar-texto:focus-visible{background:rgba(255,90,90,.15)}
+/* Etapas do planejamento no topo da janela. */
+.plj-etapas{margin:6px 0 4px;display:grid;gap:6px}
+.plj-etapas ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.plj-etapas li{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);color:#8f98a9;font:700 12px var(--mac-ui);min-width:0}
+.plj-etapas li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plj-etapas li i{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.08);font:800 11px var(--mac-ui);font-style:normal}
+.plj-etapas li.feita{color:#a8f0cb}.plj-etapas li.feita i{background:#2a7a52;color:#fff}
+.plj-etapas li.agora{color:#ffe0a6;border-color:rgba(255,157,0,.55);background:rgba(255,157,0,.1)}.plj-etapas li.agora i{background:#ff9d00;color:#1b1206}
+.plj-etapas li.agora.ajustes{color:#ffb3b3;border-color:rgba(255,143,143,.55);background:rgba(255,90,90,.1)}.plj-etapas li.agora.ajustes i{background:#ff8f8f}
+.plj-etapas small{color:#c3cad6;font-size:12.5px}
+@media(max-width:560px){.plj-etapas ol{grid-template-columns:repeat(2,minmax(0,1fr))}.plj-etapas li{padding:5px 8px}.plj-janela .plj-pedido p{max-height:76px;overflow:auto}.plj-janela .plj-pedido small{display:none}}
+.plj-logo-previa{display:grid;place-items:center;min-height:90px;margin:6px 0 12px;border-radius:12px;background:#fff;padding:12px}
+.plj-logo-previa img{max-height:66px;max-width:220px;object-fit:contain}
+.plj-logo-previa small{color:#5d6068;font-size:12px}
+.plj-identidade{display:grid;gap:0;max-width:560px}
 .plj-acoes{flex-wrap:wrap}
 .plj-check{display:inline-flex;align-items:center;gap:6px;margin-right:auto;color:#c3cad6;font-size:11px}
 .plj-check input{accent-color:#ff850d}
@@ -7147,6 +7190,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-aviso-falha{margin:6px 0 0;color:#ffc46b;font-size:11px}
 .plj-aviso{position:fixed;z-index:830;right:18px;bottom:18px;display:flex;align-items:center;gap:10px;max-width:min(340px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(255,151,21,.6);border-radius:14px;background:linear-gradient(145deg,rgba(40,24,8,.94),rgba(10,14,22,.94));box-shadow:0 12px 36px rgba(0,0,0,.45);color:#ffe0a6;text-align:left;cursor:pointer;font-family:var(--mac-ui)}
 .plj-aviso:focus-visible{outline:2px solid #ff9d00;outline-offset:2px}
+.plj-aviso.urgente{border-color:#ffb451;box-shadow:0 0 0 3px rgba(255,157,0,.25),0 12px 36px rgba(0,0,0,.45)}
 .plj-aviso b{display:block;font:700 12px var(--mac-ui)}
 .plj-aviso small{display:block;color:#c9b38f;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
 .plj-aviso-ponto{flex:none;width:10px;height:10px;border-radius:50%;background:#ff9d00;box-shadow:0 0 0 0 rgba(255,157,0,.6);animation:plj-pulso 2s ease-out infinite}
@@ -7158,7 +7202,16 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-pessoa.figurante.agente {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
 .mapa-pessoa.figurante.agente:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
 .mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8;padding:1px 7px;font-size:10px;gap:4px}
-.mapa-etiqueta.agente.alerta {border-color:#ffb451;box-shadow:0 0 0 2px #ff9d0044}
+/* Pede ação de quem pode agir: balão grande, que se vê de longe (Paulo, 20/10/2026). */
+.mapa-etiqueta.agente.alerta {border-color:#ffb451;background:#3a2408f2;padding:3px 9px 4px;box-shadow:0 0 0 3px #ff9d0055,0 6px 18px #ff9d0044;z-index:5}
+.mapa-etiqueta.agente.alerta small {display:block;flex-basis:100%;margin-top:1px;color:#ffd59a;font:800 11px var(--mac-ui);white-space:nowrap}
+.mapa-pessoa.figurante.agente.alerta img {filter:drop-shadow(0 0 5px #ffb451) drop-shadow(0 0 12px #ff9d0088)}
+@media (prefers-reduced-motion:no-preference) {.mapa-etiqueta.agente.alerta {animation:ofc-agente-chama 1.8s ease-in-out infinite}}
+@keyframes ofc-agente-chama {50% {box-shadow:0 0 0 6px #ff9d0022,0 6px 22px #ff9d0066}}
+.ofc-dock-btn.ofc-dock-plano {gap:6px;padding:6px 12px;border-radius:999px;background:#ff9d0026;box-shadow:inset 0 0 0 1px #ffb45188;color:#ffd59a;font:700 12.5px var(--mac-ui);max-width:280px}
+.ofc-dock-btn.ofc-dock-plano span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-dock-btn.ofc-dock-plano:hover {background:#ff9d0040}
+@media (max-width:900px) {.ofc-dock-btn.ofc-dock-plano span {display:none}}
 .ofc-sala .ofc-sala-alerta {display:block;grid-column:1/-1;margin-top:2px;color:#ffc46b;font:700 10px var(--mac-ui)}
 
 /* Raridade no cartão da loja (borda na cor da faixa; o nome da faixa vem

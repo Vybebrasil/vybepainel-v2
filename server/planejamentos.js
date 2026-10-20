@@ -39,7 +39,11 @@ export function normalizarConteudo(c = {}) {
    const formato = FORMATOS.find((f) => f.toLowerCase() === String(p?.formato || '').toLowerCase()) || (texto(p?.formato, 30) ? 'Outro' : 'Card');
    // conteudo_id: a demanda criada a partir da peça (cadastrarPecas).
    const cid = /^\d{1,18}$/.test(String(p?.conteudo_id || '')) ? String(p.conteudo_id) : null;
-   return { data, formato, tema: texto(p?.tema, 160), legenda: texto(p?.legenda, 2200), referencia: texto(p?.referencia, 600), observacao: texto(p?.observacao, 400), ...(cid ? { conteudo_id: cid } : {}) };
+   // Limites folgados: o agente põe o texto das telas do carrossel na
+   // referência, e 600 letras cortavam no meio (Paulo, 20/10/2026).
+   // ajuste_cliente: o que o cliente pediu nesta peça pelo link.
+   const ajuste = texto(p?.ajuste_cliente, 1500);
+   return { data, formato, tema: texto(p?.tema, 200), legenda: texto(p?.legenda, 5000), referencia: texto(p?.referencia, 6000), observacao: texto(p?.observacao, 1500), ...(cid ? { conteudo_id: cid } : {}), ...(ajuste ? { ajuste_cliente: ajuste } : {}) };
   }).sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999')),
   observacoes: texto(o.observacoes, 2000),
  };
@@ -88,9 +92,9 @@ export async function detalhePlanejamento(sql, pessoa, id) {
 export async function pendentesDoHead(sql, pessoa) {
  if (!await planejamentosProntos(sql)) return [];
  const linhas = pessoa?.admin
-  ? await sql`SELECT p.id,p.cliente_id,c.nome AS cliente,p.mes,p.titulo,p.estado,p.atualizado_em FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.estado IN ('revisar','ajustes') ORDER BY p.atualizado_em`
+  ? await sql`SELECT p.id,p.cliente_id,c.nome AS cliente,p.mes,p.titulo,p.estado,p.atualizado_em FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.estado IN ('revisar','ajustes','aprovado') ORDER BY p.atualizado_em`
   : await sql`SELECT p.id,p.cliente_id,c.nome AS cliente,p.mes,p.titulo,p.estado,p.atualizado_em FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id
-     JOIN vybe_cliente_pessoas h ON h.cliente_id=p.cliente_id AND h.pessoa_id=${pessoa?.id} WHERE p.estado IN ('revisar','ajustes') ORDER BY p.atualizado_em`;
+     JOIN vybe_cliente_pessoas h ON h.cliente_id=p.cliente_id AND h.pessoa_id=${pessoa?.id} WHERE p.estado IN ('revisar','ajustes','aprovado') ORDER BY p.atualizado_em`;
  return linhas.map(publico);
 }
 
@@ -189,7 +193,10 @@ export async function enviarAoCliente(sql, pessoa, { id }) {
   await exigirEditor(tx, pessoa, p.cliente_id);
   if (!['revisar', 'ajustes', 'enviado'].includes(p.estado)) throw erro('Este planejamento já foi respondido pelo cliente.', 409);
   const token = randomBytes(24).toString('base64url');
-  const [n] = await tx`UPDATE vybe_planejamentos SET estado='enviado',link_hash=${hashDoLink(token)},link_expira_em=now()+${DIAS_DO_LINK + ' days'}::interval,
+  // Mandar de novo começa uma rodada nova: os pedidos da anterior saem das peças.
+  const limpo = normalizarConteudo(p.conteudo);
+  for (const x of limpo.pecas) delete x.ajuste_cliente;
+  const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(limpo)}::jsonb,estado='enviado',link_hash=${hashDoLink(token)},link_expira_em=now()+${DIAS_DO_LINK + ' days'}::interval,
    enviado_em=now(),respondido_em=NULL,resposta_nome=NULL,resposta_texto=NULL,atualizado_em=now() WHERE id=${id} RETURNING *`;
   await registrar(tx, id, 'enviado', { autor: pessoa.id, versao: n.versao });
   return { ...publico(n), token };
@@ -305,19 +312,29 @@ export async function planejamentoDoLink(sql, token) {
  if (p.link_expira_em && new Date(p.link_expira_em) < new Date() && p.estado === 'enviado') throw erro('Este link expirou. Peça um novo à Vybe.', 410);
  return publico(p);
 }
-export async function responderDoCliente(sql, token, { acao, nome, texto: t }) {
+// ajustesPecas: { índice da peça: texto } — o cliente pode pedir ajuste peça a
+// peça (Paulo, 20/10/2026). Qualquer peça com ajuste devolve o planejamento
+// inteiro ao head; o cadastro continua só depois de tudo aprovado.
+export async function responderDoCliente(sql, token, { acao, nome, texto: t, ajustesPecas = {} }) {
  await exigir(sql);
  if (!['aprovar', 'ajustes'].includes(acao)) throw erro('Resposta inválida.');
- const quem = texto(nome, 80), comentario = texto(t, 4000);
+ const quem = texto(nome, 80), geral = texto(t, 4000);
+ const porPeca = Object.entries(ajustesPecas && typeof ajustesPecas === 'object' ? ajustesPecas : {})
+  .map(([i, v]) => [Number(i), texto(v, 1500)]).filter(([i, v]) => Number.isInteger(i) && i >= 0 && i < 200 && v);
  if (!quem) throw erro('Escreva seu nome.');
- if (acao === 'ajustes' && !comentario) throw erro('Conte o que precisa mudar.');
+ if (acao === 'ajustes' && !geral && !porPeca.length) throw erro('Conte o que precisa mudar.');
  return sql.comTransacao(async (tx) => {
   const [p] = await tx`SELECT * FROM vybe_planejamentos WHERE link_hash=${hashDoLink(token)} FOR UPDATE`;
   if (!p) throw erro('Este link não vale mais. Peça um novo à Vybe.', 404);
   if (p.estado !== 'enviado') return { ...publico(p), repetido: true };
   if (p.link_expira_em && new Date(p.link_expira_em) < new Date()) throw erro('Este link expirou. Peça um novo à Vybe.', 410);
-  const estado = acao === 'aprovar' ? 'aprovado' : 'ajustes';
-  const [n] = await tx`UPDATE vybe_planejamentos SET estado=${estado},respondido_em=now(),resposta_nome=${quem},resposta_texto=${comentario || null},atualizado_em=now() WHERE id=${p.id} RETURNING *`;
+  const conteudo = normalizarConteudo(p.conteudo);
+  const validos = porPeca.filter(([i]) => conteudo.pecas[i]);
+  for (const [i, v] of validos) conteudo.pecas[i].ajuste_cliente = v;
+  const estado = acao === 'aprovar' && !validos.length ? 'aprovado' : 'ajustes';
+  const dia = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data');
+  const comentario = [geral, ...validos.map(([i, v]) => { const x = conteudo.pecas[i]; return `Peça ${i + 1} (${x.formato}, ${dia(x.data)}${x.tema ? ` · ${x.tema}` : ''}): ${v}`; })].filter(Boolean).join('\n') || null;
+  const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,estado=${estado},respondido_em=now(),resposta_nome=${quem},resposta_texto=${comentario},atualizado_em=now() WHERE id=${p.id} RETURNING *`;
   await registrar(tx, p.id, estado === 'aprovado' ? 'aprovado' : 'ajustes', { externo: quem, texto: comentario || null, versao: n.versao });
   return publico(n);
  });

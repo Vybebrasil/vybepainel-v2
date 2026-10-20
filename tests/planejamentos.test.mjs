@@ -213,3 +213,24 @@ test('cadastrar as peças aprovadas cria todas numa transação, com regra do fo
  await assert.rejects(P.cadastrarPecas(sql,vini,{id:p.id,versao:salvo.versao,destinos}),/já foram cadastradas/);
  assert.equal((await sql`SELECT count(*)::int n FROM vybe_conteudos WHERE id>1000`)[0].n,3,'clicar de novo não duplica');
 });
+
+// Paulo, 20/10/2026: o cliente pede ajuste peça a peça; o texto das telas não é cortado.
+test('cliente pede ajuste numa peça: volta ao head com a peça marcada; mandar de novo limpa',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const longo='Tela 1: '+'texto das telas '.repeat(80);
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas:[{data:'2026-11-03',formato:'Carrossel',tema:'01 · Treze',referencia:longo},{data:'2026-11-05',formato:'Reels',tema:'Bastidores'}]}});
+ assert.equal(p.conteudo.pecas[0].referencia.length,longo.trim().length,'a referência longa fica inteira');
+ const env=await P.enviarAoCliente(sql,{id:3},{id:p.id});
+ const html=documentoHtml(await P.planejamentoDoLink(sql,env.token),{paraCliente:true,token:env.token});
+ assert.match(html,/name="ajuste_1"/);assert.match(html,/Pedir ajuste nesta peça/);assert.doesNotMatch(html,/01 · Treze/,'o número repetido sai do tema');
+ // "Aprovar" com uma peça marcada vira pedido de ajustes.
+ const r=await P.responderDoCliente(sql,env.token,{acao:'aprovar',nome:'Ana',ajustesPecas:{1:'Trocar a música',9:'peça que não existe'}});
+ assert.equal(r.estado,'ajustes');
+ assert.equal(r.conteudo.pecas[1].ajuste_cliente,'Trocar a música');assert.equal(r.conteudo.pecas[0].ajuste_cliente,undefined);
+ assert.match(r.resposta_texto,/Peça 2 \(Reels, 05\/11 · Bastidores\): Trocar a música/);
+ assert.match(documentoHtml(r),/Ajuste pedido/);
+ const novo=await P.enviarAoCliente(sql,{id:3},{id:p.id});
+ assert.equal((await P.planejamentoDoLink(sql,novo.token)).conteudo.pecas[1].ajuste_cliente,undefined,'nova rodada começa sem os pedidos antigos');
+ await assert.rejects(P.responderDoCliente(sql,novo.token,{acao:'ajustes',nome:'Ana'}),/o que precisa mudar/);
+});

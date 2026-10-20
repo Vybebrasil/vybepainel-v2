@@ -116,15 +116,15 @@ function pintarPlanejamento(aba) {
   if (!m || !p) return;
   const edita = p.pode_editar && !['aprovado', 'cadastrado', 'arquivado'].includes(p.estado);
   if (aba === 'editar' && !edita) aba = 'documento';
-  const abas = [['documento', 'Documento'], ...(edita ? [['editar', 'Editar']] : []), ['historico', 'Histórico'], ...(p.pode_editar ? [['identidade', 'Identidade']] : [])];
+  const abas = [['documento', 'Documento'], ...(edita ? [['editar', 'Editar']] : []), ['historico', 'Histórico'], ...(p.pode_editar ? [['identidade', 'Marca do cliente']] : [])];
   const resposta = p.estado === 'ajustes' && p.resposta_texto
-    ? `<div class="plj-pedido"><b>${pljEsc(p.resposta_nome || 'O cliente')} pediu ajustes</b><p>${pljEsc(p.resposta_texto)}</p></div>` : '';
+    ? `<div class="plj-pedido"><b>${pljEsc(p.resposta_nome || 'O cliente')} pediu ajustes</b><p>${pljEsc(p.resposta_texto)}</p><small>As peças com pedido aparecem marcadas na aba Editar.</small></div>` : '';
   const drive = p.drive_pdf_id || p.drive_doc_id ? `<span class="plj-drive">${p.drive_doc_id ? `<a class="cli-porta" target="_blank" rel="noopener" href="https://docs.google.com/document/d/${pljEsc(p.drive_doc_id)}/edit">Documento no Drive ↗</a>` : ''}${
     p.drive_pdf_id ? `<a class="cli-porta" target="_blank" rel="noopener" href="https://drive.google.com/file/d/${pljEsc(p.drive_pdf_id)}/view">PDF ↗</a>` : ''}</span>` : '';
   m.innerHTML = `<div class="workflow-kicker"><span>Planejamento · ${pljEsc(p.cliente)}</span>
       <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
     <div class="plj-topo"><h2 class="workflow-title">${pljEsc(pljMes(p.mes))}</h2>${pljSelo(p.estado)}<small>versão ${pljEsc(p.versao)} · ${p.origem === 'agente' ? 'publicado pelo agente' : 'feito no painel'}</small>${drive}</div>
-    ${resposta}${pljDemandasCriadasHtml(p)}
+    ${pljEtapasHtml(p)}${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
     <div class="plj-corpo">${aba === 'editar' ? pljEditorHtml() : aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
       : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-same-origin allow-popups"></iframe>`}</div>
@@ -156,7 +156,7 @@ function pljAcoesHtml(aba) {
   if (!p.pode_editar) return '<small class="workflow-hint">Só o head do cliente e quem administra editam e mandam este planejamento.</small>';
   if (aba === 'editar') return `<button type="button" class="workflow-secondary" onclick="pintarPlanejamento('documento')">Descartar</button>
     <button type="button" class="workflow-primary" onclick="salvarPlanejamento(this)">Salvar</button>`;
-  if (aba === 'identidade') return `<button type="button" class="workflow-primary" onclick="salvarIdentidadePlanejamento(this)">Salvar identidade</button>`;
+  if (aba === 'identidade') return `<button type="button" class="workflow-primary" onclick="salvarIdentidadePlanejamento(this)">Salvar marca</button>`;
   const botoes = [];
   if (['revisar', 'ajustes'].includes(p.estado)) botoes.push(`<button type="button" class="workflow-primary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente →</button>`);
   if (p.estado === 'enviado') botoes.push(`<button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Gerar um link novo</button>`);
@@ -183,13 +183,41 @@ function pljEditorHtml() {
       ${(c.datas || []).map((d, i) => linha('datas', i, ent('data', d.data, 'Quando', 'placeholder="02/11 · seg"') + ent('nome', d.nome, 'Data') + ent('texto', d.texto, 'Por que importa'))).join('')}
       <button type="button" class="cli-porta" onclick="pljAcrescentar('datas')">+ Data</button></fieldset>
     <fieldset class="plj-grupo"><legend>Peças (${(c.pecas || []).length})</legend>
-      ${(c.pecas || []).map((x, i) => linha('pecas', i, `<label><span>Dia</span><input data-k="data" type="date" value="${pljEsc(x.data || '')}"></label>
-        <label><span>Formato</span><select data-k="formato">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
-        ${ent('tema', x.tema, 'Tema')}${area('legenda', x.legenda, 'Legenda / roteiro', 3)}${ent('referencia', x.referencia, 'Referência')}${ent('observacao', x.observacao, 'Observação')}`)).join('')}
+      <p class="workflow-hint">Clique numa peça para abrir. As com pedido do cliente vêm marcadas.</p>
+      ${(c.pecas || []).map((x, i) => pljPecaEditorHtml(x, i)).join('')}
       <button type="button" class="cli-porta" onclick="pljAcrescentar('pecas')">+ Peça</button></fieldset>
     <label class="workflow-field"><span>Observações para o cliente</span><textarea id="plj-obs" rows="3">${pljEsc(c.observacoes || '')}</textarea></label>
     ${PLJ_ABERTO.estado === 'enviado' ? '<p class="workflow-hint">Este planejamento já está com o cliente. Salvar a edição invalida o link anterior; depois é só mandar de novo.</p>' : ''}
   </div>`;
+}
+// Uma peça no editor: um cartão que abre e fecha, com o resumo na linha de
+// cima (Paulo, 20/10/2026: "melhorar a forma como edita").
+function pljPecaEditorHtml(x, i) {
+  const dia = x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia';
+  const ent = (k, v, rot) => `<label><span>${rot}</span><input data-k="${k}" type="text" value="${pljEsc(v || '')}"></label>`;
+  const area = (k, v, rot, linhas) => `<label><span>${rot}</span><textarea data-k="${k}" rows="${linhas}">${pljEsc(v || '')}</textarea></label>`;
+  return `<details class="plj-linha plj-peca${x.ajuste_cliente ? ' com-pedido' : ''}" data-lista="pecas"${x.ajuste_cliente ? ' open' : ''}>
+    <summary><span class="plj-peca-num">${String(i + 1).padStart(2, '0')}</span><span class="plj-peca-tag f-${pljEsc(x.formato || 'Card').normalize('NFD').replace(/[^A-Za-z]/g, '')}">${pljEsc(x.formato || 'Card')}</span><span class="plj-peca-dia">${pljEsc(dia)}</span><b>${pljEsc(x.tema || 'Sem tema')}</b>${x.ajuste_cliente ? '<em>pedido do cliente</em>' : ''}</summary>
+    ${x.ajuste_cliente ? `<div class="plj-pedido"><b>O cliente pediu</b><p>${pljEsc(x.ajuste_cliente)}</p></div>` : ''}
+    <div class="plj-peca-campos">
+      <label><span>Dia</span><input data-k="data" type="date" value="${pljEsc(x.data || '')}"></label>
+      <label><span>Formato</span><select data-k="formato">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
+      ${ent('tema', x.tema, 'Tema')}
+    </div>
+    ${area('legenda', x.legenda, ['Reels', 'Vídeo'].includes(x.formato) ? 'Roteiro' : 'Legenda', 6)}
+    ${area('referencia', x.referencia, 'Referência e texto das telas', 4)}
+    ${area('observacao', x.observacao, 'Para o cliente decidir', 2)}
+    <input type="hidden" data-k="ajuste_cliente" value="${pljEsc(x.ajuste_cliente || '')}">${x.conteudo_id ? `<input type="hidden" data-k="conteudo_id" value="${pljEsc(x.conteudo_id)}">` : ''}
+    <div class="plj-peca-rodape"><button type="button" class="plj-tirar-texto" onclick="pljTirar('pecas', ${i})">Tirar esta peça</button></div>
+  </details>`;
+}
+// Etapas no topo: onde o planejamento está e o que vem agora.
+function pljEtapasHtml(p) {
+  const ordem = ['revisar', 'enviado', 'aprovado', 'cadastrado'];
+  const atual = p.estado === 'ajustes' ? 0 : Math.max(0, ordem.indexOf(p.estado));
+  const nomes = ['Revisar', 'Com o cliente', 'Aprovado', 'Cadastrado'];
+  const proximo = { revisar: 'Revise e mande para o cliente.', ajustes: 'O cliente pediu ajustes: corrija e mande de novo.', enviado: 'Esperando a resposta do cliente pelo link.', aprovado: 'Aprovado: cadastre as peças.', cadastrado: 'Peças cadastradas no painel.' }[p.estado] || '';
+  return `<div class="plj-etapas" aria-label="Etapas do planejamento"><ol>${nomes.map((n, i) => `<li class="${i < atual ? 'feita' : i === atual ? 'agora' : ''}${i === 0 && p.estado === 'ajustes' ? ' ajustes' : ''}"><i>${i < atual ? '✓' : i + 1}</i><span>${i === 0 && p.estado === 'ajustes' ? 'Ajustar' : n}</span></li>`).join('')}</ol><small>${pljEsc(proximo)}</small></div>`;
 }
 function pljColher() {
   const m = document.getElementById('workflow-modal');
@@ -230,12 +258,13 @@ const PLJ_EVENTOS = { publicado: 'Publicado pelo agente', nova_versao: 'Nova ver
   aprovado: 'Aprovado pelo cliente', ajustes: 'Cliente pediu ajustes', cadastrado: 'Peças cadastradas', arquivado: 'Arquivado', comentario: 'Comentário', email: 'E-mail' };
 function pljHistoricoHtml() {
   const ev = PLJ_ABERTO.eventos || [];
-  return `<label class="workflow-field"><span>Comentário para a equipe (o agente também lê)</span>
-      <textarea id="plj-comentario" rows="2" maxlength="4000" placeholder="Ex.: trocar a peça do dia 12 por um Reels"></textarea></label>
-    <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="comentarPlanejamento(this)">Comentar</button></div>
-    <ol class="plj-historico">${ev.map((e) => `<li><b>${pljEsc(PLJ_EVENTOS[e.tipo] || e.tipo)}</b>
-      <small>${pljEsc(pljQuando(e.em))}${e.autor || e.autor_externo ? ' · ' + pljEsc(e.autor || e.autor_externo) : ''}${e.versao ? ' · v' + pljEsc(e.versao) : ''}</small>
-      ${e.texto ? `<p>${pljEsc(e.texto)}</p>` : ''}</li>`).join('') || '<li class="plj-vazio">Sem histórico ainda.</li>'}</ol>`;
+  // Linha do tempo: quem fez o quê; comentários e pedidos do cliente como conversa.
+  const tom = { aprovado: 'ok', cadastrado: 'ok', ajustes: 'ruim', enviado: 'azul', comentario: 'fala', publicado: 'agente', nova_versao: 'agente' };
+  return `<div class="plj-comentar"><textarea id="plj-comentario" rows="2" maxlength="4000" aria-label="Comentário para a equipe" placeholder="Escreva para a equipe (o agente também lê). Ex.: trocar a peça do dia 12 por um Reels"></textarea>
+      <button type="button" class="workflow-secondary" onclick="comentarPlanejamento(this)">Comentar</button></div>
+    <ol class="plj-tempo">${ev.map((e) => `<li class="${tom[e.tipo] || ''}${e.texto && ['comentario', 'ajustes'].includes(e.tipo) ? ' com-fala' : ''}"><i aria-hidden="true"></i><div>
+      <b>${pljEsc(PLJ_EVENTOS[e.tipo] || e.tipo)}</b><small>${pljEsc(pljQuando(e.em))}${e.autor || e.autor_externo ? ' · ' + pljEsc(e.autor || e.autor_externo) : ''}${e.versao ? ' · versão ' + pljEsc(e.versao) : ''}</small>
+      ${e.texto ? `<p>${pljEsc(e.texto)}</p>` : ''}</div></li>`).join('') || '<li class="plj-vazio">Sem histórico ainda.</li>'}</ol>`;
 }
 async function comentarPlanejamento(botao) {
   const texto = document.getElementById('plj-comentario')?.value.trim();
@@ -246,22 +275,25 @@ async function comentarPlanejamento(botao) {
 }
 function pljIdentidadeHtml() {
   const i = PLJ_ABERTO.identidade || {};
-  return `<p class="workflow-copy">A estrutura do documento é a mesma para todos os clientes; isto aqui dá a cara de cada um. Vale para todos os planejamentos deste cliente.</p>
+  // Padrão Vybe para todos; do cliente entra o logo (Paulo, 20/10/2026).
+  return `<p class="workflow-copy">O documento tem o visual da Vybe para todos os clientes. Daqui entra o logo do cliente, ao lado do logo da Vybe na capa, e o tom de voz que o agente segue.</p>
     <div class="plj-identidade">
-      <label class="workflow-field"><span>Cor principal</span><input id="plj-cor" type="color" value="${pljEsc(i.cor || '#ff7a00')}"></label>
-      <label class="workflow-field"><span>Cor de apoio</span><input id="plj-cor-apoio" type="color" value="${pljEsc(i.cor_apoio || '#1d2227')}"></label>
-      <label class="workflow-field"><span>Logo (endereço https da imagem)</span><input id="plj-logo" type="url" value="${pljEsc(i.logo || '')}" placeholder="https://…/logo.png"></label>
-      <label class="workflow-field"><span>Fonte (nome do Google Fonts)</span><input id="plj-fonte" type="text" value="${pljEsc(i.fonte || '')}" placeholder="Ex.: Montserrat"></label>
-      <label class="workflow-field"><span>Tom de voz (para o agente)</span><textarea id="plj-tom" rows="2" maxlength="400">${pljEsc(i.tom || '')}</textarea></label>
+      <label class="workflow-field"><span>Logo do cliente (endereço https da imagem)</span><input id="plj-logo" type="url" value="${pljEsc(i.logo || '')}" placeholder="https://…/logo.png" oninput="pljPreverLogo(this.value)"></label>
+      <div class="plj-logo-previa" id="plj-logo-previa">${i.logo ? `<img src="${pljEsc(i.logo)}" alt="Logo do cliente">` : '<small>Sem logo: a capa mostra o nome do cliente.</small>'}</div>
+      <label class="workflow-field"><span>Tom de voz (para o agente)</span><textarea id="plj-tom" rows="3" maxlength="400">${pljEsc(i.tom || '')}</textarea></label>
     </div>`;
+}
+function pljPreverLogo(v) {
+  const el = document.getElementById('plj-logo-previa');
+  if (el) el.innerHTML = /^https:\/\/\S{4,500}$/.test(v) ? `<img src="${pljEsc(v)}" alt="Logo do cliente" onerror="this.replaceWith(Object.assign(document.createElement('small'),{textContent:'Não deu para abrir essa imagem.'}))">` : '<small>Sem logo: a capa mostra o nome do cliente.</small>';
 }
 async function salvarIdentidadePlanejamento(botao) {
   botao.disabled = true;
   const v = (id) => document.getElementById(id)?.value || '';
   try {
-    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, cor: v('plj-cor'), cor_apoio: v('plj-cor-apoio'), logo: v('plj-logo'), fonte: v('plj-fonte'), tom: v('plj-tom') });
+    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: v('plj-logo'), tom: v('plj-tom') });
     PLJ_ABERTO.identidade = d.identidade;
-    showToast('Identidade salva. O documento já sai com ela.', 'success');
+    showToast('Salvo. O documento já sai com o logo.', 'success');
     pintarPlanejamento('documento');
   } catch (e) { botao.disabled = false; showToast(e.message, 'error', 5000); }
 }
@@ -390,7 +422,11 @@ function pintarAvisoPlanejamentos() {
   }
   const n = PLJ_PENDENTES.length;
   const ajustes = PLJ_PENDENTES.filter((p) => p.estado === 'ajustes').length;
-  const titulo = [n && `${n} planejamento${n > 1 ? 's' : ''} esperando você`, avisos && `${avisos} aviso${avisos > 1 ? 's' : ''} nos seus clientes`].filter(Boolean).join(' · ');
+  // Planejamento esperando é ação do head: vem primeiro, com o nome do cliente.
+  const um = n === 1 ? PLJ_PENDENTES[0] : null;
+  const acao = { revisar: 'planejamento para revisar', ajustes: 'cliente pediu ajustes', aprovado: 'aprovado, cadastrar as peças' };
+  const titulo = [n && (um ? `${um.cliente}: ${acao[um.estado] || 'planejamento esperando você'}` : `${n} planejamentos esperando você`), avisos && `${avisos} aviso${avisos > 1 ? 's' : ''} nos seus clientes`].filter(Boolean).join(' · ');
+  el.classList.toggle('urgente', n > 0);
   const clientes = [...new Set([...PLJ_PENDENTES.map((p) => p.cliente), ...PLJ_ALERTAS.map((a) => a.cliente)])].slice(0, 3).join(', ');
   el.innerHTML = `<span class="plj-aviso-ponto" aria-hidden="true"></span><span><b>${pljEsc(titulo)}</b>
     <small>${ajustes ? `${ajustes} com ajustes do cliente · ` : ''}${pljEsc(clientes)}</small></span>`;
