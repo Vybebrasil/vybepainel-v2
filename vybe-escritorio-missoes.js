@@ -196,8 +196,7 @@ function cobrancaRotulo(c) {
   if (c.tipo === "vence") return `Prazo amanhã${dm}`;
   if (c.tipo === "agendar") return c.dias > 0 ? `Veiculação atrasada há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm}` : "Veiculação é hoje";
   if (c.tipo === "postar_parada") {
-    const com = " · " + cobrancaCom(c);
-    return (c.dias > 0 ? `Veiculação passou há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm} e não começou` : "Veiculação hoje e não começou") + com;
+    return c.dias > 0 ? `Veiculação passou há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm} e não começou` : "Veiculação hoje e não começou";
   }
   if (c.tipo === "marcar_gravacao") return `Marcar a gravação · prazo${dm || " sem data"}`;
   if (cobrancaEsperaAprovacao(c)) return `Esperando aprovação do cliente · prazo${dm || " sem data"}`;
@@ -212,11 +211,27 @@ function cobrancaItemHtml(c, aoAbrir = "") {
   const pilula = status && typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(status, item?.status_color || "", item?.status_border || "") : status ? `<small>${safeText(status)}</small>` : "";
   const tom = c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : "";
   return `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}',event);${aoAbrir}" title="Abrir a demanda">
-  <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}${c.tipo === "postar_parada" ? "" : `<small class="ofc-cobranca-com">${safeText(cobrancaCom(c))}</small>`}</span></button></li>`;
+  <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}</span>${cobrancaFotosHtml(c, item)}</button></li>`;
 }
 // Com quem está a peça (primeiros nomes), para o head saber quem cobrar
 // (Paulo, 20/10/2026: "mostrar com quem tá a demanda, no hover").
 const cobrancaCom = (c) => (c.com || []).length ? "com " + c.com.map((n) => String(n).split(" ")[0]).join(", ") : "sem responsável";
+// Com quem está, nas fotos do painel (Paulo, 20/10/2026: "no lugar do nome,
+// as fotinhas"): os responsáveis da peça como o painel os conhece
+// (ownerUsersFor) e, sem a peça carregada, os nomes que o servidor mandou.
+function cobrancaFotosHtml(c, item) {
+  const achar = typeof ownerUsersFor === "function" ? ownerUsersFor : null;
+  let gente = item && achar ? achar(item) : [];
+  if (!gente.length && achar && (c.com || []).length) gente = achar({ responsavel: c.com.join(", ") });
+  const nomes = gente.length ? gente.map((u) => u.name) : c.com || [];
+  if (!nomes.length) return '<span class="ofc-cobranca-fotos vazio" title="Sem responsável">sem responsável</span>';
+  // No jogo, a cabeça do personagem de cada um; sem ela, a foto do painel.
+  const cabeca = (nome) => { const url = typeof escritorioCabecaUrl === "function" ? escritorioCabecaUrl(nome) : null; return url ? `<img class="ofc-cabeca" src="${safeText(url)}" alt="${safeText(String(nome).split(" ")[0])}" loading="lazy" referrerpolicy="no-referrer">` : null; };
+  const lista = gente.length ? gente.map((u) => cabeca(u.name) || (typeof ownerAvatarHtml === "function" ? ownerAvatarHtml(u) : ""))
+    : nomes.map((n) => cabeca(n) || `<span class="owner-avatar-fallback" style="background:#465363">${safeText(String(n).slice(0, 2).toUpperCase())}</span>`);
+  const fotos = lista.slice(0, 3).join("") + (lista.length > 3 ? `<span class="owner-avatar-fallback" style="background:#465363">+${lista.length - 3}</span>` : "");
+  return `<span class="ofc-cobranca-fotos owner-avatar-stack" title="Com ${safeText(nomes.join(", "))}" aria-label="Com ${safeText(nomes.join(", "))}">${fotos}</span>`;
+}
 // Cabeçalho do cliente: a etiqueta da carteira (cor do painel), quantas
 // demandas e a barra no tom do pior pedido.
 function cobrancaClienteHtml(g) {
