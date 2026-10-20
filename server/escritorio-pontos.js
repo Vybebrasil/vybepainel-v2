@@ -212,7 +212,9 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
     return {
       ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: demanda ? 'demandas' : 'producao',
       titulo: l.titulo || 'Sem título', cliente: l.clientes_texto || '', formato: l.formato || '', peso, status: l.status || '', grupo: l.etapa || '',
-      prazo: quando, atrasada: Boolean(quando && quando < hoje), hoje: quando === hoje,
+      // A data é o prazo; sem prazo, a veiculação. O tipo vai junto para a tela
+      // sempre dizer qual das duas é (Paulo, 19/10/2026).
+      prazo: quando, tipo_data: l.prazo ? 'prazo' : l.veiculacao ? 'veiculacao' : null, atrasada: Boolean(quando && quando < hoje), hoje: quando === hoje,
       recompensa: valor(regra.get(principal), peso),
       bonus: extra && regra.get(extra) ? { ...valor(regra.get(extra), peso), descricao: regra.get(extra).descricao } : null,
     };
