@@ -8397,3 +8397,24 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 .ofc-escada-degraus i.ok.n3 {background:#ffd166}
 .ofc-escada-degraus i.ok.n4 {background:linear-gradient(135deg,#7ee8ff,#c39bff)}
 .ofc-escada:not(.ok) .ofc-hud-medalha {opacity:.45;filter:grayscale(.7)}
+/* Janela Conquistas (Paulo, 20/10/2026). */
+.ofc-cq-grupo {display:grid;gap:8px}
+.ofc-cq-grupo h3 {margin:6px 0 0;font:700 13px var(--mac-ui);color:#ffb27a}
+.ofc-cq-grupo > small {margin-top:-6px;font:500 11.5px var(--mac-ui);color:#a3a9b7}
+.ofc-cq {display:grid;gap:8px;padding:10px;border-radius:14px;background:#ffffff07;border:1px solid #ffffff10}
+.ofc-cq-topo {display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ofc-cq-topo b {font:700 13px var(--mac-ui)}
+.ofc-cq-topo small {margin-left:auto;font:500 11.5px var(--mac-ui);color:#a3a9b7}
+.ofc-cq-degraus {display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.ofc-cq-degraus li {position:relative;display:grid;justify-items:center;gap:1px;padding:8px 6px;border-radius:12px;background:#00000033;text-align:center;opacity:.6}
+.ofc-cq-degraus li.ok {opacity:1}
+.ofc-cq-degraus li.n1 {box-shadow:inset 0 0 0 1px #e0915a55}
+.ofc-cq-degraus li.n2 {box-shadow:inset 0 0 0 1px #d9dde655}
+.ofc-cq-degraus li.n3 {box-shadow:inset 0 0 0 1px #ffd16666}
+.ofc-cq-degraus li.n4 {box-shadow:inset 0 0 0 1px #9fe8ff77}
+.ofc-cq-arte {display:grid;place-items:center;width:44px;height:44px}
+.ofc-cq-arte img {max-width:44px;max-height:44px;image-rendering:pixelated}
+.ofc-cq-degraus b {font:700 12px var(--mac-ui)}
+.ofc-cq-degraus small {font:700 12px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-cq-degraus em {font:500 10.5px var(--mac-ui);font-style:normal;color:#c9bfb4}
+.ofc-cq-ok {position:absolute;top:4px;right:4px;padding:0 5px;border-radius:999px;background:#4fc98a33;color:#a6f0c4;font:700 9.5px var(--mac-ui);font-style:normal}

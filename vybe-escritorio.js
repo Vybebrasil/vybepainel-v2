@@ -753,6 +753,7 @@ function escritorioIcone(nome) {
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
     inventario: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 016 0v2"/>',
+    estrela: '<path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
     ranking: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8.5 20h7M10 17h4v3h-4z"/>',
     agenda: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17h2M11 17h2"/>',
     loja: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0A2.7 2.7 0 0020 9"/><path d="M5.5 11.5V20h13v-8.5M10 20v-5h4v5"/>',
@@ -1586,6 +1587,7 @@ function renderEscritorio() {
  ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
  ${rail("agenda", "agenda", "Agenda", "abrirAgendaEscritorio()", false)}
  ${rail("ranking", "ranking", "Ranking", "abrirRankingEscritorio()", false)}
+ ${rail("conquistas", "estrela", "Conquistas", "abrirConquistasEscritorio()", false)}
  ${rail("inventario", "inventario", "Inventário", "abrirCatalogoEscritorio('inventario')", false)}
  ${rail("loja", "loja", "Catálogo", "abrirCatalogoEscritorio()", false)}
  <span class="ofc-rail-fim"></span>

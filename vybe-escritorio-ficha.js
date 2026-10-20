@@ -911,3 +911,39 @@ function abrirDetalheRankingEscritorio(id) {
   escritorioRanking.aberto = escritorioRanking.aberto === String(id) ? null : String(id);
   pintarRankingEscritorio();
 }
+
+// Janela Conquistas (Paulo, 20/10/2026: "ícone de Conquistas na lateral que
+// mostra todas as conquistas e o que cada uma dá"): cada escada com os quatro
+// níveis, a meta, o troféu e as moedas e o XP de cada um, e o seu progresso.
+const ESCRITORIO_GRUPOS_CONQUISTA = [
+  ["Entregas por tipo", "Contam as peças que você fez ou captou.", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos"]],
+  ["Ritmo e qualidade", "Prazo, aprovação de primeira, sequência e meta.", ["adiantado", "deprimeira", "embalo", "semana", "filaemdia", "meta", "clientes", "nivel"]],
+  ["Agendamento", "Peças agendadas, por tipo.", ["agendamento", "agendados_cards", "agendados_carrosseis", "agendados_reels", "agendados_stories", "agendados_fotografias"]],
+  ["Atendimento", "Peças dos clientes da sua carteira, por tipo.", ["carteira", "carteira_cards", "carteira_carrosseis", "carteira_reels", "carteira_stories", "carteira_fotografias", "planejamentos"]],
+  ["Gestão e direção de arte", "Cadastros, briefings, peças da agência e aprovações do DA.", ["cadastros", "briefings", "agencia", "da"]],
+  ["No escritório", "Um nível só, para começar a usar.", ["quarto", "andar2", "presente", "troca", "postits"]],
+];
+async function abrirConquistasEscritorio() {
+  if (!document.getElementById("ofc-conquistas")) {
+    openWorkflowModal('<div class="ofc-ranking ofc-conquistas" id="ofc-conquistas" role="dialog" aria-label="Conquistas"></div>');
+    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela");
+  }
+  pintarConquistasEscritorio();
+  // As escadas vêm com a carteira (o servidor confere e concede os níveis novos).
+  try { const r = await escritorioApi("economia"); if (r?.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia }; } catch (e) { escritorio.conquistasErro = e.message; }
+  if (typeof escritorioCatalogo !== "undefined" && !escritorioCatalogo && typeof carregarCatalogoEscritorio === "function") await carregarCatalogoEscritorio();
+  pintarConquistasEscritorio();
+}
+function pintarConquistasEscritorio() {
+  const el = document.getElementById("ofc-conquistas");
+  if (!el) return;
+  const marcos = escritorio.base?.economia?.marcos;
+  const topo = `<header class="ofc-rk-cab"><span class="ofc-rk-icone" aria-hidden="true">${escritorioIcone("estrela")}</span><div><h2>Conquistas</h2><small>Bronze, Prata, Ouro e Diamante · cada nível dá um troféu, moedas e XP</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>`;
+  if (!marcos) { el.innerHTML = topo + (escritorio.conquistasErro ? `<p class="ofc-nota" role="alert">Não deu para carregar: ${safeText(escritorio.conquistasErro)}</p>` : '<div class="ofc-rk-corpo"><div class="ofc-fm-carregando"><i></i><i></i><i></i></div></div>'); return; }
+  const niveis = marcos.reduce((t, x) => t + x.nivel, 0), total = marcos.reduce((t, x) => t + x.degraus.length, 0);
+  const nomeMovel = (c) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === c); return m ? escritorioNomeMovel(m) : c.replace(/_/g, " "); };
+  const escada = (x) => `<article class="ofc-cq${x.nivel ? " ok" : ""}"><div class="ofc-cq-topo"><b>${safeText(x.nome)}</b>${x.nomeNivel ? `<em class="ofc-escada-nivel n${x.nivel}">${safeText(x.nomeNivel)}</em>` : ""}<small>${x.valor.toLocaleString("pt-BR")} ${safeText(x.unidade)}</small></div>
+<ol class="ofc-cq-degraus">${x.degraus.map((d) => `<li class="n${d.nivel}${d.ok ? " ok" : ""}" title="${safeText(nomeMovel(d.classe))}"><span class="ofc-cq-arte">${escritorioMiniaturaHtml(d.classe)}</span><b>${safeText(d.nome)}</b><small>${d.meta.toLocaleString("pt-BR")}</small><em>+${d.moedas} moedas · +${d.pontos} XP</em>${d.ok ? '<i class="ofc-cq-ok">Conquistado</i>' : ""}</li>`).join("")}</ol></article>`;
+  const grupos = ESCRITORIO_GRUPOS_CONQUISTA.map(([titulo, dica, ids]) => { const l = ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean); return l.length ? `<section class="ofc-cq-grupo"><h3>${titulo}</h3><small>${dica}</small>${l.map(escada).join("")}</section>` : ""; }).join("");
+  el.innerHTML = topo + `<div class="ofc-rk-corpo"><p class="ofc-rk-legenda">Você tem <b>${niveis} de ${total}</b> níveis. Ao subir, o troféu do nível de baixo dá lugar ao novo (se estiver guardado). O Diamante vale 4 vezes o Bronze.</p>${grupos}</div>`;
+}
