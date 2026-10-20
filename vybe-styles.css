@@ -8080,60 +8080,113 @@ img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);
    no painel da esquerda, mostra os mesmos avisos e leva até eles. */
 body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 
-/* Ranking da semana do Escritório (Paulo, 20/10/2026). */
-#workflow-modal.ofc-ranking-janela {width:min(720px,calc(100vw - 32px));max-width:none}
-.ofc-ranking {display:grid;gap:12px;color:var(--ofc-texto,#eef0f5)}
-.ofc-rk-topo {display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.ofc-rk-topo .workflow-title {margin:0}
-.ofc-rk-topo small {font:500 12px var(--mac-ui);color:var(--ofc-suave,#a3a9b7)}
-.ofc-rk-abas {display:flex;gap:6px;flex-wrap:wrap}
-.ofc-rk-abas button {padding:6px 12px;border:1px solid #ffffff1a;border-radius:999px;background:#ffffff08;color:inherit;font:600 12px var(--mac-ui);cursor:pointer}
-.ofc-rk-abas button[aria-selected="true"] {background:var(--ofc-laranja,#ff9548);border-color:transparent;color:#1d1209}
-.ofc-rk-abas button:focus-visible {outline:2px solid var(--ofc-laranja,#ff9548);outline-offset:2px}
-.ofc-rk-premios {display:flex;flex-wrap:wrap;gap:6px}
-.ofc-rk-premio {padding:4px 10px;border-radius:999px;background:#ffffff0d;font:500 12px var(--mac-ui)}
-.ofc-rk-premio b {margin-right:2px}
-.ofc-rk-premio.p1 {background:#ffd16626;color:#ffe29a}
-.ofc-rk-premio.p2 {background:#d9dde633;color:#eef0f5}
-.ofc-rk-premio.p3 {background:#e0915a2e;color:#ffc9a3}
-.ofc-rk-lista,.ofc-rk-atividade ol,.ofc-rk-anterior ol {display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.ofc-rk-lista {max-height:min(52vh,520px);overflow:auto}
-.ofc-rk-linha,.ofc-rk-atividade li {display:grid;grid-template-columns:34px 34px minmax(0,1fr) minmax(60px,26%) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:#ffffff07;border:1px solid transparent}
-.ofc-rk-atividade li {grid-template-columns:28px 28px minmax(0,1fr) auto;padding:6px 8px}
-.ofc-rk-linha.eu,.ofc-rk-atividade li.eu {border-color:#ff954866;background:#ff95480f}
-.ofc-rk-linha.top1 {background:linear-gradient(90deg,#ffd1661f,#ffffff07)}
-.ofc-rk-linha.top2 {background:linear-gradient(90deg,#d9dde61a,#ffffff07)}
-.ofc-rk-linha.top3 {background:linear-gradient(90deg,#e0915a1a,#ffffff07)}
-.ofc-rk-pos {font:700 14px var(--mac-ui);text-align:center;font-variant-numeric:tabular-nums}
-.ofc-rk-linha img,.ofc-rk-atividade img,.ofc-rk-anterior img,.ofc-rk-rosto-vazio {width:34px;height:34px;border-radius:50%;background:#ffffff12;object-fit:cover;object-position:center 30%}
-.ofc-rk-atividade img,.ofc-rk-atividade .ofc-rk-rosto-vazio {width:28px;height:28px}
+/* Ranking da semana do Escritório (Paulo, 20/10/2026; refeito no mesmo dia:
+   pódio com os bonecos e troféus, cartão "Você", lista compacta). */
+/* O .workflow-modal genérico usa !important em largura, padding, altura e
+   rolagem; só nesta janela os valores próprios precisam vencer. */
+#workflow-modal.ofc-ranking-janela {width:min(640px,calc(100vw - 32px))!important;max-width:none;max-height:calc(100vh - 32px)!important;padding:0!important;overflow:hidden!important;display:flex;flex-direction:column;background:linear-gradient(180deg,#232633,#181a22);border:1px solid #ffffff1a;border-radius:22px!important}
+.ofc-ranking {display:flex;flex-direction:column;min-height:0;color:#eef0f5;font-family:var(--mac-ui)}
+.ofc-rk-cab {display:grid;grid-template-columns:40px 1fr 32px;gap:12px;align-items:center;padding:16px 18px 10px}
+.ofc-rk-cab h2 {margin:0;font:700 18px/1.2 var(--mac-ui)}
+.ofc-rk-cab small {font:500 12px var(--mac-ui);color:#a3a9b7}
+.ofc-rk-icone {display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#ffd166,#ff8a35);color:#2a1606}
+.ofc-rk-icone svg {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ofc-rk-x {width:32px;height:32px;border:0;border-radius:50%;background:#ffffff12;color:#c9ced8;font:500 20px/1 var(--mac-ui);cursor:pointer}
+.ofc-rk-x:hover,.ofc-rk-x:focus-visible {background:#ffffff24;color:#fff;outline:none}
+.ofc-rk-abas {display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin:0 18px 10px;padding:3px;border-radius:12px;background:#0000004d}
+.ofc-rk-abas button {padding:7px 6px;border:0;border-radius:9px;background:none;color:#a3a9b7;font:600 12.5px var(--mac-ui);cursor:pointer}
+.ofc-rk-abas button[aria-selected="true"] {background:#ffffff1a;color:#fff;box-shadow:0 1px 3px #0006}
+.ofc-rk-abas button:focus-visible {outline:2px solid #ff9548;outline-offset:1px}
+.ofc-rk-corpo {display:grid;gap:12px;min-height:0;overflow:auto;padding:4px 18px 18px;overscroll-behavior:contain}
+.ofc-rk-legenda {margin:0;font:500 12px var(--mac-ui);color:#a3a9b7}
+/* Cartão "Você" */
+.ofc-rk-voce {display:grid;grid-template-columns:auto 40px 1fr 54px;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;background:linear-gradient(90deg,#ff954829,#ff95480a);border:1px solid #ff954855}
+.ofc-rk-voce-pos {font:800 20px var(--mac-ui);color:#ffb27a;min-width:30px;text-align:center}
+.ofc-rk-voce b {font:700 13px var(--mac-ui)}
+.ofc-rk-voce small {display:block;font:500 11.5px var(--mac-ui);color:#c9bfb4}
+.ofc-rk-voce p {margin:3px 0 0;font:500 12px/1.35 var(--mac-ui);color:#eef0f5}
+.ofc-rk-anel {display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:conic-gradient(#ff9548 calc(var(--p)*1%),#ffffff14 0)}
+.ofc-rk-anel i {display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#1f222c;font:700 12px var(--mac-ui);font-style:normal;font-variant-numeric:tabular-nums}
+/* Pódio */
+.ofc-rk-podio {display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:end;padding-top:6px}
+.ofc-rk-degrau {display:grid;justify-items:center;gap:2px;text-align:center;min-width:0}
+.ofc-rk-figura {position:relative;display:grid;place-items:end center;height:118px}
+.ofc-rk-boneco {width:64px;height:110px;object-fit:contain;image-rendering:pixelated}
+.ofc-rk-trofeu {position:absolute;right:-18px;bottom:2px;width:36px;height:36px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 2px 4px #0008)}
+.ofc-rk-dnome {max-width:100%;overflow:hidden;font:700 13px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.ofc-rk-dvalor {font:800 18px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-rk-degrau > small {font:500 11px var(--mac-ui);color:#a3a9b7}
+.ofc-rk-bloco {display:grid;align-content:start;justify-items:center;gap:2px;width:100%;margin-top:6px;padding:8px 4px;border-radius:12px 12px 6px 6px;background:linear-gradient(180deg,#ffffff1f,#ffffff08)}
+.ofc-rk-bloco span {font:800 22px var(--mac-ui)}
+.ofc-rk-bloco em {font:600 10.5px var(--mac-ui);font-style:normal;color:#e8dccd}
+.ofc-rk-degrau.p1 .ofc-rk-bloco {min-height:78px;background:linear-gradient(180deg,#ffd16659,#ffd16614)}
+.ofc-rk-degrau.p1 .ofc-rk-bloco span {color:#ffe29a}
+.ofc-rk-degrau.p2 .ofc-rk-bloco {min-height:58px;background:linear-gradient(180deg,#d9dde64d,#d9dde612)}
+.ofc-rk-degrau.p3 .ofc-rk-bloco {min-height:44px;background:linear-gradient(180deg,#e0915a4d,#e0915a12)}
+.ofc-rk-degrau.p3 .ofc-rk-bloco span {color:#ffc9a3}
+.ofc-rk-degrau.eu .ofc-rk-dnome {color:#ffb27a}
+/* Lista do 4º em diante */
+.ofc-rk-lista {display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.ofc-rk-lista li {display:grid;grid-template-columns:30px 32px minmax(0,1fr) minmax(50px,30%) 62px;gap:10px;align-items:center;padding:6px 10px;border-radius:12px;background:#ffffff07}
+.ofc-rk-lista li.eu {background:#ff954814;box-shadow:inset 0 0 0 1px #ff954866}
+.ofc-rk-pos {font:700 13px var(--mac-ui);color:#a3a9b7;text-align:center;font-variant-numeric:tabular-nums}
+.ofc-rk-rosto {display:block;border-radius:50%;background:#ffffff14;object-fit:cover;object-position:center 30%}
+.ofc-rk-rosto.vazio {display:inline-block}
 .ofc-rk-nome {display:grid;min-width:0}
 .ofc-rk-nome b {overflow:hidden;font:600 13px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
-.ofc-rk-nome small {font:500 11px var(--mac-ui);color:var(--ofc-suave,#a3a9b7)}
-.ofc-rk-barra {display:block;height:8px;border-radius:999px;background:#ffffff12;overflow:hidden}
+.ofc-rk-nome small {font:500 11px var(--mac-ui);color:#a3a9b7}
+.ofc-rk-barra {display:block;height:6px;border-radius:999px;background:#ffffff12;overflow:hidden}
 .ofc-rk-barra i {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9548,#ffd166)}
-.ofc-rk-barra.grande {height:14px;margin:8px 0}
 .ofc-rk-valor {display:grid;justify-items:end;font-variant-numeric:tabular-nums}
-.ofc-rk-valor b {font:700 14px var(--mac-ui)}
-.ofc-rk-valor small {font:500 11px var(--mac-ui);color:var(--ofc-suave,#a3a9b7);white-space:nowrap}
-.ofc-rk-atividades {display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;max-height:min(58vh,560px);overflow:auto}
-.ofc-rk-atividade {display:grid;gap:6px;padding:10px;border-radius:14px;background:#ffffff06;border:1px solid #ffffff12}
-.ofc-rk-atividade h4 {margin:0;font:700 12px var(--mac-ui);color:var(--ofc-laranja,#ff9548)}
-.ofc-rk-anterior {display:grid;gap:6px;padding:10px 12px;border-radius:14px;background:#ffffff06}
-.ofc-rk-anterior small {font:500 12px var(--mac-ui);color:var(--ofc-suave,#a3a9b7)}
-.ofc-rk-anterior ol {grid-auto-flow:column;justify-content:start;gap:14px}
-.ofc-rk-anterior li {display:flex;align-items:center;gap:6px;font:500 12px var(--mac-ui)}
-.ofc-rk-ok {color:#8fe3a8 !important}
-.ofc-rk-agencia {display:grid;gap:4px;padding:16px;border-radius:16px;background:#ffffff07;border:1px solid #ffffff14}
-.ofc-rk-agencia.bateu {border-color:#8fe3a866}
-.ofc-rk-agencia > b {font:700 22px var(--mac-ui);font-variant-numeric:tabular-nums}
-.ofc-rk-agencia small {font:500 12px var(--mac-ui);color:var(--ofc-suave,#a3a9b7)}
+.ofc-rk-valor b {font:700 13px var(--mac-ui)}
+.ofc-rk-valor small {font:500 11px var(--mac-ui);color:#a3a9b7}
+/* Atividades */
+.ofc-rk-atividades {display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;align-items:start}
+.ofc-rk-atividade {display:grid;align-content:start;gap:8px;padding:10px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff10}
+.ofc-rk-atividade h4 {margin:0;font:700 11px var(--mac-ui);letter-spacing:.04em;text-transform:uppercase;color:#ffb27a}
+.ofc-rk-lider {display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center}
+.ofc-rk-lider b {display:block;font:700 13px var(--mac-ui)}
+.ofc-rk-lider small {font:500 11px var(--mac-ui);color:#a3a9b7}
+.ofc-rk-lider strong {font:800 22px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-rk-lider.eu b {color:#ffb27a}
+.ofc-rk-atividade ol {display:grid;gap:3px;margin:0;padding:0;list-style:none}
+.ofc-rk-atividade li {display:grid;grid-template-columns:22px 22px 1fr auto;gap:6px;align-items:center;font:500 12px var(--mac-ui)}
+.ofc-rk-atividade li span {color:#a3a9b7;font-variant-numeric:tabular-nums}
+.ofc-rk-atividade li b {overflow:hidden;font-weight:600;white-space:nowrap;text-overflow:ellipsis}
+.ofc-rk-atividade li em {font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
+.ofc-rk-atividade li.eu b {color:#ffb27a}
+/* Agência */
+.ofc-rk-agencia {display:grid;gap:10px;padding:16px;border-radius:16px;background:#ffffff08;border:1px solid #ffffff12}
+.ofc-rk-agencia.bateu {border-color:#8fe3a866;background:#8fe3a80d}
+.ofc-rk-ag-num {display:flex;align-items:baseline;gap:8px}
+.ofc-rk-ag-num strong {font:800 34px/1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-rk-ag-num span {font:600 14px var(--mac-ui);color:#a3a9b7}
+.ofc-rk-ag-barra {height:14px;border-radius:999px;background:#ffffff12;overflow:hidden}
+.ofc-rk-ag-barra i {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9548,#ffd166)}
+.ofc-rk-agencia.bateu .ofc-rk-ag-barra i {background:linear-gradient(90deg,#4fc98a,#a6f0c4)}
 .ofc-rk-agencia p {margin:0;font:500 13px/1.45 var(--mac-ui)}
-.ofc-rk-carregando {gap:8px}
-@media (max-width:620px) {
- .ofc-rk-linha {grid-template-columns:28px 30px minmax(0,1fr) auto}
- .ofc-rk-linha .ofc-rk-barra {display:none}
- .ofc-rk-anterior ol {grid-auto-flow:row}
+.ofc-rk-agencia > small {font:500 11.5px/1.4 var(--mac-ui);color:#a3a9b7}
+.ofc-rk-equipe {display:flex;flex-wrap:wrap;gap:4px}
+/* Semana passada e Como funciona */
+.ofc-rk-anterior {display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px;border-radius:12px;background:#ffffff06;font:500 12px var(--mac-ui)}
+.ofc-rk-anterior small {color:#a3a9b7;font:600 11px var(--mac-ui);letter-spacing:.04em;text-transform:uppercase}
+.ofc-rk-anterior span {display:inline-flex;align-items:center;gap:5px}
+.ofc-rk-anterior .ok {color:#8fe3a8}
+.ofc-rk-como {border-radius:12px;background:#ffffff06}
+.ofc-rk-como summary {padding:9px 12px;font:600 12.5px var(--mac-ui);color:#c9ced8;cursor:pointer}
+.ofc-rk-como summary:focus-visible {outline:2px solid #ff9548;outline-offset:-2px;border-radius:12px}
+.ofc-rk-como ul {display:grid;gap:6px;margin:0;padding:0 12px 12px 28px;font:500 12px/1.45 var(--mac-ui);color:#c9ced8}
+.ofc-rk-esqueleto {display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:end;height:170px}
+.ofc-rk-esqueleto i {border-radius:12px;background:linear-gradient(90deg,#ffffff0a,#ffffff17,#ffffff0a);background-size:200% 100%;animation:ofc-fm-brilho 1.1s linear infinite}
+.ofc-rk-esqueleto i:nth-child(1) {height:70%}.ofc-rk-esqueleto i:nth-child(2) {height:100%}.ofc-rk-esqueleto i:nth-child(3) {height:55%}
+@media (prefers-reduced-motion:reduce) {.ofc-rk-esqueleto i {animation:none}}
+@media (max-width:560px) {
+ .ofc-rk-lista li {grid-template-columns:26px 32px minmax(0,1fr) 56px}
+ .ofc-rk-lista .ofc-rk-barra {display:none}
+ .ofc-rk-voce {grid-template-columns:auto 40px 1fr}
+ .ofc-rk-anel {display:none}
+ .ofc-rk-boneco {width:52px;height:90px}
+ .ofc-rk-figura {height:96px}
 }
 
 /* "Minha sala" e "Painel" em destaque na barra do jogo (Paulo, 20/10/2026:
@@ -8148,3 +8201,20 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 .ofc-dock-btn.destaque + .ofc-dock-btn.destaque {margin-left:6px}
 @media (max-width:1100px) {.ofc-dock-btn.destaque span {display:inline}.ofc-dock-btn.destaque {padding:7px 10px}}
 @media (max-width:620px) {.ofc-dock-btn.destaque span {display:none}}
+
+/* Barra da esquerda do jogo em telas baixas (Paulo, 20/10/2026: com o botão
+   Ranking o Tutorial ficava cortado). Ela encolhe em vez de cortar: menos
+   espaço entre os botões, depois só os ícones (o nome fica no title), e,
+   no limite, rola por dentro. */
+.ofc-rail {min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.ofc-rail::-webkit-scrollbar {display:none}
+.ofc-rail-btn svg {flex:none}
+@media (min-width:761px) and (max-height:940px) {
+ .ofc-rail {gap:2px;padding:10px 8px}
+ .ofc-rail-btn {padding:6px 2px;gap:2px}
+ .ofc-rail .ofc-logo {margin-bottom:4px}
+}
+@media (min-width:761px) and (max-height:800px) {
+ .ofc-rail-btn span {display:none}
+ .ofc-rail-btn {width:46px;padding:7px 2px}
+}

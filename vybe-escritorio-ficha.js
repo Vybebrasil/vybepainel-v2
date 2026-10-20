@@ -803,40 +803,80 @@ async function carregarRankingEscritorio() {
   catch (e) { escritorioRanking.erro = e.message; }
   pintarRankingEscritorio();
 }
+// Desenho de 20/10/2026 (Paulo: "UI e UX ruins"): pódio com os bonecos e os
+// troféus, o cartão "Você" com o que falta para subir, a lista compacta, e as
+// regras recolhidas em "Como funciona".
+function escritorioRankingPerfil(id) {
+  const b = escritorio.base;
+  if (!b) return null;
+  return String(id) === String(b.eu) ? escritorio.perfil : (b.equipe || []).find((p) => String(p.id) === String(id))?.perfil || null;
+}
+function escritorioRankingBoneco(id, acao = "std") {
+  const perfil = escritorioRankingPerfil(id);
+  if (!perfil || typeof mapaAvatarUrl !== "function") return "";
+  const url = mapaAvatarUrl(mapaFigura(perfil), 3, acao, perfil.mao || "", 0, "sml", 3);
+  return `<img class="ofc-rk-boneco" src="${safeText(url)}" alt="" width="64" height="110" loading="lazy">`;
+}
+function escritorioRankingTrofeu(classe) {
+  return classe ? `<img class="ofc-rk-trofeu" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" loading="lazy" onerror="typeof miniaturaLocalEscritorio==='function'&&miniaturaLocalEscritorio(this,'${safeText(classe)}')">` : "";
+}
 function pintarRankingEscritorio() {
   const el = document.getElementById("ofc-ranking");
   if (!el) return;
   const d = escritorioRanking.dados, aba = escritorioRanking.aba, eu = String(escritorio.base?.eu || "");
   const dataBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
   const nome = (p) => String(p.nome || "").split(" ")[0];
-  const rosto = (id) => { const u = escritorioCabecaUrl(id); return u ? `<img src="${safeText(u)}" alt="" width="34" height="34" loading="lazy">` : '<span class="ofc-rk-rosto-vazio"></span>'; };
-  const abas = [["geral", "Geral"], ["xp", "XP da semana"], ["atividades", "Por atividade"], ["agencia", "Agência"]];
-  const topo = `<div class="ofc-rk-topo"><div><h2 class="workflow-title">Ranking da semana</h2><small>${d?.inicio ? `${dataBr(d.inicio)} a ${dataBr(d.fim)} · zera toda segunda` : "Zera toda segunda"}</small></div><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button></div>
-<div class="ofc-rk-abas" role="tablist">${abas.map(([k, t]) => `<button type="button" role="tab" aria-selected="${aba === k}" onclick="escritorioRanking.aba='${k}';pintarRankingEscritorio()">${t}</button>`).join("")}</div>`;
-  if (escritorioRanking.erro && !d) { el.innerHTML = topo + `<p class="ofc-nota" role="alert">Não deu para carregar o ranking: ${safeText(escritorioRanking.erro)}</p>`; return; }
-  if (!d) { el.innerHTML = topo + '<div class="ofc-fm-carregando ofc-rk-carregando"><i></i><i></i><i></i></div>'; return; }
+  const rosto = (id, tam = 32) => { const u = escritorioCabecaUrl(id); return u ? `<img class="ofc-rk-rosto" src="${safeText(u)}" alt="" width="${tam}" height="${tam}" loading="lazy">` : `<span class="ofc-rk-rosto vazio" style="width:${tam}px;height:${tam}px"></span>`; };
+  const hoje = typeof hojeDeVerdade === "function" ? hojeDeVerdade() : new Date().toISOString().slice(0, 10);
+  const faltamDias = d?.fim ? Math.max(0, Math.round((Date.parse(d.fim) - Date.parse(hoje)) / 864e5)) : null;
+  const fecha = faltamDias == null ? "" : faltamDias === 0 ? "fecha hoje à meia-noite" : faltamDias === 1 ? "fecha amanhã à meia-noite" : `fecha em ${faltamDias} dias`;
+  const abas = [["geral", "Geral"], ["xp", "XP"], ["atividades", "Atividades"], ["agencia", "Agência"]];
+  const topo = `<header class="ofc-rk-cab"><span class="ofc-rk-icone" aria-hidden="true">${escritorioIcone("ranking")}</span><div><h2>Ranking da semana</h2><small>${d?.inicio ? `${dataBr(d.inicio)} a ${dataBr(d.fim)} · ${fecha}` : "zera toda segunda"}</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>
+<div class="ofc-rk-abas" role="tablist" aria-label="Rankings">${abas.map(([k, t]) => `<button type="button" role="tab" aria-selected="${aba === k}" onclick="escritorioRanking.aba='${k}';pintarRankingEscritorio()">${t}</button>`).join("")}</div>`;
+  if (escritorioRanking.erro && !d) { el.innerHTML = topo + `<p class="ofc-nota" role="alert">Não deu para carregar o ranking: ${safeText(escritorioRanking.erro)} <button type="button" class="ofc-mini" onclick="carregarRankingEscritorio()">Tentar de novo</button></p>`; return; }
+  if (!d) { el.innerHTML = topo + '<div class="ofc-rk-esqueleto" aria-label="Carregando"><i></i><i></i><i></i></div><div class="ofc-fm-carregando"><i></i><i></i><i></i></div>'; return; }
   if (!d.disponivel) { el.innerHTML = topo + '<p class="ofc-nota">O ranking aparece quando a contagem de pontos estiver ativa.</p>'; return; }
   const premio = (k) => d.premios.find((p) => p.chave === k);
-  const premios = `<div class="ofc-rk-premios">${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `<span class="ofc-rk-premio p${i + 1}"><b>${i + 1}º</b> ${p.moedas} moedas · ${p.pontos} XP${p.classe ? " · troféu" : ""}</span>` : ""; }).join("")}</div>`;
-  const anterior = d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada (${dataBr(d.anterior.inicio)} a ${dataBr(d.anterior.fim)})</small><ol>${d.anterior.podio.sort((a, b) => a.posicao - b.posicao).map((p) => `<li class="p${p.posicao}">${rosto(p.id)}<span><b>${p.posicao}º</b> ${safeText(nome(p))}</span></li>`).join("")}</ol>${d.anterior.agenciaBateu ? '<small class="ofc-rk-ok">A agência bateu a meta: todo mundo ganhou o bônus.</small>' : ""}</div>` : "";
-  const linha = (p, i, valor, barra) => `<li class="ofc-rk-linha${p.id === eu ? " eu" : ""}${i < 3 && barra !== null ? " top" + (i + 1) : ""}"><span class="ofc-rk-pos">${p.posicao ? `${i + 1}º` : "—"}</span>${rosto(p.id)}<span class="ofc-rk-nome"><b>${safeText(nome(p))}${p.id === eu ? " (você)" : ""}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[p.funcao] || "")}</small></span>${barra !== null ? `<span class="ofc-rk-barra" aria-hidden="true"><i style="width:${Math.min(100, barra)}%"></i></span>` : ""}<span class="ofc-rk-valor">${valor}</span></li>`;
+  // Pódio: 2º, 1º, 3º, com o boneco de cada um em cima do degrau.
+  const podio = (lista, valor, sub) => {
+    const tres = lista.slice(0, 3);
+    if (!tres.length) return '<p class="ofc-nota">Ninguém pontuou nesta semana ainda. O primeiro a entregar abre o pódio.</p>';
+    const ordem = [tres[1], tres[0], tres[2]].filter(Boolean);
+    return `<div class="ofc-rk-podio">${ordem.map((p) => { const pos = tres.indexOf(p) + 1, pr = premio("ranking_" + pos); return `<div class="ofc-rk-degrau p${pos}${p.id === eu ? " eu" : ""}"><div class="ofc-rk-figura">${escritorioRankingBoneco(p.id, pos === 1 ? "wav" : "std") || rosto(p.id, 56)}${escritorioRankingTrofeu(pr?.classe)}</div><b class="ofc-rk-dnome">${safeText(nome(p))}${p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor">${valor(p)}</span><small>${sub(p)}</small><div class="ofc-rk-bloco"><span>${pos}º</span>${pr ? `<em>+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</div></div>`; }).join("")}</div>`;
+  };
+  const linhas = (lista, valor, barra, desde = 3) => lista.length > desde ? `<ol class="ofc-rk-lista" start="${desde + 1}">${lista.slice(desde).map((p, k) => `<li class="${p.id === eu ? "eu" : ""}"><span class="ofc-rk-pos">${p.posicao === null ? "—" : desde + k + 1 + "º"}</span>${rosto(p.id)}<span class="ofc-rk-nome"><b>${safeText(nome(p))}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[p.funcao] || "")}</small></span><span class="ofc-rk-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, barra(p)))}%"></i></span><span class="ofc-rk-valor">${valor(p)}</span></li>`).join("")}</ol>` : "";
   let corpo = "";
   if (aba === "geral") {
-    corpo = `<p class="ofc-nota">Quem passa mais da <b>própria meta da semana</b> fica na frente. A meta é a média de entregas de cada um nas últimas 8 semanas, então funções diferentes competem por igual. Empate: vence quem tem mais XP na semana.</p>${premios}
-<ol class="ofc-rk-lista">${d.pessoas.map((p, i) => linha(p, i, `<b>${p.pct}%</b><small>${p.entregas} de ${p.meta} · ${p.xp} XP</small>`, p.pct)).join("")}</ol>${anterior}`;
+    const lista = d.pessoas;
+    const minha = lista.findIndex((p) => p.id === eu), eu_ = lista[minha];
+    // O que falta para passar quem está logo acima (em entregas da própria meta).
+    let dica = "";
+    if (eu_) {
+      const acima = lista[minha - 1];
+      if (minha === 0 && eu_.entregas > 0) dica = "Você lidera a semana. Continue entregando para segurar o 1º lugar.";
+      else if (acima) { const precisa = Math.max(1, Math.floor((acima.pct * eu_.meta) / 100) + 1 - eu_.entregas); dica = `Faltam <b>${precisa} ${precisa === 1 ? "entrega" : "entregas"}</b> para passar ${safeText(nome(acima))} (${acima.pct}%).`; }
+      else dica = "Entregue a primeira peça da semana para entrar no ranking.";
+    }
+    const voce = eu_ ? `<section class="ofc-rk-voce"><span class="ofc-rk-voce-pos">${eu_.posicao ? eu_.posicao + "º" : "—"}</span>${rosto(eu_.id, 40)}<div><b>Você · ${eu_.pct}% da sua meta</b><small>${eu_.entregas} de ${eu_.meta} entregas · ${eu_.xp} XP na semana</small><p>${dica}</p></div><span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.pct)}" aria-hidden="true"><i>${eu_.pct}%</i></span></section>` : "";
+    corpo = `${voce}${podio(lista.filter((p) => p.posicao), (p) => `${p.pct}%`, (p) => `${p.entregas} de ${p.meta} da meta`)}${linhas(lista, (p) => `<b>${p.pct}%</b><small>${p.entregas}/${p.meta}</small>`, (p) => p.pct, Math.min(3, lista.filter((p) => p.posicao).length))}`;
   } else if (aba === "xp") {
-    const lista = [...d.pessoas].sort((a, b) => b.xp - a.xp || b.moedas - a.moedas);
+    const lista = [...d.pessoas].sort((a, b) => b.xp - a.xp || b.moedas - a.moedas).map((p) => ({ ...p, posicao: p.xp ? 1 : null }));
     const max = Math.max(1, ...lista.map((p) => p.xp));
-    corpo = `<p class="ofc-nota">XP e moedas ganhos com o trabalho desta semana (sem conquistas e prêmios).</p><ol class="ofc-rk-lista">${lista.map((p, i) => linha({ ...p, posicao: p.xp ? 1 : null }, i, `<b>${p.xp} XP</b><small>${p.moedas} moedas</small>`, (p.xp / max) * 100)).join("")}</ol>`;
+    corpo = `<p class="ofc-rk-legenda">XP e moedas do trabalho desta semana. Conquistas e prêmios não contam.</p>${podio(lista.filter((p) => p.xp), (p) => `${p.xp} XP`, (p) => `${p.moedas} moedas`).replace(/<em>[^<]*<\/em>/g, "")}${linhas(lista, (p) => `<b>${p.xp} XP</b><small>${p.moedas} moedas</small>`, (p) => (p.xp / max) * 100, Math.min(3, lista.filter((p) => p.xp).length))}`;
   } else if (aba === "atividades") {
     const blocos = d.atividades.map((a) => {
       const lista = d.pessoas.filter((p) => p.atividades?.[a.chave]).sort((x, y) => y.atividades[a.chave] - x.atividades[a.chave]);
-      return lista.length ? `<section class="ofc-rk-atividade"><h4>${safeText(a.nome)}</h4><ol>${lista.slice(0, 5).map((p, i) => `<li class="${p.id === eu ? "eu" : ""}"><span class="ofc-rk-pos">${i + 1}º</span>${rosto(p.id)}<span class="ofc-rk-nome"><b>${safeText(nome(p))}</b></span><span class="ofc-rk-valor"><b>${p.atividades[a.chave]}</b></span></li>`).join("")}</ol></section>` : "";
+      if (!lista.length) return "";
+      const [lider, ...resto] = lista;
+      return `<section class="ofc-rk-atividade"><h4>${safeText(a.nome)}</h4><div class="ofc-rk-lider${lider.id === eu ? " eu" : ""}">${rosto(lider.id, 44)}<span><b>${safeText(nome(lider))}</b><small>lidera</small></span><strong>${lider.atividades[a.chave]}</strong></div>${resto.length ? `<ol>${resto.slice(0, 4).map((p, k) => `<li class="${p.id === eu ? "eu" : ""}"><span>${k + 2}º</span>${rosto(p.id, 22)}<b>${safeText(nome(p))}</b><em>${p.atividades[a.chave]}</em></li>`).join("")}</ol>` : ""}</section>`;
     }).join("");
-    corpo = blocos ? `<div class="ofc-rk-atividades">${blocos}</div>` : '<p class="ofc-nota">Ninguém fez nada contado nesta semana ainda.</p>';
+    corpo = blocos ? `<p class="ofc-rk-legenda">Quem mais fez cada tipo de trabalho nesta semana.</p><div class="ofc-rk-atividades">${blocos}</div>` : '<p class="ofc-nota">Ninguém fez nada contado nesta semana ainda.</p>';
   } else {
-    const a = d.agencia, bonus = premio("meta_agencia");
-    corpo = `<div class="ofc-rk-agencia${a.bateu ? " bateu" : ""}"><b>${a.pecas} de ${a.meta} peças</b><small>Meta da agência: a média de peças por semana nas últimas 8 semanas.</small><span class="ofc-rk-barra grande" aria-hidden="true"><i style="width:${Math.min(100, a.pct)}%"></i></span><p>${a.bateu ? "Meta batida! No fechamento da semana todo mundo ganha" : `Faltam ${Math.max(0, a.meta - a.pecas)} peças. Se a agência bater, todo mundo ganha`} ${bonus ? `<b>${bonus.moedas} moedas e ${bonus.pontos} XP</b>` : "o bônus"}.</p></div>`;
+    const a = d.agencia, bonus = premio("meta_agencia"), faltam = Math.max(0, a.meta - a.pecas);
+    const dias = Math.max(1, (faltamDias ?? 0) + 1), ritmo = Math.ceil(faltam / dias);
+    corpo = `<section class="ofc-rk-agencia${a.bateu ? " bateu" : ""}"><div class="ofc-rk-ag-num"><strong>${a.pecas}</strong><span>de ${a.meta} peças</span></div><div class="ofc-rk-ag-barra" aria-hidden="true"><i style="width:${Math.min(100, a.pct)}%"></i></div><p>${a.bateu ? `<b>Meta batida!</b> No fechamento da semana todo mundo ganha` : `Faltam <b>${faltam} peças</b>, cerca de ${ritmo} por dia até domingo. Se a agência bater, todo mundo ganha`} ${bonus ? `<b>+${bonus.moedas} moedas e +${bonus.pontos} XP</b>` : "o bônus"}.</p><div class="ofc-rk-equipe">${d.pessoas.map((p) => `<span title="${safeText(nome(p))}: ${Object.entries(p.atividades || {}).filter(([k]) => k.startsWith("peca_")).reduce((t, [, n]) => t + n, 0)} peças">${rosto(p.id, 30)}</span>`).join("")}</div><small>A meta é a média de peças por semana nas últimas 8 semanas. Cada peça conta uma vez, não importa quantas pessoas trabalharam nela.</small></section>`;
   }
-  el.innerHTML = topo + corpo;
+  const anterior = d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
+  const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul><li><b>Geral:</b> vale o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas). Assim Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Empate: mais XP na semana.</li><li><b>Prêmios no domingo à meia-noite:</b> ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, cada um com o troféu da semana para o quarto.</li><li><b>Agência:</b> se a equipe bater a meta de peças, todo mundo ganha o bônus.</li><li>Zera toda segunda. Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
+  el.innerHTML = topo + `<div class="ofc-rk-corpo">${corpo}${anterior}${como}</div>`;
 }

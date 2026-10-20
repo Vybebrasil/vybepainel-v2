@@ -322,10 +322,12 @@ export async function rankingDaSemana(sql, agora = new Date(), inicio = inicioDa
   const ganhos = await sql`SELECT pessoa_id, regra, count(*)::int AS n, COALESCE(sum(pontos),0)::int AS xp, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas
     FROM vybe_escritorio_moedas WHERE vybe_dia_bahia(criado_em) >= ${inicio}::date AND vybe_dia_bahia(criado_em) <= ${fim}::date
       AND regra IS NOT NULL AND NOT (regra = ANY(${FORA_DO_RANKING}::text[])) GROUP BY 1,2`;
+  // As metas de todos ao mesmo tempo (uma por uma levava ~5 s).
+  const metas = await Promise.all(pessoas.map((p) => metaDaSemana(sql, p.pessoa_id, inicio)));
   const lista = [];
-  for (const p of pessoas) {
+  for (const [k, p] of pessoas.entries()) {
     const meus = ganhos.filter((g) => String(g.pessoa_id) === String(p.pessoa_id));
-    const m = await metaDaSemana(sql, p.pessoa_id, inicio);
+    const m = metas[k];
     lista.push({
       id: String(p.pessoa_id), nome: p.nome, funcao: p.funcao, meta: m.meta, entregas: m.entregas,
       pct: m.meta ? Math.round((m.entregas / m.meta) * 100) : 0,
@@ -338,7 +340,8 @@ export async function rankingDaSemana(sql, agora = new Date(), inicio = inicioDa
   lista.forEach((p, i) => { p.posicao = p.entregas > 0 ? i + 1 : null; });
   const premios = await sql`SELECT r.chave, r.moedas, r.pontos, c.classe FROM vybe_escritorio_regras r
     LEFT JOIN vybe_escritorio_catalogo c ON c.marco=r.chave WHERE r.chave = ANY(${['ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia']}::text[]) AND r.ativa ORDER BY r.chave`;
-  const agencia = { pecas: await pecasDaAgencia(sql, inicio, fim), meta: await metaDaAgencia(sql, inicio) };
+  const [pecas, metaAg] = await Promise.all([pecasDaAgencia(sql, inicio, fim), metaDaAgencia(sql, inicio)]);
+  const agencia = { pecas, meta: metaAg };
   agencia.pct = Math.round((agencia.pecas / agencia.meta) * 100);
   agencia.bateu = agencia.pecas >= agencia.meta;
   return { disponivel: true, inicio, fim, pessoas: lista, atividades: ATIVIDADES_DO_RANKING.map(([chave, nome]) => ({ chave, nome })),
