@@ -361,7 +361,8 @@ function abrirPendentesPlanejamento() {
 function iniciarVigiaPlanejamentos() {
   if (PLJ_RELOGIO) return;
   vigiarPlanejamentosPendentes(true);
-  PLJ_RELOGIO = setInterval(() => vigiarPlanejamentosPendentes(false), 3 * 60 * 1000);
+  PLJ_RELOGIO = setInterval(() => { if (typeof painelDeveConsultar !== 'function' || painelDeveConsultar()) vigiarPlanejamentosPendentes(false); }, 3 * 60 * 1000);
+  addEventListener('vybe-retomou', () => vigiarPlanejamentosPendentes(true));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) vigiarPlanejamentosPendentes(true); });
 }
 

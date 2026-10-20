@@ -5,7 +5,7 @@
       "schedule": "0 3 * * *"
     }
   ],
-  "buildCommand": "npm run check",
+  "buildCommand": "node scripts/check.mjs && npm run build",
   "outputDirectory": "dist",
   "headers": [
     {

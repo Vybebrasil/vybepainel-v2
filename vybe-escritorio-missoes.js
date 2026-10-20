@@ -236,5 +236,5 @@ let RELOGIO_COBRANCAS = 0;
 function vigiarCobrancasEscritorio() {
   carregarCobrancasEscritorio();
   clearInterval(RELOGIO_COBRANCAS);
-  RELOGIO_COBRANCAS = setInterval(() => { if (!document.hidden && escritorio.mapa) carregarCobrancasEscritorio(); }, 2 * 60 * 1000);
+  RELOGIO_COBRANCAS = setInterval(() => { if (!document.hidden && escritorio.mapa && (typeof painelDeveConsultar !== "function" || painelDeveConsultar())) carregarCobrancasEscritorio(); }, 2 * 60 * 1000);
 }

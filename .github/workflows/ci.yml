@@ -1,5 +1,10 @@
 name: Verificação
-on: [push, pull_request]
+# Uma vez por envio: nos ramos dos pedidos roda pelo pull_request; na main,
+# pelo push. Antes rodava duas vezes em cada envio de pedido aberto.
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:

@@ -41,7 +41,7 @@ async function conferirVersaoPainel() {
 }
 
 if (typeof document.addEventListener === 'function') {
-  setInterval(conferirVersaoPainel, 3 * 60 * 1000);
+  setInterval(() => { if (typeof painelDeveConsultar !== 'function' || painelDeveConsultar()) conferirVersaoPainel(); }, 3 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') conferirVersaoPainel(); });
   setTimeout(conferirVersaoPainel, 15000);
 }

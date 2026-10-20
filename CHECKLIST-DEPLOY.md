@@ -4,6 +4,9 @@
 
 - Executar `npm ci`, `npm run check` e `git diff --check`.
 - Aguardar CI e preview da Vercel no commit exato da revisão.
+- Os testes completos rodam só no GitHub (CI). A Vercel confere a sintaxe e
+  monta o site (`node scripts/check.mjs && npm run build`), sem repetir os
+  testes: rodar tudo de novo a cada prévia era o maior gasto da Vercel.
 - Testes de escrita usam banco Neon isolado e `VYBE_HOMOLOGACAO=1`.
 - Confirmar `DATABASE_URL`, `SESSAO_SECRET` ou `MIRROR_ADMIN_KEY`, credenciais do
   Drive e `CRON_SECRET` em Production. Não promover os overrides de homologação.
