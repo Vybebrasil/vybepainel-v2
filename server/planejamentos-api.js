@@ -36,6 +36,7 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   if (acao === 'criar') return res.status(200).json({ ok: true, planejamento: await P.criarNoPainel(sql, pessoa, { clienteId: b.cliente_id, mes: b.mes, titulo: b.titulo, conteudo: b.conteudo }) });
   if (acao === 'editar') return res.status(200).json({ ok: true, planejamento: await P.editarPlanejamento(sql, pessoa, b) });
   if (acao === 'estado') return res.status(200).json({ ok: true, planejamento: await P.mudarEstadoInterno(sql, pessoa, b) });
+  if (acao === 'cadastrar') return res.status(200).json({ ok: true, ...(await P.cadastrarPecas(sql, quem, b)) });
   if (acao === 'comentar') return res.status(200).json(await P.comentarPlanejamento(sql, pessoa, b));
   if (acao === 'identidade') {
    if (!await P.podeEditarCliente(sql, pessoa, b.cliente_id)) return res.status(403).json({ error: 'Só o head do cliente e quem administra mudam a identidade.' });

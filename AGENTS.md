@@ -108,8 +108,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 - Doc e PDF vão para `Cliente/Planejamentos/<ano>` no Drive. A cópia do link
   vai pelo Gmail da Vybe (`GMAIL_USUARIO`, `GMAIL_SENHA_APP`, só na Vercel).
   Falha de Drive ou de e-mail aparece como aviso e não segura o link.
-- Cadastrar as peças continua no formulário existente; "Cadastrado" só depois
-  de aprovado. Migração `2026-10-20-planejamentos.sql` já aplicada em
+- Aprovado pelo cliente, o botão "Cadastrar as N peças" (decisão do Paulo,
+  20/10/2026) cria todas as demandas numa transação (`cadastrarPecas`, mesma
+  `criarConteudoNaTransacao` do formulário), com destino, status e equipe da
+  regra do formulário (`cadastrosDestiny`). O prazo é o Prazo de Ouro (7 dias
+  antes), ou hoje, nunca a menos de 2 dias da veiculação. A pessoa da equipe é
+  quem mais fez peças do cliente. "Outro" vai para Solicitações. Cada peça
+  guarda a demanda criada; o planejamento vira "Cadastrado" junto, sem duplicar. Migração `2026-10-20-planejamentos.sql` já aplicada em
   19/10/2026. Consulte `docs/planejamentos-plano.md`.
 
 ## Escritório integrado

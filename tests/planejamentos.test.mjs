@@ -158,3 +158,58 @@ test('avatar do agente: permissão, validação, identidade preservada e volta a
  const [d]=await sql`SELECT identidade FROM vybe_clientes WHERE id=10`;
  assert.equal(d.identidade.personagem,undefined,'vazio volta à fantasia padrão');assert.equal(d.identidade.cor,'#ff8800');
 });
+
+// Paulo, 20/10/2026: aprovado pelo cliente, um botão cadastra cada peça.
+test('prazo da peça: Prazo de Ouro, senão hoje, nunca a menos de 2 dias; fim de semana volta para a sexta',()=>{
+ assert.equal(P.prazoDaPeca('2026-11-20','2026-10-20'),'2026-11-13');
+ assert.equal(P.prazoDaPeca('2026-11-23','2026-10-20'),'2026-11-16','segunda: 7 dias antes cai na segunda');
+ assert.equal(P.prazoDaPeca('2026-11-22','2026-10-20'),'2026-11-13','domingo → 15/11 é domingo → sexta 13/11');
+ assert.equal(P.prazoDaPeca('2026-10-24','2026-10-20'),'2026-10-20','já passou o ouro: hoje');
+ assert.equal(P.prazoDaPeca('2026-10-21','2026-10-20'),'2026-10-19','a menos de 2 dias: fica 2 dias antes (atrasada de verdade)');
+});
+test('cadastrar as peças aprovadas cria todas numa transação, com regra do formato, e não duplica',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ await db.exec(`ALTER TABLE vybe_pessoas ADD COLUMN email text, ADD COLUMN monday_user_id text;
+ UPDATE vybe_pessoas SET monday_user_id=id::text;
+ INSERT INTO vybe_pessoas(id,nome,monday_user_id) VALUES(51,'Deivid','51'),(52,'Bia','52'),(53,'Jady','53');
+ DROP TABLE vybe_conteudos CASCADE; DROP TABLE vybe_status;
+ CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int);
+ INSERT INTO vybe_status VALUES(7829537690,'pode_fazer','Pode Fazer',1),(7829537690,'a_fazer','A Fazer',0),(8385559107,'nova_demanda','Nova Demanda',0);
+ CREATE TABLE vybe_conteudos(id bigserial PRIMARY KEY,board_id bigint,titulo text,formato text,formato_chaves text[],tipo_conteudo_chaves text[],clientes_texto text,status_chave text,etapa text,grupo_id text,prazo date,veiculacao date,briefing text,prioridade text,status_em timestamptz,captacao text,removido_em timestamptz);
+ CREATE TABLE vybe_conteudo_eventos(conteudo_id bigint,tipo text,de text,para text,autor_id bigint,texto text);
+ CREATE TABLE vybe_opcoes(coluna_id text,chave text,rotulo text,indice int);
+ ALTER TABLE vybe_conteudo_responsaveis ADD PRIMARY KEY(conteudo_id,pessoa_id);
+ -- Histórico: Bia fez as peças da Serra Grande.
+ INSERT INTO vybe_conteudos(id,board_id,titulo,veiculacao) VALUES(900,7829537690,'Card - antigo',CURRENT_DATE - 10),(901,7829537690,'Card - antigo 2',CURRENT_DATE - 20);
+ INSERT INTO vybe_conteudo_clientes VALUES(900,10),(901,10);
+ INSERT INTO vybe_conteudo_responsaveis VALUES(900,52,0),(901,52,0),(901,51,1);
+ SELECT setval('vybe_conteudos_id_seq', 1000);`);
+ const pecas=[{data:'2026-11-20',formato:'Card',tema:'Consciência',legenda:'Texto do card'},{data:'2026-11-25',formato:'Reels',tema:'Bastidores',legenda:'Roteiro'},{data:'2026-11-26',formato:'Outro',tema:'Panfleto'}];
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas}});
+ const destinos={Card:{grupo_id:'novo_grupo__1',status:'pode_fazer',responsaveis:['51','52','53']},Reels:{grupo_id:'novo_grupo57911__1',status:'a_fazer',captacao:'Agendar Captação',responsaveis:[]}};
+ const vini={tipo:'sessao',pessoa:{id:3}};
+ await assert.rejects(P.cadastrarPecas(sql,vini,{id:p.id,versao:p.versao,destinos}),/depois que o cliente aprovar/);
+ const env=await P.enviarAoCliente(sql,{id:3},{id:p.id});
+ await P.responderDoCliente(sql,env.token,{acao:'aprovar',nome:'Ana'});
+ const atual=await P.detalhePlanejamento(sql,{id:3},p.id);
+ await assert.rejects(P.cadastrarPecas(sql,{tipo:'sessao',pessoa:{id:24}},{id:p.id,versao:atual.versao,destinos}),/Só o head/);
+ // Falha no meio: nenhuma demanda fica.
+ await db.exec(`ALTER TABLE vybe_conteudo_eventos ADD CONSTRAINT falha CHECK (para NOT LIKE 'Avulso%')`);
+ await assert.rejects(P.cadastrarPecas(sql,vini,{id:p.id,versao:atual.versao,destinos}));
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_conteudos WHERE id>1000`)[0].n,0,'tudo ou nada');
+ await db.exec(`ALTER TABLE vybe_conteudo_eventos DROP CONSTRAINT falha`);
+ const r=await P.cadastrarPecas(sql,vini,{id:p.id,versao:atual.versao,destinos});
+ assert.equal(r.criadas.length,3);assert.equal(r.planejamento.estado,'cadastrado');
+ const linhas=await sql`SELECT c.titulo,c.board_id::text AS board,c.status_chave,c.grupo_id,c.captacao,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veic,c.briefing,
+  ARRAY(SELECT pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=c.id ORDER BY 1) AS resp FROM vybe_conteudos c WHERE id>1000 ORDER BY id`;
+ assert.deepEqual(linhas.map(l=>[l.titulo,l.board,l.status_chave,l.veic]),[['Card - Consciência','7829537690','pode_fazer','2026-11-20'],['Reels - Bastidores','7829537690','a_fazer','2026-11-25'],['Avulso - Panfleto','8385559107','nova_demanda','2026-11-26']]);
+ assert.deepEqual(linhas[0].resp,['52'],'card vai para quem mais fez peças do cliente (Bia)');
+ assert.equal(linhas[1].captacao,'Agendar Captação');assert.deepEqual(linhas[1].resp,[]);
+ assert.deepEqual(linhas[2].resp,[],'solicitação entra sem responsável, para triagem');
+ assert.match(linhas[0].briefing,/Texto do card/);
+ const salvo=await P.detalhePlanejamento(sql,{id:3},p.id);
+ assert.ok(salvo.conteudo.pecas.every(x=>/^\d+$/.test(x.conteudo_id)),'cada peça guarda a demanda criada');
+ await assert.rejects(P.cadastrarPecas(sql,vini,{id:p.id,versao:salvo.versao,destinos}),/já foram cadastradas/);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_conteudos WHERE id>1000`)[0].n,3,'clicar de novo não duplica');
+});
