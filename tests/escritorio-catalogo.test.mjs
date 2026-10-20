@@ -12,11 +12,10 @@ test('cartões abrem a ficha; inventário mostra o que é seu, loja mostra preç
  // Inventário da janela: o cartão diz quantos são seus e onde estão.
  assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste'},{inventario:{total:2,noQuarto:1,guardados:1}})`,c),/2 seus · 1 no quarto/);
  assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste'},{inventario:{total:2,noQuarto:0,guardados:2}})`,c),/2 guardados/);
- vm.runInContext(`escritorio.abaQuarto='loja'`,c);
- card=vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c);
+ card=vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4},{loja:true})`,c);
  assert.match(card,/Raro · 120 moedas/,'a faixa vem escrita, não só na cor');assert.match(card,/abrirPreviaMovelEscritorio\('raro_teste'\)/,'na loja o clique abre a prévia; comprar é nela');assert.match(card,/ofc-movel compacto r-raro/,'borda na cor da faixa');assert.match(card,/resta 1/);
  vm.runInContext(`escritorio.base.economia.loja.mapa.get('raro_teste').restante=0`,c);
- assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c),/Esgotado/);
+ assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4},{loja:true})`,c),/Esgotado/);
 });
 
 test('curadoria tem arte local completa, dimensões válidas e não concede móveis nos modelos gratuitos',()=>{

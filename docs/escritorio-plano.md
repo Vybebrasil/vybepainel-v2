@@ -996,3 +996,10 @@ decoração inicial "bem feito".
     Inventário → Essenciais grátis;
   - os filtros antigos do inventário da lateral (`escritorioFiltrarMeus`)
     saíram, sem segunda versão.
+- Construção só para construir (Paulo: "tá tudo meio ruim aí"): no próprio
+  quarto, a lateral tem Móveis e Piso e paredes.
+  - Móveis: os seus e os grátis numa grade, com busca e "Tudo · Meus ·
+    Grátis"; os usados por último vêm primeiro.
+  - Embaixo: "Comprar mais na loja" e "Trocas e presentes".
+  - A Carteira saiu da construção: é a terceira aba da janela (Loja ·
+    Inventário · Carteira), e o saldo no topo leva até ela.
