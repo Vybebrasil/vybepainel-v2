@@ -815,7 +815,7 @@
     .day-activity-scroll:focus-visible { outline:2px solid var(--accent2,#ff9d00);outline-offset:-3px; }
     .day-expansion-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px; }
     @media(min-width:769px) {
-      .day-scroll-card:not(.day-expanded) .day-activity-scroll { max-height:clamp(320px,60vh,640px);overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable; }
+      .day-scroll-card:not(.day-expanded) .day-activity-scroll { max-height:clamp(320px,60vh,640px);overflow-y:auto;scrollbar-gutter:stable; }
     }
     @media(max-width:768px) {
       .day-expansion-footer { display:none; }
@@ -7783,10 +7783,13 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 /* Agenda em colunas (estilo quadro): os dias lado a lado, rolando para o lado;
    cada coluna tem a altura da tela e rola por dentro, então cabe muito mais por
    dia e o "Ver todas" some. No celular, uma coluna por vez, com encaixe. */
-.clients-grid.dias-colunas {display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;align-items:stretch;scroll-snap-type:x proximity;padding:2px 2px 14px;scrollbar-width:thin;overscroll-behavior-x:contain}
+.clients-grid.dias-colunas {display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;align-items:stretch;scroll-snap-type:x proximity;padding:2px 2px 14px;overscroll-behavior-x:contain}
 .clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(280px,21.5vw,340px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:440px}
 .clients-grid.dias-colunas > .day-scroll-card .day-activity-scroll,
-.clients-grid.dias-colunas > .day-scroll-card:not(.day-expanded) .day-activity-scroll {flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:auto}
+/* Sem "overscroll contain" (Deivid, 20/10/2026, segunda tela): no fim da lista
+   do dia a roda do mouse continua rolando a página; com as colunas cobrindo a
+   tela inteira, a página ficava sem como rolar. */
+.clients-grid.dias-colunas > .day-scroll-card:not(.day-expanded) .day-activity-scroll {flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;scrollbar-gutter:auto}
 .clients-grid.dias-colunas > .day-scroll-card .day-expansion-footer {display:none}
 .clients-grid.dias-colunas > .day-scroll-card.day-empty {opacity:.75}
 /* Coluna estreita (Paulo, 19/10/2026: "mal diagramado, precisa mostrar mais
@@ -8027,3 +8030,17 @@ img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);
 /* Criador no modo avatar do cliente: escolha do objeto de mão. */
 .cri-mao {display:flex;align-items:center;gap:8px;margin:2px 0 6px;font:600 12px var(--mac-ui);color:#d8dbe2}
 .cri-mao select {padding:5px 8px;border-radius:8px;border:1px solid #ffffff2a;background:#1c1e27;color:#fff;font:inherit}
+/* Setas ‹ › ao lado de "Ver em grade" e barra lateral visível (Deivid, 20/10/2026). */
+.section-title .dias-setas {display:inline-flex;gap:4px;margin-left:auto}
+.section-title .dias-setas[hidden] {display:none}
+.section-title .dias-setas + .dias-layout-btn {margin-left:0}
+.section-title .dias-setas button {width:28px;height:26px;border-radius:8px;border:1px solid var(--border,#ffffff1f);background:#ffffff0a;color:var(--text,#fff);font:700 15px/1 var(--mac-ui,system-ui);cursor:pointer}
+.section-title .dias-setas button:hover {background:#ffffff18}
+.section-title .dias-setas button:focus-visible {outline:2px solid var(--accent2,#ff9d00);outline-offset:2px}
+.clients-grid.dias-colunas::-webkit-scrollbar {height:12px}
+.clients-grid.dias-colunas::-webkit-scrollbar-thumb {background:#ffffff33;border-radius:8px}
+.clients-grid.dias-colunas::-webkit-scrollbar-thumb:hover {background:#ff954899}
+/* No jogo o aviso flutuante dos clientes cobria a barra de baixo e o zoom
+   (Paulo, 20/10/2026). Lá ele é redundante: o cartão do Centro de Operação,
+   no painel da esquerda, mostra os mesmos avisos e leva até eles. */
+body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}

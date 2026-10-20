@@ -792,6 +792,19 @@ function aplicarLayoutDosDias(grid, sem, emDias) {
     titulo.append(botao);
   }
   if (botao) { botao.hidden = !emDias; botao.textContent = DIAS_EM_COLUNAS ? 'Ver em grade' : 'Ver em colunas'; }
+  // ‹ › andam um dia para cada lado (Deivid, 20/10/2026: com mouse comum não
+  // havia como rolar para o lado, só pela barrinha de baixo).
+  let setas = titulo?.querySelector('.dias-setas');
+  if (titulo && !setas && emDias) {
+    setas = document.createElement('span');
+    setas.className = 'dias-setas'; setas.setAttribute('role', 'group'); setas.setAttribute('aria-label', 'Rolar os dias');
+    setas.innerHTML = '<button type="button" aria-label="Dias anteriores" title="Dias anteriores">‹</button><button type="button" aria-label="Próximos dias" title="Próximos dias">›</button>';
+    const [antes, depois] = setas.querySelectorAll('button');
+    const andar = (lado) => { const g = titulo.nextElementSibling; const passo = (g?.querySelector(':scope > .day-scroll-card')?.offsetWidth || 300) + 12; g?.scrollBy({ left: lado * passo, behavior: 'smooth' }); };
+    antes.addEventListener('click', () => andar(-1)); depois.addEventListener('click', () => andar(1));
+    titulo.insertBefore(setas, botao || null);
+  }
+  if (setas) setas.hidden = !colunas;
   if (!colunas) return false;
   grid.classList.remove('dias-encaixados');
   // Abre na coluna de hoje uma vez por semana mostrada (sem pular a cada atualização).
