@@ -154,8 +154,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   desde 18/10/2026 (decisão do Paulo) Paulo constrói cada sala comum
   no editor, vendo, e a camada salva com o id da zona vale no lugar do padrão
   (sem inventário; o formato da planta continua no código). Paredes e pisos
-  oficiais do Habbo (`plano:parede:<id>`, `plano:piso:<id>`) e zoom só em
-  0,5×/1×/2×. Cenas novas: montar por conjuntos conferidos de perto antes de
+  oficiais do Habbo (`plano:parede:<id>`, `plano:piso:<id>`). Zoom contínuo
+  entre 0,5× e 2× durante o gesto (decisão do Paulo, 19/10/2026), com ímã que
+  encaixa em 0,5×/1×/2× quando para perto deles; os botões + e − vão de nível em nível. Cenas novas: montar por conjuntos conferidos de perto antes de
   compor a sala; uma coleção de móveis por sala. Antes de mobiliar: uma
   referência por sala, planta com zonas, caminho livre e ponto de destaque, e
   peças escolhidas vendo a arte. O verificador (`scripts/escritorio-auditar.mjs`)

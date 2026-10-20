@@ -7623,24 +7623,6 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-movel.compacto.r-raro .ofc-movel-linha {color:#a9d3ff}
 .ofc-movel.compacto.r-epico .ofc-movel-linha {color:#d9c2ff}
 .ofc-movel.compacto.r-lendario .ofc-movel-linha {color:#ffe08a}
-/* Navegação do catálogo em duas fileiras de fichas: a seção e as categorias
-   dela. Rolam de lado (sem barra) e cabem no celular. */
-.ofc-nav-cat {display:grid;gap:6px;min-width:0}
-.ofc-trilho {display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px 1px 3px;mask-image:linear-gradient(90deg,#000 90%,transparent)}
-.ofc-trilho::-webkit-scrollbar {display:none}
-.ofc-nav-ficha {flex:none;display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;border:1px solid var(--jg-borda);background:var(--jg-slot);color:var(--ofc-texto);font:650 12px var(--mac-ui);cursor:pointer;box-shadow:var(--jg-relevo);transition:background var(--jg-mov),transform var(--jg-mov)}
-.ofc-nav-ficha small {color:var(--ofc-suave);font-weight:600;font-variant-numeric:tabular-nums}
-.ofc-nav-ficha[aria-pressed=true] {background:var(--jg-ativo);border-color:#ff8a3599;color:#ffe0c4}
-.ofc-nav-ficha[aria-pressed=true] small {color:#ffd2a6}
-.ofc-nav-ficha:active {transform:translateY(1px)}
-.ofc-nav-ficha:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
-.ofc-trilho.sub .ofc-nav-ficha {padding:4px 9px;font-size:11px;background:#0c0e15;box-shadow:none}
-.ofc-trilho.sub .ofc-nav-ficha[aria-pressed=true] {background:var(--jg-ativo)}
-.ofc-lista-topo {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 6px}
-.ofc-lista-topo b {font:700 12px var(--mac-ui);color:var(--ofc-suave);letter-spacing:.02em}
-.ofc-ordem select {padding:4px 8px;border-radius:var(--jg-raio-p);border:1px solid var(--jg-borda);background:#0c0e15;color:var(--ofc-texto);font:600 12px var(--mac-ui)}
-.ofc-sr {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.ofc-cat-chip[aria-pressed=true]:not([class*=" r-"]) {background:var(--jg-ativo);border-color:#ff8a3599}
 /* Cartão do cliente que cobra: o que ele cobra, perto do boneco. */
 .ofc-cobranca-pop {position:absolute;z-index:40;width:min(300px,calc(100% - 16px));max-height:min(420px,70vh);overflow:auto;display:grid;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--jg-borda-forte);background:var(--jg-painel);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(10px);animation:jg-surgir .16s ease-out}
 .ofc-cobranca-pop[hidden] {display:none}
@@ -7681,3 +7663,75 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 @media (max-width:760px){.ofc-agente-grade {grid-template-columns:1fr}.ofc-agente-nums {grid-template-columns:repeat(2,minmax(0,1fr))}.ofc-agente-portas {margin-left:0}}
 /* Na ficha do cliente o quadro de planejamentos ocupa a linha toda; no painel do agente, uma coluna. */
 .ofc-agente-grade > .client-master-detail-card.plj-cartao {grid-column:auto}
+
+/* Janela do catálogo (como a do Habbo): árvore de categorias à esquerda, busca,
+   faixas e ordem no topo e a grade grande. No celular, a árvore vira uma faixa. */
+.ofc-catjanela {margin:auto;width:min(1120px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));max-width:none;max-height:none;padding:0;display:none;overflow:hidden;border-radius:18px}
+.ofc-catjanela[open] {display:flex;flex-direction:column}
+.ofc-catj-topo {display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--jg-borda)}
+.ofc-catj-topo h3 {margin:0;font:750 17px var(--mac-ui)}
+.ofc-catj-saldo {margin-left:auto;padding:4px 10px;border-radius:999px;background:#ffd16618;border:1px solid #ffd16644;font:600 12px var(--mac-ui);color:#ffe7a8}
+.ofc-catj-saldo b {font-variant-numeric:tabular-nums}
+.ofc-catj-corpo {flex:1;min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr)}
+.ofc-catj-arvore {overflow:auto;padding:10px 8px;border-right:1px solid var(--jg-borda);display:grid;align-content:start;gap:2px;background:#0b0d1366}
+.ofc-catj-item {display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:6px 10px;border-radius:8px;border:0;background:none;color:var(--ofc-texto);font:550 12.5px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-catj-item span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-catj-item small {flex:none;color:var(--ofc-suave);font-variant-numeric:tabular-nums}
+.ofc-catj-item:hover {background:#ffffff0d}
+.ofc-catj-item[aria-pressed=true] {background:var(--jg-ativo);color:#ffe0c4}
+.ofc-catj-item.forte {font-weight:700}
+.ofc-catj-item.vitrine span::before {content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#ffd166}
+.ofc-catj-item.todos {color:var(--ofc-suave);font-size:12px}
+.ofc-catj-item:focus-visible, .ofc-catj-secao summary:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
+.ofc-catj-secao {margin-top:6px}
+.ofc-catj-secao summary {padding:6px 10px;font:700 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ofc-suave);cursor:pointer;border-radius:8px}
+.ofc-catj-secao summary:hover {color:var(--ofc-texto)}
+.ofc-catj-secao[open] summary {color:var(--ofc-texto)}
+.ofc-catj-secao > .ofc-catj-item {padding-left:18px}
+.ofc-catj-main {min-height:0;overflow:auto;padding:12px 16px 16px;display:grid;align-content:start;gap:10px}
+.ofc-catj-barra {position:sticky;top:-12px;z-index:2;display:grid;gap:8px;padding:12px 0 8px;margin-top:-12px;background:var(--jg-painel)}
+.ofc-catj-busca {width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--jg-borda);background:#0c0e15;color:var(--ofc-texto);font:500 13px var(--mac-ui)}
+.ofc-catj-faixas {display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ofc-catj-faixas .ofc-ordem {margin-left:auto}
+.ofc-cat-chip.venda[aria-pressed=true] {background:var(--jg-ativo);border-color:#ff8a3599}
+.ofc-cat-chip:disabled {opacity:.4;cursor:default}
+.ofc-catj-info {display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ofc-catj-info b {font:700 13px var(--mac-ui)}
+.ofc-catj-info span {font-size:12px;color:var(--ofc-suave)}
+.ofc-catj-info .office-text-button {margin-left:auto}
+.ofc-catj-grade {grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.ofc-catj-grade .ofc-cat-mais {grid-column:1/-1}
+.ofc-catj-grade .ofc-movel.compacto img {width:56px;height:56px;object-fit:contain}
+.ofc-cat-linha {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:6px}
+.ofc-cat-linha:not(:has(> select + select)) {grid-template-columns:1fr}
+.ofc-cat-linha select {width:100%;min-width:0;padding:7px 8px;border-radius:var(--jg-raio-p);border:1px solid var(--jg-borda);background:#0c0e15;color:var(--ofc-texto);font:600 12px var(--mac-ui)}
+.ofc-abrir-catalogo {width:100%}
+@media (max-width:760px){
+  .ofc-catjanela {width:100vw;height:100vh;border-radius:0}
+  .ofc-catj-corpo {grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  .ofc-catj-arvore {display:flex;overflow-x:auto;border-right:0;border-bottom:1px solid var(--jg-borda);max-height:none}
+  .ofc-catj-arvore > .ofc-catj-item, .ofc-catj-secao {flex:none;margin:0}
+  .ofc-catj-secao[open] {display:flex;gap:2px}
+}
+.ofc-ordem select {padding:5px 8px;border-radius:var(--jg-raio-p);border:1px solid var(--jg-borda);background:#0c0e15;color:var(--ofc-texto);font:600 12px var(--mac-ui)}
+.ofc-sr {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Resumo da Agenda no painel do agente: os dias com os pontos de status. */
+.ofc-mini-agenda {display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.ofc-mini-sem {text-align:center;font:700 10px var(--mac-ui);color:var(--ofc-suave)}
+.ofc-mini-dia {display:grid;justify-items:center;align-content:start;gap:2px;min-height:34px;padding:4px 2px;border-radius:7px;border:1px solid transparent;background:#ffffff05;color:var(--ofc-suave);font:600 11px var(--mac-ui)}
+.ofc-mini-dia.fora {opacity:.35}
+.ofc-mini-dia.tem {background:#ffffff10;color:var(--ofc-texto);cursor:pointer}
+.ofc-mini-dia.hoje {border-color:var(--ofc-laranja)}
+.ofc-mini-dia[aria-pressed=true] {background:var(--jg-ativo);border-color:#ff8a35aa}
+.ofc-mini-dia em {display:flex;gap:2px}
+.ofc-mini-dia em i {width:6px;height:6px;border-radius:50%;background:var(--c)}
+.ofc-mini-dia:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:1px}
+/* Janela do catálogo: fundo sólido (o vidro dos cartões do jogo deixava o
+   escritório aparecer atrás da grade) e as abas Loja / Inventário no topo. */
+.ofc-catjanela {background:#181a25;backdrop-filter:none;-webkit-backdrop-filter:none}
+.ofc-catjanela .ofc-catj-barra {background:#181a25}
+.ofc-catj-abas {display:flex;gap:4px;padding:3px;border-radius:12px;background:#0c0e15;box-shadow:inset 0 1px 3px #0009}
+.ofc-catj-abas button {display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:9px;border:0;background:none;color:var(--ofc-suave);font:700 13px var(--mac-ui);cursor:pointer}
+.ofc-catj-abas button[aria-selected=true] {background:var(--jg-slot);color:var(--ofc-texto);box-shadow:var(--jg-relevo)}
+.ofc-catj-abas button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:1px}
+.ofc-catj-trocas {grid-column:1/-1;display:grid;gap:10px;max-width:640px}
