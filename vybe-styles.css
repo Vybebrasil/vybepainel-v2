@@ -8021,3 +8021,6 @@ img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);
 .ofc-ficha > .ofc-ficha-acoes {margin:0;padding:12px 20px 16px;border-top:1px solid #ffffff14;background:#14161ecc}
 @media (max-width:560px){.ofc-hud-topo {flex-wrap:wrap}.ofc-hud-boneco {width:72px;height:104px}.ofc-hud-numeros {grid-template-columns:repeat(2,minmax(0,1fr))}.ofc-hud-corpo {max-height:calc(100vh - 360px)}}
 @media (prefers-reduced-motion:reduce){.ofc-hud-abas button {transition:none}}
+/* Criador no modo avatar do cliente: escolha do objeto de mão. */
+.cri-mao {display:flex;align-items:center;gap:8px;margin:2px 0 6px;font:600 12px var(--mac-ui);color:#d8dbe2}
+.cri-mao select {padding:5px 8px;border-radius:8px;border:1px solid #ffffff2a;background:#1c1e27;color:#fff;font:inherit}
