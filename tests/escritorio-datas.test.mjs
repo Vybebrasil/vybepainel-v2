@@ -20,7 +20,10 @@ test('missões e cobranças dizem se a data é prazo ou veiculação', () => {
   // Aguardo é marcar a gravação, não o cliente mandar algo (Paulo, 20/10/2026).
   assert.match(rotulo({ tipo: 'marcar_gravacao', dias: 0, data: '2026-10-19' }), /^Marcar a gravação · prazo \(19\/10\)$/);
   assert.match(rotulo({ tipo: 'lembrar_cliente', status_chave: 'ag_aprovacao_cliente', dias: 0, data: '2026-10-19' }), /^Esperando aprovação do cliente/);
+  assert.equal(rotulo({ tipo: 'postar_parada', dias: 0, data: '2026-10-20', com: ['Reriston Souza Silva'] }), 'Veiculação hoje e não começou · com Reriston');
+  assert.match(rotulo({ tipo: 'postar_parada', dias: 2, data: '2026-10-18', com: [] }), /^Veiculação passou há 2 dias \(18\/10\) e não começou · sem responsável$/);
   const falas = (x) => vm.runInContext(`falasDaCobranca(${JSON.stringify(x)}, 'Vinícius')`, c).join(' ');
   assert.match(falas({ tipo: 'marcar_gravacao', titulo: 'Fotografia - Diário de campo', dias: 0 }), /marcar a gravação/);
+  assert.match(falas({ tipo: 'postar_parada', titulo: 'Story - Quiz', dias: 0, com: ['Jady Lima'] }), /Cobra Jady/);
   assert.doesNotMatch(falas({ tipo: 'marcar_gravacao', titulo: 'Fotografia - Diário de campo', dias: 0 }), /devendo|mandar/);
 });
