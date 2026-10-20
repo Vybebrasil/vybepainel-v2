@@ -81,7 +81,12 @@ function mapaChaveQuadro(dados, estado, quadro, semente = 0) {
   for (const [i, anim] of Object.entries(camadas)) {
     const seqs = anim?.frameSequences ? Object.values(anim.frameSequences) : [];
     const lista = seqs.length ? Object.values(seqs[semente % seqs.length]?.frames || {}) : [];
-    if (lista.length > 1) chave += i + "=" + Math.floor(quadro / Math.max(1, Number(anim.frameRepeat) || 1)) % lista.length + ";";
+    // O quadro da arte (id), não a posição na sequência: a arte do Habbo
+    // repete o mesmo quadro várias vezes, e telas iguais em mesas diferentes
+    // mostram os mesmos. Com a posição, o cache de desenho nunca acertava numa
+    // sequência longa e a sala redesenhava a arte do zero a cada quadro
+    // (Paulo, 19/10/2026: o Centro de Operação travava).
+    if (lista.length > 1) chave += i + "=" + lista[Math.floor(quadro / Math.max(1, Number(anim.frameRepeat) || 1)) % lista.length]?.id + ";";
   }
   return chave;
 }
@@ -265,7 +270,7 @@ function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   if (!m?.dados) return mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
   let cache = MAPA_CACHE_CAMADAS.get(m.dados);
   if (!cache) MAPA_CACHE_CAMADAS.set(m.dados, (cache = new Map()));
-  const chave = `${dir}|${estado}|${semente}|${mapaChaveQuadro(m.dados, estado, quadro, semente)}`;
+  const chave = `${dir}|${estado}|${mapaChaveQuadro(m.dados, estado, quadro, semente)}`;
   if (cache.has(chave)) return cache.get(chave);
   const d = mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
   if (cache.size >= 96) cache.delete(cache.keys().next().value);
@@ -1075,6 +1080,20 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     g.globalCompositeOperation = "destination-in"; g.drawImage(copiaLuz, 0, 0);
     g.restore();
   };
+  // Quadro da arte já tingido, guardado (Paulo, 19/10/2026: o Centro de
+  // Operação travava). Os quadros vêm do cache de desenho e não mudam; tingir
+  // de novo a cada troca de quadro eram três desenhos por camada, centenas por
+  // segundo numa sala cheia de telas. Agora a animação só copia o pronto.
+  const tintas = new WeakMap();
+  const tingido = (src) => {
+    if (!corLuz || !src?.width || !src.height) return src;
+    let t = tintas.get(src);
+    if (!t) {
+      t = document.createElement("canvas"); t.width = src.width; t.height = src.height;
+      t.getContext("2d").drawImage(src, 0, 0); tingir(t); tintas.set(src, t);
+    }
+    return t;
+  };
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
   let fundoPronto = null;
   var luzesLigadas = false; // vira true quando os móveis terminam de carregar
@@ -1501,8 +1520,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       ref ??= d;
       if (a.no.width !== d.canvas.width || a.no.height !== d.canvas.height) { a.no.width = d.canvas.width; a.no.height = d.canvas.height; }
       else g.clearRect(0, 0, a.no.width, a.no.height);
-      g.drawImage(d.canvas, 0, 0);
-      tingir(a.no);
+      g.drawImage(tingido(d.canvas), 0, 0);
     }
     return ref;
   };
@@ -1552,8 +1570,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const g = cv.getContext("2d");
       if (cv.width !== c.canvas.width || cv.height !== c.canvas.height) { cv.width = c.canvas.width; cv.height = c.canvas.height; }
       else g.clearRect(0, 0, cv.width, cv.height);
-      g.drawImage(c.canvas, 0, 0);
-      tingir(cv);
+      g.drawImage(tingido(c.canvas), 0, 0);
       // Camada de luz (ADD): soma com o que está atrás, como no Habbo.
       cv.style.mixBlendMode = c.luz ? "plus-lighter" : "";
       if (!cv.parentNode) no.append(cv);
