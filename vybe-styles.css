@@ -7094,6 +7094,17 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-drive{display:inline-flex;gap:6px;margin-left:auto}
 .plj-pedido{margin:8px 0;padding:10px 12px;border:1px solid rgba(255,143,143,.4);border-radius:10px;background:rgba(255,90,90,.08)}
 .plj-pedido b{color:#ffb3b3;font:700 11px var(--mac-ui)}
+/* Cadastrar as peças do planejamento aprovado (Paulo, 20/10/2026). */
+.plj-cadastro{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
+.plj-cadastro li{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.plj-cadastro b{font:700 13px var(--mac-ui)}
+.plj-cadastro span{font:500 12.5px var(--mac-ui)}
+.plj-cadastro small{font:500 12px var(--mac-ui);color:var(--mac-text-secondary,#a3a9b7)}
+.plj-criadas{margin:8px 0;padding:8px 12px;border-radius:10px;background:rgba(120,220,150,.07);border:1px solid rgba(120,220,150,.25)}
+.plj-criadas summary{cursor:pointer;font:700 12.5px var(--mac-ui)}
+.plj-criadas ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;max-height:220px;overflow:auto}
+.plj-criadas li{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.plj-criadas li small{flex:none;color:var(--mac-text-secondary,#a3a9b7)}
 .plj-pedido p{margin:4px 0 0;color:#e7ecf5;font-size:12px;line-height:1.45;white-space:pre-wrap}
 .plj-abas{display:flex;gap:4px;margin:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .plj-abas button{border:0;border-bottom:2px solid transparent;background:none;color:#9da4b4;padding:7px 10px;font:700 11px var(--mac-ui);cursor:pointer}

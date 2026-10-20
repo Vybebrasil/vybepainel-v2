@@ -802,7 +802,9 @@ async function trocarEscolha(sql, quem, { item, campo, para }) {
 export async function criarConteudo(sql, quem, dados) {
   return sql.comTransacao(tx => criarConteudoNaTransacao(tx, quem, dados));
 }
-async function criarConteudoNaTransacao(sql, quem, dados) {
+// Exportada para o cadastro das peças de um planejamento aprovado, que cria
+// várias numa transação só (server/planejamentos.js).
+export async function criarConteudoNaTransacao(sql, quem, dados) {
   const { titulo, cliente, formato, prazo, veiculacao, status = 'a_fazer', grupo_id, briefing,
           tipo_conteudo = null, captacao = null, prioridade = null, responsaveis = [] } = dados;
   // O destino passa a ser escolhido por quem cadastra. Sem isto, tudo caía em

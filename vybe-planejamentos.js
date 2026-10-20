@@ -124,7 +124,7 @@ function pintarPlanejamento(aba) {
   m.innerHTML = `<div class="workflow-kicker"><span>Planejamento · ${pljEsc(p.cliente)}</span>
       <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
     <div class="plj-topo"><h2 class="workflow-title">${pljEsc(pljMes(p.mes))}</h2>${pljSelo(p.estado)}<small>versão ${pljEsc(p.versao)} · ${p.origem === 'agente' ? 'publicado pelo agente' : 'feito no painel'}</small>${drive}</div>
-    ${resposta}
+    ${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
     <div class="plj-corpo">${aba === 'editar' ? pljEditorHtml() : aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
       : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-same-origin allow-popups"></iframe>`}</div>
@@ -161,7 +161,8 @@ function pljAcoesHtml(aba) {
   if (['revisar', 'ajustes'].includes(p.estado)) botoes.push(`<button type="button" class="workflow-primary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente →</button>`);
   if (p.estado === 'enviado') botoes.push(`<button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Gerar um link novo</button>`);
   if (p.estado === 'aprovado') botoes.push(`<button type="button" class="workflow-secondary" onclick="mudarEstadoPlanejamento('revisar')">Reabrir para editar</button>
-    <button type="button" class="workflow-primary" onclick="mudarEstadoPlanejamento('cadastrado')">Já cadastrei as peças</button>`);
+    <button type="button" class="workflow-secondary" onclick="mudarEstadoPlanejamento('cadastrado')">Já cadastrei à mão</button>
+    <button type="button" class="workflow-primary" onclick="confirmarCadastroPlanejamento()">Cadastrar as ${(p.conteudo?.pecas || []).length} peças →</button>`);
   return botoes.join('');
 }
 
@@ -302,6 +303,54 @@ async function mudarEstadoPlanejamento(estado) {
     await abrirPlanejamento(PLJ_ABERTO.id, estado === 'revisar' ? 'editar' : 'documento');
     pljAtualizarFora();
   } catch (e) { showToast(e.message, 'error', 5000); }
+}
+
+// Depois do botão, cada peça aponta para a demanda criada.
+function pljDemandasCriadasHtml(p) {
+  const feitas = (p.conteudo?.pecas || []).filter((x) => x.conteudo_id);
+  if (!feitas.length) return '';
+  const dia = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
+  return `<details class="plj-criadas"><summary>${feitas.length} ${feitas.length === 1 ? 'demanda criada' : 'demandas criadas'} a partir deste planejamento</summary><ul>${feitas.map((x) =>
+    `<li><button type="button" class="cli-porta" onclick="closeWorkflowModal();${x.formato === 'Outro' ? 'openDemandaWorkspace' : 'openItemWorkspace'}('vybe:${pljEsc(x.conteudo_id)}')">${pljEsc(PLJ_FORMATO_DO_PAINEL[x.formato] || x.formato)} - ${pljEsc(x.tema || 'Sem tema')}</button><small>veicula ${pljEsc(dia(x.data))}</small></li>`).join('')}</ul></details>`;
+}
+// ── Cadastrar as peças aprovadas (Paulo, 20/10/2026) ─────────────────────────
+// Destino, status, captação e equipe saem da mesma regra do formulário de
+// cadastro (cadastrosDestiny); o servidor cria tudo numa transação, com o Prazo
+// de Ouro e quem mais fez peças do cliente.
+const PLJ_FORMATO_DO_PAINEL = { Card: 'Card', Carrossel: 'Carrossel', Reels: 'Reels', Fotografia: 'Fotografia', 'Vídeo': 'Vídeo', Stories: 'Story', Outro: 'Avulso' };
+function pljDestinos() {
+  const destinos = {};
+  for (const f of PLJ_FORMATOS) {
+    if (f === 'Outro' || typeof cadastrosDestiny !== 'function') continue;
+    const d = cadastrosDestiny(PLJ_FORMATO_DO_PAINEL[f], true, false, []);
+    destinos[f] = { grupo_id: d.group, grupo: d.groupLabel, status: chaveDeStatus(d.status), statusRotulo: d.status, captacao: d.capture ? 'Agendar Captação' : '', responsaveis: (d.assignees || []).map(String) };
+  }
+  return destinos;
+}
+function confirmarCadastroPlanejamento() {
+  const p = PLJ_ABERTO, pecas = (p.conteudo?.pecas || []).filter((x) => !x.conteudo_id), destinos = pljDestinos();
+  const nomes = (ids) => (ids || []).map((id) => (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).find((u) => String(u.id) === String(id))?.name?.split(' ')[0]).filter(Boolean);
+  const porFormato = Object.entries(pecas.reduce((t, x) => ((t[x.formato] = (t[x.formato] || 0) + 1), t), {}));
+  const linha = ([f, n]) => { const d = destinos[f]; const onde = f === 'Outro' ? 'Solicitações de demanda, para triagem' : `${d?.grupo || 'Produção'} · ${d?.statusRotulo || ''}${d?.captacao ? ' · com captação' : ''}`;
+    const equipe = nomes(d?.responsaveis); return `<li><b>${n} ${pljEsc(PLJ_FORMATO_DO_PAINEL[f] || f)}</b><span>${pljEsc(onde)}</span><small>${f === 'Outro' ? 'Sem responsável: quem faz a triagem distribui.' : equipe.length > 1 ? `Para quem mais fez peças de ${pljEsc(p.cliente)}; sem histórico, ${pljEsc(equipe.join(', '))}.` : equipe.length ? `Para ${pljEsc(equipe[0])}.` : 'Para a fila de Produção (captação).'}</small></li>`; };
+  openWorkflowModal(`<div class="workflow-kicker"><span>Planejamento · ${pljEsc(p.cliente)}</span>
+      <button class="workflow-close" type="button" aria-label="Fechar" onclick="abrirPlanejamento('${pljEsc(p.id)}')">×</button></div>
+    <h2 class="workflow-title">Cadastrar ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}</h2>
+    <p class="workflow-copy">Cada peça vira uma demanda de ${pljEsc(p.cliente)}, com o tema no título, a legenda ou roteiro no briefing e o dia como veiculação. O prazo é o Prazo de Ouro (7 dias antes); se já passou, fica para hoje, nunca a menos de 2 dias da veiculação.</p>
+    <ul class="plj-cadastro">${porFormato.map(linha).join('')}</ul>
+    <p class="workflow-hint">Entram todas de uma vez: se alguma falhar, nenhuma é criada. Depois o planejamento fica como Cadastrado.</p>
+    <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="abrirPlanejamento('${pljEsc(p.id)}')">Voltar</button>
+      <button type="button" class="workflow-primary" onclick="cadastrarPecasPlanejamento(this)">Cadastrar agora</button></div>`);
+}
+async function cadastrarPecasPlanejamento(botao) {
+  botao.disabled = true; botao.textContent = 'Cadastrando…';
+  try {
+    const d = await pljPedir('', { acao: 'cadastrar', id: PLJ_ABERTO.id, versao: PLJ_ABERTO.versao, destinos: pljDestinos() });
+    showToast(`${d.criadas.length} ${d.criadas.length === 1 ? 'demanda criada' : 'demandas criadas'} para ${PLJ_ABERTO.cliente}.`, 'success', 5000);
+    if (typeof refreshData === 'function') refreshData({ boardCriado: 'producao' });
+    await abrirPlanejamento(d.planejamento.id, 'documento');
+    pljAtualizarFora();
+  } catch (e) { botao.disabled = false; botao.textContent = 'Cadastrar agora'; showToast(e.message, 'error', 7000); }
 }
 
 // Depois de mudar algo, o cartão do cliente e o aviso do head se refazem.

@@ -119,3 +119,25 @@ Os agentes vivem no Claude, fora do painel. Duas formas:
 - `AGENTES_CHAVE`: segredo de 24+ caracteres. O conector de cada agente é
   `https://vybepainel-v2.vercel.app/api/painel?area=agentes&chave=<AGENTES_CHAVE>`.
 - Opcional: `PAINEL_URL`, se o domínio do link for outro.
+
+## Cadastrar as peças com um botão (20/10/2026)
+
+Pedido do Paulo: depois que o cliente aprova, o head cadastra todas as peças
+com um botão.
+
+- Decisões do Paulo: prazo pelo Prazo de Ouro (7 dias), com margem mínima de
+  2 dias antes da veiculação. Quem executa e onde entra seguem as regras que o
+  painel já usa.
+- Conteúdo vai para Produção, pelo destino do formulário (`cadastrosDestiny`):
+  - Card, Carrossel e Story vão para Design & Edição.
+  - Reels, Vídeo e Fotografia vão para Produção (Foto e Vídeo), com captação.
+- "Outro" vai para Solicitações, sem responsável, para a triagem.
+- Da equipe da regra, a peça vai para quem mais fez peças daquele cliente nos
+  últimos 120 dias. Sem histórico claro, fica a equipe toda, como no formulário.
+- Servidor: `cadastrarPecas` em `server/planejamentos.js`, rota
+  `area=planejamentos&acao=cadastrar`. Uma transação: se uma falha, nenhuma
+  entra. Cada peça guarda o `conteudo_id`, o planejamento fica "Cadastrado" e
+  clicar de novo é recusado.
+- Tela: confirmação com o que vai acontecer por formato. Depois, a lista
+  "demandas criadas" abre cada uma.
+- "Já cadastrei à mão" continua para quem cadastrou pelo formulário.

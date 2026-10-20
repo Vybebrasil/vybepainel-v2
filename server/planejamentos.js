@@ -5,6 +5,8 @@
 // segredo de uso externo (só o hash fica no banco).
 import { alertasDosClientes } from './alertas-clientes.js';
 import { createHash, randomBytes } from 'node:crypto';
+import { criarConteudoNaTransacao } from '../api/conteudo.js';
+import { BOARD_PRODUCAO, BOARD_DEMANDAS } from './grupos.js';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 const ESTADOS = ['revisar', 'enviado', 'aprovado', 'ajustes', 'cadastrado', 'arquivado'];
@@ -35,7 +37,9 @@ export function normalizarConteudo(c = {}) {
    const data = dataIso(p?.data);
    if (!data && !texto(p?.tema, 160)) return null;
    const formato = FORMATOS.find((f) => f.toLowerCase() === String(p?.formato || '').toLowerCase()) || (texto(p?.formato, 30) ? 'Outro' : 'Card');
-   return { data, formato, tema: texto(p?.tema, 160), legenda: texto(p?.legenda, 2200), referencia: texto(p?.referencia, 600), observacao: texto(p?.observacao, 400) };
+   // conteudo_id: a demanda criada a partir da peça (cadastrarPecas).
+   const cid = /^\d{1,18}$/.test(String(p?.conteudo_id || '')) ? String(p.conteudo_id) : null;
+   return { data, formato, tema: texto(p?.tema, 160), legenda: texto(p?.legenda, 2200), referencia: texto(p?.referencia, 600), observacao: texto(p?.observacao, 400), ...(cid ? { conteudo_id: cid } : {}) };
   }).sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999')),
   observacoes: texto(o.observacoes, 2000),
  };
@@ -202,6 +206,80 @@ export async function mudarEstadoInterno(sql, pessoa, { id, estado }) {
   const [n] = await tx`UPDATE vybe_planejamentos SET estado=${estado},link_hash=CASE WHEN ${estado}='revisar' THEN NULL ELSE link_hash END,atualizado_em=now() WHERE id=${id} RETURNING *`;
   await registrar(tx, id, estado === 'revisar' ? 'editado' : estado, { autor: pessoa.id, versao: n.versao, texto: estado === 'revisar' ? 'Reaberto para revisão.' : null });
   return publico(n);
+ });
+}
+// --- Cadastrar as peças aprovadas -------------------------------------------------
+// Paulo, 20/10/2026: "tiver tudo ok ele poder cadastrar cada demanda com um
+// simples botão". Uma transação: ou entram todas, ou nenhuma; o planejamento
+// vira "cadastrado" junto, então clicar de novo não duplica.
+const somarDias = (iso, n) => { const x = new Date(`${iso}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const diaUtil = (iso) => { let x = iso; while ([0, 6].includes(new Date(`${x}T12:00:00Z`).getUTCDay())) x = somarDias(x, -1); return x; };
+// Prazo de Ouro: 7 dias antes da veiculação (PRAZO_OURO_DIAS). Se já passou,
+// hoje, mas nunca depois de 2 dias antes da veiculação (margem mínima do Paulo).
+// Sábado e domingo voltam para a sexta.
+export function prazoDaPeca(veiculacao, hoje) {
+ const ouro = diaUtil(somarDias(veiculacao, -7));
+ if (ouro >= hoje) return ouro;
+ const limite = diaUtil(somarDias(veiculacao, -2));
+ return hoje <= limite ? hoje : limite;
+}
+// O que é conteúdo vai para Produção; "Outro" é pedido avulso e entra em Solicitações.
+const FORMATO_DO_PAINEL = { Card: 'Card', Carrossel: 'Carrossel', Reels: 'Reels', Fotografia: 'Fotografia', 'Vídeo': 'Vídeo', Stories: 'Story', Outro: 'Avulso' };
+export function briefingDaPeca(p, mesTexto) {
+ return [p.tema && `Tema: ${p.tema}`, p.legenda && `Legenda / roteiro:\n${p.legenda}`, p.referencia && `Referência: ${p.referencia}`,
+  p.observacao && `Observação: ${p.observacao}`, `Do planejamento de ${mesTexto}, aprovado pelo cliente.`].filter(Boolean).join('\n\n');
+}
+// destinos: por formato do planejamento, o que a regra do cadastro decidiu
+// (cadastrosDestiny no navegador: board, grupo, status, captação e equipe). A
+// pessoa da equipe é a que mais fez peças deste cliente nos últimos 120 dias
+// (o painel registra quem fez cada uma); sem histórico, fica a equipe toda.
+export async function cadastrarPecas(sql, quem, { id, versao, destinos }) {
+ await exigir(sql);
+ const pessoa = quem?.pessoa;
+ return sql.comTransacao(async (tx) => {
+  const [p] = await tx`SELECT p.*,c.nome AS cliente FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.id=${id} FOR UPDATE OF p`;
+  if (!p) throw erro('Planejamento não encontrado.', 404);
+  await exigirEditor(tx, pessoa, p.cliente_id);
+  if (p.estado === 'cadastrado') throw erro('As peças deste planejamento já foram cadastradas.', 409);
+  if (p.estado !== 'aprovado') throw erro('Só dá para cadastrar depois que o cliente aprovar.', 409);
+  if (Number(versao) !== Number(p.versao)) throw erro('O planejamento mudou enquanto você olhava. Recarregue.', 409);
+  const conteudo = normalizarConteudo(p.conteudo);
+  const [{ hoje }] = await tx`SELECT (now() AT TIME ZONE 'America/Bahia')::date::text AS hoje`;
+  const mesTexto = new Date(`${publico(p).mes}T12:00:00Z`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const historico = new Map();
+  const quemFaz = async (equipe) => {
+   const ids = (Array.isArray(equipe) ? equipe : []).map(String).filter((x) => /^\d{1,18}$/.test(x)).slice(0, 12);
+   if (ids.length <= 1) return ids;
+   const chave = ids.join(',');
+   if (!historico.has(chave)) {
+    const linhas = await tx`SELECT pe.monday_user_id AS uid, count(DISTINCT r.conteudo_id)::int AS n FROM vybe_conteudo_responsaveis r
+     JOIN vybe_pessoas pe ON pe.id=r.pessoa_id JOIN vybe_conteudo_clientes cc ON cc.conteudo_id=r.conteudo_id JOIN vybe_conteudos c ON c.id=r.conteudo_id
+     WHERE cc.cliente_id=${p.cliente_id} AND pe.monday_user_id = ANY(${ids}::text[]) AND c.removido_em IS NULL
+      AND COALESCE(c.veiculacao, c.prazo) >= (now() AT TIME ZONE 'America/Bahia')::date - 120
+     GROUP BY 1 ORDER BY 2 DESC, 1`;
+    historico.set(chave, linhas[0] && (!linhas[1] || linhas[0].n > linhas[1].n) ? [String(linhas[0].uid)] : ids);
+   }
+   return historico.get(chave);
+  };
+  const criadas = [];
+  for (const peca of conteudo.pecas) {
+   if (peca.conteudo_id) continue;
+   if (!peca.data) throw erro(`A peça "${peca.tema || peca.formato}" está sem dia. Reabra o planejamento e preencha.`, 400);
+   const formato = FORMATO_DO_PAINEL[peca.formato] || 'Card';
+   const d = destinos?.[peca.formato] || {}, avulso = peca.formato === 'Outro';
+   const r = await criarConteudoNaTransacao(tx, quem, {
+    board: avulso ? BOARD_DEMANDAS : BOARD_PRODUCAO, titulo: `${formato} - ${peca.tema || 'Sem tema'}`.slice(0, 240), cliente: p.cliente, formato,
+    prazo: prazoDaPeca(peca.data, hoje), veiculacao: peca.data, status: avulso ? 'nova_demanda' : d.status || 'a_fazer', grupo_id: avulso ? null : d.grupo_id || null,
+    briefing: briefingDaPeca(peca, mesTexto), tipo_conteudo: avulso ? null : 3,
+    captacao: avulso ? null : d.captacao || null, responsaveis: avulso ? [] : await quemFaz(d.responsaveis),
+   });
+   peca.conteudo_id = String(r.conteudo_id);
+   criadas.push(r);
+  }
+  if (!criadas.length) throw erro('Este planejamento não tem peças para cadastrar.', 400);
+  const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,estado='cadastrado',atualizado_em=now() WHERE id=${id} RETURNING *`;
+  await registrar(tx, id, 'cadastrado', { autor: pessoa.id, versao: n.versao, texto: `${criadas.length} ${criadas.length === 1 ? 'peça cadastrada' : 'peças cadastradas'} pelo botão.` });
+  return { planejamento: { ...publico(n), cliente: p.cliente }, criadas: criadas.map((c) => ({ conteudo_id: String(c.conteudo_id), titulo: c.titulo })) };
  });
 }
 export async function comentarPlanejamento(sql, pessoa, { id, texto: t }) {
