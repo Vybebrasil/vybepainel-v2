@@ -249,11 +249,32 @@ function abrirCobrancaClienteEscritorio(g, e) {
     raiz.append(pop);
     document.addEventListener("pointerdown", (ev) => { if (!pop.hidden && !pop.contains(ev.target)) pop.hidden = true; });
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !pop.hidden) pop.hidden = true; });
+    // Arrastável pela faixa de cima (Paulo, 20/10/2026), sem sair do mapa.
+    pop.addEventListener("pointerdown", (ev) => {
+      const topo = ev.target.closest(".ofc-cobranca-pop-topo");
+      if (!topo || ev.target.closest("button") || ev.button !== 0) return;
+      ev.preventDefault();
+      const r = raiz.getBoundingClientRect(), x0 = ev.clientX - pop.offsetLeft, y0 = ev.clientY - pop.offsetTop;
+      topo.setPointerCapture(ev.pointerId);
+      pop.classList.add("arrastando");
+      const mover = (m) => {
+        pop.style.left = Math.max(8, Math.min(r.width - pop.offsetWidth - 8, m.clientX - x0)) + "px";
+        pop.style.top = Math.max(8, Math.min(r.height - pop.offsetHeight - 8, m.clientY - y0)) + "px";
+      };
+      const soltar = () => { pop.classList.remove("arrastando"); topo.removeEventListener("pointermove", mover); topo.removeEventListener("pointerup", soltar); topo.removeEventListener("pointercancel", soltar); };
+      topo.addEventListener("pointermove", mover);
+      topo.addEventListener("pointerup", soltar);
+      topo.addEventListener("pointercancel", soltar);
+    });
   }
+  escritorio.cobrancaAberta = g;
+  // O calendário inteiro do cliente: a Agenda mensal já filtrada nele, o mesmo
+  // caminho do painel do agente (abrirCalendarioDoClienteEscritorio).
+  const calendario = typeof abrirCalendarioDoClienteEscritorio === "function" && typeof modoComVisoesDoQuadro === "function" && modoComVisoesDoQuadro();
   pop.setAttribute("aria-label", `${g.cliente}: ${g.itens.length} demanda${g.itens.length > 1 ? "s" : ""}`);
-  pop.innerHTML = `<div class="ofc-cobranca-pop-topo">${cobrancaClienteHtml(g)}<button type="button" class="ofc-x" onclick="this.closest('.ofc-cobranca-pop').hidden=true" aria-label="Fechar">×</button></div>
+  pop.innerHTML = `<div class="ofc-cobranca-pop-topo" title="Arraste para mover">${cobrancaClienteHtml(g)}<button type="button" class="ofc-x" onclick="this.closest('.ofc-cobranca-pop').hidden=true" aria-label="Fechar">×</button></div>
 <ul>${g.itens.map((c) => cobrancaItemHtml(c, "this.closest('.ofc-cobranca-pop').hidden=true;")).join("")}</ul>
-<p class="ofc-nota">Clique numa demanda para abrir inteira.</p>`;
+<div class="ofc-cobranca-pop-rodape"><p class="ofc-nota">Clique numa demanda para editar.</p>${calendario ? `<button type="button" class="workflow-secondary" onclick="this.closest('.ofc-cobranca-pop').hidden=true;abrirCalendarioDoClienteEscritorio(escritorio.cobrancaAberta.cliente)">Abrir calendário</button>` : ""}</div>`;
   pop.hidden = false;
   // Perto do clique, sem sair da área do mapa.
   const r = raiz.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
