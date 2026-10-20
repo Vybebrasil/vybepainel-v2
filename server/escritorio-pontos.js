@@ -156,13 +156,41 @@ export async function regrasDaFuncao(sql, funcao) {
   const linhas = m?.existe
     ? await sql`SELECT chave,descricao,moedas,pontos,entrega,por_complexidade,funcao FROM vybe_escritorio_regras WHERE ativa AND (funcao IS NULL OR funcao=${funcao}) ORDER BY entrega DESC, pontos DESC, moedas DESC`
     : await sql`SELECT chave,descricao,moedas,pontos,entrega,false AS por_complexidade,funcao FROM vybe_escritorio_regras WHERE ativa AND (funcao IS NULL OR funcao=${funcao}) ORDER BY entrega DESC, pontos DESC, moedas DESC`;
-  return linhas.map((r) => ({ ...r, moedas: Number(r.moedas), pontos: Number(r.pontos) }));
+  const fatias = await fatiasDoBolo(sql);
+  // "historico" é só o percentual das peças de antes de 17/10, não uma regra de ganhar.
+  return linhas.filter((r) => r.chave !== 'historico').map((r) => {
+    const parte = fatias && PAPEL_DA_REGRA[r.chave] ? parteDoBolo(fatias, r.chave) : null;
+    // Regra do bolo: o valor mostrado é a parte da pessoa numa peça de peso 1.
+    const f = parte ? (parte.normal || parte.captada) : 1;
+    return { ...r, moedas: Math.round(Number(r.moedas) * f), pontos: Math.round(Number(r.pontos) * f), ...(parte ? { parte } : {}) };
+  });
+}
+// Bolo por peça (2026-10-20-escritorio-bolo-por-peca.sql): a fatia de cada
+// papel, com e sem captação (foto e vídeo). O DA fica com uma parte da fatia
+// da Criação. Sem a migração, null (as regras antigas valem inteiras).
+const PAPEL_DA_REGRA = { peca_criacao: 'criacao', peca_da: 'criacao', peca_producao: 'producao', peca_atendimento: 'atendimento', peca_agendamento: 'agendamento', peca_gestao: 'gestao' };
+const PAPEL_DA_FUNCAO = { criacao: 'peca_criacao', producao: 'peca_producao', atendimento: 'peca_atendimento', agendamento: 'peca_agendamento', gestao: 'peca_gestao' };
+export async function fatiasDoBolo(sql) {
+  const [m] = await sql`SELECT to_regclass('public.vybe_escritorio_fatias') IS NOT NULL AS existe`;
+  if (!m?.existe) return null;
+  const linhas = await sql`SELECT papel,captada,fatia FROM vybe_escritorio_fatias`;
+  const f = {};
+  for (const l of linhas) (f[l.papel] ||= {})[l.captada ? 'captada' : 'normal'] = Number(l.fatia);
+  return f;
+}
+export function parteDoBolo(fatias, regra, captada) {
+  const papel = PAPEL_DA_REGRA[regra];
+  if (!papel || !fatias?.[papel]) return null;
+  const da = regra === 'peca_da' ? fatias.direcao_arte || {} : null;
+  const de = (k) => (fatias[papel][k] || 0) * (da ? da[k] || 0 : 1);
+  if (captada === undefined) return { captada: de('captada'), normal: de('normal') };
+  return de(captada ? 'captada' : 'normal');
 }
 // O que cada missão vale, para a tela das missões: as regras por peça da
 // função da pessoa e o peso de cada formato (2026-10-20-escritorio-complexidade).
 // Sem a migração, as regras valem sem peso. A conta de verdade é do banco.
 // Regras que nascem de uma peça (as que a missão pode prometer).
-const REGRAS_DE_MISSAO = ['entrega', 'entrega_prazo', 'criacao_aprovacao', 'criacao_aprovada', 'captacao', 'carteira', 'agendamento', 'agencia'];
+const REGRAS_DE_MISSAO = ['entrega', 'entrega_prazo', 'criacao_aprovacao', 'criacao_aprovada', 'captacao', 'carteira', 'agendamento', 'agencia', ...Object.keys(PAPEL_DA_REGRA)];
 export async function tabelaDasMissoes(sql, funcao) {
   const [m] = await sql`SELECT to_regclass('public.vybe_escritorio_complexidade') IS NOT NULL AS existe`;
   const regras = m?.existe
@@ -207,6 +235,7 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
   const funcao = f?.funcao || null;
   const { regras } = await tabelaDasMissoes(sql, funcao);
   const regra = new Map(regras.map((r) => [r.chave, r]));
+  const fatias = await fatiasDoBolo(sql);
   const [comPeso] = await sql`SELECT to_regprocedure('vybe_peso_conteudo(bigint)') IS NOT NULL AS existe`;
   const linhas = comPeso?.existe
     ? await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.etapa,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,vybe_peso_conteudo(c.id) AS peso
@@ -219,12 +248,25 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
         LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
         WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
         ORDER BY COALESCE(c.prazo,c.veiculacao) NULLS LAST, c.id LIMIT 40`;
+  // Foto ou vídeo (a Produção entra no bolo e a fatia da Criação muda).
+  const captadas = fatias && linhas.length
+    ? new Set((await sql`SELECT id FROM unnest(${linhas.map((l) => l.id)}::bigint[]) AS id WHERE vybe_peca_captada(id)`).map((r) => String(r.id)))
+    : new Set();
   const hoje = diaBahia(agora);
-  const valor = (r, peso) => (r ? { moedas: Math.round(r.moedas * (r.por_complexidade ? peso : 1)), pontos: Math.round(r.pontos * (r.por_complexidade ? peso : 1)) } : null);
+  // Regra do bolo: a fatia do papel da pessoa (com ou sem captação) entra na conta.
+  const valor = (r, peso, captada) => {
+    if (!r) return null;
+    const f = (r.por_complexidade ? peso : 1) * (fatias && PAPEL_DA_REGRA[r.chave] ? parteDoBolo(fatias, r.chave, captada) : 1);
+    return { moedas: Math.round(r.moedas * f), pontos: Math.round(r.pontos * f) };
+  };
   const missoes = linhas.map((l) => {
     const demanda = String(l.board_id) === QUADRO_DEMANDAS;
     const peso = Number(l.peso) || 1;
-    const [principal, extra] = demanda ? ['entrega', 'entrega_prazo'] : (REGRA_DA_MISSAO[funcao] || []);
+    const captada = captadas.has(String(l.id));
+    // Com o bolo, a regra é a parte da função; sem a migração, a regra antiga.
+    const bolo = fatias && PAPEL_DA_FUNCAO[funcao] && regra.has(PAPEL_DA_FUNCAO[funcao]);
+    const [principal, extra] = demanda ? [fatias && regra.has('peca_criacao') ? 'peca_criacao' : 'entrega', 'entrega_prazo']
+      : bolo ? [PAPEL_DA_FUNCAO[funcao], funcao === 'criacao' ? 'criacao_aprovada' : null] : (REGRA_DA_MISSAO[funcao] || []);
     const quando = l.prazo || l.veiculacao || null;
     return {
       ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: demanda ? 'demandas' : 'producao',
@@ -232,8 +274,8 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
       // A data é o prazo; sem prazo, a veiculação. O tipo vai junto para a tela
       // sempre dizer qual das duas é (Paulo, 19/10/2026).
       prazo: quando, tipo_data: l.prazo ? 'prazo' : l.veiculacao ? 'veiculacao' : null, atrasada: Boolean(quando && quando < hoje), hoje: quando === hoje,
-      recompensa: valor(regra.get(principal), peso),
-      bonus: extra && regra.get(extra) ? { ...valor(regra.get(extra), peso), descricao: regra.get(extra).descricao } : null,
+      recompensa: valor(regra.get(principal), peso, captada),
+      bonus: extra && regra.get(extra) ? { ...valor(regra.get(extra), peso, captada), descricao: regra.get(extra).descricao } : null,
     };
   });
   return { disponivel: true, funcao, missoes };

@@ -54,6 +54,12 @@ function escritorioNumerosDe(pessoa) {
 }
 // Marcos calculados no servidor (server/escritorio-marcos.js): cada um diz se
 // foi conquistado, quando, e o móvel que dá. Nome do móvel pelo catálogo do editor.
+// Bolo por peça: a parte da pessoa em foto/vídeo e nas outras peças.
+function escritorioParteDoBoloTexto(parte) {
+  const pct = (n) => `${Math.round(n * 1000) / 10}%`.replace(".", ",");
+  const t = [parte.captada ? `${pct(parte.captada)} do bolo em foto e vídeo` : "", parte.normal ? `${pct(parte.normal)} nas outras peças` : ""].filter(Boolean).join(" e ");
+  return `Sua parte: ${t}. O bolo cresce com o formato (Reels, Carrossel…); o valor ao lado é de uma peça simples.`;
+}
 function escritorioMarcosHtml(marcos) {
   if (!marcos?.length) return "";
   const data = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }); };
@@ -171,7 +177,7 @@ ${!veNumeros && jogo?.marcos?.length ? `<section class="ofc-hud-bloco"><h4>Últi
     const ordem = [3, 4, 1, 2, 0];
     corpo = !economia ? carregando("Carregando as regras…") : !regras.length ? '<p class="ofc-nota">As regras aparecem quando a contagem de pontos estiver ativa.</p>'
       : `<p class="ofc-nota">${funcao ? `Regras de <b>${funcao}</b> e as que valem para todo mundo.` : "Regras que valem para todo mundo."} Os valores são os da tabela da Vybe e podem mudar.</p>
-${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) => grupoDe.get(r) === gi); return l.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>${titulo}</h4><small>${dica}</small></div><ul class="ofc-hud-regras">${l.map((r) => `<li><span><b>${safeText(r.descricao)}</b>${r.por_complexidade ? "<small>Vale mais conforme o formato da peça (Reels, Carrossel…).</small>" : ""}${r.entrega && gi !== 3 ? "<small>Conta na meta da semana.</small>" : ""}</span><span class="ofc-hud-chips">${chips(r.moedas, r.pontos)}</span></li>`).join("")}</ul></section>` : ""; }).join("")}`;
+${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) => grupoDe.get(r) === gi); return l.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>${titulo}</h4><small>${dica}</small></div><ul class="ofc-hud-regras">${l.map((r) => `<li><span><b>${safeText(r.descricao)}</b>${r.parte ? `<small>${escritorioParteDoBoloTexto(r.parte)}</small>` : r.por_complexidade ? "<small>Vale mais conforme o formato da peça (Reels, Carrossel…).</small>" : ""}${r.entrega && gi !== 3 ? "<small>Conta na meta da semana.</small>" : ""}</span><span class="ofc-hud-chips">${chips(r.moedas, r.pontos)}</span></li>`).join("")}</ul></section>` : ""; }).join("")}`;
   } else if (aba === "conquistas") {
     if (veNumeros && marcos) {
       const nomeMovel = (classe) => { const mv = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return mv ? escritorioNomeMovel(mv) : classe.replace(/_/g, " "); };
