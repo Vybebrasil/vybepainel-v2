@@ -3753,11 +3753,42 @@ function atualizarTituloChamadaEscritorio() {
   const t = document.getElementById("office-call-titulo");
   if (t) t.textContent = escritorioTituloChamada();
 }
+// Saiu da tela cheia ou da janelinha flutuante: aplica o que mudou enquanto isso.
+let escritorioAmpliadoVigiado = false;
+function escritorioVigiarAmpliado() {
+  if (escritorioAmpliadoVigiado) return;
+  escritorioAmpliadoVigiado = true;
+  const voltar = () => setTimeout(() => {
+    if (escritorio.midiaPendente && !document.fullscreenElement && !document.webkitFullscreenElement && !document.pictureInPictureElement) renderMidiaEscritorio();
+  }, 0);
+  document.addEventListener("fullscreenchange", voltar);
+  document.addEventListener("webkitfullscreenchange", voltar);
+  document.addEventListener("leavepictureinpicture", voltar, true);
+}
 function renderMidiaEscritorio() {
   atualizarTituloChamadaEscritorio();
   const meeting = escritorio.chamada,
     el = document.getElementById("office-call-media");
   if (!meeting || !el) return;
+  // Assistindo a tela de alguém em tela cheia ou na janelinha flutuante (Paulo,
+  // 20/10/2026: "tá minimizando sozinho"): desmontar o vídeo fecharia a tela
+  // cheia. Espera sair dela para redesenhar a conversa.
+  const ampliado = document.fullscreenElement || document.webkitFullscreenElement || document.pictureInPictureElement;
+  if (ampliado && el.contains(ampliado)) { escritorio.midiaPendente = true; escritorioVigiarAmpliado(); return; }
+  escritorio.midiaPendente = false;
+  // Os vídeos (câmera e tela) são reaproveitados entre um desenho e outro,
+  // pelo id da faixa: recriar a cada mudança de microfone fazia piscar.
+  const videosAntes = escritorio.videosChamada || new Map(), videosAgora = new Map();
+  const videoDaFaixa = (faixa, controles) => {
+    let v = videosAntes.get(faixa.id);
+    if (!v) {
+      v = document.createElement("video");
+      v.autoplay = true; v.playsInline = true; v.muted = true; v.controls = controles;
+      v.srcObject = new MediaStream([faixa]);
+    }
+    videosAgora.set(faixa.id, v);
+    return v;
+  };
   el.replaceChildren();
   if (escritorio.erroMic) {
     const caixa = document.createElement("div");
@@ -3821,21 +3852,14 @@ function renderMidiaEscritorio() {
       tile.append(dica);
     }
     if (p.videoEnabled && p.videoTrack) {
-      const v = document.createElement("video");
-      v.autoplay = true;
-      v.playsInline = true;
-      v.muted = true;
-      v.srcObject = new MediaStream([p.videoTrack]);
+      const v = videoDaFaixa(p.videoTrack, false);
       tile.append(v);
+      v.play?.().catch(() => {});
     }
     if (p.screenShareEnabled && p.screenShareTracks?.video) {
-      const v = document.createElement("video");
-      v.autoplay = true;
-      v.playsInline = true;
-      v.muted = true;
-      v.controls = true;
-      v.srcObject = new MediaStream([p.screenShareTracks.video]);
+      const v = videoDaFaixa(p.screenShareTracks.video, true);
       tile.append(v);
+      v.play?.().catch(() => {});
       // Quem assiste pede a quem mostra uma tela mais nítida ou mais leve.
       const dono = String(p.customParticipantId || "").split(":")[0];
       if (!eu && /^\d+$/.test(dono)) {
@@ -3847,6 +3871,7 @@ function renderMidiaEscritorio() {
     }
     el.append(tile);
   }
+  escritorio.videosChamada = videosAgora;
   escritorioNivelAudio.acompanhar([meeting.self, ...escritorioOuvindo(meeting)]);
   // Depois do SDK (que repõe a voz no próprio mix a cada mudança de áudio).
   setTimeout(aplicarVolumesEscritorio, 0);
