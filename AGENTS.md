@@ -120,11 +120,15 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   sala-0 no servidor. Não autorizar só por `admin` nem por nome do navegador.
 - Perfil do jogo (decisão do Paulo, 19/10/2026): VybeCoins, nível/XP, marcos
   e inventário de cada pessoa ficam visíveis para toda a equipe (rota
-  `perfil-publico`, `server/escritorio-economia.js`). **Sem ranking
-  comparativo** (Paulo, 19/10/2026: evita competição e estrelismo); cada um
-  vê o personagem do outro evoluir no perfil. Números
-  de trabalho (entregas, prazo) e o extrato do razão continuam só na ficha da
-  própria pessoa e com quem administra.
+  `perfil-publico`, `server/escritorio-economia.js`). Desde 20/10/2026
+  (Paulo mudou a decisão de 19/10: "competição saudável") há **ranking da
+  semana** (`rankingEscritorio` em `server/escritorio-pontos.js`, botão
+  Ranking): geral pelo % da própria meta, XP da semana, por atividade e a
+  meta da agência; zera toda segunda; pódio e bônus da agência pagos uma vez
+  no fechamento da semana, com valores na tabela de regras
+  (`2026-10-20-escritorio-ranking.sql`). O % da meta e as entregas da semana
+  aparecem para todos; o extrato do razão continua só na ficha da própria
+  pessoa e com quem administra.
 - O Escritório usa identidade individual da sessão Vybe. Nunca reintroduza código
   compartilhado, identidade por nome livre, OAuth Manus ou consulta ao Monday.
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker

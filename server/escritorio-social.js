@@ -195,7 +195,11 @@ export async function responderTroca(sql, pessoa, salas, { id, acao }) {
 // unidades daquele móvel, lido do razão, dos presentes, das trocas e dos marcos.
 export async function origemDoMovel(sql, salas, { camada, classe } = {}) {
  if (!/^[a-z0-9_]{1,64}$/i.test(String(classe || ''))) throw erro('Móvel inválido.');
- const tem = async (t) => (await sql`SELECT to_regclass(${'public.' + t}) IS NOT NULL AS existe`)[0]?.existe;
+ // Uma consulta só para saber quais tabelas existem (cada ida ao banco custa).
+ const [ex] = await sql`SELECT to_regclass('public.vybe_escritorio_catalogo') IS NOT NULL AS catalogo, to_regclass('public.vybe_escritorio_raridades') IS NOT NULL AS raridades,
+   to_regclass('public.vybe_escritorio_marcos') IS NOT NULL AS marcos, to_regclass('public.vybe_escritorio_reinicios') IS NOT NULL AS reinicios,
+   to_regclass('public.vybe_escritorio_presentes') IS NOT NULL AS presentes, to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS trocas`;
+ const tem = async (t) => Boolean(ex?.[t.replace('vybe_escritorio_', '')]);
  const [cat] = await tem('vybe_escritorio_catalogo') ? await sql`SELECT raridade,preco,marco FROM vybe_escritorio_catalogo WHERE classe=${classe}` : [];
  const [rar] = cat?.raridade && await tem('vybe_escritorio_raridades') ? await sql`SELECT nome,preco FROM vybe_escritorio_raridades WHERE chave=${cat.raridade}` : [];
  const loja = { raridade: rar?.nome || null, preco: cat?.preco ?? rar?.preco ?? null, marco: cat?.marco || null };
@@ -208,7 +212,14 @@ export async function origemDoMovel(sql, salas, { camada, classe } = {}) {
  if (MOVEIS_ESSENCIAIS.includes(classe)) return { ...base, tipo: 'essencial', origens: [{ tipo: 'essencial', texto: 'Essencial: grátis para todo quarto.' }] };
  const origens = [];
  const [inv] = await sql`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${dono} AND classe=${classe}`;
- if (loja.marco) {
+ if (/^ranking_[123]$/.test(loja.marco || '')) {
+  // Troféu do pódio do ranking da semana: uma linha por semana ganha.
+  for (const g of await sql`SELECT origem, criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${dono} AND regra=${loja.marco} ORDER BY criado_em`) {
+   const semana = String(g.origem).split(':')[1] || '';
+   origens.push({ tipo: 'conquista', texto: `Troféu de ${loja.marco.slice(-1)}º lugar no ranking da semana${semana ? ` de ${semana.slice(8, 10)}/${semana.slice(5, 7)}` : ''}. Não se compra.`, em: g.criado_em });
+  }
+  if (!origens.length) origens.push({ tipo: 'conquista', texto: `Troféu de ${loja.marco.slice(-1)}º lugar no ranking da semana. Não se compra.` });
+ } else if (loja.marco) {
   const { MARCOS } = await import('./escritorio-marcos.js');
   const m = MARCOS.find((x) => x.id === loja.marco);
   const [f] = await tem('vybe_escritorio_marcos') ? await sql`SELECT em FROM vybe_escritorio_marcos WHERE pessoa_id=${dono} AND marco=${loja.marco}` : [];

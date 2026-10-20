@@ -1,6 +1,6 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, perfilPublico } from "./escritorio-economia.js";
-import { missoesDaPessoa } from "./escritorio-pontos.js";
+import { missoesDaPessoa, rankingEscritorio } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
@@ -330,8 +330,11 @@ export async function areaEscritorio(req, res, quem, sql) {
       if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
       return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo)) });
     }
+    if (acao === "ranking") return res.status(200).json({ ok: true, ...(await rankingEscritorio(sql)) });
     if (acao === "movel-origem") {
-      const { salas } = await carregarEscritorio(sql, pessoa);
+      // Só os donos das salas (a entrada inteira do escritório levava 8 s).
+      const equipe = await sql`SELECT id,nome FROM vybe_pessoas WHERE ativo=TRUE AND pode_entrar=TRUE ORDER BY nome`;
+      const salas = salasDoEscritorio(equipe.map((p) => ({ id: String(p.id), nome: p.nome })));
       return res.status(200).json({ ok: true, ...(await origemDoMovel(sql, salas, { camada: String(req.query?.camada || ""), classe: String(req.query?.classe || "") })) });
     }
     if (acao === "trocas") return res.status(200).json({ ok: true, trocas: await listarTrocas(sql, pessoa) });

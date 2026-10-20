@@ -1055,7 +1055,7 @@ function mapaPassoFeixe(f) {
   if (Math.trunc(y) === 0) f.fator = mapaFatorFeixe();
   return [f.fase, y];
 }
-function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarSaida }) {
+function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, aoPassarMovel, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarSaida }) {
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
@@ -2390,7 +2390,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
         const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
         aoPassar?.(Math.floor(t.x), Math.floor(t.y), e.clientX, e.clientY);
         // Sobre um boneco: o próprio botão mostra a mão; o cursor de ladrilho some.
-        if (e.target.closest?.(".mapa-pessoa")) { if (cursor) cursor.hidden = true; el.classList.remove("mapa-sobre-objeto"); }
+        if (e.target.closest?.(".mapa-pessoa")) { if (cursor) cursor.hidden = true; el.classList.remove("mapa-sobre-objeto"); marcarPassando(null); }
         else passarPonteiro(e.clientX, e.clientY, t);
       }
       return;
@@ -2436,7 +2436,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   };
   el.addEventListener("pointercancel", cancelarPonteiro);
   el.addEventListener("lostpointercapture", () => { if (arrasto) cancelarPonteiro(); });
-  el.addEventListener("pointerleave", () => { aoPassar?.(-1, -1); if (cursor) cursor.hidden = true; el.classList.remove("mapa-sobre-objeto"); });
+  el.addEventListener("pointerleave", () => { aoPassar?.(-1, -1); if (cursor) cursor.hidden = true; el.classList.remove("mapa-sobre-objeto"); marcarPassando(null); });
   el.addEventListener("wheel", (e) => {
     e.preventDefault();
     const r = el.getBoundingClientRect();
@@ -2533,7 +2533,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     cursor.style.top = t.y + MAPA_TH / 2 + cursorArte.oy - alturaNoPiso(x, y) * MAPA_NIVEL_PX + "px";
     cursor.hidden = false;
   }
-  let passando = null, quadroPassar = null;
+  let passando = null, quadroPassar = null, movelPassando = null, timerPassar = 0;
+  function marcarPassando(m) {
+    if (m === movelPassando) return;
+    for (const x of movelPassando ? [movelPassando, ...(movelPassando.extras || [])] : []) x.no?.classList.remove("mapa-passando");
+    movelPassando = m;
+    for (const x of m ? [m, ...(m.extras || [])] : []) x.no?.classList.add("mapa-passando");
+    clearTimeout(timerPassar);
+    if (m) timerPassar = setTimeout(() => { if (movelPassando === m) aoPassarMovel?.(m); }, 180);
+  }
   function passarPonteiro(cx, cy, t) {
     passando = { cx, cy, t };
     if (quadroPassar) return;
@@ -2543,6 +2551,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const o = objetoEm(cx, cy);
       const naoChao = o && !(o.tipo === "movel" && ehChao(o.item));
       el.classList.toggle("mapa-sobre-objeto", Boolean(naoChao));
+      // Brilho no móvel sob o mouse (Paulo, 20/10/2026: mostrar o que se clica).
+      marcarPassando(naoChao && o.tipo === "movel" ? o.item : null);
       if (naoChao) { if (cursor) cursor.hidden = true; }
       else { const alvo = mapaAlvoCursor(t, o?.tipo === "movel" ? o.item : null); mostrarCursor(alvo.x, alvo.y); }
     });
