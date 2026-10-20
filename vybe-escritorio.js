@@ -1381,7 +1381,7 @@ function renderEscritorio() {
   // A entrada também aparece enquanto conecta (inclusive vindo da abertura),
   // com as etapas e o erro no próprio cartão.
   const lobby = (!escritorio.conectado && (!escritorio.lobbyFechado || escritorio.entrada)) || escritorio.carregandoMapa;
-  painel.innerHTML = `<section class="ofc" data-modo="${modo}" data-lateral="${lateral}" data-editando="${Boolean(escritorio.edicao)}">
+  painel.innerHTML = `<section class="ofc" data-modo="${modo}" data-lateral="${lateral}" data-editando="${Boolean(escritorio.edicao)}"${escritorio.edicao?.pessoas ? " data-com-pessoas" : ""}>
 <nav class="ofc-rail" aria-label="Escritório">
  <img class="ofc-logo" src="${safeText(document.querySelector(".logo img")?.getAttribute("src") || "/assets/vybe-branca.png")}" alt="Vybe">
  ${rail("mapa", "mapa", "Mapa", "alternarModoEscritorio('mapa')", modo === "mapa")}

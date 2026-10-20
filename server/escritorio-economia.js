@@ -8,6 +8,8 @@ import { conferirMarcos, MARCOS } from './escritorio-marcos.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
 export const MOVEIS_ESSENCIAIS = quartos.essenciais;
+// Nome do móvel para mensagens (o do catálogo; sem ele, a classe).
+export const nomeDoMovel = (classe) => catalogo.find((m) => m.classe === classe)?.nome || classe;
 const classes = new Set([...catalogo.map(m => m.classe),'computer_laptop','uni_laptop','computer_old','steampunk_computer','easter_c23_solarpunkcomputer']);
 // Sem a tabela de faixas (antes da migração da fase 2) vale o preço único.
 export const PRECO_COMUM = 25;

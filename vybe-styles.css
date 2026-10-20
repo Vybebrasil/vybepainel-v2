@@ -8021,3 +8021,6 @@ img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);
 .ofc-ficha > .ofc-ficha-acoes {margin:0;padding:12px 20px 16px;border-top:1px solid #ffffff14;background:#14161ecc}
 @media (max-width:560px){.ofc-hud-topo {flex-wrap:wrap}.ofc-hud-boneco {width:72px;height:104px}.ofc-hud-numeros {grid-template-columns:repeat(2,minmax(0,1fr))}.ofc-hud-corpo {max-height:calc(100vh - 360px)}}
 @media (prefers-reduced-motion:reduce){.ofc-hud-abas button {transition:none}}
+/* Editor sem a sala cheia (Paulo, 20/10/2026): só o próprio boneco fica à
+   vista; o botão Pessoas da barra do editor mostra os outros de novo. */
+.ofc[data-editando="true"]:not([data-com-pessoas]) :is(.mapa-pessoa:not(.voce), .mapa-etiqueta:not(.voce), .mapa-fala, .mapa-chat, .mapa-digitando, .mapa-reacao, .mapa-conversa) {visibility:hidden;pointer-events:none}

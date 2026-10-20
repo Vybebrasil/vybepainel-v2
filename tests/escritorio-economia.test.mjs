@@ -65,7 +65,7 @@ test('salvamento exige inventário do dono, não aceita classe livre ou móvel a
  const pessoa={id:1};
  const setup=await configurarQuarto(sql,pessoa,{},{planta:'compacto',modelo:'vazio'});
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
- await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['shelves_norja',4,4,2]],versao:setup.mapa.versao}),/Compre/);
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['shelves_norja',4,4,2]],versao:setup.mapa.versao}),(e)=>/Faltam no inventário: .+\(no quarto 1, você tem 0\)/.test(e.message)&&e.status===409&&e.faltam?.[0]?.classe==='shelves_norja'); // diz qual peça e quantas (Tainara, 20/10/2026)
  await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['chair_polyfon',0,0,2]],versao:setup.mapa.versao}),/fora/);
  await assert.rejects(salvarCamadaEscritorio(sql,{id:2},salas,{camada:'sala-0',itens:[],versao:setup.mapa.versao}),/sua sala/);
  const [mapa]=await sql`SELECT itens,versao FROM vybe_escritorio_mapa WHERE camada='sala-0'`;assert.equal(mapa.itens.length,0);assert.equal(mapa.versao,setup.mapa.versao);
@@ -195,7 +195,7 @@ test('segundo andar tem planta própria, preserva térreo e compartilha unidades
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
  await comprarMovel(sql,1,{classe:'shelves_norja',chave:crypto.randomUUID()});
  const baixo=await salvarCamadaEscritorio(sql,p,salas,{camada:'sala-0',itens:[['shelves_norja',1,1,0]],versao:root.mapa.versao});
- await assert.rejects(salvarCamadaEscritorio(sql,p,salas,{camada:top.camada,itens:[['shelves_norja',1,1,0]],versao:top.mapa.versao}),/Compre/);
+ await assert.rejects(salvarCamadaEscritorio(sql,p,salas,{camada:top.camada,itens:[['shelves_norja',1,1,0]],versao:top.mapa.versao}),/Faltam no inventário/);
  await assert.rejects(salvarCamadaEscritorio(sql,{id:2},salas,{camada:top.camada,itens:[],versao:top.mapa.versao}),/sua sala/);
  await salvarCamadaEscritorio(sql,p,salas,{camada:'sala-0',itens:[],versao:baixo.versao});
  await salvarCamadaEscritorio(sql,p,salas,{camada:top.camada,itens:[['shelves_norja',1,1,0]],versao:top.mapa.versao});
