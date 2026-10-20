@@ -9,11 +9,9 @@ test('cartões abrem a ficha; inventário mostra o que é seu, loja mostra preç
  vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
  let card=vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c);
  assert.match(card,/2 seus/);assert.match(card,/abrirPreviaMovelEscritorio\('raro_teste'\)/,'o clique abre a ficha, colocar é nela');
- const estoque=vm.runInContext(`escritorioFiltrarMeus([{classe:'raro_teste',nome:'Raro',categoria:'Mesas'},{classe:'exe_table',nome:'Mesa',categoria:'Mesas'}])`,c);
- assert.match(estoque.html,/1 modelos gratuitos · 2 unidades suas/);
- assert.match(estoque.html,/1 unidades guardadas/);
- vm.runInContext(`escritorio.meusOrigem='adquiridos'`,c);
- assert.equal(vm.runInContext(`escritorioFiltrarMeus([{classe:'raro_teste',nome:'Raro',categoria:'Mesas'},{classe:'exe_table',nome:'Mesa',categoria:'Mesas'}]).lista.length`,c),1);
+ // Inventário da janela: o cartão diz quantos são seus e onde estão.
+ assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste'},{inventario:{total:2,noQuarto:1,guardados:1}})`,c),/2 seus · 1 no quarto/);
+ assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste'},{inventario:{total:2,noQuarto:0,guardados:2}})`,c),/2 guardados/);
  vm.runInContext(`escritorio.abaQuarto='loja'`,c);
  card=vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c);
  assert.match(card,/Raro · 120 moedas/,'a faixa vem escrita, não só na cor');assert.match(card,/abrirPreviaMovelEscritorio\('raro_teste'\)/,'na loja o clique abre a prévia; comprar é nela');assert.match(card,/ofc-movel compacto r-raro/,'borda na cor da faixa');assert.match(card,/resta 1/);
