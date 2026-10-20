@@ -7299,7 +7299,10 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-etiqueta.agente.alerta {flex-wrap:wrap;border-color:#ffb451;background:#3a2408f2;padding:3px 9px 4px;box-shadow:0 0 0 3px #ff9d0055,0 6px 18px #ff9d0044;z-index:99600}
 .mapa-agente-nums {display:inline-flex;gap:3px;margin-left:2px}
 .mapa-agente-nums em {min-width:16px;height:16px;padding:0 4px;border-radius:99px;display:inline-grid;place-items:center;font:800 9.5px/1 var(--mac-ui);font-style:normal;color:#fff}
-.mapa-agente-nums .atr {background:#e5484d}.mapa-agente-nums .apr {background:#f5a524;color:#2a1606}.mapa-agente-nums .inf {background:#6b7280}
+/* Atrasada: o vermelho de prazo vencido do painel. Aprovação e falta de
+   informação: a cor do status no catálogo (--c, vinda de STATUS_OPTIONS). */
+.mapa-agente-nums .atr {background:#e5484d}
+.mapa-agente-nums .apr, .mapa-agente-nums .inf {background:var(--c,#6b7280);text-shadow:0 1px 1px #0006}
 .mapa-etiqueta.agente.com-situacao {flex-wrap:wrap;z-index:99550}
 .mapa-etiqueta.agente.com-situacao small {display:block;flex-basis:100%;margin-top:1px;color:#b9dcff;font:700 10px var(--mac-ui);white-space:nowrap}
 .mapa-etiqueta.agente.alerta small {display:block;flex-basis:100%;margin-top:1px;color:#ffd59a;font:800 11px var(--mac-ui);white-space:nowrap}
