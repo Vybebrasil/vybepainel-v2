@@ -77,9 +77,18 @@ function escritorioCabecaUrl(quem) {
   if (!p) return null;
   const perfil = String(p.id) === String(b.eu) ? escritorio.perfil : p.perfil;
   // Quem nunca montou o personagem aparece no jogo com o boneco padrão: é ele.
-  const figura = typeof mapaFigura === "function" ? mapaFigura(perfil || {}) : "";
-  if (!figura) return null;
-  return "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: figura, direction: "3", head_direction: "3", headonly: "1", size: "n", gesture: "sml" });
+  return typeof mapaCabecaUrl === "function" ? mapaCabecaUrl(perfil || {}) : null;
+}
+// Salvou o personagem: a fotinha dele no painel muda já, neste navegador; nos
+// outros, na próxima leitura (o endereço sai do visual novo).
+function escritorioFotoDoPersonagem(perfil) {
+  if (typeof TEAM_USERS === "undefined" || !perfil || typeof mapaCabecaUrl !== "function") return;
+  const eu = (escritorio.base?.equipe || []).find((x) => String(x.id) === String(escritorio.base?.eu));
+  const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(" ")[0];
+  const u = eu && TEAM_USERS.find((x) => norm(x.name) === norm(eu.nome));
+  if (!u) return;
+  u.fotoReal ??= u.photo;
+  u.photo = mapaCabecaUrl(perfil) || u.fotoReal;
 }
 async function escritorioApi(acao, corpo, consulta = null) {
   const r = await fetch(
@@ -97,6 +106,7 @@ async function escritorioApi(acao, corpo, consulta = null) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.ok)
     throw new Error(d.error || (r.status === 413 ? "O envio é grande demais para o servidor." : `Não foi possível acessar o escritório (${r.status}).`));
+  if (acao === "perfil" && corpo && d.perfil) escritorioFotoDoPersonagem(d.perfil);
   return d;
 }
 // Aviso no canto: some sozinho depois de alguns segundos (erros ficam mais).

@@ -823,6 +823,12 @@ export async function catalogosDoQuadro(boardId = BOARD_PRODUCAO, { sql = databa
           FROM vybe_opcoes ORDER BY coluna_id, COALESCE(ordem, indice), rotulo`,
     sql`SELECT monday_user_id AS id, nome, papel, disciplina, foto_url
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
+    // O personagem do Escritório de cada um: o painel mostra a cabeça dele no
+    // lugar da foto (Paulo, 20/10/2026). Só os campos do visual.
+    sql`SELECT p.monday_user_id AS id, e.preferencias->>'figura' AS figura, e.preferencias->>'pele' AS pele,
+               e.preferencias->>'roupa' AS roupa, e.preferencias->>'cabelo' AS cabelo
+          FROM vybe_escritorio_perfis e JOIN vybe_pessoas p ON p.id = e.pessoa_id
+         WHERE p.monday_user_id IS NOT NULL`,
   ]);
   // UMA FALHA NUM CATALOGO NAO PODE APAGAR O PAINEL.
   //
@@ -835,15 +841,19 @@ export async function catalogosDoQuadro(boardId = BOARD_PRODUCAO, { sql = databa
   // da etiqueta, o que e pior do que o normal e muito melhor do que a tela
   // vazia. Entao ele cai sozinho, e a resposta diz o que caiu para a tela poder
   // avisar em vez de mentir.
-  const NOMES = ['status', 'captacao', 'opcoes', 'pessoas'];
+  const NOMES = ['status', 'captacao', 'opcoes', 'pessoas', 'personagens'];
   const degradado = [];
   respostas.forEach((r, i) => {
     if (r.status === 'fulfilled') return;
+    // Sem os personagens o painel só volta às fotos: não é leitura incompleta.
+    if (NOMES[i] === 'personagens') return;
     console.error(`Catálogo "${NOMES[i]}" não veio; a leitura segue sem ele:`, r.reason?.message || r.reason);
     degradado.push(NOMES[i]);
   });
-  const [status, captacao, opcoes, pessoas] =
+  const [status, captacao, opcoes, pessoasBase, personagens] =
     respostas.map((r) => (r.status === 'fulfilled' ? r.value : []));
+  const visual = new Map(personagens.map((v) => [String(v.id), { figura: v.figura || undefined, pele: v.pele || undefined, roupa: v.roupa || undefined, cabelo: v.cabelo || undefined }]));
+  const pessoas = pessoasBase.map((p) => (visual.has(String(p.id)) ? { ...p, personagem: visual.get(String(p.id)) } : p));
   return { status, captacao, opcoes, pessoas, degradado };
 }
 

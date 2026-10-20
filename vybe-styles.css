@@ -7947,3 +7947,7 @@ button.ofc-agente-num[aria-pressed="true"] {border-color:var(--ofc-laranja,#ff9d
 .ofc-cobranca-pop-rodape {flex-wrap:wrap}
 .ofc-cobranca-pop-rodape .ofc-nota {flex:1 1 140px}
 .ofc-cobranca-pop-rodape .workflow-secondary {margin-left:auto;white-space:nowrap}
+/* Fotinha = cabeça do personagem (Paulo, 20/10/2026): a imagem do Habbo tem
+   sobra em volta do rosto; o recorte aproxima o rosto em qualquer tamanho de
+   avatar do painel e do jogo, com o pixel nítido e um fundo atrás. */
+img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);image-rendering:pixelated;background-color:#2b3040}
