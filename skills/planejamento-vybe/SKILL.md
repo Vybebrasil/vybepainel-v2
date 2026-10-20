@@ -37,9 +37,14 @@ estruturado, e o painel monta o documento, guarda no Drive e cuida da aprovaçã
   - `data` (AAAA-MM-DD) dentro do mês;
   - `formato`: Card, Carrossel, Reels, Fotografia, Vídeo, Stories ou Outro;
   - `tema`: uma linha;
+  - `linha`: o título de uma das linhas de conteúdo do mês;
+  - `objetivo`: uma frase com o que a peça quer causar;
+  - `telas` (carrossel, card, story): lista com o texto de cada tela, na
+    ordem, um item por tela, sem escrever "Tela 1:";
   - `legenda`: legenda pronta, ou o roteiro no caso de vídeo;
-  - `referencia` (opcional): link ou descrição visual;
-  - `observacao` (opcional): o que o cliente precisa mandar ou aprovar.
+  - `referencia` (opcional): só referência visual ou de vídeo (link ou
+    descrição). Não repita aqui o objetivo nem o texto das telas;
+  - `observacao` (opcional): o que o cliente precisa decidir, mandar ou aprovar.
 - **observacoes**: o que precisa ser combinado com o cliente (fotos, gravação,
   aprovação de preço…).
 - **numeros** (opcional): deixe de fora; o painel conta as peças por formato.

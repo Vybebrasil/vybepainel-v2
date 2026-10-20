@@ -159,7 +159,8 @@ function pljAcoesHtml(aba) {
   if (aba === 'identidade') return `<button type="button" class="workflow-primary" onclick="salvarIdentidadePlanejamento(this)">Salvar marca</button>`;
   const botoes = [];
   if (['revisar', 'ajustes'].includes(p.estado)) botoes.push(`<button type="button" class="workflow-primary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente →</button>`);
-  if (p.estado === 'enviado') botoes.push(`<button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Gerar um link novo</button>`);
+  if (p.estado === 'enviado') botoes.push(`<button type="button" class="workflow-secondary" onclick="if(confirm('Reabrir tira o planejamento do cliente: o link enviado deixa de valer até você mandar de novo. Reabrir?'))mudarEstadoPlanejamento('revisar')">Reabrir para editar</button>
+    <button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Gerar um link novo</button>`);
   if (p.estado === 'aprovado') botoes.push(`<button type="button" class="workflow-secondary" onclick="mudarEstadoPlanejamento('revisar')">Reabrir para editar</button>
     <button type="button" class="workflow-secondary" onclick="mudarEstadoPlanejamento('cadastrado')">Já cadastrei à mão</button>
     <button type="button" class="workflow-primary" onclick="confirmarCadastroPlanejamento()">Cadastrar as ${(p.conteudo?.pecas || []).length} peças →</button>`);
@@ -204,8 +205,10 @@ function pljPecaEditorHtml(x, i) {
       <label><span>Formato</span><select data-k="formato">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
       ${ent('tema', x.tema, 'Tema')}
     </div>
+    <div class="plj-peca-campos plj-peca-2">${ent('linha', x.linha, 'Linha de conteúdo')}${ent('objetivo', x.objetivo, 'Objetivo da peça')}</div>
+    ${['Reels', 'Vídeo', 'Fotografia'].includes(x.formato) && !(x.telas || []).length ? '' : area('telas', (x.telas || []).join('\n'), 'Texto das telas (uma por linha)', Math.max(3, (x.telas || []).length + 1))}
     ${area('legenda', x.legenda, ['Reels', 'Vídeo'].includes(x.formato) ? 'Roteiro' : 'Legenda', 6)}
-    ${area('referencia', x.referencia, 'Referência e texto das telas', 4)}
+    ${area('referencia', x.referencia, 'Referência', 3)}
     ${area('observacao', x.observacao, 'Para o cliente decidir', 2)}
     <input type="hidden" data-k="ajuste_cliente" value="${pljEsc(x.ajuste_cliente || '')}">${x.conteudo_id ? `<input type="hidden" data-k="conteudo_id" value="${pljEsc(x.conteudo_id)}">` : ''}
     <div class="plj-peca-rodape"><button type="button" class="plj-tirar-texto" onclick="pljTirar('pecas', ${i})">Tirar esta peça</button></div>

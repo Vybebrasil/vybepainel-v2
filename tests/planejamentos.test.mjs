@@ -252,3 +252,25 @@ test('VybeHub: o cliente só vê o que foi mandado a ele e responde com as mesma
  await assert.rejects(P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:r.versao,acao:'aprovar',nome:'Ana'}),/já foi respondido/);
  await assert.rejects(P.responderDoCliente(sql,env.token,{acao:'aprovar',nome:'Ana'}).then(x=>{if(x.repetido)throw new Error('repetido');}),/repetido/,'o link também vê que já respondeu');
 });
+
+// Paulo, 20/10/2026: "não copiou os conteúdos todos" — objetivo, linha e telas por peça.
+test('peça guarda objetivo, linha e telas; o que veio junto na referência é separado ao mostrar',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas:[
+  {data:'2026-11-03',formato:'Carrossel',tema:'Treze',linha:'Direitos e datas',objetivo:'Evitar golpe',telas:['Vai ter 13º?','Foi pago antes'],legenda:'Salve'},
+  {data:'2026-11-04',formato:'Card',tema:'Antigo',referencia:'Objetivo: Responder a dúvida. Texto das telas: Tela 1: Um | Tela 2: Dois'}]}});
+ assert.deepEqual(p.conteudo.pecas[0].telas,['Vai ter 13º?','Foi pago antes']);assert.equal(p.conteudo.pecas[0].linha,'Direitos e datas');
+ const d=await P.detalhePlanejamento(sql,{id:3},p.id);
+ assert.deepEqual(d.conteudo.pecas[1].telas,['Um','Dois']);assert.equal(d.conteudo.pecas[1].objetivo,'Responder a dúvida.');assert.equal(d.conteudo.pecas[1].referencia,'');
+ const html=documentoHtml(d);
+ assert.match(html,/Texto das telas/);assert.match(html,/<li>Dois<\/li>/);assert.match(html,/Evitar golpe/);
+ // O editor manda as telas como texto, uma por linha.
+ const e=await P.editarPlanejamento(sql,{id:3},{id:p.id,versao:d.versao,conteudo:{pecas:[{data:'2026-11-03',formato:'Carrossel',tema:'Treze',telas:'Um\nDois\n\nTrês'}]}});
+ assert.deepEqual(e.conteudo.pecas[0].telas,['Um','Dois','Três']);
+ const env=await P.enviarAoCliente(sql,{id:3},{id:p.id});
+ assert.deepEqual((await P.planejamentosDoPortal(sql,{cliente:'Serra Grande'})).planejamentos[0].conteudo.pecas[0].telas,['Um','Dois','Três']);
+ // Reabrir o que está com o cliente tira o link.
+ await P.mudarEstadoInterno(sql,{id:3},{id:p.id,estado:'revisar'});
+ await assert.rejects(P.planejamentoDoLink(sql,env.token),/não vale mais/);
+});
