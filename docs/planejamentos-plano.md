@@ -262,3 +262,20 @@ Pedidos do Paulo:
   arquivo em /assets ganha nome com hash e a imagem quebrava.
 - No Escritório, o aviso do planejamento virou um balão acima da barra, e a
   barra continua numa linha.
+
+## PDF em tela cheia para o head e dois modos para o cliente (20/10/2026)
+
+- **Head:** na aba Documento, o documento ocupa a tela inteira, como um PDF.
+  - Uma barra flutuante no topo traz cliente, mês, situação, etapas, placar,
+    "Editar o mês", Histórico, Marca e os links do Drive.
+  - Outra, embaixo, traz as ações.
+  - As outras abas voltam ao layout normal, com "← Documento".
+- **Cliente:** escolhe ao abrir entre **Uma peça por vez** e **Documento
+  completo**.
+  - Uma peça por vez segue o estilo do cadastro do painel: só uma coisa na
+    tela, com uma faixa fina (modo, nome, progresso), o calendário compacto em
+    pílulas e a peça atual com "Anterior/Próxima". Ao responder, a próxima
+    aparece; o envio é um passo próprio no fim.
+  - Troca a qualquer momento pelo seletor no topo.
+  - O calendário aparece nos dois modos; no modo uma por vez, clicar num dia
+    leva à peça.

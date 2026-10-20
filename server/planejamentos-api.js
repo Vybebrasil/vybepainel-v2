@@ -35,7 +35,7 @@ export async function areaPlanejamentos(req, res, quem, sql) {
     const p = await P.detalhePlanejamento(sql, pessoa, String(req.query.id || ''));
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     // A prévia do painel é a revisão do head: o mesmo documento, com OK/Ajustar em cada peça.
-    return res.status(200).send(documentoHtml(p, { revisor: p.pode_editar ? 'head' : '' }));
+    return res.status(200).send(documentoHtml(p, { revisor: p.pode_editar ? 'head' : 'leitor' }));
    }
    const clienteId = /^\d{1,18}$/.test(String(req.query?.cliente_id || '')) ? String(req.query.cliente_id) : null;
    return res.status(200).json({ ok: true, ...(await P.listarPlanejamentos(sql, pessoa, { clienteId })), email: emailConfigurado() });
