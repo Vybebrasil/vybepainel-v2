@@ -1032,3 +1032,9 @@ decoração inicial "bem feito".
 - **Coluna da direita**: cobranças, missões e música dividem a altura da
   coluna; o cabeçalho fica sempre à vista e só a lista rola. Nada vaza por
   baixo da barra nem do aviso.
+- **Veiculação chegou e a peça nem começou** (Paulo, 20/10/2026): novo pedido
+  `postar_parada` em `server/escritorio-cobrancas.js`. Status A Fazer, Pode
+  Fazer ou Nova demanda com veiculação hoje ou já passada manda o cliente ao
+  quarto do head (sem head, gestão), dizendo quem está com a peça (`com`), para
+  o head cobrar. Uma peça aparece uma vez por pessoa; "vence" agora exige
+  prazo amanhã de forma explícita.
