@@ -86,7 +86,9 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     if (url.pathname === "/health")
-      return Response.json({ ok: true, service: "vybe-escritorio", andares: 1 });
+      // "observar": a tela de entrada pode ver quem está no escritório sem
+      // entrar (o painel só usa isso quando este Worker já entende).
+      return Response.json({ ok: true, service: "vybe-escritorio", andares: 1, observar: true }, { headers: { "Access-Control-Allow-Origin": "*" } });
     // VYBE_ORIGIN aceita mais de um endereço do painel, separados por vírgula
     // (o oficial e o alias do time). Só a igualdade exata vale.
     const origem = req.headers.get("Origin");
@@ -166,7 +168,7 @@ export class EscritorioRoom {
     return [...this.trancas].map(([zona, permitidos]) => ({ zona, permitidos: [...permitidos] }));
   }
   naZona(zona) {
-    return this.ativos().filter((t) => this.estado(t).zona === zona);
+    return this.ativos().filter((t) => !this.estado(t).observador && this.estado(t).zona === zona);
   }
   presenca() {
     // Sala trancada que ficou vazia destranca sozinha.
@@ -176,6 +178,8 @@ export class EscritorioRoom {
     const pessoas = new Map();
     for (const s of this.ativos()) {
       const a = this.estado(s);
+      // Quem só olha da tela de entrada não aparece para ninguém.
+      if (a.observador) continue;
       pessoas.set(a.sub, {
         id: a.sub,
         nome: a.nome,
@@ -215,6 +219,14 @@ export class EscritorioRoom {
         s.close(1008, "Sessão inválida");
         return;
       }
+      // Tela de entrada (Paulo, 20/10/2026): só recebe a lista de quem está
+      // no escritório, sem aparecer nela, sem voz e sem mover. A mesma
+      // assinatura da sessão; ao entrar de verdade o navegador abre outra conexão.
+      if (p.observar === true) {
+        s.serializeAttachment({ ...c, observador: true, last: 0 });
+        this.presenca();
+        return;
+      }
       s.serializeAttachment({
         ...c,
         sala: c.perfil?.sala || "convivencia",
@@ -237,6 +249,7 @@ export class EscritorioRoom {
       this.send(s, "system:pong", {});
       return;
     }
+    if (a.observador) return;
     // Limite por tipo: o passo chega a cada 150 ms e a rede às vezes junta dois;
     // antes um limite único de 120 ms descartava passos (e a parada final), e
     // os outros viam a pessoa travada no lugar errado.
@@ -271,6 +284,7 @@ export class EscritorioRoom {
       for (const target of this.ativos()) {
         const outro = this.estado(target);
         if (
+          !outro.observador &&
           outro.sub === String(p.id) &&
           outro.sub !== a.sub &&
           outro.sala === a.sala &&
@@ -291,7 +305,7 @@ export class EscritorioRoom {
       // Chamar alguém de longe para a sala onde você está: só um aviso para a
       // pessoa (que decide se vai); autoria e sala vêm da sessão.
       if (typeof p.id !== "string" || !/^\d{1,18}$/.test(p.id) || p.id === a.sub || !a.zona) return;
-      for (const t of this.ativos()) if (this.estado(t).sub === p.id)
+      for (const t of this.ativos()) if (!this.estado(t).observador && this.estado(t).sub === p.id)
         this.send(t, "conversation:invite", { nome: a.nome, sala: a.sala, zona: a.zona, chamado: true });
       return;
     } else if (evento.type === "zone:lock") {
