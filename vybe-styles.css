@@ -7784,12 +7784,42 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
    cada coluna tem a altura da tela e rola por dentro, então cabe muito mais por
    dia e o "Ver todas" some. No celular, uma coluna por vez, com encaixe. */
 .clients-grid.dias-colunas {display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;align-items:stretch;scroll-snap-type:x proximity;padding:2px 2px 14px;scrollbar-width:thin;overscroll-behavior-x:contain}
-.clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(290px,23vw,350px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 220px);min-height:440px}
+.clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(250px,19vw,300px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:440px}
 .clients-grid.dias-colunas > .day-scroll-card .day-activity-scroll,
-.clients-grid.dias-colunas > .day-scroll-card:not(.day-expanded) .day-activity-scroll {flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior-y:contain}
+.clients-grid.dias-colunas > .day-scroll-card:not(.day-expanded) .day-activity-scroll {flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:auto}
 .clients-grid.dias-colunas > .day-scroll-card .day-expansion-footer {display:none}
 .clients-grid.dias-colunas > .day-scroll-card.day-empty {opacity:.75}
-.clients-grid.dias-colunas > .day-scroll-card .day-activity-content {gap:8px}
+/* Coluna estreita (Paulo, 19/10/2026: "mal diagramado, precisa mostrar mais
+   demandas"): o título usa a largura toda e status e responsável descem para a
+   linha do cliente, em vez de espremer o título em três linhas. Cabeçalho em
+   duas linhas (dia + Ações; base da data + concluídas) e abas sem quebrar.
+   display:contents só reorganiza a grade; botões e regiões continuam os mesmos. */
+.dias-colunas > .day-scroll-card .client-header {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1px 8px}
+.dias-colunas > .day-scroll-card .client-header .day-heading,
+.dias-colunas > .day-scroll-card .client-header .day-header-actions {display:contents}
+.dias-colunas > .day-scroll-card .client-header .client-name {grid-area:1/1;display:flex;align-items:center;gap:6px;min-width:0;font-size:13.5px}
+.dias-colunas > .day-scroll-card .client-header .day-menu {grid-area:1/2}
+.dias-colunas > .day-scroll-card .client-header .day-date-context {grid-area:2/1}
+.dias-colunas > .day-scroll-card .client-header .day-progress-label {grid-area:2/2;font-size:10.5px;opacity:.85;white-space:nowrap}
+.dias-colunas > .day-scroll-card .day-menu > summary {padding:2px 8px;font-size:11px}
+.dias-colunas > .day-scroll-card .day-pending-tabs {flex-wrap:nowrap;padding:4px 10px;gap:3px}
+.dias-colunas > .day-scroll-card .day-pending-tabs button {flex:1 1 auto;min-width:0;padding:3px 4px;gap:3px;font-size:10px}
+.dias-colunas > .day-scroll-card .day-pending-tabs button > span {flex:none;padding:0 4px}
+.dias-colunas > .day-scroll-card > .client-progress {padding:0 10px 4px}
+.dias-colunas > .day-scroll-card > .client-progress .client-progress-text {display:none}
+.dias-colunas > .day-scroll-card .item-row.day-activity-row {padding:6px 10px 6px 8px;gap:4px}
+.dias-colunas > .day-scroll-card .day-activity-content {grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"titulo titulo" "legenda acoes";gap:3px 6px;align-items:center}
+.dias-colunas > .day-scroll-card .day-activity-main {display:contents}
+.dias-colunas > .day-scroll-card .day-activity-row .item-name {grid-area:titulo;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:12.5px;line-height:1.3}
+.dias-colunas > .day-scroll-card .day-activity-caption {grid-area:legenda;margin:0;min-width:0;flex-wrap:nowrap;overflow:hidden}
+.dias-colunas > .day-scroll-card .day-activity-caption > span {flex:none;white-space:nowrap}
+/* O formato some quando o título já começa por ele ("Reels - …"). */
+.dias-colunas > .day-scroll-card .day-activity-formato[data-no-titulo] {display:none}
+/* Cliente de nome longo encolhe com reticências em vez de quebrar a linha. */
+.dias-colunas > .day-scroll-card .day-activity-caption > .day-activity-clients {flex:0 1 auto;min-width:0;display:flex;gap:3px;overflow:hidden}
+.dias-colunas > .day-scroll-card .day-activity-clients .cliente-carteira {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dias-colunas > .day-scroll-card .day-activity-actions {grid-area:acoes;max-width:none;flex-wrap:nowrap;gap:4px}
+.dias-colunas > .day-scroll-card .day-activity-actions .pill {font-size:10px;padding:1px 7px}
 .section-title .dias-layout-btn {margin-left:auto;padding:4px 10px;border-radius:8px;border:1px solid var(--border,#ffffff1f);background:#ffffff0a;color:var(--text-muted,#aab);font:600 11.5px var(--mac-ui,system-ui);cursor:pointer}
 .section-title .dias-layout-btn:hover {color:var(--text,#fff);background:#ffffff14}
 .section-title .dias-layout-btn:focus-visible {outline:2px solid var(--accent2,#ff9d00);outline-offset:2px}
