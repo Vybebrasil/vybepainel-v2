@@ -1458,3 +1458,19 @@ test("luz da sala não vira filtro de CSS em cada móvel", () => {
   assert.ok(!/\.mapa-movel > canvas|canvas\.mapa-obj[,)]/.test(regra), "sem filtro em cada móvel: " + regra);
   assert.match(readFileSync("vybe-escritorio-mapa.js", "utf8"), /const tingir = \(cv\) =>/);
 });
+test("tela de entrada observa quem está no escritório sem aparecer, sem voz e sem mover", async () => {
+  const sockets = [];
+  const room = new EscritorioRoom({ getWebSockets: () => sockets, storage: { setAlarm: async () => {} } }, { ESCRITORIO_SESSION_SECRET: segredo });
+  const novo = () => ({ a: {}, messages: [], deserializeAttachment() { return this.a; }, serializeAttachment(a) { this.a = a; }, send(x) { this.messages.push(JSON.parse(x)); }, close() { this.closed = true; } });
+  const jady = novo(), paulo = novo();
+  sockets.push(jady, paulo);
+  await room.webSocketMessage(jady, JSON.stringify({ type: "presence:join", payload: { token: assinarEntradaEscritorio({ id: 2, nome: "Jady" }, {}, segredo) } }));
+  await room.webSocketMessage(paulo, JSON.stringify({ type: "presence:join", payload: { token: assinarEntradaEscritorio({ id: 1, nome: "Paulo" }, {}, segredo), observar: true } }));
+  const ultima = (s) => s.messages.filter((m) => m.type === "presence:update").at(-1)?.payload;
+  assert.deepEqual(ultima(paulo).map((p) => p.id), ["2"], "quem observa recebe a lista");
+  assert.deepEqual(ultima(jady).map((p) => p.id), ["2"], "e não aparece nela");
+  assert.equal(paulo.messages.some((m) => m.type === "session:ready"), false, "não entra de verdade");
+  await room.webSocketMessage(paulo, JSON.stringify({ type: "presence:move", payload: { sala: "criacao", x: 30, y: 40 } }));
+  assert.equal(paulo.a.sala, undefined, "não se move");
+  assert.equal(room.naZona("").length + room.naZona(undefined).length <= 1, true);
+});
