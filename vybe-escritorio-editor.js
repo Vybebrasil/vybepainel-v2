@@ -1872,7 +1872,7 @@ async function escritorioAcaoMovel(classe, comprar = false) {
 // botão de comprar. A animação para quando a prévia fecha; com "reduzir
 // movimento", o móvel fica parado (as setas giram à mão).
 // Fecha a ficha: na janela do catálogo, só a coluna; fora dela, o diálogo.
-function fecharFichaMovelEscritorio(botao) {
+function fecharPreviaMovelEscritorio(botao) {
   const coluna = botao?.closest?.(".ofc-catj-ficha");
   if (coluna) { escritorioEsconderFichaDaJanela(coluna); return; }
   (botao?.closest?.("dialog") || document.getElementById("office-previa-movel"))?.close();
@@ -1918,17 +1918,17 @@ function abrirPreviaMovelEscritorio(classe) {
     ["No inventário", q === Infinity ? "Grátis" : String(q || 0)],
   ];
   d.dataset.raridade = i.raridade;
-  d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-previa-titulo">${safeText(escritorioNomeMovel(m))}</h3><button type="button" class="ofc-x" onclick="fecharFichaMovelEscritorio(this)" aria-label="Fechar">×</button></div>
+  d.innerHTML = `<div class="ofc-dialogo-topo"><h3 id="office-previa-titulo">${safeText(escritorioNomeMovel(m))}</h3><button type="button" class="ofc-x" onclick="fecharPreviaMovelEscritorio(this)" aria-label="Fechar">×</button></div>
 <div class="ofc-previa-palco r-${safeText(i.raridade)}"><canvas width="240" height="200" aria-label="Arte do móvel${m.anima ? ", animada" : ""}" role="img"></canvas>
 <div class="ofc-previa-giro"><button type="button" aria-label="Girar para a esquerda" onclick="girarPreviaMovelEscritorio(-1)">↺</button><button type="button" aria-label="Girar para a direita" onclick="girarPreviaMovelEscritorio(1)">↻</button></div></div>
 ${m.anima ? '<p class="ofc-nota">Móvel animado.</p>' : ""}
 <dl class="ofc-previa-ficha">${linhas.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
 ${i.marco ? `<p class="ofc-nota">Vem com o marco "${safeText(escritorio.base.economia?.marcos?.find((x) => x.id === i.marco)?.nome || i.marco)}" da sua ficha.</p>` : ""}
-<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="fecharFichaMovelEscritorio(this)">Fechar</button>
-${comprar ? `<button type="button" class="${colocar ? "workflow-secondary" : "workflow-primary"}" ${bloqueio ? "disabled" : ""} onclick="fecharFichaMovelEscritorio(this);escritorioAcaoMovel('${safeText(classe)}', true)">${bloqueio || `Comprar · ${i.preco.toLocaleString("pt-BR")} moedas`}</button>` : ""}
-${!escritorio.edicao && q === Infinity && escritorioMinhaMesa() ? `<button type="button" class="workflow-primary" onclick="fecharFichaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
-${!escritorio.edicao && q > 0 && q !== Infinity ? `${escritorioOndeEstaMovel(classe).guardados ? `<button type="button" class="workflow-secondary" onclick="fecharFichaMovelEscritorio(this);abrirTrocaEscritorio(null,'${safeText(classe)}')">Trocar</button><button type="button" class="workflow-secondary" onclick="fecharFichaMovelEscritorio(this);escolherPresenteEscritorio('${safeText(classe)}')">Dar de presente</button>` : ""}<button type="button" class="workflow-primary" onclick="fecharFichaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
-${colocar ? `<button type="button" class="workflow-primary" onclick="fecharFichaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();escolherMovelEscritorio('${safeText(classe)}')">Colocar ${comum ? "na sala" : "no quarto"}</button>` : ""}</div>`;
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this)">Fechar</button>
+${comprar ? `<button type="button" class="${colocar ? "workflow-secondary" : "workflow-primary"}" ${bloqueio ? "disabled" : ""} onclick="fecharPreviaMovelEscritorio(this);escritorioAcaoMovel('${safeText(classe)}', true)">${bloqueio || `Comprar · ${i.preco.toLocaleString("pt-BR")} moedas`}</button>` : ""}
+${!escritorio.edicao && q === Infinity && escritorioMinhaMesa() ? `<button type="button" class="workflow-primary" onclick="fecharPreviaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
+${!escritorio.edicao && q > 0 && q !== Infinity ? `${escritorioOndeEstaMovel(classe).guardados ? `<button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this);abrirTrocaEscritorio(null,'${safeText(classe)}')">Trocar</button><button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this);escolherPresenteEscritorio('${safeText(classe)}')">Dar de presente</button>` : ""}<button type="button" class="workflow-primary" onclick="fecharPreviaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
+${colocar ? `<button type="button" class="workflow-primary" onclick="fecharPreviaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();escolherMovelEscritorio('${safeText(classe)}')">Colocar ${comum ? "na sala" : "no quarto"}</button>` : ""}</div>`;
   if (d.tagName === "DIALOG") { if (!d.open) d.showModal(); }
   else {
     d.open = true; d.hidden = false; d.scrollTop = 0;

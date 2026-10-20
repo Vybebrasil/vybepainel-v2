@@ -1953,7 +1953,25 @@ function abrirFichaMovelEscritorio(m) {
     card.querySelector(".ofc-ficha-movel-arte").append(c);
   }
   card.hidden = false;
+  vigiarFichaEscritorio();
   if (!escritorioCatalogo) carregarCatalogoEscritorio().then(() => { if (escritorio.movelSelecionado === m && !card.hidden) abrirFichaMovelEscritorio(m); });
+}
+// Ficha de móvel ou pessoa fecha também ao clicar fora dela (andar,
+// selecionar outra coisa) e com Esc (Paulo, 19/10/2026: "não tá tendo como
+// fechar quando seleciona algo?"). Um clique em outro boneco ou móvel fecha
+// esta e abre a dele, como no Habbo.
+let escritorioFichaVigiada = false;
+function vigiarFichaEscritorio() {
+  if (escritorioFichaVigiada) return;
+  escritorioFichaVigiada = true;
+  const aberta = () => { const c = document.getElementById("office-movel-card"), m = document.getElementById("office-menu-pessoa"); return (c && !c.hidden) || (m && !m.hidden) ? [c, m] : null; };
+  document.addEventListener("pointerdown", (ev) => {
+    const nos = aberta();
+    if (nos && !nos.some((n) => n?.contains(ev.target))) { if (escritorio.pessoaSelecionada) escritorio.mapa?.selecionarPessoa?.(null); fecharFichaMovelEscritorio(); }
+  }, true);
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && aberta() && !document.querySelector("dialog[open]")) { fecharFichaMovelEscritorio(); escritorio.mapa?.selecionarPessoa?.(null); }
+  });
 }
 function fecharFichaMovelEscritorio() {
   escritorio.movelSelecionado = null;
@@ -1980,6 +1998,7 @@ function abrirMenuPessoaEscritorio(id) {
   if (card) {
     card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorioAvatar(perfil, pessoa.nome)}</div><b>${safeText(pessoa.nome)}</b><small>${online || eu ? `${st ? `<span style="color:${st[1]}">${safeText(st[0])}</span>` : ""}${lugar ? ` · ${safeText(lugar)}` : ""}` : "Fora do escritório"}</small><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirFichaEscritorio('${sid}')">Ficha completa</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null)" aria-label="Fechar">Fechar</button></div>`;
     card.hidden = false;
+    vigiarFichaEscritorio();
   }
   const acoes = eu
     ? [["Acenar", "definirPoseEscritorio('acenar')"], ["Sentar no chão", "sentarNoChaoEscritorio()"], ["Personalizar", "personalizarEscritorio()"]]

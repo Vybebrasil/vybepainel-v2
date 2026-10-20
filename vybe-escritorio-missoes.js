@@ -163,6 +163,23 @@ function cobrancaRotulo(c) {
   if (c.tipo === "agendar") return c.dias > 0 ? `Veiculação atrasada há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm}` : "Veiculação é hoje";
   return `Esperando o cliente · prazo${dm || " sem data"}`;
 }
+// Uma demanda cobrada, no padrão do painel: título, a data (sempre dizendo se
+// é prazo ou veiculação) e a pílula do status com a cor do quadro. A mesma
+// linha serve ao quadro da coluna e ao cartão que abre no boneco.
+function cobrancaItemHtml(c, aoAbrir = "") {
+  const item = typeof findOperationalItem === "function" ? findOperationalItem(c.ref) : null;
+  const status = item?.status || c.status;
+  const pilula = status && typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(status, item?.status_color || "", item?.status_border || "") : status ? `<small>${safeText(status)}</small>` : "";
+  const tom = c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : "";
+  return `<li><button type="button" class="ofc-cobranca" onclick="${aoAbrir}abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')" title="Abrir a demanda">
+  <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}</span></button></li>`;
+}
+// Cabeçalho do cliente: a etiqueta da carteira (cor do painel), quantas
+// demandas e a barra no tom do pior pedido.
+function cobrancaClienteHtml(g) {
+  const tag = typeof tagClienteHtml === "function" ? tagClienteHtml(g.cliente, { dentroDeBotao: true }) : `<b>${safeText(g.cliente)}</b>`;
+  return `<span class="ofc-cobranca-cliente ${COBRANCA_TOM[g.pior.tipo] || "cobra"}">${tag}<small>${g.itens.length}</small></span>`;
+}
 function pintarCobrancasEscritorio(grupos, dono) {
   const el = document.getElementById("office-cobrancas");
   if (!el) return;
@@ -173,9 +190,7 @@ function pintarCobrancasEscritorio(grupos, dono) {
   try { aberto = localStorage.getItem("vybe-escritorio-cobrancas") !== "fechado"; } catch {}
   el.innerHTML = `<button type="button" class="ofc-missoes-topo" aria-expanded="${aberto}" onclick="alternarCobrancasEscritorio()">
       <b>Cobrando neste quarto</b><small>${grupos.length} cliente${grupos.length > 1 ? "s" : ""} · ${total} demanda${total > 1 ? "s" : ""}</small><i class="ofc-missoes-seta" aria-hidden="true"></i></button>
-    ${aberto ? `<ul class="ofc-cobrancas-lista">${grupos.map((g) => `<li><span class="ofc-cobranca-cliente ${COBRANCA_TOM[g.pior.tipo] || "cobra"}"><b>${safeText(g.cliente)}</b><small>${g.itens.length}</small></span>
-      <ul>${g.itens.map((c) => `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')" title="${safeText(`${c.titulo}${c.status ? ` · ${c.status}` : ""}\nClique para abrir a demanda`)}">
-        <em class="ofc-missao-prazo ${c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : ""}">${safeText(cobrancaRotulo(c))}</em><span>${safeText(c.titulo)}</span></button></li>`).join("")}</ul></li>`).join("")}</ul>` : ""}`;
+    ${aberto ? `<ul class="ofc-cobrancas-lista">${grupos.map((g) => `<li>${cobrancaClienteHtml(g)}<ul>${g.itens.map((c) => cobrancaItemHtml(c)).join("")}</ul></li>`).join("")}</ul>` : ""}`;
 }
 // Clique no cliente que está cobrando (Paulo, 19/10/2026): primeiro o cartão
 // com o que ele cobra, perto do boneco; cada demanda abre inteira na gaveta.
@@ -193,9 +208,8 @@ function abrirCobrancaClienteEscritorio(g, e) {
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !pop.hidden) pop.hidden = true; });
   }
   pop.setAttribute("aria-label", `${g.cliente}: ${g.itens.length} demanda${g.itens.length > 1 ? "s" : ""}`);
-  pop.innerHTML = `<div class="ofc-cobranca-pop-topo"><span class="ofc-cobranca-cliente ${COBRANCA_TOM[g.pior.tipo] || "cobra"}"><b>${safeText(g.cliente)}</b><small>${g.itens.length}</small></span><button type="button" class="ofc-x" onclick="this.closest('.ofc-cobranca-pop').hidden=true" aria-label="Fechar">×</button></div>
-<ul>${g.itens.map((c) => `<li><button type="button" class="ofc-cobranca" onclick="this.closest('.ofc-cobranca-pop').hidden=true;abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')">
-  <em class="ofc-missao-prazo ${c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : ""}">${safeText(cobrancaRotulo(c))}</em><span>${safeText(c.titulo)}</span>${c.status ? `<small>${safeText(c.status)}</small>` : ""}</button></li>`).join("")}</ul>
+  pop.innerHTML = `<div class="ofc-cobranca-pop-topo">${cobrancaClienteHtml(g)}<button type="button" class="ofc-x" onclick="this.closest('.ofc-cobranca-pop').hidden=true" aria-label="Fechar">×</button></div>
+<ul>${g.itens.map((c) => cobrancaItemHtml(c, "this.closest('.ofc-cobranca-pop').hidden=true;")).join("")}</ul>
 <p class="ofc-nota">Clique numa demanda para abrir inteira.</p>`;
   pop.hidden = false;
   // Perto do clique, sem sair da área do mapa.
