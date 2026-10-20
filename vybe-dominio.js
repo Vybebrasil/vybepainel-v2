@@ -403,9 +403,19 @@ function demandasComoItensDoMonday(dados) {
 // no dia em que o Monday sair, todo avatar quebra. Quem já trocou a própria foto
 // passa a ser servido pelo Drive da Vybe; quem não trocou continua com a antiga
 // até trocar.
+//
+// Desde 20/10/2026 (Paulo) a fotinha de quem tem personagem no Escritório é a
+// cabeça dele (mapaCabecaUrl), em todas as telas que leem user.photo; a foto
+// do Drive fica em user.fotoReal. O endereço sai do visual, então trocar o
+// personagem troca a fotinha na próxima leitura, sem gerar nada à mão.
 function aplicarFotosDoBanco(pessoas) {
   if (!Array.isArray(pessoas) || typeof TEAM_USERS === 'undefined') return;
-  const porId = new Map(pessoas.filter((p) => p.foto_url).map((p) => [String(p.id), p.foto_url]));
-  if (!porId.size) return;
-  TEAM_USERS.forEach((u) => { const nova = porId.get(String(u.id)); if (nova) u.photo = nova; });
+  const porId = new Map(pessoas.map((p) => [String(p.id), p]));
+  TEAM_USERS.forEach((u) => {
+    const p = porId.get(String(u.id));
+    if (!p) return;
+    if (p.foto_url) u.fotoReal = p.foto_url;
+    const cabeca = p.personagem && typeof mapaCabecaUrl === 'function' ? mapaCabecaUrl(p.personagem) : null;
+    u.photo = cabeca || u.fotoReal || u.photo;
+  });
 }

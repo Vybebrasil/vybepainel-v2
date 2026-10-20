@@ -740,6 +740,14 @@ function mapaFigura(perfil = {}) {
   const corpo = perfil.cabelo === "longo" ? `hd-600-${pele}.ch-665-${roupa}.lg-700-82.sh-725-62` : `hd-180-${pele}.ch-255-${roupa}.lg-280-110.sh-305-62`;
   return [corpo, cabelo].filter(Boolean).join(".");
 }
+// Cabeça do personagem (só o rosto, de frente), a mesma no jogo e no painel
+// (Paulo, 20/10/2026: "a fotinha vira a do avatar do jogo"). O endereço sai
+// do próprio visual: trocou o personagem, a imagem nova vem sozinha.
+function mapaCabecaUrl(perfil) {
+  if (!perfil) return null;
+  const figura = mapaFigura(perfil);
+  return figura ? "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: figura, direction: "3", head_direction: "3", headonly: "1", size: "n", gesture: "sml" }) : null;
+}
 function mapaBonecoGuardado(figura, dir) {
   return "/api/painel?" + new URLSearchParams({ area: "escritorio", acao: "boneco", figura, dir });
 }
