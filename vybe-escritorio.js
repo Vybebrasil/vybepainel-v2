@@ -1447,7 +1447,10 @@ function renderEscritorio() {
  ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Em cada sala você entra na conversa dela com o microfone ligado; a câmera começa desligada.</p>${escritorio.entrada ? escritorioEntradaHtml() : `<div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}">${b.demo ? "Ver o escritório" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div>`}</div></div>` : ""}
 </main>
 </section>`;
-  document.body.classList.add("no-escritorio");
+  // Só trava a rolagem da página com o Escritório na tela. Com a chamada
+  // ligada ele se redesenha por trás do painel (presença, cobranças) e o
+  // "add" de antes travava a página do Deivid (Paulo, 20/10/2026).
+  document.body.classList.toggle("no-escritorio", painel.style.display === "block");
   atualizarPessoasEscritorio();
   atualizarControlesEscritorio();
   pintarArtesEscritorio(document.querySelector(".ofc-topo") || document);
