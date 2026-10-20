@@ -7921,3 +7921,11 @@ button.ofc-agente-num[aria-pressed="true"] {border-color:var(--ofc-laranja,#ff9d
 .ofc-coluna > .ofc-missoes:has(> .ofc-missoes-corpo, > .ofc-cobrancas-lista) {min-height:min(230px,38%)}
 /* Falando de uma demanda, o balão do cliente leva a cor do status dela. */
 .mapa-etiqueta.visitante.grita[data-cor-fala] {border-color:var(--fala);background:color-mix(in srgb,var(--fala) 24%,#14161ef2)}
+/* Cartão do cliente cobrando: arrastável pela faixa de cima e com a porta
+   para o calendário inteiro do cliente (Paulo, 20/10/2026). */
+.ofc-cobranca-pop-topo {cursor:grab;touch-action:none;user-select:none}
+.ofc-cobranca-pop.arrastando .ofc-cobranca-pop-topo {cursor:grabbing}
+.ofc-cobranca-pop.arrastando {box-shadow:0 24px 60px #000a}
+.ofc-cobranca-pop-rodape {display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ofc-cobranca-pop-rodape .ofc-nota {margin:0}
+.ofc-cobranca-pop-rodape .workflow-secondary {flex:none;padding:6px 12px;font-size:12px}
