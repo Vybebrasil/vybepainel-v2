@@ -26,8 +26,8 @@ test('Solicitações: entrega, prazo e carteira uma vez por demanda; sem prazo n
  assert.deepEqual(await saldo(sql,4),[35,35]);
  const entregas=await sql`SELECT origem,regra FROM vybe_escritorio_entregas WHERE pessoa_id=4 ORDER BY origem`;
  assert.deepEqual(entregas.map(e=>e.origem),['demanda:10','demanda:11','demanda:12']);
- const e=await carregarEconomia(sql,4);                   // abrir a ficha concede o marco da 1ª entrega (+50/+50)
- assert.equal(e.pontos.nivel,2);assert.equal(e.pontos.xpTotal,85);assert.ok(e.marcos.find(m=>m.id==='primeira').ok);assert.equal(e.pontos.funcao,'criacao');
+ const e=await carregarEconomia(sql,4);                   // as conquistas em níveis têm teste próprio (escritorio-loja)
+ assert.equal(e.pontos.xpTotal,35);assert.equal(e.pontos.funcao,'criacao');
  // A ficha explica de onde vem cada coisa (20/10/2026): ganhos da semana
  // agrupados por regra e as regras da função com o valor da tabela.
  const entregaG=e.pontos.ganhos.find(g=>g.descricao==='Demanda de Solicitações finalizada');

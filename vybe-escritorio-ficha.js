@@ -78,12 +78,21 @@ function escritorioParteDoBoloTexto(parte) {
   const t = [parte.captada ? `${pct(parte.captada)} do bolo em foto e vídeo` : "", parte.normal ? `${pct(parte.normal)} nas outras peças` : ""].filter(Boolean).join(" e ");
   return `Sua parte: ${t}. O bolo cresce com o formato (Reels, Carrossel…); o valor ao lado é de uma peça simples.`;
 }
+// Conquistas em níveis (Paulo, 20/10/2026): cada escada mostra o nível
+// alcançado (Bronze, Prata, Ouro, Diamante), a barra até o próximo e o troféu.
+function escritorioEscadaHtml(x) {
+  const prox = x.proximo, alvo = prox ? prox.meta : x.degraus.at(-1)?.meta || 1;
+  const anterior = x.degraus.filter((d) => d.ok).at(-1)?.meta || 0;
+  const pct = prox ? Math.max(0, Math.min(100, Math.round(((x.valor - anterior) / Math.max(1, alvo - anterior)) * 100))) : 100;
+  const pontos = x.social ? "" : `<span class="ofc-escada-degraus" aria-hidden="true">${x.degraus.map((d) => `<i class="n${d.nivel}${d.ok ? " ok" : ""}" title="${safeText(d.nome)}: ${d.meta.toLocaleString("pt-BR")}"></i>`).join("")}</span>`;
+  const classe = (x.degraus.filter((d) => d.ok).at(-1) || prox || x.degraus.at(-1))?.classe;
+  return `<li class="ofc-escada n${x.nivel}${x.nivel ? " ok" : ""}"><span class="ofc-hud-medalha">${classe ? escritorioMiniaturaHtml(classe) : escritorioFichaIcone("estrela")}</span><span class="ofc-escada-txt"><b>${safeText(x.nome)}${x.nomeNivel ? ` <em class="ofc-escada-nivel n${x.nivel}">${safeText(x.nomeNivel)}</em>` : ""}</b>
+<small>${prox ? `${x.valor.toLocaleString("pt-BR")} de ${prox.meta.toLocaleString("pt-BR")} ${safeText(x.unidade)} para ${safeText(prox.nome)}` : "Nível máximo alcançado"}</small>${x.social && x.nivel ? "" : `<span class="ofc-escada-barra"><i style="width:${pct}%"></i></span>`}</span>${pontos}</li>`;
+}
 function escritorioMarcosHtml(marcos) {
   if (!marcos?.length) return "";
-  const data = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }); };
-  const nomeMovel = (classe) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return m ? escritorioNomeMovel(m) : classe.replace(/_/g, " "); };
-  const feitos = marcos.filter((m) => m.ok).length;
-  return `<h4>Marcos <small>(${feitos} de ${marcos.length} · cada um dá moedas, XP e um móvel)</small></h4><ul class="ofc-marcos">${marcos.map((m) => `<li class="${m.ok ? "ok" : ""}" title="${safeText(m.dica)}"><i aria-hidden="true">${m.ok ? "★" : "☆"}</i><span><b>${safeText(m.nome)}</b><small>${m.ok ? "Conquistado" + (m.em ? " em " + data(m.em) : "") : safeText(m.dica)}${m.moveis?.length ? ` · ${m.ok ? "ganhou" : "dá"} ${m.moveis.map((c) => safeText(nomeMovel(c))).join(", ")}` : ""}</small></span></li>`).join("")}</ul>`;
+  const perto = [...marcos].filter((m) => m.proximo).sort((a, b) => b.valor / b.proximo.meta - a.valor / a.proximo.meta).slice(0, 4);
+  return `<h4>Perto do próximo troféu</h4><ul class="ofc-hud-conquistas">${perto.map(escritorioEscadaHtml).join("")}</ul>`;
 }
 // Barra do dia, em cima da barra de baixo: só a da própria pessoa.
 function atualizarBarraDiaEscritorio() {
@@ -198,9 +207,10 @@ ${!veNumeros && jogo?.marcos?.length ? `<section class="ofc-hud-bloco"><h4>Últi
 ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) => grupoDe.get(r) === gi); return l.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>${titulo}</h4><small>${dica}</small></div><ul class="ofc-hud-regras">${l.map((r) => `<li><span><b>${safeText(r.descricao)}</b>${r.parte ? `<small>${escritorioParteDoBoloTexto(r.parte)}</small>` : r.por_complexidade ? "<small>Vale mais conforme o formato da peça (Reels, Carrossel…).</small>" : ""}${r.entrega && gi !== 3 ? "<small>Conta na meta da semana.</small>" : ""}</span><span class="ofc-hud-chips">${chips(r.moedas, r.pontos)}</span></li>`).join("")}</ul></section>` : ""; }).join("")}`;
   } else if (aba === "conquistas") {
     if (veNumeros && marcos) {
-      const nomeMovel = (classe) => { const mv = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return mv ? escritorioNomeMovel(mv) : classe.replace(/_/g, " "); };
-      const feitos = marcos.filter((x) => x.ok).length;
-      corpo = `<p class="ofc-nota">${feitos} de ${marcos.length} conquistadas. Cada conquista dá moedas, XP e o móvel mostrado.</p><ul class="ofc-hud-conquistas">${marcos.map((x) => `<li class="${x.ok ? "ok" : ""}" title="${safeText(x.dica)}"><span class="ofc-hud-medalha">${x.moveis?.[0] ? escritorioMiniaturaHtml(x.moveis[0]) : escritorioFichaIcone("estrela")}</span><span><b>${safeText(x.nome)}</b><small>${x.ok ? "Conquistada" : safeText(x.dica)}${x.moveis?.length ? ` · ${x.ok ? "ganhou" : "dá"} ${x.moveis.map((c) => safeText(nomeMovel(c))).join(", ")}` : ""}</small></span></li>`).join("")}</ul>`;
+      const niveis = marcos.reduce((t, x) => t + x.nivel, 0), total = marcos.reduce((t, x) => t + x.degraus.length, 0);
+      const grupo = (titulo, ids) => { const l = marcos.filter((x) => ids.includes(x.id)); return l.length ? `<section class="ofc-hud-bloco"><h4>${titulo}</h4><ul class="ofc-hud-conquistas">${l.map(escritorioEscadaHtml).join("")}</ul></section>` : ""; };
+      corpo = `<p class="ofc-nota">${niveis} de ${total} níveis. Cada escada sobe de <b>Bronze</b> para <b>Prata</b>, <b>Ouro</b> e <b>Diamante</b>. Cada nível dá moedas, XP e o troféu dele, e o Diamante vale 4 vezes o Bronze.</p>
+${grupo("Entregas por tipo", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos"])}${grupo("Ritmo e qualidade", ["adiantado", "deprimeira", "embalo", "semana", "filaemdia", "meta", "clientes", "nivel"])}${grupo("Por função", ["da", "agendamento", "carteira", "cadastros", "planejamentos"])}${grupo("No escritório", ["quarto", "andar2", "presente", "troca", "postits"])}`;
     } else corpo = jogo?.marcos?.length ? `<ul class="ofc-hud-conquistas">${jogo.marcos.map((x) => `<li class="ok" title="${safeText(x.dica || "")}"><span class="ofc-hud-medalha">${escritorioFichaIcone("estrela")}</span><span><b>${safeText(x.nome)}</b><small>${safeText(x.dica || "")}</small></span></li>`).join("")}</ul>` : pub === undefined ? carregando("Carregando as conquistas…") : '<p class="ofc-nota">Nenhuma conquista ainda.</p>';
   } else if (aba === "inventario") {
     const inv = jogo?.inventario || [];
@@ -900,4 +910,40 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
 function abrirDetalheRankingEscritorio(id) {
   escritorioRanking.aberto = escritorioRanking.aberto === String(id) ? null : String(id);
   pintarRankingEscritorio();
+}
+
+// Janela Conquistas (Paulo, 20/10/2026: "ícone de Conquistas na lateral que
+// mostra todas as conquistas e o que cada uma dá"): cada escada com os quatro
+// níveis, a meta, o troféu e as moedas e o XP de cada um, e o seu progresso.
+const ESCRITORIO_GRUPOS_CONQUISTA = [
+  ["Entregas por tipo", "Contam as peças que você fez ou captou.", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos"]],
+  ["Ritmo e qualidade", "Prazo, aprovação de primeira, sequência e meta.", ["adiantado", "deprimeira", "embalo", "semana", "filaemdia", "meta", "clientes", "nivel"]],
+  ["Agendamento", "Peças agendadas, por tipo.", ["agendamento", "agendados_cards", "agendados_carrosseis", "agendados_reels", "agendados_stories", "agendados_fotografias"]],
+  ["Atendimento", "Peças dos clientes da sua carteira, por tipo.", ["carteira", "carteira_cards", "carteira_carrosseis", "carteira_reels", "carteira_stories", "carteira_fotografias", "planejamentos"]],
+  ["Gestão e direção de arte", "Cadastros, briefings, peças da agência e aprovações do DA.", ["cadastros", "briefings", "agencia", "da"]],
+  ["No escritório", "Um nível só, para começar a usar.", ["quarto", "andar2", "presente", "troca", "postits"]],
+];
+async function abrirConquistasEscritorio() {
+  if (!document.getElementById("ofc-conquistas")) {
+    openWorkflowModal('<div class="ofc-ranking ofc-conquistas" id="ofc-conquistas" role="dialog" aria-label="Conquistas"></div>');
+    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela");
+  }
+  pintarConquistasEscritorio();
+  // As escadas vêm com a carteira (o servidor confere e concede os níveis novos).
+  try { const r = await escritorioApi("economia"); if (r?.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia }; } catch (e) { escritorio.conquistasErro = e.message; }
+  if (typeof escritorioCatalogo !== "undefined" && !escritorioCatalogo && typeof carregarCatalogoEscritorio === "function") await carregarCatalogoEscritorio();
+  pintarConquistasEscritorio();
+}
+function pintarConquistasEscritorio() {
+  const el = document.getElementById("ofc-conquistas");
+  if (!el) return;
+  const marcos = escritorio.base?.economia?.marcos;
+  const topo = `<header class="ofc-rk-cab"><span class="ofc-rk-icone" aria-hidden="true">${escritorioIcone("estrela")}</span><div><h2>Conquistas</h2><small>Bronze, Prata, Ouro e Diamante · cada nível dá um troféu, moedas e XP</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>`;
+  if (!marcos) { el.innerHTML = topo + (escritorio.conquistasErro ? `<p class="ofc-nota" role="alert">Não deu para carregar: ${safeText(escritorio.conquistasErro)}</p>` : '<div class="ofc-rk-corpo"><div class="ofc-fm-carregando"><i></i><i></i><i></i></div></div>'); return; }
+  const niveis = marcos.reduce((t, x) => t + x.nivel, 0), total = marcos.reduce((t, x) => t + x.degraus.length, 0);
+  const nomeMovel = (c) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === c); return m ? escritorioNomeMovel(m) : c.replace(/_/g, " "); };
+  const escada = (x) => `<article class="ofc-cq${x.nivel ? " ok" : ""}"><div class="ofc-cq-topo"><b>${safeText(x.nome)}</b>${x.nomeNivel ? `<em class="ofc-escada-nivel n${x.nivel}">${safeText(x.nomeNivel)}</em>` : ""}<small>${x.valor.toLocaleString("pt-BR")} ${safeText(x.unidade)}</small></div>
+<ol class="ofc-cq-degraus">${x.degraus.map((d) => `<li class="n${d.nivel}${d.ok ? " ok" : ""}" title="${safeText(nomeMovel(d.classe))}"><span class="ofc-cq-arte">${escritorioMiniaturaHtml(d.classe)}</span><b>${safeText(d.nome)}</b><small>${d.meta.toLocaleString("pt-BR")}</small><em>+${d.moedas} moedas · +${d.pontos} XP</em>${d.ok ? '<i class="ofc-cq-ok">Conquistado</i>' : ""}</li>`).join("")}</ol></article>`;
+  const grupos = ESCRITORIO_GRUPOS_CONQUISTA.map(([titulo, dica, ids]) => { const l = ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean); return l.length ? `<section class="ofc-cq-grupo"><h3>${titulo}</h3><small>${dica}</small>${l.map(escada).join("")}</section>` : ""; }).join("");
+  el.innerHTML = topo + `<div class="ofc-rk-corpo"><p class="ofc-rk-legenda">Você tem <b>${niveis} de ${total}</b> níveis. Ao subir, o troféu do nível de baixo dá lugar ao novo (se estiver guardado). O Diamante vale 4 vezes o Bronze.</p>${grupos}</div>`;
 }

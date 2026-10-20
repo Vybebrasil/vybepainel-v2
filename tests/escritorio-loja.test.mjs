@@ -77,57 +77,6 @@ test('vitrine da semana: 6 muito raros e 2 lendários fixos por semana; fora del
  // O sorteio é só função da semana e do móvel.
  assert.deepEqual(vitrineDaSemana({semana:SEMANA,raridades:loja.raridades,itens:loja.itens,vendidosNaSemana:[lendario]}),e.loja.vitrine);
 });
-test('móvel só por marco não se compra; o marco traz o móvel e a conquista uma vez, mesmo conferindo de novo',async t=>{
- const {sql}=await banco(t);
- await creditar(sql,1,5000);
- await assert.rejects(comprarMovel(sql,1,{classe:'se_trophyG',chave:crypto.randomUUID()},AGORA),/marco/);
- assert.equal(infoMovel(await carregarLoja(sql,AGORA),'se_trophyG').marco,'nivel20');
- assert.ok(!(await carregarLoja(sql,AGORA)).vitrine.includes('se_trophyG'));
- // XP alto (chegada) leva ao nível 20 (6.620 XP): marcos de nível saem conquistados, com o sofá do nível 20.
- await sql`SELECT vybe_lancar_pontos(1,'xp:teste',NULL,NULL,0,7000)`;
- const antes=await saldo(sql,1);
- const lista=await conferirMarcos(sql,1,AGORA);
- const ok=lista.filter(m=>m.ok).map(m=>m.id);
- assert.deepEqual(ok,['nivel5','nivel10','nivel20']);
- assert.deepEqual(lista.find(m=>m.id==='nivel20').moveis,['se_trophyG']);
- assert.equal(await inventario(sql,1,'se_trophyG'),1);
- assert.deepEqual(await saldo(sql,1),[antes[0]+150,antes[1]+150]);
- const de_novo=await conferirMarcos(sql,1,AGORA);
- assert.deepEqual(de_novo.filter(m=>m.ok).map(m=>m.id),ok);
- assert.equal(await inventario(sql,1,'se_trophyG'),1);
- assert.deepEqual(await saldo(sql,1),[antes[0]+150,antes[1]+150]);
- assert.equal(de_novo.find(m=>m.id==='nivel20').em.toISOString(),lista.find(m=>m.id==='nivel20').em.toISOString());
- // A ficha lista todos os marcos, conquistados ou não, com o móvel de cada um.
- assert.equal(lista.length,MARCOS.length);
- assert.deepEqual(lista.find(m=>m.id==='duzentas').moveis,['trophy_ltd23_goldmonsterplant']);
-});
-test('marcos de contagem contam toda entrega e substituem as conquistas antigas do gatilho; quem já tinha não ganha de novo',async t=>{
- const {db,sql}=await banco(t);
- await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave) VALUES(10,8385559107,'pode_fazer'),(20,7829537690,'em_andamento');
-  INSERT INTO vybe_conteudo_responsaveis VALUES(10,4,0),(20,6,0);
-  INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para,autor_id) VALUES(10,'status','Feito',4);
-  SELECT vybe_creditar_moedas(6,'conquista:primeira-demanda',50);`);
- assert.deepEqual(await saldo(sql,4),[10,10]);                // só a entrega: o gatilho não dá mais a 1ª demanda
- const e=await carregarEconomia(sql,4,{agora:AGORA});
- assert.deepEqual(await saldo(sql,4),[110,110]);              // marcos "Primeira entrega" e "Fila em dia" dão a conquista (50 cada)
- assert.deepEqual(e.marcos.filter(m=>m.ok).map(m=>m.id),['primeira','zerado']);
- assert.equal((await sql`SELECT 1 FROM vybe_escritorio_moedas WHERE pessoa_id=4 AND origem='conquista:primeira-demanda'`).length,1);
- // Jady já tinha a conquista antiga: entrega de Produção conta, o marco aparece, mas não paga duas vezes.
- await db.exec(`INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para,autor_id) VALUES(20,'status','Para aprovação',6)`);
- assert.deepEqual(await saldo(sql,6),[60,60]);
- const j=await conferirMarcos(sql,6,AGORA);
- assert.ok(j.find(m=>m.id==='primeira').ok);
- assert.deepEqual(await saldo(sql,6),[110,110]);              // só "Fila em dia" paga; a 1ª entrega já estava paga
- // Fechamento da equipe confere todo mundo que tem função, sem abrir a ficha.
- await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave) SELECT n,8385559107,'pode_fazer' FROM generate_series(30,39) n;
-  INSERT INTO vybe_conteudo_responsaveis SELECT n,2,0 FROM generate_series(30,39) n;
-  INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para,autor_id) SELECT n,'status','Feito',2 FROM generate_series(30,39) n;`);
- assert.deepEqual(await saldo(sql,2),[100,100]);
- const r=await conferirMarcosDaEquipe(sql,AGORA);
- assert.equal(r.pessoas,9);assert.ok(r.novos>=2);
- assert.deepEqual(await saldo(sql,2),[250,250]);              // primeira + dez + fila em dia (50 cada)
- assert.deepEqual((await sql`SELECT marco FROM vybe_escritorio_marcos WHERE pessoa_id=2 ORDER BY marco`).map(m=>m.marco),['dez','primeira','zerado']);
-});
 test('compra pela metade (falha) não deixa venda nem móvel; repetição da mesma chave não cobra de novo',async t=>{
  const {sql}=await banco(t);
  await creditar(sql,1,200);
@@ -142,46 +91,66 @@ test('compra pela metade (falha) não deixa venda nem móvel; repetição da mes
 });
 // A migração das conquistas vem depois da economia de 20/10 (em produção, nessa ordem).
 const MIGRACAO_CONQUISTAS=readFileSync('migrations/2026-10-20-escritorio-conquistas.sql','utf8');
-test('conquistas por fazer as coisas: entregas adiantadas, semana sem atraso e segundo andar, cada uma com seu móvel',async t=>{
+const NIVEIS=readFileSync('migrations/2026-10-20-escritorio-conquistas-niveis.sql','utf8');
+// Escadas de conquistas: precisam do peso por formato e do bolo (regras peca_*).
+async function bancoNiveis(t){
+ const {db,sql}=await banco(t);
+ await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN formato text, ADD COLUMN titulo text, ADD COLUMN clientes_texto text, ADD COLUMN monday_item_id text, ADD COLUMN etapa text;`);
+ for (const f of ['2026-10-19-escritorio-gestao-pontos.sql','2026-10-20-escritorio-complexidade.sql','2026-10-20-escritorio-bolo-por-peca.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
+ await db.exec(NIVEIS);
+ return {db,sql};
+}
+test('escadas: cada tipo de entrega sobe de Bronze a Diamante, com o troféu e a conquista do nível, uma vez',async t=>{
+ const {db,sql}=await bancoNiveis(t);
+ const cards=async(de,ate)=>db.exec(`INSERT INTO vybe_conteudos(id,board_id,formato) SELECT n,7829537690,'Card' FROM generate_series(${de},${ate}) n;
+  INSERT INTO vybe_escritorio_entregas(pessoa_id,origem,regra,conteudo_id,dia) SELECT 3,'peca:'||n||':criacao','peca_criacao',n,current_date FROM generate_series(${de},${ate}) n;`);
+ await cards(1,39);
+ let lista=await conferirMarcos(sql,3,AGORA), c=lista.find(m=>m.id==='cards');
+ assert.equal(c.nivel,0);assert.deepEqual([c.valor,c.proximo.meta,c.proximo.nome],[39,40,'Bronze']);
+ await cards(40,40);
+ const antes=await saldo(sql,3);
+ lista=await conferirMarcos(sql,3,AGORA); c=lista.find(m=>m.id==='cards');
+ assert.deepEqual([c.nivel,c.nomeNivel,c.proximo.meta],[1,'Bronze',120]);
+ assert.equal(await inventario(sql,3,'trophy_viraldancer_bronze'),1);
+ const [r]=await sql`SELECT moedas,pontos FROM vybe_escritorio_regras WHERE chave='conquista'`;
+ assert.deepEqual(await saldo(sql,3),[antes[0]+r.moedas,antes[1]+r.pontos]);
+ await conferirMarcos(sql,3,AGORA);
+ assert.equal(await inventario(sql,3,'trophy_viraldancer_bronze'),1,'conferir de novo não dá outro');
+ await cards(41,120);
+ lista=await conferirMarcos(sql,3,AGORA); c=lista.find(m=>m.id==='cards');
+ assert.deepEqual([c.nivel,c.nomeNivel],[2,'Prata']);
+ assert.equal(await inventario(sql,3,'trophy_viraldancer_silver'),1);
+ assert.equal(await inventario(sql,3,'trophy_viraldancer_bronze'),0,'o troféu troca: o Bronze guardado sai');
+ assert.deepEqual(await saldo(sql,3),[antes[0]+r.moedas*3,antes[1]+r.pontos*3],'Prata vale 2 vezes o Bronze');
+ // Entregas no geral pedem 200 para o Bronze: 120 ainda não.
+ assert.equal(lista.find(m=>m.id==='entregas').nivel,0);
+ // Troféu de conquista não se compra.
+ await creditar(sql,3,5000);
+ await assert.rejects(comprarMovel(sql,3,{classe:'trophy_viraldancer_gold',chave:crypto.randomUUID()},AGORA),/marco/);
+});
+test('reavaliação única: conquistas antigas saem (moedas, XP, troféus do inventário e do quarto) sem saldo negativo',async t=>{
  const {db,sql}=await banco(t);
  await db.exec(MIGRACAO_CONQUISTAS);
- const hoje=diaBahia(AGORA), depois=somarDias(hoje,5);
- await db.exec(`INSERT INTO vybe_conteudos(id,board_id,status_chave,prazo) SELECT n,8385559107,'pode_fazer','${depois}' FROM generate_series(40,49) n;
-  INSERT INTO vybe_conteudo_responsaveis SELECT n,3,0 FROM generate_series(40,49) n;
-  INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,para,autor_id) SELECT n,'status','Feito',3 FROM generate_series(40,49) n;
-  INSERT INTO vybe_escritorio_perfis(pessoa_id,preferencias) VALUES(3,'{"sala_andares":[{"andar":1,"quarto_configurado":true}]}')
-  ON CONFLICT (pessoa_id) DO UPDATE SET preferencias=EXCLUDED.preferencias;`);
- const lista=await conferirMarcos(sql,3,AGORA);
- const ok=lista.filter(m=>m.ok).map(m=>m.id);
- for (const id of ['adiantado10','semana','andar2']) assert.ok(ok.includes(id),id);
- assert.ok(!ok.includes('adiantado100') && !ok.includes('presente'));
- assert.equal(await inventario(sql,3,'trophy_snowstorm_bronze'),1);
- assert.equal(await inventario(sql,3,'bc_blocktrophy_1'),1);
- // Toda conquista da lista tem um móvel.
- assert.ok(lista.every(m=>m.moveis.length>=1),lista.filter(m=>!m.moveis.length).map(m=>m.id).join());
- // Móvel de conquista não se compra.
- await creditar(sql,3,5000);
- await assert.rejects(comprarMovel(sql,3,{classe:'prize3',chave:crypto.randomUUID()},AGORA),/marco/);
-});
-test('devolução única: quem já tinha a conquista recebe o móvel que sumiu, e rodar de novo não duplica',async t=>{
- const {db,sql}=await banco(t);
- const migracao=MIGRACAO_CONQUISTAS;
- await db.exec(migracao);
- // Conquistas registradas antes dos reinícios, inventário vazio; uma pessoa já tem o troféu.
- await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(4,'duzentas'),(4,'primeira'),(5,'duzentas');
-  INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(5,'trophy_ltd23_goldmonsterplant',1);
-  DELETE FROM vybe_escritorio_reinicios WHERE chave='conquistas-2026-10-20';`);
- await db.exec(migracao);
- assert.equal(await inventario(sql,4,'trophy_ltd23_goldmonsterplant'),1);
- assert.equal(await inventario(sql,4,'prize3'),1);
- assert.equal(await inventario(sql,5,'trophy_ltd23_goldmonsterplant'),1);
- await db.exec(`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=4`);
- await db.exec(migracao);                                    // marcador: não devolve outra vez
- assert.equal(await inventario(sql,4,'prize3'),0);
+ await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(4,'primeira'),(4,'dez');
+  INSERT INTO vybe_escritorio_inventario VALUES(4,'prize3',1),(4,'shelves_norja',1) ON CONFLICT DO NOTHING;
+  INSERT INTO vybe_escritorio_mapa(camada,itens,versao) VALUES('sala-3','[["prize3",1,1,2,0,0],["shelves_norja",2,2,2,0,0]]',1) ON CONFLICT (camada) DO UPDATE SET itens=EXCLUDED.itens;`);
+ await sql`SELECT vybe_lancar_pontos(4,'conquista:primeira','conquista',NULL,25,50)`;
+ await sql`SELECT vybe_lancar_pontos(4,'conquista:dez','conquista',NULL,25,50)`;
+ await sql`UPDATE vybe_escritorio_carteiras SET saldo=30 WHERE pessoa_id=4`;
+ await db.exec(NIVEIS);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_marcos`)[0].n,0);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_moedas WHERE origem LIKE 'conquista:%'`)[0].n,0);
+ assert.equal((await saldo(sql,4))[0],0,'o saldo para no zero');
+ assert.equal(await inventario(sql,4,'prize3'),0);assert.equal(await inventario(sql,4,'shelves_norja'),1,'o comprado fica');
+ const [m]=await sql`SELECT itens FROM vybe_escritorio_mapa WHERE camada='sala-3'`;
+ assert.deepEqual(m.itens.map(i=>i[0]),['shelves_norja'],'o troféu sai do quarto, o resto fica');
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_copia_niveis_marcos`)[0].n,2,'com cópia');
+ await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(4,'cards:1')`);
+ await db.exec(NIVEIS);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_marcos`)[0].n,1,'não repete');
 });
 test('ficha do móvel diz de quem é a sala e como o dono conseguiu: compra, conquista, essencial, sala comum',async t=>{
- const {db,sql}=await banco(t);
- await db.exec(MIGRACAO_CONQUISTAS);
+ const {db,sql}=await bancoNiveis(t);
  const {origemDoMovel}=await import('../server/escritorio-social.js');
  const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const equipe=(await sql`SELECT id,nome FROM vybe_pessoas ORDER BY nome`).map(p=>({id:String(p.id),nome:p.nome}));
@@ -191,9 +160,9 @@ test('ficha do móvel diz de quem é a sala e como o dono conseguiu: compra, con
  let o=await origemDoMovel(sql,salas,{camada:sala,classe:'shelves_norja'});
  assert.equal(o.dono.nome,'Paulo Martins');assert.equal(o.tipo,'compra');assert.equal(o.unidades,1);
  assert.match(o.origens[0].texto,/Comprado na loja por 40|Comprado na loja por 25/);
- await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(1,'primeira')`);
- o=await origemDoMovel(sql,salas,{camada:sala,classe:'prize3'});
- assert.equal(o.tipo,'conquista');assert.match(o.origens[0].texto,/Primeira entrega/);assert.ok(o.origens[0].em);
+ await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(1,'cards:1')`);
+ o=await origemDoMovel(sql,salas,{camada:sala,classe:'trophy_viraldancer_bronze'});
+ assert.equal(o.tipo,'conquista');assert.match(o.origens[0].texto,/Bronze da conquista "Cards" \(40 cards entregues\)/);assert.ok(o.origens[0].em);
  assert.equal((await origemDoMovel(sql,salas,{camada:sala,classe:'exe_table'})).tipo,'essencial');
  assert.equal((await origemDoMovel(sql,salas,{camada:'cafe',classe:'exe_table'})).tipo,'sala_comum');
  await assert.rejects(origemDoMovel(sql,salas,{camada:sala,classe:"x'; drop"}),/inválido/);

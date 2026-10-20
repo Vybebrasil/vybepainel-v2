@@ -220,10 +220,17 @@ export async function origemDoMovel(sql, salas, { camada, classe } = {}) {
   }
   if (!origens.length) origens.push({ tipo: 'conquista', texto: `Troféu de ${loja.marco.slice(-1)}º lugar no ranking da semana. Não se compra.` });
  } else if (loja.marco) {
-  const { MARCOS } = await import('./escritorio-marcos.js');
-  const m = MARCOS.find((x) => x.id === loja.marco);
-  const [f] = await tem('vybe_escritorio_marcos') ? await sql`SELECT em FROM vybe_escritorio_marcos WHERE pessoa_id=${dono} AND marco=${loja.marco}` : [];
-  origens.push({ tipo: 'conquista', texto: `Prêmio da conquista "${m?.nome || loja.marco}"${m?.dica ? ` (${m.dica.toLowerCase()})` : ''}. Não se compra.`, em: f?.em || null });
+  // Troféu de conquista em níveis: quais níveis do dono dão este móvel.
+  const { MARCOS, NIVEIS } = await import('./escritorio-marcos.js');
+  const [tt] = await sql`SELECT to_regclass('public.vybe_escritorio_trofeus') IS NOT NULL AS existe`;
+  const ganhos = tt?.existe && await tem('vybe_escritorio_marcos') ? await sql`SELECT t.marco, t.nivel, t.meta, m.em FROM vybe_escritorio_trofeus t
+    JOIN vybe_escritorio_marcos m ON m.pessoa_id=${dono} AND m.marco=t.marco||':'||t.nivel WHERE t.classe=${classe} ORDER BY m.em` : [];
+  for (const g of ganhos) {
+   const m = MARCOS.find((x) => x.id === g.marco);
+   const nivel = ['quarto', 'andar2', 'presente', 'troca', 'postits'].includes(g.marco) ? '' : ` ${NIVEIS[g.nivel]}`;
+   origens.push({ tipo: 'conquista', texto: `Troféu${nivel} da conquista "${m?.nome || g.marco}" (${Number(g.meta).toLocaleString('pt-BR')} ${m?.unidade || ''}). Não se compra.`, em: g.em });
+  }
+  if (!ganhos.length) origens.push({ tipo: 'conquista', texto: 'Troféu de conquista. Não se compra.' });
  }
  const [bolo] = await tem('vybe_escritorio_reinicios') ? await sql`SELECT executado_em FROM vybe_escritorio_reinicios WHERE chave='bolo-2026-10-20'` : [];
  for (const c of await sql`SELECT -quantidade AS preco, criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${dono} AND origem LIKE ${'compra:%:' + classe} ORDER BY criado_em`)

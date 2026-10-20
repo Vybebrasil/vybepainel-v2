@@ -496,3 +496,24 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   `carregarEconomia` com a loja), ordem por raridade, térreo/2º andar no cartão.
 - Editor: "Guardar tudo" tira os móveis não essenciais do andar.
 - Busca entende sinônimos e o nome em inglês do catálogo (`escritorioBuscaCombina`).
+
+## Conquistas em níveis (decisão do Paulo, 20/10/2026)
+
+- Cada escada sobe de Bronze para Prata, Ouro e Diamante; metas e troféus em
+  `vybe_escritorio_trofeus` (`2026-10-20-escritorio-conquistas-niveis.sql`).
+  Cada nível dá a regra `conquista` × nível (Diamante vale 4 vezes o Bronze) e o
+  troféu do nível; o troféu do nível de baixo sai do inventário se estiver
+  guardado (o que está num quarto fica).
+- Escadas: entregas, uma por tipo (Cards, Carrosséis, Reels, Stories,
+  Fotografias, Vídeos e motions), nível, adiantado, de primeira, embalado,
+  muitos clientes, semana sem atraso, fila em dia, meta em dia e uma por função
+  (DA, Agendamento, Carteira, Cadastros, Planejamentos, Briefings, Peças da
+  agência), mais escadas por tipo para quem agenda (`agendados_*`) e para a
+  carteira (`carteira_*`). Cada escada e cada nível têm um troféu próprio (133
+  móveis diferentes, fora da venda). Janela **Conquistas** no menu do
+  Escritório mostra tudo, com meta, troféu e prêmio de cada nível. As de entrega, ritmo e
+  qualidade contam só quem executou (peca_criacao, peca_producao). As sociais
+  (quarto, segundo andar, presente, troca, 10 post-its) têm um nível só.
+- Reavaliação única (marcador `conquistas-niveis-2026-10-20`): as conquistas
+  antigas saem com cópia (registro, moedas e XP delas, troféus do inventário e
+  dos quartos; saldo nunca negativo) e os níveis são refeitos pelo histórico.
