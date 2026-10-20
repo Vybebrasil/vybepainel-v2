@@ -1082,4 +1082,6 @@ decoração inicial "bem feito".
 - Bolo por peça (Paulo, 20/10/2026): fatias por papel, Mizinho em toda foto e
   vídeo, DA com 10% da Criação, recomeço com o histórico refeito. Detalhes em
   `docs/escritorio-pontos.md`; migração `2026-10-20-escritorio-bolo-por-peca.sql`
-  (marcador `bolo-2026-10-20`), aplicada só depois do OK do Paulo nos números.
+  (marcador `bolo-2026-10-20`) e as compras descontadas
+  (`2026-10-20-escritorio-bolo-compras.sql`), aplicadas em 20/10/2026 depois do
+  OK do Paulo (#266), com as conquistas refeitas no meio. Saldo e XP batem com o razão.
