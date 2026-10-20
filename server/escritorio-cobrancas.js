@@ -9,10 +9,14 @@
 //   agendar:  em "Para agendar" com a veiculação hoje ou já passada
 //   lembrar_cliente: a demanda espera o cliente; ele vai ao quarto do head
 //                    pedir para ser lembrado (não é cobrança ao time)
+//   marcar_gravacao: em "Aguardo", que é esperar marcar a gravação com o
+//                    cliente (Paulo, 20/10/2026: "não é que ele tem que
+//                    mandar algo"); o cliente lembra o head de marcar
 // Uma peça com vários clientes manda um cliente de cada.
 import { diaBahia, somarDias } from './escritorio-pontos.js';
 
-const CLIENTE_DEVE = ['ag_info_cliente', 'ag_aprovacao_cliente', 'aguardando_info', 'falta_info', 'aguardo'];
+const CLIENTE_DEVE = ['ag_info_cliente', 'ag_aprovacao_cliente', 'aguardando_info', 'falta_info'];
+const MARCAR_GRAVACAO = ['aguardo'];
 const APROVACAO_INTERNA = ['para_aprovacao', 'em_aprovacao', 'falta_d_a'];
 const NAO_COMECOU = ['pode_fazer', 'a_fazer', 'nova_demanda'];
 const horaBahia = (agora) => Number(new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', hour12: false }).format(agora));
@@ -39,7 +43,7 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
   const cobrar = (ids, item) => { for (const id of new Set(ids)) { if (!por.has(id)) por.set(id, []); por.get(id).push(item); } };
   for (const l of linhas) {
     const base = { ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: String(l.board_id) === '8385559107' ? 'demandas' : 'producao',
-      titulo: l.titulo || 'Sem título', status: l.status || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null };
+      titulo: l.titulo || 'Sem título', status: l.status || '', status_chave: l.status_chave || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null };
     const heads = l.heads.length ? l.heads : gestao;
     if (l.status_chave === 'para_agendar') {
       if (l.veiculacao && l.veiculacao <= hoje) cobrar(agendamento, { ...base, tipo: 'agendar', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje) });
@@ -47,6 +51,7 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
     }
     if (!l.prazo || l.final) continue;
     const dias = diasEntre(l.prazo, hoje);
+    if (MARCAR_GRAVACAO.includes(l.status_chave)) { cobrar(heads, { ...base, tipo: 'marcar_gravacao', data: l.prazo, dias }); continue; }
     if (CLIENTE_DEVE.includes(l.status_chave)) { cobrar(heads, { ...base, tipo: 'lembrar_cliente', data: l.prazo, dias }); continue; }
     const tipo = l.prazo < hoje ? 'atrasada' : l.prazo === hoje ? (tarde ? 'hoje' : null) : NAO_COMECOU.includes(l.status_chave) ? 'vence' : null;
     if (!tipo) continue;

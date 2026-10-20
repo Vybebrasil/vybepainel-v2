@@ -439,6 +439,8 @@ function renderOutboundItemPatch(label='alteração') {
   if(typeof renderVisaoDeGrupos==='function') renderVisaoDeGrupos();
   if(typeof renderManagerCalendar==='function') renderManagerCalendar();
   if(typeof renderDemandas==='function' && typeof activeBoard!=='undefined' && activeBoard==='demandas') renderDemandas();
+  // O Escritório também mostra estas peças (missões e clientes cobrando).
+  if(typeof escritorioAposMudancaDeDemanda==='function') escritorioAposMudancaDeDemanda();
   requestAnimationFrame(()=>window.scrollTo({top:previousScroll,behavior:'instant'}));
   const dominioAtivo = typeof fonteDeLeitura === 'function' && fonteDeLeitura() === 'dominio';
   cacheSyncLabel(dominioAtivo ? 'Alteração confirmada no banco Vybe.' : 'Alteração local aplicada · confirmando contingência…');

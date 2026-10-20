@@ -1003,3 +1003,32 @@ decoração inicial "bem feito".
   - Embaixo: "Comprar mais na loja" e "Trocas e presentes".
   - A Carteira saiu da construção: é a terceira aba da janela (Loja ·
     Inventário · Carteira), e o saldo no topo leva até ela.
+
+### Painel do agente, Agenda e demandas editáveis — 20/10/2026
+
+- **Painel do agente** (`pintarAgenteOperacaoEscritorio`): cabeçalho numa faixa
+  com o boneco do agente na fantasia do cliente e a etiqueta da carteira. Os
+  números viram abas que trocam a lista da direita: atrasadas
+  (`prazo_atrasado`), para aprovar, esta semana (`dataDoCartaoDia`) e
+  esperando o cliente (`riskActionOwner`). O padrão é "Próximas peças".
+  "Pede atenção" vazio vira uma linha. O calendário ganhou legenda.
+- **Agenda** na barra lateral (`abrirAgendaEscritorio`): a semana do Google
+  Agenda da Vybe, só leitura. Usa a mesma consulta da Produção
+  (`area=agenda_producao`), agora aberta a toda a equipe com sessão (estações
+  abertas). Evento privado, pessoal, folga, férias e aniversário continuam
+  fora; o diagnóstico da conta de serviço segue só com quem administra.
+- **Demandas no jogo abrem o cartão rápido do painel** (`abrirMissaoEscritorio`
+  → `abrirCartaoRapido`): status, datas, responsável, prioridade, renomear e
+  "…" com Arquivar; "Abrir detalhes" leva à gaveta. Vale para missões,
+  cobranças, painel do agente e calendário. Sem a peça carregada, abre a
+  gaveta como antes.
+- **Clientes que cobram, com o significado certo dos status** (Paulo,
+  20/10/2026): "Aguardo" é esperar marcar a gravação com o cliente, e não o
+  cliente mandar algo. Virou o pedido `marcar_gravacao` (vai para o head, como
+  lembrete). "Ag. Aprovação Cliente" fala de aprovação. O balão de quem fala
+  leva a cor do status da demanda (`v.cores` em `montarVisitantes`). Mudou uma
+  demanda no painel (`renderOutboundItemPatch`): o Escritório reconsulta
+  cobranças e missões em 2,5 s, e o cliente zerado agradece e sai.
+- **Coluna da direita**: cobranças, missões e música dividem a altura da
+  coluna; o cabeçalho fica sempre à vista e só a lista rola. Nada vaza por
+  baixo da barra nem do aviso.

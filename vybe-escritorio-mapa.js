@@ -1355,6 +1355,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   // senta. Só se amontoam no meio quando não há mais lugar. Nome e um balão
   // que troca de frase; sem limite: muita coisa atrasada vira protesto.
   let visitantes = [], relogioFalas = 0, relogioPasseio = 0, noMapa = [];
+  // Balão na cor do status da demanda de que o cliente está falando
+  // (v.cores, paralela a v.falas; Paulo, 20/10/2026). Sem cor, fica o tom.
+  const corDaFala = (et, v, i) => {
+    const cor = v.cores?.[i];
+    if (cor) { et.style.setProperty("--fala", cor); et.dataset.corFala = ""; }
+    else { et.style.removeProperty("--fala"); delete et.dataset.corFala; }
+  };
   // Anda ladrilho a ladrilho no ritmo do Habbo e termina em pé ou sentado.
   const andarVisitante = (p, passos, fim) => {
     cancelAnimationFrame(p.passo);
@@ -1420,6 +1427,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       etiqueta.innerHTML = "<b></b><span class=\"mapa-reclama\"></span>";
       etiqueta.querySelector("b").textContent = v.nome;
       etiqueta.querySelector(".mapa-reclama").textContent = v.falas?.[0] || "";
+      corDaFala(etiqueta, v, 0);
       etiqueta.classList.toggle("grita", k === 0);
       etiqueta.style.setProperty("--sobe", (k % 2) * 20 + "px");
       etiqueta.title = v.dica || "";
@@ -1466,6 +1474,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const f = falando[vez];
       f.i = (f.i + 1) % (f.v.falas?.length || 1);
       f.alvo.textContent = f.v.falas?.[f.i] || "";
+      corDaFala(f.etiqueta, f.v, f.i);
       f.etiqueta.classList.add("grita");
     }, 4000);
   }

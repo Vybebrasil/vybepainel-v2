@@ -95,7 +95,7 @@ function pintarMissoesEscritorio() {
       ${lista.length ? `${total.pontos || total.moedas ? `<p class="ofc-missoes-total">Concluir tudo vale ${missaoValorHtml(total)}</p>` : ""}
       <div class="ofc-missoes-filtros" role="tablist" aria-label="Filtrar missões">${MISSOES_FILTROS.map(([k, rot]) => `<button type="button" role="tab" aria-selected="${k === filtro}" class="${k === filtro ? "ativo" : ""}${k === "atrasadas" && conta[k] ? " alerta" : ""}" onclick="filtrarMissoesEscritorio('${k}')">${rot}<span>${conta[k]}</span></button>`).join("")}</div>
       ${filtradas.length ? `<ol class="ofc-missoes-lista">${mostradas.map((m) => `<li><button type="button" class="ofc-missao${m.atrasada ? " atrasada" : m.hoje ? " hoje" : ""}" title="${safeText(missaoDicaTexto(m))}"
-          onclick="abrirMissaoEscritorio('${safeText(m.ref)}','${m.quadro}')">
+          onclick="abrirMissaoEscritorio('${safeText(m.ref)}','${m.quadro}',event)">
           <span class="ofc-missao-linha">${missaoPrazoHtml(m)}<span class="ofc-missao-valor">${missaoValorHtml(m.recompensa)}</span></span>
           <b class="ofc-missao-titulo">${safeText(m.titulo)}</b>
           ${missaoEtiquetasHtml(m)}
@@ -106,9 +106,22 @@ function pintarMissoesEscritorio() {
 }
 
 // Abre a demanda no mesmo painel lateral de sempre (Solicitações ou Produção).
-function abrirMissaoEscritorio(ref, quadro) {
-  const abrir = quadro === "demandas" ? window.openDemandaWorkspace : window.openItemWorkspace;
-  if (typeof abrir === "function") abrir(String(ref));
+// Abrir uma demanda no jogo é o cartão rápido do painel (Paulo, 20/10/2026:
+// "não era pra mudar a data? arquivar? alterar algo?"): status, datas,
+// responsável, prioridade, renomear e o menu "…" (arquivar), com "Abrir
+// detalhes" para a gaveta. O mesmo cartão das linhas do quadro
+// (abrirCartaoRapido), ancorado onde se clicou. Sem o clique ou sem a peça
+// carregada no painel, abre a gaveta como antes.
+function abrirMissaoEscritorio(ref, quadro, ev) {
+  const id = String(ref), pedido = quadro === "demandas";
+  const carregada = pedido ? (typeof DADOS_DEMANDAS !== "undefined" ? DADOS_DEMANDAS : []).some((d) => String(d.id) === id) : typeof findOperationalItem === "function" && Boolean(findOperationalItem(id));
+  const alvo = ev?.currentTarget || ev?.target;
+  if (typeof abrirCartaoRapido === "function" && carregada && alvo?.getBoundingClientRect) {
+    const r = alvo.getBoundingClientRect();
+    return abrirCartaoRapido(id, { currentTarget: { getBoundingClientRect: () => r } }, pedido ? "request" : "content");
+  }
+  const abrir = pedido ? window.openDemandaWorkspace : window.openItemWorkspace;
+  if (typeof abrir === "function") abrir(id);
 }
 
 // ── Clientes cobrando no quarto (brincadeira do Paulo, 19/10/2026) ───────────
@@ -116,9 +129,14 @@ function abrirMissaoEscritorio(ref, quadro) {
 // atrasadas, do dia depois do meio-dia, vencendo sem começar, para agendar.
 // Quando a demanda espera o próprio cliente, ele vai ao quarto do head pedir
 // para ser lembrado. Resolvida, o cliente agradece e vai embora.
-const COBRANCA_TOM = { atrasada: "cobra", hoje: "cobra", vence: "avisa", agendar: "cobra", lembrar_cliente: "lembra" };
+const COBRANCA_TOM = { atrasada: "cobra", hoje: "cobra", vence: "avisa", agendar: "cobra", lembrar_cliente: "lembra", marcar_gravacao: "lembra" };
+// Esperando aprovação do cliente (e não material): muda a fala e o rótulo.
+const cobrancaEsperaAprovacao = (c) => c.status_chave === "ag_aprovacao_cliente" || /aprova/i.test(c.status || "");
 function falasDaCobranca(c, dono) {
   const t = `"${c.titulo.length > 38 ? c.titulo.slice(0, 36) + "…" : c.titulo}"`, d = c.dias;
+  // "Aguardo" é esperar marcar a gravação com o cliente (Paulo, 20/10/2026).
+  if (c.tipo === "marcar_gravacao") return [`Bora marcar a gravação do ${t}?`, `${dono}, ainda falta marcar a gravação do ${t}!`];
+  if (c.tipo === "lembrar_cliente" && cobrancaEsperaAprovacao(c)) return [`Ainda não aprovei o ${t}. Me lembra?`, `${dono}, me cobra a aprovação do ${t}!`];
   if (c.tipo === "lembrar_cliente") return [`Tô devendo coisa do ${t}. Me cobra!`, `Me lembra de mandar o que falta do ${t}?`];
   if (c.tipo === "agendar") return d > 0 ? [`O ${t} já devia estar no ar!`, `Ninguém postou o ${t}? Faz ${d} dia${d > 1 ? "s" : ""}!`] : [`Hoje é dia do ${t} ir ao ar!`, `${dono}, não esquece de agendar o ${t}!`];
   if (c.tipo === "vence") return [`Amanhã vence o ${t}. Já dá pra começar?`, `${dono}, o ${t} é pra amanhã, hein!`];
@@ -136,7 +154,9 @@ function escritorioDonoDoQuarto() {
   return sala?.pessoa_id ? String(sala.pessoa_id) : null;
 }
 // Gravidade para ordenar e dar o tom do cliente (o pior pedido manda).
-const COBRANCA_PESO = { atrasada: 4, agendar: 3, hoje: 2, vence: 1, lembrar_cliente: 0 };
+const COBRANCA_PESO = { atrasada: 4, agendar: 3, hoje: 2, vence: 1, lembrar_cliente: 0, marcar_gravacao: 0 };
+// Lembretes (o cliente pedindo para ser lembrado) não são cobrança ao time.
+const COBRANCA_LEMBRETE = new Set(["lembrar_cliente", "marcar_gravacao"]);
 // Um cliente por boneco (com quantas demandas ele cobra no nome) e o quadro
 // "Cobrando neste quarto" na coluna, com cada demanda clicável: com um boneco
 // por demanda, os nomes se empilhavam e não dava para ver quem cobrava o quê.
@@ -150,7 +170,7 @@ function agruparCobrancas(lista) {
   for (const g of grupos) {
     g.itens.sort((x, y) => COBRANCA_PESO[y.tipo] - COBRANCA_PESO[x.tipo] || y.dias - x.dias);
     g.pior = g.itens[0];
-    g.cobra = g.itens.filter((c) => c.tipo !== "lembrar_cliente").length;
+    g.cobra = g.itens.filter((c) => !COBRANCA_LEMBRETE.has(c.tipo)).length;
   }
   return grupos.sort((x, y) => COBRANCA_PESO[y.pior.tipo] - COBRANCA_PESO[x.pior.tipo] || y.itens.length - x.itens.length);
 }
@@ -161,6 +181,8 @@ function cobrancaRotulo(c) {
   if (c.tipo === "hoje") return "Prazo é hoje";
   if (c.tipo === "vence") return `Prazo amanhã${dm}`;
   if (c.tipo === "agendar") return c.dias > 0 ? `Veiculação atrasada há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm}` : "Veiculação é hoje";
+  if (c.tipo === "marcar_gravacao") return `Marcar a gravação · prazo${dm || " sem data"}`;
+  if (cobrancaEsperaAprovacao(c)) return `Esperando aprovação do cliente · prazo${dm || " sem data"}`;
   return `Esperando o cliente · prazo${dm || " sem data"}`;
 }
 // Uma demanda cobrada, no padrão do painel: título, a data (sempre dizendo se
@@ -171,7 +193,7 @@ function cobrancaItemHtml(c, aoAbrir = "") {
   const status = item?.status || c.status;
   const pilula = status && typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(status, item?.status_color || "", item?.status_border || "") : status ? `<small>${safeText(status)}</small>` : "";
   const tom = c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : "";
-  return `<li><button type="button" class="ofc-cobranca" onclick="${aoAbrir}abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')" title="Abrir a demanda">
+  return `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}',event);${aoAbrir}" title="Abrir a demanda">
   <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}</span></button></li>`;
 }
 // Cabeçalho do cliente: a etiqueta da carteira (cor do painel), quantas
@@ -261,9 +283,26 @@ async function carregarCobrancasEscritorio() {
     figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(g, i) : undefined, falas, tom,
     dica: g.itens.map((c) => `${cobrancaRotulo(c)}: ${c.titulo}`).join("\n"), aoClicar: (e) => abrirCobrancaClienteEscritorio(g, e) });
   const deles = (g) => g.itens.flatMap((c) => falasDaCobranca(c, nomeDono).slice(0, 2));
-  const ativos = grupos.map((g, i) => visitante(g, i, deles(g), COBRANCA_TOM[g.pior.tipo] || "cobra"));
+  // Cor de cada fala: o status da demanda de que ela fala, como no quadro.
+  const corDe = (c) => { const it = typeof findOperationalItem === "function" ? findOperationalItem(c.ref) : null; return it?.status_color || (typeof focusTaskTone === "function" && c.status ? focusTaskTone(c.status) : ""); };
+  const coresDeles = (g) => g.itens.flatMap((c) => falasDaCobranca(c, nomeDono).slice(0, 2).map(() => corDe(c)));
+  const ativos = grupos.map((g, i) => ({ ...visitante(g, i, deles(g), COBRANCA_TOM[g.pior.tipo] || "cobra"), cores: coresDeles(g) }));
   mapa.definirVisitantes([...resolvidos.map((g, i) => visitante(g, grupos.length + i, [`Valeu, ${nomeDono}! Ficou ótimo.`], "agradece")), ...ativos]);
   if (resolvidos.length) setTimeout(() => { if (mapa === escritorio.mapa && quarto === escritorio.quarto) mapa.definirVisitantes(ativos); }, 8000);
+}
+// Mudou uma demanda no painel (status, data, arquivar): o Escritório
+// reconsulta missões e cobranças logo em seguida, em vez de esperar o ciclo
+// de 2 minutos (Paulo, 20/10/2026: "zerei a DiaCenter e o boneco continuou
+// falando das demandas"). Junta várias mudanças seguidas numa consulta só e
+// dá tempo de a gravação chegar ao banco.
+let ESCRITORIO_APOS_MUDANCA = 0;
+function escritorioAposMudancaDeDemanda() {
+  if (typeof escritorio === "undefined" || !escritorio.mapa) return;
+  clearTimeout(ESCRITORIO_APOS_MUDANCA);
+  ESCRITORIO_APOS_MUDANCA = setTimeout(() => {
+    carregarCobrancasEscritorio();
+    if (typeof carregarMissoesEscritorio === "function") carregarMissoesEscritorio(true);
+  }, 2500);
 }
 let RELOGIO_COBRANCAS = 0;
 function vigiarCobrancasEscritorio() {
