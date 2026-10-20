@@ -189,3 +189,43 @@ export async function responderTroca(sql, pessoa, salas, { id, acao }) {
   return { estado: 'aceita', economia: await carregarEconomia(tx, pessoa.id) };
  });
 }
+
+// Ficha do móvel (Paulo, 20/10/2026: "falar o que é, se foi comprado, ganho,
+// conquista, de onde veio"): de quem é a sala e como o dono conseguiu as
+// unidades daquele móvel, lido do razão, dos presentes, das trocas e dos marcos.
+export async function origemDoMovel(sql, salas, { camada, classe } = {}) {
+ if (!/^[a-z0-9_]{1,64}$/i.test(String(classe || ''))) throw erro('Móvel inválido.');
+ const tem = async (t) => (await sql`SELECT to_regclass(${'public.' + t}) IS NOT NULL AS existe`)[0]?.existe;
+ const [cat] = await tem('vybe_escritorio_catalogo') ? await sql`SELECT raridade,preco,marco FROM vybe_escritorio_catalogo WHERE classe=${classe}` : [];
+ const [rar] = cat?.raridade && await tem('vybe_escritorio_raridades') ? await sql`SELECT nome,preco FROM vybe_escritorio_raridades WHERE chave=${cat.raridade}` : [];
+ const loja = { raridade: rar?.nome || null, preco: cat?.preco ?? rar?.preco ?? null, marco: cat?.marco || null };
+ if (classe.startsWith('vybeimg_')) return { ...loja, tipo: 'imagem', origens: [{ tipo: 'imagem', texto: 'Imagem enviada pelo dono da sala.' }] };
+ const raiz = partesDaCamada(String(camada || ''))?.raiz;
+ const dono = raiz ? salas.find((s) => s.id === raiz)?.pessoa_id : null;
+ if (!dono) return { ...loja, tipo: 'sala_comum', origens: [{ tipo: 'sala_comum', texto: 'Peça da sala comum, montada pela Vybe.' }] };
+ const [p] = await sql`SELECT nome FROM vybe_pessoas WHERE id=${dono}`;
+ const base = { ...loja, dono: { id: String(dono), nome: p?.nome || '' } };
+ if (MOVEIS_ESSENCIAIS.includes(classe)) return { ...base, tipo: 'essencial', origens: [{ tipo: 'essencial', texto: 'Essencial: grátis para todo quarto.' }] };
+ const origens = [];
+ const [inv] = await sql`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${dono} AND classe=${classe}`;
+ if (loja.marco) {
+  const { MARCOS } = await import('./escritorio-marcos.js');
+  const m = MARCOS.find((x) => x.id === loja.marco);
+  const [f] = await tem('vybe_escritorio_marcos') ? await sql`SELECT em FROM vybe_escritorio_marcos WHERE pessoa_id=${dono} AND marco=${loja.marco}` : [];
+  origens.push({ tipo: 'conquista', texto: `Prêmio da conquista "${m?.nome || loja.marco}"${m?.dica ? ` (${m.dica.toLowerCase()})` : ''}. Não se compra.`, em: f?.em || null });
+ }
+ const [bolo] = await tem('vybe_escritorio_reinicios') ? await sql`SELECT executado_em FROM vybe_escritorio_reinicios WHERE chave='bolo-2026-10-20'` : [];
+ for (const c of await sql`SELECT -quantidade AS preco, criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${dono} AND origem LIKE ${'compra:%:' + classe} ORDER BY criado_em`)
+  origens.push({ tipo: 'compra', texto: `Comprado na loja por ${Number(c.preco)} VybeCoins.${bolo && new Date(c.criado_em) < new Date(bolo.executado_em) ? ' No recomeço de 20/10 o valor foi descontado do saldo novo.' : ''}`, em: c.criado_em });
+ if (await tem('vybe_escritorio_presentes'))
+  for (const g of await sql`SELECT g.criado_em, a.nome FROM vybe_escritorio_presentes g LEFT JOIN vybe_pessoas a ON a.id=g.de_pessoa WHERE g.para_pessoa=${dono} AND g.classe=${classe} ORDER BY g.criado_em`)
+   origens.push({ tipo: 'presente', texto: `Presente de ${g.nome || 'alguém da equipe'}.`, em: g.criado_em });
+ if (await tem('vybe_escritorio_trocas'))
+  for (const t of await sql`SELECT t.resolvido_em, a.nome AS de_nome, b.nome AS para_nome, t.de_pessoa FROM vybe_escritorio_trocas t
+    LEFT JOIN vybe_pessoas a ON a.id=t.de_pessoa LEFT JOIN vybe_pessoas b ON b.id=t.para_pessoa
+    WHERE t.estado='aceita' AND ((t.para_pessoa=${dono} AND t.oferece::text LIKE ${'%"' + classe + '"%'}) OR (t.de_pessoa=${dono} AND t.pede::text LIKE ${'%"' + classe + '"%'}))
+    ORDER BY t.resolvido_em`)
+   origens.push({ tipo: 'troca', texto: `Recebido numa troca com ${String(t.de_pessoa) === String(dono) ? t.para_nome : t.de_nome}.`, em: t.resolvido_em });
+ if (!origens.length) origens.push({ tipo: 'desconhecido', texto: 'Sem registro de compra, presente, troca ou conquista.' });
+ return { ...base, tipo: origens[0].tipo, unidades: Number(inv?.quantidade || 0), origens };
+}

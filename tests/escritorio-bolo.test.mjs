@@ -79,3 +79,23 @@ test('ficha e missões mostram a parte de cada um no bolo',async t=>{
  assert.deepEqual(de(200),{moedas:13,pontos:25});                      // reels: 50% de 2,5 × bolo
  assert.deepEqual(de(201),{moedas:7,pontos:13});                       // card: 65%
 });
+test('móveis comprados ficam e o preço sai do saldo novo, na data da compra, uma vez',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(2,500) ON CONFLICT (pessoa_id) DO UPDATE SET saldo=500;
+  INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade,criado_em) VALUES(2,'compra:k1:shelves_norja',-40,'2026-10-18T10:00:00-03:00'),(2,'compra:k2:waasa_desk',-40,'2026-10-18T11:00:00-03:00');
+  INSERT INTO vybe_escritorio_inventario VALUES(2,'shelves_norja',1),(2,'waasa_desk',1);`);
+ const [{id}]=await sql`SELECT id FROM vybe_escritorio_moedas WHERE origem='compra:k2:waasa_desk'`;
+ await sql`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(2,${'reembolso:compra:'+id},40)`;
+ await db.exec(BOLO);
+ const COMPRAS=ler('2026-10-20-escritorio-bolo-compras.sql');
+ await sql`SELECT vybe_lancar_pontos(2,'teste:saldo-novo','historico',NULL,100,0)`;
+ await db.exec(COMPRAS);
+ const [c]=await sql`SELECT quantidade, TO_CHAR(criado_em AT TIME ZONE 'America/Bahia','YYYY-MM-DD') dia FROM vybe_escritorio_moedas WHERE origem='compra:k1:shelves_norja'`;
+ assert.deepEqual([Number(c.quantidade),c.dia],[-40,'2026-10-18']);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_moedas WHERE origem='compra:k2:waasa_desk'`)[0].n,0); // já devolvida antes: não desconta
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_inventario WHERE pessoa_id=2`)[0].n,2);
+ const saldo=async()=>Number((await sql`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=2`)[0].saldo);
+ assert.equal(await saldo(),60);
+ await db.exec(COMPRAS);
+ assert.equal(await saldo(),60);
+});

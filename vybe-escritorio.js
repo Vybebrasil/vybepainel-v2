@@ -2103,7 +2103,7 @@ function abrirFichaMovelEscritorio(m) {
   const nome = cat ? escritorioNomeMovel(cat) : m.classe.replace(/_/g, " ");
   const acao = escritorioAcaoDoMovel(m) || (ESCRITORIO_REGULADOR.test(m.classe) ? { texto: "Regular a luz" } : null);
   const camada = m.origem?.camada, edita = camada && escritorioPodeEditar(camada);
-  card.innerHTML = `<div class="ofc-ficha-movel-arte"></div><b>${safeText(nome)}</b>${cat?.categoria ? `<small>${safeText(cat.categoria)}</small>` : ""}<div>${acao ? `<button type="button" class="ofc-mini" onclick="usarMovelSelecionadoEscritorio()">${safeText(acao.texto || "Usar")}</button>` : ""}${edita ? `<button type="button" class="ofc-mini" onclick="editarMovelSelecionadoEscritorio()">Editar</button>` : ""}<button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()" aria-label="Fechar">Fechar</button></div>`;
+  card.innerHTML = `<div class="ofc-ficha-movel-arte"></div><b>${safeText(nome)}</b>${cat?.categoria ? `<small>${safeText(cat.categoria)}</small>` : ""}<div class="ofc-ficha-movel-origem" aria-live="polite">${escritorioOrigemMovelHtml(m)}</div><div>${acao ? `<button type="button" class="ofc-mini" onclick="usarMovelSelecionadoEscritorio()">${safeText(acao.texto || "Usar")}</button>` : ""}${edita ? `<button type="button" class="ofc-mini" onclick="editarMovelSelecionadoEscritorio()">Editar</button>` : ""}<button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()" aria-label="Fechar">Fechar</button></div>`;
   // A arte do próprio móvel, como na ficha do Habbo.
   const fonte = m.no?.tagName === "CANVAS" ? m.no : m.no?.querySelector("canvas");
   if (fonte) {
@@ -2115,7 +2115,39 @@ function abrirFichaMovelEscritorio(m) {
   }
   card.hidden = false;
   vigiarFichaEscritorio();
+  carregarOrigemMovelEscritorio(m);
   if (!escritorioCatalogo) carregarCatalogoEscritorio().then(() => { if (escritorio.movelSelecionado === m && !card.hidden) abrirFichaMovelEscritorio(m); });
+}
+// De onde veio o móvel (Paulo, 20/10/2026): de quem é a sala, raridade e
+// preço na loja, e como o dono conseguiu (compra, presente, troca, conquista).
+const escritorioOrigensMovel = new Map();
+function escritorioChaveOrigem(m) { return (m.origem?.camada || "") + "|" + m.classe; }
+function escritorioOrigemMovelHtml(m) {
+  const o = escritorioOrigensMovel.get(escritorioChaveOrigem(m));
+  if (!m.origem?.camada || escritorio.base?.demo) return "";
+  if (!o) return '<small class="ofc-nota">Carregando de onde veio…</small>';
+  if (o.erro) return `<small class="ofc-nota" role="alert">${safeText(o.erro)}</small>`;
+  const data = (d) => (d ? new Date(d).toLocaleDateString("pt-BR") : "");
+  const loja = [o.raridade, o.marco ? "só por conquista" : o.preco != null ? `${Number(o.preco).toLocaleString("pt-BR")} VybeCoins na loja` : ""].filter(Boolean).join(" · ");
+  return `${o.dono ? `<small>Da sala de <b>${safeText(o.dono.nome.split(" ")[0])}</b>${o.unidades > 1 ? ` · ${o.unidades} unidades` : ""}</small>` : ""}${loja ? `<small>${safeText(loja)}</small>` : ""}<ul>${o.origens.map((x) => `<li>${safeText(x.texto)}${x.em ? ` <span>${data(x.em)}</span>` : ""}</li>`).join("")}</ul>${o.preco != null && !o.marco && !["essencial", "imagem"].includes(o.tipo) ? `<button type="button" class="ofc-mini" onclick="verNoCatalogoEscritorio('${safeText(m.classe)}')">Ver no catálogo</button>` : ""}`;
+}
+// Abre o catálogo na ficha deste móvel, com o botão de comprar (Paulo, 20/10/2026).
+function verNoCatalogoEscritorio(classe) {
+  if (!escritorioCatalogo) { carregarCatalogoEscritorio().then(() => verNoCatalogoEscritorio(classe)); return; }
+  const cat = escritorioCatalogo.find((x) => x.classe === classe);
+  fecharFichaMovelEscritorio();
+  escritorio.cat ||= { raridade: "", ordem: "preco", categoria: "*", busca: "", posso: false, ver: 60, aba: "loja", inv: "todos" };
+  Object.assign(escritorio.cat, { busca: cat ? escritorioNomeMovel(cat) : classe, raridade: "", categoria: "*", posso: false, ver: 60 });
+  abrirCatalogoEscritorio("loja");
+  abrirPreviaMovelEscritorio(classe);
+}
+async function carregarOrigemMovelEscritorio(m) {
+  const k = escritorioChaveOrigem(m);
+  if (!m.origem?.camada || escritorio.base?.demo || escritorioOrigensMovel.has(k)) return;
+  try { escritorioOrigensMovel.set(k, await escritorioApi("movel-origem", null, { camada: m.origem.camada, classe: m.classe })); }
+  catch (e) { escritorioOrigensMovel.set(k, { erro: "Não deu para ver de onde veio agora." }); setTimeout(() => escritorioOrigensMovel.delete(k), 30000); }
+  const alvo = document.querySelector("#office-movel-card .ofc-ficha-movel-origem");
+  if (alvo && escritorio.movelSelecionado === m) alvo.innerHTML = escritorioOrigemMovelHtml(m);
 }
 // Ficha de móvel ou pessoa fecha também ao clicar fora dela (andar,
 // selecionar outra coisa) e com Esc (Paulo, 19/10/2026: "não tá tendo como

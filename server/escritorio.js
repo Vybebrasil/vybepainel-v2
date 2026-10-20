@@ -3,7 +3,7 @@ import { carregarEconomia, comprarMovel, perfilPublico } from "./escritorio-econ
 import { missoesDaPessoa } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
-import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca } from "./escritorio-social.js";
+import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -329,6 +329,10 @@ export async function areaEscritorio(req, res, quem, sql) {
       const alvo = String(req.query?.pessoa || pessoa.id);
       if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
       return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo)) });
+    }
+    if (acao === "movel-origem") {
+      const { salas } = await carregarEscritorio(sql, pessoa);
+      return res.status(200).json({ ok: true, ...(await origemDoMovel(sql, salas, { camada: String(req.query?.camada || ""), classe: String(req.query?.classe || "") })) });
     }
     if (acao === "trocas") return res.status(200).json({ ok: true, trocas: await listarTrocas(sql, pessoa) });
     if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });

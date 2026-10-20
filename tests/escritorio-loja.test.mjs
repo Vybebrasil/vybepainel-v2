@@ -179,3 +179,22 @@ test('devolução única: quem já tinha a conquista recebe o móvel que sumiu, 
  await db.exec(migracao);                                    // marcador: não devolve outra vez
  assert.equal(await inventario(sql,4,'prize3'),0);
 });
+test('ficha do móvel diz de quem é a sala e como o dono conseguiu: compra, conquista, essencial, sala comum',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(MIGRACAO_CONQUISTAS);
+ const {origemDoMovel}=await import('../server/escritorio-social.js');
+ const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const equipe=(await sql`SELECT id,nome FROM vybe_pessoas ORDER BY nome`).map(p=>({id:String(p.id),nome:p.nome}));
+ const salas=salasDoEscritorio(equipe), sala=salas.find(s=>s.pessoa_id==='1').id;
+ await creditar(sql,1,1000);
+ await comprarMovel(sql,1,{classe:'shelves_norja',chave:crypto.randomUUID()},AGORA);
+ let o=await origemDoMovel(sql,salas,{camada:sala,classe:'shelves_norja'});
+ assert.equal(o.dono.nome,'Paulo Martins');assert.equal(o.tipo,'compra');assert.equal(o.unidades,1);
+ assert.match(o.origens[0].texto,/Comprado na loja por 40|Comprado na loja por 25/);
+ await db.exec(`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(1,'primeira')`);
+ o=await origemDoMovel(sql,salas,{camada:sala,classe:'prize3'});
+ assert.equal(o.tipo,'conquista');assert.match(o.origens[0].texto,/Primeira entrega/);assert.ok(o.origens[0].em);
+ assert.equal((await origemDoMovel(sql,salas,{camada:sala,classe:'exe_table'})).tipo,'essencial');
+ assert.equal((await origemDoMovel(sql,salas,{camada:'cafe',classe:'exe_table'})).tipo,'sala_comum');
+ await assert.rejects(origemDoMovel(sql,salas,{camada:sala,classe:"x'; drop"}),/inválido/);
+});

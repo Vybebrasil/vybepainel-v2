@@ -449,6 +449,14 @@ trabalhou na peça, pelas fatias de `vybe_escritorio_fatias`:
   `bolo-2026-10-20`): moedas, XP, conquistas e móveis de conquista zeram (com
   cópia em `vybe_escritorio_copia_bolo_*`) e o log inteiro é refeito pela regra
   nova, evento a evento, com a data de cada um. Antes de 17/10 vale o XP
-  inteiro e 20% das moedas (regra `historico`). Móveis comprados continuam.
+  inteiro e 20% das moedas (regra `historico`). Móveis comprados continuam e,
+  depois das conquistas refeitas, `2026-10-20-escritorio-bolo-compras.sql`
+  (marcador `bolo-compras-2026-10-20`) desconta o preço de cada compra do saldo
+  novo, na data da compra, sem ficar negativo.
   Fechamentos do dia e da semana recomeçam (o ciclo diário fecha os últimos 7
   dias de novo).
+
+- Ficha do móvel no mapa (`acao=movel-origem`, `origemDoMovel` em
+  `server/escritorio-social.js`): de quem é a sala, raridade e preço, e como o
+  dono conseguiu cada unidade (compra, presente, troca, conquista, essencial,
+  sala comum), com "Ver no catálogo" para o que está à venda.
