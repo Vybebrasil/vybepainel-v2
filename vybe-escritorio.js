@@ -576,6 +576,7 @@ function escritorioIcone(nome) {
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
     fone: '<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
     inventario: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 016 0v2"/>',
+    ranking: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8.5 20h7M10 17h4v3h-4z"/>',
     agenda: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17h2M11 17h2"/>',
     loja: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0A2.7 2.7 0 0020 9"/><path d="M5.5 11.5V20h13v-8.5M10 20v-5h4v5"/>',
   }[nome] || "";
@@ -1377,7 +1378,7 @@ function atualizarControlesEscritorio() {
     const tranca = escritorioPodeTrancar() ? item("trancarZonaEscritorio()", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
     const poses = escritorio.conectado ? `<span class="ofc-mais-titulo">Seu boneco</span>${item("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", "Acenar <kbd>1</kbd>")}${item("deitarEscritorio()", "Deitar <kbd>2</kbd>")}${item("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", "Café na mão <kbd>3</kbd>")}${item("sentarNoChaoEscritorio()", (escritorio.noChao ? "Levantar" : "Sentar no chão") + " <kbd>4</kbd>")}<span class="ofc-mais-titulo">Rosto</span>${item("expressaoEscritorio('triste')", "Triste <kbd>5</kbd>")}${item("expressaoEscritorio('surpreso')", "Surpreso <kbd>6</kbd>")}${item("expressaoEscritorio('bravo')", "Bravo <kbd>7</kbd>")}<span class="ofc-mais-titulo">Placa</span>${item("placaEscritorio('coracao')", "Coração <kbd>8</kbd>")}${item("placaEscritorio('exclamacao')", "Exclamação <kbd>9</kbd>")}${item("placaEscritorio('sorriso')", "Sorriso")}${["um", "dois", "tres"].map((n, i) => item(`placaEscritorio('${n}')`, "Número " + (i + 1))).join("")}${escritorio.quarto ? `<span class="ofc-mais-titulo">Sala</span>${item("abrirNovoPostitEscritorio()", "Colar post-it na parede")}` : ""}` : "";
     return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
-  })()}<span class="ofc-sep"></span>${escritorioMinhaMesa() ? botao("irParaMinhaMesaEscritorio()", "mesa", "Minha sala", 'title="Ir para a minha sala e sentar na minha mesa"', { texto: true }) : ""}${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
+  })()}<span class="ofc-sep"></span>${escritorioMinhaMesa() ? botao("irParaMinhaMesaEscritorio()", "mesa", "Minha sala", 'title="Ir para a minha sala e sentar na minha mesa"', { texto: true, classe: "destaque" }) : ""}${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ' title="Voltar ao painel de trabalho (demandas, agenda, clientes)"'}`, { texto: true, classe: "destaque principal" })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -1407,6 +1408,7 @@ function renderEscritorio() {
  ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
  ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
  ${rail("agenda", "agenda", "Agenda", "abrirAgendaEscritorio()", false)}
+ ${rail("ranking", "ranking", "Ranking", "abrirRankingEscritorio()", false)}
  ${rail("inventario", "inventario", "Inventário", "abrirCatalogoEscritorio('inventario')", false)}
  ${rail("loja", "loja", "Catálogo", "abrirCatalogoEscritorio()", false)}
  <span class="ofc-rail-fim"></span>
@@ -1494,6 +1496,7 @@ function montarMapaEscritorio() {
       eu: escritorio.base.eu,
       aoClicar: (x, y, objeto) => cliqueNoMapaEscritorio(x, y, objeto),
       aoDuploClique: (x, y, objeto) => alternarComDuploCliqueEscritorio(x, y, objeto),
+      aoPassarMovel: (m) => preCarregarOrigemMovelEscritorio(m),
       aoPassar: (x, y, cx, cy) => passarNoMapaEscritorio(x, y, cx, cy),
       aoPegar: (x, y, fx, fy) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y, fx, fy),
       aoArrastar: (x, y, fx, fy) => arrastarNoEditorEscritorio(x, y, fx, fy),
@@ -2095,19 +2098,37 @@ function escritorioLadoLivre(r) {
 }
 // Ficha do móvel (infostand do Habbo): o clique num móvel o seleciona e
 // mostra nome e ações, sem andar. Usar fica no botão e no duplo clique.
+// Ficha do móvel (infostand do Habbo, desenho novo em 20/10/2026): abre na
+// hora com o que o navegador já sabe (arte, nome, categoria, dono da sala) e
+// completa com a origem vinda do servidor. As ações do móvel ficam nela:
+// clicar num assento ou cama mostra "Sentar"/"Deitar" em vez de sentar direto.
 function abrirFichaMovelEscritorio(m) {
   const card = document.getElementById("office-movel-card");
   if (!card || !m) return;
   escritorio.movelSelecionado = m;
   const cat = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === m.classe);
   const nome = cat ? escritorioNomeMovel(cat) : m.classe.replace(/_/g, " ");
+  const f = typeof mapaFisica === "function" ? mapaFisica(m.classe) : {};
+  const acoes = [];
+  if (f.senta) acoes.push(["Sentar", "sentarNoMovelSelecionadoEscritorio()"]);
+  if (f.deita) acoes.push(["Deitar", "sentarNoMovelSelecionadoEscritorio()"]);
   const acao = escritorioAcaoDoMovel(m) || (ESCRITORIO_REGULADOR.test(m.classe) ? { texto: "Regular a luz" } : null);
-  const camada = m.origem?.camada, edita = camada && escritorioPodeEditar(camada);
-  card.innerHTML = `<div class="ofc-ficha-movel-arte"></div><b>${safeText(nome)}</b>${cat?.categoria ? `<small>${safeText(cat.categoria)}</small>` : ""}<div class="ofc-ficha-movel-origem" aria-live="polite">${escritorioOrigemMovelHtml(m)}</div><div>${acao ? `<button type="button" class="ofc-mini" onclick="usarMovelSelecionadoEscritorio()">${safeText(acao.texto || "Usar")}</button>` : ""}${edita ? `<button type="button" class="ofc-mini" onclick="editarMovelSelecionadoEscritorio()">Editar</button>` : ""}<button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()" aria-label="Fechar">Fechar</button></div>`;
+  if (acao) acoes.push([acao.texto || "Usar", "usarMovelSelecionadoEscritorio()"]);
+  const camada = m.origem?.camada;
+  if (camada && escritorioPodeEditar(camada)) acoes.push(["Editar", "editarMovelSelecionadoEscritorio()", true]);
+  const raiz = camada ? escritorioRaizQuarto(camada) : "";
+  const donoId = escritorio.base?.salas?.find((x) => x.id === raiz)?.pessoa_id;
+  const dono = donoId ? (escritorio.base?.equipe || []).find((p) => String(p.id) === String(donoId)) : null;
+  const cabeca = dono ? escritorioCabecaUrl(dono.id) : null;
+  card.innerHTML = `<button type="button" class="ofc-fm-fechar" onclick="fecharFichaMovelEscritorio()" aria-label="Fechar">×</button>
+<div class="ofc-fm-topo"><div class="ofc-ficha-movel-arte"></div><div class="ofc-fm-titulo"><b>${safeText(nome)}</b>${cat?.categoria ? `<small>${safeText(cat.categoria)}</small>` : ""}
+<span class="ofc-fm-dono">${dono ? `${cabeca ? `<img src="${safeText(cabeca)}" alt="" width="22" height="22">` : ""}Sala de ${safeText(String(dono.nome).split(" ")[0])}` : camada && !raiz.startsWith("sala-") ? "Sala comum" : ""}</span></div></div>
+<div class="ofc-ficha-movel-origem" aria-live="polite">${escritorioOrigemMovelHtml(m)}</div>
+${acoes.length ? `<div class="ofc-fm-acoes">${acoes.map(([t, fn, sec], k) => `<button type="button" class="${k === 0 && !sec ? "ofc-primario" : "ofc-secundario"}" onclick="${fn}">${safeText(t)}</button>`).join("")}</div>` : ""}`;
   // A arte do próprio móvel, como na ficha do Habbo.
   const fonte = m.no?.tagName === "CANVAS" ? m.no : m.no?.querySelector("canvas");
   if (fonte) {
-    const c = document.createElement("canvas"), k = Math.min(1, 96 / Math.max(fonte.width, fonte.height));
+    const c = document.createElement("canvas"), k = Math.min(1.5, 84 / Math.max(fonte.width, fonte.height));
     c.width = Math.round(fonte.width * k); c.height = Math.round(fonte.height * k);
     const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
     for (const parte of m.no?.tagName === "CANVAS" ? [m.no] : m.no.querySelectorAll("canvas")) g.drawImage(parte, 0, 0, c.width, c.height);
@@ -2118,19 +2139,47 @@ function abrirFichaMovelEscritorio(m) {
   carregarOrigemMovelEscritorio(m);
   if (!escritorioCatalogo) carregarCatalogoEscritorio().then(() => { if (escritorio.movelSelecionado === m && !card.hidden) abrirFichaMovelEscritorio(m); });
 }
+// Sentar ou deitar pelo botão da ficha (ou pelo duplo clique): anda até o
+// ladrilho do móvel, como o clique fazia antes.
+function sentarNoMovelSelecionadoEscritorio(m = escritorio.movelSelecionado) {
+  if (!m) return;
+  fecharFichaMovelEscritorio();
+  cliqueNoMapaEscritorio(Math.floor(m.x) + 0.5, Math.floor(m.y) + 0.5, { tipo: "movel", item: m, andar: true });
+}
 // De onde veio o móvel (Paulo, 20/10/2026): de quem é a sala, raridade e
 // preço na loja, e como o dono conseguiu (compra, presente, troca, conquista).
+// Guarda a resposta e a promessa: clicar de novo não busca outra vez.
 const escritorioOrigensMovel = new Map();
+const ESCRITORIO_ORIGEM_ICONE = { compra: "moeda", conquista: "estrela" };
 function escritorioChaveOrigem(m) { return (m.origem?.camada || "") + "|" + m.classe; }
 function escritorioOrigemMovelHtml(m) {
-  const o = escritorioOrigensMovel.get(escritorioChaveOrigem(m));
   if (!m.origem?.camada || escritorio.base?.demo) return "";
-  if (!o) return '<small class="ofc-nota">Carregando de onde veio…</small>';
+  const o = escritorioOrigensMovel.get(escritorioChaveOrigem(m));
+  if (!o || o.then) return '<div class="ofc-fm-carregando" aria-label="Carregando"><i></i><i></i></div>';
   if (o.erro) return `<small class="ofc-nota" role="alert">${safeText(o.erro)}</small>`;
-  const data = (d) => (d ? new Date(d).toLocaleDateString("pt-BR") : "");
-  const loja = [o.raridade, o.marco ? "só por conquista" : o.preco != null ? `${Number(o.preco).toLocaleString("pt-BR")} VybeCoins na loja` : ""].filter(Boolean).join(" · ");
-  return `${o.dono ? `<small>Da sala de <b>${safeText(o.dono.nome.split(" ")[0])}</b>${o.unidades > 1 ? ` · ${o.unidades} unidades` : ""}</small>` : ""}${loja ? `<small>${safeText(loja)}</small>` : ""}<ul>${o.origens.map((x) => `<li>${safeText(x.texto)}${x.em ? ` <span>${data(x.em)}</span>` : ""}</li>`).join("")}</ul>${o.preco != null && !o.marco && !["essencial", "imagem"].includes(o.tipo) ? `<button type="button" class="ofc-mini" onclick="verNoCatalogoEscritorio('${safeText(m.classe)}')">Ver no catálogo</button>` : ""}`;
+  const data = (d) => (d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "");
+  const chaveRar = String(o.raridade || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "_");
+  const chips = `${o.raridade ? `<em class="ofc-raridade ${safeText(chaveRar)}">${safeText(o.raridade)}</em>` : ""}${o.marco ? '<span class="ofc-fm-chip">Só por conquista</span>' : o.preco != null && o.tipo !== "essencial" ? `<span class="ofc-fm-chip">${Number(o.preco).toLocaleString("pt-BR")} VybeCoins</span>` : ""}${o.unidades > 1 ? `<span class="ofc-fm-chip">${o.unidades} unidades</span>` : ""}`;
+  const icone = (t) => (typeof escritorioFichaIcone === "function" ? escritorioFichaIcone(ESCRITORIO_ORIGEM_ICONE[t] || "caixa") : "");
+  const venda = o.preco != null && !o.marco && !["essencial", "imagem"].includes(o.tipo);
+  return `${chips ? `<div class="ofc-fm-chips">${chips}</div>` : ""}<ul class="ofc-fm-origens">${o.origens.map((x) => `<li><i aria-hidden="true">${icone(x.tipo)}</i><span>${safeText(x.texto)}</span>${x.em ? `<time>${data(x.em)}</time>` : ""}</li>`).join("")}</ul>${venda ? `<button type="button" class="ofc-fm-catalogo" onclick="verNoCatalogoEscritorio('${safeText(m.classe)}')">Ver no catálogo</button>` : ""}`;
 }
+function carregarOrigemMovelEscritorio(m) {
+  const k = escritorioChaveOrigem(m);
+  if (!m.origem?.camada || escritorio.base?.demo || escritorioOrigensMovel.has(k)) return escritorioOrigensMovel.get(k);
+  const p = escritorioApi("movel-origem", null, { camada: m.origem.camada, classe: m.classe })
+    .then((o) => { escritorioOrigensMovel.set(k, o); })
+    .catch(() => { escritorioOrigensMovel.set(k, { erro: "Não deu para ver de onde veio agora." }); setTimeout(() => escritorioOrigensMovel.delete(k), 30000); })
+    .then(() => {
+      // Atualiza a ficha aberta se ela ainda é deste móvel (mesma sala e classe).
+      const alvo = document.querySelector("#office-movel-card:not([hidden]) .ofc-ficha-movel-origem"), sel = escritorio.movelSelecionado;
+      if (alvo && sel && escritorioChaveOrigem(sel) === k) alvo.innerHTML = escritorioOrigemMovelHtml(sel);
+    });
+  escritorioOrigensMovel.set(k, p);
+  return p;
+}
+// Passou o mouse num móvel: já busca a origem, para a ficha abrir pronta.
+function preCarregarOrigemMovelEscritorio(m) { if (m && !escritorio.edicao) carregarOrigemMovelEscritorio(m); }
 // Abre o catálogo na ficha deste móvel, com o botão de comprar (Paulo, 20/10/2026).
 function verNoCatalogoEscritorio(classe) {
   if (!escritorioCatalogo) { carregarCatalogoEscritorio().then(() => verNoCatalogoEscritorio(classe)); return; }
@@ -2140,14 +2189,6 @@ function verNoCatalogoEscritorio(classe) {
   Object.assign(escritorio.cat, { busca: cat ? escritorioNomeMovel(cat) : classe, raridade: "", categoria: "*", posso: false, ver: 60 });
   abrirCatalogoEscritorio("loja");
   abrirPreviaMovelEscritorio(classe);
-}
-async function carregarOrigemMovelEscritorio(m) {
-  const k = escritorioChaveOrigem(m);
-  if (!m.origem?.camada || escritorio.base?.demo || escritorioOrigensMovel.has(k)) return;
-  try { escritorioOrigensMovel.set(k, await escritorioApi("movel-origem", null, { camada: m.origem.camada, classe: m.classe })); }
-  catch (e) { escritorioOrigensMovel.set(k, { erro: "Não deu para ver de onde veio agora." }); setTimeout(() => escritorioOrigensMovel.delete(k), 30000); }
-  const alvo = document.querySelector("#office-movel-card .ofc-ficha-movel-origem");
-  if (alvo && escritorio.movelSelecionado === m) alvo.innerHTML = escritorioOrigemMovelHtml(m);
 }
 // Ficha de móvel ou pessoa fecha também ao clicar fora dela (andar,
 // selecionar outra coisa) e com Esc (Paulo, 19/10/2026: "não tá tendo como
@@ -2235,8 +2276,10 @@ function cliqueNoMapaEscritorio(x, y, objeto = null) {
   }
   escritorio.mapa?.selecionarPessoa(null);
   if (objeto?.tipo === "movel") {
-    const m = objeto.item, f = mapaFisica(m.classe);
-    if (!(f.senta || f.deita) && !ESCRITORIO_REGULADOR.test(m.classe)) { abrirFichaMovelEscritorio(m); return; }
+    const m = objeto.item;
+    // Clique mostra a ficha com as ações (Paulo, 20/10/2026: a cadeira sentava
+    // direto, sem dar para ver o móvel). Sentar vem do botão ou do duplo clique.
+    if (!objeto.andar && !ESCRITORIO_REGULADOR.test(m.classe)) { abrirFichaMovelEscritorio(m); return; }
     // Assento ou cama: anda até ele (pelo ladrilho do móvel, não o de trás).
     x = Math.floor(m.x) + 0.5; y = Math.floor(m.y) + 0.5;
   }
@@ -2553,7 +2596,12 @@ function teletransportarEscritorio(id) {
 function alternarComDuploCliqueEscritorio(x, y, objeto = null) {
   if (escritorio.edicao || !escritorio.mapa) return;
   // O móvel sob o pixel vale mais que o ladrilho do chão (Nitro).
-  if (objeto?.tipo === "movel") { x = Math.floor(objeto.item.x); y = Math.floor(objeto.item.y); fecharFichaMovelEscritorio(); }
+  // Duplo clique num assento ou cama: senta ou deita direto.
+  if (objeto?.tipo === "movel") {
+    const fis = mapaFisica(objeto.item.classe);
+    if (fis.senta || fis.deita) return sentarNoMovelSelecionadoEscritorio(objeto.item);
+    x = Math.floor(objeto.item.x); y = Math.floor(objeto.item.y); fecharFichaMovelEscritorio();
+  }
   const m = (escritorio.mapa.moveisEm(x, y) || []).find((i) => !i.parede && !ESCRITORIO_DADO.test(i.classe) && !ESCRITORIO_TELEPORTE.test(i.classe) && !MAPA_PORTAS.test(i.classe) && (escritorioEstadosDoMovel(i).length > 1 || ["relogio", "voto", "placar"].includes(escritorioLogica(i))));
   if (!m) return;
   if (/floor_switch/.test(m.classe)) return puxarAlavancaEscritorio(m);

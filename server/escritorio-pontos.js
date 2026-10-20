@@ -126,7 +126,9 @@ export async function fecharPontosEscritorio(sql, agora = new Date(), { janela =
     const r = await sql.comTransacao(tx => fecharSemana(tx, inicio));
     if (r) semanas.push(r);
   }
-  return { disponivel: true, hoje, dias, semanas };
+  // Ranking: só a semana que acabou (o pódio é pago uma vez, depois da meta).
+  const ranking = await sql.comTransacao(tx => fecharRankingSemana(tx, somarDias(atual, -7)));
+  return { disponivel: true, hoje, dias, semanas, ranking };
 }
 // O que a ficha mostra da própria pessoa: nível, meta da semana e extrato.
 export async function resumoPontos(sql, pessoaId, agora = new Date()) {
@@ -279,4 +281,97 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
     };
   });
   return { disponivel: true, funcao, missoes };
+}
+
+// Ranking da semana (decisão do Paulo, 20/10/2026: "competição saudável").
+// Zera toda segunda (semana da Bahia). Geral por % da própria meta da semana
+// (justo entre funções diferentes), com XP e moedas da semana e um ranking
+// por tipo de atividade. No fechamento da semana o pódio ganha prêmio e, se a
+// agência bater a meta de peças, todo mundo ganha o bônus (valores em
+// vybe_escritorio_regras; troféus em vybe_escritorio_catalogo.marco).
+export const ATIVIDADES_DO_RANKING = [
+  ['peca_criacao', 'Peças feitas'], ['peca_producao', 'Fotos e vídeos captados'], ['peca_da', 'Aprovações do DA'],
+  ['peca_agendamento', 'Peças agendadas'], ['peca_atendimento', 'Peças da carteira'], ['cadastro', 'Demandas cadastradas'],
+  ['briefing', 'Briefings escritos'], ['entrega_prazo', 'Entregas no prazo'], ['criacao_aprovada', 'Aprovadas de primeira'],
+];
+const FORA_DO_RANKING = ['conquista', 'ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia'];
+export async function rankingProntoEscritorio(sql) {
+  const [r] = await sql`SELECT EXISTS(SELECT 1 FROM vybe_escritorio_regras WHERE chave='ranking_1') AS existe`;
+  return Boolean(r?.existe);
+}
+// Peças concluídas pela agência numa semana (cada peça uma vez, por qualquer papel do bolo).
+async function pecasDaAgencia(sql, de, ate) {
+  const [r] = await sql`SELECT count(DISTINCT conteudo_id)::int AS n FROM vybe_escritorio_entregas
+    WHERE regra LIKE 'peca_%' AND conteudo_id IS NOT NULL AND dia >= ${de}::date AND dia <= ${ate}::date`;
+  return Number(r?.n || 0);
+}
+// Meta da agência: média de peças por semana nas últimas 8 semanas completas.
+async function metaDaAgencia(sql, inicio, semanas = 8) {
+  const desde = somarDias(inicio, -7 * semanas);
+  const linhas = await sql`SELECT TO_CHAR(date_trunc('week', dia),'YYYY-MM-DD') AS semana, count(DISTINCT conteudo_id)::int AS n
+    FROM vybe_escritorio_entregas WHERE regra LIKE 'peca_%' AND conteudo_id IS NOT NULL AND dia >= ${desde}::date AND dia < ${inicio}::date GROUP BY 1`;
+  const usadas = linhas.filter((l) => Number(l.n) > 0);
+  if (!usadas.length) return 1;
+  return Math.max(1, Math.round(usadas.reduce((t, l) => t + Number(l.n), 0) / usadas.length));
+}
+export async function rankingDaSemana(sql, agora = new Date(), inicio = inicioDaSemana(diaBahia(agora))) {
+  if (!await pontosProntos(sql)) return { disponivel: false };
+  const fim = somarDias(inicio, 6);
+  const pessoas = await sql`SELECT f.pessoa_id, f.funcao, p.nome FROM vybe_escritorio_funcoes f JOIN vybe_pessoas p ON p.id=f.pessoa_id
+    WHERE p.ativo=TRUE ORDER BY p.nome`;
+  const ganhos = await sql`SELECT pessoa_id, regra, count(*)::int AS n, COALESCE(sum(pontos),0)::int AS xp, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas
+    FROM vybe_escritorio_moedas WHERE vybe_dia_bahia(criado_em) >= ${inicio}::date AND vybe_dia_bahia(criado_em) <= ${fim}::date
+      AND regra IS NOT NULL AND NOT (regra = ANY(${FORA_DO_RANKING}::text[])) GROUP BY 1,2`;
+  const lista = [];
+  for (const p of pessoas) {
+    const meus = ganhos.filter((g) => String(g.pessoa_id) === String(p.pessoa_id));
+    const m = await metaDaSemana(sql, p.pessoa_id, inicio);
+    lista.push({
+      id: String(p.pessoa_id), nome: p.nome, funcao: p.funcao, meta: m.meta, entregas: m.entregas,
+      pct: m.meta ? Math.round((m.entregas / m.meta) * 100) : 0,
+      xp: meus.reduce((t, g) => t + Number(g.xp), 0), moedas: meus.reduce((t, g) => t + Number(g.moedas), 0),
+      atividades: Object.fromEntries(meus.map((g) => [g.regra, Number(g.n)])),
+    });
+  }
+  // Geral: % da meta, desempate pelo XP da semana.
+  lista.sort((a, b) => b.pct - a.pct || b.xp - a.xp || a.nome.localeCompare(b.nome));
+  lista.forEach((p, i) => { p.posicao = p.entregas > 0 ? i + 1 : null; });
+  const premios = await sql`SELECT r.chave, r.moedas, r.pontos, c.classe FROM vybe_escritorio_regras r
+    LEFT JOIN vybe_escritorio_catalogo c ON c.marco=r.chave WHERE r.chave = ANY(${['ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia']}::text[]) AND r.ativa ORDER BY r.chave`;
+  const agencia = { pecas: await pecasDaAgencia(sql, inicio, fim), meta: await metaDaAgencia(sql, inicio) };
+  agencia.pct = Math.round((agencia.pecas / agencia.meta) * 100);
+  agencia.bateu = agencia.pecas >= agencia.meta;
+  return { disponivel: true, inicio, fim, pessoas: lista, atividades: ATIVIDADES_DO_RANKING.map(([chave, nome]) => ({ chave, nome })),
+    agencia, premios: premios.map((p) => ({ chave: p.chave, moedas: Number(p.moedas), pontos: Number(p.pontos), classe: p.classe || null })) };
+}
+// O que a tela mostra: a semana atual e o resultado da anterior (pódio pago).
+export async function rankingEscritorio(sql, agora = new Date()) {
+  if (!await pontosProntos(sql) || !await rankingProntoEscritorio(sql)) return { disponivel: false };
+  const atual = await rankingDaSemana(sql, agora);
+  const anterior = somarDias(atual.inicio, -7);
+  const pagos = await sql`SELECT m.pessoa_id, m.regra, p.nome FROM vybe_escritorio_moedas m JOIN vybe_pessoas p ON p.id=m.pessoa_id
+    WHERE m.origem LIKE ${'ranking:' + anterior + ':%'} ORDER BY m.regra`;
+  const [agenciaPaga] = await sql`SELECT count(*)::int AS n FROM vybe_escritorio_moedas WHERE origem LIKE ${'agencia-semana:' + anterior + '%'}`;
+  return { ...atual, anterior: { inicio: anterior, fim: somarDias(anterior, 6), podio: pagos.map((p) => ({ id: String(p.pessoa_id), nome: p.nome, posicao: Number(p.regra.slice(-1)) })), agenciaBateu: Number(agenciaPaga?.n || 0) > 0 } };
+}
+// Fecha o ranking de uma semana: 1º, 2º e 3º (com entrega na semana) ganham
+// o prêmio e o troféu; meta da agência batida dá o bônus a todos. Uma vez só
+// (marca em vybe_escritorio_fechamentos, origens únicas no razão).
+async function fecharRankingSemana(tx, inicio) {
+  if (!await rankingProntoEscritorio(tx)) return null;
+  if (!await marcar(tx, 'ranking:' + inicio)) return null;
+  const r = await rankingDaSemana(tx, new Date(), inicio);
+  const fim = somarDias(inicio, 6), pagos = [];
+  const podio = r.pessoas.filter((p) => p.entregas > 0 && p.pct > 0).slice(0, 3);
+  for (const [i, p] of podio.entries()) {
+    const chave = 'ranking_' + (i + 1);
+    if (!await aplicar(tx, p.id, chave, `ranking:${inicio}:${i + 1}`, fim)) continue;
+    const trofeu = r.premios.find((x) => x.chave === chave)?.classe;
+    if (trofeu) await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${p.id},${trofeu},1)
+      ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
+    pagos.push({ id: p.id, posicao: i + 1 });
+  }
+  let agencia = 0;
+  if (r.agencia.bateu) for (const p of r.pessoas) if (await aplicar(tx, p.id, 'meta_agencia', `agencia-semana:${inicio}`, fim)) agencia++;
+  return { inicio, pagos, agencia };
 }

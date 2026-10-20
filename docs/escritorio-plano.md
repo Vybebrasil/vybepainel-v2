@@ -1085,3 +1085,14 @@ decoração inicial "bem feito".
   (marcador `bolo-2026-10-20`) e as compras descontadas
   (`2026-10-20-escritorio-bolo-compras.sql`), aplicadas em 20/10/2026 depois do
   OK do Paulo (#266), com as conquistas refeitas no meio. Saldo e XP batem com o razão.
+
+### Ranking, ficha do móvel nova e barra do jogo — 20/10/2026
+
+- Ranking da semana (Paulo mudou a decisão de 19/10): botão Ranking, abas
+  Geral (% da meta), XP da semana, Por atividade e Agência; pódio e bônus
+  pagos no fechamento da semana (`2026-10-20-escritorio-ranking.sql`).
+- Ficha do móvel redesenhada e imediata: dono com a fotinha, raridade, preço,
+  origem com ícones, "Ver no catálogo"; a origem é buscada já ao passar o
+  mouse (rota leve, sem carregar o escritório inteiro). Brilho no móvel sob o
+  mouse. Assento e cama abrem a ficha com Sentar/Deitar; duplo clique senta.
+- "Minha sala" e "Painel" em destaque na barra de baixo.

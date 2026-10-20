@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {conexao} from './postgres.mjs';
-import {readFileSync} from 'node:fs';
 import {perfilPublico} from '../server/escritorio-economia.js';
 
 // Perfil do jogo aberto à equipe (decisão do Paulo, 19/10/2026): moedas,
-// nível, marcos e móveis; sem extrato do razão e sem ranking comparativo.
-test('perfil público mostra moedas, nível, marcos e móveis de cada pessoa, sem ranking',async t=>{
+// nível, marcos e móveis; sem extrato do razão. O ranking da semana voltou
+// por decisão do Paulo em 20/10/2026 (tests/escritorio-ranking.test.mjs).
+test('perfil público mostra moedas, nível, marcos e móveis de cada pessoa, sem extrato',async t=>{
  const {db,sql}=conexao();t.after(()=>db.close());
  await db.exec(`CREATE TABLE vybe_escritorio_carteiras(pessoa_id bigint PRIMARY KEY,saldo int NOT NULL DEFAULT 0,xp int NOT NULL DEFAULT 0);
  CREATE TABLE vybe_escritorio_inventario(pessoa_id bigint,classe text,quantidade int,PRIMARY KEY(pessoa_id,classe));
@@ -19,6 +19,4 @@ test('perfil público mostra moedas, nível, marcos e móveis de cada pessoa, se
  assert.deepEqual(p.inventario.map(i=>[i.classe,i.quantidade]),[['plant_small_cactus',2],['exe_table',1]]);
  assert.equal(p.extrato,undefined,'sem extrato do razão no perfil público');
  assert.equal((await perfilPublico(sql,99)).saldo,0,'quem ainda não tem carteira aparece com zero');
- assert.ok(!/acao === "ranking"/.test(readFileSync('server/escritorio.js','utf8')),'sem rota de ranking');
- assert.ok(!/rail\("ranking"/.test(readFileSync('vybe-escritorio.js','utf8')),'sem botão de ranking');
 });

@@ -463,3 +463,21 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   `server/escritorio-social.js`): de quem é a sala, raridade e preço, e como o
   dono conseguiu cada unidade (compra, presente, troca, conquista, essencial,
   sala comum), com "Ver no catálogo" para o que está à venda.
+
+## Ranking da semana (decisão do Paulo, 20/10/2026)
+
+- Zera toda segunda (semana da Bahia). Botão **Ranking** no menu do Escritório.
+- **Geral:** % da própria meta da semana (entregas ÷ meta, a meta é a média das
+  últimas 8 semanas de cada um); empate pelo XP da semana. Só entra no pódio
+  quem entregou na semana.
+- **XP da semana:** XP e moedas do trabalho da semana, sem conquistas e prêmios.
+- **Por atividade:** peças feitas, fotos e vídeos, aprovações do DA, peças
+  agendadas, peças da carteira, demandas cadastradas, briefings, no prazo e
+  aprovadas de primeira (contagem no razão da semana).
+- **Agência:** peças concluídas na semana contra a média das últimas 8 semanas.
+- **Prêmios** (regras `ranking_1..3`, `meta_agencia`; troféus com `marco` igual à
+  regra, fora da venda): 1º 50 moedas e 100 XP, 2º 30 e 60, 3º 20 e 40, com o
+  troféu alado de ouro, prata ou bronze; meta da agência batida: 20 moedas e 40
+  XP para todos. Pagos no fechamento da semana pelo ciclo diário, uma vez
+  (`ranking:<semana>` em fechamentos, origens únicas no razão).
+- O % da meta e as entregas da semana aparecem para toda a equipe.
