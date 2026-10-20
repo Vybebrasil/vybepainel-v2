@@ -63,6 +63,24 @@ function escritorioAvatar(perfil = {}, nome = "") {
   const url = mapaBonecoGuardado(mapaFigura(perfil), 2);
   return `<img class="office-avatar" src="${url}" alt="Personagem de ${safeText(nome)}" width="64" height="110" loading="lazy">`;
 }
+// Cabeça do personagem de alguém da equipe, para as fotinhas dentro do jogo
+// (Paulo, 20/10/2026: "a fotinha vira a do avatar do jogo"). Acha a pessoa
+// pelo id ou pelo nome; fora da equipe do jogo, devolve null e quem chama
+// usa a foto do painel.
+function escritorioCabecaUrl(quem) {
+  const b = escritorio.base;
+  if (!b) return null;
+  const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const alvo = norm(quem);
+  const p = (b.equipe || []).find((x) => String(x.id) === String(quem)) || (b.equipe || []).find((x) => norm(x.nome) === alvo)
+    || (b.equipe || []).find((x) => alvo && norm(x.nome).split(" ")[0] === alvo.split(" ")[0] && (norm(x.nome).startsWith(alvo) || alvo.startsWith(norm(x.nome))));
+  if (!p) return null;
+  const perfil = String(p.id) === String(b.eu) ? escritorio.perfil : p.perfil;
+  // Quem nunca montou o personagem aparece no jogo com o boneco padrão: é ele.
+  const figura = typeof mapaFigura === "function" ? mapaFigura(perfil || {}) : "";
+  if (!figura) return null;
+  return "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: figura, direction: "3", head_direction: "3", headonly: "1", size: "n", gesture: "sml" });
+}
 async function escritorioApi(acao, corpo, consulta = null) {
   const r = await fetch(
     "/api/painel?area=escritorio&acao=" + encodeURIComponent(acao) + (consulta ? "&" + new URLSearchParams(consulta) : ""),

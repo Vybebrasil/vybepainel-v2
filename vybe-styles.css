@@ -7624,7 +7624,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-movel.compacto.r-epico .ofc-movel-linha {color:#d9c2ff}
 .ofc-movel.compacto.r-lendario .ofc-movel-linha {color:#ffe08a}
 /* Cartão do cliente que cobra: o que ele cobra, perto do boneco. */
-.ofc-cobranca-pop {position:absolute;z-index:40;width:min(300px,calc(100% - 16px));max-height:min(420px,70vh);overflow:auto;display:grid;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--jg-borda-forte);background:var(--jg-painel);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(10px);animation:jg-surgir .16s ease-out}
+.ofc-cobranca-pop {position:absolute;z-index:40;width:min(340px,calc(100% - 16px));max-height:min(420px,70vh);overflow:auto;display:grid;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--jg-borda-forte);background:var(--jg-painel);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(10px);animation:jg-surgir .16s ease-out}
 .ofc-cobranca-pop[hidden] {display:none}
 .ofc-cobranca-pop-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ofc-cobranca-pop ul {list-style:none;margin:0;padding:0;display:grid;gap:6px}
@@ -7933,3 +7933,17 @@ button.ofc-agente-num[aria-pressed="true"] {border-color:var(--ofc-laranja,#ff9d
 .ofc-cobranca-pop-rodape {display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ofc-cobranca-pop-rodape .ofc-nota {margin:0}
 .ofc-cobranca-pop-rodape .workflow-secondary {flex:none;padding:6px 12px;font-size:12px}
+/* Cartão e lista de cobranças, 20/10/2026: título, data e status à esquerda,
+   as cabeças de quem está com a peça à direita; a data quebra linha em vez de
+   empurrar o cartão para o lado; rodapé com o botão inteiro. */
+.ofc-cobranca {display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center}
+.ofc-cobranca > .ofc-cobranca-titulo, .ofc-cobranca > .ofc-cobranca-linha {grid-column:1}
+.ofc-cobranca > .ofc-cobranca-fotos {grid-column:2;grid-row:1 / span 2;align-self:center}
+.ofc-cobranca .ofc-missao-prazo {white-space:normal;text-align:left;line-height:1.3}
+.ofc-cobranca-fotos.vazio {font:600 10px var(--mac-ui);color:var(--ofc-suave,#aab);white-space:nowrap}
+.ofc-cobranca-fotos .ofc-cabeca, .ofc-cobranca-fotos > img, .ofc-cobranca-fotos .owner-avatar-fallback {width:28px;height:28px;border-radius:50%;margin-left:-8px;border:2px solid var(--jg-painel,#1c1e27);background:#2b3040;object-fit:cover;object-position:center 30%;image-rendering:pixelated;display:inline-grid;place-items:center;font:700 10px var(--mac-ui);color:#fff}
+.ofc-cobranca-fotos > :first-child {margin-left:0}
+.ofc-cobranca-pop {overflow-x:hidden}
+.ofc-cobranca-pop-rodape {flex-wrap:wrap}
+.ofc-cobranca-pop-rodape .ofc-nota {flex:1 1 140px}
+.ofc-cobranca-pop-rodape .workflow-secondary {margin-left:auto;white-space:nowrap}
