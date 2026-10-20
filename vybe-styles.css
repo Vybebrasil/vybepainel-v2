@@ -7735,3 +7735,23 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-catj-abas button[aria-selected=true] {background:var(--jg-slot);color:var(--ofc-texto);box-shadow:var(--jg-relevo)}
 .ofc-catj-abas button:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:1px}
 .ofc-catj-trocas {grid-column:1/-1;display:grid;gap:10px;max-width:640px}
+/* Ficha ao lado da grade, dentro da janela do catálogo (em vez de outra janela
+   por cima). O cartão escolhido fica marcado. No celular, a ficha sobe por
+   cima da grade, como uma folha. */
+.ofc-catjanela.com-ficha .ofc-catj-corpo {grid-template-columns:230px minmax(0,1fr) 320px}
+.ofc-catj-ficha {display:grid;align-content:start;gap:10px;overflow:auto;padding:14px;border-left:1px solid var(--jg-borda);background:#1d2029;border-radius:0;box-shadow:none;width:auto;max-height:none;margin:0}
+.ofc-catj-ficha[hidden] {display:none}
+.ofc-catj-ficha .ofc-previa-palco canvas {width:100%;height:auto}
+.ofc-catj-ficha .workflow-actions {flex-wrap:wrap;justify-content:stretch}
+.ofc-catj-ficha .workflow-actions button {flex:1 1 auto}
+.ofc-catj-grade .ofc-movel[aria-current] {outline:2px solid var(--ofc-laranja);outline-offset:1px}
+.ofc-cat-portas {display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ofc-cat-portas button {padding:9px 8px}
+@media (max-width:1100px){.ofc-catjanela.com-ficha .ofc-catj-corpo {grid-template-columns:190px minmax(0,1fr) 280px}}
+@media (max-width:760px){
+  .ofc-catjanela.com-ficha .ofc-catj-corpo {grid-template-columns:1fr}
+  .ofc-catj-ficha {position:absolute;left:0;right:0;bottom:0;max-height:78%;z-index:5;border-left:0;border-top:1px solid var(--jg-borda-forte);border-radius:16px 16px 0 0;box-shadow:0 -12px 30px #000a}
+  .ofc-catj-grade {grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+  .ofc-catj-topo {flex-wrap:wrap}
+}
+.ofc-catj-corpo {position:relative}

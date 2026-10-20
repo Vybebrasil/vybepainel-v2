@@ -986,3 +986,13 @@ decoração inicial "bem feito".
 - Painel do agente: resumo da Agenda mensal do cliente com as funções da
   própria Agenda (`managerCalendarItems`, `managerCalendarMonthMeta`, cores
   e `managerCalendarOpen`). Só o desenho é do Escritório.
+- Melhorias seguintes (Paulo: "faça todas as melhorias"):
+  - na janela, a ficha abre na coluna da direita, sem outra janela por cima
+    (no celular, sobe como folha);
+  - comprar fora da construção abre o editor do quarto com o móvel na mão;
+  - no próprio quarto, a lateral da construção tem só as abas Móveis,
+    Carteira e Decorar. Móveis traz busca, "Usados por você" para arrastar e
+    as portas para o inventário e a loja. Os essenciais grátis ficam em
+    Inventário → Essenciais grátis;
+  - os filtros antigos do inventário da lateral (`escritorioFiltrarMeus`)
+    saíram, sem segunda versão.
