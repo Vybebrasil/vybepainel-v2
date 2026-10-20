@@ -1101,3 +1101,22 @@ decoração inicial "bem feito".
 - Ranking: clicar numa pessoa abre o que contou como entrega, as peças da
   semana e de onde veio o XP; aba Tesouros com Mais rico (saldo) e
   Colecionador (móveis, diferentes, lendários, troféus), de todos os tempos.
+
+### Perfil com cara de HUD de jogo — 20/10/2026
+
+- Paulo: "não devia ser mais claro que o bonequinho é um botão pra entrar no
+  perfil?". O botão da barra mostra o rosto num círculo, o selo do nível e o
+  rótulo "Perfil".
+- Ficha da pessoa (`abrirFichaEscritorio`):
+  - O boneco fica num palco com ladrilho, como no lobby.
+  - Os chips têm rótulo (moedas, conquistas, móveis) e a posição no ranking
+    da semana abre o ranking.
+  - Uma vitrine mostra os troféus mais altos.
+  - O resumo traz os próximos troféus com barra.
+- A aba Conquistas usa o mesmo corpo da janela Conquistas
+  (`escritorioConquistasCorpoHtml`), sem uma segunda versão.
+- Como ganhar ganhou "Quanto você ganha", com valores por formato para o papel
+  da pessoa, mais cadastro, briefing, prazo e dia sem furo.
+- No Inventário, os troféus vêm primeiro, com o nome da conquista e o nível.
+- O perfil público passa a mandar a `classe` do troféu de cada marco, para a
+  vitrine de quem visita.
