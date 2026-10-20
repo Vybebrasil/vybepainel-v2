@@ -114,7 +114,8 @@ export async function paginaDeAprovacao(req, res, sql) {
 // Authorization: Bearer) e o nome do cliente logado lá. Sem a chave
 // configurada, recusa tudo.
 const chavePortalConfere = (req) => {
- const certa = String(process.env.PORTAL_CHAVE || '');
+ // Espaço ou quebra de linha colados junto com a chave na Vercel não contam.
+ const certa = String(process.env.PORTAL_CHAVE || '').trim();
  const enviada = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
  if (certa.length < 24) return false;
  const a = Buffer.from(enviada), b = Buffer.from(certa);
