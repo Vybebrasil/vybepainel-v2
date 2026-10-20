@@ -1212,7 +1212,8 @@ function atualizarPessoasEscritorio() {
         statusTexto: p.status && p.status !== "disponivel" ? nomeStatus : "",
         x: Math.round(pos.x), y: Math.round(pos.y),
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado, dirCama !== undefined && !(voce && escritorio.emMovimento)),
-        mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || "",
+        // O café/lanche da pose vale por cima do objeto escolhido no criador.
+        mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || (voce ? escritorio.perfil : perfilDe)?.mao || "",
         dir: sentado ? dirAssento : dirCama !== undefined ? dirCama : ESCRITORIO_APARELHOS[voce ? escritorio.pose : p.pose] ? escritorioNoAparelho(Math.round(pos.x), Math.round(pos.y))?.dir : undefined, local: voce,
         aoClicar: (id) => abrirMenuPessoaEscritorio(id),
       };
