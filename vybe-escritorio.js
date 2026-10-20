@@ -194,6 +194,37 @@ function escritorioFimEntrada() {
   escritorio.entrada = null;
   escritorio.carregandoMapa = false;
 }
+// Tela de entrada (Paulo, 20/10/2026: "o bonequinho acenando"): o boneco da
+// pessoa num palco, acenando; saudação pela hora da Bahia; moedas, nível e a
+// sala dela; as regras de voz em linhas curtas com ícone.
+function escritorioLobbyTopoHtml(perfil, eu, b) {
+  const nome = safeText((eu?.nome || "").split(" ")[0] || "equipe");
+  const hora = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Bahia", hour: "numeric", hour12: false }).format(new Date()));
+  const oi = hora < 5 ? "Boa noite" : hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const figura = mapaFigura(perfil || {}), mao = perfil?.mao || "";
+  const acenar = mapaAvatarUrl(figura, 3, "wav", mao, 0, "sml", 3), parado = mapaAvatarUrl(figura, 3, "std", mao, 0, "sml", 3);
+  const eco = b?.economia, nivel = eco?.pontos?.nivel, sala = escritorioMinhaMesa()?.ambiente;
+  const chips = [eco?.disponivel ? `<span>${escritorioIcone("loja")}<b>${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b> VybeCoins</span>` : "", nivel ? `<span>${escritorioIcone("ranking")}Nível <b>${nivel}</b></span>` : "", sala ? `<span>${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""].filter(Boolean).join("");
+  return `<div class="ofc-lobby-palco" aria-hidden="true"><span class="ofc-lobby-luz"></span><span class="ofc-lobby-chao"></span><img class="ofc-lobby-boneco" src="${safeText(acenar)}" data-acenar="${safeText(acenar)}" data-parado="${safeText(parado)}" alt="" width="64" height="110"></div>
+<h2 id="ofc-lobby-titulo">${oi}, ${nome}!</h2>${chips ? `<div class="ofc-lobby-chips">${chips}</div>` : ""}
+<ul class="ofc-lobby-regras"><li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você no escritório.</span></li><li>${escritorioIcone("microfone")}<span>Em cada sala você fala e ouve quem está nela. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("camera")}<span>A câmera começa desligada.</span></li></ul>`;
+}
+// O boneco da entrada acena (troca o quadro de acenar e o parado). Para
+// sozinho quando a entrada fecha; com "reduzir movimento", fica parado.
+function animarLobbyEscritorio() {
+  clearInterval(escritorio.timerLobby);
+  const img = document.querySelector(".ofc-lobby-boneco");
+  if (!img || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) { if (img) img.src = img.dataset.parado; return; }
+  new Image().src = img.dataset.parado;
+  let k = 0;
+  escritorio.timerLobby = setInterval(() => {
+    const atual = document.querySelector(".ofc-lobby-boneco");
+    if (!atual || document.hidden) { if (!atual) clearInterval(escritorio.timerLobby); return; }
+    // Acena três vezes, descansa um pouco e acena de novo.
+    k = (k + 1) % 10;
+    atual.src = k < 6 ? (k % 2 ? atual.dataset.parado : atual.dataset.acenar) : atual.dataset.parado;
+  }, 420);
+}
 function escritorioEntradaHtml() {
   const e = escritorio.entrada;
   if (!e) return "";
@@ -1446,13 +1477,14 @@ function renderEscritorio() {
  <div class="ofc-acao" id="office-acao" hidden></div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao"><div class="ofc-lobby-avatar">${escritorioAvatar(perfil, eu?.nome || "Você")}</div><h2 id="ofc-lobby-titulo">Olá, ${safeText((eu?.nome || "").split(" ")[0] || "equipe")}</h2><p>Ao entrar, a equipe vê você no escritório. Em cada sala você entra na conversa dela com o microfone ligado; a câmera começa desligada.</p>${escritorio.entrada ? escritorioEntradaHtml() : `<div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}">${b.demo ? "Ver o escritório" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div>`}</div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao">${escritorioLobbyTopoHtml(perfil, eu, b)}${escritorio.entrada ? escritorioEntradaHtml() : `<div class="ofc-lobby-acoes"><button id="office-connect" type="button" class="ofc-primario" onclick="${b.demo ? "escritorio.lobbyFechado=true;renderEscritorio()" : "conectarEscritorio()"}">${b.demo ? "Ver o escritório" : "Entrar no escritório"}</button><button type="button" class="ofc-secundario" onclick="personalizarEscritorio()">Personalizar</button></div>`}</div></div>` : ""}
 </main>
 </section>`;
   // Só trava a rolagem da página com o Escritório na tela. Com a chamada
   // ligada ele se redesenha por trás do painel (presença, cobranças) e o
   // "add" de antes travava a página do Deivid (Paulo, 20/10/2026).
   document.body.classList.toggle("no-escritorio", painel.style.display === "block");
+  if (lobby) animarLobbyEscritorio(); else clearInterval(escritorio.timerLobby);
   atualizarPessoasEscritorio();
   atualizarControlesEscritorio();
   pintarArtesEscritorio(document.querySelector(".ofc-topo") || document);

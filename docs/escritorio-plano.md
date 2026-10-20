@@ -1096,3 +1096,8 @@ decoração inicial "bem feito".
   mouse (rota leve, sem carregar o escritório inteiro). Brilho no móvel sob o
   mouse. Assento e cama abrem a ficha com Sentar/Deitar; duplo clique senta.
 - "Minha sala" e "Painel" em destaque na barra de baixo.
+- Entrada do Escritório refeita (boneco acenando num palco, saudação pela
+  hora, moedas, nível e sala, regras de voz em linhas com ícone).
+- Ranking: clicar numa pessoa abre o que contou como entrega, as peças da
+  semana e de onde veio o XP; aba Tesouros com Mais rico (saldo) e
+  Colecionador (móveis, diferentes, lendários, troféus), de todos os tempos.
