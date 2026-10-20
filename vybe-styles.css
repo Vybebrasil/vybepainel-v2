@@ -7755,3 +7755,9 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
   .ofc-catj-topo {flex-wrap:wrap}
 }
 .ofc-catj-corpo {position:relative}
+/* Janela do catálogo com a aba Carteira: sem árvore, a carteira ocupa a largura. */
+.ofc-catjanela.sem-arvore .ofc-catj-corpo {grid-template-columns:minmax(0,1fr)}
+.ofc-catjanela.sem-arvore .ofc-catj-arvore {display:none}
+.ofc-catj-carteira {grid-column:1/-1;max-width:620px}
+.ofc-catj-saldo button {all:unset;cursor:pointer}
+.ofc-catj-saldo:has(button:focus-visible) {outline:2px solid var(--ofc-laranja);outline-offset:2px}
