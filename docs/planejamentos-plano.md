@@ -194,3 +194,20 @@ da Vybe.
 - **Para ligar:** Paulo cria `PORTAL_CHAVE`, com 24 caracteres ou mais, e põe o
   mesmo valor nos dois projetos da Vercel (vybepainel-v2 e vybehub). Depois,
   Redeploy nos dois.
+
+## Objetivo, linha e texto das telas por peça (20/10/2026)
+
+Paulo notou que o planejamento da Hellen não trouxe tudo o que o PDF do agente
+tinha.
+
+- A peça ganhou os campos `linha`, `objetivo` e `telas` (lista).
+- O documento, o VybeHub e o editor mostram as telas numeradas ao lado da
+  legenda. No editor, as telas vão uma por linha.
+- Os planejamentos de antes desses campos traziam tudo junto na referência
+  ("Objetivo: … Texto das telas: Tela 1: … | Tela 2: …"). `pecaParaMostrar`
+  separa isso na hora de mostrar e ao abrir no editor, sem mexer no que está
+  guardado.
+- O formato do conector e a skill `planejamento-vybe` pedem os campos novos.
+- O que foi cortado em 600 letras antes da correção não volta: precisa
+  republicar. O botão "Reabrir para editar" agora também aparece quando o
+  planejamento está com o cliente (o link deixa de valer).

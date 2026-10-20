@@ -141,7 +141,13 @@ const FORMATO = `Formato padrão do planejamento Vybe (o mesmo para todos os cli
 - numeros (opcional): [{rotulo, valor}] — se omitido, o painel conta as peças por formato.
 - linhas: [{titulo, texto}] — 2 a 4 linhas de conteúdo do mês.
 - datas: [{data:"02/11 · seg", nome, texto}] — datas comerciais/feriados que orientam o mês.
-- pecas: [{data:"AAAA-MM-DD", formato: Card|Carrossel|Reels|Fotografia|Vídeo|Stories|Outro, tema, legenda, referencia, observacao}].
+- pecas: [{data:"AAAA-MM-DD", formato: Card|Carrossel|Reels|Fotografia|Vídeo|Stories|Outro, tema, linha, objetivo, telas, legenda, referencia, observacao}].
+  - linha: o título de uma das linhas de conteúdo do mês.
+  - objetivo: uma frase com o que a peça quer causar.
+  - telas: lista com o texto de cada tela (carrossel, card, story), na ordem; uma tela por item, sem "Tela 1:".
+  - legenda: a legenda pronta (ou o roteiro, em Reels e Vídeo).
+  - referencia: só referência visual ou de vídeo; não repita aqui objetivo nem telas.
+  - observacao: a pergunta ou o que o cliente precisa decidir ou mandar.
 - observacoes: o que precisa ser combinado com o cliente.
 Deixe de fora o que é interno (responsáveis, prazos de produção, pendências do painel).`;
 const FERRAMENTAS = [

@@ -7,6 +7,7 @@ import { alertasDosClientes } from './alertas-clientes.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { criarConteudoNaTransacao } from '../api/conteudo.js';
 import { BOARD_PRODUCAO, BOARD_DEMANDAS } from './grupos.js';
+import { pecaParaMostrar } from './planejamento-documento.js';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 const ESTADOS = ['revisar', 'enviado', 'aprovado', 'ajustes', 'cadastrado', 'arquivado'];
@@ -43,7 +44,10 @@ export function normalizarConteudo(c = {}) {
    // referência, e 600 letras cortavam no meio (Paulo, 20/10/2026).
    // ajuste_cliente: o que o cliente pediu nesta peça pelo link.
    const ajuste = texto(p?.ajuste_cliente, 1500);
-   return { data, formato, tema: texto(p?.tema, 200), legenda: texto(p?.legenda, 5000), referencia: texto(p?.referencia, 6000), observacao: texto(p?.observacao, 1500), ...(cid ? { conteudo_id: cid } : {}), ...(ajuste ? { ajuste_cliente: ajuste } : {}) };
+   // objetivo, linha e telas: o que o PDF do agente já trazia por peça e o
+   // painel não tinha onde guardar (Paulo, 20/10/2026: "não copiou tudo").
+   const telas = (Array.isArray(p?.telas) ? p.telas : typeof p?.telas === 'string' ? p.telas.split(/\n+/) : []).map((t) => texto(typeof t === 'object' ? t?.texto : t, 600)).filter(Boolean).slice(0, 20);
+   return { data, formato, tema: texto(p?.tema, 200), linha: texto(p?.linha, 80), objetivo: texto(p?.objetivo, 800), telas, legenda: texto(p?.legenda, 5000), referencia: texto(p?.referencia, 6000), observacao: texto(p?.observacao, 1500), ...(cid ? { conteudo_id: cid } : {}), ...(ajuste ? { ajuste_cliente: ajuste } : {}) };
   }).sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999')),
   observacoes: texto(o.observacoes, 2000),
  };
@@ -85,7 +89,10 @@ export async function detalhePlanejamento(sql, pessoa, id) {
  const [p] = await sql`SELECT p.*,c.nome AS cliente,c.identidade,c.email AS cliente_email FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.id=${id}`;
  if (!p) throw erro('Planejamento não encontrado.', 404);
  const eventos = await sql`SELECT e.tipo,e.texto,e.versao,e.em,e.autor_externo,x.nome AS autor FROM vybe_planejamento_eventos e LEFT JOIN vybe_pessoas x ON x.id=e.autor_id WHERE e.planejamento_id=${id} ORDER BY e.em DESC LIMIT 60`;
- return { ...publico(p), pode_editar: await podeEditarCliente(sql, pessoa, p.cliente_id), eventos };
+ // O editor já recebe objetivo e telas separados, mesmo nos planejamentos de antes desses campos.
+ const c = p.conteudo && typeof p.conteudo === 'object' ? p.conteudo : {};
+ const conteudo = { ...c, pecas: (c.pecas || []).map(pecaParaMostrar) };
+ return { ...publico(p), conteudo, pode_editar: await podeEditarCliente(sql, pessoa, p.cliente_id), eventos };
 }
 // O que espera cada head: para revisar ou com ajustes pedidos, nos clientes dele
 // (quem administra vê todos). Base do aviso na tela e no Centro de Operação.
@@ -355,7 +362,7 @@ export async function responderDoCliente(sql, token, corpo) {
 // ele (enviado, ajustes, aprovado, cadastrado), nunca o rascunho do head.
 const VISIVEL_AO_CLIENTE = ['enviado', 'ajustes', 'aprovado', 'cadastrado'];
 const doPortal = (p) => ({ id: String(p.id), mes: publico(p).mes, titulo: p.titulo, versao: p.versao, estado: p.estado,
- conteudo: normalizarConteudo(p.conteudo), resposta_nome: p.resposta_nome, resposta_texto: p.resposta_texto,
+ conteudo: (() => { const c = normalizarConteudo(p.conteudo); return { ...c, pecas: c.pecas.map(pecaParaMostrar) }; })(), resposta_nome: p.resposta_nome, resposta_texto: p.resposta_texto,
  respondido_em: p.respondido_em, enviado_em: p.enviado_em, logo: p.identidade?.logo || null });
 export async function planejamentosDoPortal(sql, { cliente }) {
  if (!await planejamentosProntos(sql)) return { cliente: null, planejamentos: [] };

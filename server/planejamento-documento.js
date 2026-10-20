@@ -16,6 +16,24 @@ const PAINEL = () => process.env.PAINEL_URL || 'https://vybepainel-v2.vercel.app
 const semNumero = (t) => String(t || '').replace(/^\s*\d{1,2}\s*[·.\-–:)]\s*/, '');
 const ehVideo = (f) => ['Reels', 'Vídeo'].includes(f);
 
+// Planejamentos publicados antes dos campos objetivo/telas trazem tudo junto
+// na referência ("Objetivo: … Texto das telas: Tela 1: … | Tela 2: …").
+// Separa na hora de mostrar, sem mexer no que está guardado.
+export function separarReferencia(ref = '') {
+ let r = String(ref || ''), objetivo = '', telas = [];
+ const mo = /^\s*Objetivo:\s*([\s\S]*?)(?=\s*Texto das telas:|$)/i.exec(r);
+ if (mo) { objetivo = mo[1].trim(); r = r.slice(mo[0].length); }
+ const mt = /^\s*Texto das telas:\s*([\s\S]*)$/i.exec(r);
+ if (mt) { telas = mt[1].split(/\s*(?:\||\n)\s*(?=Tela\s*\d+\s*:)/i).map((t) => t.replace(/^Tela\s*\d+\s*:\s*/i, '').trim()).filter(Boolean); r = ''; }
+ return { objetivo, telas, resto: r.trim() };
+}
+export function pecaParaMostrar(p) {
+ if (p.objetivo || p.telas?.length || !p.referencia) return p;
+ const s = separarReferencia(p.referencia);
+ if (!s.objetivo && !s.telas.length) return p;
+ return { ...p, objetivo: s.objetivo, telas: s.telas, referencia: s.resto };
+}
+
 function calendario(mes, pecas) {
  const [a, m] = String(mes).split('-').map(Number);
  const dias = new Date(Date.UTC(a, m, 0)).getUTCDate(), inicio = (new Date(Date.UTC(a, m - 1, 1)).getUTCDay() + 6) % 7; // segunda primeiro
@@ -29,15 +47,20 @@ function calendario(mes, pecas) {
  return `<div class="rolar"><table class="cal"><thead><tr>${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((d) => `<th>${d}</th>`).join('')}</tr></thead><tbody>${linhas.join('')}</tbody></table></div>`;
 }
 
-function fichaDaPeca(x, i, { paraCliente, respondendo }) {
+function fichaDaPeca(x0, i, { paraCliente, respondendo }) {
+ const x = pecaParaMostrar(x0);
  const n = String(i + 1).padStart(2, '0'), corF = CORES_FORMATO[x.formato] || '#6b7280';
+ // Telas numeradas ao lado da legenda, como no PDF do agente.
+ const telas = x.telas?.length ? `<div class="telas"><b>Texto das telas</b><ol>${x.telas.map((t) => `<li>${esc(t)}</li>`).join('')}</ol></div>` : '';
+ const legenda = x.legenda ? `<div class="bloco"><b>${ehVideo(x.formato) ? 'Roteiro' : 'Legenda'}</b><p>${esc(x.legenda)}</p></div>` : '';
  const referencia = x.referencia ? (paraCliente
-  ? `<details class="ref"><summary>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência e texto das telas'}</summary><p>${esc(x.referencia)}</p></details>`
-  : `<div class="ref"><b>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência e texto das telas'}</b><p>${esc(x.referencia)}</p></div>`) : '';
+  ? `<details class="ref"><summary>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência'}</summary><p>${esc(x.referencia)}</p></details>`
+  : `<div class="ref"><b>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência'}</b><p>${esc(x.referencia)}</p></div>`) : '';
  return `<article class="peca" id="peca-${i + 1}" style="--f:${corF}">
-<header><span class="num">${n}</span><span class="tag">${esc(x.formato)}</span><span class="quando">${esc(x.data ? dia(x.data) : 'sem data')}</span></header>
+<header><span class="num">${n}</span><span class="tag">${esc(x.formato)}</span><span class="quando">${esc(x.data ? dia(x.data) : 'sem data')}</span>${x.linha ? `<span class="linha">${esc(x.linha)}</span>` : ''}</header>
 <h3>${esc(semNumero(x.tema) || 'Sem tema')}</h3>
-${x.legenda ? `<div class="bloco"><b>${ehVideo(x.formato) ? 'Roteiro' : 'Legenda'}</b><p>${esc(x.legenda)}</p></div>` : ''}
+${x.objetivo ? `<p class="objetivo">${esc(x.objetivo)}</p>` : ''}
+${telas ? `<div class="duas">${telas}${legenda}</div>` : legenda}
 ${referencia}
 ${x.observacao ? `<div class="decidir"><b>Para você decidir</b><p>${esc(x.observacao)}</p></div>` : ''}
 ${x.ajuste_cliente && !respondendo ? `<div class="pedido"><b>Ajuste pedido</b><p>${esc(x.ajuste_cliente)}</p></div>` : ''}
@@ -104,7 +127,15 @@ h2{font:800 22px/1.2 Sora,sans-serif;margin:44px 0 14px;text-wrap:balance}h2 sma
 .peca header{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.peca .num{font:800 20px/1 Sora,sans-serif;color:var(--f);font-variant-numeric:tabular-nums}
 .peca .tag{padding:3px 10px;border-radius:99px;background:var(--f);color:#fff;font-size:11.5px;font-weight:700}.peca .quando{color:var(--sub);font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums}
 .peca h3{margin:0;font:700 18px/1.3 Sora,sans-serif;text-wrap:balance}.peca p{margin:0;white-space:pre-wrap}
-.bloco b,.ref b,.decidir b,.pedido b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
+.peca .linha{color:var(--sub);font-size:12.5px;font-weight:600}.peca .linha::before{content:"· ";}
+.peca .objetivo{color:#3c3f45;font-size:14.5px;max-width:75ch}
+.duas{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:640px){.duas{grid-template-columns:minmax(0,1fr)}}
+.telas ol{margin:0;padding:0;list-style:none;counter-reset:t;display:grid;gap:8px}
+.telas li{counter-increment:t;display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;font-size:14px;line-height:1.5}
+.telas li::before{content:counter(t);display:grid;place-items:center;width:20px;height:20px;margin-top:1px;border-radius:50%;background:color-mix(in srgb,var(--f) 18%,#fff);color:var(--tinta);font-size:11px;font-weight:800}
+.duas .bloco{background:#faf8f4;border-left:3px solid var(--f);border-radius:0 12px 12px 0;padding:10px 12px}
+.bloco b,.telas b,.ref b,.decidir b,.pedido b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
 .ref{background:#faf8f4;border:1px solid var(--linha);border-radius:12px;padding:10px 12px;font-size:14px;color:#3c3f45}.ref summary{cursor:pointer;font-weight:700;color:var(--tinta)}.ref[open] summary{margin-bottom:6px}
 .decidir{background:#fff6e5;border:1px solid #f1d39a;border-radius:12px;padding:10px 12px;font-size:14px}.decidir b{color:#9a6200}
 .pedido{background:#fdecec;border:1px solid #f3b9b9;border-radius:12px;padding:10px 12px;font-size:14px}.pedido b{color:#a33}
