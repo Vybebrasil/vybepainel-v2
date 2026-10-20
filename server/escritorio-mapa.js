@@ -1,4 +1,4 @@
-import { carregarEconomia } from "./escritorio-economia.js";
+import { carregarEconomia, nomeDoMovel } from "./escritorio-economia.js";
 import { validarPisoQuarto, partesDaCamada, perfilDoAndar, CELDAS_LIVRES } from "./escritorio-quartos.js";
 // Mapa editável e salas individuais do escritório. O servidor é a autoridade:
 // quem é dono de cada sala, quem pode editar cada camada e o que é um item válido.
@@ -188,8 +188,11 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
         if (IMAGEM_ITEM.test(it[0]) || economia.essenciais.includes(it[0])) continue;
         usados.set(it[0],(usados.get(it[0]) || 0)+1);
       }
-      for (const [classe,n] of usados) if ((economia.inventario.find(i=>i.classe===classe)?.quantidade || 0)<n)
-        throw Object.assign(new Error("Compre os móveis no inventário antes de colocá-los no quarto."),{status:409});
+      // Diz quais móveis faltam e quantos (Paulo, 20/10/2026: a Tainara não
+      // conseguia salvar e a mensagem não dizia qual peça). A conta junta os
+      // dois andares do quarto: a mesma peça não pode estar nos dois.
+      const faltam = [...usados].map(([classe,n]) => ({ classe, nome: nomeDoMovel(classe), no_quarto: n, tem: economia.inventario.find(i=>i.classe===classe)?.quantidade || 0 })).filter(f => f.tem < f.no_quarto);
+      if (faltam.length) throw Object.assign(new Error(`Faltam no inventário: ${faltam.map(f => `${f.nome} (no quarto ${f.no_quarto}, você tem ${f.tem})`).join("; ")}. Tire do quarto ou compre no Catálogo para salvar.`),{status:409,faltam});
     }
   }
   // Sem a loja não há validação de piso: a planta só muda com ela.
