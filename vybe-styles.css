@@ -7951,3 +7951,73 @@ button.ofc-agente-num[aria-pressed="true"] {border-color:var(--ofc-laranja,#ff9d
    sobra em volta do rosto; o recorte aproxima o rosto em qualquer tamanho de
    avatar do painel e do jogo, com o pixel nítido e um fundo atrás. */
 img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);image-rendering:pixelated;background-color:#2b3040}
+/* Ficha como HUD de jogo (Paulo, 20/10/2026). Topo: o personagem num
+   pedestal de luz, o selo do nível, a barra de XP e as moedas em chips; abas
+   no lugar da rolagem longa; cada número com a explicação de onde vem. */
+.ofc-ficha {width:min(580px,calc(100vw - 24px));padding:0;overflow:hidden;display:none;border-radius:20px;border:1px solid #ffffff1f;background:linear-gradient(180deg,#232634 0%,#181a24 100%)}
+.ofc-ficha[open] {display:flex;flex-direction:column}
+.ofc-hud-topo {position:relative;display:flex;align-items:flex-end;gap:16px;padding:18px 20px 14px;background:radial-gradient(120% 140% at 0% 0%,#ff954833 0%,transparent 55%),linear-gradient(180deg,#2c2230,#1e2029);border-bottom:1px solid #ffffff14}
+.ofc-hud-topo > .ofc-x {position:absolute;top:12px;right:12px}
+.ofc-hud-boneco {flex:none;width:92px;height:124px;display:grid;place-items:end center;border-radius:16px;background:radial-gradient(60% 22% at 50% 92%,#ff9548aa,transparent 70%),radial-gradient(70% 60% at 50% 60%,#ffffff12,transparent 70%)}
+.ofc-hud-boneco img {width:64px;height:110px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 6px 6px #0008)}
+.ofc-hud-id {display:grid;gap:7px;min-width:0;flex:1;padding-right:28px}
+.ofc-hud-id h3 {margin:0;font:800 21px/1.1 var(--mac-ui);letter-spacing:-.01em}
+.ofc-hud-id > small {display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#b6bccb;font-size:12px}
+.ofc-hud-nivel {display:flex;align-items:center;gap:10px}
+.ofc-hud-selo {position:relative;isolation:isolate;flex:none;display:grid;place-items:center;width:44px;height:44px;font:900 15px var(--mac-ui);color:#2a1407;font-variant-numeric:tabular-nums}
+/* Só o losango gira; o número fica reto. */
+.ofc-hud-selo::before {content:"";position:absolute;inset:6px;z-index:-1;border-radius:9px;transform:rotate(45deg);background:linear-gradient(135deg,#ffc06e,#ff7a1a);box-shadow:0 0 0 2px #2a1a10,0 0 0 4px #ffb35c66,0 6px 14px #ff7a1a55}
+.ofc-hud-xp {display:grid;gap:4px;flex:1;min-width:0}
+.ofc-hud-xp .ofc-dia-barra {height:10px;border-radius:6px}
+.ofc-hud-xp small {font-size:11px;color:#b6bccb;font-variant-numeric:tabular-nums}
+.ofc-hud-moedas {display:flex;gap:8px;flex-wrap:wrap}
+.ofc-hud-moedas span {display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:999px;background:#00000040;border:1px solid #ffffff1a}
+.ofc-hud-moedas svg, .ofc-hud-chip svg {width:16px;height:16px}
+.ofc-hud-moedas b {font:800 13px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-hud-abas {display:flex;gap:2px;padding:8px 14px 0;border-bottom:1px solid #ffffff14;overflow-x:auto;scrollbar-width:none}
+.ofc-hud-abas button {flex:none;padding:8px 12px;border:0;border-radius:10px 10px 0 0;background:transparent;color:#a3a9b7;font:650 12.5px var(--mac-ui);cursor:pointer}
+.ofc-hud-abas button:hover {color:#fff;background:#ffffff0a}
+.ofc-hud-abas button[aria-selected="true"] {color:#ffc79a;background:#ff954814;box-shadow:inset 0 -2px #ff9548}
+.ofc-hud-abas button:focus-visible {outline:2px solid #ff9d00;outline-offset:-2px}
+.ofc-hud-corpo {flex:1;min-height:min(340px,calc(100vh - 330px));overflow:auto;padding:14px 20px;display:grid;gap:12px;align-content:start;max-height:calc(100vh - 330px)}
+.ofc-hud-corpo .ofc-nota {margin:0}
+.ofc-hud-stats {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ofc-hud-stat {display:grid;grid-template-columns:auto 1fr;grid-template-areas:"i b" "i s" "x x";align-items:center;column-gap:10px;padding:10px 12px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff12}
+.ofc-hud-stat i {grid-area:i;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#00000033}
+.ofc-hud-stat i svg {width:22px;height:22px}
+.ofc-hud-stat b {grid-area:b;font:800 20px/1.1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-hud-stat > span {grid-area:s;font:600 11.5px var(--mac-ui);color:#b6bccb}
+.ofc-hud-stat small {grid-area:x;margin-top:6px;font-size:11px;line-height:1.35;color:#8f98a9}
+.ofc-hud-bloco {display:grid;gap:8px;padding:12px;border-radius:14px;background:#ffffff06;border:1px solid #ffffff12}
+.ofc-hud-bloco-topo {display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ofc-hud-bloco h4 {margin:0;font:700 13px var(--mac-ui);letter-spacing:0;text-transform:none;color:#fff}
+.ofc-hud-bloco-topo small, .ofc-hud-bloco > small {font-size:11px;color:#8f98a9}
+.ofc-hud-bloco-topo > b {font:800 13px var(--mac-ui);color:#ffc79a;font-variant-numeric:tabular-nums}
+.ofc-hud-ganhos, .ofc-hud-regras, .ofc-hud-medalhas, .ofc-hud-conquistas {list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.ofc-hud-ganhos li, .ofc-hud-regras li {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 9px;border-radius:10px;background:#ffffff08}
+.ofc-hud-ganhos li > span:first-child, .ofc-hud-regras li > span:first-child {display:grid;gap:1px;min-width:0}
+.ofc-hud-ganhos b, .ofc-hud-regras b {font:600 12.5px/1.3 var(--mac-ui)}
+.ofc-hud-ganhos small, .ofc-hud-regras small {font-size:10.5px;color:#8f98a9}
+.ofc-hud-chips {display:flex;gap:4px;flex:none}
+.ofc-hud-chip {display:inline-flex;align-items:center;gap:3px;padding:2px 7px 2px 4px;border-radius:999px;font:800 11px var(--mac-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ofc-hud-chip.moeda {background:#f5b83d24;color:#ffd27a}
+.ofc-hud-chip.moeda.perde {background:#ff6b6b24;color:#ff9b9b}
+.ofc-hud-chip.xp {background:#7cc4ff1f;color:#a8d8ff}
+.ofc-hud-medalhas {grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.ofc-hud-medalhas li {display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;background:#ffd16614;font:600 12px var(--mac-ui)}
+.ofc-hud-medalhas svg {width:16px;height:16px}
+.ofc-hud-conquistas {grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.ofc-hud-conquistas li {display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:#ffffff06;border:1px solid #ffffff10;opacity:.55;filter:grayscale(.7)}
+.ofc-hud-conquistas li.ok {opacity:1;filter:none;border-color:#ffd16644;background:linear-gradient(90deg,#ffd1661a,#ffffff06)}
+.ofc-hud-medalha {flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:radial-gradient(circle at 50% 40%,#ffffff1a,#00000033)}
+.ofc-hud-medalha img {max-width:40px;max-height:40px;image-rendering:pixelated}
+.ofc-hud-medalha svg {width:24px;height:24px}
+.ofc-hud-conquistas li > span:last-child {display:grid;gap:2px;min-width:0}
+.ofc-hud-conquistas b {font:700 12.5px var(--mac-ui)}
+.ofc-hud-conquistas small {font-size:10.5px;color:#a3a9b7;line-height:1.3}
+.ofc-hud-numeros {grid-template-columns:repeat(3,minmax(0,1fr));margin:0}
+.ofc-hud-numeros small {display:block;margin-top:2px;font-size:10.5px;color:#8f98a9}
+.ofc-hud-vazio {padding:18px 0;text-align:center}
+.ofc-ficha > .ofc-ficha-acoes {margin:0;padding:12px 20px 16px;border-top:1px solid #ffffff14;background:#14161ecc}
+@media (max-width:560px){.ofc-hud-topo {flex-wrap:wrap}.ofc-hud-boneco {width:72px;height:104px}.ofc-hud-numeros {grid-template-columns:repeat(2,minmax(0,1fr))}.ofc-hud-corpo {max-height:calc(100vh - 360px)}}
+@media (prefers-reduced-motion:reduce){.ofc-hud-abas button {transition:none}}
