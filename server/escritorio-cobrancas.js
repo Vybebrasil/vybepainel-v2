@@ -48,7 +48,7 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
   const cobrar = (ids, item) => { for (const id of new Set(ids)) { if (!por.has(id)) por.set(id, []); if (!por.get(id).some((x) => x.ref === item.ref && x.cliente_id === item.cliente_id)) por.get(id).push(item); } };
   for (const l of linhas) {
     const base = { ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: String(l.board_id) === '8385559107' ? 'demandas' : 'producao',
-      titulo: l.titulo || 'Sem título', status: l.status || '', status_chave: l.status_chave || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null };
+      titulo: l.titulo || 'Sem título', status: l.status || '', status_chave: l.status_chave || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null, com: l.com || [] };
     const heads = l.heads.length ? l.heads : gestao;
     if (l.status_chave === 'para_agendar') {
       if (l.veiculacao && l.veiculacao <= hoje) cobrar(agendamento, { ...base, tipo: 'agendar', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje) });
@@ -68,7 +68,7 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
     };
     peloPrazo();
     if (!l.final && l.veiculacao && l.veiculacao <= hoje && NAO_COMECOU.includes(l.status_chave)) {
-      cobrar(heads, { ...base, tipo: 'postar_parada', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje), com: l.com || [], sem_responsavel: !l.responsaveis.length });
+      cobrar(heads, { ...base, tipo: 'postar_parada', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje), sem_responsavel: !l.responsaveis.length });
     }
   }
   for (const lista of por.values()) lista.sort((a, b) => b.dias - a.dias || a.titulo.localeCompare(b.titulo, 'pt-BR'));

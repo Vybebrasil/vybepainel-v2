@@ -47,6 +47,7 @@ test('cada demanda que pede ação manda o cliente para o quarto de quem deve ag
  assert.ok(!(tarde.get('3')||[]).some(c=>c.titulo==='Posta hoje em andamento'));
  assert.ok(!(tarde.get('2')||[]).some(c=>/Finalizado|Em dia/.test(c.titulo)));
  assert.equal(tarde.get('2')[0].dias,1,'um dia de atraso já cobra');
+ assert.deepEqual(tarde.get('2')[0].com,['Reriston Souza Silva'],'toda cobrança diz com quem está a peça');
  // Antes do meio-dia, a do dia ainda não cobra.
  const manha=await cobrancasDaEquipe(sql,new Date('2026-10-20T13:00:00Z'));
  assert.ok(!titulos(manha,7).some(t=>t.startsWith('Card do dia')));

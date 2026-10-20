@@ -23,15 +23,21 @@ async function carregarMissoesEscritorio(forcar) {
 // No celular começa recolhido (o cartão aberto cobriria o mapa); a escolha
 // de cada pessoa fica guardada no navegador dela.
 function escritorioMissoesAbertas() {
-  let salvo = null;
-  try { salvo = localStorage.getItem("vybe-escritorio-missoes"); } catch {}
+  let salvo = null, cobrancas = null;
+  try { salvo = localStorage.getItem("vybe-escritorio-missoes"); cobrancas = localStorage.getItem("vybe-escritorio-cobrancas"); } catch {}
+  // Sanfona: com clientes cobrando à vista, as missões ficam fechadas.
+  if (cobrancas !== "fechado" && (escritorio.cobrancasGrupos || []).length) return false;
   if (salvo) return salvo === "aberto";
   return !window.matchMedia?.("(max-width: 760px)").matches;
 }
+// Missões e cobranças funcionam como sanfona (Paulo, 20/10/2026: "tudo
+// embolado quando vou abrindo"): abrir uma fecha a outra, e a aberta fica
+// com a altura da coluna.
 function alternarMissoesEscritorio() {
   const aberto = !escritorioMissoesAbertas();
-  try { localStorage.setItem("vybe-escritorio-missoes", aberto ? "aberto" : "fechado"); } catch {}
+  try { localStorage.setItem("vybe-escritorio-missoes", aberto ? "aberto" : "fechado"); if (aberto) localStorage.setItem("vybe-escritorio-cobrancas", "fechado"); } catch {}
   pintarMissoesEscritorio();
+  if (aberto && (escritorio.cobrancasGrupos || []).length) pintarCobrancasEscritorio(escritorio.cobrancasGrupos, null);
 }
 // Filtro do cartão: atrasadas, hoje, próximas ou todas (guardado no navegador).
 const MISSOES_FILTROS = [["atrasadas", "Atrasadas", (m) => m.atrasada], ["hoje", "Hoje", (m) => m.hoje], ["proximas", "Próximas", (m) => !m.atrasada && !m.hoje], ["todas", "Todas", () => true]];
@@ -190,7 +196,7 @@ function cobrancaRotulo(c) {
   if (c.tipo === "vence") return `Prazo amanhã${dm}`;
   if (c.tipo === "agendar") return c.dias > 0 ? `Veiculação atrasada há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm}` : "Veiculação é hoje";
   if (c.tipo === "postar_parada") {
-    const com = (c.com || []).length ? ` · com ${c.com.map((n) => String(n).split(" ")[0]).join(", ")}` : " · sem responsável";
+    const com = " · " + cobrancaCom(c);
     return (c.dias > 0 ? `Veiculação passou há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm} e não começou` : "Veiculação hoje e não começou") + com;
   }
   if (c.tipo === "marcar_gravacao") return `Marcar a gravação · prazo${dm || " sem data"}`;
@@ -206,8 +212,11 @@ function cobrancaItemHtml(c, aoAbrir = "") {
   const pilula = status && typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(status, item?.status_color || "", item?.status_border || "") : status ? `<small>${safeText(status)}</small>` : "";
   const tom = c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : "";
   return `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}',event);${aoAbrir}" title="Abrir a demanda">
-  <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}</span></button></li>`;
+  <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}${c.tipo === "postar_parada" ? "" : `<small class="ofc-cobranca-com">${safeText(cobrancaCom(c))}</small>`}</span></button></li>`;
 }
+// Com quem está a peça (primeiros nomes), para o head saber quem cobrar
+// (Paulo, 20/10/2026: "mostrar com quem tá a demanda, no hover").
+const cobrancaCom = (c) => (c.com || []).length ? "com " + c.com.map((n) => String(n).split(" ")[0]).join(", ") : "sem responsável";
 // Cabeçalho do cliente: a etiqueta da carteira (cor do painel), quantas
 // demandas e a barra no tom do pior pedido.
 function cobrancaClienteHtml(g) {
@@ -271,8 +280,9 @@ function missaoEtiquetasHtml(m) {
 }
 function alternarCobrancasEscritorio() {
   let aberto = true;
-  try { aberto = localStorage.getItem("vybe-escritorio-cobrancas") !== "fechado"; localStorage.setItem("vybe-escritorio-cobrancas", aberto ? "fechado" : "aberto"); } catch {}
+  try { aberto = localStorage.getItem("vybe-escritorio-cobrancas") !== "fechado"; localStorage.setItem("vybe-escritorio-cobrancas", aberto ? "fechado" : "aberto"); if (!aberto) localStorage.setItem("vybe-escritorio-missoes", "fechado"); } catch {}
   pintarCobrancasEscritorio(escritorio.cobrancasGrupos || [], null);
+  if (!aberto) pintarMissoesEscritorio();
 }
 async function carregarCobrancasEscritorio() {
   const mapa = escritorio.mapa, quarto = escritorio.quarto, dono = escritorioDonoDoQuarto();
@@ -286,6 +296,7 @@ async function carregarCobrancasEscritorio() {
   const grupos = agruparCobrancas(lista);
   escritorio.cobrancasGrupos = grupos;
   pintarCobrancasEscritorio(grupos, nomeDono);
+  if (typeof pintarMissoesEscritorio === "function") pintarMissoesEscritorio();
   // Clientes que pararam de cobrar desde a última olhada neste quarto: agradecem e vão embora.
   const agora = new Set(grupos.filter((g) => g.cobra).map((g) => g.cliente_id));
   const antes = escritorio.cobrancasAntes?.quarto === quarto ? escritorio.cobrancasAntes.grupos : [];
@@ -293,7 +304,7 @@ async function carregarCobrancasEscritorio() {
   escritorio.cobrancasAntes = { quarto, grupos };
   const visitante = (g, i, falas, tom) => ({ nome: g.itens.length > 1 ? `${g.cliente} · ${g.itens.length}` : g.cliente,
     figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(g, i) : undefined, falas, tom,
-    dica: g.itens.map((c) => `${cobrancaRotulo(c)}: ${c.titulo}`).join("\n"), aoClicar: (e) => abrirCobrancaClienteEscritorio(g, e) });
+    dica: g.itens.map((c) => `${c.titulo}\n  ${cobrancaRotulo(c)}${c.tipo === "postar_parada" ? "" : " · " + cobrancaCom(c)}`).join("\n"), aoClicar: (e) => abrirCobrancaClienteEscritorio(g, e) });
   const deles = (g) => g.itens.flatMap((c) => falasDaCobranca(c, nomeDono).slice(0, 2));
   // Cor de cada fala: o status da demanda de que ela fala, como no quadro.
   const corDe = (c) => { const it = typeof findOperationalItem === "function" ? findOperationalItem(c.ref) : null; return it?.status_color || (typeof focusTaskTone === "function" && c.status ? focusTaskTone(c.status) : ""); };
