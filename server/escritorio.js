@@ -69,6 +69,9 @@ export function perfilEscritorio(valor = {}) {
     figura: /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/.test(String(valor.figura || ""))
       ? String(valor.figura)
       : "",
+    // Objeto na mão escolhido no criador (Paulo, 20/10/2026), como os agentes
+    // dos clientes: só o formato de carregar do Habbo ("crr=6").
+    mao: /^crr=\d{1,3}$/.test(String(valor.mao || "")) ? String(valor.mao) : "",
     // Piso e cor das paredes da própria sala (só valores conhecidos).
     sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),

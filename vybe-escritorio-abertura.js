@@ -238,13 +238,13 @@ function criadorPainelHtml() {
   return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel cri" aria-labelledby="abr-titulo">
  <div class="abr-previa">
-  <img src="${criadorImagem(fig, criador.direcao, "l", criador.destino?.mao || "")}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220">
+  <img src="${criadorImagem(fig, criador.direcao, "l", (criador.destino ? criador.destino.mao : criador.mao) || "")}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220">
   <div class="cri-corpo" role="group" aria-label="Corpo">${["M", "F"].map((g) => `<button type="button" class="abr-estilo" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div>
   <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div>
  </div>
  <div class="abr-opcoes cri-opcoes">
   <span class="abr-kicker">${criador.destino ? "Avatar do cliente no Escritório" : criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">${criador.destino ? `Agente de ${safeText(criador.destino.nome)}` : "Seu personagem"}</h2>
-  ${criador.destino ? `<label class="cri-mao">Objeto na mão <select onchange="criador.destino.mao=this.value;renderAberturaEscritorio()">${CRIADOR_MAOS.map(([v, r]) => `<option value="${v}" ${v === (criador.destino.mao || "") ? "selected" : ""}>${r}</option>`).join("")}</select></label>` : ""}
+  <label class="cri-mao">Objeto na mão <select onchange="${criador.destino ? "criador.destino.mao" : "criador.mao"}=this.value;renderAberturaEscritorio()">${CRIADOR_MAOS.map(([v, r]) => `<option value="${v}" ${v === ((criador.destino ? criador.destino.mao : criador.mao) || "") ? "selected" : ""}>${r}</option>`).join("")}</select></label>
   ${(() => {
     const grupo = CRIADOR_GRUPOS.find((g) => g[2].includes(aba.t)) || CRIADOR_GRUPOS[0];
     return `<nav class="cri-grupos" aria-label="Região">${CRIADOR_GRUPOS.map(([id, nome, abas]) => `<button type="button" aria-pressed="${id === grupo[0]}" onclick="criador.aba='${abas.includes(criador.aba) ? criador.aba : abas[id === "cabeca" ? 1 : 0]}';criador.pagina=0;criador.corAtiva=0;renderAberturaEscritorio()">${nome}</button>`).join("")}</nav>
@@ -289,6 +289,7 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.piso=escritorio.perfil?.sala_piso || "madeira";
   criador.parede=escritorio.perfil?.sala_parede || "#ff8a35";
   criador.f = criadorDaFigura(escritorio.perfil?.figura || mapaFigura(escritorio.perfil || {}));
+  criador.mao = escritorio.perfil?.mao || "";
   criador.nome = String(eu?.nome || "").split(" ")[0] || "equipe";
   criadorCarregarCatalogo();
   let el = document.getElementById("ofc-abertura");
@@ -408,7 +409,7 @@ async function salvarPersonagemEscritorio(entrar) {
   const botao = document.querySelector("#ofc-abertura .abr-primario");
   if (botao) botao.disabled = true;
   const erro = document.getElementById("abr-erro");
-  const perfil = { ...escritorio.perfil, figura: criadorFigura(criador.f), ...(criador.so ? {} : { abertura: ESCRITORIO_ABERTURA }) };
+  const perfil = { ...escritorio.perfil, figura: criadorFigura(criador.f), mao: criador.mao || "", ...(criador.so ? {} : { abertura: ESCRITORIO_ABERTURA }) };
   try {
     let salvo = perfil;
     if(escritorioMinhaMesa() && (criador.reforma || !criador.so && !escritorio.perfil.quarto_configurado)) {

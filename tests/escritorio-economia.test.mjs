@@ -233,6 +233,10 @@ test('perfil aceita luz conhecida e não muda a planta desenhada pelo salvamento
  const {perfilEscritorio,salvarPerfilEscritorio}=await import('../server/escritorio.js');
  assert.equal(perfilEscritorio({sala_luz:'roxa'}).sala_luz,'roxa');
  assert.equal(perfilEscritorio({sala_luz:'url(x)'}).sala_luz,'');
+ // Objeto de mão do criador: só o formato de carregar do Habbo.
+ assert.equal(perfilEscritorio({mao:'crr=6'}).mao,'crr=6');
+ assert.equal(perfilEscritorio({mao:'crr=6&x=1'}).mao,'');
+ assert.equal(perfilEscritorio({}).mao,'');
  assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(400)}).sala_celdas,'v'.repeat(400));
  // Planta desenhada antiga (12 × 12) vale ampliada para 20 × 20.
  assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(144)}).sala_celdas,('v'.repeat(12)+'0'.repeat(8)).repeat(12)+'0'.repeat(160));
