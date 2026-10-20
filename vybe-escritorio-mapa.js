@@ -81,7 +81,12 @@ function mapaChaveQuadro(dados, estado, quadro, semente = 0) {
   for (const [i, anim] of Object.entries(camadas)) {
     const seqs = anim?.frameSequences ? Object.values(anim.frameSequences) : [];
     const lista = seqs.length ? Object.values(seqs[semente % seqs.length]?.frames || {}) : [];
-    if (lista.length > 1) chave += i + "=" + Math.floor(quadro / Math.max(1, Number(anim.frameRepeat) || 1)) % lista.length + ";";
+    // O quadro da arte (id), não a posição na sequência: a arte do Habbo
+    // repete o mesmo quadro várias vezes, e telas iguais em mesas diferentes
+    // mostram os mesmos. Com a posição, o cache de desenho nunca acertava numa
+    // sequência longa e a sala redesenhava a arte do zero a cada quadro
+    // (Paulo, 19/10/2026: o Centro de Operação travava).
+    if (lista.length > 1) chave += i + "=" + lista[Math.floor(quadro / Math.max(1, Number(anim.frameRepeat) || 1)) % lista.length]?.id + ";";
   }
   return chave;
 }
@@ -265,7 +270,7 @@ function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   if (!m?.dados) return mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
   let cache = MAPA_CACHE_CAMADAS.get(m.dados);
   if (!cache) MAPA_CACHE_CAMADAS.set(m.dados, (cache = new Map()));
-  const chave = `${dir}|${estado}|${semente}|${mapaChaveQuadro(m.dados, estado, quadro, semente)}`;
+  const chave = `${dir}|${estado}|${mapaChaveQuadro(m.dados, estado, quadro, semente)}`;
   if (cache.has(chave)) return cache.get(chave);
   const d = mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
   if (cache.size >= 96) cache.delete(cache.keys().next().value);
@@ -780,6 +785,9 @@ function mapaBonecoPronto(url, aoCarregar) {
 // ladrilho levava 172 ms e só dois quadros apareciam).
 // No Habbo o boneco anda um ladrilho a cada 500 ms (o ciclo do quarto).
 const MAPA_PASSO_MS = 500; // ms por ladrilho (2 ladrilhos por segundo)
+// Maior palco (em pixels da tela) que vira camada da placa de vídeo ao mover a
+// câmera: 4096², o limite de textura das placas fracas.
+const MAPA_CAMADA_MAX_PX = 4096 * 4096;
 // Quadro da animação do boneco no ritmo do Nitro (AvatarVisualization:
 // atualiza a cada 41 ms e troca o quadro a cada 2 atualizações = 82 ms, uns
 // 12 por segundo). Antes eram 125 ms e as pernas pareciam travadas.
@@ -1074,6 +1082,20 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     // Devolve a transparência original (o multiply pintaria o fundo vazio).
     g.globalCompositeOperation = "destination-in"; g.drawImage(copiaLuz, 0, 0);
     g.restore();
+  };
+  // Quadro da arte já tingido, guardado (Paulo, 19/10/2026: o Centro de
+  // Operação travava). Os quadros vêm do cache de desenho e não mudam; tingir
+  // de novo a cada troca de quadro eram três desenhos por camada, centenas por
+  // segundo numa sala cheia de telas. Agora a animação só copia o pronto.
+  const tintas = new WeakMap();
+  const tingido = (src) => {
+    if (!corLuz || !src?.width || !src.height) return src;
+    let t = tintas.get(src);
+    if (!t) {
+      t = document.createElement("canvas"); t.width = src.width; t.height = src.height;
+      t.getContext("2d").drawImage(src, 0, 0); tingir(t); tintas.set(src, t);
+    }
+    return t;
   };
   // Céu no horário de Irecê (UTC−3): madrugada, manhã, tarde, pôr do sol, noite.
   let fundoPronto = null;
@@ -1501,8 +1523,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       ref ??= d;
       if (a.no.width !== d.canvas.width || a.no.height !== d.canvas.height) { a.no.width = d.canvas.width; a.no.height = d.canvas.height; }
       else g.clearRect(0, 0, a.no.width, a.no.height);
-      g.drawImage(d.canvas, 0, 0);
-      tingir(a.no);
+      g.drawImage(tingido(d.canvas), 0, 0);
     }
     return ref;
   };
@@ -1552,8 +1573,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       const g = cv.getContext("2d");
       if (cv.width !== c.canvas.width || cv.height !== c.canvas.height) { cv.width = c.canvas.width; cv.height = c.canvas.height; }
       else g.clearRect(0, 0, cv.width, cv.height);
-      g.drawImage(c.canvas, 0, 0);
-      tingir(cv);
+      g.drawImage(tingido(c.canvas), 0, 0);
       // Camada de luz (ADD): soma com o que está atrás, como no Habbo.
       cv.style.mixBlendMode = c.luz ? "plus-lighter" : "";
       if (!cv.parentNode) no.append(cv);
@@ -2196,8 +2216,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const alvo = { x: 0, y: 0, z: 1 };
   let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true, salto = null, contra = 0;
   const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  // Sem will-change/translate3d: o palco tem ~4500×2400 px e virar uma camada
-  // de GPU inteira deixava trechos pretos e bonecos sumindo em placas fracas.
+  // Sem will-change fixo: o antigo palco de ~4500×2400 px como camada deixava
+  // trechos pretos em placas fracas. Hoje a camada só existe com a câmera em
+  // movimento e num palco que cabe numa textura (camadaDaCamera).
   // Letreiros com tamanho mínimo na tela: abaixo de ~0,9 de zoom crescem
   // na mesma proporção em que o mapa diminui.
   const aplicar = () => {
@@ -2207,8 +2228,25 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const c = Math.round(Math.max(1, 0.9 / zoom) * 20) / 20;
     if (c !== contra) { contra = c; palco.style.setProperty("--contra", c.toFixed(2)); }
   };
+  // Camada própria só enquanto a câmera se mexe (Paulo, 19/10/2026: o Centro
+  // de Operação travava ao andar). Sem ela, cada passo da câmera fazia o
+  // navegador repintar todos os desenhos da sala (~430 no Centro); com ela a
+  // placa só desloca a imagem pronta. Parada, volta ao normal (nítida no zoom
+  // novo e sem memória presa). O aviso antigo valia para o mapa geral de
+  // ~4500×2400; as cenas de hoje são menores, e palco grande demais para uma
+  // textura continua sem camada.
+  let camada = false;
+  const camadaDaCamera = (ligar) => {
+    if (ligar === camada) return;
+    const area = palco.offsetWidth * palco.offsetHeight * (window.devicePixelRatio || 1) ** 2;
+    // Mapa escondido (outra aba do painel) ou palco grande demais: sem camada.
+    if (ligar && (!area || area > MAPA_CAMADA_MAX_PX)) return;
+    camada = ligar;
+    palco.style.willChange = ligar ? "transform" : "";
+  };
   const animarCam = (agora) => {
     quadroCam = null;
+    camadaDaCamera(true);
     const dt = Math.min(64, agora - (ultimoCam || agora - 16)); ultimoCam = agora;
     if (inercia) {
       alvo.x += inercia.vx * dt; alvo.y += inercia.vy * dt;
@@ -2232,7 +2270,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     if (parado) { zoom = alvo.z; cam.x = alvo.x = Math.round(alvo.x); cam.y = alvo.y = Math.round(alvo.y); }
     aplicar();
     if (!parado) quadroCam = requestAnimationFrame(animarCam);
-    else ultimoCam = 0;
+    else { ultimoCam = 0; camadaDaCamera(false); }
   };
   const mexerCam = () => { if (!quadroCam) quadroCam = requestAnimationFrame(animarCam); };
   function centralizar(x, y, z) {
