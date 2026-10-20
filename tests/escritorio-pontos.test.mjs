@@ -28,6 +28,13 @@ test('Solicitações: entrega, prazo e carteira uma vez por demanda; sem prazo n
  assert.deepEqual(entregas.map(e=>e.origem),['demanda:10','demanda:11','demanda:12']);
  const e=await carregarEconomia(sql,4);                   // abrir a ficha concede o marco da 1ª entrega (+50/+50)
  assert.equal(e.pontos.nivel,2);assert.equal(e.pontos.xpTotal,85);assert.ok(e.marcos.find(m=>m.id==='primeira').ok);assert.equal(e.pontos.funcao,'criacao');
+ // A ficha explica de onde vem cada coisa (20/10/2026): ganhos da semana
+ // agrupados por regra e as regras da função com o valor da tabela.
+ const entregaG=e.pontos.ganhos.find(g=>g.descricao==='Demanda de Solicitações finalizada');
+ assert.deepEqual([entregaG.vezes,entregaG.moedas,entregaG.pontos],[3,30,30]);
+ assert.ok(e.pontos.regras.some(r=>r.chave==='criacao_aprovacao'),'regra da função');
+ assert.ok(e.pontos.regras.some(r=>r.chave==='entrega'),'regra de todo mundo');
+ assert.ok(!e.pontos.regras.some(r=>r.chave==='agendamento'),'regra de outra função não entra');
  assert.equal(e.pontos.meta.entregas,3);assert.equal(e.pontos.meta.meta,1);
  assert.ok(e.pontos.extrato.some(l=>l.descricao==='Entrega dentro do prazo'&&Number(l.moedas)===5));
 });

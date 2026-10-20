@@ -138,8 +138,25 @@ export async function resumoPontos(sql, pessoaId, agora = new Date()) {
       COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compra na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquista' WHEN m.origem LIKE 'reembolso:%' THEN 'Devolução de compra' WHEN m.origem LIKE 'ajuste:economia%' THEN 'Ajuste da nova economia' ELSE m.origem END) AS descricao
     FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
     WHERE m.pessoa_id=${pessoaId} ORDER BY m.criado_em DESC, m.id DESC LIMIT 12`;
-  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora),
-    missoes: await tabelaDasMissoes(sql, f?.funcao || null) };
+  // Ganhos da semana agrupados por regra (Paulo, 20/10/2026: o extrato
+  // repetia "Demanda criada com briefing" linha a linha) e a tabela de como
+  // a pessoa ganha, para a ficha explicar de onde vem cada coisa.
+  const ganhos = await sql`SELECT COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compras na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquistas' WHEN m.origem LIKE 'reembolso:%' THEN 'Devoluções de compra' WHEN m.origem LIKE 'ajuste:economia%' THEN 'Ajuste da nova economia' ELSE 'Outros' END) AS descricao,
+      COUNT(*)::int AS vezes, COALESCE(SUM(m.quantidade),0)::int AS moedas, COALESCE(SUM(m.pontos),0)::int AS pontos, MAX(m.criado_em) AS ultimo
+    FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
+    WHERE m.pessoa_id=${pessoaId} AND m.criado_em >= ${agora}::timestamptz - interval '7 days'
+    GROUP BY 1 ORDER BY 4 DESC, 3 DESC, 2 DESC LIMIT 15`;
+  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, ganhos, regras: await regrasDaFuncao(sql, f?.funcao || null),
+    trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora), missoes: await tabelaDasMissoes(sql, f?.funcao || null) };
+}
+// Todas as regras que valem para a função (e as de todo mundo), com o valor
+// da tabela: é o "como ganhar" da ficha. Peso por formato só com a migração.
+export async function regrasDaFuncao(sql, funcao) {
+  const [m] = await sql`SELECT to_regclass('public.vybe_escritorio_complexidade') IS NOT NULL AS existe`;
+  const linhas = m?.existe
+    ? await sql`SELECT chave,descricao,moedas,pontos,entrega,por_complexidade,funcao FROM vybe_escritorio_regras WHERE ativa AND (funcao IS NULL OR funcao=${funcao}) ORDER BY entrega DESC, pontos DESC, moedas DESC`
+    : await sql`SELECT chave,descricao,moedas,pontos,entrega,false AS por_complexidade,funcao FROM vybe_escritorio_regras WHERE ativa AND (funcao IS NULL OR funcao=${funcao}) ORDER BY entrega DESC, pontos DESC, moedas DESC`;
+  return linhas.map((r) => ({ ...r, moedas: Number(r.moedas), pontos: Number(r.pontos) }));
 }
 // O que cada missão vale, para a tela das missões: as regras por peça da
 // função da pessoa e o peso de cada formato (2026-10-20-escritorio-complexidade).

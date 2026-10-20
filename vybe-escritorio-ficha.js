@@ -94,6 +94,19 @@ function escritorioNivelHtml(p) {
 <div class="ofc-ficha-meta"><b>Meta da semana</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${m.meta || 1}" aria-valuenow="${m.entregas || 0}" aria-label="Meta da semana"><i style="width:${pctMeta}%"></i></span><small>${m.entregas || 0} de ${m.meta || 1} ${m.meta === 1 ? "entrega" : "entregas"}${m.semanas ? ` · sua média nas últimas ${m.semanas} ${m.semanas === 1 ? "semana" : "semanas"}: ${m.media}` : " · primeira semana com meta"}. Quem bate a própria meta ganha o bônus da semana.</small></div>
 ${p.extrato?.length ? `<h4>Últimos pontos</h4><ul class="ofc-extrato">${p.extrato.map((l) => `<li><span>${safeText(l.descricao)}</span><small>${data(l.criado_em)}</small><b class="${Number(l.moedas) < 0 ? "perda" : ""}">${sinal(Number(l.moedas))} <i>moedas</i> · +${Number(l.pontos)} <i>XP</i></b></li>`).join("")}</ul>` : ""}`;
 }
+// Ficha da pessoa como HUD de jogo (Paulo, 20/10/2026: "tá longe de uma HUD
+// de joguinho; explicar de onde vem cada coisa"). Topo com o personagem, o
+// selo do nível, a barra de XP e as moedas; abas no lugar da rolagem longa.
+// Os valores de "como ganhar" e os ganhos da semana vêm do servidor (tabela
+// de regras e razão de moedas), nunca de constante aqui.
+const ESCRITORIO_FICHA_ABAS = [["resumo", "Resumo"], ["ganhar", "Como ganhar"], ["conquistas", "Conquistas"], ["inventario", "Inventário"], ["trabalho", "Trabalho"]];
+const escritorioFichaIcone = (nome) => ({
+  moeda: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f5b83d" stroke="#8a5a12" stroke-width="1.6"/><circle cx="12" cy="12" r="6" fill="none" stroke="#ffe08a" stroke-width="1.2"/><path d="M9.6 9.2 12 15l2.4-5.8" fill="none" stroke="#8a5a12" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  xp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.6 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8 6.3 20.1l1.5-6.4L2.9 9.4l6.5-.6z" fill="#7cc4ff" stroke="#2f6aa8" stroke-width="1.2" stroke-linejoin="round"/></svg>',
+  estrela: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.6 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8 6.3 20.1l1.5-6.4L2.9 9.4l6.5-.6z" fill="#ffd166" stroke="#a8761a" stroke-width="1.2" stroke-linejoin="round"/></svg>',
+  caixa: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v9l-8 4-8-4z" fill="#c58a52" stroke="#6e4220" stroke-width="1.3" stroke-linejoin="round"/><path d="M4 8l8 4 8-4M12 12v9" fill="none" stroke="#6e4220" stroke-width="1.3"/></svg>',
+}[nome] || "");
+function escolherAbaFichaEscritorio(id, aba) { escritorio.fichaAba = aba; abrirFichaEscritorio(id, true); }
 function abrirFichaEscritorio(id, semAtualizar = false) {
   const b = escritorio.base;
   const pessoa = b?.equipe.find((p) => String(p.id) === String(id));
@@ -111,37 +124,81 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
     d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
     document.body.append(d);
   }
+  if (!semAtualizar || escritorio.fichaDe !== String(id)) { escritorio.fichaAba = "resumo"; escritorio.fichaDe = String(id); }
   // Economia da pessoa: a própria vem na entrada; a de outra pessoa (quem
   // administra) é buscada ao abrir e guardada para a próxima abertura.
   const economia = eu ? escritorio.base?.economia : escritorio.fichas?.[String(id)];
   const pontos = veNumeros ? economia?.pontos || null : null;
   const marcos = veNumeros ? economia?.marcos || null : null;
   const t = pontos?.trabalho || null;
-  const img = "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: "3", head_direction: "3", size: "l", gesture: "sml" });
+  const pub = escritorio.perfisPublicos?.[String(id)];
+  const jogo = pub && pub.disponivel ? pub : null;
+  const img = "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: "2", head_direction: "3", size: "l", gesture: "sml" });
   const lugar = online ? escritorioLugarDe(online).nome : "Fora do escritório";
   const [status, cor] = ESCRITORIO_STATUS[online?.status || "ausente"] || ESCRITORIO_STATUS.ausente;
-  const numero = (rotulo, valor, dica = "") => `<div title="${safeText(dica)}"><dt>${rotulo}</dt><dd>${valor}</dd></div>`;
-  // Entregas pela mesma regra do XP e da meta: cada função nos quadros dela
-  // (a Criação pelo quadro de Produção também). Antes contava só Solicitações.
-  const oQue = { criacao: "peças enviadas para aprovação e demandas finalizadas", atendimento: "peças dos seus clientes aprovadas ou finalizadas", agendamento: "peças agendadas", producao: "captações e materiais brutos entregues", gestao: "dias sem furo" }[t?.funcao] || "entregas";
-  const meta = pontos ? escritorioNivelHtml(pontos).replace(/<div class="ofc-ficha-nivel">[\s\S]*?<\/div>\n/, "") : "";
-  const corpo = !veNumeros
-    ? ""
-    : !economia
-      ? '<p class="ofc-nota">Carregando os números de trabalho…</p>'
-      : !t
-        ? '<p class="ofc-nota">Os números de trabalho aparecem quando a contagem de pontos estiver ativa.</p>'
-        : `<dl class="ofc-ficha-numeros">${numero("Hoje", t.hoje, "Entregas registradas hoje")}${numero("Na semana", t.semana, "Entregas desde segunda")}${numero("No mês", t.mes, "Entregas neste mês")}${numero("Sequência", t.sequencia + (t.sequencia === 1 ? " dia" : " dias"), "Dias úteis seguidos com entrega")}${numero("No total", t.total, "Todas as entregas registradas")}${numero("Meta", pontos.meta ? `${pontos.meta.entregas || 0}/${pontos.meta.meta || 1}` : "–", "Entregas da semana / meta da semana")}</dl>
-${meta}
-${marcos ? escritorioMarcosHtml(marcos) : b.demo || escritorio.fichas?.[String(id)] === null ? "" : '<p class="ofc-nota">Carregando os marcos…</p>'}
-<p class="ofc-nota">Contado pelas ${safeText(oQue)} — as mesmas entregas que dão XP e contam na meta.</p>`;
-  const quarto = escritorioQuartoDe(id);
+  const funcao = { criacao: "Criação", atendimento: "Atendimento", agendamento: "Agendamento", producao: "Produção", gestao: "Gestão" }[pontos?.funcao] || "";
+  const nivel = jogo?.nivel ?? pontos?.nivel, xp = jogo?.xp ?? pontos?.xp, xpProx = jogo?.xpProximo ?? pontos?.xpProximo, xpTotal = jogo?.xpTotal ?? pontos?.xpTotal;
+  const pct = xpProx ? Math.round(((xp || 0) / xpProx) * 100) : 0;
+  const moveis = (jogo?.inventario || []).reduce((n, i) => n + Number(i.quantidade || 0), 0);
+  const conquistas = jogo?.conquistas ?? (marcos ? marcos.filter((m) => m.ok).length : null);
+  const abas = ESCRITORIO_FICHA_ABAS.filter(([k]) => veNumeros || !["ganhar", "trabalho"].includes(k));
+  const aba = abas.some(([k]) => k === escritorio.fichaAba) ? escritorio.fichaAba : "resumo";
   const sid = safeText(String(id));
+  const carregando = (texto) => `<p class="ofc-nota ofc-hud-vazio">${texto}</p>`;
+  const sinal = (v) => (v > 0 ? "+" + v : String(v));
+  const chips = (moedas, pontosXp) => `${moedas ? `<span class="ofc-hud-chip moeda${moedas < 0 ? " perde" : ""}">${escritorioFichaIcone("moeda")}${sinal(moedas)}</span>` : ""}${pontosXp ? `<span class="ofc-hud-chip xp">${escritorioFichaIcone("xp")}+${pontosXp} XP</span>` : ""}`;
+  const stat = (icone, valor, rotulo, explica) => `<div class="ofc-hud-stat"><i>${escritorioFichaIcone(icone)}</i><b>${valor ?? "–"}</b><span>${rotulo}</span><small>${explica}</small></div>`;
+  let corpo = "";
+  if (aba === "resumo") {
+    const ganhos = pontos?.ganhos || [];
+    const m = pontos?.meta || null, pctMeta = m?.meta ? Math.min(100, Math.round(((m.entregas || 0) / m.meta) * 100)) : 0;
+    corpo = `<div class="ofc-hud-stats">${stat("moeda", jogo?.saldo, "VybeCoins", "Ganha com entregas, bônus e conquistas. Gasta no Catálogo.")}${stat("xp", xpTotal, "XP no total", "Sobe o nível. Vem das mesmas entregas e nunca cai.")}${stat("estrela", conquistas, "Conquistas", "Marcos de trabalho. Cada um dá um móvel.")}${stat("caixa", jogo ? moveis : null, "Móveis", "Comprados, ganhos de presente ou de conquista.")}</div>
+${veNumeros && m ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Meta da semana</h4><b>${m.entregas || 0}/${m.meta || 1}</b></div><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${m.meta || 1}" aria-valuenow="${m.entregas || 0}" aria-label="Meta da semana"><i style="width:${pctMeta}%"></i></span><small>${m.semanas ? `É a média das últimas ${m.semanas} ${m.semanas === 1 ? "semana" : "semanas"} (${m.media}).` : "Primeira semana com meta."} Bater a meta dá o bônus da semana.</small></section>` : ""}
+${veNumeros ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Ganhos dos últimos 7 dias</h4><button type="button" class="office-text-button" onclick="escolherAbaFichaEscritorio('${sid}','ganhar')">Como ganhar mais</button></div>
+${!economia ? carregando("Carregando os pontos…") : ganhos.length ? `<ul class="ofc-hud-ganhos">${ganhos.map((g) => `<li><span><b>${safeText(g.descricao)}</b><small>${g.vezes === 1 ? "1 vez" : `${g.vezes} vezes`}</small></span><span class="ofc-hud-chips">${chips(Number(g.moedas), Number(g.pontos))}</span></li>`).join("")}</ul>` : '<p class="ofc-nota">Nada ganho nos últimos 7 dias ainda.</p>'}</section>` : ""}
+${!veNumeros && jogo?.marcos?.length ? `<section class="ofc-hud-bloco"><h4>Últimas conquistas</h4><ul class="ofc-hud-medalhas">${jogo.marcos.slice(-6).reverse().map((x) => `<li title="${safeText(x.dica || "")}"><i>${escritorioFichaIcone("estrela")}</i><span>${safeText(x.nome)}</span></li>`).join("")}</ul></section>` : ""}`;
+  } else if (aba === "ganhar") {
+    const regras = pontos?.regras || [];
+    // Cada regra cai num grupo só: o primeiro que servir.
+    const grupos = [
+      ["Perde moedas", "O XP nunca cai; as moedas não ficam negativas.", (r) => r.moedas < 0],
+      ["Fechamento do dia e da semana", "Contados pelo painel no fim do dia.", (r) => /^(dia_|meta_)/.test(r.chave)],
+      ["Conquistas", "Uma vez cada, com um móvel de prêmio.", (r) => r.chave === "conquista"],
+      ["A cada entrega", "Contam na meta da semana.", (r) => r.entrega],
+      ["Bônus por peça", "Somam por cima da entrega.", () => true],
+    ];
+    const grupoDe = new Map(regras.map((r) => [r, grupos.findIndex(([, , f]) => f(r))]));
+    const ordem = [3, 4, 1, 2, 0];
+    corpo = !economia ? carregando("Carregando as regras…") : !regras.length ? '<p class="ofc-nota">As regras aparecem quando a contagem de pontos estiver ativa.</p>'
+      : `<p class="ofc-nota">${funcao ? `Regras de <b>${funcao}</b> e as que valem para todo mundo.` : "Regras que valem para todo mundo."} Os valores são os da tabela da Vybe e podem mudar.</p>
+${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) => grupoDe.get(r) === gi); return l.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>${titulo}</h4><small>${dica}</small></div><ul class="ofc-hud-regras">${l.map((r) => `<li><span><b>${safeText(r.descricao)}</b>${r.por_complexidade ? "<small>Vale mais conforme o formato da peça (Reels, Carrossel…).</small>" : ""}${r.entrega && gi !== 3 ? "<small>Conta na meta da semana.</small>" : ""}</span><span class="ofc-hud-chips">${chips(r.moedas, r.pontos)}</span></li>`).join("")}</ul></section>` : ""; }).join("")}`;
+  } else if (aba === "conquistas") {
+    if (veNumeros && marcos) {
+      const nomeMovel = (classe) => { const mv = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return mv ? escritorioNomeMovel(mv) : classe.replace(/_/g, " "); };
+      const feitos = marcos.filter((x) => x.ok).length;
+      corpo = `<p class="ofc-nota">${feitos} de ${marcos.length} conquistadas. Cada conquista dá moedas, XP e o móvel mostrado.</p><ul class="ofc-hud-conquistas">${marcos.map((x) => `<li class="${x.ok ? "ok" : ""}" title="${safeText(x.dica)}"><span class="ofc-hud-medalha">${x.moveis?.[0] ? escritorioMiniaturaHtml(x.moveis[0]) : escritorioFichaIcone("estrela")}</span><span><b>${safeText(x.nome)}</b><small>${x.ok ? "Conquistada" : safeText(x.dica)}${x.moveis?.length ? ` · ${x.ok ? "ganhou" : "dá"} ${x.moveis.map((c) => safeText(nomeMovel(c))).join(", ")}` : ""}</small></span></li>`).join("")}</ul>`;
+    } else corpo = jogo?.marcos?.length ? `<ul class="ofc-hud-conquistas">${jogo.marcos.map((x) => `<li class="ok" title="${safeText(x.dica || "")}"><span class="ofc-hud-medalha">${escritorioFichaIcone("estrela")}</span><span><b>${safeText(x.nome)}</b><small>${safeText(x.dica || "")}</small></span></li>`).join("")}</ul>` : pub === undefined ? carregando("Carregando as conquistas…") : '<p class="ofc-nota">Nenhuma conquista ainda.</p>';
+  } else if (aba === "inventario") {
+    const inv = jogo?.inventario || [];
+    const nome = (classe) => { const mv = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return typeof escritorioNomeMovel === "function" ? escritorioNomeMovel(mv || { classe, nome: classe }) : classe; };
+    corpo = pub === undefined ? carregando("Carregando o inventário…") : inv.length ? `<ul class="ofc-ficha-inventario ofc-hud-inventario">${inv.map((i) => `<li title="${safeText(nome(i.classe))}">${escritorioMiniaturaHtml(i.classe)}<span>${safeText(nome(i.classe))}</span>${Number(i.quantidade) > 1 ? `<em>×${Number(i.quantidade)}</em>` : ""}</li>`).join("")}</ul>` : '<p class="ofc-nota">Nenhum móvel guardado ainda.</p>';
+  } else if (aba === "trabalho") {
+    const oQue = { criacao: "peças enviadas para aprovação e demandas finalizadas", atendimento: "peças dos seus clientes aprovadas ou finalizadas", agendamento: "peças agendadas", producao: "captações e materiais brutos entregues", gestao: "dias sem furo" }[t?.funcao] || "entregas";
+    const n = (rotulo, valor, dica) => `<div title="${safeText(dica)}"><dt>${rotulo}</dt><dd>${valor}</dd><small>${dica}</small></div>`;
+    corpo = !economia ? carregando("Carregando os números de trabalho…") : !t ? '<p class="ofc-nota">Os números de trabalho aparecem quando a contagem de pontos estiver ativa.</p>'
+      : `<dl class="ofc-ficha-numeros ofc-hud-numeros">${n("Hoje", t.hoje, "Entregas de hoje")}${n("Na semana", t.semana, "Desde segunda")}${n("No mês", t.mes, "Neste mês")}${n("Sequência", t.sequencia + (t.sequencia === 1 ? " dia" : " dias"), "Dias úteis seguidos com entrega")}${n("No total", t.total, "Todas as entregas")}${n("Meta", pontos.meta ? `${pontos.meta.entregas || 0}/${pontos.meta.meta || 1}` : "–", "Da semana")}</dl>
+<p class="ofc-nota">Contado pelas ${safeText(oQue)}: as mesmas entregas que dão XP e contam na meta.${eu ? "" : " Visto por quem administra."}</p>`;
+  }
+  const quarto = escritorioQuartoDe(id);
   const fechar = "document.getElementById('office-ficha').close();";
-  d.innerHTML = `<div class="ofc-ficha-topo"><img src="${img}" alt="" width="64" height="110" referrerpolicy="no-referrer"><div><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3><small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}</small></div><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
-${escritorioPerfilJogoHtml(id)}
-${veNumeros ? `<h4 class="ofc-ficha-secao">Trabalho no Painel${eu ? "" : " · visto por quem administra"}</h4>` : ""}${corpo}
-<div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirRecadosEscritorio('${safeText(String(id))}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();escritorioIrAte('${safeText(String(id))}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="document.getElementById('office-ficha').close();abrirPresenteEscritorio('${safeText(String(id))}')">Dar um móvel de presente</button>`}</div>`;
+  d.innerHTML = `<div class="ofc-hud-topo"><div class="ofc-hud-boneco"><img src="${img}" alt="" width="64" height="110" referrerpolicy="no-referrer"></div>
+<div class="ofc-hud-id"><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3><small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}${funcao ? ` · ${funcao}` : ""}</small>
+${nivel != null ? `<div class="ofc-hud-nivel"><span class="ofc-hud-selo" title="Nível">${nivel}</span><span class="ofc-hud-xp"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${xpProx}" aria-valuenow="${xp}" aria-label="XP até o próximo nível"><i style="width:${pct}%"></i></span><small>${xp} de ${xpProx} XP para o nível ${nivel + 1}</small></span></div>` : ""}
+${jogo ? `<div class="ofc-hud-moedas"><span title="VybeCoins">${escritorioFichaIcone("moeda")}<b>${jogo.saldo}</b></span><span title="Conquistas">${escritorioFichaIcone("estrela")}<b>${conquistas ?? 0}</b></span><span title="Móveis">${escritorioFichaIcone("caixa")}<b>${moveis}</b></span></div>` : pub === null ? '<small class="ofc-nota" role="alert">Não deu para carregar moedas e inventário agora.</small>' : ""}</div>
+<button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
+<div class="ofc-hud-abas" role="tablist" aria-label="Ficha">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" onclick="escolherAbaFichaEscritorio('${sid}','${k}')">${r}</button>`).join("")}</div>
+<div class="ofc-hud-corpo" role="tabpanel">${corpo}</div>
+<div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="${fechar}personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="${fechar}abrirRecadosEscritorio('${sid}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrAte('${sid}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="${fechar}abrirPresenteEscritorio('${sid}')">Dar um móvel de presente</button>`}</div>`;
   if (!d.open) d.showModal();
   if (!semAtualizar) carregarPerfilJogoEscritorio(id, () => { if (d.open) abrirFichaEscritorio(id, true); });
   // Pontos e marcos mudam com o trabalho do dia: a ficha busca o estado atual
@@ -153,8 +210,8 @@ ${veNumeros ? `<h4 class="ofc-ficha-secao">Trabalho no Painel${eu ? "" : " · vi
       else (escritorio.fichas ||= {})[String(id)] = r.economia;
       if (d.open) abrirFichaEscritorio(id, true);
     }).catch(() => { if (!eu) (escritorio.fichas ||= {})[String(id)] = null; if (d.open) abrirFichaEscritorio(id, true); });
-  // Nomes dos móveis dos marcos vêm do catálogo do editor; carrega na primeira vez.
-  if (marcos?.some((m) => m.moveis?.length) && typeof escritorioCatalogo !== "undefined" && !escritorioCatalogo && typeof carregarCatalogoEscritorio === "function")
+  // Nomes dos móveis vêm do catálogo do editor; carrega na primeira vez.
+  if ((marcos?.some((m) => m.moveis?.length) || jogo?.inventario?.length) && typeof escritorioCatalogo !== "undefined" && !escritorioCatalogo && typeof carregarCatalogoEscritorio === "function")
     carregarCatalogoEscritorio().then(() => { if (d.open) abrirFichaEscritorio(id, true); });
 }
 // Piso e paredes da própria sala: guardados no perfil do dono (o servidor só
@@ -528,24 +585,6 @@ async function presenteChegouEscritorio(id, v) {
 // sem ranking comparativo, para não virar competição (Paulo, 19/10/2026).
 // Parte do jogo na ficha de qualquer pessoa: moedas, nível, conquistas e o
 // inventário de móveis.
-function escritorioPerfilJogoHtml(id) {
-  const p = escritorio.perfisPublicos?.[String(id)];
-  if (p === undefined) return '<section class="ofc-ficha-jogo"><p class="ofc-nota">Carregando moedas e inventário…</p></section>';
-  if (p === null) return '<section class="ofc-ficha-jogo"><p class="ofc-nota" role="alert">Não deu para carregar moedas e inventário agora.</p></section>';
-  if (!p.disponivel) return "";
-  const total = (p.inventario || []).reduce((s, i) => s + Number(i.quantidade || 0), 0);
-  const nome = (classe) => {
-    const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe);
-    return typeof escritorioNomeMovel === "function" ? escritorioNomeMovel(m || { classe, nome: classe }) : classe;
-  };
-  const pct = Math.round((p.xp / (p.xpProximo || 1)) * 100);
-  const inv = (p.inventario || []).slice(0, 30).map((i) => `<li title="${safeText(nome(i.classe))}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(i.classe)}.png?size=64" alt="" onerror="typeof miniaturaLocalEscritorio==='function'&&miniaturaLocalEscritorio(this,'${safeText(i.classe)}')"><span>${safeText(nome(i.classe))}</span>${Number(i.quantidade) > 1 ? `<em>×${Number(i.quantidade)}</em>` : ""}</li>`).join("");
-  return `<section class="ofc-ficha-jogo" aria-label="Moedas, nível e inventário">
-<dl class="ofc-ficha-numeros"><div><dt>VybeCoins</dt><dd>${p.saldo}</dd></div><div><dt>Nível</dt><dd>${p.nivel}</dd></div><div><dt>Conquistas</dt><dd>${p.conquistas}</dd></div><div><dt>Móveis</dt><dd>${total}</dd></div></dl>
-<div class="ofc-ficha-nivel"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total</small></div>
-${(p.marcos || []).length ? `<h4>Marcos conquistados</h4><ul class="ofc-ficha-marcos-publicos">${p.marcos.map((m) => `<li title="${safeText(m.dica || "")}"><i aria-hidden="true">★</i><span>${safeText(m.nome)}</span></li>`).join("")}</ul>` : ""}
-<h4>Inventário</h4>${inv ? `<ul class="ofc-ficha-inventario">${inv}</ul>${(p.inventario || []).length > 30 ? `<p class="ofc-nota">E mais ${(p.inventario || []).length - 30} tipos de móvel.</p>` : ""}` : '<p class="ofc-nota">Nenhum móvel guardado ainda.</p>'}</section>`;
-}
 function carregarPerfilJogoEscritorio(id, aoTerminar) {
   const k = String(id);
   (escritorio.perfisPublicos ||= {});

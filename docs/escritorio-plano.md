@@ -1041,3 +1041,13 @@ decoração inicial "bem feito".
 - `postar_parada` vai também a quem tem as funções agendamento e gestão
   (`vybe_escritorio_funcoes`; hoje Tainara e Paulo), além dos heads do cliente
   (Paulo, 20/10/2026: eles cuidam do dia a dia do que posta e entrega).
+
+### Ficha como HUD de jogo — 20/10/2026
+
+- `abrirFichaEscritorio` virou HUD: topo com o personagem, selo do nível, barra
+  de XP e moedas; abas Resumo, Como ganhar, Conquistas, Inventário e Trabalho
+  (as duas de números só para a própria pessoa e quem administra).
+- O servidor manda `ganhos` (7 dias agrupados por regra) e `regras` da função
+  (`regrasDaFuncao`, tabela `vybe_escritorio_regras`): a ficha explica de onde
+  vem cada coisa sem valor no código. Cada regra cai num grupo só.
+- Conquistas mostram o móvel de prêmio como medalha.
