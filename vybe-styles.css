@@ -7087,7 +7087,20 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-selo.aprovado{color:#6fe3a8;border-color:rgba(111,227,168,.4)}
 .plj-selo.ajustes{color:#ff8f8f;border-color:rgba(255,143,143,.45)}
 .plj-selo.cadastrado{color:#b9c2d0}
-.workflow-modal.plj-janela{width:min(980px,calc(100vw - 32px));height:min(860px,calc(100vh - 40px));display:flex;flex-direction:column}
+/* Planejamento em tela cheia (Paulo, 20/10/2026: "o documento apertado no meio").
+   !important só aqui: as regras gerais de .workflow-modal (linhas 1442/1443) fixam
+   largura e altura com !important para todas as janelas. */
+.workflow-modal.plj-janela{top:0;left:0;transform:none;width:100vw!important;height:100vh;max-height:100vh!important;border-radius:0!important;display:flex;flex-direction:column;overflow:hidden}
+.workflow-modal.plj-janela .plj-corpo{flex:1;min-height:0}
+.workflow-modal.plj-janela .plj-previa{height:100%;min-height:0}
+/* Topo compacto para o documento ficar com a maior parte da tela. */
+.workflow-modal.plj-janela .workflow-title{font-size:24px!important;margin:2px 0!important}
+.workflow-modal.plj-janela .workflow-kicker{padding-bottom:4px!important}
+.plj-janela .plj-etapas{grid-template-columns:auto 1fr;align-items:center;gap:6px 14px;margin:2px 0}
+.plj-janela .plj-etapas ol{grid-template-columns:repeat(4,max-content)}
+.plj-janela .plj-etapas li{padding:4px 10px}
+.plj-janela .plj-etapas .plj-revs{grid-column:1/-1}
+.plj-janela .plj-abas{margin:4px 0}
 .plj-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
 .plj-topo .workflow-title{margin:6px 0}
 .plj-topo small{color:#8f98a9;font-size:10px}
@@ -7210,7 +7223,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-aviso-ponto{flex:none;width:10px;height:10px;border-radius:50%;background:#ff9d00;box-shadow:0 0 0 0 rgba(255,157,0,.6);animation:plj-pulso 2s ease-out infinite}
 @keyframes plj-pulso{to{box-shadow:0 0 0 10px rgba(255,157,0,0)}}
 @media(prefers-reduced-motion:reduce){.plj-aviso-ponto{animation:none}}
-@media(max-width:560px){.workflow-modal.plj-janela{width:calc(100vw - 16px);height:calc(100vh - 16px)}.plj-aviso{right:12px;bottom:76px}.plj-drive{margin-left:0}}
+@media(max-width:560px){.plj-aviso{right:12px;bottom:76px}.plj-drive{margin-left:0}}
 
 /* Centro de Operação: agentes dos clientes nas mesas (vybe-escritorio.js). */
 .mapa-pessoa.figurante.agente {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
@@ -7225,10 +7238,13 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-pessoa.figurante.agente.alerta img {filter:drop-shadow(0 0 5px #ffb451) drop-shadow(0 0 12px #ff9d0088)}
 @media (prefers-reduced-motion:no-preference) {.mapa-etiqueta.agente.alerta {animation:ofc-agente-chama 1.8s ease-in-out infinite}}
 @keyframes ofc-agente-chama {50% {box-shadow:0 0 0 6px #ff9d0022,0 6px 22px #ff9d0066}}
-.ofc-dock-btn.ofc-dock-plano {gap:6px;padding:6px 12px;border-radius:999px;background:#ff9d0026;box-shadow:inset 0 0 0 1px #ffb45188;color:#ffd59a;font:700 12.5px var(--mac-ui);max-width:280px}
-.ofc-dock-btn.ofc-dock-plano span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ofc-dock-btn.ofc-dock-plano:hover {background:#ff9d0040}
-@media (max-width:900px) {.ofc-dock-btn.ofc-dock-plano span {display:none}}
+.ofc-dock-plano {position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:min(520px,calc(100vw - 32px));padding:8px 14px 8px 12px;border:1px solid #ffb45199;border-radius:999px;background:#2a1a08f0;color:#ffe0a6;font:600 13px var(--mac-ui);white-space:nowrap;cursor:pointer;box-shadow:0 10px 30px #0008,0 0 0 3px #ff9d0022}
+.ofc-dock-plano b {font-weight:800;color:#fff}
+.ofc-dock-plano span {overflow:hidden;text-overflow:ellipsis}
+.ofc-dock-plano .ofc-ico {width:16px;height:16px;flex:none;stroke:#ffb451}
+.ofc-dock-plano > i {flex:none;width:8px;height:8px;border-radius:50%;background:#ff9d00}
+.ofc-dock-plano:hover, .ofc-dock-plano:focus-visible {background:#3a2408f5;outline:none;box-shadow:0 10px 30px #0008,0 0 0 3px #ff9d0066}
+@media (prefers-reduced-motion:no-preference) {.ofc-dock-plano > i {animation:plj-pulso 2s ease-out infinite}}
 .ofc-sala .ofc-sala-alerta {display:block;grid-column:1/-1;margin-top:2px;color:#ffc46b;font:700 10px var(--mac-ui)}
 
 /* Raridade no cartão da loja (borda na cor da faixa; o nome da faixa vem

@@ -127,11 +127,11 @@ function pintarPlanejamento(aba) {
     ${pljEtapasHtml(p)}${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
     <div class="plj-corpo">${aba === 'editar' ? pljEditorHtml() : aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
-      : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups"></iframe>`}</div>
+      : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>`}</div>
     <div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div>`;
   m.dataset.aba = aba;
   if (aba === 'documento') pljCarregarPrevia(p);
-  if (aba === 'documento' && p.pode_editar && ['revisar', 'ajustes'].includes(p.estado)) m.querySelector('.plj-abas')?.insertAdjacentHTML('afterend', '<p class="plj-dica">Revise aqui mesmo: em cada peça, <b>Peça OK</b> ou <b>Ajustar</b> com o que mudar. Para mudar o texto, use a aba Editar.</p>');
+  if (aba === 'documento' && p.pode_editar && ['revisar', 'ajustes'].includes(p.estado)) m.querySelector('.plj-abas')?.insertAdjacentHTML('afterend', '<p class="plj-dica">Revise aqui mesmo: em cada peça, <b>Peça OK</b>, <b>Ajustar</b> (o agente refaz) ou <b>Editar peça</b> (você muda o texto na hora).</p>');
   if (aba === 'identidade') pljCarregarLogosDrive();
 }
 // O documento entra pela moldura com o próprio HTML (srcdoc), sem script: o
@@ -154,6 +154,11 @@ window.addEventListener('message', async (e) => {
   if (!quadro || e.source !== quadro.contentWindow || e.data?.vybe !== 'planejamento-head' || !PLJ_ABERTO) return;
   const responde = (r) => quadro.contentWindow?.postMessage({ vybe: 'planejamento-head-resposta', id: e.data.id, ...r }, '*');
   const { assinatura, estado, nota } = e.data.dados || {};
+  if (e.data.dados?.acao === 'editar') {
+    try { await pljSalvarPecaDoDocumento(e.data.dados.indice, e.data.dados.peca); responde({ ok: true }); }
+    catch (erro) { responde({ ok: false, erro: erro.message }); }
+    return;
+  }
   try {
     const d = await pljPedir('', { acao: 'revisar_peca', id: PLJ_ABERTO.id, assinatura, estado, nota });
     PLJ_ABERTO.revisao = d.resumo;
@@ -165,6 +170,25 @@ window.addEventListener('message', async (e) => {
     responde({ ok: true });
   } catch (erro) { responde({ ok: false, erro: erro.message }); }
 });
+// Edição de uma peça direto no documento: grava a versão nova, deixa a peça com
+// o OK de quem editou e volta para a mesma peça (Paulo, 20/10/2026).
+async function pljSalvarPecaDoDocumento(indice, peca) {
+  const c = PLJ_ABERTO.conteudo || {};
+  const pecas = (c.pecas || []).map((x, i) => (i === indice ? { ...x, ...peca } : x));
+  if (!pecas[indice]) throw new Error('Peça não encontrada. Recarregue o planejamento.');
+  if (PLJ_ABERTO.estado === 'enviado' && !confirm('O planejamento está com o cliente. Salvar tira dele até você mandar de novo. Salvar?')) throw new Error('Edição cancelada.');
+  const d = await pljPedir('', { acao: 'editar', id: PLJ_ABERTO.id, versao: PLJ_ABERTO.versao, titulo: PLJ_ABERTO.titulo, conteudo: { ...c, pecas } });
+  const novo = (await pljPedir(`acao=detalhe&id=${encodeURIComponent(d.planejamento.id)}`)).planejamento;
+  const alvo = (novo.conteudo?.pecas || []).findIndex((x) => x.tema === (peca.tema || '') && x.data === (peca.data || ''));
+  if (alvo >= 0 && novo.conteudo.pecas[alvo].assinatura && ['revisar', 'ajustes'].includes(novo.estado)) {
+    try { await pljPedir('', { acao: 'revisar_peca', id: novo.id, assinatura: novo.conteudo.pecas[alvo].assinatura, estado: 'ok', nota: '' }); } catch { /* fica sem o OK */ }
+  }
+  await abrirPlanejamento(novo.id, 'documento');
+  const quadro = document.querySelector('#workflow-modal .plj-previa');
+  quadro?.addEventListener('load', () => quadro.contentWindow?.postMessage({ vybe: 'planejamento-ir', n: alvo + 1 }, '*'), { once: true });
+  showToast('Peça salva.', 'success');
+  pljAtualizarFora();
+}
 function pljTrocarAba(aba) {
   if (document.getElementById('workflow-modal')?.dataset.aba === 'editar') pljColher();
   pintarPlanejamento(aba);
