@@ -120,7 +120,7 @@ test('escadas: cada tipo de entrega sobe de Bronze a Diamante, com o troféu e a
  lista=await conferirMarcos(sql,3,AGORA); c=lista.find(m=>m.id==='cards');
  assert.deepEqual([c.nivel,c.nomeNivel],[2,'Prata']);
  assert.equal(await inventario(sql,3,'trophy_viraldancer_silver'),1);
- assert.equal(await inventario(sql,3,'trophy_viraldancer_bronze'),0,'o troféu troca: o Bronze guardado sai');
+ assert.equal(await inventario(sql,3,'trophy_viraldancer_bronze'),1,'o Bronze fica: a pessoa expõe a evolução da escada');
  assert.deepEqual(await saldo(sql,3),[antes[0]+r.moedas*3,antes[1]+r.pontos*3],'Prata vale 2 vezes o Bronze');
  // Entregas no geral pedem 200 para o Bronze: 120 ainda não.
  assert.equal(lista.find(m=>m.id==='entregas').nivel,0);
