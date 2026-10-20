@@ -8333,3 +8333,47 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 .ofc-previa-origem .ofc-fm-origens time {color:#a3a9b7;white-space:nowrap}
 .ofc-previa-origem .ofc-fm-carregando {display:grid;gap:6px}
 .ofc-previa-origem .ofc-fm-carregando i {height:28px;border-radius:12px;background:linear-gradient(90deg,#ffffff0a,#ffffff17,#ffffff0a);background-size:200% 100%;animation:ofc-fm-brilho 1.1s linear infinite}
+
+/* Loja, carteira e inventário (Paulo, 20/10/2026: "execute todos"). */
+.ofc-loja-destaque {grid-column:1/-1;display:grid;gap:8px;padding:12px;border-radius:16px;background:linear-gradient(135deg,#ff95481a,#ffffff05);border:1px solid #ff954833}
+.ofc-loja-destaque-topo {display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.ofc-loja-destaque h4,.ofc-loja-todos {margin:0;font:700 13px var(--mac-ui);color:#ffd9bd}
+.ofc-loja-destaque-topo small {font:500 12px var(--mac-ui);color:var(--ofc-suave,#a3a9b7)}
+.ofc-loja-todos {grid-column:1/-1;margin-top:4px}
+.ofc-loja-vitrine {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ofc-loja-kits {display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.ofc-loja-kit {display:grid;gap:4px;padding:10px;border-radius:14px;background:#00000033;border:1px solid #ffffff14}
+.ofc-loja-kit-artes {display:flex;gap:2px;min-height:44px;align-items:end}
+.ofc-loja-kit-artes img {width:40px;height:40px;object-fit:contain;image-rendering:pixelated}
+.ofc-loja-kit b {font:700 13px var(--mac-ui)}
+.ofc-loja-kit small {font:500 11.5px/1.35 var(--mac-ui);color:var(--ofc-suave,#a3a9b7)}
+.ofc-loja-kit-preco {font:500 12px var(--mac-ui)}
+.ofc-loja-kit-preco s {color:#a3a9b7}
+.ofc-loja-kit-preco em {padding:1px 6px;border-radius:999px;background:#4fc98a33;color:#a6f0c4;font-style:normal;font-weight:700}
+.ofc-loja-kit button {margin-top:4px}
+.ofc-movel {position:relative}
+.ofc-movel-desejo {position:absolute;top:6px;right:6px;padding:1px 6px;border-radius:999px;background:#ff7aa833;color:#ffc2d6;font:700 10px var(--mac-ui);font-style:normal}
+.ofc-previa-falta {margin:0 0 6px;padding:8px 10px;border-radius:10px;background:#ffd16614;color:#ffe29a;font:500 12px/1.4 var(--mac-ui)}
+.ofc-previa-extras {display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.ofc-previa-extras button {flex:1;padding:7px 10px;font-size:12px}
+.ofc-previa-extras button[aria-pressed="true"] {background:#ff7aa826;border-color:#ff7aa866;color:#ffc2d6}
+.ofc-cart-semana,.ofc-cart-ganhos {display:grid;gap:8px;padding:12px;border-radius:14px;background:#ffffff07;border:1px solid #ffffff10}
+.ofc-cart-semana h4,.ofc-cart-ganhos h4 {margin:0;font:700 12px var(--mac-ui);color:#ffb27a}
+.ofc-cart-barras {display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:110px;margin:0;padding:0;list-style:none;align-items:end}
+.ofc-cart-barras li {display:grid;grid-template-rows:1fr auto auto;justify-items:center;gap:2px;height:100%}
+.ofc-cart-col {display:flex;align-items:end;gap:2px;width:100%;height:100%}
+.ofc-cart-col i {flex:1;min-height:2px;border-radius:4px 4px 2px 2px}
+.ofc-cart-col i.moedas,.ofc-cart-legenda i.moedas {background:linear-gradient(180deg,#ffd166,#ff9548)}
+.ofc-cart-col i.xp,.ofc-cart-legenda i.xp {background:linear-gradient(180deg,#9fd3ff,#5b8cff)}
+.ofc-cart-barras b {font:700 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-cart-barras small {font:500 10.5px var(--mac-ui);color:#a3a9b7}
+.ofc-cart-legenda {display:flex;align-items:center;gap:6px;margin:0;font:500 11px var(--mac-ui);color:#a3a9b7}
+.ofc-cart-legenda i {display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:6px}
+.ofc-cart-previsao {margin:0;font:500 12.5px/1.45 var(--mac-ui)}
+.ofc-cart-ganhos ul {display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.ofc-cart-ganhos li {display:flex;justify-content:space-between;gap:10px;padding:6px 8px;border-radius:10px;background:#ffffff06}
+.ofc-cart-ganhos li span:first-child {display:grid}
+.ofc-cart-ganhos b {font:600 12px var(--mac-ui)}
+.ofc-cart-ganhos small {font:500 11px var(--mac-ui);color:#a3a9b7}
+.ofc-cart-valor {font:700 12px var(--mac-ui);white-space:nowrap;color:#ffd166}
+.ofc-cart-valor.perde {color:#ff9b9b}
