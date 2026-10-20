@@ -338,13 +338,29 @@ export async function rankingDaSemana(sql, agora = new Date(), inicio = inicioDa
   // Geral: % da meta, desempate pelo XP da semana.
   lista.sort((a, b) => b.pct - a.pct || b.xp - a.xp || a.nome.localeCompare(b.nome));
   lista.forEach((p, i) => { p.posicao = p.entregas > 0 ? i + 1 : null; });
+  // O que conta como entrega e de onde vem o XP de cada um (Paulo, 20/10/2026:
+  // "22 de 22 o quê? quais foram? XP de onde?"). Títulos das peças da semana.
+  const [comTitulo] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='titulo') AS existe`;
+  const entregas = comTitulo?.existe
+    ? await sql`SELECT e.pessoa_id, e.regra, TO_CHAR(e.dia,'YYYY-MM-DD') AS dia, c.titulo, c.clientes_texto AS cliente FROM vybe_escritorio_entregas e
+        JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega LEFT JOIN vybe_conteudos c ON c.id=e.conteudo_id
+        WHERE e.dia >= ${inicio}::date AND e.dia <= ${fim}::date ORDER BY e.dia DESC, e.origem`
+    : await sql`SELECT e.pessoa_id, e.regra, TO_CHAR(e.dia,'YYYY-MM-DD') AS dia, NULL AS titulo, NULL AS cliente FROM vybe_escritorio_entregas e
+        JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega WHERE e.dia >= ${inicio}::date AND e.dia <= ${fim}::date ORDER BY e.dia DESC, e.origem`;
+  for (const p of lista) {
+    const minhas = entregas.filter((e) => String(e.pessoa_id) === p.id);
+    p.porRegra = minhas.reduce((t, e) => ({ ...t, [e.regra]: (t[e.regra] || 0) + 1 }), {});
+    p.pecas = minhas.slice(0, 40).map((e) => ({ regra: e.regra, dia: e.dia, titulo: e.titulo || null, cliente: e.cliente || null }));
+    p.xpPor = ganhos.filter((g) => String(g.pessoa_id) === p.id).reduce((t, g) => ({ ...t, [g.regra]: Number(g.xp) }), {});
+  }
+  const regras = Object.fromEntries((await sql`SELECT chave, descricao FROM vybe_escritorio_regras`).map((r) => [r.chave, r.descricao]));
   const premios = await sql`SELECT r.chave, r.moedas, r.pontos, c.classe FROM vybe_escritorio_regras r
     LEFT JOIN vybe_escritorio_catalogo c ON c.marco=r.chave WHERE r.chave = ANY(${['ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia']}::text[]) AND r.ativa ORDER BY r.chave`;
   const [pecas, metaAg] = await Promise.all([pecasDaAgencia(sql, inicio, fim), metaDaAgencia(sql, inicio)]);
   const agencia = { pecas, meta: metaAg };
   agencia.pct = Math.round((agencia.pecas / agencia.meta) * 100);
   agencia.bateu = agencia.pecas >= agencia.meta;
-  return { disponivel: true, inicio, fim, pessoas: lista, atividades: ATIVIDADES_DO_RANKING.map(([chave, nome]) => ({ chave, nome })),
+  return { disponivel: true, inicio, fim, pessoas: lista, regras, atividades: ATIVIDADES_DO_RANKING.map(([chave, nome]) => ({ chave, nome })),
     agencia, premios: premios.map((p) => ({ chave: p.chave, moedas: Number(p.moedas), pontos: Number(p.pontos), classe: p.classe || null })) };
 }
 // O que a tela mostra: a semana atual e o resultado da anterior (pódio pago).
@@ -355,7 +371,16 @@ export async function rankingEscritorio(sql, agora = new Date()) {
   const pagos = await sql`SELECT m.pessoa_id, m.regra, p.nome FROM vybe_escritorio_moedas m JOIN vybe_pessoas p ON p.id=m.pessoa_id
     WHERE m.origem LIKE ${'ranking:' + anterior + ':%'} ORDER BY m.regra`;
   const [agenciaPaga] = await sql`SELECT count(*)::int AS n FROM vybe_escritorio_moedas WHERE origem LIKE ${'agencia-semana:' + anterior + '%'}`;
-  return { ...atual, anterior: { inicio: anterior, fim: somarDias(anterior, 6), podio: pagos.map((p) => ({ id: String(p.pessoa_id), nome: p.nome, posicao: Number(p.regra.slice(-1)) })), agenciaBateu: Number(agenciaPaga?.n || 0) > 0 } };
+  // Mais rico e Colecionador (Paulo, 20/10/2026): de todos os tempos, não da semana.
+  const patrimonio = await sql`SELECT p.id, p.nome, f.funcao, COALESCE(c.saldo,0)::int AS saldo,
+      COALESCE((SELECT sum(i.quantidade) FROM vybe_escritorio_inventario i WHERE i.pessoa_id=p.id),0)::int AS moveis,
+      COALESCE((SELECT count(*) FROM vybe_escritorio_inventario i WHERE i.pessoa_id=p.id),0)::int AS distintos,
+      COALESCE((SELECT sum(i.quantidade) FROM vybe_escritorio_inventario i JOIN vybe_escritorio_catalogo k ON k.classe=i.classe WHERE i.pessoa_id=p.id AND k.raridade='lendario'),0)::int AS lendarios,
+      COALESCE((SELECT sum(i.quantidade) FROM vybe_escritorio_inventario i JOIN vybe_escritorio_catalogo k ON k.classe=i.classe WHERE i.pessoa_id=p.id AND k.raridade='epico'),0)::int AS epicos,
+      COALESCE((SELECT sum(i.quantidade) FROM vybe_escritorio_inventario i JOIN vybe_escritorio_catalogo k ON k.classe=i.classe WHERE i.pessoa_id=p.id AND k.marco IS NOT NULL),0)::int AS trofeus
+    FROM vybe_escritorio_funcoes f JOIN vybe_pessoas p ON p.id=f.pessoa_id LEFT JOIN vybe_escritorio_carteiras c ON c.pessoa_id=p.id
+    WHERE p.ativo=TRUE ORDER BY p.nome`;
+  return { ...atual, patrimonio: patrimonio.map((p) => ({ ...p, id: String(p.id) })), anterior: { inicio: anterior, fim: somarDias(anterior, 6), podio: pagos.map((p) => ({ id: String(p.pessoa_id), nome: p.nome, posicao: Number(p.regra.slice(-1)) })), agenciaBateu: Number(agenciaPaga?.n || 0) > 0 } };
 }
 // Fecha o ranking de uma semana: 1º, 2º e 3º (com entrega na semana) ganham
 // o prêmio e o troféu; meta da agência batida dá o bônus a todos. Uma vez só

@@ -32,6 +32,10 @@ test('geral pelo % da meta (desempate pelo XP), atividades da semana e meta da a
  const r=await rankingDaSemana(sql,AGORA,PASSADA);
  assert.deepEqual(r.pessoas.filter(p=>p.posicao).map(p=>[p.nome.split(' ')[0],p.posicao,p.atividades.peca_criacao]),[['Reriston',1,3],['Jady',2,2],['Beatriz',3,1]]);
  assert.equal(r.pessoas.find(p=>p.id==='2').xp,60);
+ // Detalhe de cada um: o que contou como entrega, quais peças e de onde veio o XP.
+ const rer=r.pessoas.find(p=>p.id==='2');
+ assert.deepEqual(rer.porRegra,{peca_criacao:3});assert.equal(rer.pecas.length,3);assert.deepEqual(rer.xpPor,{peca_criacao:60});
+ assert.ok(r.regras.peca_criacao);
  assert.equal(r.agencia.pecas,6);
  assert.ok(r.agencia.bateu,'sem histórico a meta da agência é 1');
  // Fechamento: pódio com moedas, XP e troféu; todos com o bônus da agência; repetir não paga de novo.
@@ -50,6 +54,9 @@ test('geral pelo % da meta (desempate pelo XP), atividades da semana e meta da a
  assert.equal(tela.inicio,SEG);
  assert.deepEqual(tela.anterior.podio.map(p=>[p.id,p.posicao]),[['2',1],['6',2],['7',3]]);
  assert.ok(tela.anterior.agenciaBateu);
+ // Mais rico e Colecionador: saldo e móveis de todos os tempos.
+ const pat=tela.patrimonio.find(p=>p.id==='2');
+ assert.equal(pat.trofeus,1);assert.ok(pat.saldo>=50);assert.equal(pat.moveis,1);
  // Prêmio e bônus não entram no XP do ranking.
  assert.equal((await rankingDaSemana(sql,AGORA,PASSADA)).pessoas.find(p=>p.id==='2').xp,60);
 });
