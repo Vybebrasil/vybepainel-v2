@@ -279,3 +279,18 @@ Pedidos do Paulo:
   - Troca a qualquer momento pelo seletor no topo.
   - O calendário aparece nos dois modos; no modo uma por vez, clicar num dia
     leva à peça.
+
+## Editor refeito e etiquetas do Centro de Operação (20/10/2026)
+
+- **Editor ("Editar o mês"):**
+  - À esquerda, uma lista: visão do mês, linhas, datas, para combinar e as
+    peças, com cor do formato, dia e situação. Filtros: todas, com pedido,
+    sem OK.
+  - À direita, o item escolhido, em grupos: quando e formato; conteúdo, com a
+    linha escolhida entre as do mês; telas numeradas, que sobem, descem, saem
+    ou entram; legenda ou roteiro, com contagem de caracteres; apoio.
+  - O que se digita vai direto para o rascunho. A barra avisa "Alterações não
+    salvas", ⌘S salva e ↑↓ navega entre as peças.
+- **Etiqueta do agente:** os números aparecem por tipo (atrasadas em
+  vermelho, para aprovar em amarelo, sem informação em cinza) ao lado do nome,
+  e o planejamento fica na linha de baixo.

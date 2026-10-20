@@ -1027,6 +1027,12 @@ const ESCRITORIO_SITUACAO_PLANO = { revisar: ["Para revisar", "#ffc46b"], enviad
 // O que o balão do agente diz quando pede ação de quem pode agir (head do
 // cliente ou quem administra). Paulo, 20/10/2026: "um alerta maior".
 const ESCRITORIO_ACAO_PLANO = { revisar: "Planejamento para revisar", ajustes: "Cliente pediu ajustes", aprovado: "Aprovado: cadastrar as peças" };
+// A cor do status como está no catálogo do painel (STATUS_OPTIONS), pela chave.
+function escritorioCorDoStatus(chave) {
+  const lista = typeof STATUS_OPTIONS !== "undefined" ? STATUS_OPTIONS : [];
+  const o = lista.find((x) => x.chave === chave) || lista.find((x) => typeof chaveDeStatus === "function" && chaveDeStatus(x.label || x.rotulo) === chave);
+  return o?.color || o?.cor || null;
+}
 function escritorioDetalheDoPlano(p) {
   const r = p.revisao || {};
   if (p.estado === "enviado") return r.total ? `Com o cliente · ${r.cliente_aprovadas + r.cliente_ajustes} de ${r.total} respondidas` : "Com o cliente";
@@ -1055,7 +1061,11 @@ async function escritorioOcuparOperacao() {
     return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), mao: escritorioMaoDoAgente(a), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean((a.meu || escritorio.base?.admin) && p && ESCRITORIO_ACAO_PLANO[p.estado]), acao: p ? ESCRITORIO_ACAO_PLANO[p.estado] || "" : "",
       // A situação aparece escrita também quando está com o cliente, com o placar das peças.
       detalhe: p ? escritorioDetalheDoPlano(p) : "",
-      avisos: al.total || 0, resumoAvisos, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
+      avisos: al.total || 0, resumoAvisos,
+      // Quantos de cada tipo, para a etiqueta mostrar junto com o planejamento (Paulo, 20/10/2026).
+      contagens: { atrasadas: al.atrasadas_total || 0, aprovar: al.aprovar_total || 0, info: al.sem_info_total || 0,
+        // Cor é dado: a do próprio status no catálogo (Paulo, 20/10/2026: "cadê a regra dos status?").
+        corAprovar: escritorioCorDoStatus("para_aprovacao"), corInfo: escritorioCorDoStatus("falta_info") }, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
 }

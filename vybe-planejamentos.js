@@ -102,6 +102,7 @@ async function abrirPlanejamento(id, aba = 'documento') {
     const d = await pljPedir(`acao=detalhe&id=${encodeURIComponent(id)}`);
     PLJ_ABERTO = d.planejamento;
     PLJ_RASCUNHO = JSON.parse(JSON.stringify(PLJ_ABERTO.conteudo || {}));
+    PLJ_SUJO = false;
     pintarPlanejamento(aba);
   } catch (e) {
     const m = document.getElementById('workflow-modal');
@@ -207,15 +208,25 @@ async function pljSalvarPecaDoDocumento(indice, peca) {
   pljAtualizarFora();
 }
 function pljTrocarAba(aba) {
-  if (document.getElementById('workflow-modal')?.dataset.aba === 'editar') pljColher();
+  if (document.getElementById('workflow-modal')?.dataset.aba === 'editar' && aba !== 'editar' && PLJ_SUJO) {
+    if (!confirm('Sair sem salvar as alterações?')) return;
+    pljEdDescartar(false);
+  }
   pintarPlanejamento(aba);
+}
+function pljEdDescartar(repintar = true) {
+  PLJ_RASCUNHO = JSON.parse(JSON.stringify(PLJ_ABERTO.conteudo || {}));
+  delete PLJ_ABERTO._titulo;
+  PLJ_SUJO = false;
+  if (repintar) pintarPlanejamento('editar');
 }
 
 function pljAcoesHtml(aba) {
   const p = PLJ_ABERTO;
   if (!p.pode_editar) return '<small class="workflow-hint">Só o head do cliente e quem administra editam e mandam este planejamento.</small>';
-  if (aba === 'editar') return `<button type="button" class="workflow-secondary" onclick="pintarPlanejamento('documento')">Descartar</button>
-    <button type="button" class="workflow-primary" onclick="salvarPlanejamento(this)">Salvar</button>`;
+  if (aba === 'editar') return `<span class="plj-ed-sujo${PLJ_SUJO ? ' sujo' : ''}" id="plj-ed-sujo" aria-live="polite">${PLJ_SUJO ? 'Alterações não salvas' : 'Tudo salvo'}</span><small class="plj-ed-atalho">⌘S salva</small>
+    <button type="button" class="workflow-secondary" onclick="pljEdDescartar()">Descartar</button>
+    <button type="button" class="workflow-primary" onclick="salvarPlanejamento(this)">Salvar alterações</button>`;
   if (aba === 'identidade') return `<button type="button" class="workflow-primary" onclick="salvarIdentidadePlanejamento(this)">Salvar marca</button>`;
   const botoes = [];
   if (['revisar', 'ajustes'].includes(p.estado)) botoes.push(`<button type="button" class="workflow-primary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente →</button>`);
@@ -227,65 +238,159 @@ function pljAcoesHtml(aba) {
   return botoes.join('');
 }
 
-// ── Editor estruturado: o mesmo formato que o agente usa ─────────────────────
+// ── Editor: lista à esquerda, o item escolhido à direita ─────────────────────
+// Paulo, 20/10/2026: "tá horrível essa interface pra editar". No estilo dos
+// apps do Mac: uma lista (mês, linhas, datas, peças) e o detalhe do item, em
+// grupos. O que se digita vai direto para o rascunho (sem "colher" a tela).
+let PLJ_SEL = 'mes';
+let PLJ_SUJO = false;
+let PLJ_FILTRO = 'todas';
+const PLJ_COM_TELAS = ['Card', 'Carrossel', 'Stories', 'Outro'];
+const pljSemNumero = (t) => String(t || '').replace(/^\s*\d{1,2}\s*[·.\-–:)]\s*/, '');
 function pljEditorHtml() {
   const c = PLJ_RASCUNHO || {};
-  const linha = (k, i, campos) => `<div class="plj-linha" data-lista="${k}">${campos}
-    <button type="button" class="plj-tirar" aria-label="Tirar" title="Tirar" onclick="pljTirar('${k}', ${i})">×</button></div>`;
-  const ent = (k, v, rot, extra = '') => `<label><span>${rot}</span><input data-k="${k}" type="text" value="${pljEsc(v || '')}" ${extra}></label>`;
-  const area = (k, v, rot, linhas = 3) => `<label><span>${rot}</span><textarea data-k="${k}" rows="${linhas}">${pljEsc(v || '')}</textarea></label>`;
-  return `<div class="plj-editor">
-    <label class="workflow-field"><span>Título</span><input id="plj-titulo" type="text" maxlength="160" value="${pljEsc(PLJ_ABERTO.titulo)}"></label>
-    <label class="workflow-field"><span>Visão do mês (para o cliente)</span><textarea id="plj-resumo" rows="3">${pljEsc(c.resumo || '')}</textarea></label>
-    <fieldset class="plj-grupo"><legend>Linhas de conteúdo</legend>
-      ${(c.linhas || []).map((l, i) => linha('linhas', i, ent('titulo', l.titulo, 'Linha') + area('texto', l.texto, 'O que é', 2))).join('')}
-      <button type="button" class="cli-porta" onclick="pljAcrescentar('linhas')">+ Linha</button></fieldset>
-    <fieldset class="plj-grupo"><legend>Datas do mês</legend>
-      ${(c.datas || []).map((d, i) => linha('datas', i, ent('data', d.data, 'Quando', 'placeholder="02/11 · seg"') + ent('nome', d.nome, 'Data') + ent('texto', d.texto, 'Por que importa'))).join('')}
-      <button type="button" class="cli-porta" onclick="pljAcrescentar('datas')">+ Data</button></fieldset>
-    <fieldset class="plj-grupo"><legend>Peças (${(c.pecas || []).length})</legend>
-      <p class="workflow-hint">Clique numa peça para abrir. As com pedido do cliente vêm marcadas.</p>
-      ${(c.pecas || []).map((x, i) => pljPecaEditorHtml(x, i)).join('')}
-      <button type="button" class="cli-porta" onclick="pljAcrescentar('pecas')">+ Peça</button></fieldset>
-    <label class="workflow-field"><span>Observações para o cliente</span><textarea id="plj-obs" rows="3">${pljEsc(c.observacoes || '')}</textarea></label>
-    ${PLJ_ABERTO.estado === 'enviado' ? '<p class="workflow-hint">Este planejamento já está com o cliente. Salvar a edição invalida o link anterior; depois é só mandar de novo.</p>' : ''}
-  </div>`;
+  if (PLJ_SEL.startsWith('peca:') && !c.pecas?.[Number(PLJ_SEL.slice(5))]) PLJ_SEL = 'mes';
+  return `<div class="plj-ed"><aside class="plj-ed-lista" id="plj-ed-lista" aria-label="Partes do planejamento">${pljEdListaHtml()}</aside>
+    <section class="plj-ed-detalhe" id="plj-ed-detalhe">${pljEdDetalheHtml()}</section></div>`;
 }
-// Uma peça no editor: um cartão que abre e fecha, com o resumo na linha de
-// cima (Paulo, 20/10/2026: "melhorar a forma como edita").
-function pljPecaEditorHtml(x, i) {
-  const dia = x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia';
-  const ent = (k, v, rot) => `<label><span>${rot}</span><input data-k="${k}" type="text" value="${pljEsc(v || '')}"></label>`;
-  const area = (k, v, rot, linhas) => `<label><span>${rot}</span><textarea data-k="${k}" rows="${linhas}">${pljEsc(v || '')}</textarea></label>`;
-  const pedido = x.ajuste_cliente || x.revisao_cliente?.estado === 'ajuste' || x.revisao_head?.estado === 'ajustar';
-  const selo = x.revisao_cliente?.estado === 'ajuste' ? '<em>ajuste do cliente</em>' : x.revisao_head?.estado === 'ajustar' ? '<em>ajustar</em>'
-    : x.revisao_cliente?.estado === 'aprovada' ? '<em class="ok">cliente aprovou</em>' : x.revisao_head?.estado === 'ok' ? '<em class="ok">OK</em>' : '';
-  return `<details class="plj-linha plj-peca${pedido ? ' com-pedido' : ''}" data-lista="pecas"${pedido ? ' open' : ''}>
-    <summary><span class="plj-peca-num">${String(i + 1).padStart(2, '0')}</span><span class="plj-peca-tag f-${pljEsc(x.formato || 'Card').normalize('NFD').replace(/[^A-Za-z]/g, '')}">${pljEsc(x.formato || 'Card')}</span><span class="plj-peca-dia">${pljEsc(dia)}</span><b>${pljEsc(x.tema || 'Sem tema')}</b>${selo}</summary>
+function pljEdListaHtml() {
+  const c = PLJ_RASCUNHO || {}, pecas = c.pecas || [];
+  const item = (sel, icone, nome, extra = '') => `<button type="button" class="plj-ed-item${PLJ_SEL === sel ? ' sel' : ''}" onclick="pljEdSelecionar('${sel}')" aria-current="${PLJ_SEL === sel}"><i aria-hidden="true">${icone}</i><span>${nome}</span>${extra}</button>`;
+  const situacao = (x) => x.revisao_cliente?.estado === 'ajuste' || x.revisao_head?.estado === 'ajustar' ? 'ruim' : x.revisao_cliente?.estado === 'aprovada' || x.revisao_head?.estado === 'ok' ? 'bom' : '';
+  const passa = (x) => PLJ_FILTRO === 'todas' || (PLJ_FILTRO === 'pedido' && situacao(x) === 'ruim') || (PLJ_FILTRO === 'sem-ok' && !x.revisao_head);
+  const filtro = (k, r) => `<button type="button" class="${PLJ_FILTRO === k ? 'sel' : ''}" onclick="PLJ_FILTRO='${k}';pljEdRepintarLista()">${r}</button>`;
+  return `<p class="plj-ed-sec">Planejamento</p>
+    ${item('mes', '◎', 'Visão do mês')}
+    ${item('linhas', '≡', 'Linhas de conteúdo', `<em>${(c.linhas || []).length}</em>`)}
+    ${item('datas', '▦', 'Datas do mês', `<em>${(c.datas || []).length}</em>`)}
+    ${item('obs', '✎', 'Para combinar')}
+    <div class="plj-ed-sec plj-ed-sec-pecas"><span>Peças <em>${pecas.length}</em></span><button type="button" class="plj-ed-mais" onclick="pljEdNovaPeca()" aria-label="Nova peça" title="Nova peça">+</button></div>
+    <div class="plj-ed-filtros" role="group" aria-label="Filtrar peças">${filtro('todas', 'Todas')}${filtro('pedido', 'Com pedido')}${filtro('sem-ok', 'Sem OK')}</div>
+    <div class="plj-ed-pecas">${pecas.map((x, i) => passa(x) ? `<button type="button" class="plj-ed-peca${PLJ_SEL === 'peca:' + i ? ' sel' : ''}" onclick="pljEdSelecionar('peca:${i}')" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}">
+      <span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t"><b>${pljEsc(pljSemNumero(x.tema) || 'Sem tema')}</b><small>${pljEsc(x.formato || 'Card')} · ${pljEsc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia')}</small></span>${situacao(x) ? `<i class="s ${situacao(x)}" aria-label="${situacao(x) === 'ruim' ? 'Tem pedido de ajuste' : 'Aprovada'}"></i>` : ''}</button>` : '').join('') || '<p class="plj-ed-vazio">Nenhuma peça neste filtro.</p>'}</div>`;
+}
+const PLJ_COR_FORMATO = { Card: '#d9534f', Carrossel: '#c98a12', Reels: '#7b4bd6', Fotografia: '#2f8f5b', 'Vídeo': '#2c6fb3', Stories: '#d1497a', Outro: '#6b7280' };
+// Campo ligado ao rascunho pelo caminho (ex.: "pecas.3.tema").
+const pljCampo = (caminho, valor, { tipo = 'text', linhas = 0, rotulo = '', dica = '', max = 0, extra = '' } = {}) => {
+  const id = 'plj-c-' + caminho.replace(/\W/g, '-');
+  const campo = linhas ? `<textarea id="${id}" data-campo="${caminho}" rows="${linhas}"${max ? ` maxlength="${max}"` : ''}${extra}>${pljEsc(valor || '')}</textarea>`
+    : `<input id="${id}" data-campo="${caminho}" type="${tipo}" value="${pljEsc(valor || '')}"${max ? ` maxlength="${max}"` : ''}${extra}>`;
+  return `<label class="plj-ed-campo" for="${id}"><span>${rotulo}</span>${campo}${dica ? `<small>${dica}</small>` : ''}</label>`;
+};
+const pljGrupo = (titulo, corpo, rodape = '') => `<div class="plj-ed-bloco">${titulo ? `<p class="plj-ed-sec">${titulo}</p>` : ''}<div class="plj-ed-grupo">${corpo}</div>${rodape ? `<small class="plj-ed-rodape">${rodape}</small>` : ''}</div>`;
+function pljEdDetalheHtml() {
+  const c = PLJ_RASCUNHO || {};
+  if (PLJ_SEL === 'mes') return `<div class="plj-ed-cab"><h3>Visão do mês</h3><p>O que o cliente lê primeiro no documento.</p></div>
+    ${pljGrupo('', pljCampo('titulo', PLJ_ABERTO._titulo ?? PLJ_ABERTO.titulo, { rotulo: 'Título', max: 160 }) + pljCampo('resumo', c.resumo, { rotulo: 'Visão do mês', linhas: 5, max: 1500, dica: 'De 2 a 4 frases, para o cliente.' }))}`;
+  if (PLJ_SEL === 'obs') return `<div class="plj-ed-cab"><h3>Para combinar</h3><p>O que precisa ser combinado com o cliente: fotos, gravação, preços.</p></div>
+    ${pljGrupo('', pljCampo('observacoes', c.observacoes, { rotulo: 'Observações', linhas: 7, max: 2000 }))}`;
+  if (PLJ_SEL === 'linhas') return `<div class="plj-ed-cab"><h3>Linhas de conteúdo</h3><p>Os assuntos do mês. As peças escolhem uma delas.</p></div>
+    ${(c.linhas || []).map((l, i) => pljGrupo(`Linha ${i + 1}`, pljCampo(`linhas.${i}.titulo`, l.titulo, { rotulo: 'Nome', max: 80 }) + pljCampo(`linhas.${i}.texto`, l.texto, { rotulo: 'O que é', linhas: 2, max: 600 }),
+      `<button type="button" class="plj-ed-link perigo" onclick="pljEdTirar('linhas', ${i})">Tirar esta linha</button>`)).join('')}
+    <button type="button" class="plj-ed-acrescentar" onclick="pljEdAcrescentar('linhas')">+ Linha de conteúdo</button>`;
+  if (PLJ_SEL === 'datas') return `<div class="plj-ed-cab"><h3>Datas do mês</h3><p>Feriados e datas que orientam o mês.</p></div>
+    ${pljGrupo('', `<div class="plj-ed-datas">${(c.datas || []).map((d, i) => `<div class="plj-ed-data">${pljCampo(`datas.${i}.data`, d.data, { rotulo: 'Quando', max: 20, extra: ' placeholder="02/11 · seg"' })}${pljCampo(`datas.${i}.nome`, d.nome, { rotulo: 'Data', max: 80 })}${pljCampo(`datas.${i}.texto`, d.texto, { rotulo: 'Por que importa', max: 300 })}<button type="button" class="plj-ed-x" onclick="pljEdTirar('datas', ${i})" aria-label="Tirar esta data">×</button></div>`).join('') || '<p class="plj-ed-vazio">Nenhuma data ainda.</p>'}</div>`)}
+    <button type="button" class="plj-ed-acrescentar" onclick="pljEdAcrescentar('datas')">+ Data</button>`;
+  const i = Number(PLJ_SEL.slice(5)), x = (c.pecas || [])[i];
+  if (!x) return '';
+  const linhas = (c.linhas || []).map((l) => l.titulo).filter(Boolean);
+  const video = ['Reels', 'Vídeo'].includes(x.formato);
+  const telas = Array.isArray(x.telas) ? x.telas : String(x.telas || '').split('\n').filter(Boolean);
+  const comTelas = PLJ_COM_TELAS.includes(x.formato) || telas.length;
+  const n = String(i + 1).padStart(2, '0');
+  return `<div class="plj-ed-cab plj-ed-cab-peca" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}"><span class="n">${n}</span><div><h3>${pljEsc(pljSemNumero(x.tema) || 'Peça sem tema')}</h3><p><b class="pill">${pljEsc(x.formato || 'Card')}</b> ${pljEsc(x.data ? new Date(x.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'sem dia')}</p></div>
+      <div class="plj-ed-nav"><button type="button" onclick="pljEdSelecionar('peca:${i - 1}')" ${i === 0 ? 'disabled' : ''} aria-label="Peça anterior">↑</button><button type="button" onclick="pljEdSelecionar('peca:${i + 1}')" ${i >= c.pecas.length - 1 ? 'disabled' : ''} aria-label="Próxima peça">↓</button></div></div>
     ${pljRevisaoPecaHtml(x)}
-    ${x.ajuste_cliente && !x.revisao_cliente ? `<div class="plj-pedido"><b>O cliente pediu</b><p>${pljEsc(x.ajuste_cliente)}</p></div>` : ''}
-    <div class="plj-peca-campos">
-      <label><span>Dia</span><input data-k="data" type="date" value="${pljEsc(x.data || '')}"></label>
-      <label><span>Formato</span><select data-k="formato">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
-      ${ent('tema', x.tema, 'Tema')}
-    </div>
-    <div class="plj-peca-campos plj-peca-2">${ent('linha', x.linha, 'Linha de conteúdo')}${ent('objetivo', x.objetivo, 'Objetivo da peça')}</div>
-    ${['Reels', 'Vídeo', 'Fotografia'].includes(x.formato) && !(x.telas || []).length ? '' : area('telas', (x.telas || []).join('\n'), 'Texto das telas (uma por linha)', Math.max(3, (x.telas || []).length + 1))}
-    ${area('legenda', x.legenda, ['Reels', 'Vídeo'].includes(x.formato) ? 'Roteiro' : 'Legenda', 6)}
-    ${area('referencia', x.referencia, 'Referência', 3)}
-    ${area('observacao', x.observacao, 'Para o cliente decidir', 2)}
-    <input type="hidden" data-k="ajuste_cliente" value="${pljEsc(x.ajuste_cliente || '')}">${x.conteudo_id ? `<input type="hidden" data-k="conteudo_id" value="${pljEsc(x.conteudo_id)}">` : ''}
-    <div class="plj-peca-rodape"><button type="button" class="plj-tirar-texto" onclick="pljTirar('pecas', ${i})">Tirar esta peça</button></div>
-  </details>`;
+    ${pljGrupo('Quando e formato', `<div class="plj-ed-lado">${pljCampo(`pecas.${i}.data`, x.data, { rotulo: 'Dia', tipo: 'date' })}<label class="plj-ed-campo"><span>Formato</span><select data-campo="pecas.${i}.formato" onchange="pljEdRepintarTudo()">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label></div>`)}
+    ${pljGrupo('Conteúdo', pljCampo(`pecas.${i}.tema`, x.tema, { rotulo: 'Tema', max: 200 })
+      + `<label class="plj-ed-campo"><span>Linha de conteúdo</span><select data-campo="pecas.${i}.linha"><option value="">Sem linha</option>${[...new Set([...linhas, x.linha].filter(Boolean))].map((l) => `<option${l === x.linha ? ' selected' : ''}>${pljEsc(l)}</option>`).join('')}</select></label>`
+      + pljCampo(`pecas.${i}.objetivo`, x.objetivo, { rotulo: 'Objetivo', linhas: 2, max: 800, dica: 'Uma frase com o que a peça quer causar.' }))}
+    ${comTelas ? pljGrupo(`Texto das telas · ${telas.length}`, `<ol class="plj-ed-telas">${telas.map((t, k) => `<li><span class="nt">${k + 1}</span><textarea data-campo="pecas.${i}.telas.${k}" rows="2" maxlength="600">${pljEsc(t)}</textarea>
+        <div class="acoes"><button type="button" onclick="pljEdTela(${i}, ${k}, -1)" ${k === 0 ? 'disabled' : ''} aria-label="Subir a tela">↑</button><button type="button" onclick="pljEdTela(${i}, ${k}, 1)" ${k === telas.length - 1 ? 'disabled' : ''} aria-label="Descer a tela">↓</button><button type="button" onclick="pljEdTela(${i}, ${k}, 0)" aria-label="Tirar a tela">×</button></div></li>`).join('')}</ol>
+        <button type="button" class="plj-ed-acrescentar dentro" onclick="pljEdTela(${i}, ${telas.length}, 'nova')">+ Tela</button>`) : ''}
+    ${pljGrupo(video ? 'Roteiro' : 'Legenda', pljCampo(`pecas.${i}.legenda`, x.legenda, { rotulo: video ? 'Roteiro do vídeo' : 'Legenda pronta', linhas: 8, max: 5000, extra: ' data-contar="1"' }), `<span id="plj-conta">${String(x.legenda || '').length} caracteres</span>`)}
+    ${pljGrupo('Apoio', pljCampo(`pecas.${i}.referencia`, x.referencia, { rotulo: 'Referência', linhas: 2, max: 6000, dica: 'Link ou descrição visual.' }) + pljCampo(`pecas.${i}.observacao`, x.observacao, { rotulo: 'Para o cliente decidir', linhas: 2, max: 1500 }))}
+    <div class="plj-ed-fim"><button type="button" class="plj-ed-link" onclick="pljEdDuplicar(${i})">Duplicar peça</button><button type="button" class="plj-ed-link perigo" onclick="pljEdTirar('pecas', ${i})">Tirar esta peça</button></div>`;
 }
-// Placar curto da revisão para listas: o que o head já viu ou o que o cliente já respondeu.
-function pljPlacar(p) {
-  const r = p.revisao || {};
-  if (!r.total) return '';
-  if (['revisar', 'ajustes'].includes(p.estado) && !r.cliente_ajustes) return ` · ${r.head_ok} de ${r.total} OK`;
-  if (p.estado === 'ajustes') return ` · ${r.cliente_ajustes} com ajuste do cliente`;
-  if (p.estado === 'enviado') return ` · cliente respondeu ${r.cliente_aprovadas + r.cliente_ajustes} de ${r.total}`;
-  return '';
+function pljEdSelecionar(sel) {
+  const n = sel.startsWith('peca:') ? Number(sel.slice(5)) : null;
+  if (n !== null && (n < 0 || n >= (PLJ_RASCUNHO.pecas || []).length)) return;
+  PLJ_SEL = sel;
+  pljEdRepintarTudo();
+  document.getElementById('plj-ed-detalhe')?.scrollTo({ top: 0 });
+  document.querySelector('#plj-ed-lista .sel')?.scrollIntoView({ block: 'nearest' });
+}
+function pljEdRepintarLista() { const l = document.getElementById('plj-ed-lista'); if (l) l.innerHTML = pljEdListaHtml(); }
+function pljEdRepintarTudo() {
+  pljEdRepintarLista();
+  const d = document.getElementById('plj-ed-detalhe');
+  if (d) d.innerHTML = pljEdDetalheHtml();
+}
+function pljEdMarcarSujo() {
+  PLJ_SUJO = true;
+  const el = document.getElementById('plj-ed-sujo');
+  if (el) { el.textContent = 'Alterações não salvas'; el.classList.add('sujo'); }
+}
+// Grava no rascunho o que a pessoa digita, pelo caminho do campo.
+function pljEdAplicar(el) {
+  const caminho = el.dataset.campo.split('.');
+  if (caminho[0] === 'titulo') PLJ_ABERTO._titulo = el.value;
+  else {
+    let alvo = PLJ_RASCUNHO;
+    for (let k = 0; k < caminho.length - 1; k++) {
+      const chave = caminho[k];
+      if (chave === 'telas' && !Array.isArray(alvo.telas)) alvo.telas = String(alvo.telas || '').split('\n').filter(Boolean);
+      alvo = alvo[chave] ??= {};
+    }
+    alvo[caminho.at(-1)] = el.value;
+  }
+  pljEdMarcarSujo();
+  if (el.dataset.contar) { const c = document.getElementById('plj-conta'); if (c) c.textContent = `${el.value.length} caracteres`; }
+  if (/^pecas\.\d+\.(tema|data|formato)$/.test(el.dataset.campo)) pljEdRepintarLista();
+}
+document.addEventListener('input', (e) => { const el = e.target.closest?.('#workflow-modal .plj-ed [data-campo]'); if (el) pljEdAplicar(el); });
+document.addEventListener('change', (e) => { const el = e.target.closest?.('#workflow-modal .plj-ed select[data-campo]'); if (el) pljEdAplicar(el); });
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('workflow-modal')?.dataset.aba !== 'editar') return;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); document.querySelector('#workflow-modal .plj-acoes .workflow-primary')?.click(); return; }
+  if (['ArrowUp', 'ArrowDown'].includes(e.key) && e.target.closest?.('#plj-ed-lista') && PLJ_SEL.startsWith('peca:')) {
+    e.preventDefault(); pljEdSelecionar(`peca:${Number(PLJ_SEL.slice(5)) + (e.key === 'ArrowUp' ? -1 : 1)}`);
+    document.querySelector('#plj-ed-lista .sel')?.focus();
+  }
+});
+function pljEdNovaPeca() {
+  (PLJ_RASCUNHO.pecas ||= []).push({ data: PLJ_ABERTO.mes, formato: 'Card', tema: '', linha: '', objetivo: '', telas: [], legenda: '', referencia: '', observacao: '' });
+  pljEdMarcarSujo(); pljEdSelecionar(`peca:${PLJ_RASCUNHO.pecas.length - 1}`);
+  document.getElementById('plj-c-pecas-' + (PLJ_RASCUNHO.pecas.length - 1) + '-tema')?.focus();
+}
+function pljEdDuplicar(i) {
+  const { assinatura, revisao_head, revisao_cliente, conteudo_id, ajuste_cliente, ...copia } = PLJ_RASCUNHO.pecas[i];
+  PLJ_RASCUNHO.pecas.splice(i + 1, 0, JSON.parse(JSON.stringify(copia)));
+  pljEdMarcarSujo(); pljEdSelecionar(`peca:${i + 1}`);
+}
+function pljEdAcrescentar(k) {
+  (PLJ_RASCUNHO[k] ||= []).push(k === 'linhas' ? { titulo: '', texto: '' } : { data: '', nome: '', texto: '' });
+  pljEdMarcarSujo(); pljEdRepintarTudo();
+}
+function pljEdTirar(k, i) {
+  const nome = k === 'pecas' ? `a peça ${String(i + 1).padStart(2, '0')}` : k === 'linhas' ? 'esta linha' : 'esta data';
+  if (!confirm(`Tirar ${nome}? Só vale depois de salvar.`)) return;
+  PLJ_RASCUNHO[k].splice(i, 1);
+  if (k === 'pecas') PLJ_SEL = PLJ_RASCUNHO.pecas.length ? `peca:${Math.min(i, PLJ_RASCUNHO.pecas.length - 1)}` : 'mes';
+  pljEdMarcarSujo(); pljEdRepintarTudo();
+}
+// Telas: subir (-1), descer (1), tirar (0) ou acrescentar ('nova').
+function pljEdTela(i, k, mov) {
+  const x = PLJ_RASCUNHO.pecas[i];
+  const telas = x.telas = Array.isArray(x.telas) ? x.telas : String(x.telas || '').split('\n').filter(Boolean);
+  if (mov === 'nova') telas.push('');
+  else if (mov === 0) telas.splice(k, 1);
+  else { const j = k + mov; [telas[k], telas[j]] = [telas[j], telas[k]]; }
+  pljEdMarcarSujo();
+  const d = document.getElementById('plj-ed-detalhe'), topo = d?.scrollTop;
+  pljEdRepintarTudo();
+  if (d) d.scrollTop = topo;
+  if (mov === 'nova') document.querySelector(`[data-campo="pecas.${i}.telas.${telas.length - 1}"]`)?.focus();
 }
 // Situação da peça no editor: o que o cliente respondeu e a revisão interna do
 // head. A revisão em si se faz na aba Documento.
@@ -306,41 +411,16 @@ function pljEtapasHtml(p) {
   const cliente = ['enviado', 'ajustes', 'aprovado'].includes(p.estado) && r.total && (r.cliente_aprovadas || r.cliente_ajustes) ? `<span class="plj-rev">Cliente: <b class="bom">${r.cliente_aprovadas} aprovadas</b>${r.cliente_ajustes ? ` · <b class="ruim">${r.cliente_ajustes} com ajuste</b>` : ''}${r.total - r.cliente_aprovadas - r.cliente_ajustes > 0 ? ` · ${r.total - r.cliente_aprovadas - r.cliente_ajustes} sem resposta` : ''}</span>` : '';
   return `<div class="plj-etapas" aria-label="Etapas do planejamento"><ol>${nomes.map((n, i) => `<li class="${i < atual ? 'feita' : i === atual ? 'agora' : ''}${i === 0 && p.estado === 'ajustes' ? ' ajustes' : ''}"><i>${i < atual ? '✓' : i + 1}</i><span>${i === 0 && p.estado === 'ajustes' ? 'Ajustar' : n}</span></li>`).join('')}</ol><small>${pljEsc(proximo)}</small>${interno || cliente ? `<div class="plj-revs">${interno}${cliente}</div>` : ''}</div>`;
 }
-function pljColher() {
-  const m = document.getElementById('workflow-modal');
-  if (!m || !PLJ_RASCUNHO) return;
-  const titulo = m.querySelector('#plj-titulo');
-  if (titulo) PLJ_ABERTO._titulo = titulo.value;
-  PLJ_RASCUNHO.resumo = m.querySelector('#plj-resumo')?.value ?? PLJ_RASCUNHO.resumo;
-  PLJ_RASCUNHO.observacoes = m.querySelector('#plj-obs')?.value ?? PLJ_RASCUNHO.observacoes;
-  for (const k of ['linhas', 'datas', 'pecas']) {
-    const antes = PLJ_RASCUNHO[k] || [];
-    PLJ_RASCUNHO[k] = [...m.querySelectorAll(`.plj-linha[data-lista="${k}"]`)].map((el, i) => {
-      const v = Object.fromEntries([...el.querySelectorAll('[data-k]')].map((c) => [c.dataset.k, c.value]));
-      // A assinatura e as revisões só servem para desenhar; quem grava decisão é o servidor.
-      if (k === 'pecas' && antes[i]) Object.assign(v, { assinatura: antes[i].assinatura, revisao_head: antes[i].revisao_head, revisao_cliente: antes[i].revisao_cliente });
-      return v;
-    });
-  }
-}
-function pljAcrescentar(k) {
-  pljColher();
-  const novo = { linhas: { titulo: '', texto: '' }, datas: { data: '', nome: '', texto: '' }, pecas: { data: PLJ_ABERTO.mes, formato: 'Card', tema: '', legenda: '', referencia: '', observacao: '' } }[k];
-  (PLJ_RASCUNHO[k] ||= []).push(novo);
-  pintarPlanejamento('editar');
-}
-function pljTirar(k, i) {
-  pljColher();
-  PLJ_RASCUNHO[k].splice(i, 1);
-  pintarPlanejamento('editar');
-}
+// O editor grava no rascunho a cada tecla (pljEdAplicar); nada a colher da tela.
+function pljColher() {}
 async function salvarPlanejamento(botao) {
   pljColher();
   botao.disabled = true;
   try {
     const d = await pljPedir('', { acao: 'editar', id: PLJ_ABERTO.id, versao: PLJ_ABERTO.versao, titulo: PLJ_ABERTO._titulo ?? PLJ_ABERTO.titulo, conteudo: PLJ_RASCUNHO });
     showToast(PLJ_ABERTO.estado === 'enviado' ? 'Salvo. O link antigo deixou de valer; mande de novo quando quiser.' : 'Planejamento salvo.', 'success', 4000);
-    await abrirPlanejamento(d.planejamento.id, 'documento');
+    PLJ_SUJO = false;
+    await abrirPlanejamento(d.planejamento.id, 'editar');
     pljAtualizarFora();
   } catch (e) { botao.disabled = false; showToast(e.message, 'error', 6000); }
 }

@@ -7189,6 +7189,54 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-etapas small{color:#c3cad6;font-size:12.5px}
 @media(max-width:560px){.plj-etapas ol{grid-template-columns:repeat(2,minmax(0,1fr))}.plj-etapas li{padding:5px 8px}.plj-janela .plj-pedido p{max-height:76px;overflow:auto}.plj-janela .plj-pedido small{display:none}}
 .plj-dica{margin:0 0 8px;color:#c3cad6;font-size:12.5px}.plj-dica b{color:#ffe0a6}
+/* Editor do planejamento: lista à esquerda, detalhe em grupos à direita (Paulo, 20/10/2026). */
+.plj-janela:has(.plj-ed) .plj-corpo{overflow:hidden}
+.plj-ed{display:grid;grid-template-columns:300px minmax(0,1fr);height:100%;min-height:0;border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;background:#0d1016}
+.plj-ed-lista{overflow:auto;padding:12px 10px 20px;background:#11141bcc;border-right:1px solid rgba(255,255,255,.07);display:grid;align-content:start;gap:2px}
+.plj-ed-sec{margin:12px 8px 6px;color:#8f98a9;font:700 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.plj-ed-sec em{font-style:normal;color:#c3cad6}
+.plj-ed-sec-pecas{display:flex;align-items:center;justify-content:space-between}
+.plj-ed-mais{width:24px;height:24px;border:0;border-radius:7px;background:rgba(255,157,0,.16);color:#ffb451;font:700 16px var(--mac-ui);cursor:pointer}
+.plj-ed-item,.plj-ed-peca{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:9px;background:none;color:#dfe4ec;font:500 13.5px var(--mac-ui);text-align:left;cursor:pointer}
+.plj-ed-item i{width:20px;text-align:center;font-style:normal;color:#9da4b4}.plj-ed-item span{flex:1}.plj-ed-item em{font-style:normal;color:#8f98a9;font-size:12px}
+.plj-ed-item:hover,.plj-ed-peca:hover{background:rgba(255,255,255,.05)}
+.plj-ed-item.sel,.plj-ed-peca.sel{background:rgba(255,157,0,.18);box-shadow:inset 0 0 0 1px rgba(255,157,0,.35)}
+.plj-ed-item:focus-visible,.plj-ed-peca:focus-visible{outline:2px solid #ff9d00;outline-offset:-2px}
+.plj-ed-peca{position:relative;padding-left:14px}.plj-ed-peca::before{content:"";position:absolute;left:4px;top:9px;bottom:9px;width:3px;border-radius:2px;background:var(--f)}
+.plj-ed-peca .n{flex:none;color:#8f98a9;font:700 12px var(--mac-ui);font-variant-numeric:tabular-nums}
+.plj-ed-peca .t{flex:1;min-width:0;display:grid}.plj-ed-peca .t b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.plj-ed-peca .t small{color:#8f98a9;font-size:11.5px}
+.plj-ed-peca .s{flex:none;width:8px;height:8px;border-radius:50%}.plj-ed-peca .s.bom{background:#6fe3a8}.plj-ed-peca .s.ruim{background:#ff8f8f}
+.plj-ed-filtros{display:flex;gap:4px;margin:0 6px 6px;padding:3px;border-radius:9px;background:rgba(255,255,255,.05)}
+.plj-ed-filtros button{flex:1;padding:5px 6px;border:0;border-radius:7px;background:none;color:#9da4b4;font:600 11.5px var(--mac-ui);cursor:pointer}.plj-ed-filtros button.sel{background:rgba(255,255,255,.12);color:#fff}
+.plj-ed-vazio{margin:8px;color:#8f98a9;font-size:12.5px}
+.plj-ed-detalhe{overflow:auto;padding:22px clamp(18px,4vw,56px) 48px;display:grid;align-content:start;gap:18px}
+.plj-ed-detalhe > *{width:100%;max-width:820px;margin-inline:auto}
+.plj-ed-cab h3{margin:0;color:#fff;font:700 22px/1.25 var(--mac-ui);letter-spacing:-.01em}.plj-ed-cab p{margin:4px 0 0;color:#9da4b4;font-size:13.5px}
+.plj-ed-cab-peca{display:flex;align-items:flex-start;gap:14px}.plj-ed-cab-peca > div:not(.plj-ed-nav){flex:1;min-width:0}
+.plj-ed-cab-peca .n{flex:none;color:var(--f);font:800 26px/1.1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.plj-ed-cab .pill{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:99px;background:var(--f);color:#fff;font:700 11.5px var(--mac-ui)}
+.plj-ed-nav{display:flex;gap:4px}.plj-ed-nav button{width:30px;height:30px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.04);color:#dfe4ec;cursor:pointer}.plj-ed-nav button:disabled{opacity:.35;cursor:default}
+.plj-ed-bloco{display:grid;gap:6px}.plj-ed-bloco > .plj-ed-sec{margin:0 4px}
+.plj-ed-grupo{display:grid;gap:0;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+.plj-ed-campo{display:grid;gap:5px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06)}.plj-ed-campo:last-child{border-bottom:0}
+.plj-ed-campo > span{color:#c3cad6;font:600 12px var(--mac-ui)}.plj-ed-campo small{color:#8f98a9;font-size:11.5px}
+.plj-ed-campo input,.plj-ed-campo textarea,.plj-ed-campo select,.plj-ed-telas textarea{width:100%;box-sizing:border-box;border:1px solid transparent;border-radius:8px;background:rgba(0,0,0,.25);color:#eef1f6;padding:9px 11px;font:14px/1.5 var(--mac-ui);resize:vertical;transition:border-color .15s,background .15s}
+.plj-ed-campo input:focus,.plj-ed-campo textarea:focus,.plj-ed-campo select:focus,.plj-ed-telas textarea:focus{outline:none;border-color:#ff9d00;background:rgba(0,0,0,.4);box-shadow:0 0 0 3px rgba(255,157,0,.18)}
+.plj-ed-lado{display:grid;grid-template-columns:1fr 1fr}.plj-ed-lado .plj-ed-campo{border-bottom:0}.plj-ed-lado .plj-ed-campo + .plj-ed-campo{border-left:1px solid rgba(255,255,255,.06)}
+.plj-ed-rodape{margin:0 4px;color:#8f98a9;font-size:11.5px;text-align:right;font-variant-numeric:tabular-nums}
+.plj-ed-telas{list-style:none;margin:0;padding:0}.plj-ed-telas li{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.plj-ed-telas .nt{display:grid;place-items:center;width:24px;height:24px;margin-top:6px;border-radius:50%;background:rgba(255,157,0,.18);color:#ffcf8a;font:800 11.5px var(--mac-ui)}
+.plj-ed-telas .acoes{display:flex;gap:2px;margin-top:4px}.plj-ed-telas .acoes button{width:26px;height:26px;border:0;border-radius:6px;background:none;color:#9da4b4;cursor:pointer}.plj-ed-telas .acoes button:hover{background:rgba(255,255,255,.08);color:#fff}.plj-ed-telas .acoes button:disabled{opacity:.3}
+.plj-ed-acrescentar{justify-self:start;padding:8px 12px;border:1px dashed rgba(255,255,255,.2);border-radius:9px;background:none;color:#ffcf8a;font:600 13px var(--mac-ui);cursor:pointer}
+.plj-ed-acrescentar.dentro{margin:10px 12px;border-style:dashed}
+.plj-ed-datas{display:grid}.plj-ed-data{display:grid;grid-template-columns:130px 1fr 1.6fr 30px;align-items:end;border-bottom:1px solid rgba(255,255,255,.06)}.plj-ed-data .plj-ed-campo{border:0}
+.plj-ed-x{width:26px;height:26px;margin:0 6px 16px 0;border:0;border-radius:50%;background:rgba(255,255,255,.06);color:#c3cad6;cursor:pointer}
+.plj-ed-link{border:0;background:none;color:#c3cad6;font:600 12.5px var(--mac-ui);cursor:pointer;padding:6px 4px}.plj-ed-link.perigo{color:#ff9a9a}
+.plj-ed-fim{display:flex;justify-content:space-between}
+.plj-ed-sujo{margin-right:auto;color:#8f98a9;font:600 12.5px var(--mac-ui)}.plj-ed-sujo.sujo{color:#ffcf8a}.plj-ed-sujo.sujo::before{content:"● ";color:#ff9d00}
+.plj-ed-atalho{color:#6b7280;font-size:11.5px;margin-right:8px}
+.plj-ed-detalhe .plj-rev-cli{margin:0}
+@media(max-width:860px){.plj-ed{grid-template-columns:1fr;grid-template-rows:minmax(160px,34%) 1fr}.plj-ed-lista{border-right:0;border-bottom:1px solid rgba(255,255,255,.07)}.plj-ed-data{grid-template-columns:1fr 1fr}.plj-ed-data .plj-ed-campo:nth-child(3){grid-column:1/-1}.plj-ed-atalho{display:none}}
 /* Revisão do head: documento em tela cheia, como um PDF, e barras flutuantes. */
 .workflow-modal.plj-janela.plj-modo-doc{padding:0!important;background:#2b2b30}
 .plj-modo-doc .plj-previa{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:#f7f5f1}
@@ -7249,6 +7297,12 @@ body.no-escritorio .workspace-drawer {z-index:701}
 /* Pede ação de quem pode agir: balão grande, que se vê de longe (Paulo, 20/10/2026). */
 /* z-index acima das outras etiquetas soltas (99500): com 5 o balão ficava atrás delas. */
 .mapa-etiqueta.agente.alerta {flex-wrap:wrap;border-color:#ffb451;background:#3a2408f2;padding:3px 9px 4px;box-shadow:0 0 0 3px #ff9d0055,0 6px 18px #ff9d0044;z-index:99600}
+.mapa-agente-nums {display:inline-flex;gap:3px;margin-left:2px}
+.mapa-agente-nums em {min-width:16px;height:16px;padding:0 4px;border-radius:99px;display:inline-grid;place-items:center;font:800 9.5px/1 var(--mac-ui);font-style:normal;color:#fff}
+/* Atrasada: o vermelho de prazo vencido do painel. Aprovação e falta de
+   informação: a cor do status no catálogo (--c, vinda de STATUS_OPTIONS). */
+.mapa-agente-nums .atr {background:#e5484d}
+.mapa-agente-nums .apr, .mapa-agente-nums .inf {background:var(--c,#6b7280);text-shadow:0 1px 1px #0006}
 .mapa-etiqueta.agente.com-situacao {flex-wrap:wrap;z-index:99550}
 .mapa-etiqueta.agente.com-situacao small {display:block;flex-basis:100%;margin-top:1px;color:#b9dcff;font:700 10px var(--mac-ui);white-space:nowrap}
 .mapa-etiqueta.agente.alerta small {display:block;flex-basis:100%;margin-top:1px;color:#ffd59a;font:800 11px var(--mac-ui);white-space:nowrap}
