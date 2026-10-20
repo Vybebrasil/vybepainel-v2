@@ -100,8 +100,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   head revisa e edita no painel e manda o link de aprovação. Editar e mandar é
   do head do cliente (`vybe_cliente_pessoas`) e de quem administra; todos veem.
 - Estrutura única para todos os clientes (`normalizarConteudo`, skill
-  `skills/planejamento-vybe`); só a identidade (cor, logo, fonte, tom) muda por
-  cliente. Não crie um segundo formato nem um gerador de documento paralelo.
+  `skills/planejamento-vybe`). Desde 20/10/2026 (decisão do Paulo) o desenho é
+  o padrão Vybe para todos; do cliente entram o nome, o logo e o tom de voz.
+  Não crie um segundo formato nem um gerador de documento paralelo.
+- O cliente pode pedir ajuste peça a peça pelo link; qualquer ajuste devolve o
+  planejamento inteiro ao head (`ajuste_cliente` na peça, limpo ao mandar de
+  novo). O agente do cliente e o head veem o pedido.
 - O agente nunca sobrescreve o que está com o cliente ou já foi aprovado.
   Editar depois de enviado invalida o link. O banco guarda só o hash do link.
   Ajustes do cliente voltam ao head.

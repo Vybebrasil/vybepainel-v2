@@ -141,3 +141,34 @@ com um botão.
 - Tela: confirmação com o que vai acontecer por formato. Depois, a lista
   "demandas criadas" abre cada uma.
 - "Já cadastrei à mão" continua para quem cadastrou pelo formulário.
+
+## Visual e uso refeitos (20/10/2026)
+
+Pedido do Paulo depois do primeiro planejamento publicado (Hellen Rocha).
+
+- **Alertas:**
+  - No Centro de Operação, o agente com planejamento esperando ação (revisar,
+    ajustes ou aprovado para cadastrar) ganha um balão grande e brilho. Isso
+    vale para o head do cliente e para quem administra.
+  - A barra do jogo mostra um botão com o pedido, e chega um aviso quando
+    aparece algo novo.
+  - O aviso fixo do painel diz o cliente e a ação.
+- **Documento:** padrão Vybe único. A capa é escura, com o logo da Vybe × o
+  logo do cliente (ou o nome, sem logo). Sem cores nem fonte por cliente.
+  - As peças trazem número, formato, legenda ou roteiro, referência e "Para
+    você decidir".
+  - O número que o agente põe no tema sai.
+  - Limites maiores: a referência ia até 600 letras e cortava o texto das telas.
+- **Página do cliente:** explica como aprovar. Em cada peça, "Pedir ajuste
+  nesta peça". No fim, o nome e "Aprovar planejamento" ou "Enviar os ajustes".
+  - Funciona no celular.
+  - Ajuste em qualquer peça devolve o planejamento ao head.
+- **Janela do planejamento:**
+  - etapas no topo (Revisar, Com o cliente, Aprovado, Cadastrado) com o
+    próximo passo;
+  - peças em cartões que abrem e fecham, com o pedido do cliente marcado;
+  - histórico em linha do tempo com os comentários como conversa;
+  - aba "Marca do cliente" só com o logo (com prévia) e o tom de voz.
+- **VybeHub:** em aberto. O portal (`Vybebrasil/vybehub`) é outro sistema, com
+  login próprio, e ainda lê o Monday. Levar a aprovação para lá é um projeto à
+  parte, a decidir com o Paulo.

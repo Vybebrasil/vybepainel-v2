@@ -1,87 +1,135 @@
-// Documento padrão do planejamento (o mesmo para todos os clientes, pedido do
-// Paulo em 19/10/2026): capa, visão do mês, linhas de conteúdo, datas,
-// calendário e uma ficha por peça. A identidade do cliente (cores, logo,
-// fonte, tom) vem do cadastro; o resto do desenho é fixo. Serve para a página
-// de aprovação do cliente e para o documento salvo no Drive.
+// Documento padrão do planejamento. Um desenho só, o da Vybe, para todos os
+// clientes; do cliente entram o nome e o logo (Paulo, 20/10/2026: "manter um
+// padrão Vybe e a gente adiciona a marca do cliente"). Serve para a prévia do
+// painel, para o documento salvo no Drive e para a página de aprovação do
+// cliente, onde ele pode pedir ajuste peça a peça.
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const cor = (v, padrao) => (/^#[0-9a-f]{6}$/i.test(String(v || '')) ? String(v) : padrao);
 const url = (v) => { try { const u = new URL(String(v)); return ['https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 export function nomeDoMes(mes) { const [a, m] = String(mes).split('-').map(Number); return `${MESES[m - 1]} de ${a}`; }
 const dia = (iso) => { const [a, m, d] = String(iso).split('-').map(Number); if (!d) return ''; const w = new Date(Date.UTC(a, m - 1, d)).getUTCDay(); return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')} · ${SEMANA[w]}`; };
-const CORES_FORMATO = { Card: '#c0392b', Carrossel: '#c08a1e', Reels: '#7b4bd6', Fotografia: '#2f8f5b', 'Vídeo': '#2c6fb3', Stories: '#d1497a', Outro: '#6b7280' };
+// Cores dos formatos, as mesmas no calendário e nas fichas.
+const CORES_FORMATO = { Card: '#d9534f', Carrossel: '#c98a12', Reels: '#7b4bd6', Fotografia: '#2f8f5b', 'Vídeo': '#2c6fb3', Stories: '#d1497a', Outro: '#6b7280' };
+const PAINEL = () => process.env.PAINEL_URL || 'https://vybepainel-v2.vercel.app';
+// O agente costuma numerar o tema ("01 · Vai ter 13º?"); o número já está na ficha.
+const semNumero = (t) => String(t || '').replace(/^\s*\d{1,2}\s*[·.\-–:)]\s*/, '');
+const ehVideo = (f) => ['Reels', 'Vídeo'].includes(f);
 
 function calendario(mes, pecas) {
  const [a, m] = String(mes).split('-').map(Number);
  const dias = new Date(Date.UTC(a, m, 0)).getUTCDate(), inicio = (new Date(Date.UTC(a, m - 1, 1)).getUTCDay() + 6) % 7; // segunda primeiro
  const por = new Map();
- for (const p of pecas) if (p.data?.startsWith(`${a}-${String(m).padStart(2, '0')}`)) { const d = Number(p.data.slice(8)); por.set(d, [...(por.get(d) || []), p]); }
+ pecas.forEach((p, i) => { if (p.data?.startsWith(`${a}-${String(m).padStart(2, '0')}`)) { const d = Number(p.data.slice(8)); por.set(d, [...(por.get(d) || []), [p, i]]); } });
  const celulas = [...Array(inicio).fill('<td class="vazio"></td>')];
- for (let d = 1; d <= dias; d++) celulas.push(`<td><b>${d}</b>${(por.get(d) || []).map((p) => `<span style="--f:${CORES_FORMATO[p.formato] || '#6b7280'}">${esc(p.formato)}</span>`).join('')}</td>`);
+ for (let d = 1; d <= dias; d++) celulas.push(`<td><b>${d}</b>${(por.get(d) || []).map(([p, i]) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[p.formato] || '#6b7280'}">${esc(p.formato)}</a>`).join('')}</td>`);
  while (celulas.length % 7) celulas.push('<td class="vazio"></td>');
  const linhas = [];
  for (let i = 0; i < celulas.length; i += 7) linhas.push(`<tr>${celulas.slice(i, i + 7).join('')}</tr>`);
- return `<table class="cal"><thead><tr>${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((d) => `<th>${d}</th>`).join('')}</tr></thead><tbody>${linhas.join('')}</tbody></table>`;
+ return `<div class="rolar"><table class="cal"><thead><tr>${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((d) => `<th>${d}</th>`).join('')}</tr></thead><tbody>${linhas.join('')}</tbody></table></div>`;
 }
 
-// paraCliente: inclui o formulário de aprovação (token no endereço do envio).
+function fichaDaPeca(x, i, { paraCliente, respondendo }) {
+ const n = String(i + 1).padStart(2, '0'), corF = CORES_FORMATO[x.formato] || '#6b7280';
+ const referencia = x.referencia ? (paraCliente
+  ? `<details class="ref"><summary>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência e texto das telas'}</summary><p>${esc(x.referencia)}</p></details>`
+  : `<div class="ref"><b>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência e texto das telas'}</b><p>${esc(x.referencia)}</p></div>`) : '';
+ return `<article class="peca" id="peca-${i + 1}" style="--f:${corF}">
+<header><span class="num">${n}</span><span class="tag">${esc(x.formato)}</span><span class="quando">${esc(x.data ? dia(x.data) : 'sem data')}</span></header>
+<h3>${esc(semNumero(x.tema) || 'Sem tema')}</h3>
+${x.legenda ? `<div class="bloco"><b>${ehVideo(x.formato) ? 'Roteiro' : 'Legenda'}</b><p>${esc(x.legenda)}</p></div>` : ''}
+${referencia}
+${x.observacao ? `<div class="decidir"><b>Para você decidir</b><p>${esc(x.observacao)}</p></div>` : ''}
+${x.ajuste_cliente && !respondendo ? `<div class="pedido"><b>Ajuste pedido</b><p>${esc(x.ajuste_cliente)}</p></div>` : ''}
+${respondendo ? `<details class="pedir"><summary>Pedir ajuste nesta peça</summary><label>O que você quer mudar na peça ${n}?<textarea name="ajuste_${i}" rows="3" maxlength="1500" placeholder="Ex.: trocar a foto, mudar o título, mudar o dia…"></textarea></label></details>` : ''}
+</article>`;
+}
+
+// paraCliente: página do link (token no endereço do envio), com a resposta.
 export function documentoHtml(p, { paraCliente = false, token = '', aviso = '' } = {}) {
- const id = p.identidade || {};
- const principal = cor(id.cor, '#1f5f3a'), apoio = cor(id.cor_apoio, '#c9a227'), logo = url(id.logo);
+ const id = p.identidade || {}, logo = url(id.logo), base = PAINEL();
  const c = p.conteudo || {}, pecas = c.pecas || [];
- const fonte = /^[A-Za-z0-9 ]{2,40}$/.test(String(id.fonte || '')) ? id.fonte : 'Inter';
  const contagem = {};
  for (const x of pecas) contagem[x.formato] = (contagem[x.formato] || 0) + 1;
- const numeros = c.numeros?.length ? c.numeros : [{ rotulo: 'publicações no mês', valor: String(pecas.length) }, ...Object.entries(contagem).map(([f, n]) => ({ rotulo: f, valor: String(n) }))];
- const resposta = p.estado === 'aprovado' ? `<div class="resposta ok">Aprovado por ${esc(p.resposta_nome || 'cliente')}${p.respondido_em ? ` em ${new Date(p.respondido_em).toLocaleDateString('pt-BR', { timeZone: 'America/Bahia' })}` : ''}. Obrigado!</div>`
-  : p.estado === 'ajustes' ? `<div class="resposta">Ajustes pedidos por ${esc(p.resposta_nome || 'cliente')}: ${esc(String(p.resposta_texto || '').replace(/[.!?…]*\s*$/, (f) => f.trim() || '.'))} A Vybe vai revisar e mandar de novo.</div>` : '';
- const formulario = paraCliente && p.estado === 'enviado' ? `<section class="aprovar" id="aprovar"><h2>Sua resposta</h2>
-<form method="post" action="/aprovar/${esc(token)}"><label>Seu nome<input name="nome" required maxlength="80" autocomplete="name"></label>
-<label>Comentário (obrigatório para pedir ajustes)<textarea name="texto" rows="4" maxlength="4000"></textarea></label>
-<div class="botoes"><button name="acao" value="aprovar" class="sim">Aprovar planejamento</button><button name="acao" value="ajustes" class="nao">Pedir ajustes</button></div></form></section>` : '';
+ const numeros = c.numeros?.length ? c.numeros : [{ rotulo: pecas.length === 1 ? 'publicação no mês' : 'publicações no mês', valor: String(pecas.length) }, ...Object.entries(contagem).map(([f, n]) => ({ rotulo: f, valor: String(n) }))];
+ const respondendo = paraCliente && p.estado === 'enviado';
+ const quando = p.respondido_em ? ` em ${new Date(p.respondido_em).toLocaleDateString('pt-BR', { timeZone: 'America/Bahia' })}` : '';
+ const resposta = p.estado === 'aprovado' || p.estado === 'cadastrado' ? `<div class="resposta ok"><b>Planejamento aprovado</b><p>Aprovado por ${esc(p.resposta_nome || 'cliente')}${quando}. Obrigado! A Vybe já começa a produzir.</p></div>`
+  : p.estado === 'ajustes' ? `<div class="resposta"><b>Ajustes recebidos</b><p>${esc(p.resposta_nome || 'O cliente')} pediu ajustes${quando}. A Vybe vai revisar e mandar uma nova versão por este mesmo caminho.</p>${p.resposta_texto ? `<p class="texto">${esc(p.resposta_texto)}</p>` : ''}</div>` : '';
+ const comoUsar = respondendo ? `<div class="como"><b>Como aprovar</b><ol><li>Leia o mês e as peças.</li><li>Em qualquer peça, toque em <i>Pedir ajuste nesta peça</i> e escreva o que mudar.</li><li>No fim da página, escreva seu nome e aprove ou envie os ajustes.</li></ol></div>` : '';
+ const secao = (n, rotulo, titulo) => `<h2><small>${n} · ${rotulo}</small>${titulo}</h2>`;
+ const corpo = `${secao('01', 'Visão do mês', 'O que vamos comunicar')}${c.resumo ? `<p class="resumo">${esc(c.resumo)}</p>` : ''}
+<div class="numeros">${numeros.map((x) => `<div><b>${esc(x.valor)}</b><span>${esc(x.rotulo)}</span></div>`).join('')}</div>
+${c.linhas?.length ? `${secao('02', 'Linhas de conteúdo', 'Os assuntos do mês')}<div class="linhas">${c.linhas.map((l) => `<div><b>${esc(l.titulo)}</b><p>${esc(l.texto)}</p></div>`).join('')}</div>` : ''}
+${c.datas?.length ? `${secao('03', 'Datas', 'Datas que orientam o mês')}<div class="rolar"><table class="datas"><tbody>${c.datas.map((d) => `<tr><td>${esc(d.data)}</td><td><b>${esc(d.nome)}</b></td><td>${esc(d.texto)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${calendario(p.mes, pecas)}
+${secao('05', 'Peças', 'Uma a uma')}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo })).join('')}</div>
+${c.observacoes ? `${secao('06', 'Observações', 'Para combinar')}<div class="obs">${esc(c.observacoes)}</div>` : ''}`;
+ const formulario = respondendo ? `<section class="aprovar" id="aprovar"><h2><small>Sua resposta</small>Tudo certo?</h2>
+<p class="contagem" id="contagem" aria-live="polite">Nenhum ajuste marcado nas peças.</p>
+<label>Seu nome<input name="nome" required maxlength="80" autocomplete="name"></label>
+<label>Comentário geral (opcional)<textarea name="texto" rows="3" maxlength="4000" placeholder="Algo sobre o mês todo?"></textarea></label>
+<div class="botoes"><button name="acao" value="aprovar" class="sim" id="btn-aprovar">Aprovar planejamento</button><button name="acao" value="ajustes" class="nao">Enviar pedidos de ajuste</button></div>
+<small>Se marcar ajuste em alguma peça, o planejamento volta para a Vybe ajustar antes de produzir.</small></section>` : '';
+ // Só na página do cliente: conta os ajustes marcados e troca o botão principal.
+ const script = respondendo ? `<script>(()=>{const f=document.getElementById('resposta');if(!f)return;const c=document.getElementById('contagem'),b=document.getElementById('btn-aprovar');
+const atualizar=()=>{const n=[...f.querySelectorAll('textarea[name^="ajuste_"]')].filter(t=>t.value.trim()).length;c.textContent=n?n+(n===1?' peça com ajuste marcado.':' peças com ajuste marcado.'):'Nenhum ajuste marcado nas peças.';b.textContent=n?'Enviar os ajustes':'Aprovar planejamento';b.value=n?'ajustes':'aprovar';document.body.classList.toggle('tem-ajuste',n>0);};
+f.addEventListener('input',atualizar);atualizar();})();</script>` : '';
  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>${esc(p.titulo)} · ${esc(p.cliente)}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(fonte)}:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap">
 <style>
-:root{--p:${principal};--a:${apoio};--t:#1d2227;--s:#5b6470;--fundo:#fbf9f4;--linha:#e6e1d6}
-*{box-sizing:border-box}body{margin:0;background:var(--fundo);color:var(--t);font:15px/1.55 "${esc(fonte)}",Inter,system-ui,sans-serif}
-main{max-width:920px;margin:0 auto;padding:24px 16px 64px}
-.capa{background:var(--p);color:#fff;border-radius:20px;padding:40px 32px;display:grid;gap:12px}
-.capa img{max-height:64px;max-width:200px;object-fit:contain}.capa small{opacity:.8;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
-.capa h1{margin:0;font-size:clamp(26px,5vw,40px);line-height:1.1;text-wrap:balance}
-h2{color:var(--p);font-size:20px;margin:40px 0 12px;text-wrap:balance}h2 small{display:block;color:var(--a);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
-.resumo{max-width:70ch}.numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}
-.numeros div{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:14px}.numeros div:first-child{background:var(--p);color:#fff;border-color:var(--p)}
-.numeros b{display:block;font-size:30px;font-weight:800;color:var(--a);font-variant-numeric:tabular-nums}.numeros div:first-child b{color:#fff}
-.linhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.linhas div{background:#fff;border:1px solid var(--linha);border-left:4px solid var(--a);border-radius:12px;padding:14px}
-.linhas b{color:var(--p)}table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
-.datas td{padding:10px 12px;border-bottom:1px solid var(--linha);vertical-align:top}.datas td:first-child{color:#a33;font-weight:600;white-space:nowrap}
-.cal th{background:var(--p);color:#fff;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:8px}.cal td{height:74px;vertical-align:top;border:1px solid var(--linha);padding:6px;width:14.28%}
-.cal td.vazio{background:#f3f0e8}.cal b{font-size:12px;color:var(--s)}.cal span{display:block;margin-top:4px;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,var(--f) 14%,#fff);border-left:3px solid var(--f);font-size:10px;font-weight:600}
-.pecas{display:grid;gap:12px}.peca{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:16px;display:grid;gap:6px}
-.peca header{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.peca .tag{padding:2px 8px;border-radius:99px;background:var(--a);color:#fff;font-size:11px;font-weight:700}
-.peca .quando{color:var(--s);font-size:13px;font-variant-numeric:tabular-nums}.peca h3{margin:0;font-size:16px}.peca p{margin:0;white-space:pre-wrap}.peca small{color:var(--s)}
-.obs{background:#fff;border:1px dashed var(--linha);border-radius:12px;padding:14px;white-space:pre-wrap}
-.aprovar{margin-top:40px;background:#fff;border:2px solid var(--p);border-radius:16px;padding:20px}.aprovar label{display:grid;gap:4px;margin:10px 0;font-weight:600}
-input,textarea{font:inherit;padding:10px;border:1px solid var(--linha);border-radius:10px}.botoes{display:flex;flex-wrap:wrap;gap:10px}
-button{font:inherit;font-weight:700;padding:12px 18px;border-radius:12px;border:0;cursor:pointer}.sim{background:var(--p);color:#fff}.nao{background:#fff;color:var(--t);border:1px solid var(--linha)}
-button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--a);outline-offset:2px}
-.resposta{margin:24px 0;padding:16px;border-radius:14px;background:#fff3d6;border:1px solid #ecd49a}.resposta.ok{background:#e4f4ea;border-color:#a6d8b8}
-.aviso{margin:16px 0;padding:12px 16px;border-radius:12px;background:#fde8e8;border:1px solid #f3b4b4}
-footer{margin-top:48px;color:var(--s);font-size:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
-@media print{.aprovar{display:none}main{padding:0}}
+:root{--vybe:#e8602e;--vybe-2:#ff9d00;--tinta:#17171b;--sub:#5d6068;--papel:#f7f5f1;--cartao:#fff;--linha:#e7e2d9;--escuro:#141418}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--papel);color:var(--tinta);font:15.5px/1.6 Manrope,system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+main{max-width:940px;margin:0 auto;padding:20px 16px 72px}
+.capa{position:relative;overflow:hidden;background:radial-gradient(120% 140% at 100% 0%,#e8602e55,transparent 55%),radial-gradient(80% 90% at 0% 100%,#ff9d0022,transparent 60%),var(--escuro);color:#fff;border-radius:22px;padding:28px 28px 32px;display:grid;gap:18px}
+.marcas{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.marcas .vybe{height:30px;width:auto}.marcas i{opacity:.5;font-style:normal;font-size:18px}
+.marcas .cli{display:flex;align-items:center;height:46px;padding:6px 12px;border-radius:12px;background:#fff}.marcas .cli img{max-height:34px;max-width:150px;object-fit:contain}
+.marcas .cli-nome{font:700 15px Sora,sans-serif;padding:8px 12px;border:1px solid #ffffff33;border-radius:12px}
+.capa small{color:#ffb98f;letter-spacing:.12em;text-transform:uppercase;font:700 11.5px Manrope,sans-serif}
+.capa h1{margin:0;font:800 clamp(30px,6vw,48px)/1.05 Sora,sans-serif;text-wrap:balance}.capa p{margin:0;color:#d9d9de;font-size:16px}
+.capa .meta{display:flex;flex-wrap:wrap;gap:8px}.capa .meta span{padding:4px 10px;border-radius:99px;background:#ffffff14;border:1px solid #ffffff22;font-size:12.5px;font-weight:600}
+h2{font:800 22px/1.2 Sora,sans-serif;margin:44px 0 14px;text-wrap:balance}h2 small{display:block;color:var(--vybe);font:700 11px Manrope,sans-serif;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+.resumo{max-width:68ch;font-size:16.5px}
+.numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:18px 0}
+.numeros div{background:var(--cartao);border:1px solid var(--linha);border-radius:16px;padding:14px 16px;display:grid;gap:2px}.numeros div:first-child{background:var(--escuro);color:#fff;border-color:var(--escuro)}
+.numeros b{font:800 30px/1 Sora,sans-serif;color:var(--vybe);font-variant-numeric:tabular-nums}.numeros span{font-size:13px;font-weight:600}
+.linhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.linhas div{background:var(--cartao);border:1px solid var(--linha);border-top:3px solid var(--vybe);border-radius:14px;padding:14px 16px}
+.linhas b{font:700 15px Sora,sans-serif}.linhas p{margin:6px 0 0;color:#3c3f45}
+.rolar{overflow-x:auto;border-radius:14px}table{width:100%;border-collapse:collapse;background:var(--cartao)}
+.datas td{padding:11px 14px;border-bottom:1px solid var(--linha);vertical-align:top}.datas tr:last-child td{border-bottom:0}.datas td:first-child{color:var(--vybe);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cal{min-width:620px;table-layout:fixed}.cal th{background:var(--escuro);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:9px}.cal td{height:78px;vertical-align:top;border:1px solid var(--linha);padding:6px}
+.cal td.vazio{background:#efebe3}.cal b{font-size:12px;color:var(--sub)}.cal a{display:block;margin-top:4px;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,var(--f) 14%,#fff);border-left:3px solid var(--f);font-size:10.5px;font-weight:700;color:var(--tinta);text-decoration:none}
+.pecas{display:grid;gap:14px}.peca{background:var(--cartao);border:1px solid var(--linha);border-left:4px solid var(--f);border-radius:16px;padding:18px 20px;display:grid;gap:10px;scroll-margin-top:16px}
+.peca header{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.peca .num{font:800 20px/1 Sora,sans-serif;color:var(--f);font-variant-numeric:tabular-nums}
+.peca .tag{padding:3px 10px;border-radius:99px;background:var(--f);color:#fff;font-size:11.5px;font-weight:700}.peca .quando{color:var(--sub);font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.peca h3{margin:0;font:700 18px/1.3 Sora,sans-serif;text-wrap:balance}.peca p{margin:0;white-space:pre-wrap}
+.bloco b,.ref b,.decidir b,.pedido b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
+.ref{background:#faf8f4;border:1px solid var(--linha);border-radius:12px;padding:10px 12px;font-size:14px;color:#3c3f45}.ref summary{cursor:pointer;font-weight:700;color:var(--tinta)}.ref[open] summary{margin-bottom:6px}
+.decidir{background:#fff6e5;border:1px solid #f1d39a;border-radius:12px;padding:10px 12px;font-size:14px}.decidir b{color:#9a6200}
+.pedido{background:#fdecec;border:1px solid #f3b9b9;border-radius:12px;padding:10px 12px;font-size:14px}.pedido b{color:#a33}
+.pedir{border-top:1px dashed var(--linha);padding-top:10px}.pedir summary{cursor:pointer;font-weight:700;color:var(--vybe);list-style:none}.pedir summary::before{content:"+ "}.pedir[open] summary::before{content:"− "}
+.pedir label{display:grid;gap:6px;margin-top:8px;font-size:14px;font-weight:600}
+.obs{background:var(--cartao);border:1px dashed var(--linha);border-radius:14px;padding:14px 16px;white-space:pre-wrap}
+.como{margin:18px 0 0;background:var(--cartao);border:1px solid var(--linha);border-radius:16px;padding:14px 18px}.como b{font:700 15px Sora,sans-serif}.como ol{margin:6px 0 0;padding-left:20px}
+.aprovar{margin-top:44px;background:var(--cartao);border:2px solid var(--vybe);border-radius:20px;padding:22px}.aprovar h2{margin-top:0}.aprovar label{display:grid;gap:6px;margin:12px 0;font-weight:700}
+.aprovar small{color:var(--sub)}.contagem{margin:0;font-weight:700}.tem-ajuste .contagem{color:#a33}
+input,textarea{font:inherit;padding:11px 12px;border:1px solid var(--linha);border-radius:12px;background:#fff;width:100%}
+.botoes{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}button{font:inherit;font-weight:800;padding:13px 20px;border-radius:14px;border:0;cursor:pointer}
+.sim{background:var(--vybe);color:#fff}.nao{background:#fff;color:var(--tinta);border:1px solid var(--linha)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--vybe-2);outline-offset:2px}
+.resposta{margin:20px 0 0;padding:16px 18px;border-radius:16px;background:#fff3d6;border:1px solid #ecd49a}.resposta.ok{background:#e4f4ea;border-color:#a6d8b8}.resposta b{font:700 16px Sora,sans-serif}.resposta p{margin:4px 0 0}.resposta .texto{white-space:pre-wrap;color:#3c3f45}
+.aviso{margin:16px 0 0;padding:12px 16px;border-radius:12px;background:#fde8e8;border:1px solid #f3b4b4}
+.ir{position:sticky;bottom:12px;z-index:5;display:flex;justify-content:center;margin-top:24px}.ir a{padding:12px 20px;border-radius:99px;background:var(--escuro);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 10px 30px #0004}
+footer{margin-top:52px;color:var(--sub);font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}footer img{height:16px;filter:invert(1);opacity:.7;vertical-align:middle;margin-right:6px}
+@media print{.aprovar,.pedir,.ir,.como{display:none}main{padding:0}.peca{break-inside:avoid}}
 </style></head><body><main>
-<header class="capa">${logo ? `<img src="${esc(logo)}" alt="${esc(p.cliente)}">` : ''}<small>Planejamento de conteúdo · ${esc(nomeDoMes(p.mes))}</small><h1>${esc(p.titulo)}</h1><span>${esc(p.cliente)}</span></header>
-${aviso ? `<div class="aviso" role="alert">${esc(aviso)}</div>` : ''}${resposta}
-<h2><small>01 · Visão do mês</small>O que vamos comunicar</h2>${c.resumo ? `<p class="resumo">${esc(c.resumo)}</p>` : ''}
-<div class="numeros">${numeros.map((n) => `<div><b>${esc(n.valor)}</b>${esc(n.rotulo)}</div>`).join('')}</div>
-${c.linhas?.length ? `<h2><small>02 · Linhas de conteúdo</small>Os assuntos do mês</h2><div class="linhas">${c.linhas.map((l) => `<div><b>${esc(l.titulo)}</b><p>${esc(l.texto)}</p></div>`).join('')}</div>` : ''}
-${c.datas?.length ? `<h2><small>03 · Datas</small>Datas que orientam o mês</h2><table class="datas"><tbody>${c.datas.map((d) => `<tr><td>${esc(d.data)}</td><td><b>${esc(d.nome)}</b></td><td>${esc(d.texto)}</td></tr>`).join('')}</tbody></table>` : ''}
-<h2><small>04 · Calendário</small>${esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase()))}</h2>${calendario(p.mes, pecas)}
-<h2><small>05 · Peças</small>Uma a uma</h2><div class="pecas">${pecas.map((x, i) => `<article class="peca"><header><span class="tag" style="background:${CORES_FORMATO[x.formato] || 'var(--a)'}">${esc(x.formato)}</span><span class="quando">${esc(x.data ? dia(x.data) : 'sem data')}</span><small>#${i + 1}</small></header><h3>${esc(x.tema)}</h3>${x.legenda ? `<p>${esc(x.legenda)}</p>` : ''}${x.referencia ? `<small>Referência visual: ${esc(x.referencia)}</small>` : ''}${x.observacao ? `<small>${esc(x.observacao)}</small>` : ''}</article>`).join('') || '<p>Sem peças ainda.</p>'}</div>
-${c.observacoes ? `<h2><small>06 · Observações</small>Para combinar</h2><div class="obs">${esc(c.observacoes)}</div>` : ''}
-${formulario}
-<footer><span>Vybe · Planejamento de conteúdo · ${esc(p.cliente)} · ${esc(nomeDoMes(p.mes))}</span><span>Versão ${esc(p.versao)}</span></footer>
-</main></body></html>`;
+<header class="capa"><div class="marcas"><img class="vybe" src="${esc(base)}/assets/vybe-branca.png" alt="Vybe"><i aria-hidden="true">×</i>${logo ? `<span class="cli"><img src="${esc(logo)}" alt="${esc(p.cliente)}"></span>` : `<span class="cli-nome">${esc(p.cliente)}</span>`}</div>
+<div><small>Planejamento de conteúdo · ${esc(nomeDoMes(p.mes))}</small><h1>${esc(p.cliente)}</h1></div>
+${p.titulo && p.titulo !== 'Planejamento de conteúdo' ? `<p>${esc(p.titulo)}</p>` : ''}
+<div class="meta"><span>${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}</span><span>${esc(nomeDoMes(p.mes))}</span><span>Versão ${esc(p.versao)}</span></div></header>
+${aviso ? `<div class="aviso" role="alert">${esc(aviso)}</div>` : ''}${resposta}${comoUsar}
+${respondendo ? `<form id="resposta" method="post" action="/aprovar/${esc(token)}">${corpo}${formulario}</form><div class="ir"><a href="#aprovar">Ir para a resposta</a></div>` : corpo}
+<footer><span><img src="${esc(base)}/assets/vybe-branca.png" alt="">Feito pela Vybe para ${esc(p.cliente)} · ${esc(nomeDoMes(p.mes))}</span><span>Versão ${esc(p.versao)}</span></footer>
+</main>${script}</body></html>`;
 }

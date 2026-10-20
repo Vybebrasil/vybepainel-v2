@@ -96,7 +96,8 @@ export async function paginaDeAprovacao(req, res, sql) {
   if (req.method === 'POST') {
    const b = typeof req.body === 'string' ? Object.fromEntries(new URLSearchParams(req.body)) : req.body || {};
    let aviso = '';
-   try { await P.responderDoCliente(sql, token, { acao: b.acao, nome: b.nome, texto: b.texto }); }
+   const ajustesPecas = Object.fromEntries(Object.entries(b).filter(([k]) => /^ajuste_\d{1,3}$/.test(k)).map(([k, v]) => [k.slice(7), String(v || '')]));
+   try { await P.responderDoCliente(sql, token, { acao: b.acao, nome: b.nome, texto: b.texto, ajustesPecas }); }
    catch (e) { if (e.status === 404 || e.status === 410) return pagina(e.status, 'Link indisponível', e.message); aviso = e.message; }
    const p = await P.planejamentoDoLink(sql, token);
    return res.status(200).send(documentoHtml(p, { paraCliente: true, token, aviso }));
