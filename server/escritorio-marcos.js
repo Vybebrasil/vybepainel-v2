@@ -48,39 +48,44 @@ function diaUtilAntes(iso) {
 // Os números que os marcos olham, lidos agora.
 export async function numerosDosMarcos(sql, pessoaId, agora = new Date()) {
   const hoje = diaBahia(agora), mes = hoje.slice(0, 8) + '01';
-  const [t] = await sql`SELECT count(*) AS n FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId}`;
-  const dias = new Set((await sql`SELECT DISTINCT TO_CHAR(dia,'YYYY-MM-DD') AS dia FROM vybe_escritorio_entregas
-    WHERE pessoa_id=${pessoaId} AND dia >= ${somarDias(hoje, -120)}::date`).map(d => d.dia));
+  // Todas as contagens ao mesmo tempo (uma por vez deixava a carteira lenta).
+  const [[t], diasLinhas, [m], [cl], [v], [c], [g], [a], [d], [tem]] = await Promise.all([
+    sql`SELECT count(*) AS n FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId}`,
+    sql`SELECT DISTINCT TO_CHAR(dia,'YYYY-MM-DD') AS dia FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId} AND dia >= ${somarDias(hoje, -120)}::date`,
+    sql`SELECT count(*) AS com_prazo, count(*) FILTER (WHERE e.dia <= c.prazo) AS em_dia
+      FROM vybe_escritorio_entregas e JOIN vybe_conteudos c ON c.id=e.conteudo_id
+      WHERE e.pessoa_id=${pessoaId} AND e.dia >= ${mes}::date AND c.prazo IS NOT NULL`,
+    sql`SELECT count(DISTINCT cc.cliente_id) AS n FROM vybe_escritorio_entregas e
+      JOIN vybe_conteudo_clientes cc ON cc.conteudo_id=e.conteudo_id WHERE e.pessoa_id=${pessoaId} AND e.dia >= ${mes}::date`,
+    sql`SELECT count(*) AS n FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis x ON x.conteudo_id=c.id
+      WHERE x.pessoa_id=${pessoaId} AND c.removido_em IS NULL AND c.status_chave=ANY(${STATUS_NA_MAO}::text[]) AND c.prazo IS NOT NULL AND c.prazo < ${hoje}::date`,
+    sql`SELECT xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`,
+    sql`SELECT count(*) FILTER (WHERE regra='meta_semanal') AS metas, bool_or(origem='conquista:meu-quarto') AS quarto
+      FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId}`,
+    sql`SELECT count(*) FILTER (WHERE e.dia < c.prazo) AS antes,
+        count(*) FILTER (WHERE e.dia >= ${somarDias(hoje, -6)}::date) AS semana_com_prazo,
+        count(*) FILTER (WHERE e.dia >= ${somarDias(hoje, -6)}::date AND e.dia <= c.prazo) AS semana_em_dia
+      FROM vybe_escritorio_entregas e JOIN vybe_conteudos c ON c.id=e.conteudo_id
+      WHERE e.pessoa_id=${pessoaId} AND c.prazo IS NOT NULL`,
+    sql`SELECT count(DISTINCT origem) AS n FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND regra='criacao_aprovada'`,
+    // Tabelas que podem não existir (instalação antiga ou banco de teste): contam zero.
+    sql`SELECT to_regclass('public.vybe_escritorio_presentes') IS NOT NULL AS presentes,
+      to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS trocas, to_regclass('public.vybe_escritorio_postits') IS NOT NULL AS postits,
+      to_regclass('public.vybe_planejamento_eventos') IS NOT NULL AS planejamentos`,
+  ]);
+  const dias = new Set(diasLinhas.map((x) => x.dia));
   // Sequência: dias úteis seguidos com pelo menos uma entrega (hoje conta se já houve).
   let seq = 0, dia = dias.has(hoje) ? hoje : diaUtilAntes(hoje);
   while (dias.has(dia) && seq < 400) { seq++; dia = diaUtilAntes(dia); }
-  const [m] = await sql`SELECT count(*) AS com_prazo, count(*) FILTER (WHERE e.dia <= c.prazo) AS em_dia
-    FROM vybe_escritorio_entregas e JOIN vybe_conteudos c ON c.id=e.conteudo_id
-    WHERE e.pessoa_id=${pessoaId} AND e.dia >= ${mes}::date AND c.prazo IS NOT NULL`;
-  const [cl] = await sql`SELECT count(DISTINCT cc.cliente_id) AS n FROM vybe_escritorio_entregas e
-    JOIN vybe_conteudo_clientes cc ON cc.conteudo_id=e.conteudo_id WHERE e.pessoa_id=${pessoaId} AND e.dia >= ${mes}::date`;
-  const [v] = await sql`SELECT count(*) AS n FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis x ON x.conteudo_id=c.id
-    WHERE x.pessoa_id=${pessoaId} AND c.removido_em IS NULL AND c.status_chave=ANY(${STATUS_NA_MAO}::text[]) AND c.prazo IS NOT NULL AND c.prazo < ${hoje}::date`;
-  const [c] = await sql`SELECT xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
-  const [g] = await sql`SELECT count(*) FILTER (WHERE regra='meta_semanal') AS metas, bool_or(origem='conquista:meu-quarto') AS quarto
-    FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId}`;
-  const [a] = await sql`SELECT count(*) FILTER (WHERE e.dia < c.prazo) AS antes,
-      count(*) FILTER (WHERE e.dia >= ${somarDias(hoje, -6)}::date) AS semana_com_prazo,
-      count(*) FILTER (WHERE e.dia >= ${somarDias(hoje, -6)}::date AND e.dia <= c.prazo) AS semana_em_dia
-    FROM vybe_escritorio_entregas e JOIN vybe_conteudos c ON c.id=e.conteudo_id
-    WHERE e.pessoa_id=${pessoaId} AND c.prazo IS NOT NULL`;
-  const [d] = await sql`SELECT count(DISTINCT origem) AS n FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND regra='criacao_aprovada'`;
-  // Tabelas que podem não existir (instalação antiga ou banco de teste): contam zero.
-  const [tem] = await sql`SELECT to_regclass('public.vybe_escritorio_presentes') IS NOT NULL AS presentes,
-    to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS trocas, to_regclass('public.vybe_escritorio_postits') IS NOT NULL AS postits,
-    to_regclass('public.vybe_planejamento_eventos') IS NOT NULL AS planejamentos`;
   const contar = async (existe, consulta) => existe ? Number((await consulta())[0]?.n || 0) : 0;
-  const presentes = await contar(tem.presentes, () => sql`SELECT count(*) AS n FROM vybe_escritorio_presentes WHERE de_pessoa=${pessoaId}`);
-  const trocas = await contar(tem.trocas, () => sql`SELECT count(*) AS n FROM vybe_escritorio_trocas WHERE estado='aceita' AND (de_pessoa=${pessoaId} OR para_pessoa=${pessoaId})`);
-  const postits = await contar(tem.postits, () => sql`SELECT count(*) AS n FROM vybe_escritorio_postits WHERE pessoa_id=${pessoaId}`);
-  const planejamentos = await contar(tem.planejamentos, () => sql`SELECT count(DISTINCT p.id) AS n FROM vybe_planejamentos p
-    JOIN vybe_planejamento_eventos ev ON ev.planejamento_id=p.id AND ev.tipo='enviado' AND ev.autor_id=${pessoaId}
-    WHERE p.estado IN ('aprovado','cadastrado')`);
+  const [presentes, trocas, postits, planejamentos] = await Promise.all([
+    contar(tem.presentes, () => sql`SELECT count(*) AS n FROM vybe_escritorio_presentes WHERE de_pessoa=${pessoaId}`),
+    contar(tem.trocas, () => sql`SELECT count(*) AS n FROM vybe_escritorio_trocas WHERE estado='aceita' AND (de_pessoa=${pessoaId} OR para_pessoa=${pessoaId})`),
+    contar(tem.postits, () => sql`SELECT count(*) AS n FROM vybe_escritorio_postits WHERE pessoa_id=${pessoaId}`),
+    contar(tem.planejamentos, () => sql`SELECT count(DISTINCT p.id) AS n FROM vybe_planejamentos p
+      JOIN vybe_planejamento_eventos ev ON ev.planejamento_id=p.id AND ev.tipo='enviado' AND ev.autor_id=${pessoaId}
+      WHERE p.estado IN ('aprovado','cadastrado')`),
+  ]);
   const [pf] = await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId}`;
   const andar2 = (pf?.preferencias?.sala_andares || []).some(x => x?.andar === 1 && x.quarto_configurado === true);
   return { hoje, total: Number(t.n), seq, comPrazo: Number(m.com_prazo), emDia: Number(m.em_dia), clientes: Number(cl.n), vencidas: Number(v.n),
