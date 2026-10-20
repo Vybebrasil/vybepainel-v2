@@ -8377,3 +8377,23 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 .ofc-cart-ganhos small {font:500 11px var(--mac-ui);color:#a3a9b7}
 .ofc-cart-valor {font:700 12px var(--mac-ui);white-space:nowrap;color:#ffd166}
 .ofc-cart-valor.perde {color:#ff9b9b}
+
+/* Conquistas em níveis (Paulo, 20/10/2026): Bronze, Prata, Ouro, Diamante. */
+.ofc-escada {display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}
+.ofc-escada-txt {display:grid;gap:3px;min-width:0}
+.ofc-escada-txt b {display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ofc-escada-nivel {padding:1px 8px;border-radius:999px;font:700 10.5px var(--mac-ui);font-style:normal;letter-spacing:.02em}
+.ofc-escada-nivel.n1 {background:#e0915a33;color:#ffc9a3}
+.ofc-escada-nivel.n2 {background:#d9dde633;color:#eef0f5}
+.ofc-escada-nivel.n3 {background:#ffd16633;color:#ffe29a}
+.ofc-escada-nivel.n4 {background:linear-gradient(90deg,#7ee8ff40,#c39bff40);color:#dff7ff}
+.ofc-escada-barra {display:block;height:6px;border-radius:999px;background:#ffffff14;overflow:hidden}
+.ofc-escada-barra i {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9548,#ffd166)}
+.ofc-escada.n3 .ofc-escada-barra i {background:linear-gradient(90deg,#ffd166,#9fe8ff)}
+.ofc-escada-degraus {display:flex;gap:3px}
+.ofc-escada-degraus i {width:10px;height:10px;border-radius:50%;background:#ffffff1a;box-shadow:inset 0 0 0 1px #ffffff26}
+.ofc-escada-degraus i.ok.n1 {background:#e0915a}
+.ofc-escada-degraus i.ok.n2 {background:#d9dde6}
+.ofc-escada-degraus i.ok.n3 {background:#ffd166}
+.ofc-escada-degraus i.ok.n4 {background:linear-gradient(135deg,#7ee8ff,#c39bff)}
+.ofc-escada:not(.ok) .ofc-hud-medalha {opacity:.45;filter:grayscale(.7)}

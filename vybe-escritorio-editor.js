@@ -1877,7 +1877,7 @@ async function escritorioAcaoMovel(classe, comprar = false) {
  if(!meuQuarto) return escritorioAviso("A loja é pessoal: escolha seu quarto em Meu espaço para comprar móveis.");
  if(escritorio.edicao&&!noEditor) return escritorioAviso("A loja é pessoal. Abra seu próprio quarto para comprar móveis.");
  const info=escritorioInfoLoja(classe);
- if(info.marco) return escritorioAviso(`Este móvel não se compra: vem com o marco "${escritorio.base.economia?.marcos?.find(m=>m.id===info.marco)?.nome || info.marco}" da sua ficha.`);
+ if(info.marco) return escritorioAviso(`Este móvel não se compra: ${escritorioPremioDoMarco(info.marco).toLowerCase()}.`);
  if(info.restante===0) return escritorioAviso("Esgotado: todos os exemplares já foram comprados.");
  if(!info.naVitrine) return escritorioAviso("Este móvel só se compra quando está na vitrine da semana.");
  if(escritorio.comprando) return;
@@ -1925,6 +1925,7 @@ function escritorioEsconderFichaDaJanela(coluna) {
 function escritorioPremioDoMarco(marco) {
   const r = /^ranking_([123])$/.exec(marco || "");
   if (r) return `Troféu do ${r[1]}º lugar no ranking da semana`;
+  if (marco === "trofeu") return "Troféu de conquista: veja as escadas na aba Conquistas da sua ficha";
   const m = escritorio.base?.economia?.marcos?.find((x) => x.id === marco);
   return m ? `Conquista "${m.nome}"${m.dica ? `: ${m.dica.toLowerCase()}` : ""}` : "Prêmio de conquista";
 }

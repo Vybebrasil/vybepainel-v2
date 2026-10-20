@@ -4,7 +4,7 @@
 // (migrations/2026-10-17-escritorio-loja.sql); quem não está na tabela é comum.
 import { readFileSync } from 'node:fs';
 import { resumoPontos, diaBahia, inicioDaSemana, nivelPorXp, somarDias } from './escritorio-pontos.js';
-import { conferirMarcos, MARCOS } from './escritorio-marcos.js';
+import { conferirMarcos, MARCOS, partesDoMarco, nomeDoMarco } from './escritorio-marcos.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
 export const MOVEIS_ESSENCIAIS = quartos.essenciais;
@@ -227,7 +227,7 @@ export async function perfilPublico(sql, pessoaId) {
  // Marcos já conquistados (só leitura: conceder fica com a ficha da própria pessoa).
  const [tm] = await sql`SELECT to_regclass('public.vybe_escritorio_marcos') IS NOT NULL AS existe`;
  const feitos = tm?.existe ? await sql`SELECT marco,em FROM vybe_escritorio_marcos WHERE pessoa_id=${pessoaId} ORDER BY em` : [];
- const marcos = feitos.map((f) => { const m = MARCOS.find((x) => x.id === f.marco); return m ? { id: m.id, nome: m.nome, dica: m.dica, em: f.em } : null; }).filter(Boolean);
+ const marcos = feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco), m = MARCOS.find((x) => x.id === marco); return m ? { id: f.marco, nome: nomeDoMarco(f.marco), nivel, dica: m.unidade, em: f.em } : null; }).filter(Boolean);
  return { disponivel: true, saldo: Number(c?.saldo || 0), ...nivelPorXp(c?.xp || 0), conquistas: q?.n || 0, inventario, marcos };
 }
 async function pontosProntosEconomia(sql) {
