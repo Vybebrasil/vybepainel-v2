@@ -41,13 +41,15 @@ function planejamentosDoClienteHtml() {
     <div class="cli-ficha-topo"><h3>Planejamentos</h3></div>
     <div class="plj-lista"><div class="auto-carregando">Buscando os planejamentos…</div></div></div>`;
 }
-async function carregarPlanejamentosDoCliente(clienteId, nome) {
-  const caixa = document.querySelector('#plj-cartao .plj-lista');
+// "raiz": onde está o quadro (a ficha do cliente ou o painel do agente no
+// Escritório); sem ela, o da página.
+async function carregarPlanejamentosDoCliente(clienteId, nome, raiz = document) {
+  const caixa = raiz.querySelector('#plj-cartao .plj-lista');
   if (!caixa) return;
   if (!clienteId) { caixa.innerHTML = '<p class="plj-vazio">Este cliente ainda não tem cadastro no painel.</p>'; return; }
   try {
     const d = await pljPedir(`cliente_id=${encodeURIComponent(clienteId)}`);
-    if (!document.getElementById('plj-cartao')) return;
+    if (!caixa.isConnected) return;
     if (!d.disponivel) { caixa.innerHTML = '<p class="plj-vazio">Os planejamentos ainda não foram ligados no banco.</p>'; return; }
     const lista = d.planejamentos || [];
     const podeCriar = lista.some((p) => p.pode_editar) || (typeof podeEditarClientes === 'function' && podeEditarClientes());

@@ -7641,3 +7641,43 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-ordem select {padding:4px 8px;border-radius:var(--jg-raio-p);border:1px solid var(--jg-borda);background:#0c0e15;color:var(--ofc-texto);font:600 12px var(--mac-ui)}
 .ofc-sr {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .ofc-cat-chip[aria-pressed=true]:not([class*=" r-"]) {background:var(--jg-ativo);border-color:#ff8a3599}
+/* Cartão do cliente que cobra: o que ele cobra, perto do boneco. */
+.ofc-cobranca-pop {position:absolute;z-index:40;width:min(300px,calc(100% - 16px));max-height:min(420px,70vh);overflow:auto;display:grid;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--jg-borda-forte);background:var(--jg-painel);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(10px);animation:jg-surgir .16s ease-out}
+.ofc-cobranca-pop[hidden] {display:none}
+.ofc-cobranca-pop-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ofc-cobranca-pop ul {list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ofc-cobranca-pop .ofc-cobranca {width:100%}
+.ofc-cobranca-pop .ofc-cobranca small {display:block;font-size:10.5px;color:var(--ofc-suave)}
+.ofc-cobranca-pop .ofc-nota {margin:0;font-size:11px}
+@media (prefers-reduced-motion: reduce) {.ofc-cobranca-pop {animation:none}}
+/* Painel do agente do Centro de Operação: números do cliente, planejamentos e
+   o que pede atenção, com portas para a ficha e a Agenda mensal do painel. */
+#workflow-modal.ofc-agente-janela {width:min(1080px,calc(100vw - 32px));max-width:none}
+.ofc-agente {display:grid;gap:14px}
+.ofc-agente-topo {display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ofc-agente-topo .workflow-title {margin:0}
+.ofc-agente-topo small {color:var(--ofc-suave);font-size:13px}
+.ofc-agente-nums {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ofc-agente-num {display:grid;gap:2px;padding:10px 12px;border-radius:12px;background:var(--jg-slot,#ffffff0d);border:1px solid var(--jg-borda,#ffffff1a)}
+.ofc-agente-num b {font:750 22px/1 var(--mac-ui);font-variant-numeric:tabular-nums;color:var(--ofc-texto,#fff)}
+.ofc-agente-num span {font:600 11px var(--mac-ui);color:var(--ofc-suave,#aab)}
+.ofc-agente-num.ruim {border-color:#ff6b6b66;background:#ff6b6b14}
+.ofc-agente-num.ruim b {color:#ff9b9b}
+.ofc-agente-grade {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.ofc-agente-portas {display:flex;gap:8px;margin-left:auto}
+.ofc-agente-col {display:grid;gap:12px;min-width:0}
+.ofc-agente-bloco, .ofc-agente .plj-cartao {display:grid;gap:8px;padding:12px;border-radius:14px;background:#ffffff08;border:1px solid var(--jg-borda,#ffffff1a);min-width:0;margin:0}
+.ofc-agente-bloco-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ofc-agente-bloco h4, .ofc-agente .plj-cartao h3 {margin:0;font:700 13px var(--mac-ui);letter-spacing:.02em}
+.ofc-agente-bloco h5 {margin:6px 0 0;font:700 12px var(--mac-ui);color:var(--ofc-suave,#aab)}
+.ofc-agente-lista {list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.ofc-agente-peca {display:flex;align-items:flex-start;gap:8px;width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--jg-borda,#ffffff1a);background:#ffffff08;color:inherit;text-align:left;cursor:pointer}
+.ofc-agente-peca:hover {background:#ffffff12}
+.ofc-agente-peca > span {display:grid;gap:2px;min-width:0}
+.ofc-agente-peca b {font:650 12.5px/1.3 var(--mac-ui);overflow:hidden;text-overflow:ellipsis}
+.ofc-agente-peca small {font-size:11px;color:var(--ofc-suave,#aab)}
+.ofc-agente-peca .ofc-ponto {margin-top:5px;flex:none}
+.ofc-agente-tags {display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+@media (max-width:760px){.ofc-agente-grade {grid-template-columns:1fr}.ofc-agente-nums {grid-template-columns:repeat(2,minmax(0,1fr))}.ofc-agente-portas {margin-left:0}}
+/* Na ficha do cliente o quadro de planejamentos ocupa a linha toda; no painel do agente, uma coluna. */
+.ofc-agente-grade > .client-master-detail-card.plj-cartao {grid-column:auto}

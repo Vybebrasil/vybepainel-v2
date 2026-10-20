@@ -174,6 +174,34 @@ function pintarCobrancasEscritorio(grupos, dono) {
       <ul>${g.itens.map((c) => `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')" title="${safeText(`${c.titulo}${c.status ? ` · ${c.status}` : ""}\nClique para abrir a demanda`)}">
         <em class="ofc-missao-prazo ${c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : ""}">${safeText(cobrancaRotulo(c))}</em><span>${safeText(c.titulo)}</span></button></li>`).join("")}</ul></li>`).join("")}</ul>` : ""}`;
 }
+// Clique no cliente que está cobrando (Paulo, 19/10/2026): primeiro o cartão
+// com o que ele cobra, perto do boneco; cada demanda abre inteira na gaveta.
+function abrirCobrancaClienteEscritorio(g, e) {
+  const raiz = document.querySelector("#painel-escritorio .ofc-principal");
+  if (!raiz) return abrirMissaoEscritorio(g.pior.ref, g.pior.quadro);
+  let pop = document.getElementById("office-cobranca-pop");
+  if (!pop) {
+    pop = document.createElement("div");
+    pop.id = "office-cobranca-pop";
+    pop.className = "ofc-cobranca-pop";
+    pop.setAttribute("role", "dialog");
+    raiz.append(pop);
+    document.addEventListener("pointerdown", (ev) => { if (!pop.hidden && !pop.contains(ev.target)) pop.hidden = true; });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !pop.hidden) pop.hidden = true; });
+  }
+  pop.setAttribute("aria-label", `${g.cliente}: ${g.itens.length} demanda${g.itens.length > 1 ? "s" : ""}`);
+  pop.innerHTML = `<div class="ofc-cobranca-pop-topo"><span class="ofc-cobranca-cliente ${COBRANCA_TOM[g.pior.tipo] || "cobra"}"><b>${safeText(g.cliente)}</b><small>${g.itens.length}</small></span><button type="button" class="ofc-x" onclick="this.closest('.ofc-cobranca-pop').hidden=true" aria-label="Fechar">×</button></div>
+<ul>${g.itens.map((c) => `<li><button type="button" class="ofc-cobranca" onclick="this.closest('.ofc-cobranca-pop').hidden=true;abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}')">
+  <em class="ofc-missao-prazo ${c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : ""}">${safeText(cobrancaRotulo(c))}</em><span>${safeText(c.titulo)}</span>${c.status ? `<small>${safeText(c.status)}</small>` : ""}</button></li>`).join("")}</ul>
+<p class="ofc-nota">Clique numa demanda para abrir inteira.</p>`;
+  pop.hidden = false;
+  // Perto do clique, sem sair da área do mapa.
+  const r = raiz.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  const x = (e?.clientX ?? r.left + r.width / 2) - r.left, y = (e?.clientY ?? r.top + r.height / 2) - r.top;
+  pop.style.left = Math.max(8, Math.min(r.width - w - 8, x + 14)) + "px";
+  pop.style.top = Math.max(60, Math.min(r.height - h - 8, y - 20)) + "px";
+  pop.querySelector(".ofc-cobranca")?.focus();
+}
 function alternarCobrancasEscritorio() {
   let aberto = true;
   try { aberto = localStorage.getItem("vybe-escritorio-cobrancas") !== "fechado"; localStorage.setItem("vybe-escritorio-cobrancas", aberto ? "fechado" : "aberto"); } catch {}
@@ -198,7 +226,7 @@ async function carregarCobrancasEscritorio() {
   escritorio.cobrancasAntes = { quarto, grupos };
   const visitante = (g, i, falas, tom) => ({ nome: g.itens.length > 1 ? `${g.cliente} · ${g.itens.length}` : g.cliente,
     figura: typeof escritorioFiguraDoAgente === "function" ? escritorioFiguraDoAgente(g, i) : undefined, falas, tom,
-    dica: g.itens.map((c) => `${cobrancaRotulo(c)}: ${c.titulo}`).join("\n"), aoClicar: () => abrirMissaoEscritorio(g.pior.ref, g.pior.quadro) });
+    dica: g.itens.map((c) => `${cobrancaRotulo(c)}: ${c.titulo}`).join("\n"), aoClicar: (e) => abrirCobrancaClienteEscritorio(g, e) });
   const deles = (g) => g.itens.flatMap((c) => falasDaCobranca(c, nomeDono).slice(0, 2));
   const ativos = grupos.map((g, i) => visitante(g, i, deles(g), COBRANCA_TOM[g.pior.tipo] || "cobra"));
   mapa.definirVisitantes([...resolvidos.map((g, i) => visitante(g, grupos.length + i, [`Valeu, ${nomeDono}! Ficou ótimo.`], "agradece")), ...ativos]);

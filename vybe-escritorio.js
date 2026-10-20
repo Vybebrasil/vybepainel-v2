@@ -823,19 +823,61 @@ async function escritorioOcuparOperacao() {
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
 }
-// Painel do agente: o planejamento do mês e o que pede atenção no cliente,
-// cada peça abre no painel lateral de sempre.
+// Painel do agente: um resumo que leva ao que o painel já tem (Paulo,
+// 19/10/2026: "não sair duplicando regra de nada"). Os números vêm de
+// clientMasterRecords (a mesma conta da tela de Clientes), o quadro de
+// planejamentos é o da ficha do cliente (documento para revisar e mandar ao
+// cliente), o calendário é a Agenda mensal filtrada no cliente e "pede
+// atenção" são os avisos do servidor (server/alertas-clientes.js), uma linha
+// por peça. Cada peça abre na gaveta de sempre.
 function abrirAgenteOperacaoEscritorio(a) {
-  const p = a.planejamento, al = a.alertas || {};
-  const [situacao] = p ? ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado] : ["Sem planejamento"];
-  const lista = (titulo, itens, total, campo) => (total ? `<section class="ofc-agente-grupo"><h4>${titulo} · ${total}</h4><ul>${itens.map((x) => `<li><button type="button" onclick="closeWorkflowModal();abrirMissaoEscritorio('${safeText(x.ref)}','${x.quadro}')">
-      <b>${safeText(x.titulo)}</b><small>${safeText([x.prazo ? x.prazo.split("-").reverse().join("/") : "", campo ? x[campo] : x.status].filter(Boolean).join(" · "))}</small></button></li>`).join("")}</ul>${total > itens.length ? `<small>e mais ${total - itens.length}</small>` : ""}</section>` : "");
-  openWorkflowModal(`<div class="workflow-kicker"><span>Centro de Operação · agente</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">${safeText(a.cliente)}</h2>
-    <div class="ofc-agente-plano"><span>Planejamento: <b>${safeText(situacao)}</b></span>${p && typeof abrirPlanejamento === "function" ? `<button type="button" class="workflow-secondary" onclick="abrirPlanejamento('${safeText(p.id)}')">Abrir planejamento</button>` : ""}</div>
-    ${al.total ? `${lista("Muito atrasadas", al.atrasadas || [], al.atrasadas_total)}${lista("Para aprovar", al.aprovar || [], al.aprovar_total)}${lista("Sem informação", al.sem_info || [], al.sem_info_total, "motivo")}`
-      : '<p class="workflow-copy">Nada pedindo atenção neste cliente agora.</p>'}`);
+  escritorio.agenteAberto = { a };
+  openWorkflowModal(`<div class="ofc-agente" id="ofc-agente"></div>`);
   document.getElementById("workflow-modal")?.classList.add("ofc-agente-janela");
+  pintarAgenteOperacaoEscritorio();
+}
+function pintarAgenteOperacaoEscritorio() {
+  const el = document.getElementById("ofc-agente"), a = escritorio.agenteAberto?.a;
+  if (!el || !a) return;
+  const al = a.alertas || {};
+  const nome = typeof clientMasterResolveName === "function" ? clientMasterResolveName(a.cliente) : a.cliente;
+  const reg = typeof clientMasterRecords === "function" ? clientMasterRecords().find((r) => r.name === nome) : null;
+  const numero = (n, rotulo, tom = "") => `<div class="ofc-agente-num ${tom}"><b>${n}</b><span>${rotulo}</span></div>`;
+  const atencao = new Map();
+  const juntar = (lista, rotulo, tom) => { for (const x of lista || []) { if (!atencao.has(x.ref)) atencao.set(x.ref, { ...x, motivos: [] }); atencao.get(x.ref).motivos.push([x.motivo ? `${rotulo}: ${x.motivo}` : rotulo, tom]); } };
+  juntar(al.atrasadas, "muito atrasada", "atrasada"); juntar(al.aprovar, "para aprovar", "hoje"); juntar(al.sem_info, "sem informação", "");
+  const linhas = [...atencao.values()].map((x) => `<li><button type="button" class="ofc-agente-peca" onclick="closeWorkflowModal();abrirMissaoEscritorio('${safeText(x.ref)}','${x.quadro}')"><span><b>${safeText(x.titulo)}</b><small>${safeText([x.prazo ? "prazo " + x.prazo.split("-").reverse().slice(0, 2).join("/") : "", x.status].filter(Boolean).join(" · "))}</small><span class="ofc-agente-tags">${x.motivos.map(([t, tom]) => `<em class="ofc-missao-prazo ${tom}">${safeText(t)}</em>`).join("")}</span></span></button></li>`).join("");
+  const mais = ["atrasadas", "aprovar", "sem_info"].some((k) => (al[k + "_total"] || 0) > (al[k] || []).length);
+  const calendario = typeof modoComVisoesDoQuadro === "function" && modoComVisoesDoQuadro() && typeof alternarPainelDaBarra === "function";
+  el.innerHTML = `<div class="workflow-kicker"><span>Centro de Operação · agente</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+  <header class="ofc-agente-topo"><h2 class="workflow-title">${safeText(a.cliente)}</h2>${a.segmento ? `<small>${safeText(a.segmento)}</small>` : ""}
+   <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></header>
+  ${reg ? `<div class="ofc-agente-nums" aria-label="Números do cliente">${numero(reg.activeCount, "ativas")}${numero(reg.content.length, "conteúdos")}${numero(reg.requests.length, "solicitações")}${numero(al.total || 0, "pedem atenção", al.total ? "ruim" : "")}</div>` : ""}
+  <div class="ofc-agente-grade">
+   ${typeof planejamentosDoClienteHtml === "function" ? planejamentosDoClienteHtml() : ""}
+   <section class="ofc-agente-bloco" aria-label="Pede atenção"><div class="ofc-agente-bloco-topo"><h4>Pede atenção${al.total ? ` · ${al.total}` : ""}</h4></div>
+    ${linhas ? `<ul class="ofc-agente-lista">${linhas}</ul>${mais ? '<small class="ofc-nota">e mais na ficha do cliente</small>' : ""}` : '<p class="ofc-nota">Nada pedindo atenção neste cliente agora.</p>'}
+   </section>
+  </div>`;
+  if (typeof carregarPlanejamentosDoCliente === "function") carregarPlanejamentosDoCliente(a.cliente_id, a.cliente, el);
+}
+// Portas para o painel: a ficha do cliente e a Agenda mensal já filtrada nele
+// (o mesmo caminho do botão da agenda, managerCalendarOpenClientMaster).
+function abrirFichaDoClienteEscritorio(cliente) {
+  closeWorkflowModal();
+  const nome = typeof clientMasterResolveName === "function" ? clientMasterResolveName(cliente) : cliente;
+  if (typeof switchBoard === "function") switchBoard("clientes", document.getElementById("btn-board-clientes"));
+  setTimeout(() => { if (typeof abrirClienteDetalhe === "function") abrirClienteDetalhe(nome); }, 120);
+}
+function abrirCalendarioDoClienteEscritorio(cliente) {
+  closeWorkflowModal();
+  if (typeof switchBoard === "function") switchBoard("producao", document.getElementById("btn-board-producao"));
+  setTimeout(() => {
+    if (typeof managerCalendarSetClient !== "function") return;
+    if (!agendaMensalAberta) alternarPainelDaBarra("calendario");
+    managerCalendarSetClient(typeof clientMasterResolveName === "function" ? clientMasterResolveName(cliente) : cliente);
+    document.getElementById("manager-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 150);
 }
 // Chamado por vybe-planejamentos.js sempre que a lista do head muda.
 function escritorioPlanejamentosPendentes(lista) {

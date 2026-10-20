@@ -953,3 +953,17 @@ decoração inicial "bem feito".
   no site, tudo parecia comum a 25 moedas e as faixas sumiam. A lista longa de
   categorias virou duas fileiras de fichas (seção e categorias dela, com
   contagem). "Dá para comprar" vira ficha, e a ordem fica no topo da lista.
+
+### Painel do agente e cobrança — 19/10/2026 (noite)
+
+- Clicar no cliente que cobra num quarto abre primeiro um cartão com o que ele
+  cobra (motivo, título, status). Cada demanda abre inteira na gaveta.
+- O painel do agente (Centro de Operação) reaproveita o painel, sem regra nova:
+  - números do cliente de `clientMasterRecords` (a conta da tela de Clientes);
+  - o quadro de planejamentos da ficha do cliente (documento para revisar e
+    mandar ao cliente, "Começar um planejamento aqui");
+  - "pede atenção" com os avisos do servidor, uma linha por peça;
+  - portas para a ficha do cliente e para a Agenda mensal filtrada no
+    cliente (onde há a visão do quadro).
+- Regra (Paulo): demandas, contagens e calendário usam o que o painel já tem.
+  Não escrever outro calendário nem outra leitura de status no Escritório.
