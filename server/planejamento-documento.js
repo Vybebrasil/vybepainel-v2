@@ -134,18 +134,30 @@ export function documentoHtml(p, { paraCliente = false, token = '', aviso = '', 
  const resposta = p.estado === 'aprovado' || p.estado === 'cadastrado' ? `<div class="resposta ok"><b>Planejamento aprovado</b><p>Aprovado por ${esc(p.resposta_nome || 'cliente')}${quando}. Obrigado! A Vybe já começa a produzir.</p></div>`
   : p.estado === 'ajustes' ? `<div class="resposta"><b>Ajustes recebidos</b><p>${esc(p.resposta_nome || 'O cliente')} pediu ajustes${quando}. A Vybe vai revisar e mandar uma nova versão por este mesmo caminho.</p>${p.resposta_texto ? `<p class="texto">${esc(p.resposta_texto)}</p>` : ''}</div>` : '';
  const respondidas = pecas.filter((x) => x.revisao_cliente).length;
- const comoUsar = respondendo ? `<div class="como" id="como"><b>Como aprovar</b><ol><li>Escreva seu nome aqui embaixo.</li><li>Em cada peça, toque em <i>Aprovar esta peça</i> ou <i>Pedir ajuste</i>. Fica salvo na hora: dá para parar e voltar depois.</li><li>No fim da página, envie suas respostas para a Vybe.</li></ol>
+ // Dois jeitos de aprovar, à escolha do cliente e trocáveis a qualquer hora
+ // (Paulo, 20/10/2026): uma peça por vez, como o cadastro do painel, ou o
+ // documento inteiro. O calendário aparece nos dois.
+ const comoUsar = respondendo ? `<div class="como" id="como"><div class="como-topo"><b>Como você quer aprovar?</b>
+<div class="modos" role="group" aria-label="Modo de aprovação"><button type="button" data-modo="um" aria-pressed="false">Uma peça por vez</button><button type="button" data-modo="doc" aria-pressed="false">Documento completo</button></div></div>
+<p class="dica-modo" data-so="um">Você vê uma peça de cada vez: aprove ou peça ajuste, e a próxima aparece. Fica salvo na hora, dá para parar e voltar depois.</p>
+<p class="dica-modo" data-so="doc">Todas as peças na mesma página. Em cada uma, toque em <i>Aprovar esta peça</i> ou <i>Pedir ajuste</i>. Fica salvo na hora.</p>
 <label class="quem">Quem está respondendo?<input id="quem" maxlength="80" autocomplete="name" placeholder="Seu nome" value="${esc(p.resposta_nome || '')}"></label>
-<p class="progresso"><span id="progresso">${respondidas} de ${pecas.length} peças respondidas</span><i><b id="barra" style="width:${pecas.length ? Math.round((respondidas / pecas.length) * 100) : 0}%"></b></i></p></div>` : '';
+<p class="progresso"><span id="progresso">${respondidas} de ${pecas.length} peças respondidas</span><i><b id="barra" style="width:${pecas.length ? Math.round((respondidas / pecas.length) * 100) : 0}%"></b></i></p></div>
+<div class="escolha" id="escolha" hidden><div role="dialog" aria-modal="true" aria-labelledby="escolha-titulo"><small>Planejamento de ${esc(nomeDoMes(p.mes))}</small><h2 id="escolha-titulo">Como você prefere aprovar?</h2>
+<button type="button" data-modo="um"><b>Uma peça por vez</b><span>Você vê uma peça, aprova ou pede ajuste e passa para a próxima. Mais leve.</span></button>
+<button type="button" data-modo="doc"><b>Documento completo</b><span>Todas as ${pecas.length} peças na mesma página, como um documento.</span></button>
+<small>Dá para trocar a qualquer momento.</small></div></div>` : '';
  const secao = (n, rotulo, titulo) => `<h2><small>${n} · ${rotulo}</small>${titulo}</h2>`;
- const corpo = `${secao('01', 'Visão do mês', 'O que vamos comunicar')}${c.resumo ? `<p class="resumo">${esc(c.resumo)}</p>` : ''}
+ const corpo = `<div class="so-doc">${secao('01', 'Visão do mês', 'O que vamos comunicar')}${c.resumo ? `<p class="resumo">${esc(c.resumo)}</p>` : ''}
 <div class="numeros">${numeros.map((x) => `<div><b>${esc(x.valor)}</b><span>${esc(x.rotulo)}</span></div>`).join('')}</div>
 ${c.linhas?.length ? `${secao('02', 'Linhas de conteúdo', 'Os assuntos do mês')}<div class="linhas">${c.linhas.map((l) => `<div><b>${esc(l.titulo)}</b><p>${esc(l.texto)}</p></div>`).join('')}</div>` : ''}
 ${c.datas?.length ? `${secao('03', 'Datas', 'Datas que orientam o mês')}<div class="rolar"><table class="datas"><tbody>${c.datas.map((d) => `<tr><td>${esc(d.data)}</td><td><b>${esc(d.nome)}</b></td><td>${esc(d.texto)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+</div>
 ${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${calendario(p.mes, pecas)}
-${secao('05', 'Peças', 'Uma a uma')}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div>
-${c.observacoes ? `${secao('06', 'Observações', 'Para combinar')}<div class="obs">${esc(c.observacoes)}</div>` : ''}`;
- const formulario = respondendo ? `<section class="aprovar" id="aprovar"><h2><small>Sua resposta</small>Enviar para a Vybe</h2>
+${respondendo ? `<nav class="cal-mini" aria-label="Peças do mês">${pecas.map((x, i) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[x.formato] || '#6b7280'}" data-n="${i}"><b>${esc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : '--')}</b><span>${esc(x.formato)}</span></a>`).join('')}</nav>` : ''}
+<section id="area-pecas">${secao('05', 'Peças', 'Uma a uma')}${respondendo ? `<div class="navega"><button type="button" class="nao" data-ir="-1">← Anterior</button><span id="pos"></span><button type="button" class="nao" data-ir="1">Próxima →</button></div>` : ''}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div></section>
+${c.observacoes ? `<div class="so-doc">${secao('06', 'Observações', 'Para combinar')}<div class="obs">${esc(c.observacoes)}</div></div>` : ''}`;
+ const formulario = respondendo ? `<section class="aprovar" id="aprovar"><button type="button" class="link voltar-pecas" data-ir="pecas">← Voltar às peças</button><h2><small>Sua resposta</small>Enviar para a Vybe</h2>
 <p class="contagem" id="contagem" aria-live="polite"></p>
 <label>Comentário geral (opcional)<textarea id="geral" rows="3" maxlength="4000" placeholder="Algo sobre o mês todo?"></textarea></label>
 <div class="botoes"><button type="button" class="sim" id="concluir">Enviar respostas</button></div>
@@ -169,10 +181,28 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-acao
 if(a==='abrir'){d.querySelector('.nota').hidden=false;d.querySelector('textarea').focus();return;}
 if(!quem.value.trim()){mostrarErro('Escreva seu nome no topo antes de responder.');quem.focus();return;}
 const nota=a==='ajuste'?d.querySelector('textarea').value.trim():'';if(a==='ajuste'&&!nota){mostrarErro('Conte o que precisa mudar nesta peça.');return;}
-b.disabled=true;try{await falar('marcar',{assinatura:d.dataset.assinatura,estado:a,nota,nome:quem.value.trim()});mostrarErro('');pintar(d,a==='limpar'?'':a,nota);}catch(x){mostrarErro(x.message);}finally{b.disabled=false;}});
+b.disabled=true;try{await falar('marcar',{assinatura:d.dataset.assinatura,estado:a,nota,nome:quem.value.trim()});mostrarErro('');pintar(d,a==='limpar'?'':a,nota);if(a!=='limpar')document.dispatchEvent(new Event('vybe-respondida'));}catch(x){mostrarErro(x.message);}finally{b.disabled=false;}});
 document.getElementById('concluir').addEventListener('click',async e=>{if(!quem.value.trim()){mostrarErro('Escreva seu nome no topo antes de enviar.');quem.focus();return;}
 const aj=document.querySelectorAll('.decisao[data-estado=ajuste]').length,b=e.currentTarget;b.disabled=true;
 try{await falar('responder',{acao:aj?'ajustes':'aprovar',nome:quem.value.trim(),texto:document.getElementById('geral').value.trim()});if(MODO!=='portal')location.reload();}catch(x){mostrarErro(x.message);b.disabled=false;}});
+const pecasEl=[...document.querySelectorAll('.pecas .peca')];let atual=0,modo='';
+function mostrar(i,rolar=true){atual=Math.max(0,Math.min(pecasEl.length-1,i));pecasEl.forEach((el,k)=>el.classList.toggle('atual',k===atual));
+document.getElementById('pos').textContent='Peça '+(atual+1)+' de '+pecasEl.length;document.querySelector('[data-ir="-1"]').disabled=atual===0;
+const prox=document.querySelector('[data-ir="1"]');prox.textContent=atual===pecasEl.length-1?'Ir para o envio →':'Próxima →';
+document.body.classList.remove('no-envio');document.querySelectorAll('.cal-mini a').forEach((a,k)=>{a.classList.toggle('atual',k===atual);a.classList.toggle('feita',!!pecasEl[k].querySelector('.decisao')?.dataset.estado);});
+document.querySelector('.cal-mini a.atual')?.scrollIntoView({inline:'center',block:'nearest'});if(rolar)scrollTo({top:0,behavior:'smooth'});}
+function irEnvio(){document.body.classList.add('no-envio');scrollTo({top:0,behavior:'smooth'});}
+function aplicarModo(m){modo=m;document.body.classList.toggle('modo-um',m==='um');document.body.classList.toggle('modo-doc',m==='doc');document.getElementById('escolha').hidden=true;
+document.querySelectorAll('.modos [data-modo]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modo===m)));try{localStorage.setItem('vybe-modo-aprovacao',m);}catch(x){}
+if(m==='um'){const livre=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);mostrar(livre<0?0:livre,false);}else document.body.classList.remove('no-envio');}
+document.addEventListener('click',e=>{const m=e.target.closest('[data-modo]');if(m){aplicarModo(m.dataset.modo);return;}
+const ir=e.target.closest('[data-ir]');if(ir){if(ir.dataset.ir==='pecas'){mostrar(atual);return;}if(ir.dataset.ir==='1'&&atual===pecasEl.length-1){irEnvio();return;}mostrar(atual+Number(ir.dataset.ir));return;}
+const cal=e.target.closest('.cal a[href^="#peca-"],.cal-mini a');if(cal&&modo==='um'){e.preventDefault();mostrar(Number(cal.getAttribute('href').slice(6))-1);}});
+// Uma peça por vez: respondeu, vai para a próxima sem resposta.
+document.addEventListener('vybe-respondida',()=>{if(modo!=='um')return;setTimeout(()=>{const livre=pecasEl.findIndex((el,k)=>k>atual&&!el.querySelector('.decisao')?.dataset.estado);
+const qualquer=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);const alvo=livre>=0?livre:qualquer;if(alvo>=0)mostrar(alvo);else irEnvio();},450);});
+let salvo='';try{salvo=localStorage.getItem('vybe-modo-aprovacao')||'';}catch(x){}
+if(salvo==='um'||salvo==='doc')aplicarModo(salvo);else{document.getElementById('escolha').hidden=false;document.body.classList.add('modo-doc');}
 if(MODO==='portal'){const h=()=>parent.postMessage({vybe:'planejamento-altura',h:document.documentElement.scrollHeight},'*');new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();}
 contar();})();</script>` : (modo === 'portal' ? `<script>(()=>{const h=()=>parent.postMessage({vybe:'planejamento-altura',h:document.documentElement.scrollHeight},'*');new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();})();</script>` : '');
  const scriptHead = revisando ? `<script>(()=>{let seq=0;const espera={};
@@ -260,6 +290,31 @@ dialog.editar form{display:grid;gap:10px}dialog.editar label{display:grid;gap:4p
 dialog.editar .campos{display:grid;grid-template-columns:160px 150px 1fr;gap:10px}dialog.editar .campos .largo{grid-column:span 1}
 @media(max-width:640px){dialog.editar .campos{grid-template-columns:1fr 1fr}dialog.editar .campos .largo{grid-column:1/-1}}
 select{font:inherit;padding:10px;border:1px solid var(--linha);border-radius:12px;background:#fff}
+.como-topo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.modos{display:inline-flex;padding:4px;border-radius:999px;background:#efebe3;gap:4px}.modos button{padding:8px 14px;border-radius:999px;background:none;color:var(--sub);font-size:14px}
+.modos button[aria-pressed=true]{background:var(--escuro);color:#fff}
+.dica-modo{display:none;margin:8px 0 0;color:#3c3f45;font-size:14.5px}.modo-um .dica-modo[data-so=um],.modo-doc .dica-modo[data-so=doc]{display:block}
+.modo-um .so-doc{display:none}.modo-um .pecas .peca{display:none}.modo-um .pecas .peca.atual{display:grid;box-shadow:0 18px 50px #0000001a}
+/* Uma peça por vez: só uma coisa na tela (Paulo, 20/10/2026). */
+.modo-um .capa,.modo-um #resposta>h2,.modo-um #resposta>.rolar,.modo-um #area-pecas>h2,.modo-um .dica-modo,.modo-um .ir,.modo-um footer,.modo-um .resposta{display:none!important}
+.modo-um main{padding-top:12px}
+.modo-um .como{position:sticky;top:0;z-index:6;margin:0;padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;box-shadow:0 8px 24px #0000000f}
+.modo-um .como .como-topo{grid-column:1/-1}.modo-um .como .quem{margin:0;grid-template-columns:auto 1fr;align-items:center;font-size:13px}.modo-um .como .quem input{padding:7px 10px}
+.modo-um .como .progresso{margin:0;min-width:180px;font-size:12.5px}
+.cal-mini{display:none}.modo-um .cal-mini{display:flex;gap:6px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:thin}
+.cal-mini a{flex:none;display:grid;gap:1px;padding:6px 10px;border-radius:12px;background:#fff;border:1px solid var(--linha);border-left:3px solid var(--f);color:var(--tinta);text-decoration:none;font-size:11px}
+.cal-mini a b{font-size:12.5px;font-variant-numeric:tabular-nums}.cal-mini a.feita{background:#eef8f1}.cal-mini a.atual{outline:2px solid var(--vybe);outline-offset:1px}
+.modo-um #area-pecas{margin-top:14px}.modo-um .pecas .peca.atual{min-height:min(62vh,640px);align-content:start}
+.modo-um .aprovar,.modo-um.no-envio #area-pecas,.modo-um.no-envio .cal-mini{display:none}.modo-um.no-envio .aprovar{display:block;margin-top:14px}
+@media(max-width:640px){.modo-um .como{grid-template-columns:1fr}.modo-um .como .quem{grid-template-columns:1fr}.modo-um .como .progresso{min-width:0}
+.modo-um .pecas .peca.atual{min-height:0}.modo-um .navega span{font-size:13px;text-align:center}.modos button{padding:8px 10px;font-size:13px}}
+.voltar-pecas{display:none}.modo-um .voltar-pecas{display:inline-block;padding:0 0 8px}
+.navega{display:none}.modo-um #area-pecas{display:flex;flex-direction:column}.modo-um .navega{display:flex;order:2;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 0}
+.navega span{font-weight:800;font-variant-numeric:tabular-nums}.navega button:disabled{opacity:.4;cursor:default}
+.escolha{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:#17171bcc;backdrop-filter:blur(4px)}.escolha[hidden]{display:none}
+.escolha > div{width:min(560px,100%);display:grid;gap:12px;padding:24px;border-radius:22px;background:var(--papel);box-shadow:0 30px 80px #0007}
+.escolha h2{margin:0}.escolha small{color:var(--sub)}.escolha button{display:grid;gap:4px;text-align:left;padding:16px 18px;border-radius:16px;background:#fff;border:1px solid var(--linha);color:var(--tinta)}
+.escolha button:hover,.escolha button:focus-visible{border-color:var(--vybe)}.escolha button b{font:800 17px Sora,sans-serif}.escolha button span{font-weight:500;color:var(--sub);font-size:14px}
 .obs{background:var(--cartao);border:1px dashed var(--linha);border-radius:14px;padding:14px 16px;white-space:pre-wrap}
 .como{margin:18px 0 0;background:var(--cartao);border:1px solid var(--linha);border-radius:16px;padding:14px 18px}.como b{font:700 15px Sora,sans-serif}.como ol{margin:6px 0 0;padding-left:20px}
 .aprovar{margin-top:44px;background:var(--cartao);border:2px solid var(--vybe);border-radius:20px;padding:22px}.aprovar h2{margin-top:0}.aprovar label{display:grid;gap:6px;margin:12px 0;font-weight:700}
@@ -273,7 +328,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 .ir{position:sticky;bottom:12px;z-index:5;display:flex;justify-content:center;margin-top:24px}.ir a{padding:12px 20px;border-radius:99px;background:var(--escuro);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 10px 30px #0004}
 footer{margin-top:52px;color:var(--sub);font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}footer img{height:16px;filter:invert(1);opacity:.7;vertical-align:middle;margin-right:6px}
 @media print{.aprovar,.pedir,.ir,.como{display:none}main{padding:0}.peca{break-inside:avoid}}
-</style></head><body><main>
+${revisor ? '.no-painel main{max-width:1180px;padding-top:96px;padding-bottom:110px}' : ''}
+</style></head><body class="${revisor ? 'no-painel' : ''}"><main>
 <header class="capa"><div class="marcas"><img class="vybe" src="${LOGO_VYBE}" alt="Vybe"><i aria-hidden="true">×</i>${logo ? `<span class="cli"><img src="${esc(logo)}" alt="${esc(p.cliente)}"></span>` : `<span class="cli-nome">${esc(p.cliente)}</span>`}</div>
 <div><small>Planejamento de conteúdo · ${esc(nomeDoMes(p.mes))}</small><h1>${esc(p.cliente)}</h1></div>
 ${p.titulo && p.titulo !== 'Planejamento de conteúdo' ? `<p>${esc(p.titulo)}</p>` : ''}

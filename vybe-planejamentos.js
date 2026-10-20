@@ -116,11 +116,30 @@ function pintarPlanejamento(aba) {
   if (!m || !p) return;
   const edita = p.pode_editar && !['aprovado', 'cadastrado', 'arquivado'].includes(p.estado);
   if (aba === 'editar' && !edita) aba = 'documento';
-  const abas = [['documento', 'Documento'], ...(edita ? [['editar', 'Editar']] : []), ['historico', 'Histórico'], ...(p.pode_editar ? [['identidade', 'Marca do cliente']] : [])];
+  const abas = [['documento', aba === 'documento' ? 'Documento' : '← Documento'], ...(edita ? [['editar', 'Editar']] : []), ['historico', 'Histórico'], ...(p.pode_editar ? [['identidade', 'Marca do cliente']] : [])];
   const resposta = p.estado === 'ajustes' && p.resposta_texto
     ? `<div class="plj-pedido"><b>${pljEsc(p.resposta_nome || 'O cliente')} pediu ajustes</b><p>${pljEsc(p.resposta_texto)}</p><small>As peças com pedido aparecem marcadas na aba Editar.</small></div>` : '';
   const drive = p.drive_pdf_id || p.drive_doc_id ? `<span class="plj-drive">${p.drive_doc_id ? `<a class="cli-porta" target="_blank" rel="noopener" href="https://docs.google.com/document/d/${pljEsc(p.drive_doc_id)}/edit">Documento no Drive ↗</a>` : ''}${
     p.drive_pdf_id ? `<a class="cli-porta" target="_blank" rel="noopener" href="https://drive.google.com/file/d/${pljEsc(p.drive_pdf_id)}/view">PDF ↗</a>` : ''}</span>` : '';
+  // Documento como um PDF em tela cheia; o resto flutua por cima (Paulo,
+  // 20/10/2026: "abrir como se abrisse um PDF tela cheia mesmo").
+  m.classList.toggle('plj-modo-doc', aba === 'documento');
+  if (aba === 'documento') {
+    const outras = abas.filter(([k]) => k !== 'documento');
+    const revisando = p.pode_editar && ['revisar', 'ajustes'].includes(p.estado);
+    m.innerHTML = `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>
+    <div class="plj-flut plj-flut-topo">
+      <button class="plj-flut-x" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button>
+      <div class="plj-flut-nome"><b>${pljEsc(p.cliente)}</b><small>${pljEsc(pljMes(p.mes))} · versão ${pljEsc(p.versao)}</small></div>
+      ${pljSelo(p.estado)}${pljEtapasHtml(p)}
+      <div class="plj-flut-links">${outras.map(([k, r]) => `<button type="button" class="cli-porta" onclick="pljTrocarAba('${k}')">${k === 'editar' ? 'Editar o mês' : r}</button>`).join('')}${drive}</div>
+    </div>
+    ${resposta ? `<div class="plj-flut plj-flut-aviso">${resposta}</div>` : ''}
+    <div class="plj-flut plj-flut-base">${revisando ? '<small class="plj-flut-dica">Em cada peça: <b>Peça OK</b>, <b>Ajustar</b> ou <b>Editar peça</b>.</small>' : ''}${pljDemandasCriadasHtml(p)}<div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div></div>`;
+    m.dataset.aba = aba;
+    pljCarregarPrevia(p);
+    return;
+  }
   m.innerHTML = `<div class="workflow-kicker"><span>Planejamento · ${pljEsc(p.cliente)}</span>
       <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
     <div class="plj-topo"><h2 class="workflow-title">${pljEsc(pljMes(p.mes))}</h2>${pljSelo(p.estado)}<small>versão ${pljEsc(p.versao)} · ${p.origem === 'agente' ? 'publicado pelo agente' : 'feito no painel'}</small>${drive}</div>
@@ -130,8 +149,6 @@ function pintarPlanejamento(aba) {
       : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>`}</div>
     <div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div>`;
   m.dataset.aba = aba;
-  if (aba === 'documento') pljCarregarPrevia(p);
-  if (aba === 'documento' && p.pode_editar && ['revisar', 'ajustes'].includes(p.estado)) m.querySelector('.plj-abas')?.insertAdjacentHTML('afterend', '<p class="plj-dica">Revise aqui mesmo: em cada peça, <b>Peça OK</b>, <b>Ajustar</b> (o agente refaz) ou <b>Editar peça</b> (você muda o texto na hora).</p>');
   if (aba === 'identidade') pljCarregarLogosDrive();
 }
 // O documento entra pela moldura com o próprio HTML (srcdoc), sem script: o
@@ -420,7 +437,7 @@ async function enviarPlanejamento(botao) {
     const principal = portal || d.link;
     const texto = `Olá! O planejamento de conteúdo de ${pljMes(PLJ_ABERTO.mes).toLowerCase()} está ${portal ? 'no seu VybeHub' : 'pronto'} para você aprovar peça por peça: ${principal}`;
     const m = document.getElementById('workflow-modal');
-    m?.querySelector('.plj-topo')?.insertAdjacentHTML('afterend', `<div class="plj-link">
+    (m?.querySelector('.plj-topo') || m?.querySelector('.plj-flut-topo'))?.insertAdjacentHTML('afterend', `<div class="plj-link">
       <b>Pronto. Mande para o cliente no WhatsApp:</b>
       <div class="plj-link-linha"><input type="text" readonly value="${pljEsc(principal)}" aria-label="Link para o cliente" onclick="this.select()">
         <button type="button" class="cli-porta" onclick="pljCopiar(this, '${pljEsc(principal)}')">Copiar</button>

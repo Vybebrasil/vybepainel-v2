@@ -7189,6 +7189,23 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-etapas small{color:#c3cad6;font-size:12.5px}
 @media(max-width:560px){.plj-etapas ol{grid-template-columns:repeat(2,minmax(0,1fr))}.plj-etapas li{padding:5px 8px}.plj-janela .plj-pedido p{max-height:76px;overflow:auto}.plj-janela .plj-pedido small{display:none}}
 .plj-dica{margin:0 0 8px;color:#c3cad6;font-size:12.5px}.plj-dica b{color:#ffe0a6}
+/* Revisão do head: documento em tela cheia, como um PDF, e barras flutuantes. */
+.workflow-modal.plj-janela.plj-modo-doc{padding:0!important;background:#2b2b30}
+.plj-modo-doc .plj-previa{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:#f7f5f1}
+.plj-flut{position:absolute;z-index:3;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 10px;border-radius:16px;background:#14161dee;border:1px solid rgba(255,255,255,.1);box-shadow:0 14px 40px #0007;backdrop-filter:blur(14px)}
+.plj-flut-topo{top:12px;left:12px;right:12px}
+.plj-flut-x{width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;font-size:18px;cursor:pointer}
+.plj-flut-nome{display:grid;line-height:1.2}.plj-flut-nome b{color:#fff;font:800 14px var(--mac-ui)}.plj-flut-nome small{color:#9da4b4;font-size:11.5px}
+.plj-flut-topo .plj-etapas{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.plj-flut-topo .plj-etapas ol{display:flex;gap:4px}
+.plj-flut-topo .plj-etapas li{padding:3px 8px;font-size:11px}.plj-flut-topo .plj-etapas li i{width:16px;height:16px;font-size:10px}
+.plj-flut-topo .plj-etapas > small{display:none}
+.plj-flut-links{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}.plj-flut-links .cli-porta{cursor:pointer;font-family:var(--mac-ui)}.plj-flut-links .plj-drive{margin:0}
+.plj-flut-aviso{top:84px;right:12px;max-width:min(460px,calc(100% - 24px));padding:0}.plj-flut-aviso .plj-pedido{margin:0}
+.plj-flut-base{bottom:12px;right:12px;max-width:calc(100% - 24px);justify-content:flex-end}
+.plj-flut-base .workflow-actions{margin:0!important;padding:0!important;border:0!important;background:none!important}
+.plj-flut-dica{color:#c3cad6;font-size:12px}.plj-flut-dica b{color:#ffe0a6}
+.plj-modo-doc .plj-link{position:absolute;z-index:4;top:84px;right:12px;width:min(480px,calc(100% - 24px));margin:0;background:#10231acc;backdrop-filter:blur(12px)}
+@media(max-width:720px){.plj-flut-links{margin-left:0}.plj-flut-topo .plj-etapas ol{display:none}}
 .plj-revs{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:#c3cad6}
 .plj-rev b{color:#e7ecf5}.plj-rev .bom{color:#6fe3a8}.plj-rev .ruim{color:#ff9a9a}
 .plj-rev-cli{margin:10px 12px 0;padding:8px 12px;border-radius:10px;font-size:12.5px}.plj-rev-cli b{font:700 12.5px var(--mac-ui)}.plj-rev-cli p{margin:4px 0 0;color:#e7ecf5;white-space:pre-wrap}
