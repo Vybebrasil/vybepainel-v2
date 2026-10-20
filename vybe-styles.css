@@ -7175,8 +7175,21 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-etapas li.agora.ajustes{color:#ffb3b3;border-color:rgba(255,143,143,.55);background:rgba(255,90,90,.1)}.plj-etapas li.agora.ajustes i{background:#ff8f8f}
 .plj-etapas small{color:#c3cad6;font-size:12.5px}
 @media(max-width:560px){.plj-etapas ol{grid-template-columns:repeat(2,minmax(0,1fr))}.plj-etapas li{padding:5px 8px}.plj-janela .plj-pedido p{max-height:76px;overflow:auto}.plj-janela .plj-pedido small{display:none}}
+.plj-dica{margin:0 0 8px;color:#c3cad6;font-size:12.5px}.plj-dica b{color:#ffe0a6}
+.plj-revs{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:#c3cad6}
+.plj-rev b{color:#e7ecf5}.plj-rev .bom{color:#6fe3a8}.plj-rev .ruim{color:#ff9a9a}
+.plj-rev-cli{margin:10px 12px 0;padding:8px 12px;border-radius:10px;font-size:12.5px}.plj-rev-cli b{font:700 12.5px var(--mac-ui)}.plj-rev-cli p{margin:4px 0 0;color:#e7ecf5;white-space:pre-wrap}
+.plj-rev-cli.ok{background:rgba(40,190,120,.1);border:1px solid rgba(111,227,168,.35);color:#a8f0cb}.plj-rev-cli.ruim{background:rgba(255,90,90,.08);border:1px solid rgba(255,143,143,.4);color:#ffb3b3}
+.plj-peca > summary em.ok{background:rgba(111,227,168,.16);color:#a8f0cb}
+.plj-reserva{margin:6px 0}.plj-reserva summary{cursor:pointer;color:#c3cad6;font-size:11.5px}
 .plj-logo-previa{display:grid;place-items:center;min-height:90px;margin:6px 0 12px;border-radius:12px;background:#fff;padding:12px}
 .plj-logo-previa img{max-height:66px;max-width:220px;object-fit:contain}
+.plj-logos-drive{display:grid;gap:8px;margin:0 0 12px;font-size:12.5px;color:#c3cad6}
+.plj-logos-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.plj-logos-grade button{display:grid;gap:4px;padding:6px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#fff;cursor:pointer;text-align:left}
+.plj-logos-grade button.ativo{outline:3px solid #ff9d00;outline-offset:1px}
+.plj-logos-grade img{width:100%;height:64px;object-fit:contain}
+.plj-logos-grade small{color:#3c3f45;font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plj-logo-previa small{color:#5d6068;font-size:12px}
 .plj-identidade{display:grid;gap:0;max-width:560px}
 .plj-acoes{flex-wrap:wrap}
@@ -7204,7 +7217,10 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-pessoa.figurante.agente:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
 .mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8;padding:1px 7px;font-size:10px;gap:4px}
 /* Pede ação de quem pode agir: balão grande, que se vê de longe (Paulo, 20/10/2026). */
-.mapa-etiqueta.agente.alerta {border-color:#ffb451;background:#3a2408f2;padding:3px 9px 4px;box-shadow:0 0 0 3px #ff9d0055,0 6px 18px #ff9d0044;z-index:5}
+/* z-index acima das outras etiquetas soltas (99500): com 5 o balão ficava atrás delas. */
+.mapa-etiqueta.agente.alerta {flex-wrap:wrap;border-color:#ffb451;background:#3a2408f2;padding:3px 9px 4px;box-shadow:0 0 0 3px #ff9d0055,0 6px 18px #ff9d0044;z-index:99600}
+.mapa-etiqueta.agente.com-situacao {flex-wrap:wrap;z-index:99550}
+.mapa-etiqueta.agente.com-situacao small {display:block;flex-basis:100%;margin-top:1px;color:#b9dcff;font:700 10px var(--mac-ui);white-space:nowrap}
 .mapa-etiqueta.agente.alerta small {display:block;flex-basis:100%;margin-top:1px;color:#ffd59a;font:800 11px var(--mac-ui);white-space:nowrap}
 .mapa-pessoa.figurante.agente.alerta img {filter:drop-shadow(0 0 5px #ffb451) drop-shadow(0 0 12px #ff9d0088)}
 @media (prefers-reduced-motion:no-preference) {.mapa-etiqueta.agente.alerta {animation:ofc-agente-chama 1.8s ease-in-out infinite}}

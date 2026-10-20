@@ -1318,9 +1318,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         etiqueta.setAttribute("aria-hidden", "true");
         // No nome só o ponto da situação (16 etiquetas lado a lado se
         // empilhavam); o texto aparece quando pede ação e ao passar o mouse.
-        etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${agente.alerta ? "<small></small>" : ""}${agente.avisos ? `<em class="mapa-avisos-agente">${agente.avisos > 99 ? "99+" : agente.avisos}</em>` : ""}`;
+        if (!agente.alerta && agente.detalhe) etiqueta.classList.add("com-situacao");
+        etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${agente.alerta || agente.detalhe ? "<small></small>" : ""}${agente.avisos ? `<em class="mapa-avisos-agente">${agente.avisos > 99 ? "99+" : agente.avisos}</em>` : ""}`;
         etiqueta.querySelector("b").textContent = agente.nome;
-        if (agente.alerta) { etiqueta.querySelector("small").textContent = agente.acao || agente.situacao; no.classList.add("alerta"); }
+        if (agente.alerta) { etiqueta.querySelector("small").textContent = agente.detalhe || agente.acao || agente.situacao; no.classList.add("alerta"); }
+        else if (agente.detalhe) etiqueta.querySelector("small").textContent = agente.detalhe;
         if (agente.falas?.length) {
           const fala = document.createElement("span");
           fala.className = "mapa-reclama";

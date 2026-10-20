@@ -107,9 +107,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (`Vybebrasil/vybehub`) chama `area=portal` com a chave `PORTAL_CHAVE` (a mesma
   nos dois projetos da Vercel) e só mostra e repassa a resposta; as regras ficam
   em `planejamentosDoPortal`/`responderDoPortal`, iguais às do link direto.
-- O cliente pode pedir ajuste peça a peça pelo link; qualquer ajuste devolve o
-  planejamento inteiro ao head (`ajuste_cliente` na peça, limpo ao mandar de
-  novo). O agente do cliente e o head veem o pedido.
+- Cada peça tem decisão própria (decisão do Paulo, 20/10/2026): o head revisa
+  (OK/ajustar) no documento antes de mandar e o cliente aprova ou pede ajuste
+  peça a peça. As decisões ficam em `conteudo.revisoes` pela assinatura do
+  conteúdo da peça: peça alterada perde a decisão. Só o servidor grava
+  decisões. Qualquer ajuste do cliente devolve o planejamento ao head; o
+  cadastro só com tudo aprovado. O envio manda um link só, o do VybeHub.
 - O agente nunca sobrescreve o que está com o cliente ou já foi aprovado.
   Editar depois de enviado invalida o link. O banco guarda só o hash do link.
   Ajustes do cliente voltam ao head.

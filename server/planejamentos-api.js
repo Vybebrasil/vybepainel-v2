@@ -5,9 +5,9 @@
 //   area=agentes        conector MCP dos agentes de conteúdo (chave própria)
 import { timingSafeEqual } from 'node:crypto';
 import * as P from './planejamentos.js';
-import { documentoHtml, nomeDoMes } from './planejamento-documento.js';
+import { documentoHtml, nomeDoMes, pecasComRevisao } from './planejamento-documento.js';
 import { enviarEmail, emailConfigurado } from './email.js';
-import { pastaDePlanejamento, salvarDocumentoEPdf } from '../vybe_drive.js';
+import { pastaDePlanejamento, salvarDocumentoEPdf, logosNoDrive, baixarDoDrive } from '../vybe_drive.js';
 
 const corpoDe = (req) => (req.body && typeof req.body === 'object' ? req.body : (() => { try { return JSON.parse(req.body || '{}'); } catch { return {}; } })());
 const base = (req) => process.env.PAINEL_URL || `https://${req.headers?.host || 'vybepainel-v2.vercel.app'}`;
@@ -22,11 +22,20 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   if (req.method === 'GET') {
    if (acao === 'detalhe') return res.status(200).json({ ok: true, planejamento: await P.detalhePlanejamento(sql, pessoa, String(req.query.id || '')) });
    if (acao === 'pendentes') return res.status(200).json({ ok: true, pendentes: await P.pendentesDoHead(sql, pessoa), alertas: await P.alertasDoHead(sql, pessoa) });
+   if (acao === 'logos') {
+    const clienteId = String(req.query.cliente_id || '');
+    if (!await P.podeEditarCliente(sql, pessoa, clienteId)) return res.status(403).json({ error: 'Só o head do cliente e quem administra mudam a marca.' });
+    const [c] = await sql`SELECT nome FROM vybe_clientes WHERE id=${clienteId}`;
+    if (!c) return res.status(404).json({ error: 'Cliente não encontrado.' });
+    try { return res.status(200).json({ ok: true, logos: (await logosNoDrive(c.nome)).slice(0, 24) }); }
+    catch (e) { return res.status(200).json({ ok: true, logos: [], aviso: 'Não deu para procurar no Drive: ' + e.message }); }
+   }
    if (acao === 'operacao') return res.status(200).json({ ok: true, postos: await P.postosDaOperacao(sql, pessoa) });
    if (acao === 'previa') {
     const p = await P.detalhePlanejamento(sql, pessoa, String(req.query.id || ''));
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(200).send(documentoHtml(p));
+    // A prévia do painel é a revisão do head: o mesmo documento, com OK/Ajustar em cada peça.
+    return res.status(200).send(documentoHtml(p, { revisor: p.pode_editar ? 'head' : '' }));
    }
    const clienteId = /^\d{1,18}$/.test(String(req.query?.cliente_id || '')) ? String(req.query.cliente_id) : null;
    return res.status(200).json({ ok: true, ...(await P.listarPlanejamentos(sql, pessoa, { clienteId })), email: emailConfigurado() });
@@ -37,11 +46,12 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   if (acao === 'editar') return res.status(200).json({ ok: true, planejamento: await P.editarPlanejamento(sql, pessoa, b) });
   if (acao === 'estado') return res.status(200).json({ ok: true, planejamento: await P.mudarEstadoInterno(sql, pessoa, b) });
   if (acao === 'cadastrar') return res.status(200).json({ ok: true, ...(await P.cadastrarPecas(sql, quem, b)) });
+  if (acao === 'revisar_peca') return res.status(200).json({ ok: true, resumo: await P.revisarPecaHead(sql, pessoa, b) });
   if (acao === 'comentar') return res.status(200).json(await P.comentarPlanejamento(sql, pessoa, b));
   if (acao === 'identidade') {
    if (!await P.podeEditarCliente(sql, pessoa, b.cliente_id)) return res.status(403).json({ error: 'Só o head do cliente e quem administra mudam a identidade.' });
    const limpa = { cor: /^#[0-9a-f]{6}$/i.test(b.cor || '') ? b.cor : null, cor_apoio: /^#[0-9a-f]{6}$/i.test(b.cor_apoio || '') ? b.cor_apoio : null,
-    logo: /^https:\/\/\S{4,500}$/.test(b.logo || '') ? b.logo : null, fonte: /^[A-Za-z0-9 ]{2,40}$/.test(b.fonte || '') ? b.fonte : null, tom: String(b.tom || '').slice(0, 400) || null };
+    logo: /^https:\/\/\S{4,500}$/.test(b.logo || '') ? b.logo : null, logo_drive: /^[A-Za-z0-9_-]{10,80}$/.test(b.logo_drive || '') ? b.logo_drive : null, fonte: /^[A-Za-z0-9 ]{2,40}$/.test(b.fonte || '') ? b.fonte : null, tom: String(b.tom || '').slice(0, 400) || null };
    // O personagem do agente (Escritório) mora na mesma identidade: salvar as
    // cores não pode apagá-lo.
    await sql`UPDATE vybe_clientes SET identidade=${JSON.stringify(limpa)}::jsonb || CASE WHEN identidade ? 'personagem' THEN jsonb_build_object('personagem', identidade->'personagem') ELSE '{}'::jsonb END WHERE id=${b.cliente_id}`;
@@ -63,6 +73,14 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   }
   if (acao === 'enviar') {
    const env = await P.enviarAoCliente(sql, pessoa, { id: b.id });
+   // Sem logo escolhido: usa o que o Drive tiver de mais parecido com o logo principal.
+   try {
+    const [c] = await sql`SELECT id,nome,identidade FROM vybe_clientes WHERE id=${env.cliente_id}`;
+    if (c && !c.identidade?.logo && !c.identidade?.logo_drive) {
+     const [melhor] = await logosNoDrive(c.nome);
+     if (melhor && melhor.nota >= 3) await sql`UPDATE vybe_clientes SET identidade=COALESCE(identidade,'{}'::jsonb) || jsonb_build_object('logo_drive', ${melhor.id}::text) WHERE id=${c.id}`;
+    }
+   } catch { /* sem logo, a capa mostra o nome */ }
    const p = await P.detalhePlanejamento(sql, pessoa, env.id);
    const link = `${base(req)}/aprovar/${env.token}`;
    const avisos = [];
@@ -86,6 +104,21 @@ export async function areaPlanejamentos(req, res, quem, sql) {
  } catch (e) { return falha(res, e); }
 }
 
+// ── Logo do cliente (do Drive) ──────────────────────────────────────────────
+// A capa do documento aponta para cá; o arquivo do Drive não precisa ficar público.
+export async function logoDoCliente(req, res, sql) {
+ const id = String(req.query?.c || '');
+ if (!/^\d{1,18}$/.test(id)) return res.status(404).end();
+ const [c] = await sql`SELECT identidade->>'logo_drive' AS arquivo FROM vybe_clientes WHERE id=${id}`;
+ if (!c?.arquivo) return res.status(404).end();
+ try {
+  const r = await baixarDoDrive(c.arquivo);
+  res.setHeader('Content-Type', r.headers.get('content-type') || 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.status(200).send(Buffer.from(await r.arrayBuffer()));
+ } catch { return res.status(404).end(); }
+}
+
 // ── Página do cliente ───────────────────────────────────────────────────────
 export async function paginaDeAprovacao(req, res, sql) {
  const token = String(req.query?.t || '');
@@ -94,7 +127,17 @@ export async function paginaDeAprovacao(req, res, sql) {
  const pagina = (codigo, titulo, msg) => res.status(codigo).send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><style>body{font:16px/1.5 system-ui,sans-serif;background:#fbf9f4;color:#1d2227;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px}main{max-width:480px;background:#fff;border:1px solid #e6e1d6;border-radius:16px;padding:24px}</style></head><body><main><h1>${titulo}</h1><p>${msg}</p></main></body></html>`);
  try {
   if (req.method === 'POST') {
-   const b = typeof req.body === 'string' ? Object.fromEntries(new URLSearchParams(req.body)) : req.body || {};
+   const b = typeof req.body === 'string' ? (() => { try { return JSON.parse(req.body); } catch { return Object.fromEntries(new URLSearchParams(req.body)); } })() : req.body || {};
+   // A página nova conversa por JSON: uma peça por vez (marcar) e o envio final.
+   if (b.rota === 'marcar' || b.rota === 'responder') {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    try {
+     if (b.rota === 'marcar') return res.status(200).json({ ok: true, resumo: await P.marcarPecaPorLink(sql, token, b) });
+     const r = await P.responderDoCliente(sql, token, b);
+     if (r.repetido) return res.status(409).json({ error: 'Este planejamento já foi respondido.' });
+     return res.status(200).json({ ok: true, estado: r.estado });
+    } catch (e) { return res.status(e.status || 400).json({ error: e.message }); }
+   }
    let aviso = '';
    const ajustesPecas = Object.fromEntries(Object.entries(b).filter(([k]) => /^ajuste_\d{1,3}$/.test(k)).map(([k, v]) => [k.slice(7), String(v || '')]));
    try { await P.responderDoCliente(sql, token, { acao: b.acao, nome: b.nome, texto: b.texto, ajustesPecas }); }
@@ -129,6 +172,9 @@ export async function portalDoCliente(req, res, sql) {
   // rota escolhe o que fazer; acao é a resposta do cliente (aprovar/ajustes).
   if (b.rota === 'planejamentos') return res.status(200).json({ ok: true, ...(await P.planejamentosDoPortal(sql, { cliente: b.cliente })) });
   if (b.rota === 'responder') return res.status(200).json({ ok: true, planejamento: await P.responderDoPortal(sql, b) });
+  if (b.rota === 'marcar') return res.status(200).json({ ok: true, resumo: await P.marcarPecaDoPortal(sql, b) });
+  // O documento com a diagramação do painel, para o VybeHub mostrar (uma diagramação só).
+  if (b.rota === 'documento') { const p = await P.planejamentoDoPortal(sql, b); return res.status(200).json({ ok: true, versao: p.versao, estado: p.estado, html: documentoHtml(p, { paraCliente: true, modo: 'portal' }) }); }
   return res.status(400).json({ error: 'Ação inválida.' });
  } catch (e) { return falha(res, e); }
 }
@@ -178,7 +224,11 @@ async function chamar(sql, nome, args = {}) {
   const [p] = await sql`SELECT id,estado,versao,resposta_nome,resposta_texto FROM vybe_planejamentos WHERE cliente_id=${c.id} AND mes=${P.mesDoTexto(args.mes)}::date AND estado<>'arquivado'`;
   if (!p) return `Ainda não há planejamento de ${c.nome} para ${args.mes}.`;
   const ev = await sql`SELECT tipo,texto,autor_externo,em FROM vybe_planejamento_eventos WHERE planejamento_id=${p.id} AND texto IS NOT NULL ORDER BY em DESC LIMIT 10`;
-  return `Situação: ${p.estado} (versão ${p.versao}).${p.resposta_texto ? `\nPedido do cliente (${p.resposta_nome}): ${p.resposta_texto}` : ''}${ev.length ? '\nComentários:\n' + ev.map((e) => `- ${e.texto}`).join('\n') : ''}`;
+  // O que o head e o cliente pediram em cada peça, para o agente refazer só essas.
+  const [cc] = await sql`SELECT conteudo FROM vybe_planejamentos WHERE id=${p.id}`;
+  const pedidos = pecasComRevisao(cc?.conteudo || {}).map((x, i) => [i, x]).filter(([, x]) => x.revisao_head?.estado === 'ajustar' || x.revisao_cliente?.estado === 'ajuste')
+   .map(([i, x]) => `- Peça ${i + 1} (${x.formato}, ${x.data}${x.tema ? ` · ${x.tema}` : ''}):${x.revisao_head?.estado === 'ajustar' ? ` head pediu: ${x.revisao_head.nota}.` : ''}${x.revisao_cliente?.estado === 'ajuste' ? ` cliente pediu: ${x.revisao_cliente.nota}.` : ''}`);
+  return `Situação: ${p.estado} (versão ${p.versao}).${p.resposta_texto ? `\nPedido do cliente (${p.resposta_nome}): ${p.resposta_texto}` : ''}${pedidos.length ? '\nAjustes por peça (refaça estas; as outras ficam como estão):\n' + pedidos.join('\n') : ''}${ev.length ? '\nComentários:\n' + ev.map((e) => `- ${e.texto}`).join('\n') : ''}`;
  }
  throw Object.assign(new Error('Ferramenta desconhecida: ' + nome), { codigo: -32601 });
 }
