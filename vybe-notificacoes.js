@@ -115,7 +115,8 @@ async function abrirDoNotificacao(id, itemId) {
 
 function iniciarNotificacoes() {
   carregarNotificacoes();
-  setInterval(carregarNotificacoes, INTERVALO_NOTIFICACOES);
+  setInterval(() => { if (typeof painelDeveConsultar !== 'function' || painelDeveConsultar()) carregarNotificacoes(); }, INTERVALO_NOTIFICACOES);
+  addEventListener('vybe-retomou', () => carregarNotificacoes());
   document.addEventListener('click', (evento) => {
     if (!notificacoesAbertas) return;
     if (evento.target.closest('#notif-caixa') || evento.target.closest('#notif-sino')) return;

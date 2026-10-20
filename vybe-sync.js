@@ -19,6 +19,35 @@ let operationalMirrorNextAttemptAt = 0;
 const OPERATIONAL_MIRROR_VISIBLE_INTERVAL = 15000;
 const OPERATIONAL_MIRROR_HIDDEN_INTERVAL = 60000;
 
+// Consultas automáticas só com alguém olhando (Paulo, 19/10/2026: o banco não
+// dormia porque cada aba aberta perguntava a cada 15–60 s, de noite também).
+// Aba escondida há mais de 3 min ou ninguém mexendo há 20 min: as consultas
+// periódicas param. Ao voltar (olhar a aba, mexer o mouse ou o teclado), o
+// evento "vybe-retomou" pede tudo de novo na hora. Um lugar só decide.
+const PAINEL_PAUSA_ESCONDIDO = 3 * 60 * 1000, PAINEL_PAUSA_PARADO = 20 * 60 * 1000;
+let PAINEL_ULTIMO_GESTO = Date.now();
+let PAINEL_ESCONDIDO_DESDE = typeof document !== 'undefined' && document.hidden ? Date.now() : 0;
+function painelDeveConsultar(agora = Date.now()) {
+  if (typeof document !== 'undefined' && document.hidden && PAINEL_ESCONDIDO_DESDE && agora - PAINEL_ESCONDIDO_DESDE > PAINEL_PAUSA_ESCONDIDO) return false;
+  return agora - PAINEL_ULTIMO_GESTO <= PAINEL_PAUSA_PARADO;
+}
+function painelMarcarGesto() {
+  const estavaParado = !painelDeveConsultar();
+  PAINEL_ULTIMO_GESTO = Date.now();
+  if (estavaParado && typeof window !== 'undefined') window.dispatchEvent(new Event('vybe-retomou'));
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  if (typeof addEventListener === 'function') for (const evento of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart']) addEventListener(evento, painelMarcarGesto, { passive: true, capture: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { PAINEL_ESCONDIDO_DESDE = Date.now(); return; }
+    // A aba já está visível aqui: a pausa se mede por quanto ficou escondida.
+    const agora = Date.now();
+    const estavaParado = (PAINEL_ESCONDIDO_DESDE && agora - PAINEL_ESCONDIDO_DESDE > PAINEL_PAUSA_ESCONDIDO) || agora - PAINEL_ULTIMO_GESTO > PAINEL_PAUSA_PARADO;
+    PAINEL_ESCONDIDO_DESDE = 0; PAINEL_ULTIMO_GESTO = agora;
+    if (estavaParado) window.dispatchEvent(new Event('vybe-retomou'));
+  });
+}
+
 const SYNC_HEALTH_STORAGE_KEY = 'vybe_os_sync_health_last_confirmed_v1';
 const SYNC_HEALTH_MAX_AGE = 5 * 60 * 1000;
 let syncHealthLastConfirmedAt = Number(localStorage.getItem(SYNC_HEALTH_STORAGE_KEY) || 0);
@@ -333,11 +362,19 @@ async function pullOperationalMirror(options = {}) {
 function startOperationalMirrorFeed() {
   if (operationalMirrorTimer) return;
   const schedule = async (force = false) => {
+    // Ninguém olhando: para; "vybe-retomou" (ou a aba visível) recomeça.
+    if (!force && !painelDeveConsultar()) { operationalMirrorTimer = null; return; }
     await pullOperationalMirror({ force });
     const cadence = document.hidden ? OPERATIONAL_MIRROR_HIDDEN_INTERVAL : OPERATIONAL_MIRROR_VISIBLE_INTERVAL;
     operationalMirrorTimer = setTimeout(() => schedule(false), cadence);
   };
   void schedule(false);
+  if (typeof addEventListener === 'function') addEventListener('vybe-retomou', () => {
+    operationalMirrorNextAttemptAt = 0;
+    if (operationalMirrorTimer) clearTimeout(operationalMirrorTimer);
+    operationalMirrorTimer = null;
+    void schedule(true);
+  });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       operationalMirrorNextAttemptAt = 0;
