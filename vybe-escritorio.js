@@ -1376,7 +1376,7 @@ function atualizarControlesEscritorio() {
     const tranca = escritorioPodeTrancar() ? item("trancarZonaEscritorio()", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
     const poses = escritorio.conectado ? `<span class="ofc-mais-titulo">Seu boneco</span>${item("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", "Acenar <kbd>1</kbd>")}${item("deitarEscritorio()", "Deitar <kbd>2</kbd>")}${item("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", "Café na mão <kbd>3</kbd>")}${item("sentarNoChaoEscritorio()", (escritorio.noChao ? "Levantar" : "Sentar no chão") + " <kbd>4</kbd>")}<span class="ofc-mais-titulo">Rosto</span>${item("expressaoEscritorio('triste')", "Triste <kbd>5</kbd>")}${item("expressaoEscritorio('surpreso')", "Surpreso <kbd>6</kbd>")}${item("expressaoEscritorio('bravo')", "Bravo <kbd>7</kbd>")}<span class="ofc-mais-titulo">Placa</span>${item("placaEscritorio('coracao')", "Coração <kbd>8</kbd>")}${item("placaEscritorio('exclamacao')", "Exclamação <kbd>9</kbd>")}${item("placaEscritorio('sorriso')", "Sorriso")}${["um", "dois", "tres"].map((n, i) => item(`placaEscritorio('${n}')`, "Número " + (i + 1))).join("")}${escritorio.quarto ? `<span class="ofc-mais-titulo">Sala</span>${item("abrirNovoPostitEscritorio()", "Colar post-it na parede")}` : ""}` : "";
     return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
-  })()}<span class="ofc-sep"></span>${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
+  })()}<span class="ofc-sep"></span>${escritorioMinhaMesa() ? botao("irParaMinhaMesaEscritorio()", "mesa", "Minha sala", 'title="Ir para a minha sala e sentar na minha mesa"', { texto: true }) : ""}${botao("abrirPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ""}`, { texto: true })}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
   const painel = document.getElementById("painel-escritorio");
@@ -3769,11 +3769,42 @@ function atualizarTituloChamadaEscritorio() {
   const t = document.getElementById("office-call-titulo");
   if (t) t.textContent = escritorioTituloChamada();
 }
+// Saiu da tela cheia ou da janelinha flutuante: aplica o que mudou enquanto isso.
+let escritorioAmpliadoVigiado = false;
+function escritorioVigiarAmpliado() {
+  if (escritorioAmpliadoVigiado) return;
+  escritorioAmpliadoVigiado = true;
+  const voltar = () => setTimeout(() => {
+    if (escritorio.midiaPendente && !document.fullscreenElement && !document.webkitFullscreenElement && !document.pictureInPictureElement) renderMidiaEscritorio();
+  }, 0);
+  document.addEventListener("fullscreenchange", voltar);
+  document.addEventListener("webkitfullscreenchange", voltar);
+  document.addEventListener("leavepictureinpicture", voltar, true);
+}
 function renderMidiaEscritorio() {
   atualizarTituloChamadaEscritorio();
   const meeting = escritorio.chamada,
     el = document.getElementById("office-call-media");
   if (!meeting || !el) return;
+  // Assistindo a tela de alguém em tela cheia ou na janelinha flutuante (Paulo,
+  // 20/10/2026: "tá minimizando sozinho"): desmontar o vídeo fecharia a tela
+  // cheia. Espera sair dela para redesenhar a conversa.
+  const ampliado = document.fullscreenElement || document.webkitFullscreenElement || document.pictureInPictureElement;
+  if (ampliado && el.contains(ampliado)) { escritorio.midiaPendente = true; escritorioVigiarAmpliado(); return; }
+  escritorio.midiaPendente = false;
+  // Os vídeos (câmera e tela) são reaproveitados entre um desenho e outro,
+  // pelo id da faixa: recriar a cada mudança de microfone fazia piscar.
+  const videosAntes = escritorio.videosChamada || new Map(), videosAgora = new Map();
+  const videoDaFaixa = (faixa, controles) => {
+    let v = videosAntes.get(faixa.id);
+    if (!v) {
+      v = document.createElement("video");
+      v.autoplay = true; v.playsInline = true; v.muted = true; v.controls = controles;
+      v.srcObject = new MediaStream([faixa]);
+    }
+    videosAgora.set(faixa.id, v);
+    return v;
+  };
   el.replaceChildren();
   if (escritorio.erroMic) {
     const caixa = document.createElement("div");
@@ -3837,21 +3868,14 @@ function renderMidiaEscritorio() {
       tile.append(dica);
     }
     if (p.videoEnabled && p.videoTrack) {
-      const v = document.createElement("video");
-      v.autoplay = true;
-      v.playsInline = true;
-      v.muted = true;
-      v.srcObject = new MediaStream([p.videoTrack]);
+      const v = videoDaFaixa(p.videoTrack, false);
       tile.append(v);
+      v.play?.().catch(() => {});
     }
     if (p.screenShareEnabled && p.screenShareTracks?.video) {
-      const v = document.createElement("video");
-      v.autoplay = true;
-      v.playsInline = true;
-      v.muted = true;
-      v.controls = true;
-      v.srcObject = new MediaStream([p.screenShareTracks.video]);
+      const v = videoDaFaixa(p.screenShareTracks.video, true);
       tile.append(v);
+      v.play?.().catch(() => {});
       // Quem assiste pede a quem mostra uma tela mais nítida ou mais leve.
       const dono = String(p.customParticipantId || "").split(":")[0];
       if (!eu && /^\d+$/.test(dono)) {
@@ -3863,6 +3887,7 @@ function renderMidiaEscritorio() {
     }
     el.append(tile);
   }
+  escritorio.videosChamada = videosAgora;
   escritorioNivelAudio.acompanhar([meeting.self, ...escritorioOuvindo(meeting)]);
   // Depois do SDK (que repõe a voz no próprio mix a cada mudança de áudio).
   setTimeout(aplicarVolumesEscritorio, 0);
