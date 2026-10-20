@@ -6,7 +6,7 @@ import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
-import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes } from '../server/planejamentos-api.js';
+import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente } from '../server/planejamentos-api.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
 // Roteador, e não um arquivo por assunto, por um motivo concreto: o plano da
@@ -1603,6 +1603,10 @@ export default async function handler(req, res) {
   // conector dos agentes (chave própria). docs/planejamentos-plano.md.
   const areaPublica = String(req.query?.area || '');
   if (areaPublica === 'aprovar') return paginaDeAprovacao(req, res, sql());
+  if (areaPublica === 'portal') {
+    try { return await portalDoCliente(req, res, sql()); }
+    catch (erro) { return res.status(500).json({ error: erro.message }); }
+  }
   if (areaPublica === 'agentes') {
     try { return await conectorAgentes(req, res, sql()); }
     catch (erro) { return res.status(500).json({ error: erro.message }); }
