@@ -1055,7 +1055,9 @@ async function escritorioOcuparOperacao() {
     return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), mao: escritorioMaoDoAgente(a), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean((a.meu || escritorio.base?.admin) && p && ESCRITORIO_ACAO_PLANO[p.estado]), acao: p ? ESCRITORIO_ACAO_PLANO[p.estado] || "" : "",
       // A situação aparece escrita também quando está com o cliente, com o placar das peças.
       detalhe: p ? escritorioDetalheDoPlano(p) : "",
-      avisos: al.total || 0, resumoAvisos, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
+      avisos: al.total || 0, resumoAvisos,
+      // Quantos de cada tipo, para a etiqueta mostrar junto com o planejamento (Paulo, 20/10/2026).
+      contagens: { atrasadas: al.atrasadas_total || 0, aprovar: al.aprovar_total || 0, info: al.sem_info_total || 0 }, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
 }
