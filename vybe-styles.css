@@ -8319,3 +8319,17 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 .ofc-lobby[data-periodo="noite"] .abr-vinheta {background:radial-gradient(circle at 50% 40%,transparent 25%,#05060acc 100%),linear-gradient(180deg,#3a2a7a33,transparent 60%)}
 @media (prefers-reduced-motion:reduce) {.ofc-lobby-cartao {animation:none}.ofc-lobby-boneco {transition:none}}
 @media (max-height:760px) {.ofc-lobby-palco {height:120px}.ofc-lobby-boneco {width:64px;height:110px;margin-bottom:26px}.ofc-lobby-ladrilho {width:80px;height:80px;bottom:12px}}
+/* De onde veio, na ficha do inventário (Paulo, 20/10/2026): a mesma lista da
+   ficha do móvel no mapa. */
+.ofc-previa-origem {display:grid;gap:6px;margin:4px 0 8px}
+.ofc-previa-origem h4 {margin:0;font:700 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;color:#ffb27a}
+.ofc-previa-origem .ofc-fm-chips {display:flex;flex-wrap:wrap;gap:6px}
+.ofc-previa-origem .ofc-fm-chip {padding:2px 8px;border-radius:999px;background:#ffffff14;font:600 11px var(--mac-ui)}
+.ofc-previa-origem .ofc-fm-origens {display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.ofc-previa-origem .ofc-fm-origens li {display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:start;padding:8px 10px;border-radius:12px;background:#ffffff0b;font:500 12px/1.4 var(--mac-ui)}
+.ofc-previa-origem .ofc-fm-origens li i {display:grid;width:18px;height:18px}
+.ofc-previa-origem .ofc-fm-origens li i svg {width:18px;height:18px}
+.ofc-previa-origem .ofc-fm-origens li i:empty::before {content:"";width:8px;height:8px;margin:5px;border-radius:50%;background:#ff9548}
+.ofc-previa-origem .ofc-fm-origens time {color:#a3a9b7;white-space:nowrap}
+.ofc-previa-origem .ofc-fm-carregando {display:grid;gap:6px}
+.ofc-previa-origem .ofc-fm-carregando i {height:28px;border-radius:12px;background:linear-gradient(90deg,#ffffff0a,#ffffff17,#ffffff0a);background-size:200% 100%;animation:ofc-fm-brilho 1.1s linear infinite}
