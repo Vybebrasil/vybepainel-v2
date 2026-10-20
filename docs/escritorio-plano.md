@@ -1022,3 +1022,13 @@ decoração inicial "bem feito".
   "…" com Arquivar; "Abrir detalhes" leva à gaveta. Vale para missões,
   cobranças, painel do agente e calendário. Sem a peça carregada, abre a
   gaveta como antes.
+- **Clientes que cobram, com o significado certo dos status** (Paulo,
+  20/10/2026): "Aguardo" é esperar marcar a gravação com o cliente, e não o
+  cliente mandar algo. Virou o pedido `marcar_gravacao` (vai para o head, como
+  lembrete). "Ag. Aprovação Cliente" fala de aprovação. O balão de quem fala
+  leva a cor do status da demanda (`v.cores` em `montarVisitantes`). Mudou uma
+  demanda no painel (`renderOutboundItemPatch`): o Escritório reconsulta
+  cobranças e missões em 2,5 s, e o cliente zerado agradece e sai.
+- **Coluna da direita**: cobranças, missões e música dividem a altura da
+  coluna; o cabeçalho fica sempre à vista e só a lista rola. Nada vaza por
+  baixo da barra nem do aviso.

@@ -7904,3 +7904,20 @@ button.ofc-agente-num[aria-pressed="true"] {border-color:var(--ofc-laranja,#ff9d
 .ofc-agenda-selo {grid-column:3;grid-row:1;padding:1px 7px;border-radius:6px;background:#ff9d0026;color:#ffc27a;font:700 10px var(--mac-ui);font-style:normal}
 .ofc-agenda-estado {display:grid;gap:8px;justify-items:start;padding:18px 4px}
 @media (max-width:560px){.ofc-agenda-dia {grid-template-columns:1fr;gap:6px}.ofc-agenda-data {grid-auto-flow:column;justify-content:start;align-items:baseline;gap:8px}.ofc-agenda-evento {grid-template-columns:1fr auto}.ofc-agenda-evento .ofc-agenda-hora,.ofc-agenda-evento small {grid-column:1}}
+/* Coluna da direita do Escritório (Paulo, 20/10/2026: "tudo embolado,
+   sobrepondo e se escondendo quando vou abrindo"): cobranças, missões e
+   música dividem a altura da coluna em vez de cada um ter altura própria
+   (34vh, 42vh) e vazar por baixo da barra e do aviso. Cabeçalho sempre à
+   vista; só a lista rola. Fechado, o painel fica só no cabeçalho. */
+.ofc-coluna > * {flex:0 1 auto;min-height:0}
+.ofc-coluna > .ofc-missoes:not([hidden]) {display:flex;flex-direction:column;overflow:hidden}
+.ofc-coluna > .ofc-missoes > .ofc-missoes-topo {flex:none}
+.ofc-coluna > .ofc-missoes > .ofc-missoes-corpo {display:flex;flex-direction:column;gap:8px;flex:1 1 auto;min-height:0}
+.ofc-coluna > .ofc-missoes > .ofc-missoes-corpo > :not(.ofc-missoes-lista) {flex:none}
+.ofc-coluna .ofc-missoes-lista, .ofc-coluna .ofc-cobrancas-lista {flex:1 1 auto;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+.ofc-coluna > #office-musica-lugar {flex:none}
+/* Aberto, cada painel guarda um mínimo para a lista não sumir quando o
+   outro está cheio; fechado, fica só no cabeçalho. */
+.ofc-coluna > .ofc-missoes:has(> .ofc-missoes-corpo, > .ofc-cobrancas-lista) {min-height:min(230px,38%)}
+/* Falando de uma demanda, o balão do cliente leva a cor do status dela. */
+.mapa-etiqueta.visitante.grita[data-cor-fala] {border-color:var(--fala);background:color-mix(in srgb,var(--fala) 24%,#14161ef2)}

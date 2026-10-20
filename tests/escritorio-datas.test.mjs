@@ -17,4 +17,10 @@ test('missões e cobranças dizem se a data é prazo ou veiculação', () => {
   assert.match(rotulo({ tipo: 'vence', dias: -1, data: '2026-10-20' }), /^Prazo amanhã/);
   assert.match(rotulo({ tipo: 'agendar', dias: 1, data: '2026-10-18' }), /^Veiculação atrasada há 1 dia/);
   assert.match(rotulo({ tipo: 'lembrar_cliente', dias: 0, data: '2026-10-19' }), /prazo \(19\/10\)/);
+  // Aguardo é marcar a gravação, não o cliente mandar algo (Paulo, 20/10/2026).
+  assert.match(rotulo({ tipo: 'marcar_gravacao', dias: 0, data: '2026-10-19' }), /^Marcar a gravação · prazo \(19\/10\)$/);
+  assert.match(rotulo({ tipo: 'lembrar_cliente', status_chave: 'ag_aprovacao_cliente', dias: 0, data: '2026-10-19' }), /^Esperando aprovação do cliente/);
+  const falas = (x) => vm.runInContext(`falasDaCobranca(${JSON.stringify(x)}, 'Vinícius')`, c).join(' ');
+  assert.match(falas({ tipo: 'marcar_gravacao', titulo: 'Fotografia - Diário de campo', dias: 0 }), /marcar a gravação/);
+  assert.doesNotMatch(falas({ tipo: 'marcar_gravacao', titulo: 'Fotografia - Diário de campo', dias: 0 }), /devendo|mandar/);
 });
