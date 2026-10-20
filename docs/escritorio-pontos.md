@@ -502,8 +502,8 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
 - Cada escada sobe de Bronze para Prata, Ouro e Diamante; metas e troféus em
   `vybe_escritorio_trofeus` (`2026-10-20-escritorio-conquistas-niveis.sql`).
   Cada nível dá a regra `conquista` × nível (Diamante vale 4 vezes o Bronze) e o
-  troféu do nível; o troféu do nível de baixo sai do inventário se estiver
-  guardado (o que está num quarto fica).
+  troféu do nível; a pessoa fica com todos os troféus da escada para expor a
+  evolução (decisão do Paulo, 20/10/2026).
 - Escadas: entregas, uma por tipo (Cards, Carrosséis, Reels, Stories,
   Fotografias, Vídeos e motions), nível, adiantado, de primeira, embalado,
   muitos clientes, semana sem atraso, fila em dia, meta em dia e uma por função

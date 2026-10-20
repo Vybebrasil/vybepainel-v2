@@ -6,6 +6,8 @@
 // (migrations/2026-10-20-escritorio-conquistas-niveis.sql); aqui fica só como
 // cada número é contado. Cada nível alcançado dá a conquista (regra
 // "conquista" × nível) e o troféu do nível, uma vez só, na mesma transação.
+// A pessoa fica com todos os troféus da escada (Paulo, 20/10/2026: para expor
+// no quarto a evolução, do Bronze ao Diamante).
 import { nivelPorXp, diaBahia, somarDias, diaDaSemana } from './escritorio-pontos.js';
 
 export const NIVEIS = ['', 'Bronze', 'Prata', 'Ouro', 'Diamante'];
@@ -158,9 +160,6 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
         if (regra) await tx`SELECT vybe_lancar_pontos(${pessoaId},${d.nivel === 1 && m.origem ? m.origem : 'conquista:' + chave},'conquista',NULL,${Number(regra.moedas) * d.nivel},${Number(regra.pontos) * d.nivel})`;
         if (d.classe) await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${d.classe},1)
           ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
-        // O troféu troca: o do nível de baixo sai do inventário, se estiver guardado.
-        const baixo = degraus.find((x) => x.nivel === d.nivel - 1);
-        if (baixo?.classe && baixo.classe !== d.classe) await trocarTrofeu(tx, pessoaId, baixo.classe);
         return novo.em;
       });
       feitos.set(chave, em || (await sql`SELECT em FROM vybe_escritorio_marcos WHERE pessoa_id=${pessoaId} AND marco=${chave}`)[0]?.em || null);
@@ -181,16 +180,6 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
     });
   }
   return lista;
-}
-// Tira uma unidade guardada do troféu de baixo (nunca a que está num quarto).
-async function trocarTrofeu(tx, pessoaId, classe) {
-  const [i] = await tx`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe=${classe} FOR UPDATE`;
-  if (!i) return;
-  const [sala] = await tx`SELECT count(*)::int AS n FROM vybe_escritorio_mapa m, jsonb_array_elements(m.itens) it
-    WHERE m.camada ~ '^sala-[0-9]+(-andar-1)?$' AND it->>0=${classe} AND m.atualizado_por=${pessoaId}`;
-  if (Number(i.quantidade) - Number(sala?.n || 0) <= 0) return;
-  if (Number(i.quantidade) <= 1) await tx`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe=${classe}`;
-  else await tx`UPDATE vybe_escritorio_inventario SET quantidade=quantidade-1 WHERE pessoa_id=${pessoaId} AND classe=${classe}`;
 }
 // No fechamento do dia: confere todo mundo que tem função, para o nível não
 // esperar a pessoa abrir a ficha.
