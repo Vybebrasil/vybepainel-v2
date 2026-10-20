@@ -250,3 +250,15 @@ Pedidos do Paulo:
   - O balão ficava atrás das outras etiquetas (`z-index` 5 contra 99500).
   - Agora cada agente com planejamento mostra a situação escrita e o placar
     ("Com o cliente · 8 de 18 respondidas").
+
+## Tela cheia e edição na própria peça (20/10/2026)
+
+- A janela do planejamento ocupa a tela inteira, com o topo compacto, e o
+  documento fica com a maior parte.
+- Cada peça do documento do head ganhou "Editar peça". Abre uma janela com
+  todos os campos e salva uma versão nova (`editarPlanejamento`); a peça
+  editada fica com o OK de quem editou.
+- O logo da Vybe está embutido no documento (`server/vybe-logo.js`): no ar, o
+  arquivo em /assets ganha nome com hash e a imagem quebrava.
+- No Escritório, o aviso do planejamento virou um balão acima da barra, e a
+  barra continua numa linha.
