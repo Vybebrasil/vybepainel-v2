@@ -7,7 +7,7 @@ import { alertasDosClientes } from './alertas-clientes.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { criarConteudoNaTransacao } from '../api/conteudo.js';
 import { BOARD_PRODUCAO, BOARD_DEMANDAS } from './grupos.js';
-import { pecaParaMostrar } from './planejamento-documento.js';
+import { pecaParaMostrar, assinaturaDaPeca, pecasComRevisao, resumoDaRevisao } from './planejamento-documento.js';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 const ESTADOS = ['revisar', 'enviado', 'aprovado', 'ajustes', 'cadastrado', 'arquivado'];
@@ -50,7 +50,29 @@ export function normalizarConteudo(c = {}) {
    return { data, formato, tema: texto(p?.tema, 200), linha: texto(p?.linha, 80), objetivo: texto(p?.objetivo, 800), telas, legenda: texto(p?.legenda, 5000), referencia: texto(p?.referencia, 6000), observacao: texto(p?.observacao, 1500), ...(cid ? { conteudo_id: cid } : {}), ...(ajuste ? { ajuste_cliente: ajuste } : {}) };
   }).sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999')),
   observacoes: texto(o.observacoes, 2000),
+  revisoes: normalizarRevisoes(o.revisoes),
  };
+}
+// Decisões por peça, pela assinatura do conteúdo. Só o servidor grava aqui
+// (revisarPecaHead, marcarPecaCliente); edições e publicações trazem as
+// decisões do banco, nunca as do pedido.
+const quando = (v) => (Number.isNaN(Date.parse(v)) ? null : new Date(v).toISOString());
+function normalizarRevisoes(r) {
+ const out = {};
+ for (const [k, v] of Object.entries(r && typeof r === 'object' ? r : {}).slice(0, 200)) {
+  if (!/^[0-9a-f]{12}$/.test(k) || !v || typeof v !== 'object') continue;
+  const x = {};
+  if (['ok', 'ajustar'].includes(v.head?.estado)) x.head = { estado: v.head.estado, nota: texto(v.head.nota, 1500), por: texto(v.head.por, 80), em: quando(v.head.em) };
+  if (['aprovada', 'ajuste'].includes(v.cliente?.estado)) x.cliente = { estado: v.cliente.estado, nota: texto(v.cliente.nota, 1500), nome: texto(v.cliente.nome, 80), em: quando(v.cliente.em) };
+  if (x.head || x.cliente) out[k] = x;
+ }
+ return out;
+}
+// As decisões que continuam valendo: as das peças que não mudaram.
+function revisoesQueValem(antigas, pecas) {
+ const validas = new Set(pecas.map(assinaturaDaPeca)), r = normalizarRevisoes(antigas), out = {};
+ for (const [k, v] of Object.entries(r)) if (validas.has(k)) out[k] = v;
+ return out;
 }
 export function mesDoTexto(v) {
  const m = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(String(v || ''));
@@ -82,7 +104,7 @@ export async function listarPlanejamentos(sql, pessoa, { clienteId = null } = {}
   : await sql`SELECT p.*,c.nome AS cliente FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.estado<>'arquivado' ORDER BY p.mes DESC, c.nome LIMIT 200`;
  const editaveis = new Set();
  for (const l of linhas) if (!editaveis.has(String(l.cliente_id)) && await podeEditarCliente(sql, pessoa, l.cliente_id)) editaveis.add(String(l.cliente_id));
- return { disponivel: true, planejamentos: linhas.map((l) => ({ ...publico(l), pode_editar: editaveis.has(String(l.cliente_id)) })) };
+ return { disponivel: true, planejamentos: linhas.map((l) => ({ ...publico(l), conteudo: undefined, revisao: resumoDaRevisao(pecasComRevisao(l.conteudo || {})), pode_editar: editaveis.has(String(l.cliente_id)) })) };
 }
 export async function detalhePlanejamento(sql, pessoa, id) {
  await exigir(sql);
@@ -91,8 +113,9 @@ export async function detalhePlanejamento(sql, pessoa, id) {
  const eventos = await sql`SELECT e.tipo,e.texto,e.versao,e.em,e.autor_externo,x.nome AS autor FROM vybe_planejamento_eventos e LEFT JOIN vybe_pessoas x ON x.id=e.autor_id WHERE e.planejamento_id=${id} ORDER BY e.em DESC LIMIT 60`;
  // O editor já recebe objetivo e telas separados, mesmo nos planejamentos de antes desses campos.
  const c = p.conteudo && typeof p.conteudo === 'object' ? p.conteudo : {};
- const conteudo = { ...c, pecas: (c.pecas || []).map(pecaParaMostrar) };
- return { ...publico(p), conteudo, pode_editar: await podeEditarCliente(sql, pessoa, p.cliente_id), eventos };
+ const pecas = pecasComRevisao(c);
+ const conteudo = { ...c, pecas };
+ return { ...publico(p), conteudo, revisao: resumoDaRevisao(pecas), pode_editar: await podeEditarCliente(sql, pessoa, p.cliente_id), eventos };
 }
 // O que espera cada head: para revisar ou com ajustes pedidos, nos clientes dele
 // (quem administra vê todos). Base do aviso na tela e no Centro de Operação.
@@ -111,7 +134,8 @@ export async function pendentesDoHead(sql, pessoa) {
 export async function postosDaOperacao(sql, pessoa) {
  const pronto = await planejamentosProntos(sql);
  const clientes = await sql`SELECT id,nome,segmento,identidade->'personagem' AS personagem FROM vybe_clientes WHERE ativo IS NOT FALSE ORDER BY nome`;
- const planos = pronto ? await sql`SELECT DISTINCT ON (cliente_id) id,cliente_id,mes,estado,versao FROM vybe_planejamentos WHERE estado<>'arquivado' ORDER BY cliente_id, mes DESC` : [];
+ const planos = pronto ? (await sql`SELECT DISTINCT ON (cliente_id) id,cliente_id,mes,estado,versao,conteudo FROM vybe_planejamentos WHERE estado<>'arquivado' ORDER BY cliente_id, mes DESC`)
+  .map(({ conteudo, ...p }) => ({ ...p, revisao: resumoDaRevisao(pecasComRevisao(conteudo || {})) })) : [];
  const heads = await sql`SELECT cliente_id FROM vybe_cliente_pessoas WHERE pessoa_id=${pessoa?.id ?? null}`;
  const meus = new Set(heads.map((h) => String(h.cliente_id)));
  const porCliente = new Map(planos.map((p) => [String(p.cliente_id), publico({ ...p, cliente_id: p.cliente_id })]));
@@ -148,10 +172,13 @@ export async function publicarDoAgente(sql, { cliente, mes, titulo, conteudo }) 
   if (atual && !['revisar', 'ajustes'].includes(atual.estado))
    throw erro(`O planejamento de ${c.nome} deste mês já está ${atual.estado === 'enviado' ? 'com o cliente' : atual.estado}: peça ao head para reabrir antes de publicar outra versão.`, 409);
   if (atual) {
+   const [antes] = await tx`SELECT conteudo FROM vybe_planejamentos WHERE id=${atual.id}`;
+   corpo.revisoes = revisoesQueValem(antes?.conteudo?.revisoes, corpo.pecas);
    const [p] = await tx`UPDATE vybe_planejamentos SET titulo=${t},conteudo=${JSON.stringify(corpo)}::jsonb,versao=versao+1,estado='revisar',atualizado_em=now() WHERE id=${atual.id} RETURNING *`;
    await registrar(tx, p.id, 'nova_versao', { externo: 'agente', versao: p.versao });
    return { ...publico(p), cliente: c.nome, novo: false };
   }
+  corpo.revisoes = {};
   const [p] = await tx`INSERT INTO vybe_planejamentos(cliente_id,mes,titulo,conteudo,origem) VALUES(${c.id},${m}::date,${t},${JSON.stringify(corpo)}::jsonb,'agente') RETURNING *`;
   await registrar(tx, p.id, 'publicado', { externo: 'agente', versao: 1 });
   return { ...publico(p), cliente: c.nome, novo: true };
@@ -168,7 +195,7 @@ export async function criarNoPainel(sql, pessoa, { clienteId, mes, titulo, conte
  return sql.comTransacao(async (tx) => {
   const [ja] = await tx`SELECT id FROM vybe_planejamentos WHERE cliente_id=${c.id} AND mes=${m}::date AND estado<>'arquivado'`;
   if (ja) throw erro('Já existe um planejamento deste cliente para esse mês.', 409);
-  const [p] = await tx`INSERT INTO vybe_planejamentos(cliente_id,mes,titulo,conteudo,origem,criado_por) VALUES(${c.id},${m}::date,${texto(titulo, 160) || `Planejamento de ${c.nome}`},${JSON.stringify(normalizarConteudo(conteudo))}::jsonb,'painel',${pessoa.id}) RETURNING *`;
+  const [p] = await tx`INSERT INTO vybe_planejamentos(cliente_id,mes,titulo,conteudo,origem,criado_por) VALUES(${c.id},${m}::date,${texto(titulo, 160) || `Planejamento de ${c.nome}`},${JSON.stringify({ ...normalizarConteudo(conteudo), revisoes: {} })}::jsonb,'painel',${pessoa.id}) RETURNING *`;
   await registrar(tx, p.id, 'publicado', { autor: pessoa.id, versao: 1 });
   return publico(p);
  });
@@ -184,7 +211,9 @@ export async function editarPlanejamento(sql, pessoa, { id, versao, titulo, cont
   if (['aprovado', 'cadastrado', 'arquivado'].includes(p.estado)) throw erro('Este planejamento já foi aprovado: reabra antes de editar.', 409);
   if (Number(versao) !== Number(p.versao)) throw erro('Alguém salvou outra versão enquanto você editava. Recarregue para ver.', 409);
   const voltou = p.estado === 'enviado';
-  const [n] = await tx`UPDATE vybe_planejamentos SET titulo=${texto(titulo, 160) || p.titulo},conteudo=${JSON.stringify(normalizarConteudo(conteudo))}::jsonb,
+  const corpo = normalizarConteudo(conteudo);
+  corpo.revisoes = revisoesQueValem(p.conteudo?.revisoes, corpo.pecas);
+  const [n] = await tx`UPDATE vybe_planejamentos SET titulo=${texto(titulo, 160) || p.titulo},conteudo=${JSON.stringify(corpo)}::jsonb,
    versao=versao+1,estado=CASE WHEN estado='enviado' THEN 'revisar' ELSE estado END,
    link_hash=CASE WHEN estado='enviado' THEN NULL ELSE link_hash END,atualizado_em=now() WHERE id=${id} RETURNING *`;
   await registrar(tx, id, 'editado', { autor: pessoa.id, versao: n.versao, texto: voltou ? 'Editado depois de enviado: o link anterior deixou de valer.' : null });
@@ -203,6 +232,7 @@ export async function enviarAoCliente(sql, pessoa, { id }) {
   // Mandar de novo começa uma rodada nova: os pedidos da anterior saem das peças.
   const limpo = normalizarConteudo(p.conteudo);
   for (const x of limpo.pecas) delete x.ajuste_cliente;
+  limpo.revisoes = revisoesQueValem(p.conteudo?.revisoes, limpo.pecas);
   const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(limpo)}::jsonb,estado='enviado',link_hash=${hashDoLink(token)},link_expira_em=now()+${DIAS_DO_LINK + ' days'}::interval,
    enviado_em=now(),respondido_em=NULL,resposta_nome=NULL,resposta_texto=NULL,atualizado_em=now() WHERE id=${id} RETURNING *`;
   await registrar(tx, id, 'enviado', { autor: pessoa.id, versao: n.versao });
@@ -329,19 +359,74 @@ function lerResposta({ acao, nome, texto: t, ajustesPecas = {} }) {
  const porPeca = Object.entries(ajustesPecas && typeof ajustesPecas === 'object' ? ajustesPecas : {})
   .map(([i, v]) => [Number(i), texto(v, 1500)]).filter(([i, v]) => Number.isInteger(i) && i >= 0 && i < 200 && v);
  if (!quem) throw erro('Escreva seu nome.');
- if (acao === 'ajustes' && !geral && !porPeca.length) throw erro('Conte o que precisa mudar.');
  return { acao, quem, geral, porPeca };
 }
 async function aplicarResposta(tx, p, { acao, quem, geral, porPeca }, origem = '') {
  const conteudo = normalizarConteudo(p.conteudo);
- const validos = porPeca.filter(([i]) => conteudo.pecas[i]);
- for (const [i, v] of validos) conteudo.pecas[i].ajuste_cliente = v;
- const estado = acao === 'aprovar' && !validos.length ? 'aprovado' : 'ajustes';
+ const rev = conteudo.revisoes, agora = new Date().toISOString();
+ // Pedidos que chegam junto com a resposta (página antiga do link) viram decisão da peça.
+ for (const [i, v] of porPeca) { const x = conteudo.pecas[i]; if (x) (rev[assinaturaDaPeca(x)] ||= {}).cliente = { estado: 'ajuste', nota: v, nome: quem, em: agora }; }
+ // "Aprovar": o que o cliente não marcou fica aprovado junto.
+ if (acao === 'aprovar') for (const x of conteudo.pecas) { const r = (rev[assinaturaDaPeca(x)] ||= {}); if (!r.cliente) r.cliente = { estado: 'aprovada', nota: '', nome: quem, em: agora }; }
+ const ajustes = conteudo.pecas.map((x, i) => [i, x, rev[assinaturaDaPeca(x)]?.cliente]).filter(([, , c]) => c?.estado === 'ajuste');
+ if (acao === 'ajustes' && !geral && !ajustes.length) throw erro('Conte o que precisa mudar: no geral ou em alguma peça.');
+ const estado = acao === 'aprovar' && !ajustes.length ? 'aprovado' : 'ajustes';
  const dia = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data');
- const comentario = [geral, ...validos.map(([i, v]) => { const x = conteudo.pecas[i]; return `Peça ${i + 1} (${x.formato}, ${dia(x.data)}${x.tema ? ` · ${x.tema}` : ''}): ${v}`; })].filter(Boolean).join('\n') || null;
+ const comentario = [geral, ...ajustes.map(([i, x, c]) => `Peça ${i + 1} (${x.formato}, ${dia(x.data)}${x.tema ? ` · ${x.tema}` : ''}): ${c.nota}`)].filter(Boolean).join('\n') || null;
  const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,estado=${estado},respondido_em=now(),resposta_nome=${quem},resposta_texto=${comentario},atualizado_em=now() WHERE id=${p.id} RETURNING *`;
  await registrar(tx, p.id, estado === 'aprovado' ? 'aprovado' : 'ajustes', { externo: quem + origem, texto: comentario, versao: n.versao });
  return n;
+}
+// Uma decisão do cliente numa peça, salva na hora (sem concluir a resposta).
+function lerMarca({ assinatura, estado, nota, nome }) {
+ if (!/^[0-9a-f]{12}$/.test(String(assinatura || ''))) throw erro('Peça inválida.');
+ if (!['aprovada', 'ajuste', 'limpar'].includes(estado)) throw erro('Escolha aprovar ou pedir ajuste.');
+ const quem = texto(nome, 80), n = texto(nota, 1500);
+ if (!quem) throw erro('Escreva seu nome no topo antes de responder.');
+ if (estado === 'ajuste' && !n) throw erro('Conte o que precisa mudar nesta peça.');
+ return { assinatura, estado, nota: n, quem };
+}
+async function aplicarMarca(tx, p, m) {
+ const conteudo = normalizarConteudo(p.conteudo);
+ const peca = conteudo.pecas.find((x) => assinaturaDaPeca(x) === m.assinatura);
+ if (!peca) throw erro('Esta peça mudou. Recarregue a página para ver a versão nova.', 409);
+ const r = (conteudo.revisoes[m.assinatura] ||= {});
+ if (m.estado === 'limpar') delete r.cliente;
+ else r.cliente = { estado: m.estado, nota: m.nota, nome: m.quem, em: new Date().toISOString() };
+ if (!r.head && !r.cliente) delete conteudo.revisoes[m.assinatura];
+ await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,atualizado_em=now() WHERE id=${p.id}`;
+ return resumoDaRevisao(pecasComRevisao(conteudo, { paraCliente: true }));
+}
+export async function marcarPecaPorLink(sql, token, corpo) {
+ await exigir(sql);
+ const m = lerMarca(corpo);
+ return sql.comTransacao(async (tx) => {
+  const [p] = await tx`SELECT * FROM vybe_planejamentos WHERE link_hash=${hashDoLink(token)} FOR UPDATE`;
+  if (!p || p.estado !== 'enviado') throw erro('Este planejamento não está mais esperando sua resposta.', 409);
+  return aplicarMarca(tx, p, m);
+ });
+}
+// Revisão interna do head, peça a peça, antes de mandar ao cliente.
+export async function revisarPecaHead(sql, pessoa, { id, assinatura, estado, nota }) {
+ await exigir(sql);
+ if (!/^[0-9a-f]{12}$/.test(String(assinatura || ''))) throw erro('Peça inválida.');
+ if (!['ok', 'ajustar', 'limpar'].includes(estado)) throw erro('Escolha OK ou ajustar.');
+ const n = texto(nota, 1500);
+ if (estado === 'ajustar' && !n) throw erro('Escreva o que ajustar nesta peça.');
+ return sql.comTransacao(async (tx) => {
+  const [p] = await tx`SELECT * FROM vybe_planejamentos WHERE id=${id} FOR UPDATE`;
+  if (!p) throw erro('Planejamento não encontrado.', 404);
+  await exigirEditor(tx, pessoa, p.cliente_id);
+  if (!['revisar', 'ajustes'].includes(p.estado)) throw erro('A revisão interna é antes de mandar ao cliente. Reabra o planejamento para revisar.', 409);
+  const conteudo = normalizarConteudo(p.conteudo);
+  if (!conteudo.pecas.some((x) => assinaturaDaPeca(x) === assinatura)) throw erro('Esta peça mudou. Recarregue para ver a versão nova.', 409);
+  const [quem] = await tx`SELECT nome FROM vybe_pessoas WHERE id=${pessoa.id}`;
+  const r = (conteudo.revisoes[assinatura] ||= {});
+  if (estado === 'limpar') delete r.head; else r.head = { estado, nota: n, por: quem?.nome || '', em: new Date().toISOString() };
+  if (!r.head && !r.cliente) delete conteudo.revisoes[assinatura];
+  await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,atualizado_em=now() WHERE id=${p.id}`;
+  return resumoDaRevisao(pecasComRevisao(conteudo));
+ });
 }
 export async function responderDoCliente(sql, token, corpo) {
  await exigir(sql);
@@ -362,7 +447,7 @@ export async function responderDoCliente(sql, token, corpo) {
 // ele (enviado, ajustes, aprovado, cadastrado), nunca o rascunho do head.
 const VISIVEL_AO_CLIENTE = ['enviado', 'ajustes', 'aprovado', 'cadastrado'];
 const doPortal = (p) => ({ id: String(p.id), mes: publico(p).mes, titulo: p.titulo, versao: p.versao, estado: p.estado,
- conteudo: (() => { const c = normalizarConteudo(p.conteudo); return { ...c, pecas: c.pecas.map(pecaParaMostrar) }; })(), resposta_nome: p.resposta_nome, resposta_texto: p.resposta_texto,
+ conteudo: (() => { const c = normalizarConteudo(p.conteudo); const { revisoes, ...resto } = c; return { ...resto, pecas: pecasComRevisao(c, { paraCliente: true }) }; })(), resposta_nome: p.resposta_nome, resposta_texto: p.resposta_texto,
  respondido_em: p.respondido_em, enviado_em: p.enviado_em, logo: p.identidade?.logo || null });
 export async function planejamentosDoPortal(sql, { cliente }) {
  if (!await planejamentosProntos(sql)) return { cliente: null, planejamentos: [] };
@@ -370,6 +455,25 @@ export async function planejamentosDoPortal(sql, { cliente }) {
  const linhas = await sql`SELECT p.*,cl.identidade FROM vybe_planejamentos p JOIN vybe_clientes cl ON cl.id=p.cliente_id
   WHERE p.cliente_id=${c.id} AND p.estado = ANY(${VISIVEL_AO_CLIENTE}) ORDER BY p.mes DESC LIMIT 12`;
  return { cliente: c.nome, planejamentos: linhas.map(doPortal) };
+}
+export async function planejamentoDoPortal(sql, { cliente, id }) {
+ await exigir(sql);
+ const c = await clientePorNomeOuId(sql, cliente);
+ const [p] = await sql`SELECT p.*,cl.nome AS cliente,cl.identidade FROM vybe_planejamentos p JOIN vybe_clientes cl ON cl.id=p.cliente_id WHERE p.id=${id} AND p.cliente_id=${c.id} AND p.estado = ANY(${VISIVEL_AO_CLIENTE})`;
+ if (!p) throw erro('Planejamento não encontrado.', 404);
+ return publico(p);
+}
+export async function marcarPecaDoPortal(sql, { cliente, id, versao, ...corpo }) {
+ await exigir(sql);
+ const m = lerMarca(corpo);
+ const c = await clientePorNomeOuId(sql, cliente);
+ return sql.comTransacao(async (tx) => {
+  const [p] = await tx`SELECT * FROM vybe_planejamentos WHERE id=${id} AND cliente_id=${c.id} FOR UPDATE`;
+  if (!p) throw erro('Planejamento não encontrado.', 404);
+  if (p.estado !== 'enviado') throw erro('Este planejamento não está mais esperando sua resposta.', 409);
+  if (Number(versao) !== Number(p.versao)) throw erro('A Vybe mandou uma versão nova. Recarregue a página para ver.', 409);
+  return aplicarMarca(tx, p, m);
+ });
 }
 export async function responderDoPortal(sql, { cliente, id, versao, ...corpo }) {
  await exigir(sql);

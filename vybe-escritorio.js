@@ -1027,6 +1027,13 @@ const ESCRITORIO_SITUACAO_PLANO = { revisar: ["Para revisar", "#ffc46b"], enviad
 // O que o balão do agente diz quando pede ação de quem pode agir (head do
 // cliente ou quem administra). Paulo, 20/10/2026: "um alerta maior".
 const ESCRITORIO_ACAO_PLANO = { revisar: "Planejamento para revisar", ajustes: "Cliente pediu ajustes", aprovado: "Aprovado: cadastrar as peças" };
+function escritorioDetalheDoPlano(p) {
+  const r = p.revisao || {};
+  if (p.estado === "enviado") return r.total ? `Com o cliente · ${r.cliente_aprovadas + r.cliente_ajustes} de ${r.total} respondidas` : "Com o cliente";
+  if (p.estado === "revisar" && r.total) return `${ESCRITORIO_ACAO_PLANO.revisar} · ${r.head_ok} de ${r.total} OK`;
+  if (p.estado === "ajustes" && r.cliente_ajustes) return `${ESCRITORIO_ACAO_PLANO.ajustes} · ${r.cliente_ajustes} ${r.cliente_ajustes === 1 ? "peça" : "peças"}`;
+  return "";
+}
 async function escritorioOcuparOperacao() {
   if (escritorio.quarto !== "operacao" || !escritorio.mapa?.ocuparPostos) return;
   const mapa = escritorio.mapa;
@@ -1046,6 +1053,8 @@ async function escritorioOcuparOperacao() {
     const resumoAvisos = [al.atrasadas_total && `${al.atrasadas_total} muito atrasada${al.atrasadas_total > 1 ? "s" : ""}`, al.aprovar_total && `${al.aprovar_total} para aprovar`,
       al.sem_info_total && `${al.sem_info_total} sem informação`].filter(Boolean).join(" · ");
     return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), mao: escritorioMaoDoAgente(a), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean((a.meu || escritorio.base?.admin) && p && ESCRITORIO_ACAO_PLANO[p.estado]), acao: p ? ESCRITORIO_ACAO_PLANO[p.estado] || "" : "",
+      // A situação aparece escrita também quando está com o cliente, com o placar das peças.
+      detalhe: p ? escritorioDetalheDoPlano(p) : "",
       avisos: al.total || 0, resumoAvisos, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);

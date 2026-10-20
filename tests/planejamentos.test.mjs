@@ -223,16 +223,48 @@ test('cliente pede ajuste numa peça: volta ao head com a peça marcada; mandar 
  assert.equal(p.conteudo.pecas[0].referencia.length,longo.trim().length,'a referência longa fica inteira');
  const env=await P.enviarAoCliente(sql,{id:3},{id:p.id});
  const html=documentoHtml(await P.planejamentoDoLink(sql,env.token),{paraCliente:true,token:env.token});
- assert.match(html,/name="ajuste_1"/);assert.match(html,/Pedir ajuste nesta peça/);assert.doesNotMatch(html,/01 · Treze/,'o número repetido sai do tema');
+ assert.match(html,/data-assinatura="[0-9a-f]{12}"/);assert.match(html,/Aprovar esta peça/);assert.doesNotMatch(html,/01 · Treze/,'o número repetido sai do tema');
  // "Aprovar" com uma peça marcada vira pedido de ajustes.
  const r=await P.responderDoCliente(sql,env.token,{acao:'aprovar',nome:'Ana',ajustesPecas:{1:'Trocar a música',9:'peça que não existe'}});
  assert.equal(r.estado,'ajustes');
- assert.equal(r.conteudo.pecas[1].ajuste_cliente,'Trocar a música');assert.equal(r.conteudo.pecas[0].ajuste_cliente,undefined);
+ const rev=(await P.detalhePlanejamento(sql,{id:3},p.id)).conteudo.pecas;assert.equal(rev[1].revisao_cliente.nota,'Trocar a música');assert.equal(rev[1].revisao_cliente.estado,'ajuste');assert.equal(rev[0].revisao_cliente.estado,'aprovada','aprovar com ajuste numa peça aprova as outras');
  assert.match(r.resposta_texto,/Peça 2 \(Reels, 05\/11 · Bastidores\): Trocar a música/);
- assert.match(documentoHtml(r),/Ajuste pedido/);
+ assert.match(documentoHtml({...r,cliente:'Serra Grande'},{paraCliente:true}),/Ajuste pedido/);
  const novo=await P.enviarAoCliente(sql,{id:3},{id:p.id});
- assert.equal((await P.planejamentoDoLink(sql,novo.token)).conteudo.pecas[1].ajuste_cliente,undefined,'nova rodada começa sem os pedidos antigos');
+ assert.equal((await P.planejamentoDoLink(sql,novo.token)).conteudo.pecas[1].ajuste_cliente,undefined,'o pedido antigo sai da peça; a decisão fica na revisão');
+ // A peça que não mudou continua com o pedido; o cliente pode trocar para aprovada, peça por peça.
+ const aberto=await P.planejamentoDoLink(sql,novo.token);
+ const sig=documentoHtml(aberto,{paraCliente:true,token:novo.token}).match(/data-assinatura="([0-9a-f]{12})" data-estado="ajuste"/)[1];
+ await assert.rejects(P.marcarPecaPorLink(sql,novo.token,{assinatura:sig,estado:'ajuste',nome:'Ana'}),/precisa mudar nesta peça/);
+ await assert.rejects(P.marcarPecaPorLink(sql,novo.token,{assinatura:sig,estado:'aprovada'}),/seu nome/);
+ const resumo=await P.marcarPecaPorLink(sql,novo.token,{assinatura:sig,estado:'aprovada',nome:'Ana'});
+ assert.equal(resumo.cliente_aprovadas,2);assert.equal(resumo.cliente_ajustes,0);
  await assert.rejects(P.responderDoCliente(sql,novo.token,{acao:'ajustes',nome:'Ana'}),/o que precisa mudar/);
+ const fim=await P.responderDoCliente(sql,novo.token,{acao:'aprovar',nome:'Ana'});assert.equal(fim.estado,'aprovado');
+});
+
+// Revisão interna do head, peça a peça; editar a peça tira a decisão dela, e só o servidor grava decisões.
+test('head revisa peça a peça; a decisão vale para a versão da peça',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas:[{data:'2026-11-03',formato:'Card',tema:'Um'},{data:'2026-11-05',formato:'Card',tema:'Dois'}]}});
+ const d=await P.detalhePlanejamento(sql,{id:3},p.id);
+ const [a,b]=d.conteudo.pecas.map(x=>x.assinatura);
+ await assert.rejects(P.revisarPecaHead(sql,{id:24},{id:p.id,assinatura:a,estado:'ok'}),/Só o head/);
+ await assert.rejects(P.revisarPecaHead(sql,{id:3},{id:p.id,assinatura:b,estado:'ajustar'}),/o que ajustar/);
+ assert.equal((await P.revisarPecaHead(sql,{id:3},{id:p.id,assinatura:a,estado:'ok'})).head_ok,1);
+ await P.revisarPecaHead(sql,{id:3},{id:p.id,assinatura:b,estado:'ajustar',nota:'Trocar o título'});
+ // O pedido de edição tenta forjar uma aprovação do cliente: o servidor ignora.
+ const forjado={pecas:[{data:'2026-11-03',formato:'Card',tema:'Um'},{data:'2026-11-05',formato:'Card',tema:'Dois novo'}],revisoes:{[a]:{cliente:{estado:'aprovada',nome:'Falso'}}}};
+ const e=await P.editarPlanejamento(sql,{id:3},{id:p.id,versao:d.versao,conteudo:forjado});
+ const r=(await P.detalhePlanejamento(sql,{id:3},p.id));
+ assert.equal(r.revisao.head_ok,1,'a peça que não mudou continua OK');assert.equal(r.revisao.head_ajustar,0,'a peça editada perde o "ajustar"');
+ assert.equal(r.revisao.cliente_aprovadas,0,'aprovação do cliente não entra pelo editor');
+ assert.equal(e.versao,d.versao+1);
+ const env=await P.enviarAoCliente(sql,{id:3},{id:p.id});
+ await assert.rejects(P.revisarPecaHead(sql,{id:3},{id:p.id,assinatura:a,estado:'ok'}),/antes de mandar/);
+ const html=documentoHtml(await P.planejamentoDoLink(sql,env.token),{paraCliente:true,token:env.token});
+ assert.doesNotMatch(html,/Trocar o título|revisao_head/,'a revisão interna não vai para o cliente');
 });
 
 // Paulo, 20/10/2026: o cliente aprova pelo VybeHub; as regras são as mesmas do link.
@@ -247,7 +279,7 @@ test('VybeHub: o cliente só vê o que foi mandado a ele e responde com as mesma
  await assert.rejects(P.responderDoPortal(sql,{cliente:'Mangaba Kids',id:p.id,versao:env.versao,acao:'aprovar',nome:'Ana'}),/não encontrado/,'outro cliente não responde');
  await assert.rejects(P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:env.versao+1,acao:'aprovar',nome:'Ana'}),/versão nova/);
  const r=await P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:env.versao,acao:'aprovar',nome:'Ana',ajustesPecas:{0:'Outra foto'}});
- assert.equal(r.estado,'ajustes');assert.equal(r.conteudo.pecas[0].ajuste_cliente,'Outra foto');
+ assert.equal(r.estado,'ajustes');assert.equal(r.conteudo.pecas[0].revisao_cliente.nota,'Outra foto');
  const ev=(await P.detalhePlanejamento(sql,{id:3},p.id)).eventos[0];assert.equal(ev.autor_externo,'Ana (VybeHub)');
  await assert.rejects(P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:r.versao,acao:'aprovar',nome:'Ana'}),/já foi respondido/);
  await assert.rejects(P.responderDoCliente(sql,env.token,{acao:'aprovar',nome:'Ana'}).then(x=>{if(x.repetido)throw new Error('repetido');}),/repetido/,'o link também vê que já respondeu');

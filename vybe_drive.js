@@ -274,6 +274,26 @@ export async function enviarParaDrive({ url, conteudo, nome, mime, pastaId }) {
 // endereco da pagina e com Content-Disposition: attachment — e cross-origin o
 // atributo `download` de um link e simplesmente ignorado. Por isso o servidor
 // busca os bytes e os devolve.
+// Logos do cliente no Drive (Paulo, 20/10/2026: "as logos dos clientes e da
+// Vybe têm tudo no Drive"). Procura imagens com "logo" e o nome do cliente no
+// nome do arquivo e põe primeiro a que mais parece o logo principal.
+const PALAVRAS_GENERICAS = /^(advogada|advogado|grupo|bebidas|academia|clinica|the|ltda|cia)$/i;
+export async function logosNoDrive(cliente) {
+  const nome = ALIAS_CLIENTE[semSinais(cliente)] || cliente;
+  const palavras = String(nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^A-Za-z0-9]+/).filter((w) => w.length >= 3 && !PALAVRAS_GENERICAS.test(w));
+  const termo = (palavras[0] || '').replace(/'/g, "\\'");
+  if (!termo) return [];
+  const q = encodeURIComponent(`trashed = false and mimeType contains 'image/' and name contains 'logo' and name contains '${termo}'`);
+  const d = await drive(`files?q=${q}&fields=files(id,name,mimeType,size,thumbnailLink)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`);
+  const nota = (f) => (/png/.test(f.mimeType) ? 3 : /svg/.test(f.mimeType) ? 2 : /jpe?g|webp/.test(f.mimeType) ? 1 : -9)
+    + (/(-0?1|logo[^-]*)\.\w+$/i.test(f.name) ? 1 : 0) + (Number(f.size || 0) < 3e6 ? 1 : -1)
+    + (/mascote|adesivo|efeito|c[oó]pia|caminh|psb|mockup/i.test(f.name) ? -4 : 0)
+    + palavras.filter((w) => semSinais(f.name).includes(semSinais(w))).length;
+  return (d.files || []).filter((f) => /image\/(png|jpe?g|webp|svg)/.test(f.mimeType))
+    .map((f) => ({ id: f.id, nome: f.name, mime: f.mimeType, miniatura: f.thumbnailLink || null, nota: nota(f) }))
+    .sort((a, b) => b.nota - a.nota || a.nome.localeCompare(b.nome));
+}
+
 export async function baixarDoDrive(fileId) {
   const r = await fetch(
     `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,

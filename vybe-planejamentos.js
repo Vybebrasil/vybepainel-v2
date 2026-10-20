@@ -55,7 +55,7 @@ async function carregarPlanejamentosDoCliente(clienteId, nome, raiz = document) 
     const podeCriar = lista.some((p) => p.pode_editar) || (typeof podeEditarClientes === 'function' && podeEditarClientes());
     caixa.innerHTML = `${lista.length ? `<ul class="plj-meses">${lista.map((p) => `<li>
         <button type="button" class="plj-mes" onclick="abrirPlanejamento('${pljEsc(p.id)}')">
-          <b>${pljEsc(pljMes(p.mes))}</b><small>${pljEsc(p.titulo)} · versão ${pljEsc(p.versao)}</small>${pljSelo(p.estado)}</button></li>`).join('')}</ul>`
+          <b>${pljEsc(pljMes(p.mes))}</b><small>${pljEsc(p.titulo)} · versão ${pljEsc(p.versao)}${pljPlacar(p)}</small>${pljSelo(p.estado)}</button></li>`).join('')}</ul>`
       : '<p class="plj-vazio">Nenhum planejamento ainda. Quando o agente do cliente publicar, ele aparece aqui para revisar.</p>'}
       ${podeCriar ? `<button type="button" class="cli-porta" onclick="novoPlanejamento('${pljEsc(clienteId)}', '${pljEsc(String(nome).replace(/'/g, "\\'"))}')">Começar um planejamento aqui</button>` : ''}`;
   } catch (e) {
@@ -127,10 +127,12 @@ function pintarPlanejamento(aba) {
     ${pljEtapasHtml(p)}${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
     <div class="plj-corpo">${aba === 'editar' ? pljEditorHtml() : aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
-      : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-same-origin allow-popups"></iframe>`}</div>
+      : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups"></iframe>`}</div>
     <div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div>`;
   m.dataset.aba = aba;
   if (aba === 'documento') pljCarregarPrevia(p);
+  if (aba === 'documento' && p.pode_editar && ['revisar', 'ajustes'].includes(p.estado)) m.querySelector('.plj-abas')?.insertAdjacentHTML('afterend', '<p class="plj-dica">Revise aqui mesmo: em cada peça, <b>Peça OK</b> ou <b>Ajustar</b> com o que mudar. Para mudar o texto, use a aba Editar.</p>');
+  if (aba === 'identidade') pljCarregarLogosDrive();
 }
 // O documento entra pela moldura com o próprio HTML (srcdoc), sem script: o
 // mesmo arquivo que vai para o Drive e para o cliente.
@@ -146,6 +148,23 @@ async function pljCarregarPrevia(p) {
     if (moldura.isConnected) moldura.srcdoc = `<p style="font:14px system-ui;padding:24px;color:#444">${pljEsc(e.message)}</p>`;
   }
 }
+// A prévia (sem acesso ao painel) pede a revisão de cada peça por mensagem; quem grava é esta janela.
+window.addEventListener('message', async (e) => {
+  const quadro = document.querySelector('#workflow-modal .plj-previa');
+  if (!quadro || e.source !== quadro.contentWindow || e.data?.vybe !== 'planejamento-head' || !PLJ_ABERTO) return;
+  const responde = (r) => quadro.contentWindow?.postMessage({ vybe: 'planejamento-head-resposta', id: e.data.id, ...r }, '*');
+  const { assinatura, estado, nota } = e.data.dados || {};
+  try {
+    const d = await pljPedir('', { acao: 'revisar_peca', id: PLJ_ABERTO.id, assinatura, estado, nota });
+    PLJ_ABERTO.revisao = d.resumo;
+    const peca = (PLJ_ABERTO.conteudo?.pecas || []).find((x) => x.assinatura === assinatura);
+    if (peca) peca.revisao_head = estado === 'limpar' ? null : { estado, nota };
+    const rasc = (PLJ_RASCUNHO?.pecas || []).find((x) => x.assinatura === assinatura);
+    if (rasc) rasc.revisao_head = peca?.revisao_head || null;
+    document.querySelector('#workflow-modal .plj-etapas')?.replaceWith(Object.assign(document.createElement('div'), { innerHTML: pljEtapasHtml(PLJ_ABERTO) }).firstElementChild);
+    responde({ ok: true });
+  } catch (erro) { responde({ ok: false, erro: erro.message }); }
+});
 function pljTrocarAba(aba) {
   if (document.getElementById('workflow-modal')?.dataset.aba === 'editar') pljColher();
   pintarPlanejamento(aba);
@@ -197,9 +216,13 @@ function pljPecaEditorHtml(x, i) {
   const dia = x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia';
   const ent = (k, v, rot) => `<label><span>${rot}</span><input data-k="${k}" type="text" value="${pljEsc(v || '')}"></label>`;
   const area = (k, v, rot, linhas) => `<label><span>${rot}</span><textarea data-k="${k}" rows="${linhas}">${pljEsc(v || '')}</textarea></label>`;
-  return `<details class="plj-linha plj-peca${x.ajuste_cliente ? ' com-pedido' : ''}" data-lista="pecas"${x.ajuste_cliente ? ' open' : ''}>
-    <summary><span class="plj-peca-num">${String(i + 1).padStart(2, '0')}</span><span class="plj-peca-tag f-${pljEsc(x.formato || 'Card').normalize('NFD').replace(/[^A-Za-z]/g, '')}">${pljEsc(x.formato || 'Card')}</span><span class="plj-peca-dia">${pljEsc(dia)}</span><b>${pljEsc(x.tema || 'Sem tema')}</b>${x.ajuste_cliente ? '<em>pedido do cliente</em>' : ''}</summary>
-    ${x.ajuste_cliente ? `<div class="plj-pedido"><b>O cliente pediu</b><p>${pljEsc(x.ajuste_cliente)}</p></div>` : ''}
+  const pedido = x.ajuste_cliente || x.revisao_cliente?.estado === 'ajuste' || x.revisao_head?.estado === 'ajustar';
+  const selo = x.revisao_cliente?.estado === 'ajuste' ? '<em>ajuste do cliente</em>' : x.revisao_head?.estado === 'ajustar' ? '<em>ajustar</em>'
+    : x.revisao_cliente?.estado === 'aprovada' ? '<em class="ok">cliente aprovou</em>' : x.revisao_head?.estado === 'ok' ? '<em class="ok">OK</em>' : '';
+  return `<details class="plj-linha plj-peca${pedido ? ' com-pedido' : ''}" data-lista="pecas"${pedido ? ' open' : ''}>
+    <summary><span class="plj-peca-num">${String(i + 1).padStart(2, '0')}</span><span class="plj-peca-tag f-${pljEsc(x.formato || 'Card').normalize('NFD').replace(/[^A-Za-z]/g, '')}">${pljEsc(x.formato || 'Card')}</span><span class="plj-peca-dia">${pljEsc(dia)}</span><b>${pljEsc(x.tema || 'Sem tema')}</b>${selo}</summary>
+    ${pljRevisaoPecaHtml(x)}
+    ${x.ajuste_cliente && !x.revisao_cliente ? `<div class="plj-pedido"><b>O cliente pediu</b><p>${pljEsc(x.ajuste_cliente)}</p></div>` : ''}
     <div class="plj-peca-campos">
       <label><span>Dia</span><input data-k="data" type="date" value="${pljEsc(x.data || '')}"></label>
       <label><span>Formato</span><select data-k="formato">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
@@ -214,13 +237,33 @@ function pljPecaEditorHtml(x, i) {
     <div class="plj-peca-rodape"><button type="button" class="plj-tirar-texto" onclick="pljTirar('pecas', ${i})">Tirar esta peça</button></div>
   </details>`;
 }
+// Placar curto da revisão para listas: o que o head já viu ou o que o cliente já respondeu.
+function pljPlacar(p) {
+  const r = p.revisao || {};
+  if (!r.total) return '';
+  if (['revisar', 'ajustes'].includes(p.estado) && !r.cliente_ajustes) return ` · ${r.head_ok} de ${r.total} OK`;
+  if (p.estado === 'ajustes') return ` · ${r.cliente_ajustes} com ajuste do cliente`;
+  if (p.estado === 'enviado') return ` · cliente respondeu ${r.cliente_aprovadas + r.cliente_ajustes} de ${r.total}`;
+  return '';
+}
+// Situação da peça no editor: o que o cliente respondeu e a revisão interna do
+// head. A revisão em si se faz na aba Documento.
+function pljRevisaoPecaHtml(x) {
+  const c = x.revisao_cliente, h = x.revisao_head;
+  const doCliente = c ? `<div class="plj-rev-cli ${c.estado === 'aprovada' ? 'ok' : 'ruim'}"><b>${c.estado === 'aprovada' ? 'Cliente aprovou' : 'Cliente pediu ajuste'}${c.nome ? ` · ${pljEsc(c.nome)}` : ''}</b>${c.nota ? `<p>${pljEsc(c.nota)}</p>` : ''}</div>` : '';
+  const doHead = h ? `<div class="plj-rev-cli ${h.estado === 'ok' ? 'ok' : 'ruim'}"><b>${h.estado === 'ok' ? 'OK na revisão' : 'Ajustar'}${h.por ? ` · ${pljEsc(h.por)}` : ''}</b>${h.nota ? `<p>${pljEsc(h.nota)}</p>` : ''}</div>` : '';
+  return doCliente + doHead;
+}
 // Etapas no topo: onde o planejamento está e o que vem agora.
 function pljEtapasHtml(p) {
   const ordem = ['revisar', 'enviado', 'aprovado', 'cadastrado'];
   const atual = p.estado === 'ajustes' ? 0 : Math.max(0, ordem.indexOf(p.estado));
   const nomes = ['Revisar', 'Com o cliente', 'Aprovado', 'Cadastrado'];
   const proximo = { revisar: 'Revise e mande para o cliente.', ajustes: 'O cliente pediu ajustes: corrija e mande de novo.', enviado: 'Esperando a resposta do cliente pelo link.', aprovado: 'Aprovado: cadastre as peças.', cadastrado: 'Peças cadastradas no painel.' }[p.estado] || '';
-  return `<div class="plj-etapas" aria-label="Etapas do planejamento"><ol>${nomes.map((n, i) => `<li class="${i < atual ? 'feita' : i === atual ? 'agora' : ''}${i === 0 && p.estado === 'ajustes' ? ' ajustes' : ''}"><i>${i < atual ? '✓' : i + 1}</i><span>${i === 0 && p.estado === 'ajustes' ? 'Ajustar' : n}</span></li>`).join('')}</ol><small>${pljEsc(proximo)}</small></div>`;
+  const r = p.revisao || {};
+  const interno = ['revisar', 'ajustes'].includes(p.estado) && r.total ? `<span class="plj-rev">Sua revisão: <b>${r.head_ok} de ${r.total} OK</b>${r.head_ajustar ? ` · <b class="ruim">${r.head_ajustar} para ajustar</b>` : ''}</span>` : '';
+  const cliente = ['enviado', 'ajustes', 'aprovado'].includes(p.estado) && r.total && (r.cliente_aprovadas || r.cliente_ajustes) ? `<span class="plj-rev">Cliente: <b class="bom">${r.cliente_aprovadas} aprovadas</b>${r.cliente_ajustes ? ` · <b class="ruim">${r.cliente_ajustes} com ajuste</b>` : ''}${r.total - r.cliente_aprovadas - r.cliente_ajustes > 0 ? ` · ${r.total - r.cliente_aprovadas - r.cliente_ajustes} sem resposta` : ''}</span>` : '';
+  return `<div class="plj-etapas" aria-label="Etapas do planejamento"><ol>${nomes.map((n, i) => `<li class="${i < atual ? 'feita' : i === atual ? 'agora' : ''}${i === 0 && p.estado === 'ajustes' ? ' ajustes' : ''}"><i>${i < atual ? '✓' : i + 1}</i><span>${i === 0 && p.estado === 'ajustes' ? 'Ajustar' : n}</span></li>`).join('')}</ol><small>${pljEsc(proximo)}</small>${interno || cliente ? `<div class="plj-revs">${interno}${cliente}</div>` : ''}</div>`;
 }
 function pljColher() {
   const m = document.getElementById('workflow-modal');
@@ -230,8 +273,13 @@ function pljColher() {
   PLJ_RASCUNHO.resumo = m.querySelector('#plj-resumo')?.value ?? PLJ_RASCUNHO.resumo;
   PLJ_RASCUNHO.observacoes = m.querySelector('#plj-obs')?.value ?? PLJ_RASCUNHO.observacoes;
   for (const k of ['linhas', 'datas', 'pecas']) {
-    PLJ_RASCUNHO[k] = [...m.querySelectorAll(`.plj-linha[data-lista="${k}"]`)].map((el) =>
-      Object.fromEntries([...el.querySelectorAll('[data-k]')].map((c) => [c.dataset.k, c.value])));
+    const antes = PLJ_RASCUNHO[k] || [];
+    PLJ_RASCUNHO[k] = [...m.querySelectorAll(`.plj-linha[data-lista="${k}"]`)].map((el, i) => {
+      const v = Object.fromEntries([...el.querySelectorAll('[data-k]')].map((c) => [c.dataset.k, c.value]));
+      // A assinatura e as revisões só servem para desenhar; quem grava decisão é o servidor.
+      if (k === 'pecas' && antes[i]) Object.assign(v, { assinatura: antes[i].assinatura, revisao_head: antes[i].revisao_head, revisao_cliente: antes[i].revisao_cliente });
+      return v;
+    });
   }
 }
 function pljAcrescentar(k) {
@@ -282,9 +330,31 @@ function pljIdentidadeHtml() {
   return `<p class="workflow-copy">O documento tem o visual da Vybe para todos os clientes. Daqui entra o logo do cliente, ao lado do logo da Vybe na capa, e o tom de voz que o agente segue.</p>
     <div class="plj-identidade">
       <label class="workflow-field"><span>Logo do cliente (endereço https da imagem)</span><input id="plj-logo" type="url" value="${pljEsc(i.logo || '')}" placeholder="https://…/logo.png" oninput="pljPreverLogo(this.value)"></label>
-      <div class="plj-logo-previa" id="plj-logo-previa">${i.logo ? `<img src="${pljEsc(i.logo)}" alt="Logo do cliente">` : '<small>Sem logo: a capa mostra o nome do cliente.</small>'}</div>
+      <div class="plj-logo-previa" id="plj-logo-previa">${i.logo ? `<img src="${pljEsc(i.logo)}" alt="Logo do cliente">` : i.logo_drive ? `<img src="/api/painel?area=logo&c=${pljEsc(PLJ_ABERTO.cliente_id)}&v=${pljEsc(i.logo_drive)}" alt="Logo do cliente (do Drive)">` : '<small>Sem logo: a capa mostra o nome do cliente.</small>'}</div>
+      <div class="plj-logos-drive" id="plj-logos-drive"><small>Procurando os logos no Drive…</small></div>
       <label class="workflow-field"><span>Tom de voz (para o agente)</span><textarea id="plj-tom" rows="3" maxlength="400">${pljEsc(i.tom || '')}</textarea></label>
     </div>`;
+}
+// Logos do cliente achados no Drive: um clique escolhe (vale para a capa de todos os planejamentos).
+async function pljCarregarLogosDrive() {
+  const caixa = document.getElementById('plj-logos-drive');
+  if (!caixa) return;
+  try {
+    const d = await pljPedir(`acao=logos&cliente_id=${encodeURIComponent(PLJ_ABERTO.cliente_id)}`);
+    if (!caixa.isConnected) return;
+    const atual = PLJ_ABERTO.identidade?.logo_drive;
+    caixa.innerHTML = d.logos?.length ? `<span>Logos no Drive (clique para usar):</span><div class="plj-logos-grade">${d.logos.map((l) => `<button type="button" class="${l.id === atual ? 'ativo' : ''}" title="${pljEsc(l.nome)}" onclick="pljUsarLogoDrive('${pljEsc(l.id)}', this)">${l.miniatura ? `<img src="${pljEsc(l.miniatura)}" alt="" referrerpolicy="no-referrer">` : ''}<small>${pljEsc(l.nome)}</small></button>`).join('')}</div>`
+      : `<small>${pljEsc(d.aviso || 'Nenhuma imagem com "logo" e o nome do cliente no Drive. Cole o endereço de uma imagem acima.')}</small>`;
+  } catch (e) { if (caixa.isConnected) caixa.innerHTML = `<small>Não deu para procurar no Drive: ${pljEsc(e.message)}</small>`; }
+}
+async function pljUsarLogoDrive(id, botao) {
+  botao.disabled = true;
+  try {
+    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: '', logo_drive: id, tom: document.getElementById('plj-tom')?.value || '' });
+    PLJ_ABERTO.identidade = d.identidade;
+    showToast('Logo escolhido. A capa já sai com ele.', 'success');
+    pintarPlanejamento('identidade');
+  } catch (e) { botao.disabled = false; showToast(e.message, 'error', 5000); }
 }
 function pljPreverLogo(v) {
   const el = document.getElementById('plj-logo-previa');
@@ -294,7 +364,7 @@ async function salvarIdentidadePlanejamento(botao) {
   botao.disabled = true;
   const v = (id) => document.getElementById(id)?.value || '';
   try {
-    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: v('plj-logo'), tom: v('plj-tom') });
+    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: v('plj-logo'), logo_drive: v('plj-logo') ? '' : PLJ_ABERTO.identidade?.logo_drive || '', tom: v('plj-tom') });
     PLJ_ABERTO.identidade = d.identidade;
     showToast('Salvo. O documento já sai com o logo.', 'success');
     pintarPlanejamento('documento');
@@ -305,7 +375,8 @@ async function salvarIdentidadePlanejamento(botao) {
 function confirmarEnvioPlanejamento() {
   const acoes = document.querySelector('#workflow-modal .plj-acoes');
   if (!acoes) return;
-  acoes.innerHTML = `<label class="plj-check"><input id="plj-email" type="checkbox" checked> Mandar cópia para o e-mail do cliente</label>
+  const r = PLJ_ABERTO.revisao || {}, falta = (r.total || 0) - (r.head_ok || 0);
+  acoes.innerHTML = `${falta > 0 ? `<p class="plj-aviso-falha">${r.head_ajustar ? `${r.head_ajustar} ${r.head_ajustar === 1 ? 'peça marcada' : 'peças marcadas'} para ajustar` : `${falta} ${falta === 1 ? 'peça' : 'peças'} sem o seu OK`}. Dá para mandar assim mesmo.</p>` : ''}<label class="plj-check"><input id="plj-email" type="checkbox" checked> Mandar cópia para o e-mail do cliente</label>
     <button type="button" class="workflow-secondary" onclick="pintarPlanejamento('documento')">Voltar</button>
     <button type="button" class="workflow-primary" onclick="enviarPlanejamento(this)">Gerar link e salvar no Drive →</button>`;
 }
@@ -318,19 +389,21 @@ async function enviarPlanejamento(botao) {
     pintarPlanejamento('documento');
     // O cliente aprova pelo VybeHub dele (Paulo, 20/10/2026); o link direto
     // continua para quem não entrou no portal.
+    // Um link só: o do VybeHub do cliente (Paulo, 20/10/2026: "não era pra gerar 2 links").
+    // O link direto fica guardado para cliente sem acesso ao portal.
     const portal = typeof ESCRITORIO_VYBEHUB !== 'undefined' && typeof escritorioSlugCliente === 'function'
       ? `${ESCRITORIO_VYBEHUB}/cliente/${escritorioSlugCliente(PLJ_ABERTO.cliente)}/planejamentos` : '';
-    const texto = portal
-      ? `Olá! O planejamento de conteúdo de ${pljMes(PLJ_ABERTO.mes).toLowerCase()} está no seu VybeHub para aprovar: ${portal}\n\nSe preferir, aprove direto por aqui: ${d.link}`
-      : `Olá! Segue o planejamento de conteúdo de ${pljMes(PLJ_ABERTO.mes).toLowerCase()} para você aprovar: ${d.link}`;
+    const principal = portal || d.link;
+    const texto = `Olá! O planejamento de conteúdo de ${pljMes(PLJ_ABERTO.mes).toLowerCase()} está ${portal ? 'no seu VybeHub' : 'pronto'} para você aprovar peça por peça: ${principal}`;
     const m = document.getElementById('workflow-modal');
     m?.querySelector('.plj-topo')?.insertAdjacentHTML('afterend', `<div class="plj-link">
-      <b>Link pronto. Mande para o cliente no WhatsApp:</b>
-      <div class="plj-link-linha"><input type="text" readonly value="${pljEsc(d.link)}" aria-label="Link de aprovação" onclick="this.select()">
-        <button type="button" class="cli-porta" onclick="pljCopiar(this, '${pljEsc(d.link)}')">Copiar</button>
+      <b>Pronto. Mande para o cliente no WhatsApp:</b>
+      <div class="plj-link-linha"><input type="text" readonly value="${pljEsc(principal)}" aria-label="Link para o cliente" onclick="this.select()">
+        <button type="button" class="cli-porta" onclick="pljCopiar(this, '${pljEsc(principal)}')">Copiar</button>
         <a class="cli-porta" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}">Abrir no WhatsApp ↗</a></div>
-      ${portal ? `<small>A mensagem do WhatsApp leva o cliente ao VybeHub dele (${pljEsc(portal.replace(/^https:\/\//, ''))}) e traz o link direto como reserva.</small>` : ''}
-      <small>O link vale 30 dias. Se você editar o planejamento, ele deixa de valer.</small>
+      ${portal ? `<details class="plj-reserva"><summary>Cliente sem acesso ao VybeHub?</summary><small>Link direto, sem login (vale 30 dias):</small>
+        <div class="plj-link-linha"><input type="text" readonly value="${pljEsc(d.link)}" aria-label="Link direto" onclick="this.select()"><button type="button" class="cli-porta" onclick="pljCopiar(this, '${pljEsc(d.link)}')">Copiar</button></div></details>` : ''}
+      <small>Se você editar o planejamento, ele sai do cliente até você mandar de novo.</small>
       ${(d.avisos || []).map((a) => `<p class="plj-aviso-falha">${pljEsc(a)}</p>`).join('')}</div>`);
     pljAtualizarFora();
   } catch (e) { botao.disabled = false; botao.textContent = 'Gerar link e salvar no Drive →'; showToast(e.message, 'error', 6000); }

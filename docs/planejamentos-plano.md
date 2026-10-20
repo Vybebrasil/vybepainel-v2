@@ -211,3 +211,42 @@ tinha.
 - O que foi cortado em 600 letras antes da correção não volta: precisa
   republicar. O botão "Reabrir para editar" agora também aparece quando o
   planejamento está com o cliente (o link deixa de valer).
+
+## Peça por peça, um link só e logos do Drive (20/10/2026)
+
+Pedidos do Paulo:
+- aprovar e reprovar cada conteúdo, primeiro o head, depois o cliente;
+- um link só (o do VybeHub);
+- a diagramação do documento dentro do VybeHub;
+- logos dos clientes do Drive;
+- Centro de Operação mais claro.
+
+- **Decisões por peça:**
+  - Ficam em `conteudo.revisoes`, chaveadas pela assinatura do conteúdo da
+    peça (`assinaturaDaPeca`). Peça que muda perde a decisão; a que não muda
+    continua aprovada na rodada seguinte.
+  - Só o servidor grava decisões (`revisarPecaHead`, `marcarPecaPorLink`,
+    `marcarPecaDoPortal`). Edição e publicação do agente trazem as decisões
+    do banco, nunca as do pedido.
+- **Head:** revisa na aba Documento (o mesmo documento, `revisor: 'head'`),
+  com "Peça OK" ou "Ajustar" com nota. O agente lê os ajustes por peça em
+  `ver_planejamento`. A revisão interna nunca vai para o cliente.
+- **Cliente:**
+  - Em cada peça, "Aprovar esta peça" ou "Pedir ajuste", salvo na hora. No fim,
+    "Enviar respostas": as peças sem resposta contam como aprovadas, e qualquer
+    ajuste devolve ao head.
+  - O cadastro continua só com tudo aprovado.
+- **VybeHub:** mostra o documento do painel num quadro (`rota: documento`,
+  `modo: 'portal'`) e grava pelo login do cliente (`rota: marcar` e
+  `responder`). É uma diagramação só.
+- **Envio:** a mensagem do WhatsApp leva só o link do VybeHub. O link direto
+  fica guardado em "Cliente sem acesso ao VybeHub?".
+- **Logos:**
+  - `logosNoDrive` procura imagens com "logo" e o nome do cliente.
+  - Ao mandar, sem logo escolhido, usa o melhor achado.
+  - A aba "Marca do cliente" mostra as opções para trocar.
+  - A capa usa `area=logo`, que serve o arquivo do Drive sem torná-lo público.
+- **Centro de Operação:**
+  - O balão ficava atrás das outras etiquetas (`z-index` 5 contra 99500).
+  - Agora cada agente com planejamento mostra a situação escrita e o placar
+    ("Com o cliente · 8 de 18 respondidas").
