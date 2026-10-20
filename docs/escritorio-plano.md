@@ -1079,3 +1079,7 @@ decoração inicial "bem feito".
   `2026-10-20-escritorio-conquistas.sql` (marcador `conquistas-2026-10-20`)
   devolve, uma vez, o móvel a quem já tinha a conquista: os reinícios de
   18 e 19/10 apagaram os troféus.
+- Bolo por peça (Paulo, 20/10/2026): fatias por papel, Mizinho em toda foto e
+  vídeo, DA com 10% da Criação, recomeço com o histórico refeito. Detalhes em
+  `docs/escritorio-pontos.md`; migração `2026-10-20-escritorio-bolo-por-peca.sql`
+  (marcador `bolo-2026-10-20`), aplicada só depois do OK do Paulo nos números.

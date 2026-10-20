@@ -421,3 +421,45 @@ muito XP, vários marcos de nível já saem conquistados no primeiro dia.
   um móvel da venda e deixá-lo só por marco: `marco='maratona'` (ids em
   `server/escritorio-marcos.js`).
 - Valor da conquista dos marcos: regra `conquista` em `vybe_escritorio_regras`.
+
+## Bolo por peça (decisão do Paulo, 20/10/2026)
+
+Cada peça concluída gera um bolo do tamanho do formato: 10 moedas e 20 XP por
+ponto de peso (`vybe_escritorio_complexidade`). O bolo é dividido por quem
+trabalhou na peça, pelas fatias de `vybe_escritorio_fatias`:
+
+| Peça | Produção | Criação | Atendimento | Agendamento | Gestão |
+|---|---|---|---|---|---|
+| Foto, reels, vídeo (`captada`) | 25% | 53% | 10% | 10% | 2% |
+| Demais | — | 70% | 15% | 12% | 3% |
+
+A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
+(regra `cadastro`) e mais pelo briefing escrito (`briefing`), de qualquer função.
+
+- Toda foto e todo vídeo é do Mizinho (Produção), pelo formato ou pela captação.
+- O DA (`vybe_escritorio_funcoes.direcao_arte`, Deivid) que tira de "Para
+  aprovação" para "Para agendar" a peça de outra pessoa fica com 10% da fatia
+  da Criação; quem fez é quem está como responsável no log. Se o DA fez a peça,
+  fica com a fatia inteira.
+- Criação, DA, Produção, Atendimento e Gestão recebem na conclusão (Produção:
+  primeira chegada a Para agendar/Agendado/Finalizado; Solicitações:
+  Finalizado/Feito, com todos os responsáveis na parte da Criação). O
+  Agendamento recebe quando agenda. Origem `peca:<id>:<papel>`: não paga duas vezes.
+- Bônus de prazo, aprovada de primeira e perda por alteração continuam.
+- Regras antigas por função (`entrega`, `criacao_aprovacao`, `captacao`,
+  `carteira`, `agendamento`, `agencia`, `chegada`) ficam inativas.
+- Recomeço único (`2026-10-20-escritorio-bolo-por-peca.sql`, marcador
+  `bolo-2026-10-20`): moedas, XP, conquistas e móveis de conquista zeram (com
+  cópia em `vybe_escritorio_copia_bolo_*`) e o log inteiro é refeito pela regra
+  nova, evento a evento, com a data de cada um. Antes de 17/10 vale o XP
+  inteiro e 20% das moedas (regra `historico`). Móveis comprados continuam e,
+  depois das conquistas refeitas, `2026-10-20-escritorio-bolo-compras.sql`
+  (marcador `bolo-compras-2026-10-20`) desconta o preço de cada compra do saldo
+  novo, na data da compra, sem ficar negativo.
+  Fechamentos do dia e da semana recomeçam (o ciclo diário fecha os últimos 7
+  dias de novo).
+
+- Ficha do móvel no mapa (`acao=movel-origem`, `origemDoMovel` em
+  `server/escritorio-social.js`): de quem é a sala, raridade e preço, e como o
+  dono conseguiu cada unidade (compra, presente, troca, conquista, essencial,
+  sala comum), com "Ver no catálogo" para o que está à venda.
