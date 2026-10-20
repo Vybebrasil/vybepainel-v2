@@ -785,6 +785,9 @@ function mapaBonecoPronto(url, aoCarregar) {
 // ladrilho levava 172 ms e só dois quadros apareciam).
 // No Habbo o boneco anda um ladrilho a cada 500 ms (o ciclo do quarto).
 const MAPA_PASSO_MS = 500; // ms por ladrilho (2 ladrilhos por segundo)
+// Maior palco (em pixels da tela) que vira camada da placa de vídeo ao mover a
+// câmera: 4096², o limite de textura das placas fracas.
+const MAPA_CAMADA_MAX_PX = 4096 * 4096;
 // Quadro da animação do boneco no ritmo do Nitro (AvatarVisualization:
 // atualiza a cada 41 ms e troca o quadro a cada 2 atualizações = 82 ms, uns
 // 12 por segundo). Antes eram 125 ms e as pernas pareciam travadas.
@@ -2213,8 +2216,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
   const alvo = { x: 0, y: 0, z: 1 };
   let inercia = null, quadroCam = null, ultimoCam = 0, seguindo = true, salto = null, contra = 0;
   const reduzMov = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  // Sem will-change/translate3d: o palco tem ~4500×2400 px e virar uma camada
-  // de GPU inteira deixava trechos pretos e bonecos sumindo em placas fracas.
+  // Sem will-change fixo: o antigo palco de ~4500×2400 px como camada deixava
+  // trechos pretos em placas fracas. Hoje a camada só existe com a câmera em
+  // movimento e num palco que cabe numa textura (camadaDaCamera).
   // Letreiros com tamanho mínimo na tela: abaixo de ~0,9 de zoom crescem
   // na mesma proporção em que o mapa diminui.
   const aplicar = () => {
@@ -2224,8 +2228,25 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     const c = Math.round(Math.max(1, 0.9 / zoom) * 20) / 20;
     if (c !== contra) { contra = c; palco.style.setProperty("--contra", c.toFixed(2)); }
   };
+  // Camada própria só enquanto a câmera se mexe (Paulo, 19/10/2026: o Centro
+  // de Operação travava ao andar). Sem ela, cada passo da câmera fazia o
+  // navegador repintar todos os desenhos da sala (~430 no Centro); com ela a
+  // placa só desloca a imagem pronta. Parada, volta ao normal (nítida no zoom
+  // novo e sem memória presa). O aviso antigo valia para o mapa geral de
+  // ~4500×2400; as cenas de hoje são menores, e palco grande demais para uma
+  // textura continua sem camada.
+  let camada = false;
+  const camadaDaCamera = (ligar) => {
+    if (ligar === camada) return;
+    const area = palco.offsetWidth * palco.offsetHeight * (window.devicePixelRatio || 1) ** 2;
+    // Mapa escondido (outra aba do painel) ou palco grande demais: sem camada.
+    if (ligar && (!area || area > MAPA_CAMADA_MAX_PX)) return;
+    camada = ligar;
+    palco.style.willChange = ligar ? "transform" : "";
+  };
   const animarCam = (agora) => {
     quadroCam = null;
+    camadaDaCamera(true);
     const dt = Math.min(64, agora - (ultimoCam || agora - 16)); ultimoCam = agora;
     if (inercia) {
       alvo.x += inercia.vx * dt; alvo.y += inercia.vy * dt;
@@ -2249,7 +2270,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
     if (parado) { zoom = alvo.z; cam.x = alvo.x = Math.round(alvo.x); cam.y = alvo.y = Math.round(alvo.y); }
     aplicar();
     if (!parado) quadroCam = requestAnimationFrame(animarCam);
-    else ultimoCam = 0;
+    else { ultimoCam = 0; camadaDaCamera(false); }
   };
   const mexerCam = () => { if (!quadroCam) quadroCam = requestAnimationFrame(animarCam); };
   function centralizar(x, y, z) {
