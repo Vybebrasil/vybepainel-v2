@@ -169,10 +169,10 @@ function saudeDaRegra(a) {
   }
   if (recentes) {
     return { chave: 'trabalhando', rotulo: 'trabalhando',
-      detalhe: `${recentes}× em ${DIAS_PARA_CONSIDERAR_PARADA} dias · última ${quandoFoi(ultima)}` };
+      detalhe: `${recentes}× em ${DIAS_PARA_CONSIDERAR_PARADA} dias · última ${quandoFoiAutomacao(ultima)}` };
   }
   return { chave: 'parada', rotulo: 'parada',
-    detalhe: `${total}× no total · última ${quandoFoi(ultima)}` };
+    detalhe: `${total}× no total · última ${quandoFoiAutomacao(ultima)}` };
 }
 
 // Um palpite honesto, dito como palpite. Vale mais que "nunca rodou" sozinho,
@@ -186,7 +186,7 @@ function motivoDeNuncaTerRodado(a) {
   return usado ? 'esse status ainda não foi usado' : '';
 }
 
-function quandoFoi(data) {
+function quandoFoiAutomacao(data) {
   if (!data || Number.isNaN(data.getTime())) return 'sem data';
   const hoje = new Date();
   const dias = Math.floor((hoje - data) / 86400000);

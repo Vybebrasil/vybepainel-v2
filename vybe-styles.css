@@ -7224,7 +7224,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-cobranca-cliente small {padding:0 6px;border-radius:6px;background:#ffffff14;font:700 10px var(--mac-ui)}
 .ofc-cobranca {display:grid;gap:2px;width:100%;padding:6px 8px;border-radius:9px;border:1px solid #ffffff12;background:#ffffff08;color:inherit;text-align:left;cursor:pointer;font-family:var(--mac-ui)}
 .ofc-cobranca:hover, .ofc-cobranca:focus-visible {border-color:#ff954866;outline:none}
-.ofc-cobranca span {font:600 11.5px/1.3 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-cobranca > span {font:600 11.5px/1.3 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ofc-cobranca .ofc-missao-prazo {justify-self:start}
 
 /* ══ Interface de jogo do Escritório (pedido do Paulo, 19/10/2026: "mais
@@ -7844,3 +7844,16 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
    cobria o outro: com a barra à vista, o aviso fica logo acima dela. */
 body:has(#office-dock:not([hidden])) .plj-aviso {bottom:76px}
 @media(max-width:760px){body:has(#office-dock:not([hidden])) .plj-aviso {bottom:96px}}
+/* Cobranças no padrão do painel (Paulo, 19/10/2026: "melhora tudo aqui"):
+   cliente com a etiqueta da carteira e preso no topo ao rolar; cada demanda
+   com o título inteiro (até 2 linhas) e, embaixo, a data e o status com a
+   cor do quadro. Cartões mais justos para caber mais. */
+.ofc-cobrancas-lista {gap:10px;padding-right:2px}
+.ofc-cobrancas-lista > li > ul {gap:4px;margin-top:5px}
+.ofc-cobrancas-lista .ofc-cobranca-cliente {position:sticky;top:0;z-index:1;padding:3px 0 3px 8px;background:var(--jg-painel,#1c1e27)}
+.ofc-cobranca-cliente .cliente-carteira {font:700 11.5px/1.4 var(--mac-ui);padding:1px 7px;border-radius:6px}
+.ofc-cobranca {gap:4px;padding:6px 9px}
+.ofc-cobranca .ofc-cobranca-titulo {display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;font:600 12px/1.3 var(--mac-ui)}
+.ofc-cobranca .ofc-cobranca-linha {display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;white-space:normal;overflow:visible}
+.ofc-cobranca .ofc-cobranca-linha .pill {font-size:10px;padding:1px 7px}
+.ofc-cobranca .ofc-cobranca-linha .ofc-missao-prazo {font-size:10px}
