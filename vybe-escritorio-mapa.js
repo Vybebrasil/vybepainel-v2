@@ -1401,7 +1401,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, eu
       etiqueta.classList.toggle("grita", k === 0);
       etiqueta.style.setProperty("--sobe", (k % 2) * 20 + "px");
       etiqueta.title = v.dica || "";
-      const abrir = (e) => { e.stopPropagation(); v.aoClicar?.(); };
+      const abrir = (e) => { e.stopPropagation(); v.aoClicar?.(e); };
       for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }
       palco.append(etiqueta, no);
       const p = { id: "visitante-" + k, no, img, etiqueta, x, y, dir, acao: l.acao, figura: v.figura, mao: "" };
