@@ -79,17 +79,19 @@ export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja
  if (!await economiaPronta(sql)) return {disponivel:false, motivo:'A loja aguarda a migração revisada do banco.'};
  // Marcos primeiro: o móvel de um marco recém-conquistado já aparece no inventário.
  const lista = marcos ? await conferirMarcos(sql, pessoaId, agora) : null;
- const [carteira] = await sql`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
- const inventario = await sql`SELECT classe,quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId}`;
- const conquistas = await sql`SELECT origem,criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%' ORDER BY criado_em`;
+ const [[carteira], inventario, conquistas] = await Promise.all([
+  sql`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`,
+  sql`SELECT classe,quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId}`,
+  sql`SELECT origem,criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%' ORDER BY criado_em`]);
  // Pontos (XP, meta e extrato) chegam depois da migração própria; sem ela, null.
  return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,
   pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, ...(loja ? await extrasDaLoja(sql, pessoaId, agora) : {})};
 }
 // Só com a loja (janela do catálogo, compras): a entrada do escritório fica leve.
 async function extrasDaLoja(sql, pessoaId, agora) {
- const loja = await carregarLoja(sql, agora);
- return { loja, origens: await origensDoInventario(sql, pessoaId), ritmo: await ritmoDeMoedas(sql, pessoaId, agora), kits: await kitsDaLoja(sql, agora, loja) };
+ // Ao mesmo tempo: uma consulta por vez levava ~8 s com a loja aberta.
+ const [loja, origens, ritmo] = await Promise.all([carregarLoja(sql, agora), origensDoInventario(sql, pessoaId), ritmoDeMoedas(sql, pessoaId, agora)]);
+ return { loja, origens, ritmo, kits: await kitsDaLoja(sql, agora, loja) };
 }
 // Como a pessoa conseguiu cada móvel (para os filtros do inventário):
 // compra, kit, presente, troca ou prêmio (Paulo, 20/10/2026).

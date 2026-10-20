@@ -133,23 +133,26 @@ export async function fecharPontosEscritorio(sql, agora = new Date(), { janela =
 // O que a ficha mostra da própria pessoa: nível, meta da semana e extrato.
 export async function resumoPontos(sql, pessoaId, agora = new Date()) {
   if (!await pontosProntos(sql)) return null;
-  const [c] = await sql`SELECT xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
-  const [f] = await sql`SELECT funcao,carteira FROM vybe_escritorio_funcoes WHERE pessoa_id=${pessoaId}`;
-  const meta = await metaDaSemana(sql, pessoaId, inicioDaSemana(diaBahia(agora)));
-  const extrato = await sql`SELECT m.origem,m.regra,m.quantidade AS moedas,m.pontos,m.criado_em,
+  // Ao mesmo tempo: em sequência a ficha e a carteira demoravam segundos.
+  const [[c], [f], meta] = await Promise.all([
+    sql`SELECT xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`,
+    sql`SELECT funcao,carteira FROM vybe_escritorio_funcoes WHERE pessoa_id=${pessoaId}`,
+    metaDaSemana(sql, pessoaId, inicioDaSemana(diaBahia(agora)))]);
+  const extratoP = sql`SELECT m.origem,m.regra,m.quantidade AS moedas,m.pontos,m.criado_em,
       COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compra na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquista' WHEN m.origem LIKE 'reembolso:%' THEN 'Devolução de compra' WHEN m.origem LIKE 'ajuste:economia%' THEN 'Ajuste da nova economia' ELSE m.origem END) AS descricao
     FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
     WHERE m.pessoa_id=${pessoaId} ORDER BY m.criado_em DESC, m.id DESC LIMIT 12`;
   // Ganhos da semana agrupados por regra (Paulo, 20/10/2026: o extrato
   // repetia "Demanda criada com briefing" linha a linha) e a tabela de como
   // a pessoa ganha, para a ficha explicar de onde vem cada coisa.
-  const ganhos = await sql`SELECT COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compras na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquistas' WHEN m.origem LIKE 'reembolso:%' THEN 'Devoluções de compra' WHEN m.origem LIKE 'ajuste:economia%' THEN 'Ajuste da nova economia' ELSE 'Outros' END) AS descricao,
+  const ganhosP = sql`SELECT COALESCE(g.descricao, CASE WHEN m.origem LIKE 'compra:%' THEN 'Compras na loja' WHEN m.origem LIKE 'conquista:%' THEN 'Conquistas' WHEN m.origem LIKE 'reembolso:%' THEN 'Devoluções de compra' WHEN m.origem LIKE 'ajuste:economia%' THEN 'Ajuste da nova economia' ELSE 'Outros' END) AS descricao,
       COUNT(*)::int AS vezes, COALESCE(SUM(m.quantidade),0)::int AS moedas, COALESCE(SUM(m.pontos),0)::int AS pontos, MAX(m.criado_em) AS ultimo
     FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
     WHERE m.pessoa_id=${pessoaId} AND m.criado_em >= ${agora}::timestamptz - interval '7 days'
     GROUP BY 1 ORDER BY 4 DESC, 3 DESC, 2 DESC LIMIT 15`;
-  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, ganhos, regras: await regrasDaFuncao(sql, f?.funcao || null), bolo: await fatiasDoBolo(sql),
-    trabalho: await resumoTrabalho(sql, pessoaId, f?.funcao || null, agora), missoes: await tabelaDasMissoes(sql, f?.funcao || null) };
+  const [extrato, ganhos, regras, bolo, trabalho, missoes] = await Promise.all([extratoP, ganhosP, regrasDaFuncao(sql, f?.funcao || null), fatiasDoBolo(sql),
+    resumoTrabalho(sql, pessoaId, f?.funcao || null, agora), tabelaDasMissoes(sql, f?.funcao || null)]);
+  return { ...nivelPorXp(c?.xp || 0), funcao: f?.funcao || null, carteira: f?.carteira || null, meta, extrato, ganhos, regras, bolo, trabalho, missoes };
 }
 // Todas as regras que valem para a função (e as de todo mundo), com o valor
 // da tabela: é o "como ganhar" da ficha. Peso por formato só com a migração.
