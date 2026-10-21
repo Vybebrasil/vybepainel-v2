@@ -256,7 +256,7 @@ function escritorioPintando() {
 async function cliqueEditorEscritorio(x, y) {
   if (!escritorio.edicao || escritorioCameraEditor()) return;
   if (escritorio.edicao?.colar) { soltarColarEscritorio(Math.floor(x), Math.floor(y)); return; }
-  if (escritorioPintando()) { if (!pintarNaSalaEscritorio(Math.floor(x), Math.floor(y), x, y) && escritorioPincel().ferramenta !== "balde") escritorioAviso(escritorioPincel().ferramenta === "parede" ? "Clique no piso encostado numa parede da sua sala." : "Pinte dentro da sua sala."); return; }
+  if (escritorioPintando()) { if (!pintarNaSalaEscritorio(Math.floor(x), Math.floor(y), x, y) && escritorioPincel().ferramenta !== "balde") escritorioAviso(escritorioPincel().ferramenta === "parede" ? "Clique numa parede da sua sala (ou no piso encostado nela)." : "Pinte dentro da sua sala."); return; }
   const e = escritorio.edicao, c = escritorioCantoCamada(e.camada);
   const lx = Math.floor(x) - c.x, ly = Math.floor(y) - c.y;
   // Quadro: vai na parede alta mais perto do ladrilho clicado.

@@ -1171,3 +1171,22 @@ decoração inicial "bem feito".
 - "Não deveria poder desligar os objetos animados?": a ficha tem "Ligar ou
   desligar" para a peça que só troca de estado (tela, telefone, globo), com o
   mesmo `furni:toggle` do duplo clique (vale para todos na sala).
+
+### Construção: consertos da reforma, do pincel e do clique — 20/10/2026
+
+- "Aumentar ou reformar não faz nada": no modo construção, o aviso "salve ou
+  cancele" ficava atrás da janela do Meu espaço. Agora: sem mudança, a
+  construção fecha sozinha; com mudança, a própria janela pergunta (Salvar e
+  reformar, Descartar e reformar, Voltar).
+- "Clico num quadrado e pinta vários": o piso do acervo de 2×2 ou 4×4 ia
+  inteiro em cada ladrilho clicado. Encaixa na grade do próprio tamanho
+  (`escritorioEncaixePiso`) e troca as peças de piso da área; o tamanho vem do
+  JSON da peça e o clique espera até ele chegar.
+- Parede: o clique na própria parede pinta aquele trecho
+  (`escritorioTrechoDaParede`), além do piso encostado. As amostras mostram a
+  arte do painel do Habbo que o mapa usa em cada estilo.
+- "Não clica nem brilha a mesa, o painel da parede": o botão de cada boneco
+  (64 × 110) tapava tudo atrás. O clique é só no corpo (`.mapa-alvo`), e o
+  móvel desenhado na frente do boneco ganha o clique e o brilho (`alvoNaFrente`).
+- `mapaCarregarMovel` espera o load da imagem, não o `decode()`, que às vezes
+  não termina; a peça ficava presa sem aparecer.
