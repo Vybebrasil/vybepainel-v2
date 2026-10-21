@@ -8994,52 +8994,73 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
   .provador .prov-sacola .abr-acoes > * {flex:1}
 }
 
-/* Meu espaço (21/10/2026, a linguagem do Provador): três cartões grandes, o
-   boneco no pedestal, a prévia de verdade do térreo e o segundo andar; o
-   recomeço em branco fica no rodapé, como ação à parte. */
+/* Meu espaço como menu de jogo (21/10/2026; Paulo: "tudo muito duro"):
+   três peças do mesmo tamanho, cartão escuro neutro com degrau, a cor de
+   cada uma só no ícone, no brilho do palco e no texto pequeno; sobe no hover,
+   afunda no clique e as três entram em cascata. */
 .abr-painel.espaco {--prov-brilho:#ff8a35;--prov-linha:#ffffff14;--prov-suave:#9aa1b2;width:min(1080px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:0;gap:0;overflow:auto;
   display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr auto;background:radial-gradient(120% 70% at 30% 0%,#2a2433f0,transparent 60%),linear-gradient(180deg,#191b24f5,#101117f7);border-color:#ffffff1a}
 .abr-painel.espaco > * {grid-area:auto}
-.espaco .prov-topo {padding-right:16px}
-.esp-fechar {width:36px;height:36px;border-radius:50%;border:1px solid var(--prov-linha);background:#ffffff0d;color:#fff;font:400 22px/1 var(--mac-ui);cursor:pointer}
-.esp-grade {display:grid;grid-template-columns:minmax(250px,.8fr) minmax(0,1.5fr);grid-template-rows:1fr auto;gap:14px;padding:18px 22px}
-.esp-cartao {position:relative;display:grid;align-content:end;gap:10px;min-width:0;padding:14px;border-radius:20px;border:1px solid var(--prov-linha);background:linear-gradient(180deg,#ffffff0a,#ffffff04);color:#eef0f5;text-align:left;cursor:pointer;overflow:hidden;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
-.esp-cartao:hover {transform:translateY(-2px);border-color:#ff8a3566;box-shadow:0 16px 36px #0008}
-.esp-cartao:focus-visible,.esp-fechar:focus-visible {outline:3px solid #ffb27a;outline-offset:3px}
-.esp-personagem {grid-row:1/3;grid-template-rows:1fr auto auto}
-.esp-palco {position:relative;display:grid;place-items:end center;min-height:300px;margin:-14px -14px 0;overflow:hidden;
-  background:radial-gradient(60% 18% at 50% 86%,#ff8a3555,transparent 72%),radial-gradient(80% 70% at 50% 0%,#ffffff10,transparent 70%),linear-gradient(180deg,#15161d,#0c0d12)}
-.esp-palco img {position:relative;z-index:2;width:128px;height:220px;margin-bottom:34px;image-rendering:pixelated;filter:drop-shadow(0 12px 9px #000a)}
-.esp-palco .prov-pedestal {position:absolute;left:50%;bottom:18px;width:180px;height:48px;transform:translateX(-50%)}
-.esp-texto {display:grid;gap:3px}
-.esp-texto b {color:#fff;font:800 19px/1.15 var(--mac-ui);letter-spacing:-.015em}
-.esp-texto small {color:var(--prov-suave);font:500 13px/1.4 var(--mac-ui)}
-.esp-acao {justify-self:start;padding:9px 16px;border-radius:12px;background:#ffffff12;border:1px solid #ffffff1f;color:#fff;font:700 13px var(--mac-ui)}
-.esp-acao.primaria {background:linear-gradient(180deg,#ff8a35,#ff6b1a);border-color:transparent;color:#1d0d02;box-shadow:0 8px 22px #ff6b1a55,inset 0 1px #fff6}
-.esp-quarto {grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:end}
-.esp-quarto .esp-previa {grid-column:1/-1;margin:-14px -14px 0}
-.abr-previa-quarto.esp-previa,.esp-previa-vazia {height:min(300px,36vh);border-radius:0;background:radial-gradient(70% 60% at 50% 50%,#ffffff0a,transparent),#0c0d12}
-.esp-andar {grid-template-columns:auto minmax(0,1fr) auto;align-items:center;align-content:center}
-.esp-andar.novo {border-style:dashed;border-color:#ffffff2a;background:transparent}
-.esp-icone {display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#ff8a351f;color:#ffb27a}
-.esp-icone .ofc-ico {width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.esp-rodape {justify-content:space-between}
-.esp-nota {margin:0;color:var(--prov-suave);font:500 12.5px var(--mac-ui)}
-.espaco .esp-branco {border-color:#ff6b6b55;color:#ffb3b3;background:#ff6b6b12}
-.espaco .esp-branco:hover {background:#ff6b6b24}
-.espaco .prov-sacola .abr-acoes {position:static;margin:0;padding:0;background:none}
-@media (prefers-reduced-motion:reduce) {.esp-cartao{transition:none}.esp-cartao:hover{transform:none}}
+.espaco .prov-topo {gap:10px;padding-right:16px}
+.esp-chip-topo {display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;background:#ffffff0d;border:1px solid var(--prov-linha);color:#cfd3dc;font:600 13px var(--mac-ui);white-space:nowrap}
+.esp-chip-topo b {color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+.esp-chip-topo .ofc-ico {width:15px;height:15px;fill:none;stroke:#f5c542;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.esp-fechar {width:36px;height:36px;margin-left:4px;border-radius:50%;border:1px solid var(--prov-linha);background:#ffffff0d;color:#fff;font:400 22px/1 var(--mac-ui);cursor:pointer}
+.esp-fechar:hover {background:#ffffff1a}
+.esp-grade {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:20px 22px 18px}
+.esp-peca {--c:#ff8a35;position:relative;display:grid;grid-template-rows:1fr auto;min-width:0;padding:0;border-radius:20px;overflow:hidden;cursor:pointer;color:#fff;text-align:left;font:inherit;
+  border:1px solid #ffffff14;background:linear-gradient(180deg,#232634,#191b25);box-shadow:inset 0 1px 0 #ffffff12,0 4px 0 #0a0b10,0 12px 26px #0008;
+  transition:transform var(--jg-mov,.16s ease),box-shadow var(--jg-mov,.16s ease),border-color var(--jg-mov,.16s ease);animation:esp-entra .42s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
+.esp-peca:nth-child(2) {animation-delay:.07s}.esp-peca:nth-child(3) {animation-delay:.14s}
+@keyframes esp-entra {from {opacity:0;transform:translateY(14px) scale(.98)}}
+.esp-peca:hover {transform:translateY(-3px);border-color:color-mix(in srgb,var(--c) 45%,#ffffff14);box-shadow:inset 0 1px 0 #ffffff12,0 6px 0 #0a0b10,0 18px 32px #0009}
+.esp-peca:active {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff0d,0 0 0 #0a0b10,0 3px 8px #0008}
+.esp-peca:focus-visible,.esp-fechar:focus-visible {outline:3px solid color-mix(in srgb,var(--c,#ff8a35) 70%,#fff);outline-offset:3px}
+.esp-peca-palco {position:relative;display:grid;place-items:end center;min-height:250px;overflow:hidden;border-bottom:1px solid #ffffff0f;
+  background:radial-gradient(60% 20% at 50% 88%,color-mix(in srgb,var(--c) 34%,transparent),transparent 72%),radial-gradient(90% 70% at 50% 0%,#ffffff0d,transparent 70%),linear-gradient(180deg,#15161d,#0c0d12)}
+.esp-peca-palco .prov-holofote {opacity:.8}
+.esp-peca-palco .esp-boneco {position:relative;z-index:2;width:116px;height:200px;margin-bottom:26px;image-rendering:pixelated;filter:drop-shadow(0 12px 9px #000a)}
+.esp-peca-palco .prov-pedestal {position:absolute;left:50%;bottom:12px;width:160px;height:44px;transform:translateX(-50%)}
+.esp-peca-palco .esp-previa {position:absolute;inset:0;width:auto;height:auto;border-radius:0;background:none}
+.esp-palco-vazio {place-self:center;display:grid;place-items:center;width:78px;height:78px;border-radius:22px;border:1px dashed #ffffff2a;color:#ffffff55}
+.esp-palco-vazio .ofc-ico,.esp-andares-mais .ofc-ico {width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* Segundo andar desenhado: duas lajes empilhadas; sem andar, a de cima é tracejada. */
+.esp-andares {place-self:center;position:relative;width:150px;height:130px}
+.esp-andares i {position:absolute;left:50%;width:120px;height:70px;transform:translateX(-50%) rotateX(58deg) rotateZ(45deg);border-radius:10px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--c) 55%,#2a2d3a),color-mix(in srgb,var(--c) 25%,#15161d));box-shadow:0 10px 0 color-mix(in srgb,var(--c) 30%,#08090d),0 22px 26px #000a}
+.esp-andares i:first-child {top:62px;filter:saturate(.5) brightness(.75)}
+.esp-andares i:nth-child(2) {top:10px;animation:esp-flutua 3.2s ease-in-out infinite}
+.esp-andares:not(.tem) i:nth-child(2) {background:#ffffff08;border:2px dashed color-mix(in srgb,var(--c) 60%,#fff);box-shadow:none}
+.esp-andares-mais {position:absolute;left:50%;top:26px;transform:translateX(-50%);display:grid;place-items:center;width:44px;height:44px;border-radius:14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 88%,#fff),color-mix(in srgb,var(--c) 80%,#000));color:#fff;box-shadow:inset 0 1px 0 #ffffff66,0 3px 0 color-mix(in srgb,var(--c) 45%,#000)}
+.esp-andares-mais .ofc-ico {width:22px;height:22px;stroke-width:2.4}
+@keyframes esp-flutua {50% {transform:translateX(-50%) translateY(-5px) rotateX(58deg) rotateZ(45deg)}}
+.esp-peca-corpo {display:grid;gap:10px;padding:14px 16px 16px}
+.esp-peca-titulo {display:flex;align-items:center;gap:10px;min-width:0}
+.esp-peca .jg-moeda {grid-row:auto;flex:none;width:34px;height:34px;border-radius:11px}
+.esp-peca .jg-moeda svg {width:18px;height:18px}
+.esp-peca-titulo b {font:800 18px/1.1 var(--mac-ui);letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.esp-chips {display:flex;flex-wrap:wrap;gap:5px;min-height:24px}
+.esp-chips em {padding:3px 9px;border-radius:999px;background:#ffffff0b;border:1px solid #ffffff12;color:color-mix(in srgb,var(--c) 55%,#c9cdd8);font:600 11.5px/1.4 var(--mac-ui);font-style:normal;white-space:nowrap}
+.esp-peca-acao {display:flex;justify-content:center;padding:10px 14px;border-radius:12px;background:#ffffff10;border:1px solid #ffffff1c;box-shadow:inset 0 1px 0 #ffffff14,0 2px 0 #0a0b10;color:#fff;font:700 13.5px var(--mac-ui)}
+.esp-peca:hover .esp-peca-acao {background:#ffffff18}
+.esp-peca-acao.principal {background:linear-gradient(180deg,#ff8a35,#ff6b1a);border-color:transparent;color:#1d0d02;box-shadow:inset 0 1px 0 #fff6,0 3px 0 #a8410b,0 8px 18px #ff6b1a44}
+.esp-peca:hover .esp-peca-acao.principal {background:linear-gradient(180deg,#ff9a4d,#ff7426)}
+.esp-rodape {display:flex;align-items:center;gap:14px;justify-content:space-between;padding:12px 22px 16px;border-top:1px solid var(--prov-linha)}
+.esp-nota {margin:0;color:var(--prov-suave);font:500 12.5px/1.4 var(--mac-ui)}
+.esp-branco {flex:none}
+@media (prefers-reduced-motion:reduce) {.esp-peca{transition:none;animation:none}.esp-peca:hover,.esp-peca:active{transform:none}.esp-andares i:nth-child(2){animation:none}}
 @media (max-width:760px) {
-  .esp-grade {grid-template-columns:1fr;grid-template-rows:none;padding:14px}
-  .esp-personagem {grid-row:auto}
-  .esp-palco {min-height:230px}
-  .esp-palco img {width:96px;height:165px}
-  .abr-previa-quarto.esp-previa,.esp-previa-vazia {height:200px}
-  .esp-rodape {flex-wrap:wrap}
-  .espaco .prov-sacola .abr-acoes {width:100%;flex-wrap:wrap}
-  .espaco .prov-sacola .abr-acoes > * {flex:1}
-  .esp-nota {display:none}
-  .espaco .prov-sacola .abr-acoes > button {padding:10px 12px;font-size:13px}
+  .esp-grade {grid-template-columns:1fr;gap:12px;padding:14px}
+  .esp-peca {grid-template-rows:none;grid-template-columns:116px minmax(0,1fr)}
+  .esp-peca-palco {min-height:0;border-bottom:0;border-right:1px solid #ffffff0f}
+  .esp-peca-palco .esp-boneco {width:64px;height:110px;margin-bottom:14px}
+  .esp-peca-palco .prov-pedestal {width:90px;height:26px;bottom:8px}
+  .esp-andares {transform:scale(.62)}
+  .esp-palco-vazio {width:56px;height:56px}
+  .esp-peca-corpo {padding:12px}
+  .esp-rodape {flex-direction:column;align-items:stretch;padding:12px 14px 14px}
+  .esp-chip-topo {display:none}
 }
 
 /* Ficha como cartão do jogador (21/10/2026, a linguagem do Provador): à

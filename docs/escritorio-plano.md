@@ -1358,3 +1358,14 @@ decoração inicial "bem feito".
   no Provador e no mapa (em pé, acenando, andando; sentado/deitado fica a peça
   parada do imager). Origem y = 100 no boneco "h", conferida pixel a pixel.
 - Camisa, casaco e asas animados ficam parados (passam por trás do corpo).
+
+### Meu espaço como menu de jogo — 21/10/2026
+
+- Paulo: "todo o layout, tudo muito duro". Agora são três peças do mesmo
+  tamanho (Personagem laranja, Térreo azul, Segundo andar roxo): cartão
+  escuro com degrau, palco em cima (boneco no pedestal com a roupa animada,
+  prévia real do térreo, lajes do andar), ícone colorido, detalhes em chips e
+  a ação embaixo. Sobem no hover, afundam no clique e entram em cascata.
+- Um só botão principal (Abrir o provador); nível e moedas no topo; o
+  recomeço em branco é um botão de perigo discreto no rodapé; saiu o Fechar
+  repetido (fica o X). No celular as peças viram linhas.
