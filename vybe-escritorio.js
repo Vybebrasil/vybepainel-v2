@@ -1090,6 +1090,9 @@ function abrirAgenteOperacaoEscritorio(a, figura) {
 const ESCRITORIO_AGENTE_LISTAS = [
   ["atrasadas", "atrasadas", "ruim"], ["aprovar", "para aprovar", "aviso"], ["semana", "esta semana", ""], ["cliente", "esperando o cliente", ""],
 ];
+// Cor de cada número: a do status que ele representa no catálogo; atrasada é
+// o vermelho de prazo vencido do painel (Paulo, 20/10/2026: "cor é a do status").
+const ESCRITORIO_AGENTE_COR = { aprovar: "para_aprovacao", cliente: "ag_aprovacao_cliente" };
 function escritorioListasDoAgente(nome) {
   const itens = (typeof unifiedOperationalItems === "function" ? unifiedOperationalItems() : []).filter((d) => itemTemCliente(d, nome));
   const fechada = (d) => typeof isFinishedItem === "function" ? isFinishedItem(d) : /final|feito|conclu/i.test(d.status || "");
@@ -1128,19 +1131,23 @@ function pintarAgenteOperacaoEscritorio() {
   const nome = typeof clientMasterResolveName === "function" ? clientMasterResolveName(a.cliente) : a.cliente;
   const atencao = new Map();
   const juntar = (lista, rotulo, tom) => { for (const x of lista || []) { if (!atencao.has(x.ref)) atencao.set(x.ref, { ...x, motivos: [] }); atencao.get(x.ref).motivos.push([x.motivo ? `${rotulo}: ${x.motivo}` : rotulo, tom]); } };
-  juntar(al.atrasadas, "muito atrasada", "atrasada"); juntar(al.aprovar, "para aprovar", "hoje"); juntar(al.sem_info, "sem informação", "");
-  const linhas = [...atencao.values()].map((x) => `<li><button type="button" class="ofc-agente-peca" onclick="abrirMissaoEscritorio('${safeText(x.ref)}','${x.quadro}',event);closeWorkflowModal()"><span><b>${safeText(x.titulo)}</b><small>${safeText([x.prazo ? "prazo " + x.prazo.split("-").reverse().slice(0, 2).join("/") : "", x.status].filter(Boolean).join(" · "))}</small><span class="ofc-agente-tags">${x.motivos.map(([t, tom]) => `<em class="ofc-missao-prazo ${tom}">${safeText(t)}</em>`).join("")}</span></span></button></li>`).join("");
+  // A aprovação aparece pela pílula do próprio status (cor do catálogo); só o
+  // atraso usa o vermelho de prazo e a falta de informação diz o que falta.
+  juntar(al.atrasadas, "muito atrasada", "atrasada"); juntar(al.aprovar, "", ""); juntar(al.sem_info, "sem informação", "neutro");
+  const pilula = (st) => (st && typeof corDeStatus === "function" && typeof pillHtmlDemanda === "function" ? (() => { const c = corDeStatus(st); return c ? pillHtmlDemanda(st, c.cor, c.borda) : safeText(st); })() : safeText(st || ""));
+  const linhas = [...atencao.values()].map((x) => `<li><button type="button" class="ofc-agente-peca" onclick="abrirMissaoEscritorio('${safeText(x.ref)}','${x.quadro}',event);closeWorkflowModal()"><span><b>${safeText(x.titulo)}</b><span class="ofc-agente-peca-linha"><small>${safeText(x.prazo ? "prazo " + x.prazo.split("-").reverse().slice(0, 2).join("/") : "sem prazo")}</small>${pilula(x.status)}</span>${x.motivos.some(([t]) => t) ? `<span class="ofc-agente-tags">${x.motivos.filter(([t]) => t).map(([t, tom]) => `<em class="ofc-missao-prazo ${tom}">${safeText(t)}</em>`).join("")}</span>` : ""}</span></button></li>`).join("");
   const mais = ["atrasadas", "aprovar", "sem_info"].some((k) => (al[k + "_total"] || 0) > (al[k] || []).length);
   const calendario = typeof modoComVisoesDoQuadro === "function" && modoComVisoesDoQuadro() && typeof alternarPainelDaBarra === "function";
   const listas = escritorioListasDoAgente(nome), qual = escritorio.agenteAberto.lista || "proximas";
   const figura = escritorio.agenteAberto.figura;
   const boneco = figura && typeof mapaAvatarUrl === "function" ? `<img class="ofc-agente-boneco" src="${safeText(mapaAvatarUrl(figura, 3, "std", "", 0))}" alt="" referrerpolicy="no-referrer">` : "";
   const tag = typeof tagClienteHtml === "function" ? tagClienteHtml(nome, { dentroDeBotao: true }) : "";
-  const abas = ESCRITORIO_AGENTE_LISTAS.map(([k, rotulo, tom]) => `<button type="button" class="ofc-agente-num ${listas[k].length && tom ? tom : ""}" aria-pressed="${qual === k}" onclick="escolherListaDoAgenteEscritorio('${k}')"><b>${listas[k].length}</b><span>${rotulo}</span></button>`).join("");
+  const abas = ESCRITORIO_AGENTE_LISTAS.map(([k, rotulo, tom]) => { const cor = k === "atrasadas" ? "#e5484d" : ESCRITORIO_AGENTE_COR[k] ? escritorioCorDoStatus(ESCRITORIO_AGENTE_COR[k]) : "";
+    return `<button type="button" class="ofc-agente-num ${listas[k].length && tom ? tom : ""}${listas[k].length ? " tem" : ""}" aria-pressed="${qual === k}" onclick="escolherListaDoAgenteEscritorio('${k}')"${cor ? ` style="--c:${cor}"` : ""}><b>${listas[k].length}</b><span>${rotulo}</span></button>`; }).join("");
   const lista = listas[qual] || [];
   const tituloLista = qual === "proximas" ? "Próximas peças" : ESCRITORIO_AGENTE_LISTAS.find(([k]) => k === qual)?.[1].replace(/^./, (c) => c.toUpperCase());
   el.innerHTML = `<div class="workflow-kicker"><span>Agente de ${safeText(a.cliente)}</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-  <div class="ofc-agente-topo">${boneco}<div class="ofc-agente-nome"><h2 class="workflow-title">${safeText(a.cliente)}</h2><span>${tag}${a.segmento ? `<small>${safeText(a.segmento)}</small>` : ""}</span></div>
+  <div class="ofc-agente-topo"><div class="ofc-agente-palco"><span class="ofc-lobby-luz"></span><span class="ofc-lobby-ladrilho"></span>${boneco}</div><div class="ofc-agente-nome"><h2 class="workflow-title">${safeText(a.cliente)}</h2><span>${tag}${a.segmento ? `<small>${safeText(a.segmento)}</small>` : ""}</span></div>
    <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}${escritorio.base?.admin || a.meu ? `<button type="button" class="workflow-secondary" onclick="abrirAvatarDoClienteEscritorio()" title="Trocar roupa, cabelo e objeto de mão do agente deste cliente">Editar avatar</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></div>
   <div class="ofc-agente-nums" role="group" aria-label="Trabalho do cliente: clique para ver a lista">${abas}</div>
   <div class="ofc-agente-grade">
