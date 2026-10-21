@@ -1404,3 +1404,15 @@ decoração inicial "bem feito".
 - Reinício dos personagens (Paulo pediu para todos refazerem o herói): guarda
   o visual de cada um e limpa visual, looks e abertura, uma vez só.
 - Imagem do boneco que falhar no imager do Habbo cai no espelho habboassets.
+- (21/10/2026, depois) Ordem padrão do Provador: animadas primeiro em todas
+  as partes ("Ordem do catálogo" fica como opção). A tela das peças animadas
+  ganhou margem em volta do boneco: guarda-chuva com nuvem e auras eram
+  cortados na borda do quadro 64×110.
+- Migração `2026-10-21-escritorio-roupas-raridade.sql` aplicada em 21/10/2026
+  com o Aprovado do Paulo (8 personagens recriados, cópia guardada).
+- Peças animadas que trocam a mão (guarda-chuva com nuvem, mcl/mcr): o imager
+  desenha a peça inteira (mão certa, ordem certa em volta do corpo) e a tela só
+  anima o que se mexe e não é mão; as demais continuam desenhadas pela tela.
+  A margem da tela sai dos quadros das peças vestidas.
+- Provador: o boneco anda no lugar (4 passos do imager, `frame`, como no mapa),
+  com botão de pausa ao lado do girar; "Reduzir movimento" deixa parado.

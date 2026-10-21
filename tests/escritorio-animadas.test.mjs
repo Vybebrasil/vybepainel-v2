@@ -24,6 +24,15 @@ test('a figura vai ao imager sem a peça animada e guarda as cores dela', () => 
   vm.runInContext(`ANIMADAS.dados = ${JSON.stringify({ 'mc-6562': indice['mc-6562'] })};`, c);
   const r = vm.runInContext('animadasDaFigura("hd-180-1.hr-828-61.mc-6562-1408-90.lg-280-110")', c);
   assert.equal(r.base, 'hd-180-1.hr-828-61.lg-280-110');
-  assert.deepEqual(JSON.parse(JSON.stringify(r.achadas)), [{ chave: 'mc-6562', tipo: 'mc', cores: [1408, 90] }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(r.achadas)), [{ chave: 'mc-6562', tipo: 'mc', cores: [1408, 90], parcial: false }]);
   assert.equal(vm.runInContext('animadasDaFigura("hd-180-1.lg-280-110")', c), null);
+});
+
+test('peça que troca a mão (guarda-chuva) fica no imager e só o que não é mão se mexe', () => {
+  const c = vm.createContext({ window: {}, document: {}, fetch: async () => ({}), mapaArquivo: (n) => n, setInterval, clearInterval });
+  vm.runInContext(readFileSync('vybe-escritorio-animadas.js', 'utf8'), c);
+  vm.runInContext(`ANIMADAS.dados = ${JSON.stringify({ 'mc-6251': indice['mc-6251'] })};`, c);
+  const r = vm.runInContext('animadasDaFigura("hd-180-1.mc-6251-1408-1408")', c);
+  assert.equal(r.base, 'hd-180-1.mc-6251-1408-1408');
+  assert.equal(r.achadas[0].parcial, true);
 });
