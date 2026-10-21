@@ -1664,24 +1664,29 @@ function renderEscritorio() {
     sala = escritorio.sala;
   const eu = b.equipe.find((p) => p.id === b.eu);
   const celular = window.matchMedia?.("(max-width: 760px)").matches;
-  const modo = escritorio.modo || (celular ? "lista" : "mapa");
+  // O celular também abre no mapa (Padrão Vybe, 21/10/2026): com a barra de
+  // baixo enxuta o mapa cabe; a lista de salas continua em "Mais".
+  const modo = escritorio.modo || "mapa";
   // Catálogo e Inventário viraram a janela própria: as abas antigas da lateral voltam para Pessoas.
   if (escritorio.aba === "loja" || escritorio.aba === "inventario") escritorio.aba = "pessoas";
   const aba = escritorio.aba || "pessoas";
   // No celular o painel lateral cobre o mapa: começa recolhido.
   const lateral = escritorio.lateral ?? !celular;
-  const rail = (id, icone, rotulo, acao, ativo) =>
-    `<button type="button" class="ofc-rail-btn" onclick="${acao}" aria-pressed="${Boolean(ativo)}" aria-label="${rotulo}" title="${rotulo}">${escritorioIcone(icone)}<span>${rotulo}</span></button>`;
+  // No celular a barra de baixo mostra só os principais (data-principal) e o
+  // "Mais" abre uma gaveta com todos (Padrão Vybe, 21/10/2026: 14 ícones não
+  // cabiam na tela). Escolher um item fecha a gaveta.
+  const rail = (id, icone, rotulo, acao, ativo, principal = false) =>
+    `<button type="button" class="ofc-rail-btn"${principal ? " data-principal" : ""} onclick="escritorio.railMais=false;${acao}" aria-pressed="${Boolean(ativo)}" aria-label="${rotulo}" title="${rotulo}">${escritorioIcone(icone)}<span>${rotulo}</span></button>`;
   // A entrada também aparece enquanto conecta (inclusive vindo da abertura),
   // com as etapas e o erro no próprio cartão.
   const lobby = (!escritorio.conectado && (!escritorio.lobbyFechado || escritorio.entrada)) || escritorio.carregandoMapa;
-  painel.innerHTML = `<section class="ofc" data-modo="${modo}" data-lateral="${lateral}" data-editando="${Boolean(escritorio.edicao)}"${escritorio.edicao?.pessoas ? " data-com-pessoas" : ""}>
+  painel.innerHTML = `<section class="ofc" data-modo="${modo}" data-lateral="${lateral}" data-editando="${Boolean(escritorio.edicao)}"${escritorio.edicao?.pessoas ? " data-com-pessoas" : ""}${escritorio.colunaAberta ? " data-coluna-aberta" : ""}${escritorio.railMais ? " data-rail-mais" : ""}>
 <nav class="ofc-rail" aria-label="Escritório">
  <img class="ofc-logo" src="${safeText(document.querySelector(".logo img")?.getAttribute("src") || "/assets/vybe-branca.png")}" alt="Vybe">
- ${rail("mapa", "mapa", "Mapa", "alternarModoEscritorio('mapa')", modo === "mapa")}
+ ${rail("mapa", "mapa", "Mapa", "alternarModoEscritorio('mapa')", modo === "mapa", true)}
  ${rail("lista", "lista", "Salas", "alternarModoEscritorio('lista')", modo === "lista")}
- ${rail("pessoas", "pessoas", "Pessoas", "alternarAbaEscritorio('pessoas')", lateral && aba === "pessoas")}
- ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa")}
+ ${rail("pessoas", "pessoas", "Pessoas", "alternarAbaEscritorio('pessoas')", lateral && aba === "pessoas", true)}
+ ${rail("conversa", "conversa", "Conversa", "alternarAbaEscritorio('conversa')", lateral && aba === "conversa", true)}
  ${rail("clientes", "clientes", "Clientes", "alternarAbaEscritorio('clientes')", lateral && aba === "clientes")}
  ${rail("agenda", "agenda", "Agenda", "abrirAgendaEscritorio()", false)}
  ${rail("ranking", "ranking", "Ranking", "abrirRankingEscritorio()", false)}
@@ -1693,7 +1698,9 @@ function renderEscritorio() {
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
  ${rail("painel", "painel", "Painel", "abrirPainelDoEscritorio()", false)}
  ${rail("ajuda", "ajuda", "Tutorial", "iniciarTutorialEscritorio()", false)}
-</nav>
+ <button type="button" class="ofc-rail-btn ofc-rail-so-celular ofc-rail-missoes" data-principal onclick="escritorio.railMais=false;escritorio.colunaAberta=!escritorio.colunaAberta;renderEscritorio()" aria-pressed="${Boolean(escritorio.colunaAberta)}" aria-label="Missões e cobranças">${escritorioIcone("alvo")}<span>Missões</span></button>
+ <button type="button" class="ofc-rail-btn ofc-rail-so-celular" data-principal onclick="escritorio.railMais=!escritorio.railMais;renderEscritorio()" aria-expanded="${Boolean(escritorio.railMais)}" aria-label="Mais opções do escritório">${escritorioIcone("mais")}<span>Mais</span></button>
+</nav>${escritorio.railMais ? '<button type="button" class="ofc-rail-fundo" aria-label="Fechar o menu" onclick="escritorio.railMais=false;renderEscritorio()"></button>' : ""}
 <aside class="ofc-lateral" aria-label="${aba === "conversa" ? "Conversa da sala" : "Pessoas e salas"}">
  <div class="ofc-lateral-topo"><div><b>Vybe</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div><button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
  <div class="ofc-abas" role="tablist"${escritorio.edicao ? ' style="grid-template-columns:repeat(4,1fr)"' : ' style="grid-template-columns:repeat(3,1fr)"'}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Edição</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button><button role="tab" aria-selected="${aba === "recados"}" onclick="alternarAbaEscritorio('recados',true)">Recados${escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : ""}</button></div>
