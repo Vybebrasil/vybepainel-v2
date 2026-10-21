@@ -3,6 +3,7 @@ import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./esc
 import { missoesDaPessoa, rankingEscritorio } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
+import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
@@ -96,6 +97,9 @@ export function perfilEscritorio(valor = {}) {
     sala_paredes: new RegExp(`^([a-h-][0-9a-d][0-2]){${LADO_QUARTO * 4}}$`).test(paredesAtuais) ? paredesAtuais : "",
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
+    // Convites para a sala (server/escritorio-convite.js): mudar o número
+    // cancela todos os links já mandados.
+    convite_geracao: Number.isInteger(Number(valor.convite_geracao)) && Number(valor.convite_geracao) >= 0 ? Number(valor.convite_geracao) : 0,
   };
 }
 export function assinarEntradaEscritorio(
@@ -158,7 +162,7 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = 
   return sql.comTransacao(async tx => {
     await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
     const [atual] = await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} FOR UPDATE`;
-    let perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, sala_celdas:atual.preferencias.sala_celdas, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares});
+    let perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, sala_celdas:atual.preferencias.sala_celdas, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares,convite_geracao:atual.preferencias.convite_geracao});
     if(valor.andar===1) {
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
@@ -414,6 +418,16 @@ export async function areaEscritorio(req, res, quem, sql) {
       // Sala inválida é 400; RealtimeKit sem configuração ou fora do ar
       // responde com o status e o código do erro (o painel mostra o motivo).
       return res.status(e.status || 400).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
+    }
+  // Convidar alguém para a própria sala (qualquer pessoa da equipe) e
+  // cancelar os links já mandados.
+  if (acao === "convite" || acao === "convite-cancelar")
+    try {
+      if (acao === "convite-cancelar") return res.status(200).json({ ok: await cancelarConvites(sql, pessoa) });
+      const origem = /^https:\/\//.test(String(req.headers?.origin || "")) ? String(req.headers.origin) : "https://" + String(req.headers?.host || "");
+      return res.status(200).json({ ok: true, ...(await criarConvite(sql, pessoa, origem)) });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
     }
   if (acao === "quarto" || acao === "comprar" || acao === "comprar-kit") {
     try {

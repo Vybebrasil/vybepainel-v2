@@ -91,6 +91,11 @@ function escritorioFotoDoPersonagem(perfil) {
   u.photo = mapaCabecaUrl(perfil) || u.fotoReal;
 }
 async function escritorioApi(acao, corpo, consulta = null) {
+  // Convidado: só a entrada e a voz, pela área dele (o resto é da equipe).
+  if (window.ESCRITORIO_CONVIDADO) {
+    if (acao === "entrada" || acao === "chamada") return convidadoPedir(acao, acao === "chamada" ? corpo : null);
+    throw new Error("Isto é só da equipe da Vybe.");
+  }
   const r = await fetch(
     "/api/painel?area=escritorio&acao=" + encodeURIComponent(acao) + (consulta ? "&" + new URLSearchParams(consulta) : ""),
     {
@@ -217,7 +222,10 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
   const acenar = mapaAvatarUrl(figura, 3, "wav", mao, 0, "sml", 3), parado = mapaAvatarUrl(figura, 3, "std", mao, 0, "sml", 3);
   const eco = b?.economia, nivel = eco?.pontos?.nivel, sala = escritorioMinhaMesa()?.ambiente;
   const chips = [eco?.disponivel ? `<span>${escritorioIcone("loja")}<b>${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b> VybeCoins</span>` : "", nivel ? `<span>${escritorioIcone("ranking")}Nível <b>${nivel}</b></span>` : "", sala ? `<span>${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""].filter(Boolean).join("");
-  const regras = `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você no escritório.</span></li><li>${escritorioIcone("microfone")}<span>Em cada sala você fala e ouve quem está nela. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("camera")}<span>A câmera começa desligada.</span></li>`;
+  const conv = escritorio.base?.convidado, quem = conv ? safeText(String(conv.anfitriao.nome).split(" ")[0]) : "";
+  const regras = conv
+    ? `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você como convidado de ${quem}.</span></li><li>${escritorioIcone("microfone")}<span>A conversa por voz é na sala de ${quem}. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("mapa")}<span>Você anda pela sala de ${quem} e pelas áreas comuns da Vybelândia.</span></li>`
+    : `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você no escritório.</span></li><li>${escritorioIcone("microfone")}<span>Em cada sala você fala e ouve quem está nela. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("camera")}<span>A câmera começa desligada.</span></li>`;
   // Nas primeiras visitas as regras aparecem abertas; depois, uma linha só.
   const veterano = escritorioVisitasEntrada() > 3;
   return `<div class="ofc-lobby-palco" aria-hidden="true"><span class="ofc-lobby-luz"></span><span class="ofc-lobby-ladrilho"></span><img class="ofc-lobby-boneco" src="${safeText(acenar)}" data-acenar="${safeText(acenar)}" data-parado="${safeText(parado)}" data-figura="${safeText(figura)}" data-mao="${safeText(mao)}" alt="" width="64" height="110"></div>
@@ -498,6 +506,7 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       }
       if (e.type === "presence:update") {
         avisarEntradasEscritorio(escritorio.online, e.payload);
+        if (typeof convidadoPresenca === "function") convidadoPresenca(escritorio.online, e.payload);
         escritorio.online = e.payload;
         // Alguém entrou ou saiu da sua sala: passa (ou deixa) de ser ouvido.
         if (escritorio.chamada) {
@@ -839,7 +848,7 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
 function escritorioAndaresHtml() {
   const id=escritorio.quarto;if(!id || escritorioCenaComum(id)) return '';
   const raiz=escritorioRaizQuarto(id), superior=escritorioPerfilDecoracao(raiz+'-andar-1');
-  return `<nav class="ofc-andares" aria-label="Andares do escritório"><button type="button" aria-pressed="${id===raiz}" onclick="escritorioEntrarNoQuarto('${raiz}')">Térreo</button>${superior?.quarto_configurado ? `<button type="button" aria-pressed="${id!==raiz}" onclick="escritorioEntrarNoQuarto('${raiz}-andar-1')">Segundo andar</button>` : ''}${escritorioNoMeuQuarto() ? `<button type="button" onclick="personalizarEscritorio()">Gerenciar meu espaço</button>` : ''}</nav>`;
+  return `<nav class="ofc-andares" aria-label="Andares do escritório"><button type="button" aria-pressed="${id===raiz}" onclick="escritorioEntrarNoQuarto('${raiz}')">Térreo</button>${superior?.quarto_configurado ? `<button type="button" aria-pressed="${id!==raiz}" onclick="escritorioEntrarNoQuarto('${raiz}-andar-1')">Segundo andar</button>` : ''}${escritorioNoMeuQuarto() ? `<button type="button" onclick="personalizarEscritorio()">Gerenciar meu espaço</button><button type="button" onclick="convidarParaMinhaSalaEscritorio()" title="Mande um link para alguém de fora entrar na sua sala">Convidar</button>` : ''}</nav>`;
 }
 // Planta da cena atual para o renderizador: a sala (com a pintura do dono,
 // lida na hora de desenhar) ou a Praça, a cena de abertura.
@@ -1336,6 +1345,8 @@ function escritorioIrParaPraca() {
 // é recriado (os modelos dos móveis vêm do cache); zona, chat e voz seguem o
 // lugar novo; a presença vai na hora para a equipe.
 function escritorioTrocarCena(quarto, lugar, dir) {
+  // Convidado não entra no Centro de Operação nem em quarto de outra pessoa.
+  if (typeof convidadoPodeIr === "function" && !convidadoPodeIr(quarto)) { escritorioAviso("Esta sala é só da equipe da Vybe."); return; }
   movimento.rota = [];
   escritorioPararTeclado();
   escritorio.seguindoId = null;
@@ -1450,14 +1461,15 @@ function atualizarPessoasEscritorio() {
         // O próprio boneco é sempre "Você" (fora do escritório também: o nome
         // completo passava pelo encurtador e virava "Você E.").
         id: p.id, nome: voce ? "Você" : escritorioNomeCurto(p.nome), perfil: perfilDe, status: p.status, corStatus,
-        rotulo: `${p.nome}${voce ? " (você)" : ""} · ${voce && !escritorio.conectado ? "fora do escritório" : nomeStatus}`,
-        statusTexto: p.status && p.status !== "disponivel" ? nomeStatus : "",
+        rotulo: `${p.nome}${voce ? " (você)" : ""} · ${p.convidado ? "convidado" : voce && !escritorio.conectado ? "fora do escritório" : nomeStatus}`,
+        statusTexto: p.convidado && !voce ? "convidado" : p.status && p.status !== "disponivel" ? nomeStatus : "",
         x: Math.round(pos.x), y: Math.round(pos.y),
         acao: escritorioAcaoDaPose(voce ? escritorio.pose : p.pose, sentado, dirCama !== undefined && !(voce && escritorio.emMovimento)),
         // O café/lanche da pose vale por cima do objeto escolhido no criador.
         mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || (voce ? escritorio.perfil : perfilDe)?.mao || "",
         dir: sentado ? dirAssento : dirCama !== undefined ? dirCama : ESCRITORIO_APARELHOS[voce ? escritorio.pose : p.pose] ? escritorioNoAparelho(Math.round(pos.x), Math.round(pos.y))?.dir : undefined, local: voce,
-        aoClicar: (id) => abrirMenuPessoaEscritorio(id),
+        // Convidado (ou quem está vendo como convidado): sem a ficha da equipe.
+        aoClicar: p.convidado || escritorio.base?.convidado ? () => escritorioAviso(voce ? "Este é você." : p.convidado ? `${p.nome} é convidado de ${escritorioNomeCurto(escritorio.base?.equipe?.find((e) => String(e.id) === String(p.anfitriao))?.nome || "alguém da equipe")}.` : `${p.nome} é da equipe da Vybe.`) : (id) => abrirMenuPessoaEscritorio(id),
       };
     }));
   }
@@ -1710,6 +1722,7 @@ function renderEscritorio() {
   // Amostras de parede da lateral da construção (arte do painel do Habbo).
   const amostrasParede = document.querySelector(".ofc-amostras-parede");
   if (amostrasParede) pintarArtesEscritorio(amostrasParede);
+  if (typeof convidadoPodarTela === "function") convidadoPodarTela();
   if (typeof pintarMissoesEscritorio === "function") { pintarMissoesEscritorio(); carregarMissoesEscritorio(); pintarCobrancasEscritorio(escritorio.cobrancasGrupos || [], null); }
   carregarChatEscritorio();
   if (escritorio.chamada) renderMidiaEscritorio();
@@ -1874,6 +1887,8 @@ function atualizarCabecalhoEscritorio() {
 function escritorioEstadoVozTexto() {
   if (escritorio.zona === "foco") return "Foco: sem voz";
   if (!escritorio.zona) return "Sem voz na Praça";
+  const conv = escritorio.base?.convidado;
+  if (conv && !conv.vozes.includes(escritorio.zona)) return `Voz na sala de ${String(conv.anfitriao.nome).split(" ")[0]}`;
   if (!escritorio.conectado) return "Zona de conversa · entre para falar";
   return escritorio.chamada && escritorioCanal() ? "Na conversa da sala" : "Zona de conversa";
 }
@@ -3798,7 +3813,12 @@ function escritorioConversaAutomatica() {
   if (!escritorio.conectado || escritorio.base?.demo) return;
   // Corredor/Foco: fica na conversa geral (pronta para a próxima sala), só
   // sem microfone e sem som; da sala trancada, sai.
-  const alvo = escritorioCanal() || "escritorio";
+  let alvo = escritorioCanal() || "escritorio";
+  // Convidado: voz só na sala de quem convidou (conversa própria); nunca na
+  // conversa única dos espaços abertos.
+  if (escritorio.base?.convidado) {
+    if (alvo === "escritorio" || !escritorio.base.convidado.vozes.includes(alvo)) { if (escritorio.chamada) sairChamadaEscritorio(); return; }
+  }
   escritorioMotorVoz().catch(() => {});
   if (escritorio.chamada && escritorio.canalChamada === alvo) { escritorioSincronizarVoz(); return; }
   if (escritorio.entrandoChamada) { escritorio.timerConversa = setTimeout(escritorioConversaAutomatica, 800); return; }

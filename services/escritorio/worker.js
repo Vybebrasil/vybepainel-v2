@@ -65,9 +65,14 @@ export async function verificarEntrada(token, segredo, agora = Date.now()) {
     )
       return null;
     const c = JSON.parse(new TextDecoder().decode(bytes(body)));
+    // Convidado (link de uma pessoa da equipe): crachá próprio, sem número de
+    // pessoa, com as zonas por onde pode andar (server/escritorio-convite.js).
+    const convidado = c.convidado === true;
+    if (convidado && (!/^c-[a-f0-9]{12}$/.test(String(c.sub)) || !/^\d{1,18}$/.test(String(c.anfitriao || "")) || !Array.isArray(c.zonas) || c.zonas.length > 24
+      || c.zonas.some((z) => zonaValida(z) !== z) || (c.salaAnfitriao && zonaValida(c.salaAnfitriao) !== c.salaAnfitriao) || c.admin)) return null;
     if (
       c.aud !== "vybe-escritorio" ||
-      !/^\d+$/.test(c.sub) ||
+      (!convidado && !/^\d+$/.test(c.sub)) ||
       typeof c.nome !== "string" ||
       c.nome.length > 120 ||
       !Number.isFinite(c.exp) ||
@@ -134,6 +139,14 @@ export class EscritorioRoom {
   broadcast(t, p) {
     for (const s of this.ativos()) this.send(s, t, p);
   }
+  // Balão de fala: o convidado só recebe o de quem está na mesma sala que ele.
+  balao(de, p) {
+    for (const s of this.ativos()) {
+      const o = this.estado(s);
+      if (o.convidado && (o.zona || "") !== (de.zona || "")) continue;
+      this.send(s, "chat:bubble", p);
+    }
+  }
   // Salas trancadas: transitórias, na memória da sala do Worker (como a presença).
   get trancas() {
     if (!this._trancas) this._trancas = new Map();
@@ -190,6 +203,7 @@ export class EscritorioRoom {
         x: a.x,
         y: a.y,
         status: a.status,
+        ...(a.convidado ? { convidado: true, anfitriao: a.anfitriao } : {}),
       });
     }
     this.broadcast("presence:update", [...pessoas.values()]);
@@ -250,6 +264,9 @@ export class EscritorioRoom {
       return;
     }
     if (a.observador) return;
+    // Convidado anda, fala por balão e reage; não tranca, não admite, não mexe
+    // na música, nos móveis nem nos recados da equipe.
+    if (a.convidado && ["zone:lock", "zone:admit", "music:enqueue", "music:control", "music:ended", "furni:toggle", "recado:novo", "chat:changed", "conversation:summon"].includes(evento.type)) return;
     // Limite por tipo: o passo chega a cada 150 ms e a rede às vezes junta dois;
     // antes um limite único de 120 ms descartava passos (e a parada final), e
     // os outros viam a pessoa travada no lugar errado.
@@ -264,10 +281,22 @@ export class EscritorioRoom {
         !Number.isFinite(p.y)
       )
         return;
+      const zonaNova = zonaValida(p.zona);
+      if (a.convidado && zonaNova) {
+        // Só as zonas do convite, e sala trancada só se já estava dentro.
+        if (!a.zonas.includes(zonaNova)) return;
+        if (zonaNova !== a.zona && this.trancas.has(zonaNova) && !this.trancas.get(zonaNova).has(a.sub)) return;
+        // A sala de quem convidou vira conversa própria enquanto o convidado
+        // está lá (a conversa única levaria o som da equipe toda até ele).
+        if (zonaNova !== a.zona && zonaNova.replace(/-andar-1$/, "") === a.salaAnfitriao && !this.trancas.has(zonaNova)) {
+          this.trancas.set(zonaNova, new Set([...this.naZona(zonaNova).map((t) => this.estado(t).sub), a.sub]));
+          this.broadcast("zone:locks", this.listaTrancas());
+        }
+      }
       a = {
         ...a,
         sala: p.sala,
-        zona: zonaValida(p.zona),
+        zona: zonaNova,
         pose: POSES_MANTIDAS.includes(a.pose) ? a.pose : "",
         status: estados.includes(p.status) ? p.status : a.status,
         x: Math.max(6, Math.min(94, p.x)),
@@ -400,7 +429,7 @@ export class EscritorioRoom {
       // Balão sobre a cabeça: só o texto, curto; a autoria vem da sessão.
       const texto = typeof p.texto === "string" ? p.texto.replace(/\s+/g, " ").trim().slice(0, 140) : "";
       if (!texto) return;
-      this.broadcast("chat:bubble", { id: a.sub, texto });
+      this.balao(a, { id: a.sub, texto });
       return;
     } else if (evento.type === "chat:changed") {
       if (!salas.includes(p.sala)) return;

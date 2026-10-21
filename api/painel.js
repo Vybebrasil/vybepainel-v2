@@ -1,4 +1,5 @@
 import { areaEscritorio } from '../server/escritorio.js';
+import { areaConvite, convidadoDoCookie } from '../server/escritorio-convite.js';
 import { resolverBriefing, MARCAS_BRIEFING } from '../server/briefing.js';
 import { resolverMaterialBruto } from '../server/material-bruto.js';
 import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.js';
@@ -1608,6 +1609,12 @@ export default async function handler(req, res) {
     try { return await portalDoCliente(req, res, sql()); }
     catch (erro) { return res.status(500).json({ error: erro.message }); }
   }
+  // Convidado do Escritório: entra por um link assinado, sem conta
+  // (server/escritorio-convite.js). Do resto do escritório, só a arte do mapa.
+  if (areaPublica === 'convite') return areaConvite(req, res, sql());
+  if (areaPublica === 'escritorio' && req.method === 'GET' && ['arte', 'boneco', 'imagem'].includes(String(req.query?.acao || ''))
+      && !String(req.headers?.cookie || '').includes('vybe_sessao=') && convidadoDoCookie(req))
+    return areaEscritorio(req, res, { tipo: 'sessao', pessoa: null }, sql());
   if (areaPublica === 'agentes') {
     try { return await conectorAgentes(req, res, sql()); }
     catch (erro) { return res.status(500).json({ error: erro.message }); }

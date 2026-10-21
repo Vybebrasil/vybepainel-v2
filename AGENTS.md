@@ -152,6 +152,16 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   pessoa e com quem administra.
 - O Escritório usa identidade individual da sessão Vybe. Nunca reintroduza código
   compartilhado, identidade por nome livre, OAuth Manus ou consulta ao Monday.
+  Única exceção (decisão do Paulo, 20/10/2026): o **convidado**
+  (`server/escritorio-convite.js`, `vybe-escritorio-convidado.js`). Qualquer
+  pessoa da equipe gera um link assinado (12 h; cancelar troca
+  `convite_geracao` do perfil); quem abre escolhe um de 4 bonecos prontos, sem
+  conta nem registro no banco, e recebe um crachá próprio (cookie
+  `vybe_convidado`, `sub` `c-…`). Vê quem está online; anda só pela sala de
+  quem convidou e pelas áreas comuns (nunca o Centro de Operação nem outro
+  quarto), com a trava no Worker. Voz só na sala de quem convidou, que vira
+  conversa própria enquanto ele está lá: nunca a conversa única dos espaços
+  abertos. Do painel, só a arte do mapa; nenhuma outra rota aceita o crachá.
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
   conserva apenas presença/posição transitórias. O motor RealtimeKit do VybeChat
   é reaproveitado para mídia, com credenciais exclusivamente no servidor.
