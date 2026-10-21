@@ -1288,7 +1288,7 @@ function pintarAgendaEscritorio() {
   // A mesma semana das Captações (agendaSemanaHtml, vybe-captacoes.js), só
   // para consulta: as mesmas cores e o mesmo tipo de cada evento.
   else corpo = agendaSemanaHtml({ inicio, eventos: eventos || [], sel: escritorioAgenda.sel || "", acoes: { evento: "escritorioAgendaEvento" } })
-    + ((eventos || []).length ? escritorioAgendaDetalheHtml() : '<p class="ofc-nota">Nada na agenda da Vybe nesta semana.</p>');
+    + ((eventos || []).length ? "" : '<p class="ofc-nota">Nada na agenda da Vybe nesta semana.</p>');
   el.innerHTML = `<div class="workflow-kicker"><span>Google Agenda da Vybe</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
   <div class="ofc-agenda-topo"><h2 class="workflow-title">Agenda da semana</h2>
    <div class="capt-nav" role="group" aria-label="Semana"><button type="button" class="vb-botao" aria-label="Semana anterior" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, -7)}')">‹</button><button type="button" class="vb-botao" onclick="abrirAgendaEscritorio()"${inicio === escritorioAgendaSegunda(hoje) ? " disabled" : ""}>Hoje</button><button type="button" class="vb-botao" aria-label="Próxima semana" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, 7)}')">›</button></div></div>
@@ -1297,16 +1297,19 @@ function pintarAgendaEscritorio() {
   ${corpo}
   <p class="ofc-nota">Só leitura. Para marcar uma captação, use Captações na Produção; para mudar um evento, o Google Agenda. Eventos privados e pessoais não aparecem aqui.</p>`;
   if (typeof agRolar === "function") agRolar(el);
+  // O evento escolhido abre no cartão ao lado do bloco (o mesmo das Captações).
+  if (escritorioAgenda.sel && typeof agCartaoAbrir === "function") agCartaoAbrir(escritorioAgenda.sel, escritorioAgendaDetalheHtml(), "escritorioAgendaDesmarcar");
 }
-function escritorioAgendaEvento(id) { escritorioAgenda.sel = escritorioAgenda.sel === id ? "" : id; pintarAgendaEscritorio(); }
+function escritorioAgendaEvento(id) { escritorioAgenda.sel = escritorioAgenda.sel === id ? "" : id; if (!escritorioAgenda.sel) agCartaoFechar?.(); pintarAgendaEscritorio(); }
+function escritorioAgendaDesmarcar() { if (!escritorioAgenda.sel) return; escritorioAgenda.sel = ""; pintarAgendaEscritorio(); }
 function escritorioAgendaDetalheHtml() {
   const e = (escritorioAgenda.eventos || []).find((x) => x.id === escritorioAgenda.sel);
   if (!e) return "";
   const dia = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(e.dia + "T12:00:00Z")).replace("-feira", "");
   const quando = `${dia.charAt(0).toUpperCase() + dia.slice(1)} · ${e.inicio ? `${e.inicio}${e.fim ? `–${e.fim}` : ""}` : "Dia inteiro"}`;
-  return `<div class="ofc-agenda-detalhe"><span class="capt-tipo t-${safeText(e.tipo || "outro")}">${safeText((typeof AG_TIPOS === "object" && AG_TIPOS[e.tipo]) || "Compromisso")}</span>
-    <b>${safeText(e.titulo || "Sem título")}</b><small>${safeText(quando)}${e.local ? ` · ${safeText(e.local)}` : ""}</small>
-    <span class="ofc-agenda-detalhe-acoes">${e.link ? `<a class="vb-link" href="${safeText(e.link)}" target="_blank" rel="noopener">Abrir no Google Agenda</a>` : ""}${e.tipo === "captacao" && typeof chooseProductionMode === "function" ? `<button type="button" class="vb-link" onclick="escritorioAbrirCaptacao('${safeText(e.id)}','${safeText(e.dia)}')">Ver em Captações</button>` : ""}</span></div>`;
+  return `<div class="capt-detalhe"><span class="capt-tipo t-${safeText(e.tipo || "outro")}">${safeText((typeof AG_TIPOS === "object" && AG_TIPOS[e.tipo]) || "Compromisso")}</span>
+    <h4>${safeText(e.titulo || "Sem título")}</h4><p class="capt-detalhe-quando">${safeText(quando)}${e.local ? `<br>${safeText(e.local)}` : ""}</p>
+    <span class="ofc-agenda-detalhe-acoes">${e.link ? `<a class="vb-link" href="${safeText(e.link)}" target="_blank" rel="noopener">Abrir no Google Agenda</a>` : ""}${e.tipo === "captacao" && typeof chooseProductionMode === "function" ? `<button type="button" class="vb-link" onclick="agCartaoFechar();escritorioAbrirCaptacao('${safeText(e.id)}','${safeText(e.dia)}')">Ver em Captações</button>` : ""}</span></div>`;
 }
 // Da agenda do jogo para a mesma captação no painel geral.
 function escritorioAbrirCaptacao(id, dia) {

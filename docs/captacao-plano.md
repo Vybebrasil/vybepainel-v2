@@ -66,6 +66,14 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   com o cliente), marcar captação (cliente com peças sem data) e escrever
   roteiro. Os números do topo abrem o grupo.
 - Evento que passa de um dia para o outro vai para "dia todo" (`horasNaSemana`).
+- Clicar num evento abre o cartão ao lado do bloco (`agCartaoAbrir`, no
+  celular sobe de baixo), o mesmo nas Captações e no Escritório.
+- Peças que vão ser gravadas e ainda não estão na Captação
+  (`pecasSemMaterial`): foto ou vídeo da Produção sem material bruto, sem
+  status de captação e ainda por fazer. A captação de fotos pelo título
+  ("Banco de imagem", "Fotos", "Ensaio") recebe as fotografias; as outras, os
+  vídeos. Vídeo sem roteiro entra em "Escrever roteiro". O status da peça não
+  muda; só a captação vira "Captação Agendada" ao levar.
 
 ## Etapa 2: biblioteca de roteiros (21/10/2026)
 

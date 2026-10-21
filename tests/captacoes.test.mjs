@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes } from '../server/captacoes.js';
 import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 
 const PRODUCAO = 7829537690;
@@ -13,9 +13,9 @@ async function banco(t) {
   const { db, sql } = conexao(); t.after(() => db.close());
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text);
     CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true);
-    CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text);
+    CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text, final boolean DEFAULT false);
     CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, titulo text, formato text, prazo date, veiculacao date, briefing text,
-      status_chave text, captacao_chave text, board_id bigint, removido_em timestamptz);
+      status_chave text, captacao_chave text, board_id bigint, removido_em timestamptz, material_bruto text);
     CREATE TABLE vybe_conteudo_clientes (conteudo_id bigint, cliente_id bigint);
     INSERT INTO vybe_pessoas VALUES (1, 'Paulo Martins'), (28, 'Ademir Dourado Santana');
     INSERT INTO vybe_clientes VALUES (1, 'Brussolo'), (2, 'DiaCenter');
@@ -104,6 +104,29 @@ test('liga as peças a uma captação que já está no Google sem criar nem apag
   await cancelarCaptacao(sql, quem, { id }, { trocar, agenda });
   assert.deepEqual(eventos, []);
   assert.deepEqual(trocas.at(-1), ['10', 'captacao', CAPTACAO.pronta]);
+});
+
+test('fotografia sem banco de fotos aparece e pode ir para a captação; o resto continua fora', async (t) => {
+  const { sql, trocar, trocas, agenda } = await banco(t);
+  await sql`INSERT INTO vybe_status VALUES (${PRODUCAO}, 'falta_info', 'Falta Info', '#ff5ac4', false), (${PRODUCAO}, 'finalizado', 'Finalizado', '#00c875', true)`;
+  await sql`INSERT INTO vybe_conteudos (id, titulo, formato, status_chave, captacao_chave, board_id, material_bruto) VALUES
+    (20, 'Fotografia - A escolha do DA', 'Fotografia', 'falta_info', NULL, ${PRODUCAO}, NULL),
+    (21, 'Fotografia - com material', 'Fotografia', 'falta_info', NULL, ${PRODUCAO}, 'https://drive.google.com/x'),
+    (22, 'Fotografia - pronta', 'Fotografia', 'finalizado', NULL, ${PRODUCAO}, NULL),
+    (23, 'Fotografia - para agendar', 'Fotografia', 'para_agendar', NULL, ${PRODUCAO}, NULL)`;
+  await sql`INSERT INTO vybe_conteudo_clientes VALUES (20, 1), (21, 1), (22, 1), (23, 1)`;
+  // Reels já cadastrado sem roteiro nem captação também vai ser gravado; card não.
+  await sql`INSERT INTO vybe_status VALUES (${PRODUCAO}, 'aguardo_redacao', 'Aguardo Redação', '#ff5ac4', false)`;
+  await sql`INSERT INTO vybe_conteudos (id, titulo, formato, status_chave, captacao_chave, board_id) VALUES
+    (24, 'Reels - FAQ 2', 'Reels', 'aguardo_redacao', NULL, ${PRODUCAO}), (25, 'Card - Horário', 'Card', 'aguardo_redacao', NULL, ${PRODUCAO})`;
+  const fotos = await pecasSemMaterial(sql);
+  assert.deepEqual(fotos.map((p) => [p.id, p.status, p.tipo]), [['20', 'Falta Info', 'foto'], ['24', 'Aguardo Redação', 'video']]);
+  await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['20', '10'] }, { trocar, agenda });
+  assert.deepEqual(trocas.map((x) => x[0]), ['20', '10']);
+  assert.deepEqual((await pecasSemMaterial(sql)).map((p) => p.id), ['24']);
+  // Foto com material, pronta ou para agendar não entra numa captação.
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['21'] }, { trocar, agenda }), /com material/);
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['22'] }, { trocar, agenda }), /pronta/);
 });
 
 test('o evento da agenda leva cliente, peças, local e horário de Irecê', () => {
