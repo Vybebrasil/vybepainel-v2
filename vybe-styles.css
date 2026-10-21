@@ -5945,11 +5945,13 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-sala small {min-width:18px;padding:1px 6px;border-radius:99px;background:color-mix(in srgb,var(--sala) 22%,transparent);text-align:center;font-variant-numeric:tabular-nums}
 .ofc-sala em {grid-column:2/4;font-style:normal;color:var(--ofc-suave);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ofc-sala:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
-.ofc-salas-grupo summary {display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-right:10px;cursor:pointer;list-style:none;user-select:none}
+.ofc-salas-grupo summary {display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:10px;cursor:pointer;list-style:none;user-select:none}
+.ofc-salas-grupo summary h5 {flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-salas-grupo {min-width:0;grid-template-columns:minmax(0,1fr)}
 .ofc-salas-grupo summary::-webkit-details-marker {display:none}
 .ofc-salas-grupo summary h5::after {content:"";display:inline-block;margin-left:6px;width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
 .ofc-salas-grupo:not([open]) summary h5::after {transform:translateY(-1px) rotate(-45deg)}
-.ofc-salas-grupo summary small {color:var(--ofc-suave);font:500 11px var(--mac-ui)}
+.ofc-salas-grupo summary small {flex:none;white-space:nowrap;padding:2px 8px;border-radius:99px;background:#ffffff0d;color:var(--ofc-suave);font:600 10.5px var(--mac-ui)}
 .ofc-salas-grupo summary:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px;border-radius:6px}
 .ofc-salas-grupo {display:grid;gap:2px}
 .ofc-sala i,.ofc-sala-atual i,.ofc-cartao-topo i {width:10px;height:10px;border-radius:3px;background:var(--sala)}
@@ -7479,7 +7481,9 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
   --jg-fundo:#101219; --jg-painel:linear-gradient(180deg,#232634 0%,#1a1c27 100%);
   --jg-painel-2:linear-gradient(180deg,#1d2030,#171925); --jg-slot:linear-gradient(180deg,#2a2d3c,#1e2130);
   --jg-borda:#ffffff17; --jg-borda-forte:#ffffff26; --jg-relevo:inset 0 1px 0 #ffffff14, inset 0 -1px 0 #00000059;
-  --jg-sombra:0 10px 28px #00000080; --jg-sombra-leve:0 4px 12px #00000059;
+  --jg-sombra:0 10px 28px #00000080; --jg-sombra-leve:0 3px 0 #0a0b10, 0 6px 14px #00000059;
+  /* Peça apertada: afunda o degrau (21/10/2026, "cara de joguinho"). */
+  --jg-apertado:inset 0 1px 0 #ffffff0f, 0 0 0 #0a0b10, 0 2px 6px #00000059;
   --jg-laranja:#ff8a35; --jg-laranja-2:#ffb15c; --jg-laranja-fundo:linear-gradient(180deg,#ff9a48,#ff6f1d);
   --jg-ativo:linear-gradient(180deg,#ff8a3533,#ff6b1a1f); --jg-raio:14px; --jg-raio-p:10px;
   --jg-mov:160ms cubic-bezier(.2,.8,.2,1);
@@ -7528,7 +7532,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-quartos {gap:8px}
 .ofc-quarto {padding:8px 4px 7px;border:1px solid var(--jg-borda);border-radius:var(--jg-raio);background:radial-gradient(70% 45% at 50% 72%,color-mix(in srgb,var(--sala) 30%,transparent),transparent 70%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
 .ofc-quarto:hover {transform:translateY(-2px);border-color:color-mix(in srgb,var(--sala) 60%,transparent);box-shadow:var(--jg-relevo),0 10px 20px #0007}
-.ofc-quarto:active {transform:translateY(0)}
+.ofc-quarto:active {transform:translateY(3px);box-shadow:var(--jg-apertado)}
 .ofc-quarto.aqui {border-color:var(--jg-laranja);box-shadow:var(--jg-relevo),0 0 0 2px #ff8a3540,0 8px 18px #ff6b1a26}
 .ofc-quarto > .office-avatar {transition:transform var(--jg-mov)}
 .ofc-quarto:hover > .office-avatar {transform:scale(1.08)}
@@ -7590,11 +7594,13 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 /* Cartões flutuantes (sala atual, quem está onde, missões, cobranças, música,
    conversa) e o dock: o mesmo vidro com relevo. */
 .ofc-sala-atual, .ofc-missoes, .ofc-musica, .office-call, .ofc-dock, .ofc-zoom, .ofc-info-card, .ofc-mesa-card {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634eb,#191b26eb);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(14px)}
-.ofc-dock {border-radius:18px;padding:5px}
-.ofc-dock-btn {border-radius:12px;transition:background var(--jg-mov),transform var(--jg-mov)}
-.ofc-dock-btn:hover {background:#ffffff12}
-.ofc-dock-btn:active {transform:translateY(1px)}
-.ofc-dock-btn[aria-pressed=true] {background:var(--jg-ativo);color:#ffd0a8}
+/* Barra do jogo como barra de atalhos (21/10/2026, "cara de joguinho"):
+   volume com o degrau de baixo, botões da mesma altura e o toque que afunda. */
+.ofc-dock {gap:4px;border-radius:20px;padding:6px;background:var(--jg-painel);border-color:var(--jg-borda-forte);box-shadow:var(--jg-relevo),0 4px 0 #0a0b10,0 18px 40px #0009}
+.ofc-dock-btn {min-height:40px;border-radius:12px;transition:background var(--jg-mov),transform var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-dock-btn:hover:not(:disabled) {background:#ffffff12;transform:translateY(-1px)}
+.ofc-dock-btn:active:not(:disabled) {transform:translateY(2px)}
+.ofc-dock-btn[aria-pressed=true] {background:var(--jg-ativo);color:#ffd0a8;box-shadow:inset 0 0 0 1px #ff8a3566}
 .ofc-missao, .ofc-cobranca {background:var(--jg-slot);box-shadow:var(--jg-relevo);transition:transform var(--jg-mov),border-color var(--jg-mov)}
 .ofc-missao:hover, .ofc-cobranca:hover {transform:translateY(-1px)}
 .ofc-missoes-filtros button {box-shadow:var(--jg-relevo);transition:background var(--jg-mov),color var(--jg-mov)}
@@ -7669,7 +7675,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-espaco {position:relative;display:grid;grid-template-rows:auto auto 1fr;gap:6px;min-height:104px;padding:10px;border:1px solid var(--jg-borda);border-radius:16px;
   background:radial-gradient(90% 70% at 100% 0%,color-mix(in srgb,var(--sala) 34%,transparent),transparent 65%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);color:var(--ofc-texto);text-align:left;cursor:pointer;overflow:hidden;transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
 .ofc-espaco:hover {transform:translateY(-2px);border-color:color-mix(in srgb,var(--sala) 65%,transparent);box-shadow:var(--jg-relevo),0 12px 22px #0008}
-.ofc-espaco:active {transform:translateY(0)}
+.ofc-espaco:active {transform:translateY(3px);box-shadow:var(--jg-apertado)}
 .ofc-espaco:focus-visible {outline:2px solid var(--jg-laranja-2);outline-offset:2px}
 .ofc-espaco[aria-pressed=true] {border-color:var(--jg-laranja);box-shadow:var(--jg-relevo),0 0 0 2px #ff8a3540}
 .ofc-espaco-emblema {display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:linear-gradient(180deg,color-mix(in srgb,var(--sala) 92%,#fff 8%),color-mix(in srgb,var(--sala) 62%,#000 38%));color:#fff;box-shadow:inset 0 1px 0 #ffffff60,0 3px 0 #0007}
@@ -7768,7 +7774,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-espaco {grid-template-rows:auto auto;gap:4px;padding:6px 6px 7px;border-radius:13px;text-align:center}
 .ofc-espaco-emblema {height:46px;border-radius:10px;padding-bottom:3px}
 .ofc-espaco-emblema .ofc-arte {max-width:86%;max-height:40px}
-.ofc-espaco > b {font:700 10.5px/1.2 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-espaco > b {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.4em;overflow:hidden;font:700 10.5px/1.2 var(--mac-ui);text-wrap:balance}
 .ofc-espaco-conta {position:absolute;top:4px;right:4px;min-width:18px;padding:1px 5px;border-radius:9px;background:#3ddc84;color:#062a16;font:800 10px var(--mac-ui);box-shadow:0 0 10px #3ddc8488}
 .ofc-espaco:not(.ocupada) {background:var(--jg-slot)}
 .ofc-espaco:not(.ocupada) .ofc-espaco-emblema {filter:saturate(.55) brightness(.85)}
@@ -8445,7 +8451,8 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
    texto continua visível mesmo quando a barra encolhe. */
 .ofc-dock-btn.destaque {padding:7px 12px;background:#ff95481f;box-shadow:inset 0 0 0 1px #ff954866;color:#ffd9bd}
 .ofc-dock-btn.destaque:hover:not(:disabled) {background:#ff954833}
-.ofc-dock-btn.destaque.principal {background:linear-gradient(135deg,#ffb15c,#ff7a1a);box-shadow:0 4px 14px #ff7a1a40;color:#1d1209}
+.ofc-dock-btn.destaque.principal {background:linear-gradient(180deg,#ffb15c,#ff7a1a);box-shadow:inset 0 1px 0 #ffffff80,0 3px 0 #a3420f,0 6px 14px #ff7a1a40;color:#1d1209}
+.ofc-dock-btn.destaque.principal:active:not(:disabled) {box-shadow:inset 0 1px 0 #ffffff60,0 0 0 #a3420f,0 2px 6px #ff7a1a40}
 .ofc-dock-btn.destaque.principal:hover:not(:disabled) {background:linear-gradient(135deg,#ffc07a,#ff8a35)}
 .ofc-dock-btn.destaque.principal svg {stroke:currentColor}
 .ofc-dock-btn.destaque[data-avisos=true] {background:linear-gradient(135deg,#ffb15c,#ff7a1a);color:#1d1209}

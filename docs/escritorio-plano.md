@@ -1314,5 +1314,8 @@ decoração inicial "bem feito".
   moeda, volume e toque que afunda), em 2×2; regras num painel só.
 - Barra do planejamento (painel): botões e etapas com a mesma altura e o
   texto centrado.
-- Próximo: lateral (Pessoas, espaços, quartos) e barra de baixo no mesmo
-  padrão.
+- Lateral e barra de baixo: o token `--jg-sombra-leve` ganhou o degrau de
+  baixo (todas as peças do jogo que o usam ficam com volume) e `--jg-apertado`
+  afunda a peça no clique; "Quartos da equipe" numa linha só, com o contador
+  em selo e sem empurrar a coluna; nome dos espaços em até duas linhas; a
+  barra de baixo com o mesmo volume e botões da mesma altura.
