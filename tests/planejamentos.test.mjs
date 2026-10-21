@@ -324,3 +324,11 @@ test('head aprova sem o cliente: só head e quem administra, antes de mandar',as
  await P.enviarAoCliente(sql,{id:1,admin:true},{id:q.id});
  await assert.rejects(P.aprovarPeloHead(sql,{id:1,admin:true},{id:q.id}),/Reabra/);
 });
+
+// Regressão (20/10/2026): refazer o editor apagou pljPlacar e quebrou a lista de planejamentos do cliente.
+test('a tela dos planejamentos não chama função que não existe',()=>{
+ const s=readFileSync('vybe-planejamentos.js','utf8');
+ const chamadas=new Set([...s.matchAll(/\b(plj[A-Z]\w*)\s*\(/g)].map(m=>m[1]));
+ const definidas=new Set([...s.matchAll(/function\s+(\w+)/g),...s.matchAll(/(?:const|let)\s+(\w+)\s*=/g)].map(m=>m[1]));
+ assert.deepEqual([...chamadas].filter(n=>!definidas.has(n)),[]);
+});
