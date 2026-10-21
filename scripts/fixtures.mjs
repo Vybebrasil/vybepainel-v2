@@ -95,7 +95,9 @@ export async function demoApi(req,res,url,body) {
   }
   // O convidado de demonstração vê a arte do mapa, como no servidor de verdade.
   const artesDoConvidado=/vybe_convidado=demo/.test(req.headers.cookie||'') && url.pathname==='/api/painel' && url.searchParams.get('area')==='escritorio' && ['arte','boneco','imagem'].includes(url.searchParams.get('acao'));
-  if(!sessao && !artesDoConvidado)return reply(401,{error:'Entre no ambiente de demonstração.'});
+  // A página do cliente abre sem sessão, como o link de verdade.
+  const paginaDoCliente=url.pathname==='/api/painel'&&url.searchParams.get('area')==='planejamentos'&&url.searchParams.get('acao')==='previa-cliente';
+  if(!sessao && !artesDoConvidado && !paginaDoCliente)return reply(401,{error:'Entre no ambiente de demonstração.'});
   if(url.pathname==='/api/conteudo' && req.method==='POST') {
     let data;try {data=JSON.parse(body.toString());}catch{return reply(400,{error:'JSON inválido.'});}
     if(data.acao==='clientes_opcoes')return reply(200,{ok:true,clientes:[
@@ -209,6 +211,8 @@ export async function demoApi(req,res,url,body) {
         eventos:[{tipo:'ajustes',texto:'Podemos trocar o tema do dia 12 por um Reels?',autor_externo:'Cliente fictício',em:new Date().toISOString(),versao:2},{tipo:'publicado',em:new Date(Date.now()-864e5).toISOString(),versao:1}]};
       const acao=url.searchParams.get('acao');
       if(acao==='previa'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml(plano));}
+      // Página do cliente para responder (link direto ou dentro do VybeHub), só na demonstração.
+      if(acao==='previa-cliente'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml({...plano,estado:'enviado'},{paraCliente:true,token:'demonstracao',modo:url.searchParams.get('modo')==='portal'?'portal':'link'}));}
       if(acao==='detalhe')return reply(200,{ok:true,planejamento:plano});
       const alertasDemo={sem_info:[{ref:'vybe:1',quadro:'producao',titulo:'Card sem briefing',status:'Pode Fazer',prazo:dia(22),motivo:'sem briefing'}],atrasadas:[{ref:'vybe:1',quadro:'producao',titulo:'Reels atrasado',status:'Em andamento',prazo:dia(2)}],aprovar:[{ref:'vybe:2',quadro:'demandas',titulo:'Cardápio para aprovar',status:'Para aprovação',prazo:dia(25)}],sem_info_total:1,atrasadas_total:1,aprovar_total:1,total:3};
       if(acao==='pendentes')return reply(200,{ok:true,pendentes:[plano],alertas:[{cliente_id:'1',cliente:'Cliente demonstração',...alertasDemo}]});
