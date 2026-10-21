@@ -9988,3 +9988,318 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 /* Tudo num bloco só: na grade de altura fixa da janela, cada peça com
    overflow escondido encolheria até sumir. */
 .cq-tela {display:grid;gap:12px;align-content:start}
+.cq-lado, .cq-principal {display:grid;gap:12px;align-content:start;min-width:0}
+
+/* Menu do personagem (Paulo, 21/10/2026: "não gosto de ter que rolar muito…
+   ganhar espaço dos lados… parecer que abriu um menu do personagem"). Ranking
+   e Conquistas ocupam a tela; com espaço, as partes ficam lado a lado. A
+   largura vem do próprio corpo (container), então a aba Conquistas da ficha,
+   que é estreita, continua numa coluna. */
+#workflow-modal.ofc-menu-jogo {width:min(1480px,calc(100vw - 32px))!important;height:calc(100vh - 32px)!important;max-height:none!important}
+#workflow-modal.ofc-menu-jogo .ofc-ranking {flex:1;min-height:0}
+#workflow-modal.ofc-menu-jogo :is(.rk2-corpo,.ofc-rk-corpo) {flex:1}
+.rk2-corpo, .ofc-rk-corpo, .ofc-cq-na-ficha {container-type:inline-size}
+.rk2-grade, .rk2-lado, .rk2-principal, .rk2-meio, .rk2-direita {display:grid;gap:12px;align-content:start;min-width:0}
+.rk2-duas {display:grid;gap:12px;align-content:start}
+@container (min-width:1000px) {
+  .rk2-grade {grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start}
+  .rk2-lado {position:sticky;top:0;padding-top:8px}
+  .rk2-principais {grid-template-columns:1fr;padding-top:0}
+  .rk2-camp {grid-template-columns:34px minmax(0,1fr) 26px;padding:10px 12px}
+  .rk2-chips {padding-top:4px}
+  .rk2-chips > small {flex-basis:100%;margin:4px 0 0}
+  .rk2-principal {padding-top:8px}
+  .cq-tela {grid-template-columns:360px minmax(0,1fr);gap:22px;align-items:start}
+  .cq-lado {position:sticky;top:0}
+  .cq-vitrine {grid-template-columns:1fr;justify-items:center;text-align:center;padding:22px 18px}
+  .cq-vitrine .cq-pedestal {width:150px;height:150px}
+  .cq-vitrine .cq-pedestal img {width:104px;height:104px}
+  .cq-placa {justify-items:center}
+  .cq-placa > b {font-size:28px}
+  .cq-trocar {justify-self:center}
+  .cq-numeros {grid-auto-flow:row}
+  .cq-titulos-lista {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@container (min-width:1240px) {
+  .rk2-duas {grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:20px;align-items:start}
+  .rk2-meio {position:sticky;top:0}
+}
+/* Entrada do Escritório, versão jogo (Paulo, 21/10/2026: "deixar essa tela
+   FODA… demora carregar cada coisa"): título sob a saudação, nível nas pontas
+   da barra de XP, dias seguidos, quem está aqui agora por lugar, cartões que
+   levam a cada coisa e esqueleto no lugar enquanto o resumo chega. */
+.ofc-lobby-titulo {font-size:11px;padding:3px 10px;margin-top:-4px}
+.ofc-lobby-xp {grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:8px;width:min(300px,100%)}
+.ofc-lobby-xp small {grid-column:1 / -1;text-align:center}
+.ofc-lobby-nv {display:grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:8px;background:linear-gradient(180deg,#8f7bff,#6a52f0);color:#fff;font:850 12px var(--mac-ui);font-variant-numeric:tabular-nums;box-shadow:inset 0 1px 0 #ffffff55,0 2px 0 #3b2c9a}
+.ofc-lobby-nv.prox {background:#ffffff14;color:#c7bfff;box-shadow:inset 0 0 0 1px #8f7bff66}
+.ofc-lobby-xp .ofc-dia-barra i {position:relative;overflow:hidden}
+.ofc-lobby-xp .ofc-dia-barra i::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff66 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 2.6s var(--curva,ease) infinite}
+.ofc-lobby-fogo {display:inline-flex;align-items:center;gap:6px;color:#ffd0a8;font:600 12px var(--mac-ui)}
+.ofc-lobby-fogo:empty {display:none}
+.ofc-lobby-fogo b {color:#fff;font-weight:800}
+.ofc-lobby-chama {width:14px;height:18px;background:linear-gradient(180deg,#ffe08a,#ff7a2a 60%,#e8433b);clip-path:path("M7 0C9 5 14 7 14 12A7 6 0 0 1 0 12C0 8 4 7 4 3C6 5 6 7 7 8C8 6 8 3 7 0Z");animation:ofc-chama 1.2s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes ofc-chama {50% {transform:scale(1.08,.94) rotate(-3deg)}}
+.ofc-lobby-online h3 {display:flex;align-items:center;gap:8px}
+.ofc-lobby-aovivo {width:9px;height:9px;border-radius:50%;background:#4fd18b;box-shadow:0 0 0 0 #4fd18b88;animation:ofc-aovivo 1.8s ease-out infinite}
+@keyframes ofc-aovivo {70% {box-shadow:0 0 0 7px #4fd18b00} 100% {box-shadow:0 0 0 0 #4fd18b00}}
+.ofc-lobby-lugares {display:flex;flex-wrap:wrap;gap:8px}
+.ofc-lobby-lugar {display:grid;gap:4px;padding:8px 10px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff10}
+.ofc-lobby-lugar > small {color:var(--ofc-suave);font:600 11px var(--mac-ui)}
+.ofc-lobby-gente {display:flex;gap:6px}
+.ofc-lobby-quem {display:grid;justify-items:center;gap:2px;min-width:38px}
+.ofc-lobby-quem img, .ofc-lobby-quem i {width:34px;height:34px;border-radius:50%;background:#2a2e3b;border:2px solid #4fd18b88;object-fit:cover;object-position:center 30%}
+.ofc-lobby-quem small {color:#e9ecf2;font:650 10.5px var(--mac-ui)}
+.ofc-lobby-card .jg-seta {position:absolute;right:12px;bottom:12px;width:8px;height:8px;border-right:2px solid #ffffff55;border-bottom:2px solid #ffffff55;transform:rotate(-45deg);transition:transform .15s var(--curva,ease),border-color .15s}
+.ofc-lobby-card:not(:disabled):hover .jg-seta {transform:translateX(3px) rotate(-45deg);border-color:#fff}
+.ofc-lobby-card.esqueleto {pointer-events:none;overflow:hidden}
+.ofc-lobby-card.esqueleto .jg-moeda {background:#ffffff10;box-shadow:none}
+.ofc-lobby-card.esqueleto b, .ofc-lobby-card.esqueleto .jg-titulo, .ofc-lobby-card.esqueleto small {display:block;height:12px;border-radius:6px;background:#ffffff10}
+.ofc-lobby-card.esqueleto b {width:42px;height:20px;margin-bottom:4px}
+.ofc-lobby-card.esqueleto .jg-titulo {width:70px}
+.ofc-lobby-card.esqueleto small {width:96px;margin-top:4px}
+.ofc-lobby-card.esqueleto::before {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff0f 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 1.4s var(--curva,ease) infinite}
+.ofc-lobby-cards.antigo .ofc-lobby-card b {opacity:.75}
+.ofc-lobby-atualizando {margin-left:6px;color:var(--ofc-suave);font:600 10px var(--mac-ui);letter-spacing:0;text-transform:none}
+.ofc-lobby-atualizando::before {content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#ffb27a;vertical-align:1px;animation:jg-pulso 1.2s ease-in-out infinite}
+.ofc-lobby-entrar {position:relative;display:flex;align-items:center;justify-content:center;gap:12px;overflow:hidden}
+.ofc-lobby-entrar::before {content:"";position:absolute;inset:0 auto 0 -30%;width:24%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffff70,transparent);animation:vb-titulo-brilho 3.6s var(--curva,ease) infinite;pointer-events:none}
+.ofc-lobby-entrar kbd {padding:2px 7px;border-radius:6px;background:#00000026;color:#2a1200;font:750 11px var(--mac-ui);box-shadow:inset 0 -1px 0 #0000002e}
+@media (prefers-reduced-motion:reduce) {.ofc-lobby-xp .ofc-dia-barra i::after,.ofc-lobby-chama,.ofc-lobby-aovivo,.ofc-lobby-card.esqueleto::before,.ofc-lobby-entrar::before,.ofc-lobby-atualizando::before {animation:none}}
+[data-motion=reduce] :is(.ofc-lobby-xp .ofc-dia-barra i::after,.ofc-lobby-chama,.ofc-lobby-aovivo,.ofc-lobby-card.esqueleto::before,.ofc-lobby-entrar::before,.ofc-lobby-atualizando::before) {animation:none}
+@media (hover:none) {.ofc-lobby-entrar kbd {display:none}}
+/* ===== Entrada do Escritório como a tela de um jogo (Paulo, 21/10/2026:
+   "faça algo fluido, moderno, parecendo joguinho, login do joguinho… me
+   surpreenda"). A cidade em tela cheia; o boneco no centro sobre a
+   plataforma; placa do jogador e moedas no topo; botões de jogo de um só
+   desenho à direita; quem está online à esquerda; ENTRAR grande embaixo.
+   Cada peça entra deslizando da sua borda. ===== */
+.ofc-lobby.lg {container-type:size;display:block;padding:0;background:#05060a;backdrop-filter:none;-webkit-backdrop-filter:none;--vidro:#10121acc;--borda-vidro:#ffffff1c}
+.ofc-lobby.lg .abr-cena {animation:lg-cena 1.4s var(--curva,ease) forwards}
+.ofc-lobby.lg .abr-vinheta {z-index:1;background:radial-gradient(120% 90% at 50% 55%,transparent 35%,#05060ad9 100%),linear-gradient(180deg,#05060ab3,transparent 22%,transparent 62%,#05060af2)!important}
+.lg-tela {position:absolute;inset:0;z-index:4;display:grid;grid-template-columns:minmax(230px,1fr) minmax(280px,1.25fr) minmax(230px,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;grid-template-areas:"topo topo topo" "online palco lado" "regra regra regra" "base base base";gap:14px 22px;padding:22px 26px 24px;color:#fff;font-family:var(--mac-ui);overflow:hidden}
+.lg-entra {animation:lg-entra .7s var(--curva,cubic-bezier(.22,1,.36,1)) both;animation-delay:calc(var(--o,0) * 90ms + 120ms)}
+@keyframes lg-entra {from {opacity:0;transform:translate(var(--dx,0),var(--dy,18px)) scale(.98)}}
+/* Topo: placa do jogador e recursos */
+.lg-topo {grid-area:topo;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.lg-jogador {--dy:-18px;display:flex;align-items:center;gap:14px;padding:10px 18px 10px 10px;border-radius:22px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #00000080,0 18px 40px #0008}
+.lg-anel {--p:0;position:relative;flex:none;display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:conic-gradient(#ffc35c,#ff8a1f calc(var(--p) * 1%),#ffffff1a 0)}
+.lg-anel::before {content:"";position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#3a3f52,#1b1e29)}
+.lg-anel img {position:relative;width:56px;height:56px;object-fit:cover;object-position:center 28%;image-rendering:pixelated;border-radius:50%}
+.lg-nivel {position:absolute;right:-6px;bottom:-4px;display:grid;place-items:center;min-width:28px;height:24px;padding:0 6px;border-radius:9px;background:linear-gradient(180deg,#9d8cff,#6a52f0);font:900 13px var(--mac-ui);font-variant-numeric:tabular-nums;box-shadow:inset 0 1px 0 #ffffff66,0 3px 0 #3b2c9a,0 0 0 2px #10121a}
+.lg-jogador-txt {display:grid;gap:3px;min-width:0}
+.lg-jogador-txt small {color:#ffcf9e;font:700 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.lg-jogador-txt > b {font:900 24px/1 var(--mac-ui);letter-spacing:-.02em;text-shadow:0 2px 0 #0008}
+.lg-jogador-txt .vb-titulo {justify-self:start}
+.lg-conv {color:#cfd3dc;font:600 12px var(--mac-ui)}
+.lg-xp {display:block;width:190px;height:7px;margin-top:3px;border-radius:9px;background:#ffffff1a;overflow:hidden}
+.lg-xp i {position:relative;display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#8f7bff,#c7b3ff);overflow:hidden}
+.lg-xp i::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffffa0 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 2.8s var(--curva,ease) infinite}
+.lg-jogador-txt em {color:#b7bccb;font:600 10.5px var(--mac-ui);font-style:normal;font-variant-numeric:tabular-nums}
+.lg-recursos {--dy:-18px;display:flex;gap:10px;align-items:center}
+.lg-pilula {display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:999px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 4px 0 #00000080;font:900 17px var(--mac-ui);font-variant-numeric:tabular-nums}
+.lg-pilula:empty {display:none}
+.lg-moeda > i {width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd24a 45%,#d9930e);box-shadow:inset 0 -3px 0 #a8660a,0 0 12px #ffc93c66;position:relative}
+.lg-moeda > i::after {content:"V";position:absolute;inset:0;display:grid;place-items:center;color:#8a4d00;font:900 14px var(--mac-ui)}
+.lg-fogo {padding-left:12px;font-size:13px;font-weight:700;color:#ffd0a8}
+.lg-fogo b {color:#fff;font-weight:900}
+/* O palco: feixe de luz, plataforma girando e faíscas subindo */
+.lg-palco {grid-area:palco;position:relative;display:grid;place-items:end center;min-height:0;padding-bottom:28px}
+.lg-feixe {position:absolute;left:50%;top:-40px;bottom:40px;width:min(380px,90%);transform:translateX(-50%);background:conic-gradient(from 180deg at 50% 0%,transparent 160deg,color-mix(in srgb,var(--prov-brilho,#ff8a35) 30%,transparent) 172deg,color-mix(in srgb,var(--prov-brilho,#ff8a35) 42%,transparent) 180deg,color-mix(in srgb,var(--prov-brilho,#ff8a35) 30%,transparent) 188deg,transparent 200deg);filter:blur(8px);opacity:.75;mask:linear-gradient(180deg,#000 40%,transparent 95%);animation:lg-feixe 6s ease-in-out infinite}
+@keyframes lg-feixe {50% {opacity:.5}}
+/* A ilha do palco: arte do Habbo em pixel, o dobro do tamanho; o boneco pisa
+   no meio da grama. A sombra no chão segura a ilha na cena. */
+.lg-sombra {position:absolute;left:50%;bottom:6px;width:420px;height:90px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,#000000d9,#00000059 60%,transparent)}
+.lg-ilha {position:absolute;left:50%;bottom:22px;width:272px;height:182px;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 14px 18px #000c) drop-shadow(0 0 22px color-mix(in srgb,var(--prov-brilho,#ff8a35) 25%,transparent));opacity:0;transition:opacity .4s}
+.lg-ilha.pronta, .lg-ilha[src] {opacity:1;animation:lg-ilha 4.5s ease-in-out infinite}
+@keyframes lg-ilha {50% {translate:0 -5px}}
+.lg-faiscas {position:absolute;left:50%;bottom:70px;width:200px;height:220px;transform:translateX(-50%);pointer-events:none}
+.lg-faiscas i {position:absolute;bottom:0;left:calc(var(--i) * 10% + 2%);width:4px;height:4px;border-radius:50%;background:color-mix(in srgb,var(--prov-brilho,#ff8a35) 70%,#fff);box-shadow:0 0 8px color-mix(in srgb,var(--prov-brilho,#ff8a35) 80%,transparent);opacity:0;animation:lg-faisca 3.6s ease-out infinite;animation-delay:calc(var(--i) * -.37s)}
+@keyframes lg-faisca {10% {opacity:1} 100% {opacity:0;transform:translateY(-200px) translateX(calc((var(--i) - 5) * 4px))}}
+.lg-palco .ofc-lobby-boneco {position:relative;z-index:2;width:176px;height:302px;margin:0 0 118px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 10px 14px #000a);animation:lg-boneco-entra .9s var(--curva,ease) backwards .2s,lg-ilha 4.5s ease-in-out infinite}
+@keyframes lg-boneco-entra {from {opacity:0;transform:translateY(-30px) scale(.9)}}
+.lg-placa-sala {position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--vidro);border:1px solid var(--borda-vidro);color:#e9ecf2;font:700 12px var(--mac-ui);white-space:nowrap;z-index:3}
+.lg-placa-sala svg {width:14px;height:14px;fill:none;stroke:#ffb27a;stroke-width:1.9}
+/* Botões de jogo à direita */
+.lg-lado {--dx:28px;--dy:0;grid-area:lado;display:grid;align-content:center;justify-items:end;gap:10px}
+.lg-botao {display:grid;grid-template-columns:auto 58px;grid-template-areas:"txt icone";align-items:center;gap:12px;padding:0;border:0;background:none;color:#fff;font:inherit;text-align:right;cursor:pointer}
+.lg-botao-icone {grid-area:icone;position:relative;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffffff22,#ffffff05 60%),var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff26,0 5px 0 #000000a0,0 12px 24px #0008;transition:transform .16s var(--curva,ease),box-shadow .16s,border-color .2s}
+.lg-botao-icone svg {width:26px;height:26px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 0 #0007)}
+.lg-botao-txt {grid-area:txt;display:grid;gap:1px;max-width:180px;padding:6px 12px;border-radius:12px;background:#05060a8c;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.lg-botao-txt b {font:800 14px var(--mac-ui);text-shadow:0 1px 0 #000}
+.lg-botao-txt small {color:#c5cad6;font:600 11px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-botao.alerta .lg-botao-txt small {color:#ffb3a8}
+.lg-botao:not(:disabled):hover .lg-botao-icone {transform:translateY(-3px) scale(1.04);border-color:#ff8a35aa;box-shadow:inset 0 1px 0 #ffffff26,0 8px 0 #000000a0,0 0 0 4px #ff8a3526,0 16px 30px #0009}
+.lg-botao:not(:disabled):active .lg-botao-icone {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff1a,0 1px 0 #000000a0}
+.lg-botao:focus-visible {outline:none}
+.lg-botao:focus-visible .lg-botao-icone {box-shadow:0 0 0 3px #ff8a35,0 5px 0 #000000a0}
+.lg-botao:disabled {cursor:default}
+.lg-selo {position:absolute;top:-4px;right:-6px;display:grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:linear-gradient(180deg,#ffb15c,#ff7a1f);color:#1c0b00;font:900 12px var(--mac-ui);font-variant-numeric:tabular-nums;box-shadow:0 2px 0 #9a4a10,0 0 0 2px #10121a}
+.lg-botao.alerta .lg-selo {background:linear-gradient(180deg,#ff7b6b,#e8433b);color:#fff;box-shadow:0 2px 0 #8a1f1a,0 0 0 2px #10121a;animation:lg-selo 2s ease-in-out infinite}
+@keyframes lg-selo {0%,100% {transform:scale(1)} 50% {transform:scale(1.12)}}
+.lg-botao.jg-ranking .lg-selo {background:linear-gradient(180deg,#ffe58a,#e0a12a);color:#3a2400;box-shadow:0 2px 0 #7a4b00,0 0 0 2px #10121a}
+.lg-botao.esqueleto .lg-botao-icone {overflow:hidden}
+.lg-botao.esqueleto .lg-botao-icone::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff24 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 1.4s var(--curva,ease) infinite}
+.lg-botao.esqueleto .lg-botao-txt small {width:84px;height:10px;border-radius:5px;background:#ffffff14}
+.lg-lado.antigo .lg-selo {opacity:.7}
+/* Quem está online, à esquerda */
+.lg-online {--dx:-28px;--dy:0;grid-area:online;align-self:end;justify-self:start;display:grid;gap:10px;padding:14px 16px;border-radius:20px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #00000080;max-width:320px}
+.lg-online h3 {display:flex;align-items:center;gap:8px;margin:0;color:#a6f0c4;font:800 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.lg-online p {margin:0;color:#cfd3dc;font:500 12.5px/1.4 var(--mac-ui)}
+.lg-rostos {display:flex;flex-wrap:wrap;gap:8px}
+.lg-amigo {position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#3a3f52,#1b1e29);box-shadow:0 0 0 2px #4fd18b,0 3px 0 #000a;outline:none;transition:transform .15s var(--curva,ease)}
+.lg-amigo img {width:40px;height:40px;object-fit:cover;object-position:center 28%;image-rendering:pixelated;border-radius:50%}
+.lg-amigo::after {content:"";position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;background:#4fd18b;box-shadow:0 0 0 2px #10121a}
+.lg-amigo:hover, .lg-amigo:focus-visible {transform:translateY(-3px)}
+.lg-dica {position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);display:grid;gap:1px;padding:6px 10px;border-radius:10px;background:#05060af2;border:1px solid #ffffff1a;color:#c5cad6;font:600 11px var(--mac-ui);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s var(--curva,ease);z-index:5}
+.lg-dica b {color:#fff;font-size:12.5px}
+.lg-amigo:hover .lg-dica, .lg-amigo:focus-visible .lg-dica {opacity:1;transform:translate(-50%,0)}
+.lg-mais {display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#ffffff14;font:800 12px var(--mac-ui)}
+.lg-vazio {width:44px;height:44px;border-radius:50%;background:#ffffff10;position:relative;overflow:hidden}
+.lg-vazio::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff1f 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 1.4s var(--curva,ease) infinite}
+.lg-regra {--dy:10px;grid-area:regra;justify-self:center;display:inline-flex;align-items:center;gap:8px;margin:0;color:#b7bccb;font:600 12px var(--mac-ui)}
+.lg-regra svg {width:15px;height:15px;fill:none;stroke:#ffb27a;stroke-width:1.9}
+/* A base: áudio, atalhos e o ENTRAR */
+.lg-base {--dy:26px;grid-area:base;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(280px,360px);align-items:center;gap:16px}
+.lg-audio {display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.lg-redondo {display:grid;place-items:center;width:48px;height:48px;border-radius:50%;border:1px solid var(--borda-vidro);background:var(--vidro);color:#fff;cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff1a,0 4px 0 #000a;transition:transform .15s var(--curva,ease),box-shadow .15s}
+.lg-redondo svg {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.lg-redondo:active {transform:translateY(3px);box-shadow:0 1px 0 #000a}
+.lg-redondo.ativo {border-color:#4fd18b;color:#a6f0c4;box-shadow:0 0 0 4px #4fd18b26,0 4px 0 #000a}
+.lg-redondo:focus-visible, .lg-secundario:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.lg-audio .ofc-lobby-nivel {flex:0 1 120px}
+.lg-audio select {max-width:200px;padding:6px 8px;border-radius:9px;border:1px solid #ffffff24;background:#10121a;color:#e9ecf2;font:500 12px var(--mac-ui)}
+.lg-audio small {flex-basis:100%;color:#ff9b9b;font:600 12px var(--mac-ui)}
+.lg-mudo {display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;background:#05060a8c;color:#dfe3ea;font:650 12.5px var(--mac-ui);cursor:pointer}
+.lg-mudo input {position:absolute;opacity:0;pointer-events:none}
+.lg-mudo span {position:relative;width:34px;height:20px;border-radius:999px;background:#ffffff24;transition:background .2s}
+.lg-mudo span::after {content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0006;transition:transform .2s var(--curva,ease)}
+.lg-mudo input:checked + span {background:#ff8a35}
+.lg-mudo input:checked + span::after {transform:translateX(14px)}
+.lg-mudo input:focus-visible + span {outline:2px solid #ff8a35;outline-offset:2px}
+.lg-outros {display:flex;gap:8px}
+.lg-secundario {display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--borda-vidro);background:var(--vidro);color:#eef0f5;font:750 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 4px 0 #000a;transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
+.lg-secundario svg {width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9}
+.lg-secundario:hover {border-color:#ffffff40}
+.lg-secundario:active {transform:translateY(3px);box-shadow:0 1px 0 #000a}
+.lg-entrar {position:relative;display:flex;align-items:center;justify-content:center;gap:16px;height:74px;padding:0 26px;border:0;border-radius:20px;overflow:hidden;cursor:pointer;color:#1c0b00;background:linear-gradient(180deg,#ffd07a,#ff9a3c 45%,#ff7a1f);box-shadow:inset 0 2px 0 #fff6,inset 0 -3px 0 #c45a12,0 7px 0 #8f3f0a,0 0 0 0 #ff8a3566,0 20px 40px #ff7a1f55;transition:transform .14s var(--curva,ease),box-shadow .14s;animation:lg-pulso 2.6s ease-in-out infinite}
+.lg-entrar::before {content:"";position:absolute;inset:0 auto 0 -30%;width:22%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffffb0,transparent);animation:vb-titulo-brilho 3.4s var(--curva,ease) infinite;pointer-events:none}
+.lg-entrar:hover {transform:translateY(-2px)}
+.lg-entrar:active {transform:translateY(6px);box-shadow:inset 0 2px 0 #fff6,inset 0 -2px 0 #c45a12,0 1px 0 #8f3f0a}
+.lg-entrar:focus-visible {outline:3px solid #fff;outline-offset:3px}
+@keyframes lg-pulso {50% {box-shadow:inset 0 2px 0 #fff6,inset 0 -3px 0 #c45a12,0 7px 0 #8f3f0a,0 0 0 10px #ff8a3500,0 20px 48px #ff7a1f88}}
+.lg-entrar-txt {display:grid;justify-items:start;line-height:1}
+.lg-entrar-txt b {font:950 28px/1 var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;text-shadow:0 1px 0 #fff8}
+.lg-entrar-txt small {font:750 12.5px var(--mac-ui);opacity:.8}
+.lg-entrar > span:only-child {font:900 20px var(--mac-ui)}
+.lg-entrar kbd {padding:3px 8px;border-radius:7px;background:#00000026;color:#3a1800;font:800 11px var(--mac-ui);box-shadow:inset 0 -1px 0 #0003}
+.lg-carregando {grid-template-columns:minmax(0,560px);justify-content:center}
+.lg-carregando .ofc-entrada {width:100%;padding:16px 18px;border-radius:18px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px)}
+.lg .ofc-lobby-outra {grid-area:base;justify-self:center}
+@media (hover:none) {.lg-entrar kbd {display:none}}
+@container (max-width:900px) or (max-height:620px) {
+  .lg-tela {grid-template-columns:1fr;grid-template-rows:auto minmax(270px,1fr) auto auto auto auto;grid-template-areas:"topo" "palco" "lado" "online" "regra" "base";gap:12px;padding:14px 14px 18px;overflow-y:auto}
+  .lg-topo {flex-wrap:wrap}
+  .lg-jogador {padding:8px 14px 8px 8px}
+  .lg-anel {width:58px;height:58px}.lg-anel img {width:44px;height:44px}
+  .lg-jogador-txt > b {font-size:20px}.lg-xp {width:140px}
+  .lg-palco {padding-bottom:22px}
+  .lg-palco .ofc-lobby-boneco {width:96px;height:165px;margin-bottom:78px}
+  .lg-ilha {width:180px;height:121px;bottom:14px}.lg-sombra {width:280px;height:64px}
+  .lg-lado {grid-auto-flow:column;grid-auto-columns:76px;justify-content:space-between;justify-items:center;gap:6px;overflow-x:auto;padding:6px 2px 8px;scrollbar-width:none;min-height:96px}
+  .lg-botao {grid-template-columns:58px;grid-template-areas:"icone" "txt";justify-items:center;text-align:center;gap:6px}
+  .lg-botao-txt {padding:0;background:none;backdrop-filter:none}
+  .lg-botao-txt small {display:none}
+  .lg-botao {width:76px}.lg-botao-txt {max-width:76px}.lg-botao-txt b {font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lg-online {justify-self:stretch;max-width:none}
+  .lg-base {grid-template-columns:1fr;gap:10px}
+  .lg-outros {flex-wrap:wrap}.lg-outros .lg-secundario {flex:1}
+  .lg-entrar {order:-1;height:64px}
+}
+@media (prefers-reduced-motion:reduce) {.ofc-lobby.lg .abr-cena {animation:none;transform:scale(1.05);filter:blur(3px) brightness(.62)}.lg-entra,.lg-feixe,.lg-ilha,.lg-faiscas i,.lg-palco .ofc-lobby-boneco,.lg-entrar,.lg-entrar::before,.lg-selo,.lg-xp i::after {animation:none!important}.lg-faiscas {display:none}}
+[data-motion=reduce] :is(.lg-entra,.lg-feixe,.lg-ilha,.lg-faiscas i,.lg-palco .ofc-lobby-boneco,.lg-entrar,.lg-entrar::before,.lg-selo,.lg-xp i::after) {animation:none!important}
+[data-motion=reduce] .lg-faiscas {display:none}
+/* Entrada, segunda rodada (Paulo, 21/10/2026: "execute todos"): o cantinho
+   com móveis do seu quarto na ilha, os colegas online em ilhas ao fundo, o
+   baú do dia, as notícias da semana, a saída animada e a luz da hora. */
+.lg-cantinho {position:absolute;left:50%;bottom:22px;width:272px;height:182px;transform:translateX(-50%);pointer-events:none;animation:lg-ilha 4.5s ease-in-out infinite}
+.lg-cantinho img {position:absolute;translate:-50% -100%;image-rendering:pixelated;filter:drop-shadow(0 4px 4px #0008);animation:lg-entra .6s var(--curva,ease) backwards .5s}
+.lg-palco .ofc-lobby-boneco {z-index:2}
+/* Colegas ao fundo */
+.lg-turma {grid-area:palco;position:relative;pointer-events:none;z-index:1}
+.lg-colega {--x:240px;position:absolute;bottom:60px;left:50%;display:grid;justify-items:center;padding:0;border:0;background:none;cursor:pointer;pointer-events:auto;translate:calc(-50% + var(--x)) 0;animation:lg-entra .8s var(--curva,ease) backwards;animation-delay:calc(.5s + var(--i) * .12s);filter:brightness(.92)}
+.lg-colega.esq {--x:-240px}
+.lg-colega.longe {--x:400px;bottom:110px;scale:.78;filter:brightness(.7) saturate(.85)}
+.lg-colega.longe.esq {--x:-400px}
+.lg-colega-ilha {position:absolute;bottom:-22px;left:50%;width:110px;height:84px;translate:-50% 0;background:center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(0 10px 10px #000b)}
+.lg-colega img {position:relative;width:64px;height:110px;margin-bottom:18px;image-rendering:pixelated;filter:drop-shadow(0 4px 6px #000a);transition:translate .2s var(--curva,ease)}
+.lg-colega-nome {position:absolute;bottom:calc(100% - 6px);display:grid;justify-items:center;padding:4px 9px;border-radius:10px;background:#05060ad9;border:1px solid #ffffff1a;color:#c5cad6;font:600 10.5px var(--mac-ui);white-space:nowrap;opacity:0;translate:0 6px;transition:opacity .15s,translate .15s var(--curva,ease)}
+.lg-colega-nome b {color:#fff;font-size:12px}
+.lg-colega:hover img, .lg-colega:focus-visible img {translate:0 -6px}
+.lg-colega:hover .lg-colega-nome, .lg-colega:focus-visible .lg-colega-nome {opacity:1;translate:0 0}
+.lg-colega:focus-visible {outline:2px solid #ff8a35;outline-offset:4px;border-radius:12px}
+/* Notícias no topo */
+.lg-noticias {flex:1;max-width:560px;display:flex;align-items:center;gap:10px;height:44px;margin:0 auto;padding:0 6px 0 6px;border-radius:999px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 4px 0 #00000080;overflow:hidden;align-self:center}
+.lg-noticias:empty {visibility:hidden}
+.lg-noticias-tag {flex:none;padding:5px 10px;border-radius:999px;background:linear-gradient(180deg,#ffb15c,#ff7a1f);color:#1c0b00;font:900 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.lg-noticias-trilho {position:relative;flex:1;height:100%;min-width:0}
+.lg-noticia {position:absolute;inset:0;display:flex;align-items:center;gap:6px;color:#dfe3ea;font:600 13px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;translate:0 100%;transition:opacity .45s var(--curva,ease),translate .45s var(--curva,ease)}
+.lg-noticia.atual {opacity:1;translate:0 0}
+.lg-noticia b {color:#fff;font-weight:800}
+.lg-noticia .vb-titulo {font-size:10px}
+/* Céu e luz por hora do dia */
+.lg-ceu {position:absolute;inset:0 0 auto;height:45%;z-index:2;pointer-events:none}
+.lg-ceu i {position:absolute;left:var(--x);top:var(--y);width:2px;height:2px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:lg-estrela 3.2s ease-in-out infinite;animation-delay:var(--d)}
+@keyframes lg-estrela {0%,100% {opacity:.15} 50% {opacity:.9}}
+.ofc-lobby.lg {--lg-luz:.62;--lg-sat:1.15}
+.ofc-lobby.lg[data-periodo="manha"] {--lg-luz:.8;--lg-sat:1.05}
+.ofc-lobby.lg[data-periodo="tarde"] {--lg-luz:.7;--lg-sat:1.2}
+.ofc-lobby.lg[data-periodo="noite"] {--lg-luz:.55;--lg-sat:1.25}
+@keyframes lg-cena {from {transform:scale(1.18);filter:blur(10px) brightness(.3) saturate(1)} to {transform:scale(1.05);filter:blur(3px) brightness(var(--lg-luz)) saturate(var(--lg-sat))}}
+.ofc-lobby.lg[data-periodo="manha"] .lg-ceu {background:linear-gradient(180deg,#ffd9a040,transparent)}
+.ofc-lobby.lg[data-periodo="tarde"] .lg-ceu {background:linear-gradient(180deg,#ff8a3533,transparent)}
+.ofc-lobby.lg[data-periodo="noite"] .lg-ceu {background:linear-gradient(180deg,#2a1f6a55,transparent)}
+/* O baú do dia */
+#lg-bau-lugar {display:contents}
+.lg-bau {position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:#05060aa6;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:lg-entra .4s var(--curva,ease) both;--dy:0}
+.lg-bau-cartao {position:relative;display:grid;justify-items:center;gap:8px;width:min(380px,calc(100% - 32px));padding:26px 24px 22px;border-radius:24px;background:linear-gradient(180deg,#262a37,#171920);border:1px solid #ffffff1f;box-shadow:inset 0 1px 0 #ffffff1a,0 8px 0 #000a,0 30px 60px #000c;text-align:center}
+.lg-bau-x {position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffff12;color:#fff;font:400 20px/1 var(--mac-ui);cursor:pointer}
+.lg-bau-caixa {position:relative;display:grid;place-items:center;width:150px;height:130px;padding:0;border:0;background:none;cursor:pointer;animation:lg-bau-pula 1.6s ease-in-out infinite}
+.lg-bau-caixa img {position:relative;z-index:1;width:auto;height:110px;image-rendering:pixelated;filter:drop-shadow(0 8px 10px #000b)}
+.lg-bau-luz {position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,#ffd35c88,transparent);animation:lg-feixe 1.6s ease-in-out infinite}
+.lg-bau-caixa.tremendo {animation:lg-bau-treme .12s linear infinite}
+.lg-bau.aberto .lg-bau-caixa {animation:none;cursor:default}
+.lg-bau.aberto .lg-bau-luz {inset:-30px;background:conic-gradient(from 0deg,#ffd35c00,#ffd35c66,#ffd35c00 25%,#ffd35c66 50%,#ffd35c00 75%);border-radius:50%;animation:lg-raios 6s linear infinite}
+@keyframes lg-bau-pula {50% {translate:0 -6px}}
+@keyframes lg-bau-treme {25% {rotate:-4deg} 75% {rotate:4deg}}
+@keyframes lg-raios {to {rotate:360deg}}
+.lg-bau-titulo {font:900 20px var(--mac-ui)}
+.lg-bau-cartao p {margin:0;color:#c5cad6;font:500 13px/1.45 var(--mac-ui)}
+.lg-bau-total {display:flex;align-items:center;gap:6px;color:#ffe29a;font:950 26px var(--mac-ui);font-variant-numeric:tabular-nums;animation:lg-entra .5s var(--curva,ease) both;--dy:10px}
+.lg-bau-total small {color:#c5cad6;font-size:13px;font-weight:700}
+.lg-bau-moeda {width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd24a 45%,#d9930e);box-shadow:inset 0 -3px 0 #a8660a}
+.lg-bau-cartao ul {display:grid;gap:4px;width:100%;margin:4px 0 0;padding:0;list-style:none}
+.lg-bau-cartao li {display:flex;justify-content:space-between;gap:10px;padding:7px 10px;border-radius:10px;background:#ffffff08;color:#dfe3ea;font:600 12.5px var(--mac-ui);text-align:left}
+.lg-bau-cartao li b {color:#ffe29a;font-variant-numeric:tabular-nums}
+.lg-bau-cartao li small {color:#8f96a5}
+.lg-bau-ok {margin-top:8px;height:46px;padding:0 26px;border:0;border-radius:14px;background:linear-gradient(180deg,#ffd07a,#ff7a1f);color:#1c0b00;font:900 15px var(--mac-ui);cursor:pointer;box-shadow:inset 0 2px 0 #fff6,0 5px 0 #8f3f0a}
+.lg-bau-ok:active {translate:0 4px;box-shadow:inset 0 2px 0 #fff6,0 1px 0 #8f3f0a}
+/* A saída animada ao ENTRAR */
+.ofc-lobby.lg.saindo .abr-cena {animation:lg-mergulho 1.6s var(--curva,ease) forwards}
+@keyframes lg-mergulho {to {transform:scale(1.5);filter:blur(0) brightness(.9) saturate(1.1)}}
+.ofc-lobby.lg.saindo :is(.lg-topo,.lg-lado,.lg-online,.lg-regra,.lg-turma,.lg-ceu) {transition:opacity .4s,translate .5s var(--curva,ease);opacity:0;pointer-events:none}
+.ofc-lobby.lg.saindo .lg-topo {translate:0 -30px}
+.ofc-lobby.lg.saindo .lg-lado {translate:40px 0}
+.ofc-lobby.lg.saindo .lg-online {translate:-40px 0}
+.ofc-lobby.lg.saindo .lg-palco .ofc-lobby-boneco {transition:translate 1.6s linear,opacity 1.6s ease-in;translate:60px -50px;opacity:0}
+.ofc-lobby.lg.saindo :is(.lg-ilha,.lg-cantinho,.lg-sombra,.lg-placa-sala,.lg-faiscas,.lg-feixe) {transition:opacity .9s .3s,scale .9s var(--curva,ease) .3s;opacity:0;scale:.9}
+@container (max-width:900px) or (max-height:620px) {
+  .lg-noticias {order:3;flex-basis:100%;max-width:none}
+  .lg-colega {--x:150px;bottom:40px;scale:.8}.lg-colega.esq {--x:-150px}
+  .lg-colega.longe {display:none}
+  .lg-cantinho {width:180px;height:121px;bottom:14px;scale:.66;transform-origin:50% 100%}
+}
+@media (prefers-reduced-motion:reduce) {.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-bau-caixa,.lg-bau-luz,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena {animation:none!important;transition:none!important}}
+[data-motion=reduce] :is(.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-bau-caixa,.lg-bau-luz,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena) {animation:none!important;transition:none!important}
+/* O palco fica na frente dos colegas, mas não segura o clique (nada nele é clicável). */
+.lg-palco {z-index:2;pointer-events:none}

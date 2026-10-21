@@ -1,13 +1,13 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./escritorio-economia.js";
-import { missoesDaPessoa, rankingEscritorio } from "./escritorio-pontos.js";
+import { missoesDaPessoa, rankingEscritorio, ganhosRecentes } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
-import { titulosDaPessoa, tituloDe, partesDoMarco } from "./escritorio-marcos.js";
+import { titulosDaPessoa, tituloDe, partesDoMarco, noticiasDaEquipe } from "./escritorio-marcos.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -168,8 +168,10 @@ export async function carregarEscritorio(sql, pessoa) {
   }));
   return {
     quartos: QUARTOS,
-    // A loja (faixas, estoque e vitrine) chega quando o editor abre; a entrada fica leve.
-    economia: await carregarEconomia(sql, pessoa.id, { loja: false }),
+    // A loja (faixas, estoque e vitrine) chega quando o editor abre, e as
+    // conquistas (umas 25 consultas a mais) quando a janela delas ou a ficha
+    // abre: a entrada fica leve (Paulo, 21/10/2026: "demora carregar").
+    economia: await carregarEconomia(sql, pessoa.id, { loja: false, marcos: false }),
     eu: String(pessoa.id),
     admin: Boolean(pessoa.admin),
     equipe: lista,
@@ -369,6 +371,11 @@ export async function areaEscritorio(req, res, quem, sql) {
     // Guarda-roupa do criador: faixas, peças grátis/raras, as da pessoa e os kits.
     if (acao === "roupas") return res.status(200).json({ ok: true, ...(await roupasDaPessoa(sql, pessoa.id)) });
     if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
+    // A tela de entrada: o baú (ganhos das últimas 24 h) e as notícias da semana.
+    if (acao === "lobby") {
+      const [ganhos, noticias] = await Promise.all([ganhosRecentes(sql, pessoa.id), noticiasDaEquipe(sql)]);
+      return res.status(200).json({ ok: true, ganhos, noticias });
+    }
     // Clientes cobrando no quarto de alguém: todos que estão no quarto veem
     // (decisão do Paulo, 19/10/2026); a equipe já vê todas as demandas.
     if (acao === "cobrancas") {

@@ -60,3 +60,21 @@ test('revisão tira só o nível perdido, com o troféu do quarto, e não repete
   assert.deepEqual([Number(depois.saldo), Number(depois.xp)], [Math.max(0, antes.saldo - pago.quantidade), Math.max(0, antes.xp - pago.pontos)]);
   assert.equal((await revisarNiveisEscritorio(sql, 'teste-dificeis', { tirarDoQuarto: true })).repetida, true);
 });
+
+test('entrada: notícias da semana com o título e o baú com os ganhos das últimas 24 horas', async (t) => {
+  const { db, sql } = await banco(t);
+  await db.exec(ler('2026-10-21-escritorio-conquistas-dificeis.sql'));
+  await cards(db, 3, 1, 40);
+  await conferirMarcos(sql, 3, new Date());
+  const { noticiasDaEquipe } = await import('../server/escritorio-marcos.js');
+  const { ganhosRecentes } = await import('../server/escritorio-pontos.js');
+  const n = await noticiasDaEquipe(sql);
+  assert.ok(n.some((x) => x.pessoa === '3' && x.titulo === 'Aprendiz de Cards' && x.nomeNivel === 'Bronze'));
+  // Ganho com regra entra; compra (sem regra) fica de fora.
+  await sql`SELECT vybe_lancar_pontos(3,'teste:ganho','entrega_prazo',NULL,5,7)`;
+  await sql`SELECT vybe_lancar_pontos(3,'compra:teste',NULL,NULL,-3,0)`;
+  const g = await ganhosRecentes(sql, 3);
+  assert.ok(g.moedas >= 5 && g.pontos >= 7);
+  assert.ok(g.itens.every((x) => x.descricao));
+  assert.ok(!g.itens.some((x) => x.moedas === -3), 'compra não entra no baú');
+});

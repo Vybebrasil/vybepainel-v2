@@ -321,6 +321,16 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   nova não alcança (marcador `conquistas-dificeis-2026-10-21`; **já aplicada em
   21/10/2026**, tirou 21 níveis); não repetir.
   Consulte `docs/escritorio-pontos.md`.
+- Entrada do Escritório (decisão do Paulo, 21/10/2026: "login do joguinho"):
+  a cidade em tela cheia, o boneco numa ilha do Habbo (`lt_stage2`) com até
+  três móveis do próprio quarto, os colegas online em ilhas ao fundo (clicar
+  entra onde a pessoa está), botões de jogo de um só desenho, notícias da
+  semana, o baú do dia (só mostra o que o razão pagou nas últimas 24 h, rota
+  `lobby`; não concede nada) e a saída animada ao ENTRAR. O último resumo
+  fica no navegador e aparece marcado até o valor de agora chegar. A carga
+  da entrada não confere conquistas (isso fica na janela Conquistas e na
+  ficha). As funções da Vercel rodam em `gru1` (São Paulo), junto do Neon em
+  `sa-east-1`; não voltar para `iad1`.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em

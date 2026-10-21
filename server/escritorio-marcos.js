@@ -54,6 +54,14 @@ export function tituloDe(marco, nivel) {
   if (m) { const tipo = TIPO_TITULO[m[2]] || m[2]; return m[1] === 'agendados' ? [`Postador de ${tipo}`, `Agenda de ${tipo}`, `Mestre dos ${tipo} Postados`, `Lenda dos ${tipo} Postados`][nivel - 1] : [`Head de ${tipo}`, `Guardião de ${tipo}`, `Mestre de ${tipo}`, `Lenda de ${tipo}`][nivel - 1]; }
   return null;
 }
+// Notícias da semana na entrada do Escritório (Paulo, 21/10/2026): quem
+// subiu de nível numa escada nos últimos 7 dias, com o título que ganhou.
+export async function noticiasDaEquipe(sql, agora = new Date()) {
+  if (!await marcosProntos(sql)) return [];
+  const linhas = await sql`SELECT m.pessoa_id, p.nome, m.marco, m.em FROM vybe_escritorio_marcos m JOIN vybe_pessoas p ON p.id=m.pessoa_id
+    WHERE m.em >= ${agora}::timestamptz - interval '7 days' AND p.ativo ORDER BY m.em DESC LIMIT 12`;
+  return linhas.map((l) => { const { marco, nivel } = partesDoMarco(l.marco), m = MARCOS.find((x) => x.id === marco); return m ? { pessoa: String(l.pessoa_id), nome: l.nome, escada: m.nome, nivel: MARCOS_SOCIAIS.has(marco) ? 0 : nivel, nomeNivel: MARCOS_SOCIAIS.has(marco) ? '' : NIVEIS[nivel] || '', titulo: tituloDe(marco, nivel), em: l.em } : null; }).filter(Boolean);
+}
 // Os títulos que a pessoa tem (um por nível alcançado, do maior para o menor).
 export async function titulosDaPessoa(sql, pessoaId) {
   if (!await marcosProntos(sql)) return [];
@@ -102,7 +110,7 @@ export const MARCOS = [
   // Categorias por tipo também para quem agenda, atende e gere (Paulo, 20/10/2026:
   // equilibrar com quem executa, que tem uma escada por tipo de peça).
   ...['cards', 'carrosseis', 'reels', 'stories', 'fotografias'].flatMap((f) => [
-    { id: 'agendados_' + f, nome: `${NOME_TIPO[f]} postados`, unidade: `${NOME_TIPO[f].toLowerCase()} postados`, valor: (n) => n.porRegra.peca_agendamento?.[f] || 0 },
+    { id: 'agendados_' + f, nome: `${NOME_TIPO[f]} ${f === 'fotografias' ? 'postadas' : 'postados'}`, unidade: `${NOME_TIPO[f].toLowerCase()} ${f === 'fotografias' ? 'postadas' : 'postados'}`, valor: (n) => n.porRegra.peca_agendamento?.[f] || 0 },
     { id: 'carteira_' + f, nome: `${NOME_TIPO[f]} da carteira`, unidade: `${NOME_TIPO[f].toLowerCase()} da carteira`, valor: (n) => n.porRegra.peca_atendimento?.[f] || 0 },
   ]),
   { id: 'gravacoes', nome: 'Dias de gravação', unidade: 'dias com captação', valor: (n) => n.diasCaptacao },
