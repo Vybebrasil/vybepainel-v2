@@ -33,10 +33,29 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   da mais urgente (prazo vencido) para as outras, com "vencidas", "sem
   roteiro" e a próxima captação marcada; busca por cliente.
 
+## Etapa 2: biblioteca de roteiros (21/10/2026)
+
+- Aba "Roteiros" na Produção (`vybe-roteiros.js`, `server/roteiros.js`,
+  `area=roteiros`). O roteiro continua no Google Docs; a biblioteca guarda o
+  doc, o cliente, as peças que ele descreve e os conteúdos que saíram dele
+  (`vybe_roteiros`, `vybe_roteiro_conteudos`,
+  `migrations/2026-10-21-producao-roteiros.sql`).
+- Por mês, do mais novo; filtro por cliente e busca por título ou peça. Cada
+  roteiro abre com as peças, os conteúdos ligados (status e data de ir ao ar),
+  "Abrir no Docs" e "Ligar conteúdos": os conteúdos do cliente perto da data
+  do roteiro, os que parecem ter saído dele primeiro, e busca pelo nome.
+- Os 21 roteiros antigos foram lidos pelo Drive do Paulo e entram pela
+  `2026-10-21-producao-roteiros-importacao.sql`, só com as ligações claras
+  (7 conteúdos); o resto a equipe liga na tela.
+- Novos roteiros: "Buscar no Drive" traz os docs com "roteiro" no nome que a
+  conta do painel enxerga (drive compartilhado da Vybe e pastas
+  compartilhadas com ela), com o cliente pelo nome do doc. Doc no "Meu Drive"
+  de alguém não aparece: entra por "Incluir roteiro", colando o link.
+- Na Captação, a peça ligada a um roteiro mostra "Roteiro no Docs" e deixa de
+  contar como "sem roteiro".
+
 ## Próximas etapas
 
-2. Biblioteca de roteiros do Drive por cliente e período (documentos "Roteiro…"
-   da Vybe), mostrando quais conteúdos saíram de cada documento.
 3. Aprovação do roteiro pelo head, peça a peça.
 4. Conferência opcional do cliente pelo VybeHub (`area=portal`, como os
    planejamentos).

@@ -42,7 +42,7 @@ function captPrazo(p) {
   if (n <= 3) return { texto: `vence em ${n} ${n === 1 ? "dia" : "dias"}`, tom: "atencao" };
   return { texto: `prazo ${captDia(iso)}`, tom: "" };
 }
-const captTemRoteiro = (p) => Boolean(String(p.briefing || "").trim());
+const captTemRoteiro = (p) => Boolean(String(p.briefing || "").trim() || p.roteiro_doc);
 
 // Fila por cliente (peça com vários clientes entra no primeiro, sem duplicar),
 // das mais urgentes para as outras; a próxima captação vem da agenda.
@@ -66,7 +66,7 @@ function captFila() {
 function captPecaHtml(p, { marcar = "" } = {}) {
   const prazo = captPrazo(p), roteiro = String(p.briefing || "").trim();
   return `<li class="capt-peca${p.gravado ? " gravada" : ""}">${marcar}<span class="capt-peca-texto"><b>${safeText(p.titulo)}</b><small>${p.formato ? `<span>${safeText(p.formato)}</span>` : ""}${p.prazo || p.veiculacao ? `<span class="capt-prazo ${prazo.tom}">${safeText(prazo.texto)}</span>` : ""}</small></span>
-    ${roteiro ? `<details class="capt-roteiro"><summary>Roteiro</summary><p>${safeText(roteiro)}</p></details>` : '<span class="capt-sem-roteiro" title="Esta peça ainda não tem roteiro no briefing">Sem roteiro</span>'}</li>`;
+    ${p.roteiro_doc ? `<a class="capt-roteiro-doc" href="${safeText(p.roteiro_doc.link)}" target="_blank" rel="noopener" title="${safeText(p.roteiro_doc.titulo)}">Roteiro no Docs</a>` : ""}${roteiro ? `<details class="capt-roteiro"><summary>Roteiro</summary><p>${safeText(roteiro)}</p></details>` : p.roteiro_doc ? "" : '<span class="capt-sem-roteiro" title="Esta peça ainda não tem roteiro no briefing nem um roteiro do Docs ligado">Sem roteiro</span>'}</li>`;
 }
 
 // Agenda: os eventos do Google por dia; o que foi montado aqui traz as peças.

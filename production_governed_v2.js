@@ -284,6 +284,9 @@
     if (window.productionV2View === 'captacoes' && typeof captacoesHtml === 'function') {
         contentHtml = captacoesHtml();
     }
+    else if (window.productionV2View === 'roteiros' && typeof roteirosHtml === 'function') {
+        contentHtml = roteirosHtml();
+    }
     else if (window.productionV2View === 'feed') {
         const focus = typeof productionCommandFocusDate !== 'undefined' && productionCommandFocusDate && dates.includes(productionCommandFocusDate) ? productionCommandFocusDate : (dates.find(iso => all.some(item => productionCommandReference(item) === iso)) || dates[0]);
         if(typeof productionCommandFocusDate !== 'undefined') productionCommandFocusDate = focus;
@@ -403,6 +406,7 @@
             <div class="p-controls-row">
                <div class="p-segment">
                   <button class="${window.productionV2View==='captacoes'?'active':''}" onclick="setProdV2View('captacoes')">Captações</button>
+                  <button class="${window.productionV2View==='roteiros'?'active':''}" onclick="setProdV2View('roteiros')">Roteiros</button>
                   <button class="${window.productionV2View==='feed'?'active':''}" onclick="setProdV2View('feed')">Feed</button>
                   <button class="${window.productionV2View==='calendar'?'active':''}" onclick="setProdV2View('calendar')">Calendário</button>
                </div>
