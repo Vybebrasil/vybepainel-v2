@@ -252,12 +252,15 @@ function escritorioLobbyOnlineHtml() {
 function escritorioLobbyEsperaHtml() {
   const e = escritorio.lobbyEspera;
   if (!e) return "";
-  const card = (icone, valor, rotulo, acao = "", tom = "") => `<button type="button" class="ofc-lobby-card${tom ? " " + tom : ""}"${acao ? ` onclick="${acao}"` : " disabled"}>${escritorioIcone(icone)}<b>${valor}</b><small>${rotulo}</small></button>`;
+  // Peças de jogo (Paulo, 21/10/2026: "cara de joguinho, não de IA"): cada
+  // uma com sua cor, o ícone numa moeda, o número grande, título curto e o
+  // detalhe embaixo.
+  const card = (tipo, icone, valor, titulo, detalhe, acao = "", tom = "") => `<button type="button" class="ofc-lobby-card jg-${tipo}${tom ? " " + tom : ""}"${acao ? ` onclick="${acao}"` : " disabled"}><span class="jg-moeda">${escritorioIcone(icone)}</span><b>${valor}</b><span class="jg-titulo">${titulo}</span>${detalhe ? `<small>${detalhe}</small>` : ""}</button>`;
   const cards = [
-    e.missoes != null ? card("alvo", e.missoes, e.atrasadas ? `missões · ${e.atrasadas} atrasadas` : "missões para hoje", "", e.atrasadas ? "alerta" : "") : "",
-    e.cobrancas != null ? card("clientes", e.cobrancas, "demandas cobradas no seu quarto", "", e.cobrancas ? "alerta" : "") : "",
-    e.recados != null ? card("conversa", e.recados, e.recados === 1 ? "recado não lido" : "recados não lidos") : "",
-    e.posicao ? card("ranking", `${e.posicao}º`, e.falta || "no ranking da semana", "abrirRankingEscritorio('geral')") : "",
+    e.missoes != null ? card("missoes", "alvo", e.missoes, "Missões", e.atrasadas ? `${e.atrasadas} ${e.atrasadas === 1 ? "atrasada" : "atrasadas"}` : "para hoje", "", e.atrasadas ? "alerta" : "") : "",
+    e.cobrancas != null ? card("cobrancas", "clientes", e.cobrancas, "Cobranças", "no seu quarto", "", e.cobrancas ? "alerta" : "") : "",
+    e.recados != null ? card("recados", "conversa", e.recados, "Recados", e.recados ? "não lidos" : "tudo lido") : "",
+    e.posicao ? card("ranking", "ranking", `${e.posicao}º`, "Ranking", e.falta || "da semana", "abrirRankingEscritorio('geral')") : "",
   ].filter(Boolean);
   return cards.length ? `<h3>O que te espera</h3><div class="ofc-lobby-cards">${cards.join("")}</div>` : "";
 }
@@ -1817,6 +1820,7 @@ function alternarAbaEscritorio(aba, manter) {
   else escritorio.lateral = true;
   escritorio.aba = aba;
   renderEscritorio();
+  document.querySelector("#painel-escritorio .ofc-aba:not([hidden])")?.classList.add("ofc-entra");
   if (aba === "recados") atualizarRecadosEscritorio();
   if (aba === "clientes") carregarClientesEscritorio();
   if (aba === "inventario") carregarTrocasEscritorio();

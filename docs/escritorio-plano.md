@@ -1302,3 +1302,17 @@ decoração inicial "bem feito".
   lateral aberta ou no celular, uma coluna só, com o mesmo palco.
 - Ficha: números do cartão numa linha só (o 4º, ranking, invadia a vitrine)
   e vitrine sem barra de rolagem aparente.
+
+### Movimento e peças de jogo — 21/10/2026
+
+- Paulo: "usa a mesma tecnologia [da prévia de aprovação] e deixa tudo
+  melhor"; "cara de joguinho, não de IA". Camada de movimento única em
+  `vybe-appearance.css` (curva `--curva`): quadro que aparece ao trocar de aba,
+  janelas (dialog) e fundo, aba trocada na lateral do Escritório e na ficha
+  (classe `ofc-entra`). "Reduzir movimento" desliga tudo.
+- Entrada: "O que te espera" virou peças de jogo (cor por tipo, ícone numa
+  moeda, volume e toque que afunda), em 2×2; regras num painel só.
+- Barra do planejamento (painel): botões e etapas com a mesma altura e o
+  texto centrado.
+- Próximo: lateral (Pessoas, espaços, quartos) e barra de baixo no mesmo
+  padrão.
