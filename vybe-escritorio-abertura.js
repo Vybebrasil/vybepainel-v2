@@ -475,7 +475,7 @@ function criadorPainelHtml() {
  <nav class="prov-trilho" aria-label="Partes do personagem">${trilho}</nav>
  <div class="abr-previa prov-palco${maisRara ? " brilho-" + maisRara : ""}">
   <div class="prov-holofote" aria-hidden="true"></div>
-  <img src="${criadorImagem(fig, criador.direcao, "l", mao)}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220" class="cri-girar" title="Arraste para os lados para girar" onpointerdown="criadorGiroInicio(event)">
+  <img src="${criadorImagem(typeof animadasDaFigura === "function" ? animadasDaFigura(fig)?.base || fig : fig, criador.direcao, "l", mao)}" data-figura="${safeText(fig)}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220" class="cri-girar" title="Arraste para os lados para girar" onpointerdown="criadorGiroInicio(event)">
   <div class="prov-pedestal" aria-hidden="true"></div>
   <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div>
   ${criadorMaoHtml(fig)}
@@ -647,6 +647,12 @@ function renderAberturaEscritorio() {
     // com o trilho de partes onde estava.
     const trilho = el.querySelector(".prov-trilho"), rolagem = trilho ? [trilho.scrollTop, trilho.scrollLeft] : null;
     el.innerHTML = criadorPainelHtml();
+    // Roupa animada (aura, bichinho, efeito): os quadros por cima do boneco.
+    const palcoImg = el.querySelector(".prov-palco img.cri-girar");
+    if (palcoImg && typeof animadasSobre === "function") {
+      if (!ANIMADAS.dados) animadasCarregar().then(() => { if (criador.etapa === "personagem" && document.getElementById("ofc-abertura")) renderAberturaEscritorio(); });
+      else animadasSobre(palcoImg, palcoImg.dataset.figura, criador.direcao, { escala: 2 });
+    }
     const painel = el.querySelector(".provador");
     if (rolagem && painel) { painel.classList.add("estavel"); const t = painel.querySelector(".prov-trilho"); if (t) [t.scrollTop, t.scrollLeft] = rolagem; }
     requestAnimationFrame(criadorMedirPagina);

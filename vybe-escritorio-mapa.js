@@ -2177,18 +2177,20 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     else if (p.expressaoAte > agora) gesto = p.expressao;
     else if (((p.dormindo || p.cochilo) && p.acao !== "wlk") || p.piscaAte > agora) gesto = "eyb";
     const cabeca = acao === "wlk" || acao === "lay" ? p.dir : (p.cabeca ?? p.dir);
-    const url = mapaAvatarUrl(p.figura, p.dir, acao, mao, quadro, gesto, cabeca);
+    // Roupa animada: o imager desenha o boneco sem ela e a tela por cima mexe.
+    const figura = typeof animadasSobre === "function" ? animadasSobre(p.img, p.figura, p.dir, { postura: acao }) : p.figura;
+    const url = mapaAvatarUrl(figura, p.dir, acao, mao, quadro, gesto, cabeca);
     if (p.img.dataset.url === url) return;
     p.img.dataset.url = url;
     const aplicar = () => { if (p.img.dataset.url === url) { delete p.img.dataset.reserva; p.img.src = url; } };
     // Primeira imagem (ou quadro que falhou) entra direto; as outras esperam
     // estar baixadas para trocar, e os 4 passos da direção já vão sendo pedidos.
     if (!p.img.getAttribute("src") || mapaBonecoPronto(url, aplicar)) aplicar();
-    if (p.acao === "wlk") for (let i = 0; i < 4; i++) mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, "wlk", p.mao, i), () => {});
+    if (p.acao === "wlk") for (let i = 0; i < 4; i++) mapaBonecoPronto(mapaAvatarUrl(figura, p.dir, "wlk", p.mao, i), () => {});
     // Parado: a piscada e o quadro de "em pé" do aceno já ficam baixados.
     else {
-      mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, acao, p.mao, 0, "eyb", cabeca), () => {});
-      if (p.acao === "wav") mapaBonecoPronto(mapaAvatarUrl(p.figura, p.dir, "std", p.mao, 0, "sml", cabeca), () => {});
+      mapaBonecoPronto(mapaAvatarUrl(figura, p.dir, acao, p.mao, 0, "eyb", cabeca), () => {});
+      if (p.acao === "wav") mapaBonecoPronto(mapaAvatarUrl(figura, p.dir, "std", p.mao, 0, "sml", cabeca), () => {});
     }
   };
   // Para onde cada boneco parado olha: quem está falando perto, senão a

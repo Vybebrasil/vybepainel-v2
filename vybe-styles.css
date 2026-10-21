@@ -6011,7 +6011,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 /* Regulador de luz (quarto e cena): filtro que multiplica as cores (mapaFiltroDaLuz), como o do Habbo. */
 /* Móveis e paredes já vêm pintados com a luz (tingir, em vybe-escritorio-mapa.js):
    filtro por elemento em centenas de canvases derrubava o FPS. */
-.mapa-palco[data-luz] :is(.mapa-fundo,canvas.mapa-paisagem,canvas.mapa-obj[data-classe^="vybeimg_"],.mapa-pessoa > img) {filter:var(--mapa-luz)}
+.mapa-palco[data-luz] :is(.mapa-fundo,canvas.mapa-paisagem,canvas.mapa-obj[data-classe^="vybeimg_"],.mapa-pessoa > img,.mapa-pessoa > canvas.ofc-animada) {filter:var(--mapa-luz)}
 .mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
 /* Móvel do mapa: contêiner sem z-index nem filtro (sem contexto de
    empilhamento), com uma camada por canvas; cada camada tem o z-index da sua
@@ -8924,12 +8924,17 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .prov-vitrine h3,.prov-cabecalho h3 {margin:0;color:#fff;font:750 17px var(--mac-ui);letter-spacing:-.01em}
 .prov-vitrine h3 small,.prov-cabecalho h3 small {margin-left:6px;color:var(--prov-suave);font:500 12.5px var(--mac-ui)}
 .prov-vitrine {display:grid;gap:8px}
-.prov-vitrine-lista {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(196px,1fr);gap:10px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin;scroll-snap-type:x proximity}
+.prov-vitrine-lista {-webkit-mask:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask:linear-gradient(90deg,#000 calc(100% - 28px),transparent);display:grid;grid-auto-flow:column;grid-auto-columns:minmax(224px,1fr);gap:10px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin;scroll-snap-type:x proximity}
 .provador .cri-skin {scroll-snap-align:start;grid-template-columns:62px minmax(0,1fr);justify-items:start;align-items:center;gap:8px;padding:8px 10px 8px 6px;text-align:left;border-radius:14px;
   border:1px solid #4ea1ff40;background:radial-gradient(80% 120% at 0% 100%,#4ea1ff2e,transparent 70%),#ffffff08}
 .provador .cri-skin-arte {width:62px;height:84px;overflow:hidden;border-radius:10px;background:radial-gradient(60% 30% at 50% 88%,#4ea1ff55,transparent),#0d0e14;display:grid;place-items:end center}
 .provador .cri-skin-arte img {width:56px;height:96px;margin-bottom:-6px}
-.provador .cri-skin-texto {display:grid;gap:3px;min-width:0}
+.provador .cri-skin-texto {display:grid;gap:3px;min-width:0;width:100%;justify-items:stretch}
+/* Provar e Comprar dividem a largura do cartão (o Comprar saía da borda). */
+.provador .cri-skin-texto > div {display:flex;gap:6px;width:100%;margin-top:4px}
+.provador .cri-skin-texto > div > button {flex:1 1 0;min-width:0;padding:6px 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.provador .cri-skin {width:100%}
+.provador .cri-skin small {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .provador .cri-skin b {font-size:14px}
 .provador .cri-skin small s {opacity:.6}
 .prov-cabecalho {display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
@@ -9264,3 +9269,10 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .prov-gr-titulo small {margin-left:6px;color:var(--prov-suave);font:500 12px var(--mac-ui)}
 .provador .prov-gr-pecas {overflow:visible}
 .prov-gr-parte {position:absolute;inset:auto 0 6px;color:#cdd1da;font:650 10.5px var(--mac-ui);text-align:center}
+
+/* Tela das roupas animadas, sobre a imagem do boneco (vybe-escritorio-animadas.js). */
+.ofc-animada {position:absolute;z-index:3;pointer-events:none;image-rendering:pixelated}
+.ofc-animada.atras {z-index:0}
+img.ofc-com-animada {position:relative;z-index:1}
+.provador .prov-palco > img.cri-girar.ofc-com-animada {z-index:2}
+.ofc-animada[hidden] {display:none}
