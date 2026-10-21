@@ -81,7 +81,7 @@ export async function demoApi(req,res,url,body) {
     const acao=url.searchParams.get('acao');
     const {BONECOS_CONVIDADO,ZONAS_DO_CONVIDADO}=await import('../server/escritorio-convite.js');
     if(acao==='abrir')return reply(200,{ok:true,anfitriao:{nome:'Operador de teste'},bonecos:BONECOS_CONVIDADO,expira:new Date(Date.now()+12*3600e3).toISOString()});
-    if(acao==='sair')return reply(200,{ok:true});
+    if(acao==='sair'){res.setHeader('Set-Cookie','vybe_convidado=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');return reply(200,{ok:true});}
     if(acao!=='entrar' && acao!=='entrada')return reply(403,{error:'A demonstração não abre voz para convidados.'});
     if(acao==='entrada' && !/vybe_convidado=demo/.test(req.headers.cookie||''))return reply(401,{error:'Sem convite.'});
     const equipeDemo=['Operador de teste','Design demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul'][i],pele:'media',cabelo:'curto',sala:'convivencia',x:50,y:70}}));

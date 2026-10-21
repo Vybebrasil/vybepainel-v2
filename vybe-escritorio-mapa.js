@@ -2004,6 +2004,39 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       palco.append(previaNo);
     } catch {}
   }
+  // Prévia do pincel da construção: a área que o clique vai pintar (piso:
+  // retângulo de ladrilhos, na altura do chão; parede: o trecho inteiro).
+  let pincelNo = null, pincelChave = "";
+  function pincel(area) {
+    const chave = area ? JSON.stringify(area) : "";
+    if (chave === pincelChave) return;
+    pincelChave = chave;
+    if (!area) { if (pincelNo) pincelNo.hidden = true; return; }
+    if (!pincelNo) {
+      pincelNo = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      pincelNo.setAttribute("class", "mapa-pincel");
+      pincelNo.setAttribute("aria-hidden", "true");
+      pincelNo.innerHTML = '<polygon class="mapa-pincel-area"/>';
+      palco.append(pincelNo);
+    }
+    const o0 = { ...origem, alturaAtual: 0 }, t = (x, y, dy = 0) => { const p = mapaTela(x, y, o0); return `${p.x},${p.y + dy}`; };
+    let pts;
+    if (area.piso) {
+      const { x0, y0, w, h } = area.piso, dy = -alturaNoPiso(x0, y0) * MAPA_NIVEL_PX;
+      pts = [t(x0, y0, dy), t(x0 + w, y0, dy), t(x0 + w, y0 + h, dy), t(x0, y0 + h, dy)];
+    } else {
+      const { lado, k, x0, y0, w, h } = area.parede;
+      // Base do trecho (aresta no chão) e a altura dele na parede.
+      const [a, b, eixo, mx, my] = lado === 0 ? [[x0 + k, y0], [x0 + k + 1, y0], "x", x0 + k, y0]
+        : lado === 1 ? [[x0, y0 + k], [x0, y0 + k + 1], "y", x0, y0 + k]
+        : lado === 2 ? [[x0 + k, y0 + h], [x0 + k + 1, y0 + h], "x", x0 + k, y0 + h]
+        : [[x0 + w, y0 + k], [x0 + w, y0 + k + 1], "y", x0 + w, y0 + k];
+      const alt = mapaAlturaParede(mx, my, eixo);
+      pts = [t(...a), t(...b), t(b[0], b[1], -alt), t(a[0], a[1], -alt)];
+    }
+    pincelNo.querySelector("polygon").setAttribute("points", pts.join(" "));
+    pincelNo.hidden = false;
+  }
   async function medidas(classe, dir) {
     // Imagem da equipe: tapete ocupa largura × altura; quadro, um ladrilho
     // encostado na parede (quem decide onde cabe é o editor).
@@ -2453,7 +2486,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       if (e.pointerType !== "touch") {
         const r = palco.getBoundingClientRect();
         const t = mapaLadrilho((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom, origem);
-        aoPassar?.(Math.floor(t.x), Math.floor(t.y), e.clientX, e.clientY);
+        aoPassar?.(Math.floor(t.x), Math.floor(t.y), e.clientX, e.clientY, t.x, t.y);
         // Sobre um boneco: o próprio botão mostra a mão; o cursor de ladrilho some.
         if (e.target.closest?.(".mapa-pessoa")) { if (cursor) cursor.hidden = true; el.classList.remove("mapa-sobre-objeto"); marcarPassando(null); }
         else passarPonteiro(e.clientX, e.clientY, t);
@@ -2952,7 +2985,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    ocuparPostos, numeroDePostos, alasDosPostos, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    ocuparPostos, numeroDePostos, alasDosPostos, pincel, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.
