@@ -311,6 +311,37 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 - Não diga que houve revisão visual geral após corrigir apenas uma tela. Inspecione
   no navegador todas as superfícies realmente afetadas pelo CSS compartilhado.
 
+### Padrão Vybe (decisão do Paulo, 21/10/2026)
+
+Regras visuais únicas do painel e do Escritório ("não parece o mesmo
+desenvolvedor"). Peças prontas no fim de `vybe-appearance.css` (classes `vb-*`)
+e funções `vb*Html` em `vybe-core.js`; use-as antes de desenhar outra.
+
+- Uma cor de destaque: laranja Vybe para ação principal, foco do teclado e
+  seleção. Verde, vermelho e amarelo só para estado. Nada de foco azul.
+- Peça com volume: no jogo, botão e cartão clicável têm o degrau embaixo e
+  afundam no clique; cartão escuro e neutro, a cor do tipo só num ícone
+  quadrado (desenho branco) e no texto pequeno; nunca fundo tingido inteiro nem
+  "bola" de plástico. No painel, o mesmo cartão sem degrau.
+- Um cabeçalho de página (`vbCabecalhoHtml`): título, uma frase do que a aba
+  faz e a ação principal à direita; sem repetir o subtítulo do topo e sem
+  etiqueta decorativa que não faz nada.
+- Um controle por tipo: um alternador (`vb-alternar`), um chip de filtro
+  (`vb-chip`), um seletor de período, o mesmo desenho em todas as abas.
+- Número grande só quando pede ação; zero vira uma linha discreta
+  (`vbResumoHtml`), nunca um cartão cinza enorme.
+- Ícone desenhado, nunca emoji, em botões e títulos.
+- Português de quem usa: sem jargão em inglês ("Snapshot", "Tokens",
+  "Finops"), plural certo, reais por padrão e dólar como "US$ 0,12".
+- Uma escala de raridade (Comum, Incomum, Raro, Épico, Lendário) com as mesmas
+  cores na loja, nas roupas, nos troféus e na ficha.
+- Três estados sempre desenhados (`vbEstadoHtml`): carregando (brilho
+  passando), vazio (frase útil e o botão de começar) e erro (o que houve e
+  "Tentar de novo"). Nada de "carregando…" parado.
+- Um lugar para avisos: no canto, recolhível, abaixo das janelas abertas.
+- Movimento com sentido e uma curva só (`--curva`): a peça que sai, o passo
+  que desliza, o número que sobe; "Reduzir movimento" desliga tudo.
+
 ## Verificação proporcional à mudança
 
 - Código: execute `npm run check` e `git diff --check`. Adicione regressões para

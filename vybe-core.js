@@ -683,3 +683,30 @@ function processItemsAll(rawItems, meta) {
 let DADOS_ALL = []; // todos os itens de produção sem filtro de semana
 let DIAS_SEMANAS = [[], [], [], []]; // DIAS para cada semana (1-4)
 let producaoRefreshRunning = false;
+
+// Padrão Vybe (Paulo, 21/10/2026; regras no AGENTS.md): as peças que as abas
+// usam para cabeçalho, resumo e estados. Os textos chegam já em português de
+// quem usa; o HTML de ação é do chamador (botões prontos).
+const VB_ICONES = {
+  vazio: '<path d="M4 7l8-4 8 4v10l-8 4-8-4z"/><path d="M4 7l8 4 8-4M12 11v10"/>',
+  erro: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.5h.01"/>',
+  ok: '<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.6"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+};
+function vbIcone(nome) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${VB_ICONES[nome] || VB_ICONES.vazio}</svg>`; }
+function vbCabecalhoHtml({ titulo, texto = '', acoes = '' }) {
+  return `<header class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2>${safeText(titulo)}</h2>${texto ? `<p>${safeText(texto)}</p>` : ''}</div>${acoes ? `<div class="vb-cabecalho-acoes">${acoes}</div>` : ''}</header>`;
+}
+// itens: [{ valor, rotulo, tom: 'alerta'|'atencao'|'ok'|'', onclick }]; zero sem tom vira texto discreto.
+function vbResumoHtml(itens) {
+  return `<div class="vb-resumo" role="group" aria-label="Resumo">${itens.filter(Boolean).map((x) => {
+    const corpo = x.valor === null || x.valor === undefined || x.valor === '' ? safeText(x.rotulo) : `<b>${safeText(String(x.valor))}</b>${safeText(x.rotulo)}`;
+    const cls = `vb-resumo-item${x.tom ? ' ' + x.tom : ''}`;
+    return x.onclick ? `<button type="button" class="${cls}" onclick="${x.onclick}">${corpo}</button>` : `<span class="${cls}">${corpo}</span>`;
+  }).join('')}</div>`;
+}
+// tipo: 'vazio' | 'erro' | 'carregando'; acao: HTML de um botão (opcional).
+function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icone = '' } = {}) {
+  if (tipo === 'carregando') return `<div class="vb-carregando" role="status" aria-label="${safeText(titulo || 'Carregando')}"><div class="vb-brilho"></div><div class="vb-brilho"></div><div class="vb-brilho"></div></div>`;
+  return `<div class="vb-estado ${tipo}" role="${tipo === 'erro' ? 'alert' : 'status'}"><span class="vb-estado-icone">${vbIcone(icone || tipo)}</span>${titulo ? `<b>${safeText(titulo)}</b>` : ''}${texto ? `<p>${safeText(texto)}</p>` : ''}${acao}</div>`;
+}
