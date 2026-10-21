@@ -531,7 +531,8 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
 - "Não zera todos": depois da migração `2026-10-21-escritorio-conquistas-dificeis.sql`,
   `node scripts/escritorio-revisar-conquistas.mjs` roda uma vez (marcador
   `conquistas-dificeis-2026-10-21`) e tira só os níveis que a meta nova não
-  alcança, com moedas, XP e troféu, inclusive do quarto. Não repetir.
+  alcança, com moedas, XP e troféu, inclusive do quarto. Aplicada em 21/10/2026
+  (21 níveis tirados, 6 concedidos nas escadas novas). Não repetir.
 - Títulos: cada nível libera um (`TITULOS` em `server/escritorio-marcos.js`,
   ex.: Máquina de Cards, Rei do Impresso). Aparece embaixo do nome no mapa, na
   ficha e no ranking. A pessoa escolhe na janela Conquistas (rota `titulo`,

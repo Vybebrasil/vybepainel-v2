@@ -318,7 +318,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   prêmio por nível na tabela de troféus, escadas novas (Impressos, Meta
   turbinada, Pódio, No painel) e um título por nível embaixo do nome, escolhido
   pela pessoa e validado no servidor. A revisão tira só os níveis que a meta
-  nova não alcança (marcador `conquistas-dificeis-2026-10-21`); não repetir.
+  nova não alcança (marcador `conquistas-dificeis-2026-10-21`; **já aplicada em
+  21/10/2026**, tirou 21 níveis); não repetir.
   Consulte `docs/escritorio-pontos.md`.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;

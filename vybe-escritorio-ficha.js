@@ -993,6 +993,8 @@ function pintarRankingEscritorio() {
   // Onde cada pessoa estava antes de redesenhar: depois ela desliza até o lugar novo.
   const antes = new Map([...el.querySelectorAll("[data-pid]")].map((n) => [n.dataset.pid + (n.classList.contains("rk2-degrau") ? "p" : "l"), n.getBoundingClientRect()]));
   const chaveAntes = el.dataset.rkChave || "";
+  // Redesenhar (abrir uma linha, chegar dado novo) não volta a rolagem ao topo.
+  const rolagem = el.querySelector(".rk2-corpo")?.scrollTop || 0;
   const per = escritorioRanking.periodo, d = escritorioRanking.dados[per], eu = String(escritorio.base?.eu || "");
   const dataBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
   const nome = (p) => String(p.nome || "").split(" ")[0];
@@ -1013,26 +1015,34 @@ function pintarRankingEscritorio() {
   const aba = cat ? cat.k : escritorioRanking.aba;
   const premio = (k) => d.premios?.find((p) => p.chave === k);
   const ordenar = (c) => [...d.pessoas].map((p) => ({ p, v: c.valor(p) })).sort((a, b) => b.v - a.v || b.p.xp - a.p.xp || a.p.nome.localeCompare(b.p.nome));
-  // Campeões: o líder de cada categoria e a sua posição nela.
-  const campeoes = [...cats.map((c) => {
-    const ord = ordenar(c).filter((x) => x.v > 0);
-    if (!ord.length && c.k !== "geral") return "";
-    const lider = ord[0], minha = ord.findIndex((x) => x.p.id === eu);
-    return `<button type="button" class="rk2-camp${aba === c.k ? " ativo" : ""}${lider?.p.id === eu ? " meu" : ""}" aria-pressed="${aba === c.k}" onclick="escritorioRanking.aba='${c.k}';escritorioRanking.aberto=null;pintarRankingEscritorio()">
-      <span class="rk2-camp-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-camp-txt"><small>${safeText(c.nome)}</small>${lider ? `<b>${safeText(nome(lider.p))}</b><em>${safeText(c.fmt(lider.v, lider.p))}</em>` : "<b>—</b>"}</span>${lider ? rosto(lider.p.id, 26) : ""}${minha > 0 ? `<i class="rk2-camp-eu">você ${minha + 1}º</i>` : ""}</button>`;
-  }), ...extra.map((c) => `<button type="button" class="rk2-camp${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" onclick="escritorioRanking.aba='${c.k}';escritorioRanking.aberto=null;pintarRankingEscritorio()"><span class="rk2-camp-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-camp-txt"><small>${c.nome}</small><b>${c.k === "agencia" ? `${d.agencia.pct}%` : "De sempre"}</b><em>${c.k === "agencia" ? `${d.agencia.pecas} de ${d.agencia.meta} peças` : "mais rico e colecionador"}</em></span></button>`)].join("");
+  // Categorias (Paulo, 21/10/2026: "ta ruim ver e decidir as categorias"):
+  // as cinco principais em cartões com o líder; as de atividade em chips que
+  // quebram linha, só as que alguém pontuou. A sua posição só na escolhida.
+  const escolher = (k) => `onclick="escritorioRanking.aba='${k}';escritorioRanking.aberto=null;pintarRankingEscritorio()"`;
+  const PRINCIPAIS = ["geral", "xp", "moedas", "entregas", "sequencia"];
+  const cartoes = cats.filter((c) => PRINCIPAIS.includes(c.k)).map((c) => {
+    const ord = ordenar(c).filter((x) => x.v > 0), lider = ord[0], minha = ord.findIndex((x) => x.p.id === eu);
+    return `<button type="button" class="rk2-camp${aba === c.k ? " ativo" : ""}${lider?.p.id === eu ? " meu" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || "")}" ${escolher(c.k)}>
+      <span class="rk2-camp-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-camp-txt"><small>${safeText(c.nome)}</small>${lider ? `<b>${safeText(nome(lider.p))}</b><em>${safeText(c.fmt(lider.v, lider.p))}</em>` : "<b>—</b>"}</span>${lider ? rosto(lider.p.id, 26) : ""}${aba === c.k && minha > 0 ? `<i class="rk2-camp-eu">você ${minha + 1}º</i>` : ""}</button>`;
+  }).join("");
+  const chipsAtv = [...cats.filter((c) => !PRINCIPAIS.includes(c.k)).map((c) => {
+    const lider = ordenar(c).find((x) => x.v > 0);
+    return lider ? `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || `Quem mais fez: ${c.nome.toLowerCase()}`)}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span>${safeText(c.nome)}${rosto(lider.p.id, 18)}</button>` : "";
+  }), ...extra.map((c) => `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span>${c.nome}${c.k === "agencia" ? `<b>${d.agencia.pct}%</b>` : ""}</button>`)].join("");
+  const campeoes = `<div class="rk2-principais" role="group" aria-label="Categorias">${cartoes}</div>${chipsAtv ? `<div class="rk2-chips" role="group" aria-label="Por atividade"><small>Por atividade</small>${chipsAtv}</div>` : ""}`;
   const detalhe = (p) => {
     if (!p) return "";
     const regra = (k) => safeText(d.regras?.[k] || k);
     const contou = Object.entries(p.porRegra || {}).sort((a, b) => b[1] - a[1]);
     const xp = Object.entries(p.xpPor || {}).sort((a, b) => b[1] - a[1]);
-    return `<div class="ofc-rk-detalhe"><div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} no período${per === "total" ? "" : ` · meta ${p.meta}`}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n}</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega no período ainda.</p>'}</div>
+    const ritmo = rkRitmo(d, p, Math.max(1, ...d.pessoas.flatMap((q) => (q.ritmo || []).map(([, v]) => v))));
+    return `<div class="ofc-rk-detalhe">${ritmo ? `<div class="ofc-rk-det-col largo rk2-det-ritmo"><h5>Ritmo do XP <small>${per === "total" ? "por semana" : "por dia"}</small></h5>${ritmo}</div>` : ""}<div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} no período${per === "total" ? "" : ` · meta ${p.meta}`}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n}</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega no período ainda.</p>'}</div>
 <div class="ofc-rk-det-col"><h5>De onde veio o XP <small>${p.xp} XP</small></h5>${xp.length ? `<ul class="ofc-rk-det-lista">${xp.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n > 0 ? "+" : ""}${n} XP</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nada ainda.</p>'}</div>
 ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${p.pecas.length < p.entregas ? `as ${p.pecas.length} mais recentes` : "do período"}</small></h5><ul class="ofc-rk-det-pecas">${p.pecas.map((x) => `<li><time>${dataBr(x.dia)}</time><span><b>${safeText(x.titulo || "Sem título")}</b>${x.cliente ? `<small>${safeText(x.cliente)}</small>` : ""}</span><em>${regra(x.regra).replace(/ \(.*\)$/, "")}</em></li>`).join("")}</ul></div>` : ""}</div>`;
   };
-  let corpo = "";
+  let corpo = "", voceFixa = "";
   if (cat) {
-    const ord = ordenar(cat), vivos = ord.filter((x) => x.v > 0), maxRitmo = Math.max(1, ...d.pessoas.flatMap((p) => (p.ritmo || []).map(([, v]) => v)));
+    const ord = ordenar(cat), vivos = ord.filter((x) => x.v > 0);
     const max = Math.max(1, vivos[0]?.v || 1), geral = cat.k === "geral";
     // Posição e seta só no Geral (é o que o período anterior compara).
     const posDe = (x, i) => (x.v > 0 ? i + 1 : null);
@@ -1045,19 +1055,20 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
       else if (acima) dica = `Faltam <b>${safeText(cat.fmt(Math.max(1, acima.v - eu_.v + 1), acima.p))}</b> para passar ${safeText(nome(acima.p))}.`;
       else dica = "Entregue para entrar neste ranking.";
     }
-    const voce = eu_ ? `<section class="rk2-voce"><div class="rk2-voce-pos"><b>${eu_.v > 0 ? minha + 1 + "º" : "—"}</b>${geral ? rkSeta(eu_.p) : ""}</div>${rosto(eu_.p.id, 46)}<div class="rk2-voce-txt"><b>Você · <span data-vb-contar="${Number(eu_.v)}" data-vb-chave="rk-${per}-${cat.k}">${safeText(cat.fmt(eu_.v, eu_.p))}</span></b><small>${safeText(cat.sub(eu_.p))}${eu_.p.sequencia > 1 ? ` · ${eu_.p.sequencia} dias seguidos entregando` : ""}</small><p>${dica} <button type="button" class="ofc-rk-link" onclick="abrirDetalheRankingEscritorio('${eu_.p.id}')">${escritorioRanking.aberto === eu_.p.id ? "Esconder" : "Ver o que contou"}</button></p></div>${rkRitmo(d, eu_.p, maxRitmo)}${geral && per !== "total" ? `<span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.p.pct)}" aria-hidden="true"><i>${eu_.p.pct}%</i></span>` : ""}</section>${escritorioRanking.aberto === eu_.p.id ? detalhe(eu_.p) : ""}` : "";
+    const voce = eu_ ? `<section class="rk2-voce rk2-voce-fixa" aria-label="Sua posição"><div class="rk2-voce-pos"><b>${eu_.v > 0 ? minha + 1 + "º" : "—"}</b>${geral ? rkSeta(eu_.p) : ""}</div>${rosto(eu_.p.id, 46)}<div class="rk2-voce-txt"><b>Você · <span data-vb-contar="${Number(eu_.v)}" data-vb-chave="rk-${per}-${cat.k}">${safeText(cat.fmt(eu_.v, eu_.p))}</span></b><small>${safeText(cat.sub(eu_.p))}${eu_.p.sequencia > 1 ? ` · ${eu_.p.sequencia} dias seguidos entregando` : ""}</small><p>${dica} <button type="button" class="ofc-rk-link" onclick="verMinhaLinhaRankingEscritorio()">Ver o que contou</button></p></div>${geral && per !== "total" ? `<span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.p.pct)}" aria-hidden="true"><i>${eu_.p.pct}%</i></span>` : ""}</section>` : "";
     const tres = vivos.slice(0, 3);
     const podio = tres.length ? `<div class="rk2-podio">${[tres[1], tres[0], tres[2]].filter(Boolean).map((x) => { const pos = tres.indexOf(x) + 1, pr = geral && per === "semana" ? premio("ranking_" + pos) : null;
       return `<button type="button" data-pid="${x.p.id}" class="rk2-degrau p${pos}${x.p.id === eu ? " eu" : ""}" style="--atraso:${[0, 0.15, 0, 0.3][pos]}s" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" aria-label="${pos}º lugar: ${safeText(nome(x.p))}, ${safeText(cat.fmt(x.v, x.p))}">
         ${pos === 1 ? '<span class="rk2-coroa" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></span>' : ""}
         <div class="ofc-rk-figura">${escritorioRankingBoneco(x.p.id, pos === 1 ? "wav" : "std") || rosto(x.p.id, 56)}${pr ? escritorioRankingTrofeu(pr.classe) : ""}<span class="rk2-selo" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></div>
         <b class="ofc-rk-dnome">${safeText(nome(x.p))}${x.p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor" data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</span><small>${safeText(cat.sub(x.p))}${geral ? " " + rkSeta(x.p) : ""}</small>
-        <div class="rk2-bloco"><span>${pos}º</span>${pr ? `<em>+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</div></button>`; }).join("")}</div>` : vbEstadoHtml({ titulo: "Ninguém pontuou aqui ainda", texto: "O primeiro a entregar abre o pódio." });
+        <div class="rk2-bloco"><span>${pos}º</span></div>${pr ? `<em class="rk2-premio" title="Prêmio no fechamento da semana">+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</button>`; }).join("")}</div>` : vbEstadoHtml({ titulo: "Ninguém pontuou aqui ainda", texto: "O primeiro a entregar abre o pódio." });
     const lista = ord.length > tres.length ? `<ol class="rk2-lista">${ord.slice(tres.length).map((x, k) => { const pos = posDe(x, tres.length + k);
       return `<li data-pid="${x.p.id}" class="${x.p.id === eu ? "eu" : ""}${escritorioRanking.aberto === x.p.id ? " aberto" : ""}" style="--i:${k}" role="button" tabindex="0" aria-expanded="${escritorioRanking.aberto === x.p.id}" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalheRankingEscritorio('${x.p.id}')}">
         <span class="rk2-pos">${pos ? pos + "º" : "—"}${geral ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome"><b>${safeText(nome(x.p))}</b><small>${(() => { const t = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(x.p.id))?.titulo; return `${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}${t?.texto ? ` · <em class="rk2-titulo vb-titulo n${Number(t.nivel) || 1}">${safeText(t.texto)}</em>` : ""}`; })()}</small></span>
-        ${rkRitmo(d, x.p, maxRitmo)}<span class="rk2-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, (x.v / max) * 100))}%"></i></span><span class="rk2-valor"><b data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</b><small>${safeText(cat.sub(x.p))}</small></span></li>${escritorioRanking.aberto === x.p.id ? `<li class="ofc-rk-det-li">${detalhe(x.p)}</li>` : ""}`; }).join("")}</ol>` : "";
-    corpo = `${voce}<p class="ofc-rk-legenda">${safeText(cat.dica || `Quem mais fez: ${cat.nome.toLowerCase()} no período.`)}</p>${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto && x.p.id !== eu) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}${lista}`;
+        <span class="rk2-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, (x.v / max) * 100))}%"></i></span><span class="rk2-valor"><b data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</b><small>${safeText(cat.sub(x.p))}</small></span></li>${escritorioRanking.aberto === x.p.id ? `<li class="ofc-rk-det-li">${detalhe(x.p)}</li>` : ""}`; }).join("")}</ol>` : "";
+    corpo = `${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}${lista}`;
+    voceFixa = voce;
   } else if (aba === "tesouros") {
     const pat = d.patrimonio || [];
     const ricos = [...pat].sort((a, b) => b.saldo - a.saldo), colec = [...pat].sort((a, b) => b.moveis - a.moveis || b.lendarios - a.lendarios || b.distintos - a.distintos);
@@ -1069,13 +1080,27 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
     corpo = `<section class="ofc-rk-agencia${a.bateu ? " bateu" : ""}"><div class="ofc-rk-ag-num"><strong>${a.pecas}</strong><span>de ${a.meta} peças</span></div><div class="ofc-rk-ag-barra" aria-hidden="true"><i style="width:${Math.min(100, a.pct)}%"></i></div><p>${a.bateu ? "<b>Meta batida!</b>" : `Faltam <b>${falta} peças</b>, cerca de ${ritmo} por dia.`}${per === "semana" && bonus ? ` No fechamento da semana, se a agência bater, todo mundo ganha <b>+${bonus.moedas} moedas e +${bonus.pontos} XP</b>.` : ""}</p><div class="ofc-rk-equipe">${d.pessoas.map((p) => `<span title="${safeText(nome(p))}: ${p.entregas} entregas">${rosto(p.id, 30)}</span>`).join("")}</div><small>A meta é a média de peças por semana nas últimas 8 semanas, na proporção do período. Cada peça conta uma vez.</small></section>`;
   }
   const anterior = per === "semana" && d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
-  const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul><li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
-  el.innerHTML = topo + `<div class="rk2-campeoes" role="group" aria-label="Categorias">${campeoes}</div><div class="rk2-corpo${escritorioRanking.carregando === per ? " atualizando" : ""}">${corpo}${anterior}${como}</div>`;
+  const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul>${cat?.dica ? `<li><b>${safeText(cat.nome)}:</b> ${safeText(cat.dica)}</li>` : ""}<li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
+  el.innerHTML = topo + `<div class="rk2-corpo${escritorioRanking.carregando === per ? " atualizando" : ""}">${campeoes}${corpo}${anterior}${como}${voceFixa}</div>`;
+  if (chaveAntes.split(":")[0] === per) el.querySelector(".rk2-corpo").scrollTop = rolagem;
+  rkVigiarMinhaLinha(el, eu);
   if (typeof vbAnimarContagens === "function") vbAnimarContagens(el);
   el.dataset.rkChave = per + ":" + aba;
   rkAnimar(el, antes, chaveAntes !== el.dataset.rkChave, chaveAntes.split(":")[0] !== per);
-  const ativo = el.querySelector(".rk2-camp.ativo"), faixa = el.querySelector(".rk2-campeoes");
-  if (ativo && faixa) faixa.scrollLeft = Math.max(0, ativo.offsetLeft - faixa.clientWidth / 2 + ativo.clientWidth / 2);
+}
+// A barra "Você" fica fixa embaixo e some quando a sua linha (ou o seu lugar
+// no pódio) está na tela, para não mostrar você duas vezes.
+function rkVigiarMinhaLinha(el, eu) {
+  escritorioRanking.vigia?.disconnect();
+  const barra = el.querySelector(".rk2-voce-fixa"), minha = el.querySelector(`[data-pid="${CSS.escape(eu)}"]`), corpo = el.querySelector(".rk2-corpo");
+  if (!barra || !minha || typeof IntersectionObserver !== "function") return;
+  escritorioRanking.vigia = new IntersectionObserver(([e]) => barra.classList.toggle("escondida", e.isIntersecting), { root: corpo, threshold: 0.6 });
+  escritorioRanking.vigia.observe(minha);
+}
+function verMinhaLinhaRankingEscritorio() {
+  const eu = String(escritorio.base?.eu || "");
+  if (escritorioRanking.aberto !== eu) abrirDetalheRankingEscritorio(eu);
+  requestAnimationFrame(() => document.querySelector(`#ofc-ranking [data-pid="${CSS.escape(eu)}"]`)?.scrollIntoView({ block: "center", behavior: document.documentElement.dataset.motion === "reduce" ? "auto" : "smooth" }));
 }
 
 // Movimento de jogo (respeita "Reduzir movimento"): quem trocou de lugar
