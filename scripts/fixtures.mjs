@@ -76,7 +76,26 @@ export async function demoApi(req,res,url,body) {
     }
     return reply(sessao?200:401,sessao?{ok:true,pessoa}:{error:'Sem sessão.'});
   }
-  if(!sessao)return reply(401,{error:'Entre no ambiente de demonstração.'});
+  // Convidado de demonstração: qualquer link abre e a entrada é fictícia (sem Worker).
+  if(url.pathname==='/api/painel' && url.searchParams.get('area')==='convite'){
+    const acao=url.searchParams.get('acao');
+    const {BONECOS_CONVIDADO,ZONAS_DO_CONVIDADO}=await import('../server/escritorio-convite.js');
+    if(acao==='abrir')return reply(200,{ok:true,anfitriao:{nome:'Operador de teste'},bonecos:BONECOS_CONVIDADO,expira:new Date(Date.now()+12*3600e3).toISOString()});
+    if(acao==='sair')return reply(200,{ok:true});
+    if(acao!=='entrar' && acao!=='entrada')return reply(403,{error:'A demonstração não abre voz para convidados.'});
+    if(acao==='entrada' && !/vybe_convidado=demo/.test(req.headers.cookie||''))return reply(401,{error:'Sem convite.'});
+    const equipeDemo=['Operador de teste','Design demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul'][i],pele:'media',cabelo:'curto',sala:'convivencia',x:50,y:70}}));
+    const salas=salasDoEscritorio(equipeDemo).map((s,i)=>i===0?{...s,pessoa_id:'1'}:s);
+    let corpo={};try{corpo=JSON.parse(body?.toString()||'{}');}catch{}
+    const nome=String(corpo.nome||'Convidado de teste').slice(0,40), b=Number(corpo.boneco)||0;
+    const eu={id:'c-000000000000',nome,perfil:{figura:BONECOS_CONVIDADO[b]?.figura||BONECOS_CONVIDADO[0].figura,sala:'convivencia',x:50,y:70}};
+    if(acao==='entrar')res.setHeader('Set-Cookie','vybe_convidado=demo; Path=/; HttpOnly; SameSite=Lax');
+    return reply(200,{ok:true,demo:true,convidado:{id:eu.id,nome,anfitriao:{id:'1',nome:'Operador de teste'},salaAnfitriao:'sala-0',zonas:['sala-0','sala-0-andar-1',...ZONAS_DO_CONVIDADO],vozes:['sala-0','sala-0-andar-1'],expira:new Date(Date.now()+12*3600e3).toISOString()},
+      quartos:QUARTOS,economia:{disponivel:false},eu:eu.id,admin:false,worker:null,token:null,equipe:[...equipeDemo,eu],salas,mapa:{editavel:false,camadas:{}}});
+  }
+  // O convidado de demonstração vê a arte do mapa, como no servidor de verdade.
+  const artesDoConvidado=/vybe_convidado=demo/.test(req.headers.cookie||'') && url.pathname==='/api/painel' && url.searchParams.get('area')==='escritorio' && ['arte','boneco','imagem'].includes(url.searchParams.get('acao'));
+  if(!sessao && !artesDoConvidado)return reply(401,{error:'Entre no ambiente de demonstração.'});
   if(url.pathname==='/api/conteudo' && req.method==='POST') {
     let data;try {data=JSON.parse(body.toString());}catch{return reply(400,{error:'JSON inválido.'});}
     if(data.acao==='clientes_opcoes')return reply(200,{ok:true,clientes:[
@@ -124,6 +143,9 @@ export async function demoApi(req,res,url,body) {
     const area=url.searchParams.get('area');
     if(area==='conta')return reply(200,{ok:true,pessoa});
     if(area==='escritorio') {
+      // Convite de demonstração (a demo não grava): o link fictício só mostra a tela.
+      if(url.searchParams.get('acao')==='convite')return reply(200,{ok:true,link:url.origin+'/#convite=demonstracao-do-convite-local',expira:new Date(Date.now()+12*3600e3).toISOString()});
+      if(url.searchParams.get('acao')==='convite-cancelar')return reply(200,{ok:true});
       if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
       // Perfil de demonstração (números fictícios, só para a tela).
       if(url.searchParams.get('acao')==='perfil-publico'){const id=url.searchParams.get('pessoa')||'1';const n=Number(id)||1;return reply(200,{ok:true,perfil:{disponivel:true,saldo:700-n*90,nivel:4-n%3,xp:20*n,xpProximo:140,xpTotal:300-n*40,conquistas:5-n,inventario:[{classe:'hygge_c25_carpet',quantidade:1},{classe:'plant_small_cactus',quantidade:2},{classe:'exe_table',quantidade:1}].slice(0,4-n%3)}});}

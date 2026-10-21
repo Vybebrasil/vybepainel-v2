@@ -5,6 +5,9 @@
 // não entrou. iniciarPainel() é chamado aqui, ou pelo vybe-login.js logo depois
 // de um login bem-sucedido.
 window.addEventListener('DOMContentLoaded', async () => {
+  // Convidado do Escritório (link de alguém da equipe): entra sem conta e o
+  // painel não carrega nada para ele (vybe-escritorio-convidado.js).
+  if (typeof convidadoAntesDoLogin === 'function' && await convidadoAntesDoLogin()) return;
   if (await garantirSessao()) iniciarPainel();
 });
 

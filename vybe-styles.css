@@ -8707,3 +8707,37 @@ details.ofc-cq-grupo[open] > details.ofc-cq {margin:0 8px}
 .ofc-cq-na-ficha .ofc-rk-corpo, .ofc-cq-na-ficha {display:grid;gap:10px}
 @media (prefers-reduced-motion:no-preference) {.ofc-hud-palco img {animation:ofc-hud-respira 3.2s ease-in-out infinite}}
 @keyframes ofc-hud-respira {50% {transform:translateY(-3px)}}
+
+/* Convidado do Escritório (vybe-escritorio-convidado.js). Esconde o que é só
+   da equipe; as travas de verdade ficam no servidor e no Worker. */
+body.modo-convidado .ofc-rail-btn:is([onclick*="'conversa'"],[onclick*="'clientes'"],[onclick*="abrirAgenda"],[onclick*="abrirRanking"],[onclick*="abrirConquistas"],[onclick*="abrirCatalogo"],[onclick*="Editor"],[onclick*="personalizarEscritorio"],[onclick*="abrirPainelDoEscritorio"]),
+body.modo-convidado .ofc-abas [onclick*="'conversa'"], body.modo-convidado .ofc-abas [onclick*="'recados'"],
+body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobrancas, [onclick*="abrirPainelDoEscritorio"]) {display:none!important}
+.convite-gate .convite-form {opacity:1;transform:none;animation:none;position:absolute;inset:0;margin:auto;height:fit-content;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;padding:26px 28px;border-radius:22px;background:#12141bcc;border:1px solid #ffffff1f;box-shadow:0 30px 80px #000a;backdrop-filter:blur(18px);text-shadow:none}
+.convite-gate .convite-chegada[role="status"] {opacity:1;animation:none;transform:none}
+.convite-gate .convite-form h1 {margin:0;font-size:clamp(24px,3.2vw,32px);line-height:1.15;text-wrap:balance}
+.convite-form p {margin:0;color:#d7dbe3;font-size:14.5px;line-height:1.5}
+.convite-campo {display:grid;gap:6px;color:#c3cad6;font:600 12.5px var(--mac-ui)}
+.convite-campo input {padding:12px 14px;border-radius:12px;border:1px solid #ffffff26;background:#0b0d12;color:#fff;font:500 16px var(--mac-ui)}
+.convite-campo input:focus-visible {outline:none;border-color:#ff9d00;box-shadow:0 0 0 3px #ff9d0040}
+.convite-bonecos {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0;padding:0;border:0}
+.convite-bonecos legend {margin-bottom:8px;color:#c3cad6;font:600 12.5px var(--mac-ui)}
+.convite-boneco {position:relative;display:grid;justify-items:center;gap:4px;padding:10px 6px 8px;border-radius:14px;border:1px solid #ffffff1c;background:#ffffff08;cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
+.convite-boneco input {position:absolute;opacity:0;pointer-events:none}
+.convite-boneco img {width:64px;height:110px;image-rendering:pixelated}
+.convite-boneco span {color:#dfe4ec;font:600 12px var(--mac-ui)}
+.convite-boneco:hover {background:#ffffff12;transform:translateY(-2px)}
+.convite-boneco:has(input:checked) {border-color:#ff9d00;background:#ff9d001f;box-shadow:0 0 0 3px #ff9d0033}
+.convite-boneco:has(input:focus-visible) {outline:2px solid #ff9d00;outline-offset:2px}
+.convite-erro {color:#ff9a9a!important;min-height:0}
+.convite-erro:empty {display:none}
+.convite-nota {color:#9da4b4;font-size:12px;line-height:1.45}
+@media (prefers-reduced-motion:reduce) {.convite-boneco {transition:none}.convite-boneco:hover {transform:none}}
+@media (max-width:560px) {.convite-bonecos {grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ofc-dialogo.ofc-convite {margin:auto;width:min(520px,calc(100vw - 32px));padding:20px 22px;border-radius:18px;color:var(--ofc-texto,#eef0f5)}
+.ofc-dialogo.ofc-convite::backdrop {background:#0008;backdrop-filter:blur(3px)}
+.ofc-convite-corpo {display:grid;gap:12px}
+.ofc-convite-corpo h2 {margin:0;font:700 20px var(--mac-ui)}
+.ofc-convite-corpo p {margin:0;color:#c3cad6;font-size:13.5px;line-height:1.5}
+.ofc-convite-link {display:grid;gap:6px;color:#9da4b4;font:600 12px var(--mac-ui)}
+.ofc-convite-link input {padding:10px 12px;border-radius:10px;border:1px solid #ffffff26;background:#0b0d12;color:#ffd08f;font:500 13px ui-monospace,monospace}

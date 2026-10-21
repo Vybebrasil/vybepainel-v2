@@ -269,7 +269,7 @@ function criadorPainelHtml() {
 </section>`;
 }
 function escritorioPrecisaAbertura() {
-  return Boolean(escritorio.base) && (escritorio.perfil?.abertura !== ESCRITORIO_ABERTURA || Boolean(escritorioMinhaMesa()) && !escritorio.perfil?.quarto_configurado);
+  return Boolean(escritorio.base) && !escritorio.base.convidado && (escritorio.perfil?.abertura !== ESCRITORIO_ABERTURA || Boolean(escritorioMinhaMesa()) && !escritorio.perfil?.quarto_configurado);
 }
 function abrirAberturaEscritorio(etapa = "cena") {
   const eu = escritorio.base?.equipe.find((p) => p.id === escritorio.base.eu);

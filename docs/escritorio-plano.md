@@ -1190,3 +1190,23 @@ decoração inicial "bem feito".
   móvel desenhado na frente do boneco ganha o clique e o brilho (`alvoNaFrente`).
 - `mapaCarregarMovel` espera o load da imagem, não o `decode()`, que às vezes
   não termina; a peça ficava presa sem aparecer.
+
+### Convidado no Escritório — 20/10/2026
+
+- Pedido do Paulo: link para cliente ou convidado entrar com um de 4 bonecos
+  prontos, "uma puta experiência", sem acesso a nada do sistema. Decisões:
+  qualquer pessoa convida; o convidado vê quem está online; chega onde quem
+  convidou estiver.
+- Servidor: `server/escritorio-convite.js` (link e crachá assinados com
+  `ESCRITORIO_SESSION_SECRET`, sem tabela nova; `area=convite` pública:
+  abrir, entrar, entrada, chamada, sair). A arte do mapa sai para o crachá
+  (`acao=arte|boneco|imagem`); mais nada.
+- Worker: aceita o crachá de convidado, recusa zona fora do convite e sala
+  trancada em que não estava, tranca a sala de quem convidou quando ele entra
+  (conversa própria) e não deixa trancar, admitir, mexer em móvel ou música.
+  O balão de fala da equipe só chega ao convidado se for da mesma sala.
+- Navegador: `vybe-escritorio-convidado.js` (boas-vindas na Vybelândia,
+  entrada, travas de cena, aviso para quem convidou). Botão "Convidar" no
+  próprio quarto. Testes em `tests/escritorio-convidado.test.mjs`.
+- Falta: conferir com um convidado de verdade a voz na sala (a demonstração
+  não conecta) e o Worker publicado.
