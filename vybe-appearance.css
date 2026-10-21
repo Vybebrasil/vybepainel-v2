@@ -1666,3 +1666,13 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button { padding: 7px 13px !important; border: 0 !important; border-radius: 9px !important; background: transparent !important; color: #cfd3dc !important; font: 650 12.5px/1 var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; box-shadow: none !important; white-space: nowrap; cursor: pointer; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button:hover { color: #fff !important; background: #ffffff0d !important; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button.active { background: #fff !important; color: #14151b !important; }
+/* Nova demanda: a pergunta desliza ao avançar ou voltar de passo; a resposta
+   vem um instante depois. */
+.fc-entra-frente :is(.fc-pergunta, .fc-sub, .fc-resposta) { animation: fc-desliza-frente .34s var(--curva) both; }
+.fc-entra-tras :is(.fc-pergunta, .fc-sub, .fc-resposta) { animation: fc-desliza-tras .34s var(--curva) both; }
+:is(.fc-entra-frente, .fc-entra-tras) .fc-resposta { animation-delay: .05s; }
+@keyframes fc-desliza-frente { from { opacity: 0; translate: 28px 0; } }
+@keyframes fc-desliza-tras { from { opacity: 0; translate: -28px 0; } }
+@media (prefers-reduced-motion: reduce) { :is(.fc-entra-frente, .fc-entra-tras) :is(.fc-pergunta, .fc-sub, .fc-resposta) { animation: none; } }
+/* Número contando: um brilho rápido enquanto sobe. */
+.vb-contando { color: #ffd27a !important; text-shadow: 0 0 12px #ffb15c80; transition: color .3s, text-shadow .3s; }

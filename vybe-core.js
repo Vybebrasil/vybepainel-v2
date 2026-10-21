@@ -712,3 +712,25 @@ function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icon
   if (tipo === 'carregando') return `<div class="vb-carregando" role="status" aria-label="${safeText(titulo || 'Carregando')}"><div class="vb-brilho"></div><div class="vb-brilho"></div><div class="vb-brilho"></div></div>`;
   return `<div class="vb-estado ${tipo}" role="${tipo === 'erro' ? 'alert' : 'status'}"><span class="vb-estado-icone">${vbIcone(icone || tipo)}</span>${titulo ? `<b>${safeText(titulo)}</b>` : ''}${texto ? `<p>${safeText(texto)}</p>` : ''}${acao}</div>`;
 }
+// Números que contam (Padrão Vybe): um <b data-vb-contar="463" data-vb-chave="moedas">
+// sobe ou desce contando do último valor visto até o novo, como placar de
+// jogo. Na primeira vez só guarda o valor; "Reduzir movimento" pula a conta.
+function vbAnimarContagens(raiz = document) {
+  const parado = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  for (const el of raiz.querySelectorAll('[data-vb-contar][data-vb-chave]')) {
+    const novo = Number(el.dataset.vbContar), chave = 'vb-contar:' + el.dataset.vbChave;
+    if (!Number.isFinite(novo)) continue;
+    let antes = null;
+    try { const v = sessionStorage.getItem(chave); antes = v === null ? null : Number(v); sessionStorage.setItem(chave, String(novo)); } catch {}
+    if (parado || antes === null || !Number.isFinite(antes) || antes === novo) continue;
+    const inicio = performance.now(), dur = Math.min(900, 350 + Math.abs(novo - antes) * 8);
+    el.classList.add('vb-contando');
+    const passo = (t) => {
+      const p = Math.min(1, (t - inicio) / dur), suave = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(antes + (novo - antes) * suave).toLocaleString('pt-BR');
+      if (p < 1 && el.isConnected) requestAnimationFrame(passo); else el.classList.remove('vb-contando');
+    };
+    el.textContent = antes.toLocaleString('pt-BR');
+    requestAnimationFrame(passo);
+  }
+}

@@ -1319,3 +1319,16 @@ decoração inicial "bem feito".
   afunda a peça no clique; "Quartos da equipe" numa linha só, com o contador
   em selo e sem empurrar a coluna; nome dos espaços em até duas linhas; a
   barra de baixo com o mesmo volume e botões da mesma altura.
+
+### Padrão Vybe em seis etapas — 21/10/2026
+
+- Regras no AGENTS.md (seção "Padrão Vybe"); peças `vb-*` em
+  `vybe-appearance.css` e `vbCabecalhoHtml`/`vbResumoHtml`/`vbEstadoHtml`/
+  `vbAnimarContagens` em `vybe-core.js` (#309–#314).
+- Jogo no celular: abre no mapa; barra de baixo com Mapa, Pessoas, Conversa,
+  Missões e Mais (gaveta com todos); cobranças e missões em gaveta.
+- Movimento: passos da Nova demanda deslizam; moedas e nível contam ao mudar;
+  momento de conquista (troféu sobe no pedestal) quando chega nível ou troféu
+  ainda não visto (`escritorioCelebrarSeMudou`, guardado no navegador).
+- Pendente: etiquetas que se sobrepõem no mapa (regra no motor do mapa);
+  nomes de móveis em inglês (tabela do catálogo); animar objeto na mão.

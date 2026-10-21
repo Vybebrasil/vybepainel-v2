@@ -221,7 +221,7 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
   const figura = mapaFigura(perfil || {}), mao = perfil?.mao || "";
   const acenar = mapaAvatarUrl(figura, 3, "wav", mao, 0, "sml", 3), parado = mapaAvatarUrl(figura, 3, "std", mao, 0, "sml", 3);
   const eco = b?.economia, nivel = eco?.pontos?.nivel, sala = escritorioMinhaMesa()?.ambiente;
-  const chips = [eco?.disponivel ? `<span>${escritorioIcone("loja")}<b>${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b> VybeCoins</span>` : "", nivel ? `<span>${escritorioIcone("ranking")}Nível <b>${nivel}</b></span>` : "", sala ? `<span>${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""].filter(Boolean).join("");
+  const chips = [eco?.disponivel ? `<span>${escritorioIcone("loja")}<b data-vb-contar="${Number(eco.saldo || 0)}" data-vb-chave="moedas-${safeText(String(escritorio.base?.eu || ""))}">${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b> VybeCoins</span>` : "", nivel ? `<span>${escritorioIcone("ranking")}Nível <b data-vb-contar="${Number(nivel)}" data-vb-chave="nivel-${safeText(String(escritorio.base?.eu || ""))}">${nivel}</b></span>` : "", sala ? `<span>${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""].filter(Boolean).join("");
   const conv = escritorio.base?.convidado, quem = conv ? safeText(String(conv.anfitriao.nome).split(" ")[0]) : "";
   const regras = conv
     ? `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você como convidado de ${quem}.</span></li><li>${escritorioIcone("microfone")}<span>Você conversa por voz com quem estiver na mesma sala. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("mapa")}<span>Você anda pela sala de ${quem} e pelas áreas comuns da Vybelândia.</span></li>`
@@ -1733,6 +1733,8 @@ function renderEscritorio() {
  ${lobby ? `<div class="ofc-lobby" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="ofc-lobby-cartao">${escritorioLobbyTopoHtml(perfil, eu, b)}${escritorio.entrada ? escritorioEntradaHtml() : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
 </main>
 </section>`;
+  if (lobby && typeof vbAnimarContagens === "function") vbAnimarContagens(painel);
+  if (typeof escritorioCelebrarSeMudou === "function") escritorioCelebrarSeMudou();
   // Só trava a rolagem da página com o Escritório na tela. Com a chamada
   // ligada ele se redesenha por trás do painel (presença, cobranças) e o
   // "add" de antes travava a página do Deivid (Paulo, 20/10/2026).
