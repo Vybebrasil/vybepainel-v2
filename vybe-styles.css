@@ -9704,3 +9704,24 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @keyframes ag-cartao-entra {from {opacity:0;transform:translateX(-6px) scale(.98)} to {opacity:1;transform:none}}
 @keyframes ag-folha-sobe {from {transform:translateY(24px);opacity:0} to {transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce) {.ag-cartao,.ag-cartao.folha {animation:none}}
+
+/* Onde abrir o Painel (escolherPainelDoEscritorio) e uma aba conectada por vez. */
+.ofc-abrir {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.ofc-abrir-opcao {display:grid;justify-items:start;gap:6px;padding:16px;border-radius:16px;border:1px solid #ffffff1c;background:linear-gradient(180deg,#22252f,#1a1c24);color:#fff;text-align:left;cursor:pointer;box-shadow:0 4px 0 #0c0d12;transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
+.ofc-abrir-opcao:hover {border-color:#ff8a3577}
+.ofc-abrir-opcao:active {transform:translateY(3px);box-shadow:0 1px 0 #0c0d12}
+.ofc-abrir-opcao:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.ofc-abrir-opcao b {font:750 15px var(--mac-ui)}
+.ofc-abrir-opcao small {color:#aeb4c2;font:500 12.5px/1.4 var(--mac-ui)}
+.ofc-abrir-icone {display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(180deg,#ffa04d,#ff7a1a);color:#fff}
+.ofc-abrir-icone svg {width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ofc-abrir-lembrar {display:flex;align-items:center;gap:8px;margin-top:14px;color:#c5cad6;font:600 12.5px var(--mac-ui)}
+.ofc-abrir-lembrar input {width:16px;height:16px;accent-color:#ff8a35}
+.ofc-abrir-trocar {align-self:center;padding:0 4px;border:0;background:none;color:#ffb27a;font:650 11.5px var(--mac-ui);text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
+.ofc-abrir-trocar:focus-visible {outline:2px solid #ff8a35;outline-offset:2px;border-radius:4px}
+.ofc-lobby-outra {display:grid;justify-items:center;gap:8px;padding:16px;border-radius:16px;border:1px solid #ff8a3555;background:#ff8a3512;text-align:center}
+.ofc-lobby-outra b {color:#fff;font:750 15px var(--mac-ui)}
+.ofc-lobby-outra p {margin:0;color:#cfd3dc;font:500 13px/1.45 var(--mac-ui)}
+.office-dock-outra {align-self:center;color:#ffd0a8;font:650 12.5px var(--mac-ui);white-space:nowrap}
+@media (max-width:560px) {.ofc-abrir {grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce) {.ofc-abrir-opcao {transition:none}}
