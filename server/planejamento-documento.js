@@ -9,6 +9,11 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const url = (v) => { try { const u = new URL(String(v)); return ['https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+// Dentro do quadro (srcdoc) do painel e do VybeHub, um link "#peca-3" abriria
+// a página de fora no lugar do documento (Paulo, 20/10/2026: "me levou pra
+// tela inicial"). Os links internos só rolam até o lugar.
+const LINKS_INTERNOS = `<script>document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');if(!a)return;e.preventDefault();if(document.body.classList.contains('modo-um'))return;
+document.getElementById(a.getAttribute('href').slice(1))?.scrollIntoView({behavior:'smooth',block:'start'});});</script>`;
 export function nomeDoMes(mes) { const [a, m] = String(mes).split('-').map(Number); return `${MESES[m - 1]} de ${a}`; }
 const dia = (iso) => { const [a, m, d] = String(iso).split('-').map(Number); if (!d) return ''; const w = new Date(Date.UTC(a, m - 1, d)).getUTCDay(); return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')} · ${SEMANA[w]}`; };
 // Cores dos formatos, as mesmas no calendário e nas fichas.
@@ -328,7 +333,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 .ir{position:sticky;bottom:12px;z-index:5;display:flex;justify-content:center;margin-top:24px}.ir a{padding:12px 20px;border-radius:99px;background:var(--escuro);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 10px 30px #0004}
 footer{margin-top:52px;color:var(--sub);font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}footer img{height:16px;filter:invert(1);opacity:.7;vertical-align:middle;margin-right:6px}
 @media print{.aprovar,.pedir,.ir,.como{display:none}main{padding:0}.peca{break-inside:avoid}}
-${revisor ? '.no-painel main{max-width:1180px;padding-top:96px;padding-bottom:110px}' : ''}
+${revisor ? '.no-painel main{max-width:1180px;padding-top:96px;padding-bottom:110px}.no-painel .peca,.no-painel #area-pecas{scroll-margin-top:100px}' : ''}
 </style></head><body class="${revisor ? 'no-painel' : ''}"><main>
 <header class="capa"><div class="marcas"><img class="vybe" src="${LOGO_VYBE}" alt="Vybe"><i aria-hidden="true">×</i>${logo ? `<span class="cli"><img src="${esc(logo)}" alt="${esc(p.cliente)}"></span>` : `<span class="cli-nome">${esc(p.cliente)}</span>`}</div>
 <div><small>Planejamento de conteúdo · ${esc(nomeDoMes(p.mes))}</small><h1>${esc(p.cliente)}</h1></div>
@@ -337,5 +342,5 @@ ${p.titulo && p.titulo !== 'Planejamento de conteúdo' ? `<p>${esc(p.titulo)}</p
 ${aviso ? `<div class="aviso" role="alert">${esc(aviso)}</div>` : ''}${resposta}${comoUsar}
 ${respondendo ? `<div id="resposta">${corpo}${formulario}</div><div class="ir"><a href="#aprovar">Ir para o envio</a></div>` : corpo}
 <footer><span><img src="${LOGO_VYBE}" alt="">Feito pela Vybe para ${esc(p.cliente)} · ${esc(nomeDoMes(p.mes))}</span><span>Versão ${esc(p.versao)}</span></footer>
-</main>${dialogoEdicao}${script}${scriptHead}</body></html>`;
+</main>${dialogoEdicao}${script}${scriptHead}${LINKS_INTERNOS}</body></html>`;
 }
