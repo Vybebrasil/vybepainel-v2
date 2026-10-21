@@ -103,6 +103,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `skills/planejamento-vybe`). Desde 20/10/2026 (decisão do Paulo) o desenho é
   o padrão Vybe para todos; do cliente entram o nome, o logo e o tom de voz.
   Não crie um segundo formato nem um gerador de documento paralelo.
+- O head do cliente (ou quem administra) também pode aprovar direto, sem
+  mandar ao cliente (decisão do Paulo, 20/10/2026: "tem cliente que não
+  aprova"). Fica no histórico como aprovado pelo head. O cliente marcado
+  "não aprova" (`identidade.nao_aprova`) tem "Aprovar e cadastrar" como ação
+  principal.
 - O cliente aprova pelo VybeHub dele (decisão do Paulo, 20/10/2026): o portal
   (`Vybebrasil/vybehub`) chama `area=portal` com a chave `PORTAL_CHAVE` (a mesma
   nos dois projetos da Vercel) e só mostra e repassa a resposta; as regras ficam

@@ -294,3 +294,14 @@ Pedidos do Paulo:
 - **Etiqueta do agente:** os números aparecem por tipo (atrasadas em
   vermelho, para aprovar em amarelo, sem informação em cinza) ao lado do nome,
   e o planejamento fica na linha de baixo.
+
+## Head aprova sem o cliente (20/10/2026)
+
+- `aprovarPeloHead` (rota `acao=aprovar_head`): só o head do cliente e quem
+  administra, com o planejamento em revisão ou ajustes. Vira "Aprovado", com
+  `resposta_nome` "Nome (head)", e o histórico registra "Aprovado pelo head,
+  sem envio ao cliente". Depois, o cadastro de sempre.
+- Na aba "Marca do cliente", a opção "Este cliente não aprova o
+  planejamento" (`identidade.nao_aprova`) troca a ação principal para
+  "Aprovar e cadastrar", que aprova e abre o cadastro das peças. Mandar ao
+  cliente continua disponível.

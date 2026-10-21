@@ -307,3 +307,20 @@ test('peça guarda objetivo, linha e telas; o que veio junto na referência é s
  await P.mudarEstadoInterno(sql,{id:3},{id:p.id,estado:'revisar'});
  await assert.rejects(P.planejamentoDoLink(sql,env.token),/não vale mais/);
 });
+
+// Paulo, 20/10/2026: cliente que não aprova — o head (ou quem administra) aprova direto.
+test('head aprova sem o cliente: só head e quem administra, antes de mandar',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas:[{data:'2026-11-03',formato:'Card',tema:'Um'}]}});
+ await assert.rejects(P.aprovarPeloHead(sql,{id:24},{id:p.id}),/Só o head/);
+ await assert.rejects(P.aprovarPeloHead(sql,{id:3},{id:p.id,versao:p.versao+1}),/mudou/);
+ const r=await P.aprovarPeloHead(sql,{id:3},{id:p.id,versao:p.versao});
+ assert.equal(r.estado,'aprovado');assert.equal(r.resposta_nome,'Vinícius (head)');
+ const ev=(await P.detalhePlanejamento(sql,{id:3},p.id)).eventos[0];assert.equal(ev.tipo,'aprovado');assert.match(ev.texto,/sem envio ao cliente/);
+ await assert.rejects(P.aprovarPeloHead(sql,{id:1,admin:true},{id:p.id}),/já foi aprovado/);
+ // Enviado ao cliente: precisa reabrir antes.
+ const q=await P.publicarDoAgente(sql,{cliente:'Mangaba',mes:'2026-11',conteudo:{pecas:[{data:'2026-11-03',formato:'Card',tema:'Um'}]}});
+ await P.enviarAoCliente(sql,{id:1,admin:true},{id:q.id});
+ await assert.rejects(P.aprovarPeloHead(sql,{id:1,admin:true},{id:q.id}),/Reabra/);
+});

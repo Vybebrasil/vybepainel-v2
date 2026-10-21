@@ -229,7 +229,10 @@ function pljAcoesHtml(aba) {
     <button type="button" class="workflow-primary" onclick="salvarPlanejamento(this)">Salvar alterações</button>`;
   if (aba === 'identidade') return `<button type="button" class="workflow-primary" onclick="salvarIdentidadePlanejamento(this)">Salvar marca</button>`;
   const botoes = [];
-  if (['revisar', 'ajustes'].includes(p.estado)) botoes.push(`<button type="button" class="workflow-primary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente →</button>`);
+  // Cliente que não aprova: o head aprova e o time cadastra (Paulo, 20/10/2026).
+  if (['revisar', 'ajustes'].includes(p.estado)) botoes.push(p.identidade?.nao_aprova
+    ? `<button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente</button><button type="button" class="workflow-primary" onclick="confirmarAprovacaoHead(true)">Aprovar e cadastrar →</button>`
+    : `<button type="button" class="workflow-secondary" onclick="confirmarAprovacaoHead(false)">Aprovar sem o cliente</button><button type="button" class="workflow-primary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente →</button>`);
   if (p.estado === 'enviado') botoes.push(`<button type="button" class="workflow-secondary" onclick="if(confirm('Reabrir tira o planejamento do cliente: o link enviado deixa de valer até você mandar de novo. Reabrir?'))mudarEstadoPlanejamento('revisar')">Reabrir para editar</button>
     <button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Gerar um link novo</button>`);
   if (p.estado === 'aprovado') botoes.push(`<button type="button" class="workflow-secondary" onclick="mudarEstadoPlanejamento('revisar')">Reabrir para editar</button>
@@ -427,7 +430,7 @@ async function salvarPlanejamento(botao) {
 
 // ── Histórico e identidade ───────────────────────────────────────────────────
 const PLJ_EVENTOS = { publicado: 'Publicado pelo agente', nova_versao: 'Nova versão do agente', editado: 'Editado', enviado: 'Mandado para o cliente',
-  aprovado: 'Aprovado pelo cliente', ajustes: 'Cliente pediu ajustes', cadastrado: 'Peças cadastradas', arquivado: 'Arquivado', comentario: 'Comentário', email: 'E-mail' };
+  aprovado: 'Aprovado', ajustes: 'Cliente pediu ajustes', cadastrado: 'Peças cadastradas', arquivado: 'Arquivado', comentario: 'Comentário', email: 'E-mail' };
 function pljHistoricoHtml() {
   const ev = PLJ_ABERTO.eventos || [];
   // Linha do tempo: quem fez o quê; comentários e pedidos do cliente como conversa.
@@ -454,6 +457,7 @@ function pljIdentidadeHtml() {
       <div class="plj-logo-previa" id="plj-logo-previa">${i.logo ? `<img src="${pljEsc(i.logo)}" alt="Logo do cliente">` : i.logo_drive ? `<img src="/api/painel?area=logo&c=${pljEsc(PLJ_ABERTO.cliente_id)}&v=${pljEsc(i.logo_drive)}" alt="Logo do cliente (do Drive)">` : '<small>Sem logo: a capa mostra o nome do cliente.</small>'}</div>
       <div class="plj-logos-drive" id="plj-logos-drive"><small>Procurando os logos no Drive…</small></div>
       <label class="workflow-field"><span>Tom de voz (para o agente)</span><textarea id="plj-tom" rows="3" maxlength="400">${pljEsc(i.tom || '')}</textarea></label>
+      <label class="plj-check plj-nao-aprova"><input id="plj-nao-aprova" type="checkbox" ${i.nao_aprova ? 'checked' : ''}> <span><b>Este cliente não aprova o planejamento</b><small>O head aprova direto e o botão principal vira "Aprovar e cadastrar". Mandar ao cliente continua possível.</small></span></label>
     </div>`;
 }
 // Logos do cliente achados no Drive: um clique escolhe (vale para a capa de todos os planejamentos).
@@ -471,7 +475,7 @@ async function pljCarregarLogosDrive() {
 async function pljUsarLogoDrive(id, botao) {
   botao.disabled = true;
   try {
-    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: '', logo_drive: id, tom: document.getElementById('plj-tom')?.value || '' });
+    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: '', logo_drive: id, tom: document.getElementById('plj-tom')?.value || '', nao_aprova: PLJ_ABERTO.identidade?.nao_aprova === true });
     PLJ_ABERTO.identidade = d.identidade;
     showToast('Logo escolhido. A capa já sai com ele.', 'success');
     pintarPlanejamento('identidade');
@@ -485,7 +489,7 @@ async function salvarIdentidadePlanejamento(botao) {
   botao.disabled = true;
   const v = (id) => document.getElementById(id)?.value || '';
   try {
-    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: v('plj-logo'), logo_drive: v('plj-logo') ? '' : PLJ_ABERTO.identidade?.logo_drive || '', tom: v('plj-tom') });
+    const d = await pljPedir('', { acao: 'identidade', cliente_id: PLJ_ABERTO.cliente_id, logo: v('plj-logo'), logo_drive: v('plj-logo') ? '' : PLJ_ABERTO.identidade?.logo_drive || '', tom: v('plj-tom'), nao_aprova: document.getElementById('plj-nao-aprova')?.checked === true });
     PLJ_ABERTO.identidade = d.identidade;
     showToast('Salvo. O documento já sai com o logo.', 'success');
     pintarPlanejamento('documento');
@@ -493,6 +497,18 @@ async function salvarIdentidadePlanejamento(botao) {
 }
 
 // ── Mandar para o cliente ───────────────────────────────────────────────────
+async function confirmarAprovacaoHead(cadastrar) {
+  const p = PLJ_ABERTO, r = p.revisao || {}, falta = (r.total || 0) - (r.head_ok || 0);
+  const aviso = falta > 0 ? `\n\n${r.head_ajustar ? `${r.head_ajustar} ${r.head_ajustar === 1 ? 'peça está marcada' : 'peças estão marcadas'} para ajustar` : `${falta} ${falta === 1 ? 'peça está' : 'peças estão'} sem o seu OK`}.` : '';
+  if (!confirm(`Aprovar o planejamento de ${p.cliente} sem mandar ao cliente?${aviso}\n\nFica registrado no histórico como aprovado pelo head.`)) return;
+  try {
+    const d = await pljPedir('', { acao: 'aprovar_head', id: p.id, versao: p.versao });
+    showToast('Planejamento aprovado.', 'success');
+    await abrirPlanejamento(d.planejamento.id, 'documento');
+    pljAtualizarFora();
+    if (cadastrar) confirmarCadastroPlanejamento();
+  } catch (e) { showToast(e.message, 'error', 6000); }
+}
 function confirmarEnvioPlanejamento() {
   const acoes = document.querySelector('#workflow-modal .plj-acoes');
   if (!acoes) return;

@@ -46,12 +46,13 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   if (acao === 'editar') return res.status(200).json({ ok: true, planejamento: await P.editarPlanejamento(sql, pessoa, b) });
   if (acao === 'estado') return res.status(200).json({ ok: true, planejamento: await P.mudarEstadoInterno(sql, pessoa, b) });
   if (acao === 'cadastrar') return res.status(200).json({ ok: true, ...(await P.cadastrarPecas(sql, quem, b)) });
+  if (acao === 'aprovar_head') return res.status(200).json({ ok: true, planejamento: await P.aprovarPeloHead(sql, pessoa, b) });
   if (acao === 'revisar_peca') return res.status(200).json({ ok: true, resumo: await P.revisarPecaHead(sql, pessoa, b) });
   if (acao === 'comentar') return res.status(200).json(await P.comentarPlanejamento(sql, pessoa, b));
   if (acao === 'identidade') {
    if (!await P.podeEditarCliente(sql, pessoa, b.cliente_id)) return res.status(403).json({ error: 'Só o head do cliente e quem administra mudam a identidade.' });
    const limpa = { cor: /^#[0-9a-f]{6}$/i.test(b.cor || '') ? b.cor : null, cor_apoio: /^#[0-9a-f]{6}$/i.test(b.cor_apoio || '') ? b.cor_apoio : null,
-    logo: /^https:\/\/\S{4,500}$/.test(b.logo || '') ? b.logo : null, logo_drive: /^[A-Za-z0-9_-]{10,80}$/.test(b.logo_drive || '') ? b.logo_drive : null, fonte: /^[A-Za-z0-9 ]{2,40}$/.test(b.fonte || '') ? b.fonte : null, tom: String(b.tom || '').slice(0, 400) || null };
+    logo: /^https:\/\/\S{4,500}$/.test(b.logo || '') ? b.logo : null, logo_drive: /^[A-Za-z0-9_-]{10,80}$/.test(b.logo_drive || '') ? b.logo_drive : null, nao_aprova: b.nao_aprova === true, fonte: /^[A-Za-z0-9 ]{2,40}$/.test(b.fonte || '') ? b.fonte : null, tom: String(b.tom || '').slice(0, 400) || null };
    // O personagem do agente (Escritório) mora na mesma identidade: salvar as
    // cores não pode apagá-lo.
    await sql`UPDATE vybe_clientes SET identidade=${JSON.stringify(limpa)}::jsonb || CASE WHEN identidade ? 'personagem' THEN jsonb_build_object('personagem', identidade->'personagem') ELSE '{}'::jsonb END WHERE id=${b.cliente_id}`;
