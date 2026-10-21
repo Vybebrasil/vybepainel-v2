@@ -1414,3 +1414,5 @@ decoração inicial "bem feito".
   desenha a peça inteira (mão certa, ordem certa em volta do corpo) e a tela só
   anima o que se mexe e não é mão; as demais continuam desenhadas pela tela.
   A margem da tela sai dos quadros das peças vestidas.
+- Provador: o boneco anda no lugar (4 passos do imager, `frame`, como no mapa),
+  com botão de pausa ao lado do girar; "Reduzir movimento" deixa parado.

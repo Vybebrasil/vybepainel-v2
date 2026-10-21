@@ -322,6 +322,23 @@ function criadorMaoHtml(fig) {
 <div class="cri-mao-grade" role="group" aria-label="Objeto na mão">${CRIADOR_MAOS.map(([v, r]) => `<button type="button" aria-pressed="${v === atual}" onclick="${alvo}='${v}';renderAberturaEscritorio()" title="${safeText(r)}"><img loading="lazy" alt="" width="64" height="110" src="${safeText(criadorImagem(fig, 2, "n", v))}"><span>${safeText(r)}</span></button>`).join("")}</div></details>`;
 }
 // Girar arrastando o boneco para os lados: um passo a cada 28 px.
+// Boneco andando no lugar no Provador (Paulo, 21/10/2026: "mais imersivo e
+// profissional"), como a janela de roupas do Tibia: os 4 passos do imager (o
+// mesmo "frame" do mapa), trocados só com as imagens prontas. "Reduzir
+// movimento" ou o botão de pausa deixam parado; aba escondida não troca.
+function criadorAndarNoPalco(img) {
+  clearInterval(criador.andarTimer); criador.andarTimer = 0;
+  if (!img || criador.parado || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const u = new URL(img.getAttribute("src")), mao = u.searchParams.get("action");
+  const urls = [0, 1, 2, 3].map((n) => { const q = new URLSearchParams(u.search); q.set("action", mao ? `wlk,${mao}` : "wlk"); q.set("frame", String(n)); return `${u.origin}${u.pathname}?${q}`; });
+  let prontas = 0, passo = 0;
+  const imgs = urls.map((src) => { const i = new Image(); i.onload = () => { prontas++; }; i.src = src; return i; });
+  criador.andarTimer = setInterval(() => {
+    if (!img.isConnected) { clearInterval(criador.andarTimer); criador.andarTimer = 0; return; }
+    if (document.hidden || prontas < imgs.length || img.dataset.girando) return;
+    passo = (passo + 1) % 4; img.src = urls[passo];
+  }, 160);
+}
 function criadorGiroInicio(ev) {
   ev.preventDefault();
   const x0 = ev.clientX, d0 = criador.direcao;
@@ -333,7 +350,8 @@ function criadorGiroInicio(ev) {
     const img = document.querySelector("#ofc-abertura .cri-girar");
     if (img) img.src = criadorImagem(criadorFigura(criador.f), d, "l", (criador.destino ? criador.destino.mao : criador.mao) || "");
   };
-  const fim = () => { removeEventListener("pointermove", mover); removeEventListener("pointerup", fim); renderAberturaEscritorio(); };
+  const fim = () => { removeEventListener("pointermove", mover); removeEventListener("pointerup", fim); delete document.querySelector("#ofc-abertura .cri-girar")?.dataset.girando; renderAberturaEscritorio(); };
+  const alvo = document.querySelector("#ofc-abertura .cri-girar"); if (alvo) alvo.dataset.girando = "1";
   addEventListener("pointermove", mover);
   addEventListener("pointerup", fim);
 }
@@ -579,7 +597,7 @@ function criadorPainelHtml() {
   <div class="prov-holofote" aria-hidden="true"></div>
   <img src="${criadorImagem(typeof animadasDaFigura === "function" ? animadasDaFigura(fig)?.base || fig : fig, criador.direcao, "l", mao)}" data-figura="${safeText(fig)}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220" class="cri-girar" title="Arraste para os lados para girar" onpointerdown="criadorGiroInicio(event)">
   <div class="prov-pedestal" aria-hidden="true"></div>
-  <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div>
+  <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button><button type="button" class="cri-andar" aria-pressed="${!criador.parado}" onclick="criador.parado=!criador.parado;renderAberturaEscritorio()" aria-label="${criador.parado ? "Andar" : "Parar"}" title="${criador.parado ? "Fazer o boneco andar" : "Deixar o boneco parado"}">${criador.parado ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' : '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>'}</button></div>
   ${criadorMaoHtml(fig)}
   ${criador.destino ? "" : criadorLooksHtml()}
  </div>
@@ -759,8 +777,9 @@ function renderAberturaEscritorio() {
     const palcoImg = el.querySelector(".prov-palco img.cri-girar");
     if (palcoImg && typeof animadasSobre === "function") {
       if (!ANIMADAS.dados) animadasCarregar().then(() => { if (criador.etapa === "personagem" && document.getElementById("ofc-abertura")) renderAberturaEscritorio(); });
-      else animadasSobre(palcoImg, palcoImg.dataset.figura, criador.direcao, { escala: 2 });
+      else animadasSobre(palcoImg, palcoImg.dataset.figura, criador.direcao, { escala: 2, postura: criador.parado ? "std" : "wlk" });
     }
+    criadorAndarNoPalco(palcoImg);
     const painel = el.querySelector(".provador");
     if (rolagem && painel) { painel.classList.add("estavel"); const t = painel.querySelector(".prov-trilho"); if (t) [t.scrollTop, t.scrollLeft] = rolagem; }
     requestAnimationFrame(criadorMedirPagina);
