@@ -6,6 +6,7 @@ import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.j
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
+import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
 import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes } from '../server/captacoes.js';
 import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
@@ -1598,10 +1599,17 @@ async function areaCaptacoes(req,res,quem) {
   const acao=String(req.query?.acao || corpo.acao || '');
   try {
     if(req.method==='GET') {
-      if(acao==='pecas') return res.status(200).json({ok:true,pecas:await pecasParaCaptar(banco)});
+      if(acao==='pecas') {
+        // A peça que saiu de um roteiro do Docs traz o link dele.
+        const pecas=await pecasParaCaptar(banco), roteiros=await roteirosDosConteudos(banco,pecas.map((p)=>p.id));
+        return res.status(200).json({ok:true,pecas:pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}))});
+      }
       // A agenda do Google é a das captações de verdade; falha dela vira aviso.
-      const [lista, agenda] = await Promise.all([listarCaptacoes(banco,{de:req.query?.de,ate:req.query?.ate}),
-        agendaDeCaptacoes(banco).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}))]);
+      // Semana pedida (segunda-feira); sem ela, a semana de hoje.
+      const semana=/^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.semana||'')) ? String(req.query.semana) : '';
+      const fimSemana=semana ? new Date(new Date(`${semana}T12:00:00Z`).getTime()+6*864e5).toISOString().slice(0,10) : '';
+      const [lista, agenda] = await Promise.all([listarCaptacoes(banco,{de:semana||req.query?.de,ate:fimSemana||req.query?.ate}),
+        agendaDeCaptacoes(banco,{inicio:semana}).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}))]);
       return res.status(200).json({ok:true,...lista,agenda:agenda.eventos,aviso_agenda:agenda.aviso||''});
     }
     if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});
@@ -1613,7 +1621,31 @@ async function areaCaptacoes(req,res,quem) {
   } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
 }
 
-const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// Biblioteca de roteiros da Produção (server/roteiros.js): toda a equipe vê,
+// inclui e liga roteiro a conteúdo; o servidor confere cada id.
+async function areaRoteiros(req,res,quem) {
+  if(quem.tipo!=='sessao' || !quem.pessoa) return res.status(403).json({error:'Entre com a sua conta para ver os roteiros.'});
+  const banco=sql(), corpo=req.body && typeof req.body==='object' ? req.body : {};
+  const acao=String(req.query?.acao || corpo.acao || '');
+  try {
+    if(req.method==='GET') {
+      if(acao==='candidatos') return res.status(200).json({ok:true,...await candidatosDoRoteiro(banco,{roteiro_id:req.query?.roteiro,busca:req.query?.busca})});
+      const [roteiros,clientes]=await Promise.all([listarRoteiros(banco),clientesDosRoteiros(banco)]);
+      return res.status(200).json({ok:true,roteiros,clientes});
+    }
+    if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});
+    if(acao==='ligar') return res.status(200).json({ok:true,...await ligarRoteiro(banco,quem,corpo)});
+    if(acao==='incluir') return res.status(200).json({ok:true,...await incluirRoteiro(banco,quem,corpo)});
+    if(acao==='editar') return res.status(200).json({ok:true,...await editarRoteiro(banco,quem,corpo)});
+    if(acao==='drive') {
+      try { return res.status(200).json({ok:true,...await roteirosDoDrive(banco,quem)}); }
+      catch(e) { if(e.status) throw e; return res.status(502).json({error:'Não deu para buscar no Drive agora. Tente de novo em instantes.'}); }
+    }
+    return res.status(400).json({error:'Ação desconhecida.'});
+  } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
+}
+
+const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar,
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()) };
 

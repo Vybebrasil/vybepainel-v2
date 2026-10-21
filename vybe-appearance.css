@@ -1627,6 +1627,11 @@ body.vybe-desktop {
 .vb-chip b { min-width: 18px; padding: 2px 6px; border-radius: 99px; background: #ffffff14; font: 800 11px/1 var(--mac-ui); text-align: center; font-variant-numeric: tabular-nums; }
 .vb-chip:hover { border-color: #ffffff2e; }
 .vb-chip[aria-pressed="true"] { border-color: #ff8a3599; background: #ff8a351f; color: #ffd0a8; }
+/* Ação de texto (Editar, Tentar de novo, Cancelar captação): sem caixa, laranja; perigo em vermelho. */
+.vb-link { padding: 0; border: 0; background: none; color: #ffb27a; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.vb-link:hover { color: #ffd0a8; }
+.vb-link:focus-visible { outline: 2px solid #ff8a35; outline-offset: 2px; border-radius: 4px; }
+.vb-link.perigo { color: #ff9ca5; }
 /* Resumo: uma linha com o que importa; o item com problema vira peça colorida. */
 .vb-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
 .vb-resumo-item { --c: var(--text-muted); display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 12px; border: 1px solid var(--vb-linha); background: #ffffff06; color: var(--text-muted); font: 600 12.5px/1.2 var(--mac-ui); }

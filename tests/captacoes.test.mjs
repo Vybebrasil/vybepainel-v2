@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes } from '../server/captacoes.js';
+import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes } from '../server/captacoes.js';
 import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 
 const PRODUCAO = 7829537690;
@@ -27,6 +27,7 @@ async function banco(t) {
       (13, 'Card - Promo', 'Card', NULL, NULL, '', 'pode_fazer', NULL, ${PRODUCAO}, NULL);
     INSERT INTO vybe_conteudo_clientes VALUES (10, 1), (11, 1), (12, 2), (13, 1);`);
   await db.exec(readFileSync('migrations/2026-10-21-producao-captacoes.sql', 'utf8'));
+  await db.exec(readFileSync('migrations/2026-10-21-producao-captacoes-evento.sql', 'utf8'));
   // O trocarEscolha do painel, reduzido ao que importa aqui: a chave muda.
   const trocas = [];
   const trocar = async (s, quem, { item, campo, para }) => { trocas.push([item, campo, para]); await s`UPDATE vybe_conteudos SET captacao_chave = ${para} WHERE id = ${item}`; };
@@ -87,6 +88,24 @@ test('gravado peça a peça fecha a captação; cancelar devolve só as não gra
   assert.equal((await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes.length, 0);
 });
 
+test('liga as peças a uma captação que já está no Google sem criar nem apagar o evento', async (t) => {
+  const { sql, trocar, trocas, agenda, eventos } = await banco(t);
+  const { id } = await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-23', inicio: '07:00', fim: '08:00', pecas: ['10'], evento_google: 'g1brussolo' }, { trocar, agenda });
+  assert.deepEqual(eventos, []);
+  assert.deepEqual(trocas, [['10', 'captacao', CAPTACAO.agendada]]);
+  const [k] = (await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes;
+  assert.deepEqual([k.evento_google, k.evento_do_painel, k.na_agenda], ['g1brussolo', false, true]);
+  // O mesmo evento não recebe outra captação; "tentar de novo" não reescreve o evento.
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-23', pecas: ['11'], evento_google: 'g1brussolo' }, { trocar, agenda }), /já tem peças/);
+  assert.deepEqual(await sincronizarAgenda(sql, id, { agenda }), []);
+  assert.deepEqual(eventos, []);
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-23', pecas: ['11'], evento_google: 'x y' }, { trocar, agenda }), /inválido/);
+  // Cancelar solta as peças e deixa o evento de quem marcou no Google.
+  await cancelarCaptacao(sql, quem, { id }, { trocar, agenda });
+  assert.deepEqual(eventos, []);
+  assert.deepEqual(trocas.at(-1), ['10', 'captacao', CAPTACAO.pronta]);
+});
+
 test('o evento da agenda leva cliente, peças, local e horário de Irecê', () => {
   const e = eventoDaCaptacao({ cliente: 'Brussolo', dia: '2026-10-28', inicio: '09:00', fim: null, local: 'Restaurante', observacao: 'Levar luz',
     pecas: [{ titulo: 'Reels - Prato do dia', formato: 'Reels' }, { titulo: 'Foto - Sobremesa', formato: 'Fotografia' }] }, 'https://painel');
@@ -113,8 +132,9 @@ test('a agenda do Google conta: azul é captação, reunião e pessoal ficam for
   assert.equal(clienteDoEvento('Fotos experimente', clientes), null);
   const { sql } = await banco(t);
   const listar = async () => ({ eventos: [
-    { id: 'g1', titulo: 'Captação - Brussolo', dia: '2026-10-23', horario: '07:00 às 08:00', local: '', captacao: true },
-    { id: 'g2', titulo: 'Reunião Brussolo', dia: '2026-10-23', horario: '09:00 às 10:00', local: '', captacao: false }] });
-  const agenda = await agendaDeCaptacoes(sql, { listar, hoje: '2026-10-21' });
-  assert.deepEqual(agenda.map((e) => [e.id, e.cliente]), [['g1', 'Brussolo']]);
+    { id: 'g1', titulo: 'Captação - Brussolo', dia: '2026-10-23', horario: '07:00 às 08:00', inicio: '07:00', fim: '08:00', local: '', captacao: true, tipo: 'captacao' },
+    { id: 'g2', titulo: 'Reunião Brussolo', dia: '2026-10-23', horario: '09:00 às 10:00', inicio: '09:00', fim: '10:00', local: '', captacao: false, tipo: 'reuniao' }] });
+  // A semana inteira vem, cada evento com o tipo: a tela pinta e conta só as captações.
+  const agenda = await agendaDeCaptacoes(sql, { listar, inicio: '2026-10-19' });
+  assert.deepEqual(agenda.map((e) => [e.id, e.tipo, e.cliente, e.inicio]), [['g1', 'captacao', 'Brussolo', '07:00'], ['g2', 'reuniao', 'Brussolo', '09:00']]);
 });

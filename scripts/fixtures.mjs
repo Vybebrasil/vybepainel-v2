@@ -232,9 +232,42 @@ export async function demoApi(req,res,url,body) {
       if(url.searchParams.get('acao')==='pecas')return reply(200,{ok:true,pecas:[
         {id:'101',titulo:'Reels - Prato do dia',formato:'Reels',prazo:d(-12),veiculacao:d(5),briefing:'Abrir na cozinha com o chef finalizando o prato.\nFechar com o prato na mesa e o logo.',status:'Aguardo',clientes:[{id:'1',nome:'Cliente demonstração'}]},
         {id:'102',titulo:'Foto - Sobremesa da casa',formato:'Fotografia',prazo:d(4),veiculacao:d(6),briefing:'',status:'Aguardo',clientes:[{id:'1',nome:'Cliente demonstração'}]},
-        {id:'103',titulo:'Reels - Bastidores do atendimento',formato:'Reels',prazo:d(6),veiculacao:d(8),briefing:'Mostrar a recepção e a equipe sorrindo.',status:'Aguardo',clientes:[{id:'2',nome:'Cliente B (fictício)'}]}]});
-      return reply(200,{ok:true,de:d(0),ate:d(30),aviso_agenda:'',agenda:[{id:'g1',titulo:'Captação - Cliente B - entrevista',dia:d(0),horario:'09:00 às 10:00',local:'Clínica',cliente_id:'2',cliente:'Cliente B (fictício)',captacao_id:''},{id:'g9',titulo:'Captação · Cliente demonstração · 2 peças',dia:d(1),horario:'09:00 às 11:00',local:'No restaurante',cliente_id:'1',cliente:'Cliente demonstração',captacao_id:'9'},{id:'g3',titulo:'Banco de imagem - Cliente demonstração',dia:d(4),horario:'Dia inteiro · horário não informado',local:'',cliente_id:'1',cliente:'Cliente demonstração',captacao_id:''}],captacoes:[{id:'9',cliente_id:'1',cliente:'Cliente demonstração',dia:d(1),inicio:'09:00',fim:'11:00',local:'No restaurante',observacao:'Levar a luz de LED.',estado:'agendada',na_agenda:true,aviso:null,criado_por:'Operador de teste',
+        {id:'103',titulo:'Reels - Bastidores do atendimento',formato:'Reels',prazo:d(6),veiculacao:d(8),briefing:'Mostrar a recepção e a equipe sorrindo.',status:'Aguardo',clientes:[{id:'2',nome:'Cliente B (fictício)'}],roteiro_doc:{titulo:'Roteiros Cliente B – bastidores',link:'https://docs.google.com/document/d/demonstracao-roteiro-cliente-b/edit'}}]});
+      const ag=(id,titulo,n,inicio,fim,tipo,cliente_id,cliente,extra={})=>({id,titulo,dia:d(n),inicio,fim,horario:inicio?`${inicio} às ${fim}`:'Dia inteiro · horário não informado',local:'',tipo,cliente_id,cliente,captacao_id:'',link:'',...extra});
+      return reply(200,{ok:true,de:d(0),ate:d(6),aviso_agenda:'',agenda:[
+        ag('g1','Captação - Cliente B - entrevista',0,'09:00','10:00','captacao','2','Cliente B (fictício)',{local:'Clínica'}),
+        ag('g2','Reunião de pauta - Cliente B',0,'09:30','10:30','reuniao','2','Cliente B (fictício)'),
+        ag('g4','Cliente demonstração - Banco de imagem',0,'15:00','16:30','captacao','1','Cliente demonstração'),
+        ag('g9','Captação · Cliente demonstração · 2 peças',1,'09:00','11:00','captacao','1','Cliente demonstração',{local:'No restaurante',captacao_id:'9'}),
+        ag('g5','Alinhamento da equipe',2,'08:00','08:45','reuniao','',''),
+        ag('g6','Dentista Vinícius',3,'14:00','15:00','outro','',''),
+        ag('g3','Banco de imagem - Cliente demonstração',4,'','','captacao','1','Cliente demonstração')],
+        captacoes:[{id:'9',cliente_id:'1',cliente:'Cliente demonstração',dia:d(1),inicio:'09:00',fim:'11:00',local:'No restaurante',observacao:'Levar a luz de LED.',estado:'agendada',na_agenda:true,aviso:null,criado_por:'Operador de teste',
         pecas:[{id:'104',titulo:'Reels - Novidade do cardápio',formato:'Reels',briefing:'Close nos ingredientes, depois o prato pronto.',captacao:'captacao_agendada',gravado:true},{id:'105',titulo:'Foto - Ambiente',formato:'Fotografia',briefing:'',captacao:'captacao_agendada',gravado:false}]}]});
+    }
+    // Agenda fictícia da semana (server/agenda-producao.js), a do ícone do Escritório.
+    if(area==='agenda_producao'){
+      const base=url.searchParams.get('dia')||new Date().toISOString().slice(0,10);
+      const d=(n)=>{const x=new Date(`${base}T12:00:00Z`);x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);};
+      const ev=(id,titulo,n,inicio,fim,tipo)=>({id,titulo,dia:d(n),inicio,fim,horario:`${inicio} às ${fim}`,local:'',tipo,captacao:tipo==='captacao',ambiguo:tipo!=='captacao',link:''});
+      return reply(200,{ok:true,inicio:base,eventos:[ev('a1','Cliente demonstração - Banco de imagem',1,'09:00','10:00','captacao'),ev('a2','Reunião de pauta',1,'09:30','10:30','reuniao'),
+        ev('a3','Captação - Cliente B - entrevista',2,'15:00','16:30','captacao'),ev('a4','Dentista Vinícius',3,'14:00','15:00','outro'),ev('a5','Captação - Cliente demonstração',4,'07:00','08:00','captacao')]});
+    }
+    // Roteiros fictícios da Produção (server/roteiros.js), só leitura.
+    if(area==='roteiros'){
+      if(req.method==='POST')return reply(403,{error:'A demonstração não grava.'});
+      const d=(n)=>{const x=new Date();x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);};
+      const doc=(n)=>`https://docs.google.com/document/d/demonstracao-roteiro-${n}/edit`;
+      if(url.searchParams.get('acao')==='candidatos')return reply(200,{ok:true,candidatos:[
+        {id:'201',titulo:'Reels - Bastidores da cozinha',formato:'Reels',veiculacao:d(3),status:'Finalizado',status_cor:'#00c875',ligado:true,sugerido:true},
+        {id:'202',titulo:'Reels - O prato do chef',formato:'Reels',veiculacao:d(9),status:'Em produção',status_cor:'#fdab3d',ligado:false,sugerido:true},
+        {id:'203',titulo:'Card - Horário de funcionamento',formato:'Card',veiculacao:d(11),status:'Pode fazer',status_cor:'#579bfc',ligado:false,sugerido:false}]});
+      return reply(200,{ok:true,clientes:[{id:'1',nome:'Cliente demonstração'},{id:'2',nome:'Cliente B (fictício)'}],roteiros:[
+        {id:'1',doc_id:'demo1',titulo:'Roteiro de captação: chef na cozinha',cliente_id:'1',cliente:'Cliente demonstração',criado_em:d(-2),origem:'drive',link:doc(1),
+          pecas:['Entrevista com o chef','Montagem dos pratos','Salão durante o serviço'],
+          conteudos:[{id:'201',titulo:'Reels - Bastidores da cozinha',formato:'Reels',veiculacao:d(3),status:'Finalizado',status_cor:'#00c875'},{id:'204',titulo:'Fotografia - Prato principal',formato:'Fotografia',veiculacao:d(5),status:'Aprovação',status_cor:'#a25ddc'}]},
+        {id:'2',doc_id:'demo2',titulo:'Roteiros Cliente B – bastidores',cliente_id:'2',cliente:'Cliente B (fictício)',criado_em:d(-6),origem:'importado',link:doc(2),pecas:['Reels 1: A recepção','Reels 2: A equipe'],conteudos:[]},
+        {id:'3',doc_id:'demo3',titulo:'Roteiro de stories: reta final',cliente_id:null,cliente:null,criado_em:d(-40),origem:'importado',link:doc(3),pecas:[],conteudos:[]}]});
     }
     if(area==='notificacoes')return reply(200,{ok:true,notificacoes:[],nao_lidas:0});
     return reply(200,{ok:true,pessoas:[],clientes:[],acessos:[],automacoes:[],snapshots:[],colunas:[],opcoes:[],captacao:[],catalogos:{status:[],captacao:[],grupos:[],pessoas:[],formatos:[]}});

@@ -11,6 +11,7 @@ test('gravações reais convertem para Bahia e excluem privado e cancelado, sina
   assert.equal(lista[0].dia,'2026-10-15');
   assert.match(lista[2].horario,/Dia inteiro/);
   assert.equal(lista[1].ambiguo,true);
+  assert.deepEqual([lista[0].inicio,lista[0].fim,lista[0].tipo,lista[1].tipo,lista[2].inicio],['16:00','17:00','captacao','reuniao','']);
   const ctx=vm.createContext({eventos:lista});
   vm.runInContext(fs.readFileSync('vybe-resumo.js','utf8'),ctx);
   const texto=vm.runInContext("resumoProducaoAgenda(eventos,'2026-10-15')",ctx);

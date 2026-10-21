@@ -392,3 +392,21 @@ export async function salvarDocumentoEPdf({ html, nome, pastaId }) {
   const pdf = await enviarParaDrive({ conteudo: Buffer.from(await exp.arrayBuffer()), nome: nome + '.pdf', mime: 'application/pdf', pastaId });
   return { docId: doc.id, docLink: doc.webViewLink, pdfId: pdf.id, pdfLink: pdf.link };
 }
+
+// Roteiros da Produção (server/roteiros.js): docs do Google com "roteiro" no
+// nome que a conta do painel enxerga (o drive compartilhado e as pastas
+// compartilhadas com ela). Os docs no "Meu Drive" de alguém não aparecem.
+export async function roteirosNoDrive({ desde = '' } = {}) {
+  const filtro = ["trashed = false", "mimeType = 'application/vnd.google-apps.document'", "name contains 'oteiro'"];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(desde)) filtro.push(`modifiedTime > '${desde}T00:00:00'`);
+  const q = encodeURIComponent(filtro.join(' and '));
+  const d = await drive(`files?q=${q}&fields=files(id,name,createdTime,webViewLink)&orderBy=createdTime desc&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`);
+  return (d.files || []).map((f) => ({ id: f.id, nome: f.name, criado: String(f.createdTime || '').slice(0, 10), link: f.webViewLink || '' }));
+}
+
+export async function textoDoDoc(fileId) {
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=text/plain`,
+    { headers: { Authorization: `Bearer ${await token()}` }, signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error(`Drive ${r.status}: não deu para ler o doc.`);
+  return (await r.text()).slice(0, 200000);
+}

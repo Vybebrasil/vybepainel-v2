@@ -52,7 +52,7 @@ export async function listarCaptacoes(sql, { de = '', ate = '' } = {}) {
   const fim = diaValido(ate) ? ate : fimPadrao.toISOString().slice(0, 10);
   const linhas = await sql`SELECT k.id, k.cliente_id::text AS cliente_id, cl.nome AS cliente, k.dia::text AS dia,
       to_char(k.inicio, 'HH24:MI') AS inicio, to_char(k.fim, 'HH24:MI') AS fim, k.local, k.observacao, k.estado,
-      k.evento_google IS NOT NULL AS na_agenda, k.aviso, p.nome AS criado_por,
+      k.evento_google IS NOT NULL AS na_agenda, k.evento_google, k.evento_do_painel, k.aviso, p.nome AS criado_por,
       COALESCE(json_agg(json_build_object('id', c.id::text, 'titulo', c.titulo, 'formato', c.formato, 'briefing', c.briefing,
         'captacao', c.captacao_chave, 'gravado', kp.gravado_em IS NOT NULL) ORDER BY kp.ordem, c.id) FILTER (WHERE c.id IS NOT NULL), '[]') AS pecas
     FROM vybe_captacoes k
@@ -79,12 +79,16 @@ function validarMontagem(d = {}) {
   const local = String(d.local || '').trim(), observacao = String(d.observacao || '').trim();
   if (local.length > 300) throw erro('O local passou de 300 caracteres.');
   if (observacao.length > 2000) throw erro('A observação passou de 2.000 caracteres.');
-  return { cliente_id: String(d.cliente_id), dia: d.dia, inicio: d.inicio || null, fim: d.fim || null, local, observacao, pecas };
+  const evento = d.evento_google ? String(d.evento_google) : null;
+  if (evento && !/^[A-Za-z0-9_-]{5,1024}$/.test(evento)) throw erro('Evento da agenda inválido.');
+  return { cliente_id: String(d.cliente_id), dia: d.dia, inicio: d.inicio || null, fim: d.fim || null, local, observacao, pecas, evento };
 }
 
 // Monta a captação numa transação (a peça só entra se ainda está pronta para
 // captar e é do cliente) e depois marca cada peça e cria o evento na agenda.
-// `trocar` é o trocarEscolha do painel; `agenda` cria/apaga o evento.
+// `trocar` é o trocarEscolha do painel; `agenda` cria/apaga o evento. Com
+// `evento_google`, as peças entram numa captação que alguém já marcou no
+// Google Agenda: o evento é dessa pessoa e o painel não o reescreve nem apaga.
 export async function montarCaptacao(sql, quem, dados, { trocar, agenda = eventoNaAgenda } = {}) {
   await exigirTabelas(sql);
   const d = validarMontagem(dados);
@@ -100,8 +104,12 @@ export async function montarCaptacao(sql, quem, dados, { trocar, agenda = evento
     if (linhas.length !== d.pecas.length) throw erro('Alguma peça não existe mais.', 409);
     const fora = linhas.filter((l) => l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || l.captacao_chave !== CAPTACAO.pronta || l.ja_marcada || !l.do_cliente);
     if (fora.length) throw erro(`Já não estão prontas para esta captação: ${fora.map((l) => l.titulo).join('; ')}. Atualize a lista.`, 409);
-    const [k] = await tx`INSERT INTO vybe_captacoes (cliente_id, dia, inicio, fim, local, observacao, criado_por)
-      VALUES (${d.cliente_id}, ${d.dia}::date, ${d.inicio}::time, ${d.fim}::time, ${d.local}, ${d.observacao}, ${pessoaId})
+    if (d.evento) {
+      const [ja] = await tx`SELECT id FROM vybe_captacoes WHERE evento_google = ${d.evento} AND estado <> 'cancelada' FOR UPDATE`;
+      if (ja) throw erro('Essa captação da agenda já tem peças ligadas. Atualize a tela.', 409);
+    }
+    const [k] = await tx`INSERT INTO vybe_captacoes (cliente_id, dia, inicio, fim, local, observacao, criado_por, evento_google, evento_do_painel)
+      VALUES (${d.cliente_id}, ${d.dia}::date, ${d.inicio}::time, ${d.fim}::time, ${d.local}, ${d.observacao}, ${pessoaId}, ${d.evento}, ${!d.evento})
       RETURNING id`;
     for (const [ordem, id] of d.pecas.entries())
       await tx`INSERT INTO vybe_captacao_pecas (captacao_id, conteudo_id, ordem) VALUES (${k.id}, ${id}, ${ordem})`;
@@ -112,7 +120,7 @@ export async function montarCaptacao(sql, quem, dados, { trocar, agenda = evento
     try { await trocar(sql, quem, { item: id, campo: 'captacao', para: CAPTACAO.agendada }); }
     catch (e) { avisos.push(`Não deu para marcar uma peça como "Captação Agendada": ${e.message}`); }
   }
-  await sincronizarAgenda(sql, criada.id, { agenda, avisos });
+  if (!d.evento) await sincronizarAgenda(sql, criada.id, { agenda, avisos });
   return { id: criada.id, avisos };
 }
 
@@ -121,6 +129,7 @@ export async function sincronizarAgenda(sql, id, { agenda = eventoNaAgenda, avis
   if (!/^\d{1,18}$/.test(String(id || ''))) throw erro('Captação inválida.');
   const [k] = (await listarCaptacoesPorId(sql, id));
   if (!k) throw erro('Captação não encontrada.', 404);
+  if (!k.evento_do_painel) return avisos;
   try {
     const evento = await agenda('criar', k);
     await sql`UPDATE vybe_captacoes SET evento_google = ${evento}, aviso = NULL, atualizado_em = now() WHERE id = ${id}`;
@@ -133,7 +142,7 @@ export async function sincronizarAgenda(sql, id, { agenda = eventoNaAgenda, avis
 }
 async function listarCaptacoesPorId(sql, id) {
   return sql`SELECT k.id::text AS id, k.dia::text AS dia, to_char(k.inicio, 'HH24:MI') AS inicio, to_char(k.fim, 'HH24:MI') AS fim,
-      k.local, k.observacao, k.estado, k.evento_google, cl.nome AS cliente,
+      k.local, k.observacao, k.estado, k.evento_google, k.evento_do_painel, cl.nome AS cliente,
       COALESCE(json_agg(json_build_object('titulo', c.titulo, 'formato', c.formato) ORDER BY kp.ordem) FILTER (WHERE c.id IS NOT NULL), '[]') AS pecas
     FROM vybe_captacoes k LEFT JOIN vybe_clientes cl ON cl.id = k.cliente_id
     LEFT JOIN vybe_captacao_pecas kp ON kp.captacao_id = k.id LEFT JOIN vybe_conteudos c ON c.id = kp.conteudo_id
@@ -165,11 +174,12 @@ export async function cancelarCaptacao(sql, quem, { id } = {}, { trocar, agenda 
   await exigirTabelas(sql);
   if (!/^\d{1,18}$/.test(String(id || ''))) throw erro('Captação inválida.');
   const { pendentes, evento } = await sql.comTransacao(async (tx) => {
-    const [k] = await tx`SELECT id, estado, evento_google FROM vybe_captacoes WHERE id = ${id} FOR UPDATE`;
+    const [k] = await tx`SELECT id, estado, evento_google, evento_do_painel FROM vybe_captacoes WHERE id = ${id} FOR UPDATE`;
     if (!k || k.estado === 'cancelada') throw erro('Captação não encontrada.', 404);
     await tx`UPDATE vybe_captacoes SET estado = 'cancelada', atualizado_em = now() WHERE id = ${id}`;
     const l = await tx`SELECT conteudo_id::text AS id FROM vybe_captacao_pecas WHERE captacao_id = ${id} AND gravado_em IS NULL`;
-    return { pendentes: l.map((x) => x.id), evento: k.evento_google };
+    // Evento marcado por alguém no Google fica lá; só as peças se soltam.
+    return { pendentes: l.map((x) => x.id), evento: k.evento_do_painel ? k.evento_google : null };
   });
   const avisos = [];
   for (const item of pendentes) {
@@ -217,9 +227,7 @@ export async function eventoNaAgenda(acao, k, { buscar = fetch, obterToken = tok
   return e.id;
 }
 
-// Captações que já estão no Google Agenda da Vybe (azuis), dos próximos dias,
-// ligadas ao cliente pelo nome no título ("Captação - Antonov - Iago"). São a
-// agenda real do Mizinho: contam mesmo sem terem sido montadas no painel.
+// Cliente do evento pelo nome no título.
 const normal = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const PALAVRAS_COMUNS = new Set(['clinica', 'grupo', 'escola', 'academia', 'loja', 'casa', 'restaurante', 'ristorante', 'bebidas', 'cliente', 'demonstracao', 'ficticio', 'papelaria', 'laboratorio', 'centro', 'servicos', 'solucoes']);
 export function clienteDoEvento(titulo, clientes) {
@@ -233,16 +241,22 @@ export function clienteDoEvento(titulo, clientes) {
   }
   return melhor;
 }
-export async function agendaDeCaptacoes(sql, { dias = 21, listar = listarAgendaProducao, hoje = '' } = {}) {
-  const dia = diaValido(hoje) ? hoje : new Intl.DateTimeFormat('en-CA', { timeZone: FUSO }).format(new Date());
+// A semana do Google Agenda da Vybe, com o tipo de cada evento (azul é
+// captação) e o cliente pelo nome no título ("Captação - Antonov - Iago"). As
+// captações azuis são a agenda real do Mizinho: contam mesmo sem terem sido
+// montadas no painel; as outras ficam como contexto da semana.
+export async function agendaDeCaptacoes(sql, { inicio = '', dias = 7, listar = listarAgendaProducao, hoje = '' } = {}) {
+  const dia = diaValido(inicio) ? inicio : diaValido(hoje) ? hoje : new Intl.DateTimeFormat('en-CA', { timeZone: FUSO }).format(new Date());
   const [r, clientes, nossas] = await Promise.all([
     listar(dia, { dias }),
     sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true)`,
     (async () => (await captacoesProntas(sql)) ? sql`SELECT id::text AS id, evento_google FROM vybe_captacoes WHERE evento_google IS NOT NULL AND estado <> 'cancelada'` : [])(),
   ]);
   const porEvento = new Map(nossas.map((n) => [n.evento_google, n.id]));
-  return (r.eventos || []).filter((e) => e.captacao).map((e) => {
+  return (r.eventos || []).map((e) => {
     const c = clienteDoEvento(e.titulo, clientes);
-    return { id: e.id, titulo: e.titulo, dia: e.dia, horario: e.horario, local: e.local, cliente_id: c?.id || '', cliente: c?.nome || '', captacao_id: porEvento.get(e.id) || '' };
+    const tipo = e.tipo || (e.captacao ? 'captacao' : 'outro');
+    return { id: e.id, titulo: e.titulo, dia: e.dia, horario: e.horario, inicio: e.inicio || '', fim: e.fim || '', local: e.local, link: e.link || '',
+      tipo, cliente_id: c?.id || '', cliente: c?.nome || '', captacao_id: porEvento.get(e.id) || '' };
   });
 }

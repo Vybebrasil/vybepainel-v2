@@ -1243,7 +1243,7 @@ function escritorioMiniAgendaHtml(nome) {
 // agenda-producao.js), que traz 7 dias a partir do dia pedido e já deixa de
 // fora o que é privado, pessoal, folga, férias e aniversário. Gravação e
 // captação ficam em destaque; o resto vem como evento da agenda.
-const escritorioAgenda = { inicio: null, eventos: null, erro: null, carregando: false };
+const escritorioAgenda = { inicio: null, eventos: null, erro: null, carregando: false, sel: "" };
 function escritorioAgendaSegunda(iso) {
   const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   return d.toISOString().slice(0, 10);
@@ -1282,24 +1282,38 @@ function pintarAgendaEscritorio() {
   const hoje = typeof hojeDeVerdade === "function" ? hojeDeVerdade() : new Date().toISOString().slice(0, 10);
   const fim = escritorioAgendaSomar(inicio, 6);
   const dm = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7);
-  const nomeDia = (iso) => new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(new Date(iso + "T12:00:00")).replace(/-feira$/, "");
   let corpo;
   if (carregando) corpo = '<p class="ofc-nota ofc-agenda-estado">Consultando o Google Agenda da Vybe…</p>';
   else if (erro) corpo = `<div class="ofc-agenda-estado"><p class="ofc-nota">Não foi possível ler a agenda: ${safeText(erro)}.</p><button type="button" class="workflow-secondary" onclick="carregarAgendaEscritorio()">Tentar de novo</button></div>`;
-  else {
-    const dias = Array.from({ length: 7 }, (_, i) => escritorioAgendaSomar(inicio, i));
-    const total = (eventos || []).length;
-    corpo = total ? `<ol class="ofc-agenda-dias">${dias.map((dia) => {
-      const doDia = eventos.filter((e) => e.dia === dia);
-      return `<li class="ofc-agenda-dia${dia === hoje ? " hoje" : ""}${doDia.length ? "" : " vazio"}"><div class="ofc-agenda-data"><b>${dm(dia)}</b><span>${safeText(nomeDia(dia))}</span>${dia === hoje ? "<em>Hoje</em>" : ""}</div>
-        ${doDia.length ? `<ul>${doDia.map((e) => `<li class="ofc-agenda-evento${e.ambiguo ? "" : " gravacao"}"><span class="ofc-agenda-hora">${safeText(e.horario)}</span><b>${safeText(e.titulo || "Sem título")}</b>${e.local ? `<small>${safeText(e.local)}</small>` : ""}${e.ambiguo ? "" : '<i class="ofc-agenda-selo">Gravação</i>'}</li>`).join("")}</ul>` : '<p class="ofc-nota">Nada na agenda.</p>'}</li>`;
-    }).join("")}</ol>` : '<p class="ofc-nota ofc-agenda-estado">Nada na agenda da Vybe nesta semana.</p>';
-  }
+  // A mesma semana das Captações (agendaSemanaHtml, vybe-captacoes.js), só
+  // para consulta: as mesmas cores e o mesmo tipo de cada evento.
+  else corpo = agendaSemanaHtml({ inicio, eventos: eventos || [], sel: escritorioAgenda.sel || "", acoes: { evento: "escritorioAgendaEvento" } })
+    + ((eventos || []).length ? escritorioAgendaDetalheHtml() : '<p class="ofc-nota">Nada na agenda da Vybe nesta semana.</p>');
   el.innerHTML = `<div class="workflow-kicker"><span>Google Agenda da Vybe</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
   <div class="ofc-agenda-topo"><h2 class="workflow-title">Agenda da semana</h2>
-   <div class="ofc-agenda-nav" role="group" aria-label="Semana"><button type="button" class="workflow-secondary" aria-label="Semana anterior" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, -7)}')">‹</button><span>${dm(inicio)} a ${dm(fim)}</span><button type="button" class="workflow-secondary" aria-label="Próxima semana" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, 7)}')">›</button>${inicio !== escritorioAgendaSegunda(hoje) ? `<button type="button" class="office-text-button" onclick="abrirAgendaEscritorio()">Esta semana</button>` : ""}</div></div>
+   <div class="capt-nav" role="group" aria-label="Semana"><button type="button" class="vb-botao" aria-label="Semana anterior" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, -7)}')">‹</button><button type="button" class="vb-botao" onclick="abrirAgendaEscritorio()"${inicio === escritorioAgendaSegunda(hoje) ? " disabled" : ""}>Hoje</button><button type="button" class="vb-botao" aria-label="Próxima semana" onclick="abrirAgendaEscritorio('${escritorioAgendaSomar(inicio, 7)}')">›</button></div></div>
+  <p class="capt-periodo">${typeof agPeriodo === "function" ? safeText(agPeriodo(inicio)) : `${dm(inicio)} a ${dm(fim)}`}</p>
+  <div class="ag-legenda" aria-label="Cores da agenda">${Object.entries(typeof AG_TIPOS === "object" ? AG_TIPOS : {}).map(([t, n]) => `<span class="ag-legenda-item t-${t}">${n}</span>`).join("")}</div>
   ${corpo}
-  <p class="ofc-nota">Só leitura. Para criar ou mudar um evento, use o Google Agenda. Eventos privados e pessoais não aparecem aqui.</p>`;
+  <p class="ofc-nota">Só leitura. Para marcar uma captação, use Captações na Produção; para mudar um evento, o Google Agenda. Eventos privados e pessoais não aparecem aqui.</p>`;
+  if (typeof agRolar === "function") agRolar(el);
+}
+function escritorioAgendaEvento(id) { escritorioAgenda.sel = escritorioAgenda.sel === id ? "" : id; pintarAgendaEscritorio(); }
+function escritorioAgendaDetalheHtml() {
+  const e = (escritorioAgenda.eventos || []).find((x) => x.id === escritorioAgenda.sel);
+  if (!e) return "";
+  const dia = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(e.dia + "T12:00:00Z")).replace("-feira", "");
+  const quando = `${dia.charAt(0).toUpperCase() + dia.slice(1)} · ${e.inicio ? `${e.inicio}${e.fim ? `–${e.fim}` : ""}` : "Dia inteiro"}`;
+  return `<div class="ofc-agenda-detalhe"><span class="capt-tipo t-${safeText(e.tipo || "outro")}">${safeText((typeof AG_TIPOS === "object" && AG_TIPOS[e.tipo]) || "Compromisso")}</span>
+    <b>${safeText(e.titulo || "Sem título")}</b><small>${safeText(quando)}${e.local ? ` · ${safeText(e.local)}` : ""}</small>
+    <span class="ofc-agenda-detalhe-acoes">${e.link ? `<a class="vb-link" href="${safeText(e.link)}" target="_blank" rel="noopener">Abrir no Google Agenda</a>` : ""}${e.tipo === "captacao" && typeof chooseProductionMode === "function" ? `<button type="button" class="vb-link" onclick="escritorioAbrirCaptacao('${safeText(e.id)}','${safeText(e.dia)}')">Ver em Captações</button>` : ""}</span></div>`;
+}
+// Da agenda do jogo para a mesma captação no painel geral.
+function escritorioAbrirCaptacao(id, dia) {
+  closeWorkflowModal();
+  if (typeof CAPT === "object" && typeof agSegunda === "function") { CAPT.semana = agSegunda(dia); CAPT.dia = dia; CAPT.sel = id; CAPT.pecas = null; }
+  if (typeof setProdV2View === "function") window.productionV2View = "captacoes";
+  chooseProductionMode();
 }
 // Portas para o painel: a ficha do cliente e a Agenda mensal já filtrada nele
 // (o mesmo caminho do botão da agenda, managerCalendarOpenClientMaster).
