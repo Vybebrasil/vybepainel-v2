@@ -449,6 +449,15 @@ function criadorRotuloDoPasso(etapa) {
 }
 // Altura da parte no boneco inteiro: o trilho recorta a miniatura ali.
 const CRIADOR_FOCO = { ch: 52, cc: 52, ca: 40, cp: 55, wa: 66, lg: 80, sh: 96, mc: 50, pt: 30 };
+// Cartão da peça aproximado na parte dela (Paulo, 21/10/2026: "a prévia dos
+// sapatos tá ruim de ver qual é qual"): o boneco inteiro deixava o sapato
+// minúsculo. Zoom e ponto de foco por parte; cabeça já vem só a cabeça.
+// [zoom, ponto da parte na imagem (%), quanto sobe para centralizar (%)]
+const CRIADOR_ZOOM = { sh: [3, 91, -38], lg: [1.8, 76, -24], wa: [2.4, 60, -10] };
+function criadorZoomAttr(t) {
+  const z = CRIADOR_ZOOM[t];
+  return z ? ` class="zoom" style="--zoom:${z[0]};--foco:${z[1]}%;--sobe:${z[2]}%"` : "";
+}
 function criadorRaridadeDaPeca(t, id) {
   const c = `roupa:${t}-${id}`, r = criador.roupas;
   if (!r?.ativo || criador.destino) return "";
@@ -478,7 +487,7 @@ function criadorVestirPeca(t, id) {
 function criadorGuardaRoupaHtml(fig) {
   const { kits, pecas, vestindo } = criadorGuardaRoupa();
   const vestido = (t, id) => criador.f.partes[t]?.id === id;
-  const grade = (lista) => `<div class="cri-grade prov-gr-pecas">${lista.map((p) => `<button type="button" class="cri-peca${p.aba.cabeca ? " cabeca" : ""} r-${safeText(criadorRaridadeDaPeca(p.t, p.id) || "comum")}" aria-pressed="${vestido(p.t, p.id)}" onclick="criadorVestirPeca('${p.t}', ${p.id})" ${criadorFichaAtributos(p.aba, p.id)}><img loading="lazy" src="${safeText(criadorMiniatura(p.t, p.id, p.aba.cabeca))}" alt="">${criadorSeloAnimada(p.t, p.id)}<span class="prov-gr-parte">${safeText(p.aba.nome)}</span></button>`).join("")}</div>`;
+  const grade = (lista) => `<div class="cri-grade prov-gr-pecas">${lista.map((p) => `<button type="button" class="cri-peca${p.aba.cabeca ? " cabeca" : ""} r-${safeText(criadorRaridadeDaPeca(p.t, p.id) || "comum")}" aria-pressed="${vestido(p.t, p.id)}" onclick="criadorVestirPeca('${p.t}', ${p.id})" ${criadorFichaAtributos(p.aba, p.id)}><img loading="lazy" src="${safeText(criadorMiniatura(p.t, p.id, p.aba.cabeca))}" alt=""${criadorZoomAttr(p.t)}>${criadorSeloAnimada(p.t, p.id)}<span class="prov-gr-parte">${safeText(p.aba.nome)}</span></button>`).join("")}</div>`;
   const vazio = !kits.length && !pecas.length;
   return `${vestindo.length ? `<h3 class="prov-gr-titulo">Vestindo agora <small>${vestindo.length}</small></h3>${grade(vestindo)}` : ""}
 ${kits.length ? `<h3 class="prov-gr-titulo">Skins <small>${kits.length}</small></h3><div class="prov-skins mini">${kits.map((k) => `<article class="prov-skin r-${safeText(criadorKitDoCorpo(k).raridade)}"><button type="button" class="prov-skin-palco" onclick="criadorProvarKit('${safeText(k.chave)}')" aria-label="Vestir ${safeText(k.nome)}"><img alt="" loading="lazy" width="128" height="220" src="${safeText(criadorImagem(criadorFigura(criadorFiguraComKit(k)), 2, "l", ""))}"></button><div class="prov-skin-texto"><b>${safeText(k.nome.replace(/^Skin\s+/i, ""))}</b></div><div class="prov-skin-acoes"><button type="button" class="vb-botao principal" onclick="criadorProvarKit('${safeText(k.chave)}')">Vestir</button></div></article>`).join("")}</div>` : ""}
@@ -508,8 +517,8 @@ function criadorFichaMostrar(ev) {
   if (!peca) { ficha.hidden = true; return; }
   const [parte, id, rar, nome, situacao, animada, donos] = peca.dataset.ficha.split("|");
   ficha.className = `prov-ficha r-${rar || "comum"}`;
-  const arte = peca.querySelector("img")?.src || "";
-  ficha.innerHTML = `${arte ? `<img class="prov-ficha-arte" alt="" src="${safeText(arte)}">` : ""}<b>${safeText(parte)} <small>nº ${safeText(id)}</small></b>${nome ? `<span class="prov-ficha-rar">${safeText(nome)}</span>` : ""}${situacao ? `<span class="prov-ficha-linha">${safeText(situacao)}</span>` : ""}${animada ? '<span class="prov-ficha-linha anim">Animada: mexe no mapa e no provador</span>' : ""}${donos !== "" ? `<span class="prov-ficha-linha suave">${Number(donos) ? `${donos} ${Number(donos) === 1 ? "pessoa da equipe tem" : "pessoas da equipe têm"}` : "Ninguém da equipe tem ainda"}</span>` : ""}<span class="prov-ficha-linha suave">Clique para provar</span>`;
+  const fonte = peca.querySelector("img"), arte = fonte?.src || "";
+  ficha.innerHTML = `${arte ? `<span class="prov-ficha-arte"><img alt="" src="${safeText(arte)}" class="${fonte.classList.contains("zoom") ? "zoom" : ""}" style="${safeText(fonte.getAttribute("style") || "")}"></span>` : ""}<b>${safeText(parte)} <small>nº ${safeText(id)}</small></b>${nome ? `<span class="prov-ficha-rar">${safeText(nome)}</span>` : ""}${situacao ? `<span class="prov-ficha-linha">${safeText(situacao)}</span>` : ""}${animada ? '<span class="prov-ficha-linha anim">Animada: mexe no mapa e no provador</span>' : ""}${donos !== "" ? `<span class="prov-ficha-linha suave">${Number(donos) ? `${donos} ${Number(donos) === 1 ? "pessoa da equipe tem" : "pessoas da equipe têm"}` : "Ninguém da equipe tem ainda"}</span>` : ""}<span class="prov-ficha-linha suave">Clique para provar</span>`;
   ficha.hidden = false;
   const r = peca.getBoundingClientRect(), caixa = ficha.offsetParent?.getBoundingClientRect() || { left: 0, top: 0, right: innerWidth };
   const w = ficha.offsetWidth, h = ficha.offsetHeight;
@@ -552,7 +561,7 @@ function criadorPainelHtml() {
     const src = criadorMiniatura(aba.t, id, aba.cabeca);
     const fg = decodeURIComponent(new URL(src).searchParams.get("figure"));
     const rar = id === null ? "" : criadorRaridadeDaPeca(aba.t, id);
-    return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}${rar ? " r-" + rar : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" ${id === null ? `aria-label="${rotulo}" title="${rotulo}"` : criadorFichaAtributos(aba, id)}><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt="">${id === null ? "<span>Nenhum</span>" : criadorSeloRoupa(aba.t, id) + criadorSeloAnimada(aba.t, id)}</button>`;
+    return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}${rar ? " r-" + rar : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" ${id === null ? `aria-label="${rotulo}" title="${rotulo}"` : criadorFichaAtributos(aba, id)}><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt=""${id === null ? "" : criadorZoomAttr(aba.t)}>${id === null ? "<span>Nenhum</span>" : criadorSeloRoupa(aba.t, id) + criadorSeloAnimada(aba.t, id)}</button>`;
   };
   // Uma paleta por vez (Cor 1 / Cor 2), com as mais usadas visíveis e o resto
   // em "Mais cores"; a cor escolhida fica sempre visível no topo.
