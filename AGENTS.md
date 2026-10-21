@@ -307,13 +307,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Tabela de trocas (`2026-10-19-escritorio-trocas.sql`) aplicada no mesmo dia.
   Economia de 20/10/2026 (`2026-10-20-escritorio-economia.sql`, marcador
   `economia-2026-10-20`): saldo recalculado uma vez pela regra nova; não repetir.
-  Economia pelo volume de 21/10/2026 (decisões do Paulo: "continuar com a
-  fatia, só dividir melhor"; dinheiro e nível vêm do VOLUME; comum em 1 a 3
-  demandas, lendário em torno de 50; heads acima da Produção): fatias novas,
-  quem posta leva a fatia do agendamento, alteração e dia vencido tiram moeda
-  e XP, ação no painel paga até 10 por dia e preço de cada faixa em demandas
-  (`2026-10-21-escritorio-volume.sql`, ver `docs/escritorio-pontos.md`). Só
-  eventos novos; saldos e XP de hoje não mudam.
+  Valor por papel de 21/10/2026 (decisões do Paulo: cada papel ganha um valor
+  fixo pela peça vezes o peso do formato; volume conta; Jukebox = 4 cards):
+  quem fez 100%, DA +15%, head 25%, quem postou 15%, geral 5%, captação 30–32%;
+  preço em cards; penalidades tiram moeda e XP; ação no painel até 10 por dia;
+  meta em degraus e teto suave de 600 por semana
+  (`2026-10-21-escritorio-valor-por-papel.sql`, marcador `valor-papel-2026-10-21`;
+  histórico inteiro refeito uma vez; não repetir).
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em

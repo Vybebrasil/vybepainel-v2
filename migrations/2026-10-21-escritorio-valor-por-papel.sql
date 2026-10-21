@@ -16,11 +16,15 @@
 --   130% +60, 160% +100.
 -- Teto suave: acima de 600 moedas na semana, cada moeda conta metade (o XP
 --   não tem teto).
--- Preço em demandas (uma peça de peso 1 = 10 moedas): comum 20, incomum 50,
---   raro 120, épico 250, lendário 500; skin completa 20% abaixo da soma.
+-- Pesos (Paulo, 21/10/2026: "para o Deivid comprar a Jukebox, uns 4 cards ou
+--   2 carrosséis; o Reriston 2 vídeos; impresso 1; fotografia umas 6 a 8"):
+--   fotografia 0,6, Reels e vídeo 2, motion 2,5, impresso 4; os outros como
+--   estavam. Preço em cards (um card = 10 moedas para quem fez): comum 10,
+--   incomum 20, raro 40, épico 100, lendário 250; skin completa 20% abaixo
+--   da soma.
 --
--- Ações no painel valem só daqui para a frente (Paulo, 21/10/2026): o
--- histórico do log não as paga.
+-- O histórico inteiro conta, inclusive as ações no painel (Paulo, 21/10/2026:
+-- "vamos usar todo histórico sim, inclusive para os ranks").
 -- Uma vez só (marcador valor-papel-2026-10-21), o histórico é refeito pela
 -- regra nova: as linhas de peça e os bônus de peça saem do razão e o log é
 -- pontuado de novo, na ordem, com a data de cada evento; os fechamentos de
@@ -72,9 +76,12 @@ INSERT INTO vybe_escritorio_parametros VALUES
  ('teto_semana',600,'Acima destas moedas na semana, cada moeda conta metade')
 ON CONFLICT (chave) DO UPDATE SET valor=EXCLUDED.valor, descricao=EXCLUDED.descricao;
 
--- Preços e skins.
+-- Pesos, preços e skins.
+UPDATE vybe_escritorio_complexidade c SET peso=v.peso FROM (VALUES
+ ('fotografia',0.6),('reels',2),('video',2),('motion',2.5),('impresso',4)
+) AS v(chave,peso) WHERE c.chave=v.chave;
 UPDATE vybe_escritorio_raridades r SET preco=v.preco FROM (VALUES
- ('comum',20),('incomum',50),('raro',120),('epico',250),('lendario',500)
+ ('comum',10),('incomum',20),('raro',40),('epico',100),('lendario',250)
 ) AS v(chave,preco) WHERE r.chave=v.chave;
 UPDATE vybe_escritorio_kits SET desconto=0.20 WHERE chave LIKE 'visual-%';
 
@@ -168,6 +175,7 @@ BEGIN
  FOR ev IN SELECT * FROM vybe_conteudo_eventos ORDER BY em, id LOOP
   PERFORM set_config('vybe.em', ev.em::text, true);
   PERFORM vybe_pontuar_linha(ev);
+  PERFORM vybe_pontuar_acao(ev);
  END LOOP;
  PERFORM set_config('vybe.em', '', true);
  -- Saldo e XP = soma do razão, nunca abaixo de zero; o ajuste explica a diferença.

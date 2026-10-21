@@ -532,7 +532,31 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   nova não sustenta saem uma vez (`revisarNiveisEscritorio`, chave
   `conquistas-producao-2026-10-20`).
 
-## Economia pelo volume (21/10/2026)
+## Valor por papel (21/10/2026)
+
+Decisões do Paulo: cada papel ganha um valor fixo pela peça ("o Deivid ganha
+porque fez, o Vinícius como head, o Paulo como geral, a Tainara porque
+postou, o Mizinho porque tirou a foto"); o volume conta; o histórico inteiro
+é refeito, inclusive as ações no painel; a Jukebox (raro) custa 4 cards, 2
+carrosséis, 2 vídeos, 1 impresso ou 6 a 7 fotografias.
+
+- Por peça de peso 1: quem fez 10 moedas e 20 XP; DA +15% por cima; head 25%;
+  quem postou (de qualquer função) 15%; geral 5%; captação foto 30%, vídeo 32%.
+- Pesos: fotografia 0,6; texto e story 0,5; card, feed, post 1; design 1,5;
+  carrossel 2; Reels e vídeo 2; motion 2,5; impresso 4.
+- Preços: comum 10, incomum 20, raro 40, épico 100, lendário 250; skin
+  completa 20% abaixo da soma. Estoque e vitrine continuam.
+- Bônus: no prazo +1, de primeira +1, briefing +1, cadastro só XP; dia com
+  ação +2; ação no painel +1 até 10 por dia; meta em degraus 100% +30,
+  130% +60, 160% +100; acima de 600 moedas na semana cada moeda conta metade
+  (`vybe_escritorio_parametros`).
+- Penalidades com XP: alteração −2 e −5 XP; dia vencido −3 e −5 XP; nunca
+  abaixo de zero.
+- Migração `migrations/2026-10-21-escritorio-valor-por-papel.sql`, marcador
+  `valor-papel-2026-10-21` (não repetir); teste
+  `tests/escritorio-valor-por-papel.test.mjs`.
+
+## Economia pelo volume (21/10/2026, proposta não aplicada; substituída pelo valor por papel)
 
 Decisões do Paulo: "tem que continuar com a fatia, só dividir melhor"; "todos
 poderem ter poder de compra; o que vai contar para ser level mais alto e ter
