@@ -92,7 +92,7 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
 
 ## Já decidido pelo Paulo (não precisa responder)
 
-- XP nunca cai; penalidades só em moedas; saldo nunca negativo.
+- Saldo e XP nunca negativos; desde 21/10/2026 as penalidades tiram moedas e XP.
 - Meta semanal por pessoa a partir da média das últimas 8 semanas; bônus igual
   para quem bate a própria meta.
 - Bônus de chegada pelo histórico, sem teto; sem limite diário de ganhos.
@@ -531,3 +531,40 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   e as peças captadas não contam nas escadas da Criação. Os níveis que a conta
   nova não sustenta saem uma vez (`revisarNiveisEscritorio`, chave
   `conquistas-producao-2026-10-20`).
+
+## Economia pelo volume (21/10/2026)
+
+Decisões do Paulo: "tem que continuar com a fatia, só dividir melhor"; "todos
+poderem ter poder de compra; o que vai contar para ser level mais alto e ter
+mais dinheiro é o VOLUME que cada um faz"; comum a cada 1 a 3 demandas e
+lendário em torno de 50; os heads (Atendimento) não ficam abaixo da Produção.
+
+Leitura da semana de 19/10 (até quarta): a Gestão entrou em 75 peças e ganhou
+cerca de 1 moeda por peça; um lendário levava de 3 semanas a mais de 3 meses.
+
+- **O bolo continua**: 10 moedas e 20 XP por ponto de peso da peça.
+- **Fatias** (`vybe_escritorio_fatias`, por tipo):
+
+  | Papel | Demais peças | Foto | Vídeo |
+  | --- | --- | --- | --- |
+  | Criação | 48% | 52% | 42% |
+  | Produção | — | 8% | 16% |
+  | Atendimento | 26% | 20% | 22% |
+  | Agendamento (quem posta) | 15% | 11% | 11% |
+  | Gestão | 11% | 9% | 9% |
+
+  A fatia do Agendamento vai para quem agenda ou finaliza a peça, de qualquer
+  função.
+- **Preço em demandas**: uma demanda da Criação rende perto de 7 moedas.
+  Comum 2 demandas (15), incomum 5 (35), raro 12 (85), épico 25 (175),
+  lendário 50 (350). Skin completa 20% abaixo da soma das peças. Estoque e
+  vitrine de raro, épico e lendário continuam.
+- **Penalidades com XP** (muda a regra de 17/10 "XP nunca cai"): voltou para
+  alteração −2 moedas e −5 XP; dia com demanda vencida −3 moedas e −5 XP.
+  Moedas e XP nunca abaixo de zero; o nível pode descer.
+- **Ação no painel**: dia com ação +2 moedas e +2 XP; cada ação (status,
+  campo, comentário, cadastro) +1 moeda e +1 XP, até 10 por dia
+  (`acao_painel`, teto na tabela). Automação sem autor não conta.
+- Só eventos novos; saldos e XP de hoje não mudam. Migração
+  `migrations/2026-10-21-escritorio-volume.sql`; teste
+  `tests/escritorio-volume.test.mjs`.

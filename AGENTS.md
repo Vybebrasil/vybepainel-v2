@@ -287,7 +287,7 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   As salas comuns ainda precisam de melhorias visuais individuais; Paulo
   autorizou esta publicação sem considerá-las visualmente aprovadas.
 - Pontos (XP) e VybeCoins seguem `docs/escritorio-pontos.md` (decisão do Paulo,
-  17/10/2026): XP nunca cai; perda só em moedas e nunca abaixo de zero; valores
+  17/10/2026; penalidades com XP desde 21/10/2026): moedas e XP nunca abaixo de zero; valores
   e funções ficam nas tabelas `vybe_escritorio_regras` e `vybe_escritorio_funcoes`
   (mude lá, sem deploy, nunca em constante no código); eventos instantâneos no
   gatilho `vybe_demanda_moedas`, fechamento do dia e da semana no ciclo diário
@@ -305,6 +305,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Tabela de trocas (`2026-10-19-escritorio-trocas.sql`) aplicada no mesmo dia.
   Economia de 20/10/2026 (`2026-10-20-escritorio-economia.sql`, marcador
   `economia-2026-10-20`): saldo recalculado uma vez pela regra nova; não repetir.
+  Economia pelo volume de 21/10/2026 (decisões do Paulo: "continuar com a
+  fatia, só dividir melhor"; dinheiro e nível vêm do VOLUME; comum em 1 a 3
+  demandas, lendário em torno de 50; heads acima da Produção): fatias novas,
+  quem posta leva a fatia do agendamento, alteração e dia vencido tiram moeda
+  e XP, ação no painel paga até 10 por dia e preço de cada faixa em demandas
+  (`2026-10-21-escritorio-volume.sql`, ver `docs/escritorio-pontos.md`). Só
+  eventos novos; saldos e XP de hoje não mudam.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em

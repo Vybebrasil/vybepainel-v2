@@ -67,7 +67,7 @@ function escritorioComoFuncionaHtml(bolo, regras) {
 ${bolo ? `<p>Cada peça concluída vira um <b>bolo</b> de moedas e XP do tamanho do formato (um Reels vale 2,5 vezes um Card). O bolo é dividido entre quem trabalhou nela:</p>${tabela}` : ""}
 <ul class="ofc-hud-como-lista">
 <li><b>Dá XP:</b> tudo o que dá moedas também dá XP, além das conquistas e do fechamento do dia e da semana.</li>
-<li><b>Tira XP:</b> nada. O XP nunca cai.</li>
+<li><b>Tira XP:</b> ${perde.length ? safeText(perde.join("; ")) : "nada"}. O XP nunca fica abaixo de zero.</li>
 <li><b>Dá moedas:</b> ${ganha.length ? safeText(ganha.join("; ")) : "as entregas"}; e cada conquista.</li>
 <li><b>Tira moedas:</b> ${perde.length ? safeText(perde.join("; ")) + "; e" : ""} as compras na loja. O saldo nunca fica negativo.</li>
 </ul></section>`;
@@ -114,7 +114,7 @@ function atualizarBarraDiaEscritorio() {
   el.innerHTML = `<span class="ofc-dia-texto"><b>Hoje</b> ${n.dia.feitas} de ${n.dia.total} ${n.dia.total === 1 ? "entrega" : "entregas"}${n.atrasadas ? ` · <em>${n.atrasadas} ${n.atrasadas === 1 ? "atrasada" : "atrasadas"}</em>` : ""}</span><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Entregas de hoje"><i style="width:${pct}%"></i></span><span class="ofc-dia-pct">${pct}%</span>`;
   el.title = "Abrir sua ficha";
 }
-// Nível, meta da semana e extrato vêm do servidor (XP nunca cai; a meta é a
+// Nível, meta da semana e extrato vêm do servidor (XP nunca abaixo de zero; a meta é a
 // média da própria pessoa nas últimas semanas). Só a própria pessoa recebe
 // esses dados; quem administra vê os números das demandas como antes.
 function escritorioNivelHtml(p) {
@@ -123,7 +123,7 @@ function escritorioNivelHtml(p) {
   const funcao = { criacao: "Criação", atendimento: "Atendimento", agendamento: "Agendamento", producao: "Produção", gestao: "Gestão" }[p.funcao] || "";
   const data = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }); };
   const sinal = (v) => (v > 0 ? "+" + v : String(v));
-  return `<div class="ofc-ficha-nivel"><b>Nível ${p.nivel}${funcao ? ` · ${funcao}` : ""}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total. XP nunca cai.</small></div>
+  return `<div class="ofc-ficha-nivel"><b>Nível ${p.nivel}${funcao ? ` · ${funcao}` : ""}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total.</small></div>
 <div class="ofc-ficha-meta"><b>Meta da semana</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${m.meta || 1}" aria-valuenow="${m.entregas || 0}" aria-label="Meta da semana"><i style="width:${pctMeta}%"></i></span><small>${m.entregas || 0} de ${m.meta || 1} ${m.meta === 1 ? "entrega" : "entregas"}${m.semanas ? ` · sua média nas últimas ${m.semanas} ${m.semanas === 1 ? "semana" : "semanas"}: ${m.media}` : " · primeira semana com meta"}. Quem bate a própria meta ganha o bônus da semana.</small></div>
 ${p.extrato?.length ? `<h4>Últimos pontos</h4><ul class="ofc-extrato">${p.extrato.map((l) => `<li><span>${safeText(l.descricao)}</span><small>${data(l.criado_em)}</small><b class="${Number(l.moedas) < 0 ? "perda" : ""}">${sinal(Number(l.moedas))} <i>moedas</i> · +${Number(l.pontos)} <i>XP</i></b></li>`).join("")}</ul>` : ""}`;
 }
@@ -187,7 +187,7 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
     const m = pontos?.meta || null, pctMeta = m?.meta ? Math.min(100, Math.round(((m.entregas || 0) / m.meta) * 100)) : 0;
     const perto = (marcos || []).filter((x) => x.proximo && x.valor > 0 && !x.social).map((x) => ({ x, p: x.valor / x.proximo.meta })).sort((a, b) => b.p - a.p).slice(0, 3);
     corpo = `${veNumeros && perto.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Próximos troféus</h4><button type="button" class="office-text-button" onclick="escolherAbaFichaEscritorio('${sid}','conquistas')">Ver todas</button></div><ul class="ofc-hud-proximos">${perto.map(({ x, p }) => `<li><span class="ofc-cq-arte falta">${escritorioMiniaturaHtml(x.proximo.classe)}</span><span><b>${safeText(x.nome)} <em class="ofc-escada-nivel n${x.proximo.nivel}">${safeText(x.proximo.nome)}</em></b><small>faltam ${(x.proximo.meta - x.valor).toLocaleString("pt-BR")} ${safeText(x.unidade)}</small><span class="ofc-escada-barra"><i style="width:${Math.round(p * 100)}%"></i></span></span></li>`).join("")}</ul></section>` : ""}
-${!veNumeros && !jogo ? `<div class="ofc-hud-stats">${stat("moeda", jogo?.saldo, "VybeCoins", "Na carteira agora.")}${stat("xp", xpTotal, "XP no total", "Sobe o nível e nunca cai.")}${stat("estrela", conquistas, "Conquistas", "Níveis de Bronze a Diamante.")}${stat("caixa", jogo ? moveis : null, "Móveis", "Comprados, ganhos e troféus.")}</div>` : ""}
+${!veNumeros && !jogo ? `<div class="ofc-hud-stats">${stat("moeda", jogo?.saldo, "VybeCoins", "Na carteira agora.")}${stat("xp", xpTotal, "XP no total", "Sobe o nível; peça que volta para alteração e dia com vencida tiram um pouco.")}${stat("estrela", conquistas, "Conquistas", "Níveis de Bronze a Diamante.")}${stat("caixa", jogo ? moveis : null, "Móveis", "Comprados, ganhos e troféus.")}</div>` : ""}
 ${veNumeros && m ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Meta da semana</h4><b>${m.entregas || 0}/${m.meta || 1}</b></div><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${m.meta || 1}" aria-valuenow="${m.entregas || 0}" aria-label="Meta da semana"><i style="width:${pctMeta}%"></i></span><small>${m.semanas ? `É a média das últimas ${m.semanas} ${m.semanas === 1 ? "semana" : "semanas"} (${m.media}).` : "Primeira semana com meta."} Bater a meta dá o bônus da semana.</small></section>` : ""}
 ${veNumeros ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Ganhos dos últimos 7 dias</h4><button type="button" class="office-text-button" onclick="escolherAbaFichaEscritorio('${sid}','ganhar')">Como ganhar mais</button></div>
 ${!economia ? carregando("Carregando os pontos…") : ganhos.length ? `<ul class="ofc-hud-ganhos">${ganhos.slice(0, 6).map((g) => `<li><span><b>${safeText(g.descricao)}</b><small>${g.vezes === 1 ? "1 vez" : `${g.vezes} vezes`}</small></span><span class="ofc-hud-chips">${chips(Number(g.moedas), Number(g.pontos))}</span></li>`).join("")}</ul>` : '<p class="ofc-nota">Nada ganho nos últimos 7 dias ainda.</p>'}</section>` : ""}
@@ -198,7 +198,7 @@ ${!veNumeros && jogo?.marcos?.length ? `<section class="ofc-hud-bloco"><h4>Últi
     const regras = pontos?.regras || [];
     // Cada regra cai num grupo só: o primeiro que servir.
     const grupos = [
-      ["Perde moedas", "O XP nunca cai; as moedas não ficam negativas.", (r) => r.moedas < 0],
+      ["Perde moedas e XP", "Moedas e XP nunca ficam negativos.", (r) => r.moedas < 0],
       ["Fechamento do dia e da semana", "Contados pelo painel no fim do dia.", (r) => /^(dia_|meta_)/.test(r.chave)],
       ["Conquistas", "Uma vez cada, com um móvel de prêmio.", (r) => r.chave === "conquista"],
       ["A cada entrega", "Contam na meta da semana.", (r) => r.entrega],
@@ -1106,7 +1106,7 @@ function escritorioMostrarCelebracao(nivel, trofeu) {
   el.className = `ofc-celebra${trofeu ? " n" + trofeu.nivel : ""}`;
   el.setAttribute("role", "status");
   const titulo = trofeu ? "Novo troféu" : "Subiu de nível";
-  const texto = trofeu ? trofeu.nome + (nivel ? ` · e você chegou ao nível ${nivel}` : "") : `Você chegou ao nível ${nivel}. O XP nunca cai.`;
+  const texto = trofeu ? trofeu.nome + (nivel ? ` · e você chegou ao nível ${nivel}` : "") : `Você chegou ao nível ${nivel}.`;
   el.innerHTML = `<button type="button" class="ofc-celebra-fundo" aria-label="Fechar" onclick="document.getElementById('ofc-celebra')?.remove()"></button>
 <div class="ofc-celebra-cartao"><div class="ofc-celebra-palco" aria-hidden="true"><span class="prov-holofote"></span><span class="ofc-celebra-faiscas">${"<i></i>".repeat(12)}</span><span class="ofc-celebra-arte">${trofeu ? escritorioMiniaturaHtml(trofeu.classe) : `<b>${Number(nivel)}</b>`}</span><span class="prov-pedestal"></span></div>
 <small>${titulo}</small><b>${safeText(texto)}</b><button type="button" class="vb-botao principal" onclick="document.getElementById('ofc-celebra')?.remove()">Continuar</button></div>`;
