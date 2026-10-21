@@ -1283,3 +1283,11 @@ decoração inicial "bem feito".
   barra do jogo com o microfone continua visível. Mesmas funções de antes.
 - Conferido na demo (convidado de teste, editor aberto só para ver), em
   1280×800 e no celular.
+
+### Meu espaço na linguagem do Provador — 21/10/2026
+
+- `criadorMeuEspacoHtml`: o boneco no pedestal abre o Provador; o térreo
+  aparece numa prévia de verdade (a mesma de `criadorMontarPrevias`, com a
+  decoração salva do térreo) com "Aumentar ou reformar"; o segundo andar tem
+  cartão próprio (tracejado quando ainda não existe); "Começar em branco"
+  fica no rodapé, em vermelho, separado. Conferido na demo, desktop e celular.
