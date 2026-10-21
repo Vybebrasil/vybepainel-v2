@@ -181,6 +181,8 @@ async function pljCarregarPrevia(p) {
 // A prévia (sem acesso ao painel) pede a revisão de cada peça por mensagem; quem grava é esta janela.
 window.addEventListener('message', async (e) => {
   const quadro = document.querySelector('#workflow-modal .plj-previa');
+  // "Editar no sistema" na escolha do head abre a edição completa (Paulo, 21/10/2026).
+  if (quadro && e.source === quadro.contentWindow && e.data?.vybe === 'planejamento-head-editar' && PLJ_ABERTO) { pljTrocarAba('editar'); return; }
   if (!quadro || e.source !== quadro.contentWindow || e.data?.vybe !== 'planejamento-head' || !PLJ_ABERTO) return;
   const responde = (r) => quadro.contentWindow?.postMessage({ vybe: 'planejamento-head-resposta', id: e.data.id, ...r }, '*');
   const { assinatura, estado, nota } = e.data.dados || {};
@@ -602,16 +604,30 @@ function pljDestinos() {
 }
 function confirmarCadastroPlanejamento() {
   const p = PLJ_ABERTO, pecas = (p.conteudo?.pecas || []).filter((x) => !x.conteudo_id), destinos = pljDestinos();
-  const nomes = (ids) => (ids || []).map((id) => (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).find((u) => String(u.id) === String(id))?.name?.split(' ')[0]).filter(Boolean);
-  const porFormato = Object.entries(pecas.reduce((t, x) => ((t[x.formato] = (t[x.formato] || 0) + 1), t), {}));
-  const linha = ([f, n]) => { const d = destinos[f]; const onde = f === 'Outro' ? 'Solicitações de demanda, para triagem' : `${d?.grupo || 'Produção'} · ${d?.statusRotulo || ''}${d?.captacao ? ' · com captação' : ''}`;
-    const equipe = nomes(d?.responsaveis); return `<li><b>${n} ${pljEsc(PLJ_FORMATO_DO_PAINEL[f] || f)}</b><span>${pljEsc(onde)}</span><small>${f === 'Outro' ? 'Sem responsável: quem faz a triagem distribui.' : equipe.length > 1 ? `Para quem mais fez peças de ${pljEsc(p.cliente)}; sem histórico, ${pljEsc(equipe.join(', '))}.` : equipe.length ? `Para ${pljEsc(equipe[0])}.` : 'Para a fila de Produção (captação).'}</small></li>`; };
+  // Padrão do painel (Paulo, 21/10/2026: "cadê a cor dos status, as fotinhas?"):
+  // o status com a cor do quadro (fcCorDeStatus), a foto de quem recebe e o
+  // dia de cada peça.
+  const pessoas = (ids) => (ids || []).map((id) => (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).find((u) => String(u.id) === String(id))).filter(Boolean);
+  const foto = (u) => `<span class="plj-cad-foto" style="--c:${pljEsc(u.color || '#5b6070')}" title="${pljEsc(u.name)}">${u.photo ? `<img alt="" src="${pljEsc(u.photo)}">` : pljEsc((u.name || '?')[0])}</span>`;
+  const etiqueta = (rotulo) => { const c = typeof fcCorDeStatus === 'function' ? fcCorDeStatus(rotulo) : { color: '#8888a8', bg: 'rgba(136,136,168,.12)', border: 'rgba(136,136,168,.25)' };
+    return `<span class="plj-cad-status" style="color:${c.color};background:${c.bg};border-color:${c.border}">${pljEsc(rotulo)}</span>`; };
+  const dia = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '';
+  const porFormato = Object.entries(pecas.reduce((t, x) => ((t[x.formato] ||= []).push(x), t), {}));
+  const linha = ([f, lista]) => {
+    const d = destinos[f], outro = f === 'Outro', equipe = pessoas(d?.responsaveis);
+    const quem = outro ? 'Sem responsável: quem faz a triagem distribui.' : !equipe.length ? 'Fila de Produção, para a captação.'
+      : equipe.length > 1 ? `Vai para quem mais fez peças de ${pljEsc(p.cliente)}.` : `Vai para ${pljEsc(equipe[0].name.split(' ')[0])}.`;
+    const dias = lista.map((x) => dia(x.data)).filter(Boolean);
+    return `<li><div class="plj-cad-topo"><b><em>${lista.length}</em> ${pljEsc(PLJ_FORMATO_DO_PAINEL[f] || f)}</b>${outro ? etiqueta('Nova demanda') : `${etiqueta(d?.statusRotulo || 'A fazer')}${d?.captacao ? etiqueta(d.captacao) : ''}`}</div>
+      <div class="plj-cad-meio"><span class="plj-cad-onde">${pljEsc(outro ? 'Solicitações de demanda' : d?.grupo || 'Produção')}</span><span class="plj-cad-equipe">${equipe.slice(0, 5).map(foto).join('')}<small>${quem}</small></span></div>
+      ${dias.length ? `<div class="plj-cad-dias">${dias.map((x) => `<span>${x}</span>`).join('')}</div>` : ''}</li>`;
+  };
   openWorkflowModal(`<div class="workflow-kicker"><span>Planejamento · ${pljEsc(p.cliente)}</span>
       <button class="workflow-close" type="button" aria-label="Fechar" onclick="abrirPlanejamento('${pljEsc(p.id)}')">×</button></div>
     <h2 class="workflow-title">Cadastrar ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}</h2>
     <p class="workflow-copy">Cada peça vira uma demanda de ${pljEsc(p.cliente)}, com o tema no título, a legenda ou roteiro no briefing e o dia como veiculação. O prazo é o Prazo de Ouro (7 dias antes); se já passou, fica para hoje, nunca a menos de 2 dias da veiculação.</p>
-    <ul class="plj-cadastro">${porFormato.map(linha).join('')}</ul>
     <p class="workflow-hint">Entram todas de uma vez: se alguma falhar, nenhuma é criada. Depois o planejamento fica como Cadastrado.</p>
+    <ul class="plj-cadastro">${porFormato.map(linha).join('')}</ul>
     <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="abrirPlanejamento('${pljEsc(p.id)}')">Voltar</button>
       <button type="button" class="workflow-primary" onclick="cadastrarPecasPlanejamento(this)">Cadastrar agora</button></div>`);
 }

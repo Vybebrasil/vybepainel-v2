@@ -7121,10 +7121,23 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-pedido small{display:block;margin-top:4px;color:#c3cad6;font-size:11.5px}
 /* Cadastrar as peças do planejamento aprovado (Paulo, 20/10/2026). */
 .plj-cadastro{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
-.plj-cadastro li{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
-.plj-cadastro b{font:700 13px var(--mac-ui)}
-.plj-cadastro span{font:500 12.5px var(--mac-ui)}
-.plj-cadastro small{font:500 12px var(--mac-ui);color:var(--mac-text-secondary,#a3a9b7)}
+.plj-cadastro li{display:grid;gap:8px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:esp-entra .34s var(--curva,ease) both}
+.plj-cadastro li:nth-child(2){animation-delay:.05s}.plj-cadastro li:nth-child(n+3){animation-delay:.1s}
+.plj-cad-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.plj-cad-topo b{margin-right:auto;font:750 14.5px var(--mac-ui)}
+.plj-cad-topo b em{display:inline-grid;place-items:center;min-width:26px;height:22px;margin-right:4px;padding:0 6px;border-radius:7px;background:rgba(255,138,53,.16);color:#ffb27a;font-style:normal;font-variant-numeric:tabular-nums}
+.plj-cad-status{padding:2px 9px;border-radius:999px;border:1px solid;font:700 11.5px/18px var(--mac-ui);white-space:nowrap}
+.plj-cad-meio{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.plj-cad-onde{font:600 12.5px var(--mac-ui);color:var(--mac-text-secondary,#c5cad6)}
+.plj-cad-equipe{display:flex;align-items:center;gap:0}
+.plj-cad-equipe small{margin-left:8px}
+.plj-cad-foto{display:grid;place-items:center;width:24px;height:24px;margin-left:-6px;border-radius:50%;overflow:hidden;background:var(--c);border:2px solid #1b1d26;color:#fff;font:800 11px var(--mac-ui)}
+.plj-cad-foto:first-child{margin-left:0}
+.plj-cad-foto img{width:100%;height:100%;object-fit:cover}
+.plj-cad-dias{display:flex;flex-wrap:wrap;gap:4px}
+.plj-cad-dias span{padding:1px 7px;border-radius:6px;background:rgba(255,255,255,.06);color:#d6dae3;font:600 11px/17px var(--mac-ui);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.plj-cadastro li{animation:none}}
+.plj-cad-equipe small{font:500 12px var(--mac-ui);color:var(--mac-text-secondary,#a3a9b7)}
 .plj-criadas{margin:8px 0;padding:8px 12px;border-radius:10px;background:rgba(120,220,150,.07);border:1px solid rgba(120,220,150,.25)}
 .plj-criadas summary{cursor:pointer;font:700 12.5px var(--mac-ui)}
 .plj-criadas ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;max-height:220px;overflow:auto}
