@@ -172,6 +172,25 @@ export async function demoApi(req,res,url,body) {
         {ref:'vybe:1',quadro:'producao',titulo:'Reels do dia',status:'Pode Fazer',cliente_id:'3',cliente:'Cliente C (fictício)',segmento:'Clinica',tipo:'hoje',data:'2026-10-19',dias:0},
         {ref:'vybe:2',quadro:'demandas',titulo:'Fotos da fachada',status:'Ag. Info Cliente',cliente_id:'4',cliente:'Cliente D (fictício)',segmento:'PetShop',tipo:'lembrar_cliente',data:'2026-10-19',dias:0}]});
       if(url.searchParams.get('acao')==='trocas')return reply(200,{ok:true,trocas:{disponivel:true,recebidas:[{id:'7',de_pessoa:'2',para_pessoa:'1',oferece:[['bling_sofa_mu',1]],pede:[['shelves_norja',1]],estado:'aberta',criado_em:new Date().toISOString()}],enviadas:[]}});
+      // Ranking de demonstração (fictício), com a mesma forma da rota de verdade.
+      if(url.searchParams.get('acao')==='ranking'){
+        const per=url.searchParams.get('periodo')||'semana', hoje=new Date().toISOString().slice(0,10);
+        const soma=(iso,n)=>{const t=new Date(iso+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10);};
+        const seg=soma(hoje,-((new Date(hoje+'T12:00:00Z').getUTCDay()+6)%7));
+        const ini=per==='dia'?hoje:per==='mes'?hoje.slice(0,8)+'01':per==='total'?null:seg, fim=per==='dia'?hoje:per==='mes'?soma(soma(hoje.slice(0,8)+'01',32).slice(0,8)+'01',-1):per==='total'?hoje:soma(seg,6);
+        const f={dia:.2,semana:1,mes:4.3,total:30}[per]||1;
+        const base=[['1','Operador de teste','gestao',38,160,52,'peca_gestao'],['2','Design demonstração','criacao',31,22,140,'peca_criacao'],['3','Edição demonstração','criacao',9,8,120,'peca_criacao'],['4','Atendimento demonstração','atendimento',44,40,88,'peca_atendimento'],['5','Produção demonstração','producao',27,30,70,'peca_producao'],['6','Agendamento demonstração','agendamento',35,45,64,'peca_agendamento']];
+        const dias=[];for(let x=ini||soma(hoje,-77);x<=(fim<hoje?fim:hoje)&&dias.length<40;x=soma(x,per==='total'?7:1))dias.push(x);
+        const pessoas=base.map(([id,nome,funcao,ent,meta,xp,regra],k)=>{const e=Math.round(ent*f),m=Math.max(1,Math.round(meta*f));return{id,nome,funcao,meta:m,entregas:e,pct:Math.round(e/m*100),xp:Math.round(xp*f*3),moedas:Math.round(xp*f*1.2),
+          atividades:{[regra]:e,entrega_prazo:Math.round(e*.7),acao_painel:Math.round(30*f),briefing:funcao==='gestao'?Math.round(20*f):0},xpPor:{[regra]:Math.round(xp*f*3)},porRegra:{[regra]:e},pecas:[],
+          ritmo:dias.map((d,i)=>[d,Math.round(xp*(.4+((i*7+k*3)%5)/5))]),sequencia:[6,4,1,9,3,2][k],xpTotal:[4200,9800,8700,5100,6900,4800][k],nivel:[17,26,25,19,23,18][k]};});
+        pessoas.sort((a,b)=>b.pct-a.pct);pessoas.forEach((p,i)=>{p.posicao=i+1;p.antes=per==='total'?null:[2,1,5,4,3,6][i];});
+        if(per==='total'){pessoas.sort((a,b)=>b.xpTotal-a.xpTotal);pessoas.forEach((p,i)=>p.posicao=i+1);}
+        return reply(200,{ok:true,disponivel:true,periodo:per,inicio:ini,fim,hoje,pessoas,regras:{peca_criacao:'Peça feita por você',peca_gestao:'Peça da agência (geral)',peca_atendimento:'Peça de cliente da sua carteira (head)',peca_producao:'Foto ou vídeo captado por você',peca_agendamento:'Peça agendada ou finalizada por você (quem postou)'},
+          atividades:[],premios:[{chave:'ranking_1',moedas:50,pontos:100,classe:null},{chave:'ranking_2',moedas:30,pontos:60,classe:null},{chave:'ranking_3',moedas:20,pontos:40,classe:null},{chave:'meta_agencia',moedas:20,pontos:40,classe:null}],
+          agencia:{pecas:Math.round(118*f),meta:Math.round(145*f),pct:81,bateu:false},patrimonio:base.map(([id,nome,funcao],k)=>({id,nome,funcao,saldo:[420,1900,1500,650,1090,110][k],moveis:[13,22,17,20,10,29][k],distintos:[10,18,14,15,8,22][k],lendarios:[0,1,1,0,0,2][k],epicos:[1,2,0,1,0,1][k],trofeus:[1,2,1,1,1,0][k]})),
+          anterior:{inicio:soma(seg,-7),fim:soma(seg,-1),podio:[{id:'2',nome:'Design demonstração',posicao:1},{id:'4',nome:'Atendimento demonstração',posicao:2},{id:'5',nome:'Produção demonstração',posicao:3}],agenciaBateu:true}});
+      }
       // Recados de demonstração (a demo não grava).
       if(url.searchParams.get('acao')==='recados-resumo')return reply(200,{ok:true,resumo:[{de:'2',nao_lidos:1,ultimo:new Date().toISOString()}]});
       if(url.searchParams.get('acao')==='recados')return reply(200,{ok:true,recados:url.searchParams.get('com')==='2'?[{id:'1',de:'2',para:'1',texto:'Oi! Deixei o briefing do post na sua fila.',criado_em:new Date(Date.now()-3600e3).toISOString(),lido_em:null}]:[]});

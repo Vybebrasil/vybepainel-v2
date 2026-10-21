@@ -92,7 +92,7 @@ ainda estão na demanda; se a automação limpou, os nomes do último registro d
 
 ## Já decidido pelo Paulo (não precisa responder)
 
-- XP nunca cai; penalidades só em moedas; saldo nunca negativo.
+- Saldo e XP nunca negativos; desde 21/10/2026 as penalidades tiram moedas e XP.
 - Meta semanal por pessoa a partir da média das últimas 8 semanas; bônus igual
   para quem bate a própria meta.
 - Bônus de chegada pelo histórico, sem teto; sem limite diário de ganhos.
@@ -531,3 +531,64 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   e as peças captadas não contam nas escadas da Criação. Os níveis que a conta
   nova não sustenta saem uma vez (`revisarNiveisEscritorio`, chave
   `conquistas-producao-2026-10-20`).
+
+## Valor por papel (21/10/2026)
+
+Decisões do Paulo: cada papel ganha um valor fixo pela peça ("o Deivid ganha
+porque fez, o Vinícius como head, o Paulo como geral, a Tainara porque
+postou, o Mizinho porque tirou a foto"); o volume conta; o histórico inteiro
+é refeito, inclusive as ações no painel; a Jukebox (raro) custa 4 cards, 2
+carrosséis, 2 vídeos, 1 impresso ou 6 a 7 fotografias.
+
+- Por peça de peso 1: quem fez 10 moedas e 20 XP; DA +15% por cima; head 25%;
+  quem postou (de qualquer função) 15%; geral 5%; captação foto 30%, vídeo 32%.
+- Pesos: fotografia 0,6; texto e story 0,5; card, feed, post 1; design 1,5;
+  carrossel 2; Reels e vídeo 2; motion 2,5; impresso 4.
+- Preços: comum 10, incomum 20, raro 40, épico 100, lendário 250; skin
+  completa 20% abaixo da soma. Estoque e vitrine continuam.
+- Bônus: no prazo +1, de primeira +1, briefing +1, cadastro só XP; dia com
+  ação +2; ação no painel +1 até 10 por dia; meta em degraus 100% +30,
+  130% +60, 160% +100; acima de 600 moedas na semana cada moeda conta metade
+  (`vybe_escritorio_parametros`).
+- Penalidades com XP: alteração −2 e −5 XP; dia vencido −3 e −5 XP; nunca
+  abaixo de zero.
+- Migração `migrations/2026-10-21-escritorio-valor-por-papel.sql`, marcador
+  `valor-papel-2026-10-21` (não repetir); teste
+  `tests/escritorio-valor-por-papel.test.mjs`.
+
+## Economia pelo volume (21/10/2026, proposta não aplicada; substituída pelo valor por papel)
+
+Decisões do Paulo: "tem que continuar com a fatia, só dividir melhor"; "todos
+poderem ter poder de compra; o que vai contar para ser level mais alto e ter
+mais dinheiro é o VOLUME que cada um faz"; comum a cada 1 a 3 demandas e
+lendário em torno de 50; os heads (Atendimento) não ficam abaixo da Produção.
+
+Leitura da semana de 19/10 (até quarta): a Gestão entrou em 75 peças e ganhou
+cerca de 1 moeda por peça; um lendário levava de 3 semanas a mais de 3 meses.
+
+- **O bolo continua**: 10 moedas e 20 XP por ponto de peso da peça.
+- **Fatias** (`vybe_escritorio_fatias`, por tipo):
+
+  | Papel | Demais peças | Foto | Vídeo |
+  | --- | --- | --- | --- |
+  | Criação | 48% | 52% | 42% |
+  | Produção | — | 8% | 16% |
+  | Atendimento | 26% | 20% | 22% |
+  | Agendamento (quem posta) | 15% | 11% | 11% |
+  | Gestão | 11% | 9% | 9% |
+
+  A fatia do Agendamento vai para quem agenda ou finaliza a peça, de qualquer
+  função.
+- **Preço em demandas**: uma demanda da Criação rende perto de 7 moedas.
+  Comum 2 demandas (15), incomum 5 (35), raro 12 (85), épico 25 (175),
+  lendário 50 (350). Skin completa 20% abaixo da soma das peças. Estoque e
+  vitrine de raro, épico e lendário continuam.
+- **Penalidades com XP** (muda a regra de 17/10 "XP nunca cai"): voltou para
+  alteração −2 moedas e −5 XP; dia com demanda vencida −3 moedas e −5 XP.
+  Moedas e XP nunca abaixo de zero; o nível pode descer.
+- **Ação no painel**: dia com ação +2 moedas e +2 XP; cada ação (status,
+  campo, comentário, cadastro) +1 moeda e +1 XP, até 10 por dia
+  (`acao_painel`, teto na tabela). Automação sem autor não conta.
+- Só eventos novos; saldos e XP de hoje não mudam. Migração
+  `migrations/2026-10-21-escritorio-volume.sql`; teste
+  `tests/escritorio-volume.test.mjs`.

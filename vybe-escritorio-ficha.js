@@ -67,7 +67,7 @@ function escritorioComoFuncionaHtml(bolo, regras) {
 ${bolo ? `<p>Cada peça concluída vira um <b>bolo</b> de moedas e XP do tamanho do formato (um Reels vale 2,5 vezes um Card). O bolo é dividido entre quem trabalhou nela:</p>${tabela}` : ""}
 <ul class="ofc-hud-como-lista">
 <li><b>Dá XP:</b> tudo o que dá moedas também dá XP, além das conquistas e do fechamento do dia e da semana.</li>
-<li><b>Tira XP:</b> nada. O XP nunca cai.</li>
+<li><b>Tira XP:</b> ${perde.length ? safeText(perde.join("; ")) : "nada"}. O XP nunca fica abaixo de zero.</li>
 <li><b>Dá moedas:</b> ${ganha.length ? safeText(ganha.join("; ")) : "as entregas"}; e cada conquista.</li>
 <li><b>Tira moedas:</b> ${perde.length ? safeText(perde.join("; ")) + "; e" : ""} as compras na loja. O saldo nunca fica negativo.</li>
 </ul></section>`;
@@ -114,7 +114,7 @@ function atualizarBarraDiaEscritorio() {
   el.innerHTML = `<span class="ofc-dia-texto"><b>Hoje</b> ${n.dia.feitas} de ${n.dia.total} ${n.dia.total === 1 ? "entrega" : "entregas"}${n.atrasadas ? ` · <em>${n.atrasadas} ${n.atrasadas === 1 ? "atrasada" : "atrasadas"}</em>` : ""}</span><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Entregas de hoje"><i style="width:${pct}%"></i></span><span class="ofc-dia-pct">${pct}%</span>`;
   el.title = "Abrir sua ficha";
 }
-// Nível, meta da semana e extrato vêm do servidor (XP nunca cai; a meta é a
+// Nível, meta da semana e extrato vêm do servidor (XP nunca abaixo de zero; a meta é a
 // média da própria pessoa nas últimas semanas). Só a própria pessoa recebe
 // esses dados; quem administra vê os números das demandas como antes.
 function escritorioNivelHtml(p) {
@@ -123,7 +123,7 @@ function escritorioNivelHtml(p) {
   const funcao = { criacao: "Criação", atendimento: "Atendimento", agendamento: "Agendamento", producao: "Produção", gestao: "Gestão" }[p.funcao] || "";
   const data = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }); };
   const sinal = (v) => (v > 0 ? "+" + v : String(v));
-  return `<div class="ofc-ficha-nivel"><b>Nível ${p.nivel}${funcao ? ` · ${funcao}` : ""}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total. XP nunca cai.</small></div>
+  return `<div class="ofc-ficha-nivel"><b>Nível ${p.nivel}${funcao ? ` · ${funcao}` : ""}</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${p.xp}" aria-label="Progresso até o próximo nível"><i style="width:${pct}%"></i></span><small>${p.xp} de ${p.xpProximo} XP para o nível ${p.nivel + 1} · ${p.xpTotal} XP no total.</small></div>
 <div class="ofc-ficha-meta"><b>Meta da semana</b><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${m.meta || 1}" aria-valuenow="${m.entregas || 0}" aria-label="Meta da semana"><i style="width:${pctMeta}%"></i></span><small>${m.entregas || 0} de ${m.meta || 1} ${m.meta === 1 ? "entrega" : "entregas"}${m.semanas ? ` · sua média nas últimas ${m.semanas} ${m.semanas === 1 ? "semana" : "semanas"}: ${m.media}` : " · primeira semana com meta"}. Quem bate a própria meta ganha o bônus da semana.</small></div>
 ${p.extrato?.length ? `<h4>Últimos pontos</h4><ul class="ofc-extrato">${p.extrato.map((l) => `<li><span>${safeText(l.descricao)}</span><small>${data(l.criado_em)}</small><b class="${Number(l.moedas) < 0 ? "perda" : ""}">${sinal(Number(l.moedas))} <i>moedas</i> · +${Number(l.pontos)} <i>XP</i></b></li>`).join("")}</ul>` : ""}`;
 }
@@ -187,7 +187,7 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
     const m = pontos?.meta || null, pctMeta = m?.meta ? Math.min(100, Math.round(((m.entregas || 0) / m.meta) * 100)) : 0;
     const perto = (marcos || []).filter((x) => x.proximo && x.valor > 0 && !x.social).map((x) => ({ x, p: x.valor / x.proximo.meta })).sort((a, b) => b.p - a.p).slice(0, 3);
     corpo = `${veNumeros && perto.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Próximos troféus</h4><button type="button" class="office-text-button" onclick="escolherAbaFichaEscritorio('${sid}','conquistas')">Ver todas</button></div><ul class="ofc-hud-proximos">${perto.map(({ x, p }) => `<li><span class="ofc-cq-arte falta">${escritorioMiniaturaHtml(x.proximo.classe)}</span><span><b>${safeText(x.nome)} <em class="ofc-escada-nivel n${x.proximo.nivel}">${safeText(x.proximo.nome)}</em></b><small>faltam ${(x.proximo.meta - x.valor).toLocaleString("pt-BR")} ${safeText(x.unidade)}</small><span class="ofc-escada-barra"><i style="width:${Math.round(p * 100)}%"></i></span></span></li>`).join("")}</ul></section>` : ""}
-${!veNumeros && !jogo ? `<div class="ofc-hud-stats">${stat("moeda", jogo?.saldo, "VybeCoins", "Na carteira agora.")}${stat("xp", xpTotal, "XP no total", "Sobe o nível e nunca cai.")}${stat("estrela", conquistas, "Conquistas", "Níveis de Bronze a Diamante.")}${stat("caixa", jogo ? moveis : null, "Móveis", "Comprados, ganhos e troféus.")}</div>` : ""}
+${!veNumeros && !jogo ? `<div class="ofc-hud-stats">${stat("moeda", jogo?.saldo, "VybeCoins", "Na carteira agora.")}${stat("xp", xpTotal, "XP no total", "Sobe o nível; peça que volta para alteração e dia com vencida tiram um pouco.")}${stat("estrela", conquistas, "Conquistas", "Níveis de Bronze a Diamante.")}${stat("caixa", jogo ? moveis : null, "Móveis", "Comprados, ganhos e troféus.")}</div>` : ""}
 ${veNumeros && m ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Meta da semana</h4><b>${m.entregas || 0}/${m.meta || 1}</b></div><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${m.meta || 1}" aria-valuenow="${m.entregas || 0}" aria-label="Meta da semana"><i style="width:${pctMeta}%"></i></span><small>${m.semanas ? `É a média das últimas ${m.semanas} ${m.semanas === 1 ? "semana" : "semanas"} (${m.media}).` : "Primeira semana com meta."} Bater a meta dá o bônus da semana.</small></section>` : ""}
 ${veNumeros ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Ganhos dos últimos 7 dias</h4><button type="button" class="office-text-button" onclick="escolherAbaFichaEscritorio('${sid}','ganhar')">Como ganhar mais</button></div>
 ${!economia ? carregando("Carregando os pontos…") : ganhos.length ? `<ul class="ofc-hud-ganhos">${ganhos.slice(0, 6).map((g) => `<li><span><b>${safeText(g.descricao)}</b><small>${g.vezes === 1 ? "1 vez" : `${g.vezes} vezes`}</small></span><span class="ofc-hud-chips">${chips(Number(g.moedas), Number(g.pontos))}</span></li>`).join("")}</ul>` : '<p class="ofc-nota">Nada ganho nos últimos 7 dias ainda.</p>'}</section>` : ""}
@@ -198,7 +198,7 @@ ${!veNumeros && jogo?.marcos?.length ? `<section class="ofc-hud-bloco"><h4>Últi
     const regras = pontos?.regras || [];
     // Cada regra cai num grupo só: o primeiro que servir.
     const grupos = [
-      ["Perde moedas", "O XP nunca cai; as moedas não ficam negativas.", (r) => r.moedas < 0],
+      ["Perde moedas e XP", "Moedas e XP nunca ficam negativos.", (r) => r.moedas < 0],
       ["Fechamento do dia e da semana", "Contados pelo painel no fim do dia.", (r) => /^(dia_|meta_)/.test(r.chave)],
       ["Conquistas", "Uma vez cada, com um móvel de prêmio.", (r) => r.chave === "conquista"],
       ["A cada entrega", "Contam na meta da semana.", (r) => r.entrega],
@@ -234,7 +234,7 @@ ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) =
   // Vitrine: os troféus mais altos da pessoa, como numa estante (Paulo, 20/10/2026: "HUD de joguinho").
   const vitrine = (marcos ? marcos.flatMap((x) => x.degraus.filter((dg) => dg.ok).map((dg) => ({ classe: dg.classe, nivel: dg.nivel, nome: `${x.nome} ${dg.nome}` }))) : (jogo?.marcos || []).filter((x) => x.classe).map((x) => ({ classe: x.classe, nivel: x.nivel, nome: x.nome })))
     .sort((a, b) => b.nivel - a.nivel).slice(0, 7);
-  const rk = (typeof escritorioRanking !== "undefined" ? escritorioRanking : null)?.dados?.pessoas?.find((p) => p.id === String(id));
+  const rk = (typeof escritorioRanking !== "undefined" ? escritorioRanking : null)?.dados?.semana?.pessoas?.find((p) => p.id === String(id));
   // Cartão do jogador (21/10/2026, a linguagem do Provador): o pedestal
   // brilha na cor do troféu mais alto da pessoa (Bronze a Diamante).
   d.className = `ofc-ficha jogador${vitrine[0] ? " tier-n" + vitrine[0].nivel : ""}`;
@@ -883,25 +883,57 @@ function trocaChegouEscritorio(id, v) {
 // Ranking da semana (Paulo, 20/10/2026: competição saudável). Geral pelo % da
 // própria meta, XP da semana, por atividade e a meta da agência; prêmios do
 // pódio e o resultado da semana passada. Tudo vem do servidor (rota ranking).
-const escritorioRanking = { aba: "geral", dados: null, erro: null };
+// Ranking 2 (Paulo, 21/10/2026: "um ranking visualmente FODA, com várias
+// categorias, do dia, da semana, do mês e total"). Um período por vez (o
+// servidor devolve o período e o anterior, para a seta de quem subiu), o
+// cartão "Você" com o ritmo, o pódio, a grade de campeões por categoria e a
+// lista com o ritmo de cada um. Tudo vem da rota ranking.
+const escritorioRanking = { aba: "geral", periodo: "semana", dados: {}, erro: null, aberto: null, carregando: null };
 const ESCRITORIO_FUNCAO_NOME = { criacao: "Criação", atendimento: "Atendimento", agendamento: "Agendamento", producao: "Produção", gestao: "Gestão" };
-function abrirRankingEscritorio(aba) {
+const RK_PERIODOS = [["dia", "Hoje"], ["semana", "Semana"], ["mes", "Mês"], ["total", "Sempre"]];
+const RK_ICONES = {
+  geral: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8.5 20h7M10 17h4v3h-4z"/>',
+  xp: '<path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/>',
+  moedas: '<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>',
+  entregas: '<path d="M4 12l5 5L20 6"/>',
+  sequencia: '<path d="M12 3c1 3.5 5 5 5 10a5 5 0 01-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-3 .5-5.5.5-8z"/>',
+  peca_criacao: '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
+  peca_producao: '<rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l1.5-3h5L16 7"/>',
+  peca_da: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  peca_atendimento: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5"/><path d="M16 4.6a3 3 0 010 6M18 14.8c1.6.8 2.6 2.5 3 5.2"/>',
+  peca_agendamento: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>',
+  peca_gestao: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  briefing: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h5"/>',
+  cadastro: '<path d="M12 5v14M5 12h14"/>',
+  entrega_prazo: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',
+  criacao_aprovada: '<path d="M7 11v9H4v-9zM7 11l4-8c1.5 0 2.5 1 2.2 2.6L12.6 9H19a2 2 0 012 2.3l-1.3 7A2 2 0 0117.7 20H7"/>',
+  acao_painel: '<path d="M5 3l14 8-6 1.5L10 19z"/>',
+  tesouros: '<path d="M3 9l3-5h12l3 5-9 11z"/><path d="M3 9h18M9 4l3 16 3-16"/>',
+  agencia: '<path d="M3 21h18M5 21V9l7-5 7 5v12M10 21v-5h4v5"/>',
+};
+const rkIcone = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${RK_ICONES[k] || RK_ICONES.geral}</svg>`;
+function abrirRankingEscritorio(aba, periodo) {
   if (aba) escritorioRanking.aba = aba;
+  if (periodo) escritorioRanking.periodo = periodo;
   if (!document.getElementById("ofc-ranking")) {
-    openWorkflowModal('<div class="ofc-ranking" id="ofc-ranking" role="dialog" aria-label="Ranking da semana"></div>');
-    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela");
+    openWorkflowModal('<div class="ofc-ranking rk2" id="ofc-ranking" role="dialog" aria-label="Ranking"></div>');
+    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "rk2-janela");
   }
   pintarRankingEscritorio();
   carregarRankingEscritorio();
 }
-async function carregarRankingEscritorio() {
-  try { escritorioRanking.dados = await escritorioApi("ranking"); escritorioRanking.erro = null; }
+async function carregarRankingEscritorio(periodo = escritorioRanking.periodo) {
+  escritorioRanking.carregando = periodo;
+  try { escritorioRanking.dados[periodo] = await escritorioApi("ranking", null, { periodo }); escritorioRanking.erro = null; }
   catch (e) { escritorioRanking.erro = e.message; }
+  if (escritorioRanking.carregando === periodo) escritorioRanking.carregando = null;
   pintarRankingEscritorio();
 }
-// Desenho de 20/10/2026 (Paulo: "UI e UX ruins"): pódio com os bonecos e os
-// troféus, o cartão "Você" com o que falta para subir, a lista compacta, e as
-// regras recolhidas em "Como funciona".
+function trocarPeriodoRankingEscritorio(periodo) {
+  escritorioRanking.periodo = periodo; escritorioRanking.aberto = null;
+  pintarRankingEscritorio();
+  carregarRankingEscritorio(periodo); // com o período já carregado, atualiza por trás sem piscar
+}
 function escritorioRankingPerfil(id) {
   const b = escritorio.base;
   if (!b) return null;
@@ -916,81 +948,173 @@ function escritorioRankingBoneco(id, acao = "std") {
 function escritorioRankingTrofeu(classe) {
   return classe ? `<img class="ofc-rk-trofeu" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" loading="lazy" onerror="typeof miniaturaLocalEscritorio==='function'&&miniaturaLocalEscritorio(this,'${safeText(classe)}')">` : "";
 }
+// As categorias: o que conta, como mostrar e o que é zero (fica de fora).
+function rkCategorias(d) {
+  const geralTotal = d.periodo === "total";
+  const atv = (k, nome) => ({ k, nome, icone: k, valor: (p) => p.atividades?.[k] || 0, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => ESCRITORIO_FUNCAO_NOME[p.funcao] || "" });
+  return [
+    geralTotal
+      ? { k: "geral", nome: "Nível", icone: "geral", valor: (p) => p.xpTotal || 0, fmt: (v, p) => `Nível ${p.nivel}`, sub: (p) => `${Number(p.xpTotal || 0).toLocaleString("pt-BR")} XP no total`, dica: "Desde sempre: vale o XP de todo o trabalho." }
+      : { k: "geral", nome: "Geral", icone: "geral", valor: (p) => (p.entregas ? p.pct : 0), fmt: (v) => `${v}%`, sub: (p) => `${p.entregas} de ${p.meta} da meta`, dica: "O % da sua própria meta: todas as funções competem por igual." },
+    { k: "xp", nome: "XP", icone: "xp", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.moedas} moedas`, dica: "XP do trabalho no período. Conquistas e prêmios não contam." },
+    { k: "moedas", nome: "Moedas", icone: "moedas", valor: (p) => p.moedas, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => `${p.xp} XP`, dica: "Moedas ganhas trabalhando no período." },
+    { k: "entregas", nome: "Volume", icone: "entregas", valor: (p) => p.entregas, fmt: (v) => `${v}`, sub: (p) => (geralTotal ? "entregas" : `meta ${p.meta}`), dica: "Quantas entregas cada um fez." },
+    { k: "sequencia", nome: "Em chamas", icone: "sequencia", valor: (p) => p.sequencia || 0, fmt: (v) => `${v} ${v === 1 ? "dia" : "dias"}`, sub: () => "seguidos entregando", dica: "Dias úteis seguidos com entrega, até hoje." },
+    atv("peca_criacao", "Peças feitas"), atv("peca_producao", "Captações"), atv("peca_atendimento", "Carteira"), atv("peca_agendamento", "Postagens"),
+    atv("peca_da", "Direção de arte"), atv("briefing", "Briefings"), atv("entrega_prazo", "No prazo"), atv("criacao_aprovada", "De primeira"),
+    atv("peca_gestao", "Peças da agência"), atv("acao_painel", "No painel"),
+  ];
+}
+// Ritmo: XP por dia (ou por semana, em "Sempre") num gráfico de linha.
+function rkRitmo(d, p, max) {
+  const pontos = rkEixo(d).map((dia) => Number((p.ritmo || []).find(([x]) => x === dia)?.[1] || 0));
+  if (pontos.length < 2) return "";
+  const w = 84, h = 26, m = Math.max(1, max), x = (i) => (i / (pontos.length - 1)) * w, y = (v) => h - 2 - (v / m) * (h - 4);
+  const linha = pontos.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return `<svg class="rk2-ritmo" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polygon points="0,${h} ${linha} ${w},${h}"/><polyline points="${linha}"/><circle cx="${x(pontos.length - 1).toFixed(1)}" cy="${y(pontos.at(-1)).toFixed(1)}" r="2.4"/></svg>`;
+}
+function rkEixo(d) {
+  const soma = (iso, n) => { const t = new Date(iso + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+  if (d.periodo === "dia") return [];
+  if (d.periodo === "total") { const segunda = soma(d.hoje, -((new Date(d.hoje + "T12:00:00Z").getUTCDay() + 6) % 7)); return Array.from({ length: 12 }, (_, i) => soma(segunda, (i - 11) * 7)); }
+  const fim = d.fim < d.hoje ? d.fim : d.hoje, dias = [];
+  for (let x = d.inicio; x <= fim && dias.length < 40; x = soma(x, 1)) dias.push(x);
+  return dias;
+}
+function rkSeta(p) {
+  if (!p.posicao || !p.antes) return p.posicao && !p.antes ? '<span class="rk2-seta novo" title="Entrou no ranking">novo</span>' : "";
+  const n = p.antes - p.posicao;
+  if (!n) return '<span class="rk2-seta igual" title="Mesma posição do período anterior">=</span>';
+  return `<span class="rk2-seta ${n > 0 ? "sobe" : "desce"}" title="${n > 0 ? "Subiu" : "Desceu"} ${Math.abs(n)} ${Math.abs(n) === 1 ? "posição" : "posições"}">${n > 0 ? "▲" : "▼"}${Math.abs(n)}</span>`;
+}
 function pintarRankingEscritorio() {
   const el = document.getElementById("ofc-ranking");
   if (!el) return;
-  const d = escritorioRanking.dados, aba = escritorioRanking.aba, eu = String(escritorio.base?.eu || "");
+  // Onde cada pessoa estava antes de redesenhar: depois ela desliza até o lugar novo.
+  const antes = new Map([...el.querySelectorAll("[data-pid]")].map((n) => [n.dataset.pid + (n.classList.contains("rk2-degrau") ? "p" : "l"), n.getBoundingClientRect()]));
+  const chaveAntes = el.dataset.rkChave || "";
+  const per = escritorioRanking.periodo, d = escritorioRanking.dados[per], eu = String(escritorio.base?.eu || "");
   const dataBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
   const nome = (p) => String(p.nome || "").split(" ")[0];
   const rosto = (id, tam = 32) => { const u = escritorioCabecaUrl(id); return u ? `<img class="ofc-rk-rosto" src="${safeText(u)}" alt="" width="${tam}" height="${tam}" loading="lazy">` : `<span class="ofc-rk-rosto vazio" style="width:${tam}px;height:${tam}px"></span>`; };
   const hoje = typeof hojeDeVerdade === "function" ? hojeDeVerdade() : new Date().toISOString().slice(0, 10);
-  const faltamDias = d?.fim ? Math.max(0, Math.round((Date.parse(d.fim) - Date.parse(hoje)) / 864e5)) : null;
-  const fecha = faltamDias == null ? "" : faltamDias === 0 ? "fecha hoje à meia-noite" : faltamDias === 1 ? "fecha amanhã à meia-noite" : `fecha em ${faltamDias} dias`;
-  const abas = [["geral", "Geral"], ["xp", "XP"], ["atividades", "Atividades"], ["tesouros", "Tesouros"], ["agencia", "Agência"]];
-  const topo = `<header class="ofc-rk-cab"><span class="ofc-rk-icone" aria-hidden="true">${escritorioIcone("ranking")}</span><div><h2>Ranking da semana</h2><small>${d?.inicio ? `${dataBr(d.inicio)} a ${dataBr(d.fim)} · ${fecha}` : "zera toda segunda"}</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>
-<div class="ofc-rk-abas" role="tablist" aria-label="Rankings">${abas.map(([k, t]) => `<button type="button" role="tab" aria-selected="${aba === k}" onclick="escritorioRanking.aba='${k}';pintarRankingEscritorio()">${t}</button>`).join("")}</div>`;
-  if (escritorioRanking.erro && !d) { el.innerHTML = topo + `<p class="ofc-nota" role="alert">Não deu para carregar o ranking: ${safeText(escritorioRanking.erro)} <button type="button" class="ofc-mini" onclick="carregarRankingEscritorio()">Tentar de novo</button></p>`; return; }
-  if (!d) { el.innerHTML = topo + '<div class="ofc-rk-esqueleto" aria-label="Carregando"><i></i><i></i><i></i></div><div class="ofc-fm-carregando"><i></i><i></i><i></i></div>'; return; }
-  if (!d.disponivel) { el.innerHTML = topo + `<div class="ofc-rk-vazio"><span aria-hidden="true">${escritorioIcone("ranking")}</span><b>O ranking ainda não começou</b><p>Ele aparece quando a contagem de pontos estiver ativa e zera toda segunda.</p></div>`; return; }
-  const premio = (k) => d.premios.find((p) => p.chave === k);
-  // Pódio: 2º, 1º, 3º, com o boneco de cada um em cima do degrau.
-  const podio = (lista, valor, sub) => {
-    const tres = lista.slice(0, 3);
-    if (!tres.length) return '<p class="ofc-nota">Ninguém pontuou nesta semana ainda. O primeiro a entregar abre o pódio.</p>';
-    const ordem = [tres[1], tres[0], tres[2]].filter(Boolean);
-    return `<div class="ofc-rk-podio">${ordem.map((p) => { const pos = tres.indexOf(p) + 1, pr = premio("ranking_" + pos); return `<button type="button" class="ofc-rk-degrau p${pos}${p.id === eu ? " eu" : ""}" aria-expanded="${escritorioRanking.aberto === p.id}" onclick="abrirDetalheRankingEscritorio('${p.id}')"><div class="ofc-rk-figura">${escritorioRankingBoneco(p.id, pos === 1 ? "wav" : "std") || rosto(p.id, 56)}${escritorioRankingTrofeu(pr?.classe)}</div><b class="ofc-rk-dnome">${safeText(nome(p))}${p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor">${valor(p)}</span><small>${sub(p)}</small><div class="ofc-rk-bloco"><span>${pos}º</span>${pr ? `<em>+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</div></button>`; }).join("")}</div>${tres.some((p) => p.id === escritorioRanking.aberto) ? detalhe(tres.find((p) => p.id === escritorioRanking.aberto)) : ""}`;
-  };
-  // O que contou como entrega, quais peças e de onde veio o XP (abre ao clicar).
+  const faltam = d?.fim ? Math.max(0, Math.round((Date.parse(d.fim) - Date.parse(hoje)) / 864e5)) : null;
+  const fecha = per === "total" ? "desde o começo" : per === "dia" ? "fecha hoje à meia-noite" : faltam === 0 ? "fecha hoje à meia-noite" : faltam === 1 ? "fecha amanhã" : `fecha em ${faltam} dias`;
+  const titulo = { dia: "Ranking de hoje", semana: "Ranking da semana", mes: "Ranking do mês", total: "Ranking de sempre" }[per];
+  const intervalo = !d?.inicio ? "" : per === "dia" ? dataBr(d.inicio) : per === "mes" ? new Date(d.inicio + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }) : `${dataBr(d.inicio)} a ${dataBr(d.fim)}`;
+  const topo = `<header class="rk2-cab"><span class="rk2-cab-icone">${rkIcone("geral")}</span><div><h2>${titulo}</h2><small>${[intervalo, fecha].filter(Boolean).map(safeText).join(" · ")}</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>
+<div class="rk2-periodos" role="tablist" aria-label="Período">${RK_PERIODOS.map(([k, t]) => `<button type="button" role="tab" aria-selected="${per === k}" onclick="trocarPeriodoRankingEscritorio('${k}')">${t}</button>`).join("")}</div>`;
+  if (escritorioRanking.erro && !d) { el.innerHTML = topo + `<div class="rk2-corpo">${vbEstadoHtml({ tipo: "erro", titulo: "Não deu para carregar o ranking", texto: escritorioRanking.erro, acao: '<button type="button" class="vb-botao" onclick="carregarRankingEscritorio()">Tentar de novo</button>' })}</div>`; return; }
+  if (!d) { el.innerHTML = topo + `<div class="rk2-corpo">${vbEstadoHtml({ tipo: "carregando", titulo: "Carregando o ranking" })}</div>`; return; }
+  if (!d.disponivel) { el.innerHTML = topo + `<div class="rk2-corpo">${vbEstadoHtml({ titulo: "O ranking ainda não começou", texto: "Ele aparece quando a contagem de pontos estiver ativa." })}</div>`; return; }
+  const cats = rkCategorias(d);
+  const extra = [{ k: "tesouros", nome: "Tesouros", icone: "tesouros" }, ...(per === "total" ? [] : [{ k: "agencia", nome: "Agência", icone: "agencia" }])];
+  const cat = cats.find((c) => c.k === escritorioRanking.aba) || (extra.find((c) => c.k === escritorioRanking.aba) ? null : cats[0]);
+  const aba = cat ? cat.k : escritorioRanking.aba;
+  const premio = (k) => d.premios?.find((p) => p.chave === k);
+  const ordenar = (c) => [...d.pessoas].map((p) => ({ p, v: c.valor(p) })).sort((a, b) => b.v - a.v || b.p.xp - a.p.xp || a.p.nome.localeCompare(b.p.nome));
+  // Campeões: o líder de cada categoria e a sua posição nela.
+  const campeoes = [...cats.map((c) => {
+    const ord = ordenar(c).filter((x) => x.v > 0);
+    if (!ord.length && c.k !== "geral") return "";
+    const lider = ord[0], minha = ord.findIndex((x) => x.p.id === eu);
+    return `<button type="button" class="rk2-camp${aba === c.k ? " ativo" : ""}${lider?.p.id === eu ? " meu" : ""}" aria-pressed="${aba === c.k}" onclick="escritorioRanking.aba='${c.k}';escritorioRanking.aberto=null;pintarRankingEscritorio()">
+      <span class="rk2-camp-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-camp-txt"><small>${safeText(c.nome)}</small>${lider ? `<b>${safeText(nome(lider.p))}</b><em>${safeText(c.fmt(lider.v, lider.p))}</em>` : "<b>—</b>"}</span>${lider ? rosto(lider.p.id, 26) : ""}${minha > 0 ? `<i class="rk2-camp-eu">você ${minha + 1}º</i>` : ""}</button>`;
+  }), ...extra.map((c) => `<button type="button" class="rk2-camp${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" onclick="escritorioRanking.aba='${c.k}';escritorioRanking.aberto=null;pintarRankingEscritorio()"><span class="rk2-camp-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-camp-txt"><small>${c.nome}</small><b>${c.k === "agencia" ? `${d.agencia.pct}%` : "De sempre"}</b><em>${c.k === "agencia" ? `${d.agencia.pecas} de ${d.agencia.meta} peças` : "mais rico e colecionador"}</em></span></button>`)].join("");
   const detalhe = (p) => {
     if (!p) return "";
     const regra = (k) => safeText(d.regras?.[k] || k);
     const contou = Object.entries(p.porRegra || {}).sort((a, b) => b[1] - a[1]);
     const xp = Object.entries(p.xpPor || {}).sort((a, b) => b[1] - a[1]);
-    return `<div class="ofc-rk-detalhe"><div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} na semana · meta ${p.meta}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n}</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega nesta semana ainda.</p>'}
-<small class="ofc-rk-det-nota">A meta é a média semanal de entregas de ${safeText(nome(p))} nas últimas 8 semanas.</small></div>
-<div class="ofc-rk-det-col"><h5>De onde veio o XP <small>${p.xp} XP na semana</small></h5>${xp.length ? `<ul class="ofc-rk-det-lista">${xp.map(([k, n]) => `<li><span>${regra(k)}</span><b>+${n} XP</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nada ainda.</p>'}</div>
-${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${p.pecas.length < p.entregas ? `as ${p.pecas.length} mais recentes` : "da semana"}</small></h5><ul class="ofc-rk-det-pecas">${p.pecas.map((x) => `<li><time>${dataBr(x.dia)}</time><span><b>${safeText(x.titulo || "Sem título")}</b>${x.cliente ? `<small>${safeText(x.cliente)}</small>` : ""}</span><em>${regra(x.regra).replace(/ \(.*\)$/, "")}</em></li>`).join("")}</ul></div>` : ""}</div>`;
+    return `<div class="ofc-rk-detalhe"><div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} no período${per === "total" ? "" : ` · meta ${p.meta}`}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n}</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega no período ainda.</p>'}</div>
+<div class="ofc-rk-det-col"><h5>De onde veio o XP <small>${p.xp} XP</small></h5>${xp.length ? `<ul class="ofc-rk-det-lista">${xp.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n > 0 ? "+" : ""}${n} XP</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nada ainda.</p>'}</div>
+${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${p.pecas.length < p.entregas ? `as ${p.pecas.length} mais recentes` : "do período"}</small></h5><ul class="ofc-rk-det-pecas">${p.pecas.map((x) => `<li><time>${dataBr(x.dia)}</time><span><b>${safeText(x.titulo || "Sem título")}</b>${x.cliente ? `<small>${safeText(x.cliente)}</small>` : ""}</span><em>${regra(x.regra).replace(/ \(.*\)$/, "")}</em></li>`).join("")}</ul></div>` : ""}</div>`;
   };
-  const linhas = (lista, valor, barra, desde = 3) => lista.length > desde ? `<ol class="ofc-rk-lista" start="${desde + 1}">${lista.slice(desde).map((p, k) => `<li class="${p.id === eu ? "eu" : ""}${escritorioRanking.aberto === p.id ? " aberto" : ""}" role="button" tabindex="0" aria-expanded="${escritorioRanking.aberto === p.id}" onclick="abrirDetalheRankingEscritorio('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalheRankingEscritorio('${p.id}')}"><span class="ofc-rk-pos">${p.posicao === null ? "—" : desde + k + 1 + "º"}</span>${rosto(p.id)}<span class="ofc-rk-nome"><b>${safeText(nome(p))}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[p.funcao] || "")}</small></span><span class="ofc-rk-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, barra(p)))}%"></i></span><span class="ofc-rk-valor">${valor(p)}</span></li>${escritorioRanking.aberto === p.id ? `<li class="ofc-rk-det-li">${detalhe(p)}</li>` : ""}`).join("")}</ol>` : "";
   let corpo = "";
-  if (aba === "geral") {
-    const lista = d.pessoas;
-    const minha = lista.findIndex((p) => p.id === eu), eu_ = lista[minha];
-    // O que falta para passar quem está logo acima (em entregas da própria meta).
+  if (cat) {
+    const ord = ordenar(cat), vivos = ord.filter((x) => x.v > 0), maxRitmo = Math.max(1, ...d.pessoas.flatMap((p) => (p.ritmo || []).map(([, v]) => v)));
+    const max = Math.max(1, vivos[0]?.v || 1), geral = cat.k === "geral";
+    // Posição e seta só no Geral (é o que o período anterior compara).
+    const posDe = (x, i) => (x.v > 0 ? i + 1 : null);
+    const eu_ = ord.find((x) => x.p.id === eu), minha = ord.findIndex((x) => x.p.id === eu);
     let dica = "";
     if (eu_) {
-      const acima = lista[minha - 1];
-      if (minha === 0 && eu_.entregas > 0) dica = "Você lidera a semana. Continue entregando para segurar o 1º lugar.";
-      else if (acima) { const precisa = Math.max(1, Math.floor((acima.pct * eu_.meta) / 100) + 1 - eu_.entregas); dica = `Faltam <b>${precisa} ${precisa === 1 ? "entrega" : "entregas"}</b> para passar ${safeText(nome(acima))} (${acima.pct}%).`; }
-      else dica = "Entregue a primeira peça da semana para entrar no ranking.";
+      const acima = ord[minha - 1];
+      if (minha === 0 && eu_.v > 0) dica = `Você lidera ${geral ? "o período" : `em ${cat.nome}`}. Segure o 1º lugar.`;
+      else if (acima && geral && per !== "total") { const precisa = Math.max(1, Math.floor((acima.p.pct * eu_.p.meta) / 100) + 1 - eu_.p.entregas); dica = `Faltam <b>${precisa} ${precisa === 1 ? "entrega" : "entregas"}</b> para passar ${safeText(nome(acima.p))}.`; }
+      else if (acima) dica = `Faltam <b>${safeText(cat.fmt(Math.max(1, acima.v - eu_.v + 1), acima.p))}</b> para passar ${safeText(nome(acima.p))}.`;
+      else dica = "Entregue para entrar neste ranking.";
     }
-    const voce = eu_ ? `<section class="ofc-rk-voce"><span class="ofc-rk-voce-pos">${eu_.posicao ? eu_.posicao + "º" : "—"}</span>${rosto(eu_.id, 40)}<div><b>Você · ${eu_.pct}% da sua meta</b><small>${eu_.entregas} entregas de ${eu_.meta} da sua meta · ${eu_.xp} XP na semana</small><p>${dica} <button type="button" class="ofc-rk-link" onclick="abrirDetalheRankingEscritorio('${eu_.id}')">${escritorioRanking.aberto === eu_.id ? "Esconder" : "Ver o que contou"}</button></p></div><span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.pct)}" aria-hidden="true"><i>${eu_.pct}%</i></span></section>` : "";
-    corpo = `${voce}${podio(lista.filter((p) => p.posicao), (p) => `${p.pct}%`, (p) => `${p.entregas} entregas · meta ${p.meta}`)}${linhas(lista, (p) => `<b>${p.pct}%</b><small>${p.entregas} de ${p.meta} entregas</small>`, (p) => p.pct, Math.min(3, lista.filter((p) => p.posicao).length))}`;
-  } else if (aba === "xp") {
-    const lista = [...d.pessoas].sort((a, b) => b.xp - a.xp || b.moedas - a.moedas).map((p) => ({ ...p, posicao: p.xp ? 1 : null }));
-    const max = Math.max(1, ...lista.map((p) => p.xp));
-    corpo = `<p class="ofc-rk-legenda">XP e moedas do trabalho desta semana. Conquistas e prêmios não contam.</p>${podio(lista.filter((p) => p.xp), (p) => `${p.xp} XP`, (p) => `${p.moedas} moedas`).replace(/<em>[^<]*<\/em>/g, "")}${linhas(lista, (p) => `<b>${p.xp} XP</b><small>${p.moedas} moedas</small>`, (p) => (p.xp / max) * 100, Math.min(3, lista.filter((p) => p.xp).length))}`;
-  } else if (aba === "atividades") {
-    const blocos = d.atividades.map((a) => {
-      const lista = d.pessoas.filter((p) => p.atividades?.[a.chave]).sort((x, y) => y.atividades[a.chave] - x.atividades[a.chave]);
-      if (!lista.length) return "";
-      const [lider, ...resto] = lista;
-      return `<section class="ofc-rk-atividade"><h4>${safeText(a.nome)}</h4><div class="ofc-rk-lider${lider.id === eu ? " eu" : ""}">${rosto(lider.id, 44)}<span><b>${safeText(nome(lider))}</b><small>lidera</small></span><strong>${lider.atividades[a.chave]}</strong></div>${resto.length ? `<ol>${resto.slice(0, 4).map((p, k) => `<li class="${p.id === eu ? "eu" : ""}"><span>${k + 2}º</span>${rosto(p.id, 22)}<b>${safeText(nome(p))}</b><em>${p.atividades[a.chave]}</em></li>`).join("")}</ol>` : ""}</section>`;
-    }).join("");
-    corpo = blocos ? `<p class="ofc-rk-legenda">Quem mais fez cada tipo de trabalho nesta semana.</p><div class="ofc-rk-atividades">${blocos}</div>` : '<p class="ofc-nota">Ninguém fez nada contado nesta semana ainda.</p>';
+    const voce = eu_ ? `<section class="rk2-voce"><div class="rk2-voce-pos"><b>${eu_.v > 0 ? minha + 1 + "º" : "—"}</b>${geral ? rkSeta(eu_.p) : ""}</div>${rosto(eu_.p.id, 46)}<div class="rk2-voce-txt"><b>Você · <span data-vb-contar="${Number(eu_.v)}" data-vb-chave="rk-${per}-${cat.k}">${safeText(cat.fmt(eu_.v, eu_.p))}</span></b><small>${safeText(cat.sub(eu_.p))}${eu_.p.sequencia > 1 ? ` · ${eu_.p.sequencia} dias seguidos entregando` : ""}</small><p>${dica} <button type="button" class="ofc-rk-link" onclick="abrirDetalheRankingEscritorio('${eu_.p.id}')">${escritorioRanking.aberto === eu_.p.id ? "Esconder" : "Ver o que contou"}</button></p></div>${rkRitmo(d, eu_.p, maxRitmo)}${geral && per !== "total" ? `<span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.p.pct)}" aria-hidden="true"><i>${eu_.p.pct}%</i></span>` : ""}</section>${escritorioRanking.aberto === eu_.p.id ? detalhe(eu_.p) : ""}` : "";
+    const tres = vivos.slice(0, 3);
+    const podio = tres.length ? `<div class="rk2-podio">${[tres[1], tres[0], tres[2]].filter(Boolean).map((x) => { const pos = tres.indexOf(x) + 1, pr = geral && per === "semana" ? premio("ranking_" + pos) : null;
+      return `<button type="button" data-pid="${x.p.id}" class="rk2-degrau p${pos}${x.p.id === eu ? " eu" : ""}" style="--atraso:${[0, 0.15, 0, 0.3][pos]}s" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" aria-label="${pos}º lugar: ${safeText(nome(x.p))}, ${safeText(cat.fmt(x.v, x.p))}">
+        ${pos === 1 ? '<span class="rk2-coroa" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></span>' : ""}
+        <div class="ofc-rk-figura">${escritorioRankingBoneco(x.p.id, pos === 1 ? "wav" : "std") || rosto(x.p.id, 56)}${pr ? escritorioRankingTrofeu(pr.classe) : ""}<span class="rk2-selo" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></div>
+        <b class="ofc-rk-dnome">${safeText(nome(x.p))}${x.p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor" data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</span><small>${safeText(cat.sub(x.p))}${geral ? " " + rkSeta(x.p) : ""}</small>
+        <div class="rk2-bloco"><span>${pos}º</span>${pr ? `<em>+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</div></button>`; }).join("")}</div>` : vbEstadoHtml({ titulo: "Ninguém pontuou aqui ainda", texto: "O primeiro a entregar abre o pódio." });
+    const lista = ord.length > tres.length ? `<ol class="rk2-lista">${ord.slice(tres.length).map((x, k) => { const pos = posDe(x, tres.length + k);
+      return `<li data-pid="${x.p.id}" class="${x.p.id === eu ? "eu" : ""}${escritorioRanking.aberto === x.p.id ? " aberto" : ""}" style="--i:${k}" role="button" tabindex="0" aria-expanded="${escritorioRanking.aberto === x.p.id}" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalheRankingEscritorio('${x.p.id}')}">
+        <span class="rk2-pos">${pos ? pos + "º" : "—"}${geral ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome"><b>${safeText(nome(x.p))}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}</small></span>
+        ${rkRitmo(d, x.p, maxRitmo)}<span class="rk2-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, (x.v / max) * 100))}%"></i></span><span class="rk2-valor"><b data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</b><small>${safeText(cat.sub(x.p))}</small></span></li>${escritorioRanking.aberto === x.p.id ? `<li class="ofc-rk-det-li">${detalhe(x.p)}</li>` : ""}`; }).join("")}</ol>` : "";
+    corpo = `${voce}<p class="ofc-rk-legenda">${safeText(cat.dica || `Quem mais fez: ${cat.nome.toLowerCase()} no período.`)}</p>${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto && x.p.id !== eu) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}${lista}`;
   } else if (aba === "tesouros") {
     const pat = d.patrimonio || [];
     const ricos = [...pat].sort((a, b) => b.saldo - a.saldo), colec = [...pat].sort((a, b) => b.moveis - a.moveis || b.lendarios - a.lendarios || b.distintos - a.distintos);
-    const coluna = (titulo, dica, lista, valor, sub) => `<section class="ofc-rk-tesouro"><h4>${titulo}</h4><small>${dica}</small><ol>${lista.map((p, i) => `<li class="${p.id === eu ? "eu" : ""}${i < 3 ? " top" + (i + 1) : ""}"><span class="ofc-rk-pos">${i + 1}º</span>${rosto(p.id, i < 3 ? 36 : 28)}<span class="ofc-rk-nome"><b>${safeText(nome(p))}</b><small>${sub(p)}</small></span><span class="ofc-rk-valor"><b>${valor(p)}</b></span></li>`).join("")}</ol></section>`;
-    corpo = `<p class="ofc-rk-legenda">De todos os tempos, não só desta semana.</p><div class="ofc-rk-tesouros">${coluna("Mais rico", "VybeCoins na carteira agora", ricos, (p) => `${Number(p.saldo).toLocaleString("pt-BR")}`, (p) => "VybeCoins")}${coluna("Colecionador", "Móveis guardados e no quarto", colec, (p) => `${p.moveis}`, (p) => [`${p.distintos} diferentes`, p.lendarios ? `${p.lendarios} lendários` : "", p.trofeus ? `${p.trofeus} troféus` : ""].filter(Boolean).join(" · "))}</div>`;
+    const coluna = (titulo, dica, lst, valor, sub) => `<section class="ofc-rk-tesouro"><h4>${titulo}</h4><small>${dica}</small><ol>${lst.map((p, i) => `<li class="${p.id === eu ? "eu" : ""}${i < 3 ? " top" + (i + 1) : ""}"><span class="ofc-rk-pos">${i + 1}º</span>${rosto(p.id, i < 3 ? 36 : 28)}<span class="ofc-rk-nome"><b>${safeText(nome(p))}</b><small>${sub(p)}</small></span><span class="ofc-rk-valor"><b>${valor(p)}</b></span></li>`).join("")}</ol></section>`;
+    corpo = `<p class="ofc-rk-legenda">De todos os tempos.</p><div class="ofc-rk-tesouros">${coluna("Mais rico", "VybeCoins na carteira agora", ricos, (p) => `${Number(p.saldo).toLocaleString("pt-BR")}`, () => "VybeCoins")}${coluna("Colecionador", "Móveis guardados e no quarto", colec, (p) => `${p.moveis}`, (p) => [`${p.distintos} diferentes`, p.lendarios ? `${p.lendarios} lendários` : "", p.trofeus ? `${p.trofeus} troféus` : ""].filter(Boolean).join(" · "))}</div>`;
   } else {
-    const a = d.agencia, bonus = premio("meta_agencia"), faltam = Math.max(0, a.meta - a.pecas);
-    const dias = Math.max(1, (faltamDias ?? 0) + 1), ritmo = Math.ceil(faltam / dias);
-    corpo = `<section class="ofc-rk-agencia${a.bateu ? " bateu" : ""}"><div class="ofc-rk-ag-num"><strong>${a.pecas}</strong><span>de ${a.meta} peças</span></div><div class="ofc-rk-ag-barra" aria-hidden="true"><i style="width:${Math.min(100, a.pct)}%"></i></div><p>${a.bateu ? `<b>Meta batida!</b> No fechamento da semana todo mundo ganha` : `Faltam <b>${faltam} peças</b>, cerca de ${ritmo} por dia até domingo. Se a agência bater, todo mundo ganha`} ${bonus ? `<b>+${bonus.moedas} moedas e +${bonus.pontos} XP</b>` : "o bônus"}.</p><div class="ofc-rk-equipe">${d.pessoas.map((p) => `<span title="${safeText(nome(p))}: ${Object.entries(p.atividades || {}).filter(([k]) => k.startsWith("peca_")).reduce((t, [, n]) => t + n, 0)} peças">${rosto(p.id, 30)}</span>`).join("")}</div><small>A meta é a média de peças por semana nas últimas 8 semanas. Cada peça conta uma vez, não importa quantas pessoas trabalharam nela.</small></section>`;
+    const a = d.agencia, bonus = premio("meta_agencia"), falta = Math.max(0, a.meta - a.pecas);
+    const dias = Math.max(1, (faltam ?? 0) + 1), ritmo = Math.ceil(falta / dias);
+    corpo = `<section class="ofc-rk-agencia${a.bateu ? " bateu" : ""}"><div class="ofc-rk-ag-num"><strong>${a.pecas}</strong><span>de ${a.meta} peças</span></div><div class="ofc-rk-ag-barra" aria-hidden="true"><i style="width:${Math.min(100, a.pct)}%"></i></div><p>${a.bateu ? "<b>Meta batida!</b>" : `Faltam <b>${falta} peças</b>, cerca de ${ritmo} por dia.`}${per === "semana" && bonus ? ` No fechamento da semana, se a agência bater, todo mundo ganha <b>+${bonus.moedas} moedas e +${bonus.pontos} XP</b>.` : ""}</p><div class="ofc-rk-equipe">${d.pessoas.map((p) => `<span title="${safeText(nome(p))}: ${p.entregas} entregas">${rosto(p.id, 30)}</span>`).join("")}</div><small>A meta é a média de peças por semana nas últimas 8 semanas, na proporção do período. Cada peça conta uma vez.</small></section>`;
   }
-  const anterior = d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
-  const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul><li><b>Geral:</b> vale o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas). Assim Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Empate: mais XP na semana.</li><li><b>Prêmios no domingo à meia-noite:</b> ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, cada um com o troféu da semana para o quarto.</li><li><b>Agência:</b> se a equipe bater a meta de peças, todo mundo ganha o bônus.</li><li><b>Entrega</b> é cada trabalho seu que conta na meta: a sua parte de cada peça concluída (feita, captada, aprovada como DA, agendada, da carteira ou da agência), as demandas do quadro de Solicitações finalizadas e os briefings. Clique em alguém para ver quais foram e de onde veio o XP.</li><li><b>Tesouros:</b> quem tem mais VybeCoins e mais móveis, de todos os tempos.</li><li>Zera toda segunda. Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
-  el.innerHTML = topo + `<div class="ofc-rk-corpo">${corpo}${anterior}${como}</div>`;
+  const anterior = per === "semana" && d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
+  const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul><li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
+  el.innerHTML = topo + `<div class="rk2-campeoes" role="group" aria-label="Categorias">${campeoes}</div><div class="rk2-corpo${escritorioRanking.carregando === per ? " atualizando" : ""}">${corpo}${anterior}${como}</div>`;
+  if (typeof vbAnimarContagens === "function") vbAnimarContagens(el);
+  el.dataset.rkChave = per + ":" + aba;
+  rkAnimar(el, antes, chaveAntes !== el.dataset.rkChave, chaveAntes.split(":")[0] !== per);
+  const ativo = el.querySelector(".rk2-camp.ativo"), faixa = el.querySelector(".rk2-campeoes");
+  if (ativo && faixa) faixa.scrollLeft = Math.max(0, ativo.offsetLeft - faixa.clientWidth / 2 + ativo.clientWidth / 2);
+}
+
+// Movimento de jogo (respeita "Reduzir movimento"): quem trocou de lugar
+// desliza até a posição nova (FLIP), os números sobem contando e o 1º lugar
+// ganha confete quando o pódio muda.
+function rkAnimar(el, antes, mudou, festa) {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || !el.animate) return;
+  for (const n of el.querySelectorAll("[data-pid]")) {
+    const a = antes.get(n.dataset.pid + (n.classList.contains("rk2-degrau") ? "p" : "l"));
+    if (!a) continue;
+    const b = n.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+    n.style.animation = "none";
+    n.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: "none" }], { duration: 520, easing: "cubic-bezier(.2,.9,.25,1.15)" });
+  }
+  if (!mudou) return;
+  for (const n of el.querySelectorAll("[data-rk-num]")) {
+    const alvo = Number(n.dataset.rkNum), fmt = n.dataset.rkFmt || "#";
+    if (!Number.isFinite(alvo) || alvo <= 0 || !fmt.includes("#")) continue;
+    const t0 = performance.now(), dur = 700 + Math.min(500, alvo * 2);
+    const passo = (t) => { const p = Math.min(1, (t - t0) / dur), v = Math.round(alvo * (1 - Math.pow(1 - p, 3)));
+      n.textContent = fmt.replace("#", v.toLocaleString("pt-BR")); if (p < 1 && n.isConnected) requestAnimationFrame(passo); };
+    requestAnimationFrame(passo);
+  }
+  const ouro = el.querySelector(".rk2-degrau.p1 .rk2-bloco");
+  if (ouro && festa) setTimeout(() => rkConfete(ouro), 450);
+}
+function rkConfete(alvo) {
+  const r = alvo.getBoundingClientRect(), c = document.createElement("canvas");
+  c.className = "rk2-confete"; c.width = innerWidth; c.height = innerHeight; document.body.append(c);
+  const g = c.getContext("2d"), cores = ["#ffd35c", "#ff8a35", "#ffffff", "#7ff0b4", "#8f7bff", "#ff8fc7"];
+  const ps = Array.from({ length: 70 }, () => ({ x: r.left + r.width / 2, y: r.top + 10, vx: (Math.random() - .5) * 9, vy: -Math.random() * 9 - 4, s: 4 + Math.random() * 4, a: Math.random() * 6, va: (Math.random() - .5) * .4, cor: cores[Math.floor(Math.random() * cores.length)] }));
+  const t0 = performance.now();
+  const quadro = (t) => {
+    const vida = (t - t0) / 1400; g.clearRect(0, 0, c.width, c.height);
+    for (const p of ps) { p.vy += .32; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.a += p.va; g.save(); g.globalAlpha = Math.max(0, 1 - vida); g.translate(p.x, p.y); g.rotate(p.a); g.fillStyle = p.cor; g.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); g.restore(); }
+    if (vida < 1) requestAnimationFrame(quadro); else c.remove();
+  };
+  requestAnimationFrame(quadro);
 }
 
 function abrirDetalheRankingEscritorio(id) {
@@ -1106,7 +1230,7 @@ function escritorioMostrarCelebracao(nivel, trofeu) {
   el.className = `ofc-celebra${trofeu ? " n" + trofeu.nivel : ""}`;
   el.setAttribute("role", "status");
   const titulo = trofeu ? "Novo troféu" : "Subiu de nível";
-  const texto = trofeu ? trofeu.nome + (nivel ? ` · e você chegou ao nível ${nivel}` : "") : `Você chegou ao nível ${nivel}. O XP nunca cai.`;
+  const texto = trofeu ? trofeu.nome + (nivel ? ` · e você chegou ao nível ${nivel}` : "") : `Você chegou ao nível ${nivel}.`;
   el.innerHTML = `<button type="button" class="ofc-celebra-fundo" aria-label="Fechar" onclick="document.getElementById('ofc-celebra')?.remove()"></button>
 <div class="ofc-celebra-cartao"><div class="ofc-celebra-palco" aria-hidden="true"><span class="prov-holofote"></span><span class="ofc-celebra-faiscas">${"<i></i>".repeat(12)}</span><span class="ofc-celebra-arte">${trofeu ? escritorioMiniaturaHtml(trofeu.classe) : `<b>${Number(nivel)}</b>`}</span><span class="prov-pedestal"></span></div>
 <small>${titulo}</small><b>${safeText(texto)}</b><button type="button" class="vb-botao principal" onclick="document.getElementById('ofc-celebra')?.remove()">Continuar</button></div>`;
