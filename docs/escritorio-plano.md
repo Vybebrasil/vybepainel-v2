@@ -1291,3 +1291,14 @@ decoração inicial "bem feito".
   decoração salva do térreo) com "Aumentar ou reformar"; o segundo andar tem
   cartão próprio (tracejado quando ainda não existe); "Começar em branco"
   fica no rodapé, em vermelho, separado. Conferido na demo, desktop e celular.
+
+### Entrada do Escritório como tela de jogo e acertos da ficha — 21/10/2026
+
+- Entrada (`escritorioLobbyTopoHtml` + CSS "Entrada do Escritório como tela
+  de jogo"): com a área do mapa larga (consulta de contêiner, não da janela),
+  herói à esquerda com o boneco no palco, holofote e pedestal na cor da hora
+  (manhã amarelo, tarde laranja, noite lilás), saudação, chips e barra de XP;
+  à direita online, o que te espera (2×2), regras, microfone e entrar. Com a
+  lateral aberta ou no celular, uma coluna só, com o mesmo palco.
+- Ficha: números do cartão numa linha só (o 4º, ranking, invadia a vitrine)
+  e vitrine sem barra de rolagem aparente.

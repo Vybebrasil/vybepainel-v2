@@ -228,8 +228,12 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
     : `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você no escritório.</span></li><li>${escritorioIcone("microfone")}<span>Em cada sala você fala e ouve quem está nela. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("camera")}<span>A câmera começa desligada.</span></li>`;
   // Nas primeiras visitas as regras aparecem abertas; depois, uma linha só.
   const veterano = escritorioVisitasEntrada() > 3;
-  return `<div class="ofc-lobby-palco" aria-hidden="true"><span class="ofc-lobby-luz"></span><span class="ofc-lobby-ladrilho"></span><img class="ofc-lobby-boneco" src="${safeText(acenar)}" data-acenar="${safeText(acenar)}" data-parado="${safeText(parado)}" data-figura="${safeText(figura)}" data-mao="${safeText(mao)}" alt="" width="64" height="110"></div>
-<h2 id="ofc-lobby-titulo">${oi}, ${nome}!</h2>${chips ? `<div class="ofc-lobby-chips">${chips}</div>` : ""}
+  // Herói da entrada (21/10/2026, a linguagem do Provador): o boneco no palco
+  // com holofote e pedestal na cor da hora do dia, a saudação, os chips e a
+  // barra de XP até o próximo nível; no computador fica à esquerda.
+  const p = eco?.pontos, pct = p?.xpProximo ? Math.min(100, Math.round((Number(p.xp || 0) / p.xpProximo) * 100)) : null;
+  return `<div class="ofc-lobby-heroi"><div class="ofc-lobby-palco" aria-hidden="true"><span class="prov-holofote"></span><span class="ofc-lobby-luz"></span><span class="ofc-lobby-ladrilho"></span><span class="prov-pedestal"></span><img class="ofc-lobby-boneco" src="${safeText(acenar)}" data-acenar="${safeText(acenar)}" data-parado="${safeText(parado)}" data-figura="${safeText(figura)}" data-mao="${safeText(mao)}" alt="" width="64" height="110"></div>
+<h2 id="ofc-lobby-titulo">${oi}, ${nome}!</h2>${chips ? `<div class="ofc-lobby-chips">${chips}</div>` : ""}${pct !== null ? `<div class="ofc-lobby-xp"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${p.xpProximo}" aria-valuenow="${Number(p.xp || 0)}" aria-label="XP até o próximo nível"><i style="width:${pct}%"></i></span><small>${Number(p.xp || 0).toLocaleString("pt-BR")} de ${Number(p.xpProximo).toLocaleString("pt-BR")} XP para o nível ${Number(p.nivel) + 1}</small></div>` : ""}</div>
 <div class="ofc-lobby-online" id="ofc-lobby-online">${escritorioLobbyOnlineHtml()}</div>
 <div class="ofc-lobby-espera" id="ofc-lobby-espera">${escritorioLobbyEsperaHtml()}</div>
 ${veterano ? `<details class="ofc-lobby-regras-curtas"><summary>Microfone ligado nas salas · câmera desligada <span>Ver como funciona</span></summary><ul class="ofc-lobby-regras">${regras}</ul></details>` : `<ul class="ofc-lobby-regras">${regras}</ul>`}`;
