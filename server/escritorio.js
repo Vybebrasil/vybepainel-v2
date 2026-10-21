@@ -7,6 +7,7 @@ import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
+import { titulosDaPessoa, tituloDe, partesDoMarco } from "./escritorio-marcos.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -74,6 +75,9 @@ export function perfilEscritorio(valor = {}) {
     // Objeto na mão escolhido no criador (Paulo, 20/10/2026), como os agentes
     // dos clientes: só o formato de carregar do Habbo ("crr=6").
     mao: /^crr=\d{1,3}$/.test(String(valor.mao || "")) ? String(valor.mao) : "",
+    // Título escolhido (uma conquista "marco:nível", "nenhum" ou vazio = o maior).
+    // Só a rota "titulo" grava, conferindo que a pessoa tem a conquista.
+    titulo: /^([a-z0-9_]{2,40}:[1-4]|nenhum)$/.test(String(valor.titulo || "")) ? String(valor.titulo) : "",
     // Looks guardados no criador (até 5): boneco e objeto na mão, no mesmo formato.
     looks: (Array.isArray(valor.looks) ? valor.looks : []).filter((l) => /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/.test(String(l?.figura || "")))
       .slice(0, 5).map((l) => ({ figura: String(l.figura), mao: /^crr=\d{1,3}$/.test(String(l.mao || "")) ? String(l.mao) : "" })),
@@ -143,10 +147,24 @@ export async function carregarEscritorio(sql, pessoa) {
     await sql`SELECT p.id,p.nome,COALESCE(e.preferencias,'{}'::jsonb) AS preferencias
     FROM vybe_pessoas p LEFT JOIN vybe_escritorio_perfis e ON e.pessoa_id=p.id
     WHERE p.ativo=TRUE AND p.pode_entrar=TRUE ORDER BY p.nome`;
+  // O título que cada um mostra sob o nome: o escolhido (se ainda tem a
+  // conquista) ou o do maior nível; "nenhum" esconde.
+  const [temMarcos] = await sql`SELECT to_regclass('public.vybe_escritorio_marcos') IS NOT NULL AS existe`;
+  const marcos = temMarcos?.existe ? await sql`SELECT pessoa_id, marco FROM vybe_escritorio_marcos` : [];
+  const tituloDaPessoa = (id, escolha) => {
+    if (escolha === "nenhum") return null;
+    const meus = marcos.filter((m) => String(m.pessoa_id) === String(id)).map((m) => ({ chave: m.marco, ...partesDoMarco(m.marco) }))
+      .map((m) => ({ ...m, texto: tituloDe(m.marco, m.nivel) })).filter((m) => m.texto);
+    // Sem escolha, o do maior nível; os de trabalho antes dos de presença e do escritório.
+    const deTrabalho = (m) => !["painel", "quarto", "andar2", "presente", "troca", "postits"].includes(m.marco);
+    const t = meus.find((m) => m.chave === escolha) || meus.sort((a, b) => deTrabalho(b) - deTrabalho(a) || b.nivel - a.nivel)[0];
+    return t ? { chave: t.chave, texto: t.texto, nivel: t.nivel } : null;
+  };
   const lista = equipe.map((p) => ({
     id: String(p.id),
     nome: p.nome,
     perfil: perfilEscritorio(p.preferencias),
+    titulo: tituloDaPessoa(p.id, p.preferencias?.titulo || ""),
   }));
   return {
     quartos: QUARTOS,
@@ -166,7 +184,7 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = 
   return sql.comTransacao(async tx => {
     await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
     const [atual] = await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} FOR UPDATE`;
-    let perfil = perfilEscritorio({...valor, sala_planta:atual.preferencias.sala_planta, sala_celdas:atual.preferencias.sala_celdas, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares,convite_geracao:atual.preferencias.convite_geracao});
+    let perfil = perfilEscritorio({...valor, titulo:atual.preferencias.titulo, sala_planta:atual.preferencias.sala_planta, sala_celdas:atual.preferencias.sala_celdas, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares,convite_geracao:atual.preferencias.convite_geracao});
     if(valor.andar===1) {
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
@@ -444,6 +462,16 @@ export async function areaEscritorio(req, res, quem, sql) {
         : await configurarQuarto(sql, pessoa, perfilEscritorio(req.body?.perfil), req.body);
       return res.status(200).json({ok:true,...resultado});
     } catch(e) { return res.status(e.status || 400).json({error:e.message}); }
+  }
+  // Escolher o título que aparece sob o nome (só uma conquista que a pessoa tem).
+  if (acao === "titulo") {
+    const chave = String(req.body?.chave || "");
+    const meus = await titulosDaPessoa(sql, pessoa.id);
+    if (chave && chave !== "nenhum" && !meus.some((t) => t.chave === chave)) return res.status(400).json({ error: "Esse título ainda não é seu." });
+    await sql`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoa.id}) ON CONFLICT DO NOTHING`;
+    await sql`UPDATE vybe_escritorio_perfis SET preferencias = jsonb_set(COALESCE(preferencias,'{}'::jsonb), '{titulo}', to_jsonb(${chave}::text)), atualizado_em=NOW() WHERE pessoa_id=${pessoa.id}`;
+    const t = chave === "nenhum" ? null : meus.find((x) => x.chave === chave) || meus[0] || null;
+    return res.status(200).json({ ok: true, titulo: t, titulos: meus });
   }
   if (acao === "perfil")
     try {

@@ -9855,3 +9855,108 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @keyframes rk2-respira {0%,100% {transform:translateY(0)} 50% {transform:translateY(-3px)}}
 @keyframes rk2-pula {0%,100% {transform:translateY(0)} 50% {transform:translateY(-2px)}}
 @media (prefers-reduced-motion:reduce) {.rk2-degrau.p1 .rk2-bloco::after,.rk2-degrau .ofc-rk-figura,.rk2-seta.sobe {animation:none}}
+/* Título da conquista sob o nome do boneco (Paulo, 21/10/2026). A cor segue o
+   nível: Bronze, Prata, Ouro e Diamante, as mesmas da escada. */
+.mapa-etiqueta.com-titulo {flex-direction:column;gap:0}
+.mapa-linha {display:flex;align-items:center;gap:5px}
+.mapa-titulo {max-width:180px;margin-top:2px}
+.ofc-hud-titulo {margin:-2px 0 6px;font-size:11.5px}
+/* O corpo da janela é uma grade de altura fixa: uma linha com rolagem
+   lateral encolhe até sumir; os chips seguram a própria altura. */
+.ofc-cq-abas {display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:thin;min-height:40px;align-items:center}
+.ofc-cq-abas .vb-chip {flex-shrink:0}
+/* Conquistas, versão jogo (Paulo, 21/10/2026: "deixa ela FODA"). Vitrine com
+   o maior troféu num pedestal e o título numa placa; medalhas por nível e o
+   anel do total; cada escada num cartão escuro com a trilha Bronze → Diamante. */
+.cq-vitrine {--tom:#ff9548;position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;padding:18px 20px;border-radius:18px;overflow:hidden;
+  background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--tom) 22%,transparent),transparent 60%),linear-gradient(180deg,#232733,#191c25);border:1px solid #ffffff14;box-shadow:inset 0 1px 0 #ffffff12,0 4px 0 #0e1016,0 10px 30px #00000055}
+.cq-vitrine.n1 {--tom:#e0915a} .cq-vitrine.n2 {--tom:#cfd5df} .cq-vitrine.n3 {--tom:#ffc94a} .cq-vitrine.n4 {--tom:#8fe3ff}
+.cq-pedestal {position:relative;display:grid;place-items:end center;width:104px;height:112px}
+.cq-pedestal::after {content:"";position:absolute;bottom:0;left:8px;right:8px;height:20px;border-radius:50%;background:radial-gradient(closest-side,#00000088,transparent);}
+.cq-pedestal img {position:relative;z-index:1;width:80px;height:80px;object-fit:contain;image-rendering:pixelated;margin-bottom:8px;filter:drop-shadow(0 6px 10px #00000080);animation:cq-flutua 3.6s ease-in-out infinite}
+.cq-pedestal.vazio {opacity:.35}
+.cq-luz {position:absolute;inset:-10px 6px 6px;background:conic-gradient(from 200deg at 50% 100%,transparent 0 40deg,color-mix(in srgb,var(--tom) 45%,transparent) 60deg,transparent 80deg 100deg,color-mix(in srgb,var(--tom) 35%,transparent) 120deg,transparent 140deg);filter:blur(6px);opacity:.8;animation:cq-luz 7s linear infinite}
+@keyframes cq-flutua {50% {transform:translateY(-5px)}}
+@keyframes cq-luz {50% {opacity:.45}}
+.cq-placa {display:grid;gap:4px;min-width:0}
+.cq-placa > small {font:700 10.5px var(--mac-ui);letter-spacing:.1em;text-transform:uppercase;color:#a3a9b7}
+.cq-placa > b {font:850 26px/1.1 var(--mac-ui);text-wrap:balance;color:color-mix(in srgb,var(--tom) 55%,#fff);text-shadow:0 2px 0 #00000066,0 0 18px color-mix(in srgb,var(--tom) 35%,transparent)}
+.cq-placa > span {font:500 12px var(--mac-ui);color:#b9bfcc}
+.cq-trocar {justify-self:start;margin-top:6px;padding:8px 14px;border:0;border-radius:10px;background:#ff8a35;color:#1b0f05;font:800 12.5px var(--mac-ui);cursor:pointer;box-shadow:0 3px 0 #b45a17;transition:transform .15s var(--curva),box-shadow .15s}
+.cq-trocar:active {transform:translateY(3px);box-shadow:0 0 0 #b45a17}
+.cq-trocar:focus-visible {outline:2px solid #ffd0a8;outline-offset:2px}
+.cq-numeros {display:grid;justify-items:center;gap:10px}
+.cq-anel {--p:0;position:relative;display:grid;place-content:center;justify-items:center;width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--tom) calc(var(--p)*1%),#ffffff14 0);}
+.cq-anel::before {content:"";position:absolute;inset:7px;border-radius:50%;background:#1b1e28;box-shadow:inset 0 2px 6px #0007}
+.cq-anel b, .cq-anel small {position:relative}
+.cq-anel b {font:850 22px/1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.cq-anel small {font:600 10.5px var(--mac-ui);color:#a3a9b7}
+.cq-medalhas {display:flex;gap:6px}
+.cq-medalhas > span {display:grid;justify-items:center;gap:1px;min-width:42px}
+.cq-medalhas i {width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff9,transparent 45%),var(--md);box-shadow:inset 0 -3px 0 #0004,0 2px 0 #0006}
+.cq-medalhas .n1 {--md:#c87a44} .cq-medalhas .n2 {--md:#b9c0cc} .cq-medalhas .n3 {--md:#f2b632} .cq-medalhas .n4 {--md:linear-gradient(135deg,#8ff0ff,#c7a6ff)}
+.cq-medalhas .zero {opacity:.35}
+.cq-medalhas b {font:800 14px var(--mac-ui);font-variant-numeric:tabular-nums}
+.cq-medalhas small {font:600 9.5px var(--mac-ui);color:#a3a9b7}
+.cq-titulos {display:grid;gap:10px;padding:14px;border-radius:16px;background:#ffffff06;border:1px solid #ffffff10;animation:cq-entra .3s var(--curva)}
+.cq-titulos h4 {margin:0 0 6px;font:800 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.cq-titulos h4.n1 {color:#e9a374} .cq-titulos h4.n2 {color:#dfe3ea} .cq-titulos h4.n3 {color:#ffd166} .cq-titulos h4.n4 {color:#9fe8ff}
+.cq-titulos-lista {display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.cq-titulo-op {display:grid;gap:4px;padding:8px 10px;border-radius:12px;border:1px solid #ffffff12;background:#1d2029;color:#eef0f5;text-align:left;cursor:pointer;box-shadow:0 3px 0 #0e1016;transition:transform .15s var(--curva),box-shadow .15s,border-color .15s}
+.cq-titulo-op:hover {border-color:#ffffff30}
+.cq-titulo-op:active {transform:translateY(3px);box-shadow:0 0 0 #0e1016}
+.cq-titulo-op[aria-pressed="true"] {border-color:#ff8a35;box-shadow:0 3px 0 #b45a17,0 0 0 1px #ff8a35}
+.cq-titulo-op:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.cq-titulo-op .vb-titulo {justify-self:start;font-size:10.5px}
+.cq-titulo-op small {font:500 10.5px var(--mac-ui);color:#a3a9b7}
+.cq-dica {margin:0;font:500 11.5px var(--mac-ui);color:#a3a9b7}
+.cq-grade {display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:10px}
+.cq-cartao {--tom:#6b7280;border-radius:16px;background:#1d2029;border:1px solid #ffffff10;box-shadow:0 4px 0 #0e1016;transition:transform .2s var(--curva),border-color .2s;animation:cq-entra .35s var(--curva) both}
+.cq-grade > .cq-cartao:nth-child(2) {animation-delay:.04s} .cq-grade > .cq-cartao:nth-child(3) {animation-delay:.08s} .cq-grade > .cq-cartao:nth-child(4) {animation-delay:.12s}
+.cq-grade > .cq-cartao:nth-child(n+5) {animation-delay:.16s}
+.cq-cartao.n1 {--tom:#e0915a} .cq-cartao.n2 {--tom:#cfd5df} .cq-cartao.n3 {--tom:#ffc94a} .cq-cartao.n4 {--tom:#8fe3ff}
+.cq-cartao:hover {border-color:#ffffff26;transform:translateY(-1px)}
+.cq-cartao[open] {grid-column:1 / -1}
+.cq-cartao > summary {display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
+.cq-cartao > summary::-webkit-details-marker {display:none}
+.cq-cartao > summary:focus-visible {outline:2px solid #ff8a35;outline-offset:-2px;border-radius:16px}
+.cq-arte {display:grid;place-items:center;width:56px;height:56px;border-radius:14px;background:radial-gradient(circle at 50% 70%,color-mix(in srgb,var(--tom) 28%,transparent),#ffffff06 70%)}
+.cq-arte img {max-width:48px;max-height:48px;image-rendering:pixelated}
+.cq-arte.falta img {opacity:.35;filter:grayscale(1)}
+.cq-meio {display:grid;gap:5px;min-width:0}
+.cq-nome {display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cq-nome b {font:800 14px var(--mac-ui)}
+.cq-meio > .vb-titulo {justify-self:start}
+.cq-meio > small {font:500 11.5px var(--mac-ui);color:#a3a9b7}
+.cq-meio > small b {color:#fff;font-weight:800}
+.cq-premio {display:grid;grid-template-columns:auto auto;column-gap:3px;align-items:baseline;justify-items:end;padding:6px 8px;border-radius:10px;background:#00000030}
+.cq-premio b {font:800 12.5px var(--mac-ui);color:#ffd166;font-variant-numeric:tabular-nums}
+.cq-premio b:nth-of-type(2) {color:#c7b3ff}
+.cq-premio small {font:600 9.5px var(--mac-ui);color:#a3a9b7;justify-self:start}
+.cq-trilha {position:relative;display:block;height:26px;margin:2px 10px 0}
+.cq-trilha-linha {position:absolute;top:6px;left:0;right:0;height:4px;border-radius:9px;background:#ffffff14;overflow:hidden}
+.cq-trilha-linha i {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e0915a,#cfd5df,#ffc94a,#8fe3ff);transition:width .6s var(--curva)}
+.cq-no {position:absolute;top:0;transform:translateX(-50%);display:grid;justify-items:center;gap:1px}
+.cq-no i {width:16px;height:16px;border-radius:50%;background:#2a2e3a;border:2px solid #3a3f4d}
+.cq-no.n1 {--c:#e0915a} .cq-no.n2 {--c:#cfd5df} .cq-no.n3 {--c:#ffc94a} .cq-no.n4 {--c:#8fe3ff}
+.cq-no.ok i {background:radial-gradient(circle at 35% 30%,#fffa,transparent 50%),var(--c);border-color:#0006;box-shadow:0 0 8px color-mix(in srgb,var(--c) 60%,transparent)}
+.cq-no.vez i {border-color:var(--c);animation:cq-vez 1.6s ease-in-out infinite}
+.cq-no small {font:650 9.5px var(--mac-ui);color:#8b92a1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cq-no.ok small {color:#d7dbe3}
+@keyframes cq-vez {50% {box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 30%,transparent)}}
+@keyframes cq-entra {from {opacity:0;transform:translateY(6px)}}
+.cq-niveis {display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:0;padding:0 14px 14px;list-style:none}
+.cq-niveis li {--tom:#6b7280;position:relative;display:grid;justify-items:center;gap:3px;padding:12px 8px;border-radius:14px;background:#00000030;border:1px solid #ffffff0d;text-align:center}
+.cq-niveis li.n1 {--tom:#e0915a} .cq-niveis li.n2 {--tom:#cfd5df} .cq-niveis li.n3 {--tom:#ffc94a} .cq-niveis li.n4 {--tom:#8fe3ff}
+.cq-niveis li:not(.ok) .cq-arte img {opacity:.4;filter:grayscale(1)}
+.cq-niveis li.ok {border-color:color-mix(in srgb,var(--tom) 45%,transparent)}
+.cq-niveis li > b {font:800 12.5px var(--mac-ui);color:color-mix(in srgb,var(--tom) 70%,#fff)}
+.cq-niveis li > small {font:600 11px var(--mac-ui);color:#c9ced8}
+.cq-niveis li > em {font:500 10.5px var(--mac-ui);font-style:normal;color:#a3a9b7}
+.cq-seu {position:absolute;top:6px;right:6px;padding:1px 6px;border-radius:999px;background:#4fc98a33;color:#a6f0c4;font:800 9.5px var(--mac-ui);font-style:normal}
+@media (max-width:620px){.cq-vitrine {grid-template-columns:auto minmax(0,1fr);padding:14px}.cq-numeros {grid-column:1 / -1;grid-template-columns:auto 1fr;justify-items:start;align-items:center}.cq-pedestal {width:80px;height:92px}.cq-pedestal img {width:62px;height:62px}.cq-placa > b {font-size:21px}.cq-grade {grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.cq-pedestal img,.cq-luz,.cq-no.vez i,.cq-cartao,.cq-titulos {animation:none}}
+[data-motion=reduce] :is(.cq-pedestal img,.cq-luz,.cq-no.vez i,.cq-cartao,.cq-titulos) {animation:none}
+/* Tudo num bloco só: na grade de altura fixa da janela, cada peça com
+   overflow escondido encolheria até sumir. */
+.cq-tela {display:grid;gap:12px;align-content:start}

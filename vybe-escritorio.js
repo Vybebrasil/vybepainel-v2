@@ -1491,7 +1491,8 @@ function atualizarPessoasEscritorio() {
       // com uma posição de fora dele (versão antiga) fica encostado na borda.
       const pos = voce ? escritorioPosicao(escritorio.perfil || {}) : escritorioPosicao(p);
       if (quarto && !voce) { pos.x = Math.max(quarto.x0, Math.min(quarto.x1 - 1, pos.x)); pos.y = Math.max(quarto.y0, Math.min(quarto.y1 - 1, pos.y)); }
-      const perfilDe = escritorio.base.equipe.find((e) => e.id === p.id)?.perfil || p.perfil || {};
+      const daEquipe = escritorio.base.equipe.find((e) => e.id === p.id);
+      const perfilDe = daEquipe?.perfil || p.perfil || {};
       // Parado num assento (cadeira, sofá, banqueta…), o boneco senta virado
       // para onde o assento olha.
       const dirAssento = escritorio.mapa.assentoEm(pos.x, pos.y);
@@ -1503,6 +1504,7 @@ function atualizarPessoasEscritorio() {
         // O próprio boneco é sempre "Você" (fora do escritório também: o nome
         // completo passava pelo encurtador e virava "Você E.").
         id: p.id, nome: voce ? "Você" : escritorioNomeCurto(p.nome), perfil: perfilDe, status: p.status, corStatus,
+        titulo: p.convidado ? null : daEquipe?.titulo || null,
         rotulo: `${p.nome}${voce ? " (você)" : ""} · ${p.convidado ? "convidado" : voce && !escritorio.conectado ? "fora do escritório" : nomeStatus}`,
         statusTexto: p.convidado && !voce ? "convidado" : p.status && p.status !== "disponivel" ? nomeStatus : "",
         x: Math.round(pos.x), y: Math.round(pos.y),
