@@ -266,6 +266,14 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
 // criar e compor canvases novos 24 vezes por segundo para cada móvel animado
 // (era o que mais pesava nas salas cheias). Os canvases guardados só são lidos.
 const MAPA_CACHE_CAMADAS = new WeakMap();
+// Cópia de um canvas (o do cache não pode ir para o mapa duas vezes).
+function mapaCopiarCanvas(c) {
+  if (!c || typeof document === "undefined") return c;
+  const n = document.createElement("canvas");
+  n.width = c.width; n.height = c.height;
+  n.getContext("2d")?.drawImage(c, 0, 0);
+  return n;
+}
 function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   if (!m?.dados) return mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
   let cache = MAPA_CACHE_CAMADAS.get(m.dados);
@@ -1296,11 +1304,25 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // painel põe ali o agente de um cliente, com o nome e a situação em cima;
   // o clique abre o planejamento daquele cliente. Posto que sobra fica vazio.
   let postos = new Map();
+  let rotulosDasAlas = {};
   // Agentes do Centro de Operação falam o bordão do cliente, um de cada vez
   // (todos juntos virava um borrão), com outra frase a cada vez que voltam.
   let relogioAgentes = 0;
   function montarFigurantes() {
-    for (const n of palco.querySelectorAll(".mapa-pessoa.figurante:not(.visitante), .mapa-etiqueta.agente")) n.remove();
+    for (const n of palco.querySelectorAll(".mapa-pessoa.figurante:not(.visitante), .mapa-etiqueta.agente, .mapa-rotulo.mapa-ala")) n.remove();
+    // Nome de cada ala no corredor da frente dela, na cor da carteira.
+    for (const [ala, r] of Object.entries(rotulosDasAlas)) {
+      const lugares = (P.figurantes || []).filter((f) => f.ala === ala);
+      if (!lugares.length) continue;
+      const xs = lugares.map((f) => f.x), ys = lugares.map((f) => f.y);
+      const t = mapaTela((Math.min(...xs) + Math.max(...xs) + 1) / 2, Math.max(...ys) + 2.5, origem);
+      const no = document.createElement("span");
+      no.className = "mapa-rotulo neon mapa-ala";
+      no.textContent = r.texto;
+      if (r.cor) no.style.setProperty("--neon", r.cor);
+      no.style.left = t.x + "px"; no.style.top = t.y + "px";
+      palco.append(no);
+    }
     clearInterval(relogioAgentes); relogioAgentes = 0;
     const falantes = [];
     for (const [i, f0] of (P.figurantes || []).entries()) {
@@ -1326,17 +1348,27 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         const chips = ct.atrasadas || ct.interna || ct.cliente || ct.info
           ? `<span class="mapa-agente-nums">${chip(ct.atrasadas, "atr", "atrasadas")}${chip(ct.interna, "apr", "em aprovação interna", ct.corInterna)}${chip(ct.cliente, "apr", "aguardando aprovação do cliente", ct.corCliente)}${chip(ct.info, "inf", "com falta de informação", ct.corInfo)}</span>`
           : agente.avisos ? `<em class="mapa-avisos-agente">${num(agente.avisos)}</em>` : "";
-        etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${chips}${agente.alerta || agente.detalhe ? "<small></small>" : ""}`;
+        // Situação do planejamento numa pílula curta ("Revisar 0/19"), na
+        // mesma linha do nome; o texto inteiro fica no título. Duas linhas por
+        // agente embolavam a sala (Paulo, 20/10/2026).
+        if (agente.pilula) {
+          etiqueta.classList.remove("com-situacao");
+          etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b><em class="mapa-agente-plano" style="--c:${agente.cor || "#8f98a9"}"></em>${chips}`;
+          etiqueta.querySelector(".mapa-agente-plano").textContent = agente.pilula;
+          if (agente.alerta) no.classList.add("alerta");
+        } else {
+          etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${chips}${agente.alerta || agente.detalhe ? "<small></small>" : ""}`;
+          if (agente.alerta) { etiqueta.querySelector("small").textContent = agente.detalhe || agente.acao || agente.situacao; no.classList.add("alerta"); }
+          else if (agente.detalhe) etiqueta.querySelector("small").textContent = agente.detalhe;
+        }
         etiqueta.querySelector("b").textContent = agente.nome;
-        if (agente.alerta) { etiqueta.querySelector("small").textContent = agente.detalhe || agente.acao || agente.situacao; no.classList.add("alerta"); }
-        else if (agente.detalhe) etiqueta.querySelector("small").textContent = agente.detalhe;
         if (agente.falas?.length) {
           const fala = document.createElement("span");
           fala.className = "mapa-reclama";
           etiqueta.append(fala);
           falantes.push({ etiqueta, fala, falas: agente.falas, i: -1 });
         }
-        etiqueta.title = `${agente.nome}: ${agente.situacao}${agente.resumoAvisos ? "\n" + agente.resumoAvisos : ""}`;
+        etiqueta.title = `${agente.nome}: ${agente.detalhe || agente.situacao}${agente.resumoAvisos ? "\n" + agente.resumoAvisos : ""}`;
         no.title = etiqueta.title;
         const abrir = (e) => { e.stopPropagation(); agente.aoClicar?.(); };
         for (const alvo of [no, etiqueta]) { alvo.addEventListener("click", abrir); alvo.addEventListener("pointerdown", (e) => e.stopPropagation()); }
@@ -1499,11 +1531,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     visitantes = lista || [];
     if (montarFigurantesDepois) montarVisitantes();
   }
-  function ocuparPostos(lista) {
+  // alas: { id: { texto, cor } } para o nome de cada ala na sala.
+  function ocuparPostos(lista, alas) {
     postos = new Map((lista || []).map((a, i) => [a.posto ?? i, a]));
+    rotulosDasAlas = alas || {};
     if (montarFigurantesDepois) montarFigurantes();
   }
   const numeroDePostos = () => (P.figurantes || []).filter((f) => f.posto !== undefined).length;
+  // Ala de cada posto (Centro de Operação: a carteira), na ordem dos postos.
+  const alasDosPostos = () => (P.figurantes || []).filter((f) => f.posto !== undefined).map((f) => ({ posto: f.posto, ala: f.ala || "" }));
   function pintarPaisagem(p) {
     const g = p.c.getContext("2d");
     g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, p.c.width, p.c.height);
@@ -1762,7 +1798,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         const revest = mapaEhRevestimento(m.dados.logic?.model?.dimensions, true);
         const grupos = !feixe && !revest && desenho.grupos?.length > 1 ? desenho.grupos : null;
         const doGrupo = (g) => mapaDesenharMovel(m, d0, estado, 0, 0, (p) => mapaGrupoCamada(p) === g.chave)?.canvas;
-        const no = (grupos && doGrupo(grupos[0])) || desenho.canvas;
+        // O desenho vem do cache (mapaCamadasMovel) e é o mesmo para cada
+        // peça igual: usado direto, cada papel de parede tirava o anterior do
+        // lugar e só o último de cada tipo ficava na parede. Cada peça leva a
+        // sua cópia.
+        const no = (grupos && doGrupo(grupos[0])) || mapaCopiarCanvas(desenho.canvas);
         no.className = "mapa-obj mapa-de-parede";
         no.dataset.classe = classe;
         tingir(no);
@@ -2873,7 +2913,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    ocuparPostos, numeroDePostos, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    ocuparPostos, numeroDePostos, alasDosPostos, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.

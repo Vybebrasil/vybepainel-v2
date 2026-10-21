@@ -1120,3 +1120,35 @@ decoração inicial "bem feito".
 - No Inventário, os troféus vêm primeiro, com o nome da conquista e o nível.
 - O perfil público passa a mandar a `classe` do troféu de cada marco, para a
   vitrine de quem visita.
+
+### Centro de Operação dividido por carteira — 20/10/2026
+
+- Paulo: "tá um emboleiro... vamos começar dividindo os clientes de Ewerton
+  e de Vinícius" e, ao ver a primeira versão, "precisa dividir visualmente
+  melhor... ambientes diferentes". A sala (`scripts/cenas/operacao.mjs`) tem
+  duas alas, cada uma com a sua cara:
+  - Vinícius, à esquerda (2 fileiras de 5): parquet quente
+    (`ducket_c25_warmfloor`), parede de ladrilho terracota
+    (`hygge_c25_wallpaper2`, estado 2), mesas de vidro com madeira;
+  - Ewerton, à direita (2 fileiras de 3): piso escuro
+    (`darkmodern_c20_floor`), parede de ladrilho azul-acinzentado (o mesmo
+    papel, estado 0), mesas escuras (`darkmodern_c20_desk`) e as colunas de
+    servidor no fundo;
+  - na divisa, uma parede de blocos de vidro azul acesos
+    (`darkmodern_c20_glassblockwall`). Canteiro do lado do Vinícius não serviu:
+    na perspectiva, os blocos o tapavam.
+- Mesas a 3 ladrilhos (a 2, as etiquetas se encostavam). O posto leva a `ala`
+  (`figurante({ posto, ala })` no motor).
+- O navegador põe cada agente na ala da carteira do cliente
+  (`carteiraDoCliente`, a mesma do painel: `vybe_clientes.responsavel`, com
+  `CARTEIRAS_CLIENTES` de padrão). Quem não cabe ou não tem carteira senta num
+  posto livre. O nome da ala aparece no chão da frente, na cor da carteira.
+- As mesas do time foram para a frente, no meio (escolha do Paulo), com o
+  corredor da porta entre os dois grupos. O balcão saiu.
+- Etiqueta do agente numa linha: nome, pílula curta da situação do
+  planejamento ("Revisar 0/19", na cor da situação) e os números. O texto
+  inteiro fica no título e no painel do agente.
+- Defeito do mapa achado aqui: o desenho da peça de parede vinha do cache e
+  era o mesmo canvas para todas as peças iguais, então só a última de cada
+  tipo ficava na parede (o Café mostrava 4 de 14 papéis). Cada peça leva a sua
+  cópia (`mapaCopiarCanvas`), com teste. Vale para todas as salas e quartos.

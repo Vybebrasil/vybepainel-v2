@@ -1040,6 +1040,15 @@ function escritorioDetalheDoPlano(p) {
   if (p.estado === "ajustes" && r.cliente_ajustes) return `${ESCRITORIO_ACAO_PLANO.ajustes} · ${r.cliente_ajustes} ${r.cliente_ajustes === 1 ? "peça" : "peças"}`;
   return "";
 }
+// A situação curta da etiqueta do agente ("Revisar 0/19"); o texto inteiro
+// (escritorioDetalheDoPlano) fica no título e no painel do agente.
+function escritorioPilulaDoPlano(p) {
+  const r = p.revisao || {};
+  if (p.estado === "revisar") return r.total ? `Revisar ${r.head_ok}/${r.total}` : "Revisar";
+  if (p.estado === "enviado") return r.total ? `Cliente ${r.cliente_aprovadas + r.cliente_ajustes}/${r.total}` : "Com o cliente";
+  if (p.estado === "ajustes") return r.cliente_ajustes ? `Ajustes ${r.cliente_ajustes}` : "Ajustes";
+  return (ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado])[0];
+}
 async function escritorioOcuparOperacao() {
   if (escritorio.quarto !== "operacao" || !escritorio.mapa?.ocuparPostos) return;
   const mapa = escritorio.mapa;
@@ -1051,14 +1060,34 @@ async function escritorioOcuparOperacao() {
     postos = d.postos || [];
   } catch (e) { escritorioAviso("Não foi possível chamar os agentes: " + e.message); return; }
   if (mapa !== escritorio.mapa) return;
-  const n = mapa.numeroDePostos();
-  mapa.ocuparPostos(postos.slice(0, n).map((a, i) => {
+  // Cada agente senta na ala da carteira do cliente (Paulo, 20/10/2026: dividir
+  // os clientes de Vinícius e de Ewerton). A carteira é a do painel
+  // (carteiraDoCliente); quem não cabe na ala ou não tem carteira senta num
+  // posto livre qualquer.
+  const lugares = mapa.alasDosPostos ? mapa.alasDosPostos() : Array.from({ length: mapa.numeroDePostos() }, (_, posto) => ({ posto, ala: "" }));
+  const livres = new Set(lugares.map((l) => l.posto));
+  const lugarDe = new Map();
+  for (const a of postos) {
+    const carteira = typeof carteiraDoCliente === "function" ? carteiraDoCliente(a.cliente) : "";
+    const l = lugares.find((x) => carteira && x.ala === carteira && livres.has(x.posto));
+    if (l) { livres.delete(l.posto); lugarDe.set(a, l.posto); }
+  }
+  for (const a of postos) {
+    if (lugarDe.has(a)) continue;
+    const l = lugares.find((x) => livres.has(x.posto));
+    if (!l) break;
+    livres.delete(l.posto); lugarDe.set(a, l.posto);
+  }
+  const sentados = postos.filter((a) => lugarDe.has(a));
+  const alas = { vinicius: { texto: "Carteira Vinícius", cor: "#ff8b38" }, ewerton: { texto: "Carteira Ewerton", cor: "#579bfc" } };
+  mapa.ocuparPostos(sentados.map((a) => {
+    const i = postos.indexOf(a);
     const p = a.planejamento;
     const [situacao, cor] = p ? ESCRITORIO_SITUACAO_PLANO[p.estado] || [p.estado, "#8f98a9"] : ["Sem planejamento", "#8f98a9"];
     const al = a.alertas || {};
     const resumoAvisos = [al.atrasadas_total && `${al.atrasadas_total} muito atrasada${al.atrasadas_total > 1 ? "s" : ""}`, al.aprovar_total && `${al.aprovar_total} para aprovar`,
       al.sem_info_total && `${al.sem_info_total} sem informação`].filter(Boolean).join(" · ");
-    return { posto: i, nome: a.cliente, situacao, cor, figura: escritorioFiguraDoAgente(a, i), mao: escritorioMaoDoAgente(a), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean((a.meu || escritorio.base?.admin) && p && ESCRITORIO_ACAO_PLANO[p.estado]), acao: p ? ESCRITORIO_ACAO_PLANO[p.estado] || "" : "",
+    return { posto: lugarDe.get(a), nome: a.cliente, situacao, cor, pilula: p ? escritorioPilulaDoPlano(p) : "", figura: escritorioFiguraDoAgente(a, i), mao: escritorioMaoDoAgente(a), falas: escritorioFantasiaDoAgente(a)?.[3] || [], alerta: Boolean((a.meu || escritorio.base?.admin) && p && ESCRITORIO_ACAO_PLANO[p.estado]), acao: p ? ESCRITORIO_ACAO_PLANO[p.estado] || "" : "",
       // A situação aparece escrita também quando está com o cliente, com o placar das peças.
       detalhe: p ? escritorioDetalheDoPlano(p) : "",
       avisos: al.total || 0, resumoAvisos,
@@ -1066,8 +1095,8 @@ async function escritorioOcuparOperacao() {
       // Cor é dado: a do próprio status no catálogo (Paulo, 20/10/2026: "cadê a regra dos status?").
       contagens: { atrasadas: al.atrasadas_total || 0, interna: al.aprovar_interna_total ?? al.aprovar_total ?? 0, cliente: al.aprovar_cliente_total || 0, info: al.sem_info_total || 0,
         corInterna: escritorioCorDoStatus("para_aprovacao"), corCliente: escritorioCorDoStatus("ag_aprovacao_cliente"), corInfo: escritorioCorDoStatus("falta_info") }, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
-  }));
-  if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
+  }), alas);
+  if (postos.length > sentados.length) escritorioAviso(`${postos.length - sentados.length} clientes ainda sem mesa no Centro de Operação.`);
 }
 // Painel do agente: um resumo que leva ao que o painel já tem (Paulo,
 // 19/10/2026: "não sair duplicando regra de nada"). Os números são listas
