@@ -1618,6 +1618,23 @@ function escritorioListaSalasHtml() {
   return `${musica}${comGente.map(cartao).join("")}<section class="ofc-vazios"><h4>Outros lugares</h4><div>${vazios.map((a) => `<button type="button" class="ofc-mini" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}" onclick="escritorioIrParaAmbiente('${a.id}',true)">${safeText(a.nome)}</button>`).join("")}</div></section>`;
 }
 // Botões do dock dentro do escritório: o que muda com conexão e chamada.
+// Cartão rápido ao passar o mouse no Perfil (Paulo, 21/10/2026): nível e XP
+// com a barra, moedas, entregas de hoje, atrasadas, meta da semana e
+// sequência, os números que a ficha já mostra, sem abrir a ficha.
+function escritorioCartaoEuHtml() {
+  const eco = escritorio.base?.economia, p = eco?.pontos || {};
+  const n = typeof escritorioNumerosDe === "function" && escritorio.base?.eu ? escritorioNumerosDe(escritorio.base.eu) : null;
+  const pctXp = p.xpProximo ? Math.min(100, Math.round(((p.xp || 0) / p.xpProximo) * 100)) : 0;
+  const pctDia = n?.dia?.total ? Math.round((n.dia.feitas / n.dia.total) * 100) : null;
+  const meta = p.meta?.meta ? Math.min(100, Math.round(((p.meta.entregas || 0) / p.meta.meta) * 100)) : null;
+  const linha = (rotulo, valor, extra = "", classe = "") => `<li class="${classe}"><span>${rotulo}</span><b>${valor}</b>${extra}</li>`;
+  const barra = (pct) => `<i class="ofc-eu-barra" role="presentation"><i style="width:${pct}%"></i></i>`;
+  return `<div class="ofc-eu-cartao" id="ofc-eu-cartao" role="tooltip">
+<div class="ofc-eu-cartao-topo"><b>${safeText(escritorio.base?.eu?.nome?.split(" ")[0] || "Você")}</b>${p.nivel ? `<span>Nível ${Number(p.nivel)}</span>` : ""}</div>
+${p.xpProximo ? `<div class="ofc-eu-xp"><span>${Number(p.xp || 0).toLocaleString("pt-BR")} de ${Number(p.xpProximo).toLocaleString("pt-BR")} XP</span><em>${pctXp}%</em>${barra(pctXp)}</div>` : ""}
+<ul>${eco?.disponivel ? linha("Moedas", Number(eco.saldo || 0).toLocaleString("pt-BR"), "", "moeda") : ""}${n ? linha("Hoje", n.dia.total ? `${n.dia.feitas} de ${n.dia.total}` : "nada vence hoje", pctDia === null ? "" : `<em>${pctDia}%</em>`) : ""}${n?.atrasadas ? linha("Atrasadas", n.atrasadas, "", "alerta") : ""}${meta !== null ? linha("Meta da semana", `${p.meta.entregas || 0} de ${p.meta.meta}`, `<em>${meta}%</em>`) : ""}${n?.seq ? linha("Sequência", `${n.seq} ${n.seq === 1 ? "dia" : "dias"}`) : ""}</ul>
+<small>Clique para abrir o perfil</small></div>`;
+}
 function atualizarControlesEscritorio() {
   const el = document.getElementById("office-controls");
   if (!el) return;
@@ -1647,7 +1664,7 @@ function atualizarControlesEscritorio() {
   // continuar numa linha só (Paulo, 20/10/2026: "o dock ficou mal diagramado").
   const planos = escritorio.planosPendentes || [];
   const avisoPlano = planos.length ? `<button type="button" class="ofc-dock-plano" onclick="abrirPendentesPlanejamento()" title="Planejamentos esperando você"><i aria-hidden="true"></i><svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${ESCRITORIO_EMBLEMAS.operacao}</svg>${planos.length === 1 ? `<b>${safeText(planos[0].cliente)}</b><span>${safeText(ESCRITORIO_ACAO_PLANO[planos[0].estado] || "Planejamento esperando você")}</span>` : `<b>${planos.length} planejamentos</b><span>esperando você</span>`}</button>` : "";
-  el.innerHTML = `${avisoPlano}<button type="button" class="ofc-dock-btn ofc-eu ofc-eu-perfil" onclick="abrirFichaEscritorio(escritorio.base.eu)" aria-label="Abrir o seu perfil${nivelEu ? `, nível ${nivelEu}` : ""}" title="Abrir o seu perfil: nível, moedas, conquistas e inventário"><span class="ofc-eu-rosto">${cabecaEu ? `<img src="${safeText(cabecaEu)}" alt="" width="34" height="34">` : escritorioAvatar(escritorio.perfil, "você")}${nivelEu ? `<em class="ofc-eu-nivel">${nivelEu}</em>` : ""}</span><span class="ofc-eu-rotulo">Perfil</span></button><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${(() => {
+  el.innerHTML = `${avisoPlano}<span class="ofc-eu-wrap"><button type="button" class="ofc-dock-btn ofc-eu ofc-eu-perfil" onclick="abrirFichaEscritorio(escritorio.base.eu)" aria-label="Abrir o seu perfil${nivelEu ? `, nível ${nivelEu}` : ""}" aria-describedby="ofc-eu-cartao"><span class="ofc-eu-rosto">${cabecaEu ? `<img src="${safeText(cabecaEu)}" alt="" width="34" height="34">` : escritorioAvatar(escritorio.perfil, "você")}${nivelEu ? `<em class="ofc-eu-nivel">${nivelEu}</em>` : ""}</span><span class="ofc-eu-rotulo">Perfil</span></button>${escritorioCartaoEuHtml()}</span><span class="ofc-sep"></span><label class="ofc-status">${escritorioStatusHtml(escritorio.conectado ? escritorio.status : "ausente")}<select aria-label="Sua disponibilidade" ${escritorio.conectado ? "" : "disabled"} onchange="escritorio.status=this.value;escritorioEmitir('presence:status',{status:this.value});atualizarControlesEscritorio()">${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}" ${escritorio.status === id ? "selected" : ""}>${nome}</option>`).join("")}</select></label><span class="ofc-sep"></span>${conversa}${escritorio.conectado ? `<details class="ofc-reacoes" id="office-reacoes"><summary class="ofc-dock-btn" aria-label="Reagir" title="Reagir">${escritorioIcone("reagir")}</summary><div>${Object.entries(ESCRITORIO_REACOES).map(([t, e]) => `<button type="button" onclick="reagirEscritorio('${t}')" aria-label="Reagir com ${t}">${e}</button>`).join("")}</div></details>` : ""}${(() => {
     // "Mais": o que se usa de vez em quando fica num menu só, para a barra
     // caber numa linha.
     const item = (acao, rotulo, extra = "") => `<button type="button" onclick="${acao};this.closest('details').open=false" ${extra}>${rotulo}</button>`;

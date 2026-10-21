@@ -73,9 +73,17 @@ function criadorDaFigura(fig) {
   if (!partes.hd) return criadorDaFigura(CRIADOR_PADRAO.M);
   return { g, partes };
 }
+// Peça sem cor na figura ("hr-100"): o imager do Habbo completa com a primeira
+// cor da paleta, um cinza quase branco, e o cabelo saía branco de costas no
+// mapa (Paulo, 21/10/2026). O catálogo marca alguns conjuntos com 0 cores;
+// sempre vai uma cor (cabelo escuro, o resto a primeira da paleta).
+function criadorCorPadrao(t) {
+  if (t === "hr") return 61;
+  return criadorPaleta(t)[0]?.[0] || 1;
+}
 function criadorFigura(f) {
   // A cabeça primeiro; o resto na ordem das abas.
-  return CRIADOR_ABAS.filter((a) => f.partes[a.t]).map((a) => [a.t, f.partes[a.t].id, ...f.partes[a.t].cores].join("-")).join(".");
+  return CRIADOR_ABAS.filter((a) => f.partes[a.t]).map((a) => { const p = f.partes[a.t]; return [a.t, p.id, ...(p.cores?.length ? p.cores : [criadorCorPadrao(a.t)])].join("-"); }).join(".");
 }
 function criadorServe(conj, g) {
   return conj && (conj[1] === "U" || conj[1] === g);

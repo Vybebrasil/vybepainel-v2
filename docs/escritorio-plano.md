@@ -1417,3 +1417,8 @@ decoração inicial "bem feito".
 - Provador: o boneco anda no lugar (4 passos do imager, `frame`, como no mapa),
   com botão de pausa ao lado do girar; "Reduzir movimento" deixa parado.
 - Cartões de sapato, calça e cinto aproximados na própria parte (`CRIADOR_ZOOM`), também na ficha do hover.
+- Cartão rápido no hover do Perfil (dock): nível e XP com barra, moedas,
+  entregas de hoje, atrasadas, meta da semana e sequência.
+- Peça sem cor na figura (catálogo marca alguns conjuntos com 0 cores, ex.
+  `hr-100`) sai com uma cor: o imager do Habbo completava com cinza-claro e o
+  cabelo aparecia branco de costas no mapa.
