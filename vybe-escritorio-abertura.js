@@ -500,11 +500,12 @@ function criadorFichaMostrar(ev) {
   x = Math.max(6, Math.min(x, caixa.right - caixa.left - w - 6));
   ficha.style.left = x + "px"; ficha.style.top = y + "px";
 }
-// Ordem da loja: padrão, preço, mais compradas e animadas primeiro.
-const CRIADOR_ORDENS = [["padrao", "Padrão"], ["barato", "Mais baratas"], ["caro", "Mais caras"], ["comprados", "Mais compradas"], ["animadas", "Animadas primeiro"]];
+// Ordem da loja: por padrão as animadas vêm primeiro em toda parte (Paulo,
+// 21/10/2026), depois a ordem do catálogo; ou preço e mais compradas.
+const CRIADOR_ORDENS = [["padrao", "Animadas primeiro"], ["barato", "Mais baratas"], ["caro", "Mais caras"], ["comprados", "Mais compradas"], ["catalogo", "Ordem do catálogo"]];
 function criadorOrdenar(conjuntos, t) {
   const o = criador.ordem || "padrao";
-  if (o === "padrao") return conjuntos;
+  if (o === "catalogo") return conjuntos;
   const chave = (s) => {
     const c = `roupa:${t}-${s[0]}`;
     return o === "barato" ? criadorPrecoRoupa(c) : o === "caro" ? -criadorPrecoRoupa(c)

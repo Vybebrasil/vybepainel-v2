@@ -12,6 +12,18 @@ const ANIMADAS_ESPELHO = { 4: 2, 5: 1, 6: 0 };
 // Origem do desenho no boneco "h" (64×110): conferida pixel a pixel contra o
 // imager. Cada camada traz as direções em que vai atrás do boneco ("a").
 const ANIMADAS_ORIGEM_Y = 100;
+// Margem da tela em volta do boneco (64×110): efeitos grandes (guarda-chuva
+// com nuvem, auras) passam do quadro do boneco e eram cortados na borda. A
+// margem sai dos quadros das peças vestidas, em todas as direções (com espelho).
+function animadasMargem(info) {
+  const m = { x: 0, cima: 0, baixo: 0 };
+  for (const a of info.achadas) for (const c of ANIMADAS.dados[a.chave].camadas) for (const qs of Object.values(c.d)) for (const [, , w, h, ax, ay] of qs) {
+    const topo = ANIMADAS_ORIGEM_Y - ay;
+    m.x = Math.max(m.x, ax, ax + w - 64, w - 64 - ax, -ax + w - 64);
+    m.cima = Math.max(m.cima, -topo); m.baixo = Math.max(m.baixo, topo + h - 110);
+  }
+  return { x: Math.ceil(m.x + 2), cima: Math.ceil(m.cima + 2), baixo: Math.ceil(m.baixo + 2) };
+}
 
 function animadasCarregar() {
   if (ANIMADAS.promessa) return ANIMADAS.promessa;
@@ -28,14 +40,26 @@ function animadasCarregar() {
   })();
   return ANIMADAS.promessa;
 }
-// "mc-6562-1408" → partes animadas da figura e a figura sem elas.
+// Peça com partes paradas (mão segurando o guarda-chuva, braço): o imager do
+// Habbo desenha a peça inteira, com a mão certa e na ordem certa em volta do
+// corpo, e a tela só anima as camadas que têm mais de um quadro (Paulo,
+// 21/10/2026: "o guarda-chuva parecia na frente e atrás, a mão levantada e
+// abaixada"). Peça toda animada (aura, bichinho) sai do imager e a tela desenha tudo.
+// Só para peças que trocam a mão ou o braço (mcl/mcr): nas outras o quadro
+// parado do imager ficaria embaixo do animado (o gatinho do chapéu em dobro).
+function animadasParcial(chave) {
+  const camadas = ANIMADAS.dados[chave].camadas;
+  return camadas.some((c) => ["mcl", "mcr"].includes(c.p)) && camadas.some((c) => Object.values(c.d).some((q) => q.length <= 1));
+}
+// "mc-6562-1408" → partes animadas da figura e a figura que o imager desenha.
 function animadasDaFigura(figura) {
   const d = ANIMADAS.dados;
   if (!d || !figura) return null;
   const partes = String(figura).split("."), achadas = [];
-  for (const p of partes) { const [t, id, ...cores] = p.split("-"); if (d[`${t}-${id}`]) achadas.push({ chave: `${t}-${id}`, tipo: t, cores: cores.map(Number) }); }
+  for (const p of partes) { const [t, id, ...cores] = p.split("-"); if (d[`${t}-${id}`]) achadas.push({ chave: `${t}-${id}`, tipo: t, cores: cores.map(Number), parcial: animadasParcial(`${t}-${id}`) }); }
   if (!achadas.length) return null;
-  return { base: partes.filter((p) => !d[p.split("-").slice(0, 2).join("-")]).join("."), achadas };
+  const inteiras = new Set(achadas.filter((a) => !a.parcial).map((a) => a.chave));
+  return { base: partes.filter((p) => !inteiras.has(p.split("-").slice(0, 2).join("-"))).join("."), achadas };
 }
 function animadasHex(tipo, corId) {
   const c = ANIMADAS.cores;
@@ -64,7 +88,7 @@ function animadasTingida(nome, hex) {
   return c;
 }
 function animadasDesenhar(tela) {
-  const { info, dir, escala, atras } = tela.animada, frente = tela.getContext("2d"), fundo = atras.getContext("2d");
+  const { info, dir, escala, atras, margem } = tela.animada, frente = tela.getContext("2d"), fundo = atras.getContext("2d");
   for (const g of [frente, fundo]) { g.clearRect(0, 0, tela.width, tela.height); g.imageSmoothingEnabled = false; }
   const parado = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   for (const a of info.achadas) {
@@ -72,7 +96,8 @@ function animadasDesenhar(tela) {
     for (const camada of dado.camadas) {
       const espelho = camada.d[dir] ? null : ANIMADAS_ESPELHO[dir];
       const quadros = camada.d[espelho ?? dir];
-      if (!quadros) continue;
+      // Peça parcial: a mão e o parado ficam com o imager; só o resto se mexe.
+      if (!quadros || (a.parcial && (quadros.length <= 1 || ["mcl", "mcr"].includes(camada.p)))) continue;
       const q = quadros[parado ? 0 : ANIMADAS.relogio % quadros.length];
       const hex = camada.cor ? animadasHex(a.tipo, a.cores[camada.cor - 1]) : null;
       const folha = hex ? animadasTingida(dado.folha, hex) : animadasFolha(dado.folha);
@@ -82,6 +107,7 @@ function animadasDesenhar(tela) {
       const esq = virar ? 64 + ax - w : -ax, topo = ANIMADAS_ORIGEM_Y - ay;
       g.save();
       g.scale(escala, escala);
+      g.translate(margem.x, margem.cima);
       if (virar) { g.translate(esq + w, topo); g.scale(-1, 1); g.drawImage(folha, x, y, w, h, 0, 0, w, h); }
       else g.drawImage(folha, x, y, w, h, esq, topo, w, h);
       g.restore();
@@ -115,13 +141,17 @@ function animadasSobre(img, figura, dir, { escala = 1, postura = "std" } = {}) {
     img.classList.add("ofc-com-animada");
   }
   // Redimensionar apaga a tela: só quando muda (o mapa chama isto a cada passo).
-  for (const t of [tela, atras]) if (t.width !== 64 * escala) { t.width = 64 * escala; t.height = 110 * escala; }
+  const M = animadasMargem(info), larg = (64 + 2 * M.x) * escala, alt = (110 + M.cima + M.baixo) * escala;
+  for (const t of [tela, atras]) if (t.width !== larg || t.height !== alt) { t.width = larg; t.height = alt; }
   tela.hidden = atras.hidden = false;
-  // A tela cobre a <img> exatamente (mesmo lugar e tamanho na página).
-  const encaixar = () => { for (const t of [tela, atras]) { t.style.left = img.offsetLeft + "px"; t.style.top = img.offsetTop + "px"; t.style.width = img.offsetWidth + "px"; t.style.height = img.offsetHeight + "px"; } };
+  // A tela cobre a <img> e a margem em volta (mesma escala da <img> na página).
+  const encaixar = () => {
+    const k = img.offsetWidth / 64;
+    for (const t of [tela, atras]) { t.style.left = img.offsetLeft - M.x * k + "px"; t.style.top = img.offsetTop - M.cima * k + "px"; t.style.width = (64 + 2 * M.x) * k + "px"; t.style.height = (110 + M.cima + M.baixo) * k + "px"; }
+  };
   encaixar();
   if (!img.offsetWidth) requestAnimationFrame(encaixar);
-  tela.animada = { info, dir: Number(dir) || 0, escala, atras };
+  tela.animada = { info, dir: Number(dir) || 0, escala, atras, margem: M };
   ANIMADAS.telas.add(tela);
   animadasDesenhar(tela);
   animadasLaco();
