@@ -8913,7 +8913,11 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .provador .prov-palco .cri-mao {position:absolute;z-index:4;right:12px;top:12px;margin:0;max-width:calc(100% - 24px);background:#16171ff0;backdrop-filter:blur(10px)}
 .provador .prov-palco .cri-mao > summary {padding:7px 10px;font-size:12px}
 .provador .prov-palco .cri-mao[open] {left:12px}
-.provador .prov-palco .cri-mao-grade {max-height:min(300px,40vh)}
+.provador .prov-palco .cri-mao-grade {max-height:146px}
+/* As miniaturas do "Objeto na mão" ficam pequenas: a regra antiga
+   ".cri .abr-previa img" (224×385, para o boneco do palco) pegava também a
+   grade e cada miniatura virava um boneco gigante (print do Paulo, 21/10). */
+.provador .prov-palco .cri-mao-grade img {width:56px;height:54px;margin:0;filter:none;cursor:default}
 
 /* Armário */
 .provador .prov-armario {grid-area:armario;display:flex;flex-direction:column;gap:12px;padding:16px 20px 12px;overflow:hidden;min-height:0;border-left:1px solid var(--prov-linha)}
@@ -9224,3 +9228,28 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
    faixa escura no meio, cortando os cartões que passavam por trás. */
 .abr-painel.abr-quarto .abr-acoes {margin-inline:-28px;margin-bottom:-28px;padding:16px 28px 24px;background:linear-gradient(to top,#16171e 72%,#16171e00);border-radius:0 0 26px 26px}
 @media (max-width:760px) {.abr-painel.abr-quarto .abr-acoes {margin-inline:-18px;margin-bottom:-18px;padding:14px 18px 18px}}
+
+/* Momento de conquista: o troféu (ou o número do nível) sobe no pedestal, com
+   faíscas, na cor do nível do troféu (Bronze a Diamante). Fecha sozinho. */
+.ofc-celebra {--prov-brilho:#ff8a35;position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:16px}
+.ofc-celebra.n1 {--prov-brilho:#e0915a}.ofc-celebra.n2 {--prov-brilho:#d9dde6}.ofc-celebra.n3 {--prov-brilho:#ffd166}.ofc-celebra.n4 {--prov-brilho:#9be8ff}
+.ofc-celebra-fundo {position:absolute;inset:0;border:0;background:radial-gradient(60% 50% at 50% 45%,color-mix(in srgb,var(--prov-brilho) 22%,transparent),#000c 70%);animation:vybe-fundo-entra .3s ease-out}
+.ofc-celebra-cartao {position:relative;display:grid;justify-items:center;gap:6px;width:min(360px,100%);padding:0 22px 22px;border-radius:24px;border:1px solid color-mix(in srgb,var(--prov-brilho) 40%,#ffffff14);background:linear-gradient(180deg,#1b1d26,#111218);box-shadow:0 30px 80px #000c,0 0 60px color-mix(in srgb,var(--prov-brilho) 25%,transparent);text-align:center;animation:ofc-celebra-entra .5s cubic-bezier(.2,1.3,.4,1)}
+.ofc-celebra-palco {position:relative;width:calc(100% + 44px);height:210px;margin:0 -22px 4px;overflow:hidden;border-radius:24px 24px 0 0;display:grid;place-items:end center;background:radial-gradient(60% 20% at 50% 88%,color-mix(in srgb,var(--prov-brilho) 35%,transparent),transparent 72%),linear-gradient(180deg,#15161d,#0c0d12)}
+.ofc-celebra-palco .prov-pedestal {position:absolute;left:50%;bottom:14px;width:160px;height:44px;transform:translateX(-50%)}
+.ofc-celebra-arte {position:relative;z-index:2;display:grid;place-items:center;width:110px;height:120px;margin-bottom:24px;animation:ofc-celebra-sobe .9s .15s cubic-bezier(.2,1.2,.4,1) both}
+.ofc-celebra-arte img {max-width:100px;max-height:110px;image-rendering:pixelated;filter:drop-shadow(0 8px 10px #000a) drop-shadow(0 0 16px color-mix(in srgb,var(--prov-brilho) 60%,transparent))}
+.ofc-celebra-arte b {font:900 64px/1 var(--mac-ui);color:#fff;text-shadow:0 4px 0 #0008,0 0 24px var(--prov-brilho)}
+.ofc-celebra-faiscas {position:absolute;inset:0;z-index:3;pointer-events:none}
+.ofc-celebra-faiscas i {position:absolute;left:50%;top:55%;width:7px;height:7px;border-radius:2px;background:var(--prov-brilho);opacity:0;animation:ofc-celebra-faisca 1.1s .45s ease-out forwards}
+.ofc-celebra-faiscas i:nth-child(odd) {background:#fff}
+.ofc-celebra-faiscas i:nth-child(1) {--x:-90px;--y:-70px}.ofc-celebra-faiscas i:nth-child(2) {--x:80px;--y:-80px}.ofc-celebra-faiscas i:nth-child(3) {--x:-120px;--y:-10px}.ofc-celebra-faiscas i:nth-child(4) {--x:120px;--y:-20px}
+.ofc-celebra-faiscas i:nth-child(5) {--x:-50px;--y:-110px}.ofc-celebra-faiscas i:nth-child(6) {--x:40px;--y:-115px}.ofc-celebra-faiscas i:nth-child(7) {--x:-140px;--y:-60px}.ofc-celebra-faiscas i:nth-child(8) {--x:140px;--y:-55px}
+.ofc-celebra-faiscas i:nth-child(9) {--x:-20px;--y:-130px}.ofc-celebra-faiscas i:nth-child(10) {--x:100px;--y:-110px}.ofc-celebra-faiscas i:nth-child(11) {--x:-105px;--y:-100px}.ofc-celebra-faiscas i:nth-child(12) {--x:15px;--y:-95px}
+.ofc-celebra-cartao > small {color:color-mix(in srgb,var(--prov-brilho) 70%,#fff);font:800 11px var(--mac-ui);letter-spacing:.12em;text-transform:uppercase}
+.ofc-celebra-cartao > b {color:#fff;font:800 19px/1.25 var(--mac-ui);text-wrap:balance}
+.ofc-celebra-cartao > .vb-botao {margin-top:10px;min-width:160px}
+@keyframes ofc-celebra-entra {from {opacity:0;scale:.85}}
+@keyframes ofc-celebra-sobe {from {opacity:0;translate:0 50px;scale:.6} 70% {scale:1.08}}
+@keyframes ofc-celebra-faisca {0% {opacity:1;transform:translate(-50%,-50%)} 100% {opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(160deg)}}
+@media (prefers-reduced-motion:reduce) {.ofc-celebra-cartao,.ofc-celebra-arte,.ofc-celebra-fundo {animation:none}.ofc-celebra-faiscas {display:none}}

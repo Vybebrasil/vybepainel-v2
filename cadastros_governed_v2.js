@@ -1593,6 +1593,9 @@ function fcGrupoDoQuadro(grupo) {
     // nao pode devolver a lista nem a janela para o topo: quem esta no 25 de
     // 40 continua vendo o 25.
     const mesmoPasso = caixa.dataset.passo === String(fcPasso);
+    // De um passo para o outro a pergunta desliza: para a esquerda ao avançar,
+    // para a direita ao voltar (Padrão Vybe, movimento com sentido).
+    const anterior = caixa.dataset.passo === undefined ? null : Number(caixa.dataset.passo);
     const rolagem = mesmoPasso ? {
       lista: caixa.querySelector('.fc-lista-linhas')?.scrollTop || 0,
       corpo: caixa.closest('.fc-body')?.scrollTop || 0,
@@ -1613,6 +1616,11 @@ function fcGrupoDoQuadro(grupo) {
       </div>`;
 
 
+    if (!mesmoPasso && anterior !== null) {
+      caixa.classList.remove('fc-entra-frente', 'fc-entra-tras');
+      void caixa.offsetWidth;
+      caixa.classList.add(fcPasso > anterior ? 'fc-entra-frente' : 'fc-entra-tras');
+    }
     if (ultimo) { renderPersons(); renderCustomDropdownsGlobal(); }
     // Briefing vindo do calendario sazonal ou de uma volta ao passo ja chega
     // escrito: sem isto ele apareceria cortado na altura minima.

@@ -241,13 +241,14 @@ ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) =
   d.innerHTML = `<div class="ofc-hud-topo"><div class="ofc-hud-boneco ofc-hud-palco"><span class="ofc-hud-holofote" aria-hidden="true"></span><span class="ofc-hud-pedestal" aria-hidden="true"></span><img src="${img}" alt="" width="128" height="220" referrerpolicy="no-referrer"></div>
 <div class="ofc-hud-id"><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3><small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}${funcao ? ` · ${funcao}` : ""}</small>
 ${nivel != null ? `<div class="ofc-hud-nivel"><span class="ofc-hud-selo" title="Nível">${nivel}</span><span class="ofc-hud-xp"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${xpProx}" aria-valuenow="${xp}" aria-label="XP até o próximo nível"><i style="width:${pct}%"></i></span><small>${xp} de ${xpProx} XP para o nível ${nivel + 1}</small></span></div>` : ""}
-${jogo ? `<div class="ofc-hud-moedas"><span title="VybeCoins na carteira">${escritorioFichaIcone("moeda")}<b>${Number(jogo.saldo).toLocaleString("pt-BR")}</b><small>moedas</small></span><span title="Níveis de conquista">${escritorioFichaIcone("estrela")}<b>${conquistas ?? 0}</b><small>conquistas</small></span><span title="Móveis no inventário">${escritorioFichaIcone("caixa")}<b>${moveis}</b><small>móveis</small></span>${rk?.posicao ? `<span class="rk" title="Ranking da semana" role="button" tabindex="0" onclick="abrirRankingEscritorio('geral')">${escritorioIcone("ranking")}<b>${rk.posicao}º</b><small>na semana</small></span>` : ""}</div>` : pub === null ? '<small class="ofc-nota" role="alert">Não deu para carregar moedas e inventário agora.</small>' : ""}</div>
+${jogo ? `<div class="ofc-hud-moedas"><span title="VybeCoins na carteira">${escritorioFichaIcone("moeda")}<b data-vb-contar="${Number(jogo.saldo)}" data-vb-chave="moedas-${sid}">${Number(jogo.saldo).toLocaleString("pt-BR")}</b><small>moedas</small></span><span title="Níveis de conquista">${escritorioFichaIcone("estrela")}<b>${conquistas ?? 0}</b><small>conquistas</small></span><span title="Móveis no inventário">${escritorioFichaIcone("caixa")}<b>${moveis}</b><small>móveis</small></span>${rk?.posicao ? `<span class="rk" title="Ranking da semana" role="button" tabindex="0" onclick="abrirRankingEscritorio('geral')">${escritorioIcone("ranking")}<b>${rk.posicao}º</b><small>na semana</small></span>` : ""}</div>` : pub === null ? '<small class="ofc-nota" role="alert">Não deu para carregar moedas e inventário agora.</small>' : ""}</div>
 <button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
 ${vitrine.length ? `<div class="ofc-hud-vitrine" aria-label="Troféus em destaque">${vitrine.map((v) => `<span class="n${v.nivel}" title="${safeText(v.nome)}">${escritorioMiniaturaHtml(v.classe)}</span>`).join("")}</div>` : ""}
 <div class="ofc-hud-abas" role="tablist" aria-label="Ficha">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" onclick="escolherAbaFichaEscritorio('${sid}','${k}')">${r}</button>`).join("")}</div>
 <div class="ofc-hud-corpo" role="tabpanel">${corpo}</div>
 <div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="${fechar}personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="${fechar}abrirRecadosEscritorio('${sid}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrAte('${sid}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="${fechar}abrirPresenteEscritorio('${sid}')">Dar um móvel de presente</button>`}</div>`;
   if (!d.open) d.showModal();
+  if (typeof vbAnimarContagens === "function") vbAnimarContagens(d);
   if (!semAtualizar) carregarPerfilJogoEscritorio(id, () => { if (d.open) abrirFichaEscritorio(id, true); });
   // Pontos e marcos mudam com o trabalho do dia: a ficha busca o estado atual
   // ao abrir (a própria pessoa; ou outra, para quem administra).
@@ -255,6 +256,7 @@ ${vitrine.length ? `<div class="ofc-hud-vitrine" aria-label="Troféus em destaqu
     escritorioApi("economia", null, eu ? null : { pessoa: String(id) }).then((r) => {
       if (!r?.economia) return;
       if (eu) escritorio.base.economia = { ...r.economia, loja: r.economia.loja || escritorio.base.economia?.loja };
+      if (eu) escritorioCelebrarSeMudou();
       else (escritorio.fichas ||= {})[String(id)] = r.economia;
       if (d.open) abrirFichaEscritorio(id, true);
     }).catch(() => { if (!eu) (escritorio.fichas ||= {})[String(id)] = null; if (d.open) abrirFichaEscritorio(id, true); });
@@ -1070,4 +1072,45 @@ function escritorioPorPecaHtml(pontos, funcao) {
   const extras = (pontos?.regras || []).filter((r) => ["cadastro", "briefing", "entrega_prazo", "dia_sem_furo"].includes(r.chave) && (r.moedas > 0 || r.pontos > 0))
     .map((r) => `<li class="extra"><span>${safeText(r.descricao)}</span><b>+${r.moedas}</b><small>moedas</small><b>+${r.pontos}</b><small>XP</small></li>`);
   return linhas.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>Quanto você ganha</h4><small>Como ${safeText(funcao || "membro da equipe")}, por peça concluída e por ação</small></div><ul class="ofc-hud-porpeca">${linhas.join("")}${extras.join("")}</ul><small class="ofc-nota">Peças com mais de um formato somam os pesos. Se várias pessoas fazem a mesma peça, dividem a parte.</small></section>` : "";
+}
+
+// Momento de conquista (Padrão Vybe, 21/10/2026: "movimento com sentido"): ao
+// chegar do servidor um nível ou troféu que a pessoa ainda não viu, o troféu
+// sobe no pedestal, numa tela rápida. Na primeira vez só guarda o que já tinha;
+// a lista do que foi visto fica no navegador da própria pessoa.
+function escritorioConquistasDaEconomia(eco) {
+  const trofeus = (eco?.marcos || []).flatMap((m) => (m.degraus || []).filter((d) => d.ok).map((d) => ({ chave: `${m.id}:${d.nivel}`, nome: `${m.nome} ${d.nome || ""}`.trim(), classe: d.classe, nivel: d.nivel })));
+  return { nivel: eco?.pontos?.nivel ?? null, trofeus };
+}
+function escritorioCelebrarSeMudou() {
+  const b = escritorio.base, eco = b?.economia;
+  if (!eco || b?.convidado || !b?.eu) return;
+  const agora = escritorioConquistasDaEconomia(eco);
+  if (agora.nivel === null && !agora.trofeus.length) return;
+  const chave = "vybe-celebrado-" + b.eu;
+  let antes = null;
+  try { antes = JSON.parse(localStorage.getItem(chave) || "null"); } catch {}
+  const salvar = () => { try { localStorage.setItem(chave, JSON.stringify({ nivel: agora.nivel, trofeus: agora.trofeus.map((t) => t.chave) })); } catch {} };
+  if (!antes) return salvar();
+  const vistos = new Set(antes.trofeus || []);
+  const novos = agora.trofeus.filter((t) => !vistos.has(t.chave)).sort((x, y) => y.nivel - x.nivel);
+  const subiu = agora.nivel !== null && antes.nivel !== null && agora.nivel > antes.nivel;
+  if (agora.nivel !== antes.nivel || novos.length) salvar();
+  if (novos.length || subiu) escritorioMostrarCelebracao(subiu ? agora.nivel : null, novos[0] || null);
+}
+function escritorioMostrarCelebracao(nivel, trofeu) {
+  document.getElementById("ofc-celebra")?.remove();
+  const el = document.createElement("div");
+  el.id = "ofc-celebra";
+  el.className = `ofc-celebra${trofeu ? " n" + trofeu.nivel : ""}`;
+  el.setAttribute("role", "status");
+  const titulo = trofeu ? "Novo troféu" : "Subiu de nível";
+  const texto = trofeu ? trofeu.nome + (nivel ? ` · e você chegou ao nível ${nivel}` : "") : `Você chegou ao nível ${nivel}. O XP nunca cai.`;
+  el.innerHTML = `<button type="button" class="ofc-celebra-fundo" aria-label="Fechar" onclick="document.getElementById('ofc-celebra')?.remove()"></button>
+<div class="ofc-celebra-cartao"><div class="ofc-celebra-palco" aria-hidden="true"><span class="prov-holofote"></span><span class="ofc-celebra-faiscas">${"<i></i>".repeat(12)}</span><span class="ofc-celebra-arte">${trofeu ? escritorioMiniaturaHtml(trofeu.classe) : `<b>${Number(nivel)}</b>`}</span><span class="prov-pedestal"></span></div>
+<small>${titulo}</small><b>${safeText(texto)}</b><button type="button" class="vb-botao principal" onclick="document.getElementById('ofc-celebra')?.remove()">Continuar</button></div>`;
+  document.body.append(el);
+  el.querySelector(".vb-botao")?.focus({ preventScroll: true });
+  if (typeof escritorioTocar === "function" && (typeof escritorioSomLigado !== "function" || escritorioSomLigado())) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => escritorioTocar(f, 0.16, 0.05), i * 110));
+  setTimeout(() => el.isConnected && el.remove(), 7000);
 }
