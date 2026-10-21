@@ -6356,6 +6356,9 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .cri-peca {position:relative;height:96px;border-radius:12px;border:1px solid #ffffff16;background:radial-gradient(60% 50% at 50% 70%,#ffffff12,transparent),#ffffff07;cursor:pointer;overflow:hidden;display:grid;place-items:center}
 .cri-peca.cabeca {height:78px}
 .cri-peca img {max-width:100%;max-height:100%;image-rendering:pixelated;pointer-events:none}
+/* Peça pequena (sapato, calça, cinto): o cartão aproxima a parte dela. */
+.cri-peca {overflow:hidden}
+.cri-peca:not(.cabeca) img.zoom,.prov-ficha-arte img.zoom {transform:translateY(var(--sobe,0%)) scale(var(--zoom));transform-origin:50% var(--foco)}
 .cri-peca:not(.cabeca) img {height:96px;width:auto;object-fit:contain;transform:scale(.92)}
 .cri-peca:hover {border-color:#ff8a3599;background-color:#ff8a3514}
 .cri-peca[aria-pressed=true] {border:2px solid #ff8a35;background-color:#ff8a3524}
@@ -9006,7 +9009,8 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
   background:#14151cf5;border:1px solid color-mix(in srgb,var(--prov-cor) 40%,#ffffff1a);box-shadow:0 12px 28px #000a;color:#eef0f5;font:500 12px/1.35 var(--mac-ui);animation:prov-ficha-entra .14s var(--curva,ease)}
 .prov-ficha[hidden] {display:none}
 @keyframes prov-ficha-entra {from {opacity:0;transform:translateY(4px)}}
-.prov-ficha-arte {justify-self:center;width:72px;height:72px;margin:-2px 0 4px;object-fit:contain;image-rendering:pixelated;border-radius:10px;
+.prov-ficha-arte img {max-width:100%;max-height:100%;image-rendering:pixelated}
+.prov-ficha-arte {justify-self:center;display:grid;place-items:center;overflow:hidden;width:72px;height:72px;margin:-2px 0 4px;border-radius:10px;
   background:radial-gradient(70% 45% at 50% 90%,color-mix(in srgb,var(--prov-cor) 30%,transparent),transparent 72%),#ffffff08}
 .prov-ficha b {font:750 13.5px var(--mac-ui);color:#fff}
 .prov-ficha b small {color:var(--prov-suave);font-weight:600}

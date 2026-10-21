@@ -1416,3 +1416,4 @@ decoração inicial "bem feito".
   A margem da tela sai dos quadros das peças vestidas.
 - Provador: o boneco anda no lugar (4 passos do imager, `frame`, como no mapa),
   com botão de pausa ao lado do girar; "Reduzir movimento" deixa parado.
+- Cartões de sapato, calça e cinto aproximados na própria parte (`CRIADOR_ZOOM`), também na ficha do hover.
