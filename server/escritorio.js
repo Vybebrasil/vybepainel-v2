@@ -73,6 +73,9 @@ export function perfilEscritorio(valor = {}) {
     // Objeto na mão escolhido no criador (Paulo, 20/10/2026), como os agentes
     // dos clientes: só o formato de carregar do Habbo ("crr=6").
     mao: /^crr=\d{1,3}$/.test(String(valor.mao || "")) ? String(valor.mao) : "",
+    // Looks guardados no criador (até 5): boneco e objeto na mão, no mesmo formato.
+    looks: (Array.isArray(valor.looks) ? valor.looks : []).filter((l) => /^[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}(\.[a-z]{2}-\d{1,5}(-\d{1,5}){0,2}){0,15}$/.test(String(l?.figura || "")))
+      .slice(0, 5).map((l) => ({ figura: String(l.figura), mao: /^crr=\d{1,3}$/.test(String(l.mao || "")) ? String(l.mao) : "" })),
     // Piso e cor das paredes da própria sala (só valores conhecidos).
     sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),

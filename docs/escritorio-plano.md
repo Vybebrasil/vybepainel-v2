@@ -1227,3 +1227,13 @@ decoração inicial "bem feito".
   usa conversa própria (`escritorioCanal` olha a presença), e quem está nela
   muda junto; ao sair o convidado, a sala volta para a conversa única. A sala
   de quem convidou não tranca mais sozinha.
+
+### Construção em três abas e criador de personagem — 21/10/2026
+
+- Construção no próprio quarto: abas **Móveis**, **Piso e paredes** e
+  **Planta e luz** (`catalogoCategoria` "Planta"). A barra diz o que o clique
+  faz com o pincel (`escritorioDicaDoPincel`), mostra "Tudo salvo" ou
+  "Mudanças não salvas" ao lado do Salvar, e ⌘S salva.
+- Criador: "Objeto na mão" virou grade com o busto segurando cada objeto
+  (`criadorMaoHtml`); arrastar o boneco para os lados gira; looks salvos (até
+  5, `perfil.looks`, validados em `perfilEscritorio`).

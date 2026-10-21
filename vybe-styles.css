@@ -8274,8 +8274,6 @@ img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);
    vista; o botão Pessoas da barra do editor mostra os outros de novo. */
 .ofc[data-editando="true"]:not([data-com-pessoas]) :is(.mapa-pessoa:not(.voce), .mapa-etiqueta:not(.voce), .mapa-fala, .mapa-chat, .mapa-digitando, .mapa-reacao, .mapa-conversa) {visibility:hidden;pointer-events:none}
 /* Criador no modo avatar do cliente: escolha do objeto de mão. */
-.cri-mao {display:flex;align-items:center;gap:8px;margin:2px 0 6px;font:600 12px var(--mac-ui);color:#d8dbe2}
-.cri-mao select {padding:5px 8px;border-radius:8px;border:1px solid #ffffff2a;background:#1c1e27;color:#fff;font:inherit}
 /* Setas ‹ › ao lado de "Ver em grade" e barra lateral visível (Deivid, 20/10/2026). */
 .section-title .dias-setas {display:inline-flex;gap:4px;margin-left:auto}
 .section-title .dias-setas[hidden] {display:none}
@@ -8747,3 +8745,34 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .mapa-pincel-area {fill:#ff9d0033;stroke:#ffb451;stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 @media (prefers-reduced-motion:no-preference) {.mapa-pincel-area {animation:mapa-pincel-pulso 1.6s ease-in-out infinite}}
 @keyframes mapa-pincel-pulso {50% {fill:#ff9d0055}}
+
+/* Construção: o estado do salvamento ao lado do Salvar (como o editor do planejamento). */
+.ofc-editor-estado {align-self:center;margin-right:4px;color:#8f98a9;font:600 12px var(--mac-ui);white-space:nowrap}
+.ofc-editor-estado.sujo {color:#ffcf8a}
+.ofc-editor-estado.sujo::before {content:"● ";color:#ff9d00}
+.ofc-editor-estado:empty {display:none}
+
+/* Criador de personagem: objeto na mão em grade, giro arrastando e looks salvos. */
+.cri-girar {cursor:grab;touch-action:none;user-select:none}
+.cri-girar:active {cursor:grabbing}
+.cri-mao {margin:2px 0 6px;border:1px solid #ffffff1c;border-radius:12px;background:#ffffff06}
+.cri-mao > summary {list-style:none;display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#c3cad6;font:600 13px var(--mac-ui)}
+.cri-mao > summary::-webkit-details-marker {display:none}
+.cri-mao > summary::after {content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid #9da4b4;border-bottom:2px solid #9da4b4;transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.cri-mao[open] > summary::after {transform:rotate(-135deg)}
+.cri-mao > summary b {color:#fff}
+.cri-mao-grade {display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px;padding:4px 10px 12px;max-height:220px;overflow:auto}
+.cri-mao-grade button {display:grid;justify-items:center;gap:2px;padding:6px 4px;border-radius:10px;border:1px solid #ffffff14;background:#ffffff08;color:#dfe4ec;font:500 11px var(--mac-ui);cursor:pointer}
+.cri-mao-grade button[aria-pressed="true"] {border-color:#ff9d00;background:#ff9d001f}
+.cri-mao-grade button:focus-visible {outline:2px solid #ff9d00;outline-offset:1px}
+.cri-mao-grade img {width:56px;height:54px;object-fit:cover;object-position:50% 38%;image-rendering:pixelated}
+.cri-mao-grade span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cri-looks {display:grid;gap:6px;justify-items:center;margin-top:6px}
+.cri-looks-titulo {color:#9da4b4;font:700 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.cri-looks-lista {display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.cri-look {position:relative}
+.cri-look > button:first-child, .cri-look-novo {width:46px;height:46px;display:grid;place-items:center;border-radius:12px;border:1px solid #ffffff1c;background:#ffffff0a;cursor:pointer;color:#ffcf8a;font:600 20px var(--mac-ui)}
+.cri-look > button:first-child:hover, .cri-look-novo:hover {border-color:#ff9d00}
+.cri .abr-previa .cri-look img, .cri-look img {filter:none;width:40px;height:40px;object-fit:contain;image-rendering:pixelated}
+.cri-look-tirar {position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:0;background:#2b2e38;color:#dfe4ec;font:700 11px/18px var(--mac-ui);cursor:pointer;opacity:0;transition:opacity .15s}
+.cri-look:hover .cri-look-tirar, .cri-look-tirar:focus-visible {opacity:1}
