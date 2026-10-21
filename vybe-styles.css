@@ -8721,6 +8721,28 @@ details.ofc-cq-grupo[open] > details.ofc-cq {margin:0 8px}
 /* Perfil na barra do jogo com cara de botão (Paulo, 20/10/2026). */
 .ofc-dock-btn.ofc-eu-perfil {gap:8px;padding:4px 12px 4px 4px;border-radius:999px;background:#ffffff0d;box-shadow:inset 0 0 0 1px #ffffff1f}
 .ofc-dock-btn.ofc-eu-perfil:hover {background:#ff95481f;box-shadow:inset 0 0 0 1px #ff954866}
+/* Cartão rápido do Perfil: abre no hover e no foco do teclado, acima do dock. */
+.ofc-eu-wrap {position:relative;display:flex}
+.ofc-eu-cartao {position:absolute;left:0;bottom:calc(100% + 12px);z-index:5;display:none;gap:10px;width:250px;padding:14px;border-radius:16px;pointer-events:none;
+  background:linear-gradient(180deg,#232634,#191b25);border:1px solid #ffffff1a;box-shadow:inset 0 1px 0 #ffffff12,0 3px 0 #0a0b10,0 16px 32px #000a;color:#eef0f5;font:500 12.5px/1.35 var(--mac-ui);text-align:left;animation:ofc-eu-entra .18s var(--curva,ease)}
+.ofc-eu-wrap:hover .ofc-eu-cartao,.ofc-eu-wrap:focus-within .ofc-eu-cartao {display:grid}
+@keyframes ofc-eu-entra {from {opacity:0;transform:translateY(6px)}}
+.ofc-eu-cartao-topo {display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.ofc-eu-cartao-topo b {font:800 15px var(--mac-ui);color:#fff}
+.ofc-eu-cartao-topo span {padding:1px 8px;border-radius:999px;background:#ff8a3522;color:#ffb27a;font:700 11.5px/18px var(--mac-ui)}
+.ofc-eu-xp {display:grid;grid-template-columns:1fr auto;gap:5px;color:#c5cad6;font-variant-numeric:tabular-nums}
+.ofc-eu-xp em,.ofc-eu-cartao li em {font-style:normal;color:#ffb27a;font-weight:700}
+.ofc-eu-barra {grid-column:1/-1;display:block;height:7px;border-radius:99px;background:#ffffff14;overflow:hidden}
+.ofc-eu-barra i {display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ff8a35,#ffb27a)}
+.ofc-eu-cartao ul {list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.ofc-eu-cartao li {display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:baseline;font-variant-numeric:tabular-nums}
+.ofc-eu-cartao li span {color:#aeb4c2}
+.ofc-eu-cartao li b {color:#fff;font-weight:750}
+.ofc-eu-cartao li.moeda b {color:#ffe2a3}
+.ofc-eu-cartao li.alerta b {color:#ff8f8f}
+.ofc-eu-cartao small {color:#8d93a3;font:500 11px var(--mac-ui)}
+@media (hover:none) {.ofc-eu-wrap:hover .ofc-eu-cartao {display:none}}
+@media (prefers-reduced-motion:reduce) {.ofc-eu-cartao {animation:none}}
 .ofc-eu-rosto {position:relative;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#ff954855,#2a2e3b 70%);box-shadow:0 0 0 2px #ff9548aa}
 .ofc-eu-rosto img {width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 30%}
 .ofc-eu-rosto .office-avatar {width:26px;height:auto}
