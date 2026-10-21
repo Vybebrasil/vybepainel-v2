@@ -693,6 +693,8 @@ const VB_ICONES = {
   ok: '<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.6"/>',
   calendario: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
 };
+// Rótulo depois do número: "3 atrasadas"; sigla continua sigla ("NPS médio").
+function vbRotulo(texto) { const t = String(texto || ''); return /^[A-ZÀ-Ý]{2}/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1); }
 function vbIcone(nome) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${VB_ICONES[nome] || VB_ICONES.vazio}</svg>`; }
 function vbCabecalhoHtml({ titulo, texto = '', acoes = '' }) {
   return `<header class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2>${safeText(titulo)}</h2>${texto ? `<p>${safeText(texto)}</p>` : ''}</div>${acoes ? `<div class="vb-cabecalho-acoes">${acoes}</div>` : ''}</header>`;

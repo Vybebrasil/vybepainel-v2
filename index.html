@@ -297,17 +297,17 @@
 <!-- ===== PAINEL DIÁRIO DE PRODUÇÃO ===== -->
 <div id="painel-diario" style="display:none;">
   <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-      <div>
-        <h2 style="color:var(--accent);margin:0;font-size:16px;">Diário de Produção</h2>
-        <p style="color:var(--text-muted);font-size:11px;margin:4px 0 0;">Fotos do estado dos conteúdos em momentos do dia, para comparar depois</p>
+    <div class="vb-cabecalho">
+      <div class="vb-cabecalho-texto">
+        <h2>Diário de Produção</h2>
+        <p>Fotos do estado dos conteúdos em momentos do dia, para comparar depois</p>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div class="vb-cabecalho-acoes">
         <div id="date-mode-bar-diario" class="date-mode-bar">
           <button class="date-mode-btn active" id="diario-mode-veiculacao" onclick="setDiarioDateMode('veiculacao',this)">Veiculação</button>
           <button class="date-mode-btn" id="diario-mode-prazo" onclick="setDiarioDateMode('prazo',this)">Prazo</button>
         </div>
-        <button class="btn-refresh" onclick="salvarSnapshot()">Registrar agora</button>
+        <button type="button" class="vb-botao principal" onclick="salvarSnapshot()">Registrar agora</button>
       </div>
     </div>
     <div id="diario-lista" style="display:block;">
@@ -333,7 +333,7 @@
       <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
         <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
       </select></label>
-      <label class="quadro-busca">Buscar cliente ou demanda<input id="busca-cliente-demandas" type="search" placeholder="Buscar cliente ou demanda…" oninput="buscarClienteDemandas(this.value)"></label>
+      <label class="quadro-busca"><span class="focus-oculto-visual">Buscar cliente ou demanda</span><input id="busca-cliente-demandas" type="search" placeholder="Buscar cliente ou demanda…" oninput="buscarClienteDemandas(this.value)"></label>
       <button type="button" class="quadro-novo" onclick="cadastrarNoGrupo('demandas','')">+ Nova demanda</button>
     </div>
     <nav id="dem-visoes" aria-label="Visões de demandas"></nav>
@@ -436,7 +436,7 @@
 <!-- ===== PAINEL CLIENTES ===== -->
 <div id="painel-clientes" style="display:none;">
   <div class="container">
-    <div class="client-module-hero"><div><span class="client-module-kicker">Relacionamento</span><h2>Clientes</h2><p>Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div><div class="client-module-actions"><span class="client-module-source">CADASTRO · ACESSOS · OPERAÇÃO</span><button type="button" onclick="openCadastrosStation()">+ CADASTROS</button></div></div>
+    <div class="client-module-hero"><div><span class="client-module-kicker">Relacionamento</span><h2>Clientes</h2><p>Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div><div class="client-module-actions"><button type="button" class="vb-botao" onclick="openCadastrosStation()">Cadastros</button></div></div>
     <div id="client-master-kpis" class="client-master-kpis"></div>
     <div id="client-master-source-rail" class="client-source-rail"></div>
     <div id="kpi-grid-clientes" class="kpi-grid"></div>
@@ -475,12 +475,7 @@
 <!-- ===== PAINEL PERFORMANCE ===== -->
 <div id="painel-performance" style="display:none;">
   <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-      <div>
-        <h2 style="color:var(--accent);margin:0;font-size:16px;">Performance de Produção</h2>
-        <p style="color:var(--text-muted);font-size:11px;margin:4px 0 0;">Prazos, veiculação e produtividade da equipe</p>
-      </div>
-    </div>
+    <div class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2>Performance de Produção</h2><p>Prazos, veiculação e produtividade da equipe</p></div></div>
     <!-- Seletor de período -->
     <div class="perf-period-bar">
       <button class="perf-period-btn" onclick="setPerfPeriod(7,this)">7 dias</button>

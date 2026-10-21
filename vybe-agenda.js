@@ -976,7 +976,7 @@ function renderManagerCalendar(forcar = false) {
     const isToday = cell.iso === (HOJE_ISO || META.today_iso);
     const events = dayItems.map(managerCalendarEventHtml).join('');
     const more = total > 5 ? `<button type="button" class="manager-calendar-more" onclick="abrirDiaDoCalendario(event,'${cell.iso}')" title="Ver os ${total} itens deste dia">+ ${total-5} ${total-5===1?'item':'itens'} neste dia</button>` : '';
-    return `<div class="manager-calendar-day ${cell.inMonth?'':'is-other'} ${isToday?'is-today':''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)"><div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span><button type="button" class="manager-calendar-add" onclick="managerCalendarAdd('${cell.iso}')" title="Cadastrar neste dia">+</button></div><div class="manager-calendar-events">${events || '<span class="manager-calendar-empty">—</span>'}${more}</div></div>`;
+    return `<div class="manager-calendar-day ${cell.inMonth?'':'is-other'} ${isToday?'is-today':''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)"><div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span><button type="button" class="manager-calendar-add" onclick="managerCalendarAdd('${cell.iso}')" title="Cadastrar neste dia">+</button></div><div class="manager-calendar-events">${events}${more}</div></div>`;
   }).join('');
   CLIENTES_DO_CALENDARIO = clients;
   const totalNoMes = semRecorte.filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso)).length;
@@ -2790,7 +2790,7 @@ function renderAgendaDeDemandas() {
         return `<div class="manager-calendar-day ${cell.inMonth ? '' : 'is-other'} ${cell.iso === hoje ? 'is-today' : ''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this,'demandas')">
           <div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span></div>
           <div class="manager-calendar-events">${mostra.map(managerCalendarEventHtml).join('')
-            || '<span class="manager-calendar-empty">—</span>'}${
+            || ''}${
             doDia.length > 4 ? `<button type="button" class="manager-calendar-more"
               onclick="abrirDiaDoCalendario(event,'${cell.iso}','demandas')"
               title="Ver as ${doDia.length} deste dia">+ ${doDia.length - 4} neste dia</button>` : ''}</div>

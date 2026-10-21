@@ -381,6 +381,11 @@ body.vybe-desktop {
 .quadro-busca { display:grid; gap:7px; flex:1; max-width:480px; color:var(--text-muted); font:500 12px var(--mac-ui); }
 .quadro-busca input { width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #ffffff26; border-radius:10px; background:#11131b99; color:var(--text); font:400 14px var(--mac-ui); }
 .quadro-novo,.grupo-adicionar { min-height:36px; padding:8px 13px; border:1px solid #ffffff25; border-radius:9px; color:#ffd0ab; background:#ff984f12; font:500 13px var(--mac-ui); cursor:pointer; white-space:nowrap; }
+/* No grupo, criar continua à mão (regra do produto), mas discreto: o botão
+   acende ao passar o mouse no grupo; no grupo vazio e no toque fica aceso. */
+.grupo-cabecalho .grupo-adicionar { min-height:30px; padding:5px 11px; border-color:transparent; background:transparent; color:#b9bdc8; transition:background .15s,color .15s,border-color .15s; }
+:is(.grupo-cabecalho:hover, .grupo-cabecalho:focus-within) .grupo-adicionar, .grupo-adicionar:focus-visible { border-color:#ffffff25; background:#ff984f12; color:#ffd0ab; }
+@media (hover:none) { .grupo-cabecalho .grupo-adicionar { border-color:#ffffff25; color:#ffd0ab; } }
 .quadro-novo { background:#ff984f; color:#281508; border-color:#ffbc88; }
 .grupo-cabecalho { display:flex; align-items:center; gap:12px; padding-right:16px; background:linear-gradient(90deg,color-mix(in srgb,var(--cor-grupo) 10%,transparent),transparent 70%); border-bottom:1px solid #ffffff10; }
 .grupo-bloco .grupo-cabecalho .grupo-cabeca { flex:1; min-width:0; width:auto; background:transparent; border-bottom:0; }
@@ -1504,7 +1509,21 @@ body.vybe-desktop {
 /* Camada do aplicativo: escopo explícito para não alterar cabeçalhos de modais.
    As regras legadas usam !important; estes seletores limitam a nova hierarquia. */
 .vybe-desktop > .app-header .header-title h1 {color:#351c0f!important}
-.vybe-desktop > .app-header .header-row1 {flex-basis:100%}
+/* Topo numa linha só em tela larga (Padrão Vybe, 21/10/2026): logo, abas e as
+   ferramentas à direita; o nome da aba fica no cabeçalho da própria página,
+   então o subtítulo repetido sai. Abaixo de 1180px volta às duas linhas. */
+.vybe-desktop > .app-header {flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:14px}
+.vybe-desktop > .app-header .header-row1 {flex:1 1 auto;min-width:0}
+.vybe-desktop > .app-header #header-sub {display:none}
+@media (max-width:1499px) {
+  .vybe-desktop > .app-header .header-title {display:none}
+  /* Para caber numa linha: abas mais justas, a conta só com as iniciais,
+     Notas só com o ícone e a busca sem o atalho escrito (fica no título). */
+  .vybe-desktop > .app-header .board-switch-btn {padding-left:10px!important;padding-right:10px!important}
+  .vybe-desktop > .app-header :is(.quem-sou-nome,.spotlight-button kbd) {display:none}
+  .vybe-desktop > .app-header .header-row2 .appearance-button[onclick="abrirNotas()"] > span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+}
+@media (max-width:1179px) {.vybe-desktop > .app-header .header-row1 {flex-basis:100%}}
 .vybe-desktop > .app-header .header-row2 {gap:8px}
 .vybe-desktop > .app-header .board-switch-bar {border-color:#57270f20!important}
 .vybe-desktop > .app-header .board-switch-btn:hover {color:#351c0f!important;background:#fff4df60!important}
@@ -1521,7 +1540,11 @@ body.vybe-desktop {
 .ops-command-bar .ops-attention {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ops-command-bar .ops-attention button {border-radius:20px;background:transparent}
 .ops-command-bar .ops-acoes {flex-wrap:wrap}
-.ops-command-bar .ops-acoes button {border:0;background:transparent;box-shadow:none}
+/* Padrão Vybe: as ferramentas da Produção são botões, então têm cara de chip
+   (antes, sem borda, pareciam texto solto). */
+.ops-command-bar .ops-acoes button {display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--vb-linha);border-radius:999px;background:#ffffff08;box-shadow:none;color:#d5d9e2;font:650 12.5px/1 var(--mac-ui)}
+.ops-command-bar .ops-acoes button:hover:not(:disabled) {border-color:#ffffff2e;background:#ffffff10}
+.ops-command-bar .ops-acoes button:is(.active,[aria-pressed="true"]) {border-color:#ff8a3599;background:#ff8a351f;color:#ffd0a8}
 .ops-command-bar .ops-botoes {gap:16px}
 .team-load-disclosure {width:100%;border-top:1px solid var(--border);padding-top:10px}
 .team-load-disclosure > summary {cursor:pointer;color:var(--text-muted);font-size:11px}
@@ -1545,8 +1568,16 @@ body.vybe-desktop {
 .agenda-navigation ~ .week-panel.active > .section-title {margin-top:2px}
 .app-header :is(button,summary):focus-visible,.team-load-disclosure summary:focus-visible {outline:2px solid currentColor;outline-offset:3px}
 @media(max-width:760px) {
- .vybe-desktop > .app-header .header-row1 {display:block}
- .app-header .board-switch-bar {margin-top:12px;display:flex}
+ /* Celular: logo e ferramentas numa linha, abas na de baixo (a primeira
+    linha ficava só com o logo). */
+ .vybe-desktop > .app-header .header-row1 {display:contents}
+ .vybe-desktop > .app-header .header-left {order:0}
+ .vybe-desktop > .app-header .header-row2 {order:1;flex:1 1 0;min-width:0;justify-content:flex-start}
+ .vybe-desktop > .app-header .header-row2 > :first-child {margin-left:auto}
+ .vybe-desktop > .app-header .header-row2 :is(.quem-sou-nome,.spotlight-button kbd) {display:none}
+ .app-header .board-switch-bar {order:2;flex-basis:100%;margin-top:8px;display:flex}
+ .vybe-desktop > .app-header .header-row2 {flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+ .vybe-desktop > .app-header .header-row2::-webkit-scrollbar {display:none}
  .workspace-heading {align-items:flex-start;flex-wrap:wrap}
  .ops-command-bar .ops-acoes {gap:8px;width:100%}
  .ops-command-bar .toolbar-label {width:100%}
@@ -1621,3 +1652,17 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 .vb-carregando .vb-brilho { height: 44px; }
 .vb-carregando .vb-brilho:nth-child(2) { width: 86%; } .vb-carregando .vb-brilho:nth-child(3) { width: 70%; }
 @media (prefers-reduced-motion: reduce) { .vb-brilho::after { animation: none; } }
+/* Calendário sem ruído (Padrão Vybe): dia vazio fica limpo e o "+" de
+   cadastrar aparece ao passar o mouse ou com o foco; no toque, sempre. */
+.manager-calendar-day .manager-calendar-add { opacity: 0; transition: opacity .15s; }
+.manager-calendar-day:is(:hover, :focus-within) .manager-calendar-add, .manager-calendar-add:focus-visible { opacity: 1; }
+@media (hover: none) { .manager-calendar-day .manager-calendar-add { opacity: .7; } }
+.vb-resumo-item[aria-pressed="true"] { border-color: #ff8a35aa; box-shadow: 0 0 0 3px #ff8a3526; color: #ffd0a8; }
+/* Um alternador só (Padrão Vybe): os seletores de período e de data das abas
+   (Diário, Demandas, Performance, IA e a agenda da Produção) com o desenho de .vb-alternar; o
+   escolhido fica branco. Só aparência: as classes e os cliques são os mesmos.
+   O !important é porque as regras antigas desses botões usam !important. */
+.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 12px; background: #0000004d !important; border: 1px solid var(--vb-linha) !important; box-shadow: none !important; }
+.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button { padding: 7px 13px !important; border: 0 !important; border-radius: 9px !important; background: transparent !important; color: #cfd3dc !important; font: 650 12.5px/1 var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; box-shadow: none !important; white-space: nowrap; cursor: pointer; }
+.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button:hover { color: #fff !important; background: #ffffff0d !important; }
+.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button.active { background: #fff !important; color: #14151b !important; }
