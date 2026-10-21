@@ -148,10 +148,11 @@ export function documentoHtml(p, { paraCliente = false, token = '', aviso = '', 
 <p class="dica-modo" data-so="doc">Todas as peças na mesma página. Em cada uma, toque em <i>Aprovar esta peça</i> ou <i>Pedir ajuste</i>. Fica salvo na hora.</p>
 <label class="quem">Quem está respondendo?<input id="quem" maxlength="80" autocomplete="name" placeholder="Seu nome" value="${esc(p.resposta_nome || '')}"></label>
 <p class="progresso"><span id="progresso">${respondidas} de ${pecas.length} peças respondidas</span><i><b id="barra" style="width:${pecas.length ? Math.round((respondidas / pecas.length) * 100) : 0}%"></b></i></p></div>
-<div class="escolha" id="escolha" hidden><div role="dialog" aria-modal="true" aria-labelledby="escolha-titulo"><small>Planejamento de ${esc(nomeDoMes(p.mes))}</small><h2 id="escolha-titulo">Como você prefere aprovar?</h2>
-<button type="button" data-modo="um"><b>Uma peça por vez</b><span>Você vê uma peça, aprova ou pede ajuste e passa para a próxima. Mais leve.</span></button>
-<button type="button" data-modo="doc"><b>Documento completo</b><span>Todas as ${pecas.length} peças na mesma página, como um documento.</span></button>
-<small>Dá para trocar a qualquer momento.</small></div></div>` : '';
+<div class="escolha" id="escolha" hidden><div class="escolha-caixa" role="dialog" aria-modal="true" aria-labelledby="escolha-titulo"><small class="escolha-kicker">Planejamento de ${esc(nomeDoMes(p.mes))} · ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}</small><h2 id="escolha-titulo">Como você prefere aprovar?</h2><p class="escolha-sub">Escolha o jeito mais confortável. Dá para trocar a qualquer momento e tudo fica salvo na hora.</p>
+<div class="escolha-opcoes">
+<button type="button" data-modo="um" class="op op-um"><span class="op-previa" aria-hidden="true"><span class="pilha"><i class="c c3"><i class="img"></i><i class="ln"></i><i class="ln curta"></i></i><i class="c c2"><i class="img"></i><i class="ln"></i><i class="ln curta"></i></i><i class="c c1"><i class="img"></i><i class="ln"></i><i class="ln curta"></i><i class="selo">✓</i></i></span></span><b>Uma peça por vez</b><span>Você vê uma peça, aprova ou pede ajuste, e a próxima aparece sozinha. Mais leve, ótimo no celular.</span><em class="op-ir">Começar pela primeira peça</em></button>
+<button type="button" data-modo="doc" class="op op-doc"><span class="op-previa" aria-hidden="true"><span class="pagina"><span class="rolo">${Array.from({ length: 2 }, () => '<i class="titulo"></i><i class="ln"></i><i class="ln curta"></i><i class="bloco"><i class="mini"></i><i class="ln"></i><i class="ok">✓</i></i><i class="bloco"><i class="mini"></i><i class="ln"></i><i class="ok">✓</i></i><i class="bloco"><i class="mini"></i><i class="ln"></i></i>').join('')}</span></span></span><b>Documento completo</b><span>Todas as ${pecas.length} peças na mesma página, como um documento. Bom para ler tudo de uma vez.</span><em class="op-ir">Abrir o documento</em></button>
+</div></div></div>` : '';
  const secao = (n, rotulo, titulo) => `<h2><small>${n} · ${rotulo}</small>${titulo}</h2>`;
  const corpo = `<div class="so-doc">${secao('01', 'Visão do mês', 'O que vamos comunicar')}${c.resumo ? `<p class="resumo">${esc(c.resumo)}</p>` : ''}
 <div class="numeros">${numeros.map((x) => `<div><b>${esc(x.valor)}</b><span>${esc(x.rotulo)}</span></div>`).join('')}</div>
@@ -197,7 +198,7 @@ const prox=document.querySelector('[data-ir="1"]');prox.textContent=atual===peca
 document.body.classList.remove('no-envio');document.querySelectorAll('.cal-mini a').forEach((a,k)=>{a.classList.toggle('atual',k===atual);a.classList.toggle('feita',!!pecasEl[k].querySelector('.decisao')?.dataset.estado);});
 document.querySelector('.cal-mini a.atual')?.scrollIntoView({inline:'center',block:'nearest'});if(rolar)scrollTo({top:0,behavior:'smooth'});}
 function irEnvio(){document.body.classList.add('no-envio');scrollTo({top:0,behavior:'smooth'});}
-function aplicarModo(m){modo=m;document.body.classList.toggle('modo-um',m==='um');document.body.classList.toggle('modo-doc',m==='doc');document.getElementById('escolha').hidden=true;
+function aplicarModo(m){modo=m;document.body.classList.toggle('modo-um',m==='um');document.body.classList.toggle('modo-doc',m==='doc');document.getElementById('escolha').hidden=true;document.body.classList.remove('escolhendo');document.body.style.removeProperty('--h-escolha');
 document.querySelectorAll('.modos [data-modo]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modo===m)));try{localStorage.setItem('vybe-modo-aprovacao',m);}catch(x){}
 if(m==='um'){const livre=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);mostrar(livre<0?0:livre,false);}else document.body.classList.remove('no-envio');}
 document.addEventListener('click',e=>{const m=e.target.closest('[data-modo]');if(m){aplicarModo(m.dataset.modo);return;}
@@ -207,9 +208,14 @@ const cal=e.target.closest('.cal a[href^="#peca-"],.cal-mini a');if(cal&&modo===
 document.addEventListener('vybe-respondida',()=>{if(modo!=='um')return;setTimeout(()=>{const livre=pecasEl.findIndex((el,k)=>k>atual&&!el.querySelector('.decisao')?.dataset.estado);
 const qualquer=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);const alvo=livre>=0?livre:qualquer;if(alvo>=0)mostrar(alvo);else irEnvio();},450);});
 let salvo='';try{salvo=localStorage.getItem('vybe-modo-aprovacao')||'';}catch(x){}
-if(salvo==='um'||salvo==='doc')aplicarModo(salvo);else{document.getElementById('escolha').hidden=false;document.body.classList.add('modo-doc');}
-if(MODO==='portal'){const h=()=>parent.postMessage({vybe:'planejamento-altura',h:document.documentElement.scrollHeight},'*');new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();}
-contar();})();</script>` : (modo === 'portal' ? `<script>(()=>{const h=()=>parent.postMessage({vybe:'planejamento-altura',h:document.documentElement.scrollHeight},'*');new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();})();</script>` : '');
+// Escolha aberta: no VybeHub a moldura cresce até o tamanho do documento, e a
+// janela centrada ficava no meio dele (Paulo, 21/10/2026: "tem que descer a
+// aba horrores"). A escolha fica no topo e a página encolhe até ela. A altura
+// mandada ao VybeHub é a do conteúdo: scrollHeight nunca fica menor que a moldura.
+if(salvo==='um'||salvo==='doc')aplicarModo(salvo);else{const e=document.getElementById('escolha');e.hidden=false;document.body.classList.add('modo-doc','escolhendo');
+const medir=()=>{if(document.body.classList.contains('escolhendo'))document.body.style.setProperty('--h-escolha',(e.firstElementChild.offsetHeight+64)+'px');};new ResizeObserver(medir).observe(e.firstElementChild);medir();e.querySelector('[data-modo]')?.focus({preventScroll:true});}
+if(MODO==='portal'){const h=()=>{const c=getComputedStyle(document.body);parent.postMessage({vybe:'planejamento-altura',h:Math.ceil(document.body.offsetHeight+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},'*');};new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();}
+contar();})();</script>` : (modo === 'portal' ? `<script>(()=>{const h=()=>{const c=getComputedStyle(document.body);parent.postMessage({vybe:'planejamento-altura',h:Math.ceil(document.body.offsetHeight+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},'*');};new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();})();</script>` : '');
  const scriptHead = revisando ? `<script>(()=>{let seq=0;const espera={};
 const falar=(dados)=>new Promise((ok,nao)=>{const id=++seq;espera[id]={ok,nao};parent.postMessage({vybe:'planejamento-head',id,dados},'*');});
 addEventListener('message',e=>{if(e.source!==parent||!e.data||e.data.vybe!=='planejamento-head-resposta')return;const w=espera[e.data.id];if(!w)return;delete espera[e.data.id];e.data.ok?w.ok(e.data):w.nao(new Error(e.data.erro||'Não deu para salvar.'));});
@@ -316,10 +322,52 @@ select{font:inherit;padding:10px;border:1px solid var(--linha);border-radius:12p
 .voltar-pecas{display:none}.modo-um .voltar-pecas{display:inline-block;padding:0 0 8px}
 .navega{display:none}.modo-um #area-pecas{display:flex;flex-direction:column}.modo-um .navega{display:flex;order:2;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 0}
 .navega span{font-weight:800;font-variant-numeric:tabular-nums}.navega button:disabled{opacity:.4;cursor:default}
-.escolha{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:#17171bcc;backdrop-filter:blur(4px)}.escolha[hidden]{display:none}
-.escolha > div{width:min(560px,100%);display:grid;gap:12px;padding:24px;border-radius:22px;background:var(--papel);box-shadow:0 30px 80px #0007}
-.escolha h2{margin:0}.escolha small{color:var(--sub)}.escolha button{display:grid;gap:4px;text-align:left;padding:16px 18px;border-radius:16px;background:#fff;border:1px solid var(--linha);color:var(--tinta)}
-.escolha button:hover,.escolha button:focus-visible{border-color:var(--vybe)}.escolha button b{font:800 17px Sora,sans-serif}.escolha button span{font-weight:500;color:var(--sub);font-size:14px}
+.escolha{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:24px 16px;overflow:auto;background:radial-gradient(70% 55% at 50% 0%,#e8602e40,transparent 70%),radial-gradient(60% 50% at 85% 100%,#ff9d0026,transparent 70%),#111114f2;backdrop-filter:blur(10px)}.escolha[hidden]{display:none}
+body.escolhendo{overflow:hidden}
+html:has(body.escolhendo){overflow:hidden}.portal.escolhendo{position:relative;height:var(--h-escolha,760px)}.portal .escolha{position:absolute;bottom:auto;min-height:100%;place-items:start center;padding-top:32px}
+.escolha-caixa{width:min(860px,100%);display:grid;gap:10px;color:#f4f1ec;animation:esc-entra .5s cubic-bezier(.2,.8,.2,1)}
+.escolha-kicker{color:#ffb07a;font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.escolha h2{margin:0;color:#fff;font:800 clamp(26px,4vw,38px)/1.1 Sora,sans-serif;letter-spacing:-.02em;text-wrap:balance}
+.escolha-sub{margin:0 0 10px;color:#b9b5ae;max-width:58ch}
+.escolha-opcoes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.escolha .op{position:relative;display:grid;align-content:start;gap:6px;padding:0 0 18px;border-radius:24px;border:1px solid #ffffff1f;background:linear-gradient(180deg,#ffffff0f,#ffffff05);color:#f4f1ec;text-align:left;cursor:pointer;overflow:hidden;transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s,box-shadow .25s}
+.escolha .op:hover,.escolha .op:focus-visible{transform:translateY(-4px);border-color:#ff9d00aa;box-shadow:0 24px 60px #000a,0 0 0 4px #ff9d0026;outline:none}
+.escolha .op > b{padding:0 20px;color:#fff;font:800 20px Sora,sans-serif}
+.escolha .op > span:not(.op-previa){padding:0 20px;color:#b9b5ae;font:500 14px/1.5 Manrope,sans-serif}
+.op-ir{justify-self:start;margin:8px 20px 0;padding:9px 16px;border-radius:12px;background:#ffffff14;color:#fff;font:700 13.5px Manrope,sans-serif;font-style:normal;transition:background .2s,color .2s}
+.op-ir::after{content:" →"}
+.escolha .op:hover .op-ir,.escolha .op:focus-visible .op-ir{background:linear-gradient(180deg,#ff9d00,#e8602e);color:#1d0d02}
+.op-previa{position:relative;display:grid;place-items:center;height:210px;margin-bottom:8px;overflow:hidden;background:radial-gradient(60% 50% at 50% 100%,#e8602e33,transparent 70%),#0b0b0e;border-bottom:1px solid #ffffff12}
+.op-previa i{display:block;font-style:normal}
+.op-previa .ln{height:6px;border-radius:3px;background:#ffffff2e;margin-top:6px}.op-previa .ln.curta{width:60%}
+/* Uma peça por vez: a peça da frente é aprovada e sai; a próxima vem para a frente. */
+.pilha{position:relative;width:132px;height:160px}
+.pilha .c{position:absolute;inset:0;padding:10px;border-radius:14px;background:#f7f5f1;box-shadow:0 14px 30px #0009;transform-origin:50% 100%}
+.pilha .c .img{height:84px;border-radius:9px;background:linear-gradient(135deg,#e8602e,#ff9d00 60%,#ffd29a)}
+.pilha .c .ln{background:#17171b26}
+.pilha .c2 .img{background:linear-gradient(135deg,#5b8def,#9fc0ff)}.pilha .c3 .img{background:linear-gradient(135deg,#3fbf8f,#b5f0d6)}
+.pilha .c1{z-index:3;animation:esc-c1 4.2s cubic-bezier(.6,0,.3,1) infinite}
+.pilha .c2{z-index:2;transform:translateY(-12px) scale(.93);opacity:.9;animation:esc-c2 4.2s cubic-bezier(.6,0,.3,1) infinite}
+.pilha .c3{z-index:1;transform:translateY(-24px) scale(.86);opacity:.7;animation:esc-c3 4.2s cubic-bezier(.6,0,.3,1) infinite}
+.pilha .selo{position:absolute;top:-10px;right:-10px;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#2fb67a;color:#fff;font:800 16px Sora,sans-serif;box-shadow:0 6px 14px #2fb67a66;transform:scale(0);animation:esc-selo 4.2s cubic-bezier(.3,1.6,.5,1) infinite}
+@keyframes esc-selo{0%,22%{transform:scale(0)}30%,46%{transform:scale(1)}52%,100%{transform:scale(0)}}
+@keyframes esc-c1{0%,40%{transform:none;opacity:1}56%{transform:translateX(140%) rotate(14deg);opacity:0}57%,84%{transform:translateY(8px) scale(.96);opacity:0}100%{transform:none;opacity:1}}
+@keyframes esc-c2{0%,44%{transform:translateY(-12px) scale(.93);opacity:.9}60%,99.9%{transform:none;opacity:1}100%{transform:translateY(-12px) scale(.93);opacity:.9}}
+@keyframes esc-c3{0%,48%{transform:translateY(-24px) scale(.86);opacity:.7}64%,99.9%{transform:translateY(-12px) scale(.93);opacity:.9}100%{transform:translateY(-24px) scale(.86);opacity:.7}}
+/* Documento completo: a página rola devagar e as peças ganham o ✓. */
+.pagina{position:relative;width:min(230px,80%);height:180px;margin-top:30px;padding:0 14px;border-radius:12px 12px 0 0;background:#f7f5f1;box-shadow:0 14px 30px #0009;overflow:hidden;-webkit-mask:linear-gradient(180deg,transparent,#000 14%,#000 80%,transparent);mask:linear-gradient(180deg,transparent,#000 14%,#000 80%,transparent)}
+.rolo{display:block;animation:esc-rolo 9s linear infinite}
+.pagina .titulo{width:55%;height:11px;margin-top:16px;border-radius:4px;background:#17171b}
+.pagina .ln{background:#17171b26}
+.pagina .bloco{position:relative;display:grid;grid-template-columns:38px 1fr;align-items:center;gap:8px;margin-top:12px;padding:8px;border-radius:9px;background:#fff;border:1px solid #e7e2d9}
+.pagina .bloco .ln{margin:0}
+.pagina .mini{height:30px;border-radius:6px;background:linear-gradient(135deg,#e8602e,#ff9d00)}
+.pagina .bloco:nth-of-type(odd) .mini{background:linear-gradient(135deg,#5b8def,#9fc0ff)}
+.pagina .ok{position:absolute;right:8px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:#2fb67a;color:#fff;font:800 11px/18px Sora,sans-serif;text-align:center}
+@keyframes esc-rolo{to{transform:translateY(-50%)}}
+@keyframes esc-entra{from{opacity:0;transform:translateY(14px)}}
+@media(prefers-reduced-motion:reduce){.escolha-caixa,.pilha .c,.pilha .selo,.rolo{animation:none}.pilha .selo{transform:scale(1)}.escolha .op{transition:none}.escolha .op:hover{transform:none}}
+@media(max-width:640px){.escolha-opcoes{grid-template-columns:1fr}.op-previa{height:150px}.pilha{transform:scale(.8)}.pagina{height:130px;margin-top:20px}.portal .escolha{padding-top:16px}}
 .obs{background:var(--cartao);border:1px dashed var(--linha);border-radius:14px;padding:14px 16px;white-space:pre-wrap}
 .como{margin:18px 0 0;background:var(--cartao);border:1px solid var(--linha);border-radius:16px;padding:14px 18px}.como b{font:700 15px Sora,sans-serif}.como ol{margin:6px 0 0;padding-left:20px}
 .aprovar{margin-top:44px;background:var(--cartao);border:2px solid var(--vybe);border-radius:20px;padding:22px}.aprovar h2{margin-top:0}.aprovar label{display:grid;gap:6px;margin:12px 0;font-weight:700}
@@ -334,7 +382,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 footer{margin-top:52px;color:var(--sub);font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}footer img{height:16px;filter:invert(1);opacity:.7;vertical-align:middle;margin-right:6px}
 @media print{.aprovar,.pedir,.ir,.como{display:none}main{padding:0}.peca{break-inside:avoid}}
 ${revisor ? '.no-painel main{max-width:1180px;padding-top:96px;padding-bottom:110px}.no-painel .peca,.no-painel #area-pecas{scroll-margin-top:100px}' : ''}
-</style></head><body class="${revisor ? 'no-painel' : ''}"><main>
+</style></head><body class="${[revisor ? 'no-painel' : '', modo === 'portal' ? 'portal' : ''].filter(Boolean).join(' ')}"><main>
 <header class="capa"><div class="marcas"><img class="vybe" src="${LOGO_VYBE}" alt="Vybe"><i aria-hidden="true">×</i>${logo ? `<span class="cli"><img src="${esc(logo)}" alt="${esc(p.cliente)}"></span>` : `<span class="cli-nome">${esc(p.cliente)}</span>`}</div>
 <div><small>Planejamento de conteúdo · ${esc(nomeDoMes(p.mes))}</small><h1>${esc(p.cliente)}</h1></div>
 ${p.titulo && p.titulo !== 'Planejamento de conteúdo' ? `<p>${esc(p.titulo)}</p>` : ''}
