@@ -52,7 +52,7 @@ export async function roupasDaPessoa(sql, pessoaId) {
     sql`SELECT chave, nome, preco FROM vybe_escritorio_raridades ORDER BY ordem`,
     sql`SELECT classe, raridade, preco FROM vybe_escritorio_catalogo WHERE classe LIKE 'roupa:%'`,
     sql`SELECT classe FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe LIKE 'roupa:%'`,
-    sql`SELECT chave, nome, descricao, classes, desconto FROM vybe_escritorio_kits WHERE ativo AND classes[1] LIKE 'roupa:%' ORDER BY ordem, chave`,
+    sql`SELECT * FROM vybe_escritorio_kits WHERE ativo AND classes[1] LIKE 'roupa:%' ORDER BY ordem, chave`,
     sql`SELECT classe, count(DISTINCT pessoa_id)::int AS n FROM vybe_escritorio_inventario WHERE classe LIKE 'roupa:%' GROUP BY classe`,
   ]);
   const faixa = Object.fromEntries(raridades.map((r) => [r.chave, { nome: r.nome, preco: Number(r.preco) }]));
@@ -64,9 +64,19 @@ export async function roupasDaPessoa(sql, pessoaId) {
     pecas: Object.fromEntries(linhas.map((l) => [l.classe, [l.raridade, l.preco === null ? null : Number(l.preco)]])),
     meus: meus.map((m) => m.classe),
     donos: Object.fromEntries(donos.map((d) => [d.classe, Number(d.n)])),
+    // Preço do kit para esta pessoa: só as peças pagas que ela ainda não tem
+    // (como em comprarKit). `visual` é a figura inteira do kit, com as cores.
+    // Skin completa guarda o visual dos dois corpos ("M:<figura>|F:<figura>")
+    // e as peças de ambos; o preço vale por corpo (como em comprarKit).
     kits: kits.map((k) => {
-      const cheio = k.classes.reduce((t, c) => t + Number(preco(c) || 0), 0);
-      return { chave: k.chave, nome: k.nome, descricao: k.descricao, classes: k.classes, desconto: Number(k.desconto), cheio, preco: Math.round(cheio * (1 - Number(k.desconto))) };
+      const minhas = new Set(meus.map((m) => m.classe));
+      const conta = (corpo) => {
+        const faltam = k.classes.filter((c) => (!corpo || ["U", corpo].includes(roupaDaClasse(c)?.genero)) && !minhas.has(c) && Number(preco(c) || 0) > 0);
+        const cheio = faltam.reduce((t, c) => t + Number(preco(c) || 0), 0);
+        return { faltam: faltam.length, cheio, preco: Math.round(cheio * (1 - Number(k.desconto))) };
+      };
+      const visual = Object.fromEntries(String(k.visual || "").split("|").map((v) => v.split(":")).filter((v) => ["M", "F"].includes(v[0]) && v[1]));
+      return { chave: k.chave, nome: k.nome, descricao: k.descricao, classes: k.classes, visual, desconto: Number(k.desconto), ...conta(""), corpos: { M: conta("M"), F: conta("F") } };
     }),
   };
 }

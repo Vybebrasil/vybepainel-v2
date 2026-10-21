@@ -291,6 +291,16 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Tabela de trocas (`2026-10-19-escritorio-trocas.sql`) aplicada no mesmo dia.
   Economia de 20/10/2026 (`2026-10-20-escritorio-economia.sql`, marcador
   `economia-2026-10-20`): saldo recalculado uma vez pela regra nova; não repetir.
+- Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
+  Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
+  efeitos e bichinhos animados no topo); a regra fica em
+  `scripts/escritorio-raridade-roupas.mjs`, que gera a migração. Roupa não tem
+  estoque nem vitrine (`infoMovel`). Skin é um visual completo dos dois corpos
+  (`vybe_escritorio_kits.visual`) e cobra só o que falta no corpo de quem
+  compra. Quarto reinício, só dos personagens (visual, looks e abertura; quarto,
+  inventário, moedas e XP ficam), na migração
+  `2026-10-21-escritorio-roupas-raridade.sql`, marcador
+  `personagens-2026-10-21`. Não repetir.
 
 ## Direção visual
 

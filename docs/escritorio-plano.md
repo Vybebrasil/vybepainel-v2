@@ -1382,3 +1382,25 @@ decoração inicial "bem feito".
   primeiro; filtro "Animadas" nas partes que têm; selo roxo nas peças animadas.
 - Próximo (a decidir com Paulo): skins completas no estilo Tibia (visual
   inteiro, da cabeça aos pés) em vez dos kits de duas peças.
+
+### Raridade das roupas pelo desenho, skins completas e personagens — 21/10/2026
+
+- Paulo: "o que for animado e diferente, mais foda, sempre vai ser mais caro";
+  "cabeça de herói mais cara que um chapéu". Cada peça foi desenhada sobre um
+  boneco básico (direção 2) e medida: área que muda, quanto sai do contorno do
+  corpo e quanto cobre o rosto. Conferido vendo a arte (vestidos enormes,
+  cabeças de robô/alien, armaduras e asas saem como diferentes).
+- Faixas: Comum (o resto), Incomum (assinante no Habbo), Raro (diferente),
+  Épico (muito diferente ou animada), Lendário (animada e diferente; efeitos
+  e bichinhos animados). Rosto livre que é cabeça especial deixou de ser grátis.
+  `scripts/escritorio-raridade-roupas.mjs` gera
+  `migrations/2026-10-21-escritorio-roupas-raridade.sql`.
+- Roupa não esgota nem depende da vitrine da semana (preço da faixa).
+- Skins no estilo do Tibia: 13 visuais completos (Chef, Mago, Ciberpunk,
+  Samurai, Médico, Cowboy, Roqueiro, Rei, Fantasma, Vampiro, Comando, Atleta,
+  Herói), com versão de cada corpo; aba Skins no Provador com cartões altos,
+  o boneco gira no hover; Provar veste tudo (rosto e cabelo da pessoa ficam,
+  salvo se a skin trouxer os dela). Os kits de duas peças saíram da vitrine.
+- Reinício dos personagens (Paulo pediu para todos refazerem o herói): guarda
+  o visual de cada um e limpa visual, looks e abertura, uma vez só.
+- Imagem do boneco que falhar no imager do Habbo cai no espelho habboassets.
