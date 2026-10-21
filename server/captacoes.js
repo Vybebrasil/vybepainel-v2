@@ -5,6 +5,7 @@
 // Agenda da Vybe; na gravação cada peça vira "Captação Feita". Falha do Google
 // aparece como aviso e não desfaz a captação (dá para tentar de novo).
 import { tokenGoogle } from '../vybe_drive.js';
+import { listarAgendaProducao } from './agenda-producao.js';
 import { BOARD_PRODUCAO } from './grupos.js';
 
 export const CAPTACAO = { pronta: 'agendar_captacao', agendada: 'captacao_agendada', feita: 'captacao_feita' };
@@ -214,4 +215,34 @@ export async function eventoNaAgenda(acao, k, { buscar = fetch, obterToken = tok
   if (!r.ok) throw new Error(r.status === 403 ? 'a conta do painel não pode mudar a agenda (confira o compartilhamento com "Fazer alterações")' : `Google respondeu ${r.status}`);
   const e = await r.json();
   return e.id;
+}
+
+// Captações que já estão no Google Agenda da Vybe (azuis), dos próximos dias,
+// ligadas ao cliente pelo nome no título ("Captação - Antonov - Iago"). São a
+// agenda real do Mizinho: contam mesmo sem terem sido montadas no painel.
+const normal = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const PALAVRAS_COMUNS = new Set(['clinica', 'grupo', 'escola', 'academia', 'loja', 'casa', 'restaurante', 'ristorante', 'bebidas', 'cliente', 'demonstracao', 'ficticio', 'papelaria', 'laboratorio', 'centro', 'servicos', 'solucoes']);
+export function clienteDoEvento(titulo, clientes) {
+  const t = ` ${normal(titulo).replace(/[^a-z0-9]+/g, ' ')} `;
+  let melhor = null, nota = 0;
+  for (const c of clientes) {
+    const nome = normal(c.nome).replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!nome) continue;
+    if (t.includes(` ${nome} `)) { if (nome.length + 100 > nota) { melhor = c; nota = nome.length + 100; } continue; }
+    for (const p of nome.split(' ')) if (p.length >= 4 && !PALAVRAS_COMUNS.has(p) && t.includes(` ${p} `) && p.length > nota) { melhor = c; nota = p.length; }
+  }
+  return melhor;
+}
+export async function agendaDeCaptacoes(sql, { dias = 21, listar = listarAgendaProducao, hoje = '' } = {}) {
+  const dia = diaValido(hoje) ? hoje : new Intl.DateTimeFormat('en-CA', { timeZone: FUSO }).format(new Date());
+  const [r, clientes, nossas] = await Promise.all([
+    listar(dia, { dias }),
+    sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true)`,
+    (async () => (await captacoesProntas(sql)) ? sql`SELECT id::text AS id, evento_google FROM vybe_captacoes WHERE evento_google IS NOT NULL AND estado <> 'cancelada'` : [])(),
+  ]);
+  const porEvento = new Map(nossas.map((n) => [n.evento_google, n.id]));
+  return (r.eventos || []).filter((e) => e.captacao).map((e) => {
+    const c = clienteDoEvento(e.titulo, clientes);
+    return { id: e.id, titulo: e.titulo, dia: e.dia, horario: e.horario, local: e.local, cliente_id: c?.id || '', cliente: c?.nome || '', captacao_id: porEvento.get(e.id) || '' };
+  });
 }

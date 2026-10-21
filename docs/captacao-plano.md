@@ -20,6 +20,19 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   (`migrations/2026-10-21-producao-captacoes.sql`); regras em
   `server/captacoes.js`; tela em `vybe-captacoes.js` (aba Captações da Produção).
 
+## Agenda real (21/10/2026, depois)
+
+- Paulo: "tem captação marcada e não tá contando; cada cor no Google Agenda
+  significa uma coisa e o azul é captação". A tela lê os eventos azuis do
+  Google Agenda da Vybe (cor padrão da agenda ou 1/7/9; amarelo 5 é reunião,
+  grafite 8 é pessoal; "Reunião…", "Consulta…" e o freela do Mizinho ficam
+  fora — `ehCaptacaoNaAgenda`) dos próximos 21 dias e liga cada evento ao
+  cliente pelo nome no título (`clienteDoEvento`).
+- Esquerda: agenda de captações por dia ("Hoje", "Amanhã"); a montada no
+  painel mostra as peças e o "Gravado". Direita: fila por cliente que abre,
+  da mais urgente (prazo vencido) para as outras, com "vencidas", "sem
+  roteiro" e a próxima captação marcada; busca por cliente.
+
 ## Próximas etapas
 
 2. Biblioteca de roteiros do Drive por cliente e período (documentos "Roteiro…"
