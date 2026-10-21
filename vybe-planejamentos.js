@@ -395,6 +395,15 @@ function pljEdTela(i, k, mov) {
   if (d) d.scrollTop = topo;
   if (mov === 'nova') document.querySelector(`[data-campo="pecas.${i}.telas.${telas.length - 1}"]`)?.focus();
 }
+// Placar curto da revisão para listas: o que o head já viu ou o que o cliente já respondeu.
+function pljPlacar(p) {
+  const r = p.revisao || {};
+  if (!r.total) return '';
+  if (['revisar', 'ajustes'].includes(p.estado) && !r.cliente_ajustes) return ` · ${r.head_ok} de ${r.total} OK`;
+  if (p.estado === 'ajustes') return ` · ${r.cliente_ajustes} com ajuste do cliente`;
+  if (p.estado === 'enviado') return ` · cliente respondeu ${r.cliente_aprovadas + r.cliente_ajustes} de ${r.total}`;
+  return '';
+}
 // Situação da peça no editor: o que o cliente respondeu e a revisão interna do
 // head. A revisão em si se faz na aba Documento.
 function pljRevisaoPecaHtml(x) {
