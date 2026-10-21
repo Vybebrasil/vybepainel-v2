@@ -53,7 +53,7 @@ export async function listarCaptacoes(sql, { de = '', ate = '' } = {}) {
   const linhas = await sql`SELECT k.id, k.cliente_id::text AS cliente_id, cl.nome AS cliente, k.dia::text AS dia,
       to_char(k.inicio, 'HH24:MI') AS inicio, to_char(k.fim, 'HH24:MI') AS fim, k.local, k.observacao, k.estado,
       k.evento_google IS NOT NULL AS na_agenda, k.evento_google, k.evento_do_painel, k.aviso, p.nome AS criado_por,
-      COALESCE(json_agg(json_build_object('id', c.id::text, 'titulo', c.titulo, 'formato', c.formato, 'briefing', c.briefing,
+      COALESCE(json_agg(json_build_object('id', c.id::text, 'titulo', c.titulo, 'formato', c.formato, 'briefing', c.briefing, 'prazo', c.prazo::text, 'veiculacao', c.veiculacao::text,
         'captacao', c.captacao_chave, 'gravado', kp.gravado_em IS NOT NULL) ORDER BY kp.ordem, c.id) FILTER (WHERE c.id IS NOT NULL), '[]') AS pecas
     FROM vybe_captacoes k
     LEFT JOIN vybe_clientes cl ON cl.id = k.cliente_id

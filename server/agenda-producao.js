@@ -28,6 +28,12 @@ export function tipoNaAgenda(e) {
   if (ehCaptacaoNaAgenda(e)) return 'captacao';
   return String(e.colorId || '') === '5' || /^(reuniao|call|alinhamento)\b/.test(normal(e.summary)) ? 'reuniao' : 'outro';
 }
+function horasNaSemana(e) {
+  if (!e.start.dateTime || !e.end.dateTime) return { inicio:'', fim:'' };
+  const inicio = horaLocal(e.start.dateTime), fim = horaLocal(e.end.dateTime);
+  if (dataLocal(e.end.dateTime) === dataLocal(e.start.dateTime)) return { inicio, fim };
+  return fim === '00:00' && (new Date(e.end.dateTime) - new Date(e.start.dateTime)) <= 864e5 ? { inicio, fim:'23:59' } : { inicio:'', fim:'' };
+}
 export function gravacoesDaAgenda(eventos) {
   const vistos = new Set();
   return eventos.filter(e => {
@@ -37,7 +43,9 @@ export function gravacoesDaAgenda(eventos) {
     vistos.add(e.id); return true;
   }).map(e => ({ id:e.id,cor:String(e.colorId || ''),captacao:ehCaptacaoNaAgenda(e),tipo:tipoNaAgenda(e),ambiguo:!/\b(gravacao|captacao)\b/.test(normal(e.summary)),titulo:String(e.summary || '').replace(/\s+/g,' ').trim(),
     dia:e.start.date || dataLocal(e.start.dateTime),
-    inicio:e.start.dateTime ? horaLocal(e.start.dateTime) : '',fim:e.end.dateTime ? horaLocal(e.end.dateTime) : '',
+    // Evento que passa de um dia para o outro vai para a faixa "dia todo" da
+    // semana (um aniversário de sábado a domingo não ocupa a coluna inteira).
+    ...horasNaSemana(e),
     link:/^https:\/\/www\.google\.com\/calendar\//.test(String(e.htmlLink || '')) ? e.htmlLink : '',
     horario:e.start.date ? 'Dia inteiro · horário não informado' : `${horaLocal(e.start.dateTime)} às ${horaLocal(e.end.dateTime)}`,
     fimDia:e.end.dateTime ? dataLocal(e.end.dateTime) : '',local:String(e.location || '').replace(/\s+/g,' ').trim(),

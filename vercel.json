@@ -6,6 +6,7 @@
     }
   ],
   "buildCommand": "node scripts/check.mjs && npm run build",
+  "ignoreCommand": "node scripts/vercel-construir.mjs",
   "outputDirectory": "dist",
   "headers": [
     {

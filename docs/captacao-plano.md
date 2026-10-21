@@ -52,6 +52,21 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   peças. Arrastar um cliente da fila para um horário, ou clicar num horário
   vazio, abre "Marcar captação" com o dia e a hora.
 
+## Perguntas que a tela responde (21/10/2026, pedido do Paulo)
+
+- "Quais captações tem na semana, que dia?": Semana ou Lista (título inteiro,
+  hora, cliente, estado); a legenda é o filtro (só captações por padrão; um
+  clique liga reuniões e compromissos), com a contagem de cada tipo.
+- "Tem roteiro? Está cadastrado?": cada captação tem um estado, igual no
+  bloco, na lista e no detalhe (`captEstado`): pronta, falta roteiro, peças
+  esperando, nada no sistema ou cliente não reconhecido. Cada peça mostra se
+  tem roteiro (briefing ou Docs), a captação e o prazo.
+- "O que precisa de mim?": o painel do lado, pelos próximos 30 dias
+  (`captPendencias`): ligar peças, cadastrar (abre o formulário de cadastro
+  com o cliente), marcar captação (cliente com peças sem data) e escrever
+  roteiro. Os números do topo abrem o grupo.
+- Evento que passa de um dia para o outro vai para "dia todo" (`horasNaSemana`).
+
 ## Etapa 2: biblioteca de roteiros (21/10/2026)
 
 - Aba "Roteiros" na Produção (`vybe-roteiros.js`, `server/roteiros.js`,

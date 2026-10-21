@@ -94,3 +94,10 @@ test('diagnóstico permite somente identidade técnica, nunca chave, tokens ou c
     else process.env.GOOGLE_SERVICE_ACCOUNT=anterior;
   }
 });
+test('evento que passa de um dia para o outro vira dia todo na semana; o que termina à meia-noite fica no dia',()=>{
+  const [niver,noite]=gravacoesDaAgenda([
+    evento({id:'n',summary:'Niver de Isa',start:{dateTime:'2026-10-24T12:00:00-03:00'},end:{dateTime:'2026-10-25T23:00:00-03:00'}}),
+    evento({id:'m',summary:'Captação show',start:{dateTime:'2026-10-24T22:00:00-03:00'},end:{dateTime:'2026-10-25T00:00:00-03:00'}})]);
+  assert.deepEqual([niver.inicio,niver.fim,niver.dia],['','','2026-10-24']);
+  assert.deepEqual([noite.inicio,noite.fim],['22:00','23:59']);
+});
