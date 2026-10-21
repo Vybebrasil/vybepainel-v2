@@ -1605,8 +1605,11 @@ async function areaCaptacoes(req,res,quem) {
         return res.status(200).json({ok:true,pecas:pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}))});
       }
       // A agenda do Google é a das captações de verdade; falha dela vira aviso.
-      const [lista, agenda] = await Promise.all([listarCaptacoes(banco,{de:req.query?.de,ate:req.query?.ate}),
-        agendaDeCaptacoes(banco).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}))]);
+      // Semana pedida (segunda-feira); sem ela, a semana de hoje.
+      const semana=/^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.semana||'')) ? String(req.query.semana) : '';
+      const fimSemana=semana ? new Date(new Date(`${semana}T12:00:00Z`).getTime()+6*864e5).toISOString().slice(0,10) : '';
+      const [lista, agenda] = await Promise.all([listarCaptacoes(banco,{de:semana||req.query?.de,ate:fimSemana||req.query?.ate}),
+        agendaDeCaptacoes(banco,{inicio:semana}).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}))]);
       return res.status(200).json({ok:true,...lista,agenda:agenda.eventos,aviso_agenda:agenda.aviso||''});
     }
     if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});

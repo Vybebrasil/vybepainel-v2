@@ -8175,7 +8175,12 @@ button.ofc-agente-num[aria-pressed="true"] {border-color:color-mix(in srgb,var(-
 @media (max-width:760px){.ofc-agente-topo {flex-wrap:wrap}.ofc-agente-boneco {display:none}}
 /* Agenda da Vybe no Escritório (Google Agenda, só leitura): a semana em
    linhas por dia, hoje em destaque, gravações com selo laranja. */
-#workflow-modal.ofc-agenda-janela {width:min(760px,calc(100vw - 32px));max-width:none}
+#workflow-modal.ofc-agenda-janela {width:min(1080px,calc(100vw - 32px));max-width:none}
+.ofc-agenda .capt-periodo {font-size:15px}
+.ofc-agenda-detalhe {display:grid;gap:4px;padding:12px 14px;border-radius:12px;border:1px solid #ffffff1c;background:#ffffff08}
+.ofc-agenda-detalhe b {color:#fff;font:720 14px var(--mac-ui)}
+.ofc-agenda-detalhe small {color:#aeb4c2;font:550 12.5px var(--mac-ui)}
+.ofc-agenda-detalhe-acoes {display:flex;gap:14px;margin-top:4px;font:650 12.5px var(--mac-ui)}
 .ofc-agenda {display:grid;gap:12px}
 .ofc-agenda-topo {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ofc-agenda-topo .workflow-title {margin:0}
@@ -9431,29 +9436,105 @@ img.ofc-com-animada {position:relative;z-index:1}
    de verdade (eventos azuis do Google por dia, "Hoje" em destaque). Direita:
    a fila por cliente, uma linha que abre, das mais urgentes para as outras.
    Estado sempre por texto e cor juntos. */
-.capt {display:grid;gap:18px}
-.capt-colunas {display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:22px;align-items:start}
-.capt-coluna {display:grid;gap:12px;min-width:0}
+.capt {display:grid;gap:16px}
+/* Barra da semana: navegação, período, cores e a ação principal. */
+.capt-barra {display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.capt-nav {display:inline-flex;gap:4px}
+.capt-nav .vb-botao {min-height:32px;padding:0 11px}
+.capt-nav .vb-botao:disabled {opacity:.45;cursor:default}
+.capt-periodo {margin:0;color:#fff;font:760 17px/1.2 var(--mac-ui);font-variant-numeric:tabular-nums;text-transform:none}
+.capt-barra .ag-legenda {margin-left:auto}
+.capt-barra > .vb-botao.principal {flex:none}
+.capt-colunas {display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:18px;align-items:start}
+.capt-agenda {display:grid;gap:8px;min-width:0;transition:opacity .2s var(--curva,ease)}
+.capt-agenda.carregando {opacity:.55;pointer-events:none}
+.capt-dica {margin:0;color:#8b92a3;font:500 12px var(--mac-ui)}
+.capt-lado {position:sticky;top:12px;display:grid;gap:10px;align-content:start;min-width:0;max-height:calc(100vh - 140px);overflow:auto;padding:2px}
 .capt-coluna-topo {display:flex;align-items:center;gap:12px;min-height:36px}
 .capt-coluna-topo h4 {margin:0;color:#fff;font:780 16px var(--mac-ui)}
-.capt-coluna-topo small {color:#8fb5ff;font:600 12px var(--mac-ui)}
 .capt-busca {margin-left:auto}
-.capt-busca input {width:200px;padding:8px 12px;border-radius:10px;border:1px solid #ffffff1f;background:#0000002e;color:#fff;font:500 13px var(--mac-ui)}
+.capt-busca input {width:180px;padding:8px 12px;border-radius:10px;border:1px solid #ffffff1f;background:#0000002e;color:#fff;font:500 13px var(--mac-ui)}
 .capt-busca input:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
 .capt ul {list-style:none;margin:0;padding:0;display:grid;gap:6px}
-/* Agenda */
-.capt-dia {display:grid;gap:8px}
-.capt-dia h5 {margin:6px 0 0;color:#aeb4c2;font:750 12.5px var(--mac-ui);text-transform:capitalize}
-.capt-dia.hoje h5 {color:#ffb27a}
-.capt-evento {display:grid;grid-template-columns:86px minmax(0,1fr);gap:12px;padding:12px 14px;border-radius:14px;border:1px solid #ffffff12;border-left:4px solid #4f8df7;background:linear-gradient(180deg,#1f222d,#181a23);animation:esp-entra .3s var(--curva,ease) both}
-.capt-dia.hoje .capt-evento {background:linear-gradient(180deg,#1f2738,#181c27);box-shadow:0 0 0 1px #4f8df733}
-.capt-evento.gravada {border-left-color:#00c875}
-.capt-hora {color:#cfe0ff;font:750 13px/1.3 var(--mac-ui);font-variant-numeric:tabular-nums}
-.capt-evento-texto {display:grid;gap:6px;min-width:0}
-.capt-evento-texto > b {color:#fff;font:700 14px/1.3 var(--mac-ui)}
-.capt-evento-texto > small {color:#9aa1b2;font:500 12px var(--mac-ui)}
-.capt-evento-pe {display:flex;align-items:center;justify-content:space-between;gap:10px;color:#9aa1b2;font:600 12px var(--mac-ui)}
-.capt-evento-pe em {font-style:normal}
+.capt-discreto {margin:0;color:#8b92a3;font:500 12.5px/1.45 var(--mac-ui)}
+/* Detalhe do evento, no lugar da fila. */
+.capt-detalhe {display:grid;gap:10px;padding:16px;border-radius:16px;border:1px solid #ffffff1c;background:linear-gradient(180deg,#1f222d,#181a23);animation:esp-entra .25s var(--curva,ease) both}
+.capt-detalhe-topo {display:flex;justify-content:space-between;gap:10px;font:650 12.5px var(--mac-ui)}
+.capt-detalhe h4 {margin:0;color:#fff;font:760 17px/1.25 var(--mac-ui)}
+.capt-detalhe h5 {margin:6px 0 0;color:#aeb4c2;font:750 12px var(--mac-ui);display:flex;justify-content:space-between;gap:8px}
+.capt-detalhe h5 small {color:#8b92a3;font-weight:600}
+.capt-detalhe-quando {margin:0;color:#cfd3dc;font:550 13px/1.45 var(--mac-ui)}
+.capt-detalhe-cliente {margin:0;color:#fff;font:720 14px var(--mac-ui)}
+.capt-detalhe .vb-botao.principal {justify-self:start}
+.capt-detalhe .vb-link.perigo {justify-self:start;font-size:12.5px}
+.capt-tipo {justify-self:start;display:inline-flex;align-items:center;gap:6px;color:#cfd3dc;font:700 11.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.05em}
+.capt-tipo::before {content:"";width:9px;height:9px;border-radius:3px;background:var(--ag-cor)}
+.capt-quando-fixo {display:grid;gap:3px;margin:0;padding:10px 12px;border-radius:11px;background:#4f8df714;border:1px solid #4f8df744;color:#dbe7ff;font:650 13px var(--mac-ui)}
+.capt-quando-fixo small {color:#a9b8d6;font:500 12px var(--mac-ui)}
+
+/* Agenda da semana (agendaSemanaHtml): a mesma nas Captações e no Escritório.
+   As cores são as do Google Agenda da Vybe: azul captação, amarelo reunião. */
+.t-captacao {--ag-cor:#4f8df7}
+.t-reuniao {--ag-cor:#f2c14e}
+.t-outro {--ag-cor:#8b92a3}
+.ag-legenda {display:flex;flex-wrap:wrap;gap:12px}
+.ag-legenda-item {display:inline-flex;align-items:center;gap:6px;color:#aeb4c2;font:600 12px var(--mac-ui)}
+.ag-legenda-item::before {content:"";width:10px;height:10px;border-radius:3px;background:var(--ag-cor)}
+.ag {container-type:inline-size;min-width:0}
+.ag-semana {border-radius:16px;border:1px solid #ffffff14;background:#13151c;overflow:hidden}
+.ag-cabeca,.ag-dia-todo,.ag-corpo {display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr))}
+.ag-cabeca {border-bottom:1px solid #ffffff12;background:#181a22}
+.ag-dia-cab {display:grid;justify-items:center;gap:2px;padding:9px 4px 8px}
+.ag-dia-cab small {color:#8b92a3;font:700 10.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.06em}
+.ag-dia-cab b {display:grid;place-items:center;min-width:28px;height:28px;padding:0 4px;border-radius:999px;color:#eef0f5;font:700 15px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ag-dia-cab.hoje small {color:#ffb27a}
+.ag-dia-cab.hoje b {background:linear-gradient(180deg,var(--vb-laranja-2,#ffa04d),var(--vb-laranja,#ff7a1a));color:#1d0d02}
+.ag-dia-todo {border-bottom:1px solid #ffffff12;background:#16181f}
+.ag-dia-todo > span {padding:6px 6px 0 0;text-align:right;color:#6f7686;font:600 10px var(--mac-ui)}
+.ag-dia-todo > div {display:grid;gap:3px;padding:4px 2px;border-left:1px solid #ffffff0a;min-width:0}
+.ag-corpo {position:relative;max-height:min(620px,64vh);overflow-y:auto;scroll-behavior:smooth}
+.ag-horas {position:relative}
+.ag-horas span {position:absolute;right:8px;transform:translateY(-50%);color:#6f7686;font:600 10.5px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ag-horas span:first-child {transform:none}
+.ag-col {position:relative;border-left:1px solid #ffffff0a;min-width:0}
+.ag-col.hoje {background:#ff8a3506}
+.ag-col[onclick] {cursor:copy}
+.ag-col.alvo {background:#ff8a3514;box-shadow:inset 0 0 0 2px #ff8a3566}
+body.ag-arrastando .ag-col {background-image:repeating-linear-gradient(180deg,transparent 0 22px,#ffffff05 22px 23px)}
+.ag-linha {position:absolute;left:0;right:0;border-top:1px solid #ffffff0b;pointer-events:none}
+.ag-agora {position:absolute;left:-1px;right:0;z-index:3;border-top:2px solid #ff7a1a;pointer-events:none}
+.ag-agora::before {content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:#ff7a1a}
+.ag-ev {position:absolute;z-index:2;display:flex;flex-direction:column;gap:1px;overflow:hidden;padding:4px 7px 4px 9px;border:0;border-radius:8px;text-align:left;cursor:pointer;
+  background:color-mix(in srgb,var(--ag-cor) 22%,#15171e);box-shadow:inset 3px 0 0 var(--ag-cor),0 1px 2px #0006;color:#fff;transition:background .15s,transform .15s var(--curva,ease),box-shadow .15s}
+.ag-dia-todo .ag-ev,.ag-lista .ag-ev {position:relative}
+.ag-ev:hover {background:color-mix(in srgb,var(--ag-cor) 32%,#15171e);z-index:4}
+.ag-ev:focus-visible {outline:2px solid #ff8a35;outline-offset:1px;z-index:5}
+.ag-ev.sel {background:color-mix(in srgb,var(--ag-cor) 42%,#15171e);box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px #ff8a35,0 8px 20px #0008;z-index:5}
+.ag-ev b {font:700 11.5px/1.25 var(--mac-ui);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ag-ev small {color:#ffffffb8;font:550 10.5px/1.25 var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-selo {align-self:flex-start;margin-top:2px;padding:0 6px;border-radius:999px;background:#00000040;color:#d9f7e6;font:700 10px/16px var(--mac-ui);white-space:nowrap}
+.ag-selo.alerta {background:#ff8a3533;color:#ffd0a8}
+/* Bloco curto ou dividido: o selo vira um ponto laranja no canto (o texto fica no nome acessível e no detalhe). */
+.ag-ev.curto .ag-selo {display:none}
+.ag-ev.curto.alerta::after {content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#ff8a35;box-shadow:0 0 0 2px #15171e}
+.ag-movel {display:none}
+.ag-faixa {display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:10px}
+.ag-faixa-dia {display:grid;justify-items:center;gap:2px;padding:7px 2px;border-radius:12px;border:1px solid transparent;background:#ffffff06;color:#cfd3dc;cursor:pointer}
+.ag-faixa-dia small {color:#8b92a3;font:700 10px var(--mac-ui);text-transform:uppercase}
+.ag-faixa-dia b {font:700 15px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ag-faixa-dia i {display:flex;gap:2px;height:5px}
+.ag-faixa-dia i em {width:5px;height:5px;border-radius:50%;background:#4f8df7}
+.ag-faixa-dia.hoje b {color:#ffb27a}
+.ag-faixa-dia[aria-selected="true"] {border-color:#ff8a3599;background:#ff8a351f}
+.ag-faixa-dia:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.ag-lista-dia {display:grid;gap:6px}
+.ag-lista-dia[hidden] {display:none}
+.ag-lista .ag-ev {min-height:44px;padding:7px 10px 7px 12px}
+.ag-lista .ag-ev b {font-size:13px}
+.ag-lista .ag-ev small {font-size:11.5px}
+.ag-nada {margin:0;padding:14px;border-radius:12px;background:#ffffff06;color:#8b92a3;font:500 13px var(--mac-ui)}
+@container (max-width:620px) {.ag-semana {display:none}.ag-movel {display:block}}
+@media (prefers-reduced-motion:reduce) {.ag-ev,.capt-agenda {transition:none}.capt-detalhe {animation:none}.ag-corpo {scroll-behavior:auto}}
 /* Fila por cliente */
 .capt-fila {display:grid;gap:8px}
 .capt-cliente {border-radius:14px;border:1px solid #ffffff12;background:linear-gradient(180deg,#1f222d,#181a23);animation:esp-entra .3s var(--curva,ease) both}
@@ -9505,9 +9586,10 @@ img.ofc-com-animada {position:relative;z-index:1}
 .capt-form input:not([type=checkbox]),.capt-form textarea,.capt-form select {padding:9px 11px;border-radius:10px;border:1px solid #ffffff22;background:#0000002e;color:#fff;font:500 13.5px var(--mac-ui)}
 .capt-form input:focus-visible,.capt-form textarea:focus-visible,.capt-form select:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
 .capt-erro {margin:0;color:#ff9d9d;font:600 12.5px var(--mac-ui)}
-@media (max-width:1000px) {.capt-colunas {grid-template-columns:1fr}}
-@media (max-width:640px) {.capt-cliente > summary {flex-wrap:wrap}.capt-campos {grid-template-columns:1fr 1fr}.capt-campos label:first-child {grid-column:1/-1}.capt-busca input {width:150px}.capt-evento {grid-template-columns:1fr;gap:6px}}
-@media (prefers-reduced-motion:reduce) {.capt-cliente,.capt-evento {animation:none}.capt-cliente > summary::before {transition:none}}
+@media (max-width:640px) {.capt-dica {display:none}}
+@media (max-width:1000px) {.capt-colunas {grid-template-columns:1fr}.capt-lado {position:static;max-height:none}.capt-barra .ag-legenda {margin-left:0;order:5;width:100%}}
+@media (max-width:640px) {.capt-cliente > summary {flex-wrap:wrap}.capt-campos {grid-template-columns:1fr 1fr}.capt-campos label:first-child {grid-column:1/-1}.capt-busca input {width:150px}}
+@media (prefers-reduced-motion:reduce) {.capt-cliente {animation:none}.capt-cliente > summary::before {transition:none}}
 .capt-roteiro-doc {padding:1px 9px;border-radius:999px;background:#ff8a3517;border:1px solid #ff8a3540;color:#ffc59a;font:700 11px/18px var(--mac-ui);white-space:nowrap;text-decoration:none}
 .capt-roteiro-doc:hover {background:#ff8a3529}
 .capt-roteiro-doc:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}

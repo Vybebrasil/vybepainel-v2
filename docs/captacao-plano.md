@@ -33,6 +33,25 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   da mais urgente (prazo vencido) para as outras, com "vencidas", "sem
   roteiro" e a próxima captação marcada; busca por cliente.
 
+## Agenda única (21/10/2026, depois do pedido do Paulo: "uma tem que conversar com a outra")
+
+- Uma semana só, desenhada como calendário (`agendaSemanaHtml` em
+  `vybe-captacoes.js`): colunas por dia, horas, eventos pelo horário e lado a
+  lado quando se cruzam; no celular, a faixa de dias e a lista do dia. Cada
+  evento vem com o tipo do servidor (`tipoNaAgenda`): azul é captação,
+  amarelo ou "Reunião…" no título é reunião, o resto é compromisso.
+- Cada uma continua no seu lugar: Captações abre pelo painel geral (Produção)
+  e a "Agenda da semana" abre pelo ícone no Escritório, só para consulta, com
+  "Ver em Captações" na captação escolhida.
+- Na Produção a agenda conversa com a fila: clicar num evento abre o detalhe
+  ao lado; numa captação azul marcada direto no Google aparecem as peças do
+  cliente esperando e "Levar peças para esta captação", que liga as peças ao
+  evento sem criar outro (`evento_google`, `evento_do_painel = false`,
+  `migrations/2026-10-21-producao-captacoes-evento.sql`). Esse evento é de
+  quem o marcou: o painel não o reescreve nem o apaga; cancelar só solta as
+  peças. Arrastar um cliente da fila para um horário, ou clicar num horário
+  vazio, abre "Marcar captação" com o dia e a hora.
+
 ## Etapa 2: biblioteca de roteiros (21/10/2026)
 
 - Aba "Roteiros" na Produção (`vybe-roteiros.js`, `server/roteiros.js`,

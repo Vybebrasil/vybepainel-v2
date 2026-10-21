@@ -22,6 +22,12 @@ export function ehCaptacaoNaAgenda(e) {
   return AZUIS.has(String(e.colorId || '')) && !/^(reuniao|consulta|niver|aniversario|almoco|jantar)\b/.test(t)
     && !/\bmizinho\b.*\b(trabalha|freela|folga)\b/.test(t);
 }
+// O tipo de cada evento na agenda única (Captações e Escritório): captação
+// pela cor azul, reunião pelo amarelo ou pelo título, o resto é compromisso.
+export function tipoNaAgenda(e) {
+  if (ehCaptacaoNaAgenda(e)) return 'captacao';
+  return String(e.colorId || '') === '5' || /^(reuniao|call|alinhamento)\b/.test(normal(e.summary)) ? 'reuniao' : 'outro';
+}
 export function gravacoesDaAgenda(eventos) {
   const vistos = new Set();
   return eventos.filter(e => {
@@ -29,8 +35,10 @@ export function gravacoesDaAgenda(eventos) {
       || e.colorId==='5' || (e.eventType && e.eventType!=='default')
       || /\b(aguardo|pessoal|aniversario|ferias|folga)\b/.test(normal(e.summary)) || !e.start || !e.end) return false;
     vistos.add(e.id); return true;
-  }).map(e => ({ id:e.id,cor:String(e.colorId || ''),captacao:ehCaptacaoNaAgenda(e),ambiguo:!/\b(gravacao|captacao)\b/.test(normal(e.summary)),titulo:String(e.summary || '').replace(/\s+/g,' ').trim(),
+  }).map(e => ({ id:e.id,cor:String(e.colorId || ''),captacao:ehCaptacaoNaAgenda(e),tipo:tipoNaAgenda(e),ambiguo:!/\b(gravacao|captacao)\b/.test(normal(e.summary)),titulo:String(e.summary || '').replace(/\s+/g,' ').trim(),
     dia:e.start.date || dataLocal(e.start.dateTime),
+    inicio:e.start.dateTime ? horaLocal(e.start.dateTime) : '',fim:e.end.dateTime ? horaLocal(e.end.dateTime) : '',
+    link:/^https:\/\/www\.google\.com\/calendar\//.test(String(e.htmlLink || '')) ? e.htmlLink : '',
     horario:e.start.date ? 'Dia inteiro · horário não informado' : `${horaLocal(e.start.dateTime)} às ${horaLocal(e.end.dateTime)}`,
     fimDia:e.end.dateTime ? dataLocal(e.end.dateTime) : '',local:String(e.location || '').replace(/\s+/g,' ').trim(),
   })).sort((a,b) => a.dia.localeCompare(b.dia) || a.horario.localeCompare(b.horario));
@@ -48,7 +56,7 @@ export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenG
   const token=await obterToken(ESCOPO);
   const params=new URLSearchParams({timeMin:`${dia}T00:00:00-03:00`,timeMax:`${fim.toISOString().slice(0,10)}T00:00:00-03:00`,
     singleEvents:'true',orderBy:'startTime',showDeleted:'false',timeZone:FUSO,maxResults:'250',
-    fields:'items(id,summary,status,start,end,location,visibility,colorId,eventType,description),nextPageToken'});
+    fields:'items(id,summary,status,start,end,location,visibility,colorId,eventType,description,htmlLink),nextPageToken'});
   const eventos=[]; const paginas=new Set(); let pagina;
   do {
     if(pagina) params.set('pageToken',pagina);

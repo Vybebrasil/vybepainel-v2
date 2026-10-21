@@ -98,6 +98,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Captação" de um cliente num dia; marcar e gravar mudam o status de captação
   pelo `trocarEscolha` (automações) e o evento vai ao Google Agenda da Vybe.
   Falha do Google é aviso, não desfaz. Consulte `docs/captacao-plano.md`.
+  Agenda única: Captações (painel geral) e a Agenda da semana do Escritório
+  (jogo) abrem cada uma no seu lugar, com o mesmo desenho (`agendaSemanaHtml`)
+  e o mesmo tipo de evento do servidor (`tipoNaAgenda`); não crie outra
+  agenda nem outra regra de cor. Captação marcada direto no Google recebe as
+  peças sem novo evento e o painel nunca reescreve nem apaga esse evento.
   Roteiros (mesma data): o doc fica no Google Docs; o painel guarda só a
   referência, o cliente, as peças e os conteúdos que saíram dele. Não copie o
   texto do roteiro para o banco nem crie outro lugar de roteiro.
