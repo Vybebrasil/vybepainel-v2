@@ -318,8 +318,9 @@ body.vybe-desktop {
    lateral do Escritório e na ficha entra com um leve deslize. Sem preencher o
    fim da animação (sem "both" no quadro), para não deixar translate aplicado,
    que mudaria a referência dos elementos fixos. "Reduzir movimento" desliga
-   tudo pela regra logo abaixo. */
-.vybe-desktop :is(.container,#painel-demandas,#painel-clientes,#painel-diario,#painel-performance,#painel-ai-usage,#painel-automacoes,#painel-escritorio,#painel-conta) { animation: vybe-quadro-entra .34s var(--curva); }
+   tudo pela regra logo abaixo. O Escritório fica de fora da entrada do
+   quadro: cobre a tela inteira e, ao aparecer, deixava ver o painel por baixo. */
+.vybe-desktop :is(.container,#painel-demandas,#painel-clientes,#painel-diario,#painel-performance,#painel-ai-usage,#painel-automacoes,#painel-conta) { animation: vybe-quadro-entra .34s var(--curva); }
 @keyframes vybe-quadro-entra { from { opacity: 0; translate: 0 10px; } }
 .vybe-desktop dialog[open]:not(.appearance-dialog):not(.spotlight-dialog) { animation: vybe-janela-entra .26s var(--curva); }
 .vybe-desktop dialog[open]::backdrop { animation: vybe-fundo-entra .26s ease-out; }
