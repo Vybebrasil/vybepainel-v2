@@ -75,6 +75,9 @@ export function infoMovel(loja, classe) {
  const item = loja.itens.find(i => i.classe === classe);
  if (!item) return { ...comum, preco: MOVEIS_ESSENCIAIS.includes(classe) ? 0 : loja.raridades.find(r => r.chave === 'comum')?.preco ?? PRECO_COMUM };
  const faixa = loja.raridades.find(r => r.chave === item.raridade);
+ // Roupa é visual, não exemplar (Paulo, 21/10/2026: "mais caro", não mais
+ // escasso): o preço segue a faixa, sem estoque e sem esperar a vitrine.
+ if (classe.startsWith('roupa:')) return { ...item, nome: faixa?.nome || item.raridade, restante: null, exigeVitrine: false, naVitrine: true };
  const exigeVitrine = Boolean(faixa?.vitrine);
  return { ...item, nome: faixa?.nome || item.raridade, exigeVitrine, naVitrine: !exigeVitrine || loja.vitrine.includes(classe) };
 }
@@ -147,7 +150,7 @@ export async function kitsDaLoja(sql, agora = new Date(), lojaCarregada = null) 
 }
 // Compra de um kit: tudo ou nada, na mesma transação e com a mesma trava da
 // compra avulsa; repetir a mesma chave não cobra de novo.
-export async function comprarKit(sql, pessoaId, { kit, chave } = {}, agora = new Date()) {
+export async function comprarKit(sql, pessoaId, { kit, chave, corpo } = {}, agora = new Date()) {
  if (!/^[a-f0-9-]{36}$/i.test(String(chave || ''))) throw Object.assign(new Error('Identificador da compra inválido.'),{status:400});
  if (!/^[a-z0-9_-]{1,40}$/.test(String(kit || ''))) throw Object.assign(new Error('Kit inválido.'),{status:400});
  return sql.comTransacao(async tx => {
@@ -161,8 +164,16 @@ export async function comprarKit(sql, pessoaId, { kit, chave } = {}, agora = new
   if (!anterior) {
    for (const classe of [...k.classes].sort()) await tx`SELECT classe FROM vybe_escritorio_catalogo WHERE classe=${classe} FOR UPDATE`;
    const loja = await carregarLoja(tx, agora);
+   // Kit de roupa (visual completo): paga só as peças que faltam; as grátis e
+   // as que a pessoa já tem entram sem cobrar e sem repetir no inventário.
+   const roupa = k.classes.every((c) => c.startsWith('roupa:'));
+   const tem = roupa ? new Set((await tx`SELECT classe FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe = ANY(${k.classes})`).map((r) => r.classe)) : new Set();
+   // Skin completa tem as peças dos dois corpos: entra só o que serve no de quem compra.
+   const serve = (c) => !roupa || !['M', 'F'].includes(corpo) || ['U', corpo].includes(roupaDaClasse(c)?.genero);
+   const comprar = roupa ? k.classes.filter((c) => serve(c) && !tem.has(c) && infoMovel(loja, c).preco) : k.classes;
+   if (!comprar.length) throw Object.assign(new Error('Você já tem todas as peças deste kit.'),{status:409});
    let cheio = 0;
-   for (const classe of k.classes) {
+   for (const classe of comprar) {
     const info = infoMovel(loja, classe);
     if (info.marco || !info.preco) throw Object.assign(new Error('Este kit tem um móvel que não se compra.'),{status:409});
     if (info.restante === 0) throw Object.assign(new Error('Um móvel do kit esgotou.'),{status:409});
@@ -173,7 +184,7 @@ export async function comprarKit(sql, pessoaId, { kit, chave } = {}, agora = new
    if (Number(c.saldo) < preco) throw Object.assign(new Error('VybeCoins insuficientes.'),{status:409});
    await tx`UPDATE vybe_escritorio_carteiras SET saldo=saldo-${preco} WHERE pessoa_id=${pessoaId}`;
    await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${pessoaId},${origem},${-preco})`;
-   for (const classe of k.classes) {
+   for (const classe of comprar) {
     await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${classe},1)
      ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
     if (infoMovel(loja, classe).restante !== null) await tx`UPDATE vybe_escritorio_catalogo SET vendidos=vendidos+1 WHERE classe=${classe}`;
