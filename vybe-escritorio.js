@@ -769,6 +769,12 @@ function escritorioIcone(nome) {
     ranking: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8.5 20h7M10 17h4v3h-4z"/>',
     agenda: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17h2M11 17h2"/>',
     loja: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0A2.7 2.7 0 0020 9"/><path d="M5.5 11.5V20h13v-8.5M10 20v-5h4v5"/>',
+    cursor: '<path d="M6 3.5l12 7.2-5.3 1.3 3.2 6.2-2.4 1.2-3.2-6.2L6 17z"/>',
+    mao: '<path d="M8 12V6.5a1.5 1.5 0 013 0V11M11 10.5V5a1.5 1.5 0 013 0v5.5M14 10.5V6.5a1.5 1.5 0 013 0V14c0 3.6-2.4 6.5-6 6.5-2.4 0-3.8-1.1-5.1-3L4 14.6a1.5 1.5 0 012.5-1.6L8 15"/>',
+    grade: '<path d="M4 8.5l8-4 8 4-8 4zM8 6.5l8 4M16 6.5l-8 4"/><path d="M4 8.5v7l8 4 8-4v-7"/>',
+    pilha: '<rect x="6" y="14" width="12" height="6" rx="1"/><rect x="7.5" y="8.5" width="9" height="5.5" rx="1"/><path d="M12 2.5v4M10 4.5l2-2 2 2"/>',
+    desfazer: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>',
+    refazer: '<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/>',
   }[nome] || "";
   return `<svg class="ofc-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 }

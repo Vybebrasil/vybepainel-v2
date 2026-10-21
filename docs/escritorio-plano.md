@@ -1268,3 +1268,18 @@ decoração inicial "bem feito".
 - Mesmas regras das skins; o avatar do cliente usa a mesma tela, sem preços.
 - Conferido na demo do convidado com skins simuladas (1280×800 e celular).
   Próximo: levar a mesma linguagem para a ficha do jogador e a construção.
+
+### Ficha do jogador e construção na linguagem do Provador — 21/10/2026
+
+- Ficha (`abrirFichaEscritorio`): cartão do jogador à esquerda (palco com
+  holofote e pedestal na cor do troféu mais alto, Bronze a Diamante, nome,
+  nível, moedas, vitrine e ações) e as abas à direita. Na ficha de outra
+  pessoa o Resumo mostra as conquistas e uma prévia do inventário, sem
+  repetir os números do cartão.
+- Construção (`renderBarraEditorEscritorio`): selo "Construindo" com a sala e
+  o estado do salvamento (luz verde salvo, laranja com mudanças), Cancelar e
+  Salvar no canto oposto, trilho de ferramentas com ícones à esquerda (no
+  celular, faixa de ícones abaixo do selo) e a dica do momento embaixo. A
+  barra do jogo com o microfone continua visível. Mesmas funções de antes.
+- Conferido na demo (convidado de teste, editor aberto só para ver), em
+  1280×800 e no celular.
