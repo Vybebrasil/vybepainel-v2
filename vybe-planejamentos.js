@@ -125,16 +125,28 @@ function pintarPlanejamento(aba) {
   // Documento como um PDF em tela cheia; o resto flutua por cima (Paulo,
   // 20/10/2026: "abrir como se abrisse um PDF tela cheia mesmo").
   m.classList.toggle('plj-modo-doc', aba === 'documento');
-  if (aba === 'documento') {
-    const outras = abas.filter(([k]) => k !== 'documento');
-    const revisando = p.pode_editar && ['revisar', 'ajustes'].includes(p.estado);
-    m.innerHTML = `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>
-    <div class="plj-flut plj-flut-topo">
+  // Editar também em tela cheia, com a mesma barra do documento (Paulo, 20/10/2026:
+  // "quando coloca pra editar o mês não devia ser tela cheia também?").
+  m.classList.toggle('plj-modo-editar', aba === 'editar');
+  const barra = `<div class="plj-flut plj-flut-topo">
       <button class="plj-flut-x" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button>
       <div class="plj-flut-nome"><b>${pljEsc(p.cliente)}</b><small>${pljEsc(pljMes(p.mes))} · versão ${pljEsc(p.versao)}</small></div>
       ${pljSelo(p.estado)}${pljEtapasHtml(p)}
-      <div class="plj-flut-links">${outras.map(([k, r]) => `<button type="button" class="cli-porta" onclick="pljTrocarAba('${k}')">${k === 'editar' ? 'Editar o mês' : r}</button>`).join('')}${drive}</div>
-    </div>
+      <div class="plj-flut-links">${abas.filter(([k]) => k !== aba).map(([k, r]) => k === 'editar'
+        ? `<button type="button" class="cli-porta plj-flut-editar" onclick="pljTrocarAba('editar')"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M11.2 2.3a1.6 1.6 0 0 1 2.3 2.3l-7.9 7.9-3.1.8.8-3.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Editar o mês</button>`
+        : `<button type="button" class="cli-porta" onclick="pljTrocarAba('${k}')">${k === 'documento' ? '← Ver o documento' : r}</button>`).join('')}${drive}</div>
+    </div>`;
+  if (aba === 'editar') {
+    m.innerHTML = `${barra}${resposta}${pljDemandasCriadasHtml(p)}
+    <div class="plj-corpo">${pljEditorHtml()}</div>
+    <div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div>`;
+    m.dataset.aba = aba;
+    return;
+  }
+  if (aba === 'documento') {
+    const revisando = p.pode_editar && ['revisar', 'ajustes'].includes(p.estado);
+    m.innerHTML = `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>
+    ${barra}
     ${resposta ? `<div class="plj-flut plj-flut-aviso">${resposta}</div>` : ''}
     <div class="plj-flut plj-flut-base">${revisando ? '<small class="plj-flut-dica">Em cada peça: <b>Peça OK</b>, <b>Ajustar</b> ou <b>Editar peça</b>.</small>' : ''}${pljDemandasCriadasHtml(p)}<div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div></div>`;
     m.dataset.aba = aba;
@@ -146,7 +158,7 @@ function pintarPlanejamento(aba) {
     <div class="plj-topo"><h2 class="workflow-title">${pljEsc(pljMes(p.mes))}</h2>${pljSelo(p.estado)}<small>versão ${pljEsc(p.versao)} · ${p.origem === 'agente' ? 'publicado pelo agente' : 'feito no painel'}</small>${drive}</div>
     ${pljEtapasHtml(p)}${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
-    <div class="plj-corpo">${aba === 'editar' ? pljEditorHtml() : aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
+    <div class="plj-corpo">${aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
       : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>`}</div>
     <div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div>`;
   m.dataset.aba = aba;

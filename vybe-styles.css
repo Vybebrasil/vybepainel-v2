@@ -7253,6 +7253,18 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-flut-base .workflow-actions{margin:0!important;padding:0!important;border:0!important;background:none!important}
 .plj-flut-dica{color:#c3cad6;font-size:12px}.plj-flut-dica b{color:#ffe0a6}
 .plj-modo-doc .plj-link{position:absolute;z-index:4;top:84px;right:12px;width:min(480px,calc(100% - 24px));margin:0;background:#10231acc;backdrop-filter:blur(12px)}
+/* "Editar o mês" com destaque: é a ação de trabalho do head nessa barra. */
+.plj-flut-links .plj-flut-editar{gap:6px;align-items:center;padding:5px 13px;font-size:12.5px;border-color:rgba(255,157,0,.6);background:rgba(255,157,0,.16);color:#ffd08f;font-weight:700}
+.plj-flut-links .plj-flut-editar:hover{background:rgba(255,157,0,.26);border-color:#ff9d00;color:#fff}
+.plj-flut-links .cli-porta:focus-visible{outline:2px solid #ff9d00;outline-offset:2px}
+/* Editor em tela cheia: a mesma barra do documento, parada no topo; o editor vai de ponta a ponta. */
+.workflow-modal.plj-janela.plj-modo-editar{padding:0!important;background:#0d1016}
+.plj-modo-editar > .plj-flut-topo{position:relative;inset:auto;margin:10px 12px 0;flex:none}
+.plj-modo-editar > .plj-pedido,.plj-modo-editar > .plj-link{margin:8px 12px 0}
+.plj-modo-editar .plj-corpo{margin-top:10px;border-top:1px solid rgba(255,255,255,.07)}
+.plj-modo-editar .plj-ed{border:0;border-radius:0}
+.plj-modo-editar .plj-ed-detalhe > *{max-width:1120px}
+.plj-modo-editar > .plj-acoes{flex:none;margin:0!important;padding:12px 16px!important;border-radius:0!important}
 @media(max-width:720px){.plj-flut-links{margin-left:0}.plj-flut-topo .plj-etapas ol{display:none}}
 .plj-revs{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:#c3cad6}
 .plj-rev b{color:#e7ecf5}.plj-rev .bom{color:#6fe3a8}.plj-rev .ruim{color:#ff9a9a}
