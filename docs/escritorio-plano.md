@@ -1237,3 +1237,22 @@ decoração inicial "bem feito".
 - Criador: "Objeto na mão" virou grade com o busto segurando cada objeto
   (`criadorMaoHtml`); arrastar o boneco para os lados gira; looks salvos (até
   5, `perfil.looks`, validados em `perfilEscritorio`).
+
+### Skins do personagem — 21/10/2026
+
+- Decisão do Paulo: "o que fica grátis são itens básicos; o preço das roupas
+  segue a faixa dos móveis". Cada peça é a classe `roupa:<tipo>-<conjunto>` no
+  mesmo catálogo, inventário, razão e kits dos móveis (`server/escritorio-roupas.js`),
+  sem tabela nova. Linha com preço 0 é grátis; com faixa, é dela; sem linha, Comum.
+- Migração `2026-10-21-escritorio-skins.sql` (**ainda não aplicada**; precisa
+  do Aprovado do Paulo): 247 peças grátis (todos os rostos livres e 12 modelos
+  livres por corpo de cabelo, camiseta, calça e sapato), 303 raras (as
+  exclusivas de assinante e a peça marcante de cada kit) e os kits Praia
+  (ha-3261, ea-1401), Policial (ha-5627, ea-1404, ca-3410), Herói (ha-3535,
+  ca-3545) e Lobo (ha-5277, cc-3280), escolhidos vendo a arte, com 20% de desconto.
+- Antes da migração nada muda (`skinsAtivas`). Depois dela, salvar o perfil
+  (ou a reforma) confere a figura: só peças grátis, compradas ou já vestidas.
+- Criador: preço em cada peça, "Comprar N peças · X moedas" (ou o kit inteiro
+  pelo preço do kit) no lugar do Salvar quando falta alguma, e a seção Skins
+  com Provar e Comprar. Testes em `tests/escritorio-skins.test.mjs`.
+- A faixa Rara tem estoque (10 por peça), como nos móveis.

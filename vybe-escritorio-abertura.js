@@ -159,6 +159,108 @@ function criadorImagem(fig, dir = 2, tamanho = "l", mao = "") {
 const CRIADOR_MAOS = [["", "Nada"], ["crr=6", "Café"], ["crr=1", "Bebida"], ["crr=67", "Refrigerante"], ["crr=42", "Lata verde"], ["crr=62", "Garrafa"], ["crr=126", "Caneca de chope"],
   ["crr=185", "Garrafinha de academia"], ["crr=73", "Pipoca"], ["crr=248", "Tigela de pipoca"], ["crr=66", "Tigela de comida"], ["crr=105", "Coxa de frango"], ["crr=106", "Pão"], ["crr=220", "Baguete"],
   ["crr=178", "Fatia de bolo"], ["crr=191", "Rosquinha"], ["crr=2", "Cenoura"], ["crr=87", "Prancheta"], ["crr=79", "Livro"], ["crr=230", "Lápis"], ["crr=282", "Tablet"], ["crr=112", "Robozinho"], ["crr=109", "Frasco"]];
+// Skins (Paulo, 21/10/2026): o básico é grátis; o resto se compra na faixa
+// dos móveis (server/escritorio-roupas.js). A prova é livre: a peça entra no
+// boneco e o Salvar mostra quanto custa o que falta.
+async function criadorCarregarRoupas(forcar = false) {
+  if (criador.destino || window.ESCRITORIO_CONVIDADO || escritorio.base?.demo || (criador.roupas && !forcar) || criador.carregandoRoupas) return;
+  criador.carregandoRoupas = true;
+  try { criador.roupas = await escritorioApi("roupas"); } catch { criador.roupas = { ativo: false }; }
+  criador.carregandoRoupas = false;
+  if (document.getElementById("ofc-abertura")) renderAberturaEscritorio();
+}
+// Preço da peça (0 = grátis), ou null quando as skins não valem.
+function criadorPrecoRoupa(classe) {
+  const r = criador.roupas;
+  if (!r?.ativo) return null;
+  const p = r.pecas[classe];
+  return p ? (p[1] ?? r.faixas[p[0]]?.preco ?? 0) : r.faixas.comum?.preco ?? 25;
+}
+// Peça que a pessoa pode vestir sem comprar: grátis, dela ou já no visual salvo.
+function criadorRoupaLivre(classe) {
+  const r = criador.roupas;
+  if (!r?.ativo) return true;
+  const salvas = new Set(String(escritorio.perfil?.figura || "").split(".").map((p) => "roupa:" + p.split("-").slice(0, 2).join("-")));
+  return criadorPrecoRoupa(classe) === 0 || r.meus.includes(classe) || salvas.has(classe);
+}
+function criadorFaltamRoupas() {
+  if (criador.destino) return [];
+  return Object.entries(criador.f?.partes || {}).map(([t, p]) => `roupa:${t}-${p.id}`).filter((c) => !criadorRoupaLivre(c)).map((c) => ({ classe: c, preco: criadorPrecoRoupa(c) }));
+}
+function criadorSeloRoupa(t, id) {
+  const c = `roupa:${t}-${id}`;
+  if (criadorRoupaLivre(c)) return "";
+  const raro = criador.roupas.pecas[c]?.[0] && criador.roupas.pecas[c][0] !== "comum";
+  return `<em class="cri-preco${raro ? " raro" : ""}" title="${raro ? "Rara" : "Comum"} · ${criadorPrecoRoupa(c)} VybeCoins">${criadorPrecoRoupa(c)}</em>`;
+}
+// "salvar" (Meu espaço) ou "continuar" (primeira abertura).
+function criadorSeguir(tipo) {
+  if (tipo === "salvar") return salvarPersonagemEscritorio();
+  criador.etapa = escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado ? "planta" : "boas";
+  renderAberturaEscritorio();
+}
+function criadorBotaoSalvar(tipo) {
+  const rotulo = tipo === "salvar" ? "Salvar personagem" : "Continuar";
+  const faltam = criadorFaltamRoupas();
+  if (!faltam.length) return `<button type="button" class="abr-primario" onclick="criadorSeguir('${tipo}')">${rotulo}</button>`;
+  const total = faltam.reduce((t, f) => t + Number(f.preco || 0), 0);
+  criador.depoisDeComprar = tipo;
+  // O que falta é exatamente um kit: sai pelo preço do kit.
+  const kit = criadorKitDasFaltas(faltam);
+  if (kit) return `<button type="button" class="abr-primario" onclick="criadorComprarKit('${safeText(kit.chave)}',true)" title="Comprar o kit e ${rotulo.toLowerCase()}">Comprar ${safeText(kit.nome)} · ${kit.preco.toLocaleString("pt-BR")} moedas</button>`;
+  return `<button type="button" class="abr-primario" onclick="criadorComprarRoupas()" title="Comprar as peças novas e ${rotulo.toLowerCase()}">Comprar ${faltam.length === 1 ? "1 peça" : faltam.length + " peças"} · ${total.toLocaleString("pt-BR")} moedas</button>`;
+}
+async function criadorComprarRoupas() {
+  const faltam = criadorFaltamRoupas(), total = faltam.reduce((t, f) => t + Number(f.preco || 0), 0);
+  const saldo = Number(escritorio.base?.economia?.saldo || 0);
+  const erro = document.getElementById("abr-erro");
+  if (total > saldo) { escritorioAviso(`Faltam ${(total - saldo).toLocaleString("pt-BR")} VybeCoins para estas peças. Troque alguma peça ou junte mais moedas.`); return; }
+  if (!confirm(`Comprar ${faltam.length === 1 ? "1 peça" : faltam.length + " peças"} por ${total.toLocaleString("pt-BR")} VybeCoins?`)) return;
+  try {
+    for (const f of faltam) {
+      const r = await escritorioApi("comprar", { classe: f.classe, chave: crypto.randomUUID() });
+      if (r.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia };
+      criador.roupas.meus.push(f.classe);
+    }
+  } catch (e) { if (erro) erro.textContent = e.message; else escritorioAviso(e.message); await criadorCarregarRoupas(true); return; }
+  renderAberturaEscritorio();
+  if (criador.depoisDeComprar) criadorSeguir(criador.depoisDeComprar);
+}
+// Kits de roupa (Praia, Policial, Herói, Lobo…): provar e comprar com desconto.
+function criadorSkinsHtml(fig) {
+  const r = criador.roupas;
+  if (!r?.ativo || !r.kits?.length) return "";
+  const comKit = (k) => {
+    const partes = new Map(fig.split(".").map((p) => [p.split("-")[0], p]));
+    for (const c of k.classes) { const [t, id] = c.slice(6).split("-"); partes.set(t, `${t}-${id}-${partes.get(t)?.split("-")[2] || 110}`); }
+    return [...partes.values()].join(".");
+  };
+  return `<details class="cri-mao cri-skins" ${criador.skinsAbertas ? "open" : ""} ontoggle="criador.skinsAbertas=this.open"><summary>Skins <b>${r.kits.length} kits</b></summary>
+<div class="cri-skins-grade">${r.kits.map((k) => { const tem = k.classes.every((c) => r.meus.includes(c)); return `<div class="cri-skin"><img alt="" width="64" height="110" loading="lazy" src="${safeText(criadorImagem(comKit(k), 2, "n", ""))}"><b>${safeText(k.nome)}</b><small>${tem ? "Você já tem" : `${k.preco.toLocaleString("pt-BR")} moedas · ${Math.round(k.desconto * 100)}% off`}</small><div><button type="button" onclick="criadorProvarKit('${safeText(k.chave)}')">Provar</button>${tem ? "" : `<button type="button" class="cri-skin-comprar" onclick="criadorComprarKit('${safeText(k.chave)}')">Comprar</button>`}</div></div>`; }).join("")}</div></details>`;
+}
+function criadorProvarKit(chave) {
+  const k = criador.roupas?.kits?.find((x) => x.chave === chave);
+  if (!k) return;
+  for (const c of k.classes) { const [t, id] = c.slice(6).split("-"); const atuais = criador.f.partes[t]?.cores; criador.f.partes[t] = { id: Number(id), cores: atuais?.length ? atuais : [110] }; }
+  renderAberturaEscritorio();
+}
+function criadorKitDasFaltas(faltam) {
+  const c = new Set(faltam.map((f) => f.classe));
+  return (criador.roupas?.kits || []).find((k) => k.classes.length === c.size && k.classes.every((x) => c.has(x))) || null;
+}
+// Compra o kit; com "eSeguir", salva (ou continua) logo depois, como o botão de baixo.
+async function criadorComprarKit(chave, eSeguir = false) {
+  const k = criador.roupas?.kits?.find((x) => x.chave === chave);
+  if (!k || !confirm(`Comprar ${k.nome} por ${k.preco.toLocaleString("pt-BR")} VybeCoins?`)) return;
+  try {
+    const r = await escritorioApi("comprar-kit", { kit: chave, chave: crypto.randomUUID() });
+    if (r.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia };
+    await criadorCarregarRoupas(true);
+    if (eSeguir && criador.depoisDeComprar) return criadorSeguir(criador.depoisDeComprar);
+    criadorProvarKit(chave);
+    escritorioAviso(`${k.nome} é sua. Salve o personagem para vestir.`);
+  } catch (e) { escritorioAviso(e.message); }
+}
 // "Objeto na mão" em grade: o próprio boneco segurando cada objeto (a lista
 // do sistema era longa e sem imagem; Paulo, 20/10/2026).
 function criadorMaoHtml(fig) {
@@ -273,7 +375,7 @@ function criadorPainelHtml() {
   const tile = (id, rotulo) => {
     const src = criadorMiniatura(aba.t, id, aba.cabeca);
     const fg = decodeURIComponent(new URL(src).searchParams.get("figure"));
-    return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" aria-label="${rotulo}" title="${rotulo}"><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt="">${id === null ? "<span>Nenhum</span>" : ""}</button>`;
+    return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" aria-label="${rotulo}" title="${rotulo}"><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt="">${id === null ? "<span>Nenhum</span>" : criadorSeloRoupa(aba.t, id)}</button>`;
   };
   // Uma paleta por vez (Cor 1 / Cor 2), com as mais usadas visíveis e o resto
   // em "Mais cores"; a cor escolhida fica sempre visível no topo.
@@ -294,6 +396,7 @@ function criadorPainelHtml() {
  </div>
  <div class="abr-opcoes cri-opcoes">
   <span class="abr-kicker">${criador.destino ? "Avatar do cliente no Escritório" : criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">${criador.destino ? `Agente de ${safeText(criador.destino.nome)}` : "Seu personagem"}</h2>
+  ${criador.destino ? "" : criadorSkinsHtml(fig)}
   ${criadorMaoHtml(fig)}
   ${(() => {
     const grupo = CRIADOR_GRUPOS.find((g) => g[2].includes(aba.t)) || CRIADOR_GRUPOS[0];
@@ -314,7 +417,7 @@ function criadorPainelHtml() {
   ${total > 1 ? `<nav class="cri-paginas" aria-label="Páginas"><button type="button" class="abr-secundario" onclick="criadorPagina(-1)" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${total}</span><button type="button" class="abr-secundario" onclick="criadorPagina(1)" ${pag < total - 1 ? "" : "disabled"} aria-label="Próxima página">›</button></nav>` : ""}`;
   })()}`}
   <p class="abr-erro" role="alert" id="abr-erro"></p>
-  <div class="abr-acoes">${criador.destino ? '<button type="button" class="abr-secundario" onclick="salvarAvatarDoClienteEscritorio(true)" title="Volta à fantasia da marca definida pela Vybe">Voltar ao padrão</button><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarAvatarDoClienteEscritorio()">Salvar avatar</button>' : criador.so ? '<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarPersonagemEscritorio()">Salvar personagem</button>' : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa=escritorioMinhaMesa()&&!escritorio.perfil.quarto_configurado?'planta':'boas';renderAberturaEscritorio()">Continuar</button>`}</div>
+  <div class="abr-acoes">${criador.destino ? '<button type="button" class="abr-secundario" onclick="salvarAvatarDoClienteEscritorio(true)" title="Volta à fantasia da marca definida pela Vybe">Voltar ao padrão</button><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarAvatarDoClienteEscritorio()">Salvar avatar</button>' : criador.so ? `<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button>${criadorBotaoSalvar("salvar")}` : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button>${criadorBotaoSalvar("continuar")}`}</div>
  </div>
 </section>`;
 }
@@ -342,6 +445,8 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.mao = escritorio.perfil?.mao || "";
   criador.nome = String(eu?.nome || "").split(" ")[0] || "equipe";
   criadorCarregarCatalogo();
+  criador.roupas = null;
+  criadorCarregarRoupas();
   let el = document.getElementById("ofc-abertura");
   if (!el) {
     el = document.createElement("div");

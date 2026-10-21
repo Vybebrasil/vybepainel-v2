@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { resumoPontos, diaBahia, inicioDaSemana, nivelPorXp, somarDias } from './escritorio-pontos.js';
 import { conferirMarcos, MARCOS, partesDoMarco, nomeDoMarco } from './escritorio-marcos.js';
+import { roupaDaClasse } from './escritorio-roupas.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
 export const MOVEIS_ESSENCIAIS = quartos.essenciais;
@@ -14,6 +15,8 @@ const classes = new Set([...catalogo.map(m => m.classe),'computer_laptop','uni_l
 // Sem a tabela de faixas (antes da migração da fase 2) vale o preço único.
 export const PRECO_COMUM = 25;
 export function precoMovel(classe) {
+ // Roupa do personagem (skins): o preço vem da faixa; grátis é a linha com preço 0.
+ if (String(classe).startsWith('roupa:')) { if (!roupaDaClasse(classe)) throw Object.assign(new Error('Esta peça não existe no catálogo.'), {status:400}); return PRECO_COMUM; }
  if (!classes.has(classe)) throw Object.assign(new Error('Este móvel ainda não está disponível na loja.'), {status:400});
  return MOVEIS_ESSENCIAIS.includes(classe) ? 0 : PRECO_COMUM;
 }
@@ -91,7 +94,8 @@ export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja
 async function extrasDaLoja(sql, pessoaId, agora) {
  // Ao mesmo tempo: uma consulta por vez levava ~8 s com a loja aberta.
  const [loja, origens, ritmo] = await Promise.all([carregarLoja(sql, agora), origensDoInventario(sql, pessoaId), ritmoDeMoedas(sql, pessoaId, agora)]);
- return { loja, origens, ritmo, kits: await kitsDaLoja(sql, agora, loja) };
+ const kits = (await kitsDaLoja(sql, agora, loja)).filter((k) => !String(k.classes[0]).startsWith('roupa:'));
+ return { loja: loja && { ...loja, itens: loja.itens.filter((i) => !i.classe.startsWith('roupa:')) }, origens, ritmo, kits };
 }
 // Como a pessoa conseguiu cada móvel (para os filtros do inventário):
 // compra, kit, presente, troca ou prêmio (Paulo, 20/10/2026).
@@ -199,6 +203,7 @@ export async function comprarMovel(sql, pessoaId, {classe,chave}={}, agora = new
     await tx`SELECT classe FROM vybe_escritorio_catalogo WHERE classe=${classe} FOR UPDATE`;
     const info = infoMovel(await carregarLoja(tx, agora), classe);
     if (info.marco) throw Object.assign(new Error('Este móvel não se compra: vem com um marco da ficha.'),{status:400});
+    if (!info.preco) throw Object.assign(new Error('Esta peça já é grátis.'),{status:400});
     if (info.restante === 0) throw Object.assign(new Error('Esgotado: todos os exemplares já foram comprados.'),{status:409});
     if (!info.naVitrine) throw Object.assign(new Error('Este móvel não está na vitrine desta semana.'),{status:409});
     limitado = info.restante !== null; preco = info.preco;

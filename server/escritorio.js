@@ -4,6 +4,7 @@ import { missoesDaPessoa, rankingEscritorio } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
+import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { createHmac } from "node:crypto";
@@ -186,6 +187,8 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = 
         return (d.z ?? 1)>0.05 && vao.some(([x,y])=>x>=Math.floor(it[1]) && x<Math.floor(it[1])+dw && y>=Math.floor(it[2]) && y<Math.floor(it[2])+dh);});
       if(cobre) throw Object.assign(new Error('Tire os móveis do lugar da porta nova antes de mudar.'),{status:409});
     }
+    // Skins: o visual novo só com peças grátis, compradas ou que já vestia.
+    if (perfil.figura && perfil.figura !== (atual.preferencias.figura || "")) await conferirFiguraDaPessoa(tx, pessoaId, perfil.figura, atual.preferencias.figura || "");
     await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(perfil)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${pessoaId}`;
     return perfil;
   });
@@ -345,6 +348,8 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(200).json({ ok: true, ...(await origemDoMovel(sql, salas, { camada: String(req.query?.camada || ""), classe: String(req.query?.classe || "") })) });
     }
     if (acao === "trocas") return res.status(200).json({ ok: true, trocas: await listarTrocas(sql, pessoa) });
+    // Guarda-roupa do criador: faixas, peças grátis/raras, as da pessoa e os kits.
+    if (acao === "roupas") return res.status(200).json({ ok: true, ...(await roupasDaPessoa(sql, pessoa.id)) });
     if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
     // Clientes cobrando no quarto de alguém: todos que estão no quarto veem
     // (decisão do Paulo, 19/10/2026); a equipe já vê todas as demandas.

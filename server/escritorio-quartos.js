@@ -1,3 +1,4 @@
+import { conferirFiguraDaPessoa } from './escritorio-roupas.js';
 import { readFileSync } from 'node:fs';
 import { salasDoEscritorio, salvarCamadaEscritorio, versoesProntas } from './escritorio-mapa.js';
 import { economiaPronta, carregarEconomia } from './escritorio-economia.js';
@@ -90,6 +91,8 @@ export async function configurarQuarto(sql,pessoa,perfil,{planta,modelo,preserva
   await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoa.id}) ON CONFLICT DO NOTHING`;
   const [atual]=await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoa.id} FOR UPDATE`;
   const anterior=perfilDoAndar(atual.preferencias,andar);
+  // Skins: o visual que vem junto da reforma passa pela mesma conferência do perfil.
+  if (perfil?.figura && perfil.figura !== (atual.preferencias.figura || '')) await conferirFiguraDaPessoa(tx, pessoa.id, perfil.figura, atual.preferencias.figura || '');
   if(andar && !atual.preferencias.quarto_configurado) throw Object.assign(new Error('Configure o térreo antes do segundo andar.'),{status:409});
   const [existente]=await tx`SELECT itens,versao FROM vybe_escritorio_mapa WHERE camada=${camada} FOR UPDATE`;
   // Confirmação inicial repetida não apaga nada. Reformas usam a versão lida.
