@@ -413,10 +413,16 @@ function renderClientesBoard() {
   // trabalho de verdade. Zero continua na tela, porque "nenhum detrator" e uma
   // boa noticia que vale ver; so para de gritar.
   const calado = (k) => k.value === 0 || k.value === '0' || k.value === '—';
-  const cartao = (k) => `<div class="kpi-card ${k.cls}${k.acao && !calado(k) ? ' clicavel' : ''}${
-    aceso(k) ? ' aceso' : ''}${calado(k) ? ' calado' : ''}"${
-    k.acao && !calado(k) ? ` onclick="${k.acao}" title="${k.dica}"` : ''}><div class="kpi-label">${k.label}</div>
-    <div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`;
+  // Padrão Vybe (21/10/2026): uma linha de resumo no lugar dos oito cartões
+  // (seis numa linha e dois órfãos embaixo, quase todos zerados). Cor só no que
+  // pede trabalho; o resto fica discreto; o que filtra continua clicável.
+  const tomDe = (k) => (calado(k) ? '' : k.cls === 'red' ? 'alerta' : ['orange', 'yellow'].includes(k.cls) ? 'atencao' : '');
+  const cartao = (k) => {
+    const corpo = `<b>${k.value}</b>${vbRotulo(k.label)}`, cls = `vb-resumo-item ${tomDe(k)}`;
+    return k.acao && !calado(k)
+      ? `<button type="button" class="${cls}" aria-pressed="${aceso(k)}" onclick="${k.acao}" title="${k.dica} (${k.sub})">${corpo}</button>`
+      : `<span class="${cls}" title="${k.sub}">${corpo}</span>`;
+  };
   // Dois numeros novos, e os dois sao fila de trabalho, nao estatistica: quem
   // esta sem conversa ha tempo demais, e quantos paineis precisam ser
   // atualizados. Clicar recorta a lista para eles.
@@ -445,7 +451,9 @@ function renderClientesBoard() {
     ? (comNota.reduce((soma, c) => soma + Number(c.nps), 0) / comNota.length).toFixed(1).replace('.', ',')
     : '—';
   const detratores = comNota.filter((c) => Number(c.nps) <= 6).length;
-  document.getElementById('kpi-grid-clientes').innerHTML = [
+  const gradeKpi = document.getElementById('kpi-grid-clientes');
+  gradeKpi.className = 'vb-resumo';
+  gradeKpi.innerHTML = [
     {label:'Clientes ativos', value:numeros.ativos, sub:'no cadastro', cls:'green'},
     {label:'NPS médio', value:npsMedio, sub:comNota.length ? `${comNota.length} com nota` : 'ninguém avaliado ainda',
       cls:'purple'},

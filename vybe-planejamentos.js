@@ -676,6 +676,8 @@ function pintarAvisoPlanejamentos() {
   const assinatura = JSON.stringify([PLJ_PENDENTES.map((p) => [p.id, p.estado]), avisos]);
   let recolhido = false;
   try { recolhido = sessionStorage.getItem('plj-aviso-recolhido') === assinatura; } catch {}
+  // No celular o aviso já nasce recolhido: aberto, cobria o meio da tela.
+  if (window.matchMedia?.('(max-width: 560px)').matches) recolhido = true;
   el.dataset.assinatura = assinatura;
   el.classList.toggle('urgente', n > 0);
   el.classList.toggle('recolhido', recolhido);

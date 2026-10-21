@@ -224,7 +224,7 @@ function renderAiUsageBoard(data) {
   root.innerHTML = `
     <div class="ai-usage-head">
       <div><div class="ai-usage-kicker">Jarvis</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do Jarvis por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
-      <div class="ai-usage-periods"><button class="ai-usage-period ${aiUsageDays===7?'active':''}" data-days="7" onclick="setAiUsageDays(7,this)">7 DIAS</button><button class="ai-usage-period ${aiUsageDays===30?'active':''}" data-days="30" onclick="setAiUsageDays(30,this)">30 DIAS</button><button class="ai-usage-period ${aiUsageDays===90?'active':''}" data-days="90" onclick="setAiUsageDays(90,this)">90 DIAS</button><button class="ai-usage-period" onclick="loadAiUsage(true)">↻ ATUALIZAR</button></div>
+      <div class="ai-usage-periods"><button class="ai-usage-period ${aiUsageDays===7?'active':''}" data-days="7" onclick="setAiUsageDays(7,this)">7 dias</button><button class="ai-usage-period ${aiUsageDays===30?'active':''}" data-days="30" onclick="setAiUsageDays(30,this)">30 dias</button><button class="ai-usage-period ${aiUsageDays===90?'active':''}" data-days="90" onclick="setAiUsageDays(90,this)">90 dias</button></div><button type="button" class="vb-botao" onclick="loadAiUsage(true)">Atualizar</button>
     </div>
     <div class="ai-usage-grid">
       <div class="ai-usage-metric"><div class="ai-usage-label">Custo no mês</div><div class="ai-usage-value">${aiBrl(month.cost_brl)}</div><div class="ai-usage-detail">estimado, cobrado em dólar (${aiUsd(month.cost_usd)})</div></div>
@@ -739,14 +739,13 @@ function renderDemandaKPIs() {
   ];
   const alvo = document.getElementById('kpi-grid-demandas');
   if (!alvo) return;
-  alvo.className = 'kpi-grid kpi-grid-quatro';
-  alvo.innerHTML = kpis.map((k) => `
-    <button type="button" class="kpi-card ${k.cls} clicavel ${k.aceso ? 'aceso' : ''}"
-      onclick="${k.acao}" title="${k.aceso ? 'Clique para mostrar todas de novo' : `Ver só as ${k.label.toLowerCase()}`}">
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${k.valor}</div>
-      <div class="kpi-sub">${k.sub}</div>
-    </button>`).join('');
+  // Padrão Vybe (21/10/2026): uma linha de resumo no lugar dos quatro cartões
+  // grandes, que ocupavam a primeira tela com zeros. O que pede ação ganha cor;
+  // zero fica discreto; cada item continua filtrando a lista.
+  alvo.className = 'vb-resumo';
+  const tom = (k) => (!k.valor ? '' : k.cls === 'red' ? 'alerta' : k.cls === 'orange' ? 'atencao' : '');
+  alvo.innerHTML = kpis.map((k) => `<button type="button" class="vb-resumo-item ${tom(k)}" aria-pressed="${Boolean(k.aceso)}"
+      onclick="${k.acao}" title="${k.aceso ? 'Clique para mostrar todas de novo' : `Ver só as ${k.label.toLowerCase()} (${k.sub})`}"><b>${k.valor}</b>${vbRotulo(k.label)}</button>`).join('');
 }
 
 function focarAtrasadas() {

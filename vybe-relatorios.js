@@ -65,11 +65,8 @@ async function renderDiarioLista(forcar=false) {
   document.getElementById('diario-lista').style.display = 'block';
   document.getElementById('diario-detalhe').style.display = 'none';
   if (lista.length === 0) {
-    el.innerHTML = `<div style="color:var(--text-muted);padding:40px 0;text-align:center;">
-      
-      <div>Nenhum registro salvo ainda.</div>
-      <div style="font-size:11px;margin-top:8px;">Clique em <strong>Registrar agora</strong> para guardar como estão os conteúdos neste momento e comparar depois.</div>
-    </div>`;
+    el.innerHTML = vbEstadoHtml({ titulo: 'Nenhum registro salvo ainda', texto: 'Um registro guarda como estão os conteúdos neste momento, para comparar com outro dia.',
+      acao: '<button type="button" class="vb-botao principal" onclick="salvarSnapshot()">Registrar agora</button>' });
     return;
   }
   el.innerHTML = lista.map(s => `
