@@ -6125,7 +6125,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
   .ofc-rail{grid-row:2;flex-direction:row;justify-content:space-around;padding:6px;border-right:0;border-top:1px solid var(--ofc-borda)}
   .ofc-logo,.ofc-rail-fim{display:none}
   .ofc-rail-btn{width:auto;flex:1}
-  .ofc-rail-btn span{display:none}
+  .ofc-rail-btn span{font-size:10px}
   .ofc-lateral{position:absolute;inset:0 0 64px;z-index:9}
   .ofc-principal{grid-row:1}
   .ofc-topo{flex-direction:column}
@@ -9164,3 +9164,41 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .ofc-rk-vazio > span .ofc-ico {width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .ofc-rk-vazio b {font:750 15px var(--mac-ui);color:var(--ofc-texto)}
 .ofc-rk-vazio p {margin:0;max-width:36ch;color:var(--ofc-suave);font:500 13px/1.45 var(--mac-ui)}
+
+/* Escritório no celular (Padrão Vybe, etapa 4, 21/10/2026: "o mapa some", "os
+   ícones não cabem"). A barra de baixo mostra Mapa, Pessoas, Conversa,
+   Missões e Mais, com nome; o Mais abre uma gaveta com todos. Cobranças e
+   missões começam fechadas e abrem pelo botão Missões (o ponto avisa quando há
+   algo). A barra do jogo fica numa linha, com o microfone sempre à vista. */
+.ofc-rail-so-celular, .ofc-rail-fundo {display:none}
+@media (max-width:760px) {
+  .ofc-rail-so-celular {display:grid}
+  .ofc-rail .ofc-rail-btn:not([data-principal]) {display:none}
+  .ofc-rail {justify-content:space-around;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px))}
+  .ofc-rail-btn {min-width:0;padding:6px 2px;gap:2px}
+  .ofc-rail-btn[aria-pressed=true]::before {display:none}
+  .ofc-rail-missoes {position:relative}
+  .ofc:has(#office-cobrancas:not([hidden]), #office-missoes:not([hidden])) .ofc-rail-missoes::after {content:"";position:absolute;top:5px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:#ff6b5a;box-shadow:0 0 0 2px #101218}
+  /* Gaveta do Mais: todos os atalhos numa grade com nome. */
+  .ofc[data-rail-mais] .ofc-rail {position:fixed;z-index:60;left:8px;right:8px;bottom:8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:12px;border-radius:20px;border:1px solid var(--jg-borda-forte);background:var(--jg-painel);box-shadow:var(--jg-relevo),0 -10px 40px #000a;animation:vybe-aba-entra .26s cubic-bezier(.22,1,.36,1)}
+  .ofc[data-rail-mais] .ofc-rail .ofc-rail-btn {display:grid;width:auto;padding:10px 2px;background:var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve)}
+  .ofc[data-rail-mais] .ofc-rail .ofc-rail-btn span {font-size:10.5px}
+  .ofc[data-rail-mais] .ofc-rail-fundo {display:block;position:fixed;inset:0;z-index:59;border:0;background:#0009}
+  /* Cobranças e missões: fechadas até tocar em Missões; abertas, sobem de baixo. */
+  .ofc:not([data-coluna-aberta]) .ofc-coluna > :is(#office-cobrancas,#office-missoes) {display:none}
+  .ofc[data-coluna-aberta] .ofc-coluna {top:auto;bottom:126px;left:8px;right:8px;width:auto;max-height:58vh;overflow-y:auto;animation:vybe-aba-entra .26s cubic-bezier(.22,1,.36,1)}
+  /* Barra do jogo numa linha: só ícones; o estado da voz vira o ícone. */
+  .ofc-dock {flex-wrap:nowrap;left:8px;right:8px;transform:none;width:auto;max-width:none;overflow-x:auto;scrollbar-width:none;justify-content:flex-start}
+  .ofc-dock::-webkit-scrollbar {display:none}
+  .ofc-dock > :first-child {margin-left:auto}
+  .ofc-dock > :last-child {margin-right:auto}
+  .ofc-dock .ofc-sep {display:none}
+  .ofc-dock :is(.ofc-voz-estado > span, .ofc-dock-btn > span:not(.ofc-eu-rosto)) {display:none}
+  .ofc-dock .ofc-dock-plano {display:none}
+  /* Com uma gaveta aberta, a dica do momento e o zoom saem da frente; o zoom
+     fica acima da barra do jogo. */
+  .ofc:is([data-coluna-aberta],[data-rail-mais]) :is(.ofc-acao,.ofc-zoom) {display:none}
+  .ofc-zoom {bottom:84px}
+  /* O topo vira coluna no celular: a base de 170px do aviso virava altura. */
+  .ofc-topo > .ofc-aviso {flex-basis:auto}
+}
