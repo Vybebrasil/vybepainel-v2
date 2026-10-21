@@ -1707,6 +1707,9 @@ function renderEscritorio() {
   atualizarPessoasEscritorio();
   atualizarControlesEscritorio();
   pintarArtesEscritorio(document.querySelector(".ofc-topo") || document);
+  // Amostras de parede da lateral da construção (arte do painel do Habbo).
+  const amostrasParede = document.querySelector(".ofc-amostras-parede");
+  if (amostrasParede) pintarArtesEscritorio(amostrasParede);
   if (typeof pintarMissoesEscritorio === "function") { pintarMissoesEscritorio(); carregarMissoesEscritorio(); pintarCobrancasEscritorio(escritorio.cobrancasGrupos || [], null); }
   carregarChatEscritorio();
   if (escritorio.chamada) renderMidiaEscritorio();

@@ -318,7 +318,11 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.timerGarantia = setTimeout(() => el.classList.add("abr-pronta"), 3500);
 }
 function abrirReformaEscritorio(andar=0,branco=false) {
-  if(escritorio.edicao) {escritorioAviso('Salve ou cancele a decoração antes de reformar.');return;}
+  // No modo construção (Paulo, 20/10/2026: "clico em aumentar ou reformar e
+  // não acontece nada"): o aviso ficava atrás desta janela. Sem mudança, sai
+  // da construção; com mudança, pergunta aqui mesmo.
+  if(escritorio.edicao?.mudou) {criadorPerguntarEdicao(andar,branco);return;}
+  if(escritorio.edicao) {escritorio.edicao.mudou=false;sairEditorEscritorio();}
   abrirAberturaEscritorio('planta');
   const raiz=escritorioRaizQuarto(escritorioMinhaMesa()?.ambiente.id), camada=raiz+(andar?'-andar-1':'');
   const perfil=escritorioPerfilDecoracao(camada);
@@ -329,6 +333,18 @@ function abrirReformaEscritorio(andar=0,branco=false) {
   criador.modelo=branco?'vazio':'trabalho';criador.limparPintura=branco;
   criador.preservar=!branco && criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(criador.planta);
   renderAberturaEscritorio();
+}
+function criadorPerguntarEdicao(andar,branco) {
+  const el=document.getElementById('ofc-abertura');
+  if(!el) return;
+  el.dataset.etapa='espaco';
+  el.innerHTML=`<section class="abr-painel abr-quarto" role="alertdialog" aria-labelledby="abr-edicao-titulo"><span class="abr-kicker">Meu espaço</span><h2 id="abr-edicao-titulo">Você está decorando o quarto</h2><p class="abr-nota">A decoração tem mudanças que ainda não foram salvas. O que fazer com elas antes de reformar?</p><p class="abr-erro" role="alert" id="abr-erro"></p><div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='espaco';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-secundario" onclick="escritorio.edicao.mudou=false;sairEditorEscritorio();abrirReformaEscritorio(${andar},${branco})">Descartar e reformar</button><button type="button" class="abr-primario" onclick="criadorSalvarEReformar(${andar},${branco})">Salvar e reformar</button></div></section>`;
+  el.querySelector('.abr-primario')?.focus({preventScroll:true});
+}
+async function criadorSalvarEReformar(andar,branco) {
+  await salvarEditorEscritorio();
+  if(escritorio.edicao) {const erro=document.getElementById('abr-erro');if(erro) erro.textContent='Não deu para salvar a decoração. Confira o aviso no mapa e tente de novo.';return;}
+  abrirReformaEscritorio(andar,branco);
 }
 function criadorMeuEspacoHtml() {
   const existe=escritorio.perfil.sala_andares?.some(a=>a.andar===1 && a.quarto_configurado);

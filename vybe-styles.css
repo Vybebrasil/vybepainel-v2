@@ -6025,6 +6025,10 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-sombra-boneco {position:absolute;left:15px;bottom:-2px;width:34px;height:14px;border-radius:50%;background:radial-gradient(closest-side,#000000 0,#00000000 100%);opacity:.32;pointer-events:none;display:none}
 .mapa-pessoa.sombra:not(.deitado):not(.na-agua) > .mapa-sombra-boneco {display:block}
 .mapa-pessoa img {display:block;width:64px;height:110px;image-rendering:pixelated;pointer-events:none}
+/* O botão do boneco não pega clique; só o corpo (mapaAlvoDoBoneco). */
+.mapa-pessoa, .mapa-pessoa.figurante.agente, .mapa-pessoa.figurante.visitante {pointer-events:none}
+.mapa-alvo {position:absolute;left:19px;right:19px;top:30px;bottom:4px;border-radius:12px;pointer-events:auto;cursor:pointer}
+.mapa-pessoa.figurante:not(.agente):not(.visitante) .mapa-alvo {pointer-events:none}
 /* Física do Habbo: no trampolim o boneco pula; na água rasa, respingo nos pés;
    dormindo (ausente), um "zZz" sobe da cabeça. */
 .mapa-pessoa.deitado img {width:110px;height:64px;margin:46px 0 0 -23px}
@@ -6823,6 +6827,9 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-amostras button {display:grid;gap:4px;justify-items:center;padding:6px;border-radius:10px;border:1px solid #ffffff17;background:#ffffff08;color:inherit;font:500 11px var(--mac-ui);cursor:pointer}
 .ofc-amostras button[aria-pressed="true"] {outline:2px solid #ff9548}
 .ofc-amostras i {display:block;width:100%;height:28px;border-radius:6px}
+.ofc-amostras-parede i {height:44px;overflow:hidden;position:relative}
+.ofc-amostras-parede i img.ofc-arte {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;opacity:0;transition:opacity .2s}
+.ofc-amostras-parede i img.ofc-arte.pronta {opacity:1}
 .ofc-amostras.cores {grid-template-columns:repeat(7,minmax(0,1fr))}
 .ofc-amostras.cores i {height:24px}
 @media (max-width: 760px) {.ofc-ficha-numeros {grid-template-columns:repeat(2,minmax(0,1fr))} .ofc-marcos {grid-template-columns:1fr} .ofc-dia {bottom:132px}}
@@ -7304,7 +7311,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 @media(max-width:560px){.plj-aviso{right:12px;bottom:76px}.plj-drive{margin-left:0}}
 
 /* Centro de Operação: agentes dos clientes nas mesas (vybe-escritorio.js). */
-.mapa-pessoa.figurante.agente {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
+.mapa-pessoa.figurante.agente {cursor:pointer;background:none;border:0;padding:0}
 .mapa-pessoa.figurante.agente:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
 .mapa-etiqueta.agente {cursor:pointer;border-color:#ff9d0055;background:#1d1610e8;padding:1px 7px;font-size:10px;gap:4px}
 /* Pede ação de quem pode agir: balão grande, que se vê de longe (Paulo, 20/10/2026). */
@@ -7407,7 +7414,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 
 /* Clientes cobrando no quarto (vybe-escritorio-missoes.js): nome e fala; a cor
    reforça o tom, o texto diz tudo. */
-.mapa-pessoa.figurante.visitante {pointer-events:auto;cursor:pointer;background:none;border:0;padding:0}
+.mapa-pessoa.figurante.visitante {cursor:pointer;background:none;border:0;padding:0}
 .mapa-pessoa.figurante.visitante:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
 .mapa-etiqueta.visitante {flex-direction:column;align-items:flex-start;gap:1px;max-width:210px;white-space:normal;cursor:pointer;padding:3px 8px;border-width:1.5px}
 .mapa-etiqueta.visitante b {font:700 10px var(--mac-ui)}

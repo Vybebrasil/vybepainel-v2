@@ -27,8 +27,14 @@ function mapaCarregarMovel(classe) {
       if (!r.ok) throw new Error("Móvel indisponível: " + classe);
       const dados = await r.json();
       const imagem = new Image();
-      imagem.src = mapaArquivo(classe + ".png");
-      await imagem.decode();
+      // Pelo load da imagem: o decode() às vezes não termina (aba ao fundo,
+      // tela redimensionada) e a peça ficava presa sem nunca aparecer.
+      await new Promise((ok, falha) => {
+        imagem.onload = ok;
+        imagem.onerror = () => falha(new Error("Arte indisponível: " + classe));
+        imagem.src = mapaArquivo(classe + ".png");
+        if (imagem.complete && imagem.naturalWidth) ok();
+      });
       return { dados, imagem };
     })());
   return MAPA_MOVEIS.get(classe);
@@ -267,6 +273,15 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
 // (era o que mais pesava nas salas cheias). Os canvases guardados só são lidos.
 const MAPA_CACHE_CAMADAS = new WeakMap();
 // Cópia de um canvas (o do cache não pode ir para o mapa duas vezes).
+// Área de clique do boneco: só o corpo. O botão inteiro (64 × 110) tapava o
+// clique na mesa, na cadeira e no painel atrás de quem está na frente
+// (Paulo, 20/10/2026: "tem objeto que não clica e nem brilha").
+function mapaAlvoDoBoneco() {
+  const i = document.createElement("i");
+  i.className = "mapa-alvo";
+  i.setAttribute("aria-hidden", "true");
+  return i;
+}
 function mapaCopiarCanvas(c) {
   if (!c || typeof document === "undefined") return c;
   const n = document.createElement("canvas");
@@ -1376,7 +1391,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       } else no.setAttribute("aria-hidden", "true");
       const img = document.createElement("img");
       img.alt = ""; img.draggable = false; img.referrerPolicy = "no-referrer";
-      no.append(img);
+      no.append(img, mapaAlvoDoBoneco());
       palco.append(no);
       const p = { id: "figurante-" + i, no, img, etiqueta, x: f.x, y: f.y, dir: f.dir ?? 4, acao: f.acao || "std", figura: agente?.figura || f.figura, mao: agente?.mao || f.mao || "" };
       posicionarPessoa(p);
@@ -1469,7 +1484,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       no.setAttribute("aria-label", `${v.nome}: ${v.falas?.[0] || ""}`);
       const img = document.createElement("img");
       img.alt = ""; img.draggable = false; img.referrerPolicy = "no-referrer";
-      no.append(img);
+      no.append(img, mapaAlvoDoBoneco());
       const etiqueta = document.createElement("span");
       etiqueta.className = "mapa-etiqueta solta visitante " + (v.tom || "cobra");
       etiqueta.setAttribute("aria-hidden", "true");
@@ -2214,7 +2229,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         // Sombra no chão de quem está em pé ou andando (h_std_sd do Habbo, 50 de 255).
         const sombra = document.createElement("i");
         sombra.className = "mapa-sombra-boneco";
-        no.append(sombra, img);
+        no.append(sombra, img, mapaAlvoDoBoneco());
         palco.append(etiqueta);
         // Como no Habbo: clicar em alguém põe a seta de seleção em cima dele.
         no.addEventListener("click", (e) => { e.stopPropagation(); selecionarPessoa(q.id); q.aoClicar?.(q.id); });
@@ -2433,6 +2448,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   });
   el.addEventListener("pointermove", (e) => {
     if (!arrasto) {
+      if (e.pointerType !== "touch" && alvoNaFrente(e)) { passarPonteiro(e.clientX, e.clientY, ladrilhoEm(e.clientX, e.clientY)); return; }
       // Mouse passando (sem arrastar): avisa o ladrilho, para o cartão da mesa.
       if (e.pointerType !== "touch") {
         const r = palco.getBoundingClientRect();
@@ -2563,7 +2579,27 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // (outro domínio) e testar o pixel dele contaminaria o canvas de amostra;
     // cada boneco é um botão com o próprio clique.
     candidatos.sort((a, b) => b.z - a.z);
-    return candidatos.find((c) => c.teste())?.objeto || null;
+    const achado = candidatos.find((c) => c.teste());
+    return achado ? { ...achado.objeto, z: achado.z } : null;
+  }
+  // Móvel desenhado na frente do boneco sob o mouse (o copo na mesa diante de
+  // quem está sentado): a área de clique do boneco sai do caminho enquanto o
+  // mouse está ali, e o clique e o brilho vão para o móvel.
+  let alvoDesligado = null;
+  function alvoNaFrente(e) {
+    if (alvoDesligado) {
+      const r = alvoDesligado.getBoundingClientRect();
+      const fora = e.clientX < r.left || e.clientX >= r.right || e.clientY < r.top || e.clientY >= r.bottom;
+      const o = fora ? null : objetoEm(e.clientX, e.clientY);
+      if (fora || !(o?.tipo === "movel" && o.z > Number(alvoDesligado.parentElement?.style.zIndex || 0))) { alvoDesligado.style.pointerEvents = ""; alvoDesligado = null; }
+    }
+    const alvo = e.target.closest?.(".mapa-alvo");
+    if (!alvo) return false;
+    const o = objetoEm(e.clientX, e.clientY);
+    if (o?.tipo !== "movel" || ehChao(o.item) || !(o.z > Number(alvo.parentElement?.style.zIndex || 0))) return false;
+    alvo.style.pointerEvents = "none";
+    alvoDesligado = alvo;
+    return true;
   }
   // Móvel que conta como chão para o clique e para o cursor (tapete, bloco de
   // pisar, assento: no Habbo clicar nele leva até ele).

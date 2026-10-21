@@ -2083,6 +2083,18 @@ function escritorioParedesDoPerfil(s) {
   if (t !== 8 && t !== 12) return s;
   return Array.from({ length: 4 }, (_, lado) => s.slice(lado * t * 3, (lado + 1) * t * 3) + "-00".repeat(L - t)).join("");
 }
+// Peça de piso de d.x × d.y ladrilhos encaixada na grade dela, dentro do
+// quarto w × h, a partir do ladrilho clicado.
+function escritorioEncaixePiso(lx, ly, d, w, h) {
+  return { x: Math.max(0, Math.min(w - d.x, lx - (lx % d.x))), y: Math.max(0, Math.min(h - d.y, ly - (ly % d.y))) };
+}
+// Trecho de parede clicado na própria parede: na projeção do mapa o ponto
+// da parede do fundo cai atrás do quarto, na diagonal da coluna (x − y); o
+// da esquerda, na da linha (y − x). [lado, posição] ou null.
+function escritorioTrechoDaParede(ux, uy, w, h) {
+  const [lado, k] = uy < 0 && ux >= uy ? [0, Math.floor(ux - uy)] : ux < 0 ? [1, Math.floor(uy - ux)] : [-1, -1];
+  return lado < 0 || k < 0 || k >= (lado ? h : w) ? null : [lado, k];
+}
 function escritorioDimQuarto(a) {
   const c = escritorioModeloPlanta(a)?.celdas;
   return c ? { w: c[0].length, h: c.length } : { w: ESCRITORIO_SALA_LADO, h: ESCRITORIO_SALA_LADO };
