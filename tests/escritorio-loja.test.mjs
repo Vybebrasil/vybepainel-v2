@@ -165,6 +165,10 @@ test('ficha do móvel diz de quem é a sala e como o dono conseguiu: compra, con
  assert.equal(o.tipo,'conquista');assert.match(o.origens[0].texto,/Bronze da conquista "Cards" \(40 cards entregues\)/);assert.ok(o.origens[0].em);
  assert.equal((await origemDoMovel(sql,salas,{camada:sala,classe:'exe_table'})).tipo,'essencial');
  assert.equal((await origemDoMovel(sql,salas,{camada:'cafe',classe:'exe_table'})).tipo,'sala_comum');
+ // Peça da loja sem linha própria no catálogo vale como Comum (como na compra), e a ficha mostra o preço.
+ await db.exec(`DELETE FROM vybe_escritorio_catalogo WHERE classe='modern_c17_desk'`);
+ const semLinha=await origemDoMovel(sql,salas,{camada:'operacao',classe:'modern_c17_desk'});
+ assert.equal(semLinha.raridade,'Comum');assert.ok(semLinha.preco>0);
  await assert.rejects(origemDoMovel(sql,salas,{camada:sala,classe:"x'; drop"}),/inválido/);
 });
 test('kit da loja: soma dos preços com desconto, tudo ou nada, repetir a chave não cobra de novo; inventário diz de onde veio',async t=>{

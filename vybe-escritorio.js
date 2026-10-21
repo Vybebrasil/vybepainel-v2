@@ -2365,6 +2365,9 @@ function abrirFichaMovelEscritorio(m) {
   if (f.deita) acoes.push(["Deitar", "sentarNoMovelSelecionadoEscritorio()"]);
   const acao = escritorioAcaoDoMovel(m) || (ESCRITORIO_REGULADOR.test(m.classe) ? { texto: "Regular a luz" } : null);
   if (acao) acoes.push([acao.texto || "Usar", "usarMovelSelecionadoEscritorio()"]);
+  // Tela, telefone, globo…: a arte tem outro estado (desligado/parado).
+  // Liga e desliga para todos, como o duplo clique (Paulo, 20/10/2026).
+  else if (escritorioTrocaEstadoSimples(m)) acoes.push(["Ligar ou desligar", "trocarEstadoMovelSelecionadoEscritorio()"]);
   const camada = m.origem?.camada;
   if (camada && escritorioPodeEditar(camada)) acoes.push(["Editar", "editarMovelSelecionadoEscritorio()", true]);
   const raiz = camada ? escritorioRaizQuarto(camada) : "";
@@ -2862,12 +2865,26 @@ function alternarComDuploCliqueEscritorio(x, y, objeto = null) {
   if (ESCRITORIO_GARRAFA.test(m.classe)) return girarGarrafaEscritorio(m);
   if (ESCRITORIO_ROLETA.test(m.classe)) return girarRoletaEscritorio(m);
   if (mapaEhPortao(m.classe) && !m.altura) return alternarPortaoEscritorio(m);
+  trocarEstadoMovelEscritorio(m);
+}
+// O próximo estado da arte, para todos (furni:toggle).
+function trocarEstadoMovelEscritorio(m) {
   const estados = escritorioEstadosDoMovel(m), i = estados.indexOf(m.estado || 0);
   const estado = estados[(i + 1) % estados.length];
   const chave = escritorio.mapa.chaveMovel(m);
   escritorio.mapa.estadosMoveis([[chave, estado]]);
   escritorioEmitir("furni:toggle", { chave, estado });
   escritorioTocar(estado ? 660 : 330, 0.08, 0.05);
+}
+// Móvel que só troca de estado (sem regra própria: dado, porta, relógio…).
+function escritorioTrocaEstadoSimples(m) {
+  return Boolean(m && escritorio.mapa && !ESCRITORIO_DADO.test(m.classe) && !ESCRITORIO_TELEPORTE.test(m.classe) && !MAPA_PORTAS.test(m.classe)
+    && !["relogio", "voto", "placar"].includes(escritorioLogica(m)) && escritorioEstadosDoMovel(m).length > 1);
+}
+function trocarEstadoMovelSelecionadoEscritorio() {
+  const m = escritorio.movelSelecionado;
+  if (!m) return;
+  trocarEstadoMovelEscritorio(m);
 }
 // Estados que a arte do móvel tem (0 … 20), pela animação de cada um.
 function escritorioEstadosDoMovel(m) {

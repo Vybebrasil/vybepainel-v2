@@ -7323,9 +7323,15 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-etiqueta.agente.com-situacao {flex-wrap:wrap;z-index:99550}
 .mapa-etiqueta.agente.com-situacao small {display:block;flex-basis:100%;margin-top:1px;color:#b9dcff;font:700 10px var(--mac-ui);white-space:nowrap}
 .mapa-etiqueta.agente.alerta small {display:block;flex-basis:100%;margin-top:1px;color:#ffd59a;font:800 11px var(--mac-ui);white-space:nowrap}
-.mapa-pessoa.figurante.agente.alerta img {filter:drop-shadow(0 0 5px #ffb451) drop-shadow(0 0 12px #ff9d0088)}
-@media (prefers-reduced-motion:no-preference) {.mapa-etiqueta.agente.alerta {animation:ofc-agente-chama 1.8s ease-in-out infinite}}
-@keyframes ofc-agente-chama {50% {box-shadow:0 0 0 6px #ff9d0022,0 6px 22px #ff9d0066}}
+/* Halo do agente que pede ação: um gradiente atrás do boneco. O drop-shadow
+   no <img> era refeito a cada piscada e virada de cabeça dos 16 agentes. */
+.mapa-pessoa.figurante.agente.alerta::before {content:"";position:absolute;left:4px;right:4px;top:22px;bottom:6px;border-radius:50%;background:radial-gradient(closest-side,#ff9d0055,#ff9d0022 60%,transparent);pointer-events:none}
+/* O brilho que pulsa fica numa camada própria e só muda a opacidade: animar o
+   box-shadow fazia o navegador repintar a cena a cada quadro, e com 14 agentes
+   pedindo ação o Centro de Operação travava (Paulo, 20/10/2026). */
+.mapa-etiqueta.agente.alerta::after {content:"";position:absolute;inset:-1px;border-radius:inherit;box-shadow:0 0 0 6px #ff9d0022,0 6px 22px #ff9d0066;opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:no-preference) {.mapa-etiqueta.agente.alerta::after {will-change:opacity;animation:ofc-agente-chama 1.8s ease-in-out infinite}}
+@keyframes ofc-agente-chama {50% {opacity:1}}
 .ofc-dock-plano {position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:min(520px,calc(100vw - 32px));padding:8px 14px 8px 12px;border:1px solid #ffb45199;border-radius:999px;background:#2a1a08f0;color:#ffe0a6;font:600 13px var(--mac-ui);white-space:nowrap;cursor:pointer;box-shadow:0 10px 30px #0008,0 0 0 3px #ff9d0022}
 .ofc-dock-plano b {font-weight:800;color:#fff}
 .ofc-dock-plano span {overflow:hidden;text-overflow:ellipsis}
