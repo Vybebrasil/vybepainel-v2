@@ -1422,3 +1422,4 @@ decoração inicial "bem feito".
 - Peça sem cor na figura (catálogo marca alguns conjuntos com 0 cores, ex.
   `hr-100`) sai com uma cor: o imager do Habbo completava com cinza-claro e o
   cabelo aparecia branco de costas no mapa.
+- Provador mais claro: abas Peças / Skins / Guarda-roupa com ícone e o que cada uma faz; Skins explica "visual inteiro com desconto"; peça da sacola tira com um clique e "Tirar o que não é seu" volta tudo ao visual salvo.
