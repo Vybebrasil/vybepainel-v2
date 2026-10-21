@@ -8930,6 +8930,54 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
   .provador .prov-sacola .abr-acoes > * {flex:1}
 }
 
+/* Meu espaço (21/10/2026, a linguagem do Provador): três cartões grandes, o
+   boneco no pedestal, a prévia de verdade do térreo e o segundo andar; o
+   recomeço em branco fica no rodapé, como ação à parte. */
+.abr-painel.espaco {--prov-brilho:#ff8a35;--prov-linha:#ffffff14;--prov-suave:#9aa1b2;width:min(1080px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:0;gap:0;overflow:auto;
+  display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr auto;background:radial-gradient(120% 70% at 30% 0%,#2a2433f0,transparent 60%),linear-gradient(180deg,#191b24f5,#101117f7);border-color:#ffffff1a}
+.abr-painel.espaco > * {grid-area:auto}
+.espaco .prov-topo {padding-right:16px}
+.esp-fechar {width:36px;height:36px;border-radius:50%;border:1px solid var(--prov-linha);background:#ffffff0d;color:#fff;font:400 22px/1 var(--mac-ui);cursor:pointer}
+.esp-grade {display:grid;grid-template-columns:minmax(250px,.8fr) minmax(0,1.5fr);grid-template-rows:1fr auto;gap:14px;padding:18px 22px}
+.esp-cartao {position:relative;display:grid;align-content:end;gap:10px;min-width:0;padding:14px;border-radius:20px;border:1px solid var(--prov-linha);background:linear-gradient(180deg,#ffffff0a,#ffffff04);color:#eef0f5;text-align:left;cursor:pointer;overflow:hidden;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.esp-cartao:hover {transform:translateY(-2px);border-color:#ff8a3566;box-shadow:0 16px 36px #0008}
+.esp-cartao:focus-visible,.esp-fechar:focus-visible {outline:3px solid #ffb27a;outline-offset:3px}
+.esp-personagem {grid-row:1/3;grid-template-rows:1fr auto auto}
+.esp-palco {position:relative;display:grid;place-items:end center;min-height:300px;margin:-14px -14px 0;overflow:hidden;
+  background:radial-gradient(60% 18% at 50% 86%,#ff8a3555,transparent 72%),radial-gradient(80% 70% at 50% 0%,#ffffff10,transparent 70%),linear-gradient(180deg,#15161d,#0c0d12)}
+.esp-palco img {position:relative;z-index:2;width:128px;height:220px;margin-bottom:34px;image-rendering:pixelated;filter:drop-shadow(0 12px 9px #000a)}
+.esp-palco .prov-pedestal {position:absolute;left:50%;bottom:18px;width:180px;height:48px;transform:translateX(-50%)}
+.esp-texto {display:grid;gap:3px}
+.esp-texto b {color:#fff;font:800 19px/1.15 var(--mac-ui);letter-spacing:-.015em}
+.esp-texto small {color:var(--prov-suave);font:500 13px/1.4 var(--mac-ui)}
+.esp-acao {justify-self:start;padding:9px 16px;border-radius:12px;background:#ffffff12;border:1px solid #ffffff1f;color:#fff;font:700 13px var(--mac-ui)}
+.esp-acao.primaria {background:linear-gradient(180deg,#ff8a35,#ff6b1a);border-color:transparent;color:#1d0d02;box-shadow:0 8px 22px #ff6b1a55,inset 0 1px #fff6}
+.esp-quarto {grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:end}
+.esp-quarto .esp-previa {grid-column:1/-1;margin:-14px -14px 0}
+.abr-previa-quarto.esp-previa,.esp-previa-vazia {height:min(300px,36vh);border-radius:0;background:radial-gradient(70% 60% at 50% 50%,#ffffff0a,transparent),#0c0d12}
+.esp-andar {grid-template-columns:auto minmax(0,1fr) auto;align-items:center;align-content:center}
+.esp-andar.novo {border-style:dashed;border-color:#ffffff2a;background:transparent}
+.esp-icone {display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#ff8a351f;color:#ffb27a}
+.esp-icone .ofc-ico {width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.esp-rodape {justify-content:space-between}
+.esp-nota {margin:0;color:var(--prov-suave);font:500 12.5px var(--mac-ui)}
+.espaco .esp-branco {border-color:#ff6b6b55;color:#ffb3b3;background:#ff6b6b12}
+.espaco .esp-branco:hover {background:#ff6b6b24}
+.espaco .prov-sacola .abr-acoes {position:static;margin:0;padding:0;background:none}
+@media (prefers-reduced-motion:reduce) {.esp-cartao{transition:none}.esp-cartao:hover{transform:none}}
+@media (max-width:760px) {
+  .esp-grade {grid-template-columns:1fr;grid-template-rows:none;padding:14px}
+  .esp-personagem {grid-row:auto}
+  .esp-palco {min-height:230px}
+  .esp-palco img {width:96px;height:165px}
+  .abr-previa-quarto.esp-previa,.esp-previa-vazia {height:200px}
+  .esp-rodape {flex-wrap:wrap}
+  .espaco .prov-sacola .abr-acoes {width:100%;flex-wrap:wrap}
+  .espaco .prov-sacola .abr-acoes > * {flex:1}
+  .esp-nota {display:none}
+  .espaco .prov-sacola .abr-acoes > button {padding:10px 12px;font-size:13px}
+}
+
 /* Ficha como cartão do jogador (21/10/2026, a linguagem do Provador): à
    esquerda o boneco no palco com holofote e pedestal na cor do troféu mais
    alto, o nível, as moedas, a vitrine e as ações; à direita as abas. */
