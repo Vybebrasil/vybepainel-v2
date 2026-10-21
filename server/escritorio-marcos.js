@@ -11,6 +11,56 @@
 import { nivelPorXp, diaBahia, somarDias, diaDaSemana } from './escritorio-pontos.js';
 
 export const NIVEIS = ['', 'Bronze', 'Prata', 'Ouro', 'Diamante'];
+// Títulos (Paulo, 21/10/2026: "títulos que ficam sob a cabeça do jogador:
+// O Fazedor de Card, O Rei do Impresso, Máquina de Cards"). Cada nível de
+// escada libera um; a pessoa escolhe qual mostrar (só os que tem).
+export const TITULOS = {
+  entregas: ['Mão na Massa', 'Produtivo', 'Incansável', 'Lenda da Vybe'],
+  cards: ['Aprendiz de Cards', 'Fazedor de Cards', 'Máquina de Cards', 'Lenda dos Cards'],
+  carrosseis: ['Montador de Carrossel', 'Arquiteto de Carrossel', 'Mestre do Carrossel', 'Rei do Carrossel'],
+  reels: ['Cortador', 'Editor de Reels', 'Fábrica de Reels', 'Lenda dos Reels'],
+  stories: ['Contador de Histórias', 'Rei dos Stories', 'Mestre dos Stories', 'Lenda dos Stories'],
+  fotografias: ['Retocador', 'Tratador de Fotos', 'Mestre da Edição', 'Lenda da Foto'],
+  videos: ['Editor', 'Montador de Vídeo', 'Cineasta', 'Lenda do Vídeo'],
+  impressos: ['Gráfico', 'Mestre da Gráfica', 'Rei do Impresso', 'Imperador do Impresso'],
+  nivel: ['Experiente', 'Veterano', 'Elite', 'Mítico'],
+  adiantado: ['Pontual', 'Adiantado', 'Relâmpago', 'Senhor do Tempo'],
+  deprimeira: ['Caprichoso', 'Certeiro', 'Sem Alteração', 'Perfeição'],
+  embalo: ['Aquecendo', 'Pegando Fogo', 'Em Chamas', 'Imparável'],
+  clientes: ['Multitarefa', 'Polivalente', 'Faz de Tudo', 'Onipresente'],
+  semana: ['Semana Limpa', 'Sem Atraso', 'Relógio Suíço', 'Impecável'],
+  filaemdia: ['Organizado', 'Fila em Dia', 'Zero Pendência', 'Inabalável'],
+  meta: ['Bateu a Meta', 'Constante', 'Consistente', 'Infalível'],
+  meta_turbo: ['Turbinado', 'Acelerado', 'Foguete', 'Supersônico'],
+  podio: ['No Pódio', 'Medalhista', 'Campeão', 'Dinastia'],
+  painel: ['Presente', 'Ligado', 'Conectado', 'Onipresente no Painel'],
+  da: ['Olho Crítico', 'Diretor', 'Diretor de Arte Sênior', 'O Crivo'],
+  agendamento: ['Postador', 'Agendador Nato', 'Relógio da Postagem', 'Nunca Atrasa'],
+  carteira: ['Anfitrião', 'Guardião de Clientes', 'Head de Ouro', 'Lenda do Atendimento'],
+  cadastros: ['Cadastrador', 'Organizador', 'Arquivista', 'Mestre do Cadastro'],
+  gravacoes: ['Na Rua', 'Rodado', 'Estrada', 'Lenda das Gravações'],
+  fotos_captadas: ['Olho Treinado', 'Caçador de Luz', 'Mestre da Lente', 'Lenda da Câmera'],
+  videos_captados: ['Câmera na Mão', 'Diretor de Cena', 'Mestre da Captação', 'Lenda do Set'],
+  briefings: ['Escritor', 'Roteirista', 'Mente Criativa', 'O Visionário'],
+  agencia: ['Guardião', 'Comandante', 'General', 'Dono do Jogo'],
+  planejamentos: ['Planejador', 'Estrategista', 'Mestre do Plano', 'Visionário do Mês'],
+  quarto: ['Decorador'], andar2: ['Construtor'], presente: ['Generoso'], troca: ['Negociante'], postits: ['Recadeiro'],
+};
+const TIPO_TITULO = { cards: 'Cards', carrosseis: 'Carrosséis', reels: 'Reels', stories: 'Stories', fotografias: 'Fotos' };
+export function tituloDe(marco, nivel) {
+  const lista = TITULOS[marco];
+  if (lista) return lista[Math.min(lista.length, Math.max(1, nivel)) - 1] || null;
+  const m = String(marco).match(/^(agendados|carteira)_(\w+)$/);
+  if (m) { const tipo = TIPO_TITULO[m[2]] || m[2]; return m[1] === 'agendados' ? [`Postador de ${tipo}`, `Agenda de ${tipo}`, `Mestre dos ${tipo} Postados`, `Lenda dos ${tipo} Postados`][nivel - 1] : [`Head de ${tipo}`, `Guardião de ${tipo}`, `Mestre de ${tipo}`, `Lenda de ${tipo}`][nivel - 1]; }
+  return null;
+}
+// Os títulos que a pessoa tem (um por nível alcançado, do maior para o menor).
+export async function titulosDaPessoa(sql, pessoaId) {
+  if (!await marcosProntos(sql)) return [];
+  const feitos = await sql`SELECT marco FROM vybe_escritorio_marcos WHERE pessoa_id=${pessoaId}`;
+  return feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco); const texto = tituloDe(marco, nivel); return texto ? { chave: f.marco, texto, nivel: MARCOS_SOCIAIS.has(marco) ? 1 : nivel } : null; })
+    .filter(Boolean).sort((a, b) => b.nivel - a.nivel || a.texto.localeCompare(b.texto, 'pt-BR'));
+}
 // Entregas de quem executou a peça (Criação e Produção): as escadas de entrega,
 // ritmo e qualidade contam só elas. Gestão, Atendimento e Agendamento sobem
 // pela escada da própria função (Paulo, 20/10/2026: "conquistas mais difíceis").
@@ -21,7 +71,7 @@ const EXECUCAO = ['peca_criacao'];
 // Formatos de cada escada de entrega (chave de vybe_escritorio_complexidade).
 const FORMATOS = {
   cards: ['card', 'feed', 'post', 'avulso', 'feed/story'], carrosseis: ['carrossel'], reels: ['reels'],
-  stories: ['story'], fotografias: ['fotografia'], videos: ['video', 'motion', 'capa videos'],
+  stories: ['story'], fotografias: ['fotografia'], videos: ['video', 'motion', 'capa videos'], impressos: ['impresso'],
 };
 const NOME_TIPO = { cards: 'Cards', carrosseis: 'Carrosséis', reels: 'Reels', stories: 'Stories', fotografias: 'Fotografias' };
 export const MARCOS = [
@@ -32,22 +82,27 @@ export const MARCOS = [
   { id: 'stories', nome: 'Stories', unidade: 'stories entregues', valor: (n) => n.formatos.stories },
   { id: 'fotografias', nome: 'Fotografias', unidade: 'fotografias entregues', valor: (n) => n.formatos.fotografias },
   { id: 'videos', nome: 'Vídeos e motions', unidade: 'vídeos entregues', valor: (n) => n.formatos.videos },
+  { id: 'impressos', nome: 'Impressos', unidade: 'impressos entregues', valor: (n) => n.formatos.impressos },
   { id: 'nivel', nome: 'Nível', unidade: 'de nível', valor: (n) => n.nivel },
   { id: 'adiantado', nome: 'Adiantado', unidade: 'entregas antes do prazo', valor: (n) => n.antes },
   { id: 'deprimeira', nome: 'De primeira', unidade: 'peças aprovadas sem alteração', valor: (n) => n.deprimeira },
-  { id: 'embalo', nome: 'Embalado', unidade: 'dias úteis seguidos com entrega', valor: (n) => n.seqMax },
+  { id: 'embalo', nome: 'Em chamas', unidade: 'dias úteis seguidos com entrega', valor: (n) => n.seqMax },
   { id: 'clientes', nome: 'Muitos clientes', unidade: 'clientes diferentes num mês', valor: (n) => n.clientesMax },
   { id: 'semana', nome: 'Semana sem atraso', unidade: 'semanas com 15+ entregas, todas no prazo', valor: (n) => n.semanasLimpas },
   { id: 'filaemdia', nome: 'Fila em dia', unidade: 'dias fechados sem demanda vencida', valor: (n) => n.regras.dia_sem_vencida || 0 },
-  { id: 'meta', nome: 'Meta em dia', unidade: 'semanas com a meta batida', valor: (n) => n.regras.meta_semanal || 0 },
+  { id: 'meta', nome: 'Meta em dia', unidade: 'semanas com a meta batida', valor: (n) => (n.regras.meta_semanal || 0) + (n.regras.meta_semanal_130 || 0) + (n.regras.meta_semanal_160 || 0) },
+  // Escadas das regras de 21/10/2026 (valor por papel e ranking).
+  { id: 'meta_turbo', nome: 'Meta turbinada', unidade: 'semanas com 160% da meta', valor: (n) => n.regras.meta_semanal_160 || 0 },
+  { id: 'podio', nome: 'Pódio', unidade: 'semanas no pódio do ranking', valor: (n) => (n.regras.ranking_1 || 0) + (n.regras.ranking_2 || 0) + (n.regras.ranking_3 || 0) },
+  { id: 'painel', nome: 'No painel', unidade: 'dias com as 10 ações do painel', valor: (n) => n.diasPainelCheio },
   { id: 'da', nome: 'Direção de arte', unidade: 'aprovações como DA', valor: (n) => n.regras.peca_da || 0 },
-  { id: 'agendamento', nome: 'Agendamento', unidade: 'peças agendadas', valor: (n) => n.regras.peca_agendamento || 0 },
+  { id: 'agendamento', nome: 'Postagens', unidade: 'peças postadas', valor: (n) => n.regras.peca_agendamento || 0 },
   { id: 'carteira', nome: 'Carteira', unidade: 'peças da carteira', valor: (n) => n.regras.peca_atendimento || 0 },
   { id: 'cadastros', nome: 'Cadastros', unidade: 'demandas cadastradas', valor: (n) => n.regras.cadastro || 0 },
   // Categorias por tipo também para quem agenda, atende e gere (Paulo, 20/10/2026:
   // equilibrar com quem executa, que tem uma escada por tipo de peça).
   ...['cards', 'carrosseis', 'reels', 'stories', 'fotografias'].flatMap((f) => [
-    { id: 'agendados_' + f, nome: `${NOME_TIPO[f]} agendados`, unidade: `${NOME_TIPO[f].toLowerCase()} agendados`, valor: (n) => n.porRegra.peca_agendamento?.[f] || 0 },
+    { id: 'agendados_' + f, nome: `${NOME_TIPO[f]} postados`, unidade: `${NOME_TIPO[f].toLowerCase()} postados`, valor: (n) => n.porRegra.peca_agendamento?.[f] || 0 },
     { id: 'carteira_' + f, nome: `${NOME_TIPO[f]} da carteira`, unidade: `${NOME_TIPO[f].toLowerCase()} da carteira`, valor: (n) => n.porRegra.peca_atendimento?.[f] || 0 },
   ]),
   { id: 'gravacoes', nome: 'Dias de gravação', unidade: 'dias com captação', valor: (n) => n.diasCaptacao },
@@ -92,7 +147,7 @@ export async function numerosDosMarcos(sql, pessoaId) {
     to_regclass('public.vybe_planejamento_eventos') IS NOT NULL AS planejamentos, to_regprocedure('vybe_formato_chave(text)') IS NOT NULL AS formato,
     EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='formato') AS colformato`]);
   const contar = (existe, consulta) => existe ? consulta().then((r) => Number(r[0]?.n || 0)) : Promise.resolve(0);
-  const [[t], diasLinhas, [cl], [c], regrasLinhas, [a], semanas, formatos, presentes, trocas, postits, planejamentos, [pf], [captacao], [quarto]] = await Promise.all([
+  const [[t], diasLinhas, [cl], [c], regrasLinhas, [a], semanas, formatos, presentes, trocas, postits, planejamentos, [pf], [captacao], [painelCheio], [quarto]] = await Promise.all([
     sql`SELECT count(*) AS n FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId} AND regra = ANY(${EXECUCAO}::text[])`,
     sql`SELECT DISTINCT TO_CHAR(dia,'YYYY-MM-DD') AS dia FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId} AND regra = ANY(${EXECUCAO}::text[])`,
     sql`SELECT COALESCE(max(n),0) AS n FROM (SELECT date_trunc('month', e.dia) m, count(DISTINCT cc.cliente_id) n FROM vybe_escritorio_entregas e
@@ -115,6 +170,7 @@ export async function numerosDosMarcos(sql, pessoaId) {
       WHERE p.estado IN ('aprovado','cadastrado')`),
     sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId}`,
     sql`SELECT count(DISTINCT dia)::int AS n FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId} AND regra='peca_producao'`,
+    sql`SELECT count(*)::int AS n FROM (SELECT split_part(origem,':',2) d FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND regra='acao_painel' GROUP BY 1 HAVING count(*) >= 10) x`,
     sql`SELECT EXISTS(SELECT 1 FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem='conquista:meu-quarto') OR EXISTS(
       SELECT 1 FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} AND preferencias->>'quarto_configurado'='true') AS sim`,
   ]);
@@ -132,7 +188,7 @@ export async function numerosDosMarcos(sql, pessoaId) {
   const porFormato = somar(formatos.filter((f) => EXECUCAO.includes(f.regra)));
   const porRegra = Object.fromEntries(['peca_agendamento', 'peca_atendimento', 'peca_producao'].map((r) => [r, somar(formatos.filter((f) => f.regra === r))]));
   return { hoje: diaBahia(), total: Number(t.n), seqMax, clientesMax: Number(cl.n), nivel: nivelPorXp(c?.xp || 0).nivel, regras, antes: Number(a.antes),
-    diasCaptacao: Number(captacao?.n || 0), deprimeira: regras.criacao_aprovada || 0, semanasLimpas: Number(semanas[0]?.n || 0), formatos: porFormato, porRegra, presentes, trocas, postits, planejamentos,
+    diasCaptacao: Number(captacao?.n || 0), diasPainelCheio: Number(painelCheio?.n || 0), deprimeira: regras.criacao_aprovada || 0, semanasLimpas: Number(semanas[0]?.n || 0), formatos: porFormato, porRegra, presentes, trocas, postits, planejamentos,
     quarto: Boolean(quarto?.sim), andar2: (pf?.preferencias?.sala_andares || []).some((x) => x?.andar === 1 && x.quarto_configurado === true) };
 }
 function proximoUtil(iso, passo) {
@@ -149,13 +205,15 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
   const [n, feitosLinhas, trofeus, [regra]] = await Promise.all([
     numerosDosMarcos(sql, pessoaId),
     sql`SELECT marco,em FROM vybe_escritorio_marcos WHERE pessoa_id=${pessoaId}`,
-    sql`SELECT marco, nivel, meta, classe FROM vybe_escritorio_trofeus ORDER BY marco, nivel`,
+    // Prêmio de cada nível na tabela (desde 21/10/2026); sem ele, regra × nível.
+    sql`SELECT * FROM vybe_escritorio_trofeus ORDER BY marco, nivel`,
     sql`SELECT moedas, pontos FROM vybe_escritorio_regras WHERE chave='conquista' AND ativa`,
   ]);
   const feitos = new Map(feitosLinhas.map((f) => [f.marco, f.em]));
   const lista = [];
   for (const m of MARCOS) {
-    const degraus = trofeus.filter((x) => x.marco === m.id).map((x) => ({ nivel: Number(x.nivel), meta: Number(x.meta), classe: x.classe }));
+    const premio = (x, campo) => x[campo] != null ? Number(x[campo]) : regra ? Number(regra[campo]) * Number(x.nivel) : 0;
+    const degraus = trofeus.filter((x) => x.marco === m.id).map((x) => ({ nivel: Number(x.nivel), meta: Number(x.meta), classe: x.classe, moedas: premio(x, 'moedas'), pontos: premio(x, 'pontos') }));
     if (!degraus.length) continue;
     const valor = Number(m.valor(n) || 0);
     for (const d of degraus) {
@@ -164,7 +222,7 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
       const em = await sql.comTransacao(async (tx) => {
         const [novo] = await tx`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(${pessoaId},${chave}) ON CONFLICT DO NOTHING RETURNING em`;
         if (!novo) return null;
-        if (regra) await tx`SELECT vybe_lancar_pontos(${pessoaId},${d.nivel === 1 && m.origem ? m.origem : 'conquista:' + chave},'conquista',NULL,${Number(regra.moedas) * d.nivel},${Number(regra.pontos) * d.nivel})`;
+        if (d.moedas || d.pontos) await tx`SELECT vybe_lancar_pontos(${pessoaId},${d.nivel === 1 && m.origem ? m.origem : 'conquista:' + chave},'conquista',NULL,${d.moedas},${d.pontos})`;
         if (d.classe) await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${d.classe},1)
           ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
         return novo.em;
@@ -179,7 +237,8 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
       id: m.id, nome: m.nome, nivel, nomeNivel: social ? (nivel ? 'Conquistado' : '') : NIVEIS[nivel] || '', social, valor, unidade: m.unidade,
       proximo: proximo ? { nivel: proximo.nivel, nome: social ? 'Conquistado' : NIVEIS[proximo.nivel], meta: proximo.meta, classe: proximo.classe } : null,
       degraus: degraus.map((d) => ({ ...d, nome: social ? 'Conquistado' : NIVEIS[d.nivel], ok: feitos.has(`${m.id}:${d.nivel}`), em: feitos.get(`${m.id}:${d.nivel}`) || null,
-        moedas: regra ? Number(regra.moedas) * d.nivel : 0, pontos: regra ? Number(regra.pontos) * d.nivel : 0 })),
+        titulo: tituloDe(m.id, d.nivel) })),
+      titulo: nivel ? tituloDe(m.id, nivel) : null,
       // Compatível com as telas antigas: ok, em, dica e o móvel do próximo nível (ou do último).
       ok: nivel > 0, em: alcancados.length ? feitos.get(`${m.id}:${nivel}`) : null,
       dica: proximo ? `${proximo.meta.toLocaleString('pt-BR')} ${m.unidade}` : 'Nível máximo',
@@ -190,9 +249,10 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
 }
 // Revisão única quando as regras de contagem mudam: tira os níveis que a
 // pessoa não alcança mais pela conta nova (registro, conquista do razão e uma
-// unidade guardada do troféu; o que está num quarto fica). O saldo para no
-// zero e o razão recebe o ajuste. Repetir com a mesma chave não faz nada.
-export async function revisarNiveisEscritorio(sql, chave) {
+// unidade do troféu). Com `tirarDoQuarto` (Paulo, 21/10/2026: "remove o item"),
+// se a única unidade está num quarto da pessoa, ela sai do quarto também. O
+// saldo para no zero e o razão recebe o ajuste. Repetir com a mesma chave não faz nada.
+export async function revisarNiveisEscritorio(sql, chave, { tirarDoQuarto = false } = {}) {
   if (!await marcosProntos(sql)) return { disponivel: false };
   const [ja] = await sql`SELECT 1 FROM vybe_escritorio_reinicios WHERE chave=${chave}`;
   if (ja) return { disponivel: true, repetida: true, tirados: 0 };
@@ -216,7 +276,18 @@ export async function revisarNiveisEscritorio(sql, chave) {
         if (t?.classe) {
           const [i] = await tx`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${p} AND classe=${t.classe} FOR UPDATE`;
           const [noQuarto] = await tx`SELECT count(*)::int AS n FROM vybe_escritorio_mapa m, jsonb_array_elements(m.itens) it WHERE m.camada ~ '^sala-[0-9]+(-andar-1)?$' AND it->>0=${t.classe} AND m.atualizado_por=${p}`;
-          if (i && Number(i.quantidade) > Number(noQuarto?.n || 0)) {
+          const sobra = i && Number(i.quantidade) > Number(noQuarto?.n || 0);
+          if (i && !sobra && tirarDoQuarto && Number(noQuarto?.n || 0) > 0) {
+            // A unidade está num quarto da pessoa: sai da camada (a primeira que tiver).
+            const [cam] = await tx`SELECT m.camada, m.itens FROM vybe_escritorio_mapa m WHERE m.camada ~ '^sala-[0-9]+(-andar-1)?$' AND m.atualizado_por=${p}
+              AND EXISTS (SELECT 1 FROM jsonb_array_elements(m.itens) it WHERE it->>0=${t.classe}) ORDER BY m.camada LIMIT 1 FOR UPDATE`;
+            if (cam) {
+              const itens = Array.isArray(cam.itens) ? cam.itens : [];
+              const k = itens.findIndex((it) => Array.isArray(it) && it[0] === t.classe);
+              if (k >= 0) { itens.splice(k, 1); await tx`UPDATE vybe_escritorio_mapa SET itens=${JSON.stringify(itens)}::jsonb WHERE camada=${cam.camada}`; }
+            }
+          }
+          if (i && (sobra || tirarDoQuarto)) {
             if (Number(i.quantidade) <= 1) await tx`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=${p} AND classe=${t.classe}`;
             else await tx`UPDATE vybe_escritorio_inventario SET quantidade=quantidade-1 WHERE pessoa_id=${p} AND classe=${t.classe}`;
           }

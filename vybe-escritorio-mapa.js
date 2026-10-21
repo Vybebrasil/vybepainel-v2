@@ -2284,12 +2284,16 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       // boneco fica meio transparente (não é hora de chamar).
       // A presença chega a cada passo de qualquer pessoa: só refaz a
       // etiqueta quando nome ou status mudaram (antes refazia sempre).
-      const rotulo = [q.corStatus, q.nome, q.statusTexto || ""].join("|");
+      // O título da conquista escolhida fica numa linha embaixo do nome.
+      const rotulo = [q.corStatus, q.nome, q.statusTexto || "", q.titulo?.texto || ""].join("|");
       if (p.rotulo !== rotulo) {
         p.rotulo = rotulo;
-        p.etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
+        p.etiqueta.classList.toggle("com-titulo", !!q.titulo?.texto);
+        const linha = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
+        p.etiqueta.innerHTML = q.titulo?.texto ? `<span class="mapa-linha">${linha}</span><em class="mapa-titulo vb-titulo n${Number(q.titulo.nivel) || 1}"></em>` : linha;
         p.etiqueta.querySelector("b").textContent = q.nome;
         if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
+        if (q.titulo?.texto) p.etiqueta.querySelector(".mapa-titulo").textContent = q.titulo.texto;
       }
       // Selo de status sobre a cabeça, visível de longe (foco: fone; reunião: balão).
       let selo = p.no.querySelector(".mapa-selo");

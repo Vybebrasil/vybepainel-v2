@@ -518,6 +518,26 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   antigas saem com cópia (registro, moedas e XP delas, troféus do inventário e
   dos quartos; saldo nunca negativo) e os níveis são refeitos pelo histórico.
 
+## Conquistas difíceis e títulos (decisão do Paulo, 21/10/2026)
+
+- "As conquistas sim precisam ser difíceis": Bronze fica; Prata ×1,5, Ouro ×2,
+  Diamante ×2,5 (Nível 15/30/50/75; Muitos clientes 10/18/25/35). Prêmio do
+  nível na tabela (`vybe_escritorio_trofeus.moedas/pontos`): 10/20/40/100
+  moedas e 25/50/100/200 XP; sociais 10 e 25. Sem valor na tabela, vale a
+  regra `conquista` × nível.
+- Escadas novas: Impressos (10/45/160/500), Meta turbinada (semanas a 160%:
+  2/6/15/35), Pódio (top 3 da semana: 2/6/15/35) e No painel (dias com as 10
+  ações pagas: 60/150/250/365).
+- "Não zera todos": depois da migração `2026-10-21-escritorio-conquistas-dificeis.sql`,
+  `node scripts/escritorio-revisar-conquistas.mjs` roda uma vez (marcador
+  `conquistas-dificeis-2026-10-21`) e tira só os níveis que a meta nova não
+  alcança, com moedas, XP e troféu, inclusive do quarto. Aplicada em 21/10/2026
+  (21 níveis tirados, 6 concedidos nas escadas novas). Não repetir.
+- Títulos: cada nível libera um (`TITULOS` em `server/escritorio-marcos.js`,
+  ex.: Máquina de Cards, Rei do Impresso). Aparece embaixo do nome no mapa, na
+  ficha e no ranking. A pessoa escolhe na janela Conquistas (rota `titulo`,
+  que confere se a conquista é dela); sem escolha, o do maior nível de trabalho.
+
 ## Produção por tipo de captação (decisão do Paulo, 20/10/2026)
 
 - Uma gravação gera muitas fotos: a fatia passa a depender do tipo
