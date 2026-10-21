@@ -624,6 +624,12 @@ function renderBarraEditorEscritorio() {
   // estado do salvamento num canto, Cancelar e Salvar no outro, e as
   // ferramentas num trilho de ícones à esquerda do mapa.
   el.classList.add("construcao");
+  // O editor começa logo abaixo do topo da cena, que tem uma ou duas linhas
+  // (no quarto entram andares e ferramentas): medido, não fixo.
+  const topo = el.parentElement?.querySelector(".ofc-topo");
+  const medirTopo = () => { if (!topo?.isConnected) return; const p = el.parentElement.getBoundingClientRect(), t = topo.getBoundingClientRect(); el.style.setProperty("--cons-topo", Math.max(56, Math.round(t.bottom - p.top + 10)) + "px"); };
+  medirTopo();
+  if (topo && el.dataset.topoMedido !== "1") { el.dataset.topoMedido = "1"; new ResizeObserver(medirTopo).observe(topo); }
   const ferr = (ico, rotulo, attrs, dica = "", alterna = false) => `<button type="button" class="ofc-cons-ferr${alterna ? " alterna" : ""}" ${attrs}${dica ? ` title="${dica}"` : ""}>${escritorioIcone(ico)}<span>${rotulo}</span></button>`;
   el.innerHTML = `<div class="ofc-cons-selo"><i class="ofc-cons-luz${e.mudou ? " sujo" : ""}" aria-hidden="true"></i><span class="ofc-cons-titulo"><small>Construindo</small>${escolha}</span><span class="ofc-editor-estado${e.mudou ? " sujo" : ""}" role="status">${e.salvando ? "Salvando…" : e.mudou ? "Mudanças não salvas" : "Tudo salvo"}</span></div>
 <div class="ofc-cons-trilho" role="group" aria-label="Ferramentas de construção">
@@ -797,7 +803,7 @@ function escritorioCatalogoHtml() {
   const botao = (ativo, acao, rotulo, extra = "") => `<button type="button" role="tab" aria-selected="${ativo}" onclick="${acao}"${extra}>${rotulo}</button>`;
   const ir = (a, cat = "") => `escritorio.abaQuarto='${a}';escritorio.catalogoCategoria='${cat}';escritorio.catalogoPagina=0;renderEscritorio()`;
   const abas = `<div class="ofc-secoes" role="tablist" aria-label="Seções da edição">${minha
-    ? botao(secao === "meus", ir("meus"), "Móveis") + botao(secao === "decorar" && filtro !== "Planta", ir("decorar", "Sala"), "Piso e paredes") + botao(secao === "decorar" && filtro === "Planta", ir("decorar", "Planta"), "Planta e luz")
+    ? botao(secao === "meus", ir("meus"), "Móveis", ' title="Seus móveis e os grátis"') + botao(secao === "decorar" && filtro !== "Planta", ir("decorar", "Sala"), "Pintura", ' title="Piso e paredes"') + botao(secao === "decorar" && filtro === "Planta", ir("decorar", "Planta"), "Planta", ' title="Planta e luz"')
     : botao(secao === "acervo", "escritorio.catalogoCategoria='';escritorio.catalogoPagina=0;renderEscritorio()", "Móveis") + botao(secao === "decorar", "escritorio.catalogoCategoria='Imagens';renderEscritorio()", "Decorar")}</div>`;
   // Dentro de Decorar: o que muda a sala além dos móveis.
   const sub = (cat, rotulo) => `<button type="button" aria-pressed="${filtro === cat}" onclick="${minha ? ir("decorar", cat) : `escritorio.catalogoCategoria='${cat}';renderEscritorio()`}">${rotulo}</button>`;
