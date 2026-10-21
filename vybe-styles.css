@@ -8776,3 +8776,18 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .cri .abr-previa .cri-look img, .cri-look img {filter:none;width:40px;height:40px;object-fit:contain;image-rendering:pixelated}
 .cri-look-tirar {position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:0;background:#2b2e38;color:#dfe4ec;font:700 11px/18px var(--mac-ui);cursor:pointer;opacity:0;transition:opacity .15s}
 .cri-look:hover .cri-look-tirar, .cri-look-tirar:focus-visible {opacity:1}
+
+/* Skins: preço na peça que se compra e os kits de roupa. */
+.cri-peca {position:relative}
+.cri-preco {position:absolute;right:4px;top:4px;padding:1px 6px;border-radius:99px;background:#1b1d26e6;border:1px solid #ffffff2a;color:#ffd08f;font:700 10.5px/15px var(--mac-ui);font-style:normal;font-variant-numeric:tabular-nums;pointer-events:none}
+.cri-preco::before {content:"";display:inline-block;width:7px;height:7px;margin-right:3px;border-radius:50%;background:#f5b941;vertical-align:0}
+.cri-preco.raro {border-color:#5aa9ff88;color:#b9dcff}
+.cri-skins-grade {display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;padding:4px 10px 12px}
+.cri-skin {display:grid;justify-items:center;gap:3px;padding:8px 6px;border-radius:12px;border:1px solid #ffffff17;background:#ffffff08;text-align:center}
+.cri-skin img {image-rendering:pixelated}
+.cri-skin b {color:#fff;font:700 12.5px var(--mac-ui)}
+.cri-skin small {color:#9da4b4;font-size:11px}
+.cri-skin div {display:flex;gap:4px;margin-top:2px}
+.cri-skin button {padding:4px 9px;border-radius:8px;border:1px solid #ffffff26;background:#ffffff0d;color:#e7ecf5;font:600 11.5px var(--mac-ui);cursor:pointer}
+.cri-skin button.cri-skin-comprar {border-color:#ff9d00;background:#ff9d0026;color:#ffd08f}
+.cri-skin button:focus-visible {outline:2px solid #ff9d00;outline-offset:1px}
