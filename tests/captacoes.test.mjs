@@ -5,13 +5,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, eventoDaCaptacao, CAPTACAO } from '../server/captacoes.js';
+import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes } from '../server/captacoes.js';
+import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 
 const PRODUCAO = 7829537690;
 async function banco(t) {
   const { db, sql } = conexao(); t.after(() => db.close());
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text);
-    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text);
+    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true);
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text);
     CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, titulo text, formato text, prazo date, veiculacao date, briefing text,
       status_chave text, captacao_chave text, board_id bigint, removido_em timestamptz);
@@ -96,4 +97,24 @@ test('o evento da agenda leva cliente, peças, local e horário de Irecê', () =
   assert.match(e.description, /Levar luz/);
   const diaTodo = eventoDaCaptacao({ cliente: 'X', dia: '2026-12-31', inicio: null, fim: null, local: '', observacao: '', pecas: [] });
   assert.deepEqual([diaTodo.start.date, diaTodo.end.date], ['2026-12-31', '2027-01-01']);
+});
+
+test('a agenda do Google conta: azul é captação, reunião e pessoal ficam fora, e o cliente sai do título', async (t) => {
+  assert.equal(ehCaptacaoNaAgenda({ summary: 'Captação - Antonov - Iago' }), true);
+  assert.equal(ehCaptacaoNaAgenda({ summary: 'Lions - Banco de imagem', colorId: '9' }), true);
+  assert.equal(ehCaptacaoNaAgenda({ summary: 'Reunião Lions' }), false);
+  assert.equal(ehCaptacaoNaAgenda({ summary: 'Reunião galego', colorId: '5' }), false);
+  assert.equal(ehCaptacaoNaAgenda({ summary: 'Consulta Vinicius', colorId: '8' }), false);
+  assert.equal(ehCaptacaoNaAgenda({ summary: 'Mizinho - freela - Dra Luisa' }), false);
+  const clientes = [{ id: '1', nome: 'Brussolo Ristorante' }, { id: '2', nome: 'Antonov' }, { id: '3', nome: 'Grupo Serra Grande' }];
+  assert.equal(clienteDoEvento('Captação Brussolo - experiência de casal', clientes)?.id, '1');
+  assert.equal(clienteDoEvento('Captação aula de dança - antonov', clientes)?.id, '2');
+  assert.equal(clienteDoEvento('Captação outubro Rosa Serra grande', clientes)?.id, '3');
+  assert.equal(clienteDoEvento('Fotos experimente', clientes), null);
+  const { sql } = await banco(t);
+  const listar = async () => ({ eventos: [
+    { id: 'g1', titulo: 'Captação - Brussolo', dia: '2026-10-23', horario: '07:00 às 08:00', local: '', captacao: true },
+    { id: 'g2', titulo: 'Reunião Brussolo', dia: '2026-10-23', horario: '09:00 às 10:00', local: '', captacao: false }] });
+  const agenda = await agendaDeCaptacoes(sql, { listar, hoje: '2026-10-21' });
+  assert.deepEqual(agenda.map((e) => [e.id, e.cliente]), [['g1', 'Brussolo']]);
 });

@@ -6,7 +6,7 @@ import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.j
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
-import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda } from '../server/captacoes.js';
+import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes } from '../server/captacoes.js';
 import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
@@ -1599,7 +1599,10 @@ async function areaCaptacoes(req,res,quem) {
   try {
     if(req.method==='GET') {
       if(acao==='pecas') return res.status(200).json({ok:true,pecas:await pecasParaCaptar(banco)});
-      return res.status(200).json({ok:true,...await listarCaptacoes(banco,{de:req.query?.de,ate:req.query?.ate})});
+      // A agenda do Google é a das captações de verdade; falha dela vira aviso.
+      const [lista, agenda] = await Promise.all([listarCaptacoes(banco,{de:req.query?.de,ate:req.query?.ate}),
+        agendaDeCaptacoes(banco).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}))]);
+      return res.status(200).json({ok:true,...lista,agenda:agenda.eventos,aviso_agenda:agenda.aviso||''});
     }
     if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});
     if(acao==='montar') return res.status(200).json({ok:true,...await montarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
