@@ -1322,8 +1322,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         // As peças do cliente aparecem por tipo (atrasadas, para aprovar, sem
         // informação) ao lado do nome, junto com o planejamento na linha de baixo.
         const ct = agente.contagens || {}, num = (v) => (v > 99 ? "99+" : v);
-        const chips = ct.atrasadas || ct.aprovar || ct.info
-          ? `<span class="mapa-agente-nums">${ct.atrasadas ? `<em class="atr" title="${ct.atrasadas} atrasadas">${num(ct.atrasadas)}</em>` : ""}${ct.aprovar ? `<em class="apr" title="${ct.aprovar} em aprovação"${ct.corAprovar ? ` style="--c:${ct.corAprovar}"` : ""}>${num(ct.aprovar)}</em>` : ""}${ct.info ? `<em class="inf" title="${ct.info} com falta de informação"${ct.corInfo ? ` style="--c:${ct.corInfo}"` : ""}>${num(ct.info)}</em>` : ""}</span>`
+        const chip = (n, cls, titulo, cor) => (n ? `<em class="${cls}" title="${n} ${titulo}"${cor ? ` style="--c:${cor}"` : ""}>${num(n)}</em>` : "");
+        const chips = ct.atrasadas || ct.interna || ct.cliente || ct.info
+          ? `<span class="mapa-agente-nums">${chip(ct.atrasadas, "atr", "atrasadas")}${chip(ct.interna, "apr", "em aprovação interna", ct.corInterna)}${chip(ct.cliente, "apr", "aguardando aprovação do cliente", ct.corCliente)}${chip(ct.info, "inf", "com falta de informação", ct.corInfo)}</span>`
           : agente.avisos ? `<em class="mapa-avisos-agente">${num(agente.avisos)}</em>` : "";
         etiqueta.innerHTML = `<i class="ofc-ponto" style="--st:${agente.cor || "#8f98a9"}"></i><b></b>${chips}${agente.alerta || agente.detalhe ? "<small></small>" : ""}`;
         etiqueta.querySelector("b").textContent = agente.nome;
