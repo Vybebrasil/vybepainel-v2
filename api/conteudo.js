@@ -720,7 +720,7 @@ function colunaDaEscolha(cfg, campo, boardId) {
   return coluna;
 }
 
-async function trocarEscolha(sql, quem, { item, campo, para }) {
+export async function trocarEscolha(sql, quem, { item, campo, para }) {
   const cfg = ESCOLHAS[campo];
   if (!cfg) throw new Error(`Campo desconhecido: ${campo}`);
 

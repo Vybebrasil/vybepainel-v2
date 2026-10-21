@@ -6,6 +6,8 @@ import { protegerUpload, abrirContextoUpload } from '../server/upload-contexto.j
 import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
+import { pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda } from '../server/captacoes.js';
+import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
@@ -1588,7 +1590,27 @@ async function areaAgendaProducao(req,res,quem) {
   catch(erro) { return res.status(erro.status || 502).json({error:erro.status===400 || erro.publica===true ? erro.message : 'Agenda de produção indisponível. Confira o acesso da conta de serviço ao Google Agenda e tente novamente.'}); }
 }
 
-const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// Captações da Produção (server/captacoes.js): toda a equipe vê e monta
+// (estações abertas); o servidor confere peça, cliente e estado de cada uma.
+async function areaCaptacoes(req,res,quem) {
+  if(quem.tipo!=='sessao' || !quem.pessoa) return res.status(403).json({error:'Entre com a sua conta para ver as captações.'});
+  const banco=sql(), corpo=req.body && typeof req.body==='object' ? req.body : {};
+  const acao=String(req.query?.acao || corpo.acao || '');
+  try {
+    if(req.method==='GET') {
+      if(acao==='pecas') return res.status(200).json({ok:true,pecas:await pecasParaCaptar(banco)});
+      return res.status(200).json({ok:true,...await listarCaptacoes(banco,{de:req.query?.de,ate:req.query?.ate})});
+    }
+    if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});
+    if(acao==='montar') return res.status(200).json({ok:true,...await montarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
+    if(acao==='gravado') return res.status(200).json({ok:true,...await marcarGravado(banco,quem,corpo,{trocar:trocarEscolha})});
+    if(acao==='cancelar') return res.status(200).json({ok:true,...await cancelarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
+    if(acao==='agenda') return res.status(200).json({ok:true,avisos:await sincronizarAgenda(banco,String(corpo.id||''))});
+    return res.status(400).json({error:'Ação desconhecida.'});
+  } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
+}
+
+const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar,
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()) };
 

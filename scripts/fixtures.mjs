@@ -226,6 +226,16 @@ export async function demoApi(req,res,url,body) {
       if(req.method==='POST')return reply(403,{error:'A demonstração não grava.'});
       return reply(200,{ok:true,disponivel:true,email:false,planejamentos:[plano]});
     }
+    // Captações fictícias da Produção (server/captacoes.js), só leitura.
+    if(area==='captacoes'){
+      const d=(n)=>{const x=new Date();x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);};
+      if(url.searchParams.get('acao')==='pecas')return reply(200,{ok:true,pecas:[
+        {id:'101',titulo:'Reels - Prato do dia',formato:'Reels',prazo:d(3),veiculacao:d(5),briefing:'Abrir na cozinha com o chef finalizando o prato.\nFechar com o prato na mesa e o logo.',status:'Aguardo',clientes:[{id:'1',nome:'Cliente demonstração'}]},
+        {id:'102',titulo:'Foto - Sobremesa da casa',formato:'Fotografia',prazo:d(4),veiculacao:d(6),briefing:'',status:'Aguardo',clientes:[{id:'1',nome:'Cliente demonstração'}]},
+        {id:'103',titulo:'Reels - Bastidores do atendimento',formato:'Reels',prazo:d(6),veiculacao:d(8),briefing:'Mostrar a recepção e a equipe sorrindo.',status:'Aguardo',clientes:[{id:'2',nome:'Cliente B (fictício)'}]}]});
+      return reply(200,{ok:true,de:d(0),ate:d(30),captacoes:[{id:'9',cliente_id:'1',cliente:'Cliente demonstração',dia:d(1),inicio:'09:00',fim:'11:00',local:'No restaurante',observacao:'Levar a luz de LED.',estado:'agendada',na_agenda:true,aviso:null,criado_por:'Operador de teste',
+        pecas:[{id:'104',titulo:'Reels - Novidade do cardápio',formato:'Reels',briefing:'Close nos ingredientes, depois o prato pronto.',captacao:'captacao_agendada',gravado:true},{id:'105',titulo:'Foto - Ambiente',formato:'Fotografia',briefing:'',captacao:'captacao_agendada',gravado:false}]}]});
+    }
     if(area==='notificacoes')return reply(200,{ok:true,notificacoes:[],nao_lidas:0});
     return reply(200,{ok:true,pessoas:[],clientes:[],acessos:[],automacoes:[],snapshots:[],colunas:[],opcoes:[],captacao:[],catalogos:{status:[],captacao:[],grupos:[],pessoas:[],formatos:[]}});
   }
