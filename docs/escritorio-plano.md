@@ -1256,3 +1256,15 @@ decoração inicial "bem feito".
   pelo preço do kit) no lugar do Salvar quando falta alguma, e a seção Skins
   com Provar e Comprar. Testes em `tests/escritorio-skins.test.mjs`.
 - A faixa Rara tem estoque (10 por peça), como nos móveis.
+
+### Provador (criador de personagem redesenhado) — 21/10/2026
+
+- Paulo: "não mandei me surpreender na UI/UX?". O criador virou um provador
+  (`criadorPainelHtml`, CSS "Provador" no fim do `vybe-styles.css`): topo com
+  corpo e carteira; trilho de partes com a peça vestida em cada uma; palco
+  com holofote e pedestal na cor da peça mais rara vestida; armário com a
+  vitrine de skins, filtros Todas/Grátis/Minhas/À venda e cartões com a cor
+  da raridade; sacola com as peças a comprar, o total e quanto falta.
+- Mesmas regras das skins; o avatar do cliente usa a mesma tela, sem preços.
+- Conferido na demo do convidado com skins simuladas (1280×800 e celular).
+  Próximo: levar a mesma linguagem para a ficha do jogador e a construção.
