@@ -332,3 +332,10 @@ test('a tela dos planejamentos não chama função que não existe',()=>{
  const definidas=new Set([...s.matchAll(/function\s+(\w+)/g),...s.matchAll(/(?:const|let)\s+(\w+)\s*=/g)].map(m=>m[1]));
  assert.deepEqual([...chamadas].filter(n=>!definidas.has(n)),[]);
 });
+
+// Regressão (20/10/2026): no quadro do painel, o link do calendário abria a tela inicial.
+test('links internos do documento só rolam (não saem do quadro)',()=>{
+ const html=documentoHtml({id:'1',cliente:'C',titulo:'P',mes:'2026-11-01',versao:1,estado:'revisar',identidade:{},conteudo:{pecas:[{data:'2026-11-03',formato:'Card',tema:'Um'}]}},{revisor:'head'});
+ assert.match(html,/href="#peca-1"/);
+ assert.match(html,/closest\('a\[href\^="#"\]'\)[\s\S]*preventDefault/);
+});
