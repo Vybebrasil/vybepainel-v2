@@ -126,6 +126,35 @@ ${paraCliente ? decisaoDaPeca(x, n, respondendo) : revisor === 'head' ? decisaoD
 // conversa com a página por postMessage e grava com o login do cliente).
 // revisor 'head': a prévia do painel, com a revisão interna peça a peça
 // (grava pela janela do painel, por postMessage).
+// Uma peça por vez / documento inteiro (e "Editar no sistema" para o head),
+// a mesma lógica nas duas páginas: o cliente termina no envio, o head não.
+function modosJs({ chave, envio }) {
+ return `const CHAVE=${JSON.stringify(chave)},ENVIO=${envio ? 'true' : 'false'};
+const pecasEl=[...document.querySelectorAll('.pecas .peca')];let atual=0,modo='';
+function mostrar(i,rolar=true){const novo=Math.max(0,Math.min(pecasEl.length-1,i));document.body.dataset.ida=novo<atual?'volta':'vai';atual=novo;pecasEl.forEach((el,k)=>el.classList.toggle('atual',k===atual));
+document.getElementById('pos').textContent='Peça '+(atual+1)+' de '+pecasEl.length;document.querySelector('[data-ir="-1"]').disabled=atual===0;
+const prox=document.querySelector('[data-ir="1"]');prox.textContent=atual===pecasEl.length-1?(ENVIO?'Ir para o envio →':'Última peça'):'Próxima →';prox.disabled=!ENVIO&&atual===pecasEl.length-1;
+document.body.classList.remove('no-envio');document.querySelectorAll('.cal-mini a').forEach((a,k)=>{a.classList.toggle('atual',k===atual);a.classList.toggle('feita',!!pecasEl[k].querySelector('.decisao')?.dataset.estado);});
+document.querySelector('.cal-mini a.atual')?.scrollIntoView({inline:'center',block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});if(rolar)scrollTo({top:0,behavior:'smooth'});}
+function irEnvio(){document.body.classList.add('no-envio');scrollTo({top:0,behavior:'smooth'});}
+function aplicarModo(m){modo=m;document.body.classList.toggle('modo-um',m==='um');document.body.classList.toggle('modo-doc',m==='doc');document.getElementById('escolha').hidden=true;document.body.classList.remove('escolhendo');document.body.style.removeProperty('--h-escolha');
+document.querySelectorAll('.modos [data-modo]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modo===m)));try{localStorage.setItem(CHAVE,m);}catch(x){}
+if(m==='um'){const livre=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);mostrar(livre<0?0:livre,false);}else document.body.classList.remove('no-envio');}
+document.addEventListener('click',e=>{const m=e.target.closest('[data-modo]');if(m){if(m.dataset.modo==='sistema'){parent.postMessage({vybe:'planejamento-head-editar'},'*');return;}aplicarModo(m.dataset.modo);return;}
+const ir=e.target.closest('[data-ir]');if(ir){if(ir.dataset.ir==='pecas'){mostrar(atual);return;}if(ir.dataset.ir==='1'&&atual===pecasEl.length-1){if(ENVIO)irEnvio();return;}mostrar(atual+Number(ir.dataset.ir));return;}
+const cal=e.target.closest('.cal a[href^="#peca-"],.cal-mini a');if(cal&&modo==='um'){e.preventDefault();mostrar(Number(cal.getAttribute('href').slice(6))-1);}});
+// Uma peça por vez: respondeu, vai para a próxima sem resposta.
+document.addEventListener('vybe-respondida',()=>{if(modo!=='um')return;setTimeout(()=>{const livre=pecasEl.findIndex((el,k)=>k>atual&&!el.querySelector('.decisao')?.dataset.estado);
+const qualquer=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);const alvo=livre>=0?livre:qualquer;if(alvo>=0)mostrar(alvo);else if(ENVIO)irEnvio();},450);});
+let salvo='';try{salvo=localStorage.getItem(CHAVE)||'';}catch(x){}
+// Escolha aberta: no VybeHub a moldura cresce até o tamanho do documento, e a
+// janela centrada ficava no meio dele (Paulo, 21/10/2026: "tem que descer a
+// aba horrores"). A escolha fica no topo e a página encolhe até ela. A altura
+// mandada ao VybeHub é a do conteúdo: scrollHeight nunca fica menor que a moldura.
+if(salvo==='um'||salvo==='doc')aplicarModo(salvo);else{const e=document.getElementById('escolha');e.hidden=false;document.body.classList.add('modo-doc','escolhendo');
+const medir=()=>{if(document.body.classList.contains('escolhendo'))document.body.style.setProperty('--h-escolha',(e.firstElementChild.offsetHeight+64)+'px');};new ResizeObserver(medir).observe(e.firstElementChild);medir();e.querySelector('[data-modo]')?.focus({preventScroll:true});}
+`;
+}
 export function documentoHtml(p, { paraCliente = false, token = '', aviso = '', modo = 'link', revisor = '' } = {}) {
  const id = p.identidade || {}, base = PAINEL();
  const logo = url(id.logo) || (id.logo_drive && p.cliente_id ? `${base}/api/painel?area=logo&c=${encodeURIComponent(p.cliente_id)}` : '');
@@ -142,17 +171,26 @@ export function documentoHtml(p, { paraCliente = false, token = '', aviso = '', 
  // Dois jeitos de aprovar, à escolha do cliente e trocáveis a qualquer hora
  // (Paulo, 20/10/2026): uma peça por vez, como o cadastro do painel, ou o
  // documento inteiro. O calendário aparece nos dois.
+ // Jeitos de ler e responder (Paulo, 20 e 21/10/2026): uma peça por vez ou o
+ // documento inteiro, para o cliente e para o head; o head tem também "Editar
+ // no sistema", a edição completa do painel. O calendário aparece em todos.
+ const navegando = respondendo || revisando;
+ const opUm = (texto) => `<button type="button" data-modo="um" class="op op-um"><span class="op-previa" aria-hidden="true"><span class="pilha"><i class="c c3"><i class="img"></i><i class="ln"></i><i class="ln curta"></i></i><i class="c c2"><i class="img"></i><i class="ln"></i><i class="ln curta"></i></i><i class="c c1"><i class="img"></i><i class="ln"></i><i class="ln curta"></i><i class="selo">✓</i></i></span></span><b>Uma peça por vez</b><span>${texto}</span><em class="op-ir">Começar pela primeira peça</em></button>`;
+ const opDoc = (texto) => `<button type="button" data-modo="doc" class="op op-doc"><span class="op-previa" aria-hidden="true"><span class="pagina"><span class="rolo">${Array.from({ length: 2 }, () => '<i class="titulo"></i><i class="ln"></i><i class="ln curta"></i><i class="bloco"><i class="mini"></i><i class="ln"></i><i class="ok">✓</i></i><i class="bloco"><i class="mini"></i><i class="ln"></i><i class="ok">✓</i></i><i class="bloco"><i class="mini"></i><i class="ln"></i></i>').join('')}</span></span></span><b>Documento completo</b><span>${texto}</span><em class="op-ir">Abrir o documento</em></button>`;
+ const opSistema = `<button type="button" data-modo="sistema" class="op op-sistema"><span class="op-previa" aria-hidden="true"><span class="ficha-sis"><i class="lin"></i><i class="campo"></i><i class="lin curta"></i><i class="campo alto"></i><i class="lin"></i><i class="campo"></i></span></span><b>Editar no sistema</b><span>A edição completa do painel: cada peça em campos, para mudar texto, dia e formato de várias de uma vez.</span><em class="op-ir">Abrir a edição</em></button>`;
+ const escolha = (titulo, sub, ops) => `<div class="escolha" id="escolha" hidden><div class="escolha-caixa" role="dialog" aria-modal="true" aria-labelledby="escolha-titulo"><small class="escolha-kicker">Planejamento de ${esc(nomeDoMes(p.mes))} · ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}</small><h2 id="escolha-titulo">${titulo}</h2><p class="escolha-sub">${sub}</p>
+<div class="escolha-opcoes${ops.length > 2 ? ' tres' : ''}">${ops.join('')}</div></div></div>`;
  const comoUsar = respondendo ? `<div class="como" id="como"><div class="como-topo"><b>Como você quer aprovar?</b>
 <div class="modos" role="group" aria-label="Modo de aprovação"><button type="button" data-modo="um" aria-pressed="false">Uma peça por vez</button><button type="button" data-modo="doc" aria-pressed="false">Documento completo</button></div></div>
 <p class="dica-modo" data-so="um">Você vê uma peça de cada vez: aprove ou peça ajuste, e a próxima aparece. Fica salvo na hora, dá para parar e voltar depois.</p>
 <p class="dica-modo" data-so="doc">Todas as peças na mesma página. Em cada uma, toque em <i>Aprovar esta peça</i> ou <i>Pedir ajuste</i>. Fica salvo na hora.</p>
 <label class="quem">Quem está respondendo?<input id="quem" maxlength="80" autocomplete="name" placeholder="Seu nome" value="${esc(p.resposta_nome || '')}"></label>
 <p class="progresso"><span id="progresso">${respondidas} de ${pecas.length} peças respondidas</span><i><b id="barra" style="width:${pecas.length ? Math.round((respondidas / pecas.length) * 100) : 0}%"></b></i></p></div>
-<div class="escolha" id="escolha" hidden><div class="escolha-caixa" role="dialog" aria-modal="true" aria-labelledby="escolha-titulo"><small class="escolha-kicker">Planejamento de ${esc(nomeDoMes(p.mes))} · ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}</small><h2 id="escolha-titulo">Como você prefere aprovar?</h2><p class="escolha-sub">Escolha o jeito mais confortável. Dá para trocar a qualquer momento e tudo fica salvo na hora.</p>
-<div class="escolha-opcoes">
-<button type="button" data-modo="um" class="op op-um"><span class="op-previa" aria-hidden="true"><span class="pilha"><i class="c c3"><i class="img"></i><i class="ln"></i><i class="ln curta"></i></i><i class="c c2"><i class="img"></i><i class="ln"></i><i class="ln curta"></i></i><i class="c c1"><i class="img"></i><i class="ln"></i><i class="ln curta"></i><i class="selo">✓</i></i></span></span><b>Uma peça por vez</b><span>Você vê uma peça, aprova ou pede ajuste, e a próxima aparece sozinha. Mais leve, ótimo no celular.</span><em class="op-ir">Começar pela primeira peça</em></button>
-<button type="button" data-modo="doc" class="op op-doc"><span class="op-previa" aria-hidden="true"><span class="pagina"><span class="rolo">${Array.from({ length: 2 }, () => '<i class="titulo"></i><i class="ln"></i><i class="ln curta"></i><i class="bloco"><i class="mini"></i><i class="ln"></i><i class="ok">✓</i></i><i class="bloco"><i class="mini"></i><i class="ln"></i><i class="ok">✓</i></i><i class="bloco"><i class="mini"></i><i class="ln"></i></i>').join('')}</span></span></span><b>Documento completo</b><span>Todas as ${pecas.length} peças na mesma página, como um documento. Bom para ler tudo de uma vez.</span><em class="op-ir">Abrir o documento</em></button>
-</div></div></div>` : '';
+${escolha('Como você prefere aprovar?', 'Escolha o jeito mais confortável. Dá para trocar a qualquer momento e tudo fica salvo na hora.', [opUm('Você vê uma peça, aprova ou pede ajuste, e a próxima aparece sozinha. Mais leve, ótimo no celular.'), opDoc(`Todas as ${pecas.length} peças na mesma página, como um documento. Bom para ler tudo de uma vez.`)])}`
+  : revisando ? `<div class="como" id="como"><div class="como-topo"><b>Como você quer revisar?</b>
+<div class="modos" role="group" aria-label="Modo de revisão"><button type="button" data-modo="um" aria-pressed="false">Uma peça por vez</button><button type="button" data-modo="doc" aria-pressed="false">Documento completo</button><button type="button" data-modo="sistema" aria-pressed="false">Editar no sistema</button></div></div>
+<p class="progresso"><span id="progresso"></span><i><b id="barra"></b></i></p></div>
+${escolha('Como você quer revisar?', 'Antes de mandar ao cliente, dê OK ou peça ajuste em cada peça. Dá para trocar de jeito a qualquer hora.', [opUm('Uma peça de cada vez: OK ou ajustar, e a próxima aparece sozinha.'), opDoc(`Todas as ${pecas.length} peças na mesma página, como o cliente vai ver.`), opSistema])}` : '';
  const secao = (n, rotulo, titulo) => `<h2><small>${n} · ${rotulo}</small>${titulo}</h2>`;
  const corpo = `<div class="so-doc">${secao('01', 'Visão do mês', 'O que vamos comunicar')}${c.resumo ? `<p class="resumo">${esc(c.resumo)}</p>` : ''}
 <div class="numeros">${numeros.map((x) => `<div><b>${esc(x.valor)}</b><span>${esc(x.rotulo)}</span></div>`).join('')}</div>
@@ -160,8 +198,8 @@ ${c.linhas?.length ? `${secao('02', 'Linhas de conteúdo', 'Os assuntos do mês'
 ${c.datas?.length ? `${secao('03', 'Datas', 'Datas que orientam o mês')}<div class="rolar"><table class="datas"><tbody>${c.datas.map((d) => `<tr><td>${esc(d.data)}</td><td><b>${esc(d.nome)}</b></td><td>${esc(d.texto)}</td></tr>`).join('')}</tbody></table></div>` : ''}
 </div>
 ${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${calendario(p.mes, pecas)}
-${respondendo ? `<nav class="cal-mini" aria-label="Peças do mês">${pecas.map((x, i) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[x.formato] || '#6b7280'}" data-n="${i}"><b>${esc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : '--')}</b><span>${esc(x.formato)}</span></a>`).join('')}</nav>` : ''}
-<section id="area-pecas">${secao('05', 'Peças', 'Uma a uma')}${respondendo ? `<div class="navega"><button type="button" class="nao" data-ir="-1">← Anterior</button><span id="pos"></span><button type="button" class="nao" data-ir="1">Próxima →</button></div>` : ''}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div></section>
+${navegando ? `<nav class="cal-mini" aria-label="Peças do mês">${pecas.map((x, i) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[x.formato] || '#6b7280'}" data-n="${i}"><b>${esc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : '--')}</b><span>${esc(x.formato)}</span></a>`).join('')}</nav>` : ''}
+<section id="area-pecas">${secao('05', 'Peças', 'Uma a uma')}${navegando ? `<div class="navega"><button type="button" class="nao" data-ir="-1">← Anterior</button><span id="pos"></span><button type="button" class="nao" data-ir="1">Próxima →</button></div>` : ''}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div></section>
 ${c.observacoes ? `<div class="so-doc">${secao('06', 'Observações', 'Para combinar')}<div class="obs">${esc(c.observacoes)}</div></div>` : ''}`;
  const formulario = respondendo ? `<section class="aprovar" id="aprovar"><button type="button" class="link voltar-pecas" data-ir="pecas">← Voltar às peças</button><h2><small>Sua resposta</small>Enviar para a Vybe</h2>
 <p class="contagem" id="contagem" aria-live="polite"></p>
@@ -191,29 +229,7 @@ b.disabled=true;try{await falar('marcar',{assinatura:d.dataset.assinatura,estado
 document.getElementById('concluir').addEventListener('click',async e=>{if(!quem.value.trim()){mostrarErro('Escreva seu nome no topo antes de enviar.');quem.focus();return;}
 const aj=document.querySelectorAll('.decisao[data-estado=ajuste]').length,b=e.currentTarget;b.disabled=true;
 try{await falar('responder',{acao:aj?'ajustes':'aprovar',nome:quem.value.trim(),texto:document.getElementById('geral').value.trim()});if(MODO!=='portal')location.reload();}catch(x){mostrarErro(x.message);b.disabled=false;}});
-const pecasEl=[...document.querySelectorAll('.pecas .peca')];let atual=0,modo='';
-function mostrar(i,rolar=true){atual=Math.max(0,Math.min(pecasEl.length-1,i));pecasEl.forEach((el,k)=>el.classList.toggle('atual',k===atual));
-document.getElementById('pos').textContent='Peça '+(atual+1)+' de '+pecasEl.length;document.querySelector('[data-ir="-1"]').disabled=atual===0;
-const prox=document.querySelector('[data-ir="1"]');prox.textContent=atual===pecasEl.length-1?'Ir para o envio →':'Próxima →';
-document.body.classList.remove('no-envio');document.querySelectorAll('.cal-mini a').forEach((a,k)=>{a.classList.toggle('atual',k===atual);a.classList.toggle('feita',!!pecasEl[k].querySelector('.decisao')?.dataset.estado);});
-document.querySelector('.cal-mini a.atual')?.scrollIntoView({inline:'center',block:'nearest'});if(rolar)scrollTo({top:0,behavior:'smooth'});}
-function irEnvio(){document.body.classList.add('no-envio');scrollTo({top:0,behavior:'smooth'});}
-function aplicarModo(m){modo=m;document.body.classList.toggle('modo-um',m==='um');document.body.classList.toggle('modo-doc',m==='doc');document.getElementById('escolha').hidden=true;document.body.classList.remove('escolhendo');document.body.style.removeProperty('--h-escolha');
-document.querySelectorAll('.modos [data-modo]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modo===m)));try{localStorage.setItem('vybe-modo-aprovacao',m);}catch(x){}
-if(m==='um'){const livre=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);mostrar(livre<0?0:livre,false);}else document.body.classList.remove('no-envio');}
-document.addEventListener('click',e=>{const m=e.target.closest('[data-modo]');if(m){aplicarModo(m.dataset.modo);return;}
-const ir=e.target.closest('[data-ir]');if(ir){if(ir.dataset.ir==='pecas'){mostrar(atual);return;}if(ir.dataset.ir==='1'&&atual===pecasEl.length-1){irEnvio();return;}mostrar(atual+Number(ir.dataset.ir));return;}
-const cal=e.target.closest('.cal a[href^="#peca-"],.cal-mini a');if(cal&&modo==='um'){e.preventDefault();mostrar(Number(cal.getAttribute('href').slice(6))-1);}});
-// Uma peça por vez: respondeu, vai para a próxima sem resposta.
-document.addEventListener('vybe-respondida',()=>{if(modo!=='um')return;setTimeout(()=>{const livre=pecasEl.findIndex((el,k)=>k>atual&&!el.querySelector('.decisao')?.dataset.estado);
-const qualquer=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);const alvo=livre>=0?livre:qualquer;if(alvo>=0)mostrar(alvo);else irEnvio();},450);});
-let salvo='';try{salvo=localStorage.getItem('vybe-modo-aprovacao')||'';}catch(x){}
-// Escolha aberta: no VybeHub a moldura cresce até o tamanho do documento, e a
-// janela centrada ficava no meio dele (Paulo, 21/10/2026: "tem que descer a
-// aba horrores"). A escolha fica no topo e a página encolhe até ela. A altura
-// mandada ao VybeHub é a do conteúdo: scrollHeight nunca fica menor que a moldura.
-if(salvo==='um'||salvo==='doc')aplicarModo(salvo);else{const e=document.getElementById('escolha');e.hidden=false;document.body.classList.add('modo-doc','escolhendo');
-const medir=()=>{if(document.body.classList.contains('escolhendo'))document.body.style.setProperty('--h-escolha',(e.firstElementChild.offsetHeight+64)+'px');};new ResizeObserver(medir).observe(e.firstElementChild);medir();e.querySelector('[data-modo]')?.focus({preventScroll:true});}
+${modosJs({ chave: 'vybe-modo-aprovacao', envio: true })}
 if(MODO==='portal'){const h=()=>{const c=getComputedStyle(document.body);parent.postMessage({vybe:'planejamento-altura',h:Math.ceil(document.body.offsetHeight+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},'*');};new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();}
 contar();})();</script>` : (modo === 'portal' ? `<script>(()=>{const h=()=>{const c=getComputedStyle(document.body);parent.postMessage({vybe:'planejamento-altura',h:Math.ceil(document.body.offsetHeight+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},'*');};new ResizeObserver(h).observe(document.body);addEventListener('load',h);h();})();</script>` : '');
  const scriptHead = revisando ? `<script>(()=>{let seq=0;const espera={};
@@ -224,7 +240,7 @@ if(a==='abrir'){d.querySelector('.nota').hidden=false;d.querySelector('textarea'
 if(a==='editar'){abrirEdicao(d);return;}
 const nota=a==='ajustar'?d.querySelector('textarea').value.trim():'';if(a==='ajustar'&&!nota){alert('Escreva o que ajustar nesta peça.');return;}
 b.disabled=true;try{await falar({assinatura:d.dataset.assinatura,estado:a,nota});const s=[...d.querySelectorAll('.sit')].pop();
-d.dataset.estado=a==='ok'?'aprovada':a==='ajustar'?'ajuste':'';s.className='sit'+(a==='ok'?' ok':a==='ajustar'?' ajuste':'');s.textContent=a==='ok'?'OK na revisão':a==='ajustar'?'Ajustar: '+nota:'Ainda não revisada';d.querySelector('.nota').hidden=true;}
+d.dataset.estado=a==='ok'?'aprovada':a==='ajustar'?'ajuste':'';s.className='sit'+(a==='ok'?' ok':a==='ajustar'?' ajuste':'');s.textContent=a==='ok'?'OK na revisão':a==='ajustar'?'Ajustar: '+nota:'Ainda não revisada';d.querySelector('.nota').hidden=true;contarHead();if(a!=='limpar')document.dispatchEvent(new Event('vybe-respondida'));}
 catch(x){alert(x.message);}finally{b.disabled=false;}});
 const dlg=document.getElementById('editar-peca');let editando=null;
 function abrirEdicao(d){editando=d;const p=JSON.parse(d.dataset.peca);for(const el of dlg.querySelectorAll('[name]')){const v=p[el.name];el.value=Array.isArray(v)?v.join('\\n'):(v||'');}
@@ -232,7 +248,10 @@ dlg.querySelector('h3').textContent='Editar a peça '+String(Number(d.dataset.in
 dlg.querySelector('[data-fechar]').addEventListener('click',()=>dlg.close());
 dlg.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const b=dlg.querySelector('[type=submit]');const peca=Object.fromEntries([...dlg.querySelectorAll('[name]')].map(el=>[el.name,el.name==='telas'?el.value.split('\\n').map(t=>t.trim()).filter(Boolean):el.value.trim()]));
 b.disabled=true;b.textContent='Salvando…';try{await falar({acao:'editar',indice:Number(editando.dataset.indice),peca});dlg.close();}catch(x){alert(x.message);}finally{b.disabled=false;b.textContent='Salvar a peça';}});
-addEventListener('message',e=>{if(e.source===parent&&e.data?.vybe==='planejamento-ir'){document.getElementById('peca-'+e.data.n)?.scrollIntoView({block:'start'});}});})();</script>` : '';
+addEventListener('message',e=>{if(e.source===parent&&e.data?.vybe==='planejamento-ir'){document.getElementById('peca-'+e.data.n)?.scrollIntoView({block:'start'});}});
+function contarHead(){const ds=[...document.querySelectorAll('.decisao[data-assinatura]')],r=ds.filter(d=>d.dataset.estado).length;document.getElementById('progresso').textContent=r+' de '+ds.length+' peças revisadas';document.getElementById('barra').style.width=(ds.length?Math.round(r/ds.length*100):0)+'%';}
+${modosJs({ chave: 'vybe-modo-revisao', envio: false })}
+contarHead();})();</script>` : '';
  const dialogoEdicao = revisando ? `<dialog id="editar-peca" class="editar"><form method="dialog"><h3>Editar a peça</h3>
 <div class="campos"><label>Dia<input type="date" name="data"></label><label>Formato<select name="formato">${['Card', 'Carrossel', 'Reels', 'Fotografia', 'Vídeo', 'Stories', 'Outro'].map((f) => `<option>${f}</option>`).join('')}</select></label><label class="largo">Tema<input name="tema" maxlength="200"></label>
 <label>Linha de conteúdo<input name="linha" maxlength="80"></label><label class="largo">Objetivo<input name="objetivo" maxlength="800"></label></div>
@@ -316,6 +335,18 @@ select{font:inherit;padding:10px;border:1px solid var(--linha);border-radius:12p
 .cal-mini a{flex:none;display:grid;gap:1px;padding:6px 10px;border-radius:12px;background:#fff;border:1px solid var(--linha);border-left:3px solid var(--f);color:var(--tinta);text-decoration:none;font-size:11px}
 .cal-mini a b{font-size:12.5px;font-variant-numeric:tabular-nums}.cal-mini a.feita{background:#eef8f1}.cal-mini a.atual{outline:2px solid var(--vybe);outline-offset:1px}
 .modo-um #area-pecas{margin-top:14px}.modo-um .pecas .peca.atual{min-height:min(62vh,640px);align-content:start}
+/* Troca de peça com movimento (Paulo, 21/10/2026: "uma animação bonita e
+   fluida quando vai passando de um conteúdo para o outro"): a peça nova entra
+   deslizando do lado para onde se anda, com as partes em cascata. */
+.modo-um .pecas .peca.atual{animation:peca-vai .46s cubic-bezier(.2,.8,.2,1) both}
+body[data-ida=volta].modo-um .pecas .peca.atual{animation-name:peca-volta}
+.modo-um .pecas .peca.atual>*{animation:peca-sobe .5s cubic-bezier(.2,.8,.2,1) both}
+.modo-um .pecas .peca.atual>*:nth-child(2){animation-delay:.04s}.modo-um .pecas .peca.atual>*:nth-child(3){animation-delay:.08s}.modo-um .pecas .peca.atual>*:nth-child(4){animation-delay:.12s}.modo-um .pecas .peca.atual>*:nth-child(n+5){animation-delay:.16s}
+@keyframes peca-vai{from{opacity:0;transform:translateX(42px) scale(.985)}}
+@keyframes peca-volta{from{opacity:0;transform:translateX(-42px) scale(.985)}}
+@keyframes peca-sobe{from{opacity:0;transform:translateY(10px)}}
+.cal-mini a{transition:background .25s,outline-color .25s,transform .25s cubic-bezier(.2,.8,.2,1)}.cal-mini a.atual{transform:translateY(-2px)}
+@media (prefers-reduced-motion:reduce){.modo-um .pecas .peca.atual,.modo-um .pecas .peca.atual>*{animation:none}.cal-mini a{transition:none}}
 .modo-um .aprovar,.modo-um.no-envio #area-pecas,.modo-um.no-envio .cal-mini{display:none}.modo-um.no-envio .aprovar{display:block;margin-top:14px}
 @media(max-width:640px){.modo-um .como{grid-template-columns:1fr}.modo-um .como .quem{grid-template-columns:1fr}.modo-um .como .progresso{min-width:0}
 .modo-um .pecas .peca.atual{min-height:0}.modo-um .navega span{font-size:13px;text-align:center}.modos button{padding:8px 10px;font-size:13px}}
@@ -330,6 +361,11 @@ html:has(body.escolhendo){overflow:hidden}.portal.escolhendo{position:relative;h
 .escolha h2{margin:0;color:#fff;font:800 clamp(26px,4vw,38px)/1.1 Sora,sans-serif;letter-spacing:-.02em;text-wrap:balance}
 .escolha-sub{margin:0 0 10px;color:#b9b5ae;max-width:58ch}
 .escolha-opcoes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.escolha-opcoes.tres{grid-template-columns:repeat(3,minmax(0,1fr))}.escolha-caixa:has(.tres){max-width:1040px}
+.ficha-sis{display:grid;gap:7px;width:min(200px,78%);padding:16px;border-radius:14px;background:#1d1d23;border:1px solid #ffffff1a;box-shadow:0 14px 30px #0009}
+.ficha-sis i{display:block;border-radius:6px}.ficha-sis .lin{height:7px;width:46%;background:#ffffff40}.ficha-sis .lin.curta{width:30%}
+.ficha-sis .campo{height:16px;background:#ffffff12;border:1px solid #ffffff22}.ficha-sis .campo.alto{height:34px}
+.op-sistema:hover .ficha-sis .campo:nth-of-type(2){border-color:var(--vybe);box-shadow:0 0 0 3px #e8602e33}
 .escolha .op{position:relative;display:grid;align-content:start;gap:6px;padding:0 0 18px;border-radius:24px;border:1px solid #ffffff1f;background:linear-gradient(180deg,#ffffff0f,#ffffff05);color:#f4f1ec;text-align:left;cursor:pointer;overflow:hidden;transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s,box-shadow .25s}
 .escolha .op:hover,.escolha .op:focus-visible{transform:translateY(-4px);border-color:#ff9d00aa;box-shadow:0 24px 60px #000a,0 0 0 4px #ff9d0026;outline:none}
 .escolha .op > b{padding:0 20px;color:#fff;font:800 20px Sora,sans-serif}
@@ -367,7 +403,7 @@ html:has(body.escolhendo){overflow:hidden}.portal.escolhendo{position:relative;h
 @keyframes esc-rolo{to{transform:translateY(-50%)}}
 @keyframes esc-entra{from{opacity:0;transform:translateY(14px)}}
 @media(prefers-reduced-motion:reduce){.escolha-caixa,.pilha .c,.pilha .selo,.rolo{animation:none}.pilha .selo{transform:scale(1)}.escolha .op{transition:none}.escolha .op:hover{transform:none}}
-@media(max-width:640px){.escolha-opcoes{grid-template-columns:1fr}.op-previa{height:150px}.pilha{transform:scale(.8)}.pagina{height:130px;margin-top:20px}.portal .escolha{padding-top:16px}}
+@media(max-width:640px){.escolha-opcoes,.escolha-opcoes.tres{grid-template-columns:1fr}.op-previa{height:150px}.pilha{transform:scale(.8)}.pagina{height:130px;margin-top:20px}.portal .escolha{padding-top:16px}}
 .obs{background:var(--cartao);border:1px dashed var(--linha);border-radius:14px;padding:14px 16px;white-space:pre-wrap}
 .como{margin:18px 0 0;background:var(--cartao);border:1px solid var(--linha);border-radius:16px;padding:14px 18px}.como b{font:700 15px Sora,sans-serif}.como ol{margin:6px 0 0;padding-left:20px}
 .aprovar{margin-top:44px;background:var(--cartao);border:2px solid var(--vybe);border-radius:20px;padding:22px}.aprovar h2{margin-top:0}.aprovar label{display:grid;gap:6px;margin:12px 0;font-weight:700}
