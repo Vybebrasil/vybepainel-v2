@@ -1,7 +1,7 @@
 // Escritório: post-its nas paredes e presentes de móveis entre colegas
 // (migrations/2026-10-18-escritorio-postits-presentes.sql). Identidade e
 // permissões vêm da sessão; o navegador só escolhe texto, cor e lugar.
-import { carregarEconomia, MOVEIS_ESSENCIAIS } from './escritorio-economia.js';
+import { carregarEconomia, MOVEIS_ESSENCIAIS, precoMovel, PRECO_COMUM } from './escritorio-economia.js';
 import { partesDaCamada } from './escritorio-quartos.js';
 
 const CAMADA = /^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$/;
@@ -201,8 +201,13 @@ export async function origemDoMovel(sql, salas, { camada, classe } = {}) {
    to_regclass('public.vybe_escritorio_presentes') IS NOT NULL AS presentes, to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS trocas`;
  const tem = async (t) => Boolean(ex?.[t.replace('vybe_escritorio_', '')]);
  const [cat] = await tem('vybe_escritorio_catalogo') ? await sql`SELECT raridade,preco,marco FROM vybe_escritorio_catalogo WHERE classe=${classe}` : [];
- const [rar] = cat?.raridade && await tem('vybe_escritorio_raridades') ? await sql`SELECT nome,preco FROM vybe_escritorio_raridades WHERE chave=${cat.raridade}` : [];
- const loja = { raridade: rar?.nome || null, preco: cat?.preco ?? rar?.preco ?? null, marco: cat?.marco || null };
+ // Móvel da loja sem linha própria no catálogo vale como Comum, como na
+ // compra (infoMovel). Antes a ficha ficava sem preço e sem "Ver no
+ // catálogo" para essas peças (Paulo, 20/10/2026).
+ const vendavel = (() => { try { return precoMovel(classe) > 0; } catch { return false; } })();
+ const chaveRar = cat?.raridade || (vendavel ? 'comum' : null);
+ const [rar] = chaveRar && await tem('vybe_escritorio_raridades') ? await sql`SELECT nome,preco FROM vybe_escritorio_raridades WHERE chave=${chaveRar}` : [];
+ const loja = { raridade: rar?.nome || (vendavel && !cat ? 'Comum' : null), preco: cat?.preco ?? rar?.preco ?? (vendavel ? PRECO_COMUM : null), marco: cat?.marco || null };
  if (classe.startsWith('vybeimg_')) return { ...loja, tipo: 'imagem', origens: [{ tipo: 'imagem', texto: 'Imagem enviada pelo dono da sala.' }] };
  const raiz = partesDaCamada(String(camada || ''))?.raiz;
  const dono = raiz ? salas.find((s) => s.id === raiz)?.pessoa_id : null;

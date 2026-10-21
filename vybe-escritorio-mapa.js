@@ -2548,7 +2548,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   function objetoEm(cx, cy) {
     const candidatos = [];
     for (const m of moveis) {
-      const telas = m.no?.tagName === "CANVAS" ? [m.no] : [...(m.no?.querySelectorAll?.("canvas") || [])];
+      // Peça de parede em camadas (relógio, prateleira): o desenho visível
+      // costuma estar nas camadas extras; só a primeira entrava no clique e
+      // essas peças não davam para selecionar nem ganhavam o brilho.
+      const telas = m.no?.tagName === "CANVAS" ? [m.no, ...(m.extras || []).map((e) => e.no)] : [...(m.no?.querySelectorAll?.("canvas") || [])];
       for (const c of telas) {
         if (c.classList.contains("mapa-sombra")) continue;
         const rect = c.getBoundingClientRect();

@@ -1152,3 +1152,22 @@ decoração inicial "bem feito".
   era o mesmo canvas para todas as peças iguais, então só a última de cada
   tipo ficava na parede (o Café mostrava 4 de 14 papéis). Cada peça leva a sua
   cópia (`mapaCopiarCanvas`), com teste. Vale para todas as salas e quartos.
+
+### Centro de Operação mais leve, clique nas peças de parede e "Ligar ou desligar" — 20/10/2026
+
+- Paulo: "o fps tá travando nessa sala". O brilho que pulsa nas etiquetas dos
+  agentes que pedem ação animava o `box-shadow` (repinta a cena a cada quadro,
+  14 de uma vez). Agora é uma camada própria (`::after`) que só muda a
+  opacidade. O halo do agente deixou de ser `drop-shadow` no `<img>` (refeito
+  a cada piscada e virada de cabeça) e virou um gradiente atrás do boneco.
+- "Tem objeto que não dá para clicar nem fica o brilhinho": a peça de parede
+  em camadas (relógio, prateleira) só entrava no clique pela primeira camada.
+  `objetoEm` testa também as camadas extras. O teste de todas as salas comuns
+  só deixa de fora os varais de luz neon (fios finos demais).
+- "Não aparece pra ver no catálogo, como alguns aparecem": a ficha
+  (`origemDoMovel`) só tinha preço com linha própria em
+  `vybe_escritorio_catalogo`. Sem linha, a peça da loja vale como Comum, como
+  na compra (`infoMovel`), e o botão aparece. Teste em `escritorio-loja`.
+- "Não deveria poder desligar os objetos animados?": a ficha tem "Ligar ou
+  desligar" para a peça que só troca de estado (tela, telefone, globo), com o
+  mesmo `furni:toggle` do duplo clique (vale para todos na sala).
