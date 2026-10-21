@@ -60,6 +60,8 @@ test('kits de roupa: preço da soma com desconto, tudo ou nada; o salvamento do 
   await creditar(sql, 1, 200);
   await comprarKit(sql, 1, { kit: 'skin-lobo', chave: crypto.randomUUID() }, AGORA);
   assert.deepEqual((await roupasDaPessoa(sql, 1)).meus.sort(), ['roupa:cc-3280', 'roupa:ha-5277']);
+  // Quantas pessoas têm cada peça (ordem "Mais compradas"), sem dizer quem.
+  assert.deepEqual((await roupasDaPessoa(sql, 2)).donos, { 'roupa:cc-3280': 1, 'roupa:ha-5277': 1 });
   // Salvar o perfil com peça que não tem é recusado; com as do kit, passa.
   const base = await visualGratis(sql);
   await assert.rejects(salvarPerfilEscritorio(sql, 1, { figura: base + '.ha-3535-1' }), (e) => e.status === 409);

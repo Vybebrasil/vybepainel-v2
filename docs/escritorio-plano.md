@@ -1369,3 +1369,16 @@ decoração inicial "bem feito".
 - Um só botão principal (Abrir o provador); nível e moedas no topo; o
   recomeço em branco é um botão de perigo discreto no rodapé; saiu o Fechar
   repetido (fica o X). No celular as peças viram linhas.
+
+### Provador: ficha, ordem e animadas — 21/10/2026
+
+- Guarda-roupa mostra "Vestindo agora" e "Suas peças" (compradas ou que já
+  estavam no visual salvo antes das skins); antes ficava vazio para quem não
+  tinha comprado nada. Não precisou recriar personagens.
+- Ficha ao passar o mouse (ou no foco do teclado): imagem, parte, raridade,
+  preço ou situação (Grátis, Sua, Vestindo), se é animada e quantas pessoas da
+  equipe têm (`donos` em `roupasDaPessoa`, só a contagem).
+- Ordenar: Padrão, Mais baratas, Mais caras, Mais compradas, Animadas
+  primeiro; filtro "Animadas" nas partes que têm; selo roxo nas peças animadas.
+- Próximo (a decidir com Paulo): skins completas no estilo Tibia (visual
+  inteiro, da cabeça aos pés) em vez dos kits de duas peças.
