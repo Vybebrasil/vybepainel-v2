@@ -159,9 +159,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   conta nem registro no banco, e recebe um crachá próprio (cookie
   `vybe_convidado`, `sub` `c-…`). Vê quem está online; anda só pela sala de
   quem convidou e pelas áreas comuns (nunca o Centro de Operação nem outro
-  quarto), com a trava no Worker. Voz só na sala de quem convidou, que vira
-  conversa própria enquanto ele está lá: nunca a conversa única dos espaços
-  abertos. Do painel, só a arte do mapa; nenhuma outra rota aceita o crachá.
+  quarto), com a trava no Worker. Voz em qualquer sala do convite (menos no
+  Foco): a sala com convidado usa conversa própria (`escritorioCanal`), e quem
+  está nela entra junto; nunca a conversa única dos espaços abertos. Do
+  painel, só a arte do mapa; nenhuma outra rota aceita o crachá.
 - Neon guarda perfis, mesas, mensagens e referências das reuniões; o Worker
   conserva apenas presença/posição transitórias. O motor RealtimeKit do VybeChat
   é reaproveitado para mídia, com credenciais exclusivamente no servidor.

@@ -70,7 +70,7 @@ function convidadoBoasVindasHtml(d) {
 <fieldset class="convite-bonecos"><legend>Como você quer aparecer</legend>${bonecos}</fieldset>
 <p class="convite-erro" id="convite-erro" role="alert"></p>
 <button type="submit" class="abr-primario">Entrar</button>
-<small class="convite-nota">Você entra como convidado: vê quem está online e anda pela sala de ${quem} e pelas áreas comuns. A conversa por voz é na sala de ${quem}.${expira ? ` O convite vale até ${expira}.` : ""}</small>
+<small class="convite-nota">Você entra como convidado: vê quem está online e anda pela sala de ${quem} e pelas áreas comuns, conversando por voz com quem estiver na mesma sala.${expira ? ` O convite vale até ${expira}.` : ""}</small>
 </form>`;
 }
 async function entrarComConvite(form) {
@@ -118,7 +118,7 @@ function convidadoPresenca(antes, depois) {
     const anfitriao = depois.find((p) => String(p.id) === String(c.anfitriao.id));
     const destino = anfitriao?.zona && convidadoPodeIr(anfitriao.zona) ? anfitriao.zona : c.salaAnfitriao && convidadoPodeIr(c.salaAnfitriao) ? c.salaAnfitriao : "recepcao";
     if (destino !== escritorio.quarto) setTimeout(() => escritorioEntrarNoQuarto(destino), 300);
-    escritorioAviso(anfitriao ? `${c.anfitriao.nome.split(" ")[0]} está ${anfitriao.zona === destino ? "aqui" : "em outro lugar"}. ${c.vozes.includes(destino) ? "A conversa por voz já está aberta." : `Para conversar por voz, vá à sala de ${c.anfitriao.nome.split(" ")[0]}.`}` : `${c.anfitriao.nome.split(" ")[0]} ainda não está no escritório. Você espera na sala dele.`);
+    escritorioAviso(anfitriao ? `${c.anfitriao.nome.split(" ")[0]} está ${anfitriao.zona === destino ? "aqui" : "em outro lugar"}. ${c.vozes.includes(destino) ? "A conversa por voz abre sozinha, só com quem está nesta sala." : "No Foco não há voz."}` : `${c.anfitriao.nome.split(" ")[0]} ainda não está no escritório. Você espera na sala dele.`);
     return;
   }
   if (c || !antes?.length) return;
@@ -147,7 +147,7 @@ async function convidarParaMinhaSalaEscritorio() {
   if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "office-convite"; dlg.className = "ofc-dialogo ofc-convite"; document.body.append(dlg); }
   const hora = new Date(d.expira).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   dlg.innerHTML = `<form method="dialog" class="ofc-convite-corpo"><h2>Convidar para a sua sala</h2>
-<p>Quem abrir este link entra como convidado: escolhe um boneco, chega onde você estiver e conversa com você por voz na sua sala. Não vê nada do painel.</p>
+<p>Quem abrir este link entra como convidado: escolhe um boneco, chega onde você estiver e conversa por voz com quem estiver na mesma sala. Não vê nada do painel.</p>
 <label class="ofc-convite-link"><span>Link do convite · vale até ${safeText(hora)}</span><input readonly value="${safeText(d.link)}" onfocus="this.select()"></label>
 <p class="ofc-nota" id="office-convite-status" role="status"></p>
 <div class="ofc-fm-acoes"><button type="button" class="ofc-secundario" onclick="cancelarConvitesEscritorio()">Cancelar todos os convites</button><button type="submit" class="ofc-secundario">Fechar</button><button type="button" class="ofc-primario" onclick="copiarConviteEscritorio()">Copiar link</button></div></form>`;

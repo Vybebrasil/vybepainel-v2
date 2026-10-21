@@ -1218,3 +1218,12 @@ decoração inicial "bem feito".
   parede (`escritorioAlvoDoPincel`, o mesmo alvo do clique; `mapa.pincel`).
 - A pintura (piso e paredes) entra na foto do ⌘Z da construção: desfazer
   volta a pintura e salva de novo; continua salvando na hora.
+
+### Convidado: voz onde ele estiver — 21/10/2026
+
+- Paulo testou com um amigo no Café: ficava em "Conectando a voz…" e ninguém
+  se ouvia. A voz do convidado era só na sala de quem convidou. Agora ele
+  conversa em qualquer sala do convite (menos no Foco). A sala com convidado
+  usa conversa própria (`escritorioCanal` olha a presença), e quem está nela
+  muda junto; ao sair o convidado, a sala volta para a conversa única. A sala
+  de quem convidou não tranca mais sozinha.
