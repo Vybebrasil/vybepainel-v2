@@ -5945,11 +5945,13 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-sala small {min-width:18px;padding:1px 6px;border-radius:99px;background:color-mix(in srgb,var(--sala) 22%,transparent);text-align:center;font-variant-numeric:tabular-nums}
 .ofc-sala em {grid-column:2/4;font-style:normal;color:var(--ofc-suave);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ofc-sala:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px}
-.ofc-salas-grupo summary {display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-right:10px;cursor:pointer;list-style:none;user-select:none}
+.ofc-salas-grupo summary {display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:10px;cursor:pointer;list-style:none;user-select:none}
+.ofc-salas-grupo summary h5 {flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-salas-grupo {min-width:0;grid-template-columns:minmax(0,1fr)}
 .ofc-salas-grupo summary::-webkit-details-marker {display:none}
 .ofc-salas-grupo summary h5::after {content:"";display:inline-block;margin-left:6px;width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
 .ofc-salas-grupo:not([open]) summary h5::after {transform:translateY(-1px) rotate(-45deg)}
-.ofc-salas-grupo summary small {color:var(--ofc-suave);font:500 11px var(--mac-ui)}
+.ofc-salas-grupo summary small {flex:none;white-space:nowrap;padding:2px 8px;border-radius:99px;background:#ffffff0d;color:var(--ofc-suave);font:600 10.5px var(--mac-ui)}
 .ofc-salas-grupo summary:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:-2px;border-radius:6px}
 .ofc-salas-grupo {display:grid;gap:2px}
 .ofc-sala i,.ofc-sala-atual i,.ofc-cartao-topo i {width:10px;height:10px;border-radius:3px;background:var(--sala)}
@@ -7252,16 +7254,22 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-flut-x{width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;font-size:18px;cursor:pointer}
 .plj-flut-nome{display:grid;line-height:1.2}.plj-flut-nome b{color:#fff;font:800 14px var(--mac-ui)}.plj-flut-nome small{color:#9da4b4;font-size:11.5px}
 .plj-flut-topo .plj-etapas{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.plj-flut-topo .plj-etapas ol{display:flex;gap:4px}
-.plj-flut-topo .plj-etapas li{padding:3px 8px;font-size:11px}.plj-flut-topo .plj-etapas li i{width:16px;height:16px;font-size:10px}
+.plj-flut-topo > .plj-selo{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:10px}
+.plj-flut-topo .plj-etapas li{height:30px;padding:0 10px;border-radius:10px;font-size:11.5px}.plj-flut-topo .plj-etapas li i{width:18px;height:18px;font-size:10px}
 .plj-flut-topo .plj-etapas > small{display:none}
-.plj-flut-links{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}.plj-flut-links .cli-porta{cursor:pointer;font-family:var(--mac-ui)}.plj-flut-links .plj-drive{margin:0}
+/* Botões da barra com a mesma altura, texto centrado e um só tamanho (Paulo,
+   21/10/2026: "nem o texto bem diagramado tá dentro do box"). */
+.plj-flut-links{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap}.plj-flut-links .plj-drive{display:flex;gap:6px;margin:0}
+.plj-flut-links .cli-porta{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 14px;border-radius:11px;border:1px solid #ffffff1f;background:#ffffff0d;color:#e6e9f0;font:600 12.5px/1 var(--mac-ui);white-space:nowrap;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.plj-flut-links .cli-porta:hover{background:#ffffff18;border-color:#ffffff33;color:#fff}
+.plj-flut-links .cli-porta:active{transform:translateY(1px)}
 .plj-flut-aviso{top:84px;right:12px;max-width:min(460px,calc(100% - 24px));padding:0}.plj-flut-aviso .plj-pedido{margin:0}
 .plj-flut-base{bottom:12px;right:12px;max-width:calc(100% - 24px);justify-content:flex-end}
 .plj-flut-base .workflow-actions{margin:0!important;padding:0!important;border:0!important;background:none!important}
 .plj-flut-dica{color:#c3cad6;font-size:12px}.plj-flut-dica b{color:#ffe0a6}
 .plj-modo-doc .plj-link{position:absolute;z-index:4;top:84px;right:12px;width:min(480px,calc(100% - 24px));margin:0;background:#10231acc;backdrop-filter:blur(12px)}
 /* "Editar o mês" com destaque: é a ação de trabalho do head nessa barra. */
-.plj-flut-links .plj-flut-editar{gap:6px;align-items:center;padding:5px 13px;font-size:12.5px;border-color:rgba(255,157,0,.6);background:rgba(255,157,0,.16);color:#ffd08f;font-weight:700}
+.plj-flut-links .plj-flut-editar{border-color:rgba(255,157,0,.6);background:rgba(255,157,0,.16);color:#ffd08f;font-weight:700}
 .plj-flut-links .plj-flut-editar:hover{background:rgba(255,157,0,.26);border-color:#ff9d00;color:#fff}
 .plj-flut-links .cli-porta:focus-visible{outline:2px solid #ff9d00;outline-offset:2px}
 /* Editor em tela cheia: a mesma barra do documento, parada no topo; o editor vai de ponta a ponta. */
@@ -7473,7 +7481,9 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
   --jg-fundo:#101219; --jg-painel:linear-gradient(180deg,#232634 0%,#1a1c27 100%);
   --jg-painel-2:linear-gradient(180deg,#1d2030,#171925); --jg-slot:linear-gradient(180deg,#2a2d3c,#1e2130);
   --jg-borda:#ffffff17; --jg-borda-forte:#ffffff26; --jg-relevo:inset 0 1px 0 #ffffff14, inset 0 -1px 0 #00000059;
-  --jg-sombra:0 10px 28px #00000080; --jg-sombra-leve:0 4px 12px #00000059;
+  --jg-sombra:0 10px 28px #00000080; --jg-sombra-leve:0 3px 0 #0a0b10, 0 6px 14px #00000059;
+  /* Peça apertada: afunda o degrau (21/10/2026, "cara de joguinho"). */
+  --jg-apertado:inset 0 1px 0 #ffffff0f, 0 0 0 #0a0b10, 0 2px 6px #00000059;
   --jg-laranja:#ff8a35; --jg-laranja-2:#ffb15c; --jg-laranja-fundo:linear-gradient(180deg,#ff9a48,#ff6f1d);
   --jg-ativo:linear-gradient(180deg,#ff8a3533,#ff6b1a1f); --jg-raio:14px; --jg-raio-p:10px;
   --jg-mov:160ms cubic-bezier(.2,.8,.2,1);
@@ -7522,7 +7532,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-quartos {gap:8px}
 .ofc-quarto {padding:8px 4px 7px;border:1px solid var(--jg-borda);border-radius:var(--jg-raio);background:radial-gradient(70% 45% at 50% 72%,color-mix(in srgb,var(--sala) 30%,transparent),transparent 70%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
 .ofc-quarto:hover {transform:translateY(-2px);border-color:color-mix(in srgb,var(--sala) 60%,transparent);box-shadow:var(--jg-relevo),0 10px 20px #0007}
-.ofc-quarto:active {transform:translateY(0)}
+.ofc-quarto:active {transform:translateY(3px);box-shadow:var(--jg-apertado)}
 .ofc-quarto.aqui {border-color:var(--jg-laranja);box-shadow:var(--jg-relevo),0 0 0 2px #ff8a3540,0 8px 18px #ff6b1a26}
 .ofc-quarto > .office-avatar {transition:transform var(--jg-mov)}
 .ofc-quarto:hover > .office-avatar {transform:scale(1.08)}
@@ -7584,11 +7594,13 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 /* Cartões flutuantes (sala atual, quem está onde, missões, cobranças, música,
    conversa) e o dock: o mesmo vidro com relevo. */
 .ofc-sala-atual, .ofc-missoes, .ofc-musica, .office-call, .ofc-dock, .ofc-zoom, .ofc-info-card, .ofc-mesa-card {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634eb,#191b26eb);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(14px)}
-.ofc-dock {border-radius:18px;padding:5px}
-.ofc-dock-btn {border-radius:12px;transition:background var(--jg-mov),transform var(--jg-mov)}
-.ofc-dock-btn:hover {background:#ffffff12}
-.ofc-dock-btn:active {transform:translateY(1px)}
-.ofc-dock-btn[aria-pressed=true] {background:var(--jg-ativo);color:#ffd0a8}
+/* Barra do jogo como barra de atalhos (21/10/2026, "cara de joguinho"):
+   volume com o degrau de baixo, botões da mesma altura e o toque que afunda. */
+.ofc-dock {gap:4px;border-radius:20px;padding:6px;background:var(--jg-painel);border-color:var(--jg-borda-forte);box-shadow:var(--jg-relevo),0 4px 0 #0a0b10,0 18px 40px #0009}
+.ofc-dock-btn {min-height:40px;border-radius:12px;transition:background var(--jg-mov),transform var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-dock-btn:hover:not(:disabled) {background:#ffffff12;transform:translateY(-1px)}
+.ofc-dock-btn:active:not(:disabled) {transform:translateY(2px)}
+.ofc-dock-btn[aria-pressed=true] {background:var(--jg-ativo);color:#ffd0a8;box-shadow:inset 0 0 0 1px #ff8a3566}
 .ofc-missao, .ofc-cobranca {background:var(--jg-slot);box-shadow:var(--jg-relevo);transition:transform var(--jg-mov),border-color var(--jg-mov)}
 .ofc-missao:hover, .ofc-cobranca:hover {transform:translateY(-1px)}
 .ofc-missoes-filtros button {box-shadow:var(--jg-relevo);transition:background var(--jg-mov),color var(--jg-mov)}
@@ -7663,7 +7675,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-espaco {position:relative;display:grid;grid-template-rows:auto auto 1fr;gap:6px;min-height:104px;padding:10px;border:1px solid var(--jg-borda);border-radius:16px;
   background:radial-gradient(90% 70% at 100% 0%,color-mix(in srgb,var(--sala) 34%,transparent),transparent 65%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve);color:var(--ofc-texto);text-align:left;cursor:pointer;overflow:hidden;transition:transform var(--jg-mov),border-color var(--jg-mov),box-shadow var(--jg-mov)}
 .ofc-espaco:hover {transform:translateY(-2px);border-color:color-mix(in srgb,var(--sala) 65%,transparent);box-shadow:var(--jg-relevo),0 12px 22px #0008}
-.ofc-espaco:active {transform:translateY(0)}
+.ofc-espaco:active {transform:translateY(3px);box-shadow:var(--jg-apertado)}
 .ofc-espaco:focus-visible {outline:2px solid var(--jg-laranja-2);outline-offset:2px}
 .ofc-espaco[aria-pressed=true] {border-color:var(--jg-laranja);box-shadow:var(--jg-relevo),0 0 0 2px #ff8a3540}
 .ofc-espaco-emblema {display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:linear-gradient(180deg,color-mix(in srgb,var(--sala) 92%,#fff 8%),color-mix(in srgb,var(--sala) 62%,#000 38%));color:#fff;box-shadow:inset 0 1px 0 #ffffff60,0 3px 0 #0007}
@@ -7762,7 +7774,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-espaco {grid-template-rows:auto auto;gap:4px;padding:6px 6px 7px;border-radius:13px;text-align:center}
 .ofc-espaco-emblema {height:46px;border-radius:10px;padding-bottom:3px}
 .ofc-espaco-emblema .ofc-arte {max-width:86%;max-height:40px}
-.ofc-espaco > b {font:700 10.5px/1.2 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-espaco > b {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.4em;overflow:hidden;font:700 10.5px/1.2 var(--mac-ui);text-wrap:balance}
 .ofc-espaco-conta {position:absolute;top:4px;right:4px;min-width:18px;padding:1px 5px;border-radius:9px;background:#3ddc84;color:#062a16;font:800 10px var(--mac-ui);box-shadow:0 0 10px #3ddc8488}
 .ofc-espaco:not(.ocupada) {background:var(--jg-slot)}
 .ofc-espaco:not(.ocupada) .ofc-espaco-emblema {filter:saturate(.55) brightness(.85)}
@@ -8439,7 +8451,8 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
    texto continua visível mesmo quando a barra encolhe. */
 .ofc-dock-btn.destaque {padding:7px 12px;background:#ff95481f;box-shadow:inset 0 0 0 1px #ff954866;color:#ffd9bd}
 .ofc-dock-btn.destaque:hover:not(:disabled) {background:#ff954833}
-.ofc-dock-btn.destaque.principal {background:linear-gradient(135deg,#ffb15c,#ff7a1a);box-shadow:0 4px 14px #ff7a1a40;color:#1d1209}
+.ofc-dock-btn.destaque.principal {background:linear-gradient(180deg,#ffb15c,#ff7a1a);box-shadow:inset 0 1px 0 #ffffff80,0 3px 0 #a3420f,0 6px 14px #ff7a1a40;color:#1d1209}
+.ofc-dock-btn.destaque.principal:active:not(:disabled) {box-shadow:inset 0 1px 0 #ffffff60,0 0 0 #a3420f,0 2px 6px #ff7a1a40}
 .ofc-dock-btn.destaque.principal:hover:not(:disabled) {background:linear-gradient(135deg,#ffc07a,#ff8a35)}
 .ofc-dock-btn.destaque.principal svg {stroke:currentColor}
 .ofc-dock-btn.destaque[data-avisos=true] {background:linear-gradient(135deg,#ffb15c,#ff7a1a);color:#1d1209}
@@ -8475,9 +8488,10 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 .ofc-lobby-chips {display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
 .ofc-lobby-chips span {display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#ffffff0f;border:1px solid #ffffff14;font:500 12px var(--mac-ui);color:var(--ofc-texto)}
 .ofc-lobby-chips svg {width:15px;height:15px;fill:none;stroke:#ffb27a;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.ofc-lobby-regras {display:grid;gap:6px;width:100%;margin:4px 0 2px;padding:0;list-style:none;text-align:left}
-.ofc-lobby-regras li {display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:#ffffff08;font:500 12.5px/1.4 var(--mac-ui);color:var(--ofc-suave)}
-.ofc-lobby-regras svg {width:30px;height:30px;padding:6px;border-radius:9px;background:#ff95481f;fill:none;stroke:#ffb27a;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ofc-lobby-regras {display:grid;width:100%;margin:4px 0 2px;padding:4px 12px;list-style:none;text-align:left;border-radius:14px;background:#00000033;border:1px solid #ffffff0f}
+.ofc-lobby-regras li {display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:center;padding:8px 0;font:500 12.5px/1.4 var(--mac-ui);color:#c9cdd8}
+.ofc-lobby-regras li + li {border-top:1px solid #ffffff0d}
+.ofc-lobby-regras svg {width:26px;height:26px;padding:5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd0a8,#ff8a35 60%,#b4501a);box-shadow:inset 0 2px 0 #fff5;fill:none;stroke:#2a1406;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ofc-lobby-acoes .ofc-primario {flex:1.4}
 @media (max-height:700px) {.ofc-lobby-palco {height:128px}.ofc-lobby-boneco {width:72px;height:124px}.ofc-lobby-regras li:first-child {display:none}}
 
@@ -8497,16 +8511,28 @@ body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
 .ofc-lobby-online p,.ofc-lobby-vazio {margin:0;font:500 12px/1.4 var(--mac-ui);color:var(--ofc-suave)}
 .ofc-lobby-rostos {display:flex}
 .ofc-lobby-rostos img {width:30px;height:30px;margin-right:-6px;border-radius:50%;background:#2a2e3b;border:2px solid #1d2029;object-fit:cover;object-position:center 30%}
-.ofc-lobby-cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px}
-.ofc-lobby-card {display:grid;justify-items:start;gap:1px;padding:8px 10px;border:1px solid #ffffff14;border-radius:12px;background:#ffffff08;color:var(--ofc-texto);text-align:left;font:inherit}
+/* Peças de jogo (Paulo, 21/10/2026: "cara de joguinho, não de IA"): cor
+   própria por tipo, ícone numa moeda com brilho, volume com a borda de baixo
+   mais escura e o toque que afunda a peça. */
+.ofc-lobby-cards {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ofc-lobby-card {--c:#ff8a35;position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto;align-items:center;column-gap:10px;row-gap:0;padding:10px 12px 11px;border-radius:16px;
+  border:1px solid color-mix(in srgb,var(--c) 45%,#ffffff10);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,#262a38),color-mix(in srgb,var(--c) 10%,#181a24));
+  box-shadow:inset 0 1px 0 #ffffff26,0 4px 0 color-mix(in srgb,var(--c) 40%,#08090c),0 10px 18px #0008;color:#fff;text-align:left;font:inherit;transition:transform var(--jg-mov),box-shadow var(--jg-mov)}
+.ofc-lobby-card.jg-missoes {--c:#ff6b5a}.ofc-lobby-card.jg-cobrancas {--c:#ffb340}.ofc-lobby-card.jg-recados {--c:#4ea1ff}.ofc-lobby-card.jg-ranking {--c:#ffd84a}
+.ofc-lobby-card:not(.alerta).jg-missoes,.ofc-lobby-card:not(.alerta).jg-cobrancas {--c:#5fd39a}
 .ofc-lobby-card:not(:disabled) {cursor:pointer}
-.ofc-lobby-card:not(:disabled):hover {background:#ffffff12}
+.ofc-lobby-card:not(:disabled):hover {transform:translateY(-2px);box-shadow:inset 0 1px 0 #ffffff26,0 6px 0 color-mix(in srgb,var(--c) 40%,#08090c),0 14px 22px #0009}
+.ofc-lobby-card:not(:disabled):active {transform:translateY(3px);box-shadow:inset 0 1px 0 #ffffff1a,0 1px 0 color-mix(in srgb,var(--c) 40%,#08090c),0 4px 10px #0008}
 .ofc-lobby-card:disabled {opacity:1;cursor:default}
-.ofc-lobby-card svg {width:16px;height:16px;fill:none;stroke:#ffb27a;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.ofc-lobby-card b {font:800 18px var(--mac-ui);font-variant-numeric:tabular-nums}
-.ofc-lobby-card small {font:500 11px/1.3 var(--mac-ui);color:var(--ofc-suave)}
-.ofc-lobby-card.alerta {border-color:#ff7a7a55;background:#ff7a7a12}
-.ofc-lobby-card.alerta svg {stroke:#ff9b9b}
+.jg-moeda {grid-row:1/4;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 40%,#fff),var(--c) 55%,color-mix(in srgb,var(--c) 60%,#000));box-shadow:inset 0 -3px 0 #0003,inset 0 2px 0 #fff6,0 3px 8px color-mix(in srgb,var(--c) 45%,transparent)}
+.jg-moeda svg {width:22px;height:22px;fill:none;stroke:#1a1208;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.ofc-lobby-card b {font:900 24px/1 var(--mac-ui);letter-spacing:-.02em;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 #0007}
+.ofc-lobby-card .jg-titulo {font:800 12.5px/1.2 var(--mac-ui);color:#fff}
+.ofc-lobby-card small {font:600 11px/1.25 var(--mac-ui);color:color-mix(in srgb,var(--c) 55%,#e6e8ee)}
+.ofc-lobby-card.alerta .jg-moeda {animation:jg-pulso 2.4s ease-in-out infinite}
+@keyframes jg-pulso {50% {box-shadow:inset 0 -3px 0 #0003,inset 0 2px 0 #fff6,0 0 0 6px color-mix(in srgb,var(--c) 22%,transparent)}}
+@media (prefers-reduced-motion:reduce) {.ofc-lobby-card {transition:none}.ofc-lobby-card.alerta .jg-moeda {animation:none}}
 .ofc-lobby-regras-curtas {width:100%;border-radius:12px;background:#ffffff08;text-align:left}
 .ofc-lobby-regras-curtas summary {display:flex;justify-content:space-between;gap:8px;padding:9px 12px;font:500 12px var(--mac-ui);color:var(--ofc-suave);cursor:pointer}
 .ofc-lobby-regras-curtas summary span {color:#ffb27a;font-weight:600}
@@ -9114,7 +9140,6 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
   .ofc-lobby-cartao > :not(.ofc-lobby-heroi):nth-child(2) {margin-top:26px}
   .ofc-lobby-cartao > :not(.ofc-lobby-heroi):last-child {margin-bottom:26px}
   .ofc-lobby-cartao > :empty {margin-top:0}
-  .ofc-lobby-cards {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .ofc-lobby-acoes .ofc-primario {padding:15px 20px;font-size:16px}
 }
 @media (prefers-reduced-motion:reduce) {.ofc-lobby-palco .prov-pedestal::before {animation:none}}

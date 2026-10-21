@@ -311,6 +311,22 @@ body.vybe-desktop {
 .vybe-desktop .login-caixa { background: var(--glass) !important; backdrop-filter: blur(24px); }
 .vybe-desktop :is(.workspace-drawer,.appearance-dialog[open],.spotlight-dialog[open],.fc-modal,.p-create-modal) { animation: glass-window-in .28s var(--curva) both; }
 @keyframes glass-window-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+/* Movimento (Paulo, 21/10/2026: "usa a mesma tecnologia [da prévia de
+   aprovação] e deixa tudo melhor"). Uma curva só (--curva) para o painel e o
+   Escritório: o quadro que aparece ao trocar de aba entra suave; as janelas
+   (dialog) crescem do centro e o fundo escurece aos poucos; a aba trocada na
+   lateral do Escritório e na ficha entra com um leve deslize. Sem preencher o
+   fim da animação (sem "both" no quadro), para não deixar translate aplicado,
+   que mudaria a referência dos elementos fixos. "Reduzir movimento" desliga
+   tudo pela regra logo abaixo. */
+.vybe-desktop :is(.container,#painel-demandas,#painel-clientes,#painel-diario,#painel-performance,#painel-ai-usage,#painel-automacoes,#painel-escritorio,#painel-conta) { animation: vybe-quadro-entra .34s var(--curva); }
+@keyframes vybe-quadro-entra { from { opacity: 0; translate: 0 10px; } }
+.vybe-desktop dialog[open]:not(.appearance-dialog):not(.spotlight-dialog) { animation: vybe-janela-entra .26s var(--curva); }
+.vybe-desktop dialog[open]::backdrop { animation: vybe-fundo-entra .26s ease-out; }
+@keyframes vybe-janela-entra { from { opacity: 0; scale: .965; translate: 0 8px; } }
+@keyframes vybe-fundo-entra { from { opacity: 0; } }
+.vybe-desktop .ofc-entra { animation: vybe-aba-entra .28s var(--curva); }
+@keyframes vybe-aba-entra { from { opacity: 0; translate: 0 6px; } }
 @media (prefers-reduced-transparency: reduce) { :root { --glass-opacity: 1 !important; } }
 @media (prefers-contrast: more) { :root { --glass-opacity: 1 !important; --glass-edge: #ffffff65; --text-muted: #d4d7df; } }
 @media (prefers-reduced-motion: reduce) {
