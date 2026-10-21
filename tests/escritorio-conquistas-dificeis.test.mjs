@@ -78,3 +78,24 @@ test('entrada: notícias da semana com o título e o baú com os ganhos das últ
   assert.ok(g.itens.every((x) => x.descricao));
   assert.ok(!g.itens.some((x) => x.moedas === -3), 'compra não entra no baú');
 });
+
+test('Pódio com 1 semana (taça prata no Bronze) e a escada do Artilheiro pelas semanas em 1º', async (t) => {
+  const { sql, db } = await banco(t);
+  await db.exec(ler('2026-10-21-escritorio-conquistas-dificeis.sql'));
+  // Como em produção (economia de 20/10/2026): a faixa Épica existe.
+  await db.exec(`ALTER TABLE vybe_escritorio_raridades DROP CONSTRAINT IF EXISTS vybe_escritorio_raridades_chave_check; INSERT INTO vybe_escritorio_raridades(chave,nome,ordem,preco) VALUES('epico','Épico',5,100) ON CONFLICT DO NOTHING;`);
+  await db.exec(ler('2026-10-21-escritorio-copa.sql'));
+  const metas = async (m) => (await sql`SELECT meta FROM vybe_escritorio_trofeus WHERE marco=${m} ORDER BY nivel`).map((r) => r.meta);
+  assert.deepEqual(await metas('podio'), [1, 5, 12, 30]);
+  assert.deepEqual(await metas('artilheiro'), [1, 3, 8, 20]);
+  assert.equal((await sql`SELECT classe FROM vybe_escritorio_trofeus WHERE marco='podio' AND nivel=1`)[0].classe, 'ads_aftv_trophy2');
+  // Uma semana em 1º: Bronze no Pódio e no Artilheiro.
+  await sql`SELECT vybe_lancar_pontos(3,'ranking:2026-10-12:1','ranking_1',NULL,50,100)`;
+  const lista = await conferirMarcos(sql, 3, new Date());
+  assert.equal(lista.find((m) => m.id === 'podio').nivel, 1);
+  const a = lista.find((m) => m.id === 'artilheiro');
+  assert.deepEqual([a.nivel, a.titulo], [1, 'Artilheiro']);
+  assert.equal(await inventario(sql, 3, 'fball_goldenboot2'), 1, 'a chuteira do Artilheiro');
+  assert.equal(await inventario(sql, 3, 'fball_trophy'), 0, 'a taça da Copa só vem do fechamento do mês');
+  assert.equal(tituloDe('artilheiro', 4), 'Bola de Ouro');
+});

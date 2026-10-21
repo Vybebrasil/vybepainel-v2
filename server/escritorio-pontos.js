@@ -133,7 +133,9 @@ export async function fecharPontosEscritorio(sql, agora = new Date(), { janela =
   }
   // Ranking: só a semana que acabou (o pódio é pago uma vez, depois da meta).
   const ranking = await sql.comTransacao(tx => fecharRankingSemana(tx, somarDias(atual, -7)));
-  return { disponivel: true, hoje, dias, semanas, ranking };
+  // Copa Vybe: o mês que acabou (o primeiro a fechar é o anterior ao de agora).
+  const copa = await sql.comTransacao(tx => fecharCopaMes(tx, mesAnterior(hoje)));
+  return { disponivel: true, hoje, dias, semanas, ranking, copa };
 }
 // O que a ficha mostra da própria pessoa: nível, meta da semana e extrato.
 // O "baú" da entrada (Paulo, 21/10/2026): o que a pessoa ganhou trabalhando
@@ -325,7 +327,7 @@ export const ATIVIDADES_DO_RANKING = [
   ['briefing', 'Briefings escritos'], ['entrega_prazo', 'Entregas no prazo'], ['criacao_aprovada', 'Aprovadas de primeira'],
   ['peca_gestao', 'Peças da agência'], ['acao_painel', 'Ações no painel'],
 ];
-const FORA_DO_RANKING = ['conquista', 'ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia'];
+const FORA_DO_RANKING = ['conquista', 'ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia', 'copa_1', 'copa_2', 'copa_3'];
 export async function rankingProntoEscritorio(sql) {
   const [r] = await sql`SELECT EXISTS(SELECT 1 FROM vybe_escritorio_regras WHERE chave='ranking_1') AS existe`;
   return Boolean(r?.existe);
@@ -406,7 +408,7 @@ async function rankingIntervalo(sql, { de, ate, pessoas, metas, fator, entregasD
   }
   const regras = Object.fromEntries((await sql`SELECT chave, descricao FROM vybe_escritorio_regras`).map((r) => [r.chave, r.descricao]));
   const premios = await sql`SELECT r.chave, r.moedas, r.pontos, c.classe FROM vybe_escritorio_regras r
-    LEFT JOIN vybe_escritorio_catalogo c ON c.marco=r.chave WHERE r.chave = ANY(${['ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia']}::text[]) AND r.ativa ORDER BY r.chave`;
+    LEFT JOIN vybe_escritorio_catalogo c ON c.marco=r.chave WHERE r.chave = ANY(${['ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia', 'copa_1', 'copa_2', 'copa_3']}::text[]) AND r.ativa ORDER BY r.chave`;
   return { disponivel: true, pessoas: lista, regras, atividades: ATIVIDADES_DO_RANKING.map(([chave, nome]) => ({ chave, nome })),
     premios: premios.map((p) => ({ chave: p.chave, moedas: Number(p.moedas), pontos: Number(p.pontos), classe: p.classe || null })) };
 }
@@ -424,6 +426,35 @@ async function sequencias(sql, hoje) {
     out[k] = n;
   }
   return out;
+}
+// Copa Vybe (Paulo, 21/10/2026): o 1º do mês no Geral leva a taça da Copa
+// (épica), o título "Campeão da Copa · <mês>" e o prêmio; 2º e 3º, as taças
+// de prata e bronze. Uma vez por mês (marca de fechamento, origens únicas).
+export function mesAnterior(dia) {
+  return somarDias(dia.slice(0, 8) + '01', -1).slice(0, 8) + '01';
+}
+export async function fecharCopaMes(tx, mes) {
+  if (!await rankingProntoEscritorio(tx)) return null;
+  const [regra] = await tx`SELECT 1 FROM vybe_escritorio_regras WHERE chave='copa_1' AND ativa`;
+  if (!regra) return null;
+  if (!await marcar(tx, 'copa:' + mes)) return null;
+  const fim = somarDias(somarDias(mes, 32).slice(0, 8) + '01', -1);
+  // O ranking do mês como ele estava no último dia (meio-dia da Bahia).
+  const r = await rankingEscritorio(tx, new Date(fim + 'T15:00:00Z'), { periodo: 'mes' });
+  if (!r.disponivel) return null;
+  const premios = await tx`SELECT marco, classe FROM vybe_escritorio_catalogo WHERE marco = ANY(${['copa_1', 'copa_2', 'copa_3']}::text[])`;
+  const podio = r.pessoas.filter((p) => p.entregas > 0 && p.pct > 0).slice(0, 3), pagos = [];
+  for (const [i, p] of podio.entries()) {
+    const chave = 'copa_' + (i + 1);
+    if (!await aplicar(tx, p.id, chave, `copa:${mes}:${i + 1}`, fim)) continue;
+    const trofeu = premios.find((x) => x.marco === chave)?.classe;
+    if (trofeu) await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${p.id},${trofeu},1)
+      ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
+    // O título do campeão fica registrado como um marco do mês.
+    if (i === 0) await tx`INSERT INTO vybe_escritorio_marcos(pessoa_id,marco) VALUES(${p.id},${'copa_' + mes.slice(0, 4) + '_' + mes.slice(5, 7) + ':1'}) ON CONFLICT DO NOTHING`;
+    pagos.push({ id: p.id, nome: p.nome, posicao: i + 1, pct: p.pct });
+  }
+  return { mes, pagos };
 }
 // O que a tela mostra: a semana atual e o resultado da anterior (pódio pago).
 export async function rankingEscritorio(sql, agora = new Date(), { periodo = 'semana' } = {}) {

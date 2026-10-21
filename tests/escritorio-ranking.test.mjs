@@ -87,3 +87,29 @@ test('ranking por período: hoje, semana, mês e sempre, com seta, ritmo e sequ�
  assert.equal(mes.inicio,HOJE.slice(0,8)+'01');
  await assert.rejects(rankingEscritorio(sql,AGORA,{periodo:'ano'}),/Período inválido/);
 });
+
+test('Copa Vybe: o 1º do mês leva a taça da Copa, o título e o prêmio; 2º e 3º as taças; uma vez só',async t=>{
+ const {db,sql}=await banco(t);
+ // Como em produção (economia de 20/10/2026): a faixa Épica existe.
+ await db.exec(`ALTER TABLE vybe_escritorio_raridades DROP CONSTRAINT IF EXISTS vybe_escritorio_raridades_chave_check; INSERT INTO vybe_escritorio_raridades(chave,nome,ordem,preco) VALUES('epico','Épico',5,100) ON CONFLICT DO NOTHING;`);
+ for(const f of ['2026-10-20-escritorio-conquistas-niveis.sql','2026-10-20-escritorio-conquistas-producao.sql','2026-10-21-escritorio-conquistas-dificeis.sql','2026-10-21-escritorio-copa.sql']) await db.exec(ler(f));
+ await sql`UPDATE vybe_escritorio_regras SET ativa=false WHERE chave IN ('dia_sem_furo','dia_agendamento','dia_sem_vencida','dia_ativo')`;
+ const {fecharCopaMes,mesAnterior}=await import('../server/escritorio-pontos.js');
+ const {titulosDaPessoa}=await import('../server/escritorio-marcos.js');
+ const MES=mesAnterior(diaBahia(new Date()));
+ // Mês passado: Reriston (2) 4 peças, Jady (6) 2, Bia (7) 1.
+ let id=5000;
+ for(const [p,n] of [[2,4],[6,2],[7,1]]) for(let k=0;k<n;k++) await peca(db,sql,p,id++,somarDias(MES,3+k));
+ const r=await sql.comTransacao(tx=>fecharCopaMes(tx,MES));
+ assert.deepEqual(r.pagos.map(p=>[p.id,p.posicao]),[['2',1],['6',2],['7',3]]);
+ const inv=async(p,c)=>Number((await sql`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${p} AND classe=${c}`)[0]?.quantidade||0);
+ assert.equal(await inv(2,'fball_trophy'),1,'a taça da Copa');
+ assert.equal(await inv(6,'prizetrophy2'),1);
+ assert.equal(await inv(7,'prizetrophy3'),1);
+ const [g]=await sql`SELECT quantidade,pontos FROM vybe_escritorio_moedas WHERE origem=${'copa:'+MES+':1'}`;
+ assert.deepEqual([g.quantidade,g.pontos],[150,300]);
+ const tit=await titulosDaPessoa(sql,2);
+ assert.ok(tit.some(x=>x.texto.startsWith('Campeão da Copa · ') && x.nivel===4));
+ assert.equal(await sql.comTransacao(tx=>fecharCopaMes(tx,MES)),null,'não paga de novo');
+ assert.equal((await sql`SELECT raridade FROM vybe_escritorio_catalogo WHERE classe='fball_trophy'`)[0].raridade,'epico');
+});

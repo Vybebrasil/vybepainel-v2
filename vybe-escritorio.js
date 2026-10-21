@@ -245,6 +245,63 @@ ${p ? `<span class="lg-xp"><i style="width:${pct}%"></i></span><em>${Number(p.xp
 <div class="lg-online lg-entra" style="--o:3" id="ofc-lobby-online" role="region" aria-label="Quem está no escritório">${escritorioLobbyOnlineHtml()}</div>
 <p class="lg-regra lg-entra" style="--o:4">${escritorioIcone("microfone")}${safeText(regra)}</p>`;
 }
+// A taça da Copa Vybe (Paulo, 21/10/2026: "tem que aparecer em todos os
+// ambientes e quartos com o nome bonitão em cima do ganhador"; "é pra ficar
+// como objeto em cada ambiente"): um móvel de verdade em cada sala e quarto,
+// num ladrilho livre junto da parede do fundo escolhido pelo próprio mapa, e
+// a placa do campeão em cima. Não entra na decoração salva de ninguém.
+function escritorioCopaPlacaHtml() {
+  const c = escritorio.base?.copa;
+  if (!c) return "";
+  const nome = safeText(String(c.campeao.nome || "").split(" ")[0]);
+  return `<span class="mapa-copa-placa"><small>Campeão da Copa</small><b>${nome}</b><em>${safeText(c.titulo.replace("Campeão da Copa · ", ""))}${c.vezes > 1 ? ` · ${c.vezes}×` : ""}</em></span>`;
+}
+function escritorioLugarDaTaca() {
+  const m = escritorio.mapa, t = m?.tamanho?.();
+  if (!t) return null;
+  const livre = (x, y) => !m.bloqueadoEm(x, y) && m.assentoEm(x, y) === undefined && m.camaEm(x, y) === undefined && !m.pisoEm(x, y) && !(m.moveisEm?.(x, y) || []).length;
+  const vizinhosLivres = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => livre(x + dx, y + dy)).length;
+  const lugares = [];
+  for (let y = 0; y < t.H; y++) for (let x = 0; x < t.W; x++) {
+    // Junto de uma parede do fundo, sem fechar passagem (dois vizinhos livres).
+    if (!livre(x, y) || !(m.bloqueadoEm(x - 1, y) || m.bloqueadoEm(x, y - 1)) || vizinhosLivres(x, y) < 2) continue;
+    // À vista: quantos ladrilhos livres na frente (nada tapando a taça).
+    const frente = [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2], [2, 2]].filter(([dx, dy]) => livre(x + dx, y + dy)).length;
+    lugares.push({ x, y, frente });
+  }
+  // O mais à vista; no empate, o mais ao fundo.
+  lugares.sort((a, b) => b.frente - a.frente || (a.x + a.y) - (b.x + b.y));
+  return lugares[0] || null;
+}
+async function posicionarTacaEscritorio() {
+  const c = escritorio.base?.copa, m = escritorio.mapa;
+  if (!c || !m?.acrescentarMovel || escritorio.edicao || escritorio.base?.convidado) return;
+  if (m.tacaPosta) return;
+  const lugar = escritorioLugarDaTaca();
+  if (!lugar) return;
+  m.tacaPosta = true;
+  m.tacaLugar = lugar;
+  await m.acrescentarMovel(["fball_trophy", lugar.x, lugar.y, 2, 0, 0, { copa: true }]);
+  if (escritorio.mapa === m) m.marcador("copa", lugar.x, lugar.y, escritorioCopaPlacaHtml(), 96);
+}
+async function carregarCopaEscritorio() {
+  if (escritorio.copaCarregando || !escritorio.base || escritorio.base.convidado) return;
+  escritorio.copaCarregando = true;
+  const pintar = () => { if (escritorio.lobbyNoticias && typeof montarNoticiasLobbyEscritorio === "function") montarNoticiasLobbyEscritorio(); };
+  try {
+    if (!escritorio.copaArte && typeof mapaCarregarMovel === "function") {
+      const m = await mapaCarregarMovel("fball_trophy");
+      escritorio.copaArte = mapaDesenharMovel(m, 2, 0, 0)?.canvas?.toDataURL() || "";
+    }
+  } catch {}
+  pintar();
+  try {
+    const d = escritorioRanking.dados.mes || (escritorioRanking.dados.mes = await escritorioApi("ranking", null, { periodo: "mes" }));
+    const p = (d.pessoas || []).filter((x) => x.posicao).sort((a, b) => a.posicao - b.posicao)[0];
+    escritorio.copaLider = p ? { id: p.id, nome: p.nome, pct: p.pct } : null;
+  } catch {}
+  pintar();
+}
 // Lugar de cada pessoa online, pela zona da presença.
 function escritorioLobbyLugar(p) {
   const z = p.zona || ""; if (!z) return "Praça";
@@ -281,9 +338,10 @@ function montarNoticiasLobbyEscritorio() {
     if (subiu) nomes.push(`<b>${nome(subiu.nome)}</b> subiu ${subiu.antes - subiu.posicao} ${subiu.antes - subiu.posicao === 1 ? "posição" : "posições"} no ranking`);
     const fogo = [...d.pessoas].sort((a, b) => (b.sequencia || 0) - (a.sequencia || 0))[0];
     if (fogo?.sequencia > 2) nomes.push(`<b>${nome(fogo.nome)}</b> está em chamas: ${fogo.sequencia} dias seguidos entregando`);
+    if (escritorio.copaLider) nomes.push(`<b>${nome(escritorio.copaLider.nome)}</b> lidera a Copa do mês com <b>${escritorio.copaLider.pct}%</b>`);
     if (d.agencia?.meta) nomes.push(d.agencia.bateu ? "A agência <b>bateu a meta</b> da semana" : `A agência está em <b>${d.agencia.pct}%</b> da meta da semana`);
   }
-  for (const n of (escritorio.lobbyNovidades || []).slice(0, 5)) nomes.push(n.titulo ? `<b>${nome(n.nome)}</b> ganhou o título <span class="vb-titulo n${Number(n.nivel) || 1}">${safeText(n.titulo)}</span>` : `<b>${nome(n.nome)}</b> conquistou ${safeText(n.escada)}`);
+  for (const n of (escritorio.lobbyNovidades || []).slice(0, 5)) nomes.push(n.copa ? `<b>${nome(n.nome)}</b> é o <span class="vb-titulo n4">${safeText(n.titulo)}</span>` : n.titulo ? `<b>${nome(n.nome)}</b> ganhou o título <span class="vb-titulo n${Number(n.nivel) || 1}">${safeText(n.titulo)}</span>` : `<b>${nome(n.nome)}</b> conquistou ${safeText(n.escada)}`);
   escritorio.lobbyNoticias = nomes;
   const el = document.getElementById("lg-noticias");
   if (el) el.innerHTML = escritorioLobbyNoticiasHtml();
@@ -1021,7 +1079,10 @@ function escritorioMoveisAtuais() {
   const camada = escritorio.quarto || "geral";
   // A configuração do item (7º campo: cor do fundo colorido, troféu…) vai
   // junto da origem, para o mapa desenhar o que depende dela.
-  return escritorioItensDaCamada(camada).map((it, i) => [...it.slice(0, 6), { camada, i, ...(it[6] && typeof it[6] === "object" && !Array.isArray(it[6]) ? { cfg: it[6] } : {}) }]);
+  const lista = escritorioItensDaCamada(camada).map((it, i) => [...it.slice(0, 6), { camada, i, ...(it[6] && typeof it[6] === "object" && !Array.isArray(it[6]) ? { cfg: it[6] } : {}) }]);
+  // A taça da Copa continua na sala quando o mapa redesenha os móveis.
+  const taca = !escritorio.edicao && escritorio.mapa?.tacaLugar;
+  return taca ? [...lista, ["fball_trophy", taca.x, taca.y, 2, 0, 0, { copa: true }]] : lista;
 }
 function escritorioRaizQuarto(id) { return String(id || '').replace(/-andar-1$/,''); }
 function escritorioPerfilDecoracao(id=escritorio.quarto || escritorioMinhaMesa()?.ambiente.id) {
@@ -1599,7 +1660,7 @@ function escritorioTrocarCena(quarto, lugar, dir) {
   // hora; a da antiga para. Confere de novo quando os móveis terminam de
   // carregar (só aí se sabe se a sala tem jukebox).
   if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala();
-  escritorio.mapa?.prontos.then(() => { escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); if (typeof carregarCobrancasEscritorio === "function") carregarCobrancasEscritorio(); depois?.(); });
+  escritorio.mapa?.prontos.then(() => { posicionarTacaEscritorio(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); if (typeof carregarCobrancasEscritorio === "function") carregarCobrancasEscritorio(); depois?.(); });
 }
 function escritorioMinhaMesa() {
   let a = escritorioDonos().get(escritorio.base?.eu);
@@ -1701,6 +1762,7 @@ function atualizarPessoasEscritorio() {
         mao: ESCRITORIO_MAO[voce ? escritorio.pose : p.pose] || (voce ? escritorio.perfil : perfilDe)?.mao || "",
         dir: sentado ? dirAssento : dirCama !== undefined ? dirCama : ESCRITORIO_APARELHOS[voce ? escritorio.pose : p.pose] ? escritorioNoAparelho(Math.round(pos.x), Math.round(pos.y))?.dir : undefined, local: voce,
         // Convidado (ou quem está vendo como convidado): sem a ficha da equipe.
+        aoPassar: p.convidado || escritorio.base?.convidado ? null : (id, on, el) => typeof passarSobreJogadorEscritorio === "function" && passarSobreJogadorEscritorio(id, on, el),
         aoClicar: p.convidado || escritorio.base?.convidado ? () => escritorioAviso(voce ? "Este é você." : p.convidado ? `${p.nome} é convidado de ${escritorioNomeCurto(escritorio.base?.equipe?.find((e) => String(e.id) === String(p.anfitriao))?.nome || "alguém da equipe")}.` : `${p.nome} é da equipe da Vybe.`) : (id) => abrirMenuPessoaEscritorio(id),
       };
     }));
@@ -1979,6 +2041,7 @@ function renderEscritorio() {
     if (!escritorio.lobbyFocado && !document.activeElement?.closest?.("input,select,textarea,[contenteditable]")) { escritorio.lobbyFocado = true; document.getElementById("office-connect")?.focus({ preventScroll: true }); }
   }
   else { clearInterval(escritorio.timerLobby); clearInterval(escritorio.timerNoticias); fecharObservadorLobbyEscritorio(); pararTesteMicLobbyEscritorio(false); }
+  carregarCopaEscritorio();
   atualizarPessoasEscritorio();
   atualizarControlesEscritorio();
   pintarArtesEscritorio(document.querySelector(".ofc-topo") || document);
@@ -2038,7 +2101,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
+    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -2643,6 +2706,14 @@ function escritorioLadoLivre(r) {
 function abrirFichaMovelEscritorio(m) {
   const card = document.getElementById("office-movel-card");
   if (!card || !m) return;
+  // A taça da Copa: quem é o campeão e o ranking do mês.
+  if (m.origem?.copa) {
+    const c = escritorio.base?.copa;
+    card.classList.remove("cj-no-clique");
+    card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="">` : ""}</div><b>Taça da Copa Vybe</b><small>${c ? `${safeText(c.campeao.nome)} · ${safeText(c.titulo)}` : ""}</small><p class="ofc-nota">O 1º do ranking Geral de cada mês leva a taça, o título e o prêmio.${escritorio.copaLider ? ` Neste mês, ${safeText(String(escritorio.copaLider.nome).split(" ")[0])} lidera com ${escritorio.copaLider.pct}%.` : ""}</p><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirRankingEscritorio('geral','mes')">Ver a Copa do mês</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()">Fechar</button></div>`;
+    card.hidden = false;
+    return;
+  }
   escritorio.movelSelecionado = m;
   const cat = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === m.classe);
   const nome = cat ? escritorioNomeMovel(cat) : m.classe.replace(/_/g, " ");
@@ -2752,7 +2823,7 @@ function fecharFichaMovelEscritorio() {
   escritorio.movelSelecionado = null;
   escritorio.pessoaSelecionada = null;
   const card = document.getElementById("office-movel-card");
-  if (card) card.hidden = true;
+  if (card) { card.hidden = true; card.classList.remove("cj-no-clique"); }
   const menu = document.getElementById("office-menu-pessoa");
   if (menu) menu.hidden = true;
 }
@@ -2771,7 +2842,13 @@ function abrirMenuPessoaEscritorio(id) {
   const sid = safeText(String(id));
   const card = document.getElementById("office-movel-card");
   if (card) {
-    card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorioAvatar(perfil, pessoa.nome)}</div><b>${safeText(pessoa.nome)}</b><small>${online || eu ? `${st ? `<span style="color:${st[1]}">${safeText(st[0])}</span>` : ""}${lugar ? ` · ${safeText(lugar)}` : ""}` : "Fora do escritório"}</small><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirFichaEscritorio('${sid}')">Ficha completa</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null)" aria-label="Fechar">Fechar</button></div>`;
+    // O cartão do jogador (o mesmo do mouse por cima), com os botões.
+    const botoes = `<div class="cj-botoes"><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirFichaEscritorio('${sid}')">Ficha completa</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null)" aria-label="Fechar">Fechar</button></div>`;
+    const pintar = () => { if (escritorio.pessoaSelecionada === String(id) && !card.hidden) card.innerHTML = escritorioCartaoJogadorHtml(id) + botoes; };
+    card.classList.add("cj-no-clique");
+    card.innerHTML = escritorioCartaoJogadorHtml(id) + botoes;
+    if (typeof carregarPerfilJogoEscritorio === "function") carregarPerfilJogoEscritorio(id, pintar);
+    esconderCartaoJogadorEscritorio();
     card.hidden = false;
     vigiarFichaEscritorio();
   }

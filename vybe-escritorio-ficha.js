@@ -714,6 +714,61 @@ function carregarPerfilJogoEscritorio(id, aoTerminar) {
     .finally(() => aoTerminar?.());
 }
 
+// Cartão do jogador (Paulo, 21/10/2026: "ao passar o mouse ou clicar em
+// alguém, aparecer informações legais… os selos das conquistas dele… para
+// ficar imersivo"). Rosto, nome, título, nível, função, onde está, os três
+// maiores troféus, a semana no ranking e os dias seguidos. Os números vêm do
+// perfil público (o mesmo que toda a equipe já vê na ficha).
+function escritorioCartaoJogadorHtml(id) {
+  const b = escritorio.base, sid = String(id), pessoa = (b?.equipe || []).find((p) => String(p.id) === sid);
+  if (!pessoa) return "";
+  const eu = sid === String(b.eu), pub = escritorio.perfisPublicos?.[sid];
+  const online = (escritorio.online || []).find((o) => String(o.id) === sid);
+  const st = ESCRITORIO_STATUS[eu ? escritorio.status : online?.status] || null;
+  const lugar = online || eu ? (typeof escritorioLugarDe === "function" ? escritorioLugarDe(eu ? null : online)?.nome : "") : "";
+  const cabeca = typeof escritorioCabecaUrl === "function" ? escritorioCabecaUrl(sid) : "";
+  const rk = escritorioRanking?.dados?.semana?.pessoas?.find((p) => String(p.id) === sid);
+  const funcao = ESCRITORIO_FUNCAO_NOME[rk?.funcao] || "";
+  const t = pessoa.titulo || (eu ? (b.equipe || []).find((e) => String(e.id) === String(b.eu))?.titulo : null);
+  // Os três troféus de nível mais alto (um por escada).
+  const melhores = (pub?.marcos || []).filter((m) => m.classe).sort((a, c) => (c.nivel || 0) - (a.nivel || 0)).filter((m, i, l) => l.findIndex((x) => String(x.id).split(":")[0] === String(m.id).split(":")[0]) === i).slice(0, 3);
+  const pct = rk?.meta ? Math.min(100, rk.pct || 0) : null;
+  return `<div class="cj">
+<div class="cj-topo"><span class="cj-rosto${online || eu ? " on" : ""}">${cabeca ? `<img src="${safeText(cabeca)}" alt="" width="46" height="46">` : ""}${pub?.nivel ? `<b class="cj-nivel" title="Nível">${pub.nivel}</b>` : ""}</span>
+<span class="cj-id"><b>${safeText(pessoa.nome)}</b>${t?.texto ? `<span class="vb-titulo n${Number(t.nivel) || 1}">${safeText(t.texto)}</span>` : ""}<small>${online || eu ? `${st ? `<i class="ofc-ponto" style="--st:${st[1]}"></i>${safeText(st[0])}` : ""}${lugar ? ` · ${safeText(lugar)}` : ""}` : "Fora do escritório"}${funcao ? ` · ${safeText(funcao)}` : ""}</small></span></div>
+${pub === undefined ? '<div class="cj-trofeus carregando"><i></i><i></i><i></i></div>' : melhores.length ? `<div class="cj-trofeus">${melhores.map((m) => `<span class="cj-trofeu n${m.nivel || 1}" title="${safeText(m.nome)}">${escritorioMiniaturaHtml(m.classe)}<small>${safeText(m.nome.replace(/ (Bronze|Prata|Ouro|Diamante)$/, ""))}</small></span>`).join("")}${pub?.conquistas > 3 ? `<span class="cj-mais">+${pub.conquistas - melhores.length}<small>conquistas</small></span>` : ""}</div>` : '<p class="cj-vazio">Ainda sem troféus.</p>'}
+<div class="cj-numeros">${rk?.posicao ? `<span><b>${rk.posicao}º</b><small>na semana</small></span>` : ""}${pct !== null ? `<span class="cj-meta"><i style="width:${pct}%"></i><b>${rk.pct}%</b><small>da meta</small></span>` : ""}${rk?.sequencia > 1 ? `<span><b>${rk.sequencia}</b><small>dias seguidos</small></span>` : ""}${pub?.saldo != null && !rk?.posicao ? `<span><b>${Number(pub.saldo).toLocaleString("pt-BR")}</b><small>VybeCoins</small></span>` : ""}</div>
+</div>`;
+}
+function esconderCartaoJogadorEscritorio() {
+  clearTimeout(escritorio.cartaoJogadorTimer);
+  const el = document.getElementById("ofc-cartao-jogador");
+  if (el) { el.classList.remove("aberto"); el.dataset.id = ""; }
+}
+function passarSobreJogadorEscritorio(id, on, alvo) {
+  clearTimeout(escritorio.cartaoJogadorTimer);
+  if (!on) { escritorio.cartaoJogadorTimer = setTimeout(esconderCartaoJogadorEscritorio, 120); return; }
+  // Com o cartão do clique aberto para a mesma pessoa, o do mouse não aparece.
+  if (escritorio.pessoaSelecionada === String(id)) return;
+  escritorio.cartaoJogadorTimer = setTimeout(() => {
+    let el = document.getElementById("ofc-cartao-jogador");
+    if (!el) { el = document.createElement("div"); el.id = "ofc-cartao-jogador"; el.className = "cj-flutuante"; el.setAttribute("role", "tooltip"); document.body.append(el); }
+    const pintar = () => {
+      if (el.dataset.id !== String(id)) return;
+      el.innerHTML = escritorioCartaoJogadorHtml(id);
+      const r = alvo.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+      el.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + "px";
+      el.style.top = (r.top - h - 10 > 8 ? r.top - h - 10 : r.bottom + 10) + "px";
+    };
+    el.dataset.id = String(id);
+    pintar();
+    el.classList.add("aberto");
+    carregarPerfilJogoEscritorio(id, pintar);
+    // O ranking da semana dá a posição e os dias seguidos; busca uma vez.
+    if (!escritorioRanking.dados.semana && !escritorioRanking.buscandoParaCartao) { escritorioRanking.buscandoParaCartao = true; escritorioApi("ranking").then((d) => { escritorioRanking.dados.semana = d; pintar(); }).catch(() => {}); }
+  }, 260);
+}
+
 // Quarto individual de uma pessoa (o dono vem do servidor, em base.salas).
 function escritorioQuartoDe(id) {
   const sala = (escritorio.base?.salas || []).find((s) => String(s.pessoa_id) === String(id));
@@ -951,19 +1006,39 @@ function escritorioRankingTrofeu(classe) {
 // As categorias: o que conta, como mostrar e o que é zero (fica de fora).
 function rkCategorias(d) {
   const geralTotal = d.periodo === "total";
-  const atv = (k, nome) => ({ k, nome, icone: k, valor: (p) => p.atividades?.[k] || 0, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => ESCRITORIO_FUNCAO_NOME[p.funcao] || "" });
+  const atv = (k, nome) => ({ k, nome, icone: k, valor: (p) => p.atividades?.[k] || 0, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => ESCRITORIO_FUNCAO_NOME[p.funcao] || "", dica: `A ordem é por quantas vezes cada um teve "${(d.regras?.[k] || nome).replace(/ \(.*\)$/, "")}" no período.` });
   return [
     geralTotal
       ? { k: "geral", nome: "Nível", icone: "geral", valor: (p) => p.xpTotal || 0, fmt: (v, p) => `Nível ${p.nivel}`, sub: (p) => `${Number(p.xpTotal || 0).toLocaleString("pt-BR")} XP no total`, dica: "Desde sempre: vale o XP de todo o trabalho." }
-      : { k: "geral", nome: "Geral", icone: "geral", valor: (p) => (p.entregas ? p.pct : 0), fmt: (v) => `${v}%`, sub: (p) => `${p.entregas} de ${p.meta} da meta`, dica: "O % da sua própria meta: todas as funções competem por igual." },
-    { k: "xp", nome: "XP", icone: "xp", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.moedas} moedas`, dica: "XP do trabalho no período. Conquistas e prêmios não contam." },
-    { k: "moedas", nome: "Moedas", icone: "moedas", valor: (p) => p.moedas, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => `${p.xp} XP`, dica: "Moedas ganhas trabalhando no período." },
-    { k: "entregas", nome: "Volume", icone: "entregas", valor: (p) => p.entregas, fmt: (v) => `${v}`, sub: (p) => (geralTotal ? "entregas" : `meta ${p.meta}`), dica: "Quantas entregas cada um fez." },
-    { k: "sequencia", nome: "Em chamas", icone: "sequencia", valor: (p) => p.sequencia || 0, fmt: (v) => `${v} ${v === 1 ? "dia" : "dias"}`, sub: () => "seguidos entregando", dica: "Dias úteis seguidos com entrega, até hoje." },
+      : { k: "geral", nome: "Geral", icone: "geral", valor: (p) => (p.entregas ? p.pct : 0), fmt: (v) => `${v}%`, sub: (p) => `${p.entregas} entregas ÷ meta ${p.meta}`, dica: "A ordem é pelo % da própria meta: as entregas do período divididas pela meta de cada um (a média das suas entregas nas últimas 8 semanas). Assim Criação, Produção, Atendimento e Gestão competem por igual. Empate: quem tem mais XP." },
+    { k: "xp", nome: "XP", icone: "xp", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.moedas} moedas`, dica: "A ordem é pelo XP ganho trabalhando no período: peças, prazo, aprovação de primeira, briefings e ações no painel. Conquistas e prêmios do ranking não contam." },
+    { k: "moedas", nome: "Moedas", icone: "moedas", valor: (p) => p.moedas, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => `${p.xp} XP`, dica: "A ordem é pelas moedas ganhas trabalhando no período (sem compras, conquistas e prêmios). Peça maior vale mais: um impresso vale 4 cards." },
+    { k: "entregas", nome: "Volume", icone: "entregas", valor: (p) => p.entregas, fmt: (v) => `${v}`, sub: (p) => (geralTotal ? "entregas" : `meta ${p.meta}`), dica: "A ordem é pelo número de entregas no período, de qualquer tipo, sem olhar a meta: quem fez mais coisas." },
+    { k: "sequencia", nome: "Em chamas", icone: "sequencia", valor: (p) => p.sequencia || 0, fmt: (v) => `${v} ${v === 1 ? "dia" : "dias"}`, sub: () => "seguidos entregando", dica: "A ordem é pelos dias úteis seguidos com pelo menos uma entrega, até hoje. Sábado e domingo não quebram a sequência." },
     atv("peca_criacao", "Peças feitas"), atv("peca_producao", "Captações"), atv("peca_atendimento", "Carteira"), atv("peca_agendamento", "Postagens"),
     atv("peca_da", "Direção de arte"), atv("briefing", "Briefings"), atv("entrega_prazo", "No prazo"), atv("criacao_aprovada", "De primeira"),
     atv("peca_gestao", "Peças da agência"), atv("acao_painel", "No painel"),
   ];
+}
+// O porquê de cada posição (Paulo, 21/10/2026: "não pode ter dúvida do
+// porquê no ranking"): o que mais somou para a pessoa na categoria.
+const RK_NOMES_CURTOS = {
+  peca_criacao: ["peça feita", "peças feitas"], peca_producao: ["foto ou vídeo captado", "fotos e vídeos captados"],
+  peca_atendimento: ["peça da carteira", "peças da carteira"], peca_agendamento: ["peça postada", "peças postadas"],
+  peca_gestao: ["peça da agência", "peças da agência"], peca_da: ["aprovação de DA", "aprovações de DA"],
+  briefing: ["briefing", "briefings"], cadastro: ["cadastro", "cadastros"], entrega: ["solicitação finalizada", "solicitações finalizadas"],
+  dia_sem_furo: ["dia sem furo", "dias sem furo"], entrega_prazo: ["no prazo", "no prazo"], criacao_aprovada: ["de primeira", "de primeira"],
+  acao_painel: ["ação no painel", "ações no painel"], carteira: ["peça da carteira", "peças da carteira"], agendamento: ["peça agendada", "peças agendadas"],
+  captacao: ["captação", "captações"], agencia: ["peça da agência", "peças da agência"], criacao_aprovacao: ["peça para aprovação", "peças para aprovação"],
+};
+function rkPorque(cat, p, d) {
+  const curto = (k, n = 2) => { const par = RK_NOMES_CURTOS[k]; return par ? par[n === 1 ? 0 : 1] : String(d.regras?.[k] || k).replace(/ \(.*\)$/, "").toLowerCase(); };
+  const top = (obj, n, fmt) => Object.entries(obj || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => fmt(k, v)).join(" · ");
+  if (cat.k === "geral" && d.periodo === "total") return `${Number(p.xpTotal || 0).toLocaleString("pt-BR")} XP somados desde o começo`;
+  if (cat.k === "geral" || cat.k === "entregas") return top(p.porRegra, 3, (k, v) => `${v} ${curto(k, v)}`) || "nenhuma entrega no período";
+  if (cat.k === "xp" || cat.k === "moedas") return top(p.xpPor, 3, (k, v) => `+${v} XP de ${curto(k)}`) || "nada no período";
+  if (cat.k === "sequencia") return p.sequencia > 0 ? `entregou em ${p.sequencia} ${p.sequencia === 1 ? "dia útil" : "dias úteis seguidos"}` : "sem entrega hoje nem ontem";
+  return "";
 }
 // Ritmo: XP por dia (ou por semana, em "Sempre") num gráfico de linha.
 function rkRitmo(d, p, max) {
@@ -1027,7 +1102,7 @@ function pintarRankingEscritorio() {
   }).join("");
   const chipsAtv = [...cats.filter((c) => !PRINCIPAIS.includes(c.k)).map((c) => {
     const lider = ordenar(c).find((x) => x.v > 0);
-    return lider ? `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || `Quem mais fez: ${c.nome.toLowerCase()}`)}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span>${safeText(c.nome)}${rosto(lider.p.id, 18)}</button>` : "";
+    return lider ? `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || `Quem mais fez: ${c.nome.toLowerCase()}`)}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-chip-txt">${safeText(c.nome)}</span>${rosto(lider.p.id, 18)}</button>` : "";
   }), ...extra.map((c) => `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span>${c.nome}${c.k === "agencia" ? `<b>${d.agencia.pct}%</b>` : ""}</button>`)].join("");
   const campeoes = `<div class="rk2-principais" role="group" aria-label="Categorias">${cartoes}</div>${chipsAtv ? `<div class="rk2-chips" role="group" aria-label="Por atividade"><small>Por atividade</small>${chipsAtv}</div>` : ""}`;
   const detalhe = (p) => {
@@ -1061,13 +1136,14 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
       return `<button type="button" data-pid="${x.p.id}" class="rk2-degrau p${pos}${x.p.id === eu ? " eu" : ""}" style="--atraso:${[0, 0.15, 0, 0.3][pos]}s" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" aria-label="${pos}º lugar: ${safeText(nome(x.p))}, ${safeText(cat.fmt(x.v, x.p))}">
         ${pos === 1 ? '<span class="rk2-coroa" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></span>' : ""}
         <div class="ofc-rk-figura">${escritorioRankingBoneco(x.p.id, pos === 1 ? "wav" : "std") || rosto(x.p.id, 56)}${pr ? escritorioRankingTrofeu(pr.classe) : ""}<span class="rk2-selo" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></div>
-        <b class="ofc-rk-dnome">${safeText(nome(x.p))}${x.p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor" data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</span><small>${safeText(cat.sub(x.p))}${geral ? " " + rkSeta(x.p) : ""}</small>
+        <b class="ofc-rk-dnome">${safeText(nome(x.p))}${x.p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor" data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</span><small>${safeText(cat.sub(x.p))}${geral ? " " + rkSeta(x.p) : ""}</small>${rkPorque(cat, x.p, d) ? `<span class="rk2-porque">${safeText(rkPorque(cat, x.p, d))}</span>` : ""}
         <div class="rk2-bloco"><span>${pos}º</span></div>${pr ? `<em class="rk2-premio" title="Prêmio no fechamento da semana">+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</button>`; }).join("")}</div>` : vbEstadoHtml({ titulo: "Ninguém pontuou aqui ainda", texto: "O primeiro a entregar abre o pódio." });
     const lista = ord.length > tres.length ? `<ol class="rk2-lista">${ord.slice(tres.length).map((x, k) => { const pos = posDe(x, tres.length + k);
       return `<li data-pid="${x.p.id}" class="${x.p.id === eu ? "eu" : ""}${escritorioRanking.aberto === x.p.id ? " aberto" : ""}" style="--i:${k}" role="button" tabindex="0" aria-expanded="${escritorioRanking.aberto === x.p.id}" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalheRankingEscritorio('${x.p.id}')}">
-        <span class="rk2-pos">${pos ? pos + "º" : "—"}${geral ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome"><b>${safeText(nome(x.p))}</b><small>${(() => { const t = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(x.p.id))?.titulo; return `${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}${t?.texto ? ` · <em class="rk2-titulo vb-titulo n${Number(t.nivel) || 1}">${safeText(t.texto)}</em>` : ""}`; })()}</small></span>
+        <span class="rk2-pos">${pos ? pos + "º" : "—"}${geral ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome">${(() => { const t = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(x.p.id))?.titulo; return `<b>${safeText(nome(x.p))}${t?.texto ? `<em class="mapa-titulo rk2-titulo n${Number(t.nivel) || 1}"><i aria-hidden="true"></i><span>${safeText(t.texto)}</span></em>` : ""}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}${rkPorque(cat, x.p, d) ? ` · <span class="rk2-porque">${safeText(rkPorque(cat, x.p, d))}</span>` : ""}</small>`; })()}</span>
         <span class="rk2-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, (x.v / max) * 100))}%"></i></span><span class="rk2-valor"><b data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</b><small>${safeText(cat.sub(x.p))}</small></span></li>${escritorioRanking.aberto === x.p.id ? `<li class="ofc-rk-det-li">${detalhe(x.p)}</li>` : ""}`; }).join("")}</ol>` : "";
-    corpo = `<div class="rk2-duas"><div class="rk2-meio">${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}</div>${lista ? `<div class="rk2-direita">${lista}</div>` : ""}</div>`;
+    const copaMes = per === "mes" && geral ? `<div class="rk2-copa">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="" width="44" height="50">` : ""}<span><b>Copa Vybe de ${safeText(new Date((d.inicio || hoje) + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }))}</b><small>O 1º do Geral no fim do mês leva a taça da Copa (épica), o título "Campeão da Copa" e ${(() => { const r = d.premios?.find((x) => x.chave === "copa_1"); return r ? `+${r.moedas} moedas · +${r.pontos} XP` : "o prêmio"; })()}. 2º e 3º levam as taças de prata e bronze. ${safeText(fecha)}.</small></span></div>` : "";
+    corpo = `<div class="rk2-duas"><div class="rk2-meio">${copaMes}<p class="rk2-regra"><b>Por que essa ordem?</b> ${safeText(cat.dica || "")}</p>${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}</div>${lista ? `<div class="rk2-direita">${lista}</div>` : ""}</div>`;
     voceFixa = voce;
   } else if (aba === "tesouros") {
     const pat = d.patrimonio || [];
@@ -1080,7 +1156,7 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
     corpo = `<section class="ofc-rk-agencia${a.bateu ? " bateu" : ""}"><div class="ofc-rk-ag-num"><strong>${a.pecas}</strong><span>de ${a.meta} peças</span></div><div class="ofc-rk-ag-barra" aria-hidden="true"><i style="width:${Math.min(100, a.pct)}%"></i></div><p>${a.bateu ? "<b>Meta batida!</b>" : `Faltam <b>${falta} peças</b>, cerca de ${ritmo} por dia.`}${per === "semana" && bonus ? ` No fechamento da semana, se a agência bater, todo mundo ganha <b>+${bonus.moedas} moedas e +${bonus.pontos} XP</b>.` : ""}</p><div class="ofc-rk-equipe">${d.pessoas.map((p) => `<span title="${safeText(nome(p))}: ${p.entregas} entregas">${rosto(p.id, 30)}</span>`).join("")}</div><small>A meta é a média de peças por semana nas últimas 8 semanas, na proporção do período. Cada peça conta uma vez.</small></section>`;
   }
   const anterior = per === "semana" && d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
-  const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul>${cat?.dica ? `<li><b>${safeText(cat.nome)}:</b> ${safeText(cat.dica)}</li>` : ""}<li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
+  const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul><li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
   // Menu largo (Paulo, 21/10/2026: "ganhar espaço dos lados… parecer um menu do
   // personagem"): com tela larga, categorias numa coluna e o resto ao lado.
   el.innerHTML = topo + `<div class="rk2-corpo${escritorioRanking.carregando === per ? " atualizando" : ""}"><div class="rk2-grade"><aside class="rk2-lado">${campeoes}</aside><div class="rk2-principal">${corpo}${anterior}${como}</div></div>${voceFixa}</div>`;
@@ -1155,7 +1231,7 @@ function abrirDetalheRankingEscritorio(id) {
 const ESCRITORIO_GRUPOS_CONQUISTA = [
   ["entregas", "Entregas", "As peças que você fez.", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos", "impressos"]],
   ["producao", "Produção", "Gravações e o que foi captado.", ["gravacoes", "fotos_captadas", "videos_captados"]],
-  ["ritmo", "Ritmo", "Prazo, aprovação de primeira, sequência, meta e pódio.", ["adiantado", "deprimeira", "embalo", "semana", "filaemdia", "meta", "meta_turbo", "podio", "painel", "clientes", "nivel"]],
+  ["ritmo", "Ritmo", "Prazo, aprovação de primeira, sequência, meta e pódio.", ["adiantado", "deprimeira", "embalo", "semana", "filaemdia", "meta", "meta_turbo", "podio", "artilheiro", "painel", "clientes", "nivel"]],
   ["agendamento", "Postagens", "Peças postadas, por tipo.", ["agendamento", "agendados_cards", "agendados_carrosseis", "agendados_reels", "agendados_stories", "agendados_fotografias"]],
   ["atendimento", "Atendimento", "Peças dos clientes da sua carteira, por tipo.", ["carteira", "carteira_cards", "carteira_carrosseis", "carteira_reels", "carteira_stories", "carteira_fotografias", "planejamentos"]],
   ["gestao", "Gestão", "Cadastros, briefings, peças da agência e aprovações do DA.", ["cadastros", "briefings", "agencia", "da"]],
@@ -1219,7 +1295,9 @@ ${dProx ? `<span class="cq-premio" title="Prêmio do próximo nível"><b>+${dPro
   // O maior troféu da pessoa vai para a vitrine.
   const melhor = marcos.filter((x) => x.nivel && !x.social).sort((a, b) => b.nivel - a.nivel || b.valor - a.valor)[0];
   const trofeu = melhor?.degraus.filter((d) => d.ok).at(-1);
-  const titulos = marcos.flatMap((x) => x.degraus.filter((d) => d.ok && d.titulo).map((d) => ({ chave: `${x.id}:${d.nivel}`, texto: d.titulo, nivel: x.social ? 1 : d.nivel, de: x.nome })));
+  // Os títulos das escadas e os da Copa Vybe (um por mês ganho, vêm à parte).
+  const copas = (meu ? escritorio.base?.economia?.titulos || [] : []).filter((t) => /^copa_/.test(t.chave)).map((t) => ({ ...t, nivel: 4, de: "Copa Vybe" }));
+  const titulos = [...copas, ...marcos.flatMap((x) => x.degraus.filter((d) => d.ok && d.titulo).map((d) => ({ chave: `${x.id}:${d.nivel}`, texto: d.titulo, nivel: x.social ? 1 : d.nivel, de: x.nome })))];
   const euNaEquipe = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(escritorio.base?.eu));
   const atual = meu ? euNaEquipe?.titulo || null : null;
   const escolha = escritorio.perfil?.titulo || "";
@@ -1234,6 +1312,11 @@ ${meu && titulos.length ? `<button type="button" class="cq-trocar" aria-expanded
 <div class="cq-numeros">${anel}${medalhas}</div></section>`;
   // Os títulos, do Diamante ao Bronze, abertos só quando pede para trocar.
   const escolherTitulos = meu && escritorio.cqTitulos && titulos.length ? `<section class="cq-titulos" aria-label="Escolher título">${[4, 3, 2, 1].map((n) => { const l = titulos.filter((t) => t.nivel === n); return l.length ? `<div><h4 class="n${n}">${NOMES[n]}</h4><div class="cq-titulos-lista">${l.map((t) => `<button type="button" class="cq-titulo-op n${n}" aria-pressed="${atual?.chave === t.chave}" onclick="escolherTituloEscritorio('${safeText(t.chave)}')"><span class="vb-titulo n${n}">${safeText(t.texto)}</span><small>${safeText(t.de)}</small></button>`).join("")}</div></div>` : ""; }).join("")}<button type="button" class="vb-chip" aria-pressed="${escolha === "nenhum"}" onclick="escolherTituloEscritorio('nenhum')">Não mostrar título</button></section>` : "";
+  // A estante: todos os troféus já ganhos, na cor do nível; e o próximo.
+  const ganhos = marcos.flatMap((x) => x.degraus.filter((d) => d.ok && d.classe).map((d) => ({ ...d, escada: x.nome }))).sort((a, b) => b.nivel - a.nivel);
+  const proximo = andamento[0];
+  const estante = `${proximo ? `<section class="cq-proximo"><small>Próximo troféu</small><div><span class="cq-arte falta">${escritorioMiniaturaHtml(proximo.proximo.classe)}</span><span><b>${safeText(proximo.nome)} ${safeText(proximo.proximo.nome)}</b><em>faltam ${num(proximo.proximo.meta - proximo.valor)} ${safeText(proximo.unidade)}</em><span class="ofc-escada-barra"><i style="width:${pct(proximo)}%"></i></span></span></div></section>` : ""}
+<section class="cq-estante"><small>Sua estante · ${ganhos.length} ${ganhos.length === 1 ? "troféu" : "troféus"}</small>${ganhos.length ? `<div>${ganhos.map((d) => `<span class="cq-peca n${d.nivel}" title="${safeText(d.escada)} ${safeText(d.nome)}">${escritorioMiniaturaHtml(d.classe)}</span>`).join("")}</div>` : '<p>Os troféus que você ganhar aparecem aqui, prontos para expor no quarto.</p>'}</section>`;
   // Um grupo por vez (antes eram sete sanfonas abertas uma embaixo da outra).
   const grupos = [["perto", "Perto de subir", "As escadas em que você está mais perto do próximo nível.", null], ...ESCRITORIO_GRUPOS_CONQUISTA];
   const daAba = (ids) => ids ? ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean) : andamento.slice(0, 8);
@@ -1242,7 +1325,7 @@ ${meu && titulos.length ? `<button type="button" class="cq-trocar" aria-expanded
   const chips = `<div class="ofc-cq-abas" role="tablist" aria-label="Grupos de conquistas">${visiveis.map(([k, nome, , ids]) => { const l = daAba(ids); return `<button type="button" role="tab" class="vb-chip" aria-pressed="${k === aba}" aria-selected="${k === aba}" onclick="escolherAbaConquistasEscritorio('${k}')">${nome}${ids ? `<b>${l.filter((x) => x.nivel).length}/${l.length}</b>` : ""}</button>`; }).join("")}</div>`;
   const [, , dica, ids] = grupos.find(([k]) => k === aba) || grupos[0];
   const lista = daAba(ids);
-  return `<div class="cq-tela"><aside class="cq-lado">${vitrine}${escolherTitulos}</aside><div class="cq-principal">${chips}<p class="cq-dica">${dica} Os troféus da escada ficam todos com você, para expor no quarto.</p><div class="cq-grade" role="tabpanel">${lista.map((x, k) => cartao(x, aba === "perto" && k === 0)).join("") || '<p class="ofc-nota">Nada aqui ainda.</p>'}</div></div></div>`;
+  return `<div class="cq-tela"><aside class="cq-lado">${vitrine}${escolherTitulos}${estante}</aside><div class="cq-principal">${chips}<p class="cq-dica">${dica} Os troféus da escada ficam todos com você, para expor no quarto.</p><div class="cq-grade" role="tabpanel">${lista.map((x, k) => cartao(x, aba === "perto" && k === 0)).join("") || '<p class="ofc-nota">Nada aqui ainda.</p>'}</div></div></div>`;
 }
 function escolherAbaConquistasEscritorio(aba) {
   escritorio.cqAba = aba;
