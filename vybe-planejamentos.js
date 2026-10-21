@@ -649,16 +649,22 @@ async function vigiarPlanejamentosPendentes(agora) {
   pintarAvisoPlanejamentos();
   if (typeof escritorioPlanejamentosPendentes === 'function') escritorioPlanejamentosPendentes(PLJ_PENDENTES);
 }
+// Aviso no canto (Paulo, 21/10/2026: "um lugar para avisos"): recolhe num
+// selinho com o número e só volta a abrir quando aparece coisa nova; fica
+// abaixo das janelas abertas.
+function pljRecolherAviso() {
+  try { sessionStorage.setItem('plj-aviso-recolhido', document.getElementById('plj-aviso')?.dataset.assinatura || ''); } catch {}
+  pintarAvisoPlanejamentos();
+}
 function pintarAvisoPlanejamentos() {
   let el = document.getElementById('plj-aviso');
   const avisos = PLJ_ALERTAS.reduce((t, a) => t + (a.total || 0), 0);
   if (!PLJ_PENDENTES.length && !avisos) { el?.remove(); return; }
   if (!el) {
-    el = document.createElement('button');
+    el = document.createElement('div');
     el.id = 'plj-aviso';
-    el.type = 'button';
     el.className = 'plj-aviso';
-    el.onclick = abrirPendentesPlanejamento;
+    el.setAttribute('role', 'status');
     document.body.append(el);
   }
   const n = PLJ_PENDENTES.length;
@@ -667,10 +673,18 @@ function pintarAvisoPlanejamentos() {
   const um = n === 1 ? PLJ_PENDENTES[0] : null;
   const acao = { revisar: 'planejamento para revisar', ajustes: 'cliente pediu ajustes', aprovado: 'aprovado, cadastrar as peças' };
   const titulo = [n && (um ? `${um.cliente}: ${acao[um.estado] || 'planejamento esperando você'}` : `${n} planejamentos esperando você`), avisos && `${avisos} aviso${avisos > 1 ? 's' : ''} nos seus clientes`].filter(Boolean).join(' · ');
+  const assinatura = JSON.stringify([PLJ_PENDENTES.map((p) => [p.id, p.estado]), avisos]);
+  let recolhido = false;
+  try { recolhido = sessionStorage.getItem('plj-aviso-recolhido') === assinatura; } catch {}
+  el.dataset.assinatura = assinatura;
   el.classList.toggle('urgente', n > 0);
+  el.classList.toggle('recolhido', recolhido);
   const clientes = [...new Set([...PLJ_PENDENTES.map((p) => p.cliente), ...PLJ_ALERTAS.map((a) => a.cliente)])].slice(0, 3).join(', ');
-  el.innerHTML = `<span class="plj-aviso-ponto" aria-hidden="true"></span><span><b>${pljEsc(titulo)}</b>
-    <small>${ajustes ? `${ajustes} com ajustes do cliente · ` : ''}${pljEsc(clientes)}</small></span>`;
+  const total = n + avisos;
+  el.innerHTML = recolhido
+    ? `<button type="button" class="plj-aviso-abrir" onclick="abrirPendentesPlanejamento()" aria-label="${pljEsc(titulo)}" title="${pljEsc(titulo)}"><span class="plj-aviso-ponto" aria-hidden="true"></span><b>${total}</b></button>`
+    : `<button type="button" class="plj-aviso-abrir" onclick="abrirPendentesPlanejamento()"><span class="plj-aviso-ponto" aria-hidden="true"></span><span><b>${pljEsc(titulo)}</b>
+    <small>${ajustes ? `${ajustes} com ajustes do cliente · ` : ''}${pljEsc(clientes)}</small></span></button><button type="button" class="plj-aviso-x" onclick="pljRecolherAviso()" aria-label="Recolher o aviso" title="Recolher (volta quando houver novidade)">×</button>`;
   el.title = PLJ_ALERTAS.map((a) => `${a.cliente}: ${[a.atrasadas_total && `${a.atrasadas_total} muito atrasada(s)`, a.aprovar_total && `${a.aprovar_total} para aprovar`, a.sem_info_total && `${a.sem_info_total} sem informação`].filter(Boolean).join(', ')}`).join('\n');
 }
 function abrirPendentesPlanejamento() {

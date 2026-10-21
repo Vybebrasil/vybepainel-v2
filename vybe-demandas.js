@@ -155,7 +155,8 @@ let aiUsageLoading = false;
 
 function aiNumber(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
 function aiBrl(value) { return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2}).format(aiNumber(value)); }
-function aiUsd(value) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:4,maximumFractionDigits:4}).format(aiNumber(value)); }
+// Dólar no jeito brasileiro (US$ 0,12); quatro casas só abaixo de um centavo.
+function aiUsd(value) { const v = aiNumber(value); return 'US$ ' + new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:v > 0 && v < 0.01 ? 4 : 2}).format(v); }
 function aiTokens(value) { return new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(aiNumber(value)); }
 function aiProviderLabel(provider) { return ({gpt:'GPT',gemini:'GEMINI',claude:'CLAUDE'})[provider] || String(provider || 'IA').toUpperCase(); }
 
@@ -222,13 +223,13 @@ function renderAiUsageBoard(data) {
   const geminiNote = settings.gemini_billing === 'paid' ? 'Pago — custo por token ativo' : 'Gratuito — custo estimado em R$ 0,00';
   root.innerHTML = `
     <div class="ai-usage-head">
-      <div><div class="ai-usage-kicker">Vybe intelligence · Finops</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do Jarvis por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
+      <div><div class="ai-usage-kicker">Jarvis</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do Jarvis por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
       <div class="ai-usage-periods"><button class="ai-usage-period ${aiUsageDays===7?'active':''}" data-days="7" onclick="setAiUsageDays(7,this)">7 DIAS</button><button class="ai-usage-period ${aiUsageDays===30?'active':''}" data-days="30" onclick="setAiUsageDays(30,this)">30 DIAS</button><button class="ai-usage-period ${aiUsageDays===90?'active':''}" data-days="90" onclick="setAiUsageDays(90,this)">90 DIAS</button><button class="ai-usage-period" onclick="loadAiUsage(true)">↻ ATUALIZAR</button></div>
     </div>
     <div class="ai-usage-grid">
-      <div class="ai-usage-metric"><div class="ai-usage-label">Custo no mês</div><div class="ai-usage-value">${aiBrl(month.cost_brl)}</div><div class="ai-usage-detail">${aiUsd(month.cost_usd)} estimados</div></div>
+      <div class="ai-usage-metric"><div class="ai-usage-label">Custo no mês</div><div class="ai-usage-value">${aiBrl(month.cost_brl)}</div><div class="ai-usage-detail">estimado, cobrado em dólar (${aiUsd(month.cost_usd)})</div></div>
       <div class="ai-usage-metric"><div class="ai-usage-label">Comandos no período</div><div class="ai-usage-value">${aiNumber(overview.calls)}</div><div class="ai-usage-detail">${aiNumber(month.calls)} no mês corrente</div></div>
-      <div class="ai-usage-metric"><div class="ai-usage-label">Tokens processados</div><div class="ai-usage-value">${aiTokens(aiNumber(overview.input_tokens)+aiNumber(overview.output_tokens))}</div><div class="ai-usage-detail">${aiTokens(overview.input_tokens)} entrada · ${aiTokens(overview.output_tokens)} saída</div></div>
+      <div class="ai-usage-metric"><div class="ai-usage-label">Texto processado</div><div class="ai-usage-value">${aiTokens(aiNumber(overview.input_tokens)+aiNumber(overview.output_tokens))}</div><div class="ai-usage-detail">${aiTokens(overview.input_tokens)} lidos · ${aiTokens(overview.output_tokens)} escritos (em tokens)</div></div>
       <div class="ai-usage-metric"><div class="ai-usage-label">Teto mensal</div><div class="ai-usage-value">${budget.value}</div><div class="ai-usage-detail">${safeText(budget.label)}</div></div>
     </div>
     <div class="ai-usage-main-grid">

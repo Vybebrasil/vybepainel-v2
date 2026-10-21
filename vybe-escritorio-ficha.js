@@ -928,7 +928,7 @@ function pintarRankingEscritorio() {
 <div class="ofc-rk-abas" role="tablist" aria-label="Rankings">${abas.map(([k, t]) => `<button type="button" role="tab" aria-selected="${aba === k}" onclick="escritorioRanking.aba='${k}';pintarRankingEscritorio()">${t}</button>`).join("")}</div>`;
   if (escritorioRanking.erro && !d) { el.innerHTML = topo + `<p class="ofc-nota" role="alert">Não deu para carregar o ranking: ${safeText(escritorioRanking.erro)} <button type="button" class="ofc-mini" onclick="carregarRankingEscritorio()">Tentar de novo</button></p>`; return; }
   if (!d) { el.innerHTML = topo + '<div class="ofc-rk-esqueleto" aria-label="Carregando"><i></i><i></i><i></i></div><div class="ofc-fm-carregando"><i></i><i></i><i></i></div>'; return; }
-  if (!d.disponivel) { el.innerHTML = topo + '<p class="ofc-nota">O ranking aparece quando a contagem de pontos estiver ativa.</p>'; return; }
+  if (!d.disponivel) { el.innerHTML = topo + `<div class="ofc-rk-vazio"><span aria-hidden="true">${escritorioIcone("ranking")}</span><b>O ranking ainda não começou</b><p>Ele aparece quando a contagem de pontos estiver ativa e zera toda segunda.</p></div>`; return; }
   const premio = (k) => d.premios.find((p) => p.chave === k);
   // Pódio: 2º, 1º, 3º, com o boneco de cada um em cima do degrau.
   const podio = (lista, valor, sub) => {

@@ -1,4 +1,6 @@
 // vybe-relatorios.js — diário de produção, performance e departamentos
+// "1 item", "2 itens" (Paulo, 21/10/2026: o painel mostrava "1 itens").
+function qtdItens(n) { return `${n} ${Number(n) === 1 ? 'item' : 'itens'}`; }
 // Extraído do <script> inline do index.html; carregado em ordem, escopo global preservado.
 // ─── Diário de Produção ────────────────────────────────────────────────────────────────────────────────
 const DIARIO_KEY = 'vybe_diario_snapshots_v1';
@@ -33,10 +35,10 @@ async function salvarSnapshot() {
     const dados = await resposta.json();
     if (!resposta.ok) throw new Error(dados?.error || `Falha ao salvar (${resposta.status})`);
     diarioSnapshotsCarregados = false;
-    showToast(`✓ Snapshot central salvo no Vybe OS`, 'ok');
+    showToast('Registro do dia salvo.', 'ok');
     await renderDiarioLista(true);
   } catch (erro) {
-    showToast(`Não foi possível salvar o snapshot: ${erro.message}`, 'err', 6000);
+    showToast(`Não foi possível salvar o registro: ${erro.message}`, 'err', 6000);
   }
 }
 
@@ -65,8 +67,8 @@ async function renderDiarioLista(forcar=false) {
   if (lista.length === 0) {
     el.innerHTML = `<div style="color:var(--text-muted);padding:40px 0;text-align:center;">
       
-      <div>Nenhum snapshot salvo ainda.</div>
-      <div style="font-size:11px;margin-top:8px;">Clique em <strong>Salvar Snapshot Agora</strong> para registrar o estado atual.</div>
+      <div>Nenhum registro salvo ainda.</div>
+      <div style="font-size:11px;margin-top:8px;">Clique em <strong>Registrar agora</strong> para guardar como estão os conteúdos neste momento e comparar depois.</div>
     </div>`;
     return;
   }
@@ -75,10 +77,10 @@ async function renderDiarioLista(forcar=false) {
       <div class="client-header">
         <div>
           <div class="client-name">${s.dataHora}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${s.total} itens capturados</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${qtdItens(s.total)} capturados</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <span class="posts-count ok">${s.total} itens</span>
+          <span class="posts-count ok">${qtdItens(s.total)}</span>
           <button class="sort-btn" style="border-color:#df2f4a;color:#df2f4a;" onclick="event.stopPropagation();excluirSnapshot(${s.id})">✕</button>
         </div>
       </div>
@@ -104,7 +106,7 @@ async function abrirSnapshot(id) {
   diarioPersonFilter = 'all';
   document.getElementById('diario-lista').style.display = 'none';
   document.getElementById('diario-detalhe').style.display = 'block';
-  document.getElementById('diario-detalhe-titulo').textContent = `${snap.dataHora} — ${snap.total} itens`;
+  document.getElementById('diario-detalhe-titulo').textContent = `${snap.dataHora} — ${qtdItens(snap.total)}`;
   renderDiarioPersonFilter(snap);
   renderDiarioDetalhe(snap);
 }
@@ -222,7 +224,7 @@ async function excluirSnapshot(id) {
     diarioSnapshotsCarregados = true;
     if (diarioSnapshotAtivo && Number(diarioSnapshotAtivo.id) === Number(id)) voltarDiarioLista();
     else renderDiarioLista();
-    showToast('Snapshot central excluído.', 'ok');
+    showToast('Registro excluído.', 'ok');
   } catch (erro) {
     showToast(`Não foi possível excluir: ${erro.message}`, 'err', 5000);
   }
@@ -231,7 +233,7 @@ async function excluirSnapshot(id) {
 function exportarSnapshot() {
   if (!diarioSnapshotAtivo) return;
   const snap = diarioSnapshotAtivo;
-  const linhas = [`Diário de Produção — ${snap.dataHora}`, `Total: ${snap.total} itens`, ''];
+  const linhas = [`Diário de Produção — ${snap.dataHora}`, `Total: ${qtdItens(snap.total)}`, ''];
   const porResp = {};
   snap.itens.forEach(d => {
     const n = firstName(d.responsavel) || '—';
@@ -239,7 +241,7 @@ function exportarSnapshot() {
     porResp[n].push(d);
   });
   Object.entries(porResp).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([resp, items]) => {
-    linhas.push(`=== ${resp} (${items.length} itens) ===`);
+    linhas.push(`=== ${resp} (${qtdItens(items.length)}) ===`);
     items.forEach(d => linhas.push(`  [${d.status}] ${d.cliente} — ${d.nome} | ${d.veiculacao || d.prazo || '—'} | ${d.url}`));
     linhas.push('');
   });
@@ -384,7 +386,7 @@ function renderPerfFiltradoLista(itens) {
       <button onclick="togglePerfFiltro(null,[])" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;">✕ Fechar</button>
     </div>
     ${rows}
-    ${itens.length > 80 ? `<div style="padding:8px 12px;color:var(--text-muted);font-size:11px;">...e mais ${itens.length-80} itens</div>` : ''}
+    ${itens.length > 80 ? `<div style="padding:8px 12px;color:var(--text-muted);font-size:11px;">...e mais ${qtdItens(itens.length-80)}</div>` : ''}
   `;
 }
 
@@ -395,7 +397,7 @@ function renderPerfFiltradoLista(itens) {
 const DEPT_CONFIG = [
   {
     id: 'redacao',
-    label: '✍️ Redação',
+    label: 'Redação',
     cor: '#3b82f6',
     desc: 'Copywriters e redatores',
     groupIds: ['group_title'], // Grupo "Redação" no Monday
@@ -498,7 +500,7 @@ function renderPerfFiltradoListaCustom(titulo, itens) {
       <button onclick="document.getElementById('perf-filtro-lista').style.display='none';perfFiltroAtivo=null;" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;">✕ Fechar</button>
     </div>
     ${rows}
-    ${itens.length > 100 ? `<div style="padding:8px 12px;color:var(--text-muted);font-size:11px;">...e mais ${itens.length-100} itens</div>` : ''}
+    ${itens.length > 100 ? `<div style="padding:8px 12px;color:var(--text-muted);font-size:11px;">...e mais ${qtdItens(itens.length-100)}</div>` : ''}
   `;
 }
 
@@ -622,7 +624,7 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
         ? 'margin-bottom:6px;background:rgba(249,115,22,.07);border:1px dashed rgba(249,115,22,.4);border-radius:6px;padding:5px 7px;'
         : 'margin-bottom:6px;';
       const alertaBadge = eForasteiro
-        ? `<span title="Responsável fora do time deste departamento — possível cadastro errado" style="background:#f97316;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:4px;margin-left:3px;">! ERRADO</span>`
+        ? `<span title="Responsável fora do time deste departamento — possível cadastro errado" style="background:#f97316;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:4px;margin-left:3px;">Fora do time</span>`
         : '';
       return `<div style="${wrapStyle}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;gap:4px;">
@@ -631,7 +633,7 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
             ${alertaBadge}
           </span>
           <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;display:flex;align-items:center;gap:4px;">
-            <button ${BTN_HOVER} onclick="showDeptFiltro('${nome} — todos (${dept.label})', window.deptFiltroCache['${cid}'].porPessoa['${nome}'].itens)" style="${BTN_STYLE}display:inline;font-size:10px;color:var(--text-muted);width:auto;">${s.total} itens</button>
+            <button ${BTN_HOVER} onclick="showDeptFiltro('${nome} — todos (${dept.label})', window.deptFiltroCache['${cid}'].porPessoa['${nome}'].itens)" style="${BTN_STYLE}display:inline;font-size:10px;color:var(--text-muted);width:auto;">${qtdItens(s.total)}</button>
             ${s.atrasados > 0 ? `<button ${BTN_HOVER} onclick="showDeptFiltro('${nome} — atrasados (${dept.label})', window.deptFiltroCache['${cid}'].porPessoa['${nome}'].itensAtrasados)" style="${BTN_STYLE}display:inline;font-size:10px;color:#ef4444;font-weight:700;width:auto;">${s.atrasados} atrasados</button>` : ''}
             <span style="color:${taxaP>=70?'#22c55e':taxaP>=40?'#f59e0b':'#ef4444'};">${taxaP}% ok</span>
           </span>
@@ -651,7 +653,7 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
       const itensStatus = itens.filter(d => d.status === s);
       // Salvar no cache
       window.deptFiltroCache[cid][`status_${s}`] = itensStatus;
-      return `<button ${BTN_HOVER} onclick="showDeptFiltro('${s} — ${dept.label} (${q} itens)', window.deptFiltroCache['${cid}']['status_${s}'])" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;transition:opacity .15s;">${s} <strong>${q}</strong></button>`;
+      return `<button ${BTN_HOVER} onclick="showDeptFiltro('${s} — ${dept.label} (${qtdItens(q)})', window.deptFiltroCache['${cid}']['status_${s}'])" style="background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;transition:opacity .15s;">${s} <strong>${q}</strong></button>`;
     }).join(' ');
 
     const pctPrazo = total > 0 ? Math.round((atrasadosPrazo.length/total)*100) : 0;
@@ -683,16 +685,16 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
           <div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">Taxa OK</div>
           <div style="font-size:8px;color:var(--text-muted);margin-top:1px;">${taxaOKData.okCount}/${taxaOKData.total}</div>
         </div>` : `
-        <div style="background:var(--surface2);border-radius:8px;padding:7px 4px;text-align:center;" title="Aguardando dados de histórico...">
+        <div style="background:var(--surface2);border-radius:8px;padding:7px 4px;text-align:center;" title="Sem histórico de movimentação para calcular">
           <div style="font-size:15px;font-weight:900;color:var(--text-muted);line-height:1;">—</div>
           <div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">Taxa OK</div>
-          <div style="font-size:8px;color:var(--text-muted);margin-top:1px;">carregando...</div>
+          <div style="font-size:8px;color:var(--text-muted);margin-top:1px;">sem histórico</div>
         </div>`}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
         <button ${BTN_HOVER} onclick="showDeptFiltro('${dept.label} — Prazo em Atraso', window.deptFiltroCache['${cid}'].atrasadosPrazo)" style="${BTN_STYLE}background:${atrasadosPrazo.length > 0 ? 'rgba(239,68,68,.12)' : 'var(--surface2)'};border:1px solid ${atrasadosPrazo.length > 0 ? 'rgba(239,68,68,.3)' : 'transparent'};border-radius:8px;padding:7px 4px;">
           <div style="font-size:15px;font-weight:900;color:${atrasadosPrazo.length > 0 ? '#ef4444' : '#22c55e'};line-height:1;">${atrasadosPrazo.length}</div>
-          <div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">⏰ Prazo Atraso${pctPrazo > 0 ? ` (${pctPrazo}%)` : ''}</div>
+          <div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">Prazo em atraso${pctPrazo > 0 ? ` (${pctPrazo}%)` : ''}</div>
         </button>
         <button ${BTN_HOVER} onclick="showDeptFiltro('${dept.label} — Veiculação em Atraso', window.deptFiltroCache['${cid}'].atrasadosVeic)" style="${BTN_STYLE}background:${atrasadosVeic.length > 0 ? 'rgba(239,68,68,.12)' : 'var(--surface2)'};border:1px solid ${atrasadosVeic.length > 0 ? 'rgba(239,68,68,.3)' : 'transparent'};border-radius:8px;padding:7px 4px;">
           <div style="font-size:15px;font-weight:900;color:${atrasadosVeic.length > 0 ? '#ef4444' : '#22c55e'};line-height:1;">${atrasadosVeic.length}</div>
@@ -713,14 +715,14 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
       <div style="margin-top:12px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.4);border-radius:8px;padding:8px 10px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <span style="font-size:10px;font-weight:900;color:#f97316;">CADASTRO INCORRETO</span>
-          <button ${BTN_HOVER} onclick="showDeptFiltro('${dept.label} — Cadastro Incorreto (${itensCadastroErrado.length} itens)', window.deptFiltroCache['${cid}'].cadastroErrado)" style="${BTN_STYLE}font-size:9px;color:#f97316;font-weight:700;width:auto;text-decoration:underline;">ver todos</button>
+          <button ${BTN_HOVER} onclick="showDeptFiltro('${dept.label} — Cadastro Incorreto (${qtdItens(itensCadastroErrado.length)})', window.deptFiltroCache['${cid}'].cadastroErrado)" style="${BTN_STYLE}font-size:9px;color:#f97316;font-weight:700;width:auto;text-decoration:underline;">ver todos</button>
         </div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;">Itens neste grupo com responsável fora do time esperado:</div>
         ${itensCadastroErrado.slice(0,3).map(d => {
           const respsStr = (d._respsForasteiros || []).join(', ') || firstName(d.responsavel);
           return `<div style="font-size:10px;color:#f97316;padding:2px 0;border-bottom:1px solid rgba(249,115,22,.15);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${d.nome}">• <strong>${respsStr}</strong> — ${d.cliente || ''} ${d.nome}</div>`;
         }).join('')}
-        ${itensCadastroErrado.length > 3 ? `<div style="font-size:9px;color:var(--text-muted);margin-top:4px;">...e mais ${itensCadastroErrado.length - 3} itens</div>` : ''}
+        ${itensCadastroErrado.length > 3 ? `<div style="font-size:9px;color:var(--text-muted);margin-top:4px;">...e mais ${qtdItens(itensCadastroErrado.length - 3)}</div>` : ''}
       </div>` : ''}
     </div>`;
   }).join('');
@@ -1568,13 +1570,13 @@ function renderPerformance() {
       <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--text);cursor:pointer;" onclick="handleTabelaFiltro(event,'pessoa','${encodeURIComponent(nome)}')" title="Ver todos os itens de ${nome}">${total}</td>
       <td style="padding:8px 12px;">${statusPills}</td>
       <td style="padding:8px 12px;min-width:110px;">
-        <div onclick="handleTabelaFiltro(event,'prazo_atraso','${encodeURIComponent(nome)}')" title="Ver ${atrasadosPrazoPessoa.length} itens com prazo em atraso" style="cursor:pointer;padding:4px 8px;border-radius:6px;background:${corPrazo}18;border:1px solid ${corPrazo}44;text-align:center;transition:background .15s;" onmouseenter="this.style.background='${corPrazo}33'" onmouseleave="this.style.background='${corPrazo}18'">
+        <div onclick="handleTabelaFiltro(event,'prazo_atraso','${encodeURIComponent(nome)}')" title="Ver ${qtdItens(atrasadosPrazoPessoa.length)} com prazo em atraso" style="cursor:pointer;padding:4px 8px;border-radius:6px;background:${corPrazo}18;border:1px solid ${corPrazo}44;text-align:center;transition:background .15s;" onmouseenter="this.style.background='${corPrazo}33'" onmouseleave="this.style.background='${corPrazo}18'">
           <div style="font-size:14px;font-weight:800;color:${corPrazo};">${atrasadosPrazoPessoa.length}</div>
-          <div style="font-size:9px;color:${corPrazo};opacity:.8;">⏰ ${pctPrazo}% do total</div>
+          <div style="font-size:9px;color:${corPrazo};opacity:.8;">${pctPrazo}% do total</div>
         </div>
       </td>
       <td style="padding:8px 12px;min-width:110px;">
-        <div onclick="handleTabelaFiltro(event,'veic_atraso','${encodeURIComponent(nome)}')" title="Ver ${atrasadosVeicPessoa.length} itens com veiculação em atraso" style="cursor:pointer;padding:4px 8px;border-radius:6px;background:${corVeic}18;border:1px solid ${corVeic}44;text-align:center;transition:background .15s;" onmouseenter="this.style.background='${corVeic}33'" onmouseleave="this.style.background='${corVeic}18'">
+        <div onclick="handleTabelaFiltro(event,'veic_atraso','${encodeURIComponent(nome)}')" title="Ver ${qtdItens(atrasadosVeicPessoa.length)} com veiculação em atraso" style="cursor:pointer;padding:4px 8px;border-radius:6px;background:${corVeic}18;border:1px solid ${corVeic}44;text-align:center;transition:background .15s;" onmouseenter="this.style.background='${corVeic}33'" onmouseleave="this.style.background='${corVeic}18'">
           <div style="font-size:14px;font-weight:800;color:${corVeic};">${atrasadosVeicPessoa.length}</div>
           <div style="font-size:9px;color:${corVeic};opacity:.8;">${pctVeic}% do total</div>
         </div>
@@ -1588,7 +1590,7 @@ function renderPerformance() {
           <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-weight:700;font-size:11px;">Colaborador</th>
           <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">Total</th>
           <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-weight:700;font-size:11px;">Status</th>
-          <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">⏰ Prazo em Atraso</th>
+          <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">Prazo em atraso</th>
           <th style="padding:8px 12px;text-align:center;color:var(--text-muted);font-weight:700;font-size:11px;">Veiculação em Atraso</th>
         </tr>
       </thead>

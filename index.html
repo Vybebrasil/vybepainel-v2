@@ -300,14 +300,14 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
         <h2 style="color:var(--accent);margin:0;font-size:16px;">Diário de Produção</h2>
-        <p style="color:var(--text-muted);font-size:11px;margin:4px 0 0;">Snapshots do estado dos conteúdos em momentos específicos do dia</p>
+        <p style="color:var(--text-muted);font-size:11px;margin:4px 0 0;">Fotos do estado dos conteúdos em momentos do dia, para comparar depois</p>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <div id="date-mode-bar-diario" class="date-mode-bar">
-          <button class="date-mode-btn active" id="diario-mode-veiculacao" onclick="setDiarioDateMode('veiculacao',this)">VEICULAÇÃO</button>
-          <button class="date-mode-btn" id="diario-mode-prazo" onclick="setDiarioDateMode('prazo',this)">⏰ PRAZO</button>
+          <button class="date-mode-btn active" id="diario-mode-veiculacao" onclick="setDiarioDateMode('veiculacao',this)">Veiculação</button>
+          <button class="date-mode-btn" id="diario-mode-prazo" onclick="setDiarioDateMode('prazo',this)">Prazo</button>
         </div>
-        <button class="btn-refresh" onclick="salvarSnapshot()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">Salvar Snapshot Agora</button>
+        <button class="btn-refresh" onclick="salvarSnapshot()">Registrar agora</button>
       </div>
     </div>
     <div id="diario-lista" style="display:block;">
@@ -317,7 +317,7 @@
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
         <button class="sort-btn" onclick="voltarDiarioLista()">← Voltar</button>
         <h3 id="diario-detalhe-titulo" style="margin:0;color:var(--text);"></h3>
-        <button class="sort-btn" onclick="exportarSnapshot()" style="margin-left:auto;">⬇ Exportar</button>
+        <button class="sort-btn" onclick="exportarSnapshot()" style="margin-left:auto;">Exportar</button>
       </div>
       <div id="diario-person-filter" class="person-filter-bar" style="margin-bottom:12px;"></div>
       <div id="diario-detalhe-content"></div>
