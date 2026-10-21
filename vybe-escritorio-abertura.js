@@ -19,7 +19,7 @@ function vybelandiaCenaHtml(parada = false) {
 // (catálogo oficial em assets/escritorio/habbo/figuras.json), "Nenhum" para o
 // que é opcional e "Aleatório".
 // Grupos do criador: primeiro escolhe a região, depois a peça.
-const CRIADOR_GRUPOS = [["cabeca", "Cabeça", ["hd", "hr", "ha", "he", "ea", "fa"]], ["corpo", "Corpo", ["ch", "cc", "ca", "cp", "wa"]], ["pernas", "Pernas e pés", ["lg", "sh"]]];
+const CRIADOR_GRUPOS = [["cabeca", "Cabeça", ["hd", "hr", "ha", "he", "ea", "fa"]], ["corpo", "Corpo", ["ch", "cc", "ca", "cp", "wa"]], ["pernas", "Pernas e pés", ["lg", "sh"]], ["extras", "Extras", ["mc", "pt"]]];
 // Cores mais usadas primeiro; o resto só com "Mais cores".
 const CRIADOR_CORES_VISIVEIS = 24;
 const CRIADOR_ABAS = [
@@ -36,6 +36,10 @@ const CRIADOR_ABAS = [
   { t: "wa", nome: "Cintura", opcional: true },
   { t: "lg", nome: "Calça" },
   { t: "sh", nome: "Sapato", opcional: true },
+  // Efeitos (aura, drone, vaga-lumes) e bichinhos de ombro: o catálogo já tinha
+  // os dois tipos, mas não havia aba para escolher (21/10/2026).
+  { t: "mc", nome: "Efeitos", opcional: true },
+  { t: "pt", nome: "Bichinho", opcional: true },
 ];
 const CRIADOR_PADRAO = { M: "hd-180-1.hr-828-61.ch-255-1323.lg-280-110.sh-305-110", F: "hd-600-1.hr-515-61.ch-665-1323.lg-700-110.sh-725-110" };
 const criador = { etapa: "cena", direcao: 2, aba: "hr", mostrar: 60, salvando: false, so: false, cat: null };
@@ -377,12 +381,36 @@ function criadorRotuloDoPasso(etapa) {
   return criador.reforma ? `Reforma · ${i + 1} de 3 · ${nomes[etapa]}` : `Passo ${i + 2} de 4 · ${nomes[etapa]}`;
 }
 // Altura da parte no boneco inteiro: o trilho recorta a miniatura ali.
-const CRIADOR_FOCO = { ch: 52, cc: 52, ca: 40, cp: 55, wa: 66, lg: 80, sh: 96 };
+const CRIADOR_FOCO = { ch: 52, cc: 52, ca: 40, cp: 55, wa: 66, lg: 80, sh: 96, mc: 50, pt: 30 };
 function criadorRaridadeDaPeca(t, id) {
   const c = `roupa:${t}-${id}`, r = criador.roupas;
   if (!r?.ativo || criador.destino) return "";
   if (criadorPrecoRoupa(c) === 0) return "gratis";
   return r.pecas[c]?.[0] || "comum";
+}
+// Guarda-roupa (aprovado pelo Paulo, 21/10/2026): os kits e as peças que a
+// pessoa comprou, num lugar só, cada um com "Vestir". As grátis não entram (são
+// de todo mundo e estão nas abas de cada parte).
+function criadorGuardaRoupa() {
+  const r = criador.roupas;
+  if (!r?.ativo) return { kits: [], pecas: [] };
+  const meus = new Set(r.meus || []);
+  const kits = (r.kits || []).filter((k) => k.classes.every((c) => meus.has(c)));
+  const pecas = [...meus].map((c) => { const [t, id] = c.slice(6).split("-"); return { classe: c, t, id: Number(id), aba: CRIADOR_ABAS.find((a) => a.t === t) }; }).filter((p) => p.aba && Number.isFinite(p.id))
+    .sort((a, b) => CRIADOR_ABAS.indexOf(a.aba) - CRIADOR_ABAS.indexOf(b.aba));
+  return { kits, pecas };
+}
+function criadorVestirPeca(t, id) {
+  criador.aba = t;
+  criadorEscolher(t, id);
+}
+function criadorGuardaRoupaHtml(fig) {
+  const { kits, pecas } = criadorGuardaRoupa();
+  if (!kits.length && !pecas.length) return vbEstadoHtml({ titulo: "Seu guarda-roupa está vazio", texto: "As roupas e os kits que você comprar ficam aqui, prontos para vestir.",
+    acao: '<button type="button" class="vb-botao principal" onclick="criador.armario=\'pecas\';criador.filtro=\'venda\';criador.pagina=0;renderAberturaEscritorio()">Ver o que está à venda</button>' });
+  const vestido = (t, id) => criador.f.partes[t]?.id === id;
+  return `${kits.length ? `<h3 class="prov-gr-titulo">Kits <small>${kits.length}</small></h3><div class="prov-vitrine-lista prov-gr-kits">${kits.map((k) => `<article class="cri-skin"><div class="cri-skin-arte"><img alt="" width="64" height="110" loading="lazy" src="${safeText(criadorImagem(fig.split(".").filter((p) => !k.classes.some((c) => p.startsWith(c.slice(6).split("-")[0] + "-"))).concat(k.classes.map((c) => c.slice(6) + "-110")).join("."), 2, "n", ""))}"></div><div class="cri-skin-texto"><b>${safeText(k.nome.replace(/^Skin\s+/i, ""))}</b><small>${k.classes.length} peças</small><div><button type="button" class="cri-skin-comprar" onclick="criadorProvarKit('${safeText(k.chave)}')">Vestir</button></div></div></article>`).join("")}</div>` : ""}
+${pecas.length ? `<h3 class="prov-gr-titulo">Peças <small>${pecas.length}</small></h3><div class="cri-grade prov-gr-pecas">${pecas.map((p) => `<button type="button" class="cri-peca${p.aba.cabeca ? " cabeca" : ""} r-${safeText(criadorRaridadeDaPeca(p.t, p.id) || "comum")}" aria-pressed="${vestido(p.t, p.id)}" onclick="criadorVestirPeca('${p.t}', ${p.id})" title="${safeText(p.aba.nome)} · ${vestido(p.t, p.id) ? "vestindo" : "vestir"}"><img loading="lazy" src="${safeText(criadorMiniatura(p.t, p.id, p.aba.cabeca))}" alt=""><span class="prov-gr-parte">${safeText(p.aba.nome)}</span></button>`).join("")}</div>` : ""}`;
 }
 function criadorPainelHtml() {
   const f = criador.f, fig = criadorFigura(f);
@@ -454,12 +482,13 @@ function criadorPainelHtml() {
   ${criador.destino ? "" : criadorLooksHtml()}
  </div>
  <div class="abr-opcoes cri-opcoes prov-armario">
-  ${skins ? criadorSkinsHtml(fig) : ""}
+  ${skins ? `<div class="vb-alternar prov-armario-modo" role="group" aria-label="Armário"><button type="button" aria-pressed="${criador.armario !== "guarda"}" onclick="criador.armario='pecas';renderAberturaEscritorio()">Peças</button><button type="button" aria-pressed="${criador.armario === "guarda"}" onclick="criador.armario='guarda';renderAberturaEscritorio()">Guarda-roupa${(() => { const g = criadorGuardaRoupa(); const n = g.kits.length + g.pecas.length; return n ? ` <b>${n}</b>` : ""; })()}</button></div>` : ""}
+  ${skins && criador.armario === "guarda" ? `<div class="prov-guarda">${criadorGuardaRoupaHtml(fig)}</div>` : `${skins ? criadorSkinsHtml(fig) : ""}
   ${!criador.cat ? '<p class="abr-nota">Carregando o catálogo…</p>' : `
   <div class="prov-cabecalho"><h3>${aba.nome} <small>${conjuntos.length} ${conjuntos.length === 1 ? "opção" : "opções"}</small></h3>${skins ? `<div class="prov-filtros" role="group" aria-label="Filtrar peças">${chip("todas", "Todas")}${chip("gratis", "Grátis")}${chip("minhas", "Minhas")}${chip("venda", "À venda")}</div>` : ""}</div>
   ${pal.length && atual && nCores > 0 ? cores() : ""}
   <div class="cri-grade" onwheel="criadorRodaPagina(event)">${pagina.length ? pagina.map((id) => id === null ? tile(null, "Nenhum") : tile(id, aba.nome + " " + id)).join("") : `<p class="prov-vazio">Nenhuma peça ${filtro === "minhas" ? "comprada" : filtro === "gratis" ? "grátis" : "à venda"} nesta parte.</p>`}</div>
-  ${totalPag > 1 ? `<nav class="cri-paginas" aria-label="Páginas"><button type="button" class="abr-secundario" onclick="criadorPagina(-1)" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${totalPag}</span><button type="button" class="abr-secundario" onclick="criadorPagina(1)" ${pag < totalPag - 1 ? "" : "disabled"} aria-label="Próxima página">›</button></nav>` : ""}`}
+  ${totalPag > 1 ? `<nav class="cri-paginas" aria-label="Páginas"><button type="button" class="abr-secundario" onclick="criadorPagina(-1)" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${totalPag}</span><button type="button" class="abr-secundario" onclick="criadorPagina(1)" ${pag < totalPag - 1 ? "" : "disabled"} aria-label="Próxima página">›</button></nav>` : ""}`}`}
  </div>
  <div class="prov-sacola">
   <div class="prov-sacola-info">${criador.destino ? "" : sacola}<p class="abr-erro" role="alert" id="abr-erro"></p></div>
