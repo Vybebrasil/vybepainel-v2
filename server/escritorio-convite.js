@@ -2,9 +2,9 @@
 // equipe manda um link; quem abre escolhe um de quatro bonecos prontos e entra
 // sem conta. O convidado vê quem está online e só anda pela sala de quem
 // convidou e pelas áreas comuns (nunca o Centro de Operação nem outros
-// quartos). Conversa por voz só na sala de quem convidou, que vira conversa
-// própria enquanto ele está lá: a conversa única dos espaços abertos levaria o
-// som de toda a equipe ao navegador dele.
+// quartos). Conversa por voz onde estiver (menos no Foco): a sala com
+// convidado usa conversa própria enquanto ele está lá, porque a conversa única
+// dos espaços abertos levaria o som de toda a equipe ao navegador dele.
 //
 // Nada do convidado vai para o banco: o link e o crachá são assinados
 // (ESCRITORIO_SESSION_SECRET) e o crachá fica num cookie próprio. Cancelar os
@@ -102,10 +102,13 @@ function cabecalhoDoCookie(token, exp) {
   return [`${COOKIE}=${encodeURIComponent(token || "")}`, "Path=/", "HttpOnly", "Secure", "SameSite=Lax", `Max-Age=${idade}`].join("; ");
 }
 
-// Zonas por onde o convidado anda e onde ele tem voz.
+// Zonas por onde o convidado anda e onde ele tem voz (todas, menos o Foco).
+// Onde há convidado, a sala usa conversa própria (escritorioCanal no
+// navegador): ele nunca entra na conversa única dos espaços abertos.
 function zonasDe(salaAnfitriao) {
   const sala = salaAnfitriao ? [salaAnfitriao, salaAnfitriao + "-andar-1"] : [];
-  return { zonas: [...sala, ...ZONAS_DO_CONVIDADO], vozes: sala };
+  const zonas = [...sala, ...ZONAS_DO_CONVIDADO];
+  return { zonas, vozes: zonas.filter((z) => z !== "foco") };
 }
 
 // Entrada do convidado: só o que a tela precisa para desenhar a sala de quem
@@ -180,7 +183,7 @@ export async function areaConvite(req, res, sql, env = process.env) {
       const salas = salasDoEscritorio((await sql`SELECT id,nome FROM vybe_pessoas WHERE ativo=TRUE AND pode_entrar=TRUE ORDER BY nome`).map((p) => ({ id: String(p.id), nome: p.nome })));
       const { vozes } = zonasDe(salas.find((s) => s.pessoa_id === host.id)?.id || "");
       const sala = String(req.body?.sala || "");
-      if (!vozes.includes(sala)) throw erro("A conversa por voz com convidados é só na sala de quem convidou.", 403);
+      if (!vozes.includes(sala)) throw erro("Convidados conversam por voz nas salas do convite (no Foco não há voz).", 403);
       return res.status(200).json({ ok: true, ...(await prepararChamadaEscritorio(sql, { id: c.id, nome: c.nome + " (convidado)" }, sala, env)) });
     }
     throw erro("Ação de convidado inválida.");

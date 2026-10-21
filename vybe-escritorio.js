@@ -224,7 +224,7 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
   const chips = [eco?.disponivel ? `<span>${escritorioIcone("loja")}<b>${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b> VybeCoins</span>` : "", nivel ? `<span>${escritorioIcone("ranking")}Nível <b>${nivel}</b></span>` : "", sala ? `<span>${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""].filter(Boolean).join("");
   const conv = escritorio.base?.convidado, quem = conv ? safeText(String(conv.anfitriao.nome).split(" ")[0]) : "";
   const regras = conv
-    ? `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você como convidado de ${quem}.</span></li><li>${escritorioIcone("microfone")}<span>A conversa por voz é na sala de ${quem}. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("mapa")}<span>Você anda pela sala de ${quem} e pelas áreas comuns da Vybelândia.</span></li>`
+    ? `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você como convidado de ${quem}.</span></li><li>${escritorioIcone("microfone")}<span>Você conversa por voz com quem estiver na mesma sala. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("mapa")}<span>Você anda pela sala de ${quem} e pelas áreas comuns da Vybelândia.</span></li>`
     : `<li>${escritorioIcone("pessoas")}<span>Ao entrar, a equipe vê você no escritório.</span></li><li>${escritorioIcone("microfone")}<span>Em cada sala você fala e ouve quem está nela. O microfone entra ligado; silenciar é um clique.</span></li><li>${escritorioIcone("camera")}<span>A câmera começa desligada.</span></li>`;
   // Nas primeiras visitas as regras aparecem abertas; depois, uma linha só.
   const veterano = escritorioVisitasEntrada() > 3;
@@ -507,7 +507,10 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       if (e.type === "presence:update") {
         avisarEntradasEscritorio(escritorio.online, e.payload);
         if (typeof convidadoPresenca === "function") convidadoPresenca(escritorio.online, e.payload);
+        const canalAntesDaLista = escritorioCanal();
         escritorio.online = e.payload;
+        // Convidado entrou ou saiu da sua sala: a conversa da sala muda junto.
+        if (escritorio.conectado && escritorioCanal() !== canalAntesDaLista) escritorioConversaAutomatica();
         // Alguém entrou ou saiu da sua sala: passa (ou deixa) de ser ouvido.
         if (escritorio.chamada) {
           const ouvindo = escritorioOuvindo(escritorio.chamada).map((p) => p.id).join();
@@ -3811,7 +3814,11 @@ function escritorioTokenDaZona(zona) {
 // não têm voz (o microfone desliga, nada toca).
 function escritorioCanal(zona = escritorio.zona) {
   if (!zona || zona === "foco") return null;
-  return escritorio.trancas?.has(zona) ? zona : "escritorio";
+  // Sala trancada ou com convidado: conversa própria da sala. O convidado
+  // nunca entra na conversa única dos espaços abertos (o som da equipe toda
+  // chegaria ao navegador dele); quem está na sala com ele vem junto.
+  if (escritorio.trancas?.has(zona) || (escritorio.online || []).some((p) => p.convidado && p.zona === zona)) return zona;
+  return escritorio.base?.convidado ? zona : "escritorio";
 }
 function escritorioConversaAutomatica() {
   clearTimeout(escritorio.timerConversa);

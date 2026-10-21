@@ -286,12 +286,6 @@ export class EscritorioRoom {
         // Só as zonas do convite, e sala trancada só se já estava dentro.
         if (!a.zonas.includes(zonaNova)) return;
         if (zonaNova !== a.zona && this.trancas.has(zonaNova) && !this.trancas.get(zonaNova).has(a.sub)) return;
-        // A sala de quem convidou vira conversa própria enquanto o convidado
-        // está lá (a conversa única levaria o som da equipe toda até ele).
-        if (zonaNova !== a.zona && zonaNova.replace(/-andar-1$/, "") === a.salaAnfitriao && !this.trancas.has(zonaNova)) {
-          this.trancas.set(zonaNova, new Set([...this.naZona(zonaNova).map((t) => this.estado(t).sub), a.sub]));
-          this.broadcast("zone:locks", this.listaTrancas());
-        }
       }
       a = {
         ...a,

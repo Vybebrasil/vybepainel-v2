@@ -54,7 +54,8 @@ test('link assinado abre, entra com um dos bonecos e o crachá vale só para as 
   assert.ok(!base.convidado.zonas.includes('operacao'), 'o Centro de Operação fica de fora');
   for (const z of ZONAS_DO_CONVIDADO) assert.ok(base.convidado.zonas.includes(z));
   assert.ok(base.convidado.zonas.every((z) => !z.startsWith('sala-') || z.replace(/-andar-1$/, '') === base.convidado.salaAnfitriao), 'nenhum quarto de outra pessoa');
-  assert.deepEqual(base.convidado.vozes, [base.convidado.salaAnfitriao, base.convidado.salaAnfitriao + '-andar-1']);
+  // Voz em todas as salas do convite, menos no Foco; nunca na conversa única.
+  assert.deepEqual(base.convidado.vozes, base.convidado.zonas.filter((z) => z !== 'foco'));
   // Só a sala de quem convidou leva a planta; dos outros, só o boneco.
   assert.equal(base.equipe.find((p) => p.id === '2').perfil.sala_planta, 'quadrado-m');
   const cookie = entrou.cabecalhos['set-cookie'].split(';')[0];
@@ -66,9 +67,8 @@ test('link assinado abre, entra com um dos bonecos e o crachá vale só para as 
   assert.match(c.sub, /^c-[a-f0-9]{12}$/);
   // Recarregar a página: o cookie traz a entrada de volta.
   assert.equal((await pedir(sql, 'entrada', null, cookie)).corpo.convidado.id, base.convidado.id);
-  // Voz fora da sala de quem convidou é recusada (a conversa única é da equipe).
-  assert.equal((await pedir(sql, 'chamada', { sala: 'escritorio' }, cookie)).status_, 403);
-  assert.equal((await pedir(sql, 'chamada', { sala: 'cafe' }, cookie)).status_, 403);
+  // A conversa única dos espaços abertos, o Foco e o Centro de Operação são recusados.
+  for (const sala of ['escritorio', 'foco', 'operacao', 'sala-3']) assert.equal((await pedir(sql, 'chamada', { sala }, cookie)).status_, 403, sala);
 });
 
 test('cancelar convites derruba o link e quem entrou por ele; quem saiu da equipe não convida', async (t) => {
@@ -87,7 +87,7 @@ test('cancelar convites derruba o link e quem entrou por ele; quem saiu da equip
   assert.throws(() => nomeDoConvidado('  '), /nome/);
 });
 
-test('Worker: convidado não entra no Centro de Operação nem em quarto alheio; a sala de quem convidou vira conversa própria', async () => {
+test('Worker: convidado não entra no Centro de Operação nem em quarto alheio, nem em sala trancada', async () => {
   const sockets = [];
   const room = new EscritorioRoom({ getWebSockets: () => sockets }, { ESCRITORIO_SESSION_SECRET: SEGREDO });
   const sock = (a) => {
@@ -107,12 +107,18 @@ test('Worker: convidado não entra no Centro de Operação nem em quarto alheio;
   await ev(convidado, 'presence:move', { sala: 'convivencia', zona: 'cafe', x: 40, y: 40 });
   assert.equal(convidado.a.zona, 'cafe');
   assert.ok(!room.trancas.has('cafe'), 'área comum não tranca');
+  // Sala trancada em que não estava: fica de fora.
+  await ev(paulo, 'zone:lock', { zona: 'sala-0', trancada: true });
+  await ev(convidado, 'presence:move', { sala: 'convivencia', zona: 'sala-0', x: 40, y: 40 });
+  assert.equal(convidado.a.zona, 'cafe');
+  await ev(paulo, 'zone:admit', { zona: 'sala-0', id: '2' });
+  await ev(paulo, 'zone:lock', { zona: 'sala-0', trancada: false });
   await ev(convidado, 'presence:move', { sala: 'convivencia', zona: 'sala-0', x: 40, y: 40 });
   assert.equal(convidado.a.zona, 'sala-0');
-  assert.deepEqual([...room.trancas.get('sala-0')].sort(), ['1', 'c-0123456789ab']);
+  assert.ok(!room.trancas.has('sala-0'), 'a sala não tranca sozinha: a conversa própria vem do navegador');
   // Não tranca, não admite, não mexe em móvel nem na música.
-  await ev(convidado, 'zone:admit', { zona: 'sala-0', id: '2' });
-  assert.ok(!room.trancas.get('sala-0').has('2'));
+  await ev(convidado, 'zone:lock', { zona: 'sala-0', trancada: true });
+  assert.ok(!room.trancas.has('sala-0'));
   await ev(convidado, 'furni:toggle', { chave: 'lamp@1,1', estado: 1 });
   assert.equal(room.moveis.size, 0);
   // Balão da equipe em outra sala não chega ao convidado.
