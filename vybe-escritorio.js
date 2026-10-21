@@ -1706,7 +1706,7 @@ function renderEscritorio() {
  <div class="ofc-abas" role="tablist"${escritorio.edicao ? ' style="grid-template-columns:repeat(4,1fr)"' : ' style="grid-template-columns:repeat(3,1fr)"'}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Edição</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button><button role="tab" aria-selected="${aba === "recados"}" onclick="alternarAbaEscritorio('recados',true)">Recados${escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : ""}</button></div>
  ${escritorio.edicao ? `<div class="ofc-aba ofc-catalogo" ${aba === "catalogo" ? "" : "hidden"}>${escritorioCatalogoHtml()}</div>` : ""}
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div><p class="ofc-nota">Online indica presença, não produtividade.</p></div>
- <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><div><h3 id="office-chat-titulo">${safeText(escritorioTituloChat(sala))}</h3><small id="office-chat-nota" class="ofc-nota">${safeText(escritorioNotaChat(sala))}</small></div><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para este chat" id="office-message" name="texto" oninput="delete this.form.dataset.chave;escritorioDigitando(Boolean(this.value))" onblur="escritorioDigitando(false)" maxlength="2000" placeholder="Mensagem para ${safeText(ESCRITORIO_SALAS[sala] || "Convivência")}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
+ <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><div><h3 id="office-chat-titulo">${safeText(escritorioTituloChat(sala))}</h3><small id="office-chat-nota" class="ofc-nota">${safeText(escritorioNotaChat(sala))}</small></div><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para este chat" id="office-message" name="texto" oninput="delete this.form.dataset.chave;escritorioDigitando(Boolean(this.value))" onblur="escritorioDigitando(false)" maxlength="2000" placeholder="Escreva para a sala" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>
  <section class="ofc-aba ofc-clientes" id="office-clientes" ${aba === "clientes" ? "" : "hidden"}>${escritorioClientesHtml()}</section>
 </aside>
@@ -1846,7 +1846,7 @@ function escritorioTituloChat(sala = escritorio.sala) {
 function escritorioNotaChat(sala = escritorio.sala) {
   const aqui = escritorioLugarDe(escritorio.perfil);
   const outros = [...new Set([...ESCRITORIO_PLANTA.ambientes, ESCRITORIO_PRACA].filter((a) => a.sala === sala && a.id !== aqui.id).map((a) => a.nome))];
-  return outros.length ? `Você está em ${aqui.nome}. Chat escrito dividido com ${outros.join(", ")}.` : `Chat escrito de quem está em ${aqui.nome}.`;
+  return outros.length ? `Quem está em ${aqui.nome} e em ${outros.join(", ")} lê esta conversa.` : `Quem está em ${aqui.nome} lê esta conversa.`;
 }
 // Mudou de ala: cabeçalho e mensagens passam para o chat de lá.
 function atualizarChatEscritorio(salaAntes) {
@@ -3757,7 +3757,7 @@ async function carregarChatEscritorio() {
               `<article><b>${safeText(m.nome)}</b><p>${safeText(m.texto)}</p></article>`,
           )
           .join("")
-      : "<p>A conversa desta sala começa aqui.</p>";
+      : vbEstadoHtml({ titulo: "Ninguém escreveu ainda", texto: "O que você escrever aqui aparece para quem está nesta conversa." });
     el.scrollTop = el.scrollHeight;
   } catch (e) {
     if (seq === escritorio.chatSeq) el.textContent = e.message;

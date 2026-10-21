@@ -366,6 +366,16 @@ function criadorMedirPagina() {
 // com o boneco no pedestal, trilho de partes com a peça vestida em cada uma,
 // vitrine de skins, peças em cartões com a cor da raridade e a sacola com o
 // que falta comprar. As regras (preço, grátis, compra) são as das skins.
+// Uma régua de passos só, do personagem ao quarto pronto (a contagem não batia:
+// "Passo 1 de 2" no Provador e depois "Seu espaço · 1 de 3"). Na reforma o
+// personagem não entra na conta.
+function criadorTemQuartoParaMontar() { return Boolean(escritorioMinhaMesa()) && !escritorio.perfil?.quarto_configurado; }
+function criadorRotuloDoPasso(etapa) {
+  const nomes = { planta: "Tamanho e formato", mobilia: "Mobília", acabamento: "Acabamento" };
+  const ordem = ["planta", "mobilia", "acabamento"], i = ordem.indexOf(etapa);
+  if (i < 0) return "Seu espaço";
+  return criador.reforma ? `Reforma · ${i + 1} de 3 · ${nomes[etapa]}` : `Passo ${i + 2} de 4 · ${nomes[etapa]}`;
+}
 // Altura da parte no boneco inteiro: o trilho recorta a miniatura ali.
 const CRIADOR_FOCO = { ch: 52, cc: 52, ca: 40, cp: 55, wa: 66, lg: 80, sh: 96 };
 function criadorRaridadeDaPeca(t, id) {
@@ -430,7 +440,7 @@ function criadorPainelHtml() {
   return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel cri provador" aria-labelledby="abr-titulo">
  <div class="prov-topo">
-  <div class="prov-titulo"><span class="abr-kicker">${criador.destino ? "Avatar do cliente no Escritório" : criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">${criador.destino ? `Agente de ${safeText(criador.destino.nome)}` : "Provador"}</h2></div>
+  <div class="prov-titulo"><span class="abr-kicker">${criador.destino ? "Avatar do cliente no Escritório" : criador.so ? "Meu espaço" : criadorTemQuartoParaMontar() ? "Passo 1 de 4 · Personagem" : "Seu personagem"}</span><h2 id="abr-titulo">${criador.destino ? `Agente de ${safeText(criador.destino.nome)}` : "Provador"}</h2></div>
   <div class="cri-corpo prov-corpo" role="group" aria-label="Corpo">${["M", "F"].map((g) => `<button type="button" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div>
   ${saldo !== null && !criador.destino ? `<span class="prov-carteira" title="Suas VybeCoins"><i aria-hidden="true"></i><b>${saldo.toLocaleString("pt-BR")}</b> moedas</span>` : ""}
  </div>
@@ -919,5 +929,5 @@ function criadorQuartoHtml() {
 <div class="abr-grupo"><h3>Paredes</h3><div class="abr-linha">${paredes.map((c)=>`<button type="button" class="abr-cor" style="--c:${c}" aria-pressed="${criador.parede===c}" onclick="criador.parede='${c}';renderAberturaEscritorio()" aria-label="Parede ${c}"></button>`).join("")}</div></div></div>
 <p class="abr-nota">Depois de entrar, use <b>Decorar</b> no seu quarto para arrastar móveis, pintar cada ladrilho e abrir a loja. Sua escolha só é salva na confirmação final.</p>`;
  }
- return `<section class="abr-painel abr-quarto" aria-labelledby="abr-titulo"><span class="abr-kicker">Seu espaço · ${etapa==="planta"?'1 de 3':etapa==="mobilia"?'2 de 3':'3 de 3'}</span><h2 id="abr-titulo">${titulo}</h2>${conteudo}<div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='${anterior}';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='${proxima}';renderAberturaEscritorio()">${etapa === "planta" ? `Continuar com ${safeText(planta?.tamanhoNome || "esta planta")}` : "Continuar"}</button></div></section>`;
+ return `<section class="abr-painel abr-quarto" aria-labelledby="abr-titulo"><span class="abr-kicker">${criadorRotuloDoPasso(etapa)}</span><h2 id="abr-titulo">${titulo}</h2>${conteudo}<div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='${anterior}';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='${proxima}';renderAberturaEscritorio()">${etapa === "planta" ? `Continuar com ${safeText(planta?.tamanhoNome || "esta planta")}` : "Continuar"}</button></div></section>`;
 }

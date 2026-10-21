@@ -478,7 +478,7 @@ test("cada lugar leva à sala de conversa certa", () => {
   // O cabeçalho do chat diz onde a pessoa está e com quem divide o chat.
   vm.runInContext('escritorio.base = { eu: "1", equipe: [], salas: [{ id: "sala-0", dono: "Paulo", pessoa_id: "1" }, { id: "sala-1", dono: "Vinícius", pessoa_id: "2" }] }; escritorioAplicarSalas(); escritorio.quarto = "sala-0"; escritorioDefinirQuarto("sala-0"); escritorio.zona = "sala-0"; escritorio.perfil = escritorioParaPorcentagem(5, 5); escritorio.sala = "atendimento";', c);
   assert.equal(vm.runInContext("escritorioTituloChat()", c), "Conversa · Atendimento");
-  assert.match(vm.runInContext("escritorioNotaChat()", c), /^Você está em Sala de Paulo\. Chat escrito dividido com Sala de Vinícius, Sala livre\.$/);
+  assert.match(vm.runInContext("escritorioNotaChat()", c), /^Quem está em Sala de Paulo e em Sala de Vinícius, Sala livre lê esta conversa\.$/);
   // Na Praça (cena de abertura) não há ambiente nem zona: sem voz, como o corredor.
   vm.runInContext('escritorio.quarto = null; escritorioDefinirQuarto(null); escritorio.zona = "";', c);
   assert.equal(vm.runInContext("escritorioAmbienteEm(5, 5)", c), null);
