@@ -917,7 +917,7 @@ function abrirRankingEscritorio(aba, periodo) {
   if (periodo) escritorioRanking.periodo = periodo;
   if (!document.getElementById("ofc-ranking")) {
     openWorkflowModal('<div class="ofc-ranking rk2" id="ofc-ranking" role="dialog" aria-label="Ranking"></div>');
-    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "rk2-janela");
+    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "rk2-janela", "ofc-menu-jogo");
   }
   pintarRankingEscritorio();
   carregarRankingEscritorio();
@@ -1067,7 +1067,7 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
       return `<li data-pid="${x.p.id}" class="${x.p.id === eu ? "eu" : ""}${escritorioRanking.aberto === x.p.id ? " aberto" : ""}" style="--i:${k}" role="button" tabindex="0" aria-expanded="${escritorioRanking.aberto === x.p.id}" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalheRankingEscritorio('${x.p.id}')}">
         <span class="rk2-pos">${pos ? pos + "º" : "—"}${geral ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome"><b>${safeText(nome(x.p))}</b><small>${(() => { const t = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(x.p.id))?.titulo; return `${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}${t?.texto ? ` · <em class="rk2-titulo vb-titulo n${Number(t.nivel) || 1}">${safeText(t.texto)}</em>` : ""}`; })()}</small></span>
         <span class="rk2-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, (x.v / max) * 100))}%"></i></span><span class="rk2-valor"><b data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</b><small>${safeText(cat.sub(x.p))}</small></span></li>${escritorioRanking.aberto === x.p.id ? `<li class="ofc-rk-det-li">${detalhe(x.p)}</li>` : ""}`; }).join("")}</ol>` : "";
-    corpo = `${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}${lista}`;
+    corpo = `<div class="rk2-duas"><div class="rk2-meio">${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}</div>${lista ? `<div class="rk2-direita">${lista}</div>` : ""}</div>`;
     voceFixa = voce;
   } else if (aba === "tesouros") {
     const pat = d.patrimonio || [];
@@ -1081,7 +1081,9 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
   }
   const anterior = per === "semana" && d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
   const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul>${cat?.dica ? `<li><b>${safeText(cat.nome)}:</b> ${safeText(cat.dica)}</li>` : ""}<li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
-  el.innerHTML = topo + `<div class="rk2-corpo${escritorioRanking.carregando === per ? " atualizando" : ""}">${campeoes}${corpo}${anterior}${como}${voceFixa}</div>`;
+  // Menu largo (Paulo, 21/10/2026: "ganhar espaço dos lados… parecer um menu do
+  // personagem"): com tela larga, categorias numa coluna e o resto ao lado.
+  el.innerHTML = topo + `<div class="rk2-corpo${escritorioRanking.carregando === per ? " atualizando" : ""}"><div class="rk2-grade"><aside class="rk2-lado">${campeoes}</aside><div class="rk2-principal">${corpo}${anterior}${como}</div></div>${voceFixa}</div>`;
   if (chaveAntes.split(":")[0] === per) el.querySelector(".rk2-corpo").scrollTop = rolagem;
   rkVigiarMinhaLinha(el, eu);
   if (typeof vbAnimarContagens === "function") vbAnimarContagens(el);
@@ -1162,7 +1164,7 @@ const ESCRITORIO_GRUPOS_CONQUISTA = [
 async function abrirConquistasEscritorio() {
   if (!document.getElementById("ofc-conquistas")) {
     openWorkflowModal('<div class="ofc-ranking ofc-conquistas" id="ofc-conquistas" role="dialog" aria-label="Conquistas"></div>');
-    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela");
+    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "ofc-menu-jogo");
   }
   pintarConquistasEscritorio();
   // As escadas vêm com a carteira (o servidor confere e concede os níveis novos).
@@ -1240,7 +1242,7 @@ ${meu && titulos.length ? `<button type="button" class="cq-trocar" aria-expanded
   const chips = `<div class="ofc-cq-abas" role="tablist" aria-label="Grupos de conquistas">${visiveis.map(([k, nome, , ids]) => { const l = daAba(ids); return `<button type="button" role="tab" class="vb-chip" aria-pressed="${k === aba}" aria-selected="${k === aba}" onclick="escolherAbaConquistasEscritorio('${k}')">${nome}${ids ? `<b>${l.filter((x) => x.nivel).length}/${l.length}</b>` : ""}</button>`; }).join("")}</div>`;
   const [, , dica, ids] = grupos.find(([k]) => k === aba) || grupos[0];
   const lista = daAba(ids);
-  return `<div class="cq-tela">${vitrine}${escolherTitulos}${chips}<p class="cq-dica">${dica} Os troféus da escada ficam todos com você, para expor no quarto.</p><div class="cq-grade" role="tabpanel">${lista.map((x, k) => cartao(x, aba === "perto" && k === 0)).join("") || '<p class="ofc-nota">Nada aqui ainda.</p>'}</div></div>`;
+  return `<div class="cq-tela"><aside class="cq-lado">${vitrine}${escolherTitulos}</aside><div class="cq-principal">${chips}<p class="cq-dica">${dica} Os troféus da escada ficam todos com você, para expor no quarto.</p><div class="cq-grade" role="tabpanel">${lista.map((x, k) => cartao(x, aba === "perto" && k === 0)).join("") || '<p class="ofc-nota">Nada aqui ainda.</p>'}</div></div></div>`;
 }
 function escolherAbaConquistasEscritorio(aba) {
   escritorio.cqAba = aba;
@@ -1291,10 +1293,13 @@ function escritorioCelebrarSeMudou() {
   const chave = "vybe-celebrado-" + b.eu;
   let antes = null;
   try { antes = JSON.parse(localStorage.getItem(chave) || "null"); } catch {}
-  const salvar = () => { try { localStorage.setItem(chave, JSON.stringify({ nivel: agora.nivel, trofeus: agora.trofeus.map((t) => t.chave) })); } catch {} };
-  if (!antes) return salvar();
+  // A entrada vem sem as conquistas (desde 21/10/2026, para abrir rápido):
+  // sem a lista, os troféus guardados ficam como estão e nada conta como novo.
+  const comTrofeus = Array.isArray(eco.marcos);
+  const salvar = () => { try { localStorage.setItem(chave, JSON.stringify({ nivel: agora.nivel, trofeus: comTrofeus ? agora.trofeus.map((t) => t.chave) : antes?.trofeus || null })); } catch {} };
+  if (!antes || (comTrofeus && !Array.isArray(antes.trofeus))) return salvar();
   const vistos = new Set(antes.trofeus || []);
-  const novos = agora.trofeus.filter((t) => !vistos.has(t.chave)).sort((x, y) => y.nivel - x.nivel);
+  const novos = comTrofeus ? agora.trofeus.filter((t) => !vistos.has(t.chave)).sort((x, y) => y.nivel - x.nivel) : [];
   const subiu = agora.nivel !== null && antes.nivel !== null && agora.nivel > antes.nivel;
   if (agora.nivel !== antes.nivel || novos.length) salvar();
   if (novos.length || subiu) escritorioMostrarCelebracao(subiu ? agora.nivel : null, novos[0] || null);

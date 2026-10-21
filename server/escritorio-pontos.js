@@ -136,6 +136,17 @@ export async function fecharPontosEscritorio(sql, agora = new Date(), { janela =
   return { disponivel: true, hoje, dias, semanas, ranking };
 }
 // O que a ficha mostra da própria pessoa: nível, meta da semana e extrato.
+// O "baú" da entrada (Paulo, 21/10/2026): o que a pessoa ganhou trabalhando
+// nas últimas 24 horas, pelo razão, agrupado pela regra. Compras e ajustes
+// (sem regra) ficam de fora; penalidade entra com o sinal dela.
+export async function ganhosRecentes(sql, pessoaId, agora = new Date()) {
+  if (!await pontosProntos(sql)) return null;
+  const linhas = await sql`SELECT COALESCE(g.descricao, m.regra) AS descricao, COALESCE(SUM(m.quantidade),0)::int AS moedas, COALESCE(SUM(m.pontos),0)::int AS pontos, COUNT(*)::int AS vezes
+    FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
+    WHERE m.pessoa_id=${pessoaId} AND m.regra IS NOT NULL AND m.criado_em >= ${agora}::timestamptz - interval '24 hours'
+    GROUP BY 1 ORDER BY 2 DESC, 3 DESC`;
+  return { moedas: linhas.reduce((t, l) => t + l.moedas, 0), pontos: linhas.reduce((t, l) => t + l.pontos, 0), itens: linhas.slice(0, 4) };
+}
 export async function resumoPontos(sql, pessoaId, agora = new Date()) {
   if (!await pontosProntos(sql)) return null;
   // Ao mesmo tempo: em sequência a ficha e a carteira demoravam segundos.

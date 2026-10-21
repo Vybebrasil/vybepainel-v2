@@ -44,6 +44,7 @@
     { "source": "/aprovar/:t", "destination": "/api/painel?area=aprovar&t=:t" }
   ],
   "fluid": true,
+  "regions": ["gru1"],
   "functions": {
     "api/*.js": {
       "maxDuration": 300,
