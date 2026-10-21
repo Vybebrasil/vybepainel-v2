@@ -7838,34 +7838,50 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 @media (prefers-reduced-motion: reduce) {.ofc-cobranca-pop {animation:none}}
 /* Painel do agente do Centro de Operação: números do cliente, planejamentos e
    o que pede atenção, com portas para a ficha e a Agenda mensal do painel. */
-#workflow-modal.ofc-agente-janela {width:min(1080px,calc(100vw - 32px));max-width:none}
-.ofc-agente {display:grid;gap:14px}
-.ofc-agente-topo {display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.ofc-agente-topo .workflow-title {margin:0}
+/* Janela do agente do cliente, refeita no estilo do Mac (Paulo, 20/10/2026):
+   cabeçalho com palco, números em blocos na cor do status, grupos com linhas. */
+#workflow-modal.ofc-agente-janela {width:min(1180px,calc(100vw - 32px));max-width:none}
+.ofc-agente {display:grid;gap:16px}
+.ofc-agente-topo {display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;border-radius:18px;background:radial-gradient(120% 160% at 0% 0%,#ff9d0022,transparent 55%),#ffffff06;border:1px solid #ffffff14}
+.ofc-agente-topo .workflow-title {margin:0;font-size:28px!important;letter-spacing:-.02em}
 .ofc-agente-topo small {color:var(--ofc-suave);font-size:13px}
-.ofc-agente-nums {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.ofc-agente-num {display:grid;gap:2px;padding:10px 12px;border-radius:12px;background:var(--jg-slot,#ffffff0d);border:1px solid var(--jg-borda,#ffffff1a)}
-.ofc-agente-num b {font:750 22px/1 var(--mac-ui);font-variant-numeric:tabular-nums;color:var(--ofc-texto,#fff)}
-.ofc-agente-num span {font:600 11px var(--mac-ui);color:var(--ofc-suave,#aab)}
-.ofc-agente-num.ruim {border-color:#ff6b6b66;background:#ff6b6b14}
-.ofc-agente-num.ruim b {color:#ff9b9b}
-.ofc-agente-grade {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
-.ofc-agente-portas {display:flex;gap:8px;margin-left:auto}
-.ofc-agente-col {display:grid;gap:12px;min-width:0}
-.ofc-agente-bloco, .ofc-agente .plj-cartao {display:grid;gap:8px;padding:12px;border-radius:14px;background:#ffffff08;border:1px solid var(--jg-borda,#ffffff1a);min-width:0;margin:0}
+.ofc-agente-palco {position:relative;flex:none;width:84px;height:96px;display:grid;place-items:end center}
+.ofc-agente-palco .ofc-lobby-luz {inset:4px 6px 14px}
+.ofc-agente-palco .ofc-lobby-ladrilho {width:58px;height:58px;bottom:4px}
+.ofc-agente-palco .ofc-agente-boneco {position:relative;z-index:1;margin:0 0 14px}
+.ofc-agente-nums {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.ofc-agente-num {position:relative;display:grid;gap:4px;padding:14px 16px 12px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff14;overflow:hidden}
+.ofc-agente-num::before {content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c,#ffffff22);opacity:.35}
+.ofc-agente-num.tem::before {opacity:1}
+.ofc-agente-num b {font:800 28px/1 var(--mac-ui);font-variant-numeric:tabular-nums;color:var(--ofc-texto,#fff)}
+.ofc-agente-num.tem b {color:color-mix(in srgb,var(--c,#fff) 65%,#fff)}
+.ofc-agente-num span {font:600 12px var(--mac-ui);color:var(--ofc-suave,#aab)}
+.ofc-agente-grade {display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+.ofc-agente-portas {display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.ofc-agente-col {display:grid;gap:16px;min-width:0}
+.ofc-agente-bloco, .ofc-agente .plj-cartao {display:grid;gap:10px;padding:14px 16px;border-radius:16px;background:#ffffff06;border:1px solid #ffffff12;min-width:0;margin:0}
 .ofc-agente-bloco-topo {display:flex;align-items:center;justify-content:space-between;gap:8px}
-.ofc-agente-bloco h4, .ofc-agente .plj-cartao h3 {margin:0;font:700 13px var(--mac-ui);letter-spacing:.02em}
+.ofc-agente-bloco h4, .ofc-agente .plj-cartao h3 {margin:0;color:#8f98a9;font:700 11.5px var(--mac-ui);letter-spacing:.07em;text-transform:uppercase}
+.ofc-agente-bloco h4 small {text-transform:none;letter-spacing:0;font-weight:600}
 .ofc-agente-bloco h5 {margin:6px 0 0;font:700 12px var(--mac-ui);color:var(--ofc-suave,#aab)}
-.ofc-agente-lista {list-style:none;margin:0;padding:0;display:grid;gap:5px}
-.ofc-agente-peca {display:flex;align-items:flex-start;gap:8px;width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--jg-borda,#ffffff1a);background:#ffffff08;color:inherit;text-align:left;cursor:pointer}
-.ofc-agente-peca:hover {background:#ffffff12}
-.ofc-agente-peca > span {display:grid;gap:2px;min-width:0}
-.ofc-agente-peca b {font:650 12.5px/1.3 var(--mac-ui);overflow:hidden;text-overflow:ellipsis}
-.ofc-agente-peca small {font-size:11px;color:var(--ofc-suave,#aab)}
+/* Listas como as do Mac: um grupo com linhas separadas. */
+.ofc-agente-lista {list-style:none;margin:0;padding:0;display:grid;gap:0;border-radius:12px;background:#ffffff05;border:1px solid #ffffff10;overflow:hidden}
+.ofc-agente-lista > li + li {border-top:1px solid #ffffff0d}
+.ofc-agente-peca {display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:0;background:none;color:inherit;text-align:left;cursor:pointer}
+.ofc-agente-peca:hover {background:#ffffff0a}
+.ofc-agente-peca:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:-2px}
+.ofc-agente-peca > span {display:grid;gap:3px;min-width:0}
+.ofc-agente-peca b {font:650 13.5px/1.3 var(--mac-ui);overflow:hidden;text-overflow:ellipsis}
+.ofc-agente-peca small {font-size:12px;color:var(--ofc-suave,#aab)}
 .ofc-agente-peca .ofc-ponto {margin-top:5px;flex:none}
 .ofc-agente-tags {display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+/* Planejamento em destaque no agente: cada mês é uma linha grande e clara. */
+.ofc-agente .plj-cartao {background:radial-gradient(140% 120% at 100% 0%,#ff9d0018,transparent 60%),#ffffff06;border-color:#ff9d0033}
+.ofc-agente .plj-meses {border-radius:12px;background:#ffffff05;border:1px solid #ffffff10;overflow:hidden;gap:0}
+.ofc-agente .plj-mes {padding:12px 14px;border:0;border-radius:0;background:none}
+.ofc-agente .plj-mes b {font-size:15px}
+.ofc-agente .plj-mes:hover {background:#ffffff0a}
 @media (max-width:760px){.ofc-agente-grade {grid-template-columns:1fr}.ofc-agente-nums {grid-template-columns:repeat(2,minmax(0,1fr))}.ofc-agente-portas {margin-left:0}}
-/* Na ficha do cliente o quadro de planejamentos ocupa a linha toda; no painel do agente, uma coluna. */
 .ofc-agente-grade > .client-master-detail-card.plj-cartao {grid-column:auto}
 
 /* Janela do catálogo (como a do Habbo): árvore de categorias à esquerda, busca,
@@ -8068,18 +8084,15 @@ body:has(#office-dock:not([hidden])) .plj-aviso {bottom:76px}
    cabeçalho numa faixa com o boneco do agente na fantasia do cliente; os
    números viram abas que trocam a lista da direita (próximas por padrão);
    "pede atenção" vazio é uma linha só. */
-.ofc-agente-topo {align-items:center;gap:12px;flex-wrap:nowrap;padding:4px 0}
-.ofc-agente-boneco {width:44px;height:78px;object-fit:contain;object-position:bottom;image-rendering:pixelated;flex:none;margin:-14px 0 -6px}
-.ofc-agente-nome {display:grid;gap:4px;min-width:0}
+.ofc-agente-boneco {width:48px;height:84px;object-fit:contain;object-position:bottom;image-rendering:pixelated;flex:none}
+.ofc-agente-nome {display:grid;gap:6px;min-width:0}
 .ofc-agente-nome > span {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ofc-agente-nome small {color:var(--ofc-suave);font-size:12px}
 button.ofc-agente-num {cursor:pointer;text-align:left;color:inherit;font:inherit;transition:border-color .15s,background .15s}
 button.ofc-agente-num:hover {background:#ffffff14}
 button.ofc-agente-num:focus-visible {outline:2px solid var(--ofc-laranja,#ff9d00);outline-offset:2px}
-button.ofc-agente-num[aria-pressed="true"] {border-color:var(--ofc-laranja,#ff9d00);box-shadow:inset 0 -2px var(--ofc-laranja,#ff9d00)}
-.ofc-agente-num.aviso {border-color:#ffc46b55;background:#ffc46b12}
-.ofc-agente-num.aviso b {color:#ffd08a}
-.ofc-agente-calmo {margin:0;padding:10px 12px;border-radius:12px;border:1px solid var(--jg-borda,#ffffff1a);background:#6fe3a80d;color:#bfe9d2;font:600 12px var(--mac-ui)}
+button.ofc-agente-num[aria-pressed="true"] {border-color:color-mix(in srgb,var(--c,#ff9d00) 70%,transparent);background:color-mix(in srgb,var(--c,#ff9d00) 12%,transparent)}
+.ofc-agente-calmo {margin:0;padding:12px 14px;border-radius:14px;border:1px solid #6fe3a833;background:#6fe3a80d;color:#bfe9d2;font:600 13px var(--mac-ui)}
 .ofc-agente-peca-linha {display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .ofc-agente-peca-linha .pill {font-size:10px;padding:1px 7px}
 .ofc-agente-peca small.vencida {color:#ff9b9b}
