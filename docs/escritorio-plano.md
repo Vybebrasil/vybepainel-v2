@@ -1345,3 +1345,16 @@ decoração inicial "bem feito".
   (`pt`). O servidor de imagens do Habbo desenha essas peças paradas; 38
   roupas do acervo têm quadros de animação (lista e mapa conjunto→peça
   conferidos no figuredata oficial em 21/10/2026).
+
+### Roupas animadas — 21/10/2026
+
+- `scripts/escritorio-roupas-animadas.mjs <acervo>/roupas` tira do acervo
+  (.nitro) a folha e os quadros dos 31 conjuntos animados que ficam por cima
+  do corpo (efeito, bichinho, chapéu, cabeça, rosto, cintura) e mede, contra o
+  imager, em que direções cada camada vai atrás do boneco. Saída:
+  `assets/escritorio/habbo/roupa_anim_*.png` + `roupas_animadas.json`.
+- `vybe-escritorio-animadas.js`: o imager desenha o boneco sem a peça e duas
+  telas (atrás/frente) desenham os quadros com a cor escolhida, 8 por segundo,
+  no Provador e no mapa (em pé, acenando, andando; sentado/deitado fica a peça
+  parada do imager). Origem y = 100 no boneco "h", conferida pixel a pixel.
+- Camisa, casaco e asas animados ficam parados (passam por trás do corpo).
