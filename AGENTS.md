@@ -379,6 +379,9 @@ e funções `vb*Html` em `vybe-core.js`; use-as antes de desenhar outra.
   antiga de publicação não autoriza automaticamente toda mudança futura.
 - Siga `CHECKLIST-DEPLOY.md`: PR revisável, checks do commit exato e preview antes
   de integrar em `main`. Não contorne checks quebrados; identifique e corrija a causa.
+- Montagem na Vercel custa (decisão do Paulo, 21/10/2026): versão de teste só
+  com `[preview]` na mensagem do último commit antes de publicar; uma entrega
+  por PR e uma publicação por entrega, sem publicar ajuste a ajuste.
 - Não trate push como deploy concluído. Confirme sucesso no Vercel e que o domínio
   oficial serve a versão correta. Nunca faça rollback que reative Monday.
 - Ao concluir, informe o que mudou, validações executadas, limitações e se está
