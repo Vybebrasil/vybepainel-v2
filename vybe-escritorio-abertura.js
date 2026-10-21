@@ -580,34 +580,38 @@ async function criadorSalvarEReformar(andar,branco) {
 // novos"): o boneco no pedestal abre o Provador, o térreo aparece numa prévia
 // de verdade, o segundo andar tem cartão próprio e "em branco" fica à parte.
 function criadorMeuEspacoHtml() {
+  // Meu espaço como menu de jogo (Paulo, 21/10/2026: "todo o layout muito
+  // duro, sem as regras novas"): três peças do mesmo tamanho, cada uma com a
+  // cor e o ícone dela, palco em cima, título, detalhes em chips e a ação
+  // embaixo; entram em cascata; um só botão principal (o Provador).
   const perfil = escritorio.perfil || {};
   const segundo = perfil.sala_andares?.find((a) => a.andar === 1 && a.quarto_configurado);
   const planta = (id) => escritorio.base.quartos?.plantas.find((p) => p.id === id);
   const terreo = planta(perfil.sala_planta), andar2 = segundo && planta(segundo.sala_planta);
-  const saldo = escritorio.base?.economia?.disponivel ? Number(escritorio.base.economia.saldo || 0) : null;
-  const img = criadorImagem(mapaFigura(perfil), 2, "l", perfil.mao || "");
-  const previa = terreo && escritorioMinhaMesa() ? `<div class="abr-previa-quarto ofc-mapa esp-previa" data-previa="${safeText([perfil.sala_planta, "atual", perfil.sala_piso || "madeira", perfil.sala_parede || "#ff8a35", ""].join("|"))}" aria-hidden="true"></div>` : '<div class="esp-previa esp-previa-vazia" aria-hidden="true"></div>';
+  const eco = escritorio.base?.economia, saldo = eco?.disponivel ? Number(eco.saldo || 0) : null, nivel = eco?.pontos?.nivel;
+  const fig = mapaFigura(perfil);
+  const img = criadorImagem(typeof animadasDaFigura === "function" ? animadasDaFigura(fig)?.base || fig : fig, 2, "l", perfil.mao || "");
+  const previa = terreo && escritorioMinhaMesa() ? `<div class="abr-previa-quarto ofc-mapa esp-previa" data-previa="${safeText([perfil.sala_planta, "atual", perfil.sala_piso || "madeira", perfil.sala_parede || "#ff8a35", ""].join("|"))}" aria-hidden="true"></div>` : "";
   const noSegundo = escritorio.quarto?.endsWith("-andar-1");
+  const chips = (l) => `<span class="esp-chips">${l.filter(Boolean).map((t) => `<em>${safeText(t)}</em>`).join("")}</span>`;
+  const medidas = (p) => String(p?.medidas || "").split("·").map((x) => x.trim()).filter(Boolean);
+  const peca = ({ cor, icone, palco, titulo, detalhes, acao, onclick, principal = false, extra = "" }) =>
+    `<button type="button" class="esp-peca${extra}" style="--c:${cor}" onclick="${onclick}"><span class="esp-peca-palco" aria-hidden="true">${palco}</span><span class="esp-peca-corpo"><span class="esp-peca-titulo"><span class="jg-moeda esp-peca-icone">${icone}</span><b>${titulo}</b></span>${detalhes}<span class="esp-peca-acao${principal ? " principal" : ""}">${acao}</span></span></button>`;
+  const mais = '<svg class="ofc-ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
   return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel espaco" aria-labelledby="esp-titulo">
- <div class="prov-topo"><div class="prov-titulo"><span class="abr-kicker">Meu espaço</span><h2 id="esp-titulo">Seu escritório, do seu jeito</h2></div>${saldo !== null ? `<span class="prov-carteira" title="Suas VybeCoins"><i aria-hidden="true"></i><b>${saldo.toLocaleString("pt-BR")}</b> moedas</span>` : ""}<button type="button" class="esp-fechar" onclick="fecharAberturaEscritorio()" aria-label="Fechar">×</button></div>
+ <div class="prov-topo"><div class="prov-titulo"><span class="abr-kicker">Meu espaço</span><h2 id="esp-titulo">Seu escritório, do seu jeito</h2></div>${nivel ? `<span class="esp-chip-topo" title="Seu nível">${escritorioIcone("ranking")}Nível <b>${Number(nivel)}</b></span>` : ""}${saldo !== null ? `<span class="prov-carteira" title="Suas VybeCoins"><i aria-hidden="true"></i><b>${saldo.toLocaleString("pt-BR")}</b> moedas</span>` : ""}<button type="button" class="esp-fechar" onclick="fecharAberturaEscritorio()" aria-label="Fechar">×</button></div>
  <div class="esp-grade">
-  <button type="button" class="esp-cartao esp-personagem" onclick="criador.etapa='personagem';renderAberturaEscritorio()">
-   <span class="esp-palco" aria-hidden="true"><span class="prov-holofote"></span><img alt="" src="${safeText(img)}" width="128" height="220"><span class="prov-pedestal"></span></span>
-   <span class="esp-texto"><b>Personagem</b><small>Roupas, cabelo, skins e o objeto na mão</small></span><span class="esp-acao primaria">Abrir o provador</span>
-  </button>
-  <button type="button" class="esp-cartao esp-quarto" onclick="abrirReformaEscritorio(0)">
-   ${previa}
-   <span class="esp-texto"><b>Térreo</b><small>${terreo ? safeText([terreo.nome, terreo.medidas].filter(Boolean).join(" · ")) : "Seu quarto"}</small></span><span class="esp-acao">Aumentar ou reformar</span>
-  </button>
-  <button type="button" class="esp-cartao esp-andar${segundo ? "" : " novo"}" onclick="abrirReformaEscritorio(1)">
-   <span class="esp-icone" aria-hidden="true">${segundo ? escritorioIcone("mapa") : '<svg class="ofc-ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'}</span>
-   <span class="esp-texto"><b>${segundo ? "Segundo andar" : "Criar segundo andar"}</b><small>${andar2 ? safeText([andar2.nome, andar2.medidas].filter(Boolean).join(" · ")) : "Uma cena própria, com formato e decoração independentes"}</small></span><span class="esp-acao">${segundo ? "Reformar" : "Criar"}</span>
-  </button>
+  ${peca({ cor: "#ff8a35", icone: escritorioIcone("espaco"), palco: `<span class="prov-holofote"></span><img class="esp-boneco" alt="" src="${safeText(img)}" data-figura="${safeText(fig)}" width="128" height="220"><span class="prov-pedestal"></span>`,
+    titulo: "Personagem", detalhes: chips(["Roupas", "Skins", "Objeto na mão"]), acao: "Abrir o provador", principal: true, onclick: "criador.etapa='personagem';renderAberturaEscritorio()" })}
+  ${peca({ cor: "#4ea1ff", icone: escritorioIcone("mesa"), palco: previa || `<span class="esp-palco-vazio">${escritorioIcone("mesa")}</span>`,
+    titulo: "Térreo", detalhes: chips([terreo?.nome || "Seu quarto", ...medidas(terreo)]), acao: "Aumentar ou reformar", onclick: "abrirReformaEscritorio(0)" })}
+  ${peca({ cor: "#b57bff", icone: segundo ? escritorioIcone("mapa") : mais, palco: `<span class="esp-andares${segundo ? " tem" : ""}"><i></i><i></i>${segundo ? "" : `<span class="esp-andares-mais">${mais}</span>`}</span>`,
+    titulo: "Segundo andar", detalhes: chips(segundo ? [andar2?.nome || "Pronto", ...medidas(andar2)] : ["Uma cena só sua", "Formato próprio"]), acao: segundo ? "Reformar" : "Criar o segundo andar", onclick: "abrirReformaEscritorio(1)", extra: segundo ? "" : " novo" })}
  </div>
- <div class="prov-sacola esp-rodape">
+ <div class="esp-rodape">
   <p class="esp-nota">Inventário, moedas, XP e conquistas continuam com você em qualquer reforma, sem gastar moedas.</p>
-  <div class="abr-acoes"><button type="button" class="abr-secundario esp-branco" onclick="abrirReformaEscritorio(${noSegundo ? 1 : 0},true)" title="Guarda a mobília no inventário e limpa a pintura, depois de você confirmar">Começar ${noSegundo ? "o segundo andar" : "o térreo"} em branco</button><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Fechar</button></div>
+  <button type="button" class="vb-botao perigo esp-branco" onclick="abrirReformaEscritorio(${noSegundo ? 1 : 0},true)" title="Guarda a mobília no inventário e limpa a pintura, depois de você confirmar">Começar ${noSegundo ? "o segundo andar" : "o térreo"} em branco</button>
  </div>
 </section>`;
 }
@@ -624,6 +628,8 @@ function renderAberturaEscritorio() {
   el.dataset.etapa = criador.etapa;
   if(criador.etapa === "espaco") {
     el.innerHTML=criadorMeuEspacoHtml();
+    const boneco=el.querySelector(".esp-boneco");
+    if(boneco && typeof animadasSobre==="function" && ANIMADAS.dados) animadasSobre(boneco, boneco.dataset.figura, 2, { escala: 2 });
     // A prévia do térreo usa a decoração salva do térreo, mesmo depois de uma reforma do segundo andar.
     const antes=[criador.reforma,criador.andar];criador.reforma=false;criador.andar=0;
     try {criadorMontarPrevias(el);} finally {[criador.reforma,criador.andar]=antes;}
