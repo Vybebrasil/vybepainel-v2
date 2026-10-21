@@ -9725,3 +9725,133 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .office-dock-outra {align-self:center;color:#ffd0a8;font:650 12.5px var(--mac-ui);white-space:nowrap}
 @media (max-width:560px) {.ofc-abrir {grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce) {.ofc-abrir-opcao {transition:none}}
+
+/* Ranking 2 (pintarRankingEscritorio): períodos, campeões por categoria,
+   pódio que sobe com coroa, ritmo de cada um e setas de quem subiu. */
+#workflow-modal.rk2-janela {width:min(820px,calc(100vw - 24px))!important;background:radial-gradient(120% 60% at 50% 0%,#3a2a1a 0%,#1e2029 45%,#16181f 100%)}
+.rk2 {display:flex;flex-direction:column;min-height:0;flex:1}
+.rk2-cab {flex:none;display:grid;grid-template-columns:44px 1fr 32px;gap:12px;align-items:center;padding:16px 18px 8px}
+.rk2-cab h2 {margin:0;color:#fff;font:800 20px/1.15 var(--mac-ui);letter-spacing:-.01em}
+.rk2-cab small {color:#c9bfb4;font:550 12.5px var(--mac-ui)}
+.rk2-cab-icone {display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:linear-gradient(180deg,#ffc35c,#ff8a1f);color:#fff;box-shadow:0 4px 0 #a24e0c,0 10px 24px #ff8a1f55}
+.rk2-cab-icone svg,.rk2-camp-icone svg {width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.rk2-periodos {flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin:4px 18px 10px;padding:4px;border-radius:14px;background:#0000004d;border:1px solid #ffffff12}
+.rk2-periodos button {padding:9px 6px;border:0;border-radius:10px;background:none;color:#cfd3dc;font:700 13px var(--mac-ui);cursor:pointer;transition:background .2s var(--curva,ease),color .2s}
+.rk2-periodos button:hover {color:#fff;background:#ffffff0d}
+.rk2-periodos button[aria-selected="true"] {background:linear-gradient(180deg,#ffffff,#e9ebf0);color:#14151b;box-shadow:0 2px 0 #9aa0ad}
+.rk2-periodos button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+/* Campeões: uma faixa que rola com o líder de cada categoria. */
+.rk2-campeoes {flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(178px,1fr);gap:8px;overflow-x:auto;overflow-y:hidden;padding:9px 18px 14px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.rk2-camp {position:relative;display:grid;grid-template-columns:34px minmax(0,1fr) 26px;gap:9px;align-items:center;padding:10px;border-radius:14px;border:1px solid #ffffff14;background:linear-gradient(180deg,#262a36,#1c1f28);color:#fff;text-align:left;cursor:pointer;scroll-snap-align:start;box-shadow:0 3px 0 #0e0f14;transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
+.rk2-camp:hover {border-color:#ffffff30}
+.rk2-camp:active {transform:translateY(2px);box-shadow:0 1px 0 #0e0f14}
+.rk2-camp.ativo {border-color:#ff8a35;box-shadow:0 3px 0 #a24e0c,0 0 0 1px #ff8a35}
+.rk2-camp:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.rk2-camp-icone {display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(180deg,var(--c1,#7a8195),var(--c2,#5a6074));color:#fff}
+.rk2-camp-icone svg {width:19px;height:19px}
+.ic-geral {--c1:#ffc35c;--c2:#ff8a1f}.ic-xp {--c1:#8f7bff;--c2:#6a52f0}.ic-moedas {--c1:#ffd76a;--c2:#e8a91c}.ic-entregas {--c1:#4fd18b;--c2:#22a564}
+.ic-sequencia {--c1:#ff7a59;--c2:#e8433b}.ic-peca_criacao {--c1:#ff8fc7;--c2:#e2569c}.ic-peca_producao {--c1:#59b8ff;--c2:#2f86e0}.ic-peca_atendimento {--c1:#5ad6d0;--c2:#239f9a}
+.ic-peca_agendamento {--c1:#a5e05a;--c2:#6fb22a}.ic-peca_da {--c1:#c58cff;--c2:#9450e6}.ic-briefing {--c1:#ffb06a;--c2:#e57d2c}.ic-entrega_prazo {--c1:#6ad5ff;--c2:#2aa6d8}
+.ic-criacao_aprovada {--c1:#7ee0a0;--c2:#3cb36a}.ic-peca_gestao {--c1:#9aa3b8;--c2:#6b7389}.ic-acao_painel {--c1:#ff9fe0;--c2:#d75ab4}.ic-tesouros {--c1:#7af0e0;--c2:#2fb8a6}.ic-agencia {--c1:#ffcf7a;--c2:#d99a2b}
+.rk2-camp-txt {display:grid;gap:1px;min-width:0}
+.rk2-camp-txt small {color:#aeb4c2;font:700 10.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.05em}
+.rk2-camp-txt b {color:#fff;font:750 13.5px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk2-camp-txt em {color:#ffd0a8;font:650 11.5px var(--mac-ui);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk2-camp .ofc-rk-rosto {border-radius:50%}
+.rk2-camp-eu {position:absolute;top:-7px;right:8px;padding:0 6px;border-radius:999px;background:#ff8a35;color:#1d0d02;font:800 9.5px/15px var(--mac-ui);font-style:normal}
+.rk2-camp.meu {background:linear-gradient(180deg,#3a2a1a,#241c16)}
+.rk2-corpo {display:grid;gap:12px;padding:0 18px 18px;overflow-y:auto;min-height:0;transition:opacity .2s}
+.rk2-corpo.atualizando {opacity:.7}
+/* Você */
+.rk2-voce {display:grid;grid-template-columns:auto 46px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 14px;border-radius:18px;background:linear-gradient(90deg,#ff954833,#ff95480a);border:1px solid #ff954866;animation:rk2-entra .35s var(--curva,ease) both}
+.rk2-voce-pos {display:grid;justify-items:center;gap:2px;min-width:44px}
+.rk2-voce-pos b {color:#ffc58f;font:850 26px/1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.rk2-voce-txt {display:grid;gap:2px;min-width:0}
+.rk2-voce-txt > b {color:#fff;font:750 15px var(--mac-ui)}
+.rk2-voce-txt small {color:#d6cbbf;font:550 12px var(--mac-ui)}
+.rk2-voce-txt p {margin:2px 0 0;color:#eef0f5;font:500 12.5px/1.4 var(--mac-ui)}
+.rk2-voce .rk2-ritmo {width:96px;height:30px}
+/* Setas */
+.rk2-seta {display:inline-flex;align-items:center;padding:0 5px;border-radius:999px;font:800 10.5px/16px var(--mac-ui);font-variant-numeric:tabular-nums}
+.rk2-seta.sobe {background:#3ccf8e26;color:#7ff0b4}
+.rk2-seta.desce {background:#ff6b6b26;color:#ffaaaa}
+.rk2-seta.igual {background:#ffffff12;color:#aeb4c2}
+.rk2-seta.novo {background:#ff8a3526;color:#ffd0a8;text-transform:uppercase;letter-spacing:.03em}
+/* Pódio */
+.rk2-podio {display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:end;padding-top:14px}
+.rk2-degrau {position:relative;display:grid;justify-items:center;gap:2px;min-width:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:center;cursor:pointer;animation:rk2-sobe .55s var(--curva,ease) both;animation-delay:var(--atraso,0s)}
+.rk2-degrau:focus-visible {outline:2px solid #ff8a35;outline-offset:4px;border-radius:14px}
+.rk2-degrau .ofc-rk-dnome {color:#fff;font:750 14px var(--mac-ui)}
+.rk2-degrau .ofc-rk-dvalor {color:#fff;font:850 24px/1.1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.rk2-degrau.p1 .ofc-rk-dvalor {font-size:30px;background:linear-gradient(180deg,#fff4c2,#ffc35c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rk2-degrau > small {color:#b8bdc9;font:550 11.5px var(--mac-ui)}
+.rk2-degrau.eu .ofc-rk-dnome {color:#ffc58f}
+.rk2-bloco {display:grid;align-content:start;justify-items:center;gap:2px;width:100%;margin-top:8px;padding:10px 4px;border-radius:14px 14px 6px 6px;border:1px solid #ffffff14;box-shadow:inset 0 1px 0 #ffffff26}
+.rk2-bloco span {font:850 26px var(--mac-ui)}
+.rk2-bloco em {color:#eadfd0;font:650 11px var(--mac-ui);font-style:normal}
+.rk2-degrau.p1 .rk2-bloco {min-height:96px;background:linear-gradient(180deg,#ffcf5c66,#ffb02e14);border-color:#ffcf5c66;box-shadow:inset 0 1px 0 #fff3,0 12px 40px #ffb02e33}
+.rk2-degrau.p1 .rk2-bloco span {color:#ffe39a;text-shadow:0 2px 12px #ffb02e88}
+.rk2-degrau.p2 .rk2-bloco {min-height:70px;background:linear-gradient(180deg,#dfe3ec55,#dfe3ec10)}
+.rk2-degrau.p3 .rk2-bloco {min-height:54px;background:linear-gradient(180deg,#d98a5455,#d98a5410)}
+.rk2-degrau.p3 .rk2-bloco span {color:#f2b48a}
+.rk2-coroa {position:absolute;top:-16px;left:50%;z-index:2;transform:translateX(-50%);width:34px;height:34px;color:#ffd35c;filter:drop-shadow(0 2px 6px #ffb02e99);animation:rk2-coroa 2.6s ease-in-out infinite}
+.rk2-coroa svg {width:100%;height:100%;fill:currentColor}
+.rk2-degrau.p1 .ofc-rk-figura::after {content:"";position:absolute;inset:auto -20% 0;height:60%;background:radial-gradient(closest-side,#ffd35c55,transparent);z-index:-1}
+/* Lista */
+.rk2-lista {list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rk2-lista > li:not(.ofc-rk-det-li) {display:grid;grid-template-columns:52px 32px minmax(0,1fr) 84px minmax(60px,140px) auto;gap:10px;align-items:center;padding:9px 12px;border-radius:14px;border:1px solid #ffffff10;background:linear-gradient(180deg,#232633,#1c1f28);cursor:pointer;animation:rk2-entra .3s var(--curva,ease) both;animation-delay:calc(var(--i,0) * 30ms)}
+.rk2-lista > li:hover {border-color:#ffffff26}
+.rk2-lista > li:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.rk2-lista > li.eu {border-color:#ff954866;background:linear-gradient(90deg,#ff95481f,#1c1f28)}
+.rk2-pos {display:flex;align-items:center;gap:4px;color:#cfd3dc;font:800 14px var(--mac-ui);font-variant-numeric:tabular-nums}
+.rk2-nome {display:grid;gap:1px;min-width:0}
+.rk2-nome b {color:#fff;font:700 13.5px var(--mac-ui)}
+.rk2-nome small {color:#9aa1b2;font:550 11.5px var(--mac-ui)}
+.rk2-barra {height:8px;border-radius:999px;background:#ffffff12;overflow:hidden}
+.rk2-barra i {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff8a1f,#ffc35c);transform-origin:left;animation:rk2-barra .6s var(--curva,ease) both}
+.rk2-valor {display:grid;justify-items:end;gap:1px;min-width:70px}
+.rk2-valor b {color:#fff;font:800 14px var(--mac-ui);font-variant-numeric:tabular-nums}
+.rk2-valor small {color:#9aa1b2;font:550 11px var(--mac-ui);white-space:nowrap}
+.rk2-ritmo {width:84px;height:26px;overflow:visible}
+.rk2-ritmo polygon {fill:#ff8a3522}
+.rk2-ritmo polyline {fill:none;stroke:#ff9d4d;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.rk2-ritmo circle {fill:#ffc35c}
+@keyframes rk2-sobe {from {opacity:0;transform:translateY(26px)} to {opacity:1;transform:none}}
+@keyframes rk2-entra {from {opacity:0;transform:translateY(6px)} to {opacity:1;transform:none}}
+@keyframes rk2-barra {from {transform:scaleX(0)} to {transform:scaleX(1)}}
+@keyframes rk2-coroa {0%,100% {transform:translateX(-50%) rotate(-6deg)} 50% {transform:translateX(-50%) translateY(-3px) rotate(6deg)}}
+@media (max-width:640px) {
+  .rk2-lista > li:not(.ofc-rk-det-li) {grid-template-columns:44px 28px minmax(0,1fr) auto}
+  .rk2-lista .rk2-ritmo,.rk2-lista .rk2-barra {display:none}
+  .rk2-voce {grid-template-columns:auto 40px minmax(0,1fr)}
+  .rk2-voce .rk2-ritmo,.rk2-voce .ofc-rk-anel {display:none}
+  .rk2-degrau .ofc-rk-dvalor {font-size:19px}.rk2-degrau.p1 .ofc-rk-dvalor {font-size:23px}
+}
+@media (prefers-reduced-motion:reduce) {.rk2-degrau,.rk2-voce,.rk2-lista > li,.rk2-barra i,.rk2-coroa {animation:none}}
+/* Ranking com cara de jogo: blocos com degrau que afundam, brilho no ouro,
+   selo de nível, barras de vida e confete. */
+.rk2-bloco {box-shadow:inset 0 1px 0 #ffffff33,0 6px 0 var(--degrau,#0d0e13),0 14px 24px #0007;transition:transform .12s var(--curva,ease),box-shadow .12s}
+.rk2-degrau:active .rk2-bloco {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff33,0 2px 0 var(--degrau,#0d0e13),0 6px 12px #0006}
+.rk2-degrau.p1 {--degrau:#8a5a10}.rk2-degrau.p2 {--degrau:#5d6270}.rk2-degrau.p3 {--degrau:#6b3a1c}
+.rk2-degrau.p1 .rk2-bloco {position:relative;overflow:hidden}
+.rk2-degrau.p1 .rk2-bloco::after {content:"";position:absolute;inset:-40% auto -40% -60%;width:40%;background:linear-gradient(100deg,transparent,#ffffff55,transparent);transform:skewX(-18deg);animation:rk2-brilho 3.2s ease-in-out infinite}
+.rk2-degrau .ofc-rk-dvalor {text-shadow:0 3px 0 #0006}
+.rk2-degrau.p1 .ofc-rk-dvalor {filter:drop-shadow(0 3px 0 #8a5a10)}
+.rk2-degrau .ofc-rk-figura {animation:rk2-respira 3s ease-in-out infinite}
+.rk2-degrau.p1 .ofc-rk-figura {animation-duration:2.2s}
+.rk2-selo {position:absolute;right:-2px;bottom:6px;display:grid;place-items:center;min-width:24px;height:24px;padding:0 5px;border-radius:8px;background:linear-gradient(180deg,#8f7bff,#5b45e0);color:#fff;font:900 11.5px var(--mac-ui);box-shadow:0 2px 0 #34238f,0 0 0 2px #1c1f28}
+.rk2-selo.mini {right:-6px;bottom:-4px;min-width:18px;height:18px;border-radius:6px;font-size:9.5px;box-shadow:0 2px 0 #34238f,0 0 0 2px #1c1f28}
+.rk2-avatar {position:relative;display:inline-grid}
+.rk2-lista > li:not(.ofc-rk-det-li) {box-shadow:0 3px 0 #0e0f14;transition:transform .12s var(--curva,ease),box-shadow .12s,border-color .15s}
+.rk2-lista > li:not(.ofc-rk-det-li):active {transform:translateY(2px);box-shadow:0 1px 0 #0e0f14}
+.rk2-lista > li.eu {box-shadow:0 3px 0 #7a3c0c}
+.rk2-pos {font-size:16px;font-weight:900;text-shadow:0 2px 0 #0007}
+.rk2-barra {height:10px;border-radius:5px;background:#0000004d;box-shadow:inset 0 1px 2px #0008,0 1px 0 #ffffff10}
+.rk2-barra i {border-radius:5px;background:repeating-linear-gradient(90deg,#ffb347 0 10px,#ff9a2f 10px 12px);box-shadow:inset 0 1px 0 #ffffff66,inset 0 -2px 0 #0003}
+.rk2-voce-pos b {font-weight:900;text-shadow:0 3px 0 #7a3c0c}
+.rk2-seta.sobe {animation:rk2-pula 1.6s ease-in-out infinite}
+.rk2-confete {position:fixed;inset:0;z-index:950;pointer-events:none}
+@keyframes rk2-brilho {0%,60% {left:-60%} 100% {left:130%}}
+@keyframes rk2-respira {0%,100% {transform:translateY(0)} 50% {transform:translateY(-3px)}}
+@keyframes rk2-pula {0%,100% {transform:translateY(0)} 50% {transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce) {.rk2-degrau.p1 .rk2-bloco::after,.rk2-degrau .ofc-rk-figura,.rk2-seta.sobe {animation:none}}

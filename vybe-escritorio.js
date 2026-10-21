@@ -275,7 +275,7 @@ async function carregarLobbyEscritorio() {
     escritorioApi("cobrancas", null, { pessoa: eu }).then((d) => { espera.cobrancas = (d.cobrancas || []).length; pintar(); }).catch(() => {}),
     escritorioApi("recados-resumo").then((d) => { espera.recados = (d.resumo || []).reduce((t, r) => t + Number(r.nao_lidos || 0), 0); pintar(); }).catch(() => {}),
     escritorioApi("ranking").then((d) => {
-      escritorioRanking.dados = d;
+      escritorioRanking.dados.semana = d;
       const lista = d.pessoas || [], k = lista.findIndex((p) => p.id === eu), p = lista[k], acima = lista[k - 1];
       if (p?.posicao) { espera.posicao = p.posicao; if (acima) { const n = Math.max(1, Math.floor((acima.pct * p.meta) / 100) + 1 - p.entregas); espera.falta = `faltam ${n} para passar ${String(acima.nome).split(" ")[0]}`; } else espera.falta = "você lidera a semana"; }
       pintar();

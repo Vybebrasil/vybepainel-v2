@@ -60,3 +60,30 @@ test('geral pelo % da meta (desempate pelo XP), atividades da semana e meta da a
  // Prêmio e bônus não entram no XP do ranking.
  assert.equal((await rankingDaSemana(sql,AGORA,PASSADA)).pessoas.find(p=>p.id==='2').xp,60);
 });
+// Ranking 2 (Paulo, 21/10/2026): hoje, semana, mês e sempre, com a posição no
+// período anterior (seta), o ritmo do XP e os dias seguidos entregando.
+test('ranking por período: hoje, semana, mês e sempre, com seta, ritmo e sequência',async t=>{
+ const {db,sql}=await banco(t);
+ await sql`UPDATE vybe_escritorio_regras SET ativa=false WHERE chave IN ('dia_sem_furo','dia_agendamento','dia_sem_vencida','dia_ativo')`;
+ const AGORA=new Date(), HOJE=diaBahia(AGORA);
+ let id=5000;
+ // Jady (6) entregou hoje e ontem; Reriston (2) só ontem, com mais peças.
+ await peca(db,sql,6,id++,HOJE,30); await peca(db,sql,6,id++,somarDias(HOJE,-1));
+ for(let k=0;k<3;k++) await peca(db,sql,2,id++,somarDias(HOJE,-1));
+ const dia=await rankingEscritorio(sql,AGORA,{periodo:'dia'});
+ assert.equal(dia.periodo,'dia');
+ assert.deepEqual([dia.inicio,dia.fim],[HOJE,HOJE]);
+ const jady=dia.pessoas.find(p=>p.id==='6'), rer=dia.pessoas.find(p=>p.id==='2');
+ assert.equal(jady.posicao,1);                         // só ela entregou hoje
+ assert.equal(rer.posicao,null);
+ assert.equal(rer.antes,1);                            // ontem o Reriston liderava
+ assert.ok(jady.sequencia>=2);
+ assert.deepEqual(jady.ritmo,[[HOJE,30]]);
+ const total=await rankingEscritorio(sql,AGORA,{periodo:'total'});
+ assert.equal(total.inicio,null);
+ assert.equal(total.pessoas[0].id,'2');                // Sempre: vale o XP total
+ assert.ok(total.pessoas[0].nivel>=1);
+ const mes=await rankingEscritorio(sql,AGORA,{periodo:'mes'});
+ assert.equal(mes.inicio,HOJE.slice(0,8)+'01');
+ await assert.rejects(rankingEscritorio(sql,AGORA,{periodo:'ano'}),/Período inválido/);
+});

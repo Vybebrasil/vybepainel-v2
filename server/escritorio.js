@@ -340,7 +340,7 @@ export async function areaEscritorio(req, res, quem, sql) {
       if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
       return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo)) });
     }
-    if (acao === "ranking") return res.status(200).json({ ok: true, ...(await rankingEscritorio(sql)) });
+    if (acao === "ranking") return res.status(200).json({ ok: true, ...(await rankingEscritorio(sql, new Date(), { periodo: String(req.query?.periodo || "semana") })) });
     if (acao === "movel-origem") {
       // Só os donos das salas (a entrada inteira do escritório levava 8 s).
       const equipe = await sql`SELECT id,nome FROM vybe_pessoas WHERE ativo=TRUE AND pode_entrar=TRUE ORDER BY nome`;

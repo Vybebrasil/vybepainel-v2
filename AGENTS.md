@@ -161,7 +161,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Ranking): geral pelo % da própria meta, XP da semana, por atividade e a
   meta da agência; zera toda segunda; pódio e bônus da agência pagos uma vez
   no fechamento da semana, com valores na tabela de regras
-  (`2026-10-20-escritorio-ranking.sql`). O % da meta e as entregas da semana
+  (`2026-10-20-escritorio-ranking.sql`). Desde 21/10/2026 o ranking também
+  mostra hoje, mês e sempre (rota `ranking?periodo=`), campeões por
+  categoria, seta de quem subiu e dias seguidos entregando; prêmio só na semana. O % da meta e as entregas da semana
   aparecem para todos; o extrato do razão continua só na ficha da própria
   pessoa e com quem administra.
 - O Escritório usa identidade individual da sessão Vybe. Nunca reintroduza código
