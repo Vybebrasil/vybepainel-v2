@@ -234,7 +234,8 @@ export async function demoApi(req,res,url,body) {
         {id:'102',titulo:'Foto - Sobremesa da casa',formato:'Fotografia',prazo:d(4),veiculacao:d(6),briefing:'',status:'Aguardo',clientes:[{id:'1',nome:'Cliente demonstração'}]},
         {id:'103',titulo:'Reels - Bastidores do atendimento',formato:'Reels',prazo:d(6),veiculacao:d(8),briefing:'Mostrar a recepção e a equipe sorrindo.',status:'Aguardo',clientes:[{id:'2',nome:'Cliente B (fictício)'}],roteiro_doc:{titulo:'Roteiros Cliente B – bastidores',link:'https://docs.google.com/document/d/demonstracao-roteiro-cliente-b/edit'}}]});
       const ag=(id,titulo,n,inicio,fim,tipo,cliente_id,cliente,extra={})=>({id,titulo,dia:d(n),inicio,fim,horario:inicio?`${inicio} às ${fim}`:'Dia inteiro · horário não informado',local:'',tipo,cliente_id,cliente,captacao_id:'',link:'',...extra});
-      return reply(200,{ok:true,de:d(0),ate:d(6),aviso_agenda:'',agenda:[
+      const proximas=[ag('g7','Captação - Cliente C - fachada',2,'10:00','11:00','captacao','3','Cliente C (fictício)'),ag('g8','Captação aula de dança',3,'07:00','08:00','captacao','','')];
+      return reply(200,{ok:true,de:d(0),ate:d(6),aviso_agenda:'',proximas,agenda:[...proximas,
         ag('g1','Captação - Cliente B - entrevista',0,'09:00','10:00','captacao','2','Cliente B (fictício)',{local:'Clínica'}),
         ag('g2','Reunião de pauta - Cliente B',0,'09:30','10:30','reuniao','2','Cliente B (fictício)'),
         ag('g4','Cliente demonstração - Banco de imagem',0,'15:00','16:30','captacao','1','Cliente demonstração'),

@@ -1606,11 +1606,19 @@ async function areaCaptacoes(req,res,quem) {
       }
       // A agenda do Google é a das captações de verdade; falha dela vira aviso.
       // Semana pedida (segunda-feira); sem ela, a semana de hoje.
-      const semana=/^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.semana||'')) ? String(req.query.semana) : '';
-      const fimSemana=semana ? new Date(new Date(`${semana}T12:00:00Z`).getTime()+6*864e5).toISOString().slice(0,10) : '';
-      const [lista, agenda] = await Promise.all([listarCaptacoes(banco,{de:semana||req.query?.de,ate:fimSemana||req.query?.ate}),
-        agendaDeCaptacoes(banco,{inicio:semana}).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}))]);
-      return res.status(200).json({ok:true,...lista,agenda:agenda.eventos,aviso_agenda:agenda.aviso||''});
+      // A semana pedida (segunda-feira) para a agenda e os próximos 30 dias
+      // para as pendências (o que falta marcar, ligar, cadastrar e roteirizar).
+      const dia=(d,n)=>new Date(new Date(`${d}T12:00:00Z`).getTime()+n*864e5).toISOString().slice(0,10);
+      const hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia'}).format(new Date());
+      const semana=/^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.semana||'')) ? String(req.query.semana) : dia(hoje,-((new Date(`${hoje}T12:00:00Z`).getUTCDay()+6)%7));
+      const ler=(opcoes)=>agendaDeCaptacoes(banco,opcoes).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}));
+      const [lista, agenda, proximas] = await Promise.all([
+        listarCaptacoes(banco,{de:semana<hoje?semana:hoje,ate:dia(semana,6)>dia(hoje,30)?dia(semana,6):dia(hoje,30)}),
+        ler({inicio:semana,dias:7}), ler({inicio:hoje,dias:31})]);
+      // As peças que saíram de um roteiro do Docs trazem o link dele.
+      const roteiros=await roteirosDosConteudos(banco,lista.captacoes.flatMap((k)=>k.pecas.map((p)=>p.id)));
+      for(const k of lista.captacoes) k.pecas=k.pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}));
+      return res.status(200).json({ok:true,...lista,semana,agenda:agenda.eventos,proximas:proximas.eventos.filter((e)=>e.tipo==='captacao'),aviso_agenda:agenda.aviso||proximas.aviso||''});
     }
     if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});
     if(acao==='montar') return res.status(200).json({ok:true,...await montarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
