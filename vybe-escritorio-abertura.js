@@ -195,7 +195,7 @@ function criadorSeloRoupa(t, id) {
   const c = `roupa:${t}-${id}`;
   if (criadorRoupaLivre(c)) return "";
   const raro = criador.roupas.pecas[c]?.[0] && criador.roupas.pecas[c][0] !== "comum";
-  return `<em class="cri-preco${raro ? " raro" : ""}" title="${raro ? "Rara" : "Comum"} · ${criadorPrecoRoupa(c)} VybeCoins">${criadorPrecoRoupa(c)}</em>`;
+  return `<em class="cri-preco${raro ? " raro" : ""}">${criadorPrecoRoupa(c)}</em>`;
 }
 // "salvar" (Meu espaço) ou "continuar" (primeira abertura).
 function criadorSeguir(tipo) {
@@ -388,29 +388,80 @@ function criadorRaridadeDaPeca(t, id) {
   if (criadorPrecoRoupa(c) === 0) return "gratis";
   return r.pecas[c]?.[0] || "comum";
 }
-// Guarda-roupa (aprovado pelo Paulo, 21/10/2026): os kits e as peças que a
-// pessoa comprou, num lugar só, cada um com "Vestir". As grátis não entram (são
-// de todo mundo e estão nas abas de cada parte).
+// Guarda-roupa (aprovado pelo Paulo, 21/10/2026): o que a pessoa está
+// vestindo, os kits e as peças dela (compradas ou que já estavam no visual
+// salvo antes das skins), cada uma com "Vestir". As grátis só aparecem em
+// "Vestindo agora": as outras são de todo mundo e estão nas abas.
 function criadorGuardaRoupa() {
   const r = criador.roupas;
-  if (!r?.ativo) return { kits: [], pecas: [] };
-  const meus = new Set(r.meus || []);
+  if (!r?.ativo) return { kits: [], pecas: [], vestindo: [] };
+  const salvas = String(escritorio.perfil?.figura || "").split(".").map((p) => "roupa:" + p.split("-").slice(0, 2).join("-")).filter((c) => criadorPrecoRoupa(c) > 0);
+  const meus = new Set([...(r.meus || []), ...salvas]);
+  const peca = (c) => { const [t, id] = c.slice(6).split("-"); return { classe: c, t, id: Number(id), aba: CRIADOR_ABAS.find((a) => a.t === t) }; };
+  const ordem = (a, b) => CRIADOR_ABAS.indexOf(a.aba) - CRIADOR_ABAS.indexOf(b.aba);
   const kits = (r.kits || []).filter((k) => k.classes.every((c) => meus.has(c)));
-  const pecas = [...meus].map((c) => { const [t, id] = c.slice(6).split("-"); return { classe: c, t, id: Number(id), aba: CRIADOR_ABAS.find((a) => a.t === t) }; }).filter((p) => p.aba && Number.isFinite(p.id))
-    .sort((a, b) => CRIADOR_ABAS.indexOf(a.aba) - CRIADOR_ABAS.indexOf(b.aba));
-  return { kits, pecas };
+  const pecas = [...meus].map(peca).filter((p) => p.aba && Number.isFinite(p.id)).sort(ordem);
+  const vestindo = Object.entries(criador.f?.partes || {}).map(([t, p]) => peca(`roupa:${t}-${p.id}`)).filter((p) => p.aba && p.t !== "hd").sort(ordem);
+  return { kits, pecas, vestindo };
 }
 function criadorVestirPeca(t, id) {
   criador.aba = t;
   criadorEscolher(t, id);
 }
 function criadorGuardaRoupaHtml(fig) {
-  const { kits, pecas } = criadorGuardaRoupa();
-  if (!kits.length && !pecas.length) return vbEstadoHtml({ titulo: "Seu guarda-roupa está vazio", texto: "As roupas e os kits que você comprar ficam aqui, prontos para vestir.",
-    acao: '<button type="button" class="vb-botao principal" onclick="criador.armario=\'pecas\';criador.filtro=\'venda\';criador.pagina=0;renderAberturaEscritorio()">Ver o que está à venda</button>' });
+  const { kits, pecas, vestindo } = criadorGuardaRoupa();
   const vestido = (t, id) => criador.f.partes[t]?.id === id;
-  return `${kits.length ? `<h3 class="prov-gr-titulo">Kits <small>${kits.length}</small></h3><div class="prov-vitrine-lista prov-gr-kits">${kits.map((k) => `<article class="cri-skin"><div class="cri-skin-arte"><img alt="" width="64" height="110" loading="lazy" src="${safeText(criadorImagem(fig.split(".").filter((p) => !k.classes.some((c) => p.startsWith(c.slice(6).split("-")[0] + "-"))).concat(k.classes.map((c) => c.slice(6) + "-110")).join("."), 2, "n", ""))}"></div><div class="cri-skin-texto"><b>${safeText(k.nome.replace(/^Skin\s+/i, ""))}</b><small>${k.classes.length} peças</small><div><button type="button" class="cri-skin-comprar" onclick="criadorProvarKit('${safeText(k.chave)}')">Vestir</button></div></div></article>`).join("")}</div>` : ""}
-${pecas.length ? `<h3 class="prov-gr-titulo">Peças <small>${pecas.length}</small></h3><div class="cri-grade prov-gr-pecas">${pecas.map((p) => `<button type="button" class="cri-peca${p.aba.cabeca ? " cabeca" : ""} r-${safeText(criadorRaridadeDaPeca(p.t, p.id) || "comum")}" aria-pressed="${vestido(p.t, p.id)}" onclick="criadorVestirPeca('${p.t}', ${p.id})" title="${safeText(p.aba.nome)} · ${vestido(p.t, p.id) ? "vestindo" : "vestir"}"><img loading="lazy" src="${safeText(criadorMiniatura(p.t, p.id, p.aba.cabeca))}" alt=""><span class="prov-gr-parte">${safeText(p.aba.nome)}</span></button>`).join("")}</div>` : ""}`;
+  const grade = (lista) => `<div class="cri-grade prov-gr-pecas">${lista.map((p) => `<button type="button" class="cri-peca${p.aba.cabeca ? " cabeca" : ""} r-${safeText(criadorRaridadeDaPeca(p.t, p.id) || "comum")}" aria-pressed="${vestido(p.t, p.id)}" onclick="criadorVestirPeca('${p.t}', ${p.id})" ${criadorFichaAtributos(p.aba, p.id)}><img loading="lazy" src="${safeText(criadorMiniatura(p.t, p.id, p.aba.cabeca))}" alt="">${criadorSeloAnimada(p.t, p.id)}<span class="prov-gr-parte">${safeText(p.aba.nome)}</span></button>`).join("")}</div>`;
+  const vazio = !kits.length && !pecas.length;
+  return `${vestindo.length ? `<h3 class="prov-gr-titulo">Vestindo agora <small>${vestindo.length}</small></h3>${grade(vestindo)}` : ""}
+${kits.length ? `<h3 class="prov-gr-titulo">Kits <small>${kits.length}</small></h3><div class="prov-vitrine-lista prov-gr-kits">${kits.map((k) => `<article class="cri-skin"><div class="cri-skin-arte"><img alt="" width="64" height="110" loading="lazy" src="${safeText(criadorImagem(fig.split(".").filter((p) => !k.classes.some((c) => p.startsWith(c.slice(6).split("-")[0] + "-"))).concat(k.classes.map((c) => c.slice(6) + "-110")).join("."), 2, "n", ""))}"></div><div class="cri-skin-texto"><b>${safeText(k.nome.replace(/^Skin\s+/i, ""))}</b><small>${k.classes.length} peças</small><div><button type="button" class="cri-skin-comprar" onclick="criadorProvarKit('${safeText(k.chave)}')">Vestir</button></div></div></article>`).join("")}</div>` : ""}
+${pecas.length ? `<h3 class="prov-gr-titulo">Suas peças <small>${pecas.length}</small></h3>${grade(pecas)}` : ""}
+${vazio ? vbEstadoHtml({ titulo: "Nenhuma peça comprada ainda", texto: "As roupas e os kits que você comprar ficam aqui, junto com o que você já veste.",
+    acao: '<button type="button" class="vb-botao principal" onclick="criador.armario=\'pecas\';criador.filtro=\'venda\';criador.pagina=0;renderAberturaEscritorio()">Ver o que está à venda</button>' }) : ""}`;
+}
+// Peça animada (roupas_animadas.json): selo no cartão, para achar de longe.
+function criadorPecaAnimada(t, id) {
+  return Boolean(typeof ANIMADAS !== "undefined" && ANIMADAS.dados?.[`${t}-${id}`]);
+}
+function criadorSeloAnimada(t, id) {
+  return criadorPecaAnimada(t, id) ? '<i class="cri-anim" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></i>' : "";
+}
+// Ficha que abre ao passar o mouse (Paulo, 21/10/2026): parte, raridade,
+// preço ou situação, se é animada e quantas pessoas da equipe têm.
+function criadorFichaAtributos(aba, id) {
+  const c = `roupa:${aba.t}-${id}`, r = criador.roupas, skins = Boolean(r?.ativo) && !criador.destino;
+  const rar = skins ? criadorRaridadeDaPeca(aba.t, id) : "";
+  const situacao = !skins ? "" : criador.f.partes[aba.t]?.id === id ? "Vestindo" : criadorPrecoRoupa(c) === 0 ? "Grátis" : criadorRoupaLivre(c) ? "Sua" : `${criadorPrecoRoupa(c).toLocaleString("pt-BR")} moedas`;
+  const nome = rar === "gratis" ? "Grátis" : r?.faixas?.[rar]?.nome || (rar ? rar.replace("_", " ") : "");
+  return `aria-label="${safeText(`${aba.nome} nº ${id}${nome ? ", " + nome : ""}${situacao ? ", " + situacao : ""}`)}" data-ficha="${safeText([aba.nome, id, rar, nome, situacao, criadorPecaAnimada(aba.t, id) ? 1 : "", skins ? r.donos?.[c] || 0 : ""].join("|"))}"`;
+}
+function criadorFichaMostrar(ev) {
+  const peca = ev.target.closest?.("[data-ficha]"), ficha = document.getElementById("prov-ficha");
+  if (!ficha) return;
+  if (!peca) { ficha.hidden = true; return; }
+  const [parte, id, rar, nome, situacao, animada, donos] = peca.dataset.ficha.split("|");
+  ficha.className = `prov-ficha r-${rar || "comum"}`;
+  const arte = peca.querySelector("img")?.src || "";
+  ficha.innerHTML = `${arte ? `<img class="prov-ficha-arte" alt="" src="${safeText(arte)}">` : ""}<b>${safeText(parte)} <small>nº ${safeText(id)}</small></b>${nome ? `<span class="prov-ficha-rar">${safeText(nome)}</span>` : ""}${situacao ? `<span class="prov-ficha-linha">${safeText(situacao)}</span>` : ""}${animada ? '<span class="prov-ficha-linha anim">Animada: mexe no mapa e no provador</span>' : ""}${donos !== "" ? `<span class="prov-ficha-linha suave">${Number(donos) ? `${donos} ${Number(donos) === 1 ? "pessoa da equipe tem" : "pessoas da equipe têm"}` : "Ninguém da equipe tem ainda"}</span>` : ""}<span class="prov-ficha-linha suave">Clique para provar</span>`;
+  ficha.hidden = false;
+  const r = peca.getBoundingClientRect(), caixa = ficha.offsetParent?.getBoundingClientRect() || { left: 0, top: 0, right: innerWidth };
+  const w = ficha.offsetWidth, h = ficha.offsetHeight;
+  let x = r.left - caixa.left + r.width / 2 - w / 2, y = r.top - caixa.top - h - 8;
+  if (y < 4) y = r.bottom - caixa.top + 8;
+  x = Math.max(6, Math.min(x, caixa.right - caixa.left - w - 6));
+  ficha.style.left = x + "px"; ficha.style.top = y + "px";
+}
+// Ordem da loja: padrão, preço, mais compradas e animadas primeiro.
+const CRIADOR_ORDENS = [["padrao", "Padrão"], ["barato", "Mais baratas"], ["caro", "Mais caras"], ["comprados", "Mais compradas"], ["animadas", "Animadas primeiro"]];
+function criadorOrdenar(conjuntos, t) {
+  const o = criador.ordem || "padrao";
+  if (o === "padrao") return conjuntos;
+  const chave = (s) => {
+    const c = `roupa:${t}-${s[0]}`;
+    return o === "barato" ? criadorPrecoRoupa(c) : o === "caro" ? -criadorPrecoRoupa(c)
+      : o === "comprados" ? -(criador.roupas?.donos?.[c] || 0) : criadorPecaAnimada(t, s[0]) ? 0 : 1;
+  };
+  return conjuntos.map((s, i) => [chave(s), i, s]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((x) => x[2]);
 }
 function criadorPainelHtml() {
   const f = criador.f, fig = criadorFigura(f);
@@ -421,8 +472,9 @@ function criadorPainelHtml() {
   const conjuntos = (tipo?.s || []).filter((s) => criadorServe(s, f.g)).filter((s) => {
     if (filtro === "todas") return true;
     const c = `roupa:${aba.t}-${s[0]}`, livre = criadorRoupaLivre(c), preco = criadorPrecoRoupa(c);
-    return filtro === "gratis" ? preco === 0 : filtro === "minhas" ? livre && preco !== 0 : !livre;
+    return filtro === "gratis" ? preco === 0 : filtro === "minhas" ? livre && preco !== 0 : filtro === "animadas" ? criadorPecaAnimada(aba.t, s[0]) : !livre;
   });
+  if (skins) conjuntos.splice(0, conjuntos.length, ...criadorOrdenar(conjuntos, aba.t));
   const atual = f.partes[aba.t];
   const conjAtual = atual && criadorConjunto(aba.t, atual.id);
   const pal = criadorPaleta(aba.t);
@@ -432,7 +484,7 @@ function criadorPainelHtml() {
     const src = criadorMiniatura(aba.t, id, aba.cabeca);
     const fg = decodeURIComponent(new URL(src).searchParams.get("figure"));
     const rar = id === null ? "" : criadorRaridadeDaPeca(aba.t, id);
-    return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}${rar ? " r-" + rar : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" aria-label="${rotulo}" title="${rotulo}"><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt="">${id === null ? "<span>Nenhum</span>" : criadorSeloRoupa(aba.t, id)}</button>`;
+    return `<button type="button" class="cri-peca${aba.cabeca ? " cabeca" : ""}${rar ? " r-" + rar : ""}" aria-pressed="${id === null ? !atual : atual?.id === id}" onclick="criadorEscolher('${aba.t}', ${id})" ${id === null ? `aria-label="${rotulo}" title="${rotulo}"` : criadorFichaAtributos(aba, id)}><img loading="lazy" src="${src}" data-fig="${safeText(fg)}" onerror="${reserva()}" alt="">${id === null ? "<span>Nenhum</span>" : criadorSeloRoupa(aba.t, id) + criadorSeloAnimada(aba.t, id)}</button>`;
   };
   // Uma paleta por vez (Cor 1 / Cor 2), com as mais usadas visíveis e o resto
   // em "Mais cores"; a cor escolhida fica sempre visível no topo.
@@ -481,13 +533,13 @@ function criadorPainelHtml() {
   ${criadorMaoHtml(fig)}
   ${criador.destino ? "" : criadorLooksHtml()}
  </div>
- <div class="abr-opcoes cri-opcoes prov-armario">
+ <div class="abr-opcoes cri-opcoes prov-armario" onpointerover="criadorFichaMostrar(event)" onpointerleave="document.getElementById('prov-ficha')?.setAttribute('hidden','')" onfocusin="criadorFichaMostrar(event)" onfocusout="document.getElementById('prov-ficha')?.setAttribute('hidden','')"><div id="prov-ficha" class="prov-ficha" role="tooltip" hidden></div>
   ${skins ? `<div class="vb-alternar prov-armario-modo" role="group" aria-label="Armário"><button type="button" aria-pressed="${criador.armario !== "guarda"}" onclick="criador.armario='pecas';renderAberturaEscritorio()">Peças</button><button type="button" aria-pressed="${criador.armario === "guarda"}" onclick="criador.armario='guarda';renderAberturaEscritorio()">Guarda-roupa${(() => { const g = criadorGuardaRoupa(); const n = g.kits.length + g.pecas.length; return n ? ` <b>${n}</b>` : ""; })()}</button></div>` : ""}
   ${skins && criador.armario === "guarda" ? `<div class="prov-guarda">${criadorGuardaRoupaHtml(fig)}</div>` : `${skins ? criadorSkinsHtml(fig) : ""}
   ${!criador.cat ? '<p class="abr-nota">Carregando o catálogo…</p>' : `
-  <div class="prov-cabecalho"><h3>${aba.nome} <small>${conjuntos.length} ${conjuntos.length === 1 ? "opção" : "opções"}</small></h3>${skins ? `<div class="prov-filtros" role="group" aria-label="Filtrar peças">${chip("todas", "Todas")}${chip("gratis", "Grátis")}${chip("minhas", "Minhas")}${chip("venda", "À venda")}</div>` : ""}</div>
+  <div class="prov-cabecalho"><h3>${aba.nome} <small>${conjuntos.length} ${conjuntos.length === 1 ? "opção" : "opções"}</small></h3>${skins ? `<div class="prov-filtros" role="group" aria-label="Filtrar peças">${chip("todas", "Todas")}${chip("gratis", "Grátis")}${chip("minhas", "Minhas")}${chip("venda", "À venda")}${Object.keys(ANIMADAS.dados || {}).some((k) => k.startsWith(aba.t + "-")) ? chip("animadas", "Animadas") : ""}</div><label class="prov-ordem"><span>Ordenar</span><select onchange="criador.ordem=this.value;criador.pagina=0;renderAberturaEscritorio()">${CRIADOR_ORDENS.map(([v, n]) => `<option value="${v}"${(criador.ordem || "padrao") === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>` : ""}</div>
   ${pal.length && atual && nCores > 0 ? cores() : ""}
-  <div class="cri-grade" onwheel="criadorRodaPagina(event)">${pagina.length ? pagina.map((id) => id === null ? tile(null, "Nenhum") : tile(id, aba.nome + " " + id)).join("") : `<p class="prov-vazio">Nenhuma peça ${filtro === "minhas" ? "comprada" : filtro === "gratis" ? "grátis" : "à venda"} nesta parte.</p>`}</div>
+  <div class="cri-grade" onwheel="criadorRodaPagina(event)">${pagina.length ? pagina.map((id) => id === null ? tile(null, "Nenhum") : tile(id, aba.nome + " " + id)).join("") : `<p class="prov-vazio">Nenhuma peça ${filtro === "minhas" ? "comprada" : filtro === "gratis" ? "grátis" : filtro === "animadas" ? "animada" : "à venda"} nesta parte.</p>`}</div>
   ${totalPag > 1 ? `<nav class="cri-paginas" aria-label="Páginas"><button type="button" class="abr-secundario" onclick="criadorPagina(-1)" ${pag ? "" : "disabled"} aria-label="Página anterior">‹</button><span>Página ${pag + 1} de ${totalPag}</span><button type="button" class="abr-secundario" onclick="criadorPagina(1)" ${pag < totalPag - 1 ? "" : "disabled"} aria-label="Próxima página">›</button></nav>` : ""}`}`}
  </div>
  <div class="prov-sacola">

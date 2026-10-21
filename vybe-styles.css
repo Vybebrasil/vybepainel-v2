@@ -8938,7 +8938,32 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .provador .cri-skin b {font-size:14px}
 .provador .cri-skin small s {opacity:.6}
 .prov-cabecalho {display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
-.prov-filtros {display:flex;gap:4px}
+.prov-filtros {display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+/* Ordem da loja: um seletor discreto ao lado dos filtros. */
+.prov-ordem {display:flex;align-items:center;gap:6px;color:var(--prov-suave);font:600 12px var(--mac-ui)}
+.prov-ordem select {appearance:none;padding:6px 26px 6px 11px;border-radius:999px;border:1px solid var(--prov-linha);color:#eef0f5;font:600 12px var(--mac-ui);cursor:pointer;
+  background:#ffffff08 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23cdd1da' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center/10px}
+.prov-ordem select:focus-visible {outline:2px solid var(--prov-acento);outline-offset:2px}
+.prov-ordem option {background:#1b1d26;color:#eef0f5}
+/* Selo de peça animada (canto de cima à esquerda; o preço fica à direita). */
+.cri-anim {position:absolute;left:5px;top:5px;display:grid;place-items:center;width:20px;height:20px;border-radius:7px;pointer-events:none;
+  background:linear-gradient(180deg,#c48bff,#8e55e6);box-shadow:inset 0 1px 0 #ffffff59,0 2px 0 #4b2a80,0 0 10px #b57bff66}
+.cri-anim svg {width:13px;height:13px;fill:#fff}
+.cri-peca:hover .cri-anim svg {animation:cri-anim-gira 1.2s var(--curva,ease) infinite}
+@keyframes cri-anim-gira {50% {transform:scale(1.2) rotate(18deg)}}
+/* Ficha ao passar o mouse: parte, raridade, situação, animada e quantos têm. */
+.prov-armario {position:relative}
+.prov-ficha {--prov-cor:#c7ccd6;position:absolute;z-index:20;display:grid;gap:3px;min-width:170px;max-width:240px;padding:10px 12px;border-radius:12px;pointer-events:none;
+  background:#14151cf5;border:1px solid color-mix(in srgb,var(--prov-cor) 40%,#ffffff1a);box-shadow:0 12px 28px #000a;color:#eef0f5;font:500 12px/1.35 var(--mac-ui);animation:prov-ficha-entra .14s var(--curva,ease)}
+@keyframes prov-ficha-entra {from {opacity:0;transform:translateY(4px)}}
+.prov-ficha-arte {justify-self:center;width:72px;height:72px;margin:-2px 0 4px;object-fit:contain;image-rendering:pixelated;border-radius:10px;
+  background:radial-gradient(70% 45% at 50% 90%,color-mix(in srgb,var(--prov-cor) 30%,transparent),transparent 72%),#ffffff08}
+.prov-ficha b {font:750 13.5px var(--mac-ui);color:#fff}
+.prov-ficha b small {color:var(--prov-suave);font-weight:600}
+.prov-ficha-rar {justify-self:start;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--prov-cor) 18%,transparent);color:var(--prov-cor);font:700 11px/18px var(--mac-ui)}
+.prov-ficha-linha.anim {color:#d6b8ff}
+.prov-ficha-linha.suave {color:var(--prov-suave)}
+@media (prefers-reduced-motion:reduce) {.cri-peca:hover .cri-anim svg,.prov-ficha {animation:none}}
 .prov-filtros button {padding:6px 11px;border-radius:999px;border:1px solid var(--prov-linha);background:transparent;color:#cdd1da;font:600 12px var(--mac-ui);cursor:pointer}
 .prov-filtros button[aria-pressed=true] {background:#fff;border-color:#fff;color:#14151b}
 .provador .cri-grade {gap:8px;grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}

@@ -44,14 +44,16 @@ export async function conferirFiguraDaPessoa(tx, pessoaId, figura, figuraSalva =
   if (faltam.length) throw Object.assign(new Error(`Faltam ${faltam.length === 1 ? "1 peça" : faltam.length + " peças"} no seu guarda-roupa. Compre no criador para salvar.`), { status: 409, faltam });
 }
 // O que o criador precisa: preço de cada faixa, as peças com linha própria
-// (grátis e raras), as que a pessoa tem e os kits de roupa.
+// (grátis e raras), as que a pessoa tem, os kits de roupa e quantas pessoas
+// da equipe têm cada peça (ordem "Mais compradas" da loja; só a contagem).
 export async function roupasDaPessoa(sql, pessoaId) {
   if (!(await skinsAtivas(sql))) return { ativo: false };
-  const [raridades, linhas, meus, kits] = await Promise.all([
+  const [raridades, linhas, meus, kits, donos] = await Promise.all([
     sql`SELECT chave, nome, preco FROM vybe_escritorio_raridades ORDER BY ordem`,
     sql`SELECT classe, raridade, preco FROM vybe_escritorio_catalogo WHERE classe LIKE 'roupa:%'`,
     sql`SELECT classe FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe LIKE 'roupa:%'`,
     sql`SELECT chave, nome, descricao, classes, desconto FROM vybe_escritorio_kits WHERE ativo AND classes[1] LIKE 'roupa:%' ORDER BY ordem, chave`,
+    sql`SELECT classe, count(DISTINCT pessoa_id)::int AS n FROM vybe_escritorio_inventario WHERE classe LIKE 'roupa:%' GROUP BY classe`,
   ]);
   const faixa = Object.fromEntries(raridades.map((r) => [r.chave, { nome: r.nome, preco: Number(r.preco) }]));
   const preco = (classe) => { const l = linhas.find((x) => x.classe === classe); return l ? (l.preco ?? faixa[l.raridade]?.preco ?? 0) : faixa.comum?.preco ?? 25; };
@@ -61,6 +63,7 @@ export async function roupasDaPessoa(sql, pessoaId) {
     // classe → [raridade, preço] só para as peças com linha (o resto é Comum).
     pecas: Object.fromEntries(linhas.map((l) => [l.classe, [l.raridade, l.preco === null ? null : Number(l.preco)]])),
     meus: meus.map((m) => m.classe),
+    donos: Object.fromEntries(donos.map((d) => [d.classe, Number(d.n)])),
     kits: kits.map((k) => {
       const cheio = k.classes.reduce((t, c) => t + Number(preco(c) || 0), 0);
       return { chave: k.chave, nome: k.nome, descricao: k.descricao, classes: k.classes, desconto: Number(k.desconto), cheio, preco: Math.round(cheio * (1 - Number(k.desconto))) };
