@@ -3,7 +3,15 @@
 ## Antes de publicar
 
 - Executar `npm ci`, `npm run check` e `git diff --check`.
-- Aguardar CI e preview da Vercel no commit exato da revisão.
+- Aguardar CI e preview da Vercel no commit exato da revisão. Desde 21/10/2026
+  (decisão do Paulo) a Vercel só monta versão de teste quando a mensagem do
+  commit tem `[preview]` (`scripts/vercel-construir.mjs`, `ignoreCommand`):
+  corrija à vontade no PR e ponha `[preview]` só no último commit antes de
+  publicar. Produção sempre monta. A máquina de construção deve ser a
+  Standard fixa (o site é estático e monta em segundos); quem troca é o dono
+  do time na Vercel, em Settings › Build and Deployment.
+- Junte as mudanças de uma entrega num PR só e publique uma vez; não publique
+  cada ajuste de tela separado. Cada publicação é uma montagem paga.
 - Os testes completos rodam só no GitHub (CI). A Vercel confere a sintaxe e
   monta o site (`node scripts/check.mjs && npm run build`), sem repetir os
   testes: rodar tudo de novo a cada prévia era o maior gasto da Vercel.
