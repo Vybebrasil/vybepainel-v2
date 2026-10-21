@@ -9253,3 +9253,14 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 @keyframes ofc-celebra-sobe {from {opacity:0;translate:0 50px;scale:.6} 70% {scale:1.08}}
 @keyframes ofc-celebra-faisca {0% {opacity:1;transform:translate(-50%,-50%)} 100% {opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(160deg)}}
 @media (prefers-reduced-motion:reduce) {.ofc-celebra-cartao,.ofc-celebra-arte,.ofc-celebra-fundo {animation:none}.ofc-celebra-faiscas {display:none}}
+
+/* Guarda-roupa no Provador: Peças | Guarda-roupa no topo do armário; kits e
+   peças compradas, cada um com o nome da parte e "Vestir". */
+.prov-armario-modo {align-self:flex-start}
+.prov-armario-modo b {margin-left:4px;padding:1px 6px;border-radius:99px;background:#ff8a35;color:#1d0d02;font:800 10.5px var(--mac-ui)}
+.prov-armario-modo button[aria-pressed="true"] b {background:#14151b;color:#fff}
+.prov-guarda {display:grid;gap:10px;min-height:0;overflow-y:auto;align-content:start}
+.prov-gr-titulo {margin:4px 0 0;color:#fff;font:750 15px var(--mac-ui)}
+.prov-gr-titulo small {margin-left:6px;color:var(--prov-suave);font:500 12px var(--mac-ui)}
+.provador .prov-gr-pecas {overflow:visible}
+.prov-gr-parte {position:absolute;inset:auto 0 6px;color:#cdd1da;font:650 10.5px var(--mac-ui);text-align:center}

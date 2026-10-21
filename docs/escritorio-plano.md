@@ -1332,3 +1332,16 @@ decoração inicial "bem feito".
   ainda não visto (`escritorioCelebrarSeMudou`, guardado no navegador).
 - Pendente: etiquetas que se sobrepõem no mapa (regra no motor do mapa);
   nomes de móveis em inglês (tabela do catálogo); animar objeto na mão.
+
+### Skins no ar, Guarda-roupa, Efeitos e Bichinhos — 21/10/2026
+
+- Migração `2026-10-21-escritorio-skins.sql` **aplicada em 21/10/2026** com o
+  Aprovado do Paulo: 247 peças grátis, 303 raras, 4 kits. Não repetir (é
+  idempotente, mas não há motivo).
+- Guarda-roupa no Provador (Peças | Guarda-roupa): kits e peças compradas, cada
+  um com Vestir. Roupas saem da lista de móveis do Inventário (lá fica um
+  atalho para o Guarda-roupa) e da contagem de móveis da ficha.
+- Abas novas no Provador: Efeitos (`mc`: aura, drone, vaga-lumes) e Bichinho
+  (`pt`). O servidor de imagens do Habbo desenha essas peças paradas; 38
+  roupas do acervo têm quadros de animação (lista e mapa conjunto→peça
+  conferidos no figuredata oficial em 21/10/2026).

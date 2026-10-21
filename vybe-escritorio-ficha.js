@@ -172,7 +172,7 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
   const funcao = { criacao: "Criação", atendimento: "Atendimento", agendamento: "Agendamento", producao: "Produção", gestao: "Gestão" }[pontos?.funcao] || "";
   const nivel = jogo?.nivel ?? pontos?.nivel, xp = jogo?.xp ?? pontos?.xp, xpProx = jogo?.xpProximo ?? pontos?.xpProximo, xpTotal = jogo?.xpTotal ?? pontos?.xpTotal;
   const pct = xpProx ? Math.round(((xp || 0) / xpProx) * 100) : 0;
-  const moveis = (jogo?.inventario || []).reduce((n, i) => n + Number(i.quantidade || 0), 0);
+  const moveis = (jogo?.inventario || []).filter((i) => !String(i.classe).startsWith("roupa:")).reduce((n, i) => n + Number(i.quantidade || 0), 0);
   const conquistas = jogo?.conquistas ?? (marcos ? marcos.filter((m) => m.ok).length : null);
   const abas = ESCRITORIO_FICHA_ABAS.filter(([k]) => veNumeros || !["ganhar", "trabalho"].includes(k));
   const aba = abas.some(([k]) => k === escritorio.fichaAba) ? escritorio.fichaAba : "resumo";
@@ -214,7 +214,7 @@ ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) =
       corpo = `<div class="ofc-cq-na-ficha">${escritorioConquistasCorpoHtml(marcos)}</div>`;
     } else corpo = jogo?.marcos?.length ? `<ul class="ofc-hud-conquistas">${[...jogo.marcos].sort((a, b) => (b.nivel || 0) - (a.nivel || 0)).map((x) => `<li class="ok" title="${safeText(x.dica || "")}"><span class="ofc-hud-medalha">${x.classe ? escritorioMiniaturaHtml(x.classe) : escritorioFichaIcone("estrela")}</span><span><b>${safeText(x.nome)}</b><small>${safeText(x.dica || "")}</small></span></li>`).join("")}</ul>` : pub === undefined ? carregando("Carregando as conquistas…") : '<p class="ofc-nota">Nenhuma conquista ainda.</p>';
   } else if (aba === "inventario") {
-    const inv = jogo?.inventario || [];
+    const inv = (jogo?.inventario || []).filter((i) => !String(i.classe).startsWith("roupa:"));
     const nome = (classe) => { const mv = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return typeof escritorioNomeMovel === "function" ? escritorioNomeMovel(mv || { classe, nome: classe }) : classe; };
     // Troféus primeiro, com o nível; depois os móveis (Paulo, 20/10/2026).
     const deTrofeu = new Map([...(marcos || []).flatMap((x) => x.degraus.filter((dg) => dg.ok).map((dg) => [dg.classe, { nivel: dg.nivel, nome: x.nome, tier: dg.nome }])), ...(jogo?.marcos || []).filter((x) => x.classe).map((x) => [x.classe, { nivel: x.nivel, nome: x.nome, tier: "" }])]);
@@ -739,7 +739,8 @@ function escritorioMeuInventario() {
   for (const c of [sala, sala + "-andar-1"]) for (const it of camadas[c]?.itens || []) { colocados.set(it[0], (colocados.get(it[0]) || 0) + 1); if (c.endsWith("-andar-1")) andar1.set(it[0], (andar1.get(it[0]) || 0) + 1); }
   const essenciais = escritorio.base?.quartos?.essenciais || [];
   return (escritorio.base?.economia?.inventario || [])
-    .filter((i) => !essenciais.includes(i.classe) && !String(i.classe).startsWith("vybeimg_") && Number(i.quantidade) > 0)
+    // Roupas ficam no Guarda-roupa do Provador, não na lista de móveis.
+    .filter((i) => !essenciais.includes(i.classe) && !String(i.classe).startsWith("vybeimg_") && !String(i.classe).startsWith("roupa:") && Number(i.quantidade) > 0)
     .map((i) => { const total = Number(i.quantidade), noQuarto = Math.min(total, colocados.get(i.classe) || 0), segundo = Math.min(noQuarto, andar1.get(i.classe) || 0); return { classe: i.classe, total, noQuarto, terreo: noQuarto - segundo, segundo, guardados: total - noQuarto }; })
     .sort((a, b) => escritorioNomeDaClasse(a.classe).localeCompare(escritorioNomeDaClasse(b.classe), "pt-BR"));
 }
