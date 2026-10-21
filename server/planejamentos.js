@@ -239,6 +239,24 @@ export async function enviarAoCliente(sql, pessoa, { id }) {
   return { ...publico(n), token };
  });
 }
+// O head aprova direto, sem mandar ao cliente (Paulo, 20/10/2026: "tem
+// cliente que não aprova, o head já aprova e o time faz"). Só o head do
+// cliente e quem administra; depois segue o cadastro de sempre.
+export async function aprovarPeloHead(sql, pessoa, { id, versao }) {
+ await exigir(sql);
+ return sql.comTransacao(async (tx) => {
+  const [p] = await tx`SELECT * FROM vybe_planejamentos WHERE id=${id} FOR UPDATE`;
+  if (!p) throw erro('Planejamento não encontrado.', 404);
+  await exigirEditor(tx, pessoa, p.cliente_id);
+  if (!['revisar', 'ajustes'].includes(p.estado)) throw erro(p.estado === 'enviado' ? 'O planejamento está com o cliente. Reabra para aprovar pelo head.' : 'Este planejamento já foi aprovado.', 409);
+  if (versao !== undefined && Number(versao) !== Number(p.versao)) throw erro('O planejamento mudou enquanto você olhava. Recarregue.', 409);
+  const [quem] = await tx`SELECT nome FROM vybe_pessoas WHERE id=${pessoa.id}`;
+  const nome = `${quem?.nome || 'Head'} (head)`;
+  const [n] = await tx`UPDATE vybe_planejamentos SET estado='aprovado',link_hash=NULL,respondido_em=now(),resposta_nome=${nome},resposta_texto=NULL,atualizado_em=now() WHERE id=${id} RETURNING *`;
+  await registrar(tx, id, 'aprovado', { autor: pessoa.id, versao: n.versao, texto: 'Aprovado pelo head, sem envio ao cliente.' });
+  return publico(n);
+ });
+}
 export async function mudarEstadoInterno(sql, pessoa, { id, estado }) {
  await exigir(sql);
  if (!['cadastrado', 'arquivado', 'revisar'].includes(estado)) throw erro('Situação inválida.');

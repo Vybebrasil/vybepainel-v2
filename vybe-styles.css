@@ -7273,6 +7273,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-acoes{flex-wrap:wrap}
 .plj-check{display:inline-flex;align-items:center;gap:6px;margin-right:auto;color:#c3cad6;font-size:11px}
 .plj-check input{accent-color:#ff850d}
+.plj-nao-aprova{align-items:flex-start;margin:6px 0 12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}.plj-nao-aprova span{display:grid;gap:2px}.plj-nao-aprova b{color:#e7ecf5;font-size:13px}.plj-nao-aprova small{color:#9da4b4;font-size:12px}
 .plj-link{margin:8px 0;padding:10px 12px;border:1px solid rgba(111,227,168,.4);border-radius:10px;background:rgba(40,190,120,.08)}
 .plj-link b{color:#a8f0cb;font:700 11px var(--mac-ui)}
 .plj-link-linha{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
