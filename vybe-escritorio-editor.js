@@ -41,7 +41,7 @@ function ferramentaEditorEscritorio(ferramenta) {
   if (!escritorio.edicao || !["selecionar", "camera"].includes(ferramenta)) return;
   escritorio.edicao.ferramenta = ferramenta;
   atualizarFerramentaEditorEscritorio();
-  if (ferramenta === "selecionar" && escritorio.catalogoCategoria === "Sala") {
+  if (ferramenta === "selecionar" && ["Sala", "Planta"].includes(escritorio.catalogoCategoria)) {
     escritorio.catalogoCategoria = "";
     renderEscritorio();
   } else renderBarraEditorEscritorio();
@@ -251,7 +251,7 @@ function escritorioEditorMudou(semPasso = false) {
 }
 // Aba "Piso e paredes" aberta: o clique (e o arrasto) pinta em vez de mover móvel.
 function escritorioPintando() {
-  return escritorio.edicao && escritorio.catalogoCategoria === "Sala" && typeof pintarNaSalaEscritorio === "function";
+  return escritorio.edicao && ["Sala", "Planta"].includes(escritorio.catalogoCategoria) && typeof pintarNaSalaEscritorio === "function";
 }
 async function cliqueEditorEscritorio(x, y) {
   if (!escritorio.edicao || escritorioCameraEditor()) return;
@@ -570,6 +570,7 @@ function teclaEditorEscritorio(e) {
   }
   const cmd = e.metaKey || e.ctrlKey, k0 = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (cmd && k0 === "z") { e.preventDefault?.(); e.shiftKey ? refazerEditorEscritorio() : desfazerEditorEscritorio(); return true; }
+  if (cmd && k0 === "s") { e.preventDefault?.(); salvarEditorEscritorio(); return true; }
   if (cmd && k0 === "y") { e.preventDefault?.(); refazerEditorEscritorio(); return true; }
   if (cmd && k0 === "d") { e.preventDefault?.(); duplicarSelecionadoEscritorio(); return true; }
   if (cmd && k0 === "c") { if (copiarSelecaoEscritorio()) { e.preventDefault?.(); return true; } return false; }
@@ -617,16 +618,30 @@ function renderBarraEditorEscritorio() {
     : e.trocar != null ? "Escolha na lateral o novo modelo · Esc cancela"
     : e.colar ? `Clique no piso para colar ${e.colar.length} ${e.colar.length === 1 ? "móvel" : "móveis"} · Esc cancela`
     : naMao ? `<b>${safeText(naMao)}</b> na mão · ${parede ? "clique no piso encostado na parede" : "clique no piso para colocar"} · R gira${e.novoAjuste && (e.novoAjuste.dx || e.novoAjuste.dy) ? " · ajustado" : ""} · <button type="button" onclick="cancelarColocacaoEscritorio()">Cancelar</button>`
-    : it ? "Arraste para mudar de lugar · R gira · Delete apaga · Ctrl+Z desfaz" : "";
+    : escritorioPintando() ? escritorioDicaDoPincel()
+    : it ? "Arraste para mudar de lugar · R gira · Delete apaga · ⌘Z desfaz" : "";
   el.innerHTML = `<div class="ofc-editor-linha">
 <div class="ofc-editor-info">${escolha}</div>
 <div class="ofc-editor-ferramentas" role="group" aria-label="Ferramentas de construção"><span class="ofc-segmento" role="group" aria-label="Ferramenta"><button type="button" aria-pressed="${e.ferramenta !== 'camera'}" onclick="ferramentaEditorEscritorio('selecionar')">Selecionar</button><button type="button" aria-pressed="${e.ferramenta === 'camera'}" onclick="ferramentaEditorEscritorio('camera')" title="Segure Espaço para mover a visão temporariamente">Mover visão</button></span><button type="button" aria-pressed="${e.grade !== false}" onclick="gradeEditorEscritorio(true)">Grade</button><button type="button" aria-pressed="${e.pessoas === true}" onclick="pessoasEditorEscritorio()" title="Enquanto edita, as outras pessoas, os agentes e os clientes ficam escondidos. Clique para mostrar.">Pessoas</button><span class="ofc-construtor" role="group" aria-label="Modo construtor"><button type="button" aria-pressed="${Boolean(escritorio.construtor?.ligado)}" onclick="alternarConstrutorEscritorio()" title="Como o ladrilho de empilhar do Habbo: põe móvel em cima de qualquer coisa, sem bloqueio (B)">Empilhar livre</button>${escritorio.construtor?.ligado ? `<label>Altura <input type="number" min="0" max="${ESCRITORIO_ALTURA_MAX}" step="0.1" inputmode="decimal" value="${escritorio.construtor.altura ?? ""}" placeholder="auto" aria-label="Altura de empilhar (vazio: em cima do que estiver embaixo)" onchange="alturaConstrutorEscritorio(this.value)"></label>` : ""}</span></div>
-<div class="ofc-editor-hist"><button type="button" class="ofc-ico-btn" onclick="desfazerEditorEscritorio()" ${e.passos?.length > 1 ? "" : "disabled"} title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" class="ofc-ico-btn" onclick="refazerEditorEscritorio()" ${e.futuro?.length ? "" : "disabled"} title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><details class="ofc-editor-menu"><summary>Mais</summary><div><button type="button" onclick="conferirConstrucaoEditorEscritorio()">Conferir construção</button><button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${e.camada !== "geral" ? '<button type="button" onclick="guardarTudoEscritorio()" title="Guarda todos os móveis desta sala no inventário (dá para desfazer antes de salvar)">Guardar tudo</button>' : ""}<button type="button" onclick="abrirVersoesEscritorio()" title="Versões salvas antes (para voltar atrás)">Versões</button>${minhaSala ? '<button type="button" onclick="abrirEstiloSalaEscritorio()">Piso e paredes</button>' : ""}<p class="ofc-editor-atalhos"><b>Atalhos</b> Espaço: mover visão · R: girar · Alt + setas: ajuste fino · Page Up/Down: altura · Shift + clique: seleção múltipla · Ctrl/⌘ + D: duplicar · Ctrl/⌘ + Z: desfazer · Esc: cancelar · B: empilhar livre.</p></div></details></div>
-<div class="ofc-editor-acoes">${minhaSala ? `<button type="button" onclick="guardarTudoEditorEscritorio()" title="Tira do quarto todos os móveis que não são essenciais; eles voltam para o inventário quando você salvar">Guardar tudo</button>` : ""}<button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="ofc-primario" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""}>${e.salvando ? "Salvando…" : "Salvar"}</button></div>
+<div class="ofc-editor-hist"><button type="button" class="ofc-ico-btn" onclick="desfazerEditorEscritorio()" ${e.passos?.length > 1 ? "" : "disabled"} title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" class="ofc-ico-btn" onclick="refazerEditorEscritorio()" ${e.futuro?.length ? "" : "disabled"} title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><details class="ofc-editor-menu"><summary>Mais</summary><div><button type="button" onclick="conferirConstrucaoEditorEscritorio()">Conferir construção</button><button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${e.camada !== "geral" ? '<button type="button" onclick="guardarTudoEscritorio()" title="Guarda todos os móveis desta sala no inventário (dá para desfazer antes de salvar)">Guardar tudo</button>' : ""}<button type="button" onclick="abrirVersoesEscritorio()" title="Versões salvas antes (para voltar atrás)">Versões</button>${minhaSala ? '<button type="button" onclick="abrirEstiloSalaEscritorio()">Piso e paredes</button>' : ""}<p class="ofc-editor-atalhos"><b>Atalhos</b> Espaço: mover visão · R: girar · Alt + setas: ajuste fino · Page Up/Down: altura · Shift + clique: seleção múltipla · Ctrl/⌘ + D: duplicar · ⌘Z: desfazer (inclusive a pintura) · ⌘S: salvar · Esc: cancelar · B: empilhar livre.</p></div></details></div>
+<div class="ofc-editor-acoes">${minhaSala ? `<button type="button" onclick="guardarTudoEditorEscritorio()" title="Tira do quarto todos os móveis que não são essenciais; eles voltam para o inventário quando você salvar">Guardar tudo</button>` : ""}<span class="ofc-editor-estado${e.mudou ? " sujo" : ""}" role="status">${e.salvando ? "" : e.mudou ? "Mudanças não salvas" : "Tudo salvo"}</span><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="${e.mudou ? "ofc-primario" : "ofc-secundario"}" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""} title="Salvar (⌘S)">${e.salvando ? "Salvando…" : "Salvar"}</button></div>
 </div>
 ${dica ? `<p class="ofc-editor-dica" role="status">${dica}</p>` : ""}
 ${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel" hidden><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel" hidden><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
 ${escritorioConferenciaHtml(e)}`;
+}
+// O que o clique faz com o pincel (Piso e paredes, Planta e luz): a mesma
+// frase curta na barra, com o material escolhido.
+function escritorioDicaDoPincel() {
+  const pin = escritorioPincel();
+  const piso = () => pin.movel ? escritorioNomeDaClasse(pin.movel) : (ESCRITORIO_PISOS_SALA.find(([id]) => id === pin.piso)?.[1] || "piso");
+  const estilo = () => ESCRITORIO_ESTILOS_PAREDE.find(([id]) => id === pin.estilo)?.[1] || "parede";
+  if (pin.ferramenta === "piso") return `<b>Pintar piso</b> · ${safeText(piso())} · clique ou arraste nos ladrilhos · ⌘Z desfaz`;
+  if (pin.ferramenta === "balde") return "<b>Piso inteiro</b> · escolha um piso na lateral: a sala toda muda";
+  if (pin.ferramenta === "parede") return `<b>Pintar parede</b> · ${safeText(estilo())} · clique no trecho da parede · arraste para vários · ⌘Z desfaz`;
+  if (pin.ferramenta === "planta") return `<b>Planta</b> · ${safeText(ESCRITORIO_FORMAS_PLANTA.find(([id]) => id === (pin.forma || "p"))?.[1] || "Chão")} · clique ou arraste nos ladrilhos · vale ao salvar`;
+  if (pin.ferramenta === "luz") return "<b>Luz</b> · escolha a luz do quarto na lateral";
+  return "";
 }
 // Larga o móvel que está na mão (o mesmo que Esc).
 function cancelarColocacaoEscritorio() {
@@ -765,7 +780,7 @@ function escritorioCatalogoHtml() {
   // No próprio quarto: Móveis e Piso e paredes. Comprar, inventário completo
   // (trocas e presentes) e carteira estão na janela do catálogo.
   const minha = escritorio.edicao?.camada !== "geral" && escritorioMinhaMesa()?.ambiente.id === escritorio.edicao?.camada;
-  const DECORAR = ["Imagens", "Sala", "Modelos", "Conjuntos"];
+  const DECORAR = ["Imagens", "Sala", "Planta", "Modelos", "Conjuntos"];
   const ehMoveis = !DECORAR.includes(filtro);
   // Construção é para construir (Paulo, 19/10/2026): no próprio quarto, só
   // Móveis (os seus e os grátis) e Piso e paredes. Loja, inventário completo
@@ -775,7 +790,7 @@ function escritorioCatalogoHtml() {
   const botao = (ativo, acao, rotulo, extra = "") => `<button type="button" role="tab" aria-selected="${ativo}" onclick="${acao}"${extra}>${rotulo}</button>`;
   const ir = (a, cat = "") => `escritorio.abaQuarto='${a}';escritorio.catalogoCategoria='${cat}';escritorio.catalogoPagina=0;renderEscritorio()`;
   const abas = `<div class="ofc-secoes" role="tablist" aria-label="Seções da edição">${minha
-    ? botao(secao === "meus", ir("meus"), "Móveis") + botao(secao === "decorar", ir("decorar", "Sala"), "Piso e paredes")
+    ? botao(secao === "meus", ir("meus"), "Móveis") + botao(secao === "decorar" && filtro !== "Planta", ir("decorar", "Sala"), "Piso e paredes") + botao(secao === "decorar" && filtro === "Planta", ir("decorar", "Planta"), "Planta e luz")
     : botao(secao === "acervo", "escritorio.catalogoCategoria='';escritorio.catalogoPagina=0;renderEscritorio()", "Móveis") + botao(secao === "decorar", "escritorio.catalogoCategoria='Imagens';renderEscritorio()", "Decorar")}</div>`;
   // Dentro de Decorar: o que muda a sala além dos móveis.
   const sub = (cat, rotulo) => `<button type="button" aria-pressed="${filtro === cat}" onclick="${minha ? ir("decorar", cat) : `escritorio.catalogoCategoria='${cat}';renderEscritorio()`}">${rotulo}</button>`;
@@ -1060,7 +1075,7 @@ function garantirLojaEscritorio() {
 // outras telas, os recentes (ou os do escritório, para quem ainda não usou).
 function escritorioGrupoCatalogo() {
   const c = escritorio.catalogoCategoria;
-  if (c && !["Imagens", "Sala", "Modelos", "Conjuntos"].includes(c) && !ESCRITORIO_RARIDADES_GRUPOS.has(c)) return c;
+  if (c && !["Imagens", "Sala", "Planta", "Modelos", "Conjuntos"].includes(c) && !ESCRITORIO_RARIDADES_GRUPOS.has(c)) return c;
   return escritorioRecentes().length ? "Recentes" : "Do escritório";
 }
 function escritorioRedesenharFiltroMoveis() {

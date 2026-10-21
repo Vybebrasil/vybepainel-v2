@@ -159,6 +159,55 @@ function criadorImagem(fig, dir = 2, tamanho = "l", mao = "") {
 const CRIADOR_MAOS = [["", "Nada"], ["crr=6", "Café"], ["crr=1", "Bebida"], ["crr=67", "Refrigerante"], ["crr=42", "Lata verde"], ["crr=62", "Garrafa"], ["crr=126", "Caneca de chope"],
   ["crr=185", "Garrafinha de academia"], ["crr=73", "Pipoca"], ["crr=248", "Tigela de pipoca"], ["crr=66", "Tigela de comida"], ["crr=105", "Coxa de frango"], ["crr=106", "Pão"], ["crr=220", "Baguete"],
   ["crr=178", "Fatia de bolo"], ["crr=191", "Rosquinha"], ["crr=2", "Cenoura"], ["crr=87", "Prancheta"], ["crr=79", "Livro"], ["crr=230", "Lápis"], ["crr=282", "Tablet"], ["crr=112", "Robozinho"], ["crr=109", "Frasco"]];
+// "Objeto na mão" em grade: o próprio boneco segurando cada objeto (a lista
+// do sistema era longa e sem imagem; Paulo, 20/10/2026).
+function criadorMaoHtml(fig) {
+  const alvo = criador.destino ? "criador.destino.mao" : "criador.mao", atual = (criador.destino ? criador.destino.mao : criador.mao) || "";
+  const nome = CRIADOR_MAOS.find(([v]) => v === atual)?.[1] || "Nada";
+  return `<details class="cri-mao" ${criador.maoAberta ? "open" : ""} ontoggle="criador.maoAberta=this.open"><summary>Objeto na mão <b>${safeText(nome)}</b></summary>
+<div class="cri-mao-grade" role="group" aria-label="Objeto na mão">${CRIADOR_MAOS.map(([v, r]) => `<button type="button" aria-pressed="${v === atual}" onclick="${alvo}='${v}';renderAberturaEscritorio()" title="${safeText(r)}"><img loading="lazy" alt="" width="64" height="110" src="${safeText(criadorImagem(fig, 2, "n", v))}"><span>${safeText(r)}</span></button>`).join("")}</div></details>`;
+}
+// Girar arrastando o boneco para os lados: um passo a cada 28 px.
+function criadorGiroInicio(ev) {
+  ev.preventDefault();
+  const x0 = ev.clientX, d0 = criador.direcao;
+  let ultimo = d0;
+  const mover = (e) => {
+    const d = (((d0 + Math.round((x0 - e.clientX) / 28)) % 8) + 8) % 8;
+    if (d === ultimo) return;
+    ultimo = d; criador.direcao = d;
+    const img = document.querySelector("#ofc-abertura .cri-girar");
+    if (img) img.src = criadorImagem(criadorFigura(criador.f), d, "l", (criador.destino ? criador.destino.mao : criador.mao) || "");
+  };
+  const fim = () => { removeEventListener("pointermove", mover); removeEventListener("pointerup", fim); renderAberturaEscritorio(); };
+  addEventListener("pointermove", mover);
+  addEventListener("pointerup", fim);
+}
+// Looks salvos (até 5, no perfil): trocar de visual num clique.
+function criadorLooksHtml() {
+  const looks = escritorio.perfil?.looks || [];
+  const cabeca = (f) => "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: f, direction: "2", head_direction: "3", headonly: "1", size: "n", gesture: "sml" });
+  return `<div class="cri-looks" role="group" aria-label="Looks salvos"><span class="cri-looks-titulo">Looks salvos</span><div class="cri-looks-lista">${looks.map((l, i) => `<span class="cri-look"><button type="button" onclick="criadorUsarLook(${i})" aria-label="Usar o look ${i + 1}" title="Usar este look"><img alt="" width="40" height="40" src="${safeText(cabeca(l.figura))}"></button><button type="button" class="cri-look-tirar" onclick="criadorTirarLook(${i})" aria-label="Tirar o look ${i + 1}">×</button></span>`).join("")}${looks.length < 5 ? `<button type="button" class="cri-look-novo" onclick="criadorGuardarLook()" title="Guardar o visual de agora">＋</button>` : ""}</div></div>`;
+}
+async function criadorSalvarLooks(looks) {
+  escritorio.perfil = { ...escritorio.perfil, looks };
+  renderAberturaEscritorio();
+  if (escritorio.base?.demo) return;
+  try { escritorio.perfil = { ...escritorio.perfil, ...(await escritorioApi("perfil", { perfil: { ...escritorio.perfil, looks } })).perfil }; }
+  catch (e) { escritorioAviso("Não deu para guardar o look: " + e.message); }
+}
+function criadorGuardarLook() {
+  const novo = { figura: criadorFigura(criador.f), mao: criador.mao || "" };
+  const looks = (escritorio.perfil?.looks || []).filter((l) => l.figura !== novo.figura || l.mao !== novo.mao);
+  criadorSalvarLooks([...looks, novo].slice(-5));
+}
+function criadorTirarLook(i) { criadorSalvarLooks((escritorio.perfil?.looks || []).filter((_, k) => k !== i)); }
+function criadorUsarLook(i) {
+  const l = escritorio.perfil?.looks?.[i];
+  if (!l) return;
+  criador.f = criadorDaFigura(l.figura); criador.mao = l.mao || "";
+  renderAberturaEscritorio();
+}
 function abrirAvatarDoClienteEscritorio() {
   const ag = escritorio.agenteAberto;
   if (!ag?.a) return;
@@ -238,13 +287,14 @@ function criadorPainelHtml() {
   return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel cri" aria-labelledby="abr-titulo">
  <div class="abr-previa">
-  <img src="${criadorImagem(fig, criador.direcao, "l", (criador.destino ? criador.destino.mao : criador.mao) || "")}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220">
+  <img src="${criadorImagem(fig, criador.direcao, "l", (criador.destino ? criador.destino.mao : criador.mao) || "")}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220" class="cri-girar" title="Arraste para os lados para girar" onpointerdown="criadorGiroInicio(event)">
   <div class="cri-corpo" role="group" aria-label="Corpo">${["M", "F"].map((g) => `<button type="button" class="abr-estilo" aria-pressed="${f.g === g}" onclick="criadorTrocarCorpo('${g}')">${g === "M" ? "Masculino" : "Feminino"}</button>`).join("")}</div>
   <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button></div>
+  ${criador.destino ? "" : criadorLooksHtml()}
  </div>
  <div class="abr-opcoes cri-opcoes">
   <span class="abr-kicker">${criador.destino ? "Avatar do cliente no Escritório" : criador.so ? "Meu espaço" : "Passo 1 de 2"}</span><h2 id="abr-titulo">${criador.destino ? `Agente de ${safeText(criador.destino.nome)}` : "Seu personagem"}</h2>
-  <label class="cri-mao">Objeto na mão <select onchange="${criador.destino ? "criador.destino.mao" : "criador.mao"}=this.value;renderAberturaEscritorio()">${CRIADOR_MAOS.map(([v, r]) => `<option value="${v}" ${v === ((criador.destino ? criador.destino.mao : criador.mao) || "") ? "selected" : ""}>${r}</option>`).join("")}</select></label>
+  ${criadorMaoHtml(fig)}
   ${(() => {
     const grupo = CRIADOR_GRUPOS.find((g) => g[2].includes(aba.t)) || CRIADOR_GRUPOS[0];
     return `<nav class="cri-grupos" aria-label="Região">${CRIADOR_GRUPOS.map(([id, nome, abas]) => `<button type="button" aria-pressed="${id === grupo[0]}" onclick="criador.aba='${abas.includes(criador.aba) ? criador.aba : abas[id === "cabeca" ? 1 : 0]}';criador.pagina=0;criador.corAtiva=0;renderAberturaEscritorio()">${nome}</button>`).join("")}</nav>
