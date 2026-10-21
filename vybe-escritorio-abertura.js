@@ -221,6 +221,24 @@ function criadorSeguir(tipo) {
   criador.etapa = escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado ? "planta" : "boas";
   renderAberturaEscritorio();
 }
+// Tira da sacola (Paulo, 21/10/2026: "opção de limpar o que tá selecionado,
+// para não ter que voltar as páginas"): a peça que ainda não é da pessoa volta
+// à do visual salvo; parte opcional sai; senão, a primeira grátis. Sem `t`,
+// todas as peças da sacola.
+function criadorTirarDaSacola(t) {
+  const salvo = criadorDaFigura(escritorio.perfil?.figura || mapaFigura(escritorio.perfil || {}));
+  const tipos = t ? [t] : criadorFaltamRoupas().map((x) => x.classe.slice(6).split("-")[0]);
+  for (const tipo of tipos) {
+    const antes = salvo.partes[tipo], aba = CRIADOR_ABAS.find((a) => a.t === tipo);
+    if (antes && criadorRoupaLivre(`roupa:${tipo}-${antes.id}`) && criadorServe(criadorConjunto(tipo, antes.id), criador.f.g)) criador.f.partes[tipo] = { ...antes, cores: [...antes.cores] };
+    else if (aba?.opcional) delete criador.f.partes[tipo];
+    else {
+      const gratis = criador.cat?.tipos[tipo]?.s.find((x) => criadorServe(x, criador.f.g) && criadorPrecoRoupa(`roupa:${tipo}-${x[0]}`) === 0);
+      if (gratis) criador.f.partes[tipo] = { id: gratis[0], cores: criador.f.partes[tipo]?.cores || [] };
+    }
+  }
+  renderAberturaEscritorio();
+}
 function criadorBotaoSalvar(tipo) {
   const rotulo = tipo === "salvar" ? "Salvar personagem" : "Continuar";
   const faltam = criadorFaltamRoupas();
@@ -294,7 +312,7 @@ function criadorSkinsHtml() {
   <div class="prov-skin-acoes"><button type="button" class="vb-botao" onclick="criadorProvarKit('${safeText(k.chave)}')">${vestindo ? "Vestindo" : "Provar"}</button>${tem ? "" : `<button type="button" class="vb-botao principal" onclick="criadorComprarKit('${safeText(k.chave)}')">Comprar</button>`}</div>
 </article>`;
   }).join("");
-  return `<div class="prov-cabecalho"><h3>Skins <small>${r.kits.length} visuais completos · peça que você já tem não é cobrada</small></h3></div><div class="prov-skins">${cards}</div>`;
+  return `<div class="prov-skins-intro"><b>Skin é o visual inteiro de uma vez</b><span>Compra todas as peças juntas, com ${Math.round((r.kits[0]?.desconto || 0.15) * 100)}% de desconto. Peça que você já tem não é cobrada. Quer só uma parte? Vá em <button type="button" class="vb-link" onclick="criador.armario='pecas';renderAberturaEscritorio()">Peças</button>.</span></div><div class="prov-skins">${cards}</div>`;
 }
 function criadorProvarKit(chave) {
   const k = criador.roupas?.kits?.find((x) => x.chave === chave);
@@ -591,10 +609,10 @@ function criadorPainelHtml() {
   const saldo = escritorio.base?.economia?.disponivel ? Number(escritorio.base.economia.saldo || 0) : null;
   const faltam = criadorFaltamRoupas(), total = faltam.reduce((t, x) => t + Number(x.preco || 0), 0);
   const sacola = !faltam.length ? `<span class="prov-sacola-vazia">${skins ? "Tudo o que você está vestindo já é seu." : ""}</span>`
-    : `<div class="prov-sacola-itens" aria-label="Peças a comprar">${faltam.map((x) => { const [t, id] = x.classe.slice(6).split("-"); return `<span class="prov-sacola-item" title="${safeText(CRIADOR_ABAS.find((a) => a.t === t)?.nome || t)} · ${x.preco} moedas"><img alt="" src="${safeText(criadorMiniatura(t, Number(id), true))}"><em>${x.preco}</em></span>`; }).join("")}</div><span class="prov-sacola-total"><small>Sacola</small><span><b>${total.toLocaleString("pt-BR")}</b> moedas</span>${saldo !== null && total > saldo ? `<i class="prov-falta">faltam ${(total - saldo).toLocaleString("pt-BR")}</i>` : ""}</span>`;
+    : `<div class="prov-sacola-itens" aria-label="Peças a comprar">${faltam.map((x) => { const [t, id] = x.classe.slice(6).split("-"); return `<button type="button" class="prov-sacola-item" onclick="criadorTirarDaSacola('${t}')" title="Tirar ${safeText(CRIADOR_ABAS.find((a) => a.t === t)?.nome || t)} (${x.preco} moedas)" aria-label="Tirar ${safeText(CRIADOR_ABAS.find((a) => a.t === t)?.nome || t)} da sacola"><img alt="" src="${safeText(criadorMiniatura(t, Number(id), true))}"><em>${x.preco}</em><i aria-hidden="true">×</i></button>`; }).join("")}</div><span class="prov-sacola-total"><small>Sacola</small><span><b>${total.toLocaleString("pt-BR")}</b> moedas</span>${saldo !== null && total > saldo ? `<i class="prov-falta">faltam ${(total - saldo).toLocaleString("pt-BR")}</i>` : ""}</span>`;
   const acoes = criador.destino
     ? '<button type="button" class="abr-secundario" onclick="salvarAvatarDoClienteEscritorio(true)" title="Volta à fantasia da marca definida pela Vybe">Voltar ao padrão</button><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button><button type="button" class="abr-primario" onclick="salvarAvatarDoClienteEscritorio()">Salvar avatar</button>'
-    : criador.so ? `<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button>${criadorBotaoSalvar("salvar")}`
+    : criador.so ? `${faltam.length ? '<button type="button" class="abr-secundario" onclick="criadorTirarDaSacola()" title="Volta cada peça que você ainda não tem para a sua">Tirar o que não é seu</button>' : ""}<button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio()">Cancelar</button>${criadorBotaoSalvar("salvar")}`
     : `<button type="button" class="abr-secundario" onclick="criador.etapa='cena';renderAberturaEscritorio()">Voltar</button>${criadorBotaoSalvar("continuar")}`;
   const itens = [...(aba.opcional ? [null] : []), ...conjuntos.map((c) => c[0])];
   const por = Math.max(12, criador.porPagina || 48), totalPag = Math.max(1, Math.ceil(itens.length / por));
@@ -619,7 +637,9 @@ function criadorPainelHtml() {
   ${criador.destino ? "" : criadorLooksHtml()}
  </div>
  <div class="abr-opcoes cri-opcoes prov-armario" onpointerover="criadorFichaMostrar(event)" onpointerleave="document.getElementById('prov-ficha')?.setAttribute('hidden','')" onfocusin="criadorFichaMostrar(event)" onfocusout="document.getElementById('prov-ficha')?.setAttribute('hidden','')"><div id="prov-ficha" class="prov-ficha" role="tooltip" hidden></div>
-  ${skins ? `<div class="vb-alternar prov-armario-modo" role="group" aria-label="Armário"><button type="button" aria-pressed="${!["guarda", "skins"].includes(criador.armario)}" onclick="criador.armario='pecas';renderAberturaEscritorio()">Peças</button><button type="button" aria-pressed="${criador.armario === "skins"}" onclick="criador.armario='skins';renderAberturaEscritorio()">Skins</button><button type="button" aria-pressed="${criador.armario === "guarda"}" onclick="criador.armario='guarda';renderAberturaEscritorio()">Guarda-roupa${(() => { const g = criadorGuardaRoupa(); const n = g.kits.length + g.pecas.length; return n ? ` <b>${n}</b>` : ""; })()}</button></div>` : ""}
+  ${skins ? (() => { const g = criadorGuardaRoupa(), n = g.kits.length + g.pecas.length, modo = ["guarda", "skins"].includes(criador.armario) ? criador.armario : "pecas";
+    const aba = (id, titulo, sub, ico, extra = "") => `<button type="button" role="tab" aria-selected="${modo === id}" class="prov-modo${modo === id ? " ativo" : ""}" onclick="criador.armario='${id}';renderAberturaEscritorio()"><svg viewBox="0 0 24 24" aria-hidden="true">${ico}</svg><span><b>${titulo}${extra}</b><small>${sub}</small></span></button>`;
+    return `<div class="prov-modos" role="tablist" aria-label="Armário">${aba("pecas", "Peças", "Uma de cada vez", '<path d="M8 3l-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3c-.5 1.7-2 3-4 3s-3.5-1.3-4-3z"/>')}${aba("skins", "Skins", "Visual completo com desconto", '<path d="M12 3l2.2 5 5.3.6-4 3.6 1.2 5.3L12 14.8 7.3 17.5l1.2-5.3-4-3.6 5.3-.6z"/>')}${aba("guarda", "Guarda-roupa", "O que já é seu", '<path d="M12 6a2 2 0 112-2M12 6v2M3 18l9-10 9 10z"/>', n ? ` <em>${n}</em>` : "")}</div>`; })() : ""}
   ${skins && criador.armario === "guarda" ? `<div class="prov-guarda">${criadorGuardaRoupaHtml(fig)}</div>` : skins && criador.armario === "skins" ? `<div class="prov-guarda">${criadorSkinsHtml()}</div>` : `
   ${!criador.cat ? '<p class="abr-nota">Carregando o catálogo…</p>' : `
   <div class="prov-cabecalho"><h3>${aba.nome} <small>${conjuntos.length} ${conjuntos.length === 1 ? "opção" : "opções"}</small></h3>${skins ? `<div class="prov-filtros" role="group" aria-label="Filtrar peças">${chip("todas", "Todas")}${chip("gratis", "Grátis")}${chip("minhas", "Minhas")}${chip("venda", "À venda")}${Object.keys(ANIMADAS.dados || {}).some((k) => k.startsWith(aba.t + "-")) ? chip("animadas", "Animadas") : ""}</div><label class="prov-ordem"><span>Ordenar</span><select onchange="criador.ordem=this.value;criador.pagina=0;renderAberturaEscritorio()">${CRIADOR_ORDENS.map(([v, n]) => `<option value="${v}"${(criador.ordem || "padrao") === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>` : ""}</div>
