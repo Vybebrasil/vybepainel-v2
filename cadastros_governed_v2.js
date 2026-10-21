@@ -1800,7 +1800,7 @@ function fcGrupoDoQuadro(grupo) {
                 <button type="button" aria-label="Fechar cadastro" class="fc-close" onclick="fcCloseModal()"></button>
                 <div class="fc-kicker">Cadastro rápido</div>
                 <button type="button" class="fc-sazonal-btn" onclick="abrirCalendarioSazonal()">
-                   📅 Calendário sazonal</button>
+                   <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg> Calendário sazonal</button>
              </div>
              <div class="fc-body"><div id="fc-guia"></div></div>
          </div>

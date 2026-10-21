@@ -18,8 +18,13 @@ function lojaDemo(){
     return {classe,raridade,preco:f.preco,restante:f.estoque,marco:Object.keys(MOVEIS_DE_MARCO_DEMO).find(k=>MOVEIS_DE_MARCO_DEMO[k]===classe)||null};});
   return {semana,raridades:RARIDADES_DEMO,itens,vitrine:vitrineDaSemana({semana,raridades:RARIDADES_DEMO,itens})};
 }
-const marcosDemo=()=>MARCOS.map(m=>({id:m.id,nome:m.nome,dica:m.dica,ok:['primeira','dez','embalo','zerado','quarto'].includes(m.id),
-  em:['primeira','dez','embalo','zerado','quarto'].includes(m.id)?new Date(Date.now()-3*864e5).toISOString():null,moveis:MOVEIS_DE_MARCO_DEMO[m.id]?[MOVEIS_DE_MARCO_DEMO[m.id]]:[]}));
+// Conquistas no formato do servidor (níveis Bronze a Diamante, conferirMarcos):
+// a ficha e a janela de Conquistas só abrem com os degraus.
+const NIVEIS_DEMO=['','Bronze','Prata','Ouro','Diamante'],TROFEUS_DEMO=Object.values(MOVEIS_DE_MARCO_DEMO);
+const marcosDemo=()=>MARCOS.map((m,k)=>{const metas=[10,50,200,1000].map(x=>x*(k%3+1)),valor=[35,120,8,460,0,64][k%6],em=new Date(Date.now()-3*864e5).toISOString();
+  const degraus=metas.map((meta,i)=>({nivel:i+1,meta,classe:TROFEUS_DEMO[(k+i)%TROFEUS_DEMO.length],nome:NIVEIS_DEMO[i+1],ok:valor>=meta,em:valor>=meta?em:null,moedas:20*(i+1),pontos:40*(i+1)}));
+  const nivel=degraus.filter(d=>d.ok).length,proximo=degraus[nivel]||null;
+  return {id:m.id,nome:m.nome,nivel,nomeNivel:NIVEIS_DEMO[nivel]||'',social:false,valor,unidade:m.unidade,proximo:proximo?{nivel:proximo.nivel,nome:proximo.nome,meta:proximo.meta,classe:proximo.classe}:null,degraus,ok:nivel>0,em:nivel?em:null,dica:proximo?`${proximo.meta} ${m.unidade}`:'Nível máximo',moveis:[(proximo||degraus.at(-1)).classe]};});
 import { GRUPOS_PADRAO, CORES_DE_GRUPO } from '../server/grupos.js';
 const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
 // As Notas gravam na demonstração: são um caderno em memória, sem banco nem
