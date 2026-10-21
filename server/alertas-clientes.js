@@ -34,7 +34,13 @@ export async function alertasDosClientes(sql, { clienteIds = null, agora = new D
       !l.prazo && 'sem prazo', !l.tem_responsavel && 'sem responsável'].filter(Boolean);
     if (faltas.length) a.sem_info.push({ ...item, motivo: faltas.join(', ') });
     if (l.prazo && l.prazo < atraso) a.atrasadas.push(item);
-    if (APROVAR.includes(l.status_chave)) a.aprovar.push(item);
+    if (APROVAR.includes(l.status_chave)) {
+      a.aprovar.push(item);
+      // Interna (Para aprovação, Em aprovação) e do cliente (Ag. Aprovação
+      // Cliente) contam à parte: são status diferentes (Paulo, 20/10/2026).
+      if (l.status_chave === 'ag_aprovacao_cliente') a.aprovar_cliente_total = (a.aprovar_cliente_total || 0) + 1;
+      else a.aprovar_interna_total = (a.aprovar_interna_total || 0) + 1;
+    }
   }
   for (const a of por.values()) {
     a.total = a.sem_info.length + a.atrasadas.length + a.aprovar.length;

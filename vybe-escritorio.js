@@ -1063,9 +1063,9 @@ async function escritorioOcuparOperacao() {
       detalhe: p ? escritorioDetalheDoPlano(p) : "",
       avisos: al.total || 0, resumoAvisos,
       // Quantos de cada tipo, para a etiqueta mostrar junto com o planejamento (Paulo, 20/10/2026).
-      contagens: { atrasadas: al.atrasadas_total || 0, aprovar: al.aprovar_total || 0, info: al.sem_info_total || 0,
-        // Cor é dado: a do próprio status no catálogo (Paulo, 20/10/2026: "cadê a regra dos status?").
-        corAprovar: escritorioCorDoStatus("para_aprovacao"), corInfo: escritorioCorDoStatus("falta_info") }, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
+      // Cor é dado: a do próprio status no catálogo (Paulo, 20/10/2026: "cadê a regra dos status?").
+      contagens: { atrasadas: al.atrasadas_total || 0, interna: al.aprovar_interna_total ?? al.aprovar_total ?? 0, cliente: al.aprovar_cliente_total || 0, info: al.sem_info_total || 0,
+        corInterna: escritorioCorDoStatus("para_aprovacao"), corCliente: escritorioCorDoStatus("ag_aprovacao_cliente"), corInfo: escritorioCorDoStatus("falta_info") }, aoClicar: () => abrirAgenteOperacaoEscritorio(a, escritorioFiguraDoAgente(a, i)) };
   }));
   if (postos.length > n) escritorioAviso(`${postos.length - n} clientes ainda sem mesa no Centro de Operação.`);
 }

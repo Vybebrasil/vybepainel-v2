@@ -117,7 +117,7 @@ test('alertas dos agentes: sem informação, muito atrasadas e para aprovar, por
   INSERT INTO vybe_conteudos(id,board_id,titulo,status_chave,prazo,briefing) VALUES
    (1,7829537690,'Atrasada demais','pode_fazer','2026-10-10','ok'),
    (2,7829537690,'Atrasada só ontem','pode_fazer','2026-10-19','ok'),
-   (3,7829537690,'Esperando aprovação','para_aprovacao','2026-10-25','ok'),
+   (3,7829537690,'Esperando aprovação','ag_aprovacao_cliente','2026-10-25','ok'),
    (4,7829537690,'Sem briefing','pode_fazer','2026-10-25',''),
    (5,7829537690,'Falta info','falta_info','2026-10-25','ok'),
    (6,7829537690,'Finalizada atrasada','finalizado','2026-10-01',''),
@@ -131,6 +131,7 @@ test('alertas dos agentes: sem informação, muito atrasadas e para aprovar, por
  assert.deepEqual(a.sem_info.map(x=>x.titulo).sort(),['Falta info','Sem briefing']);
  assert.match(a.sem_info.find(x=>x.titulo==='Falta info').motivo,/Falta Info.*sem responsável/);
  assert.equal(a.total,5);
+ assert.equal(a.aprovar_interna_total,1,'Para aprovação é interna');assert.equal(a.aprovar_cliente_total,1,'Ag. Aprovação Cliente conta à parte');
  // Peça de dois clientes aparece nos dois.
  assert.equal((await alertasDosClientes(sql)).get('11').aprovar.length,1);
  // Vinícius é head só da Serra Grande (10); Ewerton, da Mangaba (11).
