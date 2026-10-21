@@ -2,7 +2,7 @@
 (function() {
   const esc = value => String(value || '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
-  window.productionV2View = window.productionV2View || 'feed';
+  window.productionV2View = window.productionV2View || 'captacoes';
 
   window.setProdV2View = function(view) {
       window.productionV2View = view;
@@ -14,7 +14,7 @@
     const style = document.createElement('style');
     style.id = 'prod-v2-styles-cal';
     style.textContent = `
-      .prod-v2-layout { display:flex; flex-direction:column; gap:24px; padding:24px 32px; max-width:1400px; margin:0 auto; animation:fadeIn 0.3s ease; height: 100%; }
+      .prod-v2-layout { display:flex; flex-direction:column; gap:24px; padding:24px 32px; max-width:1400px; margin:0 auto; animation:fadeIn 0.3s ease; min-height: 100%; }
       @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
       
       .prod-v2-head { display:flex; flex-direction:row; justify-content:space-between; align-items:flex-end; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px; width: 100%; text-align: left; }
@@ -281,7 +281,10 @@
 
     let contentHtml = '';
 
-    if (window.productionV2View === 'feed') {
+    if (window.productionV2View === 'captacoes' && typeof captacoesHtml === 'function') {
+        contentHtml = captacoesHtml();
+    }
+    else if (window.productionV2View === 'feed') {
         const focus = typeof productionCommandFocusDate !== 'undefined' && productionCommandFocusDate && dates.includes(productionCommandFocusDate) ? productionCommandFocusDate : (dates.find(iso => all.some(item => productionCommandReference(item) === iso)) || dates[0]);
         if(typeof productionCommandFocusDate !== 'undefined') productionCommandFocusDate = focus;
         const focused = all.filter(item => productionCommandReference(item) === focus);
@@ -399,7 +402,8 @@
             </div>
             <div class="p-controls-row">
                <div class="p-segment">
-                  <button class="${window.productionV2View==='feed'?'active':''}" onclick="setProdV2View('feed')">≡ Feed</button>
+                  <button class="${window.productionV2View==='captacoes'?'active':''}" onclick="setProdV2View('captacoes')">Captações</button>
+                  <button class="${window.productionV2View==='feed'?'active':''}" onclick="setProdV2View('feed')">Feed</button>
                   <button class="${window.productionV2View==='calendar'?'active':''}" onclick="setProdV2View('calendar')">Calendário</button>
                </div>
                <div class="p-segment">
