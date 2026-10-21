@@ -31,6 +31,7 @@ export async function pecasParaCaptar(sql) {
   await exigirTabelas(sql);
   return (await sql`SELECT c.id, c.titulo, c.formato, c.prazo::text AS prazo, c.veiculacao::text AS veiculacao, c.briefing,
       c.status_chave, s.rotulo AS status, s.cor AS status_cor,
+      CASE WHEN c.formato ILIKE '%foto%' OR c.titulo ILIKE 'foto%' THEN 'foto' ELSE 'video' END AS tipo,
       COALESCE(json_agg(json_build_object('id', cl.id::text, 'nome', cl.nome) ORDER BY cl.nome) FILTER (WHERE cl.id IS NOT NULL), '[]') AS clientes
     FROM vybe_conteudos c
     LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
@@ -41,6 +42,33 @@ export async function pecasParaCaptar(sql) {
         WHERE p.conteudo_id = c.id AND k.estado = 'agendada')
     GROUP BY c.id, s.rotulo, s.cor
     ORDER BY COALESCE(c.prazo, c.veiculacao) NULLS LAST, c.id`).map((l) => ({ ...l, id: String(l.id) }));
+}
+
+// Peças que vão ser gravadas e ainda não estão na Captação (Paulo, 21/10/2026:
+// "o tanto de fotografia enganchada porque está sem banco de fotos" e os Reels
+// em "Aguardo Redação" já cadastrados sem roteiro): na Produção, foto ou vídeo
+// sem material bruto, sem status de captação, fora de uma captação marcada e
+// ainda por fazer (status que não é final nem "Para agendar"). O status da
+// peça não muda; ela pode ir para uma captação. `tipo` diz foto ou vídeo.
+const EH_FOTO = (c) => `(${c}.formato ILIKE '%foto%' OR ${c}.titulo ILIKE 'foto%')`;
+const EH_VIDEO = (c) => `(${c}.formato ~* '(reel|v[ií]deo|story|stories)' OR ${c}.titulo ~* '^(reels?|v[ií]deo|story|stories)\\M')`;
+const SEM_MATERIAL_SQL = (c, s) => `${c}.captacao_chave IS NULL AND (${EH_FOTO(c)} OR ${EH_VIDEO(c)})
+  AND btrim(COALESCE(${c}.material_bruto, '')) = '' AND NOT COALESCE(${s}.final, false) AND ${c}.status_chave IS DISTINCT FROM 'para_agendar'`;
+export async function pecasSemMaterial(sql) {
+  await exigirTabelas(sql);
+  return (await sql.query(`SELECT c.id, c.titulo, c.formato, c.prazo::text AS prazo, c.veiculacao::text AS veiculacao, c.briefing,
+      c.status_chave, s.rotulo AS status, s.cor AS status_cor, true AS sem_material,
+      CASE WHEN ${EH_FOTO('c')} THEN 'foto' ELSE 'video' END AS tipo,
+      COALESCE(json_agg(json_build_object('id', cl.id::text, 'nome', cl.nome) ORDER BY cl.nome) FILTER (WHERE cl.id IS NOT NULL), '[]') AS clientes
+    FROM vybe_conteudos c
+    LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    LEFT JOIN vybe_conteudo_clientes cc ON cc.conteudo_id = c.id
+    LEFT JOIN vybe_clientes cl ON cl.id = cc.cliente_id
+    WHERE c.removido_em IS NULL AND c.board_id = $1 AND ${SEM_MATERIAL_SQL('c', 's')}
+      AND NOT EXISTS (SELECT 1 FROM vybe_captacao_pecas p JOIN vybe_captacoes k ON k.id = p.captacao_id
+        WHERE p.conteudo_id = c.id AND k.estado = 'agendada')
+    GROUP BY c.id, s.rotulo, s.cor
+    ORDER BY COALESCE(c.prazo, c.veiculacao) NULLS LAST, c.id`, [BOARD_PRODUCAO])).map((l) => ({ ...l, id: String(l.id) }));
 }
 
 // Captações de um período (padrão: de hoje a 30 dias), com as peças e o roteiro.
@@ -54,6 +82,7 @@ export async function listarCaptacoes(sql, { de = '', ate = '' } = {}) {
       to_char(k.inicio, 'HH24:MI') AS inicio, to_char(k.fim, 'HH24:MI') AS fim, k.local, k.observacao, k.estado,
       k.evento_google IS NOT NULL AS na_agenda, k.evento_google, k.evento_do_painel, k.aviso, p.nome AS criado_por,
       COALESCE(json_agg(json_build_object('id', c.id::text, 'titulo', c.titulo, 'formato', c.formato, 'briefing', c.briefing, 'prazo', c.prazo::text, 'veiculacao', c.veiculacao::text,
+        'tipo', CASE WHEN c.formato ILIKE '%foto%' OR c.titulo ILIKE 'foto%' THEN 'foto' ELSE 'video' END,
         'captacao', c.captacao_chave, 'gravado', kp.gravado_em IS NOT NULL) ORDER BY kp.ordem, c.id) FILTER (WHERE c.id IS NOT NULL), '[]') AS pecas
     FROM vybe_captacoes k
     LEFT JOIN vybe_clientes cl ON cl.id = k.cliente_id
@@ -102,7 +131,12 @@ export async function montarCaptacao(sql, quem, dados, { trocar, agenda = evento
           WHERE p.conteudo_id = c.id AND k.estado = 'agendada') AS ja_marcada
       FROM vybe_conteudos c WHERE c.id = ANY(${d.pecas}::bigint[]) ORDER BY c.id FOR UPDATE OF c`;
     if (linhas.length !== d.pecas.length) throw erro('Alguma peça não existe mais.', 409);
-    const fora = linhas.filter((l) => l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || l.captacao_chave !== CAPTACAO.pronta || l.ja_marcada || !l.do_cliente);
+    const semMaterial = new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
+      LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+      WHERE c.id = ANY($1::bigint[]) AND ${SEM_MATERIAL_SQL('c', 's')}`, [d.pecas])).map((l) => l.id));
+    for (const l of linhas) l.sem_material = semMaterial.has(String(l.id));
+    // Entra a peça em "Agendar Captação" e a fotografia sem banco de fotos.
+    const fora = linhas.filter((l) => l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || (l.captacao_chave !== CAPTACAO.pronta && !l.sem_material) || l.ja_marcada || !l.do_cliente);
     if (fora.length) throw erro(`Já não estão prontas para esta captação: ${fora.map((l) => l.titulo).join('; ')}. Atualize a lista.`, 409);
     if (d.evento) {
       const [ja] = await tx`SELECT id FROM vybe_captacoes WHERE evento_google = ${d.evento} AND estado <> 'cancelada' FOR UPDATE`;
