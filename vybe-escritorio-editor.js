@@ -1473,7 +1473,10 @@ function salvarTrofeuEscritorio(form) {
   closeWorkflowModal();
   escritorioEditorMudou();
 }
-function escritorioFotoEdicao(e) { return JSON.stringify({ itens: e.itens, celdas: e.celdas ?? null }); }
+// A pintura do quarto (piso e paredes) entra na foto: ⌘Z desfaz também o que
+// foi pintado (Paulo, 20/10/2026). Ela continua salvando na hora.
+function escritorioPinturaDaFoto() { const p = escritorioPerfilDecoracao() || {}; return { p: p.sala_pisos || "", w: p.sala_paredes || "" }; }
+function escritorioFotoEdicao(e) { return JSON.stringify({ itens: e.itens, celdas: e.celdas ?? null, pintura: escritorioPinturaDaFoto() }); }
 function escritorioVoltarPasso(de, para) {
   const e = escritorio.edicao;
   if (!e || de.length < (de === e.passos ? 2 : 1)) return;
@@ -1486,6 +1489,11 @@ function escritorioVoltarPasso(de, para) {
   escritorio.mapa?.destacar(null);
   escritorioEditorMudou(true);
   if (plantaMudou) escritorioRedesenharMapa();
+  const agora = escritorioPinturaDaFoto();
+  if (f.pintura && (f.pintura.p !== agora.p || f.pintura.w !== agora.w)) {
+    escritorioAlterarDecoracao({ sala_pisos: f.pintura.p, sala_paredes: f.pintura.w });
+    escritorioPinturaMudou(true);
+  }
 }
 function desfazerEditorEscritorio() { const e = escritorio.edicao; if (e) escritorioVoltarPasso(e.passos, e.futuro); }
 function refazerEditorEscritorio() { const e = escritorio.edicao; if (e) escritorioVoltarPasso(e.futuro, e.passos); }

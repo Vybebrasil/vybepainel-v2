@@ -8741,3 +8741,9 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
 .ofc-convite-corpo p {margin:0;color:#c3cad6;font-size:13.5px;line-height:1.5}
 .ofc-convite-link {display:grid;gap:6px;color:#9da4b4;font:600 12px var(--mac-ui)}
 .ofc-convite-link input {padding:10px 12px;border-radius:10px;border:1px solid #ffffff26;background:#0b0d12;color:#ffd08f;font:500 13px ui-monospace,monospace}
+
+/* Prévia do pincel da construção: a área que o clique vai pintar. */
+.mapa-pincel {position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;z-index:99985;pointer-events:none}
+.mapa-pincel-area {fill:#ff9d0033;stroke:#ffb451;stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion:no-preference) {.mapa-pincel-area {animation:mapa-pincel-pulso 1.6s ease-in-out infinite}}
+@keyframes mapa-pincel-pulso {50% {fill:#ff9d0055}}

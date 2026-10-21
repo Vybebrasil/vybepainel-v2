@@ -1764,7 +1764,7 @@ function montarMapaEscritorio() {
       aoClicar: (x, y, objeto) => cliqueNoMapaEscritorio(x, y, objeto),
       aoDuploClique: (x, y, objeto) => alternarComDuploCliqueEscritorio(x, y, objeto),
       aoPassarMovel: (m) => preCarregarOrigemMovelEscritorio(m),
-      aoPassar: (x, y, cx, cy) => passarNoMapaEscritorio(x, y, cx, cy),
+      aoPassar: (x, y, cx, cy, fx, fy) => passarNoMapaEscritorio(x, y, cx, cy, fx, fy),
       aoPegar: (x, y, fx, fy) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y, fx, fy),
       aoArrastar: (x, y, fx, fy) => arrastarNoEditorEscritorio(x, y, fx, fy),
       aoSoltar: (x, y, moveu) => soltarNoEditorEscritorio(x, y, moveu),
@@ -2232,8 +2232,13 @@ function escritorioIrPara(x, y) {
 // Cartão da própria mesa: o dono passa o mouse na mesa (ou no computador) e
 // vê a sala, o status e os avisos, com atalhos para o painel e para editar a
 // mesa ou o computador no editor da sala.
-function passarNoMapaEscritorio(x, y, cx, cy) {
-  if (escritorio.edicao) { previaEditorEscritorio(x, y); return; }
+function passarNoMapaEscritorio(x, y, cx, cy, fx = x + 0.5, fy = y + 0.5) {
+  if (escritorio.edicao) {
+    // Com o pincel, a prévia é a área que vai ser pintada; sem ele, o móvel na mão.
+    if (typeof escritorioPintando === "function" && escritorioPintando()) { escritorio.mapa?.previa(null); previaPincelEscritorio(x, y, fx, fy); return; }
+    escritorio.mapa?.pincel?.(null);
+    previaEditorEscritorio(x, y); return;
+  }
   passarNoQuadroEscritorio(x, y);
   const mesa = escritorioNoMeuQuarto() ? escritorioMinhaMesa() : null;
   const em = mesa && !escritorio.edicao && x >= mesa.x && x < mesa.x + mesa.w && y >= mesa.y && y < mesa.y + mesa.h;

@@ -1210,3 +1210,11 @@ decoração inicial "bem feito".
   próprio quarto. Testes em `tests/escritorio-convidado.test.mjs`.
 - Falta: conferir com um convidado de verdade a voz na sala (a demonstração
   não conecta) e o Worker publicado.
+
+### Construção: prévia do pincel e desfazer da pintura — 21/10/2026
+
+- O pincel mostra no mapa, antes do clique, a área que vai pintar: o
+  ladrilho, a peça de piso do acervo inteira (2×2, 4×4) ou o trecho de
+  parede (`escritorioAlvoDoPincel`, o mesmo alvo do clique; `mapa.pincel`).
+- A pintura (piso e paredes) entra na foto do ⌘Z da construção: desfazer
+  volta a pintura e salva de novo; continua salvando na hora.

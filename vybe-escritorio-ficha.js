@@ -290,62 +290,87 @@ ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostr
 <div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="limparPinturaEscritorio('sala_pisos')">Tirar a pintura do piso</button></div>`}
 <p class="ofc-erro" id="office-estilo-erro" role="alert"></p>`}`;
 }
-// Pinta um ladrilho ou trecho de parede da própria sala (x, y do mapa).
-function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
+// O que o pincel pega no ponto (x, y do mapa; fx, fy com a fração): a
+// prévia no mapa e o clique usam o mesmo alvo (Paulo, 20/10/2026: ver antes o
+// que vai ser pintado). null: fora da própria sala ou ferramenta sem pincel.
+function escritorioAlvoDoPincel(x, y, fx = x + 0.5, fy = y + 0.5) {
   const mesa = escritorioMinhaMesa(), pin = escritorioPincel();
   // Só de dentro do próprio quarto (as coordenadas são as dele).
-  if (!mesa || escritorio.quarto !== mesa.ambiente.id) return false;
+  if (!mesa || escritorio.quarto !== mesa.ambiente.id || pin.ferramenta === "luz" || pin.ferramenta === "balde") return null;
   const a = mesa.ambiente, lx = x - a.x0, ly = y - a.y0, L = ESCRITORIO_QUARTO_MAX, { w, h } = escritorioDimQuarto(a);
-  // Clique na própria parede (Paulo, 20/10/2026: "não dá pra mudar só uma"):
-  // o ponto da parede do fundo cai, na projeção do mapa, atrás do quarto, na
-  // diagonal da coluna (x − y); o da parede esquerda, na da linha (y − x).
-  if (pin.ferramenta === "parede" && (lx < 0 || ly < 0)) {
-    const t = escritorioTrechoDaParede(fx - a.x0, fy - a.y0, w, h);
-    return t ? pintarTrechoEscritorio(a, t[0] * L + t[1]) : false;
-  }
-  if (lx < 0 || ly < 0 || lx >= w || ly >= h) return false;
-  const p = escritorioPerfilDecoracao();
-  if (pin.ferramenta === "luz") return false;
-  if (pin.ferramenta === "planta") return formaNaSalaEscritorio(a, lx, ly, escritorioCodigoDaForma(pin), x, y);
   if (pin.ferramenta === "parede") {
-    // Parede mais perto do ponto clicado, entre as que encostam no ladrilho
-    // (fundo, esquerda, frente, direita) e que existem no mapa.
-    const ux = fx - a.x0, uy = fy - a.y0;
-    const lados = [[0, uy, ly === 0], [1, ux, lx === 0], [2, h - uy, ly === h - 1], [3, w - ux, lx === w - 1]]
-      .filter(([lado, , encosta]) => encosta && escritorioTrechoExiste(a, lado * L + (lado % 2 ? ly : lx)))
-      .sort((m, n) => m[1] - n[1]);
-    if (!lados.length) return false;
-    const lado = lados[0][0];
-    return pintarTrechoEscritorio(a, lado * L + (lado % 2 ? ly : lx));
-  } else if (pin.ferramenta === "piso" && pin.movel) {
-    // Piso do acervo (água, pedras, mosaico…): é um móvel rente ao chão, um
-    // por ladrilho; troca o que já estiver ali. Vale ao clicar em Salvar.
+    // Clique na própria parede ("não dá pra mudar só uma"): o ponto da parede
+    // do fundo cai, na projeção do mapa, atrás do quarto, na diagonal da
+    // coluna (x − y); o da parede esquerda, na da linha (y − x).
+    let lado, k;
+    if (lx < 0 || ly < 0) {
+      const t = escritorioTrechoDaParede(fx - a.x0, fy - a.y0, w, h);
+      if (!t) return null;
+      [lado, k] = t;
+    } else {
+      if (lx >= w || ly >= h) return null;
+      // No piso: a parede mais perto do ponto, entre as que encostam no ladrilho.
+      const ux = fx - a.x0, uy = fy - a.y0;
+      const lados = [[0, uy, ly === 0], [1, ux, lx === 0], [2, h - uy, ly === h - 1], [3, w - ux, lx === w - 1]]
+        .filter(([l, , encosta]) => encosta && escritorioTrechoExiste(a, l * L + (l % 2 ? ly : lx)))
+        .sort((m, n) => m[1] - n[1]);
+      if (!lados.length) return null;
+      lado = lados[0][0]; k = lado % 2 ? ly : lx;
+    }
+    return escritorioTrechoExiste(a, lado * L + k) ? { tipo: "parede", a, lado, k, i: lado * L + k, w, h } : null;
+  }
+  if (lx < 0 || ly < 0 || lx >= w || ly >= h) return null;
+  if (pin.ferramenta === "planta") return { tipo: "planta", a, x0: lx, y0: ly, w: 1, h: 1 };
+  if (pin.ferramenta === "piso" && pin.movel) {
+    // Piso do acervo: encaixa na grade do próprio tamanho; sem o tamanho ainda, espera.
+    const d = escritorioDimPiso(pin.movel);
+    if (!d.pronto) return { tipo: "espera", a };
+    const p = escritorioEncaixePiso(lx, ly, d, w, h);
+    return { tipo: "acervo", a, x0: p.x, y0: p.y, w: d.x, h: d.y };
+  }
+  if (pin.ferramenta === "piso") return { tipo: "piso", a, x0: lx, y0: ly, w: 1, h: 1 };
+  return null;
+}
+// Pinta um ladrilho ou trecho de parede da própria sala (x, y do mapa).
+function pintarNaSalaEscritorio(x, y, fx = x + 0.5, fy = y + 0.5) {
+  const alvo = escritorioAlvoDoPincel(x, y, fx, fy), pin = escritorioPincel(), L = ESCRITORIO_QUARTO_MAX;
+  if (!alvo) return false;
+  if (alvo.tipo === "espera") return true;
+  const a = alvo.a;
+  if (alvo.tipo === "parede") return pintarTrechoEscritorio(a, alvo.i);
+  if (alvo.tipo === "planta") return formaNaSalaEscritorio(a, alvo.x0, alvo.y0, escritorioCodigoDaForma(pin), x, y);
+  if (alvo.tipo === "acervo") {
+    // Piso do acervo (água, pedras, mosaico…): é um móvel rente ao chão;
+    // troca as peças de piso que estavam na área (Paulo, 20/10/2026: "clico
+    // num quadrado e pinta vários em vários lugares"). Vale ao clicar em Salvar.
     const e = escritorio.edicao;
     if (!e || e.camada !== a.id) return false;
-    // Cada peça tem o seu tamanho (2×2, 4×4…): encaixa na grade dela e troca
-    // as peças de piso que estavam na área (Paulo, 20/10/2026: "clico num
-    // quadrado e pinta vários em vários lugares"; uma peça de 4×4 ia em cada
-    // ladrilho clicado, uma por cima da outra).
     const pisos = new Set((escritorioCatalogo || []).filter((m) => m.categoria === "Pisos do acervo").map((m) => m.classe));
-    const d = escritorioDimPiso(pin.movel);
-    // Ainda sem o tamanho da peça: espera em vez de pôr no lugar errado.
-    if (!d.pronto) return true;
-    const { x: x0, y: y0 } = escritorioEncaixePiso(lx, ly, d, w, h);
-    const cobre = (it) => { const o = escritorioDimPiso(it[0]); return it[1] < x0 + d.x && it[1] + o.x > x0 && it[2] < y0 + d.y && it[2] + o.y > y0; };
+    const { x0, y0 } = alvo;
+    const cobre = (it) => { const o = escritorioDimPiso(it[0]); return it[1] < x0 + alvo.w && it[1] + o.x > x0 && it[2] < y0 + alvo.h && it[2] + o.y > y0; };
     if (e.itens.some((it) => it[0] === pin.movel && it[1] === x0 && it[2] === y0)) return true;
     for (let i = e.itens.length - 1; i >= 0; i--) if (pisos.has(e.itens[i][0]) && cobre(e.itens[i])) e.itens.splice(i, 1);
     e.itens.push([pin.movel, x0, y0, 0, 0, 0]);
     escritorioEditorMudou();
     return true;
-  } else if (pin.ferramenta === "piso") {
-    const i = ly * L + lx;
-    const pisos = escritorioPisosDoPerfil(p.sala_pisos), atual = pisos.length === L * L ? pisos : "0".repeat(L * L);
-    const cod = Math.max(0, ESCRITORIO_PISOS_SALA.findIndex(([id]) => id === pin.piso)).toString(16);
-    if (atual[i] === cod) return true;
-    escritorioAlterarDecoracao({sala_pisos: atual.slice(0, i) + cod + atual.slice(i + 1)});
-  } else return false;
+  }
+  // Piso de cor: um ladrilho.
+  const i = alvo.y0 * L + alvo.x0;
+  const pisos = escritorioPisosDoPerfil(escritorioPerfilDecoracao().sala_pisos), atual = pisos.length === L * L ? pisos : "0".repeat(L * L);
+  const cod = Math.max(0, ESCRITORIO_PISOS_SALA.findIndex(([id]) => id === pin.piso)).toString(16);
+  if (atual[i] === cod) return true;
+  escritorioAlterarDecoracao({ sala_pisos: atual.slice(0, i) + cod + atual.slice(i + 1) });
   escritorioPinturaMudou();
   return true;
+}
+// Prévia do pincel: a área que o clique vai pintar, destacada no mapa.
+function previaPincelEscritorio(x, y, fx, fy) {
+  const alvo = escritorioAlvoDoPincel(x, y, fx, fy);
+  if (!alvo || alvo.tipo === "espera") return escritorio.mapa?.pincel?.(null);
+  const { a } = alvo;
+  escritorio.mapa?.pincel?.(alvo.tipo === "parede"
+    ? { parede: { lado: alvo.lado, k: alvo.k, x0: a.x0, y0: a.y0, w: alvo.w, h: alvo.h } }
+    : { piso: { x0: a.x0 + alvo.x0, y0: a.y0 + alvo.y0, w: alvo.w, h: alvo.h } });
 }
 // Editor de planta livre: troca o ladrilho (piso, patamar ou sem piso) na
 // edição em curso; salva junto com os móveis.
@@ -432,7 +457,11 @@ function limparPinturaEscritorio(campo) {
   escritorioPinturaMudou();
 }
 // Redesenha logo e salva um pouco depois (arrastando, junta vários ladrilhos).
-function escritorioPinturaMudou() {
+function escritorioPinturaMudou(doDesfazer = false) {
+  // Cada pincelada vira um passo do ⌘Z da construção (o desfazer não cria passo).
+  const ed = escritorio.edicao;
+  if (!doDesfazer && ed?.passos) { const foto = escritorioFotoEdicao(ed); if (foto !== ed.passos.at(-1)) { ed.passos.push(foto); ed.futuro = []; if (ed.passos.length > 80) ed.passos.shift(); } }
+  if (ed && typeof renderBarraEditorEscritorio === "function") renderBarraEditorEscritorio();
   escritorioAplicarSalas();
   clearTimeout(escritorio.timerPintura);
   escritorio.timerPintura = setTimeout(() => (escritorio.mapa?.repintar ? escritorio.mapa.repintar() : escritorioRedesenharMapa()), 40);
