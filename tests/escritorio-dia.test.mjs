@@ -15,6 +15,7 @@ test('dia: prazo ou veiculação, adiadas, prontas no dia ou depois, e atrasadas
  const [regra]=await sql`SELECT chave FROM vybe_escritorio_regras WHERE entrega ORDER BY chave LIMIT 1`;
  await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN titulo text, ADD COLUMN monday_item_id text;
   INSERT INTO vybe_status VALUES(8385559107,'a_fazer','A Fazer',false);
+  UPDATE vybe_status SET cor='#579bfc' WHERE chave='para_agendar';
   INSERT INTO vybe_conteudos(id,board_id,titulo,status_chave,prazo,veiculacao) VALUES
    (1,7829537690,'Fazendo hoje','em_andamento','2026-10-22',NULL),
    (2,7829537690,'Pronta hoje','finalizado','2026-10-22',NULL),
@@ -46,6 +47,8 @@ test('dia: prazo ou veiculação, adiadas, prontas no dia ou depois, e atrasadas
  assert.deepEqual(por(p.ontem),{'Ontem no dia':'pronta','Ontem depois':'depois','Ontem aberta':'falta'},'pronta no dia (pela entrega), depois, ou ficou aberta');
  assert.deepEqual(p.atrasadas.map(x=>x.titulo).sort(),['Atrasada antiga','Ontem aberta']);
  assert.equal(p.ontem.find(x=>x.titulo==='Ontem no dia').status,'Para agendar','status do painel como está');
+ assert.equal(p.ontem.find(x=>x.titulo==='Ontem no dia').status_cor,'#579bfc','a cor do status vem do quadro, como nas demandas');
+ assert.equal(p.hoje.find(x=>x.titulo==='Demanda de hoje').status_cor,'','status sem cor fica vazio');
  assert.deepEqual(r.pessoas['2'].hoje.map(x=>x.titulo),['De outra pessoa'],'cada um vê só o que é seu');
  assert.equal(p.hoje.find(x=>x.titulo==='Demanda de hoje').quadro,'demandas');
 });

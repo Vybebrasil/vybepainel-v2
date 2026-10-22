@@ -90,13 +90,19 @@ function escritorioDiaAnelHtml(n) {
   return `<span class="dia-anel${n.total && n.feitas === n.total ? " completo" : ""}" style="--p:${pct}" role="img" aria-label="${safeText(`${n.feitas} de ${n.total} finalizadas`)}"><b>${n.total ? `${n.feitas}/${n.total}` : "0"}</b></span>`;
 }
 const ESCRITORIO_DIA_ESTADO = { pronta: "Pronta", depois: "Pronta depois", fazendo: "Fazendo agora", falta: "Falta fazer" };
+// Status da peça com a cor do quadro dela (vybe_status.cor, vinda do servidor),
+// a mesma etiqueta das demandas; a bolinha da linha continua dizendo o estado do dia.
+function escritorioDiaStatusHtml(it) {
+  const rotulo = safeText(it.status || "");
+  return typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(rotulo, it.status_cor || "") : `<small>${rotulo}</small>`;
+}
 // Peça adiada: diz o que mudou e para quando ("Prazo foi para 24/10").
 const escritorioDiaAdiada = (x) => x.adiada ? `${x.adiada.campo === "veiculacao" ? "Veiculação" : "Prazo"} ${x.adiada.para ? "foi para " + escritorioDataCurta(x.adiada.para) : "foi tirado"}` : "";
 function escritorioDiaCartaoHtml(pessoa) {
   const d = escritorioDiaDe(pessoa);
   if (!d) return escritorio.diaEquipe?.erro ? vbEstadoHtml({ tipo: "erro", titulo: "Não deu para carregar o dia", texto: escritorio.diaEquipe.erro }) : vbEstadoHtml({ tipo: "carregando", titulo: "Carregando o dia" });
   const n = d.nHoje, o = d.nOntem, abertasOntem = o.faltam + o.fazendo;
-  const linha = (it) => `<li class="${it.adiada ? "adiada" : it.estado}"><i aria-hidden="true"></i><span>${safeText(it.titulo)}</span><small>${safeText(it.adiada ? escritorioDiaAdiada(it) : it.status || ESCRITORIO_DIA_ESTADO[it.estado])}</small></li>`;
+  const linha = (it) => `<li class="${it.adiada ? "adiada" : it.estado}"><i aria-hidden="true"></i><span>${safeText(it.titulo)}</span>${it.adiada || !it.status ? `<small>${safeText(it.adiada ? escritorioDiaAdiada(it) : ESCRITORIO_DIA_ESTADO[it.estado])}</small>` : escritorioDiaStatusHtml(it)}</li>`;
   const conta = [n.feitas && ["feita", escritorioPlural(n.feitas, "pronta", "prontas")], n.fazendo && ["fazendo", escritorioPlural(n.fazendo, "fazendo agora", "fazendo agora")], n.faltam && ["falta", escritorioPlural(n.faltam, "falta", "faltam")], n.adiadas && ["adiada", escritorioPlural(n.adiadas, "adiada", "adiadas")]].filter(Boolean);
   return `<div class="dia-cab">${escritorioDiaRostoHtml(pessoa.id, 40)}<div><b>${safeText(pessoa.nome || "")}</b><small>Hoje, ${escritorioDataCurta(d.hoje)} · ${escritorioPlural(n.total, "peça", "peças")}</small></div>${escritorioDiaAnelHtml(n)}</div>
   ${d.paraHoje.length ? `<div class="dia-conta">${conta.map(([c, t]) => `<span class="${c}">${t}</span>`).join("")}</div><ul class="dia-lista">${d.paraHoje.slice(0, 5).map(linha).join("")}</ul>${d.paraHoje.length > 5 ? `<small class="dia-mais">e mais ${d.paraHoje.length - 5}</small>` : ""}` : '<p class="dia-vazio">Nada com prazo para hoje.</p>'}
@@ -135,7 +141,7 @@ function pintarDiaEquipeEscritorio() {
     .sort((a, b) => (String(b.p.id) === escritorioDiaEquipe.primeiro) - (String(a.p.id) === escritorioDiaEquipe.primeiro) || String(a.p.nome || "").localeCompare(String(b.p.nome || ""), "pt-BR"));
   const item = (it) => {
     const quando = it.adiada ? escritorioDiaAdiada(it) : [it.prazo ? "prazo " + escritorioDataCurta(it.prazo) : "", it.veiculacao ? "veicula " + escritorioDataCurta(it.veiculacao) : "", it.estado === "depois" && it.pronta_em ? "pronta " + escritorioDataCurta(it.pronta_em) : ""].filter(Boolean).join(" · ");
-    return `<li><button type="button" onclick="closeWorkflowModal();abrirMissaoEscritorio('${safeText(it.ref)}','${it.quadro}')"><span class="dia-ponto ${it.adiada ? "adiada" : it.estado}" aria-hidden="true"></span><span class="dia-nome">${safeText(it.titulo)}<small>${safeText([it.clientes?.join(", "), quando].filter(Boolean).join(" · "))}</small></span>${typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(it.status || "") : `<small>${safeText(it.status || "")}</small>`}</button></li>`;
+    return `<li><button type="button" onclick="closeWorkflowModal();abrirMissaoEscritorio('${safeText(it.ref)}','${it.quadro}')"><span class="dia-ponto ${it.adiada ? "adiada" : it.estado}" aria-hidden="true"></span><span class="dia-nome">${safeText(it.titulo)}<small>${safeText([it.clientes?.join(", "), quando].filter(Boolean).join(" · "))}</small></span>${escritorioDiaStatusHtml(it)}</button></li>`;
   };
   const grupo = (titulo, lista, tom = "") => (lista.length ? `<section class="dia-grupo ${tom}"><span class="vb-jogo-rotulo">${titulo} · ${lista.length}</span><ul>${lista.map(item).join("")}</ul></section>` : "");
   const por = (lista, estado) => lista.filter((x) => !x.adiada && x.estado === estado);

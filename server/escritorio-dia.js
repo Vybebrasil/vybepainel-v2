@@ -32,7 +32,7 @@ export async function diaDaEquipe(sql, agora = new Date()) {
       entregues AS (
         SELECT e.conteudo_id FROM vybe_escritorio_entregas e JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega
         WHERE e.dia >= ${ontem}::date AND e.conteudo_id IS NOT NULL)
-      SELECT c.id, c.monday_item_id, c.board_id, c.titulo, c.status_chave, s.rotulo AS status, COALESCE(s.final,false) AS final,
+      SELECT c.id, c.monday_item_id, c.board_id, c.titulo, c.status_chave, s.rotulo AS status, s.cor AS status_cor, COALESCE(s.final,false) AS final,
         TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo, TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,
         COALESCE(ARRAY(SELECT r.pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=c.id ORDER BY r.ordem), '{}') AS responsaveis,
         COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes v JOIN vybe_clientes cl ON cl.id=v.cliente_id WHERE v.conteudo_id=c.id ORDER BY cl.nome), '{}') AS clientes,
@@ -57,7 +57,7 @@ export async function diaDaEquipe(sql, agora = new Date()) {
     const data = p.prazo || p.veiculacao;
     const base = {
       ref: p.monday_item_id ? String(p.monday_item_id) : 'vybe:' + p.id, quadro: String(p.board_id) === '8385559107' ? 'demandas' : 'producao',
-      titulo: p.titulo || 'Sem título', clientes: p.clientes || [], status: p.status || '', prazo: p.prazo, veiculacao: p.veiculacao,
+      titulo: p.titulo || 'Sem título', clientes: p.clientes || [], status: p.status || '', status_cor: p.status_cor || '', prazo: p.prazo, veiculacao: p.veiculacao,
     };
     const quem = new Set([...(p.responsaveis || []), ...entregas.filter((e) => e.conteudo === String(p.id)).map((e) => e.pessoa)]);
     for (const pessoa of quem) {
