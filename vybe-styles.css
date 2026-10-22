@@ -10383,7 +10383,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 /* Os colegas ficam dentro da coluna do meio (antes saíam por cima dos
    botões e do quadro de online). Os de trás só aparecem com tela larga. */
 .lg-turma {overflow:visible;margin:0 -10px}
-@container (min-width:1380px) {.lg-colega.longe {display:grid}}
+@container (min-width:1380px) {.lg-colega.longe {display:grid;bottom:auto;scale:1;filter:none}}
 @container (max-width:1180px) {.lg-colega {scale:.74}}
 
 /* Título na lista do ranking: a mesma linha pequena da etiqueta do mapa, ao
@@ -10732,3 +10732,136 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-coluna .ofc-cobranca .ofc-missao-prazo {padding:0;background:none;border:0;font:700 10.5px var(--mac-ui)}
 .ofc-coluna .ofc-cobranca .ofc-cobranca-linha .pill {padding:0 6px;font-size:9.5px}
 .ofc-coluna .ofc-cobranca-fotos img, .ofc-coluna .ofc-cobranca-fotos > * {width:22px;height:22px;font-size:9px}
+
+/* Recado global (decisão do Paulo, 21/10/2026): no meio da tela de todos, um
+   cartão de jogo que entra num pulo, com faixa de título, a prévia do que ele
+   anuncia (a Mansão no piso da pessoa, a taça, a loja…) e as faíscas subindo.
+   Estilos: Vybe (laranja), Obra (faixa amarela e preta, para a "emenda de
+   Bacelar") e Festa. "Reduzir movimento" tira o pulo e as faíscas. */
+.ofc-aviso-global {position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:16px}
+.ofc-aviso-global .aviso-fundo {position:absolute;inset:0;background:radial-gradient(60% 60% at 50% 45%,#ff8a3522,transparent 70%),#05060ab8;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:aviso-fundo .35s ease both}
+@keyframes aviso-fundo {from {opacity:0}}
+.aviso-cartao {--acento:#ff8a35;position:relative;width:min(460px,100%);display:grid;gap:10px;padding:0 0 16px;border:2px solid #0b0c10;border-radius:22px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff14,0 6px 0 #07080b,0 30px 70px #000c,0 0 60px color-mix(in srgb,var(--acento) 25%,transparent);color:#fff;overflow:hidden;text-align:center}
+.ofc-aviso-global .aviso-cartao {animation:aviso-entra .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes aviso-entra {0% {opacity:0;transform:translateY(40px) scale(.6) rotate(-4deg)} 100% {opacity:1;transform:none}}
+.ofc-aviso-global.saindo .aviso-cartao {animation:aviso-sai .3s ease-in both}.ofc-aviso-global.saindo .aviso-fundo {animation:aviso-fundo .3s ease reverse both}
+@keyframes aviso-sai {to {opacity:0;transform:translateY(20px) scale(.9)}}
+.aviso-cartao.estilo-obra {--acento:#ffc83d}
+.aviso-cartao.estilo-festa {--acento:#c39bff}
+.aviso-topo {position:relative;display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(180deg,#2a2e3b,#20232d);box-shadow:inset 0 1px 0 #ffffff1f,0 2px 0 #0b0c10;text-align:left}
+.aviso-cartao.estilo-obra .aviso-topo {padding-top:20px}
+.aviso-cartao.estilo-obra .aviso-topo::before {content:"";position:absolute;left:0;right:0;top:0;height:9px;background:repeating-linear-gradient(-45deg,#ffc83d 0 12px,#14161d 12px 24px)}
+.aviso-cartao.estilo-festa .aviso-topo::before {content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,#ff6b6b,#ffc83d,#6fe3a8,#6fb6ff,#c39bff)}
+.aviso-selo {flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000c}
+.aviso-selo img {max-width:38px;max-height:38px;image-rendering:pixelated;animation:cq-flutua 2.6s ease-in-out infinite}
+.aviso-de {display:flex;align-items:center;gap:8px;color:#c5cad6;font:650 13px var(--mac-ui)}
+.aviso-de b {color:#fff}
+.aviso-de img {width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:center 28%;image-rendering:pixelated;background:#2a2e3b;box-shadow:0 0 0 2px var(--acento)}
+.aviso-palco {position:relative;height:190px;margin:4px 16px 0;border-radius:14px;background:radial-gradient(60% 60% at 50% 60%,color-mix(in srgb,var(--acento) 25%,transparent),transparent 72%),#0e1016;box-shadow:inset 0 2px 6px #000c;overflow:hidden;display:grid;place-items:center}
+.aviso-palco .vb-vitrine.aviso-vitrine {position:absolute;inset:0;background:none}
+.aviso-palco .vb-vitrine.aviso-vitrine::after {display:none}
+.aviso-arte img {width:96px;height:96px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 6px 10px #000a);animation:cq-flutua 3s ease-in-out infinite}
+.aviso-faiscas {position:absolute;inset:0;pointer-events:none}
+.aviso-faiscas i {position:absolute;bottom:-6px;left:calc((var(--k,1)) * 8%);width:4px;height:4px;border-radius:50%;background:var(--acento);box-shadow:0 0 8px var(--acento);opacity:0;animation:aviso-faisca 3s ease-out infinite}
+.aviso-faiscas i:nth-child(1){--k:1;animation-delay:0s}.aviso-faiscas i:nth-child(2){--k:2;animation-delay:-.5s}.aviso-faiscas i:nth-child(3){--k:3;animation-delay:-1s}.aviso-faiscas i:nth-child(4){--k:4;animation-delay:-1.5s}.aviso-faiscas i:nth-child(5){--k:5;animation-delay:-2s}.aviso-faiscas i:nth-child(6){--k:6;animation-delay:-2.5s}.aviso-faiscas i:nth-child(7){--k:7;animation-delay:-.25s}.aviso-faiscas i:nth-child(8){--k:8;animation-delay:-.75s}.aviso-faiscas i:nth-child(9){--k:9;animation-delay:-1.25s}.aviso-faiscas i:nth-child(10){--k:10;animation-delay:-1.75s}.aviso-faiscas i:nth-child(11){--k:11;animation-delay:-2.25s}.aviso-faiscas i:nth-child(12){--k:12;animation-delay:-2.75s}
+@keyframes aviso-faisca {10% {opacity:1} 100% {opacity:0;transform:translateY(-190px)}}
+.aviso-cartao h2 {margin:6px 20px 0;font:900 26px/1.1 var(--mac-ui);letter-spacing:-.01em;text-wrap:balance;color:#fff;text-shadow:0 3px 0 #000,2px 0 0 #000,-2px 0 0 #000,0 -2px 0 #000}
+.aviso-cartao.estilo-obra h2 {color:#ffd36b}
+.aviso-cartao p {margin:0 22px;color:#c9ced8;font:550 14.5px/1.5 var(--mac-ui);text-wrap:pretty}
+.aviso-acoes {display:flex;justify-content:center;gap:10px;margin:6px 16px 0;flex-wrap:wrap}
+.aviso-conferir {min-width:200px;justify-content:center;font-size:15px;animation:aviso-pulso 2.2s ease-in-out infinite}
+@keyframes aviso-pulso {50% {box-shadow:0 4px 0 #a24e0c,0 0 0 6px #ff8a3530}}
+.aviso-ignorar {padding:10px 16px;border:1px solid #ffffff1a;border-radius:12px;background:#0e1016;color:#c5cad6;font:750 13.5px var(--mac-ui);cursor:pointer}
+.aviso-ignorar:hover {color:#fff}
+.aviso-ignorar:focus-visible, .aviso-conferir:focus-visible {outline:3px solid #ff8a35;outline-offset:2px}
+@media (prefers-reduced-motion:reduce) {.ofc-aviso-global .aviso-cartao, .aviso-faiscas i, .aviso-selo img, .aviso-arte img, .aviso-conferir {animation:none!important}.aviso-faiscas {display:none}}
+[data-motion=reduce] :is(.ofc-aviso-global .aviso-cartao, .aviso-faiscas i, .aviso-selo img, .aviso-arte img, .aviso-conferir) {animation:none!important}
+/* Formulário de mandar: campos à esquerda, a prévia viva à direita. */
+.ofc-aviso-novo {position:fixed;inset:0;margin:auto;height:fit-content;width:min(900px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:0;border:2px solid #0b0c10;border-radius:22px;background:#15171f;color:#fff;box-shadow:0 30px 70px #000c}
+.ofc-aviso-novo::backdrop {background:#05060ab0;backdrop-filter:blur(4px)}
+.aviso-form {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,460px);gap:18px;padding:18px;align-items:start}
+.aviso-form-campos {display:grid;gap:12px}
+.aviso-form-topo {display:flex;justify-content:space-between;align-items:center}
+.aviso-form-topo b {font:900 20px var(--mac-ui)}
+.aviso-form label {display:grid;gap:5px;color:#a3a9b7;font:750 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.aviso-form :is(input, textarea, select) {padding:10px 12px;border:1px solid #ffffff1a;border-radius:12px;background:#0e1016;color:#fff;font:550 14px var(--mac-ui);letter-spacing:0;text-transform:none;resize:vertical}
+.aviso-form :is(input, textarea, select):focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.aviso-form-nota {margin:0;color:#8f96a6;font:550 12px/1.4 var(--mac-ui)}
+.aviso-form-previa .aviso-cartao {width:100%;pointer-events:none}
+@media (max-width:760px) {.aviso-form {grid-template-columns:1fr}.aviso-form-previa {display:none}}
+
+/* Entrada: o quarto num cartão de jogo (Paulo, 21/10/2026: "muito soltão…
+   um cartãozinho com esse cenário, mas a pessoa ver o vídeo da Vybelândia
+   também"). Cartão com borda e degrau, vidro escuro leve, placa da sala em
+   cima, brilho passando de tempos em tempos e inclinação com o mouse; a
+   cidade fica mais nítida e mais clara em volta. Colegas em cartõezinhos. */
+@keyframes lg-cena {from {transform:scale(1.18);filter:blur(10px) brightness(.3) saturate(1)} to {transform:scale(1.04);filter:blur(1px) brightness(calc(var(--lg-luz) + .14)) saturate(var(--lg-sat))}}
+.ofc-lobby.lg .abr-vinheta {background:radial-gradient(130% 100% at 50% 55%,transparent 50%,#05060acc 100%),linear-gradient(180deg,#05060a99,transparent 20%,transparent 70%,#05060ae0)!important}
+.lg-palco {perspective:1200px}
+.lg-quarto {--rx:0deg;--ry:0deg;position:relative;align-self:center;width:min(400px,100%);aspect-ratio:1/1.02;margin-bottom:6px;border:2px solid #0b0c10;border-radius:22px;background:linear-gradient(180deg,#1d2029cc,#12141bdd);box-shadow:inset 0 1px 0 #ffffff1f,0 8px 0 #07080b,0 40px 80px #000c,0 0 70px #ff8a3522;transform:rotateX(var(--rx)) rotateY(var(--ry));transition:transform .25s var(--curva,ease);overflow:hidden;animation:lg-quarto-entra .8s var(--curva,cubic-bezier(.2,1.2,.4,1)) both .15s}
+@keyframes lg-quarto-entra {from {opacity:0;transform:translateY(40px) scale(.9)}}
+.lg-quarto .vb-vitrine.lg-vitrine {position:absolute;inset:0;width:auto;height:auto;translate:none;-webkit-mask:none;mask:none;border-radius:20px}
+.lg-quarto .vb-vitrine.lg-vitrine::after {display:block}
+.lg-quarto-placa {position:absolute;z-index:3;top:10px;left:50%;translate:-50% 0;display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:12px;border:2px solid #0b0c10;background:linear-gradient(180deg,#2a2e3b,#20232d);box-shadow:inset 0 1px 0 #ffffff1f,0 3px 0 #0b0c10;white-space:nowrap;font:850 13px var(--mac-ui);color:#fff}
+.lg-quarto-placa svg {width:15px;height:15px;fill:none;stroke:#ffb27a;stroke-width:2}
+.lg-quarto-placa em {padding:2px 7px;border-radius:7px;background:#0e1016;color:#c7b3ff;font:850 10.5px var(--mac-ui);font-style:normal}
+.lg-quarto-brilho {position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 40%,#ffffff1a 50%,transparent 60%) no-repeat;background-size:260% 100%;background-position:150% 0;animation:mapa-tag-brilho 7s ease-in-out 2s infinite}
+.lg-turma {grid-area:online;align-self:center;justify-self:start;display:flex;flex-direction:column;gap:14px;margin:0;padding-bottom:120px}
+.lg-colega {position:relative;left:auto;bottom:auto;top:auto;translate:none;width:150px;padding:0;border:2px solid #0b0c10;border-radius:16px;background:#12141bdd;box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #07080b,0 20px 40px #000a;overflow:hidden;scale:1;filter:none}
+.lg-colega.longe {display:none}
+.lg-colega .vb-vitrine.lg-colega-vitrine {width:100%;aspect-ratio:1/1.05;border-radius:14px 14px 0 0}
+.lg-colega-nome {position:static;opacity:1;translate:none;display:grid;gap:1px;padding:6px 8px 8px;border-radius:0;background:linear-gradient(180deg,#2a2e3b,#20232d);color:#a3a9b7;font:650 10.5px var(--mac-ui);text-align:center}
+.lg-colega:hover {transform:translateY(-4px)}
+.lg-colega:hover .lg-colega-nome, .lg-colega:focus-visible .lg-colega-nome {translate:none}
+.lg-audio {flex-wrap:nowrap}
+.lg-audio:has(small) {flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce) {.lg-quarto, .lg-quarto-brilho {animation:none}.lg-quarto {transform:none}}
+[data-motion=reduce] :is(.lg-quarto, .lg-quarto-brilho) {animation:none}
+@container (max-width:900px) or (max-height:620px) {.lg-quarto {width:min(300px,86%)}.lg-colega {display:none}}
+/* Entrada equilibrada (Paulo, 21/10/2026: "não ficou destoando dos botões de
+   baixo?"): microfone e atalhos numa bandeja só, da altura do ENTRAR; o
+   cartão do quarto do tamanho do quarto; "online agora" vira o título dos
+   cartõezinhos (sem repetir as bolinhas); a frase do microfone vira dica. */
+.lg-base {grid-template-columns:minmax(0,1fr) minmax(300px,380px);align-items:stretch}
+.lg-bandeja {display:flex;align-items:center;gap:10px;min-width:0;padding:10px;border:2px solid #0b0c10;border-radius:20px;background:var(--vidro);box-shadow:inset 0 1px 0 #ffffff12,0 6px 0 var(--degrau),0 18px 36px #0008}
+.lg-bandeja .lg-audio {padding:0;border:0;background:none;box-shadow:none}
+.lg-bandeja .lg-outros {margin-left:auto}
+.lg-bandeja .lg-secundario {height:52px;background:#262a36}
+.lg-base .lg-entrar {height:auto;min-height:74px}
+.lg-regra {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.lg-quarto {aspect-ratio:1/.86}
+.lg-tela:has(.lg-colega) .lg-online {display:none}
+.lg-turma-titulo {display:flex;align-items:center;gap:7px;color:#a6f0c4;font:850 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase;text-shadow:0 1px 0 #000}
+.lg-turma-titulo i {width:8px;height:8px;border-radius:50%;background:#4fd18b;box-shadow:0 0 8px #4fd18b}
+.lg-turma-titulo small {padding:1px 6px;border-radius:6px;background:#0e1016;color:#dfe3ea}
+.lg-turma {padding-bottom:0}
+@container (max-width:900px) or (max-height:620px) {.lg-base {grid-template-columns:1fr}.lg-bandeja {flex-wrap:wrap}.lg-bandeja .lg-outros {margin-left:0;width:100%}}
+/* Colegas espelhando os avisos da direita (Paulo, 21/10/2026: "eu gostava dos
+   avisos laterais… precisamos achar um equilíbrio"): o mesmo cartão e a mesma
+   largura dos botões da direita, com um quadradinho do quarto da pessoa no
+   lugar do ícone. Esquerda: quem está online; centro: o seu quarto; direita:
+   o que pede atenção. */
+.lg-turma {justify-self:start;align-self:center;gap:10px;width:250px}
+.lg-colega {display:grid;grid-template-columns:52px minmax(0,1fr);align-items:center;gap:12px;width:250px;padding:7px 14px 7px 7px;border:1px solid var(--borda-vidro);border-radius:16px;background:var(--vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau),0 12px 26px #0007;text-align:left;overflow:visible}
+.lg-colega .vb-vitrine.lg-colega-vitrine {width:52px;height:52px;aspect-ratio:auto;border-radius:12px;box-shadow:inset 0 1px 3px #000c}
+.lg-colega-nome {padding:0;background:none;color:#8f96a6;font:650 11px var(--mac-ui);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-colega-nome b {display:block;color:#fff;font:850 15px var(--mac-ui)}
+.lg-colega:hover {transform:translateY(-2px) translateX(4px)}
+.lg-colega.longe {display:grid;bottom:auto;scale:1;filter:none}
+.lg-colega:nth-of-type(n+5) {display:none}
+/* Missões e Conversa na mesma linguagem do Cobrando (Paulo, 21/10/2026: "você
+   arrumou uma aba e não arrumou as outras?"): a lista num poço escuro, cada
+   item uma linha separada por um fio, prazo, XP e moedas em texto colorido
+   (sem pílula); na Conversa, cada pessoa uma linha do poço. A faixa do título
+   vai de ponta a ponta. */
+.ofc-coluna .ofc-missoes-topo {box-sizing:border-box;width:calc(100% + 24px);max-width:none}
+.ofc-coluna .ofc-missoes-lista {gap:0;padding:2px 0;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000a}
+.ofc-coluna .ofc-missoes-lista > li + li .ofc-missao {border-top:1px solid #ffffff0d}
+.ofc-coluna .ofc-missao {padding:8px 10px;border:0;border-radius:0;background:none}
+.ofc-coluna .ofc-missao:hover, .ofc-coluna .ofc-missao:focus-visible {background:#ffffff08}
+.ofc-coluna .ofc-missao-prazo {padding:0;background:none;font-size:10.5px}
+.ofc-coluna :is(.ofc-missao-xp, .ofc-missao-moeda) {padding:0;background:none;font-weight:800}
+.ofc-coluna .ofc-missao-xp {color:#8fc2ff}.ofc-coluna .ofc-missao-moeda {color:#ffd166}
+.ofc-coluna .office-call .office-call-media {gap:0;margin:0 10px 10px;padding:0;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000a;overflow:hidden}
+.ofc-coluna .office-call-media > div {padding:10px 12px;border-radius:0;background:none}
+.ofc-coluna .office-call-media > div + div {border-top:1px solid #ffffff0d}

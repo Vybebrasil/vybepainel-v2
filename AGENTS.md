@@ -342,6 +342,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   o bônus da Copa: a % de `copa_bonus_pct` (100 = em dobro) sobre o que ganha
   trabalhando, pago no fechamento de cada dia (`bonusCopaDoDia`), e um selo na
   tela mostra o bônus a todos. Detalhes em `docs/escritorio-pontos.md`.
+- Recado global (decisão do Paulo, 21/10/2026): quem está em
+  `vybe_escritorio_avisos_autores` (Paulo, Vinícius, Ewerton L. e Deivid) manda
+  pelo menu "Mais" um recado que aparece no meio da tela de toda a equipe,
+  inclusive de quem mandou, com "Conferir" (leva ao destino) e "Ignorar"; cada
+  pessoa vê cada recado uma vez, por 7 dias (`server/escritorio-avisos.js`,
+  `2026-10-22-escritorio-avisos.sql`). O painel procura recado novo a cada
+  minuto (sem mudar o Worker). Quem manda é conferido pela sessão no servidor.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em
