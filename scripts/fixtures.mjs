@@ -163,6 +163,13 @@ export async function demoApi(req,res,url,body) {
           {ref:'vybe:1',quadro:'producao',titulo:'Carrossel de três dúvidas',cliente:'Cliente B (fictício)',formato:'Carrossel',peso:2,status:'Em andamento',grupo:'Redação',prazo:d(0),atrasada:false,hoje:true,recompensa:{moedas:8,pontos:20},bonus:null},
           {ref:'vybe:1',quadro:'producao',titulo:'Card de domingo',cliente:'Cliente C (fictício)',formato:'Card',peso:1,status:'Pode Fazer',grupo:'Criação',prazo:d(3),atrasada:false,hoje:false,recompensa:{moedas:4,pontos:10},bonus:null},
           {ref:'vybe:2',quadro:'demandas',titulo:'Reels de bastidores',cliente:'Cliente D (fictício)',formato:'Reels',peso:2.5,status:'Pode Fazer',prazo:d(5),atrasada:false,hoje:false,recompensa:{moedas:13,pontos:25},bonus:null}]});}
+      // Dia de cada pessoa (fictício): hoje, ontem, adiada e atrasada.
+      if(url.searchParams.get('acao')==='dia'){const d=(n)=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+        const p=(titulo,estado,status,prazo,extra={})=>({ref:'vybe:1',quadro:'producao',titulo,clientes:['Cliente demonstração'],status,prazo,veiculacao:null,estado,pronta_em:estado==='pronta'?prazo:null,adiada:null,...extra});
+        return reply(200,{ok:true,hoje:d(0),ontem:d(-1),pessoas:{
+          '1':{hoje:[p('Card de promoção','fazendo','Em andamento',d(0)),p('Reels do dia','falta','Pode Fazer',d(0)),p('Story da promoção','pronta','Finalizado',d(0)),p('Carrossel de serviços','falta','Pode Fazer',d(2),{adiada:{campo:'prazo',para:d(2)}})],ontem:[p('Cardápio novo','pronta','Para agendar',d(-1)),p('Post institucional','falta','Alteração',d(-1))],atrasadas:[p('Post institucional','falta','Alteração',d(-1))]},
+          '2':{hoje:[p('Arte do evento','pronta','Finalizado',d(0)),p('Banner do site','pronta','Agendado',d(0))],ontem:[p('Post do feriado','depois','Finalizado',d(-1),{pronta_em:d(0)})],atrasadas:[]},
+          '3':{hoje:[p('Vídeo depoimento','fazendo','Em andamento',d(0))],ontem:[],atrasadas:[p('Corte dos reels','falta','Para aprovação',d(-3))]}}});}
       // Cobranças de demonstração (fictícias) para o quarto de qualquer pessoa.
       if(url.searchParams.get('acao')==='cobrancas')return reply(200,{ok:true,cobrancas:[
         {ref:'vybe:1',quadro:'producao',titulo:'Card de promoção',status:'Em andamento',cliente_id:'1',cliente:'Cliente demonstração',segmento:'Cooperativa',tipo:'atrasada',data:'2026-10-14',dias:5},

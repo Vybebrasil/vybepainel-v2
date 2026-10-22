@@ -358,10 +358,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `escritorioMarcarDia`) e a janela "Dia da equipe" (clique no balão ou menu
   Mais), com a fotinha de cada personagem. **Todos veem o de todos** (Paulo:
   vale para a equipe inteira, inclusive o que cada um fez e deixou de fazer).
-  Contas em `escritorioDiaDe` (`vybe-escritorio-ficha.js`), só das demandas do
-  painel: hoje = vence hoje ou foi entregue hoje; ontem = dia útil anterior
-  (no dia, depois, ficou aberta); status do painel como está, sem deduzir
-  publicação. Não crie outra contagem do dia.
+  Contas no servidor (`server/escritorio-dia.js`, rota `dia`), nos dois
+  quadros: para o dia = prazo no dia (sem prazo, a veiculação); adiada = prazo
+  ou veiculação que saiu do dia (histórico `vybe_conteudo_eventos`, mudado na
+  véspera ou depois); pronta = entrega da pessoa no dia
+  (`vybe_escritorio_entregas`) ou o dia em que o status virou final. A coluna
+  "Conclusão" das demandas é data planejada, não entrega. Status do painel
+  como está, sem deduzir publicação. Não crie outra contagem do dia.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em

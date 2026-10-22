@@ -6821,9 +6821,13 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .dia-lista li span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dia-lista li small {color:#a3a9b7;font:600 10.5px var(--mac-ui);white-space:nowrap}
 .dia-lista i, .dia-ponto {width:9px;height:9px;border-radius:50%;background:#8b90a0;box-shadow:0 0 0 2px #ffffff10}
-.dia-lista .feita i, .dia-ponto.feita {background:#41d98a}
 .dia-lista .fazendo i, .dia-ponto.fazendo {background:#ffb547;box-shadow:0 0 0 2px #ffb54733,0 0 8px #ffb547aa}
-.dia-lista .feita span {color:#a3a9b7;text-decoration:line-through;text-decoration-color:#41d98a99}
+.dia-lista .pronta i, .dia-ponto.pronta, .dia-ponto.depois {background:#41d98a}
+.dia-lista .pronta span {color:#a3a9b7;text-decoration:line-through;text-decoration-color:#41d98a99}
+/* Adiada: anel vazado amarelo (o texto diz para quando foi). */
+.dia-lista .adiada i, .dia-ponto.adiada {background:transparent;box-shadow:inset 0 0 0 2px #f5c451}
+.dia-lista .adiada small, .dia-conta .adiada {color:#f5c451}
+.dia-grupo.adiada .vb-jogo-rotulo {color:#f5c451}
 .dia-alerta {margin:0;color:#ffb4a8;font:700 12px var(--mac-ui)}
 .dia-ontem {display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding-top:8px;border-top:1px solid #ffffff12}
 .dia-ontem em, .dia-pessoa-nome em {font-style:normal;color:#ffb4a8}

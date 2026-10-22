@@ -20,6 +20,7 @@ import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CE
 import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./escritorio-economia.js";
 import { missoesDaPessoa, rankingEscritorio, ganhosRecentes, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
+import { diaDaEquipe } from "./escritorio-dia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
@@ -420,6 +421,9 @@ export async function areaEscritorio(req, res, quem, sql) {
       if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
       return res.status(200).json({ ok: true, cobrancas: await cobrancasDaPessoa(sql, Number(alvo)) });
     }
+    // Dia de cada pessoa (balão da mesa e Dia da equipe): todos veem o de
+    // todos (decisão do Paulo, 22/10/2026).
+    if (acao === "dia") return res.status(200).json({ ok: true, ...(await diaDaEquipe(sql)) });
     if (acao === "recados" || acao === "recados-resumo")
       try {
         return res.status(200).json(acao === "recados"

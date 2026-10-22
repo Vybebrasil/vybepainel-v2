@@ -1452,6 +1452,11 @@ decoração inicial "bem feito".
   finalizado, selo vermelho com o que ficou aberto de antes), cartão ao passar
   o mouse e a janela "Dia da equipe" (Hoje/Ontem, pessoa clicada primeiro,
   demandas com o status do painel). Todos veem o de todos.
+- Correção do mesmo dia (Paulo: "ficou como nada vencido da galera... tem que
+  levar em consideração os prazos e se uma veiculação foi puxada de um dia
+  pra outro"): a conta passou para o servidor (`server/escritorio-dia.js`),
+  com os dois quadros, as adiadas pelo histórico de datas e a entrega real.
+  Antes lia só as Demandas e a coluna "Conclusão".
 - Próximos pedidos do Paulo: cursor que muda conforme a ação (andar, pegar,
   usar móvel); caixas da coluna da direita (Cobrando, Missões, Conversa,
   tela) soltas, para arrastar, aumentar e diminuir, cada uma no seu lugar.
