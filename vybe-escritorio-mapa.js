@@ -1113,6 +1113,8 @@ function mapaPassoFeixe(f) {
   return [f.fase, y];
 }
 function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, aoPassarMovel, eu, aoPegar, aoArrastar, aoSoltar, aoCancelar, aoClicarSaida }) {
+  // A arte pode terminar de baixar depois que a pessoa já saiu desta cena.
+  let destruido = false;
   const P = planta;
   // Cena: o mapa geral ou um quarto (fundo escuro e câmera parada).
   el.dataset.cena = P.quarto ? "quarto" : "mapa";
@@ -1791,6 +1793,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   }
   async function montarImagem(meta, x, y, dir, origemItem) {
     const img = await carregarImagem(meta.id);
+    if (destruido) return;
     const w = meta.largura, h = meta.altura;
     if (meta.tipo === "quadro") {
       quadrosParede.push({ x: Math.floor(x), y: Math.floor(y), dir, w, h, img, origem: origemItem });
@@ -1818,6 +1821,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     }
     try {
       const m = await mapaCarregarMovel(classe);
+      if (destruido) return;
       // Item de parede: "dir" diz a parede (4 = fundo, que desce para a
       // direita; 2 = esquerda, que desce para a esquerda), igual à arte do Habbo.
       const deParede = mapaEhDeParede(m.dados, classe);
@@ -1978,7 +1982,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
   // A grade só é montada com a ficha de física do Habbo carregada.
-  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); montarFigurantesDepois = true; grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) { montarFigurantes(); montarVisitantes(); } carga.pronto = true; });
+  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { if (destruido) return; ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); montarFigurantesDepois = true; grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) { montarFigurantes(); montarVisitantes(); } carga.pronto = true; });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   // Uma troca por vez: duas seguidas (editar e salvar) desenhavam os móveis
   // em dobro, porque a segunda limpava enquanto a primeira ainda montava.
@@ -3050,7 +3054,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       juntarCamadasParede(item);
     }
   };
-  prontos.then(() => { relogio = setInterval(animar, 1000 / (reduzido ? 12 : 24)); });
+  prontos.then(() => { if (!destruido) relogio = setInterval(animar, 1000 / (reduzido ? 12 : 24)); });
 
   // Post-its nas paredes do fundo (lado 0) e da esquerda (lado 1), como os
   // recados do Habbo: um quadradinho colorido inclinado no plano da parede.
@@ -3124,6 +3128,15 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       return !moveis.some((m) => !/^fball_ball|^fball_goal/.test(m.classe) && !m.plano && !m.parede && nx >= Math.floor(m.x) && nx < Math.floor(m.x) + m.dim.x && ny >= Math.floor(m.y) && ny < Math.floor(m.y) + m.dim.y && !mapaFisica(m.classe).poe && !mapaFisica(m.classe).pisa);
     },
     tela: (x, y) => mapaTela(x, y, origem),
-    destruir() { clearInterval(setaRelogio); clearInterval(relogioConversa); tamanhoQuarto?.disconnect(); clearInterval(relogio); clearInterval(relogioCeu); if (quadroCam) cancelAnimationFrame(quadroCam); for (const p of pessoas.values()) cancelAnimationFrame(p.passo); el.replaceChildren(); },
+    destruir() {
+      destruido = true;
+      for (const timer of [setaRelogio, relogioConversa, relogio, relogioCeu, relogioAgentes, relogioFalas, relogioPasseio]) clearInterval(timer);
+      tamanhoQuarto?.disconnect();
+      clearTimeout(timerPassar);
+      for (const quadro of [quadroCam, etiquetasQuadro, quadroPassar]) if (quadro) cancelAnimationFrame(quadro);
+      for (const p of pessoas.values()) { cancelAnimationFrame(p.passo); clearTimeout(p.parar); }
+      for (const v of noMapa) cancelAnimationFrame(v.p.passo);
+      el.replaceChildren();
+    },
   };
 }
