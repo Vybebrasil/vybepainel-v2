@@ -10256,10 +10256,9 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-colega.longe.esq {--x:2%}
 .lg-colega-chao {position:absolute;bottom:-4px;left:50%;width:84px;height:26px;translate:-50% 0;border-radius:50%;background:radial-gradient(closest-side,#4fd18b55,#0008 60%,transparent)}
 .lg-colega img {position:relative;width:64px;height:110px;margin-bottom:18px;image-rendering:pixelated;filter:drop-shadow(0 4px 6px #000a);transition:translate .2s var(--curva,ease)}
-.lg-colega-nome {position:absolute;bottom:calc(100% - 6px);display:grid;justify-items:center;padding:4px 9px;border-radius:10px;background:#05060ad9;border:1px solid #ffffff1a;color:#c5cad6;font:600 10.5px var(--mac-ui);white-space:nowrap;opacity:0;translate:0 6px;transition:opacity .15s,translate .15s var(--curva,ease)}
-.lg-colega-nome b {color:#fff;font-size:12px}
+.lg-colega-nome {display:grid;justify-items:start;gap:1px;min-width:0;padding:0;border:0;background:none;color:#8f96a6;font:650 11px var(--mac-ui);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-colega-nome b {display:block;color:#fff;font:850 15px var(--mac-ui)}
 .lg-colega:hover img, .lg-colega:focus-visible img {translate:0 -6px}
-.lg-colega:hover .lg-colega-nome, .lg-colega:focus-visible .lg-colega-nome {opacity:1;translate:0 0}
 .lg-colega:focus-visible {outline:2px solid #ff8a35;outline-offset:4px;border-radius:12px}
 /* Notícias no topo */
 .lg-noticias {flex:1;max-width:640px;display:flex;align-items:center;gap:10px;height:44px;margin:0 auto;padding:0 14px 0 6px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);overflow:hidden;align-self:center}
@@ -10811,9 +10810,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-colega {position:relative;left:auto;bottom:auto;top:auto;translate:none;width:150px;padding:0;border:2px solid #0b0c10;border-radius:16px;background:#12141bdd;box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #07080b,0 20px 40px #000a;overflow:hidden;scale:1;filter:none}
 .lg-colega.longe {display:none}
 .lg-colega .vb-vitrine.lg-colega-vitrine {width:100%;aspect-ratio:1/1.05;border-radius:14px 14px 0 0}
-.lg-colega-nome {position:static;opacity:1;translate:none;display:grid;gap:1px;padding:6px 8px 8px;border-radius:0;background:linear-gradient(180deg,#2a2e3b,#20232d);color:#a3a9b7;font:650 10.5px var(--mac-ui);text-align:center}
 .lg-colega:hover {transform:translateY(-4px)}
-.lg-colega:hover .lg-colega-nome, .lg-colega:focus-visible .lg-colega-nome {translate:none}
 .lg-audio {flex-wrap:nowrap}
 .lg-audio:has(small) {flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce) {.lg-quarto, .lg-quarto-brilho {animation:none}.lg-quarto {transform:none}}
@@ -10843,10 +10840,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
    lugar do ícone. Esquerda: quem está online; centro: o seu quarto; direita:
    o que pede atenção. */
 .lg-turma {justify-self:start;align-self:center;gap:10px;width:250px}
-.lg-colega {display:grid;grid-template-columns:52px minmax(0,1fr);align-items:center;gap:12px;width:250px;padding:7px 14px 7px 7px;border:1px solid var(--borda-vidro);border-radius:16px;background:var(--vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau),0 12px 26px #0007;text-align:left;overflow:visible}
+.lg-colega {display:grid;grid-template-columns:52px minmax(0,1fr);align-items:center;justify-items:stretch;gap:12px;width:250px;padding:7px 14px 7px 7px;border:1px solid var(--borda-vidro);border-radius:16px;background:var(--vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau),0 12px 26px #0007;text-align:left;overflow:visible}
 .lg-colega .vb-vitrine.lg-colega-vitrine {width:52px;height:52px;aspect-ratio:auto;border-radius:12px;box-shadow:inset 0 1px 3px #000c}
-.lg-colega-nome {padding:0;background:none;color:#8f96a6;font:650 11px var(--mac-ui);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lg-colega-nome b {display:block;color:#fff;font:850 15px var(--mac-ui)}
 .lg-colega:hover {transform:translateY(-2px) translateX(4px)}
 .lg-colega.longe {display:grid;bottom:auto;scale:1;filter:none}
 .lg-colega:nth-of-type(n+5) {display:none}
@@ -10883,3 +10878,5 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-ficha.jogador .ofc-ficha-acoes button:first-child {background:linear-gradient(180deg,#ffb15c,#ff8a35);color:#1c0b00;box-shadow:inset 0 1px 0 #fff6,0 4px 0 #a24e0c}
 .ofc-ficha.jogador .ofc-ficha-acoes button:hover {transform:translateY(-2px)}
 .ofc-ficha.jogador .ofc-ficha-acoes button:active {transform:translateY(3px);box-shadow:0 0 0 var(--vb-jogo-degrau,#0e1016)}
+@container (max-width:900px) or (max-height:620px) {.lg-turma {width:100%;justify-self:stretch}.lg-colega {width:100%}}
+@media (max-width:760px) {.esp-peca-titulo b {white-space:normal;overflow:visible}}
