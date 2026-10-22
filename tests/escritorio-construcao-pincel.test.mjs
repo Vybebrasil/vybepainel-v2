@@ -17,6 +17,19 @@ test('piso do acervo encaixa na grade do próprio tamanho, dentro do quarto',()=
  assert.deepEqual(rodar('escritorioEncaixePiso(3,5,{x:1,y:1},10,10)'),{x:3,y:5});
 });
 
+// Regressão (22/10/2026): numa faixa ímpar ou na borda do mezanino a peça de
+// 2 × 2 ficava metade em cima e metade embaixo (atravessando o guarda-corpo).
+test('piso do acervo fica inteiro num andar só onde a grade não fecha',()=>{
+ // Mezanino nas 3 primeiras linhas (altura 2), chão no resto, quarto 8 × 8.
+ c.nivelTeste=(x,y)=>x<0||y<0||x>=8||y>=8?-1:y<3?2:0;
+ // Na linha 2 (última do mezanino) a grade mandaria para y=2 (2 e 3: atravessa).
+ assert.deepEqual(rodar('escritorioEncaixePiso(4,2,{x:2,y:2},8,8,nivelTeste)'),{x:4,y:1});
+ // Na linha 3 (primeira do chão), também não atravessa: desce para y=3.
+ assert.deepEqual(rodar('escritorioEncaixePiso(4,3,{x:2,y:2},8,8,nivelTeste)'),{x:4,y:3});
+ // Onde a grade fecha, nada muda.
+ assert.deepEqual(rodar('escritorioEncaixePiso(5,5,{x:2,y:2},8,8,nivelTeste)'),{x:4,y:4});
+});
+
 // Regressão (20/10/2026): clicar na própria parede não pintava; era preciso
 // clicar no piso encostado nela.
 test('clique na parede do fundo e da esquerda acha o trecho certo',()=>{

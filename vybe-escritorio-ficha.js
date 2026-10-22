@@ -337,7 +337,7 @@ function escritorioAlvoDoPincel(x, y, fx = x + 0.5, fy = y + 0.5) {
     // Piso do acervo: encaixa na grade do próprio tamanho; sem o tamanho ainda, espera.
     const d = escritorioDimPiso(pin.movel);
     if (!d.pronto) return { tipo: "espera", a };
-    const p = escritorioEncaixePiso(lx, ly, d, w, h);
+    const p = escritorioEncaixePiso(lx, ly, d, w, h, (x, y) => escritorioNivelQuarto(a, x, y));
     return { tipo: "acervo", a, x0: p.x, y0: p.y, w: d.x, h: d.y };
   }
   if (pin.ferramenta === "piso") return { tipo: "piso", a, x0: lx, y0: ly, w: 1, h: 1 };
