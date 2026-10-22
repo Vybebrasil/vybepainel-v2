@@ -2926,6 +2926,33 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     recadoNo.title = texto;
     recadoNo.setAttribute("aria-label", texto);
   }
+  // Dia do dono do quarto (Paulo, 22/10/2026): um balão aceso que sobe e
+  // desce sobre a mesa, com quanto de hoje já foi finalizado. O painel monta o
+  // resumo (ao passar) e a janela da equipe (no clique).
+  let diaNo = null;
+  function marcarDia(x, y, info) {
+    if (!info || x === undefined) { diaNo?.remove(); diaNo = null; return; }
+    if (!diaNo) {
+      diaNo = document.createElement("button");
+      diaNo.type = "button";
+      diaNo.className = "mapa-dia";
+      diaNo.innerHTML = '<span class="mapa-dia-anel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.2V3h6v1.2M8.5 12.5l2.4 2.4 4.6-4.8"/></svg></span><b></b><em></em><s aria-hidden="true"></s>';
+      diaNo.addEventListener("click", (e) => { e.stopPropagation(); diaNo.info?.aoClicar?.(); });
+      diaNo.addEventListener("pointerdown", (e) => e.stopPropagation());
+      for (const [ev, f] of [["pointerenter", "aoPassar"], ["focus", "aoPassar"], ["pointerleave", "aoSair"], ["blur", "aoSair"]]) diaNo.addEventListener(ev, () => diaNo?.info?.[f]?.(diaNo));
+      palco.append(diaNo);
+    }
+    diaNo.info = info;
+    const t = mapaTela(x + 0.5, y + 0.5, origem);
+    diaNo.style.left = t.x + "px";
+    diaNo.style.top = t.y - 150 + "px";
+    diaNo.style.setProperty("--p", info.pct || 0);
+    diaNo.querySelector("b").textContent = info.texto;
+    diaNo.querySelector("em").textContent = info.alerta ? (info.alerta > 9 ? "9+" : String(info.alerta)) : "";
+    diaNo.classList.toggle("alerta", Boolean(info.alerta));
+    diaNo.classList.toggle("completo", Boolean(info.completo));
+    diaNo.setAttribute("aria-label", info.rotulo || "");
+  }
   // Quem está falando na conversa ganha um anel verde nos pés.
   // e o nome dele acende em verde com ondas piscando.
   function marcarFalando(id, falando) {
@@ -3063,7 +3090,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    ocuparPostos, numeroDePostos, alasDosPostos, pincel, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    ocuparPostos, numeroDePostos, alasDosPostos, pincel, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, marcarDia, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     acrescentarMovel, marcador, tamanho: () => (grade ? { W: grade.W, H: grade.H } : null),
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),

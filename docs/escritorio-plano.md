@@ -1445,7 +1445,13 @@ decoração inicial "bem feito".
   desalinhadas ficam só para quem já tem, com a versão `-par` na reforma.
 - Escada contínua (cada ladrilho com o seu trecho), terraços e mirante sem vão.
 - Editor pega o móvel pelo desenho (árvore alta encostada no mezanino).
-- Próximo, pedido do Paulo: balão animado na mesa de cada pessoa com o resumo
-  do dia (para hoje, em execução, finalizado, o que ficou aberto ontem) e
-  detalhe no clique; depois o cursor que muda conforme a ação (andar, pegar,
-  usar móvel).
+
+### Dia de cada pessoa — 22/10/2026
+
+- Balão sobre a mesa do dono do quarto (anel do quanto de hoje foi
+  finalizado, selo vermelho com o que ficou aberto de antes), cartão ao passar
+  o mouse e a janela "Dia da equipe" (Hoje/Ontem, pessoa clicada primeiro,
+  demandas com o status do painel). Todos veem o de todos.
+- Próximos pedidos do Paulo: cursor que muda conforme a ação (andar, pegar,
+  usar móvel); caixas da coluna da direita (Cobrando, Missões, Conversa,
+  tela) soltas, para arrastar, aumentar e diminuir, cada uma no seu lugar.
