@@ -994,7 +994,7 @@ function escritorioMontarVitrines(raiz = document) {
     const a = { ...base, id: "vitrine-" + (pid || "x"), planta: plantaId, x1: base.x0 + dim.w, y1: base.y0 + dim.h, celdasLivres: "", semParedes: false, pintura: null,
       piso: sala?.piso || "grama", cor: sala?.cor || "#4fd18b", porta: "baixo" };
     el.style.setProperty("--c", a.cor);
-    const planta = { ...escritorioPlantaDoQuarto(a), moveis: [], fixos: [], rotulos: [], imagens: [], previa: true, vitrine: true, zoomFixo: Number(el.dataset.zoom) || 0, desce: Number(el.dataset.desce) || 0 };
+    const planta = { ...escritorioPlantaDoQuarto(a), moveis: [], fixos: [], rotulos: [], imagens: [], previa: true, vitrine: true, zoomFixo: escritorioZoomDaVitrine(el), desce: Number(el.dataset.desce) || 0 };
     let mapa;
     try { mapa = criarMapaEscritorio(el, { planta, eu: null }); } catch (e) { console.warn("vitrine:", e.message); continue; }
     vivas.push({ el, mapa });
@@ -1007,6 +1007,12 @@ function escritorioMontarVitrines(raiz = document) {
     }
     if (plantaId === "vitrine") escritorioMoveisDaVitrine(pid).then((itens) => { if (el.isConnected) for (const it of itens) mapa.acrescentarMovel?.(it); });
   }
+}
+// O zoom pedido vale para um cartão de 400 px; num cartão menor (celular) o
+// quarto se afasta na mesma proporção, para não cortar o boneco.
+function escritorioZoomDaVitrine(el) {
+  const z = Number(el.dataset.zoom) || 0, largura = el.getBoundingClientRect().width;
+  return z >= 1.5 && largura > 60 && largura < 380 ? Math.round(z * Math.max(0.5, largura / 400) * 100) / 100 : z;
 }
 // Até dois móveis do quarto da pessoa que ocupam um ladrilho, um de cada lado
 // do boneco (nem atrás, que parece sair das costas dele, nem na frente):
