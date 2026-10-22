@@ -2675,7 +2675,7 @@ function escritorioDemandasProntas() {
   if (typeof DADOS_DEMANDAS === "undefined") return false;
   if (!DADOS_DEMANDAS.length && typeof ensureDemandasForOperationalViews === "function" && !escritorio.pediuDemandas) {
     escritorio.pediuDemandas = true;
-    Promise.resolve(ensureDemandasForOperationalViews()).finally(() => { escritorio.pediuDemandas = false; escritorioMarcarDia(); if (document.getElementById("ofc-dia-equipe")) pintarDiaEquipeEscritorio(); });
+    Promise.resolve(ensureDemandasForOperationalViews()).finally(() => { escritorio.pediuDemandas = false; });
   }
   return DADOS_DEMANDAS.length > 0;
 }
@@ -5106,15 +5106,17 @@ function escritorioMarcarDia() {
   // fica no térreo do quarto.
   const dono = typeof escritorioDonoDoQuarto === "function" && escritorio.quarto === escritorioRaizQuarto(escritorio.quarto) ? escritorioDonoDoQuarto() : null;
   const pessoa = dono && (escritorio.base?.equipe || []).find((p) => String(p.id) === dono), a = pessoa && escritorioAmbienteDoQuarto(escritorio.quarto);
-  const dia = a && escritorioDemandasProntas() && typeof escritorioDiaDe === "function" ? escritorioDiaDe(pessoa) : null;
+  // Lê do servidor (vale 2 minutos); quando chega, desenha de novo.
+  if (a && typeof carregarDiaEscritorio === "function") carregarDiaEscritorio();
+  const dia = a && typeof escritorioDiaDe === "function" ? escritorioDiaDe(pessoa) : null;
   const mesa = dia && escritorioMesaDoAmbiente(a, escritorioPerfilDecoracao(escritorio.quarto));
   if (!mesa) { m.marcarDia(); esconderDiaCardEscritorio(true); return; }
-  const n = dia.nHoje, pend = dia.atrasadas.length + dia.nOntem.faltam + dia.nOntem.fazendo;
+  const n = dia.nHoje, pend = dia.atrasadas.length;
   const nome = String(pessoa.nome || "").split(" ")[0];
   m.marcarDia(mesa.x, mesa.y, {
     texto: n.total ? `${n.feitas}/${n.total}` : "0", pct: n.total ? Math.round((n.feitas / n.total) * 100) : 0,
     completo: n.total > 0 && n.feitas === n.total, alerta: pend,
-    rotulo: `Dia de ${nome}: ${n.feitas} de ${n.total} de hoje finalizadas${pend ? `, ${pend} em aberto de antes` : ""}. Clique para ver a equipe.`,
+    rotulo: `Dia de ${nome}: ${n.feitas} de ${n.total} de hoje prontas${pend ? `, ${pend} ${pend === 1 ? "atrasada" : "atrasadas"}` : ""}. Clique para ver a equipe.`,
     aoPassar: (no) => mostrarDiaCardEscritorio(no, pessoa), aoSair: () => esconderDiaCardEscritorio(),
     aoClicar: () => abrirDiaEquipeEscritorio(pessoa.id),
   });
