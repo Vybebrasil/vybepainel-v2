@@ -365,6 +365,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (`vybe_escritorio_entregas`) ou o dia em que o status virou final. A coluna
   "Conclusão" das demandas é data planejada, não entrega. Status do painel
   como está, sem deduzir publicação. Não crie outra contagem do dia.
+  O status de cada peça aparece com a cor do quadro (`vybe_status.cor`, a
+  etiqueta das demandas). A janela filtra por carteira (Todos, Clientes de
+  Vinícius, Clientes de Ewerton; para eles, "Meus clientes") pela mesma regra
+  do painel (`carteiraDoCliente`), e as contas seguem o recorte (22/10/2026).
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em

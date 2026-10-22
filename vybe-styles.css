@@ -6841,6 +6841,9 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .dia-barra {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .dia-barra .vb-resumo {margin:0}
 .dia-equipe {display:grid;gap:10px}
+/* Com a carteira filtrada sobra altura: a barra e os cartões ficam no topo, sem esticar. */
+.ofc-dia-equipe .ofc-rk-corpo {align-content:start}
+@container (max-width:420px) {.dia-cart-de {display:none}}
 .dia-pessoa {overflow:hidden}
 .dia-pessoa-cab {display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;background:none;color:inherit;text-align:left;cursor:pointer;border-radius:16px}
 .dia-pessoa-cab:hover {background:#ffffff08}
