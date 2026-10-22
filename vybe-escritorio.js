@@ -235,14 +235,18 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
 <span class="lg-jogador-txt"><small>${oi}</small><b id="ofc-lobby-titulo">${nome}</b>${eu?.titulo?.texto ? `<span class="vb-titulo n${Number(eu.titulo.nivel) || 1}">${safeText(eu.titulo.texto)}</span>` : conv ? `<span class="lg-conv">convidado de ${quem}</span>` : ""}
 ${p ? `<span class="lg-xp"><i style="width:${pct}%"></i></span><em>${Number(p.xp || 0).toLocaleString("pt-BR")} / ${Number(p.xpProximo || 0).toLocaleString("pt-BR")} XP</em>` : ""}</span></div>`;
   const moedas = `<div class="lg-recursos lg-entra" style="--o:1">${eco?.disponivel ? `<span class="lg-pilula lg-moeda" title="VybeCoins"><i aria-hidden="true"></i><b data-vb-contar="${Number(eco.saldo || 0)}" data-vb-chave="moedas-${idEu}">${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b></span>` : ""}<span class="lg-pilula lg-fogo" id="ofc-lobby-fogo">${escritorioLobbyFogoHtml()}</span>${escritorioBonusCopaHtml("entrada")}</div>`;
-  const palco = `<div class="lg-palco" aria-hidden="true"><span class="lg-feixe"></span>${escritorioVitrineHtml("lg-vitrine")}<span class="lg-faiscas">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</span>${sala ? `<span class="lg-placa-sala">${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""}</div>`;
+  // O quarto num cartão de jogo (Paulo, 21/10/2026: "muito soltão… não seria
+  // massa um cartãozinho com esse cenário, mas a pessoa ver o vídeo da
+  // Vybelândia também?"): placa com a sala e o nível em cima, o pedaço do
+  // quarto vivo dentro e a cidade aparecendo em volta. Inclina com o mouse.
+  const palco = `<div class="lg-palco" aria-hidden="true"><div class="lg-quarto" id="lg-quarto"><span class="lg-quarto-placa">${escritorioIcone("mesa")}<b>${safeText(sala?.nome || "Seu quarto")}</b>${p?.nivel ? `<em>Nível ${Number(p.nivel)}</em>` : ""}</span>${escritorioVitrineHtml("lg-vitrine", escritorio.base?.eu, { zoom: 2, desce: 0.2 })}<span class="lg-quarto-brilho"></span></div></div>`;
   // Os colegas online em ilhas menores ao fundo, de corpo inteiro (clicar leva até eles).
-  const turma = `<div class="lg-turma" id="lg-turma">${escritorioLobbyTurmaHtml()}</div>`;
+  const turma = `<div class="lg-turma" id="lg-turma"></div>`;
   const regra = conv ? `Você anda pela sala de ${quem} e pelas áreas comuns. Microfone ligado nas salas.` : "Microfone ligado nas salas · câmera desligada · a equipe vê você ao entrar";
   return `<div class="lg-ceu" aria-hidden="true">${escritorioPeriodoDoDia() === "noite" ? Array.from({ length: 28 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--y:${(i * 53) % 34}%;--d:${(i % 7) * 0.4}s"></i>`).join("") : ""}</div><div class="lg-topo">${placa}<div class="lg-noticias lg-entra" style="--o:1" id="lg-noticias" role="status" aria-live="off">${escritorioLobbyNoticiasHtml()}</div>${moedas}</div>${turma}${palco}
 <div class="lg-lado lg-entra" style="--o:2" id="ofc-lobby-espera" role="navigation" aria-label="O que te espera">${escritorioLobbyEsperaHtml()}</div>
 <div class="lg-online lg-entra" style="--o:3" id="ofc-lobby-online" role="region" aria-label="Quem está no escritório">${escritorioLobbyOnlineHtml()}</div>
-<p class="lg-regra lg-entra" style="--o:4">${escritorioIcone("microfone")}${safeText(regra)}</p>`;
+<p class="lg-regra" id="lg-regra">${safeText(regra)}</p>`;
 }
 // A taça da Copa Vybe (Paulo, 21/10/2026: "tem que aparecer em todos os
 // ambientes e quartos com o nome bonitão em cima do ganhador"; "é pra ficar
@@ -333,15 +337,26 @@ function escritorioLobbyLugar(p) {
 // Até quatro colegas online, cada um na sua ilhazinha ao fundo, alternando
 // esquerda e direita; o mais perto é maior. Clicar entra onde ele está.
 function escritorioLobbyTurmaHtml() {
+  // Colegas online em cartõezinhos do quarto de cada um, dos lados do seu
+  // (clicar entra onde a pessoa está).
   const lista = (escritorio.lobbyOnline || []).slice(0, 4);
-  return lista.map((p, i) => {
-    const perfil = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(p.id))?.perfil;
-    if (!perfil) return "";
-    const figura = mapaFigura(perfil), lado = i % 2 ? "dir" : "esq", longe = i > 1;
-    const url = mapaAvatarUrl(figura, lado === "esq" ? 2 : 4, i === 0 ? "wav" : "std", perfil.mao || "", 0, "sml", lado === "esq" ? 2 : 4);
+  const total = (escritorio.lobbyOnline || []).length;
+  return (total ? `<span class="lg-turma-titulo"><i></i>${total} online agora${total > 4 ? ` <small>+${total - 4}</small>` : ""}</span>` : "") + lista.map((p, i) => {
+    if (!(escritorio.base?.equipe || []).some((e) => String(e.id) === String(p.id))) return "";
+    const lado = i % 2 ? "dir" : "esq", longe = i > 1;
     const nome = safeText(String(p.nome || "").split(" ")[0]), lugar = safeText(escritorioLobbyLugar(p));
-    return `<button type="button" class="lg-colega ${lado}${longe ? " longe" : ""}" style="--i:${i}" onclick="entrarPeloLobbyEscritorio('zona:${safeText(p.zona || "")}')" aria-label="Entrar onde ${nome} está: ${lugar}"><span class="lg-colega-chao" aria-hidden="true"></span><img src="${safeText(url)}" alt="" width="64" height="110" loading="lazy"><span class="lg-colega-nome"><b>${nome}</b>${lugar}</span></button>`;
+    return `<button type="button" class="lg-colega ${lado}${longe ? " longe" : ""}" style="--i:${i}" data-pessoa="${safeText(String(p.id))}" onclick="entrarPeloLobbyEscritorio('zona:${safeText(p.zona || "")}')" aria-label="Entrar onde ${nome} está: ${lugar}">${escritorioVitrineHtml("lg-colega-vitrine", p.id, { zoom: 0.9, desce: 0.26 })}<span class="lg-colega-nome"><b>${nome}</b>${lugar}</span></button>`;
   }).join("");
+}
+// Só redesenha os colegas quando a lista muda (cada cartão é uma cena do mapa).
+function pintarTurmaLobbyEscritorio() {
+  const turma = document.getElementById("lg-turma");
+  if (!turma) return;
+  const chave = (escritorio.lobbyOnline || []).slice(0, 4).map((p) => p.id + ":" + p.zona).join("|");
+  if (turma.dataset.chave === chave) return;
+  turma.dataset.chave = chave;
+  turma.innerHTML = escritorioLobbyTurmaHtml();
+  escritorioMontarVitrines(turma);
 }
 // Notícias da semana: do ranking que a entrada já carrega (quem lidera, quem
 // mais subiu, quem está em chamas, a agência) e das conquistas da equipe.
@@ -443,7 +458,6 @@ function escritorioLobbyEsperaHtml() {
   // resumo chega, os botões ficam no lugar com o brilho passando.
   const LG_ARTE = { missoes: "exe_map", cobrancas: "exe_c15_telephone", recados: "nyc_c23_mailbox", ranking: "trophy_fball_c26_wingedgold", conquistas: "prizetrophy" };
   const botao = (tipo, icone, nome, valor, detalhe, acao, alerta, sufixo = "") => `<button type="button" class="lg-botao jg-${tipo}${alerta ? " alerta" : ""}${e ? "" : " esqueleto"}" ${acao ? `onclick="${acao}"` : "disabled"} title="${safeText(detalhe || "")}"><span class="lg-botao-icone">${LG_ARTE[tipo] && typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml(LG_ARTE[tipo]) : escritorioIcone(icone)}${valor != null && (Number(valor) || sufixo) ? `<b class="lg-selo"><span data-vb-contar="${Number(valor) || 0}" data-vb-chave="lobby-${tipo}-${eu}">${Number(valor)}</span>${sufixo}</b>` : ""}</span><span class="lg-botao-txt"><b>${nome}</b><small>${detalhe ? safeText(detalhe) : "&nbsp;"}</small></span></button>`;
-  if (escritorio.base?.demo && !e) return "";
   const temSala = Boolean(escritorioMinhaMesa());
   const x = e || {};
   return [
@@ -505,8 +519,7 @@ async function observarLobbyEscritorio() {
     escritorio.lobbyOnline = (e.payload || []).filter((p) => String(p.id) !== String(b.eu));
     const el = document.getElementById("ofc-lobby-online");
     if (el) el.innerHTML = escritorioLobbyOnlineHtml();
-    const turma = document.getElementById("lg-turma");
-    if (turma) turma.innerHTML = escritorioLobbyTurmaHtml();
+    pintarTurmaLobbyEscritorio();
   };
   s.onclose = () => { if (escritorio.lobbySocket === s) escritorio.lobbySocket = null; };
 }
@@ -522,10 +535,10 @@ function escritorioLobbyAcoesHtml(b) {
   if (b.demo) return `<div class="lg-base lg-entra" style="--o:5"><button id="office-connect" type="button" class="lg-entrar" onclick="escritorio.lobbyFechado=true;renderEscritorio()"><span>Ver o escritório</span></button></div>`;
   const temSala = Boolean(escritorioMinhaMesa());
   const mic = escritorio.lobbyMic, mudo = escritorio.microfoneQuer === false;
-  return `<div class="lg-base lg-entra" style="--o:5">
-<div class="lg-audio"><button type="button" class="lg-redondo${mic?.ligado ? " ativo" : ""}" onclick="${mic?.ligado ? "pararTesteMicLobbyEscritorio()" : "testarMicLobbyEscritorio()"}" aria-label="${mic?.ligado ? "Parar o teste do microfone" : "Testar o microfone"}" title="${mic?.ligado ? "Parar o teste" : "Testar o microfone"}">${escritorioIcone("microfone")}</button>${mic?.ligado ? `<span class="ofc-lobby-nivel" aria-label="Nível do microfone"><i id="ofc-lobby-nivel"></i></span>${mic.dispositivos?.length > 1 ? `<select aria-label="Microfone" onchange="trocarMicLobbyEscritorio(this.value)">${mic.dispositivos.map((d) => `<option value="${safeText(d.deviceId)}"${d.deviceId === mic.atual ? " selected" : ""}>${safeText(d.label || "Microfone")}</option>`).join("")}</select>` : ""}` : mic?.erro ? `<small role="alert">${safeText(mic.erro)}</small>` : ""}
+  return `<div class="lg-base lg-entra" style="--o:5"><div class="lg-bandeja">
+<div class="lg-audio"><button type="button" class="lg-redondo${mic?.ligado ? " ativo" : ""}" onclick="${mic?.ligado ? "pararTesteMicLobbyEscritorio()" : "testarMicLobbyEscritorio()"}" aria-label="${mic?.ligado ? "Parar o teste do microfone" : "Testar o microfone"}" aria-describedby="lg-regra" title="${mic?.ligado ? "Parar o teste" : "Testar o microfone · microfone ligado nas salas, câmera desligada"}">${escritorioIcone("microfone")}</button>${mic?.ligado ? `<span class="ofc-lobby-nivel" aria-label="Nível do microfone"><i id="ofc-lobby-nivel"></i></span>${mic.dispositivos?.length > 1 ? `<select aria-label="Microfone" onchange="trocarMicLobbyEscritorio(this.value)">${mic.dispositivos.map((d) => `<option value="${safeText(d.deviceId)}"${d.deviceId === mic.atual ? " selected" : ""}>${safeText(d.label || "Microfone")}</option>`).join("")}</select>` : ""}` : mic?.erro ? `<small role="alert">${safeText(mic.erro)}</small>` : ""}
 <label class="lg-mudo"><input type="checkbox" ${mudo ? "checked" : ""} onchange="escritorio.microfoneQuer=this.checked?false:true"><span aria-hidden="true"></span>Entrar silenciado</label></div>
-<div class="lg-outros"><button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('convivencia')">${escritorioIcone("pessoas")}Convivência</button>${temSala ? `<button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('ultimo')">${escritorioIcone("avancar")}Onde parei</button>` : ""}<button type="button" class="lg-secundario" onclick="personalizarEscritorio()">${escritorioIcone("editar")}Personalizar</button></div>
+<div class="lg-outros"><button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('convivencia')">${escritorioIcone("pessoas")}Convivência</button>${temSala ? `<button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('ultimo')">${escritorioIcone("avancar")}Onde parei</button>` : ""}<button type="button" class="lg-secundario" onclick="personalizarEscritorio()">${escritorioIcone("editar")}Personalizar</button></div></div>
 <button id="office-connect" type="button" class="lg-entrar" onclick="entrarPeloLobbyEscritorio('${temSala ? "sala" : "ultimo"}')"><span class="lg-entrar-txt"><b>Entrar</b><small>${temSala ? "na minha sala" : "no escritório"}</small></span><kbd aria-hidden="true">Enter</kbd></button></div>`;
 }
 function entrarPeloLobbyEscritorio(destino) {
@@ -582,6 +595,16 @@ function pararTesteMicLobbyEscritorio(redesenhar = true) {
 // O boneco aparece na vitrine do quarto dele (escritorioVitrineHtml), acenando.
 function animarLobbyEscritorio() {
   escritorioMontarVitrines(document.querySelector(".ofc-lobby") || document);
+  pintarTurmaLobbyEscritorio();
+  // O cartão do quarto inclina de leve acompanhando o mouse.
+  const lobby = document.querySelector(".ofc-lobby.lg");
+  if (!lobby || lobby.dataset.inclina || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  lobby.dataset.inclina = "1";
+  lobby.addEventListener("pointermove", (e) => {
+    const c = document.getElementById("lg-quarto"); if (!c) return;
+    const r = lobby.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    c.style.setProperty("--ry", (x * 8).toFixed(2) + "deg"); c.style.setProperty("--rx", (-y * 6).toFixed(2) + "deg");
+  });
 }
 function escritorioEntradaHtml() {
   const e = escritorio.entrada;
@@ -955,8 +978,8 @@ async function pintarArtesEscritorio(raiz = document) {
 // lados, o boneco no meio acenando ao abrir —, na mesma escala e na mesma
 // ordem de profundidade do jogo. O mesmo em todo lugar: entrada, Meu espaço,
 // ficha e o fundo do provador.
-function escritorioVitrineHtml(classe = "", pessoaId = escritorio.base?.eu, { boneco = true, zoom = 2, desce = 0.2 } = {}) {
-  return `<div class="vb-vitrine ofc-mapa ${classe}" data-pessoa="${safeText(String(pessoaId || ""))}"${boneco ? ' data-boneco="1"' : ""} data-zoom="${Number(zoom)}" data-desce="${Number(desce)}" aria-hidden="true"></div>`;
+function escritorioVitrineHtml(classe = "", pessoaId = escritorio.base?.eu, { boneco = true, zoom = 2, desce = 0.2, planta = "" } = {}) {
+  return `<div class="vb-vitrine ofc-mapa ${classe}" data-pessoa="${safeText(String(pessoaId || ""))}"${boneco ? ' data-boneco="1"' : ""} data-zoom="${Number(zoom)}" data-desce="${Number(desce)}"${planta ? ` data-planta="${safeText(planta)}"` : ""} aria-hidden="true"></div>`;
 }
 function escritorioMontarVitrines(raiz = document) {
   if (typeof criarMapaEscritorio !== "function") return;
@@ -966,7 +989,9 @@ function escritorioMontarVitrines(raiz = document) {
     el.dataset.montada = "1";
     const pid = el.dataset.pessoa, sala = pid ? escritorioDonos().get(String(pid)) : null;
     const base = sala || ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal);
-    const a = { ...base, id: "vitrine-" + (pid || "x"), planta: "vitrine", x1: base.x0 + 3, y1: base.y0 + 3, celdasLivres: "", semParedes: false, pintura: null,
+    // Outra planta (a prévia do recado mostra a Mansão no piso da pessoa).
+    const plantaId = el.dataset.planta || "vitrine", dim = escritorioDimQuarto({ planta: plantaId });
+    const a = { ...base, id: "vitrine-" + (pid || "x"), planta: plantaId, x1: base.x0 + dim.w, y1: base.y0 + dim.h, celdasLivres: "", semParedes: false, pintura: null,
       piso: sala?.piso || "grama", cor: sala?.cor || "#4fd18b", porta: "baixo" };
     el.style.setProperty("--c", a.cor);
     const planta = { ...escritorioPlantaDoQuarto(a), moveis: [], fixos: [], rotulos: [], imagens: [], previa: true, vitrine: true, zoomFixo: Number(el.dataset.zoom) || 0, desce: Number(el.dataset.desce) || 0 };
@@ -975,12 +1000,12 @@ function escritorioMontarVitrines(raiz = document) {
     vivas.push({ el, mapa });
     if (el.dataset.boneco) {
       const perfil = String(pid) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(pid))?.perfil;
-      const pessoa = (acao) => [{ id: "vitrine-" + pid, nome: "", perfil: { figura: mapaFigura(perfil || {}) }, status: "disponivel", corStatus: "#3fbf7f", rotulo: "", statusTexto: "", x: 1, y: 1, acao, mao: perfil?.mao || "", dir: 2 }];
+      const pessoa = (acao) => [{ id: "vitrine-" + pid, nome: "", perfil: { figura: mapaFigura(perfil || {}) }, status: "disponivel", corStatus: "#3fbf7f", rotulo: "", statusTexto: "", x: Math.floor(dim.w / 2), y: Math.floor(dim.h / 2), acao, mao: perfil?.mao || "", dir: 2 }];
       const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       mapa.atualizarPessoas(pessoa(quieto ? "std" : "wav"));
       if (!quieto) setTimeout(() => { if (el.isConnected) mapa.atualizarPessoas(pessoa("std")); }, 2600);
     }
-    escritorioMoveisDaVitrine(pid).then((itens) => { if (el.isConnected) for (const it of itens) mapa.acrescentarMovel?.(it); });
+    if (plantaId === "vitrine") escritorioMoveisDaVitrine(pid).then((itens) => { if (el.isConnected) for (const it of itens) mapa.acrescentarMovel?.(it); });
   }
 }
 // Até dois móveis do quarto da pessoa que ocupam um ladrilho, um de cada lado
@@ -1195,6 +1220,7 @@ function escritorioAplicarSalas() {
 // depois da porta; sem sala, na Convivência.
 function escritorioChegar() {
   const base = escritorio.base;
+  if (!base.demo && !base.convidado) iniciarAvisosEscritorio();
   escritorio.perfil = { ...(base.equipe.find((p) => p.id === base.eu)?.perfil || {}) };
   escritorioAplicarSalas();
   const a = escritorioMinhaMesa()?.ambiente || escritorioCenaComum("recepcao");
@@ -1956,7 +1982,7 @@ function atualizarControlesEscritorio() {
     const item = (acao, rotulo, extra = "") => `<button type="button" onclick="${acao};this.closest('details').open=false" ${extra}>${rotulo}</button>`;
     const tranca = escritorioPodeTrancar() ? item("trancarZonaEscritorio()", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
     const poses = escritorio.conectado ? `<span class="ofc-mais-titulo">Seu boneco</span>${item("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", "Acenar <kbd>1</kbd>")}${item("deitarEscritorio()", "Deitar <kbd>2</kbd>")}${item("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", "Café na mão <kbd>3</kbd>")}${item("sentarNoChaoEscritorio()", (escritorio.noChao ? "Levantar" : "Sentar no chão") + " <kbd>4</kbd>")}<span class="ofc-mais-titulo">Rosto</span>${item("expressaoEscritorio('triste')", "Triste <kbd>5</kbd>")}${item("expressaoEscritorio('surpreso')", "Surpreso <kbd>6</kbd>")}${item("expressaoEscritorio('bravo')", "Bravo <kbd>7</kbd>")}<span class="ofc-mais-titulo">Placa</span>${item("placaEscritorio('coracao')", "Coração <kbd>8</kbd>")}${item("placaEscritorio('exclamacao')", "Exclamação <kbd>9</kbd>")}${item("placaEscritorio('sorriso')", "Sorriso")}${["um", "dois", "tres"].map((n, i) => item(`placaEscritorio('${n}')`, "Número " + (i + 1))).join("")}${escritorio.quarto ? `<span class="ofc-mais-titulo">Sala</span>${item("abrirNovoPostitEscritorio()", "Colar post-it na parede")}` : ""}` : "";
-    return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
+    return `<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-poses">${poses}<span class="ofc-mais-titulo">Escritório</span>${item("irParaMinhaMesaEscritorio()", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${tranca}${escritorio.podeAvisar ? item("abrirMandarAvisoEscritorio()", "Mandar recado para todos") : ""}${item("alternarSomEscritorio()", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${item("abrirAjustesAudioEscritorio()", "Ajustes de áudio")}</div></details>`;
   })()}<span class="ofc-sep"></span>${escritorioMinhaMesa() ? botao("irParaMinhaMesaEscritorio()", "mesa", "Minha sala", 'title="Ir para a minha sala e sentar na minha mesa"', { texto: true, classe: "destaque" }) : ""}${botao("escolherPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ' title="Voltar ao painel de trabalho (demandas, agenda, clientes)"'}`, { texto: true, classe: "destaque principal" })}${escritorioPainelOnde() ? `<button type="button" class="ofc-abrir-trocar" onclick="esquecerPainelOndeEscritorio()" title="O Painel abre ${escritorioPainelOnde() === "nova" ? "em outra aba" : "nesta aba"}. Clique para escolher de novo.">${escritorioPainelOnde() === "nova" ? "em outra aba" : "nesta aba"}</button>` : ""}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
@@ -5107,4 +5133,113 @@ if (typeof document !== "undefined" && document.addEventListener && typeof setIn
   document.addEventListener("visibilitychange", escritorioVoltarSeQueria);
   if (typeof window !== "undefined") window.addEventListener?.("online", escritorioVoltarSeQueria);
   setInterval(escritorioVoltarSeQueria, 60000);
+}
+
+// Recado global (decisão do Paulo, 21/10/2026): quem está liberado no servidor
+// (Paulo, Vinícius, Ewerton e Deivid) manda pelo menu "Mais"; o recado aparece
+// no meio da tela de todos — inclusive de quem mandou, para conferir — com
+// "Conferir" (leva aonde ele aponta) e "Ignorar". Regras e liberação em
+// server/escritorio-avisos.js. O painel procura recado novo a cada minuto.
+const ESCRITORIO_DESTINOS_AVISO = {
+  "": { rotulo: "Só o recado", acao: null },
+  reforma: { rotulo: "Reformar o quarto", acao: () => { personalizarEscritorio(); setTimeout(() => abrirReformaEscritorio(0), 60); } },
+  loja: { rotulo: "Abrir a loja", acao: () => abrirCatalogoEscritorio("loja") },
+  ranking: { rotulo: "Ver o ranking", acao: () => abrirRankingEscritorio("geral", "semana") },
+  conquistas: { rotulo: "Ver as conquistas", acao: () => abrirConquistasEscritorio() },
+  missoes: { rotulo: "Ver as missões", acao: () => abrirMissoesPeloLobbyEscritorio() },
+  provador: { rotulo: "Abrir o provador", acao: () => { personalizarEscritorio(); setTimeout(() => { criador.etapa = "personagem"; renderAberturaEscritorio(); }, 60); } },
+};
+const ESCRITORIO_ESTILOS_AVISO = { padrao: { nome: "Vybe", arte: "ads_idol_mic" }, obra: { nome: "Obra", arte: "bc_cone_recolorable" }, festa: { nome: "Festa", arte: "prizetrophy" } };
+function iniciarAvisosEscritorio() {
+  if (escritorio.timerAvisos || typeof setInterval !== "function" || typeof document === "undefined") return;
+  const buscar = () => { if (!document.hidden && escritorio.base && !escritorio.base.demo) verificarAvisosEscritorio(); };
+  buscar();
+  escritorio.timerAvisos = setInterval(buscar, 60e3);
+}
+async function verificarAvisosEscritorio() {
+  try {
+    const r = await escritorioApi("avisos");
+    escritorio.podeAvisar = Boolean(r.pode);
+    const vistos = (escritorio.avisosMostrados ||= new Set());
+    const novo = (r.avisos || []).find((a) => !vistos.has(a.id));
+    if (novo && !document.getElementById("ofc-aviso-global")) mostrarAvisoEscritorio(novo);
+  } catch {}
+}
+function escritorioAvisoCartaoHtml(a, { previa = false } = {}) {
+  const estilo = ESCRITORIO_ESTILOS_AVISO[a.estilo] || ESCRITORIO_ESTILOS_AVISO.padrao, destino = ESCRITORIO_DESTINOS_AVISO[a.destino] || ESCRITORIO_DESTINOS_AVISO[""];
+  const autor = safeText(String(a.autor?.nome || "").split(" ")[0] || "Vybe");
+  const cabeca = typeof escritorioCabecaUrl === "function" && a.autor?.id ? escritorioCabecaUrl(a.autor.id) : "";
+  const vitrine = a.destino === "reforma" ? escritorioVitrineHtml("aviso-vitrine", escritorio.base?.eu, { planta: "quadrado-max", zoom: 0, desce: 0 })
+    : `<span class="aviso-arte">${typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml({ loja: "val_c21_cashier", ranking: "trophy_fball_c26_wingedgold", conquistas: "prizetrophy", missoes: "exe_map", provador: "art_c20_clotheshanger" }[a.destino] || estilo.arte) : ""}</span>`;
+  return `<div class="aviso-cartao estilo-${safeText(a.estilo || "padrao")}" role="${previa ? "group" : "alertdialog"}" aria-labelledby="aviso-titulo${previa ? "-previa" : ""}">
+  <div class="aviso-topo"><span class="aviso-selo">${typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml(estilo.arte) : ""}</span><span class="aviso-de">${cabeca ? `<img src="${safeText(cabeca)}" alt="">` : ""}Recado de <b>${autor}</b> para todos</span></div>
+  <div class="aviso-palco">${vitrine}<span class="aviso-faiscas" aria-hidden="true">${"<i></i>".repeat(12)}</span></div>
+  <h2 id="aviso-titulo${previa ? "-previa" : ""}">${safeText(a.titulo || "Título do recado")}</h2>
+  <p>${safeText(a.texto || "A mensagem aparece aqui.").replace(/\n/g, "<br>")}</p>
+  <div class="aviso-acoes">${previa ? `<span class="aviso-ignorar">Ignorar</span><span class="vb-jogo-botao aviso-conferir">${destino.acao ? safeText(destino.rotulo) : "Entendi"}</span>` : `<button type="button" class="aviso-ignorar" onclick="responderAvisoEscritorio('ignorou')">Ignorar</button><button type="button" class="vb-jogo-botao aviso-conferir" onclick="responderAvisoEscritorio('conferiu')">${destino.acao ? safeText(destino.rotulo) : "Entendi"}</button>`}</div>
+</div>`;
+}
+function mostrarAvisoEscritorio(a) {
+  escritorio.avisosMostrados?.add(a.id);
+  escritorio.avisoAberto = a;
+  const el = document.createElement("div");
+  el.id = "ofc-aviso-global";
+  el.className = "ofc-aviso-global";
+  el.innerHTML = `<div class="aviso-fundo" aria-hidden="true"></div>${escritorioAvisoCartaoHtml(a)}`;
+  document.body.append(el);
+  escritorioMontarVitrines(el);
+  el.querySelector(".aviso-conferir")?.focus({ preventScroll: true });
+  el.addEventListener("keydown", (e) => { if (e.key === "Escape") responderAvisoEscritorio("ignorou"); });
+}
+async function responderAvisoEscritorio(resposta) {
+  const a = escritorio.avisoAberto, el = document.getElementById("ofc-aviso-global");
+  escritorio.avisoAberto = null;
+  if (el) { el.classList.add("saindo"); setTimeout(() => el.remove(), 320); }
+  if (!a) return;
+  if (resposta === "conferiu") try { ESCRITORIO_DESTINOS_AVISO[a.destino]?.acao?.(); } catch {}
+  try { await escritorioApi("aviso-visto", { id: a.id, resposta }); } catch {}
+}
+function abrirMandarAvisoEscritorio() {
+  document.getElementById("ofc-aviso-novo")?.remove();
+  const el = document.createElement("dialog");
+  el.id = "ofc-aviso-novo";
+  el.className = "ofc-aviso-novo";
+  const opcoes = (obj, nome) => Object.entries(obj).map(([k, v]) => `<option value="${k}">${safeText(v[nome])}</option>`).join("");
+  el.innerHTML = `<form class="aviso-form" onsubmit="event.preventDefault();enviarAvisoEscritorio(this)" oninput="previaAvisoEscritorio(this)">
+  <div class="aviso-form-campos"><div class="aviso-form-topo"><b>Recado para todos</b><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
+   <label>Título<input name="titulo" maxlength="80" required minlength="3" placeholder="Ex.: Chegou emenda de Bacelar!"></label>
+   <label>Mensagem<textarea name="texto" maxlength="400" required minlength="3" rows="4" placeholder="O que todo mundo precisa saber"></textarea></label>
+   <label>Leva para<select name="destino">${opcoes(ESCRITORIO_DESTINOS_AVISO, "rotulo")}</select></label>
+   <label>Estilo<select name="estilo">${opcoes(ESCRITORIO_ESTILOS_AVISO, "nome")}</select></label>
+   <p class="aviso-form-nota">Aparece no meio da tela de toda a equipe (e na sua), uma vez para cada um, por 7 dias.</p>
+   <p class="ofc-nota" role="alert" id="aviso-form-erro"></p>
+   <button type="submit" class="vb-jogo-botao">Mandar para todos</button></div>
+  <div class="aviso-form-previa" id="aviso-form-previa" aria-label="Prévia"></div>
+ </form>`;
+  document.body.append(el);
+  el.addEventListener("close", () => el.remove());
+  el.showModal();
+  previaAvisoEscritorio(el.querySelector("form"));
+}
+function previaAvisoEscritorio(form) {
+  const alvo = document.getElementById("aviso-form-previa");
+  if (!alvo || !form) return;
+  const d = Object.fromEntries(new FormData(form));
+  const chave = d.destino + "|" + d.estilo;
+  const eu = escritorio.base?.equipe?.find((p) => String(p.id) === String(escritorio.base?.eu));
+  alvo.innerHTML = escritorioAvisoCartaoHtml({ ...d, autor: { id: escritorio.base?.eu, nome: eu?.nome || "" } }, { previa: true });
+  alvo.dataset.chave = chave;
+  escritorioMontarVitrines(alvo);
+}
+async function enviarAvisoEscritorio(form) {
+  const erro = document.getElementById("aviso-form-erro"), botao = form.querySelector("[type=submit]");
+  const d = Object.fromEntries(new FormData(form));
+  form.dataset.chave ||= "aviso-" + Math.random().toString(36).slice(2, 12);
+  botao.disabled = true; erro.textContent = "";
+  try {
+    await escritorioApi("aviso", { ...d, chave: form.dataset.chave });
+    form.closest("dialog")?.close();
+    escritorioAviso?.("Recado mandado para todos.");
+    verificarAvisosEscritorio();
+  } catch (e) { erro.textContent = e.message; botao.disabled = false; }
 }

@@ -1432,6 +1432,9 @@ decoração inicial "bem feito".
   vitrine única do personagem (`escritorioVitrineHtml`) na entrada, no Meu
   espaço, na ficha e no fundo do provador, cartões da direita como janelas de
   jogo e a etiqueta que cortava o título perto da borda.
-- Próximo: recado global (Paulo, Vinícius, Ewerton e Deivid mandam; aparece no
-  meio da tela de todos com Conferir e Ignorar). O tema de obra fica para o
-  primeiro recado, a "emenda de Bacelar", que leva à reforma do quarto.
+- Recado global feito (22/10/2026): menu "Mais" → "Mandar recado para todos",
+  com prévia ao vivo; estilos Vybe, Obra e Festa; destinos reforma, loja,
+  ranking, conquistas, missões e provador. Primeiro recado: a "emenda de
+  Bacelar" (estilo Obra, leva à reforma).
+- Entrada: o quarto num cartão (placa da sala e nível, inclina com o mouse), a
+  Vybelândia mais nítida em volta e os colegas online em cartõezinhos.

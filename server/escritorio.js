@@ -1,3 +1,4 @@
+import { avisosDaPessoa, mandarAviso, responderAviso } from "./escritorio-avisos.js";
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./escritorio-economia.js";
 import { missoesDaPessoa, rankingEscritorio, ganhosRecentes, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
@@ -384,6 +385,8 @@ export async function areaEscritorio(req, res, quem, sql) {
     // Guarda-roupa do criador: faixas, peças grátis/raras, as da pessoa e os kits.
     if (acao === "roupas") return res.status(200).json({ ok: true, ...(await roupasDaPessoa(sql, pessoa.id)) });
     if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
+    // Recado global: o que a pessoa ainda não viu e se ela pode mandar.
+    if (acao === "avisos") return res.status(200).json({ ok: true, ...(await avisosDaPessoa(sql, pessoa.id)) });
     // A tela de entrada: o baú (ganhos das últimas 24 h) e as notícias da semana.
     if (acao === "lobby") {
       const [ganhos, noticias] = await Promise.all([ganhosRecentes(sql, pessoa.id), noticiasDaEquipe(sql)]);
@@ -483,6 +486,10 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(200).json({ok:true,...resultado});
     } catch(e) { return res.status(e.status || 400).json({error:e.message}); }
   }
+  if (acao === "aviso" || acao === "aviso-visto")
+    try {
+      return res.status(200).json({ ok: true, ...(acao === "aviso" ? await mandarAviso(sql, pessoa, req.body) : await responderAviso(sql, pessoa.id, req.body)) });
+    } catch (e) { return res.status(e.status || 400).json({ error: e.message }); }
   // Escolher o título que aparece sob o nome (só uma conquista que a pessoa tem).
   if (acao === "titulo") {
     const chave = String(req.body?.chave || "");
