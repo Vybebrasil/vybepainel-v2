@@ -390,13 +390,19 @@ async function rankingIntervalo(sql, { de, ate, pessoas, metas, fator, entregasD
     };
   });
   // Geral: % da meta, desempate pelo XP.
-  lista.sort((a, b) => b.pct - a.pct || b.xp - a.xp || a.nome.localeCompare(b.nome));
-  lista.forEach((p, i) => { p.posicao = p.entregas > 0 ? i + 1 : null; });
+  // Geral pelo XP do trabalho (Paulo, 21/10/2026: "não faz sentido a Bia ter
+  // produzido tanto e o Vinícius ficar em primeiro"): o XP já pesa o papel na
+  // peça e o formato. O % da própria meta segue como a categoria Superação.
+  // A Gestão (Paulo, que ganha um pouco de toda peça) aparece, mas fica fora
+  // da disputa: sem posição, sem pódio e sem Copa.
+  lista.sort((a, b) => b.xp - a.xp || b.pct - a.pct || a.nome.localeCompare(b.nome));
+  let pos = 0;
+  for (const p of lista) { p.foraDaDisputa = p.funcao === 'gestao'; p.posicao = p.entregas > 0 && p.xp > 0 && !p.foraDaDisputa ? ++pos : null; }
   // O que conta como entrega e de onde vem o XP de cada um (Paulo, 20/10/2026:
   // "22 de 22 o quê? quais foram? XP de onde?"). Títulos das peças do período.
   const [comTitulo] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='titulo') AS existe`;
   const entregas = comTitulo?.existe
-    ? await sql`SELECT e.pessoa_id, e.regra, TO_CHAR(e.dia,'YYYY-MM-DD') AS dia, c.titulo, c.clientes_texto AS cliente FROM vybe_escritorio_entregas e
+    ? await sql`SELECT e.pessoa_id, e.regra, TO_CHAR(e.dia,'YYYY-MM-DD') AS dia, c.titulo, c.clientes_texto AS cliente, c.formato FROM vybe_escritorio_entregas e
         JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega LEFT JOIN vybe_conteudos c ON c.id=e.conteudo_id
         WHERE e.dia >= ${de}::date AND e.dia <= ${ate}::date ORDER BY e.dia DESC, e.origem LIMIT 3000`
     : await sql`SELECT e.pessoa_id, e.regra, TO_CHAR(e.dia,'YYYY-MM-DD') AS dia, NULL AS titulo, NULL AS cliente FROM vybe_escritorio_entregas e
@@ -404,6 +410,9 @@ async function rankingIntervalo(sql, { de, ate, pessoas, metas, fator, entregasD
   for (const p of lista) {
     const minhas = entregas.filter((e) => String(e.pessoa_id) === p.id);
     p.porRegra = minhas.reduce((t, e) => ({ ...t, [e.regra]: (t[e.regra] || 0) + 1 }), {});
+    // Quantos de cada formato em cada regra (cards, carrosséis, reels…).
+    p.formatos = {};
+    for (const e of minhas) { const f = String(e.formato || "").split(/[;,/]/)[0].trim().toLowerCase() || "outro"; (p.formatos[e.regra] ||= {})[f] = (p.formatos[e.regra][f] || 0) + 1; }
     p.pecas = minhas.slice(0, 40).map((e) => ({ regra: e.regra, dia: e.dia, titulo: e.titulo || null, cliente: e.cliente || null }));
   }
   const regras = Object.fromEntries((await sql`SELECT chave, descricao FROM vybe_escritorio_regras`).map((r) => [r.chave, r.descricao]));
@@ -443,7 +452,7 @@ export async function fecharCopaMes(tx, mes) {
   const r = await rankingEscritorio(tx, new Date(fim + 'T15:00:00Z'), { periodo: 'mes' });
   if (!r.disponivel) return null;
   const premios = await tx`SELECT marco, classe FROM vybe_escritorio_catalogo WHERE marco = ANY(${['copa_1', 'copa_2', 'copa_3']}::text[])`;
-  const podio = r.pessoas.filter((p) => p.entregas > 0 && p.pct > 0).slice(0, 3), pagos = [];
+  const podio = r.pessoas.filter((p) => p.posicao).sort((a, b) => a.posicao - b.posicao).slice(0, 3), pagos = [];
   for (const [i, p] of podio.entries()) {
     const chave = 'copa_' + (i + 1);
     if (!await aplicar(tx, p.id, chave, `copa:${mes}:${i + 1}`, fim)) continue;
@@ -455,6 +464,37 @@ export async function fecharCopaMes(tx, mes) {
     pagos.push({ id: p.id, nome: p.nome, posicao: i + 1, pct: p.pct });
   }
   return { mes, pagos };
+}
+// Refaz a Copa de um mês pela regra atual (Paulo, 21/10/2026: setembro tinha
+// sido pago pelo % da meta; "vai contar a regra nova agora"). Numa transação:
+// tira as moedas e o XP do razão (sem saldo negativo), as taças (inclusive do
+// quarto de quem já expôs), o título do mês e a marca; depois fecha de novo.
+export async function refazerCopaMes(tx, mes) {
+  const pagos = await tx`SELECT id, pessoa_id, regra, quantidade, pontos FROM vybe_escritorio_moedas WHERE origem LIKE ${'copa:' + mes + ':%'}`;
+  const premios = await tx`SELECT marco, classe FROM vybe_escritorio_catalogo WHERE marco = ANY(${['copa_1', 'copa_2', 'copa_3']}::text[])`;
+  const desfeitos = [];
+  for (const l of pagos) {
+    await tx`DELETE FROM vybe_escritorio_moedas WHERE id=${l.id}`;
+    await tx`UPDATE vybe_escritorio_carteiras SET saldo=GREATEST(0, saldo-${Number(l.quantidade)}), xp=GREATEST(0, xp-${Number(l.pontos)}) WHERE pessoa_id=${l.pessoa_id}`;
+    const [c] = await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${l.pessoa_id}`;
+    const [r] = await tx`SELECT COALESCE(sum(quantidade),0)::int AS s FROM vybe_escritorio_moedas WHERE pessoa_id=${l.pessoa_id}`;
+    if (c && Number(c.saldo) !== Number(r.s)) await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade,pontos) VALUES(${l.pessoa_id},${'ajuste:copa-refeita:' + mes + ':' + l.pessoa_id},${Number(c.saldo) - Number(r.s)},0)`;
+    const classe = premios.find((x) => x.marco === l.regra)?.classe;
+    if (classe) {
+      const [i] = await tx`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${l.pessoa_id} AND classe=${classe} FOR UPDATE`;
+      if (Number(i?.quantidade || 0) <= 1) {
+        await tx`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=${l.pessoa_id} AND classe=${classe}`;
+        // Exposta no quarto: sai da camada da pessoa.
+        const [cam] = await tx`SELECT camada, itens FROM vybe_escritorio_mapa WHERE camada ~ '^sala-[0-9]+(-andar-1)?$' AND atualizado_por=${l.pessoa_id}
+          AND EXISTS (SELECT 1 FROM jsonb_array_elements(itens) it WHERE it->>0=${classe}) ORDER BY camada LIMIT 1 FOR UPDATE`;
+        if (cam) { const itens = (Array.isArray(cam.itens) ? cam.itens : []).filter((it, k, l2) => !(Array.isArray(it) && it[0] === classe && l2.findIndex((x) => Array.isArray(x) && x[0] === classe) === k)); await tx`UPDATE vybe_escritorio_mapa SET itens=${JSON.stringify(itens)}::jsonb WHERE camada=${cam.camada}`; }
+      } else await tx`UPDATE vybe_escritorio_inventario SET quantidade=quantidade-1 WHERE pessoa_id=${l.pessoa_id} AND classe=${classe}`;
+    }
+    desfeitos.push({ id: String(l.pessoa_id), regra: l.regra });
+  }
+  await tx`DELETE FROM vybe_escritorio_marcos WHERE marco=${'copa_' + mes.slice(0, 4) + '_' + mes.slice(5, 7) + ':1'}`;
+  await tx`DELETE FROM vybe_escritorio_fechamentos WHERE chave=${'copa:' + mes}`;
+  return { desfeitos, novo: await fecharCopaMes(tx, mes) };
 }
 // O que a tela mostra: a semana atual e o resultado da anterior (pódio pago).
 export async function rankingEscritorio(sql, agora = new Date(), { periodo = 'semana' } = {}) {
@@ -519,7 +559,7 @@ async function fecharRankingSemana(tx, inicio) {
   if (!await marcar(tx, 'ranking:' + inicio)) return null;
   const r = await rankingDaSemana(tx, new Date(), inicio);
   const fim = somarDias(inicio, 6), pagos = [];
-  const podio = r.pessoas.filter((p) => p.entregas > 0 && p.pct > 0).slice(0, 3);
+  const podio = r.pessoas.filter((p) => p.posicao).sort((a, b) => a.posicao - b.posicao).slice(0, 3);
   for (const [i, p] of podio.entries()) {
     const chave = 'ranking_' + (i + 1);
     if (!await aplicar(tx, p.id, chave, `ranking:${inicio}:${i + 1}`, fim)) continue;

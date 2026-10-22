@@ -158,8 +158,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `perfil-publico`, `server/escritorio-economia.js`). Desde 20/10/2026
   (Paulo mudou a decisão de 19/10: "competição saudável") há **ranking da
   semana** (`rankingEscritorio` em `server/escritorio-pontos.js`, botão
-  Ranking): geral pelo % da própria meta, XP da semana, por atividade e a
-  meta da agência; zera toda segunda; pódio e bônus da agência pagos uma vez
+  Ranking): geral pelo XP do trabalho desde 21/10/2026 ("não faz sentido a
+  Bia produzir tanto e o Vinícius ficar em primeiro"; a Gestão aparece, mas
+  fica fora do pódio e da Copa), Superação pelo % da própria meta, por
+  atividade e a meta da agência; zera toda segunda; pódio e bônus da agência pagos uma vez
   no fechamento da semana, com valores na tabela de regras
   (`2026-10-20-escritorio-ranking.sql`). Desde 21/10/2026 o ranking também
   mostra hoje, mês e sempre (rota `ranking?periodo=`), campeões por
@@ -331,7 +333,7 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   da entrada não confere conquistas (isso fica na janela Conquistas e na
   ficha). As funções da Vercel rodam em `gru1` (São Paulo), junto do Neon em
   `sa-east-1`; não voltar para `iad1`.
-- Copa Vybe (decisão do Paulo, 21/10/2026): o 1º do ranking Geral do mês
+- Copa Vybe (decisão do Paulo, 21/10/2026): o 1º do ranking Geral do mês (XP do trabalho, fora a Gestão)
   leva a taça da Copa (épica), o título do mês e o prêmio; 2º e 3º, as taças
   de prata e bronze; fecha uma vez por mês no ciclo diário (`fecharCopaMes`,
   `2026-10-21-escritorio-copa.sql`). A taça do último campeão aparece em
@@ -396,6 +398,27 @@ e funções `vb*Html` em `vybe-core.js`; use-as antes de desenhar outra.
 - Um lugar para avisos: no canto, recolhível, abaixo das janelas abertas.
 - Movimento com sentido e uma curva só (`--curva`): a peça que sai, o passo
   que desliza, o número que sobe; "Reduzir movimento" desliga tudo.
+
+### Padrão de jogo do Escritório (decisão do Paulo, 21/10/2026)
+
+"Os padrões visuais da aba Conquistas, que ficou igual joguinho, ficam como
+padrão para quando eu for corrigindo visuais e HUDs." A referência viva é a
+janela de Conquistas (`escritorioConquistasCorpoHtml`, classes `cq-*`) e as
+peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
+
+- Cartão de jogo (`vb-jogo-cartao`): fundo #1d2029, borda fina, degrau
+  embaixo; clicável sobe no hover e afunda no clique. Dentro, o poço
+  (`vb-jogo-poco`) para listas e números.
+- Rótulo de seção em caixa alta pequena (`vb-jogo-rotulo`); número grosso com
+  sombra (`vb-jogo-numero`); botão laranja com degrau (`vb-jogo-botao`).
+- Níveis Bronze, Prata, Ouro e Diamante com as cores `--vb-n1…--vb-n4`, só no
+  ícone, na borda ou no texto pequeno; a faixa de título é `vb-titulo`.
+- Progresso como trilha de pontos (`cq-trilha`), medalhas por nível
+  (`cq-medalhas`), vitrine com pedestal (`cq-vitrine`) e placa dourada para
+  destaque raro (`vb-jogo-placa`).
+- Toda linha com número explica ao passar o mouse (`vb-jogo-dica`, `data-dica`).
+- Telas largas viram menu de personagem: colunas lado a lado por container
+  query, sem rolar à toa. Esqueleto com brilho enquanto carrega.
 
 ## Verificação proporcional à mudança
 

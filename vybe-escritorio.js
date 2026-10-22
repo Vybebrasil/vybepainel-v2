@@ -298,7 +298,7 @@ async function carregarCopaEscritorio() {
   try {
     const d = escritorioRanking.dados.mes || (escritorioRanking.dados.mes = await escritorioApi("ranking", null, { periodo: "mes" }));
     const p = (d.pessoas || []).filter((x) => x.posicao).sort((a, b) => a.posicao - b.posicao)[0];
-    escritorio.copaLider = p ? { id: p.id, nome: p.nome, pct: p.pct } : null;
+    escritorio.copaLider = p ? { id: p.id, nome: p.nome, xp: p.xp } : null;
   } catch {}
   pintar();
 }
@@ -333,12 +333,12 @@ function montarNoticiasLobbyEscritorio() {
   const d = escritorioRanking.dados.semana, nomes = [], nome = (x) => safeText(String(x || "").split(" ")[0]);
   if (d?.pessoas?.length) {
     const ord = [...d.pessoas].filter((p) => p.posicao).sort((a, b) => a.posicao - b.posicao);
-    if (ord[0]) nomes.push(`<b>${nome(ord[0].nome)}</b> lidera a semana com <b>${ord[0].pct}%</b> da meta`);
+    if (ord[0]) nomes.push(`<b>${nome(ord[0].nome)}</b> lidera a semana com <b>${Number(ord[0].xp).toLocaleString("pt-BR")} XP</b>`);
     const subiu = [...ord].filter((p) => p.antes && p.antes > p.posicao).sort((a, b) => (b.antes - b.posicao) - (a.antes - a.posicao))[0];
     if (subiu) nomes.push(`<b>${nome(subiu.nome)}</b> subiu ${subiu.antes - subiu.posicao} ${subiu.antes - subiu.posicao === 1 ? "posição" : "posições"} no ranking`);
     const fogo = [...d.pessoas].sort((a, b) => (b.sequencia || 0) - (a.sequencia || 0))[0];
     if (fogo?.sequencia > 2) nomes.push(`<b>${nome(fogo.nome)}</b> está em chamas: ${fogo.sequencia} dias seguidos entregando`);
-    if (escritorio.copaLider) nomes.push(`<b>${nome(escritorio.copaLider.nome)}</b> lidera a Copa do mês com <b>${escritorio.copaLider.pct}%</b>`);
+    if (escritorio.copaLider) nomes.push(`<b>${nome(escritorio.copaLider.nome)}</b> lidera a Copa do mês com <b>${Number(escritorio.copaLider.xp).toLocaleString("pt-BR")} XP</b>`);
     if (d.agencia?.meta) nomes.push(d.agencia.bateu ? "A agência <b>bateu a meta</b> da semana" : `A agência está em <b>${d.agencia.pct}%</b> da meta da semana`);
   }
   for (const n of (escritorio.lobbyNovidades || []).slice(0, 5)) nomes.push(n.copa ? `<b>${nome(n.nome)}</b> é o <span class="vb-titulo n4">${safeText(n.titulo)}</span>` : n.titulo ? `<b>${nome(n.nome)}</b> ganhou o título <span class="vb-titulo n${Number(n.nivel) || 1}">${safeText(n.titulo)}</span>` : `<b>${nome(n.nome)}</b> conquistou ${safeText(n.escada)}`);
@@ -482,9 +482,9 @@ async function carregarLobbyEscritorio() {
     escritorioApi("ranking").then((d) => {
       escritorioRanking.dados.semana = d;
       montarNoticiasLobbyEscritorio();
-      const lista = d.pessoas || [], k = lista.findIndex((p) => p.id === eu), p = lista[k], acima = lista[k - 1];
+      const lista = (d.pessoas || []).filter((x) => x.posicao).sort((x, y) => x.posicao - y.posicao), k = lista.findIndex((x) => x.id === eu), p = lista[k] || (d.pessoas || []).find((x) => x.id === eu), acima = k > 0 ? lista[k - 1] : null;
       espera.sequencia = Number(p?.sequencia || 0);
-      if (p?.posicao) { espera.posicao = p.posicao; if (acima) { const n = Math.max(1, Math.floor((acima.pct * p.meta) / 100) + 1 - p.entregas); espera.falta = `faltam ${n} para passar ${String(acima.nome).split(" ")[0]}`; } else espera.falta = "você lidera a semana"; }
+      if (p?.posicao) { espera.posicao = p.posicao; if (acima) { const n = Math.max(1, Number(acima.xp) - Number(p.xp) + 1); espera.falta = `faltam ${n.toLocaleString("pt-BR")} XP para passar ${String(acima.nome).split(" ")[0]}`; } else espera.falta = "você lidera a semana"; }
       pintar();
     }).catch(() => {}),
   ];
@@ -2710,7 +2710,7 @@ function abrirFichaMovelEscritorio(m) {
   if (m.origem?.copa) {
     const c = escritorio.base?.copa;
     card.classList.remove("cj-no-clique");
-    card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="">` : ""}</div><b>Taça da Copa Vybe</b><small>${c ? `${safeText(c.campeao.nome)} · ${safeText(c.titulo)}` : ""}</small><p class="ofc-nota">O 1º do ranking Geral de cada mês leva a taça, o título e o prêmio.${escritorio.copaLider ? ` Neste mês, ${safeText(String(escritorio.copaLider.nome).split(" ")[0])} lidera com ${escritorio.copaLider.pct}%.` : ""}</p><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirRankingEscritorio('geral','mes')">Ver a Copa do mês</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()">Fechar</button></div>`;
+    card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="">` : ""}</div><b>Taça da Copa Vybe</b><small>${c ? `${safeText(c.campeao.nome)} · ${safeText(c.titulo)}` : ""}</small><p class="ofc-nota">Quem tiver mais XP do trabalho no mês (fora a Gestão) leva a taça, o título e o prêmio.${escritorio.copaLider ? ` Neste mês, ${safeText(String(escritorio.copaLider.nome).split(" ")[0])} lidera com ${Number(escritorio.copaLider.xp).toLocaleString("pt-BR")} XP.` : ""}</p><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirRankingEscritorio('geral','mes')">Ver a Copa do mês</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()">Fechar</button></div>`;
     card.hidden = false;
     return;
   }

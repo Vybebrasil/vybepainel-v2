@@ -10416,3 +10416,19 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc[data-editando="true"] .mapa-marcador {display:none}
 @media (prefers-reduced-motion:reduce) {.mapa-copa-placa b {animation:none}}
 [data-motion=reduce] .mapa-copa-placa b {animation:none}
+
+/* Detalhe da pessoa no Ranking no mesmo estilo das Conquistas (Paulo,
+   21/10/2026: "pra não parecer que cada painel é de um jogo diferente"):
+   cartões escuros com degrau, títulos em caixa alta e a dica ao passar o mouse. */
+.rk2 .ofc-rk-detalhe {gap:12px;padding:14px;border-radius:16px;background:#1d2029;border:1px solid #ffffff10;box-shadow:0 4px 0 #0e1016;animation:cq-entra .3s var(--curva,ease)}
+.rk2 .ofc-rk-det-col {padding:12px;border-radius:14px;background:#00000030;border:1px solid #ffffff0d}
+.rk2 .ofc-rk-det-col h5 {color:#a3a9b7;font:800 10.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.rk2 .ofc-rk-det-col h5 small {color:#ffd9bd;font:700 11px var(--mac-ui);letter-spacing:0;text-transform:none}
+.rk2 .ofc-rk-det-lista {gap:5px}
+.rk2 .ofc-rk-det-lista li {position:relative;padding:8px 10px;border-radius:10px;background:#1d2029;border:1px solid #ffffff0d;color:#e9ecf2;font:600 12.5px var(--mac-ui);transition:border-color .15s,background .15s}
+.rk2 .ofc-rk-det-lista li b {color:#ffd166}
+.rk2 .ofc-rk-det-lista li[data-dica] {cursor:help}
+.rk2 .ofc-rk-det-lista li[data-dica]:is(:hover,:focus-visible) {border-color:#ff8a3566;background:#262a36;outline:none}
+.rk2 .ofc-rk-det-pecas li {background:#1d2029;border:1px solid #ffffff0d;border-radius:10px}
+.rk2 .rk2-det-ritmo .rk2-ritmo {height:56px}
+.rk2-fora {padding:1px 6px;border-radius:999px;background:#ffffff12;color:#aeb4c2;font:700 9.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.04em}
