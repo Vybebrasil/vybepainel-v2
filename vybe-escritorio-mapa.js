@@ -424,6 +424,22 @@ function mapaDesenharEscadas(g,planta,origem,corPiso=()=>"#b08458") {
   };
   for(const e of planta.escadas || []) {
     const cor=corPiso(e.x,e.y);
+    // Escada encostada na parede (ou no vão): a lateral do fundo vira uma
+    // tábua inteira, com a borda de cima reta passando pela quina dos
+    // degraus. Sem ela, o perfil serrilhado aparecia contra os tijolos
+    // (Paulo, 22/10/2026: "esse cantinho não fica reto também não?").
+    const vx=e.dy ? e.x-1 : e.x, vy=e.dy ? e.y : e.y-1;
+    if(!planta.escadaEm?.(vx,vy) && !planta.andavel?.(vx,vy)) {
+      const de=e.de ?? e.baixo, ate=e.ate ?? e.alto, passo=(ate-de)/Math.max(1,Math.ceil((ate-de)*4));
+      const sb=e.dy ? .5*e.dy : -.5*e.dx, chao=e.chao ?? e.baixo;
+      const ponto=(t,z)=>({x:e.x+.5+e.dx*t-e.dy*sb,y:e.y+.5+e.dy*t+e.dx*sb,z});
+      // No último trecho a borda para no patamar (não passa do mezanino).
+      const ultimo=!planta.escadaEm?.(e.x+e.dx,e.y+e.dy);
+      const topo=ultimo ? ate : ate+passo;
+      caminho([ponto(-.5,chao),ponto(.5,chao),ponto(.5,topo),ponto(-.5,de+passo)]);
+      g.fillStyle=mapaTom(cor,e.dy ? 0.5 : 0.68);g.fill();
+      g.strokeStyle="#00000022";g.lineWidth=1;g.stroke();
+    }
     for(const d of mapaDegrausDaPlanta(e)) {
       for(let i=0;i<4;i++) {
         const a=d.piso[i],b=d.piso[(i+1)%4];
@@ -1228,8 +1244,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // arredondada para o pixel antes de somar o deslocamento da arte: sem
   // isso, peça em meio ladrilho ou altura quebrada saía borrada e meio
   // pixel fora da vizinha.
-  const colocar = (no, x, y, desenho, prof) => {
-    const t = mapaTela(x, y, origem);
+  const colocar = (no, x, y, desenho, prof, base) => {
+    const t = mapaTela(x, y, base == null ? origem : { ...origem, alturaAtual: base });
     no.style.left = Math.round(t.x + desenho.ox) + "px";
     no.style.top = Math.round(t.y + desenho.oy) + "px";
     if (prof != null) no.style.zIndex = prof;
@@ -1255,17 +1271,24 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     for (let i = 0; i < n; i++) {
       const x = eixo === "x" ? x0 + i : x0, y = eixo === "x" ? y0 : y0 + i;
       const est = P.paredeEm?.(x, y, eixo);
-      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, est?.alt ?? dv.alt, texturaDe(est), Boolean(dv.sala) && !dv.janela && !dv.semTinta, dv.espessura ?? 1);
+      // Parede encostada na escada: desce até o chão de baixo (com o mesmo
+      // topo) e fica atrás da escada. Começando na altura do ladrilho da
+      // escada, ela cobria a ponta dos degraus e o canto ficava serrilhado.
+      const esc = P.escadaEm?.(x, y), base = esc ? esc.chao ?? esc.baixo : null;
+      const altParede = (h) => (base == null ? h : (h || (est?.cor || cor ? MAPA_PAREDE : 46)) + ((P.alturaEm?.(x, y) ?? 0) - base) * MAPA_NIVEL_PX);
+      const d = mapaDivisoria(x, y, eixo, est?.cor || cor, [], est?.estilo || estiloBase, altParede(est?.alt ?? dv.alt), texturaDe(est), Boolean(dv.sala) && !dv.janela && !dv.semTinta, dv.espessura ?? 1);
       d.canvas.className = "mapa-obj mapa-muro";
       tingir(d.canvas);
       // Parede do fundo: atrás de tudo, como os planos do Habbo. Mureta da
       // frente (baixa): no plano dela, meio ladrilho atrás do ladrilho (Nitro).
-      const prof = dv.baixa ? mapaZ(mapaProfundidade(x, y - 0.5)) : 2000 + Math.round((x + y) * 10) + 2;
-      colocar(d.canvas, x, y, d, prof);
+      // Atrás do chão (z negativo) só a parede da escada: a escada e a tábua
+      // da lateral, desenhadas no chão, ficam na frente dela.
+      const prof = base != null ? -1 : dv.baixa ? mapaZ(mapaProfundidade(x, y - 0.5)) : 2000 + Math.round((x + y) * 10) + 2;
+      colocar(d.canvas, x, y, d, prof, base);
       palco.append(d.canvas);
-      const t = mapaTela(x, y, origem), l = t.x + d.ox, tp = t.y + d.oy;
+      const t = mapaTela(x, y, base == null ? origem : { ...origem, alturaAtual: base }), l = t.x + d.ox, tp = t.y + d.oy;
       const caixa = eixo === "x" ? { x0: x, x1: x + 1, y0: y, y1: y } : { x0: x, x1: x, y0: y, y1: y + 1 };
-      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: est?.alt ?? dv.alt, altBase: dv.alt, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela && !dv.semTinta, espessura: dv.espessura ?? 1 });
+      muros.push({ no: d.canvas, prof, caixa, l, t: tp, r: l + d.canvas.width, b: tp + d.canvas.height, quem: new Set(), x, y, eixo, cor: est?.cor || cor, estilo: est?.estilo || estiloBase, estiloBase, alt: altParede(est?.alt ?? dv.alt), altBase: altParede(dv.alt), base, altParede, textura: texturaDe(est), texturaDe, tingir: Boolean(dv.sala) && !dv.janela && !dv.semTinta, espessura: dv.espessura ?? 1 });
     }
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
@@ -1751,7 +1774,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       if (!fatias.length && !m.pintado && !forcar) continue;
       const d = mapaDivisoria(m.x, m.y, m.eixo, m.cor, fatias, m.estilo, m.alt, m.textura, m.tingir, m.espessura);
       // A altura pode ter mudado: o canvas e a posição acompanham.
-      if (m.no.height !== d.canvas.height) { m.no.width = d.canvas.width; m.no.height = d.canvas.height; colocar(m.no, m.x, m.y, d, m.prof); m.t = parseFloat(m.no.style.top); m.b = m.t + m.no.height; }
+      if (m.no.height !== d.canvas.height) { m.no.width = d.canvas.width; m.no.height = d.canvas.height; colocar(m.no, m.x, m.y, d, m.prof, m.base); m.t = parseFloat(m.no.style.top); m.b = m.t + m.no.height; }
       const g = m.no.getContext("2d");
       g.clearRect(0, 0, m.no.width, m.no.height);
       g.drawImage(d.canvas, 0, 0);
@@ -3032,7 +3055,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         if (m.corBase === undefined) m.corBase = m.cor || "";
         const salaCor = P.divisorias.find((d) => d.sala && (m.eixo === "x" ? d[1] === d[3] && d[1] === m.y && m.x >= d[0] && m.x < d[2] : d[0] === d[2] && d[0] === m.x && m.y >= d[1] && m.y < d[3]))?.[4];
         m.cor = est?.cor || salaCor || m.corBase;
-        m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt ?? m.altBase; m.textura = m.texturaDe(est);
+        m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt != null ? m.altParede(est.alt) : m.altBase; m.textura = m.texturaDe(est);
       }
       pintarParedes(true);
     },
