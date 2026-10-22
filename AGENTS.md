@@ -159,8 +159,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (Paulo mudou a decisão de 19/10: "competição saudável") há **ranking da
   semana** (`rankingEscritorio` em `server/escritorio-pontos.js`, botão
   Ranking): geral pelo XP do trabalho desde 21/10/2026 ("não faz sentido a
-  Bia produzir tanto e o Vinícius ficar em primeiro"; a Gestão aparece, mas
-  fica fora do pódio e da Copa), Superação pelo % da própria meta, por
+  Bia produzir tanto e o Vinícius ficar em primeiro"; todos disputam, inclusive
+  a Gestão), Superação pelo % da própria meta, por
   atividade e a meta da agência; zera toda segunda; pódio e bônus da agência pagos uma vez
   no fechamento da semana, com valores na tabela de regras
   (`2026-10-20-escritorio-ranking.sql`). Desde 21/10/2026 o ranking também
@@ -333,11 +333,14 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   da entrada não confere conquistas (isso fica na janela Conquistas e na
   ficha). As funções da Vercel rodam em `gru1` (São Paulo), junto do Neon em
   `sa-east-1`; não voltar para `iad1`.
-- Copa Vybe (decisão do Paulo, 21/10/2026): o 1º do ranking Geral do mês (XP do trabalho, fora a Gestão)
+- Copa Vybe (decisão do Paulo, 21/10/2026): o 1º do ranking Geral do mês (XP do trabalho)
   leva a taça da Copa (épica), o título do mês e o prêmio; 2º e 3º, as taças
   de prata e bronze; fecha uma vez por mês no ciclo diário (`fecharCopaMes`,
   `2026-10-21-escritorio-copa.sql`). A taça do último campeão aparece em
-  todas as salas e quartos, com o nome dele. Detalhes em `docs/escritorio-pontos.md`.
+  todas as salas e quartos, com o nome dele. No mês seguinte o campeão ganha
+  o bônus da Copa: a % de `copa_bonus_pct` (100 = em dobro) sobre o que ganha
+  trabalhando, pago no fechamento de cada dia (`bonusCopaDoDia`), e um selo na
+  tela mostra o bônus a todos. Detalhes em `docs/escritorio-pontos.md`.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em

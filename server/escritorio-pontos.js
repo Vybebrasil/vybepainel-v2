@@ -135,7 +135,10 @@ export async function fecharPontosEscritorio(sql, agora = new Date(), { janela =
   const ranking = await sql.comTransacao(tx => fecharRankingSemana(tx, somarDias(atual, -7)));
   // Copa Vybe: o mês que acabou (o primeiro a fechar é o anterior ao de agora).
   const copa = await sql.comTransacao(tx => fecharCopaMes(tx, mesAnterior(hoje)));
-  return { disponivel: true, hoje, dias, semanas, ranking, copa };
+  // O bônus do campeão de cada dia que passou (origem única: não paga duas vezes).
+  const bonus = [];
+  for (let i = janela; i >= 1; i--) { const b = await sql.comTransacao(tx => bonusCopaDoDia(tx, somarDias(hoje, -i))); if (b) bonus.push(b); }
+  return { disponivel: true, hoje, dias, semanas, ranking, copa, bonus };
 }
 // O que a ficha mostra da própria pessoa: nível, meta da semana e extrato.
 // O "baú" da entrada (Paulo, 21/10/2026): o que a pessoa ganhou trabalhando
@@ -327,7 +330,7 @@ export const ATIVIDADES_DO_RANKING = [
   ['briefing', 'Briefings escritos'], ['entrega_prazo', 'Entregas no prazo'], ['criacao_aprovada', 'Aprovadas de primeira'],
   ['peca_gestao', 'Peças da agência'], ['acao_painel', 'Ações no painel'],
 ];
-const FORA_DO_RANKING = ['conquista', 'ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia', 'copa_1', 'copa_2', 'copa_3'];
+const FORA_DO_RANKING = ['conquista', 'ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia', 'copa_1', 'copa_2', 'copa_3', 'copa_bonus'];
 export async function rankingProntoEscritorio(sql) {
   const [r] = await sql`SELECT EXISTS(SELECT 1 FROM vybe_escritorio_regras WHERE chave='ranking_1') AS existe`;
   return Boolean(r?.existe);
@@ -393,11 +396,11 @@ async function rankingIntervalo(sql, { de, ate, pessoas, metas, fator, entregasD
   // Geral pelo XP do trabalho (Paulo, 21/10/2026: "não faz sentido a Bia ter
   // produzido tanto e o Vinícius ficar em primeiro"): o XP já pesa o papel na
   // peça e o formato. O % da própria meta segue como a categoria Superação.
-  // A Gestão (Paulo, que ganha um pouco de toda peça) aparece, mas fica fora
-  // da disputa: sem posição, sem pódio e sem Copa.
+  // Todo mundo disputa, inclusive a Gestão (Paulo, 21/10/2026: "Paulo não
+  // fica de fora").
   lista.sort((a, b) => b.xp - a.xp || b.pct - a.pct || a.nome.localeCompare(b.nome));
   let pos = 0;
-  for (const p of lista) { p.foraDaDisputa = p.funcao === 'gestao'; p.posicao = p.entregas > 0 && p.xp > 0 && !p.foraDaDisputa ? ++pos : null; }
+  for (const p of lista) { p.posicao = p.entregas > 0 && p.xp > 0 ? ++pos : null; }
   // O que conta como entrega e de onde vem o XP de cada um (Paulo, 20/10/2026:
   // "22 de 22 o quê? quais foram? XP de onde?"). Títulos das peças do período.
   const [comTitulo] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='titulo') AS existe`;
@@ -464,6 +467,30 @@ export async function fecharCopaMes(tx, mes) {
     pagos.push({ id: p.id, nome: p.nome, posicao: i + 1, pct: p.pct });
   }
   return { mes, pagos };
+}
+// O campeão da Copa de um mês e o bônus dele no mês seguinte (Paulo,
+// 21/10/2026). Vale desde o dia em que levou a taça até o fim desse mês.
+export async function campeaoDaCopaEm(sql, dia) {
+  const mes = mesAnterior(dia), chave = 'copa_' + mes.slice(0, 4) + '_' + mes.slice(5, 7) + ':1';
+  const [c] = await sql`SELECT m.pessoa_id, p.nome, vybe_dia_bahia(m.em)::text AS desde FROM vybe_escritorio_marcos m JOIN vybe_pessoas p ON p.id=m.pessoa_id WHERE m.marco=${chave}`;
+  if (!c || c.desde > dia) return null;
+  const [pct] = await sql`SELECT valor FROM vybe_escritorio_parametros WHERE chave='copa_bonus_pct'`;
+  const fim = somarDias(somarDias(dia.slice(0, 8) + '01', 32).slice(0, 8) + '01', -1);
+  return { id: String(c.pessoa_id), nome: c.nome, desde: c.desde, ate: fim, pct: Number(pct?.valor || 0) };
+}
+export async function bonusCopaDoDia(tx, dia) {
+  const [tem] = await tx`SELECT to_regclass('public.vybe_escritorio_parametros') IS NOT NULL AS existe`;
+  if (!tem?.existe) return null;
+  const c = await campeaoDaCopaEm(tx, dia);
+  if (!c || !c.pct) return null;
+  const [g] = await tx`SELECT COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas, COALESCE(sum(pontos) FILTER (WHERE pontos > 0),0)::int AS xp
+    FROM vybe_escritorio_moedas WHERE pessoa_id=${c.id} AND regra IS NOT NULL AND NOT (regra = ANY(${FORA_DO_RANKING}::text[])) AND vybe_dia_bahia(criado_em)=${dia}::date`;
+  const moedas = Math.round((Number(g.moedas) * c.pct) / 100), xp = Math.round((Number(g.xp) * c.pct) / 100);
+  if (!moedas && !xp) return null;
+  const [ja] = await tx`SELECT 1 FROM vybe_escritorio_moedas WHERE pessoa_id=${c.id} AND origem=${'copa-bonus:' + dia}`;
+  if (ja) return null;
+  await tx`SELECT vybe_lancar_pontos(${c.id},${'copa-bonus:' + dia},'copa_bonus',NULL,${moedas},${xp})`;
+  return { dia, id: c.id, moedas, xp };
 }
 // Refaz a Copa de um mês pela regra atual (Paulo, 21/10/2026: setembro tinha
 // sido pago pelo % da meta; "vai contar a regra nova agora"). Numa transação:

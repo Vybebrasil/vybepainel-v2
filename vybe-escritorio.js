@@ -235,7 +235,7 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
 <span class="lg-anel" style="--p:${pct}" title="${p ? `${Number(p.xp || 0).toLocaleString("pt-BR")} de ${Number(p.xpProximo || 0).toLocaleString("pt-BR")} XP para o nível ${Number(p.nivel) + 1}` : ""}">${cabeca ? `<img src="${safeText(cabeca)}" alt="" width="52" height="52">` : ""}${p?.nivel ? `<b class="lg-nivel" data-vb-contar="${Number(p.nivel)}" data-vb-chave="nivel-${idEu}">${p.nivel}</b>` : ""}</span>
 <span class="lg-jogador-txt"><small>${oi}</small><b id="ofc-lobby-titulo">${nome}</b>${eu?.titulo?.texto ? `<span class="vb-titulo n${Number(eu.titulo.nivel) || 1}">${safeText(eu.titulo.texto)}</span>` : conv ? `<span class="lg-conv">convidado de ${quem}</span>` : ""}
 ${p ? `<span class="lg-xp"><i style="width:${pct}%"></i></span><em>${Number(p.xp || 0).toLocaleString("pt-BR")} / ${Number(p.xpProximo || 0).toLocaleString("pt-BR")} XP</em>` : ""}</span></div>`;
-  const moedas = `<div class="lg-recursos lg-entra" style="--o:1">${eco?.disponivel ? `<span class="lg-pilula lg-moeda" title="VybeCoins"><i aria-hidden="true"></i><b data-vb-contar="${Number(eco.saldo || 0)}" data-vb-chave="moedas-${idEu}">${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b></span>` : ""}<span class="lg-pilula lg-fogo" id="ofc-lobby-fogo">${escritorioLobbyFogoHtml()}</span></div>`;
+  const moedas = `<div class="lg-recursos lg-entra" style="--o:1">${eco?.disponivel ? `<span class="lg-pilula lg-moeda" title="VybeCoins"><i aria-hidden="true"></i><b data-vb-contar="${Number(eco.saldo || 0)}" data-vb-chave="moedas-${idEu}">${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b></span>` : ""}<span class="lg-pilula lg-fogo" id="ofc-lobby-fogo">${escritorioLobbyFogoHtml()}</span>${escritorioBonusCopaHtml("entrada")}</div>`;
   const palco = `<div class="lg-palco" aria-hidden="true"><span class="lg-feixe"></span><span class="lg-sombra"></span><img class="lg-ilha" alt="" width="272" height="182"${escritorio.lobbyIlha ? ` src="${escritorio.lobbyIlha}"` : ""}><span class="lg-cantinho" id="lg-cantinho">${escritorio.lobbyCantinho || ""}</span><span class="lg-faiscas">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</span><img class="ofc-lobby-boneco" src="${safeText(acenar)}" data-acenar="${safeText(acenar)}" data-parado="${safeText(parado)}" data-figura="${safeText(figura)}" data-mao="${safeText(mao)}" alt="" width="64" height="110">${sala ? `<span class="lg-placa-sala">${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""}</div>`;
   // Os colegas online em ilhas menores ao fundo, de corpo inteiro (clicar leva até eles).
   const turma = `<div class="lg-turma" id="lg-turma">${escritorioLobbyTurmaHtml()}</div>`;
@@ -250,6 +250,25 @@ ${p ? `<span class="lg-xp"><i style="width:${pct}%"></i></span><em>${Number(p.xp
 // como objeto em cada ambiente"): um móvel de verdade em cada sala e quarto,
 // num ladrilho livre junto da parede do fundo escolhido pelo próprio mapa, e
 // a placa do campeão em cima. Não entra na decoração salva de ninguém.
+// O bônus do campeão (Paulo, 21/10/2026: "um bônus de % que fica ativo e
+// mostrando na tela de quem ganhou; na de quem não ganhou, no mesmo lugar, a
+// fotinha e quem está com ele ativo").
+function escritorioBonusCopaHtml(lugar = "mapa") {
+  const b = escritorio.base?.copa?.bonus;
+  if (!b?.pct) return "";
+  const meu = String(b.id) === String(escritorio.base?.eu), nome = safeText(String(b.nome || "").split(" ")[0]);
+  const ate = String(b.ate || "").slice(8, 10) + "/" + String(b.ate || "").slice(5, 7);
+  const vezes = b.pct % 100 === 0 ? `${b.pct / 100 + 1}×` : `+${b.pct}%`;
+  // Quanto do mês ainda resta (a barra esvazia até o fim do bônus).
+  const hoje = escritorioHojeBahia(), dias = Math.max(0, Math.round((Date.parse(b.ate) - Date.parse(hoje)) / 864e5) + 1);
+  const total = Number(String(b.ate).slice(8, 10)) || 30, resta = Math.max(4, Math.min(100, Math.round((dias / total) * 100)));
+  const rosto = typeof escritorioCabecaUrl === "function" ? escritorioCabecaUrl(b.id) : "";
+  if (!escritorio.copaArte && typeof carregarCopaEscritorio === "function") carregarCopaEscritorio();
+  return `<button type="button" class="ofc-bonus ${lugar}${meu ? " meu" : ""}" onclick="abrirRankingEscritorio('geral','mes')" title="Bônus da Copa: moedas e XP do trabalho ${b.pct === 100 ? "em dobro" : `com +${b.pct}%`} até ${ate}">
+<span class="ofc-bonus-arte" aria-hidden="true"><span class="ofc-bonus-luz"></span>${escritorio.copaArte ? `<img class="ofc-bonus-taca" src="${escritorio.copaArte}" alt="">` : ""}${rosto ? `<img class="ofc-bonus-cabeca" src="${safeText(rosto)}" alt="">` : ""}</span>
+<span class="ofc-bonus-txt"><small>Bônus da Copa</small><b>${meu ? "Você está com ele" : `${nome} está com ele`}</b><em>${b.pct === 100 ? "Moedas e XP em dobro" : `+${b.pct}% em moedas e XP`} · ${dias} ${dias === 1 ? "dia" : "dias"}</em><span class="ofc-bonus-barra"><i style="width:${resta}%"></i></span>${meu && (b.moedas || b.xp) ? `<em class="ofc-bonus-rendeu">já rendeu +${Number(b.moedas).toLocaleString("pt-BR")} moedas · +${Number(b.xp).toLocaleString("pt-BR")} XP</em>` : ""}</span>
+<span class="ofc-bonus-selo"><b>${vezes}</b><small>moedas · XP</small></span></button>`;
+}
 function escritorioCopaPlacaHtml() {
   const c = escritorio.base?.copa;
   if (!c) return "";
@@ -287,7 +306,10 @@ async function posicionarTacaEscritorio() {
 async function carregarCopaEscritorio() {
   if (escritorio.copaCarregando || !escritorio.base || escritorio.base.convidado) return;
   escritorio.copaCarregando = true;
-  const pintar = () => { if (escritorio.lobbyNoticias && typeof montarNoticiasLobbyEscritorio === "function") montarNoticiasLobbyEscritorio(); };
+  const pintar = () => {
+    if (escritorio.lobbyNoticias && typeof montarNoticiasLobbyEscritorio === "function") montarNoticiasLobbyEscritorio();
+    const lugar = document.getElementById("office-bonus"); if (lugar) lugar.innerHTML = escritorioBonusCopaHtml("mapa");
+  };
   try {
     if (!escritorio.copaArte && typeof mapaCarregarMovel === "function") {
       const m = await mapaCarregarMovel("fball_trophy");
@@ -2023,6 +2045,7 @@ function renderEscritorio() {
  </div>
  <div class="ofc-editor" id="office-editor" role="toolbar" aria-label="Editor do mapa" hidden></div>
  <div class="ofc-acao" id="office-acao" hidden></div>
+ <div class="ofc-bonus-lugar" id="office-bonus">${escritorioBonusCopaHtml("mapa")}</div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
  ${lobby ? `<div class="ofc-lobby lg${escritorio.lobbySaindo ? " saindo" : ""}" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="lg-tela">${escritorioLobbyTopoHtml(perfil, eu, b)}<div id="lg-bau-lugar">${escritorioLobbyBauHtml()}</div>${escritorio.entrada ? `<div class="lg-base lg-carregando">${escritorioEntradaHtml()}</div>` : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
@@ -2710,7 +2733,7 @@ function abrirFichaMovelEscritorio(m) {
   if (m.origem?.copa) {
     const c = escritorio.base?.copa;
     card.classList.remove("cj-no-clique");
-    card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="">` : ""}</div><b>Taça da Copa Vybe</b><small>${c ? `${safeText(c.campeao.nome)} · ${safeText(c.titulo)}` : ""}</small><p class="ofc-nota">Quem tiver mais XP do trabalho no mês (fora a Gestão) leva a taça, o título e o prêmio.${escritorio.copaLider ? ` Neste mês, ${safeText(String(escritorio.copaLider.nome).split(" ")[0])} lidera com ${Number(escritorio.copaLider.xp).toLocaleString("pt-BR")} XP.` : ""}</p><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirRankingEscritorio('geral','mes')">Ver a Copa do mês</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()">Fechar</button></div>`;
+    card.innerHTML = `<div class="ofc-ficha-movel-arte">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="">` : ""}</div><b>Taça da Copa Vybe</b><small>${c ? `${safeText(c.campeao.nome)} · ${safeText(c.titulo)}` : ""}</small><p class="ofc-nota">Quem tiver mais XP do trabalho no mês leva a taça, o título e o prêmio.${escritorio.copaLider ? ` Neste mês, ${safeText(String(escritorio.copaLider.nome).split(" ")[0])} lidera com ${Number(escritorio.copaLider.xp).toLocaleString("pt-BR")} XP.` : ""}</p><div><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirRankingEscritorio('geral','mes')">Ver a Copa do mês</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio()">Fechar</button></div>`;
     card.hidden = false;
     return;
   }

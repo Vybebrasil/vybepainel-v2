@@ -1,6 +1,6 @@
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./escritorio-economia.js";
-import { missoesDaPessoa, rankingEscritorio, ganhosRecentes } from "./escritorio-pontos.js";
+import { missoesDaPessoa, rankingEscritorio, ganhosRecentes, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
@@ -169,8 +169,17 @@ export async function carregarEscritorio(sql, pessoa) {
   // A Copa Vybe: o campeão do último mês fechado (a taça aparece em todo lugar).
   const copas = marcos.map((m) => ({ ...m, copa: copaDoMarco(partesDoMarco(m.marco).marco) })).filter((m) => m.copa).sort((a, b) => (a.marco < b.marco ? 1 : -1));
   const campeao = copas[0] ? lista.find((p) => p.id === String(copas[0].pessoa_id)) : null;
+  // O bônus do campeão (ativo no mês seguinte à Copa) e quanto já rendeu.
+  let bonus = null;
+  try {
+    const hoje = diaBahia(new Date()), c = await campeaoDaCopaEm(sql, hoje);
+    if (c?.pct) {
+      const [r] = await sql`SELECT COALESCE(sum(quantidade),0)::int AS moedas, COALESCE(sum(pontos),0)::int AS xp FROM vybe_escritorio_moedas WHERE pessoa_id=${c.id} AND regra='copa_bonus' AND vybe_dia_bahia(criado_em) >= ${hoje.slice(0, 8) + "01"}::date`;
+      bonus = { id: c.id, nome: c.nome, pct: c.pct, ate: c.ate, moedas: Number(r?.moedas || 0), xp: Number(r?.xp || 0) };
+    }
+  } catch { bonus = null; }
   return {
-    copa: campeao ? { campeao: { id: campeao.id, nome: campeao.nome }, titulo: copas[0].copa.texto, mes: `${copas[0].copa.ano}-${String(copas[0].copa.mes).padStart(2, "0")}`, vezes: copas.filter((c) => String(c.pessoa_id) === campeao.id).length } : null,
+    copa: campeao ? { campeao: { id: campeao.id, nome: campeao.nome }, titulo: copas[0].copa.texto, mes: `${copas[0].copa.ano}-${String(copas[0].copa.mes).padStart(2, "0")}`, vezes: copas.filter((c) => String(c.pessoa_id) === campeao.id).length, bonus } : null,
     quartos: QUARTOS,
     // A loja (faixas, estoque e vitrine) chega quando o editor abre, e as
     // conquistas (umas 25 consultas a mais) quando a janela delas ou a ficha

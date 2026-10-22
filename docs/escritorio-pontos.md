@@ -544,12 +544,19 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   criar uma mecânica?": a taça da Copa (`fball_trophy`, épica, nunca à venda)
   é o prêmio do campeão do mês, o 1º do ranking Geral do mês. Desde
   21/10/2026 o Geral é o XP do trabalho no período (o XP já pesa o papel na
-  peça e o formato); a Gestão aparece, mas fica fora do pódio e da Copa, e o
-  % da própria meta virou a categoria Superação. Setembro foi refeito pela
-  regra nova. O campeão leva a taça, o título "Campeão da Copa · <mês>" (marco
+  peça e o formato); todos disputam, inclusive a Gestão ("Paulo não fica de
+  fora"), e o % da própria meta virou a categoria Superação. Setembro foi
+  refeito pela regra nova. O campeão leva a taça, o título "Campeão da Copa · <mês>" (marco
   `copa_AAAA_MM:1`, vale como Diamante) e 150 moedas e 300 XP; 2º e 3º levam
   as taças clássicas de prata e bronze (60/120 e 30/60). Fecha no ciclo
   diário (`fecharCopaMes`), uma vez por mês; o primeiro foi setembro.
+- Bônus de campeão (Paulo, 21/10/2026: "10% é pouco, pode ser 100%"): no
+  mês seguinte, desde o dia em que levou a taça, o campeão ganha a % de
+  `copa_bonus_pct` (hoje 100, em dobro) sobre as moedas e o XP do trabalho de
+  cada dia, no fechamento do dia, com origem única `copa-bonus:<dia>`
+  (`2026-10-21-escritorio-copa-bonus.sql`). Um selo no canto do Escritório e
+  na entrada mostra: para o campeão, o dobro ativo e quanto rendeu; para os
+  outros, a foto dele e até quando vale.
 - A taça do último campeão aparece em todas as salas e quartos, num canto da
   tela, com o nome dele em cima e quem lidera a Copa deste mês.
 - Pódio: 1/5/12/30 semanas no pódio (Bronze com a taça prata pequena).
