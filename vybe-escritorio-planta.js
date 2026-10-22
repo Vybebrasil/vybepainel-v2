@@ -2190,7 +2190,7 @@ function escritorioParedesDoQuarto(a) {
     // cruza a vista dele. Mostra só a seção baixa da parede (cutaway), sem
     // mudar a máscara, o piso, a colisão ou o ponto de pendurar das demais.
     const recorte = alta && !a.cena && escritorioParedeCobreQuarto(a,x0,y0,x1,y1);
-    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=Math.round((altoParede - Math.max(0, escritorioNivelQuarto(a,x0,y0))) * 32); r.espessura=a.espessuraParede ?? 1; if(a.cena) {r.textura=a.texturaParede; r.semTinta=true;}} else r.baixa=true;
+    if(alta) {r.push(a.cor); r.sala=a.id; r.alt=Math.round((altoParede - Math.max(0, escritorioNivelQuarto(a,x0,y0))) * 32); r.espessura=a.espessuraParede ?? 1; if(a.cena || a.texturaParede) {r.textura=a.texturaParede; r.semTinta=true;}} else r.baixa=true;
     if (recorte) { r.baixa=true; r.recorte=true; r.alt=16; }
     lista.push(r);
   };

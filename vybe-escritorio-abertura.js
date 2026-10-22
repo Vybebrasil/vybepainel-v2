@@ -672,6 +672,7 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.erro="";
   criador.piso=escritorio.perfil?.sala_piso || "madeira";
   criador.parede=escritorio.perfil?.sala_parede || "#ff8a35";
+  criador.pisoPlano=escritorio.perfil?.sala_piso_plano || "";criador.paredePlano=escritorio.perfil?.sala_parede_plano || "";
   criador.f = criadorDaFigura(escritorio.perfil?.figura || mapaFigura(escritorio.perfil || {}));
   criador.mao = escritorio.perfil?.mao || "";
   criador.nome = String(eu?.nome || "").split(" ")[0] || "equipe";
@@ -716,6 +717,7 @@ function abrirReformaEscritorio(andar=0,branco=false) {
   criador.versao=escritorio.base.mapa?.camadas?.[camada]?.versao || 0;
   criador.planta=perfil?.sala_planta || 'quadrado-m';
   criador.piso=perfil?.sala_piso || 'madeira';criador.parede=perfil?.sala_parede || '#ff8a35';
+  criador.pisoPlano=perfil?.sala_piso_plano || '';criador.paredePlano=perfil?.sala_parede_plano || '';
   criador.modelo=branco?'vazio':'trabalho';criador.limparPintura=branco;
   criador.preservar=!branco && criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(criador.planta);
   renderAberturaEscritorio();
@@ -898,9 +900,9 @@ async function salvarPersonagemEscritorio(entrar) {
       if(escritorio.base.demo) {
         const camada=escritorioRaizQuarto(escritorioMinhaMesa().ambiente.id)+(criador.andar?"-andar-1":"");
         const itens=criador.preservar ? criadorDecoracaoAtual() : criadorItensDaOpcao(criador.modelo, criador.planta);
-        resultado={perfil:{...perfil,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,quarto_configurado:true},camada,mapa:{itens,versao:1,em:new Date().toISOString()},economia:escritorio.base.economia};
-        if(criador.andar) resultado.perfil={...perfil,sala_andares:[{andar:1,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,quarto_configurado:true}]};
-      } else resultado=await escritorioApi("quarto",{perfil:{...perfil,sala_piso:criador.piso,sala_parede:criador.parede},planta:criador.planta,modelo:criador.modelo,preservar:criador.preservar,reformar:criador.reforma===true,versao:criador.versao,andar:criador.andar || 0,limparPintura:criador.limparPintura===true});
+        resultado={perfil:{...perfil,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,sala_piso_plano:criador.pisoPlano||"",sala_parede_plano:criador.paredePlano||"",quarto_configurado:true},camada,mapa:{itens,versao:1,em:new Date().toISOString()},economia:escritorio.base.economia};
+        if(criador.andar) resultado.perfil={...perfil,sala_andares:[{andar:1,sala_planta:criador.planta,sala_piso:criador.piso,sala_parede:criador.parede,sala_piso_plano:criador.pisoPlano||"",sala_parede_plano:criador.paredePlano||"",quarto_configurado:true}]};
+      } else resultado=await escritorioApi("quarto",{perfil:{...perfil,sala_piso:criador.piso,sala_parede:criador.parede,sala_piso_plano:criador.pisoPlano||"",sala_parede_plano:criador.paredePlano||""},planta:criador.planta,modelo:criador.modelo,preservar:criador.preservar,reformar:criador.reforma===true,versao:criador.versao,andar:criador.andar || 0,limparPintura:criador.limparPintura===true});
       salvo=resultado.perfil;
       if(resultado.camada) escritorio.base.mapa.camadas[resultado.camada]=resultado.mapa;
       escritorio.base.economia=resultado.economia;
@@ -1044,7 +1046,28 @@ function criadorAmbientePrevia(plantaId, piso, parede) {
   return { ...base, planta: plantaId, x1: base.x0 + dim.w, y1: base.y0 + dim.h, piso: ESCRITORIO_PLANTA.PISO[piso] ? piso : base.pisoPadrao || base.piso,
     cor: /^#[0-9a-f]{6}$/i.test(String(parede || "")) ? parede : base.corPadrao || base.cor, pintura: null,
     // A planta desenhada só continua valendo sobre a mesma planta base (como no servidor).
-    celdasLivres: plantaId === base.planta ? base.celdasLivres || "" : "" };
+    celdasLivres: plantaId === base.planta ? base.celdasLivres || "" : "",
+    // Piso e parede oficiais do Habbo escolhidos no acabamento.
+    ...escritorioPlanosDoPerfil({ sala_piso_plano: criador.pisoPlano, sala_parede_plano: criador.paredePlano }, dim) };
+}
+// Amostra de um piso ou papel de parede oficial do Habbo (a textura do mapa).
+// Na primeira vez carrega o acervo e redesenha o acabamento.
+const criadorAmostras = new Map();
+function criadorAmostraPlano(textura) {
+  if (criadorAmostras.has(textura)) return criadorAmostras.get(textura);
+  if (typeof mapaTexturaPlano !== "function") return "";
+  const c = mapaTexturaPlano(textura);
+  if (c === null && typeof MAPA_PLANOS_PRONTOS !== "undefined" && !MAPA_PLANOS_PRONTOS) {
+    if (!criador.carregandoPlanos) { criador.carregandoPlanos = true; mapaCarregarPlanos().then(() => { if (criador.etapa === "acabamento") renderAberturaEscritorio(); }).catch(() => {}); }
+    return "";
+  }
+  const url = c ? c.toDataURL() : "";
+  criadorAmostras.set(textura, url);
+  return url;
+}
+function criadorPlanosDoAcervo(tipo) {
+  const dados = typeof MAPA_PLANOS_PRONTOS !== "undefined" ? MAPA_PLANOS_PRONTOS?.dados : null;
+  return (dados?.roomVisualization?.[tipo === "piso" ? "floorData" : "wallData"]?.planes || []).map((p) => String(p.id)).filter((id) => /^\d+$/.test(id)).map((id) => `plano:${tipo}:${id}`);
 }
 // Modelo inicial na planta escolhida: feito para 8 × 8 e levado ao canto de
 // baixo à direita de cada tamanho (o mesmo "deslocamento" do servidor).
@@ -1118,11 +1141,23 @@ function criadorQuartoEscolher(campo,valor) {
   renderAberturaEscritorio();
 }
 // Atalhos de acabamento usam as mesmas escolhas e a mesma confirmação final.
+// Acabamento com o acervo do Habbo (Paulo, 21/10/2026: "o piso e paredes não
+// já deviam aparecer os dos assets?"): os pisos e papéis de parede oficiais,
+// com a textura de verdade; as cores lisas ficam como "Básico".
+function criadorAcervoAcabamentoHtml() {
+  const grade = (tipo) => {
+    const lista = criadorPlanosDoAcervo(tipo), atual = tipo === "piso" ? criador.pisoPlano : criador.paredePlano;
+    if (!lista.length) { criadorAmostraPlano(`plano:${tipo}:101`); return `<div class="abr-acervo-grade carregando">${"<i></i>".repeat(10)}</div>`; }
+    return `<div class="abr-acervo-grade">${lista.map((t) => { const u = criadorAmostraPlano(t); return `<button type="button" class="abr-acervo ${tipo}" aria-pressed="${t === atual}" title="${tipo === "piso" ? "Piso" : "Parede"} do Habbo nº ${safeText(t.split(":")[2])}" onclick="criador.${tipo === "piso" ? "pisoPlano" : "paredePlano"}='${t}';renderAberturaEscritorio()"${u ? ` style="background-image:url(${u})"` : ""}></button>`; }).join("")}</div>`;
+  };
+  return `<div class="abr-acervo-bloco"><div class="abr-acervo-coluna"><span class="vb-jogo-rotulo">Pisos do Habbo</span>${grade("piso")}</div><div class="abr-acervo-coluna"><span class="vb-jogo-rotulo">Paredes do Habbo</span>${grade("parede")}</div></div>`;
+}
 function criadorAplicarPaleta(id) {
   const paleta = escritorio.base?.quartos?.paletas?.find((p) => p.id === id);
   if (!paleta) return;
   criador.piso = paleta.piso;
   criador.parede = paleta.parede;
+  criador.pisoPlano = ""; criador.paredePlano = "";
   renderAberturaEscritorio();
 }
 function criadorQuartoHtml() {
@@ -1176,8 +1211,9 @@ function criadorQuartoHtml() {
   titulo="Dê a sua cara ao espaço";anterior="mobilia";proxima="boas";
   conteudo=`${criadorPreviaHtml(criador.planta, criador.preservar ? "atual" : criador.modelo, { grande: true, boneco: true })}
 <div class="abr-paletas" role="group" aria-label="Combinações de acabamento">${(catalogo.paletas || []).map(p=>`<button type="button" aria-pressed="${criador.piso===p.piso && criador.parede===p.parede}" onclick="criadorAplicarPaleta('${p.id}')"><i aria-hidden="true" style="background:linear-gradient(135deg,${p.parede} 50%,${ESCRITORIO_PLANTA.PISO[p.piso]?.[0]} 50%)"></i><span><b>${safeText(p.nome)}</b><small>${safeText(p.dica)}</small></span></button>`).join("")}</div>
-<div class="abr-acabamentos"><div class="abr-grupo"><h3>Piso</h3><div class="abr-amostras">${pisos.map(([id,nome])=>`<button type="button" aria-pressed="${criador.piso===id}" onclick="criador.piso='${id}';renderAberturaEscritorio()" aria-label="Piso ${safeText(nome)}"><i style="background:${amostraPiso(id)}"></i><span>${safeText(nome)}</span></button>`).join("")}</div></div>
-<div class="abr-grupo"><h3>Paredes</h3><div class="abr-linha">${paredes.map((c)=>`<button type="button" class="abr-cor" style="--c:${c}" aria-pressed="${criador.parede===c}" onclick="criador.parede='${c}';renderAberturaEscritorio()" aria-label="Parede ${c}"></button>`).join("")}</div></div></div>
+${criadorAcervoAcabamentoHtml()}
+<div class="abr-acabamentos basico"><span class="vb-jogo-rotulo">Básico · cores lisas</span><div class="abr-grupo"><h3>Piso</h3><div class="abr-amostras">${pisos.map(([id,nome])=>`<button type="button" aria-pressed="${criador.piso===id && !criador.pisoPlano}" onclick="criador.piso='${id}';criador.pisoPlano='';renderAberturaEscritorio()" aria-label="Piso ${safeText(nome)}"><i style="background:${amostraPiso(id)}"></i><span>${safeText(nome)}</span></button>`).join("")}</div></div>
+<div class="abr-grupo"><h3>Paredes</h3><div class="abr-linha">${paredes.map((c)=>`<button type="button" class="abr-cor" style="--c:${c}" aria-pressed="${criador.parede===c && !criador.paredePlano}" onclick="criador.parede='${c}';criador.paredePlano='';renderAberturaEscritorio()" aria-label="Parede ${c}"></button>`).join("")}</div></div></div>
 <p class="abr-nota">Depois de entrar, use <b>Decorar</b> no seu quarto para arrastar móveis, pintar cada ladrilho e abrir a loja. Sua escolha só é salva na confirmação final.</p>`;
  }
  // Faixa de título de janela de jogo: a peça do Habbo da etapa, o passo e o título.
