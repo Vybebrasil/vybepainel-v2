@@ -464,10 +464,11 @@ function abrirMissoesPeloLobbyEscritorio() {
 }
 function escritorioLobbyEsperaHtml() {
   const e = escritorio.lobbyEspera, eu = safeText(String(escritorio.base?.eu || ""));
-  // Botões de jogo, todos do mesmo desenho: vidro escuro, desenho branco e o
-  // número num selo (vermelho quando pede atenção). Enquanto o resumo chega,
-  // os quatro ficam no lugar com o brilho passando.
-  const botao = (tipo, icone, nome, valor, detalhe, acao, alerta, sufixo = "") => `<button type="button" class="lg-botao jg-${tipo}${alerta ? " alerta" : ""}${e ? "" : " esqueleto"}" ${acao ? `onclick="${acao}"` : "disabled"} title="${safeText(detalhe || "")}"><span class="lg-botao-icone">${escritorioIcone(icone)}${valor != null && (Number(valor) || sufixo) ? `<b class="lg-selo"><span data-vb-contar="${Number(valor) || 0}" data-vb-chave="lobby-${tipo}-${eu}">${Number(valor)}</span>${sufixo}</b>` : ""}</span><span class="lg-botao-txt"><b>${nome}</b><small>${detalhe ? safeText(detalhe) : "&nbsp;"}</small></span></button>`;
+  // Botões de jogo, todos do mesmo desenho: cartão escuro, a peça do Habbo
+  // num poço e o número num selo (vermelho quando pede atenção). Enquanto o
+  // resumo chega, os botões ficam no lugar com o brilho passando.
+  const LG_ARTE = { missoes: "school_chalkboard", cobrancas: "exe_c15_telephone", recados: "nyc_c23_mailbox", ranking: "trophy_fball_c26_wingedgold", conquistas: "prizetrophy" };
+  const botao = (tipo, icone, nome, valor, detalhe, acao, alerta, sufixo = "") => `<button type="button" class="lg-botao jg-${tipo}${alerta ? " alerta" : ""}${e ? "" : " esqueleto"}" ${acao ? `onclick="${acao}"` : "disabled"} title="${safeText(detalhe || "")}"><span class="lg-botao-icone">${LG_ARTE[tipo] && typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml(LG_ARTE[tipo]) : escritorioIcone(icone)}${valor != null && (Number(valor) || sufixo) ? `<b class="lg-selo"><span data-vb-contar="${Number(valor) || 0}" data-vb-chave="lobby-${tipo}-${eu}">${Number(valor)}</span>${sufixo}</b>` : ""}</span><span class="lg-botao-txt"><b>${nome}</b><small>${detalhe ? safeText(detalhe) : "&nbsp;"}</small></span></button>`;
   if (escritorio.base?.demo && !e) return "";
   const temSala = Boolean(escritorioMinhaMesa());
   const x = e || {};
@@ -550,7 +551,7 @@ function escritorioLobbyAcoesHtml(b) {
   return `<div class="lg-base lg-entra" style="--o:5">
 <div class="lg-audio"><button type="button" class="lg-redondo${mic?.ligado ? " ativo" : ""}" onclick="${mic?.ligado ? "pararTesteMicLobbyEscritorio()" : "testarMicLobbyEscritorio()"}" aria-label="${mic?.ligado ? "Parar o teste do microfone" : "Testar o microfone"}" title="${mic?.ligado ? "Parar o teste" : "Testar o microfone"}">${escritorioIcone("microfone")}</button>${mic?.ligado ? `<span class="ofc-lobby-nivel" aria-label="Nível do microfone"><i id="ofc-lobby-nivel"></i></span>${mic.dispositivos?.length > 1 ? `<select aria-label="Microfone" onchange="trocarMicLobbyEscritorio(this.value)">${mic.dispositivos.map((d) => `<option value="${safeText(d.deviceId)}"${d.deviceId === mic.atual ? " selected" : ""}>${safeText(d.label || "Microfone")}</option>`).join("")}</select>` : ""}` : mic?.erro ? `<small role="alert">${safeText(mic.erro)}</small>` : ""}
 <label class="lg-mudo"><input type="checkbox" ${mudo ? "checked" : ""} onchange="escritorio.microfoneQuer=this.checked?false:true"><span aria-hidden="true"></span>Entrar silenciado</label></div>
-<div class="lg-outros"><button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('convivencia')">Convivência</button>${temSala ? `<button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('ultimo')">Onde parei</button>` : ""}<button type="button" class="lg-secundario" onclick="personalizarEscritorio()">${escritorioIcone("editar")}Personalizar</button></div>
+<div class="lg-outros"><button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('convivencia')">${escritorioIcone("pessoas")}Convivência</button>${temSala ? `<button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('ultimo')">${escritorioIcone("avancar")}Onde parei</button>` : ""}<button type="button" class="lg-secundario" onclick="personalizarEscritorio()">${escritorioIcone("editar")}Personalizar</button></div>
 <button id="office-connect" type="button" class="lg-entrar" onclick="entrarPeloLobbyEscritorio('${temSala ? "sala" : "ultimo"}')"><span class="lg-entrar-txt"><b>Entrar</b><small>${temSala ? "na minha sala" : "no escritório"}</small></span><kbd aria-hidden="true">Enter</kbd></button></div>`;
 }
 function entrarPeloLobbyEscritorio(destino) {
@@ -1800,7 +1801,7 @@ function atualizarPessoasEscritorio() {
     const fora = escritorio.base.equipe.filter((p) => !pessoas.some((o) => o.id === p.id));
     const linha = (p) => {
       const o = pessoas.find((x) => x.id === p.id);
-      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${p.id !== eu ? `<div class="ofc-membro-acoes" role="group" aria-label="Ações com ${safeText(p.nome)}">${o ? `<button type="button" class="ofc-mini" onclick="chamarParaSalaEscritorio('${safeText(o.id)}')" title="Chamar para a sala onde você está">Chamar</button><button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')" title="Ir até ${safeText(p.nome)}">Ir</button><button type="button" class="ofc-mini" onclick="seguirPessoaEscritorio('${safeText(o.id)}')" title="Seguir ${safeText(p.nome)} pelo escritório">Seguir</button>` : ""}<button type="button" class="ofc-mini" onclick="abrirRecadosEscritorio('${safeText(p.id)}')" aria-label="Recado para ${safeText(p.nome)}">Recado${escritorio.recadosResumo?.[p.id] ? ` <b class="ofc-badge">${escritorio.recadosResumo[p.id]}</b>` : ""}</button></div>` : ""}</li>`;
+      return `<li class="office-member${o ? "" : " fora"}">${escritorioAvatar(p.perfil, p.nome)}<div><b>${safeText(p.nome)}${p.id === eu ? " · você" : ""}</b><small>${o ? `${escritorioStatusHtml(o.status)} · ${safeText(escritorioLugarDe(o).nome)}` : "Fora do escritório"}</small></div>${p.id !== eu ? `<div class="ofc-membro-acoes" role="group" aria-label="Ações com ${safeText(p.nome)}">${o ? `<button type="button" class="ofc-mini" onclick="chamarParaSalaEscritorio('${safeText(o.id)}')" title="Chamar para a sala onde você está">${escritorioIcone("mao")}Chamar</button><button type="button" class="ofc-mini" onclick="escritorioIrAte('${safeText(o.id)}')" title="Ir até ${safeText(p.nome)}">${escritorioIcone("avancar")}Ir</button><button type="button" class="ofc-mini" onclick="seguirPessoaEscritorio('${safeText(o.id)}')" title="Seguir ${safeText(p.nome)} pelo escritório">${escritorioIcone("pessoas")}Seguir</button>` : ""}<button type="button" class="ofc-mini" onclick="abrirRecadosEscritorio('${safeText(p.id)}')" aria-label="Recado para ${safeText(p.nome)}">${escritorioIcone("conversa")}Recado${escritorio.recadosResumo?.[p.id] ? ` <b class="ofc-badge">${escritorio.recadosResumo[p.id]}</b>` : ""}</button></div>` : ""}</li>`;
     };
     lista.innerHTML = `<h4>Online agora · ${online.length}</h4><ul>${online.map(linha).join("") || '<li class="ofc-vazio">Ninguém conectado ainda.</li>'}</ul><details class="ofc-fora" ${escritorio.foraAberto ? "open" : ""} ontoggle="escritorio.foraAberto=this.open"><summary><h4>Fora do escritório · ${fora.length}</h4></summary><ul>${fora.map(linha).join("")}</ul></details>`;
   }
@@ -2061,7 +2062,7 @@ function renderEscritorio() {
     animarLobbyEscritorio();
     if (!escritorio.entrada) { carregarLobbyEscritorio(); observarLobbyEscritorio(); }
     // Enter entra: o botão principal recebe o foco uma vez por visita.
-    if (!escritorio.lobbyFocado && !document.activeElement?.closest?.("input,select,textarea,[contenteditable]")) { escritorio.lobbyFocado = true; document.getElementById("office-connect")?.focus({ preventScroll: true }); }
+    if (!escritorio.lobbyFocado && !document.activeElement?.closest?.("input,select,textarea,[contenteditable]")) { escritorio.lobbyFocado = true; document.getElementById("office-connect")?.focus({ preventScroll: true, focusVisible: false }); }
   }
   else { clearInterval(escritorio.timerLobby); clearInterval(escritorio.timerNoticias); fecharObservadorLobbyEscritorio(); pararTesteMicLobbyEscritorio(false); }
   carregarCopaEscritorio();
