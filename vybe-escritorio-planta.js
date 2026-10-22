@@ -2151,7 +2151,18 @@ function escritorioEscadaQuarto(a,x,y) {
     alto:escritorioNivelQuarto(a,ix+dx,iy+dy), baixo:escritorioNivelQuarto(a,ix-dx,iy-dy)}));
   const e=lados.find(e=>e.baixo>=0 && e.baixo<meio && e.alto>meio
     && e.alto-meio<=1.5 && meio-e.baixo<=1.5);
-  return e ? {x:ix,y:iy,...e,meio} : null;
+  if(!e) return null;
+  // Escada de vários ladrilhos: cada um desenha só o seu trecho da subida
+  // (do meio com o de baixo ao meio com o de cima). Cada ladrilho ia do
+  // piso baixo ao alto inteiro e os dois se sobrepunham: degrau dobrado e
+  // um dente na lateral (Paulo, 22/10/2026: "problema com escadas").
+  const ehEscada=(qx,qy)=>p.escada.some(([ex,ey])=>ex===qx && ey===qy);
+  const deEscada=ehEscada(ix-e.dx,iy-e.dy), ateEscada=ehEscada(ix+e.dx,iy+e.dy);
+  // Chão debaixo da escada: o piso onde ela começa (a lateral desce até ele).
+  let cx=ix, cy=iy;
+  while(ehEscada(cx-e.dx,cy-e.dy)) { cx-=e.dx; cy-=e.dy; }
+  return {x:ix,y:iy,...e,meio,de:deEscada ? (e.baixo+meio)/2 : e.baixo,ate:ateEscada ? (meio+e.alto)/2 : e.alto,
+    chao:Math.max(0,escritorioNivelQuarto(a,cx-e.dx,cy-e.dy))};
 }
 // Altura do piso (em blocos do Habbo, 1 = 32 px). A escada é um degrau de
 // altura 1 entre o chão e o mezanino (no Habbo não há rampa: sobe-se um

@@ -1438,3 +1438,14 @@ decoração inicial "bem feito".
   Bacelar" (estilo Obra, leva à reforma).
 - Entrada: o quarto num cartão (placa da sala e nível, inclina com o mouse), a
   Vybelândia mais nítida em volta e os colegas online em cartõezinhos.
+
+### Plantas pares, escadas e árvore do Deivid — 22/10/2026
+
+- Plantas para escolher em blocos de 2 × 2 (61, em 12 formatos); as 29 antigas
+  desalinhadas ficam só para quem já tem, com a versão `-par` na reforma.
+- Escada contínua (cada ladrilho com o seu trecho), terraços e mirante sem vão.
+- Editor pega o móvel pelo desenho (árvore alta encostada no mezanino).
+- Próximo, pedido do Paulo: balão animado na mesa de cada pessoa com o resumo
+  do dia (para hoje, em execução, finalizado, o que ficou aberto ontem) e
+  detalhe no clique; depois o cursor que muda conforme a ação (andar, pegar,
+  usar móvel).
