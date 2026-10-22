@@ -387,15 +387,16 @@ function mapaRecorteOpaco(canvas) {
 // real do piso vizinho. A faixa vai do centro do piso baixo ao centro do alto,
 // com o ladrilho de nível intermediário no meio. Não estica arte de móvel.
 function mapaDegrausDaPlanta(e) {
-  const n=Math.max(1,Math.ceil((e.alto-e.baixo)*4)), r=[];
+  const baixo=e.de ?? e.baixo, alto=e.ate ?? e.alto;
+  const n=Math.max(1,Math.ceil((alto-baixo)*4)), r=[];
   const ponto=(t,s,z)=>({x:e.x+.5+e.dx*t-e.dy*s,y:e.y+.5+e.dy*t+e.dx*s,z});
   for(let i=0;i<n;i++) {
     // Os degraus cabem no próprio ladrilho da escada (como no Nitro, 4 por
     // nível): antes iam do meio do piso de baixo ao meio do patamar e a
     // escada parecia um bloco gigante saindo pela frente e pelo mezanino.
-    const de=-.5+i/n, ate=-.5+(i+1)/n, z=e.baixo+(e.alto-e.baixo)*(i+1)/n;
+    const de=-.5+i/n, ate=-.5+(i+1)/n, z=baixo+(alto-baixo)*(i+1)/n;
     const piso=[ponto(de,-.5,z),ponto(ate,-.5,z),ponto(ate,.5,z),ponto(de,.5,z)];
-    r.push({piso,base:e.baixo});
+    r.push({piso,base:e.chao ?? e.baixo});
   }
   return r.sort((a,b)=>a.piso.reduce((s,p)=>s+p.x+p.y,0)-b.piso.reduce((s,p)=>s+p.x+p.y,0));
 }
@@ -434,7 +435,10 @@ function mapaDesenharEscadas(g,planta,origem,corPiso=()=>"#b08458") {
           const vx=a.x===b.x ? Math.floor(a.x) : Math.floor(cx), vy=a.x===b.x ? Math.floor(cy) : Math.floor(a.y);
           // Face no meio do ladrilho (espelho de um degrau) vai até a base.
           const borda=Number.isInteger(a.x===b.x ? a.x : a.y);
-          const viz=!borda ? -Infinity : planta.escadaEm?.(vx,vy) ? Infinity : planta.andavel?.(vx,vy) ? planta.nivelEm(vx,vy) : -Infinity;
+          // Ladrilho de escada logo abaixo na subida: o espelho desce só até
+          // o topo dele (onde este trecho começa); ao lado, fica escondido.
+          const abaixo=vx===e.x-e.dx && vy===e.y-e.dy;
+          const viz=!borda ? -Infinity : planta.escadaEm?.(vx,vy) ? (abaixo ? e.de ?? e.baixo : Infinity) : planta.andavel?.(vx,vy) ? planta.nivelEm(vx,vy) : -Infinity;
           const chao=Math.max(d.base,viz);
           if(chao>=a.z) continue;
           const pa=mapaTela(a.x,a.y,{...origem,alturaAtual:a.z}),pb=mapaTela(b.x,b.y,{...origem,alturaAtual:b.z});
@@ -2516,8 +2520,11 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     inercia = null;
     // Editor: apertar num móvel da área em edição pega o móvel (em vez de
     // arrastar o mapa); soltar larga onde o mouse estiver.
+    // O móvel sob o pixel vai junto: peça alta (árvore, estante) cobre os
+    // ladrilhos de trás e só o ladrilho não achava o que se apertou.
     const t0 = ladrilhoEm(e.clientX, e.clientY);
-    if (aoPegar?.(t0.x, t0.y, t0.fx, t0.fy)) {
+    const o0 = objetoEm(e.clientX, e.clientY);
+    if (aoPegar?.(t0.x, t0.y, t0.fx, t0.fy, o0?.tipo === "movel" ? o0.item : null)) {
       arrasto = { item: true, x: e.clientX, y: e.clientY, moveu: false, ult: [] };
       el.setPointerCapture?.(e.pointerId);
       return;

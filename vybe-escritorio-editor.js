@@ -253,7 +253,16 @@ function escritorioEditorMudou(semPasso = false) {
 function escritorioPintando() {
   return escritorio.edicao && ["Sala", "Planta"].includes(escritorio.catalogoCategoria) && typeof pintarNaSalaEscritorio === "function";
 }
-async function cliqueEditorEscritorio(x, y) {
+// Móvel da área em edição sob o mouse: primeiro o desenho (o que se vê na
+// frente, como no clique fora da edição), depois o ladrilho. Só o ladrilho
+// errava a peça alta: a copa da árvore fica sobre os ladrilhos de trás (no
+// mezanino, inclusive) e o móvel não dava para pegar.
+function escritorioMovelDaCamadaEm(x, y, movel) {
+  const camada = escritorio.edicao?.camada;
+  if (movel?.origem?.camada === camada) return movel;
+  return escritorio.mapa.moveisEm(x, y).find((m) => m.origem?.camada === camada) || null;
+}
+async function cliqueEditorEscritorio(x, y, movel = null) {
   if (!escritorio.edicao || escritorioCameraEditor()) return;
   if (escritorio.edicao?.colar) { soltarColarEscritorio(Math.floor(x), Math.floor(y)); return; }
   if (escritorioPintando()) { if (!pintarNaSalaEscritorio(Math.floor(x), Math.floor(y), x, y) && escritorioPincel().ferramenta !== "balde") escritorioAviso(escritorioPincel().ferramenta === "parede" ? "Clique numa parede da sua sala (ou no piso encostado nela)." : "Pinte dentro da sua sala."); return; }
@@ -267,7 +276,7 @@ async function cliqueEditorEscritorio(x, y) {
     const lugar = escritorioLugarQuadro(classe, lx, ly, quadroNovo ? -1 : e.sel);
     if (lugar.erro) {
       // Clique em outro quadro ou móvel seleciona em vez de mover.
-      if (!quadroNovo && escritorioSelecionarNoClique(x, y, lx, ly)) return;
+      if (!quadroNovo && escritorioSelecionarNoClique(x, y, lx, ly, movel)) return;
       return escritorioAviso(lugar.erro);
     }
     if (quadroNovo) { e.itens.push([classe, lugar.lx, lugar.ly, lugar.dir, 0, 0]); e.sel = e.itens.length - 1; e.novo = null; escritorioAviso("Quadro colocado. Clique em outro trecho da parede para mudar; Delete apaga."); }
@@ -309,7 +318,7 @@ async function cliqueEditorEscritorio(x, y) {
     escritorioAviso(sobre ? "Colocado em cima. Alt + setas ajusta fino; R gira." : "Móvel colocado. Arraste para ajustar; R gira.");
     return escritorioEditorMudou();
   }
-  if (escritorioSelecionarNoClique(x, y, lx, ly)) return;
+  if (escritorioSelecionarNoClique(x, y, lx, ly, movel)) return;
   // Clicou num móvel de outra área que a pessoa pode editar: troca para ela.
   const deOutra = escritorio.mapa.moveisEm(x, y).find((m) => m.origem && m.origem.camada !== e.camada && escritorioPodeEditar(m.origem.camada));
   if (deOutra && e.sel === null) {
@@ -329,11 +338,11 @@ async function cliqueEditorEscritorio(x, y) {
   }
 }
 // Seleciona o quadro encostado no ladrilho clicado ou o móvel em cima dele.
-function escritorioSelecionarNoClique(x, y, lx, ly) {
+function escritorioSelecionarNoClique(x, y, lx, ly, movel = null) {
   const e = escritorio.edicao;
   // Shift + clique: junta (ou tira) o móvel da seleção em grupo.
   if (escritorio.shift) {
-    const m = escritorio.mapa.moveisEm(x, y).find((q) => q.origem?.camada === e.camada);
+    const m = escritorioMovelDaCamadaEm(x, y, movel);
     if (!m) return false;
     const g = escritorioGrupo();
     g.has(m.origem.i) ? g.delete(m.origem.i) : g.add(m.origem.i);
@@ -350,7 +359,7 @@ function escritorioSelecionarNoClique(x, y, lx, ly) {
     renderBarraEditorEscritorio();
     return true;
   }
-  const daCamada = escritorio.mapa.moveisEm(x, y).find((m) => m.origem?.camada === e.camada);
+  const daCamada = escritorioMovelDaCamadaEm(x, y, movel);
   if (daCamada && daCamada.origem.i !== e.sel) {
     e.sel = daCamada.origem.i;
     escritorio.mapa.destacar(daCamada.origem);
@@ -1361,7 +1370,7 @@ function trocarCamadaEditorEscritorio(camada) {
 
 // Arrastar um móvel da área em edição: pega no aperto, mostra onde vai cair
 // (verde cabe, vermelho não) e larga ao soltar.
-function pegarNoEditorEscritorio(x, y, fx, fy) {
+function pegarNoEditorEscritorio(x, y, fx, fy, movel = null) {
   if (escritorioCameraEditor()) return false;
   if (escritorioPintando() && escritorioPincel().ferramenta !== "balde") { escritorio.pintandoArrasto = true; pintarNaSalaEscritorio(x, y, fx, fy); return true; }
   const e = escritorio.edicao;
@@ -1372,7 +1381,7 @@ function pegarNoEditorEscritorio(x, y, fx, fy) {
   // Escolhendo os móveis de um gatilho: o clique põe ou tira o ladrilho.
   if (e.alvos != null) { escolherAlvoGatilhoEscritorio(lx, ly); return true; }
   // Shift + arrastar no piso livre: caixa de seleção.
-  const debaixo = escritorio.mapa.moveisEm(x, y).find((m) => m.origem?.camada === e.camada);
+  const debaixo = escritorioMovelDaCamadaEm(x, y, movel);
   if (escritorio.shift && !debaixo) { e.caixa = { x0: x, y0: y, x1: x, y1: y }; return true; }
   // Apertou num móvel que já está no grupo: arrasta o grupo inteiro.
   if (debaixo && escritorioGrupo().size > 1 && escritorioGrupo().has(debaixo.origem.i) && !escritorio.shift) {
@@ -1380,7 +1389,7 @@ function pegarNoEditorEscritorio(x, y, fx, fy) {
     return true;
   }
   let i = e.itens.findIndex((it) => escritorioImagemDe(it[0])?.tipo === "quadro" && escritorioQuadroCobre(it, lx, ly));
-  if (i < 0) i = escritorio.mapa.moveisEm(x, y).find((m) => m.origem?.camada === e.camada)?.origem.i ?? -1;
+  if (i < 0) i = debaixo?.origem.i ?? -1;
   if (i < 0) return false;
   const it = e.itens[i];
   e.sel = i;

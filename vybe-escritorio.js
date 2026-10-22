@@ -2151,7 +2151,7 @@ function montarMapaEscritorio() {
       aoDuploClique: (x, y, objeto) => alternarComDuploCliqueEscritorio(x, y, objeto),
       aoPassarMovel: (m) => preCarregarOrigemMovelEscritorio(m),
       aoPassar: (x, y, cx, cy, fx, fy) => passarNoMapaEscritorio(x, y, cx, cy, fx, fy),
-      aoPegar: (x, y, fx, fy) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y, fx, fy),
+      aoPegar: (x, y, fx, fy, movel) => typeof pegarNoEditorEscritorio === "function" && pegarNoEditorEscritorio(x, y, fx, fy, movel),
       aoArrastar: (x, y, fx, fy) => arrastarNoEditorEscritorio(x, y, fx, fy),
       aoSoltar: (x, y, moveu) => soltarNoEditorEscritorio(x, y, moveu),
       aoCancelar: () => cancelarArrastoEditorEscritorio(),
@@ -2943,7 +2943,7 @@ function editarMovelSelecionadoEscritorio() {
   if (e && e.itens[m.origem.i]) { e.sel = m.origem.i; escritorioEditorMudou?.(); }
 }
 function cliqueNoMapaEscritorio(x, y, objeto = null) {
-  if (escritorio.edicao) { cliqueEditorEscritorio(x, y); return; }
+  if (escritorio.edicao) { cliqueEditorEscritorio(x, y, objeto?.tipo === "movel" ? objeto.item : null); return; }
   // Como no Habbo: clicar em alguém seleciona (seta em cima e a ficha); num
   // móvel que não é assento nem cama, seleciona e mostra a ficha, sem andar.
   if (objeto?.tipo === "pessoa") {

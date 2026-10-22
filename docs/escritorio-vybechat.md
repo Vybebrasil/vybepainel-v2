@@ -780,6 +780,25 @@ das janelas no Lounge e pediu a causa, não um remendo. Foram três:
   catálogo (algumas ajustadas à mão, com quartos montados) ficam como estão.
   Formatos especiais ganham a Mansão dobrando a planta Enorme ladrilho a
   ladrilho, com a escada de um degrau só.
+### Plantas em blocos de 2 × 2 e escada contínua (22/10/2026)
+
+- Decisão do Paulo: "se todos os pisos colocáveis são 2x2, não tem sentido
+  nenhum quarto terminar com parte ímpar". Toda planta para escolher passa em
+  `plantaEmBlocos` (`scripts/quartos-plantas.mjs`): em cada linha e coluna,
+  cada trecho do mesmo andar começa em posição par e tem tamanho par (a escada
+  fica de fora); lados pares. O gerador recusa planta nova desalinhada.
+- Mezanino no nível 3, escada de 2 ladrilhos de fundo e 2 de largura (níveis
+  2 e 1). Cada ladrilho da escada desenha só o seu trecho da subida
+  (`de`/`ate` em `escritorioEscadaQuarto`); a lateral desce até o chão onde a
+  escada começa (`chao`). Antes os dois ladrilhos iam do piso baixo ao alto e
+  se sobrepunham (degrau dobrado e dente na lateral).
+- Planta antiga desalinhada fica `oculta`: quem já tem continua com ela; a
+  reforma e o criador oferecem a versão `-par` (`criadorPlantaParaEscolher`).
+  Sem vãos no meio do salão (terraços e mirante tinham um poço escuro).
+- Editor: o móvel sob o desenho vai junto do ladrilho (`escritorioMovelDaCamadaEm`),
+  como no clique fora da edição. Só o ladrilho errava peça alta: a copa da
+  árvore do Deivid ficava sobre o mezanino e o móvel não dava para pegar.
+
 - Vitrine do personagem (`escritorioVitrineHtml`/`escritorioMontarVitrines`):
   um pedaço de 3 × 3 do quarto da pessoa pelo próprio motor do mapa — piso e
   parede dela, até dois móveis dela dos lados (nunca atrás nem na frente), o

@@ -665,7 +665,7 @@ function abrirAberturaEscritorio(etapa = "cena") {
   criador.etapa = etapa === "cena" && window.VYBELANDIA_VISTA ? "personagem" : etapa;
   if(etapa === "cena" && escritorio.perfil?.abertura === ESCRITORIO_ABERTURA && escritorioMinhaMesa() && !escritorio.perfil.quarto_configurado) criador.etapa="planta";
   // Planta da primeira versão (legado) ou nenhuma: começa no Quadrado médio.
-  criador.planta=escritorio.base?.quartos?.plantas?.some((p)=>p.id===escritorio.perfil?.sala_planta && !p.legado) ? escritorio.perfil.sala_planta : "quadrado-m";
+  criador.planta=criadorPlantaParaEscolher(escritorio.perfil?.sala_planta);
   criador.modelo="trabalho";
   // Mantém a decoração atual só se ela couber na planta (regra do servidor).
   criador.preservar=criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(criador.planta);
@@ -714,7 +714,7 @@ function abrirReformaEscritorio(andar=0,branco=false) {
   const perfil=escritorioPerfilDecoracao(camada);
   criador.reforma=true;criador.so=true;criador.andar=andar;
   criador.versao=escritorio.base.mapa?.camadas?.[camada]?.versao || 0;
-  criador.planta=perfil?.sala_planta || 'quadrado-m';
+  criador.planta=criadorPlantaParaEscolher(perfil?.sala_planta);
   criador.piso=perfil?.sala_piso || 'madeira';criador.parede=perfil?.sala_parede || '#ff8a35';
   criador.modelo=branco?'vazio':'trabalho';criador.limparPintura=branco;
   criador.preservar=!branco && criadorDecoracaoAtual().length>0 && criadorDecoracaoCabe(criador.planta);
@@ -780,7 +780,7 @@ function criadorEspacoStatusHtml(terreo) {
   // Planta da primeira versão (sem formato): a escada do Quadrado, sem degrau marcado.
   const tamanhos = criadorPlantasDoFormato(terreo?.formato || "quadrado").sort((a, b) => ordem.indexOf(a.tamanho) - ordem.indexOf(b.tamanho));
   const ladrilhos = (p) => Number(String(p?.medidas || "").match(/(\d+) ladrilhos/)?.[1] || 0);
-  const maior = tamanhos[tamanhos.length - 1], aqui = tamanhos.findIndex((p) => p.id === terreo?.id);
+  const maior = tamanhos[tamanhos.length - 1], aqui = tamanhos.findIndex((p) => p.id === criadorPlantaParaEscolher(terreo?.id));
   const degraus = tamanhos.map((p, i) => `<i class="${i < aqui ? "feito" : i === aqui ? "aqui" : ""}" style="--t:${(0.18 + 0.82 * ladrilhos(p) / Math.max(1, ladrilhos(maior))).toFixed(2)}" title="${safeText(`${p.tamanhoNome} · ${p.medidas}`)}"></i>`).join("");
   const inv = typeof escritorioMeuInventario === "function" ? escritorioMeuInventario() : [];
   const noQuarto = inv.reduce((t, i) => t + i.noQuarto, 0), guardados = inv.reduce((t, i) => t + i.guardados, 0);
@@ -1097,8 +1097,17 @@ function criadorComparaHtml(atualId, nova, ladrilhosDe) {
   const x = b / a, rotulo = x >= 1.05 ? `${x >= 2 ? Math.round(x * 10) / 10 + "×" : "+" + Math.round((x - 1) * 100) + "%"} maior` : x <= 0.95 ? `${Math.round((1 - x) * 100)}% menor` : "mesmo tamanho";
   return `<div class="jg-compara"><span><small>Hoje</small><b>${safeText(atual.tamanhoNome || atual.nome)}</b><em>${a} ladrilhos</em></span><i aria-hidden="true">→</i><span class="nova"><small>Nova</small><b>${safeText(nova.tamanhoNome || nova.nome)}</b><em>${b} ladrilhos</em></span><strong class="${x < 0.95 ? "menor" : ""}">${rotulo.replace(".", ",")}</strong></div>`;
 }
+// A planta que a criação e a reforma começam: a da pessoa; se ela é uma das
+// antigas com trecho ímpar (oculta desde 22/10/2026), a versão em blocos de
+// 2 × 2 do mesmo formato e tamanho; da primeira versão ou nenhuma, o Quadrado médio.
+function criadorPlantaParaEscolher(id) {
+  const plantas = escritorio.base?.quartos?.plantas || [], p = plantas.find((q) => q.id === id);
+  if (p && !p.legado && !p.oculta) return p.id;
+  if (p?.oculta && plantas.some((q) => q.id === p.id + "-par")) return p.id + "-par";
+  return "quadrado-m";
+}
 function criadorPlantasDoFormato(formato) {
-  return (escritorio.base?.quartos?.plantas || []).filter((p) => !p.legado && p.formato === formato);
+  return (escritorio.base?.quartos?.plantas || []).filter((p) => !p.legado && !p.oculta && p.formato === formato);
 }
 function criadorEscolherFormato(formato) {
   const opcoes = criadorPlantasDoFormato(formato);
@@ -1137,7 +1146,7 @@ function criadorQuartoHtml() {
  if(etapa==="planta") {
   titulo="Escolha o tamanho e o formato";anterior=criador.reforma?"espaco":"personagem";proxima="mobilia";
   nota = temAtual ? "Você já tem uma decoração salva. Nas plantas em que ela cabe, você pode mantê-la; nas outras, ela fica guardada no histórico e você começa com um modelo." : "Comece pelo tamanho: de um espaço compacto a uma sala ampla. Depois escolha o formato. Nem todo formato tem os mesmos tamanhos; confira as medidas antes de continuar.";
-  const formatos=[...new Map(catalogo.plantas.filter(p=>!p.legado).map(p=>[p.formato,p])).values()];
+  const formatos=[...new Map(catalogo.plantas.filter(p=>!p.legado && !p.oculta).map(p=>[p.formato,p])).values()];
   const formatoAtual=planta?.formato || "quadrado";
   const ORDEM_TAM=["P","M","G","GG","XG","XXG","MAX"], NOVOS_TAM=["XG","XXG","MAX"];
   const tamanhos=criadorPlantasDoFormato(formatoAtual).sort((a,b)=>ORDEM_TAM.indexOf(a.tamanho)-ORDEM_TAM.indexOf(b.tamanho));
@@ -1146,7 +1155,7 @@ function criadorQuartoHtml() {
   // um jogo"): vitrine grande do quarto escolhido com a placa do nome, a
   // trilha de tamanhos (do Pequeno à Mansão, como fases de um mapa) e os
   // formatos em cartas. O tamanho atual do quarto fica marcado na trilha.
-  const doPerfil=criador.reforma ? (criador.andar ? escritorio.perfil?.sala_andares?.find(a=>a.andar===1)?.sala_planta : escritorio.perfil?.sala_planta) : "";
+  const doPerfil=criador.reforma ? criadorPlantaParaEscolher(criador.andar ? escritorio.perfil?.sala_andares?.find(a=>a.andar===1)?.sala_planta : escritorio.perfil?.sala_planta) : "";
   const okAqui = temAtual && criadorDecoracaoCabe(criador.planta);
   const trilha=`<div class="jg-trilha" role="radiogroup" aria-label="Tamanho do quarto" style="--n:${tamanhos.length}">${tamanhos.map((p,i)=>`<button type="button" role="radio" class="jg-fase${p.id===criador.planta?" escolhida":""}${p.id===doPerfil?" atual":""}" aria-checked="${p.id===criador.planta}" style="--i:${i}" onclick="criadorQuartoEscolher('planta','${p.id}')" title="${safeText(p.medidas)}"><span class="jg-fase-piso" aria-hidden="true"><i style="--t:${(0.32+0.68*Math.sqrt(ladrilhosDe(p)/maiorTam)).toFixed(2)}"></i></span><b>${safeText(p.tamanhoNome)}</b><small>${safeText(String(p.medidas).split("·")[0].trim())}</small>${NOVOS_TAM.includes(p.tamanho)?'<em class="jg-fase-novo">Novo</em>':""}${p.id===doPerfil?'<em class="jg-fase-aqui">Hoje</em>':""}</button>`).join("")}</div>`;
   const cartas=`<div class="jg-formatos">${formatos.map(f=>{

@@ -237,6 +237,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   lambri (`mapaEhRevestimento`) ficam atrás de tudo o que se pendura na parede.
 - Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`,
   de 6 × 6 até a Mansão de 24 × 24 (lado máximo 24 desde 21/10/2026).
+  Desde 22/10/2026 (decisão do Paulo) toda planta para escolher fica em blocos
+  de 2 × 2 (`plantaEmBlocos` no gerador); as antigas desalinhadas ficam
+  `oculta`, só para quem já tem, e a reforma oferece a versão `-par`.
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma
   transação do salvamento da camada; porta e escada da planta base não mudam.

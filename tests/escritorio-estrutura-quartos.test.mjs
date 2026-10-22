@@ -20,7 +20,13 @@ test('escada da planta encontra os extremos, chega no patamar e não duplica uma
    assert.equal(modelo.celdas[e.y-e.dy][e.x-e.dx],e.baixo);
    assert.equal(e.meio,(e.alto+e.baixo)/2);
    const pisos=r.geometrias[i].flatMap(d=>d.piso);
-   assert.equal(Math.max(...pisos.map(p=>p.z)),e.alto,modelo.id+': último degrau toca o alto');
+   // Escada de vários ladrilhos: cada um sobe o seu trecho e continua de
+   // onde o de baixo parou (antes cada um ia do piso ao patamar inteiro e os
+   // degraus se sobrepunham).
+   assert.equal(Math.max(...pisos.map(p=>p.z)),e.ate,modelo.id+': último degrau toca o fim do trecho');
+   const deBaixo=r.escadas.find(q=>q.x===e.x-e.dx&&q.y===e.y-e.dy);
+   assert.equal(deBaixo ? deBaixo.ate : e.baixo,e.de,modelo.id+': trecho começa onde o de baixo termina');
+   if(!r.escadas.some(q=>q.x===e.x+e.dx&&q.y===e.y+e.dy)) assert.equal(e.ate,e.alto,modelo.id+': último trecho chega no patamar');
    // Os degraus terminam na borda do próprio ladrilho, encostados no
    // patamar (antes iam até o meio do ladrilho alto e invadiam o mezanino).
    const ao=pisos.map(p=>(p.x-e.x-.5)*e.dx+(p.y-e.y-.5)*e.dy);
