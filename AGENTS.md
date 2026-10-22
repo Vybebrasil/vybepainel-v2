@@ -235,7 +235,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   do Habbo já vem desenhada no teto: altura zero, medida pela arte (acima da
   cabeça, abaixo do topo da parede, nunca sob o mezanino). Papel de parede e
   lambri (`mapaEhRevestimento`) ficam atrás de tudo o que se pendura na parede.
-- Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`.
+- Quartos configurados usam o catálogo único `assets/escritorio/habbo/quartos.json`,
+  de 6 × 6 até a Mansão de 24 × 24 (lado máximo 24 desde 21/10/2026).
   Preserve máscaras, patamares, escada livre e inventário do dono no salvamento.
   A planta desenhada (`sala_celdas`) só muda junto com os móveis, na mesma
   transação do salvamento da camada; porta e escada da planta base não mudam.
@@ -420,6 +421,10 @@ peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
   (`cq-medalhas`), vitrine com pedestal (`cq-vitrine`) e placa dourada para
   destaque raro (`vb-jogo-placa`).
 - Toda linha com número explica ao passar o mouse (`vb-jogo-dica`, `data-dica`).
+- Cartão do jogador (decisão do Paulo, 21/10/2026): o boneco aparece sempre
+  na vitrine do quarto dele (`escritorioVitrineHtml`), um pedaço do quarto de
+  verdade pelo motor do mapa, na mesma escala e profundidade do jogo; nunca
+  boneco solto em pedestal, fundo preto ou cone de luz.
 - Telas largas viram menu de personagem: colunas lado a lado por container
   query, sem rolar à toa. Esqueleto com brilho enquanto carrega.
 

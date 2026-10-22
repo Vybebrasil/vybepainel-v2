@@ -629,9 +629,8 @@ function criadorPainelHtml() {
  </div>
  <nav class="prov-trilho" aria-label="Partes do personagem">${trilho}</nav>
  <div class="abr-previa prov-palco${maisRara ? " brilho-" + maisRara : ""}">
-  <div class="prov-holofote" aria-hidden="true"></div>
   <img src="${criadorImagem(typeof animadasDaFigura === "function" ? animadasDaFigura(fig)?.base || fig : fig, criador.direcao, "l", mao)}" data-figura="${safeText(fig)}" alt="${criador.destino ? "Prévia do avatar do cliente" : "Prévia do seu personagem"}" width="128" height="220" class="cri-girar" title="Arraste para os lados para girar" onpointerdown="criadorGiroInicio(event)">
-  <div class="prov-pedestal" aria-hidden="true"></div>
+  ${criador.destino ? "" : escritorioVitrineHtml("prov-fundo", escritorio.base?.eu, { boneco: false, zoom: 2, desce: 0 })}
   <div class="abr-girar"><button type="button" onclick="criador.direcao=(criador.direcao+7)%8;renderAberturaEscritorio()" aria-label="Girar para a esquerda">↺</button><button type="button" onclick="criadorAleatorio()" class="cri-sorte">Aleatório</button><button type="button" onclick="criador.direcao=(criador.direcao+1)%8;renderAberturaEscritorio()" aria-label="Girar para a direita">↻</button><button type="button" class="cri-andar" aria-pressed="${!criador.parado}" onclick="criador.parado=!criador.parado;renderAberturaEscritorio()" aria-label="${criador.parado ? "Andar" : "Parar"}" title="${criador.parado ? "Fazer o boneco andar" : "Deixar o boneco parado"}">${criador.parado ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' : '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>'}</button></div>
   ${criadorMaoHtml(fig)}
   ${criador.destino ? "" : criadorLooksHtml()}
@@ -746,8 +745,6 @@ function criadorMeuEspacoHtml() {
   const planta = (id) => escritorio.base.quartos?.plantas.find((p) => p.id === id);
   const terreo = planta(perfil.sala_planta), andar2 = segundo && planta(segundo.sala_planta);
   const eco = escritorio.base?.economia, saldo = eco?.disponivel ? Number(eco.saldo || 0) : null, nivel = eco?.pontos?.nivel;
-  const fig = mapaFigura(perfil);
-  const img = criadorImagem(typeof animadasDaFigura === "function" ? animadasDaFigura(fig)?.base || fig : fig, 2, "l", perfil.mao || "");
   const previa = terreo && escritorioMinhaMesa() ? `<div class="abr-previa-quarto ofc-mapa esp-previa" data-previa="${safeText([perfil.sala_planta, "atual", perfil.sala_piso || "madeira", perfil.sala_parede || "#ff8a35", ""].join("|"))}" aria-hidden="true"></div>` : "";
   const noSegundo = escritorio.quarto?.endsWith("-andar-1");
   const chips = (l) => `<span class="esp-chips">${l.filter(Boolean).map((t) => `<em>${safeText(t)}</em>`).join("")}</span>`;
@@ -759,18 +756,45 @@ function criadorMeuEspacoHtml() {
 <section class="abr-painel espaco" aria-labelledby="esp-titulo">
  <div class="prov-topo"><div class="prov-titulo"><span class="abr-kicker">Meu espaço</span><h2 id="esp-titulo">Seu escritório, do seu jeito</h2></div>${nivel ? `<span class="esp-chip-topo" title="Seu nível">${escritorioIcone("ranking")}Nível <b>${Number(nivel)}</b></span>` : ""}${saldo !== null ? `<span class="prov-carteira" title="Suas VybeCoins"><i aria-hidden="true"></i><b>${saldo.toLocaleString("pt-BR")}</b> moedas</span>` : ""}<button type="button" class="esp-fechar" onclick="fecharAberturaEscritorio()" aria-label="Fechar">×</button></div>
  <div class="esp-grade">
-  ${peca({ cor: "#ff8a35", icone: escritorioIcone("espaco"), palco: `<span class="prov-holofote"></span><img class="esp-boneco" alt="" src="${safeText(img)}" data-figura="${safeText(fig)}" width="128" height="220"><span class="prov-pedestal"></span>`,
+  ${peca({ cor: "#ff8a35", icone: escritorioIcone("espaco"), palco: escritorioVitrineHtml("esp-vitrine"),
     titulo: "Personagem", detalhes: chips(["Roupas", "Skins", "Objeto na mão"]), acao: "Abrir o provador", principal: true, onclick: "criador.etapa='personagem';renderAberturaEscritorio()" })}
   ${peca({ cor: "#4ea1ff", icone: escritorioIcone("mesa"), palco: previa || `<span class="esp-palco-vazio">${escritorioIcone("mesa")}</span>`,
     titulo: "Térreo", detalhes: chips([terreo?.nome || "Seu quarto", ...medidas(terreo)]), acao: "Aumentar ou reformar", onclick: "abrirReformaEscritorio(0)" })}
   ${peca({ cor: "#b57bff", icone: segundo ? escritorioIcone("mapa") : mais, palco: `<span class="esp-andares${segundo ? " tem" : ""}"><i></i><i></i>${segundo ? "" : `<span class="esp-andares-mais">${mais}</span>`}</span>`,
     titulo: "Segundo andar", detalhes: chips(segundo ? [andar2?.nome || "Pronto", ...medidas(andar2)] : ["Uma cena só sua", "Formato próprio"]), acao: segundo ? "Reformar" : "Criar o segundo andar", onclick: "abrirReformaEscritorio(1)", extra: segundo ? "" : " novo" })}
  </div>
+ ${criadorEspacoStatusHtml(terreo)}
  <div class="esp-rodape">
   <p class="esp-nota">Inventário, moedas, XP e conquistas continuam com você em qualquer reforma, sem gastar moedas.</p>
   <button type="button" class="vb-botao perigo esp-branco" onclick="abrirReformaEscritorio(${noSegundo ? 1 : 0},true)" title="Guarda a mobília no inventário e limpa a pintura, depois de você confirmar">Começar ${noSegundo ? "o segundo andar" : "o térreo"} em branco</button>
  </div>
 </section>`;
+}
+// Faixa de status do Meu espaço (Paulo, 21/10/2026: "não aparece quase nada
+// ali"): o tamanho do quarto na escada de tamanhos do formato (até a Mansão,
+// 24 × 24), os móveis no quarto e guardados e os looks guardados. Cada peça
+// leva ao lugar de mexer naquilo.
+function criadorEspacoStatusHtml(terreo) {
+  const perfil = escritorio.perfil || {};
+  const ordem = ["P", "M", "G", "GG", "XG", "XXG", "MAX"];
+  // Planta da primeira versão (sem formato): a escada do Quadrado, sem degrau marcado.
+  const tamanhos = criadorPlantasDoFormato(terreo?.formato || "quadrado").sort((a, b) => ordem.indexOf(a.tamanho) - ordem.indexOf(b.tamanho));
+  const ladrilhos = (p) => Number(String(p?.medidas || "").match(/(\d+) ladrilhos/)?.[1] || 0);
+  const maior = tamanhos[tamanhos.length - 1], aqui = tamanhos.findIndex((p) => p.id === terreo?.id);
+  const degraus = tamanhos.map((p, i) => `<i class="${i < aqui ? "feito" : i === aqui ? "aqui" : ""}" style="--t:${(0.18 + 0.82 * ladrilhos(p) / Math.max(1, ladrilhos(maior))).toFixed(2)}" title="${safeText(`${p.tamanhoNome} · ${p.medidas}`)}"></i>`).join("");
+  const inv = typeof escritorioMeuInventario === "function" ? escritorioMeuInventario() : [];
+  const noQuarto = inv.reduce((t, i) => t + i.noQuarto, 0), guardados = inv.reduce((t, i) => t + i.guardados, 0);
+  const looks = (perfil.looks || []).length;
+  const arte = (c) => typeof escritorioMiniaturaHtml === "function" ? `<span class="esp-st-arte">${escritorioMiniaturaHtml(c)}</span>` : "";
+  const tamanho = maior ? `<button type="button" class="esp-st esp-st-tamanho" onclick="abrirReformaEscritorio(0)">
+   <span class="vb-jogo-rotulo">Tamanho do quarto</span>
+   <span class="esp-st-linha"><b>${safeText(terreo?.tamanhoNome || terreo?.nome || "Seu quarto")}</b><small>${ladrilhos(terreo) || (terreo?.celdas ? terreo.celdas.flat().filter((n) => n >= 0).length : 0)} ladrilhos</small>${aqui < tamanhos.length - 1 ? `<em class="esp-st-novo">Cabe até ${safeText(maior.tamanhoNome)}</em>` : `<em class="esp-st-novo max">O maior</em>`}</span>
+   <span class="esp-degraus" aria-hidden="true">${degraus}</span>
+   <small class="esp-st-dica">${aqui < tamanhos.length - 1 ? `${safeText(maior.tamanhoNome)}: ${safeText(maior.medidas)} · aumentar não custa moedas` : "Seu quarto já está no maior tamanho deste formato"}</small></button>` : "";
+  return `<div class="esp-status" role="group" aria-label="Seu espaço em números">${tamanho}
+  <button type="button" class="esp-st" onclick="fecharAberturaEscritorio();abrirCatalogoEscritorio('inventario')">${arte("army_c15_crate")}<span class="vb-jogo-rotulo">Móveis</span><span class="esp-st-linha"><b class="vb-jogo-numero">${noQuarto}</b><small>no quarto</small></span><small class="esp-st-dica">${guardados ? `${guardados} ${guardados === 1 ? "guardado" : "guardados"} no inventário` : "nada guardado no inventário"}</small></button>
+  <button type="button" class="esp-st" onclick="criador.etapa='personagem';renderAberturaEscritorio()">${arte("art_c20_clotheshanger")}<span class="vb-jogo-rotulo">Looks</span><span class="esp-st-linha"><b class="vb-jogo-numero">${looks}</b><small>de 5 guardados</small></span><small class="esp-st-dica">${looks < 5 ? "Guarde um visual no provador" : "Todos os espaços de look usados"}</small></button>
+ </div>`;
 }
 function fecharAberturaEscritorio() {
   criador.destino = null;
@@ -780,13 +804,13 @@ function fecharAberturaEscritorio() {
 function renderAberturaEscritorio() {
   const el = document.getElementById("ofc-abertura");
   if (!el) return;
+  // Os móveis do quarto em volta do boneco entram depois de cada desenho.
+  if (typeof escritorioMontarVitrines === "function") queueMicrotask(() => escritorioMontarVitrines(el));
   const fundo = document.getElementById("vybelandia-img")?.getAttribute("href") || "/assets/vybelandia.webp";
   el.style.setProperty("--vybelandia", `url("${fundo}")`);
   el.dataset.etapa = criador.etapa;
   if(criador.etapa === "espaco") {
     el.innerHTML=criadorMeuEspacoHtml();
-    const boneco=el.querySelector(".esp-boneco");
-    if(boneco && typeof animadasSobre==="function" && ANIMADAS.dados) animadasSobre(boneco, boneco.dataset.figura, 2, { escala: 2 });
     // A prévia do térreo usa a decoração salva do térreo, mesmo depois de uma reforma do segundo andar.
     const antes=[criador.reforma,criador.andar];criador.reforma=false;criador.andar=0;
     try {criadorMontarPrevias(el);} finally {[criador.reforma,criador.andar]=antes;}
@@ -1063,6 +1087,16 @@ function criadorDestruirPrevias() {
 }
 // Escolha em dois níveis: o formato (Quadrado, Em L…) e o tamanho dele
 // (Pequeno a Enorme). Trocar de formato mantém o tamanho quando ele existe.
+// Antes e depois do tamanho na reforma: o quarto de hoje, o escolhido e
+// quantas vezes maior (ou menor) ele fica.
+function criadorComparaHtml(atualId, nova, ladrilhosDe) {
+  const atual = atualId && escritorio.base?.quartos?.plantas?.find((p) => p.id === atualId);
+  if (!atual || !nova || atual.id === nova.id) return "";
+  const a = ladrilhosDe(atual), b = ladrilhosDe(nova);
+  if (!a || !b) return "";
+  const x = b / a, rotulo = x >= 1.05 ? `${x >= 2 ? Math.round(x * 10) / 10 + "×" : "+" + Math.round((x - 1) * 100) + "%"} maior` : x <= 0.95 ? `${Math.round((1 - x) * 100)}% menor` : "mesmo tamanho";
+  return `<div class="jg-compara"><span><small>Hoje</small><b>${safeText(atual.tamanhoNome || atual.nome)}</b><em>${a} ladrilhos</em></span><i aria-hidden="true">→</i><span class="nova"><small>Nova</small><b>${safeText(nova.tamanhoNome || nova.nome)}</b><em>${b} ladrilhos</em></span><strong class="${x < 0.95 ? "menor" : ""}">${rotulo.replace(".", ",")}</strong></div>`;
+}
 function criadorPlantasDoFormato(formato) {
   return (escritorio.base?.quartos?.plantas || []).filter((p) => !p.legado && p.formato === formato);
 }
@@ -1105,13 +1139,31 @@ function criadorQuartoHtml() {
   nota = temAtual ? "Você já tem uma decoração salva. Nas plantas em que ela cabe, você pode mantê-la; nas outras, ela fica guardada no histórico e você começa com um modelo." : "Comece pelo tamanho: de um espaço compacto a uma sala ampla. Depois escolha o formato. Nem todo formato tem os mesmos tamanhos; confira as medidas antes de continuar.";
   const formatos=[...new Map(catalogo.plantas.filter(p=>!p.legado).map(p=>[p.formato,p])).values()];
   const formatoAtual=planta?.formato || "quadrado";
-  const tamanhos=criadorPlantasDoFormato(formatoAtual);
-  const escolhaTamanho=`<div class="abr-escolha-atual"><b>${safeText(planta?.nome || "")} · ${safeText(planta?.tamanhoNome || "")}</b><span>${safeText(planta?.medidas || "")} · mudar o tamanho não custa moedas</span><small>Você pode reformar depois em Meu espaço. A prévia dos formatos abaixo acompanha o tamanho escolhido.</small></div><div class="abr-tamanhos" role="radiogroup" aria-label="Tamanho do quarto"><h3>Tamanho</h3>${tamanhos.map(p=>`<button type="button" role="radio" aria-checked="${p.id===criador.planta}" onclick="criadorQuartoEscolher('planta','${p.id}')"><b>${safeText(p.tamanhoNome)}</b><small>${safeText(p.medidas)}</small></button>`).join("")}</div>`;
-  conteudo=`<p class="abr-nota">${nota}</p>${escolhaTamanho}<h3>Formato da planta</h3><div class="abr-quartos plantas">${formatos.map(f=>{
-   // Prévia de cada formato no tamanho escolhido (ou no médio).
+  const ORDEM_TAM=["P","M","G","GG","XG","XXG","MAX"], NOVOS_TAM=["XG","XXG","MAX"];
+  const tamanhos=criadorPlantasDoFormato(formatoAtual).sort((a,b)=>ORDEM_TAM.indexOf(a.tamanho)-ORDEM_TAM.indexOf(b.tamanho));
+  const ladrilhosDe=(p)=>Number(String(p?.medidas||"").match(/(\d+) ladrilhos/)?.[1]||0), maiorTam=Math.max(1,...tamanhos.map(ladrilhosDe));
+  // Reforma como tela de jogo (Paulo, 21/10/2026: "longe de tá parecido com
+  // um jogo"): vitrine grande do quarto escolhido com a placa do nome, a
+  // trilha de tamanhos (do Pequeno à Mansão, como fases de um mapa) e os
+  // formatos em cartas. O tamanho atual do quarto fica marcado na trilha.
+  const doPerfil=criador.reforma ? (criador.andar ? escritorio.perfil?.sala_andares?.find(a=>a.andar===1)?.sala_planta : escritorio.perfil?.sala_planta) : "";
+  const okAqui = temAtual && criadorDecoracaoCabe(criador.planta);
+  const trilha=`<div class="jg-trilha" role="radiogroup" aria-label="Tamanho do quarto" style="--n:${tamanhos.length}">${tamanhos.map((p,i)=>`<button type="button" role="radio" class="jg-fase${p.id===criador.planta?" escolhida":""}${p.id===doPerfil?" atual":""}" aria-checked="${p.id===criador.planta}" style="--i:${i}" onclick="criadorQuartoEscolher('planta','${p.id}')" title="${safeText(p.medidas)}"><span class="jg-fase-piso" aria-hidden="true"><i style="--t:${(0.32+0.68*Math.sqrt(ladrilhosDe(p)/maiorTam)).toFixed(2)}"></i></span><b>${safeText(p.tamanhoNome)}</b><small>${safeText(String(p.medidas).split("·")[0].trim())}</small>${NOVOS_TAM.includes(p.tamanho)?'<em class="jg-fase-novo">Novo</em>':""}${p.id===doPerfil?'<em class="jg-fase-aqui">Hoje</em>':""}</button>`).join("")}</div>`;
+  const cartas=`<div class="jg-formatos">${formatos.map(f=>{
+   // Prévia de cada formato no tamanho escolhido (ou no mais perto dele).
    const opcoes=criadorPlantasDoFormato(f.formato), p=f.formato===formatoAtual ? planta : (opcoes.find(o=>o.tamanho===planta?.tamanho) || opcoes.find(o=>o.tamanho==="M") || opcoes[0]);
    const ok = temAtual && criadorDecoracaoCabe(p.id);
-   return `<button type="button" aria-pressed="${f.formato===formatoAtual}" onclick="criadorEscolherFormato('${f.formato}')">${criadorPreviaHtml(p.id, ok ? "atual" : "vazio")}<b>${safeText(p.nome)}</b><small>${safeText(p.medidas)} · ${safeText(p.dica)}</small>${temAtual ? `<em class="abr-cabe ${ok ? "sim" : "nao"}">${ok ? "Sua decoração cabe aqui" : "Sua decoração não cabe aqui"}</em>` : ""}</button>`;}).join("")}</div>`;
+   // A carta mostra o desenho do formato num tamanho em que ele se lê inteiro.
+   const vista = opcoes.find(o=>o.tamanho==="G") || opcoes.find(o=>o.tamanho==="GG") || p;
+   return `<button type="button" class="jg-carta" aria-pressed="${f.formato===formatoAtual}" onclick="criadorEscolherFormato('${f.formato}')">${criadorPreviaHtml(vista.id, "vazio")}<span class="jg-carta-nome"><b>${safeText(p.nome)}</b>${p.formato!==formatoAtual && p.tamanho!==planta?.tamanho ? `<small>até ${safeText(p.tamanhoNome)}</small>` : ""}</span>${temAtual ? `<i class="jg-carta-cabe ${ok ? "sim" : "nao"}" title="${ok ? "Sua decoração cabe aqui" : "Sua decoração não cabe aqui"}"></i>` : ""}</button>`;}).join("")}</div>`;
+  conteudo=`<div class="jg-reforma">
+   <div class="jg-vitrine">${criadorPreviaHtml(criador.planta, okAqui ? "atual" : "vazio", { grande: true })}
+    <div class="jg-placa"><span class="jg-placa-nome">${safeText(planta?.nome || "")}</span><b>${safeText(planta?.tamanhoNome || "")}</b><small>${safeText(planta?.medidas || "")}</small></div>
+    ${criadorComparaHtml(doPerfil, planta, ladrilhosDe)}
+    <p class="jg-vitrine-nota">${temAtual ? (okAqui ? "Sua decoração cabe nesta planta e continua do jeito que está." : "Sua decoração não cabe aqui: fica guardada no histórico e você começa com um modelo.") : "Escolha o tamanho e o formato. Mudar não custa moedas."}</p>
+   </div>
+   <div class="jg-opcoes"><span class="vb-jogo-rotulo">Tamanho</span>${trilha}<span class="vb-jogo-rotulo">Formato</span>${cartas}</div>
+  </div>`;
  } else if(etapa==="mobilia") {
   titulo="Em branco ou com o básico pronto?";anterior="planta";proxima="acabamento";
   // Trocou para uma planta onde o modelo escolhido não cabe: volta ao Essencial.
@@ -1128,5 +1180,7 @@ function criadorQuartoHtml() {
 <div class="abr-grupo"><h3>Paredes</h3><div class="abr-linha">${paredes.map((c)=>`<button type="button" class="abr-cor" style="--c:${c}" aria-pressed="${criador.parede===c}" onclick="criador.parede='${c}';renderAberturaEscritorio()" aria-label="Parede ${c}"></button>`).join("")}</div></div></div>
 <p class="abr-nota">Depois de entrar, use <b>Decorar</b> no seu quarto para arrastar móveis, pintar cada ladrilho e abrir a loja. Sua escolha só é salva na confirmação final.</p>`;
  }
- return `<section class="abr-painel abr-quarto" aria-labelledby="abr-titulo"><span class="abr-kicker">${criadorRotuloDoPasso(etapa)}</span><h2 id="abr-titulo">${titulo}</h2>${conteudo}<div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='${anterior}';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='${proxima}';renderAberturaEscritorio()">${etapa === "planta" ? `Continuar com ${safeText(planta?.tamanhoNome || "esta planta")}` : "Continuar"}</button></div></section>`;
+ // Faixa de título de janela de jogo: a peça do Habbo da etapa, o passo e o título.
+ const arteDoPasso={planta:"hc_exe_wrkdesk",mobilia:"army_c15_crate",acabamento:"graffiti_c24_paintbucket"}[etapa];
+ return `<section class="abr-painel abr-quarto jg-janela etapa-${etapa}" aria-labelledby="abr-titulo"><div class="jg-topo">${arteDoPasso && typeof escritorioMiniaturaHtml==="function" ? `<span class="jg-topo-arte" aria-hidden="true">${escritorioMiniaturaHtml(arteDoPasso)}</span>` : ""}<div class="jg-topo-txt"><span class="abr-kicker">${criadorRotuloDoPasso(etapa)}</span><h2 id="abr-titulo">${titulo}</h2></div>${criador.reforma ? `<span class="jg-passos" aria-hidden="true">${["planta","mobilia","acabamento"].map(e=>`<i class="${e===etapa?"aqui":["planta","mobilia","acabamento"].indexOf(e)<["planta","mobilia","acabamento"].indexOf(etapa)?"feito":""}"></i>`).join("")}</span>` : ""}</div>${conteudo}<div class="abr-acoes"><button type="button" class="abr-secundario" onclick="criador.etapa='${anterior}';renderAberturaEscritorio()">Voltar</button><button type="button" class="abr-primario" onclick="criador.etapa='${proxima}';renderAberturaEscritorio()">${etapa === "planta" ? `Continuar com ${safeText(planta?.tamanhoNome || "esta planta")}` : "Continuar"}</button></div></section>`;
 }

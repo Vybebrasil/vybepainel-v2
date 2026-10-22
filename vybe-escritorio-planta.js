@@ -2017,12 +2017,25 @@ function escritorioMoveisDaCena(a) {
 function escritorioCenaComum(id) {
   return ESCRITORIO_PLANTA.ambientes.find((a) => a.cena && a.id === id) || null;
 }
+// Índice do catálogo de plantas por id: o mapa pergunta a planta a cada
+// ladrilho e o catálogo passou de 60 plantas (quartos de até 24 × 24).
+const escritorioIndicePlantas = new WeakMap();
+// Planta da vitrine do personagem (escritorioVitrineHtml): 3 × 3, sem as
+// paredes da frente, só para mostrar a pessoa no pedaço do quarto dela.
+const ESCRITORIO_PLANTA_VITRINE = { id: "vitrine", nome: "Vitrine", celdas: [[0, 0, 0], [0, 0, 0], [0, 0, 0]], portas: { baixo: 0, direita: 0 }, escada: [], bordaAberta: true };
+function escritorioPlantaPorId(plantas, id) {
+  if (id === "vitrine") return ESCRITORIO_PLANTA_VITRINE;
+  if (!plantas) return null;
+  let m = escritorioIndicePlantas.get(plantas);
+  if (!m) { m = new Map(plantas.map((p) => [p.id, p])); escritorioIndicePlantas.set(plantas, m); }
+  return m.get(id) || null;
+}
 // Paredes do quarto (cena própria, coordenadas locais): as duas do fundo
 // altas na cor da sala; as da frente baixas, de vidro, com o vão da porta.
 function escritorioModeloPlanta(a) {
   // Cena de espaço comum: a planta vem no próprio ambiente.
   if (a?.modelo) return a.modelo;
-  const p = typeof escritorio !== "undefined" ? escritorio.base?.quartos?.plantas?.find(p => p.id === a.planta) : null;
+  const p = typeof escritorio !== "undefined" ? escritorioPlantaPorId(escritorio.base?.quartos?.plantas, a.planta) : null;
   // Planta desenhada pelo dono: a da edição em curso ou a salva no perfil.
   const e = typeof escritorio !== "undefined" ? escritorio.edicao : null;
   return escritorioPlantaLivre(p, e && e.camada === a.id && e.celdas !== undefined ? e.celdas : a.celdasLivres);
@@ -2033,7 +2046,7 @@ function escritorioModeloPlanta(a) {
 // Planta desenhada: um código por ladrilho, como a planta de alturas do
 // Habbo (RoomLayout.parse): "0" mantém o da planta escolhida, "v" tira o
 // piso, "p" é o chão, "1"–"9" e "A"–"Z" são as alturas 1 a 35 (1 = um bloco).
-const ESCRITORIO_CELDAS_LIVRES = /^[0vp1-9A-Z]{400}$/; // ESCRITORIO_QUARTO_MAX²
+const ESCRITORIO_CELDAS_LIVRES = /^[0vp1-9A-Z]{576}$/; // ESCRITORIO_QUARTO_MAX² (24 × 24)
 const ESCRITORIO_ALTURA_PLANTA_MAX = 35;
 function escritorioNivelDoCodigo(c) {
   if (c === "v") return -1;
@@ -2061,9 +2074,10 @@ function escritorioPlantaLivre(p, livres) {
 }
 // Tamanho do quarto (a planta escolhida: de 6 × 6 a 12 × 12); sem planta,
 // o 8 × 8 da primeira versão.
-// Lado máximo do quarto (= LADO_QUARTO do servidor): 20 × 20 desde 18/10/2026.
-const ESCRITORIO_QUARTO_MAX = 20;
-// Grades do perfil guardadas com o lado antigo (8 ou 12) valem ampliadas,
+// Lado máximo do quarto (= LADO_QUARTO do servidor): 24 × 24 desde 21/10/2026
+// (antes 20 × 20).
+const ESCRITORIO_QUARTO_MAX = 24;
+// Grades do perfil guardadas com o lado antigo (8, 12 ou 20) valem ampliadas,
 // como o servidor faz (ampliarGrade/ampliarParedes/ampliarCeldas).
 function escritorioAmpliarGrade(s, de, vazio) {
   const L = ESCRITORIO_QUARTO_MAX;
@@ -2071,16 +2085,16 @@ function escritorioAmpliarGrade(s, de, vazio) {
 }
 function escritorioPisosDoPerfil(s) {
   s = String(s || "");
-  return s.length === 64 ? escritorioAmpliarGrade(s, 8, "0") : s.length === 144 ? escritorioAmpliarGrade(s, 12, "0") : s;
+  return s.length === 64 ? escritorioAmpliarGrade(s, 8, "0") : s.length === 144 ? escritorioAmpliarGrade(s, 12, "0") : s.length === 400 ? escritorioAmpliarGrade(s, 20, "0") : s;
 }
 function escritorioCeldasDoPerfil(s) {
   s = String(s || "");
-  return s.length === 144 ? escritorioAmpliarGrade(s, 12, "0") : s;
+  return s.length === 144 ? escritorioAmpliarGrade(s, 12, "0") : s.length === 400 ? escritorioAmpliarGrade(s, 20, "0") : s;
 }
 function escritorioParedesDoPerfil(s) {
   s = String(s || "");
   const t = s.length / 12, L = ESCRITORIO_QUARTO_MAX;
-  if (t !== 8 && t !== 12) return s;
+  if (t !== 8 && t !== 12 && t !== 20) return s;
   return Array.from({ length: 4 }, (_, lado) => s.slice(lado * t * 3, (lado + 1) * t * 3) + "-00".repeat(L - t)).join("");
 }
 // Peça de piso de d.x × d.y ladrilhos encaixada na grade dela, dentro do
@@ -2106,9 +2120,10 @@ function escritorioPortaQuarto(a) {
   return a.porta === "direita" ? { x: w - 1, y: p?.direita ?? h / 2 - 1, lado: "direita" } : { x: p?.baixo ?? w / 2 - 1, y: h - 1, lado: "baixo" };
 }
 function escritorioNivelQuarto(a, x, y) {
-  const { w, h } = escritorioDimQuarto(a);
+  // Uma consulta da planta por ladrilho (o caminho pergunta milhares de vezes).
+  const c = escritorioModeloPlanta(a)?.celdas, w = c ? c[0].length : ESCRITORIO_SALA_LADO, h = c ? c.length : ESCRITORIO_SALA_LADO;
   if (x < 0 || y < 0 || x >= w || y >= h) return -1;
-  return escritorioModeloPlanta(a)?.celdas[Math.floor(y)]?.[Math.floor(x)] ?? 0;
+  return c?.[Math.floor(y)]?.[Math.floor(x)] ?? 0;
 }
 // A circulação continua na planta: piso baixo → ladrilho intermediário → alto.
 // O desenho usa os dois extremos reais; não confunde uma peça de 0,5 com

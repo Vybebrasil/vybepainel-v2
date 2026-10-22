@@ -45,11 +45,11 @@ export function perfilEscritorio(valor = {}) {
     Number.isFinite(Number(valor[campo]))
       ? Math.min(94, Math.max(6, Number(valor[campo])))
       : padrao;
-  // Amplia pinturas legadas (8×8 e 12×12) para o lado atual do quarto sem
+  // Amplia pinturas legadas (8×8, 12×12 e 20×20) para o lado atual do quarto sem
   // apagar as escolhas já salvas.
   const piso = String(valor.sala_pisos || "");
   const paredes = String(valor.sala_paredes || "");
-  const pisoAtual = /^[0-9a-f]{64}$/.test(piso) ? ampliarGrade(piso, 8, "0") : /^[0-9a-f]{144}$/.test(piso) ? ampliarGrade(piso, 12, "0") : piso;
+  const pisoAtual = /^[0-9a-f]{64}$/.test(piso) ? ampliarGrade(piso, 8, "0") : /^[0-9a-f]{144}$/.test(piso) ? ampliarGrade(piso, 12, "0") : /^[0-9a-f]{400}$/.test(piso) ? ampliarGrade(piso, 20, "0") : piso;
   const paredesAtuais = /^([a-h-][0-9a-d][0-2])+$/.test(paredes) ? ampliarParedes(paredes) : paredes;
   const celdas = ampliarCeldas(valor.sala_celdas);
   return {

@@ -6159,7 +6159,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-abertura :is(button):focus-visible {outline:3px solid #ffb27a;outline-offset:3px}
 .abr-painel {position:absolute;z-index:5;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 40px);display:grid;grid-template-columns:minmax(220px,320px) minmax(0,1fr);gap:28px;padding:28px;border-radius:26px;background:#14151bd9;border:1px solid #ff8a3540;box-shadow:0 30px 90px #000c,0 0 0 1px #ffffff0d inset;backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);animation:abr-painel .5s cubic-bezier(.2,.8,.2,1)}
 .abr-previa {display:grid;justify-items:center;align-content:center;gap:14px;border-radius:20px;background:radial-gradient(60% 30% at 50% 82%,#ff7a1a55,transparent 70%),linear-gradient(180deg,#1f2029,#121318);border:1px solid #ffffff12}
-.abr-previa img {width:192px;height:330px;image-rendering:pixelated;filter:drop-shadow(0 12px 10px #0008)}
+.abr-previa > img {width:192px;height:330px;image-rendering:pixelated;filter:drop-shadow(0 12px 10px #0008)}
 .abr-girar {display:flex;gap:8px}
 .abr-girar button {width:42px;height:42px;border-radius:12px;border:1px solid #ffffff22;background:#ffffff0e;color:#fff;font-size:20px;cursor:pointer}
 .abr-opcoes {min-width:0;overflow-y:auto;max-height:calc(100vh - 100px);display:grid;gap:11px;align-content:start;padding-right:4px}
@@ -6233,7 +6233,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 @media(max-width:600px) { .abr-quartos { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .abr-quarto { padding:20px; } }
 
 @keyframes abr-painel {from{opacity:0;transform:translate(-50%,-46%) scale(.98)}}
-@media(max-width:760px){.abr-painel,.abr-boas{grid-template-columns:1fr;padding:18px;gap:16px}.abr-previa img{width:96px;height:165px}.abr-opcoes{max-height:none}.abr-painel{overflow-y:auto}}
+@media(max-width:760px){.abr-painel,.abr-boas{grid-template-columns:1fr;padding:18px;gap:16px}.abr-previa > img{width:96px;height:165px}.abr-opcoes{max-height:none}.abr-painel{overflow-y:auto}}
 @media(prefers-reduced-motion:reduce){.ofc-abertura::before{display:none}.abr-cena,.abr-luz,.abr-faiscas i,.abr-texto,.abr-texto h1 b,.abr-painel{animation:none}.abr-texto{opacity:1;transform:none}.abr-faiscas{display:none}}
 
 /* Login na Vybelândia: a cena da abertura fica atrás; "Entrar" revela a caixa. */
@@ -6563,7 +6563,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 
 /* Criador: região → peça, uma paleta por vez, miniatura recortada na peça */
 .cri .abr-previa {align-content:center;gap:18px}
-.cri .abr-previa img {width:224px;height:385px}
+.cri .abr-previa > img {width:224px;height:385px}
 .cri-grupos {display:flex;gap:4px;padding:3px;border-radius:12px;background:#ffffff0a;width:max-content;max-width:100%}
 .cri-grupos button {padding:7px 14px;border:0;border-radius:9px;background:transparent;color:#d9cfc4;font:700 13px var(--mac-ui);cursor:pointer}
 .cri-grupos button[aria-pressed=true] {background:#ff8a35;color:#1d1107}
@@ -6579,7 +6579,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .cri-cores {max-height:none;overflow:visible;gap:6px}
 .cri-cores.todas {max-height:132px;overflow-y:auto}
 
-@media(max-width:760px){.cri .abr-previa img{width:112px;height:192px}}
+@media(max-width:760px){.cri .abr-previa > img{width:112px;height:192px}}
 .cri-peca.cabeca img {transform:scale(1.55)}
 .cri-grade {overflow:hidden;grid-template-columns:repeat(auto-fill,minmax(70px,1fr))}
 .cri-peca {height:92px}
@@ -6925,7 +6925,9 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-filtro-meus {margin:6px 0}
 .ofc-filtro-meus + .ofc-filtro-meus {margin-top:0}
 /* Nome das pessoas numa camada acima dos móveis. */
-.mapa-etiqueta.solta {z-index:99500;left:0;top:0;bottom:auto;transform:translate(-50%,calc(-100% + 4px - var(--sobe,0px)));cursor:pointer}
+/* width:max-content: posicionada pelo left em px, a etiqueta encolhia perto da
+   borda direita do mapa e o título transbordava cortado (print do Paulo). */
+.mapa-etiqueta.solta {z-index:99500;left:0;top:0;bottom:auto;width:max-content;transform:translate(-50%,calc(-100% + 4px - var(--sobe,0px)));cursor:pointer}
 .mapa-etiqueta.solta.foco {outline:2px solid var(--ofc-laranja)}
 .mapa-etiqueta.solta.falando {border-color:#4fd18b;box-shadow:0 0 0 2px #4fd18b55,0 0 12px #4fd18b88}
 .mapa-etiqueta.solta.falando .mapa-fala {display:grid;animation:mapa-fala .8s ease-in-out infinite}
@@ -6956,14 +6958,22 @@ body.no-escritorio .workspace-drawer {z-index:701}
 
 
 /* Criação do quarto: tamanho do formato escolhido (Pequeno a Enorme). */
-.abr-tamanhos { display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:12px 0 24px; }
-.abr-escolha-atual {display:grid;gap:6px;padding:14px 16px;border:1px solid #ff913e55;border-radius:12px;background:#ff913e12;margin:12px 0}
+/* Tamanhos como peças de jogo (21/10/2026: até a Mansão, 24 × 24): um piso
+   que cresce com o tamanho, o nome e as medidas; os três novos com etiqueta. */
+.abr-tamanhos { display:flex; flex-wrap:wrap; align-items:stretch; gap:10px; margin:12px 0 24px; }
+.abr-escolha-atual {display:grid;gap:6px;padding:14px 16px;border:1px solid #ff913e55;border-radius:16px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--vb-jogo-degrau,#0e1016);margin:12px 0}
 .abr-escolha-atual b {font-size:16px;color:var(--ofc-texto)}
 .abr-escolha-atual span {font-size:13px;color:#ffd2b0}
 .abr-escolha-atual small {font-size:12px;color:var(--ofc-suave);line-height:1.5}
 .abr-tamanhos h3 { flex-basis:100%; margin:0 0 2px; font:700 13px var(--mac-ui); color:#c6c6cf; }
-.abr-tamanhos button { display:flex; flex-direction:column; gap:2px; min-width:118px; padding:10px 14px; border:1px solid #ffffff26; border-radius:12px; color:inherit; background:#24252be6; cursor:pointer; text-align:left; }
-.abr-tamanhos button[aria-checked=true] { border-color:#ff913e; background:#513324; box-shadow:0 0 0 2px #ff913e44; }
+.abr-tamanhos button { position:relative; flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:2px; min-width:96px; padding:10px 12px 11px; border:1px solid #ffffff10; border-radius:16px; color:inherit; background:var(--vb-jogo-fundo,#1d2029); box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--vb-jogo-degrau,#0e1016); cursor:pointer; text-align:center; transition:transform .16s var(--curva,ease),box-shadow .16s,border-color .2s; }
+.abr-tamanhos button:hover { transform:translateY(-2px); box-shadow:inset 0 1px 0 #ffffff0d,0 6px 0 var(--vb-jogo-degrau,#0e1016); }
+.abr-tamanhos button:active { transform:translateY(4px); box-shadow:inset 0 1px 0 #ffffff0d,0 0 0 var(--vb-jogo-degrau,#0e1016); }
+.abr-tam-piso { display:grid; place-items:center; width:64px; height:44px; margin-bottom:4px; border-radius:12px; background:#0e1016; box-shadow:inset 0 1px 3px #000c; }
+.abr-tam-piso i { width:calc(var(--t) * 36px); aspect-ratio:1; transform:rotateX(58deg) rotateZ(45deg); border-radius:3px; background:repeating-conic-gradient(#8a5a3a 0 25%,#6f4529 0 50%) 0 0/8px 8px; box-shadow:0 3px 0 #3d2616; }
+.abr-tamanhos button[aria-checked=true] .abr-tam-piso i { background:repeating-conic-gradient(#ffb15c 0 25%,#ff8a35 0 50%) 0 0/8px 8px; box-shadow:0 3px 0 #a24e0c,0 0 14px #ff8a3566; }
+.abr-tam-novo { position:absolute; top:-8px; right:-6px; padding:2px 7px; border-radius:7px; background:#0e1016; border:1px solid #ff8a3566; color:#ffb27a; font:800 9.5px var(--mac-ui); font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
+.abr-tamanhos button[aria-checked=true] { border-color:#ff913e; box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 #a24e0c,0 0 0 2px #ff913e44; }
 .abr-tamanhos button:focus-visible { outline:2px solid #ff913e; outline-offset:2px; }
 .abr-tamanhos b { font:700 14px var(--mac-ui); }
 .abr-tamanhos small { color:#c6c6cf; font-size:12px; }
@@ -7789,7 +7799,8 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-roda-emblema .ofc-ico {position:absolute;inset:0;margin:auto;width:20px;height:20px}
 .ofc-roda-emblema .ofc-arte {position:static;transform:none;max-width:36px;max-height:34px}
 .ofc-roda-texto {display:grid;gap:4px;min-width:0}
-.ofc-roda-texto > b {font:750 13px var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Nome da sala em até duas linhas: "Sala de D…" cortado não dizia de quem era. */
+.ofc-roda-texto > b {font:750 13px/1.2 var(--mac-ui);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .ofc-roda-gente {display:flex;flex-wrap:wrap;gap:4px}
 .ofc-roda-pessoa {display:inline-flex;align-items:center;gap:4px;padding:1px 7px 1px 1px;border-radius:99px;background:#00000059;box-shadow:inset 0 0 0 1px #ffffff14}
 .ofc-roda-pessoa .office-avatar {width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:50% 12%;background:#0006}
@@ -8259,7 +8270,7 @@ img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);
 .ofc-hud-topo {position:relative;display:flex;align-items:flex-end;gap:16px;padding:18px 20px 14px;background:radial-gradient(120% 140% at 0% 0%,#ff954833 0%,transparent 55%),linear-gradient(180deg,#2c2230,#1e2029);border-bottom:1px solid #ffffff14}
 .ofc-hud-topo > .ofc-x {position:absolute;top:12px;right:12px}
 .ofc-hud-boneco {flex:none;width:92px;height:124px;display:grid;place-items:end center;border-radius:16px;background:radial-gradient(60% 22% at 50% 92%,#ff9548aa,transparent 70%),radial-gradient(70% 60% at 50% 60%,#ffffff12,transparent 70%)}
-.ofc-hud-boneco img {width:64px;height:110px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 6px 6px #0008)}
+.ofc-hud-boneco > img {width:64px;height:110px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 6px 6px #0008)}
 .ofc-hud-id {display:grid;gap:7px;min-width:0;flex:1;padding-right:28px}
 .ofc-hud-id h3 {margin:0;font:800 21px/1.1 var(--mac-ui);letter-spacing:-.01em}
 .ofc-hud-id > small {display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#b6bccb;font-size:12px}
@@ -8759,7 +8770,7 @@ details.ofc-cq-grupo[open] > details.ofc-cq {margin:0 8px}
 .ofc-hud-palco {position:relative;overflow:visible;background:none}
 .ofc-hud-palco .ofc-lobby-luz {inset:0 4px 8px}
 .ofc-hud-palco .ofc-lobby-ladrilho {width:66px;height:66px;bottom:4px}
-.ofc-hud-palco img {position:relative;z-index:1;margin-bottom:14px}
+.ofc-hud-palco > img {position:relative;z-index:1;margin-bottom:14px}
 .ofc-hud-moedas span {flex-direction:row}
 .ofc-hud-moedas small {font:600 11px var(--mac-ui);color:var(--mac-text-secondary,#ffffffa0)}
 .ofc-hud-moedas .rk {cursor:pointer;background:#ffd16622;border-color:#ffd16655}
@@ -8793,7 +8804,7 @@ details.ofc-cq-grupo[open] > details.ofc-cq {margin:0 8px}
 .ofc-hud-inventario li em.ofc-escada-nivel {position:static;font-size:10px}
 .ofc-hud-inventario li span {white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2}
 .ofc-cq-na-ficha .ofc-rk-corpo, .ofc-cq-na-ficha {display:grid;gap:10px}
-@media (prefers-reduced-motion:no-preference) {.ofc-hud-palco img {animation:ofc-hud-respira 3.2s ease-in-out infinite}}
+@media (prefers-reduced-motion:no-preference) {.ofc-hud-palco > img {animation:ofc-hud-respira 3.2s ease-in-out infinite}}
 @keyframes ofc-hud-respira {50% {transform:translateY(-3px)}}
 
 /* Convidado do Escritório (vybe-escritorio-convidado.js). Esconde o que é só
@@ -8943,12 +8954,12 @@ body.modo-convidado :is(.ofc-eu-perfil, .ofc-dock-plano, .ofc-missoes, .ofc-cobr
   background:radial-gradient(70% 22% at 50% 84%,color-mix(in srgb,var(--prov-brilho) 32%,transparent),transparent 70%),radial-gradient(90% 60% at 50% 0%,#ffffff10,transparent 70%),linear-gradient(180deg,#14151c,#0b0c11 78%,#15161d)}
 .prov-holofote {position:absolute;top:-4%;left:50%;width:84%;height:92%;transform:translateX(-50%);pointer-events:none;
   background:linear-gradient(180deg,color-mix(in srgb,var(--prov-brilho) 22%,#ffffff26),transparent 92%);clip-path:polygon(42% 0,58% 0,100% 100%,0 100%);filter:blur(10px);opacity:.55;mix-blend-mode:screen}
-.provador .prov-palco > img.cri-girar {position:relative;z-index:2;grid-row:1;align-self:end;width:264px;height:454px;margin-bottom:-50px;image-rendering:pixelated;filter:drop-shadow(0 14px 10px #000a);cursor:grab;touch-action:pan-y}
+.provador .prov-palco > img.cri-girar {position:relative;z-index:2;grid-row:1;align-self:end;width:264px;height:454px;margin-bottom:84px;image-rendering:pixelated;filter:drop-shadow(0 14px 10px #000a);cursor:grab;touch-action:pan-y}
 .provador .prov-palco > img.cri-girar:active {cursor:grabbing}
-.prov-pedestal {position:relative;z-index:1;grid-row:2;width:230px;height:62px;border-radius:50%;
-  background:radial-gradient(closest-side,#2a2c37,#1b1c24 70%,#121318);box-shadow:0 0 0 1px #ffffff1a inset,0 10px 0 -2px #0b0c10,0 12px 30px #000,0 0 46px color-mix(in srgb,var(--prov-brilho) 45%,transparent)}
-.prov-pedestal::before {content:"";position:absolute;inset:7px 12px;border-radius:50%;border:2px solid color-mix(in srgb,var(--prov-brilho) 80%,#fff);opacity:.75;box-shadow:0 0 18px var(--prov-brilho),inset 0 0 14px color-mix(in srgb,var(--prov-brilho) 50%,transparent);animation:prov-anel 3.2s ease-in-out infinite}
-@keyframes prov-anel {50%{opacity:.35;transform:scale(.97)}}
+/* Fundo do provador: o quarto da pessoa no mesmo tamanho do boneco (2×),
+   com o ladrilho do meio sob os pés. */
+.provador .prov-palco > .vb-vitrine.prov-fundo {position:absolute;z-index:0;left:50%;top:calc(100% - 214px);width:900px;height:900px;translate:-50% -50%;background:none}
+.provador .prov-palco > .vb-vitrine.prov-fundo::after {display:none}
 .provador .prov-palco .abr-girar {grid-row:3;z-index:2;display:flex;gap:6px;padding:4px;border-radius:14px;background:#00000059;border:1px solid var(--prov-linha);backdrop-filter:blur(8px)}
 .provador .prov-palco .abr-girar button {width:38px;height:36px;border-radius:10px;border:0;background:transparent;font-size:18px}
 .provador .prov-palco .abr-girar button:hover {background:#ffffff14}
@@ -9136,7 +9147,7 @@ button.prov-sacola-item:focus-visible {outline:2px solid var(--prov-acento);outl
   background:radial-gradient(60% 20% at 50% 88%,color-mix(in srgb,var(--c) 34%,transparent),transparent 72%),radial-gradient(90% 70% at 50% 0%,#ffffff0d,transparent 70%),linear-gradient(180deg,#15161d,#0c0d12)}
 .esp-peca-palco .prov-holofote {opacity:.8}
 .esp-peca-palco .esp-boneco {position:relative;z-index:2;width:116px;height:200px;margin-bottom:26px;image-rendering:pixelated;filter:drop-shadow(0 12px 9px #000a)}
-.esp-peca-palco .prov-pedestal {position:absolute;left:50%;bottom:12px;width:160px;height:44px;transform:translateX(-50%)}
+.esp-peca-palco .vb-vitrine.esp-vitrine {position:absolute;inset:0}
 .esp-peca-palco .esp-previa {position:absolute;inset:0;width:auto;height:auto;border-radius:0;background:none}
 .esp-palco-vazio {place-self:center;display:grid;place-items:center;width:78px;height:78px;border-radius:22px;border:1px dashed #ffffff2a;color:#ffffff55}
 .esp-palco-vazio .ofc-ico,.esp-andares-mais .ofc-ico {width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -9171,7 +9182,7 @@ button.prov-sacola-item:focus-visible {outline:2px solid var(--prov-acento);outl
   .esp-peca {grid-template-rows:none;grid-template-columns:116px minmax(0,1fr)}
   .esp-peca-palco {min-height:0;border-bottom:0;border-right:1px solid #ffffff0f}
   .esp-peca-palco .esp-boneco {width:64px;height:110px;margin-bottom:14px}
-  .esp-peca-palco .prov-pedestal {width:90px;height:26px;bottom:8px}
+
   .esp-andares {transform:scale(.62)}
   .esp-palco-vazio {width:56px;height:56px}
   .esp-peca-corpo {padding:12px}
@@ -9195,14 +9206,12 @@ button.prov-sacola-item:focus-visible {outline:2px solid var(--prov-acento);outl
 .ofc-ficha.jogador > .ofc-ficha-acoes > :only-child,.ofc-ficha.jogador > .ofc-ficha-acoes > :last-child:nth-child(odd) {grid-column:1/-1}
 .ofc-ficha.jogador > .ofc-hud-abas {grid-area:abas;padding:14px 56px 0 18px}
 .ofc-ficha.jogador > .ofc-hud-corpo {grid-area:corpo;max-height:none;min-height:0;padding:16px 20px 20px}
-.ofc-ficha.jogador .ofc-hud-palco {position:relative;width:auto;height:262px;margin:0 -18px;border-radius:0;overflow:hidden;display:grid;place-items:end center;
+.ofc-ficha.jogador .ofc-hud-palco {position:relative;width:auto;height:300px;margin:0 -18px;border-radius:0;overflow:hidden;display:grid;place-items:end center;
   background:radial-gradient(60% 18% at 50% 88%,color-mix(in srgb,var(--tier) 34%,transparent),transparent 72%),radial-gradient(80% 70% at 50% 0%,#ffffff0d,transparent 70%),linear-gradient(180deg,#15161d,#0c0d12)}
 .ofc-hud-holofote {position:absolute;top:-6%;left:50%;width:78%;height:96%;transform:translateX(-50%);pointer-events:none;
   background:linear-gradient(180deg,color-mix(in srgb,var(--tier) 20%,#ffffff24),transparent 90%);clip-path:polygon(42% 0,58% 0,100% 100%,0 100%);filter:blur(9px);opacity:.55;mix-blend-mode:screen}
-.ofc-hud-pedestal {position:absolute;left:50%;bottom:16px;width:170px;height:46px;transform:translateX(-50%);border-radius:50%;
-  background:radial-gradient(closest-side,#2a2c37,#1b1c24 70%,#121318);box-shadow:0 0 0 1px #ffffff1a inset,0 8px 0 -2px #0b0c10,0 10px 26px #000,0 0 40px color-mix(in srgb,var(--tier) 45%,transparent)}
-.ofc-hud-pedestal::before {content:"";position:absolute;inset:6px 10px;border-radius:50%;border:2px solid color-mix(in srgb,var(--tier) 80%,#fff);opacity:.75;box-shadow:0 0 16px var(--tier)}
-.ofc-ficha.jogador .ofc-hud-palco img {position:relative;z-index:1;width:128px;height:220px;margin-bottom:34px;filter:drop-shadow(0 12px 9px #000a)}
+.ofc-hud-palco .vb-vitrine.ofc-hud-vitrine {position:absolute;inset:0}
+.ofc-ficha.jogador .ofc-hud-palco > img {position:relative;z-index:1;width:128px;height:220px;margin-bottom:76px;filter:drop-shadow(0 12px 9px #000a)}
 .ofc-ficha.jogador .ofc-hud-palco .ofc-lobby-luz,.ofc-ficha.jogador .ofc-hud-palco .ofc-lobby-ladrilho {display:none}
 .ofc-ficha.jogador .ofc-hud-id {padding-right:0;gap:10px}
 .ofc-ficha.jogador .ofc-hud-id h3 {font-size:24px;letter-spacing:-.02em}
@@ -9223,7 +9232,7 @@ button.prov-sacola-item:focus-visible {outline:2px solid var(--prov-acento);outl
   .ofc-ficha.jogador[open] {display:flex;flex-direction:column;overflow-y:auto}
   .ofc-ficha.jogador[open] > * {border-right:0;flex:none}
   .ofc-ficha.jogador .ofc-hud-palco {height:210px}
-  .ofc-ficha.jogador .ofc-hud-palco img {width:96px;height:165px}
+  .ofc-ficha.jogador .ofc-hud-palco > img {width:96px;height:165px}
   .ofc-ficha.jogador > .ofc-hud-corpo {overflow:visible}
   .ofc-ficha.jogador > .ofc-hud-abas {padding:10px 16px}
 }
@@ -10121,14 +10130,12 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @keyframes lg-feixe {50% {opacity:.5}}
 /* A ilha do palco: arte do Habbo em pixel, o dobro do tamanho; o boneco pisa
    no meio da grama. A sombra no chão segura a ilha na cena. */
-.lg-sombra {position:absolute;left:50%;bottom:6px;width:420px;height:90px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,#000000d9,#00000059 60%,transparent)}
-.lg-ilha {position:absolute;left:50%;bottom:22px;width:272px;height:182px;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 14px 18px #000c) drop-shadow(0 0 22px color-mix(in srgb,var(--prov-brilho,#ff8a35) 25%,transparent));opacity:0;transition:opacity .4s}
-.lg-ilha.pronta, .lg-ilha[src] {opacity:1;animation:lg-ilha 4.5s ease-in-out infinite}
-@keyframes lg-ilha {50% {translate:0 -5px}}
+.vb-vitrine.lg-vitrine {position:absolute;left:50%;bottom:24px;width:min(460px,100%);height:min(420px,100%);translate:-50% 0;background:none;-webkit-mask:radial-gradient(70% 70% at 50% 55%,#000 60%,transparent 100%);mask:radial-gradient(70% 70% at 50% 55%,#000 60%,transparent 100%)}
+.vb-vitrine.lg-vitrine::after {display:none}
 .lg-faiscas {position:absolute;left:50%;bottom:70px;width:200px;height:220px;transform:translateX(-50%);pointer-events:none}
 .lg-faiscas i {position:absolute;bottom:0;left:calc(var(--i) * 10% + 2%);width:4px;height:4px;border-radius:50%;background:color-mix(in srgb,var(--prov-brilho,#ff8a35) 70%,#fff);box-shadow:0 0 8px color-mix(in srgb,var(--prov-brilho,#ff8a35) 80%,transparent);opacity:0;animation:lg-faisca 3.6s ease-out infinite;animation-delay:calc(var(--i) * -.37s)}
 @keyframes lg-faisca {10% {opacity:1} 100% {opacity:0;transform:translateY(-200px) translateX(calc((var(--i) - 5) * 4px))}}
-.lg-palco .ofc-lobby-boneco {position:relative;z-index:2;width:140px;height:240px;margin:0 0 116px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 10px 14px #000a);animation:lg-boneco-entra .9s var(--curva,ease) backwards .2s,lg-ilha 4.5s ease-in-out infinite}
+.lg-palco .ofc-lobby-boneco {position:relative;z-index:2;width:140px;height:240px;margin:0 0 116px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 10px 14px #000a);animation:lg-boneco-entra .9s var(--curva,ease) backwards .2s}
 @keyframes lg-boneco-entra {from {opacity:0;transform:translateY(-30px) scale(.9)}}
 .lg-placa-sala {position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;box-shadow:0 3px 0 var(--degrau);background:var(--vidro);border:1px solid var(--borda-vidro);color:#e9ecf2;font:700 12px var(--mac-ui);white-space:nowrap;z-index:3}
 .lg-placa-sala svg {width:14px;height:14px;fill:none;stroke:#ffb27a;stroke-width:1.9}
@@ -10220,7 +10227,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
   .lg-jogador-txt > b {font-size:20px}.lg-xp {width:140px}
   .lg-palco {padding-bottom:22px}
   .lg-palco .ofc-lobby-boneco {width:96px;height:165px;margin-bottom:78px}
-  .lg-ilha {width:180px;height:121px;bottom:14px}.lg-sombra {width:280px;height:64px}
+  .vb-vitrine.lg-vitrine {height:min(300px,100%)}
   .lg-lado {grid-template-columns:repeat(5,minmax(0,1fr));justify-items:stretch;gap:6px;padding:8px 0;min-height:96px}
   .lg-botao {grid-template-columns:minmax(0,1fr);grid-template-areas:"icone" "txt";justify-items:center;text-align:center;gap:6px;padding:8px 1px;border-radius:14px}
   .lg-botao:not(:disabled):hover {transform:translateY(-2px)}
@@ -10231,13 +10238,13 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
   .lg-outros {flex-wrap:wrap}.lg-outros .lg-secundario {flex:1}
   .lg-entrar {order:-1;height:64px}
 }
-@media (prefers-reduced-motion:reduce) {.ofc-lobby.lg .abr-cena {animation:none;transform:scale(1.05);filter:blur(3px) brightness(.62)}.lg-entra,.lg-feixe,.lg-ilha,.lg-faiscas i,.lg-palco .ofc-lobby-boneco,.lg-entrar,.lg-entrar::before,.lg-selo,.lg-xp i::after {animation:none!important}.lg-faiscas {display:none}}
-[data-motion=reduce] :is(.lg-entra,.lg-feixe,.lg-ilha,.lg-faiscas i,.lg-palco .ofc-lobby-boneco,.lg-entrar,.lg-entrar::before,.lg-selo,.lg-xp i::after) {animation:none!important}
+@media (prefers-reduced-motion:reduce) {.ofc-lobby.lg .abr-cena {animation:none;transform:scale(1.05);filter:blur(3px) brightness(.62)}.lg-entra,.lg-feixe,.lg-faiscas i,.lg-palco .ofc-lobby-boneco,.lg-entrar,.lg-entrar::before,.lg-selo,.lg-xp i::after {animation:none!important}.lg-faiscas {display:none}}
+[data-motion=reduce] :is(.lg-entra,.lg-feixe,.lg-faiscas i,.lg-palco .ofc-lobby-boneco,.lg-entrar,.lg-entrar::before,.lg-selo,.lg-xp i::after) {animation:none!important}
 [data-motion=reduce] .lg-faiscas {display:none}
 /* Entrada, segunda rodada (Paulo, 21/10/2026: "execute todos"): o cantinho
    com móveis do seu quarto na ilha, os colegas online em ilhas ao fundo, o
    baú do dia, as notícias da semana, a saída animada e a luz da hora. */
-.lg-cantinho {position:absolute;left:50%;bottom:22px;width:272px;height:182px;transform:translateX(-50%);pointer-events:none;animation:lg-ilha 4.5s ease-in-out infinite}
+.lg-cantinho {position:absolute;left:50%;bottom:22px;width:272px;height:182px;transform:translateX(-50%);pointer-events:none}
 .lg-cantinho img {position:absolute;translate:-50% -100%;image-rendering:pixelated;filter:drop-shadow(0 4px 4px #0008);animation:lg-entra .6s var(--curva,ease) backwards .5s}
 .lg-palco .ofc-lobby-boneco {z-index:2}
 /* Colegas ao fundo */
@@ -10246,7 +10253,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-colega.esq {--x:20%}
 .lg-colega.longe {display:none;--x:98%;bottom:215px;scale:.64;filter:brightness(.68) saturate(.85)}
 .lg-colega.longe.esq {--x:2%}
-.lg-colega-ilha {position:absolute;bottom:-22px;left:50%;width:110px;height:84px;translate:-50% 0;background:center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(0 10px 10px #000b)}
+.lg-colega-chao {position:absolute;bottom:-4px;left:50%;width:84px;height:26px;translate:-50% 0;border-radius:50%;background:radial-gradient(closest-side,#4fd18b55,#0008 60%,transparent)}
 .lg-colega img {position:relative;width:64px;height:110px;margin-bottom:18px;image-rendering:pixelated;filter:drop-shadow(0 4px 6px #000a);transition:translate .2s var(--curva,ease)}
 .lg-colega-nome {position:absolute;bottom:calc(100% - 6px);display:grid;justify-items:center;padding:4px 9px;border-radius:10px;background:#05060ad9;border:1px solid #ffffff1a;color:#c5cad6;font:600 10.5px var(--mac-ui);white-space:nowrap;opacity:0;translate:0 6px;transition:opacity .15s,translate .15s var(--curva,ease)}
 .lg-colega-nome b {color:#fff;font-size:12px}
@@ -10307,7 +10314,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-lobby.lg.saindo .lg-lado {translate:40px 0}
 .ofc-lobby.lg.saindo .lg-online {translate:-40px 0}
 .ofc-lobby.lg.saindo .lg-palco .ofc-lobby-boneco {transition:translate 1.6s linear,opacity 1.6s ease-in;translate:60px -50px;opacity:0}
-.ofc-lobby.lg.saindo :is(.lg-ilha,.lg-cantinho,.lg-sombra,.lg-placa-sala,.lg-faiscas,.lg-feixe) {transition:opacity .9s .3s,scale .9s var(--curva,ease) .3s;opacity:0;scale:.9}
+.ofc-lobby.lg.saindo :is(.lg-vitrine,.lg-placa-sala,.lg-faiscas,.lg-feixe) {transition:opacity .9s .3s,scale .9s var(--curva,ease) .3s;opacity:0;scale:.9}
 @container (max-width:900px) or (max-height:620px) {
   .lg-noticias {order:3;flex-basis:100%;max-width:none}
   .lg-colega {--x:86%;bottom:110px;scale:.66}.lg-colega.esq {--x:14%}
@@ -10582,3 +10589,146 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-botao-icone img {width:40px;height:40px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 2px 0 #000a);transition:transform .2s var(--curva,ease)}
 .lg-botao:not(:disabled):hover .lg-botao-icone img {transform:translateY(-3px) scale(1.12)}
 .lg-botao.esqueleto .lg-botao-icone img {opacity:.35}
+
+/* Meu espaço em números (Paulo, 21/10/2026: "não aparece quase nada ali"):
+   tamanho do quarto numa escada de degraus até a Mansão (24 × 24), móveis e
+   looks, em cartões de jogo que levam a cada lugar. Os ícones das três peças
+   ficam num poço escuro com o desenho na cor delas, não em botão de plástico. */
+.esp-peca .jg-moeda.esp-peca-icone {background:#0e1016;box-shadow:inset 0 1px 3px #000c,0 1px 0 #ffffff0d}
+.esp-peca .jg-moeda.esp-peca-icone svg {stroke:var(--c);filter:none}
+.esp-andares-mais {background:#0e1016;color:var(--c);box-shadow:inset 0 1px 3px #000c,0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent)}
+.esp-status {display:grid;grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,1fr));gap:12px;padding:0 22px 18px}
+.esp-st {position:relative;display:grid;align-content:start;gap:6px;min-width:0;padding:12px 14px 13px;border:1px solid #ffffff10;border-radius:16px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--vb-jogo-degrau,#0e1016);color:#fff;font:inherit;text-align:left;cursor:pointer;transition:transform .16s var(--curva,ease),box-shadow .16s,border-color .2s}
+.esp-st:hover {transform:translateY(-2px);border-color:#ff8a3555;box-shadow:inset 0 1px 0 #ffffff0d,0 6px 0 var(--vb-jogo-degrau,#0e1016)}
+.esp-st:active {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff0d,0 0 0 var(--vb-jogo-degrau,#0e1016)}
+.esp-st:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.esp-st-arte {position:absolute;right:10px;top:8px;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000c}
+.esp-st-arte img {max-width:40px;max-height:40px;image-rendering:pixelated;filter:drop-shadow(0 2px 0 #000a)}
+.esp-st-linha {display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;min-width:0}
+.esp-st-linha > b {font:900 22px/1 var(--mac-ui);letter-spacing:-.01em}
+.esp-st-linha small {color:#a3a9b7;font:650 12px var(--mac-ui)}
+.esp-st-dica {color:#8f96a6;font:600 11.5px/1.35 var(--mac-ui)}
+.esp-st-novo {padding:3px 8px;border-radius:8px;background:#0e1016;color:#ffb27a;font:800 10.5px var(--mac-ui);font-style:normal;letter-spacing:.04em;text-transform:uppercase}
+.esp-st-novo.max {color:#ffd166}
+.esp-degraus {display:flex;align-items:flex-end;gap:6px;height:46px;padding:4px 0 2px}
+.esp-degraus i {flex:1;height:calc(var(--t) * 100%);border-radius:5px 5px 2px 2px;background:#2a2e3a;box-shadow:inset 0 1px 0 #ffffff12}
+.esp-degraus i.feito {background:#ff8a3566}
+.esp-degraus i.aqui {background:linear-gradient(180deg,#ffb15c,#ff8a35);box-shadow:inset 0 1px 0 #fff6,0 0 12px #ff8a3566;animation:esp-degrau 2.4s ease-in-out infinite}
+@keyframes esp-degrau {50% {filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce) {.esp-degraus i.aqui {animation:none}.esp-st {transition:none}}
+[data-motion=reduce] .esp-degraus i.aqui {animation:none}
+@media (max-width:760px) {.esp-status {grid-template-columns:1fr 1fr;padding:0 14px 14px}.esp-st-tamanho {grid-column:1/-1}}
+
+/* Reforma como janela de jogo (Paulo, 21/10/2026: "longe de tá parecido com
+   um jogo"). Faixa de título com a peça do Habbo e os passos em pontos;
+   vitrine grande do quarto com placa; tamanhos numa trilha de fases ligadas
+   por um caminho; formatos em cartas. Títulos grossos com contorno, como os
+   letreiros do jogo. */
+.jg-janela {border:2px solid #0b0c10;box-shadow:inset 0 0 0 1px #ffffff14,0 6px 0 #07080b,0 30px 60px #000b}
+.jg-topo {display:flex;align-items:center;gap:14px;margin:-28px -28px 18px;padding:14px 22px;border-bottom:2px solid #0b0c10;border-radius:24px 24px 0 0;background:linear-gradient(180deg,#2a2e3b,#20232d);box-shadow:inset 0 1px 0 #ffffff1f,inset 0 -1px 0 #ffffff0a}
+.jg-topo-arte {flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:#0e1016;box-shadow:inset 0 1px 3px #000c,0 1px 0 #ffffff14}
+.jg-topo-arte img {max-width:44px;max-height:44px;image-rendering:pixelated;filter:drop-shadow(0 2px 0 #000a);animation:cq-flutua 3.4s ease-in-out infinite}
+.jg-topo-txt {display:grid;gap:3px;min-width:0;flex:1}
+.jg-topo-txt .abr-kicker {margin:0}
+.jg-topo-txt h2 {margin:0;font:900 24px/1.1 var(--mac-ui);letter-spacing:-.01em;color:#fff;text-shadow:0 2px 0 #000,0 0 1px #000,1px 0 0 #0008,-1px 0 0 #0008}
+.jg-passos {display:flex;gap:6px}
+.jg-passos i {width:26px;height:8px;border-radius:4px;background:#0e1016;box-shadow:inset 0 1px 2px #000c}
+.jg-passos i.feito {background:#ff8a3577}
+.jg-passos i.aqui {background:linear-gradient(180deg,#ffb15c,#ff8a35);box-shadow:0 0 10px #ff8a3588}
+@media (max-width:760px) {.jg-topo {margin:-18px -18px 14px;padding:12px 14px}.jg-topo-txt h2 {font-size:19px}.jg-topo-arte {width:42px;height:42px}}
+.jg-reforma {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:start;margin-bottom:6px}
+.jg-vitrine {position:sticky;top:0;display:grid;gap:10px;padding:10px;border-radius:18px;background:#0e1016;box-shadow:inset 0 2px 6px #000c,0 1px 0 #ffffff12}
+.jg-vitrine .abr-previa-quarto.grande {height:330px;border-radius:12px;background:radial-gradient(70% 50% at 50% 60%,#ff8a3522,transparent 70%),radial-gradient(120% 90% at 50% 0%,#232634,#0b0c10)}
+.jg-placa {justify-self:center;display:grid;justify-items:center;gap:1px;margin-top:-34px;position:relative;z-index:2;padding:8px 18px 9px;border-radius:12px;border:2px solid #0b0c10;background:linear-gradient(180deg,#ffd36b,#e9a531);box-shadow:inset 0 1px 0 #fff8,inset 0 -2px 0 #b97613,0 4px 0 #6f4708,0 10px 20px #000a;color:#3a2200;text-align:center}
+.jg-placa-nome {font:800 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.jg-placa b {font:900 22px/1 var(--mac-ui);text-shadow:0 1px 0 #fff6}
+.jg-placa small {font:700 11.5px var(--mac-ui);opacity:.85}
+.jg-vitrine-nota {margin:0;padding:0 6px 4px;color:#a3a9b7;font:600 12px/1.45 var(--mac-ui);text-align:center}
+.jg-opcoes {display:grid;gap:10px;min-width:0}
+.jg-trilha {position:relative;display:grid;grid-template-columns:repeat(var(--n,7),minmax(0,1fr));gap:6px;padding:14px 4px 6px;margin-bottom:6px}
+.jg-trilha::before {content:"";position:absolute;left:7%;right:7%;top:44px;height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#3a3f4e 0 10px,transparent 10px 16px)}
+.jg-fase {position:relative;display:grid;justify-items:center;gap:2px;padding:0;border:0;background:none;color:#fff;font:inherit;cursor:pointer;animation:esp-entra .4s var(--curva,ease) both;animation-delay:calc(var(--i) * 45ms)}
+.jg-fase-piso {display:grid;place-items:center;width:58px;height:58px;border-radius:50%;border:2px solid #0b0c10;background:radial-gradient(circle at 50% 35%,#2f3444,#1a1d26);box-shadow:inset 0 1px 0 #ffffff1c,0 4px 0 #0e1016;transition:transform .2s var(--curva,ease),box-shadow .2s}
+.jg-fase-piso i {width:calc(var(--t) * 34px);aspect-ratio:1;transform:rotateX(58deg) rotateZ(45deg);border-radius:3px;background:repeating-conic-gradient(#8a5a3a 0 25%,#6f4529 0 50%) 0 0/7px 7px;box-shadow:0 3px 0 #3d2616}
+.jg-fase b {margin-top:4px;font:850 12.5px var(--mac-ui);text-shadow:0 1px 0 #000}
+.jg-fase small {color:#8f96a6;font:650 10.5px var(--mac-ui);font-variant-numeric:tabular-nums}
+.jg-fase:hover .jg-fase-piso {transform:translateY(-3px)}
+.jg-fase:active .jg-fase-piso {transform:translateY(3px);box-shadow:inset 0 1px 0 #ffffff1c,0 1px 0 #0e1016}
+.jg-fase:focus-visible {outline:none}.jg-fase:focus-visible .jg-fase-piso {outline:3px solid #ff8a35;outline-offset:2px}
+.jg-fase.escolhida .jg-fase-piso {background:radial-gradient(circle at 50% 35%,#ffcf7a,#ff8a35);box-shadow:inset 0 2px 0 #fff8,inset 0 -3px 0 #c45a12,0 4px 0 #8f3f0a,0 0 22px #ff8a3588;animation:jg-pula 1.6s var(--curva,ease) infinite}
+.jg-fase.escolhida .jg-fase-piso i {background:repeating-conic-gradient(#fff2d6 0 25%,#ffd9a3 0 50%) 0 0/7px 7px;box-shadow:0 3px 0 #b45a17}
+.jg-fase.escolhida b {color:#ffcf9e}
+@keyframes jg-pula {0%,100% {translate:0 0} 40% {translate:0 -6px} 60% {translate:0 -2px}}
+.jg-fase-novo, .jg-fase-aqui {position:absolute;top:-10px;padding:2px 6px;border-radius:6px;border:1px solid #0b0c10;font:900 9px var(--mac-ui);font-style:normal;letter-spacing:.06em;text-transform:uppercase}
+.jg-fase-novo {right:0;background:#e5484d;color:#fff;box-shadow:0 2px 0 #7a1d20}
+.jg-fase-aqui {left:0;background:#2f6fe0;color:#fff;box-shadow:0 2px 0 #18397a}
+.jg-formatos {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.jg-carta {position:relative;display:grid;gap:0;padding:6px 6px 0;border:2px solid #0b0c10;border-radius:16px;background:linear-gradient(180deg,#2a2e3b,#1d2029);box-shadow:inset 0 1px 0 #ffffff1a,0 4px 0 #0e1016;color:#fff;font:inherit;text-align:left;cursor:pointer;overflow:hidden;transition:transform .16s var(--curva,ease),box-shadow .16s}
+.jg-carta .abr-previa-quarto {height:104px;border-radius:10px;background:#0e1016}
+.jg-carta-nome {display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding:7px 4px 8px}
+.jg-carta-nome b {font:850 13px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jg-carta-nome small {flex:none;color:#8f96a6;font:650 10.5px var(--mac-ui)}
+.jg-carta:hover {transform:translateY(-3px);box-shadow:inset 0 1px 0 #ffffff1a,0 7px 0 #0e1016}
+.jg-carta:active {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff1a,0 0 0 #0e1016}
+.jg-carta:focus-visible {outline:3px solid #ff8a35;outline-offset:2px}
+.jg-carta[aria-pressed=true] {border-color:#ff8a35;box-shadow:inset 0 1px 0 #ffffff1a,0 4px 0 #a24e0c,0 0 0 3px #ff8a3540}
+.jg-carta[aria-pressed=true]::after {content:"";position:absolute;right:10px;top:10px;width:22px;height:22px;border-radius:50%;background:#ff8a35 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%231c0b00' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat;box-shadow:0 2px 0 #8f3f0a}
+.jg-carta-cabe {position:absolute;left:10px;top:10px;width:12px;height:12px;border-radius:50%;border:2px solid #0b0c10}
+.jg-carta-cabe.sim {background:#4fd18b}.jg-carta-cabe.nao {background:#e5484d}
+@media (prefers-reduced-motion:reduce) {.jg-fase, .jg-fase.escolhida .jg-fase-piso, .jg-topo-arte img {animation:none}}
+[data-motion=reduce] :is(.jg-fase, .jg-fase.escolhida .jg-fase-piso, .jg-topo-arte img) {animation:none}
+@media (max-width:900px) {.jg-reforma {grid-template-columns:1fr}.jg-vitrine {position:static}.jg-vitrine .abr-previa-quarto.grande {height:220px}.jg-formatos {grid-template-columns:repeat(2,minmax(0,1fr))}.jg-trilha {grid-template-columns:repeat(4,minmax(0,1fr));row-gap:16px}.jg-trilha::before {display:none}}
+.abr-quarto.jg-janela.etapa-planta {max-width:1200px;width:min(1200px,96vw)}
+.jg-carta-nome {flex-direction:column;align-items:flex-start;gap:1px}
+.jg-carta-nome b {max-width:100%}
+/* Comparativo de antes e depois na vitrine da reforma (tela de melhoria de jogo). */
+.jg-compara {display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff0d,0 3px 0 var(--vb-jogo-degrau,#0e1016)}
+.jg-compara > span {display:grid;justify-items:center;gap:1px;text-align:center}
+.jg-compara small {color:#8f96a6;font:800 10px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.jg-compara b {font:900 16px/1.1 var(--mac-ui)}
+.jg-compara em {color:#a3a9b7;font:650 11.5px var(--mac-ui);font-style:normal;font-variant-numeric:tabular-nums}
+.jg-compara .nova b {color:#ffcf9e}
+.jg-compara .nova em {color:#6fe3a8}
+.jg-compara i {display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#0e1016;color:#ff8a35;font:900 16px var(--mac-ui);font-style:normal}
+.jg-compara strong {grid-column:1/-1;justify-self:center;padding:3px 10px;border-radius:8px;background:#0e1016;color:#6fe3a8;font:900 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.jg-compara strong.menor {color:#ffc46b}
+
+/* Cartões da coluna da direita como janelas de jogo (Paulo, 21/10/2026):
+   Cobrando, Missões, Conversa e Música com o mesmo desenho das janelas do
+   jogo — corpo escuro com borda e degrau, faixa de título com a peça do
+   Habbo de cada um num poço e título grosso; filtros como chips de jogo. */
+.ofc-coluna :is(.ofc-missoes, .office-call, .ofc-musica) {--jg-arte:none;border:2px solid #0b0c10;border-radius:16px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff12,0 4px 0 var(--vb-jogo-degrau,#0e1016),0 14px 30px #0008;backdrop-filter:none;-webkit-backdrop-filter:none;overflow:hidden}
+.ofc-coluna .ofc-cobrancas {--jg-arte:url("https://www.habboassets.com/imaging/furniture/exe_c15_telephone.png?size=64")}
+.ofc-coluna .ofc-missoes:not(.ofc-cobrancas) {--jg-arte:url("https://www.habboassets.com/imaging/furniture/exe_map.png?size=64")}
+.ofc-coluna .office-call {--jg-arte:url("https://www.habboassets.com/imaging/furniture/ads_idol_mic.png?size=64")}
+.ofc-coluna .ofc-musica {--jg-arte:url("https://www.habboassets.com/imaging/furniture/disco_c26_jukebox.png?size=64")}
+.ofc-coluna :is(.ofc-missoes-topo, .office-call-actions, .ofc-musica-topo) {position:relative;display:flex;align-items:center;gap:9px;margin:-10px -12px 0;padding:8px 12px 8px 50px;min-height:46px;background:linear-gradient(180deg,#2a2e3b,#20232d);box-shadow:inset 0 1px 0 #ffffff1a,0 1px 0 #0b0c10}
+.ofc-coluna .ofc-musica-topo {margin:-12px -12px 0}
+.ofc-coluna .office-call-actions {margin:0;width:100%}
+.ofc-coluna :is(.ofc-missoes-topo, .office-call-actions, .ofc-musica-topo)::before {content:"";position:absolute;left:10px;top:50%;width:32px;height:32px;translate:0 -50%;border-radius:9px;background:var(--jg-arte) center/contain no-repeat,#0e1016;box-shadow:inset 0 1px 3px #000c;image-rendering:pixelated}
+.ofc-coluna :is(.ofc-missoes-topo b, .office-call-actions b, .ofc-musica-topo b) {font:900 13.5px/1.1 var(--mac-ui);color:#fff;text-shadow:0 2px 0 #000}
+.ofc-coluna .ofc-musica-topo b svg {display:none}
+.ofc-coluna .ofc-missoes-topo[aria-expanded="false"] {margin-bottom:-10px}
+.ofc-coluna .ofc-missoes-filtros button {padding:4px 9px;border-radius:9px;border:1px solid #ffffff10;background:#0e1016;box-shadow:inset 0 1px 2px #000a;color:#c5cad6;font-weight:750}
+.ofc-coluna .ofc-missoes-filtros button.ativo {border-color:#ff8a35;color:#ffcf9e;box-shadow:inset 0 1px 2px #000a,0 0 0 2px #ff8a3530}
+.ofc-coluna .ofc-missoes-filtros button.alerta span {background:#e5484d;color:#fff}
+/* Topo do Meu espaço com a mesma faixa de título das janelas de jogo (reforma). */
+.abr-painel.espaco {border:2px solid #0b0c10;box-shadow:inset 0 0 0 1px #ffffff14,0 6px 0 #07080b,0 30px 60px #000b}
+.espaco .prov-topo {background:linear-gradient(180deg,#2a2e3b,#20232d);box-shadow:inset 0 1px 0 #ffffff1f,0 2px 0 #0b0c10;border-bottom:0}
+.espaco .prov-titulo h2 {font:900 24px/1.1 var(--mac-ui);text-shadow:0 2px 0 #000,0 0 1px #000}
+/* Lista do "Cobrando neste quarto" menos embolada (Paulo, 21/10/2026): cada
+   cliente é um bloco só (um poço), as demandas são linhas dele separadas por
+   um fio, o prazo é texto colorido (sem caixa) e as fotos de quem faz ficam
+   pequenas. A cor da etiqueta de status continua a do vocabulário. */
+.ofc-coluna .ofc-cobrancas-lista > li {padding:4px 0 2px;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000a}
+.ofc-coluna .ofc-cobrancas-lista .ofc-cobranca-cliente {position:static;padding:4px 10px 2px;border-left:0;background:none}
+.ofc-coluna .ofc-cobrancas-lista .ofc-cobranca-cliente::before {content:"";flex:none;width:7px;height:7px;border-radius:50%;background:#ff6b6b}
+.ofc-coluna .ofc-cobrancas-lista .ofc-cobranca-cliente.avisa::before {background:#ffc46b}
+.ofc-coluna .ofc-cobrancas-lista .ofc-cobranca-cliente.lembra::before {background:#6fb6ff}
+.ofc-coluna .ofc-cobrancas-lista > li > ul {gap:0;margin-top:2px}
+.ofc-coluna .ofc-cobrancas-lista > li > ul > li + li .ofc-cobranca {border-top:1px solid #ffffff0d}
+.ofc-coluna .ofc-cobranca {gap:2px;padding:7px 10px;border:0;border-radius:0;background:none}
+.ofc-coluna .ofc-cobranca:hover, .ofc-coluna .ofc-cobranca:focus-visible {background:#ffffff08}
+.ofc-coluna .ofc-cobranca .ofc-missao-prazo {padding:0;background:none;border:0;font:700 10.5px var(--mac-ui)}
+.ofc-coluna .ofc-cobranca .ofc-cobranca-linha .pill {padding:0 6px;font-size:9.5px}
+.ofc-coluna .ofc-cobranca-fotos img, .ofc-coluna .ofc-cobranca-fotos > * {width:22px;height:22px;font-size:9px}

@@ -768,3 +768,21 @@ das janelas no Lounge e pediu a causa, não um remendo. Foram três:
 - Método das cenas: bancada (a cena trocada só na página) para montar cada
   conjunto — bar, estar, sofás — e conferir de perto em 2× antes de compor a
   sala; uma coleção de móveis por sala.
+
+### Quarto até 24 × 24 e vitrine do personagem (21/10/2026)
+
+- Lado máximo do quarto: 24 (LADO_QUARTO no servidor, ESCRITORIO_QUARTO_MAX no
+  painel; decisão do Paulo: "até 4x maior o maior de hoje"). Tamanhos novos em
+  cada formato: Gigante, Colossal e Mansão (24 × 24 = 576 ladrilhos, quatro
+  vezes o Enorme). As grades guardadas com lado 20 valem ampliadas ao ler, como
+  as de 8 e 12; nada se perde.
+- `scripts/quartos-plantas.mjs` só acrescenta plantas: as que já estão no
+  catálogo (algumas ajustadas à mão, com quartos montados) ficam como estão.
+  Formatos especiais ganham a Mansão dobrando a planta Enorme ladrilho a
+  ladrilho, com a escada de um degrau só.
+- Vitrine do personagem (`escritorioVitrineHtml`/`escritorioMontarVitrines`):
+  um pedaço de 3 × 3 do quarto da pessoa pelo próprio motor do mapa — piso e
+  parede dela, até dois móveis dela dos lados (nunca atrás nem na frente), o
+  boneco no meio acenando ao abrir. É o único desenho do cartão do jogador:
+  entrada, Meu espaço, ficha e o fundo do provador (no mesmo tamanho do
+  boneco). Planta `vitrine` só no painel; não vai ao servidor.

@@ -1002,12 +1002,18 @@ function mapaCaminho(g, de, para, evitar = null, limite = Infinity) {
   if (evitar && evitar(tx, ty)) return null;
   if (sx === tx && sy === ty) return [];
   const inicio = g.ind(Math.max(0, Math.min(g.W - 1, sx)), Math.max(0, Math.min(g.H - 1, sy))), alvo = g.ind(tx, ty);
-  const custo = new Map([[inicio, 0]]), veio = new Map(), aberto = [[0, inicio]], fechado = new Set();
+  const custo = new Map([[inicio, 0]]), veio = new Map(), fechado = new Set();
   const h = (i) => { const dx = Math.abs((i % g.W) - tx), dy = Math.abs(Math.floor(i / g.W) - ty); return Math.max(dx, dy) + 0.414 * Math.min(dx, dy); };
+  // Fila de prioridade (heap) pelo custo e, no empate, pela ordem de entrada:
+  // o mesmo caminho de antes (o primeiro de menor custo), sem varrer a lista
+  // inteira a cada passo — quartos de até 24 × 24 (21/10/2026).
+  const aberto = [], menor = (a, b) => a[0] < b[0] || (a[0] === b[0] && a[2] < b[2]);
+  let ordem = 0;
+  const pôr = (f, i) => { const n = [f, i, ordem++]; let k = aberto.push(n) - 1; while (k) { const pai = (k - 1) >> 1; if (!menor(n, aberto[pai])) break; aberto[k] = aberto[pai]; k = pai; } aberto[k] = n; };
+  const tirar = () => { const topo = aberto[0], fim = aberto.pop(); if (aberto.length) { let k = 0; for (;;) { const a = 2 * k + 1, b = a + 1; let m = k; const em = (j) => (j === k ? fim : aberto[j]); if (a < aberto.length && menor(aberto[a], em(m))) m = a; if (b < aberto.length && menor(aberto[b], em(m))) m = b; if (m === k) break; aberto[k] = aberto[m]; k = m; } aberto[k] = fim; } return topo; };
+  pôr(0, inicio);
   while (aberto.length) {
-    let k = 0;
-    for (let i = 1; i < aberto.length; i++) if (aberto[i][0] < aberto[k][0]) k = i;
-    const [, atual] = aberto.splice(k, 1)[0];
+    const [, atual] = tirar();
     if (atual === alvo) break;
     if (fechado.has(atual)) continue;
     fechado.add(atual);
@@ -1020,7 +1026,7 @@ function mapaCaminho(g, de, para, evitar = null, limite = Infinity) {
       if (evitar && viz !== alvo && evitar(x + dx, y + dy)) continue;
       const c = custo.get(atual) + (dx && dy ? 1.414 : 1);
       if (c > limite) continue;
-      if (c < (custo.get(viz) ?? Infinity)) { custo.set(viz, c); veio.set(viz, atual); aberto.push([c + h(viz), viz]); }
+      if (c < (custo.get(viz) ?? Infinity)) { custo.set(viz, c); veio.set(viz, atual); pôr(c + h(viz), viz); }
     }
   }
   if (!veio.has(alvo)) return null;
@@ -2420,7 +2426,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   };
   const mexerCam = () => { if (!quadroCam) quadroCam = requestAnimationFrame(animarCam); };
   function centralizar(x, y, z) {
-    if (z) alvo.z = nivel(Math.max(0.35, Math.min(2.2, z)));
+    // A prévia (cartas da reforma) se afasta mais: o quarto inteiro cabe no cartão.
+    if (z) alvo.z = nivel(Math.max(P.previa ? 0.06 : 0.35, Math.min(P.vitrine ? 5 : 2.2, z)));
     const t = mapaTela(x, y, origem), r = el.getBoundingClientRect();
     alvo.x = cam.x = Math.round(r.width / 2 - t.x * alvo.z); alvo.y = cam.y = Math.round(r.height / 2 - t.y * alvo.z);
     zoom = alvo.z; inercia = null; salto = null;
@@ -2431,6 +2438,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     if (!P.quarto) return;
     const a = P.ambientes[0], r = el.getBoundingClientRect();
     if (!r.width || !r.height) return;
+    // Vitrine do personagem com zoom fixo (provador): o ladrilho do meio no centro.
+    // "desce": fração da altura que o chão fica abaixo do centro (o boneco e a
+    // parede sobem a partir dele).
+    if (P.zoomFixo) { centralizar(a.x0 + 1.5, a.y0 + 1.5, P.zoomFixo); if (P.desce) { alvo.y = cam.y = Math.round(alvo.y + r.height * P.desce); aplicar(); } return; }
     const w = (a.x1 - a.x0 + a.y1 - a.y0) * MAPA_TW / 2 + 48;
     // Patamares altos (plateia em degraus, mezanino da planta) também ocupam
     // a tela: sem eles o Auditório abria a 1× cortado.
@@ -2442,7 +2453,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // A prévia segue livre.
     const cabe = Math.min((r.width - mw) / w, (r.height - mh) / h);
     centralizar((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2,
-      P.previa ? Math.max(0.2, Math.min(1.35, cabe)) : cabe >= 0.92 ? 1 : 0.5);
+      // Prévia até 0,08×: a Mansão (24 × 24) cabe inteira no cartão.
+      P.previa ? Math.max(0.08, Math.min(P.vitrine ? 3 : 1.35, cabe)) : cabe >= 0.92 ? 1 : 0.5);
     // O centro visual inclui as paredes e o patamar alto, acima do piso.
     alvo.y += (MAPA_PAREDE + (P.nivelEm ? 48 : 0)) * alvo.z / 2;
     cam.y=alvo.y; aplicar();
