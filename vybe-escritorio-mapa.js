@@ -2312,6 +2312,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       if (p.rotulo !== rotulo) {
         p.rotulo = rotulo;
         p.etiqueta.classList.toggle("com-titulo", !!q.titulo?.texto);
+        p.etiqueta.dataset.nivel = q.titulo?.texto ? String(Number(q.titulo.nivel) || 1) : "";
         const linha = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
         p.etiqueta.innerHTML = q.titulo?.texto ? `<span class="mapa-linha">${linha}</span><em class="mapa-titulo n${Number(q.titulo.nivel) || 1}"><i aria-hidden="true"></i><span></span></em>` : linha;
         p.etiqueta.querySelector("b").textContent = q.nome;

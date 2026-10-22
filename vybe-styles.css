@@ -10085,7 +10085,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
    plataforma; placa do jogador e moedas no topo; botões de jogo de um só
    desenho à direita; quem está online à esquerda; ENTRAR grande embaixo.
    Cada peça entra deslizando da sua borda. ===== */
-.ofc-lobby.lg {container-type:size;display:block;padding:0;background:#05060a;backdrop-filter:none;-webkit-backdrop-filter:none;--vidro:#10121acc;--borda-vidro:#ffffff1c}
+.ofc-lobby.lg {container-type:size;display:block;padding:0;background:#05060a;backdrop-filter:none;-webkit-backdrop-filter:none;--vidro:#1d2029eb;--borda-vidro:#ffffff12;--degrau:#0e1016}
 .ofc-lobby.lg .abr-cena {animation:lg-cena 1.4s var(--curva,ease) forwards}
 .ofc-lobby.lg .abr-vinheta {z-index:1;background:radial-gradient(120% 90% at 50% 55%,transparent 35%,#05060ad9 100%),linear-gradient(180deg,#05060ab3,transparent 22%,transparent 62%,#05060af2)!important}
 .lg-tela {position:absolute;inset:0;z-index:4;display:grid;grid-template-columns:minmax(230px,1fr) minmax(280px,1.25fr) minmax(230px,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;grid-template-areas:"topo topo topo" "online palco lado" "regra regra regra" "base base base";gap:14px 22px;padding:22px 26px 24px;color:#fff;font-family:var(--mac-ui);overflow:hidden}
@@ -10093,7 +10093,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @keyframes lg-entra {from {opacity:0;transform:translate(var(--dx,0),var(--dy,18px)) scale(.98)}}
 /* Topo: placa do jogador e recursos */
 .lg-topo {grid-area:topo;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
-.lg-jogador {--dy:-18px;display:flex;align-items:center;gap:14px;padding:10px 18px 10px 10px;border-radius:22px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #00000080,0 18px 40px #0008}
+.lg-jogador {--dy:-18px;display:flex;align-items:center;gap:14px;padding:10px 18px 10px 10px;border-radius:18px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 5px 0 var(--degrau),0 18px 40px #0008}
 .lg-anel {--p:0;position:relative;flex:none;display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:conic-gradient(#ffc35c,#ff8a1f calc(var(--p) * 1%),#ffffff1a 0)}
 .lg-anel::before {content:"";position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#3a3f52,#1b1e29)}
 .lg-anel img {position:relative;width:56px;height:56px;object-fit:cover;object-position:center 28%;image-rendering:pixelated;border-radius:50%}
@@ -10108,7 +10108,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-xp i::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffffa0 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 2.8s var(--curva,ease) infinite}
 .lg-jogador-txt em {color:#b7bccb;font:600 10.5px var(--mac-ui);font-style:normal;font-variant-numeric:tabular-nums}
 .lg-recursos {--dy:-18px;display:flex;gap:10px;align-items:center}
-.lg-pilula {display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:999px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 4px 0 #00000080;font:900 17px var(--mac-ui);font-variant-numeric:tabular-nums}
+.lg-pilula {display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);font:900 17px var(--mac-ui);font-variant-numeric:tabular-nums}
 .lg-pilula:empty {display:none}
 .lg-moeda > i {width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd24a 45%,#d9930e);box-shadow:inset 0 -3px 0 #a8660a,0 0 12px #ffc93c66;position:relative}
 .lg-moeda > i::after {content:"V";position:absolute;inset:0;display:grid;place-items:center;color:#8a4d00;font:900 14px var(--mac-ui)}
@@ -10129,27 +10129,29 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @keyframes lg-faisca {10% {opacity:1} 100% {opacity:0;transform:translateY(-200px) translateX(calc((var(--i) - 5) * 4px))}}
 .lg-palco .ofc-lobby-boneco {position:relative;z-index:2;width:140px;height:240px;margin:0 0 116px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 10px 14px #000a);animation:lg-boneco-entra .9s var(--curva,ease) backwards .2s,lg-ilha 4.5s ease-in-out infinite}
 @keyframes lg-boneco-entra {from {opacity:0;transform:translateY(-30px) scale(.9)}}
-.lg-placa-sala {position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--vidro);border:1px solid var(--borda-vidro);color:#e9ecf2;font:700 12px var(--mac-ui);white-space:nowrap;z-index:3}
+.lg-placa-sala {position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;box-shadow:0 3px 0 var(--degrau);background:var(--vidro);border:1px solid var(--borda-vidro);color:#e9ecf2;font:700 12px var(--mac-ui);white-space:nowrap;z-index:3}
 .lg-placa-sala svg {width:14px;height:14px;fill:none;stroke:#ffb27a;stroke-width:1.9}
 /* Botões de jogo à direita */
 .lg-lado {--dx:28px;--dy:0;grid-area:lado;display:grid;align-content:center;justify-items:end;gap:10px}
-.lg-botao {display:grid;grid-template-columns:auto 58px;grid-template-areas:"txt icone";align-items:center;gap:12px;padding:0;border:0;background:none;color:#fff;font:inherit;text-align:right;cursor:pointer}
-.lg-botao-icone {grid-area:icone;position:relative;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffffff22,#ffffff05 60%),var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff26,0 5px 0 #000000a0,0 12px 24px #0008;transition:transform .16s var(--curva,ease),box-shadow .16s,border-color .2s}
-.lg-botao-icone svg {width:26px;height:26px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 0 #0007)}
-.lg-botao-txt {grid-area:txt;display:grid;gap:1px;max-width:180px;padding:6px 12px;border-radius:12px;background:#05060a8c;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.lg-botao-txt b {font:800 14px var(--mac-ui);text-shadow:0 1px 0 #000}
-.lg-botao-txt small {color:#c5cad6;font:600 11px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-botao {--cor:#ff8a35;position:relative;display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-areas:"icone txt";align-items:center;gap:12px;width:250px;padding:9px 14px 9px 9px;border:1px solid var(--borda-vidro);border-radius:16px;background:var(--vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau),0 12px 26px #0007;color:#fff;font:inherit;text-align:left;cursor:pointer;transition:transform .16s var(--curva,ease),box-shadow .16s,border-color .2s}
+.lg-botao.jg-missoes {--cor:#ff7a45}.lg-botao.jg-cobrancas {--cor:#e5484d}.lg-botao.jg-recados {--cor:#3e9bff}.lg-botao.jg-ranking {--cor:#f5b82e}.lg-botao.jg-conquistas {--cor:#8b6cff}
+.lg-botao-icone {grid-area:icone;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000c,0 1px 0 #ffffff0d}
+.lg-botao-icone svg {width:24px;height:24px;fill:none;stroke:var(--cor);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 0 #0007)}
+.lg-botao-txt {grid-area:txt;display:grid;gap:2px;min-width:0}
+.lg-botao-txt b {font:850 15px var(--mac-ui)}
+.lg-botao-txt small {color:color-mix(in srgb,var(--cor) 55%,#d6dae3);font:600 11px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lg-botao.alerta .lg-botao-txt small {color:#ffb3a8}
-.lg-botao:not(:disabled):hover .lg-botao-icone {transform:translateY(-3px) scale(1.04);border-color:#ff8a35aa;box-shadow:inset 0 1px 0 #ffffff26,0 8px 0 #000000a0,0 0 0 4px #ff8a3526,0 16px 30px #0009}
-.lg-botao:not(:disabled):active .lg-botao-icone {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff1a,0 1px 0 #000000a0}
+.lg-botao:not(:disabled):hover {transform:translateY(-2px) translateX(-4px);border-color:color-mix(in srgb,var(--cor) 55%,transparent);box-shadow:inset 0 1px 0 #ffffff0d,0 6px 0 var(--degrau),0 16px 30px #0009}
+.lg-botao:not(:disabled):active {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff0d,0 0 0 var(--degrau)}
 .lg-botao:focus-visible {outline:none}
-.lg-botao:focus-visible .lg-botao-icone {box-shadow:0 0 0 3px #ff8a35,0 5px 0 #000000a0}
+.lg-botao:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-botao:disabled {cursor:default}
-.lg-selo {position:absolute;top:-4px;right:-6px;display:grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:linear-gradient(180deg,#ffb15c,#ff7a1f);color:#1c0b00;font:900 12px var(--mac-ui);font-variant-numeric:tabular-nums;box-shadow:0 2px 0 #9a4a10,0 0 0 2px #10121a}
+.lg-selo {position:absolute;top:-8px;right:-8px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:linear-gradient(180deg,#ffb15c,#ff7a1f);color:#1c0b00;font:900 12px var(--mac-ui);font-variant-numeric:tabular-nums;box-shadow:0 2px 0 #9a4a10,0 0 0 2px #10121a}
 .lg-botao.alerta .lg-selo {background:linear-gradient(180deg,#ff7b6b,#e8433b);color:#fff;box-shadow:0 2px 0 #8a1f1a,0 0 0 2px #10121a;animation:lg-selo 2s ease-in-out infinite}
 @keyframes lg-selo {0%,100% {transform:scale(1)} 50% {transform:scale(1.12)}}
 .lg-botao.jg-ranking .lg-selo {background:linear-gradient(180deg,#ffe58a,#e0a12a);color:#3a2400;box-shadow:0 2px 0 #7a4b00,0 0 0 2px #10121a}
-.lg-botao.esqueleto .lg-botao-icone {overflow:hidden}
+.lg-botao.esqueleto .lg-botao-icone {position:relative;overflow:hidden;background:#ffffff14;box-shadow:none}
+.lg-botao.esqueleto .lg-botao-icone svg {opacity:.35}
 .lg-botao.esqueleto .lg-botao-icone::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff24 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 1.4s var(--curva,ease) infinite}
 .lg-botao.esqueleto .lg-botao-txt small {width:84px;height:10px;border-radius:5px;background:#ffffff14}
 .lg-lado.antigo .lg-selo {opacity:.7}
@@ -10172,8 +10174,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-regra svg {width:15px;height:15px;fill:none;stroke:#ffb27a;stroke-width:1.9}
 /* A base: áudio, atalhos e o ENTRAR */
 .lg-base {--dy:26px;grid-area:base;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(280px,360px);align-items:center;gap:16px}
-.lg-audio {display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.lg-redondo {display:grid;place-items:center;width:48px;height:48px;border-radius:50%;border:1px solid var(--borda-vidro);background:var(--vidro);color:#fff;cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff1a,0 4px 0 #000a;transition:transform .15s var(--curva,ease),box-shadow .15s}
+.lg-audio {justify-self:start;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-radius:16px;background:var(--vidro);border:1px solid var(--borda-vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau)}
+.lg-redondo {display:grid;place-items:center;width:44px;height:44px;border-radius:12px;border:0;background:#2a2e3a;color:#fff;cursor:pointer;box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 var(--degrau);transition:transform .15s var(--curva,ease),box-shadow .15s}
 .lg-redondo svg {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .lg-redondo:active {transform:translateY(3px);box-shadow:0 1px 0 #000a}
 .lg-redondo.ativo {border-color:#4fd18b;color:#a6f0c4;box-shadow:0 0 0 4px #4fd18b26,0 4px 0 #000a}
@@ -10181,7 +10183,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-audio .ofc-lobby-nivel {flex:0 1 120px}
 .lg-audio select {max-width:200px;padding:6px 8px;border-radius:9px;border:1px solid #ffffff24;background:#10121a;color:#e9ecf2;font:500 12px var(--mac-ui)}
 .lg-audio small {flex-basis:100%;color:#ff9b9b;font:600 12px var(--mac-ui)}
-.lg-mudo {display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;background:#05060a8c;color:#dfe3ea;font:650 12.5px var(--mac-ui);cursor:pointer}
+.lg-mudo {display:inline-flex;align-items:center;gap:8px;padding:6px 0;background:none;color:#dfe3ea;font:650 12.5px var(--mac-ui);cursor:pointer}
 .lg-mudo input {position:absolute;opacity:0;pointer-events:none}
 .lg-mudo span {position:relative;width:34px;height:20px;border-radius:999px;background:#ffffff24;transition:background .2s}
 .lg-mudo span::after {content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0006;transition:transform .2s var(--curva,ease)}
@@ -10189,10 +10191,10 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-mudo input:checked + span::after {transform:translateX(14px)}
 .lg-mudo input:focus-visible + span {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-outros {display:flex;gap:8px}
-.lg-secundario {display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px;border-radius:14px;border:1px solid var(--borda-vidro);background:var(--vidro);color:#eef0f5;font:750 13px var(--mac-ui);cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 4px 0 #000a;transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
-.lg-secundario svg {width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9}
+.lg-secundario {display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 8px;border-radius:14px;border:1px solid var(--borda-vidro);background:var(--vidro);color:#eef0f5;font:800 13.5px var(--mac-ui);cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
+.lg-secundario svg {box-sizing:content-box;width:16px;height:16px;padding:7px;border-radius:9px;background:#2a2e3a;fill:none;stroke:#ffb27a;stroke-width:2;box-shadow:inset 0 1px 0 #ffffff14}
 .lg-secundario:hover {border-color:#ffffff40}
-.lg-secundario:active {transform:translateY(3px);box-shadow:0 1px 0 #000a}
+.lg-secundario:active {transform:translateY(4px);box-shadow:0 0 0 var(--degrau)}
 .lg-entrar {position:relative;display:flex;align-items:center;justify-content:center;gap:16px;height:74px;padding:0 26px;border:0;border-radius:20px;overflow:hidden;cursor:pointer;color:#1c0b00;background:linear-gradient(180deg,#ffd07a,#ff9a3c 45%,#ff7a1f);box-shadow:inset 0 2px 0 #fff6,inset 0 -3px 0 #c45a12,0 7px 0 #8f3f0a,0 0 0 0 #ff8a3566,0 20px 40px #ff7a1f55;transition:transform .14s var(--curva,ease),box-shadow .14s;animation:lg-pulso 2.6s ease-in-out infinite}
 .lg-entrar::before {content:"";position:absolute;inset:0 auto 0 -30%;width:22%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffffb0,transparent);animation:vb-titulo-brilho 3.4s var(--curva,ease) infinite;pointer-events:none}
 .lg-entrar:hover {transform:translateY(-2px)}
@@ -10217,11 +10219,11 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
   .lg-palco {padding-bottom:22px}
   .lg-palco .ofc-lobby-boneco {width:96px;height:165px;margin-bottom:78px}
   .lg-ilha {width:180px;height:121px;bottom:14px}.lg-sombra {width:280px;height:64px}
-  .lg-lado {grid-auto-flow:column;grid-auto-columns:76px;justify-content:space-between;justify-items:center;gap:6px;overflow-x:auto;padding:6px 2px 8px;scrollbar-width:none;min-height:96px}
-  .lg-botao {grid-template-columns:58px;grid-template-areas:"icone" "txt";justify-items:center;text-align:center;gap:6px}
-  .lg-botao-txt {padding:0;background:none;backdrop-filter:none}
+  .lg-lado {grid-template-columns:repeat(5,minmax(0,1fr));justify-items:stretch;gap:6px;padding:8px 0;min-height:96px}
+  .lg-botao {grid-template-columns:minmax(0,1fr);grid-template-areas:"icone" "txt";justify-items:center;text-align:center;gap:6px;padding:8px 1px;border-radius:14px}
+  .lg-botao:not(:disabled):hover {transform:translateY(-2px)}
   .lg-botao-txt small {display:none}
-  .lg-botao {width:76px}.lg-botao-txt {max-width:76px}.lg-botao-txt b {font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lg-botao {width:auto;min-width:0}.lg-botao-icone {width:40px;height:40px}.lg-botao-txt {max-width:100%}.lg-botao-txt b {font-size:10px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lg-online {justify-self:stretch;max-width:none}
   .lg-base {grid-template-columns:1fr;gap:10px}
   .lg-outros {flex-wrap:wrap}.lg-outros .lg-secundario {flex:1}
@@ -10250,11 +10252,11 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-colega:hover .lg-colega-nome, .lg-colega:focus-visible .lg-colega-nome {opacity:1;translate:0 0}
 .lg-colega:focus-visible {outline:2px solid #ff8a35;outline-offset:4px;border-radius:12px}
 /* Notícias no topo */
-.lg-noticias {flex:1;max-width:560px;display:flex;align-items:center;gap:10px;height:44px;margin:0 auto;padding:0 6px 0 6px;border-radius:999px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 4px 0 #00000080;overflow:hidden;align-self:center}
+.lg-noticias {flex:1;max-width:640px;display:flex;align-items:center;gap:10px;height:44px;margin:0 auto;padding:0 14px 0 6px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);overflow:hidden;align-self:center}
 .lg-noticias:empty {visibility:hidden}
-.lg-noticias-tag {flex:none;padding:5px 10px;border-radius:999px;background:linear-gradient(180deg,#ffb15c,#ff7a1f);color:#1c0b00;font:900 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.lg-noticias-tag {flex:none;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;background:#0e1016;box-shadow:inset 0 1px 2px #000a;color:#ffb27a;font:900 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
 .lg-noticias-trilho {position:relative;flex:1;height:100%;min-width:0}
-.lg-noticia {position:absolute;inset:0;display:flex;align-items:center;gap:6px;color:#dfe3ea;font:600 13px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;translate:0 100%;transition:opacity .45s var(--curva,ease),translate .45s var(--curva,ease)}
+.lg-noticia {position:absolute;inset:auto 0;top:50%;transform:translateY(-50%);display:block;color:#dfe3ea;font:600 13px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;translate:0 100%;transition:opacity .45s var(--curva,ease),translate .45s var(--curva,ease)}
 .lg-noticia.atual {opacity:1;translate:0 0}
 .lg-noticia b {color:#fff;font-weight:800}
 .lg-noticia .vb-titulo {font-size:10px}
@@ -10511,3 +10513,70 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @media (max-width:760px) {.ofc-bonus-lugar {top:64px;left:8px}.ofc-bonus {width:320px}}
 @media (prefers-reduced-motion:reduce) {.ofc-bonus,.ofc-bonus-luz,.ofc-bonus-taca,.ofc-bonus-barra i::after,.ofc-bonus-selo b {animation:none}}
 [data-motion=reduce] :is(.ofc-bonus,.ofc-bonus-luz,.ofc-bonus-taca,.ofc-bonus-barra i::after,.ofc-bonus-selo b) {animation:none}
+
+/* Painel lateral no padrão de jogo (Paulo, 21/10/2026: "o que dá pra melhorar
+   aqui pra deixar mais no estilo joguinho?"). As salas com gente e as pessoas
+   online viram cartões escuros com degrau (vb-jogo-cartao); a cor da sala fica
+   só no ícone, como nas Conquistas, sem fundo tingido inteiro. */
+.ofc-salas h5, #office-roster h4 {color:#a3a9b7;font:800 10.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.ofc-roda {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016);transition:transform .2s var(--curva,ease),border-color .2s}
+.ofc-roda:hover {border-color:color-mix(in srgb,var(--sala) 55%,#ffffff10);transform:translateY(-1px)}
+.ofc-roda-emblema {background:radial-gradient(circle at 50% 75%,color-mix(in srgb,var(--sala) 45%,transparent),color-mix(in srgb,var(--sala) 14%,#00000040) 75%);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sala) 50%,transparent)}
+.ofc-roda-texto b {font:850 13.5px var(--mac-ui)}
+.ofc-roda-pessoa {background:#00000033;border:1px solid #ffffff10}
+.ofc-roda-entrar {padding:7px 14px;border:0;border-radius:11px;background:#ff8a35;color:#1b0f05;font:800 12px var(--mac-ui);box-shadow:0 3px 0 #b45a17;transition:transform .15s var(--curva,ease),box-shadow .15s}
+.ofc-roda-entrar:active {transform:translateY(3px);box-shadow:0 0 0 #b45a17}
+.ofc-roda-aqui {padding:4px 10px;border-radius:999px;background:#00000040;border:1px solid #ff8a3566;color:#ffd0a8;font:800 10.5px var(--mac-ui)}
+.ofc-espaco, .ofc-quarto {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016);transition:transform .2s var(--curva,ease),border-color .2s}
+.ofc-espaco:hover, .ofc-quarto:hover {border-color:#ffffff26;transform:translateY(-1px)}
+.ofc-espaco:active, .ofc-quarto:active {transform:translateY(3px);box-shadow:0 1px 0 var(--vb-jogo-degrau,#0e1016)}
+.ofc-espaco[aria-pressed="true"], .ofc-quarto[aria-pressed="true"] {border-color:#ff8a35;box-shadow:0 4px 0 #a24e0c,0 0 0 1px #ff8a35}
+.ofc-espaco-emblema {background:radial-gradient(circle at 50% 75%,color-mix(in srgb,var(--sala) 35%,transparent),#00000030 75%)}
+.ofc-espaco.ocupada .ofc-espaco-conta {background:#4fd18b;color:#06240f}
+.office-member {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016);padding:10px 12px}
+.office-member > .office-avatar {border-radius:10px;background:#00000033}
+.office-member b {font:850 13.5px var(--mac-ui)}
+.ofc-membro-acoes .ofc-mini {display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 8px;border-radius:10px;border:1px solid #ffffff14;background:#00000033;color:#eef0f5;font:750 11.5px var(--mac-ui);box-shadow:0 3px 0 var(--vb-jogo-degrau,#0e1016);transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
+.ofc-membro-acoes .ofc-mini:hover {border-color:#ff8a3577}
+.ofc-membro-acoes .ofc-mini:active {transform:translateY(3px);box-shadow:0 0 0 var(--vb-jogo-degrau,#0e1016)}
+.ofc-membro-acoes .ofc-mini svg {width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.ofc-destaque {background:radial-gradient(120% 140% at 0% 0%,#ff8a3524,transparent 55%),var(--vb-jogo-fundo,#1d2029);border:1px solid #ff8a3566;box-shadow:0 4px 0 #a24e0c}
+
+/* Etiqueta do jogador com animação (Paulo, 21/10/2026: "a tag precisa ter
+   alguma animação bonitinha e foda"): entra num pulinho, um brilho passa de
+   tempos em tempos, a gema do título pulsa e a borda tem a cor do nível
+   (furta-cor no Diamante). */
+.mapa-etiqueta.solta:not(.agente):not(.visitante) {background:linear-gradient(100deg,transparent 42%,#ffffff1c 50%,transparent 58%) no-repeat,#10121ae6;background-size:260% 100%,auto;background-position:140% 0,0 0;animation:mapa-tag-entra .45s var(--curva,cubic-bezier(.22,1,.36,1)) both,mapa-tag-brilho 6s ease-in-out 1.2s infinite}
+@keyframes mapa-tag-entra {from {opacity:0;scale:.6;translate:0 6px}}
+@keyframes mapa-tag-brilho {0%,70% {background-position:140% 0,0 0} 90%,100% {background-position:-40% 0,0 0}}
+.mapa-etiqueta.solta[data-nivel="1"] {border-color:#e0915a66}
+.mapa-etiqueta.solta[data-nivel="2"] {border-color:#dfe3ea77}
+.mapa-etiqueta.solta[data-nivel="3"] {border-color:#ffd16688;box-shadow:0 2px 0 #0007,0 0 10px #ffc94a33}
+.mapa-etiqueta.solta:not(.agente):not(.visitante)[data-nivel="4"] {border-color:transparent;box-shadow:0 2px 0 #0007,0 0 12px #9fe8ff44;outline:1.5px solid #8ff0ff;outline-offset:-1.5px;animation:mapa-tag-entra .45s var(--curva,ease) both,mapa-tag-brilho 6s ease-in-out 1.2s infinite,mapa-tag-furta 5s linear infinite}
+@keyframes mapa-tag-furta {0%,100% {outline-color:#8ff0ff} 33% {outline-color:#c7a6ff} 66% {outline-color:#7cf3d4}}
+.mapa-titulo i {animation:mapa-gema 2.4s ease-in-out infinite}
+@keyframes mapa-gema {0%,100% {scale:1;box-shadow:0 0 4px currentColor} 50% {scale:1.35;box-shadow:0 0 9px currentColor}}
+.mapa-etiqueta.solta.voce {border-color:#ff8a3599}
+@media (prefers-reduced-motion:reduce) {.mapa-etiqueta.solta, .mapa-titulo i {animation:none!important}}
+[data-motion=reduce] :is(.mapa-etiqueta.solta, .mapa-titulo i) {animation:none!important}
+
+/* Balões dos clientes (bots) como balões de jogo: escuros, borda na cor do
+   tom (cobra, avisa, lembra, agradece), o nome numa plaquinha, o rabinho
+   apontando para o boneco e um pulinho ao aparecer. */
+.mapa-etiqueta.visitante {--tom:#ff6b6b;border-radius:12px;border:1.5px solid var(--tom);background:#12141bf0;box-shadow:0 3px 0 #000a,0 0 14px color-mix(in srgb,var(--tom) 30%,transparent)}
+.mapa-etiqueta.visitante.cobra {--tom:#ff6b6b}.mapa-etiqueta.visitante.avisa {--tom:#ffc46b}.mapa-etiqueta.visitante.lembra {--tom:#6fb6ff}.mapa-etiqueta.visitante.agradece {--tom:#6fe3a8}
+.mapa-etiqueta.visitante[data-cor-fala] {--tom:var(--fala)}
+.mapa-etiqueta.visitante b {color:var(--tom);font:850 9.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.mapa-etiqueta.visitante.grita {padding:7px 11px 8px;max-width:230px;animation:mapa-balao .45s var(--curva,cubic-bezier(.22,1,.36,1)) both,mapa-balao-flutua 3.2s ease-in-out .5s infinite}
+.mapa-etiqueta.visitante.grita::after {content:"";position:absolute;left:50%;bottom:-7px;width:12px;height:12px;translate:-50% 0;rotate:45deg;background:#12141b;border-right:1.5px solid var(--tom);border-bottom:1.5px solid var(--tom)}
+.mapa-etiqueta.visitante.grita .mapa-reclama {font:650 11.5px/1.35 var(--mac-ui);color:#f2f4f8}
+@keyframes mapa-balao {from {opacity:0;scale:.5;translate:0 10px}}
+@keyframes mapa-balao-flutua {50% {translate:0 -3px}}
+@media (prefers-reduced-motion:reduce) {.mapa-etiqueta.visitante.grita {animation:none}}
+[data-motion=reduce] .mapa-etiqueta.visitante.grita {animation:none}
+
+/* Botões da entrada com a peça do Habbo no poço (Paulo, 21/10/2026: "pq não
+   usa asset?"): a arte em pixel, um pouco maior que o poço, sobe no hover. */
+.lg-botao-icone img {width:40px;height:40px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 2px 0 #000a);transition:transform .2s var(--curva,ease)}
+.lg-botao:not(:disabled):hover .lg-botao-icone img {transform:translateY(-3px) scale(1.12)}
+.lg-botao.esqueleto .lg-botao-icone img {opacity:.35}
