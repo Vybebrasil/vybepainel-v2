@@ -1702,3 +1702,32 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 @media (prefers-reduced-motion: reduce) { .vb-titulo, .vb-titulo::before, .vb-titulo::after { animation: none !important; } .vb-titulo::before { display: none; } }
 [data-motion=reduce] .vb-titulo, [data-motion=reduce] .vb-titulo::before, [data-motion=reduce] .vb-titulo::after { animation: none !important; }
 [data-motion=reduce] .vb-titulo::before { display: none; }
+
+/* Padrão de jogo (decisão do Paulo, 21/10/2026: "esses novos padrões visuais,
+   principalmente da aba Conquistas, que ficou igual joguinho, deixa como
+   padrão"). As medidas são as da janela de Conquistas; use estas peças em
+   todo painel e HUD do Escritório antes de desenhar outro estilo. */
+:root { --vb-n1: #e0915a; --vb-n2: #cfd5df; --vb-n3: #ffc94a; --vb-n4: #8fe3ff; --vb-jogo-fundo: #1d2029; --vb-jogo-degrau: #0e1016; }
+/* Cartão de jogo: escuro e neutro, borda fina, degrau embaixo. */
+.vb-jogo-cartao { border-radius: 16px; background: var(--vb-jogo-fundo); border: 1px solid #ffffff10; box-shadow: 0 4px 0 var(--vb-jogo-degrau); }
+.vb-jogo-cartao.clicavel { cursor: pointer; transition: transform .2s var(--curva), border-color .2s, box-shadow .2s; }
+.vb-jogo-cartao.clicavel:hover { border-color: #ffffff26; transform: translateY(-1px); }
+.vb-jogo-cartao.clicavel:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--vb-jogo-degrau); }
+/* Poço: a área afundada dentro do cartão (listas, números, trilhas). */
+.vb-jogo-poco { border-radius: 14px; background: #00000030; border: 1px solid #ffffff0d; }
+/* Rótulo de seção: caixa alta pequena e espaçada. */
+.vb-jogo-rotulo { color: #a3a9b7; font: 800 10.5px var(--mac-ui); letter-spacing: .08em; text-transform: uppercase; }
+/* Número de jogo: grosso, com sombra embaixo. */
+.vb-jogo-numero { color: #fff; font: 850 22px/1 var(--mac-ui); font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #0008; }
+/* Botão principal de jogo: laranja com degrau, afunda no clique. */
+.vb-jogo-botao { padding: 9px 16px; border: 0; border-radius: 11px; background: #ff8a35; color: #1b0f05; font: 800 13px var(--mac-ui); cursor: pointer; box-shadow: 0 3px 0 #b45a17; transition: transform .15s var(--curva), box-shadow .15s; }
+.vb-jogo-botao:active { transform: translateY(3px); box-shadow: 0 0 0 #b45a17; }
+.vb-jogo-botao:focus-visible { outline: 2px solid #ffd0a8; outline-offset: 2px; }
+/* Placa dourada (campeão, destaque raro). */
+.vb-jogo-placa { display: grid; justify-items: center; padding: 5px 14px 6px; border-radius: 11px; background: linear-gradient(180deg, #3b2a12f2, #1c140af2); border: 1px solid #ffd16699; box-shadow: inset 0 1px 0 #fff3c255, 0 3px 0 #000a, 0 0 18px #ffc94a55; }
+/* Cor do nível (Bronze, Prata, Ouro, Diamante): só no ícone, na borda ou no texto pequeno. */
+.vb-n1 { --vb-nivel: var(--vb-n1); } .vb-n2 { --vb-nivel: var(--vb-n2); } .vb-n3 { --vb-nivel: var(--vb-n3); } .vb-n4 { --vb-nivel: var(--vb-n4); }
+/* Dica ao passar o mouse ou focar: data-dica="…" em qualquer linha. */
+.vb-jogo-dica { position: relative; }
+.vb-jogo-dica[data-dica]::after { content: attr(data-dica); position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px); z-index: 5; padding: 8px 10px; border-radius: 10px; background: #05060af2; border: 1px solid #ffffff1f; box-shadow: 0 8px 20px #000a; color: #fff; font: 600 12px/1.4 var(--mac-ui); opacity: 0; translate: 0 4px; pointer-events: none; transition: opacity .15s, translate .15s var(--curva); }
+.vb-jogo-dica[data-dica]:is(:hover, :focus-visible)::after { opacity: 1; translate: 0 0; }

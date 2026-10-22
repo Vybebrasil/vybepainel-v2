@@ -113,3 +113,45 @@ test('Copa Vybe: o 1º do mês leva a taça da Copa, o título e o prêmio; 2º 
  assert.equal(await sql.comTransacao(tx=>fecharCopaMes(tx,MES)),null,'não paga de novo');
  assert.equal((await sql`SELECT raridade FROM vybe_escritorio_catalogo WHERE classe='fball_trophy'`)[0].raridade,'epico');
 });
+
+test('Geral pelo XP do trabalho: quem produz mais vence; a Gestão aparece fora da disputa',async t=>{
+ const {db,sql}=await banco(t);
+ await sql`UPDATE vybe_escritorio_regras SET ativa=false WHERE chave IN ('dia_sem_furo','dia_agendamento','dia_sem_vencida','dia_ativo')`;
+ const AGORA=new Date(), SEG=inicioDaSemana(diaBahia(AGORA));
+ // Reriston (2) 3 peças pequenas; Jady (6) 1 peça que vale 100 XP; Paulo (1, Gestão) 1 peça grande.
+ let id=7000;
+ for(let k=0;k<3;k++) await peca(db,sql,2,id++,SEG,20);
+ await peca(db,sql,6,id++,SEG,100);
+ await sql`INSERT INTO vybe_escritorio_funcoes(pessoa_id,funcao) VALUES(1,'gestao') ON CONFLICT (pessoa_id) DO UPDATE SET funcao='gestao'`;
+ await peca(db,sql,1,id++,SEG,500);
+ const r=await rankingDaSemana(sql,AGORA,SEG);
+ const com=r.pessoas.filter(p=>p.entregas>0);
+ assert.equal(com[0].id,'1','a Gestão aparece no topo do XP');
+ assert.equal(com[0].posicao,null,'mas fica fora da disputa');
+ assert.ok(com[0].foraDaDisputa);
+ assert.deepEqual(r.pessoas.filter(p=>p.posicao).map(p=>[p.id,p.posicao]),[['6',1],['2',2]],'Jady (100 XP) passa Reriston (60 XP)');
+});
+
+test('Copa refeita pela regra nova: tira tudo do pódio antigo e paga o novo, sem saldo negativo',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(`ALTER TABLE vybe_escritorio_raridades DROP CONSTRAINT IF EXISTS vybe_escritorio_raridades_chave_check; INSERT INTO vybe_escritorio_raridades(chave,nome,ordem,preco) VALUES('epico','Épico',5,100) ON CONFLICT DO NOTHING;`);
+ for(const f of ['2026-10-20-escritorio-conquistas-niveis.sql','2026-10-20-escritorio-conquistas-producao.sql','2026-10-21-escritorio-conquistas-dificeis.sql','2026-10-21-escritorio-copa.sql']) await db.exec(ler(f));
+ await sql`UPDATE vybe_escritorio_regras SET ativa=false WHERE chave IN ('dia_sem_furo','dia_agendamento','dia_sem_vencida','dia_ativo')`;
+ const {fecharCopaMes,refazerCopaMes,mesAnterior}=await import('../server/escritorio-pontos.js');
+ const MES=mesAnterior(diaBahia(new Date()));
+ let id=9000;
+ for(const [p,n] of [[2,3],[6,1],[7,1]]) for(let k=0;k<n;k++) await peca(db,sql,p,id++,somarDias(MES,3+k),20);
+ await sql.comTransacao(tx=>fecharCopaMes(tx,MES));
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_inventario WHERE pessoa_id=2 AND classe='fball_trophy'`)[0].n,1);
+ // A Jady faz uma peça grande no mês: pela regra de agora ela passa a ganhar.
+ await peca(db,sql,6,id++,somarDias(MES,10),500);
+ const r=await sql.comTransacao(tx=>refazerCopaMes(tx,MES));
+ assert.equal(r.desfeitos.length,3);
+ assert.equal(r.novo.pagos[0].id,'6');
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_inventario WHERE pessoa_id=2 AND classe='fball_trophy'`)[0].n,0,'a taça sai de quem perdeu');
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_inventario WHERE pessoa_id=6 AND classe='fball_trophy'`)[0].n,1);
+ const t1=await sql`SELECT pessoa_id FROM vybe_escritorio_marcos WHERE marco LIKE 'copa_%'`;
+ assert.deepEqual(t1.map(x=>String(x.pessoa_id)),['6'],'o título fica com o novo campeão');
+ const [c]=await sql`SELECT sum(saldo)::int s FROM vybe_escritorio_carteiras`; const [m]=await sql`SELECT sum(quantidade)::int s FROM vybe_escritorio_moedas`;
+ assert.equal(c.s,m.s,'saldo bate com o razão');
+});

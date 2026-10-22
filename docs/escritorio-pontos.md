@@ -542,8 +542,11 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
 
 - "Sentindo falta do da Copa do Mundo" (o Deivid queria a taça) e "dá pra
   criar uma mecânica?": a taça da Copa (`fball_trophy`, épica, nunca à venda)
-  é o prêmio do campeão do mês, o 1º do ranking Geral do mês (% da própria
-  meta). O campeão leva a taça, o título "Campeão da Copa · <mês>" (marco
+  é o prêmio do campeão do mês, o 1º do ranking Geral do mês. Desde
+  21/10/2026 o Geral é o XP do trabalho no período (o XP já pesa o papel na
+  peça e o formato); a Gestão aparece, mas fica fora do pódio e da Copa, e o
+  % da própria meta virou a categoria Superação. Setembro foi refeito pela
+  regra nova. O campeão leva a taça, o título "Campeão da Copa · <mês>" (marco
   `copa_AAAA_MM:1`, vale como Diamante) e 150 moedas e 300 XP; 2º e 3º levam
   as taças clássicas de prata e bronze (60/120 e 30/60). Fecha no ciclo
   diário (`fecharCopaMes`), uma vez por mês; o primeiro foi setembro.

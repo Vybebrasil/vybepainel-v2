@@ -935,8 +935,8 @@ function trocaChegouEscritorio(id, v) {
   carregarTrocasEscritorio(true);
 }
 
-// Ranking da semana (Paulo, 20/10/2026: competição saudável). Geral pelo % da
-// própria meta, XP da semana, por atividade e a meta da agência; prêmios do
+// Ranking da semana (Paulo, 20/10/2026: competição saudável). Geral pelo XP do
+// trabalho desde 21/10/2026 (o % da meta virou Superação), por atividade e a meta da agência; prêmios do
 // pódio e o resultado da semana passada. Tudo vem do servidor (rota ranking).
 // Ranking 2 (Paulo, 21/10/2026: "um ranking visualmente FODA, com várias
 // categorias, do dia, da semana, do mês e total"). Um período por vez (o
@@ -1010,7 +1010,8 @@ function rkCategorias(d) {
   return [
     geralTotal
       ? { k: "geral", nome: "Nível", icone: "geral", valor: (p) => p.xpTotal || 0, fmt: (v, p) => `Nível ${p.nivel}`, sub: (p) => `${Number(p.xpTotal || 0).toLocaleString("pt-BR")} XP no total`, dica: "Desde sempre: vale o XP de todo o trabalho." }
-      : { k: "geral", nome: "Geral", icone: "geral", valor: (p) => (p.entregas ? p.pct : 0), fmt: (v) => `${v}%`, sub: (p) => `${p.entregas} entregas ÷ meta ${p.meta}`, dica: "A ordem é pelo % da própria meta: as entregas do período divididas pela meta de cada um (a média das suas entregas nas últimas 8 semanas). Assim Criação, Produção, Atendimento e Gestão competem por igual. Empate: quem tem mais XP." },
+      : { k: "geral", nome: "Geral", icone: "geral", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.pct}% da própria meta`, dica: "A ordem é pelo XP do trabalho no período: cada peça vale pelo seu papel nela (quem fez leva o valor inteiro, o head um quarto, quem postou e o DA um pouco) e pelo tamanho do formato (um impresso vale 4 cards), mais prazo, aprovação de primeira e briefings. Quem produz mais sobe. A Gestão aparece, mas fica fora da disputa do pódio e da Copa." },
+    { k: "superacao", nome: "Superação", icone: "sequencia", valor: (p) => (p.entregas ? p.pct : 0), fmt: (v) => `${v}%`, sub: (p) => `${p.entregas} entregas ÷ meta ${p.meta}`, dica: "A ordem é por quem mais superou o próprio ritmo: as entregas do período divididas pela meta de cada um (a média das suas entregas nas últimas 8 semanas). Bom para ver quem está melhorando; não decide pódio nem Copa." },
     { k: "xp", nome: "XP", icone: "xp", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.moedas} moedas`, dica: "A ordem é pelo XP ganho trabalhando no período: peças, prazo, aprovação de primeira, briefings e ações no painel. Conquistas e prêmios do ranking não contam." },
     { k: "moedas", nome: "Moedas", icone: "moedas", valor: (p) => p.moedas, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => `${p.xp} XP`, dica: "A ordem é pelas moedas ganhas trabalhando no período (sem compras, conquistas e prêmios). Peça maior vale mais: um impresso vale 4 cards." },
     { k: "entregas", nome: "Volume", icone: "entregas", valor: (p) => p.entregas, fmt: (v) => `${v}`, sub: (p) => (geralTotal ? "entregas" : `meta ${p.meta}`), dica: "A ordem é pelo número de entregas no período, de qualquer tipo, sem olhar a meta: quem fez mais coisas." },
@@ -1019,6 +1020,16 @@ function rkCategorias(d) {
     atv("peca_da", "Direção de arte"), atv("briefing", "Briefings"), atv("entrega_prazo", "No prazo"), atv("criacao_aprovada", "De primeira"),
     atv("peca_gestao", "Peças da agência"), atv("acao_painel", "No painel"),
   ];
+}
+// Quantos de cada formato (Paulo, 21/10/2026: "passar o mouse em Peça feita
+// por você e mostrar quantos cards, carrosséis…").
+const RK_FORMATOS = { card: ["card", "cards"], feed: ["feed", "feeds"], post: ["post", "posts"], carrossel: ["carrossel", "carrosséis"], reels: ["reels", "reels"],
+  story: ["story", "stories"], stories: ["story", "stories"], fotografia: ["foto", "fotos"], foto: ["foto", "fotos"], video: ["vídeo", "vídeos"], "vídeo": ["vídeo", "vídeos"],
+  motion: ["motion", "motions"], impresso: ["impresso", "impressos"], avulso: ["avulso", "avulsos"], outro: ["outro", "outros"] };
+function rkFormatosTexto(f) {
+  const l = Object.entries(f || {}).sort((a, b) => b[1] - a[1]);
+  if (!l.length || (l.length === 1 && l[0][0] === "outro")) return "";
+  return l.map(([k, n]) => { const par = RK_FORMATOS[k]; return `${n} ${par ? par[n === 1 ? 0 : 1] : k}`; }).join(" · ");
 }
 // O porquê de cada posição (Paulo, 21/10/2026: "não pode ter dúvida do
 // porquê no ranking"): o que mais somou para a pessoa na categoria.
@@ -1034,9 +1045,9 @@ const RK_NOMES_CURTOS = {
 function rkPorque(cat, p, d) {
   const curto = (k, n = 2) => { const par = RK_NOMES_CURTOS[k]; return par ? par[n === 1 ? 0 : 1] : String(d.regras?.[k] || k).replace(/ \(.*\)$/, "").toLowerCase(); };
   const top = (obj, n, fmt) => Object.entries(obj || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => fmt(k, v)).join(" · ");
-  if (cat.k === "geral" && d.periodo === "total") return `${Number(p.xpTotal || 0).toLocaleString("pt-BR")} XP somados desde o começo`;
-  if (cat.k === "geral" || cat.k === "entregas") return top(p.porRegra, 3, (k, v) => `${v} ${curto(k, v)}`) || "nenhuma entrega no período";
-  if (cat.k === "xp" || cat.k === "moedas") return top(p.xpPor, 3, (k, v) => `+${v} XP de ${curto(k)}`) || "nada no período";
+  if (d.periodo === "total") return "";
+  if (cat.k === "superacao" || cat.k === "entregas") return top(p.porRegra, 3, (k, v) => `${v} ${curto(k, v)}`) || "nenhuma entrega no período";
+  if (cat.k === "geral" || cat.k === "xp" || cat.k === "moedas") return top(p.xpPor, 3, (k, v) => `+${v.toLocaleString("pt-BR")} XP de ${curto(k)}`) || "nada no período";
   if (cat.k === "sequencia") return p.sequencia > 0 ? `entregou em ${p.sequencia} ${p.sequencia === 1 ? "dia útil" : "dias úteis seguidos"}` : "sem entrega hoje nem ontem";
   return "";
 }
@@ -1057,6 +1068,7 @@ function rkEixo(d) {
   return dias;
 }
 function rkSeta(p) {
+  if (escritorioRanking.periodo === "total") return "";
   if (!p.posicao || !p.antes) return p.posicao && !p.antes ? '<span class="rk2-seta novo" title="Entrou no ranking">novo</span>' : "";
   const n = p.antes - p.posicao;
   if (!n) return '<span class="rk2-seta igual" title="Mesma posição do período anterior">=</span>';
@@ -1094,13 +1106,13 @@ function pintarRankingEscritorio() {
   // as cinco principais em cartões com o líder; as de atividade em chips que
   // quebram linha, só as que alguém pontuou. A sua posição só na escolhida.
   const escolher = (k) => `onclick="escritorioRanking.aba='${k}';escritorioRanking.aberto=null;pintarRankingEscritorio()"`;
-  const PRINCIPAIS = ["geral", "xp", "moedas", "entregas", "sequencia"];
+  const PRINCIPAIS = ["geral", "superacao", "moedas", "entregas", "sequencia"];
   const cartoes = cats.filter((c) => PRINCIPAIS.includes(c.k)).map((c) => {
-    const ord = ordenar(c).filter((x) => x.v > 0), lider = ord[0], minha = ord.findIndex((x) => x.p.id === eu);
+    const ord = ordenar(c).filter((x) => x.v > 0 && !(c.k === "geral" && d.periodo !== "total" && x.p.foraDaDisputa)), lider = ord[0], minha = ord.findIndex((x) => x.p.id === eu);
     return `<button type="button" class="rk2-camp${aba === c.k ? " ativo" : ""}${lider?.p.id === eu ? " meu" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || "")}" ${escolher(c.k)}>
       <span class="rk2-camp-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-camp-txt"><small>${safeText(c.nome)}</small>${lider ? `<b>${safeText(nome(lider.p))}</b><em>${safeText(c.fmt(lider.v, lider.p))}</em>` : "<b>—</b>"}</span>${lider ? rosto(lider.p.id, 26) : ""}${aba === c.k && minha > 0 ? `<i class="rk2-camp-eu">você ${minha + 1}º</i>` : ""}</button>`;
   }).join("");
-  const chipsAtv = [...cats.filter((c) => !PRINCIPAIS.includes(c.k)).map((c) => {
+  const chipsAtv = [...cats.filter((c) => !PRINCIPAIS.includes(c.k) && c.k !== "xp").map((c) => {
     const lider = ordenar(c).find((x) => x.v > 0);
     return lider ? `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || `Quem mais fez: ${c.nome.toLowerCase()}`)}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-chip-txt">${safeText(c.nome)}</span>${rosto(lider.p.id, 18)}</button>` : "";
   }), ...extra.map((c) => `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span>${c.nome}${c.k === "agencia" ? `<b>${d.agencia.pct}%</b>` : ""}</button>`)].join("");
@@ -1111,26 +1123,28 @@ function pintarRankingEscritorio() {
     const contou = Object.entries(p.porRegra || {}).sort((a, b) => b[1] - a[1]);
     const xp = Object.entries(p.xpPor || {}).sort((a, b) => b[1] - a[1]);
     const ritmo = rkRitmo(d, p, Math.max(1, ...d.pessoas.flatMap((q) => (q.ritmo || []).map(([, v]) => v))));
-    return `<div class="ofc-rk-detalhe">${ritmo ? `<div class="ofc-rk-det-col largo rk2-det-ritmo"><h5>Ritmo do XP <small>${per === "total" ? "por semana" : "por dia"}</small></h5>${ritmo}</div>` : ""}<div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} no período${per === "total" ? "" : ` · meta ${p.meta}`}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n}</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega no período ainda.</p>'}</div>
-<div class="ofc-rk-det-col"><h5>De onde veio o XP <small>${p.xp} XP</small></h5>${xp.length ? `<ul class="ofc-rk-det-lista">${xp.map(([k, n]) => `<li><span>${regra(k)}</span><b>${n > 0 ? "+" : ""}${n} XP</b></li>`).join("")}</ul>` : '<p class="ofc-nota">Nada ainda.</p>'}</div>
+    return `<div class="ofc-rk-detalhe">${ritmo ? `<div class="ofc-rk-det-col largo rk2-det-ritmo"><h5>Ritmo do XP <small>${per === "total" ? "por semana" : "por dia"}</small></h5>${ritmo}</div>` : ""}<div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} no período${per === "total" ? "" : ` · meta ${p.meta}`}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => { const dica = rkFormatosTexto(p.formatos?.[k]); return `<li${dica ? ` class="vb-jogo-dica" tabindex="0" data-dica="${safeText(dica)}"` : ""}><span>${regra(k)}</span><b>${n}</b></li>`; }).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega no período ainda.</p>'}</div>
+<div class="ofc-rk-det-col"><h5>De onde veio o XP <small>${p.xp} XP</small></h5>${xp.length ? `<ul class="ofc-rk-det-lista">${xp.map(([k, n]) => { const vezes = Number(p.atividades?.[k] || 0), f = rkFormatosTexto(p.formatos?.[k]); const dica = [vezes ? `${vezes.toLocaleString("pt-BR")} ${vezes === 1 ? "vez" : "vezes"}${vezes > 1 ? ` · média de ${Math.round(n / vezes)} XP por vez` : ""}` : "", f].filter(Boolean).join(" · "); return `<li${dica ? ` class="vb-jogo-dica" tabindex="0" data-dica="${safeText(dica)}"` : ""}><span>${regra(k)}</span><b>${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR")} XP</b></li>`; }).join("")}</ul>` : '<p class="ofc-nota">Nada ainda.</p>'}</div>
 ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${p.pecas.length < p.entregas ? `as ${p.pecas.length} mais recentes` : "do período"}</small></h5><ul class="ofc-rk-det-pecas">${p.pecas.map((x) => `<li><time>${dataBr(x.dia)}</time><span><b>${safeText(x.titulo || "Sem título")}</b>${x.cliente ? `<small>${safeText(x.cliente)}</small>` : ""}</span><em>${regra(x.regra).replace(/ \(.*\)$/, "")}</em></li>`).join("")}</ul></div>` : ""}</div>`;
   };
   let corpo = "", voceFixa = "";
   if (cat) {
-    const ord = ordenar(cat), vivos = ord.filter((x) => x.v > 0);
-    const max = Math.max(1, vivos[0]?.v || 1), geral = cat.k === "geral";
-    // Posição e seta só no Geral (é o que o período anterior compara).
-    const posDe = (x, i) => (x.v > 0 ? i + 1 : null);
+    const geral = cat.k === "geral", fora = (x) => geral && per !== "total" && x.p.foraDaDisputa;
+    const ord0 = ordenar(cat), vivos = ord0.filter((x) => x.v > 0 && !fora(x));
+    // Quem disputa primeiro; quem está fora da disputa (a Gestão) vem no fim.
+    const ord = [...ord0.filter((x) => !fora(x)), ...ord0.filter(fora)];
+    const max = Math.max(1, ...ord0.map((x) => x.v), 1);
+    const posDe = (x) => (fora(x) ? null : vivos.indexOf(x) + 1 || null);
     const eu_ = ord.find((x) => x.p.id === eu), minha = ord.findIndex((x) => x.p.id === eu);
     let dica = "";
     if (eu_) {
       const acima = ord[minha - 1];
       if (minha === 0 && eu_.v > 0) dica = `Você lidera ${geral ? "o período" : `em ${cat.nome}`}. Segure o 1º lugar.`;
-      else if (acima && geral && per !== "total") { const precisa = Math.max(1, Math.floor((acima.p.pct * eu_.p.meta) / 100) + 1 - eu_.p.entregas); dica = `Faltam <b>${precisa} ${precisa === 1 ? "entrega" : "entregas"}</b> para passar ${safeText(nome(acima.p))}.`; }
+      else if (fora(eu_)) dica = "A Gestão aparece no ranking, mas fica fora da disputa do pódio e da Copa.";
       else if (acima) dica = `Faltam <b>${safeText(cat.fmt(Math.max(1, acima.v - eu_.v + 1), acima.p))}</b> para passar ${safeText(nome(acima.p))}.`;
       else dica = "Entregue para entrar neste ranking.";
     }
-    const voce = eu_ ? `<section class="rk2-voce rk2-voce-fixa" aria-label="Sua posição"><div class="rk2-voce-pos"><b>${eu_.v > 0 ? minha + 1 + "º" : "—"}</b>${geral ? rkSeta(eu_.p) : ""}</div>${rosto(eu_.p.id, 46)}<div class="rk2-voce-txt"><b>Você · <span data-vb-contar="${Number(eu_.v)}" data-vb-chave="rk-${per}-${cat.k}">${safeText(cat.fmt(eu_.v, eu_.p))}</span></b><small>${safeText(cat.sub(eu_.p))}${eu_.p.sequencia > 1 ? ` · ${eu_.p.sequencia} dias seguidos entregando` : ""}</small><p>${dica} <button type="button" class="ofc-rk-link" onclick="verMinhaLinhaRankingEscritorio()">Ver o que contou</button></p></div>${geral && per !== "total" ? `<span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.p.pct)}" aria-hidden="true"><i>${eu_.p.pct}%</i></span>` : ""}</section>` : "";
+    const voce = eu_ ? `<section class="rk2-voce rk2-voce-fixa" aria-label="Sua posição"><div class="rk2-voce-pos"><b>${posDe(eu_) ? posDe(eu_) + "º" : "—"}</b>${geral ? rkSeta(eu_.p) : ""}</div>${rosto(eu_.p.id, 46)}<div class="rk2-voce-txt"><b>Você · <span data-vb-contar="${Number(eu_.v)}" data-vb-chave="rk-${per}-${cat.k}">${safeText(cat.fmt(eu_.v, eu_.p))}</span></b><small>${safeText(cat.sub(eu_.p))}${eu_.p.sequencia > 1 ? ` · ${eu_.p.sequencia} dias seguidos entregando` : ""}</small><p>${dica} <button type="button" class="ofc-rk-link" onclick="verMinhaLinhaRankingEscritorio()">Ver o que contou</button></p></div>${geral && per !== "total" ? `<span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.p.pct)}" aria-hidden="true"><i>${eu_.p.pct}%</i></span>` : ""}</section>` : "";
     const tres = vivos.slice(0, 3);
     const podio = tres.length ? `<div class="rk2-podio">${[tres[1], tres[0], tres[2]].filter(Boolean).map((x) => { const pos = tres.indexOf(x) + 1, pr = geral && per === "semana" ? premio("ranking_" + pos) : null;
       return `<button type="button" data-pid="${x.p.id}" class="rk2-degrau p${pos}${x.p.id === eu ? " eu" : ""}" style="--atraso:${[0, 0.15, 0, 0.3][pos]}s" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" aria-label="${pos}º lugar: ${safeText(nome(x.p))}, ${safeText(cat.fmt(x.v, x.p))}">
@@ -1138,11 +1152,11 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
         <div class="ofc-rk-figura">${escritorioRankingBoneco(x.p.id, pos === 1 ? "wav" : "std") || rosto(x.p.id, 56)}${pr ? escritorioRankingTrofeu(pr.classe) : ""}<span class="rk2-selo" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></div>
         <b class="ofc-rk-dnome">${safeText(nome(x.p))}${x.p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor" data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</span><small>${safeText(cat.sub(x.p))}${geral ? " " + rkSeta(x.p) : ""}</small>${rkPorque(cat, x.p, d) ? `<span class="rk2-porque">${safeText(rkPorque(cat, x.p, d))}</span>` : ""}
         <div class="rk2-bloco"><span>${pos}º</span></div>${pr ? `<em class="rk2-premio" title="Prêmio no fechamento da semana">+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</button>`; }).join("")}</div>` : vbEstadoHtml({ titulo: "Ninguém pontuou aqui ainda", texto: "O primeiro a entregar abre o pódio." });
-    const lista = ord.length > tres.length ? `<ol class="rk2-lista">${ord.slice(tres.length).map((x, k) => { const pos = posDe(x, tres.length + k);
+    const lista = ord.length > tres.length ? `<ol class="rk2-lista">${ord.slice(tres.length).map((x, k) => { const pos = posDe(x);
       return `<li data-pid="${x.p.id}" class="${x.p.id === eu ? "eu" : ""}${escritorioRanking.aberto === x.p.id ? " aberto" : ""}" style="--i:${k}" role="button" tabindex="0" aria-expanded="${escritorioRanking.aberto === x.p.id}" onclick="abrirDetalheRankingEscritorio('${x.p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalheRankingEscritorio('${x.p.id}')}">
-        <span class="rk2-pos">${pos ? pos + "º" : "—"}${geral ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome">${(() => { const t = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(x.p.id))?.titulo; return `<b>${safeText(nome(x.p))}${t?.texto ? `<em class="mapa-titulo rk2-titulo n${Number(t.nivel) || 1}"><i aria-hidden="true"></i><span>${safeText(t.texto)}</span></em>` : ""}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}${rkPorque(cat, x.p, d) ? ` · <span class="rk2-porque">${safeText(rkPorque(cat, x.p, d))}</span>` : ""}</small>`; })()}</span>
+        <span class="rk2-pos">${pos ? pos + "º" : fora(x) ? '<small class="rk2-fora" title="A Gestão fica fora da disputa do pódio e da Copa">fora</small>' : "—"}${geral && per !== "total" ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome">${(() => { const t = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(x.p.id))?.titulo; return `<b>${safeText(nome(x.p))}${t?.texto ? `<em class="mapa-titulo rk2-titulo n${Number(t.nivel) || 1}"><i aria-hidden="true"></i><span>${safeText(t.texto)}</span></em>` : ""}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}${rkPorque(cat, x.p, d) ? ` · <span class="rk2-porque">${safeText(rkPorque(cat, x.p, d))}</span>` : ""}</small>`; })()}</span>
         <span class="rk2-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, (x.v / max) * 100))}%"></i></span><span class="rk2-valor"><b data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</b><small>${safeText(cat.sub(x.p))}</small></span></li>${escritorioRanking.aberto === x.p.id ? `<li class="ofc-rk-det-li">${detalhe(x.p)}</li>` : ""}`; }).join("")}</ol>` : "";
-    const copaMes = per === "mes" && geral ? `<div class="rk2-copa">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="" width="44" height="50">` : ""}<span><b>Copa Vybe de ${safeText(new Date((d.inicio || hoje) + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }))}</b><small>O 1º do Geral no fim do mês leva a taça da Copa (épica), o título "Campeão da Copa" e ${(() => { const r = d.premios?.find((x) => x.chave === "copa_1"); return r ? `+${r.moedas} moedas · +${r.pontos} XP` : "o prêmio"; })()}. 2º e 3º levam as taças de prata e bronze. ${safeText(fecha)}.</small></span></div>` : "";
+    const copaMes = per === "mes" && geral ? `<div class="rk2-copa">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="" width="44" height="50">` : ""}<span><b>Copa Vybe de ${safeText(new Date((d.inicio || hoje) + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }))}</b><small>Quem tiver mais XP do trabalho no fim do mês (fora a Gestão) leva a taça da Copa (épica), o título "Campeão da Copa" e ${(() => { const r = d.premios?.find((x) => x.chave === "copa_1"); return r ? `+${r.moedas} moedas · +${r.pontos} XP` : "o prêmio"; })()}. 2º e 3º levam as taças de prata e bronze. ${safeText(fecha)}.</small></span></div>` : "";
     corpo = `<div class="rk2-duas"><div class="rk2-meio">${copaMes}<p class="rk2-regra"><b>Por que essa ordem?</b> ${safeText(cat.dica || "")}</p>${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}</div>${lista ? `<div class="rk2-direita">${lista}</div>` : ""}</div>`;
     voceFixa = voce;
   } else if (aba === "tesouros") {
