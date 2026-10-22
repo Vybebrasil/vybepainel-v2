@@ -390,9 +390,13 @@ test("resposta atrasada não reabre o escritório depois de sair", async () => {
 // só para quem não preferiu abrir no painel.
 function inicioDoEscritorio({ celular = false, preferencia = null, entrada }) {
   const trocas = [];
+  // Classes do body: "abrindo-escritorio" esconde o painel de trabalho só durante a espera.
+  const classes = new Set();
+  const body = { style: { setProperty() {} }, classList: { add: (n) => classes.add(n), remove: (n) => classes.delete(n), contains: (n) => classes.has(n) } };
   const c = vm.createContext({
     window: { addEventListener() {}, matchMedia: () => ({ matches: celular }) },
-    document: { getElementById: () => null },
+    document: { getElementById: () => null, body },
+    setTimeout: () => 0,
     location: { search: "" },
     URLSearchParams,
     localStorage: { getItem: () => preferencia, setItem() {} },
@@ -406,7 +410,7 @@ function inicioDoEscritorio({ celular = false, preferencia = null, entrada }) {
   c.entrada = entrada;
   c.trocas = trocas;
   vm.runInContext("var activeBoard='producao';escritorioApi=()=>entrada;voltarAoEscritorio=()=>trocas.push('escritorio');", c);
-  return { c, trocas };
+  return { c, trocas, classes };
 }
 const baseConfigurada = () => Promise.resolve({ eu: "1", worker: "https://w.test", equipe: [{ id: "1", nome: "Bia Santos", perfil: { sala: "foco" } }], salas: [{ id: "sala-4", dono: "Bia", pessoa_id: "1" }] });
 
@@ -422,9 +426,10 @@ test("recarga aplica planta e acabamento do perfil salvo antes de montar o quart
 });
 
 test("computador abre no escritório configurado", async () => {
-  const { c, trocas } = inicioDoEscritorio({ entrada: baseConfigurada() });
+  const { c, trocas , classes } = inicioDoEscritorio({ entrada: baseConfigurada() });
   await c.iniciarNoEscritorio();
   assert.deepEqual(trocas, ["escritorio"]);
+  assert.ok(!classes.has("abrindo-escritorio"));
   // Chega sentada na própria sala (Sala de Bia) e a conversa é a dela.
   assert.equal(vm.runInContext("escritorioMinhaMesa().ambiente.nome", c), "Sala de Bia");
   assert.equal(vm.runInContext("escritorio.sala", c), vm.runInContext("escritorioMinhaMesa().ambiente.sala", c));
@@ -436,9 +441,12 @@ test("celular ou escritório sem configuração seguem no painel", async () => {
     { entrada: Promise.resolve({ eu: "1", worker: null, aviso: "Sem configuração", equipe: [] }) },
     { entrada: Promise.reject(new Error("falhou")) },
   ]) {
-    const { c, trocas } = inicioDoEscritorio(caso);
-    await c.iniciarNoEscritorio();
+    const { c, trocas , classes } = inicioDoEscritorio(caso);
+    const espera = c.iniciarNoEscritorio();
+    if (!caso.celular) assert.ok(classes.has("abrindo-escritorio"), "esconde o painel enquanto pergunta");
+    await espera;
     assert.deepEqual(trocas, [], JSON.stringify(caso));
+    assert.ok(!classes.has("abrindo-escritorio"), "sem Escritório, o painel volta a aparecer");
   }
 });
 
@@ -1491,4 +1499,35 @@ test("tela de entrada observa quem está no escritório sem aparecer, sem voz e 
   await room.webSocketMessage(paulo, JSON.stringify({ type: "presence:move", payload: { sala: "criacao", x: 30, y: 40 } }));
   assert.equal(paulo.a.sala, undefined, "não se move");
   assert.equal(room.naZona("").length + room.naZona(undefined).length <= 1, true);
+});
+
+// Entrada leve (22/10/2026): a Vybelândia não toca vídeo em lugar nenhum (o
+// vídeo em loop travava o painel); computador simples é reconhecido; o mapa
+// coberto pela entrada para de animar, mas a vitrine dentro dela continua.
+test("Vybelândia: cidade sempre parada, sem vídeo, e mapa parado quando coberto", () => {
+  const cena = (navigator, cobertura = null) => {
+    const c = vm.createContext({
+      navigator, safeText: (v) => String(v), window: { matchMedia: () => ({ matches: false }) },
+      document: { hidden: false, getElementById: () => null, querySelector: (s) => (s.includes(".ofc-lobby") ? cobertura : null) },
+    });
+    vm.runInContext(readFileSync("vybe-escritorio-abertura.js", "utf8").split("// Criador de personagem")[0], c);
+    vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8").match(/function mapaForaDeVista[\s\S]*?\n}\n/)[0], c);
+    return c;
+  };
+  const forte = cena({ hardwareConcurrency: 8, deviceMemory: 8 });
+  for (const modo of ["", "\"imagem\"", "\"parada\"", "true"]) assert.doesNotMatch(vm.runInContext(`vybelandiaCenaHtml(${modo})`, forte), /<video/);
+  assert.match(vm.runInContext("vybelandiaCenaHtml()", forte), /^<img class="abr-cena" src="\/assets\/vybelandia.webp"/);
+  assert.match(vm.runInContext("vybelandiaCenaHtml(\"parada\")", forte), /^<img class="abr-cena parada"/);
+  assert.equal(vm.runInContext("vybeAparelhoLeve()", forte), false);
+  assert.equal(vm.runInContext("vybeAparelhoLeve()", cena({ hardwareConcurrency: 4 })), true);
+  assert.equal(vm.runInContext("vybeAparelhoLeve()", cena({ hardwareConcurrency: 8, connection: { saveData: true } })), true);
+
+  const mapa = (dentroDaEntrada) => ({ isConnected: true, offsetParent: {}, closest: () => (dentroDaEntrada ? {} : null) });
+  const coberta = cena({}, {});
+  coberta.m = mapa(false); coberta.v = mapa(true);
+  assert.equal(vm.runInContext("mapaForaDeVista(m)", coberta), true, "mapa por trás da entrada para");
+  assert.equal(vm.runInContext("mapaForaDeVista(v)", coberta), false, "a vitrine dentro da entrada anima");
+  const aberta = cena({});
+  aberta.m = mapa(false);
+  assert.equal(vm.runInContext("mapaForaDeVista(m)", aberta), false, "sem entrada, o mapa anima");
 });

@@ -5580,6 +5580,11 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
   background:rgba(255,69,89,.28);color:#fff;outline:2px solid #ff4559;outline-offset:1px}
 
 body.auth-pending > :not(#login-gate):not(script):not(style) { display: none !important; }
+/* Computador que abre no Escritório (iniciarNoEscritorio): enquanto o servidor
+   responde, a cidade no lugar da tela de trabalho, sem o painel de demandas
+   piscar antes. Some sozinha em até 8 s. */
+body.abrindo-escritorio { background: #05060a var(--vybelandia-abrindo, none) center / cover no-repeat; }
+body.abrindo-escritorio > :is(.app-header, .container, #mode-gate) { visibility: hidden; }
 
 .dia-demanda-tag{border:1px solid #38bdf866;background:#0c4a6e55;color:#7dd3fc;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0}
 
@@ -7707,8 +7712,10 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-editor select {border-radius:var(--jg-raio-p);background:#0c0e15;box-shadow:inset 0 1px 3px #0009}
 
 /* Cartões flutuantes (sala atual, quem está onde, missões, cobranças, música,
-   conversa) e o dock: o mesmo vidro com relevo. */
-.ofc-sala-atual, .ofc-missoes, .ofc-musica, .office-call, .ofc-dock, .ofc-zoom, .ofc-info-card, .ofc-mesa-card {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634eb,#191b26eb);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:blur(14px)}
+   conversa) e o dock: o mesmo vidro com relevo. Fundo quase opaco e sem
+   desfoque: o desfoque por cima do mapa animado era refeito a cada quadro
+   e travava computador simples (22/10/2026). */
+.ofc-sala-atual, .ofc-missoes, .ofc-musica, .office-call, .ofc-dock, .ofc-zoom, .ofc-info-card, .ofc-mesa-card {border:1px solid var(--jg-borda-forte);background:linear-gradient(180deg,#232634eb,#191b26eb);box-shadow:var(--jg-relevo),var(--jg-sombra);backdrop-filter:none;-webkit-backdrop-filter:none}
 /* Barra do jogo como barra de atalhos (21/10/2026, "cara de joguinho"):
    volume com o degrau de baixo, botões da mesma altura e o toque que afunda. */
 .ofc-dock {gap:4px;border-radius:20px;padding:6px;background:var(--jg-painel);border-color:var(--jg-borda-forte);box-shadow:var(--jg-relevo),0 4px 0 #0a0b10,0 18px 40px #0009}
@@ -10189,7 +10196,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 /* Topo: placa do jogador e recursos */
 .lg-topo {grid-area:topo;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"jogador recursos" "jogador noticias";align-items:start;gap:10px 16px}
 .lg-topo > .lg-jogador {grid-area:jogador}.lg-topo > .lg-recursos {grid-area:recursos;justify-self:end}.lg-topo > .lg-noticias {grid-area:noticias;justify-self:end;width:min(640px,100%);margin:0}
-.lg-jogador {--dy:-18px;display:flex;align-items:center;gap:14px;padding:10px 18px 10px 10px;border-radius:18px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 5px 0 var(--degrau),0 18px 40px #0008}
+.lg-jogador {--dy:-18px;display:flex;align-items:center;gap:14px;padding:10px 18px 10px 10px;border-radius:18px;background:var(--vidro);border:1px solid var(--borda-vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 5px 0 var(--degrau),0 18px 40px #0008}
 .lg-anel {--p:0;position:relative;flex:none;display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:conic-gradient(#ffc35c,#ff8a1f calc(var(--p) * 1%),#ffffff1a 0)}
 .lg-anel::before {content:"";position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#3a3f52,#1b1e29)}
 .lg-anel img {position:relative;width:56px;height:56px;object-fit:cover;object-position:center 28%;image-rendering:pixelated;border-radius:50%}
@@ -10204,7 +10211,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-xp i::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffffa0 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 2.8s var(--curva,ease) infinite}
 .lg-jogador-txt em {color:#b7bccb;font:600 10.5px var(--mac-ui);font-style:normal;font-variant-numeric:tabular-nums}
 .lg-recursos {--dy:-18px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;align-items:center}
-.lg-pilula {display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);font:900 17px var(--mac-ui);font-variant-numeric:tabular-nums}
+.lg-pilula {display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);font:900 17px var(--mac-ui);font-variant-numeric:tabular-nums}
 .lg-pilula:empty {display:none}
 .lg-moeda > i {width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd24a 45%,#d9930e);box-shadow:inset 0 -3px 0 #a8660a,0 0 12px #ffc93c66;position:relative}
 .lg-moeda > i::after {content:"V";position:absolute;inset:0;display:grid;place-items:center;color:#8a4d00;font:900 14px var(--mac-ui)}
@@ -10227,7 +10234,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-placa-sala svg {width:14px;height:14px;fill:none;stroke:#ffb27a;stroke-width:1.9}
 /* Botões de jogo à direita */
 .lg-lado {--dx:28px;--dy:0;grid-area:lado;display:grid;align-content:center;justify-items:end;gap:10px}
-.lg-botao {--cor:#ff8a35;position:relative;display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-areas:"icone txt";align-items:center;gap:12px;width:250px;padding:9px 14px 9px 9px;border:1px solid var(--borda-vidro);border-radius:16px;background:var(--vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau),0 12px 26px #0007;color:#fff;font:inherit;text-align:left;cursor:pointer;transition:transform .16s var(--curva,ease),box-shadow .16s,border-color .2s}
+.lg-botao {--cor:#ff8a35;position:relative;display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-areas:"icone txt";align-items:center;gap:12px;width:250px;padding:9px 14px 9px 9px;border:1px solid var(--borda-vidro);border-radius:16px;background:var(--vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau),0 12px 26px #0007;color:#fff;font:inherit;text-align:left;cursor:pointer;transition:transform .16s var(--curva,ease),box-shadow .16s,border-color .2s}
 .lg-botao.jg-missoes {--cor:#ff7a45}.lg-botao.jg-cobrancas {--cor:#e5484d}.lg-botao.jg-recados {--cor:#3e9bff}.lg-botao.jg-ranking {--cor:#f5b82e}.lg-botao.jg-conquistas {--cor:#8b6cff}
 .lg-botao-icone {grid-area:icone;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000c,0 1px 0 #ffffff0d}
 .lg-botao-icone svg {width:24px;height:24px;fill:none;stroke:var(--cor);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 0 #0007)}
@@ -10250,7 +10257,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-botao.esqueleto .lg-botao-txt small {width:84px;height:10px;border-radius:5px;background:#ffffff14}
 .lg-lado.antigo .lg-selo {opacity:.7}
 /* Quem está online, à esquerda */
-.lg-online {--dx:-28px;--dy:0;grid-area:online;align-self:end;justify-self:start;display:grid;gap:10px;padding:14px 16px;border-radius:20px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #00000080;max-width:320px}
+.lg-online {--dx:-28px;--dy:0;grid-area:online;align-self:end;justify-self:start;display:grid;gap:10px;padding:14px 16px;border-radius:20px;background:var(--vidro);border:1px solid var(--borda-vidro);box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #00000080;max-width:320px}
 .lg-online h3 {display:flex;align-items:center;gap:8px;margin:0;color:#a6f0c4;font:800 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
 .lg-online p {margin:0;color:#cfd3dc;font:500 12.5px/1.4 var(--mac-ui)}
 .lg-rostos {display:flex;flex-wrap:wrap;gap:8px}
@@ -10285,7 +10292,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-mudo input:checked + span::after {transform:translateX(14px)}
 .lg-mudo input:focus-visible + span {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-outros {display:flex;gap:8px}
-.lg-secundario {display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 8px;border-radius:14px;border:1px solid var(--borda-vidro);background:var(--vidro);color:#eef0f5;font:800 13.5px var(--mac-ui);cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
+.lg-secundario {display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 8px;border-radius:14px;border:1px solid var(--borda-vidro);background:var(--vidro);color:#eef0f5;font:800 13.5px var(--mac-ui);cursor:pointer;box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
 .lg-secundario svg {box-sizing:content-box;width:16px;height:16px;padding:7px;border-radius:9px;background:#2a2e3a;fill:none;stroke:#ffb27a;stroke-width:2;box-shadow:inset 0 1px 0 #ffffff14}
 .lg-secundario:hover {border-color:#ffffff40}
 .lg-secundario:active {transform:translateY(4px);box-shadow:0 0 0 var(--degrau)}
@@ -10301,7 +10308,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-entrar > span:only-child {font:900 20px var(--mac-ui)}
 .lg-entrar kbd {padding:3px 8px;border-radius:7px;background:#00000026;color:#3a1800;font:800 11px var(--mac-ui);box-shadow:inset 0 -1px 0 #0003}
 .lg-carregando {grid-template-columns:minmax(0,560px);justify-content:center}
-.lg-carregando .ofc-entrada {width:100%;padding:16px 18px;border-radius:18px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px)}
+.lg-carregando .ofc-entrada {width:100%;padding:16px 18px;border-radius:18px;background:var(--vidro);border:1px solid var(--borda-vidro)}
 .lg .ofc-lobby-outra {grid-area:base;justify-self:center}
 @media (hover:none) {.lg-entrar kbd {display:none}}
 @container (max-width:900px) or (max-height:620px) {
@@ -10346,7 +10353,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-colega:hover img, .lg-colega:focus-visible img {translate:0 -6px}
 .lg-colega:focus-visible {outline:2px solid #ff8a35;outline-offset:4px;border-radius:12px}
 /* Notícias no topo */
-.lg-noticias {flex:1;max-width:640px;display:flex;align-items:center;gap:10px;height:44px;margin:0 auto;padding:0 14px 0 6px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);overflow:hidden;align-self:center}
+.lg-noticias {flex:1;max-width:640px;display:flex;align-items:center;gap:10px;height:44px;margin:0 auto;padding:0 14px 0 6px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);overflow:hidden;align-self:center}
 .lg-noticias:empty {visibility:hidden}
 .lg-noticias-tag {flex:none;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;background:#0e1016;box-shadow:inset 0 1px 2px #000a;color:#ffb27a;font:900 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
 .lg-noticias-trilho {position:relative;flex:1;height:100%;min-width:0}
@@ -10408,6 +10415,10 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 }
 @media (prefers-reduced-motion:reduce) {.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-bau-caixa,.lg-bau-luz,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena {animation:none!important;transition:none!important}}
 [data-motion=reduce] :is(.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-bau-caixa,.lg-bau-luz,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena) {animation:none!important;transition:none!important}
+/* Computador simples (vybeAparelhoLeve, 22/10/2026): a Vybelândia sem os
+   enfeites que rodam sem parar; a entrada continua igual, só quieta. */
+.vybe-leve :is(.abr-faiscas,.lg-faiscas,.lg-ceu,.lg-feixe) {display:none}
+.vybe-leve :is(.abr-luz,.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-noticia,.lg-entrar,.lg-entrar::before,.lg-selo,.lg-xp i::after) {animation:none!important}
 /* O palco fica na frente dos colegas, mas não segura o clique (nada nele é clicável). */
 .lg-palco {z-index:2;pointer-events:none}
 

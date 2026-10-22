@@ -2098,7 +2098,7 @@ function renderEscritorio() {
  <div class="ofc-bonus-lugar" id="office-bonus">${escritorioBonusCopaHtml("mapa")}</div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby lg${escritorio.lobbySaindo ? " saindo" : ""}" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="lg-tela">${escritorioLobbyTopoHtml(perfil, eu, b)}<div id="lg-bau-lugar">${escritorioLobbyBauHtml()}</div>${escritorio.entrada ? `<div class="lg-base lg-carregando">${escritorioEntradaHtml()}</div>` : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby lg${escritorio.lobbySaindo ? " saindo" : ""}" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml("imagem") : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="lg-tela">${escritorioLobbyTopoHtml(perfil, eu, b)}<div id="lg-bau-lugar">${escritorioLobbyBauHtml()}</div>${escritorio.entrada ? `<div class="lg-base lg-carregando">${escritorioEntradaHtml()}</div>` : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
 </main>
 </section>`;
   if (lobby && typeof vbAnimarContagens === "function") vbAnimarContagens(painel);
@@ -3967,19 +3967,32 @@ async function iniciarNoEscritorio() {
   }
   if (new URLSearchParams(location.search).has("atividade")) return;
   const antes = typeof activeBoard !== "undefined" ? activeBoard : "producao";
-  let base;
+  // Enquanto pergunta ao servidor, a tela de trabalho fica escondida atrás da
+  // cidade: antes aparecia o painel de demandas e só depois o Escritório
+  // (Paulo, 22/10/2026). Sai assim que decide, ou em 8 s se o servidor demorar.
+  const fundo = document.getElementById("vybelandia-img")?.getAttribute("href") || "/assets/vybelandia.webp";
+  document.body.style.setProperty("--vybelandia-abrindo", `url("${fundo}")`);
+  document.body.classList.add("abrindo-escritorio");
+  const liberar = () => document.body.classList.remove("abrindo-escritorio");
+  const limite = setTimeout(liberar, 8000);
   try {
-    base = await escritorioApi("entrada");
-  } catch {
-    return;
+    let base;
+    try {
+      base = await escritorioApi("entrada");
+    } catch {
+      return;
+    }
+    if (!base.demo && !base.worker) return;
+    if (typeof activeBoard !== "undefined" && activeBoard !== antes) return;
+    escritorio.base = base;
+    escritorioChegar();
+    escritorio.portaoAntes = Boolean(document.getElementById("mode-gate")?.classList.contains("open"));
+    escritorio.boardAntes = antes;
+    voltarAoEscritorio();
+  } finally {
+    clearTimeout(limite);
+    liberar();
   }
-  if (!base.demo && !base.worker) return;
-  if (typeof activeBoard !== "undefined" && activeBoard !== antes) return;
-  escritorio.base = base;
-  escritorioChegar();
-  escritorio.portaoAntes = Boolean(document.getElementById("mode-gate")?.classList.contains("open"));
-  escritorio.boardAntes = antes;
-  voltarAoEscritorio();
 }
 // "Meu espaço" abre o criador de personagem da abertura.
 function personalizarEscritorio() {

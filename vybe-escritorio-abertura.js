@@ -3,15 +3,22 @@
 // o criador. Animação respeita prefers-reduced-motion e sempre pode ser pulada.
 // Mudar esta data faz a abertura (e o tutorial) aparecer de novo para todos.
 const ESCRITORIO_ABERTURA = "2026-10-17";
-// Fundo da Vybelândia: o vídeo animado (versão leve em telas pequenas), com a
-// imagem parada como capa enquanto carrega. Usado também no login.
-function vybelandiaCenaHtml(parada = false) {
-  const href = (id, padrao) => document.getElementById(id)?.getAttribute("href") || padrao;
-  const capa = href("vybelandia-img", "/assets/vybelandia.webp");
-  const video = window.matchMedia?.("(max-width: 900px)").matches ? href("vybelandia-video-leve", "/assets/vybelandia-540.mp4") : href("vybelandia-video", "/assets/vybelandia.mp4");
-  const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  // A cena é sempre muda (decisão do Paulo): sem trilha e sem botão de som.
-  return `<video class="abr-cena${parada ? " parada" : ""}" src="${safeText(video)}" poster="${safeText(capa)}" ${reduzido ? "" : "autoplay loop"} muted playsinline preload="auto" aria-hidden="true"></video>`;
+// Computador simples (até 4 núcleos ou 4 GB) ou "economizar dados": a
+// Vybelândia fica parada, sem vídeo nem faíscas. Com o vídeo, os desfoques e
+// o mapa juntos, havia computador da equipe que nem abria o painel (22/10/2026).
+function vybeAparelhoLeve() {
+  const n = typeof navigator === "undefined" ? {} : navigator;
+  return Boolean(n.connection?.saveData || (n.deviceMemory && n.deviceMemory <= 4) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4));
+}
+if (typeof document !== "undefined" && document.documentElement && vybeAparelhoLeve()) document.documentElement.classList.add("vybe-leve");
+// Fundo da Vybelândia (login, abertura, entrada e convite): a imagem parada
+// da cidade; "parada" é a mesma imagem escurecida atrás dos painéis. Sem
+// vídeo (decisão do Paulo, 22/10/2026: "tira logo o vídeo do começo
+// também"): o vídeo em loop, decodificado o dia inteiro, travava o painel.
+function vybelandiaCenaHtml(modo = "imagem") {
+  const capa = document.getElementById("vybelandia-img")?.getAttribute("href") || "/assets/vybelandia.webp";
+  const parada = modo === true || modo === "parada";
+  return `<img class="abr-cena${parada ? " parada" : ""}" src="${safeText(capa)}" alt="" aria-hidden="true" decoding="async">`;
 }
 
 // Criador de personagem no estilo do Habbo: abas por categoria, grade com
@@ -620,7 +627,7 @@ function criadorPainelHtml() {
   criador.pagina = pag;
   const pagina = itens.slice(pag * por, pag * por + por);
   const chip = (id, nome) => `<button type="button" aria-pressed="${filtro === id}" onclick="criador.filtro='${id}';criador.pagina=0;renderAberturaEscritorio()">${nome}</button>`;
-  return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
+  return `${vybelandiaCenaHtml("parada")}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel cri provador" aria-labelledby="abr-titulo">
  <div class="prov-topo">
   <div class="prov-titulo"><span class="abr-kicker">${criador.destino ? "Avatar do cliente no Escritório" : criador.so ? "Meu espaço" : criadorTemQuartoParaMontar() ? "Passo 1 de 4 · Personagem" : "Seu personagem"}</span><h2 id="abr-titulo">${criador.destino ? `Agente de ${safeText(criador.destino.nome)}` : "Provador"}</h2></div>
@@ -754,7 +761,7 @@ function criadorMeuEspacoHtml() {
   const peca = ({ cor, icone, palco, titulo, detalhes, acao, onclick, principal = false, extra = "" }) =>
     `<button type="button" class="esp-peca${extra}" style="--c:${cor}" onclick="${onclick}"><span class="esp-peca-palco" aria-hidden="true">${palco}</span><span class="esp-peca-corpo"><span class="esp-peca-titulo"><span class="jg-moeda esp-peca-icone">${icone}</span><b>${titulo}</b></span>${detalhes}<span class="esp-peca-acao${principal ? " principal" : ""}">${acao}</span></span></button>`;
   const mais = '<svg class="ofc-ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
-  return `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
+  return `${vybelandiaCenaHtml("parada")}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel espaco" aria-labelledby="esp-titulo">
  <div class="prov-topo"><div class="prov-titulo"><span class="abr-kicker">Meu espaço</span><h2 id="esp-titulo">Seu escritório, do seu jeito</h2></div>${nivel ? `<span class="esp-chip-topo" title="Seu nível">${escritorioIcone("ranking")}Nível <b>${Number(nivel)}</b></span>` : ""}${saldo !== null ? `<span class="prov-carteira" title="Suas VybeCoins"><i aria-hidden="true"></i><b>${saldo.toLocaleString("pt-BR")}</b> moedas</span>` : ""}<button type="button" class="esp-fechar" onclick="fecharAberturaEscritorio()" aria-label="Fechar">×</button></div>
  <div class="esp-grade">
@@ -860,7 +867,7 @@ function renderAberturaEscritorio() {
   if (criador.etapa === "saida") {
     const faiscas = Array.from({ length: 24 }, (_, i) =>
       `<i style="--x:${(i * 41) % 100}%;--d:${4 + (i % 5)}s;--a:${(i * 0.37) % 4}s;--s:${2 + (i % 3)}px"></i>`).join("");
-    el.innerHTML = `${vybelandiaCenaHtml()}<div class="abr-luz" aria-hidden="true"></div><div class="abr-faiscas" aria-hidden="true">${faiscas}</div><div class="abr-vinheta" aria-hidden="true"></div>
+    el.innerHTML = `${vybelandiaCenaHtml("imagem")}<div class="abr-luz" aria-hidden="true"></div><div class="abr-faiscas" aria-hidden="true">${faiscas}</div><div class="abr-vinheta" aria-hidden="true"></div>
 <div class="abr-texto"><span class="abr-kicker">Vybe OS · você saiu do escritório</span><h1>Bem-vindo à <b>Vybelândia</b></h1><p>${safeText(criador.nome)}, quer entrar de novo? A equipe só vê você quando entrar.</p>
 <div class="abr-saida-acoes"><button type="button" class="abr-primario" onclick="fecharAberturaEscritorio();escritorio.lobbyFechado=true;${escritorio.base?.demo ? "renderEscritorio()" : "conectarEscritorio()"}">Entrar na Vybelândia</button><button type="button" class="abr-secundario" onclick="fecharAberturaEscritorio();abrirPainelDoEscritorio()">Ir para o painel</button></div></div>`;
     el.querySelector(".abr-primario")?.focus({ preventScroll: true });
@@ -868,7 +875,7 @@ function renderAberturaEscritorio() {
   }
   // Boas-vindas
   const mesa = escritorioMinhaMesa();
-  el.innerHTML = `${vybelandiaCenaHtml(true)}<div class="abr-vinheta" aria-hidden="true"></div>
+  el.innerHTML = `${vybelandiaCenaHtml("parada")}<div class="abr-vinheta" aria-hidden="true"></div>
 <section class="abr-painel abr-boas" aria-labelledby="abr-titulo">
  <img class="abr-boneco" src="${criadorImagem(criadorFigura(criador.f), 4)}" alt="" width="128" height="220">
  <div><span class="abr-kicker">Tudo pronto para entrar</span><h2 id="abr-titulo">Bem-vindo à Vybelândia, ${safeText(criador.nome)}!</h2>

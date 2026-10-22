@@ -1460,3 +1460,24 @@ decoração inicial "bem feito".
 - Próximos pedidos do Paulo: cursor que muda conforme a ação (andar, pegar,
   usar móvel); caixas da coluna da direita (Cobrando, Missões, Conversa,
   tela) soltas, para arrastar, aumentar e diminuir, cada uma no seu lugar.
+
+## Entrada leve (22/10/2026)
+
+Paulo: "o sistema tá travando… tem PC que nem tá abrindo". O servidor estava
+normal; o peso era a entrada do Escritório (tela inicial no computador): o
+vídeo da cidade em loop o dia inteiro (dois, para quem ainda não criou o
+personagem), 18 painéis com desfoque refeito a cada quadro do vídeo e o mapa
+animando 24 vezes por segundo por trás da entrada. Agora:
+
+- Sem vídeo em lugar nenhum (Paulo: "tira logo o vídeo do começo também"):
+  `vybelandiaCenaHtml` devolve sempre a imagem parada (ou escurecida, "parada");
+  os mp4 saíram do repositório e do build.
+- Painéis da entrada e cartões do mapa sem `backdrop-filter` (o fundo já era
+  92% opaco).
+- `mapaForaDeVista` (vybe-escritorio-mapa.js): o mapa coberto pela entrada ou
+  pela abertura não anima; a vitrine dentro da entrada continua.
+- `vybeAparelhoLeve` (até 4 núcleos, até 4 GB ou "economizar dados"): classe
+  `vybe-leve`, sem vídeo nem enfeites em loop.
+- Abrir no Escritório sem piscar o painel de demandas: `iniciarNoEscritorio`
+  põe `abrindo-escritorio` no body (a cidade no fundo, tela de trabalho
+  escondida) até o servidor responder, no máximo 8 s.
