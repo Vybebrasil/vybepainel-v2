@@ -52,6 +52,99 @@ function escritorioNumerosDe(pessoa) {
     dia: { feitas: feitasHoje, total: doDia.length }, nivel, xp: total - base, xpProximo: passo,
   };
 }
+// Dia de cada pessoa (Paulo, 22/10/2026), para o balão da mesa e o Dia da
+// equipe. Todos veem o de todos. Hoje: o que vence hoje e o que foi entregue
+// hoje. Ontem: o que vencia no dia útil anterior (entregue no dia, depois ou
+// ainda aberto). Cada peça mostra o status do painel como está: nada de
+// deduzir publicação a partir de "Para agendar" ou "Agendado".
+const ESCRITORIO_FAZENDO = /^em (andamento|execu[cç][aã]o)$/i;
+function escritorioDiaDe(pessoa) {
+  const lista = escritorioDemandasDe(pessoa);
+  if (!lista) return null;
+  const hoje = escritorioHojeIso(), ontem = escritorioDiaUtilAntes(hoje), feita = escritorioConcluida;
+  const estado = (d) => (feita(d) ? "feita" : ESCRITORIO_FAZENDO.test(String(d.status || "").trim()) ? "fazendo" : "falta");
+  const ordem = { fazendo: 0, falta: 1, feita: 2 };
+  const ord = (a, b) => ordem[estado(a)] - ordem[estado(b)] || String(a.prazo_iso || "").localeCompare(String(b.prazo_iso || ""));
+  const conta = (l) => ({ total: l.length, feitas: l.filter(feita).length, fazendo: l.filter((d) => estado(d) === "fazendo").length, faltam: l.filter((d) => estado(d) === "falta").length });
+  const paraHoje = lista.filter((d) => d.prazo_iso === hoje || (feita(d) && d.conclusao_iso === hoje)).sort(ord);
+  const atrasadas = lista.filter((d) => !feita(d) && d.prazo_iso && d.prazo_iso < hoje).sort(ord);
+  const deOntem = lista.filter((d) => d.prazo_iso === ontem).sort(ord);
+  const noDia = deOntem.filter((d) => feita(d) && d.conclusao_iso && d.conclusao_iso <= ontem);
+  const depois = deOntem.filter((d) => feita(d) && !noDia.includes(d));
+  return { hoje, ontem, estado, paraHoje, atrasadas, deOntem, noDia, depois, nHoje: conta(paraHoje), nOntem: { ...conta(deOntem), noDia: noDia.length, depois: depois.length } };
+}
+const escritorioPlural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+function escritorioDiaRostoHtml(id, tam = 40) {
+  const u = typeof escritorioCabecaUrl === "function" ? escritorioCabecaUrl(id) : null;
+  return u ? `<img class="dia-rosto" src="${safeText(u)}" alt="" width="${tam}" height="${tam}" loading="lazy" referrerpolicy="no-referrer">` : `<span class="dia-rosto vazio" style="width:${tam}px;height:${tam}px"></span>`;
+}
+// Anel do quanto de hoje já foi finalizado (o mesmo do balão da mesa).
+function escritorioDiaAnelHtml(n) {
+  const pct = n.total ? Math.round((n.feitas / n.total) * 100) : 0;
+  return `<span class="dia-anel${n.total && n.feitas === n.total ? " completo" : ""}" style="--p:${pct}" role="img" aria-label="${safeText(`${n.feitas} de ${n.total} finalizadas`)}"><b>${n.total ? `${n.feitas}/${n.total}` : "0"}</b></span>`;
+}
+const ESCRITORIO_DIA_ESTADO = { feita: "Finalizada", fazendo: "Fazendo agora", falta: "Falta fazer" };
+function escritorioDiaCartaoHtml(pessoa) {
+  const d = escritorioDiaDe(pessoa);
+  if (!d) return vbEstadoHtml({ tipo: "carregando", titulo: "Carregando o dia" });
+  const n = d.nHoje, o = d.nOntem, abertasOntem = o.faltam + o.fazendo;
+  const linha = (it) => `<li class="${d.estado(it)}"><i aria-hidden="true"></i><span>${safeText(it.nome || "Demanda")}</span><small>${safeText(it.status || ESCRITORIO_DIA_ESTADO[d.estado(it)])}</small></li>`;
+  const conta = [n.feitas && ["feita", escritorioPlural(n.feitas, "finalizada", "finalizadas")], n.fazendo && ["fazendo", escritorioPlural(n.fazendo, "fazendo agora", "fazendo agora")], n.faltam && ["falta", escritorioPlural(n.faltam, "falta", "faltam")]].filter(Boolean);
+  return `<div class="dia-cab">${escritorioDiaRostoHtml(pessoa.id, 40)}<div><b>${safeText(pessoa.nome || "")}</b><small>Hoje, ${escritorioDataCurta(d.hoje)} · ${escritorioPlural(n.total, "demanda", "demandas")}</small></div>${escritorioDiaAnelHtml(n)}</div>
+  ${n.total ? `<div class="dia-conta">${conta.map(([c, t]) => `<span class="${c}">${t}</span>`).join("")}</div><ul class="dia-lista">${d.paraHoje.slice(0, 4).map(linha).join("")}</ul>${d.paraHoje.length > 4 ? `<small class="dia-mais">e mais ${d.paraHoje.length - 4}</small>` : ""}` : '<p class="dia-vazio">Nada vence hoje.</p>'}
+  ${d.atrasadas.length ? `<p class="dia-alerta">${escritorioPlural(d.atrasadas.length, "atrasada", "atrasadas")} de dias anteriores</p>` : ""}
+  <div class="dia-ontem"><span class="vb-jogo-rotulo">Ontem, ${escritorioDataCurta(d.ontem)}</span><span>${o.total ? `${o.noDia} de ${o.total} no dia${o.depois ? ` · ${o.depois} depois` : ""}${abertasOntem ? ` · <em>${escritorioPlural(abertasOntem, "ficou aberta", "ficaram abertas")}</em>` : ""}` : "Nada vencia"}</span></div>
+  <small class="dia-dica">Clique no balão para ver a equipe toda</small>`;
+}
+// Dia da equipe: cada pessoa com a fotinha do personagem, hoje ou ontem; a
+// pessoa do balão clicado já vem aberta, com as demandas uma a uma.
+const escritorioDiaEquipe = { vista: "hoje", aberto: null };
+function abrirDiaEquipeEscritorio(id) {
+  if (id != null) escritorioDiaEquipe.aberto = String(id);
+  if (typeof esconderDiaCardEscritorio === "function") esconderDiaCardEscritorio(true);
+  if (!document.getElementById("ofc-dia-equipe")) {
+    openWorkflowModal('<div class="ofc-ranking ofc-dia-equipe" id="ofc-dia-equipe" role="dialog" aria-label="Dia da equipe"></div>');
+    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "ofc-menu-jogo");
+  }
+  escritorioDiaEquipe.primeiro = escritorioDiaEquipe.aberto;
+  pintarDiaEquipeEscritorio();
+}
+function trocarDiaEquipeEscritorio(campo, valor) {
+  escritorioDiaEquipe[campo] = campo === "aberto" && escritorioDiaEquipe.aberto === String(valor) ? null : String(valor);
+  pintarDiaEquipeEscritorio();
+}
+function pintarDiaEquipeEscritorio() {
+  const el = document.getElementById("ofc-dia-equipe");
+  if (!el) return;
+  const { vista, aberto } = escritorioDiaEquipe, ontem = vista === "ontem";
+  const topo = `<header class="ofc-rk-cab"><span class="ofc-rk-icone" aria-hidden="true">${escritorioIcone("lista")}</span><div><h2>Dia da equipe</h2><small>O que cada um tinha, está fazendo e já finalizou</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>`;
+  const alternar = `<div class="vb-alternar" role="group" aria-label="Dia"><button type="button" aria-pressed="${!ontem}" onclick="trocarDiaEquipeEscritorio('vista','hoje')">Hoje</button><button type="button" aria-pressed="${ontem}" onclick="trocarDiaEquipeEscritorio('vista','ontem')">Ontem</button></div>`;
+  if (!escritorioDemandasProntas()) { el.innerHTML = topo + `<div class="ofc-rk-corpo">${alternar}${vbEstadoHtml({ tipo: "carregando", titulo: "Carregando as demandas" })}</div>`; return; }
+  const pessoas = (escritorio.base?.equipe || []).map((p) => ({ p, d: escritorioDiaDe(p) })).filter((x) => x.d && (escritorioDemandasDe(x.p) || []).length)
+    // A pessoa do balão clicado vem primeiro; o resto, em ordem de nome.
+    .sort((a, b) => (String(b.p.id) === escritorioDiaEquipe.primeiro) - (String(a.p.id) === escritorioDiaEquipe.primeiro) || String(a.p.nome || "").localeCompare(String(b.p.nome || ""), "pt-BR"));
+  if (!pessoas.length) { el.innerHTML = topo + `<div class="ofc-rk-corpo">${alternar}${vbEstadoHtml({ tipo: "vazio", titulo: "Ninguém com demandas", texto: "Quando houver demandas com responsável, o dia de cada um aparece aqui." })}</div>`; return; }
+  const item = (it, d) => `<li><button type="button" onclick="closeWorkflowModal();escritorioAbrirDemanda('${safeText(String(it.id))}')"><span class="dia-ponto ${d.estado(it)}" aria-hidden="true"></span><span class="dia-nome">${safeText(it.nome || "Demanda")}<small>${safeText([it.clientes?.length ? it.clientes.join(", ") : it.cliente, it.prazo_iso ? "prazo " + escritorioDataCurta(it.prazo_iso) : ""].filter((t) => t && t !== "—").join(" · "))}</small></span>${typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(it.status || "") : `<small>${safeText(it.status || "")}</small>`}</button></li>`;
+  const grupo = (titulo, lista, d, tom = "") => (lista.length ? `<section class="dia-grupo ${tom}"><span class="vb-jogo-rotulo">${titulo} · ${lista.length}</span><ul>${lista.map((it) => item(it, d)).join("")}</ul></section>` : "");
+  const detalhe = (d) => ontem
+    ? grupo("Entregues no dia", d.noDia, d, "feita") + grupo("Entregues depois", d.depois, d) + grupo("Ficaram em aberto", d.deOntem.filter((x) => d.estado(x) !== "feita"), d, "alerta") || '<p class="dia-vazio">Nada vencia ontem.</p>'
+    : grupo("Fazendo agora", d.paraHoje.filter((x) => d.estado(x) === "fazendo"), d, "fazendo") + grupo("Falta fazer", d.paraHoje.filter((x) => d.estado(x) === "falta"), d) + grupo("Finalizadas", d.paraHoje.filter((x) => d.estado(x) === "feita"), d, "feita") + grupo("Atrasadas de antes", d.atrasadas, d, "alerta") || '<p class="dia-vazio">Nada vence hoje.</p>';
+  const resumo = (d) => {
+    if (ontem) { const o = d.nOntem, ab = o.faltam + o.fazendo; return o.total ? `${o.noDia} de ${o.total} no dia${o.depois ? ` · ${o.depois} depois` : ""}${ab ? ` · <em>${escritorioPlural(ab, "aberta", "abertas")}</em>` : ""}` : "Nada vencia"; }
+    const n = d.nHoje;
+    return (n.total ? [n.fazendo && `${n.fazendo} fazendo`, n.faltam && `${escritorioPlural(n.faltam, "falta", "faltam")}`, n.feitas && `${escritorioPlural(n.feitas, "finalizada", "finalizadas")}`].filter(Boolean).join(" · ") : "Nada vence hoje") + (d.atrasadas.length ? ` · <em>${escritorioPlural(d.atrasadas.length, "atrasada", "atrasadas")}</em>` : "");
+  };
+  const anel = (d) => escritorioDiaAnelHtml(ontem ? { total: d.nOntem.total, feitas: d.nOntem.noDia } : d.nHoje);
+  const tot = pessoas.reduce((t, { d }) => { const n = ontem ? { total: d.nOntem.total, feitas: d.nOntem.noDia, abertas: d.nOntem.faltam + d.nOntem.fazendo } : { total: d.nHoje.total, feitas: d.nHoje.feitas, abertas: d.atrasadas.length }; t.total += n.total; t.feitas += n.feitas; t.abertas += n.abertas; return t; }, { total: 0, feitas: 0, abertas: 0 });
+  const resumoEquipe = vbResumoHtml([
+    { valor: `${tot.feitas} de ${tot.total}`, rotulo: ontem ? " entregues no dia" : " finalizadas hoje", tom: tot.total && tot.feitas === tot.total ? "ok" : "" },
+    { valor: tot.abertas || "", rotulo: tot.abertas ? (ontem ? (tot.abertas === 1 ? " ficou aberta" : " ficaram abertas") : (tot.abertas === 1 ? " atrasada de antes" : " atrasadas de antes")) : (ontem ? "Nada ficou aberto" : "Nada atrasado"), tom: tot.abertas ? "alerta" : "" },
+  ]);
+  el.innerHTML = topo + `<div class="ofc-rk-corpo"><div class="dia-barra">${alternar}${resumoEquipe}</div><div class="dia-equipe">${pessoas.map(({ p, d }) => {
+    const sel = aberto === String(p.id);
+    return `<article class="vb-jogo-cartao dia-pessoa${sel ? " aberto" : ""}"><button type="button" class="dia-pessoa-cab" aria-expanded="${sel}" onclick="trocarDiaEquipeEscritorio('aberto','${safeText(String(p.id))}')">${escritorioDiaRostoHtml(p.id, 44)}<span class="dia-pessoa-nome"><b>${safeText(p.nome || "")}</b><small>${resumo(d)}</small></span>${anel(d)}</button>${sel ? `<div class="dia-detalhe vb-jogo-poco">${detalhe(d)}</div>` : ""}</article>`;
+  }).join("")}</div></div>`;
+}
 // Marcos calculados no servidor (server/escritorio-marcos.js): cada um diz se
 // foi conquistado, quando, e o móvel que dá. Nome do móvel pelo catálogo do editor.
 // Regras gerais na ficha (Paulo, 20/10/2026): o que dá e o que tira XP e

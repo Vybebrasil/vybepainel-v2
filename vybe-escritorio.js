@@ -1709,13 +1709,18 @@ function escritorioTrocarCena(quarto, lugar, dir) {
   // hora; a da antiga para. Confere de novo quando os móveis terminam de
   // carregar (só aí se sabe se a sala tem jukebox).
   if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala();
-  escritorio.mapa?.prontos.then(() => { posicionarTacaEscritorio(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); if (typeof carregarCobrancasEscritorio === "function") carregarCobrancasEscritorio(); depois?.(); });
+  escritorio.mapa?.prontos.then(() => { posicionarTacaEscritorio(); escritorioMarcarDia(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); atualizarAcaoProximaEscritorio(true); if (typeof gatilhoEntradaEscritorio === "function") gatilhoEntradaEscritorio(); if (typeof escritorioMusicaDaSala === "function") escritorioMusicaDaSala(); if (typeof carregarCobrancasEscritorio === "function") carregarCobrancasEscritorio(); depois?.(); });
 }
 function escritorioMinhaMesa() {
   let a = escritorioDonos().get(escritorio.base?.eu);
   if(a && escritorio.quarto?.endsWith("-andar-1") && escritorioRaizQuarto(escritorio.quarto)===a.id) a=escritorioAmbienteDoQuarto();
   if(!a) return null;
-  if(escritorio.perfil?.quarto_configurado) {
+  return escritorioMesaDoAmbiente(a, escritorio.perfil);
+}
+// Mesa de um quarto (o da pessoa ou o de outro dono): o computador do quarto
+// montado, senão a mesa padrão da sala.
+function escritorioMesaDoAmbiente(a, perfil) {
+  if(perfil?.quarto_configurado) {
     const itens=escritorioItensDaCamada(a.id);
     const computador=itens.find(it=>/computer|laptop/.test(it[0]));
     const cadeira=itens.find(it=>/chair|stool|seat|hc26_10|sofa/.test(it[0]));
@@ -2014,7 +2019,7 @@ function atualizarControlesEscritorio() {
     </div></details>` : "";
     const linha = (acao, icone, rotulo, extra = "") => `<button type="button" class="ofc-mais-linha" onclick="${acao};this.closest('details').open=false" ${extra}>${escritorioIcone(icone)}<span>${rotulo}</span></button>`;
     const trancaLinha = escritorioPodeTrancar() ? linha("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
-    return `${acoes}<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-mais-lista">${escritorio.conectado && escritorio.quarto ? `<span class="vb-jogo-rotulo">Sala</span>${linha("abrirNovoPostitEscritorio()", "editar", "Colar post-it na parede")}` : ""}<span class="vb-jogo-rotulo">Escritório</span>${linha("irParaMinhaMesaEscritorio()", "mesa", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${trancaLinha}${escritorio.podeAvisar ? linha("abrirMandarAvisoEscritorio()", "conversa", "Mandar recado para todos") : ""}${linha("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${linha("abrirAjustesAudioEscritorio()", "ajustes", "Ajustes de áudio")}</div></details>`;
+    return `${acoes}<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-mais-lista">${escritorio.conectado && escritorio.quarto ? `<span class="vb-jogo-rotulo">Sala</span>${linha("abrirNovoPostitEscritorio()", "editar", "Colar post-it na parede")}` : ""}<span class="vb-jogo-rotulo">Escritório</span>${linha("irParaMinhaMesaEscritorio()", "mesa", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${linha("abrirDiaEquipeEscritorio()", "lista", "Dia da equipe")}${trancaLinha}${escritorio.podeAvisar ? linha("abrirMandarAvisoEscritorio()", "conversa", "Mandar recado para todos") : ""}${linha("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${linha("abrirAjustesAudioEscritorio()", "ajustes", "Ajustes de áudio")}</div></details>`;
   })()}<span class="ofc-sep"></span>${escritorioMinhaMesa() ? botao("irParaMinhaMesaEscritorio()", "mesa", "Minha sala", 'title="Ir para a minha sala e sentar na minha mesa"', { texto: true, classe: "destaque" }) : ""}${botao("escolherPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ' title="Voltar ao painel de trabalho (demandas, agenda, clientes)"'}`, { texto: true, classe: "destaque principal" })}${escritorioPainelOnde() ? `<button type="button" class="ofc-abrir-trocar" onclick="esquecerPainelOndeEscritorio()" title="O Painel abre ${escritorioPainelOnde() === "nova" ? "em outra aba" : "nesta aba"}. Clique para escolher de novo.">${escritorioPainelOnde() === "nova" ? "em outra aba" : "nesta aba"}</button>` : ""}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
@@ -2079,6 +2084,7 @@ function renderEscritorio() {
  <div id="office-movel-card" class="ofc-mesa-card ofc-ficha-movel" role="dialog" aria-label="Selecionado" hidden></div>
  <div id="office-menu-pessoa" class="ofc-menu-pessoa" role="menu" aria-label="Ações" hidden></div>
  <div id="office-info-card" class="ofc-mesa-card ofc-info-card" role="status" hidden onmouseleave="this.hidden=true"></div>
+ <div id="office-dia-card" class="ofc-mesa-card ofc-dia-card" role="tooltip" hidden onmouseleave="esconderDiaCardEscritorio()"></div>
  <div class="ofc-zoom" ${modo === "mapa" ? "" : "hidden"}><button type="button" onclick="escritorio.mapa?.mudarZoom(1.25)" aria-label="Aproximar">+</button><button type="button" onclick="escritorio.mapa?.mudarZoom(0.8)" aria-label="Afastar">−</button><button type="button" onclick="centralizarEmMimEscritorio()" aria-label="Centralizar em mim" title="Centralizar em mim">${escritorioIcone("alvo")}</button></div>
  <div class="ofc-lista" id="office-lista-salas" ${modo === "lista" ? "" : "hidden"}></div>
  <div class="ofc-coluna" id="office-coluna">
@@ -2168,7 +2174,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
+    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioMarcarDia(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -2669,7 +2675,7 @@ function escritorioDemandasProntas() {
   if (typeof DADOS_DEMANDAS === "undefined") return false;
   if (!DADOS_DEMANDAS.length && typeof ensureDemandasForOperationalViews === "function" && !escritorio.pediuDemandas) {
     escritorio.pediuDemandas = true;
-    Promise.resolve(ensureDemandasForOperationalViews()).finally(() => { escritorio.pediuDemandas = false; });
+    Promise.resolve(ensureDemandasForOperationalViews()).finally(() => { escritorio.pediuDemandas = false; escritorioMarcarDia(); if (document.getElementById("ofc-dia-equipe")) pintarDiaEquipeEscritorio(); });
   }
   return DADOS_DEMANDAS.length > 0;
 }
@@ -5089,6 +5095,51 @@ function escritorioNomeCurto(nome) {
   return partes[0] + " " + partes.at(-1)[0].toUpperCase() + ".";
 }
 
+// Balão do dia na mesa do dono do quarto (Paulo, 22/10/2026: "a gente como
+// Head tem muita dificuldade de saber o que o time fez no dia, deixou de
+// fazer"). Todos veem o de todos. Passar o mouse mostra o resumo de hoje e
+// de ontem; clicar abre o Dia da equipe, com a pessoa do quarto aberta.
+function escritorioMarcarDia() {
+  const m = escritorio.mapa;
+  if (!m?.marcarDia) return;
+  // Dono pelo mesmo cálculo das cobranças (vybe-escritorio-missoes.js); a mesa
+  // fica no térreo do quarto.
+  const dono = typeof escritorioDonoDoQuarto === "function" && escritorio.quarto === escritorioRaizQuarto(escritorio.quarto) ? escritorioDonoDoQuarto() : null;
+  const pessoa = dono && (escritorio.base?.equipe || []).find((p) => String(p.id) === dono), a = pessoa && escritorioAmbienteDoQuarto(escritorio.quarto);
+  const dia = a && escritorioDemandasProntas() && typeof escritorioDiaDe === "function" ? escritorioDiaDe(pessoa) : null;
+  const mesa = dia && escritorioMesaDoAmbiente(a, escritorioPerfilDecoracao(escritorio.quarto));
+  if (!mesa) { m.marcarDia(); esconderDiaCardEscritorio(true); return; }
+  const n = dia.nHoje, pend = dia.atrasadas.length + dia.nOntem.faltam + dia.nOntem.fazendo;
+  const nome = String(pessoa.nome || "").split(" ")[0];
+  m.marcarDia(mesa.x, mesa.y, {
+    texto: n.total ? `${n.feitas}/${n.total}` : "0", pct: n.total ? Math.round((n.feitas / n.total) * 100) : 0,
+    completo: n.total > 0 && n.feitas === n.total, alerta: pend,
+    rotulo: `Dia de ${nome}: ${n.feitas} de ${n.total} de hoje finalizadas${pend ? `, ${pend} em aberto de antes` : ""}. Clique para ver a equipe.`,
+    aoPassar: (no) => mostrarDiaCardEscritorio(no, pessoa), aoSair: () => esconderDiaCardEscritorio(),
+    aoClicar: () => abrirDiaEquipeEscritorio(pessoa.id),
+  });
+}
+// Cartão do balão: preso em cima dele (não segue o mouse) e fica aberto
+// enquanto o mouse estiver no balão ou no cartão.
+function mostrarDiaCardEscritorio(no, pessoa) {
+  const card = document.getElementById("office-dia-card");
+  if (!card || !no || typeof escritorioDiaCartaoHtml !== "function") return;
+  clearTimeout(escritorio.timerDiaCard);
+  card.innerHTML = escritorioDiaCartaoHtml(pessoa);
+  card.hidden = false;
+  const caixa = card.parentElement.getBoundingClientRect(), r = no.getBoundingClientRect();
+  const w = card.offsetWidth, h = card.offsetHeight;
+  card.style.left = Math.max(8, Math.min(caixa.width - w - 8, r.left + r.width / 2 - caixa.left - w / 2)) + "px";
+  const acima = r.top - caixa.top - h - 10;
+  card.style.top = (acima >= 8 ? acima : Math.min(caixa.height - h - 8, r.bottom - caixa.top + 10)) + "px";
+}
+function esconderDiaCardEscritorio(agora = false) {
+  const card = document.getElementById("office-dia-card");
+  if (!card) return;
+  clearTimeout(escritorio.timerDiaCard);
+  if (agora) { card.hidden = true; return; }
+  escritorio.timerDiaCard = setTimeout(() => { if (!card.matches(":hover") && !document.querySelector(".mapa-dia:hover")) card.hidden = true; }, 250);
+}
 // Envelope aceso sobre a própria mesa enquanto houver recado não lido (só
 // quem recebeu vê). Clicar abre a conversa de quem mandou (ou a lista).
 function escritorioMarcarRecados() {
@@ -5184,7 +5235,8 @@ const ESCRITORIO_DESTINOS_AVISO = {
 const ESCRITORIO_ESTILOS_AVISO = { padrao: { nome: "Vybe", arte: "ads_idol_mic" }, obra: { nome: "Obra", arte: "bc_cone_recolorable" }, festa: { nome: "Festa", arte: "prizetrophy" } };
 function iniciarAvisosEscritorio() {
   if (escritorio.timerAvisos || typeof setInterval !== "function" || typeof document === "undefined") return;
-  const buscar = () => { if (!document.hidden && escritorio.base && !escritorio.base.demo) verificarAvisosEscritorio(); };
+  // O balão do dia acompanha as demandas (que o painel atualiza sozinho).
+  const buscar = () => { if (document.hidden) return; escritorioMarcarDia(); if (escritorio.base && !escritorio.base.demo) verificarAvisosEscritorio(); };
   buscar();
   escritorio.timerAvisos = setInterval(buscar, 60e3);
 }

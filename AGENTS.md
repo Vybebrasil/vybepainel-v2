@@ -352,6 +352,16 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   pessoa vê cada recado uma vez, por 7 dias (`server/escritorio-avisos.js`,
   `2026-10-22-escritorio-avisos.sql`). O painel procura recado novo a cada
   minuto (sem mudar o Worker). Quem manda é conferido pela sessão no servidor.
+- Dia de cada pessoa (decisão do Paulo, 22/10/2026: "a gente como Head tem
+  muita dificuldade de saber o que o time fez no dia, deixou de fazer"): um
+  balão aceso sobre a mesa do dono de cada quarto (`marcarDia` no mapa,
+  `escritorioMarcarDia`) e a janela "Dia da equipe" (clique no balão ou menu
+  Mais), com a fotinha de cada personagem. **Todos veem o de todos** (Paulo:
+  vale para a equipe inteira, inclusive o que cada um fez e deixou de fazer).
+  Contas em `escritorioDiaDe` (`vybe-escritorio-ficha.js`), só das demandas do
+  painel: hoje = vence hoje ou foi entregue hoje; ontem = dia útil anterior
+  (no dia, depois, ficou aberta); status do painel como está, sem deduzir
+  publicação. Não crie outra contagem do dia.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em
